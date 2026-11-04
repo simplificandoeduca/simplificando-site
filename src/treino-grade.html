@@ -1318,6 +1318,7 @@ body.has-dock .toast,body.has-dock .utoast{bottom:calc(176px + env(safe-area-ins
 .lg-field.sm{height:64px}
 .lg-field.sm .lg-inp,.lg-inp[type="text"],.lg-inp[type="password"]{letter-spacing:.02em;font-size:22px;font-weight:800}
 .lg-field.sm .lg-inp[type="password"],#lg-pw[type="password"]{letter-spacing:.18em}
+.lg-mail{margin-bottom:6px}
 .lg-logo.sm{width:64px;height:64px}
 .lg-inp:placeholder-shown{letter-spacing:0!important}
 .lg-mail{height:60px}
@@ -1615,7 +1616,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '4 nov · 19'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '4 nov · 20'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -1812,10 +1813,32 @@ const FB = (() => {
       const c = cached(); return c ? { p:c, offline:true } : { err:'Sem internet. Conecte e tente de novo.' };
     }
   }
-  async function login(code){
-    try { await auth.signInWithEmailAndPassword(mail(code), pass(code)); }
-    catch(e){ const k = e && e.code; return { err: k==='auth/too-many-requests' ? 'Muitas tentativas. Espere alguns minutos e tente de novo.' : k==='auth/network-request-failed' ? 'Sem internet. Conecte e tente de novo.' : 'Senha não encontrada. Confira com seu personal.' }; }
+  // aluno com personal: e-mail + código de 6 números. Contas antigas entram só com o código.
+  async function login(code, email){
+    const em = String(email||'').trim().toLowerCase(), net = k => k==='auth/too-many-requests' ? 'Muitas tentativas. Espere alguns minutos e tente de novo.' : k==='auth/network-request-failed' ? 'Sem internet. Conecte e tente de novo.' : '';
+    let ok = false, cru = false;
+    if(em){
+      try { await auth.signInWithEmailAndPassword(em, pass(code)); ok = true; }
+      catch(e){ if(net(e && e.code)) return { err:net(e.code) };
+        try { await auth.signInWithEmailAndPassword(em, code); ok = true; cru = true; } catch(e2){ /* tenta a conta antiga */ } }
+    }
+    if(!ok){
+      try { await auth.signInWithEmailAndPassword(mail(code), pass(code)); }
+      catch(e){ const k = e && e.code; return { err: net(k) || (em ? 'E-mail ou senha não conferem. Confira com seu personal ou toque em “Esqueci a senha”.' : 'Senha não encontrada. Confira com seu personal.') }; }
+    }
+    // trocou o código pela página padrão do Firebase: deixa a conta no formato do app e avisa o painel
+    if(cru){ try { await auth.currentUser.updatePassword(pass(code)); } catch(e){ /* segue */ } await setCodigo(code); }
     const r = await fetchMe(); if(r.out) await logout(); return r;
+  }
+  async function setCodigo(code){ const u = auth.currentUser; if(!u) return; try { await db.collection('codigos').doc(u.uid).set({ codigo:String(code), em:Date.now() }); } catch(e){ /* regras antigas: o painel não fica sabendo */ } }
+  // link do e-mail de "esqueci": confere e grava a senha ou o código novo
+  const resetErr = e => { const k = e && e.code; return k==='auth/expired-action-code' ? 'Esse link venceu. Peça um novo em “Esqueci a senha”.' : k==='auth/invalid-action-code' ? 'Esse link já foi usado ou não vale mais. Peça um novo em “Esqueci a senha”.' : k==='auth/weak-password' ? 'Senha fraca. Use pelo menos 8 caracteres.' : k==='auth/network-request-failed' ? 'Sem internet. Conecte e tente de novo.' : 'Não deu certo. Peça um link novo em “Esqueci a senha”.'; };
+  async function resetCheck(oob){ try { return { email:await auth.verifyPasswordResetCode(oob) }; } catch(e){ return { err:resetErr(e) }; } }
+  async function resetSave(oob, nova, aluno){
+    try { const em = await auth.verifyPasswordResetCode(oob); await auth.confirmPasswordReset(oob, aluno ? pass(nova) : nova);
+      if(!aluno) return { ok:true, email:em };
+      await auth.signInWithEmailAndPassword(em, pass(nova)); await setCodigo(nova); const r = await fetchMe(); if(r.out){ await logout(); return { err:r.err||'Seu acesso não está liberado. Fale com seu personal.' }; } return { ok:true, email:em, p:r.p }; }
+    catch(e){ return { err:resetErr(e) }; }
   }
   async function logout(){ try { localStorage.removeItem(CK); } catch(e){ /* nada */ } try { await auth.signOut(); } catch(e){ /* nada */ } }
   /* aluno sem personal: conta com e-mail e senha; o app inteiro fica salvo em autonomos/{uid} */
@@ -1827,8 +1850,8 @@ const FB = (() => {
     try { const c = await auth.signInWithEmailAndPassword(email, pw); return { uid:c.user.uid, nome:c.user.displayName||'' }; }
     catch(e){ const k = e && e.code; return { err: k==='auth/too-many-requests' ? 'Muitas tentativas. Espere alguns minutos e tente de novo.' : k==='auth/network-request-failed' ? 'Sem internet. Conecte e tente de novo.' : 'E-mail ou senha não conferem.' }; }
   }
-  async function resetMail(email){
-    try { await auth.sendPasswordResetEmail(email); return { ok:true }; }
+  async function resetMail(email, aluno){
+    try { await auth.sendPasswordResetEmail(String(email).trim(), aluno ? { url:location.origin+location.pathname.replace(/[^/]*$/, '')+'?tipo=aluno' } : undefined); return { ok:true }; }
     catch(e){ const k = e && e.code; if(k==='auth/network-request-failed') return { err:'Sem internet. Conecte e tente de novo.' }; if(k==='auth/invalid-email') return { err:'Confira o e-mail. Ex.: voce@email.com' }; if(k==='auth/too-many-requests') return { err:'Muitas tentativas. Espere alguns minutos e tente de novo.' }; return { ok:true }; }
   }
   async function autoLoad(){
@@ -1853,7 +1876,7 @@ const FB = (() => {
     try { clearTimeout(autoT); autoP = null; await db.collection('autonomos').doc(u.uid).delete(); try { await db.collection('perfis').doc(u.uid).delete(); } catch(e){ /* sem resumo */ } await u.delete(); return { ok:true }; }
     catch(e){ return { err: e && e.code==='auth/requires-recent-login' ? 'Por segurança, saia, entre de novo e tente outra vez.' : 'Não deu para excluir agora. Confira a internet e tente de novo.' }; }
   }
-  return { login, fetchMe, logout, toAluno, cached, signUp, signIn, resetMail, autoLoad, autoSave, autoFlush, perfil, progresso, deleteSelf, account:aid => { const c = cached(); return c && c.aid===aid ? toAluno(c) : null; } };
+  return { login, fetchMe, logout, toAluno, cached, signUp, signIn, resetMail, resetCheck, resetSave, setCodigo, autoLoad, autoSave, autoFlush, perfil, progresso, deleteSelf, account:aid => { const c = cached(); return c && c.aid===aid ? toAluno(c) : null; } };
 })();
 // abriu com a conta guardada (ou voltou para o app): confere online se o personal mudou o treino ou bloqueou o acesso
 document.addEventListener('visibilitychange', () => { if(document.visibilityState==='visible') fbRefresh(); else if(FB) FB.autoFlush(); });
@@ -1975,6 +1998,7 @@ function renderLogin(focusSel){
   else if(LG.view==='doc'){ w.innerHTML = vDoc(); }
   else if(LG.view==='forgot'){ w.innerHTML = vForgot(); }
   else if(LG.view==='reset'){ w.innerHTML = vReset(); }
+  else if(LG.view==='novo'){ w.innerHTML = vNovo(); }
   else {
     const c = LG.code, err = LG.err;
     w.innerHTML = `<div class="lg-in"><div class="lg-hero"><span class="lg-logo">${bigLogo()}</span>
@@ -1982,11 +2006,12 @@ function renderLogin(focusSel){
       <p class="lg-tag">Seu treino, sua água e seu cardio num lugar só. Do jeito que seu personal montou.</p></div>
       <div class="wave-strip" aria-hidden="true">${WAVE}</div>
       <form class="lg-form" data-lg="form" novalidate>
+        ${FB?`<label class="flabel" for="lg-em">E-mail</label><div class="inp-wrap lg-mail"><input class="inp" id="lg-em" type="email" inputmode="email" autocomplete="username" autocapitalize="off" spellcheck="false" maxlength="80" placeholder="seu@email.com" value="${esc(LG.email||'')}"></div>`:''}
         <label class="flabel" for="lg-pw">Senha</label>
         <div class="lg-field${err?' err':''}"><input id="lg-pw" class="lg-inp" type="${LG.show?'text':'password'}" ${FB?'inputmode="numeric" maxlength="6"':'maxlength="64"'} autocomplete="current-password" autocapitalize="off" spellcheck="false" placeholder="Sua senha" aria-describedby="lg-err lg-help" aria-invalid="${!!err}" value="${esc(c)}">
           <button type="button" class="lg-eye" data-a="lg-eye" aria-pressed="${LG.show}" aria-label="${LG.show?'Esconder senha':'Mostrar senha'}">${ic(LG.show?'eyeOff':'eye')}</button></div>
         <p id="lg-err" class="lg-err" role="alert">${err}</p>
-        <p id="lg-help" class="lg-help">${FB?'Use a senha de 6 números que seu personal enviou.':'Use a senha que seu personal enviou.'}</p>
+        <p id="lg-help" class="lg-help">${LG.help ? esc(LG.help) : FB?'Seu e-mail e a senha de 6 números que seu personal enviou.':'Use a senha que seu personal enviou.'}</p>
         <button type="submit" class="btn primary block lg-go"${c.length?'':' disabled'}>Entrar${ic('chev')}</button>
       </form>
       <div class="lg-links"><button type="button" class="linkbtn" data-a="lg-forgot">Esqueci a senha</button><button type="button" class="linkbtn" data-a="lg-self">Treinar sem personal</button></div>
@@ -1995,6 +2020,49 @@ function renderLogin(focusSel){
   }
   const f = focusSel && w.querySelector(focusSel);
   if(f){ try { f.focus({preventScroll:true}); } catch(e){ /* foco opcional */ } }
+}
+// aluno com personal esqueceu a senha: e-mail para escolher um código novo
+async function lgEsqueci(){
+  const em = String(LG.email||'').trim(), h = document.getElementById('lg-help');
+  if(!/^\S+@\S+\.\S+$/.test(em)){ lgFail('Digite seu e-mail acima e toque de novo em “Esqueci a senha”.'); const i = document.getElementById('lg-em'); if(i) i.focus(); return; }
+  if(h) h.textContent = 'Enviando…';
+  const r = await FB.resetMail(em, true);
+  LG.help = r.err ? '' : 'Pronto. Se esse e-mail estiver cadastrado pelo seu personal, chega um link para você escolher uma senha nova de 6 números. Olhe também o spam.';
+  if(r.err){ lgFail(r.err); if(h) h.textContent = ''; return; }
+  if(h) h.textContent = LG.help;
+}
+/* link do e-mail: escolher o código novo (aluno com personal) ou a senha nova (sem personal) */
+function resetParams(){ try { const q = new URLSearchParams(location.search); if(q.get('mode')!=='resetPassword' || !q.get('oobCode')) return null; const cu = q.get('continueUrl')||''; return { oob:q.get('oobCode'), aluno:/tipo=aluno/.test(cu) || q.get('tipo')==='aluno' }; } catch(e){ return null; } }
+function openNovo(rp){
+  LG.view = 'novo'; LG.nv = { oob:rp.oob, aluno:rp.aluno, email:'', a:'', b:'', err:'', busy:false }; renderLogin();
+  FB.resetCheck(rp.oob).then(r => { if(LG.view!=='novo') return; if(r.err) LG.nv.err = r.err; else LG.nv.email = r.email; renderLogin('#nv-a'); });
+}
+function vNovo(){
+  const n = LG.nv, al = n.aluno;
+  return `<div class="lg-in su"><p class="eyebrow">Simplificando</p><h1 class="lg-h">${al?'Escolha sua senha nova':'Crie uma senha nova'}<span class="dot" aria-hidden="true"></span></h1>
+    <p class="muted">${n.email ? 'Conta: <b>'+esc(n.email)+'</b>' : n.err ? '' : 'Conferindo o link…'}</p>
+    <form class="lg-form su-form" data-lg="novo" novalidate>
+      <label class="flabel" for="nv-a">${al?'Senha nova (6 números)':'Senha nova (pelo menos 8 caracteres)'}</label><div class="inp-wrap"><input class="inp" id="nv-a" type="password" ${al?'inputmode="numeric" maxlength="6"':'maxlength="64"'} autocomplete="new-password" value="${esc(n.a)}"></div>
+      <label class="flabel" for="nv-b">Repita a senha</label><div class="inp-wrap"><input class="inp" id="nv-b" type="password" ${al?'inputmode="numeric" maxlength="6"':'maxlength="64"'} autocomplete="new-password" value="${esc(n.b)}"></div>
+      <p class="lg-err" id="nv-err" role="alert">${esc(n.err||'')}</p>
+      <button type="submit" class="btn primary block lg-go"${n.busy||!n.email?' disabled':''}>${al?'Salvar e entrar':'Salvar senha'}${ic('chev')}</button>
+    </form>
+    ${al ? '<p class="foot0">Seu personal também passa a ver essa senha no painel, para te ajudar se precisar.</p>' : ''}
+    <div class="lg-links"><button type="button" class="linkbtn" data-a="nv-sair">Voltar para a entrada</button></div></div>`;
+}
+async function novoSalvar(){
+  const n = LG.nv, a = (document.getElementById('nv-a')||{}).value||'', b = (document.getElementById('nv-b')||{}).value||''; n.a = a; n.b = b;
+  const bad = m => { n.err = m; const e = document.getElementById('nv-err'); if(e) e.textContent = m; vibrate([40,40,40]); };
+  if(n.aluno && !/^\d{6}$/.test(a)) return bad('A senha tem que ter exatamente 6 números.');
+  if(!n.aluno && a.length<8) return bad('A senha precisa de pelo menos 8 caracteres.');
+  if(a!==b) return bad('As duas senhas não são iguais.');
+  n.busy = true; renderLogin();
+  const r = await FB.resetSave(n.oob, a, n.aluno);
+  n.busy = false;
+  if(r.err){ n.err = r.err; renderLogin('#nv-a'); return; }
+  try { history.replaceState(null, '', location.pathname); } catch(e){ /* sem histórico */ }
+  if(n.aluno && r.p){ writeSess({mode:'personal', code:r.p.aid}); LG.view = 'login'; LG.nv = null; welcome(firstName(r.p.perfil.nome), r.p.perfil.sexo, 'Senha nova salva. Seu treino está pronto.'); return; }
+  LG.view = 'entrar'; LG.en = {email:r.email||'', senha:'', show:false, msg:'Senha nova salva. Entre com ela.'}; LG.nv = null; renderLogin('#en-senha');
 }
 function lgInput(el){
   const v = el.value;
@@ -2014,7 +2082,9 @@ async function tryLoginFB(){
   if(!code){ lgFail('Digite sua senha.'); return; }
   if(code.length!==6){ lgFail('A senha do app tem 6 números. Confira com seu personal.'); return; }
   const go = document.querySelector('#login .lg-go'); if(go){ go.disabled = true; go.classList.add('busy'); }
-  const r = await FB.login(code);
+  const em = String(LG.email||'').trim();
+  if(em && !/^\S+@\S+\.\S+$/.test(em)){ lgFail('Confira o e-mail. Ex.: voce@email.com'); return; }
+  const r = await FB.login(code, em);
   if(go){ go.disabled = false; go.classList.remove('busy'); }
   if(r.err){ lgFail(r.err); return; }
   writeSess({mode:'personal', code:r.p.aid});
@@ -2083,6 +2153,7 @@ function rsInput(){
 function openReset(){ LG.view = 'reset'; LG.rs = {a:'', b:'', s1:false, s2:false, err:'', done:false}; renderLogin('#rs-1'); }
 function lgSubmit(kind){
   if(kind==='form') return tryLogin();
+  if(kind==='novo') return novoSalvar();
   if(kind==='conta') return suConta();
   if(kind==='entrar') return suEntrar();
   if(kind==='forgot'){
@@ -2900,11 +2971,12 @@ function mtClick(a, d, b, armed){
 function lgClick(a,d,b){
   switch(a){
     case 'lg-eye': LG.show = !LG.show; renderLogin('#lg-pw'); return true;
+    case 'nv-sair': try { history.replaceState(null, '', location.pathname); } catch(e){ /* nada */ } LG.view = 'login'; LG.nv = null; renderLogin(); return true;
     case 'lg-eye1': LG.rs.s1 = !LG.rs.s1; renderLogin('#rs-1'); return true;
     case 'lg-eye2': LG.rs.s2 = !LG.rs.s2; renderLogin('#rs-2'); return true;
     case 'lg-back': { LG.view = 'login'; LG.err = ''; try { if(location.hash) history.replaceState(null,'',location.pathname+location.search); } catch(e){ /* sem histórico */ } if(readSess() && !ACCT){ startApp(); return true; } renderLogin('#lg-pw'); return true; }
     case 'lg-reset-open': try { location.hash = 'redefinir'; } catch(e){ /* sem hash */ } openReset(); return true;
-    case 'lg-forgot': if(FB){ const h = document.getElementById('lg-help'); if(h) h.textContent = 'Esqueceu? Peça a senha ao seu personal: ele vê ou gera uma nova no painel.'; return true; } lgForgot(); return true;
+    case 'lg-forgot': if(FB){ lgEsqueci(); return true; } lgForgot(); return true;
     case 'lg-close': { const w = document.querySelector('#login .sheet-wrap'); if(w) w.remove(); return true; }
     case 'lg-copy': lgCopy(); return true;
     case 'lg-self': selfStart(); return true;
@@ -4970,6 +5042,7 @@ function onClick(ev){
 function onInput(ev){
   const el = ev.target;
   if(el.id==='lg-pw'){ lgInput(el); return; }
+  if(el.id==='lg-em'){ LG.email = el.value; LG.help = ''; return; }
   if(el.id==='fg-email'){ LG.fg.email = el.value; const go = document.querySelector('#login .lg-go'); if(go) go.disabled = !el.value.trim(); const e = document.getElementById('fg-err'); if(e) e.textContent = ''; return; }
   if(el.id==='rs-1' || el.id==='rs-2'){ rsInput(); return; }
   if(el.dataset.su){ LG.f[el.dataset.su] = el.value; const go = document.querySelector('#login .su-go'); if(go) go.disabled = !suOk1(); const wt = document.querySelector('#login [data-su-wt]'); if(wt) wt.textContent = suWaterTxt(); if(LG.serr){ LG.serr = ''; const e = document.getElementById('su-err'); if(e) e.textContent = ''; } return; }
@@ -5058,7 +5131,8 @@ function boot(){
   const n = nextRemind(); if(n>0 && nowMin()>=n) ui.remindFired = n;
   document.addEventListener('submit', ev => { if(ev.target.dataset && ev.target.dataset.lg){ ev.preventDefault(); lgSubmit(ev.target.dataset.lg); } });
   window.addEventListener('hashchange', () => { if(location.hash==='#redefinir' && LG.view!=='reset') openReset(); });
-  if(location.hash==='#redefinir') openReset(); else if(readSess()) startApp(); else renderLogin();
+  const rp = FB && resetParams();
+  if(rp) openNovo(rp); else if(location.hash==='#redefinir') openReset(); else if(readSess()) startApp(); else renderLogin();
   setInterval(tick, 250);
 }
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot); else boot();

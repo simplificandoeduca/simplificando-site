@@ -1581,18 +1581,33 @@ const FBP = (() => {
   const mail = code => 'a'+code+'@alunos.'+cfg.projectId+'.firebaseapp.com', pass = code => 'simp-'+code;
   async function ownerUid(){ const d = await db.collection('sistema').doc('dono').get(); return d.exists ? (d.data()||{}).uid || null : null; }
   async function claim(uid){ await db.collection('sistema').doc('dono').set({ uid, criadoEm:new Date().toISOString() }); }
-  async function account(code){
-    const A = await secAuth();
-    let uid;
-    try { uid = (await A.createUserWithEmailAndPassword(mail(code), pass(code))).user.uid; }
-    catch(e){ if(e && e.code==='auth/email-already-in-use') uid = (await A.signInWithEmailAndPassword(mail(code), pass(code))).user.uid; else throw e; }
+  const okMail = e => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(e||'').trim());
+  // conta do aluno: o e-mail dele + o código de 6 números (assim o "esqueci o código" chega no e-mail dele).
+  // Sem e-mail, ou se o e-mail já tem outra conta, fica a conta interna antiga (só o código).
+  async function account(code, email){
+    const A = await secAuth(), em = okMail(email) ? String(email).trim().toLowerCase() : '';
+    let uid = null, used = '';
+    if(em){
+      try { uid = (await A.createUserWithEmailAndPassword(em, pass(code))).user.uid; used = em; }
+      catch(e){ if(e && e.code==='auth/email-already-in-use'){ try { uid = (await A.signInWithEmailAndPassword(em, pass(code))).user.uid; used = em; } catch(e2){ uid = null; } } else if(!e || e.code!=='auth/invalid-email') throw e; }
+    }
+    if(!uid){ used = mail(code);
+      try { uid = (await A.createUserWithEmailAndPassword(used, pass(code))).user.uid; }
+      catch(e){ if(e && e.code==='auth/email-already-in-use') uid = (await A.signInWithEmailAndPassword(used, pass(code))).user.uid; else throw e; } }
     try { await A.signOut(); } catch(e){ /* nada a fazer */ }
-    return uid;
+    return { uid, mail:used };
   }
-  async function dropAccount(code){ // a senha antiga para de funcionar
+  // código novo na mesma conta (o aluno não perde o histórico)
+  async function rePass(em, oldCode, newCode){ const A = await secAuth(), r = await A.signInWithEmailAndPassword(em, pass(oldCode)); await r.user.updatePassword(pass(newCode)); try { await A.signOut(); } catch(e){ /* nada */ } return r.user.uid; }
+  async function dropAccount(code, em){ // a senha antiga para de funcionar
     if(!code) return;
-    try { const A = await secAuth(); const r = await A.signInWithEmailAndPassword(mail(code), pass(code)); await r.user.delete(); await A.signOut(); } catch(e){ /* a conta já não existe */ }
+    try { const A = await secAuth(); const r = await A.signInWithEmailAndPassword(em || mail(code), pass(code)); await r.user.delete(); await A.signOut(); } catch(e){ /* a conta já não existe */ }
   }
+  // códigos que os alunos escolheram pelo e-mail de "esqueci o código"
+  async function listCodigos(){ const q = await db.collection('codigos').get(); return q.docs.map(d => Object.assign({ uid:d.id }, d.data())); }
+  async function dropCodigo(uid){ if(uid) try { await db.collection('codigos').doc(uid).delete(); } catch(e){ /* nada */ } }
+  // treinos já enviados pelo app passam para a conta nova
+  async function moveProg(from, to){ if(!from || !to || from===to) return; try { const d = await db.collection('progresso').doc(from).get(); if(d.exists){ await db.collection('progresso').doc(to).set(d.data()); await db.collection('progresso').doc(from).delete(); } } catch(e){ /* sem treinos ainda */ } }
   // o que o app do aluno lê: sem notas, saúde, avaliações ou valores
   function projection(id, a){
     const p = a.perfil || {}, pl = JSON.parse(JSON.stringify(a.plano || {}));
@@ -1608,7 +1623,7 @@ const FBP = (() => {
   // o que cada aluno com personal fez no app (o app grava em progresso/{uid}; só o dono lê todos)
   async function listProgresso(){ const q = await db.collection('progresso').get(); return q.docs.map(d => { const x = d.data(); let v = null; try { v = JSON.parse(x.s||'null'); } catch(e){ v = null; } return { uid:d.id, aid:x.aid||'', em:x.em||0, d:v }; }); }
   async function dropProgresso(uid){ if(uid) try { await db.collection('progresso').doc(uid).delete(); } catch(e){ /* nada para apagar */ } }
-  return { auth, db, fb, ownerUid, claim, account, dropAccount, publish, unpublish, listPerfis, dropPerfil, listProgresso, dropProgresso };
+  return { auth, db, fb, ownerUid, claim, account, rePass, dropAccount, listCodigos, dropCodigo, moveProg, okMail, publish, unpublish, listPerfis, dropPerfil, listProgresso, dropProgresso };
 })();
 
 const Store = (() => {
@@ -1664,7 +1679,7 @@ const Store = (() => {
     const old = C[col][id];
     delete C[col][id];
     const p = col+'/'+id, e = pend[p] || (pend[p] = {col,id,timer:0,busy:false,dirty:false,del:false});
-    if(old){ e.uid = old.uid; e.code = old.acessoCod; }
+    if(old){ e.uid = old.uid; e.code = old.acessoCod; e.mail = old.acessoMail; }
     e.del = true; clearTimeout(e.timer); e.timer = setTimeout(() => flush(p), 0);
     subs.status('saving');
   }
@@ -1677,7 +1692,7 @@ const Store = (() => {
     try {
       if(mode==='db'){
         const ref = db.collection(e.col).doc(e.id);
-        if(e.del){ await ref.delete(); delete written[p]; if(kind==='firebase' && e.col==='alunos'){ await FBP.unpublish(e.uid); FBP.dropAccount(e.code); FBP.dropPerfil(e.uid); FBP.dropProgresso(e.uid); } }
+        if(e.del){ await ref.delete(); delete written[p]; if(kind==='firebase' && e.col==='alunos'){ await FBP.unpublish(e.uid); FBP.dropAccount(e.code, e.mail); FBP.dropPerfil(e.uid); FBP.dropProgresso(e.uid); FBP.dropCodigo(e.uid); } }
         else {
           const d = C[e.col][e.id];
           if(d){ const s = JSON.stringify(d); if(s!==written[p]){ try { await ref.set(JSON.parse(s)); } catch(err){ if(err && err.code==='unavailable'){ await new Promise(r => setTimeout(r, 400+Math.random()*600)); await ref.set(JSON.parse(s)); } else throw err; } if(kind==='firebase' && e.col==='alunos') await FBP.publish(e.id, JSON.parse(s)); written[p] = s; } }
@@ -1781,7 +1796,7 @@ function shareText(a){
   const c = cfg(), cod = (a.acesso && a.acesso.codigo) || '------';
   return 'Oi, '+curto(a)+'! Seu treino no app Simplificando está pronto.\n\n'+
     '1. Abra o app: '+appLink()+'\n'+
-    '2. Entre com a senha: '+cod+'\n'+
+    (String(P(a).email||'').includes('@') ? '2. Entre com o seu e-mail ('+String(P(a).email).trim()+') e a senha: '+cod+'\n' : '2. Entre com a senha: '+cod+'\n')+
     '3. Dica: salve o app na tela inicial do celular para abrir com um toque.\n\n'+
     'Lá você encontra o treino do dia, a meta de água e o cardio da semana. Qualquer dúvida, me chama aqui.'+
     (c.nomePersonal ? '\n\n'+c.nomePersonal : '');
@@ -1796,7 +1811,7 @@ function newAluno(d){
     metas:{ waterGoal:m.waterGoal, cardioGoal:m.cardioGoal, cardio:{min:m.cardioMin, zona:m.zona, desc:(ZONAS[m.zona]||ZONAS['Zona 2'])[0], dias:[], locais:LOCAIS.slice(0,5)}, semanaTreinos:m.semanaTreinos, passosDia:m.passosDia, checkinObrigatorio:!!m.checkinObrigatorio, lembreteAgua:clone(m.lembreteAgua) },
     avaliacoes:[],
     financeiro:{ plano:d.plano||'', valor:d.plano ? c.precos[d.plano] : null, vencimentoDia:Math.min(28, +t.slice(8,10)), forma:'pix', pagamentos:[] },
-    acesso:{ codigo:genCode(), ativo:true, geradoEm:t },
+    acesso:{ codigo:genCode(), ativo:true, geradoEm:t, em:Date.now() },
     notas:[]
   };
 }
@@ -2185,7 +2200,7 @@ function tAcesso(a){
   const ac = a.acesso || {}, id = a._id, txt = shareText(a), wa = String(P(a).whatsapp||'').replace(/\D/g,'');
   const digits = (ac.codigo||'').split('');
   return '<section class="card"><div class="card-h"><span class="label">'+ic('key')+'Código de acesso</span><span class="pill '+(ac.ativo?'ok':'bad')+'">'+(ac.ativo?'Acesso liberado':'Acesso bloqueado')+'</span></div>'+
-    (ac.codigo ? '<div class="code" aria-label="Código '+esc(ac.codigo.split('').join(' '))+'">'+digits.map(x => '<span aria-hidden="true">'+esc(x)+'</span>').join('')+'</div><p class="foot">Gerado em '+fmtD(ac.geradoEm)+'. Seis dígitos, único entre seus alunos.</p>' : '<p class="muted">Nenhum código gerado.</p>')+
+    (ac.codigo ? '<div class="code" aria-label="Código '+esc(ac.codigo.split('').join(' '))+'">'+digits.map(x => '<span aria-hidden="true">'+esc(x)+'</span>').join('')+'</div><p class="foot">'+(ac.peloAluno ? ic('check')+'Código escolhido pelo próprio aluno em '+fmtD(ac.peloAluno)+'.' : 'Gerado em '+fmtD(ac.geradoEm)+'. Seis dígitos.')+(a.acessoMail && !/@alunos\./.test(a.acessoMail) ? ' Entra com o e-mail <b>'+esc(a.acessoMail)+'</b> e este código. Se esquecer, em "Esqueci a senha" chega um e-mail para ele escolher outro.' : ' Entra só com este código.')+'</p>' : '<p class="muted">Nenhum código gerado.</p>')+
     '<div class="btn-row">'+(ac.codigo ? '<button type="button" class="btn" data-a="copyCode">'+ic('copy')+'Copiar código</button>'+armBtn('genCode',id,'Gerar novo código','Toque de novo: o código atual para de funcionar','','refresh') : '<button type="button" class="btn primary" data-a="genCode" data-k="'+esc(id)+'">'+ic('key')+'Gerar código</button>')+'</div>'+
     (Store.kind==='firebase' && ac.codigo ? '<p class="foot">'+(a.uid && a.acessoCod===ac.codigo ? ic('check')+'Conta do app pronta: o aluno já entra com esta senha.' : 'Preparando a conta do app para esta senha…')+'</p>' : '')+
     swB({b:AB(id,'acesso.ativo'),label:'Acesso ao app ativo',sub:'Desligue para bloquear a entrada sem apagar nada.',val:!!ac.ativo})+'</section>'+
@@ -2280,7 +2295,7 @@ function tNotas(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '4 nov · 19'; // Versão do painel: 4 nov · 19
+const PAINELV = '4 nov · 20'; // Versão do painel: 4 nov · 20
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -2765,13 +2780,37 @@ async function syncAccounts(){
   if(syncBusy || !FBP || Store.kind!=='firebase' || !Store.loaded) return;
   syncBusy = true;
   try {
+    // 1. o aluno escolheu um código novo pelo e-mail: o painel passa a mostrar esse código
+    try {
+      (await FBP.listCodigos()).forEach(x => {
+        const id = Object.keys(C.alunos).find(k => C.alunos[k] && C.alunos[k].uid===x.uid); if(!id || !/^\d{6}$/.test(String(x.codigo||''))) return;
+        const a = C.alunos[id], ac = a.acesso || (a.acesso = { ativo:true });
+        if(+x.em <= (+ac.em || 0) || (ac.codigo===x.codigo && a.acessoCod===x.codigo)) return;
+        a.acesso = Object.assign(ac, { codigo:x.codigo, geradoEm:today(), em:+x.em, peloAluno:today() }); a.acessoCod = x.codigo; Store.save('alunos', id, 0);
+        toast(curto(Object.assign({_id:id}, a))+' escolheu um código novo: '+x.codigo);
+        if(ui.aluno===id) scheduleRender(true);
+      });
+    } catch(e){ /* regras antigas ou sem internet: tenta na próxima */ }
+    // 2. contas do app: criar, trocar o código ou passar a conta antiga para o e-mail do aluno
     for(const id of Object.keys(C.alunos)){
-      const a = C.alunos[id], code = a && a.acesso && a.acesso.codigo;
-      if(!a || !code || (a.uid && a.acessoCod===code)) continue;
+      const a = C.alunos[id], code = a && a.acesso && a.acesso.codigo; if(!a || !code) continue;
+      const em = FBP.okMail(P(a).email) ? String(P(a).email).trim().toLowerCase() : '';
+      const velha = a.uid && em && (!a.acessoMail || /@alunos\./.test(a.acessoMail)) && a.acessoTentou!==em; // conta interna e o aluno agora tem e-mail
+      if(a.uid && a.acessoCod===code && !velha) continue;
       try {
-        if(a.uid){ await FBP.unpublish(a.uid); await FBP.dropAccount(a.acessoCod); }
-        const uid = await FBP.account(code), cur = C.alunos[id]; if(!cur) continue;
-        cur.uid = uid; cur.acessoCod = code; Store.save('alunos', id, 0);
+        if(a.uid && a.acessoCod!==code && a.acessoMail && !/@alunos\./.test(a.acessoMail)){
+          // conta com e-mail: só troca a senha (o histórico continua)
+          try { await FBP.rePass(a.acessoMail, a.acessoCod, code); if(C.alunos[id]){ C.alunos[id].acessoCod = code; Store.save('alunos', id, 0); } if(ui.aluno===id && ui.tab==='acesso') scheduleRender(true); continue; }
+          catch(e){ /* não deu para entrar com o código antigo: recria a conta abaixo */ }
+        }
+        const oldUid = a.uid, oldCode = a.acessoCod, oldMail = a.acessoMail;
+        if(oldUid && oldCode!==code){ await FBP.unpublish(oldUid); await FBP.dropAccount(oldCode, oldMail); }
+        const r = await FBP.account(code, em); if(!C.alunos[id]) continue;
+        const c2 = C.alunos[id];
+        if(em) c2.acessoTentou = em;
+        if(velha && r.uid===oldUid){ c2.acessoMail = r.mail; Store.save('alunos', id, 0); continue; } // o e-mail já tinha outra conta: segue com o código
+        c2.uid = r.uid; c2.acessoCod = code; c2.acessoMail = r.mail; Store.save('alunos', id, 0);
+        if(oldUid && oldUid!==r.uid){ if(oldCode===code){ await FBP.unpublish(oldUid); await FBP.dropAccount(oldCode, oldMail); } await FBP.moveProg(oldUid, r.uid); FBP.dropPerfil(oldUid); FBP.dropCodigo(oldUid); }
         if(ui.aluno===id && ui.tab==='acesso') scheduleRender(true);
       } catch(e){ toast('Não deu para liberar o app de '+curto(Object.assign({_id:id}, a))+'. Confira a internet.'); }
     }
@@ -2963,7 +3002,7 @@ function act(a,d,btn){
       const nd = dueOf(refAdd(pv.ref,1), clampI(f.vencimentoDia||10,1,28)); if(!isDate(f.pagoAte) || nd>f.pagoAte) f.pagoAte = nd;
       Store.save('alunos',ui.aluno,0); ui.draft.pay = {}; toast('Pagamento de '+fmtRef(pv.ref)+' registrado'); break; }
     case 'delPay': { const f = A.financeiro; f.pagamentos = (f.pagamentos||[]).filter(p => p.id!==d.k); const refs = f.pagamentos.map(p => p.ref).filter(Boolean).sort(); if(refs.length) f.pagoAte = dueOf(refAdd(refs[refs.length-1],1), clampI(f.vencimentoDia||10,1,28)); else delete f.pagoAte; Store.save('alunos',ui.aluno,0); break; }
-    case 'genCode': { A.acesso = Object.assign(A.acesso||{ativo:true}, {codigo:genCode(ui.aluno), geradoEm:today()}); Store.save('alunos',ui.aluno,0); toast('Novo código: '+A.acesso.codigo); break; }
+    case 'genCode': { A.acesso = Object.assign(A.acesso||{ativo:true}, {codigo:genCode(ui.aluno), geradoEm:today(), em:Date.now(), peloAluno:''}); Store.save('alunos',ui.aluno,0); toast('Novo código: '+A.acesso.codigo); break; }
     case 'copyCode': copyText((A.acesso||{}).codigo||''); return false;
     case 'copyShare': copyText(shareText(Object.assign({_id:ui.aluno},A)), document.getElementById('share-txt')); return false;
     case 'addNota': { const t = (ui.draft.nota||'').trim(); if(!t){ const e = document.getElementById('nota-err'); if(e) e.textContent = 'Escreva a anotação antes de adicionar.'; return false; } A.notas = [{id:uid('n'), data:today(), texto:t}].concat(A.notas||[]); ui.draft.nota = ''; Store.save('alunos',ui.aluno,0); toast('Anotação adicionada'); break; }
