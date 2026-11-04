@@ -1755,11 +1755,15 @@ function treinoHoje(a){
   return {L:Ls[i % Ls.length], rest:false};
 }
 function genCode(exceptId){ const used = new Set(alunos().filter(a => a._id!==exceptId).map(a => a.acesso && a.acesso.codigo)); let c; do { c = String(Math.floor(100000+Math.random()*900000)); } while(used.has(c)); return c; }
+// link do app do aluno: o de Ajustes ou, se não tiver, o do site
+const appLink = () => String(cfg().linkApp||'').trim() || 'https://simplificandoeduca.com/treino';
+function mailHref(a){ const em = String(P(a).email||'').trim(); return 'mailto:'+encodeURIComponent(em).replace(/%40/g,'@')+'?subject='+encodeURIComponent('Seu treino no Simplificando está pronto')+'&body='+encodeURIComponent(shareText(a).replace(/\n/g,'\r\n')); }
 function shareText(a){
   const c = cfg(), cod = (a.acesso && a.acesso.codigo) || '------';
-  return 'Oi, '+curto(a)+'! Seu acesso ao app Simplificando está pronto.\n\n'+
-    (c.linkApp ? '1. Abra o app: '+c.linkApp+'\n' : '1. Abra o app Simplificando.\n')+
-    '2. Entre com a senha: '+cod+'\n\n'+
+  return 'Oi, '+curto(a)+'! Seu treino no app Simplificando está pronto.\n\n'+
+    '1. Abra o app: '+appLink()+'\n'+
+    '2. Entre com a senha: '+cod+'\n'+
+    '3. Dica: salve o app na tela inicial do celular para abrir com um toque.\n\n'+
     'Lá você encontra o treino do dia, a meta de água e o cardio da semana. Qualquer dúvida, me chama aqui.'+
     (c.nomePersonal ? '\n\n'+c.nomePersonal : '');
 }
@@ -2167,7 +2171,7 @@ function tAcesso(a){
     (Store.kind==='firebase' && ac.codigo ? '<p class="foot">'+(a.uid && a.acessoCod===ac.codigo ? ic('check')+'Conta do app pronta: o aluno já entra com esta senha.' : 'Preparando a conta do app para esta senha…')+'</p>' : '')+
     swB({b:AB(id,'acesso.ativo'),label:'Acesso ao app ativo',sub:'Desligue para bloquear a entrada sem apagar nada.',val:!!ac.ativo})+'</section>'+
     '<section class="card"><span class="label">'+ic('msg')+'Mensagem para enviar</span><label class="sr" for="share-txt">Mensagem de acesso</label><textarea id="share-txt" class="share" readonly data-calc="share">'+esc(txt)+'</textarea>'+
-    '<div class="btn-row"><button type="button" class="btn primary" data-a="copyShare">'+ic('copy')+'Copiar mensagem</button>'+(wa.length>=10 ? '<a class="btn ghost" href="https://wa.me/'+(wa.length<=11?'55':'')+wa+'?text='+encodeURIComponent(txt)+'" target="_blank" rel="noopener">'+ic('msg')+'Abrir no WhatsApp</a>' : '')+'</div><p class="foot">Copie e cole no WhatsApp do aluno'+(wa.length>=10?' ('+esc(P(a).whatsapp)+')':'')+'. O botão do WhatsApp pode não abrir dentro desta janela.</p></section>';
+    '<div class="btn-row"><button type="button" class="btn primary" data-a="copyShare">'+ic('copy')+'Copiar mensagem</button>'+(wa.length>=10 ? '<a class="btn ghost" href="https://wa.me/'+(wa.length<=11?'55':'')+wa+'?text='+encodeURIComponent(txt)+'" target="_blank" rel="noopener">'+ic('msg')+'Abrir no WhatsApp</a>' : '')+(String(P(a).email||'').includes('@') ? '<a class="btn ghost" href="'+esc(mailHref(a))+'">'+ic('msg')+'Enviar por e-mail</a>' : '')+'</div>'+(String(P(a).email||'').includes('@') ? '' : '<p class="foot">Para enviar por e-mail, cadastre o e-mail do aluno na aba Perfil.</p>')+'<p class="foot">Copie e cole no WhatsApp do aluno'+(wa.length>=10?' ('+esc(P(a).whatsapp)+')':'')+'. O botão do WhatsApp pode não abrir dentro desta janela.</p></section>';
 }
 
 /* ---------- evolução: o que cada aluno fez no app ---------- */
@@ -2257,7 +2261,7 @@ function tNotas(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '4 nov · 18'; // Versão do painel: 4 nov · 18
+const PAINELV = '4 nov · 19'; // Versão do painel: 4 nov · 19
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
