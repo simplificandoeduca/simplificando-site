@@ -5,6 +5,13 @@
 // Não revela se o e-mail tem conta. No máximo 3 pedidos por e-mail e 10 por aparelho a cada hora.
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
+function anota($passo, $info = '') {
+  $f = dirname(__DIR__) . '/.simplificando-recuperar-log.json';
+  $L = is_file($f) ? (json_decode((string)@file_get_contents($f), true) ?: []) : [];
+  $L[] = [date('d/m H:i:s'), $passo, substr((string)$info, 0, 200)]; $L = array_slice($L, -15);
+  @file_put_contents($f, json_encode($L, JSON_UNESCAPED_UNICODE));
+}
+$esconde = function ($e) { $p = explode('@', $e); return substr($p[0], 0, 2) . '***@' . ($p[1] ?? ''); };
 function sai($a, $c = 200) { http_response_code($c); echo json_encode($a, JSON_UNESCAPED_UNICODE); exit; }
 $casa = dirname(__DIR__);
 $chave = $casa . '/simplificando-chave.json';
@@ -24,10 +31,12 @@ if (isset($_GET['teste'])) {
     $r = json_decode((string)curl_exec($c), true); curl_close($c);
     $d['google_aceitou_a_chave'] = $ok && !empty($r['access_token']); if (!$d['google_aceitou_a_chave']) $d['erro_google'] = $r['error_description'] ?? ($r['error'] ?? 'sem resposta');
   }
+  $lf = $casa . '/.simplificando-recuperar-log.json';
+  $d['ultimos_pedidos'] = is_file($lf) ? (json_decode((string)file_get_contents($lf), true) ?: []) : [];
   sai($d);
 }
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') sai(['ok' => false, 'erro' => 'Pedido inválido.'], 405);
-if (!is_file($chave)) sai(['ok' => false, 'sem' => 'chave']); // o app usa o e-mail padrão do Firebase
+if (!is_file($chave)) { anota('sem chave'); sai(['ok' => false, 'sem' => 'chave']); } // o app usa o e-mail padrão do Firebase
 $in = json_decode(file_get_contents('php://input'), true) ?: [];
 $email = strtolower(trim((string)($in['email'] ?? '')));
 $aluno = !empty($in['aluno']);
@@ -44,7 +53,7 @@ $ni = count(array_filter($L, function ($v) use ($ki) { return $v[0] === $ki; }))
 $bloq = $ne >= 3 || $ni >= 10;
 if (!$bloq) { $L[] = [$ke, $agora]; $L[] = [$ki, $agora]; }
 if ($fp) { ftruncate($fp, 0); rewind($fp); fwrite($fp, json_encode(array_values($L))); flock($fp, LOCK_UN); fclose($fp); }
-if ($bloq) sai(['ok' => false, 'erro' => 'Muitos pedidos. Espere um pouco e tente de novo.'], 429);
+if ($bloq) { anota('bloqueado pelo limite', $esconde($email)); } if ($bloq) sai(['ok' => false, 'erro' => 'Muitos pedidos. Espere um pouco e tente de novo.'], 429);
 
 function post($url, $body, $hdr = []) {
   $c = curl_init($url);
@@ -59,12 +68,12 @@ if (!$k || empty($k['private_key']) || empty($k['client_email']) || empty($k['pr
 $jwt = $b64(json_encode(['alg' => 'RS256', 'typ' => 'JWT'])) . '.' . $b64(json_encode(['iss' => $k['client_email'], 'scope' => 'https://www.googleapis.com/auth/identitytoolkit https://www.googleapis.com/auth/cloud-platform', 'aud' => 'https://oauth2.googleapis.com/token', 'iat' => $agora, 'exp' => $agora + 3000]));
 if (!openssl_sign($jwt, $sig, $k['private_key'], 'sha256WithRSAEncryption')) sai(['ok' => false, 'sem' => 'chave']);
 list($st, $tk) = post('https://oauth2.googleapis.com/token', http_build_query(['grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer', 'assertion' => $jwt . '.' . $b64($sig)]));
-if ($st != 200 || empty($tk['access_token'])) sai(['ok' => false, 'sem' => 'chave', 'motivo' => 'google recusou a chave']);
+if ($st != 200 || empty($tk['access_token'])) { anota('google recusou a chave', $st); } if ($st != 200 || empty($tk['access_token'])) sai(['ok' => false, 'sem' => 'chave', 'motivo' => 'google recusou a chave']);
 // link seguro de redefinição (o Firebase não manda e-mail: só devolve o link)
 $host = preg_replace('/[^a-z0-9.\-]/', '', strtolower($_SERVER['HTTP_HOST'] ?? 'simplificandoeduca.com'));
 list($st, $r) = post('https://identitytoolkit.googleapis.com/v1/projects/' . rawurlencode($k['project_id']) . '/accounts:sendOobCode',
   json_encode(['requestType' => 'PASSWORD_RESET', 'email' => $email, 'returnOobLink' => true]), ['Content-Type: application/json', 'Authorization: Bearer ' . $tk['access_token']]);
-if ($st != 200 || empty($r['oobLink'])) sai(['ok' => true]); // e-mail sem conta: responde igual, sem enviar nada
+if ($st != 200 || empty($r['oobLink'])) { anota('firebase não deu o link', $esconde($email) . ' · ' . $st . ' · ' . (($r['error']['message'] ?? '') ?: 'sem detalhe')); sai(['ok' => true]); } // e-mail sem conta: responde igual, sem enviar nada
 parse_str((string)parse_url($r['oobLink'], PHP_URL_QUERY), $q);
 if (empty($q['oobCode'])) sai(['ok' => true]);
 $link = 'https://' . $host . '/treino/?mode=resetPassword&oobCode=' . rawurlencode($q['oobCode']) . ($aluno ? '&tipo=aluno' : '');
@@ -86,4 +95,5 @@ $dom = preg_replace('/^www\./', '', $host);
 $assunto = '=?UTF-8?B?' . base64_encode('Bora voltar pro treino: crie sua senha nova') . '?=';
 $cab = "MIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\nFrom: =?UTF-8?B?" . base64_encode('Simplificando') . "?= <nao-responda@$dom>\r\nReply-To: nao-responda@$dom\r\n";
 $ok = @mail($email, $assunto, $html, $cab, '-fnao-responda@' . $dom);
+anota($ok ? 'e-mail entregue ao servidor' : 'servidor recusou o envio', $esconde($email) . ' · de nao-responda@' . $dom);
 sai($ok ? ['ok' => true] : ['ok' => false, 'sem' => 'email']);
