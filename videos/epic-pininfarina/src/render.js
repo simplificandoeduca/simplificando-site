@@ -13,7 +13,7 @@ function grainURI(){ // 256x256 noise PNG via a tiny PNG encoder
 (async()=>{
   const mode=process.argv[2]||'preview';
   const tl=fs.readFileSync(path.join(SP,'build/timeline.json'),'utf8');
-  const html=fs.readFileSync(path.join(SP,'scene.html'),'utf8').replace('__TIMELINE__',tl).replace('__GRAIN__',grainURI());
+  const html=fs.readFileSync(path.join(SP,process.env.SCENE||'scene.html'),'utf8').replace('__TIMELINE__',tl).replace('__GRAIN__',grainURI());
   fs.writeFileSync(path.join(SP,'build/scene.built.html'),html);
   const browser=await chromium.launch(); const page=await browser.newPage({viewport:{width:1080,height:1920},deviceScaleFactor:1});
   page.on('pageerror',e=>console.error('PAGEERROR',e.message));
