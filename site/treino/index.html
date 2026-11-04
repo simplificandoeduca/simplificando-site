@@ -1635,7 +1635,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '4 nov · 22'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '4 nov · 23'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -2041,13 +2041,19 @@ function renderLogin(focusSel){
   const f = focusSel && w.querySelector(focusSel);
   if(f){ try { f.focus({preventScroll:true}); } catch(e){ /* foco opcional */ } }
 }
+// e-mail de "esqueci a senha" com o design do Simplificando (recuperar.php no site); sem a chave lá, usa o e-mail padrão do Firebase
+async function siteReset(email, aluno){
+  try { const r = await fetch('/recuperar.php', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ email, aluno:!!aluno }) });
+    const j = await r.json(); if(j && j.ok) return { ok:true, proprio:true }; if(j && j.erro) return { err:j.erro }; } catch(e){ /* sem o arquivo no site */ }
+  return FB.resetMail(email, aluno);
+}
 // aluno com personal esqueceu a senha: e-mail para escolher um código novo
 async function lgEsqueci(){
   const em = String(LG.email||'').trim(), h = document.getElementById('lg-help');
   if(!/^\S+@\S+\.\S+$/.test(em)){ lgFail('Digite seu e-mail acima e toque de novo em “Esqueci a senha”.'); const i = document.getElementById('lg-em'); if(i) i.focus(); return; }
   if(h) h.textContent = 'Enviando…';
-  const r = await FB.resetMail(em, true);
-  LG.help = r.err ? '' : 'Pronto. Se esse e-mail estiver cadastrado pelo seu personal, chega um link (olhe também o spam). No link, crie uma senha de 6 números e depois entre aqui com o seu e-mail e essa senha.';
+  const r = await siteReset(em, true);
+  LG.help = r.err ? '' : r.proprio ? 'Pronto. Se esse e-mail estiver cadastrado pelo seu personal, chega um e-mail do Simplificando com o botão para escolher sua senha nova de 6 números. Olhe também o spam.' : 'Pronto. Se esse e-mail estiver cadastrado pelo seu personal, chega um link (olhe também o spam). No link, crie uma senha de 6 números e depois entre aqui com o seu e-mail e essa senha.';
   if(r.err){ lgFail(r.err); if(h) h.textContent = ''; return; }
   if(h) h.textContent = LG.help;
 }
@@ -2803,7 +2809,7 @@ async function suForgot(){
   const email = String(LG.en.email||'').trim();
   if(!FB){ LG.en.msg = 'No modo de teste a conta fica só neste aparelho. Se esqueceu a senha, crie uma conta nova.'; renderLogin(); return; }
   if(!mailOk(email)) return suErr('Digite seu e-mail acima para receber o link.', 'en-err');
-  const r = await FB.resetMail(email);
+  const r = await siteReset(email, false);
   if(r.err) return suErr(r.err, 'en-err');
   LG.serr = ''; LG.en.msg = 'Pronto. Se esse e-mail tiver conta, chega um link para criar uma senha nova. Olhe também a caixa de spam.'; renderLogin();
 }
