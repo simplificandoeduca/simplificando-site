@@ -1616,7 +1616,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '4 nov · 20'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '4 nov · 21'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -1851,6 +1851,7 @@ const FB = (() => {
     catch(e){ const k = e && e.code; return { err: k==='auth/too-many-requests' ? 'Muitas tentativas. Espere alguns minutos e tente de novo.' : k==='auth/network-request-failed' ? 'Sem internet. Conecte e tente de novo.' : 'E-mail ou senha não conferem.' }; }
   }
   async function resetMail(email, aluno){
+    try { auth.languageCode = 'pt-BR'; } catch(e){ /* idioma padrão */ }
     try { await auth.sendPasswordResetEmail(String(email).trim(), aluno ? { url:location.origin+location.pathname.replace(/[^/]*$/, '')+'?tipo=aluno' } : undefined); return { ok:true }; }
     catch(e){ const k = e && e.code; if(k==='auth/network-request-failed') return { err:'Sem internet. Conecte e tente de novo.' }; if(k==='auth/invalid-email') return { err:'Confira o e-mail. Ex.: voce@email.com' }; if(k==='auth/too-many-requests') return { err:'Muitas tentativas. Espere alguns minutos e tente de novo.' }; return { ok:true }; }
   }
