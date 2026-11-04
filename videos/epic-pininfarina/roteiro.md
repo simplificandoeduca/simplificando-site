@@ -80,3 +80,74 @@ Siga para mais vídeos como esse! 🇧🇷
 - "Mais alto residencial de SP": só vale após a entrega (previsão 2029/2030). Por isso o texto usa "vai ser", não "é". Hoje o posto é do Platina 220.
 - **Não encontrei valor de condomínio nem IPTU**, por isso o roteiro troca o gancho de "custo mensal" da referência pelo gancho de "preço do m²". Se você tiver esses números com a Cyrela, dá para encaixar um bloco igual ao da referência em 1:22–1:38.
 - Os sites oficiais da Cyrela e as matérias do bnews/The President estão bloqueados na rede desta sessão; os dados vieram dos resumos de busca.
+
+---
+---
+
+# VERSÃO B — estilo "Heritage Cyrela" (reel @cibelerubaiyat, ~95 s)
+
+**Diferenças desta referência:** mais curta (1min35), frases mais secas, sem bloco de "contraste visto de cima", vai direto do nome para os números. Fecha com metáfora forte e pergunta polêmica ("exclusividade ou exagero?") em vez de CTA de seguir.
+**Estrutura:** gancho → nome + bairro + título ("o mais X do Brasil") → Pininfarina/Ferrari → "monumento à exclusividade" → metragem e unidades → "mas é nos valores que o choque acontece" → preço e m² → custos fixos → "em troca" lazer → metáfora final → pergunta.
+
+## 1. Narração (texto para a voz)
+
+**[0:00–0:05] GANCHO**
+Existe um prédio em São Paulo que vai ser mais alto do que qualquer outro residencial da cidade. E o apartamento mais barato dele custa mais de 12 milhões de reais.
+
+**[0:05–0:14] NOME + LOCAL + TÍTULO**
+O nome dele é Epic Jardim Europa, da Cyrela com a J. Safra, na divisa entre Pinheiros e o Jardim Europa. E não à toa é chamado de o residencial mais alto de São Paulo.
+
+**[0:14–0:22] PININFARINA**
+Desenhado pela Pininfarina, o mesmo estúdio italiano que desenha Ferraris e que assinou o Heritage, o prédio mais caro do Brasil. Esse aqui é o irmão mais alto.
+
+**[0:22–0:33] EXCLUSIVIDADE / METRAGEM**
+São 210 metros, 57 andares e só 89 residências. Duas por andar, com hall privativo, de 339 a 400 metros quadrados, quatro suítes e quatro vagas.
+
+**[0:33–0:41] AS MAIS RARAS**
+As versões mais raras ficam a partir do andar 52: penthouses de até 637 metros quadrados, com seis vagas de garagem e a cidade inteira aos pés.
+
+**[0:41–0:43] VIRADA**
+Mas é nos valores que o choque acontece.
+
+**[0:43–0:56] PREÇO**
+O metro quadrado foi vendido entre 35 e 55 mil reais. Uma unidade de 339 metros passa dos 12 milhões, e as penthouses podem ultrapassar 30 milhões de reais. Mesmo assim, em poucos meses, mais de 70 por cento já tinha sido vendido.
+
+**[0:56–1:08] EM TROCA**
+Em troca, o morador recebe dois andares inteiros de lazer. No oitavo, piscinas coberta e descoberta, spa, sauna, academia e quadra de tênis. No andar 51, uma piscina panorâmica a quase 200 metros do chão, de onde dá para ver São Paulo inteira.
+
+**[1:08–1:20] METÁFORA FINAL**
+O Epic não é apenas um prédio. É uma escultura habitável, onde o luxo deixa de ser conforto e se torna altitude.
+
+**[1:20–1:28] PERGUNTA**
+A pergunta que fica é: exclusividade ou exagero?
+
+## 2. Shot list
+
+| Tempo | Imagem | Texto na tela |
+|---|---|---|
+| 0:00–0:05 | Drone subindo rápido pela torre (render) | "O MAIS ALTO DE SP" |
+| 0:05–0:14 | Render frontal + pin no mapa Pinheiros/Jd. Europa | "Epic Jardim Europa" |
+| 0:14–0:22 | Corte: Ferrari → Heritage → Epic (3 cortes rápidos) | "Design Pininfarina" |
+| 0:22–0:33 | Planta + render do living | "210 m · 57 andares · 89 residências" |
+| 0:33–0:41 | Render da penthouse / terraço | "até 637 m² · 6 vagas" |
+| 0:41–0:43 | Tela preta, só o texto | "Mas é nos valores que o choque acontece." |
+| 0:43–0:56 | Números subindo | "R$ 55 mil/m²" → "R$ 12 MI" → "R$ 30+ MI" → "+70% vendido" |
+| 0:56–1:08 | Renders do lazer 8º e 51º | "Lazer no 8º e no 51º" |
+| 1:08–1:20 | Drone afastando, torre no centro, pôr do sol | sem texto |
+| 1:20–1:28 | Freeze na torre, texto grande | "Exclusividade ou exagero?" |
+
+**Ritmo:** mais rápido que a Versão A, cortes a cada 2 a 4 segundos, trilha com batida grave e build-up, pausa seca na virada de 0:41.
+
+## 3. Legenda do post (Versão B)
+
+O residencial mais alto de São Paulo vai ter design de quem desenha Ferraris. 🏎️🏙️
+
+Epic Jardim Europa, Cyrela + J. Safra, design Pininfarina. 210 metros, 57 andares, 89 residências de 339 a 637 m². Metro quadrado entre R$ 35 mil e R$ 55 mil, penthouses acima de R$ 30 milhões. Exclusividade ou exagero?
+
+#epicjardimeuropa #epiccyrela #pininfarina #cyrela #jardimeuropa #pinheiros #saopaulo #mercadoimobiliario
+
+## 4. Ressalvas desta versão
+
+- A referência do Heritage cita condomínio (R$ 15 mil) e IPTU (R$ 7 mil). Para o Epic esses valores não existem publicamente porque o prédio ainda está em obras. Se quiser um bloco de "custos fixos", a opção honesta é dizer "e o condomínio de um prédio desse porte dificilmente fica abaixo de cinco dígitos por mês", sem número fechado.
+- "Heritage, o prédio mais caro do Brasil" é o título que a própria referência usa; está consolidado na imprensa, mas vale manter como "chamado de".
+- "Irmão mais alto": Heritage tem cerca de 150 m; Epic, 210 m. A comparação é segura.
