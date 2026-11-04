@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8">
 <title>Epic Jardim Europa</title>
+<script type="importmap">{"imports":{"three":"/three/node_modules/three/build/three.module.js","three/addons/":"/three/node_modules/three/examples/jsm/"}}</script>
 <style>
 html,body{margin:0;width:1080px;height:1920px;overflow:hidden;background:#070a12;font-family:'Inter','Inter Display',sans-serif;color:#f3efe6}
 #stage{position:relative;width:1080px;height:1920px;overflow:hidden;background:#070a12}
@@ -42,7 +43,7 @@ html,body{margin:0;width:1080px;height:1920px;overflow:hidden;background:#070a12
 <body><div id="stage">
 <div id="bg" class="abs"></div>
 <div id="photoWrap" style="position:absolute;left:0;top:0;width:1260px;height:1551px;transform-origin:0 0">
-  <img src="hero.jpg" width="1260" height="1551" style="display:block">
+  <img src="/build/hero.jpg" width="1260" height="1551" style="display:block">
   <div id="glow52" style="position:absolute;left:500px;top:40px;width:280px;height:260px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,215,130,.75),rgba(255,215,130,0));opacity:0"></div>
   <div id="glow8" style="position:absolute;left:530px;top:1005px;width:190px;height:56px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,215,130,.8),rgba(255,215,130,0));opacity:0"></div>
   <div id="glow51" style="position:absolute;left:545px;top:224px;width:190px;height:50px;border-radius:50%;background:radial-gradient(closest-side,rgba(180,225,255,.9),rgba(180,225,255,0));opacity:0"></div>
@@ -53,6 +54,7 @@ html,body{margin:0;width:1080px;height:1920px;overflow:hidden;background:#070a12
     <g id="rip" opacity="0" fill="none" stroke="#bfe3ff" stroke-width="1.4"><ellipse id="rp0" cx="640" cy="250" rx="10" ry="4"/><ellipse id="rp1" cx="640" cy="250" rx="10" ry="4"/><ellipse id="rp2" cx="640" cy="250" rx="10" ry="4"/><ellipse id="rp3" cx="640" cy="250" rx="10" ry="4"/></g>
   </svg>
 </div>
+<canvas id="gl" class="abs" width="1080" height="1920" style="opacity:0"></canvas>
 <div id="shadeT" class="abs" style="background:linear-gradient(180deg,rgba(5,6,12,.82) 0%,rgba(5,6,12,.55) 22%,rgba(5,6,12,0) 46%)"></div>
 <div id="shadeB" class="abs" style="background:linear-gradient(0deg,rgba(5,6,12,.92) 0%,rgba(5,6,12,.7) 18%,rgba(5,6,12,0) 40%)"></div>
 <div id="black" class="abs" style="background:#05060c"></div>
@@ -233,8 +235,15 @@ function render(t){
   $('dim').setAttribute('opacity',win(t,B.excl.s,B.excl.sent[0].end+0.6,0.5));
   $('mk8').setAttribute('opacity',win(t,B.lazer.sent[1].start-0.2,B.lazer.sent[2].start-0.2,0.5));
   $('mk51').setAttribute('opacity',win(t,B.lazer.sent[2].start+0.3,B.meta.s,0.5));
-  { const r0=B.lazer.sent[2].start+0.6; const o=win(t,r0,B.meta.s,0.5); $('rip').setAttribute('opacity',o); for(let i=0;i<4;i++){const ph=((t-r0)*0.6+i/4)%1; $('rp'+i).setAttribute('rx',8+ph*110); $('rp'+i).setAttribute('ry',3+ph*34); $('rp'+i).setAttribute('opacity',(1-ph)*0.9);} }
+  { const r0=B.lazer.sent[2].start+0.6; const o=win(t,r0,B.meta.s,0.5); $('rip').setAttribute('opacity',o); for(let i=0;i<4;i++){const ph=(((t-r0)*0.6+i/4)%1+1)%1; $('rp'+i).setAttribute('rx',8+ph*110); $('rp'+i).setAttribute('ry',3+ph*34); $('rp'+i).setAttribute('opacity',(1-ph)*0.9);} }
 
+  // ---- 3D shots
+  { let glO=0; const E=B.excl,T=B.pent,L=B.lazer;
+    const oa=E.s-0.3, ob=T.s-0.3; const ea=T.s-0.3, eb=B.turn.s+0.1; const pa=L.sent[2].start-0.3, pb=L.next-0.2;
+    if(t>=oa && t<ob){ glO=fi(t,oa,.4); if(window.G) G.render('orbit',(t-oa)/(ob-oa),t); }
+    else if(t>=ea && t<eb){ glO=1; if(window.G) G.render('enter',(t-ea)/(eb-ea),t); }
+    else if(t>=pa-0.5 && t<=pb+0.5){ glO=win(t,pa,pb,.4); if(window.G) G.render('pool',(t-pa)/(pb-pa),t); }
+    setO('gl',glO); setO('glow52',0); setO('glow51',0); $('mk51').setAttribute('opacity',0); $('rip').setAttribute('opacity',0); $('dim').setAttribute('opacity',0); }
   // ---- scenes
   const H=B.hook; setO('sc-hook',1);
   up('hk1',t,H.sent[0].start+0.5,.8,60); $('hk1').style.opacity=win(t,H.sent[0].start+0.5,H.sent[1].start-0.1,.5);
@@ -288,4 +297,5 @@ function render(t){
 }
 window.render=render; window.TOTAL=TOTAL;
 render(0);
-</script></body></html>
+</script>
+<script type="module">import {init3D} from "/epic3d.js"; window.ready=(async()=>{window.G=await init3D(document.getElementById("gl"),1080,1920); render(0); return true})();</script></body></html>
