@@ -12,6 +12,34 @@ function anota($passo, $info = '') {
   @file_put_contents($f, json_encode($L, JSON_UNESCAPED_UNICODE));
 }
 $esconde = function ($e) { $p = explode('@', $e); return substr($p[0], 0, 2) . '***@' . ($p[1] ?? ''); };
+// envio autenticado (SMTP) pela conta nao-responda@ do cPanel: o servidor responde cada etapa
+// dados em ~/simplificando-email.json: {"usuario":"nao-responda@seudominio","senha":"...","testar_para":"seu@email.com"}
+function smtpEnvia($cfg, $para, $assunto, $html, &$log) {
+  $log = []; $user = $cfg['usuario']; $dom = substr(strrchr($user, '@'), 1);
+  $alvos = [['ssl://mail.' . $dom, 465, false], ['tcp://localhost', 587, true], ['ssl://localhost', 465, false]];
+  foreach ($alvos as $a) {
+    $ctx = stream_context_create(['ssl' => ['verify_peer' => false, 'verify_peer_name' => false, 'allow_self_signed' => true]]);
+    $f = @stream_socket_client($a[0] . ':' . $a[1], $en, $es, 15, STREAM_CLIENT_CONNECT, $ctx);
+    if (!$f) { $log[] = $a[0] . ':' . $a[1] . ' não conectou (' . $es . ')'; continue; }
+    stream_set_timeout($f, 20);
+    $le = function () use ($f) { $t = ''; while (($l = fgets($f, 600)) !== false) { $t .= $l; if (strlen($l) < 4 || $l[3] === ' ') break; } return trim($t); };
+    $diz = function ($c) use ($f, $le) { fwrite($f, $c . "\r\n"); return $le(); };
+    $ok = function ($r, $cod) { return strpos($r, (string)$cod) === 0; };
+    $r = $le(); $log[] = $a[0] . ':' . $a[1] . ' → ' . $r;
+    $r = $diz('EHLO ' . $dom);
+    if ($a[2]) { $r = $diz('STARTTLS'); if (!$ok($r, 220) || !@stream_socket_enable_crypto($f, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) { $log[] = 'STARTTLS falhou: ' . $r; fclose($f); continue; } $r = $diz('EHLO ' . $dom); }
+    $r = $diz('AUTH LOGIN'); $r = $diz(base64_encode($user)); $r = $diz(base64_encode($cfg['senha']));
+    if (!$ok($r, 235)) { $log[] = 'login recusado: ' . $r; fclose($f); continue; }
+    $log[] = 'login aceito';
+    $r = $diz('MAIL FROM:<' . $user . '>'); if (!$ok($r, 250)) { $log[] = 'remetente recusado: ' . $r; fclose($f); return false; }
+    $r = $diz('RCPT TO:<' . $para . '>'); if (!$ok($r, 250) && !$ok($r, 251)) { $log[] = 'destinatário recusado: ' . $r; fclose($f); return false; }
+    $r = $diz('DATA'); if (!$ok($r, 354)) { $log[] = 'DATA recusado: ' . $r; fclose($f); return false; }
+    $msg = "From: =?UTF-8?B?" . base64_encode('Simplificando') . "?= <$user>\r\nTo: <$para>\r\nSubject: $assunto\r\nDate: " . date('r') . "\r\nMessage-ID: <" . bin2hex(random_bytes(8)) . "@$dom>\r\nMIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n" . chunk_split(base64_encode($html));
+    $r = $diz($msg . "\r\n."); $log[] = 'resposta final: ' . $r; $diz('QUIT'); fclose($f);
+    return $ok($r, 250);
+  }
+  return false;
+}
 function sai($a, $c = 200) { http_response_code($c); echo json_encode($a, JSON_UNESCAPED_UNICODE); exit; }
 $casa = dirname(__DIR__);
 $chave = $casa . '/simplificando-chave.json';
@@ -30,6 +58,13 @@ if (isset($_GET['teste'])) {
     $c = curl_init('https://oauth2.googleapis.com/token'); curl_setopt_array($c, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 20, CURLOPT_POSTFIELDS => http_build_query(['grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer', 'assertion' => $j . '.' . $b($sg)])]);
     $r = json_decode((string)curl_exec($c), true); curl_close($c);
     $d['google_aceitou_a_chave'] = $ok && !empty($r['access_token']); if (!$d['google_aceitou_a_chave']) $d['erro_google'] = $r['error_description'] ?? ($r['error'] ?? 'sem resposta');
+  }
+  $ef = $casa . '/simplificando-email.json'; $ec = is_file($ef) ? json_decode((string)file_get_contents($ef), true) : null;
+  $d['dados_do_email_encontrados'] = !!($ec && !empty($ec['usuario']) && !empty($ec['senha']));
+  if ($d['dados_do_email_encontrados'] && isset($_GET['enviar']) && !empty($ec['testar_para'])) {
+    $lg = []; $d['teste_de_envio_para'] = $ec['testar_para'];
+    $d['teste_de_envio_ok'] = smtpEnvia($ec, $ec['testar_para'], '=?UTF-8?B?' . base64_encode('Teste do Simplificando') . '?=', '<p>Se você recebeu, o envio de e-mails do Simplificando está funcionando.</p>', $lg);
+    $d['teste_de_envio_passos'] = $lg;
   }
   $lf = $casa . '/.simplificando-recuperar-log.json';
   $d['ultimos_pedidos'] = is_file($lf) ? (json_decode((string)file_get_contents($lf), true) ?: []) : [];
@@ -94,6 +129,12 @@ $html = '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta nam
 $dom = preg_replace('/^www\./', '', $host);
 $assunto = '=?UTF-8?B?' . base64_encode('Bora voltar pro treino: crie sua senha nova') . '?=';
 $cab = "MIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\nFrom: =?UTF-8?B?" . base64_encode('Simplificando') . "?= <nao-responda@$dom>\r\nReply-To: nao-responda@$dom\r\n";
-$ok = @mail($email, $assunto, $html, $cab, '-fnao-responda@' . $dom);
-anota($ok ? 'e-mail entregue ao servidor' : 'servidor recusou o envio', $esconde($email) . ' · de nao-responda@' . $dom);
+$ef = $casa . '/simplificando-email.json'; $ec = is_file($ef) ? json_decode((string)file_get_contents($ef), true) : null;
+if ($ec && !empty($ec['usuario']) && !empty($ec['senha'])) {
+  $lg = []; $ok = smtpEnvia($ec, $email, $assunto, $html, $lg);
+  anota($ok ? 'enviado por SMTP' : 'SMTP falhou', $esconde($email) . ' · ' . implode(' | ', array_slice($lg, -2)));
+} else {
+  $ok = @mail($email, $assunto, $html, $cab, '-fnao-responda@' . $dom);
+  anota($ok ? 'e-mail entregue ao servidor (sem SMTP)' : 'servidor recusou o envio', $esconde($email) . ' · de nao-responda@' . $dom . ($ok ? '' : ' · ' . ((error_get_last()['message'] ?? '') ?: '')));
+}
 sai($ok ? ['ok' => true] : ['ok' => false, 'sem' => 'email']);
