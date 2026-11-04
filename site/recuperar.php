@@ -6,9 +6,27 @@
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 function sai($a, $c = 200) { http_response_code($c); echo json_encode($a, JSON_UNESCAPED_UNICODE); exit; }
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') sai(['ok' => false, 'erro' => 'Pedido inválido.'], 405);
 $casa = dirname(__DIR__);
 $chave = $casa . '/simplificando-chave.json';
+// teste: simplificandoeduca.com/recuperar.php?teste=1 mostra em que passo está (não envia e-mail)
+if (isset($_GET['teste'])) {
+  $d = ['arquivo_no_site' => true, 'pasta_da_chave' => $casa, 'chave_encontrada' => is_file($chave)];
+  $outras = array_values(array_filter(scandir($casa) ?: [], function ($f) { return substr($f, -5) === '.json' && $f[0] !== '.'; }));
+  if (!$d['chave_encontrada']) $d['arquivos_json_na_pasta'] = $outras;
+  $k = $d['chave_encontrada'] ? json_decode(file_get_contents($chave), true) : null;
+  $d['chave_valida'] = !!($k && !empty($k['private_key']) && !empty($k['client_email']));
+  $d['curl'] = function_exists('curl_init'); $d['envio_de_email'] = function_exists('mail');
+  if ($d['chave_valida'] && $d['curl']) {
+    $b = function ($x) { return rtrim(strtr(base64_encode($x), '+/', '-_'), '='); }; $t = time();
+    $j = $b(json_encode(['alg' => 'RS256', 'typ' => 'JWT'])) . '.' . $b(json_encode(['iss' => $k['client_email'], 'scope' => 'https://www.googleapis.com/auth/identitytoolkit https://www.googleapis.com/auth/cloud-platform', 'aud' => 'https://oauth2.googleapis.com/token', 'iat' => $t, 'exp' => $t + 600]));
+    $ok = openssl_sign($j, $sg, $k['private_key'], 'sha256WithRSAEncryption');
+    $c = curl_init('https://oauth2.googleapis.com/token'); curl_setopt_array($c, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 20, CURLOPT_POSTFIELDS => http_build_query(['grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer', 'assertion' => $j . '.' . $b($sg)])]);
+    $r = json_decode((string)curl_exec($c), true); curl_close($c);
+    $d['google_aceitou_a_chave'] = $ok && !empty($r['access_token']); if (!$d['google_aceitou_a_chave']) $d['erro_google'] = $r['error_description'] ?? ($r['error'] ?? 'sem resposta');
+  }
+  sai($d);
+}
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') sai(['ok' => false, 'erro' => 'Pedido inválido.'], 405);
 if (!is_file($chave)) sai(['ok' => false, 'sem' => 'chave']); // o app usa o e-mail padrão do Firebase
 $in = json_decode(file_get_contents('php://input'), true) ?: [];
 $email = strtolower(trim((string)($in['email'] ?? '')));
@@ -36,12 +54,12 @@ function post($url, $body, $hdr = []) {
 }
 $b64 = function ($s) { return rtrim(strtr(base64_encode($s), '+/', '-_'), '='); };
 $k = json_decode(file_get_contents($chave), true);
-if (!$k || empty($k['private_key']) || empty($k['client_email']) || empty($k['project_id'])) sai(['ok' => false, 'sem' => 'chave']);
+if (!$k || empty($k['private_key']) || empty($k['client_email']) || empty($k['project_id'])) sai(['ok' => false, 'sem' => 'chave', 'motivo' => 'chave inválida']);
 // token de acesso da conta de serviço
 $jwt = $b64(json_encode(['alg' => 'RS256', 'typ' => 'JWT'])) . '.' . $b64(json_encode(['iss' => $k['client_email'], 'scope' => 'https://www.googleapis.com/auth/identitytoolkit https://www.googleapis.com/auth/cloud-platform', 'aud' => 'https://oauth2.googleapis.com/token', 'iat' => $agora, 'exp' => $agora + 3000]));
 if (!openssl_sign($jwt, $sig, $k['private_key'], 'sha256WithRSAEncryption')) sai(['ok' => false, 'sem' => 'chave']);
 list($st, $tk) = post('https://oauth2.googleapis.com/token', http_build_query(['grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer', 'assertion' => $jwt . '.' . $b64($sig)]));
-if ($st != 200 || empty($tk['access_token'])) sai(['ok' => false, 'sem' => 'chave']);
+if ($st != 200 || empty($tk['access_token'])) sai(['ok' => false, 'sem' => 'chave', 'motivo' => 'google recusou a chave']);
 // link seguro de redefinição (o Firebase não manda e-mail: só devolve o link)
 $host = preg_replace('/[^a-z0-9.\-]/', '', strtolower($_SERVER['HTTP_HOST'] ?? 'simplificandoeduca.com'));
 list($st, $r) = post('https://identitytoolkit.googleapis.com/v1/projects/' . rawurlencode($k['project_id']) . '/accounts:sendOobCode',
