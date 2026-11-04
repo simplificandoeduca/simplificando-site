@@ -2256,6 +2256,31 @@ function tNotas(a){
 
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
+/* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
+const PAINELV = '4 nov · 18'; // Versão do painel: 4 nov · 18
+const ATU = { st:'', nova:'', msg:'' };
+function atuCheck(){
+  if(ATU.st) return; ATU.st = 'vendo';
+  fetch('/atualizar.php?acao=ver', { cache:'no-store' }).then(r => r.ok ? r.json() : Promise.reject()).then(j => { ATU.st = 'ok'; ATU.nova = (j && j.nova) || ''; if(ui.view==='ajustes') render(); })
+    .catch(() => { ATU.st = 'sem'; if(ui.view==='ajustes') render(); });
+}
+function atuCard(){
+  atuCheck();
+  if(ATU.st==='sem') return ''; // fora do site (prévia ou teste): o botão não aparece
+  const nova = ATU.nova && ATU.nova!==PAINELV, indo = ATU.st==='indo';
+  return '<section class="card'+(nova ? ' blk-brand' : '')+'"><span class="label">'+ic('refresh')+'Atualizar o site</span>'+
+    '<p class="muted">Versão no ar: <b>'+esc(PAINELV)+'</b>'+(ATU.st==='vendo' ? ' · procurando versão nova…' : nova ? ' · <b>versão nova pronta: '+esc(ATU.nova)+'</b>' : ATU.nova ? ' · já é a mais nova' : '')+'</p>'+
+    '<div class="btn-row"><button type="button" class="btn'+(nova ? ' ink' : '')+'" data-a="atuGo"'+(indo ? ' disabled' : '')+'>'+ic('refresh')+(indo ? 'Atualizando…' : 'Atualizar agora')+'</button></div>'+
+    (ATU.msg ? '<p class="err" role="alert">'+esc(ATU.msg)+'</p>' : '')+
+    '<p class="foot">Baixa do GitHub a versão mais nova do app e do painel e coloca no ar. Leva uns segundos e a página recarrega sozinha.</p></section>';
+}
+function atuGo(){
+  ATU.st = 'indo'; ATU.msg = ''; render();
+  fetch('/atualizar.php?acao=atualizar', { method:'POST', cache:'no-store' }).then(r => r.json()).then(j => {
+    if(j && j.ok){ toast('Site atualizado'+(j.versao ? ' para a versão '+j.versao : '')+'. Recarregando…'); setTimeout(() => location.replace(location.pathname+'?v='+Date.now()+location.hash), 1500); }
+    else { ATU.st = 'ok'; ATU.msg = (j && j.erro) || 'Não deu certo. Tente de novo.'; render(); }
+  }).catch(() => { ATU.st = 'ok'; ATU.msg = 'Sem conexão com o servidor. Confira a internet e tente de novo.'; render(); });
+}
 const nomeDono = () => cfg().nomePersonal || DONO_NOME;
 const PF = { list:null, loading:false, err:'', at:0, f:'todos', a:'todos', q:'' };
 const pfOnline = () => !!FBP && Store.kind==='firebase';
@@ -2523,8 +2548,9 @@ function vAjustes(){
     '<section class="card"><span class="label">'+ic('archive')+'Dados</span><p class="muted">'+(Store.mode==='db' ? 'Seus dados ficam salvos no painel e aparecem em qualquer aparelho em que você abrir esta página.' : 'Modo local: os dados ficam só neste navegador. Ao abrir o painel publicado, eles passam a ficar salvos no painel.')+'</p>'+
       '<div class="soon-rows"><div><b>'+Object.keys(C.alunos).length+'</b><span>alunos</span></div><div><b>'+Object.keys(C.exercicios).length+'</b><span>exercícios</span></div><div><b>'+Object.keys(C.modelos).length+'</b><span>modelos</span></div><div><b>'+nEx+'</b><span>itens de exemplo</span></div></div>'+
       (nEx ? armBtn('wipeEx','x','Apagar dados de exemplo ('+nEx+')','Toque de novo: apaga '+plural(nEx,'item','itens')+' marcados como exemplo','block','trash') : '<p class="foot">Não há dados de exemplo.</p>')+'</section>'+
+    atuCard()+
     '<section class="card"><span class="label">'+ic('users')+'Importar alunos</span><p class="muted">Para alunos que já tinham treino em planilha: escolha o arquivo de importação (.json). Cada aluno entra com o treino, a carga da última semana, as metas e o histórico nas anotações. Quem já está no painel, com o mesmo nome ou e-mail, não é duplicado.</p><div class="btn-row"><button type="button" class="btn" data-a="impFile">'+ic('plus')+'Escolher arquivo</button><input type="file" id="imp-file" class="sr" accept=".json,application/json"></div></section>'+
-    '<section class="card"><span class="label">'+ic('user')+'Acesso ao painel</span><p class="muted">Conectado como <b>'+esc(Gate.user()||'você')+'</b> neste aparelho.</p><button type="button" class="btn ghost block gate-out" data-gate-out="1">Sair do painel</button><p class="hint" style="text-align:center;margin:4px 0 0">Versão do painel: 4 nov · 17</p></section>'+
+    '<section class="card"><span class="label">'+ic('user')+'Acesso ao painel</span><p class="muted">Conectado como <b>'+esc(Gate.user()||'você')+'</b> neste aparelho.</p><button type="button" class="btn ghost block gate-out" data-gate-out="1">Sair do painel</button><p class="hint" style="text-align:center;margin:4px 0 0">Versão do painel: '+PAINELV+'</p></section>'+
     '<section class="card"><span class="label">'+ic('note')+'Termos e privacidade</span><p class="muted" style="margin:0">Termos de uso e política de privacidade, versão 1. Os alunos aceitam no app: no cadastro de quem treina sem personal e no primeiro acesso de quem entra com a senha do personal. O aceite de cada um aparece na aba Perfis.</p><button type="button" class="btn block" data-a="termos">'+ic('note')+'Ler os termos</button></section>';
 }
 
@@ -2935,6 +2961,7 @@ function act(a,d,btn){
     case 'pfF': PF[d.g] = d.v; break;
     case 'pgRefresh': loadProg(true); break;
     case 'semVista': try { localStorage.setItem('simp-semana-vista', d.v); } catch(e){ /* sem armazenamento */ } break;
+    case 'atuGo': atuGo(); return false;
     case 'impFile': { const f = document.getElementById('imp-file'); if(f) f.click(); return false; }
     case 'rkSort': ui.rkSort = !ui.rkSort; if(ui.sheet && ui.sheet.k==='pick'){ renderSheet(); return false; } break;
     case 'pfRefresh': loadPerfis(true); toast('Atualizando a lista'); break;
