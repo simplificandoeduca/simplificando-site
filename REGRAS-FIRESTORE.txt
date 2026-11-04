@@ -1,0 +1,67 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function logado() {
+      return request.auth != null;
+    }
+    // dono do painel: a primeira conta que entrou no painel
+    function dono() {
+      return logado()
+        && get(/databases/$(database)/documents/sistema/dono).data.uid == request.auth.uid;
+    }
+
+    // quem é o dono (o painel consulta antes do login para saber se é o primeiro acesso)
+    match /sistema/dono {
+      allow get: if true;
+      allow create: if logado()
+        && !exists(/databases/$(database)/documents/sistema/dono)
+        && request.resource.data.uid == request.auth.uid;
+    }
+
+    // dados do painel: só o personal
+    match /alunos/{id}     { allow read, write: if dono(); }
+    match /exercicios/{id} { allow read, write: if dono(); }
+    match /modelos/{id}    { allow read, write: if dono(); }
+    match /config/{id}     { allow read, write: if dono(); }
+
+    // o que o app do aluno lê: cada aluno só o seu, e só com o acesso liberado
+    match /appAlunos/{uid} {
+      allow get: if logado() && request.auth.uid == uid && resource.data.ativo == true;
+      allow read, write: if dono();
+    }
+
+    // resumo de cada conta (nome, tipo, último acesso, aceite dos termos) para a aba Perfis do painel;
+    // sem dados de saúde. Cada um grava o seu; só o dono do painel lê todos
+    match /perfis/{uid} {
+      allow read: if dono() || (logado() && request.auth.uid == uid);
+      allow create, update: if logado() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['tipo', 'aid', 'nome', 'email', 'sexo', 'objetivo', 'plano', 'treinos', 'criadoEm', 'ultimoAcesso', 'aceite', 'ver'])
+        && request.resource.data.tipo in ['autonomo', 'personal'];
+      allow delete: if dono() || (logado() && request.auth.uid == uid);
+    }
+
+    // aluno que treina sem personal: cada um lê e grava só os próprios treinos
+    match /autonomos/{uid} {
+      allow read, delete: if logado() && request.auth.uid == uid;
+      allow create, update: if logado() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['s', 'em'])
+        && request.resource.data.s is string
+        && request.resource.data.s.size() < 900000;
+    }
+
+    // o que o aluno com personal fez no app (treinos, cargas, academia, comentários, cardio, água e check-in):
+    // cada aluno grava só o seu, e só se o acesso dele estiver liberado no painel; só o dono do painel lê todos
+    match /progresso/{uid} {
+      allow read: if dono() || (logado() && request.auth.uid == uid);
+      allow create, update: if logado() && request.auth.uid == uid
+        && exists(/databases/$(database)/documents/appAlunos/$(request.auth.uid))
+        && get(/databases/$(database)/documents/appAlunos/$(request.auth.uid)).data.aid == request.resource.data.aid
+        && get(/databases/$(database)/documents/appAlunos/$(request.auth.uid)).data.ativo == true
+        && request.resource.data.keys().hasOnly(['aid', 's', 'em'])
+        && request.resource.data.s is string
+        && request.resource.data.s.size() < 900000;
+      allow delete: if dono() || (logado() && request.auth.uid == uid);
+    }
+  }
+}
