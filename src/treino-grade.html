@@ -4159,7 +4159,7 @@ function ik2(A,B,l1,l2,pref){
   const a = (l1*l1-l2*l2+d*d)/(2*d), h = Math.sqrt(Math.max(0, l1*l1-a*a)), sg = (-uy*pref[0]+ux*pref[1])>=0 ? 1 : -1;
   return [[A[0]+ux*a-uy*h*sg, A[1]+uy*a+ux*h*sg], d0>d ? [A[0]+ux*d, A[1]+uy*d] : B];
 }
-function torsoJ(hip,lean,tilt){ const S = at(hip,Math.PI-lean,FIGL.torso); return { hip, S, H:at(S,Math.PI-(lean*.35+Math.max(0,lean-20*D2R)*.55),17.5), lean, tilt }; }
+function torsoJ(hip,lean,tilt){ const S = at(hip,Math.PI-lean,FIGL.torso); return { hip, S, H:at(S,Math.PI-(lean*.35+Math.max(0,lean-20*D2R)*.55),AN.sex==='M'?19.5:17.5), lean, tilt }; }
 /* corrida por ângulos (como nos dados de biomecânica): quadril, joelho e pé seguem curvas suaves da fase;
    a altura do quadril vem da perna mais baixa, então o pé de apoio fica no chão sem escorregar para baixo dele */
 const gBump = (u,c,w) => { let d = Math.abs(frac(u-c)); d = Math.min(d,1-d); return Math.exp(-d*d/(2*w*w)); };
@@ -4227,7 +4227,7 @@ function drawArm(c,J,s,R,C,sex,top){
   const S0 = s.S0 || J.S, E = s.E, W = s.W, d = nrm([W[0]-E[0], W[1]-E[1]]), h = rot(d,.38);
   fcap(c,S0,E,R.sh-1.6,R.el-.6,C.skin); fcap(c,E,W,R.el-.6,R.wr-.4,C.skin);
   fcap(c,[W[0]+d[0]*.6,W[1]+d[1]*.6],[W[0]+d[0]*2.4+h[0]*2.6,W[1]+d[1]*2.4+h[1]*2.6],3.3,2.6,C.skin);
-  if(sex==='M') fcap(c,S0,lerpP(S0,E,.42),R.sh+.6,R.el+1.4,top);
+  if(sex==='M') fcap(c,S0,lerpP(S0,E,.36),R.sh+.2,R.el+1,top);
 }
 function drawLeg(c,J,s,R,C,short){
   fcap(c,J.hip,s.K,R.hp,R.kn,C.skin); fcap(c,s.K,s.A,R.kn,R.an,C.skin);
@@ -4238,8 +4238,12 @@ function drawTorso(c,J,R,C,sex){
   const hip = J.hip, S = J.S, vx = S[0]-hip[0], vy = S[1]-hip[1], T = Math.hypot(vx,vy), nx = -vy/T, ny = vx/T;
   const pt = (k,w) => { const m = w*(k>.5 ? R.t2 : R.t1)*(sex==='M' && k>.5 && k<.8 && w>0 ? .9 : 1); return [hip[0]+vx*k+nx*m, hip[1]+vy*k+ny*m]; };
   const P = (...a) => a.map(q => pt(q[0],q[1])).flat();
-  c.beginPath(); c.moveTo(...pt(0,9)); c.bezierCurveTo(...P([.35,7],[.62,11],[.9,10])); c.quadraticCurveTo(...P([1.08,2],[1,-7])); c.bezierCurveTo(...P([.8,-10],[.4,-8],[0,-9])); c.closePath();
-  c.fillStyle = C.top; c.fill();
+  const Q = (k,w) => [hip[0]+vx*k+nx*w, hip[1]+vy*k+ny*w], QQ = (...a) => a.map(q => Q(q[0],q[1])).flat();
+  c.beginPath();
+  if(sex==='M'){ c.moveTo(...Q(0,8.8)); c.bezierCurveTo(...QQ([.3,8.2],[.6,11.6],[.84,11.4])); c.bezierCurveTo(...QQ([.97,11.2],[1.06,6],[1.02,1.5])); c.bezierCurveTo(...QQ([1.01,-4],[.93,-10.6],[.78,-10.8])); c.bezierCurveTo(...QQ([.55,-10.6],[.3,-8.4],[0,-8.8])); }
+  else { c.moveTo(...pt(0,9)); c.bezierCurveTo(...P([.35,7],[.62,11],[.9,10])); c.quadraticCurveTo(...P([1.08,2],[1,-7])); c.bezierCurveTo(...P([.8,-10],[.4,-8],[0,-9])); }
+  c.closePath(); c.fillStyle = C.top; c.fill();
+  if(sex==='M'){ c.lineWidth = .9; c.strokeStyle = 'rgba(0,0,0,.12)'; c.beginPath(); c.moveTo(...Q(.82,10)); c.quadraticCurveTo(...QQ([.7,5],[.74,.5])); c.stroke(); }
   c.beginPath(); c.moveTo(...pt(.02,9.6)); c.lineTo(...pt(.02,-9.6)); c.lineTo(...pt(-.06,-9.4)); c.lineTo(...pt(-.06,9.4)); c.closePath(); c.fillStyle = C.short; c.fill();
 }
 /* rabo de cavalo: corrente de Verlet presa no prendedor, com atraso, gravidade e vento da corrida */
@@ -4266,8 +4270,8 @@ function drawPony(c,C){
 }
 function drawHead(c,J,C,sex){
   const P = shoeP(), H = J.H;
-  const nb = addv(H, rot([-1.2,8.5],J.tilt)), ns = lerpP(J.S, H, .18);
-  sline(c,[ns, nb],sex==='M'?8.5:7,C.skin);
+  const nb = addv(H, rot(sex==='M'?[-1.6,9.5]:[-1.2,8.5],J.tilt)), ns = lerpP(J.S, H, sex==='M'?.08:.18);
+  if(sex==='M') fcap(c,ns,nb,4.6,3.7,C.skin); else sline(c,[ns, nb],7,C.skin);
   c.save(); c.translate(H[0],H[1]); c.rotate(J.tilt);
   c.fillStyle = C.skin; c.fill(sex==='M' ? P.faceM : P.faceF);
   c.fillStyle = C.hair; c.fill(sex==='M' ? P.hairM : P.hairF);
