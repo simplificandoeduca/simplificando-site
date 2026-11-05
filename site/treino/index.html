@@ -1874,6 +1874,14 @@ const FB = (() => {
   async function login(code, email){
     const em = String(email||'').trim().toLowerCase(), net = k => k==='auth/too-many-requests' ? 'Muitas tentativas. Espere alguns minutos e tente de novo.' : k==='auth/network-request-failed' ? 'Sem internet. Conecte e tente de novo.' : '';
     let ok = false, cru = false;
+    // só a senha: o servidor (login.php) acha de quem é o código e devolve um passe de entrada daquele aluno
+    if(!em){
+      let j = null;
+      try { const f = new FormData(); f.append('codigo', code); j = await fetch('/login.php', {method:'POST', body:f, cache:'no-store'}).then(r => r.json()); } catch(e){ j = null; }
+      if(j && j.ok && j.token){ try { await auth.signInWithCustomToken(j.token); ok = true; } catch(e){ if(net(e && e.code)) return { err:net(e.code) }; } }
+      else if(j && j.erro && !j.semServidor) return { err:j.erro };
+      else if(!j && !navigator.onLine) return { err:'Sem internet. Conecte e tente de novo.' };
+    }
     if(em){
       try { await auth.signInWithEmailAndPassword(em, pass(code)); ok = true; }
       catch(e){ if(net(e && e.code)) return { err:net(e.code) };
@@ -2064,12 +2072,12 @@ function renderLogin(focusSel){
       <p class="lg-tag">Seu treino, sua água e seu cardio num lugar só. Do jeito que seu personal montou.</p></div>
       <div class="wave-strip" aria-hidden="true">${WAVE}</div>
       <form class="lg-form" data-lg="form" novalidate>
-        ${FB?`<label class="flabel" for="lg-em">E-mail</label><div class="inp-wrap lg-mail"><input class="inp" id="lg-em" type="email" inputmode="email" autocomplete="username" autocapitalize="off" spellcheck="false" maxlength="80" placeholder="seu@email.com" value="${esc(LG.email||'')}"></div>`:''}
+        ${FB && LG.forgot?`<label class="flabel" for="lg-em">E-mail para receber o link</label><div class="inp-wrap lg-mail"><input class="inp" id="lg-em" type="email" inputmode="email" autocomplete="username" autocapitalize="off" spellcheck="false" maxlength="80" placeholder="seu@email.com" value="${esc(LG.email||'')}"></div>`:''}
         <label class="flabel" for="lg-pw">Senha</label>
         <div class="lg-field${err?' err':''}"><input id="lg-pw" class="lg-inp" type="${LG.show?'text':'password'}" ${FB?'inputmode="numeric" maxlength="6"':'maxlength="64"'} autocomplete="current-password" autocapitalize="off" spellcheck="false" placeholder="Sua senha" aria-describedby="lg-err lg-help" aria-invalid="${!!err}" value="${esc(c)}">
           <button type="button" class="lg-eye" data-a="lg-eye" aria-pressed="${LG.show}" aria-label="${LG.show?'Esconder senha':'Mostrar senha'}">${ic(LG.show?'eyeOff':'eye')}</button></div>
         <p id="lg-err" class="lg-err" role="alert">${err}</p>
-        <p id="lg-help" class="lg-help">${LG.help ? esc(LG.help) : FB?'Seu e-mail e a senha de 6 números que seu personal enviou.':'Use a senha que seu personal enviou.'}</p>
+        <p id="lg-help" class="lg-help">${LG.help ? esc(LG.help) : FB?'A senha de 6 números que seu personal enviou.':'Use a senha que seu personal enviou.'}</p>
         <button type="submit" class="btn primary block lg-go"${c.length?'':' disabled'}>Entrar${ic('chev')}</button>
       </form>
       <div class="lg-links"><button type="button" class="linkbtn" data-a="lg-forgot">Esqueci a senha</button><button type="button" class="linkbtn" data-a="lg-self">Treinar sem personal</button></div>
@@ -2088,7 +2096,7 @@ async function siteReset(email, aluno){
 // aluno com personal esqueceu a senha: e-mail para escolher um código novo
 async function lgEsqueci(){
   const em = String(LG.email||'').trim(), h = document.getElementById('lg-help');
-  if(!/^\S+@\S+\.\S+$/.test(em)){ lgFail('Digite seu e-mail acima e toque de novo em “Esqueci a senha”.'); const i = document.getElementById('lg-em'); if(i) i.focus(); return; }
+  if(!/^\S+@\S+\.\S+$/.test(em)){ if(!LG.forgot){ LG.forgot = true; LG.err = ''; renderLogin('#lg-em'); } lgFail('Digite o e-mail que você passou para o seu personal e toque de novo em “Esqueci a senha”.'); const i = document.getElementById('lg-em'); if(i) i.focus(); return; }
   if(h) h.textContent = 'Enviando…';
   const r = await siteReset(em, true);
   LG.help = r.err ? '' : r.proprio ? 'Pronto. Se esse e-mail estiver cadastrado pelo seu personal, chega um e-mail do Simplificando com o botão para escolher sua senha nova de 6 números. Olhe também o spam.' : 'Pronto. Se esse e-mail estiver cadastrado pelo seu personal, chega um link (olhe também o spam). No link, crie uma senha de 6 números e depois entre aqui com o seu e-mail e essa senha.';
@@ -2146,7 +2154,7 @@ async function tryLoginFB(){
   if(!code){ lgFail('Digite sua senha.'); return; }
   if(code.length!==6){ lgFail('A senha do app tem 6 números. Confira com seu personal.'); return; }
   const go = document.querySelector('#login .lg-go'); if(go){ go.disabled = true; go.classList.add('busy'); }
-  const em = String(LG.email||'').trim();
+  const em = LG.forgot ? String(LG.email||'').trim() : '';
   if(em && !/^\S+@\S+\.\S+$/.test(em)){ lgFail('Confira o e-mail. Ex.: voce@email.com'); return; }
   const r = await FB.login(code, em);
   if(go){ go.disabled = false; go.classList.remove('busy'); }
