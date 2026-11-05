@@ -3996,7 +3996,7 @@ function vAgua(){
       ${L.length?`<div class="drinks">${L.map(e => `<span class="chip">${hm(e.m)} · ${e.ml} ml</span>`).join('')}</div>`:''}</section>`+
     `<section class="card"><div class="sw-row"><div><b>Lembretes de água</b><span>Das 8h às 22h, contando do último copo.</span></div><label class="switch"><input type="checkbox" data-sw="remind"${S.remind.on?' checked':''}><span class="knob"></span><span class="sr">Lembretes de água</span></label></div>
       ${S.remind.on?`<div class="field"><span class="flabel">Lembrar a cada</span>${seg('remind-ev',[60,90,120],S.remind.every,['1 hora','1h30','2 horas'],'Intervalo dos lembretes')}</div><p class="zone">${ic('bell')}<span><b>${rt}</b></span></p>`:''}
-      <p class="foot0">Os lembretes aparecem enquanto o app estiver aberto.</p></section>`+
+      ${S.remind.on ? pushCard() : ''}</section>`+
     `<section class="card"><div class="card-h"><span class="label">${ic('chart')}Últimos 7 dias</span><span class="pill${hit7>=5?' ok':''}">${hit7} de 7 na meta</span></div>${weekWaterBars()}</section>`+
     (isPersonal() ? `<section class="card"><div class="sw-row"><div><b>Meta de água: ${fmtL(g)} por dia</b><span>Definida pelo seu personal. Se precisar mudar, fale com ele.</span></div><span class="pill">${ic('lock')}Personal</span></div></section>`
       : `<section class="card"><div class="field"><span class="flabel">Meta de água por dia</span><div class="stepper"><button type="button" class="btn round" data-a="goal" data-d="-250" aria-label="Diminuir meta de água">${ic('minus')}</button><output>${fmtL(g)}</output><button type="button" class="btn round" data-a="goal" data-d="250" aria-label="Aumentar meta de água">${ic('plus')}</button></div></div><p class="foot0">Uma referência comum é 35 ml por kg de peso.</p></section>`);
@@ -5162,7 +5162,7 @@ function startRest(nx){ ui.rest = {end:Date.now()+REST*1000, total:REST, next:nx
 function addWater(ml){
   const t = today(), before = S.water[t]||0;
   (S.wlog[t] = S.wlog[t]||[]).push({m:nowMin(), ml});
-  S.water[t] = before+ml;
+  S.water[t] = before+ml; setTimeout(pushCopo, 0);
   if(before<S.waterGoal && before+ml>=S.waterGoal) celebrate('Meta de água batida', fmtL(before+ml)+' hoje. Garrafinha cheia.', '', 'water');
   else toast('+'+ml+' ml. Total '+fmtL(before+ml)+'.');
 }
@@ -5353,7 +5353,9 @@ function onClick(ev){
       break;
     }
     case 'ci-edit': ui.ciEdit = true; ui.ci = Object.assign({}, S.checkin[today()]); break;
-    case 'remind-ev': S.remind.every = +d.v; ui.remindFired = null; break;
+    case 'remind-ev': S.remind.every = +d.v; ui.remindFired = null; pushSave(); break;
+    case 'push-on': pushEnable(); re = false; break;
+    case 'push-off': pushDisable(false); re = false; break;
     case 'goal': if(isPersonal()) break; S.waterGoal = Math.min(6000, Math.max(1000, S.waterGoal+ +d.d)); if(ui.sheet && ui.sheet.k==='prof') renderSheet(); break;
     case 'cgoal': if(isPersonal()) break; S.cardioGoal = Math.min(600, Math.max(30, S.cardioGoal+ +d.d)); break;
     case 'ed': if(isPersonal()) break; S.ed = d.v; if(ui.sheet && ui.sheet.k==='prof') renderSheet(); break;
@@ -5436,7 +5438,7 @@ function onChange(ev){
     return;
   }
   if(el.dataset.sw==='glass'){ PREF.glass = el.checked; savePref(); applyGlass(); toast(el.checked ? 'Liquid Glass ligado.' : 'Visual sólido de volta.'); }
-  if(el.dataset.sw==='remind'){ S.remind.on = el.checked; ui.remindFired = null; save(); render(); toast(el.checked ? 'Lembretes ligados.' : 'Lembretes desligados.'); }
+  if(el.dataset.sw==='remind'){ S.remind.on = el.checked; ui.remindFired = null; save(); if(PREF.pushOn) pushSave(); render(); toast(el.checked ? 'Lembretes ligados.' : 'Lembretes desligados.'); }
 }
 function tick(){
   if(!ACCT) return;
@@ -5508,11 +5510,49 @@ function errSend(msg, src, line, col, stack){
 }
 window.addEventListener('error', ev => { if(ev && ev.message) errSend(ev.message, ev.filename, ev.lineno, ev.colno, ev.error && ev.error.stack); });
 window.addEventListener('unhandledrejection', ev => { const r = ev && ev.reason; errSend('Promessa sem tratamento: '+(r && r.message ? r.message : String(r)), '', 0, 0, r && r.stack); });
+/* lembrete de água com o app fechado: o celular se inscreve no push.php e o servidor avisa no horário */
+const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent), STANDALONE = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone===true;
+const pushPode = () => !!(FB && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window);
+const pushLigado = () => pushPode() && PREF.pushOn && Notification.permission==='granted';
+const b64u8 = s => { const b = atob((s+'='.repeat((4-s.length%4)%4)).replace(/-/g,'+').replace(/_/g,'/')); return Uint8Array.from(b, c => c.charCodeAt(0)); };
+const pushPost = (acao, dados) => fetch('/push.php?acao='+acao, {method:'POST', body:JSON.stringify(Object.assign({id:PREF.pushId}, dados||{})), keepalive:true}).then(r => r.json()).catch(() => ({ok:false}));
+function pushDados(sub){ const meta = (S.water[today()]||0)>=S.waterGoal ? today() : ''; return Object.assign(sub ? {sub} : {}, {ini:'08:00', fim:'22:00', cada:S.remind.every, tz:new Date().getTimezoneOffset(), meta}); }
+async function pushEnable(){
+  if(!pushPode()){ toast(IOS && !STANDALONE ? 'No iPhone, adicione o app à tela de início e abra por lá para ligar os avisos.' : 'Este navegador não manda avisos com o app fechado.'); return; }
+  try {
+    const perm = await Notification.requestPermission();
+    if(perm!=='granted'){ toast('Avisos bloqueados. Libere as notificações do Simplificando nos ajustes do celular.'); return; }
+    const reg = await navigator.serviceWorker.ready, k = await fetch('/push.php?acao=chave',{cache:'no-store'}).then(r => r.json());
+    if(!k || !k.pub) throw new Error('sem chave');
+    let sub = await reg.pushManager.getSubscription();
+    if(!sub) sub = await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:b64u8(k.pub)});
+    if(!PREF.pushId) PREF.pushId = Array.from(crypto.getRandomValues(new Uint8Array(12)), b => (b%36).toString(36)).join('')+Date.now().toString(36);
+    const r = await pushPost('assinar', pushDados(sub.toJSON()));
+    if(!r.ok) throw new Error('servidor');
+    PREF.pushOn = true; savePref(); if(!S.remind.on){ S.remind.on = true; save(); }
+    toast('Pronto. Os lembretes de água chegam no celular mesmo com o app fechado.'); render();
+  } catch(e){ toast('Não deu para ligar os avisos agora. Confira a internet e tente de novo.'); }
+}
+async function pushDisable(manter){
+  if(PREF.pushId) await pushPost('sair');
+  if(!manter){ PREF.pushOn = false; savePref(); try { const reg = await navigator.serviceWorker.ready, sub = await reg.pushManager.getSubscription(); if(sub) await sub.unsubscribe(); } catch(e){ /* nada a desfazer */ } }
+  render();
+}
+function pushSave(){ if(!pushLigado()) return; if(!S.remind.on){ pushDisable(true); return; } navigator.serviceWorker.ready.then(reg => reg.pushManager.getSubscription()).then(sub => { if(sub) pushPost('assinar', pushDados(sub.toJSON())); }).catch(() => {}); }
+function pushCopo(){ if(pushLigado() && PREF.pushId) pushPost('copo', {meta:(S.water[today()]||0)>=S.waterGoal ? today() : ''}); }
+function pushCard(){
+  if(pushLigado()) return `<p class="zone">${ic('bell')}<span><b>Avisos no celular ligados.</b> Chegam mesmo com o app fechado, das 8h às 22h, e param quando a meta do dia é batida.</span></p><button type="button" class="btn ghost small self-start" data-a="push-off">Desligar avisos no celular</button>`;
+  if(IOS && !STANDALONE) return `<p class="foot0">No iPhone, para receber o aviso com o app fechado: toque em ${ic('up')} Compartilhar → <b>Adicionar à Tela de Início</b> e abra o Simplificando pelo ícone. Depois ligue os avisos aqui.</p>`;
+  if(pushPode()) return `<button type="button" class="btn block" data-a="push-on">${ic('bell')}Avisar mesmo com o app fechado</button><p class="foot0">Sem isso, os lembretes aparecem só com o app aberto.</p>`;
+  return `<p class="foot0">Os lembretes aparecem enquanto o app estiver aberto.</p>`;
+}
 /* sem internet: o app fica guardado no celular (sw.js na pasta do app) e avisa quando o sinal cai ou volta */
 function offlineSetup(){
   const ok = 'serviceWorker' in navigator && FB && (location.protocol==='https:' || location.hostname==='localhost' || location.hostname==='127.0.0.1');
   const reg = () => navigator.serviceWorker.register('sw.js').catch(() => { /* sem guardar offline */ });
   if(ok){ if(document.readyState==='complete') reg(); else window.addEventListener('load', reg); }
+  try { navigator.serviceWorker && navigator.serviceWorker.addEventListener('message', ev => { if(ev.data && ev.data.abrir==='agua' && ACCT){ ui.tab = 'agua'; ui.enter = true; render(); } }); } catch(e){ /* sem mensagens */ }
+  if(location.hash==='#agua' && ACCT){ ui.tab = 'agua'; render(); history.replaceState(null,'',location.pathname+location.search); }
   window.addEventListener('offline', () => toast('Sem internet. Pode treinar normalmente: tudo fica salvo no celular e sobe quando o sinal voltar.'));
   window.addEventListener('online', () => { toast('Internet de volta. Salvando seus treinos.'); try { if(typeof progSync==='function' && ACCT && ACCT.mode==='personal') progSync(true); if(typeof fbRefresh==='function' && ACCT) fbRefresh(); } catch(e){ /* sem sincronizar agora */ } });
 }

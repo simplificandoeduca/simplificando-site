@@ -2,7 +2,7 @@
    - A página: tenta a internet primeiro (pega a versão nova); se a internet falhar ou demorar, abre a cópia guardada.
    - Arquivos fixos (Firebase, ícones, fontes): usa a cópia guardada e atualiza por trás.
    - Banco de dados, login e e-mails não passam por aqui: o próprio Firebase cuida de reenviar quando o sinal volta. */
-const CACHE = 'simp-treino-v1';
+const CACHE = 'simp-treino-v2';
 const CORE = ['./', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-180.png', './firebase-config.js',
   './fb/firebase-app-compat.js', './fb/firebase-auth-compat.js', './fb/firebase-firestore-compat.js'];
 const BASE = new URL('./', self.location).pathname;
@@ -45,4 +45,20 @@ self.addEventListener('fetch', e => {
     e.respondWith(fixo(req)); return;
   }
   if (FONTES.includes(u.hostname)) e.respondWith(fixo(req));
+});
+
+/* lembrete de água com o app fechado: o servidor (push.php) só "cutuca"; a mensagem é montada aqui */
+const FRASES = ['Hora de beber água 💧', 'Um copo agora? 💧', 'Sua garrafinha está te chamando 💧', 'Pausa rápida para a água 💧'];
+self.addEventListener('push', e => {
+  const t = FRASES[Math.floor(Math.random() * FRASES.length)];
+  e.waitUntil(self.registration.showNotification(t, { body: 'Toque para registrar o copo no Simplificando.', icon: 'icon-192.png', badge: 'icon-192.png', tag: 'agua', renotify: true, data: { url: BASE + '#agua' } }));
+});
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const url = (e.notification.data && e.notification.data.url) || BASE;
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(ws => {
+    const w = ws.find(c => new URL(c.url).pathname.startsWith(BASE));
+    if (w) { w.focus(); w.postMessage({ abrir: 'agua' }); return; }
+    return self.clients.openWindow(url);
+  }));
 });
