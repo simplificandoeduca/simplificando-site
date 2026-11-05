@@ -136,8 +136,9 @@ h2.big{margin:0;font-size:32px;font-weight:900;letter-spacing:-.04em;line-height
 .st-cores button.on{box-shadow:0 0 0 3px var(--card,var(--bg)),0 0 0 5px var(--fg);transform:scale(1.06)}
 .st-cores button:active{transform:scale(.92)}
 .st-prev{align-self:center;width:min(62vw,300px);aspect-ratio:9/16;border-radius:18px;overflow:hidden;background:var(--ctl);box-shadow:0 8px 28px rgba(15,23,18,.18)}
-.st-prev img{display:block;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .25s}
-.st-prev img.on{opacity:1}
+.st-prev canvas{display:block;width:100%;height:100%;opacity:0;transition:opacity .25s}
+.st-prev canvas.on{opacity:1}
+.st-foto .btn{cursor:pointer}
 .foot{margin:0;padding:0 4px;font-size:13px;line-height:1.45;color:var(--muted)}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:500;padding:6px 11px;border-radius:999px;background:var(--ctl)}
@@ -4738,19 +4739,89 @@ function stCupom(c,D,cor){
   y += 110+26;
   stTxt(c,'simplificandoeduca.com · pago com suor',X+PW/2,y+32,'700 32px '+ST_MONO,'#5B625D','center');
 }
+function stFotoBox(s){ return {x:s.sx-30, y:s.sy-130, w:720, h:560}; }
+function stFoto(c,D,s){
+  const W = 1080, H = 1920;
+  if(s.ph){
+    const p = s.ph, k = Math.max(W/p.width, H/p.height), dw = p.width*k, dh = p.height*k;
+    const mx = (dw-W)/2, my = (dh-H)/2; s.px = Math.max(-mx, Math.min(mx, s.px||0)); s.py = Math.max(-my, Math.min(my, s.py||0));
+    c.fillStyle = '#000'; c.fillRect(0,0,W,H); c.drawImage(p, (W-dw)/2+s.px, (H-dh)/2+s.py, dw, dh);
+  } else {
+    const g = c.createLinearGradient(0,0,0,H); g.addColorStop(0,'#2A332D'); g.addColorStop(1,'#0F1712'); c.fillStyle = g; c.fillRect(0,0,W,H);
+    c.strokeStyle = 'rgba(246,245,239,.25)'; c.lineWidth = 6; c.setLineDash([24,18]); stRR(c,70,70,W-140,H-140,48); c.stroke(); c.setLineDash([]);
+    stTxt(c,'📷',W/2,640,'160px '+ST_SANS,'#fff','center');
+    stTxt(c,'Tire uma foto',W/2,800,'900 76px '+ST_SANS,STC.cr,'center',-3);
+    stTxt(c,'ou escolha da galeria',W/2,890,'700 48px '+ST_SANS,'#9AA29B','center');
+  }
+  const sh = c.createLinearGradient(0,H*.55,0,H); sh.addColorStop(0,'rgba(0,0,0,0)'); sh.addColorStop(1,'rgba(0,0,0,.35)'); c.fillStyle = sh; c.fillRect(0,H*.55,W,H*.45);
+  const cor = s.cor==='branco' ? STC.cr : ST_TEMA[s.cor].bg, claro = s.cor==='preto' || s.cor==='vermelho', fg = claro ? STC.cr : STC.dk, sub = claro ? 'rgba(246,245,239,.75)' : '#4A524C';
+  const x = s.sx, y = s.sy, w = 640, h = 300;
+  // recordes
+  if(D.prs){ c.save(); c.translate(x+450, y-95); c.rotate(6*Math.PI/180); c.shadowColor = 'rgba(0,0,0,.35)'; c.shadowBlur = 30; c.shadowOffsetY = 12;
+    const t = '🔥 '+D.prs+' recorde'+(D.prs===1?'':'s'); c.font = '900 44px '+ST_SANS; const tw = c.measureText(t).width+72;
+    c.fillStyle = s.cor==='vermelho' ? STC.dk : STC.rd; stRR(c,-tw/2,-46,tw,92,46); c.fill(); c.shadowColor = 'transparent';
+    stTxt(c,t,0,16,'900 44px '+ST_SANS,'#fff','center'); c.restore(); }
+  // cartão principal
+  c.save(); c.translate(x+w/2, y+h/2); c.rotate(-5*Math.PI/180); c.shadowColor = 'rgba(0,0,0,.4)'; c.shadowBlur = 50; c.shadowOffsetY = 20;
+  c.fillStyle = cor; stRR(c,-w/2,-h/2,w,h,44); c.fill(); c.shadowColor = 'transparent';
+  stLogoDraw(c,-w/2+44,-h/2+40,64);
+  c.font = '900 32px '+ST_SANS; stLs(c,-1); const nw = c.measureText('simplificando').width; stLs(c,0);
+  stTxt(c,'simplificando',-w/2+124,-h/2+84,'900 32px '+ST_SANS,fg,'left',-1); stTxt(c,'.',-w/2+124+nw,-h/2+84,'900 32px '+ST_SANS,claro?STC.lm:STC.rd);
+  stTxt(c,'· Treino '+D.t,-w/2+124+nw+20,-h/2+84,'800 30px '+ST_SANS,sub);
+  const tt = String(Math.floor(D.sec/60)).padStart(2,'0')+':'+String(D.sec%60).padStart(2,'0');
+  stTxt(c,tt,-w/2+40,-h/2+210,'800 116px '+ST_MONO,fg,'left',-5);
+  c.font = '700 32px '+ST_SANS; stTxt(c,stCorte(c,D.sets+' séries · '+D.nome.toLowerCase()+' · '+String(D.dia).padStart(2,'0')+' '+ST_MES[D.mes].slice(0,3),w-84),-w/2+44,-h/2+262,'700 32px '+ST_SANS,sub);
+  c.restore();
+  // hashtag
+  c.save(); c.translate(x+470, y+h+40); c.rotate(-3*Math.PI/180); c.fillStyle = s.cor==='verde' ? STC.dk : STC.lm; stRR(c,-150,-38,300,76,22); c.fill();
+  stTxt(c,'#simplificando',0,12,'900 34px '+ST_SANS,s.cor==='verde'?STC.lm:STC.dk,'center'); c.restore();
+}
+let stBlobT = 0, stOk = false;
+function stBlob(s){
+  clearTimeout(stBlobT); s.blob = null; $sheet.querySelectorAll('[data-st-go]').forEach(b => b.disabled = true);
+  stBlobT = setTimeout(() => { const cv = $sheet.querySelector('#st-cv'); if(!cv || ui.sheet!==s) return;
+    cv.toBlob(b => { if(ui.sheet!==s || !b) return; if(s.url) URL.revokeObjectURL(s.url); s.blob = b; s.url = URL.createObjectURL(b); $sheet.querySelectorAll('[data-st-go]').forEach(x => x.disabled = false); }, 'image/png'); }, 220);
+}
+function stDraw(s){
+  const cv = $sheet.querySelector('#st-cv'); if(!cv) return;
+  const h = S.history[s.i]; if(!h) return;
+  const c = cv.getContext('2d'), D = stDados(h);
+  c.setTransform(1,0,0,1,0,0); c.clearRect(0,0,1080,1920);
+  if(s.m==='cupom') stCupom(c,D,s.cor); else if(s.m==='foto') stFoto(c,D,s); else stCrono(c,D,ST_TEMA[s.cor]);
+  cv.classList.add('on');
+}
+function stBind(s){
+  $sheet.querySelectorAll('[data-st-file]').forEach(inp => inp.onchange = () => {
+    const f = inp.files && inp.files[0]; inp.value = ''; if(!f) return;
+    const u = URL.createObjectURL(f), im = new Image();
+    im.onload = () => { const k = Math.min(1, 2200/Math.max(im.width, im.height)), p = document.createElement('canvas');
+      p.width = Math.round(im.width*k); p.height = Math.round(im.height*k); p.getContext('2d').drawImage(im,0,0,p.width,p.height); URL.revokeObjectURL(u);
+      s.ph = p; s.px = 0; s.py = 0; if(ui.sheet===s){ stDraw(s); stBlob(s); const t = $sheet.querySelector('.st-tip'); if(t) t.hidden = false; } };
+    im.onerror = () => { URL.revokeObjectURL(u); toast('Não deu para abrir essa foto. Tente outra.'); };
+    im.src = u;
+  });
+  const cv = $sheet.querySelector('#st-cv'); if(!cv || s.m!=='foto') return;
+  let drag = null, raf = 0;
+  cv.addEventListener('pointerdown', ev => {
+    const r = cv.getBoundingClientRect(), k = 1080/r.width, x = (ev.clientX-r.left)*k, y = (ev.clientY-r.top)*k, b = stFotoBox(s);
+    const onStk = x>=b.x && x<=b.x+b.w && y>=b.y && y<=b.y+b.h;
+    if(!onStk && !s.ph) return;
+    drag = {k, x0:ev.clientX, y0:ev.clientY, stk:onStk, a:onStk ? s.sx : s.px, b:onStk ? s.sy : s.py};
+    try { cv.setPointerCapture(ev.pointerId); } catch(e){ /* sem captura */ } ev.preventDefault();
+  });
+  cv.addEventListener('pointermove', ev => {
+    if(!drag) return; const dx = (ev.clientX-drag.x0)*drag.k, dy = (ev.clientY-drag.y0)*drag.k;
+    if(drag.stk){ s.sx = Math.max(-20, Math.min(1080-660, drag.a+dx)); s.sy = Math.max(150, Math.min(1920-420, drag.b+dy)); } else { s.px = drag.a+dx; s.py = drag.b+dy; }
+    if(!raf) raf = requestAnimationFrame(() => { raf = 0; stDraw(s); });
+  });
+  const end = () => { if(!drag) return; drag = null; stDraw(s); stBlob(s); };
+  cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+}
 async function stRender(){
   const s = ui.sheet; if(!s || s.k!=='story') return;
-  const h = S.history[s.i]; if(!h) return;
-  await stFontes();
-  const cv = document.createElement('canvas'); cv.width = 1080; cv.height = 1920;
-  const c = cv.getContext('2d'), D = stDados(h);
-  if(s.m==='cupom') stCupom(c,D,s.cor); else stCrono(c,D,ST_TEMA[s.cor]);
-  const blob = await new Promise(ok => cv.toBlob(ok,'image/png'));
-  if(ui.sheet!==s || !blob) return;
-  if(s.url) URL.revokeObjectURL(s.url);
-  s.blob = blob; s.url = URL.createObjectURL(blob);
-  const im = $sheet.querySelector('#st-img'); if(im){ im.src = s.url; im.classList.add('on'); }
-  $sheet.querySelectorAll('[data-st-go]').forEach(b => b.disabled = false);
+  if(!S.history[s.i]) return;
+  if(!stOk){ await stFontes(); stOk = true; if(ui.sheet!==s) return; }
+  stDraw(s); stBind(s); stBlob(s);
 }
 function stNome(s){ const h = S.history[s.i]; return 'simplificando-treino-'+(h ? h.t+'-'+h.date : 'hoje')+'.png'; }
 function stBaixar(s){
@@ -4767,17 +4838,20 @@ async function stShare(s){
 }
 function vStory(){
   const s = ui.sheet, h = S.history[s.i]; if(!h) return '';
+  const foto = s.m==='foto';
   return `<div class="sheet-wrap" data-a="closebg"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t" tabindex="-1">${sheetTop('Treino '+h.t+' · '+dayLabel(h.date), 'Compartilhar treino<span class="dot" aria-hidden="true"></span>')}
-    ${seg('st-m',['crono','cupom'],s.m,['Cronômetro','Cupom'],'Modelo da imagem')}
-    <div class="st-cores" role="group" aria-label="Cor do fundo">${ST_CORES.map(([k,n,c]) => `<button type="button" class="${s.cor===k?'on':''}" style="--c:${c}" aria-pressed="${s.cor===k}" aria-label="${n}" title="${n}" data-a="st-cor" data-v="${k}"></button>`).join('')}</div>
-    <div class="st-prev"><img id="st-img" alt="Prévia da imagem do treino para o story"${s.url?` src="${s.url}" class="on"`:''}></div>
-    <button type="button" class="btn primary block" data-a="st-share" data-st-go${s.blob?'':' disabled'}>${ic('share')}Compartilhar no Instagram ou WhatsApp</button>
-    <button type="button" class="btn block" data-a="st-down" data-st-go${s.blob?'':' disabled'}>${ic('dl')}Baixar imagem</button>
+    ${seg('st-m',['crono','cupom','foto'],s.m,['Cronômetro','Cupom','Foto'],'Modelo da imagem')}
+    ${foto ? `<div class="row-btns st-foto"><label class="btn">${ic('camera')}Tirar foto<input type="file" accept="image/*" capture="user" data-st-file hidden></label><label class="btn">${ic('layers')}Galeria<input type="file" accept="image/*" data-st-file hidden></label></div>` : ''}
+    <div class="st-cores" role="group" aria-label="${foto?'Cor da figurinha':'Cor do fundo'}">${ST_CORES.map(([k,n,c]) => `<button type="button" class="${s.cor===k?'on':''}" style="--c:${c}" aria-pressed="${s.cor===k}" aria-label="${n}" title="${n}" data-a="st-cor" data-v="${k}"></button>`).join('')}</div>
+    <div class="st-prev"><canvas id="st-cv" width="1080" height="1920" role="img" aria-label="Prévia da imagem do treino para o story"${foto?' style="touch-action:none;cursor:grab"':''}></canvas></div>
+    ${foto ? `<p class="foot0 st-tip"${s.ph?'':' hidden'}>Arraste a figurinha para mudar de lugar. Arraste a foto para ajustar o enquadramento. A foto fica só no seu celular.</p>` : ''}
+    <button type="button" class="btn primary block" data-a="st-share" data-st-go disabled>${ic('share')}Compartilhar no Instagram ou WhatsApp</button>
+    <button type="button" class="btn block" data-a="st-down" data-st-go disabled>${ic('dl')}Baixar imagem</button>
     <p class="foot0">No celular, escolha Instagram (story) ou WhatsApp na lista que abrir.</p></div></div>`;
 }
 function stOpen(i){
   const old = ui.sheet && ui.sheet.k==='story' ? ui.sheet : null;
-  ui.sheet = {k:'story', i, m:PREF.stM||'crono', cor:PREF.stCor||'vermelho', back:old ? old.back : i};
+  ui.sheet = {k:'story', i, m:PREF.stM||'crono', cor:PREF.stCor||'vermelho', sx:70, sy:1280, px:0, py:0, back:old ? old.back : i};
   renderSheet(true); stRender();
 }
 function stSet(k,v){ const s = ui.sheet; s[k] = v; s.blob = null; PREF[k==='m'?'stM':'stCor'] = v; savePref(); renderSheet(); stRender(); }
