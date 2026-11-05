@@ -80,6 +80,11 @@ if (isset($_GET['teste'])) {
     $th = str_replace(['%EMAIL%', '%LINK%'], [htmlspecialchars($ec['testar_para'], ENT_QUOTES, 'UTF-8'), 'https://' . preg_replace('/[^a-z0-9.\-]/', '', strtolower($_SERVER['HTTP_HOST'] ?? 'simplificandoeduca.com')) . '/treino/'], DESIGN_EMAIL);
     $d['teste_de_envio_ok'] = smtpEnvia($ec, $ec['testar_para'], '=?UTF-8?B?' . base64_encode('[Teste] Bora voltar pro treino: crie sua senha nova') . '?=', '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"></head><body style="margin:0">' . $th . '</body></html>', $lg);
     $d['teste_de_envio_passos'] = $lg;
+    if (!$d['teste_de_envio_ok']) { // tenta o envio interno do servidor
+      $dm = substr(strrchr(strtolower(trim($ec['usuario'])), '@'), 1);
+      $cb = "MIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\nFrom: =?UTF-8?B?" . base64_encode('Simplificando') . "?= <nao-responda@$dm>\r\n";
+      $d['teste_envio_interno_ok'] = @mail($ec['testar_para'], '=?UTF-8?B?' . base64_encode('[Teste 2] Bora voltar pro treino') . '?=', '<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0">' . $th . '</body></html>', $cb, '-fnao-responda@' . $dm);
+    }
   }
   $lf = $casa . '/.simplificando-recuperar-log.json';
   $d['ultimos_pedidos'] = is_file($lf) ? (json_decode((string)file_get_contents($lf), true) ?: []) : [];
@@ -138,6 +143,10 @@ $ef = $casa . '/simplificando-email.json'; $ec = is_file($ef) ? json_decode((str
 if ($ec && !empty($ec['usuario']) && !empty($ec['senha'])) {
   $lg = []; $ok = smtpEnvia($ec, $email, $assunto, $html, $lg);
   anota($ok ? 'enviado por SMTP' : 'SMTP falhou', $esconde($email) . ' · ' . implode(' | ', array_slice($lg, -2)));
+  if (!$ok) { // segundo caminho: envio interno do servidor, com o mesmo design
+    $ok = @mail($email, $assunto, $html, $cab, '-fnao-responda@' . $dom);
+    anota($ok ? 'enviado pelo envio interno (sem SMTP)' : 'envio interno também falhou', $esconde($email));
+  }
 } else {
   $ok = @mail($email, $assunto, $html, $cab, '-fnao-responda@' . $dom);
   anota($ok ? 'e-mail entregue ao servidor (sem SMTP)' : 'servidor recusou o envio', $esconde($email) . ' · de nao-responda@' . $dom . ($ok ? '' : ' · ' . ((error_get_last()['message'] ?? '') ?: '')));
