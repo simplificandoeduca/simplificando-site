@@ -15,7 +15,7 @@ $esconde = function ($e) { $p = explode('@', $e); return substr($p[0], 0, 2) . '
 // envio autenticado (SMTP) pela conta nao-responda@ do cPanel: o servidor responde cada etapa
 // dados em ~/simplificando-email.json: {"usuario":"nao-responda@seudominio","senha":"...","testar_para":"seu@email.com"}
 function smtpEnvia($cfg, $para, $assunto, $html, &$log) {
-  $log = []; $user = $cfg['usuario']; $dom = substr(strrchr($user, '@'), 1);
+  $log = []; $user = strtolower(trim((string)$cfg['usuario'])); $senha = (string)$cfg['senha']; $dom = substr(strrchr($user, '@'), 1);
   $alvos = [['ssl://mail.' . $dom, 465, false], ['tcp://localhost', 587, true], ['ssl://localhost', 465, false]];
   foreach ($alvos as $a) {
     $ctx = stream_context_create(['ssl' => ['verify_peer' => false, 'verify_peer_name' => false, 'allow_self_signed' => true]]);
@@ -28,7 +28,8 @@ function smtpEnvia($cfg, $para, $assunto, $html, &$log) {
     $r = $le(); $log[] = $a[0] . ':' . $a[1] . ' → ' . $r;
     $r = $diz('EHLO ' . $dom);
     if ($a[2]) { $r = $diz('STARTTLS'); if (!$ok($r, 220) || !@stream_socket_enable_crypto($f, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) { $log[] = 'STARTTLS falhou: ' . $r; fclose($f); continue; } $r = $diz('EHLO ' . $dom); }
-    $r = $diz('AUTH LOGIN'); $r = $diz(base64_encode($user)); $r = $diz(base64_encode($cfg['senha']));
+    $r = $diz('AUTH PLAIN ' . base64_encode("\0" . $user . "\0" . $senha));
+    if (!$ok($r, 235)) { $log[] = 'login (PLAIN) recusado: ' . $r; $r = $diz('AUTH LOGIN'); $r = $diz(base64_encode($user)); $r = $diz(base64_encode($senha)); }
     if (!$ok($r, 235)) { $log[] = 'login recusado: ' . $r; fclose($f); continue; }
     $log[] = 'login aceito';
     $r = $diz('MAIL FROM:<' . $user . '>'); if (!$ok($r, 250)) { $log[] = 'remetente recusado: ' . $r; fclose($f); return false; }
@@ -61,6 +62,8 @@ if (isset($_GET['teste'])) {
   }
   $ef = $casa . '/simplificando-email.json'; $ec = is_file($ef) ? json_decode((string)file_get_contents($ef), true) : null;
   $d['dados_do_email_encontrados'] = !!($ec && !empty($ec['usuario']) && !empty($ec['senha']));
+  if (is_file($ef) && !$ec) $d['arquivo_do_email_com_erro'] = 'o texto do simplificando-email.json não está no formato certo';
+  if ($ec) { $sn = (string)($ec['senha'] ?? ''); $d['usuario_lido'] = $ec['usuario'] ?? ''; $d['senha_lida'] = strlen($sn) . ' caracteres' . ($sn !== trim($sn) ? ' (tem espaço no começo ou no fim!)' : '') . (preg_match('/^[A-Za-z0-9]+$/', $sn) ? '' : ' (tem símbolo)'); }
   if ($d['dados_do_email_encontrados'] && isset($_GET['enviar']) && !empty($ec['testar_para'])) {
     $lg = []; $d['teste_de_envio_para'] = $ec['testar_para'];
     $d['teste_de_envio_ok'] = smtpEnvia($ec, $ec['testar_para'], '=?UTF-8?B?' . base64_encode('Teste do Simplificando') . '?=', '<p>Se você recebeu, o envio de e-mails do Simplificando está funcionando.</p>', $lg);
