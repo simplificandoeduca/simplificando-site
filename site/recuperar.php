@@ -52,6 +52,21 @@ function smtpEnvia($cfg, $para, $assunto, $html, &$log) {
   }
   return false;
 }
+// Brevo (serviço de envio): ~/simplificando-brevo.txt com 3 linhas: chave de API, e-mail remetente, e-mail para teste
+function brevoCfg($casa) {
+  $t = $casa . '/simplificando-brevo.txt'; if (!is_file($t)) return null;
+  $L = array_map('trim', preg_split('/\r\n|\r|\n/', preg_replace('/^\xEF\xBB\xBF/', '', (string)file_get_contents($t))));
+  return !empty($L[0]) && filter_var($L[1] ?? '', FILTER_VALIDATE_EMAIL) ? ['chave' => $L[0], 'remetente' => strtolower($L[1]), 'testar_para' => $L[2] ?? ''] : null;
+}
+function brevoEnvia($b, $para, $assunto, $html, &$info) {
+  $c = curl_init('https://api.brevo.com/v3/smtp/email');
+  curl_setopt_array($c, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 30,
+    CURLOPT_HTTPHEADER => ['accept: application/json', 'content-type: application/json', 'api-key: ' . $b['chave']],
+    CURLOPT_POSTFIELDS => json_encode(['sender' => ['name' => 'Simplificando', 'email' => $b['remetente']], 'to' => [['email' => $para]], 'subject' => $assunto, 'htmlContent' => $html], JSON_UNESCAPED_UNICODE)]);
+  $r = curl_exec($c); $st = curl_getinfo($c, CURLINFO_HTTP_CODE); $er = curl_error($c); curl_close($c);
+  $j = json_decode((string)$r, true); $info = $st . ' ' . ($j['message'] ?? ($j['messageId'] ?? $er));
+  return $st >= 200 && $st < 300;
+}
 function emailCfg($casa) {
   $t = $casa . '/simplificando-email.txt';
   if (is_file($t)) { $L = preg_split('/\r\n|\r|\n/', (string)file_get_contents($t)); $L = array_map(function ($x) { return preg_replace('/^\xEF\xBB\xBF/', '', $x); }, $L);
@@ -79,6 +94,14 @@ if (isset($_GET['teste'])) {
     $r = json_decode((string)curl_exec($c), true); curl_close($c);
     $d['google_aceitou_a_chave'] = $ok && !empty($r['access_token']); if (!$d['google_aceitou_a_chave']) $d['erro_google'] = $r['error_description'] ?? ($r['error'] ?? 'sem resposta');
   }
+  $bc = brevoCfg($casa); $d['brevo_configurado'] = !!$bc;
+  if ($bc) { $d['brevo_remetente'] = $bc['remetente']; $d['brevo_chave'] = substr($bc['chave'], 0, 8) . '…';
+    if (isset($_GET['enviar']) && filter_var($bc['testar_para'], FILTER_VALIDATE_EMAIL)) {
+      $th = str_replace(['%EMAIL%', '%LINK%'], [htmlspecialchars($bc['testar_para'], ENT_QUOTES, 'UTF-8'), 'https://' . preg_replace('/[^a-z0-9.\-]/', '', strtolower($_SERVER['HTTP_HOST'] ?? 'simplificandoeduca.com')) . '/treino/'], DESIGN_EMAIL);
+      $inf = ''; $d['brevo_teste_para'] = $bc['testar_para'];
+      $d['brevo_teste_ok'] = brevoEnvia($bc, $bc['testar_para'], '[Teste Brevo] Bora voltar pro treino: crie sua senha nova', '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"></head><body style="margin:0">' . $th . '</body></html>', $inf);
+      $d['brevo_resposta'] = $inf;
+    } }
   $ef = $casa . '/simplificando-email.json'; $ec = emailCfg($casa);
   if ($ec) $d['arquivo_do_email'] = $ec['origem'];
   $d['dados_do_email_encontrados'] = !!($ec && !empty($ec['usuario']) && !empty($ec['senha']));
@@ -149,7 +172,12 @@ $dom = preg_replace('/^www\./', '', $host);
 $assunto = '=?UTF-8?B?' . base64_encode('Bora voltar pro treino: crie sua senha nova') . '?=';
 $remet = 'nao-responda@' . $dom; $ec0 = emailCfg($casa); if ($ec0 && filter_var(trim($ec0['usuario'] ?? ''), FILTER_VALIDATE_EMAIL)) $remet = strtolower(trim($ec0['usuario']));
 $cab = "MIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\nFrom: =?UTF-8?B?" . base64_encode('Simplificando') . "?= <$remet>\r\nReply-To: $remet\r\n";
-$ec = emailCfg($casa);
+$bc = brevoCfg($casa); $ec = emailCfg($casa); $ok = false;
+if ($bc) {
+  $inf = ''; $ok = brevoEnvia($bc, $email, 'Bora voltar pro treino: crie sua senha nova', $html, $inf);
+  anota($ok ? 'enviado pelo Brevo' : 'Brevo falhou', $esconde($email) . ' · ' . $inf);
+}
+if ($ok) sai(['ok' => true]);
 if ($ec && !empty($ec['usuario']) && !empty($ec['senha'])) {
   $lg = []; $ok = smtpEnvia($ec, $email, $assunto, $html, $lg);
   anota($ok ? 'enviado por SMTP' : 'SMTP falhou', $esconde($email) . ' · ' . implode(' | ', array_slice($lg, -2)));
