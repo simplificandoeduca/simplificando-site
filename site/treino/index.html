@@ -4300,18 +4300,101 @@ function drawHead(c,J,C,sex){
   if(sex==='M'){ c.globalAlpha = .35; c.lineWidth = 1; c.strokeStyle = C.hair; c.stroke(P.jawM); c.globalAlpha = 1; }
   c.restore();
 }
+/* ---------- boneco anatômico: corpo cinza com volume e os músculos que o cardio usa em vermelho ---------- */
+const AT = { hi:'#F3F4F3', base:'#D3D7D6', lo:'#9DA3A2', line:'rgba(80,88,86,.35)', r1:'#F0583E', r2:'#D7301F', r3:'#A91E14', rl:'rgba(255,214,200,.55)', cloth:'#3B4043', cloth2:'#2C3033', brief:'rgba(70,76,79,.62)', brief2:'rgba(52,57,60,.7)', hair:'#2A2725' };
+const MUSC = { tread:['quad','ham','glut','calf','tib','abs'], road:['quad','ham','glut','calf','tib','abs'], bike:['quad','glut','calf','ham'], stair:['glut','quad','calf','ham'], ell:['quad','glut','ham','abs'], rope:['calf','tib','abs','delt'] };
+const usa = m => (MUSC[AN.kind]||[]).includes(m);
+const aNorm = (A,B) => { const d = nrm([B[0]-A[0],B[1]-A[1]]); return { d, ant:[d[1],-d[0]] }; };   // ant: lado da frente do membro
+function aGrad(c,A,B,r,dark){ const {ant} = aNorm(A,B), m = lerpP(A,B,.5), g = c.createLinearGradient(m[0]+ant[0]*r, m[1]+ant[1]*r, m[0]-ant[0]*r, m[1]-ant[1]*r);
+  g.addColorStop(0, dark ? AT.base : AT.hi); g.addColorStop(.45, AT.base); g.addColorStop(1, AT.lo); return g; }
+function aCap(c,A,B,r1,r2,dark){ fcap(c,A,B,r1,r2,aGrad(c,A,B,Math.max(r1,r2),dark)); }
+/* músculo: lente ao longo do membro, presa a um lado (s = 1 frente, -1 trás), de t0 a t1, ocupando w da largura */
+function aMus(c,A,B,r1,r2,s,t0,t1,w,deep){
+  const {ant} = aNorm(A,B), n = [ant[0]*s, ant[1]*s], P = t => lerpP(A,B,t), R = t => r1+(r2-r1)*t;
+  const o = (t,k) => { const p = P(t), r = R(t)*k; return [p[0]+n[0]*r, p[1]+n[1]*r]; };
+  const tm = (t0+t1)/2, a0 = o(t0,.55), a1 = o(t1,.5), out = o(tm,1.08), inn = o(tm,1-2*w);
+  const g = c.createLinearGradient(out[0],out[1],inn[0],inn[1]); g.addColorStop(0, deep ? AT.r2 : AT.r1); g.addColorStop(.7, deep ? AT.r3 : AT.r2); g.addColorStop(1, AT.r3);
+  c.beginPath(); c.moveTo(a0[0],a0[1]); c.quadraticCurveTo(out[0]*2-(a0[0]+a1[0])/2, out[1]*2-(a0[1]+a1[1])/2, a1[0],a1[1]);
+  c.quadraticCurveTo(inn[0]*2-(a0[0]+a1[0])/2, inn[1]*2-(a0[1]+a1[1])/2, a0[0],a0[1]); c.fillStyle = g; c.fill();
+  // fibras
+  c.lineWidth = .55; c.strokeStyle = AT.rl; c.beginPath();
+  for(let i=1;i<3;i++){ const k = 1-w*.7*i, b0 = o(t0+(t1-t0)*.18,Math.max(.2,k+.1)), b1 = o(t1-(t1-t0)*.18,Math.max(.2,k)), bm = o(tm,k+.12); c.moveTo(b0[0],b0[1]); c.quadraticCurveTo(bm[0],bm[1],b1[0],b1[1]); }
+  c.stroke();
+}
+function aLine(c,A,B,r1,r2,s,t0,t1,k){ const {ant} = aNorm(A,B), o = (t) => { const p = lerpP(A,B,t), r = (r1+(r2-r1)*t)*k*s; return [p[0]+ant[0]*r, p[1]+ant[1]*r]; };
+  const p0 = o(t0), p1 = o(t1); c.lineWidth = .7; c.strokeStyle = AT.line; c.beginPath(); c.moveTo(p0[0],p0[1]); c.lineTo(p1[0],p1[1]); c.stroke(); }
+function aArm(c,J,s,R,back){
+  const S0 = s.S0 || J.S, E = s.E, W = s.W, d = nrm([W[0]-E[0], W[1]-E[1]]), h = rot(d,.38);
+  aCap(c,S0,E,R.sh-1.2,R.el-.4,back); aCap(c,E,W,R.el-.4,R.wr-.4,back);
+  fcap(c,[W[0]+d[0]*.4,W[1]+d[1]*.4],[W[0]+d[0]*2.4+h[0]*2.6,W[1]+d[1]*2.4+h[1]*2.6],3.4,2.7,back ? AT.base : '#E2E5E4');
+  disc(c,S0,R.sh+.4,back ? AT.base : '#DCE0DF');
+  if(usa('delt')) aMus(c,S0,lerpP(S0,E,.5),R.sh+.2,R.el,1,0,.9,.9,back);
+  else aLine(c,S0,E,R.sh,R.el,1,.15,.85,.35);
+  aLine(c,E,W,R.el,R.wr,-1,.1,.7,.4);
+}
+function aLeg(c,J,s,R,back,sex){
+  const H = J.hip, K = s.K, A = s.A;
+  aCap(c,H,K,R.hp+.4,R.kn,back); aCap(c,K,A,R.kn,R.an,back);
+  disc(c,K,R.kn+.3,back ? AT.base : '#D8DCDB');
+  if(usa('ham')) aMus(c,H,K,R.hp+.4,R.kn,-1,.18,.86,.42,true);
+  if(usa('quad')){ aMus(c,H,K,R.hp+.4,R.kn,1,.1,.92,.62,back); aLine(c,H,K,R.hp,R.kn,1,.3,.85,.15); }
+  if(usa('calf')) aMus(c,K,A,R.kn,R.an,-1,.06,.62,.72,back);
+  if(usa('tib')) aMus(c,K,A,R.kn,R.an,1,.12,.66,.32,true);
+  aLine(c,K,A,R.kn,R.an,1,.15,.8,.55);
+  // pé descalço
+  const p = s.p, hl = addv(A, rot([-3,7],p)), tp = addv(A, rot([15.5,8],p));
+  fcap(c,A,hl,R.an,3.6,back ? AT.base : '#D0D4D3'); fcap(c,hl,tp,3.8,2.3,back ? AT.base : '#D9DCDB');
+  // short justo, translúcido como nas pranchas de anatomia
+  const sk = sex==='M' ? .3 : .16;
+  fcap(c,H,lerpP(H,K,sk),R.hp+.9,R.hp*.92,back ? AT.brief2 : AT.brief);
+}
+function aTorso(c,J,R,sex){
+  const hip = J.hip, S = J.S, vx = S[0]-hip[0], vy = S[1]-hip[1], T = Math.hypot(vx,vy), nx = -vy/T, ny = vx/T;
+  const pt = (k,w) => { const m = w*(k>.5 ? R.t2 : R.t1)*(sex==='M' && k>.5 && k<.8 && w>0 ? .9 : 1); return [hip[0]+vx*k+nx*m, hip[1]+vy*k+ny*m]; };
+  const P = (...a) => a.map(q => pt(q[0],q[1])).flat();
+  const body = () => { c.beginPath(); c.moveTo(...pt(0,9)); c.bezierCurveTo(...P([.35,7],[.62,11],[.9,10])); c.quadraticCurveTo(...P([1.08,2],[1,-7])); c.bezierCurveTo(...P([.8,-10],[.4,-8],[0,-9])); c.closePath(); };
+  const a = pt(.5,11), b = pt(.5,-11), g = c.createLinearGradient(a[0],a[1],b[0],b[1]); g.addColorStop(0,AT.hi); g.addColorStop(.5,AT.base); g.addColorStop(1,AT.lo);
+  body(); c.fillStyle = g; c.fill();
+  c.save(); body(); c.clip();
+  // glúteo (atrás, embaixo)
+  if(usa('glut')){ const q = pt(.06,-6.5), gg = c.createRadialGradient(q[0],q[1],1,q[0],q[1],9); gg.addColorStop(0,AT.r1); gg.addColorStop(1,AT.r3); c.beginPath(); c.ellipse(q[0],q[1],8.5,10,Math.atan2(vy,vx),0,TAU); c.fillStyle = gg; c.fill(); }
+  // abdômen (frente) e oblíquos
+  if(usa('abs')){
+    const q0 = pt(.2,8.6), q1 = pt(.58,8.6), q2 = pt(.58,3.4), q3 = pt(.2,3.6), ga = c.createLinearGradient(q0[0],q0[1],q3[0],q3[1]); ga.addColorStop(0,AT.r1); ga.addColorStop(1,AT.r2);
+    c.beginPath(); c.moveTo(q0[0],q0[1]); c.lineTo(q1[0],q1[1]); c.lineTo(q2[0],q2[1]); c.lineTo(q3[0],q3[1]); c.closePath(); c.fillStyle = ga; c.fill();
+    c.lineWidth = .8; c.strokeStyle = AT.rl; c.beginPath(); for(let i=1;i<4;i++){ const k = .2+i*.095, l0 = pt(k,8.6), l1 = pt(k,3.5); c.moveTo(l0[0],l0[1]); c.lineTo(l1[0],l1[1]); } const m0 = pt(.2,6), m1 = pt(.58,6); c.moveTo(m0[0],m0[1]); c.lineTo(m1[0],m1[1]); c.stroke();
+    c.lineWidth = 1.6; c.strokeStyle = AT.r3; c.globalAlpha = .55; c.beginPath(); for(let i=0;i<3;i++){ const p0 = pt(.24+i*.1,2.4), p1 = pt(.33+i*.1,-1.6); c.moveTo(p0[0],p0[1]); c.lineTo(p1[0],p1[1]); } c.stroke(); c.globalAlpha = 1; }
+  // roupa: top (F) ou nada (M); sunga embaixo
+  if(sex==='F'){ c.beginPath(); c.moveTo(...pt(.62,12)); c.lineTo(...pt(.62,-12)); c.lineTo(...pt(1.2,-12)); c.lineTo(...pt(1.2,12)); c.closePath(); c.fillStyle = AT.cloth; c.fill(); }
+  else { c.lineWidth = .8; c.strokeStyle = AT.line; c.beginPath(); c.moveTo(...pt(.8,9)); c.quadraticCurveTo(...P([.7,4],[.74,0])); c.stroke(); }
+  c.beginPath(); c.moveTo(...pt(-.1,12)); c.lineTo(...pt(-.1,-12)); c.lineTo(...pt(.12,-12)); c.lineTo(...pt(.15,12)); c.closePath(); c.fillStyle = AT.brief; c.fill();
+  c.restore();
+}
+function aHead(c,J,sex){
+  const P = shoeP(), H = J.H, nb = addv(H, rot([-1.2,8.5],J.tilt)), ns = lerpP(J.S, H, .18);
+  fcap(c,ns,nb,sex==='M'?4.4:3.6,sex==='M'?4:3.3,aGrad(c,ns,nb,4));
+  c.save(); c.translate(H[0],H[1]); c.rotate(J.tilt);
+  const g = c.createLinearGradient(6,-6,-6,8); g.addColorStop(0,AT.hi); g.addColorStop(1,AT.lo);
+  c.fillStyle = g; c.fill(sex==='M' ? P.faceM : P.faceF);
+  c.fillStyle = AT.hair; c.fill(sex==='M' ? P.hairM : P.hairF);
+  c.globalAlpha = .5; c.beginPath(); c.ellipse(-3.4,sex==='M'?1.8:1.6,2,2.9,0,0,TAU); c.fillStyle = AT.lo; c.fill(); c.globalAlpha = 1;
+  disc(c,[5.6,-.6],1.2,'#3A3F3E');
+  c.lineWidth = 1; c.strokeStyle = '#7C8382'; c.stroke(P.mouth);
+  c.restore();
+}
 /* ordem: braço de trás, perna de trás, [meio do aparelho], cabelo, cabeça, tronco, perna da frente, braço da frente */
 function drawFigure(c,J,dt,P,mid,front){
-  const sex = AN.sex, R = FIGR[sex], C = AN.col;
-  drawArm(c,J,J.f,R,C,sex,C.top2); drawLeg(c,J,J.f,R,C,C.short2);
+  const sex = AN.sex, R0 = FIGR[sex], C = AN.col;
+  const R = Object.assign({}, R0, {sh:R0.sh*1.3, el:R0.el*1.32, wr:R0.wr*1.2, hp:R0.hp*1.28, kn:R0.kn*1.3, an:R0.an*1.2, t1:R0.t1*1.32, t2:R0.t2*1.3});
+  aArm(c,J,J.f,R,true); aLeg(c,J,J.f,R,true,sex);
   if(mid) mid();
   if(sex==='F'){
     const r = addv(J.H, rot([-9.6,-4.3],J.tilt));
-    ponyStep(r,J.tilt,dt,P.wind||0); drawPony(c,C);
+    ponyStep(r,J.tilt,dt,P.wind||0); drawPony(c,Object.assign({},C,{hair:AT.hair,hair2:'#4A4542'}));
   }
-  drawHead(c,J,C,sex); drawTorso(c,J,R,C,sex);
+  aHead(c,J,sex); aTorso(c,J,R,sex);
   if(front) front();
-  drawLeg(c,J,J.n,R,C,C.short); drawArm(c,J,J.n,R,C,sex,C.top);
+  aLeg(c,J,J.n,R,false,sex); aArm(c,J,J.n,R,false);
 }
 function shadow(c,x,y,rx){ c.beginPath(); c.ellipse(x,y,rx,3,0,0,TAU); c.fillStyle = AN.col.shadow; c.fill(); }
 const SC2 = {
