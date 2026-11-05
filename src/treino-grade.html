@@ -1644,7 +1644,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '5 nov · 37'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '5 nov · 38'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -3189,6 +3189,10 @@ function logo(){
     '<g transform="translate(-1 0) scale(0.5593) translate(-47.03 36.38)"><path d="'+S_PATH+'" fill="#F6F5EF"/><path d="'+DOT_PATH+'" fill="#F6F5EF"/></g></svg>';
 }
 const WAVE = '<svg class="wave-svg" viewBox="0 0 1080 300" preserveAspectRatio="none" aria-hidden="true"><path d="M-40 236C194 -71 410 -71 562 144S886 374 1120 67" fill="none" stroke-width="44" vector-effect="non-scaling-stroke"><animate attributeName="d" dur="16s" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.333;0.667;1" keySplines=".45 0 .55 1;.45 0 .55 1;.45 0 .55 1" values="M-40 236C194 -71 410 -71 562 144S886 374 1120 67;M-40 140C210 -10 420 40 562 170S900 330 1120 150;M-40 190C230 330 430 290 562 150S880 -30 1120 110;M-40 236C194 -71 410 -71 562 144S886 374 1120 67"/></path></svg>';
+/* a onda continua de onde estava quando a tela é redesenhada (ex.: check-in), em vez de voltar ao começo */
+const WAVE_T0 = performance.now();
+function waveSync(root){ (root||document).querySelectorAll('svg.wave-svg:not([data-ws])').forEach(sv => { sv.setAttribute('data-ws',''); try { sv.setCurrentTime(((performance.now()-WAVE_T0)/1000) % 16); } catch(e){ /* sem SMIL */ } }); }
+try { new MutationObserver(() => waveSync()).observe(document.documentElement, {childList:true, subtree:true}); } catch(e){ /* sem observador */ }
 
 /* ---------- pedaços de interface ---------- */
 const header = (title,sub,extra) => `<header class="top"><div class="top-txt"><p class="eyebrow">${sub}</p><h1>${title}<span class="dot" aria-hidden="true"></span></h1></div><div class="top-act">${extra||''}<button type="button" class="btn round theme-btn" data-a="theme" aria-label="${curTheme()==='dark'?'Mudar para modo claro':'Mudar para modo escuro'}">${ic(curTheme()==='dark'?'sun':'moon')}</button><button type="button" class="avatar" data-a="profile" aria-label="Abrir seu perfil">${avatarIn()}</button></div></header><div class="wave-strip" aria-hidden="true">${WAVE}</div>`;
