@@ -1678,7 +1678,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '5 nov · 47'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '5 nov · 48'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -1761,10 +1761,12 @@ function progPayload(){
   return JSON.stringify({ v:1, h:H, c:(S.cardio||[]).slice(-60).map(c => ({d:c.date, l:c.local, min:c.min, i:c.int})), w, wg:S.waterGoal||0, k, ses:S.session ? {t:S.session.t, gym:S.session.gym||'', d:today()} : null });
 }
 function progSync(now){
-  if(!isPersonal() || !FB || !ACCT.code || !S) return;
+  if(!ACCT || !isPersonal() || !FB || !ACCT.code || !S) return;
   const txt = progPayload(); if(txt===PROGTXT) return;
+  const code = ACCT.code;
   clearTimeout(progT);
-  progT = setTimeout(async () => { if(progBusy){ progSync(); return; } progBusy = true; const ok = await FB.progresso(ACCT.code, txt); progBusy = false; if(ok) PROGTXT = txt; }, now ? 0 : 2500);
+  // o envio espera 2,5 s: se a pessoa saiu da conta nesse meio-tempo, não envia
+  progT = setTimeout(async () => { if(!ACCT || ACCT.code!==code) return; if(progBusy){ progSync(); return; } progBusy = true; try { const ok = await FB.progresso(code, txt); if(ok) PROGTXT = txt; } catch(e){ /* tenta na próxima */ } progBusy = false; }, now ? 0 : 2500);
 }
 
 let S = fresh(false);
