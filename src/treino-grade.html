@@ -1644,7 +1644,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '5 nov · 35'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '5 nov · 36'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -4712,11 +4712,14 @@ function stCupom(c,D,cor){
   const W = 1080, H = 1920, bg = cor==='branco' ? '#FFFFFF' : ST_TEMA[cor].bg, paper = cor==='branco' ? '#F1F0EA' : STC.cr;
   c.fillStyle = bg; c.fillRect(0,0,W,H);
   const X = 90, PW = 900, P = 70, rows = D.cargas.length || 1;
-  const h = 64+120+44+182+18+32+ (36+4+36) + rows*67 + (36+4+36) + 120 + 2*67 + 46+110 + 26+40 + 90;
-  const Y = Math.max(40, Math.round((H-h)/2));
-  // papel com o pé picotado
+  const hm = 64+120+44+182+18+32+ (36+4+36) + rows*67 + (36+4+36) + 120 + 2*67 + 40 + 28, G = 24, hs = 28+44+110+26+40+56, h = hm+G+hs;
+  const Y = Math.max(40, Math.round((H-h)/2)), Z = 28, ym = Y+hm, ys = ym-Z+G;
+  // cupom com o pé picotado
   c.fillStyle = paper; c.beginPath(); c.moveTo(X,Y+36); c.arcTo(X,Y,X+36,Y,36); c.lineTo(X+PW-36,Y); c.arcTo(X+PW,Y,X+PW,Y+36,36);
-  c.lineTo(X+PW,Y+h-28); for(let x=PW-30;x>=0;x-=30){ c.lineTo(X+x, (PW-x)/30%2 ? Y+h : Y+h-28); } c.closePath(); c.fill();
+  c.lineTo(X+PW,ym-Z); for(let x=PW-30;x>=0;x-=30){ c.lineTo(X+x, (PW-x)/30%2 ? ym : ym-Z); } c.closePath(); c.fill();
+  // canhoto destacado: os dentes encaixam no picote do cupom, com um espaço entre os dois
+  c.beginPath(); c.moveTo(X,ys); for(let x=30;x<=PW;x+=30){ c.lineTo(X+x, (PW-x)/30%2 ? ys+Z : ys); }
+  c.lineTo(X+PW,ys+hs-36); c.arcTo(X+PW,ys+hs,X+PW-36,ys+hs,36); c.lineTo(X+36,ys+hs); c.arcTo(X,ys+hs,X,ys+hs-36,36); c.closePath(); c.fill();
   let y = Y+64;
   stLogoDraw(c,X+P,y,120);
   const dt = String(D.dia).padStart(2,'0')+'/'+String(D.mes+1).padStart(2,'0')+'/'+D.d.getFullYear()+(D.hr?' · '+D.hr:'');
@@ -4731,16 +4734,19 @@ function stCupom(c,D,cor){
   y += 32;
   const linha = () => { y += 36; c.strokeStyle = '#C9CDC6'; c.lineWidth = 4; c.setLineDash([12,12]); c.beginPath(); c.moveTo(X+P,y+2); c.lineTo(X+PW-P,y+2); c.stroke(); c.setLineDash([]); y += 4+36; };
   const kg = v => fmtKg(v)+' kg';
-  const row = (a,b) => { stTxt(c,b,X+PW-P,y+46,'800 36px '+ST_MONO,STC.dk,'right'); c.font = '800 36px '+ST_MONO; const bw = c.measureText(b).width; c.font = '600 36px '+ST_MONO; stTxt(c,stCorte(c,a,PW-2*P-bw-30),X+P,y+46,'600 36px '+ST_MONO,STC.dk); y += 67; };
+  const row = (a,b,pr) => {
+    if(pr){ c.save(); c.shadowColor = 'rgba(255,214,0,.95)'; c.shadowBlur = 34; c.fillStyle = '#FFE135'; stRR(c,X+P-20,y+2,PW-2*P+40,62,16); c.fill(); c.shadowBlur = 0;
+      const g = c.createLinearGradient(0,y+2,0,y+64); g.addColorStop(0,'rgba(255,255,255,.55)'); g.addColorStop(.5,'rgba(255,255,255,0)'); c.fillStyle = g; stRR(c,X+P-20,y+2,PW-2*P+40,62,16); c.fill(); c.restore(); }
+    stTxt(c,b,X+PW-P,y+46,'800 36px '+ST_MONO,STC.dk,'right'); c.font = '800 36px '+ST_MONO; const bw = c.measureText(b).width; c.font = '600 36px '+ST_MONO; stTxt(c,stCorte(c,a,PW-2*P-bw-30),X+P,y+46,'600 36px '+ST_MONO,STC.dk); y += 67; };
   linha();
-  if(D.cargas.length) D.cargas.forEach(x => row(x.n, kg(x.kg)+(x.pr?' ★':''))); else row('Séries feitas', String(D.sets));
+  if(D.cargas.length) D.cargas.forEach(x => row(x.n, kg(x.kg)+(x.pr?' ★':''), x.pr)); else row('Séries feitas', String(D.sets));
   linha();
   stTxt(c,'TOTAL',X+P,y+92,'900 44px '+ST_MONO,STC.dk);
   const tot = fmtN(D.vol)+' kg'; c.font = '900 110px '+ST_MONO; stLs(c,-5); const tz = Math.min(110, Math.floor(110*560/Math.max(1,c.measureText(tot).width))); stLs(c,0);
   stTxt(c,tot,X+PW-P,y+92,'900 '+tz+'px '+ST_MONO,STC.dk,'right',-5);
   y += 120;
-  row('Tempo de treino', D.min+' min'); row('Recordes batidos', D.prs+(D.prs?' ★':''));
-  y += 46; c.fillStyle = STC.dk;
+  row('Tempo de treino', D.min+' min'); row('Recordes batidos', D.prs+(D.prs?' ★':''), D.prs>0);
+  y = ys+Z+44; c.fillStyle = STC.dk;
   for(let x=0;x<PW-2*P;x+=40) [[0,6],[12,16],[26,34]].forEach(([a,b]) => { const w = Math.min(b, PW-2*P-x) - a; if(w>0) c.fillRect(X+P+x+a,y,w,110); });
   y += 110+26;
   stTxt(c,'simplificandoeduca.com · pago com suor',X+PW/2,y+32,'700 32px '+ST_MONO,'#5B625D','center');
