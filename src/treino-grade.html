@@ -1643,7 +1643,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '5 nov · 41'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '5 nov · 42'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -5490,6 +5490,15 @@ function boot(){
   const rp = FB && resetParams();
   if(rp) openNovo(rp); else if(location.hash==='#redefinir') openReset(); else if(readSess()) startApp(); else renderLogin();
   setInterval(tick, 250);
+  offlineSetup();
+}
+/* sem internet: o app fica guardado no celular (sw.js na pasta do app) e avisa quando o sinal cai ou volta */
+function offlineSetup(){
+  const ok = 'serviceWorker' in navigator && FB && (location.protocol==='https:' || location.hostname==='localhost' || location.hostname==='127.0.0.1');
+  const reg = () => navigator.serviceWorker.register('sw.js').catch(() => { /* sem guardar offline */ });
+  if(ok){ if(document.readyState==='complete') reg(); else window.addEventListener('load', reg); }
+  window.addEventListener('offline', () => toast('Sem internet. Pode treinar normalmente: tudo fica salvo no celular e sobe quando o sinal voltar.'));
+  window.addEventListener('online', () => { toast('Internet de volta. Salvando seus treinos.'); try { if(typeof progSync==='function' && ACCT && ACCT.mode==='personal') progSync(true); if(typeof fbRefresh==='function' && ACCT) fbRefresh(); } catch(e){ /* sem sincronizar agora */ } });
 }
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 /* ---------- animação da execução (boneco clássico) ---------- */
