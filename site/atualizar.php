@@ -1,6 +1,6 @@
 <?php
 // Atualiza o site com a versão mais nova do GitHub (simplificandoeduca/simplificando-site, pasta site/).
-// É chamado pelo botão "Atualizar o site" em Ajustes, no painel. Só baixa deste repositório fixo
+// É chamado pelo botão "Atualizar o site" em Ajustes, no painel (só com o login do dono). Só baixa deste repositório fixo
 // e só grava dentro desta pasta; no máximo uma atualização por minuto.
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -25,6 +25,12 @@ if ($acao === 'ver') {
   sai(['ok' => true, 'atual' => versao(@file_get_contents($aqui . '/personal/index.html')), 'nova' => versao($rem)]);
 }
 if ($acao !== 'atualizar' || $_SERVER['REQUEST_METHOD'] !== 'POST') sai(['ok' => false, 'erro' => 'Pedido inválido.'], 400);
+// só o dono do painel (logado) pode atualizar o site
+require __DIR__ . '/dono.inc.php';
+// plano B (se o login do Google não responder): chave guardada fora do site, em ~/simplificando-atualizar-chave.txt
+$chaveArq = dirname($aqui) . '/simplificando-atualizar-chave.txt'; $chave = is_file($chaveArq) ? trim((string)@file_get_contents($chaveArq)) : '';
+$okChave = strlen($chave) >= 12 && isset($_REQUEST['chave']) && hash_equals($chave, (string)$_REQUEST['chave']);
+if (!$okChave && !dono_uid()) sai(['ok' => false, 'erro' => 'Só o dono do painel pode atualizar o site. Saia e entre de novo no painel e tente outra vez.'], 403);
 $trava = dirname($aqui) . '/.simplificando-atualizacao';
 if (is_file($trava) && time() - filemtime($trava) < 60) sai(['ok' => false, 'erro' => 'Acabou de atualizar. Espere um minuto e tente de novo.'], 429);
 @touch($trava);

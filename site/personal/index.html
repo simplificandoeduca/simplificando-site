@@ -2325,9 +2325,11 @@ function atuCard(){
     (ATU.msg ? '<p class="err" role="alert">'+esc(ATU.msg)+'</p>' : '')+
     '<p class="foot">Baixa do GitHub a versão mais nova do app e do painel e coloca no ar. Leva uns segundos e a página recarrega sozinha.</p></section>';
 }
+/* token de login do dono: os arquivos do servidor (atualizar, erros) só respondem a ele */
+function donoToken(){ try { const u = window.firebase && firebase.apps.length && firebase.app().auth().currentUser; return u ? u.getIdToken() : Promise.resolve(''); } catch(e){ return Promise.resolve(''); } }
 function atuGo(){
   ATU.st = 'indo'; ATU.msg = ''; render();
-  fetch('/atualizar.php?acao=atualizar', { method:'POST', cache:'no-store' }).then(r => r.json()).then(j => {
+  donoToken().then(t => { const f = new FormData(); f.append('token', t||''); return fetch('/atualizar.php?acao=atualizar', { method:'POST', cache:'no-store', body:f, headers:t ? { Authorization:'Bearer '+t } : {} }); }).then(r => r.json()).then(j => {
     if(j && j.ok){ toast('Site atualizado'+(j.versao ? ' para a versão '+j.versao : '')+'. Recarregando…'); setTimeout(() => location.replace(location.pathname+'?v='+Date.now()+location.hash), 1500); }
     else { ATU.st = 'ok'; ATU.msg = (j && j.erro) || 'Não deu certo. Tente de novo.'; render(); }
   }).catch(() => { ATU.st = 'ok'; ATU.msg = 'Sem conexão com o servidor. Confira a internet e tente de novo.'; render(); });
