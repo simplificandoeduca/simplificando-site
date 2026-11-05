@@ -1966,7 +1966,7 @@ function tPerfil(a){
     segB({b:b('status'),label:'Status',val:p.status||'ativo',opts:Object.entries(STATUS)})+
     inp({b:b('inicio'),label:'Data de início',val:p.inicio,type:'date',v:'date'})+'</div></section>'+
   '<section class="card"><span class="label">'+ic('cal')+'Rotina</span><div class="form">'+
-    chipsB({b:b('dias'),label:'Dias disponíveis para treinar',val:p.dias,opts:DIAS,day:true,cls:'wide',help:'O app do aluno usa estes dias para escolher o treino do dia.'})+
+    chipsB({b:b('dias'),label:'Dias fixos de treino (opcional)',val:p.dias,opts:DIAS,day:true,cls:'wide',help:(p.dias||[]).length ? 'O app libera o treino só nestes dias. Para dias livres, desmarque todos.' : 'Dias livres: o aluno pode treinar em qualquer dia e o app conta a meta de treinos da semana.'})+
     inp({b:b('tempoSessao'),label:'Tempo por sessão',val:p.tempoSessao,t:'i',unit:'min',v:'range',min:10,max:240})+
     segB({b:b('local'),label:'Onde treina',val:p.local,chips:true,cls:'wide',opts:Object.entries(LOCAL)})+
     chipsB({b:b('equipamentos'),label:'Equipamentos disponíveis',val:p.equipamentos,opts:EQUIP.map(x => [x,x]),cls:'wide'})+'</div></section>'+
@@ -2110,7 +2110,7 @@ function tMetas(a){
   '<section class="card blk-cardio"><div class="card-h"><span class="label">'+ic('pulse')+'Cardio</span><span class="pill">'+(num(m.cardioGoal)||0)+' min por semana</span></div><div class="form">'+
     inp({b:b('cardioGoal'),label:'Minutos por semana',val:m.cardioGoal,t:'i',unit:'min',v:'range',min:0,max:1200})+
     inp({b:b('cardio.min'),label:'Minutos por sessão',val:c.min,t:'i',unit:'min',v:'range',min:5,max:240})+
-    chipsB({b:b('cardio.dias'),label:'Dias de cardio',val:c.dias,opts:DIAS,day:true,cls:'wide'})+
+    '<p class="foot">Cardio e água valem em qualquer dia da semana: o app soma os minutos de cardio na meta semanal e conta os 7 dias na meta de água.</p>'+
     segB({b:b('cardio.zona'),label:'Zona alvo',val:c.zona||'Zona 2',opts:Object.keys(ZONAS).map(k => [k,k]),cls:'wide'})+'</div>'+
     '<p class="callout">'+ic('pulse')+'<span data-calc="zona">'+calcZona(a)+'</span></p>'+
     chipsB({b:b('cardio.locais'),label:'Modalidades liberadas',val:c.locais,opts:LOCAIS.map(x => [x,x])})+'</section>'+
@@ -2284,7 +2284,7 @@ function tNotas(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '5 nov · 44'; // Versão do painel: 5 nov · 44
+const PAINELV = '5 nov · 45'; // Versão do painel: 5 nov · 45
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';

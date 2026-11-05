@@ -266,7 +266,9 @@ textarea:focus{outline:none;border-color:var(--fg)}
 /* semana */
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .stats>div{background:var(--ctl);border-radius:20px;padding:12px 14px;display:flex;flex-direction:column;gap:2px;min-width:0}
-.stats>div.st-pr{background:#FF9A3C;color:#0F1712}.stats>div.st-pr span{color:rgba(15,23,18,.72)}
+.tile.t-orange{background:#FF9A3C;color:#0F1712}.tile.t-orange span{color:rgba(15,23,18,.72)}
+.stats>div.st-pr{background:#FF9A3C;color:#0F1712}.stats>div.st-red{background:#FF4646;color:#fff}.stats>div.st-green{background:#8EE85F;color:#0F1712}.stats>div.st-blue{background:#5AB8FF;color:#0F1712}
+.stats>div:is(.st-pr,.st-green,.st-blue) span,.stats>div:is(.st-pr,.st-green,.st-blue) b small{color:rgba(15,23,18,.72)}.stats>div.st-red span,.stats>div.st-red b small{color:rgba(255,255,255,.85)}
 .emp{display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;padding:18px 12px}.emp>svg{width:120px;height:90px}.emp b{font-size:16px;font-weight:800;letter-spacing:-.2px}.emp span{font-size:13.5px;color:var(--muted);line-height:1.4;max-width:270px}.emp .btn{margin-top:6px}
 .stats b,.sstats b{font-size:26px;font-weight:900;letter-spacing:-.04em;line-height:1.1;font-variant-numeric:tabular-nums}
 .stats b small,.sstats b small{font-size:14px;font-weight:700;color:var(--muted);letter-spacing:0}
@@ -1675,7 +1677,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '5 nov · 44'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '5 nov · 45'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -3304,11 +3306,12 @@ const WK_ART = '<span class="w-art" aria-hidden="true"><svg viewBox="0 0 372 330
 const WK_ART2 = '<span class="w-art" aria-hidden="true"><svg viewBox="0 0 372 330" preserveAspectRatio="none"><path class="rc-g" d="M-20 256 C 70 206 150 320 240 260 S 340 196 400 234"/><path class="rc-r" d="M-20 236 C 70 186 150 300 240 240 S 340 176 400 214"/></svg></span>';
 const HC_ART = '<span class="w-art" aria-hidden="true"><svg viewBox="0 0 372 300" preserveAspectRatio="none"><path d="M-20 214 C 70 192 150 236 240 212 S 340 190 400 206"/></svg></span>';
 const TDAYS_L = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
-const tDays = () => ACCT && Array.isArray(ACCT.dias) && ACCT.dias.length ? ACCT.dias : [0,1,2,3,4];
+const diasLivres = () => !!(ACCT && ACCT.mode==='personal' && !(ACCT.dias||[]).length);
+const tDays = () => ACCT && Array.isArray(ACCT.dias) && ACCT.dias.length ? ACCT.dias : diasLivres() ? [0,1,2,3,4,5,6] : [0,1,2,3,4];
 const isTrainDay = () => tDays().includes((new Date().getDay()+6)%7);
 function treinoCard(){
   if(noPlan()) return noPlanCard();
-  const t0 = today(), done = S.history.some(h => h.date===t0), nd = tDays().length, wk = weekTrainCount(0);
+  const t0 = today(), done = S.history.some(h => h.date===t0), nd = diasLivres() ? SEMANA_TREINOS : tDays().length, wk = weekTrainCount(0);
   if(!S.session && !done && !ui.forceTrain){
     if(nd && wk>=nd) return weekDoneCard(wk,nd);
     if(!isTrainDay()) return restCard();
@@ -3362,10 +3365,10 @@ function weekCard(){
     return `<div class="day${h?' t':''}${k===t0?' now':''}${i>idx?' fut':''}"><span>${WD[i]}</span><div class="d">${h?h.t:''}</div><div class="marks"><span class="m m-w${w?' on':''}">${ic('drop')}</span><span class="m m-c${c?' on':''}">${ic('pulse')}</span></div></div>`;
   }).join('');
   return `<section class="card"><div class="card-h"><span class="label">${ic('cal')}Sua semana</span><span class="pill ok">${ic('flame')}${st} semana${st===1?'':'s'} na meta</span></div>
-    <div class="stats"><div><b>${tr.length}<small>/${SEMANA_TREINOS}</small></b><span>treinos</span></div>
-    <div class="st-pr">${(n => `<b>${n}</b><span>recorde${n===1?'':'s'} na semana</span>`)(tr.reduce((a,h) => a+((h.prs||[]).length), 0))}</div>
-    <div><b>${cm}<small>/${S.cardioGoal}</small></b><span>min de cardio</span></div>
-    <div><b>${wd}<small>/${idx+1}</small></b><span>dias na meta de água</span></div></div>
+    <div class="stats"><div class="${tr.length>=SEMANA_TREINOS?'st-red':''}"><b>${tr.length}<small>/${SEMANA_TREINOS}</small></b><span>treinos</span></div>
+    ${(n => `<div class="${n>0?'st-pr':''}"><b>${n}</b><span>recorde${n===1?'':'s'} na semana</span></div>`)(tr.reduce((a,h) => a+((h.prs||[]).length), 0))}
+    <div class="${S.cardioGoal && cm>=S.cardioGoal?'st-green':''}"><b>${cm}<small>/${S.cardioGoal}</small></b><span>min de cardio</span></div>
+    <div class="${wd>=7?'st-blue':''}"><b>${wd}<small>/7</small></b><span>dias na meta de água</span></div></div>
     <div class="week-row">${days}</div>
     <p class="foot0">Na meta = ${streakMin()} treinos ou mais na semana.</p></section>`;
 }
@@ -4632,7 +4635,7 @@ function vEvo(){
       <div class="wk8" aria-label="Treinos por semana nas últimas 8 semanas">${wk8}</div></section>`+
     `<div class="tiles"><div class="tile blk-brand">${ic('dumbbell')}${tw('m-tr',mTr.length,'i',String(mTr.length))}<span>treino${mTr.length===1?'':'s'} em ${mesNome}</span></div>
       <div class="tile blk-cardio">${ic('pulse')}${tw('m-ca',mCa,'i',String(mCa))}<span>min de cardio no mês</span></div>
-      <div class="tile blk-cream">${ic('trophy')}${tw('m-pr',mPr,'i',String(mPr))}<span>recorde${mPr===1?'':'s'} no mês</span></div></div>`+
+      <div class="tile t-orange">${ic('trophy')}${tw('m-pr',mPr,'i',String(mPr))}<span>recorde${mPr===1?'':'s'} no mês</span></div></div>`+
     calendar()+
     `<h3 class="sec">Evolução de carga<span class="dot" aria-hidden="true"></span></h3><section class="card blk-cream">${loadSec}</section>`+
     `<h3 class="sec">Recordes<span class="dot" aria-hidden="true"></span></h3><div class="list">${prs}</div>`+
