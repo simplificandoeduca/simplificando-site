@@ -52,6 +52,14 @@ function smtpEnvia($cfg, $para, $assunto, $html, &$log) {
   }
   return false;
 }
+function emailCfg($casa) {
+  $t = $casa . '/simplificando-email.txt';
+  if (is_file($t)) { $L = preg_split('/\r\n|\r|\n/', (string)file_get_contents($t)); $L = array_map(function ($x) { return preg_replace('/^\xEF\xBB\xBF/', '', $x); }, $L);
+    $u = trim($L[0] ?? ''); $p = rtrim($L[1] ?? '', "\r\n"); $p = trim($p); return ($u && $p !== '') ? ['usuario' => $u, 'senha' => $p, 'testar_para' => trim($L[2] ?? ''), 'origem' => 'simplificando-email.txt'] : null; }
+  $j = $casa . '/simplificando-email.json';
+  if (is_file($j)) { $c = json_decode((string)file_get_contents($j), true); if ($c) $c['origem'] = 'simplificando-email.json'; return $c; }
+  return null;
+}
 function sai($a, $c = 200) { http_response_code($c); echo json_encode($a, JSON_UNESCAPED_UNICODE); exit; }
 $casa = dirname(__DIR__);
 $chave = $casa . '/simplificando-chave.json';
@@ -71,10 +79,11 @@ if (isset($_GET['teste'])) {
     $r = json_decode((string)curl_exec($c), true); curl_close($c);
     $d['google_aceitou_a_chave'] = $ok && !empty($r['access_token']); if (!$d['google_aceitou_a_chave']) $d['erro_google'] = $r['error_description'] ?? ($r['error'] ?? 'sem resposta');
   }
-  $ef = $casa . '/simplificando-email.json'; $ec = is_file($ef) ? json_decode((string)file_get_contents($ef), true) : null;
+  $ef = $casa . '/simplificando-email.json'; $ec = emailCfg($casa);
+  if ($ec) $d['arquivo_do_email'] = $ec['origem'];
   $d['dados_do_email_encontrados'] = !!($ec && !empty($ec['usuario']) && !empty($ec['senha']));
-  if (is_file($ef) && !$ec) $d['arquivo_do_email_com_erro'] = 'o texto do simplificando-email.json não está no formato certo';
-  if ($ec) { $sn = (string)($ec['senha'] ?? ''); $d['usuario_lido'] = $ec['usuario'] ?? ''; $d['senha_lida'] = strlen($sn) . ' caracteres' . ($sn !== trim($sn) ? ' (tem espaço no começo ou no fim!)' : '') . (preg_match('/^[A-Za-z0-9]+$/', $sn) ? '' : ' (tem símbolo)'); }
+  if (is_file($ef) && !$ec && !is_file($casa . '/simplificando-email.txt')) $d['arquivo_do_email_com_erro'] = 'o texto do simplificando-email.json não está no formato certo';
+  if ($ec) { $sn = (string)($ec['senha'] ?? ''); $d['usuario_lido'] = $ec['usuario'] ?? ''; $d['senha_lida'] = strlen($sn) . ' caracteres' . ($sn !== trim($sn) ? ' (tem espaço no começo ou no fim!)' : '') . (($ec['origem'] ?? '') === 'simplificando-email.json' && preg_match('/["\\\\\/]/', $sn) ? ' (tem aspas ou barra: use o arquivo .txt)' : ''); }
   if ($d['dados_do_email_encontrados'] && isset($_GET['enviar']) && !empty($ec['testar_para'])) {
     $lg = []; $d['teste_de_envio_para'] = $ec['testar_para'];
     $th = str_replace(['%EMAIL%', '%LINK%'], [htmlspecialchars($ec['testar_para'], ENT_QUOTES, 'UTF-8'), 'https://' . preg_replace('/[^a-z0-9.\-]/', '', strtolower($_SERVER['HTTP_HOST'] ?? 'simplificandoeduca.com')) . '/treino/'], DESIGN_EMAIL);
@@ -139,7 +148,7 @@ $html = '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta nam
 $dom = preg_replace('/^www\./', '', $host);
 $assunto = '=?UTF-8?B?' . base64_encode('Bora voltar pro treino: crie sua senha nova') . '?=';
 $cab = "MIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\nFrom: =?UTF-8?B?" . base64_encode('Simplificando') . "?= <nao-responda@$dom>\r\nReply-To: nao-responda@$dom\r\n";
-$ef = $casa . '/simplificando-email.json'; $ec = is_file($ef) ? json_decode((string)file_get_contents($ef), true) : null;
+$ec = emailCfg($casa);
 if ($ec && !empty($ec['usuario']) && !empty($ec['senha'])) {
   $lg = []; $ok = smtpEnvia($ec, $email, $assunto, $html, $lg);
   anota($ok ? 'enviado por SMTP' : 'SMTP falhou', $esconde($email) . ' · ' . implode(' | ', array_slice($lg, -2)));
