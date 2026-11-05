@@ -2,7 +2,7 @@
 # Uso: python3 tools/build_site.py  (rodar na raiz do repositório)
 import os
 R = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + '/'
-for folder, src, title in [('treino','treino-grade.html','Simplificando Treino Grade'), ('personal','admin.html','Painel do Personal')]:
+for folder, src, title in [('treino','treino-grade.html','Simplificando · Seu treino'), ('personal','admin.html','Simplificando · Painel do personal')]:
     idx = R+'site/'+folder+'/index.html'
     cur = open(idx).read(); tag = '<title>'+title+'</title>'
     pre = cur[:cur.index(tag)]

@@ -8,6 +8,17 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Simplificando">
+<meta name="description" content="Seu treino, sua água e seu cardio num lugar só. Do jeito que seu personal montou.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Simplificando">
+<meta property="og:title" content="Simplificando · Seu treino">
+<meta property="og:description" content="Seu treino, sua água e seu cardio num lugar só. Do jeito que seu personal montou.">
+<meta property="og:url" content="https://simplificandoeduca.com/treino/">
+<meta property="og:image" content="https://simplificandoeduca.com/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="pt_BR">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -17,7 +28,7 @@
 <script src="firebase-config.js"></script>
 </head>
 <body>
-<title>Simplificando Treino Grade</title>
+<title>Simplificando · Seu treino</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1281,7 +1292,7 @@ body.has-dock .toast,body.has-dock .utoast{bottom:calc(176px + env(safe-area-ins
 .hc .btn.block{background:var(--ink);color:var(--cream)}
 .wbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .wbtns .btn{padding:0 8px;font-variant-numeric:tabular-nums;background:rgba(246,245,239,.55);color:#0F1712}
-.wbtns .btn.minus{background:var(--water-minus);color:var(--water-minus-fg)}
+.wbtns .btn.minus,.wh-btns .btn.minus{background:var(--water-minus);color:var(--water-minus-fg)}
 .wbtns .btn.minus:disabled{opacity:.45}
 .tdays{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
 .tdays button{min-width:0;height:44px;border:0;border-radius:14px;background:var(--card);box-shadow:inset 0 0 0 1.5px var(--sep);color:var(--fg);font-size:12.5px;font-weight:800;padding:0}
@@ -3342,11 +3353,11 @@ function weekCard(){
   }).join('');
   return `<section class="card"><div class="card-h"><span class="label">${ic('cal')}Sua semana</span><span class="pill ok">${ic('flame')}${st} semana${st===1?'':'s'} na meta</span></div>
     <div class="stats"><div><b>${tr.length}<small>/${SEMANA_TREINOS}</small></b><span>treinos</span></div>
-    <div>${tw('wk-vol',vol/1000,'t',(vol/1000).toFixed(1).replace('.',','))}<span>toneladas levantadas${dv!=null?` · <em>${dv>=0?'+':''}${dv}%</em>`:''}</span></div>
+    <div>${(n => `<b>${n}</b><span>recorde${n===1?'':'s'} na semana</span>`)(tr.reduce((a,h) => a+((h.prs||[]).length), 0))}</div>
     <div><b>${cm}<small>/${S.cardioGoal}</small></b><span>min de cardio</span></div>
     <div><b>${wd}<small>/${idx+1}</small></b><span>dias na meta de água</span></div></div>
     <div class="week-row">${days}</div>
-    <p class="foot0">O volume compara com os mesmos dias da semana passada. Na meta = ${streakMin()} treinos ou mais na semana.</p></section>`;
+    <p class="foot0">Na meta = ${streakMin()} treinos ou mais na semana.</p></section>`;
 }
 
 /* ---------- Treino: grade (uma bolha por série) ---------- */
@@ -3795,7 +3806,7 @@ function vCardio(){
 /* 1 · Um toque */
 function vCardioToque(){
   const cf = ui.cf, wk = weekMin(), G = S.cardioGoal;
-  return header('Cardio', `Semana: ${wk} de ${G} min`, miniRing(wk/G, `Semana: ${wk} de ${G} minutos`))+exampleNote()+
+  return header('Cardio', `Semana: ${wk} de ${G} min`, wk>0 ? miniRing(wk/G, `Semana: ${wk} de ${G} minutos`) : '')+exampleNote()+
     `<section class="scn-card"><span class="scn-cap">${LOC_S[cf.local]} · ${INT_L[cf.int].toLowerCase()}</span>${sceneCanvas(cf.local,cf.int)}</section>
     <div class="cq"><span class="flabel">Aparelho</span>${eqGrid('cf-local',cf.local)}
       <span class="flabel">Tempo</span>${timeChips('cf-min',cf.min,'cf-more')}
@@ -4043,8 +4054,8 @@ function waterHero(){
   const status = hit ? 'Meta batida. Garrafinha cheia.' : 'Faltam '+fmtN(g-ml)+' ml. '+(wp.ok ? 'Você está no ritmo.' : 'Até agora o ideal era '+fmtL(wp.exp)+'.');
   return `<section class="card"><div class="card-h"><span class="label">${ic('drop')}Sua garrafinha</span>${hit?`<span class="pill ok">${ic('check')}Meta batida</span>`:`<span class="pill">${wp.ok?'No ritmo':'Atrás do ritmo'}</span>`}</div>
     <div class="wh-body">${bottle(ml,g)}<div class="wh-txt">${tw('w-pct',pct,'pct',pct+'%').replace('<b ','<b class="wh-pct" ')}<span>da meta de hoje</span>${tw('w-ml',ml,'ml',fmtN(ml)+' ml').replace('<b ','<b class="wh-ml" ')}<span>de ${fmtN(g)} ml</span><p class="muted sm" style="margin-top:10px">${status}${rt?' '+rt+'.':''}</p></div></div>
-    <div class="wh-btns">${[200,300,500,750].map(v => `<button type="button" class="btn primary" data-a="water" data-ml="${v}">+${v}</button>`).join('')}</div>
-    <button type="button" class="btn ghost small self-start" data-a="undo-water"${ml?'':' disabled'}>${ic('undo')}${last?(last.ml<0?'Desfazer −'+(-last.ml)+' ml':'Desfazer '+last.ml+' ml'):'Tirar 250 ml'}</button></section>`;
+    <div class="wh-btns">${[200,300,500].map(v => `<button type="button" class="btn primary" data-a="water" data-ml="${v}" aria-label="Adicionar ${v} ml">+${v} ml</button>`).join('')}<button type="button" class="btn minus" data-a="water-minus" aria-label="Tirar 250 ml"${ml?'':' disabled'}>−250 ml</button></div>
+    ${last?`<button type="button" class="btn ghost small self-start" data-a="undo-water">${ic('undo')}${last.ml<0?'Desfazer −'+(-last.ml)+' ml':'Desfazer '+last.ml+' ml'}</button>`:''}</section>`;
 }
 const ANIM_KIND = { Esteira:'tread', Bicicleta:'bike', Rua:'road', Escada:'stair', 'Elíptico':'ell', Outro:'rope' };
 const ANIM_CAP = {
