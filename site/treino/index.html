@@ -1663,7 +1663,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '5 nov · 36'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '5 nov · 37'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -4754,9 +4754,12 @@ function stCupom(c,D,cor){
   const linha = () => { y += 36; c.strokeStyle = '#C9CDC6'; c.lineWidth = 4; c.setLineDash([12,12]); c.beginPath(); c.moveTo(X+P,y+2); c.lineTo(X+PW-P,y+2); c.stroke(); c.setLineDash([]); y += 4+36; };
   const kg = v => fmtKg(v)+' kg';
   const row = (a,b,pr) => {
-    if(pr){ c.save(); c.shadowColor = 'rgba(255,214,0,.95)'; c.shadowBlur = 34; c.fillStyle = '#FFE135'; stRR(c,X+P-20,y+2,PW-2*P+40,62,16); c.fill(); c.shadowBlur = 0;
-      const g = c.createLinearGradient(0,y+2,0,y+64); g.addColorStop(0,'rgba(255,255,255,.55)'); g.addColorStop(.5,'rgba(255,255,255,0)'); c.fillStyle = g; stRR(c,X+P-20,y+2,PW-2*P+40,62,16); c.fill(); c.restore(); }
-    stTxt(c,b,X+PW-P,y+46,'800 36px '+ST_MONO,STC.dk,'right'); c.font = '800 36px '+ST_MONO; const bw = c.measureText(b).width; c.font = '600 36px '+ST_MONO; stTxt(c,stCorte(c,a,PW-2*P-bw-30),X+P,y+46,'600 36px '+ST_MONO,STC.dk); y += 67; };
+    const cr = pr ? '#E8A500' : STC.dk, fw = pr ? '800' : '600';
+    if(pr){ c.save(); c.shadowColor = 'rgba(255,190,0,.55)'; c.shadowBlur = 14; }
+    stTxt(c,b,X+PW-P,y+46,'800 36px '+ST_MONO,cr,'right'); c.font = '800 36px '+ST_MONO; const bw = c.measureText(b).width;
+    c.font = fw+' 36px '+ST_MONO; stTxt(c,stCorte(c,a,PW-2*P-bw-30),X+P,y+46,fw+' 36px '+ST_MONO,cr);
+    if(pr) c.restore();
+    y += 67; };
   linha();
   if(D.cargas.length) D.cargas.forEach(x => row(x.n, kg(x.kg)+(x.pr?' ★':''), x.pr)); else row('Séries feitas', String(D.sets));
   linha();
