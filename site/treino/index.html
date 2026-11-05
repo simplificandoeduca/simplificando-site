@@ -1663,7 +1663,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '5 nov · 38'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '5 nov · 39'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -4138,9 +4138,12 @@ const FIGL = { th:39, sh:38, torso:46, ua:25, fa:23 };
 const FIGR = { F:{sh:6.2,el:4.2,wr:3.1,hp:7.4,kn:5.4,an:3.6,t1:1,t2:1}, M:{sh:7.2,el:4.8,wr:3.5,hp:7.8,kn:5.8,an:3.9,t1:1.08,t2:1.25} };
 /* marcha por trajetória do pé: no apoio o ponto de contato anda com a lona (calcanhar, pé chapado, ponta), no balanço uma curva Hermite; joelho por IK */
 const GAITP = [
-  {freq:.95,duty:.62,travel:58,X0:28,H0:81,B:1.2,pOn:-16,pOff:32,a1:.16,a2:.55,lift:7,liftSk:.9,pMid:-4,lean:4,armA:16,armOff:-2,elbow:22,elbowA:8,wind:140},
-  {freq:1.32,duty:.42,travel:56,X0:21,H0:79.8,B:-2.2,pOn:-8,pOff:38,a1:.12,a2:.42,lift:22,liftSk:.65,pMid:-6,lean:8,armA:27,armOff:2,elbow:82,elbowA:12,wind:420},
-  {freq:1.42,duty:.36,travel:64,X0:21,H0:79,B:-3.2,pOn:-5,pOff:42,a1:.1,a2:.38,lift:30,liftSk:.55,pMid:-10,lean:12,armA:38,armOff:5,elbow:92,elbowA:16,wind:760}
+  {freq:.95,duty:.62,travel:58,X0:28,H0:81,B:1.2,pOn:-16,pOff:32,a1:.16,a2:.55,lift:7,liftSk:.9,pMid:-4,lean:3,armA:15,armOff:-2,elbow:28,elbowA:6,wind:140,
+   hm:6,ha:21,hc:.88,k0:5,k1:12,k1c:.13,k2:58,k2c:.72,k2w:.1,to:.6,pT:28,pH:14,fl:0,bob:1.4},
+  {freq:1.3,duty:.42,travel:56,X0:21,H0:79.8,B:-2.2,pOn:-8,pOff:38,a1:.12,a2:.42,lift:22,liftSk:.65,pMid:-6,lean:7,armA:24,armOff:4,elbow:88,elbowA:8,wind:420,
+   hm:11,ha:26,hc:.86,k0:13,k1:22,k1c:.14,k2:88,k2c:.64,k2w:.13,to:.38,pT:30,pH:8,fl:2.2,bob:0},
+  {freq:1.45,duty:.36,travel:64,X0:21,H0:79,B:-3.2,pOn:-5,pOff:42,a1:.1,a2:.38,lift:30,liftSk:.55,pMid:-10,lean:11,armA:34,armOff:6,elbow:92,elbowA:10,wind:760,
+   hm:15,ha:33,hc:.84,k0:15,k1:25,k1c:.13,k2:112,k2c:.6,k2w:.13,to:.33,pT:36,pH:6,fl:3.6,bob:0}
 ];
 const AP = {
   tread:GAITP, road:GAITP,
@@ -4175,14 +4178,27 @@ function ik2(A,B,l1,l2,pref){
   const a = (l1*l1-l2*l2+d*d)/(2*d), h = Math.sqrt(Math.max(0, l1*l1-a*a)), sg = (-uy*pref[0]+ux*pref[1])>=0 ? 1 : -1;
   return [[A[0]+ux*a-uy*h*sg, A[1]+uy*a+ux*h*sg], d0>d ? [A[0]+ux*d, A[1]+uy*d] : B];
 }
-function torsoJ(hip,lean,tilt){ const S = at(hip,Math.PI-lean,FIGL.torso); return { hip, S, H:at(S,Math.PI-lean*.6,18), lean, tilt }; }
+function torsoJ(hip,lean,tilt){ const S = at(hip,Math.PI-lean,FIGL.torso); return { hip, S, H:at(S,Math.PI-lean*.35,17.5), lean, tilt }; }
+/* corrida por ângulos (como nos dados de biomecânica): quadril, joelho e pé seguem curvas suaves da fase;
+   a altura do quadril vem da perna mais baixa, então o pé de apoio fica no chão sem escorregar para baixo dele */
+const gBump = (u,c,w) => { let d = Math.abs(frac(u-c)); d = Math.min(d,1-d); return Math.exp(-d*d/(2*w*w)); };
+function gaitLeg(u,P){
+  const th = (P.hm+P.ha*Math.cos(TAU*(u-P.hc)))*D2R, kn = (P.k0+P.k1*gBump(u,P.k1c,.07)+P.k2*gBump(u,P.k2c,P.k2w))*D2R;
+  const K = at([0,0],th,FIGL.th), sa = th-kn, A = at(K,sa,FIGL.sh);
+  const p = P.pT*D2R*gBump(u,P.to+.05,.07) - P.pH*D2R*gBump(u,.985,.05) + 10*D2R*gBump(u,P.k2c,.1);
+  const low = A[1]+Math.max(rot(HEEL,p)[1], rot(BALL,p)[1]);
+  return {K, A, p, low};
+}
 function gaitPose(u,P,cx,gy){
-  const hip = [cx, gy-hipH(u,P)];
-  const leg = v => { const f = footAt(v,P), A = [cx+f.A[0], gy+f.A[1]]; return { A, p:f.p, K:ik2(hip,A,FIGL.th,FIGL.sh,[1,0])[0] }; };
-  const n = leg(u), f = leg(frac(u+.5)), c = Math.cos(TAU*(u-.04));
-  const lean = (P.lean+1.4*Math.cos(2*TAU*(u-P.duty/2)))*D2R, J = torsoJ(hip,lean,lean*.18);
+  const ln = gaitLeg(u,P), lf = gaitLeg(frac(u+.5),P), k = .8;
+  const reach = Math.log(Math.exp(ln.low*k)+Math.exp(lf.low*k))/k - Math.log(2)/k*.35;
+  const fly = P.fl*(gBump(u,P.to+.06,.06)+gBump(u,P.to+.56,.06)) + P.bob*Math.cos(2*TAU*(u-.25));
+  const hip = [cx, gy-reach-fly];
+  const leg = g => ({ A:addv(hip,g.A), K:addv(hip,g.K), p:g.p });
+  const n = leg(ln), f = leg(lf), c = Math.cos(TAU*(u-P.hc));
+  const lean = (P.lean+1.2*Math.cos(2*TAU*(u-P.to)))*D2R, J = torsoJ(hip,lean,lean*.12);
   const arm = (s,S0) => { const a = (P.armOff-s*P.armA*c)*D2R, e = (P.elbow-s*P.elbowA*c)*D2R, E = at(S0,a,FIGL.ua); return { S0, E, W:at(E,a+e,FIGL.fa) }; };
-  const cr = 1.4*c;
+  const cr = 1.2*c;
   J.n = Object.assign(n, arm(1,[J.S[0]-cr,J.S[1]])); J.f = Object.assign(f, arm(-1,[J.S[0]+cr,J.S[1]]));
   return J;
 }
@@ -4269,8 +4285,9 @@ function drawPony(c,C){
 }
 function drawHead(c,J,C,sex){
   const P = shoeP(), H = J.H;
+  const nb = addv(H, rot([-1.2,8.5],J.tilt)), ns = lerpP(J.S, H, .18);
+  sline(c,[ns, nb],sex==='M'?8.5:7,C.skin);
   c.save(); c.translate(H[0],H[1]); c.rotate(J.tilt);
-  sline(c,[[-1,9],[sex==='M'?-2.5:-2,16]],sex==='M'?8.5:7,C.skin);
   c.fillStyle = C.skin; c.fill(sex==='M' ? P.faceM : P.faceF);
   c.fillStyle = C.hair; c.fill(sex==='M' ? P.hairM : P.hairF);
   c.lineWidth = 1.1; c.strokeStyle = C.hair2; c.stroke(sex==='M' ? P.hiM : P.hiF);
