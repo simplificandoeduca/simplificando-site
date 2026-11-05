@@ -2295,7 +2295,7 @@ function tNotas(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '5 nov · 29'; // Versão do painel: 5 nov · 29
+const PAINELV = '5 nov · 30'; // Versão do painel: 5 nov · 30
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -2305,7 +2305,7 @@ function atuCheck(){
 function atuCard(){
   atuCheck();
   if(ATU.st==='sem') return ''; // fora do site (prévia ou teste): o botão não aparece
-  const nova = ATU.nova && ATU.nova!==PAINELV, indo = ATU.st==='indo';
+  const vnum = v => +((String(v||'').match(/·\s*(\d+)/)||[])[1]||0), nova = ATU.nova && vnum(ATU.nova) > vnum(PAINELV), indo = ATU.st==='indo';
   return '<section class="card'+(nova ? ' blk-brand' : '')+'"><span class="label">'+ic('refresh')+'Atualizar o site</span>'+
     '<p class="muted">Versão no ar: <b>'+esc(PAINELV)+'</b>'+(ATU.st==='vendo' ? ' · procurando versão nova…' : nova ? ' · <b>versão nova pronta: '+esc(ATU.nova)+'</b>' : ATU.nova ? ' · já é a mais nova' : '')+'</p>'+
     '<div class="btn-row"><button type="button" class="btn'+(nova ? ' ink' : '')+'" data-a="atuGo"'+(indo ? ' disabled' : '')+'>'+ic('refresh')+(indo ? 'Atualizando…' : 'Atualizar agora')+'</button></div>'+
