@@ -465,6 +465,8 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeri
 .pf-stats b{font-size:26px;font-weight:900;letter-spacing:-.03em}
 .pf-stats span{font-size:12px;line-height:1.3;color:var(--muted)}
 .pf-chips{display:flex;flex-wrap:wrap;gap:6px}
+.err-it{border-bottom:1px solid var(--sep);padding:10px 2px}.err-it summary{cursor:pointer;list-style:none}.err-it summary b{display:block;font-size:14px;word-break:break-word}.err-it summary span span{font-size:12.5px;color:var(--muted)}
+.err-pre{white-space:pre-wrap;word-break:break-word;font-size:11.5px;background:var(--ctl);padding:10px;border-radius:12px;max-height:180px;overflow:auto}
 .ia-form{display:flex;flex-direction:column;gap:16px}.ia-form .flabel small{font-weight:600;opacity:.7}
 .ia-tr .list .row b{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .pf-chip{display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:0 14px;border:0;border-radius:999px;background:var(--ctl);color:var(--fg);font:inherit;font-size:13.5px;font-weight:700}
@@ -2295,6 +2297,34 @@ function atuCard(){
     (ATU.msg ? '<p class="err" role="alert">'+esc(ATU.msg)+'</p>' : '')+
     '<p class="foot">Baixa do GitHub a versão mais nova do app e do painel e coloca no ar. Leva uns segundos e a página recarrega sozinha.</p></section>';
 }
+/* ---------- erros do app do aluno (erros.php guarda; só o dono lê) ---------- */
+const ERR = { st:'', list:[], at:0, msg:'', arm:false };
+function errLoad(force){
+  if(!FBP || ERR.st==='indo' || (!force && ERR.at && Date.now()-ERR.at<60000)) return;
+  ERR.st = 'indo';
+  donoToken().then(t => fetch('/erros.php?acao=ver', { cache:'no-store', headers:t ? { Authorization:'Bearer '+t } : {} })).then(r => r.json()).then(j => {
+    ERR.st = 'ok'; ERR.at = Date.now(); ERR.list = (j && j.erros) || []; ERR.msg = j && j.ok ? '' : ((j && j.erro) || 'Não deu para ler os erros.'); if(ui.view==='ajustes') render();
+  }).catch(() => { ERR.st = 'sem'; ERR.at = Date.now(); if(ui.view==='ajustes') render(); });
+}
+function errClear(){
+  if(!ERR.arm){ ERR.arm = true; render(); return; }
+  ERR.arm = false; donoToken().then(t => fetch('/erros.php?acao=limpar', { method:'POST', cache:'no-store', headers:t ? { Authorization:'Bearer '+t } : {} })).then(r => r.json()).then(j => { if(j && j.ok){ ERR.list = []; toast('Lista de erros limpa'); } render(); }).catch(() => toast('Sem conexão com o servidor.'));
+}
+const errQuando = t => { const d = new Date(t*1000); return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); };
+function errCard(){
+  if(!FBP) return '';
+  errLoad(false);
+  const L = ERR.list, n = L.reduce((a,x) => a+(x.vezes||1), 0);
+  const body = ERR.st==='sem' ? '<p class="muted">Sem conexão com o servidor para ver os erros.</p>'
+    : ERR.msg ? '<p class="muted">'+esc(ERR.msg)+'</p>'
+    : !ERR.at ? '<p class="muted">Carregando…</p>'
+    : !L.length ? '<p class="muted">Nenhum erro registrado. Quando algo quebrar no celular de um aluno, aparece aqui.</p>'
+    : '<div class="list">'+L.slice(0,15).map(x => '<details class="err-it"><summary><span class="main-t"><b>'+esc(x.msg)+'</b><span>'+(x.vezes>1 ? x.vezes+' vezes · ' : '')+'última em '+errQuando(x.ultimo)+(x.pessoas && x.pessoas.length ? ' · '+esc(x.pessoas.slice(-3).join(', ')) : '')+'</span></span></summary>'+
+        '<p class="foot">Tela: '+esc(x.tela||'—')+' · versão '+esc(x.ver||'—')+'<br>Onde: '+esc(x.onde||'—')+'<br>Aparelho: '+esc(x.aparelho||'—')+'</p>'+(x.pilha ? '<pre class="err-pre">'+esc(x.pilha)+'</pre>' : '')+'</details>').join('')+'</div>'+
+      '<div class="btn-row"><button type="button" class="btn small" data-a="errReload">'+ic('refresh')+'Atualizar</button><button type="button" class="btn small '+(ERR.arm?'armed':'ghost danger')+'" data-a="errClear">'+ic('trash')+(ERR.arm?'Toque de novo para limpar':'Limpar lista')+'</button></div>';
+  return '<section class="card"><div class="card-h"><span class="label">'+ic('alert')+'Erros do app dos alunos</span>'+(L.length ? '<span class="pill warn">'+plural(n,'aviso','avisos')+'</span>' : '<span class="pill ok">Tudo certo</span>')+'</div>'+body+
+    '<p class="foot">Copie o texto de um erro e me mande que eu corrijo. Os avisos mostram só o primeiro nome e o código do aluno.</p></section>';
+}
 /* token de login do dono: os arquivos do servidor (atualizar, erros) só respondem a ele */
 function donoToken(){ try { const u = window.firebase && firebase.apps.length && firebase.app().auth().currentUser; return u ? u.getIdToken() : Promise.resolve(''); } catch(e){ return Promise.resolve(''); } }
 function atuGo(){
@@ -2571,7 +2601,7 @@ function vAjustes(){
     '<section class="card"><span class="label">'+ic('archive')+'Dados</span><p class="muted">'+(Store.mode==='db' ? 'Seus dados ficam salvos no painel e aparecem em qualquer aparelho em que você abrir esta página.' : 'Modo local: os dados ficam só neste navegador. Ao abrir o painel publicado, eles passam a ficar salvos no painel.')+'</p>'+
       '<div class="soon-rows"><div><b>'+Object.keys(C.alunos).length+'</b><span>alunos</span></div><div><b>'+Object.keys(C.exercicios).length+'</b><span>exercícios</span></div><div><b>'+Object.keys(C.modelos).length+'</b><span>modelos</span></div><div><b>'+nEx+'</b><span>itens de exemplo</span></div></div>'+
       (nEx ? armBtn('wipeEx','x','Apagar dados de exemplo ('+nEx+')','Toque de novo: apaga '+plural(nEx,'item','itens')+' marcados como exemplo','block','trash') : '<p class="foot">Não há dados de exemplo.</p>')+'</section>'+
-    atuCard()+
+    atuCard()+errCard()+
     '<section class="card"><span class="label">'+ic('users')+'Importar alunos</span><p class="muted">Para alunos que já tinham treino em planilha: escolha o arquivo de importação (.json). Cada aluno entra com o treino, a carga da última semana, as metas e o histórico nas anotações. Quem já está no painel, com o mesmo nome ou e-mail, não é duplicado.</p><div class="btn-row"><button type="button" class="btn" data-a="impFile">'+ic('plus')+'Escolher arquivo</button><input type="file" id="imp-file" class="sr" accept=".json,application/json"></div></section>'+
     '<section class="card"><span class="label">'+ic('user')+'Acesso ao painel</span><p class="muted">Conectado como <b>'+esc(Gate.user()||'você')+'</b> neste aparelho.</p><button type="button" class="btn ghost block gate-out" data-gate-out="1">Sair do painel</button><p class="hint" style="text-align:center;margin:4px 0 0">Versão do painel: '+PAINELV+'</p></section>'+
     '<section class="card"><span class="label">'+ic('note')+'Termos e privacidade</span><p class="muted" style="margin:0">Termos de uso e política de privacidade, versão 1. Os alunos aceitam no app: no cadastro de quem treina sem personal e no primeiro acesso de quem entra com a senha do personal. O aceite de cada um aparece na aba Perfis.</p><button type="button" class="btn block" data-a="termos">'+ic('note')+'Ler os termos</button></section>';
@@ -3070,6 +3100,8 @@ function act(a,d,btn){
       t.ex.push(e); saveCtx(x); toast(e.nome ? e.nome+' adicionado ao treino '+ui.sheet.L : 'Exercício em branco adicionado'); ui.pickQ = ''; closeSheet(); break; }
     case 'exToLib': { const x = curCtx(), t = x.pl.treinos[curL(x)], e = t.ex[+d.i]; if(!(e.nome||'').trim()){ toast('Dê um nome ao exercício antes de salvar na biblioteca.'); return false; } const lid = 'ex-'+uid(); C.exercicios[lid] = { nome:e.nome.trim(), grupo:GRUPOS.includes(e.alvo)?e.alvo:'', equipamento:'', cues:(e.cues||['','','']).slice(0,3), erro:e.erro||'', video:e.video||'', anim:e.anim||'' }; Store.save('exercicios',lid,0); e.exId = lid; saveCtx(x); toast('Salvo na biblioteca'); break; }
     case 'tplApply': openSheet({k:'tplApply'}); return false;
+    case 'errReload': errLoad(true); break;
+    case 'errClear': errClear(); return false;
     case 'iaOpen': { if(!A) break; ui.draft.ia = iaDraft(A); openSheet({k:'iaGen'}); return false; }
     case 'iaSet': { const q = ui.draft.ia, [k,v] = d.v.split(':'); q[k] = (k==='n'||k==='tempo') ? +v : v; renderSheet(); return false; }
     case 'iaFoco': { const q = ui.draft.ia; if(d.v==='eq') q.foco = []; else { const i = q.foco.indexOf(d.v); if(i>=0) q.foco.splice(i,1); else { q.foco.push(d.v); if(q.foco.length>2) q.foco.shift(); } } renderSheet(); return false; }

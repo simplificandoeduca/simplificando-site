@@ -5492,6 +5492,22 @@ function boot(){
   setInterval(tick, 250);
   offlineSetup();
 }
+/* erros do app: quando algo quebra no celular da aluna, manda um aviso curto para o painel do personal (erros.php) */
+const ERRS = { n:0, vistos:{} };
+function errSend(msg, src, line, col, stack){
+  try {
+    if(!FB || !navigator.onLine || ERRS.n>=5) return;
+    const k = String(msg)+'|'+src+'|'+line; if(ERRS.vistos[k]) return; ERRS.vistos[k] = 1; ERRS.n++;
+    const quem = ACCT ? (ACCT.mode==='personal' ? (firstName((ACCT.aluno && ACCT.aluno.perfil && ACCT.aluno.perfil.nome) || '')+' · '+ACCT.code) : 'sem personal') : 'antes de entrar';
+    const body = JSON.stringify({ msg:String(msg).slice(0,300), src:String(src||'').replace(location.origin,'').slice(0,160), line:line||0, col:col||0, stack:String(stack||'').split(location.origin).join('').slice(0,900),
+      tela:(typeof ui!=='undefined' && ui) ? (ui.sheet ? 'janela '+ui.sheet.k : ui.tab) : '', ver:APPV, quem, ua:navigator.userAgent });
+    const url = '/erros.php?acao=registrar';
+    if(navigator.sendBeacon) navigator.sendBeacon(url, new Blob([body], {type:'application/json'}));
+    else fetch(url, {method:'POST', body, headers:{'Content-Type':'application/json'}, keepalive:true}).catch(() => {});
+  } catch(e){ /* sem aviso */ }
+}
+window.addEventListener('error', ev => { if(ev && ev.message) errSend(ev.message, ev.filename, ev.lineno, ev.colno, ev.error && ev.error.stack); });
+window.addEventListener('unhandledrejection', ev => { const r = ev && ev.reason; errSend('Promessa sem tratamento: '+(r && r.message ? r.message : String(r)), '', 0, 0, r && r.stack); });
 /* sem internet: o app fica guardado no celular (sw.js na pasta do app) e avisa quando o sinal cai ou volta */
 function offlineSetup(){
   const ok = 'serviceWorker' in navigator && FB && (location.protocol==='https:' || location.hostname==='localhost' || location.hostname==='127.0.0.1');
