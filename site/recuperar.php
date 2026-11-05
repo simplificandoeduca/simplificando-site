@@ -3,6 +3,17 @@
 // 1) pede ao Firebase só o link seguro de redefinição (com a chave guardada FORA do public_html);
 // 2) monta o e-mail com a logo e o botão e envia pelo servidor da HostGator.
 // Não revela se o e-mail tem conta. No máximo 3 pedidos por e-mail e 10 por aparelho a cada hora.
+const DESIGN_EMAIL = <<<'HTML'
+<div style="margin:0;padding:32px 16px;background:#E9E8E1;font-family:Arial,Helvetica,sans-serif">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;margin:0 auto;background:#0F1712;border-radius:24px;overflow:hidden;color:#F6F5EF">
+<tr><td style="height:6px;background:linear-gradient(90deg,#FF4646,#FF9A3C,#C6F04A,#A98BFF);font-size:0">&nbsp;</td></tr>
+<tr><td style="padding:30px 32px 0"><table role="presentation" cellpadding="0" cellspacing="0"><tr><td><img src="https://simplificandoeduca.com/treino/icon-192.png" width="76" height="76" alt="Simplificando" style="border-radius:20px;display:block"></td><td style="padding-left:16px;font-size:28px;font-weight:bold;letter-spacing:-0.5px;color:#F6F5EF">simplificando<span style="color:#FF4646">.</span></td></tr></table></td></tr>
+<tr><td style="padding:28px 32px 0"><p style="margin:0;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#C6F04A;font-weight:bold">Redefinir senha</p><h1 style="margin:8px 0 0;font-size:30px;line-height:1.15;letter-spacing:-0.8px">Bora voltar<br>pro treino<span style="color:#FF4646">.</span></h1></td></tr>
+<tr><td style="padding:16px 32px 0;font-size:15px;line-height:1.55;color:#C9CDC6">Pediram uma senha nova para a conta <b style="color:#F6F5EF">%EMAIL%</b>. Toque no botão e escolha a sua.</td></tr>
+<tr><td style="padding:28px 32px"><a href="%LINK%" style="display:block;padding:17px 0;background:#FF4646;color:#ffffff;text-align:center;font-size:16px;font-weight:bold;text-decoration:none;border-radius:14px">Redefinir minha senha &rarr;</a></td></tr>
+<tr><td style="padding:0 32px 30px;font-size:12.5px;line-height:1.5;color:#86928A">O link vale por 1 hora. Não pediu? Pode ignorar: nada muda na sua conta.</td></tr>
+</table></div>
+HTML;
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 function anota($passo, $info = '') {
@@ -66,7 +77,8 @@ if (isset($_GET['teste'])) {
   if ($ec) { $sn = (string)($ec['senha'] ?? ''); $d['usuario_lido'] = $ec['usuario'] ?? ''; $d['senha_lida'] = strlen($sn) . ' caracteres' . ($sn !== trim($sn) ? ' (tem espaço no começo ou no fim!)' : '') . (preg_match('/^[A-Za-z0-9]+$/', $sn) ? '' : ' (tem símbolo)'); }
   if ($d['dados_do_email_encontrados'] && isset($_GET['enviar']) && !empty($ec['testar_para'])) {
     $lg = []; $d['teste_de_envio_para'] = $ec['testar_para'];
-    $d['teste_de_envio_ok'] = smtpEnvia($ec, $ec['testar_para'], '=?UTF-8?B?' . base64_encode('Teste do Simplificando') . '?=', '<p>Se você recebeu, o envio de e-mails do Simplificando está funcionando.</p>', $lg);
+    $th = str_replace(['%EMAIL%', '%LINK%'], [htmlspecialchars($ec['testar_para'], ENT_QUOTES, 'UTF-8'), 'https://' . preg_replace('/[^a-z0-9.\-]/', '', strtolower($_SERVER['HTTP_HOST'] ?? 'simplificandoeduca.com')) . '/treino/'], DESIGN_EMAIL);
+    $d['teste_de_envio_ok'] = smtpEnvia($ec, $ec['testar_para'], '=?UTF-8?B?' . base64_encode('[Teste] Bora voltar pro treino: crie sua senha nova') . '?=', '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"></head><body style="margin:0">' . $th . '</body></html>', $lg);
     $d['teste_de_envio_passos'] = $lg;
   }
   $lf = $casa . '/.simplificando-recuperar-log.json';
@@ -116,17 +128,7 @@ parse_str((string)parse_url($r['oobLink'], PHP_URL_QUERY), $q);
 if (empty($q['oobCode'])) sai(['ok' => true]);
 $link = 'https://' . $host . '/treino/?mode=resetPassword&oobCode=' . rawurlencode($q['oobCode']) . ($aluno ? '&tipo=aluno' : '');
 // e-mail com o design do Simplificando
-$html = <<<'HTML'
-<div style="margin:0;padding:32px 16px;background:#E9E8E1;font-family:Arial,Helvetica,sans-serif">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;margin:0 auto;background:#0F1712;border-radius:24px;overflow:hidden;color:#F6F5EF">
-<tr><td style="height:6px;background:linear-gradient(90deg,#FF4646,#FF9A3C,#C6F04A,#A98BFF);font-size:0">&nbsp;</td></tr>
-<tr><td style="padding:30px 32px 0"><table role="presentation" cellpadding="0" cellspacing="0"><tr><td><img src="https://simplificandoeduca.com/treino/icon-192.png" width="76" height="76" alt="Simplificando" style="border-radius:20px;display:block"></td><td style="padding-left:16px;font-size:28px;font-weight:bold;letter-spacing:-0.5px;color:#F6F5EF">simplificando<span style="color:#FF4646">.</span></td></tr></table></td></tr>
-<tr><td style="padding:28px 32px 0"><p style="margin:0;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#C6F04A;font-weight:bold">Redefinir senha</p><h1 style="margin:8px 0 0;font-size:30px;line-height:1.15;letter-spacing:-0.8px">Bora voltar<br>pro treino<span style="color:#FF4646">.</span></h1></td></tr>
-<tr><td style="padding:16px 32px 0;font-size:15px;line-height:1.55;color:#C9CDC6">Pediram uma senha nova para a conta <b style="color:#F6F5EF">%EMAIL%</b>. Toque no botão e escolha a sua.</td></tr>
-<tr><td style="padding:28px 32px"><a href="%LINK%" style="display:block;padding:17px 0;background:#FF4646;color:#ffffff;text-align:center;font-size:16px;font-weight:bold;text-decoration:none;border-radius:14px">Redefinir minha senha &rarr;</a></td></tr>
-<tr><td style="padding:0 32px 30px;font-size:12.5px;line-height:1.5;color:#86928A">O link vale por 1 hora. Não pediu? Pode ignorar: nada muda na sua conta.</td></tr>
-</table></div>
-HTML;
+$html = DESIGN_EMAIL;
 $html = str_replace(['%EMAIL%', '%LINK%'], [htmlspecialchars($email, ENT_QUOTES, 'UTF-8'), htmlspecialchars($link, ENT_QUOTES, 'UTF-8')], $html);
 $html = '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0">' . $html . '</body></html>';
 $dom = preg_replace('/^www\./', '', $host);
