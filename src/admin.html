@@ -465,6 +465,8 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeri
 .pf-stats b{font-size:26px;font-weight:900;letter-spacing:-.03em}
 .pf-stats span{font-size:12px;line-height:1.3;color:var(--muted)}
 .pf-chips{display:flex;flex-wrap:wrap;gap:6px}
+.ia-form{display:flex;flex-direction:column;gap:16px}.ia-form .flabel small{font-weight:600;opacity:.7}
+.ia-tr .list .row b{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .pf-chip{display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:0 14px;border:0;border-radius:999px;background:var(--ctl);color:var(--fg);font:inherit;font-size:13.5px;font-weight:700}
 .pf-chip em{font-style:normal;font-size:12px;opacity:.65}
 .pf-chip.on{background:var(--fg);color:var(--bg)}
@@ -1995,7 +1997,7 @@ function builder(col,id){
   const L = ui.tl[key], t = L ? pl.treinos[L] : null, deload = col==='alunos' && pl.deload;
   const lets = Ls.map(l => '<button type="button" class="tletter'+(l===L?' on':'')+'" data-a="tl" data-v="'+l+'" aria-pressed="'+(l===L)+'" aria-label="Treino '+l+'">'+l+'</button>').join('')+(Ls.length<5?'<button type="button" class="tletter add" data-a="addTreino" aria-label="Adicionar treino '+LETRAS[Ls.length]+'">'+ic('plus')+'</button>':'');
   let h = '<section class="card"><div class="card-h"><span class="label">'+ic('layers')+'Divisão '+(Ls.join('')||'vazia')+'</span><span class="calc-v" data-calc="plansum">'+calcPlanSum(col,id)+'</span></div><div class="tl-row" role="group" aria-label="Treinos do plano">'+lets+'</div></section>';
-  if(!t) return h+'<section class="card ph"><span class="label">'+ic('dumbbell')+'Nenhum treino ainda</span><p class="muted">Crie o treino A e adicione exercícios da biblioteca'+(col==='alunos'?', ou aplique um modelo pronto.':'.')+'</p><div class="btn-row"><button type="button" class="btn primary" data-a="addTreino">'+ic('plus')+'Criar treino A</button>'+(col==='alunos'?'<button type="button" class="btn" data-a="tplApply">'+ic('layers')+'Aplicar modelo</button>':'')+'</div></section>';
+  if(!t) return h+'<section class="card ph"><span class="label">'+ic('dumbbell')+'Nenhum treino ainda</span><p class="muted">Crie o treino A e adicione exercícios da biblioteca'+(col==='alunos'?', ou aplique um modelo pronto.':'.')+'</p><div class="btn-row"><button type="button" class="btn primary" data-a="addTreino">'+ic('plus')+'Criar treino A</button>'+(col==='alunos'?'<button type="button" class="btn" data-a="iaOpen">'+ic('bolt')+'Gerar com IA</button><button type="button" class="btn" data-a="tplApply">'+ic('layers')+'Aplicar modelo</button>':'')+'</div></section>';
   const tb = x.pre+'treinos.'+L+'.';
   h += '<section class="card"><div class="card-h"><span class="label">'+ic('dumbbell')+'Treino '+L+'</span><div class="btn-row"><button type="button" class="btn small" data-a="dupTreino"'+(Ls.length>=5?' disabled':'')+'>'+ic('dup')+'Duplicar</button>'+armBtn('delTreino',L,'Excluir','Toque de novo para excluir')+'</div></div>'+
     '<div class="form">'+inp({b:tb+'nome',label:'Nome do treino',val:t.nome,ph:'Ex.: Inferiores'})+inp({b:tb+'foco',label:'Foco',val:t.foco,ph:'Ex.: Quadríceps e glúteo'})+'</div>'+
@@ -2088,7 +2090,7 @@ function tTreino(a){
     inp({b:b('frequencia'),label:'Frequência',val:pl.frequencia,t:'i',unit:'x por semana',v:'range',min:1,max:14})+
     txa({b:b('objetivoCiclo'),label:'Objetivo do ciclo',val:pl.objetivoCiclo,ph:'O que este ciclo precisa entregar',cls:'wide',rows:2})+'</div>'+
     swB({b:b('deload'),label:'Semana de deload',sub:'Corta as séries pela metade e alivia as cargas no app do aluno.',val:!!pl.deload})+
-    '<div class="btn-row"><button type="button" class="btn small" data-a="tplApply">'+ic('layers')+'Aplicar modelo</button><button type="button" class="btn small" data-a="tplSave"'+(letters(pl).length?'':' disabled')+'>'+ic('save')+'Salvar como modelo</button></div></section>'+
+    '<div class="btn-row"><button type="button" class="btn small primary" data-a="iaOpen">'+ic('bolt')+'Gerar com IA</button><button type="button" class="btn small" data-a="tplApply">'+ic('layers')+'Aplicar modelo</button><button type="button" class="btn small" data-a="tplSave"'+(letters(pl).length?'':' disabled')+'>'+ic('save')+'Salvar como modelo</button></div></section>'+
     builder('alunos',id);
 }
 
@@ -2276,7 +2278,7 @@ function tNotas(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '5 nov · 34'; // Versão do painel: 5 nov · 34
+const PAINELV = '5 nov · 35'; // Versão do painel: 5 nov · 35
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -2628,6 +2630,7 @@ function vSheet(){
     return sheetTop('Animação do app', o.nome||'Exercício')+'<div class="xa-big'+(XA.pick(xaDesc(o)||{})?'':' empty')+'"><svg class="xa-live" data-full="1" data-fps="30" data-ref="'+esc(s.ref)+'" viewBox="0 0 480 420" role="img" aria-label="Animação da execução de '+esc(o.nome||'exercício')+'"></svg><span class="none">Sem animação para este exercício.</span></div>'+
       '<p class="foot">É assim que o aluno vê na aba Execução do app. Para trocar, use “Animação no app” no exercício.</p>';
   }
+  if(s.k==='iaGen') return iaSheet();
   if(s.k==='tplApply'){
     const L = Object.keys(C.modelos).map(id => Object.assign({_id:id}, C.modelos[id])).filter(m => letters(m).length);
     return sheetTop('Treino','Aplicar modelo')+'<p class="muted">O modelo substitui todos os treinos atuais deste aluno. Nome e validade do ciclo continuam.</p>'+
@@ -2905,6 +2908,111 @@ function importaAlunos(txt){
   if(ok.length){ ui.view = 'alunos'; ui.aluno = ok.length===1 ? last : null; ui.tab = 'treino'; render(); window.scrollTo(0,0); }
   toast((ok.length ? 'Importados: '+ok.join(', ')+'.' : 'Ninguém novo para importar.')+(ja.length ? ' Já estavam no painel: '+ja.join(', ')+'.' : ''));
 }
+/* ---------- gerar treino com IA: regras de divisão, volume e tempo + ranking (tier list) para escolher os exercícios ---------- */
+const IA_LOC = [['academia','Academia'],['halteres','Casa com halteres'],['corpo','Sem equipamento']];
+const IA_EQ = { halteres:['Halteres','Peso do corpo','Banco/Step','Kettlebell'], corpo:['Peso do corpo','Banco/Step'] };
+const IA_FOCO = [['pernas','Pernas e glúteo',['Glúteo','Quadríceps']],['peito','Peito',['Peito']],['costas','Costas',['Costas']],['ombro','Ombros',['Ombro']],['bracos','Braços',['Bíceps','Tríceps']],['abd','Abdômen',['Abdômen']]];
+const IA_LIM = [['joelho','Joelho',/agach|afundo|passada|bulgar|extensora|hack|pendulo|leg ?press|step|salto|sissy/],['ombro','Ombro',/desenv|militar|arnold|frontal|remada alta|paralela|mergulho|supino.*barra|supino reto/],['lombar','Lombar',/terra|stiff|remada curvada|good morning|agachamento livre|bom dia/]];
+const IA_COMP = /agach|leg ?press|supino|remada|puxada|terra|stiff|desenv|barra fixa|hack|passada|bulgar|afundo|pelvica|mergulho|paralela|pendulo|militar|hiperext|step|flexao/;
+const IA_TPL = {
+  corpo1:['Corpo todo 1',['Quadríceps','Peito','Costas','Posterior','Ombro','Abdômen','Tríceps','Bíceps']],
+  corpo2:['Corpo todo 2',['Glúteo','Costas','Peito','Quadríceps','Ombro','Abdômen','Bíceps','Tríceps']],
+  corpo3:['Corpo todo 3',['Quadríceps','Costas','Peito','Glúteo','Ombro','Abdômen','Tríceps','Panturrilha']],
+  inf:['Pernas e glúteo',['Quadríceps','Glúteo','Posterior','Quadríceps','Glúteo','Panturrilha','Abdômen','Posterior']],
+  inf2:['Glúteo e posterior',['Glúteo','Posterior','Quadríceps','Glúteo','Posterior','Panturrilha','Abdômen','Quadríceps']],
+  sup:['Superiores 1',['Peito','Costas','Ombro','Peito','Costas','Tríceps','Bíceps','Abdômen']],
+  sup2:['Superiores 2',['Costas','Peito','Ombro','Costas','Ombro','Bíceps','Tríceps','Abdômen']],
+  emp:['Peito, ombro e tríceps',['Peito','Peito','Ombro','Ombro','Tríceps','Peito','Tríceps','Abdômen']],
+  pux:['Costas e bíceps',['Costas','Costas','Costas','Ombro','Bíceps','Bíceps','Abdômen','Costas']]
+};
+function iaSplit(n, nivel, legs){
+  if(n<=1) return ['corpo1'];
+  if(n===2) return ['corpo1','corpo2'];
+  if(n===3) return nivel==='iniciante' ? ['corpo1','corpo2','corpo3'] : legs ? ['inf','sup','inf2'] : ['inf','emp','pux'];
+  if(n===4) return ['inf','sup','inf2','sup2'];
+  if(n===5) return legs ? ['inf','emp','inf2','pux','sup2'] : ['inf','emp','pux','inf2','sup2'];
+  return ['inf','emp','pux'];
+}
+const iaHash = s => { let h = 2166136261; for(let i=0;i<s.length;i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return ((h>>>0)%1000)/1000; };
+const iaMin = ex => !ex.length ? 0 : Math.round((ex.reduce((a,e) => a+(e.s||3)*(45+(+e.d||60)), 0)+60*ex.length)/60+5);
+function iaPresc(comp, obj, nivel){
+  const ini = nivel==='iniciante', ava = nivel==='avancado';
+  if(obj==='emagrecer') return {s:3, r:comp?'12':'15', d:comp?60:45, rir:ini?3:2};
+  if(obj==='corrida') return {s:ini?2:3, r:'10–12', d:60, rir:ini?3:2};
+  return {s:ini||!comp?3:4, r:ini||!comp?'10–12':(ava?'6–10':'8–10'), d:comp?(ini?75:90):60, rir:ini?3:(comp?2:1)};
+}
+function iaDraft(A){
+  const p = P(A), n = Math.min(6, Math.max(2, (p.dias||[]).length || +(A.plano||{}).frequencia || 3)), t = +p.tempoSessao || 60;
+  const lim = []; ((A.saude||{}).lesoes||[]).forEach(l => { const r = semAc(String((l.regiao||'')+' '+(l.descricao||''))).toLowerCase(); IA_LIM.forEach(([k,n]) => { if(r.includes(semAc(n).toLowerCase()) && !lim.includes(k)) lim.push(k); }); if(/coluna|costas|hernia/.test(r) && !lim.includes('lombar')) lim.push('lombar'); });
+  return { obj:ED[p.objetivo] ? p.objetivo : 'hipertrofia', nivel:NIVEL[p.nivel] ? p.nivel : 'iniciante', n, tempo:[30,45,60,75].reduce((a,b) => Math.abs(b-t)<Math.abs(a-t) ? b : a, 60), local:p.local==='casa' ? 'halteres' : 'academia', foco:[], lim, seed:0, res:null, arm:false };
+}
+function iaPlan(q){
+  const lib = Object.keys(C.exercicios).map(id => Object.assign({_id:id, exId:id}, C.exercicios[id])).filter(x => x.nome && x.grupo);
+  const eqOk = x => !IA_EQ[q.local] || IA_EQ[q.local].includes(x.equipamento);
+  const limOk = x => { const n = semAc(x.nome).toLowerCase(); return !q.lim.some(k => (IA_LIM.find(z => z[0]===k)||[])[2].test(n)); };
+  const comp = x => IA_COMP.test(semAc(x.nome).toLowerCase());
+  const pri = [...new Set(q.foco.flatMap(k => (IA_FOCO.find(z => z[0]===k)||[,,[]])[2]))];
+  const split = iaSplit(q.n, q.nivel, q.foco.includes('pernas')), used = {}, out = {}, N = {30:4,45:5,60:6,75:7}[q.tempo] || 6;
+  const pick = (g, want, ex) => {
+    const c = lib.filter(x => x.grupo===g && eqOk(x) && limOk(x) && !ex.some(e => e.exId===x._id)); if(!c.length) return null;
+    const key = x => { const r = rankIdx(x); return (r===99 ? 7 : r) + (want && (comp(x) ? 'c' : 'i')!==want ? 2.5 : 0) + (used[x._id]||0)*3 + iaHash(x._id+':'+q.seed)*(q.seed ? 1.6 : .3); };
+    return c.sort((a,b) => key(a)-key(b))[0];
+  };
+  split.forEach((k, ti) => {
+    const [nome, gs] = IA_TPL[k], body = k.indexOf('corpo')===0, slots = gs.slice(0, N);
+    pri.forEach(g => {
+      if((!body && !gs.includes(g)) || slots.filter(x => x===g).length>=2) return;
+      let j = -1; for(let i=slots.length-1; i>0; i--) if(!pri.includes(slots[i])){ j = i; break; }
+      if(j<0) return; slots.splice(j,1); slots.splice(Math.min(2, slots.length), 0, g);
+    });
+    const ex = [], seen = {};
+    const add = (g, want) => { const x = pick(g, want, ex); if(!x) return false; used[x._id] = (used[x._id]||0)+1;
+      const pr = iaPresc(comp(x), q.obj, q.nivel), e = Object.assign(exFromLib(x._id), {s:pr.s, r:pr.r, d:pr.d, rir:pr.rir});
+      if(pri.includes(g) && !seen[g+'+'] && q.nivel!=='iniciante' && q.obj!=='corrida' && comp(x)){ e.s = Math.min(5, e.s+1); seen[g+'+'] = 1; }
+      ex.push(e); return true; };
+    slots.forEach(g => { const nth = seen[g] = (seen[g]||0)+1; add(g, ['Abdômen','Panturrilha','Bíceps','Tríceps'].includes(g) ? null : nth===1 ? 'c' : 'i'); });
+    const extra = gs.slice(N).concat(pri, gs);
+    for(let i=0; i<extra.length && ex.length<8 && (iaMin(ex)<q.tempo-9 || ex.length<4); i++) add(extra[i], 'i');
+    for(let guard=0; iaMin(ex)>q.tempo+8 && guard<60; guard++){
+      const i = ex.findIndex((e,j) => j>0 && e.s>3); if(i>0){ ex[i].s--; continue; }
+      if(ex.length>4){ ex.pop(); continue; }
+      const j = ex.findIndex(e => e.s>2); if(j>=0){ ex[j].s--; continue; } break;
+    }
+    if(ex[0] && q.obj!=='emagrecer') ex[0].aq = true;
+    const gr = [...new Set(ex.map(e => e.alvo))].slice(0,3);
+    out[LETRAS[ti]] = { nome, foco:gr.length>1 ? gr.slice(0,-1).join(', ')+' e '+gr[gr.length-1] : (gr[0]||''), min:iaMin(ex), ex };
+  });
+  return out;
+}
+const iaChip = (a,v,on,l) => '<button type="button" class="pf-chip'+(on?' on':'')+'" data-a="'+a+'" data-v="'+esc(String(v))+'" aria-pressed="'+on+'">'+l+'</button>';
+function iaSheet(){
+  const q = ui.draft.ia, A = curAluno(); if(!q || !A) return '';
+  const nm = esc(curto(Object.assign({_id:ui.aluno},A)));
+  if(q.res){
+    const Ls = letters({treinos:q.res}), tot = Ls.reduce((a,l) => a+q.res[l].ex.length, 0), tem = letters(A.plano).length;
+    return sheetTop('Treino gerado com IA', 'Treino de '+nm)+
+      '<p class="muted">'+Ls.length+' treino'+(Ls.length>1?'s':'')+' ('+Ls.join('')+') · '+tot+' exercícios. A IA escolheu primeiro os melhores do ranking em cada grupo. Revise e ajuste depois na aba Treino.</p>'+
+      Ls.map(l => { const t = q.res[l]; return '<section class="card ia-tr"><div class="card-h"><span class="label">'+ic('dumbbell')+'Treino '+l+' · '+esc(t.nome)+'</span><span class="pill line">~'+t.min+' min</span></div><p class="hint">'+esc(t.foco)+'</p><div class="list">'+
+        t.ex.map((e,i) => '<div class="row"><span class="num">'+(i+1)+'</span><span class="main-t"><b>'+esc(e.nome)+rankTag(e)+'</b><span>'+e.s+' × '+esc(e.r)+' · descanso '+e.d+' s · RIR '+e.rir+(e.aq?' · aquecimento':'')+'</span></span></div>').join('')+'</div></section>'; }).join('')+
+      rankLegenda()+
+      '<button type="button" class="btn '+(q.arm?'armed':'primary')+' block" data-a="iaUse">'+ic('check')+(q.arm?'Toque de novo para substituir os treinos atuais':'Usar este treino')+'</button>'+
+      (tem && !q.arm ? '<p class="foot">'+nm+' já tem treino '+letters(A.plano).join('')+'. Ele será substituído; o nome e a validade do ciclo continuam.</p>' : '')+
+      '<div class="btn-row"><button type="button" class="btn" data-a="iaRedo">'+ic('refresh')+'Gerar outra opção</button><button type="button" class="btn ghost" data-a="iaBack">'+ic('chevL')+'Mudar respostas</button></div>';
+  }
+  const f = (lab, h) => '<div class="field"><span class="flabel">'+lab+'</span><div class="pf-chips">'+h+'</div></div>';
+  return sheetTop('Treino', 'Gerar com IA')+
+    '<p class="muted">Responda e a IA monta a divisão, as séries e o descanso para '+nm+', usando o ranking (tier list) para escolher os melhores exercícios da sua biblioteca. Nada muda até você confirmar.</p>'+
+    '<div class="ia-form">'+
+    f('Objetivo', Object.keys(ED).map(k => iaChip('iaSet','obj:'+k, q.obj===k, ED[k])).join(''))+
+    f('Nível', Object.keys(NIVEL).map(k => iaChip('iaSet','nivel:'+k, q.nivel===k, NIVEL[k])).join(''))+
+    f('Treinos por semana', [2,3,4,5,6].map(n => iaChip('iaSet','n:'+n, q.n===n, n+'x')).join(''))+
+    f('Tempo por treino', [30,45,60,75].map(n => iaChip('iaSet','tempo:'+n, q.tempo===n, n===75?'75+ min':n+' min')).join(''))+
+    f('Onde vai treinar', IA_LOC.map(([k,l]) => iaChip('iaSet','local:'+k, q.local===k, l)).join(''))+
+    f('Prioridade <small>(até 2)</small>', iaChip('iaFoco','eq', !q.foco.length, 'Equilibrado')+IA_FOCO.map(([k,l]) => iaChip('iaFoco',k, q.foco.includes(k), l)).join(''))+
+    f('Evitar por dor ou lesão', iaChip('iaLim','no', !q.lim.length, 'Nada')+IA_LIM.map(([k,l]) => iaChip('iaLim',k, q.lim.includes(k), l)).join(''))+
+    '</div>'+(q.lim.length && ((A.saude||{}).lesoes||[]).length ? '<p class="foot">'+ic('alert')+' Preenchido a partir das lesões da aba Saúde.</p>' : '')+
+    '<button type="button" class="btn primary block" data-a="iaGen">'+ic('bolt')+'Gerar treino</button>';
+}
 function exFromLib(lid){ const l = C.exercicios[lid]; return { id:newExId(lid), exId:lid, nome:l.nome||'', alvo:l.grupo||'', s:3, r:'10–12', kg:null, d:60, rir:2, aq:false, obs:'', video:l.video||'', anim:l.anim||'', cues:(l.cues||[]).slice(0,3), erro:l.erro||'' }; }
 function cloneTreinos(tr){ const o = {}; letters({treinos:tr}).forEach((l,i) => { const t = clone(tr[l]); t.ex = (t.ex||[]).map(e => Object.assign(e,{id:newExId(e.exId||e.id)})); o[LETRAS[i]] = t; }); normPlan({treinos:o}); return o; }
 async function copyText(txt,selEl){
@@ -2960,6 +3068,16 @@ function act(a,d,btn){
       t.ex.push(e); saveCtx(x); toast(e.nome ? e.nome+' adicionado ao treino '+ui.sheet.L : 'Exercício em branco adicionado'); ui.pickQ = ''; closeSheet(); break; }
     case 'exToLib': { const x = curCtx(), t = x.pl.treinos[curL(x)], e = t.ex[+d.i]; if(!(e.nome||'').trim()){ toast('Dê um nome ao exercício antes de salvar na biblioteca.'); return false; } const lid = 'ex-'+uid(); C.exercicios[lid] = { nome:e.nome.trim(), grupo:GRUPOS.includes(e.alvo)?e.alvo:'', equipamento:'', cues:(e.cues||['','','']).slice(0,3), erro:e.erro||'', video:e.video||'', anim:e.anim||'' }; Store.save('exercicios',lid,0); e.exId = lid; saveCtx(x); toast('Salvo na biblioteca'); break; }
     case 'tplApply': openSheet({k:'tplApply'}); return false;
+    case 'iaOpen': { if(!A) break; ui.draft.ia = iaDraft(A); openSheet({k:'iaGen'}); return false; }
+    case 'iaSet': { const q = ui.draft.ia, [k,v] = d.v.split(':'); q[k] = (k==='n'||k==='tempo') ? +v : v; renderSheet(); return false; }
+    case 'iaFoco': { const q = ui.draft.ia; if(d.v==='eq') q.foco = []; else { const i = q.foco.indexOf(d.v); if(i>=0) q.foco.splice(i,1); else { q.foco.push(d.v); if(q.foco.length>2) q.foco.shift(); } } renderSheet(); return false; }
+    case 'iaLim': { const q = ui.draft.ia; if(d.v==='no') q.lim = []; else { const i = q.lim.indexOf(d.v); if(i>=0) q.lim.splice(i,1); else q.lim.push(d.v); } renderSheet(); return false; }
+    case 'iaGen': { const q = ui.draft.ia; q.res = iaPlan(q); q.arm = false; if(!letters({treinos:q.res}).some(l => q.res[l].ex.length)){ q.res = null; toast('A biblioteca não tem exercícios para essas respostas. Tente outro local.'); return false; } renderSheet(true); return false; }
+    case 'iaRedo': { const q = ui.draft.ia; q.seed = (q.seed||0)+1; q.res = iaPlan(q); q.arm = false; renderSheet(true); toast('Outra opção gerada'); return false; }
+    case 'iaBack': { ui.draft.ia.res = null; ui.draft.ia.arm = false; renderSheet(true); return false; }
+    case 'iaUse': { const q = ui.draft.ia; if(!A || !q.res) return false; if(letters(A.plano).length && !q.arm){ q.arm = true; renderSheet(); return false; }
+      A.plano = A.plano || {}; A.plano.treinos = cloneTreinos(q.res); A.plano.frequencia = q.n; if(!A.plano.nome) A.plano.nome = 'Ciclo gerado com IA'; if(!isDate(A.plano.inicio)) A.plano.inicio = today();
+      ui.tl['alunos'+ui.aluno] = 'A'; normPlan(A.plano); Store.save('alunos',ui.aluno,0); ui.draft.ia = null; closeSheet(); toast('Treino gerado aplicado. Revise e ajuste se quiser.'); break; }
     case 'applyTpl': { const m = C.modelos[d.k]; if(!m || !A) break; A.plano = A.plano || {}; A.plano.treinos = cloneTreinos(m.treinos); if(!A.plano.nome) A.plano.nome = m.nome.replace(/\s*\(exemplo\)/,''); if(!isDate(A.plano.inicio)) A.plano.inicio = today(); ui.tl['alunos'+ui.aluno] = 'A'; normPlan(A.plano); Store.save('alunos',ui.aluno,0); closeSheet(); toast('Modelo aplicado'); break; }
     case 'tplSave': ui.draft.tpl = {nome:(A.plano && A.plano.nome)||'', descricao:''}; openSheet({k:'tplSave'}); return false;
     case 'createTpl': { const n = (ui.draft.tpl.nome||'').trim(); if(!n){ const el = document.getElementById('tpl-nome'); if(el){ el.setAttribute('aria-invalid','true'); document.getElementById('tpl-nome-err').textContent = 'Dê um nome ao modelo.'; el.focus(); } return false; } const id = 'mod-'+uid(); C.modelos[id] = { nome:n, descricao:ui.draft.tpl.descricao||'', objetivo:P(A).objetivo||'hipertrofia', nivel:P(A).nivel||'iniciante', treinos:cloneTreinos(A.plano.treinos) }; Store.save('modelos',id,0); closeSheet(); toast('Modelo salvo em Modelos'); break; }
