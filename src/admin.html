@@ -467,7 +467,10 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeri
 .pf-chips{display:flex;flex-wrap:wrap;gap:6px}
 .err-it{border-bottom:1px solid var(--sep);padding:10px 2px}.err-it summary{cursor:pointer;list-style:none}.err-it summary b{display:block;font-size:14px;word-break:break-word}.err-it summary span span{font-size:12.5px;color:var(--muted)}
 .err-pre{white-space:pre-wrap;word-break:break-word;font-size:11.5px;background:var(--ctl);padding:10px;border-radius:12px;max-height:180px;overflow:auto}
-.ia-form{display:flex;flex-direction:column;gap:16px}.ia-form .flabel small{font-weight:600;opacity:.7}
+.ia-form{display:flex;flex-direction:column;gap:16px}
+.voz-mic{display:flex;align-items:center;gap:14px}.voz-mic span{font-size:14px;color:var(--muted);font-weight:600}
+.voz-b{width:64px;height:64px;border-radius:50%;border:0;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;flex:none;cursor:pointer;box-shadow:0 8px 20px rgba(255,70,70,.35)}.voz-b .i{width:28px;height:28px}
+.voz-b.on{animation:vozp 1.2s ease-in-out infinite}@keyframes vozp{0%,100%{box-shadow:0 0 0 0 rgba(255,70,70,.55)}50%{box-shadow:0 0 0 14px rgba(255,70,70,0)}}.ia-form .flabel small{font-weight:600;opacity:.7}
 .ia-tr .list .row b{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .pf-chip{display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:0 14px;border:0;border-radius:999px;background:var(--ctl);color:var(--fg);font:inherit;font-size:13.5px;font-weight:700}
 .pf-chip em{font-style:normal;font-size:12px;opacity:.65}
@@ -1532,6 +1535,7 @@ const IC = {
   dup:'<rect x="8.5" y="8.5" width="12" height="12" rx="2.5"/><path d="M14.5 12v5M12 14.5h5M15.5 8.5v-3a2 2 0 0 0-2-2h-8a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h3"/>',
   save:'<path d="M5.5 3.5h10l3 3v14h-13z"/><path d="M8.5 3.5v5h6v-5M8.5 20.5v-6h7v6"/>',
   timer:'<circle cx="12" cy="13.5" r="7.5"/><path d="M12 9.5v4l2.5 2M9.5 2.5h5"/>',
+  mic:'<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/>',
   steps:'<path d="M7 14.5c-1.7 0-2.5-2-2.5-4.5S5.6 4.5 7.5 4.5 10 7 9.5 10 8.7 14.5 7 14.5zM5 17.5h4.5M16.5 19.5c1.7 0 2.5-2 2.5-4.5s-1.1-5.5-3-5.5-2.5 2.5-2 5.5.8 4.5 2.5 4.5z"/>'
 };
 const ic = (n,cls) => '<svg class="i'+(cls?' '+cls:'')+'" viewBox="0 0 24 24" aria-hidden="true">'+(IC[n]||'')+'</svg>';
@@ -1999,7 +2003,7 @@ function builder(col,id){
   const L = ui.tl[key], t = L ? pl.treinos[L] : null, deload = col==='alunos' && pl.deload;
   const lets = Ls.map(l => '<button type="button" class="tletter'+(l===L?' on':'')+'" data-a="tl" data-v="'+l+'" aria-pressed="'+(l===L)+'" aria-label="Treino '+l+'">'+l+'</button>').join('')+(Ls.length<5?'<button type="button" class="tletter add" data-a="addTreino" aria-label="Adicionar treino '+LETRAS[Ls.length]+'">'+ic('plus')+'</button>':'');
   let h = '<section class="card"><div class="card-h"><span class="label">'+ic('layers')+'Divisão '+(Ls.join('')||'vazia')+'</span><span class="calc-v" data-calc="plansum">'+calcPlanSum(col,id)+'</span></div><div class="tl-row" role="group" aria-label="Treinos do plano">'+lets+'</div></section>';
-  if(!t) return h+'<section class="card ph"><span class="label">'+ic('dumbbell')+'Nenhum treino ainda</span><p class="muted">Crie o treino A e adicione exercícios da biblioteca'+(col==='alunos'?', ou aplique um modelo pronto.':'.')+'</p><div class="btn-row"><button type="button" class="btn primary" data-a="addTreino">'+ic('plus')+'Criar treino A</button>'+(col==='alunos'?'<button type="button" class="btn" data-a="iaOpen">'+ic('bolt')+'Gerar com IA</button><button type="button" class="btn" data-a="tplApply">'+ic('layers')+'Aplicar modelo</button>':'')+'</div></section>';
+  if(!t) return h+'<section class="card ph"><span class="label">'+ic('dumbbell')+'Nenhum treino ainda</span><p class="muted">Crie o treino A e adicione exercícios da biblioteca'+(col==='alunos'?', ou aplique um modelo pronto.':'.')+'</p><div class="btn-row"><button type="button" class="btn primary" data-a="addTreino">'+ic('plus')+'Criar treino A</button>'+(col==='alunos'?'<button type="button" class="btn" data-a="iaOpen">'+ic('bolt')+'Gerar com IA</button><button type="button" class="btn" data-a="vozOpen">'+ic('mic')+'Montar falando</button><button type="button" class="btn" data-a="tplApply">'+ic('layers')+'Aplicar modelo</button>':'')+'</div></section>';
   const tb = x.pre+'treinos.'+L+'.';
   h += '<section class="card"><div class="card-h"><span class="label">'+ic('dumbbell')+'Treino '+L+'</span><div class="btn-row"><button type="button" class="btn small" data-a="dupTreino"'+(Ls.length>=5?' disabled':'')+'>'+ic('dup')+'Duplicar</button>'+armBtn('delTreino',L,'Excluir','Toque de novo para excluir')+'</div></div>'+
     '<div class="form">'+inp({b:tb+'nome',label:'Nome do treino',val:t.nome,ph:'Ex.: Inferiores'})+inp({b:tb+'foco',label:'Foco',val:t.foco,ph:'Ex.: Quadríceps e glúteo'})+'</div>'+
@@ -2092,7 +2096,7 @@ function tTreino(a){
     inp({b:b('frequencia'),label:'Frequência',val:pl.frequencia,t:'i',unit:'x por semana',v:'range',min:1,max:14})+
     txa({b:b('objetivoCiclo'),label:'Objetivo do ciclo',val:pl.objetivoCiclo,ph:'O que este ciclo precisa entregar',cls:'wide',rows:2})+'</div>'+
     swB({b:b('deload'),label:'Semana de deload',sub:'Corta as séries pela metade e alivia as cargas no app do aluno.',val:!!pl.deload})+
-    '<div class="btn-row"><button type="button" class="btn small primary" data-a="iaOpen">'+ic('bolt')+'Gerar com IA</button><button type="button" class="btn small" data-a="tplApply">'+ic('layers')+'Aplicar modelo</button><button type="button" class="btn small" data-a="tplSave"'+(letters(pl).length?'':' disabled')+'>'+ic('save')+'Salvar como modelo</button></div></section>'+
+    '<div class="btn-row"><button type="button" class="btn small primary" data-a="iaOpen">'+ic('bolt')+'Gerar com IA</button><button type="button" class="btn small" data-a="vozOpen">'+ic('mic')+'Montar falando</button><button type="button" class="btn small" data-a="tplApply">'+ic('layers')+'Aplicar modelo</button><button type="button" class="btn small" data-a="tplSave"'+(letters(pl).length?'':' disabled')+'>'+ic('save')+'Salvar como modelo</button></div></section>'+
     builder('alunos',id);
 }
 
@@ -2280,7 +2284,7 @@ function tNotas(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '5 nov · 43'; // Versão do painel: 5 nov · 43
+const PAINELV = '5 nov · 44'; // Versão do painel: 5 nov · 44
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -2663,6 +2667,7 @@ function vSheet(){
       '<p class="foot">É assim que o aluno vê na aba Execução do app. Para trocar, use “Animação no app” no exercício.</p>';
   }
   if(s.k==='iaGen') return iaSheet();
+  if(s.k==='voz') return vozSheet();
   if(s.k==='tplApply'){
     const L = Object.keys(C.modelos).map(id => Object.assign({_id:id}, C.modelos[id])).filter(m => letters(m).length);
     return sheetTop('Treino','Aplicar modelo')+'<p class="muted">O modelo substitui todos os treinos atuais deste aluno. Nome e validade do ciclo continuam.</p>'+
@@ -2872,6 +2877,7 @@ function afterEdit(col,id,path,el){
 }
 document.addEventListener('input', e => {
   const el = e.target;
+  if(el.dataset.voz && ui.draft.voz){ ui.draft.voz.txt = el.value; ui.draft.voz.arm = false; clearTimeout(window.__vozT); window.__vozT = setTimeout(() => { const pos = el.selectionStart; renderSheet(); const t = document.getElementById('voz-txt'); if(t){ t.focus(); try { t.setSelectionRange(pos,pos); } catch(err){} } }, 700); return; }
   if(el.dataset.filter){ const k = el.dataset.filter;
     if(k==='q'){ ui.q = el.value; const L = document.getElementById('alunos-list'); if(L) L.innerHTML = alunoRows(); }
     else if(k==='pfq'){ PF.q = el.value; const L = document.getElementById('pf-list'); if(L) L.innerHTML = pfList(); }
@@ -3045,6 +3051,90 @@ function iaSheet(){
     '</div>'+(q.lim.length && ((A.saude||{}).lesoes||[]).length ? '<p class="foot">'+ic('alert')+' Preenchido a partir das lesões da aba Saúde.</p>' : '')+
     '<button type="button" class="btn primary block" data-a="iaGen">'+ic('bolt')+'Gerar treino</button>';
 }
+/* ---------- montar o treino falando: ditado (reconhecimento de voz do navegador) que vira treinos e exercícios ---------- */
+const VOZ_NUM = {um:1,uma:1,dois:2,duas:2,tres:3,quatro:4,cinco:5,seis:6,sete:7,oito:8,nove:9,dez:10,onze:11,doze:12,treze:13,quatorze:14,catorze:14,quinze:15,dezesseis:16,dezessete:17,dezoito:18,dezenove:19,vinte:20,trinta:30,quarenta:40,cinquenta:50,sessenta:60,noventa:90,cem:100};
+const vozSR = () => window.SpeechRecognition || window.webkitSpeechRecognition;
+let VOZREC = null;
+function vozNorm(t){
+  let s = semAc(t).replace(/[“”"!?]/g,' ');
+  s = s.replace(/\b(vinte|trinta|quarenta|cinquenta|sessenta)\s+e\s+(um|dois|tres|quatro|cinco|seis|sete|oito|nove)\b/g, (m,a,b) => String(VOZ_NUM[a]+VOZ_NUM[b]));
+  // números por extenso viram algarismos (um/uma só quando vêm antes de séries, quilos etc., para não mexer em nomes)
+  s = s.replace(/\b(dois|duas|tres|quatro|cinco|seis|sete|oito|nove|dez|onze|doze|treze|quatorze|catorze|quinze|dezesseis|dezessete|dezoito|dezenove|vinte|trinta|quarenta|cinquenta|sessenta|noventa|cem)\b/g, m => String(VOZ_NUM[m]));
+  s = s.replace(/\b(um|uma)\b(?=\s*(series?|serie|vezes|de\s+\d|x|por|repeticoes|reps?|kg|quilos?|kilos?|minutos?))/g, () => '1');
+  return s.replace(/\s+/g,' ').trim();
+}
+function vozAcha(nome){
+  const W = t => semAc(t).replace(/[^a-z0-9 ]/g,' ').split(' ').filter(w => w.length>2 && !['com','para','the','dos','das','nos','nas'].includes(w));
+  const q = W(nome); if(!q.length) return null;
+  let best = null, bs = 0;
+  Object.keys(C.exercicios).forEach(id => { const e = C.exercicios[id]; if(!e || !e.nome) return; const w = W(e.nome); if(!w.length) return;
+    const inter = q.filter(x => w.some(y => y===x || (x.length>4 && (y.startsWith(x.slice(0,5)) || x.startsWith(y.slice(0,5)))))).length;
+    let sc = inter/Math.max(q.length, w.length) + (semAc(e.nome).startsWith(semAc(nome).slice(0,6)) ? .15 : 0);
+    if(sc>bs){ bs = sc; best = id; } });
+  return bs>=.45 ? best : null;
+}
+function vozParse(txt){
+  const s = vozNorm(txt), out = {}, partes = [];
+  const re = /\btreino\s+([a-e])\b/g; let m, last = null, i0 = 0;
+  while((m = re.exec(s))){ if(last) partes.push([last, s.slice(i0, m.index)]); else if(m.index>0 && s.slice(0,m.index).trim()) partes.push(['', s.slice(0,m.index)]); last = m[1].toUpperCase(); i0 = re.lastIndex; }
+  partes.push([last||'', s.slice(i0)]);
+  partes.forEach(([L, body]) => {
+    const ex = [];
+    const rx = /([a-z][a-z0-9 \-]*?)\s+(\d{1,2})\s*(?:series?|serie)?\s*(?:de|x|por|vezes)\s*(\d{1,3}(?:\s*(?:a|ate)\s*\d{1,3})?)\s*(?:repeticoes|repeticao|reps?)?(?:\s*(?:com|de)\s*(\d{1,3}(?:[.,]\d)?)\s*(?:kg|quilos?|kilos?))?(?:\s*(?:descanso|intervalo)\s*(?:de\s*)?(\d{1,3})\s*(?:segundos?|s))?/g;
+    let x, used = 0;
+    const limpa = n => n.replace(/^(e|depois|agora|em seguida|proximo|exercicio|faz|fazer|faca|primeiro|segundo|terceiro)\s+/g,'').replace(/^(e|depois|agora)\s+/,'').trim();
+    while((x = rx.exec(body))){
+      const nome = limpa(x[1]); if(!nome) continue; used = rx.lastIndex;
+      ex.push({ fala:nome, s:+x[2], r:x[3].replace(/\s*(a|ate)\s*/,'–'), kg:x[4] ? +x[4].replace(',','.') : null, d:x[5] ? +x[5] : null });
+    }
+    // sobrou nome sem números: entra com 3 × 10–12
+    body.slice(used).split(/,|\.|;|\be depois\b|\bdepois\b|\bem seguida\b/).map(t => limpa(t.trim())).filter(t => t.length>3 && !/^\d/.test(t)).forEach(t => ex.push({fala:t, s:3, r:'10–12', kg:null, d:null}));
+    if(!ex.length) return;
+    out[L||'?'] = ex;
+  });
+  return out;
+}
+function vozMonta(p){
+  const res = {}, Ls = Object.keys(p).filter(l => l!=='?').sort();
+  const lets = Ls.length ? Ls : ['?'];
+  lets.forEach((l,i) => {
+    const L = l==='?' ? null : l;
+    const ex = (p[l]||[]).map(v => { const id = vozAcha(v.fala), base = id ? exFromLib(id) : { id:newExId('voz'), exId:null, nome:v.fala.charAt(0).toUpperCase()+v.fala.slice(1), alvo:'', s:3, r:'10–12', kg:null, d:60, rir:2, aq:false, obs:'', video:'', cues:['','',''], erro:'' };
+      return Object.assign(base, {s:v.s||3, r:v.r||'10–12'}, v.kg!=null ? {kg:v.kg} : {}, v.d ? {d:v.d} : {}, {voz:v.fala, achou:!!id}); });
+    const gr = [...new Set(ex.map(e => e.alvo).filter(Boolean))].slice(0,3);
+    res[L||'_'] = { nome:gr.length ? gr.join(' e ') : '', foco:'', min:0, ex };
+  });
+  return res;
+}
+function vozStart(){
+  const SR = vozSR(), q = ui.draft.voz; if(!SR){ toast('Este navegador não tem ditado. Use o Chrome (Android/computador) ou o Safari do iPhone.'); return; }
+  try { if(VOZREC) VOZREC.abort(); } catch(e){}
+  const r = VOZREC = new SR(); r.lang = 'pt-BR'; r.continuous = true; r.interimResults = true;
+  let base = q.txt ? q.txt.trim()+' ' : '';
+  r.onresult = ev => { let fin = '', mid = ''; for(let i=ev.resultIndex;i<ev.results.length;i++){ const t = ev.results[i][0].transcript; if(ev.results[i].isFinal) fin += t+' '; else mid += t; }
+    if(fin){ base += fin; } q.txt = (base+mid).replace(/\s+/g,' '); const ta = document.getElementById('voz-txt'); if(ta) ta.value = q.txt; };
+  r.onerror = ev => { q.rec = false; renderSheet(); if(ev.error==='not-allowed' || ev.error==='service-not-allowed') toast('Libere o microfone para o painel nas permissões do navegador.'); else if(ev.error!=='aborted' && ev.error!=='no-speech') toast('O ditado parou. Toque no microfone de novo.'); };
+  r.onend = () => { if(q.rec){ q.rec = false; q.txt = base.trim(); renderSheet(); } };
+  q.rec = true; renderSheet();
+  try { r.start(); } catch(e){ q.rec = false; renderSheet(); }
+}
+function vozStop(){ const q = ui.draft.voz; q.rec = false; try { VOZREC && VOZREC.stop(); } catch(e){} renderSheet(); }
+function vozSheet(){
+  const q = ui.draft.voz, A = curAluno(); if(!q || !A) return '';
+  const res = q.txt ? vozMonta(vozParse(q.txt)) : {}, Ls = Object.keys(res), n = Ls.reduce((a,l) => a+res[l].ex.length, 0), sem = Ls.length===1 && Ls[0]==='_';
+  q.res = res;
+  const prev = !n ? '<p class="muted">Fale os exercícios com séries e repetições. Ex.: <b>“Treino A: agachamento livre 4 séries de 10, leg press 3 de 12 com 100 quilos, cadeira extensora 3 de 15. Treino B: supino reto 4 de 8…”</b></p>'
+    : Ls.map(l => '<section class="card ia-tr"><div class="card-h"><span class="label">'+ic('dumbbell')+(l==='_' ? 'Treino '+(curL(curCtx())||'A')+' (o que está aberto)' : 'Treino '+l)+'</span><span class="pill line">'+plural(res[l].ex.length,'exercício','exercícios')+'</span></div><div class="list">'+
+      res[l].ex.map((e,i) => '<div class="row"><span class="num">'+(i+1)+'</span><span class="main-t"><b>'+esc(e.nome)+rankTag(e)+'</b><span>'+e.s+' × '+esc(e.r)+(e.kg!=null?' · '+fmtN(e.kg,1)+' kg':'')+(e.d?' · descanso '+e.d+' s':'')+(e.achou ? ' · da biblioteca' : ' · <i>novo, confira o nome</i>')+'</span></span></div>').join('')+'</div></section>').join('');
+  const tem = letters(A.plano).length;
+  return sheetTop('Treino', 'Montar falando')+
+    '<div class="voz-mic"><button type="button" class="voz-b'+(q.rec?' on':'')+'" data-a="'+(q.rec?'vozStop':'vozStart')+'" aria-label="'+(q.rec?'Parar de ouvir':'Começar a falar')+'">'+ic('mic')+'</button><span>'+(q.rec ? 'Ouvindo… fale os exercícios. Toque para parar.' : vozSR() ? 'Toque no microfone e fale o treino.' : 'Este navegador não tem ditado: escreva abaixo.')+'</span></div>'+
+    '<div class="fld"><label class="flabel" for="voz-txt">O que você falou (dá para corrigir aqui)</label><textarea id="voz-txt" class="inp" rows="4" data-voz="1" placeholder="Treino A: agachamento livre 4 séries de 10…">'+esc(q.txt||'')+'</textarea></div>'+
+    prev+
+    (n ? '<button type="button" class="btn '+(q.arm?'armed':'primary')+' block" data-a="vozUse">'+ic('check')+(q.arm ? 'Toque de novo para substituir os treinos atuais' : sem ? 'Adicionar ao treino aberto' : 'Usar estes treinos')+'</button>'+
+      (!sem && tem && !q.arm ? '<p class="foot">Os treinos '+Ls.join('')+' falados substituem os de mesma letra. Os outros continuam.</p>' : '')+
+      '<button type="button" class="btn ghost block" data-a="vozClear">'+ic('trash')+'Apagar e falar de novo</button>' : '');
+}
 function exFromLib(lid){ const l = C.exercicios[lid]; return { id:newExId(lid), exId:lid, nome:l.nome||'', alvo:l.grupo||'', s:3, r:'10–12', kg:null, d:60, rir:2, aq:false, obs:'', video:l.video||'', anim:l.anim||'', cues:(l.cues||[]).slice(0,3), erro:l.erro||'' }; }
 function cloneTreinos(tr){ const o = {}; letters({treinos:tr}).forEach((l,i) => { const t = clone(tr[l]); t.ex = (t.ex||[]).map(e => Object.assign(e,{id:newExId(e.exId||e.id)})); o[LETRAS[i]] = t; }); normPlan({treinos:o}); return o; }
 async function copyText(txt,selEl){
@@ -3102,6 +3192,17 @@ function act(a,d,btn){
     case 'tplApply': openSheet({k:'tplApply'}); return false;
     case 'errReload': errLoad(true); break;
     case 'errClear': errClear(); return false;
+    case 'vozOpen': { if(!A) break; ui.draft.voz = { txt:'', rec:false, res:null, arm:false }; openSheet({k:'voz'}); return false; }
+    case 'vozStart': vozStart(); return false;
+    case 'vozStop': vozStop(); return false;
+    case 'vozClear': { const q = ui.draft.voz; try { VOZREC && VOZREC.abort(); } catch(e){} q.txt = ''; q.rec = false; q.arm = false; renderSheet(); return false; }
+    case 'vozUse': { const q = ui.draft.voz; if(!A || !q || !q.res) return false; const Ls = Object.keys(q.res);
+      A.plano = A.plano || {}; A.plano.treinos = A.plano.treinos || {};
+      if(Ls.length===1 && Ls[0]==='_'){ const x = curCtx(); let L = curL(x); if(!L){ L = 'A'; A.plano.treinos.A = {nome:'',foco:'',min:0,ex:[]}; } const t = A.plano.treinos[L]; t.ex = (t.ex||[]).concat(q.res._.ex.map(e => { const o = Object.assign({}, e); delete o.voz; delete o.achou; return o; })); if(!t.nome && q.res._.nome) t.nome = q.res._.nome; ui.tl['alunos'+ui.aluno] = L; }
+      else { const tem = Ls.some(l => (A.plano.treinos[l]||{ex:[]}).ex.length); if(tem && !q.arm){ q.arm = true; renderSheet(); return false; }
+        Ls.forEach(l => { A.plano.treinos[l] = { nome:q.res[l].nome, foco:'', min:0, ex:q.res[l].ex.map(e => { const o = Object.assign({}, e); delete o.voz; delete o.achou; return o; }) }; });
+        const all = letters(A.plano), fix = {}; all.forEach((l,i) => fix[LETRAS[i]] = A.plano.treinos[l]); A.plano.treinos = fix; ui.tl['alunos'+ui.aluno] = Ls[0]; }
+      if(!isDate(A.plano.inicio)) A.plano.inicio = today(); normPlan(A.plano); Store.save('alunos',ui.aluno,0); try { VOZREC && VOZREC.abort(); } catch(e){} ui.draft.voz = null; closeSheet(); toast('Treino montado pela voz. Confira os nomes e as cargas.'); break; }
     case 'iaOpen': { if(!A) break; ui.draft.ia = iaDraft(A); openSheet({k:'iaGen'}); return false; }
     case 'iaSet': { const q = ui.draft.ia, [k,v] = d.v.split(':'); q[k] = (k==='n'||k==='tempo') ? +v : v; renderSheet(); return false; }
     case 'iaFoco': { const q = ui.draft.ia; if(d.v==='eq') q.foco = []; else { const i = q.foco.indexOf(d.v); if(i>=0) q.foco.splice(i,1); else { q.foco.push(d.v); if(q.foco.length>2) q.foco.shift(); } } renderSheet(); return false; }
