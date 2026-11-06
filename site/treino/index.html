@@ -1679,7 +1679,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '6 nov · 54'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '6 nov · 57'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -2493,6 +2493,7 @@ const CAT = [
   ['pelvica','Elevação pélvica','glut','a','c','',['Escápulas apoiadas no banco, barra na dobra do quadril.','Suba até o tronco ficar alinhado com as coxas.','Segure 2 segundos no alto contraindo o glúteo.'],'Arquear a lombar em vez de subir com o quadril.'],
   ['pelvicah','Elevação pélvica com halter','glut','h','c','',['Costas apoiadas no sofá ou num banco firme, halter na dobra do quadril.','Suba até o tronco ficar alinhado com as coxas.','Segure 2 segundos no alto contraindo o glúteo.'],'Arquear a lombar em vez de subir com o quadril.',{anim:'pelvica'}],
   ['afundo','Afundo com halteres','glut','ah','c','j',['Passo longo, tronco levemente inclinado à frente.','Desça até o joelho de trás quase tocar o chão.','Suba empurrando com o calcanhar da perna da frente.'],'Passo curto demais, que joga a carga no joelho.',{g2:'quad'}],
+  ['bulgaroinc','Agachamento búlgaro (tronco inclinado)','glut','ah','c','j',["Peito do pé de trás no banco e um passo longo à frente.", "Incline o tronco à frente com as costas retas e leve o quadril para trás na descida, até a coxa da frente ficar paralela ao chão.", "Suba empurrando pelo calcanhar da frente, sentindo o glúteo, sem empurrar com a perna de trás."],"Arredondar as costas para inclinar ou deixar o joelho da frente cair para dentro.",{anim:'bulgaroinc', g2:'quad', noIa:1}],
   ['bulgaro','Agachamento búlgaro','glut','ah','c','j',['Pé de trás apoiado num banco ou cadeira firme.','Desça reto até a coxa da frente ficar paralela ao chão.','Suba pela perna da frente, sem empurrar com a de trás.'],'Ficar perto demais do banco.',{g2:'quad'}],
   ['afundopc','Afundo sem peso','glut','c','c','j',['Passo longo, braços soltos ao lado do corpo.','Desça até o joelho de trás quase tocar o chão.','Suba empurrando com o calcanhar da perna da frente.'],'Passo curto demais, que joga a carga no joelho.',{g2:'quad'}],
   ['ponte','Elevação pélvica no solo (ponte)','glut','hc','i','',['Deitado de barriga para cima, joelhos dobrados e pés no chão perto do quadril.','Suba o quadril até alinhar joelhos, quadril e ombros, contraindo o glúteo.','Segure 2 segundos no alto e desça devagar, sem encostar o quadril no chão.'],'Empurrar com a lombar em vez do glúteo.',{anim:'pelvicasolo', g2:'post'}],
@@ -5834,6 +5835,13 @@ const XA = (() => {
         return mk(b, legTo(H, Af, FWD, 90), legTo(far(H), far(Ab), [1, .35], -80), armAng(b.S, 2, 0), armAng(far(b.S), 2, 0));
       },
       back: b => bench(12, 96, GY - 52) + dbSide(add(b.fA.W, [2, 8])), front: b => dbSide(add(b.nA.W, [2, 8])), mov: b => b.H },
+    // agachamento búlgaro com tronco inclinado (foco glúteo): quadril vai para trás e o tronco inclina uns 40° à frente
+    bulgaroinc: { ord: 'down', verbs: ['Desce', 'Sobe'], eq: 'Banco', mus: [['glutes', 'quads'], ['hams']],
+      pose: t => {
+        const Af = [204, AY], Ab = [58, GY - 60], H = mix([130, 240], [114, 300], t), b = body(H, 180 - lerp(22, 42, t), lerp(-6, -14, t));
+        return mk(b, legTo(H, Af, FWD, 90), legTo(far(H), far(Ab), [1, .35], -80), armAng(b.S, 2, 0), armAng(far(b.S), 2, 0));
+      },
+      back: b => bench(12, 96, GY - 52) + dbSide(add(b.fA.W, [2, 8])), front: b => dbSide(add(b.nA.W, [2, 8])), mov: b => b.H },
     // elevação pélvica: costas no banco, sobe o quadril até alinhar com as coxas
     pelvica: { ord: 'up', verbs: ['Sobe', 'Desce'], eq: 'Barra', mus: [['glutes'], ['hams']],
       pose: t => {
@@ -6327,7 +6335,7 @@ const XA = (() => {
   const BYGROUP = [[/quadr/, 'agach'], [/gl[uú]te/, 'pelvica'], [/posterior/, 'stiff'], [/panturr/, 'panturrilha'], [/peit/, 'supino'], [/ombro|delt/, 'desenv'],
     [/tr[ií]ceps/, 'triceps'], [/b[ií]ceps/, 'rosca'], [/costa|dorsal/, 'puxada'], [/abd|core/, 'prancha']];
   // nomes de variações (máquina, polia, barra) que precisam vir antes da regra geral
-  const SPEC = [[/b[uú]lgaro/, 'bulgaro'], [/panturrilha.*(leg|press)/, 'pantleg'], [/bayesian/, 'bayesian'], [/rosca.*inclinad|inclinad.*rosca/, 'roscainc'], [/scott.*m[aá]quina|m[aá]quina.*scott/, 'scottmaq'], [/martelo.*scott|scott.*martelo/, 'scottmartelo'],
+  const SPEC = [[/b[uú]lgaro.*(inclinad|gl[uú]teo)/, 'bulgaroinc'], [/b[uú]lgaro/, 'bulgaro'], [/panturrilha.*(leg|press)/, 'pantleg'], [/bayesian/, 'bayesian'], [/rosca.*inclinad|inclinad.*rosca/, 'roscainc'], [/scott.*m[aá]quina|m[aá]quina.*scott/, 'scottmaq'], [/martelo.*scott|scott.*martelo/, 'scottmartelo'],
     [/franc[eê]s.*polia.*barra|franc[eê]s.*barra.*polia/, 'francespoliabarra'], [/coice.*polia.*tr[ií]ceps|tr[ií]ceps.*coice.*polia/, 'coicetripolia'], [/testa.*halter/, 'testahalter'],
     [/supino inclinado.*smith|inclinado.*smith/, 'inclsmith'], [/supino.*smith/, 'supinosmith'], [/(afundo|passada|lunge).*smith|smith.*(afundo|passada)/, 'afundosmith'],
     [/agachamento frontal|front squat/, 'agachfrontal'], [/hack|p[eê]ndulo/, 'hack'], [/step-? ?up|subida no (banco|caixote|step)/, 'stepup'], [/kettlebell swing|\bswing/, 'kbswing'],
@@ -6372,7 +6380,7 @@ const XA = (() => {
     tricepsbarra: 'Tríceps polia com barra', coicepolia: 'Glúteo na polia (coice)', pelvicamaq: 'Elevação pélvica máquina', stiffbarra: 'Stiff com barra', flexora: 'Mesa flexora',
     cadflexora: 'Cadeira flexora', abdutora: 'Cadeira abdutora', adutora: 'Cadeira adutora', crunch: 'Abdominal no chão', crunchanilha: 'Abdominal com anilha', legraise: 'Abdominal infra',
     infrabarra: 'Elevação de pernas na barra', infracad: 'Elevação de joelhos no apoio', abdmaq: 'Abdominal na máquina', abdpolia: 'Abdominal na polia', tricepsunil: 'Tríceps pulley unilateral', pelvicasolo: 'Elevação pélvica no solo', francespolia: 'Tríceps francês na polia', abdutorapolia: 'Abdutora reta na polia', abdutorapoliainc: 'Abdutora inclinada na polia', vsquat: 'Agachamento no V-squat', abdinclinado: 'Abdominal no banco inclinado',
-    barrafixa: 'Barra fixa', mergulho: 'Mergulho nas paralelas', bayesian: 'Rosca Bayesian na polia', roscainc: 'Rosca no banco inclinado', pullover: 'Pullover com halter', remadaalta: 'Remada alta na polia', militar: 'Desenvolvimento militar em pé', hiperext: 'Hiperextensão 45°', crossent: 'Crucifixo sentado na polia', coice4: 'Coice em quatro apoios', kbswing: 'Kettlebell swing', crucifixo: 'Crucifixo com halteres', platepress: 'Plate press', banco: 'Tríceps no banco', yraise: 'Elevação em Y na polia', crossinv: 'Crucifixo inverso na polia', lateralmaq: 'Elevação lateral na máquina', supinosmith: 'Supino reto no Smith', inclsmith: 'Supino inclinado no Smith', desenvbarra: 'Desenvolvimento com barra', testahalter: 'Tríceps testa com halteres', francespoliabarra: 'Tríceps francês na polia (barra)', coicetripolia: 'Tríceps coice na polia', agachfrontal: 'Agachamento frontal', hack: 'Agachamento no hack', scottmaq: 'Rosca Scott na máquina', scottmartelo: 'Rosca martelo no Scott', afundosmith: 'Afundo no Smith', stepup: 'Subida no banco (step-up)', bulgaro: 'Agachamento búlgaro', pantleg: 'Panturrilha no leg press' };
+    barrafixa: 'Barra fixa', mergulho: 'Mergulho nas paralelas', bayesian: 'Rosca Bayesian na polia', roscainc: 'Rosca no banco inclinado', pullover: 'Pullover com halter', remadaalta: 'Remada alta na polia', militar: 'Desenvolvimento militar em pé', hiperext: 'Hiperextensão 45°', crossent: 'Crucifixo sentado na polia', coice4: 'Coice em quatro apoios', kbswing: 'Kettlebell swing', crucifixo: 'Crucifixo com halteres', platepress: 'Plate press', banco: 'Tríceps no banco', yraise: 'Elevação em Y na polia', crossinv: 'Crucifixo inverso na polia', lateralmaq: 'Elevação lateral na máquina', supinosmith: 'Supino reto no Smith', inclsmith: 'Supino inclinado no Smith', desenvbarra: 'Desenvolvimento com barra', testahalter: 'Tríceps testa com halteres', francespoliabarra: 'Tríceps francês na polia (barra)', coicetripolia: 'Tríceps coice na polia', agachfrontal: 'Agachamento frontal', hack: 'Agachamento no hack', scottmaq: 'Rosca Scott na máquina', scottmartelo: 'Rosca martelo no Scott', afundosmith: 'Afundo no Smith', stepup: 'Subida no banco (step-up)', bulgaro: 'Agachamento búlgaro', bulgaroinc: 'Agachamento búlgaro (tronco inclinado)', pantleg: 'Panturrilha no leg press' };
   const LIST = Object.keys(LABELS).map(k => [k, LABELS[k]]);
   // ---------- mapa muscular ----------
   const NAMES = { quads: 'Quadríceps', glutes: 'Glúteos', hams: 'Posteriores da coxa', calves: 'Panturrilhas', chest: 'Peitoral', delt_f: 'Ombro (frente)', delt_s: 'Ombro (lateral)',
