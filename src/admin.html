@@ -480,6 +480,11 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeri
 .pf-tag{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;max-width:100%;padding:4px 10px;border-radius:9px;font-size:12.5px;font-weight:700;line-height:1.3;color:var(--fg);background:var(--ctl)}
 .pf-tag .i{flex:none;width:14px;height:14px}
 .pf-tag.com{box-shadow:inset 0 0 0 1.5px var(--brand)}
+.pf-tag.acomp{background:color-mix(in srgb,#1E9E4A 18%,transparent);color:#7FD99A;margin-top:4px}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]) .pf-tag.acomp{color:#1E7A3C}}
+:root[data-theme="light"] .pf-tag.acomp{color:#1E7A3C}
+.pfa-l{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:8px;background:var(--brand);color:#fff;font-size:14px;margin-right:8px}
+.pfa-ex{display:flex;flex-direction:column}.pfa-ex>div{display:grid;grid-template-columns:28px minmax(0,1fr);column-gap:10px;padding:10px 0;border-top:1px solid var(--sep)}.pfa-ex>div:first-child{border-top:0}.pfa-ex .n{grid-row:span 2;width:24px;height:24px;border-radius:50%;background:var(--ctl);display:grid;place-items:center;font-size:12px;font-weight:800}.pfa-ex b{font-size:15px}.pfa-ex span:not(.n){font-size:13px;color:var(--muted)}
 .pf-av{flex:none;position:relative;width:42px;height:42px;border-radius:50%;background:var(--ctl);display:grid;place-items:center;font-size:14px;font-weight:800}
 .pf-av.on::after{content:"";position:absolute;right:-1px;bottom:-1px;width:12px;height:12px;border-radius:50%;background:#3E9E2E;box-shadow:0 0 0 2.5px var(--card)}
 .pf-kv{display:flex;flex-direction:column}
@@ -1648,11 +1653,12 @@ const FBP = (() => {
   async function publish(id, a){ if(a && a.uid) await db.collection('appAlunos').doc(a.uid).set(projection(id, a)); }
   async function unpublish(uid){ if(uid) try { await db.collection('appAlunos').doc(uid).delete(); } catch(e){ /* já apagado */ } }
   async function listPerfis(){ const q = await db.collection('perfis').get(); return q.docs.map(d => Object.assign({ uid:d.id }, d.data())); }
+  async function getAutonomo(uid){ const d = await db.collection('autonomos').doc(uid).get(); if(!d.exists) return null; const x = d.data(); let v = null; try { v = JSON.parse(x.s||'null'); } catch(e){ v = null; } return { em:x.em||0, s:v }; }
   async function dropPerfil(uid){ if(uid) try { await db.collection('perfis').doc(uid).delete(); } catch(e){ /* sem resumo */ } }
   // o que cada aluno com personal fez no app (o app grava em progresso/{uid}; só o dono lê todos)
   async function listProgresso(){ const q = await db.collection('progresso').get(); return q.docs.map(d => { const x = d.data(); let v = null; try { v = JSON.parse(x.s||'null'); } catch(e){ v = null; } return { uid:d.id, aid:x.aid||'', em:x.em||0, d:v }; }); }
   async function dropProgresso(uid){ if(uid) try { await db.collection('progresso').doc(uid).delete(); } catch(e){ /* nada para apagar */ } }
-  return { auth, db, fb, ownerUid, claim, account, rePass, dropAccount, listCodigos, dropCodigo, moveProg, okMail, publish, unpublish, listPerfis, dropPerfil, listProgresso, dropProgresso };
+  return { auth, db, fb, ownerUid, claim, account, rePass, dropAccount, listCodigos, dropCodigo, moveProg, okMail, publish, unpublish, listPerfis, dropPerfil, getAutonomo, listProgresso, dropProgresso };
 })();
 
 const Store = (() => {
@@ -2272,7 +2278,7 @@ async function loadProg(force){
   PG.loading = false; if(ui.view==='painel' || (ui.view==='alunos' && ui.aluno && ui.tab==='evolucao')) render();
   clearTimeout(PG.tm); if(!PG.err && PG.by) PG.tm = setTimeout(() => { if(ui.view==='painel') loadProg(true); }, 90e3);
 }
-const progDe = a => (PG.by && PG.by[a._id]) || null;
+const progDe = a => a._pg || (PG.by && PG.by[a._id]) || null;
 const semIni = k => addDays(k, -((parse(k).getDay()+6)%7)); // segunda-feira
 const DSEM = ['dom','seg','ter','qua','qui','sex','sáb'], dSem = k => DSEM[parse(k).getDay()];
 function semanaDe(a, ini){
@@ -2301,15 +2307,15 @@ function ev2Spark(pts){
   return '<svg class="ev2-sp" viewBox="0 0 '+W+' '+H+'" aria-hidden="true"><polyline points="'+xy.map(p => p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ')+'" fill="none" stroke="'+(up?'#1E9E4A':'#E5533A')+'" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="'+xy[xy.length-1][0].toFixed(1)+'" cy="'+xy[xy.length-1][1].toFixed(1)+'" r="3.5" fill="'+(up?'#1E9E4A':'#E5533A')+'"/></svg>';
 }
 function tEvol(a){
-  const online = pfOnline(); if(online) loadProg();
+  const online = pfOnline(), own = !!a._pg; if(online && !own) loadProg();
   const box = (t, extra) => '<section class="card"><span class="label">'+ic('pulse')+'Evolução</span><p class="muted">'+t+'</p>'+(extra||'')+'</section>';
-  const atual = '<button type="button" class="btn small" data-a="pgRefresh">'+ic('refresh')+'Atualizar</button>';
+  const atual = '<button type="button" class="btn small" data-a="'+(own ? 'pfAutoRefresh' : 'pgRefresh')+'">'+ic('refresh')+'Atualizar</button>';
   if(!online) return box('Os treinos que o aluno faz no app aparecem aqui quando o painel está ligado ao banco online.');
   if(!a.uid) return box(esc(curto(a))+' ainda não entrou no app. Depois que entrar com a senha e registrar algo, aparece tudo aqui.');
-  if(PG.err) return box(PG.err==='regras' ? 'O Firebase bloqueou a leitura. Falta colar as regras novas (arquivo REGRAS-FIRESTORE.txt) no Firebase → Firestore → Regras.' : 'Sem conexão para carregar os dados. Confira a internet.', '<div class="btn-row">'+atual+'</div>');
-  if(!PG.by) return box('Carregando…');
+  if(!own && PG.err) return box(PG.err==='regras' ? 'O Firebase bloqueou a leitura. Falta colar as regras novas (arquivo REGRAS-FIRESTORE.txt) no Firebase → Firestore → Regras.' : 'Sem conexão para carregar os dados. Confira a internet.', '<div class="btn-row">'+atual+'</div>');
+  if(!own && !PG.by) return box('Carregando…');
   const pg = progDe(a), d = (pg && pg.d) || {}, H = d.h || [], Cd = d.c || [], Wt = d.w || {}, K = d.k || {};
-  if(!H.length && !Cd.length && !Object.keys(Wt).length) return box(esc(curto(a))+' ainda não registrou nada no app. Aparece aqui assim que ele marcar um treino, um cardio ou um copo de água.', '<div class="btn-row">'+atual+'</div>');
+  if(!H.length && !Cd.length && !Object.keys(Wt).length) return box(esc(curto(a))+' ainda não registrou nada no app. Aparece aqui assim que '+(P(a).sexo==='F' ? 'ela' : 'ele')+' marcar um treino, um cardio ou um copo de água.', '<div class="btn-row">'+atual+'</div>');
   const m = a.metas || {}, t0 = today(), ini = semIni(t0), fim = addDays(ini, 6), meta = +m.semanaTreinos || 0, cg = +m.cardioGoal || 0, wg = +m.waterGoal || +d.wg || 0;
   const sw = semanaDe(a, ini), last = H[H.length-1], nome = esc(curto(a));
   const aguaDias = Object.keys(Wt).filter(k => k>=ini && k<=t0 && wg && +Wt[k]>=wg).length, diasSemana = Math.round((parse(t0)-parse(ini))/864e5)+1;
@@ -2413,7 +2419,7 @@ function tNotas(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '6 nov · 50'; // Versão do painel: 6 nov · 50
+const PAINELV = '6 nov · 51'; // Versão do painel: 6 nov · 51
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -2489,7 +2495,7 @@ function pfRows(){
   P0.forEach(p => { if(p.tipo==='personal' && p.aid && (!byAid[p.aid] || (p.ultimoAcesso||0) > (byAid[p.aid].ultimoAcesso||0))) byAid[p.aid] = p; });
   const com = Object.keys(C.alunos).map(id => { const a = C.alunos[id], pp = a.perfil||{}, x = byAid[id];
     return { k:'com', id, nome:pp.nome||'Sem nome', sexo:pp.sexo, last:(x&&x.ultimoAcesso)||0, aceite:x&&x.aceite, liberado:!!(a.acesso&&a.acesso.ativo), conta:!!a.uid, status:pp.status||'ativo', exemplo:!!a.exemplo }; });
-  const sem = P0.filter(p => p.tipo==='autonomo').map(p => ({ k:'sem', id:p.uid, nome:p.nome||'Sem nome', email:p.email||'', sexo:p.sexo, last:p.ultimoAcesso||0, plano:p.plano||'', aceite:p.aceite }));
+  const sem = P0.filter(p => p.tipo==='autonomo').map(p => ({ k:'sem', id:p.uid, nome:p.nome||'Sem nome', email:p.email||'', sexo:p.sexo, last:p.ultimoAcesso||0, plano:p.plano||'', aceite:p.aceite, acomp:!!p.acomp }));
   return com.concat(sem);
 }
 function pfList(){
@@ -2500,7 +2506,7 @@ function pfList(){
   return L.map(r => {
     const al = r.sexo==='M' ? 'Aluno' : r.sexo==='F' ? 'Aluna' : 'Aluno(a)';
     const tag = r.k==='com' ? '<span class="pf-tag com">'+ic('users')+al+' do personal '+esc(nomeDono())+'</span>'
-      : '<span class="pf-tag sem">'+ic('user')+'Treina sem personal'+(r.plano==='ia' ? ' · treino da IA' : r.plano==='meu' ? ' · monta o próprio treino' : '')+'</span>';
+      : '<span class="pf-tag sem">'+ic('user')+'Treina sem personal'+(r.plano==='ia' ? ' · treino da IA' : r.plano==='meu' ? ' · monta o próprio treino' : '')+'</span>'+(r.acomp ? '<span class="pf-tag acomp">'+ic('eye')+'Você acompanha</span>' : '');
     const uso = r.last ? (pfUsando(r) ? 'Usando o app' : 'Parado')+' · último acesso '+pfQuando(r.last)
       : r.k==='com' ? (r.conta ? 'Ainda não entrou no app' : 'Acesso ao app ainda não liberado') : 'Sem registro de acesso';
     const extra = r.k==='com' ? (r.conta && !r.liberado ? ' · acesso bloqueado' : '')+(r.status!=='ativo' ? ' · '+esc(STATUS[r.status]||r.status) : '')+(r.exemplo ? ' · exemplo' : '') : (r.email ? ' · '+esc(r.email) : '');
@@ -2508,6 +2514,7 @@ function pfList(){
   }).join('');
 }
 function vPerfis(){
+  if(PF.open) return vPerfilAuto(PF.open);
   const online = pfOnline(); if(online) loadPerfis();
   const R = pfRows(), n = { todos:R.length, com:R.filter(r => r.k==='com').length, sem:R.filter(r => r.k==='sem').length, usando:R.filter(pfUsando).length };
   let h = header('Perfis', 'Quem usa o app', online ? '<button type="button" class="btn hb" data-a="pfRefresh" aria-label="Atualizar a lista">'+ic('refresh')+'<span class="lbl">Atualizar</span></button>' : '');
@@ -2523,7 +2530,56 @@ function vPerfis(){
     '<div class="pf-chips" role="group" aria-label="Tipo de conta">'+chip('f','todos','Todos',n.todos)+chip('f','com','Com personal',n.com)+chip('f','sem','Sem personal',n.sem)+'</div>'+
     '<div class="pf-chips" role="group" aria-label="Uso do app">'+chip('a','todos','Qualquer uso')+chip('a','usando','Usando o app')+chip('a','parado','Parado ou nunca entrou')+'</div>'+
     aviso+'<div class="list" id="pf-list">'+pfList()+'</div>'+
-    '<p class="foot">“Usando o app” = abriu o app nos últimos 7 dias. O último acesso aparece depois que a pessoa abre a versão nova do app. Por privacidade, dados de saúde e histórico de quem treina sem personal não aparecem aqui.</p>';
+    '<p class="foot">“Usando o app” = abriu o app nos últimos 7 dias. De quem treina sem personal, o treino, a evolução e a água só aparecem se a pessoa permitir o acompanhamento no app (selo “Você acompanha”). Toque no perfil para ver.</p>';
+}
+/* quem treina sem personal e permitiu o acompanhamento: treino montado + evolução + água */
+const PFA = {};
+async function pfAutoLoad(uid, force){
+  const c = PFA[uid]; if(c && (c.st==='indo' || (!force && c.at && Date.now()-c.at < 60e3))) return;
+  PFA[uid] = { st:'indo', at:(c&&c.at)||0, v:c&&c.v };
+  try { const v = await FBP.getAutonomo(uid); PFA[uid] = { st:'ok', at:Date.now(), v }; }
+  catch(e){ PFA[uid] = { st: e && e.code==='permission-denied' ? 'regras' : 'rede', at:Date.now(), v:c&&c.v }; }
+  if(ui.view==='perfis' && PF.open===uid) render();
+}
+function pfAutoProg(st, em){
+  const T = (st.conta && st.conta.treinos) || {}, nm = t => (T[t] && String(T[t].nome||T[t].foco||'').trim()) || '';
+  const H = (st.history||[]).slice(-80).map(h => ({ d:h.date, t:h.t, nm:nm(h.t), min:h.min||0, sets:h.sets||0, vol:h.vol||0, rpe:h.rpe||0, note:h.note||'', gym:h.gym||'', ex:h.ex||null }));
+  const w = {}, k = {}; for(let i=0; i<60; i++){ const dd = addDays(today(), -i); if(st.water && st.water[dd]) w[dd] = st.water[dd]; if(st.checkin && st.checkin[dd]) k[dd] = st.checkin[dd]; }
+  const ses = st.session && st.session.start && Date.now()-st.session.start < 4*3600e3 ? { t:st.session.t, gym:st.session.gym||'', d:today() } : null;
+  return { em:em||0, d:{ h:H, c:(st.cardio||[]).slice(-60).map(c => ({d:c.date, l:c.local, min:c.min, i:c.int})), w, wg:st.waterGoal||0, k, ses } };
+}
+const DSEMA = ['seg','ter','qua','qui','sex','sáb','dom'];
+function pfAutoTreino(st){
+  const c = st.conta || {}, own = c.plan==='meu' || c.plan==='ia', T = own ? (c.treinos||{}) : null;
+  const titulo = c.plan==='ia' ? 'Treino montado pela IA' : c.plan==='meu' ? 'Treino montado pela própria pessoa' : c.plan==='ab' ? 'Treino padrão do app: corpo todo A e B' : 'Treino padrão do app: A, B e C';
+  if(!T){ const L = [...new Set((st.history||[]).map(h => h.t))].sort();
+    return '<section class="card"><span class="label">'+ic('dumbbell')+titulo+'</span><p class="muted" style="margin:0">É o treino pronto do app'+(L.length ? ', com os treinos '+L.join(', ') : '')+'. Os exercícios e as cargas de cada dia aparecem no histórico abaixo.</p>'+((c.dias||[]).length ? '<p class="foot">Dias escolhidos: '+c.dias.map(d => DSEMA[d]||d).join(', ')+'.</p>' : '')+'</section>'; }
+  const L = Object.keys(T).sort().filter(l => T[l] && (T[l].ex||[]).length);
+  if(!L.length) return '<section class="card"><span class="label">'+ic('dumbbell')+titulo+'</span><p class="muted" style="margin:0">Ainda não tem nenhum treino montado.</p></section>';
+  return '<h3 class="sec">'+esc(titulo)+'</h3>'+L.map(l => { const t = T[l], dias = (t.dias||[]).map(d => DSEMA[d]||d);
+    return '<section class="card pfa-t"><div class="card-h"><span class="label"><b class="pfa-l">'+esc(l)+'</b>'+esc(String(t.nome||t.foco||'Treino '+l))+'</span><span class="pill">'+plural(t.ex.length,'exercício','exercícios')+'</span></div>'+
+      ((t.foco && t.foco!==t.nome) || dias.length ? '<p class="foot" style="margin-top:0">'+[t.foco && t.foco!==t.nome ? esc(t.foco) : '', dias.length ? 'Dias: '+dias.join(', ') : ''].filter(Boolean).join(' · ')+'</p>' : '')+
+      '<div class="pfa-ex">'+t.ex.map((e,i) => '<div><span class="n">'+(i+1)+'</span><b>'+esc(e.nome||e.id||'Exercício')+'</b><span>'+[e.s ? e.s+' × '+esc(String(e.r||'')) : '', e.kg ? fmtN(e.kg)+' kg' : '', e.d ? e.d+' s de descanso' : '', e.alvo ? esc(e.alvo) : ''].filter(Boolean).join(' · ')+'</span></div>').join('')+'</div></section>'; }).join('');
+}
+function vPerfilAuto(id){
+  const p = (PF.list||[]).find(x => x.uid===id);
+  const back = '<button type="button" class="btn small ghost back-btn" data-a="pfBack" style="align-self:flex-start">'+ic('chevL')+'Todos os perfis</button>';
+  if(!p) return header('Perfis','Quem usa o app')+back+'<p class="muted">Conta não encontrada. Toque em Atualizar.</p>';
+  pfAutoLoad(id);
+  const c = PFA[id] || {}, nome = p.nome || 'Sem nome';
+  let h = header(nome, 'Treina sem personal'+(p.plano==='ia' ? ' · treino da IA' : p.plano==='meu' ? ' · monta o próprio treino' : ''))+'<div class="dhead">'+back+'</div>';
+  h += '<section class="card"><div class="pf-kv">'+[['E-mail', p.email||'—'], ['Objetivo', ED[p.objetivo]||'—'], ['Último acesso', p.ultimoAcesso ? pfQuando(p.ultimoAcesso) : '—'], ['Acompanhamento', 'Permitido pela pessoa']].map(([k,v]) => '<div><span>'+k+'</span><b>'+esc(v)+'</b></div>').join('')+'</div></section>';
+  if(!c.v){
+    const msg = c.st==='regras' ? 'O Firebase bloqueou a leitura. Falta colar as regras novas (arquivo REGRAS-FIRESTORE.txt) no Firebase → Firestore → Regras e tocar em Publicar.'
+      : c.st==='rede' ? 'Sem conexão para carregar os treinos. Confira a internet.' : c.st==='ok' ? esc(nome)+' ainda não salvou nada na nuvem.' : 'Carregando os treinos…';
+    return h+'<section class="card"><p class="muted" style="margin:0">'+msg+'</p>'+(c.st && c.st!=='indo' ? '<div class="btn-row"><button type="button" class="btn small" data-a="pfAutoRefresh">'+ic('refresh')+'Tentar de novo</button></div>' : '')+'</section>';
+  }
+  const st = c.v.s || {}, cn = st.conta || {}, pg = pfAutoProg(st, c.v.em);
+  const nd = (() => { const u = new Set(); Object.values(cn.treinos||{}).forEach(t => (t.dias||[]).forEach(d => u.add(+d))); return u.size || (cn.dias||[]).length || 0; })();
+  const a = { _id:'auto:'+id, uid:id, perfil:{ nome, sexo:p.sexo }, metas:{ semanaTreinos:nd, cardioGoal:+st.cardioGoal||0, waterGoal:+st.waterGoal||0 }, _pg:pg };
+  const hoje = +((st.water||{})[today()])||0, wg = +st.waterGoal||0;
+  h += '<section class="card"><span class="label">'+ic('drop')+'Água de hoje</span><p class="ev2-frase"><b>'+fmtN(hoje/1000,1)+' L</b> de '+fmtN(wg/1000,1)+' L'+(wg && hoje>=wg ? ' · meta batida' : wg ? ' · faltam '+fmtN(Math.max(0,wg-hoje)/1000,1)+' L' : '')+'</p>'+ev2Bar(hoje, wg)+'<p class="foot">Meta de cardio: '+(+st.cardioGoal||0)+' min por semana.</p></section>';
+  return h+pfAutoTreino(st)+'<h3 class="sec">Evolução</h3>'+tEvol(a);
 }
 function pfSheet(id){
   const p = (PF.list||[]).find(x => x.uid===id); if(!p) return sheetTop('Perfil','Conta não encontrada')+'<p class="muted">Toque em Atualizar na aba Perfis.</p>';
@@ -2532,7 +2588,7 @@ function pfSheet(id){
     ['Objetivo', ED[p.objetivo]||'—'], ['Conta criada', dt(p.criadoEm)], ['Último acesso', p.ultimoAcesso ? pfQuando(p.ultimoAcesso)+' ('+dt(p.ultimoAcesso)+')' : '—'],
     ['Termos aceitos', p.aceite ? 'Versão '+p.aceite.v+' em '+new Date(p.aceite.em).toLocaleDateString('pt-BR') : 'Ainda não'], ['Versão do app', p.ver||'—']];
   return sheetTop('Treina sem personal', p.nome||'Sem nome')+'<div class="pf-kv">'+kv.map(([k,v]) => '<div><span>'+k+'</span><b>'+esc(v)+'</b></div>').join('')+'</div>'+
-    '<p class="foot">Por privacidade, os dados de saúde e o histórico de treinos de quem treina sem personal não aparecem no painel. A própria pessoa pode excluir a conta no app, em Perfil › Excluir minha conta.</p>';
+    '<p class="foot">O treino, a evolução e a água aparecem aqui quando a pessoa permitir o acompanhamento. O app pergunta uma vez, e ela pode ligar depois em Perfil › Acompanhamento. A própria pessoa pode excluir a conta em Perfil › Excluir minha conta.</p>';
 }
 /* termos de uso e política de privacidade (os mesmos do app do aluno) */
 const DOC_HTML = `<section class="doc" id="doc-termos">
@@ -2617,7 +2673,7 @@ const DOC_HTML = `<section class="doc" id="doc-termos">
 <li>montar, mostrar e ajustar os seus treinos e as suas metas;</li>
 <li>mostrar a sua evolução e salvar o seu histórico na sua conta;</li>
 <li>permitir que o seu personal acompanhe você (só para alunos com personal);</li>
-<li>gerenciar as contas do app: o administrador vê o nome, o e-mail, o tipo de conta (com ou sem personal), as datas de criação e de último acesso e se os termos foram aceitos. Ele não vê os seus dados de saúde nem o seu histórico de treinos de quem treina sem personal;</li>
+<li>gerenciar as contas do app: o administrador vê o nome, o e-mail, o tipo de conta (com ou sem personal), as datas de criação e de último acesso e se os termos foram aceitos. De quem treina sem personal, ele não vê os dados de saúde nem o histórico de treinos, a não ser que a própria pessoa permita o acompanhamento no app (Perfil › Acompanhamento). Com a permissão, ele vê o treino montado, os treinos feitos, cargas, cardio, água, check-in e mensagens, só para acompanhar e ajudar. A permissão pode ser desligada a qualquer momento;</li>
 <li>segurança, prevenção de fraudes e suporte.</li>
 </ul>
 <p>Não vendemos os seus dados e não usamos os seus dados para propaganda.</p>
@@ -3390,7 +3446,9 @@ function act(a,d,btn){
     case 'impFile': { const f = document.getElementById('imp-file'); if(f) f.click(); return false; }
     case 'rkSort': ui.rkSort = !ui.rkSort; if(ui.sheet && ui.sheet.k==='pick'){ renderSheet(); return false; } break;
     case 'pfRefresh': loadPerfis(true); toast('Atualizando a lista'); break;
-    case 'pfOpen': if(d.k==='com'){ ui.view = 'alunos'; ui.aluno = d.id; ui.tab = 'acesso'; window.scrollTo(0,0); break; } openSheet({k:'pf', id:d.id}); return false;
+    case 'pfOpen': if(d.k==='com'){ ui.view = 'alunos'; ui.aluno = d.id; ui.tab = 'acesso'; window.scrollTo(0,0); break; } { const pp = (PF.list||[]).find(x => x.uid===d.id); if(pp && pp.acomp){ PF.open = d.id; window.scrollTo(0,0); break; } } openSheet({k:'pf', id:d.id}); return false;
+    case 'pfBack': PF.open = null; window.scrollTo(0,0); break;
+    case 'pfAutoRefresh': if(PF.open) pfAutoLoad(PF.open, true); toast('Atualizando'); break;
     case 'termos': openSheet({k:'termos'}); return false;
     case 'starterLib': { const n = loadStarterLib(); toast(plural(n,'exercício adicionado','exercícios adicionados')+' à biblioteca'); break; }
     case 'importLocal': { const st = localStash(); if(!st) break; let n = 0; Object.keys(st.ids).forEach(k => st.ids[k].forEach(id => { C[k][id] = clone(st.v[k][id]); delete C[k][id].uid; delete C[k][id].acessoCod; Store.save(k, id, 0); n++; })); try { localStorage.removeItem(LOCAL_KEY); } catch(e){} toast(plural(n,'item enviado','itens enviados')+' para o online'); break; }

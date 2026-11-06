@@ -36,14 +36,18 @@ service cloud.firestore {
     match /perfis/{uid} {
       allow read: if dono() || (logado() && request.auth.uid == uid);
       allow create, update: if logado() && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly(['tipo', 'aid', 'nome', 'email', 'sexo', 'objetivo', 'plano', 'treinos', 'criadoEm', 'ultimoAcesso', 'aceite', 'ver'])
+        && request.resource.data.keys().hasOnly(['tipo', 'aid', 'nome', 'email', 'sexo', 'objetivo', 'plano', 'treinos', 'criadoEm', 'ultimoAcesso', 'aceite', 'acomp', 'ver'])
         && request.resource.data.tipo in ['autonomo', 'personal'];
       allow delete: if dono() || (logado() && request.auth.uid == uid);
     }
 
-    // aluno que treina sem personal: cada um lê e grava só os próprios treinos
+    // aluno que treina sem personal: cada um lê e grava só os próprios treinos;
+    // o dono do painel só lê se a pessoa permitiu o acompanhamento no app (perfis/{uid}.acomp == true)
     match /autonomos/{uid} {
       allow read, delete: if logado() && request.auth.uid == uid;
+      allow get: if dono()
+        && exists(/databases/$(database)/documents/perfis/$(uid))
+        && get(/databases/$(database)/documents/perfis/$(uid)).data.get('acomp', false) == true;
       allow create, update: if logado() && request.auth.uid == uid
         && request.resource.data.keys().hasOnly(['s', 'em'])
         && request.resource.data.s is string

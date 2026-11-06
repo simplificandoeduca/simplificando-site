@@ -111,6 +111,7 @@ h2.big{margin:0;font-size:32px;font-weight:900;letter-spacing:-.04em;line-height
 .muted{margin:4px 0 0;color:var(--muted);font-size:14px;line-height:1.4}
 .sm{margin:0;font-size:13px}
 .foot0{margin:0;font-size:12.5px;line-height:1.45;color:var(--muted)}
+.ac-list{list-style:none;margin:4px 0 14px;padding:0;display:flex;flex-direction:column;gap:10px}.ac-list li{display:flex;gap:12px;align-items:flex-start;font-size:15px;line-height:1.4;font-weight:600}.ac-list li svg{width:20px;height:20px;flex:none;margin-top:1px;color:var(--brand,#FF4646)}
 .st-cores{display:flex;justify-content:space-between;gap:8px;padding:2px 4px}
 .st-cores button{width:40px;height:40px;border-radius:50%;border:0;background:var(--c);box-shadow:inset 0 0 0 1px rgba(15,23,18,.18);cursor:pointer;transition:transform .2s var(--spring),box-shadow .2s}
 .st-cores button.on{box-shadow:0 0 0 3px var(--card,var(--bg)),0 0 0 5px var(--fg);transform:scale(1.06)}
@@ -1648,7 +1649,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '6 nov · 50'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '6 nov · 51'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -2008,7 +2009,7 @@ function startApp(){
   const lg = document.getElementById('login'); if(lg) lg.remove();
   document.body.classList.remove('locked');
   applyLook(); window.scrollTo(0,0); render(); renderPick();
-  fbRefresh();
+  fbRefresh(); acompAsk();
 }
 function logout(){
   save();
@@ -2306,7 +2307,7 @@ const DOC_HTML = { termos:`<section class="doc" id="doc-termos">
 <li>montar, mostrar e ajustar os seus treinos e as suas metas;</li>
 <li>mostrar a sua evolução e salvar o seu histórico na sua conta;</li>
 <li>permitir que o seu personal acompanhe você (só para alunos com personal);</li>
-<li>gerenciar as contas do app: o administrador vê o nome, o e-mail, o tipo de conta (com ou sem personal), as datas de criação e de último acesso e se os termos foram aceitos. Ele não vê os seus dados de saúde nem o seu histórico de treinos de quem treina sem personal;</li>
+<li>gerenciar as contas do app: o administrador vê o nome, o e-mail, o tipo de conta (com ou sem personal), as datas de criação e de último acesso e se os termos foram aceitos. De quem treina sem personal, ele não vê os dados de saúde nem o histórico de treinos, a não ser que a própria pessoa permita o acompanhamento no app (Perfil › Acompanhamento). Com a permissão, ele vê o treino montado, os treinos feitos, cargas, cardio, água, check-in e mensagens, só para acompanhar e ajudar. A permissão pode ser desligada a qualquer momento;</li>
 <li>segurança, prevenção de fraudes e suporte.</li>
 </ul>
 <p>Não vendemos os seus dados e não usamos os seus dados para propaganda.</p>
@@ -2403,13 +2404,26 @@ function afterDelete(msg){
   const dk = document.getElementById('rdock'); if(dk) dk.remove(); document.body.classList.remove('has-dock');
   LG.view = 'login'; LG.code = ''; LG.err = ''; renderLogin(); toast(msg);
 }
-/* resumo da conta para o painel do administrador (nome, tipo, último acesso, aceite); sem dados de saúde */
+/* acompanhamento: quem treina sem personal pode deixar o Simplificando ver o treino, a evolução e a água no painel */
+const acompOn = () => !!(S && S.acomp && S.acomp.on);
+const acompPode = () => !!(FB && ACCT && ACCT.mode==='self' && ACCT.uid);
+function acompSet(on){ S.acomp = { on:!!on, em:Date.now() }; save(); perfilSync(true); }
+function acompAsk(){ if(!acompPode() || S.acomp || S.example) return; setTimeout(() => { if(ACCT && !ui.sheet && !S.acomp && !document.getElementById('login')){ ui.sheet = {k:'acomp'}; renderSheet(true); } }, 1600); }
+function vAcomp(){
+  return `<div class="sheet-wrap" data-a="acomp-no"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t" tabindex="-1">${sheetTop('Simplificando', 'Quer ser acompanhado<span class="dot" aria-hidden="true"></span>')}
+    <p class="muted">Você pode deixar o Eduardo, responsável pelo Simplificando, ver os seus treinos para acompanhar a sua evolução e te ajudar quando precisar.</p>
+    <ul class="ac-list"><li>${ic('dumbbell')}O treino montado e os treinos que você faz, com séries e cargas</li><li>${ic('pulse')}O cardio e a água de cada dia</li><li>${ic('check')}O check-in (sono, energia e dor) e as mensagens dos treinos</li></ul>
+    <p class="foot0">Ninguém além dele vê. Você pode desligar quando quiser, em Perfil › Acompanhamento.</p>
+    <button type="button" class="btn primary block" data-a="acomp-sim">${ic('check')}Permitir</button>
+    <button type="button" class="btn ghost block" data-a="acomp-no">Agora não</button></div></div>`;
+}
+/* resumo da conta para o painel do administrador (nome, tipo, último acesso, aceite e se permitiu o acompanhamento) */
 let PERFIL_AT = 0;
 function perfilSync(force){
   if(!FB || !ACCT || (!force && Date.now()-PERFIL_AT < 30*60e3)) return;
   PERFIL_AT = Date.now();
   const ac = S.aceite ? { v:S.aceite.v, em:S.aceite.em } : null;
-  if(ACCT.mode==='self' && ACCT.uid) FB.perfil({ tipo:'autonomo', nome:S.nome||'', email:(S.conta&&S.conta.email)||'', sexo:ACCT.sexo, objetivo:S.ed, plano:(S.conta&&S.conta.plan)||'', treinos:LETTERS.length, ultimoAcesso:Date.now(), aceite:ac, ver:APPV });
+  if(ACCT.mode==='self' && ACCT.uid) FB.perfil({ tipo:'autonomo', nome:S.nome||'', email:(S.conta&&S.conta.email)||'', sexo:ACCT.sexo, objetivo:S.ed, plano:(S.conta&&S.conta.plan)||'', treinos:LETTERS.length, ultimoAcesso:Date.now(), aceite:ac, acomp:acompOn(), ver:APPV });
   else if(ACCT.mode==='personal') FB.perfil({ tipo:'personal', aid:ACCT.code, nome:ACCT.nome||'', sexo:ACCT.sexo, ultimoAcesso:Date.now(), aceite:ac, ver:APPV });
 }
 
@@ -4512,6 +4526,7 @@ function vProfile(){
       : `<div class="prefs"><div class="pref-h"><b id="bn-t">Seu boneco</b><span>Quem aparece correndo, pedalando e subindo escada.</span></div>
     <div class="iseg" role="group" aria-labelledby="bn-t">${[['F','Feminino'],['M','Masculino']].map(([v,l]) => `<button type="button" class="${sexOf()===v?'on':''}" aria-pressed="${sexOf()===v}" data-a="boneco" data-v="${v}">${l}</button>`).join('')}</div></div>`}
     <button type="button" class="btn block ${ui.arm==='wipe'?'armed':'ghost danger'}" data-a="wipe">${ui.arm==='wipe'?'Toque de novo para apagar tudo':'Apagar meus registros'}</button>
+    ${!pers && acompPode() ? `<div class="prefs"><div class="sw-row"><div><b>Acompanhamento</b><span>Deixar o Eduardo, do Simplificando, ver os seus treinos, cargas, cardio, água e check-in.</span></div><label class="switch"><input type="checkbox" data-sw="acomp"${acompOn()?' checked':''}><span class="knob"></span><span class="sr">Acompanhamento</span></label></div></div>` : ''}
     <div class="prefs"><div class="pref-h"><b>Sua conta</b><span>${S.aceite ? 'Termos aceitos em '+dm(S.aceite.em.slice(0,10))+'.' : 'Termos ainda não aceitos.'}</span></div>
     <button type="button" class="btn block pf-mt" data-a="doc-open" data-v="termos">${ic('lock')}Termos de uso e privacidade</button>
     <button type="button" class="btn block pf-mt danger-t" data-a="acc-open">${ic('trash')}${pers ? 'Excluir meus dados' : 'Excluir minha conta'}</button></div>
@@ -5008,7 +5023,7 @@ function render(){
 function renderSheet(freshOpen){
   if(!ui.sheet){ $sheet.innerHTML = ''; document.body.classList.remove('locked'); return; }
   const oldWrap = $sheet.querySelector('.sheet-wrap:not(.closing)'), old = oldWrap && oldWrap.querySelector('.sheet'), st = old && !freshOpen ? old.scrollTop : 0;
-  $sheet.innerHTML = ui.sheet.k==='doc' ? vDocSheet() : ui.sheet.k==='excluir' ? vExcluir() : ui.sheet.k==='meus' ? vMeus() : ui.sheet.k==='ia' ? vIA() : ui.sheet.k==='ex' ? vSheet(ui.sheet.id) : ui.sheet.k==='prof' ? vProfile() : ui.sheet.k==='cs' || ui.sheet.k==='cman' ? vCardioSheet() : ui.sheet.k==='gym' ? vGym() : ui.sheet.k==='exq' ? vExq(ui.sheet.id) : ui.sheet.k==='story' ? vStory() : ui.sheet.k==='stpick' ? vStPick() : vSummary(ui.sheet.i);
+  $sheet.innerHTML = ui.sheet.k==='acomp' ? vAcomp() : ui.sheet.k==='doc' ? vDocSheet() : ui.sheet.k==='excluir' ? vExcluir() : ui.sheet.k==='meus' ? vMeus() : ui.sheet.k==='ia' ? vIA() : ui.sheet.k==='ex' ? vSheet(ui.sheet.id) : ui.sheet.k==='prof' ? vProfile() : ui.sheet.k==='cs' || ui.sheet.k==='cman' ? vCardioSheet() : ui.sheet.k==='gym' ? vGym() : ui.sheet.k==='exq' ? vExq(ui.sheet.id) : ui.sheet.k==='story' ? vStory() : ui.sheet.k==='stpick' ? vStPick() : vSummary(ui.sheet.i);
   const sh = $sheet.querySelector('.sheet');
   if(old){ $sheet.querySelector('.sheet-wrap').classList.add('still'); sh.scrollTop = st; }
   else { try { sh.focus({preventScroll:true}); } catch(e){ /* foco opcional */ } }
@@ -5261,6 +5276,7 @@ function onClick(ev){
   if(a==='doc-open'){ ui.sheet = {k:'doc', d:d.v}; renderSheet(true); return; }
   if(a==='doc-tab'){ ui.sheet.d = d.v; renderSheet(); return; }
   if(a==='acc-open'){ ui.sheet = {k:'excluir'}; renderSheet(true); return; }
+  if(a==='acomp-sim' || a==='acomp-no'){ if(b.classList.contains('sheet-wrap') && ev.target!==b) return; acompSet(a==='acomp-sim'); closeSheet(); toast(a==='acomp-sim' ? 'Pronto. O Eduardo vai acompanhar os seus treinos.' : 'Tudo bem. Dá pra ligar depois no Perfil.'); return; }
   if(a==='acc-del'){ if(armed==='acc-del') accDelete(); else { ui.arm = 'acc-del'; renderSheet(); } return; }
   let re = true;
   switch(a){
@@ -5468,6 +5484,7 @@ function onChange(ev){
     }, 0);
     return;
   }
+  if(el.dataset.sw==='acomp'){ acompSet(el.checked); toast(el.checked ? 'Acompanhamento ligado.' : 'Acompanhamento desligado. Seus treinos não aparecem mais para ninguém.'); }
   if(el.dataset.sw==='glass'){ PREF.glass = el.checked; savePref(); applyGlass(); toast(el.checked ? 'Liquid Glass ligado.' : 'Visual sólido de volta.'); }
   if(el.dataset.sw==='remind'){ S.remind.on = el.checked; ui.remindFired = null; save(); if(PREF.pushOn) pushSave(); render(); toast(el.checked ? 'Lembretes ligados.' : 'Lembretes desligados.'); }
 }
