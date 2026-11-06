@@ -510,6 +510,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeri
 .pf-tag{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;max-width:100%;padding:4px 10px;border-radius:9px;font-size:12.5px;font-weight:700;line-height:1.3;color:var(--fg);background:var(--ctl)}
 .pf-tag .i{flex:none;width:14px;height:14px}
 .pf-tag.com{box-shadow:inset 0 0 0 1.5px var(--brand)}
+.teste-c{box-shadow:inset 0 0 0 2px #FF9A3C}.teste-c .label .i{color:#FF9A3C}
 .aqw{margin:4px 0 6px;padding:14px;border-radius:16px;background:var(--ctl);display:flex;flex-direction:column;gap:10px}.aqw-t{margin:0;display:flex;align-items:center;gap:8px;font-weight:800;font-size:14px}.aqw-t small{font-weight:600;color:var(--muted)}.aqw-t .i{width:16px;height:16px;color:#FF9A3C}
 .aqw-r{display:grid;grid-template-columns:28px auto auto auto 40px;justify-content:start;align-items:center;gap:8px}.aqw-r .ibtn{width:36px;height:36px}.aqw-n{width:30px;font-weight:800;font-size:14px}.aqw-x{font-weight:800;color:var(--muted)}
 .aqw-f{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);font-weight:600}.aqw-f input{width:58px;height:40px;border-radius:10px;border:1px solid var(--sep);background:var(--input);color:var(--fg);font:inherit;font-weight:800;font-size:15px;text-align:center}
@@ -2055,7 +2056,7 @@ function vDetalhe(a){
   const body = ({perfil:tPerfil,saude:tSaude,treino:tTreino,evolucao:tEvol,metas:tMetas,avaliacoes:tAval,financeiro:tFin,acesso:tAcesso,notas:tNotas})[ui.tab](a);
   return '<div class="dhead"><button type="button" class="btn small ghost back-btn" data-a="back" style="align-self:flex-start">'+ic('chevL')+'Todos os alunos</button>'+
     '<p class="eyebrow">'+esc(ED[p.objetivo]||'Objetivo')+' · '+esc(ORIGEM[p.origem]||'')+'</p><h2>'+esc(nomeDe(a))+'<span class="dot" aria-hidden="true"></span></h2>'+
-    '<div class="chips"><span class="pill '+(st==='ativo'?'acc':'line')+'">'+STATUS[st]+'</span>'+(pi.k!=='none'?'<span class="pill '+PAYCLS[pi.k]+'">'+ic('wallet')+pi.label+'</span>':'')+(r.any?'<span class="pill bad">'+ic('heart')+'Restrição de saúde</span>':'')+(a.exemplo?'<span class="pill line">Exemplo</span>':'')+'</div>'+
+    '<div class="chips"><span class="pill '+(st==='ativo'?'acc':'line')+'">'+STATUS[st]+'</span>'+(pi.k!=='none'?'<span class="pill '+PAYCLS[pi.k]+'">'+ic('wallet')+pi.label+'</span>':'')+(r.any?'<span class="pill bad">'+ic('heart')+'Restrição de saúde</span>':'')+(a.exemplo?'<span class="pill line">Exemplo</span>':'')+(a.teste?'<span class="pill warn">'+ic('bolt')+'Perfil de teste</span>':'')+'</div>'+
     '<div class="btn-row"><button type="button" class="btn primary" data-a="preview">'+ic('eye')+'Ver como aluno</button>'+
     (st==='ativo' ? '<button type="button" class="btn" data-a="status" data-v="pausado">'+ic('pause')+'Pausar</button>' : '<button type="button" class="btn" data-a="status" data-v="ativo">'+ic('play')+'Reativar</button>')+
     (st!=='inativo' ? armBtn('archive',id,'Arquivar','Toque de novo para arquivar','','archive') : '')+'</div></div>'+
@@ -2070,6 +2071,7 @@ function tPerfil(a){
     inp({b:b('apelido'),label:'Apelido (como aparece no app)',val:p.apelido,ph:'Ex.: Lu'})+
     inp({b:b('whatsapp'),label:'WhatsApp',val:p.whatsapp,type:'tel',im:'tel',v:'tel',ph:'(11) 98765-4321'})+
     inp({b:b('email'),label:'E-mail (para redefinir a senha)',val:p.email,type:'email',im:'email',v:'emailreq',ph:'nome@email.com'})+'</div></section>'+
+    '<section class="card'+(a.teste?' teste-c':'')+'">'+swB({b:AB(id,'teste'),label:'Perfil de teste',sub:'Para você testar o app. Na aba Treino aparece a opção de copiar o treino de qualquer aluno para este perfil.',val:!!a.teste})+'</section>'+
   '<section class="card"><span class="label">'+ic('body')+'Corpo</span><div class="form">'+
     inp({b:b('nascimento'),label:'Nascimento',val:p.nascimento,type:'date',v:'date',help:'<span data-calc="idade">'+calcIdade(a)+'</span>'})+
     segB({b:b('sexo'),label:'Gênero (boneco do app)',val:p.sexo,opts:Object.entries(SEXO)})+
@@ -2222,16 +2224,28 @@ const XAR = (() => {
 function calcTrSum(col,id,L){ const x = ctxOf(col,id), t = x.pl.treinos[L]; if(!t) return ''; const deload = col==='alunos' && x.pl.deload, s = trStats(t,deload); return '<div><b>'+s.n+'</b><span>exercícios</span></div><div><b>'+s.sets+'</b><span>séries'+(deload?' no deload':'')+'</span></div><div><b>'+s.min+'<small> min</small></b><span>duração estimada</span></div><div><b>'+(t.ex||[]).filter(e => e.aq).length+'</b><span>com aquecimento</span></div>'; }
 function calcPlanSum(col,id){ const x = ctxOf(col,id), Ls = letters(x.pl); if(!Ls.length) return ''; const deload = col==='alunos' && x.pl.deload; const st = Ls.map(l => trStats(x.pl.treinos[l],deload)); return plural(st.reduce((s,v) => s+v.sets,0),'série')+' no ciclo A–'+Ls[Ls.length-1]+' · média '+Math.round(st.reduce((s,v) => s+v.min,0)/Ls.length)+' min'; }
 
+/* copiar o treino de outro aluno (perfil de teste ou para reaproveitar) */
+const copyFonte = a => alunos().filter(x => x._id!==a._id && letters(x.plano).length).sort((x,y) => String(nomeDe(x)).localeCompare(String(nomeDe(y)),'pt-BR'));
+function copyRows(a){
+  const L = copyFonte(a);
+  if(!L.length) return '<p class="muted">Nenhum outro aluno tem treino ainda.</p>';
+  return '<div class="list">'+L.map(x => { const ls = letters(x.plano), n = ls.reduce((t,l) => t+((x.plano.treinos[l]||{}).ex||[]).length, 0), igual = a.copiaDe===x._id;
+    return '<div class="row"><span class="ini" style="--c:var(--ed-'+(P(x).objetivo||'hipertrofia')+')">'+esc(initials(P(x).nome))+'</span><span class="main-t"><b>'+esc(nomeDe(x))+(igual ? ' <span class="pill acc">em uso</span>' : '')+'</b><span>'+esc((x.plano && x.plano.nome) || 'Treino')+' · '+ls.join(' · ')+' · '+plural(n,'exercício')+'</span></span>'+armBtn('copyFrom',x._id,igual?'Copiar de novo':'Usar este treino','Confirmar','small')+'</div>'; }).join('')+'</div>';
+}
 function tTreino(a){
   const pl = a.plano || {}, id = a._id, b = path => AB(id,'plano.'+path), pi = planInfo(a);
-  return '<section class="card"><div class="card-h"><span class="label">'+ic('cal')+'Ciclo</span><span class="pill '+(pi.k==='expired'?'bad':pi.k==='soon'?'warn':'line')+'" data-calc="planfim">'+esc(pi.label)+'</span></div><div class="form">'+
+  const fonte = a.copiaDe && C.alunos[a.copiaDe];
+  const teste = a.teste ? '<section class="card teste-c"><div class="card-h"><span class="label">'+ic('bolt')+'Perfil de teste</span>'+(fonte ? '<span class="pill">Treino de '+esc(curto(fonte))+'</span>' : '')+'</div>'+
+    '<p class="muted">Escolha de quem é o treino que este perfil vai usar. Copia os treinos, as metas de água e cardio e os dias de treino. O aluno original não muda.</p>'+copyRows(a)+
+    '<p class="foot">Depois de copiar, abra o app com a senha deste perfil (ou toque em Atualizar no app) para ver o treino novo.</p></section>' : '';
+  return teste+'<section class="card"><div class="card-h"><span class="label">'+ic('cal')+'Ciclo</span><span class="pill '+(pi.k==='expired'?'bad':pi.k==='soon'?'warn':'line')+'" data-calc="planfim">'+esc(pi.label)+'</span></div><div class="form">'+
     inp({b:b('nome'),label:'Nome do ciclo',val:pl.nome,ph:'Ex.: Ciclo 1: base'})+
     inp({b:b('inicio'),label:'Início',val:pl.inicio,type:'date',v:'date'})+
     inp({b:b('semanas'),label:'Validade',val:pl.semanas,t:'i',unit:'semanas',v:'range',min:1,max:52})+
     inp({b:b('frequencia'),label:'Frequência',val:pl.frequencia,t:'i',unit:'x por semana',v:'range',min:1,max:14})+
     txa({b:b('objetivoCiclo'),label:'Objetivo do ciclo',val:pl.objetivoCiclo,ph:'O que este ciclo precisa entregar',cls:'wide',rows:2})+'</div>'+
     swB({b:b('deload'),label:'Semana de deload',sub:'Corta as séries pela metade e alivia as cargas no app do aluno.',val:!!pl.deload})+
-    '<div class="btn-row"><button type="button" class="btn small primary" data-a="iaOpen">'+ic('bolt')+'Gerar com IA</button><button type="button" class="btn small" data-a="vozOpen">'+ic('mic')+'Montar falando</button><button type="button" class="btn small" data-a="tplApply">'+ic('layers')+'Aplicar modelo</button><button type="button" class="btn small" data-a="tplSave"'+(letters(pl).length?'':' disabled')+'>'+ic('save')+'Salvar como modelo</button></div></section>'+
+    '<div class="btn-row"><button type="button" class="btn small primary" data-a="iaOpen">'+ic('bolt')+'Gerar com IA</button><button type="button" class="btn small" data-a="vozOpen">'+ic('mic')+'Montar falando</button><button type="button" class="btn small" data-a="tplApply">'+ic('layers')+'Aplicar modelo</button>'+(a.teste ? '' : '<button type="button" class="btn small" data-a="copyOpen">'+ic('users')+'Copiar de outro aluno</button>')+'<button type="button" class="btn small" data-a="tplSave"'+(letters(pl).length?'':' disabled')+'>'+ic('save')+'Salvar como modelo</button></div></section>'+
     builder('alunos',id);
 }
 
@@ -2483,7 +2497,7 @@ function tNotas(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '6 nov · 55'; // Versão do painel: 6 nov · 55
+const PAINELV = '6 nov · 56'; // Versão do painel: 6 nov · 56
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -2929,6 +2943,9 @@ function vSheet(){
     return sheetTop('Treino','Aplicar modelo')+'<p class="muted">O modelo substitui todos os treinos atuais deste aluno. Nome e validade do ciclo continuam.</p>'+
       (L.length ? '<div class="list">'+L.map(m => '<div class="row"><span class="ini" style="--c:var(--ed-'+(m.objetivo||'hipertrofia')+')">'+letters(m).join('')+'</span><span class="main-t"><b>'+esc(m.nome)+'</b><span>'+esc(m.descricao||'')+'</span></span>'+armBtn('applyTpl',m._id,'Aplicar','Confirmar','small')+'</div>').join('')+'</div>' : '<p class="muted">Nenhum modelo com treinos ainda. Crie um em Modelos.</p>');
   }
+  if(s.k==='copyFrom'){ const a = C.alunos[ui.aluno]; if(!a) return '';
+    return sheetTop('Treino','Copiar de outro aluno')+'<p class="muted">Os treinos de quem você escolher substituem os treinos atuais de '+esc(curto(Object.assign({_id:ui.aluno}, a)))+'. Nome e validade do ciclo continuam. O aluno original não muda.</p>'+copyRows(Object.assign({_id:ui.aluno}, a));
+  }
   if(s.k==='tplSave'){
     return sheetTop('Treino','Salvar como modelo')+'<div class="form">'+inp({d:'tpl.nome',label:'Nome do modelo',val:ui.draft.tpl.nome,req:true,v:'req',id:'tpl-nome',cls:'wide'})+txa({d:'tpl.descricao',label:'Para quem é',val:ui.draft.tpl.descricao,cls:'wide',rows:2})+'</div><p class="err" id="tpl-err" aria-live="polite"></p><button type="button" class="btn primary block" data-a="createTpl">'+ic('save')+'Salvar modelo</button>';
   }
@@ -3159,7 +3176,7 @@ document.addEventListener('change', e => {
   if(el.dataset.d && (el.type==='checkbox' || el.tagName==='SELECT')){ setP(ui.draft, el.dataset.d, coerce(el)); return; }
   if(el.dataset.b && (el.type==='checkbox' || el.tagName==='SELECT')){
     writeField(el.dataset.b, coerce(el), 150, el);
-    if(/deload/.test(el.dataset.b) || /[./]anim$/.test(el.dataset.b) || /[./]aq$/.test(el.dataset.b) || el.type==='checkbox' && /acesso\.ativo/.test(el.dataset.b)) setTimeout(render, 0); else refreshCalcs();
+    if(/deload/.test(el.dataset.b) || /[./]anim$/.test(el.dataset.b) || /[./]aq$/.test(el.dataset.b) || /\/teste$/.test(el.dataset.b) || el.type==='checkbox' && /acesso\.ativo/.test(el.dataset.b)) setTimeout(render, 0); else refreshCalcs();
     return; }
   if(el.dataset.b && el.dataset.v && el.dataset.v!=='req' && !validate(el)) return;
   if(el.dataset.b){ Store.flushAll(); refreshCalcs(); }
@@ -3400,7 +3417,7 @@ async function copyText(txt,selEl){
   if(selEl){ try { selEl.focus(); selEl.select(); } catch(e){} }
   toast('Selecione o texto e copie');
 }
-const ARMED = new Set(['dropLocal','archive','delAluno','delLesao','delTreino','delEx','delAv','delPay','delNota','genCode','delEx2','delTpl','applyTpl','applyToAluno','wipeEx']);
+const ARMED = new Set(['copyFrom','dropLocal','archive','delAluno','delLesao','delTreino','delEx','delAv','delPay','delNota','genCode','delEx2','delTpl','applyTpl','applyToAluno','wipeEx']);
 function act(a,d,btn){
   const A = curAluno();
   switch(a){
@@ -3476,6 +3493,12 @@ function act(a,d,btn){
       A.plano = A.plano || {}; A.plano.treinos = cloneTreinos(q.res); A.plano.frequencia = q.n; if(!A.plano.nome) A.plano.nome = 'Ciclo gerado com IA'; if(!isDate(A.plano.inicio)) A.plano.inicio = today();
       ui.tl['alunos'+ui.aluno] = 'A'; normPlan(A.plano); Store.save('alunos',ui.aluno,0); ui.draft.ia = null; closeSheet(); toast('Treino gerado aplicado. Revise e ajuste se quiser.'); break; }
     case 'applyTpl': { const m = C.modelos[d.k]; if(!m || !A) break; A.plano = A.plano || {}; A.plano.treinos = cloneTreinos(m.treinos); if(!A.plano.nome) A.plano.nome = m.nome.replace(/\s*\(exemplo\)/,''); if(!isDate(A.plano.inicio)) A.plano.inicio = today(); ui.tl['alunos'+ui.aluno] = 'A'; normPlan(A.plano); Store.save('alunos',ui.aluno,0); closeSheet(); toast('Modelo aplicado'); break; }
+    case 'copyOpen': openSheet({k:'copyFrom'}); return false;
+    case 'copyFrom': { const src = C.alunos[d.k]; if(!src || !A || !src.plano) break;
+      A.plano = A.plano || {}; A.plano.treinos = cloneTreinos(src.plano.treinos||{});
+      if(A.teste){ A.plano.nome = (src.plano.nome || 'Treino')+' (cópia de '+curto(Object.assign({_id:d.k}, src))+')'; ['frequencia','objetivoCiclo'].forEach(k => { if(src.plano[k]!=null) A.plano[k] = clone(src.plano[k]); }); A.plano.deload = !!src.plano.deload;
+        A.metas = clone(src.metas || {}); A.perfil = A.perfil || {}; A.perfil.dias = clone((src.perfil||{}).dias || []); if((src.perfil||{}).objetivo) A.perfil.objetivo = src.perfil.objetivo; A.copiaDe = d.k; }
+      if(!isDate(A.plano.inicio)) A.plano.inicio = today(); ui.tl['alunos'+ui.aluno] = 'A'; normPlan(A.plano); Store.save('alunos',ui.aluno,0); closeSheet(); toast('Treino de '+curto(Object.assign({_id:d.k}, src))+' copiado'); break; }
     case 'tplSave': ui.draft.tpl = {nome:(A.plano && A.plano.nome)||'', descricao:''}; openSheet({k:'tplSave'}); return false;
     case 'createTpl': { const n = (ui.draft.tpl.nome||'').trim(); if(!n){ const el = document.getElementById('tpl-nome'); if(el){ el.setAttribute('aria-invalid','true'); document.getElementById('tpl-nome-err').textContent = 'Dê um nome ao modelo.'; el.focus(); } return false; } const id = 'mod-'+uid(); C.modelos[id] = { nome:n, descricao:ui.draft.tpl.descricao||'', objetivo:P(A).objetivo||'hipertrofia', nivel:P(A).nivel||'iniciante', treinos:cloneTreinos(A.plano.treinos) }; Store.save('modelos',id,0); closeSheet(); toast('Modelo salvo em Modelos'); break; }
     case 'addAv': {
