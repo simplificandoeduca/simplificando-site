@@ -549,7 +549,8 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeri
 
 /* selo do ranking (Jeff Nippard) */
 .rk{display:inline-grid;place-items:center;min-width:26px;height:21px;padding:0 6px;margin-left:8px;border-radius:7px;background:var(--rk);color:var(--rkf);font-size:12px;font-weight:900;letter-spacing:-.02em;vertical-align:1px;line-height:1}
-.row .main-t b.rk-nm{display:flex;align-items:center;min-width:0}.rk-nm>i{font-style:normal;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}.rk-nm .rk{flex:none}
+.row .main-t b.rk-nm{display:flex;align-items:center;min-width:0}
+.ja-tag{flex:none;display:inline-flex;align-items:center;gap:3px;margin-left:6px;padding:2px 7px 2px 5px;border-radius:8px;background:var(--fg);color:var(--bg);font-size:11.5px;font-weight:800;line-height:1.3}.ja-tag .i{width:13px;height:13px}.ja-t{font-style:normal;font-weight:700;color:var(--brand)}.rk-nm>i{font-style:normal;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}.rk-nm .rk{flex:none}
 /* evolução do aluno e semana dos alunos */
 .ev2-top .ev2-frase{margin:0;font-size:17px;line-height:1.45}
 .ev2-al{display:flex;flex-direction:column;gap:6px}.ev2-al p{margin:0;display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border-radius:14px;font-size:14px;font-weight:600;line-height:1.4}.ev2-al .i{flex:none;width:17px;height:17px;margin-top:1px}
@@ -2482,7 +2483,7 @@ function tNotas(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '6 nov · 54'; // Versão do painel: 6 nov · 54
+const PAINELV = '6 nov · 55'; // Versão do painel: 6 nov · 55
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -2867,11 +2868,18 @@ const APELIDO = { 'Quadríceps':'perna coxa quadriceps', 'Posterior':'perna coxa
 function exAcha(e, q){ const tk = semAc(q).split(/\s+/).filter(Boolean); if(!tk.length) return true; const h = semAc((e.nome||'')+' '+(e.grupo||'')+' '+(e.equipamento||'')+' '+(APELIDO[e.grupo]||'')); return tk.every(t => h.includes(t)); }
 const pickList = () => Object.keys(C.exercicios).map(id => Object.assign({_id:id}, C.exercicios[id])).filter(e => exAcha(e, ui.pickQ) && (!ui.pickG || e.grupo===ui.pickG)).sort((x,y) => (ui.rkSort ? rankIdx(x)-rankIdx(y) : 0) || String(x.nome).localeCompare(String(y.nome),'pt-BR'));
 const pickCount = () => { const n = pickList().length; return plural(n,'exercício encontrado','exercícios encontrados')+(n>6 ? ' · arraste a barrinha ao lado para ver todos' : ''); };
+/* exercícios que já estão nos treinos deste aluno (ou modelo): id da biblioteca → letras dos treinos */
+function pickUsed(){
+  try { const x = curCtx(); if(!x || !C[x.col][x.id]) return {}; const m = {};
+    Object.keys(x.pl.treinos).sort().forEach(L => ((x.pl.treinos[L]||{}).ex||[]).forEach(e => { const k = e.exId || e.id; if(k) (m[k] = m[k] || []).includes(L) || m[k].push(L); }));
+    return m; } catch(e){ return {}; }
+}
+const jaTag = Ls => Ls && Ls.length ? '<span class="ja-tag" title="Já está no treino '+Ls.join(', ')+'">'+ic('dumbbell')+Ls.join('')+'</span>' : '';
 function pickRows(){
-  const L = pickList();
+  const L = pickList(), USED = pickUsed();
   const nova = ui.pickQ.trim() ? '<button type="button" class="row" data-a="pickNew"><span class="ico lime">'+ic('plus')+'</span><span class="main-t"><b>Criar “'+esc(ui.pickQ.trim())+'”</b><span>Entra só neste treino. Depois você pode salvar na biblioteca.</span></span></button>' : '<button type="button" class="row" data-a="pickNew"><span class="ico lime">'+ic('plus')+'</span><span class="main-t"><b>Exercício em branco</b><span>Para algo que não está na biblioteca.</span></span></button>';
   const pronta = !Object.keys(C.exercicios).length ? '<button type="button" class="row" data-a="starterLib"><span class="ico lime">'+ic('book')+'</span><span class="main-t"><b>Carregar a biblioteca pronta</b><span>'+LIB_PRONTA.length+' exercícios prontos, com dicas e animação, para escolher aqui.</span></span></button>' : '';
-  return pronta+nova+L.map(e => '<button type="button" class="row" data-a="pickEx" data-id="'+esc(e._id)+'">'+xaIco(e)+'<span class="main-t"><b class="rk-nm"><i>'+esc(e.nome)+'</i>'+rankTag(e)+'</b><span>'+esc(e.grupo||'')+' · '+esc(e.equipamento||'')+'</span></span>'+ic('plus','chev')+'</button>').join('');
+  return pronta+nova+L.map(e => '<button type="button" class="row" data-a="pickEx" data-id="'+esc(e._id)+'">'+xaIco(e)+'<span class="main-t"><b class="rk-nm"><i>'+esc(e.nome)+'</i>'+rankTag(e)+jaTag(USED[e._id])+'</b><span>'+esc(e.grupo||'')+' · '+esc(e.equipamento||'')+(USED[e._id] ? ' · <em class="ja-t">já no treino '+USED[e._id].join(', ')+'</em>' : '')+'</span></span>'+ic('plus','chev')+'</button>').join('');
 }
 function vSheet(){
   const s = ui.sheet; if(!s) return '';
