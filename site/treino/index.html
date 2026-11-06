@@ -1679,7 +1679,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '6 nov · 52'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '6 nov · 53'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -2496,6 +2496,7 @@ const CAT = [
   ['bulgaro','Agachamento búlgaro','glut','ah','c','j',['Pé de trás apoiado num banco ou cadeira firme.','Desça reto até a coxa da frente ficar paralela ao chão.','Suba pela perna da frente, sem empurrar com a de trás.'],'Ficar perto demais do banco.',{g2:'quad'}],
   ['afundopc','Afundo sem peso','glut','c','c','j',['Passo longo, braços soltos ao lado do corpo.','Desça até o joelho de trás quase tocar o chão.','Suba empurrando com o calcanhar da perna da frente.'],'Passo curto demais, que joga a carga no joelho.',{g2:'quad'}],
   ['ponte','Elevação pélvica no solo (ponte)','glut','hc','i','',['Deitado de barriga para cima, joelhos dobrados e pés no chão perto do quadril.','Suba o quadril até alinhar joelhos, quadril e ombros, contraindo o glúteo.','Segure 2 segundos no alto e desça devagar, sem encostar o quadril no chão.'],'Empurrar com a lombar em vez do glúteo.',{anim:'pelvicasolo', g2:'post'}],
+  ['abdutorainc','Cadeira abdutora inclinada','glut','a','i','',["Sente na ponta do banco e incline o tronco à frente, com as costas retas e as mãos nos pegadores.", "Abra as pernas de forma controlada e segure 1 segundo aberto.", "Volte devagar, sem deixar as placas baterem e sem levantar o tronco."],'Arredondar as costas ou voltar o tronco para trás durante a série.',{anim:'abdutora', noIa:1}],
   ['abdutora','Cadeira abdutora','glut','a','i','',['Costas apoiadas e quadril no fundo do banco.','Abra as pernas de forma controlada.','Volte devagar, sem deixar as placas baterem.'],'Balançar o tronco para abrir.'],
   ['stiff','Stiff com halteres','post','ah','c','l',['Joelhos levemente dobrados e fixos.','Leve o quadril para trás descendo os halteres rente às pernas.','Suba contraindo glúteo e posterior, sem arredondar as costas.'],'Arredondar a lombar para descer mais.',{g2:'glut'}],
   ['flexora','Mesa flexora','post','a','i','',['Quadril colado no banco durante todo o movimento.','Flexione trazendo o calcanhar em direção ao glúteo.','Volte devagar até quase esticar a perna.'],'Tirar o quadril do banco para ajudar.'],
@@ -3329,6 +3330,8 @@ const WK_ART = '<span class="w-art" aria-hidden="true"><svg viewBox="0 0 372 330
 const WK_ART2 = '<span class="w-art" aria-hidden="true"><svg viewBox="0 0 372 330" preserveAspectRatio="none"><path class="rc-g" d="M-20 256 C 70 206 150 320 240 260 S 340 196 400 234"/><path class="rc-r" d="M-20 236 C 70 186 150 300 240 240 S 340 176 400 214"/></svg></span>';
 const HC_ART = '<span class="w-art" aria-hidden="true"><svg viewBox="0 0 372 300" preserveAspectRatio="none"><path d="M-20 214 C 70 192 150 236 240 212 S 340 190 400 206"/></svg></span>';
 const TDAYS_L = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+// aquecimento: o personal pode personalizar as séries (% da carga × reps); sem isso, 50% × 10 e 75% × 5
+const aqSeries = e => { const W = (Array.isArray(e.aqW) ? e.aqW : []).map(w => w && typeof w==='object' ? [+w.p, +w.r] : null).filter(w => w && w[0]>0 && w[1]>0).slice(0,5); return W.length ? W.map(w => [Math.min(1, w[0]/100), Math.round(w[1])]) : [[.5,10],[.75,5]]; };
 const diasLivres = () => !!(ACCT && (ACCT.mode==='personal' || ACCT.mode==='self') && !(ACCT.dias||[]).length); // sem dia fixo: treina no dia que der
 const tDays = () => ACCT && Array.isArray(ACCT.dias) && ACCT.dias.length ? ACCT.dias : diasLivres() ? [0,1,2,3,4,5,6] : [0,1,2,3,4];
 const isTrainDay = () => tDays().includes((new Date().getDay()+6)%7);
@@ -3521,7 +3524,7 @@ function tStep(id,i,f){
 }
 function tWarm(e){
   const sg = suggest(e.id); if(!e.aq || !sg.kg || doneSets(e.id)) return '';
-  const st = step(sg.kg), ws = (S.warm[today()]||{})[e.id] || [], W = [[.5,10],[.75,5]].map(([fr,r]) => [Math.max(st,roundTo(sg.kg*fr,st)),r]);
+  const st = step(sg.kg), ws = (S.warm[today()]||{})[e.id] || [], W = aqSeries(e).map(([fr,r]) => [Math.max(st,roundTo(sg.kg*fr,st)),r]);
   return `<div class="twarm"><span>${ic('flame')}Aquecimento</span>${W.map((w,j) => `<button type="button" class="wpill${ws[j]?' on':''}" aria-pressed="${!!ws[j]}" data-a="twarm" data-ex="${e.id}" data-i="${j}">${ws[j]?ic('check'):''}${fmtKg(w[0])} kg × ${w[1]}</button>`).join('')}</div>`;
 }
 const tLow = () => lowReady(S.checkin[today()]) ? `<p class="warn">${ic('moon')}<span>Check-in de hoje pede um dia mais leve. As sugestões repetem a carga da última vez.</span></p>` : '';
@@ -4684,7 +4687,7 @@ function vSheet(id){
     let warm = '';
     if(e.aq && sg.kg){
       const st = step(sg.kg), ws = (S.warm[today()]||{})[id] || [];
-      const W = [[.5,10],[.75,5]].map(([fr,r]) => [Math.max(st,roundTo(sg.kg*fr,st)),r]);
+      const W = aqSeries(e).map(([fr,r]) => [Math.max(st,roundTo(sg.kg*fr,st)),r]);
       warm = `<div class="warm"><span class="flabel">${ic('flame')}Aquecimento antes da primeira série</span><div class="warm-row">${W.map((w,i) => `<button type="button" class="wpill${ws[i]?' on':''}" aria-pressed="${!!ws[i]}" data-a="warm" data-i="${i}">${ws[i]?ic('check'):''}${fmtKg(w[0])} kg × ${w[1]}</button>`).join('')}</div></div>`;
     }
     const bs = partner ? `<p class="warn">${ic('layers')}<span><b>Bi-set</b>Faça junto com ${partner.nome}, sem descanso entre os dois. Descanse ${e.d}s depois do par.</span></p>` : '';
@@ -6324,7 +6327,7 @@ const XA = (() => {
     [/militar/, 'militar'], [/desenvolvimento.*barra/, 'desenvbarra'], [/eleva[cç][aã]o em y|y.?raise/, 'yraise'], [/lateral.*m[aá]quina/, 'lateralmaq'],
     [/(crucifixo|fly).*sentad|cross.*sentad/, 'crossent'], [/(crucifixo inverso|cross.*invers|crossover invers).*(polia|cabo)|(polia|cabo).*invers/, 'crossinv'],
     [/plate press|anilha.*peito|svend/, 'platepress'], [/levantamento terra|rack pull|^terra/, 'stiffbarra'],
-    [/franc[eê]s.*(polia|cabo|corda)|(polia|cabo).*franc[eê]s/, 'francespolia'], [/p[eé]lvica.*(solo|ch[aã]o)|ponte de gl[uú]teo|gl[uú]teo no ch[aã]o/, 'pelvicasolo'], [/abdu(tora|[cç][aã]o).*inclinad/, 'abdutorapoliainc'], [/abdu(tora|[cç][aã]o).*(polia|cabo)/, 'abdutorapolia'], [/v-? ?squat|agachamento no v\b/, 'vsquat'], [/tr[ií]ceps.*unilateral|pulley unilateral|unilateral.*tr[ií]ceps/, 'tricepsunil'], [/abdominal.*banco (inclinado|declinado)|banco (inclinado|declinado).*abd|abd[oô]men.*banco/, 'abdinclinado'], [/serrote|remada unilateral/, 'serrote'], [/cross.*alta|crucifixo.*polia alta/, 'crossalta'], [/cross.*baixa|crucifixo.*polia baixa/, 'crossbaixa'], [/cross|crucifixo.*polia/, 'crossmedia'],
+    [/franc[eê]s.*(polia|cabo|corda)|(polia|cabo).*franc[eê]s/, 'francespolia'], [/p[eé]lvica.*(solo|ch[aã]o)|ponte de gl[uú]teo|gl[uú]teo no ch[aã]o/, 'pelvicasolo'], [/cadeira abdutora.*inclinad|abdutora inclinad[ao] na (cadeira|m[aá]quina)/, 'abdutora'], [/abdu(tora|[cç][aã]o).*inclinad/, 'abdutorapoliainc'], [/abdu(tora|[cç][aã]o).*(polia|cabo)/, 'abdutorapolia'], [/v-? ?squat|agachamento no v\b/, 'vsquat'], [/tr[ií]ceps.*unilateral|pulley unilateral|unilateral.*tr[ií]ceps/, 'tricepsunil'], [/abdominal.*banco (inclinado|declinado)|banco (inclinado|declinado).*abd|abd[oô]men.*banco/, 'abdinclinado'], [/serrote|remada unilateral/, 'serrote'], [/cross.*alta|crucifixo.*polia alta/, 'crossalta'], [/cross.*baixa|crucifixo.*polia baixa/, 'crossbaixa'], [/cross|crucifixo.*polia/, 'crossmedia'],
     [/voador inverso|crucifixo inverso|peck ?deck inverso/, 'voadorinv'], [/voador|peck ?deck|crucifixo.*m[aá]quina|fly.*m[aá]quina/, 'voador'], [/crucifixo/, 'crucifixo'],
     [/supino.*inclinad.*m[aá]quina|supino.*m[aá]quina.*inclinad/, 'supmaqinc'], [/supino.*m[aá]quina|chest press|supino articulado/, 'supmaq'],
     [/supino inclinado.*barra/, 'inclbarra'], [/supino (reto )?com halter/, 'supinohalter'], [/remada.*m[aá]quina|remada articulada/, 'remadamaq'],
