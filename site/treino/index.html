@@ -1679,7 +1679,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '6 nov · 51'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '6 nov · 52'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -2008,11 +2008,11 @@ function applyAccount(){
     else PLAN = c.plan==='ab' ? PLAN_AB : PLAN_ABC;
     CARDIO = { min:25, zona:'Zona 2', desc:DEF_DESC }; LOCAIS = LOCAIS_ALL.slice();
     let nd = 0;
-    if(own){ const u = new Set(); Object.values(PLAN).forEach(t => (t.dias||[]).forEach(d => u.add(+d))); nd = u.size; ACCT.dias = nd ? [...u].sort((x,y) => x-y) : [0,1,2,3,4,5,6]; }
+    if(own){ const u = new Set(); Object.values(PLAN).forEach(t => (t.dias||[]).forEach(d => u.add(+d))); nd = u.size; ACCT.dias = nd ? [...u].sort((x,y) => x-y) : []; }
     else { ACCT.dias = c.dias || [0,2,4]; nd = ACCT.dias.length; }
     ACCT.sexo = c.sexo==='M' ? 'M' : 'F'; ACCT.nome = S.nome;
     ACCT.plano = own ? (c.plan==='ia' ? 'Montado pela IA' : 'Montado por você') : c.plan==='ab' ? 'Corpo todo A e B' : 'A · B · C';
-    SEMANA_TREINOS = nd || Object.keys(PLAN).length || 3;
+    SEMANA_TREINOS = nd || +c.semana || (c.ia ? iqN(c.ia) : 0) || Object.keys(PLAN).length || 3;
   }
   Object.keys(PLAN).forEach(l => { const t = PLAN[l]; t.nome = String(t.nome||'').trim() || String(t.foco||'').trim() || 'Treino '+l; (t.ex||[]).forEach(x => { delete x.sup; delete x.tec; }); }); // sem técnicas especiais
   LETTERS = Object.keys(PLAN).sort();
@@ -2652,7 +2652,9 @@ const TEMPOS = [30,45,60,75];
 const FOCOS = [['pernas','Pernas e glúteo'],['peito','Peito'],['costas','Costas'],['ombro','Ombros'],['bracos','Braços'],['abd','Abdômen']];
 const FOCO_G = { pernas:['glut','quad'], peito:['peito'], costas:['costas'], ombro:['ombro'], bracos:['bic','tri'], abd:['abd'] };
 const LIMS = [['j','Joelho'],['o','Ombro'],['l','Lombar']];
-const IQ0 = () => ({ nivel:'ini', local:'a', dias:[0,2,4], tempo:45, foco:[], lim:[] });
+const IQ0 = () => ({ nivel:'ini', local:'a', n:3, dias:[], tempo:45, foco:[], lim:[] });
+// quantos treinos por semana: os dias marcados (se marcou) ou o número escolhido; marcar os dias é opcional
+const iqN = q => (q.dias||[]).length || +q.n || 3;
 let IQ = IQ0();
 const TPL = {
   corpo1:['Corpo todo 1',['quad','peito','costas','post','ombro','abd','tri','bic']],
@@ -2677,7 +2679,7 @@ function iaPlan(q, ed){
   const limHit = x => q.lim.some(k => x.lim.includes(k));
   let pri = [...new Set(q.foco.flatMap(k => FOCO_G[k]||[]))];
   if(ed==='corrida' && !pri.length) pri = ['glut','abd'];
-  const split = iaSplit(q.dias.length, q.nivel, q.foco.includes('pernas')), used = {}, out = {}, N = {30:4, 45:5, 60:6, 75:7}[q.tempo] || 5;
+  const split = iaSplit(iqN(q), q.nivel, q.foco.includes('pernas')), used = {}, out = {}, N = {30:4, 45:5, 60:6, 75:7}[q.tempo] || 5;
   split.forEach((key, ti) => {
     const [nome, gs] = TPL[key], body = key.indexOf('corpo')===0, slots = gs.slice(0, N);
     // prioridade: mais um exercício do grupo escolhido, no lugar do último que não é prioridade
@@ -2742,8 +2744,8 @@ function iqQ(k){
   const q = IQ;
   if(k===1) return `<div class="field"><span class="flabel" id="iq-nv">Há quanto tempo você treina?</span><div class="lg-plans" role="radiogroup" aria-labelledby="iq-nv">${NIVEIS.map(([v,n,d]) => radioCard('iq-nivel',v,q.nivel===v,n,d)).join('')}</div></div>
     <div class="field"><span class="flabel" id="iq-lc">Onde você vai treinar?</span><div class="lg-plans" role="radiogroup" aria-labelledby="iq-lc">${LOCS.map(([v,n,d]) => radioCard('iq-local',v,q.local===v,n,d)).join('')}</div></div>`;
-  if(k===2) return `<div class="field"><span class="flabel" id="iq-n">Quantos dias por semana?</span><div class="lg-ns" role="group" aria-labelledby="iq-n">${[2,3,4,5,6].map(n => togBtn('iq-n',n,q.dias.length===n,n,' ')).join('')}</div></div>
-    <div class="field"><span class="flabel" id="iq-d">Quais dias?</span><div class="tdays" role="group" aria-labelledby="iq-d">${TDAYS_L.map((l,i) => togBtn('iq-day',i,q.dias.includes(i),l,' ')).join('')}</div><p class="foot0">${q.dias.length ? q.dias.length+' dia'+(q.dias.length===1?'':'s')+' por semana.' : 'Escolha pelo menos um dia.'}</p></div>
+  if(k===2) return `<div class="field"><span class="flabel" id="iq-n">Quantos dias por semana?</span><div class="lg-ns" role="group" aria-labelledby="iq-n">${[2,3,4,5,6].map(n => togBtn('iq-n',n,iqN(q)===n,n,' ')).join('')}</div></div>
+    <div class="field"><span class="flabel" id="iq-d">Quais dias? <small>(opcional)</small></span><div class="tdays" role="group" aria-labelledby="iq-d">${TDAYS_L.map((l,i) => togBtn('iq-day',i,q.dias.includes(i),l,' ')).join('')}</div><p class="foot0">${q.dias.length ? q.dias.length+' dia'+(q.dias.length===1?'':'s')+' por semana: '+joinPt(q.dias.map(i => TDAYS_L[i]))+'.' : 'Sem dia fixo? Pode pular. Você treina no dia que der, e o app conta '+iqN(q)+' treinos na semana.'}</p></div>
     <div class="field"><span class="flabel" id="iq-t">Quanto tempo por treino?</span><div class="lg-ns n4" role="group" aria-labelledby="iq-t">${TEMPOS.map(m => togBtn('iq-tempo',m,q.tempo===m,m===75?'75+<small>min</small>':m+'<small>min</small>',' ')).join('')}</div></div>`;
   return `<div class="field"><span class="flabel" id="iq-f">Quer dar prioridade a alguma parte? <small>(até 2)</small></span><div class="lg-opts" role="group" aria-labelledby="iq-f">${togBtn('iq-foco','eq',!q.foco.length,'Corpo equilibrado')}${FOCOS.map(([v,l]) => togBtn('iq-foco',v,q.foco.includes(v),l)).join('')}</div></div>
     <div class="field"><span class="flabel" id="iq-l">Sente dor ou tem limitação em alguma parte?</span><div class="lg-opts" role="group" aria-labelledby="iq-l">${togBtn('iq-lim','no',!q.lim.length,'Nenhuma')}${LIMS.map(([v,l]) => togBtn('iq-lim',v,q.lim.includes(v),l)).join('')}</div><p class="foot0">Com dor forte ou lesão, fale com um médico ou fisioterapeuta antes de começar.</p></div>`;
@@ -2753,8 +2755,8 @@ function iqClick(a,d,b){
   switch(a){
     case 'iq-nivel': q.nivel = v; break;
     case 'iq-local': q.local = v; break;
-    case 'iq-n': q.dias = (DPRESET[+v]||[0,2,4]).slice(); break;
-    case 'iq-day': { const n = +v, k = q.dias.indexOf(n); if(k>=0) q.dias.splice(k,1); else q.dias.push(n); q.dias.sort((x,y) => x-y); break; }
+    case 'iq-n': q.n = +v; if(q.dias.length && q.dias.length!==q.n) q.dias = []; break;
+    case 'iq-day': { const n = +v, k = q.dias.indexOf(n); if(k>=0) q.dias.splice(k,1); else q.dias.push(n); q.dias.sort((x,y) => x-y); if(q.dias.length) q.n = q.dias.length; break; }
     case 'iq-tempo': q.tempo = +v; break;
     case 'iq-foco': if(v==='eq') q.foco = []; else { const k = q.foco.indexOf(v); if(k>=0) q.foco.splice(k,1); else { q.foco.push(v); if(q.foco.length>2) q.foco.shift(); } } break;
     case 'iq-lim': if(v==='no') q.lim = []; else { const k = q.lim.indexOf(v); if(k>=0) q.lim.splice(k,1); else q.lim.push(v); } break;
@@ -2765,9 +2767,9 @@ function iqClick(a,d,b){
 function iaResult(P, ed, q){
   const ls = Object.keys(P), mins = ls.length ? Math.round(ls.reduce((a,l) => a+P[l].min, 0)/ls.length) : 0, notes = iaNotes(q, ed);
   return `<p class="warn ia-aviso">${ic('spark')}<span><b>Gerado por IA</b>Este treino foi montado automaticamente e não foi feito nem revisado por um personal. Siga as dicas de execução e pare se sentir dor.</span></p>
-    <div class="iq-sum"><div><b>${ls.length}</b><span>treino${ls.length===1?'':'s'}</span></div><div><b>${q.dias.length}</b><span>dia${q.dias.length===1?'':'s'} por semana</span></div><div><b>~${mins}</b><span>min cada</span></div></div>
+    <div class="iq-sum"><div><b>${ls.length}</b><span>treino${ls.length===1?'':'s'}</span></div><div><b>${iqN(q)}</b><span>treino${iqN(q)===1?'':'s'} por semana</span></div><div><b>~${mins}</b><span>min cada</span></div></div>
     ${notes.length ? `<p class="warn">${ic('spark')}<span>${notes.map(esc).join('<br>')}</span></p>` : ''}
-    ${ls.map(l => { const t = P[l]; return `<section class="iq-t"><div class="iq-th"><span class="iq-l">${l}</span><div><b>${esc(t.nome)}</b><span>${joinPt(t.dias.map(i => TDAYS_L[i]))} · cerca de ${t.min} min</span></div></div>
+    ${ls.map(l => { const t = P[l]; return `<section class="iq-t"><div class="iq-th"><span class="iq-l">${l}</span><div><b>${esc(t.nome)}</b><span>${t.dias.length ? joinPt(t.dias.map(i => TDAYS_L[i]))+' · ' : ''}cerca de ${t.min} min</span></div></div>
       <ol>${t.ex.map(e => `<li><span>${esc(e.nome)}</span><em>${e.s} × ${esc(e.r)}</em></li>`).join('')}</ol></section>`; }).join('')}`;
 }
 const genView = () => `<div class="iq-gen" role="status" aria-live="polite"><span class="iq-orb" aria-hidden="true">${ic('spark')}</span><h1 class="lg-h">Montando seu treino<span class="dot" aria-hidden="true"></span></h1><ul><li>Lendo suas respostas</li><li>Escolhendo os exercícios</li><li>Ajustando séries, repetições e descanso</li></ul></div>`;
@@ -2810,7 +2812,7 @@ function vSetup(){
       <button type="button" class="su-mode" data-a="su-mode" data-v="meu"><span class="su-mi" aria-hidden="true">${ic('edit')}</span><span class="su-mt"><b>Montar o meu treino</b><span>Você escolhe os dias, dá nome a cada treino e adiciona os exercícios que quiser.</span></span>${ic('chev','chev')}</button>
     </div><p class="foot0">Sem personal, o treino não tem acompanhamento profissional: ele é gerado automaticamente pela IA ou montado por você. Dá para trocar depois no perfil.</p>`;
   else if(st<=6) body = `<p class="eyebrow">IA · ${ED[f.ed].nome}</p><h1 class="lg-h">${['Sua experiência','Seus dias','Seu foco'][st-4]}<span class="dot" aria-hidden="true"></span></h1>${iqQ(st-3)}
-    <button type="button" class="btn primary block" data-a="su-next"${st===5 && !IQ.dias.length?' disabled':''}>${st===6 ? ic('spark')+'Montar meu treino' : 'Continuar'+ic('chev')}</button>`;
+    <button type="button" class="btn primary block" data-a="su-next">${st===6 ? ic('spark')+'Montar meu treino' : 'Continuar'+ic('chev')}</button>`;
   else if(LG.gen || !f.plan) body = genView();
   else body = `<p class="eyebrow">Feito pela IA</p><h1 class="lg-h">Seu treino está pronto<span class="dot" aria-hidden="true"></span></h1>${iaResult(f.plan, f.ed, IQ)}
     <p class="foot0">Dá para trocar exercícios, dias e nomes quando quiser em Perfil › Meus treinos.</p>
@@ -2894,7 +2896,7 @@ function suFinish(mode){
   const f = LG.f, nome = cleanName(f.nome) || 'Você', uid = LG.uid, sexo = f.sexo==='M' ? 'M' : 'F';
   if(!uid){ LG.step = 1; renderLogin(); return; }
   const s = fresh(false); s.nome = nome; s.ed = f.ed; s.waterGoal = waterSug(); s.cardioGoal = f.ed==='emagrecer' ? 150 : 120;
-  s.conta = { sexo, peso:num(f.peso)||null, email:LG.uidMail||'', plan:mode, treinos: mode==='ia' && f.plan ? f.plan : {}, ia: mode==='ia' ? JSON.parse(JSON.stringify(IQ)) : null, dias:[] };
+  s.conta = { sexo, peso:num(f.peso)||null, email:LG.uidMail||'', plan:mode, treinos: mode==='ia' && f.plan ? f.plan : {}, ia: mode==='ia' ? JSON.parse(JSON.stringify(IQ)) : null, semana: mode==='ia' ? iqN(IQ) : 0, dias:[] };
   s.aceite = aceiteNovo(true); s._em = Date.now();
   try { localStorage.setItem(autoKey(uid), JSON.stringify(s)); } catch(e){ /* sem armazenamento */ }
   if(FB){ FB.autoSave(uid, s, true); FB.perfil({ tipo:'autonomo', nome, email:LG.uidMail||'', sexo, objetivo:f.ed, plano:mode, treinos:mode==='ia' && f.plan ? Object.keys(f.plan).length : 0, criadoEm:Date.now(), ultimoAcesso:Date.now(), aceite:{ v:s.aceite.v, em:s.aceite.em }, ver:APPV }); }
@@ -2938,7 +2940,7 @@ function vMeus(){
   if(sh.ed && T[sh.ed]) return shWrap(sh.pick ? vMtPick(sh, T[sh.ed]) : vMtEdit(sh, T[sh.ed], T));
   const week = TDAYS_L.map((d,i) => { const l = ls.find(x => (T[x].dias||[]).includes(i)); return `<div class="mt-wd${l?' on':''}"><span>${d}</span><b>${l||'–'}</b></div>`; }).join('');
   const cards = ls.map(l => { const t = T[l], ds = (t.dias||[]).map(i => TDAYS_L[i]), n = t.ex.length;
-    return `<button type="button" class="row" data-a="mt-open" data-v="${l}"><span class="num">${l}</span><span class="main"><b>${esc(t.nome||'Treino '+l)}</b><span>${n} exercício${n===1?'':'s'}${n?' · cerca de '+t.min+' min':''} · ${ds.length?joinPt(ds):'sem dia'}</span></span>${ic('chev','chev')}</button>`; }).join('');
+    return `<button type="button" class="row" data-a="mt-open" data-v="${l}"><span class="num">${l}</span><span class="main"><b>${esc(t.nome||'Treino '+l)}</b><span>${n} exercício${n===1?'':'s'}${n?' · cerca de '+t.min+' min':''} · ${ds.length?joinPt(ds):'qualquer dia'}</span></span>${ic('chev','chev')}</button>`; }).join('');
   return shWrap(`${sheetTop(c.plan==='ia'?'Montado pela IA · edite à vontade':'Seu plano', 'Meus treinos<span class="dot" aria-hidden="true"></span>')}
     <p class="muted mt-lead">Um treino para cada dia, ou o mesmo treino em vários dias. Dê o nome que quiser e escolha os exercícios.</p>
     <div class="mt-week" aria-label="Sua semana">${week}</div>
@@ -2962,7 +2964,7 @@ function vMtEdit(sh, t, T){
   return `${sheetTop('Treino '+l, esc(t.nome||'Treino '+l)+'<span class="dot" aria-hidden="true"></span>')}
     <button type="button" class="linkbtn pk-back mt-back" data-a="mt-back">${ic('chevL')}Meus treinos</button>
     <div class="field"><label class="flabel" for="mt-nome">Nome do treino</label><div class="inp-wrap"><input class="inp" id="mt-nome" data-mt="nome" maxlength="40" placeholder="Ex.: Pernas e glúteo" value="${esc(t.nome||'')}" autocomplete="off"></div></div>
-    <div class="field"><span class="flabel" id="mt-dl">Em quais dias?</span><div class="tdays mt-days" role="group" aria-labelledby="mt-dl">${days}</div><p class="foot0">${t.dias.length ? 'O treino '+l+' cai '+(t.dias.length===1?'na ':'em ')+joinPt(t.dias.map(i => TDAYS_L[i]))+'.' : 'Escolha um ou mais dias. A letra pequena mostra o treino que já está naquele dia.'}</p></div>
+    <div class="field"><span class="flabel" id="mt-dl">Em quais dias? <small>(opcional)</small></span><div class="tdays mt-days" role="group" aria-labelledby="mt-dl">${days}</div><p class="foot0">${t.dias.length ? 'O treino '+l+' cai '+(t.dias.length===1?'na ':'em ')+joinPt(t.dias.map(i => TDAYS_L[i]))+'.' : 'Opcional. Sem dia fixo, o treino fica livre para qualquer dia. A letra pequena mostra o treino que já está naquele dia.'}</p></div>
     <div class="field"><span class="flabel" id="mt-gl">O que você vai treinar?</span><div class="mt-chips" role="group" aria-labelledby="mt-gl">${gs}</div></div>
     <div class="mt-exs-h"><h3>Exercícios${t.ex.length?' · '+t.ex.length:''}</h3>${t.ex.length?`<span class="foot0">cerca de ${t.min} min</span>`:''}</div>
     ${rows ? `<div class="mt-exs">${rows}</div>` : '<p class="muted mt-none">Nenhum exercício ainda. Adicione da lista, com a animação de como fazer, ou crie o seu.</p>'}
@@ -3002,7 +3004,7 @@ function vIA(){
   return shWrap(`${sheetTop('Treino pela IA','Responda e a IA monta<span class="dot" aria-hidden="true"></span>')}
     <p class="muted">A IA usa seu objetivo (${(ED[S.ed]||ED.hipertrofia).nome}) e estas respostas. O treino atual só muda quando você confirmar.</p>
     ${iqQ(1)}${iqQ(2)}${iqQ(3)}
-    <button type="button" class="btn primary block" data-a="ia-gen"${IQ.dias.length?'':' disabled'}>${ic('spark')}Montar meu treino</button>`);
+    <button type="button" class="btn primary block" data-a="ia-gen">${ic('spark')}Montar meu treino</button>`);
 }
 function refocus(sel){ if(!sel) return; const n = $sheet.querySelector(sel); if(n && !n.disabled){ try { n.focus({preventScroll:true}); } catch(e){ /* foco opcional */ } } }
 const selOf = b => '[data-a="'+b.dataset.a+'"]'+(b.dataset.v!=null?'[data-v="'+b.dataset.v+'"]':'')+(b.dataset.i!=null?'[data-i="'+b.dataset.i+'"]':'')+(b.dataset.d!=null?'[data-d="'+b.dataset.d+'"]':'');
@@ -3012,11 +3014,11 @@ function mtClick(a, d, b, armed){
   if(a==='mt-open-sheet'){ mtOpen(); return true; }
   if(a==='ia-open'){ iaOpen(); return true; }
   if(a.slice(0,3)==='ia-' && sh && sh.k==='ia'){
-    if(a==='ia-gen'){ if(!IQ.dias.length) return true; sh.busy = true; renderSheet(); setTimeout(() => { if(ui.sheet!==sh) return; sh.res = iaPlan(IQ, S.ed); sh.busy = false; renderSheet(); refocus('[data-a="ia-use"]'); }, RM() ? 300 : 1500); return true; }
+    if(a==='ia-gen'){ sh.busy = true; renderSheet(); setTimeout(() => { if(ui.sheet!==sh) return; sh.res = iaPlan(IQ, S.ed); sh.busy = false; renderSheet(); refocus('[data-a="ia-use"]'); }, RM() ? 300 : 1500); return true; }
     if(a==='ia-redo'){ sh.res = null; renderSheet(); return true; }
     if(a==='ia-use'){
       if(S.session){ toast('Finalize o treino em andamento antes de trocar.'); return true; }
-      S.conta.treinos = sh.res; S.conta.plan = 'ia'; S.conta.ia = JSON.parse(JSON.stringify(IQ));
+      S.conta.treinos = sh.res; S.conta.plan = 'ia'; S.conta.ia = JSON.parse(JSON.stringify(IQ)); S.conta.semana = iqN(IQ);
       mtFix(); ui.t = null; closeSheet(); toast('Treino novo no ar. Seu histórico continua.'); return true;
     }
     return true;
@@ -3113,7 +3115,7 @@ function nextTreino0(){
 const noPlan = () => !LETTERS.length;
 function noPlanCard(){
   if(ACCT && ACCT.mode==='self') return `<section class="card wcard"><div class="card-h"><span class="label">${ic('dumbbell')}Treino</span><span class="pill">A montar</span></div>
-    <div><h2 class="big">Monte seu treino<span class="dot" aria-hidden="true"></span></h2><p class="muted">Escolha os dias, dê um nome e adicione os exercícios. Ou deixe a IA montar para você.</p></div>
+    <div><h2 class="big">Monte seu treino<span class="dot" aria-hidden="true"></span></h2><p class="muted">Dê um nome, adicione os exercícios e, se quiser, escolha os dias. Ou deixe a IA montar para você.</p></div>
     <button type="button" class="btn primary block" data-a="mt-open-sheet">${ic('plus')}Montar meu treino</button>
     <button type="button" class="btn block" data-a="ia-open">${ic('spark')}Deixar a IA montar</button></section>`;
   return `<section class="card wcard"><div class="card-h"><span class="label">${ic('dumbbell')}Treino</span><span class="pill">Em preparação</span></div>
@@ -3327,7 +3329,7 @@ const WK_ART = '<span class="w-art" aria-hidden="true"><svg viewBox="0 0 372 330
 const WK_ART2 = '<span class="w-art" aria-hidden="true"><svg viewBox="0 0 372 330" preserveAspectRatio="none"><path class="rc-g" d="M-20 256 C 70 206 150 320 240 260 S 340 196 400 234"/><path class="rc-r" d="M-20 236 C 70 186 150 300 240 240 S 340 176 400 214"/></svg></span>';
 const HC_ART = '<span class="w-art" aria-hidden="true"><svg viewBox="0 0 372 300" preserveAspectRatio="none"><path d="M-20 214 C 70 192 150 236 240 212 S 340 190 400 206"/></svg></span>';
 const TDAYS_L = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
-const diasLivres = () => !!(ACCT && ACCT.mode==='personal' && !(ACCT.dias||[]).length);
+const diasLivres = () => !!(ACCT && (ACCT.mode==='personal' || ACCT.mode==='self') && !(ACCT.dias||[]).length); // sem dia fixo: treina no dia que der
 const tDays = () => ACCT && Array.isArray(ACCT.dias) && ACCT.dias.length ? ACCT.dias : diasLivres() ? [0,1,2,3,4,5,6] : [0,1,2,3,4];
 const isTrainDay = () => tDays().includes((new Date().getDay()+6)%7);
 function treinoCard(){
@@ -4529,7 +4531,7 @@ function vProfile(){
   const nome = isPersonal() ? ACCT.nome : (S.nome || 'Você'), pers = isPersonal();
   let pay = '';
   if(pers && ACCT.pagoAte){ const late = ACCT.pagoAte < today(); pay = `<span class="pay${late?' late':''}">${ic(late?'bell':'check')}${late?'Mensalidade em aberto desde '+dm(ACCT.pagoAte):'Mensalidade em dia até '+dm(ACCT.pagoAte)}</span>`; }
-  const dias = tDays().map(i => TDAYS_L[i]).join(', ');
+  const dias = diasLivres() ? 'Qualquer dia · '+SEMANA_TREINOS+'x' : tDays().map(i => TDAYS_L[i]).join(', ');
   const planRO = pers ? `<div class="prefs"><div class="pref-h"><b>Seu plano</b><span>${esc(ACCT.plano||'')}</span></div>
     <div class="plan-ro"><div><b>${ED[S.ed]?ED[S.ed].nome:'—'}</b><span>objetivo</span></div><div><b>${dias}</b><span>dias de treino</span></div><div><b>${fmtL(S.waterGoal)}</b><span>água por dia</span></div><div><b>${S.cardioGoal} min</b><span>cardio na semana · ${CARDIO.zona}</span></div></div>
     <p class="lock-note">${ic('lock')}Definido pelo seu personal.</p></div>` : '';

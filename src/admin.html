@@ -2419,7 +2419,7 @@ function tNotas(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '6 nov · 51'; // Versão do painel: 6 nov · 51
+const PAINELV = '6 nov · 52'; // Versão do painel: 6 nov · 52
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -2575,7 +2575,7 @@ function vPerfilAuto(id){
     return h+'<section class="card"><p class="muted" style="margin:0">'+msg+'</p>'+(c.st && c.st!=='indo' ? '<div class="btn-row"><button type="button" class="btn small" data-a="pfAutoRefresh">'+ic('refresh')+'Tentar de novo</button></div>' : '')+'</section>';
   }
   const st = c.v.s || {}, cn = st.conta || {}, pg = pfAutoProg(st, c.v.em);
-  const nd = (() => { const u = new Set(); Object.values(cn.treinos||{}).forEach(t => (t.dias||[]).forEach(d => u.add(+d))); return u.size || (cn.dias||[]).length || 0; })();
+  const nd = (() => { const u = new Set(); Object.values(cn.treinos||{}).forEach(t => (t.dias||[]).forEach(d => u.add(+d))); return u.size || +cn.semana || (cn.ia && ((cn.ia.dias||[]).length || +cn.ia.n)) || (cn.dias||[]).length || 0; })();
   const a = { _id:'auto:'+id, uid:id, perfil:{ nome, sexo:p.sexo }, metas:{ semanaTreinos:nd, cardioGoal:+st.cardioGoal||0, waterGoal:+st.waterGoal||0 }, _pg:pg };
   const hoje = +((st.water||{})[today()])||0, wg = +st.waterGoal||0;
   h += '<section class="card"><span class="label">'+ic('drop')+'Água de hoje</span><p class="ev2-frase"><b>'+fmtN(hoje/1000,1)+' L</b> de '+fmtN(wg/1000,1)+' L'+(wg && hoje>=wg ? ' · meta batida' : wg ? ' · faltam '+fmtN(Math.max(0,wg-hoje)/1000,1)+' L' : '')+'</p>'+ev2Bar(hoje, wg)+'<p class="foot">Meta de cardio: '+(+st.cardioGoal||0)+' min por semana.</p></section>';
