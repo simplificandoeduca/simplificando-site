@@ -312,6 +312,9 @@ button.row:hover{background:var(--ctl)}
 .sumrow span{font-size:11.5px;color:var(--muted)}
 @media (max-width:520px){.sumrow{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .exs{display:flex;flex-direction:column;gap:10px}
+.exc.dragging,.tletter.dragging{position:relative;z-index:20;box-shadow:0 18px 40px -12px rgba(0,0,0,.45),0 0 0 2px var(--brand);transition:none!important;cursor:grabbing}
+.drag-sib{transition:transform .18s ease}.exs.sorting .exc>:not(.exc-h){display:none!important}.exs.sorting .exc{gap:0;padding:10px 14px}.exs.sorting .exc-tools{display:none}.is-dragging{user-select:none;-webkit-user-select:none}
+[data-drag]{-webkit-touch-callout:none}
 .exc{background:var(--card);box-shadow:inset 0 0 0 1px var(--card-line);border-radius:24px;padding:14px;display:flex;flex-direction:column;gap:12px;position:relative;min-width:0}
 .exc-h{display:flex;align-items:flex-start;gap:10px}
 .gsq{display:inline-block;width:11px;height:11px;border-radius:3px;background:var(--g);margin-right:6px;vertical-align:-1px;flex:none}
@@ -2155,15 +2158,15 @@ function builder(col,id){
   const x = ctxOf(col,id), pl = x.pl, Ls = letters(pl), key = col+id;
   if(!Ls.includes(ui.tl[key])) ui.tl[key] = Ls[0];
   const L = ui.tl[key], t = L ? pl.treinos[L] : null, deload = col==='alunos' && pl.deload;
-  const lets = Ls.map(l => '<button type="button" class="tletter'+(l===L?' on':'')+'" data-a="tl" data-v="'+l+'" aria-pressed="'+(l===L)+'" aria-label="Treino '+l+'">'+l+'</button>').join('')+(Ls.length<5?'<button type="button" class="tletter add" data-a="addTreino" aria-label="Adicionar treino '+LETRAS[Ls.length]+'">'+ic('plus')+'</button>':'');
-  let h = '<section class="card"><div class="card-h"><span class="label">'+ic('layers')+'Divisão '+(Ls.join('')||'vazia')+'</span><span class="calc-v" data-calc="plansum">'+calcPlanSum(col,id)+'</span></div><div class="tl-row" role="group" aria-label="Treinos do plano">'+lets+'</div></section>';
+  const lets = Ls.map((l,li) => '<button type="button" class="tletter'+(l===L?' on':'')+'" data-drag="tl" data-i="'+li+'" data-a="tl" data-v="'+l+'" aria-pressed="'+(l===L)+'" aria-label="Treino '+l+'">'+l+'</button>').join('')+(Ls.length<5?'<button type="button" class="tletter add" data-a="addTreino" aria-label="Adicionar treino '+LETRAS[Ls.length]+'">'+ic('plus')+'</button>':'');
+  let h = '<section class="card"><div class="card-h"><span class="label">'+ic('layers')+'Divisão '+(Ls.join('')||'vazia')+'</span><span class="calc-v" data-calc="plansum">'+calcPlanSum(col,id)+'</span></div><div class="tl-row" role="group" aria-label="Treinos do plano">'+lets+'</div>'+(Ls.length>1 ? '<p class="foot">Segure uma letra e arraste para mudar a ordem dos treinos.</p>' : '')+'</section>';
   if(!t) return h+'<section class="card ph"><span class="label">'+ic('dumbbell')+'Nenhum treino ainda</span><p class="muted">Crie o treino A e adicione exercícios da biblioteca'+(col==='alunos'?', ou aplique um modelo pronto.':'.')+'</p><div class="btn-row"><button type="button" class="btn primary" data-a="addTreino">'+ic('plus')+'Criar treino A</button>'+(col==='alunos'?'<button type="button" class="btn" data-a="iaOpen">'+ic('bolt')+'Gerar com IA</button><button type="button" class="btn" data-a="vozOpen">'+ic('mic')+'Montar falando</button><button type="button" class="btn" data-a="tplApply">'+ic('layers')+'Aplicar modelo</button>':'')+'</div></section>';
   const tb = x.pre+'treinos.'+L+'.';
   h += '<section class="card"><div class="card-h"><span class="label">'+ic('dumbbell')+'Treino '+L+'</span><div class="btn-row"><button type="button" class="btn small" data-a="dupTreino"'+(Ls.length>=5?' disabled':'')+'>'+ic('dup')+'Duplicar</button>'+armBtn('delTreino',L,'Excluir','Toque de novo para excluir')+'</div></div>'+
     '<div class="form">'+inp({b:tb+'nome',label:'Nome do treino',val:t.nome,ph:'Ex.: Inferiores'})+inp({b:tb+'foco',label:'Foco',val:t.foco,ph:'Ex.: Quadríceps e glúteo'})+'</div>'+
     '<div class="sumrow" data-calc="trsum" data-l="'+L+'">'+calcTrSum(col,id,L)+'</div>'+(deload?'<p class="callout">'+ic('alert')+'<span>Semana de deload ligada: o app do aluno mostra metade das séries e as cargas sugeridas caem para cerca de 60%.</span></p>':'')+'</section>';
   const exs = (t.ex||[]).map((e,i) => exCard(e,i,t.ex,tb+'ex.'+i+'.',col,id,L)).join('');
-  h += ((t.ex||[]).length ? '<div class="exs-bar"><span>'+plural(t.ex.length,'exercício')+'</span><button type="button" class="btn small ghost" data-a="exAll">'+ic('chev')+(EXALL ? 'Abrir todos' : 'Recolher todos')+'</button></div>' : '')+'<div class="exs">'+(exs || '<section class="card ph"><p class="muted">Treino '+L+' sem exercícios. Adicione da biblioteca ou crie um novo.</p></section>')+'</div>'+
+  h += ((t.ex||[]).length ? '<div class="exs-bar"><span>'+plural(t.ex.length,'exercício')+(t.ex.length>1 ? ' · segure para arrastar' : '')+'</span><button type="button" class="btn small ghost" data-a="exAll">'+ic('chev')+(EXALL ? 'Abrir todos' : 'Recolher todos')+'</button></div>' : '')+'<div class="exs">'+(exs || '<section class="card ph"><p class="muted">Treino '+L+' sem exercícios. Adicione da biblioteca ou crie um novo.</p></section>')+'</div>'+
     '<div class="add-row"><button type="button" class="btn primary" data-a="pick">'+ic('plus')+'Adicionar exercício</button></div>';
   return h;
 }
@@ -2194,7 +2197,7 @@ function exCard(e,i,arr,b,col,id,L){
   const n = arr.length;
   const rirOpts = [['','Sem alvo'],['0','0'],['1','1'],['2','2'],['3','3'],['4','4'],['5','5']];
   const cues = e.cues || ['','',''];
-  const h0 = '<article class="exc'+(exMin(e)?' min':'')+'" aria-label="Exercício '+(i+1)+'"><div class="exc-h"><span class="num">'+(i+1)+'</span><div class="nm"><label class="sr" for="'+fid(b+'nome')+'">Nome do exercício '+(i+1)+'</label><input id="'+fid(b+'nome')+'" data-b="'+esc(b+'nome')+'" data-t="s" value="'+esc(e.nome||'')+'" placeholder="Nome do exercício" autocomplete="off"><span class="exc-g">'+grpSq(e.alvo)+esc(e.alvo||'Grupo não definido')+(e.exId && C.exercicios[e.exId] ? ' · da biblioteca' : '')+rankTag(e)+'</span>'+(exMin(e) ? '<span class="exc-s">'+esc([e.s ? e.s+' × '+(e.r||'—') : '', e.kg!=null && e.kg!=='' ? fmtN(e.kg,1)+' kg' : '', e.d ? e.d+' s' : '', e.aq ? 'aquecimento' : ''].filter(Boolean).join(' · '))+'</span>' : '')+
+  const h0 = '<article class="exc'+(exMin(e)?' min':'')+'" data-drag="ex" data-i="'+i+'" aria-label="Exercício '+(i+1)+'"><div class="exc-h"><span class="num">'+(i+1)+'</span><div class="nm"><label class="sr" for="'+fid(b+'nome')+'">Nome do exercício '+(i+1)+'</label><input id="'+fid(b+'nome')+'" data-b="'+esc(b+'nome')+'" data-t="s" value="'+esc(e.nome||'')+'" placeholder="Nome do exercício" autocomplete="off"><span class="exc-g">'+grpSq(e.alvo)+esc(e.alvo||'Grupo não definido')+(e.exId && C.exercicios[e.exId] ? ' · da biblioteca' : '')+rankTag(e)+'</span>'+(exMin(e) ? '<span class="exc-s">'+esc([e.s ? e.s+' × '+(e.r||'—') : '', e.kg!=null && e.kg!=='' ? fmtN(e.kg,1)+' kg' : '', e.d ? e.d+' s' : '', e.aq ? 'aquecimento' : ''].filter(Boolean).join(' · '))+'</span>' : '')+
     '</div>'+
     '<div class="exc-tools">'+(exMin(e) ? '' : '<button type="button" class="ibtn" data-a="mvEx" data-i="'+i+'" data-d="-1" aria-label="Subir exercício"'+(i===0?' disabled':'')+'>'+ic('up')+'</button><button type="button" class="ibtn" data-a="mvEx" data-i="'+i+'" data-d="1" aria-label="Descer exercício"'+(i===n-1?' disabled':'')+'>'+ic('down')+'</button><button type="button" class="ibtn" data-a="dupEx" data-i="'+i+'" aria-label="Duplicar exercício">'+ic('dup')+'</button>'+armIco('delEx',i,'Remover exercício','Toque de novo para remover'))+'<button type="button" class="ibtn exc-tg'+(exMin(e)?'':' on')+'" data-a="exTg" data-k="'+esc(e.id||i)+'" aria-expanded="'+!exMin(e)+'" aria-label="'+(exMin(e)?'Abrir':'Recolher')+' exercício">'+ic('chev')+'</button></div></div>';
   if(exMin(e)) return h0+'</article>';
@@ -2766,7 +2769,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '7 nov · 63'; // Versão do painel: 7 nov · 63
+const PAINELV = '7 nov · 64'; // Versão do painel: 7 nov · 64
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -3725,6 +3728,10 @@ function act(a,d,btn){
     case 'delLesao': { A.saude.lesoes.splice(+d.k,1); Store.save('alunos',ui.aluno,0); break; }
     case 'sugAgua': { const w = num(P(A).peso); if(w){ A.metas.waterGoal = Math.round(w*35/50)*50; Store.save('alunos',ui.aluno,0); toast('Meta de água: '+fmtN(A.metas.waterGoal)+' ml'); } break; }
     case 'tl': { const x = curCtx(); ui.tl[x.col+x.id] = d.v; break; }
+    case 'dragEx': { const x = curCtx(), t = x.pl.treinos[curL(x)], i = +d.from, j = +d.to; if(!t || i===j || i<0 || j<0 || i>=t.ex.length || j>=t.ex.length) break; const [e] = t.ex.splice(i,1); t.ex.splice(j,0,e); saveCtx(x); toast(e.nome+' agora é o '+(j+1)+'º'); break; }
+    case 'dragTl': { const x = curCtx(), Ls = letters(x.pl), i = +d.from, j = +d.to; if(i===j || i<0 || j<0 || i>=Ls.length || j>=Ls.length) break;
+      const cur = curL(x), ord = Ls.slice(); const [m] = ord.splice(i,1); ord.splice(j,0,m); const T = {}; ord.forEach((l,k) => T[LETRAS[k]] = x.pl.treinos[l]); x.pl.treinos = T;
+      ui.tl[x.col+x.id] = LETRAS[ord.indexOf(cur)]; saveCtx(x); toast('Treino '+m+' agora é o Treino '+LETRAS[j]); break; }
     case 'addTreino': { const x = curCtx(), Ls = letters(x.pl); if(Ls.length>=5) break; const L = LETRAS[Ls.length]; x.pl.treinos[L] = {nome:'',foco:'',min:0,ex:[]}; ui.tl[x.col+x.id] = L; saveCtx(x); break; }
     case 'dupTreino': { const x = curCtx(), Ls = letters(x.pl), L = curL(x); if(Ls.length>=5 || !x.pl.treinos[L]) break; const N = LETRAS[Ls.length], t = clone(x.pl.treinos[L]); t.ex = (t.ex||[]).map(e => Object.assign(e,{id:newExId(e.exId||e.id)})); t.nome = (t.nome||'Treino '+L)+' (cópia)'; x.pl.treinos[N] = t; ui.tl[x.col+x.id] = N; saveCtx(x); toast('Treino '+L+' duplicado como '+N); break; }
     case 'delTreino': { const x = curCtx(), L = d.k; const rest = letters(x.pl).filter(l => l!==L).map(l => x.pl.treinos[l]); x.pl.treinos = {}; rest.forEach((t,i) => { x.pl.treinos[LETRAS[i]] = t; }); ui.tl[x.col+x.id] = LETRAS[0]; saveCtx(x,0); break; }
@@ -3863,6 +3870,43 @@ document.addEventListener('click', e => {
   const re = act(a,d,el);
   if(re){ render(); if(['go','open','dtab','back','openTpl','backTpl','newTpl'].includes(a)){ const t = a==='dtab' ? document.querySelector('.dtab.on') : null; if(t){ t.focus({preventScroll:true}); t.scrollIntoView({block:'nearest',inline:'center'}); } } }
 });
+/* segurar e arrastar: exercícios do treino (vertical) e letras da divisão (horizontal) */
+(() => {
+  let P = null, blockClick = false;
+  const isField = t => t.closest('input,textarea,select,a,[contenteditable],.switch,details>summary');
+  const clear = () => { if(!P) return; clearTimeout(P.tm); cancelAnimationFrame(P.raf); if(P.box) P.box.classList.remove('sorting'); if(P.el) { P.el.classList.remove('dragging'); P.el.style.transform = ''; } P.items && P.items.forEach(x => { x.style.transform = ''; x.classList.remove('drag-sib'); }); document.body.classList.remove('is-dragging'); P = null; };
+  document.addEventListener('pointerdown', e => {
+    if(e.button>0) return; const el = e.target.closest('[data-drag]'); if(!el || (el.dataset.drag==='ex' && isField(e.target))) return;
+    const kind = el.dataset.drag, box = el.parentElement, items = [...box.querySelectorAll(':scope > [data-drag="'+kind+'"]')]; if(items.length<2) return;
+    P = { el, kind, items, from:+el.dataset.i, to:+el.dataset.i, x0:e.clientX, y0:e.clientY, cx:e.clientX, cy:e.clientY, sy:window.scrollY, on:false, id:e.pointerId };
+    P.tm = setTimeout(() => { if(!P) return; P.on = true;
+      if(kind==='ex'){ box.classList.add('sorting'); const r = el.getBoundingClientRect(); window.scrollBy(0, (r.top + r.height/2) - P.cy); P.y0 = P.cy; } // recolhe tudo enquanto arrasta e deixa o cartão embaixo do dedo
+      P.box = box; P.rects = items.map(x => x.getBoundingClientRect()); P.sy = window.scrollY; el.classList.add('dragging'); items.forEach(x => x !== el && x.classList.add('drag-sib')); document.body.classList.add('is-dragging'); P.raf = requestAnimationFrame(rolar); try { navigator.vibrate && navigator.vibrate(15); } catch(_){} }, 350);
+  }, true);
+  // posição do dedo na página (conta a rolagem) contra a borda de cada cartão: passou 40 px da borda do vizinho, troca
+  const mover = () => {
+    if(!P || !P.on) return; const hz = P.kind==='tl', R = P.rects, me = R[P.from];
+    const sY = hz ? 0 : window.scrollY - P.sy, cx = hz ? P.cx : P.cy + sY, d = hz ? P.cx - P.x0 : P.cy - P.y0 + sY;
+    let to = P.from;
+    R.forEach((r,k) => { const a = hz ? r.left : r.top, z = hz ? r.right : r.bottom, m = Math.min(40, (z-a)/2);
+      if(k>P.from && cx > a + m) to = Math.max(to,k); if(k<P.from && cx < z - m) to = Math.min(to,k); });
+    P.to = to; P.el.style.transform = hz ? 'translateX('+d+'px) scale(1.06)' : 'translateY('+d+'px) scale(1.02)';
+    const gap = hz ? me.width+8 : me.height+12;
+    P.items.forEach((x,k) => { if(x===P.el) return; const sh = (k>P.from && k<=to) ? -gap : (k<P.from && k>=to) ? gap : 0; x.style.transform = sh ? (hz ? 'translateX('+sh+'px)' : 'translateY('+sh+'px)') : ''; });
+  };
+  const rolar = () => { if(!P || !P.on || P.kind==='tl') return; const y = P.cy, h = window.innerHeight, v = y < 90 ? -Math.ceil((90-y)/6) : y > h-110 ? Math.ceil((y-(h-110))/6) : 0; if(v){ window.scrollBy(0, v); mover(); } P.raf = requestAnimationFrame(rolar); };
+  document.addEventListener('pointermove', e => {
+    if(!P || e.pointerId!==P.id) return; P.cx = e.clientX; P.cy = e.clientY;
+    if(!P.on){ if(Math.hypot(e.clientX-P.x0, e.clientY-P.y0)>8) clear(); return; }
+    e.preventDefault(); mover();
+  }, { passive:false });
+  document.addEventListener('touchmove', e => { if(P && P.on) e.preventDefault(); }, { passive:false });
+  const end = e => { if(!P) return; const was = P.on, kind = P.kind, from = P.from, to = P.to; clear();
+    if(was){ blockClick = true; setTimeout(() => blockClick = false, 400); if(from!==to){ act(kind==='tl' ? 'dragTl' : 'dragEx', { from:String(from), to:String(to) }); render(); } } };
+  document.addEventListener('pointerup', end, true); document.addEventListener('pointercancel', () => clear(), true);
+  document.addEventListener('click', e => { if(blockClick){ e.preventDefault(); e.stopPropagation(); blockClick = false; } }, true);
+  document.addEventListener('contextmenu', e => { if(e.target.closest && e.target.closest('[data-drag]') && !isField(e.target)) e.preventDefault(); });
+})();
 document.addEventListener('keydown', e => {
   if(e.key==='Escape' && ui.sheet){ closeSheet(); return; }
   if(e.key==='Tab' && ui.sheet){ const s = document.querySelector('.sheet'); if(!s) return; const f = Array.from(s.querySelectorAll('button:not([disabled]),input,select,textarea,a[href]')).filter(x => x.offsetParent!==null); if(!f.length) return; const first = f[0], last = f[f.length-1]; if(e.shiftKey && document.activeElement===first){ e.preventDefault(); last.focus(); } else if(!e.shiftKey && document.activeElement===last){ e.preventDefault(); first.focus(); } }
