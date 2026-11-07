@@ -1084,9 +1084,9 @@ const XA = (() => {
       pose: t => { const A = [128, AY], H = [124, 233], b = body(H, 166, 4), ua = lerp(144, 14, t), fa = ua + lerp(8, 2, t);
         return mk(b, legTo(H, A, FWD), legTo(far(H), far(A), FWD), armAng(b.S, ua, fa), armAng(far(b.S), ua, fa)); },
       back: b => { const p = [270, 74]; return rect(280, 58, 12, GY - 58, 3) + pulley(p) + cable(p, b.nA.W); }, front: b => grip(b.nA.W, true), mov: b => b.nA.W },
-    // glúteo na polia (coice): tronco inclinado, a perna sai da frente (joelho dobrado) e vai bem para trás sem girar o quadril
+    // glúteo na polia (coice): tronco inclinado ~34°, a perna começa com o joelho a 90° (canela para trás) e vai para trás e para cima até quase esticar
     coicepolia: { ord: 'up', verbs: ['Leva', 'Volta'], eq: 'Polia', mus: [['glutes'], ['hams']],
-      pose: t => { const A = [150, AY], H = [146, 231], b = body(H, 157, -6), th = lerp(26, -46, t), sh = lerp(-14, -52, Math.sqrt(t)), hold = [232, 190];
+      pose: t => { const A = [146, AY], H = [140, 233], b = body(H, 146, -4), th = lerp(8, -46, t), sh = lerp(-82, -54, t), hold = [236, 204];
         return mk(b, legAng(H, th, sh, sh + 90), legTo(far(H), far(A), FWD), armTo(b.S, hold, DOWN), armTo(far(b.S), far(hold), DOWN)); },
       back: b => { const p = [236, GY - 18]; return rect(244, 120, 12, GY - 120, 3) + pulley(p) + cable(p, add(b.nL.A, [2, -4])); },
       front: b => `<circle cx="${f(b.nL.A[0])}" cy="${f(b.nL.A[1] - 4)}" r="7.5" fill="none" stroke="${GRIP}" stroke-width="3"/>`, mov: b => b.nL.A },
@@ -1098,8 +1098,8 @@ const XA = (() => {
       front: b => `<circle cx="${f(b.nL.A[0])}" cy="${f(b.nL.A[1] - 4)}" r="7.5" fill="none" stroke="${GRIP}" stroke-width="3"/>`, mov: b => b.nL.A },
     // mesa flexora: deitado de bruços, o rolo atrás do tornozelo sobe em direção ao glúteo
     flexora: { ord: 'up', verbs: ['Flexiona', 'Volta'], eq: 'Máquina', mus: [['hams'], ['calves']], view: [.82, 8],
-      pose: t => { const H = [150, 290], b = body(H, 90, 8), sh = lerp(-92, -204, t), L = H2 => legAng(H2, -90, sh, sh + 90), W = add(b.S, [14, 36]);
-        return mk(b, L(H), L(far(H)), armTo(b.S, W, FWD), armTo(far(b.S), far(W), FWD)); },
+      pose: t => { const H = [150, 290], b = body(H, 90, 8), sh = lerp(-92, -204, t), L = H2 => legAng(H2, -90, sh, sh + 90), W = add(b.S, [40, 46]); // braços descem ao lado do banco e seguram a pegada embaixo, à frente do ombro
+        return mk(b, L(H), L(far(H)), armTo(b.S, W, [-.6, 1]), armTo(far(b.S), far(W), [-.6, 1])); },
       back: b => { const K = b.nL.K, A = b.nL.A, d = nrm(sub(A, K)), n = [-d[1], d[0]], roll = add(add(A, d, -8), n, 14);
         return bench(36, 286, 314) + `<circle cx="${f(K[0])}" cy="${f(K[1])}" r="11" fill="${PROP2}"/>` + bar(K, roll, 7, PROP2); },
       front: b => { const K = b.nL.K, A = b.nL.A, d = nrm(sub(A, K)), n = [-d[1], d[0]], roll = add(add(A, d, -8), n, 14); return `<circle cx="${f(roll[0])}" cy="${f(roll[1])}" r="9.5" fill="${PLATE}" stroke="#FFFFFF" stroke-width="1.6"/>`; },
@@ -2313,7 +2313,7 @@ function tTreino(a){
     inp({b:b('frequencia'),label:'Frequência',val:pl.frequencia,t:'i',unit:'x por semana',v:'range',min:1,max:14})+
     txa({b:b('objetivoCiclo'),label:'Objetivo do ciclo',val:pl.objetivoCiclo,ph:'O que este ciclo precisa entregar',cls:'wide',rows:2})+'</div>'+
     swB({b:b('deload'),label:'Semana de deload',sub:'Corta as séries pela metade e alivia as cargas no app do aluno.',val:!!pl.deload})+
-    '<div class="btn-row"><button type="button" class="btn small primary" data-a="iaOpen">'+ic('bolt')+'Gerar com IA</button><button type="button" class="btn small" data-a="vozOpen">'+ic('mic')+'Montar falando</button><button type="button" class="btn small" data-a="tplApply">'+ic('layers')+'Aplicar modelo</button><button type="button" class="btn small" data-a="pdfTreino">'+ic('note')+'Treino em PDF</button>'+armBtn('rirAll',id,'RIR 0–1 em todos','Toque de novo: todos os exercícios ficam com RIR 0–1','small','')+(a.teste ? '' : '<button type="button" class="btn small" data-a="copyOpen">'+ic('users')+'Copiar de outro aluno</button>')+'<button type="button" class="btn small" data-a="tplSave"'+(letters(pl).length?'':' disabled')+'>'+ic('save')+'Salvar como modelo</button></div></section>'+
+    '<div class="btn-row"><button type="button" class="btn small primary" data-a="iaOpen">'+ic('bolt')+'Gerar com IA</button><button type="button" class="btn small" data-a="vozOpen">'+ic('mic')+'Montar falando</button><button type="button" class="btn small" data-a="tplApply">'+ic('layers')+'Aplicar modelo</button><button type="button" class="btn small" data-a="pdfTreino">'+ic('note')+'Baixar treino em PDF</button><button type="button" class="btn small" data-a="pdfMsg">'+ic('msg')+'Mensagem do PDF</button>'+armBtn('rirAll',id,'RIR 0–1 em todos','Toque de novo: todos os exercícios ficam com RIR 0–1','small','')+(a.teste ? '' : '<button type="button" class="btn small" data-a="copyOpen">'+ic('users')+'Copiar de outro aluno</button>')+'<button type="button" class="btn small" data-a="tplSave"'+(letters(pl).length?'':' disabled')+'>'+ic('save')+'Salvar como modelo</button></div></section>'+
     builder('alunos',id);
 }
 
@@ -2792,7 +2792,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '7 nov · 68'; // Versão do painel: 7 nov · 68
+const PAINELV = '7 nov · 73'; // Versão do painel: 7 nov · 73
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -3250,6 +3250,15 @@ function vSheet(){
   if(s.k==='copyFrom'){ const a = C.alunos[ui.aluno]; if(!a) return '';
     return sheetTop('Treino','Copiar de outro aluno')+'<p class="muted">Os treinos de quem você escolher substituem os treinos atuais de '+esc(curto(Object.assign({_id:ui.aluno}, a)))+'. Nome e validade do ciclo continuam. O aluno original não muda.</p>'+copyRows(Object.assign({_id:ui.aluno}, a));
   }
+  if(s.k==='pdfMsg'){ const a = C.alunos[ui.aluno]; if(!a) return ''; const A2 = Object.assign({_id:ui.aluno}, a), t = pdfMsgTxt(A2), wa = String(P(A2).whatsapp||'').replace(/\D/g,'');
+    pdfPrepara(A2); const pr = PDFA.aid===ui.aluno ? PDFA.st : 'indo';
+    return sheetTop('Treino de '+curto(A2),'Mensagem do PDF')+
+      '<button type="button" class="btn primary block pm-go" data-a="pmEnviar"'+(pr==='ok' ? '' : ' disabled')+'>'+ic('msg')+(pr==='ok' ? 'Enviar PDF + mensagem no WhatsApp' : pr==='erro' ? 'Não deu para montar o PDF' : 'Preparando o PDF…')+'</button>'+
+      '<p class="foot">No celular, abre o compartilhar com o PDF e a mensagem: escolha o WhatsApp e o contato de '+esc(curto(A2))+'. A mensagem também fica copiada; se não for junto, é só colar.</p>'+
+      '<label class="sr" for="pm-txt">Mensagem</label><textarea id="pm-txt" class="share" rows="12">'+esc(t)+'</textarea>'+
+      '<div class="btn-row">'+(wa.length>=10 ? '<a class="btn" href="https://wa.me/'+(wa.length<=11?'55':'')+wa+'?text='+encodeURIComponent(t)+'" target="_blank" rel="noopener">'+ic('msg')+'Só a mensagem</a>' : '')+'<button type="button" class="btn" data-a="pmCopy">'+ic('copy')+'Copiar mensagem</button><button type="button" class="btn ghost" data-a="pdfTreino">'+ic('note')+'Baixar o PDF</button></div>'+
+      '<p class="foot">'+(wa.length>=10 ? 'O WhatsApp abre na conversa com '+esc(curto(A2))+'. ' : 'Sem WhatsApp no cadastro: copie e cole na conversa. ')+'O PDF é anexado à parte, pelo clipe do WhatsApp.</p>';
+  }
   if(s.k==='contato'){ const t = contatoTxt();
     return sheetTop('Novo aluno','Mensagem do primeiro contato')+'<p class="muted">Mande para quem quer começar a treinar com você. Quando a pessoa responder, crie o aluno e cole a resposta em Perfil › Primeiro contato: o painel preenche o perfil sozinho.</p>'+
       '<label class="sr" for="ct-txt">Mensagem</label><textarea id="ct-txt" class="share" rows="14" readonly>'+esc(t)+'</textarea>'+
@@ -3495,7 +3504,7 @@ document.addEventListener('change', e => {
 /* ---------- ações ---------- */
 function curAluno(){ return ui.aluno ? C.alunos[ui.aluno] : null; }
 function curCtx(){ return ui.view==='modelos' && ui.modelo ? ctxOf('modelos',ui.modelo) : ctxOf('alunos',ui.aluno); }
-function saveCtx(x,delay){ normPlan(x.pl); C[x.col][x.id].atualizadoEm = new Date().toISOString(); Store.save(x.col,x.id,delay==null?150:delay); }
+function saveCtx(x,delay){ if(x && x.col==='alunos' && PDFA.aid===x.id){ PDFA.aid = ''; PDFA.st = ''; PDFA.file = null; } normPlan(x.pl); C[x.col][x.id].atualizadoEm = new Date().toISOString(); Store.save(x.col,x.id,delay==null?150:delay); }
 function curL(x){ return ui.tl[x.col+x.id]; }
 function newExId(base){ return String(base||'ex').replace(/^ex-/,'').slice(0,20)+'-'+Math.random().toString(36).slice(2,6); }
 /* ---------- importar alunos de um arquivo (treinos que vieram de planilha) ---------- */
@@ -3719,6 +3728,83 @@ function vozSheet(){
       '<button type="button" class="btn ghost block" data-a="vozClear">'+ic('trash')+'Apagar e falar de novo</button>' : '');
 }
 /* treino em PDF: abre uma página com cada exercício (nome, desenho do movimento, séries) para o aluno conferir na academia */
+/* mensagem para mandar junto com o PDF do treino */
+function pdfMsgTxt(a){
+  const c = cfg(), n = Object.values((a.plano||{}).treinos||{}).reduce((t,x) => t+((x.ex||[]).length),0);
+  return 'Oi, '+curto(a)+'! 🎉 Seu treino está pronto!\n\n'+
+    'Segue o PDF com '+(n ? 'os '+n+' exercícios' : 'todos os exercícios')+', com o desenho de como cada um é feito. 📄\n\n'+
+    'Antes de começar, dá uma olhada com calma e me responde:\n\n'+
+    '1️⃣ *Execução:* você já sabe fazer todos os exercícios? Se tiver algum que você não conhece ou não tem certeza de como fazer, me fala qual que eu te passo o movimento correto. 🎥\n\n'+
+    '2️⃣ *Aparelhos:* a sua academia tem todos os aparelhos do treino? Se faltar algum, me avisa que eu troco por outro que trabalhe o mesmo músculo. 🔄\n\n'+
+    'Pode responder com o nome ou o número do exercício. Se estiver tudo certo, é só abrir o app e começar! 💪'+(c.nomePersonal ? '\n\n'+c.nomePersonal : '');
+}
+/* PDF de verdade (arquivo) para mandar pelo botão de compartilhar do celular, junto com a mensagem */
+const PDFA = { aid:'', st:'', file:null, url:'' };
+function libPdf(){ return window.jspdf ? Promise.resolve(window.jspdf) : new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'fb/jspdf.umd.min.js'; sc.onload = () => window.jspdf ? ok(window.jspdf) : no(new Error('jspdf')); sc.onerror = no; document.head.appendChild(sc); }); }
+function figPng(e, t, sfx){
+  return new Promise(ok => { let svg = ''; try { svg = XA.pick(e) ? XA.figure(e, 0, t, sfx) : ''; } catch(err){ svg = ''; } if(!svg) return ok(null);
+    const vb = XA.FIGVB.split(' ').map(Number), W = 360, Hh = Math.round(W*vb[3]/vb[2]);
+    const src = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="'+XA.FIGVB+'" width="'+W+'" height="'+Hh+'">'+svg+'</svg>', im = new Image();
+    im.onload = () => { const cv = document.createElement('canvas'); cv.width = W; cv.height = Hh; const cx = cv.getContext('2d'); cx.fillStyle = '#F6F5EF'; cx.fillRect(0,0,W,Hh); cx.drawImage(im,0,0,W,Hh); ok({ d:cv.toDataURL('image/jpeg', .85), r:Hh/W }); };
+    im.onerror = () => ok(null); im.src = 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(src); });
+}
+const pdfTxt = t => String(t||'').replace(/[→⇒]/g,'->').replace(/[“”]/g,'"').replace(/[‘’]/g,"'").replace(/[^\u0000-ÿ–—•…]/g,'');
+async function pdfArquivo(a){
+  const { jsPDF } = await libPdf(), pl = a.plano || {}, Ls = letters(pl), doc = new jsPDF({ unit:'mm', format:'a4' }), c = cfg(), pi = planInfo(a);
+  const M = 14, PW = 210, PH = 297, FW = 34; let y = M, n = 0;
+  const novaPag = h => { if(y + h > PH - M){ doc.addPage(); y = M; } };
+  doc.setFont('helvetica','bold'); doc.setFontSize(20); doc.setTextColor(15,23,18); doc.text(pdfTxt('Treino de '+nomeDe(a)), M, y+6);
+  doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(91,98,93); doc.text(pdfTxt(['Simplificando', c.nomePersonal||'', pl.nome||'', pi && pi.fim ? 'válido até '+fmtD(pi.fim) : ''].filter(Boolean).join(' · ')), M, y+12);
+  doc.setDrawColor(255,70,70); doc.setLineWidth(.8); doc.line(M, y+15, PW-M, y+15); y += 21;
+  doc.setTextColor(61,68,64); doc.setFontSize(10); doc.text(doc.splitTextToSize('Confira se você sabe fazer cada exercício e se a sua academia tem cada aparelho. Se faltar algum ou se tiver dúvida, me avise que eu ajusto.', PW-2*M), M, y); y += 10;
+  for(const l of Ls){
+    const t = pl.treinos[l] || {}; novaPag(16);
+    doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(15,23,18); doc.text(pdfTxt('Treino '+l+(t.nome ? ' · '+t.nome : '')), M, y+5); y += 8;
+    if(t.foco){ doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(91,98,93); doc.text(pdfTxt(t.foco), M, y+2); y += 5; }
+    for(const [i,e] of (t.ex||[]).entries()){
+      const f0 = await figPng(e, 0, 'q'+(n++)), f1 = await figPng(e, 1, 'q'+(n++)), fh = f0 ? FW*f0.r : 18;
+      const tx = M + (f0 ? 2*FW+6 : 0), tw = PW - M - tx, dicas = (e.cues||[]).filter(Boolean).map(d => '• '+d);
+      doc.setFontSize(9); const linhas = doc.splitTextToSize(pdfTxt(dicas.join('\n')), tw), obs = e.obs ? doc.splitTextToSize(pdfTxt(e.obs), tw) : [];
+      const h = Math.max(fh, 14 + linhas.length*4 + obs.length*4 + 6) + 4; novaPag(h);
+      doc.setDrawColor(227,226,218); doc.setLineWidth(.2); doc.line(M, y, PW-M, y); y += 3;
+      if(f0){ doc.addImage(f0.d, 'JPEG', M, y, FW, FW*f0.r); if(f1) doc.addImage(f1.d, 'JPEG', M+FW+2, y, FW, FW*f1.r); }
+      doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(15,23,18); doc.text(pdfTxt((i+1)+'. '+(e.nome||'Exercício')), tx, y+5);
+      doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(61,68,64);
+      doc.text(pdfTxt([e.alvo||'', (e.s||3)+' séries × '+(e.r||'-'), e.d ? 'descanso '+e.d+' s' : '', e.rir!=null && e.rir!=='' ? 'RIR '+String(e.rir).replace('-','–') : ''].filter(Boolean).join(' · ')), tx, y+10);
+      let yy = y+15; doc.setFontSize(9); if(linhas.length){ doc.text(linhas, tx, yy); yy += linhas.length*4; } if(obs.length){ doc.setFont('helvetica','italic'); doc.text(obs, tx, yy); yy += obs.length*4; doc.setFont('helvetica','normal'); }
+      doc.setFont('helvetica','bold'); doc.setTextColor(15,23,18); doc.text('Tem na sua academia?   (  ) Sim   (  ) Não', tx, yy+2);
+      y += h;
+    }
+    y += 3;
+  }
+  const nome = 'Treino-'+String(curto(a)).normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Za-z0-9]+/g,'-')+'.pdf';
+  return new File([doc.output('blob')], nome, { type:'application/pdf' });
+}
+function pdfPrepara(a){
+  if(PDFA.aid===a._id && (PDFA.st==='ok' || PDFA.st==='indo')) return;
+  PDFA.aid = a._id; PDFA.st = 'indo'; PDFA.file = null;
+  pdfArquivo(a).then(f => { if(PDFA.aid!==a._id) return; PDFA.file = f; PDFA.st = 'ok'; if(ui.sheet && ui.sheet.k==='pdfMsg') renderSheet(); })
+    .catch(() => { if(PDFA.aid!==a._id) return; PDFA.st = 'erro'; if(ui.sheet && ui.sheet.k==='pdfMsg') renderSheet(); });
+}
+function baixarArq(f){ const u = URL.createObjectURL(f), lk = document.createElement('a'); lk.href = u; lk.download = f.name; lk.rel = 'noopener'; document.body.appendChild(lk); lk.click(); lk.remove(); setTimeout(() => URL.revokeObjectURL(u), 60e3); }
+/* "Treino em PDF": baixa o arquivo direto, sem abrir página */
+function pdfBaixar(a){
+  if(PDFA.aid===a._id && PDFA.st==='ok' && PDFA.file){ baixarArq(PDFA.file); toast('Baixando '+PDFA.file.name); return; }
+  toast('Gerando o PDF…');
+  pdfArquivo(a).then(f => { PDFA.aid = a._id; PDFA.st = 'ok'; PDFA.file = f; baixarArq(f); toast('Baixando '+f.name); if(ui.sheet && ui.sheet.k==='pdfMsg') renderSheet(); })
+    .catch(() => toast('Não deu para gerar o PDF. Confira a internet e tente de novo.'));
+}
+function pdfEnviar(a){
+  const ta = document.getElementById('pm-txt'), txt = ta ? ta.value : pdfMsgTxt(a), f = PDFA.file;
+  if(!f){ toast('O PDF ainda está sendo preparado.'); return; }
+  copyText(txt); // a mensagem fica copiada: se o WhatsApp não levar o texto junto, é só colar
+  const podeArquivo = navigator.canShare && (() => { try { return navigator.canShare({ files:[f] }); } catch(e){ return false; } })();
+  if(podeArquivo){ navigator.share({ files:[f], text:txt, title:f.name }).then(() => toast('Enviado. Se a mensagem não foi junto, cole na conversa.')).catch(err => { if(err && err.name!=='AbortError') toast('Não deu para compartilhar. Use Baixar o PDF.'); }); return; }
+  // computador: baixa o PDF e abre a conversa com a mensagem
+  baixarArq(f);
+  const wa = String(P(a).whatsapp||'').replace(/\D/g,''); window.open(wa.length>=10 ? 'https://wa.me/'+(wa.length<=11?'55':'')+wa+'?text='+encodeURIComponent(txt) : 'https://wa.me/?text='+encodeURIComponent(txt), '_blank');
+  toast('PDF baixado. Anexe na conversa do WhatsApp que abriu.');
+}
 function treinoPdf(a){
   const pl = a.plano || {}, Ls = letters(pl), nome = nomeDe(a), c = cfg();
   if(!Ls.length){ toast('Monte o treino antes de gerar o PDF.'); return; }
@@ -3840,7 +3926,10 @@ function act(a,d,btn){
     case 'applyTpl': { const m = C.modelos[d.k]; if(!m || !A) break; A.plano = A.plano || {}; A.plano.treinos = cloneTreinos(m.treinos); if(!A.plano.nome) A.plano.nome = m.nome.replace(/\s*\(exemplo\)/,''); if(!isDate(A.plano.inicio)) A.plano.inicio = today(); ui.tl['alunos'+ui.aluno] = 'A'; normPlan(A.plano); Store.save('alunos',ui.aluno,0); closeSheet(); toast('Modelo aplicado'); break; }
     case 'copyOpen': openSheet({k:'copyFrom'}); return false;
     case 'rirAll': { if(!A || !A.plano) break; let n = 0; Object.values(A.plano.treinos||{}).forEach(t => (t.ex||[]).forEach(e => { e.rir = '0-1'; n++; })); Store.save('alunos', ui.aluno, 0); toast(plural(n,'exercício')+' com RIR 0–1'); break; }
-    case 'pdfTreino': { if(A) treinoPdf(Object.assign({_id:ui.aluno}, A)); return false; }
+    case 'pdfTreino': { if(A) pdfBaixar(Object.assign({_id:ui.aluno}, A)); return false; }
+    case 'pdfMsg': openSheet({k:'pdfMsg'}); return false;
+    case 'pmEnviar': { if(A) pdfEnviar(Object.assign({_id:ui.aluno}, A)); return false; }
+    case 'pmCopy': { const t = document.getElementById('pm-txt'); copyText(t ? t.value : '', t); return false; }
     case 'obAdd': case 'obDel': { if(!A) break; A.metas = A.metas || {}; const c = A.metas.cardio = A.metas.cardio || {}; const L = c.obrig = Array.isArray(c.obrig) ? c.obrig : [];
       if(a==='obAdd') L.push({ local:'Escada', min:40, vezes:3, dias:[], obs:'' }); else L.splice(+d.i,1);
       Store.save('alunos', ui.aluno, 0); break; }
