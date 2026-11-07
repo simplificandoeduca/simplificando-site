@@ -2313,7 +2313,7 @@ function tTreino(a){
     inp({b:b('frequencia'),label:'Frequência',val:pl.frequencia,t:'i',unit:'x por semana',v:'range',min:1,max:14})+
     txa({b:b('objetivoCiclo'),label:'Objetivo do ciclo',val:pl.objetivoCiclo,ph:'O que este ciclo precisa entregar',cls:'wide',rows:2})+'</div>'+
     swB({b:b('deload'),label:'Semana de deload',sub:'Corta as séries pela metade e alivia as cargas no app do aluno.',val:!!pl.deload})+
-    '<div class="btn-row"><button type="button" class="btn small primary" data-a="iaOpen">'+ic('bolt')+'Gerar com IA</button><button type="button" class="btn small" data-a="vozOpen">'+ic('mic')+'Montar falando</button><button type="button" class="btn small" data-a="tplApply">'+ic('layers')+'Aplicar modelo</button><button type="button" class="btn small" data-a="pdfTreino">'+ic('note')+'Treino em PDF</button>'+armBtn('rirAll',id,'RIR 0–1 em todos','Toque de novo: todos os exercícios ficam com RIR 0–1','small','')+(a.teste ? '' : '<button type="button" class="btn small" data-a="copyOpen">'+ic('users')+'Copiar de outro aluno</button>')+'<button type="button" class="btn small" data-a="tplSave"'+(letters(pl).length?'':' disabled')+'>'+ic('save')+'Salvar como modelo</button></div></section>'+
+    '<div class="btn-row"><button type="button" class="btn small primary" data-a="iaOpen">'+ic('bolt')+'Gerar com IA</button><button type="button" class="btn small" data-a="vozOpen">'+ic('mic')+'Montar falando</button><button type="button" class="btn small" data-a="tplApply">'+ic('layers')+'Aplicar modelo</button><button type="button" class="btn small" data-a="pdfTreino">'+ic('note')+'Treino em PDF</button><button type="button" class="btn small" data-a="pdfMsg">'+ic('msg')+'Mensagem do PDF</button>'+armBtn('rirAll',id,'RIR 0–1 em todos','Toque de novo: todos os exercícios ficam com RIR 0–1','small','')+(a.teste ? '' : '<button type="button" class="btn small" data-a="copyOpen">'+ic('users')+'Copiar de outro aluno</button>')+'<button type="button" class="btn small" data-a="tplSave"'+(letters(pl).length?'':' disabled')+'>'+ic('save')+'Salvar como modelo</button></div></section>'+
     builder('alunos',id);
 }
 
@@ -2792,7 +2792,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '7 nov · 70'; // Versão do painel: 7 nov · 70
+const PAINELV = '7 nov · 71'; // Versão do painel: 7 nov · 71
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -3249,6 +3249,12 @@ function vSheet(){
   }
   if(s.k==='copyFrom'){ const a = C.alunos[ui.aluno]; if(!a) return '';
     return sheetTop('Treino','Copiar de outro aluno')+'<p class="muted">Os treinos de quem você escolher substituem os treinos atuais de '+esc(curto(Object.assign({_id:ui.aluno}, a)))+'. Nome e validade do ciclo continuam. O aluno original não muda.</p>'+copyRows(Object.assign({_id:ui.aluno}, a));
+  }
+  if(s.k==='pdfMsg'){ const a = C.alunos[ui.aluno]; if(!a) return ''; const A2 = Object.assign({_id:ui.aluno}, a), t = pdfMsgTxt(A2), wa = String(P(A2).whatsapp||'').replace(/\D/g,'');
+    return sheetTop('Treino de '+curto(A2),'Mensagem do PDF')+'<p class="muted">1. Toque em <b>Treino em PDF</b> e salve o arquivo. 2. Mande esta mensagem e anexe o PDF na mesma conversa.</p>'+
+      '<label class="sr" for="pm-txt">Mensagem</label><textarea id="pm-txt" class="share" rows="12">'+esc(t)+'</textarea>'+
+      '<div class="btn-row">'+(wa.length>=10 ? '<a class="btn primary" href="https://wa.me/'+(wa.length<=11?'55':'')+wa+'?text='+encodeURIComponent(t)+'" target="_blank" rel="noopener">'+ic('msg')+'Abrir no WhatsApp</a>' : '')+'<button type="button" class="btn'+(wa.length>=10?'':' primary')+'" data-a="pmCopy">'+ic('copy')+'Copiar mensagem</button><button type="button" class="btn ghost" data-a="pdfTreino">'+ic('note')+'Abrir o PDF</button></div>'+
+      '<p class="foot">'+(wa.length>=10 ? 'O WhatsApp abre na conversa com '+esc(curto(A2))+'. ' : 'Sem WhatsApp no cadastro: copie e cole na conversa. ')+'O PDF é anexado à parte, pelo clipe do WhatsApp.</p>';
   }
   if(s.k==='contato'){ const t = contatoTxt();
     return sheetTop('Novo aluno','Mensagem do primeiro contato')+'<p class="muted">Mande para quem quer começar a treinar com você. Quando a pessoa responder, crie o aluno e cole a resposta em Perfil › Primeiro contato: o painel preenche o perfil sozinho.</p>'+
@@ -3719,6 +3725,16 @@ function vozSheet(){
       '<button type="button" class="btn ghost block" data-a="vozClear">'+ic('trash')+'Apagar e falar de novo</button>' : '');
 }
 /* treino em PDF: abre uma página com cada exercício (nome, desenho do movimento, séries) para o aluno conferir na academia */
+/* mensagem para mandar junto com o PDF do treino */
+function pdfMsgTxt(a){
+  const c = cfg(), n = Object.values((a.plano||{}).treinos||{}).reduce((t,x) => t+((x.ex||[]).length),0);
+  return 'Oi, '+curto(a)+'! 🎉 Seu treino está pronto!\n\n'+
+    'Segue o PDF com '+(n ? 'os '+n+' exercícios' : 'todos os exercícios')+', com o desenho de como cada um é feito. 📄\n\n'+
+    'Antes de começar, dá uma olhada com calma e me responde:\n\n'+
+    '1️⃣ *Execução:* você já sabe fazer todos os exercícios? Se tiver algum que você não conhece ou não tem certeza de como fazer, me fala qual que eu te passo o movimento correto. 🎥\n\n'+
+    '2️⃣ *Aparelhos:* a sua academia tem todos os aparelhos do treino? Se faltar algum, me avisa que eu troco por outro que trabalhe o mesmo músculo. 🔄\n\n'+
+    'Pode responder com o nome ou o número do exercício. Se estiver tudo certo, é só abrir o app e começar! 💪'+(c.nomePersonal ? '\n\n'+c.nomePersonal : '');
+}
 function treinoPdf(a){
   const pl = a.plano || {}, Ls = letters(pl), nome = nomeDe(a), c = cfg();
   if(!Ls.length){ toast('Monte o treino antes de gerar o PDF.'); return; }
@@ -3841,6 +3857,8 @@ function act(a,d,btn){
     case 'copyOpen': openSheet({k:'copyFrom'}); return false;
     case 'rirAll': { if(!A || !A.plano) break; let n = 0; Object.values(A.plano.treinos||{}).forEach(t => (t.ex||[]).forEach(e => { e.rir = '0-1'; n++; })); Store.save('alunos', ui.aluno, 0); toast(plural(n,'exercício')+' com RIR 0–1'); break; }
     case 'pdfTreino': { if(A) treinoPdf(Object.assign({_id:ui.aluno}, A)); return false; }
+    case 'pdfMsg': openSheet({k:'pdfMsg'}); return false;
+    case 'pmCopy': { const t = document.getElementById('pm-txt'); copyText(t ? t.value : '', t); return false; }
     case 'obAdd': case 'obDel': { if(!A) break; A.metas = A.metas || {}; const c = A.metas.cardio = A.metas.cardio || {}; const L = c.obrig = Array.isArray(c.obrig) ? c.obrig : [];
       if(a==='obAdd') L.push({ local:'Escada', min:40, vezes:3, dias:[], obs:'' }); else L.splice(+d.i,1);
       Store.save('alunos', ui.aluno, 0); break; }
