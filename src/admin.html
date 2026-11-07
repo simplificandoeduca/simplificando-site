@@ -2283,7 +2283,7 @@ function tTreino(a){
     inp({b:b('frequencia'),label:'Frequência',val:pl.frequencia,t:'i',unit:'x por semana',v:'range',min:1,max:14})+
     txa({b:b('objetivoCiclo'),label:'Objetivo do ciclo',val:pl.objetivoCiclo,ph:'O que este ciclo precisa entregar',cls:'wide',rows:2})+'</div>'+
     swB({b:b('deload'),label:'Semana de deload',sub:'Corta as séries pela metade e alivia as cargas no app do aluno.',val:!!pl.deload})+
-    '<div class="btn-row"><button type="button" class="btn small primary" data-a="iaOpen">'+ic('bolt')+'Gerar com IA</button><button type="button" class="btn small" data-a="vozOpen">'+ic('mic')+'Montar falando</button><button type="button" class="btn small" data-a="tplApply">'+ic('layers')+'Aplicar modelo</button><button type="button" class="btn small" data-a="pdfTreino">'+ic('note')+'Treino em PDF</button><button type="button" class="btn small" data-a="pdfMsg">'+ic('msg')+'Mensagem do PDF</button>'+armBtn('rirAll',id,'RIR 0–1 em todos','Toque de novo: todos os exercícios ficam com RIR 0–1','small','')+(a.teste ? '' : '<button type="button" class="btn small" data-a="copyOpen">'+ic('users')+'Copiar de outro aluno</button>')+'<button type="button" class="btn small" data-a="tplSave"'+(letters(pl).length?'':' disabled')+'>'+ic('save')+'Salvar como modelo</button></div></section>'+
+    '<div class="btn-row"><button type="button" class="btn small primary" data-a="iaOpen">'+ic('bolt')+'Gerar com IA</button><button type="button" class="btn small" data-a="vozOpen">'+ic('mic')+'Montar falando</button><button type="button" class="btn small" data-a="tplApply">'+ic('layers')+'Aplicar modelo</button><button type="button" class="btn small" data-a="pdfTreino">'+ic('note')+'Baixar treino em PDF</button><button type="button" class="btn small" data-a="pdfMsg">'+ic('msg')+'Mensagem do PDF</button>'+armBtn('rirAll',id,'RIR 0–1 em todos','Toque de novo: todos os exercícios ficam com RIR 0–1','small','')+(a.teste ? '' : '<button type="button" class="btn small" data-a="copyOpen">'+ic('users')+'Copiar de outro aluno</button>')+'<button type="button" class="btn small" data-a="tplSave"'+(letters(pl).length?'':' disabled')+'>'+ic('save')+'Salvar como modelo</button></div></section>'+
     builder('alunos',id);
 }
 
@@ -2762,7 +2762,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '7 nov · 72'; // Versão do painel: 7 nov · 72
+const PAINELV = '7 nov · 73'; // Versão do painel: 7 nov · 73
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -3226,7 +3226,7 @@ function vSheet(){
       '<button type="button" class="btn primary block pm-go" data-a="pmEnviar"'+(pr==='ok' ? '' : ' disabled')+'>'+ic('msg')+(pr==='ok' ? 'Enviar PDF + mensagem no WhatsApp' : pr==='erro' ? 'Não deu para montar o PDF' : 'Preparando o PDF…')+'</button>'+
       '<p class="foot">No celular, abre o compartilhar com o PDF e a mensagem: escolha o WhatsApp e o contato de '+esc(curto(A2))+'. A mensagem também fica copiada; se não for junto, é só colar.</p>'+
       '<label class="sr" for="pm-txt">Mensagem</label><textarea id="pm-txt" class="share" rows="12">'+esc(t)+'</textarea>'+
-      '<div class="btn-row">'+(wa.length>=10 ? '<a class="btn" href="https://wa.me/'+(wa.length<=11?'55':'')+wa+'?text='+encodeURIComponent(t)+'" target="_blank" rel="noopener">'+ic('msg')+'Só a mensagem</a>' : '')+'<button type="button" class="btn" data-a="pmCopy">'+ic('copy')+'Copiar mensagem</button><button type="button" class="btn ghost" data-a="pdfTreino">'+ic('note')+'Abrir o PDF</button></div>'+
+      '<div class="btn-row">'+(wa.length>=10 ? '<a class="btn" href="https://wa.me/'+(wa.length<=11?'55':'')+wa+'?text='+encodeURIComponent(t)+'" target="_blank" rel="noopener">'+ic('msg')+'Só a mensagem</a>' : '')+'<button type="button" class="btn" data-a="pmCopy">'+ic('copy')+'Copiar mensagem</button><button type="button" class="btn ghost" data-a="pdfTreino">'+ic('note')+'Baixar o PDF</button></div>'+
       '<p class="foot">'+(wa.length>=10 ? 'O WhatsApp abre na conversa com '+esc(curto(A2))+'. ' : 'Sem WhatsApp no cadastro: copie e cole na conversa. ')+'O PDF é anexado à parte, pelo clipe do WhatsApp.</p>';
   }
   if(s.k==='contato'){ const t = contatoTxt();
@@ -3756,6 +3756,14 @@ function pdfPrepara(a){
   pdfArquivo(a).then(f => { if(PDFA.aid!==a._id) return; PDFA.file = f; PDFA.st = 'ok'; if(ui.sheet && ui.sheet.k==='pdfMsg') renderSheet(); })
     .catch(() => { if(PDFA.aid!==a._id) return; PDFA.st = 'erro'; if(ui.sheet && ui.sheet.k==='pdfMsg') renderSheet(); });
 }
+function baixarArq(f){ const u = URL.createObjectURL(f), lk = document.createElement('a'); lk.href = u; lk.download = f.name; lk.rel = 'noopener'; document.body.appendChild(lk); lk.click(); lk.remove(); setTimeout(() => URL.revokeObjectURL(u), 60e3); }
+/* "Treino em PDF": baixa o arquivo direto, sem abrir página */
+function pdfBaixar(a){
+  if(PDFA.aid===a._id && PDFA.st==='ok' && PDFA.file){ baixarArq(PDFA.file); toast('Baixando '+PDFA.file.name); return; }
+  toast('Gerando o PDF…');
+  pdfArquivo(a).then(f => { PDFA.aid = a._id; PDFA.st = 'ok'; PDFA.file = f; baixarArq(f); toast('Baixando '+f.name); if(ui.sheet && ui.sheet.k==='pdfMsg') renderSheet(); })
+    .catch(() => toast('Não deu para gerar o PDF. Confira a internet e tente de novo.'));
+}
 function pdfEnviar(a){
   const ta = document.getElementById('pm-txt'), txt = ta ? ta.value : pdfMsgTxt(a), f = PDFA.file;
   if(!f){ toast('O PDF ainda está sendo preparado.'); return; }
@@ -3763,7 +3771,7 @@ function pdfEnviar(a){
   const podeArquivo = navigator.canShare && (() => { try { return navigator.canShare({ files:[f] }); } catch(e){ return false; } })();
   if(podeArquivo){ navigator.share({ files:[f], text:txt, title:f.name }).then(() => toast('Enviado. Se a mensagem não foi junto, cole na conversa.')).catch(err => { if(err && err.name!=='AbortError') toast('Não deu para compartilhar. Use Baixar o PDF.'); }); return; }
   // computador: baixa o PDF e abre a conversa com a mensagem
-  const u = URL.createObjectURL(f), lk = document.createElement('a'); lk.href = u; lk.download = f.name; document.body.appendChild(lk); lk.click(); lk.remove(); setTimeout(() => URL.revokeObjectURL(u), 60e3);
+  baixarArq(f);
   const wa = String(P(a).whatsapp||'').replace(/\D/g,''); window.open(wa.length>=10 ? 'https://wa.me/'+(wa.length<=11?'55':'')+wa+'?text='+encodeURIComponent(txt) : 'https://wa.me/?text='+encodeURIComponent(txt), '_blank');
   toast('PDF baixado. Anexe na conversa do WhatsApp que abriu.');
 }
@@ -3888,7 +3896,7 @@ function act(a,d,btn){
     case 'applyTpl': { const m = C.modelos[d.k]; if(!m || !A) break; A.plano = A.plano || {}; A.plano.treinos = cloneTreinos(m.treinos); if(!A.plano.nome) A.plano.nome = m.nome.replace(/\s*\(exemplo\)/,''); if(!isDate(A.plano.inicio)) A.plano.inicio = today(); ui.tl['alunos'+ui.aluno] = 'A'; normPlan(A.plano); Store.save('alunos',ui.aluno,0); closeSheet(); toast('Modelo aplicado'); break; }
     case 'copyOpen': openSheet({k:'copyFrom'}); return false;
     case 'rirAll': { if(!A || !A.plano) break; let n = 0; Object.values(A.plano.treinos||{}).forEach(t => (t.ex||[]).forEach(e => { e.rir = '0-1'; n++; })); Store.save('alunos', ui.aluno, 0); toast(plural(n,'exercício')+' com RIR 0–1'); break; }
-    case 'pdfTreino': { if(A) treinoPdf(Object.assign({_id:ui.aluno}, A)); return false; }
+    case 'pdfTreino': { if(A) pdfBaixar(Object.assign({_id:ui.aluno}, A)); return false; }
     case 'pdfMsg': openSheet({k:'pdfMsg'}); return false;
     case 'pmEnviar': { if(A) pdfEnviar(Object.assign({_id:ui.aluno}, A)); return false; }
     case 'pmCopy': { const t = document.getElementById('pm-txt'); copyText(t ? t.value : '', t); return false; }
