@@ -511,6 +511,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeri
 .pf-tag .i{flex:none;width:14px;height:14px}
 .pf-tag.com{box-shadow:inset 0 0 0 1.5px var(--brand)}
 .teste-c{box-shadow:inset 0 0 0 2px #FF9A3C}
+.obw{margin-top:14px;padding:14px;border-radius:16px;background:var(--ctl);display:flex;flex-direction:column;gap:10px}.obw-c{background:var(--card);border-radius:14px;padding:12px;box-shadow:inset 0 0 0 1px var(--sep)}.obw-c .card-h{margin-bottom:6px}
 .ct-r{display:flex;flex-direction:column;margin-top:10px}.ct-r>div{padding:10px 0;border-top:1px solid var(--sep)}.ct-r span{font-size:12.5px;font-weight:800;color:var(--muted)}.ct-r p{margin:3px 0 0;white-space:pre-line;font-size:14.5px;line-height:1.45}.teste-c .label .i{color:#FF9A3C}
 .aqw{margin:4px 0 6px;padding:14px;border-radius:16px;background:var(--ctl);display:flex;flex-direction:column;gap:10px}.aqw-t{margin:0;display:flex;align-items:center;gap:8px;font-weight:800;font-size:14px}.aqw-t small{font-weight:600;color:var(--muted)}.aqw-t .i{width:16px;height:16px;color:#FF9A3C}
 .aqw-r{display:grid;grid-template-columns:28px auto auto auto 40px;justify-content:start;align-items:center;gap:8px}.aqw-r .ibtn{width:36px;height:36px}.aqw-n{width:30px;font-weight:800;font-size:14px}.aqw-x{font-weight:800;color:var(--muted)}
@@ -2268,6 +2269,20 @@ function tTreino(a){
     builder('alunos',id);
 }
 
+/* cardio obrigatório: aparelho + tempo + vezes por semana ou dias fixos; aparece no app como "Cardio do seu personal" */
+const DSEMK = [['seg','Seg'],['ter','Ter'],['qua','Qua'],['qui','Qui'],['sex','Sex'],['sab','Sáb'],['dom','Dom']];
+function obrigEditor(a){
+  const id = a._id, L = ((a.metas||{}).cardio||{}).obrig || [], b = (i,k) => AB(id,'metas.cardio.obrig.'+i+'.'+k);
+  return '<div class="obw"><p class="aqw-t">'+ic('pulse')+'Cardio obrigatório <small>aparece no app do aluno</small></p>'+
+    (L.length ? L.map((o,i) => '<div class="obw-c"><div class="card-h"><b>'+esc((o.local||'Cardio')+' · '+(o.min||0)+' min')+'</b><button type="button" class="ibtn" data-a="obDel" data-i="'+i+'" aria-label="Tirar este cardio">'+ic('x')+'</button></div><div class="form">'+
+      '<div class="fld"><label class="flabel" for="'+fid(b(i,'local'))+'">Aparelho</label><div class="inp-wrap sel-wrap"><select class="inp" id="'+fid(b(i,'local'))+'" data-b="'+esc(b(i,'local'))+'">'+LOCAIS.map(x => '<option'+(o.local===x?' selected':'')+'>'+x+'</option>').join('')+'</select></div></div>'+
+      inp({b:b(i,'min'),label:'Tempo',val:o.min,t:'i',unit:'min',v:'range',min:5,max:240})+
+      inp({b:b(i,'vezes'),label:'Vezes por semana',val:o.vezes,t:'i',v:'range',min:1,max:7,help:'Vale quando não marcar dias.'})+
+      chipsB({b:b(i,'dias'),label:'Dias fixos (opcional)',val:o.dias||[],opts:DSEMK})+
+      inp({b:b(i,'obs'),label:'Recado (opcional)',val:o.obs,ph:'Ex.: ritmo constante, sem segurar no corrimão',cls:'wide'})+'</div></div>').join('') :
+      '<p class="muted" style="margin:0">Nenhum. Use quando quiser que o aluno faça um aparelho específico por um tempo, como escada 40 min.</p>')+
+    '<div class="btn-row"><button type="button" class="btn small" data-a="obAdd">'+ic('plus')+'Adicionar cardio obrigatório</button></div></div>';
+}
 function tMetas(a){
   const m = a.metas || {}, id = a._id, b = path => AB(id,'metas.'+path), c = m.cardio || {}, z = ZONAS[c.zona] || ZONAS['Zona 2'];
   return '<section class="card blk-water"><div class="card-h"><span class="label">'+ic('drop')+'Água</span><span class="pill">'+fmtN((num(m.waterGoal)||0)/1000,1)+' L por dia</span></div><div class="form">'+
@@ -2281,7 +2296,7 @@ function tMetas(a){
     '<p class="foot">Cardio e água valem em qualquer dia da semana: o app soma os minutos de cardio na meta semanal e conta os 7 dias na meta de água.</p>'+
     segB({b:b('cardio.zona'),label:'Zona alvo',val:c.zona||'Zona 2',opts:Object.keys(ZONAS).map(k => [k,k]),cls:'wide'})+'</div>'+
     '<p class="callout">'+ic('pulse')+'<span data-calc="zona">'+calcZona(a)+'</span></p>'+
-    chipsB({b:b('cardio.locais'),label:'Modalidades liberadas',val:c.locais,opts:LOCAIS.map(x => [x,x])})+'</section>'+
+    chipsB({b:b('cardio.locais'),label:'Modalidades liberadas',val:c.locais,opts:LOCAIS.map(x => [x,x])})+obrigEditor(a)+'</section>'+
   '<section class="card"><span class="label">'+ic('check')+'Rotina</span><div class="form">'+
     inp({b:b('semanaTreinos'),label:'Treinos por semana',val:m.semanaTreinos,t:'i',v:'range',min:1,max:14})+
     inp({b:b('passosDia'),label:'Passos por dia (opcional)',val:m.passosDia,t:'i',v:'range',min:0,max:50000,ph:'Sem meta'})+'</div>'+
@@ -2353,6 +2368,56 @@ function tFin(a){
     (pays.length ? '<div class="tline">'+pays.map(p => '<div class="it"><time datetime="'+esc(p.data)+'">'+fmtD(p.data)+'</time><p><b>'+money(p.valor)+'</b> · '+esc(fmtRef(p.ref))+' · '+esc(FORMAS[p.forma]||'')+'</p>'+armIco('delPay',p.id,'Apagar pagamento de '+fmtD(p.data),'Toque de novo para apagar')+'</div>').join('')+'</div>' : '<p class="muted">Nenhum pagamento registrado.</p>')+'</section>';
 }
 
+/* ---------- mensagens de acompanhamento: check-in de 15 dias e renovação do ciclo ---------- */
+function cicloResumo(a){
+  const pl = a.plano || {}, ini = isDate(pl.inicio) ? pl.inicio : '', pg = typeof progDe==='function' ? progDe(a) : null, d = (pg && pg.d) || {};
+  const H = (d.h||[]).filter(h => !ini || h.d>=ini), Cd = (d.c||[]).filter(c => !ini || c.d>=ini), wg = +(a.metas||{}).waterGoal || +d.wg || 0;
+  const sem = ini ? Math.max(1, Math.round(diffDays(today(), ini)/7)) : 0;
+  const seq = {}; H.forEach(x => (x.ex||[]).forEach(e => { const top = Math.max(0, ...(e.s||[]).map(z => +z[0]||0)); if(!top) return; (seq[e.n||e.id] = seq[e.n||e.id] || []).push(top); }));
+  const sobe = Object.keys(seq).map(n => { const q = seq[n]; return { n, de:q[0], para:Math.max(...q), dif:Math.max(...q)-q[0] }; }).filter(x => x.dif>0).sort((x,y) => y.dif/y.de - x.dif/x.de).slice(0,3);
+  const W = d.w || {}, aguaDias = wg ? Object.keys(W).filter(k => (!ini || k>=ini) && +W[k]>=wg).length : 0;
+  return { tem:!!pg, treinos:H.length, sem, cardio:Cd.reduce((t,c) => t+(+c.min||0),0), sobe, aguaDias, wg };
+}
+function checkinText(a){
+  const c = cfg(), r = cicloResumo(a), nome = curto(a);
+  return 'Oi, '+nome+'! Tudo bem? 😊 Já estamos com uns 15 dias de treino e quero saber como você está.\n\n'+
+    (r.tem && r.treinos ? '📊 Pelo app, você já fez '+plural(r.treinos,'treino')+(r.cardio ? ' e '+r.cardio+' min de cardio' : '')+'. '+(r.sobe.length ? 'E já subiu carga em '+r.sobe.map(x => x.n).join(', ')+'! ' : '')+'Muito bom! 👏\n\n' : '')+
+    'Me responde rapidinho, com o número de cada pergunta:\n\n'+
+    '1️⃣ *Treino:* está conseguindo fazer tudo no tempo que tem? Algum dia ficou pesado demais?\n'+
+    '2️⃣ *Dor:* sentiu alguma dor ou desconforto em algum exercício? Qual?\n'+
+    '3️⃣ *Carga:* algum exercício ficou fácil demais (dá para subir) ou difícil demais?\n'+
+    '4️⃣ *Água e cardio:* está batendo a meta de água e o cardio da semana?\n'+
+    '5️⃣ *Sono e energia:* como está dormindo e chegando no treino?\n'+
+    '6️⃣ *Corpo:* já percebeu alguma mudança (roupa, disposição, força)?\n\n'+
+    'Com isso eu ajusto o seu treino para as próximas semanas. Bora! 💪'+(c.nomePersonal ? '\n\n'+c.nomePersonal : '');
+}
+function renovaText(a){
+  const c = cfg(), r = cicloResumo(a), pl = a.plano || {}, pi = planInfo(a), f = a.financeiro || {}, nome = curto(a);
+  const quando = pi.k==='expired' ? 'terminou em '+fmtD(pi.fim) : pi.fim ? 'termina em '+fmtD(pi.fim) : 'está chegando ao fim';
+  const conq = [];
+  if(r.treinos) conq.push('🏋️ '+plural(r.treinos,'treino feito','treinos feitos')+(r.sem ? ' em '+plural(r.sem,'semana') : ''));
+  r.sobe.forEach(x => conq.push('📈 '+x.n+': '+fmtN(x.de)+' → '+fmtN(x.para)+' kg (+'+Math.round(x.dif/x.de*100)+'%)'));
+  if(r.cardio) conq.push('🏃 '+r.cardio+' min de cardio');
+  if(r.aguaDias) conq.push('💧 '+plural(r.aguaDias,'dia','dias')+' batendo a meta de água');
+  return 'Oi, '+nome+'! 🎉 Seu ciclo'+(pl.nome ? ' *'+String(pl.nome).trim()+'*' : '')+' '+quando+'.\n\n'+
+    (conq.length ? 'Olha o que você conquistou até aqui:\n'+conq.join('\n')+'\n\n' : 'Parabéns pela dedicação até aqui! 👏\n\n')+
+    'Agora é hora de *subir de nível*: no próximo ciclo eu mudo os estímulos (exercícios, séries e cargas) para o seu corpo continuar evoluindo e não acostumar.\n\n'+
+    'Antes de montar, me conta:\n1️⃣ O que você mais gostou neste ciclo?\n2️⃣ O que quer mudar ou trabalhar mais?\n3️⃣ Sua rotina mudou (dias, horário, local)?\n4️⃣ Alguma dor ou desconforto novo?\n\n'+
+    (+f.valor ? '💳 Renovação: '+money(f.valor)+' por mês'+(f.forma && FORMAS[f.forma] ? ' ('+FORMAS[f.forma]+')' : '')+'.\n\n' : '')+
+    'Me responde que eu já começo o próximo ciclo! Vamos pra cima! 🔥'+(c.nomePersonal ? '\n\n'+c.nomePersonal : '');
+}
+function msgsCard(a){
+  if(pfOnline()) loadProg();
+  const pl = a.plano || {}, pi = planInfo(a), dias = isDate(pl.inicio) ? diffDays(today(), pl.inicio) : -1;
+  const sug = pi.k==='soon' || pi.k==='expired' ? 'renova' : dias>=12 && dias<=21 ? 'checkin' : '';
+  const k = ui.msgK || sug || 'checkin', txt = k==='renova' ? renovaText(a) : checkinText(a), wa = String(P(a).whatsapp||'').replace(/\D/g,'');
+  const aviso = sug==='renova' ? (pi.k==='expired' ? 'O ciclo venceu: hora de mandar a renovação.' : 'O ciclo vence em breve: hora de mandar a renovação.') : sug==='checkin' ? 'Faz '+dias+' dias que o ciclo começou: hora do check-in.' : '';
+  return '<section class="card"><span class="label">'+ic('msg')+'Acompanhamento</span>'+(aviso ? '<p class="callout">'+ic('alert')+'<span>'+aviso+'</span></p>' : '')+
+    '<div class="seg" role="group" aria-label="Mensagem">'+[['checkin','Check-in de 15 dias'],['renova','Renovação do ciclo']].map(([v,l]) => '<button type="button" class="'+(k===v?'on':'')+'" aria-pressed="'+(k===v)+'" data-a="msgK" data-v="'+v+'">'+l+'</button>').join('')+'</div>'+
+    '<label class="sr" for="msg2-txt">Mensagem</label><textarea id="msg2-txt" class="share" readonly>'+esc(txt)+'</textarea>'+
+    '<div class="btn-row"><button type="button" class="btn primary" data-a="msg2Copy">'+ic('copy')+'Copiar mensagem</button>'+(wa.length>=10 ? '<a class="btn ghost" href="https://wa.me/'+(wa.length<=11?'55':'')+wa+'?text='+encodeURIComponent(txt)+'" target="_blank" rel="noopener">'+ic('msg')+'Abrir no WhatsApp</a>' : '')+'</div>'+
+    '<p class="foot">Os números (treinos, cargas que subiram, cardio e água) vêm do que o aluno registra no app desde o início do ciclo.</p></section>';
+}
 function tAcesso(a){
   const ac = a.acesso || {}, id = a._id, txt = shareText(a), wa = String(P(a).whatsapp||'').replace(/\D/g,'');
   const digits = (ac.codigo||'').split('');
@@ -2362,7 +2427,7 @@ function tAcesso(a){
     (Store.kind==='firebase' && ac.codigo ? '<p class="foot">'+(a.uid && a.acessoCod===ac.codigo ? ic('check')+'Conta do app pronta: o aluno já entra com esta senha.' : 'Preparando a conta do app para esta senha…')+'</p>' : '')+
     swB({b:AB(id,'acesso.ativo'),label:'Acesso ao app ativo',sub:'Desligue para bloquear a entrada sem apagar nada.',val:!!ac.ativo})+'</section>'+
     '<section class="card"><span class="label">'+ic('msg')+'Mensagem para enviar</span><label class="sr" for="share-txt">Mensagem de acesso</label><textarea id="share-txt" class="share" readonly data-calc="share">'+esc(txt)+'</textarea>'+
-    '<div class="btn-row"><button type="button" class="btn primary" data-a="copyShare">'+ic('copy')+'Copiar mensagem</button>'+(wa.length>=10 ? '<a class="btn ghost" href="https://wa.me/'+(wa.length<=11?'55':'')+wa+'?text='+encodeURIComponent(txt)+'" target="_blank" rel="noopener">'+ic('msg')+'Abrir no WhatsApp</a>' : '')+(String(P(a).email||'').includes('@') ? '<a class="btn ghost" href="'+esc(mailHref(a))+'">'+ic('msg')+'Enviar por e-mail</a>' : '')+'</div>'+(String(P(a).email||'').includes('@') ? '' : '<p class="foot">Para enviar por e-mail, cadastre o e-mail do aluno na aba Perfil.</p>')+'<p class="foot">Copie e cole no WhatsApp do aluno'+(wa.length>=10?' ('+esc(P(a).whatsapp)+')':'')+'. O botão do WhatsApp pode não abrir dentro desta janela.</p></section>';
+    '<div class="btn-row"><button type="button" class="btn primary" data-a="copyShare">'+ic('copy')+'Copiar mensagem</button>'+(wa.length>=10 ? '<a class="btn ghost" href="https://wa.me/'+(wa.length<=11?'55':'')+wa+'?text='+encodeURIComponent(txt)+'" target="_blank" rel="noopener">'+ic('msg')+'Abrir no WhatsApp</a>' : '')+(String(P(a).email||'').includes('@') ? '<a class="btn ghost" href="'+esc(mailHref(a))+'">'+ic('msg')+'Enviar por e-mail</a>' : '')+'</div>'+(String(P(a).email||'').includes('@') ? '' : '<p class="foot">Para enviar por e-mail, cadastre o e-mail do aluno na aba Perfil.</p>')+'<p class="foot">Copie e cole no WhatsApp do aluno'+(wa.length>=10?' ('+esc(P(a).whatsapp)+')':'')+'. O botão do WhatsApp pode não abrir dentro desta janela.</p></section>'+msgsCard(a);
 }
 
 /* ---------- evolução: o que cada aluno fez no app ---------- */
@@ -2372,7 +2437,7 @@ async function loadProg(force){
   PG.loading = true; PG.err = '';
   try { const L = await FBP.listProgresso(), by = {}; L.forEach(x => { if(x.aid && x.d && (!by[x.aid] || x.em>by[x.aid].em)) by[x.aid] = x; }); PG.by = by; PG.at = Date.now(); }
   catch(e){ PG.err = e && e.code==='permission-denied' ? 'regras' : 'rede'; PG.at = Date.now(); }
-  PG.loading = false; if(ui.view==='painel' || (ui.view==='alunos' && ui.aluno && ui.tab==='evolucao')) render();
+  PG.loading = false; if(ui.view==='painel' || (ui.view==='alunos' && ui.aluno && (ui.tab==='evolucao' || ui.tab==='acesso'))) render();
   clearTimeout(PG.tm); if(!PG.err && PG.by) PG.tm = setTimeout(() => { if(ui.view==='painel') loadProg(true); }, 90e3);
 }
 const progDe = a => a._pg || (PG.by && PG.by[a._id]) || null;
@@ -2515,17 +2580,17 @@ function tNotas(a){
 
 /* ---------- primeiro contato: mensagem com as perguntas e leitura das respostas ---------- */
 const CT_Q = [
-  ['dados','Seus dados','Nome completo, data de nascimento, e-mail, peso e altura','📋'],
-  ['objetivo','Objetivo','Qual seu objetivo principal hoje? (Ex.: emagrecer, ganhar massa, condicionamento, correr melhor)','🎯'],
-  ['futuro','Visão de futuro','O que você espera ver de resultado no seu corpo daqui a 6 semanas?','🚀'],
-  ['exp','Experiência','Já treina? Há quanto tempo? Se está parada(o), há quanto tempo?','💪'],
-  ['disp','Disponibilidade','Quantas vezes por semana pretende treinar e quanto tempo tem por dia?','⏰'],
-  ['dias','Dias','Quais dias você mais gosta e quais menos gosta de treinar? Treina sábado e domingo?','🗓️'],
-  ['local','Local','Onde vai treinar? (academia, casa, condomínio)','🏠'],
-  ['saude','Saúde','Tem alguma restrição médica, dor, lesão ou cirurgia (joelho, coluna, ombro, pressão alta)? Usa algum remédio contínuo? Já sentiu dor no peito, tontura ou falta de ar fora do normal ao fazer esforço?','🏥'],
-  ['gosto','Gosto pessoal','Qual grupo muscular você mais curte treinar e de qual você "foge"?','🏋️‍♀️'],
-  ['cardio','Cardio','Qual cardio prefere (esteira, bike, escada, corrida na rua) e quanto faz hoje?','🏃'],
-  ['sono','Sono e rotina','Como está seu sono? Acorda descansada(o) ou o cansaço acumula na semana? Seu trabalho é mais sentado ou em pé?','😴']
+  ['dados','Seus dados','Nome completo, data de nascimento, e-mail, peso e altura','📋','Nome e e-mail criam o acesso ao app. A idade muda o volume e a recuperação. Peso e altura dão o IMC, a meta de água (35 ml por kg) e servem de ponto de partida para comparar daqui a 6 semanas.'],
+  ['objetivo','Objetivo','Qual seu objetivo principal hoje? (Ex.: emagrecer, ganhar massa, condicionamento, correr melhor)','🎯','Define a divisão, as séries e repetições, o descanso e quanto cardio entra. Treino para emagrecer, ganhar massa ou correr é diferente.'],
+  ['futuro','Visão de futuro','O que você espera ver de resultado no seu corpo daqui a 6 semanas?','🚀','Mostra a expectativa da pessoa. Ajuda a combinar uma meta real e a escolher o que medir (peso, cintura, foto, carga) para mostrar o resultado.'],
+  ['exp','Experiência','Já treina? Há quanto tempo? Se está parada(o), há quanto tempo?','💪','Define o nível: quantos exercícios, quanta técnica nova e quanta carga dá para usar. Quem está parado volta mais devagar para não se machucar.'],
+  ['disp','Disponibilidade','Quantas vezes por semana pretende treinar e quanto tempo tem por dia?','⏰','Define quantos treinos por semana e quantos exercícios cabem em cada um. Um treino que não cabe na rotina não é feito.'],
+  ['dias','Dias','Quais dias você mais gosta e quais menos gosta de treinar? Treina sábado e domingo?','🗓️','Ajuda a encaixar os treinos mais pesados nos dias favoritos e a decidir se o fim de semana entra. Quem treina no dia que gosta falta menos.'],
+  ['local','Local','Onde vai treinar? (academia, casa, condomínio)','🏠','Define quais exercícios dá para usar: academia tem máquinas e polias; em casa ou no condomínio o treino usa peso do corpo e halteres.'],
+  ['saude','Saúde','Tem alguma restrição médica, dor, lesão ou cirurgia (joelho, coluna, ombro, pressão alta)? Usa algum remédio contínuo? Já sentiu dor no peito, tontura ou falta de ar fora do normal ao fazer esforço?','🏥','É a pergunta de segurança. Dor, lesão ou cirurgia mudam a escolha dos exercícios. Remédios (como os de pressão) mudam a resposta do coração. Dor no peito, tontura ou falta de ar no esforço são sinais do PAR-Q que pedem liberação médica antes de começar.'],
+  ['gosto','Gosto pessoal','Qual grupo muscular você mais curte treinar e de qual você "foge"?','🏋️‍♀️','Quem curte o treino continua. Dá para dar mais atenção ao que a pessoa gosta e colocar com jeito o que ela evita.'],
+  ['cardio','Cardio','Qual cardio prefere (esteira, bike, escada, corrida na rua) e quanto faz hoje?','🏃','Escolhe o aparelho e o tempo de cardio de partida (e se vale pedir um cardio obrigatório, como escada 40 min).'],
+  ['sono','Sono e rotina','Como está seu sono? Acorda descansada(o) ou o cansaço acumula na semana? Seu trabalho é mais sentado ou em pé?','😴','Sono ruim atrapalha a recuperação e o rendimento: talvez comece com menos volume. Trabalho sentado pede mais mobilidade de quadril e postura; trabalho em pé pede cuidado com as pernas.']
 ];
 const CT_NUM = n => n<=10 ? ['0️⃣','1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟'][n] : String(n).split('').map(d => d+'️⃣').join('');
 function contatoTxt(){
@@ -2600,7 +2665,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '7 nov · 58'; // Versão do painel: 7 nov · 58
+const PAINELV = '7 nov · 59'; // Versão do painel: 7 nov · 59
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -3052,7 +3117,8 @@ function vSheet(){
   if(s.k==='contato'){ const t = contatoTxt();
     return sheetTop('Novo aluno','Mensagem do primeiro contato')+'<p class="muted">Mande para quem quer começar a treinar com você. Quando a pessoa responder, crie o aluno e cole a resposta em Perfil › Primeiro contato: o painel preenche o perfil sozinho.</p>'+
       '<label class="sr" for="ct-txt">Mensagem</label><textarea id="ct-txt" class="share" rows="14" readonly>'+esc(t)+'</textarea>'+
-      '<div class="btn-row"><button type="button" class="btn primary" data-a="ctCopy">'+ic('copy')+'Copiar mensagem</button><a class="btn ghost" href="https://wa.me/?text='+encodeURIComponent(t)+'" target="_blank" rel="noopener">'+ic('msg')+'Abrir no WhatsApp</a></div>';
+      '<div class="btn-row"><button type="button" class="btn primary" data-a="ctCopy">'+ic('copy')+'Copiar mensagem</button><a class="btn ghost" href="https://wa.me/?text='+encodeURIComponent(t)+'" target="_blank" rel="noopener">'+ic('msg')+'Abrir no WhatsApp</a></div>'+
+      '<details class="more ct-why"><summary>'+ic('chev')+'Por que cada pergunta</summary><div class="ct-r">'+CT_Q.map(([k,t,q,e,w],i) => '<div><span>'+CT_NUM(i+1)+' '+esc(t)+'</span><p>'+esc(w||'')+'</p></div>').join('')+'</div></details>';
   }
   if(s.k==='tplSave'){
     return sheetTop('Treino','Salvar como modelo')+'<div class="form">'+inp({d:'tpl.nome',label:'Nome do modelo',val:ui.draft.tpl.nome,req:true,v:'req',id:'tpl-nome',cls:'wide'})+txa({d:'tpl.descricao',label:'Para quem é',val:ui.draft.tpl.descricao,cls:'wide',rows:2})+'</div><p class="err" id="tpl-err" aria-live="polite"></p><button type="button" class="btn primary block" data-a="createTpl">'+ic('save')+'Salvar modelo</button>';
@@ -3284,7 +3350,7 @@ document.addEventListener('change', e => {
   if(el.dataset.d && (el.type==='checkbox' || el.tagName==='SELECT')){ setP(ui.draft, el.dataset.d, coerce(el)); return; }
   if(el.dataset.b && (el.type==='checkbox' || el.tagName==='SELECT')){
     writeField(el.dataset.b, coerce(el), 150, el);
-    if(/deload/.test(el.dataset.b) || /[./]anim$/.test(el.dataset.b) || /[./]aq$/.test(el.dataset.b) || /\/teste$/.test(el.dataset.b) || el.type==='checkbox' && /acesso\.ativo/.test(el.dataset.b)) setTimeout(render, 0); else refreshCalcs();
+    if(/deload/.test(el.dataset.b) || /[./]anim$/.test(el.dataset.b) || /[./]aq$/.test(el.dataset.b) || /\/teste$/.test(el.dataset.b) || /obrig\.\d+\.(local|min)$/.test(el.dataset.b) || el.type==='checkbox' && /acesso\.ativo/.test(el.dataset.b)) setTimeout(render, 0); else refreshCalcs();
     return; }
   if(el.dataset.b && el.dataset.v && el.dataset.v!=='req' && !validate(el)) return;
   if(el.dataset.b){ Store.flushAll(); refreshCalcs(); }
@@ -3602,6 +3668,9 @@ function act(a,d,btn){
       ui.tl['alunos'+ui.aluno] = 'A'; normPlan(A.plano); Store.save('alunos',ui.aluno,0); ui.draft.ia = null; closeSheet(); toast('Treino gerado aplicado. Revise e ajuste se quiser.'); break; }
     case 'applyTpl': { const m = C.modelos[d.k]; if(!m || !A) break; A.plano = A.plano || {}; A.plano.treinos = cloneTreinos(m.treinos); if(!A.plano.nome) A.plano.nome = m.nome.replace(/\s*\(exemplo\)/,''); if(!isDate(A.plano.inicio)) A.plano.inicio = today(); ui.tl['alunos'+ui.aluno] = 'A'; normPlan(A.plano); Store.save('alunos',ui.aluno,0); closeSheet(); toast('Modelo aplicado'); break; }
     case 'copyOpen': openSheet({k:'copyFrom'}); return false;
+    case 'obAdd': case 'obDel': { if(!A) break; A.metas = A.metas || {}; const c = A.metas.cardio = A.metas.cardio || {}; const L = c.obrig = Array.isArray(c.obrig) ? c.obrig : [];
+      if(a==='obAdd') L.push({ local:'Escada', min:40, vezes:3, dias:[], obs:'' }); else L.splice(+d.i,1);
+      Store.save('alunos', ui.aluno, 0); break; }
     case 'ctOpen': openSheet({k:'contato'}); return false;
     case 'ctCopy': copyText(contatoTxt(), document.getElementById('ct-txt')); return false;
     case 'ctLer': ui.ctAluno = ui.aluno; ctAplica(A); return false;
@@ -3634,6 +3703,8 @@ function act(a,d,btn){
     case 'delPay': { const f = A.financeiro; f.pagamentos = (f.pagamentos||[]).filter(p => p.id!==d.k); const refs = f.pagamentos.map(p => p.ref).filter(Boolean).sort(); if(refs.length) f.pagoAte = dueOf(refAdd(refs[refs.length-1],1), clampI(f.vencimentoDia||10,1,28)); else delete f.pagoAte; Store.save('alunos',ui.aluno,0); break; }
     case 'genCode': { A.acesso = Object.assign(A.acesso||{ativo:true}, {codigo:genCode(ui.aluno), geradoEm:today(), em:Date.now(), peloAluno:''}); Store.save('alunos',ui.aluno,0); toast('Novo código: '+A.acesso.codigo); break; }
     case 'copyCode': copyText((A.acesso||{}).codigo||''); return false;
+    case 'msgK': ui.msgK = d.v; break;
+    case 'msg2Copy': { const t = document.getElementById('msg2-txt'); copyText(t ? t.value : '', t); return false; }
     case 'copyShare': copyText(shareText(Object.assign({_id:ui.aluno},A)), document.getElementById('share-txt')); return false;
     case 'addNota': { const t = (ui.draft.nota||'').trim(); if(!t){ const e = document.getElementById('nota-err'); if(e) e.textContent = 'Escreva a anotação antes de adicionar.'; return false; } A.notas = [{id:uid('n'), data:today(), texto:t}].concat(A.notas||[]); ui.draft.nota = ''; Store.save('alunos',ui.aluno,0); toast('Anotação adicionada'); break; }
     case 'delNota': { A.notas = (A.notas||[]).filter(n => n.id!==d.k); Store.save('alunos',ui.aluno,0); break; }

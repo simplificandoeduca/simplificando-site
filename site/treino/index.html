@@ -141,6 +141,7 @@ h2.big{margin:0;font-size:32px;font-weight:900;letter-spacing:-.04em;line-height
 .muted{margin:4px 0 0;color:var(--muted);font-size:14px;line-height:1.4}
 .sm{margin:0;font-size:13px}
 .foot0{margin:0;font-size:12.5px;line-height:1.45;color:var(--muted)}
+.ob-c{box-shadow:inset 0 0 0 2px var(--cardio,#8EE85F)}.ob-r{display:grid;grid-template-columns:40px minmax(0,1fr);column-gap:12px;row-gap:8px;align-items:start;padding:10px 0;border-top:1px solid var(--line,rgba(0,0,0,.08))}.ob-r:first-of-type{border-top:0}.ob-i{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--chip,rgba(0,0,0,.06));flex:none}.ob-i .i{width:22px;height:22px}.ob-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.ob-t b{font-size:16px}.ob-t span{font-size:13px;color:var(--muted)}.ob-t .ob-o{font-style:italic}.ob-a{grid-column:2;display:flex;align-items:center;justify-content:space-between;gap:8px}.ob-a .btn{margin-left:auto}
 .ac-list{list-style:none;margin:4px 0 14px;padding:0;display:flex;flex-direction:column;gap:10px}.ac-list li{display:flex;gap:12px;align-items:flex-start;font-size:15px;line-height:1.4;font-weight:600}.ac-list li svg{width:20px;height:20px;flex:none;margin-top:1px;color:var(--brand,#FF4646)}
 .st-cores{display:flex;justify-content:space-between;gap:8px;padding:2px 4px}
 .st-cores button{width:40px;height:40px;border-radius:50%;border:0;background:var(--c);box-shadow:inset 0 0 0 1px rgba(15,23,18,.18);cursor:pointer;transition:transform .2s var(--spring),box-shadow .2s}
@@ -1612,6 +1613,7 @@ body.has-dock .toast,body.has-dock .utoast{bottom:calc(176px + env(safe-area-ins
 /* ---------- conteúdo do personal ---------- */
 const ED = { hipertrofia:{nome:'Hipertrofia',c:'#FF4646'}, emagrecer:{nome:'Emagrecer',c:'#FF9A2E'}, corrida:{nome:'Corrida',c:'#C8F542'}, elas:{nome:'Elas',c:'#B794FF'} };
 let CARDIO = { min:25, zona:'Zona 2', desc:'Ritmo em que dá para conversar, mas não para cantar.' };
+let OBRIG = []; // cardio obrigatório do personal: [{local:'Escada', min:40, vezes:3, dias:['seg','qua']}]
 const LOCAIS_ALL = ['Esteira','Bicicleta','Rua','Escada','Elíptico','Outro'];
 let LOCAIS = LOCAIS_ALL.slice();
 const INTENS = ['Leve','Moderada','Forte'];
@@ -1994,6 +1996,7 @@ function applyAccount(){
     const a = ACCT.aluno, mc = a.metas.cardio || {};
     PLAN = a.plano.treinos;
     CARDIO = { min:mc.min||25, zona:mc.zona||'Zona 2', desc:mc.desc||DEF_DESC };
+    OBRIG = (Array.isArray(mc.obrig) ? mc.obrig : []).filter(o => o && LOCAIS_ALL.includes(o.local) && +o.min>0).map(o => ({ local:o.local, min:Math.round(+o.min), vezes:Math.max(1, Math.min(7, +o.vezes||0)) || 0, dias:(o.dias||[]).filter(d => DAYK.includes(d)), obs:String(o.obs||'').slice(0,140) }));
     LOCAIS = LOCAIS_ALL.slice(); // todos os aparelhos sempre aparecem para o aluno
     ACCT.dias = (a.perfil.dias||[]).map(d => DAYK.indexOf(d)).filter(n => n>=0).sort((x,y) => x-y);
     ACCT.sexo = a.perfil.sexo==='M' ? 'M' : 'F'; ACCT.nome = a.perfil.nome; ACCT.plano = a.plano.nome; ACCT.pagoAte = a.financeiro && a.financeiro.pagoAte;
@@ -2006,7 +2009,7 @@ function applyAccount(){
     if(own) Object.values(c.treinos || {}).forEach(t => (t.ex || []).forEach(e => { const k = catOf(e.id); if(!k) return; e.nome = k.nome; e.alvo = k.alvo || GNOME[k.g]; e.cues = k.cues.slice(); e.erro = k.erro; if(k.anim) e.anim = k.anim; else delete e.anim; delete e.semEq; }));
     if(own){ c.treinos = c.treinos || {}; PLAN = {}; Object.keys(c.treinos).sort().forEach(l => { const t = c.treinos[l]; if(t && t.ex && t.ex.length) PLAN[l] = t; }); }
     else PLAN = c.plan==='ab' ? PLAN_AB : PLAN_ABC;
-    CARDIO = { min:25, zona:'Zona 2', desc:DEF_DESC }; LOCAIS = LOCAIS_ALL.slice();
+    CARDIO = { min:25, zona:'Zona 2', desc:DEF_DESC }; LOCAIS = LOCAIS_ALL.slice(); OBRIG = [];
     let nd = 0;
     if(own){ const u = new Set(); Object.values(PLAN).forEach(t => (t.dias||[]).forEach(d => u.add(+d))); nd = u.size; ACCT.dias = nd ? [...u].sort((x,y) => x-y) : []; }
     else { ACCT.dias = c.dias || [0,2,4]; nd = ACCT.dias.length; }
@@ -3294,7 +3297,7 @@ function exampleNote(){
 /* ---------- Hoje ---------- */
 function vHoje(){
   const dateTxt = new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
-  return header('Hoje',dateTxt)+exampleNote()+checkinCard()+treinoCard()+cardioCard()+waterCard(true)+weekCard();
+  return header('Hoje',dateTxt)+exampleNote()+checkinCard()+treinoCard()+obrigCard(true)+cardioCard()+waterCard(true)+weekCard();
 }
 function checkinCard(){
   const ci = S.checkin[today()];
@@ -3371,6 +3374,23 @@ function workoutCard(){
     <div><h2 class="big">${p.nome}<span class="dot" aria-hidden="true"></span></h2><p class="muted">${p.foco} · ${p.ex.length} exercícios · cerca de ${p.min} min</p></div>${prog}
     ${low&&!done?`<p class="warn">${ic('moon')}<span>Seu check-in pede um dia mais leve. As cargas sugeridas repetem a última vez.</span></p>`:''}
     ${ses ? `<button type="button" class="btn primary block" data-a="go-treino" data-t="${t}">${ic('timer')}Continuar · <span data-tick="ses">${fmtDur(elapsed())}</span></button>` : slideStart(t,'Começar treino '+p.nome)}</section>`;
+}
+/* cardio obrigatório do personal: um dia conta quando o aluno faz aquele aparelho por pelo menos o tempo pedido */
+const DAYF = { seg:'seg', ter:'ter', qua:'qua', qui:'qui', sex:'sex', sab:'sáb', dom:'dom' };
+const obMin = (o,k) => S.cardio.filter(c => c.date===k && c.local===o.local).reduce((a,c) => a+c.min, 0);
+function obInfo(o){
+  const ds = weekDays(0), t0 = today(), tk = DAYK[(new Date().getDay()+6)%7], alvo = o.dias.length || o.vezes || 1;
+  const feitos = ds.filter(k => k<=t0 && obMin(o,k)>=o.min).length, hoje = obMin(o,t0), okHoje = hoje>=o.min;
+  const devido = o.dias.length ? o.dias.includes(tk) : feitos<alvo;
+  return { alvo, feitos, hoje, okHoje, devido, semOk:feitos>=alvo };
+}
+function obrigCard(home){
+  if(!OBRIG.length) return '';
+  const rows = OBRIG.map((o,i) => { const x = obInfo(o), quando = o.dias.length ? o.dias.map(d => DAYF[d]).join(', ') : x.alvo+'x por semana';
+    const st = x.okHoje ? `<span class="pill ok">${ic('check')}Feito hoje</span>` : x.semOk ? `<span class="pill ok">${ic('check')}Semana feita</span>` : x.devido ? `<span class="pill warn">Para hoje</span>` : '';
+    return `<div class="ob-r"><span class="ob-i">${eqIc(o.local,'')}</span><div class="ob-t"><b>${LOC_S[o.local]} · ${o.min} min</b><span>${quando} · ${x.feitos} de ${x.alvo} na semana${!x.okHoje && x.hoje ? ' · hoje '+x.hoje+' de '+o.min+' min' : ''}</span>${o.obs ? `<span class="ob-o">${esc(o.obs)}</span>` : ''}</div>
+      ${st || !(x.okHoje || (!x.devido && !home)) ? `<div class="ob-a">${st}${x.okHoje || (!x.devido && !home) ? '' : `<button type="button" class="btn small${x.devido?' primary':''}" data-a="ob-go" data-i="${i}">${ic('play')}Fazer ${o.min} min</button>`}</div>` : ''}</div>`; }).filter(Boolean).join('');
+  return `<section class="card ob-c" aria-label="Cardio pedido pelo seu personal"><div class="card-h"><span class="label">${ic('pulse')}Cardio do seu personal</span></div>${rows}<p class="foot0">Conta quando você registra esse aparelho com pelo menos o tempo pedido no dia.</p></section>`;
 }
 function cardioCard(){
   const cMin = cardioOn(today()), wk = weekDays(0).reduce((a,k) => a+cardioOn(k),0), ok = cMin>=CARDIO.min;
@@ -3841,7 +3861,8 @@ function cardioRecent(){
 }
 function vCardio(){
   const L = layOf();
-  return (L==='crono' ? vCardioCrono() : L==='cartoes' ? vCardioCards() : vCardioToque())+cardioRecent();
+  const h = L==='crono' ? vCardioCrono() : L==='cartoes' ? vCardioCards() : vCardioToque(), ob = S.cardioLive ? '' : obrigCard(false), i = h.indexOf('</header>');
+  return (ob && i>0 ? h.slice(0,i+9)+ob+h.slice(i+9) : h+ob)+cardioRecent();
 }
 /* 1 · Um toque */
 function vCardioToque(){
@@ -5368,6 +5389,7 @@ function onClick(ev){
       break;
     }
     case 'cf-local': ui.cf.local = d.v; break;
+    case 'ob-go': { const o = OBRIG[+d.i]; if(!o) break; ui.cf.local = o.local; ui.cf.min = o.min; ui.cfMore = ![10,15,20,25,30,40,45,60].includes(o.min); if(layOf()==='cartoes'){ ui.tab = 'cardio'; ui.cs = { local:o.local, min:o.min, int:ui.cf.int }; ui.sheet = {k:'cs'}; setTimeout(() => renderSheet(true), 0); } else { if(ui.tab!=='cardio'){ ui.tab = 'cardio'; ui.enter = true; } window.scrollTo(0,0); } toast(LOC_S[o.local]+' · '+o.min+' min. É só começar.'); break; }
     case 'cfint': ui.cf.int = d.v; break;
     case 'cf-min': ui.cf.min = +d.v; ui.cfMore = false; break;
     case 'cf-more': ui.cfMore = !ui.cfMore; break;
