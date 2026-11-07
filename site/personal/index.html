@@ -517,7 +517,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeri
 .teste-c{box-shadow:inset 0 0 0 2px #FF9A3C}
 .dom-c{box-shadow:inset 0 0 0 2px var(--brand)}.dom-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}.dom-top b{font-size:20px;font-weight:900;letter-spacing:-.03em}.dom-top span{font-size:13px;color:var(--muted)}
 .dom-bar{height:8px;border-radius:9px;background:var(--ctl);overflow:hidden}.dom-bar i{display:block;height:100%;background:var(--brand);border-radius:9px;transition:width .3s}
-.dom-a{display:flex;flex-direction:column;gap:10px;margin-top:6px}.dom-row{padding:0}
+.dom-a{display:flex;flex-direction:column;gap:10px;margin-top:6px}.dom-row{padding:0}.dom-pills{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:none}.pill.ok.aj{background:color-mix(in srgb,#E5B400 22%,transparent);color:inherit}
 .obw{margin-top:14px;padding:14px;border-radius:16px;background:var(--ctl);display:flex;flex-direction:column;gap:10px}.obw-c{background:var(--card);border-radius:14px;padding:12px;box-shadow:inset 0 0 0 1px var(--sep)}.obw-c .card-h{margin-bottom:6px}
 .ct-r{display:flex;flex-direction:column;margin-top:10px}.ct-r>div{padding:10px 0;border-top:1px solid var(--sep)}.ct-r span{font-size:12.5px;font-weight:800;color:var(--muted)}.ct-r p{margin:3px 0 0;white-space:pre-line;font-size:14.5px;line-height:1.45}.teste-c .label .i{color:#FF9A3C}
 .aqw{margin:4px 0 6px;padding:14px;border-radius:16px;background:var(--ctl);display:flex;flex-direction:column;gap:10px}.aqw-t{margin:0;display:flex;align-items:center;gap:8px;font-weight:800;font-size:14px}.aqw-t small{font-weight:600;color:var(--muted)}.aqw-t .i{width:16px;height:16px;color:#FF9A3C}
@@ -2577,8 +2577,9 @@ function tEvol(a){
 }
 /* ---------- domingo: fila de relatórios da semana (um aluno por vez, mensagem pronta) ---------- */
 const DOM_KEY = 'simp-domingo';
-function domLer(){ try { return JSON.parse(localStorage.getItem(DOM_KEY)||'null') || null; } catch(e){ return null; } }
-function domGravar(v){ try { localStorage.setItem(DOM_KEY, JSON.stringify(v)); } catch(e){ /* sem armazenamento */ } }
+// a fila fica salva no banco (config/geral.domingo): começa no celular e termina no computador
+function domLer(){ const g = C.config.geral; return g && g.domingo ? clone(g.domingo) : null; }
+function domGravar(v){ const g = C.config.geral || (C.config.geral = clone(DEF_CFG)); g.domingo = { sem:v.sem, feitos:v.feitos||[], pulados:v.pulados||[], adiado:!!v.adiado, fim:!!v.fim, em:Date.now() }; Store.save('config','geral',0); }
 let DOM_ADIOU = false; // "ver depois": some até a próxima vez que o painel abrir
 /* semana do relatório: a que termina no domingo (segunda a domingo) */
 function domSemana(){
@@ -2602,15 +2603,25 @@ function relSemana(a, ini){
   const wg = +m.waterGoal || +d.wg || 0, W = d.w || {}, wk = Array.from({length:7},(_,i) => addDays(ini,i)), wv = wk.map(k => +W[k]||0), wdias = wg ? wv.filter(v => v>=wg).length : 0, wreg = wv.filter(v => v>0), wmed = wreg.length ? wreg.reduce((t,v) => t+v,0)/wreg.length : 0;
   const K = d.k || {}, ck = wk.map(k => K[k]).filter(Boolean), sono = ck.filter(x => +x.sono).map(x => +x.sono), sonoMed = sono.length ? sono.reduce((t,v) => t+v,0)/sono.length : 0;
   const dorDias = wk.filter(k => K[k] && +K[k].dor>=2), dorEx = []; H.forEach(h => (h.ex||[]).forEach(e => { if((e.q||[]).some(q => /dor/i.test(q)) && !dorEx.includes(e.n)) dorEx.push(e.n); }));
-  const Ls = Object.keys((pl.treinos)||{}).sort(), feitos = [...new Set(H.map(h => h.t))], falta = meta && H.length<meta ? Ls.filter(l => !feitos.includes(l)).slice(0, meta-H.length) : [];
+  const Ls = Object.keys((pl.treinos)||{}).sort(), feitos = [...new Set(H.map(h => h.t))], mt = meta || Ls.length, falta = mt && H.length<mt ? Ls.filter(l => !feitos.includes(l)).slice(0, mt-H.length) : [];
   const tem = !!pg && (H.length || Cd.length || wreg.length || ck.length);
-  const okT = meta ? H.length>=meta : H.length>0, okC = cg ? cmin>=cg : true, okO = obrig.every(o => o.feito>=o.alvo), okW = wg ? wdias>=5 : true, dor = dorDias.length || dorEx.length;
-  const st = !tem ? 'sem' : dor ? 'dor' : okT && okC && okO && okW ? 'boa' : 'ajustar';
-  return { tem, st, H, H0, meta, cmin, cg, sobe, parado, obrig, wg, wdias, wmed, sonoMed, dorDias, dorEx, falta, okT, okC, okO, okW };
+  /* regras combinadas com o Eduardo:
+     treinos: completo = fez a meta da semana (sem "perto")
+     água: completo = 6 ou 7 dias na meta · perto = 4 ou 5 · abaixo = 3 ou menos
+     cardio: completo = minutos ≥ meta e obrigatório cumprido · perto = 70%+ dos minutos e faltou no máximo 1 dia do obrigatório · abaixo = o resto
+     boa = tudo completo · boaAj = treinos completos e água/cardio pelo menos perto · ajustar = o resto · dor é um aviso à parte */
+  const metaT = meta || Object.keys((pl.treinos)||{}).length, okT = metaT ? H.length>=metaT : H.length>0;
+  const nvW = !wg ? 'ok' : wdias>=6 ? 'ok' : wdias>=4 ? 'perto' : 'abaixo';
+  const faltaOb = obrig.reduce((t,o) => t+Math.max(0, o.alvo-o.feito), 0);
+  const nvC = !cg && !obrig.length ? 'ok' : (cg ? cmin>=cg : true) && faltaOb===0 ? 'ok' : (cg ? cmin>=cg*0.7 : true) && faltaOb<=1 ? 'perto' : 'abaixo';
+  const dor = !!(dorDias.length || dorEx.length);
+  const st = !tem ? 'sem' : okT && nvW==='ok' && nvC==='ok' ? 'boa' : okT && nvW!=='abaixo' && nvC!=='abaixo' ? 'boaAj' : 'ajustar';
+  const motivo = [!okT && metaT ? (metaT-H.length===1 ? 'faltou 1 treino' : 'faltaram '+(metaT-H.length)+' treinos') : '', nvW!=='ok' ? 'água '+wdias+'/7' : '', cg && cmin<cg ? 'cardio '+cmin+'/'+cg : '', ...obrig.filter(o => o.feito<o.alvo).map(o => o.txt.split(' ')[0].toLowerCase()+' '+o.feito+'/'+o.alvo)].filter(Boolean);
+  return { tem, st, dor, motivo, H, H0, meta:metaT, cmin, cg, sobe, parado, obrig, faltaOb, wg, wdias, wmed, sonoMed, dorDias, dorEx, falta, okT, nvW, nvC };
 }
 const fmtSono = h => { const i = Math.floor(h), m = Math.round((h-i)*60/30)*30; return m>=60 ? (i+1)+'h' : i+'h'+(m ? String(m).padStart(2,'0') : ''); };
 function relTexto(a, ini){
-  const r = relSemana(a, ini), nome = curto(a), fim = addDays(ini, 6), c = cfg();
+  const r = relSemana(a, ini), nome = curto(a), fim = addDays(ini, 6), c = cfg(), ico = n => n==='ok' ? '✅' : n==='perto' ? '🟡' : '⚠️';
   const per = parse(ini).getMonth()===parse(fim).getMonth() ? parse(ini).getDate()+' a '+dataLonga(fim) : dataLonga(ini)+' a '+dataLonga(fim);
   let t = '📋 *Relatório da semana · '+per+'*\nOi, '+nome+'! Olha o seu resumo:\n\n';
   if(!r.tem) return t+'Não vi nenhum registro seu no app nesta semana. 🤔\nAconteceu alguma coisa? Lembra de marcar os treinos, o cardio e a água no app: é assim que eu acompanho a sua evolução.\n\nMe conta como foi a semana! 💪'+(c.nomePersonal ? '\n\n'+c.nomePersonal : '');
@@ -2619,20 +2630,24 @@ function relTexto(a, ini){
   if(r.sobe.length){ const b = r.sobe[0]; t += 'Maior evolução: *'+b.n+'* '+fmtN(b.de)+' → '+fmtN(b.para)+' kg (+'+b.pc+'%)\n'; if(r.sobe.length>1) t += 'Também subiu: '+r.sobe.slice(1,3).map(x => x.n+' '+fmtN(x.de)+' → '+fmtN(x.para)+' kg').join(' · ')+'\n'; }
   else if(r.H.length) t += 'Cargas: iguais à semana passada.\n';
   t += '\n';
-  if(r.cg || r.cmin || r.obrig.length){ t += '🏃 *Cardio:* '+r.cmin+(r.cg ? ' de '+r.cg : '')+' min '+(r.okC ? '✅' : '⚠️')+'\n'; r.obrig.forEach(o => t += o.txt+': '+o.feito+' de '+o.alvo+' '+(o.feito>=o.alvo ? '✅' : '⚠️')+'\n'); t += '\n'; }
-  if(r.wg) t += '💧 *Água:* '+r.wdias+' de 7 dias na meta'+(r.wmed ? ' · média de '+fmtN(r.wmed/1000,1)+' L' : '')+(r.okW ? '' : ' ⚠️')+'\n\n';
-  if(r.sonoMed || r.dorDias.length || r.dorEx.length){ const p = []; if(r.sonoMed) p.push('sono médio de '+fmtSono(r.sonoMed)); if(r.dorEx.length) p.push('dor em '+r.dorEx.slice(0,2).join(' e ')); else if(r.dorDias.length) p.push('dor no check-in de '+r.dorDias.map(k => DSEM[parse(k).getDay()]).join(', ')); else p.push('sem dor'); t += '😴 *Check-in:* '+p.join(', ')+(p.some(x => /dor (em|no)/.test(x)) ? ' 🩹' : '')+'\n\n'; }
+  if(r.cg || r.cmin || r.obrig.length){ t += '🏃 *Cardio:* '+r.cmin+(r.cg ? ' de '+r.cg : '')+' min '+(r.cg ? (r.cmin>=r.cg ? '✅' : r.cmin>=r.cg*0.7 ? '🟡' : '⚠️') : '')+'\n'; r.obrig.forEach(o => t += o.txt+': '+o.feito+' de '+o.alvo+' '+(o.feito>=o.alvo ? '✅' : o.alvo-o.feito===1 ? '🟡' : '⚠️')+'\n'); t += '\n'; }
+  if(r.wg) t += '💧 *Água:* '+r.wdias+' de 7 dias na meta'+(r.wmed ? ' · média de '+fmtN(r.wmed/1000,1)+' L' : '')+' '+ico(r.nvW)+'\n\n';
+  if(r.sonoMed || r.dor){ const p = []; if(r.sonoMed) p.push('sono médio de '+fmtSono(r.sonoMed)); if(r.dorEx.length) p.push('dor em '+r.dorEx.slice(0,2).join(' e ')+' 🩹'); else if(r.dorDias.length) p.push('dor no check-in de '+r.dorDias.map(k => DSEM[parse(k).getDay()]).join(', ')+' 🩹'); else p.push('sem dor'); t += '😴 *Check-in:* '+p.join(', ')+'\n\n'; }
   const foco = [];
-  if(!r.okT && r.meta) foco.push('Encaixar os '+r.meta+' treinos, mesmo que mais curtos.');
-  r.obrig.filter(o => o.feito<o.alvo).forEach(o => foco.push(o.txt+' em '+o.alvo+' dias.'));
-  if(!r.okC && r.cg) foco.push('Completar os '+r.cg+' min de cardio.');
-  if(!r.okW) foco.push('Garrafinha sempre por perto: a meta é '+fmtN(r.wg/1000,1)+' L.');
-  if(!foco.length) foco.push(r.parado.length ? 'Manter o ritmo e tentar subir a carga em '+r.parado[0]+'.' : 'Manter o ritmo e seguir subindo as cargas.');
-  t += '🎯 *Para a próxima semana*\n'+(foco.length===1 ? foco[0] : foco.map((x,i) => (i+1)+'. '+x).join('\n'))+'\n\n';
-  t += r.st==='dor' ? 'Como está '+(r.dorEx.length ? 'a dor no '+r.dorEx[0] : 'a dor')+'? Se ainda doer, me avisa que eu ajusto os exercícios. 💪' : r.st==='boa' ? 'Você está no caminho certo! 🔥' : 'Bora retomar! 💪';
+  if(r.st==='boa') foco.push(r.parado.length ? 'Manter o ritmo e tentar subir a carga em '+r.parado[0]+'.' : 'Manter o ritmo e seguir subindo as cargas.');
+  else {
+    if(!r.okT && r.meta) foco.push('Encaixar os '+r.meta+' treinos, mesmo que mais curtos.');
+    if(r.cg && r.cmin<r.cg) foco.push(r.st==='boaAj' ? 'Faltaram só '+(r.cg-r.cmin)+' min de cardio.' : 'Completar os '+r.cg+' min de cardio.');
+    r.obrig.filter(o => o.feito<o.alvo).forEach(o => foco.push(r.st==='boaAj' ? o.txt+': faltou '+(o.alvo-o.feito===1 ? '1 dia' : (o.alvo-o.feito)+' dias')+'.' : o.txt+' em '+o.alvo+' dias.'));
+    if(r.nvW!=='ok') foco.push(r.st==='boaAj' ? 'Água: mais '+(6-r.wdias===1 ? '1 dia' : (6-r.wdias)+' dias')+' na meta e fecha a semana.' : 'Garrafinha sempre por perto: a meta é '+fmtN(r.wg/1000,1)+' L.');
+  }
+  const F = foco.slice(0,3);
+  t += '🎯 *Para a próxima semana*\n'+(F.length===1 ? F[0] : F.map((x,i) => (i+1)+'. '+x).join('\n'))+'\n\n';
+  if(r.dor) t += 'Como está '+(r.dorEx.length ? 'a dor no '+r.dorEx[0] : 'a dor')+'? Se ainda doer, me avisa que eu ajusto os exercícios.\n';
+  t += r.st==='boa' ? 'Você está no caminho certo! 🔥' : r.st==='boaAj' ? 'Semana muito boa! Só falta um detalhe pra ficar perfeita. 💪' : 'Bora retomar! 💪';
   return t+(c.nomePersonal ? '\n\n'+c.nomePersonal : '');
 }
-const REL_ST = { boa:['ok','Semana boa'], ajustar:['warn','Ajustar'], dor:['bad','Dor'], sem:['line','Sem registros'] };
+const REL_ST = { boa:['ok','Semana boa'], boaAj:['ok aj','Boa, com ajuste'], ajustar:['warn','A ajustar'], sem:['line','Sem registros'] };
 function semanaCard(){
   const ini = domSemana(); if(!ini || !pfOnline() || DOM_ADIOU) return '';
   let st = domLer(); if(!st || st.sem!==ini) st = { sem:ini, feitos:[], pulados:[], adiado:false, fim:false };
@@ -2646,9 +2661,9 @@ function semanaCard(){
   const bar = '<div class="dom-top"><b>'+nFeitos+' de '+tot+' enviados</b><span>Semana de '+per+'</span></div><div class="dom-bar"><i style="width:'+(tot ? Math.round(nFeitos/tot*100) : 0)+'%"></i></div>';
   if(!resta.length) return head(bar+'<p class="muted">'+(st.pulados.length ? 'Chegou ao fim da fila. '+plural(st.pulados.length,'aluno pulado','alunos pulados')+'.' : 'Pronto! Todos os relatórios foram enviados. 🎉')+'</p><div class="btn-row">'+(st.pulados.length ? '<button type="button" class="btn small" data-a="domVoltar">'+ic('refresh')+'Ver os pulados</button>' : '')+'<button type="button" class="btn small primary" data-a="domFim">'+ic('check')+'Encerrar</button></div></section>');
   const a = resta[0], r = relSemana(a, ini), txt = relTexto(a, ini), wa = String(P(a).whatsapp||'').replace(/\D/g,''), [cls, lbl] = REL_ST[r.st];
-  const resumo = r.tem ? [plural(r.H.length,'treino')+(r.meta ? ' de '+r.meta : ''), r.cg ? 'cardio '+r.cmin+'/'+r.cg : '', r.wg ? 'água '+r.wdias+'/7' : ''].filter(Boolean).join(' · ') : 'Nada registrado no app nesta semana';
+  const resumo = !r.tem ? 'Nada registrado no app nesta semana' : r.st==='boa' ? 'Tudo completo: '+r.H.length+(r.meta ? '/'+r.meta : '')+' treinos'+(r.cg ? ' · cardio '+r.cmin+'/'+r.cg : '')+(r.wg ? ' · água '+r.wdias+'/7' : '') : r.motivo.join(' · ');
   return head(bar+
-    '<div class="dom-a"><div class="row dom-row"><span class="pf-av">'+esc(pfIni(nomeDe(a)))+'</span><span class="main-t"><b>'+esc(nomeDe(a))+'</b><span>'+esc(resumo)+'</span></span><span class="pill '+cls+'">'+lbl+'</span></div>'+
+    '<div class="dom-a"><div class="row dom-row"><span class="pf-av">'+esc(pfIni(nomeDe(a)))+'</span><span class="main-t"><b>'+esc(nomeDe(a))+'</b><span>'+esc(resumo)+'</span></span><span class="dom-pills"><span class="pill '+cls+'">'+lbl+'</span>'+(r.dor ? '<span class="pill bad">🩹 Dor</span>' : '')+'</span></div>'+
     '<label class="sr" for="dom-txt">Relatório de '+esc(curto(a))+'</label><textarea id="dom-txt" class="share" rows="10">'+esc(txt)+'</textarea>'+
     '<div class="btn-row">'+(wa.length>=10 ? '<a class="btn primary" data-a="domEnviou" data-k="'+esc(a._id)+'" href="https://wa.me/'+(wa.length<=11?'55':'')+wa+'?text='+encodeURIComponent(txt)+'" target="_blank" rel="noopener">'+ic('msg')+'Abrir no WhatsApp</a>' : '')+
     '<button type="button" class="btn'+(wa.length>=10?'':' primary')+'" data-a="domCopiar" data-k="'+esc(a._id)+'">'+ic('copy')+'Copiar e marcar enviado</button><button type="button" class="btn ghost" data-a="domPular" data-k="'+esc(a._id)+'">Pular</button></div>'+
@@ -2751,7 +2766,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '7 nov · 62'; // Versão do painel: 7 nov · 62
+const PAINELV = '7 nov · 63'; // Versão do painel: 7 nov · 63
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
