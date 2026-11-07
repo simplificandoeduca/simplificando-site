@@ -227,6 +227,21 @@ button.row:active{background:var(--ctl)}
 .set-item .inline input{min-height:44px}
 .x-sm{border:0;background:var(--ctl);color:var(--ctl-fg);width:40px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex:none}
 .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;white-space:pre-wrap;word-break:break-word;background:var(--input);border-radius:16px;padding:12px;box-shadow:inset 0 0 0 1.5px var(--sep);max-height:220px;overflow:auto;margin:0}
+.mic{border:0;background:var(--lime);color:#0F1712;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;transition:transform .2s var(--spring)}
+.mic:active{transform:scale(.92)}
+.mic .i{width:20px;height:20px;stroke-width:2.2}
+.mic.sm{width:36px;height:36px}.mic.sm .i{width:17px;height:17px}
+.mic.ghost{background:var(--ctl);color:var(--ctl-fg)}
+.mic.on{background:var(--brand);animation:pulse 1s infinite}
+.voz{display:flex;flex-direction:column;align-items:center;gap:12px;padding:10px 0 4px;text-align:center}
+.voz .mic{width:76px;height:76px}.voz .mic .i{width:34px;height:34px}
+.voz .txt{margin:0;font-size:17px;font-weight:600;min-height:24px;line-height:1.35}
+.voz .txt.muted{color:var(--muted);font-weight:500}
+.ent{background:var(--card);box-shadow:inset 0 0 0 1px var(--card-line);border-radius:22px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.ent .big{font-size:34px}
+.ent .det{margin:0;font-size:14px;color:var(--muted)}
+.ent .det b{color:var(--fg)}
+.fx{display:flex;align-items:center;gap:10px}
 </style>
 </head>
 <body>
@@ -235,6 +250,7 @@ button.row:active{background:var(--ctl)}
 <header class="top">
   <span class="logo" id="logo"></span>
   <h1>Finanças <small>Simplificando</small></h1>
+  <button type="button" class="mic" data-a="voz" aria-label="Falar um lançamento" title="Falar"></button>
   <span class="dot" id="sync" title="Sincronização"></span>
 </header>
 <div class="mnav" id="mnav">
@@ -297,6 +313,7 @@ const I = {
   trash:'<svg class="i" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>',
   eye:'<svg class="i" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
   wallet:'<svg class="i" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18M16 15h2"/></svg>',
+  mic:'<svg class="i" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6"/></svg>',
   refresh:'<svg class="i" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7L20 8"/><path d="M20 3v5h-5"/></svg>'
 };
 function logo(){
@@ -306,7 +323,7 @@ function logo(){
     arc('M0 44.3A44.3 44.3 0 0 1 -44.3 -0.31', '#5AB8FF') + arc('M-44.3 0A44.3 44.3 0 0 1 0.31 -44.3', '#FF4646') +
     '<text x="0" y="12" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-weight="900" font-size="34" fill="#F6F5EF">R$</text></svg>';
 }
-$('#logo').innerHTML = logo();
+$('#logo').innerHTML = logo(); document.querySelector('.top .mic').innerHTML = I.mic;
 
 /* ========== estado ========== */
 const LS = 'simplificando-financas', LST = 'simplificando-financas-tema';
@@ -316,7 +333,7 @@ function fresh(){
     v:1, em:0,
     fontes:[{ id:'f1', nome:'Emprego 1' }, { id:'f2', nome:'Emprego 2' }],
     cartoes:[{ id:'c1', nome:'Cartão 1', cor:0, tipo:'credito', fecha:null }, { id:'c2', nome:'Cartão 2', cor:1, tipo:'credito', fecha:null }, { id:'conta', nome:'Conta (débito / Pix)', cor:4, tipo:'conta', fecha:null }],
-    receitas:[], gastos:[], pagamentos:[], saldos:[],
+    receitas:[], gastos:[], pagamentos:[], saldos:[], fixos:[], fixosFeitos:{},
     irmao:{ nome:'Irmão', zap:'', pix:'' },
     cats:CATS.slice(), ult:{ cartao:'c1' }
   };
@@ -324,7 +341,8 @@ function fresh(){
 let S = fresh();
 function normalize(o){
   const d = fresh(); if (!o || typeof o !== 'object') return d;
-  for (const k of ['fontes', 'cartoes', 'receitas', 'gastos', 'pagamentos', 'saldos', 'cats']) if (!Array.isArray(o[k])) o[k] = d[k];
+  for (const k of ['fontes', 'cartoes', 'receitas', 'gastos', 'pagamentos', 'saldos', 'cats', 'fixos']) if (!Array.isArray(o[k])) o[k] = d[k];
+  if (!o.fixosFeitos || typeof o.fixosFeitos !== 'object') o.fixosFeitos = {};
   o.irmao = Object.assign({}, d.irmao, o.irmao || {}); o.ult = Object.assign({}, d.ult, o.ult || {});
   o.em = +o.em || 0; o.v = 1;
   if (!o.fontes.length) o.fontes = d.fontes; if (!o.cartoes.length) o.cartoes = d.cartoes;
@@ -355,7 +373,7 @@ const Cloud = (() => {
     try { const o = normalize(JSON.parse(remote.s || 'null')); o.em = +remote.em || o.em; S = o; ls.set(LS, JSON.stringify(S)); render(); } catch(e){}
   }
   async function connect(user){
-    ref = db.collection('financas').doc(user.uid); dot('busy');
+    ref = db.collection('config').doc('financas'); dot('busy'); // dentro de config/: a conta dona do painel já grava ali, sem regra nova no Firebase
     try {
       const snap = await ref.get(); const r = snap.exists ? snap.data() : null;
       if (r && (+r.em || 0) > (S.em || 0)) apply(r);
@@ -370,7 +388,7 @@ const Cloud = (() => {
   }
   async function push(){
     if (!ref) return; saving = true; dirty = false; dot('busy');
-    try { await ref.set({ s:JSON.stringify(S), em:S.em || Date.now() }); dot('ok'); }
+    try { await ref.set({ s:JSON.stringify(S), em:S.em || Date.now(), tipo:'financas' }); dot('ok'); }
     catch(e){ dirty = true; dot('off'); }
     saving = false; if (dirty) schedule();
   }
@@ -407,8 +425,22 @@ function faturaDe(c){ // período da fatura que fecha no mês escolhido: do dia 
   return { ini, fim, total:sum(itens, g => g.valor), irmao:sum(itens.filter(g => g.quem === 'irmao'), g => g.valor) };
 }
 
+function aplicarFixos(){ // cria o gasto de cada fixo no dia certo do mês atual (uma vez só, mesmo que depois seja apagado)
+  const mes = nowKey(), hoje = todayISO(), ultimo = new Date(+mes.slice(0, 4), +mes.slice(5, 7), 0).getDate();
+  let n = 0;
+  for (const f of S.fixos) {
+    if (f.ativo === false) continue;
+    const key = f.id + '|' + mes; if (S.fixosFeitos[key]) continue;
+    const data = mes + '-' + p2(Math.min(Math.max(1, f.dia || 1), ultimo)); if (data > hoje) continue;
+    S.gastos.push({ id:uid(), cr:Date.now() + n, valor:f.valor, data, cartao:f.cartao, quem:f.quem === 'irmao' ? 'irmao' : 'eu', desc:f.nome, cat:f.cat || '', fixo:f.id });
+    S.fixosFeitos[key] = true; n++;
+  }
+  return n;
+}
+
 /* ========== telas ========== */
 function render(){
+  if (aplicarFixos()) { save(); toast('Gastos fixos do mês lançados.'); }
   $('#mlab').textContent = monthLabel(UI.mes);
   $('#mlab').classList.toggle('hoje', UI.mes === nowKey());
   $('#mnav').hidden = UI.tab === 'ajustes';
@@ -473,7 +505,7 @@ function rGastos(){
     for (const g of its) {
       if (g.data !== dia) { dia = g.data; const tot = sum(its.filter(x => x.data === dia), x => x.valor); h += `<div class="gh"><span>${esc(dayLabel(dia))}</span><b>${esc(fmt(tot))}</b></div>`; }
       const c = cartao(g.cartao);
-      h += `<button type="button" class="row" data-a="ed-gasto" data-k="${g.id}"><span class="sw" style="--sw:${swOf(c)}"></span><span class="tx"><b>${esc(g.desc || g.cat || 'Gasto')}</b><span>${esc(c.nome)}${g.cat && g.desc ? ' · ' + esc(g.cat) : ''}${g.parc ? ' · ' + esc(g.parc) : ''}</span></span>${g.quem === 'irmao' ? `<span class="tag">${esc(S.irmao.nome)}</span>` : ''}<span class="val">${esc(fmt(g.valor))}</span></button>`;
+      h += `<button type="button" class="row" data-a="ed-gasto" data-k="${g.id}"><span class="sw" style="--sw:${swOf(c)}"></span><span class="tx"><b>${esc(g.desc || g.cat || 'Gasto')}</b><span>${esc(c.nome)}${g.cat && g.desc ? ' · ' + esc(g.cat) : ''}${g.parc ? ' · ' + esc(g.parc) : ''}${g.fixo ? ' · fixo' : ''}</span></span>${g.quem === 'irmao' ? `<span class="tag">${esc(S.irmao.nome)}</span>` : ''}<span class="val">${esc(fmt(g.valor))}</span></button>`;
     }
     h += `</div><p class="sub" style="text-align:center">Total: <b>${esc(fmt(sum(its, g => g.valor)))}</b> em ${its.length} ${its.length === 1 ? 'gasto' : 'gastos'}. Toque num gasto para editar ou apagar.</p>`;
   }
@@ -500,18 +532,22 @@ function rIrmao(){
 function rAjustes(){
   const t = document.documentElement.dataset.theme || 'auto';
   let h = `<div class="card"><div class="hd"><h2>Renda</h2><button type="button" class="btn sm" data-a="add-fonte">${I.plus}Fonte</button></div><p class="sub">Seus empregos ou de onde vem o dinheiro.</p>`;
-  for (const f of S.fontes) h += `<div class="set-item"><div class="inline"><label class="field"><span class="sr">Nome</span><input data-f="fonte" data-k="${f.id}" value="${esc(f.nome)}" placeholder="Nome do emprego"></label><button type="button" class="x-sm" data-a="del-fonte" data-k="${f.id}" aria-label="Apagar">${I.trash}</button></div></div>`;
+  for (const f of S.fontes) h += `<div class="set-item"><div class="inline"><label class="field"><span class="sr">Nome</span><input id="in-f-${f.id}" data-f="fonte" data-k="${f.id}" value="${esc(f.nome)}" placeholder="Nome do emprego"></label><button type="button" class="mic sm ghost" data-voz="in-f-${f.id}" aria-label="Falar o nome">${I.mic}</button><button type="button" class="x-sm" data-a="del-fonte" data-k="${f.id}" aria-label="Apagar">${I.trash}</button></div></div>`;
   h += `</div>`;
   h += `<div class="card"><div class="hd"><h2>Cartões e conta</h2><button type="button" class="btn sm" data-a="add-cartao">${I.plus}Cartão</button></div><p class="sub">Cada cartão com sua cor. Marque um como "conta" para o saldo acompanhar o débito e o Pix. O dia de fechamento mostra a fatura atual no Resumo.</p>`;
   for (const c of S.cartoes) {
-    h += `<div class="set-item"><div class="inline"><label class="field"><span class="sr">Nome</span><input data-f="cartao" data-k="${c.id}" value="${esc(c.nome)}" placeholder="Nome do cartão"></label><button type="button" class="x-sm" data-a="del-cartao" data-k="${c.id}" aria-label="Apagar">${I.trash}</button></div>
+    h += `<div class="set-item"><div class="inline"><label class="field"><span class="sr">Nome</span><input id="in-c-${c.id}" data-f="cartao" data-k="${c.id}" value="${esc(c.nome)}" placeholder="Nome do cartão"></label><button type="button" class="mic sm ghost" data-voz="in-c-${c.id}" aria-label="Falar o nome">${I.mic}</button><button type="button" class="x-sm" data-a="del-cartao" data-k="${c.id}" aria-label="Apagar">${I.trash}</button></div>
       <div class="inline"><div class="seg" style="flex:1"><button type="button" class="${c.tipo !== 'conta' ? 'on' : ''}" data-a="tipo-cartao" data-k="${c.id}" data-v="credito">Crédito</button><button type="button" class="${c.tipo === 'conta' ? 'on' : ''}" data-a="tipo-cartao" data-k="${c.id}" data-v="conta">Conta</button></div>
       ${c.tipo !== 'conta' ? `<label class="field" style="width:120px"><span class="sr">Fecha dia</span><input type="number" min="1" max="31" inputmode="numeric" data-f="fecha" data-k="${c.id}" value="${c.fecha || ''}" placeholder="Fecha dia"></label>` : ''}</div>
       <div class="sw-pick">${[0, 1, 2, 3, 4, 5, 6, 7].map(i => `<button type="button" class="${(c.cor ?? 7) === i ? 'on' : ''}" style="--sw:var(--c${i})" data-a="cor-cartao" data-k="${c.id}" data-v="${i}" aria-label="Cor ${i + 1}"></button>`).join('')}</div></div>`;
   }
   h += `</div>`;
+  h += `<div class="card"><div class="hd"><h2>Gastos fixos</h2><button type="button" class="btn sm" data-a="add-fixo">${I.plus}Fixo</button></div><p class="sub">Aluguel, assinaturas, parcelas: entram sozinhos no dia certo de cada mês. Toque para editar.</p>`;
+  if (!S.fixos.length) h += `<p class="sub">Nenhum gasto fixo ainda. Dica: toque no microfone e diga "fixo aluguel 1200 na conta dia 5".</p>`;
+  else { h += `<div class="list" style="margin:0 -6px">`; for (const f of S.fixos) { const c = cartao(f.cartao); h += `<button type="button" class="row" data-a="ed-fixo" data-k="${f.id}"><span class="sw" style="--sw:${swOf(c)}"></span><span class="tx"><b>${esc(f.nome)}</b><span>Dia ${f.dia || 1} · ${esc(c.nome)}${f.quem === 'irmao' ? ' · ' + esc(S.irmao.nome) : ''}${f.ativo === false ? ' · pausado' : ''}</span></span><span class="val">${esc(fmt(f.valor))}<small>por mês</small></span></button>`; } h += `</div><p class="sub">Total fixo: <b>${esc(fmt(sum(S.fixos.filter(f => f.ativo !== false), f => f.valor)))}</b> por mês.</p>`; }
+  h += `</div>`;
   h += `<div class="card"><h2>Quem usa seu cartão</h2><p class="sub">Nome, WhatsApp e chave Pix (entra na mensagem de cobrança).</p>
-    <label class="field">Nome<input data-f="irmao-nome" value="${esc(S.irmao.nome)}" placeholder="Irmão"></label>
+    <div class="inline"><label class="field">Nome<input id="in-irmao" data-f="irmao-nome" value="${esc(S.irmao.nome)}" placeholder="Irmão"></label><button type="button" class="mic sm ghost" style="margin-top:22px" data-voz="in-irmao" aria-label="Falar o nome">${I.mic}</button></div>
     <div class="grid2"><label class="field">WhatsApp<input data-f="irmao-zap" inputmode="tel" value="${esc(S.irmao.zap)}" placeholder="11 91234-5678"></label><label class="field">Sua chave Pix<input data-f="irmao-pix" value="${esc(S.irmao.pix)}" placeholder="CPF, e-mail ou celular"></label></div></div>`;
   h += `<div class="card"><div class="hd"><h2>Categorias</h2><button type="button" class="btn sm" data-a="add-cat">${I.plus}Categoria</button></div><div class="chips">${S.cats.map(c => `<button type="button" class="opt" data-a="del-cat" data-k="${esc(c)}" title="Toque para apagar">${esc(c)} ${I.x}</button>`).join('')}</div><p class="sub">Toque numa categoria para apagar.</p></div>`;
   h += `<div class="card"><h2>Aparência</h2><div class="seg"><button type="button" class="${t === 'auto' ? 'on' : ''}" data-a="tema" data-k="auto">Automático</button><button type="button" class="${t === 'light' ? 'on' : ''}" data-a="tema" data-k="light">Claro</button><button type="button" class="${t === 'dark' ? 'on' : ''}" data-a="tema" data-k="dark">Escuro</button></div>
@@ -526,7 +562,7 @@ const Sheet = (() => {
   const w = $('#sheet'), box = w.querySelector('.sheet'); let st = null;
   function open(html, state){ st = state || {}; box.innerHTML = `<div class="grab"></div>` + html; w.hidden = false; document.body.classList.add('locked'); w.dataset.open = '1'; }
   function close(){ w.hidden = true; box.innerHTML = ''; document.body.classList.remove('locked'); st = null; }
-  w.addEventListener('click', ev => { if (ev.target === w) close(); });
+  w.addEventListener('click', ev => { if (ev.target === w) { Voz.stop(); close(); } });
   return { open, close, box, get st(){ return st; } };
 })();
 const padHTML = () => `<div class="pad">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => `<button type="button" data-p="${n}">${n}</button>`).join('')}<button type="button" class="soft" data-p="00">00</button><button type="button" data-p="0">0</button><button type="button" class="soft" data-p="bk" aria-label="Apagar">⌫</button></div>`;
@@ -540,46 +576,235 @@ function sugestoes(){ // descrições mais recentes, sem repetir
 }
 
 function sheetGasto(g){
-  const edit = !!g; g = g || { data:todayISO(), cartao:S.ult.cartao, quem:'eu', desc:'', cat:'', valor:0 };
+  const edit = !!(g && g.id); g = Object.assign({ data:todayISO(), cartao:S.ult.cartao, quem:'eu', desc:'', cat:'', valor:0 }, g || {});
   if (!S.cartoes.some(c => c.id === g.cartao)) g.cartao = S.cartoes[0].id;
   const st = { kind:'gasto', id:g.id, dig:g.valor ? String(g.valor) : '', cartao:g.cartao, quem:g.quem || 'eu', cat:g.cat || '', parcelas:1 };
   const sug = sugestoes(), cc = cartao(g.cartao);
-  Sheet.open(`<div class="hd"><h2>${edit ? 'Editar gasto' : 'Novo gasto'}</h2>${edit && g.parc ? `<span class="pill">${esc(g.parc)}</span>` : ''}<button type="button" class="x" data-s="fechar" aria-label="Fechar">${I.x}</button></div>
+  Sheet.open(`<div class="hd"><h2>${edit ? 'Editar gasto' : 'Novo gasto'}</h2>${edit && g.parc ? `<span class="pill">${esc(g.parc)}</span>` : ''}<button type="button" class="mic" data-s="voz-sheet" aria-label="Falar o gasto">${I.mic}</button><button type="button" class="x" data-s="fechar" aria-label="Fechar">${I.x}</button></div>
     ${amtHTML(g.valor)}${padHTML()}
     <div class="sec"><p class="lbl">Cartão</p>${chipsHTML('cartao', S.cartoes, g.cartao, swOf)}</div>
     <div class="sec"><p class="lbl">Quem gastou</p><div class="seg" id="quem"><button type="button" class="${st.quem !== 'irmao' ? 'on' : ''}" data-c="quem" data-k="eu">Eu</button><button type="button" class="${st.quem === 'irmao' ? 'on' : ''}" data-c="quem" data-k="irmao">${esc(S.irmao.nome)}</button></div></div>
-    <div class="sec"><label class="field">O que foi <span style="font-weight:500;color:var(--muted)">(opcional)</span><input id="s-desc" value="${esc(g.desc)}" placeholder="Ex.: mercado, Uber, farmácia" autocomplete="off"></label>
+    <div class="sec"><label class="field">O que foi <span style="font-weight:500;color:var(--muted)">(opcional)</span><span class="inline"><input id="s-desc" value="${esc(g.desc)}" placeholder="Ex.: mercado, Uber, farmácia" autocomplete="off"><button type="button" class="mic sm ghost" data-voz="s-desc" aria-label="Falar a descrição">${I.mic}</button></span></label>
     ${sug.length && !edit ? `<div class="chips scroll">${sug.map(s => `<button type="button" class="opt" data-c="sug" data-k="${esc(s.desc)}" data-cat="${esc(s.cat)}">${esc(s.desc)}</button>`).join('')}</div>` : ''}</div>
     <div class="sec"><p class="lbl">Categoria</p><div class="chips scroll">${S.cats.map(c => `<button type="button" class="opt ${st.cat === c ? 'on' : ''}" data-c="cat" data-k="${esc(c)}">${esc(c)}</button>`).join('')}</div></div>
     <div class="grid2"><label class="field">Data<input type="date" id="s-data" value="${esc(g.data)}"></label>${!edit && cc.tipo !== 'conta' ? `<label class="field">Parcelas<select id="s-parc">${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(n => `<option value="${n}">${n === 1 ? 'À vista' : n + '× (divide o valor)'}</option>`).join('')}</select></label>` : ''}</div>
     <div class="btns" style="margin-top:4px"><button type="button" class="btn primary wide" data-s="salvar-gasto" style="flex:1 1 100%">${edit ? 'Salvar' : 'Salvar gasto'}</button>${edit ? `<button type="button" class="btn" data-s="repetir-gasto">Repetir hoje</button><button type="button" class="btn danger" data-s="apagar-gasto">${I.trash}Apagar</button>` : ''}</div>`, st);
 }
 function sheetReceita(r){
-  const edit = !!r; r = r || { data:todayISO(), fonte:S.fontes[0].id, valor:0, obs:'' };
+  const edit = !!(r && r.id); r = Object.assign({ data:todayISO(), fonte:S.fontes[0].id, valor:0, obs:'' }, r || {});
   const st = { kind:'receita', id:r.id, dig:r.valor ? String(r.valor) : '', fonte:r.fonte };
-  Sheet.open(`<div class="hd"><h2>${edit ? 'Editar receita' : 'Recebi'}</h2><button type="button" class="x" data-s="fechar" aria-label="Fechar">${I.x}</button></div>
+  Sheet.open(`<div class="hd"><h2>${edit ? 'Editar receita' : 'Recebi'}</h2><button type="button" class="mic" data-s="voz-sheet" aria-label="Falar a receita">${I.mic}</button><button type="button" class="x" data-s="fechar" aria-label="Fechar">${I.x}</button></div>
     ${amtHTML(r.valor)}${padHTML()}
     <div class="sec"><p class="lbl">De onde</p>${chipsHTML('fonte', S.fontes, r.fonte)}</div>
     <div class="grid2"><label class="field">Data<input type="date" id="s-data" value="${esc(r.data)}"></label><label class="field">Observação<input id="s-obs" value="${esc(r.obs || '')}" placeholder="Ex.: salário, extra"></label></div>
     <div class="btns"><button type="button" class="btn primary wide" data-s="salvar-receita" style="flex:1 1 100%">Salvar</button>${edit ? `<button type="button" class="btn danger" data-s="apagar-receita">${I.trash}Apagar</button>` : ''}</div>`, st);
 }
-function sheetSaldo(){
-  const sa = saldoAtual();
-  Sheet.open(`<div class="hd"><h2>Saldo na conta agora</h2><button type="button" class="x" data-s="fechar" aria-label="Fechar">${I.x}</button></div>
-    ${amtHTML(0, 'Abra o banco uma vez e copie o saldo de hoje')}${padHTML()}
+function sheetSaldo(pre){
+  const sa = saldoAtual(); pre = pre || {};
+  Sheet.open(`<div class="hd"><h2>Saldo na conta agora</h2><button type="button" class="mic" data-s="voz-sheet" aria-label="Falar o saldo">${I.mic}</button><button type="button" class="x" data-s="fechar" aria-label="Fechar">${I.x}</button></div>
+    ${amtHTML(pre.valor || 0, 'Abra o banco uma vez e copie o saldo de hoje')}${padHTML()}
     <div class="seg"><button type="button" class="on" data-c="sinal" data-k="pos">Positivo</button><button type="button" data-c="sinal" data-k="neg">Negativo (cheque especial)</button></div>
     ${sa ? `<p class="sub">Última vez: ${esc(fmt(sa.last.valor))} em ${esc(whenLabel(sa.last.cr))}. A estimativa atual é ${esc(fmt(sa.est))}.</p>` : ''}
-    <button type="button" class="btn primary wide" data-s="salvar-saldo">Salvar saldo</button>`, { kind:'saldo', dig:'', neg:false });
+    <button type="button" class="btn primary wide" data-s="salvar-saldo">Salvar saldo</button>`, { kind:'saldo', dig:pre.valor ? String(Math.abs(pre.valor)) : '', neg:(pre.valor || 0) < 0 });
 }
 function sheetPag(x){
-  const edit = !!x; x = x || { data:todayISO(), valor:0, obs:'' };
+  const edit = !!(x && x.id); x = Object.assign({ data:todayISO(), valor:0, obs:'' }, x || {});
   const p = irmaoPendente();
-  Sheet.open(`<div class="hd"><h2>${esc(S.irmao.nome)} pagou</h2><button type="button" class="x" data-s="fechar" aria-label="Fechar">${I.x}</button></div>
+  Sheet.open(`<div class="hd"><h2>${esc(S.irmao.nome)} pagou</h2><button type="button" class="mic" data-s="voz-sheet" aria-label="Falar o pagamento">${I.mic}</button><button type="button" class="x" data-s="fechar" aria-label="Fechar">${I.x}</button></div>
     ${amtHTML(x.valor, p.deve > 0 && !edit ? 'Pendente hoje: ' + fmt(p.deve) : undefined)}${padHTML()}
     ${!edit && p.deve > 0 ? `<button type="button" class="btn" data-s="tudo" data-k="${p.deve}">Pagou tudo (${esc(fmt(p.deve))})</button>` : ''}
     <div class="grid2"><label class="field">Data<input type="date" id="s-data" value="${esc(x.data)}"></label><label class="field">Observação<input id="s-obs" value="${esc(x.obs || '')}" placeholder="Ex.: Pix"></label></div>
     <div class="btns"><button type="button" class="btn primary wide" data-s="salvar-pag" style="flex:1 1 100%">Salvar</button>${edit ? `<button type="button" class="btn danger" data-s="apagar-pag">${I.trash}Apagar</button>` : ''}</div>`, { kind:'pag', id:x.id, dig:x.valor ? String(x.valor) : '' });
 }
+function sheetFixo(f){
+  const edit = !!(f && f.id); f = Object.assign({ nome:'', valor:0, cartao:S.ult.cartao, dia:1, quem:'eu', cat:'', ativo:true }, f || {});
+  if (!S.cartoes.some(c => c.id === f.cartao)) f.cartao = S.cartoes[0].id;
+  const st = { kind:'fixo', id:f.id, dig:f.valor ? String(f.valor) : '', cartao:f.cartao, quem:f.quem, cat:f.cat || '' };
+  Sheet.open(`<div class="hd"><h2>${edit ? 'Editar fixo' : 'Novo gasto fixo'}</h2><button type="button" class="mic" data-s="voz-sheet" aria-label="Falar o gasto fixo">${I.mic}</button><button type="button" class="x" data-s="fechar" aria-label="Fechar">${I.x}</button></div>
+    ${amtHTML(f.valor, 'Valor de cada mês')}${padHTML()}
+    <div class="sec"><label class="field">Nome<span class="inline"><input id="s-nome" value="${esc(f.nome)}" placeholder="Ex.: aluguel, Netflix, academia"><button type="button" class="mic sm ghost" data-voz="s-nome" aria-label="Falar o nome">${I.mic}</button></span></label></div>
+    <div class="sec"><p class="lbl">Cartão</p>${chipsHTML('cartao', S.cartoes, f.cartao, swOf)}</div>
+    <div class="sec"><p class="lbl">Quem paga</p><div class="seg"><button type="button" class="${st.quem !== 'irmao' ? 'on' : ''}" data-c="quem" data-k="eu">Eu</button><button type="button" class="${st.quem === 'irmao' ? 'on' : ''}" data-c="quem" data-k="irmao">${esc(S.irmao.nome)}</button></div></div>
+    <div class="sec"><p class="lbl">Categoria</p><div class="chips scroll">${S.cats.map(c => `<button type="button" class="opt ${st.cat === c ? 'on' : ''}" data-c="cat" data-k="${esc(c)}">${esc(c)}</button>`).join('')}</div></div>
+    <div class="grid2"><label class="field">Dia do mês<input type="number" id="s-dia" min="1" max="31" inputmode="numeric" value="${f.dia || 1}"></label><label class="field">Situação<select id="s-ativo"><option value="1" ${f.ativo !== false ? 'selected' : ''}>Ativo</option><option value="0" ${f.ativo === false ? 'selected' : ''}>Pausado</option></select></label></div>
+    <div class="btns"><button type="button" class="btn primary wide" data-s="salvar-fixo" style="flex:1 1 100%">Salvar</button>${edit ? `<button type="button" class="btn danger" data-s="apagar-fixo">${I.trash}Apagar</button>` : ''}</div>`, st);
+}
+
+/* ========== voz: ouvir e entender ========== */
+const Voz = (() => {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition; let rec = null;
+  function start(onResult, onState){
+    if (!SR) { toast('Este navegador não tem ditado. Use o microfone do teclado do celular.'); return false; }
+    stop(); rec = new SR(); rec.lang = 'pt-BR'; rec.interimResults = true; rec.maxAlternatives = 1; rec.continuous = false;
+    let fin = '';
+    rec.onresult = e => { let parcial = ''; for (let i = e.resultIndex; i < e.results.length; i++) { const t = e.results[i][0].transcript; if (e.results[i].isFinal) fin += t; else parcial += t; } onState('parcial', (fin + ' ' + parcial).trim()); };
+    rec.onerror = e => { onState('erro', e.error || ''); };
+    rec.onend = () => { rec = null; onState('fim', fin.trim()); if (fin.trim()) onResult(fin.trim()); };
+    try { rec.start(); onState('ouvindo', ''); } catch(e){ rec = null; toast('Não deu para ligar o microfone.'); return false; }
+    return true;
+  }
+  function stop(){ if (rec) { try { rec.onend = null; rec.onresult = null; rec.abort(); } catch(e){} rec = null; } }
+  const erroMsg = k => k === 'not-allowed' || k === 'service-not-allowed' ? 'Permita o microfone para este site e tente de novo.' : k === 'no-speech' ? 'Não ouvi nada. Toque e fale de novo.' : k === 'network' ? 'O ditado precisa de internet.' : 'Não deu para ouvir (' + k + ').';
+  return { ok:!!SR, start, stop, erroMsg };
+})();
+const semAcento = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const NUMW = { zero:0, um:1, uma:1, dois:2, duas:2, tres:3, quatro:4, cinco:5, seis:6, sete:7, oito:8, nove:9, dez:10, onze:11, doze:12, treze:13, catorze:14, quatorze:14, quinze:15, dezesseis:16, dezessete:17, dezoito:18, dezenove:19, vinte:20, trinta:30, quarenta:40, cinquenta:50, sessenta:60, setenta:70, oitenta:80, noventa:90, cem:100, cento:100, duzentos:200, trezentos:300, quatrocentos:400, quinhentos:500, seiscentos:600, setecentos:700, oitocentos:800, novecentos:900 };
+function numerosPorExtenso(t){ // "cento e vinte reais" -> "120 reais"; "um" sozinho só vira número antes de real/mil/conto
+  const w = t.split(' '), out = []; let i = 0;
+  while (i < w.length) {
+    if (!(w[i] in NUMW) && w[i] !== 'mil') { out.push(w[i]); i++; continue; }
+    let j = i, total = 0, cur = 0, n = 0;
+    while (j < w.length) {
+      const x = w[j];
+      if (x in NUMW) { cur += NUMW[x]; n++; j++; }
+      else if (x === 'mil') { total += (cur || 1) * 1000; cur = 0; n++; j++; }
+      else if (x === 'e' && j + 1 < w.length && (w[j + 1] in NUMW || w[j + 1] === 'mil')) { j++; }
+      else break;
+    }
+    const val = total + cur, prox = w[j] || '';
+    const soArtigo = n === 1 && (w[i] === 'um' || w[i] === 'uma') && !/^(real|reais|mil|conto|contos|pila)$/.test(prox);
+    if (soArtigo) { out.push(w[i]); i++; continue; }
+    out.push(String(val)); i = j;
+  }
+  return out.join(' ');
+}
+function dinheiro(str){ // texto de número -> centavos
+  let s = str.replace(/\s/g, '');
+  if (/^\d{1,3}(\.\d{3})+(,\d{1,2})?$/.test(s)) s = s.replace(/\./g, '').replace(',', '.');
+  else if (/^\d+,\d{1,2}$/.test(s)) s = s.replace(',', '.');
+  else if (/^\d+\.\d{3}$/.test(s)) s = s.replace('.', '');
+  else if (/^\d+[.,]\d+$/.test(s)) s = s.replace(',', '.');
+  else s = s.replace(/[.,]/g, '');
+  const v = parseFloat(s); return isFinite(v) ? Math.round(v * 100) : 0;
+}
+function entender(texto, tipoForcado){
+  let t = ' ' + numerosPorExtenso(semAcento(texto).replace(/r\$/g, ' r$ ').replace(/[?!.;]+$/g, '').replace(/\s+/g, ' ').trim()) + ' ';
+  const r = { texto, tipo:'gasto', valor:0, desc:'', cartao:S.ult.cartao, quem:'eu', cat:'', fonte:S.fontes[0].id, data:todayISO(), dia:null };
+  // tipo
+  if (/\bsaldo\b/.test(t)) r.tipo = 'saldo';
+  else if (/\b(me pagou|pagou|devolveu|transferiu pra mim|transferiu para mim)\b/.test(t)) r.tipo = 'pag';
+  else if (/\b(fixo|fixa|todo mes|mensal|mensalidade|assinatura)\b/.test(t)) r.tipo = 'fixo';
+  else if (/\b(recebi|recebimento|receita|salario|entrou|caiu|ganhei|pagamento do|pagamento da)\b/.test(t)) r.tipo = 'receita';
+  if (tipoForcado) r.tipo = tipoForcado;
+  // valor: prefere número seguido de reais; senão, o maior número
+  const re = /(\d+(?:[.,]\d+)*)\s*(?:reais|real|conto|contos|pila|r\$)?(?:\s*(?:e|com)\s*(\d{1,2})\s*(?:centavos?)?)?/g; let m, cand = [];
+  while ((m = re.exec(t))) { let v = dinheiro(m[1]); const temMoeda = /reais|real|conto|pila|r\$/.test(m[0]) || /r\$\s*$/.test(t.slice(0, m.index)); if (m[2] && !/[.,]/.test(m[1])) v += parseInt(m[2], 10); cand.push({ v, moeda:temMoeda, s:m[0], i:m.index }); }
+  const MESES = ['janeiro','fevereiro','marco','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  const ndia = t.match(/\b(?:dia )?(\d{1,2}) de (janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\b/);
+  if (ndia) { const y = +todayISO().slice(0, 4); r.data = y + '-' + p2(MESES.indexOf(ndia[2]) + 1) + '-' + p2(+ndia[1]); cand = cand.filter(c => !(c.i >= ndia.index && c.i < ndia.index + ndia[0].length)); t = t.replace(ndia[0], ' '); }
+  const dia = t.match(/\bdia (\d{1,2})\b/);
+  if (dia) { r.dia = Math.min(31, Math.max(1, +dia[1])); cand = cand.filter(c => !(c.i >= dia.index && c.i < dia.index + dia[0].length)); t = t.replace(dia[0], ' '); }
+  const esc_ = cand.find(c => c.moeda) || (cand.length ? cand.reduce((a, b) => b.v > a.v ? b : a) : null);
+  if (esc_) { r.valor = esc_.v; t = t.replace(esc_.s, ' '); }
+  t = t.replace(/r\$/g, ' ').replace(/\b(reais|real|conto|contos|pila|centavos?)\b/g, ' ');
+  if (/\b(negativo|devendo|cheque especial)\b/.test(t)) { r.valor = -Math.abs(r.valor); t = t.replace(/\b(negativo|devendo|cheque especial)\b/g, ' '); }
+  // data
+  if (/\bontem\b/.test(t)) { r.data = addDays(todayISO(), -1); t = t.replace(/\bontem\b/, ' '); }
+  else if (/\banteontem\b/.test(t)) { r.data = addDays(todayISO(), -2); t = t.replace(/\banteontem\b/, ' '); }
+  t = t.replace(/\bhoje\b/g, ' ');
+  // quem
+  const nomeIr = semAcento(S.irmao.nome);
+  const reIr = new RegExp('\\b(?:d[oa]|pr[oa]|para [oa]|para|do meu|meu|pelo|pela)?\\s*(?:' + nomeIr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '|irmao|irma|mano)\\b', 'g');
+  if (reIr.test(t)) { r.quem = 'irmao'; t = t.replace(reIr, ' '); }
+  // cartão: nome mais longo que aparecer; "conta/debito/pix/dinheiro" => conta
+  const cs = S.cartoes.map(c => ({ c, n:semAcento(c.nome).replace(/\s*\(.*?\)\s*/g, ' ').trim() })).sort((a, b) => b.n.length - a.n.length);
+  let achou = null;
+  for (const x of cs) { const words = x.n.split(/\s+/).filter(w => w.length > 2 && !['conta', 'cartao', 'debito', 'credito', 'pix'].includes(w)); const wre = words.length ? new RegExp('\\b(?:n[oa]|pel[oa]|com o|com a|com|cartao|d[oa])?\\s*(?:cartao\\s+)?(' + words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')\\b') : null; if (wre && wre.test(t)) { achou = x.c; t = t.replace(wre, ' '); break; } }
+  if (!achou && /\b(na conta|conta|debito|pix|dinheiro|em especie)\b/.test(t)) { achou = S.cartoes.find(c => c.tipo === 'conta') || null; if (achou) t = t.replace(/\b(n[oa]|pel[oa]|com|em)?\s*(na conta|conta|debito|pix|dinheiro|em especie)\b/g, ' '); }
+  if (achou) r.cartao = achou.id;
+  // fonte (receita)
+  for (const f of S.fontes) { const n = semAcento(f.nome).trim(); if (!n) continue; const fre = new RegExp('\\b(?:d[oa]|pel[oa]|n[oa])?\\s*' + n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b'); if (fre.test(t)) { r.fonte = f.id; t = t.replace(fre, ' '); break; } }
+  // categoria
+  for (const c of S.cats) { const n = semAcento(c); if (new RegExp('\\b' + n + '\\b').test(t)) { r.cat = c; break; } }
+  // descrição: o que sobrou, sem os verbos e conectivos
+  t = t.replace(/\b(gastei|paguei|comprei|lancei|lanca|lancar|anota|anotar|registra|registrar|coloca|gasto|gastos|despesa|compra|comprar|fixo|fixa|todo mes|mensal|recebi|recebimento|receita|salario|entrou|caiu|ganhei|saldo|me pagou|pagou|devolveu|cartao|no cartao|valor|de valor|foi|foram|um gasto|uma despesa|novo|nova|por mes|do mes|no mes)\b/g, ' ');
+  const STOP = new Set(['de', 'do', 'da', 'dos', 'das', 'no', 'na', 'nos', 'nas', 'em', 'com', 'o', 'a', 'os', 'as', 'um', 'uma', 'pra', 'para', 'pro', 'e', 'que', 'por', 'pelo', 'pela', 'ao', 'meu', 'minha']);
+  const tk = t.replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
+  while (tk.length && STOP.has(tk[0])) tk.shift(); while (tk.length && STOP.has(tk[tk.length - 1])) tk.pop();
+  t = tk.join(' ');
+  r.desc = t ? t.charAt(0).toUpperCase() + t.slice(1) : '';
+  if (r.tipo === 'fixo' && !r.dia) { const d = parseInt(r.data.slice(8, 10), 10); r.dia = d; }
+  return r;
+}
+function addDays(iso, k){ const d = parseISO(iso); d.setDate(d.getDate() + k); return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()); }
+const TIPOS = { gasto:'Gasto', receita:'Receita', saldo:'Saldo', pag:S.irmao.nome + ' pagou', fixo:'Gasto fixo' };
+function resumoEntendido(p){
+  const n = esc(S.irmao.nome);
+  if (p.tipo === 'saldo') return `<p class="det">Saldo na conta agora: <b>${esc(fmt(p.valor))}</b></p>`;
+  if (p.tipo === 'pag') return `<p class="det"><b>${n}</b> te pagou <b>${esc(fmt(p.valor))}</b>${p.desc ? ' · ' + esc(p.desc) : ''} · ${esc(dayLabel(p.data))}</p>`;
+  if (p.tipo === 'receita') return `<p class="det">Recebido de <b>${esc(fonte(p.fonte).nome)}</b>${p.desc ? ' · ' + esc(p.desc) : ''} · ${esc(dayLabel(p.data))}</p>`;
+  if (p.tipo === 'fixo') return `<p class="det"><b>${esc(p.desc || 'Gasto fixo')}</b> todo dia <b>${p.dia || 1}</b> no <b>${esc(cartao(p.cartao).nome)}</b>${p.quem === 'irmao' ? ' · ' + n : ''}${p.cat ? ' · ' + esc(p.cat) : ''}</p>`;
+  return `<p class="det"><b>${esc(p.desc || p.cat || 'Gasto')}</b> no <b>${esc(cartao(p.cartao).nome)}</b> · ${p.quem === 'irmao' ? '<b>' + n + '</b>' : 'eu'}${p.cat ? ' · ' + esc(p.cat) : ''} · ${esc(dayLabel(p.data))}</p>`;
+}
+function sheetVoz(){
+  Sheet.open(`<div class="hd"><h2>Falar</h2><button type="button" class="x" data-s="fechar" aria-label="Fechar">${I.x}</button></div>
+    <div class="voz"><button type="button" class="mic on" data-s="voz-ouvir" aria-label="Ouvir">${I.mic}</button><p class="txt muted" id="v-txt">Ouvindo… fale o lançamento.</p></div>
+    <div id="v-ent"></div>
+    <p class="sub" style="text-align:center">Exemplos: "mercado 85 reais no Nubank" · "iFood 32,90 do ${esc(S.irmao.nome)}" · "recebi 3500 do ${esc(S.fontes[0].nome)}" · "saldo 4120 e 50" · "${esc(S.irmao.nome)} me pagou 80" · "fixo aluguel 1200 na conta dia 5"</p>`, { kind:'voz', texto:'', p:null });
+  ouvirVoz();
+}
+function ouvirVoz(){
+  const st = Sheet.st; if (!st || st.kind !== 'voz') return;
+  const txt = () => $('#v-txt'), mic = () => Sheet.box.querySelector('[data-s="voz-ouvir"]');
+  const ok = Voz.start(final => { st.texto = final; st.p = entender(final); mostrarEntendido(); }, (k, v) => {
+    const el = txt(); if (!el) return;
+    if (k === 'ouvindo') { el.textContent = 'Ouvindo… fale o lançamento.'; el.classList.add('muted'); mic().classList.add('on'); }
+    if (k === 'parcial' && v) { el.textContent = v; el.classList.remove('muted'); }
+    if (k === 'erro') { el.textContent = Voz.erroMsg(v); el.classList.add('muted'); mic().classList.remove('on'); }
+    if (k === 'fim') { mic().classList.remove('on'); if (!v && !/Permita|Não ouvi|precisa/.test(el.textContent)) { el.textContent = 'Não ouvi nada. Toque no microfone e fale.'; el.classList.add('muted'); } }
+  });
+  if (!ok) { const el = txt(); if (el) { el.textContent = 'Sem ditado neste navegador. No celular, toque no microfone do teclado dentro de cada campo.'; el.classList.add('muted'); } mic().classList.remove('on'); }
+}
+function mostrarEntendido(){
+  const st = Sheet.st; if (!st || !st.p) return; const p = st.p;
+  TIPOS.pag = S.irmao.nome + ' pagou';
+  $('#v-txt').textContent = '“' + st.texto + '”'; $('#v-txt').classList.remove('muted');
+  $('#v-ent').innerHTML = `<div class="ent"><div class="chips scroll" style="margin:0 -16px;padding:0 16px">${Object.keys(TIPOS).map(k => `<button type="button" class="opt ${p.tipo === k ? 'on' : ''}" data-c="vtipo" data-k="${k}">${esc(TIPOS[k])}</button>`).join('')}</div>
+    <p class="big ${p.valor < 0 ? 'neg' : ''}">${fmtBig(p.valor)}</p>${resumoEntendido(p)}
+    <div class="btns"><button type="button" class="btn primary" data-s="voz-salvar" ${p.valor ? '' : 'disabled'}>Salvar</button><button type="button" class="btn" data-s="voz-ajustar">Ajustar</button><button type="button" class="btn" data-s="voz-ouvir">${I.mic}Falar de novo</button></div>
+    ${p.valor ? '' : '<p class="sub">Não entendi o valor. Toque em "Ajustar" e digite, ou fale de novo com o valor em reais.</p>'}</div>`;
+}
+function vozAjustar(p){
+  Sheet.close();
+  if (p.tipo === 'saldo') return sheetSaldo({ valor:p.valor });
+  if (p.tipo === 'pag') return sheetPag({ valor:p.valor, data:p.data, obs:p.desc });
+  if (p.tipo === 'receita') return sheetReceita({ valor:p.valor, data:p.data, fonte:p.fonte, obs:p.desc });
+  if (p.tipo === 'fixo') return sheetFixo({ valor:p.valor, nome:p.desc, cartao:p.cartao, dia:p.dia || 1, quem:p.quem, cat:p.cat });
+  return sheetGasto({ valor:p.valor, data:p.data, cartao:p.cartao, quem:p.quem, desc:p.desc, cat:p.cat });
+}
+function vozSalvar(p){
+  if (!p.valor) return toast('Não entendi o valor.');
+  const cr = Date.now();
+  if (p.tipo === 'saldo') { S.saldos.push({ valor:p.valor, cr }); if (S.saldos.length > 60) S.saldos = S.saldos.slice(-60); }
+  else if (p.tipo === 'pag') S.pagamentos.push({ id:uid(), cr, valor:Math.abs(p.valor), data:p.data, obs:p.desc });
+  else if (p.tipo === 'receita') S.receitas.push({ id:uid(), cr, fonte:p.fonte, valor:Math.abs(p.valor), data:p.data, obs:p.desc });
+  else if (p.tipo === 'fixo') { S.fixos.push({ id:uid(), nome:p.desc || 'Gasto fixo', valor:Math.abs(p.valor), cartao:p.cartao, dia:p.dia || 1, quem:p.quem, cat:p.cat, ativo:true }); }
+  else { S.gastos.push({ id:uid(), cr, valor:Math.abs(p.valor), data:p.data, cartao:p.cartao, quem:p.quem, desc:p.desc, cat:p.cat }); S.ult.cartao = p.cartao; }
+  save(); Sheet.close(); render();
+  toast({ saldo:'Saldo anotado: ', pag:S.irmao.nome + ' pagou ', receita:'Receita salva: ', fixo:'Fixo salvo: ', gasto:'Gasto salvo: ' }[p.tipo] + fmt(Math.abs(p.valor)) + '.');
+}
+function vozNaFolha(){ // microfone dentro de uma folha: ouve e reabre a folha já preenchida
+  const st = Sheet.st; if (!st) return;
+  const b = Sheet.box.querySelector('[data-s="voz-sheet"]'); if (b) b.classList.add('on');
+  const tipo = { gasto:'gasto', receita:'receita', saldo:'saldo', pag:'pag', fixo:'fixo' }[st.kind];
+  Voz.start(final => {
+    const p = entender(final, tipo); const cur = Sheet.st; if (!cur || cur.kind !== st.kind) return;
+    const base = { id:cur.id }; if (p.valor) base.valor = Math.abs(p.valor) * (p.tipo === 'saldo' && p.valor < 0 ? -1 : 1);
+    if (tipo === 'gasto') sheetGasto(Object.assign(base, { data:p.data, cartao:p.cartao, quem:p.quem, desc:p.desc || val('s-desc'), cat:p.cat || cur.cat }));
+    else if (tipo === 'receita') sheetReceita(Object.assign(base, { data:p.data, fonte:p.fonte, obs:p.desc || val('s-obs') }));
+    else if (tipo === 'saldo') sheetSaldo({ valor:p.valor });
+    else if (tipo === 'pag') sheetPag(Object.assign(base, { data:p.data, obs:p.desc || val('s-obs') }));
+    else if (tipo === 'fixo') sheetFixo(Object.assign(base, { nome:p.desc || val('s-nome'), cartao:p.cartao, dia:p.dia || +val('s-dia') || 1, quem:p.quem, cat:p.cat || cur.cat }));
+    toast('Entendi: “' + final + '”. Confira e salve.');
+  }, (k, v) => { if (k === 'ouvindo') toast('Ouvindo… fale.'); if (k === 'erro') { toast(Voz.erroMsg(v)); } if (k !== 'parcial') { const x = Sheet.box.querySelector('[data-s="voz-sheet"]'); if (x) x.classList.remove('on'); } });
+}
+function vozNoCampo(id, botao){ // microfone de um campo de texto: dita para dentro dele
+  const el = document.getElementById(id); if (!el) return;
+  botao.classList.add('on');
+  Voz.start(final => { const t = final.charAt(0).toUpperCase() + final.slice(1); el.value = t; el.dispatchEvent(new Event('input', { bubbles:true })); toast('Anotado: ' + t); },
+    (k, v) => { if (k === 'erro') toast(Voz.erroMsg(v)); if (k !== 'parcial' && k !== 'ouvindo') botao.classList.remove('on'); });
+}
+
 function textoCobranca(){
   const n = S.irmao.nome, gm = S.gastos.filter(g => g.quem === 'irmao' && inMes(g)).sort((a, b) => a.data.localeCompare(b.data)), p = irmaoPendente();
   const L = [`Oi, ${n}! Seus gastos no meu cartão em ${monthLabel(UI.mes)}:`];
@@ -609,6 +834,7 @@ Sheet.box.addEventListener('click', ev => {
   const c = ev.target.closest('[data-c]');
   if (c) {
     const name = c.dataset.c, k = c.dataset.k;
+    if (name === 'vtipo') { s.p = entender(s.texto, k); mostrarEntendido(); return; }
     if (name === 'sinal') { s.neg = k === 'neg'; refreshAmt(); }
     else if (name === 'sug') { $('#s-desc').value = k; if (c.dataset.cat) { s.cat = c.dataset.cat; } }
     else if (name === 'cat') { s.cat = s.cat === k ? '' : k; }
@@ -620,7 +846,19 @@ Sheet.box.addEventListener('click', ev => {
   }
   const b = ev.target.closest('[data-s]'); if (!b) return;
   const a = b.dataset.s;
-  if (a === 'fechar') return Sheet.close();
+  if (a === 'fechar') { Voz.stop(); return Sheet.close(); }
+  if (a === 'voz-ouvir') { $('#v-ent').innerHTML = ''; ouvirVoz(); return; }
+  if (a === 'voz-salvar') { if (s.p) vozSalvar(s.p); return; }
+  if (a === 'voz-ajustar') { if (s.p) vozAjustar(s.p); return; }
+  if (a === 'voz-sheet') { vozNaFolha(); return; }
+  if (a === 'salvar-fixo') {
+    const v = cents(), nome = val('s-nome').trim(), dia = Math.min(31, Math.max(1, parseInt(val('s-dia') || '1', 10) || 1));
+    if (v <= 0) return toast('Digite o valor mensal.'); if (!nome) return toast('Dê um nome ao gasto fixo.');
+    const o = { nome, valor:v, cartao:s.cartao, dia, quem:s.quem === 'irmao' ? 'irmao' : 'eu', cat:s.cat || '', ativo:val('s-ativo') !== '0' };
+    if (s.id) { const f = S.fixos.find(x => x.id === s.id); if (f) Object.assign(f, o); } else S.fixos.push(Object.assign({ id:uid() }, o));
+    save(); Sheet.close(); render(); toast('Gasto fixo salvo.');
+  }
+  if (a === 'apagar-fixo') { if (!confirm('Apagar este gasto fixo? Os gastos já lançados continuam.')) return; S.fixos = S.fixos.filter(x => x.id !== s.id); save(); Sheet.close(); render(); }
   if (a === 'tudo') { s.dig = String(b.dataset.k); refreshAmt(); return; }
   if (a === 'copiar') { copiar(s.texto); return; }
   if (a === 'zap') { window.open(zapURL(s.texto), '_blank', 'noopener'); return; }
@@ -661,11 +899,15 @@ async function copiar(t){
 }
 
 document.addEventListener('click', ev => {
+  const vz = ev.target.closest('[data-voz]'); if (vz) { vozNoCampo(vz.dataset.voz, vz); return; }
   const b = ev.target.closest('[data-a]'); if (!b) return;
   const a = b.dataset.a, k = b.dataset.k;
   if (a === 'tab') { UI.tab = k; window.scrollTo({ top:0 }); render(); }
   if (a === 'mes') { UI.mes = k === '0' ? nowKey() : addMonths(UI.mes + '-01', +k).slice(0, 7); render(); }
   if (a === 'novo-gasto') sheetGasto();
+  if (a === 'voz') sheetVoz();
+  if (a === 'add-fixo') sheetFixo();
+  if (a === 'ed-fixo') { const f = S.fixos.find(x => x.id === k); if (f) sheetFixo(f); }
   if (a === 'ed-gasto') { const g = S.gastos.find(x => x.id === k); if (g) sheetGasto(g); }
   if (a === 'nova-receita') sheetReceita();
   if (a === 'ed-receita') { const r = S.receitas.find(x => x.id === k); if (r) sheetReceita(r); }
@@ -723,7 +965,7 @@ function gate(){
     if (k === 'auth/too-many-requests') return 'Muitas tentativas. Espere alguns minutos e tente de novo.';
     if (k === 'auth/network-request-failed') return 'Sem internet. Confira a conexão e tente de novo.';
     if (k === 'auth/invalid-email') return 'Esse e-mail não parece válido.';
-    if (k === 'permission-denied') return 'O banco recusou o acesso. Cole o REGRAS-FIRESTORE.txt novo no Firebase e publique.';
+    if (k === 'permission-denied') return 'O banco recusou o acesso. Entre com a conta dona do painel.';
     if (k === 'timeout' || k === 'unavailable') return 'O banco online não respondeu. Confira a internet.';
     return 'Não deu para entrar agora (' + (k || 'erro') + '). Tente de novo.';
   }
@@ -765,6 +1007,7 @@ function gate(){
   loading();
   const un = A.onAuthStateChanged(u => { un(); if (u) enter(u); else open(); });
 }
+window.__fin = { entender, estado:() => S }; // para testes
 render(); gate();
 })();
 </script>
