@@ -1534,6 +1534,7 @@ body.has-dock .toast,body.has-dock .utoast{bottom:calc(176px + env(safe-area-ins
 .mt-own .btn{background:var(--card)}
 .mt-link{margin-top:4px}
 .app-ver{text-align:center;margin-top:-4px}
+.ver-pill{display:inline-flex;align-items:center;gap:5px;margin-top:6px;padding:3px 9px;border-radius:999px;background:var(--chip,rgba(0,0,0,.06));font-size:11.5px;font-weight:700;color:var(--muted);width:max-content}.ver-pill .i{width:12px;height:12px}
 .ck-list{display:flex;flex-direction:column;gap:8px}
 .ck{display:flex;align-items:flex-start;gap:12px;width:100%;padding:12px 14px;border:0;border-radius:18px;background:var(--card);box-shadow:inset 0 0 0 1.5px var(--sep);color:var(--fg);text-align:left;font:inherit;font-size:14px;line-height:1.42;transition:box-shadow .2s}
 .ck.on{box-shadow:inset 0 0 0 2px var(--fg)}
@@ -1651,7 +1652,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '7 nov · 76'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '7 nov · 77'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -2045,6 +2046,7 @@ function startApp(){
   document.body.classList.remove('locked');
   applyLook(); window.scrollTo(0,0); render(); renderPick();
   fbRefresh(); acompAsk();
+  try { const vv = localStorage.getItem('simp-app-v'); if(vv && vv!==APPV) setTimeout(() => toast('App atualizado: versão '+APPV), 900); localStorage.setItem('simp-app-v', APPV); } catch(e){ /* sem armazenamento */ }
 }
 function logout(){
   PROG_REST = false; PROG_OK = false;
@@ -4572,7 +4574,7 @@ function vProfile(){
     <div class="stepper"><button type="button" class="btn round" data-a="goal" data-d="-250" aria-label="Diminuir meta de água">${ic('minus')}</button><output>${fmtL(S.waterGoal)}<small> água</small></output><button type="button" class="btn round" data-a="goal" data-d="250" aria-label="Aumentar meta de água">${ic('plus')}</button></div>
     <div class="stepper"><button type="button" class="btn round" data-a="cgoal" data-d="-30" aria-label="Diminuir meta de cardio">${ic('minus')}</button><output>${S.cardioGoal}<small> min cardio</small></output><button type="button" class="btn round" data-a="cgoal" data-d="30" aria-label="Aumentar meta de cardio">${ic('plus')}</button></div></div>`;
   return `<div class="sheet-wrap" data-a="closebg"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t" tabindex="-1">${sheetTop('Seu perfil', esc(firstName(nome))+'<span class="dot" aria-hidden="true"></span>')}
-    <div class="prof-id"><span class="avatar" aria-hidden="true">${avatarIn()}</span><div><b>${esc(nome)}</b><span>${pers?'Com seu personal':'Treinando sem personal'} · ${S.history.length} treino${S.history.length===1?'':'s'} salvo${S.history.length===1?'':'s'}</span>${pay}</div></div>
+    <div class="prof-id"><span class="avatar" aria-hidden="true">${avatarIn()}</span><div><b>${esc(nome)}</b><span>${pers?'Com seu personal':'Treinando sem personal'} · ${S.history.length} treino${S.history.length===1?'':'s'} salvo${S.history.length===1?'':'s'}</span>${pay}<span class="ver-pill">${ic('check')}App na versão ${APPV}</span></div></div>
     <div class="foto-row"><input type="file" id="prof-foto" accept="image/*" class="sr-file"><label for="prof-foto" class="btn small">${ic('camera')}${FOTO?'Trocar foto':'Adicionar foto'}</label>${FOTO?`<button type="button" class="btn small ghost" data-a="foto-del">${ui.arm==='foto-del'?'Toque de novo para remover':'Remover foto'}</button>`:''}</div>
     ${pers ? '' : `<div class="field"><label class="flabel" for="prof-nome">Seu nome</label><div class="inp-wrap"><input class="inp" id="prof-nome" autocomplete="given-name" placeholder="Como você quer ser chamado" value="${esc(S.nome||'')}" data-prof="nome"></div></div>`}
     ${planRO}${selfEdit}
