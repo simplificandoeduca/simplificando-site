@@ -1890,17 +1890,17 @@ function shareText(a){
   const ls = letters(pl), T = pl.treinos || {}, mail = a.acessoMail && !/@alunos\./.test(a.acessoMail) ? a.acessoMail : '';
   const nomeT = l => { const t = T[l] || {}, n = String(t.nome||'').trim(), fo = String(t.foco||'').trim(); return n && fo && n!==fo ? n+' ('+fo+')' : n || fo || 'Treino '+l; };
   const div = ls.length ? ls.map(l => '• Treino '+l+': '+nomeT(l)+' · '+plural(((T[l]||{}).ex||[]).length,'exercício')).join('\n') : '';
-  const freq = +m.semanaTreinos || +pl.frequencia || 0, dias = (p.dias||[]).map(d => DIAS_N[d]||d);
+  const freq = ls.length || +m.semanaTreinos || 0, dias = (p.dias||[]).map(d => DIAS_N[d]||d); // frequência = quantos treinos a divisão tem
   const agua = +m.waterGoal ? fmtN(m.waterGoal/1000,1)+' L por dia' : '', cg = +m.cardioGoal, cz = (m.cardio||{});
   const cardio = cg ? cg+' min por semana'+(+cz.min ? ' (sessões de '+cz.min+' min'+(cz.zona ? ', '+cz.zona : '')+')' : '') : '';
-  const pi = typeof planInfo==='function' ? planInfo(a) : null, valido = pi && pi.fim ? fmtD(pi.fim) : '';
+  const sem = Math.round(+pl.semanas || 0);
   return 'Oi, '+curto(a)+'! 🎉 Seu treino está pronto no app Simplificando.\n\n'+
     '📲 *Como entrar*\n1. Abra o app: '+appLink()+'\n'+(mail ? '2. E-mail: '+mail+'\n3. Senha: '+cod+'\n' : '2. Senha: '+cod+'\n')+
     'Dica: salve o app na tela inicial do celular para abrir com um toque.\n\n'+
     (div ? '🏋️ *Sua divisão'+(pl.nome ? ' · '+String(pl.nome).trim() : '')+'*\n'+div+'\n'+(freq ? 'Frequência: '+freq+'x por semana'+(dias.length ? ' ('+dias.join(', ')+')' : ', nos dias que for melhor para você')+'.\n' : '')+'O app mostra qual treino fazer em cada dia.\n\n' : '')+
     (agua || cardio ? '🎯 *Suas metas*\n'+(agua ? '💧 Água: '+agua+'\n' : '')+(cardio ? '🏃 Cardio: '+cardio+'\n' : '')+'\n' : '')+
     '✅ *Para render mais*\n• Marque as séries e as cargas: o app sugere quando subir o peso.\n• Faça o check-in do dia (sono, energia e dor) antes de treinar.\n• Use o "Como foi" no fim do exercício para me contar como foi.\n\n'+
-    (valido ? 'Este ciclo vai até '+valido+'. Depois a gente ajusta junto. ' : '')+'Qualquer dúvida, me chama aqui. Bora! 💪'+
+    (sem ? 'Este ciclo tem duração de '+plural(sem,'semana')+'. Depois a gente ajusta junto. ' : '')+'Qualquer dúvida, me chama aqui. Bora! 💪'+
     (c.nomePersonal ? '\n\n'+c.nomePersonal : '');
 }
 function newAluno(d){
@@ -2272,11 +2272,12 @@ function copyRows(a){
 }
 function tTreino(a){
   const pl = a.plano || {}, id = a._id, b = path => AB(id,'plano.'+path), pi = planInfo(a);
-  const fonte = a.copiaDe && C.alunos[a.copiaDe];
+  const fonte = a.copiaDe && C.alunos[a.copiaDe], nT = letters(pl).length, mT = +((a.metas||{}).semanaTreinos) || 0;
+  const metaAviso = nT && mT!==nT ? '<p class="callout">'+ic('alert')+'<span>A meta da semana no app está em <b>'+mT+' treinos</b>, mas a divisão tem <b>'+nT+'</b>. <button type="button" class="btn small" data-a="metaT" data-v="'+nT+'">Usar '+nT+' por semana</button></span></p>' : '';
   const teste = a.teste ? '<section class="card teste-c"><div class="card-h"><span class="label">'+ic('bolt')+'Perfil de teste</span>'+(fonte ? '<span class="pill">Treino de '+esc(curto(fonte))+'</span>' : '')+'</div>'+
     '<p class="muted">Escolha de quem é o treino que este perfil vai usar. Copia os treinos, as metas de água e cardio e os dias de treino. O aluno original não muda.</p>'+copyRows(a)+
     '<p class="foot">Depois de copiar, abra o app com a senha deste perfil (ou toque em Atualizar no app) para ver o treino novo.</p></section>' : '';
-  return teste+'<section class="card"><div class="card-h"><span class="label">'+ic('cal')+'Ciclo</span><span class="pill '+(pi.k==='expired'?'bad':pi.k==='soon'?'warn':'line')+'" data-calc="planfim">'+esc(pi.label)+'</span></div><div class="form">'+
+  return teste+metaAviso+'<section class="card"><div class="card-h"><span class="label">'+ic('cal')+'Ciclo</span><span class="pill '+(pi.k==='expired'?'bad':pi.k==='soon'?'warn':'line')+'" data-calc="planfim">'+esc(pi.label)+'</span></div><div class="form">'+
     inp({b:b('nome'),label:'Nome do ciclo',val:pl.nome,ph:'Ex.: Ciclo 1: base'})+
     inp({b:b('inicio'),label:'Início',val:pl.inicio,type:'date',v:'date'})+
     inp({b:b('semanas'),label:'Validade',val:pl.semanas,t:'i',unit:'semanas',v:'range',min:1,max:52})+
@@ -2761,7 +2762,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '7 nov · 74'; // Versão do painel: 7 nov · 74
+const PAINELV = '7 nov · 75'; // Versão do painel: 7 nov · 75
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -3897,6 +3898,7 @@ function act(a,d,btn){
       ui.tl['alunos'+ui.aluno] = 'A'; normPlan(A.plano); Store.save('alunos',ui.aluno,0); ui.draft.ia = null; closeSheet(); toast('Treino gerado aplicado. Revise e ajuste se quiser.'); break; }
     case 'applyTpl': { const m = C.modelos[d.k]; if(!m || !A) break; A.plano = A.plano || {}; A.plano.treinos = cloneTreinos(m.treinos); if(!A.plano.nome) A.plano.nome = m.nome.replace(/\s*\(exemplo\)/,''); if(!isDate(A.plano.inicio)) A.plano.inicio = today(); ui.tl['alunos'+ui.aluno] = 'A'; normPlan(A.plano); Store.save('alunos',ui.aluno,0); closeSheet(); toast('Modelo aplicado'); break; }
     case 'copyOpen': openSheet({k:'copyFrom'}); return false;
+    case 'metaT': { if(!A) break; A.metas = A.metas || {}; A.metas.semanaTreinos = +d.v; if(A.plano) A.plano.frequencia = +d.v; Store.save('alunos', ui.aluno, 0); toast('Meta da semana: '+d.v+' treinos'); break; }
     case 'rirAll': { if(!A || !A.plano) break; let n = 0; Object.values(A.plano.treinos||{}).forEach(t => (t.ex||[]).forEach(e => { e.rir = '0-1'; n++; })); Store.save('alunos', ui.aluno, 0); toast(plural(n,'exercício')+' com RIR 0–1'); break; }
     case 'pdfTreino': { if(A) pdfBaixar(Object.assign({_id:ui.aluno}, A)); return false; }
     case 'pdfMsg': openSheet({k:'pdfMsg'}); return false;
