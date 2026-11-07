@@ -1652,7 +1652,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '7 nov · 77'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '7 nov · 78'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -1732,7 +1732,7 @@ let PROGTXT = '', progT = null, progBusy = false;
 function progPayload(){
   const H = (S.history||[]).slice(-80).map(h => ({ d:h.date, t:h.t, nm:(PLAN[h.t]||{}).nome||'', min:h.min||0, sets:h.sets||0, vol:h.vol||0, rpe:h.rpe||0, note:h.note||'', gym:h.gym||'', ex:h.ex||null }));
   const w = {}, k = {}; for(let i=0; i<28; i++){ const dd = daysAgo(i); if(S.water && S.water[dd]) w[dd] = S.water[dd]; if(S.checkin && S.checkin[dd]) k[dd] = S.checkin[dd]; }
-  return JSON.stringify({ v:1, h:H, c:(S.cardio||[]).slice(-60).map(c => ({d:c.date, l:c.local, min:c.min, i:c.int})), w, wg:S.waterGoal||0, k, ses:S.session ? {t:S.session.t, gym:S.session.gym||'', d:today()} : null });
+  return JSON.stringify({ v:1, lay:S.lay||null, h:H, c:(S.cardio||[]).slice(-60).map(c => ({d:c.date, l:c.local, min:c.min, i:c.int})), w, wg:S.waterGoal||0, k, ses:S.session ? {t:S.session.t, gym:S.session.gym||'', d:today()} : null });
 }
 function progSync(now){
   if(!ACCT || !isPersonal() || !FB || !ACCT.code || !S || !PROG_OK) return;
@@ -1768,12 +1768,14 @@ function loadFoto(file){
 function savePref(){
   const u = uidOf();
   if(u){ PREF.byUser = PREF.byUser || {}; PREF.byUser[u] = {c:PREF.cardioLayout||null, t:PREF.treinoLayout||null}; }
+  // a escolha de jeito do cardio e do treino também vai com os dados do aluno: vale em qualquer aparelho (e no app da tela de início do iPhone)
+  if(typeof S!=='undefined' && S && ACCT && (PREF.cardioLayout || PREF.treinoLayout)){ const l = {c:PREF.cardioLayout||null, t:PREF.treinoLayout||null}; if(JSON.stringify(S.lay||null)!==JSON.stringify(l)){ S.lay = l; try { save(); } catch(e){ /* salva na próxima */ } } }
   try { localStorage.setItem(PKEY, JSON.stringify(PREF)); } catch(e){ /* sem armazenamento */ }
 }
 /* cada conta escolhe os próprios modelos de cardio e treino no primeiro acesso */
 function loadLayouts(){
-  const u = uidOf(), b = (PREF.byUser||{})[u];
-  PREF.cardioLayout = b && b.c || undefined; PREF.treinoLayout = b && b.t || undefined;
+  const u = uidOf(), b = (PREF.byUser||{})[u], n = (typeof S!=='undefined' && S && S.lay) || {};
+  PREF.cardioLayout = (b && b.c) || n.c || undefined; PREF.treinoLayout = (b && b.t) || n.t || undefined;
 }
 const deviceTheme = () => { try { return matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'; } catch(e){ return 'dark'; } };
 const curTheme = () => PREF.theme==='light'||PREF.theme==='dark' ? PREF.theme : deviceTheme();
@@ -1940,6 +1942,7 @@ function progRestore(){
     if(d===undefined){ PROG_REST = false; return; } // sem internet: tenta na próxima
     if(!ACCT || ACCT.code!==code || !S) return;
     PROG_OK = true; if(!d){ progSync(true); return; }
+    if(d.lay && (!PREF.cardioLayout || !PREF.treinoLayout)){ const c0 = PREF.cardioLayout, t0 = PREF.treinoLayout; PREF.cardioLayout = c0 || d.lay.c || undefined; PREF.treinoLayout = t0 || d.lay.t || undefined; if(PREF.cardioLayout!==c0 || PREF.treinoLayout!==t0){ S.lay = { c:PREF.cardioLayout||null, t:PREF.treinoLayout||null }; savePref(); ui.pstep = null; renderPick(); render(); } }
     let n = 0;
     const tem = new Set(S.history.map(h => h.date+'|'+h.t));
     (d.h||[]).forEach(h => { if(!h || !h.d || tem.has(h.d+'|'+h.t)) return; tem.add(h.d+'|'+h.t); n++;
@@ -1979,6 +1982,7 @@ function autoSync(){
     if(r.s && r.s.v===2 && r.s.conta && (r.s._em||0)>(S._em||0) && !S.session){
       S = r.s; applyAccount(); tidy(); LASTSYNC = syncTxt();
       try { localStorage.setItem(UKEY, JSON.stringify(S)); } catch(e){ /* sem armazenamento */ }
+      if(S.lay && (!PREF.cardioLayout || !PREF.treinoLayout)){ PREF.cardioLayout = PREF.cardioLayout || S.lay.c || undefined; PREF.treinoLayout = PREF.treinoLayout || S.lay.t || undefined; savePref(); ui.pstep = null; renderPick(); }
       ACCT.syncOk = true; ACCT.dirty = false; ui.sheet = null; renderSheet(); render(); return;
     }
     ACCT.syncOk = true;
