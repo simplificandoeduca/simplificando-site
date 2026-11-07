@@ -9,6 +9,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Finanças">
+<!-- Página independente do painel do personal: login, dados e atualização próprios. -->
 <meta name="description" content="Controle pessoal de finanças.">
 <title>Simplificando · Finanças</title>
 <link rel="manifest" href="manifest.webmanifest">
@@ -22,7 +23,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..900&display=swap">
 <style>
-/* Finanças pessoais: mesma família visual do painel do personal (fundo tinta, blocos de cor, cápsulas).
+/* Finanças pessoais: página independente (login, dados e atualização próprios), com a mesma família visual do site.
    Uma página só: Resumo, Gastos, Irmão e Ajustes, com o botão grande de lançar gasto sempre à mão. */
 :root{
   --ink:#0F1712;--cream:#F6F5EF;--lime:#C8F542;--brand:#FF4646;--on-brand:#0F1712;--water:#5AB8FF;--ok:#8EE85F;--warn:#FF9A2E;--bad:#FF7A72;
@@ -326,6 +327,7 @@ function logo(){
 $('#logo').innerHTML = logo(); document.querySelector('.top .mic').innerHTML = I.mic;
 
 /* ========== estado ========== */
+const FINV = '7 nov · 1'; // Versão do Finanças: 7 nov · 1
 const LS = 'simplificando-financas', LST = 'simplificando-financas-tema';
 const CATS = ['Mercado', 'Comida', 'Transporte', 'Casa', 'Lazer', 'Saúde', 'Roupas', 'Assinaturas', 'Outros'];
 function fresh(){
@@ -368,12 +370,13 @@ const Cloud = (() => {
   const auth = fb.auth(), db = fb.firestore();
   let ref = null, unsub = null, timer = null, dirty = false, saving = false;
   const dot = st => { const d = $('#sync'); d.className = 'dot ' + st; d.title = { ok:'Salvo na nuvem', busy:'Salvando…', off:'Sem conexão: salvo só neste aparelho' }[st] || ''; };
-  async function ownerUid(){ const d = await db.collection('sistema').doc('dono').get(); return d.exists ? (d.data() || {}).uid || null : null; }
+  async function ownerUid(){ const d = await db.collection('financas').doc('dono').get(); return d.exists ? (d.data() || {}).uid || null : null; }
+  async function claim(uid){ await db.collection('financas').doc('dono').set({ uid, criadoEm:new Date().toISOString() }); }
   function apply(remote){
     try { const o = normalize(JSON.parse(remote.s || 'null')); o.em = +remote.em || o.em; S = o; ls.set(LS, JSON.stringify(S)); render(); } catch(e){}
   }
   async function connect(user){
-    ref = db.collection('config').doc('financas'); dot('busy'); // dentro de config/: a conta dona do painel já grava ali, sem regra nova no Firebase
+    ref = db.collection('financas').doc('dados'); dot('busy');
     try {
       const snap = await ref.get(); const r = snap.exists ? snap.data() : null;
       if (r && (+r.em || 0) > (S.em || 0)) apply(r);
@@ -388,12 +391,12 @@ const Cloud = (() => {
   }
   async function push(){
     if (!ref) return; saving = true; dirty = false; dot('busy');
-    try { await ref.set({ s:JSON.stringify(S), em:S.em || Date.now(), tipo:'financas' }); dot('ok'); }
+    try { await ref.set({ s:JSON.stringify(S), em:S.em || Date.now() }); dot('ok'); }
     catch(e){ dirty = true; dot('off'); }
     saving = false; if (dirty) schedule();
   }
   function schedule(){ dirty = true; clearTimeout(timer); timer = setTimeout(push, 700); }
-  return { auth, db, ownerUid, connect, save:schedule, dot };
+  return { auth, db, ownerUid, claim, connect, save:schedule, dot };
 })();
 
 function save(){
@@ -554,7 +557,34 @@ function rAjustes(){
     <p class="sub">No celular, toque em "Adicionar à Tela de Início" (iPhone: botão Compartilhar) para abrir como um app.</p></div>`;
   h += `<div class="card"><h2>Dados</h2><p class="sub">${Cloud ? 'Tudo fica salvo na nuvem do Simplificando, só na sua conta' + (Cloud.auth.currentUser ? ' (' + esc(Cloud.auth.currentUser.email || '') + ')' : '') + '. Também fica uma cópia neste aparelho.' : 'Esta cópia está só neste aparelho (sem nuvem).'} ${S.gastos.length} gastos, ${S.receitas.length} receitas.</p>
     <div class="btns"><button type="button" class="btn" data-a="exportar">Baixar cópia (.json)</button><label class="btn">Restaurar cópia<input type="file" accept="application/json,.json" data-f="importar" hidden></label>${Cloud ? `<button type="button" class="btn danger" data-a="sair">Sair</button>` : ''}</div></div>`;
+  h += atuCard();
   $('#v-ajustes').innerHTML = h;
+}
+
+/* ========== atualizar a página (atualizar.php desta pasta baixa só /financas do GitHub) ========== */
+const ATU = { st:'', nova:'', msg:'' };
+function atuCheck(){
+  if (ATU.st || !Cloud) return; ATU.st = 'vendo';
+  fetch('atualizar.php?acao=ver', { cache:'no-store' }).then(r => r.ok ? r.json() : Promise.reject()).then(j => { ATU.st = 'ok'; ATU.nova = (j && j.nova) || ''; if (UI.tab === 'ajustes') render(); })
+    .catch(() => { ATU.st = 'sem'; if (UI.tab === 'ajustes') render(); });
+}
+function atuCard(){
+  atuCheck();
+  if (!Cloud || ATU.st === 'sem') return '';
+  const vnum = v => +((String(v || '').match(/·\s*(\d+)/) || [])[1] || 0), nova = ATU.nova && vnum(ATU.nova) > vnum(FINV), indo = ATU.st === 'indo';
+  return `<div class="card ${nova ? 'blk-lime' : ''}"><h2>Atualizar esta página</h2><p class="sub">Versão no ar: <b>${esc(FINV)}</b>${ATU.st === 'vendo' ? ' · procurando versão nova…' : nova ? ' · <b>versão nova pronta: ' + esc(ATU.nova) + '</b>' : ATU.nova ? ' · já é a mais nova' : ''}</p>
+    <div class="btns"><button type="button" class="btn ${nova ? 'primary' : ''}" data-a="atu-go" ${indo ? 'disabled' : ''}>${I.refresh}${indo ? 'Atualizando…' : 'Atualizar agora'}</button></div>
+    ${ATU.msg ? `<p class="sub" style="color:var(--danger)">${esc(ATU.msg)}</p>` : ''}<p class="sub">Baixa do GitHub só a pasta do Finanças e coloca no ar. Não mexe no app nem no painel do personal.</p></div>`;
+}
+async function atuGo(){
+  if (ATU.st === 'indo' || !Cloud || !Cloud.auth.currentUser) return; ATU.st = 'indo'; ATU.msg = ''; render();
+  try {
+    const t = await Cloud.auth.currentUser.getIdToken(); const f = new FormData(); f.append('token', t);
+    const r = await fetch('atualizar.php?acao=atualizar', { method:'POST', cache:'no-store', body:f, headers:{ Authorization:'Bearer ' + t } });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.ok) throw new Error(j.erro || 'Não deu para atualizar agora.');
+    toast('Atualizado: ' + (j.arquivos || 0) + ' arquivos. Recarregando…'); setTimeout(() => location.reload(), 1500);
+  } catch(e){ ATU.st = 'ok'; ATU.msg = e.message || 'Não deu para atualizar agora.'; render(); }
 }
 
 /* ========== folha (modal) ========== */
@@ -931,6 +961,7 @@ document.addEventListener('click', ev => {
   if (a === 'del-cat') { if (!confirm('Apagar a categoria "' + k + '"?')) return; S.cats = S.cats.filter(c => c !== k); save(); render(); }
   if (a === 'tema') { if (k === 'auto') { delete document.documentElement.dataset.theme; ls.set(LST, ''); } else { document.documentElement.dataset.theme = k; ls.set(LST, k); } render(); }
   if (a === 'exportar') { const blob = new Blob([JSON.stringify(S, null, 1)], { type:'application/json' }); const u = URL.createObjectURL(blob); const l = document.createElement('a'); l.href = u; l.download = 'financas-' + todayISO() + '.json'; document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(u), 2000); }
+  if (a === 'atu-go') atuGo();
   if (a === 'sair' && Cloud) { if (confirm('Sair da conta neste aparelho?')) Cloud.auth.signOut().finally(() => location.reload()); }
 });
 // campos dos ajustes: salva ao digitar (sem perder o foco)
@@ -954,58 +985,72 @@ document.addEventListener('change', ev => {
 });
 document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && !$('#sheet').hidden) Sheet.close(); });
 
-/* ========== porta de entrada (mesma conta do painel do personal) ========== */
+/* ========== porta de entrada (conta própria desta página; a primeira a entrar vira a dona) ========== */
 function gate(){
-  const g = $('#gate'); if (!Cloud) { $('#banner').hidden = false; $('#banner').textContent = 'Modo local: os dados ficam só neste aparelho. No site, com a conta do painel, tudo vai para a nuvem.'; render(); return; }
-  const A = Cloud.auth, P_ = window.firebase.auth.Auth.Persistence; let busy = false, show = false;
+  const g = $('#gate'); if (!Cloud) { $('#banner').hidden = false; $('#banner').textContent = 'Modo local: os dados ficam só neste aparelho. No site, com seu login, tudo vai para a nuvem.'; render(); return; }
+  const A = Cloud.auth, P_ = window.firebase.auth.Auth.Persistence; const st = { first:false, busy:false, show:false, msg:'' };
   const within = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej({ code:'timeout' }), ms))]);
+  const okMail = u => /^\S+@\S+\.\S+$/.test(u);
   function msgOf(e){
     const k = e && e.code || '';
     if (/invalid-credential|wrong-password|user-not-found|invalid-login/.test(k)) return 'E-mail ou senha incorretos.';
     if (k === 'auth/too-many-requests') return 'Muitas tentativas. Espere alguns minutos e tente de novo.';
     if (k === 'auth/network-request-failed') return 'Sem internet. Confira a conexão e tente de novo.';
+    if (k === 'auth/weak-password') return 'Senha fraca: use pelo menos 6 caracteres.';
     if (k === 'auth/invalid-email') return 'Esse e-mail não parece válido.';
-    if (k === 'permission-denied') return 'O banco recusou o acesso. Entre com a conta dona do painel.';
+    if (k === 'auth/operation-not-allowed') return 'No Firebase, ative o login por E-mail/senha (Authentication, Método de login).';
+    if (k === 'permission-denied') return 'O banco recusou o acesso. Publique o REGRAS-FIRESTORE.txt (bloco "financas") no Firebase.';
     if (k === 'timeout' || k === 'unavailable') return 'O banco online não respondeu. Confira a internet.';
     return 'Não deu para entrar agora (' + (k || 'erro') + '). Tente de novo.';
   }
   const say = (m, ok) => { const el = g.querySelector('.gate-msg'); if (el) { el.textContent = m; el.classList.toggle('ok', !!ok); } };
-  function open(msg){
+  function open(){
     g.hidden = false; document.body.classList.add('locked');
-    g.innerHTML = `<div class="gate-in"><span class="gate-logo">${logo()}</span><p class="gate-eb">Simplificando</p><h1>Finanças<span class="pt"></span></h1><p class="gate-sub">Área pessoal. Entre com o mesmo e-mail e senha do painel do personal.</p>
+    g.innerHTML = `<div class="gate-in"><span class="gate-logo">${logo()}</span><p class="gate-eb">Simplificando · área pessoal</p><h1>Finanças<span class="pt"></span></h1>
+      <p class="gate-sub">${st.first ? 'Primeiro acesso: crie seu e-mail e senha. Essa conta vira a dona desta página e só ela entra aqui.' : 'Entre com o e-mail e a senha que você criou nesta página.'}</p>
       <form novalidate><label>E-mail<span class="gate-f"><input id="g-u" type="email" inputmode="email" autocomplete="username" autocapitalize="off" spellcheck="false" required></span></label>
-      <label>Senha<span class="gate-f"><input id="g-p" type="password" autocomplete="current-password" required><button type="button" class="gate-eye" data-gate="eye" aria-label="Mostrar senha">${I.eye}</button></span></label>
+      <label>Senha<span class="gate-f"><input id="g-p" type="password" autocomplete="${st.first ? 'new-password' : 'current-password'}" required><button type="button" class="gate-eye" data-gate="eye" aria-label="Mostrar senha">${I.eye}</button></span></label>
+      ${st.first ? `<label>Repita a senha<span class="gate-f"><input id="g-p2" type="password" autocomplete="new-password" required></span></label>` : ''}
       <label class="gate-keep"><input id="g-keep" type="checkbox" checked>Continuar conectado neste aparelho</label>
-      <p class="gate-msg" role="alert">${esc(msg || '')}</p>
-      <button type="submit" class="btn primary gate-go">Entrar</button>
-      <button type="button" class="gate-link" data-gate="forgot">Esqueci a senha</button></form>
-      <p class="gate-note">Só a conta dona do painel entra aqui. Os dados ficam na nuvem do Simplificando, visíveis só para você.</p></div>`;
+      <p class="gate-msg" role="alert">${esc(st.msg || '')}</p>
+      <button type="submit" class="btn primary gate-go">${st.first ? 'Criar meu acesso' : 'Entrar'}</button>
+      ${st.first ? '' : `<button type="button" class="gate-link" data-gate="forgot">Esqueci a senha</button>`}</form>
+      <p class="gate-note">Os dados ficam na nuvem do Simplificando, visíveis só para a conta dona desta página. O login, os dados e a atualização são separados do painel do personal.</p></div>`;
   }
   function loading(){ g.hidden = false; g.innerHTML = `<div class="gate-in"><span class="gate-logo">${logo()}</span><p class="gate-sub" role="status">Conectando…</p></div>`; }
   function close(){ g.hidden = true; g.innerHTML = ''; document.body.classList.remove('locked'); }
-  async function enter(user){
+  async function enter(user, fresh){
     let owner = null;
-    try { owner = await within(Cloud.ownerUid(), 12000); } catch(e){ open(msgOf(e)); try { await A.signOut(); } catch(e2){} return; }
-    if (!owner) { try { await A.signOut(); } catch(e){} open('Crie primeiro o acesso do painel em /personal/ e volte aqui.'); return; }
-    if (owner !== user.uid) { try { await A.signOut(); } catch(e){} open('Esta conta não é a dona do painel. Use o mesmo e-mail e senha do painel do personal.'); return; }
-    close(); render(); Cloud.connect(user);
+    try { owner = await within(Cloud.ownerUid(), 12000); if (!owner) { await within(Cloud.claim(user.uid), 12000); owner = user.uid; } }
+    catch(e){ st.msg = msgOf(e); try { await A.signOut(); } catch(e2){} open(); return; }
+    if (owner !== user.uid) { try { await A.signOut(); } catch(e){} st.first = false; st.msg = 'Esta conta não é a dona desta página. Use o e-mail e a senha criados aqui.'; open(); return; }
+    st.msg = ''; close(); render(); Cloud.connect(user); if (fresh) toast(st.first ? 'Acesso criado. Bem-vindo.' : 'Bem-vindo de volta.');
   }
   g.addEventListener('click', async ev => {
     const b = ev.target.closest('[data-gate]'); if (!b) return;
-    if (b.dataset.gate === 'eye') { show = !show; const i = $('#g-p'); if (i) i.type = show ? 'text' : 'password'; }
-    if (b.dataset.gate === 'forgot') { const u = ($('#g-u') || {}).value || ''; if (!/^\S+@\S+\.\S+$/.test(u)) { say('Digite seu e-mail acima e toque em "Esqueci a senha" de novo.'); return; } try { await A.sendPasswordResetEmail(u.trim()); say('Pronto. Se este e-mail for do painel, chega um link para criar uma senha nova.', true); } catch(e){ say(msgOf(e)); } }
+    if (b.dataset.gate === 'eye') { st.show = !st.show; g.querySelectorAll('#g-p,#g-p2').forEach(i => { i.type = st.show ? 'text' : 'password'; }); }
+    if (b.dataset.gate === 'forgot') { const u = ($('#g-u') || {}).value || ''; if (!okMail(u)) { say('Digite seu e-mail acima e toque em "Esqueci a senha" de novo.'); return; } try { await A.sendPasswordResetEmail(u.trim()); say('Pronto. Se este e-mail for o desta página, chega um link para criar uma senha nova.', true); } catch(e){ say(msgOf(e)); } }
   });
   g.addEventListener('submit', async ev => {
-    ev.preventDefault(); if (busy) return;
+    ev.preventDefault(); if (st.busy) return;
     const u = $('#g-u').value.trim(), p = $('#g-p').value, keep = $('#g-keep').checked;
-    if (!/^\S+@\S+\.\S+$/.test(u)) { say('Digite um e-mail válido.'); return; } if (!p) { say('Digite sua senha.'); return; }
-    busy = true; const go = g.querySelector('.gate-go'); go.disabled = true; say('Entrando…', true);
-    try { await A.setPersistence(keep ? P_.LOCAL : P_.SESSION); const cred = await A.signInWithEmailAndPassword(u, p); await enter(cred.user); }
-    catch(e){ say(msgOf(e)); }
-    finally { busy = false; if (go.isConnected) go.disabled = false; }
+    if (!okMail(u)) { say('Digite um e-mail válido.'); return; }
+    if (st.first) { const p2 = ($('#g-p2') || {}).value || ''; if (p.length < 6) { say('A senha precisa ter pelo menos 6 caracteres.'); return; } if (p !== p2) { say('As duas senhas não são iguais.'); return; } }
+    else if (!p) { say('Digite sua senha.'); return; }
+    st.busy = true; const go = g.querySelector('.gate-go'); go.disabled = true; say('Entrando…', true);
+    try {
+      await A.setPersistence(keep ? P_.LOCAL : P_.SESSION);
+      let cred;
+      if (st.first) { try { cred = await A.createUserWithEmailAndPassword(u, p); } catch(e){ if (e && e.code === 'auth/email-already-in-use') cred = await A.signInWithEmailAndPassword(u, p); else throw e; } }
+      else cred = await A.signInWithEmailAndPassword(u, p);
+      await enter(cred.user, true);
+    } catch(e){ say(msgOf(e)); }
+    finally { st.busy = false; if (go.isConnected) go.disabled = false; }
   });
   loading();
-  const un = A.onAuthStateChanged(u => { un(); if (u) enter(u); else open(); });
+  within(Cloud.ownerUid(), 10000).then(o => { st.first = !o; }).catch(e => { st.first = false; st.msg = msgOf(e); }).finally(() => {
+    const un = A.onAuthStateChanged(u => { un(); if (u) enter(u, false); else open(); });
+  });
 }
 window.__fin = { entender, estado:() => S }; // para testes
 render(); gate();

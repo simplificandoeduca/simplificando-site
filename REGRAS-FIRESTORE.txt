@@ -82,5 +82,24 @@ service cloud.firestore {
         && request.resource.data.em is int;
       allow delete: if dono();
     }
+
+    // Finanças (pasta /financas): página independente do painel, com a própria conta dona.
+    // financas/dono é a primeira conta que entrou na página; financas/dados são os lançamentos, só dessa conta
+    match /financas/dono {
+      allow get: if true;
+      allow create: if logado()
+        && !exists(/databases/$(database)/documents/financas/dono)
+        && request.resource.data.uid == request.auth.uid;
+    }
+    match /financas/dados {
+      allow read, delete: if logado()
+        && get(/databases/$(database)/documents/financas/dono).data.uid == request.auth.uid;
+      allow create, update: if logado()
+        && get(/databases/$(database)/documents/financas/dono).data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['s', 'em'])
+        && request.resource.data.s is string
+        && request.resource.data.s.size() < 900000
+        && request.resource.data.em is int;
+    }
   }
 }

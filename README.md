@@ -1,6 +1,8 @@
 # Simplificando
 
-Site do Simplificando: app do aluno (`/treino`), painel do personal (`/personal`), termos (`/termos`) e a área pessoal de finanças do Eduardo (`/financas`, entra com a conta do painel).
+Site do Simplificando: app do aluno (`/treino`), painel do personal (`/personal`) e termos (`/termos`).
+
+Na mesma hospedagem, mas independente: `/financas` (controle pessoal de finanças, com login, dados e atualização próprios; veja `LEIA-ME-FINANCAS.txt`).
 
 - `site/` — o que vai para o `public_html` da HostGator (é só isso que é publicado).
 - `src/` — código do app (`treino-grade.html`) e do painel (`admin.html`).
