@@ -82,5 +82,15 @@ service cloud.firestore {
         && request.resource.data.em is int;
       allow delete: if dono();
     }
+
+    // finanças pessoais do dono do painel (pasta /financas): só ele lê e grava, um documento só
+    match /financas/{uid} {
+      allow read, delete: if dono() && request.auth.uid == uid;
+      allow create, update: if dono() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['s', 'em'])
+        && request.resource.data.s is string
+        && request.resource.data.s.size() < 900000
+        && request.resource.data.em is int;
+    }
   }
 }
