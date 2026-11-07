@@ -1681,7 +1681,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '7 nov · 70'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '7 nov · 76'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -1764,7 +1764,7 @@ function progPayload(){
   return JSON.stringify({ v:1, h:H, c:(S.cardio||[]).slice(-60).map(c => ({d:c.date, l:c.local, min:c.min, i:c.int})), w, wg:S.waterGoal||0, k, ses:S.session ? {t:S.session.t, gym:S.session.gym||'', d:today()} : null });
 }
 function progSync(now){
-  if(!ACCT || !isPersonal() || !FB || !ACCT.code || !S) return;
+  if(!ACCT || !isPersonal() || !FB || !ACCT.code || !S || !PROG_OK) return;
   const txt = progPayload(); if(txt===PROGTXT) return;
   const code = ACCT.code;
   clearTimeout(progT);
@@ -1944,6 +1944,8 @@ const FB = (() => {
   }
   function autoSave(uid, st, now){ autoP = { uid, txt:JSON.stringify(st) }; clearTimeout(autoT); if(now) return autoFlush(); autoT = setTimeout(autoFlush, 1500); return Promise.resolve(); }
   // aluno com personal: o que ele fez vai para progresso/{uid}; só ele grava o seu e só o personal lê
+  // null = ainda não tem nada na nuvem; undefined = não deu para ler (sem internet): tenta de novo depois
+  async function progLoad(){ const u = auth.currentUser || await ready(); if(!u) return undefined; try { const d = await db.collection('progresso').doc(u.uid).get(); if(!d.exists) return null; try { return JSON.parse(d.data().s||'null'); } catch(e){ return null; } } catch(e){ return undefined; } }
   async function progresso(aid, txt){ const u = auth.currentUser || await ready(); if(!u) return false; try { await db.collection('progresso').doc(u.uid).set({ aid, s:txt, em:Date.now() }); return true; } catch(e){ return false; } }
   function perfil(d){ const u = auth.currentUser; if(!u) return; db.collection('perfis').doc(u.uid).set(JSON.parse(JSON.stringify(d)), { merge:true }).catch(() => { /* regras antigas ou sem internet: tenta na próxima abertura */ }); }
   async function deleteSelf(pw){
@@ -1953,14 +1955,44 @@ const FB = (() => {
     try { clearTimeout(autoT); autoP = null; await db.collection('autonomos').doc(u.uid).delete(); try { await db.collection('perfis').doc(u.uid).delete(); } catch(e){ /* sem resumo */ } await u.delete(); return { ok:true }; }
     catch(e){ return { err: e && e.code==='auth/requires-recent-login' ? 'Por segurança, saia, entre de novo e tente outra vez.' : 'Não deu para excluir agora. Confira a internet e tente de novo.' }; }
   }
-  return { login, fetchMe, logout, toAluno, cached, signUp, signIn, resetMail, resetCheck, resetSave, setCodigo, autoLoad, autoSave, autoFlush, perfil, progresso, deleteSelf, account:aid => { const c = cached(); return c && c.aid===aid ? toAluno(c) : null; } };
+  return { login, fetchMe, logout, toAluno, cached, signUp, signIn, resetMail, resetCheck, resetSave, setCodigo, autoLoad, autoSave, autoFlush, perfil, progresso, progLoad, deleteSelf, account:aid => { const c = cached(); return c && c.aid===aid ? toAluno(c) : null; } };
 })();
 // abriu com a conta guardada (ou voltou para o app): confere online se o personal mudou o treino ou bloqueou o acesso
 document.addEventListener('visibilitychange', () => { if(document.visibilityState==='visible') fbRefresh(); else if(FB) FB.autoFlush(); });
+/* aluno com personal: o iPhone separa o app da tela de início do Safari (cada um com seus dados).
+   O histórico que já foi para a nuvem (treinos, cargas, cardio, água e check-in) volta para o aparelho que não tem. */
+let PROG_REST = false, PROG_OK = false; // só envia o resumo depois de ler o que já está na nuvem (senão um aparelho vazio apagaria o histórico)
+function progRestore(){
+  if(PROG_REST || !FB || !FB.progLoad || !ACCT || ACCT.mode!=='personal') return; PROG_REST = true;
+  const code = ACCT.code;
+  FB.progLoad().then(d => {
+    if(d===undefined){ PROG_REST = false; return; } // sem internet: tenta na próxima
+    if(!ACCT || ACCT.code!==code || !S) return;
+    PROG_OK = true; if(!d){ progSync(true); return; }
+    let n = 0;
+    const tem = new Set(S.history.map(h => h.date+'|'+h.t));
+    (d.h||[]).forEach(h => { if(!h || !h.d || tem.has(h.d+'|'+h.t)) return; tem.add(h.d+'|'+h.t); n++;
+      S.history.push({ date:h.d, t:h.t, min:h.min||0, vol:h.vol||0, sets:h.sets||0, prs:[], rpe:h.rpe||0, note:h.note||'', gym:h.gym||'', ex:h.ex||null, nuvem:true });
+      (h.ex||[]).forEach(e => { if(!e || !e.id || !(e.s||[]).length) return; const mk = Math.max(...e.s.map(z => +z[0]||0)); if(!mk) return;
+        const top = e.s.filter(z => +z[0]===mk), old = S.last[e.id];
+        if(!old || !old.d || old.d<h.d) S.last[e.id] = { kg:mk, lastKg:+e.s[e.s.length-1][0]||mk, reps:top.map(z => +z[1]||0), rir:top.map(() => 1), d:h.d, g:h.gym||'' };
+        const LH = S.loadHist[e.id] = (S.loadHist[e.id]||[]).filter(x => x.d!==h.d); LH.push({ d:h.d, kg:mk }); LH.sort((x,y) => x.d<y.d?-1:1); while(LH.length>16) LH.shift();
+        let bi = -1, bv = 0; e.s.forEach((z,j) => { const v = e1(+z[0]||0, +z[1]||0); if(v>bv){ bv = v; bi = j; } });
+        if(bi>=0 && (!S.pr[e.id] || bv>S.pr[e.id].e1)) S.pr[e.id] = { e1:bv, kg:+e.s[bi][0], reps:+e.s[bi][1], d:h.d }; }); });
+    S.history.sort((x,y) => x.date<y.date ? -1 : x.date>y.date ? 1 : 0);
+    const tc = new Set(S.cardio.map(c => c.date+'|'+c.local+'|'+c.min));
+    (d.c||[]).forEach(c => { if(!c || !c.d || tc.has(c.d+'|'+c.l+'|'+c.min)) return; tc.add(c.d+'|'+c.l+'|'+c.min); n++; S.cardio.push({ date:c.d, local:c.l||'Outro', min:+c.min||0, int:c.i||INTENS[0], km:0 }); });
+    S.cardio.sort((x,y) => x.date<y.date ? -1 : x.date>y.date ? 1 : 0);
+    Object.keys(d.w||{}).forEach(k => { const v = +d.w[k]||0; if(v > (+S.water[k]||0)){ S.water[k] = v; n++; } });
+    Object.keys(d.k||{}).forEach(k => { if(!S.checkin[k] && d.k[k]){ S.checkin[k] = d.k[k]; n++; } });
+    if(n){ save(); render(); toast('Seu histórico foi recuperado.'); } else progSync(true);
+  });
+}
 function fbRefresh(){
   perfilSync();
   if(FB && ACCT && ACCT.mode==='self' && ACCT.uid){ autoSync(); return; }
   if(!FB || !ACCT || ACCT.mode!=='personal') return;
+  progRestore();
   const before = JSON.stringify(FB.cached()), code = ACCT.code;
   FB.fetchMe().then(r => {
     if(!ACCT || ACCT.code!==code) return;
@@ -2045,6 +2077,7 @@ function startApp(){
   fbRefresh(); acompAsk();
 }
 function logout(){
+  PROG_REST = false; PROG_OK = false;
   save();
   if(FB) FB.autoFlush().then(() => FB.logout()); ui.rest = null; renderRest(); ui.sheet = null; $sheet.innerHTML = '';
   writeSess(null); ACCT = null; $app.innerHTML = ''; uiReset();
