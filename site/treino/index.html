@@ -1681,7 +1681,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '7 nov · 60'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '7 nov · 61'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -2539,6 +2539,7 @@ const CAT = [
   ["cadflexora", "Cadeira flexora", "post", "a", "i", "", ["Joelho alinhado ao eixo da máquina, apoio firme sobre as coxas.", "Puxe o rolo para baixo e para trás até dobrar bem o joelho.", "Volte devagar até quase esticar a perna."], "Tirar o quadril do banco."],
   ["stiffbarra", "Stiff com barra", "post", "a", "c", "l", ["Barra rente às pernas, joelhos levemente dobrados.", "Leve o quadril para trás até sentir alongar atrás da coxa.", "Suba contraindo glúteo e posterior."], "Arredondar as costas para descer mais.", {g2:"glut"}],
   ["pelvicamaq", "Elevação pélvica na máquina", "glut", "a", "c", "", ["Costas no encosto, apoio da máquina na dobra do quadril.", "Suba até o tronco alinhar com as coxas.", "Segure 2 segundos no alto e desça devagar."], "Arquear a lombar no alto."],
+  ["coicepoliainc", "Coice na polia (variação)", "glut", "a", "i", "", ["Tornozeleira na polia baixa, tronco inclinado à frente e mãos firmes na máquina.", "Comece com o joelho subindo à frente, perto da altura do quadril.", "Chute a perna para trás e para cima até esticar, sem girar o quadril, e volte devagar."], "Arquear a lombar ou girar o quadril para levar a perna mais alto.", {anim:"coicepoliainc", r:"12–15 cada perna", noIa:1}],
   ["coicepolia", "Glúteo na polia (coice)", "glut", "a", "i", "", ["Tornozeleira presa na polia baixa, mãos apoiadas na máquina.", "Leve a perna para trás e para cima, sem girar o quadril.", "Volte devagar, sem encostar o pé no chão."], "Arquear a lombar para subir mais a perna.", {r:"12–15"}],
   ["adutora", "Cadeira adutora", "glut", "a", "i", "", ["Costas apoiadas, almofadas na parte de dentro dos joelhos.", "Feche as pernas de forma controlada.", "Volte devagar até sentir alongar."], "Deixar as placas baterem na volta.", {alvo:"Adutores", r:"12–15"}],
   ["pantsentado", "Panturrilha sentado", "pant", "a", "i", "", ["Apoio sobre as coxas, perto dos joelhos, ponta dos pés na plataforma.", "Desça o calcanhar até alongar bem.", "Suba o máximo e segure 1 segundo."], "Fazer meio movimento.", {anim:"none", r:"15–20"}],
@@ -6092,6 +6093,12 @@ const XA = (() => {
         return mk(b, legAng(H, th, sh, sh + 90), legTo(far(H), far(A), FWD), armTo(b.S, hold, DOWN), armTo(far(b.S), far(hold), DOWN)); },
       back: b => { const p = [236, GY - 18]; return rect(244, 120, 12, GY - 120, 3) + pulley(p) + cable(p, add(b.nL.A, [2, -4])); },
       front: b => `<circle cx="${f(b.nL.A[0])}" cy="${f(b.nL.A[1] - 4)}" r="7.5" fill="none" stroke="${GRIP}" stroke-width="3"/>`, mov: b => b.nL.A },
+    // glúteo na polia com tronco inclinado (amplitude total): o joelho sobe até perto do quadril e a perna chuta para trás e para cima
+    coicepoliainc: { ord: 'up', verbs: ['Chuta', 'Volta'], eq: 'Polia', mus: [['glutes'], ['hams']],
+      pose: t => { const A = [128, AY], H = [124, 234], b = body(H, 140, 2), th = lerp(78, -42, t), sh = lerp(-8, -58, Math.pow(t, .6)), hold = [240, 210];
+        return mk(b, legAng(H, th, sh, sh + 90), legTo(far(H), far(A), FWD), armTo(b.S, hold, DOWN), armTo(far(b.S), far(hold), DOWN)); },
+      back: b => { const p = [236, GY - 18]; return rect(244, 120, 12, GY - 120, 3) + pulley(p) + cable(p, add(b.nL.A, [2, -4])); },
+      front: b => `<circle cx="${f(b.nL.A[0])}" cy="${f(b.nL.A[1] - 4)}" r="7.5" fill="none" stroke="${GRIP}" stroke-width="3"/>`, mov: b => b.nL.A },
     // mesa flexora: deitado de bruços, o rolo atrás do tornozelo sobe em direção ao glúteo
     flexora: { ord: 'up', verbs: ['Flexiona', 'Volta'], eq: 'Máquina', mus: [['hams'], ['calves']], view: [.82, 8],
       pose: t => { const H = [150, 290], b = body(H, 90, 8), sh = lerp(-92, -204, t), L = H2 => legAng(H2, -90, sh, sh + 90), W = add(b.S, [14, 36]);
@@ -6373,7 +6380,7 @@ const XA = (() => {
     [/eleva[cç][aã]o lateral.*polia|lateral na polia/, 'lateralpolia'], [/eleva[cç][aã]o frontal.*polia|frontal na polia/, 'frontalpolia'], [/eleva[cç][aã]o frontal/, 'frontal'],
     [/encolhimento|shrug/, 'encolh'], [/smith/, 'agachsmith'], [/rosca.*(polia|cabo)/, 'roscapolia'], [/scott/, 'scott'], [/martelo/, 'martelo'], [/rosca.*alternad|rosca.*halter/, 'roscahalter'],
     [/testa/, 'testa'], [/franc[eê]s/, 'frances'], [/coice.*tr[ií]ceps|tr[ií]ceps.*(coice|kickback)/, 'coicetri'], [/tr[ií]ceps.*(barra|pulley)/, 'tricepsbarra'],
-    [/coice|gl[uú]teo.*polia|kickback/, 'coicepolia'], [/abdominal.*m[aá]quina/, 'abdmaq'], [/(abdominal|crunch).*(anilha|carga|peso|halter)/, 'crunchanilha'], [/abdominal.*(polia|corda)/, 'abdpolia'],
+    [/(coice|gl[uú]teo).*polia.*(varia|inclinad)|kickback.*inclinad/, 'coicepoliainc'], [/coice|gl[uú]teo.*polia|kickback/, 'coicepolia'], [/abdominal.*m[aá]quina/, 'abdmaq'], [/(abdominal|crunch).*(anilha|carga|peso|halter)/, 'crunchanilha'], [/abdominal.*(polia|corda)/, 'abdpolia'],
     [/(pernas|joelhos).*barra fixa|infra.*barra|barra fixa.*(pernas|infra)/, 'infrabarra'], [/eleva[cç][aã]o de joelhos|capit[aã]o|infra.*(apoio|paralela)|joelhos.*apoio/, 'infracad'],
     [/eleva[cç][aã]o de pernas|abdominal infra|^infra/, 'legraise'], [/p[eé]lvica.*m[aá]quina|hip thrust.*m[aá]quina/, 'pelvicamaq'], [/stiff.*barra|terra romeno|rdl/, 'stiffbarra'],
     [/cadeira flexora|flexora sentad/, 'cadflexora'], [/flexora/, 'flexora'], [/abdutora|abdu[cç][aã]o/, 'abdutora'], [/adutora|adu[cç][aã]o/, 'adutora'], [/sum[oô]/, 'goblet'],
@@ -6399,7 +6406,7 @@ const XA = (() => {
     inclbarra: 'Supino inclinado com barra', remadamaq: 'Remada na máquina', remadacav: 'Remada cavalinho', pulldownreto: 'Pulldown braços estendidos', desenvmaq: 'Desenvolvimento máquina',
     lateralpolia: 'Elevação lateral unilateral na polia', frontal: 'Elevação frontal', frontalpolia: 'Elevação frontal na polia', encolh: 'Encolhimento', agachsmith: 'Agachamento no Smith',
     roscapolia: 'Rosca na polia', agachpc: 'Agachamento sem peso', afundopc: 'Afundo sem peso', roscahalter: 'Rosca alternada', martelo: 'Rosca martelo', scott: 'Rosca Scott', testa: 'Tríceps testa', frances: 'Tríceps francês', coicetri: 'Tríceps coice',
-    tricepsbarra: 'Tríceps polia com barra', coicepolia: 'Glúteo na polia (coice)', pelvicamaq: 'Elevação pélvica máquina', stiffbarra: 'Stiff com barra', flexora: 'Mesa flexora',
+    tricepsbarra: 'Tríceps polia com barra', coicepolia: 'Glúteo na polia (coice)', coicepoliainc: 'Coice na polia (variação)', pelvicamaq: 'Elevação pélvica máquina', stiffbarra: 'Stiff com barra', flexora: 'Mesa flexora',
     cadflexora: 'Cadeira flexora', abdutora: 'Cadeira abdutora', adutora: 'Cadeira adutora', crunch: 'Abdominal no chão', crunchanilha: 'Abdominal com anilha', legraise: 'Abdominal infra',
     infrabarra: 'Elevação de pernas na barra', infracad: 'Elevação de joelhos no apoio', abdmaq: 'Abdominal na máquina', abdpolia: 'Abdominal na polia', tricepsunil: 'Tríceps pulley unilateral', pelvicasolo: 'Elevação pélvica no solo', francespolia: 'Tríceps francês na polia', abdutorapolia: 'Abdutora reta na polia', abdutorapoliainc: 'Abdutora inclinada na polia', vsquat: 'Agachamento no V-squat', abdinclinado: 'Abdominal no banco inclinado',
     barrafixa: 'Barra fixa', mergulho: 'Mergulho nas paralelas', bayesian: 'Rosca Bayesian na polia', roscainc: 'Rosca no banco inclinado', pullover: 'Pullover com halter', remadaalta: 'Remada alta na polia', militar: 'Desenvolvimento militar em pé', hiperext: 'Hiperextensão 45°', crossent: 'Crucifixo sentado na polia', coice4: 'Coice em quatro apoios', kbswing: 'Kettlebell swing', crucifixo: 'Crucifixo com halteres', platepress: 'Plate press', banco: 'Tríceps no banco', yraise: 'Elevação em Y na polia', crossinv: 'Crucifixo inverso na polia', lateralmaq: 'Elevação lateral na máquina', supinosmith: 'Supino reto no Smith', inclsmith: 'Supino inclinado no Smith', desenvbarra: 'Desenvolvimento com barra', testahalter: 'Tríceps testa com halteres', francespoliabarra: 'Tríceps francês na polia (barra)', coicetripolia: 'Tríceps coice na polia', agachfrontal: 'Agachamento frontal', hack: 'Agachamento no hack', scottmaq: 'Rosca Scott na máquina', scottmartelo: 'Rosca martelo no Scott', afundosmith: 'Afundo no Smith', stepup: 'Subida no banco (step-up)', bulgaro: 'Agachamento búlgaro', bulgaroinc: 'Agachamento búlgaro (tronco inclinado)', pantleg: 'Panturrilha no leg press' };
