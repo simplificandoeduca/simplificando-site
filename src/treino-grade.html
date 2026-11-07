@@ -1651,7 +1651,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '7 nov · 61'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '7 nov · 66'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -2480,6 +2480,7 @@ const CAT = [
   ['flexao','Flexão de braço','peito','ahc','c','',['Mãos um pouco mais abertas que os ombros.','Corpo reto da cabeça ao calcanhar, abdômen firme.','Desça até o peito quase tocar o chão e empurre.'],'Deixar o quadril cair.',{r:'8–12'}],
   ['supchao','Supino no chão com halteres','peito','h','c','',['Deitado no chão, joelhos dobrados.','Desça os halteres até o cotovelo encostar de leve no chão.','Empurre para cima aproximando os halteres.'],'Abrir os cotovelos a 90° do tronco.',{anim:'none'}],
   ['voador','Voador (peck deck)','peito','a','i','o',['Costas apoiadas, cotovelos na altura dos ombros.','Feche os braços contraindo o peito.','Abra devagar até sentir alongar.'],'Abrir além da linha do ombro.'],
+  ['pulldownmaq',"Pulldown na máquina",'costas','a','c','',["Sente com as coxas presas no apoio e segure as pegadas com os braços esticados acima da cabeça.", "Puxe as pegadas para baixo levando os cotovelos em direção às costelas, peito para cima.", "Volte devagar até esticar os braços, sem deixar o peso bater."],"Inclinar o tronco para trás e puxar com o embalo do corpo.",{anim:'pulldownmaq', noIa:1}],
   ['puxada','Puxada frente','costas','a','c','',['Pegada um pouco mais aberta que os ombros.','Puxe a barra até o alto do peito, peito para cima.','Suba controlando até esticar os braços.'],'Puxar atrás da nuca ou balançar o tronco.'],
   ['baixa','Remada baixa','costas','a','c','',['Joelhos levemente dobrados, tronco reto.','Puxe o triângulo até o abdômen.','Volte deixando as escápulas abrirem.'],'Levar o tronco para trás a cada repetição.'],
   ['remada','Remada curvada','costas','a','c','l',['Tronco inclinado a 45°, coluna neutra.','Puxe a barra até o umbigo.','Junte as escápulas no alto.'],'Arredondar a lombar.'],
@@ -5889,6 +5890,17 @@ const XA = (() => {
       back: b => { const p = [b.S[0] + 56, 102]; return rect(p[0] + 22, 86, 11, GY - 86, 3) + bar([p[0] + 26, 92], p, 7, PROP2) + pulley(p) + cable(p, b.nA.W); },
       front: b => { const W = b.nA.W, d = nrm(sub(W, b.nA.E)); return `<path d="M${P(W)} l${f(d[0] * 12 - 3)},${f(d[1] * 12)} M${P(W)} l${f(d[0] * 12 + 4)},${f(d[1] * 12 + 2)}" stroke="${GRIP}" stroke-width="3.4" stroke-linecap="round"/>`; },
       mov: b => b.nA.W },
+    // pulldown na máquina (articulada): sentado, as pegadas presas numa alavanca descem em arco até a altura do peito
+    pulldownmaq: { ord: 'up', verbs: ['Puxa', 'Volta'], eq: 'Máquina', mus: [['lats'], ['biceps', 'delt_r']],
+      pose: t => {
+        const H = [128, 310], b = body(H, 188, -4), Pv = [239, 138], R0 = 110, a = lerp(154, 224, t) * Math.PI / 180, W = [Pv[0] + R0 * Math.cos(a), Pv[1] - R0 * Math.sin(a)];
+        b.lev = { Pv, W };
+        return mk(b, legTo(H, [206, AY], UP), legTo(far(H), far([206, AY]), UP), armTo(b.S, W, [0, 1]), armTo(far(b.S), far(W), [0, 1]));
+      },
+      back: b => { const { Pv, W } = b.lev, d = nrm(sub(Pv, W)), E = add(Pv, d, 46);
+        return rect(b.H[0] - 26, b.H[1] + 10, 72, 12, 6, PROP2) + rect(b.H[0] - 4, b.H[1] + 20, 10, GY - b.H[1] - 20, 2) + `<circle cx="${f(b.nL.K[0] - 4)}" cy="${f(b.nL.K[1] - 20)}" r="11" fill="${PROP2}"/>` +
+          rect(236, Pv[1], 12, GY - Pv[1], 3) + rect(196, GY - 8, 80, 8, 4) + bar(W, E, 9, PROP2) + `<circle cx="${f(Pv[0])}" cy="${f(Pv[1])}" r="7" fill="${PLATE}"/>` + bar(add(E, [-3, -10]), add(E, [3, 10]), 14, PLATE); },
+      front: b => `<circle cx="${f(b.nA.W[0])}" cy="${f(b.nA.W[1])}" r="6" fill="${GRIP}"/>`, mov: b => b.nA.W },
     // puxada frente: tronco um pouco para trás, barra desce até o alto do peito
     puxada: { ord: 'up', verbs: ['Puxa', 'Volta'], eq: 'Máquina', mus: [['lats'], ['biceps', 'delt_r']],
       pose: t => {
@@ -6334,7 +6346,7 @@ const XA = (() => {
   const BYGROUP = [[/quadr/, 'agach'], [/gl[uú]te/, 'pelvica'], [/posterior/, 'stiff'], [/panturr/, 'panturrilha'], [/peit/, 'supino'], [/ombro|delt/, 'desenv'],
     [/tr[ií]ceps/, 'triceps'], [/b[ií]ceps/, 'rosca'], [/costa|dorsal/, 'puxada'], [/abd|core/, 'prancha']];
   // nomes de variações (máquina, polia, barra) que precisam vir antes da regra geral
-  const SPEC = [[/b[uú]lgaro.*(inclinad|gl[uú]teo)/, 'bulgaroinc'], [/b[uú]lgaro/, 'bulgaro'], [/panturrilha.*(leg|press)/, 'pantleg'], [/bayesian/, 'bayesian'], [/rosca.*inclinad|inclinad.*rosca/, 'roscainc'], [/scott.*m[aá]quina|m[aá]quina.*scott/, 'scottmaq'], [/martelo.*scott|scott.*martelo/, 'scottmartelo'],
+  const SPEC = [[/pulldown.*m[aá]quina|puxada.*(articulad|m[aá]quina)/, 'pulldownmaq'], [/b[uú]lgaro.*(inclinad|gl[uú]teo)/, 'bulgaroinc'], [/b[uú]lgaro/, 'bulgaro'], [/panturrilha.*(leg|press)/, 'pantleg'], [/bayesian/, 'bayesian'], [/rosca.*inclinad|inclinad.*rosca/, 'roscainc'], [/scott.*m[aá]quina|m[aá]quina.*scott/, 'scottmaq'], [/martelo.*scott|scott.*martelo/, 'scottmartelo'],
     [/franc[eê]s.*polia.*barra|franc[eê]s.*barra.*polia/, 'francespoliabarra'], [/coice.*polia.*tr[ií]ceps|tr[ií]ceps.*coice.*polia/, 'coicetripolia'], [/testa.*halter/, 'testahalter'],
     [/supino inclinado.*smith|inclinado.*smith/, 'inclsmith'], [/supino.*smith/, 'supinosmith'], [/(afundo|passada|lunge).*smith|smith.*(afundo|passada)/, 'afundosmith'],
     [/agachamento frontal|front squat/, 'agachfrontal'], [/hack|p[eê]ndulo/, 'hack'], [/step-? ?up|subida no (banco|caixote|step)/, 'stepup'], [/kettlebell swing|\bswing/, 'kbswing'],
@@ -6373,7 +6385,7 @@ const XA = (() => {
     remada: 'Remada curvada', baixa: 'Remada baixa', serrote: 'Remada unilateral (serrote)', facepull: 'Face pull', rosca: 'Rosca direta',
     deadbug: 'Dead bug', prancha: 'Prancha', crossalta: 'Crossover polia alta', crossmedia: 'Crossover polia média', crossbaixa: 'Crossover polia baixa',
     voador: 'Voador (peck deck)', voadorinv: 'Crucifixo inverso máquina', supmaq: 'Supino reto máquina', supmaqinc: 'Supino inclinado máquina', supinohalter: 'Supino reto com halteres',
-    inclbarra: 'Supino inclinado com barra', remadamaq: 'Remada na máquina', remadacav: 'Remada cavalinho', pulldownreto: 'Pulldown braços estendidos', desenvmaq: 'Desenvolvimento máquina',
+    inclbarra: 'Supino inclinado com barra', remadamaq: 'Remada na máquina', remadacav: 'Remada cavalinho', pulldownreto: 'Pulldown braços estendidos', pulldownmaq: 'Pulldown na máquina', desenvmaq: 'Desenvolvimento máquina',
     lateralpolia: 'Elevação lateral unilateral na polia', frontal: 'Elevação frontal', frontalpolia: 'Elevação frontal na polia', encolh: 'Encolhimento', agachsmith: 'Agachamento no Smith',
     roscapolia: 'Rosca na polia', agachpc: 'Agachamento sem peso', afundopc: 'Afundo sem peso', roscahalter: 'Rosca alternada', martelo: 'Rosca martelo', scott: 'Rosca Scott', testa: 'Tríceps testa', frances: 'Tríceps francês', coicetri: 'Tríceps coice',
     tricepsbarra: 'Tríceps polia com barra', coicepolia: 'Glúteo na polia (coice)', coicepoliainc: 'Coice na polia (variação)', pelvicamaq: 'Elevação pélvica máquina', stiffbarra: 'Stiff com barra', flexora: 'Mesa flexora',
