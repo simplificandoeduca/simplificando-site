@@ -320,6 +320,7 @@ button.row:hover{background:var(--ctl)}
 .gsq{display:inline-block;width:11px;height:11px;border-radius:3px;background:var(--g);margin-right:6px;vertical-align:-1px;flex:none}
 .exc-g{display:flex;align-items:center;flex-wrap:wrap}.exc-s{font-size:13px;font-weight:700;color:var(--fg);opacity:.8}
 .exc.min{gap:0;padding:10px 14px}.exc-tg .i{transform:rotate(90deg);transition:transform .2s}.exc-tg.on .i{transform:rotate(-90deg)}
+.vg{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:8px}.vg-i{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:14px;background:var(--ctl);box-shadow:inset 3px 0 0 var(--g)}.vg-i .gsq{background:var(--g)}.vg-n{display:flex;align-items:center;font-size:13px;font-weight:800}.vg-i b{font-size:15px;font-weight:900;letter-spacing:-.02em}.vg-s{font-size:12.5px;color:var(--muted);font-weight:700;font-variant-numeric:tabular-nums}.vg-seg button{font-size:12px;padding:6px 10px}
 .exs-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 4px 8px;font-size:13.5px;font-weight:700;color:var(--muted)}.exs-bar .btn .i{transform:rotate(90deg)}
 .exc-h .num{width:36px;height:36px;flex:none;border-radius:50%;background:var(--ctl);display:grid;place-items:center;font-size:14px;font-weight:800;margin-top:4px}
 .exc-h .nm{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
@@ -2171,7 +2172,9 @@ function builder(col,id){
   if(!Ls.includes(ui.tl[key])) ui.tl[key] = Ls[0];
   const L = ui.tl[key], t = L ? pl.treinos[L] : null, deload = col==='alunos' && pl.deload;
   const lets = Ls.map((l,li) => '<button type="button" class="tletter'+(l===L?' on':'')+'" data-drag="tl" data-i="'+li+'" data-a="tl" data-v="'+l+'" aria-pressed="'+(l===L)+'" aria-label="Treino '+l+'">'+l+'</button>').join('')+(Ls.length<5?'<button type="button" class="tletter add" data-a="addTreino" aria-label="Adicionar treino '+LETRAS[Ls.length]+'">'+ic('plus')+'</button>':'');
-  let h = '<section class="card"><div class="card-h"><span class="label">'+ic('layers')+'Divisão '+(Ls.join('')||'vazia')+'</span><span class="calc-v" data-calc="plansum">'+calcPlanSum(col,id)+'</span></div><div class="tl-row" role="group" aria-label="Treinos do plano">'+lets+'</div>'+(Ls.length>1 ? '<p class="foot">Segure uma letra e arraste para mudar a ordem dos treinos.</p>' : '')+'</section>';
+  const vgT = ui.vgTr ? L : '';
+  let h = '<section class="card"><div class="card-h"><span class="label">'+ic('layers')+'Divisão '+(Ls.join('')||'vazia')+'</span><span class="calc-v" data-calc="plansum">'+calcPlanSum(col,id)+'</span></div><div class="tl-row" role="group" aria-label="Treinos do plano">'+lets+'</div>'+(Ls.length>1 ? '<p class="foot">Segure uma letra e arraste para mudar a ordem dos treinos.</p>' : '')+'</section>'+
+    (Ls.length ? '<section class="card"><div class="card-h"><span class="label">'+ic('dumbbell')+'Volume por grupo</span><div class="seg vg-seg" role="group" aria-label="Contar"><button type="button" class="'+(ui.vgTr?'':'on')+'" aria-pressed="'+!ui.vgTr+'" data-a="vgTr" data-v="">Divisão toda</button><button type="button" class="'+(ui.vgTr?'on':'')+'" aria-pressed="'+!!ui.vgTr+'" data-a="vgTr" data-v="1">Só o treino '+(L||'')+'</button></div></div><div data-calc="grupos" data-l="'+vgT+'">'+calcGrupos(col,id,vgT)+'</div><p class="foot">Séries somadas de cada treino uma vez. Atualiza enquanto você monta.</p></section>' : '');
   if(!t) return h+'<section class="card ph"><span class="label">'+ic('dumbbell')+'Nenhum treino ainda</span><p class="muted">Crie o treino A e adicione exercícios da biblioteca'+(col==='alunos'?', ou aplique um modelo pronto.':'.')+'</p><div class="btn-row"><button type="button" class="btn primary" data-a="addTreino">'+ic('plus')+'Criar treino A</button>'+(col==='alunos'?'<button type="button" class="btn" data-a="iaOpen">'+ic('bolt')+'Gerar com IA</button><button type="button" class="btn" data-a="vozOpen">'+ic('mic')+'Montar falando</button><button type="button" class="btn" data-a="tplApply">'+ic('layers')+'Aplicar modelo</button>':'')+'</div></section>';
   const tb = x.pre+'treinos.'+L+'.';
   h += '<section class="card"><div class="card-h"><span class="label">'+ic('dumbbell')+'Treino '+L+'</span><div class="btn-row"><button type="button" class="btn small" data-a="dupTreino"'+(Ls.length>=5?' disabled':'')+'>'+ic('dup')+'Duplicar</button>'+armBtn('delTreino',L,'Excluir','Toque de novo para excluir')+'</div></div>'+
@@ -2279,6 +2282,14 @@ const XAR = (() => {
   return { objOf };
 })();
 function calcTrSum(col,id,L){ const x = ctxOf(col,id), t = x.pl.treinos[L]; if(!t) return ''; const deload = col==='alunos' && x.pl.deload, s = trStats(t,deload); return '<div><b>'+s.n+'</b><span>exercícios</span></div><div><b>'+s.sets+'</b><span>séries'+(deload?' no deload':'')+'</span></div><div><b>'+s.min+'<small> min</small></b><span>duração estimada</span></div><div><b>'+(t.ex||[]).filter(e => e.aq).length+'</b><span>com aquecimento</span></div>'; }
+/* volume por grupo muscular: exercícios e séries na divisão toda (ou só no treino aberto) */
+function calcGrupos(col,id,L){
+  const x = ctxOf(col,id), T = x.pl.treinos || {}, Ls = L ? [L] : letters(x.pl), g = {};
+  Ls.forEach(l => ((T[l]||{}).ex||[]).forEach(e => { const k = GRUPOS.includes(e.alvo) ? e.alvo : (e.alvo ? String(e.alvo) : 'Sem grupo'); const o = g[k] = g[k] || { ex:0, s:0 }; o.ex++; o.s += +e.s || 0; }));
+  const L2 = Object.keys(g).sort((a,b) => g[b].s - g[a].s || a.localeCompare(b,'pt-BR'));
+  if(!L2.length) return '<p class="muted" style="margin:0">Nenhum exercício ainda.</p>';
+  return '<div class="vg">'+L2.map(k => '<div class="vg-i" style="--g:'+(GRUPO_COR[k]||'#8A918C')+'"><span class="vg-n"><i class="gsq" aria-hidden="true"></i>'+esc(k)+'</span><b>'+plural(g[k].ex,'exercício')+'</b><span class="vg-s">('+plural(g[k].s,'série')+')</span></div>').join('')+'</div>';
+}
 function calcPlanSum(col,id){ const x = ctxOf(col,id), Ls = letters(x.pl); if(!Ls.length) return ''; const deload = col==='alunos' && x.pl.deload; const st = Ls.map(l => trStats(x.pl.treinos[l],deload)); return plural(st.reduce((s,v) => s+v.sets,0),'série')+' no ciclo A–'+Ls[Ls.length-1]+' · média '+Math.round(st.reduce((s,v) => s+v.min,0)/Ls.length)+' min'; }
 
 /* copiar o treino de outro aluno (perfil de teste ou para reaproveitar) */
@@ -2781,7 +2792,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '7 nov · 66'; // Versão do painel: 7 nov · 66
+const PAINELV = '7 nov · 67'; // Versão do painel: 7 nov · 67
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -3332,7 +3343,7 @@ function refreshCalcs(){
   document.querySelectorAll('[data-calc]').forEach(el => {
     const k = el.dataset.calc; let h = null;
     if(k==='mm') h = calcMM();
-    else if(k==='plansum' || k==='trsum'){ const col = ui.view==='modelos' ? 'modelos' : 'alunos', id = col==='modelos' ? ui.modelo : ui.aluno; if(id && C[col][id]) h = k==='plansum' ? calcPlanSum(col,id) : calcTrSum(col,id,el.dataset.l); }
+    else if(k==='plansum' || k==='trsum' || k==='grupos'){ const col = ui.view==='modelos' ? 'modelos' : 'alunos', id = col==='modelos' ? ui.modelo : ui.aluno; if(id && C[col][id]) h = k==='plansum' ? calcPlanSum(col,id) : k==='grupos' ? calcGrupos(col,id,el.dataset.l) : calcTrSum(col,id,el.dataset.l); }
     else if(a){ if(k==='idade') h = calcIdade(a); else if(k==='imc') h = calcImc(a); else if(k==='aguasug') h = calcAgua(a); else if(k==='zona') h = calcZona(a); else if(k==='planfim') h = esc(planInfo(a).label); else if(k==='share'){ el.value = shareText(a); return; } }
     if(h!=null && el.innerHTML!==h) el.innerHTML = h;
   });
@@ -3775,6 +3786,7 @@ function act(a,d,btn){
     case 'delLesao': { A.saude.lesoes.splice(+d.k,1); Store.save('alunos',ui.aluno,0); break; }
     case 'sugAgua': { const w = num(P(A).peso); if(w){ A.metas.waterGoal = Math.round(w*35/50)*50; Store.save('alunos',ui.aluno,0); toast('Meta de água: '+fmtN(A.metas.waterGoal)+' ml'); } break; }
     case 'tl': { const x = curCtx(); ui.tl[x.col+x.id] = d.v; break; }
+    case 'vgTr': ui.vgTr = !!d.v; break;
     case 'dragEx': { const x = curCtx(), t = x.pl.treinos[curL(x)], i = +d.from, j = +d.to; if(!t || i===j || i<0 || j<0 || i>=t.ex.length || j>=t.ex.length) break; const [e] = t.ex.splice(i,1); t.ex.splice(j,0,e); saveCtx(x); toast(e.nome+' agora é o '+(j+1)+'º'); break; }
     case 'dragTl': { const x = curCtx(), Ls = letters(x.pl), i = +d.from, j = +d.to; if(i===j || i<0 || j<0 || i>=Ls.length || j>=Ls.length) break;
       const cur = curL(x), ord = Ls.slice(); const [m] = ord.splice(i,1); ord.splice(j,0,m); const T = {}; ord.forEach((l,k) => T[LETRAS[k]] = x.pl.treinos[l]); x.pl.treinos = T;
