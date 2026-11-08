@@ -1658,7 +1658,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '8 nov · 79'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '8 nov · 80'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -2621,7 +2621,7 @@ const CAT = [
   ["puxadauni", "Puxada unilateral ajoelhado", "costas", "a", "c", "", ["Ajoelhado de lado para a polia alta, um braço só no pegador.", "Puxe o cotovelo em direção ao quadril.", "Suba devagar até sentir a dorsal alongar."], "Girar o tronco para puxar.", {anim:"puxada", r:"10–12 cada lado"}],
   ["meadows", "Remada Meadows", "costas", "a", "c", "l", ["Barra presa num canto (landmine), de lado para ela, segurando a ponta com uma mão.", "Puxe a barra em direção ao quadril com o tronco inclinado.", "Desça até esticar o braço e sentir alongar."], "Arredondar a lombar.", {anim:"remadacav", r:"8–12 cada lado", noIa:1}],
   ["barrasup", "Barra fixa supinada (chin-up)", "costas", "a", "c", "", ["Palmas viradas para você, mãos na largura dos ombros.", "Suba até o queixo passar da barra.", "Desça devagar até esticar os braços."], "Balançar o corpo para subir.", {anim:"barrafixa", r:"6–10", noIa:1}],
-  ["terra", "Levantamento terra", "post", "a", "c", "l", ["Barra rente às canelas, pés na largura do quadril.", "Suba empurrando o chão, com a barra rente às pernas e a coluna neutra.", "Desça levando o quadril para trás."], "Arredondar a lombar.", {anim:"stiffbarra", g2:"costas", r:"4–8", noIa:1}],
+  ["terra", "Levantamento terra", "post", "a", "c", "l", ["Barra rente às canelas, pés na largura do quadril.", "Suba empurrando o chão, com a barra rente às pernas e a coluna neutra.", "Desça levando o quadril para trás."], "Arredondar a lombar.", {anim:"terra", g2:"costas", r:"4–8", noIa:1}],
   ["rackpull", "Rack pull", "costas", "a", "c", "l", ["Barra apoiada no suporte na altura dos joelhos.", "Suba estendendo o quadril, coluna neutra.", "Volte a barra ao suporte com controle."], "Puxar com as costas arredondadas.", {anim:"stiffbarra", r:"5–8", noIa:1}],
   ["yraise", "Elevação em Y na polia", "ombro", "a", "i", "", ["Cabos cruzados das polias baixas, um em cada mão.", "Suba os braços em Y, um pouco acima da linha dos ombros.", "Desça devagar, sem encolher os ombros."], "Usar carga demais e subir com o trapézio.", {r:"12–15"}],
   ["crossinv", "Crucifixo inverso na polia", "ombro", "a", "i", "", ["Cabos cruzados na altura dos ombros, mãos na frente do peito.", "Abra os braços para trás com os cotovelos quase retos.", "Volte devagar até as mãos se cruzarem."], "Puxar com as costas em vez dos ombros.", {r:"12–15"}],
@@ -6018,6 +6018,17 @@ const XA = (() => {
         return mk(b, legTo(H, A, FWD), legTo(far(H), far(A), FWD), armAng(b.S, 0, 0), armAng(far(b.S), 0, 0));
       },
       front: b => dbEnd(add(b.nA.W, [0, 6])), mov: b => b.nA.W },
+    // levantamento terra convencional: a barra sai do chão (joelhos dobrados, costas retas), passa rente às canelas
+    // e o quadril vai à frente até ficar totalmente em pé; primeiro estica o joelho, depois o quadril
+    terra: { ord: 'up', verbs: ['Sobe', 'Desce'], eq: 'Barra', mus: [['glutes', 'hams'], ['quads', 'lowback']],
+      pose: t => {
+        const A = [176, AY], k = t < .45 ? ease(t / .45) * .45 : .45 + ease((t - .45) / .55) * .55;
+        const P = (a, m, z) => k < .45 ? lerp(a, m, k / .45) : lerp(m, z, (k - .45) / .55);
+        const H = [P(98, 104, 168), P(292, 276, 231)], b = body(H, P(112, 128, 180), P(-34, -18, 0));
+        const W = [P(181, 175, 170), b.S[1] + 96]; // braços sempre esticados: a barra fica embaixo dos ombros
+        return mk(b, legTo(H, A, FWD), legTo(far(H), far(A), FWD), armTo(b.S, W, BACK), armTo(far(b.S), far(W), BACK));
+      },
+      back: b => plate(add(b.nA.W, [0, 6]), 34), front: b => plateRing(add(b.nA.W, [0, 6]), 34), mov: b => b.nA.W },
     // dead bug: braços para cima, quadril e joelhos a 90°; estende braço e perna opostos (alterna)
     deadbug: { ord: 'up', verbs: ['Estende', 'Volta'], eq: 'Peso do corpo', mus: [['abs'], ['obl']], view: [.72, -28], alt: true,
       pose: (t, side) => {
@@ -6405,7 +6416,7 @@ const XA = (() => {
     [/quatro apoios|donkey/, 'coice4'], [/hiperextens|extens[aã]o lombar|banco romano|back extension/, 'hiperext'], [/pullover/, 'pullover'], [/remada alta/, 'remadaalta'],
     [/militar/, 'militar'], [/desenvolvimento.*barra/, 'desenvbarra'], [/eleva[cç][aã]o em y|y.?raise/, 'yraise'], [/lateral.*m[aá]quina/, 'lateralmaq'],
     [/(crucifixo|fly).*sentad|cross.*sentad/, 'crossent'], [/(crucifixo inverso|cross.*invers|crossover invers).*(polia|cabo)|(polia|cabo).*invers/, 'crossinv'],
-    [/plate press|anilha.*peito|svend/, 'platepress'], [/levantamento terra|rack pull|^terra/, 'stiffbarra'],
+    [/plate press|anilha.*peito|svend/, 'platepress'], [/levantamento terra(?! romeno)|^terra(?! romeno)/, 'terra'], [/rack pull/, 'stiffbarra'],
     [/franc[eê]s.*(polia|cabo|corda)|(polia|cabo).*franc[eê]s/, 'francespolia'], [/p[eé]lvica.*(solo|ch[aã]o)|ponte de gl[uú]teo|gl[uú]teo no ch[aã]o/, 'pelvicasolo'], [/cadeira abdutora.*inclinad|abdutora inclinad[ao] na (cadeira|m[aá]quina)/, 'abdutora'], [/abdu(tora|[cç][aã]o).*inclinad/, 'abdutorapoliainc'], [/abdu(tora|[cç][aã]o).*(polia|cabo)/, 'abdutorapolia'], [/v-? ?squat|agachamento no v\b/, 'vsquat'], [/tr[ií]ceps.*unilateral|pulley unilateral|unilateral.*tr[ií]ceps/, 'tricepsunil'], [/abdominal.*banco (inclinado|declinado)|banco (inclinado|declinado).*abd|abd[oô]men.*banco/, 'abdinclinado'], [/serrote|remada unilateral/, 'serrote'], [/cross.*alta|crucifixo.*polia alta/, 'crossalta'], [/cross.*baixa|crucifixo.*polia baixa/, 'crossbaixa'], [/cross|crucifixo.*polia/, 'crossmedia'],
     [/voador inverso|crucifixo inverso|peck ?deck inverso/, 'voadorinv'], [/voador|peck ?deck|crucifixo.*m[aá]quina|fly.*m[aá]quina/, 'voador'], [/crucifixo/, 'crucifixo'],
     [/supino.*inclinad.*m[aá]quina|supino.*m[aá]quina.*inclinad/, 'supmaqinc'], [/supino.*m[aá]quina|chest press|supino articulado/, 'supmaq'],
@@ -6432,7 +6443,7 @@ const XA = (() => {
     return null;
   }
   const LABELS = { agach: 'Agachamento livre', goblet: 'Agachamento goblet', leg: 'Leg press 45°', extensora: 'Cadeira extensora', afundo: 'Afundo / passada',
-    pelvica: 'Elevação pélvica', panturrilha: 'Panturrilha em pé', stiff: 'Stiff / terra romeno', supino: 'Supino reto', inclinado: 'Supino inclinado',
+    pelvica: 'Elevação pélvica', panturrilha: 'Panturrilha em pé', stiff: 'Stiff / terra romeno', terra: 'Levantamento terra', supino: 'Supino reto', inclinado: 'Supino inclinado',
     desenv: 'Desenvolvimento', lateral: 'Elevação lateral', triceps: 'Tríceps na polia', flexao: 'Flexão de braço', puxada: 'Puxada frente',
     remada: 'Remada curvada', baixa: 'Remada baixa', serrote: 'Remada unilateral (serrote)', facepull: 'Face pull', rosca: 'Rosca direta',
     deadbug: 'Dead bug', prancha: 'Prancha', crossalta: 'Crossover polia alta', crossmedia: 'Crossover polia média', crossbaixa: 'Crossover polia baixa',
