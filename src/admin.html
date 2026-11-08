@@ -489,6 +489,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeri
 .pf-tag .i{flex:none;width:14px;height:14px}
 .pf-tag.com{box-shadow:inset 0 0 0 1.5px var(--brand)}
 .teste-c{box-shadow:inset 0 0 0 2px #FF9A3C}
+.pm-step{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:16px;box-shadow:inset 0 0 0 1px var(--sep);margin:8px 0}.pm-step>b{font-size:14px}.pm-step.done{opacity:.75}
 .dom-c{box-shadow:inset 0 0 0 2px var(--brand)}.dom-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}.dom-top b{font-size:20px;font-weight:900;letter-spacing:-.03em}.dom-top span{font-size:13px;color:var(--muted)}
 .dom-bar{height:8px;border-radius:9px;background:var(--ctl);overflow:hidden}.dom-bar i{display:block;height:100%;background:var(--brand);border-radius:9px;transition:width .3s}
 .dom-a{display:flex;flex-direction:column;gap:10px;margin-top:6px}.dom-row{padding:0}.dom-pills{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:none}.pill.ok.aj{background:color-mix(in srgb,#E5B400 22%,transparent);color:inherit}
@@ -2773,7 +2774,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '8 nov · 80'; // Versão do painel: 8 nov · 80
+const PAINELV = '8 nov · 81'; // Versão do painel: 8 nov · 81
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -3231,15 +3232,16 @@ function vSheet(){
   if(s.k==='copyFrom'){ const a = C.alunos[ui.aluno]; if(!a) return '';
     return sheetTop('Treino','Copiar de outro aluno')+'<p class="muted">Os treinos de quem você escolher substituem os treinos atuais de '+esc(curto(Object.assign({_id:ui.aluno}, a)))+'. Nome e validade do ciclo continuam. O aluno original não muda.</p>'+copyRows(Object.assign({_id:ui.aluno}, a));
   }
-  if(s.k==='pdfMsg'){ const a = C.alunos[ui.aluno]; if(!a) return ''; const A2 = Object.assign({_id:ui.aluno}, a), t = pdfMsgTxt(A2), wa = String(P(A2).whatsapp||'').replace(/\D/g,'');
-    pdfPrepara(A2); const pr = PDFA.aid===ui.aluno ? PDFA.st : 'indo';
-    const semSenha = !(A2.acesso && A2.acesso.codigo);
-    return sheetTop('Treino de '+curto(A2),'Mensagem do PDF')+(semSenha ? '<p class="callout bad">'+ic('alert')+'<span>Este aluno ainda não tem senha. Gere na aba <b>Acesso</b> antes de mandar: a mensagem leva o link e a senha.</span></p>' : '')+
-      '<button type="button" class="btn primary block pm-go" data-a="pmEnviar"'+(pr==='ok' ? '' : ' disabled')+'>'+ic('msg')+(pr==='ok' ? 'Enviar PDF + mensagem no WhatsApp' : pr==='erro' ? 'Não deu para montar o PDF' : 'Preparando o PDF…')+'</button>'+
-      '<p class="foot">No celular, abre o compartilhar com o PDF e a mensagem: escolha o WhatsApp e o contato de '+esc(curto(A2))+'. A mensagem também fica copiada; se não for junto, é só colar.</p>'+
-      '<label class="sr" for="pm-txt">Mensagem</label><textarea id="pm-txt" class="share" rows="12">'+esc(t)+'</textarea>'+
-      '<div class="btn-row">'+(wa.length>=10 ? '<a class="btn" href="https://wa.me/'+(wa.length<=11?'55':'')+wa+'?text='+encodeURIComponent(t)+'" target="_blank" rel="noopener">'+ic('msg')+'Só a mensagem</a>' : '')+'<button type="button" class="btn" data-a="pmCopy">'+ic('copy')+'Copiar mensagem</button><button type="button" class="btn ghost" data-a="pdfTreino">'+ic('note')+'Baixar o PDF</button></div>'+
-      '<p class="foot">'+(wa.length>=10 ? 'O WhatsApp abre na conversa com '+esc(curto(A2))+'. ' : 'Sem WhatsApp no cadastro: copie e cole na conversa. ')+'O PDF é anexado à parte, pelo clipe do WhatsApp.</p>';
+  if(s.k==='pdfMsg'){ const a = C.alunos[ui.aluno]; if(!a) return ''; const A2 = Object.assign({_id:ui.aluno}, a), t1 = pdfParte1(A2), t2 = pdfParte2(A2), wa = String(P(A2).whatsapp||'').replace(/\D/g,''), lnk = wa.length>=10 ? 'https://wa.me/'+(wa.length<=11?'55':'')+wa+'?text=' : '';
+    pdfPrepara(A2); const pr = PDFA.aid===ui.aluno ? PDFA.st : 'indo', semSenha = !(A2.acesso && A2.acesso.codigo), p2 = ui.pmPasso===2;
+    return sheetTop('Treino de '+curto(A2),'Enviar o treino')+(semSenha ? '<p class="callout bad">'+ic('alert')+'<span>Este aluno ainda não tem senha. Gere na aba <b>Acesso</b> antes de mandar: a mensagem 2 leva o link e a senha.</span></p>' : '')+
+      '<p class="muted" style="margin:0 0 6px">O WhatsApp corta a legenda de arquivo em 1024 letras, então o envio é em duas partes, na mesma conversa.</p>'+
+      '<div class="pm-step'+(p2?' done':'')+'"><b>1. PDF + conferência dos exercícios</b><label class="sr" for="pm-txt1">Legenda do PDF</label><textarea id="pm-txt1" class="share" rows="7" maxlength="1020">'+esc(t1)+'</textarea>'+
+        '<button type="button" class="btn '+(p2?'':'primary ')+'block" data-a="pmEnviar"'+(pr==='ok' ? '' : ' disabled')+'>'+ic('msg')+(pr==='ok' ? '1. Enviar PDF no WhatsApp' : pr==='erro' ? 'Não deu para montar o PDF' : 'Preparando o PDF…')+'</button>'+
+        '<p class="foot">No celular, escolha o WhatsApp e o contato de '+esc(curto(A2))+'. No computador, o PDF é baixado e a conversa abre com tudo.</p></div>'+
+      '<div class="pm-step"><b>2. Acesso ao app, divisão e metas</b><label class="sr" for="pm-txt2">Mensagem 2</label><textarea id="pm-txt2" class="share" rows="10">'+esc(t2)+'</textarea>'+
+        '<div class="btn-row">'+(lnk ? '<a class="btn '+(p2?'primary':'')+'" data-a="pm2" href="'+lnk+encodeURIComponent(t2)+'" target="_blank" rel="noopener">'+ic('msg')+'2. Enviar acesso e divisão</a>' : '')+'<button type="button" class="btn" data-a="pmCopy2">'+ic('copy')+'Copiar mensagem 2</button></div></div>'+
+      '<div class="btn-row"><button type="button" class="btn ghost" data-a="pdfTreino">'+ic('note')+'Baixar o PDF</button></div>';
   }
   if(s.k==='contato'){ const t = contatoTxt();
     return sheetTop('Novo aluno','Mensagem do primeiro contato')+'<p class="muted">Mande para quem quer começar a treinar com você. Quando a pessoa responder, crie o aluno e cole a resposta em Perfil › Primeiro contato: o painel preenche o perfil sozinho.</p>'+
@@ -3711,17 +3713,18 @@ function vozSheet(){
 }
 /* treino em PDF: abre uma página com cada exercício (nome, desenho do movimento, séries) para o aluno conferir na academia */
 /* mensagem para mandar junto com o PDF do treino */
-function pdfMsgTxt(a){
+/* o WhatsApp corta a legenda de arquivo em 1024 caracteres: a mensagem vai em duas partes */
+function pdfParte1(a){
   const n = Object.values((a.plano||{}).treinos||{}).reduce((t,x) => t+((x.ex||[]).length),0);
-  const base = shareText(a), corpo = base.slice(base.indexOf('\n\n')+2); // tudo depois do "Oi, …! Seu treino está pronto"
   return 'Oi, '+curto(a)+'! 🎉 Seu treino está pronto no app Simplificando.\n\n'+
     '📄 *Confira o PDF*\n'+
     'Segue o PDF com '+(n ? 'os '+n+' exercícios' : 'todos os exercícios')+', com o desenho de como cada um é feito. Antes de começar, me responde:\n\n'+
     '1️⃣ *Execução:* você já sabe fazer todos? Se tiver algum que não conhece ou não tem certeza de como fazer, me fala qual que eu te passo o movimento correto. 🎥\n'+
     '2️⃣ *Aparelhos:* a sua academia tem todos os aparelhos? Se faltar algum, me avisa que eu troco por outro que trabalhe o mesmo músculo. 🔄\n\n'+
-    'Pode responder com o nome ou o número do exercício.\n\n'+
-    corpo.replace('📲 *Como entrar*', '📲 *Como entrar no app*');
+    'Pode responder com o nome ou o número do exercício. Na próxima mensagem vão o seu acesso ao app e a sua divisão. 👇';
 }
+function pdfParte2(a){ const base = shareText(a); return base.slice(base.indexOf('\n\n')+2).replace('📲 *Como entrar*', '📲 *Como entrar no app*'); }
+function pdfMsgTxt(a){ return pdfParte1(a)+'\n\n'+pdfParte2(a); }
 /* PDF de verdade (arquivo) para mandar pelo botão de compartilhar do celular, junto com a mensagem */
 const PDFA = { aid:'', st:'', file:null, url:'' };
 function libPdf(){ return window.jspdf ? Promise.resolve(window.jspdf) : new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'fb/jspdf.umd.min.js'; sc.onload = () => window.jspdf ? ok(window.jspdf) : no(new Error('jspdf')); sc.onerror = no; document.head.appendChild(sc); }); }
@@ -3779,14 +3782,14 @@ function pdfBaixar(a){
     .catch(() => toast('Não deu para gerar o PDF. Confira a internet e tente de novo.'));
 }
 function pdfEnviar(a){
-  const ta = document.getElementById('pm-txt'), txt = ta ? ta.value : pdfMsgTxt(a), f = PDFA.file;
+  const t1 = document.getElementById('pm-txt1'), t2 = document.getElementById('pm-txt2'), txt = (t1 ? t1.value : pdfParte1(a)).slice(0, 1020), resto = t2 ? t2.value : pdfParte2(a), f = PDFA.file;
   if(!f){ toast('O PDF ainda está sendo preparado.'); return; }
-  copyText(txt); // a mensagem fica copiada: se o WhatsApp não levar o texto junto, é só colar
+  copyText(txt); // a legenda fica copiada: se o WhatsApp não levar o texto junto, é só colar
   const podeArquivo = navigator.canShare && (() => { try { return navigator.canShare({ files:[f] }); } catch(e){ return false; } })();
-  if(podeArquivo){ navigator.share({ files:[f], text:txt, title:f.name }).then(() => toast('Enviado. Se a mensagem não foi junto, cole na conversa.')).catch(err => { if(err && err.name!=='AbortError') toast('Não deu para compartilhar. Use Baixar o PDF.'); }); return; }
+  if(podeArquivo){ navigator.share({ files:[f], text:txt, title:f.name }).then(() => { toast('PDF enviado. Agora toque em 2. Enviar acesso e divisão.'); ui.pmPasso = 2; renderSheet(); }).catch(err => { if(err && err.name!=='AbortError') toast('Não deu para compartilhar. Use Baixar o PDF.'); }); return; }
   // computador: baixa o PDF e abre a conversa com a mensagem
   baixarArq(f);
-  const wa = String(P(a).whatsapp||'').replace(/\D/g,''); window.open(wa.length>=10 ? 'https://wa.me/'+(wa.length<=11?'55':'')+wa+'?text='+encodeURIComponent(txt) : 'https://wa.me/?text='+encodeURIComponent(txt), '_blank');
+  const tudo = txt+'\n\n'+resto, wa = String(P(a).whatsapp||'').replace(/\D/g,''); window.open(wa.length>=10 ? 'https://wa.me/'+(wa.length<=11?'55':'')+wa+'?text='+encodeURIComponent(tudo) : 'https://wa.me/?text='+encodeURIComponent(tudo), '_blank');
   toast('PDF baixado. Anexe na conversa do WhatsApp que abriu.');
 }
 function treinoPdf(a){
@@ -3912,8 +3915,9 @@ function act(a,d,btn){
     case 'metaT': { if(!A) break; A.metas = A.metas || {}; A.metas.semanaTreinos = +d.v; if(A.plano) A.plano.frequencia = +d.v; Store.save('alunos', ui.aluno, 0); toast('Meta da semana: '+d.v+' treinos'); break; }
     case 'rirAll': { if(!A || !A.plano) break; let n = 0; Object.values(A.plano.treinos||{}).forEach(t => (t.ex||[]).forEach(e => { e.rir = '0-1'; n++; })); Store.save('alunos', ui.aluno, 0); toast(plural(n,'exercício')+' com RIR 0–1'); break; }
     case 'pdfTreino': { if(A) pdfBaixar(Object.assign({_id:ui.aluno}, A)); return false; }
-    case 'pdfMsg': openSheet({k:'pdfMsg'}); return false;
+    case 'pdfMsg': ui.pmPasso = 1; openSheet({k:'pdfMsg'}); return false;
     case 'pmEnviar': { if(A) pdfEnviar(Object.assign({_id:ui.aluno}, A)); return false; }
+    case 'pmCopy2': { const t = document.getElementById('pm-txt2'); copyText(t ? t.value : '', t); return false; }
     case 'pmCopy': { const t = document.getElementById('pm-txt'); copyText(t ? t.value : '', t); return false; }
     case 'obAdd': case 'obDel': { if(!A) break; A.metas = A.metas || {}; const c = A.metas.cardio = A.metas.cardio || {}; const L = c.obrig = Array.isArray(c.obrig) ? c.obrig : [];
       if(a==='obAdd') L.push({ local:'Escada', min:40, vezes:3, dias:[], obs:'' }); else L.splice(+d.i,1);
@@ -3995,6 +3999,7 @@ document.addEventListener('click', e => {
   const el = e.target.closest('[data-a]'); if(!el) return;
   const a = el.dataset.a;
   if(a==='scrim'){ if(e.target===el) closeSheet(); return; }
+  if(a==='pm2'){ const t = document.getElementById('pm-txt2'); if(t) el.href = el.href.replace(/\?text=.*$/, '?text='+encodeURIComponent(t.value)); return; }
   if(a==='domEnviou'){ const t = document.getElementById('dom-txt'); if(t) el.href = el.href.replace(/\?text=.*$/, '?text='+encodeURIComponent(t.value)); domMarca(el.dataset.k, 'feitos'); setTimeout(render, 700); return; }
   if(el.tagName==='A') return;
   const d = Object.assign({}, el.dataset);
