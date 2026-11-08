@@ -1090,6 +1090,12 @@ canvas.anim{display:block;width:100%;height:100%}
 .twarm>span .i{width:14px;height:14px}
 .twarm .wpill{height:44px}
 .twarm .wpill.on{background:var(--brand);color:var(--on-brand)}
+.wnote{flex-basis:100%;font-size:11.5px;font-weight:600;opacity:.8;margin-top:-2px}
+.warm .wnote{color:var(--muted)}
+.tobs{margin:0;padding:10px 12px;border-radius:14px;display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.4;font-weight:600;background:color-mix(in srgb,var(--brand) 16%,transparent);box-shadow:inset 3px 0 0 var(--brand)}
+.tobs b{display:block;font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--brand);margin-bottom:2px}
+.tobs .i{flex:none;width:18px;height:18px;margin-top:1px;color:var(--brand)}
+.gex .tobs,.gex .twarm{margin:8px 0 4px}
 /* descanso encaixado */
 .rdock,.rpill{position:fixed;z-index:29;left:50%;transform:translateX(-50%);bottom:calc(92px + env(safe-area-inset-bottom,0px));width:min(448px,calc(100% - 32px));animation:rdin .35s var(--ease)}
 .rdock{background:var(--rd-bg);color:var(--fg);border:1px solid var(--rd-line);border-radius:22px;padding:10px 10px 14px 16px;display:flex;align-items:center;gap:8px;box-shadow:0 14px 36px rgba(0,0,0,.35)}
@@ -3537,7 +3543,7 @@ function vTreinoGrade(){
       ${sk?'':`<button type="button" class="gib" data-a="gedit" data-ex="${e.id}" aria-pressed="${ed}" aria-label="Editar séries de ${e.nome}" title="Editar séries">${ic('edit')}</button>`}
       ${isPersonal()?'':`<button type="button" class="gib" data-a="gskip" data-ex="${e.id}" aria-pressed="${sk}" aria-label="${sk?'Voltar a fazer':'Pular exercício'} ${e.nome}" title="${sk?'Voltar a fazer':'Pular exercício'}">${ic(sk?'undo':'skip')}</button>`}</div>
       ${bs==='bs-a'?`<span class="tag">${ic('layers')}Bi-set com o próximo</span>`:''}
-      <div class="gbubs" role="group" aria-label="Séries de ${e.nome}">${bubs}</div>${pop}</div>`;
+      ${sk?'':tObs(e)+tWarm(e)}<div class="gbubs" role="group" aria-label="Séries de ${e.nome}">${bubs}</div>${pop}</div>`;
   }).join('');
   return header('Treino','Treino '+t+' · '+p.foco)+exampleNote()+
     seg('t',LETTERS,t,LETTERS.map(l => l+' · '+PLAN[l].nome),'Escolher treino')+sum+
@@ -3584,11 +3590,19 @@ function tStep(id,i,f){
   const x = getLog(id)[i], v = f==='kg' ? planKg(id,x) : planReps(id,i,x), u = f==='kg' ? 'carga' : 'uma repetição';
   return `<div class="tst"><button type="button" class="tst-b" data-a="tstep" data-ex="${id}" data-i="${i}" data-f="${f}" data-d="-1" aria-label="Menos ${u}, série ${i+1}">${ic('minus')}</button><label class="tst-v">${numIn(id,i,f,v)}<small>${f==='kg'?'kg':'reps'}</small></label><button type="button" class="tst-b" data-a="tstep" data-ex="${id}" data-i="${i}" data-f="${f}" data-d="1" aria-label="Mais ${u}, série ${i+1}">${ic('plus')}</button></div>`;
 }
-function tWarm(e){
-  const sg = suggest(e.id); if(!e.aq || !sg.kg || doneSets(e.id)) return '';
-  const st = step(sg.kg), ws = (S.warm[today()]||{})[e.id] || [], W = aqSeries(e).map(([fr,r]) => [Math.max(st,roundTo(sg.kg*fr,st)),r]);
-  return `<div class="twarm"><span>${ic('flame')}Aquecimento</span>${W.map((w,j) => `<button type="button" class="wpill${ws[j]?' on':''}" aria-pressed="${!!ws[j]}" data-a="twarm" data-ex="${e.id}" data-i="${j}">${ws[j]?ic('check'):''}${fmtKg(w[0])} kg × ${w[1]}</button>`).join('')}</div>`;
+/* aquecimento: com carga, mostra o peso; no 1º treino (ainda sem carga), mostra a % da carga da 1ª série */
+function warmPills(e, ws, act, exAttr){
+  const sg = suggest(e.id), kg = sg.kg, st = kg ? step(kg) : 0;
+  return aqSeries(e).map(([fr,r],j) => `<button type="button" class="wpill${ws[j]?' on':''}" aria-pressed="${!!ws[j]}" data-a="${act}"${exAttr} data-i="${j}">${ws[j]?ic('check'):''}${kg ? fmtKg(Math.max(st,roundTo(kg*fr,st)))+' kg' : Math.round(fr*100)+'%'} × ${r}</button>`).join('');
 }
+const warmNota = e => suggest(e.id).kg ? '' : `<small class="wnote">% da carga que você vai usar na 1ª série</small>`;
+function tWarm(e){
+  if(!e.aq || doneSets(e.id)) return '';
+  const ws = (S.warm[today()]||{})[e.id] || [];
+  return `<div class="twarm"><span>${ic('flame')}Aquecimento</span>${warmPills(e, ws, 'twarm', ` data-ex="${e.id}"`)}${warmNota(e)}</div>`;
+}
+/* observação que o personal escreveu no exercício: em destaque em todos os jeitos de treino */
+const tObs = e => e.obs && String(e.obs).trim() ? `<p class="tobs">${ic('msg')}<span><b>Do seu personal</b>${esc(String(e.obs).trim())}</span></p>` : '';
 const tLow = () => lowReady(S.checkin[today()]) ? `<p class="warn">${ic('moon')}<span>Check-in de hoje pede um dia mais leve. As sugestões repetem a carga da última vez.</span></p>` : '';
 /* topo comum: escolher treino + arrastar para começar, ou relógio, pausa e Finalizar (dois toques) */
 function tSesBar(c){
@@ -3608,7 +3622,7 @@ function tPanel(c,e,k){
     return `<button type="button" class="tset${o?' ok':''}${j===si?' now':''}" data-a="tsel" data-ex="${e.id}" data-i="${j}" aria-pressed="${j===si}" aria-label="Série ${j+1}: ${kg||'carga livre'} kg por ${r}${o?', feita':''}">S${j+1}<b>${kg||'–'}×${r}</b></button>`; }).join('');
   return `<section class="tpanel" aria-label="${e.nome}, exercício ${k+1} de ${c.p.ex.length}">
     <div class="tp-h"><div><small>Agora · ${k+1} de ${c.p.ex.length}</small><h2>${e.nome}</h2>${bs?`<span class="tp-bs">${ic('layers')}${bs}</span>`:''}</div><button type="button" class="tp-how" data-a="howto" data-ex="${e.id}">${ic('play')}Como fazer</button></div>
-    ${tWarm(e)}<div class="tsets" style="grid-template-columns:repeat(${Math.min(n,4)},minmax(0,1fr))">${tiles}</div>
+    ${tObs(e)}${tWarm(e)}<div class="tsets" style="grid-template-columns:repeat(${Math.min(n,4)},minmax(0,1fr))">${tiles}</div>
     <div class="tsteps">${tStep(e.id,si,'kg')}${tStep(e.id,si,'reps')}</div>
     ${ok ? `<button type="button" class="btn block" data-a="tun" data-ex="${e.id}" data-i="${si}">${ic('undo')}Desmarcar série ${si+1}</button>` : slideStart(c.t,'Série '+(si+1)+' feita','tset',` data-ex="${e.id}" data-i="${si}"`)}
     <div class="tp-foot">${excBtn(e)}</div></section>`;
@@ -3648,7 +3662,7 @@ function vTreinoFoco(){
   return `<div class="fo-eb"><p class="eyebrow">Treino ${c.t} · exercício ${k+1} de ${ex.length}</p><span class="fo-nav"><button type="button" class="btn round" data-a="fnav" data-d="-1" aria-label="Exercício anterior">${ic('chevL')}</button><button type="button" class="btn round" data-a="fnav" data-d="1" aria-label="Próximo exercício">${ic('chev')}</button></span></div>`+
     exampleNote()+tSesBar(c)+tLow()+
     `<div class="fo-main" data-fswipe="1"><div><h2 class="fo-name">${e.nome}<span class="dot" aria-hidden="true"></span></h2><p class="fo-sub">${e.alvo} · ${e.s} × ${e.r}${bs?' · '+bs:''} · <button type="button" class="linkbtn" data-a="howto" data-ex="${e.id}">Como fazer</button> · ${excBtn(e)}</p></div>
-    ${tWarm(e)}<div class="fo-pills" role="group" aria-label="Séries de ${e.nome}" style="grid-template-columns:repeat(${n},minmax(0,1fr))">${pills}</div>
+    ${tObs(e)}${tWarm(e)}<div class="fo-pills" role="group" aria-label="Séries de ${e.nome}" style="grid-template-columns:repeat(${n},minmax(0,1fr))">${pills}</div>
     <div class="fo-nums">${nb('kg','Carga','kg')}${nb('reps','Repetições','reps')}</div>
     ${lastTxt?`<p class="fo-last">Última vez: <b>${lastTxt}</b></p>`:''}</div>
     <div class="fo-zone${ui.rest?' resting':''}">${zone}</div>
@@ -3670,7 +3684,7 @@ function vTreinoFolha(){
         (ed ? `<div class="fedit">${tStep(e.id,j,'kg')}${tStep(e.id,j,'reps')}</div>` : '');
     }
     return `<section class="fex"><button type="button" class="fex-h" data-a="fexp" data-ex="${e.id}" aria-expanded="true"${isCur?' disabled':''}><b>${e.nome}</b><span>${e.s} × ${e.r}</span></button>
-      ${bs?`<span class="tp-bs">${ic('layers')}${bs}</span>`:''}${tWarm(e)}${rows}<div class="fex-f"><button type="button" class="linkbtn" data-a="howto" data-ex="${e.id}">Como fazer</button>${excBtn(e)}</div></section>`;
+      ${bs?`<span class="tp-bs">${ic('layers')}${bs}</span>`:''}${tObs(e)}${tWarm(e)}${rows}<div class="fex-f"><button type="button" class="linkbtn" data-a="howto" data-ex="${e.id}">Como fazer</button>${excBtn(e)}</div></section>`;
   }).join('');
   return header('Treino','Treino '+c.t+' · '+c.p.nome)+exampleNote()+tSesBar(c)+tLow()+(cur || !c.active ? '' : tAllDone(c))+`<div class="folha">${blocks}</div>`;
 }
@@ -4748,10 +4762,9 @@ function vSheet(id){
       <b class="sug-kg">${sg.kg!=null?fmtKg(sg.kg)+'<small> kg</small>':'Teste'}</b><p>${sg.why}</p>
       ${last?`<p class="sug-last">Última vez (${dayLabel(last.d)}${last.g?' · '+esc(last.g):''}): ${fmtKg(last.kg)} kg × ${last.reps.join(', ')}${pr?' · recorde '+fmtKg(pr.kg)+' × '+pr.reps:''}</p>`:''}</div>`;
     let warm = '';
-    if(e.aq && sg.kg){
-      const st = step(sg.kg), ws = (S.warm[today()]||{})[id] || [];
-      const W = aqSeries(e).map(([fr,r]) => [Math.max(st,roundTo(sg.kg*fr,st)),r]);
-      warm = `<div class="warm"><span class="flabel">${ic('flame')}Aquecimento antes da primeira série</span><div class="warm-row">${W.map((w,i) => `<button type="button" class="wpill${ws[i]?' on':''}" aria-pressed="${!!ws[i]}" data-a="warm" data-i="${i}">${ws[i]?ic('check'):''}${fmtKg(w[0])} kg × ${w[1]}</button>`).join('')}</div></div>`;
+    if(e.aq){
+      const ws = (S.warm[today()]||{})[id] || [];
+      warm = `<div class="warm"><span class="flabel">${ic('flame')}Aquecimento antes da primeira série</span><div class="warm-row">${warmPills(e, ws, 'warm', '')}</div>${warmNota(e)}</div>`;
     }
     const bs = partner ? `<p class="warn">${ic('layers')}<span><b>Bi-set</b>Faça junto com ${partner.nome}, sem descanso entre os dois. Descanse ${e.d}s depois do par.</span></p>` : '';
     const rows = L.map((x,i) => {
