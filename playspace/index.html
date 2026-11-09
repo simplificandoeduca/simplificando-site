@@ -105,7 +105,23 @@ svg { display: block; }
 @media (min-width: 820px) {
   .fab-ancora { display: none !important; }                                   /* no computador o + mora no trilho, em cima do selo da conta */
   .trilho .fab { position: relative; inset: auto; width: 56px; height: 56px; border-radius: 18px; margin-bottom: 14px; box-shadow: 0 10px 22px rgba(226, 91, 63, .28); flex: none; }
-  .trilho .fab .bicho { width: 42px; height: 30px; margin-left: -21px; }
+  .trilho .fab .bicho { width: 42px; height: 30px; margin-left: -21px; animation: passaro-voo 18s ease-in-out 4s infinite; transform-origin: 50% 100%; }
+}
+/* no trilho, de tempos em tempos o passarinho sai de trás do +, voa até o balãozinho do WhatsApp, bica três vezes e volta.
+   A altura do voo (--voo-y) é medida na tela, porque depende de onde o balãozinho está. */
+@keyframes passaro-voo {
+  0%, 30% { transform: translate(0, 100%) rotate(0); }
+  34% { transform: translate(0, 14%) rotate(0); }
+  36% { transform: translate(0, 10%) rotate(-10deg); }
+  41% { transform: translate(-10px, calc(var(--voo-y, -200px) + 14px)) rotate(8deg); }
+  44%, 46% { transform: translate(-8px, var(--voo-y, -200px)) rotate(0); }
+  48% { transform: translate(-8px, var(--voo-y, -200px)) rotate(26deg); } 50% { transform: translate(-8px, var(--voo-y, -200px)) rotate(2deg); }
+  52% { transform: translate(-8px, var(--voo-y, -200px)) rotate(26deg); } 54% { transform: translate(-8px, var(--voo-y, -200px)) rotate(2deg); }
+  56% { transform: translate(-8px, var(--voo-y, -200px)) rotate(26deg); } 58%, 62% { transform: translate(-8px, var(--voo-y, -200px)) rotate(0); }
+  64% { transform: translate(-6px, calc(var(--voo-y, -200px) - 10px)) rotate(-8deg); }
+  69% { transform: translate(0, 10%) rotate(6deg); }
+  72% { transform: translate(0, 14%) rotate(0); }
+  76%, 100% { transform: translate(0, 100%) rotate(0); }
 }
 .fab-ancora[hidden] { display: none; }
 .toast { position: fixed; z-index: 60; left: 50%; bottom: calc(100px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 20px); background: var(--tinta); color: var(--creme); padding: 11px 18px; border-radius: 999px; font-weight: 700; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .3s, transform .45s var(--spring); max-width: calc(100% - 32px); text-align: center; display: flex; align-items: center; gap: 14px; }
@@ -563,7 +579,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.37';
+const VERSAO = '0.38';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -862,6 +878,8 @@ const naoLidas = () => S.conversas.filter(x => !x.lidas).length;
 function nav() {
   const badge = k => k === 'zap' && naoLidas() ? `<b>${naoLidas()}</b>` : '';
   $('#nav-lado').innerHTML = `<span class="logo">${LOGO}</span>` + ABAS.map(([k, t, i]) => `<button class="ab tap" data-ir="${k}" ${S.tela === k ? 'aria-current="page"' : ''} aria-label="${t}" title="${t}">${ic(IC[i])}${badge(k)}</button>`).join('') + `<span class="espaco"></span><button type="button" class="fab tap" data-act="nova" aria-label="Cadastrar criança" title="Cadastrar criança">${PASSARINHO_FAB}<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button><button class="av-eu tap" data-act="conta" title="${esc(EU.nomeCompleto || EU.nome)}">${esc((EU.nome || 'EU').slice(0, 2).toUpperCase())}</button>`;
+  const fabT = $('.trilho .fab'), zapT = $('.trilho [data-ir="zap"]');
+  if (fabT && zapT) { const fr = fabT.getBoundingClientRect(), zr = zapT.getBoundingClientRect(); if (fr.height) { fabT.style.setProperty('--voo-y', `${Math.round(zr.top + 8 - fr.top)}px`); const bi = $('.bicho', fabT); bi.style.animation = 'none'; void bi.offsetWidth; bi.style.animation = ''; } }   // a animação recomeça já sabendo a altura
   $('#nav-baixo').innerHTML = ABAS.map(([k, t, i]) => `<button data-ir="${k}" ${S.tela === k ? 'aria-current="page"' : ''}>${ic(IC[i], 21)}${t}${badge(k)}</button>`).join('') + (ABAS.some(a => a[0] === 'ajustes') ? '' : `<button data-act="conta">${ic(IC.rosto, 21)}Conta</button>`);
 }
 let toastT, DESFAZ = null;
