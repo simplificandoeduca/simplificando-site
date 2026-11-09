@@ -48,7 +48,17 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .brand{display:flex;align-items:center;gap:10px;font-weight:900;font-size:20px;letter-spacing:-.04em;text-decoration:none;margin-right:auto}
 .brand img{width:36px;height:36px;border-radius:10px}
 .menu{display:flex;gap:4px}.menu a{text-decoration:none;font-size:15px;font-weight:600;color:var(--muted);padding:8px 12px;border-radius:999px}.menu a:hover{color:var(--fg);background:var(--soft)}
-.login{text-decoration:none;font-size:14.5px;font-weight:800;padding:9px 16px;border-radius:999px;box-shadow:inset 0 0 0 1.5px var(--fg)}
+.login{font:inherit;font-size:14.5px;font-weight:800;color:var(--fg);background:transparent;border:0;cursor:pointer;padding:9px 16px;border-radius:999px;box-shadow:inset 0 0 0 1.5px var(--fg)}
+.login[aria-expanded="true"]{background:var(--fg);color:var(--bg)}
+.acx{position:relative}
+.acp{position:absolute;right:0;top:calc(100% + 10px);width:min(330px,calc(100vw - 32px));background:var(--bg);border-radius:22px;padding:10px;box-shadow:0 18px 48px rgba(15,23,18,.18),inset 0 0 0 1px var(--line);display:flex;flex-direction:column;gap:6px;z-index:40}
+.acp[hidden]{display:none}
+.acp p{margin:6px 10px 4px;font-size:13px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.acp a{display:flex;align-items:center;gap:12px;text-decoration:none;padding:12px;border-radius:16px;min-height:56px}
+.acp a:hover{background:var(--surface)}
+.acp i{flex:none;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-style:normal;font-size:20px}
+.acp b{display:block;color:var(--fg);font-size:16px;font-weight:800;letter-spacing:-.02em;line-height:1.2}
+.acp a>span{min-width:0}.acp span span{display:block;font-size:13.5px;color:var(--muted);line-height:1.3;margin-top:2px}
 a:focus-visible,button:focus-visible{outline:3px solid var(--red);outline-offset:3px}
 
 /* abertura */
@@ -173,7 +183,11 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}footer nav a{color:var(--muted);
 <header class="nav"><div class="w">
   <a class="brand" href="#inicio"><img src="treino/icon-512.png" alt=""><span>simplificando<span class="dot">.</span></span></a>
   <nav class="menu" aria-label="Seções"><a href="#app">O app</a><a href="#como">Como funciona</a><a href="#personal">Com ou sem personal</a><a href="#instagram">Instagram</a></nav>
-  <a class="login" href="https://simplificandoeduca.com/treino/">Entrar</a>
+  <div class="acx"><button type="button" class="login" aria-expanded="false" aria-controls="acp" data-acesso>Acessar</button>
+    <div class="acp" id="acp" hidden><p>Como você treina?</p>
+      <a href="https://simplificandoeduca.com/treino/"><i style="background:var(--lime)">🔒</i><span><b>Treinar com personal</b><span>Entre com a senha que o seu personal mandou</span></span></a>
+      <a href="https://simplificandoeduca.com/treino/#sem-personal"><i style="background:var(--red);color:#fff">✨</i><span><b>Treinar sem personal</b><span>Crie a sua conta grátis e o app monta o treino</span></span></a>
+    </div></div>
 </div></header>
 
 <main>
@@ -239,7 +253,7 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}footer nav a{color:var(--muted);
     <article class="dc d1"><span class="tag" style="background:var(--lime);color:var(--ink)">🔒 Com personal</span><h3>O seu personal monta. Você treina.</h3>
       <p>O treino chega pronto no app, feito pro seu corpo e seu objetivo. Ele acompanha cada carga, cardio e copo de água pelo painel dele.</p>
       <ul><li><i>✓</i>Treino feito e ajustado pra você</li><li><i>✓</i>Acompanhamento de perto, semana a semana</li><li><i>✓</i>Você entra só com a sua senha</li></ul>
-      <a class="lnk" href="https://simplificandoeduca.com/treino/">Entrar com a minha senha ›</a></article>
+      <a class="lnk" href="https://simplificandoeduca.com/treino/">Acessar com a minha senha ›</a></article>
     <article class="dc d2"><span class="tag" style="background:var(--red);color:#fff">Sem personal</span><h3>O app monta o treino pra você.</h3>
       <p>Você responde algumas perguntas e a IA do app cria um treino pro seu nível, seus dias e seu objetivo. Dá pra ajustar quando quiser.</p>
       <ul><li><i>✓</i>Conta grátis em 1 minuto</li><li><i>✓</i>Hipertrofia, emagrecimento, corrida ou treino feminino</li><li><i>✓</i>Todos os recursos do app</li></ul>
@@ -284,11 +298,19 @@ footer nav{display:flex;gap:18px;flex-wrap:wrap}footer nav a{color:var(--muted);
 
 <footer><div class="w">
   <a class="brand" href="#inicio" style="margin:0"><img src="treino/icon-512.png" alt=""><span>simplificando<span class="dot">.</span></span></a>
-  <nav aria-label="Rodapé"><a href="https://simplificandoeduca.com/treino/">Entrar no app</a><a href="https://www.instagram.com/simplificando.educa/" target="_blank" rel="noopener">Instagram</a><a href="https://simplificandoeduca.com/termos/">Termos e privacidade</a><a href="https://simplificandoeduca.com/personal/">Área do personal</a></nav>
+  <nav aria-label="Rodapé"><a href="#personal">Acessar o app</a><a href="https://www.instagram.com/simplificando.educa/" target="_blank" rel="noopener">Instagram</a><a href="https://simplificandoeduca.com/termos/">Termos e privacidade</a><a href="https://simplificandoeduca.com/personal/">Área do personal</a></nav>
   <p>© Simplificando Educa</p>
 </div></footer>
 
 <script>
+(function(){
+  // botão Acessar: escolhe com ou sem personal
+  const bt=document.querySelector('[data-acesso]'), pp=document.getElementById('acp');
+  const set=o=>{ pp.hidden=!o; bt.setAttribute('aria-expanded',o); if(o) pp.querySelector('a').focus(); };
+  bt.addEventListener('click',e=>{ e.stopPropagation(); set(pp.hidden); });
+  document.addEventListener('click',e=>{ if(!pp.hidden && !pp.contains(e.target)) set(false); });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape' && !pp.hidden){ set(false); bt.focus(); } });
+})();
 (function(){
   // a onda do app, andando
   const K=[[-40,236,194,-71,410,-71,562,144,886,374,1120,67],[-40,140,210,-10,420,40,562,170,900,330,1120,150],[-40,190,230,330,430,290,562,150,880,-30,1120,110]];
