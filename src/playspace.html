@@ -367,6 +367,12 @@ span.av.g { font-size: 22px; } .simul span.av { font-size: 15px; }
 .escreve button { width: 44px; height: 44px; border-radius: 50%; background: var(--coral); color: #fff; display: flex; align-items: center; justify-content: center; flex: none; }
 @media (max-width: 899px) { .zap[data-modo="papo"] .conversas { display: none; } .zap[data-modo="lista"] .papo { display: none; } }
 
+/* ---------- entrar / primeiro acesso ---------- */
+.entrada-pagina { min-height: 70vh; display: flex; align-items: center; justify-content: center; padding: 20px 0; }
+.entrada-card { width: min(420px, 100%); gap: 14px; padding: 26px 22px; }
+.logo-entrada { width: 72px; height: 72px; align-self: center; }
+.qr { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+.qr img { width: min(280px, 80vw); height: auto; border-radius: 16px; background: #fff; padding: 10px; border: 1px solid var(--borda); }
 /* ---------- folhas (iPhone): sobem de baixo, no desktop viram cartão no centro ---------- */
 .folha-fundo { position: fixed; inset: 0; z-index: 40; background: var(--escurece); display: flex; align-items: flex-end; justify-content: center; opacity: 0; transition: opacity .32s; }
 .folha-fundo.ve { opacity: 1; }
@@ -472,7 +478,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.25';
+const VERSAO = '0.30';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -504,7 +510,8 @@ async function atualizarAgora(bt) {
 const S = {
   tela: 'horas', zapAberta: 1, zapModo: 'lista', zapDia: isoDia(agora), mes: { y: agora.getFullYear(), m: agora.getMonth() }, diaSel: isoDia(agora),
   cfg: { arredonda: 1, cortesia: 10, minimo: 0, aviso: 30, autoMsg: 'ambos', pacotes: [{ h: 1, v: 60 }, { h: 5, v: 250 }, { h: 10, v: 450 }, { h: 20, v: 800 }], idface: { ip: '192.168.0.129', nome: 'Recepção', ligado: true, ultima: antes(0.2) }, tema: lido('ps-tema', 'sistema') },
-  equipe: [{ id: 1, nome: 'Camila Duarte', papel: 'Gerente', login: 'camila' }, { id: 2, nome: 'Beatriz Lima', papel: 'Recepção', login: 'bia' }, { id: 3, nome: 'João Pedro', papel: 'Monitor', login: 'jp' }],
+  equipe: [{ id: 1, nome: 'Camila Duarte', papel: 'gestor', login: 'camila' }, { id: 2, nome: 'Beatriz Lima', papel: 'supervisor', login: 'bia' }, { id: 3, nome: 'João Pedro', papel: 'atendente', login: 'jp' }],
+  whats: { conectado: true, numero: '5511912345678', nome: 'Play Space' }, vendasHoje: null,
   criancas: [
     { id: 1, nome: 'Helena', idade: 6, resp: 'Mariana', rel: 'mãe', tel: '(11) 9 8765-4321', obs: 'Alergia a amendoim', pacote: 10, usado: 380, entrou: antes(47), rosto: true, visitas: [{ dia: antes(2880), entrou: '14:05', saiu: '16:40', deb: 155 }, { dia: antes(7200), entrou: '10:10', saiu: '13:55', deb: 225 }] },
     { id: 2, nome: 'Theo', idade: 4, resp: 'Rafael', rel: 'pai', tel: '(11) 9 7654-3210', obs: '', pacote: 5, usado: 275, entrou: antes(12), rosto: true, visitas: [{ dia: antes(4320), entrou: '15:00', saiu: '17:35', deb: 155 }, { dia: antes(10080), entrou: '11:00', saiu: '13:00', deb: 120 }] },
@@ -545,7 +552,81 @@ const S = {
 })();
 const nomePacote = p => p.h === 1 ? 'Hora avulsa' : p.h + ' horas';
 const TIPOS = { oficina: ['Oficina', 'var(--coral)'], festa: ['Festa', 'var(--pessego)'], compromisso: ['Compromisso', 'var(--mostarda)'], postagem: ['Postagem', 'var(--verde-agua)'] };
-const ABAS = [['horas', 'Horas', 'horas'], ['zap', 'WhatsApp', 'zap'], ['agenda', 'Agenda', 'agenda'], ['ajustes', 'Ajustes', 'ajustes']];
+const PAPEIS = { gestor: 'Gestor', supervisor: 'Supervisor', atendente: 'Atendente' };
+const TODAS_ABAS = [['horas', 'Horas', 'horas'], ['zap', 'WhatsApp', 'zap'], ['agenda', 'Agenda', 'agenda'], ['ajustes', 'Ajustes', 'ajustes']];
+let ABAS = TODAS_ABAS;
+/* ---------- o servidor: api/api.php. Sem ele (a prévia), tudo roda em modo demonstração com os dados de exemplo ---------- */
+const API = 'api/api.php';
+let MODO = 'demo';
+let EU = { nome: 'Camila', papel: 'gestor', login: 'camila' };
+const gestor = () => EU.papel === 'gestor';
+const supervisorOuMais = () => EU.papel === 'gestor' || EU.papel === 'supervisor';
+async function api(acao, dados = {}) {
+  let r;
+  try { r = await fetch(API, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-Play': '1' }, body: JSON.stringify({ acao, ...dados }) }); }
+  catch (e) { const err = new Error('Sem ligação com o servidor'); err.rede = true; throw err; }
+  let j = null; try { j = await r.json(); } catch (e) { const err = new Error('O servidor não respondeu em JSON'); err.rede = true; throw err; }
+  if (!j.ok) { const err = new Error(j.erro || 'Erro no servidor'); err.status = r.status; if (r.status === 401 && acao !== 'entrar') { telaEntrar(); } throw err; }
+  return j;
+}
+const dataDe = t => t instanceof Date ? t : new Date(String(t).replace(' ', 'T'));
+let CARREGANDO = false, ULTIMA_CARGA = '';
+async function carregar() { // devolve true quando algo mudou no servidor
+  if (CARREGANDO) return false; CARREGANDO = true;
+  try {
+    const d = await api('dados');
+    const assinatura = JSON.stringify({ ...d, agora: 0, idface: { ...d.idface, segundos: 0 } }); const mudou = assinatura !== ULTIMA_CARGA; ULTIMA_CARGA = assinatura;
+    S.criancas = d.criancas.map(c => ({ ...c, entrou: c.entrou ? dataDe(c.entrou) : null, visitas: (c.visitas || []).map(v => ({ ...v, dia: dataDe(v.dia) })) }));
+    S.registros = d.registros.map(r => ({ ...r, h: dataDe(r.h) }));
+    S.conversas = d.conversas.map(x => ({ ...x, msgs: x.msgs.map(m => ({ ...m, h: dataDe(m.h) })) }));
+    S.compromissos = d.compromissos;
+    S.cfg = { ...S.cfg, ...d.regra, idface: { ...S.cfg.idface, ...d.idface } };
+    S.equipe = d.equipe || [];
+    S.vendasHoje = d.vendas_hoje; S.whats = d.whats; S.eu = d.eu;
+    EU = { nome: d.eu.nome.split(' ')[0], nomeCompleto: d.eu.nome, papel: d.eu.papel, login: d.eu.login, id: d.eu.id };
+    ABAS = TODAS_ABAS.filter(a => a[0] !== 'ajustes' || supervisorOuMais());
+    if (!ABAS.some(a => a[0] === S.tela)) S.tela = 'horas';
+    return mudou;
+  } finally { CARREGANDO = false; }
+}
+// a cada poucos segundos, o que mudou no servidor (rosto lido pelo iDFace, mensagem que chegou) aparece sozinho
+async function sincronizar() {
+  if (MODO !== 'servidor' || document.hidden || $('#folha .folha-fundo')) return;
+  const t = $('#zap-texto'); if (t && (document.activeElement === t || t.value.trim())) return;
+  if (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) return;
+  try { if (await carregar()) desenhar(); } catch (e) { /* tenta de novo no próximo ciclo */ }
+}
+function telaSo(html) { // telas sem o menu (entrar, primeiro acesso)
+  $('#nav-lado').innerHTML = ''; $('#nav-baixo').innerHTML = ''; $('#hoje').innerHTML = ''; $('#fab-ancora').hidden = true;
+  $('#miolo').innerHTML = `<div class="entrada-pagina"><div class="card entrada-card sobe"><span class="logo-entrada">${LOGO}</span>${html}</div></div>`;
+  setTimeout(() => { const i = $('#miolo input'); if (i) i.focus(); }, 50);
+}
+function telaEntrar() {
+  telaSo(`<h1 style="font-size:24px;font-weight:800">Play Space</h1><p class="explica">Entre com o seu login da equipe.</p>
+    <div class="campo"><label for="l-login">Login</label><input id="l-login" autocapitalize="off" autocomplete="username"></div>
+    <div class="campo"><label for="l-senha">Senha</label><input id="l-senha" type="password" autocomplete="current-password"></div>
+    <button class="bt forte largo tap" data-act="entrar">${ic(IC.check)} Entrar</button>
+    <p class="rodape">Play Space Horas v${VERSAO}</p>`);
+}
+function telaCriarGestor() {
+  telaSo(`<h1 style="font-size:24px;font-weight:800">Bem-vinda ao Play Space</h1><p class="explica">Primeiro acesso: crie a conta da gestora. Depois ela cadastra o resto da equipe em Ajustes.</p>
+    <div class="campo"><label for="g-nome">Seu nome</label><input id="g-nome" autocomplete="name"></div>
+    <div class="campo"><label for="g-login">Login (curto, sem espaços)</label><input id="g-login" autocapitalize="off" autocomplete="username"></div>
+    <div class="campo"><label for="g-senha">Senha (pelo menos 6 caracteres)</label><input id="g-senha" type="password" autocomplete="new-password"></div>
+    <button class="bt forte largo tap" data-act="criar-gestor">${ic(IC.check)} Criar e entrar</button>`);
+}
+async function depoisDeEntrar() { await carregar(); desenhar(); conferirAtualizacao(false); }
+async function iniciar() {
+  if (ATU.podeAqui) {
+    try {
+      const e = await api('estado'); MODO = 'servidor';
+      if (e.primeiro_acesso) return telaCriarGestor();
+      if (!e.usuario) return telaEntrar();
+      await depoisDeEntrar(); setInterval(sincronizar, 6000); return;
+    } catch (err) { if (!err.rede) { toast(err.message); return; } }
+  }
+  desenhar(); conferirAtualizacao(false);
+}
 { const h = (location.hash || '').slice(1); if (ABAS.some(a => a[0] === h)) S.tela = h; }
 function aplicarTema() { const t = S.cfg.tema; if (t === 'sistema') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = t === 'escuro' ? 'dark' : 'light'; }
 aplicarTema();
@@ -594,7 +675,6 @@ function animarPlacas() {
 }
 const avatar = (c, g = '') => c.foto ? `<span class="av ${g} foto" style="background-image:url(${c.foto})" role="img" aria-label="Foto de ${esc(c.nome)}"></span>` : `<span class="av ${g}" style="background:${CORES[c.id % CORES.length]}">${esc(c.nome.slice(0, 2).toUpperCase())}</span>`;
 let FOTO_TEMP = '';
-const EU = { nome: 'Camila' };   // quem está usando o sistema (com login, vem da conta)
 // os dias do WhatsApp: "Hoje", "Ontem", depois "Sex 7/11"
 const diaDe = h => isoDia(new Date(h));
 function rotuloDia(iso) { const hoje = isoDia(agora), ontem = isoDia(new Date(agora.getTime() - 86400000)); if (iso === hoje) return 'Hoje'; if (iso === ontem) return 'Ontem'; const d = new Date(iso + 'T12:00'); return `${SEMANA[d.getDay()].slice(0, 3)} ${d.getDate()}/${p2(d.getMonth() + 1)}`; }
@@ -644,13 +724,24 @@ function mensagemAuto(c, txt, comFoto) {
   let conv = S.conversas.find(x => x.crianca === c.id); if (!conv) { conv = { id: novoId(), crianca: c.id, lidas: true, msgs: [] }; S.conversas.push(conv); }
   const m = { de: 'nos', txt, h: new Date(), auto: true, por: 'automática', foto: comFoto ? (c.foto || 'idface') : '' }; conv.msgs.push(m); return () => { conv.msgs = conv.msgs.filter(x => x !== m); };
 }
+async function entradaServidor(c) {
+  try { const r = await api('entrada', { id: c.id }); await carregar(); desenhar(); toast(`${c.nome} entrou · ${hm(restante(crianca(c.id)))} no banco${r.mensagem && !r.mensagem.erro ? ' · ' + c.resp.split(' ')[0] + ' avisada' : ''}`, async () => { await api('desfazer_entrada', { id: c.id, registro: r.registro, mensagem: r.mensagem ? r.mensagem.id : 0 }); await carregar(); desenhar(); }); } catch (e) { toast(e.message); }
+}
+async function saidaServidor(c) {
+  try { const r = await api('saida', { id: c.id }); await carregar(); desenhar(); toast(`${c.nome} saiu · ${hm(r.debitado)} debitadas`, async () => { await api('desfazer_saida', { id: c.id, visita: r.visita, registro: r.registro, mensagem: r.mensagem ? r.mensagem.id : 0 }); await carregar(); desenhar(); }); } catch (e) { toast(e.message); }
+}
+async function venderServidor(c, pac) {
+  try { const r = await api('vender', { id: c.id, horas: pac.h, valor: pac.v }); await carregar(); desenhar(); toast(`+${pac.h}h para ${c.nome} · ${brl(pac.v)}`, async () => { await api('desfazer_venda', { venda: r.venda, registro: r.registro }); await carregar(); desenhar(); }); } catch (e) { toast(e.message); }
+}
 function entrada(c, origem = 'iDFace') {
+  if (MODO === 'servidor') return entradaServidor(c);
   c.entrou = new Date(); registrar('ent', c.nome, origem === 'iDFace' ? 'Rosto reconhecido na entrada' : 'Entrada registrada à mão');
   const reg = S.registros[0], primeiroNome = c.resp.split(' ')[0];
   const desfazMsg = S.cfg.autoMsg !== 'nao' ? mensagemAuto(c, `Oi, ${primeiroNome}! ${c.nome} chegou na Play Space às ${hora(c.entrou)} 💛 Tem ${hm(restante(c))} no pacote. Qualquer coisa a gente te chama por aqui.`, true) : null;
   toast(`${c.nome} entrou · ${hm(restante(c))} no banco${desfazMsg ? ' · ' + primeiroNome + ' avisada' : ''}`, () => { c.entrou = null; S.registros = S.registros.filter(r => r !== reg); if (desfazMsg) desfazMsg(); });
 }
 function saida(c, origem = 'iDFace') {
+  if (MODO === 'servidor') return saidaServidor(c);
   const deb = cobrar(minDentro(c)), entrouEm = c.entrou; c.usado += deb;
   const visita = { dia: new Date(), entrou: hora(c.entrou), saiu: hora(new Date()), deb }; c.visitas.unshift(visita);
   c.entrou = null; registrar('sai', c.nome, `${hm(deb)} debitadas · restam ${hm(restante(c))}${origem === 'iDFace' ? '' : ' · saída à mão'}`);
@@ -660,6 +751,7 @@ function saida(c, origem = 'iDFace') {
   if (restante(c) <= S.cfg.aviso) setTimeout(() => toast(`Aviso: ${c.nome} tem só ${hm(restante(c))} no pacote`), 2600);
 }
 function vender(c, pac) {
+  if (MODO === 'servidor') return venderServidor(c, pac);
   c.pacote += pac.h; registrar('venda', c.nome, `Pacote de ${pac.h}h vendido · ${brl(pac.v)}`); const reg = S.registros[0];
   toast(`+${pac.h}h para ${c.nome} · ${brl(pac.v)}`, () => { c.pacote -= pac.h; S.registros = S.registros.filter(r => r !== reg); });
 }
@@ -668,8 +760,8 @@ function vender(c, pac) {
 const naoLidas = () => S.conversas.filter(x => !x.lidas).length;
 function nav() {
   const badge = k => k === 'zap' && naoLidas() ? `<b>${naoLidas()}</b>` : '';
-  $('#nav-lado').innerHTML = `<span class="logo">${LOGO}</span>` + ABAS.map(([k, t, i]) => `<button class="ab tap" data-ir="${k}" ${S.tela === k ? 'aria-current="page"' : ''} aria-label="${t}" title="${t}">${ic(IC[i])}${badge(k)}</button>`).join('') + `<span class="espaco"></span><button class="av-eu tap" data-act="conta" title="Camila (gerente)">CA</button>`;
-  $('#nav-baixo').innerHTML = ABAS.map(([k, t, i]) => `<button data-ir="${k}" ${S.tela === k ? 'aria-current="page"' : ''}>${ic(IC[i], 21)}${t}${badge(k)}</button>`).join('');
+  $('#nav-lado').innerHTML = `<span class="logo">${LOGO}</span>` + ABAS.map(([k, t, i]) => `<button class="ab tap" data-ir="${k}" ${S.tela === k ? 'aria-current="page"' : ''} aria-label="${t}" title="${t}">${ic(IC[i])}${badge(k)}</button>`).join('') + `<span class="espaco"></span><button class="av-eu tap" data-act="conta" title="${esc(EU.nomeCompleto || EU.nome)}">${esc((EU.nome || 'EU').slice(0, 2).toUpperCase())}</button>`;
+  $('#nav-baixo').innerHTML = ABAS.map(([k, t, i]) => `<button data-ir="${k}" ${S.tela === k ? 'aria-current="page"' : ''}>${ic(IC[i], 21)}${t}${badge(k)}</button>`).join('') + (ABAS.some(a => a[0] === 'ajustes') ? '' : `<button data-act="conta">${ic(IC.rosto, 21)}Conta</button>`);
 }
 let toastT, DESFAZ = null;
 function toast(txt, desfazer) { const t = $('#toast'); DESFAZ = desfazer || null; t.innerHTML = `<span>${esc(txt)}</span>${desfazer ? '<button type="button" data-act="desfazer">Desfazer</button>' : ''}`; t.classList.add('ve'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('ve'), desfazer ? 6000 : 2400); }
@@ -697,7 +789,9 @@ function trocarTela(k, anima = true) {
   if (anima) $('#miolo').animate([{ opacity: 0, transform: 'translateY(12px)' }, { opacity: 1, transform: 'none' }], { duration: 380, easing: 'cubic-bezier(.32,.72,0,1)' });
 }
 function faixa(titulo, sub, chip) { return `<div class="faixa"><span class="logo">${LOGO}</span><div class="tit"><small>${esc(sub)}</small><h1>${esc(titulo)}<button type="button" class="versao tap ${ATU.nova ? 'nova' : ''}" data-act="atualizar" title="${ATU.nova ? 'Nova versão ' + ATU.nova + ': toque para atualizar' : 'Versão ' + VERSAO + ': toque para conferir se há versão nova'}">${ic(IC.renova, 13, 2.6)} ${ATU.nova ? 'Atualizar para ' + esc(ATU.nova) : 'v' + VERSAO}</button></h1></div>${chip || ''}</div>`; }
-const chipIdface = () => `<button class="chip suave tap" data-act="idface"><i class="pt ${S.cfg.idface.ligado ? '' : 'off'}"></i>${ic(IC.rosto, 16)} iDFace ${S.cfg.idface.ligado ? 'lendo' : 'desligado'}</button>`;
+const telFmt = n => { const d = String(n || '').replace(/\D/, '').replace(/^55/, ''); return d.length >= 10 ? `(${d.slice(0, 2)}) ${d.length === 11 ? d[2] + ' ' + d.slice(3, 7) : d.slice(2, 6)}-${d.slice(-4)}` : d; };
+const chipWhats = () => { const w = S.whats || {}; return `<button class="chip suave tap" data-act="${supervisorOuMais() ? 'whats' : 'nada'}"><i class="pt ${w.conectado ? '' : 'off'}"></i>${w.conectado ? 'Conectado' + (w.numero ? ' · ' + telFmt(w.numero) : '') : (w.configurado ? 'WhatsApp desconectado' : 'WhatsApp não configurado')}</button>`; };
+const chipIdface = () => { const i = S.cfg.idface, ok = i.ligado && (MODO !== 'servidor' || i.ativo); return `<button class="chip suave tap" data-act="idface"><i class="pt ${ok ? '' : 'off'}"></i>${ic(IC.rosto, 16)} iDFace ${!i.ligado ? 'desligado' : (ok ? 'lendo' : 'sem contato')}</button>`; };
 
 /* ---------- Horas ---------- */
 function cartaoCrianca(c) {
@@ -715,7 +809,8 @@ function telaHoras() {
   const dentro = S.criancas.filter(c => c.entrou), fora = S.criancas.filter(c => !c.entrou);
   const acabando = S.criancas.filter(c => restante(c) <= S.cfg.aviso).length;
   const usadasHoje = S.criancas.reduce((a, c) => a + c.visitas.filter(v => agora - new Date(v.dia) < 86400000).reduce((b, v) => b + v.deb, 0) + (c.entrou ? cobrar(minDentro(c)) : 0), 0);
-  const vendas = S.registros.filter(r => r.tipo === 'venda' && agora - r.h < 86400000), horasVend = vendas.reduce((a, r) => a + (parseInt(r.txt) || 0), 0) + 20, valorVend = vendas.length * 250 + 1000;
+  const vendas = S.registros.filter(r => r.tipo === 'venda' && agora - r.h < 86400000);
+  const horasVend = S.vendasHoje ? S.vendasHoje.horas : vendas.reduce((a, r) => a + (parseInt(r.txt) || 0), 0) + 20, valorVend = S.vendasHoje ? S.vendasHoje.valor : vendas.length * 250 + 1000, nVend = S.vendasHoje ? S.vendasHoje.n : vendas.length + 2;
   const n = dentro.length;
   return faixa('Controle de horas', `${SEMANA[agora.getDay()]}, ${agora.getDate()} de ${MESES[agora.getMonth()]}`, chipIdface()) + `
   <section class="a-hero">
@@ -723,19 +818,19 @@ function telaHoras() {
     ${n ? `<div class="aneis">${dentro.map(c => anel(c, 'hero')).join('')}</div>` : `<p class="vazio-h">Quando uma criança olhar para o iDFace, o anel dela aparece aqui com o tempo correndo.</p>`}
   </section>
   <div class="tiles">
-    ${tile('t-mostarda', 'dia', 'Horas vendidas hoje', horasVend + 'h', `${vendas.length + 2} pacotes · ${brl(valorVend)}`, 'poste', 'vendidas')}
+    ${tile('t-mostarda', 'dia', 'Horas vendidas hoje', horasVend + 'h', `${nVend} ${nVend === 1 ? 'pacote' : 'pacotes'} · ${brl(valorVend)}`, 'poste', 'vendidas')}
     ${tile('t-menta', 'dia', 'Horas usadas hoje', hm(usadasHoje), 'debitadas pelo rosto', 'balao', 'usadas')}
     ${tile('t-coral', 'acabando', 'Pacotes acabando', acabando, `menos de ${hm(S.cfg.aviso)} no banco`, 'relogio', 'acabando', acabando ? 'alerta' : '')}
   </div>
   <section class="sec"><div class="sec-cab"><h2><i style="background:var(--mostarda)"></i>Banco de horas</h2><button class="link tap" data-act="todas">Todas as crianças</button></div>
     <div class="a-lista">${fora.map(c => `<div class="a-card">${anel(c)}</div>`).join('')}</div>
   </section>
-  <p class="rodape">Protótipo com dados de exemplo · <b>Play Space Horas</b> v${VERSAO}</p>`;
+  <p class="rodape">${MODO === 'demo' ? 'Prévia com dados de exemplo · ' : ''}<b>Play Space Horas</b> v${VERSAO}</p>`;
 }
 function painelHoje() {
   const regs = S.registros.filter(r => agora - r.h < 86400000);
   return `<h2>Hoje na recepção</h2>${listaRegistros(regs)}
-  <button class="marca tap" data-act="idface">${ic(IC.rosto, 18)}<span>O iDFace leu <b>${regs.filter(r => r.tipo !== 'venda').length} rostos</b> hoje. ${S.cfg.idface.ligado ? 'Última leitura há poucos segundos.' : 'Aparelho desligado em Ajustes.'}</span></button>`;
+  <button class="marca tap" data-act="idface">${ic(IC.rosto, 18)}<span>O iDFace leu <b>${regs.filter(r => r.tipo === 'ent' || r.tipo === 'sai').length} rostos</b> nas últimas 24 h. ${!S.cfg.idface.ligado ? 'Aparelho desligado em Ajustes.' : (MODO === 'servidor' ? (S.cfg.idface.ativo ? 'Aparelho conectado.' : 'Aparelho sem contato: toque para ver.') : 'Última leitura há poucos segundos.')}</span></button>`;
 }
 const listaRegistros = regs => `<div class="reg">${regs.length ? regs.map(r => `<div class="ev ${r.tipo}"><time>${hora(r.h)}</time><div><b>${esc(r.nome)}</b><span>${esc(r.txt)}</span></div></div>`).join('') : '<p class="explica">Nada registrado ainda hoje.</p>'}</div>`;
 
@@ -752,6 +847,7 @@ function folhaFicha(id) {
       <button class="bt tap" data-act="avisar" data-id="${c.id}">${ic(IC.zap)} Avisar ${esc(c.resp)}</button>
       <label class="bt tap" for="ficha-foto">${ic(IC.camera)} ${c.foto ? 'Trocar a foto' : 'Tirar a foto'}</label><input type="file" id="ficha-foto" data-id="${c.id}" accept="image/*" capture="user" hidden>
       <button class="bt tap" data-act="editar" data-id="${c.id}">${ic(IC.lapis)} Editar</button>
+      ${supervisorOuMais() ? `<button class="bt claro tap" data-act="apagar" data-id="${c.id}" style="color:var(--erro)">Remover</button>` : ''}
     </div>
     <div class="sec"><div class="sec-cab"><h2 style="font-size:16px">Visitas</h2><span class="pill p-neutro">${c.visitas.length}</span></div>
       <div class="grupo">${c.visitas.length ? c.visitas.map(v => { const d = new Date(v.dia); return `<div class="it"><div class="txt"><b>${d.getDate()} de ${MESES[d.getMonth()]}</b><span>${v.entrou} às ${v.saiu}</span></div><span class="pill p-neutro">${hm(v.deb)}</span></div>`; }).join('') : '<div class="it"><span class="explica">Ainda não veio brincar.</span></div>'}</div>
@@ -797,16 +893,51 @@ function folhaLista(filtro) {
 }
 const itensLista = lista => lista.length ? lista.map(c => { const [et, cls] = estado(c); return `<button class="it tap" data-act="ficha" data-id="${c.id}">${avatar(c)}<div class="txt"><b>${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}</b><span>${esc(c.resp)} · restam ${hm(restante(c))} de ${c.pacote}h</span></div><span class="pill ${cls}">${c.entrou ? 'No espaço' : et}</span>${ic(IC.vai, 18)}</button>`; }).join('') : '<div class="it"><span class="explica">Ninguém encontrado.</span></div>';
 function folhaIdface() {
-  const i = S.cfg.idface;
+  const i = S.cfg.idface, serv = MODO === 'servidor';
+  const situacaoTxt = !i.ligado ? `<b>Desligado.</b> O aparelho guarda as leituras; quando religar, tudo entra de onde parou.`
+    : (serv ? (i.ativo ? `<b>Conectado.</b> O aparelho falou com o sistema há ${Math.round(i.segundos || 0)} s${i.periodo ? ', a cada ' + i.periodo + ' s' : ''}.${i.fila ? ' Na fila para o aparelho: ' + i.fila + '.' : ''}${i.erro ? ' Último aviso: ' + esc(i.erro) : ''}` : (i.ultimo_contato ? `<b>Sem contato</b> desde ${esc(String(i.ultimo_contato).slice(11, 16))}. Confira se o iDFace está ligado e com internet.` : `<b>Ainda não conectado.</b> Baixe o conector abaixo e rode num computador da mesma rede do aparelho, ou cole o endereço direto no iDFace.`)) : `<b>Tudo certo.</b> O aparelho consulta o sistema a cada 5 segundos e manda cada rosto reconhecido na hora.`);
   abrirFolha('iDFace da recepção', `
-    <div class="marca"><i class="pt ${i.ligado ? '' : 'off'}" style="width:10px;height:10px;border-radius:50%;background:${i.ligado ? 'var(--ok)' : 'var(--erro)'}"></i><span>${i.ligado ? `<b>Tudo certo.</b> O aparelho consulta o sistema a cada 5 segundos e manda cada rosto reconhecido na hora.` : `<b>Desligado.</b> O aparelho guarda as leituras; quando religar, tudo entra de onde parou.`}</span></div>
-    <div class="dois"><div class="campo"><label for="i-ip">IP do aparelho na loja</label><input id="i-ip" value="${esc(i.ip)}"></div><div class="campo"><label for="i-nome">Nome</label><input id="i-nome" value="${esc(i.nome)}"></div></div>
-    <div class="acoes"><button class="bt forte tap" data-act="idface-salvar">${ic(IC.check)} Salvar</button><button class="bt tap" data-act="idface-toggle">${i.ligado ? 'Desligar leitura' : 'Ligar leitura'}</button><button class="bt claro tap" data-act="idface-bat">Baixar "Conectar o iDFace" (.bat)</button></div>
+    <div class="marca"><i class="pt ${i.ligado && (!serv || i.ativo) ? '' : 'off'}" style="width:10px;height:10px;border-radius:50%;background:${i.ligado && (!serv || i.ativo) ? 'var(--ok)' : 'var(--erro)'}"></i><span>${situacaoTxt}</span></div>
+    <div class="dois"><div class="campo"><label for="i-ip">IP do aparelho na loja</label><input id="i-ip" value="${esc(i.ip)}" placeholder="192.168.0.129" ${gestor() ? '' : 'disabled'}></div><div class="campo"><label for="i-usuario">Usuário do aparelho</label><input id="i-usuario" value="${esc(i.usuario || 'admin')}" ${gestor() ? '' : 'disabled'}></div></div>
+    <div class="campo"><label for="i-nome">Nome do aparelho</label><input id="i-nome" value="${esc(i.nome)}" ${gestor() ? '' : 'disabled'}></div>
+    ${gestor() ? `<div class="acoes"><button class="bt forte tap" data-act="idface-salvar">${ic(IC.check)} Salvar</button><button class="bt tap" data-act="idface-toggle">${i.ligado ? 'Desligar leitura' : 'Ligar leitura'}</button><button class="bt claro tap" data-act="idface-bat">Baixar "Conectar o iDFace" (.bat)</button></div>` : ''}
+    ${serv && gestor() ? `<div class="sec"><div class="sec-cab"><h2 style="font-size:15px">Sem computador: colar no painel do iDFace</h2></div><p class="explica">No aparelho, em Configurações → Modo de operação → Push (ou "Servidor push"), cole este endereço e deixe o intervalo em 5 segundos:</p><div class="campo"><input readonly value="${esc(i.push_url || '')}" onclick="this.select()"></div><div class="acoes"><button class="bt claro tap" data-act="idface-chave" style="color:var(--erro)">Gerar chave nova</button></div></div>` : ''}
     <div class="sec"><div class="sec-cab"><h2 style="font-size:16px">Simular um rosto na câmera</h2></div><p class="explica">Para testar sem o aparelho: toque na criança como se ela tivesse olhado para o iDFace. Quem está fora entra; quem está dentro sai e tem as horas debitadas.</p>
       <div class="simul">${S.criancas.filter(c => c.rosto).map(c => `<button class="tap" data-act="simular" data-id="${c.id}">${avatar(c)}${esc(c.nome)}<span>${c.entrou ? 'está dentro · sai' : 'está fora · entra'}</span></button>`).join('')}</div></div>`);
 }
 
 /* ---------- WhatsApp ---------- */
+let QR_TIMER = null;
+function folhaWhats(cfg) {
+  const w = S.whats || {};
+  const corpo = c => `
+    <div class="marca"><i class="pt ${w.conectado ? '' : 'off'}" style="width:10px;height:10px;border-radius:50%;background:${w.conectado ? 'var(--ok)' : 'var(--erro)'}"></i><span>${w.conectado ? `<b>Conectado</b> como ${esc(telFmt(c.numero || w.numero))}${c.nome ? ' (' + esc(c.nome) + ')' : ''}. Os avisos de entrada e saída e as mensagens da equipe saem por este número.` : (c.tem_chave ? '<b>Desconectado.</b> Toque em Conectar e escaneie o QR Code com o WhatsApp do celular da loja.' : '<b>Falta a chave da Evolution API.</b> Peça ao suporte e cole abaixo.')}</span></div>
+    <div id="qr-area"></div>
+    ${gestor() ? `<div class="acoes">${w.conectado ? `<button class="bt claro tap" data-act="whats-desconectar" style="color:var(--erro)">Desconectar</button>` : (c.tem_chave ? `<button class="bt forte tap" data-act="whats-conectar">${ic(IC.zap)} Conectar pelo QR Code</button>` : '')}</div>
+    <div class="sec"><div class="sec-cab"><h2 style="font-size:15px">Conexão com a Evolution API</h2></div>
+      <div class="campo"><label for="w-url">Endereço do servidor</label><input id="w-url" value="${esc(c.url || '')}" placeholder="http://..." autocapitalize="off"></div>
+      <div class="dois"><div class="campo"><label for="w-inst">Nome da instância</label><input id="w-inst" value="${esc(c.instancia || 'playspace')}" autocapitalize="off"></div><div class="campo"><label for="w-chave">Chave (apikey)</label><input id="w-chave" value="${esc(c.chave || '')}" placeholder="cole a chave" autocapitalize="off" autocomplete="off"></div></div>
+      <div class="acoes"><button class="bt tap" data-act="whats-salvar">${ic(IC.check)} Salvar conexão</button></div>
+      <p class="explica">Webhook (a Evolution avisa o sistema das mensagens): <span style="word-break:break-all">${esc(c.webhook || '')}</span>. Ele é ligado sozinho quando o número conecta.</p></div>` : '<p class="explica">Só o gestor conecta ou desconecta o WhatsApp.</p>'}`;
+  if (cfg) { abrirFolha('WhatsApp da loja', corpo(cfg)); return; }
+  abrirFolha('WhatsApp da loja', '<p class="explica">Carregando…</p>');
+  if (MODO !== 'servidor') { $('#folha .folha').lastElementChild.outerHTML = corpo({ url: 'http://143.95.164.89', instancia: 'playspace', chave: '••••••abcd', tem_chave: true, numero: w.numero, nome: w.nome, webhook: 'https://…/api/whats-webhook.php?t=…' }); return; }
+  api('whats_config').then(r => { const f = $('#folha .folha'); if (f) f.lastElementChild.outerHTML = corpo(r.config); }).catch(e => toast(e.message));
+}
+async function conectarWhats() {
+  const area = $('#qr-area'); if (!area) return;
+  area.innerHTML = '<p class="explica">Gerando o QR Code…</p>';
+  clearInterval(QR_TIMER);
+  const passo = async () => {
+    try {
+      const r = await api('whats_qr');
+      if (r.estado === 'conectado') { clearInterval(QR_TIMER); await carregar(); fecharFolha(); desenhar(); toast('WhatsApp conectado!'); return; }
+      if (r.qr) area.innerHTML = `<div class="qr"><img src="${r.qr}" alt="QR Code do WhatsApp"><p class="explica">No celular da loja: WhatsApp → Dispositivos conectados → Conectar dispositivo → aponte para este código. Ele renova sozinho a cada 20 s.</p>${r.codigo ? `<p class="explica">Ou digite o código: <b>${esc(r.codigo)}</b></p>` : ''}</div>`;
+      else area.innerHTML = '<p class="explica">Aguardando o QR Code…</p>';
+    } catch (e) { clearInterval(QR_TIMER); area.innerHTML = `<p class="explica" style="color:var(--erro)">${esc(e.message)}</p>`; }
+  };
+  await passo(); QR_TIMER = setInterval(() => { if (!$('#qr-area')) { clearInterval(QR_TIMER); return; } passo(); }, 20000);
+}
 const convDe = id => S.conversas.find(x => x.id === +id);
 function sugestoes(conv) {
   const c = crianca(conv.crianca), r = hm(restante(c)), ultima = conv.msgs[conv.msgs.length - 1];
@@ -828,10 +959,10 @@ function telaZap() {
   const quem = ms => { const nomes = []; ms.forEach(m => { if (m.de === 'nos') { const q = m.por || EU.nome; if (!nomes.includes(q)) nomes.push(q); } }); return nomes; };
   const lista = doDia.length ? doDia.map(({ x, ms }) => { const c = crianca(x.crianca), u = ms[ms.length - 1], q = quem(ms); return `<button class="conv tap ${conv && x.id === conv.id ? 'ativa' : ''}" data-act="conversa" data-id="${x.id}">${avatar(c)}<div class="txt"><b>${esc(c.resp)} (${esc(c.rel)} de ${esc(c.nome)})</b><span><em class="st ${situacao(c).cls}">${esc(situacao(c).curto)}</em></span><span>${u.de === 'nos' ? (u.auto ? 'Automática: ' : (u.por || EU.nome) + ': ') : ''}${esc(u.txt)}</span><span class="quem">${q.length ? q.map(n => `<i class="${n === 'automática' ? 'auto' : ''}">${esc(n)}</i>`).join('') : '<i class="ninguem">ninguém respondeu ainda</i>'}</span></div><span class="h">${hora(u.h)}</span>${x.lidas ? '' : `<span class="n">${x.msgs.filter(m => m.de === 'ela').length}</span>`}</button>`; }).join('')
     : `<div class="card vazio">${ic(IC.zap, 26)}<b>${S.zapDia === isoDia(agora) ? 'Nenhuma conversa ainda hoje' : 'Nenhuma conversa neste dia'}</b><span>${S.zapDia === isoDia(agora) ? 'Quando uma criança chegar ou alguém mandar mensagem, aparece aqui.' : 'Escolha outro dia em cima.'}</span></div>`;
-  if (!conv) return faixa('WhatsApp', 'Conversas com os responsáveis', `<span class="chip suave"><i class="pt"></i>Conectado · (11) 9 1234-5678</span>`) + abas + `<div class="zap" data-modo="lista"><div class="conversas">${lista}</div><div class="papo"><p class="explica" style="margin:auto;text-align:center">Nenhuma conversa em ${rotuloDiaLongo(S.zapDia).toLowerCase()}.</p></div></div>`;
+  if (!conv) return faixa('WhatsApp', 'Conversas com os responsáveis', chipWhats()) + abas + `<div class="zap" data-modo="lista"><div class="conversas">${lista}</div><div class="papo"><p class="explica" style="margin:auto;text-align:center">Nenhuma conversa em ${rotuloDiaLongo(S.zapDia).toLowerCase()}.</p></div></div>`;
   const c = crianca(conv.crianca);
   const msgsHtml = (() => { let ult = ''; return conv.msgs.map(m => { const d = diaDe(m.h), sep = d !== ult ? `<div class="sep-dia"><span>${rotuloDiaLongo(d)}</span></div>` : ''; ult = d; return sep + `<div class="msg ${m.de} ${d === S.zapDia ? '' : 'outro-dia'}">${m.foto ? (m.foto === 'idface' ? `<span class="foto-id">${ic(IC.camera, 15)} Foto da chegada, pela câmera do iDFace</span>` : `<img class="foto-msg" src="${m.foto}" alt="Foto da chegada">`) : ''}${esc(m.txt)}<time>${m.de === 'nos' ? (m.auto ? 'automática' : esc(m.por || EU.nome)) + ' · ' : ''}${hora(m.h)}</time></div>`; }).join(''); })();
-  return faixa('WhatsApp', 'Conversas com os responsáveis', `<span class="chip suave"><i class="pt"></i>Conectado · (11) 9 1234-5678</span>`) + abas + `
+  return faixa('WhatsApp', 'Conversas com os responsáveis', chipWhats()) + abas + `
   <div class="zap" data-modo="${S.zapModo}">
     <div class="conversas">${lista}</div>
     <div class="papo">
@@ -843,8 +974,9 @@ function telaZap() {
     </div>
   </div>`;
 }
-function enviar(txt) {
+async function enviar(txt) {
   const conv = convDe(S.zapAberta); if (!conv || !txt.trim()) return;
+  if (MODO === 'servidor') { try { const r = await api('mensagem_enviar', { crianca: conv.crianca, texto: txt.trim() }); await carregar(); S.zapDia = isoDia(agora); desenhar(); toast(r.erro ? 'Guardada, mas não foi: ' + r.erro : 'Enviado no WhatsApp'); const m = $('#msgs'); if (m && m.lastElementChild) m.lastElementChild.scrollIntoView({ block: 'nearest' }); } catch (e) { toast(e.message); } return; }
   conv.msgs.push({ de: 'nos', txt: txt.trim(), h: new Date(), por: EU.nome }); conv.lidas = true; S.zapDia = isoDia(agora); desenhar();
   const m = $('#msgs'); if (m) m.lastElementChild.scrollIntoView({ block: 'nearest' });
 }
@@ -904,12 +1036,15 @@ function telaAjustes() {
         <div class="grupo">${cfg.pacotes.map((p, i) => `<button class="it tap" data-act="pacote-editar" data-i="${i}"><div class="txt"><b>${nomePacote(p)}</b><span>${brl(p.v)}${p.h > 1 ? ' · ' + brl(Math.round(p.v / p.h)) + ' por hora' : ''}</span></div><span class="vai">${ic(IC.vai, 18)}</span></button>`).join('')}</div>
         <p class="explica">Toque num pacote para mudar as horas ou o valor. A hora avulsa é o pacote de 1 hora.</p>
       </div>
-      <div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.rosto, 20)} iDFace</h2><span class="pill ${cfg.idface.ligado ? 'p-ok' : 'p-erro'}">${cfg.idface.ligado ? 'Lendo' : 'Desligado'}</span></div>
+      <div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.rosto, 20)} iDFace</h2><span class="pill ${!cfg.idface.ligado ? 'p-erro' : (MODO !== 'servidor' || cfg.idface.ativo ? 'p-ok' : 'p-aviso')}">${!cfg.idface.ligado ? 'Desligado' : (MODO !== 'servidor' || cfg.idface.ativo ? 'Lendo' : 'Sem contato')}</span></div>
         <button class="grupo tap" data-act="idface" style="width:100%"><div class="it"><div class="txt"><b>${esc(cfg.idface.nome)} · ${esc(cfg.idface.ip)}</b><span>Toque para configurar, baixar o conector ou simular um rosto</span></div><span class="vai">${ic(IC.vai, 18)}</span></div></button>
       </div>
-      <div class="card"><div class="sec-cab"><h2 style="font-size:18px">Equipe</h2><button class="link tap" data-act="equipe-novo">Nova pessoa</button></div>
-        <div class="grupo">${S.equipe.map(u => `<button class="it tap" data-act="equipe-editar" data-id="${u.id}"><span class="av" style="background:${CORES[u.id % CORES.length]};width:38px;height:38px;font-size:13px">${esc(u.nome.split(' ').map(n => n[0]).slice(0, 2).join(''))}</span><div class="txt"><b>${esc(u.nome)}</b><span>${esc(u.papel)} · entra como ${esc(u.login)}</span></div><span class="vai">${ic(IC.vai, 18)}</span></button>`).join('')}</div>
-        <p class="explica">Gerente vê tudo e mexe nos ajustes. Recepção vende horas e cadastra crianças. Monitor só acompanha quem está no espaço.</p>
+      ${supervisorOuMais() ? `<div class="card"><div class="sec-cab"><h2 style="font-size:18px">Equipe</h2>${gestor() ? `<button class="link tap" data-act="equipe-novo">Nova pessoa</button>` : ''}</div>
+        <div class="grupo">${S.equipe.map(u => `<button class="it tap" data-act="${gestor() ? 'equipe-editar' : 'nada'}" data-id="${u.id}"><span class="av" style="background:${CORES[u.id % CORES.length]};width:38px;height:38px;font-size:13px">${esc(u.nome.split(' ').map(n => n[0]).slice(0, 2).join(''))}</span><div class="txt"><b>${esc(u.nome)}</b><span>${PAPEIS[u.papel] || esc(u.papel)} · entra como ${esc(u.login)}</span></div>${gestor() ? `<span class="vai">${ic(IC.vai, 18)}</span>` : ''}</button>`).join('')}</div>
+        <p class="explica">Gestor vê tudo e mexe nos ajustes. Supervisor faz tudo da loja e vê os ajustes. Atendente cuida das horas, do WhatsApp e da agenda.</p>
+      </div>` : ''}
+      <div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.zap, 20)} WhatsApp da loja</h2><span class="pill ${(S.whats || {}).conectado ? 'p-ok' : 'p-erro'}">${(S.whats || {}).conectado ? 'Conectado' : 'Desconectado'}</span></div>
+        <button class="grupo tap" data-act="whats" style="width:100%"><div class="it"><div class="txt"><b>${(S.whats || {}).conectado ? telFmt((S.whats || {}).numero) + ((S.whats || {}).nome ? ' · ' + esc((S.whats || {}).nome) : '') : 'Conectar pelo QR Code'}</b><span>${(S.whats || {}).conectado ? 'Toque para ver a conexão ou desconectar' : 'Escaneie com o WhatsApp do celular da loja, como no WhatsApp Web'}</span></div><span class="vai">${ic(IC.vai, 18)}</span></div></button>
       </div>
       <div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.zap, 20)} Avisos automáticos no WhatsApp</h2></div>
         ${seg('autoMsg', [['ambos', 'Entrada e saída'], ['entrada', 'Só a entrada'], ['nao', 'Nenhum']], cfg.autoMsg)}
@@ -918,7 +1053,7 @@ function telaAjustes() {
       <div class="card"><div class="sec-cab"><h2 style="font-size:18px">Aparência</h2></div>${seg('tema', [['sistema', 'Como o celular'], ['claro', 'Claro'], ['escuro', 'Escuro']], cfg.tema)}</div>
     </div>
   </div>
-  <p class="rodape"><b>Play Space Horas</b> v${VERSAO} · protótipo</p>`;
+  <p class="rodape"><b>Play Space Horas</b> v${VERSAO}${MODO === 'demo' ? ' · prévia sem servidor' : ''}</p>`;
 }
 function folhaPacote(i) {
   const p = i == null ? null : S.cfg.pacotes[i];
@@ -930,9 +1065,10 @@ function folhaPacote(i) {
 }
 function folhaEquipe(u) {
   abrirFolha(u ? 'Editar pessoa' : 'Nova pessoa', `
-    <div class="campo"><label for="e-nome">Nome</label><input id="e-nome" value="${esc(u ? u.nome : '')}"></div>
-    <div class="dois"><div class="campo"><label for="e-login">Entra como</label><input id="e-login" value="${esc(u ? u.login : '')}" placeholder="apelido curto" autocapitalize="off"></div><div class="campo"><label for="e-papel">Papel</label><select id="e-papel">${['Gerente', 'Recepção', 'Monitor'].map(p => `<option ${u && u.papel === p ? 'selected' : ''}>${p}</option>`).join('')}</select></div></div>
-    ${u ? '' : '<div class="campo"><label for="e-senha">Senha inicial</label><input id="e-senha" type="password" placeholder="Ela troca no primeiro acesso"></div>'}
+    <div class="campo"><label for="e-nome">Nome</label><input id="e-nome" value="${esc(u ? u.nome : '')}" autocomplete="off"></div>
+    <div class="dois"><div class="campo"><label for="e-login">Entra como</label><input id="e-login" value="${esc(u ? u.login : '')}" placeholder="apelido curto" autocapitalize="off" autocomplete="off"></div><div class="campo"><label for="e-papel">Papel</label><select id="e-papel">${Object.entries(PAPEIS).map(([k, n]) => `<option value="${k}" ${(u ? u.papel : 'atendente') === k ? 'selected' : ''}>${n}</option>`).join('')}</select></div></div>
+    <div class="campo"><label for="e-senha">${u ? 'Nova senha (deixe em branco para manter)' : 'Senha inicial'}</label><input id="e-senha" type="password" placeholder="${u ? '' : 'Ela troca depois em Ajustes'}" autocomplete="new-password"></div>
+    <p class="explica"><b>Gestor</b> vê tudo e mexe nos ajustes, na equipe e nas integrações. <b>Supervisor</b> faz tudo da loja e vê os ajustes, mas não os altera. <b>Atendente</b> cuida das horas, do WhatsApp e da agenda.</p>
     <div class="acoes"><button class="bt forte tap" data-act="equipe-salvar" data-id="${u ? u.id : ''}" style="flex:1;justify-content:center">${ic(IC.check)} Salvar</button>${u ? `<button class="bt claro tap" data-act="equipe-apagar" data-id="${u.id}" style="color:var(--erro)">Remover</button>` : ''}</div>`);
 }
 
@@ -957,13 +1093,20 @@ const ACOES = {
   'vender-ok': el => { vender(crianca(el.dataset.id), S.cfg.pacotes[+el.dataset.i]); fecharFolha(); desenhar(); },
   entrada: el => { entrada(crianca(el.dataset.id), 'mão'); fecharFolha(); desenhar(); },
   saida: el => { saida(crianca(el.dataset.id), 'mão'); fecharFolha(); desenhar(); },
-  simular: el => { const c = crianca(el.dataset.id); if (c.entrou) saida(c); else entrada(c); fecharFolha(); desenhar(); },
   avisar: el => { const c = crianca(el.dataset.id); let conv = S.conversas.find(x => x.crianca === c.id); if (!conv) { conv = { id: novoId(), crianca: c.id, lidas: true, msgs: [] }; S.conversas.push(conv); } S.zapAberta = conv.id; S.zapModo = 'papo'; S.zapDia = isoDia(agora); fecharFolha(); trocarTela('zap'); const t = $('#zap-texto'); if (t) { t.value = c.entrou ? `Oi, ${c.resp}! ${c.nome} está aqui desde ${hora(c.entrou)} e ainda tem ${hm(restante(c))} no pacote.` : `Oi, ${c.resp}! O pacote de ${c.nome} está com ${hm(restante(c))}. Quer renovar?`; t.focus(); } },
-  rosto: el => { const c = crianca(el.dataset.id); c.rosto = true; toast(`${c.nome} mandada para o iDFace. Agora é só olhar para a câmera.`, () => { c.rosto = false; }); fecharFolha(); desenhar(); },
+  rosto: el => { const c = crianca(el.dataset.id); if (MODO === 'servidor') { api('idface_mandar', { id: c.id }).then(() => toast(`${c.nome} mandada de novo para o iDFace`)).catch(e => toast(e.message)); fecharFolha(); return; } c.rosto = true; toast(`${c.nome} mandada para o iDFace. Agora é só olhar para a câmera.`, () => { c.rosto = false; }); fecharFolha(); desenhar(); },
+  apagar: el => { const c = crianca(el.dataset.id); if (MODO === 'servidor') { api('crianca_apagar', { id: c.id }).then(async () => { await carregar(); fecharFolha(); desenhar(); toast(`${c.nome} removida do cadastro`); }).catch(e => toast(e.message)); return; } S.criancas = S.criancas.filter(x => x !== c); fecharFolha(); desenhar(); toast(`${c.nome} removida`, () => { S.criancas.push(c); }); },
   editar: el => folhaCrianca(crianca(el.dataset.id)),
   nova: () => folhaCrianca(null),
   'salvar-crianca': el => {
     const nome = val('f-nome'); if (!nome) { toast('Falta o nome da criança'); $('#f-nome').focus(); return; }
+    if (MODO === 'servidor') {
+      const id = el.dataset.id; const dados = id ? { id: +id, nome, idade: +val('f-idade') || 0, resp: val('f-resp'), rel: val('f-rel'), tel: val('f-tel'), cpf: cpfFmt(val('f-cpf')), obs: val('f-obs') }
+        : { nome, resp: val('f-resp'), rel: ($('#f-rel-seg [aria-pressed="true"]') || {}).dataset.seg || 'responsável', tel: val('f-tel'), cpf: cpfFmt(val('f-cpf')), pacote: S.cfg.pacotes[+(($('#f-pac [aria-pressed="true"]') || {}).dataset.seg || 0)] || S.cfg.pacotes[0], foto: FOTO_TEMP };
+      if (!id && !dados.resp) { toast('Falta o nome de quem é responsável'); $('#f-resp').focus(); return; }
+      api('crianca_salvar', dados).then(async () => { FOTO_TEMP = ''; await carregar(); fecharFolha(); desenhar(); toast(id ? 'Cadastro salvo' : `${nome} cadastrada: ${dados.pacote.h}h no banco. ${dados.foto ? 'Foto a caminho do iDFace.' : 'Falta a foto para o iDFace.'}`); }).catch(e => toast(e.message));
+      return;
+    }
     if (el.dataset.id) { const c = crianca(el.dataset.id); Object.assign(c, { nome, idade: +val('f-idade') || c.idade, resp: val('f-resp') || c.resp, rel: val('f-rel'), tel: val('f-tel'), cpf: cpfFmt(val('f-cpf')), obs: val('f-obs') }); toast('Cadastro salvo'); }
     else {
       const resp = val('f-resp'); if (!resp) { toast('Falta o nome de quem é responsável'); $('#f-resp').focus(); return; }
@@ -975,12 +1118,14 @@ const ACOES = {
   },
   dia: () => folhaDia(), todas: () => folhaLista(), acabando: () => folhaLista('acabando'),
   idface: () => folhaIdface(),
-  'idface-salvar': () => { S.cfg.idface.ip = val('i-ip'); S.cfg.idface.nome = val('i-nome') || 'Recepção'; toast('iDFace salvo'); fecharFolha(); desenhar(); },
-  'idface-toggle': () => { S.cfg.idface.ligado = !S.cfg.idface.ligado; toast(S.cfg.idface.ligado ? 'Leitura ligada' : 'Leitura desligada'); fecharFolha(); desenhar(); },
-  'idface-bat': () => toast('No sistema de verdade, baixa o conector com IP e chave já preenchidos'),
-  conta: () => abrirFolha('Camila Duarte', `<div class="marca">${ic(IC.check, 18)}<span><b>Gerente</b> · entrou hoje às 09:02 pelo celular</span></div><div class="acoes"><button class="bt tap" data-act="ir-ajustes">${ic(IC.ajustes)} Ajustes</button><button class="bt claro tap" data-act="fechar">Sair da conta</button></div>`),
+  'idface-salvar': () => { if (MODO === 'servidor') { api('idface_salvar', { ip: val('i-ip'), nome: val('i-nome') || 'Recepção', usuario: val('i-usuario') || 'admin' }).then(async () => { await carregar(); toast('iDFace salvo'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } S.cfg.idface.ip = val('i-ip'); S.cfg.idface.nome = val('i-nome') || 'Recepção'; toast('iDFace salvo'); fecharFolha(); desenhar(); },
+  'idface-toggle': () => { const lig = !S.cfg.idface.ligado; if (MODO === 'servidor') { api('idface_salvar', { ligado: lig }).then(async () => { await carregar(); toast(lig ? 'Leitura ligada' : 'Leitura desligada'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } S.cfg.idface.ligado = lig; toast(lig ? 'Leitura ligada' : 'Leitura desligada'); fecharFolha(); desenhar(); },
+  'idface-bat': () => { if (MODO === 'servidor') { location.href = 'api/idface.php?acao=conectar_bat'; toast('Baixando "Conectar o iDFace.bat"…'); return; } toast('No sistema de verdade, baixa o conector com IP e chave já preenchidos'); },
+  'idface-chave': () => { api('idface_nova_chave').then(async () => { await carregar(); fecharFolha(); desenhar(); setTimeout(folhaIdface, 250); toast('Chave nova. Rode o conector de novo no aparelho.'); }).catch(e => toast(e.message)); },
+  simular: el => { const c = crianca(el.dataset.id); if (MODO === 'servidor') { api('idface_simular', { id: c.id }).then(async r => { await carregar(); fecharFolha(); desenhar(); toast(`${c.nome}: ${r.resultado} registrada como se fosse o iDFace`); }).catch(e => toast(e.message)); return; } if (c.entrou) saida(c); else entrada(c); fecharFolha(); desenhar(); },
+  conta: () => abrirFolha(esc(EU.nomeCompleto || EU.nome), `<div class="marca">${ic(IC.check, 18)}<span><b>${PAPEIS[EU.papel] || EU.papel}</b> · login ${esc(EU.login)}${MODO === 'demo' ? ' · prévia sem servidor' : ''}</span></div><div class="acoes">${supervisorOuMais() ? `<button class="bt tap" data-act="ir-ajustes">${ic(IC.ajustes)} Ajustes</button>` : ''}${MODO === 'servidor' ? `<button class="bt tap" data-act="trocar-senha">Trocar a senha</button>` : ''}<button class="bt claro tap" data-act="sair">Sair da conta</button></div>`),
   'ir-ajustes': () => { fecharFolha(); trocarTela('ajustes'); }, fechar: () => fecharFolha(),
-  conversa: el => { const c = convDe(el.dataset.id); c.lidas = true; S.zapAberta = c.id; S.zapModo = 'papo'; desenhar(); $('.papo').animate([{ opacity: 0, transform: 'translateX(24px)' }, { opacity: 1, transform: 'none' }], { duration: 360, easing: 'cubic-bezier(.32,.72,0,1)' }); },
+  conversa: el => { const c = convDe(el.dataset.id); if (!c.lidas && MODO === 'servidor') api('mensagens_lidas', { crianca: c.crianca }).catch(() => {}); c.lidas = true; S.zapAberta = c.id; S.zapModo = 'papo'; desenhar(); $('.papo').animate([{ opacity: 0, transform: 'translateX(24px)' }, { opacity: 1, transform: 'none' }], { duration: 360, easing: 'cubic-bezier(.32,.72,0,1)' }); },
   'zap-lista': () => { S.zapModo = 'lista'; desenhar(); },
   'zap-escolher': () => {
     const recentes = diasComConversa().filter(d => d !== isoDia(agora) && d !== isoDia(new Date(agora.getTime() - 86400000)));
@@ -991,16 +1136,17 @@ const ACOES = {
   'zap-data-ok': () => { const v = val('zap-data'); if (!v) { toast('Escolha uma data'); return; } S.zapDia = v; S.zapModo = 'lista'; fecharFolha(); desenhar(); },
   'zap-dia': el => { if ($('#folha .folha-fundo')) fecharFolha(); S.zapDia = el.dataset.dia; S.zapModo = 'lista'; desenhar(); const l = $('.conversas'); if (l) l.animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 320, easing: 'cubic-bezier(.32,.72,0,1)' }); },
   sugestao: el => { const t = $('#zap-texto'); t.value = el.textContent; t.focus(); t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; },
-  enviar: () => { const t = $('#zap-texto'); enviar(t.value); toast('Enviado no WhatsApp'); },
+  enviar: () => { const t = $('#zap-texto'); const v = t.value; t.value = ''; enviar(v); if (MODO !== 'servidor') toast('Enviado no WhatsApp'); },
   'dia-sel': el => { S.diaSel = el.dataset.dia; desenhar(); },
   mes: el => { const n = +el.dataset.n; if (n === 0) { S.mes = { y: agora.getFullYear(), m: agora.getMonth() }; S.diaSel = isoDia(agora); } else { const d = new Date(S.mes.y, S.mes.m + n, 1); S.mes = { y: d.getFullYear(), m: d.getMonth() }; S.diaSel = isoDia(d); } desenhar(); $('.cal').animate([{ opacity: .3, transform: `translateX(${n * 18}px)` }, { opacity: 1, transform: 'none' }], { duration: 340, easing: 'cubic-bezier(.32,.72,0,1)' }); },
   comp: el => folhaComp(el.dataset.id), 'novo-comp': () => folhaNovoComp(null),
   'comp-editar': el => { const x = S.compromissos.find(c => c.id === +el.dataset.id); fecharFolha(); setTimeout(() => folhaNovoComp(x), 200); },
-  'comp-apagar': el => { S.compromissos = S.compromissos.filter(c => c.id !== +el.dataset.id); toast('Apagado'); fecharFolha(); desenhar(); },
+  'comp-apagar': el => { if (MODO === 'servidor') { api('comp_apagar', { id: +el.dataset.id }).then(async () => { await carregar(); toast('Apagado'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } S.compromissos = S.compromissos.filter(c => c.id !== +el.dataset.id); toast('Apagado'); fecharFolha(); desenhar(); },
   'comp-zap': el => { const x = S.compromissos.find(c => c.id === +el.dataset.id); toast(`"${x.titulo}" pronto para mandar aos responsáveis`); fecharFolha(); },
   'comp-salvar': el => {
     const titulo = val('c-tit'); if (!titulo) { toast('Falta dizer o quê'); $('#c-tit').focus(); return; }
     const tipo = ($('#c-tipo [aria-pressed="true"]') || {}).dataset.seg || 'oficina', dia = val('c-dia') || S.diaSel, hora_ = val('c-hora') || '15:00', obs = val('c-obs');
+    if (MODO === 'servidor') { api('comp_salvar', { id: el.dataset.id ? +el.dataset.id : 0, titulo, tipo, dia, hora: hora_, obs }).then(async () => { await carregar(); S.diaSel = dia; const d = new Date(dia + 'T12:00'); S.mes = { y: d.getFullYear(), m: d.getMonth() }; toast('Marcado na agenda'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; }
     if (el.dataset.id) Object.assign(S.compromissos.find(c => c.id === +el.dataset.id), { titulo, tipo, dia, hora: hora_, obs }); else S.compromissos.push({ id: novoId(), titulo, tipo, dia, hora: hora_, obs, sub: TIPOS[tipo][0] });
     S.diaSel = dia; const d = new Date(dia + 'T12:00'); S.mes = { y: d.getFullYear(), m: d.getMonth() }; toast('Marcado na agenda'); fecharFolha(); desenhar();
   },
@@ -1014,16 +1160,25 @@ const ACOES = {
     const i = el.dataset.i === '' ? -1 : +el.dataset.i, repetido = S.cfg.pacotes.findIndex((p, k) => p.h === h && k !== i);
     if (repetido >= 0) { toast(`Já existe o pacote de ${nomePacote({ h }).toLowerCase()}`); return; }
     if (i >= 0) S.cfg.pacotes[i] = { h, v }; else S.cfg.pacotes.push({ h, v });
-    S.cfg.pacotes.sort((a, b) => a.h - b.h); toast(`${nomePacote({ h })} por ${brl(v)}`); fecharFolha(); desenhar();
+    S.cfg.pacotes.sort((a, b) => a.h - b.h); if (MODO === 'servidor') api('regra_salvar', { pacotes: S.cfg.pacotes }).catch(e => toast(e.message)); toast(`${nomePacote({ h })} por ${brl(v)}`); fecharFolha(); desenhar();
   },
-  'pacote-apagar': el => { if (S.cfg.pacotes.length <= 1) { toast('Deixe pelo menos um pacote'); return; } const [p] = S.cfg.pacotes.splice(+el.dataset.i, 1); toast(`${nomePacote(p)} apagado`, () => { S.cfg.pacotes.push(p); S.cfg.pacotes.sort((a, b) => a.h - b.h); }); fecharFolha(); desenhar(); },
+  'pacote-apagar': el => { if (S.cfg.pacotes.length <= 1) { toast('Deixe pelo menos um pacote'); return; } const [p] = S.cfg.pacotes.splice(+el.dataset.i, 1); if (MODO === 'servidor') api('regra_salvar', { pacotes: S.cfg.pacotes }).catch(e => toast(e.message)); toast(`${nomePacote(p)} apagado`, () => { S.cfg.pacotes.push(p); S.cfg.pacotes.sort((a, b) => a.h - b.h); if (MODO === 'servidor') api('regra_salvar', { pacotes: S.cfg.pacotes }).catch(() => {}); }); fecharFolha(); desenhar(); },
   'equipe-novo': () => folhaEquipe(null), 'equipe-editar': el => folhaEquipe(S.equipe.find(u => u.id === +el.dataset.id)),
-  'equipe-salvar': el => { const nome = val('e-nome'); if (!nome) { toast('Falta o nome'); return; } const d = { nome, login: val('e-login') || nome.split(' ')[0].toLowerCase(), papel: val('e-papel') }; if (el.dataset.id) Object.assign(S.equipe.find(u => u.id === +el.dataset.id), d); else S.equipe.push({ id: novoId(), ...d }); toast('Equipe atualizada'); fecharFolha(); desenhar(); },
-  'equipe-apagar': el => { S.equipe = S.equipe.filter(u => u.id !== +el.dataset.id); toast('Removida da equipe'); fecharFolha(); desenhar(); },
+  'equipe-salvar': el => { const nome = val('e-nome'); if (!nome) { toast('Falta o nome'); return; } const d = { nome, login: val('e-login') || nome.split(' ')[0].toLowerCase(), papel: val('e-papel'), senha: ($('#e-senha') || { value: '' }).value }; if (MODO === 'servidor') { api('usuario_salvar', { id: el.dataset.id ? +el.dataset.id : 0, ...d }).then(async () => { await carregar(); toast('Equipe atualizada'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } delete d.senha; if (el.dataset.id) Object.assign(S.equipe.find(u => u.id === +el.dataset.id), d); else S.equipe.push({ id: novoId(), ...d }); toast('Equipe atualizada'); fecharFolha(); desenhar(); },
+  'equipe-apagar': el => { if (MODO === 'servidor') { api('usuario_apagar', { id: +el.dataset.id }).then(async () => { await carregar(); toast('Removida da equipe'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } S.equipe = S.equipe.filter(u => u.id !== +el.dataset.id); toast('Removida da equipe'); fecharFolha(); desenhar(); },
+  entrar: async () => { try { await api('entrar', { login: val('l-login'), senha: ($('#l-senha') || { value: '' }).value }); await depoisDeEntrar(); setInterval(sincronizar, 6000); } catch (e) { toast(e.message); } },
+  'criar-gestor': async () => { try { await api('criar_gestor', { nome: val('g-nome'), login: val('g-login'), senha: ($('#g-senha') || { value: '' }).value }); await depoisDeEntrar(); setInterval(sincronizar, 6000); } catch (e) { toast(e.message); } },
+  sair: async () => { if (MODO === 'servidor') { try { await api('sair'); } catch (e) {} fecharFolha(); telaEntrar(); return; } toast('Na prévia não há login'); },
+  'trocar-senha': () => abrirFolha('Trocar a minha senha', `<div class="campo"><label for="s-atual">Senha atual</label><input id="s-atual" type="password" autocomplete="current-password"></div><div class="campo"><label for="s-nova">Senha nova (pelo menos 6)</label><input id="s-nova" type="password" autocomplete="new-password"></div><button class="bt forte largo tap" data-act="trocar-senha-ok">${ic(IC.check)} Trocar</button>`),
+  'trocar-senha-ok': async () => { try { await api('trocar_senha', { atual: ($('#s-atual') || { value: '' }).value, nova: ($('#s-nova') || { value: '' }).value }); fecharFolha(); toast('Senha trocada'); } catch (e) { toast(e.message); } },
+  whats: () => folhaWhats(), nada: () => {},
+  'whats-salvar': async () => { try { const r = await api('whats_salvar', { url: val('w-url'), instancia: val('w-inst'), chave: ($('#w-chave') || { value: '' }).value.trim() }); toast('Salvo'); fecharFolha(); setTimeout(() => folhaWhats(r.config), 250); } catch (e) { toast(e.message); } },
+  'whats-conectar': () => conectarWhats(),
+  'whats-desconectar': async () => { try { await api('whats_desconectar'); await carregar(); fecharFolha(); desenhar(); toast('WhatsApp desconectado'); } catch (e) { toast(e.message); } },
 };
 document.addEventListener('click', e => {
   const ir = e.target.closest('[data-ir]'); if (ir) { if (ir.dataset.ir !== S.tela) trocarTela(ir.dataset.ir); return; }
-  const seg = e.target.closest('.seg[data-cfg] button'); if (seg) { const k = seg.closest('.seg').dataset.cfg, v = seg.dataset.v; S.cfg[k] = isNaN(+v) ? v : +v; if (k === 'tema') { guardar('ps-tema', v); aplicarTema(); } desenhar(); return; }
+  const seg = e.target.closest('.seg[data-cfg] button'); if (seg) { const k = seg.closest('.seg').dataset.cfg, v = seg.dataset.v; if (k !== 'tema' && MODO === 'servidor' && !gestor()) { toast('Só o gestor muda a regra'); return; } S.cfg[k] = isNaN(+v) ? v : +v; if (k === 'tema') { guardar('ps-tema', v); aplicarTema(); } else if (MODO === 'servidor') api('regra_salvar', { [k]: S.cfg[k] }).then(() => toast('Regra salva')).catch(e => toast(e.message)); desenhar(); return; }
   const segLocal = e.target.closest('[data-seg]'); if (segLocal && !segLocal.dataset.act) { const pai = segLocal.parentElement; $$('[data-seg]', pai).forEach(b => { b.setAttribute('aria-pressed', b === segLocal); b.style.borderColor = ''; b.style.background = ''; }); if (pai.id === 'p-brq') { segLocal.style.borderColor = 'var(--coral)'; segLocal.style.background = 'var(--coral-2)'; } return; }
   const act = e.target.closest('[data-act]'); if (act && ACOES[act.dataset.act]) { ACOES[act.dataset.act](act); return; }
   const f = e.target.closest('[data-fecha]'); if (f && (f.tagName === 'BUTTON' || e.target === f)) fecharFolha();
@@ -1031,7 +1186,7 @@ document.addEventListener('click', e => {
 document.addEventListener('change', e => {
   const t = e.target; if (t.type !== 'file' || !t.files || !t.files[0]) return;
   if (t.id === 'f-foto') lerFoto(t.files[0], url => { FOTO_TEMP = url; const prev = $('#f-foto-prev'); if (prev) { prev.classList.add('foto'); prev.style.backgroundImage = `url(${url})`; prev.innerHTML = ''; } const l = $('label[for="f-foto"]'); if (l) l.innerHTML = `${ic(IC.camera)} Tirar outra`; });
-  if (t.id === 'ficha-foto') { const c = crianca(t.dataset.id); lerFoto(t.files[0], url => { c.foto = url; c.rosto = true; toast(`Foto de ${c.nome} enviada ao iDFace`); fecharFolha(); desenhar(); setTimeout(() => folhaFicha(c.id), 250); }); }
+  if (t.id === 'ficha-foto') { const c = crianca(t.dataset.id); lerFoto(t.files[0], async url => { if (MODO === 'servidor') { try { await api('foto_salvar', { id: c.id, foto: url }); await carregar(); } catch (e) { toast(e.message); return; } } else { c.foto = url; c.rosto = true; } toast(`Foto de ${c.nome} a caminho do iDFace`); fecharFolha(); desenhar(); setTimeout(() => folhaFicha(c.id), 250); }); }
 });
 document.addEventListener('input', e => {
   if (e.target.id === 'f-cpf') { const v = cpfFmt(e.target.value); if (v !== e.target.value) e.target.value = v; }
@@ -1053,6 +1208,5 @@ setInterval(() => {
   $$('[data-situacao]').forEach(el => { const c = crianca(el.dataset.situacao); if (!c || !c.entrou) return; const st = situacao(c); el.className = `situacao ${st.cls} tap`; $('span', el).textContent = st.txt; });
   $$('[data-anel][data-onde="hero"]').forEach(el => { const c = crianca(el.dataset.anel); if (!c || !c.entrou) return; const r = restante(c), pct = c.pacote ? Math.max(0, Math.min(100, r / (c.pacote * 60) * 100)) : 0, baixo = r <= S.cfg.aviso; el.classList.toggle('baixo', baixo); const b = $('.r', el); b.style.setProperty('--p', pct.toFixed(1)); b.style.setProperty('--c', baixo ? 'var(--erro)' : 'var(--verde-agua)'); $('.r b', el).innerHTML = `${r <= 0 ? 'Acabou' : hm(r)}<small>${r <= 0 ? `pacote de ${c.pacote}h` : `de ${c.pacote}h`}</small>`; });
 }, 1000);
-desenhar();
-conferirAtualizacao(false);
+iniciar();
 </script>
