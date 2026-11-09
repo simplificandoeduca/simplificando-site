@@ -492,7 +492,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeri
 .pm-step{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:16px;box-shadow:inset 0 0 0 1px var(--sep);margin:8px 0}.pm-step>b{font-size:14px}.pm-step.done{opacity:.75}
 .dom-c{box-shadow:inset 0 0 0 2px var(--brand)}.dom-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}.dom-top b{font-size:20px;font-weight:900;letter-spacing:-.03em}.dom-top span{font-size:13px;color:var(--muted)}
 .dom-bar{height:8px;border-radius:9px;background:var(--ctl);overflow:hidden}.dom-bar i{display:block;height:100%;background:var(--brand);border-radius:9px;transition:width .3s}
-.dom-a{display:flex;flex-direction:column;gap:10px;margin-top:6px}.dom-row{padding:0}.dom-pills{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:none}.pill.ok.aj{background:color-mix(in srgb,#E5B400 22%,transparent);color:inherit}
+.dom-a{display:flex;flex-direction:column;gap:10px;margin-top:6px}.dom-row{padding:0}.dom-x{width:36px;height:36px;margin:-4px -6px 0 0;align-self:flex-start}.dom-pills{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:none}.pill.ok.aj{background:color-mix(in srgb,#E5B400 22%,transparent);color:inherit}
 .obw{margin-top:14px;padding:14px;border-radius:16px;background:var(--ctl);display:flex;flex-direction:column;gap:10px}.obw-c{background:var(--card);border-radius:14px;padding:12px;box-shadow:inset 0 0 0 1px var(--sep)}.obw-c .card-h{margin-bottom:6px}
 .ct-r{display:flex;flex-direction:column;margin-top:10px}.ct-r>div{padding:10px 0;border-top:1px solid var(--sep)}.ct-r span{font-size:12.5px;font-weight:800;color:var(--muted)}.ct-r p{margin:3px 0 0;white-space:pre-line;font-size:14.5px;line-height:1.45}.teste-c .label .i{color:#FF9A3C}
 .aqw{margin:4px 0 6px;padding:14px;border-radius:16px;background:var(--ctl);display:flex;flex-direction:column;gap:10px}.aqw-t{margin:0;display:flex;align-items:center;gap:8px;font-weight:800;font-size:14px}.aqw-t small{font-weight:600;color:var(--muted)}.aqw-t .i{width:16px;height:16px;color:#FF9A3C}
@@ -2587,7 +2587,7 @@ function tEvol(a){
 const DOM_KEY = 'simp-domingo';
 // a fila fica salva no banco (config/geral.domingo): começa no celular e termina no computador
 function domLer(){ const g = C.config.geral; return g && g.domingo ? clone(g.domingo) : null; }
-function domGravar(v){ const g = C.config.geral || (C.config.geral = clone(DEF_CFG)); g.domingo = { sem:v.sem, feitos:v.feitos||[], pulados:v.pulados||[], adiado:!!v.adiado, fim:!!v.fim, em:Date.now() }; Store.save('config','geral',0); }
+function domGravar(v){ const g = C.config.geral || (C.config.geral = clone(DEF_CFG)); g.domingo = { sem:v.sem, feitos:v.feitos||[], pulados:v.pulados||[], nao:v.nao||[], adiado:!!v.adiado, fim:!!v.fim, em:Date.now() }; Store.save('config','geral',0); }
 let DOM_ADIOU = false; // "ver depois": some até a próxima vez que o painel abrir
 /* semana do relatório: a que termina no domingo (segunda a domingo) */
 function domSemana(){
@@ -2663,15 +2663,16 @@ function semanaCard(){
   loadProg();
   const head = (sub) => '<section class="card dom-c"><div class="card-h"><span class="label">'+ic('cal')+'Relatórios da semana</span><button type="button" class="btn small ghost" data-a="domDepois">Ver depois</button></div>'+sub;
   if(!PG.by) return head('<p class="muted">'+(PG.err==='regras' ? 'Falta colar as regras novas do Firebase para ver os treinos dos alunos.' : PG.err ? 'Sem conexão para carregar os treinos.' : 'Carregando a semana dos alunos…')+'</p></section>');
-  const fila = alunos().filter(a => (P(a).status||'ativo')==='ativo' && !a.teste && !a.exemplo);
+  const nao = st.nao||[], nNao = alunos().filter(a => nao.includes(a._id)).length;
+  const fila = alunos().filter(a => (P(a).status||'ativo')==='ativo' && !a.teste && !a.exemplo && !nao.includes(a._id));
   const tot = fila.length, nFeitos = fila.filter(a => st.feitos.includes(a._id)).length, resta = fila.filter(a => !st.feitos.includes(a._id) && !st.pulados.includes(a._id));
   const fimSem = addDays(ini, 6), per = fmtDm(ini)+' a '+fmtDm(fimSem);
-  const bar = '<div class="dom-top"><b>'+nFeitos+' de '+tot+' enviados</b><span>Semana de '+per+'</span></div><div class="dom-bar"><i style="width:'+(tot ? Math.round(nFeitos/tot*100) : 0)+'%"></i></div>';
-  if(!resta.length) return head(bar+'<p class="muted">'+(st.pulados.length ? 'Chegou ao fim da fila. '+plural(st.pulados.length,'aluno pulado','alunos pulados')+'.' : 'Pronto! Todos os relatórios foram enviados. 🎉')+'</p><div class="btn-row">'+(st.pulados.length ? '<button type="button" class="btn small" data-a="domVoltar">'+ic('refresh')+'Ver os pulados</button>' : '')+'<button type="button" class="btn small primary" data-a="domFim">'+ic('check')+'Encerrar</button></div></section>');
+  const bar = '<div class="dom-top"><b>'+nFeitos+' de '+tot+' enviados</b><span>Semana de '+per+(nNao ? ' · '+plural(nNao,'aluno sem relatório','alunos sem relatório') : '')+'</span></div><div class="dom-bar"><i style="width:'+(tot ? Math.round(nFeitos/tot*100) : 0)+'%"></i></div>';
+  if(!resta.length) return head(bar+'<p class="muted">'+(st.pulados.length ? 'Chegou ao fim da fila. '+plural(st.pulados.length,'aluno pulado','alunos pulados')+'.' : 'Pronto! Todos os relatórios foram enviados. 🎉')+'</p><div class="btn-row">'+(st.pulados.length ? '<button type="button" class="btn small" data-a="domVoltar">'+ic('refresh')+'Ver os pulados</button>' : '')+(nNao ? '<button type="button" class="btn small ghost" data-a="domNaoVolta">'+ic('refresh')+'Voltar os sem relatório</button>' : '')+'<button type="button" class="btn small primary" data-a="domFim">'+ic('check')+'Encerrar</button></div></section>');
   const a = resta[0], r = relSemana(a, ini), txt = relTexto(a, ini), wa = String(P(a).whatsapp||'').replace(/\D/g,''), [cls, lbl] = REL_ST[r.st];
   const resumo = !r.tem ? 'Nada registrado no app nesta semana' : r.st==='boa' ? 'Tudo completo: '+r.H.length+(r.meta ? '/'+r.meta : '')+' treinos'+(r.cg ? ' · cardio '+r.cmin+'/'+r.cg : '')+(r.wg ? ' · água '+r.wdias+'/7' : '') : r.motivo.join(' · ');
   return head(bar+
-    '<div class="dom-a"><div class="row dom-row"><span class="pf-av">'+esc(pfIni(nomeDe(a)))+'</span><span class="main-t"><b>'+esc(nomeDe(a))+'</b><span>'+esc(resumo)+'</span></span><span class="dom-pills"><span class="pill '+cls+'">'+lbl+'</span>'+(r.dor ? '<span class="pill bad">🩹 Dor</span>' : '')+'</span></div>'+
+    '<div class="dom-a"><div class="row dom-row"><span class="pf-av">'+esc(pfIni(nomeDe(a)))+'</span><span class="main-t"><b>'+esc(nomeDe(a))+'</b><span>'+esc(resumo)+'</span></span><span class="dom-pills"><span class="pill '+cls+'">'+lbl+'</span>'+(r.dor ? '<span class="pill bad">🩹 Dor</span>' : '')+'</span><button type="button" class="ibtn dom-x" data-a="domNao" data-k="'+esc(a._id)+'" aria-label="Não enviar relatório para '+esc(curto(a))+' nesta semana" title="Não enviar para '+esc(curto(a))+'">'+ic('x')+'</button></div>'+
     '<label class="sr" for="dom-txt">Relatório de '+esc(curto(a))+'</label><textarea id="dom-txt" class="share" rows="10">'+esc(txt)+'</textarea>'+
     '<div class="btn-row">'+(wa.length>=10 ? '<a class="btn primary" data-a="domEnviou" data-k="'+esc(a._id)+'" href="https://wa.me/'+(wa.length<=11?'55':'')+wa+'?text='+encodeURIComponent(txt)+'" target="_blank" rel="noopener">'+ic('msg')+'Abrir no WhatsApp</a>' : '')+
     '<button type="button" class="btn'+(wa.length>=10?'':' primary')+'" data-a="domCopiar" data-k="'+esc(a._id)+'">'+ic('copy')+'Copiar e marcar enviado</button><button type="button" class="btn ghost" data-a="domPular" data-k="'+esc(a._id)+'">Pular</button></div>'+
@@ -2679,7 +2680,7 @@ function semanaCard(){
 }
 function domMarca(k, tipo){
   const ini = domSemana(); if(!ini) return; let st = domLer(); if(!st || st.sem!==ini) st = { sem:ini, feitos:[], pulados:[], adiado:false, fim:false };
-  const L = st[tipo]; if(!L.includes(k)) L.push(k); domGravar(st);
+  const L = st[tipo] || (st[tipo] = []); if(!L.includes(k)) L.push(k); domGravar(st);
 }
 function tNotas(a){
   const L = (a.notas||[]).slice().sort((x,y) => (y.data||'').localeCompare(x.data||'') || (y.id||'').localeCompare(x.id||''));
@@ -2774,7 +2775,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '8 nov · 81'; // Versão do painel: 8 nov · 81
+const PAINELV = '9 nov · 83'; // Versão do painel: 9 nov · 83
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -3977,6 +3978,8 @@ function act(a,d,btn){
     case 'domDepois': { const ini = domSemana(); let st = domLer(); if(!st || st.sem!==ini) st = { sem:ini, feitos:[], pulados:[], adiado:false, fim:false }; st.adiado = true; domGravar(st); DOM_ADIOU = true; toast('Os relatórios voltam na próxima vez que você abrir o painel.'); break; }
     case 'domCopiar': { const t = document.getElementById('dom-txt'); copyText(t ? t.value : '', t); domMarca(d.k, 'feitos'); setTimeout(render, 900); return false; }
     case 'domPular': domMarca(d.k, 'pulados'); break;
+    case 'domNao': { const a = alunos().find(x => x._id===d.k); domMarca(d.k, 'nao'); toast('Relatório de '+(a ? curto(a) : 'aluno')+' não será enviado nesta semana.'); break; }
+    case 'domNaoVolta': { const st = domLer(); if(st){ st.nao = []; domGravar(st); } break; }
     case 'domVoltar': { const st = domLer(); if(st){ st.pulados = []; domGravar(st); } break; }
     case 'domFim': { const st = domLer(); if(st){ st.fim = true; domGravar(st); } toast('Relatórios da semana encerrados.'); break; }
     case 'atuGo': atuGo(); return false;
