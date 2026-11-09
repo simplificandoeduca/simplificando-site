@@ -276,7 +276,17 @@ svg { display: block; }
 .conv .n { min-width: 20px; height: 20px; border-radius: 10px; background: var(--coral); color: #fff; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; padding: 0 6px; }
 .papo { background: var(--card); border: 1px solid var(--borda); border-radius: 20px; padding: 14px; display: flex; flex-direction: column; gap: 8px; min-height: 420px; min-width: 0; }
 .papo .cab { display: flex; align-items: center; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--borda); }
-.papo .cab .txt { flex: 1; min-width: 0; } .papo .cab b { font-weight: 800; display: block; } .papo .cab span { display: block; font-size: 12.5px; color: var(--tinta-2); }
+.papo .cab .txt { flex: 1; min-width: 0; } .papo .cab .txt b { font-weight: 800; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .papo .cab .txt span { display: block; font-size: 12.5px; color: var(--tinta-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.papo .cab .bt { flex: none; height: 34px; padding: 0 12px; font-size: 12.5px; }
+.situacao { display: flex; align-items: center; gap: 8px; width: 100%; padding: 9px 12px; border-radius: 14px; font-size: 13px; font-weight: 800; text-align: left; line-height: 1.35; }
+.situacao svg { flex: none; } .situacao span { min-width: 0; }
+.situacao.p-ok { background: var(--ok-bg); color: var(--ok); } .situacao.p-aviso { background: var(--aviso-bg); color: var(--aviso); } .situacao.p-erro { background: var(--erro-bg); color: var(--erro); } .situacao.p-neutro { background: var(--menta); color: var(--tinta); }
+.conv .txt .st { font-style: normal; font-size: 10.5px; font-weight: 800; padding: 1px 7px; border-radius: 999px; display: inline-block; margin: 2px 0 1px; }
+.conv .txt .st.p-ok { background: var(--ok-bg); color: var(--ok); } .conv .txt .st.p-aviso { background: var(--aviso-bg); color: var(--aviso); } .conv .txt .st.p-erro { background: var(--erro-bg); color: var(--erro); } .conv .txt .st.p-neutro { background: var(--menta); color: var(--tinta-2); }
+.com-urso { position: relative; display: inline-block; flex: none; margin-top: 10px; }
+.com-urso .espia { position: absolute; left: 50%; top: -15px; width: 34px; height: 19px; margin-left: -17px; z-index: 2; transform-origin: 50% 100%; animation: espiar 4s ease-in-out infinite; }
+.com-urso .av.g + .espia, .com-urso:has(.av.g) .espia { width: 44px; height: 25px; margin-left: -22px; top: -19px; }
+@keyframes espiar { 0%, 70%, 100% { transform: translateY(0) rotate(0); } 80% { transform: translateY(-3px) rotate(-6deg); } 90% { transform: translateY(-2px) rotate(5deg); } }
 .papo .volta { width: 36px; height: 36px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: var(--menta); flex: none; }
 .msgs { display: flex; flex-direction: column; gap: 8px; flex: 1; }
 .msg { max-width: 80%; padding: 9px 13px; border-radius: 16px; font-size: 14px; line-height: 1.4; animation: surge .35s var(--ios); overflow-wrap: anywhere; }
@@ -442,7 +452,7 @@ const NOMES_BRQ = { urso: 'Ursinho', bola: 'Bola', blocos: 'Blocos', coelho: 'Co
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.10';
+const VERSAO = '0.11';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -573,6 +583,21 @@ function anel(c, onde = 'banco') {
     <div class="mini">${botoes}</div>
   </div>`;
 }
+// a situação da criança em uma frase: está aqui, vai embora em X, o tempo acabou, não está aqui
+function situacao(c) {
+  const r = restante(c), min = Math.round(r);
+  if (c.entrou) {
+    if (r <= 0) return { cls: 'p-erro', txt: `O tempo de ${c.nome} acabou. Avise ${c.resp} ou venda mais horas.`, curto: `tempo de ${c.nome} acabou` };
+    if (r <= S.cfg.aviso) return { cls: 'p-aviso', txt: `${c.nome} vai embora em ${min} min: o pacote está acabando.`, curto: `${c.nome} vai embora em ${min} min` };
+    return { cls: 'p-ok', txt: `${c.nome} está aqui desde ${hora(c.entrou)} · ${hm(r)} no pacote.`, curto: `${c.nome} está aqui` };
+  }
+  if (r <= 0) return { cls: 'p-erro', txt: `O pacote de ${c.nome} acabou. Venda mais horas na próxima visita.`, curto: `pacote de ${c.nome} acabou` };
+  if (r <= S.cfg.aviso) return { cls: 'p-aviso', txt: `${c.nome} não está aqui · só ${hm(r)} no pacote.`, curto: `${c.nome} com pouco tempo` };
+  return { cls: 'p-neutro', txt: `${c.nome} não está aqui · ${hm(r)} no pacote.`, curto: `${c.nome} não está aqui` };
+}
+// o ursinho espiando por cima da foto (brincadeira do WhatsApp e da ficha)
+const URSINHO = `<svg class="espia" viewBox="0 0 60 34" aria-hidden="true"><circle cx="13" cy="12" r="7" fill="#C98B6B"/><circle cx="47" cy="12" r="7" fill="#C98B6B"/><circle cx="30" cy="20" r="17" fill="#D9A07F"/><ellipse cx="30" cy="27" rx="7" ry="5" fill="#F5D9C6"/><circle cx="24" cy="18" r="2" fill="#3B3B3B"/><circle cx="36" cy="18" r="2" fill="#3B3B3B"/><ellipse cx="30" cy="25" rx="2.6" ry="1.8" fill="#3B3B3B"/><ellipse cx="8" cy="33" rx="6" ry="3.5" fill="#D9A07F"/><ellipse cx="52" cy="33" rx="6" ry="3.5" fill="#D9A07F"/></svg>`;
+const avatarComUrso = (c, g = '') => `<span class="com-urso">${URSINHO}${avatar(c, g)}</span>`;
 const cronometro = c => { const m = minDentro(c); return `${Math.floor(m / 60)}:${p2(Math.floor(m % 60))}<small>desde ${hora(c.entrou)}</small>`; };
 function registrar(tipo, nome, txt) { S.registros.unshift({ h: new Date(), tipo, nome, txt }); }
 function mensagemAuto(c, txt, comFoto) {
@@ -677,7 +702,7 @@ const listaRegistros = regs => `<div class="reg">${regs.length ? regs.map(r => `
 function folhaFicha(id) {
   const c = crianca(id); if (!c) return; const [et, cls] = estado(c);
   abrirFolha(`${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}`, `
-    <div class="linha">${avatar(c, 'g')}<div class="txt"><b style="white-space:normal">${esc(c.resp)}, ${esc(c.rel)}</b><span>${esc(c.tel)}${c.cpf ? ' · CPF ' + esc(c.cpf) : ''}</span>${c.obs ? `<span style="color:var(--coral);font-weight:700">${esc(c.obs)}</span>` : ''}</div><span class="pill ${cls}">${et}</span></div>
+    <div class="linha">${avatarComUrso(c, 'g')}<div class="txt"><b style="white-space:normal">${esc(c.resp)}, ${esc(c.rel)}</b><span>${esc(c.tel)}${c.cpf ? ' · CPF ' + esc(c.cpf) : ''}</span>${c.obs ? `<span style="color:var(--coral);font-weight:700">${esc(c.obs)}</span>` : ''}</div><span class="pill ${cls}">${et}</span></div>
     ${c.entrou ? `<div class="marca">${ic(IC.horas, 18)}<span>Está no espaço desde <b>${hora(c.entrou)}</b>: <b class="num" data-cron-txt="${c.id}">${hm(minDentro(c))}</b> até agora, <b>${hm(cobrar(minDentro(c)))}</b> a debitar pela regra atual.</span></div>` : ''}
     ${blocos(c, false)}
     <div class="saldo"><span>${c.pacote}h compradas</span><span>${hm(usadoAgora(c))} usadas</span></div>
@@ -761,7 +786,7 @@ function telaZap() {
   let conv = convDe(S.zapAberta); if (!conv || !doDia.some(d => d.x === conv)) conv = doDia.length ? doDia[0].x : null; if (conv) S.zapAberta = conv.id;
   const abas = `<div class="dias">${dias.map(d => { const n = S.conversas.filter(x => x.msgs.some(m => diaDe(m.h) === d)).length; return `<button class="tap" data-act="zap-dia" data-dia="${d}" aria-pressed="${d === S.zapDia}">${rotuloDia(d)}${n ? `<b>${n}</b>` : ''}</button>`; }).join('')}<button class="tap escolher" data-act="zap-escolher">${ic(IC.agenda, 16)} Escolher data</button></div>`;
   const quem = ms => { const nomes = []; ms.forEach(m => { if (m.de === 'nos') { const q = m.por || EU.nome; if (!nomes.includes(q)) nomes.push(q); } }); return nomes; };
-  const lista = doDia.length ? doDia.map(({ x, ms }) => { const c = crianca(x.crianca), u = ms[ms.length - 1], q = quem(ms); return `<button class="conv tap ${conv && x.id === conv.id ? 'ativa' : ''}" data-act="conversa" data-id="${x.id}">${avatar(c)}<div class="txt"><b>${esc(c.resp)} (${esc(c.rel)} de ${esc(c.nome)})</b><span>${u.de === 'nos' ? (u.auto ? 'Automática: ' : (u.por || EU.nome) + ': ') : ''}${esc(u.txt)}</span><span class="quem">${q.length ? q.map(n => `<i class="${n === 'automática' ? 'auto' : ''}">${esc(n)}</i>`).join('') : '<i class="ninguem">ninguém respondeu ainda</i>'}</span></div><span class="h">${hora(u.h)}</span>${x.lidas ? '' : `<span class="n">${x.msgs.filter(m => m.de === 'ela').length}</span>`}</button>`; }).join('')
+  const lista = doDia.length ? doDia.map(({ x, ms }) => { const c = crianca(x.crianca), u = ms[ms.length - 1], q = quem(ms); return `<button class="conv tap ${conv && x.id === conv.id ? 'ativa' : ''}" data-act="conversa" data-id="${x.id}">${avatar(c)}<div class="txt"><b>${esc(c.resp)} (${esc(c.rel)} de ${esc(c.nome)})</b><span><em class="st ${situacao(c).cls}">${esc(situacao(c).curto)}</em></span><span>${u.de === 'nos' ? (u.auto ? 'Automática: ' : (u.por || EU.nome) + ': ') : ''}${esc(u.txt)}</span><span class="quem">${q.length ? q.map(n => `<i class="${n === 'automática' ? 'auto' : ''}">${esc(n)}</i>`).join('') : '<i class="ninguem">ninguém respondeu ainda</i>'}</span></div><span class="h">${hora(u.h)}</span>${x.lidas ? '' : `<span class="n">${x.msgs.filter(m => m.de === 'ela').length}</span>`}</button>`; }).join('')
     : `<div class="card vazio">${ic(IC.zap, 26)}<b>${S.zapDia === isoDia(agora) ? 'Nenhuma conversa ainda hoje' : 'Nenhuma conversa neste dia'}</b><span>${S.zapDia === isoDia(agora) ? 'Quando uma criança chegar ou alguém mandar mensagem, aparece aqui.' : 'Escolha outro dia em cima.'}</span></div>`;
   if (!conv) return faixa('WhatsApp', 'Conversas com os responsáveis', `<span class="chip suave"><i class="pt"></i>Conectado · (11) 9 1234-5678</span>`) + abas + `<div class="zap" data-modo="lista"><div class="conversas">${lista}</div><div class="papo"><p class="explica" style="margin:auto;text-align:center">Nenhuma conversa em ${rotuloDiaLongo(S.zapDia).toLowerCase()}.</p></div></div>`;
   const c = crianca(conv.crianca);
@@ -770,7 +795,8 @@ function telaZap() {
   <div class="zap" data-modo="${S.zapModo}">
     <div class="conversas">${lista}</div>
     <div class="papo">
-      <div class="cab"><button class="volta tap" data-act="zap-lista" aria-label="Voltar">${ic(IC.volta, 18)}</button>${avatar(c)}<div class="txt"><b>${esc(c.resp)}</b><span>${esc(c.rel)} de ${esc(c.nome)} · ${c.pacote}h compradas, restam ${hm(restante(c))}</span></div><button class="pill ${c.entrou ? 'p-ok' : 'p-neutro'} tap" data-act="ficha" data-id="${c.id}">${c.entrou ? `${esc(c.nome)} está aqui` : 'Ver ficha'}</button></div>
+      <div class="cab"><button class="volta tap" data-act="zap-lista" aria-label="Voltar">${ic(IC.volta, 18)}</button>${avatarComUrso(c)}<div class="txt"><b>${esc(c.resp)}</b><span>${esc(c.rel)} de ${esc(c.nome)} · ${c.pacote}h compradas</span></div><button class="bt claro tap" data-act="ficha" data-id="${c.id}">Ficha</button></div>
+      ${(() => { const st = situacao(c); return `<button class="situacao ${st.cls} tap" data-act="ficha" data-id="${c.id}" data-situacao="${c.id}">${c.entrou ? ic(IC.horas, 16) : ic(IC.rosto, 16)}<span>${esc(st.txt)}</span></button>`; })()}
       <div class="msgs" id="msgs">${msgsHtml}</div>
       <div class="sug"><small>Sugestões de resposta</small>${sugestoes(conv).map(s => `<button class="tap" data-act="sugestao">${esc(s)}</button>`).join('')}</div>
       <div class="escreve"><textarea id="zap-texto" rows="1" placeholder="Escreva para ${esc(c.resp)}" aria-label="Mensagem"></textarea><button class="tap" data-act="enviar" aria-label="Enviar">${ic(IC.envia, 20)}</button></div>
@@ -1028,6 +1054,7 @@ setInterval(() => {
   $$('[data-cron]').forEach(el => { const c = crianca(el.dataset.cron); if (c && c.entrou) el.innerHTML = cronometro(c); });
   $$('[data-cron-txt]').forEach(el => { const c = crianca(el.dataset.cronTxt); if (c && c.entrou) el.textContent = hm(minDentro(c)); });
   $$('[data-horas]').forEach(el => { const c = crianca(el.dataset.horas); if (c && c.entrou) { const novo = document.createElement('div'); novo.innerHTML = blocos(c); el.replaceWith(novo.firstElementChild); } });
+  $$('[data-situacao]').forEach(el => { const c = crianca(el.dataset.situacao); if (!c || !c.entrou) return; const st = situacao(c); el.className = `situacao ${st.cls} tap`; $('span', el).textContent = st.txt; });
   $$('[data-anel][data-onde="hero"]').forEach(el => { const c = crianca(el.dataset.anel); if (!c || !c.entrou) return; const r = restante(c), pct = c.pacote ? Math.max(0, Math.min(100, r / (c.pacote * 60) * 100)) : 0, baixo = r <= S.cfg.aviso; el.classList.toggle('baixo', baixo); const b = $('.r', el); b.style.setProperty('--p', pct.toFixed(1)); b.style.setProperty('--c', baixo ? 'var(--erro)' : 'var(--verde-agua)'); $('.r b', el).innerHTML = `${r <= 0 ? 'Acabou' : hm(r)}<small>${r <= 0 ? `pacote de ${c.pacote}h` : `de ${c.pacote}h`}</small>`; });
 }, 1000);
 desenhar();
