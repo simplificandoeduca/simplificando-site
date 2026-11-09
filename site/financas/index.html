@@ -243,6 +243,11 @@ button.row:active{background:var(--ctl)}
 .ent .det{margin:0;font-size:14px;color:var(--muted)}
 .ent .det b{color:var(--fg)}
 .fx{display:flex;align-items:center;gap:10px}
+.perfil{display:flex;align-items:center;gap:14px;background:var(--card);border-radius:22px;padding:14px 16px;box-shadow:inset 0 0 0 1px var(--card-line)}
+.perfil .av{width:56px;height:56px;border-radius:50%;background:var(--lime);color:#0F1712;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:20px;letter-spacing:-.04em;flex:none}
+.perfil .tx{display:flex;flex-direction:column;gap:2px;min-width:0}
+.perfil .tx b{font-size:17px;font-weight:800;letter-spacing:-.02em}
+.perfil .tx span{font-size:12.5px;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -327,7 +332,8 @@ function logo(){
 $('#logo').innerHTML = logo(); document.querySelector('.top .mic').innerHTML = I.mic;
 
 /* ========== estado ========== */
-const FINV = '7 nov · 1'; // Versão do Finanças: 7 nov · 1
+const FINV = '9 nov · 2'; // Versão do Finanças: 9 nov · 2
+const DONO = { nome:'Eduardo Matias', iniciais:'EM' }; // perfil único desta página
 const LS = 'simplificando-financas', LST = 'simplificando-financas-tema';
 const CATS = ['Mercado', 'Comida', 'Transporte', 'Casa', 'Lazer', 'Saúde', 'Roupas', 'Assinaturas', 'Outros'];
 function fresh(){
@@ -371,7 +377,7 @@ const Cloud = (() => {
   let ref = null, unsub = null, timer = null, dirty = false, saving = false;
   const dot = st => { const d = $('#sync'); d.className = 'dot ' + st; d.title = { ok:'Salvo na nuvem', busy:'Salvando…', off:'Sem conexão: salvo só neste aparelho' }[st] || ''; };
   async function ownerUid(){ const d = await db.collection('financas').doc('dono').get(); return d.exists ? (d.data() || {}).uid || null : null; }
-  async function claim(uid){ await db.collection('financas').doc('dono').set({ uid, criadoEm:new Date().toISOString() }); }
+  async function claim(uid){ await db.collection('financas').doc('dono').set({ uid, nome:DONO.nome, criadoEm:new Date().toISOString() }); }
   function apply(remote){
     try { const o = normalize(JSON.parse(remote.s || 'null')); o.em = +remote.em || o.em; S = o; ls.set(LS, JSON.stringify(S)); render(); } catch(e){}
   }
@@ -555,8 +561,9 @@ function rAjustes(){
   h += `<div class="card"><div class="hd"><h2>Categorias</h2><button type="button" class="btn sm" data-a="add-cat">${I.plus}Categoria</button></div><div class="chips">${S.cats.map(c => `<button type="button" class="opt" data-a="del-cat" data-k="${esc(c)}" title="Toque para apagar">${esc(c)} ${I.x}</button>`).join('')}</div><p class="sub">Toque numa categoria para apagar.</p></div>`;
   h += `<div class="card"><h2>Aparência</h2><div class="seg"><button type="button" class="${t === 'auto' ? 'on' : ''}" data-a="tema" data-k="auto">Automático</button><button type="button" class="${t === 'light' ? 'on' : ''}" data-a="tema" data-k="light">Claro</button><button type="button" class="${t === 'dark' ? 'on' : ''}" data-a="tema" data-k="dark">Escuro</button></div>
     <p class="sub">No celular, toque em "Adicionar à Tela de Início" (iPhone: botão Compartilhar) para abrir como um app.</p></div>`;
-  h += `<div class="card"><h2>Dados</h2><p class="sub">${Cloud ? 'Tudo fica salvo na nuvem do Simplificando, só na sua conta' + (Cloud.auth.currentUser ? ' (' + esc(Cloud.auth.currentUser.email || '') + ')' : '') + '. Também fica uma cópia neste aparelho.' : 'Esta cópia está só neste aparelho (sem nuvem).'} ${S.gastos.length} gastos, ${S.receitas.length} receitas.</p>
-    <div class="btns"><button type="button" class="btn" data-a="exportar">Baixar cópia (.json)</button><label class="btn">Restaurar cópia<input type="file" accept="application/json,.json" data-f="importar" hidden></label>${Cloud ? `<button type="button" class="btn danger" data-a="sair">Sair</button>` : ''}</div></div>`;
+  if (Cloud) h += `<div class="card"><h2>Perfil</h2><div class="perfil"><span class="av">${DONO.iniciais}</span><span class="tx"><b>${esc(DONO.nome)}</b><span>Dono do Finanças · perfil único${Cloud.auth.currentUser ? ' · ' + esc(Cloud.auth.currentUser.email || '') : ''}</span></span></div><p class="sub">Só este perfil entra nesta página. Para trocar a senha, saia e use "Esqueci a senha" na entrada.</p><div class="btns"><button type="button" class="btn danger" data-a="sair">Sair</button></div></div>`;
+  h += `<div class="card"><h2>Dados</h2><p class="sub">${Cloud ? 'Tudo fica salvo na nuvem do Simplificando, só no perfil de ' + esc(DONO.nome) + '. Também fica uma cópia neste aparelho.' : 'Esta cópia está só neste aparelho (sem nuvem).'} ${S.gastos.length} gastos, ${S.receitas.length} receitas.</p>
+    <div class="btns"><button type="button" class="btn" data-a="exportar">Baixar cópia (.json)</button><label class="btn">Restaurar cópia<input type="file" accept="application/json,.json" data-f="importar" hidden></label></div></div>`;
   h += atuCard();
   $('#v-ajustes').innerHTML = h;
 }
@@ -1007,13 +1014,14 @@ function gate(){
   function open(){
     g.hidden = false; document.body.classList.add('locked');
     g.innerHTML = `<div class="gate-in"><span class="gate-logo">${logo()}</span><p class="gate-eb">Simplificando · área pessoal</p><h1>Finanças<span class="pt"></span></h1>
-      <p class="gate-sub">${st.first ? 'Primeiro acesso: crie seu e-mail e senha. Essa conta vira a dona desta página e só ela entra aqui.' : 'Entre com o e-mail e a senha que você criou nesta página.'}</p>
-      <form novalidate><label>E-mail<span class="gate-f"><input id="g-u" type="email" inputmode="email" autocomplete="username" autocapitalize="off" spellcheck="false" required></span></label>
+      <div class="perfil"><span class="av">${DONO.iniciais}</span><span class="tx"><b>${esc(DONO.nome)}</b><span>${st.first ? 'Dono · perfil único · primeiro acesso' : 'Dono · perfil único'}</span></span></div>
+      <p class="gate-sub">${st.first ? 'Crie o e-mail e a senha de ' + esc(DONO.nome) + '. Este é o único perfil da página: depois de criado, ninguém mais consegue entrar.' : 'Entre com o e-mail e a senha de ' + esc(DONO.nome) + '.'}</p>
+      <form novalidate><label>E-mail<span class="gate-f"><input id="g-u" type="email" inputmode="email" autocomplete="username" autocapitalize="off" spellcheck="false" value="${esc(ls.get('simplificando-financas-mail') || '')}" required></span></label>
       <label>Senha<span class="gate-f"><input id="g-p" type="password" autocomplete="${st.first ? 'new-password' : 'current-password'}" required><button type="button" class="gate-eye" data-gate="eye" aria-label="Mostrar senha">${I.eye}</button></span></label>
       ${st.first ? `<label>Repita a senha<span class="gate-f"><input id="g-p2" type="password" autocomplete="new-password" required></span></label>` : ''}
       <label class="gate-keep"><input id="g-keep" type="checkbox" checked>Continuar conectado neste aparelho</label>
       <p class="gate-msg" role="alert">${esc(st.msg || '')}</p>
-      <button type="submit" class="btn primary gate-go">${st.first ? 'Criar meu acesso' : 'Entrar'}</button>
+      <button type="submit" class="btn primary gate-go">${st.first ? 'Criar o acesso de ' + esc(DONO.nome) : 'Entrar como ' + esc(DONO.nome)}</button>
       ${st.first ? '' : `<button type="button" class="gate-link" data-gate="forgot">Esqueci a senha</button>`}</form>
       <p class="gate-note">Os dados ficam na nuvem do Simplificando, visíveis só para a conta dona desta página. O login, os dados e a atualização são separados do painel do personal.</p></div>`;
   }
@@ -1023,8 +1031,8 @@ function gate(){
     let owner = null;
     try { owner = await within(Cloud.ownerUid(), 12000); if (!owner) { await within(Cloud.claim(user.uid), 12000); owner = user.uid; } }
     catch(e){ st.msg = msgOf(e); try { await A.signOut(); } catch(e2){} open(); return; }
-    if (owner !== user.uid) { try { await A.signOut(); } catch(e){} st.first = false; st.msg = 'Esta conta não é a dona desta página. Use o e-mail e a senha criados aqui.'; open(); return; }
-    st.msg = ''; close(); render(); Cloud.connect(user); if (fresh) toast(st.first ? 'Acesso criado. Bem-vindo.' : 'Bem-vindo de volta.');
+    if (owner !== user.uid) { try { await A.signOut(); } catch(e){} st.first = false; st.msg = 'Esta conta não é a de ' + DONO.nome + '. Só o perfil dele entra aqui.'; open(); return; }
+    ls.set('simplificando-financas-mail', user.email || ''); st.msg = ''; close(); render(); Cloud.connect(user); if (fresh) toast(st.first ? 'Acesso criado. Bem-vindo, ' + DONO.nome.split(' ')[0] + '.' : 'Bem-vindo de volta, ' + DONO.nome.split(' ')[0] + '.');
   }
   g.addEventListener('click', async ev => {
     const b = ev.target.closest('[data-gate]'); if (!b) return;
