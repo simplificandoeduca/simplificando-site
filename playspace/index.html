@@ -109,12 +109,10 @@ svg { display: block; }
   --telhados: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='16' viewBox='0 0 72 16'%3E%3Cpath d='M0 16 L9 5 L18 16Z' fill='%23F5BEA9'/%3E%3Cpath d='M18 16 L30 0 L42 16Z' fill='%23E25B3F'/%3E%3Cpath d='M42 16 L50 7 L58 16Z' fill='%23F5BEA9'/%3E%3Cpath d='M58 16 L65 3 L72 16Z' fill='%23F0BB5F'/%3E%3C/svg%3E");
   --castelinho: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='14' viewBox='0 0 26 14'%3E%3Cpath d='M0 14 L5 5 L10 14Z M8 14 L13 0 L18 14Z M16 14 L21 6 L26 14Z'/%3E%3C/svg%3E");
 }
-.telhados { position: relative; }
-.telhados::before { content: ""; position: absolute; left: 22px; right: 22px; top: -13px; height: 16px; background: var(--telhados) repeat-x left bottom / 72px 16px; pointer-events: none; }
 .castelinho { display: inline-block; width: 26px; height: 14px; background: var(--coral); -webkit-mask: var(--castelinho) no-repeat center / contain; mask: var(--castelinho) no-repeat center / contain; flex: none; }
 
 /* ---------- faixa do topo ---------- */
-.faixa { border-radius: var(--raio); padding: 18px 20px; margin-top: 12px; background: var(--card); border: 1px solid var(--borda); display: flex; align-items: center; gap: 16px; flex-wrap: wrap; box-shadow: var(--sombra); }
+.faixa { border-radius: var(--raio); padding: 18px 20px; background: var(--card); border: 1px solid var(--borda); display: flex; align-items: center; gap: 16px; flex-wrap: wrap; box-shadow: var(--sombra); }
 .faixa .logo { width: 56px; height: 56px; flex: none; }
 .faixa .tit { flex: 1; min-width: 160px; }
 .faixa small { display: block; font-weight: 700; color: var(--tinta-2); font-size: 12.5px; text-transform: uppercase; letter-spacing: .08em; }
@@ -232,7 +230,8 @@ svg { display: block; }
 .saldo b { font-family: var(--display); font-size: 17px; color: var(--tinta); }
 
 /* ---------- registro de rostos / histórico ---------- */
-.hoje h2 { font-size: 18px; font-weight: 800; padding-bottom: 10px; background: var(--telhados) repeat-x left bottom / 54px 12px; }
+.hoje h2 { font-size: 18px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+.hoje h2::before { content: ""; display: inline-block; width: 22px; height: 12px; background: var(--coral); -webkit-mask: var(--castelinho) no-repeat center / contain; mask: var(--castelinho) no-repeat center / contain; }
 .reg { display: flex; flex-direction: column; }
 .reg .ev { display: grid; grid-template-columns: 52px 1fr; gap: 10px; padding: 9px 0; border-bottom: 1px dashed var(--borda-2); align-items: start; }
 .reg .ev:last-child { border-bottom: 0; }
@@ -329,11 +328,10 @@ svg { display: block; }
 /* ---------- folhas (iPhone): sobem de baixo, no desktop viram cartão no centro ---------- */
 .folha-fundo { position: fixed; inset: 0; z-index: 40; background: var(--escurece); display: flex; align-items: flex-end; justify-content: center; opacity: 0; transition: opacity .32s; }
 .folha-fundo.ve { opacity: 1; }
-.folha { background-image: var(--telhados); background-repeat: repeat-x; background-position: 22px 0; background-size: 54px 12px; width: min(600px, 100%); max-height: calc(100% - 40px - env(safe-area-inset-top, 0px)); overflow: auto; background-color: var(--creme); border-radius: 28px 28px 0 0; padding: 8px max(18px, env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom, 0px)) max(18px, env(safe-area-inset-left, 0px)); display: flex; flex-direction: column; gap: 14px; transform: translateY(100%); transition: transform .5s var(--ios); box-shadow: 0 -10px 50px rgba(0, 0, 0, .18); overscroll-behavior: contain; }
+.folha { width: min(600px, 100%); max-height: calc(100% - 40px - env(safe-area-inset-top, 0px)); overflow: auto; background-color: var(--creme); border-radius: 28px 28px 0 0; padding: 8px max(18px, env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom, 0px)) max(18px, env(safe-area-inset-left, 0px)); display: flex; flex-direction: column; gap: 14px; transform: translateY(100%); transition: transform .5s var(--ios); box-shadow: 0 -10px 50px rgba(0, 0, 0, .18); overscroll-behavior: contain; }
 .folha-fundo.ve .folha { transform: translateY(0); }
 .folha-fundo.saindo { opacity: 0; } .folha-fundo.saindo .folha { transform: translateY(100%); transition-duration: .36s; }
-.alca { width: 40px; height: 5px; border-radius: 3px; background: var(--borda-2); margin: 10px auto 0; flex: none; touch-action: none; }
-@media (min-width: 820px) { .folha .cab-f { padding-top: 10px; } }
+.alca { width: 40px; height: 5px; border-radius: 3px; background: var(--borda-2); margin: 4px auto 2px; flex: none; touch-action: none; }
 .folha .cab-f { display: flex; align-items: center; justify-content: space-between; gap: 12px; position: sticky; top: 0; }
 .folha h2 { font-size: 22px; font-weight: 800; }
 .fechar { width: 34px; height: 34px; border-radius: 50%; background: var(--menta); display: flex; align-items: center; justify-content: center; flex: none; }
@@ -459,7 +457,7 @@ const NOMES_BRQ = { urso: 'Ursinho', bola: 'Bola', blocos: 'Blocos', coelho: 'Co
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.07';
+const VERSAO = '0.08';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -648,7 +646,7 @@ function trocarTela(k, anima = true) {
   window.scrollTo({ top: 0 });
   if (anima) $('#miolo').animate([{ opacity: 0, transform: 'translateY(12px)' }, { opacity: 1, transform: 'none' }], { duration: 380, easing: 'cubic-bezier(.32,.72,0,1)' });
 }
-function faixa(titulo, sub, chip) { return `<div class="faixa telhados"><span class="logo">${LOGO}</span><div class="tit"><small>${esc(sub)}</small><h1>${esc(titulo)}<button type="button" class="versao tap ${ATU.nova ? 'nova' : ''}" data-act="atualizar" title="${ATU.nova ? 'Nova versão ' + ATU.nova + ': toque para atualizar' : 'Versão ' + VERSAO + ': toque para conferir se há versão nova'}">${ic(IC.renova, 13, 2.6)} ${ATU.nova ? 'Atualizar para ' + esc(ATU.nova) : 'v' + VERSAO}</button></h1></div>${chip || ''}</div>`; }
+function faixa(titulo, sub, chip) { return `<div class="faixa"><span class="logo">${LOGO}</span><div class="tit"><small>${esc(sub)}</small><h1>${esc(titulo)}<button type="button" class="versao tap ${ATU.nova ? 'nova' : ''}" data-act="atualizar" title="${ATU.nova ? 'Nova versão ' + ATU.nova + ': toque para atualizar' : 'Versão ' + VERSAO + ': toque para conferir se há versão nova'}">${ic(IC.renova, 13, 2.6)} ${ATU.nova ? 'Atualizar para ' + esc(ATU.nova) : 'v' + VERSAO}</button></h1></div>${chip || ''}</div>`; }
 const chipIdface = () => `<button class="chip suave tap" data-act="idface"><i class="pt ${S.cfg.idface.ligado ? '' : 'off'}"></i>${ic(IC.rosto, 16)} iDFace ${S.cfg.idface.ligado ? 'lendo' : 'desligado'}</button>`;
 
 /* ---------- Horas ---------- */
