@@ -45,7 +45,7 @@ function dados(array $eu): array {
     $conversas[$cid]['msgs'][] = ['id' => (int)$m['id'], 'de' => $m['de'], 'txt' => $m['texto'], 'h' => $m['quando'], 'por' => $m['por'], 'auto' => (bool)$m['auto'], 'foto' => $m['foto'], 'erro' => $m['erro']];
     if ($m['de'] === 'ela' && empty($m['lida'])) $conversas[$cid]['lidas'] = false;
   }
-  $compromissos = array_map(fn($x) => ['id' => (int)$x['id'], 'dia' => $x['dia'], 'hora' => $x['hora'], 'titulo' => $x['titulo'], 'tipo' => $x['tipo'], 'sub' => $x['sub'], 'obs' => $x['obs']], $db->query('SELECT * FROM compromissos ORDER BY dia, hora')->fetchAll());
+  $compromissos = array_map(fn($x) => ['id' => (int)$x['id'], 'dia' => $x['dia'], 'hora' => $x['hora'], 'titulo' => $x['titulo'], 'tipo' => $x['tipo'], 'sub' => $x['sub'], 'obs' => $x['obs'], 'feito' => !empty($x['feito'])], $db->query('SELECT * FROM compromissos ORDER BY dia, hora')->fetchAll());
   $vendasHoje = $db->prepare('SELECT COUNT(*) n, COALESCE(SUM(horas),0) h, COALESCE(SUM(valor),0) v FROM vendas WHERE quando > ?'); $vendasHoje->execute([$hojeMenos]); $vh = $vendasHoje->fetch();
   $equipe = $eu['papel'] === 'atendente' ? [] : array_map(fn($u) => ['id' => (int)$u['id'], 'nome' => $u['nome'], 'login' => $u['login'], 'papel' => $u['papel']], $db->query('SELECT id, nome, login, papel FROM usuarios WHERE ativo = 1 ORDER BY nome')->fetchAll());
   require_once __DIR__ . '/idface-lib.php';
@@ -213,6 +213,7 @@ switch ($acao) {
   }
 
   /* ---------- agenda ---------- */
+  case 'comp_feito': { exigir(); $db->prepare('UPDATE compromissos SET feito = ? WHERE id = ?')->execute([empty($in['feito']) ? 0 : 1, (int)($in['id'] ?? 0)]); responder(); }
   case 'comp_salvar': {
     exigir(); $id = (int)($in['id'] ?? 0); $titulo = mb_substr($val('titulo'), 0, 120); if ($titulo === '') falha('Falta dizer o quê.');
     $dia = $val('dia'); if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dia)) falha('Dia inválido.');

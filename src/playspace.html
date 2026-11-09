@@ -316,7 +316,14 @@ span.av.g { font-size: 22px; } .simul span.av { font-size: 15px; }
 .cal .d.fora { opacity: .3; pointer-events: none; }
 .cal .d em { font-style: normal; height: 5px; border-radius: 3px; display: block; }
 .cal .d .pts { display: flex; flex-direction: column; gap: 2px; margin-top: auto; }
-.oficina { display: flex; align-items: center; gap: 12px; background: var(--card); border: 1px solid var(--borda); border-radius: 16px; padding: 10px 14px; text-align: left; width: 100%; }
+.oficina { display: flex; align-items: center; gap: 10px; background: var(--card); border: 1px solid var(--borda); border-radius: 16px; padding: 8px 14px 8px 10px; text-align: left; width: 100%; transition: opacity .3s; }
+.oficina .corpo { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; text-align: left; padding: 2px 0; }
+.oficina .check { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--borda-2); color: transparent; display: flex; align-items: center; justify-content: center; flex: none; transition: background .25s, border-color .25s, color .25s, transform .35s var(--spring); }
+.oficina .check:hover { border-color: var(--ok); }
+.oficina.feita .check { background: var(--ok); border-color: var(--ok); color: #fff; animation: pop-check .45s var(--spring); }
+.oficina.feita { opacity: .7; }
+.oficina.feita .txt b { text-decoration: line-through; text-decoration-thickness: 2px; text-decoration-color: var(--ok); color: var(--tinta-2); }
+@keyframes pop-check { 0% { transform: scale(.7); } 60% { transform: scale(1.18); } 100% { transform: scale(1); } }
 .oficina i { width: 10px; height: 10px; border-radius: 50%; background: var(--coral); flex: none; }
 .oficina small { display: block; color: var(--tinta-2); font-size: 12.5px; }
 .oficina b { font-family: var(--display); font-weight: 600; font-size: 16px; }
@@ -540,7 +547,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.36';
+const VERSAO = '0.37';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -611,7 +618,7 @@ const S = {
   add(d(11), '15:00', 'Baleiro', 'oficina', 'Oficina do'); add(d(13), '15:00', 'Maçã de chocolate', 'oficina', 'Oficina de'); add(d(15), '11:00', 'Slime Fruit', 'oficina', 'Oficina de');
   add(d(15), '16:00', 'Aniversário da Alice, 8 anos', 'festa', 'Festa'); add(d(20), '10:00', 'Reunião com o shopping', 'compromisso', 'Compromisso'); add(d(22), '15:00', 'Pintura em tela (sem tinta!)', 'oficina', 'Oficina de');
   add(d(10), '09:00', 'Post: programação da semana 2', 'postagem', 'Postagem'); add(d(29), '15:00', 'Fashion Day · edição de verão', 'festa', 'Evento');
-  add(isoDia(agora), '15:00', 'Massinha caseira', 'oficina', 'Oficina de'); add(isoDia(agora), '10:00', 'Post: fotos da semana', 'postagem', 'Postagem');   // para a caixinha "Atividades do dia" da prévia
+  add(isoDia(agora), '15:00', 'Massinha caseira', 'oficina', 'Oficina de'); add(isoDia(agora), '10:00', 'Post: fotos da semana', 'postagem', 'Postagem'); S.compromissos[S.compromissos.length - 1].feito = true;   // para a caixinha "Atividades do dia" da prévia
 })();
 const nomePacote = p => p.h === 1 ? 'Hora avulsa' : p.h + ' horas';
 const TIPOS = { oficina: ['Oficina', 'var(--coral)'], festa: ['Festa', 'var(--pessego)'], compromisso: ['Compromisso', 'var(--mostarda)'], postagem: ['Postagem', 'var(--verde-agua)'] };
@@ -906,7 +913,7 @@ function telaHoras() {
   </section>
   <p class="rodape">${MODO === 'demo' ? 'Prévia com dados de exemplo · ' : ''}<b>Play Space Horas</b> v${VERSAO}</p>`;
 }
-const itemComp = (x, diaRef) => `<button class="oficina tap" data-act="comp" data-id="${x.id}"><i style="background:${TIPOS[x.tipo][1]}"></i><div class="txt"><small>${esc(x.sub || TIPOS[x.tipo][0])}</small><b>${esc(x.titulo)}</b></div><span class="q">${x.dia === diaRef ? x.hora : SEMANA[new Date(x.dia + 'T12:00').getDay()].slice(0, 3) + ' ' + +x.dia.slice(8) + ' · ' + x.hora}</span></button>`;
+const itemComp = (x, diaRef) => `<div class="oficina ${x.feito ? 'feita' : ''}"><button class="check tap" data-act="comp-feito" data-id="${x.id}" aria-label="${x.feito ? 'Desmarcar' : 'Marcar como feito'}" aria-pressed="${!!x.feito}" title="${x.feito ? 'Feito · toque para desmarcar' : 'Marcar como feito'}">${ic(IC.check, 14, 3)}</button><button class="corpo tap" data-act="comp" data-id="${x.id}"><i style="background:${TIPOS[x.tipo][1]}"></i><div class="txt"><small>${esc(x.sub || TIPOS[x.tipo][0])}</small><b>${esc(x.titulo)}</b></div><span class="q">${x.dia === diaRef ? x.hora : SEMANA[new Date(x.dia + 'T12:00').getDay()].slice(0, 3) + ' ' + +x.dia.slice(8) + ' · ' + x.hora}</span></button></div>`;
 function painelHoje() {
   const regs = S.registros.filter(r => agora - r.h < 86400000), hojeStr = isoDia(agora);
   const doDia = S.compromissos.filter(x => x.dia === hojeStr).sort((a, b) => a.hora.localeCompare(b.hora));
@@ -1088,7 +1095,7 @@ function folhaComp(id) {
   const x = S.compromissos.find(c => c.id === +id); if (!x) return; const d = new Date(x.dia + 'T12:00');
   abrirFolha(esc(x.titulo), `<div class="marca"><i style="width:12px;height:12px;border-radius:50%;background:${TIPOS[x.tipo][1]};flex:none"></i><span><b>${TIPOS[x.tipo][0]}</b> · ${SEMANA[d.getDay()]}, ${d.getDate()} de ${MESES[d.getMonth()]} às ${x.hora}</span></div>
     ${x.obs ? `<p class="explica">${esc(x.obs)}</p>` : ''}
-    <div class="acoes"><button class="bt tap" data-act="comp-editar" data-id="${x.id}">${ic(IC.lapis)} Editar</button><button class="bt tap" data-act="comp-zap" data-id="${x.id}">${ic(IC.zap)} Divulgar no WhatsApp</button><button class="bt claro tap" data-act="comp-apagar" data-id="${x.id}" style="color:var(--erro)">Apagar</button></div>`);
+    <div class="acoes"><button class="bt ${x.feito ? '' : 'forte'} tap" data-act="comp-feito-folha" data-id="${x.id}">${ic(IC.check)} ${x.feito ? 'Desmarcar feito' : 'Marcar como feito'}</button><button class="bt tap" data-act="comp-editar" data-id="${x.id}">${ic(IC.lapis)} Editar</button><button class="bt tap" data-act="comp-zap" data-id="${x.id}">${ic(IC.zap)} Divulgar no WhatsApp</button><button class="bt claro tap" data-act="comp-apagar" data-id="${x.id}" style="color:var(--erro)">Apagar</button></div>`);
 }
 function folhaNovoComp(x) {
   abrirFolha(x ? 'Editar' : 'Novo compromisso', `
@@ -1229,6 +1236,8 @@ const ACOES = {
   'dia-sel': el => { S.diaSel = el.dataset.dia; desenhar(); },
   mes: el => { const n = +el.dataset.n; if (n === 0) { S.mes = { y: agora.getFullYear(), m: agora.getMonth() }; S.diaSel = isoDia(agora); } else { const d = new Date(S.mes.y, S.mes.m + n, 1); S.mes = { y: d.getFullYear(), m: d.getMonth() }; S.diaSel = isoDia(d); } desenhar(); $('.cal').animate([{ opacity: .3, transform: `translateX(${n * 18}px)` }, { opacity: 1, transform: 'none' }], { duration: 340, easing: 'cubic-bezier(.32,.72,0,1)' }); },
   comp: el => folhaComp(el.dataset.id), 'novo-comp': () => folhaNovoComp(null),
+  'comp-feito-folha': el => { fecharFolha(); ACOES['comp-feito'](el); },
+  'comp-feito': el => { const x = S.compromissos.find(c => c.id === +el.dataset.id); if (!x) return; x.feito = !x.feito; if (MODO === 'servidor') api('comp_feito', { id: x.id, feito: x.feito }).catch(e => toast(e.message)); desenhar(); toast(x.feito ? `${x.titulo}: feito ✓` : `${x.titulo}: voltou para a lista`, () => { x.feito = !x.feito; if (MODO === 'servidor') api('comp_feito', { id: x.id, feito: x.feito }).catch(() => {}); desenhar(); }); },
   'comp-editar': el => { const x = S.compromissos.find(c => c.id === +el.dataset.id); fecharFolha(); setTimeout(() => folhaNovoComp(x), 200); },
   'comp-apagar': el => { if (MODO === 'servidor') { api('comp_apagar', { id: +el.dataset.id }).then(async () => { await carregar(); toast('Apagado'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } S.compromissos = S.compromissos.filter(c => c.id !== +el.dataset.id); toast('Apagado'); fecharFolha(); desenhar(); },
   'comp-zap': el => { const x = S.compromissos.find(c => c.id === +el.dataset.id); toast(`"${x.titulo}" pronto para mandar aos responsáveis`); fecharFolha(); },
