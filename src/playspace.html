@@ -85,8 +85,9 @@ svg { display: block; }
 @keyframes espia-fab { 0%, 60%, 100% { transform: translateY(100%); } 66%, 84% { transform: translateY(14%); } 72% { transform: translateY(10%) rotate(-4deg); } 78% { transform: translateY(12%) rotate(4deg); } }
 .fab-ancora { display: contents; }
 @media (min-width: 820px) {
-  .fab-ancora { display: flex; justify-content: flex-end; position: sticky; bottom: 24px; z-index: 21; max-width: 1120px; width: 100%; margin: 6px auto 0; pointer-events: none; }
-  .fab-ancora .fab { position: relative; inset: auto; pointer-events: auto; }   /* sem o deslocamento do celular, que o empurrava 88px para cima */
+  .fab-ancora { display: none !important; }                                   /* no computador o + mora no trilho, em cima do selo da conta */
+  .trilho .fab { position: relative; inset: auto; width: 56px; height: 56px; border-radius: 18px; margin-bottom: 14px; box-shadow: 0 10px 22px rgba(226, 91, 63, .28); flex: none; }
+  .trilho .fab .bicho { width: 42px; height: 30px; margin-left: -21px; }
 }
 .fab-ancora[hidden] { display: none; }
 .toast { position: fixed; z-index: 60; left: 50%; bottom: calc(100px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 20px); background: var(--tinta); color: var(--creme); padding: 11px 18px; border-radius: 999px; font-weight: 700; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .3s, transform .45s var(--spring); max-width: calc(100% - 32px); text-align: center; display: flex; align-items: center; gap: 14px; }
@@ -516,7 +517,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.33';
+const VERSAO = '0.34';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -591,6 +592,7 @@ const S = {
 const nomePacote = p => p.h === 1 ? 'Hora avulsa' : p.h + ' horas';
 const TIPOS = { oficina: ['Oficina', 'var(--coral)'], festa: ['Festa', 'var(--pessego)'], compromisso: ['Compromisso', 'var(--mostarda)'], postagem: ['Postagem', 'var(--verde-agua)'] };
 const PAPEIS = { gestor: 'Gestor', supervisor: 'Supervisor', atendente: 'Atendente' };
+const PASSARINHO_FAB = `<span class="bicho passarinho" aria-hidden="true"><svg viewBox="0 0 60 44"><ellipse cx="30" cy="30" rx="17" ry="13" fill="#8FBFB0"/><circle cx="40" cy="20" r="10" fill="#8FBFB0"/><path d="M49 20 L58 23 L49 26Z" fill="#F0BB5F"/><circle cx="43" cy="18" r="1.8" fill="#3B3B3B"/><path d="M22 30 q-8 -6 -2 -12" stroke="#6FA394" stroke-width="4" stroke-linecap="round" fill="none"/><path d="M40 10 q2 -6 6 -4" stroke="#6FA394" stroke-width="2.5" stroke-linecap="round" fill="none"/></svg></span>`;
 const TODAS_ABAS = [['horas', 'Horas', 'horas'], ['zap', 'WhatsApp', 'zap'], ['agenda', 'Agenda', 'agenda'], ['ajustes', 'Ajustes', 'ajustes']];
 let ABAS = TODAS_ABAS;
 /* ---------- o servidor: api/api.php. Sem ele (a prévia), tudo roda em modo demonstração com os dados de exemplo ---------- */
@@ -812,7 +814,7 @@ function vender(c, pac) {
 const naoLidas = () => S.conversas.filter(x => !x.lidas).length;
 function nav() {
   const badge = k => k === 'zap' && naoLidas() ? `<b>${naoLidas()}</b>` : '';
-  $('#nav-lado').innerHTML = `<span class="logo">${LOGO}</span>` + ABAS.map(([k, t, i]) => `<button class="ab tap" data-ir="${k}" ${S.tela === k ? 'aria-current="page"' : ''} aria-label="${t}" title="${t}">${ic(IC[i])}${badge(k)}</button>`).join('') + `<span class="espaco"></span><button class="av-eu tap" data-act="conta" title="${esc(EU.nomeCompleto || EU.nome)}">${esc((EU.nome || 'EU').slice(0, 2).toUpperCase())}</button>`;
+  $('#nav-lado').innerHTML = `<span class="logo">${LOGO}</span>` + ABAS.map(([k, t, i]) => `<button class="ab tap" data-ir="${k}" ${S.tela === k ? 'aria-current="page"' : ''} aria-label="${t}" title="${t}">${ic(IC[i])}${badge(k)}</button>`).join('') + `<span class="espaco"></span><button type="button" class="fab tap" data-act="nova" aria-label="Cadastrar criança" title="Cadastrar criança">${PASSARINHO_FAB}<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button><button class="av-eu tap" data-act="conta" title="${esc(EU.nomeCompleto || EU.nome)}">${esc((EU.nome || 'EU').slice(0, 2).toUpperCase())}</button>`;
   $('#nav-baixo').innerHTML = ABAS.map(([k, t, i]) => `<button data-ir="${k}" ${S.tela === k ? 'aria-current="page"' : ''}>${ic(IC[i], 21)}${t}${badge(k)}</button>`).join('') + (ABAS.some(a => a[0] === 'ajustes') ? '' : `<button data-act="conta">${ic(IC.rosto, 21)}Conta</button>`);
 }
 let toastT, DESFAZ = null;
