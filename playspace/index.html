@@ -266,6 +266,19 @@ svg { display: block; }
 .oficina .txt { flex: 1; min-width: 0; }
 
 /* ---------- WhatsApp ---------- */
+.dias { display: flex; gap: 6px; overflow-x: auto; padding: 2px 2px 6px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.dias::-webkit-scrollbar { display: none; }
+.dias button { flex: none; height: 38px; padding: 0 14px; border-radius: 999px; background: var(--card); border: 1px solid var(--borda); font-family: var(--display); font-weight: 600; font-size: 13px; color: var(--tinta-2); display: inline-flex; align-items: center; gap: 7px; transition: background .25s, color .25s, transform .3s var(--spring); }
+.dias button b { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: var(--menta); color: var(--tinta); font-size: 11px; display: grid; place-items: center; }
+.dias button[aria-pressed="true"] { background: var(--tinta); color: var(--creme); border-color: var(--tinta); }
+.dias button[aria-pressed="true"] b { background: var(--coral); color: #fff; }
+.conv .quem { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+.conv .quem i { font-style: normal; font-size: 10.5px; font-weight: 800; padding: 2px 7px; border-radius: 999px; background: var(--mostarda-2); color: var(--aviso); }
+.conv .quem i.auto { background: var(--verde-agua-2); color: var(--ok); } .conv .quem i.ninguem { background: var(--coral-2); color: var(--erro); }
+.conv.ativa .quem i { background: rgba(255, 255, 255, .6); }
+.sep-dia { display: flex; align-items: center; gap: 10px; margin: 6px 0 2px; color: var(--apagado); font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; }
+.sep-dia::before, .sep-dia::after { content: ""; flex: 1; height: 1px; background: var(--borda-2); }
+.msg.outro-dia { opacity: .62; }
 .zap { display: grid; grid-template-columns: 1fr; gap: 12px; }
 @media (min-width: 900px) { .zap { grid-template-columns: 340px 1fr; } .zap .conversas, .zap .papo { display: flex !important; } .papo .volta { display: none; } }
 .conversas { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
@@ -446,7 +459,7 @@ const NOMES_BRQ = { urso: 'Ursinho', bola: 'Bola', blocos: 'Blocos', coelho: 'Co
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.05';
+const VERSAO = '0.06';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -476,7 +489,7 @@ async function atualizarAgora(bt) {
   } catch (e) { bt.disabled = false; bt.innerHTML = `${ic(IC.renova)} Tentar de novo`; toast('Não deu: ' + (e.message || 'erro ao atualizar')); }
 }
 const S = {
-  tela: 'horas', zapAberta: 1, zapModo: 'lista', mes: { y: agora.getFullYear(), m: agora.getMonth() }, diaSel: isoDia(agora),
+  tela: 'horas', zapAberta: 1, zapModo: 'lista', zapDia: isoDia(agora), mes: { y: agora.getFullYear(), m: agora.getMonth() }, diaSel: isoDia(agora),
   cfg: { arredonda: 1, cortesia: 10, minimo: 0, aviso: 30, autoMsg: 'ambos', pacotes: [{ h: 1, v: 60 }, { h: 5, v: 250 }, { h: 10, v: 450 }, { h: 20, v: 800 }], idface: { ip: '192.168.0.129', nome: 'Recepção', ligado: true, ultima: antes(0.2) }, tema: lido('ps-tema', 'sistema') },
   equipe: [{ id: 1, nome: 'Camila Duarte', papel: 'Gerente', login: 'camila' }, { id: 2, nome: 'Beatriz Lima', papel: 'Recepção', login: 'bia' }, { id: 3, nome: 'João Pedro', papel: 'Monitor', login: 'jp' }],
   criancas: [
@@ -498,10 +511,13 @@ const S = {
     { h: antes(251), tipo: 'ent', nome: 'Laura', txt: 'Rosto reconhecido na entrada' },
   ],
   conversas: [
-    { id: 1, crianca: 1, lidas: false, msgs: [{ de: 'nos', txt: `Oi, Mariana! Helena chegou na Play Space às ${hora(antes(47))} 💛 Tem 3h49 no pacote. Qualquer coisa a gente te chama por aqui.`, h: antes(47), auto: true, foto: 'idface' }, { de: 'ela', txt: 'Obrigada! Ela pode ficar até as 18h? Estou presa no trânsito 😅', h: antes(2) }] },
+    { id: 1, crianca: 1, lidas: false, msgs: [
+      { de: 'nos', txt: 'Oi, Mariana! Lembrando que a Helena tem oficina de slime na quinta, às 15h. Ela vai?', h: antes(1440 * 2 + 200), por: 'Bia' }, { de: 'ela', txt: 'Vai sim! Ela não fala em outra coisa 😄', h: antes(1440 * 2 + 150) },
+      { de: 'nos', txt: `Oi, Mariana! Helena chegou na Play Space às ${hora(antes(47))} 💛 Tem 3h49 no pacote. Qualquer coisa a gente te chama por aqui.`, h: antes(47), auto: true, foto: 'idface' }, { de: 'ela', txt: 'Obrigada! Ela pode ficar até as 18h? Estou presa no trânsito 😅', h: antes(2) }] },
     { id: 2, crianca: 2, lidas: false, msgs: [{ de: 'ela', txt: 'Boa tarde! Quanto fica o pacote de 20 horas?', h: antes(16) }, { de: 'ela', txt: 'O Theo adorou a oficina de slime, já quer voltar amanhã', h: antes(15) }] },
-    { id: 3, crianca: 3, lidas: true, msgs: [{ de: 'nos', txt: 'Juliana, confirmamos a festa da Alice no sábado 15, às 16h. Vai ser lindo!', h: antes(300) }, { de: 'ela', txt: 'Confirmado o aniversário dia 15! Obrigada 💛', h: antes(280) }] },
-    { id: 4, crianca: 4, lidas: true, msgs: [{ de: 'nos', txt: `Carla, o Miguel saiu às ${hora(antes(31))}. Foram 1h50 hoje, restam 4h no pacote.`, h: antes(31) }] },
+    { id: 3, crianca: 3, lidas: true, msgs: [{ de: 'nos', txt: 'Juliana, confirmamos a festa da Alice no sábado 15, às 16h. Vai ser lindo!', h: antes(1440 + 300), por: 'Camila' }, { de: 'ela', txt: 'Confirmado o aniversário dia 15! Obrigada 💛', h: antes(1440 + 280) }, { de: 'nos', txt: 'Maravilha! Já deixei anotado na agenda. Depois te mando a lista do que a gente precisa.', h: antes(1440 + 270), por: 'Camila' }] },
+    { id: 4, crianca: 4, lidas: true, msgs: [{ de: 'nos', txt: 'Carla, o Miguel esqueceu a garrafinha azul aqui. Guardamos na recepção!', h: antes(1440 + 90), por: 'Bia' }, { de: 'ela', txt: 'Ai, obrigada! Pego amanhã quando levar ele.', h: antes(1440 + 60) }, { de: 'nos', txt: `Carla, o Miguel saiu às ${hora(antes(31))}. Foram 1h50 hoje, restam 4h no pacote.`, h: antes(31), auto: true }] },
+    { id: 5, crianca: 5, lidas: true, msgs: [{ de: 'ela', txt: 'Oi! A Laura pode ir sábado de manhã? Tem oficina?', h: antes(1440 * 3 + 400) }, { de: 'nos', txt: 'Pode sim, Bruno! Sábado às 11h tem Slime da Galáxia. Chega 10 minutinhos antes 💛', h: antes(1440 * 3 + 380), por: 'Camila' }] },
   ],
   compromissos: [],
   pedidos: [
@@ -545,6 +561,12 @@ const restante = c => Math.max(0, c.pacote * 60 - usadoAgora(c));
 const estado = c => { const r = restante(c); return r <= 0 ? ['Zerado', 'p-erro'] : r <= S.cfg.aviso ? ['Acabando', 'p-aviso'] : ['Em dia', 'p-ok']; };
 const avatar = (c, g = '') => c.foto ? `<span class="av ${g} foto" style="background-image:url(${c.foto})" role="img" aria-label="Foto de ${esc(c.nome)}"></span>` : `<span class="av ${g}" style="background:${CORES[c.id % CORES.length]}">${esc(c.nome.slice(0, 2).toUpperCase())}</span>`;
 let FOTO_TEMP = '';
+const EU = { nome: 'Camila' };   // quem está usando o sistema (com login, vem da conta)
+// os dias do WhatsApp: "Hoje", "Ontem", depois "Sex 7/11"
+const diaDe = h => isoDia(new Date(h));
+function rotuloDia(iso) { const hoje = isoDia(agora), ontem = isoDia(new Date(agora.getTime() - 86400000)); if (iso === hoje) return 'Hoje'; if (iso === ontem) return 'Ontem'; const d = new Date(iso + 'T12:00'); return `${SEMANA[d.getDay()].slice(0, 3)} ${d.getDate()}/${p2(d.getMonth() + 1)}`; }
+function rotuloDiaLongo(iso) { const r = rotuloDia(iso); if (r === 'Hoje' || r === 'Ontem') return r; const d = new Date(iso + 'T12:00'); return `${SEMANA[d.getDay()]}, ${d.getDate()} de ${MESES[d.getMonth()]}`; }
+function diasComConversa() { const set = new Set([isoDia(agora)]); S.conversas.forEach(x => x.msgs.forEach(m => set.add(diaDe(m.h)))); return Array.from(set).sort().reverse().slice(0, 10); }
 function lerFoto(arquivo, cb) { const r = new FileReader(); r.onload = () => { const img = new Image(); img.onload = () => { const L = 480, k = Math.min(1, L / Math.max(img.width, img.height)), cv = document.createElement('canvas'); cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k); cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height); cb(cv.toDataURL('image/jpeg', .82)); }; img.src = r.result; }; r.readAsDataURL(arquivo); }
 const cpfFmt = v => { v = String(v).replace(/\D/g, '').slice(0, 11); return v.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2'); };
 function blocos(c, comEstado = true) {
@@ -572,7 +594,7 @@ const cronometro = c => { const m = minDentro(c); return `${Math.floor(m / 60)}:
 function registrar(tipo, nome, txt) { S.registros.unshift({ h: new Date(), tipo, nome, txt }); }
 function mensagemAuto(c, txt, comFoto) {
   let conv = S.conversas.find(x => x.crianca === c.id); if (!conv) { conv = { id: novoId(), crianca: c.id, lidas: true, msgs: [] }; S.conversas.push(conv); }
-  const m = { de: 'nos', txt, h: new Date(), auto: true, foto: comFoto ? (c.foto || 'idface') : '' }; conv.msgs.push(m); return () => { conv.msgs = conv.msgs.filter(x => x !== m); };
+  const m = { de: 'nos', txt, h: new Date(), auto: true, por: 'automática', foto: comFoto ? (c.foto || 'idface') : '' }; conv.msgs.push(m); return () => { conv.msgs = conv.msgs.filter(x => x !== m); };
 }
 function entrada(c, origem = 'iDFace') {
   c.entrou = new Date(); registrar('ent', c.nome, origem === 'iDFace' ? 'Rosto reconhecido na entrada' : 'Entrada registrada à mão');
@@ -749,15 +771,22 @@ function sugestoes(conv) {
   return s.slice(0, 3);
 }
 function telaZap() {
-  const conv = convDe(S.zapAberta) || S.conversas[0];
-  const lista = S.conversas.slice().sort((a, b) => b.msgs[b.msgs.length - 1].h - a.msgs[a.msgs.length - 1].h).map(x => { const c = crianca(x.crianca), u = x.msgs[x.msgs.length - 1]; return `<button class="conv tap ${x.id === conv.id ? 'ativa' : ''}" data-act="conversa" data-id="${x.id}">${avatar(c)}<div class="txt"><b>${esc(c.resp)} (${esc(c.rel)} de ${esc(c.nome)})</b><span>${u.de === 'nos' ? 'Você: ' : ''}${esc(u.txt)}</span></div><span class="h">${hora(u.h)}</span>${x.lidas ? '' : `<span class="n">${x.msgs.filter(m => m.de === 'ela').length}</span>`}</button>`; }).join('');
+  const dias = diasComConversa(); if (!dias.includes(S.zapDia)) S.zapDia = dias[0];
+  const doDia = S.conversas.filter(x => x.msgs.some(m => diaDe(m.h) === S.zapDia)).map(x => ({ x, ms: x.msgs.filter(m => diaDe(m.h) === S.zapDia) })).sort((a, b) => b.ms[b.ms.length - 1].h - a.ms[a.ms.length - 1].h);
+  let conv = convDe(S.zapAberta); if (!conv || !doDia.some(d => d.x === conv)) conv = doDia.length ? doDia[0].x : null; if (conv) S.zapAberta = conv.id;
+  const abas = `<div class="dias">${dias.map(d => { const n = S.conversas.filter(x => x.msgs.some(m => diaDe(m.h) === d)).length; return `<button class="tap" data-act="zap-dia" data-dia="${d}" aria-pressed="${d === S.zapDia}">${rotuloDia(d)}${n ? `<b>${n}</b>` : ''}</button>`; }).join('')}</div>`;
+  const quem = ms => { const nomes = []; ms.forEach(m => { if (m.de === 'nos') { const q = m.por || EU.nome; if (!nomes.includes(q)) nomes.push(q); } }); return nomes; };
+  const lista = doDia.length ? doDia.map(({ x, ms }) => { const c = crianca(x.crianca), u = ms[ms.length - 1], q = quem(ms); return `<button class="conv tap ${conv && x.id === conv.id ? 'ativa' : ''}" data-act="conversa" data-id="${x.id}">${avatar(c)}<div class="txt"><b>${esc(c.resp)} (${esc(c.rel)} de ${esc(c.nome)})</b><span>${u.de === 'nos' ? (u.auto ? 'Automática: ' : (u.por || EU.nome) + ': ') : ''}${esc(u.txt)}</span><span class="quem">${q.length ? q.map(n => `<i class="${n === 'automática' ? 'auto' : ''}">${esc(n)}</i>`).join('') : '<i class="ninguem">ninguém respondeu ainda</i>'}</span></div><span class="h">${hora(u.h)}</span>${x.lidas ? '' : `<span class="n">${x.msgs.filter(m => m.de === 'ela').length}</span>`}</button>`; }).join('')
+    : `<div class="card vazio">${ic(IC.zap, 26)}<b>${S.zapDia === isoDia(agora) ? 'Nenhuma conversa ainda hoje' : 'Nenhuma conversa neste dia'}</b><span>${S.zapDia === isoDia(agora) ? 'Quando uma criança chegar ou alguém mandar mensagem, aparece aqui.' : 'Escolha outro dia em cima.'}</span></div>`;
+  if (!conv) return faixa('WhatsApp', 'Conversas com os responsáveis', `<span class="chip suave"><i class="pt"></i>Conectado · (11) 9 1234-5678</span>`) + abas + `<div class="zap" data-modo="lista"><div class="conversas">${lista}</div><div class="papo"><p class="explica" style="margin:auto;text-align:center">Nenhuma conversa em ${rotuloDiaLongo(S.zapDia).toLowerCase()}.</p></div></div>`;
   const c = crianca(conv.crianca);
-  return faixa('WhatsApp', 'Conversas com os responsáveis', `<span class="chip suave"><i class="pt"></i>Conectado · (11) 9 1234-5678</span>`) + `
+  const msgsHtml = (() => { let ult = ''; return conv.msgs.map(m => { const d = diaDe(m.h), sep = d !== ult ? `<div class="sep-dia"><span>${rotuloDiaLongo(d)}</span></div>` : ''; ult = d; return sep + `<div class="msg ${m.de} ${d === S.zapDia ? '' : 'outro-dia'}">${m.foto ? (m.foto === 'idface' ? `<span class="foto-id">${ic(IC.camera, 15)} Foto da chegada, pela câmera do iDFace</span>` : `<img class="foto-msg" src="${m.foto}" alt="Foto da chegada">`) : ''}${esc(m.txt)}<time>${m.de === 'nos' ? (m.auto ? 'automática' : esc(m.por || EU.nome)) + ' · ' : ''}${hora(m.h)}</time></div>`; }).join(''); })();
+  return faixa('WhatsApp', 'Conversas com os responsáveis', `<span class="chip suave"><i class="pt"></i>Conectado · (11) 9 1234-5678</span>`) + abas + `
   <div class="zap" data-modo="${S.zapModo}">
     <div class="conversas">${lista}</div>
     <div class="papo">
       <div class="cab"><button class="volta tap" data-act="zap-lista" aria-label="Voltar">${ic(IC.volta, 18)}</button>${avatar(c)}<div class="txt"><b>${esc(c.resp)}</b><span>${esc(c.rel)} de ${esc(c.nome)} · ${c.pacote}h compradas, restam ${hm(restante(c))}</span></div><button class="pill ${c.entrou ? 'p-ok' : 'p-neutro'} tap" data-act="ficha" data-id="${c.id}">${c.entrou ? `${esc(c.nome)} está aqui` : 'Ver ficha'}</button></div>
-      <div class="msgs" id="msgs">${conv.msgs.map(m => `<div class="msg ${m.de}">${m.foto ? (m.foto === 'idface' ? `<span class="foto-id">${ic(IC.camera, 15)} Foto da chegada, pela câmera do iDFace</span>` : `<img class="foto-msg" src="${m.foto}" alt="Foto da chegada">`) : ''}${esc(m.txt)}<time>${hora(m.h)}${m.auto ? ' · automática' : ''}</time></div>`).join('')}</div>
+      <div class="msgs" id="msgs">${msgsHtml}</div>
       <div class="sug"><small>Sugestões de resposta</small>${sugestoes(conv).map(s => `<button class="tap" data-act="sugestao">${esc(s)}</button>`).join('')}</div>
       <div class="escreve"><textarea id="zap-texto" rows="1" placeholder="Escreva para ${esc(c.resp)}" aria-label="Mensagem"></textarea><button class="tap" data-act="enviar" aria-label="Enviar">${ic(IC.envia, 20)}</button></div>
     </div>
@@ -765,7 +794,7 @@ function telaZap() {
 }
 function enviar(txt) {
   const conv = convDe(S.zapAberta); if (!conv || !txt.trim()) return;
-  conv.msgs.push({ de: 'nos', txt: txt.trim(), h: new Date() }); conv.lidas = true; desenhar();
+  conv.msgs.push({ de: 'nos', txt: txt.trim(), h: new Date(), por: EU.nome }); conv.lidas = true; S.zapDia = isoDia(agora); desenhar();
   const m = $('#msgs'); if (m) m.lastElementChild.scrollIntoView({ block: 'nearest' });
 }
 
@@ -910,7 +939,7 @@ const ACOES = {
   entrada: el => { entrada(crianca(el.dataset.id), 'mão'); fecharFolha(); desenhar(); },
   saida: el => { saida(crianca(el.dataset.id), 'mão'); fecharFolha(); desenhar(); },
   simular: el => { const c = crianca(el.dataset.id); if (c.entrou) saida(c); else entrada(c); fecharFolha(); desenhar(); },
-  avisar: el => { const c = crianca(el.dataset.id); let conv = S.conversas.find(x => x.crianca === c.id); if (!conv) { conv = { id: novoId(), crianca: c.id, lidas: true, msgs: [] }; S.conversas.push(conv); } S.zapAberta = conv.id; S.zapModo = 'papo'; fecharFolha(); trocarTela('zap'); const t = $('#zap-texto'); if (t) { t.value = c.entrou ? `Oi, ${c.resp}! ${c.nome} está aqui desde ${hora(c.entrou)} e ainda tem ${hm(restante(c))} no pacote.` : `Oi, ${c.resp}! O pacote de ${c.nome} está com ${hm(restante(c))}. Quer renovar?`; t.focus(); } },
+  avisar: el => { const c = crianca(el.dataset.id); let conv = S.conversas.find(x => x.crianca === c.id); if (!conv) { conv = { id: novoId(), crianca: c.id, lidas: true, msgs: [] }; S.conversas.push(conv); } S.zapAberta = conv.id; S.zapModo = 'papo'; S.zapDia = isoDia(agora); fecharFolha(); trocarTela('zap'); const t = $('#zap-texto'); if (t) { t.value = c.entrou ? `Oi, ${c.resp}! ${c.nome} está aqui desde ${hora(c.entrou)} e ainda tem ${hm(restante(c))} no pacote.` : `Oi, ${c.resp}! O pacote de ${c.nome} está com ${hm(restante(c))}. Quer renovar?`; t.focus(); } },
   rosto: el => { const c = crianca(el.dataset.id); c.rosto = true; toast(`${c.nome} mandada para o iDFace. Agora é só olhar para a câmera.`, () => { c.rosto = false; }); fecharFolha(); desenhar(); },
   editar: el => folhaCrianca(crianca(el.dataset.id)),
   nova: () => folhaCrianca(null),
@@ -934,6 +963,7 @@ const ACOES = {
   'ir-ajustes': () => { fecharFolha(); trocarTela('ajustes'); }, fechar: () => fecharFolha(),
   conversa: el => { const c = convDe(el.dataset.id); c.lidas = true; S.zapAberta = c.id; S.zapModo = 'papo'; desenhar(); $('.papo').animate([{ opacity: 0, transform: 'translateX(24px)' }, { opacity: 1, transform: 'none' }], { duration: 360, easing: 'cubic-bezier(.32,.72,0,1)' }); },
   'zap-lista': () => { S.zapModo = 'lista'; desenhar(); },
+  'zap-dia': el => { S.zapDia = el.dataset.dia; S.zapModo = 'lista'; desenhar(); const l = $('.conversas'); if (l) l.animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 320, easing: 'cubic-bezier(.32,.72,0,1)' }); },
   sugestao: el => { const t = $('#zap-texto'); t.value = el.textContent; t.focus(); t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; },
   enviar: () => { const t = $('#zap-texto'); enviar(t.value); toast('Enviado no WhatsApp'); },
   'dia-sel': el => { S.diaSel = el.dataset.dia; desenhar(); },
