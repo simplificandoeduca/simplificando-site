@@ -282,11 +282,16 @@ button.row:active{background:var(--ctl)}
 .gate .cc{margin:14px 6px 4px}
 @container (max-width:230px){.cc .no{display:none}.cc .nm{max-width:84%}.cc .lg{font-size:9px}}
 /* cartão inclinado em 3D (vitrine e login) */
-.cc.tilt{aspect-ratio:1.586;border-radius:12px;transform:perspective(900px) rotateX(12deg) rotateZ(-7deg);box-shadow:18px 26px 40px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.5)}
-.cc.tilt .chip{left:12%;top:26%;width:17%;border-radius:5px}
+.cc.tilt{aspect-ratio:1.586;border-radius:11px;transform:perspective(700px) rotateX(16deg) rotateY(-8deg) rotateZ(-8deg);box-shadow:14px 22px 34px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.55);background:linear-gradient(140deg,var(--ga) 0%,var(--gb) 70%,color-mix(in srgb,var(--gb) 70%,#000) 100%)}
+.cc.tilt::before{background:linear-gradient(120deg,rgba(255,255,255,.55) 0%,rgba(255,255,255,.1) 35%,rgba(255,255,255,0) 60%)}
+.cc.tilt .chip{left:12%;top:28%;width:15%;aspect-ratio:1.15;border-radius:4px;background:linear-gradient(135deg,#F7DC8F,#D9AE3C);box-shadow:inset 0 0 0 1px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.25)}
+.cc.tilt .chip::after{display:none}
 .cc.tilt.so .lg,.cc.tilt.so .nm,.cc.tilt.so .no{display:none}
-.tile{background:linear-gradient(180deg,#141c17,#0f1612);gap:8px;padding:14px 14px 14px}
-.tile .cc{width:68%;margin:14px auto 22px}
+.tile{background:radial-gradient(120% 70% at 50% 0%,color-mix(in srgb,var(--glow,#5AB8FF) 16%,transparent),transparent 70%),linear-gradient(180deg,#121a16,#0d1410);box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);border-radius:24px;gap:8px;padding:14px 14px 14px}
+.tile .cc{width:60%;margin:22px auto 30px}
+.tile .tag2{letter-spacing:.12em;font-size:10.5px}
+:root[data-theme="light"] .tile{background:radial-gradient(120% 70% at 50% 0%,color-mix(in srgb,var(--glow,#5AB8FF) 22%,transparent),transparent 70%),var(--card)}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]) .tile{background:radial-gradient(120% 70% at 50% 0%,color-mix(in srgb,var(--glow,#5AB8FF) 22%,transparent),transparent 70%),var(--card)}}
 .tile .cc.tilt.bright{--gb:var(--ga)}
 .gate .cc.tilt{margin:34px 26px 30px;width:auto}
 .gate .cc.tilt .nm{bottom:17%;font-size:clamp(13px,5cqw,18px);max-width:58%}
@@ -376,7 +381,7 @@ function logo(){
 $('#logo').innerHTML = logo(); document.querySelector('.top .mic').innerHTML = I.mic;
 
 /* ========== estado ========== */
-const FINV = '9 nov · 4'; // Versão do Finanças: 9 nov · 4
+const FINV = '9 nov · 5'; // Versão do Finanças: 9 nov · 5
 const DONO = { nome:'Eduardo Matias', iniciais:'EM' }; // perfil único desta página
 const LS = 'simplificando-financas', LST = 'simplificando-financas-tema';
 const CATS = ['Mercado', 'Comida', 'Transporte', 'Casa', 'Lazer', 'Saúde', 'Roupas', 'Assinaturas', 'Outros'];
@@ -541,7 +546,7 @@ function rResumo(){
   h += `<div class="hd" style="display:flex;align-items:center;gap:10px;padding:4px 2px 0"><h2 style="margin:0;font-size:19px;font-weight:900;letter-spacing:-.03em;flex:1">Meus cartões</h2><span class="pill">${esc(fmt(meus + doIrmao))}${doIrmao ? ' · ' + esc(S.irmao.nome) + ' ' + esc(fmt(doIrmao)) : ''}</span></div><div class="tiles">`;
   for (const c of S.cartoes) {
     const its = gm.filter(g => g.cartao === c.id), v = sum(its, g => g.valor), f = faturaDe(c);
-    h += `<button type="button" class="tile" data-a="ver-cartao" data-k="${c.id}"><span class="tag2">${c.tipo === 'conta' ? 'Conta' : 'Crédito'}</span>${ccHTML(c).replace('class="cc"', 'class="cc tilt so"')}<b>${esc(c.nome)}</b><div class="m"><span>${c.tipo === 'conta' ? 'Débito e Pix<br>no mês' : f ? 'Fatura fecha<br>dia ' + c.fecha : 'Gasto<br>no mês'}</span><em>${esc(fmt(f ? f.total : v))}</em></div></button>`;
+    h += `<button type="button" class="tile" style="--glow:var(--h${(c.cor ?? 7) % 8})" data-a="ver-cartao" data-k="${c.id}"><span class="tag2">${c.tipo === 'conta' ? 'Conta' : 'Crédito'}</span>${ccHTML(c).replace('class="cc"', 'class="cc tilt so"')}<b>${esc(c.nome)}</b><div class="m"><span>${c.tipo === 'conta' ? 'Débito e Pix<br>no mês' : f ? 'Fatura fecha<br>dia ' + c.fecha : 'Gasto<br>no mês'}</span><em>${esc(fmt(f ? f.total : v))}</em></div></button>`;
   }
   h += `<button type="button" class="tile novo" data-a="add-cartao-resumo">${I.plus}<span style="font-size:13px;font-weight:700">Novo cartão</span></button></div>`;
   h += `<p class="sub" style="text-align:center">${gm.length ? 'Toque num cartão para ver o extrato.' : 'Nenhum gasto em ' + esc(monthLabel(UI.mes)) + '. Toque no <b>+</b> para lançar.'}</p>`;
