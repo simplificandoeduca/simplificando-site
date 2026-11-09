@@ -85,7 +85,11 @@ svg { display: block; }
 }
 @media (min-width: 1360px) {
   .hoje { display: block; position: sticky; top: 0; height: 100vh; flex: none; width: 340px; padding: 18px max(18px, env(safe-area-inset-right, 0px)) 18px 0; }
-  .hoje > div { height: 100%; border-radius: 30px; background: var(--vidro); border: 1px solid var(--vidro-borda); box-shadow: var(--sombra); backdrop-filter: blur(20px); padding: 22px 18px; display: flex; flex-direction: column; gap: 14px; overflow: auto; }
+  .hoje > div { height: 100%; display: flex; flex-direction: column; gap: 14px; }
+  .hoje .painel { border-radius: 30px; background: var(--vidro); border: 1px solid var(--vidro-borda); box-shadow: var(--sombra); backdrop-filter: blur(20px); padding: 20px 18px; display: flex; flex-direction: column; gap: 12px; overflow: auto; min-height: 0; }
+  .hoje .painel.atividades { flex: none; max-height: 42%; }
+  .hoje .painel.recepcao { flex: 1; }
+  .hoje .painel .oficina { padding: 8px 12px; }
 }
 .barra { position: fixed; z-index: 20; left: 0; right: 0; bottom: 0; padding: 8px max(8px, env(safe-area-inset-right, 0px)) max(10px, env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px)); background: var(--vidro); border-top: 1px solid var(--vidro-borda); backdrop-filter: blur(20px); display: flex; justify-content: space-around; }
 .barra button { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10.5px; font-weight: 700; color: var(--tinta-2); padding: 6px 4px; border-radius: 14px; position: relative; flex: 1; max-width: 86px; }
@@ -127,6 +131,9 @@ svg { display: block; }
 .faixa .versao { display: inline-flex; align-items: center; gap: 6px; vertical-align: middle; margin-left: 10px; padding: 4px 10px 4px 9px; border-radius: 999px; background: var(--tinta); color: var(--creme); font: 800 11.5px/1.3 var(--display); letter-spacing: .04em; transform: translateY(-3px); white-space: nowrap; }
 .faixa .versao svg { width: 13px; height: 13px; }
 .faixa .versao.nova { background: var(--coral); color: #fff; }
+.faixa .relogio { display: inline-flex; align-items: baseline; margin-left: 14px; padding: 2px 12px 4px; border-radius: 12px; background: var(--menta); color: var(--tinta); font: 800 clamp(22px, 4vw, 30px)/1 var(--display); letter-spacing: -.01em; vertical-align: 2px; white-space: nowrap; }
+.faixa .relogio small { font: 700 13px/1 var(--texto); color: var(--tinta-2); margin-left: 2px; }
+@media (max-width: 560px) { .faixa .relogio { margin-left: 0; margin-top: 6px; } }
 .faixa .versao.nova svg { animation: gira 1.6s linear infinite; }
 .faixa .versao.ocupado svg { animation: gira .9s linear infinite; }
 @keyframes gira { to { transform: rotate(360deg); } }
@@ -549,7 +556,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.35';
+const VERSAO = '0.36';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -620,6 +627,7 @@ const S = {
   add(d(11), '15:00', 'Baleiro', 'oficina', 'Oficina do'); add(d(13), '15:00', 'Maçã de chocolate', 'oficina', 'Oficina de'); add(d(15), '11:00', 'Slime Fruit', 'oficina', 'Oficina de');
   add(d(15), '16:00', 'Aniversário da Alice, 8 anos', 'festa', 'Festa'); add(d(20), '10:00', 'Reunião com o shopping', 'compromisso', 'Compromisso'); add(d(22), '15:00', 'Pintura em tela (sem tinta!)', 'oficina', 'Oficina de');
   add(d(10), '09:00', 'Post: programação da semana 2', 'postagem', 'Postagem'); add(d(29), '15:00', 'Fashion Day · edição de verão', 'festa', 'Evento');
+  add(isoDia(agora), '15:00', 'Massinha caseira', 'oficina', 'Oficina de'); add(isoDia(agora), '10:00', 'Post: fotos da semana', 'postagem', 'Postagem');   // para a caixinha "Atividades do dia" da prévia
 })();
 const nomePacote = p => p.h === 1 ? 'Hora avulsa' : p.h + ' horas';
 const TIPOS = { oficina: ['Oficina', 'var(--coral)'], festa: ['Festa', 'var(--pessego)'], compromisso: ['Compromisso', 'var(--mostarda)'], postagem: ['Postagem', 'var(--verde-agua)'] };
@@ -874,7 +882,8 @@ function trocarTela(k, anima = true) {
   window.scrollTo({ top: 0 });
   if (anima) $('#miolo').animate([{ opacity: 0, transform: 'translateY(12px)' }, { opacity: 1, transform: 'none' }], { duration: 380, easing: 'cubic-bezier(.32,.72,0,1)' });
 }
-function faixa(titulo, sub, chip) { return `<div class="faixa"><span class="logo">${LOGO}</span><div class="tit"><small>${esc(sub)}</small><h1>${esc(titulo)}<button type="button" class="versao tap ${ATU.nova ? 'nova' : ''}" data-act="atualizar" title="${ATU.nova ? 'Nova versão ' + ATU.nova + ': toque para atualizar' : 'Versão ' + VERSAO + ': toque para conferir se há versão nova'}">${ic(IC.renova, 13, 2.6)} ${ATU.nova ? 'Atualizar para ' + esc(ATU.nova) : 'v' + VERSAO}</button></h1></div>${chip || ''}</div>`; }
+function faixa(titulo, sub, chip) { return `<div class="faixa"><span class="logo">${LOGO}</span><div class="tit"><small>${esc(sub)}</small><h1>${esc(titulo)}<button type="button" class="versao tap ${ATU.nova ? 'nova' : ''}" data-act="atualizar" title="${ATU.nova ? 'Nova versão ' + ATU.nova + ': toque para atualizar' : 'Versão ' + VERSAO + ': toque para conferir se há versão nova'}">${ic(IC.renova, 13, 2.6)} ${ATU.nova ? 'Atualizar para ' + esc(ATU.nova) : 'v' + VERSAO}</button><span class="relogio num" data-relogio title="Hora de agora">${relogioTxt()}</span></h1></div>${chip || ''}</div>`; }
+const relogioTxt = () => `${hora(agora)}<small>:${p2(agora.getSeconds())}</small>`;
 const telFmt = n => { const d = String(n || '').replace(/\D/, '').replace(/^55/, ''); return d.length >= 10 ? `(${d.slice(0, 2)}) ${d.length === 11 ? d[2] + ' ' + d.slice(3, 7) : d.slice(2, 6)}-${d.slice(-4)}` : d; };
 const chipWhats = () => { const w = S.whats || {}; return `<button class="chip suave tap" data-act="${supervisorOuMais() ? 'whats' : 'nada'}"><i class="pt ${w.conectado ? '' : 'off'}"></i>${w.conectado ? 'Conectado' + (w.numero ? ' · ' + telFmt(w.numero) : '') : (w.configurado ? 'WhatsApp desconectado' : 'WhatsApp não configurado')}</button>`; };
 const chipIdface = () => { const i = S.cfg.idface, ok = i.ligado && (MODO !== 'servidor' || i.ativo); return `<button class="chip suave tap" data-act="idface"><i class="pt ${ok ? '' : 'off'}"></i>${ic(IC.rosto, 16)} iDFace ${!i.ligado ? 'desligado' : (ok ? 'lendo' : 'sem contato')}</button>`; };
@@ -913,10 +922,14 @@ function telaHoras() {
   </section>
   <p class="rodape">${MODO === 'demo' ? 'Prévia com dados de exemplo · ' : ''}<b>Play Space Horas</b> v${VERSAO}</p>`;
 }
+const itemComp = (x, diaRef) => `<button class="oficina tap" data-act="comp" data-id="${x.id}"><i style="background:${TIPOS[x.tipo][1]}"></i><div class="txt"><small>${esc(x.sub || TIPOS[x.tipo][0])}</small><b>${esc(x.titulo)}</b></div><span class="q">${x.dia === diaRef ? x.hora : SEMANA[new Date(x.dia + 'T12:00').getDay()].slice(0, 3) + ' ' + +x.dia.slice(8) + ' · ' + x.hora}</span></button>`;
 function painelHoje() {
-  const regs = S.registros.filter(r => agora - r.h < 86400000);
-  return `<h2>Hoje na recepção</h2>${listaRegistros(regs)}
-  <button class="marca tap" data-act="idface">${ic(IC.rosto, 18)}<span>O iDFace leu <b>${regs.filter(r => r.tipo === 'ent' || r.tipo === 'sai').length} rostos</b> nas últimas 24 h. ${!S.cfg.idface.ligado ? 'Aparelho desligado em Ajustes.' : (MODO === 'servidor' ? (S.cfg.idface.ativo ? 'Aparelho conectado.' : 'Aparelho sem contato: toque para ver.') : 'Última leitura há poucos segundos.')}</span></button>`;
+  const regs = S.registros.filter(r => agora - r.h < 86400000), hojeStr = isoDia(agora);
+  const doDia = S.compromissos.filter(x => x.dia === hojeStr).sort((a, b) => a.hora.localeCompare(b.hora));
+  return `<div class="painel atividades"><div class="sec-cab"><h2>Atividades do dia</h2><button class="link tap" data-ir="agenda">Agenda</button></div>
+    ${doDia.length ? doDia.map(x => itemComp(x, hojeStr)).join('') : `<p class="explica">Nada marcado para hoje, ${SEMANA[agora.getDay()].toLowerCase()}, ${agora.getDate()} de ${MESES[agora.getMonth()]}.</p>`}</div>
+  <div class="painel recepcao"><h2>Hoje na recepção</h2>${listaRegistros(regs)}
+  <button class="marca tap" data-act="idface">${ic(IC.rosto, 18)}<span>O iDFace leu <b>${regs.filter(r => r.tipo === 'ent' || r.tipo === 'sai').length} rostos</b> nas últimas 24 h. ${!S.cfg.idface.ligado ? 'Aparelho desligado em Ajustes.' : (MODO === 'servidor' ? (S.cfg.idface.ativo ? 'Aparelho conectado.' : 'Aparelho sem contato: toque para ver.') : 'Última leitura há poucos segundos.')}</span></button></div>`;
 }
 const listaRegistros = regs => `<div class="reg">${regs.length ? regs.map(r => `<div class="ev ${r.tipo}"><time>${hora(r.h)}</time><div><b>${esc(r.nome)}</b><span>${esc(r.txt)}</span></div></div>`).join('') : '<p class="explica">Nada registrado ainda hoje.</p>'}</div>`;
 
@@ -1076,7 +1089,7 @@ function telaAgenda() {
   for (let d = 1; d <= dias; d++) { const dia = `${y}-${p2(m + 1)}-${p2(d)}`, its = doMes.filter(x => x.dia === dia); cel += `<button class="d tap ${dia === hojeStr ? 'hoje-d' : ''} ${dia === S.diaSel ? 'sel' : ''}" data-act="dia-sel" data-dia="${dia}" aria-label="${d} de ${MESES[m]}, ${its.length} itens">${d}<div class="pts">${its.slice(0, 3).map(x => `<em style="background:${TIPOS[x.tipo][1]}"></em>`).join('')}</div></button>`; }
   const sel = new Date(S.diaSel + 'T12:00'), doDia = S.compromissos.filter(x => x.dia === S.diaSel).sort((a, b) => a.hora.localeCompare(b.hora));
   const semana = (() => { const d0 = new Date(sel); d0.setDate(d0.getDate() - d0.getDay()); const d6 = new Date(d0); d6.setDate(d0.getDate() + 6); return S.compromissos.filter(x => x.dia >= isoDia(d0) && x.dia <= isoDia(d6) && x.dia !== S.diaSel).sort((a, b) => (a.dia + a.hora).localeCompare(b.dia + b.hora)); })();
-  const item = x => `<button class="oficina tap" data-act="comp" data-id="${x.id}"><i style="background:${TIPOS[x.tipo][1]}"></i><div class="txt"><small>${esc(x.sub || TIPOS[x.tipo][0])}</small><b>${esc(x.titulo)}</b></div><span class="q">${x.dia === S.diaSel ? x.hora : SEMANA[new Date(x.dia + 'T12:00').getDay()].slice(0, 3) + ' ' + +x.dia.slice(8) + ' · ' + x.hora}</span></button>`;
+  const item = x => itemComp(x, S.diaSel);
   return faixa('Agenda', 'Oficinas, festas e compromissos', `<button class="chip tap" data-act="novo-comp">${ic(IC.mais, 16, 2.6)} Novo</button>`) + `
   <div class="cards" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
     <div class="card"><div class="cal-cab"><h2>${MESES[m]} ${y}</h2><div class="nav"><button class="tap" data-act="mes" data-n="-1" aria-label="Mês anterior">${ic(IC.volta, 18)}</button><button class="tap" data-act="mes" data-n="0" aria-label="Hoje" style="width:auto;padding:0 10px;font-weight:800;font-size:13px">Hoje</button><button class="tap" data-act="mes" data-n="1" aria-label="Próximo mês">${ic(IC.vai, 18)}</button></div></div><div class="cal">${cel}</div>
@@ -1299,6 +1312,7 @@ document.addEventListener('keydown', e => {
 window.addEventListener('hashchange', () => { const h = location.hash.slice(1); if (ABAS.some(a => a[0] === h) && h !== S.tela) trocarTela(h); });
 setInterval(() => {
   agora.setTime(Date.now());
+  $$('[data-relogio]').forEach(el => { el.innerHTML = relogioTxt(); });
   $$('[data-cron]').forEach(el => { const c = crianca(el.dataset.cron); if (c && c.entrou) el.innerHTML = cronometro(c); });
   $$('[data-cron-txt]').forEach(el => { const c = crianca(el.dataset.cronTxt); if (c && c.entrou) el.textContent = hm(minDentro(c)); });
   $$('[data-horas]').forEach(el => { const c = crianca(el.dataset.horas); if (c && c.entrou) { const novo = document.createElement('div'); novo.innerHTML = blocos(c); el.replaceWith(novo.firstElementChild); } });
