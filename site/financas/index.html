@@ -280,6 +280,20 @@ button.row:active{background:var(--ctl)}
 .kp3 b{font-size:15px;font-weight:900;letter-spacing:-.03em;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.kp3 span{font-size:11px;color:var(--muted)}
 .row .ic{width:34px;height:34px;border-radius:12px;background:var(--ctl);display:flex;align-items:center;justify-content:center;font-size:16px;flex:none}
 .gate .cc{margin:14px 6px 4px}
+/* lista de cartões com miniatura (design C) */
+.rc{display:flex;align-items:center;gap:14px;padding:12px 16px;width:100%;border:0;background:none;color:var(--fg);text-align:left;font:inherit;min-height:66px}
+.rc+.rc{border-top:1px solid var(--sep)}
+button.rc:active{background:var(--ctl)}
+.rc .mini{width:58px;aspect-ratio:1.586;border-radius:7px;background:linear-gradient(140deg,var(--ga),var(--gb));position:relative;flex:none;box-shadow:0 4px 10px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.5)}
+.rc .mini::after{content:"";position:absolute;left:12%;top:30%;width:18%;aspect-ratio:1.15;border-radius:2px;background:linear-gradient(135deg,#F7DC8F,#D9AE3C)}
+.rc .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.rc .tx b{font-weight:800;font-size:15.5px;letter-spacing:-.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rc .tx span{font-size:12px;color:var(--muted);line-height:1.3}
+.rc .bar2{height:6px;border-radius:999px;background:var(--ctl);overflow:hidden;margin-top:3px;display:flex;gap:2px}.rc .bar2 i{display:block;height:100%;background:var(--gb);border-radius:999px}.rc .bar2 i.ir{opacity:.45}
+.rc .v{font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:-.03em;font-size:16px;text-align:right;white-space:nowrap}
+.rc .v small{display:block;font-size:11px;color:var(--muted);font-weight:600}
+.rc .chev{color:var(--muted)}.rc .chev .i{width:18px;height:18px}
+.rc.novo{color:var(--muted);font-weight:700;justify-content:center;gap:6px;min-height:54px}
 @container (max-width:230px){.cc .no{display:none}.cc .nm{max-width:84%}.cc .lg{font-size:9px}}
 /* cartão inclinado em 3D (vitrine e login) */
 .cc.tilt{aspect-ratio:1.586;border-radius:11px;transform:perspective(700px) rotateX(16deg) rotateY(-8deg) rotateZ(-8deg);box-shadow:14px 22px 34px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.55);background:linear-gradient(140deg,var(--ga) 0%,var(--gb) 70%,color-mix(in srgb,var(--gb) 70%,#000) 100%)}
@@ -381,7 +395,7 @@ function logo(){
 $('#logo').innerHTML = logo(); document.querySelector('.top .mic').innerHTML = I.mic;
 
 /* ========== estado ========== */
-const FINV = '9 nov · 5'; // Versão do Finanças: 9 nov · 5
+const FINV = '9 nov · 6'; // Versão do Finanças: 9 nov · 6
 const DONO = { nome:'Eduardo Matias', iniciais:'EM' }; // perfil único desta página
 const LS = 'simplificando-financas', LST = 'simplificando-financas-tema';
 const CATS = ['Mercado', 'Comida', 'Transporte', 'Casa', 'Lazer', 'Saúde', 'Roupas', 'Assinaturas', 'Outros'];
@@ -542,14 +556,16 @@ function rResumo(){
   if (rm.length) { h += `<div class="list" style="margin:0 -6px">`; for (const r of rm.slice().sort((a, b) => b.data.localeCompare(a.data))) h += `<button type="button" class="row" data-a="ed-receita" data-k="${r.id}"><span class="tx"><b>${esc(fonte(r.fonte).nome)}${r.obs ? ' · ' + esc(r.obs) : ''}</b><span>${esc(dayLabel(r.data))}</span></span><span class="val in">+${esc(fmt(r.valor))}</span></button>`; h += `</div>`; }
   else h += `<p class="sub">Nenhum recebimento lançado em ${esc(monthLabel(UI.mes))}.</p>`;
   h += `</div>`;
-  // cartões: vitrine (toque abre o extrato)
-  h += `<div class="hd" style="display:flex;align-items:center;gap:10px;padding:4px 2px 0"><h2 style="margin:0;font-size:19px;font-weight:900;letter-spacing:-.03em;flex:1">Meus cartões</h2><span class="pill">${esc(fmt(meus + doIrmao))}${doIrmao ? ' · ' + esc(S.irmao.nome) + ' ' + esc(fmt(doIrmao)) : ''}</span></div><div class="tiles">`;
+  // cartões: lista com miniatura (toque abre o extrato)
+  const totCart = Math.max(1, meus + doIrmao), n = esc(S.irmao.nome);
+  h += `<div class="card" style="padding:0;gap:0"><div class="hd" style="padding:18px 16px 8px"><h2>Meus cartões</h2><span class="pill">${esc(fmt(meus + doIrmao))}</span></div>`;
   for (const c of S.cartoes) {
-    const its = gm.filter(g => g.cartao === c.id), v = sum(its, g => g.valor), f = faturaDe(c);
-    h += `<button type="button" class="tile" style="--glow:var(--h${(c.cor ?? 7) % 8})" data-a="ver-cartao" data-k="${c.id}"><span class="tag2">${c.tipo === 'conta' ? 'Conta' : 'Crédito'}</span>${ccHTML(c).replace('class="cc"', 'class="cc tilt so"')}<b>${esc(c.nome)}</b><div class="m"><span>${c.tipo === 'conta' ? 'Débito e Pix<br>no mês' : f ? 'Fatura fecha<br>dia ' + c.fecha : 'Gasto<br>no mês'}</span><em>${esc(fmt(f ? f.total : v))}</em></div></button>`;
+    const its = gm.filter(g => g.cartao === c.id), v = sum(its, g => g.valor), vi = sum(its.filter(g => g.quem === 'irmao'), g => g.valor), f = faturaDe(c);
+    const sub = (c.tipo === 'conta' ? 'Débito e Pix' : 'Crédito' + (c.fecha ? ' · fecha dia ' + c.fecha : '')) + (vi ? ' · ' + n + ' ' + esc(fmt(vi)) : '');
+    h += `<button type="button" class="rc" data-a="ver-cartao" data-k="${c.id}" style="--ga:var(--g${(c.cor ?? 7) % 8});--gb:var(--h${(c.cor ?? 7) % 8})"><span class="mini"></span><span class="tx"><b>${esc(c.nome)}</b><span>${sub}</span><span class="bar2"><i style="width:${Math.round((v - vi) / totCart * 100)}%"></i>${vi ? `<i class="ir" style="width:${Math.round(vi / totCart * 100)}%"></i>` : ''}</span></span><span class="v">${esc(fmt(f ? f.total : v))}<small>${f ? 'fatura' : 'no mês'}</small></span><span class="chev">${I.chev}</span></button>`;
   }
-  h += `<button type="button" class="tile novo" data-a="add-cartao-resumo">${I.plus}<span style="font-size:13px;font-weight:700">Novo cartão</span></button></div>`;
-  h += `<p class="sub" style="text-align:center">${gm.length ? 'Toque num cartão para ver o extrato.' : 'Nenhum gasto em ' + esc(monthLabel(UI.mes)) + '. Toque no <b>+</b> para lançar.'}</p>`;
+  h += `<button type="button" class="rc novo" data-a="add-cartao-resumo">${I.plus}Novo cartão</button></div>`;
+  h += `<p class="sub" style="text-align:center">${gm.length ? 'Toque num cartão para ver o extrato. A barra mostra quanto cada um pesa no mês' + (doIrmao ? '; a parte clara é do ' + n : '') + '.' : 'Nenhum gasto em ' + esc(monthLabel(UI.mes)) + '. Toque no <b>+</b> para lançar.'}</p>`;
   $('#v-resumo').innerHTML = h;
 }
 
