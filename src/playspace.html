@@ -85,8 +85,8 @@ svg { display: block; }
 @keyframes espia-fab { 0%, 60%, 100% { transform: translateY(100%); } 66%, 84% { transform: translateY(14%); } 72% { transform: translateY(10%) rotate(-4deg); } 78% { transform: translateY(12%) rotate(4deg); } }
 .fab-ancora { display: contents; }
 @media (min-width: 820px) {
-  .fab-ancora { display: flex; justify-content: flex-end; position: sticky; bottom: 24px; z-index: 21; max-width: 1120px; width: 100%; margin: -58px auto 0; pointer-events: none; }
-  .fab-ancora .fab { position: relative; pointer-events: auto; }
+  .fab-ancora { display: flex; justify-content: flex-end; position: sticky; bottom: 24px; z-index: 21; max-width: 1120px; width: 100%; margin: 6px auto 0; pointer-events: none; }
+  .fab-ancora .fab { position: relative; inset: auto; pointer-events: auto; }   /* sem o deslocamento do celular, que o empurrava 88px para cima */
 }
 .fab-ancora[hidden] { display: none; }
 .toast { position: fixed; z-index: 60; left: 50%; bottom: calc(100px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 20px); background: var(--tinta); color: var(--creme); padding: 11px 18px; border-radius: 999px; font-weight: 700; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .3s, transform .45s var(--spring); max-width: calc(100% - 32px); text-align: center; display: flex; align-items: center; gap: 14px; }
@@ -367,6 +367,8 @@ span.av.g { font-size: 22px; } .simul span.av { font-size: 15px; }
 .escreve button { width: 44px; height: 44px; border-radius: 50%; background: var(--coral); color: #fff; display: flex; align-items: center; justify-content: center; flex: none; }
 @media (max-width: 899px) { .zap[data-modo="papo"] .conversas { display: none; } .zap[data-modo="lista"] .papo { display: none; } }
 
+body.so .trilho, body.so .hoje, body.so .barra { display: none !important; }
+body.so .conteudo { padding-left: 16px; padding-right: 16px; }
 /* ---------- entrar / primeiro acesso: o ursinho espia por trás do cartão e acompanha quem digita ---------- */
 .entrada-pagina { min-height: 70vh; display: flex; align-items: center; justify-content: center; padding: 90px 0 40px; }
 @property --sobe { syntax: '<length>'; inherits: true; initial-value: -58px; }
@@ -514,7 +516,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.31';
+const VERSAO = '0.32';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -647,7 +649,7 @@ function olharPara(inp, foco = false) { // o ursinho acompanha o cursor; o passa
 function ursoReage(como) { const card = $('.palco'); if (!card) return; card.classList.remove('nao', 'feliz'); void card.offsetWidth; card.classList.add(como); if (como === 'nao') setTimeout(() => card.classList.remove('nao'), 800); }
 const espera = ms => new Promise(r => setTimeout(r, ms));
 function telaSo(html) { // telas sem o menu (entrar, primeiro acesso)
-  $('#nav-lado').innerHTML = ''; $('#nav-baixo').innerHTML = ''; $('#hoje').innerHTML = ''; $('#fab-ancora').hidden = true;
+  document.body.classList.add('so'); $('#nav-lado').innerHTML = ''; $('#nav-baixo').innerHTML = ''; $('#hoje').innerHTML = ''; $('#fab-ancora').hidden = true;
   $('#miolo').innerHTML = `<div class="entrada-pagina"><div class="palco" data-olha="">${BICHOS_ENTRADA}<div class="card entrada-card sobe"><span class="logo-entrada">${LOGO}</span>${html}</div></div></div>`;
   setTimeout(() => { const i = $('#miolo input'); if (i) i.focus(); }, 50);
 }
@@ -873,7 +875,7 @@ function telaHoras() {
     ${tile('t-coral', 'acabando', 'Pacotes acabando', acabando, `menos de ${hm(S.cfg.aviso)} no banco`, 'relogio', 'acabando', acabando ? 'alerta' : '')}
   </div>
   <section class="sec"><div class="sec-cab"><h2><i style="background:var(--mostarda)"></i>Banco de horas</h2><button class="link tap" data-act="todas">Todas as crianças</button></div>
-    <div class="a-lista">${fora.map(c => `<div class="a-card">${anel(c)}</div>`).join('')}</div>
+    ${fora.length ? `<div class="a-lista">${fora.map(c => `<div class="a-card">${anel(c)}</div>`).join('')}</div>` : (S.criancas.length ? `<div class="card vazio"><b>Todo mundo está no espaço.</b><span>Quando uma criança sair, o banco de horas dela volta para cá.</span></div>` : `<button class="card vazio tap" data-act="nova" style="width:100%"><b>Nenhuma criança cadastrada ainda.</b><span>Toque aqui ou no botão <b style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:7px;background:var(--coral);color:#fff;font-size:15px;line-height:1;vertical-align:-4px">+</b> para cadastrar a primeira: nome, responsável, telefone e a foto para o iDFace.</span></button>`)}
   </section>
   <p class="rodape">${MODO === 'demo' ? 'Prévia com dados de exemplo · ' : ''}<b>Play Space Horas</b> v${VERSAO}</p>`;
 }
@@ -1124,7 +1126,7 @@ function folhaEquipe(u) {
 
 /* ---------- desenhar e reagir ---------- */
 function desenhar() {
-  nav();
+  document.body.classList.remove('so'); nav();
   $('#miolo').innerHTML = ({ horas: telaHoras, zap: telaZap, agenda: telaAgenda, ajustes: telaAjustes })[S.tela]();
   $('#hoje').innerHTML = painelHoje();
   $('#fab-ancora').hidden = S.tela !== 'horas';
