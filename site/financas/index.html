@@ -248,6 +248,39 @@ button.row:active{background:var(--ctl)}
 .perfil .tx{display:flex;flex-direction:column;gap:2px;min-width:0}
 .perfil .tx b{font-size:17px;font-weight:800;letter-spacing:-.02em}
 .perfil .tx span{font-size:12.5px;color:var(--muted)}
+/* cartão desenhado (igual ao print): reto, chip, etiqueta, nome e fechamento */
+:root{--g0:#FFB199;--g1:#BFE3FF;--g2:#FFD9A8;--g3:#D6B4FF;--g4:#D5FFB0;--g5:#FFF1A8;--g6:#FFC3DD;--g7:#F6F5EF;
+--h0:#FF4646;--h1:#4FA8F0;--h2:#FF9A2E;--h3:#7C3AED;--h4:#6FD13F;--h5:#E6B91C;--h6:#FF5FA2;--h7:#B9BDB6}
+.cc{position:relative;aspect-ratio:2.6;border-radius:18px;background:linear-gradient(135deg,var(--ga),var(--gb));box-shadow:0 14px 30px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.45);overflow:hidden;color:#0F1712;container-type:inline-size}
+.cc::before{content:"";position:absolute;inset:0;background:linear-gradient(115deg,rgba(255,255,255,.4) 0%,rgba(255,255,255,0) 45%,rgba(255,255,255,0) 60%,rgba(255,255,255,.15) 100%);pointer-events:none}
+.cc .chip{position:absolute;left:9%;top:24%;width:13%;aspect-ratio:1.25;border-radius:4px;background:linear-gradient(135deg,#f4d98a,#c9a23a);box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
+.cc .chip::after{content:"";position:absolute;inset:30% 20%;border:1px solid rgba(0,0,0,.25);border-radius:2px}
+.cc .lg{position:absolute;right:8%;top:16%;font-weight:900;font-size:clamp(9px,3.6cqw,13px);letter-spacing:.06em;text-transform:uppercase;opacity:.85}
+.cc .nm{position:absolute;left:9%;bottom:16%;font-weight:900;font-size:clamp(11px,4.6cqw,17px);letter-spacing:.03em;text-transform:uppercase;max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cc .no{position:absolute;right:8%;bottom:17%;font-weight:800;font-size:clamp(8px,3.2cqw,12px);letter-spacing:.12em;text-transform:uppercase;opacity:.75}
+.cc.dark{--ga:#1b2a20;--gb:#0F1712;color:#F6F5EF;box-shadow:0 20px 40px rgba(0,0,0,.5),inset 0 0 0 1px rgba(200,245,66,.35)}
+.cc.dark .lg{color:var(--lime);opacity:1}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (min-width:560px){.tiles{grid-template-columns:repeat(3,1fr)}}
+.tile{background:var(--card);border-radius:22px;padding:14px 14px 12px;box-shadow:inset 0 0 0 1px var(--card-line);display:flex;flex-direction:column;gap:10px;border:0;color:var(--fg);text-align:left;font:inherit;min-width:0;transition:transform .2s var(--spring)}
+.tile:active{transform:scale(.97)}
+.tile .tag2{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.tile .cc{margin:2px 0}
+.tile b{font-size:16px;font-weight:900;letter-spacing:-.03em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tile .m{display:flex;justify-content:space-between;align-items:flex-end;gap:8px}
+.tile .m span{font-size:12px;color:var(--muted);line-height:1.3}
+.tile .m em{font-style:normal;font-weight:900;font-variant-numeric:tabular-nums;font-size:15px;white-space:nowrap}
+.tile.novo{justify-content:center;align-items:center;color:var(--muted);min-height:170px;border:1.5px dashed var(--sep);box-shadow:none;background:transparent;gap:4px}
+.tile.novo .i{width:28px;height:28px}
+.xhd{display:flex;align-items:center;gap:10px}
+.xhd .back{border:0;background:var(--ctl);color:var(--ctl-fg);width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none}
+.xhd h2{margin:0;font-size:20px;font-weight:900;letter-spacing:-.03em;flex:1}
+.kp3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.kp3 div{background:var(--card);box-shadow:inset 0 0 0 1px var(--card-line);border-radius:16px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.kp3 b{font-size:15px;font-weight:900;letter-spacing:-.03em;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.kp3 span{font-size:11px;color:var(--muted)}
+.row .ic{width:34px;height:34px;border-radius:12px;background:var(--ctl);display:flex;align-items:center;justify-content:center;font-size:16px;flex:none}
+.gate .cc{margin:14px 6px 4px}
+@container (max-width:230px){.cc .no{display:none}.cc .nm{max-width:84%}.cc .lg{font-size:9px}}
 </style>
 </head>
 <body>
@@ -332,7 +365,7 @@ function logo(){
 $('#logo').innerHTML = logo(); document.querySelector('.top .mic').innerHTML = I.mic;
 
 /* ========== estado ========== */
-const FINV = '9 nov · 2'; // Versão do Finanças: 9 nov · 2
+const FINV = '9 nov · 3'; // Versão do Finanças: 9 nov · 3
 const DONO = { nome:'Eduardo Matias', iniciais:'EM' }; // perfil único desta página
 const LS = 'simplificando-financas', LST = 'simplificando-financas-tema';
 const CATS = ['Mercado', 'Comida', 'Transporte', 'Casa', 'Lazer', 'Saúde', 'Roupas', 'Assinaturas', 'Outros'];
@@ -360,12 +393,15 @@ const ls = { get(k){ try { return localStorage.getItem(k); } catch(e){ return nu
 try { S = normalize(JSON.parse(ls.get(LS) || 'null')); } catch(e){ S = fresh(); }
 const theme = ls.get(LST); if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
 
-const UI = { tab:'resumo', mes:nowKey(), fCart:'', fQuem:'' };
+const UI = { tab:'resumo', mes:nowKey(), fCart:'', fQuem:'', cartao:'', xQuem:'' };
 const cartao = id => S.cartoes.find(c => c.id === id) || { id, nome:'(cartão apagado)', cor:7, tipo:'credito' };
 const fonte = id => S.fontes.find(f => f.id === id) || { id, nome:'(fonte apagada)' };
 const swOf = c => 'var(--c' + ((c.cor ?? 7) % 8) + ')';
 const inMes = x => (x.data || '').slice(0, 7) === UI.mes;
 const gastosMes = () => S.gastos.filter(inMes);
+const ccHTML = (c, extra) => `<div class="cc" style="--ga:var(--g${(c.cor ?? 7) % 8});--gb:var(--h${(c.cor ?? 7) % 8})"><div class="chip"></div><div class="lg">${c.tipo === 'conta' ? 'Conta' : 'Crédito'}</div><div class="nm">${esc(c.nome.replace(/\s*\(.*?\)\s*/g, ' ').trim())}</div><div class="no">${extra || (c.tipo === 'conta' ? 'Débito · Pix' : c.fecha ? 'Fecha dia ' + c.fecha : '')}</div></div>`;
+const EMO = { mercado:'🛒', comida:'🍔', transporte:'🚗', casa:'🏠', lazer:'🎉', saude:'💊', roupas:'👕', assinaturas:'📺', outros:'💳' };
+const emoji = g => EMO[String(g.cat || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()] || (g.fixo ? '🔁' : '💳');
 const needsSetup = () => S.fontes.some(f => /^Emprego \d$/.test(f.nome)) || S.cartoes.some(c => /^Cartão \d$/.test(c.nome));
 
 /* ========== nuvem ========== */
@@ -453,9 +489,9 @@ function render(){
   $('#mlab').textContent = monthLabel(UI.mes);
   $('#mlab').classList.toggle('hoje', UI.mes === nowKey());
   $('#mnav').hidden = UI.tab === 'ajustes';
-  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.k === UI.tab));
-  for (const k of ['resumo', 'gastos', 'irmao', 'ajustes']) $('#v-' + k).hidden = k !== UI.tab;
-  ({ resumo:rResumo, gastos:rGastos, irmao:rIrmao, ajustes:rAjustes })[UI.tab]();
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.k === UI.tab || (UI.tab === 'cartao' && t.dataset.k === 'resumo')));
+  for (const k of ['resumo', 'gastos', 'irmao', 'ajustes']) $('#v-' + k).hidden = k !== UI.tab && !(k === 'resumo' && UI.tab === 'cartao');
+  ({ resumo:rResumo, gastos:rGastos, irmao:rIrmao, ajustes:rAjustes, cartao:rCartao })[UI.tab]();
 }
 
 function rResumo(){
@@ -490,13 +526,38 @@ function rResumo(){
   if (rm.length) { h += `<div class="list" style="margin:0 -6px">`; for (const r of rm.slice().sort((a, b) => b.data.localeCompare(a.data))) h += `<button type="button" class="row" data-a="ed-receita" data-k="${r.id}"><span class="tx"><b>${esc(fonte(r.fonte).nome)}${r.obs ? ' · ' + esc(r.obs) : ''}</b><span>${esc(dayLabel(r.data))}</span></span><span class="val in">+${esc(fmt(r.valor))}</span></button>`; h += `</div>`; }
   else h += `<p class="sub">Nenhum recebimento lançado em ${esc(monthLabel(UI.mes))}.</p>`;
   h += `</div>`;
-  // cartões
-  h += `<div class="card"><div class="hd"><h2>Gasto por cartão</h2><span class="pill">${esc(fmt(meus + doIrmao))}${doIrmao ? ' · ' + esc(S.irmao.nome) + ' ' + esc(fmt(doIrmao)) : ''}</span></div><div class="bars">`;
+  // cartões: vitrine (toque abre o extrato)
+  h += `<div class="hd" style="display:flex;align-items:center;gap:10px;padding:4px 2px 0"><h2 style="margin:0;font-size:19px;font-weight:900;letter-spacing:-.03em;flex:1">Meus cartões</h2><span class="pill">${esc(fmt(meus + doIrmao))}${doIrmao ? ' · ' + esc(S.irmao.nome) + ' ' + esc(fmt(doIrmao)) : ''}</span></div><div class="tiles">`;
   for (const c of S.cartoes) {
-    const its = gm.filter(g => g.cartao === c.id), v = sum(its, g => g.valor), vi = sum(its.filter(g => g.quem === 'irmao'), g => g.valor), f = faturaDe(c);
-    h += `<button type="button" class="bar" style="--sw:${swOf(c)}" data-a="ver-cartao" data-k="${c.id}"><div class="l"><span class="sw" style="width:10px;height:10px;border-radius:50%;background:var(--sw);flex:none"></span><b>${esc(c.nome)}</b><span class="v">${esc(fmt(v))}${vi ? `<small>${esc(S.irmao.nome)} ${esc(fmt(vi))}</small>` : ''}</span></div><div class="t"><i style="width:${Math.round((v - vi) / maxC * 100)}%"></i>${vi ? `<i class="ir" style="width:${Math.round(vi / maxC * 100)}%"></i>` : ''}</div>${f ? `<span class="n">Fatura que fecha em ${esc(shortDate(f.fim))}: <b>${esc(fmt(f.total))}</b> (${esc(shortDate(f.ini))} a ${esc(shortDate(f.fim))})</span>` : ''}</button>`;
+    const its = gm.filter(g => g.cartao === c.id), v = sum(its, g => g.valor), f = faturaDe(c);
+    h += `<button type="button" class="tile" data-a="ver-cartao" data-k="${c.id}"><span class="tag2">${c.tipo === 'conta' ? 'Conta' : 'Crédito'}</span>${ccHTML(c)}<b>${esc(c.nome)}</b><div class="m"><span>${c.tipo === 'conta' ? 'Débito e Pix<br>no mês' : f ? 'Fatura fecha<br>dia ' + c.fecha : 'Gasto<br>no mês'}</span><em>${esc(fmt(f ? f.total : v))}</em></div></button>`;
   }
-  h += `</div><p class="sub">${gm.length ? gm.length + (gm.length === 1 ? ' gasto lançado' : ' gastos lançados') + ' no mês. A parte clara da barra é do ' + esc(S.irmao.nome) + '.' : 'Nenhum gasto em ' + esc(monthLabel(UI.mes)) + '. Toque no <b>+</b> para lançar.'}</p></div>`;
+  h += `<button type="button" class="tile novo" data-a="add-cartao-resumo">${I.plus}<span style="font-size:13px;font-weight:700">Novo cartão</span></button></div>`;
+  h += `<p class="sub" style="text-align:center">${gm.length ? 'Toque num cartão para ver o extrato.' : 'Nenhum gasto em ' + esc(monthLabel(UI.mes)) + '. Toque no <b>+</b> para lançar.'}</p>`;
+  $('#v-resumo').innerHTML = h;
+}
+
+function rCartao(){
+  const c = cartao(UI.cartao), its0 = gastosMes().filter(g => g.cartao === c.id), f = faturaDe(c), n = esc(S.irmao.nome);
+  const tot = sum(its0, g => g.valor), meu = sum(its0.filter(g => g.quem !== 'irmao'), g => g.valor), ir = tot - meu;
+  let its = UI.xQuem ? its0.filter(g => (g.quem === 'irmao' ? 'irmao' : 'eu') === UI.xQuem) : its0;
+  its.sort((a, b) => b.data.localeCompare(a.data) || (b.cr || 0) - (a.cr || 0));
+  let h = `<div class="xhd"><button type="button" class="back" data-a="tab" data-k="resumo" aria-label="Voltar">${I.back}</button><h2>${esc(c.nome)}</h2><span class="pill">${esc(monthLabel(UI.mes))}</span></div>`;
+  h += ccHTML(c, f ? 'Fecha dia ' + c.fecha : undefined);
+  h += `<div class="kp3"><div><b>${esc(fmt(tot))}</b><span>No mês</span></div><div><b>${esc(fmt(meu))}</b><span>Meu</span></div><div><b>${esc(fmt(ir))}</b><span>${n}</span></div></div>`;
+  if (tot) h += `<div class="bar" style="--sw:var(--c${(c.cor ?? 7) % 8})"><div class="t"><i style="width:${Math.round(meu / tot * 100)}%"></i>${ir ? `<i class="ir" style="width:${Math.round(ir / tot * 100)}%"></i>` : ''}</div></div>`;
+  if (f) h += `<p class="sub">Fatura que fecha em ${esc(shortDate(f.fim))}: <b>${esc(fmt(f.total))}</b> (${esc(shortDate(f.ini))} a ${esc(shortDate(f.fim))})${f.irmao ? ' · ' + n + ' ' + esc(fmt(f.irmao)) : ''}</p>`;
+  h += `<div class="seg"><button type="button" class="${!UI.xQuem ? 'on' : ''}" data-a="x-quem" data-k="">Tudo</button><button type="button" class="${UI.xQuem === 'eu' ? 'on' : ''}" data-a="x-quem" data-k="eu">Meus</button><button type="button" class="${UI.xQuem === 'irmao' ? 'on' : ''}" data-a="x-quem" data-k="irmao">${n}</button></div>`;
+  if (!its.length) h += `<div class="list"><div class="empty"><b>Nada neste cartão</b><span>Nenhum gasto em ${esc(monthLabel(UI.mes))}${UI.xQuem ? ' com esse filtro' : ''}.</span></div></div>`;
+  else {
+    h += `<div class="list">`; let dia = '';
+    for (const g of its) {
+      if (g.data !== dia) { dia = g.data; h += `<div class="gh"><span>${esc(dayLabel(dia))}</span><b>${esc(fmt(sum(its.filter(x => x.data === dia), x => x.valor)))}</b></div>`; }
+      h += `<button type="button" class="row" data-a="ed-gasto" data-k="${g.id}"><span class="ic">${emoji(g)}</span><span class="tx"><b>${esc(g.desc || g.cat || 'Gasto')}</b><span>${esc(g.cat || '')}${g.parc ? ' · ' + esc(g.parc) : ''}${g.fixo ? ' · fixo' : ''}</span></span>${g.quem === 'irmao' ? `<span class="tag">${n}</span>` : ''}<span class="val">${esc(fmt(g.valor))}</span></button>`;
+    }
+    h += `</div>`;
+  }
+  h += `<button type="button" class="btn primary wide" data-a="novo-gasto-cartao" data-k="${c.id}">${I.plus}Lançar neste cartão</button>`;
   $('#v-resumo').innerHTML = h;
 }
 
@@ -953,7 +1014,10 @@ document.addEventListener('click', ev => {
   if (a === 'ed-pag') { const x = S.pagamentos.find(y => y.id === k); if (x) sheetPag(x); }
   if (a === 'cobranca') sheetCobranca();
   if (a === 'zap') window.open(zapURL(textoCobranca()), '_blank', 'noopener');
-  if (a === 'ver-cartao') { UI.tab = 'gastos'; UI.fCart = k; UI.fQuem = ''; window.scrollTo({ top:0 }); render(); }
+  if (a === 'ver-cartao') { UI.tab = 'cartao'; UI.cartao = k; UI.xQuem = ''; window.scrollTo({ top:0 }); render(); }
+  if (a === 'x-quem') { UI.xQuem = k; render(); }
+  if (a === 'novo-gasto-cartao') sheetGasto({ cartao:k });
+  if (a === 'add-cartao-resumo') { UI.tab = 'ajustes'; S.cartoes.push({ id:uid(), nome:'Novo cartão', cor:S.cartoes.length % 8, tipo:'credito', fecha:null }); save(); window.scrollTo({ top:0 }); render(); toast('Cartão criado. Dê o nome e a cor aqui embaixo.'); }
   if (a === 'f-cart') { UI.fCart = k; render(); }
   if (a === 'f-quem') { UI.fQuem = k; render(); }
   if (a === 'scroll') { const el = $('#sec-rec'); if (el) el.scrollIntoView({ behavior:'smooth', block:'start' }); }
@@ -1014,7 +1078,7 @@ function gate(){
   function open(){
     g.hidden = false; document.body.classList.add('locked');
     g.innerHTML = `<div class="gate-in"><span class="gate-logo">${logo()}</span><p class="gate-eb">Simplificando · área pessoal</p><h1>Finanças<span class="pt"></span></h1>
-      <div class="perfil"><span class="av">${DONO.iniciais}</span><span class="tx"><b>${esc(DONO.nome)}</b><span>${st.first ? 'Dono · perfil único · primeiro acesso' : 'Dono · perfil único'}</span></span></div>
+      <div class="cc dark"><div class="chip"></div><div class="lg">R$</div><div class="nm">${esc(DONO.nome)}</div><div class="no">${st.first ? 'Primeiro acesso' : 'Perfil único'}</div></div>
       <p class="gate-sub">${st.first ? 'Crie o e-mail e a senha de ' + esc(DONO.nome) + '. Este é o único perfil da página: depois de criado, ninguém mais consegue entrar.' : 'Entre com o e-mail e a senha de ' + esc(DONO.nome) + '.'}</p>
       <form novalidate><label>E-mail<span class="gate-f"><input id="g-u" type="email" inputmode="email" autocomplete="username" autocapitalize="off" spellcheck="false" value="${esc(ls.get('simplificando-financas-mail') || '')}" required></span></label>
       <label>Senha<span class="gate-f"><input id="g-p" type="password" autocomplete="${st.first ? 'new-password' : 'current-password'}" required><button type="button" class="gate-eye" data-gate="eye" aria-label="Mostrar senha">${I.eye}</button></span></label>
