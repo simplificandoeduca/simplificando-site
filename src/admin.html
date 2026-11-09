@@ -569,7 +569,12 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeri
 .ev2-rec{align-self:flex-start;font-style:normal;font-size:11px;font-weight:800;background:#FF9A3C;color:#0F1712;padding:2px 8px;border-radius:99px}
 .ev2-sp{width:120px;height:34px}
 .ev2-ckw{overflow-x:auto}.ev2-ck{width:100%;border-collapse:separate;border-spacing:4px;font-size:13px;text-align:center}.ev2-ck th{font-size:12px;color:var(--muted);font-weight:800}.ev2-ck tbody th{text-align:left;color:var(--fg)}
-.ev2-ck td{background:var(--ctl);border-radius:9px;padding:7px 4px;font-weight:700}.ev2-ck td.bad{background:#FDE1DD;color:#8C1D12}.ev2-ck td.n{color:var(--muted);background:transparent}
+.ev2-ck td{background:var(--ctl);border-radius:10px;padding:8px 4px;font-weight:800;white-space:nowrap}.ev2-ck td.n{color:var(--muted);background:transparent;font-weight:700}
+.ev2-ck{table-layout:fixed;min-width:600px}.ev2-ck th:first-child{width:118px}
+.ev2-ck td.ok{background:#DDF3E3;color:#1E6B34}.ev2-ck td.mid{background:#FFF0C2;color:#7A5A00}.ev2-ck td.bad{background:#FDE1DD;color:#8C1D12}
+.ev2-ck td.hj{box-shadow:inset 0 0 0 2px var(--brand)}.ev2-ck td.n.hj{box-shadow:inset 0 0 0 1.5px var(--sep)}.ev2-ck th.hj{color:var(--brand)}
+.ck-l{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}.ck-l i{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;color:#fff;flex:none}.ck-l .i{width:15px;height:15px}
+.ev2-ckleg{margin:0;display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;font-weight:700;color:var(--muted)}.ev2-ckleg span{display:inline-flex;align-items:center;gap:6px}.ev2-ckleg i{width:12px;height:12px;border-radius:4px}.ev2-ckleg .ok{background:#8ED6A4}.ev2-ckleg .mid{background:#F2C94C}.ev2-ckleg .bad{background:#F09A8E}
 .ev2-msgs{display:flex;flex-direction:column;gap:10px}.ev2-m{padding:12px 14px;border-radius:16px;background:var(--ctl)}.ev2-m span{font-size:12px;font-weight:700;color:var(--muted)}.ev2-m p{margin:4px 0 0;font-size:15px;line-height:1.45}
 .ev2-hs{display:flex;flex-direction:column;gap:8px}.ev2-h{border-radius:18px;background:var(--card);border:1px solid var(--card-line);padding:12px 14px}
 .ev2-h summary{list-style:none;display:flex;align-items:center;gap:12px;cursor:pointer}.ev2-h summary::-webkit-details-marker{display:none}
@@ -2628,9 +2633,11 @@ function tEvol(a){
   // 6. check-in dos últimos 7 dias
   const ck7 = Array.from({length:7},(_,i) => addDays(t0, i-6));
   if(ck7.some(k => K[k])){
-    const cel = (k,f) => { const c = K[k]; if(!c) return '<td class="n">·</td>'; const v = +c[f], bad = f==='sono' ? v<=5 : f==='energia' ? v<=2 : v>=2; return '<td class="'+(bad?'bad':'')+'">'+(f==='sono' ? v+'h' : f==='dor' ? ['nenhuma','leve','média','forte'][v]||v : v+'/5')+'</td>'; };
-    h += '<h3 class="sec">Check-in (sono, energia e dor)</h3><section class="card"><div class="ev2-ckw"><table class="ev2-ck"><thead><tr><th></th>'+ck7.map(k => '<th>'+(k===t0?'hoje':dSem(k))+'</th>').join('')+'</tr></thead><tbody>'+
-      [['sono','Sono'],['energia','Energia'],['dor','Dor']].map(([f,l]) => '<tr><th>'+l+'</th>'+ck7.map(k => cel(k,f)).join('')+'</tr>').join('')+'</tbody></table></div><p class="foot">Em vermelho: sono de 5h ou menos, energia 2 ou menos, dor média ou forte.</p></section>';
+    // verde = bom, amarelo = atenção, vermelho = ruim
+    const nv = (f,v) => f==='sono' ? (v>=7 ? 'ok' : v>=6 ? 'mid' : 'bad') : f==='energia' ? (v>=4 ? 'ok' : v>=3 ? 'mid' : 'bad') : (v<=0 ? 'ok' : v===1 ? 'mid' : 'bad');
+    const cel = (k,f) => { const c = K[k]; if(!c || c[f]==null) return '<td class="n'+(k===t0?' hj':'')+'">·</td>'; const v = +c[f]; return '<td class="'+nv(f,v)+(k===t0?' hj':'')+'">'+(f==='sono' ? v+'h' : f==='dor' ? ['nenhuma','leve','média','forte'][v]||v : v+'/5')+'</td>'; };
+    h += '<h3 class="sec">Check-in (sono, energia e dor)</h3><section class="card"><div class="ev2-ckw"><table class="ev2-ck"><thead><tr><th></th>'+ck7.map(k => '<th'+(k===t0?' class="hj"':'')+'>'+(k===t0?'hoje':dSem(k))+'</th>').join('')+'</tr></thead><tbody>'+
+      [['sono','Sono','moon','#7E57C9'],['energia','Energia','bolt','#E57A1E'],['dor','Dor','heart','#D63B3B']].map(([f,l,icn,cor]) => '<tr><th><span class="ck-l"><i style="background:'+cor+'">'+ic(icn)+'</i>'+l+'</span></th>'+ck7.map(k => cel(k,f)).join('')+'</tr>').join('')+'</tbody></table></div><p class="ev2-ckleg"><span><i class="ok"></i>Bom</span><span><i class="mid"></i>Atenção</span><span><i class="bad"></i>Ruim</span></p><p class="foot">Sono: 7h ou mais é bom, 6h atenção, 5h ou menos ruim. Energia: 4 ou 5 bom, 3 atenção, 1 ou 2 ruim. Dor: nenhuma, leve ou média/forte.</p></section>';
   }
 
   // 7. mensagens
@@ -2833,7 +2840,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '9 nov · 84'; // Versão do painel: 9 nov · 84
+const PAINELV = '9 nov · 85'; // Versão do painel: 9 nov · 85
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
