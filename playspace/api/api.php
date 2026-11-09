@@ -51,7 +51,7 @@ function dados(array $eu): array {
   require_once __DIR__ . '/idface-lib.php';
   return ['criancas' => array_values($criancas), 'registros' => $registros, 'conversas' => array_values($conversas), 'compromissos' => $compromissos, 'regra' => regra(),
     'vendas_hoje' => ['n' => (int)$vh['n'], 'horas' => (int)$vh['h'], 'valor' => (float)$vh['v']], 'equipe' => $equipe, 'eu' => $eu, 'versao' => PLAY_VERSAO,
-    'idface' => idfaceEstado(), 'whats' => whatsResumo(), 'agora' => agora()];
+    'idface' => idfaceEstado(), 'whats' => whatsResumo(), 'agora' => agora(), 'exemplo' => ($ex = cfg('exemplo', null)) && is_array($ex) ? count($ex['criancas'] ?? []) : 0];
 }
 function whatsResumo(): array { $c = whatsCfg(); return ['conectado' => whatsPronto($c), 'numero' => $c['numero'], 'nome' => $c['nome'], 'configurado' => $c['chave'] !== '']; }
 function podeAjustar(array $u): void { if ($u['papel'] !== 'gestor') falha('Só o gestor mexe nos ajustes.', 403); }
@@ -274,6 +274,10 @@ switch ($acao) {
     if ($c['idface_id'] !== null && $c['foto'] !== '') gravarCfg('foto_' . $c['id'], (int)$c['idface_id']); else gravarCfg('mandar_' . $c['id'], (int)$c['id']);
     responder();
   }
+  case 'exemplos_carregar': { // 10 crianças de exemplo, 5 no espaço, conversas e agenda, para conhecer o sistema
+    $u = exigir(); podeAjustar($u); require_once __DIR__ . '/exemplos.php'; responder(exemplosCarregar((int)$u['id']));
+  }
+  case 'exemplos_apagar': { $u = exigir(); podeAjustar($u); require_once __DIR__ . '/exemplos.php'; exemplosApagar(); responder(); }
   case 'idface_simular': { // para testar sem o aparelho: como se a criança tivesse olhado para a câmera
     $u = exigir(['gestor', 'supervisor']); $c = crianca((int)($in['id'] ?? 0)); if (!$c) falha('Criança não encontrada.', 404);
     if ($c['entrou']) responder(['resultado' => 'saída'] + fazerSaida($c, 'simulação'));

@@ -16,6 +16,12 @@ Os dados ficam fora da pasta pública, em `~/playspace-dados/` (criada sozinha n
 2. Abra `https://seusite.com.br/playspace/`. Como ainda não há ninguém cadastrado, aparece **"Bem-vinda ao Play Space"**: crie a conta da gestora (nome, login curto, senha de 6+ caracteres). Pronto, está dentro.
 3. Dali em diante, **Atualizar** no topo da tela baixa as versões novas direto do GitHub. Só a gestora ou a supervisora veem o botão.
 
+## 2b. Dados de exemplo (Ajustes → Dados de exemplo)
+
+Para a equipe conhecer o sistema antes de usar de verdade, a gestora pode **Carregar dados de exemplo**: 10 crianças fictícias (5 no espaço agora, com o tempo correndo), banco de horas em vários estados (em dia, acabando, acabou, sem foto), vendas e registros do dia, conversas no WhatsApp de hoje e de ontem (com perguntas das famílias ainda sem resposta) e compromissos na agenda. Nada vai para o iDFace nem para o WhatsApp.
+
+Quando for começar de verdade, **Apagar os exemplos** no mesmo lugar tira tudo isso e deixa só os cadastros reais. O link também aparece no banco de horas enquanto não há nenhuma criança cadastrada.
+
 ## 3. Equipe e papéis (Ajustes → Equipe)
 
 | Papel | O que faz |
