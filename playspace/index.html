@@ -186,17 +186,23 @@ svg { display: block; }
 .pers.troca svg { animation: pula .7s var(--spring); }
 .pers.troca .placa { animation: vira .7s var(--ios); }
 /* o ursinho: de vez em quando levanta a cabeça para olhar a placa, que balança; e pisca */
-.pers .cabeca { transform-box: view-box; transform-origin: 34px 64px; animation: olha 8s ease-in-out infinite; }
-.pers .braco { transform-box: view-box; transform-origin: 46px 74px; animation: empurra 8s ease-in-out infinite; }
-.pers[data-pers="dentro"] .placa { transform-origin: 20% 100%; animation: placa-balanca 8s ease-in-out infinite, numero-pula 8s ease-in-out infinite; }
-.pers .olhos { transform-box: fill-box; transform-origin: center; animation: pisca-olho 8s ease-in-out infinite; }
-.pers .placa-svg { transform-box: view-box; transform-origin: 62px 56px; animation: placa-balanca 8s ease-in-out infinite; }
+.pers[data-pers="dentro"] { overflow: hidden; }
+.pers .escalador { transform-box: view-box; animation: escala 11s ease-in-out infinite; }
+.pers .pata.a { animation: puxa .6s steps(1) infinite; } .pers .pata.b { animation: puxa .6s steps(1) infinite reverse; }
+.pers .cabeca { transform-box: view-box; transform-origin: 85px 84px; animation: olha 11s ease-in-out infinite; }
+.pers .corda { transform-box: view-box; transform-origin: 85px 56px; animation: corda 11s ease-in-out infinite; }
+.pers[data-pers="dentro"] .placa { transform-origin: 20% 100%; animation: placa-balanca 11s ease-in-out infinite, numero-pula 11s ease-in-out infinite; }
+.pers .olhos { transform-box: fill-box; transform-origin: center; animation: pisca-olho 11s ease-in-out infinite; }
+.pers .placa-svg { transform-box: view-box; transform-origin: 62px 56px; animation: placa-balanca 11s ease-in-out infinite; }
 .pers.troca .placa { animation: vira .7s var(--ios); }
-@keyframes olha { 0%, 56%, 84%, 100% { transform: translateY(0) rotate(0); } 62%, 78% { transform: translateY(-5px) rotate(11deg); } }
-@keyframes empurra { 0%, 62%, 76%, 100% { transform: rotate(0); } 67% { transform: rotate(-14deg) translateY(-3px); } 70% { transform: rotate(4deg); } }
-@keyframes numero-pula { 0%, 66%, 80%, 100% { translate: 0 0; } 69% { translate: 0 -6px; } 73% { translate: 0 2px; } }
-@keyframes pisca-olho { 0%, 30%, 33%, 70%, 73%, 100% { transform: scaleY(1); } 31.5%, 71.5% { transform: scaleY(.1); } }
-@keyframes placa-balanca { 0%, 64%, 86%, 100% { transform: rotate(0); } 69% { transform: rotate(-9deg); } 75% { transform: rotate(6deg); } 80% { transform: rotate(-3deg); } 83% { transform: rotate(1.5deg); } }
+/* 11 s: espera embaixo (0-8%), escala (8-44%), olha o número (44-64%), escorrega (64-72%), espera (72-100%) */
+@keyframes escala { 0%, 8% { transform: translateY(46px); } 44%, 64% { transform: translateY(-4px); } 72%, 100% { transform: translateY(46px); } }
+@keyframes puxa { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+@keyframes olha { 0%, 46%, 62%, 100% { transform: rotate(0); } 50%, 58% { transform: rotate(-10deg) translateY(-2px); } }
+@keyframes corda { 0%, 40%, 70%, 100% { transform: rotate(0); } 48% { transform: rotate(-2.5deg); } 56% { transform: rotate(2deg); } 64% { transform: rotate(-1deg); } }
+@keyframes numero-pula { 0%, 48%, 62%, 100% { translate: 0 0; } 52% { translate: 0 -5px; } 56% { translate: 0 2px; } }
+@keyframes pisca-olho { 0%, 30%, 33%, 54%, 57%, 100% { transform: scaleY(1); } 31.5%, 55.5% { transform: scaleY(.1); } }
+@keyframes placa-balanca { 0%, 44%, 66%, 100% { transform: rotate(0); } 49% { transform: rotate(-6deg); } 54% { transform: rotate(4deg); } 59% { transform: rotate(-2deg); } 63% { transform: rotate(1deg); } }
 @keyframes balanca { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
 /* o cavalinho de verdade: atravessa o cartão correndo de tempos em tempos, por trás do texto */
 .tile { position: relative; }
@@ -462,7 +468,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.17';
+const VERSAO = '0.18';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -556,7 +562,7 @@ const estado = c => { const r = restante(c); return r <= 0 ? ['Zerado', 'p-erro'
 // os personagens das contas do dia: cada um segura a placa onde o número aparece (a placa fica no mesmo lugar em todos)
 const PLACA = '<rect x="56" y="8" width="58" height="48" rx="10" fill="#FFFDF9" stroke="#3B3B3B" stroke-width="2"/>';
 const PERS = {
-  urso: `<svg viewBox="0 0 120 110" aria-hidden="true"><g class="placa-svg">${PLACA}</g><g class="corpo"><rect x="18" y="66" width="32" height="36" rx="13" fill="#D9A07F"/><path class="braco" d="M46 74 Q58 70 62 54" stroke="#D9A07F" stroke-width="9" stroke-linecap="round" fill="none"/><path d="M22 74 Q10 82 14 94" stroke="#D9A07F" stroke-width="9" stroke-linecap="round" fill="none"/><ellipse cx="26" cy="103" rx="8" ry="4" fill="#C98B6B"/><ellipse cx="44" cy="103" rx="8" ry="4" fill="#C98B6B"/><g class="cabeca"><circle cx="18" cy="40" r="7" fill="#C98B6B"/><circle cx="50" cy="40" r="7" fill="#C98B6B"/><circle cx="34" cy="50" r="18" fill="#D9A07F"/><ellipse cx="34" cy="57" rx="8" ry="6" fill="#F5D9C6"/><g class="olhos"><circle cx="28" cy="46" r="2" fill="#3B3B3B"/><circle cx="40" cy="46" r="2" fill="#3B3B3B"/></g><ellipse cx="34" cy="54.5" rx="2.6" ry="1.8" fill="#3B3B3B"/></g></g></svg>`,
+  urso: `<svg viewBox="0 0 120 110" aria-hidden="true"><g class="placa-svg">${PLACA}</g><path class="corda" d="M85 56 V128" stroke="#C98B6B" stroke-width="3" stroke-linecap="round" stroke-dasharray="5 3"/><g class="escalador"><path d="M79 102 q-5 6 -1 10 M91 102 q5 6 1 10" stroke="#D9A07F" stroke-width="7" stroke-linecap="round" fill="none"/><rect x="75" y="82" width="20" height="26" rx="9" fill="#D9A07F"/><ellipse cx="85" cy="95" rx="5.5" ry="7" fill="#F5D9C6"/><g class="pata a"><path d="M79 86 C72 78 74 66 83 60" stroke="#D9A07F" stroke-width="6" stroke-linecap="round" fill="none"/><path d="M91 86 C98 80 96 72 87 66" stroke="#D9A07F" stroke-width="6" stroke-linecap="round" fill="none"/></g><g class="pata b"><path d="M79 86 C72 80 74 72 83 66" stroke="#D9A07F" stroke-width="6" stroke-linecap="round" fill="none"/><path d="M91 86 C98 78 96 66 87 60" stroke="#D9A07F" stroke-width="6" stroke-linecap="round" fill="none"/></g><g class="cabeca"><circle cx="74" cy="64" r="5" fill="#C98B6B"/><circle cx="96" cy="64" r="5" fill="#C98B6B"/><circle cx="85" cy="72" r="12.5" fill="#D9A07F"/><ellipse cx="85" cy="77" rx="6" ry="4.5" fill="#F5D9C6"/><g class="olhos"><circle cx="80.5" cy="69.5" r="1.6" fill="#3B3B3B"/><circle cx="89.5" cy="69.5" r="1.6" fill="#3B3B3B"/></g><ellipse cx="85" cy="75" rx="2" ry="1.4" fill="#3B3B3B"/></g></g></svg>`,
   cavalo: `<svg viewBox="0 0 120 110" aria-hidden="true">${PLACA}<g class="corpo"><path d="M4 98 Q40 118 78 98" stroke="#3B3B3B" stroke-width="4" fill="none" stroke-linecap="round"/><rect x="20" y="74" width="6.5" height="26" rx="3" fill="#C94A30"/><rect x="30" y="74" width="6.5" height="26" rx="3" fill="#E25B3F"/><rect x="52" y="74" width="6.5" height="26" rx="3" fill="#C94A30"/><rect x="62" y="74" width="6.5" height="26" rx="3" fill="#E25B3F"/><path d="M68 60 c8 -4 14 2 12 10 c-2 8 -8 10 -12 8 c5 -4 6 -10 0 -18z" fill="#F0BB5F" stroke="#3B3B3B" stroke-width="1.2"/><rect x="18" y="56" width="52" height="24" rx="12" fill="#E25B3F"/><path d="M26 64 C20 56 16 48 14 40 C18 36 26 34 32 36 C34 46 36 54 40 60 Z" fill="#E25B3F"/><path d="M14 40 C8 40 2 42 3 46 C4 50 10 51 16 50 C22 49 26 46 26 42 C26 38 22 34 18 35 Z" fill="#E25B3F"/><circle cx="6" cy="47" r="2.6" fill="#F5BEA9"/><path d="M20 36 L23 28 L26 36 Z" fill="#E25B3F"/><path d="M24 34 c0 -6 4 -8 4 -12 c3 4 3 8 2 12 c3 -4 6 -6 8 -6 c-2 4 -2 8 -2 12 c-4 -3 -8 -4 -12 -6z" fill="#F0BB5F" stroke="#3B3B3B" stroke-width="1.2" stroke-linejoin="round"/><circle cx="12" cy="42" r="1.7" fill="#3B3B3B"/><path d="M36 56 h16 a6 6 0 0 1 6 6 v2 h-28 v-2 a6 6 0 0 1 6 -6z" fill="#FFFDF9" stroke="#3B3B3B" stroke-width="1.2"/><rect x="42" y="64" width="4" height="16" fill="#3B3B3B" opacity=".25"/></g></svg>`,
   balao: `<svg viewBox="0 0 120 110" aria-hidden="true">${PLACA}<g class="corpo"><path d="M34 76 L34 86" stroke="#3B3B3B" stroke-width="1.5"/><path d="M24 76 L22 86 M44 76 L46 86" stroke="#3B3B3B" stroke-width="1.5"/><path d="M34 14 C12 14 6 40 20 60 Q28 72 34 78 Q40 72 48 60 C62 40 56 14 34 14z" fill="#F5BEA9"/><path d="M34 14 C26 14 22 44 34 78 C46 44 42 14 34 14z" fill="#E25B3F"/><path d="M34 14 C30 14 28 44 34 78 C40 44 38 14 34 14z" fill="#F0BB5F"/><rect x="22" y="86" width="24" height="14" rx="4" fill="#C98B6B"/><path d="M22 92 h24" stroke="#A8724F" stroke-width="2"/><path d="M48 60 Q60 50 62 56" stroke="#3B3B3B" stroke-width="1.5" fill="none"/></g></svg>`,
   relogio: `<svg viewBox="0 0 120 110" aria-hidden="true">${PLACA}<path d="M66 56 L62 72" stroke="#3B3B3B" stroke-width="2.5" stroke-linecap="round"/><g class="corpo"><circle cx="12" cy="40" r="7" fill="#E25B3F"/><circle cx="58" cy="40" r="7" fill="#E25B3F"/><rect x="30" y="26" width="10" height="8" rx="2" fill="#3B3B3B"/><path d="M16 94 L22 84 M54 94 L48 84" stroke="#3B3B3B" stroke-width="4" stroke-linecap="round"/><circle cx="35" cy="62" r="27" fill="#E25B3F"/><circle cx="35" cy="62" r="21" fill="#FFFDF9"/><path d="M35 47 v3 M50 62 h-3 M35 77 v-3 M20 62 h3" stroke="#3B3B3B" stroke-width="2" stroke-linecap="round"/><path d="M35 62 L35 50 M35 62 L44 66" stroke="#3B3B3B" stroke-width="3" stroke-linecap="round"/><circle cx="35" cy="62" r="2.5" fill="#E25B3F"/></g></svg>`,
