@@ -104,8 +104,17 @@ svg { display: block; }
 .toast span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 @media (min-width: 820px) { .toast { bottom: 32px; } }
 
-/* ---------- faixa listrada de menta (como os posts) ---------- */
-.faixa { border-radius: var(--raio); padding: 18px 20px; background: var(--card); border: 1px solid var(--borda); display: flex; align-items: center; gap: 16px; flex-wrap: wrap; box-shadow: var(--sombra); }
+/* ---------- os telhadinhos do logo, usados como detalhe ---------- */
+:root {
+  --telhados: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='16' viewBox='0 0 72 16'%3E%3Cpath d='M0 16 L9 5 L18 16Z' fill='%23F5BEA9'/%3E%3Cpath d='M18 16 L30 0 L42 16Z' fill='%23E25B3F'/%3E%3Cpath d='M42 16 L50 7 L58 16Z' fill='%23F5BEA9'/%3E%3Cpath d='M58 16 L65 3 L72 16Z' fill='%23F0BB5F'/%3E%3C/svg%3E");
+  --castelinho: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='14' viewBox='0 0 26 14'%3E%3Cpath d='M0 14 L5 5 L10 14Z M8 14 L13 0 L18 14Z M16 14 L21 6 L26 14Z'/%3E%3C/svg%3E");
+}
+.telhados { position: relative; }
+.telhados::before { content: ""; position: absolute; left: 22px; right: 22px; top: -13px; height: 16px; background: var(--telhados) repeat-x left bottom / 72px 16px; pointer-events: none; }
+.castelinho { display: inline-block; width: 26px; height: 14px; background: var(--coral); -webkit-mask: var(--castelinho) no-repeat center / contain; mask: var(--castelinho) no-repeat center / contain; flex: none; }
+
+/* ---------- faixa do topo ---------- */
+.faixa { border-radius: var(--raio); padding: 18px 20px; margin-top: 12px; background: var(--card); border: 1px solid var(--borda); display: flex; align-items: center; gap: 16px; flex-wrap: wrap; box-shadow: var(--sombra); }
 .faixa .logo { width: 56px; height: 56px; flex: none; }
 .faixa .tit { flex: 1; min-width: 160px; }
 .faixa small { display: block; font-weight: 700; color: var(--tinta-2); font-size: 12.5px; text-transform: uppercase; letter-spacing: .08em; }
@@ -121,6 +130,32 @@ svg { display: block; }
 .chip .pt { width: 9px; height: 9px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px var(--ok-bg); animation: pulsa 1.6s infinite; flex: none; }
 .chip .pt.off { background: var(--erro); box-shadow: 0 0 0 3px var(--erro-bg); animation: none; }
 @keyframes pulsa { 50% { box-shadow: 0 0 0 6px transparent; } }
+
+/* ---------- anéis de tempo: quem está no espaço, no cartão pêssego; o banco de horas em anéis menores ---------- */
+.a-hero { background: var(--pessego); color: var(--sobre-tile); border-radius: var(--raio); padding: 16px 18px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; --anel-fundo: rgba(255, 255, 255, .55); --anel-miolo: var(--creme-2); }
+.a-hero .tit { display: flex; align-items: center; gap: 4px; }
+.a-hero .tit .pers { width: 128px; height: 112px; }
+.a-hero .tit .txt small { display: block; font-size: 11.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; opacity: .8; }
+.a-hero .tit .txt span { display: block; font-size: 12.5px; opacity: .8; margin-top: 2px; }
+.a-hero .aneis { display: flex; gap: 10px; flex-wrap: wrap; margin-left: auto; justify-content: flex-end; }
+.a-hero .vazio-h { flex: 1; min-width: 200px; font-size: 13.5px; opacity: .85; text-align: right; }
+.anel { display: flex; flex-direction: column; align-items: center; gap: 3px; width: 116px; text-align: center; background: none; border: 0; padding: 4px 0; }
+.anel .r { width: 92px; height: 92px; border-radius: 50%; display: grid; place-items: center; position: relative; background: conic-gradient(var(--c) calc(var(--p) * 1%), var(--anel-fundo, var(--menta-risco)) 0); transition: background .6s; }
+.anel .r::after { content: ""; position: absolute; inset: 8px; border-radius: 50%; background: var(--anel-miolo, var(--card)); }
+.anel .r b { position: relative; z-index: 1; font-family: var(--display); font-weight: 800; font-size: 17px; line-height: 1.05; color: var(--tinta); }
+.anel .r b small { display: block; font-family: var(--texto); font-weight: 700; font-size: 10px; color: var(--tinta-2); margin-top: 1px; }
+.anel.baixo .r b { color: var(--erro); }
+.anel .nome { font-family: var(--display); font-weight: 600; font-size: 14px; color: var(--tinta); max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.anel em { font-style: normal; font-size: 11px; color: var(--tinta-2); white-space: nowrap; }
+.anel .mini { display: flex; gap: 5px; margin-top: 3px; }
+.anel .mini .bt { height: 30px; padding: 0 10px; border-radius: 10px; font-size: 12px; }
+.a-hero .anel .mini .bt { background: var(--creme-2); } .a-hero .anel .mini .bt.forte { background: var(--coral); color: #fff; }
+.a-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.a-card { background: var(--card); border: 1px solid var(--borda); border-radius: 20px; padding: 12px 8px 12px; display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center; min-width: 0; }
+.a-card .anel { width: 100%; }
+.a-card .r { width: 84px; height: 84px; } .a-card .r::after { inset: 7px; } .a-card .r b { font-size: 15px; }
+.a-card .fotinha { width: 22px; height: 22px; border-radius: 50%; background-size: cover; background-position: center; position: absolute; right: 2px; top: 2px; z-index: 2; border: 2px solid var(--card); }
+@media (max-width: 560px) { .a-hero { padding: 14px; gap: 10px; } .a-hero .tit .pers { width: 108px; height: 96px; } .a-hero .aneis { margin-left: 0; justify-content: flex-start; width: 100%; } .anel { width: 104px; } .anel .r { width: 84px; height: 84px; } }
 
 /* ---------- blocos de resumo ---------- */
 .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
@@ -150,7 +185,7 @@ svg { display: block; }
 .sec { display: flex; flex-direction: column; gap: 10px; }
 .sec-cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .sec-cab h2 { font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 10px; }
-.sec-cab h2 i { width: 10px; height: 10px; border-radius: 50%; background: var(--coral); display: inline-block; flex: none; }
+.sec-cab h2 i { display: inline-block; width: 26px; height: 14px; background: var(--coral); -webkit-mask: var(--castelinho) no-repeat center / contain; mask: var(--castelinho) no-repeat center / contain; flex: none; }
 .link { color: var(--coral); font-weight: 800; font-size: 13.5px; }
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; }
 .card { background: var(--card); border: 1px solid var(--borda); border-radius: 20px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; text-align: left; }
@@ -197,7 +232,7 @@ svg { display: block; }
 .saldo b { font-family: var(--display); font-size: 17px; color: var(--tinta); }
 
 /* ---------- registro de rostos / histórico ---------- */
-.hoje h2 { font-size: 18px; font-weight: 800; }
+.hoje h2 { font-size: 18px; font-weight: 800; padding-bottom: 10px; background: var(--telhados) repeat-x left bottom / 54px 12px; }
 .reg { display: flex; flex-direction: column; }
 .reg .ev { display: grid; grid-template-columns: 52px 1fr; gap: 10px; padding: 9px 0; border-bottom: 1px dashed var(--borda-2); align-items: start; }
 .reg .ev:last-child { border-bottom: 0; }
@@ -281,10 +316,11 @@ svg { display: block; }
 /* ---------- folhas (iPhone): sobem de baixo, no desktop viram cartão no centro ---------- */
 .folha-fundo { position: fixed; inset: 0; z-index: 40; background: var(--escurece); display: grid; place-items: end center; opacity: 0; transition: opacity .32s; }
 .folha-fundo.ve { opacity: 1; }
-.folha { width: min(600px, 100%); max-height: calc(100% - 40px - env(safe-area-inset-top, 0px)); overflow: auto; background: var(--creme); border-radius: 28px 28px 0 0; padding: 8px max(18px, env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom, 0px)) max(18px, env(safe-area-inset-left, 0px)); display: flex; flex-direction: column; gap: 14px; transform: translateY(100%); transition: transform .5s var(--ios); box-shadow: 0 -10px 50px rgba(0, 0, 0, .18); overscroll-behavior: contain; }
+.folha { background-image: var(--telhados); background-repeat: repeat-x; background-position: 22px 0; background-size: 54px 12px; width: min(600px, 100%); max-height: calc(100% - 40px - env(safe-area-inset-top, 0px)); overflow: auto; background-color: var(--creme); border-radius: 28px 28px 0 0; padding: 8px max(18px, env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom, 0px)) max(18px, env(safe-area-inset-left, 0px)); display: flex; flex-direction: column; gap: 14px; transform: translateY(100%); transition: transform .5s var(--ios); box-shadow: 0 -10px 50px rgba(0, 0, 0, .18); overscroll-behavior: contain; }
 .folha-fundo.ve .folha { transform: translateY(0); }
 .folha-fundo.saindo { opacity: 0; } .folha-fundo.saindo .folha { transform: translateY(100%); transition-duration: .36s; }
-.alca { width: 40px; height: 5px; border-radius: 3px; background: var(--borda-2); margin: 4px auto 2px; flex: none; touch-action: none; }
+.alca { width: 40px; height: 5px; border-radius: 3px; background: var(--borda-2); margin: 10px auto 0; flex: none; touch-action: none; }
+@media (min-width: 820px) { .folha .cab-f { padding-top: 10px; } }
 .folha .cab-f { display: flex; align-items: center; justify-content: space-between; gap: 12px; position: sticky; top: 0; }
 .folha h2 { font-size: 22px; font-weight: 800; }
 .fechar { width: 34px; height: 34px; border-radius: 50%; background: var(--menta); display: grid; place-items: center; flex: none; }
@@ -410,7 +446,7 @@ const NOMES_BRQ = { urso: 'Ursinho', bola: 'Bola', blocos: 'Blocos', coelho: 'Co
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.04';
+const VERSAO = '0.05';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -518,6 +554,20 @@ function blocos(c, comEstado = true) {
     <div class="linha-h" style="--pct:${pct.toFixed(1)}%"><i style="width:${pct.toFixed(1)}%"></i></div>
   </div>`;
 }
+// o anel de uma criança: o que resta do pacote, com o tempo dentro; pequeno no banco de horas, maior no cartão de quem está no espaço
+function anel(c, onde = 'banco') {
+  const r = restante(c), pct = c.pacote ? Math.max(0, Math.min(100, r / (c.pacote * 60) * 100)) : 0, baixo = r <= S.cfg.aviso;
+  const dentro = onde === 'hero';
+  const botoes = dentro
+    ? `<button class="bt claro tap" data-act="saida-rapida" data-id="${c.id}">${ic(IC.sair, 14)} Saída</button><button class="bt tap" data-act="avisar" data-id="${c.id}" aria-label="Avisar ${esc(c.resp)}">${ic(IC.zap, 14)}</button>`
+    : (r <= 0 || baixo ? `<button class="bt forte tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 14)} Vender</button>` : c.rosto ? `<button class="bt tap" data-act="entrada-rapida" data-id="${c.id}">${ic(IC.entrar, 14)} Entrada</button>` : `<button class="bt tap" data-act="ficha" data-id="${c.id}">${ic(IC.camera, 14)} Tirar a foto</button>`);
+  return `<div class="anel ${baixo ? 'baixo' : ''}" data-anel="${c.id}" data-onde="${onde}">
+    <button class="r tap" data-act="ficha" data-id="${c.id}" style="--p:${pct.toFixed(1)};--c:${baixo ? 'var(--erro)' : 'var(--verde-agua)'}" aria-label="Abrir a ficha de ${esc(c.nome)}">${c.foto ? `<span class="fotinha" style="background-image:url(${c.foto})"></span>` : ''}<b class="num">${r <= 0 ? 'Acabou' : hm(r)}<small>${r <= 0 ? `pacote de ${c.pacote}h` : `de ${c.pacote}h`}</small></b></button>
+    <span class="nome">${esc(c.nome)}${c.idade && !dentro ? ', ' + c.idade : ''}</span>
+    <em>${dentro ? `desde ${hora(c.entrou)} · <span class="num" data-cron-txt="${c.id}">${hm(minDentro(c))}</span>` : esc(c.resp)}</em>
+    <div class="mini">${botoes}</div>
+  </div>`;
+}
 const cronometro = c => { const m = minDentro(c); return `${Math.floor(m / 60)}:${p2(Math.floor(m % 60))}<small>desde ${hora(c.entrou)}</small>`; };
 function registrar(tipo, nome, txt) { S.registros.unshift({ h: new Date(), tipo, nome, txt }); }
 function mensagemAuto(c, txt, comFoto) {
@@ -576,7 +626,7 @@ function trocarTela(k, anima = true) {
   window.scrollTo({ top: 0 });
   if (anima) $('#miolo').animate([{ opacity: 0, transform: 'translateY(12px)' }, { opacity: 1, transform: 'none' }], { duration: 380, easing: 'cubic-bezier(.32,.72,0,1)' });
 }
-function faixa(titulo, sub, chip) { return `<div class="faixa"><span class="logo">${LOGO}</span><div class="tit"><small>${esc(sub)}</small><h1>${esc(titulo)}<button type="button" class="versao tap ${ATU.nova ? 'nova' : ''}" data-act="atualizar" title="${ATU.nova ? 'Nova versão ' + ATU.nova + ': toque para atualizar' : 'Versão ' + VERSAO + ': toque para conferir se há versão nova'}">${ic(IC.renova, 13, 2.6)} ${ATU.nova ? 'Atualizar para ' + esc(ATU.nova) : 'v' + VERSAO}</button></h1></div>${chip || ''}</div>`; }
+function faixa(titulo, sub, chip) { return `<div class="faixa telhados"><span class="logo">${LOGO}</span><div class="tit"><small>${esc(sub)}</small><h1>${esc(titulo)}<button type="button" class="versao tap ${ATU.nova ? 'nova' : ''}" data-act="atualizar" title="${ATU.nova ? 'Nova versão ' + ATU.nova + ': toque para atualizar' : 'Versão ' + VERSAO + ': toque para conferir se há versão nova'}">${ic(IC.renova, 13, 2.6)} ${ATU.nova ? 'Atualizar para ' + esc(ATU.nova) : 'v' + VERSAO}</button></h1></div>${chip || ''}</div>`; }
 const chipIdface = () => `<button class="chip suave tap" data-act="idface"><i class="pt ${S.cfg.idface.ligado ? '' : 'off'}"></i>${ic(IC.rosto, 16)} iDFace ${S.cfg.idface.ligado ? 'lendo' : 'desligado'}</button>`;
 
 /* ---------- Horas ---------- */
@@ -596,18 +646,19 @@ function telaHoras() {
   const acabando = S.criancas.filter(c => restante(c) <= S.cfg.aviso).length;
   const usadasHoje = S.criancas.reduce((a, c) => a + c.visitas.filter(v => agora - new Date(v.dia) < 86400000).reduce((b, v) => b + v.deb, 0) + (c.entrou ? cobrar(minDentro(c)) : 0), 0);
   const vendas = S.registros.filter(r => r.tipo === 'venda' && agora - r.h < 86400000), horasVend = vendas.reduce((a, r) => a + (parseInt(r.txt) || 0), 0) + 20, valorVend = vendas.length * 250 + 1000;
+  const n = dentro.length;
   return faixa('Controle de horas', `${SEMANA[agora.getDay()]}, ${agora.getDate()} de ${MESES[agora.getMonth()]}`, chipIdface()) + `
+  <section class="a-hero">
+    <button class="tit tap" data-act="dia"><div class="pers" data-pers="dentro">${PERS.urso}<b class="placa num" data-placa="dentro">${n}</b></div><div class="txt"><small>No espaço agora</small><span>${n === 0 ? 'ninguém por enquanto' : n === 1 ? 'uma criança brincando' : n + ' crianças brincando'}</span></div></button>
+    ${n ? `<div class="aneis">${dentro.map(c => anel(c, 'hero')).join('')}</div>` : `<p class="vazio-h">Quando uma criança olhar para o iDFace, o anel dela aparece aqui com o tempo correndo.</p>`}
+  </section>
   <div class="tiles">
-    ${tile('t-pessego', 'dia', 'No espaço agora', dentro.length, dentro.length === 1 ? 'criança brincando' : 'crianças brincando', 'urso', 'dentro')}
     ${tile('t-mostarda', 'dia', 'Horas vendidas hoje', horasVend + 'h', `${vendas.length + 2} pacotes · ${brl(valorVend)}`, 'cavalo', 'vendidas', 'balanca')}
     ${tile('t-menta', 'dia', 'Horas usadas hoje', hm(usadasHoje), 'debitadas pelo rosto', 'balao', 'usadas', 'flutua')}
     ${tile('t-coral', 'acabando', 'Pacotes acabando', acabando, `menos de ${hm(S.cfg.aviso)} no banco`, 'relogio', 'acabando', acabando ? 'alerta' : '')}
   </div>
-  <section class="sec"><div class="sec-cab"><h2><i></i>No espaço agora</h2><button class="link tap" data-act="dia">Ver o dia inteiro</button></div>
-    <div class="cards">${dentro.length ? dentro.map(cartaoCrianca).join('') : `<div class="card vazio">${ic(IC.rosto, 28)}<b>Ninguém no espaço agora</b><span>Quando uma criança olhar para o iDFace, ela aparece aqui com o cronômetro correndo.</span></div>`}</div>
-  </section>
   <section class="sec"><div class="sec-cab"><h2><i style="background:var(--mostarda)"></i>Banco de horas</h2><button class="link tap" data-act="todas">Todas as crianças</button></div>
-    <div class="cards">${fora.map(cartaoCrianca).join('')}</div>
+    <div class="a-lista">${fora.map(c => `<div class="a-card">${anel(c)}</div>`).join('')}</div>
   </section>
   <p class="rodape">Protótipo com dados de exemplo · <b>Play Space Horas</b> v${VERSAO}</p>`;
 }
@@ -955,6 +1006,7 @@ setInterval(() => {
   $$('[data-cron]').forEach(el => { const c = crianca(el.dataset.cron); if (c && c.entrou) el.innerHTML = cronometro(c); });
   $$('[data-cron-txt]').forEach(el => { const c = crianca(el.dataset.cronTxt); if (c && c.entrou) el.textContent = hm(minDentro(c)); });
   $$('[data-horas]').forEach(el => { const c = crianca(el.dataset.horas); if (c && c.entrou) { const novo = document.createElement('div'); novo.innerHTML = blocos(c); el.replaceWith(novo.firstElementChild); } });
+  $$('[data-anel][data-onde="hero"]').forEach(el => { const c = crianca(el.dataset.anel); if (!c || !c.entrou) return; const r = restante(c), pct = c.pacote ? Math.max(0, Math.min(100, r / (c.pacote * 60) * 100)) : 0, baixo = r <= S.cfg.aviso; el.classList.toggle('baixo', baixo); const b = $('.r', el); b.style.setProperty('--p', pct.toFixed(1)); b.style.setProperty('--c', baixo ? 'var(--erro)' : 'var(--verde-agua)'); $('.r b', el).innerHTML = `${r <= 0 ? 'Acabou' : hm(r)}<small>${r <= 0 ? `pacote de ${c.pacote}h` : `de ${c.pacote}h`}</small>`; });
 }, 1000);
 desenhar();
 conferirAtualizacao(false);
