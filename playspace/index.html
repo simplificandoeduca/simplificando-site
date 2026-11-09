@@ -78,6 +78,8 @@ svg { display: block; }
   .trilho .ab:hover { background: var(--menta); }
   .trilho .ab[aria-current] { background: var(--tinta); color: var(--creme); }
   .trilho .ab b { position: absolute; top: 6px; right: 6px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--coral); color: #fff; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; font-family: var(--display); }
+  .trilho .ab.alerta { background: var(--coral); color: #fff; animation: pulsa-ab 2.2s ease-out infinite; }
+  .trilho .ab.alerta b { background: #fff; color: var(--coral); }
   .trilho .espaco { flex: 1; }
   .trilho .av-eu { width: 44px; height: 44px; -webkit-mask: var(--selo) no-repeat center / 100% 100%; mask: var(--selo) no-repeat center / 100% 100%; background: var(--mostarda); color: #3B3B3B; font-weight: 800; display: flex; align-items: center; justify-content: center; font-family: var(--display); }
   .conteudo { padding-left: 32px; padding-right: 32px; padding-block: 26px 60px; }
@@ -94,6 +96,8 @@ svg { display: block; }
 .barra { position: fixed; z-index: 20; left: 0; right: 0; bottom: 0; padding: 8px max(8px, env(safe-area-inset-right, 0px)) max(10px, env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px)); background: var(--vidro); border-top: 1px solid var(--vidro-borda); backdrop-filter: blur(20px); display: flex; justify-content: space-around; }
 .barra button { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10.5px; font-weight: 700; color: var(--tinta-2); padding: 6px 4px; border-radius: 14px; position: relative; flex: 1; max-width: 86px; }
 .barra button[aria-current] { color: var(--tinta); background: var(--menta); }
+.barra button.alerta { color: var(--coral); }
+@keyframes pulsa-ab { 0% { box-shadow: 0 0 0 0 rgba(226, 91, 63, .5); } 70%, 100% { box-shadow: 0 0 0 12px rgba(226, 91, 63, 0); } }
 .barra button b { position: absolute; top: 1px; right: calc(50% - 22px); min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--coral); color: #fff; font-size: 10px; display: flex; align-items: center; justify-content: center; }
 .fab { position: fixed; z-index: 21; right: max(18px, env(safe-area-inset-right, 0px)); bottom: calc(88px + env(safe-area-inset-bottom, 0px)); width: 58px; height: 58px; border-radius: 20px; background: var(--coral); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 12px 28px rgba(226, 91, 63, .35); }
 .fab > svg { position: relative; z-index: 1; }
@@ -605,7 +609,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.43';
+const VERSAO = '0.44';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -905,10 +909,11 @@ function vender(c, pac) {
 const naoLidas = () => S.conversas.filter(x => !x.lidas).length;
 function nav() {
   const badge = k => k === 'zap' && naoLidas() ? `<b>${naoLidas()}</b>` : '';
-  $('#nav-lado').innerHTML = `<span class="logo">${LOGO}</span>` + ABAS.map(([k, t, i]) => `<button class="ab tap" data-ir="${k}" ${S.tela === k ? 'aria-current="page"' : ''} aria-label="${t}" title="${t}">${ic(IC[i])}${badge(k)}</button>`).join('') + `<span class="espaco"></span><button type="button" class="fab tap" data-act="nova" aria-label="Cadastrar criança" title="Cadastrar criança">${PASSARINHO_FAB}<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button><button class="av-eu tap" data-act="conta" title="${esc(EU.nomeCompleto || EU.nome)}">${esc((EU.nome || 'EU').slice(0, 2).toUpperCase())}</button>`;
+  const alerta = k => k === 'zap' && naoLidas() ? 'alerta' : '';   // mensagem sem resposta: a bolinha do WhatsApp fica vermelha
+  $('#nav-lado').innerHTML = `<span class="logo">${LOGO}</span>` + ABAS.map(([k, t, i]) => `<button class="ab tap ${alerta(k)}" data-ir="${k}" ${S.tela === k ? 'aria-current="page"' : ''} aria-label="${t}" title="${t}${naoLidas() && k === 'zap' ? ' · ' + naoLidas() + ' sem resposta' : ''}">${ic(IC[i])}${badge(k)}</button>`).join('') + `<span class="espaco"></span><button type="button" class="fab tap" data-act="nova" aria-label="Cadastrar criança" title="Cadastrar criança">${PASSARINHO_FAB}<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button><button class="av-eu tap" data-act="conta" title="${esc(EU.nomeCompleto || EU.nome)}">${esc((EU.nome || 'EU').slice(0, 2).toUpperCase())}</button>`;
   const fabT = $('.trilho .fab'), zapT = $('.trilho [data-ir="zap"]');
   if (fabT && zapT) { const fr = fabT.getBoundingClientRect(), zr = zapT.getBoundingClientRect(); if (fr.height) { fabT.style.setProperty('--voo-y', `${Math.round(zr.top + 8 - fr.top)}px`); const bi = $('.bicho', fabT); bi.style.animation = 'none'; void bi.offsetWidth; bi.style.animation = ''; } }   // a animação recomeça já sabendo a altura
-  $('#nav-baixo').innerHTML = ABAS.map(([k, t, i]) => `<button data-ir="${k}" ${S.tela === k ? 'aria-current="page"' : ''}>${ic(IC[i], 21)}${t}${badge(k)}</button>`).join('') + (ABAS.some(a => a[0] === 'ajustes') ? '' : `<button data-act="conta">${ic(IC.rosto, 21)}Conta</button>`);
+  $('#nav-baixo').innerHTML = ABAS.map(([k, t, i]) => `<button class="${alerta(k)}" data-ir="${k}" ${S.tela === k ? 'aria-current="page"' : ''}>${ic(IC[i], 21)}${t}${badge(k)}</button>`).join('') + (ABAS.some(a => a[0] === 'ajustes') ? '' : `<button data-act="conta">${ic(IC.rosto, 21)}Conta</button>`);
 }
 let toastT, DESFAZ = null;
 function toast(txt, desfazer) { const t = $('#toast'); DESFAZ = desfazer || null; t.innerHTML = `<span>${esc(txt)}</span>${desfazer ? '<button type="button" data-act="desfazer">Desfazer</button>' : ''}`; t.classList.add('ve'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('ve'), desfazer ? 6000 : 2400); }
