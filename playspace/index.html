@@ -92,8 +92,12 @@ svg { display: block; }
 .barra button[aria-current] { color: var(--tinta); background: var(--menta); }
 .barra button b { position: absolute; top: 1px; right: calc(50% - 22px); min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--coral); color: #fff; font-size: 10px; display: grid; place-items: center; }
 .fab { position: fixed; z-index: 21; right: max(18px, env(safe-area-inset-right, 0px)); bottom: calc(88px + env(safe-area-inset-bottom, 0px)); width: 58px; height: 58px; border-radius: 20px; background: var(--coral); color: #fff; display: grid; place-items: center; box-shadow: 0 12px 28px rgba(226, 91, 63, .35); }
-@media (min-width: 820px) { .fab { bottom: 28px; } }
-.fab[hidden] { display: none; }
+.fab-ancora { display: contents; }
+@media (min-width: 820px) {
+  .fab-ancora { display: flex; justify-content: flex-end; position: sticky; bottom: 24px; z-index: 21; max-width: 1120px; width: 100%; margin: -58px auto 0; pointer-events: none; }
+  .fab-ancora .fab { position: static; pointer-events: auto; }
+}
+.fab-ancora[hidden] { display: none; }
 .toast { position: fixed; z-index: 60; left: 50%; bottom: calc(100px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 20px); background: var(--tinta); color: var(--creme); padding: 11px 18px; border-radius: 999px; font-weight: 700; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .3s, transform .45s var(--spring); max-width: calc(100% - 32px); text-align: center; display: flex; align-items: center; gap: 14px; }
 .toast.ve { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
 .toast button { color: var(--mostarda); font-weight: 800; white-space: nowrap; padding: 4px 2px; }
@@ -119,11 +123,27 @@ svg { display: block; }
 @keyframes pulsa { 50% { box-shadow: 0 0 0 6px transparent; } }
 
 /* ---------- blocos de resumo ---------- */
-.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
-.tile { border-radius: 20px; padding: 16px 18px; display: flex; flex-direction: column; gap: 2px; min-width: 0; text-align: left; color: var(--sobre-tile); }
-.tile small { font-weight: 700; font-size: 12.5px; opacity: .8; }
-.tile b { font-family: var(--display); font-size: 30px; font-weight: 800; line-height: 1.1; }
-.tile span { font-size: 12.5px; opacity: .75; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.tile { border-radius: 20px; padding: 14px 10px 10px 18px; display: flex; align-items: center; justify-content: space-between; gap: 6px; min-width: 0; min-height: 118px; text-align: left; color: var(--sobre-tile); overflow: hidden; }
+.tile .tile-txt { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.tile small { font-weight: 800; font-size: 13px; opacity: .85; }
+.tile span { font-size: 12px; opacity: .75; line-height: 1.3; }
+.pers { position: relative; width: 118px; height: 106px; flex: none; }
+.pers svg { width: 100%; height: 100%; overflow: visible; }
+.pers .placa { position: absolute; left: 47%; top: 7%; width: 48%; height: 44%; display: grid; place-items: center; font-family: var(--display); font-weight: 800; font-size: 24px; line-height: 1; color: #3B3B3B; letter-spacing: -.02em; }
+.pers .placa.longo { font-size: 18px; }
+.pers .corpo { transform-origin: 40% 95%; }
+.pers.balanca .corpo { animation: balanca 2.6s ease-in-out infinite; }
+.pers.flutua .corpo { animation: flutua 3s ease-in-out infinite; }
+.pers.alerta .corpo { animation: treme .6s ease-in-out infinite; transform-origin: 30% 60%; }
+.pers.troca svg { animation: pula .7s var(--spring); }
+.pers.troca .placa { animation: vira .7s var(--ios); }
+@keyframes balanca { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+@keyframes flutua { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes treme { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-5deg); } 75% { transform: rotate(5deg); } }
+@keyframes pula { 0% { transform: translateY(0); } 40% { transform: translateY(-10px) scale(1.04); } 100% { transform: translateY(0); } }
+@keyframes vira { 0% { transform: translateY(0); opacity: 1; } 35% { transform: translateY(-120%); opacity: 0; } 36% { transform: translateY(120%); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+@media (max-width: 420px) { .tiles { grid-template-columns: 1fr; } }
 .t-pessego { background: var(--pessego); } .t-mostarda { background: var(--mostarda); } .t-menta { background: var(--menta); color: var(--tinta); } .t-coral { background: var(--coral); color: #fff; }
 
 /* ---------- seções e cartões ---------- */
@@ -141,6 +161,13 @@ svg { display: block; }
 .linha .txt span { display: block; font-size: 13px; color: var(--tinta-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .av { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font-family: var(--display); font-weight: 800; font-size: 15px; color: #3B3B3B; flex: none; }
 .av.g { width: 64px; height: 64px; font-size: 22px; }
+.av.foto { background-size: cover; background-position: center; color: transparent; }
+.foto-cap { display: flex; align-items: center; gap: 14px; }
+.foto-cap .av { width: 84px; height: 84px; font-size: 26px; background-color: var(--menta); color: var(--tinta-2); flex: none; }
+.foto-cap .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.foto-cap .explica { font-size: 12.5px; }
+.foto-msg { display: block; width: 100%; max-width: 220px; border-radius: 12px; margin-bottom: 6px; }
+.foto-id { display: flex; align-items: center; gap: 6px; background: rgba(0, 0, 0, .06); border-radius: 10px; padding: 8px 10px; font-size: 12px; font-weight: 700; margin-bottom: 6px; }
 .cron { font-family: var(--display); font-weight: 800; font-size: 22px; line-height: 1; text-align: right; flex: none; }
 .cron small { display: block; font-family: var(--texto); font-weight: 700; font-size: 11.5px; color: var(--tinta-2); margin-top: 3px; }
 .pill { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 800; white-space: nowrap; flex: none; }
@@ -157,7 +184,7 @@ svg { display: block; }
 /* ---------- banco de horas: uma linha contínua (o que resta) e o número, vermelho quando está acabando ---------- */
 .horas { display: flex; flex-direction: column; gap: 7px; }
 .horas .topo { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
-.horas .resta { font-family: var(--display); font-weight: 800; font-size: 24px; line-height: 1; color: var(--tinta); }
+.horas .resta { font-family: var(--display); font-weight: 800; font-size: 24px; line-height: 1; color: var(--tinta); white-space: nowrap; }
 .horas .resta small { font-family: var(--texto); font-weight: 700; font-size: 13px; color: var(--tinta-2); margin-left: 5px; }
 .horas.baixo .resta { color: var(--erro); }
 .horas .de { font-size: 12.5px; color: var(--tinta-2); font-weight: 700; white-space: nowrap; display: inline-flex; align-items: center; gap: 8px; }
@@ -302,11 +329,10 @@ svg { display: block; }
 <body>
 <div class="app">
   <aside class="trilho"><nav id="nav-lado"></nav></aside>
-  <main class="conteudo"><div class="miolo" id="miolo"></div></main>
+  <main class="conteudo"><div class="miolo" id="miolo"></div><div class="fab-ancora" id="fab-ancora"><button type="button" class="fab tap" id="fab" aria-label="Cadastrar criança" title="Cadastrar criança"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button></div></main>
   <aside class="hoje"><div id="hoje"></div></aside>
 </div>
 <nav class="barra" id="nav-baixo" aria-label="Menu"></nav>
-<button type="button" class="fab tap" id="fab" aria-label="Nova criança"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
 <div id="folha"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -352,6 +378,7 @@ const IC = {
   check: '<path d="M5 12l5 5L20 7"/>',
   sino: '<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 21h4"/>',
   renova: '<path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/>',
+  camera: '<path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/>',
   presente: '<rect x="3" y="9" width="18" height="12" rx="2"/><path d="M3 13h18M12 9v12M12 9c-3 0-5-1.5-5-3.5S9.5 3 12 9c2.5-6 5-5.5 5-3.5S15 9 12 9z"/>',
 };
 const BRQ = {
@@ -362,13 +389,28 @@ const BRQ = {
   coelho: '<svg viewBox="0 0 40 40" aria-hidden="true"><ellipse cx="14" cy="9" rx="3.5" ry="8" fill="#F3ECE2" stroke="#3B3B3B" stroke-width="1.2"/><ellipse cx="26" cy="9" rx="3.5" ry="8" fill="#F3ECE2" stroke="#3B3B3B" stroke-width="1.2"/><circle cx="20" cy="24" r="12" fill="#F3ECE2" stroke="#3B3B3B" stroke-width="1.2"/><circle cx="16" cy="22" r="1.4" fill="#3B3B3B"/><circle cx="24" cy="22" r="1.4" fill="#3B3B3B"/><ellipse cx="20" cy="26.5" rx="2" ry="1.2" fill="#F5BEA9"/></svg>',
   boneca: '<svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="13" r="9" fill="#F5D9C6"/><path d="M11 13c0-7 18-7 18 0v-3c0-5-18-5-18 0z" fill="#E25B3F"/><rect x="11" y="23" width="18" height="14" rx="4" fill="#8FBFB0"/><circle cx="15" cy="30" r="1.5" fill="#F5BEA9"/><circle cx="22" cy="33" r="1.5" fill="#F5BEA9"/><circle cx="17" cy="13" r="1.3" fill="#3B3B3B"/><circle cx="23" cy="13" r="1.3" fill="#3B3B3B"/></svg>',
 };
+// os personagens das contas do dia: cada um segura a placa onde o número aparece (a placa fica no mesmo lugar em todos)
+const PLACA = '<rect x="56" y="8" width="58" height="48" rx="10" fill="#FFFDF9" stroke="#3B3B3B" stroke-width="2"/>';
+const PERS = {
+  urso: `<svg viewBox="0 0 120 110" aria-hidden="true">${PLACA}<g class="corpo"><circle cx="18" cy="40" r="7" fill="#C98B6B"/><circle cx="50" cy="40" r="7" fill="#C98B6B"/><circle cx="34" cy="50" r="18" fill="#D9A07F"/><ellipse cx="34" cy="57" rx="8" ry="6" fill="#F5D9C6"/><circle cx="28" cy="46" r="2" fill="#3B3B3B"/><circle cx="40" cy="46" r="2" fill="#3B3B3B"/><ellipse cx="34" cy="54.5" rx="2.6" ry="1.8" fill="#3B3B3B"/><rect x="18" y="66" width="32" height="36" rx="13" fill="#D9A07F"/><path d="M46 74 Q58 70 62 54" stroke="#D9A07F" stroke-width="9" stroke-linecap="round" fill="none"/><path d="M22 74 Q10 82 14 94" stroke="#D9A07F" stroke-width="9" stroke-linecap="round" fill="none"/><ellipse cx="26" cy="103" rx="8" ry="4" fill="#C98B6B"/><ellipse cx="44" cy="103" rx="8" ry="4" fill="#C98B6B"/></g></svg>`,
+  cavalo: `<svg viewBox="0 0 120 110" aria-hidden="true">${PLACA}<rect x="82" y="50" width="3" height="16" fill="#3B3B3B"/><g class="corpo"><path d="M4 98 Q42 118 84 98" stroke="#3B3B3B" stroke-width="4" fill="none" stroke-linecap="round"/><rect x="24" y="76" width="8" height="22" rx="3" fill="#E25B3F"/><rect x="54" y="76" width="8" height="22" rx="3" fill="#E25B3F"/><path d="M70 70 q14 -4 10 10 q-8 2 -10 -10z" fill="#F0BB5F"/><rect x="16" y="58" width="56" height="26" rx="13" fill="#E25B3F"/><path d="M22 62 L14 38 L30 34 L34 60 Z" fill="#E25B3F"/><ellipse cx="18" cy="36" rx="11" ry="7.5" fill="#E25B3F"/><path d="M26 32 q-2 -10 6 -12 q-1 7 4 10z M32 36 q4 -8 10 -6 q-4 4 -2 9z" fill="#F0BB5F"/><circle cx="14" cy="35" r="1.8" fill="#3B3B3B"/><ellipse cx="9" cy="39" rx="2" ry="1.3" fill="#F5BEA9"/><rect x="38" y="52" width="24" height="10" rx="5" fill="#F0BB5F"/></g></svg>`,
+  balao: `<svg viewBox="0 0 120 110" aria-hidden="true">${PLACA}<g class="corpo"><path d="M34 76 L34 86" stroke="#3B3B3B" stroke-width="1.5"/><path d="M24 76 L22 86 M44 76 L46 86" stroke="#3B3B3B" stroke-width="1.5"/><path d="M34 14 C12 14 6 40 20 60 Q28 72 34 78 Q40 72 48 60 C62 40 56 14 34 14z" fill="#F5BEA9"/><path d="M34 14 C26 14 22 44 34 78 C46 44 42 14 34 14z" fill="#E25B3F"/><path d="M34 14 C30 14 28 44 34 78 C40 44 38 14 34 14z" fill="#F0BB5F"/><rect x="22" y="86" width="24" height="14" rx="4" fill="#C98B6B"/><path d="M22 92 h24" stroke="#A8724F" stroke-width="2"/><path d="M48 60 Q60 50 62 56" stroke="#3B3B3B" stroke-width="1.5" fill="none"/></g></svg>`,
+  relogio: `<svg viewBox="0 0 120 110" aria-hidden="true">${PLACA}<path d="M66 56 L62 72" stroke="#3B3B3B" stroke-width="2.5" stroke-linecap="round"/><g class="corpo"><circle cx="12" cy="40" r="7" fill="#E25B3F"/><circle cx="58" cy="40" r="7" fill="#E25B3F"/><rect x="30" y="26" width="10" height="8" rx="2" fill="#3B3B3B"/><path d="M16 94 L22 84 M54 94 L48 84" stroke="#3B3B3B" stroke-width="4" stroke-linecap="round"/><circle cx="35" cy="62" r="27" fill="#E25B3F"/><circle cx="35" cy="62" r="21" fill="#FFFDF9"/><path d="M35 47 v3 M50 62 h-3 M35 77 v-3 M20 62 h3" stroke="#3B3B3B" stroke-width="2" stroke-linecap="round"/><path d="M35 62 L35 50 M35 62 L44 66" stroke="#3B3B3B" stroke-width="3" stroke-linecap="round"/><circle cx="35" cy="62" r="2.5" fill="#E25B3F"/></g></svg>`,
+};
+const ULT_PLACA = {};
+function tile(cor, act, rotulo, valor, sub, pers, chave, extra = '') {
+  const txt = String(valor); return `<button class="tile ${cor} tap" data-act="${act}"><div class="tile-txt"><small>${rotulo}</small><span>${sub}</span></div><div class="pers ${extra}" data-pers="${chave}">${PERS[pers]}<b class="placa num ${txt.length > 3 ? 'longo' : ''}" data-placa="${chave}">${txt}</b></div></button>`;
+}
+function animarPlacas() {
+  $$('[data-placa]').forEach(el => { const k = el.dataset.placa, v = el.textContent; if (k in ULT_PLACA && ULT_PLACA[k] !== v) { const pers = el.closest('.pers'); pers.classList.remove('troca'); void pers.offsetWidth; pers.classList.add('troca'); } ULT_PLACA[k] = v; });
+}
 const NOMES_BRQ = { urso: 'Ursinho', bola: 'Bola', blocos: 'Blocos', coelho: 'Coelho', boneca: 'Boneca', presente: 'Presente' };
 
 /* ---------- estado (dados de exemplo: a loja ainda não tem cadastro) ---------- */
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.03';
+const VERSAO = '0.04';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -399,7 +441,7 @@ async function atualizarAgora(bt) {
 }
 const S = {
   tela: 'horas', zapAberta: 1, zapModo: 'lista', mes: { y: agora.getFullYear(), m: agora.getMonth() }, diaSel: isoDia(agora),
-  cfg: { arredonda: 1, cortesia: 10, minimo: 0, aviso: 30, pacotes: [{ h: 1, v: 60 }, { h: 5, v: 250 }, { h: 10, v: 450 }, { h: 20, v: 800 }], idface: { ip: '192.168.0.129', nome: 'Recepção', ligado: true, ultima: antes(0.2) }, tema: lido('ps-tema', 'sistema') },
+  cfg: { arredonda: 1, cortesia: 10, minimo: 0, aviso: 30, autoMsg: 'ambos', pacotes: [{ h: 1, v: 60 }, { h: 5, v: 250 }, { h: 10, v: 450 }, { h: 20, v: 800 }], idface: { ip: '192.168.0.129', nome: 'Recepção', ligado: true, ultima: antes(0.2) }, tema: lido('ps-tema', 'sistema') },
   equipe: [{ id: 1, nome: 'Camila Duarte', papel: 'Gerente', login: 'camila' }, { id: 2, nome: 'Beatriz Lima', papel: 'Recepção', login: 'bia' }, { id: 3, nome: 'João Pedro', papel: 'Monitor', login: 'jp' }],
   criancas: [
     { id: 1, nome: 'Helena', idade: 6, resp: 'Mariana', rel: 'mãe', tel: '(11) 9 8765-4321', obs: 'Alergia a amendoim', pacote: 10, usado: 380, entrou: antes(47), rosto: true, visitas: [{ dia: antes(2880), entrou: '14:05', saiu: '16:40', deb: 155 }, { dia: antes(7200), entrou: '10:10', saiu: '13:55', deb: 225 }] },
@@ -420,7 +462,7 @@ const S = {
     { h: antes(251), tipo: 'ent', nome: 'Laura', txt: 'Rosto reconhecido na entrada' },
   ],
   conversas: [
-    { id: 1, crianca: 1, lidas: false, msgs: [{ de: 'nos', txt: `Oi, Mariana! A Helena acabou de chegar, entrou às ${hora(antes(47))}. Boa tarde para vocês!`, h: antes(46) }, { de: 'ela', txt: 'Obrigada! Ela pode ficar até as 18h? Estou presa no trânsito 😅', h: antes(2) }] },
+    { id: 1, crianca: 1, lidas: false, msgs: [{ de: 'nos', txt: `Oi, Mariana! Helena chegou na Play Space às ${hora(antes(47))} 💛 Tem 3h49 no pacote. Qualquer coisa a gente te chama por aqui.`, h: antes(47), auto: true, foto: 'idface' }, { de: 'ela', txt: 'Obrigada! Ela pode ficar até as 18h? Estou presa no trânsito 😅', h: antes(2) }] },
     { id: 2, crianca: 2, lidas: false, msgs: [{ de: 'ela', txt: 'Boa tarde! Quanto fica o pacote de 20 horas?', h: antes(16) }, { de: 'ela', txt: 'O Theo adorou a oficina de slime, já quer voltar amanhã', h: antes(15) }] },
     { id: 3, crianca: 3, lidas: true, msgs: [{ de: 'nos', txt: 'Juliana, confirmamos a festa da Alice no sábado 15, às 16h. Vai ser lindo!', h: antes(300) }, { de: 'ela', txt: 'Confirmado o aniversário dia 15! Obrigada 💛', h: antes(280) }] },
     { id: 4, crianca: 4, lidas: true, msgs: [{ de: 'nos', txt: `Carla, o Miguel saiu às ${hora(antes(31))}. Foram 1h50 hoje, restam 4h no pacote.`, h: antes(31) }] },
@@ -465,27 +507,36 @@ const minDentro = c => c.entrou ? (agora.getTime() - c.entrou.getTime()) / 60000
 const usadoAgora = c => c.usado + (c.entrou ? cobrar(minDentro(c)) : 0);
 const restante = c => Math.max(0, c.pacote * 60 - usadoAgora(c));
 const estado = c => { const r = restante(c); return r <= 0 ? ['Zerado', 'p-erro'] : r <= S.cfg.aviso ? ['Acabando', 'p-aviso'] : ['Em dia', 'p-ok']; };
-const avatar = (c, g = '') => `<span class="av ${g}" style="background:${CORES[c.id % CORES.length]}">${esc(c.nome.slice(0, 2).toUpperCase())}</span>`;
+const avatar = (c, g = '') => c.foto ? `<span class="av ${g} foto" style="background-image:url(${c.foto})" role="img" aria-label="Foto de ${esc(c.nome)}"></span>` : `<span class="av ${g}" style="background:${CORES[c.id % CORES.length]}">${esc(c.nome.slice(0, 2).toUpperCase())}</span>`;
+let FOTO_TEMP = '';
+function lerFoto(arquivo, cb) { const r = new FileReader(); r.onload = () => { const img = new Image(); img.onload = () => { const L = 480, k = Math.min(1, L / Math.max(img.width, img.height)), cv = document.createElement('canvas'); cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k); cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height); cb(cv.toDataURL('image/jpeg', .82)); }; img.src = r.result; }; r.readAsDataURL(arquivo); }
+const cpfFmt = v => { v = String(v).replace(/\D/g, '').slice(0, 11); return v.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2'); };
 function blocos(c, comEstado = true) {
   const r = restante(c), pct = c.pacote ? Math.max(0, Math.min(100, r / (c.pacote * 60) * 100)) : 0, baixo = r <= S.cfg.aviso, [et, cls] = estado(c);
   return `<div class="horas ${baixo ? 'baixo' : ''} ${c.entrou ? 'dentro' : ''}" data-horas="${c.id}" aria-label="Restam ${hm(r)} de ${c.pacote} horas">
-    <div class="topo"><span class="resta num">${r <= 0 ? 'Acabou' : hm(r)}<small>${r <= 0 ? 'o pacote' : 'restantes'}</small></span><span class="de">de ${c.pacote}h${comEstado ? ` <span class="pill ${cls}">${et}</span>` : ''}</span></div>
+    <div class="topo"><span class="resta num">${r <= 0 ? 'Acabou' : hm(r)}<small>${r <= 0 ? '' : 'restantes'}</small></span><span class="de">de ${c.pacote}h${comEstado ? ` <span class="pill ${cls}">${et}</span>` : ''}</span></div>
     <div class="linha-h" style="--pct:${pct.toFixed(1)}%"><i style="width:${pct.toFixed(1)}%"></i></div>
   </div>`;
 }
 const cronometro = c => { const m = minDentro(c); return `${Math.floor(m / 60)}:${p2(Math.floor(m % 60))}<small>desde ${hora(c.entrou)}</small>`; };
 function registrar(tipo, nome, txt) { S.registros.unshift({ h: new Date(), tipo, nome, txt }); }
+function mensagemAuto(c, txt, comFoto) {
+  let conv = S.conversas.find(x => x.crianca === c.id); if (!conv) { conv = { id: novoId(), crianca: c.id, lidas: true, msgs: [] }; S.conversas.push(conv); }
+  const m = { de: 'nos', txt, h: new Date(), auto: true, foto: comFoto ? (c.foto || 'idface') : '' }; conv.msgs.push(m); return () => { conv.msgs = conv.msgs.filter(x => x !== m); };
+}
 function entrada(c, origem = 'iDFace') {
   c.entrou = new Date(); registrar('ent', c.nome, origem === 'iDFace' ? 'Rosto reconhecido na entrada' : 'Entrada registrada à mão');
-  const reg = S.registros[0];
-  toast(`${c.nome} entrou · ${hm(restante(c))} no banco`, () => { c.entrou = null; S.registros = S.registros.filter(r => r !== reg); });
+  const reg = S.registros[0], primeiroNome = c.resp.split(' ')[0];
+  const desfazMsg = S.cfg.autoMsg !== 'nao' ? mensagemAuto(c, `Oi, ${primeiroNome}! ${c.nome} chegou na Play Space às ${hora(c.entrou)} 💛 Tem ${hm(restante(c))} no pacote. Qualquer coisa a gente te chama por aqui.`, true) : null;
+  toast(`${c.nome} entrou · ${hm(restante(c))} no banco${desfazMsg ? ' · ' + primeiroNome + ' avisada' : ''}`, () => { c.entrou = null; S.registros = S.registros.filter(r => r !== reg); if (desfazMsg) desfazMsg(); });
 }
 function saida(c, origem = 'iDFace') {
   const deb = cobrar(minDentro(c)), entrouEm = c.entrou; c.usado += deb;
   const visita = { dia: new Date(), entrou: hora(c.entrou), saiu: hora(new Date()), deb }; c.visitas.unshift(visita);
   c.entrou = null; registrar('sai', c.nome, `${hm(deb)} debitadas · restam ${hm(restante(c))}${origem === 'iDFace' ? '' : ' · saída à mão'}`);
-  const reg = S.registros[0];
-  toast(`${c.nome} saiu · ${hm(deb)} debitadas`, () => { c.entrou = entrouEm; c.usado -= deb; c.visitas = c.visitas.filter(v => v !== visita); S.registros = S.registros.filter(r => r !== reg); });
+  const reg = S.registros[0], r = restante(c);
+  const desfazMsg = S.cfg.autoMsg === 'ambos' ? mensagemAuto(c, `${c.nome} saiu às ${hora(new Date())}. Hoje ficou ${hm(deb)}${r > 0 ? ` e ainda tem ${hm(r)} no pacote` : ' e o pacote acabou'}. Até a próxima! 🧸`, false) : null;
+  toast(`${c.nome} saiu · ${hm(deb)} debitadas`, () => { c.entrou = entrouEm; c.usado -= deb; c.visitas = c.visitas.filter(v => v !== visita); S.registros = S.registros.filter(r => r !== reg); if (desfazMsg) desfazMsg(); });
   if (restante(c) <= S.cfg.aviso) setTimeout(() => toast(`Aviso: ${c.nome} tem só ${hm(restante(c))} no pacote`), 2600);
 }
 function vender(c, pac) {
@@ -533,7 +584,7 @@ function cartaoCrianca(c) {
   const [et, cls] = estado(c);
   const botoes = c.entrou
     ? `<button class="bt claro tap" data-act="saida-rapida" data-id="${c.id}">${ic(IC.sair)} Saída</button><button class="bt tap" data-act="avisar" data-id="${c.id}">${ic(IC.zap)} Avisar ${esc(c.resp)}</button>`
-    : `<button class="bt forte tap" data-act="vender" data-id="${c.id}">${ic(IC.mais)} Vender horas</button>${c.rosto ? `<button class="bt claro tap" data-act="entrada-rapida" data-id="${c.id}">${ic(IC.entrar)} Entrada</button>` : `<button class="bt tap" data-act="rosto" data-id="${c.id}">${ic(IC.rosto)} Cadastrar rosto</button>`}`;
+    : `<button class="bt forte tap" data-act="vender" data-id="${c.id}">${ic(IC.mais)} Vender horas</button>${c.rosto ? `<button class="bt claro tap" data-act="entrada-rapida" data-id="${c.id}">${ic(IC.entrar)} Entrada</button>` : `<button class="bt tap" data-act="ficha" data-id="${c.id}">${ic(IC.camera)} Tirar a foto</button>`}`;
   return `<div class="card tap" role="button" tabindex="0" data-act="ficha" data-id="${c.id}" aria-label="Abrir a ficha de ${esc(c.nome)}">
     <div class="linha">${avatar(c)}<div class="txt"><b>${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}</b><span>${esc(c.resp)} (${esc(c.rel)})${c.tel ? ' · ' + esc(c.tel) : ''}</span></div>${c.entrou ? `<div class="cron num" data-cron="${c.id}">${cronometro(c)}</div>` : `<span class="pill ${c.rosto ? 'p-neutro' : 'p-aviso'}">${c.rosto ? 'Rosto ok' : 'Falta o rosto'}</span>`}</div>
     ${blocos(c)}
@@ -547,10 +598,10 @@ function telaHoras() {
   const vendas = S.registros.filter(r => r.tipo === 'venda' && agora - r.h < 86400000), horasVend = vendas.reduce((a, r) => a + (parseInt(r.txt) || 0), 0) + 20, valorVend = vendas.length * 250 + 1000;
   return faixa('Controle de horas', `${SEMANA[agora.getDay()]}, ${agora.getDate()} de ${MESES[agora.getMonth()]}`, chipIdface()) + `
   <div class="tiles">
-    <button class="tile t-pessego tap" data-act="dia"><small>No espaço agora</small><b class="num">${dentro.length}</b><span>${dentro.length === 1 ? 'criança brincando' : 'crianças brincando'}</span></button>
-    <button class="tile t-mostarda tap" data-act="dia"><small>Horas vendidas hoje</small><b class="num">${horasVend}h</b><span>${vendas.length + 2} pacotes · ${brl(valorVend)}</span></button>
-    <button class="tile t-menta tap" data-act="dia"><small>Horas usadas hoje</small><b class="num">${hm(usadasHoje)}</b><span>debitadas pelo rosto</span></button>
-    <button class="tile t-coral tap" data-act="acabando"><small>Pacotes acabando</small><b class="num">${acabando}</b><span>menos de ${hm(S.cfg.aviso)} no banco</span></button>
+    ${tile('t-pessego', 'dia', 'No espaço agora', dentro.length, dentro.length === 1 ? 'criança brincando' : 'crianças brincando', 'urso', 'dentro')}
+    ${tile('t-mostarda', 'dia', 'Horas vendidas hoje', horasVend + 'h', `${vendas.length + 2} pacotes · ${brl(valorVend)}`, 'cavalo', 'vendidas', 'balanca')}
+    ${tile('t-menta', 'dia', 'Horas usadas hoje', hm(usadasHoje), 'debitadas pelo rosto', 'balao', 'usadas', 'flutua')}
+    ${tile('t-coral', 'acabando', 'Pacotes acabando', acabando, `menos de ${hm(S.cfg.aviso)} no banco`, 'relogio', 'acabando', acabando ? 'alerta' : '')}
   </div>
   <section class="sec"><div class="sec-cab"><h2><i></i>No espaço agora</h2><button class="link tap" data-act="dia">Ver o dia inteiro</button></div>
     <div class="cards">${dentro.length ? dentro.map(cartaoCrianca).join('') : `<div class="card vazio">${ic(IC.rosto, 28)}<b>Ninguém no espaço agora</b><span>Quando uma criança olhar para o iDFace, ela aparece aqui com o cronômetro correndo.</span></div>`}</div>
@@ -570,7 +621,7 @@ const listaRegistros = regs => `<div class="reg">${regs.length ? regs.map(r => `
 function folhaFicha(id) {
   const c = crianca(id); if (!c) return; const [et, cls] = estado(c);
   abrirFolha(`${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}`, `
-    <div class="linha">${avatar(c, 'g')}<div class="txt"><b style="white-space:normal">${esc(c.resp)}, ${esc(c.rel)}</b><span>${esc(c.tel)}</span>${c.obs ? `<span style="color:var(--coral);font-weight:700">${esc(c.obs)}</span>` : ''}</div><span class="pill ${cls}">${et}</span></div>
+    <div class="linha">${avatar(c, 'g')}<div class="txt"><b style="white-space:normal">${esc(c.resp)}, ${esc(c.rel)}</b><span>${esc(c.tel)}${c.cpf ? ' · CPF ' + esc(c.cpf) : ''}</span>${c.obs ? `<span style="color:var(--coral);font-weight:700">${esc(c.obs)}</span>` : ''}</div><span class="pill ${cls}">${et}</span></div>
     ${c.entrou ? `<div class="marca">${ic(IC.horas, 18)}<span>Está no espaço desde <b>${hora(c.entrou)}</b>: <b class="num" data-cron-txt="${c.id}">${hm(minDentro(c))}</b> até agora, <b>${hm(cobrar(minDentro(c)))}</b> a debitar pela regra atual.</span></div>` : ''}
     ${blocos(c, false)}
     <div class="saldo"><span>${c.pacote}h compradas</span><span>${hm(usadoAgora(c))} usadas</span></div>
@@ -578,7 +629,7 @@ function folhaFicha(id) {
       ${c.entrou ? `<button class="bt claro tap" data-act="saida" data-id="${c.id}">${ic(IC.sair)} Registrar saída</button>` : `<button class="bt claro tap" data-act="entrada" data-id="${c.id}">${ic(IC.entrar)} Registrar entrada</button>`}
       <button class="bt forte tap" data-act="vender" data-id="${c.id}">${ic(IC.mais)} Vender horas</button>
       <button class="bt tap" data-act="avisar" data-id="${c.id}">${ic(IC.zap)} Avisar ${esc(c.resp)}</button>
-      ${c.rosto ? '' : `<button class="bt tap" data-act="rosto" data-id="${c.id}">${ic(IC.rosto)} Cadastrar rosto</button>`}
+      <label class="bt tap" for="ficha-foto">${ic(IC.camera)} ${c.foto ? 'Trocar a foto' : 'Tirar a foto'}</label><input type="file" id="ficha-foto" data-id="${c.id}" accept="image/*" capture="user" hidden>
       <button class="bt tap" data-act="editar" data-id="${c.id}">${ic(IC.lapis)} Editar</button>
     </div>
     <div class="sec"><div class="sec-cab"><h2 style="font-size:16px">Visitas</h2><span class="pill p-neutro">${c.visitas.length}</span></div>
@@ -593,20 +644,22 @@ function folhaVender(id) {
 }
 function folhaCrianca(c) {
   const ed = !!c;
+  FOTO_TEMP = '';
   if (!ed) return abrirFolha('Cadastrar', `
-    <div class="campo"><label for="f-nome">Nome da criança</label><input id="f-nome" placeholder="Como ela gosta de ser chamada" autofocus autocomplete="off"></div>
+    <div class="foto-cap"><span class="av g" id="f-foto-prev">${ic(IC.camera, 30)}</span><div class="txt"><label class="bt forte tap" for="f-foto">${ic(IC.camera)} Tirar a foto da criança</label><input type="file" id="f-foto" accept="image/*" capture="user" hidden><span class="explica">A foto vai para o iDFace: é ela que libera o rosto da criança no aparelho.</span></div></div>
+    <div class="campo"><label for="f-nome">Nome da criança</label><input id="f-nome" placeholder="Como ela gosta de ser chamada" autocomplete="off"></div>
     <div class="campo"><label for="f-resp">Nome do pai, da mãe ou responsável</label><input id="f-resp" placeholder="Quem traz e busca" autocomplete="off"></div>
     <div class="campo"><label>Quem é</label><div class="seg" id="f-rel-seg">${['mãe', 'pai', 'responsável'].map((r, i) => `<button type="button" data-seg="${r}" aria-pressed="${i === 0}">${r[0].toUpperCase() + r.slice(1)}</button>`).join('')}</div></div>
-    <div class="campo"><label for="f-tel">WhatsApp</label><input id="f-tel" inputmode="tel" autocomplete="tel" placeholder="(11) 9 0000-0000"></div>
+    <div class="dois"><div class="campo"><label for="f-tel">WhatsApp</label><input id="f-tel" inputmode="tel" autocomplete="tel" placeholder="(11) 9 0000-0000"></div><div class="campo"><label for="f-cpf">CPF do responsável</label><input id="f-cpf" inputmode="numeric" placeholder="000.000.000-00" autocomplete="off"></div></div>
     <div class="campo"><label>Pacote de horas</label><div class="opcoes" id="f-pac">${S.cfg.pacotes.map((p, i) => `<button type="button" class="opc tap" data-seg="${i}" aria-pressed="${p.h === 10 || (i === 0 && !S.cfg.pacotes.some(x => x.h === 10))}"><b>${p.h === 1 ? 'Avulsa' : p.h + 'h'}</b><span>${brl(p.v)}</span></button>`).join('')}</div></div>
     <button class="bt forte largo tap" data-act="salvar-crianca">${ic(IC.check)} Cadastrar</button>
-    <p class="explica" style="text-align:center">Idade, alergias e o rosto no iDFace podem ser completados depois, na ficha. O nome já vai para o aparelho.</p>`);
+    <p class="explica" style="text-align:center">Idade e alergias podem ser completadas depois, na ficha. Sem foto agora, a criança olha para o iDFace na primeira visita.</p>`);
   abrirFolha('Editar cadastro', `
     <div class="campo"><label for="f-nome">Nome da criança</label><input id="f-nome" value="${esc(c ? c.nome : '')}" placeholder="Como ela gosta de ser chamada"></div>
     <div class="dois"><div class="campo"><label for="f-idade">Idade</label><input id="f-idade" type="number" min="1" max="14" inputmode="numeric" value="${c ? c.idade : ''}" placeholder="anos"></div>
       ${ed ? `<div class="campo"><label for="f-obs">Alergias ou observações</label><input id="f-obs" value="${esc(c.obs)}" placeholder="Opcional"></div>` : `<div class="campo"><label for="f-pacote">Primeiro pacote</label><select id="f-pacote">${S.cfg.pacotes.map((p, i) => `<option value="${i}" ${i === 1 ? 'selected' : ''}>${p.h} horas · ${brl(p.v)}</option>`).join('')}</select></div>`}</div>
     <div class="dois"><div class="campo"><label for="f-resp">Responsável</label><input id="f-resp" value="${esc(c ? c.resp : '')}" placeholder="Nome"></div><div class="campo"><label for="f-rel">Parentesco</label><select id="f-rel">${['mãe', 'pai', 'avó', 'avô', 'responsável'].map(r => `<option ${c && c.rel === r ? 'selected' : ''}>${r}</option>`).join('')}</select></div></div>
-    <div class="campo"><label for="f-tel">WhatsApp do responsável</label><input id="f-tel" inputmode="tel" value="${esc(c ? c.tel : '')}" placeholder="(11) 9 0000-0000"></div>
+    <div class="dois"><div class="campo"><label for="f-tel">WhatsApp do responsável</label><input id="f-tel" inputmode="tel" value="${esc(c ? c.tel : '')}" placeholder="(11) 9 0000-0000"></div><div class="campo"><label for="f-cpf">CPF do responsável</label><input id="f-cpf" inputmode="numeric" value="${esc(c ? c.cpf || '' : '')}" placeholder="000.000.000-00"></div></div>
     ${ed ? '' : `<div class="campo"><label for="f-obs">Alergias ou observações</label><input id="f-obs" placeholder="Opcional"></div>
     <label class="marca"><input type="checkbox" id="f-idface" checked><span><b>Cadastrar no iDFace agora.</b> O nome aparece no aparelho em até 1 minuto; depois é só a criança olhar para a câmera.</span></label>`}
     <button class="bt forte largo tap" data-act="salvar-crianca" data-id="${c ? c.id : ''}">${ic(IC.check)} ${ed ? 'Salvar' : 'Salvar e cadastrar o rosto'}</button>`);
@@ -653,7 +706,7 @@ function telaZap() {
     <div class="conversas">${lista}</div>
     <div class="papo">
       <div class="cab"><button class="volta tap" data-act="zap-lista" aria-label="Voltar">${ic(IC.volta, 18)}</button>${avatar(c)}<div class="txt"><b>${esc(c.resp)}</b><span>${esc(c.rel)} de ${esc(c.nome)} · ${c.pacote}h compradas, restam ${hm(restante(c))}</span></div><button class="pill ${c.entrou ? 'p-ok' : 'p-neutro'} tap" data-act="ficha" data-id="${c.id}">${c.entrou ? `${esc(c.nome)} está aqui` : 'Ver ficha'}</button></div>
-      <div class="msgs" id="msgs">${conv.msgs.map(m => `<div class="msg ${m.de}">${esc(m.txt)}<time>${hora(m.h)}</time></div>`).join('')}</div>
+      <div class="msgs" id="msgs">${conv.msgs.map(m => `<div class="msg ${m.de}">${m.foto ? (m.foto === 'idface' ? `<span class="foto-id">${ic(IC.camera, 15)} Foto da chegada, pela câmera do iDFace</span>` : `<img class="foto-msg" src="${m.foto}" alt="Foto da chegada">`) : ''}${esc(m.txt)}<time>${hora(m.h)}${m.auto ? ' · automática' : ''}</time></div>`).join('')}</div>
       <div class="sug"><small>Sugestões de resposta</small>${sugestoes(conv).map(s => `<button class="tap" data-act="sugestao">${esc(s)}</button>`).join('')}</div>
       <div class="escreve"><textarea id="zap-texto" rows="1" placeholder="Escreva para ${esc(c.resp)}" aria-label="Mensagem"></textarea><button class="tap" data-act="enviar" aria-label="Enviar">${ic(IC.envia, 20)}</button></div>
     </div>
@@ -759,6 +812,10 @@ function telaAjustes() {
         <div class="grupo">${S.equipe.map(u => `<button class="it tap" data-act="equipe-editar" data-id="${u.id}"><span class="av" style="background:${CORES[u.id % CORES.length]};width:38px;height:38px;font-size:13px">${esc(u.nome.split(' ').map(n => n[0]).slice(0, 2).join(''))}</span><div class="txt"><b>${esc(u.nome)}</b><span>${esc(u.papel)} · entra como ${esc(u.login)}</span></div><span class="vai">${ic(IC.vai, 18)}</span></button>`).join('')}</div>
         <p class="explica">Gerente vê tudo e mexe nos ajustes. Recepção vende horas e cadastra crianças. Monitor só acompanha quem está no espaço.</p>
       </div>
+      <div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.zap, 20)} Avisos automáticos no WhatsApp</h2></div>
+        ${seg('autoMsg', [['ambos', 'Entrada e saída'], ['entrada', 'Só a entrada'], ['nao', 'Nenhum']], cfg.autoMsg)}
+        <p class="explica">Na entrada, o responsável recebe a foto da chegada, o horário e quanto resta no pacote. Na saída, o horário, o tempo de hoje e o saldo. Tudo sozinho, assim que o iDFace reconhece o rosto.</p>
+      </div>
       <div class="card"><div class="sec-cab"><h2 style="font-size:18px">Aparência</h2></div>${seg('tema', [['sistema', 'Como o celular'], ['claro', 'Claro'], ['escuro', 'Escuro']], cfg.tema)}</div>
     </div>
   </div>
@@ -785,7 +842,8 @@ function desenhar() {
   nav();
   $('#miolo').innerHTML = ({ horas: telaHoras, zap: telaZap, agenda: telaAgenda, esteira: telaEsteira, ajustes: telaAjustes })[S.tela]();
   $('#hoje').innerHTML = painelHoje();
-  $('#fab').hidden = S.tela !== 'horas';
+  $('#fab-ancora').hidden = S.tela !== 'horas';
+  animarPlacas();
   if (S.tela === 'zap') { const m = $('#msgs'); if (m && m.lastElementChild) m.lastElementChild.scrollIntoView({ block: 'nearest' }); }
 }
 const val = id => ($('#' + id) || { value: '' }).value.trim();
@@ -807,12 +865,12 @@ const ACOES = {
   nova: () => folhaCrianca(null),
   'salvar-crianca': el => {
     const nome = val('f-nome'); if (!nome) { toast('Falta o nome da criança'); $('#f-nome').focus(); return; }
-    if (el.dataset.id) { const c = crianca(el.dataset.id); Object.assign(c, { nome, idade: +val('f-idade') || c.idade, resp: val('f-resp') || c.resp, rel: val('f-rel'), tel: val('f-tel'), obs: val('f-obs') }); toast('Cadastro salvo'); }
+    if (el.dataset.id) { const c = crianca(el.dataset.id); Object.assign(c, { nome, idade: +val('f-idade') || c.idade, resp: val('f-resp') || c.resp, rel: val('f-rel'), tel: val('f-tel'), cpf: cpfFmt(val('f-cpf')), obs: val('f-obs') }); toast('Cadastro salvo'); }
     else {
       const resp = val('f-resp'); if (!resp) { toast('Falta o nome de quem é responsável'); $('#f-resp').focus(); return; }
       const rel = ($('#f-rel-seg [aria-pressed="true"]') || {}).dataset.seg || 'responsável', pac = S.cfg.pacotes[+(($('#f-pac [aria-pressed="true"]') || {}).dataset.seg || 0)] || S.cfg.pacotes[0];
-      const c = { id: novoId(), nome, idade: 0, resp, rel, tel: val('f-tel'), obs: '', pacote: pac.h, usado: 0, entrou: null, rosto: true, visitas: [] }; S.criancas.push(c);
-      registrar('venda', c.nome, `Pacote de ${pac.h}h vendido · ${brl(pac.v)}`); toast(`${nome} cadastrada: ${pac.h}h no banco. O nome já foi para o iDFace.`, () => { S.criancas = S.criancas.filter(x => x !== c); S.registros.shift(); });
+      const c = { id: novoId(), nome, idade: 0, resp, rel, tel: val('f-tel'), cpf: cpfFmt(val('f-cpf')), obs: '', pacote: pac.h, usado: 0, entrou: null, rosto: !!FOTO_TEMP, foto: FOTO_TEMP, visitas: [] }; S.criancas.push(c); FOTO_TEMP = '';
+      registrar('venda', c.nome, `Pacote de ${pac.h}h vendido · ${brl(pac.v)}`); toast(c.foto ? `${nome} cadastrada: ${pac.h}h no banco. Foto enviada ao iDFace.` : `${nome} cadastrada: ${pac.h}h no banco. Falta a foto para o iDFace.`, () => { S.criancas = S.criancas.filter(x => x !== c); S.registros.shift(); });
     }
     fecharFolha(); desenhar();
   },
@@ -875,7 +933,13 @@ document.addEventListener('click', e => {
   const act = e.target.closest('[data-act]'); if (act && ACOES[act.dataset.act]) { ACOES[act.dataset.act](act); return; }
   const f = e.target.closest('[data-fecha]'); if (f && (f.tagName === 'BUTTON' || e.target === f)) fecharFolha();
 });
+document.addEventListener('change', e => {
+  const t = e.target; if (t.type !== 'file' || !t.files || !t.files[0]) return;
+  if (t.id === 'f-foto') lerFoto(t.files[0], url => { FOTO_TEMP = url; const prev = $('#f-foto-prev'); if (prev) { prev.classList.add('foto'); prev.style.backgroundImage = `url(${url})`; prev.innerHTML = ''; } const l = $('label[for="f-foto"]'); if (l) l.innerHTML = `${ic(IC.camera)} Tirar outra`; });
+  if (t.id === 'ficha-foto') { const c = crianca(t.dataset.id); lerFoto(t.files[0], url => { c.foto = url; c.rosto = true; toast(`Foto de ${c.nome} enviada ao iDFace`); fecharFolha(); desenhar(); setTimeout(() => folhaFicha(c.id), 250); }); }
+});
 document.addEventListener('input', e => {
+  if (e.target.id === 'f-cpf') { const v = cpfFmt(e.target.value); if (v !== e.target.value) e.target.value = v; }
   if (e.target.id === 'busca') { const q = e.target.value.toLowerCase(); $('#lista-criancas').innerHTML = itensLista(S.criancas.filter(c => (c.nome + ' ' + c.resp).toLowerCase().includes(q))); }
   if (e.target.id === 'pc-h') $$('#pc-rapido button').forEach(b => b.setAttribute('aria-pressed', b.dataset.h === e.target.value));
   if (e.target.id === 'zap-texto') { e.target.style.height = 'auto'; e.target.style.height = Math.min(120, e.target.scrollHeight) + 'px'; }
