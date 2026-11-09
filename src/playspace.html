@@ -352,7 +352,7 @@ const NOMES_BRQ = { urso: 'Ursinho', bola: 'Bola', blocos: 'Blocos', coelho: 'Co
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.02';
+const VERSAO = '0.03';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -383,7 +383,7 @@ async function atualizarAgora(bt) {
 }
 const S = {
   tela: 'horas', zapAberta: 1, zapModo: 'lista', mes: { y: agora.getFullYear(), m: agora.getMonth() }, diaSel: isoDia(agora),
-  cfg: { arredonda: 1, cortesia: 10, minimo: 0, aviso: 30, pacotes: [{ h: 5, v: 250 }, { h: 10, v: 450 }, { h: 20, v: 800 }], idface: { ip: '192.168.0.129', nome: 'Recepção', ligado: true, ultima: antes(0.2) }, tema: lido('ps-tema', 'sistema') },
+  cfg: { arredonda: 1, cortesia: 10, minimo: 0, aviso: 30, pacotes: [{ h: 1, v: 60 }, { h: 5, v: 250 }, { h: 10, v: 450 }, { h: 20, v: 800 }], idface: { ip: '192.168.0.129', nome: 'Recepção', ligado: true, ultima: antes(0.2) }, tema: lido('ps-tema', 'sistema') },
   equipe: [{ id: 1, nome: 'Camila Duarte', papel: 'Gerente', login: 'camila' }, { id: 2, nome: 'Beatriz Lima', papel: 'Recepção', login: 'bia' }, { id: 3, nome: 'João Pedro', papel: 'Monitor', login: 'jp' }],
   criancas: [
     { id: 1, nome: 'Helena', idade: 6, resp: 'Mariana', rel: 'mãe', tel: '(11) 9 8765-4321', obs: 'Alergia a amendoim', pacote: 10, usado: 380, entrou: antes(47), rosto: true, visitas: [{ dia: antes(2880), entrou: '14:05', saiu: '16:40', deb: 155 }, { dia: antes(7200), entrou: '10:10', saiu: '13:55', deb: 225 }] },
@@ -428,6 +428,7 @@ const S = {
   add(d(15), '16:00', 'Aniversário da Alice, 8 anos', 'festa', 'Festa'); add(d(20), '10:00', 'Reunião com o shopping', 'compromisso', 'Compromisso'); add(d(22), '15:00', 'Pintura em tela (sem tinta!)', 'oficina', 'Oficina de');
   add(d(10), '09:00', 'Post: programação da semana 2', 'postagem', 'Postagem'); add(d(29), '15:00', 'Fashion Day · edição de verão', 'festa', 'Evento');
 })();
+const nomePacote = p => p.h === 1 ? 'Hora avulsa' : p.h + ' horas';
 const TIPOS = { oficina: ['Oficina', 'var(--coral)'], festa: ['Festa', 'var(--pessego)'], compromisso: ['Compromisso', 'var(--mostarda)'], postagem: ['Postagem', 'var(--verde-agua)'] };
 const ETAPAS = ['Pedido feito', 'Separando', 'Embrulhando', 'Pronto para entregar'];
 const ABAS = [['horas', 'Horas', 'horas'], ['zap', 'WhatsApp', 'zap'], ['agenda', 'Agenda', 'agenda'], ['esteira', 'Esteira', 'esteira'], ['ajustes', 'Ajustes', 'ajustes']];
@@ -571,7 +572,7 @@ function folhaFicha(id) {
 function folhaVender(id) {
   const c = crianca(id);
   abrirFolha('Vender horas', `<p class="explica">Para <b>${esc(c.nome)}</b>, que tem ${hm(restante(c))} no banco. Escolha o pacote: as horas somam ao que já existe.</p>
-    <div class="opcoes">${S.cfg.pacotes.map((p, i) => `<button class="opc tap" data-act="vender-ok" data-id="${c.id}" data-i="${i}"><b>${p.h}h</b><span>${brl(p.v)} · ${brl(Math.round(p.v / p.h))}/h</span></button>`).join('')}</div>
+    <div class="opcoes">${S.cfg.pacotes.map((p, i) => `<button class="opc tap" data-act="vender-ok" data-id="${c.id}" data-i="${i}"><b>${p.h === 1 ? 'Avulsa' : p.h + 'h'}</b><span>${brl(p.v)}${p.h > 1 ? ' · ' + brl(Math.round(p.v / p.h)) + '/h' : ' · 1 hora'}</span></button>`).join('')}</div>
     <p class="explica">Os pacotes e os preços são editados em Ajustes.</p>`);
 }
 function folhaCrianca(c) {
@@ -581,7 +582,7 @@ function folhaCrianca(c) {
     <div class="campo"><label for="f-resp">Nome do pai, da mãe ou responsável</label><input id="f-resp" placeholder="Quem traz e busca" autocomplete="off"></div>
     <div class="campo"><label>Quem é</label><div class="seg" id="f-rel-seg">${['mãe', 'pai', 'responsável'].map((r, i) => `<button type="button" data-seg="${r}" aria-pressed="${i === 0}">${r[0].toUpperCase() + r.slice(1)}</button>`).join('')}</div></div>
     <div class="campo"><label for="f-tel">WhatsApp</label><input id="f-tel" inputmode="tel" autocomplete="tel" placeholder="(11) 9 0000-0000"></div>
-    <div class="campo"><label>Pacote de horas</label><div class="opcoes" id="f-pac">${S.cfg.pacotes.map((p, i) => `<button type="button" class="opc tap" data-seg="${i}" aria-pressed="${i === 1}"><b>${p.h}h</b><span>${brl(p.v)}</span></button>`).join('')}</div></div>
+    <div class="campo"><label>Pacote de horas</label><div class="opcoes" id="f-pac">${S.cfg.pacotes.map((p, i) => `<button type="button" class="opc tap" data-seg="${i}" aria-pressed="${p.h === 10 || (i === 0 && !S.cfg.pacotes.some(x => x.h === 10))}"><b>${p.h === 1 ? 'Avulsa' : p.h + 'h'}</b><span>${brl(p.v)}</span></button>`).join('')}</div></div>
     <button class="bt forte largo tap" data-act="salvar-crianca">${ic(IC.check)} Cadastrar</button>
     <p class="explica" style="text-align:center">Idade, alergias e o rosto no iDFace podem ser completados depois, na ficha. O nome já vai para o aparelho.</p>`);
   abrirFolha('Editar cadastro', `
@@ -622,8 +623,8 @@ function sugestoes(conv) {
   const s = [];
   if (c.entrou) s.push(`${c.nome} está aqui desde ${hora(c.entrou)} e ainda tem ${r} no pacote. Fica tranquila!`);
   else s.push(`Oi, ${c.resp}! ${c.nome} ainda tem ${r} no pacote. Quando quiser vir, é só chegar e olhar para a câmera.`);
-  if (restante(c) <= 120) s.push(`${c.resp}, o pacote de ${c.nome} está com ${r}. Quer renovar? Temos ${S.cfg.pacotes.map(p => p.h + 'h por ' + brl(p.v)).join(', ')}.`);
-  if (ultima && /pacote|quanto|pre[çc]o/i.test(ultima.txt)) s.push(`Nossos pacotes: ${S.cfg.pacotes.map(p => p.h + 'h por ' + brl(p.v)).join(' · ')}. As horas não vencem e somam ao que já tem.`);
+  if (restante(c) <= 120) s.push(`${c.resp}, o pacote de ${c.nome} está com ${r}. Quer renovar? Temos ${S.cfg.pacotes.map(p => (p.h === 1 ? 'hora avulsa' : p.h + 'h') + ' por ' + brl(p.v)).join(', ')}.`);
+  if (ultima && /pacote|quanto|pre[çc]o/i.test(ultima.txt)) s.push(`Nossos pacotes: ${S.cfg.pacotes.map(p => (p.h === 1 ? 'hora avulsa' : p.h + 'h') + ' por ' + brl(p.v)).join(' · ')}. As horas não vencem e somam ao que já tem.`);
   if (ultima && /ficar|at[ée]|tr[âa]nsito/i.test(ultima.txt)) s.push(`Pode sim! Se passar do tempo do pacote a gente te avisa por aqui, combinado? 💛`);
   return s.slice(0, 3);
 }
@@ -732,7 +733,8 @@ function telaAjustes() {
     </div>
     <div class="sec">
       <div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.presente, 20)} Pacotes de horas</h2><button class="link tap" data-act="pacote-novo">Novo pacote</button></div>
-        <div class="grupo">${cfg.pacotes.map((p, i) => `<div class="it"><div class="txt"><b>${p.h} horas</b><span>${brl(Math.round(p.v / p.h))} por hora</span></div><div class="campo" style="width:120px"><input type="number" inputmode="numeric" aria-label="Preço do pacote de ${p.h} horas" value="${p.v}" data-preco="${i}" style="min-height:40px;text-align:right"></div><button class="fechar tap" data-act="pacote-apagar" data-i="${i}" aria-label="Apagar pacote">${ic(IC.x, 16, 2.4)}</button></div>`).join('')}</div>
+        <div class="grupo">${cfg.pacotes.map((p, i) => `<button class="it tap" data-act="pacote-editar" data-i="${i}"><div class="txt"><b>${nomePacote(p)}</b><span>${brl(p.v)}${p.h > 1 ? ' · ' + brl(Math.round(p.v / p.h)) + ' por hora' : ''}</span></div><span class="vai">${ic(IC.vai, 18)}</span></button>`).join('')}</div>
+        <p class="explica">Toque num pacote para mudar as horas ou o valor. A hora avulsa é o pacote de 1 hora.</p>
       </div>
       <div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.rosto, 20)} iDFace</h2><span class="pill ${cfg.idface.ligado ? 'p-ok' : 'p-erro'}">${cfg.idface.ligado ? 'Lendo' : 'Desligado'}</span></div>
         <button class="grupo tap" data-act="idface" style="width:100%"><div class="it"><div class="txt"><b>${esc(cfg.idface.nome)} · ${esc(cfg.idface.ip)}</b><span>Toque para configurar, baixar o conector ou simular um rosto</span></div><span class="vai">${ic(IC.vai, 18)}</span></div></button>
@@ -745,6 +747,14 @@ function telaAjustes() {
     </div>
   </div>
   <p class="rodape"><b>Play Space Horas</b> v${VERSAO} · protótipo</p>`;
+}
+function folhaPacote(i) {
+  const p = i == null ? null : S.cfg.pacotes[i];
+  abrirFolha(p ? 'Editar pacote' : 'Novo pacote', `
+    <div class="campo"><label>Horas</label><div class="seg" id="pc-rapido">${[1, 2, 5, 10, 20].map(h => `<button type="button" data-act="pacote-horas" data-h="${h}" aria-pressed="${p ? p.h === h : h === 5}">${h === 1 ? 'Avulsa' : h + 'h'}</button>`).join('')}</div></div>
+    <div class="dois"><div class="campo"><label for="pc-h">Ou digite as horas</label><input id="pc-h" type="number" inputmode="numeric" min="1" step="1" value="${p ? p.h : 5}"></div><div class="campo"><label for="pc-v">Valor (R$)</label><input id="pc-v" type="number" inputmode="decimal" min="1" step="1" value="${p ? p.v : ''}" placeholder="250"></div></div>
+    <p class="explica">O pacote de 1 hora é a hora avulsa. Os pacotes aparecem na venda e no cadastro, do menor para o maior.</p>
+    <div class="acoes"><button class="bt forte tap" data-act="pacote-salvar" data-i="${i == null ? '' : i}" style="flex:1;justify-content:center">${ic(IC.check)} Salvar</button>${p ? `<button class="bt claro tap" data-act="pacote-apagar" data-i="${i}" style="color:var(--erro)">Apagar</button>` : ''}</div>`);
 }
 function folhaEquipe(u) {
   abrirFolha(u ? 'Editar pessoa' : 'Nova pessoa', `
@@ -824,8 +834,19 @@ const ACOES = {
   etapa: el => { const p = S.pedidos.find(x => x.id === +el.dataset.id), e = +el.dataset.e; if (e === p.etapa) return; p.etapa = e; p.novo = true; fecharFolha(); desenhar(); if (e === 3) { festejar(3); toast(`${p.nome} virou presente! Avise ${p.cliente}.`); } },
   entregue: el => { const p = S.pedidos.find(x => x.id === +el.dataset.id); S.pedidos = S.pedidos.filter(x => x.id !== p.id); toast(`${p.nome} entregue para ${p.cliente}`); fecharFolha(); desenhar(); },
   'pedido-zap': el => { const p = S.pedidos.find(x => x.id === +el.dataset.id); toast(`Mensagem pronta para ${p.cliente}: "${p.nome} está pronto!"`); fecharFolha(); },
-  'pacote-novo': () => { S.cfg.pacotes.push({ h: 30, v: 1100 }); S.cfg.pacotes.sort((a, b) => a.h - b.h); toast('Pacote de 30h criado, ajuste o preço'); desenhar(); },
-  'pacote-apagar': el => { if (S.cfg.pacotes.length <= 1) { toast('Deixe pelo menos um pacote'); return; } S.cfg.pacotes.splice(+el.dataset.i, 1); desenhar(); },
+  'pacote-novo': () => folhaPacote(null),
+  'pacote-editar': el => folhaPacote(+el.dataset.i),
+  'pacote-horas': el => { $('#pc-h').value = el.dataset.h; $$('#pc-rapido button').forEach(b => b.setAttribute('aria-pressed', b === el)); },
+  'pacote-salvar': el => {
+    const h = +val('pc-h'), v = +val('pc-v');
+    if (!(h > 0)) { toast('Quantas horas tem o pacote?'); $('#pc-h').focus(); return; }
+    if (!(v > 0)) { toast('Qual é o valor?'); $('#pc-v').focus(); return; }
+    const i = el.dataset.i === '' ? -1 : +el.dataset.i, repetido = S.cfg.pacotes.findIndex((p, k) => p.h === h && k !== i);
+    if (repetido >= 0) { toast(`Já existe o pacote de ${nomePacote({ h }).toLowerCase()}`); return; }
+    if (i >= 0) S.cfg.pacotes[i] = { h, v }; else S.cfg.pacotes.push({ h, v });
+    S.cfg.pacotes.sort((a, b) => a.h - b.h); toast(`${nomePacote({ h })} por ${brl(v)}`); fecharFolha(); desenhar();
+  },
+  'pacote-apagar': el => { if (S.cfg.pacotes.length <= 1) { toast('Deixe pelo menos um pacote'); return; } const [p] = S.cfg.pacotes.splice(+el.dataset.i, 1); toast(`${nomePacote(p)} apagado`, () => { S.cfg.pacotes.push(p); S.cfg.pacotes.sort((a, b) => a.h - b.h); }); fecharFolha(); desenhar(); },
   'equipe-novo': () => folhaEquipe(null), 'equipe-editar': el => folhaEquipe(S.equipe.find(u => u.id === +el.dataset.id)),
   'equipe-salvar': el => { const nome = val('e-nome'); if (!nome) { toast('Falta o nome'); return; } const d = { nome, login: val('e-login') || nome.split(' ')[0].toLowerCase(), papel: val('e-papel') }; if (el.dataset.id) Object.assign(S.equipe.find(u => u.id === +el.dataset.id), d); else S.equipe.push({ id: novoId(), ...d }); toast('Equipe atualizada'); fecharFolha(); desenhar(); },
   'equipe-apagar': el => { S.equipe = S.equipe.filter(u => u.id !== +el.dataset.id); toast('Removida da equipe'); fecharFolha(); desenhar(); },
@@ -840,7 +861,7 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('input', e => {
   if (e.target.id === 'busca') { const q = e.target.value.toLowerCase(); $('#lista-criancas').innerHTML = itensLista(S.criancas.filter(c => (c.nome + ' ' + c.resp).toLowerCase().includes(q))); }
-  if (e.target.dataset.preco != null) { S.cfg.pacotes[+e.target.dataset.preco].v = +e.target.value || 0; const it = e.target.closest('.it'); $('span', it).textContent = brl(Math.round((+e.target.value || 0) / S.cfg.pacotes[+e.target.dataset.preco].h)) + ' por hora'; }
+  if (e.target.id === 'pc-h') $$('#pc-rapido button').forEach(b => b.setAttribute('aria-pressed', b.dataset.h === e.target.value));
   if (e.target.id === 'zap-texto') { e.target.style.height = 'auto'; e.target.style.height = Math.min(120, e.target.scrollHeight) + 'px'; }
 });
 document.addEventListener('keydown', e => {
