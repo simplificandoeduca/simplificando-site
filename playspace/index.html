@@ -101,7 +101,7 @@ svg { display: block; }
 @media (min-width: 820px) { .toast { bottom: 32px; } }
 
 /* ---------- faixa listrada de menta (como os posts) ---------- */
-.faixa { border-radius: var(--raio); padding: 18px 20px; background: repeating-linear-gradient(180deg, var(--menta) 0 22px, var(--menta-risco) 22px 26px); display: flex; align-items: center; gap: 16px; flex-wrap: wrap; box-shadow: var(--sombra); }
+.faixa { border-radius: var(--raio); padding: 18px 20px; background: var(--card); border: 1px solid var(--borda); display: flex; align-items: center; gap: 16px; flex-wrap: wrap; box-shadow: var(--sombra); }
 .faixa .logo { width: 56px; height: 56px; flex: none; }
 .faixa .tit { flex: 1; min-width: 160px; }
 .faixa small { display: block; font-weight: 700; color: var(--tinta-2); font-size: 12.5px; text-transform: uppercase; letter-spacing: .08em; }
@@ -113,7 +113,7 @@ svg { display: block; }
 .faixa .versao.ocupado svg { animation: gira .9s linear infinite; }
 @keyframes gira { to { transform: rotate(360deg); } }
 .chip { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px; border-radius: 999px; background: var(--coral); color: #fff; font-weight: 700; font-size: 13px; white-space: nowrap; }
-.chip.suave { background: var(--creme-2); color: var(--tinta); border: 1px solid var(--borda); }
+.chip.suave { background: var(--creme); color: var(--tinta); border: 1px solid var(--borda); }
 .chip .pt { width: 9px; height: 9px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px var(--ok-bg); animation: pulsa 1.6s infinite; flex: none; }
 .chip .pt.off { background: var(--erro); box-shadow: 0 0 0 3px var(--erro-bg); animation: none; }
 @keyframes pulsa { 50% { box-shadow: 0 0 0 6px transparent; } }
@@ -154,14 +154,18 @@ svg { display: block; }
 .bt svg { width: 16px; height: 16px; flex: none; }
 .bt[disabled] { opacity: .45; pointer-events: none; }
 
-/* ---------- banco de horas em bloquinhos (o logo é feito de blocos) ---------- */
-.blocos { display: flex; gap: 4px; flex-wrap: wrap; }
-.blocos i { width: 22px; height: 22px; border-radius: 6px; background: var(--menta-risco); border: 1px solid var(--borda); position: relative; }
-.blocos i.u { border-color: transparent; }
-.blocos i.u:nth-child(4n+1) { background: var(--coral); } .blocos i.u:nth-child(4n+2) { background: var(--mostarda); } .blocos i.u:nth-child(4n+3) { background: var(--pessego); } .blocos i.u:nth-child(4n) { background: var(--verde-agua); }
-.blocos i.meio { background: linear-gradient(90deg, var(--pessego) var(--pct, 50%), var(--menta-risco) var(--pct, 50%)); }
-.blocos i.agora { outline: 2px solid var(--coral); outline-offset: 1px; animation: pisca 1.4s infinite; }
-@keyframes pisca { 50% { outline-color: transparent; } }
+/* ---------- banco de horas: uma linha contínua (o que resta) e o número, vermelho quando está acabando ---------- */
+.horas { display: flex; flex-direction: column; gap: 7px; }
+.horas .topo { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.horas .resta { font-family: var(--display); font-weight: 800; font-size: 24px; line-height: 1; color: var(--tinta); }
+.horas .resta small { font-family: var(--texto); font-weight: 700; font-size: 13px; color: var(--tinta-2); margin-left: 5px; }
+.horas.baixo .resta { color: var(--erro); }
+.horas .de { font-size: 12.5px; color: var(--tinta-2); font-weight: 700; white-space: nowrap; display: inline-flex; align-items: center; gap: 8px; }
+.linha-h { height: 10px; border-radius: 999px; background: var(--menta-risco); overflow: hidden; position: relative; }
+.linha-h i { display: block; height: 100%; border-radius: 999px; background: var(--verde-agua); transition: width .6s var(--ios), background .3s; }
+.horas.baixo .linha-h i { background: var(--erro); }
+.horas.dentro .linha-h i::after { content: ""; position: absolute; top: 0; bottom: 0; width: 3px; border-radius: 2px; background: var(--tinta); left: calc(var(--pct) - 2px); animation: pisca 1.4s infinite; }
+@keyframes pisca { 50% { opacity: .2; } }
 .saldo { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 13px; color: var(--tinta-2); }
 .saldo b { font-family: var(--display); font-size: 17px; color: var(--tinta); }
 
@@ -364,7 +368,7 @@ const NOMES_BRQ = { urso: 'Ursinho', bola: 'Bola', blocos: 'Blocos', coelho: 'Co
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.01';
+const VERSAO = '0.02';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -461,14 +465,12 @@ const usadoAgora = c => c.usado + (c.entrou ? cobrar(minDentro(c)) : 0);
 const restante = c => Math.max(0, c.pacote * 60 - usadoAgora(c));
 const estado = c => { const r = restante(c); return r <= 0 ? ['Zerado', 'p-erro'] : r <= S.cfg.aviso ? ['Acabando', 'p-aviso'] : ['Em dia', 'p-ok']; };
 const avatar = (c, g = '') => `<span class="av ${g}" style="background:${CORES[c.id % CORES.length]}">${esc(c.nome.slice(0, 2).toUpperCase())}</span>`;
-function blocos(c) {
-  const usadas = usadoAgora(c) / 60, cheias = Math.floor(usadas), fr = usadas - cheias, parcial = fr > 0.02;
-  let h = '';
-  for (let i = 0; i < c.pacote; i++) {
-    const cls = i < cheias ? 'u' : (i === cheias && parcial ? 'meio' : '');
-    h += `<i class="${cls}${c.entrou && i === cheias ? ' agora' : ''}" ${cls === 'meio' ? `style="--pct:${Math.round(fr * 100)}%"` : ''} title="hora ${i + 1}"></i>`;
-  }
-  return `<div class="blocos" aria-label="${c.pacote} horas compradas, ${hm(restante(c))} restantes">${h}</div>`;
+function blocos(c, comEstado = true) {
+  const r = restante(c), pct = c.pacote ? Math.max(0, Math.min(100, r / (c.pacote * 60) * 100)) : 0, baixo = r <= S.cfg.aviso, [et, cls] = estado(c);
+  return `<div class="horas ${baixo ? 'baixo' : ''} ${c.entrou ? 'dentro' : ''}" data-horas="${c.id}" aria-label="Restam ${hm(r)} de ${c.pacote} horas">
+    <div class="topo"><span class="resta num">${r <= 0 ? 'Acabou' : hm(r)}<small>${r <= 0 ? 'o pacote' : 'restantes'}</small></span><span class="de">de ${c.pacote}h${comEstado ? ` <span class="pill ${cls}">${et}</span>` : ''}</span></div>
+    <div class="linha-h" style="--pct:${pct.toFixed(1)}%"><i style="width:${pct.toFixed(1)}%"></i></div>
+  </div>`;
 }
 const cronometro = c => { const m = minDentro(c); return `${Math.floor(m / 60)}:${p2(Math.floor(m % 60))}<small>desde ${hora(c.entrou)}</small>`; };
 function registrar(tipo, nome, txt) { S.registros.unshift({ h: new Date(), tipo, nome, txt }); }
@@ -532,17 +534,16 @@ function cartaoCrianca(c) {
     ? `<button class="bt claro tap" data-act="saida-rapida" data-id="${c.id}">${ic(IC.sair)} Saída</button><button class="bt tap" data-act="avisar" data-id="${c.id}">${ic(IC.zap)} Avisar ${esc(c.resp)}</button>`
     : `<button class="bt forte tap" data-act="vender" data-id="${c.id}">${ic(IC.mais)} Vender horas</button>${c.rosto ? `<button class="bt claro tap" data-act="entrada-rapida" data-id="${c.id}">${ic(IC.entrar)} Entrada</button>` : `<button class="bt tap" data-act="rosto" data-id="${c.id}">${ic(IC.rosto)} Cadastrar rosto</button>`}`;
   return `<div class="card tap" role="button" tabindex="0" data-act="ficha" data-id="${c.id}" aria-label="Abrir a ficha de ${esc(c.nome)}">
-    <div class="linha">${avatar(c)}<div class="txt"><b>${esc(c.nome)}, ${c.idade} anos</b><span>${esc(c.resp)} (${esc(c.rel)}) · ${esc(c.tel)}</span></div>${c.entrou ? `<div class="cron num" data-cron="${c.id}">${cronometro(c)}</div>` : `<span class="pill ${c.rosto ? 'p-neutro' : 'p-aviso'}">${c.rosto ? 'Rosto ok' : 'Falta o rosto'}</span>`}</div>
+    <div class="linha">${avatar(c)}<div class="txt"><b>${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}</b><span>${esc(c.resp)} (${esc(c.rel)})${c.tel ? ' · ' + esc(c.tel) : ''}</span></div>${c.entrou ? `<div class="cron num" data-cron="${c.id}">${cronometro(c)}</div>` : `<span class="pill ${c.rosto ? 'p-neutro' : 'p-aviso'}">${c.rosto ? 'Rosto ok' : 'Falta o rosto'}</span>`}</div>
     ${blocos(c)}
-    <div class="saldo"><span>Restam <b class="num">${hm(restante(c))}</b> de ${c.pacote}h</span><span class="pill ${cls}">${et}</span></div>
     <div class="acoes">${botoes}</div>
   </div>`;
 }
 function telaHoras() {
   const dentro = S.criancas.filter(c => c.entrou), fora = S.criancas.filter(c => !c.entrou);
   const acabando = S.criancas.filter(c => restante(c) <= S.cfg.aviso).length;
-  const hojeStr = isoDia(agora), usadasHoje = S.criancas.reduce((a, c) => a + c.visitas.filter(v => isoDia(new Date(v.dia)) === hojeStr).reduce((b, v) => b + v.deb, 0) + (c.entrou ? cobrar(minDentro(c)) : 0), 0);
-  const vendas = S.registros.filter(r => r.tipo === 'venda' && isoDia(r.h) === hojeStr), horasVend = vendas.reduce((a, r) => a + (parseInt(r.txt) || 0), 0) + 20, valorVend = vendas.length * 250 + 1000;
+  const usadasHoje = S.criancas.reduce((a, c) => a + c.visitas.filter(v => agora - new Date(v.dia) < 86400000).reduce((b, v) => b + v.deb, 0) + (c.entrou ? cobrar(minDentro(c)) : 0), 0);
+  const vendas = S.registros.filter(r => r.tipo === 'venda' && agora - r.h < 86400000), horasVend = vendas.reduce((a, r) => a + (parseInt(r.txt) || 0), 0) + 20, valorVend = vendas.length * 250 + 1000;
   return faixa('Controle de horas', `${SEMANA[agora.getDay()]}, ${agora.getDate()} de ${MESES[agora.getMonth()]}`, chipIdface()) + `
   <div class="tiles">
     <button class="tile t-pessego tap" data-act="dia"><small>No espaço agora</small><b class="num">${dentro.length}</b><span>${dentro.length === 1 ? 'criança brincando' : 'crianças brincando'}</span></button>
@@ -559,7 +560,7 @@ function telaHoras() {
   <p class="rodape">Protótipo com dados de exemplo · <b>Play Space Horas</b> v${VERSAO}</p>`;
 }
 function painelHoje() {
-  const hojeStr = isoDia(agora), regs = S.registros.filter(r => isoDia(r.h) === hojeStr);
+  const regs = S.registros.filter(r => agora - r.h < 86400000);
   return `<h2>Hoje na recepção</h2>${listaRegistros(regs)}
   <button class="marca tap" data-act="idface">${ic(IC.rosto, 18)}<span>O iDFace leu <b>${regs.filter(r => r.tipo !== 'venda').length} rostos</b> hoje. ${S.cfg.idface.ligado ? 'Última leitura há poucos segundos.' : 'Aparelho desligado em Ajustes.'}</span></button>`;
 }
@@ -567,11 +568,11 @@ const listaRegistros = regs => `<div class="reg">${regs.length ? regs.map(r => `
 
 function folhaFicha(id) {
   const c = crianca(id); if (!c) return; const [et, cls] = estado(c);
-  abrirFolha(`${esc(c.nome)}, ${c.idade} anos`, `
+  abrirFolha(`${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}`, `
     <div class="linha">${avatar(c, 'g')}<div class="txt"><b style="white-space:normal">${esc(c.resp)}, ${esc(c.rel)}</b><span>${esc(c.tel)}</span>${c.obs ? `<span style="color:var(--coral);font-weight:700">${esc(c.obs)}</span>` : ''}</div><span class="pill ${cls}">${et}</span></div>
     ${c.entrou ? `<div class="marca">${ic(IC.horas, 18)}<span>Está no espaço desde <b>${hora(c.entrou)}</b>: <b class="num" data-cron-txt="${c.id}">${hm(minDentro(c))}</b> até agora, <b>${hm(cobrar(minDentro(c)))}</b> a debitar pela regra atual.</span></div>` : ''}
-    ${blocos(c)}
-    <div class="saldo"><span>Restam <b class="num">${hm(restante(c))}</b> de ${c.pacote}h compradas</span><span>${hm(usadoAgora(c))} usadas</span></div>
+    ${blocos(c, false)}
+    <div class="saldo"><span>${c.pacote}h compradas</span><span>${hm(usadoAgora(c))} usadas</span></div>
     <div class="acoes">
       ${c.entrou ? `<button class="bt claro tap" data-act="saida" data-id="${c.id}">${ic(IC.sair)} Registrar saída</button>` : `<button class="bt claro tap" data-act="entrada" data-id="${c.id}">${ic(IC.entrar)} Registrar entrada</button>`}
       <button class="bt forte tap" data-act="vender" data-id="${c.id}">${ic(IC.mais)} Vender horas</button>
@@ -591,7 +592,15 @@ function folhaVender(id) {
 }
 function folhaCrianca(c) {
   const ed = !!c;
-  abrirFolha(ed ? 'Editar cadastro' : 'Nova criança', `
+  if (!ed) return abrirFolha('Cadastrar', `
+    <div class="campo"><label for="f-nome">Nome da criança</label><input id="f-nome" placeholder="Como ela gosta de ser chamada" autofocus autocomplete="off"></div>
+    <div class="campo"><label for="f-resp">Nome do pai, da mãe ou responsável</label><input id="f-resp" placeholder="Quem traz e busca" autocomplete="off"></div>
+    <div class="campo"><label>Quem é</label><div class="seg" id="f-rel-seg">${['mãe', 'pai', 'responsável'].map((r, i) => `<button type="button" data-seg="${r}" aria-pressed="${i === 0}">${r[0].toUpperCase() + r.slice(1)}</button>`).join('')}</div></div>
+    <div class="campo"><label for="f-tel">WhatsApp</label><input id="f-tel" inputmode="tel" autocomplete="tel" placeholder="(11) 9 0000-0000"></div>
+    <div class="campo"><label>Pacote de horas</label><div class="opcoes" id="f-pac">${S.cfg.pacotes.map((p, i) => `<button type="button" class="opc tap" data-seg="${i}" aria-pressed="${i === 1}"><b>${p.h}h</b><span>${brl(p.v)}</span></button>`).join('')}</div></div>
+    <button class="bt forte largo tap" data-act="salvar-crianca">${ic(IC.check)} Cadastrar</button>
+    <p class="explica" style="text-align:center">Idade, alergias e o rosto no iDFace podem ser completados depois, na ficha. O nome já vai para o aparelho.</p>`);
+  abrirFolha('Editar cadastro', `
     <div class="campo"><label for="f-nome">Nome da criança</label><input id="f-nome" value="${esc(c ? c.nome : '')}" placeholder="Como ela gosta de ser chamada"></div>
     <div class="dois"><div class="campo"><label for="f-idade">Idade</label><input id="f-idade" type="number" min="1" max="14" inputmode="numeric" value="${c ? c.idade : ''}" placeholder="anos"></div>
       ${ed ? `<div class="campo"><label for="f-obs">Alergias ou observações</label><input id="f-obs" value="${esc(c.obs)}" placeholder="Opcional"></div>` : `<div class="campo"><label for="f-pacote">Primeiro pacote</label><select id="f-pacote">${S.cfg.pacotes.map((p, i) => `<option value="${i}" ${i === 1 ? 'selected' : ''}>${p.h} horas · ${brl(p.v)}</option>`).join('')}</select></div>`}</div>
@@ -602,7 +611,7 @@ function folhaCrianca(c) {
     <button class="bt forte largo tap" data-act="salvar-crianca" data-id="${c ? c.id : ''}">${ic(IC.check)} ${ed ? 'Salvar' : 'Salvar e cadastrar o rosto'}</button>`);
 }
 function folhaDia() {
-  const hojeStr = isoDia(agora), regs = S.registros.filter(r => isoDia(r.h) === hojeStr);
+  const regs = S.registros.filter(r => agora - r.h < 86400000);
   abrirFolha('Hoje na recepção', `<p class="explica">Cada rosto reconhecido pelo iDFace vira uma linha aqui, na hora. As saídas mostram o que foi debitado.</p>${listaRegistros(regs)}`);
 }
 function folhaLista(filtro) {
@@ -611,7 +620,7 @@ function folhaLista(filtro) {
     ${filtro === 'acabando' ? `<p class="explica">Menos de ${hm(S.cfg.aviso)} no banco. Toque para vender horas ou avisar o responsável.</p>` : `<div class="campo"><input id="busca" placeholder="Buscar pelo nome da criança ou do responsável" autocomplete="off"></div>`}
     <div class="grupo" id="lista-criancas">${itensLista(lista)}</div>`);
 }
-const itensLista = lista => lista.length ? lista.map(c => { const [et, cls] = estado(c); return `<button class="it tap" data-act="ficha" data-id="${c.id}">${avatar(c)}<div class="txt"><b>${esc(c.nome)}, ${c.idade} anos</b><span>${esc(c.resp)} · restam ${hm(restante(c))} de ${c.pacote}h</span></div><span class="pill ${cls}">${c.entrou ? 'No espaço' : et}</span>${ic(IC.vai, 18)}</button>`; }).join('') : '<div class="it"><span class="explica">Ninguém encontrado.</span></div>';
+const itensLista = lista => lista.length ? lista.map(c => { const [et, cls] = estado(c); return `<button class="it tap" data-act="ficha" data-id="${c.id}">${avatar(c)}<div class="txt"><b>${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}</b><span>${esc(c.resp)} · restam ${hm(restante(c))} de ${c.pacote}h</span></div><span class="pill ${cls}">${c.entrou ? 'No espaço' : et}</span>${ic(IC.vai, 18)}</button>`; }).join('') : '<div class="it"><span class="explica">Ninguém encontrado.</span></div>';
 function folhaIdface() {
   const i = S.cfg.idface;
   abrirFolha('iDFace da recepção', `
@@ -789,7 +798,12 @@ const ACOES = {
   'salvar-crianca': el => {
     const nome = val('f-nome'); if (!nome) { toast('Falta o nome da criança'); $('#f-nome').focus(); return; }
     if (el.dataset.id) { const c = crianca(el.dataset.id); Object.assign(c, { nome, idade: +val('f-idade') || c.idade, resp: val('f-resp') || c.resp, rel: val('f-rel'), tel: val('f-tel'), obs: val('f-obs') }); toast('Cadastro salvo'); }
-    else { const pac = S.cfg.pacotes[+val('f-pacote')] || S.cfg.pacotes[0], c = { id: novoId(), nome, idade: +val('f-idade') || 5, resp: val('f-resp') || 'Responsável', rel: val('f-rel'), tel: val('f-tel'), obs: val('f-obs'), pacote: pac.h, usado: 0, entrou: null, rosto: $('#f-idface').checked, visitas: [] }; S.criancas.push(c); registrar('venda', c.nome, `Pacote de ${pac.h}h vendido · ${brl(pac.v)}`); toast(c.rosto ? `${nome} cadastrada. Em até 1 minuto o nome aparece no iDFace.` : `${nome} cadastrada`); }
+    else {
+      const resp = val('f-resp'); if (!resp) { toast('Falta o nome de quem é responsável'); $('#f-resp').focus(); return; }
+      const rel = ($('#f-rel-seg [aria-pressed="true"]') || {}).dataset.seg || 'responsável', pac = S.cfg.pacotes[+(($('#f-pac [aria-pressed="true"]') || {}).dataset.seg || 0)] || S.cfg.pacotes[0];
+      const c = { id: novoId(), nome, idade: 0, resp, rel, tel: val('f-tel'), obs: '', pacote: pac.h, usado: 0, entrou: null, rosto: true, visitas: [] }; S.criancas.push(c);
+      registrar('venda', c.nome, `Pacote de ${pac.h}h vendido · ${brl(pac.v)}`); toast(`${nome} cadastrada: ${pac.h}h no banco. O nome já foi para o iDFace.`, () => { S.criancas = S.criancas.filter(x => x !== c); S.registros.shift(); });
+    }
     fecharFolha(); desenhar();
   },
   dia: () => folhaDia(), todas: () => folhaLista(), acabando: () => folhaLista('acabando'),
@@ -855,6 +869,7 @@ setInterval(() => {
   agora.setTime(Date.now());
   $$('[data-cron]').forEach(el => { const c = crianca(el.dataset.cron); if (c && c.entrou) el.innerHTML = cronometro(c); });
   $$('[data-cron-txt]').forEach(el => { const c = crianca(el.dataset.cronTxt); if (c && c.entrou) el.textContent = hm(minDentro(c)); });
+  $$('[data-horas]').forEach(el => { const c = crianca(el.dataset.horas); if (c && c.entrou) { const novo = document.createElement('div'); novo.innerHTML = blocos(c); el.replaceWith(novo.firstElementChild); } });
 }, 1000);
 desenhar();
 conferirAtualizacao(false);
