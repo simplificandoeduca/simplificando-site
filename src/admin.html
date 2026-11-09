@@ -2840,7 +2840,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '9 nov · 85'; // Versão do painel: 9 nov · 85
+const PAINELV = '9 nov · 86'; // Versão do painel: 9 nov · 86
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -2988,19 +2988,26 @@ function vPerfilAuto(id){
   if(!p) return header('Perfis','Quem usa o app')+back+'<p class="muted">Conta não encontrada. Toque em Atualizar.</p>';
   pfAutoLoad(id);
   const c = PFA[id] || {}, nome = p.nome || 'Sem nome';
-  let h = header(nome, 'Treina sem personal'+(p.plano==='ia' ? ' · treino da IA' : p.plano==='meu' ? ' · monta o próprio treino' : ''))+'<div class="dhead">'+back+'</div>';
-  h += '<section class="card"><div class="pf-kv">'+[['E-mail', p.email||'—'], ['Objetivo', ED[p.objetivo]||'—'], ['Último acesso', p.ultimoAcesso ? pfQuando(p.ultimoAcesso) : '—'], ['Acompanhamento', 'Permitido pela pessoa']].map(([k,v]) => '<div><span>'+k+'</span><b>'+esc(v)+'</b></div>').join('')+'</div></section>';
+  // mesma tela dos alunos: topo com nome, abas coloridas e a Evolução completa
+  const tab = ['evolucao','treino','dados'].includes(ui.pfTab) ? ui.pfTab : 'evolucao';
+  const tabs = [['evolucao','Evolução','pulse'],['treino','Treino','dumbbell'],['dados','Dados','user']].map(([k,l,icn]) => '<button type="button" class="dtab'+(tab===k?' on':'')+'" style="--tc:'+TAB_COR[k==='dados'?'perfil':k]+'" role="tab" aria-selected="'+(tab===k)+'" data-a="pfTab" data-v="'+k+'">'+ic(icn)+l+'</button>').join('');
+  let h = '<div class="dhead">'+back+'<p class="eyebrow">'+esc(ED[p.objetivo]||'Objetivo')+' · Treina sem personal</p><h2>'+esc(nome)+'<span class="dot" aria-hidden="true"></span></h2>'+
+    '<div class="chips"><span class="pill acc">'+(p.plano==='ia' ? 'Treino da IA' : p.plano==='meu' ? 'Monta o próprio treino' : 'Treino padrão do app')+'</span><span class="pill line">'+ic('eye')+'Acompanhamento permitido</span>'+(p.ultimoAcesso ? '<span class="pill line">Último acesso '+esc(pfQuando(p.ultimoAcesso))+'</span>' : '')+'</div></div>'+
+    '<div class="dtabs"><div class="dtabs-in" role="tablist" aria-label="Seções do perfil">'+tabs+'</div></div>';
+  const dados = '<section class="card"><div class="pf-kv">'+[['E-mail', p.email||'—'], ['Objetivo', ED[p.objetivo]||'—'], ['Último acesso', p.ultimoAcesso ? pfQuando(p.ultimoAcesso) : '—'], ['Acompanhamento', 'Permitido pela pessoa']].map(([k,v]) => '<div><span>'+k+'</span><b>'+esc(v)+'</b></div>').join('')+'</div></section>';
+  if(tab==='dados') return h+'<div class="tabpane" role="tabpanel">'+dados+'</div>';
   if(!c.v){
     const msg = c.st==='regras' ? 'O Firebase bloqueou a leitura. Falta colar as regras novas (arquivo REGRAS-FIRESTORE.txt) no Firebase → Firestore → Regras e tocar em Publicar.'
       : c.st==='rede' ? 'Sem conexão para carregar os treinos. Confira a internet.' : c.st==='ok' ? esc(nome)+' ainda não salvou nada na nuvem.' : 'Carregando os treinos…';
-    return h+'<section class="card"><p class="muted" style="margin:0">'+msg+'</p>'+(c.st && c.st!=='indo' ? '<div class="btn-row"><button type="button" class="btn small" data-a="pfAutoRefresh">'+ic('refresh')+'Tentar de novo</button></div>' : '')+'</section>';
+    return h+'<div class="tabpane" role="tabpanel"><section class="card"><p class="muted" style="margin:0">'+msg+'</p>'+(c.st && c.st!=='indo' ? '<div class="btn-row"><button type="button" class="btn small" data-a="pfAutoRefresh">'+ic('refresh')+'Tentar de novo</button></div>' : '')+'</section></div>';
   }
   const st = c.v.s || {}, cn = st.conta || {}, pg = pfAutoProg(st, c.v.em);
   const nd = (() => { const u = new Set(); Object.values(cn.treinos||{}).forEach(t => (t.dias||[]).forEach(d => u.add(+d))); return u.size || +cn.semana || (cn.ia && ((cn.ia.dias||[]).length || +cn.ia.n)) || (cn.dias||[]).length || 0; })();
-  const a = { _id:'auto:'+id, uid:id, perfil:{ nome, sexo:p.sexo }, metas:{ semanaTreinos:nd, cardioGoal:+st.cardioGoal||0, waterGoal:+st.waterGoal||0 }, _pg:pg };
+  // o plano da pessoa (IA ou montado por ela) entra para o histórico mostrar séries pedidas x feitas e o aquecimento
+  const a = { _id:'auto:'+id, uid:id, perfil:{ nome, sexo:p.sexo }, metas:{ semanaTreinos:nd, cardioGoal:+st.cardioGoal||0, waterGoal:+st.waterGoal||0 }, plano:{ treinos:(cn.plan==='meu' || cn.plan==='ia') ? (cn.treinos||{}) : {} }, _pg:pg };
   const hoje = +((st.water||{})[today()])||0, wg = +st.waterGoal||0;
-  h += '<section class="card"><span class="label">'+ic('drop')+'Água de hoje</span><p class="ev2-frase"><b>'+fmtN(hoje/1000,1)+' L</b> de '+fmtN(wg/1000,1)+' L'+(wg && hoje>=wg ? ' · meta batida' : wg ? ' · faltam '+fmtN(Math.max(0,wg-hoje)/1000,1)+' L' : '')+'</p>'+ev2Bar(hoje, wg)+'<p class="foot">Meta de cardio: '+(+st.cardioGoal||0)+' min por semana.</p></section>';
-  return h+pfAutoTreino(st)+'<h3 class="sec">Evolução</h3>'+tEvol(a);
+  const agua = '<section class="card"><span class="label">'+ic('drop')+'Água de hoje</span><p class="ev2-frase"><b>'+fmtN(hoje/1000,1)+' L</b> de '+fmtN(wg/1000,1)+' L'+(wg && hoje>=wg ? ' · meta batida' : wg ? ' · faltam '+fmtN(Math.max(0,wg-hoje)/1000,1)+' L' : '')+'</p>'+ev2Bar(hoje, wg)+'<p class="foot">Meta de cardio: '+(+st.cardioGoal||0)+' min por semana.</p></section>';
+  return h+'<div class="tabpane" role="tabpanel">'+(tab==='treino' ? pfAutoTreino(st) : tEvol(a)+agua)+'</div>';
 }
 function pfSheet(id){
   const p = (PF.list||[]).find(x => x.uid===id); if(!p) return sheetTop('Perfil','Conta não encontrada')+'<p class="muted">Toque em Atualizar na aba Perfis.</p>';
@@ -4052,7 +4059,8 @@ function act(a,d,btn){
     case 'rkSort': ui.rkSort = !ui.rkSort; if(ui.sheet && ui.sheet.k==='pick'){ renderSheet(); return false; } break;
     case 'pfRefresh': loadPerfis(true); toast('Atualizando a lista'); break;
     case 'pfOpen': if(d.k==='com'){ ui.view = 'alunos'; ui.aluno = d.id; ui.tab = 'acesso'; window.scrollTo(0,0); break; } { const pp = (PF.list||[]).find(x => x.uid===d.id); if(pp && pp.acomp){ PF.open = d.id; window.scrollTo(0,0); break; } } openSheet({k:'pf', id:d.id}); return false;
-    case 'pfBack': PF.open = null; window.scrollTo(0,0); break;
+    case 'pfBack': PF.open = null; ui.pfTab = null; window.scrollTo(0,0); break;
+    case 'pfTab': ui.pfTab = d.v; break;
     case 'pfAutoRefresh': if(PF.open) pfAutoLoad(PF.open, true); toast('Atualizando'); break;
     case 'termos': openSheet({k:'termos'}); return false;
     case 'starterLib': { const n = loadStarterLib(); toast(plural(n,'exercício adicionado','exercícios adicionados')+' à biblioteca'); break; }
