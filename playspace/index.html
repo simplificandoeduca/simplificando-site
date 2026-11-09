@@ -148,6 +148,7 @@ svg { display: block; }
 .versao svg { width: 13px; height: 13px; }
 .versao.nova { background: var(--coral); color: #fff; }
 .faixa .versao { align-self: center; }
+.versao.exemplo-bt { background: var(--mostarda); color: #3B3B3B; }
 .rodape-global { margin: 26px auto 0; max-width: 1120px; display: flex; align-items: center; justify-content: center; gap: 4px; flex-wrap: wrap; }
 body.so .rodape-global { display: none; }
 .faixa .relogio { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 16px 9px; border-radius: 16px; background: var(--menta); color: var(--tinta); white-space: nowrap; }
@@ -585,7 +586,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.40';
+const VERSAO = '0.41';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -952,7 +953,7 @@ function telaHoras() {
     ${tile('t-coral', 'acabando', 'Pacotes acabando', acabando, `menos de ${hm(S.cfg.aviso)} no banco`, 'relogio', 'acabando', acabando ? 'alerta' : '')}
   </div>
   <section class="sec"><div class="sec-cab"><h2><i style="background:var(--mostarda)"></i>Banco de horas</h2><button class="link tap" data-act="todas">Todas as crianças</button></div>
-    ${fora.length ? `<div class="a-lista">${fora.map(c => `<div class="a-card">${anel(c)}</div>`).join('')}</div>` : (S.criancas.length ? `<div class="card vazio"><b>Todo mundo está no espaço.</b><span>Quando uma criança sair, o banco de horas dela volta para cá.</span></div>` : `<button class="card vazio tap" data-act="nova" style="width:100%"><b>Nenhuma criança cadastrada ainda.</b><span>Toque aqui ou no botão <b style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:7px;background:var(--coral);color:#fff;font-size:15px;line-height:1;vertical-align:-4px">+</b> para cadastrar a primeira: nome, responsável, telefone e a foto para o iDFace.</span></button>${MODO === 'servidor' && gestor() ? `<button class="link tap" data-act="exemplos-carregar" style="align-self:center">Ou carregue 10 crianças de exemplo para conhecer o sistema</button>` : ''}`)}
+    ${fora.length ? `<div class="a-lista">${fora.map(c => `<div class="a-card">${anel(c)}</div>`).join('')}</div>` : (S.criancas.length ? `<div class="card vazio"><b>Todo mundo está no espaço.</b><span>Quando uma criança sair, o banco de horas dela volta para cá.</span></div>` : `<button class="card vazio tap" data-act="nova" style="width:100%"><b>Nenhuma criança cadastrada ainda.</b><span>Toque aqui ou no botão <b style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:7px;background:var(--coral);color:#fff;font-size:15px;line-height:1;vertical-align:-4px">+</b> para cadastrar a primeira: nome, responsável, telefone e a foto para o iDFace.</span></button>${MODO === 'servidor' && gestor() ? `<button class="link tap" data-act="exemplos-carregar" style="align-self:center">Ou carregue 3 crianças de exemplo para conhecer o sistema</button>` : ''}`)}
   </section>
   `;
 }
@@ -1184,7 +1185,7 @@ function telaAjustes() {
         <p class="explica">Na entrada, o responsável recebe a foto da chegada, o horário e quanto resta no pacote. Na saída, o horário, o tempo de hoje e o saldo. Tudo sozinho, assim que o iDFace reconhece o rosto.</p>
       </div>
       ${MODO === 'servidor' && gestor() ? `<div class="card"><div class="sec-cab"><h2 style="font-size:18px">Dados de exemplo</h2>${S.exemplo ? `<span class="pill p-aviso">${S.exemplo} crianças de exemplo</span>` : ''}</div>
-        <p class="explica">${S.exemplo ? 'As crianças, conversas e compromissos de exemplo estão no sistema para a equipe conhecer tudo. Antes de começar a usar de verdade, apague-os aqui: os cadastros reais ficam.' : 'Carrega 10 crianças fictícias (5 no espaço agora), com banco de horas, vendas, conversas no WhatsApp de hoje e de ontem e compromissos na agenda. Nada vai para o iDFace nem para o WhatsApp.'}</p>
+        <p class="explica">${S.exemplo ? 'As crianças, conversas e compromissos de exemplo estão no sistema para a equipe conhecer tudo. Antes de começar a usar de verdade, apague-os aqui: os cadastros reais ficam.' : 'Carrega 3 crianças fictícias (2 no espaço agora), com banco de horas, uma venda, conversas no WhatsApp de hoje e de ontem e compromissos na agenda. Nada vai para o iDFace nem para o WhatsApp.'}</p>
         <div class="acoes">${S.exemplo ? `<button class="bt claro tap" data-act="exemplos-apagar" style="color:var(--erro)">Apagar os exemplos</button>` : `<button class="bt tap" data-act="exemplos-carregar">Carregar dados de exemplo</button>`}</div>
       </div>` : ''}
       <div class="card"><div class="sec-cab"><h2 style="font-size:18px">Aparência</h2></div>${seg('tema', [['sistema', 'Como o celular'], ['claro', 'Claro'], ['escuro', 'Escuro']], cfg.tema)}</div>
@@ -1215,7 +1216,7 @@ function desenhar() {
   $('#miolo').innerHTML = ({ horas: telaHoras, zap: telaZap, agenda: telaAgenda, ajustes: telaAjustes })[S.tela]();
   $('#hoje').innerHTML = painelHoje();
   $('#fab-ancora').hidden = S.tela !== 'horas';
-  $('#rodape-global').innerHTML = `<span>${MODO === 'demo' ? 'Prévia com dados de exemplo · ' : ''}<b>Play Space Horas</b></span>${botaoVersao()}`;
+  $('#rodape-global').innerHTML = `<span>${MODO === 'demo' ? 'Prévia com dados de exemplo · ' : ''}<b>Play Space Horas</b></span>${botaoVersao()}${MODO === 'servidor' && gestor() ? `<button type="button" class="versao tap exemplo-bt" data-act="exemplos-${S.exemplo ? 'apagar' : 'carregar'}">${S.exemplo ? 'Apagar exemplo' : 'Colocar exemplo'}</button>` : ''}`;
   animarPlacas();
   if (S.tela === 'zap') { const m = $('#msgs'); if (m && m.lastElementChild) m.lastElementChild.scrollIntoView({ block: 'nearest' }); }
 }
@@ -1259,7 +1260,7 @@ const ACOES = {
   'idface-salvar': () => { if (MODO === 'servidor') { api('idface_salvar', { ip: val('i-ip'), nome: val('i-nome') || 'Recepção', usuario: val('i-usuario') || 'admin' }).then(async () => { await carregar(); toast('iDFace salvo'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } S.cfg.idface.ip = val('i-ip'); S.cfg.idface.nome = val('i-nome') || 'Recepção'; toast('iDFace salvo'); fecharFolha(); desenhar(); },
   'idface-toggle': () => { const lig = !S.cfg.idface.ligado; if (MODO === 'servidor') { api('idface_salvar', { ligado: lig }).then(async () => { await carregar(); toast(lig ? 'Leitura ligada' : 'Leitura desligada'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } S.cfg.idface.ligado = lig; toast(lig ? 'Leitura ligada' : 'Leitura desligada'); fecharFolha(); desenhar(); },
   'idface-bat': () => { if (MODO === 'servidor') { location.href = 'api/idface.php?acao=conectar_bat'; toast('Baixando "Conectar o iDFace.bat"…'); return; } toast('No sistema de verdade, baixa o conector com IP e chave já preenchidos'); },
-  'exemplos-carregar': async () => { try { toast('Carregando os exemplos…'); await api('exemplos_carregar'); await carregar(); S.tela = 'horas'; desenhar(); toast('10 crianças de exemplo carregadas. Apague em Ajustes quando for usar de verdade.'); } catch (e) { toast(e.message); } },
+  'exemplos-carregar': async () => { try { toast('Carregando os exemplos…'); await api('exemplos_carregar'); await carregar(); S.tela = 'horas'; desenhar(); toast('Exemplo carregado: 3 crianças, conversas e agenda. Apague quando for usar de verdade.'); } catch (e) { toast(e.message); } },
   'exemplos-apagar': async () => { try { await api('exemplos_apagar'); await carregar(); desenhar(); toast('Exemplos apagados. Só ficou o que é de verdade.'); } catch (e) { toast(e.message); } },
   'idface-chave': () => { api('idface_nova_chave').then(async () => { await carregar(); fecharFolha(); desenhar(); setTimeout(folhaIdface, 250); toast('Chave nova. Rode o conector de novo no aparelho.'); }).catch(e => toast(e.message)); },
   simular: el => { const c = crianca(el.dataset.id); if (MODO === 'servidor') { api('idface_simular', { id: c.id }).then(async r => { await carregar(); fecharFolha(); desenhar(); toast(`${c.nome}: ${r.resultado} registrada como se fosse o iDFace`); }).catch(e => toast(e.message)); return; } if (c.entrou) saida(c); else entrada(c); fecharFolha(); desenhar(); },
