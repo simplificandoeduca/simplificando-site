@@ -381,10 +381,46 @@ span.av.g { font-size: 22px; } .simul span.av { font-size: 15px; }
 .escreve button { width: 44px; height: 44px; border-radius: 50%; background: var(--coral); color: #fff; display: flex; align-items: center; justify-content: center; flex: none; }
 @media (max-width: 899px) { .zap[data-modo="papo"] .conversas { display: none; } .zap[data-modo="lista"] .papo { display: none; } }
 
-/* ---------- entrar / primeiro acesso ---------- */
-.entrada-pagina { min-height: 70vh; display: flex; align-items: center; justify-content: center; padding: 20px 0; }
-.entrada-card { width: min(420px, 100%); gap: 14px; padding: 26px 22px; }
+/* ---------- entrar / primeiro acesso: o ursinho espia por trás do cartão e acompanha quem digita ---------- */
+.entrada-pagina { min-height: 70vh; display: flex; align-items: center; justify-content: center; padding: 90px 0 40px; }
+@property --sobe { syntax: '<length>'; inherits: true; initial-value: -58px; }
+.palco { position: relative; width: min(420px, 100%); isolation: isolate; --sobe: -58px; --olhar-x: 0; --olhar-y: 0px; transition: --sobe .7s var(--spring); }
+.entrada-card { width: 100%; gap: 14px; padding: 26px 22px; position: relative; z-index: 1; }   /* o cartão fica na frente do ursinho e do coelhinho */
+.palco[data-olha=""] { animation: urso-curioso 9s ease-in-out infinite; }           /* de vez em quando levanta para espiar */
+.palco:not([data-olha=""]) { --sobe: -72px; --olhar-y: 3px; }                      /* alguém mexendo num campo: fica de olho */
+.palco.digitando { --sobe: -86px; }                                                  /* digitando: cabeça toda para fora */
+.palco.feliz { --sobe: -104px; animation: none; }
+@keyframes urso-curioso { 0%, 68%, 100% { --sobe: -58px; } 76%, 90% { --sobe: -74px; } }
 .logo-entrada { width: 72px; height: 72px; align-self: center; }
+.urso-login { position: absolute; left: 50%; top: 0; width: 124px; height: 96px; margin-left: -62px; z-index: 0; translate: 0 var(--sobe); transition: translate .7s var(--spring); pointer-events: none; }
+.urso-login svg, .patas-login svg, .passarinho-login svg, .coelho-login svg { width: 100%; height: 100%; overflow: visible; }
+.urso-login .olho { transform-box: fill-box; transform-origin: center; transform: translate(calc(var(--olhar-x) * 3px), var(--olhar-y)); transition: transform .35s var(--ios); }
+.urso-login .palpebra { transform-box: fill-box; transform-origin: 50% 0; animation: urso-pisca 4.6s ease-in-out infinite; }
+.urso-login .palpebra.d { animation-delay: .02s; }
+.palco.pisca .palpebra { animation: urso-pisca-ja .45s ease-in-out .55s both; }
+@keyframes urso-pisca { 0%, 91%, 100% { transform: scaleY(0); } 94%, 96% { transform: scaleY(1); } }
+@keyframes urso-pisca-ja { 0%, 100% { transform: scaleY(0); } 40%, 60% { transform: scaleY(1); } }
+.patas-login { position: absolute; left: 50%; top: 0; width: 124px; height: 30px; margin-left: -62px; z-index: 2; translate: 0 -12px; transition: translate .7s var(--spring); pointer-events: none; }
+.patas-login .pata { transform-box: fill-box; transform-origin: 50% 50%; transition: transform .55s var(--spring); }
+.palco[data-olha="senha"] .patas-login { translate: 0 calc(var(--sobe) + 38px); }   /* as patinhas sobem e tapam os olhos */
+.palco[data-olha="senha"] .pata.e { transform: translateX(14px); }
+.palco[data-olha="senha"] .pata.d { transform: translateX(-14px); animation: espiadinha 5s ease-in-out 1.2s infinite; }
+@keyframes espiadinha { 0%, 78%, 100% { transform: translateX(-14px); } 84%, 93% { transform: translate(-9px, 12px) rotate(10deg); } }
+.palco[data-olha="senha"] .olho { transform: translate(calc(var(--olhar-x) * 2px), 4px); }
+.palco.feliz .patas-login { translate: 0 calc(var(--sobe) + 52px); }   /* bracinhos para cima, ao lado da cabeça */
+.palco.feliz .pata.e { transform: translate(-18px, -8px) rotate(-30deg); } .palco.feliz .pata.d { transform: translate(18px, -8px) rotate(30deg); animation: none; }
+.palco.feliz .urso-login { animation: urso-pula .6s var(--spring); }
+.palco.nao .urso-login, .palco.nao .patas-login { animation: nega .65s ease-in-out; }
+@keyframes nega { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-7px); } 40%, 80% { transform: translateX(7px); } }
+@keyframes urso-pula { 0%, 100% { transform: translateY(0); } 45% { transform: translateY(-14px) scale(1.04); } }
+.passarinho-login { position: absolute; right: 22px; top: -27px; width: 46px; height: 34px; z-index: 2; transform-origin: 50% 100%; transform: scaleX(-1); transition: transform .5s var(--spring); animation: passaro-balanca 5s ease-in-out infinite; pointer-events: none; }
+.palco:not([data-olha=""]) .passarinho-login { transform: scaleX(-1) rotate(18deg); animation: none; }
+.passarinho-login.pula { animation: pulinho .4s var(--spring); }
+@keyframes pulinho { 0%, 100% { translate: 0 0; } 45% { translate: 0 -8px; } }
+@keyframes passaro-balanca { 0%, 100% { translate: 0 0; } 50% { translate: 0 -2px; } 70% { translate: 2px -1px; } }
+.coelho-login { position: absolute; left: 0; bottom: 64px; width: 46px; height: 60px; z-index: 0; translate: 10px 0; animation: coelho-espia 14s ease-in-out infinite; pointer-events: none; }
+@keyframes coelho-espia { 0%, 64%, 100% { translate: 10px 0; } 70%, 86% { translate: -30px 0; } 74% { translate: -30px 0 rotate(0); } 78% { translate: -32px -3px; } }
+@media (prefers-reduced-motion: reduce) { .palco, .urso-login .palpebra, .passarinho-login, .coelho-login, .pata.d { animation: none !important; } }
 .qr { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
 .qr img { width: min(280px, 80vw); height: auto; border-radius: 16px; background: #fff; padding: 10px; border: 1px solid var(--borda); }
 /* ---------- folhas (iPhone): sobem de baixo, no desktop viram cartão no centro ---------- */
@@ -494,7 +530,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.30';
+const VERSAO = '0.31';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -612,9 +648,23 @@ async function sincronizar() {
   if (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) return;
   try { if (await carregar()) desenhar(); } catch (e) { /* tenta de novo no próximo ciclo */ }
 }
+// os bichinhos da tela de entrar: o ursinho (corpo atrás do cartão, patinhas na frente), o passarinho no canto e o coelhinho de lado
+const BICHOS_ENTRADA = `<span class="urso-login" aria-hidden="true"><svg viewBox="0 0 124 96"><circle cx="30" cy="26" r="13" fill="#D9A07F"/><circle cx="94" cy="26" r="13" fill="#D9A07F"/><circle cx="30" cy="26" r="7" fill="#C98B6B"/><circle cx="94" cy="26" r="7" fill="#C98B6B"/><circle cx="62" cy="56" r="36" fill="#D9A07F"/><ellipse cx="62" cy="72" rx="15" ry="11" fill="#F5D9C6"/><ellipse cx="62" cy="67" rx="5" ry="3.6" fill="#3B3B3B"/><path d="M62 70 v5 M56 78 q6 4 12 0" stroke="#3B3B3B" stroke-width="1.8" fill="none" stroke-linecap="round"/><circle class="olho" cx="48" cy="52" r="4.6" fill="#3B3B3B"/><circle class="olho" cx="76" cy="52" r="4.6" fill="#3B3B3B"/><circle class="olho" cx="49.6" cy="50.4" r="1.4" fill="#fff"/><circle class="olho" cx="77.6" cy="50.4" r="1.4" fill="#fff"/><rect class="palpebra e" x="41" y="45" width="14" height="13" rx="6" fill="#D9A07F"/><rect class="palpebra d" x="69" y="45" width="14" height="13" rx="6" fill="#D9A07F"/><circle cx="36" cy="64" r="5" fill="#F5BEA9" opacity=".55"/><circle cx="88" cy="64" r="5" fill="#F5BEA9" opacity=".55"/></svg></span><span class="patas-login" aria-hidden="true"><svg viewBox="0 0 124 30"><g class="pata e"><ellipse cx="34" cy="15" rx="13" ry="9.5" fill="#E3B08E" stroke="#C98B6B" stroke-width="1.6"/><path d="M26 10 v4 M34 8 v4 M42 10 v4" stroke="#C98B6B" stroke-width="2" stroke-linecap="round"/></g><g class="pata d"><ellipse cx="90" cy="15" rx="13" ry="9.5" fill="#E3B08E" stroke="#C98B6B" stroke-width="1.6"/><path d="M82 10 v4 M90 8 v4 M98 10 v4" stroke="#C98B6B" stroke-width="2" stroke-linecap="round"/></g></svg></span><span class="passarinho-login" aria-hidden="true"><svg viewBox="0 0 60 44"><ellipse cx="30" cy="30" rx="17" ry="13" fill="#8FBFB0"/><circle cx="40" cy="20" r="10" fill="#8FBFB0"/><path d="M49 20 L58 23 L49 26Z" fill="#F0BB5F"/><circle cx="43" cy="18" r="1.8" fill="#3B3B3B"/><path d="M22 30 q-8 -6 -2 -12" stroke="#6FA394" stroke-width="4" stroke-linecap="round" fill="none"/><path d="M40 10 q2 -6 6 -4" stroke="#6FA394" stroke-width="2.5" stroke-linecap="round" fill="none"/><path d="M24 42 v3 M34 42 v3" stroke="#F0BB5F" stroke-width="2.4" stroke-linecap="round"/></svg></span><span class="coelho-login" aria-hidden="true"><svg viewBox="0 0 46 60"><ellipse cx="16" cy="14" rx="5" ry="13" fill="#F5D9C6" stroke="#E8C4B0" stroke-width="1.5"/><ellipse cx="30" cy="12" rx="5" ry="13" fill="#F5D9C6" stroke="#E8C4B0" stroke-width="1.5" transform="rotate(10 30 12)"/><ellipse cx="16" cy="16" rx="2.2" ry="8" fill="#F5BEA9"/><circle cx="23" cy="36" r="16" fill="#FCE3D8" stroke="#E8C4B0" stroke-width="1.5"/><circle cx="17" cy="34" r="2.4" fill="#3B3B3B"/><circle cx="29" cy="34" r="2.4" fill="#3B3B3B"/><ellipse cx="23" cy="41" rx="2.6" ry="1.8" fill="#E25B3F"/><path d="M23 43 v3 M19 47 q4 3 8 0" stroke="#3B3B3B" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="M9 40 h6 M9 44 h6 M31 40 h6 M31 44 h6" stroke="#C98B6B" stroke-width="1" stroke-linecap="round" opacity=".6"/></svg></span>`;
+const CAMPOS_OLHAR = { 'l-login': 'campo', 'g-nome': 'campo', 'g-login': 'campo', 'l-senha': 'senha', 'g-senha': 'senha' };
+let OLHAR_T = 0;
+function olharPara(inp, foco = false) { // o ursinho acompanha o cursor; o passarinho dá um pulinho
+  const card = $('.palco'); if (!card) return;
+  const pos = Math.max(0, Math.min(1, ((inp.selectionStart ?? inp.value.length) * 9 + 14) / Math.max(140, inp.clientWidth)));
+  card.style.setProperty('--olhar-x', (pos * 2 - 1).toFixed(2));
+  card.classList.add('digitando'); clearTimeout(OLHAR_T); OLHAR_T = setTimeout(() => card.classList.remove('digitando'), 2300);
+  if (foco) { card.classList.remove('pisca'); void card.offsetWidth; card.classList.add('pisca'); setTimeout(() => card.classList.remove('pisca'), 1300); }
+  else { const pa = $('.passarinho-login', card); if (pa) { pa.classList.remove('pula'); void pa.offsetWidth; pa.classList.add('pula'); } }
+}
+function ursoReage(como) { const card = $('.palco'); if (!card) return; card.classList.remove('nao', 'feliz'); void card.offsetWidth; card.classList.add(como); if (como === 'nao') setTimeout(() => card.classList.remove('nao'), 800); }
+const espera = ms => new Promise(r => setTimeout(r, ms));
 function telaSo(html) { // telas sem o menu (entrar, primeiro acesso)
   $('#nav-lado').innerHTML = ''; $('#nav-baixo').innerHTML = ''; $('#hoje').innerHTML = ''; $('#fab-ancora').hidden = true;
-  $('#miolo').innerHTML = `<div class="entrada-pagina"><div class="card entrada-card sobe"><span class="logo-entrada">${LOGO}</span>${html}</div></div>`;
+  $('#miolo').innerHTML = `<div class="entrada-pagina"><div class="palco" data-olha="">${BICHOS_ENTRADA}<div class="card entrada-card sobe"><span class="logo-entrada">${LOGO}</span>${html}</div></div></div>`;
   setTimeout(() => { const i = $('#miolo input'); if (i) i.focus(); }, 50);
 }
 function telaEntrar() {
@@ -1182,8 +1232,8 @@ const ACOES = {
   'equipe-novo': () => folhaEquipe(null), 'equipe-editar': el => folhaEquipe(S.equipe.find(u => u.id === +el.dataset.id)),
   'equipe-salvar': el => { const nome = val('e-nome'); if (!nome) { toast('Falta o nome'); return; } const d = { nome, login: val('e-login') || nome.split(' ')[0].toLowerCase(), papel: val('e-papel'), senha: ($('#e-senha') || { value: '' }).value }; if (MODO === 'servidor') { api('usuario_salvar', { id: el.dataset.id ? +el.dataset.id : 0, ...d }).then(async () => { await carregar(); toast('Equipe atualizada'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } delete d.senha; if (el.dataset.id) Object.assign(S.equipe.find(u => u.id === +el.dataset.id), d); else S.equipe.push({ id: novoId(), ...d }); toast('Equipe atualizada'); fecharFolha(); desenhar(); },
   'equipe-apagar': el => { if (MODO === 'servidor') { api('usuario_apagar', { id: +el.dataset.id }).then(async () => { await carregar(); toast('Removida da equipe'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } S.equipe = S.equipe.filter(u => u.id !== +el.dataset.id); toast('Removida da equipe'); fecharFolha(); desenhar(); },
-  entrar: async () => { try { await api('entrar', { login: val('l-login'), senha: ($('#l-senha') || { value: '' }).value }); await depoisDeEntrar(); setInterval(sincronizar, 6000); } catch (e) { toast(e.message); } },
-  'criar-gestor': async () => { try { await api('criar_gestor', { nome: val('g-nome'), login: val('g-login'), senha: ($('#g-senha') || { value: '' }).value }); await depoisDeEntrar(); setInterval(sincronizar, 6000); } catch (e) { toast(e.message); } },
+  entrar: async () => { try { await api('entrar', { login: val('l-login'), senha: ($('#l-senha') || { value: '' }).value }); ursoReage('feliz'); await espera(700); await depoisDeEntrar(); setInterval(sincronizar, 6000); } catch (e) { ursoReage('nao'); toast(e.message); } },
+  'criar-gestor': async () => { try { await api('criar_gestor', { nome: val('g-nome'), login: val('g-login'), senha: ($('#g-senha') || { value: '' }).value }); ursoReage('feliz'); await espera(700); await depoisDeEntrar(); setInterval(sincronizar, 6000); } catch (e) { ursoReage('nao'); toast(e.message); } },
   sair: async () => { if (MODO === 'servidor') { try { await api('sair'); } catch (e) {} fecharFolha(); telaEntrar(); return; } toast('Na prévia não há login'); },
   'trocar-senha': () => abrirFolha('Trocar a minha senha', `<div class="campo"><label for="s-atual">Senha atual</label><input id="s-atual" type="password" autocomplete="current-password"></div><div class="campo"><label for="s-nova">Senha nova (pelo menos 6)</label><input id="s-nova" type="password" autocomplete="new-password"></div><button class="bt forte largo tap" data-act="trocar-senha-ok">${ic(IC.check)} Trocar</button>`),
   'trocar-senha-ok': async () => { try { await api('trocar_senha', { atual: ($('#s-atual') || { value: '' }).value, nova: ($('#s-nova') || { value: '' }).value }); fecharFolha(); toast('Senha trocada'); } catch (e) { toast(e.message); } },
@@ -1204,7 +1254,10 @@ document.addEventListener('change', e => {
   if (t.id === 'f-foto') lerFoto(t.files[0], url => { FOTO_TEMP = url; const prev = $('#f-foto-prev'); if (prev) { prev.classList.add('foto'); prev.style.backgroundImage = `url(${url})`; prev.innerHTML = ''; } const l = $('label[for="f-foto"]'); if (l) l.innerHTML = `${ic(IC.camera)} Tirar outra`; });
   if (t.id === 'ficha-foto') { const c = crianca(t.dataset.id); lerFoto(t.files[0], async url => { if (MODO === 'servidor') { try { await api('foto_salvar', { id: c.id, foto: url }); await carregar(); } catch (e) { toast(e.message); return; } } else { c.foto = url; c.rosto = true; } toast(`Foto de ${c.nome} a caminho do iDFace`); fecharFolha(); desenhar(); setTimeout(() => folhaFicha(c.id), 250); }); }
 });
+document.addEventListener('focusin', e => { const m = CAMPOS_OLHAR[e.target.id]; const card = $('.palco'); if (!card || !m) return; card.dataset.olha = m; olharPara(e.target, true); });
+document.addEventListener('focusout', e => { const card = $('.palco'); if (!card || !CAMPOS_OLHAR[e.target.id]) return; setTimeout(() => { if (!CAMPOS_OLHAR[(document.activeElement || {}).id]) { card.dataset.olha = ''; card.classList.remove('digitando'); } }, 120); });
 document.addEventListener('input', e => {
+  if (CAMPOS_OLHAR[e.target.id]) olharPara(e.target);
   if (e.target.id === 'f-cpf') { const v = cpfFmt(e.target.value); if (v !== e.target.value) e.target.value = v; }
   if (e.target.id === 'busca') { const q = e.target.value.toLowerCase(); $('#lista-criancas').innerHTML = itensLista(S.criancas.filter(c => (c.nome + ' ' + c.resp).toLowerCase().includes(q))); }
   if (e.target.id === 'pc-h') $$('#pc-rapido button').forEach(b => b.setAttribute('aria-pressed', b.dataset.h === e.target.value));
@@ -1214,6 +1267,8 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') fecharFolha();
   if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[role="button"][data-act]')) { e.preventDefault(); e.target.click(); }
   if (e.key === 'Enter' && !e.shiftKey && e.target.id === 'zap-texto') { e.preventDefault(); ACOES.enviar(); }
+  if (e.key === 'Enter' && ['l-login', 'l-senha'].includes(e.target.id)) { e.preventDefault(); e.target.id === 'l-login' ? $('#l-senha').focus() : ACOES.entrar(); }
+  if (e.key === 'Enter' && ['g-nome', 'g-login', 'g-senha'].includes(e.target.id)) { e.preventDefault(); const prox = { 'g-nome': '#g-login', 'g-login': '#g-senha' }[e.target.id]; prox ? $(prox).focus() : ACOES['criar-gestor'](); }
 });
 window.addEventListener('hashchange', () => { const h = location.hash.slice(1); if (ABAS.some(a => a[0] === h) && h !== S.tela) trocarTela(h); });
 setInterval(() => {
