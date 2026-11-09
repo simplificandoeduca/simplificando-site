@@ -271,6 +271,7 @@ svg { display: block; }
 .dias button b { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: var(--menta); color: var(--tinta); font-size: 11px; display: flex; align-items: center; justify-content: center; }
 .dias button[aria-pressed="true"] { background: var(--tinta); color: var(--creme); border-color: var(--tinta); }
 .dias button[aria-pressed="true"] b { background: var(--coral); color: #fff; }
+.dias button.escolher { border-style: dashed; color: var(--coral); }
 .conv .quem { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
 .conv .quem i { font-style: normal; font-size: 10.5px; font-weight: 800; padding: 2px 7px; border-radius: 999px; background: var(--mostarda-2); color: var(--aviso); }
 .conv .quem i.auto { background: var(--verde-agua-2); color: var(--ok); } .conv .quem i.ninguem { background: var(--coral-2); color: var(--erro); }
@@ -457,7 +458,7 @@ const NOMES_BRQ = { urso: 'Ursinho', bola: 'Bola', blocos: 'Blocos', coelho: 'Co
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.08';
+const VERSAO = '0.09';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -769,10 +770,12 @@ function sugestoes(conv) {
   return s.slice(0, 3);
 }
 function telaZap() {
-  const dias = diasComConversa(); if (!dias.includes(S.zapDia)) S.zapDia = dias[0];
+  const hojeIso = isoDia(agora), ontemIso = isoDia(new Date(agora.getTime() - 86400000));
+  if (!S.zapDia) S.zapDia = hojeIso;
+  const dias = [hojeIso, ontemIso]; if (!dias.includes(S.zapDia)) dias.push(S.zapDia);
   const doDia = S.conversas.filter(x => x.msgs.some(m => diaDe(m.h) === S.zapDia)).map(x => ({ x, ms: x.msgs.filter(m => diaDe(m.h) === S.zapDia) })).sort((a, b) => b.ms[b.ms.length - 1].h - a.ms[a.ms.length - 1].h);
   let conv = convDe(S.zapAberta); if (!conv || !doDia.some(d => d.x === conv)) conv = doDia.length ? doDia[0].x : null; if (conv) S.zapAberta = conv.id;
-  const abas = `<div class="dias">${dias.map(d => { const n = S.conversas.filter(x => x.msgs.some(m => diaDe(m.h) === d)).length; return `<button class="tap" data-act="zap-dia" data-dia="${d}" aria-pressed="${d === S.zapDia}">${rotuloDia(d)}${n ? `<b>${n}</b>` : ''}</button>`; }).join('')}</div>`;
+  const abas = `<div class="dias">${dias.map(d => { const n = S.conversas.filter(x => x.msgs.some(m => diaDe(m.h) === d)).length; return `<button class="tap" data-act="zap-dia" data-dia="${d}" aria-pressed="${d === S.zapDia}">${rotuloDia(d)}${n ? `<b>${n}</b>` : ''}</button>`; }).join('')}<button class="tap escolher" data-act="zap-escolher">${ic(IC.agenda, 16)} Escolher data</button></div>`;
   const quem = ms => { const nomes = []; ms.forEach(m => { if (m.de === 'nos') { const q = m.por || EU.nome; if (!nomes.includes(q)) nomes.push(q); } }); return nomes; };
   const lista = doDia.length ? doDia.map(({ x, ms }) => { const c = crianca(x.crianca), u = ms[ms.length - 1], q = quem(ms); return `<button class="conv tap ${conv && x.id === conv.id ? 'ativa' : ''}" data-act="conversa" data-id="${x.id}">${avatar(c)}<div class="txt"><b>${esc(c.resp)} (${esc(c.rel)} de ${esc(c.nome)})</b><span>${u.de === 'nos' ? (u.auto ? 'Automática: ' : (u.por || EU.nome) + ': ') : ''}${esc(u.txt)}</span><span class="quem">${q.length ? q.map(n => `<i class="${n === 'automática' ? 'auto' : ''}">${esc(n)}</i>`).join('') : '<i class="ninguem">ninguém respondeu ainda</i>'}</span></div><span class="h">${hora(u.h)}</span>${x.lidas ? '' : `<span class="n">${x.msgs.filter(m => m.de === 'ela').length}</span>`}</button>`; }).join('')
     : `<div class="card vazio">${ic(IC.zap, 26)}<b>${S.zapDia === isoDia(agora) ? 'Nenhuma conversa ainda hoje' : 'Nenhuma conversa neste dia'}</b><span>${S.zapDia === isoDia(agora) ? 'Quando uma criança chegar ou alguém mandar mensagem, aparece aqui.' : 'Escolha outro dia em cima.'}</span></div>`;
@@ -961,7 +964,14 @@ const ACOES = {
   'ir-ajustes': () => { fecharFolha(); trocarTela('ajustes'); }, fechar: () => fecharFolha(),
   conversa: el => { const c = convDe(el.dataset.id); c.lidas = true; S.zapAberta = c.id; S.zapModo = 'papo'; desenhar(); $('.papo').animate([{ opacity: 0, transform: 'translateX(24px)' }, { opacity: 1, transform: 'none' }], { duration: 360, easing: 'cubic-bezier(.32,.72,0,1)' }); },
   'zap-lista': () => { S.zapModo = 'lista'; desenhar(); },
-  'zap-dia': el => { S.zapDia = el.dataset.dia; S.zapModo = 'lista'; desenhar(); const l = $('.conversas'); if (l) l.animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 320, easing: 'cubic-bezier(.32,.72,0,1)' }); },
+  'zap-escolher': () => {
+    const recentes = diasComConversa().filter(d => d !== isoDia(agora) && d !== isoDia(new Date(agora.getTime() - 86400000)));
+    abrirFolha('Escolher o dia', `<div class="campo"><label for="zap-data">Qual dia você quer ver?</label><input type="date" id="zap-data" value="${S.zapDia}" max="${isoDia(agora)}"></div>
+      <button class="bt forte largo tap" data-act="zap-data-ok">${ic(IC.check)} Ver as conversas desse dia</button>
+      ${recentes.length ? `<div class="sec"><div class="sec-cab"><h2 style="font-size:15px">Dias com conversa</h2></div><div class="grupo">${recentes.map(d => `<button class="it tap" data-act="zap-dia" data-id="${d}" data-dia="${d}"><div class="txt"><b>${rotuloDiaLongo(d)}</b><span>${S.conversas.filter(x => x.msgs.some(m => diaDe(m.h) === d)).length} conversa(s)</span></div><span class="vai">${ic(IC.vai, 18)}</span></button>`).join('')}</div></div>` : ''}`);
+  },
+  'zap-data-ok': () => { const v = val('zap-data'); if (!v) { toast('Escolha uma data'); return; } S.zapDia = v; S.zapModo = 'lista'; fecharFolha(); desenhar(); },
+  'zap-dia': el => { if ($('#folha .folha-fundo')) fecharFolha(); S.zapDia = el.dataset.dia; S.zapModo = 'lista'; desenhar(); const l = $('.conversas'); if (l) l.animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 320, easing: 'cubic-bezier(.32,.72,0,1)' }); },
   sugestao: el => { const t = $('#zap-texto'); t.value = el.textContent; t.focus(); t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; },
   enviar: () => { const t = $('#zap-texto'); enviar(t.value); toast('Enviado no WhatsApp'); },
   'dia-sel': el => { S.diaSel = el.dataset.dia; desenhar(); },
