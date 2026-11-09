@@ -5365,8 +5365,10 @@ function finish(){
   });
   if(!sets){ toast('Marque pelo menos uma série antes de finalizar.'); return; }
   const min = Math.max(1, Math.round(elapsed()/60000)), sec = Math.max(1, Math.round(elapsed()/1000)), nd = new Date(), hr = String(nd.getHours()).padStart(2,'0')+':'+String(nd.getMinutes()).padStart(2,'0');
-  const det = p.ex.map(e => { const ok = (log[e.id]||[]).filter(x => x.ok), c = excOf(e.id); if(!ok.length && !(c && (c.q.length || c.n))) return null;
-    return {id:e.id, n:e.nome, s:ok.map(x => [num(x.kg), int(x.reps)]), q:c ? c.q.slice() : [], c:c ? c.n : ''}; }).filter(Boolean);
+  const WM = S.warm[t0]||{};
+  const det = p.ex.map(e => { const ok = (log[e.id]||[]).filter(x => x.ok), c = excOf(e.id), wt = e.aq ? aqSeries(e).length : 0, w = wt ? (WM[e.id]||[]).slice(0,wt).filter(Boolean).length : 0;
+    if(!ok.length && !w && !(c && (c.q.length || c.n))) return null;
+    const o = {id:e.id, n:e.nome, s:ok.map(x => [num(x.kg), int(x.reps)]), q:c ? c.q.slice() : [], c:c ? c.n : ''}; if(wt){ o.w = w; o.wt = wt; } return o; }).filter(Boolean);
   S.history.push({date:t0, t:ses.t, min, sec, hr, vol:Math.round(vol), sets, prs:prd.map(x => x.id), prd, rpe:0, note:'', gym:ses.gym||'', ex:det});
   S.session = null; ui.rest = null; renderRest();
   stPick(S.history.length-1);
