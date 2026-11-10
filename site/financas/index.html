@@ -452,7 +452,7 @@ function logo(){
 $('#logo').innerHTML = logo(); document.querySelector('.top .mic').innerHTML = I.mic;
 
 /* ========== estado ========== */
-const FINV = '10 nov · 12'; // Versão do Finanças: 10 nov · 12
+const FINV = '10 nov · 14'; // Versão do Finanças: 10 nov · 14
 const DONO = { nome:'Eduardo Matias', iniciais:'EM' }; // perfil único desta página
 const LS = 'simplificando-financas', LST = 'simplificando-financas-tema';
 const CATS = ['Mercado', 'Comida', 'Transporte', 'Casa', 'Lazer', 'Saúde', 'Roupas', 'Assinaturas', 'Outros'];
@@ -461,7 +461,7 @@ function fresh(){
     v:1, em:0,
     fontes:[{ id:'f1', nome:'Emprego 1' }, { id:'f2', nome:'Emprego 2' }],
     cartoes:[{ id:'c1', nome:'Cartão 1', cor:0, tipo:'credito', fecha:null }, { id:'c2', nome:'Cartão 2', cor:1, tipo:'credito', fecha:null }, { id:'conta', nome:'Conta (débito / Pix)', cor:4, tipo:'conta', fecha:null }],
-    receitas:[], gastos:[], pagamentos:[], saldos:[], fixos:[], fixosFeitos:{}, guardados:[], meta:{ tipo:'valor', valor:0, pct:10 },
+    receitas:[], gastos:[], pagamentos:[], saldos:[], fixos:[], fixosFeitos:{}, guardados:[], pagFatura:[], meta:{ tipo:'valor', valor:0, pct:10 },
     irmao:{ nome:'Irmão', zap:'', pix:'' },
     cats:CATS.slice(), ult:{ cartao:'c1' }
   };
@@ -469,7 +469,7 @@ function fresh(){
 let S = fresh();
 function normalize(o){
   const d = fresh(); if (!o || typeof o !== 'object') return d;
-  for (const k of ['fontes', 'cartoes', 'receitas', 'gastos', 'pagamentos', 'saldos', 'cats', 'fixos', 'guardados']) if (!Array.isArray(o[k])) o[k] = d[k];
+  for (const k of ['fontes', 'cartoes', 'receitas', 'gastos', 'pagamentos', 'saldos', 'cats', 'fixos', 'guardados', 'pagFatura']) if (!Array.isArray(o[k])) o[k] = d[k];
   if (!o.fixosFeitos || typeof o.fixosFeitos !== 'object') o.fixosFeitos = {};
   o.meta = Object.assign({}, d.meta, o.meta || {});
   o.irmao = Object.assign({}, d.irmao, o.irmao || {}); o.ult = Object.assign({}, d.ult, o.ult || {});
@@ -551,7 +551,8 @@ function saldoAtual(){
   const pag = sum(S.pagamentos.filter(p => (p.cr || 0) > last.cr), p => p.valor);
   const gas = sum(S.gastos.filter(g => (g.cr || 0) > last.cr && cartao(g.cartao).tipo === 'conta'), g => g.valor);
   const gua = sum(S.guardados.filter(x => (x.cr || 0) > last.cr), x => x.valor);
-  return { last, rec, pag, gas, gua, est:last.valor + rec + pag - gas - gua };
+  const fat = sum(S.pagFatura.filter(x => (x.cr || 0) > last.cr && x.conta !== false), x => x.valor);
+  return { last, rec, pag, gas, gua, fat, est:last.valor + rec + pag - gas - gua - fat };
 }
 function irmaoPendente(){
   const gasto = sum(S.gastos.filter(g => g.quem === 'irmao'), g => g.valor);
@@ -568,6 +569,10 @@ function faturaDe(c){ // período da fatura que fecha no mês escolhido: do dia 
   return { ini, fim, total:sum(itens, g => g.valor), irmao:sum(itens.filter(g => g.quem === 'irmao'), g => g.valor) };
 }
 
+function pagosFatura(c, f){ // pagamentos da fatura do cartão no período (fatura, ou o mês escolhido se não tiver fechamento)
+  const its = S.pagFatura.filter(x => x.cartao === c.id && (f ? x.data >= f.ini && x.data <= f.fim : (x.data || '').slice(0, 7) === UI.mes));
+  return { itens:its.sort((a, b) => b.data.localeCompare(a.data)), total:sum(its, x => x.valor) };
+}
 function aplicarFixos(){ // cria o gasto de cada fixo no dia certo do mês atual (uma vez só, mesmo que depois seja apagado)
   const mes = nowKey(), hoje = todayISO(), ultimo = new Date(+mes.slice(0, 4), +mes.slice(5, 7), 0).getDate();
   let n = 0;
@@ -661,7 +666,7 @@ function rResumo(){
   if (!sa) h += `<p class="big">—</p><p class="sub">Veja o saldo no banco uma vez e anote aqui. Depois, a página acompanha sozinha com o que você lançar.</p><div class="btns"><button type="button" class="btn primary" data-a="saldo">Informar saldo de hoje</button></div>`;
   else {
     const mov = [];
-    if (sa.rec) mov.push('+' + fmt(sa.rec) + ' recebidos'); if (sa.gua) mov.push('−' + fmt(sa.gua) + ' guardados'); if (sa.pag) mov.push('+' + fmt(sa.pag) + ' do ' + esc(S.irmao.nome)); if (sa.gas) mov.push('−' + fmt(sa.gas) + ' gastos na conta');
+    if (sa.rec) mov.push('+' + fmt(sa.rec) + ' recebidos'); if (sa.gua) mov.push('−' + fmt(sa.gua) + ' guardados'); if (sa.fat) mov.push('−' + fmt(sa.fat) + ' de fatura paga'); if (sa.pag) mov.push('+' + fmt(sa.pag) + ' do ' + esc(S.irmao.nome)); if (sa.gas) mov.push('−' + fmt(sa.gas) + ' gastos na conta');
     h += `<p class="big">${fmtBig(sa.est)}</p><p class="sub">${mov.length ? 'Você informou ' + fmt(sa.last.valor) + '. Desde então: ' + mov.join(' · ') + '.' : 'Nada lançado na conta desde que você informou.'}</p><div class="btns"><button type="button" class="btn primary" data-a="saldo">${I.refresh}Atualizar saldo</button></div>`;
   }
   h += `</div>`;
@@ -686,8 +691,8 @@ function rResumo(){
   h += `<div class="card" style="padding:0;gap:0"><div class="hd" style="padding:18px 16px 8px"><h2>Meus cartões</h2><span class="pill">${esc(fmt(meus + doIrmao))}</span></div>`;
   for (const c of S.cartoes) {
     const its = gm.filter(g => g.cartao === c.id), v = sum(its, g => g.valor), vi = sum(its.filter(g => g.quem === 'irmao'), g => g.valor), f = faturaDe(c);
-    const sub = (c.tipo === 'conta' ? 'Débito e Pix' : 'Crédito' + (c.fecha ? ' · fecha dia ' + c.fecha : '')) + (vi ? ' · ' + n + ' ' + esc(fmt(vi)) : '');
-    h += `<button type="button" class="rc" data-a="ver-cartao" data-k="${c.id}" style="--ga:var(--g${(c.cor ?? 7) % 8});--gb:${corVis(c)}">${ccHTML(c, '', 'mini')}<span class="tx"><b>${esc(c.nome)}</b><span>${sub}</span><span class="bar2"><i style="width:${Math.round((v - vi) / totCart * 100)}%"></i>${vi ? `<i class="ir" style="width:${Math.round(vi / totCart * 100)}%"></i>` : ''}</span></span><span class="v">${esc(fmt(f ? f.total : v))}<small>${f ? 'fatura' : 'no mês'}</small></span><span class="chev">${I.chev}</span></button>`;
+    const pf = c.tipo === 'conta' ? null : pagosFatura(c, f), sub = (c.tipo === 'conta' ? 'Débito e Pix' : 'Crédito' + (c.fecha ? ' · fecha dia ' + c.fecha : '')) + (vi ? ' · ' + n + ' ' + esc(fmt(vi)) : '') + (pf && pf.total ? ' · pago ' + esc(fmt(pf.total)) : '');
+    h += `<button type="button" class="rc" data-a="ver-cartao" data-k="${c.id}" style="--ga:var(--g${(c.cor ?? 7) % 8});--gb:${corVis(c)}">${ccHTML(c, '', 'mini')}<span class="tx"><b>${esc(c.nome)}</b><span>${sub}</span><span class="bar2"><i style="width:${Math.round((v - vi) / totCart * 100)}%"></i>${vi ? `<i class="ir" style="width:${Math.round(vi / totCart * 100)}%"></i>` : ''}</span></span><span class="v">${esc(fmt(pf && pf.total ? Math.max(0, (f ? f.total : v) - pf.total) : (f ? f.total : v)))}<small>${pf && pf.total ? 'falta' : f ? 'fatura' : 'no mês'}</small></span><span class="chev">${I.chev}</span></button>`;
   }
   h += `<button type="button" class="rc novo" data-a="add-cartao-resumo">${I.plus}Novo cartão</button></div>`;
   h += `<p class="sub" style="text-align:center">${gm.length ? 'Toque num cartão para ver o extrato. A barra mostra quanto cada um pesa no mês' + (doIrmao ? '; a parte clara é do ' + n : '') + '.' : 'Nenhum gasto em ' + esc(monthLabel(UI.mes)) + '. Toque no <b>+</b> para lançar.'}</p>`;
@@ -704,6 +709,11 @@ function rCartao(){
   h += `<div class="kp3"><div><b>${esc(fmt(tot))}</b><span>No mês</span></div><div><b>${esc(fmt(meu))}</b><span>Meu</span></div><div><b>${esc(fmt(ir))}</b><span>${n}</span></div></div>`;
   if (tot) h += `<div class="bar" style="--sw:var(--c${(c.cor ?? 7) % 8})"><div class="t"><i style="width:${Math.round(meu / tot * 100)}%"></i>${ir ? `<i class="ir" style="width:${Math.round(ir / tot * 100)}%"></i>` : ''}</div></div>`;
   if (f) h += `<p class="sub">Fatura que fecha em ${esc(shortDate(f.fim))}: <b>${esc(fmt(f.total))}</b> (${esc(shortDate(f.ini))} a ${esc(shortDate(f.fim))})${f.irmao ? ' · ' + n + ' ' + esc(fmt(f.irmao)) : ''}</p>`;
+  const pf = c.tipo === 'conta' ? null : pagosFatura(c, f);
+  if (pf && pf.total) {
+    const base = f ? f.total : tot, falta = base - pf.total;
+    h += `<div class="card ${falta <= 0 ? 'blk-ok' : ''}" style="gap:8px"><div class="hd"><h2 style="font-size:15px">Pagamento da fatura</h2><span class="pill">${falta <= 0 ? 'quitada' : 'falta ' + esc(fmt(falta))}</span></div><p class="sub">Já pago: <b>${esc(fmt(pf.total))}</b> de ${esc(fmt(base))}${falta < 0 ? ' · pagou ' + esc(fmt(-falta)) + ' a mais (fica de crédito)' : ''}.</p><div class="list" style="margin:0 -6px">${pf.itens.map(x => `<button type="button" class="row" data-a="ed-pagfat" data-k="${x.id}"><span class="ic">💸</span><span class="tx"><b>${esc(x.obs || 'Pagamento da fatura')}</b><span>${esc(dayLabel(x.data))}${x.conta === false ? ' · não saiu da conta' : ''}</span></span><span class="val in">${esc(fmt(x.valor))}</span></button>`).join('')}</div></div>`;
+  }
   h += `<div class="seg"><button type="button" class="${!UI.xQuem ? 'on' : ''}" data-a="x-quem" data-k="">Tudo</button><button type="button" class="${UI.xQuem === 'eu' ? 'on' : ''}" data-a="x-quem" data-k="eu">Meus</button><button type="button" class="${UI.xQuem === 'irmao' ? 'on' : ''}" data-a="x-quem" data-k="irmao">${n}</button></div>`;
   if (!its.length) h += `<div class="list"><div class="empty"><b>Nada neste cartão</b><span>Nenhum gasto em ${esc(monthLabel(UI.mes))}${UI.xQuem ? ' com esse filtro' : ''}.</span></div></div>`;
   else {
@@ -714,7 +724,7 @@ function rCartao(){
     }
     h += `</div>`;
   }
-  h += `<button type="button" class="btn primary wide" data-a="novo-gasto-cartao" data-k="${c.id}">${I.plus}Lançar neste cartão</button>`;
+  h += `<div class="btns"><button type="button" class="btn primary" data-a="novo-gasto-cartao" data-k="${c.id}" style="flex:1">${I.plus}Lançar neste cartão</button>${c.tipo === 'conta' ? '' : `<button type="button" class="btn" data-a="pagar-fatura" data-k="${c.id}">${I.wallet}Pagar fatura</button>`}</div>`;
   $('#v-resumo').innerHTML = h;
 }
 
@@ -758,7 +768,11 @@ function rIrmao(){
 
 function rAjustes(){
   const t = document.documentElement.dataset.theme || 'auto';
-  let h = `<div class="card"><div class="hd"><h2>Renda</h2><button type="button" class="btn sm" data-a="add-fonte">${I.plus}Fonte</button></div><p class="sub">Seus empregos ou de onde vem o dinheiro.</p>`;
+  let h = Cloud ? `<div class="card"><h2>Perfil</h2><div class="perfil"><span class="av">${DONO.iniciais}</span><span class="tx"><b>${esc(DONO.nome)}</b><span>Dono do Finanças · perfil único${Cloud.auth.currentUser ? ' · ' + esc(Cloud.auth.currentUser.email || '') : ''}</span></span></div><p class="sub">Só este perfil entra nesta página. Para trocar a senha, saia e use "Esqueci a senha" na entrada.</p><div class="btns"><button type="button" class="btn danger" data-a="sair">Sair</button></div></div>` : '';
+  h += `<div class="card"><h2>Aparência</h2><div class="seg"><button type="button" class="${t === 'auto' ? 'on' : ''}" data-a="tema" data-k="auto">Automático</button><button type="button" class="${t === 'light' ? 'on' : ''}" data-a="tema" data-k="light">Claro</button><button type="button" class="${t === 'dark' ? 'on' : ''}" data-a="tema" data-k="dark">Escuro</button></div>
+    <p class="sub">No celular, toque em "Adicionar à Tela de Início" (iPhone: botão Compartilhar) para abrir como um app.</p></div>`;
+  h += `<div class="card"><div class="hd"><h2>Categorias</h2><button type="button" class="btn sm" data-a="add-cat">${I.plus}Categoria</button></div><div class="chips">${S.cats.map(c => `<button type="button" class="opt" data-a="del-cat" data-k="${esc(c)}" title="Toque para apagar">${esc(c)} ${I.x}</button>`).join('')}</div><p class="sub">Toque numa categoria para apagar.</p></div>`;
+  h += `<div class="card"><div class="hd"><h2>Renda</h2><button type="button" class="btn sm" data-a="add-fonte">${I.plus}Fonte</button></div><p class="sub">Seus empregos ou de onde vem o dinheiro.</p>`;
   for (const f of S.fontes) h += `<div class="set-item"><div class="inline"><label class="field"><span class="sr">Nome</span><input id="in-f-${f.id}" data-f="fonte" data-k="${f.id}" value="${esc(f.nome)}" placeholder="Nome do emprego"></label><button type="button" class="mic sm ghost" data-voz="in-f-${f.id}" aria-label="Falar o nome">${I.mic}</button><button type="button" class="x-sm" data-a="del-fonte" data-k="${f.id}" aria-label="Apagar">${I.trash}</button></div>
     <label class="field" style="font-weight:600;color:var(--muted)">Entra por mês (previsão)<input inputmode="decimal" data-f="prev" data-k="${f.id}" value="${f.prev ? esc((f.prev / 100).toFixed(2).replace('.', ',')) : ''}" placeholder="Ex.: 3500,00"></label></div>`;
   h += `<p class="sub">A previsão é o que o "Posso gastar" usa antes de o salário cair. Quando o valor recebido for maior, ele passa a valer.</p>`;
@@ -783,13 +797,6 @@ function rAjustes(){
   h += `<div class="card"><h2>Quem usa seu cartão</h2><p class="sub">Nome, WhatsApp e chave Pix (entra na mensagem de cobrança).</p>
     <div class="inline"><label class="field">Nome<input id="in-irmao" data-f="irmao-nome" value="${esc(S.irmao.nome)}" placeholder="Irmão"></label><button type="button" class="mic sm ghost" style="margin-top:22px" data-voz="in-irmao" aria-label="Falar o nome">${I.mic}</button></div>
     <div class="grid2"><label class="field">WhatsApp<input data-f="irmao-zap" inputmode="tel" value="${esc(S.irmao.zap)}" placeholder="11 91234-5678"></label><label class="field">Sua chave Pix<input data-f="irmao-pix" value="${esc(S.irmao.pix)}" placeholder="CPF, e-mail ou celular"></label></div></div>`;
-  h += `<div class="card"><div class="hd"><h2>Categorias</h2><button type="button" class="btn sm" data-a="add-cat">${I.plus}Categoria</button></div><div class="chips">${S.cats.map(c => `<button type="button" class="opt" data-a="del-cat" data-k="${esc(c)}" title="Toque para apagar">${esc(c)} ${I.x}</button>`).join('')}</div><p class="sub">Toque numa categoria para apagar.</p></div>`;
-  h += `<div class="card"><h2>Aparência</h2><div class="seg"><button type="button" class="${t === 'auto' ? 'on' : ''}" data-a="tema" data-k="auto">Automático</button><button type="button" class="${t === 'light' ? 'on' : ''}" data-a="tema" data-k="light">Claro</button><button type="button" class="${t === 'dark' ? 'on' : ''}" data-a="tema" data-k="dark">Escuro</button></div>
-    <p class="sub">No celular, toque em "Adicionar à Tela de Início" (iPhone: botão Compartilhar) para abrir como um app.</p></div>`;
-  if (Cloud) h += `<div class="card"><h2>Perfil</h2><div class="perfil"><span class="av">${DONO.iniciais}</span><span class="tx"><b>${esc(DONO.nome)}</b><span>Dono do Finanças · perfil único${Cloud.auth.currentUser ? ' · ' + esc(Cloud.auth.currentUser.email || '') : ''}</span></span></div><p class="sub">Só este perfil entra nesta página. Para trocar a senha, saia e use "Esqueci a senha" na entrada.</p><div class="btns"><button type="button" class="btn danger" data-a="sair">Sair</button></div></div>`;
-  h += `<div class="card"><h2>Importar gastos</h2><p class="sub">Para começar sem lançar um por um: cole a lista da fatura ou do extrato (texto copiado do app do banco, PDF ou e-mail) ou envie o arquivo CSV/OFX. Funciona com a fatura do Nubank e extratos de outros bancos.</p><div class="btns"><button type="button" class="btn primary" data-a="importar">Importar gastos</button></div></div>`;
-  h += `<div class="card"><h2>Dados</h2><p class="sub">${Cloud ? 'Tudo fica salvo na nuvem do Simplificando, só no perfil de ' + esc(DONO.nome) + '. Também fica uma cópia neste aparelho.' : 'Esta cópia está só neste aparelho (sem nuvem).'} ${S.gastos.length} gastos, ${S.receitas.length} receitas.</p>
-    <div class="btns"><button type="button" class="btn" data-a="exportar">Baixar cópia (.json)</button><label class="btn">Restaurar cópia<input type="file" accept="application/json,.json" data-f="importar" hidden></label></div></div>`;
   h += atuCard();
   $('#v-ajustes').innerHTML = h;
 }
@@ -1084,6 +1091,18 @@ function sheetGuardar(x){
     <div class="grid2"><label class="field">Data<input type="date" id="s-data" value="${esc(x.data)}"></label><label class="field">Onde<input id="s-obs" value="${esc(x.obs || '')}" placeholder="Ex.: caixinha, CDB"></label></div>
     <div class="btns"><button type="button" class="btn primary wide" data-s="salvar-guardado" style="flex:1 1 100%">Salvar</button>${edit ? `<button type="button" class="btn danger" data-s="apagar-guardado">${I.trash}Apagar</button>` : ''}</div>`, { kind:'guardar', id:x.id, dig:x.valor ? String(x.valor) : '' });
 }
+function sheetPagFatura(x, cartaoId){
+  const edit = !!(x && x.id); x = Object.assign({ data:todayISO(), valor:0, obs:'', conta:true, cartao:cartaoId }, x || {});
+  const c = cartao(x.cartao), f = faturaDe(c), pf = pagosFatura(c, f), base = f ? f.total : sum(gastosMes().filter(g => g.cartao === c.id), g => g.valor), falta = Math.max(0, base - pf.total + (edit ? x.valor : 0));
+  const temConta = S.cartoes.some(k => k.tipo === 'conta');
+  Sheet.open(`<div class="hd"><h2>${edit ? 'Editar pagamento' : 'Pagar fatura · ' + esc(c.nome)}</h2><button type="button" class="x" data-s="fechar" aria-label="Fechar">${I.x}</button></div>
+    ${amtHTML(x.valor, falta ? 'Falta pagar ' + fmt(falta) + ' desta fatura' : 'Quanto você pagou da fatura')}${padHTML()}
+    ${!edit && falta ? `<button type="button" class="btn" data-s="tudo" data-k="${falta}">Paguei tudo (${esc(fmt(falta))})</button>` : ''}
+    <div class="grid2"><label class="field">Data<input type="date" id="s-data" value="${esc(x.data)}"></label><label class="field">Observação<input id="s-obs" value="${esc(x.obs || '')}" placeholder="Ex.: antecipado"></label></div>
+    ${temConta ? `<label class="gate-keep" style="display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600"><input type="checkbox" id="s-conta" ${x.conta === false ? '' : 'checked'} style="width:20px;height:20px;accent-color:var(--lime)">Saiu da minha conta (desconta do saldo)</label>` : ''}
+    <p class="sub">Pagar a fatura não é um gasto novo: os gastos já estão contados no cartão. Aqui só marcamos quanto da fatura já foi pago.</p>
+    <div class="btns"><button type="button" class="btn primary wide" data-s="salvar-pagfat" style="flex:1 1 100%">Salvar</button>${edit ? `<button type="button" class="btn danger" data-s="apagar-pagfat">${I.trash}Apagar</button>` : ''}</div>`, { kind:'pagfat', id:x.id, cartao:x.cartao, dig:x.valor ? String(x.valor) : '' });
+}
 function sheetGuardados(){
   const its = S.guardados.filter(inMes).sort((a, b) => b.data.localeCompare(a.data));
   Sheet.open(`<div class="hd"><h2>Guardado em ${esc(monthLabel(UI.mes))}</h2><button type="button" class="x" data-s="fechar" aria-label="Fechar">${I.x}</button></div><div class="list">${its.map(x => `<button type="button" class="row" data-a="ed-guardado" data-k="${x.id}"><span class="ic">🐷</span><span class="tx"><b>${esc(x.obs || 'Guardado')}</b><span>${esc(dayLabel(x.data))}</span></span><span class="val in">${esc(fmt(x.valor))}</span></button>`).join('')}</div>`, { kind:'lista' });
@@ -1237,6 +1256,13 @@ Sheet.box.addEventListener('click', ev => {
     for (const x of sel) S.gastos.push({ id:uid(), cr:cr + (k++), valor:x.valor, data:x.data, cartao:s.cartao, quem:s.quem === 'irmao' ? 'irmao' : 'eu', desc:x.desc, cat:x.cat || '' });
     S.ult.cartao = s.cartao; save(); Sheet.close(); render(); toast(sel.length + ' gastos importados para ' + cartao(s.cartao).nome + '.'); return;
   }
+  if (a === 'salvar-pagfat') {
+    const v = cents(), data = val('s-data'); if (v <= 0) return toast('Digite o valor pago.'); if (!okData(data)) return toast('Confira a data.');
+    const cb = document.getElementById('s-conta'), o = { valor:v, data, obs:val('s-obs').trim(), conta:cb ? cb.checked : false, cartao:s.cartao };
+    if (s.id) { const x = S.pagFatura.find(y => y.id === s.id); if (x) Object.assign(x, o); } else S.pagFatura.push(Object.assign({ id:uid(), cr:Date.now() }, o));
+    save(); Sheet.close(); render(); toast('Pagamento da fatura anotado: ' + fmt(v) + '.');
+  }
+  if (a === 'apagar-pagfat') { if (!confirm('Apagar este pagamento da fatura?')) return; S.pagFatura = S.pagFatura.filter(x => x.id !== s.id); save(); Sheet.close(); render(); }
   if (a === 'salvar-guardado') {
     const v = cents(), data = val('s-data'); if (v <= 0) return toast('Digite o valor guardado.'); if (!okData(data)) return toast('Confira a data.');
     const o = { valor:v, data, obs:val('s-obs').trim() };
@@ -1310,6 +1336,8 @@ document.addEventListener('click', ev => {
   if (a === 'saldo') sheetSaldo();
   if (a === 'novo-pag') sheetPag();
   if (a === 'ed-pag') { const x = S.pagamentos.find(y => y.id === k); if (x) sheetPag(x); }
+  if (a === 'pagar-fatura') sheetPagFatura(null, k);
+  if (a === 'ed-pagfat') { const x = S.pagFatura.find(y => y.id === k); if (x) sheetPagFatura(x, x.cartao); }
   if (a === 'cobranca') sheetCobranca();
   if (a === 'zap') window.open(zapURL(textoCobranca()), '_blank', 'noopener');
   if (a === 'ver-cartao') { UI.tab = 'cartao'; UI.cartao = k; UI.xQuem = ''; window.scrollTo({ top:0 }); render(); }
