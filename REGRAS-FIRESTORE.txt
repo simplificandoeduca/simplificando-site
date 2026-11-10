@@ -83,6 +83,27 @@ service cloud.firestore {
       allow delete: if dono();
     }
 
+    // caixinha de sugestões do app (Perfil › Sugestões para o app): qualquer conta do app envia;
+    // só o dono do painel lê, marca como lida e apaga (aba Estatísticas)
+    match /sugestoes/{id} {
+      allow create: if logado() && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['uid', 'nome', 'tipo', 'texto', 'em', 'ver'])
+        && request.resource.data.texto is string
+        && request.resource.data.texto.size() > 0 && request.resource.data.texto.size() <= 1000
+        && request.resource.data.em is int;
+      allow read, delete: if dono();
+      allow update: if dono() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lida']);
+    }
+    // qual modelo de story cada um postou (cronômetro, cupom ou foto), para a aba Estatísticas:
+    // cada conta só cria o seu registro; só o dono do painel lê
+    match /storiesUso/{id} {
+      allow create: if logado() && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['uid', 'nome', 'tipo', 'modelo', 'cor', 'acao', 'tema', 'em'])
+        && request.resource.data.modelo in ['crono', 'cupom', 'foto']
+        && request.resource.data.em is int;
+      allow read, delete: if dono();
+    }
+
     // Finanças (pasta /financas): página independente do painel, com a própria conta dona.
     // financas/dono é a primeira conta que entrou na página; financas/dados são os lançamentos, só dessa conta
     match /financas/dono {
