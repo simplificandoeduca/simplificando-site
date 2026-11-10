@@ -464,7 +464,7 @@ function logo(){
 $('#logo').innerHTML = logo(); document.querySelector('.top .mic').innerHTML = I.mic;
 
 /* ========== estado ========== */
-const FINV = '10 nov · 23'; // Versão do Finanças: 10 nov · 23
+const FINV = '10 nov · 24'; // Versão do Finanças: 10 nov · 24
 const DONO = { nome:'Eduardo Matias', iniciais:'EM' }; // perfil único desta página
 const LS = 'simplificando-financas', LST = 'simplificando-financas-tema';
 const CATS = ['Mercado', 'Comida', 'Transporte', 'Casa', 'Lazer', 'Saúde', 'Roupas', 'Assinaturas', 'Outros'];
@@ -741,7 +741,7 @@ function rCartao(){
     }
     h += `</div>`;
   }
-  h += `<div class="btns"><button type="button" class="btn primary" data-a="novo-gasto-cartao" data-k="${c.id}" style="flex:1">${I.plus}Lançar neste cartão</button>${c.tipo === 'conta' ? '' : `<button type="button" class="btn" data-a="pagar-fatura" data-k="${c.id}">${I.wallet}Pagar fatura</button>`}</div>`;
+  h += `<div class="btns"><button type="button" class="btn primary" data-a="novo-gasto-cartao" data-k="${c.id}" style="flex:1">${I.plus}Lançar neste cartão</button>${c.tipo === 'conta' ? '' : `<button type="button" class="btn" data-a="pagar-fatura" data-k="${c.id}">${I.wallet}Pagar fatura</button>`}<button type="button" class="btn" data-a="importar" data-k="${c.id}">${I.copy}Importar</button></div>`;
   $('#v-resumo').innerHTML = h;
 }
 
@@ -752,7 +752,7 @@ function rGastos(){
   its.sort((a, b) => b.data.localeCompare(a.data) || (b.cr || 0) - (a.cr || 0));
   let h = `<div class="chips scroll" style="margin:0;padding:0"><button type="button" class="opt ${!UI.fCart ? 'on' : ''}" data-a="f-cart" data-k="">Todos</button>`;
   for (const c of S.cartoes) h += `<button type="button" class="opt ${UI.fCart === c.id ? 'on' : ''}" data-a="f-cart" data-k="${c.id}" style="--sw:${swOf(c)}"><span class="sw"></span>${esc(c.nome)}</button>`;
-  h += `</div><div class="seg"><button type="button" class="${!UI.fQuem ? 'on' : ''}" data-a="f-quem" data-k="">Todos</button><button type="button" class="${UI.fQuem === 'eu' ? 'on' : ''}" data-a="f-quem" data-k="eu">Meus</button><button type="button" class="${UI.fQuem === 'irmao' ? 'on' : ''}" data-a="f-quem" data-k="irmao">${esc(S.irmao.nome)}</button></div>`;
+  h += `</div><div class="inline"><div class="seg" style="flex:1"><button type="button" class="${!UI.fQuem ? 'on' : ''}" data-a="f-quem" data-k="">Todos</button><button type="button" class="${UI.fQuem === 'eu' ? 'on' : ''}" data-a="f-quem" data-k="eu">Meus</button><button type="button" class="${UI.fQuem === 'irmao' ? 'on' : ''}" data-a="f-quem" data-k="irmao">${esc(S.irmao.nome)}</button></div><button type="button" class="btn sm" data-a="importar" data-k="${UI.fCart || ''}" title="Importar lista da fatura ou do extrato">${I.copy}Importar</button></div>`;
   if (!its.length) h += `<div class="list"><div class="empty"><b>Nada por aqui</b><span>${gastosMes().length ? 'Nenhum gasto com esse filtro.' : 'Nenhum gasto lançado em ' + esc(monthLabel(UI.mes)) + '.'}</span><button type="button" class="btn primary" data-a="novo-gasto">${I.plus}Lançar gasto</button></div></div>`;
   else {
     h += `<div class="list">`; let dia = '';
@@ -1187,8 +1187,8 @@ function lerImportacao(texto){
   for (const x of out) { x.on = gastoNeg ? !!x.negativo : !x.negativo; delete x.negativo; }
   return out;
 }
-function sheetImportar(){
-  const st = { kind:'importar', cartao:S.ult.cartao, quem:'eu', itens:[] };
+function sheetImportar(cartaoId){
+  const st = { kind:'importar', cartao:cartaoId || S.ult.cartao, quem:'eu', itens:[] };
   if (!S.cartoes.some(c => c.id === st.cartao)) st.cartao = S.cartoes[0].id;
   Sheet.open(`<div class="hd"><h2>Importar gastos</h2><button type="button" class="x" data-s="fechar" aria-label="Fechar">${I.x}</button></div>
     <div class="sec"><p class="lbl">Para qual cartão</p>${chipsHTML('cartao', S.cartoes, st.cartao, swOf)}</div>
@@ -1343,7 +1343,7 @@ document.addEventListener('click', ev => {
   if (a === 'voz') sheetVoz();
   if (a === 'add-fixo') sheetFixo();
   if (a === 'guardar') sheetGuardar();
-  if (a === 'importar') sheetImportar();
+  if (a === 'importar') sheetImportar(k || '');
   if (a === 'guardar-tudo') { const v = +k; if (v > 0) { S.guardados.push({ id:uid(), cr:Date.now(), valor:v, data:todayISO(), obs:'' }); save(); render(); toast('Guardado: ' + fmt(v) + '. Meta do mês batida!'); } }
   if (a === 'ver-guardados') sheetGuardados();
   if (a === 'ed-guardado') { const x = S.guardados.find(y => y.id === k); if (x) sheetGuardar(x); }
