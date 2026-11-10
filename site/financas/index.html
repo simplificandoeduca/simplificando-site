@@ -464,7 +464,7 @@ function logo(){
 $('#logo').innerHTML = logo(); document.querySelector('.top .mic').innerHTML = I.mic;
 
 /* ========== estado ========== */
-const FINV = '10 nov · 17'; // Versão do Finanças: 10 nov · 17
+const FINV = '10 nov · 18'; // Versão do Finanças: 10 nov · 18
 const DONO = { nome:'Eduardo Matias', iniciais:'EM' }; // perfil único desta página
 const LS = 'simplificando-financas', LST = 'simplificando-financas-tema';
 const CATS = ['Mercado', 'Comida', 'Transporte', 'Casa', 'Lazer', 'Saúde', 'Roupas', 'Assinaturas', 'Outros'];
@@ -964,7 +964,8 @@ function dinheiro(str){ // texto de número -> centavos
   const v = parseFloat(s); return isFinite(v) ? Math.round(v * 100) : 0;
 }
 function entender(texto, tipoForcado){
-  let t = ' ' + numerosPorExtenso(semAcento(texto).replace(/r\$/g, ' r$ ').replace(/[?!.;]+$/g, '').replace(/\s+/g, ' ').trim()) + ' ';
+  // o ditado às vezes escreve o valor como horário ("9:45", "9h45") ou junta "R$9": normaliza antes de ler
+  let t = ' ' + numerosPorExtenso(semAcento(texto).replace(/\b(\d{1,4}):(\d{2})\b/g, '$1,$2').replace(/\b(\d{1,4})h(\d{2})\b/g, '$1,$2').replace(/\b(\d{1,4}) ?h\b(?! ?\d)/g, '$1').replace(/r\$/g, ' r$ ').replace(/[?!.;]+$/g, '').replace(/\s+/g, ' ').trim()) + ' ';
   const r = { texto, tipo:'gasto', valor:0, desc:'', cartao:S.ult.cartao, quem:'eu', cat:'', fonte:S.fontes[0].id, data:todayISO(), dia:null };
   // tipo
   if (/\bsaldo\b/.test(t)) r.tipo = 'saldo';
