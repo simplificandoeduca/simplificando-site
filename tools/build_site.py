@@ -10,6 +10,8 @@ for f, const in [('treino-grade.html','APPV'), ('admin.html','PAINELV')]:
     t2 = re.sub(r"const "+const+r" = '[^']*'", "const "+const+" = '"+V+"'", t, count=1)
     t2 = re.sub(r"// Versão do painel: .*", "// Versão do painel: "+V, t2, count=1)
     if t2 != t: open(R+'src/'+f, 'w').write(t2)
+sw = R+'site/treino/sw.js'; t = open(sw).read(); t2 = re.sub(r"const VERSAO = '[^']*'", "const VERSAO = '"+V+"'", t, count=1)
+if t2 != t: open(sw, 'w').write(t2)
 print('versão', V)
 for folder, src, title in [('treino','treino-grade.html','Simplificando · Seu treino'), ('personal','admin.html','Simplificando · Painel do personal')]:
     idx = R+'site/'+folder+'/index.html'

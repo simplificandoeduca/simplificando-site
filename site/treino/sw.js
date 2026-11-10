@@ -2,19 +2,23 @@
    - A página: tenta a internet primeiro (pega a versão nova); se a internet falhar ou demorar, abre a cópia guardada.
    - Arquivos fixos (Firebase, ícones, fontes): usa a cópia guardada e atualiza por trás.
    - Banco de dados, login e e-mails não passam por aqui: o próprio Firebase cuida de reenviar quando o sinal volta. */
-const CACHE = 'simp-treino-v3';
+const VERSAO = '10 nov · 93'; // muda a cada versão (o build grava): assim o celular sempre percebe que tem sw.js novo
+const CACHE = 'simp-treino-v4';
+let ATUALIZANDO = false; // true quando já tinha uma versão instalada (atualização, não primeira vez)
 const CORE = ['./', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-180.png', './firebase-config.js',
   './fb/firebase-app-compat.js', './fb/firebase-auth-compat.js', './fb/firebase-firestore-compat.js'];
 const BASE = new URL('./', self.location).pathname;
 const FONTES = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 
 self.addEventListener('install', e => {
+  ATUALIZANDO = !!self.registration.active;
   e.waitUntil(caches.open(CACHE).then(c => Promise.all(CORE.map(u => c.add(new Request(u, {cache: 'reload'})).catch(() => null)))).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith('simp-treino-') && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())
-    // avisa o app aberto que chegou versão nova (ele mostra o botão Atualizar agora)
-    .then(() => self.clients.matchAll({ type:'window' })).then(cs => cs.forEach(c => c.postMessage({ nova:true }))));
+    // versão nova: avisa o app aberto (o próprio app recarrega quando percebe que o service worker novo assumiu)
+    .then(() => ATUALIZANDO ? self.clients.matchAll({ type:'window' }) : [])
+    .then(cs => cs.forEach(c => c.postMessage({ nova:true }))));
 });
 
 function guarda(req, res) {
@@ -22,9 +26,11 @@ function guarda(req, res) {
   return res;
 }
 /* página: internet primeiro, mas sem esperar mais de 4 s com sinal fraco */
-function pagina(req) {
-  const chave = new Request(BASE);
-  const rede = fetch(req).then(res => { if (res && res.ok) guarda(chave, res.clone()); return res; });
+function pagina(e) {
+  const req = e.request, chave = new Request(BASE);
+  const rede = fetch(req).then(res => { if (res && res.ok) return caches.open(CACHE).then(c => c.put(chave, res.clone())).catch(() => null).then(() => res); return res; });
+  // o iPhone encerra o service worker logo depois de responder: segura até a página nova ficar guardada
+  e.waitUntil(rede.catch(() => null));
   const espera = new Promise(r => setTimeout(r, 4000)).then(() => caches.match(chave));
   return Promise.race([rede.catch(() => caches.match(chave)), espera.then(c => c || rede)])
     .then(res => res || rede)
@@ -43,7 +49,8 @@ self.addEventListener('fetch', e => {
   const u = new URL(req.url);
   if (u.origin === self.location.origin) {
     if (!u.pathname.startsWith(BASE) || u.pathname.endsWith('.php') || u.pathname.endsWith('/sw.js')) return;
-    if (req.mode === 'navigate' || u.pathname === BASE || u.pathname === BASE + 'index.html') { e.respondWith(pagina(req)); return; }
+    if (u.searchParams.has('v')) return; // o app conferindo se tem versão nova: vai direto ao site, sem cópia guardada
+    if (req.mode === 'navigate' || u.pathname === BASE || u.pathname === BASE + 'index.html') { e.respondWith(pagina(e)); return; }
     e.respondWith(fixo(req)); return;
   }
   if (FONTES.includes(u.hostname)) e.respondWith(fixo(req));

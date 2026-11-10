@@ -1669,7 +1669,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '10 nov · 92'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '10 nov · 93'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -5743,6 +5743,7 @@ async function versaoCheca(force){
   if(NOVAV){ versaoAviso(); if(!force) return 'nova'; }
   if(!navigator.onLine) return 'off';
   if(!force && Date.now()-novaAt < 20e3) return ''; novaAt = Date.now();
+  try { const rg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration(); if(rg) rg.update().catch(() => null); } catch(e){ /* sem service worker */ }
   try {
     const txt = await fetch(location.pathname+'?v='+Date.now(), { cache:'no-store' }).then(r => r.ok ? r.text() : '');
     const m = txt.match(/const\s+APPV = '([^']+)'/); if(!m) return 'erro'; if(m[1]===APPV) return 'igual';
@@ -5778,6 +5779,10 @@ function versaoSetup(){
   window.addEventListener('pageshow', () => versaoCheca()); window.addEventListener('focus', () => versaoCheca());
   window.addEventListener('online', () => versaoCheca(true));
   setInterval(() => { if(document.visibilityState==='visible') versaoCheca(); }, 5*60e3);
+  // o service worker novo assumiu (versão nova chegou): recarrega sozinho; vale também para o app da tela inicial do iPhone
+  try { if(navigator.serviceWorker){ const tinha = !!navigator.serviceWorker.controller; let foi = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => { if(!tinha || foi) return; foi = true; const el = document.activeElement;
+      if(el && /INPUT|TEXTAREA/.test(el.tagName)){ versaoCheca(true); return; } versaoAtualiza(); }); } } catch(e){ /* sem service worker */ }
   // o sw.js avisa quando uma versão nova acabou de ser baixada
   try { navigator.serviceWorker && navigator.serviceWorker.addEventListener('message', ev => { if(ev.data && ev.data.nova) versaoCheca(true); }); } catch(e){ /* sem service worker */ }
 }
