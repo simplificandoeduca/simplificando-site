@@ -451,7 +451,7 @@ function logo(){
 $('#logo').innerHTML = logo(); document.querySelector('.top .mic').innerHTML = I.mic;
 
 /* ========== estado ========== */
-const FINV = '10 nov · 10'; // Versão do Finanças: 10 nov · 10
+const FINV = '10 nov · 11'; // Versão do Finanças: 10 nov · 11
 const DONO = { nome:'Eduardo Matias', iniciais:'EM' }; // perfil único desta página
 const LS = 'simplificando-financas', LST = 'simplificando-financas-tema';
 const CATS = ['Mercado', 'Comida', 'Transporte', 'Casa', 'Lazer', 'Saúde', 'Roupas', 'Assinaturas', 'Outros'];
@@ -850,7 +850,7 @@ function sheetGasto(g){
     ${sug.length && !edit ? `<div class="chips scroll">${sug.map(s => `<button type="button" class="opt" data-c="sug" data-k="${esc(s.desc)}" data-cat="${esc(s.cat)}">${esc(s.desc)}</button>`).join('')}</div>` : ''}</div>
     <div class="sec"><p class="lbl">Categoria</p><div class="chips scroll">${S.cats.map(c => `<button type="button" class="opt ${st.cat === c ? 'on' : ''}" data-c="cat" data-k="${esc(c)}">${esc(c)}</button>`).join('')}</div></div>
     <div class="grid2"><label class="field">Data<input type="date" id="s-data" value="${esc(g.data)}"></label>${!edit && cc.tipo !== 'conta' ? `<label class="field">Parcelas<select id="s-parc">${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(n => `<option value="${n}">${n === 1 ? 'À vista' : n + '× (divide o valor)'}</option>`).join('')}</select></label>` : ''}</div>
-    <div class="btns" style="margin-top:4px"><button type="button" class="btn primary wide" data-s="salvar-gasto" style="flex:1 1 100%">${edit ? 'Salvar' : 'Salvar gasto'}</button>${edit ? `<button type="button" class="btn" data-s="repetir-gasto">Repetir hoje</button><button type="button" class="btn danger" data-s="apagar-gasto">${I.trash}${g.grp ? 'Apagar só esta parcela' : 'Apagar'}</button>${g.grp ? `<button type="button" class="btn danger" data-s="apagar-grupo" style="flex:1 1 100%">${I.trash}Apagar todas as parcelas (${S.gastos.filter(x => x.grp === g.grp).length})</button>` : ''}` : ''}</div>`, st);
+    <div class="btns" style="margin-top:4px"><button type="button" class="btn primary wide" data-s="salvar-gasto" style="flex:1 1 100%">${edit ? 'Salvar' : 'Salvar gasto'}</button></div>${edit ? `<div class="btns" id="s-del" style="justify-content:center"><button type="button" class="btn danger" data-s="${g.grp ? 'apagar-opcoes' : 'apagar-gasto'}">${I.trash}Apagar</button></div>` : ''}`, st);
 }
 function sheetReceita(r){
   const edit = !!(r && r.id); r = Object.assign({ data:todayISO(), fonte:S.fontes[0].id, valor:0, obs:'' }, r || {});
@@ -1261,6 +1261,7 @@ Sheet.box.addEventListener('click', ev => {
     save(); Sheet.close(); render(); toast(msg);
   }
   if (a === 'repetir-gasto') { const g = S.gastos.find(x => x.id === s.id); if (!g) return; S.gastos.push({ id:uid(), cr:Date.now(), valor:g.valor, data:todayISO(), cartao:g.cartao, quem:g.quem, desc:g.desc, cat:g.cat }); save(); Sheet.close(); render(); toast('Repetido hoje: ' + fmt(g.valor) + '.'); }
+  if (a === 'apagar-opcoes') { const g = S.gastos.find(x => x.id === s.id); const n = g ? S.gastos.filter(x => x.grp === g.grp).length : 0; const box = $('#s-del'); if (box) box.innerHTML = `<p class="lbl" style="flex:1 1 100%;text-align:center">Compra parcelada. Apagar o quê?</p><button type="button" class="btn danger" data-s="apagar-gasto">Só esta parcela</button><button type="button" class="btn danger" data-s="apagar-grupo">Todas as ${n} parcelas</button>`; return; }
   if (a === 'apagar-grupo') { const g = S.gastos.find(x => x.id === s.id); if (!g || !g.grp) return; const n = S.gastos.filter(x => x.grp === g.grp).length; if (!confirm('Apagar todas as ' + n + ' parcelas de "' + (g.desc || 'este gasto').replace(/\s*\(\d+\/\d+\)$/, '') + '"?')) return; S.gastos = S.gastos.filter(x => x.grp !== g.grp); save(); Sheet.close(); render(); toast(n + ' parcelas apagadas.'); }
   if (a === 'apagar-gasto') { if (!confirm('Apagar este gasto?')) return; S.gastos = S.gastos.filter(x => x.id !== s.id); save(); Sheet.close(); render(); toast('Gasto apagado.'); }
   if (a === 'salvar-receita') {
