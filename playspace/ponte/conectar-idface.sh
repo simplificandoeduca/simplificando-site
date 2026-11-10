@@ -82,9 +82,9 @@ diz "${VD}✓${C0} Entrei no iDFace."
 # ---------- 3. ligar o modo push apontando para o site ----------
 PUSH="${SITE}/${CHAVE}"
 r=$(curl -s -m 10 -X POST "http://$IP/set_configuration.fcgi?session=$SESSAO" -H 'Content-Type: application/json' \
-  -d "{\"push_server\":{\"push_remote_address\":\"$PUSH\",\"push_request_period\":\"5\",\"push_request_timeout\":\"15000\"}}")
+  -d "{\"push_server\":{\"push_remote_address\":\"$PUSH\",\"push_request_period\":\"3\",\"push_request_timeout\":\"15000\"}}")
 case "$r" in *\"error\"*) fim erro "o iDFace não aceitou ligar o modo push: $r. Mande uma foto desta janela para o suporte." ;; esac
-diz "${VD}✓${C0} Modo push ligado: o aparelho vai chamar o site a cada 5 segundos."
+diz "${VD}✓${C0} Modo push ligado: o aparelho vai chamar o site a cada 3 segundos."
 curl -s -m 5 -X POST "http://$IP/logout.fcgi?session=$SESSAO" >/dev/null 2>&1
 
 # ---------- 4. esperar o site confirmar ----------

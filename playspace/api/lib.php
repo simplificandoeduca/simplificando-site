@@ -65,6 +65,10 @@ function db(): PDO {
     try { $pdo->exec('ALTER TABLE compromissos ADD COLUMN feito INTEGER NOT NULL DEFAULT 0'); } catch (Throwable $e) { }
     $pdo->exec('PRAGMA user_version = 2');
   }
+  if ($v < 3) { // 0.55: de onde veio a foto (celular ou o próprio iDFace)
+    try { $pdo->exec("ALTER TABLE criancas ADD COLUMN foto_origem TEXT NOT NULL DEFAULT ''"); } catch (Throwable $e) { }
+    $pdo->exec('PRAGMA user_version = 3');
+  }
   return $pdo;
 }
 function cfg(string $k, $padrao = null) { $q = db()->prepare('SELECT valor FROM config WHERE chave = ?'); $q->execute([$k]); $v = $q->fetchColumn(); return $v === false ? $padrao : json_decode((string)$v, true); }

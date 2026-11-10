@@ -19,6 +19,22 @@ function pushComando(string $endpoint, $body): array { return ['verb' => 'POST',
 function quandoDoTs(int $ts): string { return date('Y-m-d H:i:s', $ts + 60 * (int)cfg('ajuste_min', 0)); }
 function ultimoLog(string $aparelho): int { $q = db()->prepare('SELECT MAX(log_id) FROM batidas WHERE aparelho = ?'); $q->execute([$aparelho]); return max((int)$q->fetchColumn(), (int)cfg('log_corte', 0)); }
 function fotoBase64(string $foto): string { return preg_match('#^data:image/[a-z]+;base64,(.+)$#s', $foto, $m) ? $m[1] : $foto; }
+// a resposta do aparelho com a imagem: procura o primeiro texto base64 grande numa chave "image"
+function acharImagem($r): string {
+  if (!is_array($r)) return '';
+  foreach ($r as $k => $v) { if (is_string($v) && ($k === 'image' || $k === 'user_image') && strlen($v) > 200) return $v; if (is_array($v)) { $x = acharImagem($v); if ($x !== '') return $x; } }
+  return '';
+}
+// a imagem do aparelho vem grande; no cadastro basta uma miniatura (uns 15 KB), senão a tela pesa a cada sincronia
+function miniatura(string $b64, int $max = 320): string {
+  $bin = base64_decode($b64, true); if ($bin === false) return '';
+  if (!function_exists('imagecreatefromstring')) return 'data:image/jpeg;base64,' . $b64;
+  $im = @imagecreatefromstring($bin); if (!$im) return '';
+  $w = imagesx($im); $h = imagesy($im); $e = min(1, $max / max($w, $h)); $nw = max(1, (int)round($w * $e)); $nh = max(1, (int)round($h * $e));
+  $out = imagecreatetruecolor($nw, $nh); imagecopyresampled($out, $im, 0, 0, 0, 0, $nw, $nh, $w, $h);
+  ob_start(); imagejpeg($out, null, 82); $jpg = ob_get_clean(); imagedestroy($im); imagedestroy($out);
+  return 'data:image/jpeg;base64,' . base64_encode($jpg);
+}
 
 // grava os rostos reconhecidos (a mesma leitura não entra duas vezes) e processa cada um como entrada ou saída
 function salvarBatidas(string $aparelho, array $batidas, bool $aoVivo): int {
@@ -94,8 +110,13 @@ function acaoPush(string $rota): void {
         elseif ($tipo === 'rosto') { // o aparelho capturou (ou não) o rosto da criança
           $cid = (int)($fly['crianca'] ?? 0); $ok = is_array($resp) && (!empty($resp['success']) || (isset($resp['user_id']) && empty($resp['error'])));
           apagarCfg('pedirosto_' . $cid);
-          if ($ok) { $db->prepare('UPDATE criancas SET rosto = 1 WHERE id = ?')->execute([$cid]); gravarCfg('rosto_ok_' . $cid, agora()); apagarCfg('rosto_erro_' . $cid); }
+          if ($ok) { $db->prepare('UPDATE criancas SET rosto = 1 WHERE id = ?')->execute([$cid]); gravarCfg('rosto_ok_' . $cid, agora()); apagarCfg('rosto_erro_' . $cid); $cr = crianca($cid); if ($cr && $cr['idface_id'] !== null) gravarCfg('baixarfoto_' . $cid, (int)$cr['idface_id']); }
           else gravarCfg('rosto_erro_' . $cid, 'O aparelho não conseguiu capturar o rosto' . (is_array($resp) && !empty($resp['error']) ? ' (' . substr((string)$resp['error'], 0, 80) . ')' : '') . '. Tente de novo com a criança de frente, a uns 50 cm da câmera.');
+        }
+        elseif ($tipo === 'baixarfoto') { // a imagem do rosto que o aparelho capturou vai para o cadastro
+          $cid = (int)($fly['crianca'] ?? 0); apagarCfg('baixarfoto_' . $cid);
+          $b64 = acharImagem($resp);
+          if ($b64 !== '') { $mini = miniatura($b64); if ($mini !== '') $db->prepare("UPDATE criancas SET foto = ?, foto_origem = 'idface' WHERE id = ? AND (foto = '' OR foto_origem = 'idface')")->execute([$mini, $cid]); }
         }
         elseif ($tipo === 'foto') { apagarCfg('foto_' . (int)$fly['crianca']); $db->prepare('UPDATE criancas SET rosto = 1 WHERE id = ?')->execute([(int)$fly['crianca']]); }
         elseif ($tipo === 'renomear') apagarCfg('renomear_' . (int)$fly['crianca']);
@@ -112,7 +133,7 @@ function acaoPush(string $rota): void {
   $apagar = cfgComo('apagar_'); $mandar = cfgComo('mandar_'); $fotos = cfgComo('foto_'); $renomear = cfgComo('renomear_');
   if ($apagar) { $tipo = 'apagar'; $alvo = (int)reset($apagar); $cmd = pushComando('destroy_objects', ['object' => 'users', 'where' => ['users' => ['id' => $alvo]]]); }
   elseif (time() - (int)($st['relogio_em'] ?? 0) > 3600) { $tipo = 'relogio'; $cmd = pushComando('set_system_time', ['year' => (int)date('Y'), 'month' => (int)date('n'), 'day' => (int)date('j'), 'hour' => (int)date('G'), 'minute' => (int)date('i'), 'second' => (int)date('s')]); }
-  elseif ((float)($st['periodo'] ?? 0) > 20 && time() - (int)($st['periodo_ajuste_em'] ?? 0) > 3600) { $tipo = 'periodo'; $st['periodo_ajuste_em'] = time(); $cmd = pushComando('set_configuration', ['push_server' => ['push_request_period' => '5']]); }
+  elseif ((float)($st['periodo'] ?? 0) > 4 && time() - (int)($st['periodo_ajuste_em'] ?? 0) > 3600) { $tipo = 'periodo'; $st['periodo_ajuste_em'] = time(); $cmd = pushComando('set_configuration', ['push_server' => ['push_request_period' => '3']]); }
   elseif ($mandar) {
     foreach ($mandar as $k => $v) { $cr = crianca((int)$v); if ($cr && $cr['ativo'] && $cr['idface_id'] === null) { $cid = (int)$cr['id']; $tipo = 'criar'; $cmd = pushComando('create_objects', ['object' => 'users', 'values' => [['name' => mb_substr($cr['nome'], 0, 50), 'registration' => REGISTRO_PREFIXO . $cr['id']]]]); break; } apagarCfg($k); }
   }
@@ -125,15 +146,18 @@ function acaoPush(string $rota): void {
       $cmd = pushComando('remote_enroll', ['type' => 'face', 'user_id' => (int)$cr['idface_id'], 'save' => true, 'sync' => true, 'auto' => true]); break;
     }
   }
+  if (!$cmd) {
+    foreach (cfgComo('baixarfoto_') as $k => $uid) { $cid = (int)substr($k, 11); $cr = crianca($cid); if (!$cr || $cr['idface_id'] === null) { apagarCfg($k); continue; } $tipo = 'baixarfoto'; $cmd = pushComando('user_get_image_list', ['user_ids' => [(int)$cr['idface_id']]]); break; }
+  }
   if (!$cmd && $fotos) {
-    foreach ($fotos as $k => $uid) { $cid = (int)substr($k, 5); $cr = crianca($cid); if ($cr && $cr['foto'] !== '' && $cr['idface_id'] !== null) { $tipo = 'foto'; $cmd = pushComando('user_set_image_list', ['match' => false, 'user_images' => [['user_id' => (int)$cr['idface_id'], 'image' => fotoBase64($cr['foto'])]]]); break; } apagarCfg($k); }
+    foreach ($fotos as $k => $uid) { $cid = (int)substr($k, 5); $cr = crianca($cid); if ($cr && ($cr['foto_origem'] ?? '') === 'idface') { apagarCfg($k); continue; } if ($cr && $cr['foto'] !== '' && $cr['idface_id'] !== null) { $tipo = 'foto'; $cmd = pushComando('user_set_image_list', ['match' => false, 'user_images' => [['user_id' => (int)$cr['idface_id'], 'image' => fotoBase64($cr['foto'])]]]); break; } apagarCfg($k); }
   }
   if (!$cmd && $renomear) {
     foreach ($renomear as $k => $uid) { $cid = (int)substr($k, 9); $cr = crianca($cid); if ($cr && $cr['idface_id'] !== null) { $tipo = 'renomear'; $cmd = pushComando('modify_objects', ['object' => 'users', 'values' => ['name' => mb_substr($cr['nome'], 0, 50)], 'where' => ['users' => ['id' => (int)$cr['idface_id']]]]); break; } apagarCfg($k); }
   }
   if (!$cmd && time() - (int)($st['usuarios_em'] ?? 0) > 60) { $tipo = 'usuarios'; $cmd = pushComando('load_objects', ['object' => 'users']); }
   if (!$cmd) {
-    if (microtime(true) - (float)($st['batidas_em'] ?? 0) < 3) { unset($st['inflight']); gravarCfg('push_estado', $st); exit; }
+    if (microtime(true) - (float)($st['batidas_em'] ?? 0) < 2) { unset($st['inflight']); gravarCfg('push_estado', $st); exit; }
     $tipo = 'batidas'; $st['batidas_em'] = microtime(true);
     $cmd = pushComando('load_objects', ['object' => 'access_logs', 'where' => ['access_logs' => ['id' => ['>' => ultimoLog($aparelho)]]]]);
   }

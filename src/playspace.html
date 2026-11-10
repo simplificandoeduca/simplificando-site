@@ -607,7 +607,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.54';
+const VERSAO = '0.55';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -1055,7 +1055,7 @@ const itensLista = lista => lista.length ? lista.map(c => { const [et, cls] = es
 function folhaIdface() {
   const i = S.cfg.idface, serv = MODO === 'servidor';
   const situacaoTxt = !i.ligado ? `<b>Desligado.</b> O aparelho guarda as leituras; quando religar, tudo entra de onde parou.`
-    : (serv ? (i.ativo ? `<b>Conectado.</b> O aparelho falou com o sistema há ${Math.round(i.segundos || 0)} s${i.periodo ? ', a cada ' + i.periodo + ' s' : ''}.${i.fila ? ' Na fila para o aparelho: ' + i.fila + '.' : ''}${i.erro ? ' Último aviso: ' + esc(i.erro) : ''}` : (i.ultimo_contato ? `<b>Sem contato</b> desde ${esc(String(i.ultimo_contato).slice(11, 16))}. Confira se o iDFace está ligado e com internet.` : `<b>Ainda não conectado.</b> Baixe o conector abaixo e rode num computador da mesma rede do aparelho, ou cole o endereço direto no iDFace.`)) : `<b>Tudo certo.</b> O aparelho consulta o sistema a cada 5 segundos e manda cada rosto reconhecido na hora.`);
+    : (serv ? (i.ativo ? `<b>Conectado.</b> O aparelho falou com o sistema há ${Math.round(i.segundos || 0)} s${i.periodo ? ', a cada ' + i.periodo + ' s' : ''}.${i.fila ? ' Na fila para o aparelho: ' + i.fila + '.' : ''}${i.erro ? ' Último aviso: ' + esc(i.erro) : ''}` : (i.ultimo_contato ? `<b>Sem contato</b> desde ${esc(String(i.ultimo_contato).slice(11, 16))}. Confira se o iDFace está ligado e com internet.` : `<b>Ainda não conectado.</b> Baixe o conector abaixo e rode num computador da mesma rede do aparelho, ou cole o endereço direto no iDFace.`)) : `<b>Tudo certo.</b> O aparelho consulta o sistema a cada 3 segundos e manda cada rosto reconhecido na hora.`);
   abrirFolha('iDFace da recepção', `
     <div class="marca"><i class="pt ${i.ligado && (!serv || i.ativo) ? '' : 'off'}" style="width:10px;height:10px;border-radius:50%;background:${i.ligado && (!serv || i.ativo) ? 'var(--ok)' : 'var(--erro)'}"></i><span>${situacaoTxt}</span></div>
     <div class="dois"><div class="campo"><label for="i-ip">IP do aparelho na loja</label><input id="i-ip" value="${esc(i.ip)}" placeholder="192.168.0.129" ${gestor() ? '' : 'disabled'}></div><div class="campo"><label for="i-usuario">Usuário do aparelho</label><input id="i-usuario" value="${esc(i.usuario || 'admin')}" ${gestor() ? '' : 'disabled'}></div></div>
@@ -1064,7 +1064,7 @@ function folhaIdface() {
     <div class="sec"><div class="sec-cab"><h2 style="font-size:15px">Conectar com um computador da loja</h2></div><p class="explica">Rode uma vez num computador na mesma rede do aparelho: ele acha o iDFace, pede a senha do menu e liga a conexão com o site. Depois disso o computador não precisa de mais nada.</p>
       <div class="acoes"><button class="bt claro tap" data-act="idface-bat">${ic(IC.check)} Windows (.bat)</button><button class="bt claro tap" data-act="idface-command">${ic(IC.check)} Mac (.command)</button></div>
       ${serv ? `<p class="explica"><b>No Mac, o jeito mais fácil:</b> abra o Terminal (⌘ + espaço, digite Terminal), cole esta linha e dê Enter. Faz tudo igual ao arquivo, sem a Apple barrar:</p><div class="campo"><input readonly value="${esc(`bash <(curl -fsSL '${i.url_ponte}?acao=conectar_sh&chave=${i.chave}')`)}" onclick="this.select()" style="font-family:ui-monospace,Menlo,monospace;font-size:12px"></div><p class="explica">Se preferir o arquivo .command e a Apple disser que "não pôde verificar": Ajustes do Sistema → Privacidade e Segurança → role até o fim → <b>Abrir Mesmo Assim</b>.</p>` : ''}</div>` : ''}
-    ${serv && gestor() ? `<div class="sec"><div class="sec-cab"><h2 style="font-size:15px">Sem computador: colar no painel do iDFace</h2></div><p class="explica">No aparelho, em Configurações → Modo de operação → Push (ou "Servidor push"), cole este endereço e deixe o intervalo em 5 segundos:</p><div class="campo"><input readonly value="${esc(i.push_url || '')}" onclick="this.select()"></div><div class="acoes"><button class="bt claro tap" data-act="idface-chave" style="color:var(--erro)">Gerar chave nova</button></div></div>` : ''}
+    ${serv && gestor() ? `<div class="sec"><div class="sec-cab"><h2 style="font-size:15px">Sem computador: colar no painel do iDFace</h2></div><p class="explica">No aparelho, em Configurações → Modo de operação → Push (ou "Servidor push"), cole este endereço e deixe o intervalo em 3 segundos:</p><div class="campo"><input readonly value="${esc(i.push_url || '')}" onclick="this.select()"></div><div class="acoes"><button class="bt claro tap" data-act="idface-chave" style="color:var(--erro)">Gerar chave nova</button></div></div>` : ''}
     <div class="sec"><div class="sec-cab"><h2 style="font-size:16px">Simular um rosto na câmera</h2></div><p class="explica">Para testar sem o aparelho: toque na criança como se ela tivesse olhado para o iDFace. Quem está fora entra; quem está dentro sai e tem as horas debitadas.</p>
       <div class="simul">${S.criancas.filter(c => c.rosto).map(c => `<button class="tap" data-act="simular" data-id="${c.id}">${avatar(c)}${esc(c.nome)}<span>${c.entrou ? 'está dentro · sai' : 'está fora · entra'}</span></button>`).join('')}</div></div>`);
 }
@@ -1081,13 +1081,13 @@ function folhaRosto(id) {
   api('idface_rosto', { id }).then(() => { acompanharRosto(id); }).catch(e => { const el = $('#rosto-estado span'); if (el) el.innerHTML = `<b>${esc(e.message)}</b>`; const i = $('#rosto-estado i'); if (i) i.style.background = 'var(--erro)'; $('#rosto-acoes').innerHTML = `<button class="bt forte tap" data-act="rosto-de-novo" data-id="${id}">Tentar de novo</button><button class="bt claro tap" data-act="fechar">Fechar</button>`; });
 }
 function acompanharRosto(id) {
-  const textos = { criando: 'Cadastrando a criança no aparelho…', fila: 'Na fila: o aparelho busca em até 5 segundos…', capturando: '<b>O aparelho está esperando o rosto.</b> Agora é olhar para a câmera.', nada: 'Aguardando o aparelho…' };
+  const textos = { criando: 'Cadastrando a criança no aparelho…', fila: 'Na fila: o aparelho busca em até 3 segundos…', capturando: '<b>O aparelho está esperando o rosto.</b> Agora é olhar para a câmera.', nada: 'Aguardando o aparelho…' };
   clearInterval(ROSTO_T);
   const passo = async () => {
     if (!$('#rosto-estado')) { clearInterval(ROSTO_T); return; }
     try {
       const r = await api('idface_rosto_estado', { id }); const el = $('#rosto-estado span'), i = $('#rosto-estado i');
-      if (r.fase === 'ok') { clearInterval(ROSTO_T); i.style.background = 'var(--ok)'; el.innerHTML = `<b>Rosto cadastrado!</b> Da próxima vez é só olhar para o iDFace.`; $('.rosto-alvo').classList.add('ok'); await carregar(); desenhar(); setTimeout(() => { fecharFolha(); toast(`${crianca(id).nome}: rosto cadastrado no iDFace ✓`); }, 1600); return; }
+      if (r.fase === 'ok') { clearInterval(ROSTO_T); i.style.background = 'var(--ok)'; el.innerHTML = `<b>Rosto cadastrado!</b> Da próxima vez é só olhar para o iDFace. A foto do aparelho entra no cadastro em instantes.`; $('.rosto-alvo').classList.add('ok'); await carregar(); desenhar(); setTimeout(() => { fecharFolha(); toast(`${crianca(id).nome}: rosto cadastrado no iDFace ✓`); }, 1600); return; }
       if (r.fase === 'erro') { clearInterval(ROSTO_T); i.style.background = 'var(--erro)'; el.innerHTML = `<b>${esc(r.erro)}</b>`; $('#rosto-acoes').innerHTML = `<button class="bt forte tap" data-act="rosto-de-novo" data-id="${id}">Tentar de novo</button><button class="bt claro tap" data-act="fechar">Deixar para depois</button>`; return; }
       i.style.background = r.fase === 'capturando' ? 'var(--ok)' : 'var(--aviso)'; el.innerHTML = textos[r.fase] || textos.nada; $('.rosto-alvo').classList.toggle('viva', r.fase === 'capturando');
     } catch (e) { /* tenta no próximo */ }

@@ -115,7 +115,7 @@ switch ($acao) {
     $pac = (array)($in['pacote'] ?? []); $horas = max(0, (int)($pac['h'] ?? 0)); $valor = (float)($pac['v'] ?? 0);
     $foto = (string)($in['foto'] ?? ''); if ($foto !== '' && !preg_match('#^data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$#', $foto)) $foto = '';
     if (strlen($foto) > 1500000) falha('A foto ficou grande demais. Tire outra.');
-    $db->prepare('INSERT INTO criancas (nome, idade, resp, rel, tel, cpf, obs, pacote_min, usado_min, foto, rosto, criado_em) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?)')->execute([$d['nome'], $d['idade'], $d['resp'], $d['rel'], $d['tel'], $d['cpf'], $d['obs'], $foto, $foto !== '' ? 1 : 0, agora()]);
+    $db->prepare('INSERT INTO criancas (nome, idade, resp, rel, tel, cpf, obs, pacote_min, usado_min, foto, foto_origem, rosto, criado_em) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?)')->execute([$d['nome'], $d['idade'], $d['resp'], $d['rel'], $d['tel'], $d['cpf'], $d['obs'], $foto, $foto !== '' ? 'celular' : '', $foto !== '' ? 1 : 0, agora()]);
     $id = (int)$db->lastInsertId(); $c = crianca($id);
     if ($horas > 0) fazerVenda($c, $horas, $valor, (int)$u['id']);
     gravarCfg('mandar_' . $id, $id); // vai para o iDFace (nome agora, foto quando o aparelho confirmar o cadastro)
@@ -132,7 +132,7 @@ switch ($acao) {
     exigir(); $c = crianca((int)($in['id'] ?? 0)); if (!$c) falha('Criança não encontrada.', 404);
     $foto = (string)($in['foto'] ?? ''); if (!preg_match('#^data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$#', $foto)) falha('Foto inválida.');
     if (strlen($foto) > 1500000) falha('A foto ficou grande demais. Tire outra.');
-    $db->prepare('UPDATE criancas SET foto = ?, rosto = 1 WHERE id = ?')->execute([$foto, $c['id']]);
+    $db->prepare("UPDATE criancas SET foto = ?, foto_origem = 'celular', rosto = 1 WHERE id = ?")->execute([$foto, $c['id']]);
     if ($c['idface_id'] !== null) gravarCfg('foto_' . $c['id'], (int)$c['idface_id']); else gravarCfg('mandar_' . $c['id'], (int)$c['id']);
     responder();
   }

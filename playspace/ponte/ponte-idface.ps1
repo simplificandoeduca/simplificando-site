@@ -476,7 +476,7 @@ while ($true) {
       # modo direto: o proprio iDFace passa a chamar o site pela internet (sem este computador). A ponte liga isso uma vez.
       if ($r.push_url -and -not $r.direto_ok -and -not $pushTentado) {
         $pushTentado = $true
-        try { Aparelho ("set_configuration.fcgi$q") @{ push_server = @{ push_remote_address = [string]$r.push_url; push_request_period = '5'; push_request_timeout = '15000' } } | Out-Null; Anotar 'Modo direto ligado no iDFace: em ate 1 minuto ele passa a mandar as batidas sozinho para o site.' }
+        try { Aparelho ("set_configuration.fcgi$q") @{ push_server = @{ push_remote_address = [string]$r.push_url; push_request_period = '3'; push_request_timeout = '15000' } } | Out-Null; Anotar 'Modo direto ligado no iDFace: em ate 1 minuto ele passa a mandar as batidas sozinho para o site.' }
         catch {
           if ($UMA_VEZ) { Fim $false 'recusou_direto' ('NAO DEU: o iDFace recusou ligar o modo direto: ' + $_.Exception.Message + '. Mande uma foto desta janela para o suporte.') }
           Anotar ('Nao deu para ligar o modo direto no iDFace: ' + $_.Exception.Message + ' (a ponte continua funcionando normalmente)')
