@@ -452,7 +452,7 @@ function logo(){
 $('#logo').innerHTML = logo(); document.querySelector('.top .mic').innerHTML = I.mic;
 
 /* ========== estado ========== */
-const FINV = '10 nov · 14'; // Versão do Finanças: 10 nov · 14
+const FINV = '10 nov · 15'; // Versão do Finanças: 10 nov · 15
 const DONO = { nome:'Eduardo Matias', iniciais:'EM' }; // perfil único desta página
 const LS = 'simplificando-financas', LST = 'simplificando-financas-tema';
 const CATS = ['Mercado', 'Comida', 'Transporte', 'Casa', 'Lazer', 'Saúde', 'Roupas', 'Assinaturas', 'Outros'];
@@ -559,16 +559,18 @@ function irmaoPendente(){
   const pago = sum(S.pagamentos, p => p.valor);
   return { gasto, pago, deve:gasto - pago };
 }
-function faturaDe(c){ // período da fatura que fecha no mês escolhido: do dia seguinte ao fechamento anterior até o fechamento deste mês
+function faturaDe(c){ // a fatura ABERTA na data de referência: hoje (no mês atual) ou o dia 15 do mês escolhido.
+  // Ex.: fecha dia 2 e hoje é 10/11 -> fatura de 03/11 a 02/12 (a que está acumulando agora)
   if (!c.fecha) return null;
-  const ultimo = new Date(+UI.mes.slice(0, 4), +UI.mes.slice(5, 7), 0).getDate();
-  const fim = UI.mes + '-' + p2(Math.min(c.fecha, ultimo));
+  const hoje = todayISO(), ref = UI.mes === nowKey() ? hoje : UI.mes + '-15';
+  const ultimo = m => new Date(+m.slice(0, 4), +m.slice(5, 7), 0).getDate();
+  const fechaEm = m => m + '-' + p2(Math.min(c.fecha, ultimo(m)));
+  let fim = fechaEm(UI.mes); if (ref > fim) fim = fechaEm(addMonths(UI.mes + '-01', 1).slice(0, 7));
   const d = parseISO(addMonths(fim, -1)); d.setDate(d.getDate() + 1);
   const ini = d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate());
   const itens = S.gastos.filter(g => g.cartao === c.id && g.data >= ini && g.data <= fim);
   return { ini, fim, total:sum(itens, g => g.valor), irmao:sum(itens.filter(g => g.quem === 'irmao'), g => g.valor) };
 }
-
 function pagosFatura(c, f){ // pagamentos da fatura do cartão no período (fatura, ou o mês escolhido se não tiver fechamento)
   const its = S.pagFatura.filter(x => x.cartao === c.id && (f ? x.data >= f.ini && x.data <= f.fim : (x.data || '').slice(0, 7) === UI.mes));
   return { itens:its.sort((a, b) => b.data.localeCompare(a.data)), total:sum(its, x => x.valor) };
@@ -708,7 +710,7 @@ function rCartao(){
   h += ccHTML(c, f ? 'Fecha dia ' + c.fecha : undefined);
   h += `<div class="kp3"><div><b>${esc(fmt(tot))}</b><span>No mês</span></div><div><b>${esc(fmt(meu))}</b><span>Meu</span></div><div><b>${esc(fmt(ir))}</b><span>${n}</span></div></div>`;
   if (tot) h += `<div class="bar" style="--sw:var(--c${(c.cor ?? 7) % 8})"><div class="t"><i style="width:${Math.round(meu / tot * 100)}%"></i>${ir ? `<i class="ir" style="width:${Math.round(ir / tot * 100)}%"></i>` : ''}</div></div>`;
-  if (f) h += `<p class="sub">Fatura que fecha em ${esc(shortDate(f.fim))}: <b>${esc(fmt(f.total))}</b> (${esc(shortDate(f.ini))} a ${esc(shortDate(f.fim))})${f.irmao ? ' · ' + n + ' ' + esc(fmt(f.irmao)) : ''}</p>`;
+  if (f) h += `<p class="sub">Fatura aberta, de ${esc(shortDate(f.ini))} a ${esc(shortDate(f.fim))} (fecha dia ${c.fecha}): <b>${esc(fmt(f.total))}</b>${f.irmao ? ' · ' + n + ' ' + esc(fmt(f.irmao)) : ''}</p>`;
   const pf = c.tipo === 'conta' ? null : pagosFatura(c, f);
   if (pf && pf.total) {
     const base = f ? f.total : tot, falta = base - pf.total;
