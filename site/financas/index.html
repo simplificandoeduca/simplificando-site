@@ -354,6 +354,10 @@ button.row:active{background:var(--ctl)}
 .blk-verde .conta-st.ok{background:var(--ok);color:#0F1712}
 .min-btn{border:0;background:var(--ctl);color:var(--ctl-fg);width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;transition:transform .2s}
 .min-btn .i{width:18px;height:18px}.min-btn.aberto{transform:rotate(180deg)}
+#v-ajustes .card > .hd{cursor:pointer}
+#v-ajustes .card.recolhido{gap:0}
+#v-ajustes .card.recolhido > :not(.hd){display:none !important}
+#v-ajustes .card.recolhido > .hd > :not(h2):not(.min-btn){display:none}
 .conta-st{font-size:11px;font-weight:800;padding:3px 8px;border-radius:999px;background:var(--ctl);color:var(--fg);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
 .conta-st.ok{background:var(--ok);color:#0F1712}.conta-st.bad{background:var(--bad);color:#0F1712}.conta-st.warn{background:var(--warn);color:#0F1712}
 .row .btn.sm{min-height:34px;padding:0 12px;font-size:13px}
@@ -477,7 +481,7 @@ function logo(){
 $('#logo').innerHTML = logo(); document.querySelector('.top .mic').innerHTML = I.mic;
 
 /* ========== estado ========== */
-const FINV = '10 nov · 38'; // Versão do Finanças: 10 nov · 38
+const FINV = '10 nov · 39'; // Versão do Finanças: 10 nov · 39
 const DONO = { nome:'Eduardo Matias', iniciais:'EM' }; // perfil único desta página
 const LS = 'simplificando-financas', LST = 'simplificando-financas-tema';
 const CATS = ['Mercado', 'Comida', 'Transporte', 'Casa', 'Lazer', 'Saúde', 'Roupas', 'Assinaturas', 'Outros'];
@@ -858,6 +862,7 @@ function rAjustes(){
     <div class="grid2"><label class="field">WhatsApp<input data-f="irmao-zap" inputmode="tel" value="${esc(S.irmao.zap)}" placeholder="11 91234-5678"></label><label class="field">Sua chave Pix<input data-f="irmao-pix" value="${esc(S.irmao.pix)}" placeholder="CPF, e-mail ou celular"></label></div></div>`;
   h += atuCard();
   $('#v-ajustes').innerHTML = h;
+  recolhiveis($('#v-ajustes'));
 }
 
 /* ========== atualizar a página (atualizar.php desta pasta baixa só /financas do GitHub) ========== */
@@ -884,6 +889,22 @@ async function atuGo(){
     if (!r.ok || !j.ok) throw new Error(j.erro || 'Não deu para atualizar agora.');
     toast('Atualizado: ' + (j.arquivos || 0) + ' arquivos. Recarregando…'); setTimeout(() => location.reload(), 1500);
   } catch(e){ ATU.st = 'ok'; ATU.msg = e.message || 'Não deu para atualizar agora.'; render(); }
+}
+
+/* Ajustes: todo cartão ganha uma seta para recolher; a escolha fica guardada neste aparelho */
+function recolhiveis(root){
+  for (const card of root.querySelectorAll(':scope > .card')) {
+    const h2 = card.querySelector('h2'); if (!h2) continue;
+    const key = 'simplificando-financas-aj-' + semAcento(h2.textContent).replace(/[^a-z0-9]/g, '').slice(0, 30);
+    let head = h2.parentElement;
+    if (head === card) { head = document.createElement('div'); head.className = 'hd'; card.insertBefore(head, h2); head.appendChild(h2); }
+    head.dataset.a = 'aj-rec'; head.dataset.k = key;
+    h2.style.flex = '1';
+    const fechado = ls.get(key) === '1';
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'min-btn' + (fechado ? '' : ' aberto'); b.dataset.a = 'aj-rec'; b.dataset.k = key;
+    b.setAttribute('aria-label', fechado ? 'Abrir' : 'Recolher'); b.innerHTML = '<svg class="i" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>';
+    head.appendChild(b); card.classList.toggle('recolhido', fechado);
+  }
 }
 
 /* ========== folha (modal) ========== */
@@ -1449,6 +1470,7 @@ document.addEventListener('click', ev => {
   if (a === 'guardar-tudo') { const v = +k; if (v > 0) { S.guardados.push({ id:uid(), cr:Date.now(), valor:v, data:todayISO(), obs:'' }); save(); render(); toast('Guardado: ' + fmt(v) + '. Meta do mês batida!'); } }
   if (a === 'ver-guardados') sheetGuardados();
   if (a === 'ed-guardado') { const x = S.guardados.find(y => y.id === k); if (x) sheetGuardar(x); }
+  if (a === 'aj-rec') { if (ev.target.closest('.hd') && ev.target.closest('button:not(.min-btn), input, label, select') ) return; ls.set(k, ls.get(k) === '1' ? '0' : '1'); render(); return; }
   if (a === 'ver-mov') { UI.verMov = !UI.verMov; render(); }
   if (a === 'contas-min') { ls.set('simplificando-financas-contas-' + UI.mes, k); render(); }
   if (a === 'pagar-conta') { const f = S.fixos.find(x => x.id === k); if (!f) return; S.gastos.push({ id:uid(), cr:Date.now(), valor:f.valor, data:todayISO(), cartao:contaId(), quem:f.quem === 'irmao' ? 'irmao' : 'eu', desc:f.nome, cat:f.cat || '', fixo:f.id, boleto:true }); S.fixosFeitos[f.id + '|' + UI.mes] = true; save(); render(); toast(f.nome + ' paga: ' + fmt(f.valor) + '.'); }
