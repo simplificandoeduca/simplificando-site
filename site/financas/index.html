@@ -464,7 +464,7 @@ function logo(){
 $('#logo').innerHTML = logo(); document.querySelector('.top .mic').innerHTML = I.mic;
 
 /* ========== estado ========== */
-const FINV = '10 nov · 26'; // Versão do Finanças: 10 nov · 26
+const FINV = '10 nov · 27'; // Versão do Finanças: 10 nov · 27
 const DONO = { nome:'Eduardo Matias', iniciais:'EM' }; // perfil único desta página
 const LS = 'simplificando-financas', LST = 'simplificando-financas-tema';
 const CATS = ['Mercado', 'Comida', 'Transporte', 'Casa', 'Lazer', 'Saúde', 'Roupas', 'Assinaturas', 'Outros'];
@@ -513,7 +513,7 @@ const EMO = { mercado:'🛒', comida:'🍔', transporte:'🚗', casa:'🏠', laz
 const emoji = g => EMO[String(g.cat || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()] || (g.fixo ? '🔁' : '💳');
 const contaId = () => { // a conta (débito/Pix) de onde saem boletos; cria uma se não existir
   let c = S.cartoes.find(k => k.tipo === 'conta'); if (c) return c.id;
-  c = { id:'conta', nome:'Conta (débito / Pix)', cor:4, tipo:'conta', fecha:null }; S.cartoes.push(c); return c.id;
+  c = { id:uid(), nome:'Pix / conta', cor:4, tipo:'conta', fecha:null }; S.cartoes.push(c); return c.id;
 };
 const needsSetup = () => S.fontes.some(f => /^Emprego \d$/.test(f.nome)) || S.cartoes.some(c => /^Cartão \d$/.test(c.nome));
 
@@ -597,6 +597,9 @@ function pagosFatura(c, f){ // pagamentos da fatura do cartão no período (fatu
 function aplicarFixos(){ // cria o gasto de cada fixo no dia certo do mês atual (uma vez só, mesmo que depois seja apagado)
   const mes = nowKey(), hoje = todayISO(), ultimo = new Date(+mes.slice(0, 4), +mes.slice(5, 7), 0).getDate();
   let n = 0;
+  // cartões com o mesmo código (a conta antiga renomeada + a conta criada depois): dá código novo ao segundo e aponta os boletos para ele
+  const vistos = new Set();
+  for (const c of S.cartoes) { if (vistos.has(c.id)) { const novo = uid(), velho = c.id; c.id = novo; if (c.tipo === 'conta') { for (const f of S.fixos) if (f.forma === 'boleto') f.cartao = novo; for (const g of S.gastos) if (g.boleto && g.cartao === velho) g.cartao = novo; for (const x of S.guardados) if (x.cartao === velho) x.cartao = novo; } n++; } vistos.add(c.id); }
   // contas no boleto/Pix sempre saem da conta corrente (corrige as salvas antes apontando para um cartão)
   for (const f of S.fixos) if (f.forma === 'boleto' && cartao(f.cartao).tipo !== 'conta') { f.cartao = contaId(); n++; }
   for (const f of S.fixos) {
@@ -875,7 +878,7 @@ function sheetGasto(g){
   const sug = sugestoes(), cc = cartao(g.cartao);
   Sheet.open(`<div class="hd"><h2>${edit ? 'Editar gasto' : 'Novo gasto'}</h2>${edit && g.parc ? `<span class="pill">${esc(g.parc)}</span>` : ''}<button type="button" class="mic" data-s="voz-sheet" aria-label="Falar o gasto">${I.mic}</button><button type="button" class="x" data-s="fechar" aria-label="Fechar">${I.x}</button></div>
     ${amtHTML(g.valor)}${padHTML()}
-    <div class="sec"><p class="lbl">Cartão</p>${chipsHTML('cartao', S.cartoes, g.cartao, swOf)}</div>
+    <div class="sec"><p class="lbl">Cartão</p><div class="chips">${chipsHTML('cartao', S.cartoes.filter(c => c.tipo !== 'conta'), g.cartao, swOf).replace(/^<div class="chips">|<\/div>$/g, '')}${S.cartoes.some(c => c.tipo === 'conta') ? `<button type="button" class="opt ${cc.tipo === 'conta' ? 'on' : ''}" data-c="cartao" data-k="${esc(S.cartoes.find(c => c.tipo === 'conta').id)}" style="--sw:var(--c4)"><span class="sw"></span>Pix</button>` : ''}</div></div>
     <div class="sec"><p class="lbl">Quem gastou</p><div class="seg" id="quem"><button type="button" class="${st.quem !== 'irmao' ? 'on' : ''}" data-c="quem" data-k="eu">Eu</button><button type="button" class="${st.quem === 'irmao' ? 'on' : ''}" data-c="quem" data-k="irmao">${esc(S.irmao.nome)}</button></div></div>
     <div class="sec"><label class="field">O que foi <span style="font-weight:500;color:var(--muted)">(opcional)</span><span class="inline"><input id="s-desc" value="${esc(g.desc)}" placeholder="Ex.: mercado, Uber, farmácia" autocomplete="off"><button type="button" class="mic sm ghost" data-voz="s-desc" aria-label="Falar a descrição">${I.mic}</button></span></label>
     ${sug.length && !edit ? `<div class="chips small">${sug.map(s => `<button type="button" class="opt" data-c="sug" data-k="${esc(s.desc)}" data-cat="${esc(s.cat)}">${esc(s.desc)}</button>`).join('')}</div>` : ''}</div>
