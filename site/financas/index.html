@@ -452,7 +452,7 @@ function logo(){
 $('#logo').innerHTML = logo(); document.querySelector('.top .mic').innerHTML = I.mic;
 
 /* ========== estado ========== */
-const FINV = '10 nov · 12'; // Versão do Finanças: 10 nov · 12
+const FINV = '10 nov · 13'; // Versão do Finanças: 10 nov · 13
 const DONO = { nome:'Eduardo Matias', iniciais:'EM' }; // perfil único desta página
 const LS = 'simplificando-financas', LST = 'simplificando-financas-tema';
 const CATS = ['Mercado', 'Comida', 'Transporte', 'Casa', 'Lazer', 'Saúde', 'Roupas', 'Assinaturas', 'Outros'];
@@ -758,7 +758,11 @@ function rIrmao(){
 
 function rAjustes(){
   const t = document.documentElement.dataset.theme || 'auto';
-  let h = `<div class="card"><div class="hd"><h2>Renda</h2><button type="button" class="btn sm" data-a="add-fonte">${I.plus}Fonte</button></div><p class="sub">Seus empregos ou de onde vem o dinheiro.</p>`;
+  let h = Cloud ? `<div class="card"><h2>Perfil</h2><div class="perfil"><span class="av">${DONO.iniciais}</span><span class="tx"><b>${esc(DONO.nome)}</b><span>Dono do Finanças · perfil único${Cloud.auth.currentUser ? ' · ' + esc(Cloud.auth.currentUser.email || '') : ''}</span></span></div><p class="sub">Só este perfil entra nesta página. Para trocar a senha, saia e use "Esqueci a senha" na entrada.</p><div class="btns"><button type="button" class="btn danger" data-a="sair">Sair</button></div></div>` : '';
+  h += `<div class="card"><h2>Aparência</h2><div class="seg"><button type="button" class="${t === 'auto' ? 'on' : ''}" data-a="tema" data-k="auto">Automático</button><button type="button" class="${t === 'light' ? 'on' : ''}" data-a="tema" data-k="light">Claro</button><button type="button" class="${t === 'dark' ? 'on' : ''}" data-a="tema" data-k="dark">Escuro</button></div>
+    <p class="sub">No celular, toque em "Adicionar à Tela de Início" (iPhone: botão Compartilhar) para abrir como um app.</p></div>`;
+  h += `<div class="card"><div class="hd"><h2>Categorias</h2><button type="button" class="btn sm" data-a="add-cat">${I.plus}Categoria</button></div><div class="chips">${S.cats.map(c => `<button type="button" class="opt" data-a="del-cat" data-k="${esc(c)}" title="Toque para apagar">${esc(c)} ${I.x}</button>`).join('')}</div><p class="sub">Toque numa categoria para apagar.</p></div>`;
+  h += `<div class="card"><div class="hd"><h2>Renda</h2><button type="button" class="btn sm" data-a="add-fonte">${I.plus}Fonte</button></div><p class="sub">Seus empregos ou de onde vem o dinheiro.</p>`;
   for (const f of S.fontes) h += `<div class="set-item"><div class="inline"><label class="field"><span class="sr">Nome</span><input id="in-f-${f.id}" data-f="fonte" data-k="${f.id}" value="${esc(f.nome)}" placeholder="Nome do emprego"></label><button type="button" class="mic sm ghost" data-voz="in-f-${f.id}" aria-label="Falar o nome">${I.mic}</button><button type="button" class="x-sm" data-a="del-fonte" data-k="${f.id}" aria-label="Apagar">${I.trash}</button></div>
     <label class="field" style="font-weight:600;color:var(--muted)">Entra por mês (previsão)<input inputmode="decimal" data-f="prev" data-k="${f.id}" value="${f.prev ? esc((f.prev / 100).toFixed(2).replace('.', ',')) : ''}" placeholder="Ex.: 3500,00"></label></div>`;
   h += `<p class="sub">A previsão é o que o "Posso gastar" usa antes de o salário cair. Quando o valor recebido for maior, ele passa a valer.</p>`;
@@ -783,13 +787,6 @@ function rAjustes(){
   h += `<div class="card"><h2>Quem usa seu cartão</h2><p class="sub">Nome, WhatsApp e chave Pix (entra na mensagem de cobrança).</p>
     <div class="inline"><label class="field">Nome<input id="in-irmao" data-f="irmao-nome" value="${esc(S.irmao.nome)}" placeholder="Irmão"></label><button type="button" class="mic sm ghost" style="margin-top:22px" data-voz="in-irmao" aria-label="Falar o nome">${I.mic}</button></div>
     <div class="grid2"><label class="field">WhatsApp<input data-f="irmao-zap" inputmode="tel" value="${esc(S.irmao.zap)}" placeholder="11 91234-5678"></label><label class="field">Sua chave Pix<input data-f="irmao-pix" value="${esc(S.irmao.pix)}" placeholder="CPF, e-mail ou celular"></label></div></div>`;
-  h += `<div class="card"><div class="hd"><h2>Categorias</h2><button type="button" class="btn sm" data-a="add-cat">${I.plus}Categoria</button></div><div class="chips">${S.cats.map(c => `<button type="button" class="opt" data-a="del-cat" data-k="${esc(c)}" title="Toque para apagar">${esc(c)} ${I.x}</button>`).join('')}</div><p class="sub">Toque numa categoria para apagar.</p></div>`;
-  h += `<div class="card"><h2>Aparência</h2><div class="seg"><button type="button" class="${t === 'auto' ? 'on' : ''}" data-a="tema" data-k="auto">Automático</button><button type="button" class="${t === 'light' ? 'on' : ''}" data-a="tema" data-k="light">Claro</button><button type="button" class="${t === 'dark' ? 'on' : ''}" data-a="tema" data-k="dark">Escuro</button></div>
-    <p class="sub">No celular, toque em "Adicionar à Tela de Início" (iPhone: botão Compartilhar) para abrir como um app.</p></div>`;
-  if (Cloud) h += `<div class="card"><h2>Perfil</h2><div class="perfil"><span class="av">${DONO.iniciais}</span><span class="tx"><b>${esc(DONO.nome)}</b><span>Dono do Finanças · perfil único${Cloud.auth.currentUser ? ' · ' + esc(Cloud.auth.currentUser.email || '') : ''}</span></span></div><p class="sub">Só este perfil entra nesta página. Para trocar a senha, saia e use "Esqueci a senha" na entrada.</p><div class="btns"><button type="button" class="btn danger" data-a="sair">Sair</button></div></div>`;
-  h += `<div class="card"><h2>Importar gastos</h2><p class="sub">Para começar sem lançar um por um: cole a lista da fatura ou do extrato (texto copiado do app do banco, PDF ou e-mail) ou envie o arquivo CSV/OFX. Funciona com a fatura do Nubank e extratos de outros bancos.</p><div class="btns"><button type="button" class="btn primary" data-a="importar">Importar gastos</button></div></div>`;
-  h += `<div class="card"><h2>Dados</h2><p class="sub">${Cloud ? 'Tudo fica salvo na nuvem do Simplificando, só no perfil de ' + esc(DONO.nome) + '. Também fica uma cópia neste aparelho.' : 'Esta cópia está só neste aparelho (sem nuvem).'} ${S.gastos.length} gastos, ${S.receitas.length} receitas.</p>
-    <div class="btns"><button type="button" class="btn" data-a="exportar">Baixar cópia (.json)</button><label class="btn">Restaurar cópia<input type="file" accept="application/json,.json" data-f="importar" hidden></label></div></div>`;
   h += atuCard();
   $('#v-ajustes').innerHTML = h;
 }
