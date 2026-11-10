@@ -2,6 +2,15 @@
 # Uso: python3 tools/build_site.py  (rodar na raiz do repositório)
 import os
 R = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + '/'
+import re
+# versão única do app do aluno e do painel do personal: muda só no VERSAO.txt
+V = open(R+'VERSAO.txt').read().strip()
+for f, const in [('treino-grade.html','APPV'), ('admin.html','PAINELV')]:
+    t = open(R+'src/'+f).read()
+    t2 = re.sub(r"const "+const+r" = '[^']*'", "const "+const+" = '"+V+"'", t, count=1)
+    t2 = re.sub(r"// Versão do painel: .*", "// Versão do painel: "+V, t2, count=1)
+    if t2 != t: open(R+'src/'+f, 'w').write(t2)
+print('versão', V)
 for folder, src, title in [('treino','treino-grade.html','Simplificando · Seu treino'), ('personal','admin.html','Simplificando · Painel do personal')]:
     idx = R+'site/'+folder+'/index.html'
     cur = open(idx).read(); tag = '<title>'+title+'</title>'

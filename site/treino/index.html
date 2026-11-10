@@ -1580,6 +1580,7 @@ body.has-dock .toast,body.has-dock .utoast{bottom:calc(176px + env(safe-area-ins
 #novav span{flex:1;min-width:0;display:flex;flex-direction:column}#novav b{font-size:15px;font-weight:800}#novav small{font-size:12px;color:#A9B0AA}
 #novav button{flex:none;display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 16px;border:0;border-radius:999px;background:#C6F04A;color:#0F1712;font:inherit;font-size:14px;font-weight:800;cursor:pointer}#novav button .i{width:16px;height:16px}
 @keyframes novav-in{from{opacity:0;transform:translate(-50%,-20px)}}
+.ver-btn{margin-top:8px;align-self:flex-start;width:max-content}.ver-btn.nova{background:#C6F04A;color:#0F1712}
 .ver-pill{display:inline-flex;align-items:center;gap:5px;margin-top:6px;padding:3px 9px;border-radius:999px;background:var(--chip,rgba(0,0,0,.06));font-size:11.5px;font-weight:700;color:var(--muted);width:max-content}.ver-pill .i{width:12px;height:12px}
 .ck-list{display:flex;flex-direction:column;gap:8px}
 .ck{display:flex;align-items:flex-start;gap:12px;width:100%;padding:12px 14px;border:0;border-radius:18px;background:var(--card);box-shadow:inset 0 0 0 1.5px var(--sep);color:var(--fg);text-align:left;font:inherit;font-size:14px;line-height:1.42;transition:box-shadow .2s}
@@ -1698,7 +1699,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '10 nov · 85'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '10 nov · 92'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -4668,7 +4669,7 @@ function vProfile(){
     <div class="stepper"><button type="button" class="btn round" data-a="goal" data-d="-250" aria-label="Diminuir meta de água">${ic('minus')}</button><output>${fmtL(S.waterGoal)}<small> água</small></output><button type="button" class="btn round" data-a="goal" data-d="250" aria-label="Aumentar meta de água">${ic('plus')}</button></div>
     <div class="stepper"><button type="button" class="btn round" data-a="cgoal" data-d="-30" aria-label="Diminuir meta de cardio">${ic('minus')}</button><output>${S.cardioGoal}<small> min cardio</small></output><button type="button" class="btn round" data-a="cgoal" data-d="30" aria-label="Aumentar meta de cardio">${ic('plus')}</button></div></div>`;
   return `<div class="sheet-wrap" data-a="closebg"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t" tabindex="-1">${sheetTop('Seu perfil', esc(firstName(nome))+'<span class="dot" aria-hidden="true"></span>')}
-    <div class="prof-id"><span class="avatar" aria-hidden="true">${avatarIn()}</span><div><b>${esc(nome)}</b><span>${pers?'Com seu personal':'Treinando sem personal'} · ${S.history.length} treino${S.history.length===1?'':'s'} salvo${S.history.length===1?'':'s'}</span>${pay}<span class="ver-pill">${ic('check')}App na versão ${APPV}</span></div></div>
+    <div class="prof-id"><span class="avatar" aria-hidden="true">${avatarIn()}</span><div><b>${esc(nome)}</b><span>${pers?'Com seu personal':'Treinando sem personal'} · ${S.history.length} treino${S.history.length===1?'':'s'} salvo${S.history.length===1?'':'s'}</span>${pay}<span class="ver-pill">${ic('check')}App na versão ${APPV}</span><button type="button" class="btn small ver-btn${NOVAV?' nova':''}" data-a="ver-checar">${ic('refresh')}${NOVAV ? 'Atualizar para a '+esc(NOVAV) : 'Procurar atualização'}</button><span hidden></span></div></div>
     <div class="foto-row"><input type="file" id="prof-foto" accept="image/*" class="sr-file"><label for="prof-foto" class="btn small">${ic('camera')}${FOTO?'Trocar foto':'Adicionar foto'}</label>${FOTO?`<button type="button" class="btn small ghost" data-a="foto-del">${ui.arm==='foto-del'?'Toque de novo para remover':'Remover foto'}</button>`:''}</div>
     ${pers ? '' : `<div class="field"><label class="flabel" for="prof-nome">Seu nome</label><div class="inp-wrap"><input class="inp" id="prof-nome" autocomplete="given-name" placeholder="Como você quer ser chamado" value="${esc(S.nome||'')}" data-prof="nome"></div></div>`}
     ${planRO}${selfEdit}
@@ -5593,6 +5594,7 @@ function onClick(ev){
     case 'st-share': if(ui.sheet && ui.sheet.k==='story'){ stLog(ui.sheet, 'share'); stShare(ui.sheet); } re = false; break;
     case 'st-down': if(ui.sheet && ui.sheet.k==='story'){ stLog(ui.sheet, 'baixar'); stBaixar(ui.sheet); } re = false; break;
     case 'sug-send': sugEnviar(b); re = false; break;
+    case 'ver-checar': if(NOVAV) versaoAtualiza(); else versaoPerfil(b); re = false; break;
     case 'cdel': { const c = S.cardio[+d.i]; if(!c) break; S.cardio.splice(+d.i, 1); S.cDel = (S.cDel||[]).filter(k => k!==c.date+'|'+c.local+'|'+c.min).concat([c.date+'|'+c.local+'|'+c.min]).slice(-80); save(); toast('Cardio excluído: '+c.local+' · '+c.min+' min'); break; }
     case 'sum-save': closeSheet(); toast(isPersonal()?'Salvo. Seu personal vai ver.':'Salvo no seu histórico.'); re = false; break;
     case 'wipe':
@@ -5768,13 +5770,22 @@ function pushCard(){
 /* versão nova: o app confere no site se tem versão mais nova e mostra o aviso com o botão Atualizar agora */
 let NOVAV = '', novaAt = 0;
 async function versaoCheca(force){
-  if(NOVAV){ versaoAviso(); if(!force) return; }
-  if(!navigator.onLine || (!force && Date.now()-novaAt < 20e3)) return; novaAt = Date.now();
+  if(NOVAV){ versaoAviso(); if(!force) return 'nova'; }
+  if(!navigator.onLine) return 'off';
+  if(!force && Date.now()-novaAt < 20e3) return ''; novaAt = Date.now();
   try {
     const txt = await fetch(location.pathname+'?v='+Date.now(), { cache:'no-store' }).then(r => r.ok ? r.text() : '');
-    const m = txt.match(/const\s+APPV = '([^']+)'/); if(!m || m[1]===APPV) return;
-    NOVAV = m[1]; versaoAviso();
-  } catch(e){ /* sem internet: confere na próxima */ }
+    const m = txt.match(/const\s+APPV = '([^']+)'/); if(!m) return 'erro'; if(m[1]===APPV) return 'igual';
+    NOVAV = m[1]; versaoAviso(); return 'nova';
+  } catch(e){ return 'off'; }
+}
+// botão do Perfil: procura na hora; se tiver versão nova, já atualiza
+async function versaoPerfil(b){
+  if(b){ b.disabled = true; b.innerHTML = ic('refresh')+'Procurando…'; }
+  const r = await versaoCheca(true);
+  if(r==='nova'){ versaoAtualiza(); return; }
+  if(b){ b.disabled = false; b.innerHTML = ic('refresh')+'Procurar atualização'; }
+  toast(r==='igual' ? 'Você já está na versão mais nova ('+APPV+').' : r==='off' ? 'Sem internet. Conecte e tente de novo.' : 'Não deu para conferir agora. Tente de novo.');
 }
 function versaoAviso(){
   if(!NOVAV) return; let el = document.getElementById('novav');
