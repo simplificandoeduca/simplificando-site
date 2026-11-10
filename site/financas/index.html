@@ -464,7 +464,7 @@ function logo(){
 $('#logo').innerHTML = logo(); document.querySelector('.top .mic').innerHTML = I.mic;
 
 /* ========== estado ========== */
-const FINV = '10 nov · 21'; // Versão do Finanças: 10 nov · 21
+const FINV = '10 nov · 22'; // Versão do Finanças: 10 nov · 22
 const DONO = { nome:'Eduardo Matias', iniciais:'EM' }; // perfil único desta página
 const LS = 'simplificando-financas', LST = 'simplificando-financas-tema';
 const CATS = ['Mercado', 'Comida', 'Transporte', 'Casa', 'Lazer', 'Saúde', 'Roupas', 'Assinaturas', 'Outros'];
@@ -1126,7 +1126,7 @@ function sheetGuardados(){
 }
 
 /* ========== importar gastos (texto colado, CSV ou OFX) ========== */
-const CAT_KW = [[/ifood|restaurante|lanche|burger|pizza|padaria|cafe|bar\b|sushi|mcdonald|subway|rappi/, 'Comida'], [/uber|99 ?pop|99app|taxi|posto|combust|gasolina|shell|ipiranga|estacion|metro|onibus|pedagio|sem parar/, 'Transporte'], [/mercado|supermerc|carrefour|assai|atacad|extra|pao de acucar|hortifruti|sacolao|dia\b/, 'Mercado'], [/farmac|drogar|droga ?raia|pague menos|medic|consulta|dentist|academia|smart ?fit/, 'Saúde'], [/netflix|spotify|amazon prime|prime video|disney|hbo|max\b|globoplay|youtube|icloud|google one|apple\.com|microsoft|canva|chatgpt|openai/, 'Assinaturas'], [/renner|riachuelo|c&a|zara|shein|shopee|centauro|nike|adidas|calcad/, 'Roupas'], [/aluguel|condominio|luz|enel|energia|agua|sabesp|internet|vivo|claro|tim\b|oi\b|gas\b|iptu/, 'Casa'], [/cinema|ingresso|show|steam|playstation|xbox|bar\b|viagem|hotel|airbnb/, 'Lazer']];
+const CAT_KW = [[/ifood|restaurante|lanche|burger|pizza|padaria|cafe|bar\b|sushi|mcdonald|subway|rappi/, 'Comida'], [/uber|99 ?pop|99app|99\*|^99\b|taxi|posto|combust|gasolina|shell|ipiranga|estacion|metro|onibus|pedagio|sem parar/, 'Transporte'], [/mercado|supermerc|carrefour|assai|atacad|extra|pao de acucar|hortifruti|sacolao|dia\b/, 'Mercado'], [/farmac|drogar|droga ?raia|pague menos|medic|consulta|dentist|academia|smart ?fit/, 'Saúde'], [/netflix|spotify|amazon prime|prime video|disney|hbo|max\b|globoplay|youtube|icloud|google one|apple\.com|microsoft|canva|chatgpt|openai/, 'Assinaturas'], [/renner|riachuelo|c&a|zara|shein|shopee|centauro|nike|adidas|calcad/, 'Roupas'], [/aluguel|condominio|luz|enel|energia|agua|sabesp|internet|vivo|claro|tim\b|oi\b|gas\b|iptu/, 'Casa'], [/cinema|ingresso|show|steam|playstation|xbox|bar\b|viagem|hotel|airbnb/, 'Lazer']];
 function chuteCat(desc){ const d = semAcento(desc); for (const [re, c] of CAT_KW) if (re.test(d) && S.cats.includes(c)) return c; return ''; }
 function lerImportacao(texto){
   const out = [], hoje = todayISO(), ano = +hoje.slice(0, 4);
@@ -1145,10 +1145,12 @@ function lerImportacao(texto){
   if (!linhas.length) return out;
   const head = semAcento(linhas[0]);
   if (/date|data/.test(head) && /amount|valor/.test(head) && /,|;/.test(linhas[0])) { // CSV (ex.: fatura do Nubank: date,category,title,amount)
-    const sep = linhas[0].includes(';') ? ';' : ',', cols = head.split(sep).map(x => x.trim());
+    const sep = linhas[0].includes(';') ? ';' : ',';
+    const splitCSV = l => { const out = []; let cur = '', q = false; for (const ch of l) { if (ch === '"') q = !q; else if (ch === sep && !q) { out.push(cur); cur = ''; } else cur += ch; } out.push(cur); return out.map(x => x.trim()); };
+    const cols = splitCSV(head);
     const iD = cols.findIndex(c => /^(date|data)/.test(c)), iV = cols.findIndex(c => /amount|valor/.test(c)), iT = cols.findIndex(c => /title|descri|memo|historico|estabelecimento/.test(c)), iC = cols.findIndex(c => /category|categoria/.test(c));
     for (const l of linhas.slice(1)) {
-      const c = l.split(sep).map(x => x.trim().replace(/^"|"$/g, ''));
+      const c = splitCSV(l);
       if (c.length < 2) continue;
       const v = parseFloat(String(c[iV] || '').replace(/[^\d,.-]/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.'));
       if (!isFinite(v) || !v) continue;
