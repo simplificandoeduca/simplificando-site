@@ -320,6 +320,17 @@ button.row:active{background:var(--ctl)}
 .imp-row .t small{display:block;color:var(--muted);font-size:11.5px}
 .imp-row .v{font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
 .imp-row.off{opacity:.45}
+/* arrastar para a esquerda para apagar (lista de gastos) */
+.swp{position:relative;overflow:hidden;background:var(--bad)}
+.swp+.swp{border-top:1px solid var(--sep)}
+.swp .row{background:var(--card);transition:transform .22s var(--ease);will-change:transform;touch-action:pan-y}
+.swp.drag .row{transition:none}
+.swp .row+.row{border-top:0}
+.swp .del{position:absolute;top:0;bottom:0;right:0;width:96px;display:flex;align-items:center;justify-content:center;gap:4px;color:#0F1712;font-weight:800;font-size:13px;border:0;background:transparent;flex-direction:column}
+.swp .del .i{width:20px;height:20px;stroke-width:2.2}
+.swp.two .del{width:150px;flex-direction:row;gap:0}
+.swp.two .del button{flex:1;height:100%;border:0;background:transparent;color:#0F1712;font-weight:800;font-size:12px;line-height:1.15;padding:0 4px}
+.swp.two .del button+button{border-left:1px solid rgba(15,23,18,.25)}
 .vis{display:flex;gap:8px;flex-wrap:wrap}
 .vis button{border:0;background:var(--ctl);color:var(--ctl-fg);border-radius:12px;padding:6px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;font-weight:700;width:76px}
 .vis button.on{box-shadow:0 0 0 2px var(--fg)}
@@ -452,7 +463,7 @@ function logo(){
 $('#logo').innerHTML = logo(); document.querySelector('.top .mic').innerHTML = I.mic;
 
 /* ========== estado ========== */
-const FINV = '10 nov · 15'; // Versão do Finanças: 10 nov · 15
+const FINV = '10 nov · 16'; // Versão do Finanças: 10 nov · 16
 const DONO = { nome:'Eduardo Matias', iniciais:'EM' }; // perfil único desta página
 const LS = 'simplificando-financas', LST = 'simplificando-financas-tema';
 const CATS = ['Mercado', 'Comida', 'Transporte', 'Casa', 'Lazer', 'Saúde', 'Roupas', 'Assinaturas', 'Outros'];
@@ -722,7 +733,7 @@ function rCartao(){
     h += `<div class="list">`; let dia = '';
     for (const g of its) {
       if (g.data !== dia) { dia = g.data; h += `<div class="gh"><span>${esc(dayLabel(dia))}</span><b>${esc(fmt(sum(its.filter(x => x.data === dia), x => x.valor)))}</b></div>`; }
-      h += `<button type="button" class="row" data-a="ed-gasto" data-k="${g.id}"><span class="ic">${emoji(g)}</span><span class="tx"><b>${esc(g.desc || g.cat || 'Gasto')}</b><span>${esc(g.cat || '')}${g.parc ? ' · ' + esc(g.parc) : ''}${g.fixo ? ' · fixo' : ''}</span></span>${g.quem === 'irmao' ? `<span class="tag">${n}</span>` : ''}<span class="val">${esc(fmt(g.valor))}</span></button>`;
+      h += `<div class="swp ${g.grp ? 'two' : ''}" data-swp="${g.id}">${g.grp ? `<div class="del"><button type="button" data-a="swp-del" data-k="${g.id}">Só esta</button><button type="button" data-a="swp-del-grupo" data-k="${g.id}">Todas</button></div>` : `<button type="button" class="del" data-a="swp-del" data-k="${g.id}">${I.trash}Apagar</button>`}<button type="button" class="row" data-a="ed-gasto" data-k="${g.id}"><span class="ic">${emoji(g)}</span><span class="tx"><b>${esc(g.desc || g.cat || 'Gasto')}</b><span>${esc(g.cat || '')}${g.parc ? ' · ' + esc(g.parc) : ''}${g.fixo ? ' · fixo' : ''}</span></span>${g.quem === 'irmao' ? `<span class="tag">${n}</span>` : ''}<span class="val">${esc(fmt(g.valor))}</span></button></div>`;
     }
     h += `</div>`;
   }
@@ -744,9 +755,9 @@ function rGastos(){
     for (const g of its) {
       if (g.data !== dia) { dia = g.data; const tot = sum(its.filter(x => x.data === dia), x => x.valor); h += `<div class="gh"><span>${esc(dayLabel(dia))}</span><b>${esc(fmt(tot))}</b></div>`; }
       const c = cartao(g.cartao);
-      h += `<button type="button" class="row" data-a="ed-gasto" data-k="${g.id}"><span class="sw" style="--sw:${swOf(c)}"></span><span class="tx"><b>${esc(g.desc || g.cat || 'Gasto')}</b><span>${esc(c.nome)}${g.cat && g.desc ? ' · ' + esc(g.cat) : ''}${g.parc ? ' · ' + esc(g.parc) : ''}${g.fixo ? (g.boleto ? ' · boleto/Pix' : ' · fixo') : ''}</span></span>${g.quem === 'irmao' ? `<span class="tag">${esc(S.irmao.nome)}</span>` : ''}<span class="val">${esc(fmt(g.valor))}</span></button>`;
+      h += `<div class="swp ${g.grp ? 'two' : ''}" data-swp="${g.id}">${g.grp ? `<div class="del"><button type="button" data-a="swp-del" data-k="${g.id}">Só esta</button><button type="button" data-a="swp-del-grupo" data-k="${g.id}">Todas</button></div>` : `<button type="button" class="del" data-a="swp-del" data-k="${g.id}">${I.trash}Apagar</button>`}<button type="button" class="row" data-a="ed-gasto" data-k="${g.id}"><span class="sw" style="--sw:${swOf(c)}"></span><span class="tx"><b>${esc(g.desc || g.cat || 'Gasto')}</b><span>${esc(c.nome)}${g.cat && g.desc ? ' · ' + esc(g.cat) : ''}${g.parc ? ' · ' + esc(g.parc) : ''}${g.fixo ? (g.boleto ? ' · boleto/Pix' : ' · fixo') : ''}</span></span>${g.quem === 'irmao' ? `<span class="tag">${esc(S.irmao.nome)}</span>` : ''}<span class="val">${esc(fmt(g.valor))}</span></button></div>`;
     }
-    h += `</div><p class="sub" style="text-align:center">Total: <b>${esc(fmt(sum(its, g => g.valor)))}</b> em ${its.length} ${its.length === 1 ? 'gasto' : 'gastos'}. Toque num gasto para editar ou apagar.</p>`;
+    h += `</div><p class="sub" style="text-align:center">Total: <b>${esc(fmt(sum(its, g => g.valor)))}</b> em ${its.length} ${its.length === 1 ? 'gasto' : 'gastos'}. Toque num gasto para editar. Arraste para a esquerda para apagar.</p>`;
   }
   $('#v-gastos').innerHTML = h;
 }
@@ -1333,6 +1344,8 @@ document.addEventListener('click', ev => {
   if (a === 'meta-tipo') { S.meta = Object.assign({ tipo:'valor', valor:0, pct:10 }, S.meta || {}, { tipo:k }); save(); render(); }
   if (a === 'ed-fixo') { const f = S.fixos.find(x => x.id === k); if (f) sheetFixo(f); }
   if (a === 'ed-gasto') { const g = S.gastos.find(x => x.id === k); if (g) sheetGasto(g); }
+  if (a === 'swp-del') { const g = S.gastos.find(x => x.id === k); if (!g) return; S.gastos = S.gastos.filter(x => x.id !== k); if (g.fixo) delete S.fixosFeitos[g.fixo + '|' + (g.data || '').slice(0, 7)]; save(); Swipe.fechar(); render(); toast('Gasto apagado: ' + fmt(g.valor) + '.'); }
+  if (a === 'swp-del-grupo') { const g = S.gastos.find(x => x.id === k); if (!g || !g.grp) return; const n = S.gastos.filter(x => x.grp === g.grp).length; if (!confirm('Apagar todas as ' + n + ' parcelas?')) return; S.gastos = S.gastos.filter(x => x.grp !== g.grp); save(); Swipe.fechar(); render(); toast(n + ' parcelas apagadas.'); }
   if (a === 'nova-receita') sheetReceita();
   if (a === 'ed-receita') { const r = S.receitas.find(x => x.id === k); if (r) sheetReceita(r); }
   if (a === 'saldo') sheetSaldo();
@@ -1387,6 +1400,33 @@ document.addEventListener('change', ev => {
   fr.onload = () => { try { const o = normalize(JSON.parse(fr.result)); if (!confirm('Substituir tudo pela cópia (' + o.gastos.length + ' gastos, ' + o.receitas.length + ' receitas)?')) return; S = o; save(); render(); toast('Cópia restaurada.'); } catch(e){ toast('Esse arquivo não é uma cópia válida.'); } el.value = ''; };
   fr.readAsText(el.files[0]);
 });
+/* arrastar para a esquerda: revela "Apagar" */
+const Swipe = (() => {
+  let el = null, x0 = 0, y0 = 0, dx = 0, w = 0, horiz = null, aberto = null;
+  const row = e => e.querySelector('.row');
+  function fechar(){ if (aberto) { aberto.classList.remove('drag'); row(aberto).style.transform = ''; aberto = null; } }
+  document.addEventListener('touchstart', ev => {
+    const t = ev.target.closest('.swp'); if (!t) { fechar(); return; }
+    if (aberto && aberto !== t) fechar();
+    el = t; x0 = ev.touches[0].clientX; y0 = ev.touches[0].clientY; dx = 0; horiz = null; w = t.classList.contains('two') ? 150 : 96;
+  }, { passive:true });
+  document.addEventListener('touchmove', ev => {
+    if (!el) return; const x = ev.touches[0].clientX - x0, y = ev.touches[0].clientY - y0;
+    if (horiz === null) { if (Math.abs(x) < 6 && Math.abs(y) < 6) return; horiz = Math.abs(x) > Math.abs(y); if (horiz) el.classList.add('drag'); }
+    if (!horiz) return;
+    const base = aberto === el ? -w : 0; dx = Math.max(-w - 20, Math.min(0, base + x));
+    row(el).style.transform = 'translateX(' + dx + 'px)';
+  }, { passive:true });
+  document.addEventListener('touchend', () => {
+    if (!el) return; const e = el; el = null;
+    if (!horiz) return;
+    e.classList.remove('drag');
+    if (dx < -w / 2) { row(e).style.transform = 'translateX(-' + w + 'px)'; aberto = e; e.dataset.swiped = '1'; setTimeout(() => { delete e.dataset.swiped; }, 350); }
+    else { row(e).style.transform = ''; if (aberto === e) aberto = null; }
+  });
+  document.addEventListener('click', ev => { const r = ev.target.closest('.swp'); if (r && r.dataset.swiped) { ev.stopPropagation(); ev.preventDefault(); } }, true);
+  return { fechar };
+})();
 document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && !$('#sheet').hidden) Sheet.close(); });
 
 /* ========== porta de entrada (conta própria desta página; a primeira a entrar vira a dona) ========== */
