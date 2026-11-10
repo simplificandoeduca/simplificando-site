@@ -504,6 +504,28 @@ body.so .conteudo { padding-left: 16px; padding-right: 16px; }
 .rosto-alvo.viva::after { animation: alvo-pulsa 1.4s ease-out infinite; border-color: var(--ok); }
 .rosto-alvo.ok { background: var(--ok-bg); color: var(--ok); } .rosto-alvo.ok::after { border-color: var(--ok); opacity: 1; animation: none; }
 @keyframes alvo-pulsa { 0% { transform: scale(1); opacity: .7; } 100% { transform: scale(1.25); opacity: 0; } }
+/* ---------- aba Banco de horas ---------- */
+.alertas { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+.alerta-r { display: grid; grid-template-columns: 44px 1fr; gap: 10px 12px; align-items: start; background: var(--aviso-bg); border: 1px solid var(--borda); border-radius: 20px; padding: 14px 16px; }
+.alerta-r.zerou { background: var(--erro-bg); }
+.alerta-r .av:not(.foto) { background: var(--creme-2) !important; }   /* o selo claro, para não sumir no cartão colorido */
+.alerta-r .txt b { display: block; font-family: var(--display); font-weight: 700; font-size: 16px; line-height: 1.25; }
+.alerta-r .txt span { display: block; font-size: 13px; color: var(--tinta-2); margin-top: 3px; }
+.alerta-r .txt em { display: inline-block; font-style: normal; font-size: 11.5px; font-weight: 800; margin-top: 6px; padding: 2px 9px; border-radius: 999px; background: rgba(255, 255, 255, .6); color: var(--tinta-2); }
+.alerta-r .acoes { grid-column: 1 / -1; }
+.banco-topo { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.banco-topo .dias { flex: none; max-width: 100%; padding-bottom: 2px; } .banco-topo .campo { flex: 1; min-width: 220px; }
+.banco-lista { display: flex; flex-direction: column; gap: 8px; }
+.banco-linha { display: grid; grid-template-columns: minmax(180px, 1.2fr) minmax(200px, 1.5fr) minmax(150px, 1fr) auto; gap: 14px; align-items: center; background: var(--card); border: 1px solid var(--borda); border-radius: 18px; padding: 10px 14px; }
+.banco-linha.zerou { border-color: var(--erro-bg); box-shadow: inset 4px 0 0 var(--erro); } .banco-linha.baixo { box-shadow: inset 4px 0 0 var(--mostarda); }
+.banco-linha .quem { display: flex; align-items: center; gap: 12px; min-width: 0; text-align: left; }
+.banco-linha .quem .txt { min-width: 0; } .banco-linha .quem .txt b { display: block; font-family: var(--display); font-weight: 600; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.banco-linha .quem .txt span { display: block; font-size: 12.5px; color: var(--tinta-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.banco-linha .ult small { display: block; font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--apagado); }
+.banco-linha .ult b { display: block; font-size: 14px; } .banco-linha .ult span { display: block; font-size: 12.5px; color: var(--tinta-2); }
+.banco-linha .acoes { flex-wrap: nowrap; justify-content: flex-end; }
+@media (max-width: 1100px) { .banco-linha { grid-template-columns: 1fr 1fr; } .banco-linha .acoes { justify-content: flex-start; flex-wrap: wrap; } }
+@media (max-width: 620px) { .banco-linha { grid-template-columns: 1fr; gap: 10px; } .alertas { grid-template-columns: 1fr; } }
 /* ---------- quem acabou de bater o rosto: o anel chega com um pulinho ---------- */
 @keyframes chegou { 0% { transform: scale(.55); opacity: 0; } 60% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(1); } }
 .a-hero .anel.chegou, body.quieto .a-hero .anel.chegou { animation: chegou .8s var(--spring) !important; }
@@ -601,6 +623,7 @@ const ic = (d, s = 22, w = 2.2) => `<svg viewBox="0 0 24 24" width="${s}" height
 const IC = {
   horas: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/>',
   zap: '<path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.1A8.5 8.5 0 1 1 21 12z"/>',
+  banco: '<path d="M6 3h12M6 21h12M7 3v3.5a5 5 0 0 0 10 0V3M7 21v-3.5a5 5 0 0 1 10 0V21"/>',
   agenda: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>',
   ajustes: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
   rosto: '<path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M4 16v2a2 2 0 0 0 2 2h2M16 20h2a2 2 0 0 0 2-2v-2"/><circle cx="12" cy="11" r="3"/><path d="M8 17c1-1.5 2.4-2 4-2s3 .5 4 2"/>',
@@ -623,7 +646,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.63';
+const VERSAO = '0.64';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -687,6 +710,7 @@ const S = {
   compromissos: [],
 };
 // compromissos do mês: as oficinas reais de novembro e alguns exemplos
+S.criancas.forEach((c, i) => { c.venda = { h: c.pacote, v: (S.cfg.pacotes.find(p => p.h === c.pacote) || { v: c.pacote * 50 }).v, quando: antes(1440 * (2 + i * 3)) }; });   // a última contratação de cada uma, para a aba Banco de horas
 (function semear() {
   const y = S.mes.y, m = S.mes.m, d = dd => `${y}-${p2(m + 1)}-${p2(dd)}`;
   const add = (dia, hora, titulo, tipo, sub) => S.compromissos.push({ id: novoId(), dia, hora, titulo, tipo, sub: sub || '' });
@@ -700,7 +724,7 @@ const nomePacote = p => p.h === 1 ? 'Hora avulsa' : p.h + ' horas';
 const TIPOS = { oficina: ['Oficina', 'var(--coral)'], festa: ['Festa', 'var(--pessego)'], compromisso: ['Compromisso', 'var(--mostarda)'], postagem: ['Postagem', 'var(--verde-agua)'] };
 const PAPEIS = { gestor: 'Gestor', supervisor: 'Supervisor', atendente: 'Atendente' };
 const PASSARINHO_FAB = `<span class="bicho passarinho" aria-hidden="true"><svg viewBox="0 0 60 44"><ellipse cx="30" cy="30" rx="17" ry="13" fill="#8FBFB0"/><circle cx="40" cy="20" r="10" fill="#8FBFB0"/><path d="M49 20 L58 23 L49 26Z" fill="#F0BB5F"/><circle cx="43" cy="18" r="1.8" fill="#3B3B3B"/><path d="M22 30 q-8 -6 -2 -12" stroke="#6FA394" stroke-width="4" stroke-linecap="round" fill="none"/><path d="M40 10 q2 -6 6 -4" stroke="#6FA394" stroke-width="2.5" stroke-linecap="round" fill="none"/></svg></span>`;
-const TODAS_ABAS = [['horas', 'Horas', 'horas'], ['zap', 'WhatsApp', 'zap'], ['agenda', 'Agenda', 'agenda'], ['ajustes', 'Ajustes', 'ajustes']];
+const TODAS_ABAS = [['horas', 'Horas', 'horas'], ['banco', 'Banco', 'banco'], ['zap', 'WhatsApp', 'zap'], ['agenda', 'Agenda', 'agenda'], ['ajustes', 'Ajustes', 'ajustes']];
 let ABAS = TODAS_ABAS;
 /* ---------- o servidor: api/api.php. Sem ele (a prévia), tudo roda em modo demonstração com os dados de exemplo ---------- */
 const API = 'api/api.php';
@@ -725,7 +749,7 @@ async function carregar() { // devolve true quando algo mudou no servidor
     const d = await api('dados');
     // o que muda sozinho a cada contato do aparelho não conta como novidade (senão a tela redesenhava a cada 6 s e "piscava")
     const assinatura = JSON.stringify({ ...d, agora: 0, idface: { ...d.idface, segundos: 0, ultimo_contato: 0, ultima_batida: 0, periodo: 0, erro: '', fila: 0 } }); const mudou = assinatura !== ULTIMA_CARGA; ULTIMA_CARGA = assinatura;
-    S.criancas = d.criancas.map(c => ({ ...c, entrou: c.entrou ? dataDe(c.entrou) : null, visitas: (c.visitas || []).map(v => ({ ...v, dia: dataDe(v.dia) })) }));
+    S.criancas = d.criancas.map(c => ({ ...c, entrou: c.entrou ? dataDe(c.entrou) : null, venda: c.venda ? { ...c.venda, quando: dataDe(c.venda.quando) } : null, visitas: (c.visitas || []).map(v => ({ ...v, dia: dataDe(v.dia) })) }));
     S.registros = d.registros.map(r => ({ ...r, h: dataDe(r.h) }));
     S.conversas = d.conversas.map(x => ({ ...x, msgs: x.msgs.map(m => ({ ...m, h: dataDe(m.h) })) }));
     S.compromissos = d.compromissos;
@@ -761,6 +785,8 @@ function anunciar(antes) {
   if (!antes) return;
   const novos = S.registros.filter(r => r.id > antes && (r.tipo === 'ent' || r.tipo === 'sai')); if (!novos.length) return;
   const r = novos[0]; S.chegou = r.tipo === 'ent' ? r.crianca : 0; setTimeout(() => { S.chegou = 0; }, 1800);
+  const cr = crianca(r.crianca);
+  if (r.tipo === 'sai' && cr && restante(cr) <= 0) { toast(`As horas de ${cr.nome} acabaram. Chame ${primeiro(cr.resp)} para renovar.`, () => ACOES.renovar({ dataset: { id: cr.id } }), 'Chamar no WhatsApp'); return; }
   toast(r.tipo === 'ent' ? `${r.nome} entrou · ${hora(r.h)}. O tempo já está correndo.` : `${r.nome} saiu · ${r.txt}`);
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { PULSO_N = 14; sincronizar(); } });
@@ -943,14 +969,14 @@ function saida(c, origem = 'iDFace') {
 }
 function vender(c, pac) {
   if (MODO === 'servidor') return venderServidor(c, pac);
-  c.pacote += pac.h; c.liberado = true; registrar('venda', c.nome, `Pacote de ${pac.h}h vendido · ${brl(pac.v)}`); const reg = S.registros[0];
+  c.pacote += pac.h; c.liberado = true; c.venda = { h: pac.h, v: pac.v, quando: new Date() }; registrar('venda', c.nome, `Pacote de ${pac.h}h vendido · ${brl(pac.v)}`); const reg = S.registros[0];
   toast(`+${pac.h}h para ${c.nome} · ${brl(pac.v)}`, () => { c.pacote -= pac.h; S.registros = S.registros.filter(r => r !== reg); });
 }
 
 /* ---------- casca: navegação, toast, folhas ---------- */
 const naoLidas = () => S.conversas.filter(x => !x.lidas).length;
 function nav() {
-  const badge = k => k === 'zap' && naoLidas() ? `<b>${naoLidas()}</b>` : '';
+  const badge = k => k === 'zap' && naoLidas() ? `<b>${naoLidas()}</b>` : (k === 'banco' && paraRenovar().length ? `<b>${paraRenovar().length}</b>` : '');
   const alerta = k => k === 'zap' && naoLidas() ? 'alerta' : '';   // mensagem sem resposta: a bolinha do WhatsApp fica vermelha
   const ladoHtml = `<span class="logo">${LOGO}</span>` + ABAS.map(([k, t, i]) => `<button class="ab tap ${alerta(k)}" data-ir="${k}" ${S.tela === k ? 'aria-current="page"' : ''} aria-label="${t}" title="${t}${naoLidas() && k === 'zap' ? ' · ' + naoLidas() + ' sem resposta' : ''}">${ic(IC[i])}${badge(k)}</button>`).join('') + `<span class="espaco"></span><button type="button" class="fab tap" data-act="nova" aria-label="Cadastrar criança" title="Cadastrar criança">${PASSARINHO_FAB}<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button><button class="av-eu tap" data-act="conta" title="${esc(EU.nomeCompleto || EU.nome)}">${esc((EU.nome || 'EU').slice(0, 2).toUpperCase())}</button>`;
   if (ladoHtml !== NAV_CACHE) { $('#nav-lado').innerHTML = ladoHtml; NAV_CACHE = ladoHtml; }   // só mexe no trilho quando algo nele mudou (senão o passarinho recomeça)
@@ -959,7 +985,12 @@ function nav() {
   $('#nav-baixo').innerHTML = ABAS.map(([k, t, i]) => `<button class="${alerta(k)}" data-ir="${k}" ${S.tela === k ? 'aria-current="page"' : ''}>${ic(IC[i], 21)}${t}${badge(k)}</button>`).join('') + (ABAS.some(a => a[0] === 'ajustes') ? '' : `<button data-act="conta">${ic(IC.rosto, 21)}Conta</button>`);
 }
 let toastT, DESFAZ = null, NAV_CACHE = '';
-function toast(txt, desfazer) { const t = $('#toast'); DESFAZ = desfazer || null; t.innerHTML = `<span>${esc(txt)}</span>${desfazer ? '<button type="button" data-act="desfazer">Desfazer</button>' : ''}`; t.classList.add('ve'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('ve'), desfazer ? 6000 : 2400); }
+let TOAST_ACAO = null;
+function toast(txt, desfazer, rotulo) { // com rotulo, o botão faz uma ação (ex.: "Chamar no WhatsApp") em vez de desfazer
+  const t = $('#toast'); DESFAZ = rotulo ? null : (desfazer || null); TOAST_ACAO = rotulo ? desfazer : null;
+  t.innerHTML = `<span>${esc(txt)}</span>${rotulo ? `<button type="button" data-act="toast-acao">${esc(rotulo)}</button>` : (desfazer ? '<button type="button" data-act="desfazer">Desfazer</button>' : '')}`;
+  t.classList.add('ve'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('ve'), rotulo ? 10000 : desfazer ? 6000 : 2400);
+}
 function abrirFolha(titulo, html, rotulo) {
   const f = $('#folha');
   f.innerHTML = `<div class="folha-fundo" data-fecha><div class="folha" role="dialog" aria-modal="true" aria-label="${esc(rotulo || titulo)}"><div class="alca"></div>
@@ -1114,6 +1145,50 @@ function folhaIdface() {
       <div class="simul">${S.criancas.filter(c => c.rosto).map(c => `<button class="tap" data-act="simular" data-id="${c.id}">${avatar(c)}${esc(c.nome)}<span>${c.entrou ? 'está dentro · sai' : 'está fora · entra'}</span></button>`).join('')}</div></div>`);
 }
 
+/* ---------- Banco de horas: todas as crianças, a última contratação e quem chamar para renovar ---------- */
+const primeiro = n => String(n || '').trim().split(' ')[0];
+const paraRenovar = () => S.criancas.filter(c => restante(c) <= S.cfg.aviso).sort((a, b) => restante(a) - restante(b) || a.nome.localeCompare(b.nome));
+const diaCurto = d => `${d.getDate()} de ${MESES[d.getMonth()].slice(0, 3)}`;
+const textoVenda = c => c.venda ? `${c.venda.h === 1 ? 'hora avulsa' : c.venda.h + 'h'} por ${brl(c.venda.v)}, em ${diaCurto(c.venda.quando)}` : 'sem compra registrada';
+function textoRenovar(c) {
+  const r = restante(c), pacs = S.cfg.pacotes.filter(x => x.h > 1).map(x => `${x.h}h por ${brl(x.v)}`);
+  const lista = pacs.length > 1 ? pacs.slice(0, -1).join(', ') + ' ou ' + pacs[pacs.length - 1] : (pacs[0] || '');
+  return (r <= 0 ? `Oi, ${primeiro(c.resp)}! As horas de ${c.nome} na Play Space acabaram 💛 Quer renovar?` : `Oi, ${primeiro(c.resp)}! Restam só ${hm(r)} no pacote de ${c.nome} na Play Space 💛 Quer já deixar renovado?`) + (lista ? ` Temos ${lista}.` : '') + ' É só responder aqui que a gente deixa tudo pronto!';
+}
+// a última vez que alguém da equipe chamou esse responsável para renovar (para ninguém chamar duas vezes)
+function chamadaRenovar(c) {
+  const conv = S.conversas.find(x => x.crianca === c.id); if (!conv) return null;
+  const m = [...conv.msgs].reverse().find(x => x.de === 'nos' && !x.auto && /renov/i.test(x.txt) && agora - x.h < 3 * 86400000);
+  return m ? `Já chamada ${isoDia(m.h) === isoDia(agora) ? 'hoje' : 'em ' + diaCurto(m.h)} às ${hora(m.h)}${m.por ? ' por ' + esc(m.por) : ''}` : null;
+}
+const filtroBanco = c => { const f = S.bancoFiltro || 'todas'; return f === 'renovar' ? restante(c) <= S.cfg.aviso : f === 'emdia' ? restante(c) > S.cfg.aviso : f === 'dentro' ? !!c.entrou : true; };
+function linhasBanco() {
+  const q = (S.bancoBusca || '').toLowerCase();
+  const lista = S.criancas.filter(filtroBanco).filter(c => !q || (c.nome + ' ' + c.resp + ' ' + c.tel).toLowerCase().includes(q)).sort((a, b) => restante(a) - restante(b) || a.nome.localeCompare(b.nome));
+  if (!lista.length) return `<div class="card vazio"><b>${q ? 'Ninguém com esse nome.' : 'Nenhuma criança neste filtro.'}</b></div>`;
+  return lista.map(c => { const r = restante(c), zerou = r <= 0, baixo = r <= S.cfg.aviso; return `<div class="banco-linha ${zerou ? 'zerou' : baixo ? 'baixo' : ''}">
+    <button class="quem tap" data-act="ficha" data-id="${c.id}" aria-label="Abrir a ficha de ${esc(c.nome)}">${avatar(c)}<span class="txt"><b>${esc(c.nome)}${c.idade ? ', ' + c.idade : ''}</b><span>${esc(c.resp)} (${esc(c.rel)})${c.tel ? ' · ' + esc(c.tel) : ''}</span></span></button>
+    <div class="saldo-c">${blocos(c)}</div>
+    <div class="ult"><small>Última contratação</small><b>${c.venda ? (c.venda.h === 1 ? 'Hora avulsa' : c.venda.h + ' horas') + ' · ' + brl(c.venda.v) : 'Sem registro'}</b><span>${c.venda ? diaCurto(c.venda.quando) + (c.entrou ? ' · no espaço agora' : '') : (c.entrou ? 'no espaço agora' : '')}</span></div>
+    <div class="acoes"><button class="bt ${baixo ? 'forte' : ''} tap" data-act="renovar" data-id="${c.id}" title="Chamar ${esc(c.resp)} no WhatsApp para renovar">${ic(IC.zap, 16)} ${baixo ? 'Chamar para renovar' : 'WhatsApp'}</button><button class="bt tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 16)} Vender</button></div>
+  </div>`; }).join('');
+}
+function telaBanco() {
+  const renovar = paraRenovar(), f = S.bancoFiltro || 'todas', n = k => S.criancas.filter(c => k === 'renovar' ? restante(c) <= S.cfg.aviso : k === 'emdia' ? restante(c) > S.cfg.aviso : k === 'dentro' ? !!c.entrou : true).length;
+  const saldo = S.criancas.reduce((a, c) => a + restante(c), 0);
+  const alertas = renovar.length ? renovar.map(c => { const zerou = restante(c) <= 0, ja = chamadaRenovar(c); return `<div class="alerta-r ${zerou ? 'zerou' : ''}">
+      ${avatar(c)}
+      <div class="txt"><b>${zerou ? `As horas de ${esc(c.nome)} acabaram` : `Restam só ${hm(restante(c))} para ${esc(c.nome)}`}</b><span>Chame ${esc(c.resp)} (${esc(c.rel)}) no WhatsApp para ver se quer renovar. Última contratação: ${textoVenda(c)}.</span>${ja ? `<em>${ja}</em>` : ''}</div>
+      <div class="acoes"><button class="bt forte tap" data-act="renovar" data-id="${c.id}">${ic(IC.zap, 16)} ${ja ? 'Chamar de novo' : 'Chamar no WhatsApp'}</button><button class="bt claro tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 16)} Vender horas</button></div>
+    </div>`; }).join('') : `<div class="card vazio"><b>Ninguém para renovar agora.</b><span>Quando as horas de uma criança estiverem acabando, o aviso aparece aqui com o botão do WhatsApp.</span></div>`;
+  const chip = (k, t) => `<button class="tap" data-act="banco-filtro" data-f="${k}" aria-pressed="${f === k}">${t}<b>${n(k)}</b></button>`;
+  return faixa('Banco de horas', `${S.criancas.length} ${S.criancas.length === 1 ? 'criança' : 'crianças'} · ${hm(saldo)} em saldo`, renovar.length ? `<span class="chip">${renovar.length} para renovar</span>` : `<span class="chip suave"><i class="pt"></i>Tudo em dia</span>`) + `
+  <section class="sec"><div class="sec-cab"><h2><i></i>Para renovar</h2>${renovar.length ? `<span class="pill p-erro">${renovar.length}</span>` : ''}</div><div class="alertas">${alertas}</div></section>
+  <section class="sec"><div class="sec-cab"><h2><i style="background:var(--mostarda)"></i>Todas as crianças</h2></div>
+    <div class="banco-topo"><div class="dias">${chip('todas', 'Todas')}${chip('renovar', 'Para renovar')}${chip('emdia', 'Em dia')}${chip('dentro', 'No espaço')}</div><div class="campo"><input id="banco-busca" value="${esc(S.bancoBusca || '')}" placeholder="Buscar criança, responsável ou telefone" autocomplete="off"></div></div>
+    <div class="banco-lista" id="banco-lista">${linhasBanco()}</div>
+  </section>`;
+}
 /* ---------- a chavinha "entrada liberada": ligada, a criança bate o rosto e as horas correm; desligada, o iDFace recusa ---------- */
 const liberada = c => c.liberado !== false;
 const chave = (c, p = false) => `<button type="button" class="chave ${p ? 'p' : ''} ${liberada(c) ? 'on' : ''} tap" role="switch" aria-checked="${liberada(c)}" data-act="liberar" data-id="${c.id}" title="${liberada(c) ? 'Acesso autorizado no iDFace: toque para bloquear' : 'Acesso bloqueado no iDFace: toque para autorizar'}" aria-label="Acesso de ${esc(c.nome)} no iDFace ${liberada(c) ? 'autorizado' : 'bloqueado'}"><i></i></button>`;
@@ -1317,7 +1392,7 @@ function folhaEquipe(u) {
 /* ---------- desenhar e reagir ---------- */
 function desenhar(quieto = false) { // quieto: redesenho da sincronia, sem as animações de entrada (senão a tela "pisca")
   document.body.classList.toggle('quieto', !!quieto); document.body.classList.remove('so'); nav();
-  $('#miolo').innerHTML = ({ horas: telaHoras, zap: telaZap, agenda: telaAgenda, ajustes: telaAjustes })[S.tela]();
+  $('#miolo').innerHTML = ({ horas: telaHoras, banco: telaBanco, zap: telaZap, agenda: telaAgenda, ajustes: telaAjustes })[S.tela]();
   $('#hoje').innerHTML = painelHoje();
   $('#fab-ancora').hidden = S.tela !== 'horas';
   $('#rodape-global').innerHTML = `<span>${MODO === 'demo' ? 'Prévia com dados de exemplo · ' : ''}<b>Play Space Horas</b></span>${botaoVersao()}${MODO === 'servidor' && gestor() ? `<button type="button" class="versao tap exemplo-bt" data-act="exemplos-${S.exemplo ? 'apagar' : 'carregar'}">${S.exemplo ? 'Apagar exemplo' : 'Colocar exemplo'}</button>` : ''}`;
@@ -1369,7 +1444,15 @@ const ACOES = {
     }
     fecharFolha(); desenhar();
   },
-  dia: () => folhaDia(), todas: () => folhaLista(), acabando: () => folhaLista('acabando'),
+  dia: () => folhaDia(), todas: () => { S.bancoFiltro = 'todas'; trocarTela('banco'); }, acabando: () => { S.bancoFiltro = 'renovar'; trocarTela('banco'); },
+  'toast-acao': () => { const f = TOAST_ACAO; TOAST_ACAO = null; $('#toast').classList.remove('ve'); if (f) f(); },
+  'banco-filtro': el => { S.bancoFiltro = el.dataset.f; desenhar(true); },
+  renovar: el => { // abre a conversa do responsável com a mensagem de renovação pronta: é conferir e enviar
+    const c = crianca(el.dataset.id); if (!c) return; let conv = S.conversas.find(x => x.crianca === c.id); if (!conv) { conv = { id: novoId(), crianca: c.id, lidas: true, msgs: [] }; S.conversas.push(conv); }
+    S.zapAberta = conv.id; S.zapModo = 'papo'; S.zapDia = isoDia(agora); fecharFolha(); trocarTela('zap');
+    const t = $('#zap-texto'); if (t) { t.value = textoRenovar(c); t.style.height = 'auto'; t.style.height = Math.min(120, t.scrollHeight) + 'px'; t.focus(); }
+    toast('Mensagem de renovação pronta. Confira e toque em enviar.');
+  },
   idface: () => folhaIdface(),
   'idface-salvar': () => { if (MODO === 'servidor') { api('idface_salvar', { ip: val('i-ip'), nome: val('i-nome') || 'Recepção', usuario: val('i-usuario') || 'admin' }).then(async () => { await carregar(); toast('iDFace salvo'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } S.cfg.idface.ip = val('i-ip'); S.cfg.idface.nome = val('i-nome') || 'Recepção'; toast('iDFace salvo'); fecharFolha(); desenhar(); },
   'idface-toggle': () => { const lig = !S.cfg.idface.ligado; if (MODO === 'servidor') { api('idface_salvar', { ligado: lig }).then(async () => { await carregar(); toast(lig ? 'Leitura ligada' : 'Leitura desligada'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } S.cfg.idface.ligado = lig; toast(lig ? 'Leitura ligada' : 'Leitura desligada'); fecharFolha(); desenhar(); },
@@ -1452,6 +1535,7 @@ document.addEventListener('input', e => {
   if (CAMPOS_OLHAR[e.target.id]) { const card = $('.palco'); if (card && card.dataset.olha !== CAMPOS_OLHAR[e.target.id]) { card.dataset.olha = CAMPOS_OLHAR[e.target.id]; olharPara(e.target, true); } else olharPara(e.target); }
   if (['l-login', 'g-login', 'e-login'].includes(e.target.id)) { const v = e.target.value.toLowerCase(); if (v !== e.target.value) e.target.value = v; }
   if (e.target.id === 'f-cpf') { const v = cpfFmt(e.target.value); if (v !== e.target.value) e.target.value = v; }
+  if (e.target.id === 'banco-busca') { S.bancoBusca = e.target.value; const l = $('#banco-lista'); if (l) l.innerHTML = linhasBanco(); }
   if (e.target.id === 'busca') { const q = e.target.value.toLowerCase(); $('#lista-criancas').innerHTML = itensLista(S.criancas.filter(c => (c.nome + ' ' + c.resp).toLowerCase().includes(q))); }
   if (e.target.id === 'pc-h') $$('#pc-rapido button').forEach(b => b.setAttribute('aria-pressed', b.dataset.h === e.target.value));
   if (e.target.id === 'zap-texto') { e.target.style.height = 'auto'; e.target.style.height = Math.min(120, e.target.scrollHeight) + 'px'; }
