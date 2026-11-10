@@ -20,6 +20,7 @@ function quandoDoTs(int $ts): string { return date('Y-m-d H:i:s', $ts + 60 * (in
 function ultimoLog(string $aparelho): int { $q = db()->prepare('SELECT MAX(log_id) FROM batidas WHERE aparelho = ?'); $q->execute([$aparelho]); return max((int)$q->fetchColumn(), (int)cfg('log_corte', 0)); }
 function regrasFila(): array { $r = []; foreach (cfgComo('regra_') as $k => $v) if (preg_match('/^regra_\d+$/', $k)) $r[$k] = $v; return $r; }   // só a fila (regra_<id>), não regra_id nem regra_ok_
 function criancaDentroNoAparelho(int $uid): bool { $q = db()->prepare('SELECT entrou FROM criancas WHERE idface_id = ? AND ativo = 1'); $q->execute([$uid]); return (bool)$q->fetchColumn(); }
+function periodoAlvo(): int { return max(1, min(3, (int)cfg('periodo_alvo', 1))); }   // de quantos em quantos segundos o aparelho deve chamar o site
 function fotoBase64(string $foto): string { return preg_match('#^data:image/[a-z]+;base64,(.+)$#s', $foto, $m) ? $m[1] : $foto; }
 // a resposta do aparelho com a imagem: procura o primeiro texto base64 grande numa chave "image"
 function acharImagem($r): string {
@@ -100,6 +101,7 @@ function acaoPush(string $rota): void {
       if ($tipo === 'apagar' && !empty($fly['alvo'])) apagarCfg('apagar_' . (int)$fly['alvo']); // sai da fila com qualquer resposta
       if (!empty($j['error'])) {
         $st['erro'] = 'o aparelho respondeu: ' . substr((string)$j['error'], 0, 200);
+        if ($tipo === 'periodo') { gravarCfg('periodo_alvo', min(3, periodoAlvo() + 1)); gravarCfg('periodo_tentativas', 0); }   // não aceitou esse intervalo: tenta um maior
         if ($tipo === 'regra' && !empty($fly['crianca'])) { $cid = (int)$fly['crianca']; $n = (int)cfg('falhas_regra_' . $cid, 0) + 1; gravarCfg('falhas_regra_' . $cid, $n); if ($n >= 3) { apagarCfg('regra_' . $cid); apagarCfg('falhas_regra_' . $cid); } if (stripos((string)$j['error'], 'exist') !== false || stripos((string)$j['error'], 'UNIQUE') !== false) { apagarCfg('regra_' . $cid); gravarCfg('regra_ok_' . $cid, agora()); } }
         if ($tipo === 'regras_lista' || $tipo === 'regra_criar') gravarCfg('regra_id', 0);
         if ($tipo === 'desregra' && !empty($fly['crianca'])) { apagarCfg('desregra_' . (int)$fly['crianca']); apagarCfg('regra_ok_' . (int)$fly['crianca']); }   // sem regra para tirar: já está bloqueada
@@ -158,7 +160,12 @@ function acaoPush(string $rota): void {
   $apagar = cfgComo('apagar_'); $mandar = cfgComo('mandar_'); $fotos = cfgComo('foto_'); $renomear = cfgComo('renomear_');
   if ($apagar) { $tipo = 'apagar'; $alvo = (int)reset($apagar); $cmd = pushComando('destroy_objects', ['object' => 'users', 'where' => ['users' => ['id' => $alvo]]]); }
   elseif (time() - (int)($st['relogio_em'] ?? 0) > 3600) { $tipo = 'relogio'; $cmd = pushComando('set_system_time', ['year' => (int)date('Y'), 'month' => (int)date('n'), 'day' => (int)date('j'), 'hour' => (int)date('G'), 'minute' => (int)date('i'), 'second' => (int)date('s')]); }
-  elseif ((float)($st['periodo'] ?? 0) > 4 && time() - (int)($st['periodo_ajuste_em'] ?? 0) > 3600) { $tipo = 'periodo'; $st['periodo_ajuste_em'] = time(); $cmd = pushComando('set_configuration', ['push_server' => ['push_request_period' => '3']]); }
+  elseif ((float)($st['periodo'] ?? 0) > periodoAlvo() + 0.7 && time() - (int)($st['periodo_ajuste2_em'] ?? 0) > 300) {
+    $alvo = periodoAlvo(); $n = (int)cfg('periodo_tentativas', 0) + 1;
+    if ($n > 3 && $alvo < 3) { $alvo++; gravarCfg('periodo_alvo', $alvo); $n = 1; }   // o aparelho não obedeceu: aceita um intervalo maior
+    gravarCfg('periodo_tentativas', $n);
+    $tipo = 'periodo'; $st['periodo_ajuste2_em'] = time(); $cmd = pushComando('set_configuration', ['push_server' => ['push_request_period' => (string)$alvo]]);
+  }
   elseif ($mandar) {
     foreach ($mandar as $k => $v) { $cr = crianca((int)$v); if ($cr && $cr['ativo'] && $cr['idface_id'] === null) { $cid = (int)$cr['id']; $tipo = 'criar'; $cmd = pushComando('create_objects', ['object' => 'users', 'values' => [['name' => mb_substr($cr['nome'], 0, 50), 'registration' => REGISTRO_PREFIXO . $cr['id']]]]); break; } apagarCfg($k); }
   }
@@ -194,7 +201,7 @@ function acaoPush(string $rota): void {
   }
   if (!$cmd && time() - (int)($st['usuarios_em'] ?? 0) > 60) { $tipo = 'usuarios'; $cmd = pushComando('load_objects', ['object' => 'users']); }
   if (!$cmd) {
-    if (microtime(true) - (float)($st['batidas_em'] ?? 0) < 2) { unset($st['inflight']); gravarCfg('push_estado', $st); exit; }
+    if (microtime(true) - (float)($st['batidas_em'] ?? 0) < 0.7) { unset($st['inflight']); gravarCfg('push_estado', $st); exit; }
     $tipo = 'batidas'; $st['batidas_em'] = microtime(true);
     $cmd = pushComando('load_objects', ['object' => 'access_logs', 'where' => ['access_logs' => ['id' => ['>' => ultimoLog($aparelho)]]]]);
   }
