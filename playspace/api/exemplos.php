@@ -1,10 +1,10 @@
 <?php
 /* =====================================================================
    Play Space — dados de exemplo: um dia cheio, para ver como a tela inicial fica com o espaço lotado.
-   33 crianças fictícias: 30 no espaço, com nomes, responsáveis e horários de entrada diferentes (umas acabaram de
+   34 crianças fictícias: 30 no espaço, com nomes, responsáveis e horários de entrada diferentes (umas acabaram de
    entrar, outras estão acabando o tempo, na tolerância ou já com cobrança por atraso; duas são PCD e duas entraram
-   com voucher) e 3 fora. Mais as vendas e os registros do dia, uma entrada cancelada para a supervisão conferir,
-   conversas no WhatsApp e alguns compromissos na agenda.
+   com voucher) e 4 fora, uma delas com o cadastro feito agora há pouco e o atendimento por fazer. Mais as vendas e os
+   registros do dia, uma entrada cancelada para a supervisão conferir, conversas no WhatsApp e alguns compromissos na agenda.
    Tudo o que entra aqui fica anotado em config 'exemplo' e sai inteiro com exemplosApagar().
    Nada é mandado ao iDFace nem ao WhatsApp: só entra no banco.
    ===================================================================== */
@@ -98,6 +98,9 @@ function exemplosCarregar(?int $por): array {
     ->execute([$id, 'Miguel', 'Carla Dias', $t(96), $t(90), $V, json_encode([['n' => $SN . ' · ' . dur($P), 'm' => $P, 'v' => $V]], JSON_UNESCAPED_UNICODE), 'A criança chorou e não quis ficar', $por, 'João (exemplo)', 'atendente']);
   $ven->execute([$id, round($P / 60, 2), $P, $V, $d(-1, '14:20'), $por, '', $SN, 0, '', 0, null]); $vis->execute([$id, $d(-1, '14:20'), $d(-1, '14:52'), $P, 'mão']);
   $db->prepare('UPDATE criancas SET pacote_min = ?, usado_min = ? WHERE id = ?')->execute([$P, $P, $id]);
+
+  // Marina: o cadastro foi feito agora há pouco e o atendimento ficou por fazer (aparece em "Falta finalizar" e abre direto no atendimento)
+  $ins->execute(['Marina', 0, 'Marcelo Antunes', '(11) 9 5493-2999', exemploCpf(63), '', 0, 0, null, $t(6), 0]); $ids[] = (int)$db->lastInsertId(); $nomeId['Marina'] = (int)$db->lastInsertId();
 
   // conversas no WhatsApp (nenhuma mensagem automática: só o que a família e a equipe escreveram)
   $id = $nomeId['Helena'];

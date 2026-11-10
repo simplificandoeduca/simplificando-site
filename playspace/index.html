@@ -681,6 +681,29 @@ body.quieto .dica { animation: none !important; }
 @media (max-width: 560px) { .esp-lista { grid-template-columns: 1fr; } .esp-cab .campo { min-width: 100%; order: -1; } }
 @media (max-width: 380px) { .esp-it .acoes-e .bt { padding: 0 8px; } .esp-it .acoes-e .bt .rt { display: none; } }
 [hidden] { display: none !important; }
+/* ---------- 0.79: "Falta finalizar": cada atendimento continua de onde parou ---------- */
+.pend { display: flex; flex-direction: column; gap: 7px; background: var(--aviso-bg); border-radius: 18px; padding: 10px 12px 12px; }
+.pend-cab { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pend-cab b { font-family: var(--display); font-weight: 800; font-size: 15px; }
+.pend-cab .pill { background: var(--aviso); color: var(--aviso-bg); height: 20px; padding: 0 8px; font-size: 11px; }
+.pend-cab small { font-size: 12px; color: var(--tinta-2); }
+.pend-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 5px; }
+.pend-it { display: flex; align-items: center; min-width: 0; height: 52px; background: var(--card); border: 1px solid var(--borda); border-radius: 14px; overflow: hidden; }
+.pend-it .quem { flex: 1; min-width: 0; height: 100%; display: flex; align-items: center; gap: 9px; padding: 0 8px 0 9px; text-align: left; }
+.pend-it .quem > svg { flex: none; color: var(--coral); }
+.pend-it .av { width: 34px; height: 34px; font-size: 12.5px; }
+.pend-it .av.lapis { -webkit-mask: none; mask: none; border-radius: 11px; background: var(--menta); color: var(--tinta); }
+.pend-it .txt { flex: 1; min-width: 0; }
+.pend-it .l1 { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.pend-it .l1 b { flex: 1; min-width: 0; font-family: var(--display); font-weight: 600; font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pend-it .l1 b i { font-style: normal; font-family: var(--texto); font-weight: 500; font-size: 12.5px; color: var(--tinta-2); }
+.pend-it .l2 { display: block; font-size: 12px; font-weight: 700; color: var(--aviso); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pend-it .q { flex: none; font-size: 11px; font-weight: 700; color: var(--tinta-2); }
+.pend-it .tirar { flex: none; width: 38px; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--apagado); border-left: 1px solid var(--borda); }
+.retoma { display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; background: var(--aviso-bg); border-radius: 14px; padding: 9px 12px; font-size: 13px; line-height: 1.35; }
+.retoma > svg { flex: none; color: var(--aviso); } .retoma > span { flex: 1; min-width: 190px; } .retoma .link { flex: none; }
+.marca.retoma-f { background: var(--aviso-bg); } .marca.retoma-f > svg { flex: none; color: var(--aviso); } .marca.retoma-f > span { flex: 1; min-width: 0; }
+@media (max-width: 560px) { .pend-lista { grid-template-columns: 1fr; } }
 /* ---------- atendimento: os serviços, a quantidade e o total a pagar ---------- */
 .servicos { display: flex; flex-direction: column; gap: 8px; }
 .serv { display: grid; grid-template-columns: 1fr auto 92px; align-items: center; gap: 10px; background: var(--card); border: 2px solid var(--borda); border-radius: 18px; padding: 10px 12px; }
@@ -830,6 +853,10 @@ const brl = v => 'R$ ' + (+v || 0).toLocaleString('pt-BR', { minimumFractionDigi
 const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 const SEMANA = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
 let uid = 100; const novoId = () => ++uid;
+// onde cada atendimento parou, para continuar dali sem voltar ao começo (vale até o fim do dia; no servidor fica guardado neste aparelho):
+// RASC = o que já estava escolhido no atendimento de cada criança e não foi registrado; RASC_CAD = os cadastros novos pela metade;
+// PEND_FORA = quem a equipe tirou de "Falta finalizar"; ETAPA_FEITA = a folha aberta já foi concluída (não é para guardar); CAD_K = a chave do cadastro novo aberto.
+let RASC = {}, RASC_CAD = [], PEND_FORA = {}, ETAPA_FEITA = true, CAD_K = 0;
 const guardar = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
 const lido = (k, p) => { try { const v = localStorage.getItem(k); return v == null ? p : JSON.parse(v); } catch (e) { return p; } };
 
@@ -870,7 +897,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.78';
+const VERSAO = '0.79';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -951,6 +978,9 @@ S.compras.push({ id: novoId(), crianca: 1, h: 5, m: 300, v: 800, servico: 'Recre
 S.compras = S.compras.filter(v => v.crianca !== 7); S.compras.push({ id: novoId(), crianca: 7, h: .5, m: 30, v: 80, servico: 'Recreação', itens: '', quando: antes(52), por: 'João' }, { id: novoId(), crianca: 7, h: .5, m: 30, v: 80, servico: 'Recreação', itens: 'cobrança por atraso', quando: antes(13), por: '', auto: true });
 S.criancas[6].venda = { h: .5, m: 30, v: 80, servico: 'Recreação', com: 'cobrança por atraso', quando: antes(13) };
 S.compras.sort((a, b) => b.quando - a.quando);
+// (prévia) dois atendimentos em aberto, para a faixa "Falta finalizar": a Marina acabou de ser cadastrada e falta escolher o serviço; para o Davi um carrinho já estava escolhido
+S.criancas.push({ id: 8, nome: 'Marina', idade: 0, resp: 'Marcelo Antunes', rel: 'responsável', tel: '(11) 9 7711-2040', tel2: '', doc: 'cpf', cpf: '935.411.347-80', obs: '', pcd: false, pacote: 0, usado: 0, entrou: null, rosto: false, foto: '', visitas: [], venda: null, sapateira: null, liberado: true, criado: antes(6) });
+RASC[6] = { n: 'Davi', q: { fusquinha: 1 }, pac: [], vq: 0, vcod: '', item: '', valor: '', entrar: null, reg: null, em: +antes(3) };
 // as entradas canceladas sem cobrar (prévia): uma de hoje, ainda para a supervisão conferir
 S.cancelamentos = [{ id: novoId(), crianca: 5, nome: 'Laura', resp: 'Bruno', entrou: antes(76), quando: antes(70), min: 6, valor: 80, itens: [{ n: 'Recreação · 30 min', m: 30, v: 80 }], motivo: 'A criança chorou e não quis ficar', por: 'João Pedro', papel: 'atendente', fora: false, visto_por: '', visto_em: null }];
 (function semear() {
@@ -1000,6 +1030,7 @@ async function carregar() { // devolve true quando algo mudou no servidor
     S.equipe = d.equipe || [];
     S.vendasHoje = d.vendas_hoje; S.atrasoHoje = d.atraso_hoje || null; S.descontosHoje = d.descontos_hoje || null; S.whats = d.whats; S.eu = d.eu; S.exemplo = d.exemplo || 0;
     S.cancelamentos = (d.cancelamentos || []).map(x => ({ ...x, entrou: dataDe(x.entrou), quando: dataDe(x.quando), visto_em: x.visto_em ? dataDe(x.visto_em) : null }));
+    S.pend = {}; for (const p of d.pendentes || []) S.pend[p.id] = dataDe(p.em);   // cadastro feito hoje e ainda sem atendimento (para "Falta finalizar")
     EU = { nome: d.eu.nome.split(' ')[0], nomeCompleto: d.eu.nome, papel: d.eu.papel, login: d.eu.login, id: d.eu.id };
     ABAS = TODAS_ABAS.filter(a => a[0] !== 'ajustes' || supervisorOuMais());
     if (!ABAS.some(a => a[0] === S.tela)) S.tela = 'horas';
@@ -1074,7 +1105,7 @@ function telaCriarGestor() {
     <div class="campo"><label for="g-senha">Senha (pelo menos 6 caracteres)</label><input id="g-senha" type="password" autocomplete="new-password"></div>
     <button class="bt forte largo tap" data-act="criar-gestor">${ic(IC.check)} Criar e entrar</button>`);
 }
-async function depoisDeEntrar() { await carregar(); desenhar(); conferirAtualizacao(false); }
+async function depoisDeEntrar() { lerEtapas(); await carregar(); desenhar(); conferirAtualizacao(false); }
 async function iniciar() {
   if (ATU.podeAqui) {
     try {
@@ -1132,7 +1163,7 @@ const esgotou = c => c.entrou ? restanteVivo(c) <= 0 : saldoMin(c) <= 0;
 const pctVivo = c => c.entrou ? (cobertoMin(c) ? Math.max(0, Math.min(100, restanteVivo(c) / (cobertoMin(c) * 60) * 100)) : 0) : (pacMin(c) ? Math.max(0, Math.min(100, saldoMin(c) / pacMin(c) * 100)) : 0);
 // quem está no espaço: no tempo, acabando (faltam poucos minutos) ou passou (a tolerância está correndo; depois dela nasce a cobrança por atraso)
 const situacaoTempo = c => passouSeg(c) > 0 ? 'passou' : restanteVivo(c) <= S.cfg.aviso * 60 ? 'acabando' : 'ok';
-const estado = c => c.entrou ? ({ passou: ['Passou do tempo', 'p-erro'], acabando: ['Acabando', 'p-aviso'], ok: ['No tempo', 'p-ok'] })[situacaoTempo(c)] : semHoras(c) ? ['Sem horas', 'p-neutro'] : temPeriodo(c) ? ['Com tempo', 'p-ok'] : ['Sem tempo', 'p-neutro'];
+const estado = c => !c.entrou && emAberto(c) ? ['Falta finalizar', 'p-aviso'] : c.entrou ? ({ passou: ['Passou do tempo', 'p-erro'], acabando: ['Acabando', 'p-aviso'], ok: ['No tempo', 'p-ok'] })[situacaoTempo(c)] : semHoras(c) ? ['Sem horas', 'p-neutro'] : temPeriodo(c) ? ['Com tempo', 'p-ok'] : ['Sem tempo', 'p-neutro'];
 const atrasoHoje = () => S.atrasoHoje || (L => ({ n: L.length, valor: L.reduce((a, v) => a + v.v, 0) }))((S.compras || []).filter(v => v.auto && agora - v.quando < 86400000));   // cobranças por atraso das últimas 24 h
 const textoCobranca = (x, c) => `Nova cobrança por atraso: ficou além do tempo comprado · ${x.n} +${dur(periodo())} · ${brl(precoDe(c, x.v))}${c && c.pcd ? ' · ' + rotPcd() : ''} a receber na saída`;
 // (prévia) o que saiu por voucher e com desconto PCD nas últimas 24 h
@@ -1303,29 +1334,31 @@ async function saidaServidor(c, corr) {
 }
 // o atendimento registra de uma vez o que foi escolhido: serviços (com a quantidade), pacotes e um item avulso.
 // linhas: [{ servico, min (minutos de brincar que entram no saldo), v, itens (detalhe) }]
-function linhasDoCarrinho() {
-  const L = [], k = CARRINHO; if (!k) return L; const c = crianca(k.id), st = servicoTempo();
+function linhasDoCarrinho(k = CARRINHO, item = val('v-item'), valor = val('v-valor')) { // sem argumentos: o atendimento aberto; com eles: um carrinho que ficou guardado
+  const L = []; if (!k) return L; const c = crianca(k.id), st = servicoTempo();
   for (const x of S.cfg.servicos || []) { const q = k.q[x.id] || 0; if (!q) continue;
     const pcd = !!(x.banco && c && c.pcd && pcdDesc() > 0), un = pcd ? precoDe(c, x.v) : x.v, mais = pcd ? { pcd: true, cheio: q * x.v } : {};   // a criança PCD paga o tempo de recreação com desconto
     if (x.modo === 'periodo') { const t = q * (x.min || 30); L.push({ s: x.id, q, servico: x.n, min: x.banco ? t : 0, v: q * un, itens: (x.banco ? '' : dur(t)) + (pcd ? rotPcd() : ''), ...mais }); }
     else L.push({ s: x.id, q, servico: x.n, min: 0, v: q * x.v, itens: (q > 1 ? q + ' unidades' + (x.obs ? ' · ' : '') : '') + (x.obs || '') }); }
   for (const i of k.pac) { const x = S.cfg.pacotes[i]; if (x) L.push({ pac: i, servico: '', min: x.h * 60, v: x.v, itens: x.com || '' }); }   // pacote de horas não tem o desconto PCD
   if (st && k.vq > 0) L.push({ vou: true, q: k.vq, servico: st.n, min: k.vq * (st.min || 30), v: 0, itens: 'voucher ' + String(k.vcod || '').trim(), voucher: String(k.vcod || '').trim(), cheio: k.vq * st.v });
-  const on = val('v-item'), ov = numero(val('v-valor')); if (on) L.push({ outro: true, servico: on, min: 0, v: ov >= 0 ? ov : 0, itens: '' });
+  const on = item, ov = numero(valor); if (on) L.push({ outro: true, servico: on, min: 0, v: ov >= 0 ? ov : 0, itens: '' });
   return L;
 }
 const nomeLinha = l => l.servico ? l.servico + (l.min ? ' · ' + dur(l.min) : '') + (l.itens ? ' · ' + l.itens : '') : (l.min === 60 ? 'Hora avulsa' : 'Pacote de ' + dur(l.min)) + (l.itens ? ' com ' + l.itens : '');
-async function registrarAtendimento(id) {
+async function registrarAtendimento(id, mesmoAssim) { // mesmoAssim: a equipe confirmou depois do aviso de que a criança já teve uma venda agora há pouco
+  const aberto = $('#folha .folha-fundo:not(.saindo) #v-ok'); if (!aberto || +aberto.dataset.id !== +id) { atender(id); return; }   // o atendimento desta criança precisa estar na tela (o aviso de venda repetida pode ser tocado depois de fechar)
   const c = crianca(id), L = linhasDoCarrinho(); if (!c) return; if (!L.length) { toast('Escolha o serviço'); return; }
   if (L.some(l => l.outro) && !(numero(val('v-valor')) >= 0)) { toast('Qual é o valor do outro item?'); $('#v-valor').focus(); return; }
   const vou = L.find(l => l.vou); if (vou && vou.voucher.length < 3) { toast('Escreva o código do voucher (ou de onde ele veio)'); const i = $('#v-voucher'); if (i) i.focus(); return; }
   const en = $('#v-entrar-campo'), entrar = !!en && !en.hidden && !!($('#v-entrar') || {}).checked;   // sem iDFace: pagou e já entra
+  const rasc = RASC[id] || null;   // se a venda for desfeita, o que estava escolhido volta
   const total = L.reduce((a, l) => a + l.v, 0), min = L.reduce((a, l) => a + l.min, 0), nome = c.nome, aviso = `Venda registrada para ${nome} · ${brl(total)}${min ? ' · +' + dur(min) + ' de recreação' : ''}`;
   if (MODO === 'servidor') {
     const bt = $('#v-ok'); if (bt) bt.disabled = true;
-    try { const o = L.find(l => l.outro), r = await api('atender', { id, linhas: L.filter(l => l.s).map(l => ({ s: l.s, q: l.q })), pacotes: L.filter(l => l.pac != null).map(l => l.pac), outro: o ? { n: o.servico, v: o.v } : null, voucher: vou ? { q: vou.q, codigo: vou.voucher } : null, entrar });
-      await carregar(); fecharFolha(); desenhar(); const k = crianca(id); toast((r.voucher_repetido ? `Atenção: este voucher já foi usado por ${r.voucher_repetido.nome} em ${diaCurto(dataDe(r.voucher_repetido.quando))}. ` : '') + aviso + (r.entrada ? ' · entrou' + (k && k.entrou ? ', tempo até ' + hora(fimVisita(k)) : '') : ''), async () => { try { if (r.entrada) await api('desfazer_entrada', { id, registro: r.entrada.registro, mensagem: r.entrada.mensagem }); await api('desfazer_venda', { vendas: r.vendas, registros: r.registros }); await carregar(); } catch (e) { toast(e.message); } desenhar(); }); }
-    catch (e) { toast(e.message); if (bt) bt.disabled = false; }
+    try { const o = L.find(l => l.outro), r = await api('atender', { id, linhas: L.filter(l => l.s).map(l => ({ s: l.s, q: l.q })), pacotes: L.filter(l => l.pac != null).map(l => l.pac), outro: o ? { n: o.servico, v: o.v } : null, voucher: vou ? { q: vou.q, codigo: vou.voucher } : null, entrar, visto: (CARRINHO && CARRINHO.visto) || 0, mesmo_assim: !!mesmoAssim });
+      await carregar(); atendimentoFeito(id); fecharFolha(); desenhar(); const k = crianca(id); toast((r.voucher_repetido ? `Atenção: este voucher já foi usado por ${r.voucher_repetido.nome} em ${diaCurto(dataDe(r.voucher_repetido.quando))}. ` : '') + aviso + (r.entrada ? ' · entrou' + (k && k.entrou ? ', tempo até ' + hora(fimVisita(k)) : '') : ''), async () => { voltarRascunho(id, rasc); try { if (r.entrada) await api('desfazer_entrada', { id, registro: r.entrada.registro, mensagem: r.entrada.mensagem }); await api('desfazer_venda', { vendas: r.vendas, registros: r.registros }); await carregar(); } catch (e) { toast(e.message); } desenhar(); }); }
+    catch (e) { if (bt) bt.disabled = false; if (e.status === 409) toast(e.message, () => registrarAtendimento(id, true), 'Registrar mesmo assim'); else toast(e.message); }   // 409: outro aparelho já registrou uma venda para esta criança
     return;
   }
   const era = { pacote: c.pacote, liberado: c.liberado, venda: c.venda }, novas = [], regs = [];
@@ -1336,8 +1369,8 @@ async function registrarAtendimento(id) {
     registrar('venda', c.nome, `${nomeLinha(l)} · ${brl(l.v)}`); regs.push(S.registros[0]); compra.reg = S.registros[0]; }
   let desfazEntrada = null;
   if (entrar && !c.entrou && temPeriodo(c)) { c.entrou = new Date(); c.atraso = null; registrar('ent', c.nome, 'Entrada registrada'); const regE = S.registros[0]; desfazEntrada = () => { c.entrou = null; S.registros = S.registros.filter(x => x !== regE); }; }
-  fecharFolha(); desenhar();
-  toast((rep ? `Atenção: este voucher já foi usado por ${(crianca(rep.crianca) || { nome: 'outra criança' }).nome} em ${diaCurto(rep.quando)}. ` : '') + aviso + (desfazEntrada ? ' · entrou, tempo até ' + hora(fimVisita(c)) : ''), () => { if (desfazEntrada) desfazEntrada(); Object.assign(c, era); S.compras = S.compras.filter(x => !novas.includes(x)); S.registros = S.registros.filter(x => !regs.includes(x)); });
+  atendimentoFeito(id); fecharFolha(); desenhar();
+  toast((rep ? `Atenção: este voucher já foi usado por ${(crianca(rep.crianca) || { nome: 'outra criança' }).nome} em ${diaCurto(rep.quando)}. ` : '') + aviso + (desfazEntrada ? ' · entrou, tempo até ' + hora(fimVisita(c)) : ''), () => { voltarRascunho(id, rasc); if (desfazEntrada) desfazEntrada(); Object.assign(c, era); S.compras = S.compras.filter(x => !novas.includes(x)); S.registros = S.registros.filter(x => !regs.includes(x)); });
 }
 function entrada(c, origem = 'iDFace') {
   if (!c || c.entrou) return;
@@ -1435,6 +1468,7 @@ function toast(txt, desfazer, rotulo) { // com rotulo, o botão faz uma ação (
   t.classList.add('ve'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('ve'), rotulo ? 10000 : desfazer ? 6000 : 2400);
 }
 function abrirFolha(titulo, html, rotulo) {
+  guardarEtapa(false);   // a folha que estava aberta e não foi concluída (atendimento, cadastro novo) fica guardada antes de trocar
   const f = $('#folha'); if (LADO && innerWidth < 820) fecharLado();   // no celular a aba do histórico ocupa a tela: sai para a folha aparecer
   f.innerHTML = `<div class="folha-fundo" data-fecha><div class="folha" role="dialog" aria-modal="true" aria-label="${esc(rotulo || titulo)}"><div class="alca"></div>
     <div class="cab-f"><h2>${titulo}</h2><button class="fechar tap" data-fecha aria-label="Fechar">${ic(IC.x, 18, 2.4)}</button></div>${html}</div></div>`;
@@ -1449,6 +1483,7 @@ function abrirFolha(titulo, html, rotulo) {
 }
 function fecharFolha() {
   const fundo = $('#folha .folha-fundo'); if (!fundo || fundo.classList.contains('saindo')) return;
+  guardarEtapa(true);   // fechou sem concluir: o atendimento (ou o cadastro novo) fica guardado para continuar de onde parou
   fundo.classList.add('saindo'); document.body.classList.remove('travado');
   setTimeout(() => { if (fundo.parentNode) fundo.remove(); }, 380);
 }
@@ -1506,7 +1541,7 @@ function corpoEspaco() {
   else h = `<div class="card vazio"><b>${q ? 'Ninguém no espaço com essa busca.' : 'Nenhuma criança neste filtro.'}</b>${f !== 'todas' ? `<button class="link tap" data-act="esp-filtro" data-f="todas">Ver todas as ${n} que estão no espaço</button>` : ''}</div>`;
   if (q.length >= 2) { // a busca também acha quem tem cadastro e não está no espaço: dá para atender dali mesmo
     const fora = S.criancas.filter(c => !c.entrou && casaBusca(c, q)).sort((a, b) => a.nome.localeCompare(b.nome)).slice(0, 8);
-    h += fora.length ? `<div class="esp-fora"><small class="rot">Com cadastro, fora do espaço</small><div class="grupo">${fora.map(c => `<div class="it"><button class="quem tap" data-act="ficha" data-id="${c.id}">${avatar(c)}<span class="txt"><b>${esc(c.nome)}</b><span>${esc(c.resp)}${c.tel ? ' · ' + esc(c.tel) : ''} · ${temPeriodo(c) ? hm(saldoMin(c)) + ' guardado' : 'sem tempo comprado'}</span></span></button>${semIdface() && temPeriodo(c) ? `<button class="bt forte tap" data-act="entrada-rapida" data-id="${c.id}">${ic(IC.entrar, 14)} Entrada</button>` : ''}<button class="bt ${temPeriodo(c) ? '' : 'forte'} tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 14)} Atender</button></div>`).join('')}</div></div>`
+    h += fora.length ? `<div class="esp-fora"><small class="rot">Com cadastro, fora do espaço</small><div class="grupo">${fora.map(c => `<div class="it"><button class="quem tap" data-act="ficha" data-id="${c.id}">${avatar(c)}<span class="txt"><b>${esc(c.nome)}</b><span>${esc(c.resp)}${c.tel ? ' · ' + esc(c.tel) : ''} · ${temPeriodo(c) ? hm(saldoMin(c)) + ' guardado' : 'sem tempo comprado'}${emAberto(c) ? ' · ' + esc(textoPend(c)) : ''}</span></span></button>${semIdface() && temPeriodo(c) ? `<button class="bt forte tap" data-act="entrada-rapida" data-id="${c.id}">${ic(IC.entrar, 14)} Entrada</button>` : ''}<button class="bt ${temPeriodo(c) ? '' : 'forte'} tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 14)} ${emAberto(c) ? 'Continuar' : 'Atender'}</button></div>`).join('')}</div></div>`
       : `<div class="esp-fora"><p class="explica">Ninguém com cadastro e fora do espaço nessa busca. <button class="link tap" data-act="nova">Cadastrar</button></p></div>`;
   }
   return h;
@@ -1542,7 +1577,7 @@ function telaHoras() {
   const usadasHoje = S.criancas.reduce((a, c) => a + c.visitas.filter(v => agora - new Date(v.dia) < 86400000).reduce((b, v) => b + v.deb, 0) + (c.entrou ? cobrar(minConta(c)) : 0), 0);
   const vendas = S.compras.filter(v => agora - v.quando < 86400000);   // tudo o que foi vendido nas últimas 24 h (recreação, carrinhos, pacotes)
   const minVend = S.vendasHoje ? (S.vendasHoje.min != null ? S.vendasHoje.min : (S.vendasHoje.horas || 0) * 60) : vendas.reduce((a, v) => a + minDe(v), 0), valorVend = S.vendasHoje ? S.vendasHoje.valor : vendas.reduce((a, v) => a + v.v, 0), nVend = S.vendasHoje ? S.vendasHoje.n : vendas.length;
-  return faixa('No espaço agora', n ? `${n} ${n === 1 ? 'criança' : 'crianças'}${passou ? ' · ' + passou + (passou === 1 ? ' passou' : ' passaram') + ' do tempo' : ''}` : 'Ninguém por enquanto', chipIdface()) + `
+  return faixa('No espaço agora', n ? `${n} ${n === 1 ? 'criança' : 'crianças'}${passou ? ' · ' + passou + (passou === 1 ? ' passou' : ' passaram') + ' do tempo' : ''}` : 'Ninguém por enquanto', chipIdface()) + htmlPend() + `
   <section class="espaco">
     <div class="esp-cab">
       <div class="dias" id="esp-filtros">${chipsEspaco()}</div>
@@ -1577,6 +1612,7 @@ function folhaFicha(id) {
   const c = crianca(id); if (!c) return; const [et, cls] = estado(c);
   abrirFolha(`${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}`, `
     <div class="linha">${avatarComUrso(c, 'g')}<div class="txt"><b style="white-space:normal">${esc(c.resp)}${relSabe(c) ? ', ' + esc(c.rel) : ''}</b>${c.pcd ? `<span style="white-space:normal"><em class="selo-pcd">Criança PCD</em> ${pcdDesc()}% de desconto na recreação avulsa</span>` : ''}<span style="white-space:normal">${esc(fones(c))}${c.cpf ? (fones(c) ? ' · ' : '') + esc(docTxt(c)) : ''}</span>${c.obs ? `<span style="color:var(--coral);font-weight:700;white-space:normal;overflow-wrap:anywhere">${esc(c.obs)}</span>` : ''}</div><span class="pill ${cls}">${et}</span></div>
+    ${emAberto(c) ? `<div class="marca retoma-f">${ic(IC.historico, 18)}<span><b>Atendimento em aberto:</b> ${esc(textoPend(c))}.</span><button class="bt forte tap" data-act="vender" data-id="${c.id}">Continuar</button></div>` : ''}
     ${semIdface() ? '' : `<div class="marca libera-ficha">${ic(IC.rosto, 18)}<span>${textoAcesso(c)}</span>${chave(c)}</div>`}
     <div class="marca sap-linha">${ic(IC.sapato, 18)}<span>${c.sapateira ? `<b>Sapateira ${c.sapateira}</b> · é onde está o sapato dela.` : `<b>Sem sapateira</b> · escolha onde fica o sapato enquanto ela brinca.`}</span><button class="bt tap" data-act="sapateira" data-id="${c.id}">${c.sapateira ? 'Trocar' : 'Escolher'}</button></div>
     ${c.entrou ? `<div class="marca">${ic(IC.horas, 18)}<span>Entrou às <b>${hora(c.entrou)}</b> e está há <b class="num" data-cron-txt="${c.id}">${hms(segDentro(c))}</b> no espaço. <span data-ficha-tempo="${c.id}">${tempoFicha(c)}</span></span></div><div data-ficha-atraso="${c.id}">${atrasoFicha(c)}</div><div data-ficha-cancela="${c.id}" data-estado="${estadoCancelar(c)}">${blocoCancelar(c)}</div>` : ''}
@@ -1596,6 +1632,97 @@ function folhaFicha(id) {
     <div class="sec"><div class="sec-cab"><h2 style="font-size:16px">Visitas</h2><span class="pill p-neutro">${c.visitas.length}</span></div>
       <div class="grupo">${c.visitas.length ? c.visitas.map(v => { const d = new Date(v.dia); return `<div class="it"><div class="txt"><b>${d.getDate()} de ${MESES[d.getMonth()]}</b><span>${v.entrou} às ${v.saiu}</span></div>${MODO === 'servidor' && supervisorOuMais() && v.id && agora - d < 2 * 86400000 ? `<button class="link tap" data-act="visita-corrigir" data-id="${c.id}" data-v="${v.id}" title="A criança saiu antes e a saída foi marcada tarde">Corrigir</button>` : ''}<span class="pill p-neutro">${dur(v.deb)}</span></div>`; }).join('') : '<div class="it"><span class="explica">Ainda não veio brincar.</span></div>'}</div>
     </div>`);
+}
+/* ---------- 0.79: cada atendimento continua de onde parou (as variáveis RASC, RASC_CAD, PEND_FORA, ETAPA_FEITA e CAD_K estão no alto) ---------- */
+const doDia = em => !!em && isoDia(new Date(em)) === isoDia(agora);
+function salvarEtapas() { if (MODO === 'servidor') guardar('ps-etapas', { rasc: RASC, cad: RASC_CAD, fora: PEND_FORA }); }   // na prévia fica só na memória
+function lerEtapas() { // ao entrar: o que este aparelho guardou hoje (o que é de outro dia sai)
+  const g = lido('ps-etapas', null) || {}; RASC = {}; RASC_CAD = []; PEND_FORA = {};
+  for (const id in g.rasc || {}) if (g.rasc[id] && doDia(g.rasc[id].em)) RASC[id] = g.rasc[id];
+  RASC_CAD = (Array.isArray(g.cad) ? g.cad : []).filter(d => d && d.k && doDia(d.em)).slice(-5);
+  for (const id in g.fora || {}) if (doDia(g.fora[id])) PEND_FORA[id] = g.fora[id];
+}
+// o carrinho como ficou guardado: só o que ainda existe na tabela de serviços e nos pacotes
+function carrinhoDe(c, r) {
+  const q = {}; for (const x of S.cfg.servicos || []) if (r.q && r.q[x.id] > 0) q[x.id] = Math.min(48, +r.q[x.id]);
+  const pac = [...new Set((r.pac || []).map(p => (S.cfg.pacotes || []).findIndex(y => y.h === p.h && y.v === p.v)).filter(i => i >= 0))];
+  return { id: c.id, q, pac, vq: servicoTempo() ? Math.max(0, Math.min(48, +r.vq || 0)) : 0, vcod: String(r.vcod || ''), entrar: r.entrar == null ? null : !!r.entrar };
+}
+const linhasDoRascunho = (c, r) => linhasDoCarrinho(carrinhoDe(c, r), r.item || '', r.valor || '');
+// reg = a última linha do dia que este aparelho conhecia ao guardar; uv = a última venda da criança (vem do servidor).
+// Saiu uma venda para ela depois (em outro aparelho): o atendimento já foi feito lá, e o que estava escolhido aqui deixa de valer
+const vendeuDepois = (c, r) => MODO === 'servidor' && r.reg != null && (c.uv || 0) > r.reg;
+// o que estava escolhido para esta criança e ainda vale (é de hoje, é da mesma criança, sobrou algum item e ninguém registrou a venda depois); senão, nada
+function rascunhoDe(id) {
+  const r = RASC[id]; if (!r) return null; const c = crianca(id);
+  if (c && r.n === c.nome && doDia(r.em) && !vendeuDepois(c, r) && linhasDoRascunho(c, r).length) return r;
+  delete RASC[id]; salvarEtapas(); return null;
+}
+// cadastro feito hoje e o atendimento ainda por fazer (sem venda, sem visita): no servidor a lista vem pronta; na prévia sai da hora do cadastro
+const pendEm = c => MODO === 'servidor' ? (S.pend || {})[c.id] : c.criado;
+const pendNovo = c => !!c && !c.entrou && !PEND_FORA[c.id] && (MODO === 'servidor' ? !!(S.pend || {})[c.id]
+  : doDia(c.criado) && !c.visitas.length && !S.compras.some(v => v.crianca === c.id) && !(S.cancelamentos || []).some(x => x.crianca === c.id));
+const emAberto = x => { const c = x && typeof x === 'object' ? x : crianca(x); return !!c && (!!rascunhoDe(c.id) || pendNovo(c)); };
+function textoPend(c) { // em que etapa parou o atendimento desta criança
+  const r = rascunhoDe(c.id); if (!r) return 'falta escolher o serviço';
+  const L = linhasDoRascunho(c, r), t = L.reduce((a, l) => a + l.v, 0);
+  return (t ? brl(t) + ' escolhido' : L.some(l => l.vou) ? 'voucher escolhido' : 'serviço escolhido') + ' · falta registrar';
+}
+// guarda (ou apaga, se ficou vazio) o que está escolhido no atendimento aberto. Devolve true quando ficou algo guardado
+function guardarRascunho() {
+  const k = CARRINHO, ok = $('#folha #v-ok'); if (ETAPA_FEITA || !k || !ok || +ok.dataset.id !== k.id) return false; const c = crianca(k.id); if (!c) return false;
+  const q = {}; for (const x of S.cfg.servicos || []) if (k.q[x.id] > 0) q[x.id] = k.q[x.id];
+  const item = val('v-item'), novo = { n: c.nome, q, pac: k.pac.map(i => (S.cfg.pacotes || [])[i]).filter(Boolean).map(p => ({ h: p.h, v: p.v })), vq: k.vq || 0, vcod: k.vq ? String(k.vcod || '') : '', item, valor: item ? val('v-valor') : '', entrar: k.entrar == null ? null : !!k.entrar, reg: MODO === 'servidor' ? ULT_REG : null };
+  const velho = RASC[c.id];
+  if (!Object.keys(q).length && !novo.pac.length && !novo.vq && !item) { if (velho) { delete RASC[c.id]; salvarEtapas(); } return false; }
+  if (velho && JSON.stringify({ ...velho, em: 0, reg: 0 }) === JSON.stringify({ ...novo, em: 0, reg: 0 })) return true;   // nada mudou: a hora em que parou continua a mesma
+  RASC[c.id] = { ...novo, em: Date.now() }; salvarEtapas(); return true;
+}
+function atendimentoFeito(id) { delete RASC[id]; delete PEND_FORA[id]; salvarEtapas(); ETAPA_FEITA = true; }   // a venda foi registrada: não há mais o que continuar
+function voltarRascunho(id, r) { if (r && crianca(id)) { RASC[id] = { ...r, em: Date.now(), reg: MODO === 'servidor' ? ULT_REG : null }; salvarEtapas(); } }   // a venda foi desfeita: o que estava escolhido volta para "Falta finalizar"
+function renomearRascunho(id, nome) { if (RASC[id]) { RASC[id].n = nome; salvarEtapas(); } }
+// o cadastro novo que está aberto: o que já foi escrito fica guardado (CAD_K é a chave dele na lista)
+const lerCadastro = () => ({ doc: docTipo(), cpf: val('f-cpf'), resp: val('f-resp'), tel: val('f-tel'), tel2: val('f-tel2'), nome: val('f-nome'), pcd: !!($('#f-pcd') || {}).checked, obs: val('f-obs'), sap: SAP_TEMP || 0 });
+function guardarCadastro() {
+  const b = $('#folha [data-act="salvar-crianca"]'); if (ETAPA_FEITA || !b || b.dataset.id) return false; const d = lerCadastro(), i = RASC_CAD.findIndex(x => x.k === CAD_K);
+  const peso = (d.doc === 'rne' ? rneLimpo(d.cpf) : soDig(d.cpf)).length + d.resp.length + soDig(d.tel).length + soDig(d.tel2).length + d.nome.length + d.obs.length;
+  if (peso < 4 || (!d.nome && clientePorDoc(d.doc, d.cpf).length)) { if (i >= 0) { RASC_CAD.splice(i, 1); salvarEtapas(); } return false; }   // quase nada escrito, ou só a consulta de quem já é cliente: não é um cadastro pela metade
+  const novo = { ...d, falta: faltaNoCadastro(null).map(x => x[1]) }, velho = i >= 0 ? RASC_CAD[i] : null;
+  if (velho && JSON.stringify({ ...velho, k: 0, em: 0 }) === JSON.stringify({ ...novo, k: 0, em: 0 })) return true;
+  if (!CAD_K) CAD_K = Date.now(); const reg = { ...novo, k: CAD_K, em: Date.now() };
+  if (i >= 0) RASC_CAD[i] = reg; else { RASC_CAD.push(reg); if (RASC_CAD.length > 5) RASC_CAD.shift(); }
+  salvarEtapas(); return true;
+}
+function cadastroFeito() { if (CAD_K) { RASC_CAD = RASC_CAD.filter(x => x.k !== CAD_K); CAD_K = 0; salvarEtapas(); } ETAPA_FEITA = true; }   // o cadastro foi salvo: sai da lista dos pela metade
+function continuarCadastro(k) { const d = RASC_CAD.find(x => x.k === k); if (d) folhaCrianca(null, d); }
+// ao fechar (ou trocar) a folha: o atendimento e o cadastro novo que não foram concluídos ficam guardados, e a tela diz onde continuar
+function guardarEtapa(avisa) {
+  if (ETAPA_FEITA) return; const f = $('#folha .folha-fundo:not(.saindo)'); if (!f) return;
+  const ok = $('#v-ok', f);
+  if (ok && CARRINHO && +ok.dataset.id === CARRINHO.id) {
+    const c = crianca(CARRINHO.id), tem = guardarRascunho(); ETAPA_FEITA = true; if (!c || (!tem && !pendNovo(c))) return;
+    desenhar(true); if (!avisa) return; const t = tem ? linhasDoRascunho(c, RASC[c.id]).reduce((a, l) => a + l.v, 0) : 0;
+    toast(tem ? `Atendimento de ${c.nome} guardado${t ? ': ' + brl(t) + ' escolhido' : ''}. Continua em "Falta finalizar".` : `${c.nome} ficou em "Falta finalizar": falta escolher o serviço.`, () => atender(c.id), 'Continuar');
+    return;
+  }
+  if ($('[data-act="salvar-crianca"]:not([data-id])', f)) {
+    const tem = guardarCadastro(), k = CAD_K; ETAPA_FEITA = true; if (!tem) return;
+    desenhar(true); if (avisa) toast('Cadastro guardado pela metade. Continua em "Falta finalizar".', () => continuarCadastro(k), 'Continuar');
+  }
+}
+// a faixa "Falta finalizar" da tela inicial: quem ficou com o cadastro ou o atendimento pela metade, do mais antigo para o mais novo
+function pendencias() {
+  const L = RASC_CAD.filter(d => doDia(d.em)).map(d => ({ tipo: 'cad', d, em: d.em }));
+  for (const c of S.criancas) { if (rascunhoDe(c.id)) L.push({ tipo: 'rasc', c, em: RASC[c.id].em }); else if (pendNovo(c)) L.push({ tipo: 'novo', c, em: +new Date(pendEm(c)) }); }
+  return L.sort((a, b) => a.em - b.em);
+}
+const textoCad = d => (d.nome ? 'cadastro pela metade' : 'pela metade') + ' · ' + (d.falta && d.falta.length ? 'falta ' + juntar(d.falta) : 'falta salvar');   // em que ponto parou o cadastro novo
+function htmlPend() {
+  const L = pendencias(); if (!L.length) return '';
+  return `<section class="pend" id="pend" aria-label="Falta finalizar"><div class="pend-cab"><b>Falta finalizar</b><span class="pill">${L.length}</span><small>toque para continuar de onde parou</small></div>
+    <div class="pend-lista">${L.map(p => p.tipo === 'cad'
+      ? `<div class="pend-it"><button class="quem tap" data-act="continuar" data-k="${p.d.k}"><span class="av lapis">${ic(IC.lapis, 16)}</span><span class="txt"><span class="l1"><b>${esc(p.d.nome || 'Cadastro novo')}${p.d.resp ? ` <i>· ${esc(p.d.resp)}</i>` : ''}</b><small class="q num">${hora(new Date(p.em))}</small></span><span class="l2" title="${esc(textoCad(p.d))}">${esc(textoCad(p.d))}</span></span>${ic(IC.vai, 16)}</button><button class="tirar tap" data-act="pend-tirar" data-k="${p.d.k}" title="Tirar da lista" aria-label="Tirar o cadastro pela metade da lista">${ic(IC.x, 14, 2.6)}</button></div>`
+      : `<div class="pend-it"><button class="quem tap" data-act="continuar" data-id="${p.c.id}">${avatar(p.c)}<span class="txt"><span class="l1"><b>${esc(p.c.nome)} <i>${p.c.entrou ? '· no espaço ' : ''}${p.c.resp ? '· ' + esc(p.c.resp) : ''}</i></b><small class="q num">${hora(new Date(p.em))}</small></span><span class="l2">${esc(textoPend(p.c))}</span></span>${ic(IC.vai, 16)}</button><button class="tirar tap" data-act="pend-tirar" data-id="${p.c.id}" title="Não vai fazer agora: tira da lista" aria-label="Tirar ${esc(p.c.nome)} da lista">${ic(IC.x, 14, 2.6)}</button></div>`).join('')}</div></section>`;
 }
 let CARRINHO = null;   // o que está sendo escolhido no atendimento: { id (criança), q: { idDoServiço: quantidade }, pac: [índices dos pacotes] }
 function linhasServico() {
@@ -1617,23 +1744,32 @@ function atualizarCarrinho() { // redesenha as linhas dos serviços e o total a 
   const m = $('#v-tempo'); if (m) { m.hidden = !min; m.textContent = min ? `Entra ${dur(min)} de recreação no saldo.` : ''; }
   const en = $('#v-entrar-campo'), cb = $('#v-entrar'), cr = crianca(CARRINHO.id); if (en) en.hidden = !(L.length && cr && saldoMin(cr) + min >= periodo());   // só oferece a entrada se a criança vai ter tempo para brincar
   if (cb && CARRINHO.entrar == null) cb.checked = min > 0;   // vem marcada quando a venda tem recreação; se a pessoa mexer, vale a escolha dela
+  guardarRascunho();   // o que está escolhido fica guardado: se fechar sem registrar, continua daqui
 }
 // o atendimento: quem é a criança, qual serviço ela quer e quanto dá. O valor a pagar aparece na hora
-function folhaVender(id) {
-  const c = crianca(id); if (!c) return; CARRINHO = { id: c.id, q: {}, pac: [], vq: 0, vcod: '' };
+function folhaVender(id, primeira) { // primeira: acabou de sair do cadastro (não precisa dizer que o cadastro foi feito)
+  const c = crianca(id); if (!c) return;
+  guardarEtapa(false);   // se outro atendimento estava aberto sem registrar, ele fica guardado antes de trocar
+  const r = rascunhoDe(c.id), fichaBt = `<button type="button" class="link tap" data-act="ficha-ver" data-id="${c.id}">Ver a ficha</button>`;
+  const nota = r ? `<p class="retoma" id="v-retoma">${ic(IC.historico, 16)}<span><b>Continuando de onde parou</b>, às ${hora(new Date(r.em))}: o que já estava escolhido voltou.</span><button type="button" class="link tap" data-act="atender-zero">Começar do zero</button>${fichaBt}</p>`
+    : !primeira && pendNovo(c) ? `<p class="retoma" id="v-retoma">${ic(IC.historico, 16)}<span><b>Cadastro feito às ${hora(new Date(pendEm(c)))}.</b> Falta escolher o serviço.</span>${fichaBt}</p>` : '';
+  CARRINHO = r ? carrinhoDe(c, r) : { id: c.id, q: {}, pac: [], vq: 0, vcod: '' }; ETAPA_FEITA = true;
+  CARRINHO.visto = MODO === 'servidor' ? ULT_REG : 0;   // a última linha do dia que esta tela conhecia ao abrir: o servidor avisa se a criança ganhou outra venda depois
   abrirFolha('Atendimento', `
     <div class="linha">${avatar(c)}<div class="txt"><b style="white-space:normal">${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}${c.pcd ? ` <em class="selo-pcd">${rotPcd()}</em>` : ''}</b><span style="white-space:normal">${esc(c.resp)}${fones(c) ? ' · ' + esc(fones(c)) : ''}</span><span style="white-space:normal">${semHoras(c) ? 'ainda sem tempo de recreação' : 'tem ' + hm(restante(c)) + ' de recreação'}${c.sapateira ? ' · sapateira ' + c.sapateira : ''}</span></div><button class="bt tap" data-act="historico" data-id="${c.id}">${ic(IC.historico)} Histórico</button></div>
     ${c.obs ? `<p class="h-obs">${ic(IC.sino, 14)}<span>${esc(c.obs)}</span></p>` : ''}
-    <div class="campo"><label>Qual serviço?</label><div class="servicos" id="v-servicos">${linhasServico()}</div></div>
+    ${nota}<div class="campo"><label>Qual serviço?</label><div class="servicos" id="v-servicos">${linhasServico()}</div></div>
     ${(S.cfg.pacotes || []).length ? `<div class="campo"><label>Pacotes de horas</label><div class="opcoes" id="v-pacotes">${S.cfg.pacotes.map((x, i) => `<button type="button" class="opc tap" data-act="pac-marca" data-i="${i}" aria-pressed="false"><b>${dur(x.h * 60)}</b><span>${brl(x.v)}</span>${x.com ? `<em>vem com ${esc(x.com)}</em>` : ''}</button>`).join('')}</div></div>` : ''}
-    <details class="outro"><summary>Outro item</summary><div class="outro-item"><input id="v-item" placeholder="O que foi" autocomplete="off" maxlength="40" aria-label="O que foi vendido"><input id="v-valor" inputmode="decimal" placeholder="R$" autocomplete="off" aria-label="Valor em reais"></div></details>
+    <details class="outro"${r && r.item ? ' open' : ''}><summary>Outro item</summary><div class="outro-item"><input id="v-item" value="${esc(r ? r.item || '' : '')}" placeholder="O que foi" autocomplete="off" maxlength="40" aria-label="O que foi vendido"><input id="v-valor" value="${esc(r ? r.valor || '' : '')}" inputmode="decimal" placeholder="R$" autocomplete="off" aria-label="Valor em reais"></div></details>
     <div class="pe-f"><span class="explica" id="v-tempo" hidden></span>${semIdface() && !c.entrou ? `<label class="marca" id="v-entrar-campo" hidden><input type="checkbox" id="v-entrar" checked><span><b>Dar entrada agora.</b> O tempo de recreação começa a contar ao registrar a venda.</span></label>` : ''}<div class="total"><span>Total a pagar</span><b class="num" id="v-total">R$ 0</b></div><button class="bt forte largo tap" id="v-ok" data-act="atender-ok" data-id="${c.id}" disabled>${ic(IC.check)} Escolha o serviço</button></div>`);
+  ETAPA_FEITA = false;   // daqui em diante, fechar sem registrar guarda o que foi escolhido
+  if (r) { const cb = $('#v-entrar'); if (cb && CARRINHO.entrar != null) cb.checked = CARRINHO.entrar; atualizarCarrinho(); }
 }
 // o atendimento completo: a venda no meio e, em tela larga, os dados e o histórico do cliente ao lado
-function atender(id) {
+function atender(id, primeira) {
   const c = crianca(id); if (!c) return; const jaAberto = LADO && crianca(LADO.id) && mesmoCliente(crianca(LADO.id), c);
   if (innerWidth >= 820 && !jaAberto) abrirHistorico(c.id);
-  folhaVender(c.id);
+  folhaVender(c.id, primeira);
 }
 // as restrições ficam no campo de observações; os atalhos só escrevem mais rápido (dá para apagar e mudar à vontade)
 const OBS_ATALHOS = [['', 'Sem restrição'], ['Alergia a ', 'Alergia'], ['Pode fazer pintura no rosto', 'Pode pintura'], ['Não fazer pintura no rosto', 'Sem pintura'], ['Pode mexer no cabelo', 'Pode mexer no cabelo'], ['Não mexer no cabelo', 'Não mexer no cabelo']];
@@ -1703,26 +1839,29 @@ function atualizarFalta() {
     let m = $('.msg-falta', campo); if (f) { if (!m) { m = document.createElement('span'); m.className = 'msg-falta'; campo.appendChild(m); } m.textContent = f[2] + '.'; } else if (m) m.remove();
   }
 }
-function folhaCrianca(c) {
+function folhaCrianca(c, d) { // d: um cadastro novo que ficou pela metade, para continuar
+  guardarEtapa(false);   // o que estava aberto e não foi concluído fica guardado antes de trocar de folha
   FOTO_TEMP = ''; CLIENTE_AUTO = null; CLIENTE_VISTO = ''; SAP_TEMP = 0;
   if (!c) { // cadastro novo: primeiro o responsável (documento, nome e telefones), depois a criança; as horas são vendidas à parte
-    abrirFolha('Cadastrar', `
+    d = d && RASC_CAD.includes(d) ? d : null; CAD_K = d ? d.k : 0; if (d && d.sap >= 1 && d.sap <= nSap() && !donoSap(d.sap)) SAP_TEMP = d.sap;   // a sapateira só volta marcada se continua livre
+    const v = d || { doc: 'cpf', cpf: '', resp: '', tel: '', tel2: '', nome: '', pcd: false, obs: '' }; ETAPA_FEITA = true;
+    abrirFolha('Cadastrar', `${d ? `<p class="retoma" id="f-retoma">${ic(IC.historico, 16)}<span><b>Continuando o cadastro de onde parou</b>, às ${hora(new Date(d.em))}.</span><button type="button" class="link tap" data-act="cadastro-zero">Começar do zero</button></p>` : ''}
     <div class="bloco-f"><small class="rot">Responsável</small>
-      <div class="dois alinha">${campoDoc('cpf', '')}
-        <div class="campo"><label for="f-resp">Nome do responsável<span class="obg" aria-hidden="true">*</span></label><input id="f-resp" autocomplete="off"></div></div>
+      <div class="dois alinha">${campoDoc(v.doc === 'rne' ? 'rne' : 'cpf', v.cpf)}
+        <div class="campo"><label for="f-resp">Nome do responsável<span class="obg" aria-hidden="true">*</span></label><input id="f-resp" value="${esc(v.resp)}" autocomplete="off"></div></div>
       <div id="f-cliente"></div>
-      ${camposTel('', '')}
+      ${camposTel(v.tel, v.tel2)}
     </div>
     <div class="bloco-f"><small class="rot">Criança</small>
-      <div class="campo"><label for="f-nome">Nome da criança<span class="obg" aria-hidden="true">*</span></label><input id="f-nome" autocomplete="off"></div>
-      <label class="marca" id="f-pcd-campo"><input type="checkbox" id="f-pcd"><span><b>Criança PCD.</b> Paga ${100 - pcdDesc()}% do valor na recreação avulsa. Pacote e carrinhos não têm desconto.</span></label>
-      <div class="campo"><label>Sapateira <span class="leve">· onde fica o sapato enquanto ela brinca</span></label>${gradeSap(0, 0, 'cadastro')}<span class="explica">As hachuradas já estão em uso. Pode deixar sem e escolher depois, na ficha; ela fica livre sozinha quando a criança sai.</span></div>
-      ${campoObs('')}
+      <div class="campo"><label for="f-nome">Nome da criança<span class="obg" aria-hidden="true">*</span></label><input id="f-nome" value="${esc(v.nome)}" autocomplete="off"></div>
+      <label class="marca" id="f-pcd-campo"><input type="checkbox" id="f-pcd"${v.pcd ? ' checked' : ''}><span><b>Criança PCD.</b> Paga ${100 - pcdDesc()}% do valor na recreação avulsa. Pacote e carrinhos não têm desconto.</span></label>
+      <div class="campo"><label>Sapateira <span class="leve">· onde fica o sapato enquanto ela brinca</span></label>${gradeSap(SAP_TEMP, 0, 'cadastro')}<span class="explica">As hachuradas já estão em uso. Pode deixar sem e escolher depois, na ficha; ela fica livre sozinha quando a criança sai.</span></div>
+      ${campoObs(v.obs)}
     </div>
     <p class="explica" style="text-align:center">Ao cadastrar, abre o atendimento: o serviço que a criança vai querer e o valor a pagar.</p>
     <div class="pe-f"><p class="falta-linha" id="f-falta"></p><button class="bt forte largo tap" data-act="salvar-crianca">${ic(IC.check)} Cadastrar</button></div>`);
-    FALTA_TENTOU = false; atualizarFalta();
-    if (window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches) setTimeout(() => { const i = $('#f-cpf'); if (i) i.focus(); }, 420);   // no computador, o cursor já começa no documento
+    ETAPA_FEITA = false; FALTA_TENTOU = false; if (d) { clienteNoCadastro(); marcarAtalhos(); } atualizarFalta();   // daqui em diante, fechar sem salvar guarda o que foi escrito
+    if (window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches) setTimeout(() => { const F = d ? faltaNoCadastro(null) : [], i = $('#' + (F.length ? F[0][0] : d ? 'f-nome' : 'f-cpf')); if (i) i.focus(); }, 420);   // no computador, o cursor já começa no documento (ou, ao continuar, no que falta)
     return;
   }
   const tipo = c.doc === 'rne' ? 'rne' : 'cpf';
@@ -1879,7 +2018,7 @@ function desenharLado() {
         <button class="quem tap" data-act="ficha" data-id="${c.id}" aria-label="Abrir a ficha de ${esc(c.nome)}">${avatar(c)}<span class="txt"><b>${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}</b><span>${c.entrou ? 'No espaço desde ' + hora(c.entrou) : u ? 'Veio por último em ' + diaCurto(new Date(u)) : 'Ainda não veio brincar'}${c.sapateira ? ' · sapateira ' + c.sapateira : ''}</span></span><span class="pill ${c.entrou ? 'p-ok' : cls}">${c.entrou ? 'No espaço' : et}</span></button>
         <div class="h-saldo"><span>comprou<b class="num">${hm(c.pacote * 60)}</b></span><span>consumiu<b class="num">${hm(usadoAgora(c))}</b></span><span class="tem">tem<b class="num">${hm(restante(c))}</b></span></div>
         ${c.obs ? `<p class="h-obs">${ic(IC.sino, 14)}<span>${esc(c.obs)}</span></p>` : ''}
-        <div class="acoes"><button class="bt forte tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 16)} Vender</button><button class="bt tap" data-act="renovar" data-id="${c.id}">${ic(IC.zap, 16)} ${semHoras(c) ? 'Mandar mensagem' : 'Chamar para renovar'}</button></div>
+        <div class="acoes"><button class="bt forte tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 16)} ${emAberto(c) ? 'Continuar o atendimento' : 'Vender'}</button><button class="bt tap" data-act="renovar" data-id="${c.id}">${ic(IC.zap, 16)} ${semHoras(c) ? 'Mandar mensagem' : 'Chamar para renovar'}</button></div>
       </div>`; }).join('')}</div>
     <div class="sec"><div class="sec-cab"><h2 style="font-size:16px">Compras</h2>${d ? `<span class="pill p-neutro">${d.vendas.length}</span>` : ''}</div>
       ${!d ? `<p class="explica">${LADO.erro ? esc(LADO.erro) : 'Buscando as compras…'}</p>` : d.vendas.length ? `<div class="grupo">${d.vendas.map(v => `<div class="it"><div class="txt"><b>${nomeCompra(v)}</b><span>${quandoFoi(v.quando)}${varias ? ' · para ' + esc(nomeDe(v.crianca)) : ''}${v.por ? ' · por ' + esc(primeiro(v.por)) : ''}</span></div><b class="num">${brl(v.v)}</b></div>`).join('')}</div>` : `<p class="explica">Nenhuma compra registrada ainda.</p>`}</div>
@@ -1948,7 +2087,7 @@ function linhasBanco() {
     <button class="quem tap" data-act="ficha" data-id="${c.id}" aria-label="Abrir a ficha de ${esc(c.nome)}">${avatar(c)}<span class="txt"><b>${esc(c.nome)}${c.idade ? ', ' + c.idade : ''}</b><span>${esc(c.resp)}${relP(c)}${c.tel ? ' · ' + esc(c.tel) : ''}</span></span></button>
     <div class="saldo-c">${blocos(c)}</div>
     <button class="ult tap" data-act="historico" data-id="${c.id}" title="Abrir o histórico de ${esc(c.resp)}"><small>Última contratação</small><b>${c.venda ? esc(nomeUltima(c)) + ' · ' + brl(c.venda.v) : 'Sem compra ainda'}</b><span>${c.venda ? diaCurto(c.venda.quando) + (c.entrou ? ' · no espaço agora' : '') : (c.entrou ? 'no espaço agora' : '')}</span><em>${ic(IC.historico, 13, 2.4)} Histórico</em></button>
-    <div class="acoes"><button class="bt ${baixo ? 'forte' : ''} tap" data-act="renovar" data-id="${c.id}" title="Chamar ${esc(c.resp)} no WhatsApp para renovar">${ic(IC.zap, 16)} ${baixo ? 'Chamar para renovar' : 'WhatsApp'}</button><button class="bt tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 16)} Vender</button></div>
+    <div class="acoes"><button class="bt ${baixo ? 'forte' : ''} tap" data-act="renovar" data-id="${c.id}" title="Chamar ${esc(c.resp)} no WhatsApp para renovar">${ic(IC.zap, 16)} ${baixo ? 'Chamar para renovar' : 'WhatsApp'}</button><button class="bt ${emAberto(c) ? 'forte' : ''} tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 16)} ${emAberto(c) ? 'Continuar' : 'Vender'}</button></div>
   </div>`; }).join('');
 }
 function telaBanco() {
@@ -2275,7 +2414,23 @@ function desenhar(quieto = false) { // quieto: redesenho da sincronia, sem as an
 }
 const val = id => ($('#' + id) || { value: '' }).value.trim();
 const ACOES = {
-  ficha: el => folhaFicha(el.dataset.id),
+  ficha: el => { const c = crianca(el.dataset.id); if (c && !c.entrou && emAberto(c)) atender(c.id); else folhaFicha(el.dataset.id); },   // atendimento em aberto: abre na etapa em que parou, não na ficha
+  'ficha-ver': el => folhaFicha(el.dataset.id),
+  continuar: el => { if (el.dataset.k) continuarCadastro(+el.dataset.k); else atender(+el.dataset.id); },
+  'pend-tirar': el => { // "não vai fazer agora": sai de "Falta finalizar" (com Desfazer). No servidor, quem só tinha o cadastro feito sai da lista em todos os aparelhos
+    if (el.dataset.k) { const i = RASC_CAD.findIndex(x => x.k === +el.dataset.k); if (i < 0) return; const [d] = RASC_CAD.splice(i, 1); salvarEtapas(); desenhar(true);
+      toast('Cadastro pela metade tirado da lista', () => { RASC_CAD.push(d); salvarEtapas(); }); return; }
+    const c = crianca(el.dataset.id); if (!c) return; const r = RASC[c.id], novo = pendNovo(c), em = pendEm(c), serv = MODO === 'servidor';
+    const fora = v => { if (!novo) return; if (!serv) { if (v) PEND_FORA[c.id] = Date.now(); else delete PEND_FORA[c.id]; return; }
+      if (v) delete S.pend[c.id]; else S.pend[c.id] = em; api('pendente_tirar', { id: c.id, voltar: !v }).catch(e => toast(e.message)); };
+    delete RASC[c.id]; salvarEtapas(); fora(true); desenhar(true);
+    toast(`${c.nome} saiu de "Falta finalizar"`, () => { if (r) RASC[c.id] = r; salvarEtapas(); fora(false); });
+  },
+  'atender-zero': () => { // começa o atendimento do zero: limpa o que estava escolhido
+    if (!CARRINHO || !$('#v-ok')) return; CARRINHO = { id: CARRINHO.id, visto: CARRINHO.visto, q: {}, pac: [], vq: 0, vcod: '' };
+    for (const k of ['v-item', 'v-valor']) { const i = $('#' + k); if (i) i.value = ''; } const n = $('#v-retoma'); if (n) n.remove(); atualizarCarrinho();
+  },
+  'cadastro-zero': () => { RASC_CAD = RASC_CAD.filter(x => x.k !== CAD_K); salvarEtapas(); ETAPA_FEITA = true; folhaCrianca(null); desenhar(true); },
   atualizar: () => ATU.nova ? folhaAtualizar() : conferirAtualizacao(true),
   'atualizar-agora': el => atualizarAgora(el),
   desfazer: () => { if (DESFAZ) { DESFAZ(); DESFAZ = null; } $('#toast').classList.remove('ve'); fecharFolha(); desenhar(); setTimeout(() => toast('Desfeito'), 50); },
@@ -2317,16 +2472,16 @@ const ACOES = {
     if (!id) { const ja = clientePorDoc(doc, cpf).find(x => x.nome.trim().toLowerCase() === nome.toLowerCase()); if (ja) { toast(`${ja.nome} já tem cadastro com este ${doc === 'rne' ? 'RNE' : 'CPF'}`, () => abrirHistorico(ja.id), 'Ver o histórico'); return; } }
     if (MODO === 'servidor') {
       const dados = id ? { id: +id, nome, idade: +val('f-idade') || 0, resp, tel, tel2, doc, cpf, obs, pcd } : { nome, resp, tel, tel2, doc, cpf, obs, pcd, sapateira: SAP_TEMP };
-      api('crianca_salvar', dados).then(async r => { await carregar(); fecharFolha(); desenhar();
+      api('crianca_salvar', dados).then(async r => { await carregar(); if (id) renomearRascunho(+id, nome); else cadastroFeito(); fecharFolha(); desenhar();
         if (id) { toast('Cadastro salvo'); return; }
-        if (innerWidth >= 820) toast(`${nome} cadastrada. Agora o atendimento.`); setTimeout(() => atender(r.id), 260); }).catch(async e => { toast(e.message); if (/sapateira/i.test(e.message)) { try { await carregar(); } catch (x) { } SAP_TEMP = 0; redesenharSap(); } });
+        if (innerWidth >= 820) toast(`${nome} cadastrada. Agora o atendimento.`); setTimeout(() => atender(r.id, true), 260); }).catch(async e => { toast(e.message); if (/sapateira/i.test(e.message)) { try { await carregar(); } catch (x) { } SAP_TEMP = 0; redesenharSap(); } });
       return;
     }
-    if (id) { const c = crianca(id); if (!!c.pcd !== pcd) registrar('cad', nome, (pcd ? `Marcada como criança PCD: ${pcdDesc()}% de desconto na recreação` : 'Deixou de estar marcada como criança PCD') + ' · por ' + EU.nome); Object.assign(c, { nome, idade: +val('f-idade') || c.idade, resp: resp || c.resp, tel, tel2, doc, cpf, obs, pcd }); toast('Cadastro salvo'); }
+    if (id) { const c = crianca(id); if (!!c.pcd !== pcd) registrar('cad', nome, (pcd ? `Marcada como criança PCD: ${pcdDesc()}% de desconto na recreação` : 'Deixou de estar marcada como criança PCD') + ' · por ' + EU.nome); Object.assign(c, { nome, idade: +val('f-idade') || c.idade, resp: resp || c.resp, tel, tel2, doc, cpf, obs, pcd }); renomearRascunho(c.id, nome); toast('Cadastro salvo'); }
     else {
       if (pcd) registrar('cad', nome, `Cadastrada como criança PCD: ${pcdDesc()}% de desconto na recreação · por ${EU.nome}`);
-      const c = { id: novoId(), nome, idade: 0, resp, rel: 'responsável', tel, tel2, doc, cpf, obs, pcd, pacote: 0, usado: 0, entrou: null, rosto: false, foto: '', visitas: [], venda: null, sapateira: SAP_TEMP || null, liberado: S.cfg.bloqueioAuto !== 'sim' }; S.criancas.push(c);
-      fecharFolha(); desenhar(); if (innerWidth >= 820) toast(`${nome} cadastrada. Agora o atendimento.`); setTimeout(() => atender(c.id), 260); return;
+      const c = { id: novoId(), nome, idade: 0, resp, rel: 'responsável', tel, tel2, doc, cpf, obs, pcd, pacote: 0, usado: 0, entrou: null, rosto: false, foto: '', visitas: [], venda: null, sapateira: SAP_TEMP || null, liberado: S.cfg.bloqueioAuto !== 'sim', criado: new Date() }; S.criancas.push(c);
+      cadastroFeito(); fecharFolha(); desenhar(); if (innerWidth >= 820) toast(`${nome} cadastrada. Agora o atendimento.`); setTimeout(() => atender(c.id, true), 260); return;
     }
     fecharFolha(); desenhar();
   },
@@ -2448,7 +2603,7 @@ const ACOES = {
   'equipe-apagar': el => { if (MODO === 'servidor') { api('usuario_apagar', { id: +el.dataset.id }).then(async () => { await carregar(); toast('Removida da equipe'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } S.equipe = S.equipe.filter(u => u.id !== +el.dataset.id); toast('Removida da equipe'); fecharFolha(); desenhar(); },
   entrar: async () => { try { await api('entrar', { login: val('l-login'), senha: ($('#l-senha') || { value: '' }).value }); ursoReage('feliz'); await espera(700); await depoisDeEntrar(); ligarSincronia(); } catch (e) { ursoReage('nao'); toast(e.message); } },
   'criar-gestor': async () => { try { await api('criar_gestor', { nome: val('g-nome'), login: val('g-login'), senha: ($('#g-senha') || { value: '' }).value }); ursoReage('feliz'); await espera(700); await depoisDeEntrar(); ligarSincronia(); } catch (e) { ursoReage('nao'); toast(e.message); } },
-  sair: async () => { if (MODO === 'servidor') { clearInterval(SYNC_T); try { await api('sair'); } catch (e) {} fecharFolha(); telaEntrar(); return; } toast('Na prévia não há login'); },
+  sair: async () => { if (MODO === 'servidor') { clearInterval(SYNC_T); try { await api('sair'); } catch (e) {} ETAPA_FEITA = true; RASC_CAD = []; salvarEtapas(); /* ao sair, os cadastros pela metade (dados do responsável) não ficam no aparelho */ fecharFolha(); telaEntrar(); return; } toast('Na prévia não há login'); },
   'trocar-senha': () => abrirFolha('Trocar a minha senha', `<div class="campo"><label for="s-atual">Senha atual</label><input id="s-atual" type="password" autocomplete="current-password"></div><div class="campo"><label for="s-nova">Senha nova (pelo menos 6)</label><input id="s-nova" type="password" autocomplete="new-password"></div><button class="bt forte largo tap" data-act="trocar-senha-ok">${ic(IC.check)} Trocar</button>`),
   'trocar-senha-ok': async () => { try { await api('trocar_senha', { atual: ($('#s-atual') || { value: '' }).value, nova: ($('#s-nova') || { value: '' }).value }); fecharFolha(); toast('Senha trocada'); } catch (e) { toast(e.message); } },
   whats: () => folhaWhats(), nada: () => {},
@@ -2464,7 +2619,7 @@ document.addEventListener('click', e => {
   const f = e.target.closest('[data-fecha]'); if (f && (f.tagName === 'BUTTON' || e.target === f)) fecharFolha();
 });
 document.addEventListener('change', e => {
-  const t = e.target; if (t.id === 'v-entrar' && CARRINHO) { CARRINHO.entrar = t.checked; return; }
+  const t = e.target; if (t.id === 'v-entrar' && CARRINHO) { CARRINHO.entrar = t.checked; guardarRascunho(); return; }
   if (t.dataset && t.dataset.cancVenda && CANCELA) { const id = +t.dataset.cancVenda; if (t.checked) CANCELA.fica.delete(id); else CANCELA.fica.add(id); resumoCancelar(); return; }
   if (t.type !== 'file' || !t.files || !t.files[0]) return;
   if (t.id === 'f-foto') lerFoto(t.files[0], url => { FOTO_TEMP = url; const prev = $('#f-foto-prev'); if (prev) { prev.classList.add('foto'); prev.style.backgroundImage = `url(${url})`; prev.innerHTML = ''; } const l = $('label[for="f-foto"]'); if (l) l.innerHTML = `${ic(IC.camera)} Tirar outra`; });
@@ -2479,8 +2634,9 @@ document.addEventListener('input', e => {
   if (['f-cpf', 'f-resp', 'f-tel', 'f-tel2', 'f-nome'].includes(e.target.id)) atualizarFalta();
   if (e.target.id === 'x-motivo') { const cp = $('#x-motivo-campo'); if (cp && e.target.value.trim().length >= 5) cp.classList.remove('falta'); }
   if (e.target.id === 'f-obs') marcarAtalhos();
+  if (/^f-(cpf|resp|tel|tel2|nome|obs)$/.test(e.target.id)) guardarCadastro();   // o cadastro novo vai ficando guardado enquanto é escrito
   if (e.target.id === 'v-item' || e.target.id === 'v-valor') atualizarCarrinho();
-  if (e.target.id === 'v-voucher' && CARRINHO) CARRINHO.vcod = e.target.value;
+  if (e.target.id === 'v-voucher' && CARRINHO) { CARRINHO.vcod = e.target.value; guardarRascunho(); }
   if (e.target.id === 'esp-busca') { S.espBusca = e.target.value; atualizarEspaco(); }
   if (e.target.id === 's-hora' && $('#s-conta')) previaSaida();
   if (e.target.id === 'banco-busca') { S.bancoBusca = e.target.value; const l = $('#banco-lista'); if (l) l.innerHTML = linhasBanco(); }
@@ -2495,6 +2651,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && ['l-login', 'l-senha'].includes(e.target.id)) { e.preventDefault(); e.target.id === 'l-login' ? $('#l-senha').focus() : ACOES.entrar(); }
   if (e.key === 'Enter' && ['g-nome', 'g-login', 'g-senha'].includes(e.target.id)) { e.preventDefault(); const prox = { 'g-nome': '#g-login', 'g-login': '#g-senha' }[e.target.id]; prox ? $(prox).focus() : ACOES['criar-gestor'](); }
 });
+window.addEventListener('storage', e => { if (e.key === 'ps-etapas' && MODO === 'servidor' && !document.body.classList.contains('so') && !$('#folha .folha-fundo')) { lerEtapas(); desenhar(true); } });   // outra aba deste aparelho guardou ou concluiu um atendimento
 window.addEventListener('hashchange', () => { const h = location.hash.slice(1); if (ABAS.some(a => a[0] === h) && h !== S.tela) trocarTela(h); });
 setInterval(() => {
   agora.setTime(Date.now());

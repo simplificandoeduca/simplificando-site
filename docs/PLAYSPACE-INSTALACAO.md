@@ -18,15 +18,15 @@ Os dados ficam fora da pasta pública, em `~/playspace-dados/` (criada sozinha n
 
 ## 2b. Teste com 30 crianças (botão no rodapé)
 
-Para ver como a tela fica com o espaço cheio, a gestora toca em **Teste: 30 crianças**, no rodapé de qualquer tela (ou em Ajustes → Dados de exemplo). Entram 33 crianças fictícias:
+Para ver como a tela fica com o espaço cheio, a gestora toca em **Teste: 30 crianças**, no rodapé de qualquer tela (ou em Ajustes → Dados de exemplo). Entram 34 crianças fictícias:
 
 - **30 no espaço agora**, com nomes, responsáveis e horários de entrada diferentes: umas acabaram de entrar (com o atalho de cancelar), outras estão no tempo, acabando, **na tolerância** e três **já com cobrança por atraso**; duas são **PCD** e duas entraram com **voucher**; algumas têm restrição anotada e duas estão sem sapateira.
-- **3 fora do espaço** (uma com a entrada cancelada, para a supervisão conferir; duas que já saíram hoje, uma delas com cobrança por atraso), para testar a busca.
+- **4 fora do espaço** (uma com a entrada cancelada, para a supervisão conferir; duas que já saíram hoje, uma delas com cobrança por atraso; e a **Marina**, com o cadastro feito agora há pouco e o atendimento por fazer, que aparece em **Falta finalizar**), para testar a busca.
 - Vendas e registros do dia, conversas no WhatsApp e compromissos na agenda.
 
 Elas se comportam como crianças de verdade: o tempo corre, a cobrança por atraso nasce sozinha, dá para dar saída, cancelar e vender. Nada vai para o iDFace nem para o WhatsApp. Nas crianças de teste o relógio não para na hora de fechar a loja, para o teste funcionar a qualquer hora.
 
-Para tirar, o mesmo botão vira **Tirar o teste**: saem as 33 crianças e tudo o que nasceu delas (vendas, cobranças, linhas do dia, conversas, agenda). Os cadastros de verdade ficam. Só a gestora coloca e tira o teste; a equipe vê as crianças de teste na tela enquanto elas estiverem lá.
+Para tirar, o mesmo botão vira **Tirar o teste**: saem as 34 crianças e tudo o que nasceu delas (vendas, cobranças, linhas do dia, conversas, agenda). Os cadastros de verdade ficam. Só a gestora coloca e tira o teste; a equipe vê as crianças de teste na tela enquanto elas estiverem lá.
 
 Na prévia (sem servidor) o mesmo botão existe e faz a mesma coisa na própria tela.
 
@@ -165,6 +165,7 @@ A primeira tela (aba **Espaço**) é a **lista de todas as crianças que estão 
 - **Cores**: verde = no tempo; amarelo = acabando (faltam 10 min ou menos); vermelho = passou do tempo comprado (a tolerância está correndo, e a linha mostra "passou 3:12"). Quem ganhou cobrança por atraso fica com o selo **+ R$ 80**.
 - De saída a lista vem por **Tempo**: quem está mais perto de estourar fica em cima. Dá para ordenar por **Entrada**, **Nome** ou **Sapateira**, e filtrar por *Acabando*, *Passou do tempo* e *Com cobrança*.
 - **Tocar na criança abre a ficha**: responsável, telefones, documento, restrições, sapateira, hora da entrada, até quando vai o tempo, quanto debita se sair agora, cobranças por atraso, histórico e os botões.
+- Acima da lista, a faixa **Falta finalizar** mostra quem ficou com o cadastro ou o atendimento pela metade (veja 6i). Ela só aparece quando há alguém nessa situação.
 - **Buscar** (criança, responsável, telefone ou CPF) filtra a lista e também acha quem tem cadastro e não está no espaço, com os botões **Entrada** (se tem um período guardado) e **Atender** (vender e dar entrada). A lista continua se atualizando sozinha com o cursor na busca.
 - Nos primeiros 9 minutos a linha traz o atalho de **cancelar** com o tempo que falta; o botão **Saída** abre a folha da saída.
 - Abaixo da lista ficam as dicas, os números do dia (horas vendidas, horas usadas, cobranças por atraso) e o atalho para o Banco de horas, onde está quem não está no espaço.
@@ -195,6 +196,28 @@ Quando a criança continua no espaço depois do **tempo comprado mais a tolerân
 - A venda fica anotada com o código ("Recreação · 30 min · voucher SHOP-0042 · R$ 0"). **Se o mesmo código já foi usado**, o sistema avisa na hora e marca na linha por quem e quando, para a supervisão conferir; ele não bloqueia, porque alguns vouchers não têm número único.
 - Passou do tempo do voucher mais a tolerância, a cobrança por atraso é normal (R$ 80, ou R$ 40 se a criança for PCD).
 - Em **Hoje na recepção** (bloco "Horas vendidas hoje"), um resumo mostra quantos vouchers e quantas vendas com desconto PCD houve nas últimas 24 h e quanto isso representou.
+
+## 6i. Falta finalizar: cada atendimento continua de onde parou
+
+O atendimento tem três etapas: **cadastro**, **escolher o serviço** e **registrar a venda** (com a entrada). Se a atendente é interrompida no meio, nada se perde: ao tocar naquele cliente de novo, a tela **abre na etapa em que parou**, com o que já estava preenchido.
+
+- **Faixa "Falta finalizar"**, no alto da tela inicial: uma linha para cada atendimento em aberto, com o nome da criança, o responsável, em que ponto parou e a hora. Tocar continua dali.
+  - *cadastro pela metade · falta um telefone e o nome da criança*: o cadastro novo foi fechado antes de salvar. Abre o cadastro com tudo o que já estava escrito (documento, responsável, telefones, nome, PCD, sapateira e observações).
+  - *falta escolher o serviço*: o cadastro foi feito hoje e a venda ainda não. Abre direto o atendimento.
+  - *R$ 80 escolhido · falta registrar*: o serviço já estava escolhido. Abre o atendimento com tudo de volta: quantidades, pacote, voucher com o código, outro item com o valor e a escolha de dar entrada.
+- **Tocar no cliente em qualquer lugar** (a busca da tela inicial, o Banco de horas, o histórico) faz a mesma coisa: enquanto o atendimento está em aberto, o toque abre o atendimento, não a ficha. O botão **Atender**/**Vender** vira **Continuar**. Para ver a ficha mesmo assim, o atendimento tem o atalho **Ver a ficha**.
+- **Criança que já está no espaço** e ficou com uma venda pela metade (ex.: mais 30 min): ela aparece na faixa, e o toque na linha dela continua abrindo a ficha, que mostra o aviso **Atendimento em aberto** com o botão **Continuar**.
+- **Fechou sem terminar?** Um aviso diz que ficou guardado e traz o botão **Continuar**. Dentro do atendimento retomado, **Começar do zero** limpa o que estava escolhido.
+- **Não vai fazer agora** (o cliente desistiu): o **✕** da linha tira da faixa, com Desfazer. Daí em diante o toque naquele cliente volta a abrir a ficha.
+- **Registrou a venda**, sai da faixa. Se a venda for desfeita no aviso, o que estava escolhido volta.
+- **Tudo vale até o fim do dia.** No dia seguinte a faixa começa vazia; o cadastro que ficou sem venda continua no Banco de horas, como qualquer cliente.
+
+O que é de todos os aparelhos e o que é de cada um:
+
+- **Cadastro feito e ainda sem venda** vem do servidor: aparece em todos os aparelhos, e o ✕ tira de todos.
+- **O que estava escolhido** (serviços, voucher, outro item) e **o cadastro pela metade** ficam guardados **no aparelho em que foram feitos**: continuam lá se a página for recarregada ou atualizada, e não aparecem nos outros aparelhos.
+- Ao **sair da conta**, os cadastros pela metade são apagados do aparelho (têm documento e telefone do responsável).
+- **Sem venda em dobro**: se a venda daquela criança for registrada em outro aparelho, o que estava escolhido aqui sai da faixa sozinho. E se o atendimento estiver aberto na tela nessa hora, ao tocar em Registrar o sistema avisa *"Já foi registrada uma venda para Mari às 14:05: Recreação · 30 min · R$ 80"* e só registra outra se a atendente tocar em **Registrar mesmo assim**.
 
 ## 7. Atualizar
 
