@@ -304,6 +304,8 @@ button.row:active{background:var(--ctl)}
 .cc.v-nu .logo,.cc.v-nuroxo .logo{position:absolute;left:8%;bottom:10%;font-size:clamp(14px,9cqw,30px);font-weight:900;letter-spacing:-.06em;line-height:1;color:#820AD1}
 .cc.v-nuroxo .logo{color:#fff}
 .cc.v-nu .biz{position:absolute;right:8%;bottom:12%;font-size:clamp(8px,4.4cqw,15px);font-weight:700;color:#820AD1}
+.cc.v-pix{background:#32BCAD;box-shadow:0 10px 24px rgba(50,188,173,.3);display:flex;align-items:center;justify-content:center}
+.cc.v-pix svg{height:70%;width:auto}.cc.v-pix.mini svg{height:86%}
 .rc .mini.cc{width:62px;aspect-ratio:1.586;border-radius:7px}
 .rc .mini.cc.v-nu{background:linear-gradient(160deg,#FFFFFF,#ECECEC)}.rc .mini.cc.v-nuroxo{background:linear-gradient(160deg,#9A2FE8,#7A0BC7)}.rc .mini.cc.v-caixa{background:linear-gradient(#DCDDDB,#D2D4D1)}
 .cc.v-nuroxo::before{background:linear-gradient(120deg,rgba(255,255,255,.22),rgba(255,255,255,0) 45%)}
@@ -464,7 +466,7 @@ function logo(){
 $('#logo').innerHTML = logo(); document.querySelector('.top .mic').innerHTML = I.mic;
 
 /* ========== estado ========== */
-const FINV = '10 nov · 27'; // Versão do Finanças: 10 nov · 27
+const FINV = '10 nov · 28'; // Versão do Finanças: 10 nov · 28
 const DONO = { nome:'Eduardo Matias', iniciais:'EM' }; // perfil único desta página
 const LS = 'simplificando-financas', LST = 'simplificando-financas-tema';
 const CATS = ['Mercado', 'Comida', 'Transporte', 'Casa', 'Lazer', 'Saúde', 'Roupas', 'Assinaturas', 'Outros'];
@@ -499,12 +501,14 @@ const fonte = id => S.fontes.find(f => f.id === id) || { id, nome:'(fonte apagad
 const swOf = c => 'var(--c' + ((c.cor ?? 7) % 8) + ')';
 const inMes = x => (x.data || '').slice(0, 7) === UI.mes;
 const gastosMes = () => S.gastos.filter(inMes);
+const PIX_SVG = '<svg viewBox="0 0 64 64" aria-label="Pix"><rect width="64" height="64" rx="14" fill="#32BCAD"/><g fill="none" stroke="#fff" stroke-width="5" stroke-linejoin="round"><path d="M32 13l8 8-8 8-8-8z"/><path d="M32 35l8 8-8 8-8-8z"/><path d="M21 24l8 8-8 8-8-8z"/><path d="M43 24l8 8-8 8-8-8z"/></g></svg>';
 const CAIXA_X = '<span class="x"><svg viewBox="0 0 100 90"><polygon points="0,0 28,0 100,90 72,90" fill="#1F3B61"/><polygon points="72,0 100,0 58,52 44,34" fill="#F38B00"/><polygon points="0,90 28,90 46,66 32,50" fill="#F38B00"/></svg></span>';
 const NFC = '<span class="nfc"><svg viewBox="0 0 24 24"><path d="M6 8a8 8 0 0 1 0 8M9.5 9.5a4.5 4.5 0 0 1 0 5M13 7a11 11 0 0 1 0 10"/></svg></span>';
 const VISUAIS = { liso:'Cor lisa', caixa:'Caixa Platinum', nu:'Nu business', nuroxo:'Nu roxo' };
 const corVis = c => c.visual === 'caixa' ? '#1F3B61' : (c.visual === 'nu' || c.visual === 'nuroxo') ? '#820AD1' : `var(--h${(c.cor ?? 7) % 8})`;
 const ccHTML = (c, extra, cls) => {
   const v = VISUAIS[c.visual] && c.visual !== 'liso' ? c.visual : '', nome = esc(c.nome.replace(/\s*\(.*?\)\s*/g, ' ').trim());
+  if (c.tipo === 'conta' && !v) return `<div class="cc v-pix ${cls || ''}">${PIX_SVG}</div>`;
   if (v === 'caixa') return `<div class="cc v-caixa ${cls || ''}"><div class="nm">${nome}</div><div class="chip"></div>${NFC}${CAIXA_X}</div>`;
   if (v === 'nu' || v === 'nuroxo') return `<div class="cc v-${v} ${cls || ''}"><span class="mc"><i></i><i></i></span><div class="chip"></div><div class="nm">${esc(DONO.nome)}</div><span class="logo">nu</span>${v === 'nu' ? '<span class="biz">business</span>' : ''}</div>`;
   return `<div class="cc ${cls || ''}" style="--ga:var(--g${(c.cor ?? 7) % 8});--gb:var(--h${(c.cor ?? 7) % 8})"><div class="chip"></div><div class="lg">${c.tipo === 'conta' ? 'Conta' : 'Crédito'}</div><div class="nm">${nome}</div><div class="no">${extra || (c.tipo === 'conta' ? 'Débito · Pix' : c.fecha ? 'Fecha dia ' + c.fecha : '')}</div></div>`;
@@ -717,7 +721,7 @@ function rResumo(){
   h += `<div class="card" style="padding:0;gap:0"><div class="hd" style="padding:18px 16px 8px"><h2>Meus cartões</h2><span class="pill">${esc(fmt(meus + doIrmao))}</span></div>`;
   for (const c of S.cartoes) {
     const its = gm.filter(g => g.cartao === c.id), v = sum(its, g => g.valor), vi = sum(its.filter(g => g.quem === 'irmao'), g => g.valor), f = faturaDe(c);
-    const pf = c.tipo === 'conta' ? null : pagosFatura(c, f), viF = f ? f.irmao : vi, sub = c.tipo === 'conta' ? 'Débito e Pix' + (vi ? ' · ' + n + ' ' + esc(fmt(vi)) : '') : 'Crédito' + (c.fecha ? ' · fecha dia ' + c.fecha : '') + ' · compras ' + esc(fmt(f ? f.total : v)) + ' · pago ' + esc(fmt(pf ? pf.total : 0)) + (viF ? ' · ' + n + ' ' + esc(fmt(viF)) + ' (incluído)' : '');
+    const pf = c.tipo === 'conta' ? null : pagosFatura(c, f), viF = f ? f.irmao : vi, sub = c.tipo === 'conta' ? 'Débito e Pix' + (vi ? ' · ' + n + ' ' + esc(fmt(vi)) : '') : 'Crédito' + (c.fecha ? ' · fecha dia ' + c.fecha : '') + ' · eu pago ' + esc(fmt((f ? f.total : v) - viF)) + (viF ? ' · ' + n + ' ' + esc(fmt(viF)) : '') + ' · já pago ' + esc(fmt(pf ? pf.total : 0));
     h += `<button type="button" class="rc" data-a="ver-cartao" data-k="${c.id}" style="--ga:var(--g${(c.cor ?? 7) % 8});--gb:${corVis(c)}">${ccHTML(c, '', 'mini')}<span class="tx"><b>${esc(c.nome)}</b><span>${sub}</span><span class="bar2"><i style="width:${Math.round((v - vi) / totCart * 100)}%"></i>${vi ? `<i class="ir" style="width:${Math.round(vi / totCart * 100)}%"></i>` : ''}</span></span><span class="v">${esc(fmt(pf && pf.total ? Math.max(0, (f ? f.total : v) - pf.total) : (f ? f.total : v)))}<small>${f ? 'fatura atual' : 'no mês'}</small></span><span class="chev">${I.chev}</span></button>`;
   }
   h += `<button type="button" class="rc novo" data-a="add-cartao-resumo">${I.plus}Novo cartão</button></div>`;
