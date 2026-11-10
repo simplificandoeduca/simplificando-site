@@ -27,7 +27,7 @@ $val = fn(string $k, string $p = '') => trim((string)($in[$k] ?? $p));
 function criancaPublica(array $c): array {
   return ['id' => (int)$c['id'], 'nome' => $c['nome'], 'idade' => (int)$c['idade'], 'resp' => $c['resp'], 'rel' => $c['rel'], 'tel' => $c['tel'], 'cpf' => $c['cpf'], 'obs' => $c['obs'],
     'pacote' => round((int)$c['pacote_min'] / 60, 2), 'usado' => (int)$c['usado_min'], 'entrou' => $c['entrou'], 'idface_id' => $c['idface_id'] === null ? null : (int)$c['idface_id'],
-    'rosto' => !empty($c['rosto']) || $c['idface_id'] !== null, 'foto' => (string)$c['foto'], 'ativo' => (bool)$c['ativo'], 'liberado' => !isset($c['liberado']) || (bool)$c['liberado']];
+    'rosto' => !empty($c['rosto']) || $c['idface_id'] !== null, 'foto' => (string)$c['foto'], 'ativo' => (bool)$c['ativo'], 'liberado' => !isset($c['liberado']) || (bool)$c['liberado'], 'sapateira' => isset($c['sapateira']) && $c['sapateira'] !== null ? (int)$c['sapateira'] : null];
 }
 function dados(array $eu): array {
   $db = db(); $hojeMenos = date('Y-m-d H:i:s', time() - 86400);
@@ -104,7 +104,7 @@ switch ($acao) {
     exigir(); session_write_close();
     $a = $db->query("SELECT COALESCE(MAX(id), 0) || ':' || COUNT(*) FROM registros")->fetchColumn();
     $b = $db->query("SELECT COALESCE(MAX(id), 0) || ':' || COUNT(*) || ':' || COALESCE(SUM(lida), 0) FROM mensagens")->fetchColumn();
-    $c = $db->query("SELECT COUNT(*) || ':' || COALESCE(SUM(pacote_min), 0) || ':' || COALESCE(SUM(usado_min), 0) || ':' || COALESCE(SUM(liberado), 0) || ':' || COALESCE(SUM(rosto), 0) || ':' || COALESCE(SUM(ativo), 0) || ':' || COALESCE(SUM(entrou IS NOT NULL), 0) || ':' || COALESCE(MAX(entrou), '') || ':' || COALESCE(SUM(idface_id), 0) || ':' || COALESCE(SUM(LENGTH(foto) + LENGTH(nome) + LENGTH(resp) + LENGTH(tel) + LENGTH(obs) + idade), 0) FROM criancas")->fetchColumn();
+    $c = $db->query("SELECT COUNT(*) || ':' || COALESCE(SUM(pacote_min), 0) || ':' || COALESCE(SUM(usado_min), 0) || ':' || COALESCE(SUM(liberado), 0) || ':' || COALESCE(SUM(sapateira), 0) || ':' || COALESCE(SUM(sapateira IS NOT NULL), 0) || ':' || COALESCE(SUM(rosto), 0) || ':' || COALESCE(SUM(ativo), 0) || ':' || COALESCE(SUM(entrou IS NOT NULL), 0) || ':' || COALESCE(MAX(entrou), '') || ':' || COALESCE(SUM(idface_id), 0) || ':' || COALESCE(SUM(LENGTH(foto) + LENGTH(nome) + LENGTH(resp) + LENGTH(tel) + LENGTH(obs) + idade), 0) FROM criancas")->fetchColumn();
     $d = $db->query("SELECT COUNT(*) || ':' || COALESCE(SUM(feito), 0) || ':' || COALESCE(MAX(id), 0) || ':' || COALESCE(SUM(LENGTH(titulo) + LENGTH(dia) + LENGTH(hora)), 0) FROM compromissos")->fetchColumn();
     $ps = cfg('push_estado', []); $pe = cfg('ponte_estado', []); $em = (is_array($ps) ? ($ps['em'] ?? null) : null) ?: (is_array($pe) ? ($pe['em'] ?? null) : null);
     $ap = ($em && time() - strtotime((string)$em) < 120) ? 1 : 0; $ic = cfg('idface', []); $lig = !is_array($ic) || !array_key_exists('ligado', $ic) || $ic['ligado'] ? 1 : 0;
@@ -127,20 +127,35 @@ switch ($acao) {
     $pac = (array)($in['pacote'] ?? []); $horas = max(0, (int)($pac['h'] ?? 0)); $valor = (float)($pac['v'] ?? 0);
     $foto = (string)($in['foto'] ?? ''); if ($foto !== '' && !preg_match('#^data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$#', $foto)) $foto = '';
     if (strlen($foto) > 1500000) falha('A foto ficou grande demais. Tire outra.');
+    $sap = max(0, (int)($in['sapateira'] ?? 0));   // a sapateira escolhida no cadastro (0 = nenhuma)
+    if ($sap > (int)regra()['sapateiras']) falha('Essa sapateira não existe.');
+    if ($sap && ($dono = donoSapateira($sap))) falha('A sapateira ' . $sap . ' já está com ' . $dono['nome'] . '. Escolha outra.');
     // o cadastro não vende mais o pacote: sem horas, o acesso nasce bloqueado (se a regra é bloquear sozinho) e a primeira venda libera
     $liberado = ($horas > 0 || regra()['bloqueioAuto'] !== 'sim') ? 1 : 0;
     $db->prepare('INSERT INTO criancas (nome, idade, resp, rel, tel, cpf, obs, pacote_min, usado_min, foto, foto_origem, rosto, liberado, criado_em) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?)')->execute([$d['nome'], $d['idade'], $d['resp'], $d['rel'], $d['tel'], $d['cpf'], $d['obs'], $foto, $foto !== '' ? 'celular' : '', $foto !== '' ? 1 : 0, $liberado, agora()]);
-    $id = (int)$db->lastInsertId(); $c = crianca($id);
+    $id = (int)$db->lastInsertId(); if ($sap) $db->prepare('UPDATE criancas SET sapateira = ? WHERE id = ?')->execute([$sap, $id]); $c = crianca($id);
     if ($horas > 0) fazerVenda($c, $horas, $valor, (int)$u['id']);
     gravarCfg('mandar_' . $id, $id); // vai para o iDFace (nome agora, foto quando o aparelho confirmar o cadastro)
     responder(['id' => $id]);
   }
   case 'crianca_apagar': {
     $u = exigir(['gestor', 'supervisor']); $c = crianca((int)($in['id'] ?? 0)); if (!$c) falha('Criança não encontrada.', 404);
-    $db->prepare('UPDATE criancas SET ativo = 0, idface_id = NULL WHERE id = ?')->execute([$c['id']]);
+    $db->prepare('UPDATE criancas SET ativo = 0, idface_id = NULL, sapateira = NULL WHERE id = ?')->execute([$c['id']]);
     if ($c['idface_id'] !== null) gravarCfg('apagar_' . (int)$c['idface_id'], (int)$c['idface_id']);
     apagarCfg('mandar_' . $c['id']); apagarCfg('foto_' . $c['id']);
     responder();
+  }
+  case 'sapateira': { // escolhe (ou tira, n = 0) a sapateira de uma criança; cada número só pode estar com uma criança de cada vez
+    exigir(); $c = crianca((int)($in['id'] ?? 0)); if (!$c || !$c['ativo']) falha('Criança não encontrada.', 404);
+    $n = (int)($in['n'] ?? 0); if ($n < 0 || $n > (int)regra()['sapateiras']) falha('Essa sapateira não existe.');
+    if ($n && ($dono = donoSapateira($n, (int)$c['id']))) falha('A sapateira ' . $n . ' já está com ' . $dono['nome'] . '. Escolha outra.');
+    $db->prepare('UPDATE criancas SET sapateira = ? WHERE id = ?')->execute([$n ?: null, $c['id']]);
+    responder(['sapateira' => $n ?: null, 'antes' => $c['sapateira'] === null ? null : (int)$c['sapateira']]);
+  }
+  case 'sapateira_liberar': { // deixa um número livre, esteja com quem estiver (para destravar uma sapateira esquecida)
+    exigir(); $n = (int)($in['n'] ?? 0); $dono = $n > 0 ? donoSapateira($n) : null;
+    if ($dono) $db->prepare('UPDATE criancas SET sapateira = NULL WHERE id = ?')->execute([$dono['id']]);
+    responder(['crianca' => $dono ? (int)$dono['id'] : null]);
   }
   case 'foto_salvar': {
     exigir(); $c = crianca((int)($in['id'] ?? 0)); if (!$c) falha('Criança não encontrada.', 404);
@@ -171,6 +186,7 @@ switch ($acao) {
     exigir(['gestor', 'supervisor']); $c = crianca((int)($in['id'] ?? 0)); if (!$c) falha('Nada para desfazer.');
     $q = $db->prepare('SELECT * FROM visitas WHERE id = ? AND crianca_id = ?'); $q->execute([(int)($in['visita'] ?? 0), $c['id']]); $v = $q->fetch(); if (!$v) falha('Nada para desfazer.');
     $db->prepare('UPDATE criancas SET entrou = ?, usado_min = MAX(0, usado_min - ?) WHERE id = ?')->execute([$v['entrou'], (int)$v['debitado_min'], $c['id']]);
+    $sap = (int)($in['sapateira'] ?? 0); if ($sap > 0 && !donoSapateira($sap, (int)$c['id'])) $db->prepare('UPDATE criancas SET sapateira = ? WHERE id = ?')->execute([$sap, $c['id']]);
     $db->prepare('DELETE FROM visitas WHERE id = ?')->execute([$v['id']]);
     if (!empty($in['registro'])) $db->prepare('DELETE FROM registros WHERE id = ? AND crianca_id = ?')->execute([(int)$in['registro'], $c['id']]);
     if (!empty($in['mensagem'])) $db->prepare('DELETE FROM mensagens WHERE id = ? AND crianca_id = ?')->execute([(int)$in['mensagem'], $c['id']]);
@@ -260,6 +276,7 @@ switch ($acao) {
     foreach (['arredonda' => [1, 15, 30, 60], 'cortesia' => [0, 5, 10, 15], 'minimo' => [0, 30, 60], 'aviso' => [30, 60, 120]] as $k => $ops) if (isset($in[$k]) && in_array((int)$in[$k], $ops, true)) $r[$k] = (int)$in[$k];
     if (isset($in['autoMsg']) && in_array($in['autoMsg'], ['ambos', 'entrada', 'nao'], true)) $r['autoMsg'] = $in['autoMsg'];
     if (isset($in['bloqueioAuto']) && in_array($in['bloqueioAuto'], ['sim', 'nao'], true)) $r['bloqueioAuto'] = $in['bloqueioAuto'];
+    if (isset($in['sapateiras'])) { $n = (int)$in['sapateiras']; if ($n < 1 || $n > 200) falha('Quantas sapateiras existem? De 1 a 200.'); $r['sapateiras'] = $n; }
     if (isset($in['pacotes']) && is_array($in['pacotes'])) {
       $ps = []; foreach ($in['pacotes'] as $p) { $h = (int)($p['h'] ?? 0); $v = (float)($p['v'] ?? 0); if ($h > 0 && $v >= 0) { $ps[$h] = ['h' => $h, 'v' => $v]; $com = mb_substr(trim((string)($p['com'] ?? '')), 0, 60); if ($com !== '') $ps[$h]['com'] = $com; } }
       if (!$ps) falha('Deixe pelo menos um pacote.'); ksort($ps); $r['pacotes'] = array_values($ps);

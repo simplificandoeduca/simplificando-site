@@ -179,7 +179,7 @@ body.so .rodape-global { display: none; }
 .a-hero .tit .txt span { display: block; font-size: 12.5px; opacity: .8; margin-top: 2px; }
 .a-hero .aneis { display: flex; gap: 10px; flex-wrap: wrap; margin-left: auto; justify-content: flex-end; }
 .a-hero .vazio-h { flex: 1; min-width: 200px; font-size: 13.5px; opacity: .85; text-align: right; }
-.anel { display: flex; flex-direction: column; align-items: center; gap: 3px; width: 116px; text-align: center; background: none; border: 0; padding: 4px 0; }
+.anel { position: relative; display: flex; flex-direction: column; align-items: center; gap: 3px; width: 116px; text-align: center; background: none; border: 0; padding: 4px 0; }
 @property --p { syntax: '<number>'; inherits: false; initial-value: 0; }
 .anel .r { width: 92px; height: 92px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: relative; background: conic-gradient(var(--c) calc(var(--p) * 1%), var(--anel-fundo, var(--menta-risco)) 0); transition: --p .8s var(--ios), background .6s; animation: enche 1s var(--ios) both; }
 @keyframes enche { from { --p: 0; } }
@@ -603,6 +603,16 @@ body.quieto .dica { animation: none !important; }
 .outro-item { display: grid; grid-template-columns: 1fr 96px auto; gap: 8px; align-items: center; }
 .outro-item .bt { height: 46px; }
 @media (max-width: 420px) { .outro-item { grid-template-columns: 1fr 84px; } .outro-item .bt { grid-column: 1 / -1; justify-content: center; } }
+/* ---------- sapateiras: a grade de números (as em uso ficam hachuradas) e o selo no anel da criança ---------- */
+.sapateiras { display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 6px; }
+.sap { height: 38px; border-radius: 11px; border: 1.5px solid var(--borda-2); background: var(--card); font-family: var(--display); font-weight: 800; font-size: 14px; color: var(--tinta); }
+.sap[aria-pressed="true"] { background: var(--coral); border-color: var(--coral); color: #fff; }
+.sap.oc { color: var(--apagado); border-color: var(--borda); background: repeating-linear-gradient(135deg, var(--borda-2) 0 2px, transparent 2px 7px), var(--creme-2); }   /* hachurada: já tem sapato de outra criança */
+.campo label .leve { font-weight: 600; color: var(--apagado); }
+.marca.sap-linha .bt { background: var(--card); flex: none; margin-left: auto; }
+.sapb { position: absolute; top: 0; left: 6px; z-index: 2; height: 22px; min-width: 22px; padding: 0 7px 0 5px; border-radius: 999px; background: var(--tinta); color: var(--creme); font-family: var(--display); font-weight: 800; font-size: 11.5px; line-height: 1; display: inline-flex; align-items: center; gap: 3px; box-shadow: 0 2px 6px rgba(0, 0, 0, .18); }
+.sapb svg { flex: none; }
+.sapb.vazia { background: var(--card); color: var(--tinta-2); border: 1.5px dashed var(--borda-2); box-shadow: none; padding: 0 4px; }
 /* ---------- histórico do cliente: uma aba à direita (no celular, a tela toda) ---------- */
 #lado { position: fixed; inset: 0; z-index: 41; pointer-events: none; display: flex; justify-content: flex-end; }
 .lado { pointer-events: auto; width: 100%; height: 100%; overflow: auto; background-color: var(--creme); box-shadow: -14px 0 50px rgba(0, 0, 0, .2); padding: max(10px, env(safe-area-inset-top, 0px)) max(18px, env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom, 0px)) max(18px, env(safe-area-inset-left, 0px)); display: flex; flex-direction: column; gap: 14px; transform: translateX(104%); transition: transform .45s var(--ios); overscroll-behavior: contain; }
@@ -757,6 +767,7 @@ const IC = {
   sino: '<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 21h4"/>',
   renova: '<path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/>',
   camera: '<path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/>',
+  sapato: '<path d="M2 18V10l4 1 3-2.5 5 5 5 1c1.8.3 3 1.3 3 3V18z"/><path d="M10.6 10.1l-1.6 1.6M12.6 12.1l-1.6 1.6"/>',
   historico: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7.5V12l3 2"/>',
   presente: '<rect x="3" y="9" width="18" height="12" rx="2"/><path d="M3 13h18M12 9v12M12 9c-3 0-5-1.5-5-3.5S9.5 3 12 9c2.5-6 5-5.5 5-3.5S15 9 12 9z"/>',
 };
@@ -765,7 +776,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.68';
+const VERSAO = '0.69';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -796,7 +807,7 @@ async function atualizarAgora(bt) {
 }
 const S = {
   tela: 'horas', zapAberta: 1, zapModo: 'lista', zapDia: isoDia(agora), mes: { y: agora.getFullYear(), m: agora.getMonth() }, diaSel: isoDia(agora),
-  cfg: { arredonda: 1, cortesia: 10, minimo: 0, aviso: 30, autoMsg: 'ambos', bloqueioAuto: 'sim', pacotes: [{ h: 1, v: 60 }, { h: 5, v: 250 }, { h: 10, v: 450 }, { h: 20, v: 800, com: 'meia antiderrapante' }], extras: [{ n: 'Carrinho', v: 30 }, { n: 'Meia antiderrapante', v: 15 }], idface: { ip: '192.168.0.129', nome: 'Recepção', ligado: true, ultima: antes(0.2) }, tema: lido('ps-tema', 'sistema'), anim: lido('ps-anim', 'auto') },
+  cfg: { arredonda: 1, cortesia: 10, minimo: 0, aviso: 30, autoMsg: 'ambos', bloqueioAuto: 'sim', pacotes: [{ h: 1, v: 60 }, { h: 5, v: 250 }, { h: 10, v: 450 }, { h: 20, v: 800, com: 'meia antiderrapante' }], extras: [{ n: 'Carrinho', v: 30 }, { n: 'Meia antiderrapante', v: 15 }], sapateiras: 44, idface: { ip: '192.168.0.129', nome: 'Recepção', ligado: true, ultima: antes(0.2) }, tema: lido('ps-tema', 'sistema'), anim: lido('ps-anim', 'auto') },
   equipe: [{ id: 1, nome: 'Camila Duarte', papel: 'gestor', login: 'camila' }, { id: 2, nome: 'Beatriz Lima', papel: 'supervisor', login: 'bia' }, { id: 3, nome: 'João Pedro', papel: 'atendente', login: 'jp' }],
   whats: { conectado: true, numero: '5511912345678', nome: 'Play Space' }, vendasHoje: null,
   criancas: [
@@ -830,6 +841,7 @@ const S = {
 };
 // compromissos do mês: as oficinas reais de novembro e alguns exemplos
 S.criancas.forEach((c, i) => { c.venda = { h: c.pacote, v: (S.cfg.pacotes.find(p => p.h === c.pacote) || { v: c.pacote * 50 }).v, quando: antes(1440 * (2 + i * 3)) }; });   // a última contratação de cada uma, para a aba Banco de horas
+S.criancas[0].sapateira = 12; S.criancas[1].sapateira = 7; S.criancas[2].sapateira = 23;   // quem está no espaço já guardou o sapato
 Object.assign(S.criancas[0].venda, { h: 5, v: 250 }); S.criancas[4].venda.quando = antes(260); S.criancas[5].venda.quando = antes(140);   // Helena comprou em duas vezes; Laura e Davi compraram hoje
 // todas as compras (prévia): a contratação de cada criança e alguns produtos à parte, para o histórico do cliente
 S.compras = S.criancas.map(c => ({ id: novoId(), crianca: c.id, h: c.venda.h, v: c.venda.v, itens: c.venda.h === 20 ? 'meia antiderrapante' : '', quando: c.venda.quando, por: 'Camila' }));
@@ -910,8 +922,10 @@ function anunciar(antes) {
   const novos = S.registros.filter(r => r.id > antes && (r.tipo === 'ent' || r.tipo === 'sai')); if (!novos.length) return;
   const r = novos[0]; S.chegou = r.tipo === 'ent' ? r.crianca : 0; setTimeout(() => { S.chegou = 0; }, 1800);
   const cr = crianca(r.crianca);
-  if (r.tipo === 'sai' && cr && restante(cr) <= 0) { toast(`As horas de ${cr.nome} acabaram. Chame ${primeiro(cr.resp)} para renovar.`, () => ACOES.renovar({ dataset: { id: cr.id } }), 'Chamar no WhatsApp'); return; }
-  toast(r.tipo === 'ent' ? `${r.nome} entrou · ${hora(r.h)}. O tempo já está correndo.` : `${r.nome} saiu · ${r.txt}`);
+  const sapSaida = r.tipo === 'sai' ? (String(r.txt).match(/sapateira (\d+)/) || [])[1] : '';
+  if (r.tipo === 'sai' && cr && restante(cr) <= 0) { toast(`${sapSaida ? 'Sapato na sapateira ' + sapSaida + '. ' : ''}As horas de ${cr.nome} acabaram. Chame ${primeiro(cr.resp)} para renovar.`, () => ACOES.renovar({ dataset: { id: cr.id } }), 'Chamar no WhatsApp'); return; }
+  if (r.tipo === 'ent' && cr && !cr.sapateira) { toast(`${r.nome} entrou · ${hora(r.h)}. O tempo já está correndo.`, () => folhaSapateira(cr.id), 'Sapateira'); return; }
+  toast(r.tipo === 'ent' ? `${r.nome} entrou · ${hora(r.h)}${cr && cr.sapateira ? ' · sapateira ' + cr.sapateira : ''}. O tempo já está correndo.` : `${r.nome} saiu${sapSaida ? ' · sapato na sapateira ' + sapSaida : ''} · ${String(r.txt).replace(/ · sapato na sapateira \d+/, '')}`);
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { PULSO_N = 14; sincronizar(); } });
 // os bichinhos da tela de entrar: o ursinho (corpo atrás do cartão, patinhas na frente), o passarinho no canto e o coelhinho de lado
@@ -1041,6 +1055,41 @@ const cpfValido = v => { const d = soDig(v); if (d.length !== 11 || /^(\d)\1{10}
 const iniciais = n => String(n || '').trim().split(/\s+/).map(x => x[0] || '').slice(0, 2).join('').toUpperCase();
 const numero = t => { t = String(t == null ? '' : t).trim().replace(/[^\d.,]/g, ''); if (t === '') return NaN; return t.includes(',') ? +t.replace(/\./g, '').replace(',', '.') : +t; };   // "30", "30,50", "1.250,00"
 const semHoras = c => !(c.pacote > 0);   // cadastrada, mas ainda não comprou nenhuma hora
+/* ---------- sapateiras: onde fica o sapato da criança enquanto ela brinca (cada número com uma criança de cada vez) ---------- */
+const nSap = () => Math.max(1, Math.min(200, Math.round(+S.cfg.sapateiras) || 44));
+const donoSap = n => S.criancas.find(c => c.sapateira === n) || null;   // quem está usando aquele número agora
+let SAP_TEMP = 0;   // a sapateira marcada no cadastro (vale quando salvar)
+// a grade de números. modo 'cadastro' (só marca), 'crianca' (escolhe na hora, para a criança `de`) ou 'mapa' (só mostra)
+function gradeSap(sel, de = 0, modo = 'cadastro') {
+  return `<div class="sapateiras" data-de="${de || ''}" data-modo="${modo}">${Array.from({ length: nSap() }, (_, k) => { const n = k + 1, d = donoSap(n), oc = d && d.id !== +de; return `<button type="button" class="sap tap ${oc ? 'oc' : ''}" data-act="sap-escolher" data-n="${n}" aria-pressed="${!oc && sel === n}" ${oc ? `data-com="${esc(d.nome)}" title="Em uso: ${esc(d.nome)}" aria-label="Sapateira ${n}, em uso por ${esc(d.nome)}"` : `aria-label="Sapateira ${n}, livre"`}>${n}</button>`; }).join('')}</div>`;
+}
+// redesenha as grades que estiverem abertas (cadastro, seletor, mapa) depois que uma sapateira mudou de mão
+function redesenharSap() { $$('.sapateiras').forEach(g => { const de = +g.dataset.de || 0, c = de ? crianca(de) : null; g.outerHTML = gradeSap(c ? c.sapateira || 0 : SAP_TEMP, de, g.dataset.modo); }); }
+async function escolherSap(id, n) { // n = 0 deixa a criança sem sapateira
+  const c = crianca(id); if (!c) return; const antes = c.sapateira || 0, nome = c.nome;
+  const aplicar = async v => { if (MODO === 'servidor') { await api('sapateira', { id, n: v }); await carregar(); } else crianca(id).sapateira = v || null; };
+  try { await aplicar(n); } catch (e) { toast(e.message); if (MODO === 'servidor') { try { await carregar(); } catch (x) { } } redesenharSap(); return; }
+  fecharFolha(); desenhar();
+  toast(n ? `${nome} na sapateira ${n}` : `Sapateira ${antes} livre de novo`, async () => { try { await aplicar(antes); } catch (e) { toast(e.message); } desenhar(); });
+}
+async function liberarSap(n) { // tira o número de quem estiver com ele (sapateira esquecida)
+  const d = donoSap(n); if (!d) return;
+  try { if (MODO === 'servidor') { await api('sapateira_liberar', { n }); await carregar(); } else d.sapateira = null; } catch (e) { toast(e.message); return; }
+  redesenharSap(); desenhar(true); toast(`Sapateira ${n} livre`);
+}
+function folhaSapateira(id) {
+  const c = crianca(id); if (!c) return;
+  abrirFolha(`Sapateira de ${esc(c.nome)}`, `<p class="explica">${c.sapateira ? `O sapato de ${esc(c.nome)} está na <b>sapateira ${c.sapateira}</b>. Toque em outro número para trocar.` : `Toque no número onde ficou o sapato de ${esc(c.nome)}.`} As hachuradas já estão em uso. A sapateira fica livre sozinha quando a criança sai.</p>
+    ${gradeSap(c.sapateira || 0, c.id, 'crianca')}
+    ${c.sapateira ? `<button class="bt claro largo tap" data-act="sap-tirar" data-id="${c.id}">Deixar sem sapateira</button>` : ''}`);
+}
+function folhaSapMapa() {
+  const usadas = S.criancas.filter(c => c.sapateira).sort((a, b) => a.sapateira - b.sapateira);
+  abrirFolha('Sapateiras', `<p class="explica">As hachuradas estão em uso. Toque numa delas para ver com quem está e, se o sapato já saiu de lá, liberar.</p>
+    ${gradeSap(0, 0, 'mapa')}
+    ${usadas.length ? `<div class="grupo">${usadas.map(c => `<button class="it tap" data-act="ficha" data-id="${c.id}"><span class="pill p-neutro">${c.sapateira}</span><div class="txt"><b>${esc(c.nome)}</b><span>${c.entrou ? 'no espaço desde ' + hora(c.entrou) : 'fora do espaço'}</span></div><span class="vai">${ic(IC.vai, 18)}</span></button>`).join('')}</div>` : '<p class="explica">Nenhuma sapateira em uso agora.</p>'}
+    ${MODO !== 'servidor' || gestor() ? `<div class="outro-item" style="grid-template-columns:1fr auto;align-items:end"><div class="campo"><label for="sap-total">Quantas sapateiras existem</label><input id="sap-total" type="number" inputmode="numeric" min="1" max="200" value="${nSap()}"></div><button class="bt forte tap" data-act="sap-total-salvar">${ic(IC.check)} Salvar</button></div>` : ''}`);
+}
 function blocos(c, comEstado = true) {
   const r = restante(c), pct = pctVivo(c), baixo = !semHoras(c) && r <= S.cfg.aviso, [et, cls] = estado(c);
   return `<div class="horas ${baixo ? 'baixo' : ''} ${c.entrou ? 'dentro' : ''}" data-horas="${c.id}" aria-label="Restam ${hm(r)} de ${c.pacote} horas">
@@ -1056,6 +1105,7 @@ function anel(c, onde = 'banco') {
     ? `${podeManual() ? `<button class="bt claro tap" data-act="saida-rapida" data-id="${c.id}">${ic(IC.sair, 14)} Saída</button>` : ''}<button class="bt tap" data-act="avisar" data-id="${c.id}" aria-label="Avisar ${esc(c.resp)}">${ic(IC.zap, 14)}${podeManual() ? '' : ' Avisar'}</button>`
     : (r <= 0 || baixo ? `<button class="bt ${semHoras(c) ? '' : 'forte'} tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 14)} Vender</button>` : c.rosto ? `<button class="bt tap" data-act="avisar" data-id="${c.id}">${ic(IC.zap, 14)} Avisar</button>` : (rostoPronto() ? `<button class="bt tap" data-act="rosto-cam" data-id="${c.id}">${ic(IC.rosto, 14)} Cadastrar rosto</button>` : `<button class="bt tap" data-act="ficha" data-id="${c.id}">${ic(IC.camera, 14)} Tirar a foto</button>`));
   return `<div class="anel ${baixo ? 'baixo' : ''} ${!dentro && !liberada(c) ? 'bloqueada' : ''} ${dentro && S.chegou === c.id ? 'chegou' : ''}" data-anel="${c.id}" data-onde="${onde}">
+    ${c.sapateira || dentro ? `<button class="sapb tap ${c.sapateira ? '' : 'vazia'}" data-act="sapateira" data-id="${c.id}" title="${c.sapateira ? 'Sapateira ' + c.sapateira + ' (toque para trocar)' : 'Escolher a sapateira'}" aria-label="${c.sapateira ? 'Sapateira ' + c.sapateira + ' de ' + esc(c.nome) : 'Escolher a sapateira de ' + esc(c.nome)}">${ic(IC.sapato, 12, 2.4)}${c.sapateira || ''}</button>` : ''}
     <button class="r tap" data-act="ficha" data-id="${c.id}" style="--p:${pct.toFixed(1)};--c:${baixo ? 'var(--erro)' : 'var(--verde-agua)'}" aria-label="Abrir a ficha de ${esc(c.nome)}">${c.foto ? `<span class="fotinha" style="background-image:url(${c.foto})"></span>` : ''}<b class="num ${c.entrou ? 'vivo' : ''}">${semHoras(c) && !c.entrou ? 'Sem horas' : esgotou(c) ? 'Acabou' : vivo(c)}<small>${semHoras(c) ? 'ainda não comprou' : esgotou(c) ? `pacote de ${c.pacote}h` : `de ${c.pacote}h`}</small></b></button>
     <span class="nome">${esc(c.nome)}${c.idade && !dentro ? ', ' + c.idade : ''}</span>
     <em>${dentro ? `desde ${hora(c.entrou)} · <span class="num" data-cron-txt="${c.id}">${hms(segDentro(c))}</span>` : esc(c.resp)}</em>
@@ -1088,7 +1138,7 @@ async function entradaServidor(c) {
   try { const r = await api('entrada', { id: c.id }); await carregar(); desenhar(); toast(`${c.nome} entrou · ${hm(restante(crianca(c.id)))} no banco${r.mensagem && !r.mensagem.erro ? ' · ' + c.resp.split(' ')[0] + ' avisada' : ''}`, async () => { await api('desfazer_entrada', { id: c.id, registro: r.registro, mensagem: r.mensagem ? r.mensagem.id : 0 }); await carregar(); desenhar(); }); } catch (e) { toast(e.message); }
 }
 async function saidaServidor(c) {
-  try { const r = await api('saida', { id: c.id }); await carregar(); desenhar(); toast(`${c.nome} saiu · ${hm(r.debitado)} debitadas`, async () => { await api('desfazer_saida', { id: c.id, visita: r.visita, registro: r.registro, mensagem: r.mensagem ? r.mensagem.id : 0 }); await carregar(); desenhar(); }); } catch (e) { toast(e.message); }
+  try { const r = await api('saida', { id: c.id }); await carregar(); desenhar(); toast(`${c.nome} saiu${r.sapateira ? ' · sapato na sapateira ' + r.sapateira : ''} · ${hm(r.debitado)} debitadas`, async () => { await api('desfazer_saida', { id: c.id, visita: r.visita, registro: r.registro, mensagem: r.mensagem ? r.mensagem.id : 0, sapateira: r.sapateira || 0 }); await carregar(); desenhar(); }); } catch (e) { toast(e.message); }
 }
 // pac: { h, v, com } para horas (com = o que vem junto no pacote) ou { h: 0, v, itens } para um produto à parte (carrinho, meia)
 const textoVendido = (c, pac) => pac.h ? `+${pac.h}h para ${c.nome} · ${brl(pac.v)}${pac.com ? ' · com ' + pac.com : ''}` : `${pac.itens} para ${c.nome} · ${brl(pac.v)}`;
@@ -1106,10 +1156,11 @@ function saida(c, origem = 'iDFace') {
   if (MODO === 'servidor') return saidaServidor(c);
   const deb = cobrar(minDentro(c)), entrouEm = c.entrou; c.usado += deb; if (S.cfg.bloqueioAuto === 'sim' && restante(c) <= 0) c.liberado = false;
   const visita = { dia: new Date(), entrou: hora(c.entrou), saiu: hora(new Date()), deb }; c.visitas.unshift(visita);
-  c.entrou = null; registrar('sai', c.nome, `${hm(deb)} debitadas · restam ${hm(restante(c))}${origem === 'iDFace' ? '' : ' · saída à mão'}`);
+  const sap = c.sapateira || 0; c.sapateira = null;   // a sapateira fica livre na saída
+  c.entrou = null; registrar('sai', c.nome, `${hm(deb)} debitadas · restam ${hm(restante(c))}${sap ? ' · sapato na sapateira ' + sap : ''}${origem === 'iDFace' ? '' : ' · saída à mão'}`);
   const reg = S.registros[0], r = restante(c);
   const desfazMsg = S.cfg.autoMsg === 'ambos' ? mensagemAuto(c, `${c.nome} saiu às ${hora(new Date())}. Hoje ficou ${hm(deb)}${r > 0 ? ` e ainda tem ${hm(r)} no pacote` : ' e o pacote acabou'}. Até a próxima! 🧸`, false) : null;
-  toast(`${c.nome} saiu · ${hm(deb)} debitadas`, () => { c.entrou = entrouEm; c.usado -= deb; c.visitas = c.visitas.filter(v => v !== visita); S.registros = S.registros.filter(r => r !== reg); if (desfazMsg) desfazMsg(); });
+  toast(`${c.nome} saiu${sap ? ' · sapato na sapateira ' + sap : ''} · ${hm(deb)} debitadas`, () => { c.entrou = entrouEm; c.usado -= deb; if (sap && !donoSap(sap)) c.sapateira = sap; c.visitas = c.visitas.filter(v => v !== visita); S.registros = S.registros.filter(r => r !== reg); if (desfazMsg) desfazMsg(); });
   if (restante(c) <= S.cfg.aviso) setTimeout(() => toast(`Aviso: ${c.nome} tem só ${hm(restante(c))} no pacote`), 2600);
 }
 function vender(c, pac) {
@@ -1222,6 +1273,7 @@ function folhaFicha(id) {
   abrirFolha(`${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}`, `
     <div class="linha">${avatarComUrso(c, 'g')}<div class="txt"><b style="white-space:normal">${esc(c.resp)}, ${esc(c.rel)}</b><span>${esc(c.tel)}${c.cpf ? ' · CPF ' + esc(c.cpf) : ''}</span>${c.obs ? `<span style="color:var(--coral);font-weight:700;white-space:normal;overflow-wrap:anywhere">${esc(c.obs)}</span>` : ''}</div><span class="pill ${cls}">${et}</span></div>
     <div class="marca libera-ficha">${ic(IC.rosto, 18)}<span>${textoAcesso(c)}</span>${chave(c)}</div>
+    <div class="marca sap-linha">${ic(IC.sapato, 18)}<span>${c.sapateira ? `<b>Sapateira ${c.sapateira}</b> · é onde está o sapato dela.` : `<b>Sem sapateira</b> · escolha onde fica o sapato enquanto ela brinca.`}</span><button class="bt tap" data-act="sapateira" data-id="${c.id}">${c.sapateira ? 'Trocar' : 'Escolher'}</button></div>
     ${c.entrou ? `<div class="marca">${ic(IC.horas, 18)}<span>Está no espaço desde <b>${hora(c.entrou)}</b>: <b class="num" data-cron-txt="${c.id}">${hms(segDentro(c))}</b> até agora, <b>${hm(cobrar(minDentro(c)))}</b> a debitar pela regra atual.</span></div>` : ''}
     ${blocos(c, false)}
     <div class="saldo"><span>${c.pacote}h compradas</span><span>${hm(usadoAgora(c))} usadas</span></div>
@@ -1274,7 +1326,7 @@ function clienteNoCadastro() {
   const seg = $(`#f-rel-seg [data-seg="${r.rel}"]`) || $('#f-rel-seg [data-seg="responsável"]'); if (seg) $$('#f-rel-seg [data-seg]').forEach(b => b.setAttribute('aria-pressed', b === seg));
 }
 function folhaCrianca(c) {
-  FOTO_TEMP = ''; CLIENTE_AUTO = null;
+  FOTO_TEMP = ''; CLIENTE_AUTO = null; SAP_TEMP = 0;
   if (!c) { // cadastro novo: primeiro o responsável (CPF e nome), depois a criança; as horas são vendidas à parte
     abrirFolha('Cadastrar', `
     <div class="bloco-f"><small class="rot">Responsável</small>
@@ -1287,6 +1339,7 @@ function folhaCrianca(c) {
     <div class="bloco-f"><small class="rot">Criança</small>
       <div class="foto-cap"><span class="av g" id="f-foto-prev">${ic(IC.camera, 30)}</span><div class="txt"><label class="bt forte tap" for="f-foto">${ic(IC.camera)} Tirar a foto da criança</label><input type="file" id="f-foto" accept="image/*" capture="user" hidden><span class="explica">${rostoPronto() ? 'Opcional: vai no aviso de chegada no WhatsApp. O rosto a criança cadastra olhando para o iDFace, logo depois de salvar.' : 'A foto vai para o iDFace: é ela que libera o rosto da criança no aparelho.'}</span></div></div>
       <div class="campo"><label for="f-nome">Nome da criança</label><input id="f-nome" placeholder="Como ela gosta de ser chamada" autocomplete="off"></div>
+      <div class="campo"><label>Sapateira <span class="leve">· onde fica o sapato enquanto ela brinca</span></label>${gradeSap(0, 0, 'cadastro')}<span class="explica">As hachuradas já estão em uso. Pode deixar sem e escolher depois, na ficha; ela fica livre sozinha quando a criança sai.</span></div>
       ${campoObs('')}
     </div>
     <p class="explica" style="text-align:center">As horas são vendidas depois, na ficha (botão Vender). A idade pode ser completada na ficha.</p>
@@ -1351,7 +1404,7 @@ function desenharLado() {
     </div>
     <div class="sec"><div class="sec-cab"><h2 style="font-size:16px">${varias ? 'Crianças' : 'Criança'}</h2>${varias ? `<span class="pill p-neutro">${fam.length}</span>` : ''}</div>
       ${fam.map(c => { const [et, cls] = estado(c), u = ultima(c); return `<div class="h-cr">
-        <button class="quem tap" data-act="ficha" data-id="${c.id}" aria-label="Abrir a ficha de ${esc(c.nome)}">${avatar(c)}<span class="txt"><b>${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}</b><span>${c.entrou ? 'No espaço desde ' + hora(c.entrou) : u ? 'Veio por último em ' + diaCurto(new Date(u)) : 'Ainda não veio brincar'}</span></span><span class="pill ${c.entrou ? 'p-ok' : cls}">${c.entrou ? 'No espaço' : et}</span></button>
+        <button class="quem tap" data-act="ficha" data-id="${c.id}" aria-label="Abrir a ficha de ${esc(c.nome)}">${avatar(c)}<span class="txt"><b>${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}</b><span>${c.entrou ? 'No espaço desde ' + hora(c.entrou) : u ? 'Veio por último em ' + diaCurto(new Date(u)) : 'Ainda não veio brincar'}${c.sapateira ? ' · sapateira ' + c.sapateira : ''}</span></span><span class="pill ${c.entrou ? 'p-ok' : cls}">${c.entrou ? 'No espaço' : et}</span></button>
         <div class="h-saldo"><span>comprou<b class="num">${hm(c.pacote * 60)}</b></span><span>consumiu<b class="num">${hm(usadoAgora(c))}</b></span><span class="tem">tem<b class="num">${hm(restante(c))}</b></span></div>
         ${c.obs ? `<p class="h-obs">${ic(IC.sino, 14)}<span>${esc(c.obs)}</span></p>` : ''}
         <div class="acoes"><button class="bt forte tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 16)} Vender</button><button class="bt tap" data-act="renovar" data-id="${c.id}">${ic(IC.zap, 16)} ${semHoras(c) ? 'Mandar mensagem' : 'Chamar para renovar'}</button></div>
@@ -1665,6 +1718,10 @@ function telaAjustes() {
         ${(cfg.extras || []).length ? `<div class="grupo">${cfg.extras.map((x, i) => `<button class="it tap" data-act="extra-editar" data-i="${i}"><div class="txt"><b>${esc(x.n)}</b><span>${brl(x.v)}</span></div><span class="vai">${ic(IC.vai, 18)}</span></button>`).join('')}</div>` : ''}
         <p class="explica">O que é vendido à parte das horas: carrinho, meia, lanche. Cada item aparece na folha Vender com um toque e fica no histórico do cliente.</p>
       </div>
+      <div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.sapato, 20)} Sapateiras</h2></div>
+        <button class="grupo tap" data-act="sap-mapa" style="width:100%"><div class="it"><div class="txt"><b>${nSap()} sapateiras · ${S.criancas.filter(c => c.sapateira).length} em uso agora</b><span>Toque para ver o mapa, liberar uma esquecida ou mudar a quantidade</span></div><span class="vai">${ic(IC.vai, 18)}</span></div></button>
+        <p class="explica">A sapateira é escolhida no cadastro ou na ficha; a que está em uso aparece hachurada e fica livre sozinha quando a criança sai.</p>
+      </div>
       <div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.rosto, 20)} iDFace</h2><span class="pill ${!cfg.idface.ligado ? 'p-erro' : (MODO !== 'servidor' || cfg.idface.ativo ? 'p-ok' : 'p-aviso')}">${!cfg.idface.ligado ? 'Desligado' : (MODO !== 'servidor' || cfg.idface.ativo ? 'Lendo' : 'Sem contato')}</span></div>
         <button class="grupo tap" data-act="idface" style="width:100%"><div class="it"><div class="txt"><b>${esc(cfg.idface.nome)} · ${esc(cfg.idface.ip)}</b><span>Toque para configurar, baixar o conector ou simular um rosto</span></div><span class="vai">${ic(IC.vai, 18)}</span></div></button>
       </div>
@@ -1760,17 +1817,17 @@ const ACOES = {
     if (!id) { const ja = clientePorCpf(cpf).find(x => x.nome.trim().toLowerCase() === nome.toLowerCase()); if (ja) { toast(`${ja.nome} já tem cadastro com este CPF`, () => abrirHistorico(ja.id), 'Ver o histórico'); return; } }
     if (MODO === 'servidor') {
       const dados = id ? { id: +id, nome, idade: +val('f-idade') || 0, resp, rel: val('f-rel'), tel: val('f-tel'), cpf, obs }
-        : { nome, resp, rel: ($('#f-rel-seg [aria-pressed="true"]') || {}).dataset.seg || 'responsável', tel: val('f-tel'), cpf, obs, foto: FOTO_TEMP };
+        : { nome, resp, rel: ($('#f-rel-seg [aria-pressed="true"]') || {}).dataset.seg || 'responsável', tel: val('f-tel'), cpf, obs, foto: FOTO_TEMP, sapateira: SAP_TEMP };
       api('crianca_salvar', dados).then(async r => { FOTO_TEMP = ''; await carregar(); fecharFolha(); desenhar();
         if (id) { toast('Cadastro salvo'); return; }
         if (rostoPronto()) { toast(`${nome} cadastrada. Agora o rosto.`); setTimeout(() => folhaRosto(r.id), 300); return; }
-        toast(`${nome} cadastrada. As horas entram quando vender.`, () => folhaVender(r.id), 'Vender'); }).catch(e => toast(e.message));
+        toast(`${nome} cadastrada. As horas entram quando vender.`, () => folhaVender(r.id), 'Vender'); }).catch(async e => { toast(e.message); if (/sapateira/i.test(e.message)) { try { await carregar(); } catch (x) { } SAP_TEMP = 0; redesenharSap(); } });
       return;
     }
     if (id) { const c = crianca(id); Object.assign(c, { nome, idade: +val('f-idade') || c.idade, resp: resp || c.resp, rel: val('f-rel'), tel: val('f-tel'), cpf, obs }); toast('Cadastro salvo'); }
     else {
       const rel = ($('#f-rel-seg [aria-pressed="true"]') || {}).dataset.seg || 'responsável';
-      const c = { id: novoId(), nome, idade: 0, resp, rel, tel: val('f-tel'), cpf, obs, pacote: 0, usado: 0, entrou: null, rosto: !!FOTO_TEMP, foto: FOTO_TEMP, visitas: [], venda: null, liberado: S.cfg.bloqueioAuto !== 'sim' }; S.criancas.push(c); FOTO_TEMP = '';
+      const c = { id: novoId(), nome, idade: 0, resp, rel, tel: val('f-tel'), cpf, obs, pacote: 0, usado: 0, entrou: null, rosto: !!FOTO_TEMP, foto: FOTO_TEMP, visitas: [], venda: null, sapateira: SAP_TEMP || null, liberado: S.cfg.bloqueioAuto !== 'sim' }; S.criancas.push(c); FOTO_TEMP = '';
       toast(`${nome} cadastrada. As horas entram quando vender.`, () => folhaVender(c.id), 'Vender');
     }
     fecharFolha(); desenhar();
@@ -1780,6 +1837,19 @@ const ACOES = {
     if (f.endsWith(' ')) { if (!partes.some(x => x.toLowerCase().startsWith(f.trim().toLowerCase()))) { partes.push(f.trim()); t.value = partes.join('; ') + ' '; } t.focus(); t.setSelectionRange(t.value.length, t.value.length); marcarAtalhos(); return; }
     if (partes.includes(f)) partes = partes.filter(x => x !== f); else { partes = partes.filter(x => x !== OBS_PAR[f]); partes.push(f); }
     t.value = partes.join('; '); marcarAtalhos();
+  },
+  sapateira: el => folhaSapateira(el.dataset.id), 'sap-tirar': el => escolherSap(+el.dataset.id, 0), 'sap-mapa': () => folhaSapMapa(),
+  'sap-escolher': el => {
+    const n = +el.dataset.n, grade = el.closest('.sapateiras'), de = +grade.dataset.de || 0, modo = grade.dataset.modo;
+    if (el.classList.contains('oc')) { toast(`A sapateira ${n} está em uso: ${el.dataset.com}`, () => liberarSap(n), 'Liberar'); return; }   // hachurada: mostra com quem está e deixa liberar
+    if (modo === 'mapa') { toast(`A sapateira ${n} está livre`); return; }
+    if (modo === 'cadastro') { SAP_TEMP = SAP_TEMP === n ? 0 : n; $$('.sap', grade).forEach(b => b.setAttribute('aria-pressed', !b.classList.contains('oc') && +b.dataset.n === SAP_TEMP)); return; }   // só marca; vale ao salvar
+    const c = crianca(de); if (c) escolherSap(de, c.sapateira === n ? 0 : n);
+  },
+  'sap-total-salvar': () => {
+    const n = Math.round(+val('sap-total')), maior = Math.max(0, ...S.criancas.map(c => c.sapateira || 0));
+    if (!(n >= 1 && n <= 200)) { toast('Quantas sapateiras existem? De 1 a 200.'); return; } if (n < maior) { toast(`A sapateira ${maior} está em uso: libere antes de diminuir`); return; }
+    S.cfg.sapateiras = n; if (MODO === 'servidor') api('regra_salvar', { sapateiras: n }).catch(e => toast(e.message)); toast(`${n} sapateiras`); fecharFolha(); desenhar();
   },
   historico: el => abrirHistorico(el.dataset.id), 'lado-fechar': () => fecharLado(), 'lado-todas': () => { if (LADO) { LADO.todas = !LADO.todas; desenharLado(); } },
   dia: () => folhaDia(), todas: () => { S.bancoFiltro = 'todas'; trocarTela('banco'); }, acabando: () => { S.bancoFiltro = 'renovar'; trocarTela('banco'); },

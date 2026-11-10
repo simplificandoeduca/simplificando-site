@@ -77,6 +77,13 @@ Tudo configurável, porque a cliente ainda não decidiu: **arredondamento** (exa
 - **Histórico do cliente**: abre numa aba à direita (no celular, na tela toda) e junta tudo do responsável: quanto pagou ao todo, horas compradas, consumidas e disponíveis; cada criança com o saldo, as restrições e os botões **Vender** e **Chamar para renovar**; **todas as compras** (pacote, o que veio junto, carrinho e outros produtos, valor, quem vendeu) e **todas as visitas**. Abre pelo botão **Histórico** no cadastro, na ficha da criança ou tocando na "Última contratação" do Banco de horas. O cliente é reconhecido pelo CPF; sem CPF, pelo WhatsApp.
 - **Sem horas, sem entrada**: com a regra "Quando o pacote zerar → Bloquear o acesso sozinho" (o padrão), a criança recém-cadastrada começa com o acesso **bloqueado** no iDFace e é liberada sozinha na primeira venda de horas. Vender só um produto (carrinho) não libera. Desfazer uma venda que deixa o saldo em zero bloqueia de novo.
 
+**Sapateiras** (1 a 44): a criança tira o sapato para brincar e ele fica numa sapateira numerada.
+
+- No **cadastro**, a grade de números aparece logo depois do nome da criança: um toque escolhe. As que estão **em uso aparecem hachuradas** e não podem ser escolhidas (tocar numa delas mostra com quem está e oferece **Liberar**, para o caso de uma esquecida).
+- Para quem já é cadastrado: na **ficha** (linha "Sapateira", botão Escolher ou Trocar), no **selo do sapato** em cima do anel de quem está no espaço, ou no botão **Sapateira** do aviso que aparece quando o rosto é lido na entrada.
+- O número fica à vista no anel da criança. Na **saída**, a sapateira **fica livre sozinha** e o aviso diz onde está o sapato ("Helena saiu · sapato na sapateira 12"); o mesmo fica anotado em "Hoje na recepção".
+- **Ajustes → Sapateiras** mostra o mapa (quem está com qual), libera uma esquecida e muda a quantidade (44 por padrão).
+
 **Produtos e extras** (Ajustes → Produtos e extras): a lista do que é vendido à parte das horas (carrinho, meia, lanche), com nome e valor. Cada item aparece na folha **Vender** com um toque; o campo "Outro" registra algo fora da lista. Em cada **pacote de horas** dá para anotar o que **vem junto** (ex.: meia antiderrapante): isso fica gravado na venda e aparece no histórico como "Pacote de 10h · veio com meia antiderrapante".
 
 ## 6b. Banco de horas (aba)

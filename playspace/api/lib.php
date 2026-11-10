@@ -77,6 +77,10 @@ function db(): PDO {
     try { $pdo->exec("ALTER TABLE vendas ADD COLUMN itens TEXT NOT NULL DEFAULT ''"); } catch (Throwable $e) { }
     $pdo->exec('PRAGMA user_version = 5');
   }
+  if ($v < 6) { // 0.69: a sapateira onde fica o sapato da criança enquanto ela brinca (número de 1 até regra.sapateiras; vazio = nenhuma)
+    try { $pdo->exec('ALTER TABLE criancas ADD COLUMN sapateira INTEGER'); } catch (Throwable $e) { }
+    $pdo->exec('PRAGMA user_version = 6');
+  }
   return $pdo;
 }
 function cfg(string $k, $padrao = null) { $q = db()->prepare('SELECT valor FROM config WHERE chave = ?'); $q->execute([$k]); $v = $q->fetchColumn(); return $v === false ? $padrao : json_decode((string)$v, true); }
@@ -92,7 +96,7 @@ function urlBase(): string { // .../playspace
 }
 
 /* ---------- a regra das horas (as mesmas opções da tela de Ajustes) ---------- */
-const REGRA_PADRAO = ['arredonda' => 1, 'cortesia' => 10, 'minimo' => 0, 'aviso' => 30, 'autoMsg' => 'ambos', 'bloqueioAuto' => 'sim', 'pacotes' => [['h' => 1, 'v' => 60], ['h' => 5, 'v' => 250], ['h' => 10, 'v' => 450], ['h' => 20, 'v' => 800]], 'extras' => []];   // extras: produtos e serviços vendidos à parte (carrinho, meia): [['n' => nome, 'v' => valor]]
+const REGRA_PADRAO = ['arredonda' => 1, 'cortesia' => 10, 'minimo' => 0, 'aviso' => 30, 'autoMsg' => 'ambos', 'bloqueioAuto' => 'sim', 'pacotes' => [['h' => 1, 'v' => 60], ['h' => 5, 'v' => 250], ['h' => 10, 'v' => 450], ['h' => 20, 'v' => 800]], 'extras' => [], 'sapateiras' => 44];   // extras: produtos e serviços vendidos à parte (carrinho, meia): [['n' => nome, 'v' => valor]]
 function regra(): array { $r = cfg('regra', null); return (is_array($r) ? $r : []) + REGRA_PADRAO; }
 function cobrar(float $minutos): int {
   $r = regra(); $m = max(0, $minutos - (int)$r['cortesia']);
@@ -152,19 +156,21 @@ function fazerSaida(array $c, string $origem = 'iDFace', ?string $quando = null)
   $min = (strtotime($quando) - strtotime((string)$c['entrou'])) / 60; $deb = cobrar($min);
   $db->prepare('INSERT INTO visitas (crianca_id, entrou, saiu, debitado_min, origem) VALUES (?, ?, ?, ?, ?)')->execute([$c['id'], $c['entrou'], $quando, $deb, $origem]);
   $visita = (int)$db->lastInsertId();
-  $db->prepare('UPDATE criancas SET entrou = NULL, usado_min = usado_min + ? WHERE id = ?')->execute([$deb, $c['id']]);
+  $sap = isset($c['sapateira']) && $c['sapateira'] !== null ? (int)$c['sapateira'] : 0;   // a sapateira fica livre na saída
+  $db->prepare('UPDATE criancas SET entrou = NULL, usado_min = usado_min + ?, sapateira = NULL WHERE id = ?')->execute([$deb, $c['id']]);
   $c['usado_min'] += $deb; $c['entrou'] = null;
   $r = restante($c);
   if ($r <= 0 && regra()['bloqueioAuto'] === 'sim') bloquearAcesso($c, false);   // zerou: o iDFace passa a recusar até venderem horas
-  $reg = registrar('sai', (int)$c['id'], $c['nome'], hm($deb) . ' debitadas · restam ' . hm($r) . ($origem === 'iDFace' ? '' : ' · saída à mão'), $quando);
+  $reg = registrar('sai', (int)$c['id'], $c['nome'], hm($deb) . ' debitadas · restam ' . hm($r) . ($sap ? ' · sapato na sapateira ' . $sap : '') . ($origem === 'iDFace' ? '' : ' · saída à mão'), $quando);
   $msg = null;
   if (regra()['autoMsg'] === 'ambos') {
     $texto = $c['nome'] . ' saiu às ' . date('H:i', strtotime($quando)) . '. Hoje ficou ' . hm($deb) . ($r > 0 ? ' e ainda tem ' . hm($r) . ' no pacote' : ' e o pacote acabou') . '. Até a próxima! 🧸';
     $msg = mandarMensagem($c, $texto, true);
   }
-  return ['registro' => $reg, 'visita' => $visita, 'debitado' => $deb, 'mensagem' => $msg];
+  return ['registro' => $reg, 'visita' => $visita, 'debitado' => $deb, 'mensagem' => $msg, 'sapateira' => $sap ?: null];
 }
 // a chavinha "acesso no iDFace": liberada, o aparelho autoriza o rosto e as horas correm; bloqueada, ele recusa
+function donoSapateira(int $n, int $menosId = 0): ?array { $q = db()->prepare('SELECT id, nome FROM criancas WHERE ativo = 1 AND sapateira = ? AND id != ?'); $q->execute([$n, $menosId]); return $q->fetch() ?: null; }
 function bloquearAcesso(array $c, bool $liberar): void {
   db()->prepare('UPDATE criancas SET liberado = ? WHERE id = ?')->execute([$liberar ? 1 : 0, $c['id']]);
   if ($c['idface_id'] === null) return;

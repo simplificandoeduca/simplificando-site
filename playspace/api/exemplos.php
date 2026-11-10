@@ -28,6 +28,8 @@ function exemplosCarregar(?int $por): array {
     $ins->execute([$nome, $idade, $resp, $rel, $tel, $cpf, 'exemplo', $pac * 60, $usado, $dentro ? $t($dentro) : null, '', $rosto, $t(60 * 24 * 20)]);
     $id = (int)$db->lastInsertId(); $ids[] = $id; $nomeId[$nome] = $id;
   }
+  // quem está no espaço já tem o sapato guardado (se o número estiver livre)
+  foreach (['Helena' => 12, 'Theo' => 7] as $nome => $sap) if (!donoSapateira($sap)) $db->prepare('UPDATE criancas SET sapateira = ? WHERE id = ?')->execute([$sap, $nomeId[$nome]]);
   $reg = $db->prepare('INSERT INTO registros (quando, tipo, crianca_id, nome, texto) VALUES (?, ?, ?, ?, ?)');
   $vis = $db->prepare('INSERT INTO visitas (crianca_id, entrou, saiu, debitado_min, origem) VALUES (?, ?, ?, ?, ?)');
   $ven = $db->prepare('INSERT INTO vendas (crianca_id, horas, valor, quando, por, itens) VALUES (?, ?, ?, ?, ?, ?)');
