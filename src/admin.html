@@ -714,6 +714,26 @@ h3.sec{font-size:22px;margin:14px 2px -2px}
 .code span{background:var(--ctl)}
 /* folhas */
 .sheet .card{box-shadow:inset 0 0 0 1px var(--card-line)}
+/* comentários e estatísticas */
+.cm-r{align-items:flex-start}.cm-r .ini{width:38px;height:38px;font-size:13px}.cm-r .main-t b{white-space:normal}
+.cm-q{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px}.cm-c{color:var(--fg)!important;font-size:14px!important}.cm-d{font-size:12px!important}
+.i[data-n="share2"],.i[data-n="chart"]{--lc:#C84B92}
+.est-seg{max-width:340px}
+.est-mods{display:flex;flex-direction:column;gap:10px}
+.est-m{border-radius:16px;box-shadow:inset 0 0 0 1px var(--line2);padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.est-m.on{box-shadow:inset 0 0 0 1.5px var(--fg)}
+.est-mh{display:flex;align-items:center;gap:12px;border:0;background:none;padding:0;color:var(--fg);text-align:left;width:100%;cursor:pointer}
+.est-mh .chev{color:var(--muted);transition:transform .2s;flex:none}.est-m.on .est-mh .chev{transform:rotate(90deg)}
+.est-n{width:34px;height:34px;flex:none;border-radius:10px;display:grid;place-items:center;font-weight:900;background:var(--fg);color:var(--bg)}
+.est-t{flex:1;min-width:0;display:flex;flex-direction:column}.est-t b{font-size:16px}.est-t span{font-size:12.5px;color:var(--muted)}
+.est-v{display:flex;flex-direction:column;align-items:flex-end;font-size:12px;color:var(--muted);flex:none}.est-v b{font-size:22px;font-weight:900;color:var(--fg);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.est-bar{height:8px;border-radius:9px;background:var(--ctl);overflow:hidden}.est-bar i{display:block;height:100%;border-radius:9px;background:var(--brand)}
+.est-who{display:flex;flex-direction:column;border-top:1px solid var(--sep)}.est-who>div{display:flex;flex-direction:column;gap:2px;padding:9px 0;border-bottom:1px solid var(--sep)}.est-who>div:last-child{border-bottom:0}
+.est-who b{font-size:14.5px}.est-who span{font-size:12.5px;color:var(--muted)}
+.est-sug{display:flex;flex-direction:column;gap:10px}
+.est-s{border-radius:16px;padding:14px;background:var(--ctl);display:flex;flex-direction:column;gap:6px}.est-s.lida{background:transparent;box-shadow:inset 0 0 0 1px var(--line2)}
+.est-s p{margin:0;font-size:15px;line-height:1.45;white-space:pre-wrap}.est-sm{font-size:12.5px;color:var(--muted)}
+.tabbar{grid-template-columns:repeat(7,1fr)}.tab span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px}
 
 .dh-act{flex-wrap:nowrap}
 @media (max-width:600px){.dh-act .btn.primary{flex:1}.dh-act .ico-s{width:44px;padding:0;flex:none}.dh-act .ico-s .lbl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}}
@@ -1844,7 +1864,11 @@ const FBP = (() => {
   // o que cada aluno com personal fez no app (o app grava em progresso/{uid}; só o dono lê todos)
   async function listProgresso(){ const q = await db.collection('progresso').get(); return q.docs.map(d => { const x = d.data(); let v = null; try { v = JSON.parse(x.s||'null'); } catch(e){ v = null; } return { uid:d.id, aid:x.aid||'', em:x.em||0, d:v }; }); }
   async function dropProgresso(uid){ if(uid) try { await db.collection('progresso').doc(uid).delete(); } catch(e){ /* nada para apagar */ } }
-  return { auth, db, fb, ownerUid, claim, account, rePass, dropAccount, listCodigos, dropCodigo, moveProg, okMail, publish, unpublish, listPerfis, dropPerfil, getAutonomo, listProgresso, dropProgresso };
+  // estatísticas: sugestões da caixinha do app e modelo de story que cada um postou
+  async function listCol(name){ const q = await db.collection(name).orderBy('em','desc').limit(1500).get(); return q.docs.map(d => Object.assign({ id:d.id }, d.data())); }
+  async function setLida(id, v){ await db.collection('sugestoes').doc(id).update({ lida:!!v }); }
+  async function dropDoc(col, id){ await db.collection(col).doc(id).delete(); }
+  return { auth, db, fb, ownerUid, claim, account, rePass, dropAccount, listCodigos, dropCodigo, moveProg, okMail, publish, unpublish, listPerfis, dropPerfil, getAutonomo, listProgresso, dropProgresso, listCol, setLida, dropDoc };
 })();
 
 const Store = (() => {
@@ -2048,7 +2072,7 @@ function newAluno(d){
 }
 
 /* ---------- estado da interface ---------- */
-const VIEWS = [['painel','Painel','grid'],['alunos','Alunos','users'],['perfis','Perfis','eye'],['biblioteca','Biblioteca','book'],['modelos','Modelos','layers'],['ajustes','Ajustes','gear']];
+const VIEWS = [['painel','Painel','grid'],['alunos','Alunos','users'],['perfis','Perfis','eye'],['biblioteca','Biblioteca','book'],['modelos','Modelos','layers'],['ajustes','Ajustes','gear'],['estatisticas','Estatísticas','chart']];
 const TAB_COR = { perfil:'#5E6B65', saude:'#D63B3B', treino:'#FF4646', evolucao:'#2C9446', metas:'#2F78C9', avaliacoes:'#7E57C9', financeiro:'#13917F', acesso:'#E57A1E', notas:'#8A6A45' };
 const DTABS = [['perfil','Perfil','user'],['saude','Saúde','heart'],['treino','Treino','dumbbell'],['metas','Metas','drop'],['acesso','Mensagens','msg'],['evolucao','Evolução','pulse'],['financeiro','Financeiro','wallet'],['notas','Anotações','note'],['avaliacoes','Avaliações','scale']];
 const ui = { view:'painel', aluno:null, tab:'perfil', modelo:null, tl:{}, q:'', f:{origem:'',status:'',objetivo:'',pag:''}, libQ:'', libG:'', libE:'', pickQ:'', pickG:'', sheet:null, arm:null, saveSt:'saved', draft:{ novo:{}, av:{}, pay:{}, nota:'', ex:{}, tpl:{} } };
@@ -2134,7 +2158,7 @@ function vPainel(){
   if(!att) att = '<div class="row"><span class="ico ok">'+ic('check')+'</span><span class="main-t"><b>Tudo em dia</b><span>Nenhum pagamento, treino, avaliação ou restrição pedindo atenção.</span></span></div>';
   const by = (key,map,colors) => { const tot = act.length || 1; return Object.keys(map).map(k => { const n = act.filter(a => (P(a)[key]||'')===k).length; return '<div class="meter"><span>'+(colors?'<i class="edot" style="--c:var(--ed-'+k+')"></i>':'')+esc(map[k])+'</span><span class="bar" aria-hidden="true"><i style="width:'+Math.round(n/tot*100)+'%;--c:'+(colors?'var(--ed-'+k+')':k==='instagram'?'var(--brand)':'var(--fg)')+'"></i></span><b>'+n+'</b></div>'; }).join(''); };
   h += '<div class="grid2 g-even"><div class="col"><h3 class="sec">Precisa de atenção<span class="dot" aria-hidden="true"></span></h3><div class="list">'+att+'</div></div>'+
-    '<div class="col"><h3 class="sec">No app agora<span class="dot" aria-hidden="true"></span></h3>'+activityPh()+'</div></div>'+
+    '<div class="col"><h3 class="sec">No app agora<span class="dot" aria-hidden="true"></span></h3>'+activityPh()+comentariosCard()+'</div></div>'+
     '<h3 class="sec">Seus alunos<span class="dot" aria-hidden="true"></span></h3><div class="grid2 g-even"><section class="card"><span class="label">'+ic('users')+'Por origem</span>'+by('origem',ORIGEM,false)+'</section><section class="card"><span class="label">'+ic('flag')+'Por objetivo</span>'+by('objetivo',ED,true)+'<p class="foot">Conta alunos ativos e pausados ('+act.length+').</p></section></div>';
   return h;
 }
@@ -2162,6 +2186,66 @@ function activityPh(){
     return '<button type="button" class="row" data-a="open" data-id="'+esc(a._id)+'" data-tab="evolucao"><span class="ico'+(alerta?' warn':'')+'">'+ic(alerta?'alert':'dumbbell')+'</span><span class="main-t"><b>'+esc(nomeDe(a))+'</b><span>'+bits.join(' · ')+(alerta ? ' · check-in pede atenção' : '')+'</span></span><span class="end"><span class="pill line">'+haQuanto(pg.em)+'</span>'+ic('chev','chev')+'</span></button>'; };
   return head+(rows.length ? '<div class="list">'+rows.slice(0,12).map(([a,pg]) => linha(a,pg)).join('')+'</div>' : '<p class="muted">Nenhum aluno registrou nada no app ainda.</p>')+
     (nunca.length ? '<p class="foot">Ainda sem registro no app: '+esc(nunca.slice(0,12).map(a => curto(a)).join(', '))+(nunca.length>12 ? ' e mais '+(nunca.length-12) : '')+'.</p>' : '')+'</section>';
+}
+/* comentários dos alunos: o "Como foi" de cada exercício (dor, leve, pesado, recado) e a mensagem do fim do treino */
+function comentariosCard(){
+  if(!pfOnline() || !PG.by) return '';
+  const t0 = today(), desde = addDays(t0, -20), L = [];
+  alunos().filter(a => (P(a).status||'ativo')!=='inativo').forEach(a => { const pg = progDe(a), d = pg && pg.d; if(!d) return;
+    (d.h||[]).forEach(h => { if(h.d<desde) return;
+      (h.ex||[]).forEach(e => { if((e.q||[]).length || e.c) L.push({ a, d:h.d, t:h.t, n:e.n||'Exercício', q:e.q||[], c:e.c||'' }); });
+      if(h.note) L.push({ a, d:h.d, t:h.t, n:'Mensagem do treino', q:[], c:h.note, msg:true }); });
+    if(d.xc && d.xc.d>=desde) (d.xc.ex||[]).forEach(e => L.push({ a, d:d.xc.d, t:'', n:e.n||'Exercício', q:e.q||[], c:e.c||'', agora:true })); });
+  L.sort((x,y) => y.d.localeCompare(x.d) || (y.agora?1:0)-(x.agora?1:0));
+  const dor = L.filter(x => x.q.some(q => /dor/i.test(q))).length;
+  const head = '<section class="card"><div class="card-h"><span class="label">'+ic('msg')+'Comentários dos alunos</span>'+(L.length ? '<span class="pill '+(dor?'bad':'line')+'">'+(dor ? plural(dor,'com dor','com dor') : plural(L.length,'comentário'))+'</span>' : '')+'</div>';
+  if(!L.length) return head+'<p class="muted">Quando um aluno usar o “Como foi” no fim de um exercício, ou deixar uma mensagem ao finalizar o treino, aparece aqui.</p></section>';
+  return head+'<div class="list cm-list">'+L.slice(0,10).map(x => '<button type="button" class="row cm-r" data-a="open" data-id="'+esc(x.a._id)+'" data-tab="evolucao"><span class="ini" style="--c:var(--ed-'+(P(x.a).objetivo||'hipertrofia')+')">'+esc(initials(P(x.a).nome))+'</span><span class="main-t"><b>'+esc(curto(x.a))+' · '+esc(x.n)+'</b>'+
+    (x.q.length ? '<span class="cm-q">'+x.q.map(q => '<i class="evo-q'+(/dor/i.test(q)?' bad':'')+'">'+esc(q)+'</i>').join('')+'</span>' : '')+(x.c ? '<span class="cm-c">“'+esc(x.c)+'”</span>' : '')+
+    '<span class="cm-d">'+(x.agora ? 'agora, no treino de hoje' : ev2Dias(x.d)+(x.t ? ' · Treino '+esc(x.t) : ''))+'</span></span>'+ic('chev','chev')+'</button>').join('')+'</div>'+
+    (L.length>10 ? '<p class="foot">Mais '+(L.length-10)+' nos últimos 20 dias. Veja na Evolução de cada aluno.</p>' : '')+'</section>';
+}
+/* ---------- Estatísticas: o que os alunos usam e sugerem, para decidir as próximas mudanças ---------- */
+const ST = { sug:null, sto:null, err:'', at:0, loading:false };
+const ST_MOD = [['crono','Cronômetro','O tempo de treino em destaque'],['cupom','Cupom','As cargas do dia, em forma de cupom'],['foto','Foto','A foto da pessoa com figurinhas']];
+const ST_COR = { vermelho:'Vermelho', laranja:'Laranja', lilas:'Lilás', verde:'Verde', preto:'Preto', branco:'Branco' };
+async function loadEst(force){
+  if(!pfOnline() || ST.loading || ((ST.sug || ST.err) && !force && Date.now()-ST.at < 60e3)) return;
+  ST.loading = true; ST.err = '';
+  try { const [a, b] = await Promise.all([FBP.listCol('sugestoes'), FBP.listCol('storiesUso')]); ST.sug = a; ST.sto = b; }
+  catch(e){ ST.err = e && e.code==='permission-denied' ? 'regras' : 'rede'; }
+  ST.at = Date.now(); ST.loading = false; if(ui.view==='estatisticas') render();
+}
+const tipoTxt = t => t==='autonomo' ? 'sem personal' : 'com personal';
+function vEstat(){
+  let h = header('Estatísticas', 'Para decidir as próximas mudanças', '');
+  if(!pfOnline()) return h+'<section class="card"><p class="muted">As estatísticas aparecem quando o painel está ligado ao banco online.</p></section>';
+  loadEst();
+  if(ST.err==='regras') return h+'<section class="card"><span class="label">'+ic('alert')+'Falta um passo no Firebase</span><p class="muted">Para receber as sugestões e saber quais stories os alunos postam, cole as regras novas (arquivo REGRAS-FIRESTORE.txt) no Firebase → Firestore → Regras e toque em Publicar. Depois toque em Atualizar aqui em cima.</p></section>';
+  if(ST.err) return h+'<section class="card"><p class="muted">Sem conexão para carregar as estatísticas. Confira a internet e toque em Atualizar.</p></section>';
+  if(!ST.sug) return h+loadingCard();
+  // stories
+  const per = ui.estP || '30', desde = per==='tudo' ? 0 : Date.now()-(+per)*864e5, E = ST.sto.filter(x => (x.em||0)>=desde);
+  const tot = E.length, cnt = m => E.filter(x => x.modelo===m).length, mx = Math.max(1, ...ST_MOD.map(([m]) => cnt(m)));
+  const pessoas = m => { const by = {}; E.filter(x => x.modelo===m).forEach(x => { const k = x.uid||x.nome; const o = by[k] = by[k] || { nome:x.nome||'Sem nome', tipo:x.tipo, n:0, ult:0, cores:{} }; o.n++; o.ult = Math.max(o.ult, x.em||0); if(x.cor) o.cores[x.cor] = (o.cores[x.cor]||0)+1; }); return Object.values(by).sort((a,b) => b.n-a.n || b.ult-a.ult); };
+  const menos = tot>=6 ? ST_MOD.map(([m,n]) => [n, cnt(m)/tot]).sort((a,b) => a[1]-b[1])[0] : null;
+  h += '<h3 class="sec">Stories postados<span class="dot" aria-hidden="true"></span></h3><section class="card"><div class="card-h"><span class="label">'+ic('share2')+'Qual modelo cada um escolhe</span><button type="button" class="btn small" data-a="estRefresh">'+ic('refresh')+'Atualizar</button></div><div class="card-h">'+
+    '<div class="seg est-seg" role="group" aria-label="Período">'+[['30','30 dias'],['90','90 dias'],['tudo','Tudo']].map(([v,l]) => '<button type="button" class="'+(per===v?'on':'')+'" aria-pressed="'+(per===v)+'" data-a="estP" data-v="'+v+'">'+l+'</button>').join('')+'</div></div>'+
+    '<p class="ev2-frase"><b>'+plural(tot,'story postado','stories postados')+'</b>'+(tot ? ' por '+plural(new Set(E.map(x => x.uid||x.nome)).size,'pessoa') : '')+'.</p>'+
+    '<div class="est-mods">'+ST_MOD.map(([m,n,d],i) => { const c = cnt(m), op = ui.estOpen===m, P2 = op ? pessoas(m) : null;
+      return '<div class="est-m'+(op?' on':'')+'"><button type="button" class="est-mh" data-a="estMod" data-v="'+m+'" aria-expanded="'+op+'"><span class="est-n">'+(i+1)+'</span><span class="est-t"><b>'+n+'</b><span>'+d+'</span></span><span class="est-v"><b>'+c+'</b>'+(tot ? Math.round(c/tot*100)+'%' : '')+'</span>'+ic('chev','chev')+'</button>'+
+        '<span class="est-bar"><i style="width:'+Math.round(c/mx*100)+'%"></i></span>'+
+        (op ? (P2.length ? '<div class="est-who">'+P2.map(x => '<div><b>'+esc(x.nome)+'</b><span>'+tipoTxt(x.tipo)+' · '+plural(x.n,'vez','vezes')+' · último '+new Date(x.ult).toLocaleDateString('pt-BR')+(Object.keys(x.cores).length ? ' · cor '+Object.keys(x.cores).sort((a,b) => x.cores[b]-x.cores[a]).map(k => ST_COR[k]||k).join(', ') : '')+'</span></div>').join('')+'</div>' : '<p class="foot">Ninguém postou este modelo no período.</p>') : '')+'</div>'; }).join('')+'</div>'+
+    (menos && menos[1]<.2 ? '<p class="callout">'+ic('alert')+'<span>O modelo <b>'+menos[0]+'</b> está bem menos usado ('+Math.round(menos[1]*100)+'% dos stories). Vale testar um visual novo para ele.</span></p>' : '')+
+    '<p class="foot">Conta cada vez que alguém toca em Compartilhar ou Baixar imagem no fim do treino (uma vez por modelo a cada abertura). Vale para alunos com e sem personal.</p></section>';
+  // sugestões
+  const fil = ui.estS || 'novas', S2 = ST.sug.filter(x => fil==='todas' || !x.lida), novas = ST.sug.filter(x => !x.lida).length;
+  h += '<h3 class="sec">Sugestões<span class="dot" aria-hidden="true"></span></h3><section class="card"><div class="card-h"><span class="label">'+ic('msg')+'Caixinha de sugestões do app</span>'+(novas ? '<span class="pill bad">'+plural(novas,'nova','novas')+'</span>' : '<span class="pill line">Nenhuma nova</span>')+'</div>'+
+    '<div class="seg est-seg" role="group" aria-label="Mostrar">'+[['novas','Não lidas'],['todas','Todas']].map(([v,l]) => '<button type="button" class="'+(fil===v?'on':'')+'" aria-pressed="'+(fil===v)+'" data-a="estS" data-v="'+v+'">'+l+' ('+(v==='novas'?novas:ST.sug.length)+')</button>').join('')+'</div>'+
+    (S2.length ? '<div class="est-sug">'+S2.map(x => '<div class="est-s'+(x.lida?' lida':'')+'"><p>'+esc(x.texto||'')+'</p><span class="est-sm">'+esc(x.nome||'Sem nome')+' · '+tipoTxt(x.tipo)+' · '+new Date(x.em||0).toLocaleDateString('pt-BR')+(x.ver ? ' · app '+esc(x.ver) : '')+'</span>'+
+      '<div class="btn-row"><button type="button" class="btn small'+(x.lida?' ghost':'')+'" data-a="estLida" data-k="'+esc(x.id)+'" data-v="'+(x.lida?'':'1')+'">'+ic('check')+(x.lida ? 'Marcar como não lida' : 'Marcar como lida')+'</button>'+armIco('estDel', x.id, 'Apagar sugestão', 'Toque de novo para apagar')+'</div></div>').join('')+'</div>'
+      : '<p class="muted">'+(ST.sug.length ? 'Nenhuma sugestão nova. Veja as antigas em Todas.' : 'Ainda não chegou nenhuma sugestão. Fica no fim do Perfil, no app, para quem treina com e sem personal.')+'</p>')+'</section>';
+  return h;
 }
 function activityPhOld(){
   return '<section class="card ph"><div class="card-h"><span class="label">'+ic('pulse')+'Atividade dos alunos</span><span class="pill line">Aguardando o app</span></div><p class="muted">Quando o app do aluno estiver conectado a este painel, aqui aparecem os registros de cada aluno. Até lá, nada é inventado.</p>'+
@@ -2505,6 +2589,7 @@ function tAval(a){
   const table = L.length ? '<div class="tbl-wrap"><table class="tbl"><caption class="sr">Avaliações físicas</caption><thead><tr><th scope="col">Data</th><th scope="col">Peso kg</th><th scope="col">Gordura %</th><th scope="col">Magra kg</th>'+MEDIDAS.map(([,l]) => '<th scope="col">'+l+' cm</th>').join('')+'<th scope="col"><span class="sr">Ações</span></th></tr></thead><tbody>'+rows+'</tbody></table></div>' : '<p class="muted">Nenhuma avaliação ainda. Registre a primeira acima para acompanhar a evolução.</p>';
   return form+'<section class="card"><span class="label">'+ic('chart')+'Evolução</span>'+charts+table+'</section>';
 }
+IC.share2 = '<circle cx="18" cy="5.5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="18.5" r="2.5"/><path d="M8.2 10.8l7.6-4.1M8.2 13.2l7.6 4.1"/>';
 IC.chart = '<path d="M5 19.5v-7M10.5 19.5v-14M16 19.5v-9.5M21.5 19.5H2.5"/>';
 function calcMM(){ const d = ui.draft.av, w = num(d.peso), g = num(d.gordura); return w!=null && g!=null ? '<b>'+fmtN(w*(1-g/100),1)+' kg</b>' : '<span class="calc-v">Peso e % de gordura</span>'; }
 
@@ -2952,7 +3037,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '10 nov · 87'; // Versão do painel: 10 nov · 87
+const PAINELV = '10 nov · 88'; // Versão do painel: 10 nov · 88
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -3496,9 +3581,9 @@ function navHtml(){
 function render(){
   const k = captureFocus(), sy = window.scrollY, ts0 = document.querySelector('.dtabs-in'), tsl = ts0 ? ts0.scrollLeft : null;
   applyLook();
-  $main.innerHTML = ({painel:vPainel,alunos:vAlunos,perfis:vPerfis,biblioteca:vBiblioteca,modelos:vModelos,ajustes:vAjustes})[ui.view]();
+  $main.innerHTML = ({painel:vPainel,alunos:vAlunos,perfis:vPerfis,biblioteca:vBiblioteca,modelos:vModelos,ajustes:vAjustes,estatisticas:vEstat})[ui.view]();
   $side.innerHTML = navHtml();
-  $tabs.innerHTML = VIEWS.map(([v,l,icn]) => '<button type="button" class="tab'+(ui.view===v?' on':'')+'" data-a="go" data-v="'+v+'" aria-current="'+(ui.view===v?'page':'false')+'">'+ic(icn)+'<span>'+l+'</span></button>').join('');
+  $tabs.innerHTML = VIEWS.map(([v,l,icn]) => '<button type="button" class="tab'+(ui.view===v?' on':'')+'" data-a="go" data-v="'+v+'" aria-current="'+(ui.view===v?'page':'false')+'" aria-label="'+l+'">'+ic(icn)+'<span>'+(v==='estatisticas' ? 'Números' : l)+'</span></button>').join('');
   if(ui.sheet) renderSheet();
   restoreFocus(k);
   if(Math.abs(window.scrollY-sy)>2) window.scrollTo(0,sy);
@@ -4170,6 +4255,12 @@ function act(a,d,btn){
     case 'close': closeSheet(); return false;
     case 'pfF': PF[d.g] = d.v; break;
     case 'pgRefresh': loadProg(true); break;
+    case 'estRefresh': loadEst(true); toast('Atualizando'); break;
+    case 'estP': ui.estP = d.v; break;
+    case 'estS': ui.estS = d.v; break;
+    case 'estMod': ui.estOpen = ui.estOpen===d.v ? '' : d.v; break;
+    case 'estLida': { const x = (ST.sug||[]).find(y => y.id===d.k); if(x){ x.lida = !!d.v; FBP.setLida(d.k, !!d.v).catch(() => { x.lida = !d.v; toast('Não deu para salvar. Confira a internet.'); render(); }); } break; }
+    case 'estDel': { ST.sug = (ST.sug||[]).filter(y => y.id!==d.k); FBP.dropDoc('sugestoes', d.k).catch(() => { toast('Não deu para apagar. Confira a internet.'); loadEst(true); }); toast('Sugestão apagada'); break; }
     case 'domDepois': { const ini = domSemana(); let st = domLer(); if(!st || st.sem!==ini) st = { sem:ini, feitos:[], pulados:[], adiado:false, fim:false }; st.adiado = true; domGravar(st); DOM_ADIOU = true; toast('Os relatórios voltam na próxima vez que você abrir o painel.'); break; }
     case 'domCopiar': { const t = document.getElementById('dom-txt'); copyText(t ? t.value : '', t); domMarca(d.k, 'feitos'); setTimeout(render, 900); return false; }
     case 'domPular': domMarca(d.k, 'pulados'); break;
