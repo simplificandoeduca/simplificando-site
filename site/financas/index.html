@@ -477,7 +477,7 @@ function logo(){
 $('#logo').innerHTML = logo(); document.querySelector('.top .mic').innerHTML = I.mic;
 
 /* ========== estado ========== */
-const FINV = '10 nov · 36'; // Versão do Finanças: 10 nov · 36
+const FINV = '10 nov · 37'; // Versão do Finanças: 10 nov · 37
 const DONO = { nome:'Eduardo Matias', iniciais:'EM' }; // perfil único desta página
 const LS = 'simplificando-financas', LST = 'simplificando-financas-tema';
 const CATS = ['Mercado', 'Comida', 'Transporte', 'Casa', 'Lazer', 'Saúde', 'Roupas', 'Assinaturas', 'Outros'];
@@ -506,7 +506,7 @@ const ls = { get(k){ try { return localStorage.getItem(k); } catch(e){ return nu
 try { S = normalize(JSON.parse(ls.get(LS) || 'null')); } catch(e){ S = fresh(); }
 const theme = ls.get(LST); if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
 
-const UI = { tab:'resumo', mes:nowKey(), fCart:'', fQuem:'', cartao:'', xQuem:'' };
+const UI = { verMov:false, tab:'resumo', mes:nowKey(), fCart:'', fQuem:'', cartao:'', xQuem:'' };
 const cartao = id => S.cartoes.find(c => c.id === id) || { id, nome:'(cartão apagado)', cor:7, tipo:'credito' };
 const fonte = id => S.fontes.find(f => f.id === id) || { id, nome:'(fonte apagada)' };
 const swOf = c => 'var(--c' + ((c.cor ?? 7) % 8) + ')';
@@ -576,15 +576,23 @@ function save(){
 
 /* ========== contas ========== */
 function saldoAtual(){
+  // conta só o que aconteceu DEPOIS do saldo informado: lançado depois (cr) E com data a partir do dia informado.
+  // Assim gastos antigos importados ou lançados atrasados (que o banco já descontou) não mexem no saldo.
   if (!S.saldos.length) return null;
-  const last = S.saldos[S.saldos.length - 1];
-  const rec = sum(S.receitas.filter(r => (r.cr || 0) > last.cr), r => r.valor);
-  const pag = sum(S.pagamentos.filter(p => (p.cr || 0) > last.cr), p => p.valor);
-  const gas = sum(S.gastos.filter(g => (g.cr || 0) > last.cr && cartao(g.cartao).tipo === 'conta'), g => g.valor);
-  const gua = sum(S.guardados.filter(x => (x.cr || 0) > last.cr), x => x.valor);
-  const fat = sum(S.pagFatura.filter(x => (x.cr || 0) > last.cr && x.conta !== false), x => x.valor);
-  return { last, rec, pag, gas, gua, fat, est:last.valor + rec + pag - gas - gua - fat };
+  const last = S.saldos[S.saldos.length - 1], dia = last.data || isoDe(last.cr);
+  const depois = x => (x.cr || 0) > last.cr && (x.data || '') >= dia;
+  const itens = [];
+  for (const r of S.receitas.filter(depois)) itens.push({ t:'rec', sinal:1, valor:r.valor, data:r.data, nome:fonte(r.fonte).nome + (r.obs ? ' · ' + r.obs : ''), a:'ed-receita', id:r.id });
+  for (const p of S.pagamentos.filter(depois)) itens.push({ t:'pag', sinal:1, valor:p.valor, data:p.data, nome:S.irmao.nome + ' pagou', a:'ed-pag', id:p.id });
+  for (const g of S.gastos.filter(g => depois(g) && cartao(g.cartao).tipo === 'conta')) itens.push({ t:'gas', sinal:-1, valor:g.valor, data:g.data, nome:g.desc || g.cat || 'Pix', a:'ed-gasto', id:g.id });
+  for (const x of S.guardados.filter(depois)) itens.push({ t:'gua', sinal:-1, valor:x.valor, data:x.data, nome:'Cofrinho' + (x.obs ? ' · ' + x.obs : ''), a:'ed-guardado', id:x.id });
+  for (const x of S.pagFatura.filter(x => depois(x) && x.conta !== false)) itens.push({ t:'fat', sinal:-1, valor:x.valor, data:x.data, nome:'Fatura ' + cartao(x.cartao).nome, a:'ed-pagfat', id:x.id });
+  const tot = t => sum(itens.filter(i => i.t === t), i => i.valor);
+  const rec = tot('rec'), pag = tot('pag'), gas = tot('gas'), gua = tot('gua'), fat = tot('fat');
+  itens.sort((a, b) => b.data.localeCompare(a.data));
+  return { last, dia, itens, rec, pag, gas, gua, fat, est:last.valor + rec + pag - gas - gua - fat };
 }
+const isoDe = ms => { const d = new Date(ms); return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()); };
 function irmaoPendente(){
   const gasto = sum(S.gastos.filter(g => g.quem === 'irmao'), g => g.valor);
   const pago = sum(S.pagamentos, p => p.valor);
@@ -693,7 +701,8 @@ function rResumo(){
   else {
     const mov = [];
     if (sa.rec) mov.push('+' + fmt(sa.rec) + ' recebidos'); if (sa.gua) mov.push('−' + fmt(sa.gua) + ' guardados'); if (sa.fat) mov.push('−' + fmt(sa.fat) + ' de fatura paga'); if (sa.pag) mov.push('+' + fmt(sa.pag) + ' do ' + esc(S.irmao.nome)); if (sa.gas) mov.push('−' + fmt(sa.gas) + ' gastos na conta');
-    h += `<p class="big">${fmtBig(sa.est)}</p><p class="sub">${mov.length ? 'Você informou ' + fmt(sa.last.valor) + '. Desde então: ' + mov.join(' · ') + '.' : 'Nada lançado na conta desde que você informou.'}</p><div class="btns"><button type="button" class="btn primary" data-a="saldo">${I.refresh}Atualizar saldo</button></div>`;
+    const verMov = UI.verMov && sa.itens.length;
+    h += `<p class="big">${fmtBig(sa.est)}</p><p class="sub">${mov.length ? 'Você informou ' + fmt(sa.last.valor) + '. Desde então: ' + mov.join(' · ') + '.' : 'Nada mudou na conta desde que você informou.'}</p>${verMov ? `<div class="list" style="margin:0 -6px">${sa.itens.map(i => `<button type="button" class="row" data-a="${i.a}" data-k="${i.id}"><span class="tx"><b>${esc(i.nome)}</b><span>${esc(dayLabel(i.data))}</span></span><span class="val">${i.sinal > 0 ? '+' : '−'}${esc(fmt(i.valor))}</span></button>`).join('')}</div>` : ''}<div class="btns">${sa.itens.length ? `<button type="button" class="btn" data-a="ver-mov">${verMov ? 'Esconder' : 'Ver o que mudou (' + sa.itens.length + ')'}</button>` : ''}<button type="button" class="btn primary" data-a="saldo">${I.refresh}Atualizar saldo</button></div>`;
   }
   h += `</div>`;
   // cofrinho
@@ -924,7 +933,7 @@ function sheetSaldo(pre){
   Sheet.open(`<div class="hd"><h2>Saldo na conta agora</h2><button type="button" class="mic" data-s="voz-sheet" aria-label="Falar o saldo">${I.mic}</button><button type="button" class="x" data-s="fechar" aria-label="Fechar">${I.x}</button></div>
     ${amtHTML(pre.valor || 0, 'Abra o banco uma vez e copie o saldo de hoje')}${padHTML()}
     <div class="seg"><button type="button" class="on" data-c="sinal" data-k="pos">Positivo</button><button type="button" data-c="sinal" data-k="neg">Negativo (cheque especial)</button></div>
-    ${sa ? `<p class="sub">Última vez: ${esc(fmt(sa.last.valor))} em ${esc(whenLabel(sa.last.cr))}. A estimativa atual é ${esc(fmt(sa.est))}.</p>` : ''}
+    ${sa ? `<p class="sub">Última vez: ${esc(fmt(sa.last.valor))} em ${esc(whenLabel(sa.last.cr))}. Pela página, hoje deve estar em <b>${esc(fmt(sa.est))}</b>. Se o banco mostrar outro valor, digite o do banco.</p><button type="button" class="btn" data-s="saldo-confirma" data-k="${sa.est}">O banco mostra ${esc(fmt(sa.est))}</button>` : ''}
     <button type="button" class="btn primary wide" data-s="salvar-saldo">Salvar saldo</button>`, { kind:'saldo', dig:pre.valor ? String(Math.abs(pre.valor)) : '', neg:(pre.valor || 0) < 0 });
 }
 function sheetPag(x){
@@ -1102,7 +1111,7 @@ function vozAjustar(p){
 function vozSalvar(p){
   if (!p.valor) return toast('Não entendi o valor.');
   const cr = Date.now();
-  if (p.tipo === 'saldo') { S.saldos.push({ valor:p.valor, cr }); if (S.saldos.length > 60) S.saldos = S.saldos.slice(-60); }
+  if (p.tipo === 'saldo') { S.saldos.push({ valor:p.valor, cr, data:todayISO() }); if (S.saldos.length > 60) S.saldos = S.saldos.slice(-60); }
   else if (p.tipo === 'pag') S.pagamentos.push({ id:uid(), cr, valor:Math.abs(p.valor), data:p.data, obs:p.desc });
   else if (p.tipo === 'receita') S.receitas.push({ id:uid(), cr, fonte:p.fonte, valor:Math.abs(p.valor), data:p.data, obs:p.desc });
   else if (p.tipo === 'guardar') S.guardados.push({ id:uid(), cr, valor:Math.abs(p.valor), data:p.data, obs:p.desc });
@@ -1353,7 +1362,8 @@ Sheet.box.addEventListener('click', ev => {
     save(); Sheet.close(); render(); { const oo = orcamento(); toast(oo.meta > oo.guardado ? 'Receita salva. Agora guarde ' + fmt(oo.meta - oo.guardado) + ' antes de gastar!' : 'Receita salva: ' + fmt(v) + '.'); }
   }
   if (a === 'apagar-receita') { if (!confirm('Apagar esta receita?')) return; S.receitas = S.receitas.filter(x => x.id !== s.id); save(); Sheet.close(); render(); }
-  if (a === 'salvar-saldo') { if (!(s.dig || '').length) return toast('Digite o saldo.'); const v = cents(); S.saldos.push({ valor:v, cr:Date.now() }); if (S.saldos.length > 60) S.saldos = S.saldos.slice(-60); save(); Sheet.close(); render(); toast('Saldo anotado: ' + fmt(v) + '.'); }
+  if (a === 'saldo-confirma') { const v = +b.dataset.k; S.saldos.push({ valor:v, cr:Date.now(), data:todayISO() }); if (S.saldos.length > 60) S.saldos = S.saldos.slice(-60); save(); Sheet.close(); render(); toast('Saldo confirmado: ' + fmt(v) + '.'); return; }
+  if (a === 'salvar-saldo') { if (!(s.dig || '').length) return toast('Digite o saldo.'); const v = cents(); S.saldos.push({ valor:v, cr:Date.now(), data:todayISO() }); if (S.saldos.length > 60) S.saldos = S.saldos.slice(-60); save(); Sheet.close(); render(); toast('Saldo anotado: ' + fmt(v) + '.'); }
   if (a === 'salvar-pag') {
     const v = cents(), data = val('s-data'); if (v <= 0) return toast('Digite o valor pago.'); if (!okData(data)) return toast('Confira a data.');
     const o = { valor:v, data, obs:val('s-obs').trim() };
@@ -1381,6 +1391,7 @@ document.addEventListener('click', ev => {
   if (a === 'guardar-tudo') { const v = +k; if (v > 0) { S.guardados.push({ id:uid(), cr:Date.now(), valor:v, data:todayISO(), obs:'' }); save(); render(); toast('Guardado: ' + fmt(v) + '. Meta do mês batida!'); } }
   if (a === 'ver-guardados') sheetGuardados();
   if (a === 'ed-guardado') { const x = S.guardados.find(y => y.id === k); if (x) sheetGuardar(x); }
+  if (a === 'ver-mov') { UI.verMov = !UI.verMov; render(); }
   if (a === 'contas-min') { ls.set('simplificando-financas-contas-' + UI.mes, k); render(); }
   if (a === 'pagar-conta') { const f = S.fixos.find(x => x.id === k); if (!f) return; S.gastos.push({ id:uid(), cr:Date.now(), valor:f.valor, data:todayISO(), cartao:contaId(), quem:f.quem === 'irmao' ? 'irmao' : 'eu', desc:f.nome, cat:f.cat || '', fixo:f.id, boleto:true }); S.fixosFeitos[f.id + '|' + UI.mes] = true; save(); render(); toast(f.nome + ' paga: ' + fmt(f.valor) + '.'); }
   if (a === 'despagar-conta') { const g = S.gastos.find(x => x.id === k); if (!g) return; S.gastos = S.gastos.filter(x => x.id !== k); delete S.fixosFeitos[g.fixo + '|' + UI.mes]; save(); render(); toast('Pagamento desfeito.'); }
