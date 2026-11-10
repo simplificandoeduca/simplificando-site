@@ -635,7 +635,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.60';
+const VERSAO = '0.61';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -1304,7 +1304,7 @@ function folhaEquipe(u) {
   abrirFolha(u ? 'Editar pessoa' : 'Nova pessoa', `
     <div class="campo"><label for="e-nome">Nome</label><input id="e-nome" value="${esc(u ? u.nome : '')}" autocomplete="off"></div>
     <div class="dois"><div class="campo"><label for="e-login">Entra como</label><input id="e-login" value="${esc(u ? u.login : '')}" placeholder="apelido curto" autocapitalize="none" spellcheck="false" style="text-transform:lowercase" autocomplete="off"></div><div class="campo"><label for="e-papel">Papel</label><select id="e-papel">${Object.entries(PAPEIS).map(([k, n]) => `<option value="${k}" ${(u ? u.papel : 'atendente') === k ? 'selected' : ''}>${n}</option>`).join('')}</select></div></div>
-    <div class="campo"><label for="e-senha">${u ? 'Nova senha (deixe em branco para manter)' : 'Senha inicial'}</label><input id="e-senha" type="password" placeholder="${u ? '' : 'Ela troca depois em Ajustes'}" autocomplete="new-password"></div>
+    <div class="campo"><label for="e-senha">${u ? 'Redefinir a senha (só se precisar; em branco, fica a mesma)' : 'Senha'}</label><input id="e-senha" type="password" placeholder="${u ? '' : 'A senha com que ela vai entrar'}" autocomplete="new-password"></div>
     <p class="explica"><b>Gestor</b> vê tudo e mexe nos ajustes, na equipe e nas integrações. <b>Supervisor</b> faz tudo da loja e vê os ajustes, mas não os altera. <b>Atendente</b> cuida das horas, do WhatsApp e da agenda.</p>
     <div class="acoes"><button class="bt forte tap" data-act="equipe-salvar" data-id="${u ? u.id : ''}" style="flex:1;justify-content:center">${ic(IC.check)} Salvar</button>${u ? `<button class="bt claro tap" data-act="equipe-apagar" data-id="${u.id}" style="color:var(--erro)">Remover</button>` : ''}</div>`);
 }
@@ -1374,7 +1374,7 @@ const ACOES = {
   'exemplos-apagar': async () => { try { await api('exemplos_apagar'); await carregar(); desenhar(); toast('Exemplos apagados. Só ficou o que é de verdade.'); } catch (e) { toast(e.message); } },
   'idface-chave': () => { api('idface_nova_chave').then(async () => { await carregar(); fecharFolha(); desenhar(); setTimeout(folhaIdface, 250); toast('Chave nova. Rode o conector de novo no aparelho.'); }).catch(e => toast(e.message)); },
   simular: el => { const c = crianca(el.dataset.id); if (MODO === 'servidor') { api('idface_simular', { id: c.id }).then(async r => { await carregar(); fecharFolha(); desenhar(); toast(`${c.nome}: ${r.resultado} registrada como se fosse o iDFace`); }).catch(e => toast(e.message)); return; } if (c.entrou) saida(c); else entrada(c); fecharFolha(); desenhar(); },
-  conta: () => abrirFolha(esc(EU.nomeCompleto || EU.nome), `<div class="marca">${ic(IC.check, 18)}<span><b>${PAPEIS[EU.papel] || EU.papel}</b> · login ${esc(EU.login)}${MODO === 'demo' ? ' · prévia sem servidor' : ''}</span></div><div class="acoes">${supervisorOuMais() ? `<button class="bt tap" data-act="ir-ajustes">${ic(IC.ajustes)} Ajustes</button>` : ''}${MODO === 'servidor' ? `<button class="bt tap" data-act="trocar-senha">Trocar a senha</button>` : ''}<button class="bt claro tap" data-act="sair">Sair da conta</button></div>`),
+  conta: () => abrirFolha(esc(EU.nomeCompleto || EU.nome), `<div class="marca">${ic(IC.check, 18)}<span><b>${PAPEIS[EU.papel] || EU.papel}</b> · login ${esc(EU.login)}${MODO === 'demo' ? ' · prévia sem servidor' : ''}</span></div><div class="acoes">${supervisorOuMais() ? `<button class="bt tap" data-act="ir-ajustes">${ic(IC.ajustes)} Ajustes</button>` : ''}<button class="bt claro tap" data-act="sair">Sair da conta</button></div>`),
   'ir-ajustes': () => { fecharFolha(); trocarTela('ajustes'); }, fechar: () => fecharFolha(),
   conversa: el => { const c = convDe(el.dataset.id); if (!c.lidas && MODO === 'servidor') api('mensagens_lidas', { crianca: c.crianca }).catch(() => {}); c.lidas = true; S.zapAberta = c.id; S.zapModo = 'papo'; desenhar(); $('.papo').animate([{ opacity: 0, transform: 'translateX(24px)' }, { opacity: 1, transform: 'none' }], { duration: 360, easing: 'cubic-bezier(.32,.72,0,1)' }); },
   'zap-lista': () => { S.zapModo = 'lista'; desenhar(); },
