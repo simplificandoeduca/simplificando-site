@@ -39,7 +39,7 @@ function dados(array $eu): array {
   $ultimas = []; foreach ($db->query('SELECT v.crianca_id, v.minutos, v.valor, v.quando, v.itens, v.servico FROM vendas v JOIN (SELECT crianca_id, MAX(id) AS m FROM vendas WHERE minutos > 0 GROUP BY crianca_id) u ON u.m = v.id')->fetchAll() as $v) $ultimas[(int)$v['crianca_id']] = ['h' => round((int)$v['minutos'] / 60, 2), 'm' => (int)$v['minutos'], 'v' => (float)$v['valor'], 'quando' => $v['quando'], 'com' => (string)$v['itens'], 'servico' => (string)$v['servico']];
   // as cobranças por atraso da visita de quem está no espaço (quantas e quanto falta receber na saída)
   $atrasos = []; foreach ($db->query('SELECT v.crianca_id, COUNT(*) n, SUM(v.valor) t FROM vendas v JOIN criancas c ON c.id = v.crianca_id WHERE v.auto = 1 AND c.entrou IS NOT NULL AND v.quando >= c.entrou GROUP BY v.crianca_id')->fetchAll() as $a) $atrasos[(int)$a['crianca_id']] = ['n' => (int)$a['n'], 'valor' => (float)$a['t']];
-  foreach ($criancas as &$c) { $c['visitas'] = $porCrianca[$c['id']] ?? []; $c['venda'] = $ultimas[$c['id']] ?? null; $c['atraso'] = $atrasos[$c['id']] ?? null; }
+  foreach ($criancas as &$c) { $c['visitas'] = $porCrianca[$c['id']] ?? []; $c['venda'] = $ultimas[$c['id']] ?? null; $c['atraso'] = $atrasos[$c['id']] ?? null; if (ehExemplo($c['id'])) $c['teste'] = true; }   // teste: criança dos dados de exemplo (o botão do rodapé)
   unset($c);
   $registros = array_map(fn($r) => ['id' => (int)$r['id'], 'h' => $r['quando'], 'tipo' => $r['tipo'], 'nome' => $r['nome'], 'txt' => $r['texto'], 'crianca' => $r['crianca_id'] === null ? null : (int)$r['crianca_id']], $db->query('SELECT * FROM registros ORDER BY id DESC LIMIT 300')->fetchAll());
   $msgs = $db->query('SELECT * FROM mensagens ORDER BY quando ASC, id ASC')->fetchAll();
@@ -478,7 +478,7 @@ switch ($acao) {
     if ($c['idface_id'] !== null && $c['foto'] !== '') gravarCfg('foto_' . $c['id'], (int)$c['idface_id']); else gravarCfg('mandar_' . $c['id'], (int)$c['id']);
     responder();
   }
-  case 'exemplos_carregar': { // 10 crianças de exemplo, 5 no espaço, conversas e agenda, para conhecer o sistema
+  case 'exemplos_carregar': { // o teste do rodapé: 33 crianças de exemplo (30 no espaço, em horários diferentes), conversas e agenda
     $u = exigir(); podeAjustar($u); require_once __DIR__ . '/exemplos.php'; responder(exemplosCarregar((int)$u['id']));
   }
   case 'exemplos_apagar': { $u = exigir(); podeAjustar($u); require_once __DIR__ . '/exemplos.php'; exemplosApagar(); responder(); }

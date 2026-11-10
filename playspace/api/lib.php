@@ -127,7 +127,7 @@ function db(): PDO {
   return $pdo;
 }
 function cfg(string $k, $padrao = null) { $q = db()->prepare('SELECT valor FROM config WHERE chave = ?'); $q->execute([$k]); $v = $q->fetchColumn(); return $v === false ? $padrao : json_decode((string)$v, true); }
-function gravarCfg(string $k, $v): void { if ($k === 'regra') unset($GLOBALS['_regra']); db()->prepare('INSERT INTO config (chave, valor) VALUES (?, ?) ON CONFLICT(chave) DO UPDATE SET valor = excluded.valor')->execute([$k, json_encode($v, JSON_UNESCAPED_UNICODE)]); }
+function gravarCfg(string $k, $v): void { if ($k === 'regra') unset($GLOBALS['_regra']); if ($k === 'exemplo') unset($GLOBALS['_exemplo']); db()->prepare('INSERT INTO config (chave, valor) VALUES (?, ?) ON CONFLICT(chave) DO UPDATE SET valor = excluded.valor')->execute([$k, json_encode($v, JSON_UNESCAPED_UNICODE)]); }
 function apagarCfg(string $k): void { db()->prepare('DELETE FROM config WHERE chave = ?')->execute([$k]); }
 function cfgComo(string $prefixo): array { $q = db()->prepare("SELECT chave, valor FROM config WHERE chave LIKE ?"); $q->execute([$prefixo . '%']); $o = []; foreach ($q->fetchAll() as $r) $o[$r['chave']] = json_decode((string)$r['valor'], true); return $o; }
 
@@ -182,7 +182,7 @@ function precoPcd(array $c, float $v): float { return !empty($c['pcd']) ? round(
 function minutosDaVisita(array $c, int $fim): float {
   $ent = strtotime((string)$c['entrou']); $f = (int)(regra()['fecha'] ?? 22); $teto = $ent + 43200;
   $fecha = strtotime(date('Y-m-d', $ent) . ($f >= 24 ? ' 23:59:59' : sprintf(' %02d:00:00', max(0, $f))));
-  if ($fecha > $ent) $teto = min($teto, $fecha);   // entrou depois da hora de fechar (teste fora de hora): vale só o limite de 12 h
+  if ($fecha > $ent && !ehExemplo((int)$c['id'])) $teto = min($teto, $fecha);   // entrou depois da hora de fechar, ou é criança do teste do rodapé (que precisa funcionar a qualquer hora): vale só o limite de 12 h
   return max(0, (min($fim, $teto) - $ent) / 60);
 }
 function hm(int $min): string { $min = max(0, $min); return intdiv($min, 60) . 'h' . ($min % 60 ? str_pad((string)($min % 60), 2, '0', STR_PAD_LEFT) : ''); }
@@ -237,9 +237,14 @@ function fazerEntrada(array $c, string $origem = 'iDFace', ?string $quando = nul
 /* ---------- cobrança por atraso: passou do tempo comprado mais a tolerância, o sistema registra sozinho mais um período ---------- */
 // A venda entra marcada como automática, com a observação, e vira uma linha em "Hoje na recepção" para todo mundo ver.
 // É chamada a cada pulso das telas abertas (para quem ainda está no espaço) e de novo na saída. Devolve as vendas criadas.
+// criança dos dados de exemplo (o teste do rodapé): com elas a regra do tempo vale desde a entrada, para a tela mostrar tudo funcionando
+function ehExemplo(int $id): bool {
+  if (!isset($GLOBALS['_exemplo'])) { $e = cfg('exemplo', null); $GLOBALS['_exemplo'] = is_array($e) ? array_map('intval', (array)($e['criancas'] ?? [])) : []; }
+  return in_array($id, $GLOBALS['_exemplo'], true);
+}
 function acertarCobrancas(array $c, ?string $quando = null): array {
   if (!$c['entrou'] || !servicoTempo()) return [];
-  if ((string)$c['entrou'] < (string)cfg('cobranca_desde', '')) return [];   // já estava no espaço quando esta regra chegou: não gera cobrança para trás
+  if ((string)$c['entrou'] < (string)cfg('cobranca_desde', '') && !ehExemplo((int)$c['id'])) return [];   // já estava no espaço quando esta regra chegou: não gera cobrança para trás
   $fim = $quando ? strtotime($quando) : time();
   if ((int)$c['usado_min'] + cobrar(minutosDaVisita($c, $fim)) <= (int)$c['pacote_min']) return [];
   $db = db(); $s = servicoTempo(); $p = periodo(); $criadas = [];

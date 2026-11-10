@@ -854,7 +854,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.76';
+const VERSAO = '0.77';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -1098,7 +1098,8 @@ const crianca = id => S.criancas.find(c => c.id === +id);
 const minDentro = c => c.entrou ? (agora.getTime() - c.entrou.getTime()) / 60000 : 0;
 const segDentro = c => c.entrou ? Math.max(0, (agora.getTime() - c.entrou.getTime()) / 1000) : 0;
 // os minutos que contam para o débito: até a hora em que a loja fecha (no dia da entrada) e nunca mais de 12 h (saída esquecida não vira cobrança a noite toda)
-const tetoVisita = c => { const f = +S.cfg.fecha || 22, d = new Date(c.entrou), max = c.entrou.getTime() + 43200000; if (f >= 24) d.setHours(23, 59, 59, 0); else d.setHours(f, 0, 0, 0); return d > c.entrou ? Math.min(max, d.getTime()) : max; };
+const tetoVisita = c => { const f = +S.cfg.fecha || 22, d = new Date(c.entrou), max = c.entrou.getTime() + 43200000; if (MODO !== 'servidor' || c.teste) return max;   // na prévia e nas crianças de teste o relógio não para: o teste funciona igual a qualquer hora
+  if (f >= 24) d.setHours(23, 59, 59, 0); else d.setHours(f, 0, 0, 0); return d > c.entrou ? Math.min(max, d.getTime()) : max; };
 const minConta = (c, em) => c.entrou ? Math.max(0, (Math.min(+(em || agora), tetoVisita(c)) - c.entrou.getTime()) / 60000) : 0;
 const pacMin = c => c.pmin != null ? c.pmin : Math.round(c.pacote * 60);                 // o tempo comprado ao todo, em minutos
 const saldoMin = c => Math.max(0, pacMin(c) - c.usado);                                   // o que está guardado (sem contar a visita que está correndo)
@@ -1493,6 +1494,31 @@ function corpoEspaco() {
       : `<div class="esp-fora"><p class="explica">Ninguém com cadastro e fora do espaço nessa busca. <button class="link tap" data-act="nova">Cadastrar</button></p></div>`;
   }
   return h;
+}
+// (prévia) o teste do rodapé: 30 crianças no espaço, com nomes e horários diferentes, e o mesmo botão para tirar
+const TESTE_PREVIA = [['Ana Clara', 'Carla Menezes', 2, 1], ['Bento', 'Rodrigo Alves', 4, 1], ['Cecília', 'Fernanda Castro', 5, 1, { voucher: 'SHOP-1001' }], ['Davi Luiz', 'Tiago Lima', 7, 1], ['Elisa', 'Patrícia Nunes', 8, 2], ['Felipe', 'Marcos Vieira', 10, 1],
+  ['Gabriela', 'Aline Prado', 11, 1, { obs: 'Alergia a corante' }], ['Téo', 'Rafaela Lima', 12, 1], ['Heitor', 'Bruno Teixeira', 13, 1, { sem: 1 }], ['Isabela', 'Juliana Rocha', 14, 1, { pcd: 1 }], ['Joaquim', 'André Martins', 15, 2], ['Lara', 'Camila Farias', 16, 1],
+  ['Noah', 'Vanessa Duarte', 18, 1], ['Olívia', 'Renata Campos', 21, 1], ['Pedro', 'Gustavo Ribeiro', 22, 1, { obs: 'Não mexer no cabelo' }], ['Rafaela', 'Daniela Moraes', 24, 1], ['Samuel', 'Leandro Pires', 25, 1, { voucher: 'SHOP-1002' }], ['Valentina', 'Priscila Azevedo', 26, 1],
+  ['Yuri', 'Eduardo Barros', 28, 1, { sem: 1 }], ['Zoe', 'Larissa Monteiro', 29, 1], ['Antônio', 'Felipe Cardoso', 31, 1], ['Bia', 'Simone Araújo', 33, 1], ['Caio', 'Roberto Nogueira', 35, 1, { pcd: 1 }], ['Dora', 'Luciana Freitas', 37, 1],
+  ['João', 'Sérgio Lopes', 34, 2], ['Enzo', 'Marcelo Tavares', 42, 1], ['Flora', 'Bianca Sales', 47, 1, { obs: 'Pode fazer pintura no rosto' }], ['Lívia', 'Mônica Sá', 47, 2, { obs: 'Alergia a amendoim' }], ['Íris', 'Mônica Sá', 47, 2], ['Gael', 'Paulo Henrique Cunha', 56, 1]];
+function colocarTestePrevia() {
+  const x = servicoTempo() || { n: 'Recreação', v: 80 }, p = periodo(), tol = tolerancia(), usados = new Set(S.criancas.map(c => c.sapateira).filter(Boolean)); let sap = 0;
+  TESTE_PREVIA.forEach(([nome, resp, ha, per, m = {}], i) => {
+    const entrou = new Date(Date.now() - (ha + (i % 7) * 0.13) * 60000), pcd = !!m.pcd, autos = Math.max(0, Math.ceil((ha - tol) / p) - per), un = pcd ? precoDe({ pcd: true }, x.v) : x.v;
+    const c = { id: 300 + i, teste: true, nome, idade: 0, resp, rel: 'responsável', tel: `(11) 9 ${6100 + i * 13}-${1000 + i * 217}`, tel2: '', doc: 'cpf', cpf: '', obs: m.obs || '', pcd, pacote: (per + autos) * p / 60, usado: 0, entrou, rosto: false, foto: '', visitas: [], venda: null, sapateira: null, liberado: true, atraso: autos ? { n: autos, valor: autos * un } : null };
+    if (!m.sem) { do { sap++; } while (usados.has(sap)); if (sap <= nSap()) c.sapateira = sap; }
+    const compra = { id: novoId(), crianca: c.id, h: per * p / 60, m: per * p, v: m.voucher ? 0 : per * un, servico: x.n, itens: m.voucher ? 'voucher ' + m.voucher : pcd ? rotPcd() : '', quando: entrou, por: 'João', voucher: m.voucher || '', pcd, cheio: m.voucher || pcd ? per * x.v : undefined };
+    S.compras.push(compra); c.venda = { h: compra.h, m: compra.m, v: compra.v, servico: x.n, com: compra.itens, quando: entrou };
+    S.registros.push({ h: entrou, tipo: 'venda', nome, txt: `${x.n} · ${dur(per * p)}${compra.itens ? ' · ' + compra.itens : ''} · ${brl(compra.v)}`, teste: true }, { h: entrou, tipo: 'ent', nome, txt: 'Entrada registrada', teste: true });
+    for (let k = 1; k <= autos; k++) { const q = new Date(entrou.getTime() + ((per + k - 1) * p + tol) * 60000 + 1000); S.compras.push({ id: novoId(), crianca: c.id, h: p / 60, m: p, v: un, servico: x.n, itens: 'cobrança por atraso' + (pcd ? ' · ' + rotPcd() : ''), quando: q, por: '', auto: true, pcd, cheio: x.v }); S.registros.push({ h: q, tipo: 'cobr', nome, txt: textoCobranca(x, c), teste: true }); }
+    S.criancas.push(c); });
+  S.compras.sort((a, b) => b.quando - a.quando); S.registros.sort((a, b) => b.h - a.h); S.testePrevia = true;
+}
+function tirarTestePrevia() { // tira as 30 e tudo o que nasceu delas (vendas, linhas do dia, cancelamentos)
+  const ids = new Set(S.criancas.filter(c => c.teste).map(c => c.id)), nomes = new Set(S.criancas.filter(c => c.teste).map(c => c.nome));
+  if (LADO && ids.has(LADO.id)) fecharLado();
+  S.criancas = S.criancas.filter(c => !c.teste); S.compras = S.compras.filter(v => !ids.has(v.crianca)); S.registros = S.registros.filter(r => !r.teste && !nomes.has(r.nome));
+  S.cancelamentos = (S.cancelamentos || []).filter(x => !ids.has(x.crianca)); S.conversas = S.conversas.filter(x => !ids.has(x.crianca)); S.testePrevia = false;
 }
 function atualizarEspaco() { const a = $('#esp-corpo'), ch = $('#esp-filtros'); if (a) a.innerHTML = corpoEspaco(); if (ch) ch.innerHTML = chipsEspaco(); }
 function telaHoras() {
@@ -2180,8 +2206,8 @@ function telaAjustes() {
         <p class="explica"><b>Desligado é o padrão:</b> a loja não manda aviso de chegada, de saída nem de tempo, para o responsável não ficar de olho no relógio. Se ligar, as mensagens dizem só que a criança chegou ou saiu, sem falar de tempo nem de saldo.</p>
       </div>
       ${MODO === 'servidor' && gestor() ? `<div class="card"><div class="sec-cab"><h2 style="font-size:18px">Dados de exemplo</h2>${S.exemplo ? `<span class="pill p-aviso">${S.exemplo} crianças de exemplo</span>` : ''}</div>
-        <p class="explica">${S.exemplo ? 'As crianças, conversas e compromissos de exemplo estão no sistema para a equipe conhecer tudo. Antes de começar a usar de verdade, apague-os aqui: os cadastros reais ficam.' : 'Carrega 3 crianças fictícias (2 no espaço agora), com banco de horas, uma venda, conversas no WhatsApp de hoje e de ontem e compromissos na agenda. Nada vai para o iDFace nem para o WhatsApp.'}</p>
-        <div class="acoes">${S.exemplo ? `<button class="bt claro tap" data-act="exemplos-apagar" style="color:var(--erro)">Apagar os exemplos</button>` : `<button class="bt tap" data-act="exemplos-carregar">Carregar dados de exemplo</button>`}</div>
+        <p class="explica">${S.exemplo ? 'As crianças de teste estão no sistema para a equipe ver a tela cheia e conhecer tudo. Antes de começar a usar de verdade, tire-as aqui (ou em "Tirar o teste", no rodapé): os cadastros reais ficam.' : 'Coloca 33 crianças fictícias: 30 no espaço agora, com nomes e horários de entrada diferentes (umas acabando o tempo, outras na tolerância ou já com cobrança por atraso, duas PCD e duas com voucher) e 3 fora, mais conversas no WhatsApp e compromissos na agenda. Nada vai para o iDFace nem para o WhatsApp. O mesmo botão fica no rodapé de todas as telas.'}</p>
+        <div class="acoes">${S.exemplo ? `<button class="bt claro tap" data-act="exemplos-apagar" style="color:var(--erro)">Tirar o teste</button>` : `<button class="bt tap" data-act="exemplos-carregar">Colocar o teste: 30 crianças no espaço</button>`}</div>
       </div>` : ''}
       <div class="card"><div class="sec-cab"><h2 style="font-size:18px">Aparência</h2></div>${seg('tema', [['sistema', 'Como o celular'], ['claro', 'Claro'], ['escuro', 'Escuro']], cfg.tema)}
         <div class="campo"><label>Bonequinhos neste aparelho</label>${seg('anim', [['auto', 'Automático'], ['cheia', 'Animados'], ['leve', 'Quietos']], animEscolha())}<span class="explica">No automático, o sistema segue o aparelho: se as animações dele estiverem desligadas (comum em Windows ajustado para ficar mais rápido), os bonequinhos ficam quietos.${semMovimento() ? ' <b>Neste aparelho elas estão desligadas.</b>' : ''} Em Animados, eles se mexem sempre.</span></div></div>
@@ -2225,7 +2251,7 @@ function desenhar(quieto = false) { // quieto: redesenho da sincronia, sem as an
   $('#miolo').innerHTML = ({ horas: telaHoras, banco: telaBanco, zap: telaZap, agenda: telaAgenda, ajustes: telaAjustes })[S.tela]();
   $('#hoje').innerHTML = painelHoje();
   $('#fab-ancora').hidden = S.tela !== 'horas';
-  $('#rodape-global').innerHTML = `<span>${MODO === 'demo' ? 'Prévia com dados de exemplo · ' : ''}<b>Play Space Horas</b></span>${botaoVersao()}${MODO === 'servidor' && gestor() ? `<button type="button" class="versao tap exemplo-bt" data-act="exemplos-${S.exemplo ? 'apagar' : 'carregar'}">${S.exemplo ? 'Apagar exemplo' : 'Colocar exemplo'}</button>` : ''}`;
+  $('#rodape-global').innerHTML = `<span>${MODO === 'demo' ? 'Prévia com dados de exemplo · ' : ''}<b>Play Space Horas</b></span>${botaoVersao()}${MODO === 'servidor' ? (gestor() ? `<button type="button" class="versao tap exemplo-bt" data-act="exemplos-${S.exemplo ? 'apagar' : 'carregar'}" title="${S.exemplo ? 'Tira as crianças de teste; os cadastros de verdade ficam' : 'Coloca 30 crianças de teste no espaço, em horários diferentes, para ver a tela cheia'}">${S.exemplo ? 'Tirar o teste' : 'Teste: 30 crianças'}</button>` : '') : `<button type="button" class="versao tap exemplo-bt" data-act="teste-previa" title="${S.testePrevia ? 'Tira as 30 crianças de teste' : 'Coloca 30 crianças de teste no espaço, em horários diferentes, para ver a tela cheia'}">${S.testePrevia ? 'Tirar o teste' : 'Teste: 30 crianças'}</button>`}`;
   animarPlacas();
   if (foco) { const i = $('#esp-busca'); if (i) { i.focus(); try { i.setSelectionRange(foco[0], foco[1]); } catch (e) { } } }
   if (LADO) { if (MODO !== 'servidor' || LADO.reg !== ULT_REG) { LADO.reg = ULT_REG; buscarHistorico(); } else desenharLado(); }   // a aba do histórico acompanha o que mudou
@@ -2341,8 +2367,9 @@ const ACOES = {
   'idface-toggle': () => { const lig = !S.cfg.idface.ligado; if (MODO === 'servidor') { api('idface_salvar', { ligado: lig }).then(async () => { await carregar(); toast(lig ? 'Leitura ligada' : 'Leitura desligada'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } S.cfg.idface.ligado = lig; toast(lig ? 'Leitura ligada' : 'Leitura desligada'); fecharFolha(); desenhar(); },
   'idface-bat': () => { if (MODO === 'servidor') { location.href = 'api/idface.php?acao=conectar_bat'; toast('Baixando "Conectar o iDFace.bat" (Windows)…'); return; } toast('No sistema de verdade, baixa o conector com IP e chave já preenchidos'); },
   'idface-command': () => { if (MODO === 'servidor') { location.href = 'api/idface.php?acao=conectar_command'; toast('Baixando "Conectar o iDFace" para Mac…'); return; } toast('No sistema de verdade, baixa o conector para Mac com IP e chave já preenchidos'); },
-  'exemplos-carregar': async () => { try { toast('Carregando os exemplos…'); await api('exemplos_carregar'); await carregar(); S.tela = 'horas'; desenhar(); toast('Exemplo carregado: 3 crianças, conversas e agenda. Apague quando for usar de verdade.'); } catch (e) { toast(e.message); } },
-  'exemplos-apagar': async () => { try { await api('exemplos_apagar'); await carregar(); desenhar(); toast('Exemplos apagados. Só ficou o que é de verdade.'); } catch (e) { toast(e.message); } },
+  'exemplos-carregar': async () => { try { toast('Colocando as crianças de teste…'); const r = await api('exemplos_carregar'); await carregar(); S.tela = 'horas'; S.espFiltro = 'todas'; S.espBusca = ''; desenhar(); window.scrollTo({ top: 0 }); toast(`Teste no ar: ${r.dentro || 30} crianças no espaço, em horários diferentes. Para tirar, "Tirar o teste", lá embaixo.`, () => ACOES['exemplos-apagar'](), 'Tirar'); } catch (e) { toast(e.message); } },
+  'exemplos-apagar': async () => { try { await api('exemplos_apagar'); await carregar(); desenhar(); toast('Teste tirado. Só ficou o que é de verdade.'); } catch (e) { toast(e.message); } },
+  'teste-previa': () => { if (S.testePrevia) tirarTestePrevia(); else colocarTestePrevia(); S.tela = 'horas'; S.espFiltro = 'todas'; S.espBusca = ''; desenhar(); window.scrollTo({ top: 0 }); toast(S.testePrevia ? 'Teste no ar: 30 crianças no espaço, em horários diferentes. Para tirar, "Tirar o teste", lá embaixo.' : 'Teste tirado.', S.testePrevia ? () => ACOES['teste-previa']() : null, S.testePrevia ? 'Tirar' : undefined); },
   'idface-chave': () => { api('idface_nova_chave').then(async () => { await carregar(); fecharFolha(); desenhar(); setTimeout(folhaIdface, 250); toast('Chave nova. Rode o conector de novo no aparelho.'); }).catch(e => toast(e.message)); },
   simular: el => { const c = crianca(el.dataset.id); if (MODO === 'servidor') { api('idface_simular', { id: c.id }).then(async r => { await carregar(); fecharFolha(); desenhar(); toast(`${c.nome}: ${r.resultado} registrada como se fosse o iDFace`); }).catch(e => toast(e.message)); return; } if (c.entrou) saida(c); else entrada(c); fecharFolha(); desenhar(); },
   conta: () => abrirFolha(esc(EU.nomeCompleto || EU.nome), `<div class="marca">${ic(IC.check, 18)}<span><b>${PAPEIS[EU.papel] || EU.papel}</b> · login ${esc(EU.login)}${MODO === 'demo' ? ' · prévia sem servidor' : ''}</span></div>${MODO === 'demo' ? `<div class="campo"><label>Na prévia, ver a tela como</label><div class="seg">${Object.entries(PAPEIS).map(([k, n]) => `<button type="button" data-act="ver-como" data-v="${k}" aria-pressed="${EU.papel === k}">${n}</button>`).join('')}</div><span class="explica">O atendente cancela a entrada só dentro do prazo; gestor e supervisor conferem os cancelamentos.</span></div>` : ''}<div class="acoes">${supervisorOuMais() ? `<button class="bt tap" data-act="ir-ajustes">${ic(IC.ajustes)} Ajustes</button>` : ''}<button class="bt claro tap" data-act="sair">Sair da conta</button></div>`),

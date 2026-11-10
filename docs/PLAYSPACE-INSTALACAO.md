@@ -16,11 +16,19 @@ Os dados ficam fora da pasta pública, em `~/playspace-dados/` (criada sozinha n
 2. Abra `https://seusite.com.br/playspace/`. Como ainda não há ninguém cadastrado, aparece **"Bem-vinda ao Play Space"**: crie a conta da gestora (nome, login curto, senha de 6+ caracteres). Pronto, está dentro.
 3. Dali em diante, **Atualizar** no topo da tela baixa as versões novas direto do GitHub. Só a gestora ou a supervisora veem o botão.
 
-## 2b. Dados de exemplo (Ajustes → Dados de exemplo)
+## 2b. Teste com 30 crianças (botão no rodapé)
 
-Para a equipe conhecer o sistema antes de usar de verdade, a gestora pode **Carregar dados de exemplo**: 3 crianças fictícias (2 no espaço agora, com o tempo correndo), banco de horas em estados diferentes (em dia, acabando, acabou), vendas e registros do dia, uma **entrada cancelada sem cobrar** para a supervisão conferir, uma criança **na tolerância** (passou do tempo comprado: em poucos minutos nasce a cobrança por atraso, para ver como é), conversas no WhatsApp de hoje e de ontem e compromissos na agenda. Nada vai para o iDFace nem para o WhatsApp.
+Para ver como a tela fica com o espaço cheio, a gestora toca em **Teste: 30 crianças**, no rodapé de qualquer tela (ou em Ajustes → Dados de exemplo). Entram 33 crianças fictícias:
 
-Quando for começar de verdade, **Apagar os exemplos** no mesmo lugar tira tudo isso e deixa só os cadastros reais. O link também aparece no banco de horas enquanto não há nenhuma criança cadastrada.
+- **30 no espaço agora**, com nomes, responsáveis e horários de entrada diferentes: umas acabaram de entrar (com o atalho de cancelar), outras estão no tempo, acabando, **na tolerância** e três **já com cobrança por atraso**; duas são **PCD** e duas entraram com **voucher**; algumas têm restrição anotada e duas estão sem sapateira.
+- **3 fora do espaço** (uma com a entrada cancelada, para a supervisão conferir; duas que já saíram hoje, uma delas com cobrança por atraso), para testar a busca.
+- Vendas e registros do dia, conversas no WhatsApp e compromissos na agenda.
+
+Elas se comportam como crianças de verdade: o tempo corre, a cobrança por atraso nasce sozinha, dá para dar saída, cancelar e vender. Nada vai para o iDFace nem para o WhatsApp. Nas crianças de teste o relógio não para na hora de fechar a loja, para o teste funcionar a qualquer hora.
+
+Para tirar, o mesmo botão vira **Tirar o teste**: saem as 33 crianças e tudo o que nasceu delas (vendas, cobranças, linhas do dia, conversas, agenda). Os cadastros de verdade ficam. Só a gestora coloca e tira o teste; a equipe vê as crianças de teste na tela enquanto elas estiverem lá.
+
+Na prévia (sem servidor) o mesmo botão existe e faz a mesma coisa na própria tela.
 
 ## 3. Equipe e papéis (Ajustes → Equipe)
 
