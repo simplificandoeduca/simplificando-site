@@ -19,6 +19,7 @@ function pushComando(string $endpoint, $body): array { return ['verb' => 'POST',
 function quandoDoTs(int $ts): string { return date('Y-m-d H:i:s', $ts + 60 * (int)cfg('ajuste_min', 0)); }
 function ultimoLog(string $aparelho): int { $q = db()->prepare('SELECT MAX(log_id) FROM batidas WHERE aparelho = ?'); $q->execute([$aparelho]); return max((int)$q->fetchColumn(), (int)cfg('log_corte', 0)); }
 function regrasFila(): array { $r = []; foreach (cfgComo('regra_') as $k => $v) if (preg_match('/^regra_\d+$/', $k)) $r[$k] = $v; return $r; }   // só a fila (regra_<id>), não regra_id nem regra_ok_
+function criancaDentroNoAparelho(int $uid): bool { $q = db()->prepare('SELECT entrou FROM criancas WHERE idface_id = ? AND ativo = 1'); $q->execute([$uid]); return (bool)$q->fetchColumn(); }
 function fotoBase64(string $foto): string { return preg_match('#^data:image/[a-z]+;base64,(.+)$#s', $foto, $m) ? $m[1] : $foto; }
 // a resposta do aparelho com a imagem: procura o primeiro texto base64 grande numa chave "image"
 function acharImagem($r): string {
@@ -53,7 +54,8 @@ function salvarBatidas(string $aparelho, array $batidas, bool $aoVivo): int {
   foreach ($batidas as $b) {
     if (!is_array($b)) continue;
     $uid = (int)($b['user_id'] ?? 0); $ts = (int)($b['time'] ?? 0); $lid = (int)($b['id'] ?? 0); $ev = (int)($b['event'] ?? 7);
-    if ($uid <= 0 || $ts <= 0 || $lid <= $corte || $ev !== 7 || in_array($uid, $fila, true)) continue; // 7: acesso liberado (rosto reconhecido)
+    if ($uid <= 0 || $ts <= 0 || $lid <= $corte || in_array($uid, $fila, true)) continue;
+    if ($ev !== 7 && !($ev === 6 && criancaDentroNoAparelho($uid))) continue; // 7: acesso liberado; 6: recusado, só vale como saída de quem está dentro
     $quando = quandoDoTs($ts);
     // leitura antiga demais (o aparelho ficou sem internet e acumulou): registra, mas só processa o que tem até 6 horas
     $resultado = (time() - strtotime($quando)) > 6 * 3600 ? 'antiga' : processarRosto($uid, $quando);
@@ -110,7 +112,11 @@ function acaoPush(string $rota): void {
         elseif ($tipo === 'criar') {
           $uid = (int)(((array)($resp['ids'] ?? []))[0] ?? 0); $cid = (int)($fly['crianca'] ?? 0);
           if ($uid && $cid) {
-            $up = $db->prepare('UPDATE criancas SET idface_id = ? WHERE id = ? AND idface_id IS NULL'); $up->execute([$uid, $cid]);
+            $up = $db->prepare('UPDATE criancas SET idface_id = ? WHERE id = ? AND idface_id IS NULL');
+            try { $up->execute([$uid, $cid]); }
+            catch (Throwable $e) { // esse número já apontava para outra criança (o aparelho foi zerado e recomeçou a contagem): solta o antigo
+              $db->prepare('UPDATE criancas SET idface_id = NULL, rosto = 0 WHERE idface_id = ? AND id <> ?')->execute([$uid, $cid]); $up->execute([$uid, $cid]);
+            }
             if ($up->rowCount()) { $cr = crianca($cid); if ($cr && $cr['foto'] !== '') gravarCfg('foto_' . $cid, $uid); if ($cr && !empty($cr['liberado'])) gravarCfg('regra_' . $cid, $uid); }
             else gravarCfg('apagar_' . $uid, $uid);   // a criança já tinha cadastro no aparelho: este saiu duplicado, apaga
             apagarCfg('mandar_' . $cid);

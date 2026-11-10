@@ -88,7 +88,7 @@ function urlBase(): string { // .../playspace
 }
 
 /* ---------- a regra das horas (as mesmas opções da tela de Ajustes) ---------- */
-const REGRA_PADRAO = ['arredonda' => 1, 'cortesia' => 10, 'minimo' => 0, 'aviso' => 30, 'autoMsg' => 'ambos', 'pacotes' => [['h' => 1, 'v' => 60], ['h' => 5, 'v' => 250], ['h' => 10, 'v' => 450], ['h' => 20, 'v' => 800]]];
+const REGRA_PADRAO = ['arredonda' => 1, 'cortesia' => 10, 'minimo' => 0, 'aviso' => 30, 'autoMsg' => 'ambos', 'bloqueioAuto' => 'sim', 'pacotes' => [['h' => 1, 'v' => 60], ['h' => 5, 'v' => 250], ['h' => 10, 'v' => 450], ['h' => 20, 'v' => 800]]];
 function regra(): array { $r = cfg('regra', null); return (is_array($r) ? $r : []) + REGRA_PADRAO; }
 function cobrar(float $minutos): int {
   $r = regra(); $m = max(0, $minutos - (int)$r['cortesia']);
@@ -151,6 +151,7 @@ function fazerSaida(array $c, string $origem = 'iDFace', ?string $quando = null)
   $db->prepare('UPDATE criancas SET entrou = NULL, usado_min = usado_min + ? WHERE id = ?')->execute([$deb, $c['id']]);
   $c['usado_min'] += $deb; $c['entrou'] = null;
   $r = restante($c);
+  if ($r <= 0 && regra()['bloqueioAuto'] === 'sim') bloquearAcesso($c, false);   // zerou: o iDFace passa a recusar até venderem horas
   $reg = registrar('sai', (int)$c['id'], $c['nome'], hm($deb) . ' debitadas · restam ' . hm($r) . ($origem === 'iDFace' ? '' : ' · saída à mão'), $quando);
   $msg = null;
   if (regra()['autoMsg'] === 'ambos') {
@@ -159,9 +160,17 @@ function fazerSaida(array $c, string $origem = 'iDFace', ?string $quando = null)
   }
   return ['registro' => $reg, 'visita' => $visita, 'debitado' => $deb, 'mensagem' => $msg];
 }
+// a chavinha "acesso no iDFace": liberada, o aparelho autoriza o rosto e as horas correm; bloqueada, ele recusa
+function bloquearAcesso(array $c, bool $liberar): void {
+  db()->prepare('UPDATE criancas SET liberado = ? WHERE id = ?')->execute([$liberar ? 1 : 0, $c['id']]);
+  if ($c['idface_id'] === null) return;
+  if ($liberar) { apagarCfg('desregra_' . $c['id']); apagarCfg('regra_ok_' . $c['id']); gravarCfg('regra_' . $c['id'], (int)$c['idface_id']); }
+  else { apagarCfg('regra_' . $c['id']); gravarCfg('desregra_' . $c['id'], (int)$c['idface_id']); }
+}
 function fazerVenda(array $c, int $horas, float $valor, ?int $por): array {
   $db = db();
   $db->prepare('UPDATE criancas SET pacote_min = pacote_min + ? WHERE id = ?')->execute([$horas * 60, $c['id']]);
+  if (isset($c['liberado']) && !(int)$c['liberado']) bloquearAcesso($c, true);   // pagou: o acesso volta
   $db->prepare('INSERT INTO vendas (crianca_id, horas, valor, quando, por) VALUES (?, ?, ?, ?, ?)')->execute([$c['id'], $horas, $valor, agora(), $por]);
   $venda = (int)$db->lastInsertId();
   $reg = registrar('venda', (int)$c['id'], $c['nome'], ($horas === 1 ? 'Hora avulsa' : 'Pacote de ' . $horas . 'h') . ' vendido · R$ ' . number_format($valor, 0, ',', '.'));
@@ -190,7 +199,7 @@ function mandarMensagem(array $c, string $texto, bool $auto = false, string $fot
 function processarRosto(int $idfaceUser, string $quando, string $origem = 'iDFace'): string {
   $db = db(); $q = $db->prepare('SELECT * FROM criancas WHERE idface_id = ? AND ativo = 1'); $q->execute([$idfaceUser]); $c = $q->fetch();
   if (!$c) return 'sem criança';
-  if (isset($c['liberado']) && !(int)$c['liberado']) return 'bloqueada';   // a chavinha está desligada: a leitura não conta
+  if (isset($c['liberado']) && !(int)$c['liberado'] && !$c['entrou']) return 'bloqueada';   // acesso bloqueado e ela está fora: a leitura não conta
   // a mesma criança lida duas vezes seguidas (ficou parada na frente da câmera) conta uma vez só
   $ult = $db->prepare('SELECT quando FROM registros WHERE crianca_id = ? AND tipo IN (\'ent\', \'sai\') ORDER BY id DESC LIMIT 1'); $ult->execute([$c['id']]); $u = $ult->fetchColumn();
   if ($u && abs(strtotime($quando) - strtotime((string)$u)) < 90) return 'repetida';

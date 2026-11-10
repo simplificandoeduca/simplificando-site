@@ -617,7 +617,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.58';
+const VERSAO = '0.59';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -648,7 +648,7 @@ async function atualizarAgora(bt) {
 }
 const S = {
   tela: 'horas', zapAberta: 1, zapModo: 'lista', zapDia: isoDia(agora), mes: { y: agora.getFullYear(), m: agora.getMonth() }, diaSel: isoDia(agora),
-  cfg: { arredonda: 1, cortesia: 10, minimo: 0, aviso: 30, autoMsg: 'ambos', pacotes: [{ h: 1, v: 60 }, { h: 5, v: 250 }, { h: 10, v: 450 }, { h: 20, v: 800 }], idface: { ip: '192.168.0.129', nome: 'Recepção', ligado: true, ultima: antes(0.2) }, tema: lido('ps-tema', 'sistema') },
+  cfg: { arredonda: 1, cortesia: 10, minimo: 0, aviso: 30, autoMsg: 'ambos', bloqueioAuto: 'sim', pacotes: [{ h: 1, v: 60 }, { h: 5, v: 250 }, { h: 10, v: 450 }, { h: 20, v: 800 }], idface: { ip: '192.168.0.129', nome: 'Recepção', ligado: true, ultima: antes(0.2) }, tema: lido('ps-tema', 'sistema') },
   equipe: [{ id: 1, nome: 'Camila Duarte', papel: 'gestor', login: 'camila' }, { id: 2, nome: 'Beatriz Lima', papel: 'supervisor', login: 'bia' }, { id: 3, nome: 'João Pedro', papel: 'atendente', login: 'jp' }],
   whats: { conectado: true, numero: '5511912345678', nome: 'Play Space' }, vendasHoje: null,
   criancas: [
@@ -702,6 +702,7 @@ let MODO = 'demo';
 let EU = { nome: 'Camila', papel: 'gestor', login: 'camila' };
 const gestor = () => EU.papel === 'gestor';
 const supervisorOuMais = () => EU.papel === 'gestor' || EU.papel === 'supervisor';
+const podeManual = () => MODO !== 'servidor' || supervisorOuMais();   // entrada e saída à mão: o normal é o rosto no iDFace
 async function api(acao, dados = {}) {
   let r;
   try { r = await fetch(API, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-Play': '1' }, body: JSON.stringify({ acao, ...dados }) }); }
@@ -853,14 +854,14 @@ function anel(c, onde = 'banco') {
   const r = restante(c), pct = c.pacote ? Math.max(0, Math.min(100, r / (c.pacote * 60) * 100)) : 0, baixo = r <= S.cfg.aviso;
   const dentro = onde === 'hero';
   const botoes = dentro
-    ? `<button class="bt claro tap" data-act="saida-rapida" data-id="${c.id}">${ic(IC.sair, 14)} Saída</button><button class="bt tap" data-act="avisar" data-id="${c.id}" aria-label="Avisar ${esc(c.resp)}">${ic(IC.zap, 14)}</button>`
-    : (r <= 0 || baixo ? `<button class="bt forte tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 14)} Vender</button>` : c.rosto ? `<button class="bt tap" data-act="entrada-rapida" data-id="${c.id}">${ic(IC.entrar, 14)} Entrada</button>` : (rostoPronto() ? `<button class="bt tap" data-act="rosto-cam" data-id="${c.id}">${ic(IC.rosto, 14)} Cadastrar rosto</button>` : `<button class="bt tap" data-act="ficha" data-id="${c.id}">${ic(IC.camera, 14)} Tirar a foto</button>`));
+    ? `${podeManual() ? `<button class="bt claro tap" data-act="saida-rapida" data-id="${c.id}">${ic(IC.sair, 14)} Saída</button>` : ''}<button class="bt tap" data-act="avisar" data-id="${c.id}" aria-label="Avisar ${esc(c.resp)}">${ic(IC.zap, 14)}${podeManual() ? '' : ' Avisar'}</button>`
+    : (r <= 0 || baixo ? `<button class="bt forte tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 14)} Vender</button>` : c.rosto ? (podeManual() ? `<button class="bt tap" data-act="entrada-rapida" data-id="${c.id}">${ic(IC.entrar, 14)} Entrada</button>` : `<button class="bt tap" data-act="avisar" data-id="${c.id}">${ic(IC.zap, 14)} Avisar</button>`) : (rostoPronto() ? `<button class="bt tap" data-act="rosto-cam" data-id="${c.id}">${ic(IC.rosto, 14)} Cadastrar rosto</button>` : `<button class="bt tap" data-act="ficha" data-id="${c.id}">${ic(IC.camera, 14)} Tirar a foto</button>`));
   return `<div class="anel ${baixo ? 'baixo' : ''} ${!dentro && !liberada(c) ? 'bloqueada' : ''}" data-anel="${c.id}" data-onde="${onde}">
     <button class="r tap" data-act="ficha" data-id="${c.id}" style="--p:${pct.toFixed(1)};--c:${baixo ? 'var(--erro)' : 'var(--verde-agua)'}" aria-label="Abrir a ficha de ${esc(c.nome)}">${c.foto ? `<span class="fotinha" style="background-image:url(${c.foto})"></span>` : ''}<b class="num">${r <= 0 ? 'Acabou' : hm(r)}<small>${r <= 0 ? `pacote de ${c.pacote}h` : `de ${c.pacote}h`}</small></b></button>
     <span class="nome">${esc(c.nome)}${c.idade && !dentro ? ', ' + c.idade : ''}</span>
     <em>${dentro ? `desde ${hora(c.entrou)} · <span class="num" data-cron-txt="${c.id}">${hm(minDentro(c))}</span>` : esc(c.resp)}</em>
     <div class="mini">${botoes}</div>
-    ${dentro ? '' : `<div class="libera"><span>${liberada(c) ? 'Entrada liberada' : 'Entrada bloqueada'}</span>${chave(c, true)}</div>`}
+    ${dentro ? '' : `<div class="libera"><span>${liberada(c) ? 'Acesso autorizado' : 'Acesso bloqueado'}</span>${chave(c, true)}</div>`}
   </div>`;
 }
 // a situação da criança em uma frase: está aqui, vai embora em X, o tempo acabou, não está aqui
@@ -902,7 +903,7 @@ function entrada(c, origem = 'iDFace') {
 }
 function saida(c, origem = 'iDFace') {
   if (MODO === 'servidor') return saidaServidor(c);
-  const deb = cobrar(minDentro(c)), entrouEm = c.entrou; c.usado += deb;
+  const deb = cobrar(minDentro(c)), entrouEm = c.entrou; c.usado += deb; if (S.cfg.bloqueioAuto === 'sim' && restante(c) <= 0) c.liberado = false;
   const visita = { dia: new Date(), entrou: hora(c.entrou), saiu: hora(new Date()), deb }; c.visitas.unshift(visita);
   c.entrou = null; registrar('sai', c.nome, `${hm(deb)} debitadas · restam ${hm(restante(c))}${origem === 'iDFace' ? '' : ' · saída à mão'}`);
   const reg = S.registros[0], r = restante(c);
@@ -912,7 +913,7 @@ function saida(c, origem = 'iDFace') {
 }
 function vender(c, pac) {
   if (MODO === 'servidor') return venderServidor(c, pac);
-  c.pacote += pac.h; registrar('venda', c.nome, `Pacote de ${pac.h}h vendido · ${brl(pac.v)}`); const reg = S.registros[0];
+  c.pacote += pac.h; c.liberado = true; registrar('venda', c.nome, `Pacote de ${pac.h}h vendido · ${brl(pac.v)}`); const reg = S.registros[0];
   toast(`+${pac.h}h para ${c.nome} · ${brl(pac.v)}`, () => { c.pacote -= pac.h; S.registros = S.registros.filter(r => r !== reg); });
 }
 
@@ -964,10 +965,10 @@ const chipIdface = () => { const i = S.cfg.idface, ok = i.ligado && (MODO !== 's
 function cartaoCrianca(c) {
   const [et, cls] = estado(c);
   const botoes = c.entrou
-    ? `<button class="bt claro tap" data-act="saida-rapida" data-id="${c.id}">${ic(IC.sair)} Saída</button><button class="bt tap" data-act="avisar" data-id="${c.id}">${ic(IC.zap)} Avisar ${esc(c.resp)}</button>`
-    : `<button class="bt forte tap" data-act="vender" data-id="${c.id}">${ic(IC.mais)} Vender horas</button>${c.rosto ? `<button class="bt claro tap" data-act="entrada-rapida" data-id="${c.id}">${ic(IC.entrar)} Entrada</button>` : (rostoPronto() ? `<button class="bt tap" data-act="rosto-cam" data-id="${c.id}">${ic(IC.rosto)} Cadastrar rosto</button>` : `<button class="bt tap" data-act="ficha" data-id="${c.id}">${ic(IC.camera)} Tirar a foto</button>`)}`;
+    ? `${podeManual() ? `<button class="bt claro tap" data-act="saida-rapida" data-id="${c.id}">${ic(IC.sair)} Saída</button>` : ''}<button class="bt tap" data-act="avisar" data-id="${c.id}">${ic(IC.zap)} Avisar ${esc(c.resp)}</button>`
+    : `<button class="bt forte tap" data-act="vender" data-id="${c.id}">${ic(IC.mais)} Vender horas</button>${c.rosto ? (podeManual() ? `<button class="bt claro tap" data-act="entrada-rapida" data-id="${c.id}">${ic(IC.entrar)} Entrada</button>` : '') : (rostoPronto() ? `<button class="bt tap" data-act="rosto-cam" data-id="${c.id}">${ic(IC.rosto)} Cadastrar rosto</button>` : `<button class="bt tap" data-act="ficha" data-id="${c.id}">${ic(IC.camera)} Tirar a foto</button>`)}`;
   return `<div class="card tap" role="button" tabindex="0" data-act="ficha" data-id="${c.id}" aria-label="Abrir a ficha de ${esc(c.nome)}">
-    <div class="linha">${avatar(c)}<div class="txt"><b>${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}</b><span>${esc(c.resp)} (${esc(c.rel)})${c.tel ? ' · ' + esc(c.tel) : ''}</span></div>${c.entrou ? `<div class="cron num" data-cron="${c.id}">${cronometro(c)}</div>` : `${chave(c, true)}<span class="pill ${!liberada(c) ? 'p-erro' : c.rosto ? 'p-neutro' : 'p-aviso'}">${!liberada(c) ? 'Bloqueada' : c.rosto ? 'Rosto ok' : 'Falta o rosto'}</span>`}</div>
+    <div class="linha">${avatar(c)}<div class="txt"><b>${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}</b><span>${esc(c.resp)} (${esc(c.rel)})${c.tel ? ' · ' + esc(c.tel) : ''}</span></div>${c.entrou ? `<div class="cron num" data-cron="${c.id}">${cronometro(c)}</div>` : `${chave(c, true)}<span class="pill ${!liberada(c) ? 'p-erro' : c.rosto ? 'p-neutro' : 'p-aviso'}">${!liberada(c) ? 'Acesso bloqueado' : c.rosto ? 'Rosto ok' : 'Falta o rosto'}</span>`}</div>
     ${blocos(c)}
     <div class="acoes">${botoes}</div>
   </div>`;
@@ -1010,12 +1011,12 @@ function folhaFicha(id) {
   const c = crianca(id); if (!c) return; const [et, cls] = estado(c);
   abrirFolha(`${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}`, `
     <div class="linha">${avatarComUrso(c, 'g')}<div class="txt"><b style="white-space:normal">${esc(c.resp)}, ${esc(c.rel)}</b><span>${esc(c.tel)}${c.cpf ? ' · CPF ' + esc(c.cpf) : ''}</span>${c.obs ? `<span style="color:var(--coral);font-weight:700">${esc(c.obs)}</span>` : ''}</div><span class="pill ${cls}">${et}</span></div>
-    <div class="marca libera-ficha">${ic(IC.rosto, 18)}<span><b>${liberada(c) ? 'Entrada liberada' : 'Entrada bloqueada'}</b> · ${liberada(c) ? 'ela bate o rosto no iDFace e as horas começam a contar.' : 'o iDFace recusa o rosto dela até você liberar.'}</span>${chave(c)}</div>
+    <div class="marca libera-ficha">${ic(IC.rosto, 18)}<span>${textoAcesso(c)}</span>${chave(c)}</div>
     ${c.entrou ? `<div class="marca">${ic(IC.horas, 18)}<span>Está no espaço desde <b>${hora(c.entrou)}</b>: <b class="num" data-cron-txt="${c.id}">${hm(minDentro(c))}</b> até agora, <b>${hm(cobrar(minDentro(c)))}</b> a debitar pela regra atual.</span></div>` : ''}
     ${blocos(c, false)}
     <div class="saldo"><span>${c.pacote}h compradas</span><span>${hm(usadoAgora(c))} usadas</span></div>
     <div class="acoes">
-      ${c.entrou ? `<button class="bt claro tap" data-act="saida" data-id="${c.id}">${ic(IC.sair)} Registrar saída</button>` : `<button class="bt claro tap" data-act="entrada" data-id="${c.id}">${ic(IC.entrar)} Registrar entrada</button>`}
+      ${!podeManual() ? '' : c.entrou ? `<button class="bt claro tap" data-act="saida" data-id="${c.id}" title="Só para corrigir: o normal é a saída pelo rosto">${ic(IC.sair)} Saída à mão</button>` : `<button class="bt claro tap" data-act="entrada" data-id="${c.id}" title="Só para corrigir: o normal é a entrada pelo rosto">${ic(IC.entrar)} Entrada à mão</button>`}
       <button class="bt forte tap" data-act="vender" data-id="${c.id}">${ic(IC.mais)} Vender horas</button>
       <button class="bt tap" data-act="avisar" data-id="${c.id}">${ic(IC.zap)} Avisar ${esc(c.resp)}</button>
       ${rostoPronto() ? `<button class="bt ${c.rosto ? '' : 'forte'} tap" data-act="rosto-cam" data-id="${c.id}">${ic(IC.rosto)} ${c.rosto ? 'Refazer o rosto no iDFace' : 'Cadastrar rosto no iDFace'}</button>` : ''}
@@ -1085,7 +1086,8 @@ function folhaIdface() {
 
 /* ---------- a chavinha "entrada liberada": ligada, a criança bate o rosto e as horas correm; desligada, o iDFace recusa ---------- */
 const liberada = c => c.liberado !== false;
-const chave = (c, p = false) => `<button type="button" class="chave ${p ? 'p' : ''} ${liberada(c) ? 'on' : ''} tap" role="switch" aria-checked="${liberada(c)}" data-act="liberar" data-id="${c.id}" title="${liberada(c) ? 'Entrada liberada: toque para bloquear' : 'Entrada bloqueada: toque para liberar'}" aria-label="Entrada de ${esc(c.nome)} ${liberada(c) ? 'liberada' : 'bloqueada'}"><i></i></button>`;
+const chave = (c, p = false) => `<button type="button" class="chave ${p ? 'p' : ''} ${liberada(c) ? 'on' : ''} tap" role="switch" aria-checked="${liberada(c)}" data-act="liberar" data-id="${c.id}" title="${liberada(c) ? 'Acesso autorizado no iDFace: toque para bloquear' : 'Acesso bloqueado no iDFace: toque para autorizar'}" aria-label="Acesso de ${esc(c.nome)} no iDFace ${liberada(c) ? 'autorizado' : 'bloqueado'}"><i></i></button>`;
+const textoAcesso = c => `<b>${liberada(c) ? 'Acesso autorizado no iDFace' : 'Acesso bloqueado no iDFace'}</b> · ${liberada(c) ? 'as horas só começam a contar quando ela bate o rosto.' : 'o aparelho recusa o rosto dela' + (c.entrou ? ' (como está dentro, a saída ainda conta).' : ' até alguém autorizar ou vender horas.')}`;
 /* ---------- o rosto no iDFace: a folha que acompanha o aparelho pedindo para a criança olhar ---------- */
 let ROSTO_T = 0;
 const rostoPronto = () => MODO === 'servidor' && S.cfg.idface.ligado && S.cfg.idface.ativo;
@@ -1234,6 +1236,7 @@ function telaAjustes() {
       <div class="campo"><label>Cortesia na entrada</label>${seg('cortesia', [[0, 'Nenhuma'], [5, '5 min'], [10, '10 min'], [15, '15 min']], cfg.cortesia)}<span class="explica">Os primeiros minutos não contam, para a criança tirar o sapato e se acomodar.</span></div>
       <div class="campo"><label>Tempo mínimo por visita</label>${seg('minimo', [[0, 'Nenhum'], [30, '30 min'], [60, '1 hora']], cfg.minimo)}<span class="explica">Mesmo uma passada rápida debita pelo menos isso.</span></div>
       <div class="campo"><label>Avisar quando restar</label>${seg('aviso', [[30, '30 min'], [60, '1 hora'], [120, '2 horas']], cfg.aviso)}<span class="explica">O pacote fica marcado como "Acabando" e a equipe pode avisar o responsável.</span></div>
+      <div class="campo"><label>Quando o pacote zerar</label>${seg('bloqueioAuto', [['sim', 'Bloquear o acesso sozinho'], ['nao', 'Deixar autorizado']], cfg.bloqueioAuto || 'sim')}<span class="explica">Bloqueando sozinho, o iDFace passa a recusar o rosto da criança até alguém vender horas (a venda libera de novo). Assim o controle fica com o aparelho, não com o funcionário.</span></div>
       <div class="marca">${ic(IC.sino, 18)}<span><b>Na prática, hoje:</b> ${exemplo(8)} · ${exemplo(47)} · ${exemplo(95)} · ${exemplo(130)}</span></div>
     </div>
     <div class="sec">
@@ -1301,9 +1304,9 @@ const ACOES = {
   'entrada-rapida': el => { entrada(crianca(el.dataset.id), 'mão'); desenhar(); },
   liberar: el => { // a chavinha: muda na hora, avisa o servidor, e o aviso tem Desfazer
     const c = crianca(el.dataset.id); if (!c) return; const antes = liberada(c), depois = !antes;
-    const aplicar = v => { c.liberado = v; if (MODO === 'servidor') api('crianca_liberar', { id: c.id, liberado: v }).catch(e => toast(e.message)); const f = $('.folha'); desenhar(true); if (f) { const ch = $(`.folha .chave[data-id="${c.id}"]`); if (ch) { ch.classList.toggle('on', v); ch.setAttribute('aria-checked', v); const m = ch.closest('.marca'); if (m) m.querySelector('span').innerHTML = `<b>${v ? 'Entrada liberada' : 'Entrada bloqueada'}</b> · ${v ? 'ela bate o rosto no iDFace e as horas começam a contar.' : 'o iDFace recusa o rosto dela até você liberar.'}`; } } };
+    const aplicar = v => { c.liberado = v; if (MODO === 'servidor') api('crianca_liberar', { id: c.id, liberado: v }).catch(e => toast(e.message)); const f = $('.folha'); desenhar(true); if (f) { const ch = $(`.folha .chave[data-id="${c.id}"]`); if (ch) { ch.classList.toggle('on', v); ch.setAttribute('aria-checked', v); const m = ch.closest('.marca'); if (m) m.querySelector('span').innerHTML = textoAcesso(c); } } };
     aplicar(depois);
-    toast(depois ? `${c.nome}: entrada liberada. É só bater o rosto.` : `${c.nome}: entrada bloqueada no iDFace.`, () => aplicar(antes));
+    toast(depois ? `${c.nome}: acesso autorizado no iDFace. As horas começam quando bater o rosto.` : `${c.nome}: acesso bloqueado no iDFace. O aparelho vai recusar o rosto.`, () => aplicar(antes));
   },
   vender: el => folhaVender(el.dataset.id),
   'vender-ok': el => { vender(crianca(el.dataset.id), S.cfg.pacotes[+el.dataset.i]); fecharFolha(); desenhar(); },

@@ -136,25 +136,25 @@ switch ($acao) {
     if ($c['idface_id'] !== null) gravarCfg('foto_' . $c['id'], (int)$c['idface_id']); else gravarCfg('mandar_' . $c['id'], (int)$c['id']);
     responder();
   }
-  case 'entrada': {
-    exigir(); $c = crianca((int)($in['id'] ?? 0)); if (!$c) falha('Criança não encontrada.', 404);
+  case 'entrada': { // à mão: só gestor e supervisor, para corrigir; o normal é o rosto no iDFace
+    exigir(['gestor', 'supervisor']); $c = crianca((int)($in['id'] ?? 0)); if (!$c) falha('Criança não encontrada.', 404);
     if ($c['entrou']) falha($c['nome'] . ' já está no espaço.');
     responder(fazerEntrada($c, 'mão'));
   }
   case 'saida': {
-    exigir(); $c = crianca((int)($in['id'] ?? 0)); if (!$c) falha('Criança não encontrada.', 404);
+    exigir(['gestor', 'supervisor']); $c = crianca((int)($in['id'] ?? 0)); if (!$c) falha('Criança não encontrada.', 404);
     if (!$c['entrou']) falha($c['nome'] . ' não está no espaço.');
     responder(fazerSaida($c, 'mão'));
   }
   case 'desfazer_entrada': { // volta a criança para fora e apaga o registro e o aviso
-    exigir(); $c = crianca((int)($in['id'] ?? 0)); if (!$c || !$c['entrou']) falha('Nada para desfazer.');
+    exigir(['gestor', 'supervisor']); $c = crianca((int)($in['id'] ?? 0)); if (!$c || !$c['entrou']) falha('Nada para desfazer.');
     $db->prepare('UPDATE criancas SET entrou = NULL WHERE id = ?')->execute([$c['id']]);
     if (!empty($in['registro'])) $db->prepare('DELETE FROM registros WHERE id = ? AND crianca_id = ?')->execute([(int)$in['registro'], $c['id']]);
     if (!empty($in['mensagem'])) $db->prepare('DELETE FROM mensagens WHERE id = ? AND crianca_id = ?')->execute([(int)$in['mensagem'], $c['id']]);
     responder();
   }
   case 'desfazer_saida': {
-    exigir(); $c = crianca((int)($in['id'] ?? 0)); if (!$c) falha('Nada para desfazer.');
+    exigir(['gestor', 'supervisor']); $c = crianca((int)($in['id'] ?? 0)); if (!$c) falha('Nada para desfazer.');
     $q = $db->prepare('SELECT * FROM visitas WHERE id = ? AND crianca_id = ?'); $q->execute([(int)($in['visita'] ?? 0), $c['id']]); $v = $q->fetch(); if (!$v) falha('Nada para desfazer.');
     $db->prepare('UPDATE criancas SET entrou = ?, usado_min = MAX(0, usado_min - ?) WHERE id = ?')->execute([$v['entrou'], (int)$v['debitado_min'], $c['id']]);
     $db->prepare('DELETE FROM visitas WHERE id = ?')->execute([$v['id']]);
@@ -231,6 +231,7 @@ switch ($acao) {
     $u = exigir(); podeAjustar($u); $r = regra();
     foreach (['arredonda' => [1, 15, 30, 60], 'cortesia' => [0, 5, 10, 15], 'minimo' => [0, 30, 60], 'aviso' => [30, 60, 120]] as $k => $ops) if (isset($in[$k]) && in_array((int)$in[$k], $ops, true)) $r[$k] = (int)$in[$k];
     if (isset($in['autoMsg']) && in_array($in['autoMsg'], ['ambos', 'entrada', 'nao'], true)) $r['autoMsg'] = $in['autoMsg'];
+    if (isset($in['bloqueioAuto']) && in_array($in['bloqueioAuto'], ['sim', 'nao'], true)) $r['bloqueioAuto'] = $in['bloqueioAuto'];
     if (isset($in['pacotes']) && is_array($in['pacotes'])) {
       $ps = []; foreach ($in['pacotes'] as $p) { $h = (int)($p['h'] ?? 0); $v = (float)($p['v'] ?? 0); if ($h > 0 && $v >= 0) $ps[$h] = ['h' => $h, 'v' => $v]; }
       if (!$ps) falha('Deixe pelo menos um pacote.'); ksort($ps); $r['pacotes'] = array_values($ps);
@@ -272,11 +273,7 @@ switch ($acao) {
   case 'idface_nova_chave': { $u = exigir(); podeAjustar($u); require_once __DIR__ . '/idface-lib.php'; gravarCfg('ponte_chave', bin2hex(random_bytes(20))); responder(['idface' => idfaceEstado()]); }
   case 'crianca_liberar': { // a chavinha: liberada, a criança bate o rosto e as horas correm; bloqueada, o iDFace recusa
     exigir(); $c = crianca((int)($in['id'] ?? 0)); if (!$c) falha('Criança não encontrada.', 404);
-    $lib = empty($in['liberado']) ? 0 : 1; $db->prepare('UPDATE criancas SET liberado = ? WHERE id = ?')->execute([$lib, $c['id']]);
-    if ($c['idface_id'] !== null) { // no aparelho, a regra de acesso entra ou sai
-      if ($lib) { apagarCfg('desregra_' . $c['id']); apagarCfg('regra_ok_' . $c['id']); gravarCfg('regra_' . $c['id'], (int)$c['idface_id']); }
-      else { apagarCfg('regra_' . $c['id']); gravarCfg('desregra_' . $c['id'], (int)$c['idface_id']); }
-    }
+    $lib = empty($in['liberado']) ? 0 : 1; bloquearAcesso($c, (bool)$lib);
     responder(['liberado' => (bool)$lib]);
   }
   case 'idface_rosto': { // o aparelho vai pedir o rosto da criança ("olhe para a câmera"); fica na fila até o aparelho buscar
