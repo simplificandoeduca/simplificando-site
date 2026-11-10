@@ -18,7 +18,7 @@ Os dados ficam fora da pasta pública, em `~/playspace-dados/` (criada sozinha n
 
 ## 2b. Dados de exemplo (Ajustes → Dados de exemplo)
 
-Para a equipe conhecer o sistema antes de usar de verdade, a gestora pode **Carregar dados de exemplo**: 10 crianças fictícias (5 no espaço agora, com o tempo correndo), banco de horas em vários estados (em dia, acabando, acabou, sem foto), vendas e registros do dia, conversas no WhatsApp de hoje e de ontem (com perguntas das famílias ainda sem resposta) e compromissos na agenda. Nada vai para o iDFace nem para o WhatsApp.
+Para a equipe conhecer o sistema antes de usar de verdade, a gestora pode **Carregar dados de exemplo**: 3 crianças fictícias (2 no espaço agora, com o tempo correndo), banco de horas em estados diferentes (em dia, acabando, acabou), vendas e registros do dia, uma **entrada cancelada sem cobrar** para a supervisão conferir, conversas no WhatsApp de hoje e de ontem (com pergunta de família ainda sem resposta) e compromissos na agenda. Nada vai para o iDFace nem para o WhatsApp.
 
 Quando for começar de verdade, **Apagar os exemplos** no mesmo lugar tira tudo isso e deixa só os cadastros reais. O link também aparece no banco de horas enquanto não há nenhuma criança cadastrada.
 
@@ -27,8 +27,8 @@ Quando for começar de verdade, **Apagar os exemplos** no mesmo lugar tira tudo 
 | Papel | O que faz |
 |---|---|
 | **Gestor** | Tudo: regra das horas, pacotes, equipe, WhatsApp, iDFace. Pode remover crianças. |
-| **Supervisor** | Tudo da loja (horas, cadastro, WhatsApp, agenda) e *vê* os Ajustes, mas não os altera. |
-| **Atendente** | Horas, cadastro de criança, WhatsApp e agenda. Não vê Ajustes. |
+| **Supervisor** | Tudo da loja (horas, cadastro, WhatsApp, agenda) e *vê* os Ajustes, mas não os altera. **Confere as entradas canceladas** e cancela uma entrada mesmo fora do prazo. |
+| **Atendente** | Horas, cadastro de criança, WhatsApp e agenda. Não vê Ajustes. Cancela uma entrada sem cobrar só dentro do prazo (9 min), escrevendo o motivo. |
 
 A gestora cadastra cada pessoa com nome, login e senha inicial. Cada um troca a própria senha no avatar (canto inferior esquerdo no computador, aba **Conta** no celular) → *Trocar a senha*. Para redefinir a senha de alguém, a gestora edita a pessoa e digita uma senha nova.
 
@@ -54,7 +54,7 @@ Enquanto a loja não usa o iDFace, a **leitura fica desligada** (Ajustes → iDF
 - No **atendimento**, ao registrar uma venda com Recreação, a opção **Dar entrada agora** já vem marcada: a venda é gravada e o tempo começa a contar. Para quem está comprando para outro dia, é só desmarcar.
 - Quem já tem tempo guardado ganha o botão **Entrada** (no anel da criança, em Banco de horas da aba Horas, e na ficha). Sem tempo comprado, a entrada não é aceita: aparece **Vender**.
 - Quem está no espaço tem o botão **Saída** no anel e na ficha. A saída desconta o tempo que a criança ficou, libera a sapateira e avisa onde está o sapato.
-- Qualquer pessoa da equipe (inclusive Atendente) marca entrada e saída, e os avisos têm **Desfazer**.
+- Qualquer pessoa da equipe (inclusive Atendente) marca entrada e saída, e os avisos têm **Desfazer**. O Desfazer é para o toque errado e só vale nos instantes seguintes (o servidor aceita até 2 minutos); depois disso, tirar uma entrada é pelo **cancelamento com motivo** (seção 6e).
 - Somem da tela as coisas que só fazem sentido com o aparelho: acesso autorizado/bloqueado, "falta o rosto" e os avisos de aparelho sem contato.
 
 Para passar a usar o aparelho: Ajustes → iDFace → **Ligar o iDFace**. Os botões Entrada e Saída somem (fica só a saída de correção para Gestor e Supervisor) e o rosto volta a mandar.
@@ -78,11 +78,11 @@ A folha mostra se o aparelho está **Conectado** (falou nos últimos 2 min), **S
 
 ## 6. Regra das horas (Ajustes → Horas)
 
-Como o tempo de brincar é descontado do saldo: **arredondamento** (exato, 15 ou 30 min), **cortesia** (minutos que não contam), **mínimo** por visita e o **aviso** de tempo acabando. Uma linha abaixo mostra na prática quanto cada tempo cobraria. Os preços ficam em **Serviços e preços** (seção 6a).
+Como o tempo de brincar é descontado do saldo: **arredondamento** (exato, 15 ou 30 min), **cortesia** (minutos que não contam), **mínimo** por visita, o **aviso** de tempo acabando e o prazo para **cancelar a entrada sem cobrar** (seção 6e). Uma linha abaixo mostra na prática quanto cada tempo cobraria. Os preços ficam em **Serviços e preços** (seção 6a).
 
 ## 6a. Cadastro, cliente e histórico
 
-**Cadastrar** (botão de mais) pede primeiro o **responsável** e depois a **criança**, nesta ordem: documento do responsável (**CPF ou RNE**, para estrangeiro: o seletor fica ao lado do rótulo), nome do responsável, telefone (WhatsApp) e um **outro telefone** opcional; depois o nome da criança, a sapateira e as **restrições e observações**. Só o nome do responsável e o da criança são obrigatórios. O cadastro **não vende pacote** (as horas entram depois, pelo botão **Vender**) e **não pede foto nem rosto**: quando for usar o iDFace, a foto e o rosto são feitos na ficha da criança. Se só o segundo telefone for preenchido, ele vira o principal. Mensagem que chega no WhatsApp é reconhecida por qualquer um dos dois números.
+**Cadastrar** (botão de mais) pede primeiro o **responsável** e depois a **criança**, nesta ordem: documento do responsável (**CPF ou RNE**, para estrangeiro: o seletor fica ao lado do rótulo), nome do responsável, telefone (WhatsApp) e um **outro telefone** opcional; depois o nome da criança, a sapateira e as **restrições e observações**. **O cadastro só fecha com quatro dados** (marcados com asterisco): o documento do responsável (CPF válido, ou RNE), o nome do responsável, **um telefone com DDD** (qualquer um dos dois campos) e o nome da criança. Enquanto falta algum, a linha acima do botão diz o que falta ("Falta o CPF (ou RNE), um telefone…") e, se a pessoa tentar cadastrar assim mesmo, os campos que faltam ficam marcados em vermelho com a explicação embaixo. O servidor confere a mesma coisa. Ao **editar**, nenhum desses dados pode ser apagado; um cadastro antigo, feito antes desta regra, continua podendo ser salvo como está (para anotar uma alergia, por exemplo), mas o que for mexido precisa ficar certo. O cadastro **não vende pacote** (as horas entram depois, pelo botão **Vender**) e **não pede foto nem rosto**: quando for usar o iDFace, a foto e o rosto são feitos na ficha da criança. Se só o segundo telefone for preenchido, ele vira o principal. Mensagem que chega no WhatsApp é reconhecida por qualquer um dos dois números.
 
 - **Restrições** (alergia, se pode ou não fazer pintura no rosto, se pode ou não mexer no cabelo) ficam no campo de observações e são opcionais. Os atalhos embaixo do campo só escrevem mais rápido: tocar de novo num atalho tira o que ele escreveu (inclusive a alergia), e **Sem restrição** limpa tudo. O texto é livre e pode ser mudado depois em **Editar**. Elas aparecem em destaque na ficha e no histórico.
 - **Cliente já cadastrado**: ao completar um CPF (ou RNE) que já existe, o cadastro avisa na hora: mostra quem é o responsável e as crianças dele (última vinda, horas consumidas, horas disponíveis), preenche os dados do responsável e **abre sozinho o histórico do cliente ao lado**, sem precisar tocar em nada (no celular, aparece o aviso "Este CPF já tem cadastro" com o atalho **Ver o histórico**). Se o documento for trocado, o histórico fecha. Para cadastrar um irmão, é só escrever o nome da nova criança. A mesma criança não entra duas vezes no mesmo CPF.
@@ -130,6 +130,19 @@ Os bonequinhos (o ursinho, o balão, o cavalinho, o despertador, o guindaste da 
 - **Quietos**: ficam parados sempre.
 
 A escolha vale só para aquele aparelho (fica guardada no navegador).
+
+## 6e. Cancelar a entrada sem cobrar
+
+Para quando a criança entra e desiste logo (chorou, não quis ficar, o responsável mudou de ideia) ou a entrada foi lançada errada.
+
+- **Prazo**: até **9 minutos** depois da entrada (9 minutos cheios, contados do momento em que entrou), **o próprio atendente cancela**. O prazo corre à vista: no anel da criança aparece o atalho **Cancelar · 8:42**, com o tempo que falta, e a ficha mostra até que horas dá. Quando o prazo acaba, o atalho some sozinho.
+- **Motivo obrigatório**: a folha "Cancelar a entrada" só aceita com o motivo escrito (há atalhos: "A criança chorou", "O responsável desistiu"…). Sem motivo, não cancela.
+- **O que deixa de ser cobrado**: a folha lista as vendas desta visita (as de hoje, feitas depois da última saída). Já vem marcada a **Recreação vendida junto com a entrada**; carrinho e o que foi comprado mais cedo ficam desmarcados (continuam cobrados), e dá para marcar se também não forem cobrados. O que for marcado sai das vendas do dia e do saldo da criança; se o cliente já pagou, o valor é devolvido. Nenhum tempo é descontado e a sapateira fica livre.
+- **Fora do prazo**, só **Gestor ou Supervisor** cancela (pela ficha da criança), também com motivo, e fica anotado "fora do prazo".
+- **A supervisão vê tudo**: cada cancelamento vira uma dica no alto da tela de Gestor e Supervisor ("João cancelou a entrada de Helena, R$ 80 não cobrado. Motivo: …") e, se a supervisora estiver com o sistema aberto, um aviso na hora. O botão **Conferir** abre **Entradas canceladas**: quem, quando entrou, quanto ficou, o que não foi cobrado, o motivo e quem cancelou; **Marcar como visto** registra quem conferiu. A mesma lista abre em "Hoje na recepção" e em Ajustes → Regra das horas. O cancelamento também aparece na linha do dia (com a venda marcada "cancelada") e no **histórico do cliente**.
+- Se os avisos automáticos estão em "Entrada e saída", o responsável recebe no WhatsApp que a entrada foi cancelada e nada foi cobrado.
+- **Ajustes → Regra das horas → Cancelar a entrada sem cobrar** muda o prazo (5, 9, 10 ou 15 min) ou deixa só para a supervisão.
+- Com o iDFace ligado, o rosto lido nos 10 minutos seguintes ao cancelamento não vira entrada de novo (é a criança saindo).
 
 ## 7. Atualizar
 

@@ -51,7 +51,9 @@ function dados(array $eu): array {
   $vendasHoje = $db->prepare('SELECT COUNT(*) n, COALESCE(SUM(minutos),0) m, COALESCE(SUM(valor),0) v FROM vendas WHERE quando > ?'); $vendasHoje->execute([$hojeMenos]); $vh = $vendasHoje->fetch();   // tudo o que foi vendido nas últimas 24 h; m = minutos de brincar
   $equipe = $eu['papel'] === 'atendente' ? [] : array_map(fn($u) => ['id' => (int)$u['id'], 'nome' => $u['nome'], 'login' => $u['login'], 'papel' => $u['papel']], $db->query('SELECT id, nome, login, papel FROM usuarios WHERE ativo = 1 ORDER BY nome')->fetchAll());
   require_once __DIR__ . '/idface-lib.php';
-  return ['criancas' => array_values($criancas), 'registros' => $registros, 'conversas' => array_values($conversas), 'compromissos' => $compromissos, 'regra' => regra(),
+  // as entradas canceladas sem cobrar: só gestor e supervisor recebem a lista (são eles que conferem o motivo)
+  $canc = $eu['papel'] === 'atendente' ? [] : array_map('cancelamentoPublico', $db->query('SELECT * FROM cancelamentos ORDER BY id DESC LIMIT 80')->fetchAll());
+  return ['criancas' => array_values($criancas), 'registros' => $registros, 'conversas' => array_values($conversas), 'compromissos' => $compromissos, 'regra' => regra(), 'cancelamentos' => $canc,
     'vendas_hoje' => ['n' => (int)$vh['n'], 'min' => (int)$vh['m'], 'horas' => round((int)$vh['m'] / 60, 2), 'valor' => (float)$vh['v']], 'equipe' => $equipe, 'eu' => $eu, 'versao' => PLAY_VERSAO,
     'idface' => idfaceEstado(), 'whats' => whatsResumo(), 'agora' => agora(), 'exemplo' => ($ex = cfg('exemplo', null)) && is_array($ex) ? count($ex['criancas'] ?? []) : 0];
 }
@@ -65,6 +67,31 @@ function textoCriancaBasico(array &$in, array $atual = []): array {
   return ['doc' => $doc, 'tel2' => mb_substr(trim((string)($in['tel2'] ?? $atual['tel2'] ?? '')), 0, 30),'nome' => mb_substr($nome, 0, 60), 'idade' => max(0, min(17, (int)($in['idade'] ?? $atual['idade'] ?? 0))), 'resp' => mb_substr(trim((string)($in['resp'] ?? $atual['resp'] ?? '')), 0, 80),
     'rel' => mb_substr(trim((string)($in['rel'] ?? $atual['rel'] ?? 'responsável')), 0, 20), 'tel' => mb_substr(trim((string)($in['tel'] ?? $atual['tel'] ?? '')), 0, 30),
     'cpf' => $numDoc, 'obs' => mb_substr(trim((string)($in['obs'] ?? $atual['obs'] ?? '')), 0, 500)];
+}
+function cpfValido(string $v): bool {
+  $d = preg_replace('/\D/', '', $v); if (strlen($d) !== 11 || preg_match('/^(\d)\1{10}$/', $d)) return false;
+  for ($n = 9; $n <= 10; $n++) { $t = 0; for ($k = 0; $k < $n; $k++) $t += (int)$d[$k] * ($n + 1 - $k); $r = ($t * 10) % 11; if ($r === 10) $r = 0; if ($r !== (int)$d[$n]) return false; }
+  return true;
+}
+function cpfJaCliente(string $digitos): bool { // já existe criança ativa com este CPF (11 números)?
+  if (strlen($digitos) !== 11) return false;
+  $q = db()->prepare("SELECT 1 FROM criancas WHERE ativo = 1 AND doc_tipo != 'rne' AND REPLACE(REPLACE(REPLACE(cpf, '.', ''), '-', ''), ' ', '') = ? LIMIT 1"); $q->execute([$digitos]); return (bool)$q->fetchColumn();
+}
+// O cadastro só fecha com: o documento do responsável (CPF válido, ou RNE), o nome dele, um telefone com DDD e o nome da criança.
+// Ao editar, o que não foi mexido passa como está (cadastro antigo, de antes desta regra): só o que mudou precisa estar certo, e nada disso pode ser apagado.
+function conferirCadastro(array $d, array $atual = []): void {
+  $novo = !$atual; $so = fn(string $t) => preg_replace('/\D/', '', $t); $chave = fn(string $tipo, string $v) => $tipo === 'rne' ? preg_replace('/[^A-Z0-9]/', '', mb_strtoupper($v)) : $so($v);
+  $tipoAntes = ($atual['doc_tipo'] ?? 'cpf') === 'rne' ? 'rne' : 'cpf';
+  if ($novo || $d['doc'] !== $tipoAntes || $chave($d['doc'], $d['cpf']) !== $chave($tipoAntes, (string)($atual['cpf'] ?? ''))) {
+    if ($d['doc'] === 'rne') { if (strlen($chave('rne', $d['cpf'])) < 5) falha('Falta o RNE do responsável.'); }
+    elseif ($so($d['cpf']) === '') falha('Falta o CPF do responsável (ou o RNE, se for estrangeiro).');
+    elseif (!cpfValido($d['cpf']) && !cpfJaCliente($so($d['cpf']))) falha('Confira o CPF: os números não batem.');   // o documento de quem já é cliente passa como está (a irmã entra no mesmo cliente)
+  }
+  if ($d['resp'] === '' && ($novo || trim((string)($atual['resp'] ?? '')) !== '')) falha('Falta o nome do responsável.');
+  if ($novo || $so($d['tel']) !== $so((string)($atual['tel'] ?? '')) || $so($d['tel2']) !== $so((string)($atual['tel2'] ?? ''))) {
+    $maior = max(strlen($so($d['tel'])), strlen($so($d['tel2'])));
+    if ($maior === 0) falha('Falta um telefone do responsável.'); if ($maior < 10) falha('Telefone incompleto: coloque o DDD e o número.');
+  }
 }
 
 switch ($acao) {
@@ -111,6 +138,7 @@ switch ($acao) {
     $d = $db->query("SELECT COUNT(*) || ':' || COALESCE(SUM(feito), 0) || ':' || COALESCE(MAX(id), 0) || ':' || COALESCE(SUM(LENGTH(titulo) + LENGTH(dia) + LENGTH(hora)), 0) FROM compromissos")->fetchColumn();
     $ps = cfg('push_estado', []); $pe = cfg('ponte_estado', []); $em = (is_array($ps) ? ($ps['em'] ?? null) : null) ?: (is_array($pe) ? ($pe['em'] ?? null) : null);
     $ap = ($em && time() - strtotime((string)$em) < 120) ? 1 : 0; $ic = cfg('idface', []); $lig = !is_array($ic) || !array_key_exists('ligado', $ic) || $ic['ligado'] ? 1 : 0;
+    $d .= '|' . $db->query("SELECT COUNT(*) || ':' || COALESCE(SUM(visto_em IS NOT NULL), 0) FROM cancelamentos")->fetchColumn();   // um cancelamento conferido pela supervisão também muda a tela
     responder(['p' => md5("$a|$b|$c|$d|$ap|$lig|" . json_encode(whatsResumo()) . '|' . json_encode(regra()) . '|' . (cfg('exemplo') ? 1 : 0))]);
   }
 
@@ -119,14 +147,14 @@ switch ($acao) {
     $u = exigir(); $id = (int)($in['id'] ?? 0);
     if ($id) {
       $c = crianca($id); if (!$c) falha('Criança não encontrada.', 404);
-      $d = textoCriancaBasico($in, $c);
+      $d = textoCriancaBasico($in, $c); conferirCadastro($d, $c);
       $db->prepare('UPDATE criancas SET nome = ?, idade = ?, resp = ?, rel = ?, tel = ?, tel2 = ?, doc_tipo = ?, cpf = ?, obs = ? WHERE id = ?')->execute([$d['nome'], $d['idade'], $d['resp'], $d['rel'], $d['tel'], $d['tel2'], $d['doc'], $d['cpf'], $d['obs'], $id]);
       // o nome mudou: o aparelho recebe o nome novo
       if ($c['idface_id'] !== null && $c['nome'] !== $d['nome']) gravarCfg('renomear_' . $id, (int)$c['idface_id']);
       responder(['id' => $id]);
     }
-    $d = textoCriancaBasico($in);
-    if ($d['resp'] === '') falha('Falta o nome de quem é responsável.');
+    $d = textoCriancaBasico($in); conferirCadastro($d);
+    if ($d['tel'] === '' && $d['tel2'] !== '') { $d['tel'] = $d['tel2']; $d['tel2'] = ''; }   // só um telefone: ele é o principal (é para onde vão os avisos)
     $pac = (array)($in['pacote'] ?? []); $horas = max(0, (int)($pac['h'] ?? 0)); $valor = (float)($pac['v'] ?? 0);
     $foto = (string)($in['foto'] ?? ''); if ($foto !== '' && !preg_match('#^data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$#', $foto)) $foto = '';
     if (strlen($foto) > 1500000) falha('A foto ficou grande demais. Tire outra.');
@@ -182,14 +210,42 @@ switch ($acao) {
   }
   case 'desfazer_entrada': { // volta a criança para fora e apaga o registro e o aviso
     if (modoManual()) exigir(); else exigir(['gestor', 'supervisor']); $c = crianca((int)($in['id'] ?? 0)); if (!$c || !$c['entrou']) falha('Nada para desfazer.');
+    // o "Desfazer" do aviso é para o toque errado, nos instantes seguintes; passou disso, a entrada só sai pelo cancelamento, com o motivo
+    if (time() - strtotime((string)$c['entrou']) > 120) falha('O tempo de desfazer já passou. Para tirar esta entrada, use "Cancelar entrada" e escreva o motivo.');
     $db->prepare('UPDATE criancas SET entrou = NULL WHERE id = ?')->execute([$c['id']]);
     if (!empty($in['registro'])) $db->prepare('DELETE FROM registros WHERE id = ? AND crianca_id = ?')->execute([(int)$in['registro'], $c['id']]);
     if (!empty($in['mensagem'])) $db->prepare('DELETE FROM mensagens WHERE id = ? AND crianca_id = ?')->execute([(int)$in['mensagem'], $c['id']]);
     responder();
   }
+  /* ---------- cancelar a entrada sem cobrar (com o motivo, para a supervisão conferir) ---------- */
+  case 'cancelar_previa': { // o que a folha "Cancelar a entrada" mostra: há quanto tempo entrou, se ainda está no prazo e as vendas desta visita
+    $u = exigir(); $c = crianca((int)($in['id'] ?? 0)); if (!$c || !$c['ativo']) falha('Criança não encontrada.', 404);
+    if (!$c['entrou']) falha($c['nome'] . ' não está no espaço.');
+    [$lim, $seg, $noPrazo] = prazoCancelar($c);
+    responder(['limite' => $lim, 'segundos' => $seg, 'no_prazo' => $noPrazo, 'pode' => $noPrazo || in_array($u['papel'], ['gestor', 'supervisor'], true), 'entrou' => $c['entrou'],
+      'vendas' => array_map(fn($v) => ['id' => (int)$v['id'], 'n' => nomeDaVenda($v), 'm' => (int)$v['minutos'], 'v' => (float)$v['valor'], 'quando' => $v['quando'], 'junto' => vendaJuntoDaEntrada($v, $c)], vendasDaVisita($c))]);
+  }
+  case 'cancelar_entrada': {
+    $u = exigir(); $c = crianca((int)($in['id'] ?? 0)); if (!$c || !$c['ativo']) falha('Criança não encontrada.', 404);
+    if (!$c['entrou']) falha($c['nome'] . ' não está no espaço: não há entrada para cancelar.');
+    $motivo = mb_substr(trim(preg_replace('/\s+/u', ' ', (string)($in['motivo'] ?? ''))), 0, 300);
+    if (mb_strlen($motivo) < 5) falha('Escreva o motivo do cancelamento: a supervisão vai conferir.');
+    [$lim, , $noPrazo] = prazoCancelar($c);
+    if (!$noPrazo && !in_array($u['papel'], ['gestor', 'supervisor'], true)) falha($lim > 0 ? 'Já passou de ' . $lim . ' min da entrada de ' . $c['nome'] . ': agora só Gestor ou Supervisor cancela.' : 'Só Gestor ou Supervisor cancela a entrada.', 403);
+    $r = cancelarEntrada($c, $u, $motivo, isset($in['vendas']) && is_array($in['vendas']) ? array_map('intval', $in['vendas']) : null);
+    $r['mensagem'] = is_array($r['mensagem']) ? ['id' => (int)$r['mensagem']['id'], 'erro' => (string)$r['mensagem']['erro']] : null;
+    responder($r);
+  }
+  case 'cancelamento_visto': { // a supervisão conferiu: fica marcado quem viu e quando
+    $u = exigir(['gestor', 'supervisor']);
+    if (!empty($in['todos'])) $db->prepare("UPDATE cancelamentos SET visto_por = ?, visto_em = ? WHERE visto_em IS NULL")->execute([$u['nome'], agora()]);
+    else $db->prepare("UPDATE cancelamentos SET visto_por = ?, visto_em = ? WHERE id = ? AND visto_em IS NULL")->execute([$u['nome'], agora(), (int)($in['id'] ?? 0)]);
+    responder();
+  }
   case 'desfazer_saida': {
     if (modoManual()) exigir(); else exigir(['gestor', 'supervisor']); $c = crianca((int)($in['id'] ?? 0)); if (!$c) falha('Nada para desfazer.');
     $q = $db->prepare('SELECT * FROM visitas WHERE id = ? AND crianca_id = ?'); $q->execute([(int)($in['visita'] ?? 0), $c['id']]); $v = $q->fetch(); if (!$v) falha('Nada para desfazer.');
+    if (time() - strtotime((string)$v['saiu']) > 120) falha('O tempo de desfazer esta saída já passou.');
     $db->prepare('UPDATE criancas SET entrou = ?, usado_min = MAX(0, usado_min - ?) WHERE id = ?')->execute([$v['entrou'], (int)$v['debitado_min'], $c['id']]);
     $sap = (int)($in['sapateira'] ?? 0); if ($sap > 0 && !donoSapateira($sap, (int)$c['id'])) $db->prepare('UPDATE criancas SET sapateira = ? WHERE id = ?')->execute([$sap, $c['id']]);
     $db->prepare('DELETE FROM visitas WHERE id = ?')->execute([$v['id']]);
@@ -231,13 +287,15 @@ switch ($acao) {
     $vendas = array_map(fn($v) => ['id' => (int)$v['id'], 'crianca' => (int)$v['crianca_id'], 'h' => round((int)$v['minutos'] / 60, 2), 'm' => (int)$v['minutos'], 'v' => (float)$v['valor'], 'itens' => (string)($v['itens'] ?? ''), 'servico' => (string)($v['servico'] ?? ''), 'quando' => $v['quando'], 'por' => (string)($v['por_nome'] ?? '')], $q->fetchAll());
     $q = $db->prepare("SELECT * FROM visitas WHERE crianca_id IN ($marcas) ORDER BY saiu DESC, id DESC LIMIT 1000"); $q->execute($ids);
     $visitas = array_map(fn($v) => ['id' => (int)$v['id'], 'crianca' => (int)$v['crianca_id'], 'dia' => $v['saiu'], 'entrou' => substr($v['entrou'], 11, 5), 'saiu' => substr($v['saiu'], 11, 5), 'deb' => (int)$v['debitado_min']], $q->fetchAll());
-    responder(['vendas' => $vendas, 'visitas' => $visitas]);
+    $q = $db->prepare("SELECT * FROM cancelamentos WHERE crianca_id IN ($marcas) ORDER BY id DESC LIMIT 200"); $q->execute($ids);
+    responder(['vendas' => $vendas, 'visitas' => $visitas, 'cancelados' => array_map('cancelamentoPublico', $q->fetchAll())]);
   }
   case 'desfazer_venda': {
     exigir(); $ids = array_values(array_unique(array_filter(array_map('intval', array_merge((array)($in['vendas'] ?? []), [(int)($in['venda'] ?? 0)])))));
     $q = $db->prepare('SELECT * FROM vendas WHERE id = ?'); $tempoDe = [];   // criança => minutos de brincar desfeitos
     foreach ($ids as $vid) {
       $q->execute([$vid]); $v = $q->fetch(); if (!$v) continue;
+      if (time() - strtotime((string)$v['quando']) > 120) continue;   // o "Desfazer" do aviso só alcança a venda que acabou de ser feita
       $db->prepare('UPDATE criancas SET pacote_min = MAX(0, pacote_min - ?) WHERE id = ?')->execute([(int)$v['minutos'], $v['crianca_id']]);
       $db->prepare('DELETE FROM vendas WHERE id = ?')->execute([$v['id']]); $tempoDe[(int)$v['crianca_id']] = ($tempoDe[(int)$v['crianca_id']] ?? 0) + (int)$v['minutos'];
     }
@@ -303,7 +361,7 @@ switch ($acao) {
   /* ---------- ajustes: a regra das horas e os pacotes ---------- */
   case 'regra_salvar': {
     $u = exigir(); podeAjustar($u); $r = regra();
-    foreach (['arredonda' => [1, 15, 30, 60], 'cortesia' => [0, 5, 10, 15], 'minimo' => [0, 30, 60], 'aviso' => [5, 10, 15, 30, 60, 120]] as $k => $ops) if (isset($in[$k]) && in_array((int)$in[$k], $ops, true)) $r[$k] = (int)$in[$k];
+    foreach (['arredonda' => [1, 15, 30, 60], 'cortesia' => [0, 5, 10, 15], 'minimo' => [0, 30, 60], 'aviso' => [5, 10, 15, 30, 60, 120], 'cancelaMin' => [0, 5, 9, 10, 15]] as $k => $ops) if (isset($in[$k]) && in_array((int)$in[$k], $ops, true)) $r[$k] = (int)$in[$k];
     if (isset($in['autoMsg']) && in_array($in['autoMsg'], ['ambos', 'entrada', 'nao'], true)) $r['autoMsg'] = $in['autoMsg'];
     if (isset($in['bloqueioAuto']) && in_array($in['bloqueioAuto'], ['sim', 'nao'], true)) $r['bloqueioAuto'] = $in['bloqueioAuto'];
     if (isset($in['sapateiras'])) { $n = (int)$in['sapateiras']; if ($n < 1 || $n > 200) falha('Quantas sapateiras existem? De 1 a 200.'); $r['sapateiras'] = $n; }

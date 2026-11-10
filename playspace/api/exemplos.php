@@ -17,9 +17,9 @@ function exemplosCarregar(?int $por): array {
   $hoje = date('Y-m-d');
   // nome, idade, responsável, relação, telefone, cpf, pacote (h), usado (min), entrou há (min, 0 = fora), tem rosto
   $lista = [
-    ['Helena', 5, 'Mariana Souza', 'mãe', '(11) 9 8765-4321', '123.456.789-00', 10, 418, 121, 1],   // no espaço, em dia
-    ['Theo', 4, 'Rafael Lima', 'pai', '(11) 9 7654-3210', '234.567.890-11', 5, 278, 12, 1],         // no espaço, pacote acabando
-    ['Miguel', 5, 'Carla Dias', 'mãe', '(11) 9 5432-1098', '456.789.012-33', 10, 600, 0, 0],        // fora, pacote acabou, sem foto
+    ['Helena', 5, 'Mariana Souza', 'mãe', '(11) 9 8765-4321', '529.982.247-25', 10, 418, 121, 1],   // no espaço, em dia
+    ['Theo', 4, 'Rafael Lima', 'pai', '(11) 9 7654-3210', '111.444.777-35', 5, 278, 12, 1],         // no espaço, pacote acabando
+    ['Miguel', 5, 'Carla Dias', 'mãe', '(11) 9 5432-1098', '390.533.447-05', 10, 600, 0, 0],        // fora, pacote acabou, sem foto
   ];
   $ids = []; $nomeId = [];
   $ins = $db->prepare('INSERT INTO criancas (nome, idade, resp, rel, tel, cpf, obs, pacote_min, usado_min, entrou, idface_id, foto, rosto, ativo, criado_em) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, 1, ?)');
@@ -53,6 +53,12 @@ function exemplosCarregar(?int $por): array {
   // as compras antigas dos outros dois (aparecem no Banco de horas e no histórico)
   $ven->execute([$nomeId['Theo'], 5, 300, 800, $d(-9, '13:50'), $por, '', 'Recreação']); $ven->execute([$nomeId['Theo'], 0, 0, 30, $d(-9, '13:52'), $por, '1h', 'Carrinho fusquinha']);
   $ven->execute([$nomeId['Miguel'], 10, 600, 1600, $d(-6, '12:55'), $por, '', 'Recreação']);
+  // Miguel: voltou hoje, a entrada foi cancelada aos 6 min sem cobrar; fica para a supervisão conferir
+  $id = $nomeId['Miguel'];
+  $reg->execute([$t(96), 'venda', $id, 'Miguel', 'Recreação · 30 min · R$ 80 · cancelada']); $reg->execute([$t(96), 'ent', $id, 'Miguel', 'Entrada registrada']);
+  $reg->execute([$t(90), 'canc', $id, 'Miguel', 'Entrada das ' . $hora($t(96)) . ' cancelada aos 6 min · não cobrado: Recreação · 30 min (R$ 80) · Motivo: A criança chorou e não quis ficar · por João']);
+  $db->prepare('INSERT INTO cancelamentos (crianca_id, nome, resp, entrou, quando, minutos, valor, itens, motivo, por, por_nome, papel, fora) VALUES (?, ?, ?, ?, ?, 6, 80, ?, ?, ?, ?, ?, 0)')
+    ->execute([$id, 'Miguel', 'Carla Dias', $t(96), $t(90), json_encode([['n' => 'Recreação · 30 min', 'm' => 30, 'v' => 80]], JSON_UNESCAPED_UNICODE), 'A criança chorou e não quis ficar', $por, 'João (exemplo)', 'atendente']);
   // Theo: o pai perguntou e ninguém respondeu ainda
   $msg->execute([$nomeId['Theo'], 'ela', 'Quanto tempo ainda tem no pacote dele?', $t(4), '', 0, 0]);
   // Miguel: veio ontem, o pacote acabou; hoje a equipe ofereceu renovar
@@ -80,7 +86,7 @@ function exemplosCarregar(?int $por): array {
 function exemplosApagar(): void {
   $e = exemplosAtivos(); if (!$e) return;
   $db = db(); $ids = array_map('intval', $e['criancas']); $marcas = implode(',', array_fill(0, count($ids), '?'));
-  foreach (['visitas', 'vendas', 'registros', 'mensagens', 'batidas', 'criancas'] as $tabela) $db->prepare("DELETE FROM $tabela WHERE " . ($tabela === 'criancas' ? 'id' : 'crianca_id') . " IN ($marcas)")->execute($ids);
+  foreach (['visitas', 'vendas', 'registros', 'mensagens', 'batidas', 'cancelamentos', 'criancas'] as $tabela) $db->prepare("DELETE FROM $tabela WHERE " . ($tabela === 'criancas' ? 'id' : 'crianca_id') . " IN ($marcas)")->execute($ids);
   foreach ($ids as $id) { apagarCfg('mandar_' . $id); apagarCfg('foto_' . $id); apagarCfg('renomear_' . $id); }
   $cids = array_map('intval', $e['compromissos'] ?? []);
   if ($cids) $db->prepare('DELETE FROM compromissos WHERE id IN (' . implode(',', array_fill(0, count($cids), '?')) . ')')->execute($cids);

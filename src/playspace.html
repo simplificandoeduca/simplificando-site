@@ -330,6 +330,8 @@ span.av.g { font-size: 22px; } .simul span.av { font-size: 15px; }
 .reg .ev span { display: block; font-size: 12.5px; color: var(--tinta-2); }
 .reg .ev.ent b::before, .reg .ev.sai b::before, .reg .ev.venda b::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; background: var(--ok); }
 .reg .ev.sai b::before { background: var(--coral); } .reg .ev.venda b::before { background: var(--mostarda); }
+.reg .ev.canc b::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; background: var(--erro); }
+.reg .ev.canc span { color: var(--erro); overflow-wrap: anywhere; }
 .marca { display: flex; align-items: center; gap: 10px; background: var(--menta); border-radius: 14px; padding: 10px 12px; font-size: 13.5px; text-align: left; }
 .marca input { width: 20px; height: 20px; accent-color: var(--coral); flex: none; }
 .marca svg { flex: none; }
@@ -594,6 +596,30 @@ body.quieto .dica { animation: none !important; }
 .dois.alinha .campo > label, .dois.alinha .rot-linha { min-height: 28px; display: flex; align-items: center; }
 .campo.discreto > label { color: var(--apagado); } .campo.discreto input { background: transparent; border-style: dashed; }   /* o segundo telefone é opcional */
 .campo.discreto input:focus, .campo.discreto input:not(:placeholder-shown) { background: var(--card); border-style: solid; }
+/* 0.74: o que é obrigatório no cadastro e o que ainda falta */
+.campo label .obg { color: var(--coral); font-weight: 800; margin-left: 3px; }
+.campo.falta input, .campo.falta textarea { border-color: var(--erro); box-shadow: 0 0 0 3px var(--erro-bg); }
+.campo .msg-falta { font-size: 12.5px; font-weight: 700; color: var(--erro); }
+.falta-linha { font-size: 12.5px; font-weight: 700; color: var(--tinta-2); text-align: center; margin: 0 0 8px; line-height: 1.35; }
+.falta-linha.erro { color: var(--erro); } .falta-linha:empty { display: none; }
+.pe-f .bt.espera { opacity: .55; }
+/* 0.74: cancelar a entrada sem cobrar (o prazo corre no anel e na ficha; a supervisão confere na lista) */
+.anel .canc-link { display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 10px; border-radius: 999px; margin-top: 4px; background: var(--card); border: 1px solid var(--erro-bg); font-size: 11.5px; font-weight: 800; color: var(--erro); white-space: nowrap; }
+.anel .canc-link:hover { background: var(--erro-bg); }
+.marca.canc { background: var(--erro-bg); } .marca.canc > svg { color: var(--erro); }
+.marca > .bt { background: var(--card); flex: none; margin-left: auto; }
+.marca.canc > .bt { color: var(--erro); }
+.canc-vendas { display: flex; flex-direction: column; gap: 6px; }
+.canc-vendas .marca input { width: 20px; height: 20px; min-height: 0; padding: 0; flex: none; }
+.canc-vendas .marca > span { flex: 1; min-width: 0; } .canc-vendas .leve { color: var(--tinta-2); font-size: 12.5px; white-space: nowrap; } .canc-vendas .marca > b { flex: none; white-space: nowrap; font-family: var(--display); }
+.canc-lista { display: flex; flex-direction: column; gap: 10px; }
+.canc-it { background: var(--card); border: 1px solid var(--borda); border-radius: 18px; padding: 12px 14px; display: flex; flex-direction: column; gap: 7px; box-shadow: inset 4px 0 0 var(--erro); }
+.canc-it.visto { box-shadow: inset 4px 0 0 var(--verde-agua); }
+.canc-it .cab { display: flex; align-items: center; gap: 10px; }
+.canc-it .cab .txt { flex: 1; min-width: 0; } .canc-it .cab .txt b { display: block; font-family: var(--display); font-weight: 600; font-size: 16px; } .canc-it .cab .txt span { display: block; font-size: 12.5px; color: var(--tinta-2); }
+.canc-it p { font-size: 13px; color: var(--tinta-2); line-height: 1.4; overflow-wrap: anywhere; } .canc-it p b { color: var(--tinta); }
+.canc-it p.motivo { background: var(--menta); border-radius: 12px; padding: 8px 10px; color: var(--tinta); font-weight: 700; }
+.reg .ev[data-act] { cursor: pointer; }
 [hidden] { display: none !important; }
 /* ---------- atendimento: os serviços, a quantidade e o total a pagar ---------- */
 .servicos { display: flex; flex-direction: column; gap: 8px; }
@@ -782,7 +808,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.73';
+const VERSAO = '0.74';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -813,21 +839,24 @@ async function atualizarAgora(bt) {
 }
 const S = {
   tela: 'horas', zapAberta: 1, zapModo: 'lista', zapDia: isoDia(agora), mes: { y: agora.getFullYear(), m: agora.getMonth() }, diaSel: isoDia(agora),
-  cfg: { arredonda: 1, cortesia: 10, minimo: 0, aviso: 10, autoMsg: 'ambos', bloqueioAuto: 'sim', pacotes: [], servicos: [{ id: 'recreacao', n: 'Recreação', v: 80, modo: 'periodo', min: 30, banco: true, obs: '' }, { id: 'fusquinha', n: 'Carrinho fusquinha', v: 15, modo: 'periodo', min: 30, banco: false, obs: '' }, { id: 'bebe', n: 'Carrinho de bebê', v: 30, modo: 'fixo', min: 0, banco: false, obs: 'das 10h às 22h' }], sapateiras: 44, idface: { ip: '192.168.0.129', nome: 'Recepção', ligado: false, ultima: antes(0.2) }, tema: lido('ps-tema', 'sistema'), anim: lido('ps-anim', 'auto') },
+  cfg: { arredonda: 1, cortesia: 10, minimo: 0, aviso: 10, autoMsg: 'ambos', bloqueioAuto: 'sim', pacotes: [], servicos: [{ id: 'recreacao', n: 'Recreação', v: 80, modo: 'periodo', min: 30, banco: true, obs: '' }, { id: 'fusquinha', n: 'Carrinho fusquinha', v: 15, modo: 'periodo', min: 30, banco: false, obs: '' }, { id: 'bebe', n: 'Carrinho de bebê', v: 30, modo: 'fixo', min: 0, banco: false, obs: 'das 10h às 22h' }], sapateiras: 44, cancelaMin: 9, idface: { ip: '192.168.0.129', nome: 'Recepção', ligado: false, ultima: antes(0.2) }, tema: lido('ps-tema', 'sistema'), anim: lido('ps-anim', 'auto') },
   equipe: [{ id: 1, nome: 'Camila Duarte', papel: 'gestor', login: 'camila' }, { id: 2, nome: 'Beatriz Lima', papel: 'supervisor', login: 'bia' }, { id: 3, nome: 'João Pedro', papel: 'atendente', login: 'jp' }],
   whats: { conectado: true, numero: '5511912345678', nome: 'Play Space' }, vendasHoje: null,
   criancas: [
     { id: 1, nome: 'Helena', idade: 6, resp: 'Mariana Souza', rel: 'mãe', tel: '(11) 9 8765-4321', cpf: '529.982.247-25', obs: 'Alergia a amendoim; Pode fazer pintura no rosto', pacote: 10, usado: 380, entrou: antes(47), rosto: true, visitas: [{ dia: antes(2880), entrou: '14:05', saiu: '16:40', deb: 155 }, { dia: antes(7200), entrou: '10:10', saiu: '13:55', deb: 225 }] },
     { id: 2, nome: 'Theo', idade: 4, resp: 'Rafael', rel: 'pai', tel: '(11) 9 7654-3210', cpf: '111.444.777-35', obs: '', pacote: 5, usado: 275, entrou: antes(12), rosto: true, visitas: [{ dia: antes(4320), entrou: '15:00', saiu: '17:35', deb: 155 }, { dia: antes(10080), entrou: '11:00', saiu: '13:00', deb: 120 }] },
     { id: 3, nome: 'Alice', idade: 8, resp: 'Juliana', rel: 'mãe', tel: '(11) 9 6543-2109', cpf: '123.456.789-09', obs: 'Aniversário dia 15', pacote: 20, usado: 1105, entrou: antes(93), rosto: true, visitas: [{ dia: antes(1440), entrou: '14:00', saiu: '18:00', deb: 240 }] },
-    { id: 4, nome: 'Miguel', idade: 5, resp: 'Carla', rel: 'mãe', tel: '(11) 9 5432-1098', cpf: '390.533.447-05', obs: '', pacote: 10, usado: 600, entrou: null, rosto: true, visitas: [{ dia: agora, entrou: hora(antes(150)), saiu: hora(antes(31)), deb: 110 }] },
-    { id: 5, nome: 'Laura', idade: 7, resp: 'Bruno', rel: 'pai', tel: '(11) 9 4321-0987', cpf: '248.438.034-80', obs: '', pacote: 10, usado: 140, entrou: null, rosto: true, visitas: [{ dia: agora, entrou: hora(antes(251)), saiu: hora(antes(111)), deb: 140 }] },
+    { id: 4, nome: 'Miguel', idade: 5, resp: 'Carla', rel: 'mãe', tel: '(11) 9 5432-1098', cpf: '390.533.447-05', obs: '', pacote: 10, usado: 600, entrou: null, rosto: true, visitas: [{ dia: antes(31), entrou: hora(antes(150)), saiu: hora(antes(31)), deb: 110 }] },
+    { id: 5, nome: 'Laura', idade: 7, resp: 'Bruno', rel: 'pai', tel: '(11) 9 4321-0987', cpf: '248.438.034-80', obs: '', pacote: 10, usado: 140, entrou: null, rosto: true, visitas: [{ dia: antes(111), entrou: hora(antes(251)), saiu: hora(antes(111)), deb: 140 }] },
     { id: 6, nome: 'Davi', idade: 3, resp: 'Mariana Souza', rel: 'mãe', tel: '(11) 9 8765-4321', cpf: '529.982.247-25', obs: 'Não mexer no cabelo', pacote: 5, usado: 0, entrou: null, rosto: false, visitas: [] },
   ],
   registros: [
     { h: antes(12), tipo: 'ent', nome: 'Theo', txt: 'Rosto reconhecido na entrada' },
     { h: antes(31), tipo: 'sai', nome: 'Miguel', txt: '1h50 debitadas · restam 4h' },
     { h: antes(47), tipo: 'ent', nome: 'Helena', txt: 'Rosto reconhecido na entrada' },
+    { h: antes(70), tipo: 'canc', nome: 'Laura', txt: `Entrada das ${hora(antes(76))} cancelada aos 6 min · não cobrado: Recreação · 30 min (R$ 80) · Motivo: A criança chorou e não quis ficar · por João` },
+    { h: antes(76), tipo: 'ent', nome: 'Laura', txt: 'Entrada registrada' },
+    { h: antes(76), tipo: 'venda', nome: 'Laura', txt: 'Recreação · 30 min · R$ 80 · cancelada' },
     { h: antes(93), tipo: 'ent', nome: 'Alice', txt: 'Rosto reconhecido na entrada' },
     { h: antes(111), tipo: 'sai', nome: 'Laura', txt: '2h20 debitadas · restam 7h40' },
     { h: antes(140), tipo: 'venda', nome: 'Davi', txt: 'Recreação · 5h · R$ 800' },
@@ -853,6 +882,8 @@ Object.assign(S.criancas[0].venda, { h: 5, m: 300, v: 800 }); S.criancas[4].vend
 S.compras = S.criancas.map(c => ({ id: novoId(), crianca: c.id, h: c.venda.h, m: c.venda.m, v: c.venda.v, servico: 'Recreação', itens: '', quando: c.venda.quando, por: 'Camila' }));
 S.compras.push({ id: novoId(), crianca: 1, h: 5, m: 300, v: 800, servico: 'Recreação', itens: '', quando: antes(1440 * 9), por: 'Bia' }, { id: novoId(), crianca: 1, h: 0, m: 0, v: 30, servico: 'Carrinho de bebê', itens: 'das 10h às 22h', quando: antes(2880 + 10), por: 'Bia' }, { id: novoId(), crianca: 6, h: 0, m: 0, v: 15, servico: 'Carrinho fusquinha', itens: '30 min', quando: antes(138), por: 'Camila' });
 S.compras.sort((a, b) => b.quando - a.quando);
+// as entradas canceladas sem cobrar (prévia): uma de hoje, ainda para a supervisão conferir
+S.cancelamentos = [{ id: novoId(), crianca: 5, nome: 'Laura', resp: 'Bruno', entrou: antes(76), quando: antes(70), min: 6, valor: 80, itens: [{ n: 'Recreação · 30 min', m: 30, v: 80 }], motivo: 'A criança chorou e não quis ficar', por: 'João Pedro', papel: 'atendente', fora: false, visto_por: '', visto_em: null }];
 (function semear() {
   const y = S.mes.y, m = S.mes.m, d = dd => `${y}-${p2(m + 1)}-${p2(dd)}`;
   const add = (dia, hora, titulo, tipo, sub) => S.compromissos.push({ id: novoId(), dia, hora, titulo, tipo, sub: sub || '' });
@@ -899,6 +930,7 @@ async function carregar() { // devolve true quando algo mudou no servidor
     S.cfg = { ...S.cfg, ...d.regra, idface: { ...S.cfg.idface, ...d.idface } };
     S.equipe = d.equipe || [];
     S.vendasHoje = d.vendas_hoje; S.whats = d.whats; S.eu = d.eu; S.exemplo = d.exemplo || 0;
+    S.cancelamentos = (d.cancelamentos || []).map(x => ({ ...x, entrou: dataDe(x.entrou), quando: dataDe(x.quando), visto_em: x.visto_em ? dataDe(x.visto_em) : null }));
     EU = { nome: d.eu.nome.split(' ')[0], nomeCompleto: d.eu.nome, papel: d.eu.papel, login: d.eu.login, id: d.eu.id };
     ABAS = TODAS_ABAS.filter(a => a[0] !== 'ajustes' || supervisorOuMais());
     if (!ABAS.some(a => a[0] === S.tela)) S.tela = 'horas';
@@ -926,6 +958,8 @@ async function sincronizar() {
 // o que o iDFace acabou de registrar aparece com um aviso e o anel da criança "chega" no cartão de quem está no espaço
 function anunciar(antes) {
   if (!antes) return;
+  const canc = S.registros.find(r => r.id > antes && r.tipo === 'canc');   // alguém cancelou uma entrada em outro aparelho: a supervisão fica sabendo na hora
+  if (canc && supervisorOuMais()) { toast(`Entrada de ${canc.nome} cancelada sem cobrar. Confira o motivo.`, () => folhaCancelamentos(), 'Conferir'); return; }
   const novos = S.registros.filter(r => r.id > antes && (r.tipo === 'ent' || r.tipo === 'sai')); if (!novos.length) return;
   const r = novos[0]; S.chegou = r.tipo === 'ent' ? r.crianca : 0; setTimeout(() => { S.chegou = 0; }, 1800);
   const cr = crianca(r.crianca);
@@ -1120,6 +1154,23 @@ function blocos(c, comEstado = true) {
     <div class="linha-h" style="--pct:${pct.toFixed(1)}%"><i style="width:${pct.toFixed(1)}%"></i></div>
   </div>`;
 }
+/* ---------- cancelar a entrada sem cobrar ---------- */
+// Até S.cfg.cancelaMin minutos depois da entrada (9 minutos cheios, contados do segundo em que entrou), o próprio atendente cancela,
+// escrevendo o motivo; depois do prazo, só gestor ou supervisor. Cada cancelamento fica guardado para a supervisão conferir.
+const cancelaLim = () => Math.max(0, +S.cfg.cancelaMin || 0);
+const noPrazoCancelar = c => !!c && !!c.entrou && cancelaLim() > 0 && segDentro(c) < cancelaLim() * 60;
+const podeCancelar = c => !!c && !!c.entrou && (noPrazoCancelar(c) || supervisorOuMais());
+const faltaCancelar = c => Math.max(0, cancelaLim() * 60 - segDentro(c));   // segundos até o prazo fechar
+const ateCancelar = c => hora(new Date(c.entrou.getTime() + cancelaLim() * 60000));
+const aConferir = () => supervisorOuMais() ? (S.cancelamentos || []).filter(x => !x.visto_em) : [];
+const estadoCancelar = c => !c || !c.entrou ? '' : noPrazoCancelar(c) ? 'prazo' : supervisorOuMais() ? 'fora' : '';
+// na ficha: no prazo, o aviso com o tempo que falta; fora dele, só para gestor e supervisor
+function blocoCancelar(c) {
+  const e = estadoCancelar(c), lim = cancelaLim(); if (!e) return '';
+  return e === 'prazo'
+    ? `<div class="marca canc">${ic(IC.horas, 18)}<span><b>Dá para cancelar sem cobrar até ${ateCancelar(c)}</b> · faltam <b class="num" data-cancela="${c.id}">${hms(faltaCancelar(c))}</b>. O motivo fica para a supervisão.</span><button class="bt tap" data-act="cancelar" data-id="${c.id}">Cancelar entrada</button></div>`
+    : `<div class="marca">${ic(IC.horas, 18)}<span>${lim > 0 ? `Passou do prazo de ${lim} min para o atendente cancelar.` : 'O atendente não cancela entradas.'} Como ${PAPEIS[EU.papel] || 'supervisão'}, você ainda pode, com o motivo.</span><button class="bt tap" data-act="cancelar" data-id="${c.id}">Cancelar entrada</button></div>`;
+}
 // o anel de uma criança: o que resta do pacote, com o tempo dentro; pequeno no banco de horas, maior no cartão de quem está no espaço
 function anel(c, onde = 'banco') {
   const r = restante(c), pct = pctVivo(c), baixo = !semHoras(c) && r <= S.cfg.aviso;
@@ -1134,6 +1185,7 @@ function anel(c, onde = 'banco') {
     <span class="nome">${esc(c.nome)}${c.idade && !dentro ? ', ' + c.idade : ''}</span>
     <em>${dentro ? `desde ${hora(c.entrou)} · <span class="num" data-cron-txt="${c.id}">${hms(segDentro(c))}</span>` : esc(c.resp)}</em>
     <div class="mini">${botoes}</div>
+    ${dentro && noPrazoCancelar(c) ? `<button class="canc-link tap" data-act="cancelar" data-id="${c.id}" title="Cancelar a entrada sem cobrar (precisa escrever o motivo)">Cancelar · <span class="num" data-cancela="${c.id}">${hms(faltaCancelar(c))}</span></button>` : ''}
     ${dentro || semIdface() ? '' : `<div class="libera"><span>${liberada(c) ? 'Acesso autorizado' : 'Acesso bloqueado'}</span>${chave(c, true)}</div>`}
   </div>`;
 }
@@ -1191,7 +1243,7 @@ async function registrarAtendimento(id) {
   const era = { pacote: c.pacote, liberado: c.liberado, venda: c.venda }, novas = [], regs = [];
   for (const l of L) { const compra = { id: novoId(), crianca: c.id, h: l.min / 60, m: l.min, v: l.v, servico: l.servico, itens: l.itens, quando: new Date(), por: EU.nome }; S.compras.unshift(compra); novas.push(compra);
     if (l.min) { c.pacote += l.min / 60; c.liberado = true; c.venda = { h: l.min / 60, m: l.min, v: l.v, servico: l.servico, com: l.itens, quando: new Date() }; }
-    registrar('venda', c.nome, `${nomeLinha(l)} · ${brl(l.v)}`); regs.push(S.registros[0]); }
+    registrar('venda', c.nome, `${nomeLinha(l)} · ${brl(l.v)}`); regs.push(S.registros[0]); compra.reg = S.registros[0]; }
   let desfazEntrada = null;
   if (entrar && !c.entrou && restante(c) > 0) { c.entrou = new Date(); registrar('ent', c.nome, 'Entrada registrada'); const regE = S.registros[0]; desfazEntrada = () => { c.entrou = null; S.registros = S.registros.filter(x => x !== regE); }; }
   fecharFolha(); desenhar();
@@ -1308,10 +1360,10 @@ function painelHoje() {
   const doDia = S.compromissos.filter(x => x.dia === hojeStr).sort((a, b) => a.hora.localeCompare(b.hora));
   return `<div class="painel atividades"><div class="sec-cab"><h2>Atividades do dia</h2><button class="link tap" data-ir="agenda">Agenda</button></div>
     ${doDia.length ? doDia.map(x => itemComp(x, hojeStr)).join('') : `<p class="explica">Nada marcado para hoje, ${SEMANA[agora.getDay()].toLowerCase()}, ${agora.getDate()} de ${MESES[agora.getMonth()]}.</p>`}</div>
-  <div class="painel recepcao"><h2>Hoje na recepção</h2>${listaRegistros(regs)}
+  <div class="painel recepcao">${(n => n ? `<div class="sec-cab"><h2>Hoje na recepção</h2><button class="link tap" data-act="cancelamentos">${n} ${n === 1 ? 'cancelamento' : 'cancelamentos'}</button></div>` : '<h2>Hoje na recepção</h2>')(supervisorOuMais() ? (S.cancelamentos || []).filter(x => agora - x.quando < 86400000).length : 0)}${listaRegistros(regs)}
   <button class="marca tap" data-act="idface">${ic(IC.rosto, 18)}<span>${semIdface() ? `<b>${regs.filter(r => r.tipo === 'ent' || r.tipo === 'sai').length} entradas e saídas</b> marcadas na tela nas últimas 24 h. O iDFace está desligado: toque para ligar quando for usar.` : `O iDFace leu <b>${regs.filter(r => r.tipo === 'ent' || r.tipo === 'sai').length} rostos</b> nas últimas 24 h. `}${!S.cfg.idface.ligado ? '' : (MODO === 'servidor' ? (S.cfg.idface.ativo ? 'Aparelho conectado.' : 'Aparelho sem contato: toque para ver.') : 'Última leitura há poucos segundos.')}</span></button></div>`;
 }
-const listaRegistros = regs => `<div class="reg">${regs.length ? regs.map(r => `<div class="ev ${r.tipo}"><time>${hora(r.h)}</time><div><b>${esc(r.nome)}</b><span>${esc(r.txt)}</span></div></div>`).join('') : '<p class="explica">Nada registrado ainda hoje.</p>'}</div>`;
+const listaRegistros = regs => `<div class="reg">${regs.length ? regs.map(r => `<div class="ev ${r.tipo}"${r.tipo === 'canc' && supervisorOuMais() ? ' data-act="cancelamentos" role="button" tabindex="0" title="Ver as entradas canceladas"' : ''}><time>${hora(r.h)}</time><div><b>${esc(r.nome)}</b><span>${esc(r.txt)}</span></div></div>`).join('') : '<p class="explica">Nada registrado ainda hoje.</p>'}</div>`;
 
 function folhaFicha(id) {
   const c = crianca(id); if (!c) return; const [et, cls] = estado(c);
@@ -1319,7 +1371,7 @@ function folhaFicha(id) {
     <div class="linha">${avatarComUrso(c, 'g')}<div class="txt"><b style="white-space:normal">${esc(c.resp)}${relSabe(c) ? ', ' + esc(c.rel) : ''}</b><span style="white-space:normal">${esc(fones(c))}${c.cpf ? (fones(c) ? ' · ' : '') + esc(docTxt(c)) : ''}</span>${c.obs ? `<span style="color:var(--coral);font-weight:700;white-space:normal;overflow-wrap:anywhere">${esc(c.obs)}</span>` : ''}</div><span class="pill ${cls}">${et}</span></div>
     ${semIdface() ? '' : `<div class="marca libera-ficha">${ic(IC.rosto, 18)}<span>${textoAcesso(c)}</span>${chave(c)}</div>`}
     <div class="marca sap-linha">${ic(IC.sapato, 18)}<span>${c.sapateira ? `<b>Sapateira ${c.sapateira}</b> · é onde está o sapato dela.` : `<b>Sem sapateira</b> · escolha onde fica o sapato enquanto ela brinca.`}</span><button class="bt tap" data-act="sapateira" data-id="${c.id}">${c.sapateira ? 'Trocar' : 'Escolher'}</button></div>
-    ${c.entrou ? `<div class="marca">${ic(IC.horas, 18)}<span>Está no espaço desde <b>${hora(c.entrou)}</b>: <b class="num" data-cron-txt="${c.id}">${hms(segDentro(c))}</b> até agora, <b>${hm(cobrar(minDentro(c)))}</b> a debitar pela regra atual.</span></div>` : ''}
+    ${c.entrou ? `<div class="marca">${ic(IC.horas, 18)}<span>Está no espaço desde <b>${hora(c.entrou)}</b>: <b class="num" data-cron-txt="${c.id}">${hms(segDentro(c))}</b> até agora, <b>${hm(cobrar(minDentro(c)))}</b> a debitar pela regra atual.</span></div><div data-ficha-cancela="${c.id}" data-estado="${estadoCancelar(c)}">${blocoCancelar(c)}</div>` : ''}
     ${blocos(c, false)}
     <div class="saldo"><span>comprou ${tam(c)}</span><span>usou ${hm(usadoAgora(c))}</span></div>
     <div class="acoes">
@@ -1382,8 +1434,8 @@ let CLIENTE_AUTO = null;   // o que a tela preencheu sozinha (some de novo se o 
 let CLIENTE_VISTO = '';     // o documento do cliente que o cadastro já mostrou (para avisar uma vez só)
 const docTipo = () => ($('#f-cpf') || { dataset: {} }).dataset.doc === 'rne' ? 'rne' : 'cpf';
 const segDoc = tipo => `<div class="seg mini" id="f-doc-seg" role="group" aria-label="Tipo de documento">${[['cpf', 'CPF'], ['rne', 'RNE']].map(([v, n]) => `<button type="button" data-act="doc-tipo" data-v="${v}" aria-pressed="${tipo === v}" title="${v === 'rne' ? 'Estrangeiro: Registro Nacional de Estrangeiro' : 'CPF'}">${n}</button>`).join('')}</div>`;
-const campoDoc = (tipo, v) => `<div class="campo"><div class="rot-linha"><label for="f-cpf" id="f-doc-rot">${tipo === 'rne' ? 'RNE' : 'CPF'} do responsável</label>${segDoc(tipo)}</div><input id="f-cpf" data-doc="${tipo}" inputmode="${tipo === 'rne' ? 'text' : 'numeric'}" value="${esc(v || '')}" placeholder="${tipo === 'rne' ? 'Número do RNE' : '000.000.000-00'}" maxlength="${tipo === 'rne' ? 20 : 14}" autocomplete="off"><span class="explica" id="f-cpf-aviso" style="color:var(--erro)" hidden></span></div>`;
-const camposTel = (t1, t2) => `<div class="dois"><div class="campo"><label for="f-tel">Telefone (WhatsApp)</label><input id="f-tel" inputmode="tel" value="${esc(t1 || '')}" placeholder="(11) 9 0000-0000" autocomplete="off"></div>
+const campoDoc = (tipo, v) => `<div class="campo"><div class="rot-linha"><label for="f-cpf"><span id="f-doc-rot">${tipo === 'rne' ? 'RNE' : 'CPF'} do responsável</span><span class="obg" aria-hidden="true">*</span></label>${segDoc(tipo)}</div><input id="f-cpf" data-doc="${tipo}" inputmode="${tipo === 'rne' ? 'text' : 'numeric'}" value="${esc(v || '')}" placeholder="${tipo === 'rne' ? 'Número do RNE' : '000.000.000-00'}" maxlength="${tipo === 'rne' ? 20 : 14}" autocomplete="off"><span class="explica" id="f-cpf-aviso" style="color:var(--erro)" hidden></span></div>`;
+const camposTel = (t1, t2) => `<div class="dois"><div class="campo"><label for="f-tel">Telefone (WhatsApp)<span class="obg" aria-hidden="true">*</span></label><input id="f-tel" inputmode="tel" value="${esc(t1 || '')}" placeholder="(11) 9 0000-0000" autocomplete="off"></div>
         <div class="campo discreto"><label for="f-tel2">Outro telefone, se tiver</label><input id="f-tel2" inputmode="tel" value="${esc(t2 || '')}" placeholder="(11) 9 0000-0000" autocomplete="off"></div></div>`;
 function cartaoCliente(fam) {
   const r = fam[0];
@@ -1404,23 +1456,58 @@ function clienteNoCadastro() {
     else toast(`Este ${tipo === 'rne' ? 'RNE' : 'CPF'} já tem cadastro: ${r.resp}`, () => abrirHistorico(r.id), 'Ver o histórico'); }
   for (const [k, v] of [['f-resp', r.resp], ['f-tel', r.tel], ['f-tel2', r.tel2]]) { const i = $('#' + k); if (i && v && !i.value.trim()) { i.value = v; CLIENTE_AUTO[k] = v; } }
 }
+// O cadastro só fecha com: o documento do responsável (CPF válido, ou RNE), o nome dele, um telefone com DDD e o nome da criança.
+// Ao editar, o que não foi mexido passa como está (cadastro antigo, de antes desta regra): só o que mudou precisa estar certo, e nada disso pode ser apagado.
+// Devolve [[id do campo, o que falta (curto, para a linha do rodapé), a frase (para baixo do campo)]], na ordem da tela.
+let FALTA_TENTOU = false;   // já tentou salvar faltando algo: os campos ficam marcados e vão se desmarcando enquanto a pessoa completa
+function faltaNoCadastro(c) {
+  const F = [], tipo = docTipo(), doc = val('f-cpf'), t1 = soDig(val('f-tel')), t2 = soDig(val('f-tel2'));
+  const docIgual = !!c && tipo === (c.doc === 'rne' ? 'rne' : 'cpf') && (tipo === 'rne' ? rneLimpo(doc) === rneLimpo(c.cpf) : soDig(doc) === soDig(c.cpf));
+  if (!docIgual) {
+    if (tipo === 'rne') { if (rneLimpo(doc).length < 5) F.push(['f-cpf', 'o RNE', 'Falta o RNE do responsável']); }
+    else if (!soDig(doc)) F.push(['f-cpf', 'o CPF (ou RNE)', 'Falta o CPF do responsável (ou o RNE, se for estrangeiro)']);
+    else if (soDig(doc).length < 11) F.push(['f-cpf', 'o CPF completo', 'O CPF tem 11 números']);
+    else if (!cpfValido(doc) && !clientePorDoc('cpf', doc).length) F.push(['f-cpf', 'o CPF certo', 'Confira o CPF: os números não batem']);   // o documento de quem já é cliente passa como está
+  }
+  if (!val('f-resp') && (!c || String(c.resp || '').trim())) F.push(['f-resp', 'o nome do responsável', 'Falta o nome do responsável']);
+  if (!(c && t1 === soDig(c.tel) && t2 === soDig(c.tel2))) {
+    const maior = Math.max(t1.length, t2.length);
+    if (!maior) F.push(['f-tel', 'um telefone', 'Falta um telefone do responsável']); else if (maior < 10) F.push([t1.length ? 'f-tel' : 'f-tel2', 'o telefone com DDD', 'Telefone incompleto: coloque o DDD e o número']);
+  }
+  if (!val('f-nome')) F.push(['f-nome', 'o nome da criança', 'Falta o nome da criança']);
+  return F;
+}
+const criancaDaFolha = () => { const b = $('#folha [data-act="salvar-crianca"]'); return b && b.dataset.id ? crianca(b.dataset.id) : null; };
+// a linha acima do botão diz o que falta; depois de uma tentativa, cada campo que falta fica marcado, com a frase embaixo
+function atualizarFalta() {
+  const linha = $('#f-falta'), bt = $('#folha [data-act="salvar-crianca"]'); if (!linha || !bt) return;
+  const F = faltaNoCadastro(criancaDaFolha());
+  linha.textContent = F.length ? 'Falta ' + juntar(F.map(x => x[1])) + '.' : ''; linha.classList.toggle('erro', FALTA_TENTOU && F.length > 0); bt.classList.toggle('espera', F.length > 0);
+  if (!FALTA_TENTOU) return;
+  for (const id of ['f-cpf', 'f-resp', 'f-tel', 'f-tel2', 'f-nome']) {
+    const i = $('#' + id); if (!i) continue; const campo = i.closest('.campo'), f = F.find(x => x[0] === id); campo.classList.toggle('falta', !!f);
+    if (id === 'f-cpf') { const a = $('#f-cpf-aviso'); if (a && f) { a.hidden = false; a.textContent = f[2] + '.'; } else if (a && !/não batem/.test(a.textContent)) { a.hidden = true; a.textContent = ''; } continue; }
+    let m = $('.msg-falta', campo); if (f) { if (!m) { m = document.createElement('span'); m.className = 'msg-falta'; campo.appendChild(m); } m.textContent = f[2] + '.'; } else if (m) m.remove();
+  }
+}
 function folhaCrianca(c) {
   FOTO_TEMP = ''; CLIENTE_AUTO = null; CLIENTE_VISTO = ''; SAP_TEMP = 0;
   if (!c) { // cadastro novo: primeiro o responsável (documento, nome e telefones), depois a criança; as horas são vendidas à parte
     abrirFolha('Cadastrar', `
     <div class="bloco-f"><small class="rot">Responsável</small>
       <div class="dois alinha">${campoDoc('cpf', '')}
-        <div class="campo"><label for="f-resp">Nome do responsável</label><input id="f-resp" autocomplete="off"></div></div>
+        <div class="campo"><label for="f-resp">Nome do responsável<span class="obg" aria-hidden="true">*</span></label><input id="f-resp" autocomplete="off"></div></div>
       <div id="f-cliente"></div>
       ${camposTel('', '')}
     </div>
     <div class="bloco-f"><small class="rot">Criança</small>
-      <div class="campo"><label for="f-nome">Nome da criança</label><input id="f-nome" autocomplete="off"></div>
+      <div class="campo"><label for="f-nome">Nome da criança<span class="obg" aria-hidden="true">*</span></label><input id="f-nome" autocomplete="off"></div>
       <div class="campo"><label>Sapateira <span class="leve">· onde fica o sapato enquanto ela brinca</span></label>${gradeSap(0, 0, 'cadastro')}<span class="explica">As hachuradas já estão em uso. Pode deixar sem e escolher depois, na ficha; ela fica livre sozinha quando a criança sai.</span></div>
       ${campoObs('')}
     </div>
     <p class="explica" style="text-align:center">Ao cadastrar, abre o atendimento: o serviço que a criança vai querer e o valor a pagar.</p>
-    <div class="pe-f"><button class="bt forte largo tap" data-act="salvar-crianca">${ic(IC.check)} Cadastrar</button></div>`);
+    <div class="pe-f"><p class="falta-linha" id="f-falta"></p><button class="bt forte largo tap" data-act="salvar-crianca">${ic(IC.check)} Cadastrar</button></div>`);
+    FALTA_TENTOU = false; atualizarFalta();
     if (window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches) setTimeout(() => { const i = $('#f-cpf'); if (i) i.focus(); }, 420);   // no computador, o cursor já começa no documento
     return;
   }
@@ -1428,16 +1515,108 @@ function folhaCrianca(c) {
   abrirFolha('Editar cadastro', `
     <div class="bloco-f"><small class="rot">Responsável</small>
       <div class="dois alinha">${campoDoc(tipo, c.cpf)}
-        <div class="campo"><label for="f-resp">Nome do responsável</label><input id="f-resp" value="${esc(c.resp)}" autocomplete="off"></div></div>
+        <div class="campo"><label for="f-resp">Nome do responsável<span class="obg" aria-hidden="true">*</span></label><input id="f-resp" value="${esc(c.resp)}" autocomplete="off"></div></div>
       ${camposTel(c.tel, c.tel2)}
     </div>
     <div class="bloco-f"><small class="rot">Criança</small>
-      <div class="dois"><div class="campo"><label for="f-nome">Nome da criança</label><input id="f-nome" value="${esc(c.nome)}" autocomplete="off"></div>
+      <div class="dois"><div class="campo"><label for="f-nome">Nome da criança<span class="obg" aria-hidden="true">*</span></label><input id="f-nome" value="${esc(c.nome)}" autocomplete="off"></div>
         <div class="campo"><label for="f-idade">Idade</label><input id="f-idade" type="number" min="1" max="14" inputmode="numeric" value="${c.idade || ''}" placeholder="anos"></div></div>
       ${campoObs(c.obs)}
     </div>
-    <div class="pe-f"><button class="bt forte largo tap" data-act="salvar-crianca" data-id="${c.id}">${ic(IC.check)} Salvar</button></div>`);
-  marcarAtalhos();
+    <div class="pe-f"><p class="falta-linha" id="f-falta"></p><button class="bt forte largo tap" data-act="salvar-crianca" data-id="${c.id}">${ic(IC.check)} Salvar</button></div>`);
+  marcarAtalhos(); FALTA_TENTOU = false; atualizarFalta();
+}
+/* ---------- a folha "Cancelar a entrada" e a lista que a supervisão confere ---------- */
+let CANCELA = null;   // { id (criança), vendas: null (buscando) | [{ id, n, m, v, quando, junto }], fica: Set (ids das vendas que continuam cobradas), erro }
+const MOTIVOS = ['A criança não quis ficar', 'A criança chorou', 'O responsável desistiu', 'Entrada lançada errada'];
+const nomeVendaTxt = v => { const m = minDe(v); return v.servico ? v.servico + (m ? ' · ' + dur(m) : '') + (v.itens ? ' · ' + v.itens : '') : m ? (m === 60 ? 'Hora avulsa' : 'Pacote de ' + dur(m)) + (v.itens ? ' com ' + v.itens : '') : (v.itens || 'Produto'); };
+// (prévia) as vendas que pagaram esta visita: as de hoje, feitas depois da última saída ou do último cancelamento da criança
+function vendasDaVisita(c) {
+  const d0 = new Date(agora); d0.setHours(0, 0, 0, 0); let corte = +d0;
+  for (const v of c.visitas || []) corte = Math.max(corte, +new Date(v.dia));
+  for (const x of S.cancelamentos || []) if (x.crianca === c.id) corte = Math.max(corte, +x.quando);
+  return S.compras.filter(v => v.crianca === c.id && +v.quando >= corte).sort((a, b) => a.quando - b.quando).map(v => ({ id: v.id, n: nomeVendaTxt(v), m: minDe(v), v: v.v, quando: v.quando, junto: +v.quando >= +c.entrou - 1800000 }));
+}
+const prazoCancelarTxt = c => { const min = Math.floor(segDentro(c) / 60), lim = cancelaLim();
+  return noPrazoCancelar(c) ? `<div class="marca canc">${ic(IC.horas, 18)}<span>Entrou há <b>${min} min</b>. Dá para cancelar sem cobrar até <b>${ateCancelar(c)}</b> · faltam <b class="num">${hms(faltaCancelar(c))}</b>.</span></div>`
+    : `<div class="marca canc">${ic(IC.horas, 18)}<span>Entrou há <b>${dur(min)}</b>. ${lim > 0 ? `Passou do prazo de ${lim} min` : 'O atendente não cancela entradas'}: ${supervisorOuMais() ? `você cancela como ${PAPEIS[EU.papel] || 'supervisão'} e fica anotado como fora do prazo.` : 'agora só Gestor ou Supervisor cancela.'}</span></div>`; };
+function folhaCancelar(id) {
+  const c = crianca(id); if (!c || !c.entrou) return;
+  if (!podeCancelar(c)) { toast(cancelaLim() > 0 ? `Já passou de ${cancelaLim()} min da entrada de ${c.nome}: agora só Gestor ou Supervisor cancela` : 'Só Gestor ou Supervisor cancela a entrada'); return; }
+  const marca = CANCELA = { id: c.id, vendas: null, fica: new Set(), erro: '' };
+  abrirFolha('Cancelar a entrada', `
+    <div class="linha">${avatar(c)}<div class="txt"><b>${esc(c.nome)}</b><span>${esc(c.resp)} · entrou às ${hora(c.entrou)}${c.sapateira ? ' · sapateira ' + c.sapateira : ''}</span></div></div>
+    <div data-canc-prazo="${c.id}">${prazoCancelarTxt(c)}</div>
+    <div class="campo"><label>O que deixa de ser cobrado</label><div class="canc-vendas" id="x-vendas"><p class="explica">Buscando as vendas desta visita…</p></div></div>
+    <div class="campo" id="x-motivo-campo"><label for="x-motivo">Motivo do cancelamento<span class="obg" aria-hidden="true">*</span> <span class="leve">· a supervisão vai ver</span></label>
+      <textarea id="x-motivo" rows="2" maxlength="300" placeholder="Escreva o que aconteceu"></textarea>
+      <div class="atalhos">${MOTIVOS.map(t => `<button type="button" class="tap" data-act="canc-motivo" data-t="${esc(t)}">${t}</button>`).join('')}</div></div>
+    <div class="pe-f"><p class="falta-linha" id="x-resumo"></p><button class="bt forte largo tap" id="x-ok" data-act="canc-ok" data-id="${c.id}" disabled>${ic(IC.x, 18, 2.6)} Cancelar a entrada</button></div>`);
+  // de saída, só deixa de ser cobrado o tempo de brincar vendido junto com esta entrada; o resto (carrinho, pacote comprado mais cedo) a pessoa marca se for o caso
+  const chegou = L => { if (CANCELA !== marca) return; marca.vendas = L.map(v => ({ ...v, quando: dataDe(v.quando) })); marca.fica = new Set(marca.vendas.filter(v => !(v.m && v.junto)).map(v => v.id)); desenharCancelar(); };
+  if (MODO === 'servidor') api('cancelar_previa', { id: c.id }).then(r => chegou(r.vendas || [])).catch(e => { if (CANCELA !== marca) return; marca.erro = e.message; desenharCancelar(); });
+  else chegou(vendasDaVisita(c));
+}
+function desenharCancelar() { // as vendas desta visita: marcada = não cobrar
+  const k = CANCELA, alvo = $('#x-vendas'); if (!k || !alvo) return; const c = crianca(k.id);
+  if (k.erro) alvo.innerHTML = `<p class="explica" style="color:var(--erro)">${esc(k.erro)}</p>`;
+  else if (!k.vendas) alvo.innerHTML = `<p class="explica">Buscando as vendas desta visita…</p>`;
+  else if (!k.vendas.length) alvo.innerHTML = `<div class="marca">${ic(IC.check, 18, 2.6)}<span><b>Nenhuma venda nesta visita.</b> ${c ? esc(c.nome) : 'A criança'} entrou com o tempo que já tinha: nada é descontado do saldo.</span></div>`;
+  else alvo.innerHTML = k.vendas.map(v => `<label class="marca"><input type="checkbox" data-canc-venda="${v.id}" ${k.fica.has(v.id) ? '' : 'checked'}><span><b>${esc(v.n)}</b> <span class="leve">· vendido às ${hora(v.quando)}</span></span><b class="num">${brl(v.v)}</b></label>`).join('') + (k.vendas.length > 1 ? `<span class="explica">Marcado = não cobrar. O que ficar desmarcado continua cobrado (ex.: o carrinho que o cliente vai continuar usando).</span>` : '');
+  resumoCancelar();
+}
+function resumoCancelar() { // a linha acima do botão: quanto deixa de ser cobrado; o botão só libera com as vendas na tela e dentro do que a pessoa pode
+  const k = CANCELA, r = $('#x-resumo'), bt = $('#x-ok'); if (!k || !r || !bt) return; const c = crianca(k.id);
+  if (!c || !c.entrou) { r.textContent = 'A criança já saiu: não há entrada para cancelar.'; r.className = 'falta-linha erro'; bt.disabled = true; return; }
+  if (!podeCancelar(c)) { r.textContent = `O prazo de ${cancelaLim()} min acabou: agora só Gestor ou Supervisor cancela.`; r.className = 'falta-linha erro'; bt.disabled = true; return; }
+  if (!k.vendas) { r.textContent = ''; bt.disabled = true; return; }
+  const sel = k.vendas.filter(v => !k.fica.has(v.id)), total = sel.reduce((a, v) => a + v.v, 0);
+  r.className = 'falta-linha'; r.innerHTML = sel.length ? `Não será cobrado: <b>${brl(total)}</b>. Se o cliente já pagou, devolva esse valor.` : (k.vendas.length ? 'Nenhuma venda desfeita: só a entrada é cancelada e o tempo não é descontado.' : '');
+  if (!bt.dataset.enviando) bt.disabled = false;
+}
+const textoCancelado = (entrou, min, itens, motivo, por, fora) => `Entrada das ${hora(entrou)} cancelada aos ${min} min · ${itens.length ? 'não cobrado: ' + itens.map(i => `${i.n} (${brl(i.v)})`).join(', ') : 'o tempo não foi descontado'} · Motivo: ${motivo} · por ${por}${fora ? ` (fora do prazo${cancelaLim() > 0 ? ' de ' + cancelaLim() + ' min' : ''})` : ''}`;
+async function confirmarCancelar(el) {
+  const k = CANCELA, c = k && crianca(k.id); if (!k || !c || !c.entrou) return;
+  const t = $('#x-motivo'), motivo = (t ? t.value : '').replace(/\s+/g, ' ').trim();
+  if (motivo.length < 5) { const cp = $('#x-motivo-campo'); if (cp) cp.classList.add('falta'); toast('Escreva o motivo do cancelamento: a supervisão vai conferir'); if (t) t.focus(); return; }
+  const sel = (k.vendas || []).filter(v => !k.fica.has(v.id)), nome = c.nome, cid = c.id;
+  const avisa = (valor, sap) => toast(`Entrada de ${nome} cancelada · ${valor ? brl(valor) + ' não cobrado' : 'nada descontado'}${sap ? ' · sapateira ' + sap + ' livre' : ''}`, () => abrirHistorico(cid), 'Histórico');
+  if (MODO === 'servidor') {
+    el.disabled = true; el.dataset.enviando = '1';
+    try { const r = await api('cancelar_entrada', { id: cid, motivo, vendas: sel.map(v => v.id) }); CANCELA = null; await carregar(); fecharFolha(); desenhar(); avisa(r.valor, r.sapateira); }
+    catch (e) { toast(e.message); delete el.dataset.enviando; el.disabled = false; resumoCancelar(); }
+    return;
+  }
+  const prazo = noPrazoCancelar(c), min = Math.floor(segDentro(c) / 60), entrouEm = c.entrou, valor = sel.reduce((a, v) => a + v.v, 0), tempo = sel.reduce((a, v) => a + v.m, 0), sap = c.sapateira || 0, itens = sel.map(v => ({ n: v.n, m: v.m, v: v.v }));
+  for (const v of sel) { const compra = S.compras.find(x => x.id === v.id); if (compra && compra.reg) compra.reg.txt += ' · cancelada'; }
+  S.compras = S.compras.filter(x => !sel.some(v => v.id === x.id));
+  c.pacote = Math.max(0, c.pacote - tempo / 60); c.entrou = null; c.sapateira = null;   // sai sem debitar nada; a sapateira fica livre
+  if (tempo > 0) { const u = S.compras.filter(x => x.crianca === cid && minDe(x) > 0).sort((a, b) => b.quando - a.quando)[0]; c.venda = u ? { h: minDe(u) / 60, m: minDe(u), v: u.v, servico: u.servico, com: u.itens, quando: u.quando } : null; if (restante(c) <= 0 && S.cfg.bloqueioAuto === 'sim') c.liberado = false; }
+  S.cancelamentos.unshift({ id: novoId(), crianca: cid, nome, resp: c.resp, entrou: entrouEm, quando: new Date(), min, valor, itens, motivo, por: EU.nomeCompleto || EU.nome, papel: EU.papel, fora: !prazo, visto_por: '', visto_em: null });
+  registrar('canc', nome, textoCancelado(entrouEm, min, itens, motivo, EU.nome, !prazo));
+  if (S.cfg.autoMsg === 'ambos') mensagemAuto(c, `A entrada de ${nome} na Play Space foi cancelada às ${hora(new Date())} e ${valor > 0 ? 'nada foi cobrado' : 'o tempo não foi descontado'}. Até a próxima! 🧸`, false);
+  CANCELA = null; fecharFolha(); desenhar(); avisa(valor, sap);
+}
+const quandoCurto = d => (isoDia(d) === isoDia(agora) ? 'hoje' : isoDia(d) === isoDia(new Date(agora.getTime() - 86400000)) ? 'ontem' : diaCurto(d)) + ' às ' + hora(d);
+const itensCancelados = x => (x.itens || []).map(i => `${esc(i.n)} (${brl(i.v)})`).join(', ');
+function htmlCancelamentos() {
+  const L = S.cancelamentos || [], dia = L.filter(x => agora - x.quando < 86400000), pend = L.filter(x => !x.visto_em), lim = cancelaLim();
+  return `<p class="explica">Toda entrada cancelada sem cobrança fica aqui, com o motivo que a pessoa escreveu. ${lim > 0 ? `O atendente cancela sozinho até ${lim} min depois da entrada; passou disso, só Gestor ou Supervisor.` : 'Só Gestor ou Supervisor cancela.'}</p>
+    <div class="marca">${ic(IC.sino, 18)}<span><b>Últimas 24 h:</b> ${dia.length ? `${dia.length} ${dia.length === 1 ? 'cancelamento' : 'cancelamentos'} · ${brl(dia.reduce((a, x) => a + x.valor, 0))} não cobrados` : 'nenhum cancelamento'}${pend.length ? ` · <b>${pend.length} para conferir</b>` : ''}</span>${pend.length > 1 ? `<button class="bt tap" data-act="canc-vistos">Marcar todos como vistos</button>` : ''}</div>
+    <div class="canc-lista">${L.length ? L.map(x => `<div class="canc-it ${x.visto_em ? 'visto' : ''}">
+      <div class="cab"><div class="txt"><b>${esc(x.nome)}</b><span>${esc(x.resp)} · cancelada ${quandoCurto(x.quando)}</span></div><span class="pill ${x.visto_em ? 'p-ok' : 'p-erro'}">${x.visto_em ? 'Visto por ' + esc(primeiro(x.visto_por)) : 'Para conferir'}</span></div>
+      <p>Entrou às <b>${hora(x.entrou)}</b> e ficou <b>${x.min} min</b>. Cancelada por <b>${esc(x.por)}</b> (${PAPEIS[x.papel] || esc(x.papel)})${x.fora ? ', <b>fora do prazo</b>' : ''}.</p>
+      <p>${x.itens && x.itens.length ? `Não cobrado: <b>${itensCancelados(x)}</b>.` : 'Nenhuma venda desfeita: a entrada usou o saldo que a criança já tinha, e o tempo não foi descontado.'}</p>
+      <p class="motivo">“${esc(x.motivo)}”</p>
+      <div class="acoes">${x.visto_em ? '' : `<button class="bt forte tap" data-act="canc-visto" data-id="${x.id}">${ic(IC.check, 16, 2.6)} Marcar como visto</button>`}${crianca(x.crianca) ? `<button class="bt tap" data-act="historico" data-id="${x.crianca}">${ic(IC.historico, 16)} Histórico do cliente</button>` : ''}</div>
+    </div>`).join('') : `<div class="card vazio"><b>Nenhuma entrada cancelada até agora.</b><span>Quando alguém cancelar uma entrada sem cobrar, ela aparece aqui com o motivo.</span></div>`}</div>`;
+}
+function folhaCancelamentos() { if (!supervisorOuMais()) return; abrirFolha('Entradas canceladas', `<div id="canc-corpo" style="display:flex;flex-direction:column;gap:12px">${htmlCancelamentos()}</div>`); }
+async function marcarVisto(id) { // id = 0: todos os que estão para conferir
+  const L = (S.cancelamentos || []).filter(x => !x.visto_em && (!id || x.id === id)); if (!L.length) return;
+  if (MODO === 'servidor') { try { await api('cancelamento_visto', id ? { id } : { todos: true }); } catch (e) { toast(e.message); return; } }
+  for (const x of L) { x.visto_por = EU.nomeCompleto || EU.nome; x.visto_em = new Date(); }
+  const a = $('#canc-corpo'); if (a) a.innerHTML = htmlCancelamentos(); desenhar(true); toast(L.length === 1 ? 'Marcado como visto' : `${L.length} cancelamentos marcados como vistos`);
 }
 /* ---------- histórico do cliente: uma aba à direita com tudo do responsável e das crianças dele ---------- */
 let LADO = null;   // { id (uma das crianças do cliente), dados: { vendas, visitas } | null, erro, todas, reg }
@@ -1456,9 +1635,9 @@ async function buscarHistorico() {
   const marca = LADO; if (!marca) return; const base = crianca(marca.id); if (!base) { fecharLado(); return; }
   const fam = familia(base), ids = fam.map(x => x.id);
   if (MODO === 'servidor') {
-    try { const r = await api('historico', { ids }); if (LADO !== marca) return; marca.dados = { vendas: r.vendas.map(v => ({ ...v, quando: dataDe(v.quando) })), visitas: r.visitas.map(v => ({ ...v, dia: dataDe(v.dia) })) }; marca.erro = ''; }
+    try { const r = await api('historico', { ids }); if (LADO !== marca) return; marca.dados = { vendas: r.vendas.map(v => ({ ...v, quando: dataDe(v.quando) })), visitas: r.visitas.map(v => ({ ...v, dia: dataDe(v.dia) })), cancelados: (r.cancelados || []).map(x => ({ ...x, entrou: dataDe(x.entrou), quando: dataDe(x.quando) })) }; marca.erro = ''; }
     catch (e) { if (LADO !== marca) return; marca.erro = e.message; }
-  } else marca.dados = { vendas: S.compras.filter(v => ids.includes(v.crianca)).sort((a, b) => b.quando - a.quando), visitas: fam.flatMap(x => x.visitas.map(v => ({ ...v, crianca: x.id, dia: new Date(v.dia) }))).sort((a, b) => b.dia - a.dia) };
+  } else marca.dados = { vendas: S.compras.filter(v => ids.includes(v.crianca)).sort((a, b) => b.quando - a.quando), visitas: fam.flatMap(x => x.visitas.map(v => ({ ...v, crianca: x.id, dia: new Date(v.dia) }))).sort((a, b) => b.dia - a.dia), cancelados: (S.cancelamentos || []).filter(x => ids.includes(x.crianca)) };
   desenharLado();
 }
 function fecharLado() {
@@ -1490,12 +1669,16 @@ function desenharLado() {
     <div class="sec"><div class="sec-cab"><h2 style="font-size:16px">Compras</h2>${d ? `<span class="pill p-neutro">${d.vendas.length}</span>` : ''}</div>
       ${!d ? `<p class="explica">${LADO.erro ? esc(LADO.erro) : 'Buscando as compras…'}</p>` : d.vendas.length ? `<div class="grupo">${d.vendas.map(v => `<div class="it"><div class="txt"><b>${nomeCompra(v)}</b><span>${quandoFoi(v.quando)}${varias ? ' · para ' + esc(nomeDe(v.crianca)) : ''}${v.por ? ' · por ' + esc(primeiro(v.por)) : ''}</span></div><b class="num">${brl(v.v)}</b></div>`).join('')}</div>` : `<p class="explica">Nenhuma compra registrada ainda.</p>`}</div>
     <div class="sec"><div class="sec-cab"><h2 style="font-size:16px">Visitas</h2>${d ? `<span class="pill p-neutro">${d.visitas.length}</span>` : ''}</div>
-      ${!d ? (LADO.erro ? '' : `<p class="explica">Buscando as visitas…</p>`) : d.visitas.length ? `<div class="grupo">${visitas.map(v => `<div class="it"><div class="txt"><b>${v.dia.getDate()} de ${MESES[v.dia.getMonth()]}${v.dia.getFullYear() !== agora.getFullYear() ? ' de ' + v.dia.getFullYear() : ''}</b><span>${varias ? esc(nomeDe(v.crianca)) + ' · ' : ''}${v.entrou} às ${v.saiu}</span></div><span class="pill p-neutro">${hm(v.deb)}</span></div>`).join('')}</div>${d.visitas.length > 6 ? `<button class="link tap" data-act="lado-todas" style="align-self:flex-start">${LADO.todas ? 'Mostrar só as últimas' : 'Ver as ' + d.visitas.length + ' visitas'}</button>` : ''}` : `<p class="explica">Ainda não veio brincar.</p>`}</div>`;
+      ${!d ? (LADO.erro ? '' : `<p class="explica">Buscando as visitas…</p>`) : d.visitas.length ? `<div class="grupo">${visitas.map(v => `<div class="it"><div class="txt"><b>${v.dia.getDate()} de ${MESES[v.dia.getMonth()]}${v.dia.getFullYear() !== agora.getFullYear() ? ' de ' + v.dia.getFullYear() : ''}</b><span>${varias ? esc(nomeDe(v.crianca)) + ' · ' : ''}${v.entrou} às ${v.saiu}</span></div><span class="pill p-neutro">${hm(v.deb)}</span></div>`).join('')}</div>${d.visitas.length > 6 ? `<button class="link tap" data-act="lado-todas" style="align-self:flex-start">${LADO.todas ? 'Mostrar só as últimas' : 'Ver as ' + d.visitas.length + ' visitas'}</button>` : ''}` : `<p class="explica">Ainda não veio brincar.</p>`}</div>
+    ${d && d.cancelados && d.cancelados.length ? `<div class="sec"><div class="sec-cab"><h2 style="font-size:16px">Entradas canceladas</h2><span class="pill p-erro">${d.cancelados.length}</span></div>
+      <div class="grupo">${d.cancelados.map(x => `<div class="it"><div class="txt"><b>${quandoFoi(x.quando)} · ficou ${x.min} min</b><span style="white-space:normal;overflow-wrap:anywhere">${varias ? esc(x.nome) + ' · ' : ''}${x.itens && x.itens.length ? 'não cobrado: ' + itensCancelados(x) : 'o tempo não foi descontado'} · “${esc(x.motivo)}” · por ${esc(primeiro(x.por))}</span></div></div>`).join('')}</div></div>` : ''}`;
   a.scrollTop = rola;
 }
 function folhaDia() {
   const regs = S.registros.filter(r => agora - r.h < 86400000);
-  abrirFolha('Hoje na recepção', `<p class="explica">Cada rosto reconhecido pelo iDFace vira uma linha aqui, na hora. As saídas mostram o que foi debitado.</p>${listaRegistros(regs)}`);
+  const nCanc = supervisorOuMais() ? (S.cancelamentos || []).filter(x => agora - x.quando < 86400000).length : 0;
+  abrirFolha('Hoje na recepção', `<p class="explica">${semIdface() ? 'Cada entrada, saída e venda marcada na tela vira uma linha aqui, na hora.' : 'Cada rosto reconhecido pelo iDFace vira uma linha aqui, na hora.'} As saídas mostram o que foi debitado.</p>
+    ${supervisorOuMais() ? `<button class="marca tap" data-act="cancelamentos" style="width:100%">${ic(IC.x, 18, 2.4)}<span><b>Entradas canceladas sem cobrar</b> · ${nCanc ? nCanc + ' nas últimas 24 h' : 'nenhuma nas últimas 24 h'}${aConferir().length ? ' · <b>' + aConferir().length + ' para conferir</b>' : ''}</span>${ic(IC.vai, 18)}</button>` : ''}${listaRegistros(regs)}`);
 }
 function folhaLista(filtro) {
   const lista = filtro === 'acabando' ? paraRenovar() : S.criancas;
@@ -1575,6 +1758,10 @@ function dicas() {
   // 0. os bonequinhos estão quietos porque o aparelho pede menos movimento: um toque e eles voltam a se mexer aqui
   if (animEscolha() === 'auto' && semMovimento() && !lido('ps-anim-aviso', 0)) { const pc = !/Android|iPhone|iPad/.test(navigator.userAgent);
     add('anim', 'ideia', 'dica', `<b>Os bonequinhos estão quietos neste ${pc ? 'computador' : 'aparelho'}.</b> ${/Windows/.test(navigator.userAgent) ? 'As animações do Windows estão desligadas nele' : 'A opção de reduzir movimento está ligada nele'}, por isso eles não se mexem aqui.`, 'Animar os bonequinhos', 'anim-ligar'); }
+  // 0b. entradas canceladas sem cobrar que a supervisão ainda não conferiu (a dica volta a cada cancelamento novo)
+  const pend = aConferir();
+  if (pend.length) { const x = pend[0];
+    add('canc-' + x.id, 'alerta', 'x', pend.length === 1 ? `<b>${esc(primeiro(x.por))} cancelou a entrada de ${esc(x.nome)}${x.valor ? ', ' + brl(x.valor) + ' não cobrado' : ''}.</b> Motivo: “${esc(x.motivo)}”` : `<b>${pend.length} entradas canceladas sem cobrar para conferir.</b> A última: ${esc(x.nome)}, por ${esc(primeiro(x.por))}: “${esc(x.motivo)}”`, 'Conferir', 'cancelamentos'); }
   // 1. o que impede o sistema de trabalhar sozinho
   if (serv && S.cfg.idface.ligado && !S.cfg.idface.ativo) add('idface', 'alerta', 'rosto', `<b>O iDFace está sem contato com o site.</b> Enquanto isso, as entradas e saídas não são lidas. Confira se ele está ligado e no cabo de rede.`, supervisorOuMais() ? 'Ver o aparelho' : '', 'idface');
   if (serv && S.whats && !S.whats.conectado) add('whats', 'alerta', 'zap', `<b>O WhatsApp da loja não está conectado.</b> Os avisos de chegada e saída não estão saindo para as famílias.`, supervisorOuMais() ? 'Conectar' : '', 'whats');
@@ -1781,6 +1968,7 @@ function telaAjustes() {
       <p class="explica">Como o tempo da criança vira débito no pacote. Vale para a leitura do rosto e para as saídas à mão.</p>
       <div class="campo"><label>Arredondamento</label>${seg('arredonda', ARREDONDA.map(([v, n]) => [v, n]), cfg.arredonda)}<span class="explica">${ARREDONDA.find(a => a[0] === cfg.arredonda)[2]}</span></div>
       <div class="campo"><label>Cortesia na entrada</label>${seg('cortesia', [[0, 'Nenhuma'], [5, '5 min'], [10, '10 min'], [15, '15 min']], cfg.cortesia)}<span class="explica">Os primeiros minutos não contam, para a criança tirar o sapato e se acomodar.</span></div>
+      <div class="campo"><label>Cancelar a entrada sem cobrar</label>${seg('cancelaMin', [[0, 'Só a supervisão'], [5, 'Até 5 min'], [9, 'Até 9 min'], [10, 'Até 10 min'], [15, 'Até 15 min']], cancelaLim())}<span class="explica">Nesse prazo, contado da entrada, o próprio atendente cancela e nada é cobrado, mas precisa escrever o motivo. Passou do prazo, só Gestor ou Supervisor cancela. ${supervisorOuMais() ? `<button class="link tap" data-act="cancelamentos">Ver as entradas canceladas${aConferir().length ? ' (' + aConferir().length + ' para conferir)' : ''}</button>` : ''}</span></div>
       <div class="campo"><label>Tempo mínimo por visita</label>${seg('minimo', [[0, 'Nenhum'], [30, '30 min'], [60, '1 hora']], cfg.minimo)}<span class="explica">Mesmo uma passada rápida debita pelo menos isso.</span></div>
       <div class="campo"><label>Avisar quando restar</label>${seg('aviso', [[5, '5 min'], [10, '10 min'], [15, '15 min'], [30, '30 min'], [60, '1 hora']], cfg.aviso)}<span class="explica">O pacote fica marcado como "Acabando" e a equipe pode avisar o responsável.</span></div>
       <div class="campo"><label>Quando o pacote zerar</label>${seg('bloqueioAuto', [['sim', 'Bloquear o acesso sozinho'], ['nao', 'Deixar autorizado']], cfg.bloqueioAuto || 'sim')}<span class="explica">Bloqueando sozinho, o iDFace passa a recusar o rosto da criança até alguém vender horas (a venda libera de novo). Quem acabou de ser cadastrado e ainda não comprou horas também começa bloqueado. Assim o controle fica com o aparelho, não com o funcionário.</span></div>
@@ -1894,8 +2082,8 @@ const ACOES = {
   'salvar-crianca': el => {
     const id = el.dataset.id, nome = val('f-nome'), resp = val('f-resp'), doc = docTipo(), cpf = doc === 'rne' ? rneFmt(val('f-cpf')).trim() : cpfFmt(val('f-cpf')), obs = val('f-obs');
     let tel = val('f-tel'), tel2 = val('f-tel2'); if (!tel && tel2) { tel = tel2; tel2 = ''; }   // só um telefone preenchido: ele é o principal
-    if (!id && !resp) { toast('Falta o nome do responsável'); $('#f-resp').focus(); return; }
-    if (!nome) { toast('Falta o nome da criança'); $('#f-nome').focus(); return; }
+    const F = faltaNoCadastro(id ? crianca(id) : null);   // sem documento, responsável, telefone e nome da criança o cadastro não fecha
+    if (F.length) { FALTA_TENTOU = true; atualizarFalta(); toast(F.length === 1 ? F[0][2] : 'Falta ' + juntar(F.map(x => x[1]))); const i = $('#' + F[0][0]); if (i) { i.focus(); i.scrollIntoView({ block: 'center', behavior: 'smooth' }); } return; }
     if (!id) { const ja = clientePorDoc(doc, cpf).find(x => x.nome.trim().toLowerCase() === nome.toLowerCase()); if (ja) { toast(`${ja.nome} já tem cadastro com este ${doc === 'rne' ? 'RNE' : 'CPF'}`, () => abrirHistorico(ja.id), 'Ver o histórico'); return; } }
     if (MODO === 'servidor') {
       const dados = id ? { id: +id, nome, idade: +val('f-idade') || 0, resp, tel, tel2, doc, cpf, obs } : { nome, resp, tel, tel2, doc, cpf, obs, sapateira: SAP_TEMP };
@@ -1915,7 +2103,7 @@ const ACOES = {
     const v = el.dataset.v === 'rne' ? 'rne' : 'cpf', i = $('#f-cpf'); if (!i || i.dataset.doc === v) return;
     $$('#f-doc-seg button').forEach(b => b.setAttribute('aria-pressed', b === el)); i.dataset.doc = v; i.value = '';
     i.inputMode = v === 'rne' ? 'text' : 'numeric'; i.placeholder = v === 'rne' ? 'Número do RNE' : '000.000.000-00'; i.maxLength = v === 'rne' ? 20 : 14;
-    const r = $('#f-doc-rot'); if (r) r.textContent = (v === 'rne' ? 'RNE' : 'CPF') + ' do responsável'; clienteNoCadastro(); i.focus();
+    const r = $('#f-doc-rot'); if (r) r.textContent = (v === 'rne' ? 'RNE' : 'CPF') + ' do responsável'; clienteNoCadastro(); atualizarFalta(); i.focus();
   },
   'obs-atalho': el => { // os atalhos das restrições: escrevem no campo de observações (tocar de novo tira; "pode" e "não" se trocam)
     const t = $('#f-obs'); if (!t) return; const f = el.dataset.t; let partes = obsPartes(t.value);
@@ -1941,6 +2129,13 @@ const ACOES = {
     if (!(n >= 1 && n <= 200)) { toast('Quantas sapateiras existem? De 1 a 200.'); return; } if (n < maior) { toast(`A sapateira ${maior} está em uso: libere antes de diminuir`); return; }
     S.cfg.sapateiras = n; if (MODO === 'servidor') api('regra_salvar', { sapateiras: n }).catch(e => toast(e.message)); toast(`${n} sapateiras`); fecharFolha(); desenhar();
   },
+  cancelar: el => folhaCancelar(+el.dataset.id), 'canc-ok': el => confirmarCancelar(el), cancelamentos: () => folhaCancelamentos(),
+  'canc-motivo': el => { const t = $('#x-motivo'); if (!t) return; t.value = el.dataset.t; const cp = $('#x-motivo-campo'); if (cp) cp.classList.remove('falta'); t.focus(); t.setSelectionRange(t.value.length, t.value.length); },
+  'canc-visto': el => marcarVisto(+el.dataset.id), 'canc-vistos': () => marcarVisto(0),
+  'ver-como': el => { // (prévia) ver a tela como gestor, supervisor ou atendente
+    if (MODO === 'servidor') return; const u = S.equipe.find(x => x.papel === el.dataset.v); if (!u) return;
+    EU = { nome: u.nome.split(' ')[0], nomeCompleto: u.nome, papel: u.papel, login: u.login, id: u.id }; ABAS = TODAS_ABAS.filter(a => a[0] !== 'ajustes' || supervisorOuMais()); if (!ABAS.some(a => a[0] === S.tela)) S.tela = 'horas';
+    fecharFolha(); desenhar(); toast(`Agora você vê como ${PAPEIS[u.papel]}: ${u.nome}`); },
   historico: el => abrirHistorico(el.dataset.id), 'lado-fechar': () => fecharLado(), 'lado-todas': () => { if (LADO) { LADO.todas = !LADO.todas; desenharLado(); } },
   dia: () => folhaDia(), todas: () => { S.bancoFiltro = 'todas'; trocarTela('banco'); }, acabando: () => { S.bancoFiltro = 'renovar'; trocarTela('banco'); },
   'toast-acao': () => { const f = TOAST_ACAO; TOAST_ACAO = null; $('#toast').classList.remove('ve'); if (f) f(); },
@@ -1961,7 +2156,7 @@ const ACOES = {
   'exemplos-apagar': async () => { try { await api('exemplos_apagar'); await carregar(); desenhar(); toast('Exemplos apagados. Só ficou o que é de verdade.'); } catch (e) { toast(e.message); } },
   'idface-chave': () => { api('idface_nova_chave').then(async () => { await carregar(); fecharFolha(); desenhar(); setTimeout(folhaIdface, 250); toast('Chave nova. Rode o conector de novo no aparelho.'); }).catch(e => toast(e.message)); },
   simular: el => { const c = crianca(el.dataset.id); if (MODO === 'servidor') { api('idface_simular', { id: c.id }).then(async r => { await carregar(); fecharFolha(); desenhar(); toast(`${c.nome}: ${r.resultado} registrada como se fosse o iDFace`); }).catch(e => toast(e.message)); return; } if (c.entrou) saida(c); else entrada(c); fecharFolha(); desenhar(); },
-  conta: () => abrirFolha(esc(EU.nomeCompleto || EU.nome), `<div class="marca">${ic(IC.check, 18)}<span><b>${PAPEIS[EU.papel] || EU.papel}</b> · login ${esc(EU.login)}${MODO === 'demo' ? ' · prévia sem servidor' : ''}</span></div><div class="acoes">${supervisorOuMais() ? `<button class="bt tap" data-act="ir-ajustes">${ic(IC.ajustes)} Ajustes</button>` : ''}<button class="bt claro tap" data-act="sair">Sair da conta</button></div>`),
+  conta: () => abrirFolha(esc(EU.nomeCompleto || EU.nome), `<div class="marca">${ic(IC.check, 18)}<span><b>${PAPEIS[EU.papel] || EU.papel}</b> · login ${esc(EU.login)}${MODO === 'demo' ? ' · prévia sem servidor' : ''}</span></div>${MODO === 'demo' ? `<div class="campo"><label>Na prévia, ver a tela como</label><div class="seg">${Object.entries(PAPEIS).map(([k, n]) => `<button type="button" data-act="ver-como" data-v="${k}" aria-pressed="${EU.papel === k}">${n}</button>`).join('')}</div><span class="explica">O atendente cancela a entrada só dentro do prazo; gestor e supervisor conferem os cancelamentos.</span></div>` : ''}<div class="acoes">${supervisorOuMais() ? `<button class="bt tap" data-act="ir-ajustes">${ic(IC.ajustes)} Ajustes</button>` : ''}<button class="bt claro tap" data-act="sair">Sair da conta</button></div>`),
   'ir-ajustes': () => { fecharFolha(); trocarTela('ajustes'); }, fechar: () => fecharFolha(),
   conversa: el => { const c = convDe(el.dataset.id); if (!c.lidas && MODO === 'servidor') api('mensagens_lidas', { crianca: c.crianca }).catch(() => {}); c.lidas = true; S.zapAberta = c.id; S.zapModo = 'papo'; desenhar(); $('.papo').animate([{ opacity: 0, transform: 'translateX(24px)' }, { opacity: 1, transform: 'none' }], { duration: 360, easing: 'cubic-bezier(.32,.72,0,1)' }); },
   'zap-lista': () => { S.zapModo = 'lista'; desenhar(); },
@@ -2038,6 +2233,7 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('change', e => {
   const t = e.target; if (t.id === 'v-entrar' && CARRINHO) { CARRINHO.entrar = t.checked; return; }
+  if (t.dataset && t.dataset.cancVenda && CANCELA) { const id = +t.dataset.cancVenda; if (t.checked) CANCELA.fica.delete(id); else CANCELA.fica.add(id); resumoCancelar(); return; }
   if (t.type !== 'file' || !t.files || !t.files[0]) return;
   if (t.id === 'f-foto') lerFoto(t.files[0], url => { FOTO_TEMP = url; const prev = $('#f-foto-prev'); if (prev) { prev.classList.add('foto'); prev.style.backgroundImage = `url(${url})`; prev.innerHTML = ''; } const l = $('label[for="f-foto"]'); if (l) l.innerHTML = `${ic(IC.camera)} Tirar outra`; });
   if (t.id === 'ficha-foto') { const c = crianca(t.dataset.id); lerFoto(t.files[0], async url => { if (MODO === 'servidor') { try { await api('foto_salvar', { id: c.id, foto: url }); await carregar(); } catch (e) { toast(e.message); return; } } else { c.foto = url; c.rosto = true; } toast(`Foto de ${c.nome} a caminho do iDFace`); fecharFolha(); desenhar(); setTimeout(() => folhaFicha(c.id), 250); }); }
@@ -2048,6 +2244,8 @@ document.addEventListener('input', e => {
   if (CAMPOS_OLHAR[e.target.id]) { const card = $('.palco'); if (card && card.dataset.olha !== CAMPOS_OLHAR[e.target.id]) { card.dataset.olha = CAMPOS_OLHAR[e.target.id]; olharPara(e.target, true); } else olharPara(e.target); }
   if (['l-login', 'g-login', 'e-login'].includes(e.target.id)) { const v = e.target.value.toLowerCase(); if (v !== e.target.value) e.target.value = v; }
   if (e.target.id === 'f-cpf') { const v = e.target.dataset.doc === 'rne' ? rneFmt(e.target.value) : cpfFmt(e.target.value); if (v !== e.target.value) e.target.value = v; clienteNoCadastro(); }
+  if (['f-cpf', 'f-resp', 'f-tel', 'f-tel2', 'f-nome'].includes(e.target.id)) atualizarFalta();
+  if (e.target.id === 'x-motivo') { const cp = $('#x-motivo-campo'); if (cp && e.target.value.trim().length >= 5) cp.classList.remove('falta'); }
   if (e.target.id === 'f-obs') marcarAtalhos();
   if (e.target.id === 'v-item' || e.target.id === 'v-valor') atualizarCarrinho();
   if (e.target.id === 'banco-busca') { S.bancoBusca = e.target.value; const l = $('#banco-lista'); if (l) l.innerHTML = linhasBanco(); }
@@ -2069,6 +2267,11 @@ setInterval(() => {
   if (agora.getSeconds() % 30 === 0 && S.tela === 'horas' && !$('#folha .folha-fundo')) { document.body.classList.add('quieto'); redesenharDicas(); } if (agora.getSeconds() === 0) $$('[data-data]').forEach(el => { el.textContent = dataTxt(); });
   $$('[data-cron]').forEach(el => { const c = crianca(el.dataset.cron); if (c && c.entrou) el.innerHTML = cronometro(c); });
   $$('[data-cron-txt]').forEach(el => { const c = crianca(el.dataset.cronTxt); if (c && c.entrou) el.textContent = hms(segDentro(c)); });
+  // o prazo para cancelar sem cobrar: o tempo que falta corre; quando acaba, o atalho some do anel e a ficha muda sozinha
+  $$('[data-cancela]').forEach(el => { const c = crianca(el.dataset.cancela); if (c && noPrazoCancelar(c)) { el.textContent = hms(faltaCancelar(c)); return; } const b = el.closest('.canc-link'); if (b) b.remove(); });
+  $$('[data-ficha-cancela]').forEach(el => { const c = crianca(el.dataset.fichaCancela), e = estadoCancelar(c); if (e !== el.dataset.estado) { el.dataset.estado = e; el.innerHTML = c ? blocoCancelar(c) : ''; } });
+  $$('[data-canc-prazo]').forEach(el => { const c = crianca(el.dataset.cancPrazo); if (c && c.entrou) el.innerHTML = prazoCancelarTxt(c); });
+  if (CANCELA && $('#x-ok')) resumoCancelar();
   $$('[data-horas]').forEach(el => { const c = crianca(el.dataset.horas); if (c && c.entrou) { const novo = document.createElement('div'); novo.innerHTML = blocos(c); el.replaceWith(novo.firstElementChild); } });
   $$('[data-situacao]').forEach(el => { const c = crianca(el.dataset.situacao); if (!c || !c.entrou) return; const st = situacao(c); el.className = `situacao ${st.cls} tap`; $('span', el).textContent = st.txt; });
   $$('[data-anel][data-onde="hero"]').forEach(el => { const c = crianca(el.dataset.anel); if (!c || !c.entrou) return; const r = restante(c), pct = pctVivo(c), baixo = r <= S.cfg.aviso; el.classList.toggle('baixo', baixo); const b = $('.r', el), pTxt = pct.toFixed(1), cor = baixo ? 'var(--erro)' : 'var(--verde-agua)'; if (b.style.getPropertyValue('--p') !== pTxt) b.style.setProperty('--p', pTxt); if (b.style.getPropertyValue('--c') !== cor) b.style.setProperty('--c', cor); $('.r b', el).innerHTML = `${esgotou(c) ? 'Acabou' : vivo(c)}<small>${`de ${tam(c)}`}</small>`; });
