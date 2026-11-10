@@ -589,6 +589,11 @@ body.quieto .dica { animation: none !important; }
 .outro-item { display: grid; grid-template-columns: 1fr 96px auto; gap: 8px; align-items: center; }
 .outro-item .bt { height: 46px; }
 @media (max-width: 420px) { .outro-item { grid-template-columns: 1fr 84px; } .outro-item .bt { grid-column: 1 / -1; justify-content: center; } }
+.rot-linha { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.seg.mini { padding: 2px; border-radius: 10px; gap: 2px; flex: none; flex-wrap: nowrap; } .seg.mini button { min-width: 0; flex: none; height: 22px; padding: 0 10px; border-radius: 8px; font-size: 11.5px; }
+.dois.alinha .campo > label, .dois.alinha .rot-linha { min-height: 28px; display: flex; align-items: center; }
+.campo.discreto > label { color: var(--apagado); } .campo.discreto input { background: transparent; border-style: dashed; }   /* o segundo telefone é opcional */
+.campo.discreto input:focus, .campo.discreto input:not(:placeholder-shown) { background: var(--card); border-style: solid; }
 /* ---------- sapateiras: a grade de números (as em uso ficam hachuradas) e o selo no anel da criança ---------- */
 .sapateiras { display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 6px; }
 .sap { height: 38px; border-radius: 11px; border: 1.5px solid var(--borda-2); background: var(--card); font-family: var(--display); font-weight: 800; font-size: 14px; color: var(--tinta); }
@@ -760,7 +765,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.69';
+const VERSAO = '0.70';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -1030,11 +1035,21 @@ function lerFoto(arquivo, cb) { const r = new FileReader(); r.onload = () => { c
 const cpfFmt = v => { v = String(v).replace(/\D/g, '').slice(0, 11); return v.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2'); };
 /* ---------- o cliente: o responsável e as crianças dele (mesmo CPF; sem CPF, mesmo WhatsApp) ---------- */
 const soDig = v => String(v == null ? '' : v).replace(/\D/g, '');
-const cpfDe = c => { const d = soDig(c.cpf); return d.length === 11 ? d : ''; };
+// o documento do responsável: CPF (11 números) ou RNE de estrangeiro (letras e números). O campo c.cpf guarda o número; c.doc diz qual é
+const rneLimpo = v => String(v == null ? '' : v).toUpperCase().replace(/[^A-Z0-9]/g, '');
+const rneFmt = v => String(v == null ? '' : v).toUpperCase().replace(/[^A-Z0-9.\-\/ ]/g, '').slice(0, 20);
+const docChave = (tipo, v) => tipo === 'rne' ? (rneLimpo(v).length >= 5 ? 'r' + rneLimpo(v) : '') : (soDig(v).length === 11 ? 'c' + soDig(v) : '');
+const docDe = c => docChave(c.doc === 'rne' ? 'rne' : 'cpf', c.cpf);
+const docTxt = c => c.cpf ? (c.doc === 'rne' ? 'RNE ' : 'CPF ') + c.cpf : '';
 const tel8 = c => { const d = soDig(c.tel); return d.length >= 8 ? d.slice(-8) : ''; };
-const mesmoCliente = (a, b) => a.id === b.id || !!(cpfDe(a) && cpfDe(a) === cpfDe(b)) || !!(!(cpfDe(a) && cpfDe(b)) && tel8(a) && tel8(a) === tel8(b));
+const mesmoCliente = (a, b) => a.id === b.id || !!(docDe(a) && docDe(a) === docDe(b)) || !!(!(docDe(a) && docDe(b)) && tel8(a) && tel8(a) === tel8(b));
+// quem é o responsável (mãe, pai): só aparece nos cadastros antigos que informaram; os novos não perguntam
+const relSabe = c => !!c.rel && c.rel !== 'responsável';
+const relP = c => relSabe(c) ? ` (${esc(c.rel)})` : '';
+const relDe = c => relSabe(c) ? `${esc(c.rel)} de ${esc(c.nome)}` : `responsável por ${esc(c.nome)}`;
+const fones = c => [c.tel, c.tel2].filter(Boolean).join(' · ');
 const familia = c => S.criancas.filter(x => mesmoCliente(c, x)).sort((a, b) => a.nome.localeCompare(b.nome));
-const clientePorCpf = v => { const d = soDig(v); return d.length === 11 ? S.criancas.filter(x => cpfDe(x) === d).sort((a, b) => a.nome.localeCompare(b.nome)) : []; };
+const clientePorDoc = (tipo, v) => { const k = docChave(tipo, v); return k ? S.criancas.filter(x => docDe(x) === k).sort((a, b) => a.nome.localeCompare(b.nome)) : []; };
 const cpfValido = v => { const d = soDig(v); if (d.length !== 11 || /^(\d)\1{10}$/.test(d)) return false; const dv = n => { let t = 0; for (let k = 0; k < n; k++) t += +d[k] * (n + 1 - k); const r = (t * 10) % 11; return r === 10 ? 0 : r; }; return dv(9) === +d[9] && dv(10) === +d[10]; };
 const iniciais = n => String(n || '').trim().split(/\s+/).map(x => x[0] || '').slice(0, 2).join('').toUpperCase();
 const numero = t => { t = String(t == null ? '' : t).trim().replace(/[^\d.,]/g, ''); if (t === '') return NaN; return t.includes(',') ? +t.replace(/\./g, '').replace(',', '.') : +t; };   // "30", "30,50", "1.250,00"
@@ -1213,7 +1228,7 @@ function cartaoCrianca(c) {
     ? `${podeManual() ? `<button class="bt claro tap" data-act="saida-rapida" data-id="${c.id}">${ic(IC.sair)} Saída</button>` : ''}<button class="bt tap" data-act="avisar" data-id="${c.id}">${ic(IC.zap)} Avisar ${esc(c.resp)}</button>`
     : `<button class="bt forte tap" data-act="vender" data-id="${c.id}">${ic(IC.mais)} Vender horas</button>${c.rosto ? '' : (rostoPronto() ? `<button class="bt tap" data-act="rosto-cam" data-id="${c.id}">${ic(IC.rosto)} Cadastrar rosto</button>` : `<button class="bt tap" data-act="ficha" data-id="${c.id}">${ic(IC.camera)} Tirar a foto</button>`)}`;
   return `<div class="card tap" role="button" tabindex="0" data-act="ficha" data-id="${c.id}" aria-label="Abrir a ficha de ${esc(c.nome)}">
-    <div class="linha">${avatar(c)}<div class="txt"><b>${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}</b><span>${esc(c.resp)} (${esc(c.rel)})${c.tel ? ' · ' + esc(c.tel) : ''}</span></div>${c.entrou ? `<div class="cron num" data-cron="${c.id}">${cronometro(c)}</div>` : `${chave(c, true)}<span class="pill ${!liberada(c) ? 'p-erro' : c.rosto ? 'p-neutro' : 'p-aviso'}">${!liberada(c) ? 'Acesso bloqueado' : c.rosto ? 'Rosto ok' : 'Falta o rosto'}</span>`}</div>
+    <div class="linha">${avatar(c)}<div class="txt"><b>${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}</b><span>${esc(c.resp)}${relP(c)}${c.tel ? ' · ' + esc(c.tel) : ''}</span></div>${c.entrou ? `<div class="cron num" data-cron="${c.id}">${cronometro(c)}</div>` : `${chave(c, true)}<span class="pill ${!liberada(c) ? 'p-erro' : c.rosto ? 'p-neutro' : 'p-aviso'}">${!liberada(c) ? 'Acesso bloqueado' : c.rosto ? 'Rosto ok' : 'Falta o rosto'}</span>`}</div>
     ${blocos(c)}
     <div class="acoes">${botoes}</div>
   </div>`;
@@ -1255,7 +1270,7 @@ const listaRegistros = regs => `<div class="reg">${regs.length ? regs.map(r => `
 function folhaFicha(id) {
   const c = crianca(id); if (!c) return; const [et, cls] = estado(c);
   abrirFolha(`${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}`, `
-    <div class="linha">${avatarComUrso(c, 'g')}<div class="txt"><b style="white-space:normal">${esc(c.resp)}, ${esc(c.rel)}</b><span>${esc(c.tel)}${c.cpf ? ' · CPF ' + esc(c.cpf) : ''}</span>${c.obs ? `<span style="color:var(--coral);font-weight:700;white-space:normal;overflow-wrap:anywhere">${esc(c.obs)}</span>` : ''}</div><span class="pill ${cls}">${et}</span></div>
+    <div class="linha">${avatarComUrso(c, 'g')}<div class="txt"><b style="white-space:normal">${esc(c.resp)}${relSabe(c) ? ', ' + esc(c.rel) : ''}</b><span style="white-space:normal">${esc(fones(c))}${c.cpf ? (fones(c) ? ' · ' : '') + esc(docTxt(c)) : ''}</span>${c.obs ? `<span style="color:var(--coral);font-weight:700;white-space:normal;overflow-wrap:anywhere">${esc(c.obs)}</span>` : ''}</div><span class="pill ${cls}">${et}</span></div>
     <div class="marca libera-ficha">${ic(IC.rosto, 18)}<span>${textoAcesso(c)}</span>${chave(c)}</div>
     <div class="marca sap-linha">${ic(IC.sapato, 18)}<span>${c.sapateira ? `<b>Sapateira ${c.sapateira}</b> · é onde está o sapato dela.` : `<b>Sem sapateira</b> · escolha onde fica o sapato enquanto ela brinca.`}</span><button class="bt tap" data-act="sapateira" data-id="${c.id}">${c.sapateira ? 'Trocar' : 'Escolher'}</button></div>
     ${c.entrou ? `<div class="marca">${ic(IC.horas, 18)}<span>Está no espaço desde <b>${hora(c.entrou)}</b>: <b class="num" data-cron-txt="${c.id}">${hms(segDentro(c))}</b> até agora, <b>${hm(cobrar(minDentro(c)))}</b> a debitar pela regra atual.</span></div>` : ''}
@@ -1286,60 +1301,61 @@ function folhaVender(id) {
     <p class="explica">Pacotes, preços e a lista de produtos são editados em Ajustes. Cada venda fica no histórico do cliente.</p>`);
 }
 // as restrições ficam no campo de observações; os atalhos só escrevem mais rápido (dá para apagar e mudar à vontade)
-const OBS_ATALHOS = [['Alergia a ', 'Alergia'], ['Pode fazer pintura no rosto', 'Pode pintura'], ['Não fazer pintura no rosto', 'Sem pintura'], ['Pode mexer no cabelo', 'Pode mexer no cabelo'], ['Não mexer no cabelo', 'Não mexer no cabelo']];
+const OBS_ATALHOS = [['', 'Sem restrição'], ['Alergia a ', 'Alergia'], ['Pode fazer pintura no rosto', 'Pode pintura'], ['Não fazer pintura no rosto', 'Sem pintura'], ['Pode mexer no cabelo', 'Pode mexer no cabelo'], ['Não mexer no cabelo', 'Não mexer no cabelo']];
 const OBS_PAR = { 'Pode fazer pintura no rosto': 'Não fazer pintura no rosto', 'Não fazer pintura no rosto': 'Pode fazer pintura no rosto', 'Pode mexer no cabelo': 'Não mexer no cabelo', 'Não mexer no cabelo': 'Pode mexer no cabelo' };
 const obsPartes = t => String(t || '').split(/\s*[;\n]\s*/).map(x => x.trim()).filter(Boolean);
 const campoObs = v => `<div class="campo"><label for="f-obs">Restrições e observações</label><textarea id="f-obs" rows="2" maxlength="500" placeholder="Alergias, se pode fazer pintura no rosto, se pode mexer no cabelo…">${esc(v || '')}</textarea>
-      <div class="atalhos">${OBS_ATALHOS.map(([t, n]) => `<button type="button" class="tap" data-act="obs-atalho" data-t="${esc(t)}" aria-pressed="false">${n}</button>`).join('')}</div></div>`;
-function marcarAtalhos() { const t = $('#f-obs'); if (!t) return; const partes = obsPartes(t.value); $$('.atalhos [data-t]').forEach(b => { const f = b.dataset.t; b.setAttribute('aria-pressed', f.endsWith(' ') ? partes.some(x => x.toLowerCase().startsWith(f.trim().toLowerCase())) : partes.includes(f)); }); }
-// no cadastro: digitou o CPF e o cliente já existe → mostra as crianças dele (com o botão Histórico) e preenche o responsável
-let CLIENTE_AUTO = null;   // o que a tela preencheu sozinha (some de novo se o CPF mudar)
+      <div class="atalhos">${OBS_ATALHOS.map(([t, n]) => `<button type="button" class="tap" data-act="obs-atalho" data-t="${esc(t)}" aria-pressed="${t === '' && !v}">${n}</button>`).join('')}</div></div>`;
+function marcarAtalhos() { const t = $('#f-obs'); if (!t) return; const partes = obsPartes(t.value); $$('.atalhos [data-t]').forEach(b => { const f = b.dataset.t; b.setAttribute('aria-pressed', f === '' ? !partes.length : f.endsWith(' ') ? partes.some(x => x.toLowerCase().startsWith(f.trim().toLowerCase())) : partes.includes(f)); }); }
+// no cadastro: digitou o CPF (ou o RNE) e o cliente já existe → mostra as crianças dele (com o botão Histórico) e preenche o responsável
+let CLIENTE_AUTO = null;   // o que a tela preencheu sozinha (some de novo se o documento mudar)
+const docTipo = () => ($('#f-cpf') || { dataset: {} }).dataset.doc === 'rne' ? 'rne' : 'cpf';
+const segDoc = tipo => `<div class="seg mini" id="f-doc-seg" role="group" aria-label="Tipo de documento">${[['cpf', 'CPF'], ['rne', 'RNE']].map(([v, n]) => `<button type="button" data-act="doc-tipo" data-v="${v}" aria-pressed="${tipo === v}" title="${v === 'rne' ? 'Estrangeiro: Registro Nacional de Estrangeiro' : 'CPF'}">${n}</button>`).join('')}</div>`;
+const campoDoc = (tipo, v) => `<div class="campo"><div class="rot-linha"><label for="f-cpf" id="f-doc-rot">${tipo === 'rne' ? 'RNE' : 'CPF'} do responsável</label>${segDoc(tipo)}</div><input id="f-cpf" data-doc="${tipo}" inputmode="${tipo === 'rne' ? 'text' : 'numeric'}" value="${esc(v || '')}" placeholder="${tipo === 'rne' ? 'Número do RNE' : '000.000.000-00'}" maxlength="${tipo === 'rne' ? 20 : 14}" autocomplete="off"><span class="explica" id="f-cpf-aviso" style="color:var(--erro)" hidden></span></div>`;
+const camposTel = (t1, t2) => `<div class="dois"><div class="campo"><label for="f-tel">Telefone (WhatsApp)</label><input id="f-tel" inputmode="tel" value="${esc(t1 || '')}" placeholder="(11) 9 0000-0000" autocomplete="off"></div>
+        <div class="campo discreto"><label for="f-tel2">Outro telefone, se tiver</label><input id="f-tel2" inputmode="tel" value="${esc(t2 || '')}" placeholder="(11) 9 0000-0000" autocomplete="off"></div></div>`;
 function cartaoCliente(fam) {
   const r = fam[0];
-  return `<div class="cliente-ja"><div class="cab"><span class="ico">${ic(IC.check, 15, 3)}</span><div class="txt"><b>Cliente já cadastrado</b><span>${esc(r.resp)} (${esc(r.rel)})${r.tel ? ' · ' + esc(r.tel) : ''}</span></div><button type="button" class="bt tap" data-act="historico" data-id="${r.id}">${ic(IC.historico)} Histórico</button></div>
+  return `<div class="cliente-ja"><div class="cab"><span class="ico">${ic(IC.check, 15, 3)}</span><div class="txt"><b>Cliente já cadastrado</b><span>${esc(r.resp)}${relP(r)}${r.tel ? ' · ' + esc(r.tel) : ''}</span></div><button type="button" class="bt tap" data-act="historico" data-id="${r.id}">${ic(IC.historico)} Histórico</button></div>
     ${fam.map(c => { const u = ultimaVisita(c); return `<div class="cr">${avatar(c)}<div class="txt"><b>${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}</b><span>${c.entrou ? 'no espaço agora' : u ? 'veio em ' + diaCurto(new Date(u)) : 'ainda não veio'} · consumiu ${hm(usadoAgora(c))} · tem ${hm(restante(c))}</span></div></div>`; }).join('')}
     <p class="explica">O responsável já está preenchido. Para cadastrar outra criança dele, escreva o nome dela abaixo.</p></div>`;
 }
 function clienteNoCadastro() {
-  const alvo = $('#f-cliente'); if (!alvo) return; const cpf = val('f-cpf'), fam = clientePorCpf(cpf), aviso = $('#f-cpf-aviso');
-  if (aviso) { const ruim = soDig(cpf).length === 11 && !fam.length && !cpfValido(cpf); aviso.hidden = !ruim; aviso.textContent = ruim ? 'Confira o CPF: os números não batem.' : ''; }
+  const alvo = $('#f-cliente'); if (!alvo) return; const tipo = docTipo(), doc = val('f-cpf'), fam = clientePorDoc(tipo, doc), aviso = $('#f-cpf-aviso');
+  if (aviso) { const ruim = tipo === 'cpf' && soDig(doc).length === 11 && !fam.length && !cpfValido(doc); aviso.hidden = !ruim; aviso.textContent = ruim ? 'Confira o CPF: os números não batem.' : ''; }
   if (!fam.length) { alvo.innerHTML = ''; if (CLIENTE_AUTO) { for (const k in CLIENTE_AUTO) { const i = $('#' + k); if (i && i.value === CLIENTE_AUTO[k]) i.value = ''; } CLIENTE_AUTO = null; } return; }
-  const r = fam[0], resp = $('#f-resp'), tel = $('#f-tel'); alvo.innerHTML = cartaoCliente(fam); CLIENTE_AUTO = CLIENTE_AUTO || {};
-  if (resp && !resp.value.trim()) { resp.value = r.resp; CLIENTE_AUTO['f-resp'] = r.resp; }
-  if (tel && !tel.value.trim() && r.tel) { tel.value = r.tel; CLIENTE_AUTO['f-tel'] = r.tel; }
-  const seg = $(`#f-rel-seg [data-seg="${r.rel}"]`) || $('#f-rel-seg [data-seg="responsável"]'); if (seg) $$('#f-rel-seg [data-seg]').forEach(b => b.setAttribute('aria-pressed', b === seg));
+  const r = fam[0]; alvo.innerHTML = cartaoCliente(fam); CLIENTE_AUTO = CLIENTE_AUTO || {};
+  for (const [k, v] of [['f-resp', r.resp], ['f-tel', r.tel], ['f-tel2', r.tel2]]) { const i = $('#' + k); if (i && v && !i.value.trim()) { i.value = v; CLIENTE_AUTO[k] = v; } }
 }
 function folhaCrianca(c) {
   FOTO_TEMP = ''; CLIENTE_AUTO = null; SAP_TEMP = 0;
-  if (!c) { // cadastro novo: primeiro o responsável (CPF e nome), depois a criança; as horas são vendidas à parte
+  if (!c) { // cadastro novo: primeiro o responsável (documento, nome e telefones), depois a criança; as horas são vendidas à parte
     abrirFolha('Cadastrar', `
     <div class="bloco-f"><small class="rot">Responsável</small>
-      <div class="dois"><div class="campo"><label for="f-cpf">CPF do responsável</label><input id="f-cpf" inputmode="numeric" placeholder="000.000.000-00" autocomplete="off"><span class="explica" id="f-cpf-aviso" style="color:var(--erro)" hidden></span></div>
-        <div class="campo"><label for="f-resp">Nome do pai, da mãe ou responsável</label><input id="f-resp" placeholder="Quem traz e busca" autocomplete="off"></div></div>
+      <div class="dois alinha">${campoDoc('cpf', '')}
+        <div class="campo"><label for="f-resp">Nome do responsável</label><input id="f-resp" autocomplete="off"></div></div>
       <div id="f-cliente"></div>
-      <div class="dois"><div class="campo"><label>Quem é</label><div class="seg" id="f-rel-seg">${['mãe', 'pai', 'responsável'].map((r, i) => `<button type="button" data-seg="${r}" aria-pressed="${i === 0}">${r[0].toUpperCase() + r.slice(1)}</button>`).join('')}</div></div>
-        <div class="campo"><label for="f-tel">WhatsApp</label><input id="f-tel" inputmode="tel" autocomplete="off" placeholder="(11) 9 0000-0000"></div></div>
+      ${camposTel('', '')}
     </div>
     <div class="bloco-f"><small class="rot">Criança</small>
-      <div class="foto-cap"><span class="av g" id="f-foto-prev">${ic(IC.camera, 30)}</span><div class="txt"><label class="bt forte tap" for="f-foto">${ic(IC.camera)} Tirar a foto da criança</label><input type="file" id="f-foto" accept="image/*" capture="user" hidden><span class="explica">${rostoPronto() ? 'Opcional: vai no aviso de chegada no WhatsApp. O rosto a criança cadastra olhando para o iDFace, logo depois de salvar.' : 'A foto vai para o iDFace: é ela que libera o rosto da criança no aparelho.'}</span></div></div>
-      <div class="campo"><label for="f-nome">Nome da criança</label><input id="f-nome" placeholder="Como ela gosta de ser chamada" autocomplete="off"></div>
+      <div class="campo"><label for="f-nome">Nome da criança</label><input id="f-nome" autocomplete="off"></div>
       <div class="campo"><label>Sapateira <span class="leve">· onde fica o sapato enquanto ela brinca</span></label>${gradeSap(0, 0, 'cadastro')}<span class="explica">As hachuradas já estão em uso. Pode deixar sem e escolher depois, na ficha; ela fica livre sozinha quando a criança sai.</span></div>
       ${campoObs('')}
     </div>
     <p class="explica" style="text-align:center">As horas são vendidas depois, na ficha (botão Vender). A idade pode ser completada na ficha.</p>
     <div class="pe-f"><button class="bt forte largo tap" data-act="salvar-crianca">${ic(IC.check)} Cadastrar</button></div>`);
-    if (window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches) setTimeout(() => { const i = $('#f-cpf'); if (i) i.focus(); }, 420);   // no computador, o cursor já começa no CPF
+    if (window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches) setTimeout(() => { const i = $('#f-cpf'); if (i) i.focus(); }, 420);   // no computador, o cursor já começa no documento
     return;
   }
+  const tipo = c.doc === 'rne' ? 'rne' : 'cpf';
   abrirFolha('Editar cadastro', `
     <div class="bloco-f"><small class="rot">Responsável</small>
-      <div class="dois"><div class="campo"><label for="f-cpf">CPF do responsável</label><input id="f-cpf" inputmode="numeric" value="${esc(c.cpf || '')}" placeholder="000.000.000-00" autocomplete="off"></div>
-        <div class="campo"><label for="f-resp">Nome do responsável</label><input id="f-resp" value="${esc(c.resp)}" placeholder="Nome" autocomplete="off"></div></div>
-      <div class="dois"><div class="campo"><label for="f-rel">Parentesco</label><select id="f-rel">${['mãe', 'pai', 'avó', 'avô', 'responsável'].map(r => `<option ${c.rel === r ? 'selected' : ''}>${r}</option>`).join('')}</select></div>
-        <div class="campo"><label for="f-tel">WhatsApp do responsável</label><input id="f-tel" inputmode="tel" value="${esc(c.tel)}" placeholder="(11) 9 0000-0000" autocomplete="off"></div></div>
+      <div class="dois alinha">${campoDoc(tipo, c.cpf)}
+        <div class="campo"><label for="f-resp">Nome do responsável</label><input id="f-resp" value="${esc(c.resp)}" autocomplete="off"></div></div>
+      ${camposTel(c.tel, c.tel2)}
     </div>
     <div class="bloco-f"><small class="rot">Criança</small>
-      <div class="dois"><div class="campo"><label for="f-nome">Nome da criança</label><input id="f-nome" value="${esc(c.nome)}" placeholder="Como ela gosta de ser chamada" autocomplete="off"></div>
+      <div class="dois"><div class="campo"><label for="f-nome">Nome da criança</label><input id="f-nome" value="${esc(c.nome)}" autocomplete="off"></div>
         <div class="campo"><label for="f-idade">Idade</label><input id="f-idade" type="number" min="1" max="14" inputmode="numeric" value="${c.idade || ''}" placeholder="anos"></div></div>
       ${campoObs(c.obs)}
     </div>
@@ -1379,7 +1395,7 @@ function desenharLado() {
   const ultima = c => { const v = d && d.visitas.find(x => x.crianca === c.id); return v ? +v.dia : ultimaVisita(c); };
   a.innerHTML = `
     <div class="cab-f"><h2>Histórico do cliente</h2><button class="fechar tap" data-act="lado-fechar" aria-label="Fechar o histórico">${ic(IC.x, 18, 2.4)}</button></div>
-    <div class="linha"><span class="av g" style="background:${CORES[base.id % CORES.length]}">${esc(iniciais(base.resp))}</span><div class="txt"><b style="white-space:normal">${esc(base.resp)}</b><span style="white-space:normal">${esc(base.rel)} de ${juntar(fam.map(c => esc(c.nome)))}</span><span style="white-space:normal">${esc(base.tel || 'sem WhatsApp')}${base.cpf ? ' · CPF ' + esc(base.cpf) : ''}</span></div></div>
+    <div class="linha"><span class="av g" style="background:${CORES[base.id % CORES.length]}">${esc(iniciais(base.resp))}</span><div class="txt"><b style="white-space:normal">${esc(base.resp)}</b><span style="white-space:normal">${relSabe(base) ? esc(base.rel) + ' de ' : 'responsável por '}${juntar(fam.map(c => esc(c.nome)))}</span><span style="white-space:normal">${esc(fones(base) || 'sem telefone')}${base.cpf ? ' · ' + esc(docTxt(base)) : ''}</span></div></div>
     <div class="h-nums">
       <div><small>Pagou ao todo</small><b class="num">${d ? brl(d.vendas.reduce((t, v) => t + v.v, 0)) : '…'}</b></div>
       <div><small>Horas compradas</small><b class="num">${hm(comprado)}</b></div>
@@ -1446,10 +1462,10 @@ function chamadaRenovar(c) {
 const filtroBanco = c => { const f = S.bancoFiltro || 'todas'; return f === 'renovar' ? !semHoras(c) && restante(c) <= S.cfg.aviso : f === 'emdia' ? restante(c) > S.cfg.aviso : f === 'dentro' ? !!c.entrou : true; };
 function linhasBanco() {
   const q = (S.bancoBusca || '').toLowerCase();
-  const lista = S.criancas.filter(filtroBanco).filter(c => !q || (c.nome + ' ' + c.resp + ' ' + c.tel + ' ' + (c.cpf || '') + ' ' + soDig(c.cpf)).toLowerCase().includes(q)).sort((a, b) => restante(a) - restante(b) || a.nome.localeCompare(b.nome));
+  const lista = S.criancas.filter(filtroBanco).filter(c => !q || (c.nome + ' ' + c.resp + ' ' + c.tel + ' ' + (c.tel2 || '') + ' ' + (c.cpf || '') + ' ' + soDig(c.cpf)).toLowerCase().includes(q)).sort((a, b) => restante(a) - restante(b) || a.nome.localeCompare(b.nome));
   if (!lista.length) return `<div class="card vazio"><b>${q ? 'Ninguém com esse nome.' : 'Nenhuma criança neste filtro.'}</b></div>`;
   return lista.map(c => { const r = restante(c), zerou = !semHoras(c) && r <= 0, baixo = !semHoras(c) && r <= S.cfg.aviso; return `<div class="banco-linha ${zerou ? 'zerou' : baixo ? 'baixo' : ''}">
-    <button class="quem tap" data-act="ficha" data-id="${c.id}" aria-label="Abrir a ficha de ${esc(c.nome)}">${avatar(c)}<span class="txt"><b>${esc(c.nome)}${c.idade ? ', ' + c.idade : ''}</b><span>${esc(c.resp)} (${esc(c.rel)})${c.tel ? ' · ' + esc(c.tel) : ''}</span></span></button>
+    <button class="quem tap" data-act="ficha" data-id="${c.id}" aria-label="Abrir a ficha de ${esc(c.nome)}">${avatar(c)}<span class="txt"><b>${esc(c.nome)}${c.idade ? ', ' + c.idade : ''}</b><span>${esc(c.resp)}${relP(c)}${c.tel ? ' · ' + esc(c.tel) : ''}</span></span></button>
     <div class="saldo-c">${blocos(c)}</div>
     <button class="ult tap" data-act="historico" data-id="${c.id}" title="Abrir o histórico de ${esc(c.resp)}"><small>Última contratação</small><b>${c.venda ? (c.venda.h === 1 ? 'Hora avulsa' : c.venda.h + ' horas') + ' · ' + brl(c.venda.v) : 'Sem compra ainda'}</b><span>${c.venda ? diaCurto(c.venda.quando) + (c.entrou ? ' · no espaço agora' : '') : (c.entrou ? 'no espaço agora' : '')}</span><em>${ic(IC.historico, 13, 2.4)} Histórico</em></button>
     <div class="acoes"><button class="bt ${baixo ? 'forte' : ''} tap" data-act="renovar" data-id="${c.id}" title="Chamar ${esc(c.resp)} no WhatsApp para renovar">${ic(IC.zap, 16)} ${baixo ? 'Chamar para renovar' : 'WhatsApp'}</button><button class="bt tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 16)} Vender</button></div>
@@ -1460,14 +1476,14 @@ function telaBanco() {
   const saldo = S.criancas.reduce((a, c) => a + restante(c), 0);
   const alertas = renovar.length ? renovar.map(c => { const zerou = restante(c) <= 0, ja = chamadaRenovar(c); return `<div class="alerta-r ${zerou ? 'zerou' : ''}">
       ${avatar(c)}
-      <div class="txt"><b>${zerou ? `As horas de ${esc(c.nome)} acabaram` : `Restam só ${hm(restante(c))} para ${esc(c.nome)}`}</b><span>Chame ${esc(c.resp)} (${esc(c.rel)}) no WhatsApp para ver se quer renovar. Última contratação: ${textoVenda(c)}.</span>${ja ? `<em>${ja}</em>` : ''}</div>
+      <div class="txt"><b>${zerou ? `As horas de ${esc(c.nome)} acabaram` : `Restam só ${hm(restante(c))} para ${esc(c.nome)}`}</b><span>Chame ${esc(c.resp)}${relP(c)} no WhatsApp para ver se quer renovar. Última contratação: ${textoVenda(c)}.</span>${ja ? `<em>${ja}</em>` : ''}</div>
       <div class="acoes"><button class="bt forte tap" data-act="renovar" data-id="${c.id}">${ic(IC.zap, 16)} ${ja ? 'Chamar de novo' : 'Chamar no WhatsApp'}</button><button class="bt claro tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 16)} Vender horas</button></div>
     </div>`; }).join('') : `<div class="card vazio"><b>Ninguém para renovar agora.</b><span>Quando as horas de uma criança estiverem acabando, o aviso aparece aqui com o botão do WhatsApp.</span></div>`;
   const chip = (k, t) => `<button class="tap" data-act="banco-filtro" data-f="${k}" aria-pressed="${f === k}">${t}<b>${n(k)}</b></button>`;
   return faixa('Banco de horas', `${S.criancas.length} ${S.criancas.length === 1 ? 'criança' : 'crianças'} · ${hm(saldo)} em saldo`, renovar.length ? `<span class="chip">${renovar.length} para renovar</span>` : `<span class="chip suave"><i class="pt"></i>Tudo em dia</span>`) + `
   <section class="sec"><div class="sec-cab"><h2><i></i>Para renovar</h2>${renovar.length ? `<span class="pill p-erro">${renovar.length}</span>` : ''}</div><div class="alertas">${alertas}</div></section>
   <section class="sec"><div class="sec-cab"><h2><i style="background:var(--mostarda)"></i>Todas as crianças</h2></div>
-    <div class="banco-topo"><div class="dias">${chip('todas', 'Todas')}${chip('renovar', 'Para renovar')}${chip('emdia', 'Em dia')}${chip('dentro', 'No espaço')}</div><div class="campo"><input id="banco-busca" value="${esc(S.bancoBusca || '')}" placeholder="Buscar criança, responsável, telefone ou CPF" autocomplete="off"></div></div>
+    <div class="banco-topo"><div class="dias">${chip('todas', 'Todas')}${chip('renovar', 'Para renovar')}${chip('emdia', 'Em dia')}${chip('dentro', 'No espaço')}</div><div class="campo"><input id="banco-busca" value="${esc(S.bancoBusca || '')}" placeholder="Buscar criança, responsável, telefone, CPF ou RNE" autocomplete="off"></div></div>
     <div class="banco-lista" id="banco-lista">${linhasBanco()}</div>
   </section>`;
 }
@@ -1488,14 +1504,14 @@ function dicas() {
   // 2. horas acabando ou acabadas (quem já foi chamado nos últimos dias não aparece de novo)
   for (const c of paraRenovar()) {
     if (chamadaRenovar(c)) continue; const r = restante(c);
-    if (r <= 0) add('zerou-' + c.id, 'alerta', 'horas', `<b>As horas de ${esc(c.nome)} acabaram${c.entrou ? ' e ela ainda está no espaço' : ''}.</b> Mande mensagem para ${esc(c.resp)} (${esc(c.rel)}) para ver se quer renovar.`, 'Mandar mensagem', 'renovar', c.id);
-    else add('acabando-' + c.id, 'aviso', 'horas', `<b>${esc(c.nome)} tem só mais ${hm(r)} disponível${c.entrou ? ' e está no espaço agora' : ''}.</b> Mande mensagem para ${esc(c.resp)} (${esc(c.rel)}) para ver se gostaria de comprar mais horas.`, 'Mandar mensagem', 'renovar', c.id);
+    if (r <= 0) add('zerou-' + c.id, 'alerta', 'horas', `<b>As horas de ${esc(c.nome)} acabaram${c.entrou ? ' e ela ainda está no espaço' : ''}.</b> Mande mensagem para ${esc(c.resp)}${relP(c)} para ver se quer renovar.`, 'Mandar mensagem', 'renovar', c.id);
+    else add('acabando-' + c.id, 'aviso', 'horas', `<b>${esc(c.nome)} tem só mais ${hm(r)} disponível${c.entrou ? ' e está no espaço agora' : ''}.</b> Mande mensagem para ${esc(c.resp)}${relP(c)} para ver se gostaria de comprar mais horas.`, 'Mandar mensagem', 'renovar', c.id);
   }
   // 3. família esperando resposta
   for (const conv of S.conversas) {
     if (conv.lidas) continue; const c = crianca(conv.crianca), u = conv.msgs[conv.msgs.length - 1]; if (!c || !u || u.de !== 'ela') continue;
     const min = Math.floor((agora - u.h) / 60000); if (min < 3) continue;
-    add('resp-' + conv.id + '-' + (u.id || +u.h), 'aviso', 'zap', `<b>${esc(c.resp)} (${esc(c.rel)} de ${esc(c.nome)}) espera resposta há ${min < 60 ? min + ' min' : hm(min)}.</b> “${esc(u.txt.slice(0, 70))}${u.txt.length > 70 ? '…' : ''}”`, 'Responder', 'conversa-ir', conv.id);
+    add('resp-' + conv.id + '-' + (u.id || +u.h), 'aviso', 'zap', `<b>${esc(c.resp)} (${relDe(c)}) espera resposta há ${min < 60 ? min + ' min' : hm(min)}.</b> “${esc(u.txt.slice(0, 70))}${u.txt.length > 70 ? '…' : ''}”`, 'Responder', 'conversa-ir', conv.id);
   }
   // 4. o que está para começar na agenda de hoje
   const hojeStr = isoDia(agora), agoraMin = agora.getHours() * 60 + agora.getMinutes();
@@ -1504,7 +1520,7 @@ function dicas() {
     add('comp-' + x.id, 'ideia', 'agenda', `<b>${esc(x.titulo)} ${falta <= 1 ? 'começa agora' : 'começa às ' + x.hora + ', daqui a ' + (falta < 60 ? falta + ' min' : hm(falta))}.</b> Está na agenda de hoje.`, 'Ver', 'comp', x.id);
   }
   // 5. cadastro incompleto e acesso bloqueado com saldo
-  for (const c of S.criancas) {
+  if (!serv || S.cfg.idface.ligado) for (const c of S.criancas) {
     if (!c.rosto) add('rosto-' + c.id, 'ideia', 'rosto', `<b>${esc(c.nome)} ainda não tem o rosto no iDFace.</b> Sem ele, a entrada não é lida. Cadastre quando chegar.`, rostoPronto() ? 'Cadastrar rosto' : 'Abrir a ficha', rostoPronto() ? 'rosto-cam' : 'ficha', c.id);
     else if (!liberada(c) && restante(c) > 0 && !c.entrou) add('bloq-' + c.id, 'ideia', 'rosto', `<b>${esc(c.nome)} está com o acesso bloqueado no iDFace, mas tem ${hm(restante(c))} no banco.</b> Se for para entrar, autorize.`, 'Autorizar o acesso', 'liberar', c.id);
   }
@@ -1527,7 +1543,7 @@ const redesenharDicas = () => { const d = $('#dicas'); if (d) d.outerHTML = seca
 function folhaMensagem(c, texto) {
   const semZap = MODO === 'servidor' && S.whats && !S.whats.conectado;
   abrirFolha(`Mensagem para ${esc(primeiro(c.resp))}`, `
-    <div class="linha">${avatar(c)}<div class="txt"><b style="white-space:normal">${esc(c.resp)}, ${esc(c.rel)} de ${esc(c.nome)}</b><span>${esc(c.tel || 'sem telefone no cadastro')}</span></div></div>
+    <div class="linha">${avatar(c)}<div class="txt"><b style="white-space:normal">${esc(c.resp)}, ${relDe(c)}</b><span>${esc(c.tel || 'sem telefone no cadastro')}</span></div></div>
     <div class="campo"><label for="m-texto">A mensagem (pode ajustar antes de enviar)</label><textarea id="m-texto" rows="5">${esc(texto)}</textarea></div>
     ${semZap ? `<p class="explica" style="color:var(--erro)">O WhatsApp da loja não está conectado: a mensagem fica guardada na conversa, mas não sai agora.</p>` : ''}
     <button class="bt forte largo tap" data-act="mensagem-enviar" data-id="${c.id}">${ic(IC.zap)} Enviar no WhatsApp</button>`);
@@ -1618,7 +1634,7 @@ function telaZap() {
   let conv = convDe(S.zapAberta); if (!conv || !doDia.some(d => d.x === conv)) conv = doDia.length ? doDia[0].x : null; if (conv) S.zapAberta = conv.id;
   const abas = `<div class="dias">${dias.map(d => { const n = S.conversas.filter(x => x.msgs.some(m => diaDe(m.h) === d)).length; return `<button class="tap" data-act="zap-dia" data-dia="${d}" aria-pressed="${d === S.zapDia}">${rotuloDia(d)}${n ? `<b>${n}</b>` : ''}</button>`; }).join('')}<button class="tap escolher" data-act="zap-escolher">${ic(IC.agenda, 16)} Escolher data</button></div>`;
   const quem = ms => { const nomes = []; ms.forEach(m => { if (m.de === 'nos') { const q = m.por || EU.nome; if (!nomes.includes(q)) nomes.push(q); } }); return nomes; };
-  const lista = doDia.length ? doDia.map(({ x, ms }) => { const c = crianca(x.crianca), u = ms[ms.length - 1], q = quem(ms); return `<button class="conv tap ${conv && x.id === conv.id ? 'ativa' : ''}" data-act="conversa" data-id="${x.id}">${avatar(c)}<div class="txt"><b>${esc(c.resp)} (${esc(c.rel)} de ${esc(c.nome)})</b><span><em class="st ${situacao(c).cls}">${esc(situacao(c).curto)}</em></span><span>${u.de === 'nos' ? (u.auto ? 'Automática: ' : (u.por || EU.nome) + ': ') : ''}${esc(u.txt)}</span><span class="quem">${q.length ? q.map(n => `<i class="${n === 'automática' ? 'auto' : ''}">${esc(n)}</i>`).join('') : '<i class="ninguem">ninguém respondeu ainda</i>'}</span></div><span class="h">${hora(u.h)}</span>${x.lidas ? '' : `<span class="n">${x.msgs.filter(m => m.de === 'ela').length}</span>`}</button>`; }).join('')
+  const lista = doDia.length ? doDia.map(({ x, ms }) => { const c = crianca(x.crianca), u = ms[ms.length - 1], q = quem(ms); return `<button class="conv tap ${conv && x.id === conv.id ? 'ativa' : ''}" data-act="conversa" data-id="${x.id}">${avatar(c)}<div class="txt"><b>${esc(c.resp)} (${relDe(c)})</b><span><em class="st ${situacao(c).cls}">${esc(situacao(c).curto)}</em></span><span>${u.de === 'nos' ? (u.auto ? 'Automática: ' : (u.por || EU.nome) + ': ') : ''}${esc(u.txt)}</span><span class="quem">${q.length ? q.map(n => `<i class="${n === 'automática' ? 'auto' : ''}">${esc(n)}</i>`).join('') : '<i class="ninguem">ninguém respondeu ainda</i>'}</span></div><span class="h">${hora(u.h)}</span>${x.lidas ? '' : `<span class="n">${x.msgs.filter(m => m.de === 'ela').length}</span>`}</button>`; }).join('')
     : `<div class="card vazio">${ic(IC.zap, 26)}<b>${S.zapDia === isoDia(agora) ? 'Nenhuma conversa ainda hoje' : 'Nenhuma conversa neste dia'}</b><span>${S.zapDia === isoDia(agora) ? 'Quando uma criança chegar ou alguém mandar mensagem, aparece aqui.' : 'Escolha outro dia em cima.'}</span></div>`;
   if (!conv) return faixa('WhatsApp', 'Conversas com os responsáveis', chipWhats()) + abas + `<div class="zap" data-modo="lista"><div class="conversas">${lista}</div><div class="papo"><p class="explica" style="margin:auto;text-align:center">Nenhuma conversa em ${rotuloDiaLongo(S.zapDia).toLowerCase()}.</p></div></div>`;
   const c = crianca(conv.crianca);
@@ -1627,7 +1643,7 @@ function telaZap() {
   <div class="zap" data-modo="${S.zapModo}">
     <div class="conversas">${lista}</div>
     <div class="papo">
-      <div class="cab"><button class="volta tap" data-act="zap-lista" aria-label="Voltar">${ic(IC.volta, 18)}</button>${avatarComUrso(c)}<div class="txt"><b>${esc(c.resp)}</b><span>${esc(c.rel)} de ${esc(c.nome)} · ${c.pacote}h compradas</span></div><button class="bt claro tap" data-act="ficha" data-id="${c.id}">Ficha</button></div>
+      <div class="cab"><button class="volta tap" data-act="zap-lista" aria-label="Voltar">${ic(IC.volta, 18)}</button>${avatarComUrso(c)}<div class="txt"><b>${esc(c.resp)}</b><span>${relDe(c)} · ${c.pacote}h compradas</span></div><button class="bt claro tap" data-act="ficha" data-id="${c.id}">Ficha</button></div>
       ${(() => { const st = situacao(c); return `<button class="situacao ${st.cls} tap" data-act="ficha" data-id="${c.id}" data-situacao="${c.id}">${c.entrou ? ic(IC.horas, 16) : ic(IC.rosto, 16)}<span>${esc(st.txt)}</span></button>`; })()}
       <div class="msgs" id="msgs">${msgsHtml}</div>
       <div class="sug"><small>Sugestões de resposta</small>${sugestoes(conv).map(s => `<button class="tap" data-act="sugestao">${esc(s)}</button>`).join('')}</div>
@@ -1795,30 +1811,39 @@ const ACOES = {
   editar: el => folhaCrianca(crianca(el.dataset.id)),
   nova: () => folhaCrianca(null),
   'salvar-crianca': el => {
-    const id = el.dataset.id, nome = val('f-nome'), resp = val('f-resp'), cpf = cpfFmt(val('f-cpf')), obs = val('f-obs');
-    if (!id && !resp) { toast('Falta o nome de quem é responsável'); $('#f-resp').focus(); return; }
+    const id = el.dataset.id, nome = val('f-nome'), resp = val('f-resp'), doc = docTipo(), cpf = doc === 'rne' ? rneFmt(val('f-cpf')).trim() : cpfFmt(val('f-cpf')), obs = val('f-obs');
+    let tel = val('f-tel'), tel2 = val('f-tel2'); if (!tel && tel2) { tel = tel2; tel2 = ''; }   // só um telefone preenchido: ele é o principal
+    if (!id && !resp) { toast('Falta o nome do responsável'); $('#f-resp').focus(); return; }
     if (!nome) { toast('Falta o nome da criança'); $('#f-nome').focus(); return; }
-    if (!id) { const ja = clientePorCpf(cpf).find(x => x.nome.trim().toLowerCase() === nome.toLowerCase()); if (ja) { toast(`${ja.nome} já tem cadastro com este CPF`, () => abrirHistorico(ja.id), 'Ver o histórico'); return; } }
+    if (!id) { const ja = clientePorDoc(doc, cpf).find(x => x.nome.trim().toLowerCase() === nome.toLowerCase()); if (ja) { toast(`${ja.nome} já tem cadastro com este ${doc === 'rne' ? 'RNE' : 'CPF'}`, () => abrirHistorico(ja.id), 'Ver o histórico'); return; } }
     if (MODO === 'servidor') {
-      const dados = id ? { id: +id, nome, idade: +val('f-idade') || 0, resp, rel: val('f-rel'), tel: val('f-tel'), cpf, obs }
-        : { nome, resp, rel: ($('#f-rel-seg [aria-pressed="true"]') || {}).dataset.seg || 'responsável', tel: val('f-tel'), cpf, obs, foto: FOTO_TEMP, sapateira: SAP_TEMP };
-      api('crianca_salvar', dados).then(async r => { FOTO_TEMP = ''; await carregar(); fecharFolha(); desenhar();
+      const dados = id ? { id: +id, nome, idade: +val('f-idade') || 0, resp, tel, tel2, doc, cpf, obs } : { nome, resp, tel, tel2, doc, cpf, obs, sapateira: SAP_TEMP };
+      api('crianca_salvar', dados).then(async r => { await carregar(); fecharFolha(); desenhar();
         if (id) { toast('Cadastro salvo'); return; }
-        if (rostoPronto()) { toast(`${nome} cadastrada. Agora o rosto.`); setTimeout(() => folhaRosto(r.id), 300); return; }
         toast(`${nome} cadastrada. As horas entram quando vender.`, () => folhaVender(r.id), 'Vender'); }).catch(async e => { toast(e.message); if (/sapateira/i.test(e.message)) { try { await carregar(); } catch (x) { } SAP_TEMP = 0; redesenharSap(); } });
       return;
     }
-    if (id) { const c = crianca(id); Object.assign(c, { nome, idade: +val('f-idade') || c.idade, resp: resp || c.resp, rel: val('f-rel'), tel: val('f-tel'), cpf, obs }); toast('Cadastro salvo'); }
+    if (id) { const c = crianca(id); Object.assign(c, { nome, idade: +val('f-idade') || c.idade, resp: resp || c.resp, tel, tel2, doc, cpf, obs }); toast('Cadastro salvo'); }
     else {
-      const rel = ($('#f-rel-seg [aria-pressed="true"]') || {}).dataset.seg || 'responsável';
-      const c = { id: novoId(), nome, idade: 0, resp, rel, tel: val('f-tel'), cpf, obs, pacote: 0, usado: 0, entrou: null, rosto: !!FOTO_TEMP, foto: FOTO_TEMP, visitas: [], venda: null, sapateira: SAP_TEMP || null, liberado: S.cfg.bloqueioAuto !== 'sim' }; S.criancas.push(c); FOTO_TEMP = '';
+      const c = { id: novoId(), nome, idade: 0, resp, rel: 'responsável', tel, tel2, doc, cpf, obs, pacote: 0, usado: 0, entrou: null, rosto: false, foto: '', visitas: [], venda: null, sapateira: SAP_TEMP || null, liberado: S.cfg.bloqueioAuto !== 'sim' }; S.criancas.push(c);
       toast(`${nome} cadastrada. As horas entram quando vender.`, () => folhaVender(c.id), 'Vender');
     }
     fecharFolha(); desenhar();
   },
+  'doc-tipo': el => { // CPF ou RNE (estrangeiro): troca a máscara do campo e procura o cliente de novo
+    const v = el.dataset.v === 'rne' ? 'rne' : 'cpf', i = $('#f-cpf'); if (!i || i.dataset.doc === v) return;
+    $$('#f-doc-seg button').forEach(b => b.setAttribute('aria-pressed', b === el)); i.dataset.doc = v; i.value = '';
+    i.inputMode = v === 'rne' ? 'text' : 'numeric'; i.placeholder = v === 'rne' ? 'Número do RNE' : '000.000.000-00'; i.maxLength = v === 'rne' ? 20 : 14;
+    const r = $('#f-doc-rot'); if (r) r.textContent = (v === 'rne' ? 'RNE' : 'CPF') + ' do responsável'; clienteNoCadastro(); i.focus();
+  },
   'obs-atalho': el => { // os atalhos das restrições: escrevem no campo de observações (tocar de novo tira; "pode" e "não" se trocam)
     const t = $('#f-obs'); if (!t) return; const f = el.dataset.t; let partes = obsPartes(t.value);
-    if (f.endsWith(' ')) { if (!partes.some(x => x.toLowerCase().startsWith(f.trim().toLowerCase()))) { partes.push(f.trim()); t.value = partes.join('; ') + ' '; } t.focus(); t.setSelectionRange(t.value.length, t.value.length); marcarAtalhos(); return; }
+    if (f === '') { t.value = ''; marcarAtalhos(); return; }   // sem restrição: limpa o campo
+    if (f.endsWith(' ')) { // alergia: o primeiro toque escreve o começo e deixa o cursor para completar; tocar de novo tira
+      const ini = f.trim().toLowerCase();
+      if (partes.some(x => x.toLowerCase().startsWith(ini))) { t.value = partes.filter(x => !x.toLowerCase().startsWith(ini)).join('; '); marcarAtalhos(); return; }
+      partes.push(f.trim()); t.value = partes.join('; ') + ' '; t.focus(); t.setSelectionRange(t.value.length, t.value.length); marcarAtalhos(); return;
+    }
     if (partes.includes(f)) partes = partes.filter(x => x !== f); else { partes = partes.filter(x => x !== OBS_PAR[f]); partes.push(f); }
     t.value = partes.join('; '); marcarAtalhos();
   },
@@ -1936,7 +1961,7 @@ document.addEventListener('focusout', e => { const card = $('.palco'); if (!card
 document.addEventListener('input', e => {
   if (CAMPOS_OLHAR[e.target.id]) { const card = $('.palco'); if (card && card.dataset.olha !== CAMPOS_OLHAR[e.target.id]) { card.dataset.olha = CAMPOS_OLHAR[e.target.id]; olharPara(e.target, true); } else olharPara(e.target); }
   if (['l-login', 'g-login', 'e-login'].includes(e.target.id)) { const v = e.target.value.toLowerCase(); if (v !== e.target.value) e.target.value = v; }
-  if (e.target.id === 'f-cpf') { const v = cpfFmt(e.target.value); if (v !== e.target.value) e.target.value = v; clienteNoCadastro(); }
+  if (e.target.id === 'f-cpf') { const v = e.target.dataset.doc === 'rne' ? rneFmt(e.target.value) : cpfFmt(e.target.value); if (v !== e.target.value) e.target.value = v; clienteNoCadastro(); }
   if (e.target.id === 'f-obs') marcarAtalhos();
   if (e.target.id === 'banco-busca') { S.bancoBusca = e.target.value; const l = $('#banco-lista'); if (l) l.innerHTML = linhasBanco(); }
   if (e.target.id === 'busca') { const q = e.target.value.toLowerCase(); $('#lista-criancas').innerHTML = itensLista(S.criancas.filter(c => (c.nome + ' ' + c.resp).toLowerCase().includes(q))); }

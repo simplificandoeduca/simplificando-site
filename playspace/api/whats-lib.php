@@ -99,8 +99,9 @@ function evoEnviarImagem(array $c, string $numero, string $foto, string $legenda
 function criancaPorTelefone(string $tel): ?array {
   $d = preg_replace('/\D/', '', $tel); if (strlen($d) < 8) return null;
   $fim = substr($d, -8);
-  foreach (db()->query("SELECT * FROM criancas WHERE ativo = 1 AND tel <> ''")->fetchAll() as $c) {
-    $t = preg_replace('/\D/', '', (string)$c['tel']); if ($t !== '' && substr($t, -8) === $fim) return $c;
+  $todas = db()->query("SELECT * FROM criancas WHERE ativo = 1 AND (tel <> '' OR tel2 <> '')")->fetchAll();
+  foreach (['tel', 'tel2'] as $campo) foreach ($todas as $c) {   // primeiro o WhatsApp principal de todo mundo; depois o segundo telefone
+    $t = preg_replace('/\D/', '', (string)($c[$campo] ?? '')); if ($t !== '' && substr($t, -8) === $fim) return $c;
   }
   return null;
 }

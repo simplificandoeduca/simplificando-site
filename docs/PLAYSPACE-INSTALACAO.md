@@ -70,11 +70,11 @@ Tudo configurável, porque a cliente ainda não decidiu: **arredondamento** (exa
 
 ## 6a. Cadastro, cliente e histórico
 
-**Cadastrar** (botão de mais) pede primeiro o **responsável** e depois a **criança**, nesta ordem: CPF do responsável, nome do responsável, quem é, WhatsApp; depois a foto, o nome da criança e as **restrições e observações**. O cadastro **não vende pacote**: a criança nasce sem horas, e as horas entram depois, pelo botão **Vender** (na ficha, no Banco de horas ou no histórico).
+**Cadastrar** (botão de mais) pede primeiro o **responsável** e depois a **criança**, nesta ordem: documento do responsável (**CPF ou RNE**, para estrangeiro: o seletor fica ao lado do rótulo), nome do responsável, telefone (WhatsApp) e um **outro telefone** opcional; depois o nome da criança, a sapateira e as **restrições e observações**. Só o nome do responsável e o da criança são obrigatórios. O cadastro **não vende pacote** (as horas entram depois, pelo botão **Vender**) e **não pede foto nem rosto**: quando for usar o iDFace, a foto e o rosto são feitos na ficha da criança. Se só o segundo telefone for preenchido, ele vira o principal. Mensagem que chega no WhatsApp é reconhecida por qualquer um dos dois números.
 
-- **Restrições** (alergia, se pode ou não fazer pintura no rosto, se pode ou não mexer no cabelo) ficam no campo de observações. Os atalhos embaixo do campo só escrevem mais rápido; o texto é livre e pode ser mudado depois em **Editar**. Elas aparecem em destaque na ficha e no histórico.
+- **Restrições** (alergia, se pode ou não fazer pintura no rosto, se pode ou não mexer no cabelo) ficam no campo de observações e são opcionais. Os atalhos embaixo do campo só escrevem mais rápido: tocar de novo num atalho tira o que ele escreveu (inclusive a alergia), e **Sem restrição** limpa tudo. O texto é livre e pode ser mudado depois em **Editar**. Elas aparecem em destaque na ficha e no histórico.
 - **Cliente já cadastrado**: ao digitar um CPF que já existe, o cadastro mostra quem é o responsável e as crianças dele (última vinda, horas consumidas, horas disponíveis), preenche os dados do responsável e oferece o botão **Histórico**. Para cadastrar um irmão, é só escrever o nome da nova criança. A mesma criança não entra duas vezes no mesmo CPF.
-- **Histórico do cliente**: abre numa aba à direita (no celular, na tela toda) e junta tudo do responsável: quanto pagou ao todo, horas compradas, consumidas e disponíveis; cada criança com o saldo, as restrições e os botões **Vender** e **Chamar para renovar**; **todas as compras** (pacote, o que veio junto, carrinho e outros produtos, valor, quem vendeu) e **todas as visitas**. Abre pelo botão **Histórico** no cadastro, na ficha da criança ou tocando na "Última contratação" do Banco de horas. O cliente é reconhecido pelo CPF; sem CPF, pelo WhatsApp.
+- **Histórico do cliente**: abre numa aba à direita (no celular, na tela toda) e junta tudo do responsável: quanto pagou ao todo, horas compradas, consumidas e disponíveis; cada criança com o saldo, as restrições e os botões **Vender** e **Chamar para renovar**; **todas as compras** (pacote, o que veio junto, carrinho e outros produtos, valor, quem vendeu) e **todas as visitas**. Abre pelo botão **Histórico** no cadastro, na ficha da criança ou tocando na "Última contratação" do Banco de horas. O cliente é reconhecido pelo CPF ou pelo RNE; sem documento, pelo WhatsApp.
 - **Sem horas, sem entrada**: com a regra "Quando o pacote zerar → Bloquear o acesso sozinho" (o padrão), a criança recém-cadastrada começa com o acesso **bloqueado** no iDFace e é liberada sozinha na primeira venda de horas. Vender só um produto (carrinho) não libera. Desfazer uma venda que deixa o saldo em zero bloqueia de novo.
 
 **Sapateiras** (1 a 44): a criança tira o sapato para brincar e ele fica numa sapateira numerada.
@@ -98,7 +98,7 @@ No topo da aba Horas, o próprio sistema sugere o que fazer agora, uma frase e u
 - **Família esperando resposta** no WhatsApp há mais de 3 minutos, com o botão **Responder**.
 - **iDFace sem contato** ou **WhatsApp desconectado**: o que impede o sistema de trabalhar sozinho.
 - **Agenda**: o que começa nas próximas 2 horas.
-- **Cadastro**: criança sem rosto no iDFace, ou com o acesso bloqueado mas com saldo.
+- **Cadastro**: criança sem rosto no iDFace, ou com o acesso bloqueado mas com saldo (só com o iDFace ligado em Ajustes).
 - **Quem sumiu**: criança com horas guardadas que não vem há 14 dias ou mais.
 
 Aparecem as 3 mais importantes, com "Ver as N dicas" para o resto. Cada dica pode ser dispensada no X (vale para o dia, naquele aparelho). Quem já foi chamado para renovar nos últimos 3 dias não volta a aparecer.
