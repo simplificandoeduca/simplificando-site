@@ -1541,6 +1541,11 @@ body.has-dock .toast,body.has-dock .utoast{bottom:calc(176px + env(safe-area-ins
 .mt-link{margin-top:4px}
 .app-ver{text-align:center;margin-top:-4px}
 .sug-t{width:100%;min-height:84px;resize:vertical;border-radius:14px;border:1.5px solid var(--line,rgba(0,0,0,.12));background:var(--card,transparent);color:inherit;font:inherit;font-size:15px;line-height:1.45;padding:11px 14px;margin:8px 0 10px}.sug-t:focus{outline:none;border-color:currentColor}
+.cs-wrap{position:relative;overflow:hidden}.cs-wrap+.cs-wrap{border-top:1px solid var(--sep,rgba(0,0,0,.08))}
+.cs-row{background:var(--card);transition:transform .25s cubic-bezier(.2,.9,.25,1);touch-action:pan-y;user-select:none;-webkit-user-select:none;z-index:1}
+.cs-del{position:absolute;top:0;right:0;bottom:0;width:104px;border:0;background:#E5484D;color:#fff;font:inherit;font-size:13px;font-weight:800;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer}
+.cs-del .i{width:20px;height:20px}
+.cs-wrap:focus-within .cs-row{transform:translateX(-104px)}
 .ver-pill{display:inline-flex;align-items:center;gap:5px;margin-top:6px;padding:3px 9px;border-radius:999px;background:var(--chip,rgba(0,0,0,.06));font-size:11.5px;font-weight:700;color:var(--muted);width:max-content}.ver-pill .i{width:12px;height:12px}
 .ck-list{display:flex;flex-direction:column;gap:8px}
 .ck{display:flex;align-items:flex-start;gap:12px;width:100%;padding:12px 14px;border:0;border-radius:18px;background:var(--card);box-shadow:inset 0 0 0 1.5px var(--sep);color:var(--fg);text-align:left;font:inherit;font-size:14px;line-height:1.42;transition:box-shadow .2s}
@@ -1659,7 +1664,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '10 nov · 82'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '10 nov · 83'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -1965,7 +1970,7 @@ function progRestore(){
         let bi = -1, bv = 0; e.s.forEach((z,j) => { const v = e1(+z[0]||0, +z[1]||0); if(v>bv){ bv = v; bi = j; } });
         if(bi>=0 && (!S.pr[e.id] || bv>S.pr[e.id].e1)) S.pr[e.id] = { e1:bv, kg:+e.s[bi][0], reps:+e.s[bi][1], d:h.d }; }); });
     S.history.sort((x,y) => x.date<y.date ? -1 : x.date>y.date ? 1 : 0);
-    const tc = new Set(S.cardio.map(c => c.date+'|'+c.local+'|'+c.min));
+    const tc = new Set(S.cardio.map(c => c.date+'|'+c.local+'|'+c.min).concat(S.cDel||[]));
     (d.c||[]).forEach(c => { if(!c || !c.d || tc.has(c.d+'|'+c.l+'|'+c.min)) return; tc.add(c.d+'|'+c.l+'|'+c.min); n++; S.cardio.push({ date:c.d, local:c.l||'Outro', min:+c.min||0, int:c.i||INTENS[0], km:0 }); });
     S.cardio.sort((x,y) => x.date<y.date ? -1 : x.date>y.date ? 1 : 0);
     Object.keys(d.w||{}).forEach(k => { const v = +d.w[k]||0; if(v > (+S.water[k]||0)){ S.water[k] = v; n++; } });
@@ -3709,6 +3714,26 @@ function renderDock(){
   const b = d.querySelector('[data-rt]'); if(b.textContent!==txt) b.textContent = txt;
   const u = d.querySelector('.rd-bar u'); if(u) u.style.width = (p*100).toFixed(1)+'%';
 }
+/* Recentes do cardio: arrastar para a esquerda mostra o botão Excluir (arrastar até o fim já exclui) */
+function wireCSwipe(){
+  let sw = null;
+  const fecha = ex => document.querySelectorAll('.cs-wrap.open').forEach(w => { if(w!==ex){ w.classList.remove('open'); const r = w.querySelector('.cs-row'); if(r) r.style.transform = ''; } });
+  document.addEventListener('pointerdown', ev => {
+    const row = ev.target.closest('.cs-row[data-cswipe]'); if(!row){ if(!ev.target.closest('.cs-del')) fecha(); return; }
+    const w = row.parentElement; fecha(w); sw = { row, w, x0:ev.clientX, y0:ev.clientY, dx:0, on:false, base:w.classList.contains('open') ? -104 : 0 };
+  });
+  document.addEventListener('pointermove', ev => {
+    if(!sw) return; const dx = ev.clientX-sw.x0, dy = ev.clientY-sw.y0;
+    if(!sw.on){ if(Math.abs(dy)>10 && Math.abs(dy)>Math.abs(dx)){ sw = null; return; } if(Math.abs(dx)<10) return; sw.on = true; sw.row.style.transition = 'none'; }
+    sw.dx = Math.min(0, Math.max(-sw.row.offsetWidth, sw.base+dx)); sw.row.style.transform = 'translateX('+sw.dx+'px)';
+  });
+  const fim = () => { if(!sw) return; const { row, w, dx, on } = sw; sw = null; row.style.transition = '';
+    if(!on){ if(w.classList.contains('open')){ w.classList.remove('open'); row.style.transform = ''; } return; }
+    if(dx < -row.offsetWidth*.6){ const b = w.querySelector('.cs-del'); if(b) b.click(); return; }
+    if(dx < -50){ w.classList.add('open'); row.style.transform = 'translateX(-104px)'; } else { w.classList.remove('open'); row.style.transform = ''; } };
+  document.addEventListener('pointerup', fim); document.addEventListener('pointercancel', fim);
+}
+wireCSwipe();
 /* deslizar: linha da Lista para a direita marca tudo; tela do Foco troca de exercício */
 function wireTSwipe(){
   let sw = null;
@@ -3848,6 +3873,7 @@ function logCardio(local,min,int_){
   min = Math.max(1, Math.round(min));
   const wkB = weekMin();
   S.cardio.push({date:today(), local, min, int:int_, km:0});
+  if(S.cDel) S.cDel = S.cDel.filter(k => k!==today()+'|'+local+'|'+min);
   ui.cf.local = local; ui.cf.int = int_;
   save();
   if(wkB<S.cardioGoal && wkB+min>=S.cardioGoal) setTimeout(() => celebrate('Meta de cardio batida', S.cardioGoal+' min na semana. O anel fechou.', '', 'cardio'), RM() ? 0 : 450);
@@ -3884,10 +3910,10 @@ function weekCompact(){
     <p class="foot0">Prescrição: ${CARDIO.min} min por dia · ${CARDIO.zona}. ${CARDIO.desc}</p></section>`;
 }
 function cardioRecent(){
-  const list = S.cardio.slice().reverse().slice(0,5).map(c =>
-    `<div class="row"><span class="num">${eqIc(LOCAIS.includes(c.local)?c.local:'Outro')}</span><span class="main"><b>${esc(c.local)} · ${c.min} min</b><span>${INT_L[c.int]||c.int}${c.km?' · '+fmtKm(c.km)+' km':''}</span></span><span class="when">${dayLabel(c.date)}</span></div>`).join('')
+  const N = S.cardio.length, list = S.cardio.slice().reverse().slice(0,5).map((c,j) =>
+    `<div class="cs-wrap"><button type="button" class="cs-del" data-a="cdel" data-i="${N-1-j}" aria-label="Excluir ${esc(c.local)} de ${c.min} min (${dayLabel(c.date)})">${ic('trash')}Excluir</button><div class="row cs-row" data-cswipe><span class="num">${eqIc(LOCAIS.includes(c.local)?c.local:'Outro')}</span><span class="main"><b>${esc(c.local)} · ${c.min} min</b><span>${INT_L[c.int]||c.int}${c.km?' · '+fmtKm(c.km)+' km':''}</span></span><span class="when">${dayLabel(c.date)}</span></div></div>`).join('')
     || '<div class="row"><span class="main"><span>Nenhum cardio registrado ainda.</span></span></div>';
-  return `<h3 class="sec">Recentes<span class="dot" aria-hidden="true"></span></h3><div class="list">${list}</div>`;
+  return `<h3 class="sec">Recentes<span class="dot" aria-hidden="true"></span></h3><div class="list">${list}</div>${N ? '<p class="foot0">Registrou errado? Arraste o cardio para a esquerda e toque em Excluir.</p>' : ''}`;
 }
 function vCardio(){
   const L = layOf();
@@ -5533,6 +5559,7 @@ function onClick(ev){
     case 'st-share': if(ui.sheet && ui.sheet.k==='story'){ stLog(ui.sheet, 'share'); stShare(ui.sheet); } re = false; break;
     case 'st-down': if(ui.sheet && ui.sheet.k==='story'){ stLog(ui.sheet, 'baixar'); stBaixar(ui.sheet); } re = false; break;
     case 'sug-send': sugEnviar(b); re = false; break;
+    case 'cdel': { const c = S.cardio[+d.i]; if(!c) break; S.cardio.splice(+d.i, 1); S.cDel = (S.cDel||[]).filter(k => k!==c.date+'|'+c.local+'|'+c.min).concat([c.date+'|'+c.local+'|'+c.min]).slice(-80); save(); toast('Cardio excluído: '+c.local+' · '+c.min+' min'); break; }
     case 'sum-save': closeSheet(); toast(isPersonal()?'Salvo. Seu personal vai ver.':'Salvo no seu histórico.'); re = false; break;
     case 'wipe':
       if(armed==='wipe'){ const ed = S.ed, g = S.waterGoal, cg = S.cardioGoal, nm = S.nome, conta = S.conta; S = fresh(false); S.ed = ed; S.waterGoal = g; S.cardioGoal = cg; S.nome = nm; if(conta) S.conta = conta; applyAccount(); ui.rest = null; ui.t = null; ui.tw = {}; renderRest(); toast('Registros apagados.'); }
