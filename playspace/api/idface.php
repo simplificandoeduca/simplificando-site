@@ -163,6 +163,28 @@ $acao = (string)($in['acao'] ?? $_GET['acao'] ?? '');
 if ($acao === 'ponte') acaoPonte($in);
 
 iniciarSessao();
+// a versão para Mac: o mesmo conector em bash (.command abre no Terminal com dois cliques). Vai num .zip para o arquivo chegar
+// com permissão de executar; sem ZipArchive, vai o arquivo cru. Com ?chave=..., serve o texto puro para colar no Terminal.
+function scriptMac(): string {
+  $sh = @file_get_contents(__DIR__ . '/../ponte/conectar-idface.sh'); if ($sh === false || strpos($sh, '__SITE__') === false) falha('Não achei o conector para Mac no servidor (ponte/conectar-idface.sh).', 500);
+  $c = idfaceCfg(); $q = fn($v) => str_replace("'", "'\\''", (string)$v);
+  return str_replace(['__SITE__', '__CHAVE__', '__IP__', '__USUARIO__', '__NOME__'], [$q(urlIdface()), $q(chavePonte()), $q($c['ip']), $q($c['usuario']), $q($c['nome'])], $sh);
+}
+if ($acao === 'conectar_sh') { // texto puro, autorizado pela própria chave da ponte: bash <(curl -fsSL '...?acao=conectar_sh&chave=...')
+  $k = (string)($_GET['chave'] ?? ''); if ($k === '' || !hash_equals(chavePonte(), $k)) { usleep(400000); http_response_code(403); exit; }
+  header('Content-Type: text/plain; charset=utf-8'); header('Cache-Control: no-store'); echo scriptMac(); exit;
+}
+if ($acao === 'conectar_command') {
+  $u = eu(); if (!$u || $u['papel'] !== 'gestor') { header('Location: ../', true, 302); exit; }
+  $sh = scriptMac(); $nome = 'Conectar o iDFace.command';
+  if (class_exists('ZipArchive')) {
+    $tmp = tempnam(sys_get_temp_dir(), 'ps'); $z = new ZipArchive(); $z->open($tmp, ZipArchive::OVERWRITE);
+    $z->addFromString($nome, $sh); $z->setExternalAttributesName($nome, ZipArchive::OPSYS_UNIX, (0100755 << 16)); $z->close();
+    $dados = file_get_contents($tmp); @unlink($tmp);
+    header('Content-Type: application/zip'); header('Content-Disposition: attachment; filename="Conectar o iDFace (Mac).zip"'); header('Content-Length: ' . strlen($dados)); header('Cache-Control: no-store'); echo $dados; exit;
+  }
+  header('Content-Type: application/octet-stream'); header('Content-Disposition: attachment; filename="' . $nome . '"'); header('Content-Length: ' . strlen($sh)); header('Cache-Control: no-store'); echo $sh; exit;
+}
 if ($acao === 'conectar_bat') { // um arquivo só: o CONECTAR com o programa e a configuração dentro (dois cliques no Windows)
   $u = eu(); if (!$u || $u['papel'] !== 'gestor') { header('Location: ../', true, 302); exit; }
   $ps1 = @file_get_contents(__DIR__ . '/../ponte/ponte-idface.ps1'); if ($ps1 === false || strpos($ps1, '$UMA_VEZ') === false) falha('Não achei o programa de conexão no servidor (ponte/ponte-idface.ps1).', 500);
