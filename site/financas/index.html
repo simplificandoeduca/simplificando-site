@@ -280,6 +280,19 @@ button.row:active{background:var(--ctl)}
 .kp3 b{font-size:15px;font-weight:900;letter-spacing:-.03em;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.kp3 span{font-size:11px;color:var(--muted)}
 .row .ic{width:34px;height:34px;border-radius:12px;background:var(--ctl);display:flex;align-items:center;justify-content:center;font-size:16px;flex:none}
 .gate .cc{margin:14px 6px 4px}
+.orc{display:flex;flex-direction:column;gap:4px}
+.orc .ln{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:var(--muted)}
+.orc .ln b{color:var(--fg);font-variant-numeric:tabular-nums}
+.orc .ln.tot{border-top:1px solid var(--sep);padding-top:6px;margin-top:2px;font-weight:700;color:var(--fg)}
+.prog{height:10px;border-radius:999px;background:var(--ctl);overflow:hidden}.prog i{display:block;height:100%;background:var(--accent);border-radius:999px;transition:width .4s var(--ease)}
+.conta-st{font-size:11px;font-weight:800;padding:3px 8px;border-radius:999px;background:var(--ctl);color:var(--fg);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+.conta-st.ok{background:var(--ok);color:#0F1712}.conta-st.bad{background:var(--bad);color:#0F1712}.conta-st.warn{background:var(--warn);color:#0F1712}
+.row .btn.sm{min-height:34px;padding:0 12px;font-size:13px}
+.cta{display:flex;flex-direction:column;gap:8px;padding:12px 16px}
+.cta+.cta{border-top:1px solid var(--sep)}
+.cta .l1{display:flex;align-items:center;gap:10px}.cta .l1 b{flex:1;font-weight:800;font-size:15px;letter-spacing:-.01em;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cta .l1 .val{font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:-.02em;white-space:nowrap}
+.cta .l2{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)}.cta .l2 span.t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* lista de cartões com miniatura (design C) */
 .rc{display:flex;align-items:center;gap:14px;padding:12px 16px;width:100%;border:0;background:none;color:var(--fg);text-align:left;font:inherit;min-height:66px}
 .rc+.rc{border-top:1px solid var(--sep)}
@@ -395,7 +408,7 @@ function logo(){
 $('#logo').innerHTML = logo(); document.querySelector('.top .mic').innerHTML = I.mic;
 
 /* ========== estado ========== */
-const FINV = '9 nov · 6'; // Versão do Finanças: 9 nov · 6
+const FINV = '10 nov · 7'; // Versão do Finanças: 10 nov · 7
 const DONO = { nome:'Eduardo Matias', iniciais:'EM' }; // perfil único desta página
 const LS = 'simplificando-financas', LST = 'simplificando-financas-tema';
 const CATS = ['Mercado', 'Comida', 'Transporte', 'Casa', 'Lazer', 'Saúde', 'Roupas', 'Assinaturas', 'Outros'];
@@ -404,7 +417,7 @@ function fresh(){
     v:1, em:0,
     fontes:[{ id:'f1', nome:'Emprego 1' }, { id:'f2', nome:'Emprego 2' }],
     cartoes:[{ id:'c1', nome:'Cartão 1', cor:0, tipo:'credito', fecha:null }, { id:'c2', nome:'Cartão 2', cor:1, tipo:'credito', fecha:null }, { id:'conta', nome:'Conta (débito / Pix)', cor:4, tipo:'conta', fecha:null }],
-    receitas:[], gastos:[], pagamentos:[], saldos:[], fixos:[], fixosFeitos:{},
+    receitas:[], gastos:[], pagamentos:[], saldos:[], fixos:[], fixosFeitos:{}, guardados:[], meta:{ tipo:'valor', valor:0, pct:10 },
     irmao:{ nome:'Irmão', zap:'', pix:'' },
     cats:CATS.slice(), ult:{ cartao:'c1' }
   };
@@ -412,8 +425,9 @@ function fresh(){
 let S = fresh();
 function normalize(o){
   const d = fresh(); if (!o || typeof o !== 'object') return d;
-  for (const k of ['fontes', 'cartoes', 'receitas', 'gastos', 'pagamentos', 'saldos', 'cats', 'fixos']) if (!Array.isArray(o[k])) o[k] = d[k];
+  for (const k of ['fontes', 'cartoes', 'receitas', 'gastos', 'pagamentos', 'saldos', 'cats', 'fixos', 'guardados']) if (!Array.isArray(o[k])) o[k] = d[k];
   if (!o.fixosFeitos || typeof o.fixosFeitos !== 'object') o.fixosFeitos = {};
+  o.meta = Object.assign({}, d.meta, o.meta || {});
   o.irmao = Object.assign({}, d.irmao, o.irmao || {}); o.ult = Object.assign({}, d.ult, o.ult || {});
   o.em = +o.em || 0; o.v = 1;
   if (!o.fontes.length) o.fontes = d.fontes; if (!o.cartoes.length) o.cartoes = d.cartoes;
@@ -483,7 +497,8 @@ function saldoAtual(){
   const rec = sum(S.receitas.filter(r => (r.cr || 0) > last.cr), r => r.valor);
   const pag = sum(S.pagamentos.filter(p => (p.cr || 0) > last.cr), p => p.valor);
   const gas = sum(S.gastos.filter(g => (g.cr || 0) > last.cr && cartao(g.cartao).tipo === 'conta'), g => g.valor);
-  return { last, rec, pag, gas, est:last.valor + rec + pag - gas };
+  const gua = sum(S.guardados.filter(x => (x.cr || 0) > last.cr), x => x.valor);
+  return { last, rec, pag, gas, gua, est:last.valor + rec + pag - gas - gua };
 }
 function irmaoPendente(){
   const gasto = sum(S.gastos.filter(g => g.quem === 'irmao'), g => g.valor);
@@ -504,13 +519,40 @@ function aplicarFixos(){ // cria o gasto de cada fixo no dia certo do mês atual
   const mes = nowKey(), hoje = todayISO(), ultimo = new Date(+mes.slice(0, 4), +mes.slice(5, 7), 0).getDate();
   let n = 0;
   for (const f of S.fixos) {
-    if (f.ativo === false) continue;
+    if (f.ativo === false || f.forma === 'boleto') continue;
     const key = f.id + '|' + mes; if (S.fixosFeitos[key]) continue;
     const data = mes + '-' + p2(Math.min(Math.max(1, f.dia || 1), ultimo)); if (data > hoje) continue;
     S.gastos.push({ id:uid(), cr:Date.now() + n, valor:f.valor, data, cartao:f.cartao, quem:f.quem === 'irmao' ? 'irmao' : 'eu', desc:f.nome, cat:f.cat || '', fixo:f.id });
     S.fixosFeitos[key] = true; n++;
   }
   return n;
+}
+
+function diasRestantes(){ // dias que faltam no mês escolhido, contando hoje (meses passados: 0; futuros: o mês inteiro)
+  const [y, m] = UI.mes.split('-').map(Number), ultimo = new Date(y, m, 0).getDate();
+  if (UI.mes < nowKey()) return 0; if (UI.mes > nowKey()) return ultimo;
+  return ultimo - new Date().getDate() + 1;
+}
+function metaGuardar(prevista){ const m = S.meta || {}; return m.tipo === 'pct' ? Math.round(prevista * (m.pct || 0) / 100) : (m.valor || 0); }
+function orcamento(){
+  const rm = S.receitas.filter(inMes), recebido = sum(rm, r => r.valor), prevConf = sum(S.fontes, f => f.prev || 0);
+  const prevista = Math.max(prevConf, recebido);
+  const fixos = S.fixos.filter(f => f.ativo !== false && f.quem !== 'irmao'), fixosTotal = sum(fixos, f => f.valor);
+  const meta = metaGuardar(prevista);
+  const gm = gastosMes().filter(g => g.quem !== 'irmao');
+  const variavel = sum(gm.filter(g => !g.fixo), g => g.valor);
+  const orc = prevista - fixosTotal - meta, restante = orc - variavel, dias = diasRestantes();
+  const guardado = sum(S.guardados.filter(inMes), x => x.valor);
+  return { prevista, prevConf, recebido, fixosTotal, meta, variavel, orc, restante, dias, porDia:dias ? Math.floor(restante / dias) : 0, guardado };
+}
+function contasMes(){ // boletos e Pix fixos do mês escolhido, com situação
+  const [y, m] = UI.mes.split('-').map(Number), ultimo = new Date(y, m, 0).getDate(), hoje = todayISO();
+  return S.fixos.filter(f => f.ativo !== false && f.forma === 'boleto').map(f => {
+    const venc = UI.mes + '-' + p2(Math.min(Math.max(1, f.dia || 1), ultimo)), key = f.id + '|' + UI.mes;
+    const pago = S.gastos.find(g => g.fixo === f.id && (g.data || '').slice(0, 7) === UI.mes);
+    const dias = Math.round((parseISO(venc) - parseISO(hoje)) / 86400000);
+    return { f, venc, key, pago, dias, st:pago ? 'pago' : dias < 0 ? 'atrasada' : dias <= 3 ? 'vence' : 'aberta' };
+  }).sort((a, b) => (a.pago ? 1 : 0) - (b.pago ? 1 : 0) || a.venc.localeCompare(b.venc));
 }
 
 /* ========== telas ========== */
@@ -531,12 +573,41 @@ function rResumo(){
   const maxC = Math.max(1, ...S.cartoes.map(c => sum(gm.filter(g => g.cartao === c.id), g => g.valor)));
   let h = '';
   if (needsSetup()) h += `<div class="card blk-lime"><p class="eyebrow">Comece por aqui</p><h2>Dê nome aos seus empregos e cartões</h2><p class="sub">Leva um minuto. Depois é só lançar os gastos pelo botão <b>+</b> aí embaixo.</p><div class="btns"><button type="button" class="btn primary" data-a="tab" data-k="ajustes">Abrir ajustes</button></div></div>`;
+  // posso gastar
+  const o = orcamento(), nIr = esc(S.irmao.nome);
+  if (o.prevista || o.fixosTotal || o.meta) {
+    const cls = o.restante < 0 ? 'blk-bad' : o.orc > 0 && o.restante < o.orc * 0.2 ? 'blk-warn' : 'blk-lime';
+    h += `<div class="card ${cls}"><div class="hd"><p class="eyebrow">Posso gastar ${UI.mes === nowKey() ? 'ainda' : 'no mês'}</p>${!o.prevConf ? `<button type="button" class="btn sm" data-a="tab" data-k="ajustes">Renda prevista</button>` : ''}</div>
+      <p class="big">${fmtBig(o.restante)}</p>
+      <p class="sub">${o.restante < 0 ? 'Passou do planejado em ' + esc(fmt(-o.restante)) + '. Segura o cartão até o fim do mês.' : o.dias ? 'Dá <b>' + esc(fmt(o.porDia)) + ' por dia</b> até o fim do mês, já separando o que você vai guardar.' : 'Mês fechado.'}</p>
+      <div class="orc"><div class="ln"><span>Renda ${o.prevConf ? 'prevista' : 'recebida'}</span><b>${esc(fmt(o.prevista))}</b></div><div class="ln"><span>− Contas fixas (cartão, boleto e Pix)</span><b>${esc(fmt(o.fixosTotal))}</b></div><div class="ln"><span>− Guardar este mês</span><b>${esc(fmt(o.meta))}</b></div><div class="ln tot"><span>= Dá para gastar</span><b>${esc(fmt(o.orc))}</b></div><div class="ln"><span>Já gastei (fora os fixos)</span><b>${esc(fmt(o.variavel))}</b></div></div>
+      ${!o.prevConf ? '<p class="sub">Dica: em Ajustes, informe quanto entra por mês de cada emprego. Assim a conta vale desde o dia 1, antes de o salário cair.</p>' : ''}</div>`;
+  }
+  // cofrinho
+  if (o.meta || o.guardado) {
+    const falta = Math.max(0, o.meta - o.guardado), pct = o.meta ? Math.min(100, Math.round(o.guardado / o.meta * 100)) : 100;
+    h += `<div class="card ${falta ? (new Date().getDate() > 10 && UI.mes === nowKey() ? 'blk-warn' : '') : 'blk-ok'}"><div class="hd"><h2>Cofrinho</h2><span class="pill">${pct}% da meta</span></div>
+      <p class="big">${fmtBig(o.guardado)}<small style="margin-left:6px">de ${esc(fmt(o.meta))}</small></p><div class="prog"><i style="width:${pct}%"></i></div>
+      <p class="sub">${falta ? 'Faltam <b>' + esc(fmt(falta)) + '</b> para guardar este mês. Quando o salário cair, guarde primeiro e gaste depois.' : 'Meta do mês batida. Isso é o que faz sobrar no mês que vem.'}</p>
+      <div class="btns">${falta ? `<button type="button" class="btn primary" data-a="guardar-tudo" data-k="${falta}">Guardei ${esc(fmt(falta))}</button>` : ''}<button type="button" class="btn" data-a="guardar">${I.plus}Outro valor</button>${S.guardados.filter(inMes).length ? `<button type="button" class="btn" data-a="ver-guardados">Ver</button>` : ''}</div></div>`;
+  } else h += `<div class="card"><div class="hd"><h2>Cofrinho</h2></div><p class="sub">Defina em Ajustes quanto quer guardar por mês (um valor ou uma porcentagem da renda). O "posso gastar" já desconta isso, então guardar deixa de ser o que sobra e vira a primeira conta a pagar.</p><div class="btns"><button type="button" class="btn primary" data-a="tab" data-k="ajustes">Definir meta</button></div></div>`;
+  // contas do mês (boleto / Pix)
+  const cm = contasMes();
+  if (cm.length) {
+    const aberto = sum(cm.filter(x => !x.pago), x => x.f.valor);
+    h += `<div class="card" style="padding-bottom:8px"><div class="hd"><h2>Contas do mês</h2><span class="pill">${aberto ? 'falta ' + esc(fmt(aberto)) : 'tudo pago'}</span></div><div class="list" style="margin:0 -6px">`;
+    for (const x of cm) {
+      const stH = x.pago ? '<span class="conta-st ok">Paga</span>' : x.st === 'atrasada' ? `<span class="conta-st bad">Atrasada ${-x.dias}d</span>` : x.st === 'vence' ? `<span class="conta-st warn">${x.dias === 0 ? 'Vence hoje' : 'Vence em ' + x.dias + 'd'}</span>` : `<span class="conta-st">Dia ${x.f.dia}</span>`;
+      h += `<div class="cta"><div class="l1"><span class="ic" style="width:30px;height:30px;border-radius:10px;background:var(--ctl);display:inline-flex;align-items:center;justify-content:center;font-size:14px">${x.pago ? '✅' : '📄'}</span><b>${esc(x.f.nome)}</b><span class="val">${esc(fmt(x.f.valor))}</span></div><div class="l2">${stH}<span class="t">${x.pago ? 'Paga em ' + esc(shortDate(x.pago.data)) : 'Vence ' + esc(shortDate(x.venc))} · ${esc(cartao(x.f.cartao).nome)}${x.f.quem === 'irmao' ? ' · ' + nIr : ''}</span>${x.pago ? `<button type="button" class="btn sm" data-a="despagar-conta" data-k="${x.pago.id}">Desfazer</button>` : `<button type="button" class="btn sm primary" data-a="pagar-conta" data-k="${x.f.id}">Paguei</button>`}</div></div>`;
+    }
+    h += `</div><p class="sub" style="padding-top:8px">Toque em "Paguei" no dia que pagar: o valor entra nos gastos do mês e sai do saldo da conta.</p></div>`;
+  }
   // saldo
   h += `<div class="card ${sa && sa.est < 0 ? 'blk-bad' : 'blk-water'}"><div class="hd"><p class="eyebrow">Saldo na conta</p>${sa ? `<span class="pill">informado ${esc(whenLabel(sa.last.cr))}</span>` : ''}</div>`;
   if (!sa) h += `<p class="big">—</p><p class="sub">Veja o saldo no banco uma vez e anote aqui. Depois, a página acompanha sozinha com o que você lançar.</p><div class="btns"><button type="button" class="btn primary" data-a="saldo">Informar saldo de hoje</button></div>`;
   else {
     const mov = [];
-    if (sa.rec) mov.push('+' + fmt(sa.rec) + ' recebidos'); if (sa.pag) mov.push('+' + fmt(sa.pag) + ' do ' + esc(S.irmao.nome)); if (sa.gas) mov.push('−' + fmt(sa.gas) + ' gastos na conta');
+    if (sa.rec) mov.push('+' + fmt(sa.rec) + ' recebidos'); if (sa.gua) mov.push('−' + fmt(sa.gua) + ' guardados'); if (sa.pag) mov.push('+' + fmt(sa.pag) + ' do ' + esc(S.irmao.nome)); if (sa.gas) mov.push('−' + fmt(sa.gas) + ' gastos na conta');
     h += `<p class="big">${fmtBig(sa.est)}</p><p class="sub">${mov.length ? 'Você informou ' + fmt(sa.last.valor) + '. Desde então: ' + mov.join(' · ') + '.' : 'Nada lançado na conta desde que você informou.'}</p><div class="btns"><button type="button" class="btn primary" data-a="saldo">${I.refresh}Atualizar saldo</button></div>`;
   }
   h += `</div>`;
@@ -607,7 +678,7 @@ function rGastos(){
     for (const g of its) {
       if (g.data !== dia) { dia = g.data; const tot = sum(its.filter(x => x.data === dia), x => x.valor); h += `<div class="gh"><span>${esc(dayLabel(dia))}</span><b>${esc(fmt(tot))}</b></div>`; }
       const c = cartao(g.cartao);
-      h += `<button type="button" class="row" data-a="ed-gasto" data-k="${g.id}"><span class="sw" style="--sw:${swOf(c)}"></span><span class="tx"><b>${esc(g.desc || g.cat || 'Gasto')}</b><span>${esc(c.nome)}${g.cat && g.desc ? ' · ' + esc(g.cat) : ''}${g.parc ? ' · ' + esc(g.parc) : ''}${g.fixo ? ' · fixo' : ''}</span></span>${g.quem === 'irmao' ? `<span class="tag">${esc(S.irmao.nome)}</span>` : ''}<span class="val">${esc(fmt(g.valor))}</span></button>`;
+      h += `<button type="button" class="row" data-a="ed-gasto" data-k="${g.id}"><span class="sw" style="--sw:${swOf(c)}"></span><span class="tx"><b>${esc(g.desc || g.cat || 'Gasto')}</b><span>${esc(c.nome)}${g.cat && g.desc ? ' · ' + esc(g.cat) : ''}${g.parc ? ' · ' + esc(g.parc) : ''}${g.fixo ? (g.boleto ? ' · boleto/Pix' : ' · fixo') : ''}</span></span>${g.quem === 'irmao' ? `<span class="tag">${esc(S.irmao.nome)}</span>` : ''}<span class="val">${esc(fmt(g.valor))}</span></button>`;
     }
     h += `</div><p class="sub" style="text-align:center">Total: <b>${esc(fmt(sum(its, g => g.valor)))}</b> em ${its.length} ${its.length === 1 ? 'gasto' : 'gastos'}. Toque num gasto para editar ou apagar.</p>`;
   }
@@ -634,7 +705,9 @@ function rIrmao(){
 function rAjustes(){
   const t = document.documentElement.dataset.theme || 'auto';
   let h = `<div class="card"><div class="hd"><h2>Renda</h2><button type="button" class="btn sm" data-a="add-fonte">${I.plus}Fonte</button></div><p class="sub">Seus empregos ou de onde vem o dinheiro.</p>`;
-  for (const f of S.fontes) h += `<div class="set-item"><div class="inline"><label class="field"><span class="sr">Nome</span><input id="in-f-${f.id}" data-f="fonte" data-k="${f.id}" value="${esc(f.nome)}" placeholder="Nome do emprego"></label><button type="button" class="mic sm ghost" data-voz="in-f-${f.id}" aria-label="Falar o nome">${I.mic}</button><button type="button" class="x-sm" data-a="del-fonte" data-k="${f.id}" aria-label="Apagar">${I.trash}</button></div></div>`;
+  for (const f of S.fontes) h += `<div class="set-item"><div class="inline"><label class="field"><span class="sr">Nome</span><input id="in-f-${f.id}" data-f="fonte" data-k="${f.id}" value="${esc(f.nome)}" placeholder="Nome do emprego"></label><button type="button" class="mic sm ghost" data-voz="in-f-${f.id}" aria-label="Falar o nome">${I.mic}</button><button type="button" class="x-sm" data-a="del-fonte" data-k="${f.id}" aria-label="Apagar">${I.trash}</button></div>
+    <label class="field" style="font-weight:600;color:var(--muted)">Entra por mês (previsão)<input inputmode="decimal" data-f="prev" data-k="${f.id}" value="${f.prev ? esc((f.prev / 100).toFixed(2).replace('.', ',')) : ''}" placeholder="Ex.: 3500,00"></label></div>`;
+  h += `<p class="sub">A previsão é o que o "Posso gastar" usa antes de o salário cair. Quando o valor recebido for maior, ele passa a valer.</p>`;
   h += `</div>`;
   h += `<div class="card"><div class="hd"><h2>Cartões e conta</h2><button type="button" class="btn sm" data-a="add-cartao">${I.plus}Cartão</button></div><p class="sub">Cada cartão com sua cor. Marque um como "conta" para o saldo acompanhar o débito e o Pix. O dia de fechamento mostra a fatura atual no Resumo.</p>`;
   for (const c of S.cartoes) {
@@ -644,9 +717,13 @@ function rAjustes(){
       <div class="sw-pick">${[0, 1, 2, 3, 4, 5, 6, 7].map(i => `<button type="button" class="${(c.cor ?? 7) === i ? 'on' : ''}" style="--sw:var(--c${i})" data-a="cor-cartao" data-k="${c.id}" data-v="${i}" aria-label="Cor ${i + 1}"></button>`).join('')}</div></div>`;
   }
   h += `</div>`;
-  h += `<div class="card"><div class="hd"><h2>Gastos fixos</h2><button type="button" class="btn sm" data-a="add-fixo">${I.plus}Fixo</button></div><p class="sub">Aluguel, assinaturas, parcelas: entram sozinhos no dia certo de cada mês. Toque para editar.</p>`;
+  const mt = S.meta || {};
+  h += `<div class="card"><h2>Guardar todo mês</h2><p class="sub">A meta entra como conta no "Posso gastar". No Resumo, o cofrinho cobra até você guardar.</p>
+    <div class="seg"><button type="button" class="${mt.tipo !== 'pct' ? 'on' : ''}" data-a="meta-tipo" data-k="valor">Valor fixo</button><button type="button" class="${mt.tipo === 'pct' ? 'on' : ''}" data-a="meta-tipo" data-k="pct">% da renda</button></div>
+    ${mt.tipo === 'pct' ? `<label class="field">Porcentagem da renda prevista<input type="number" min="1" max="90" inputmode="numeric" data-f="meta-pct" value="${mt.pct || 10}"></label>` : `<label class="field">Valor por mês<input inputmode="decimal" data-f="meta-valor" value="${mt.valor ? esc((mt.valor / 100).toFixed(2).replace('.', ',')) : ''}" placeholder="Ex.: 300,00"></label>`}</div>`;
+  h += `<div class="card"><div class="hd"><h2>Gastos fixos</h2><button type="button" class="btn sm" data-a="add-fixo">${I.plus}Fixo</button></div><p class="sub">No cartão (assinaturas, parcelas) entram sozinhos no dia certo. Boleto ou Pix (financiamento, DAS, internet) aparecem em "Contas do mês" e você toca em "Paguei".</p>`;
   if (!S.fixos.length) h += `<p class="sub">Nenhum gasto fixo ainda. Dica: toque no microfone e diga "fixo aluguel 1200 na conta dia 5".</p>`;
-  else { h += `<div class="list" style="margin:0 -6px">`; for (const f of S.fixos) { const c = cartao(f.cartao); h += `<button type="button" class="row" data-a="ed-fixo" data-k="${f.id}"><span class="sw" style="--sw:${swOf(c)}"></span><span class="tx"><b>${esc(f.nome)}</b><span>Dia ${f.dia || 1} · ${esc(c.nome)}${f.quem === 'irmao' ? ' · ' + esc(S.irmao.nome) : ''}${f.ativo === false ? ' · pausado' : ''}</span></span><span class="val">${esc(fmt(f.valor))}<small>por mês</small></span></button>`; } h += `</div><p class="sub">Total fixo: <b>${esc(fmt(sum(S.fixos.filter(f => f.ativo !== false), f => f.valor)))}</b> por mês.</p>`; }
+  else { h += `<div class="list" style="margin:0 -6px">`; for (const f of S.fixos) { const c = cartao(f.cartao); h += `<button type="button" class="row" data-a="ed-fixo" data-k="${f.id}"><span class="sw" style="--sw:${swOf(c)}"></span><span class="tx"><b>${esc(f.nome)}</b><span>${f.forma === 'boleto' ? 'Boleto/Pix · vence dia ' : 'Dia '}${f.dia || 1} · ${esc(c.nome)}${f.quem === 'irmao' ? ' · ' + esc(S.irmao.nome) : ''}${f.ativo === false ? ' · pausado' : ''}</span></span><span class="val">${esc(fmt(f.valor))}<small>por mês</small></span></button>`; } h += `</div><p class="sub">Total fixo: <b>${esc(fmt(sum(S.fixos.filter(f => f.ativo !== false), f => f.valor)))}</b> por mês.</p>`; }
   h += `</div>`;
   h += `<div class="card"><h2>Quem usa seu cartão</h2><p class="sub">Nome, WhatsApp e chave Pix (entra na mensagem de cobrança).</p>
     <div class="inline"><label class="field">Nome<input id="in-irmao" data-f="irmao-nome" value="${esc(S.irmao.nome)}" placeholder="Irmão"></label><button type="button" class="mic sm ghost" style="margin-top:22px" data-voz="in-irmao" aria-label="Falar o nome">${I.mic}</button></div>
@@ -747,16 +824,18 @@ function sheetPag(x){
     <div class="btns"><button type="button" class="btn primary wide" data-s="salvar-pag" style="flex:1 1 100%">Salvar</button>${edit ? `<button type="button" class="btn danger" data-s="apagar-pag">${I.trash}Apagar</button>` : ''}</div>`, { kind:'pag', id:x.id, dig:x.valor ? String(x.valor) : '' });
 }
 function sheetFixo(f){
-  const edit = !!(f && f.id); f = Object.assign({ nome:'', valor:0, cartao:S.ult.cartao, dia:1, quem:'eu', cat:'', ativo:true }, f || {});
+  const edit = !!(f && f.id); f = Object.assign({ nome:'', valor:0, cartao:S.ult.cartao, dia:1, quem:'eu', cat:'', ativo:true, forma:'cartao' }, f || {});
+  if (f.forma === 'boleto' && cartao(f.cartao).tipo !== 'conta') { const cc = S.cartoes.find(c => c.tipo === 'conta'); if (cc) f.cartao = cc.id; }
   if (!S.cartoes.some(c => c.id === f.cartao)) f.cartao = S.cartoes[0].id;
-  const st = { kind:'fixo', id:f.id, dig:f.valor ? String(f.valor) : '', cartao:f.cartao, quem:f.quem, cat:f.cat || '' };
+  const st = { kind:'fixo', id:f.id, dig:f.valor ? String(f.valor) : '', cartao:f.cartao, quem:f.quem, cat:f.cat || '', forma:f.forma || 'cartao' };
   Sheet.open(`<div class="hd"><h2>${edit ? 'Editar fixo' : 'Novo gasto fixo'}</h2><button type="button" class="mic" data-s="voz-sheet" aria-label="Falar o gasto fixo">${I.mic}</button><button type="button" class="x" data-s="fechar" aria-label="Fechar">${I.x}</button></div>
     ${amtHTML(f.valor, 'Valor de cada mês')}${padHTML()}
     <div class="sec"><label class="field">Nome<span class="inline"><input id="s-nome" value="${esc(f.nome)}" placeholder="Ex.: aluguel, Netflix, academia"><button type="button" class="mic sm ghost" data-voz="s-nome" aria-label="Falar o nome">${I.mic}</button></span></label></div>
-    <div class="sec"><p class="lbl">Cartão</p>${chipsHTML('cartao', S.cartoes, f.cartao, swOf)}</div>
+    <div class="sec"><p class="lbl">Como paga</p><div class="seg"><button type="button" class="${st.forma !== 'boleto' ? 'on' : ''}" data-c="forma" data-k="cartao">No cartão (lança sozinho)</button><button type="button" class="${st.forma === 'boleto' ? 'on' : ''}" data-c="forma" data-k="boleto">Boleto ou Pix (eu confirmo)</button></div></div>
+    <div class="sec"><p class="lbl">${st.forma === 'boleto' ? 'Sai de' : 'Cartão'}</p>${chipsHTML('cartao', S.cartoes, f.cartao, swOf)}</div>
     <div class="sec"><p class="lbl">Quem paga</p><div class="seg"><button type="button" class="${st.quem !== 'irmao' ? 'on' : ''}" data-c="quem" data-k="eu">Eu</button><button type="button" class="${st.quem === 'irmao' ? 'on' : ''}" data-c="quem" data-k="irmao">${esc(S.irmao.nome)}</button></div></div>
     <div class="sec"><p class="lbl">Categoria</p><div class="chips scroll">${S.cats.map(c => `<button type="button" class="opt ${st.cat === c ? 'on' : ''}" data-c="cat" data-k="${esc(c)}">${esc(c)}</button>`).join('')}</div></div>
-    <div class="grid2"><label class="field">Dia do mês<input type="number" id="s-dia" min="1" max="31" inputmode="numeric" value="${f.dia || 1}"></label><label class="field">Situação<select id="s-ativo"><option value="1" ${f.ativo !== false ? 'selected' : ''}>Ativo</option><option value="0" ${f.ativo === false ? 'selected' : ''}>Pausado</option></select></label></div>
+    <div class="grid2"><label class="field">${st.forma === 'boleto' ? 'Vence dia' : 'Dia do mês'}<input type="number" id="s-dia" min="1" max="31" inputmode="numeric" value="${f.dia || 1}"></label><label class="field">Situação<select id="s-ativo"><option value="1" ${f.ativo !== false ? 'selected' : ''}>Ativo</option><option value="0" ${f.ativo === false ? 'selected' : ''}>Pausado</option></select></label></div>
     <div class="btns"><button type="button" class="btn primary wide" data-s="salvar-fixo" style="flex:1 1 100%">Salvar</button>${edit ? `<button type="button" class="btn danger" data-s="apagar-fixo">${I.trash}Apagar</button>` : ''}</div>`, st);
 }
 
@@ -813,7 +892,8 @@ function entender(texto, tipoForcado){
   // tipo
   if (/\bsaldo\b/.test(t)) r.tipo = 'saldo';
   else if (/\b(me pagou|pagou|devolveu|transferiu pra mim|transferiu para mim)\b/.test(t)) r.tipo = 'pag';
-  else if (/\b(fixo|fixa|todo mes|mensal|mensalidade|assinatura)\b/.test(t)) r.tipo = 'fixo';
+  else if (/\b(guardei|guardar|poupei|poupar|cofrinho|caixinha|investi)\b/.test(t)) r.tipo = 'guardar';
+  else if (/\b(fixo|fixa|todo mes|mensal|mensalidade|assinatura|boleto|financiamento|vence|vencimento)\b/.test(t)) { r.tipo = 'fixo'; r.forma = /\b(boleto|pix|financiamento|vence|vencimento|das)\b/.test(t) ? 'boleto' : 'cartao'; }
   else if (/\b(recebi|recebimento|receita|salario|entrou|caiu|ganhei|pagamento do|pagamento da)\b/.test(t)) r.tipo = 'receita';
   if (tipoForcado) r.tipo = tipoForcado;
   // valor: prefere número seguido de reais; senão, o maior número
@@ -847,7 +927,7 @@ function entender(texto, tipoForcado){
   // categoria
   for (const c of S.cats) { const n = semAcento(c); if (new RegExp('\\b' + n + '\\b').test(t)) { r.cat = c; break; } }
   // descrição: o que sobrou, sem os verbos e conectivos
-  t = t.replace(/\b(gastei|paguei|comprei|lancei|lanca|lancar|anota|anotar|registra|registrar|coloca|gasto|gastos|despesa|compra|comprar|fixo|fixa|todo mes|mensal|recebi|recebimento|receita|salario|entrou|caiu|ganhei|saldo|me pagou|pagou|devolveu|cartao|no cartao|valor|de valor|foi|foram|um gasto|uma despesa|novo|nova|por mes|do mes|no mes)\b/g, ' ');
+  t = t.replace(/\b(guardei|guardar|poupei|poupar|cofrinho|caixinha|investi|boleto|vence|vencimento|gastei|paguei|comprei|lancei|lanca|lancar|anota|anotar|registra|registrar|coloca|gasto|gastos|despesa|compra|comprar|fixo|fixa|todo mes|mensal|recebi|recebimento|receita|salario|entrou|caiu|ganhei|saldo|me pagou|pagou|devolveu|cartao|no cartao|valor|de valor|foi|foram|um gasto|uma despesa|novo|nova|por mes|do mes|no mes)\b/g, ' ');
   const STOP = new Set(['de', 'do', 'da', 'dos', 'das', 'no', 'na', 'nos', 'nas', 'em', 'com', 'o', 'a', 'os', 'as', 'um', 'uma', 'pra', 'para', 'pro', 'e', 'que', 'por', 'pelo', 'pela', 'ao', 'meu', 'minha']);
   const tk = t.replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
   while (tk.length && STOP.has(tk[0])) tk.shift(); while (tk.length && STOP.has(tk[tk.length - 1])) tk.pop();
@@ -857,12 +937,14 @@ function entender(texto, tipoForcado){
   return r;
 }
 function addDays(iso, k){ const d = parseISO(iso); d.setDate(d.getDate() + k); return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()); }
-const TIPOS = { gasto:'Gasto', receita:'Receita', saldo:'Saldo', pag:S.irmao.nome + ' pagou', fixo:'Gasto fixo' };
+const TIPOS = { gasto:'Gasto', receita:'Receita', saldo:'Saldo', pag:S.irmao.nome + ' pagou', fixo:'Conta fixa', guardar:'Guardei' };
 function resumoEntendido(p){
   const n = esc(S.irmao.nome);
   if (p.tipo === 'saldo') return `<p class="det">Saldo na conta agora: <b>${esc(fmt(p.valor))}</b></p>`;
   if (p.tipo === 'pag') return `<p class="det"><b>${n}</b> te pagou <b>${esc(fmt(p.valor))}</b>${p.desc ? ' · ' + esc(p.desc) : ''} · ${esc(dayLabel(p.data))}</p>`;
   if (p.tipo === 'receita') return `<p class="det">Recebido de <b>${esc(fonte(p.fonte).nome)}</b>${p.desc ? ' · ' + esc(p.desc) : ''} · ${esc(dayLabel(p.data))}</p>`;
+  if (p.tipo === 'guardar') return `<p class="det">Guardado no cofrinho: <b>${esc(fmt(p.valor))}</b>${p.desc ? ' · ' + esc(p.desc) : ''} · ${esc(dayLabel(p.data))}</p>`;
+  if (p.tipo === 'fixo' && p.forma === 'boleto') return `<p class="det"><b>${esc(p.desc || 'Conta')}</b> no boleto ou Pix, vence todo dia <b>${p.dia || 1}</b>${p.cat ? ' · ' + esc(p.cat) : ''}. Você confirma com "Paguei" a cada mês.</p>`;
   if (p.tipo === 'fixo') return `<p class="det"><b>${esc(p.desc || 'Gasto fixo')}</b> todo dia <b>${p.dia || 1}</b> no <b>${esc(cartao(p.cartao).nome)}</b>${p.quem === 'irmao' ? ' · ' + n : ''}${p.cat ? ' · ' + esc(p.cat) : ''}</p>`;
   return `<p class="det"><b>${esc(p.desc || p.cat || 'Gasto')}</b> no <b>${esc(cartao(p.cartao).nome)}</b> · ${p.quem === 'irmao' ? '<b>' + n + '</b>' : 'eu'}${p.cat ? ' · ' + esc(p.cat) : ''} · ${esc(dayLabel(p.data))}</p>`;
 }
@@ -899,7 +981,8 @@ function vozAjustar(p){
   if (p.tipo === 'saldo') return sheetSaldo({ valor:p.valor });
   if (p.tipo === 'pag') return sheetPag({ valor:p.valor, data:p.data, obs:p.desc });
   if (p.tipo === 'receita') return sheetReceita({ valor:p.valor, data:p.data, fonte:p.fonte, obs:p.desc });
-  if (p.tipo === 'fixo') return sheetFixo({ valor:p.valor, nome:p.desc, cartao:p.cartao, dia:p.dia || 1, quem:p.quem, cat:p.cat });
+  if (p.tipo === 'guardar') return sheetGuardar({ valor:p.valor, data:p.data, obs:p.desc });
+  if (p.tipo === 'fixo') return sheetFixo({ valor:p.valor, nome:p.desc, cartao:p.cartao, dia:p.dia || 1, quem:p.quem, cat:p.cat, forma:p.forma || 'cartao' });
   return sheetGasto({ valor:p.valor, data:p.data, cartao:p.cartao, quem:p.quem, desc:p.desc, cat:p.cat });
 }
 function vozSalvar(p){
@@ -908,21 +991,23 @@ function vozSalvar(p){
   if (p.tipo === 'saldo') { S.saldos.push({ valor:p.valor, cr }); if (S.saldos.length > 60) S.saldos = S.saldos.slice(-60); }
   else if (p.tipo === 'pag') S.pagamentos.push({ id:uid(), cr, valor:Math.abs(p.valor), data:p.data, obs:p.desc });
   else if (p.tipo === 'receita') S.receitas.push({ id:uid(), cr, fonte:p.fonte, valor:Math.abs(p.valor), data:p.data, obs:p.desc });
-  else if (p.tipo === 'fixo') { S.fixos.push({ id:uid(), nome:p.desc || 'Gasto fixo', valor:Math.abs(p.valor), cartao:p.cartao, dia:p.dia || 1, quem:p.quem, cat:p.cat, ativo:true }); }
+  else if (p.tipo === 'guardar') S.guardados.push({ id:uid(), cr, valor:Math.abs(p.valor), data:p.data, obs:p.desc });
+  else if (p.tipo === 'fixo') { let ct = p.cartao; if (p.forma === 'boleto') { const cc = S.cartoes.find(c => c.tipo === 'conta'); if (cc) ct = cc.id; } S.fixos.push({ id:uid(), nome:p.desc || 'Conta fixa', valor:Math.abs(p.valor), cartao:ct, dia:p.dia || 1, quem:p.quem, cat:p.cat, ativo:true, forma:p.forma || 'cartao' }); }
   else { S.gastos.push({ id:uid(), cr, valor:Math.abs(p.valor), data:p.data, cartao:p.cartao, quem:p.quem, desc:p.desc, cat:p.cat }); S.ult.cartao = p.cartao; }
   save(); Sheet.close(); render();
-  toast({ saldo:'Saldo anotado: ', pag:S.irmao.nome + ' pagou ', receita:'Receita salva: ', fixo:'Fixo salvo: ', gasto:'Gasto salvo: ' }[p.tipo] + fmt(Math.abs(p.valor)) + '.');
+  toast({ saldo:'Saldo anotado: ', pag:S.irmao.nome + ' pagou ', receita:'Receita salva: ', fixo:'Conta fixa salva: ', guardar:'Guardado: ', gasto:'Gasto salvo: ' }[p.tipo] + fmt(Math.abs(p.valor)) + '.');
 }
 function vozNaFolha(){ // microfone dentro de uma folha: ouve e reabre a folha já preenchida
   const st = Sheet.st; if (!st) return;
   const b = Sheet.box.querySelector('[data-s="voz-sheet"]'); if (b) b.classList.add('on');
-  const tipo = { gasto:'gasto', receita:'receita', saldo:'saldo', pag:'pag', fixo:'fixo' }[st.kind];
+  const tipo = { gasto:'gasto', receita:'receita', saldo:'saldo', pag:'pag', fixo:'fixo', guardar:'guardar' }[st.kind];
   Voz.start(final => {
     const p = entender(final, tipo); const cur = Sheet.st; if (!cur || cur.kind !== st.kind) return;
     const base = { id:cur.id }; if (p.valor) base.valor = Math.abs(p.valor) * (p.tipo === 'saldo' && p.valor < 0 ? -1 : 1);
     if (tipo === 'gasto') sheetGasto(Object.assign(base, { data:p.data, cartao:p.cartao, quem:p.quem, desc:p.desc || val('s-desc'), cat:p.cat || cur.cat }));
     else if (tipo === 'receita') sheetReceita(Object.assign(base, { data:p.data, fonte:p.fonte, obs:p.desc || val('s-obs') }));
     else if (tipo === 'saldo') sheetSaldo({ valor:p.valor });
+    else if (tipo === 'guardar') sheetGuardar(Object.assign(base, { data:p.data, obs:p.desc || val('s-obs') }));
     else if (tipo === 'pag') sheetPag(Object.assign(base, { data:p.data, obs:p.desc || val('s-obs') }));
     else if (tipo === 'fixo') sheetFixo(Object.assign(base, { nome:p.desc || val('s-nome'), cartao:p.cartao, dia:p.dia || +val('s-dia') || 1, quem:p.quem, cat:p.cat || cur.cat }));
     toast('Entendi: “' + final + '”. Confira e salve.');
@@ -933,6 +1018,19 @@ function vozNoCampo(id, botao){ // microfone de um campo de texto: dita para den
   botao.classList.add('on');
   Voz.start(final => { const t = final.charAt(0).toUpperCase() + final.slice(1); el.value = t; el.dispatchEvent(new Event('input', { bubbles:true })); toast('Anotado: ' + t); },
     (k, v) => { if (k === 'erro') toast(Voz.erroMsg(v)); if (k !== 'parcial' && k !== 'ouvindo') botao.classList.remove('on'); });
+}
+
+function sheetGuardar(x){
+  const edit = !!(x && x.id); x = Object.assign({ data:todayISO(), valor:0, obs:'' }, x || {}); const o = orcamento(), falta = Math.max(0, o.meta - o.guardado);
+  Sheet.open(`<div class="hd"><h2>${edit ? 'Editar guardado' : 'Guardei no cofrinho'}</h2><button type="button" class="mic" data-s="voz-sheet" aria-label="Falar o valor">${I.mic}</button><button type="button" class="x" data-s="fechar" aria-label="Fechar">${I.x}</button></div>
+    ${amtHTML(x.valor, falta && !edit ? 'Faltam ' + fmt(falta) + ' para a meta do mês' : 'Quanto você separou (poupança, caixinha, investimento)')}${padHTML()}
+    ${!edit && falta ? `<button type="button" class="btn" data-s="tudo" data-k="${falta}">Guardei o que falta (${esc(fmt(falta))})</button>` : ''}
+    <div class="grid2"><label class="field">Data<input type="date" id="s-data" value="${esc(x.data)}"></label><label class="field">Onde<input id="s-obs" value="${esc(x.obs || '')}" placeholder="Ex.: caixinha, CDB"></label></div>
+    <div class="btns"><button type="button" class="btn primary wide" data-s="salvar-guardado" style="flex:1 1 100%">Salvar</button>${edit ? `<button type="button" class="btn danger" data-s="apagar-guardado">${I.trash}Apagar</button>` : ''}</div>`, { kind:'guardar', id:x.id, dig:x.valor ? String(x.valor) : '' });
+}
+function sheetGuardados(){
+  const its = S.guardados.filter(inMes).sort((a, b) => b.data.localeCompare(a.data));
+  Sheet.open(`<div class="hd"><h2>Guardado em ${esc(monthLabel(UI.mes))}</h2><button type="button" class="x" data-s="fechar" aria-label="Fechar">${I.x}</button></div><div class="list">${its.map(x => `<button type="button" class="row" data-a="ed-guardado" data-k="${x.id}"><span class="ic">🐷</span><span class="tx"><b>${esc(x.obs || 'Guardado')}</b><span>${esc(dayLabel(x.data))}</span></span><span class="val in">${esc(fmt(x.valor))}</span></button>`).join('')}</div>`, { kind:'lista' });
 }
 
 function textoCobranca(){
@@ -965,6 +1063,7 @@ Sheet.box.addEventListener('click', ev => {
   if (c) {
     const name = c.dataset.c, k = c.dataset.k;
     if (name === 'vtipo') { s.p = entender(s.texto, k); mostrarEntendido(); return; }
+    if (name === 'forma' && s.kind === 'fixo') { const v = cents(); sheetFixo({ id:s.id, valor:v, nome:val('s-nome'), cartao:s.cartao, dia:+val('s-dia') || 1, quem:s.quem, cat:s.cat, ativo:val('s-ativo') !== '0', forma:k }); return; }
     if (name === 'sinal') { s.neg = k === 'neg'; refreshAmt(); }
     else if (name === 'sug') { $('#s-desc').value = k; if (c.dataset.cat) { s.cat = c.dataset.cat; } }
     else if (name === 'cat') { s.cat = s.cat === k ? '' : k; }
@@ -984,10 +1083,17 @@ Sheet.box.addEventListener('click', ev => {
   if (a === 'salvar-fixo') {
     const v = cents(), nome = val('s-nome').trim(), dia = Math.min(31, Math.max(1, parseInt(val('s-dia') || '1', 10) || 1));
     if (v <= 0) return toast('Digite o valor mensal.'); if (!nome) return toast('Dê um nome ao gasto fixo.');
-    const o = { nome, valor:v, cartao:s.cartao, dia, quem:s.quem === 'irmao' ? 'irmao' : 'eu', cat:s.cat || '', ativo:val('s-ativo') !== '0' };
+    const o = { nome, valor:v, cartao:s.cartao, dia, quem:s.quem === 'irmao' ? 'irmao' : 'eu', cat:s.cat || '', ativo:val('s-ativo') !== '0', forma:s.forma === 'boleto' ? 'boleto' : 'cartao' };
     if (s.id) { const f = S.fixos.find(x => x.id === s.id); if (f) Object.assign(f, o); } else S.fixos.push(Object.assign({ id:uid() }, o));
     save(); Sheet.close(); render(); toast('Gasto fixo salvo.');
   }
+  if (a === 'salvar-guardado') {
+    const v = cents(), data = val('s-data'); if (v <= 0) return toast('Digite o valor guardado.'); if (!okData(data)) return toast('Confira a data.');
+    const o = { valor:v, data, obs:val('s-obs').trim() };
+    if (s.id) { const x = S.guardados.find(y => y.id === s.id); if (x) Object.assign(x, o); } else S.guardados.push(Object.assign({ id:uid(), cr:Date.now() }, o));
+    save(); Sheet.close(); render(); toast('Guardado: ' + fmt(v) + '. Boa!');
+  }
+  if (a === 'apagar-guardado') { if (!confirm('Apagar este registro?')) return; S.guardados = S.guardados.filter(x => x.id !== s.id); save(); Sheet.close(); render(); }
   if (a === 'apagar-fixo') { if (!confirm('Apagar este gasto fixo? Os gastos já lançados continuam.')) return; S.fixos = S.fixos.filter(x => x.id !== s.id); save(); Sheet.close(); render(); }
   if (a === 'tudo') { s.dig = String(b.dataset.k); refreshAmt(); return; }
   if (a === 'copiar') { copiar(s.texto); return; }
@@ -1011,7 +1117,7 @@ Sheet.box.addEventListener('click', ev => {
     const v = cents(), data = val('s-data'); if (v <= 0) return toast('Digite o valor recebido.'); if (!okData(data)) return toast('Confira a data.');
     const o = { fonte:s.fonte, valor:v, data, obs:val('s-obs').trim() };
     if (s.id) { const r = S.receitas.find(x => x.id === s.id); if (r) Object.assign(r, o); } else S.receitas.push(Object.assign({ id:uid(), cr:Date.now() }, o));
-    save(); Sheet.close(); render(); toast('Receita salva: ' + fmt(v) + '.');
+    save(); Sheet.close(); render(); { const oo = orcamento(); toast(oo.meta > oo.guardado ? 'Receita salva. Agora guarde ' + fmt(oo.meta - oo.guardado) + ' antes de gastar!' : 'Receita salva: ' + fmt(v) + '.'); }
   }
   if (a === 'apagar-receita') { if (!confirm('Apagar esta receita?')) return; S.receitas = S.receitas.filter(x => x.id !== s.id); save(); Sheet.close(); render(); }
   if (a === 'salvar-saldo') { if (!(s.dig || '').length) return toast('Digite o saldo.'); const v = cents(); S.saldos.push({ valor:v, cr:Date.now() }); if (S.saldos.length > 60) S.saldos = S.saldos.slice(-60); save(); Sheet.close(); render(); toast('Saldo anotado: ' + fmt(v) + '.'); }
@@ -1037,6 +1143,13 @@ document.addEventListener('click', ev => {
   if (a === 'novo-gasto') sheetGasto();
   if (a === 'voz') sheetVoz();
   if (a === 'add-fixo') sheetFixo();
+  if (a === 'guardar') sheetGuardar();
+  if (a === 'guardar-tudo') { const v = +k; if (v > 0) { S.guardados.push({ id:uid(), cr:Date.now(), valor:v, data:todayISO(), obs:'' }); save(); render(); toast('Guardado: ' + fmt(v) + '. Meta do mês batida!'); } }
+  if (a === 'ver-guardados') sheetGuardados();
+  if (a === 'ed-guardado') { const x = S.guardados.find(y => y.id === k); if (x) sheetGuardar(x); }
+  if (a === 'pagar-conta') { const f = S.fixos.find(x => x.id === k); if (!f) return; S.gastos.push({ id:uid(), cr:Date.now(), valor:f.valor, data:todayISO(), cartao:f.cartao, quem:f.quem === 'irmao' ? 'irmao' : 'eu', desc:f.nome, cat:f.cat || '', fixo:f.id, boleto:true }); S.fixosFeitos[f.id + '|' + UI.mes] = true; save(); render(); toast(f.nome + ' paga: ' + fmt(f.valor) + '.'); }
+  if (a === 'despagar-conta') { const g = S.gastos.find(x => x.id === k); if (!g) return; S.gastos = S.gastos.filter(x => x.id !== k); delete S.fixosFeitos[g.fixo + '|' + UI.mes]; save(); render(); toast('Pagamento desfeito.'); }
+  if (a === 'meta-tipo') { S.meta = Object.assign({ tipo:'valor', valor:0, pct:10 }, S.meta || {}, { tipo:k }); save(); render(); }
   if (a === 'ed-fixo') { const f = S.fixos.find(x => x.id === k); if (f) sheetFixo(f); }
   if (a === 'ed-gasto') { const g = S.gastos.find(x => x.id === k); if (g) sheetGasto(g); }
   if (a === 'nova-receita') sheetReceita();
@@ -1072,7 +1185,11 @@ let typing;
 document.addEventListener('input', ev => {
   const el = ev.target.closest('[data-f]'); if (!el) return;
   const f = el.dataset.f, k = el.dataset.k, v = el.value;
+  const money = t => { const n = parseFloat(String(t).replace(/\./g, '').replace(',', '.')); return isFinite(n) && n >= 0 ? Math.round(n * 100) : 0; };
   if (f === 'fonte') { const x = S.fontes.find(y => y.id === k); if (x) x.nome = v; }
+  if (f === 'prev') { const x = S.fontes.find(y => y.id === k); if (x) x.prev = money(v); }
+  if (f === 'meta-valor') { S.meta = Object.assign({ tipo:'valor', pct:10 }, S.meta || {}, { valor:money(v) }); }
+  if (f === 'meta-pct') { S.meta = Object.assign({ tipo:'pct', valor:0 }, S.meta || {}, { pct:Math.min(90, Math.max(0, parseInt(v, 10) || 0)) }); }
   if (f === 'cartao') { const x = S.cartoes.find(y => y.id === k); if (x) x.nome = v; }
   if (f === 'fecha') { const x = S.cartoes.find(y => y.id === k); if (x) { const n = parseInt(v, 10); x.fecha = n >= 1 && n <= 31 ? n : null; } }
   if (f === 'irmao-nome') S.irmao.nome = v.trim() || 'Irmão';
