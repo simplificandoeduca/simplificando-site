@@ -1,6 +1,6 @@
 # Play Space Horas — instalação e configuração (v0.30)
 
-Sistema de controle de horas da Play Space: banco de horas por criança, entrada e saída pelo rosto (iDFace da Control iD), avisos automáticos no WhatsApp (Evolution API), agenda e equipe com três papéis. Tudo em PHP + SQLite, sem banco MySQL, feito para rodar na hospedagem da Gama (HostGator) ou em qualquer cPanel.
+Sistema de controle de horas da Play Space: banco de horas por criança, entrada e saída pelo rosto (iDFace da Control iD), conversas com as famílias pelo WhatsApp (Evolution API), agenda e equipe com três papéis. Tudo em PHP + SQLite, sem banco MySQL, feito para rodar na hospedagem da Gama (HostGator) ou em qualquer cPanel.
 
 ## 1. O que precisa no servidor
 
@@ -18,7 +18,7 @@ Os dados ficam fora da pasta pública, em `~/playspace-dados/` (criada sozinha n
 
 ## 2b. Dados de exemplo (Ajustes → Dados de exemplo)
 
-Para a equipe conhecer o sistema antes de usar de verdade, a gestora pode **Carregar dados de exemplo**: 3 crianças fictícias (2 no espaço agora, com o tempo correndo), banco de horas em estados diferentes (em dia, acabando, acabou), vendas e registros do dia, uma **entrada cancelada sem cobrar** para a supervisão conferir, conversas no WhatsApp de hoje e de ontem (com pergunta de família ainda sem resposta) e compromissos na agenda. Nada vai para o iDFace nem para o WhatsApp.
+Para a equipe conhecer o sistema antes de usar de verdade, a gestora pode **Carregar dados de exemplo**: 3 crianças fictícias (2 no espaço agora, com o tempo correndo), banco de horas em estados diferentes (em dia, acabando, acabou), vendas e registros do dia, uma **entrada cancelada sem cobrar** para a supervisão conferir, uma criança **na tolerância** (passou do tempo comprado: em poucos minutos nasce a cobrança por atraso, para ver como é), conversas no WhatsApp de hoje e de ontem e compromissos na agenda. Nada vai para o iDFace nem para o WhatsApp.
 
 Quando for começar de verdade, **Apagar os exemplos** no mesmo lugar tira tudo isso e deixa só os cadastros reais. O link também aparece no banco de horas enquanto não há nenhuma criança cadastrada.
 
@@ -27,7 +27,7 @@ Quando for começar de verdade, **Apagar os exemplos** no mesmo lugar tira tudo 
 | Papel | O que faz |
 |---|---|
 | **Gestor** | Tudo: regra das horas, pacotes, equipe, WhatsApp, iDFace. Pode remover crianças. |
-| **Supervisor** | Tudo da loja (horas, cadastro, WhatsApp, agenda) e *vê* os Ajustes, mas não os altera. **Confere as entradas canceladas** e cancela uma entrada mesmo fora do prazo. |
+| **Supervisor** | Tudo da loja (horas, cadastro, WhatsApp, agenda) e *vê* os Ajustes, mas não os altera. **Confere as entradas canceladas**, cancela uma entrada mesmo fora do prazo e **corrige a hora de uma saída esquecida**. |
 | **Atendente** | Horas, cadastro de criança, WhatsApp e agenda. Não vê Ajustes. Cancela uma entrada sem cobrar só dentro do prazo (9 min), escrevendo o motivo. |
 
 A gestora cadastra cada pessoa com nome, login e senha inicial. Cada um troca a própria senha no avatar (canto inferior esquerdo no computador, aba **Conta** no celular) → *Trocar a senha*. Para redefinir a senha de alguém, a gestora edita a pessoa e digita uma senha nova.
@@ -40,10 +40,7 @@ Usa a mesma Evolution API da Sophi CRM.
 2. Toque em **Conectar pelo QR Code**. No celular da loja: WhatsApp → *Dispositivos conectados* → *Conectar dispositivo* → aponte para o código. Ele renova sozinho a cada 20 s; quando conectar, a folha fecha e o chip fica verde.
 3. O **webhook** (a Evolution avisar o sistema das mensagens que chegam) é configurado sozinho na hora em que conecta. O endereço aparece na mesma folha, caso precise conferir no painel da Evolution.
 
-O que sai sozinho pelo número da loja, conforme *Avisos automáticos* em Ajustes:
-
-- **Entrada**: "Oi, Mariana! Helena chegou na Play Space às 14:02 💛 Tem 3h10 no pacote…" com a **foto** da criança.
-- **Saída**: "Helena saiu às 16:05. Hoje ficou 2h e ainda tem 1h10 no pacote…"
+**Nada sai sozinho.** A partir da 0.75 os avisos automáticos ficam desligados (Ajustes → Avisos automáticos no WhatsApp → *Nenhum*): a loja não manda aviso de chegada, de saída, de tempo acabando nem de cobrança, para o responsável não ficar de olho no relógio. As dicas do sistema também não mandam chamar ninguém por causa do tempo de quem está no espaço, e as respostas prontas não falam de tempo nem de saldo. O WhatsApp fica para a equipe falar com a família quando quiser (e para emergência). Se a gestora ligar os avisos, eles dizem só que a criança chegou ou saiu.
 
 As respostas dos responsáveis entram na aba **WhatsApp**, organizada por dia (Hoje, Ontem, escolher a data), com quem da equipe respondeu. A conversa é ligada pela **telefone do responsável** no cadastro da criança: por isso o telefone precisa estar certo (com DDD).
 
@@ -52,8 +49,8 @@ As respostas dos responsáveis entram na aba **WhatsApp**, organizada por dia (H
 Enquanto a loja não usa o iDFace, a **leitura fica desligada** (Ajustes → iDFace; a versão 0.72 já desliga sozinha) e a equipe marca tudo na tela:
 
 - No **atendimento**, ao registrar uma venda com Recreação, a opção **Dar entrada agora** já vem marcada: a venda é gravada e o tempo começa a contar. Para quem está comprando para outro dia, é só desmarcar.
-- Quem já tem tempo guardado ganha o botão **Entrada** (no anel da criança, em Banco de horas da aba Horas, e na ficha). Sem tempo comprado, a entrada não é aceita: aparece **Vender**.
-- Quem está no espaço tem o botão **Saída** no anel e na ficha. A saída desconta o tempo que a criança ficou, libera a sapateira e avisa onde está o sapato.
+- Quem já tem **um período inteiro guardado** ganha o botão **Entrada** (na busca da tela inicial e na ficha). Sem um período comprado, a entrada não é aceita: aparece **Vender** (ou **Atender**, na busca).
+- Quem está no espaço tem o botão **Saída** na linha da lista e na ficha. O toque abre a **folha da saída** (de quem é, quanto ficou, o que debita e, se passou do tempo, o valor a receber) e o segundo toque confirma. São dois toques de propósito: com 40 crianças na lista, um toque errado não tira a criança errada. A saída libera a sapateira e avisa onde está o sapato.
 - Qualquer pessoa da equipe (inclusive Atendente) marca entrada e saída, e os avisos têm **Desfazer**. O Desfazer é para o toque errado e só vale nos instantes seguintes (o servidor aceita até 2 minutos); depois disso, tirar uma entrada é pelo **cancelamento com motivo** (seção 6e).
 - Somem da tela as coisas que só fazem sentido com o aparelho: acesso autorizado/bloqueado, "falta o rosto" e os avisos de aparelho sem contato.
 
@@ -78,7 +75,13 @@ A folha mostra se o aparelho está **Conectado** (falou nos últimos 2 min), **S
 
 ## 6. Regra das horas (Ajustes → Horas)
 
-Como o tempo de brincar é descontado do saldo: **arredondamento** (exato, 15 ou 30 min), **cortesia** (minutos que não contam), **mínimo** por visita, o **aviso** de tempo acabando e o prazo para **cancelar a entrada sem cobrar** (seção 6e). Uma linha abaixo mostra na prática quanto cada tempo cobraria. Os preços ficam em **Serviços e preços** (seção 6a).
+O tempo é debitado **sempre em períodos inteiros** (o período da Recreação: 30 min). Não existe período quebrado: quem ficou 11 min debita 30, e toda visita debita pelo menos um período (a única saída sem cobrança é o cancelamento em até 9 min, seção 6e). Os serviços também são cobrados por período cheio: o carrinho fusquinha devolvido com 21 min custa os mesmos R$ 15.
+
+- **Tolerância depois do tempo comprado** (9 min de fábrica): com 30 min comprados, até 39:00 continua valendo um período. Para o responsável a equipe fala em 5 minutos; os 9 só aparecem em Ajustes.
+- **Cobrança por atraso**: passou da tolerância, o sistema registra sozinho mais um período (seção 6g).
+- **A loja fecha às** (22h de fábrica): depois dessa hora o tempo para de contar, para uma saída esquecida não virar cobrança a noite toda.
+- **Marcar "acabando"** (10 min): a criança fica em amarelo na lista; nada é enviado ao responsável.
+- **Cancelar a entrada sem cobrar** (seção 6e) e **Quando o pacote zerar** continuam como antes. Uma linha no fim do cartão mostra na prática quanto cada tempo debita. Os preços ficam em **Serviços e preços** (seção 6a).
 
 ## 6a. Cadastro, cliente e histórico
 
@@ -92,8 +95,8 @@ Como o tempo de brincar é descontado do saldo: **arredondamento** (exato, 15 ou
 **Sapateiras** (1 a 44): a criança tira o sapato para brincar e ele fica numa sapateira numerada.
 
 - No **cadastro**, a grade de números aparece logo depois do nome da criança: um toque escolhe. As que estão **em uso aparecem hachuradas** e não podem ser escolhidas (tocar numa delas mostra com quem está e oferece **Liberar**, para o caso de uma esquecida).
-- Para quem já é cadastrado: na **ficha** (linha "Sapateira", botão Escolher ou Trocar), no **selo do sapato** em cima do anel de quem está no espaço, ou no botão **Sapateira** do aviso que aparece quando o rosto é lido na entrada.
-- O número fica à vista no anel da criança. Na **saída**, a sapateira **fica livre sozinha** e o aviso diz onde está o sapato ("Helena saiu · sapato na sapateira 12"); o mesmo fica anotado em "Hoje na recepção".
+- Para quem já é cadastrado: na **ficha** (linha "Sapateira", botão Escolher ou Trocar), no **número da sapateira** no começo da linha de quem está no espaço (na tela inicial), ou no botão **Sapateira** do aviso que aparece quando o rosto é lido na entrada.
+- O número fica à vista no começo da linha da criança, na lista do espaço. Na **saída**, a sapateira **fica livre sozinha** e o aviso diz onde está o sapato ("Helena saiu · sapato na sapateira 12"); o mesmo fica anotado em "Hoje na recepção".
 - **Ajustes → Sapateiras** mostra o mapa (quem está com qual), libera uma esquecida e muda a quantidade (44 por padrão).
 
 **Atendimento e serviços**: ao terminar o cadastro, o sistema abre o **atendimento** da criança: no meio, os serviços com o preço e o **total a pagar**; ao lado (em tela larga), os dados e o histórico de compras do cliente. O mesmo atendimento abre pelo botão **Vender** (ficha, Banco de horas, histórico).
@@ -106,13 +109,15 @@ Como o tempo de brincar é descontado do saldo: **arredondamento** (exato, 15 ou
 
 ## 6b. Banco de horas (aba)
 
-A aba **Banco de horas** mostra todas as crianças com o saldo, a **última contratação** (quantas horas, valor e dia; tocar nela abre o histórico do cliente) e a situação. A busca acha por criança, responsável, telefone ou CPF. Quem foi cadastrado e ainda não comprou aparece como **Sem horas** e não entra em "Para renovar". No topo, **Para renovar** lista quem zerou ou está acabando, com o aviso pronto: "As horas do Miguel acabaram. Chame a Carla (mãe) no WhatsApp para ver se quer renovar." O botão **Chamar no WhatsApp** abre a conversa com a mensagem de renovação já escrita (com os pacotes e preços de Ajustes): é conferir e enviar. Depois de chamada, o cartão mostra "Já chamada hoje às 14:20 por Beatriz", para ninguém chamar duas vezes. Quando o iDFace registra uma saída que zera o pacote, a tela avisa na hora com o mesmo botão. O selo na aba mostra quantas crianças estão para renovar.
+A aba **Banco de horas** mostra todas as crianças com o saldo, a **última contratação** (quantas horas, valor e dia; tocar nela abre o histórico do cliente) e a situação. A busca acha por criança, responsável, telefone ou CPF. Quem foi cadastrado e ainda não comprou aparece como **Sem horas**. **"Para renovar" vale só para quem comprou pacote de horas** e ficou sem um período guardado, e só depois que saiu: quem compra a recreação avulsa não entra na lista, e ninguém é chamado enquanto a criança está no espaço. No topo, **Para renovar** lista quem zerou ou está acabando, com o aviso pronto: "As horas do Miguel acabaram. Chame a Carla (mãe) no WhatsApp para ver se quer renovar." O botão **Chamar no WhatsApp** abre a conversa com a mensagem de renovação já escrita (com os pacotes e preços de Ajustes): é conferir e enviar. Depois de chamada, o cartão mostra "Já chamada hoje às 14:20 por Beatriz", para ninguém chamar duas vezes. Quando o iDFace registra uma saída que zera o pacote, a tela avisa na hora com o mesmo botão. O selo na aba mostra quantas crianças estão para renovar.
 
 ## 6c. Dicas do sistema
 
-No topo da aba Horas, o próprio sistema sugere o que fazer agora, uma frase e um botão por dica:
+Na tela inicial, logo abaixo da lista de quem está no espaço, o próprio sistema sugere o que fazer agora, uma frase e um botão por dica:
 
-- **Horas acabando ou acabadas**: "Catarina tem só mais 1h disponível. Mande mensagem para a Mariana (mãe) para ver se gostaria de comprar mais horas." O botão **Mandar mensagem** abre uma folha com o texto pronto (dá para ajustar) e envia sem sair da tela.
+- **Cobrança por atraso** de quem ainda está no espaço: "Alice passou do tempo comprado: nova cobrança por atraso. R$ 80 a receber de Juliana na saída."
+- **Entradas canceladas** para a supervisão conferir.
+- **Pacote de horas acabado** (só para quem comprou pacote e já saiu), com o botão **Mandar mensagem**. Nenhuma dica manda chamar o responsável por causa do tempo de quem está no espaço.
 - **Família esperando resposta** no WhatsApp há mais de 3 minutos, com o botão **Responder**.
 - **iDFace sem contato** ou **WhatsApp desconectado**: o que impede o sistema de trabalhar sozinho.
 - **Agenda**: o que começa nas próximas 2 horas.
@@ -135,7 +140,7 @@ A escolha vale só para aquele aparelho (fica guardada no navegador).
 
 Para quando a criança entra e desiste logo (chorou, não quis ficar, o responsável mudou de ideia) ou a entrada foi lançada errada.
 
-- **Prazo**: até **9 minutos** depois da entrada (9 minutos cheios, contados do momento em que entrou), **o próprio atendente cancela**. O prazo corre à vista: no anel da criança aparece o atalho **Cancelar · 8:42**, com o tempo que falta, e a ficha mostra até que horas dá. Quando o prazo acaba, o atalho some sozinho.
+- **Prazo**: até **9 minutos** depois da entrada (9 minutos cheios, contados do momento em que entrou), **o próprio atendente cancela**. O prazo corre à vista: na linha da criança, na lista do espaço, aparece o atalho com um **X e o tempo que falta** (8:42), e a ficha mostra até que horas dá. Quando o prazo acaba, o atalho some sozinho.
 - **Motivo obrigatório**: a folha "Cancelar a entrada" só aceita com o motivo escrito (há atalhos: "A criança chorou", "O responsável desistiu"…). Sem motivo, não cancela.
 - **O que deixa de ser cobrado**: a folha lista as vendas desta visita (as de hoje, feitas depois da última saída). Já vem marcada a **Recreação vendida junto com a entrada**; carrinho e o que foi comprado mais cedo ficam desmarcados (continuam cobrados), e dá para marcar se também não forem cobrados. O que for marcado sai das vendas do dia e do saldo da criança; se o cliente já pagou, o valor é devolvido. Nenhum tempo é descontado e a sapateira fica livre.
 - **Fora do prazo**, só **Gestor ou Supervisor** cancela (pela ficha da criança), também com motivo, e fica anotado "fora do prazo".
@@ -143,6 +148,29 @@ Para quando a criança entra e desiste logo (chorou, não quis ficar, o respons�
 - Se os avisos automáticos estão em "Entrada e saída", o responsável recebe no WhatsApp que a entrada foi cancelada e nada foi cobrado.
 - **Ajustes → Regra das horas → Cancelar a entrada sem cobrar** muda o prazo (5, 9, 10 ou 15 min) ou deixa só para a supervisão.
 - Com o iDFace ligado, o rosto lido nos 10 minutos seguintes ao cancelamento não vira entrada de novo (é a criança saindo).
+
+## 6f. Tela inicial: quem está no espaço
+
+A primeira tela (aba **Espaço**) é a **lista de todas as crianças que estão no espaço**, uma linha por criança, com o tempo correndo. Num computador de 1366 x 768 cabem 30 sem rolar, em três colunas; o resto aparece rolando um pouco.
+
+- Cada linha mostra: a **sapateira**, o **nome** (com um sininho se há restrição ou observação), a **hora da entrada**, o **responsável**, o **tempo que a criança está no espaço** (correndo segundo a segundo) e **até que horas vai o tempo comprado**. Uma barrinha embaixo enche conforme o tempo passa.
+- **Cores**: verde = no tempo; amarelo = acabando (faltam 10 min ou menos); vermelho = passou do tempo comprado (a tolerância está correndo, e a linha mostra "passou 3:12"). Quem ganhou cobrança por atraso fica com o selo **+ R$ 80**.
+- De saída a lista vem por **Tempo**: quem está mais perto de estourar fica em cima. Dá para ordenar por **Entrada**, **Nome** ou **Sapateira**, e filtrar por *Acabando*, *Passou do tempo* e *Com cobrança*.
+- **Tocar na criança abre a ficha**: responsável, telefones, documento, restrições, sapateira, hora da entrada, até quando vai o tempo, quanto debita se sair agora, cobranças por atraso, histórico e os botões.
+- **Buscar** (criança, responsável, telefone ou CPF) filtra a lista e também acha quem tem cadastro e não está no espaço, com os botões **Entrada** (se tem um período guardado) e **Atender** (vender e dar entrada). A lista continua se atualizando sozinha com o cursor na busca.
+- Nos primeiros 9 minutos a linha traz o atalho de **cancelar** com o tempo que falta; o botão **Saída** abre a folha da saída.
+- Abaixo da lista ficam as dicas, os números do dia (horas vendidas, horas usadas, cobranças por atraso) e o atalho para o Banco de horas, onde está quem não está no espaço.
+
+## 6g. Cobrança por atraso
+
+Quando a criança continua no espaço depois do **tempo comprado mais a tolerância** (30 min + 9 = 39:00), o sistema registra sozinho **mais um período** (Recreação +30 min, R$ 80). Se ela continuar, depois de mais 30 min e da tolerância (1h09) nasce outro, e assim por diante.
+
+- **Todo mundo fica sabendo**: aviso em todas as telas abertas ("Nova cobrança por atraso: Alice passou do tempo comprado · R$ 80 a receber na saída"), uma dica, o selo **+ R$ 80** na linha da criança e a linha "Nova cobrança por atraso: ficou além do tempo comprado" em Hoje na recepção. A venda entra no histórico do cliente marcada como *cobrança por atraso*.
+- **Na saída**, a folha mostra o valor a receber e o botão vira **Recebi R$ 80 · dar saída**.
+- Quem gera a cobrança é o servidor, a cada poucos segundos enquanto alguma tela estiver aberta, e de novo na saída: mesmo com tudo fechado, a conta fecha certa.
+- **Saída esquecida** (a criança foi embora e ninguém marcou): Gestor ou Supervisor usa **Saída com outra hora** (na ficha ou na folha da saída), escreve a hora em que ela saiu de verdade e o motivo. O tempo é refeito e as cobranças por atraso que sobraram são desfeitas. Se a saída já foi marcada, a ficha tem **Corrigir** ao lado da visita (últimos dois dias). Tudo fica anotado em Hoje na recepção.
+- **Na atualização para a 0.75**, quem já estava marcado como "no espaço" não ganha cobrança para trás: a regra vale para as entradas feitas depois de atualizar.
+- O responsável não é avisado de nada disso pelo WhatsApp.
 
 ## 7. Atualizar
 

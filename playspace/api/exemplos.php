@@ -17,8 +17,8 @@ function exemplosCarregar(?int $por): array {
   $hoje = date('Y-m-d');
   // nome, idade, responsável, relação, telefone, cpf, pacote (h), usado (min), entrou há (min, 0 = fora), tem rosto
   $lista = [
-    ['Helena', 5, 'Mariana Souza', 'mãe', '(11) 9 8765-4321', '529.982.247-25', 10, 418, 121, 1],   // no espaço, em dia
-    ['Theo', 4, 'Rafael Lima', 'pai', '(11) 9 7654-3210', '111.444.777-35', 5, 278, 12, 1],         // no espaço, pacote acabando
+    ['Helena', 5, 'Mariana Souza', 'mãe', '(11) 9 8765-4321', '529.982.247-25', 10, 420, 121, 1],   // no espaço há 2 h, com tempo comprado até 3 h
+    ['Theo', 4, 'Rafael Lima', 'pai', '(11) 9 7654-3210', '111.444.777-35', 5, 270, 33, 1],         // no espaço há 33 min com 30 comprados: está na tolerância; passou de 9 min, nasce a cobrança por atraso
     ['Miguel', 5, 'Carla Dias', 'mãe', '(11) 9 5432-1098', '390.533.447-05', 10, 600, 0, 0],        // fora, pacote acabou, sem foto
   ];
   $ids = []; $nomeId = [];
@@ -36,17 +36,15 @@ function exemplosCarregar(?int $por): array {
   $msg = $db->prepare('INSERT INTO mensagens (crianca_id, de, texto, quando, por, auto, foto, lida, wa_id, erro) VALUES (?, ?, ?, ?, ?, ?, \'\', ?, \'\', \'\')');
   $hm = fn(int $m) => $m <= 0 ? '0h' : ($m < 60 ? '0h' . str_pad((string)$m, 2, '0', STR_PAD_LEFT) : intdiv($m, 60) . 'h' . ($m % 60 ? str_pad((string)($m % 60), 2, '0', STR_PAD_LEFT) : ''));
   $hora = fn(string $q) => substr($q, 11, 5);
-  // quem está dentro: rosto lido na entrada + aviso automático à família
+  // quem está dentro: a entrada marcada na tela (nenhum aviso automático vai para a família)
   foreach ($lista as $l) {
-    [$nome, , $resp, , , , $pac, $usado, $dentro] = $l; if (!$dentro) continue;
-    $q = $t($dentro); $id = $nomeId[$nome];
-    $reg->execute([$q, 'ent', $id, $nome, 'Rosto reconhecido na entrada']);
-    $msg->execute([$id, 'nos', 'Oi, ' . explode(' ', $resp)[0] . '! ' . $nome . ' chegou na Play Space às ' . $hora($q) . ' 💛 Tem ' . $hm($pac * 60 - $usado) . ' no pacote. Qualquer coisa a gente te chama por aqui.', $q, 'sistema', 1, 1]);
+    [$nome, , , , , , , , $dentro] = $l; if (!$dentro) continue;
+    $reg->execute([$t($dentro), 'ent', $nomeId[$nome], $nome, 'Entrada registrada']);
   }
-  // Helena: a mãe respondeu e a equipe também; venda de hoje
+  // Helena: a mãe perguntou e a equipe respondeu; venda de hoje
   $id = $nomeId['Helena'];
-  $msg->execute([$id, 'ela', 'Obrigada! Ela vai ficar até umas 16h, tudo bem?', $t(110), '', 0, 1]);
-  $msg->execute([$id, 'nos', 'Tudo bem, Mariana! Avisamos quando faltar pouco tempo no pacote.', $t(105), 'Camila', 0, 1]);
+  $msg->execute([$id, 'ela', 'Oi! Esqueci de avisar: a Helena não pode comer nada com amendoim, tá?', $t(110), '', 0, 1]);
+  $msg->execute([$id, 'nos', 'Pode deixar, Mariana! Já está anotado na ficha dela 💛', $t(105), 'Camila', 0, 1]);
   $ven->execute([$id, 2, 120, 320, $t(125), $por, '', 'Recreação']); $reg->execute([$t(125), 'venda', $id, 'Helena', 'Recreação · 2h · R$ 320']);
   $ven->execute([$id, 0, 0, 30, $t(123), $por, 'das 10h às 22h', 'Carrinho de bebê']); $reg->execute([$t(123), 'venda', $id, 'Helena', 'Carrinho de bebê · das 10h às 22h · R$ 30']);   // um serviço à parte, para o histórico do cliente
   $ven->execute([$id, 8, 480, 1280, $d(-10, '14:50'), $por, '', 'Recreação']);
@@ -60,18 +58,16 @@ function exemplosCarregar(?int $por): array {
   $db->prepare('INSERT INTO cancelamentos (crianca_id, nome, resp, entrou, quando, minutos, valor, itens, motivo, por, por_nome, papel, fora) VALUES (?, ?, ?, ?, ?, 6, 80, ?, ?, ?, ?, ?, 0)')
     ->execute([$id, 'Miguel', 'Carla Dias', $t(96), $t(90), json_encode([['n' => 'Recreação · 30 min', 'm' => 30, 'v' => 80]], JSON_UNESCAPED_UNICODE), 'A criança chorou e não quis ficar', $por, 'João (exemplo)', 'atendente']);
   // Theo: o pai perguntou e ninguém respondeu ainda
-  $msg->execute([$nomeId['Theo'], 'ela', 'Quanto tempo ainda tem no pacote dele?', $t(4), '', 0, 0]);
+  $msg->execute([$nomeId['Theo'], 'ela', 'Oi! Vocês têm oficina no sábado?', $t(4), '', 0, 0]);
   // Miguel: veio ontem, o pacote acabou; hoje a equipe ofereceu renovar
-  $id = $nomeId['Miguel']; $vis->execute([$id, $d(-1, '14:20'), $d(-1, '16:10'), 110, 'idface']);
-  $msg->execute([$id, 'nos', 'Oi, Carla! Miguel chegou na Play Space às 14:20 💛 Tem 1h50 no pacote. Qualquer coisa a gente te chama por aqui.', $d(-1, '14:20'), 'sistema', 1, 1]);
-  $msg->execute([$id, 'nos', 'Miguel saiu às 16:10. Hoje ficou 1h50 e o pacote acabou. Até a próxima! 🧸', $d(-1, '16:10'), 'sistema', 1, 1]);
+  $id = $nomeId['Miguel']; $vis->execute([$id, $d(-1, '14:20'), $d(-1, '16:10'), 120, 'mão']);
   $msg->execute([$id, 'ela', 'Obrigada! Ele adorou a piscina de bolinhas 😄', $d(-1, '16:40'), '', 0, 1]);
   $msg->execute([$id, 'nos', 'Oi, Carla! As horas do Miguel acabaram ontem. Quer renovar? A recreação é R$ 80 a cada 30 minutos 💛', $t(150), 'Beatriz', 0, 1]);
   $msg->execute([$id, 'ela', 'Pode ser 1 hora! Passo aí amanhã pra acertar.', $t(140), '', 0, 1]);
   // visitas de dias anteriores, para a ficha ter histórico
-  foreach ([['Helena', -3, '14:00', '16:10', 130], ['Helena', -7, '10:30', '12:38', 128], ['Helena', -10, '15:00', '17:40', 160], ['Miguel', -2, '14:20', '17:00', 160], ['Miguel', -6, '13:00', '16:30', 210],
-            ['Theo', -2, '15:00', '17:30', 150], ['Theo', -9, '14:00', '16:08', 128]] as $v)
-    $vis->execute([$nomeId[$v[0]], $d($v[1], $v[2]), $d($v[1], $v[3]), $v[4], 'idface']);
+  foreach ([['Helena', -3, '14:00', '16:10', 150], ['Helena', -7, '10:30', '12:38', 120], ['Helena', -10, '15:00', '17:40', 150], ['Miguel', -2, '14:20', '17:00', 180], ['Miguel', -6, '13:00', '16:30', 210],
+            ['Theo', -2, '15:00', '17:30', 150], ['Theo', -9, '14:00', '16:08', 120]] as $v)
+    $vis->execute([$nomeId[$v[0]], $d($v[1], $v[2]), $d($v[1], $v[3]), $v[4], 'mão']);
   // agenda
   $comp = $db->prepare('INSERT INTO compromissos (dia, hora, titulo, tipo, sub, obs, criado_em) VALUES (?, ?, ?, ?, ?, ?, ?)'); $compIds = [];
   foreach ([[2, '15:00', 'Oficina de slime', 'oficina', 'Oficina', 'Até 12 crianças · levar aventais'], [5, '16:00', 'Festa da Lara (6 anos)', 'festa', 'Festa', 'Salão reservado das 15h às 19h'],

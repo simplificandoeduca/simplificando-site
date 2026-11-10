@@ -105,10 +105,22 @@ function db(): PDO {
     try { $pdo->exec('ALTER TABLE vendas ADD COLUMN registro INTEGER'); } catch (Throwable $e) { }   // a linha de "Hoje na recepção" que a venda gerou (para marcar "cancelada" se a entrada for cancelada)
     $pdo->exec('PRAGMA user_version = 10');
   }
+  if ($v < 11) { // 0.75: cobrança por atraso gerada pelo sistema (vendas.auto) e nenhum aviso automático no WhatsApp (o responsável não acompanha o tempo pelo celular)
+    try { $pdo->exec('ALTER TABLE vendas ADD COLUMN auto INTEGER NOT NULL DEFAULT 0'); } catch (Throwable $e) { }
+    try {
+      $q = $pdo->query("SELECT valor FROM config WHERE chave = 'regra'")->fetchColumn(); $rg = $q !== false ? json_decode((string)$q, true) : null;
+      if (is_array($rg)) { $rg['autoMsg'] = 'nao'; unset($rg['arredonda'], $rg['cortesia'], $rg['minimo']); $pdo->prepare("UPDATE config SET valor = ? WHERE chave = 'regra'")->execute([json_encode($rg, JSON_UNESCAPED_UNICODE)]); }
+    } catch (Throwable $e) { }
+    try { // a cobrança automática só vale para entradas feitas daqui em diante: quem já estava marcado "no espaço" (saída esquecida de outro dia) não ganha cobrança de uma vez
+      $pdo->prepare('INSERT INTO config (chave, valor) VALUES (?, ?) ON CONFLICT(chave) DO UPDATE SET valor = excluded.valor')->execute(['cobranca_desde', json_encode(date('Y-m-d H:i:s'))]);
+      $pdo->exec('UPDATE criancas SET usado_min = pacote_min WHERE usado_min > pacote_min');   // a regra antiga deixava "dever" minutos: zera, senão o próximo período comprado não daria para entrar
+    } catch (Throwable $e) { }
+    $pdo->exec('PRAGMA user_version = 11');
+  }
   return $pdo;
 }
 function cfg(string $k, $padrao = null) { $q = db()->prepare('SELECT valor FROM config WHERE chave = ?'); $q->execute([$k]); $v = $q->fetchColumn(); return $v === false ? $padrao : json_decode((string)$v, true); }
-function gravarCfg(string $k, $v): void { db()->prepare('INSERT INTO config (chave, valor) VALUES (?, ?) ON CONFLICT(chave) DO UPDATE SET valor = excluded.valor')->execute([$k, json_encode($v, JSON_UNESCAPED_UNICODE)]); }
+function gravarCfg(string $k, $v): void { if ($k === 'regra') unset($GLOBALS['_regra']); db()->prepare('INSERT INTO config (chave, valor) VALUES (?, ?) ON CONFLICT(chave) DO UPDATE SET valor = excluded.valor')->execute([$k, json_encode($v, JSON_UNESCAPED_UNICODE)]); }
 function apagarCfg(string $k): void { db()->prepare('DELETE FROM config WHERE chave = ?')->execute([$k]); }
 function cfgComo(string $prefixo): array { $q = db()->prepare("SELECT chave, valor FROM config WHERE chave LIKE ?"); $q->execute([$prefixo . '%']); $o = []; foreach ($q->fetchAll() as $r) $o[$r['chave']] = json_decode((string)$r['valor'], true); return $o; }
 
@@ -128,8 +140,15 @@ const SERVICOS_PADRAO = [
 ];
 const PACOTES_DE_EXEMPLO = [['h' => 1, 'v' => 60], ['h' => 5, 'v' => 250], ['h' => 10, 'v' => 450], ['h' => 20, 'v' => 800]];   // inventados nas primeiras versões: saem sozinhos se ninguém mexeu neles
 // cancelaMin: até quantos minutos depois da entrada o próprio atendente cancela sem cobrar (0 = só gestor e supervisor cancelam)
-const REGRA_PADRAO = ['arredonda' => 1, 'cortesia' => 10, 'minimo' => 0, 'aviso' => 10, 'autoMsg' => 'ambos', 'bloqueioAuto' => 'sim', 'pacotes' => [], 'extras' => [], 'sapateiras' => 44, 'cancelaMin' => 9];
+// tolerancia: quantos minutos depois do fim do tempo comprado a criança ainda pode ficar sem gerar nova cobrança
+// autoMsg 'nao': nenhum aviso automático no WhatsApp (a loja não quer que o responsável fique acompanhando o tempo)
+// fecha: a hora em que a loja fecha (24 = meia-noite): depois dela o tempo de quem ficou marcado no espaço para de contar
+const REGRA_PADRAO = ['tolerancia' => 9, 'fecha' => 22, 'aviso' => 10, 'autoMsg' => 'nao', 'bloqueioAuto' => 'sim', 'pacotes' => [], 'extras' => [], 'sapateiras' => 44, 'cancelaMin' => 9];
 function regra(): array {
+  if (isset($GLOBALS['_regra'])) return $GLOBALS['_regra'];   // lida uma vez por pedido (a conta do tempo consulta a regra muitas vezes)
+  return $GLOBALS['_regra'] = regraDoBanco();
+}
+function regraDoBanco(): array {
   $r = cfg('regra', null); $r = (is_array($r) ? $r : []) + REGRA_PADRAO;
   if (($r['pacotes'] ?? []) == PACOTES_DE_EXEMPLO) $r['pacotes'] = [];
   if (!isset($r['servicos']) || !is_array($r['servicos'])) { // ninguém mexeu ainda: os três serviços da loja, mais o que já estava em "produtos e extras"
@@ -140,11 +159,20 @@ function regra(): array {
   return $r;
 }
 function dur(int $min): string { return $min < 60 ? $min . ' min' : intdiv($min, 60) . 'h' . ($min % 60 ? str_pad((string)($min % 60), 2, '0', STR_PAD_LEFT) : ''); }   // 30 min, 1h, 1h30
-function cobrar(float $minutos): int {
-  $r = regra(); $m = max(0, $minutos - (int)$r['cortesia']);
-  if ($m <= 0) return 0;
-  $passo = max(1, (int)$r['arredonda']); $m = (int)(ceil($m / $passo) * $passo);
-  return max($m, (int)$r['minimo']);
+// O tempo é sempre debitado em períodos inteiros (não existe período quebrado): quem ficou 11 min debita 30.
+// O período é o do serviço de tempo de brincar (Recreação, 30 min). O período seguinte só conta depois da tolerância:
+// com 30 min e tolerância de 9, até 39:00 é um período; passou disso, dois; depois de 1h09, três.
+function servicoTempo(): ?array { foreach ((array)regra()['servicos'] as $s) if (!empty($s['banco']) && ($s['modo'] ?? '') === 'periodo') return $s; return null; }
+function periodo(): int { $s = servicoTempo(); return max(5, (int)($s['min'] ?? 30)); }
+function periodosDe(float $minutos): int { return max(1, (int)ceil(($minutos - max(0, (int)regra()['tolerancia'])) / periodo())); }
+function cobrar(float $minutos): int { return periodosDe($minutos) * periodo(); }
+// quantos minutos a visita conta até $fim: no máximo até a hora em que a loja fecha (no dia da entrada) e nunca mais de 12 h.
+// Assim uma saída esquecida não vira cobrança a noite toda (a supervisão corrige a hora da saída depois).
+function minutosDaVisita(array $c, int $fim): float {
+  $ent = strtotime((string)$c['entrou']); $f = (int)(regra()['fecha'] ?? 22); $teto = $ent + 43200;
+  $fecha = strtotime(date('Y-m-d', $ent) . ($f >= 24 ? ' 23:59:59' : sprintf(' %02d:00:00', max(0, $f))));
+  if ($fecha > $ent) $teto = min($teto, $fecha);   // entrou depois da hora de fechar (teste fora de hora): vale só o limite de 12 h
+  return max(0, (min($fim, $teto) - $ent) / 60);
 }
 function hm(int $min): string { $min = max(0, $min); return intdiv($min, 60) . 'h' . ($min % 60 ? str_pad((string)($min % 60), 2, '0', STR_PAD_LEFT) : ''); }
 function restante(array $c): int { return max(0, (int)$c['pacote_min'] - (int)$c['usado_min']); }
@@ -190,28 +218,89 @@ function fazerEntrada(array $c, string $origem = 'iDFace', ?string $quando = nul
   $reg = registrar('ent', (int)$c['id'], $c['nome'], $origem === 'iDFace' ? 'Rosto reconhecido na entrada' : (modoManual() ? 'Entrada registrada' : 'Entrada registrada à mão'), $quando);
   $msg = null;
   if (regra()['autoMsg'] !== 'nao') {
-    $texto = 'Oi, ' . primeiroNome($c['resp']) . '! ' . $c['nome'] . ' chegou na Play Space às ' . date('H:i', strtotime($quando)) . ' 💛 Tem ' . hm(restante($c)) . ' no pacote. Qualquer coisa a gente te chama por aqui.';
+    $texto = 'Oi, ' . primeiroNome($c['resp']) . '! ' . $c['nome'] . ' chegou na Play Space às ' . date('H:i', strtotime($quando)) . ' 💛 Qualquer coisa a gente te chama por aqui.';   // sem falar de tempo nem de saldo
     $msg = mandarMensagem($c, $texto, true, $c['foto'] ?: '');
   }
   return ['registro' => $reg, 'mensagem' => $msg];
 }
+/* ---------- cobrança por atraso: passou do tempo comprado mais a tolerância, o sistema registra sozinho mais um período ---------- */
+// A venda entra marcada como automática, com a observação, e vira uma linha em "Hoje na recepção" para todo mundo ver.
+// É chamada a cada pulso das telas abertas (para quem ainda está no espaço) e de novo na saída. Devolve as vendas criadas.
+function acertarCobrancas(array $c, ?string $quando = null): array {
+  if (!$c['entrou'] || !servicoTempo()) return [];
+  if ((string)$c['entrou'] < (string)cfg('cobranca_desde', '')) return [];   // já estava no espaço quando esta regra chegou: não gera cobrança para trás
+  $fim = $quando ? strtotime($quando) : time();
+  if ((int)$c['usado_min'] + cobrar(minutosDaVisita($c, $fim)) <= (int)$c['pacote_min']) return [];
+  $db = db(); $s = servicoTempo(); $p = periodo(); $criadas = [];
+  $db->exec('BEGIN IMMEDIATE');   // uma tela de cada vez: duas perguntando no mesmo instante não geram a cobrança em dobro
+  try {
+    $c = crianca((int)$c['id']);
+    if ($c && $c['entrou']) {
+      $min = minutosDaVisita($c, $fim); $falta = (int)$c['usado_min'] + cobrar($min) - (int)$c['pacote_min'];
+      for ($n = $falta > 0 ? (int)ceil($falta / $p) : 0; $n > 0; $n--) {
+        $semTempo = $min <= (int)regra()['tolerancia'];   // ainda no primeiro período: entrou sem ter um período inteiro comprado
+        $x = fazerVenda($c, $p, (float)$s['v'], null, $semTempo ? 'entrou sem tempo comprado' : 'cobrança por atraso', (string)$s['n'], true,
+          ($semTempo ? 'Cobrança gerada na entrada: entrou sem tempo comprado' : 'Nova cobrança por atraso: ficou além do tempo comprado') . ' · ' . $s['n'] . ' +' . dur($p) . ' · ' . dinheiro((float)$s['v']) . ' a receber na saída');
+        $criadas[] = $x['venda']; $c = crianca((int)$c['id']);
+      }
+    }
+    $db->exec('COMMIT');
+  } catch (Throwable $e) { try { $db->exec('ROLLBACK'); } catch (Throwable $e2) { } throw $e; }
+  return $criadas;
+}
+function acertarTodas(): int { $n = 0; foreach (db()->query('SELECT * FROM criancas WHERE entrou IS NOT NULL AND ativo = 1')->fetchAll() as $c) $n += count(acertarCobrancas($c)); return $n; }
+// as cobranças por atraso de uma visita (entre a entrada e a saída): quantas e quanto
+function atrasoDaVisita(int $criancaId, string $entrou, ?string $ate = null): array {
+  $q = db()->prepare('SELECT COUNT(*) n, COALESCE(SUM(valor), 0) v FROM vendas WHERE crianca_id = ? AND auto = 1 AND quando >= ? AND quando <= ?'); $q->execute([$criancaId, $entrou, $ate ?: '9999']); $a = $q->fetch();
+  return ['n' => (int)$a['n'], 'valor' => (float)$a['v']];
+}
 function fazerSaida(array $c, string $origem = 'iDFace', ?string $quando = null): array {
   $db = db(); $quando = $quando ?: agora();
-  $min = (strtotime($quando) - strtotime((string)$c['entrou'])) / 60; $deb = cobrar($min);
+  if (acertarCobrancas($c, $quando)) $c = crianca((int)$c['id']);   // passou do tempo sem nenhuma tela aberta: a cobrança por atraso é gerada agora
+  $min = minutosDaVisita($c, strtotime($quando)); $deb = min(cobrar($min), restante($c)); $atraso = atrasoDaVisita((int)$c['id'], (string)$c['entrou']);   // nunca debita mais do que há (a cobrança por atraso já cobriu o que faltava)
   $db->prepare('INSERT INTO visitas (crianca_id, entrou, saiu, debitado_min, origem) VALUES (?, ?, ?, ?, ?)')->execute([$c['id'], $c['entrou'], $quando, $deb, $origem]);
   $visita = (int)$db->lastInsertId();
   $sap = isset($c['sapateira']) && $c['sapateira'] !== null ? (int)$c['sapateira'] : 0;   // a sapateira fica livre na saída
   $db->prepare('UPDATE criancas SET entrou = NULL, usado_min = usado_min + ?, sapateira = NULL WHERE id = ?')->execute([$deb, $c['id']]);
   $c['usado_min'] += $deb; $c['entrou'] = null;
   $r = restante($c);
-  if ($r <= 0 && regra()['bloqueioAuto'] === 'sim') bloquearAcesso($c, false);   // zerou: o iDFace passa a recusar até venderem horas
-  $reg = registrar('sai', (int)$c['id'], $c['nome'], hm($deb) . ' debitadas · restam ' . hm($r) . ($sap ? ' · sapato na sapateira ' . $sap : '') . ($origem === 'iDFace' || modoManual() ? '' : ' · saída à mão'), $quando);
+  if ($r < periodo() && regra()['bloqueioAuto'] === 'sim') bloquearAcesso($c, false);   // não sobra um período inteiro: o iDFace passa a recusar até venderem tempo
+  $reg = registrar('sai', (int)$c['id'], $c['nome'], 'Ficou ' . dur((int)floor($min)) . ' · ' . dur($deb) . ' debitados' . ($r > 0 ? ' · restam ' . hm($r) : '') . ($atraso['n'] ? ' · ' . ($atraso['n'] > 1 ? $atraso['n'] . ' cobranças' : 'cobrança') . ' por atraso: ' . dinheiro($atraso['valor']) . ' a receber' : '') . ($sap ? ' · sapato na sapateira ' . $sap : '') . ($origem === 'iDFace' || modoManual() ? '' : ' · saída à mão'), $quando);
   $msg = null;
   if (regra()['autoMsg'] === 'ambos') {
-    $texto = $c['nome'] . ' saiu às ' . date('H:i', strtotime($quando)) . '. Hoje ficou ' . hm($deb) . ($r > 0 ? ' e ainda tem ' . hm($r) . ' no pacote' : ' e o pacote acabou') . '. Até a próxima! 🧸';
+    $texto = $c['nome'] . ' saiu às ' . date('H:i', strtotime($quando)) . '. Até a próxima! 🧸';
     $msg = mandarMensagem($c, $texto, true);
   }
-  return ['registro' => $reg, 'visita' => $visita, 'debitado' => $deb, 'mensagem' => $msg, 'sapateira' => $sap ?: null];
+  return ['registro' => $reg, 'visita' => $visita, 'debitado' => $deb, 'minutos' => (int)floor($min), 'atraso' => $atraso, 'mensagem' => $msg, 'sapateira' => $sap ?: null];
+}
+// A supervisão corrige a hora de uma saída (a criança saiu antes e a saída só foi marcada depois): o tempo debitado é refeito
+// e as cobranças por atraso que passaram a sobrar são desfeitas. Sempre com o motivo, que fica em "Hoje na recepção".
+function corrigirSaida(int $visitaId, string $novaSaida, array $u, string $motivo): array {
+  $db = db(); $q = $db->prepare('SELECT * FROM visitas WHERE id = ?'); $q->execute([$visitaId]); $v = $q->fetch(); if (!$v) falha('Visita não encontrada.', 404);
+  $c = crianca((int)$v['crianca_id']); if (!$c) falha('Criança não encontrada.', 404);
+  $ent = strtotime((string)$v['entrou']); $sai0 = strtotime((string)$v['saiu']); $sai1 = strtotime($novaSaida);
+  if ($sai1 !== false && $sai1 < $ent && $ent - $sai1 < 60) $sai1 = $ent;   // a mesma hora e minuto da entrada
+  if ($sai1 === false || $sai1 < $ent || $sai1 >= $sai0) falha('A hora corrigida precisa ficar entre a entrada (' . substr((string)$v['entrou'], 11, 5) . ') e a saída marcada (' . substr((string)$v['saiu'], 11, 5) . ').');
+  $p = periodo(); $deb0 = (int)$v['debitado_min']; $deb1 = min($deb0, cobrar(($sai1 - $ent) / 60)); $dif = $deb0 - $deb1;
+  $q = $db->prepare('SELECT * FROM vendas WHERE crianca_id = ? AND auto = 1 AND quando >= ? AND quando <= ? ORDER BY id DESC'); $q->execute([$c['id'], $v['entrou'], date('Y-m-d H:i:s', $sai0 + 5)]);
+  $autos = $q->fetchAll(); $tirar = array_slice($autos, 0, min(count($autos), intdiv($dif, $p))); $valor = 0.0; $nova = date('Y-m-d H:i:s', $sai1);
+  $db->beginTransaction();
+  try {
+    $db->prepare('UPDATE visitas SET saiu = ?, debitado_min = ? WHERE id = ?')->execute([$nova, $deb1, $v['id']]);
+    $db->prepare("UPDATE registros SET texto = texto || ' · corrigida' WHERE crianca_id = ? AND tipo = 'sai' AND quando = ? AND texto NOT LIKE '% · corrigida'")->execute([$c['id'], $v['saiu']]);   // a linha da saída antiga fica marcada
+    $db->prepare('UPDATE criancas SET usado_min = MAX(0, usado_min - ?) WHERE id = ?')->execute([$dif, $c['id']]);
+    foreach ($tirar as $x) {
+      $db->prepare('UPDATE criancas SET pacote_min = MAX(0, pacote_min - ?) WHERE id = ?')->execute([(int)$x['minutos'], $c['id']]);
+      $db->prepare('DELETE FROM vendas WHERE id = ?')->execute([$x['id']]); $valor += (float)$x['valor'];
+      if (!empty($x['registro'])) $db->prepare("UPDATE registros SET texto = texto || ' · desfeita' WHERE id = ? AND crianca_id = ? AND texto NOT LIKE '% · desfeita'")->execute([(int)$x['registro'], $c['id']]);
+    }
+    $reg = registrar('corr', (int)$c['id'], $c['nome'], 'Saída corrigida de ' . substr((string)$v['saiu'], 11, 5) . ' para ' . substr($nova, 11, 5) . ' · ' . dur($deb1) . ' debitados' . ($dif > 0 ? ' (eram ' . dur($deb0) . ')' : '')
+      . ($tirar ? ' · ' . (count($tirar) > 1 ? count($tirar) . ' cobranças' : 'cobrança') . ' por atraso desfeita' . (count($tirar) > 1 ? 's' : '') . ': ' . dinheiro($valor) : '') . ' · Motivo: ' . $motivo . ' · por ' . primeiroNome($u['nome']));
+    $db->commit();
+  } catch (Throwable $e) { $db->rollBack(); throw $e; }
+  $c = crianca((int)$c['id']);
+  if (!$c['entrou'] && restante($c) >= $p && isset($c['liberado']) && !(int)$c['liberado'] && regra()['bloqueioAuto'] === 'sim') bloquearAcesso($c, true);   // voltou a ter um período guardado
+  return ['registro' => $reg, 'debitado' => $deb1, 'antes' => $deb0, 'desfeitas' => count($tirar), 'valor' => $valor, 'saiu' => $nova];
 }
 // a chavinha "acesso no iDFace": liberada, o aparelho autoriza o rosto e as horas correm; bloqueada, ele recusa
 function donoSapateira(int $n, int $menosId = 0): ?array { $q = db()->prepare('SELECT id, nome FROM criancas WHERE ativo = 1 AND sapateira = ? AND id != ?'); $q->execute([$n, $menosId]); return $q->fetch() ?: null; }
@@ -223,18 +312,19 @@ function bloquearAcesso(array $c, bool $liberar): void {
 }
 // $min: minutos de brincar que a venda põe no saldo da criança (0 = nenhum). $servico: o nome do serviço vendido (Recreação, Carrinho fusquinha).
 // $itens: o detalhe. Num serviço, a duração ou a observação; num pacote antigo, o que veio junto; sem serviço e sem minutos, o próprio produto.
-function fazerVenda(array $c, int $min, float $valor, ?int $por, string $itens = '', string $servico = ''): array {
+// $auto: a venda foi gerada pelo sistema (cobrança por atraso); $textoAuto é a linha que vai para "Hoje na recepção"
+function fazerVenda(array $c, int $min, float $valor, ?int $por, string $itens = '', string $servico = '', bool $auto = false, string $textoAuto = ''): array {
   $db = db(); $itens = mb_substr(trim($itens), 0, 80); $servico = mb_substr(trim($servico), 0, 60); $min = max(0, $min);
   if ($min > 0) {
     $db->prepare('UPDATE criancas SET pacote_min = pacote_min + ? WHERE id = ?')->execute([$min, $c['id']]);
     if (isset($c['liberado']) && !(int)$c['liberado']) bloquearAcesso($c, true);   // pagou o tempo: o acesso volta
   }
-  $db->prepare('INSERT INTO vendas (crianca_id, horas, minutos, valor, quando, por, itens, servico) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')->execute([$c['id'], round($min / 60, 2), $min, $valor, agora(), $por, $itens, $servico]);
+  $db->prepare('INSERT INTO vendas (crianca_id, horas, minutos, valor, quando, por, itens, servico, auto) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')->execute([$c['id'], round($min / 60, 2), $min, $valor, agora(), $por, $itens, $servico, $auto ? 1 : 0]);
   $venda = (int)$db->lastInsertId();
   $dinheiro = 'R$ ' . number_format($valor, fmod($valor, 1) ? 2 : 0, ',', '.');
   if ($servico !== '') $texto = $servico . ($min > 0 ? ' · ' . dur($min) : '') . ($itens !== '' ? ' · ' . $itens : '') . ' · ' . $dinheiro;
   else $texto = $min > 0 ? ($min === 60 ? 'Hora avulsa' : 'Pacote de ' . dur($min)) . ($itens !== '' ? ' com ' . $itens : '') . ' vendido · ' . $dinheiro : $itens . ' · ' . $dinheiro;
-  $reg = registrar('venda', (int)$c['id'], $c['nome'], $texto);
+  $reg = $auto ? registrar('cobr', (int)$c['id'], $c['nome'], $textoAuto !== '' ? $textoAuto : $texto) : registrar('venda', (int)$c['id'], $c['nome'], $texto);
   $db->prepare('UPDATE vendas SET registro = ? WHERE id = ?')->execute([$reg, $venda]);
   return ['venda' => $venda, 'registro' => $reg];
 }
@@ -285,7 +375,7 @@ function cancelarEntrada(array $c, array $u, string $motivo, ?array $vendaIds): 
   } catch (Throwable $e) { $db->rollBack(); throw $e; }
   $c = crianca((int)$c['id']);
   // desfez o tempo e o saldo voltou a zero: o acesso volta a ficar bloqueado, como em quem ainda não comprou
-  if ($tempo > 0 && restante($c) <= 0 && regra()['bloqueioAuto'] === 'sim' && (!isset($c['liberado']) || (int)$c['liberado'])) bloquearAcesso($c, false);
+  if ($tempo > 0 && restante($c) < periodo() && regra()['bloqueioAuto'] === 'sim' && (!isset($c['liberado']) || (int)$c['liberado'])) bloquearAcesso($c, false);
   $msg = null;
   if (regra()['autoMsg'] === 'ambos') $msg = mandarMensagem($c, 'A entrada de ' . $c['nome'] . ' na Play Space foi cancelada às ' . substr($agora, 11, 5) . ' e ' . ($valor > 0 ? 'nada foi cobrado' : 'o tempo não foi descontado') . '. Até a próxima! 🧸', true);
   return ['cancelamento' => $id, 'registro' => $reg, 'valor' => $valor, 'minutos' => $minDentro, 'tempo' => $tempo, 'sapateira' => $sap ?: null, 'fora' => !$noPrazo, 'mensagem' => $msg];
