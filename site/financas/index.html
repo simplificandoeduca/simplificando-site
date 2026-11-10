@@ -310,6 +310,15 @@ button.row:active{background:var(--ctl)}
 .rc .mini.cc .nm,.rc .mini.cc .nfc,.rc .mini.cc .biz{display:none}
 .rc .mini.cc .chip{width:14%}.rc .mini.cc .x{width:26%}
 .rc .mini.cc::after{display:none}
+.imp-prev{max-height:40dvh;overflow:auto;border-radius:18px;background:var(--card);box-shadow:inset 0 0 0 1px var(--card-line)}
+.imp-row{display:flex;align-items:center;gap:10px;padding:9px 12px;border-top:1px solid var(--sep);font-size:14px}
+.imp-row:first-child{border-top:0}
+.imp-row input[type=checkbox]{width:20px;height:20px;accent-color:var(--lime);flex:none}
+.imp-row .d{color:var(--muted);font-size:12px;width:44px;flex:none}
+.imp-row .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.imp-row .t small{display:block;color:var(--muted);font-size:11.5px}
+.imp-row .v{font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+.imp-row.off{opacity:.45}
 .vis{display:flex;gap:8px;flex-wrap:wrap}
 .vis button{border:0;background:var(--ctl);color:var(--ctl-fg);border-radius:12px;padding:6px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;font-weight:700;width:76px}
 .vis button.on{box-shadow:0 0 0 2px var(--fg)}
@@ -442,7 +451,7 @@ function logo(){
 $('#logo').innerHTML = logo(); document.querySelector('.top .mic').innerHTML = I.mic;
 
 /* ========== estado ========== */
-const FINV = '10 nov · 8'; // Versão do Finanças: 10 nov · 8
+const FINV = '10 nov · 9'; // Versão do Finanças: 10 nov · 9
 const DONO = { nome:'Eduardo Matias', iniciais:'EM' }; // perfil único desta página
 const LS = 'simplificando-financas', LST = 'simplificando-financas-tema';
 const CATS = ['Mercado', 'Comida', 'Transporte', 'Casa', 'Lazer', 'Saúde', 'Roupas', 'Assinaturas', 'Outros'];
@@ -616,6 +625,7 @@ function rResumo(){
   const maxC = Math.max(1, ...S.cartoes.map(c => sum(gm.filter(g => g.cartao === c.id), g => g.valor)));
   let h = '';
   if (needsSetup()) h += `<div class="card blk-lime"><p class="eyebrow">Comece por aqui</p><h2>Dê nome aos seus empregos e cartões</h2><p class="sub">Leva um minuto. Depois é só lançar os gastos pelo botão <b>+</b> aí embaixo.</p><div class="btns"><button type="button" class="btn primary" data-a="tab" data-k="ajustes">Abrir ajustes</button></div></div>`;
+  if (!gm.length && UI.mes === nowKey() && !needsSetup()) h += `<div class="card"><div class="hd"><h2>Já gastou este mês?</h2></div><p class="sub">Traga de uma vez o que já está na fatura ou no extrato: cole a lista do app do banco ou envie o arquivo CSV/OFX. Você confere e importa tudo com um toque.</p><div class="btns"><button type="button" class="btn primary" data-a="importar">Importar gastos</button></div></div>`;
   // posso gastar
   const o = orcamento(), nIr = esc(S.irmao.nome);
   if (o.prevista || o.fixosTotal || o.meta) {
@@ -776,6 +786,7 @@ function rAjustes(){
   h += `<div class="card"><h2>Aparência</h2><div class="seg"><button type="button" class="${t === 'auto' ? 'on' : ''}" data-a="tema" data-k="auto">Automático</button><button type="button" class="${t === 'light' ? 'on' : ''}" data-a="tema" data-k="light">Claro</button><button type="button" class="${t === 'dark' ? 'on' : ''}" data-a="tema" data-k="dark">Escuro</button></div>
     <p class="sub">No celular, toque em "Adicionar à Tela de Início" (iPhone: botão Compartilhar) para abrir como um app.</p></div>`;
   if (Cloud) h += `<div class="card"><h2>Perfil</h2><div class="perfil"><span class="av">${DONO.iniciais}</span><span class="tx"><b>${esc(DONO.nome)}</b><span>Dono do Finanças · perfil único${Cloud.auth.currentUser ? ' · ' + esc(Cloud.auth.currentUser.email || '') : ''}</span></span></div><p class="sub">Só este perfil entra nesta página. Para trocar a senha, saia e use "Esqueci a senha" na entrada.</p><div class="btns"><button type="button" class="btn danger" data-a="sair">Sair</button></div></div>`;
+  h += `<div class="card"><h2>Importar gastos</h2><p class="sub">Para começar sem lançar um por um: cole a lista da fatura ou do extrato (texto copiado do app do banco, PDF ou e-mail) ou envie o arquivo CSV/OFX. Funciona com a fatura do Nubank e extratos de outros bancos.</p><div class="btns"><button type="button" class="btn primary" data-a="importar">Importar gastos</button></div></div>`;
   h += `<div class="card"><h2>Dados</h2><p class="sub">${Cloud ? 'Tudo fica salvo na nuvem do Simplificando, só no perfil de ' + esc(DONO.nome) + '. Também fica uma cópia neste aparelho.' : 'Esta cópia está só neste aparelho (sem nuvem).'} ${S.gastos.length} gastos, ${S.receitas.length} receitas.</p>
     <div class="btns"><button type="button" class="btn" data-a="exportar">Baixar cópia (.json)</button><label class="btn">Restaurar cópia<input type="file" accept="application/json,.json" data-f="importar" hidden></label></div></div>`;
   h += atuCard();
@@ -1077,6 +1088,92 @@ function sheetGuardados(){
   Sheet.open(`<div class="hd"><h2>Guardado em ${esc(monthLabel(UI.mes))}</h2><button type="button" class="x" data-s="fechar" aria-label="Fechar">${I.x}</button></div><div class="list">${its.map(x => `<button type="button" class="row" data-a="ed-guardado" data-k="${x.id}"><span class="ic">🐷</span><span class="tx"><b>${esc(x.obs || 'Guardado')}</b><span>${esc(dayLabel(x.data))}</span></span><span class="val in">${esc(fmt(x.valor))}</span></button>`).join('')}</div>`, { kind:'lista' });
 }
 
+/* ========== importar gastos (texto colado, CSV ou OFX) ========== */
+const CAT_KW = [[/ifood|restaurante|lanche|burger|pizza|padaria|cafe|bar\b|sushi|mcdonald|subway|rappi/, 'Comida'], [/uber|99 ?pop|99app|taxi|posto|combust|gasolina|shell|ipiranga|estacion|metro|onibus|pedagio|sem parar/, 'Transporte'], [/mercado|supermerc|carrefour|assai|atacad|extra|pao de acucar|hortifruti|sacolao|dia\b/, 'Mercado'], [/farmac|drogar|droga ?raia|pague menos|medic|consulta|dentist|academia|smart ?fit/, 'Saúde'], [/netflix|spotify|amazon prime|prime video|disney|hbo|max\b|globoplay|youtube|icloud|google one|apple\.com|microsoft|canva|chatgpt|openai/, 'Assinaturas'], [/renner|riachuelo|c&a|zara|shein|shopee|centauro|nike|adidas|calcad/, 'Roupas'], [/aluguel|condominio|luz|enel|energia|agua|sabesp|internet|vivo|claro|tim\b|oi\b|gas\b|iptu/, 'Casa'], [/cinema|ingresso|show|steam|playstation|xbox|bar\b|viagem|hotel|airbnb/, 'Lazer']];
+function chuteCat(desc){ const d = semAcento(desc); for (const [re, c] of CAT_KW) if (re.test(d) && S.cats.includes(c)) return c; return ''; }
+function lerImportacao(texto){
+  const out = [], hoje = todayISO(), ano = +hoje.slice(0, 4);
+  const t = String(texto || '').replace(/\r/g, '');
+  if (/<OFX>|<STMTTRN>/i.test(t)) { // extrato OFX
+    const re = /<STMTTRN>([\s\S]*?)<\/STMTTRN>/gi; let m;
+    while ((m = re.exec(t))) {
+      const g = k => { const x = m[1].match(new RegExp('<' + k + '>([^<\\n]*)', 'i')); return x ? x[1].trim() : ''; };
+      const dt = g('DTPOSTED').slice(0, 8), amt = parseFloat(g('TRNAMT').replace(',', '.')), memo = g('MEMO') || g('NAME');
+      if (!isFinite(amt) || amt >= 0) continue; // em OFX, gasto é negativo
+      out.push({ data:dt.slice(0, 4) + '-' + dt.slice(4, 6) + '-' + dt.slice(6, 8), valor:Math.round(-amt * 100), desc:memo.replace(/\s+/g, ' ').trim(), on:true });
+    }
+    return out;
+  }
+  const linhas = t.split('\n').map(l => l.trim()).filter(Boolean);
+  if (!linhas.length) return out;
+  const head = semAcento(linhas[0]);
+  if (/date|data/.test(head) && /amount|valor/.test(head) && /,|;/.test(linhas[0])) { // CSV (ex.: fatura do Nubank: date,category,title,amount)
+    const sep = linhas[0].includes(';') ? ';' : ',', cols = head.split(sep).map(x => x.trim());
+    const iD = cols.findIndex(c => /^(date|data)/.test(c)), iV = cols.findIndex(c => /amount|valor/.test(c)), iT = cols.findIndex(c => /title|descri|memo|historico|estabelecimento/.test(c)), iC = cols.findIndex(c => /category|categoria/.test(c));
+    for (const l of linhas.slice(1)) {
+      const c = l.split(sep).map(x => x.trim().replace(/^"|"$/g, ''));
+      if (c.length < 2) continue;
+      const v = parseFloat(String(c[iV] || '').replace(/[^\d,.-]/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.'));
+      if (!isFinite(v) || !v) continue;
+      let d = c[iD] || ''; const md = d.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/); if (md) d = (md[3].length === 2 ? '20' + md[3] : md[3]) + '-' + p2(+md[2]) + '-' + p2(+md[1]);
+      if (!/^\d{4}-\d{2}-\d{2}/.test(d)) d = hoje; else d = d.slice(0, 10);
+      const desc = (iT >= 0 ? c[iT] : c.filter((_, i) => i !== iD && i !== iV).join(' ')) || 'Gasto';
+      if (/pagamento recebido|pagamento de fatura|estorno/i.test(desc)) continue;
+      out.push({ data:d, valor:Math.round(Math.abs(v) * 100), desc:desc.replace(/\s+/g, ' ').trim(), cat:iC >= 0 && S.cats.includes(c[iC]) ? c[iC] : '', on:v > 0 });
+    }
+    return out;
+  }
+  // texto livre: uma linha por gasto, com data e valor em qualquer ordem
+  const reVal = /-?\s*(?:R\$\s*)?\d{1,3}(?:\.\d{3})+,\d{2}|-?\s*(?:R\$\s*)?\d+,\d{2}|-?\s*(?:R\$\s*)?\d+\.\d{2}(?!\d)/g;
+  let neg = 0, pos = 0;
+  for (const l of linhas) {
+    const vals = l.match(reVal); if (!vals) continue;
+    const vs = vals[vals.length - 1], v = dinheiro(vs.replace(/[^\d,.]/g, '')); if (!v) continue;
+    const negativo = /^-|\s-\s*(?:R\$)?\s*\d/.test(vs) || /^-/.test(vs.trim());
+    let data = hoje; const m1 = l.match(/\b(\d{1,2})[\/.](\d{1,2})(?:[\/.](\d{2,4}))?\b/), m2 = l.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
+    const MESES = { jan:1, fev:2, mar:3, abr:4, mai:5, jun:6, jul:7, ago:8, set:9, out:10, nov:11, dez:12 };
+    const m3 = semAcento(l).match(/\b(\d{1,2})\s+(?:de\s+)?(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)[a-z]*\b/);
+    if (m2) data = m2[0]; else if (m1) data = (m1[3] ? (m1[3].length === 2 ? '20' + m1[3] : m1[3]) : ano) + '-' + p2(+m1[2]) + '-' + p2(+m1[1]); else if (m3) data = ano + '-' + p2(MESES[m3[2]]) + '-' + p2(+m3[1]);
+    if (data > hoje && !m1?.[3] && !m2) data = addMonths(data, -12); // "28/12" lido em janeiro é do ano passado
+    let desc = l.replace(vs, ' ').replace(m2 ? m2[0] : m1 ? m1[0] : m3 ? m3[0] : '', ' ').replace(/R\$/g, ' ').replace(/\b(de|em|no|na|compra|debito|credito|cartao|parcela)\b/gi, ' ').replace(/[|;•·*\-–]+/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!desc) desc = 'Gasto';
+    if (/pagamento recebido|pagamento de fatura|pagamento fatura|estorno|saldo anterior|total/i.test(desc)) continue;
+    if (negativo) neg++; else pos++;
+    out.push({ data, valor:v, desc, negativo, on:true });
+  }
+  // alguns extratos marcam gastos com sinal negativo: se a maioria for negativa, elas é que são os gastos
+  const gastoNeg = neg > pos;
+  for (const x of out) { x.on = gastoNeg ? !!x.negativo : !x.negativo; delete x.negativo; }
+  return out;
+}
+function sheetImportar(){
+  const st = { kind:'importar', cartao:S.ult.cartao, quem:'eu', itens:[] };
+  if (!S.cartoes.some(c => c.id === st.cartao)) st.cartao = S.cartoes[0].id;
+  Sheet.open(`<div class="hd"><h2>Importar gastos</h2><button type="button" class="x" data-s="fechar" aria-label="Fechar">${I.x}</button></div>
+    <div class="sec"><p class="lbl">Para qual cartão</p>${chipsHTML('cartao', S.cartoes, st.cartao, swOf)}</div>
+    <div class="sec"><p class="lbl">Quem gastou (padrão)</p><div class="seg"><button type="button" class="on" data-c="quem" data-k="eu">Eu</button><button type="button" data-c="quem" data-k="irmao">${esc(S.irmao.nome)}</button></div></div>
+    <label class="field">Cole aqui a lista<textarea id="imp-txt" rows="5" placeholder="Uma linha por gasto, do jeito que vier do banco. Ex.:
+03/11 IFOOD *IFOOD R$ 32,90
+05/11 POSTO SHELL 120,00
+2026-11-06,restaurante,Padaria da Vila,18.50"></textarea></label>
+    <div class="btns"><button type="button" class="btn primary" data-s="imp-ler">Ler a lista</button><label class="btn">Enviar arquivo (CSV/OFX)<input type="file" id="imp-file" accept=".csv,.ofx,.txt,text/csv,text/plain,application/x-ofx" hidden></label></div>
+    <div id="imp-out"></div>`, st);
+  const f = $('#imp-file'); if (f) f.addEventListener('change', () => { const file = f.files[0]; if (!file) return; const fr = new FileReader(); fr.onload = () => { $('#imp-txt').value = String(fr.result || ''); lerImp(); }; fr.readAsText(file, 'utf-8'); });
+}
+function lerImp(){
+  const st = Sheet.st; if (!st || st.kind !== 'importar') return;
+  const itens = lerImportacao(val('imp-txt'));
+  for (const x of itens) { x.cat = x.cat || chuteCat(x.desc); const lim = t => semAcento(t).replace(/[^a-z0-9]/g, ''); x.dup = S.gastos.some(g => g.data === x.data && g.valor === x.valor && lim(g.desc) === lim(x.desc)); if (x.dup) x.on = false; }
+  st.itens = itens; mostrarImp();
+}
+function mostrarImp(){
+  const st = Sheet.st, out = $('#imp-out'); if (!st || !out) return;
+  if (!st.itens.length) { out.innerHTML = `<p class="sub">Não achei linhas com valor. Cada linha precisa ter o valor (ex.: 32,90) e, se possível, a data (ex.: 03/11).</p>`; return; }
+  const sel = st.itens.filter(x => x.on), tot = sum(sel, x => x.valor);
+  out.innerHTML = `<p class="lbl">Li ${st.itens.length} ${st.itens.length === 1 ? 'linha' : 'linhas'}. Desmarque o que não for gasto.</p><div class="imp-prev">${st.itens.map((x, i) => `<label class="imp-row ${x.on ? '' : 'off'}"><input type="checkbox" data-imp="${i}" ${x.on ? 'checked' : ''}><span class="d">${esc(shortDate(x.data))}</span><span class="t">${esc(x.desc)}<small>${x.dup ? 'já lançado' : esc(x.cat || 'sem categoria')}</small></span><span class="v">${esc(fmt(x.valor))}</span></label>`).join('')}</div>
+    <button type="button" class="btn primary wide" data-s="imp-salvar" ${sel.length ? '' : 'disabled'}>Importar ${sel.length} ${sel.length === 1 ? 'gasto' : 'gastos'} · ${esc(fmt(tot))}</button>`;
+}
+
 function textoCobranca(){
   const n = S.irmao.nome, gm = S.gastos.filter(g => g.quem === 'irmao' && inMes(g)).sort((a, b) => a.data.localeCompare(b.data)), p = irmaoPendente();
   const L = [`Oi, ${n}! Seus gastos no meu cartão em ${monthLabel(UI.mes)}:`];
@@ -1100,6 +1197,7 @@ function cents(){ const s = Sheet.st; return (s.neg ? -1 : 1) * (parseInt(s.dig 
 function val(id){ const el = document.getElementById(id); return el ? el.value : ''; }
 function okData(d){ return /^\d{4}-\d{2}-\d{2}$/.test(d); }
 
+Sheet.box.addEventListener('change', ev => { const cb = ev.target.closest('[data-imp]'); const s = Sheet.st; if (!cb || !s || s.kind !== 'importar') return; s.itens[+cb.dataset.imp].on = cb.checked; mostrarImp(); });
 Sheet.box.addEventListener('click', ev => {
   const s = Sheet.st; if (!s) return;
   const p = ev.target.closest('[data-p]'); if (p) { const k = p.dataset.p; if (k === 'bk') s.dig = (s.dig || '').slice(0, -1); else if ((s.dig || '').length < 10) s.dig = ((s.dig || '') + k).replace(/^0+(?=\d)/, ''); refreshAmt(); return; }
@@ -1130,6 +1228,13 @@ Sheet.box.addEventListener('click', ev => {
     const o = { nome, valor:v, cartao:s.cartao, dia, quem:s.quem === 'irmao' ? 'irmao' : 'eu', cat:s.cat || '', ativo:val('s-ativo') !== '0', forma:s.forma === 'boleto' ? 'boleto' : 'cartao' };
     if (s.id) { const f = S.fixos.find(x => x.id === s.id); if (f) Object.assign(f, o); } else S.fixos.push(Object.assign({ id:uid() }, o));
     save(); Sheet.close(); render(); toast('Gasto fixo salvo.');
+  }
+  if (a === 'imp-ler') { lerImp(); return; }
+  if (a === 'imp-salvar') {
+    const sel = s.itens.filter(x => x.on); if (!sel.length) return;
+    const cr = Date.now(); let k = 0;
+    for (const x of sel) S.gastos.push({ id:uid(), cr:cr + (k++), valor:x.valor, data:x.data, cartao:s.cartao, quem:s.quem === 'irmao' ? 'irmao' : 'eu', desc:x.desc, cat:x.cat || '' });
+    S.ult.cartao = s.cartao; save(); Sheet.close(); render(); toast(sel.length + ' gastos importados para ' + cartao(s.cartao).nome + '.'); return;
   }
   if (a === 'salvar-guardado') {
     const v = cents(), data = val('s-data'); if (v <= 0) return toast('Digite o valor guardado.'); if (!okData(data)) return toast('Confira a data.');
@@ -1188,6 +1293,7 @@ document.addEventListener('click', ev => {
   if (a === 'voz') sheetVoz();
   if (a === 'add-fixo') sheetFixo();
   if (a === 'guardar') sheetGuardar();
+  if (a === 'importar') sheetImportar();
   if (a === 'guardar-tudo') { const v = +k; if (v > 0) { S.guardados.push({ id:uid(), cr:Date.now(), valor:v, data:todayISO(), obs:'' }); save(); render(); toast('Guardado: ' + fmt(v) + '. Meta do mês batida!'); } }
   if (a === 'ver-guardados') sheetGuardados();
   if (a === 'ed-guardado') { const x = S.guardados.find(y => y.id === k); if (x) sheetGuardar(x); }
