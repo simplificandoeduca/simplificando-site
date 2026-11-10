@@ -607,7 +607,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.55';
+const VERSAO = '0.56';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -706,7 +706,8 @@ async function carregar() { // devolve true quando algo mudou no servidor
   if (CARREGANDO) return false; CARREGANDO = true;
   try {
     const d = await api('dados');
-    const assinatura = JSON.stringify({ ...d, agora: 0, idface: { ...d.idface, segundos: 0 } }); const mudou = assinatura !== ULTIMA_CARGA; ULTIMA_CARGA = assinatura;
+    // o que muda sozinho a cada contato do aparelho não conta como novidade (senão a tela redesenhava a cada 6 s e "piscava")
+    const assinatura = JSON.stringify({ ...d, agora: 0, idface: { ...d.idface, segundos: 0, ultimo_contato: 0, ultima_batida: 0, periodo: 0, erro: '' } }); const mudou = assinatura !== ULTIMA_CARGA; ULTIMA_CARGA = assinatura;
     S.criancas = d.criancas.map(c => ({ ...c, entrou: c.entrou ? dataDe(c.entrou) : null, visitas: (c.visitas || []).map(v => ({ ...v, dia: dataDe(v.dia) })) }));
     S.registros = d.registros.map(r => ({ ...r, h: dataDe(r.h) }));
     S.conversas = d.conversas.map(x => ({ ...x, msgs: x.msgs.map(m => ({ ...m, h: dataDe(m.h) })) }));
