@@ -92,6 +92,13 @@ function db(): PDO {
     try { $pdo->exec('UPDATE vendas SET minutos = CAST(horas * 60 AS INTEGER) WHERE minutos = 0 AND horas > 0'); } catch (Throwable $e) { }
     $pdo->exec('PRAGMA user_version = 8');
   }
+  if ($v < 9) { // 0.72: a loja marca entrada e saída à mão por enquanto: a leitura do iDFace fica desligada (religa em Ajustes → iDFace → Ligar leitura)
+    try {
+      $q = $pdo->query("SELECT valor FROM config WHERE chave = 'idface'")->fetchColumn(); $ic = $q !== false ? json_decode((string)$q, true) : []; if (!is_array($ic)) $ic = [];
+      $ic['ligado'] = false; $pdo->prepare('INSERT INTO config (chave, valor) VALUES (?, ?) ON CONFLICT(chave) DO UPDATE SET valor = excluded.valor')->execute(['idface', json_encode($ic, JSON_UNESCAPED_UNICODE)]);
+    } catch (Throwable $e) { }
+    $pdo->exec('PRAGMA user_version = 9');
+  }
   return $pdo;
 }
 function cfg(string $k, $padrao = null) { $q = db()->prepare('SELECT valor FROM config WHERE chave = ?'); $q->execute([$k]); $v = $q->fetchColumn(); return $v === false ? $padrao : json_decode((string)$v, true); }
@@ -167,11 +174,13 @@ function registrar(string $tipo, ?int $criancaId, string $nome, string $texto, ?
 function crianca(int $id): ?array { $q = db()->prepare('SELECT * FROM criancas WHERE id = ?'); $q->execute([$id]); return $q->fetch() ?: null; }
 
 /* ---------- entrada, saída e venda: a mesma lógica para o iDFace e para o toque na tela ---------- */
+// sem o iDFace (leitura desligada em Ajustes), a equipe marca a entrada e a saída na tela
+function modoManual(): bool { $c = cfg('idface', null); return is_array($c) && array_key_exists('ligado', $c) && !$c['ligado']; }
 function fazerEntrada(array $c, string $origem = 'iDFace', ?string $quando = null): array {
   $db = db(); $quando = $quando ?: agora();
   $db->prepare('UPDATE criancas SET entrou = ? WHERE id = ?')->execute([$quando, $c['id']]);
   $c['entrou'] = $quando;
-  $reg = registrar('ent', (int)$c['id'], $c['nome'], $origem === 'iDFace' ? 'Rosto reconhecido na entrada' : 'Entrada registrada à mão', $quando);
+  $reg = registrar('ent', (int)$c['id'], $c['nome'], $origem === 'iDFace' ? 'Rosto reconhecido na entrada' : (modoManual() ? 'Entrada registrada' : 'Entrada registrada à mão'), $quando);
   $msg = null;
   if (regra()['autoMsg'] !== 'nao') {
     $texto = 'Oi, ' . primeiroNome($c['resp']) . '! ' . $c['nome'] . ' chegou na Play Space às ' . date('H:i', strtotime($quando)) . ' 💛 Tem ' . hm(restante($c)) . ' no pacote. Qualquer coisa a gente te chama por aqui.';
@@ -189,7 +198,7 @@ function fazerSaida(array $c, string $origem = 'iDFace', ?string $quando = null)
   $c['usado_min'] += $deb; $c['entrou'] = null;
   $r = restante($c);
   if ($r <= 0 && regra()['bloqueioAuto'] === 'sim') bloquearAcesso($c, false);   // zerou: o iDFace passa a recusar até venderem horas
-  $reg = registrar('sai', (int)$c['id'], $c['nome'], hm($deb) . ' debitadas · restam ' . hm($r) . ($sap ? ' · sapato na sapateira ' . $sap : '') . ($origem === 'iDFace' ? '' : ' · saída à mão'), $quando);
+  $reg = registrar('sai', (int)$c['id'], $c['nome'], hm($deb) . ' debitadas · restam ' . hm($r) . ($sap ? ' · sapato na sapateira ' . $sap : '') . ($origem === 'iDFace' || modoManual() ? '' : ' · saída à mão'), $quando);
   $msg = null;
   if (regra()['autoMsg'] === 'ambos') {
     $texto = $c['nome'] . ' saiu às ' . date('H:i', strtotime($quando)) . '. Hoje ficou ' . hm($deb) . ($r > 0 ? ' e ainda tem ' . hm($r) . ' no pacote' : ' e o pacote acabou') . '. Até a próxima! 🧸';

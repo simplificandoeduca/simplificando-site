@@ -168,25 +168,27 @@ switch ($acao) {
     if ($c['idface_id'] !== null) gravarCfg('foto_' . $c['id'], (int)$c['idface_id']); else gravarCfg('mandar_' . $c['id'], (int)$c['id']);
     responder();
   }
-  case 'entrada': { // à mão: só gestor e supervisor, para corrigir; o normal é o rosto no iDFace
-    exigir(['gestor', 'supervisor']); $c = crianca((int)($in['id'] ?? 0)); if (!$c) falha('Criança não encontrada.', 404);
+  case 'entrada': { // à mão. Sem o iDFace é o jeito normal: toda a equipe, e só para quem tem tempo comprado. Com o iDFace, só gestor e supervisor, para corrigir
+    $manual = modoManual(); if ($manual) exigir(); else exigir(['gestor', 'supervisor']);
+    $c = crianca((int)($in['id'] ?? 0)); if (!$c) falha('Criança não encontrada.', 404);
     if ($c['entrou']) falha($c['nome'] . ' já está no espaço.');
+    if ($manual && restante($c) <= 0) falha($c['nome'] . ' não tem tempo de recreação. Registre a venda antes da entrada.');
     responder(fazerEntrada($c, 'mão'));
   }
   case 'saida': {
-    exigir(['gestor', 'supervisor']); $c = crianca((int)($in['id'] ?? 0)); if (!$c) falha('Criança não encontrada.', 404);
+    if (modoManual()) exigir(); else exigir(['gestor', 'supervisor']); $c = crianca((int)($in['id'] ?? 0)); if (!$c) falha('Criança não encontrada.', 404);
     if (!$c['entrou']) falha($c['nome'] . ' não está no espaço.');
     responder(fazerSaida($c, 'mão'));
   }
   case 'desfazer_entrada': { // volta a criança para fora e apaga o registro e o aviso
-    exigir(['gestor', 'supervisor']); $c = crianca((int)($in['id'] ?? 0)); if (!$c || !$c['entrou']) falha('Nada para desfazer.');
+    if (modoManual()) exigir(); else exigir(['gestor', 'supervisor']); $c = crianca((int)($in['id'] ?? 0)); if (!$c || !$c['entrou']) falha('Nada para desfazer.');
     $db->prepare('UPDATE criancas SET entrou = NULL WHERE id = ?')->execute([$c['id']]);
     if (!empty($in['registro'])) $db->prepare('DELETE FROM registros WHERE id = ? AND crianca_id = ?')->execute([(int)$in['registro'], $c['id']]);
     if (!empty($in['mensagem'])) $db->prepare('DELETE FROM mensagens WHERE id = ? AND crianca_id = ?')->execute([(int)$in['mensagem'], $c['id']]);
     responder();
   }
   case 'desfazer_saida': {
-    exigir(['gestor', 'supervisor']); $c = crianca((int)($in['id'] ?? 0)); if (!$c) falha('Nada para desfazer.');
+    if (modoManual()) exigir(); else exigir(['gestor', 'supervisor']); $c = crianca((int)($in['id'] ?? 0)); if (!$c) falha('Nada para desfazer.');
     $q = $db->prepare('SELECT * FROM visitas WHERE id = ? AND crianca_id = ?'); $q->execute([(int)($in['visita'] ?? 0), $c['id']]); $v = $q->fetch(); if (!$v) falha('Nada para desfazer.');
     $db->prepare('UPDATE criancas SET entrou = ?, usado_min = MAX(0, usado_min - ?) WHERE id = ?')->execute([$v['entrou'], (int)$v['debitado_min'], $c['id']]);
     $sap = (int)($in['sapateira'] ?? 0); if ($sap > 0 && !donoSapateira($sap, (int)$c['id'])) $db->prepare('UPDATE criancas SET sapateira = ? WHERE id = ?')->execute([$sap, $c['id']]);
@@ -215,7 +217,11 @@ switch ($acao) {
     if (!$linhas) falha('Escolha o serviço.');
     $vendas = []; $regs = []; $total = 0; $min = 0;
     foreach ($linhas as $l) { $x = fazerVenda($c, $l['min'], $l['valor'], (int)$u['id'], $l['itens'], $l['servico']); $vendas[] = $x['venda']; $regs[] = $x['registro']; $total += $l['valor']; $min += $l['min']; $c = crianca((int)$c['id']); }
-    responder(['vendas' => $vendas, 'registros' => $regs, 'total' => $total, 'minutos' => $min]);
+    $resp = ['vendas' => $vendas, 'registros' => $regs, 'total' => $total, 'minutos' => $min];
+    if (!empty($in['entrar']) && modoManual() && !$c['entrou'] && restante($c) > 0) { // sem iDFace: pagou e já entra, o tempo começa a contar
+      $e = fazerEntrada($c, 'mão'); $resp['entrada'] = ['registro' => $e['registro'], 'mensagem' => is_array($e['mensagem']) ? (int)($e['mensagem']['id'] ?? 0) : 0];
+    }
+    responder($resp);
   }
   case 'historico': { // tudo de um cliente (as crianças do mesmo responsável): todas as compras e todas as visitas
     exigir(); session_write_close();

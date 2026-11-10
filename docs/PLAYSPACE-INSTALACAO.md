@@ -47,6 +47,18 @@ O que sai sozinho pelo número da loja, conforme *Avisos automáticos* em Ajuste
 
 As respostas dos responsáveis entram na aba **WhatsApp**, organizada por dia (Hoje, Ontem, escolher a data), com quem da equipe respondeu. A conversa é ligada pela **telefone do responsável** no cadastro da criança: por isso o telefone precisa estar certo (com DDD).
 
+## 4b. Sem o iDFace: entrada e saída na tela
+
+Enquanto a loja não usa o iDFace, a **leitura fica desligada** (Ajustes → iDFace; a versão 0.72 já desliga sozinha) e a equipe marca tudo na tela:
+
+- No **atendimento**, ao registrar uma venda com Recreação, a opção **Dar entrada agora** já vem marcada: a venda é gravada e o tempo começa a contar. Para quem está comprando para outro dia, é só desmarcar.
+- Quem já tem tempo guardado ganha o botão **Entrada** (no anel da criança, em Banco de horas da aba Horas, e na ficha). Sem tempo comprado, a entrada não é aceita: aparece **Vender**.
+- Quem está no espaço tem o botão **Saída** no anel e na ficha. A saída desconta o tempo que a criança ficou, libera a sapateira e avisa onde está o sapato.
+- Qualquer pessoa da equipe (inclusive Atendente) marca entrada e saída, e os avisos têm **Desfazer**.
+- Somem da tela as coisas que só fazem sentido com o aparelho: acesso autorizado/bloqueado, "falta o rosto" e os avisos de aparelho sem contato.
+
+Para passar a usar o aparelho: Ajustes → iDFace → **Ligar o iDFace**. Os botões Entrada e Saída somem (fica só a saída de correção para Gestor e Supervisor) e o rosto volta a mandar.
+
 ## 5. iDFace (Ajustes → iDFace)
 
 O aparelho reconhece o rosto da criança: fora → entra; dentro → sai e debita as horas da regra. Duas leituras seguidas em menos de 90 s contam uma vez só.

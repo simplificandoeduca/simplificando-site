@@ -782,7 +782,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.71';
+const VERSAO = '0.72';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -813,7 +813,7 @@ async function atualizarAgora(bt) {
 }
 const S = {
   tela: 'horas', zapAberta: 1, zapModo: 'lista', zapDia: isoDia(agora), mes: { y: agora.getFullYear(), m: agora.getMonth() }, diaSel: isoDia(agora),
-  cfg: { arredonda: 1, cortesia: 10, minimo: 0, aviso: 10, autoMsg: 'ambos', bloqueioAuto: 'sim', pacotes: [], servicos: [{ id: 'recreacao', n: 'Recreação', v: 80, modo: 'periodo', min: 30, banco: true, obs: '' }, { id: 'fusquinha', n: 'Carrinho fusquinha', v: 15, modo: 'periodo', min: 30, banco: false, obs: '' }, { id: 'bebe', n: 'Carrinho de bebê', v: 30, modo: 'fixo', min: 0, banco: false, obs: 'das 10h às 22h' }], sapateiras: 44, idface: { ip: '192.168.0.129', nome: 'Recepção', ligado: true, ultima: antes(0.2) }, tema: lido('ps-tema', 'sistema'), anim: lido('ps-anim', 'auto') },
+  cfg: { arredonda: 1, cortesia: 10, minimo: 0, aviso: 10, autoMsg: 'ambos', bloqueioAuto: 'sim', pacotes: [], servicos: [{ id: 'recreacao', n: 'Recreação', v: 80, modo: 'periodo', min: 30, banco: true, obs: '' }, { id: 'fusquinha', n: 'Carrinho fusquinha', v: 15, modo: 'periodo', min: 30, banco: false, obs: '' }, { id: 'bebe', n: 'Carrinho de bebê', v: 30, modo: 'fixo', min: 0, banco: false, obs: 'das 10h às 22h' }], sapateiras: 44, idface: { ip: '192.168.0.129', nome: 'Recepção', ligado: false, ultima: antes(0.2) }, tema: lido('ps-tema', 'sistema'), anim: lido('ps-anim', 'auto') },
   equipe: [{ id: 1, nome: 'Camila Duarte', papel: 'gestor', login: 'camila' }, { id: 2, nome: 'Beatriz Lima', papel: 'supervisor', login: 'bia' }, { id: 3, nome: 'João Pedro', papel: 'atendente', login: 'jp' }],
   whats: { conectado: true, numero: '5511912345678', nome: 'Play Space' }, vendasHoje: null,
   criancas: [
@@ -874,7 +874,8 @@ let MODO = 'demo';
 let EU = { nome: 'Camila', papel: 'gestor', login: 'camila' };
 const gestor = () => EU.papel === 'gestor';
 const supervisorOuMais = () => EU.papel === 'gestor' || EU.papel === 'supervisor';
-const podeManual = () => MODO !== 'servidor' || supervisorOuMais();   // entrada e saída à mão: o normal é o rosto no iDFace
+const semIdface = () => !S.cfg.idface.ligado;   // a leitura do iDFace está desligada em Ajustes: a equipe marca entrada e saída na tela
+const podeManual = () => MODO !== 'servidor' || semIdface() || supervisorOuMais();   // com o iDFace ligado, à mão é só para gestor e supervisor corrigirem
 async function api(acao, dados = {}) {
   let r;
   try { r = await fetch(API, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-Play': '1' }, body: JSON.stringify({ acao, ...dados }) }); }
@@ -1125,14 +1126,15 @@ function anel(c, onde = 'banco') {
   const dentro = onde === 'hero';
   const botoes = dentro
     ? `${podeManual() ? `<button class="bt claro tap" data-act="saida-rapida" data-id="${c.id}">${ic(IC.sair, 14)} Saída</button>` : ''}<button class="bt tap" data-act="avisar" data-id="${c.id}" aria-label="Avisar ${esc(c.resp)}">${ic(IC.zap, 14)}${podeManual() ? '' : ' Avisar'}</button>`
-    : (r <= 0 || baixo ? `<button class="bt ${semHoras(c) ? '' : 'forte'} tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 14)} Vender</button>` : c.rosto ? `<button class="bt tap" data-act="avisar" data-id="${c.id}">${ic(IC.zap, 14)} Avisar</button>` : (rostoPronto() ? `<button class="bt tap" data-act="rosto-cam" data-id="${c.id}">${ic(IC.rosto, 14)} Cadastrar rosto</button>` : `<button class="bt tap" data-act="ficha" data-id="${c.id}">${ic(IC.camera, 14)} Tirar a foto</button>`));
-  return `<div class="anel ${baixo ? 'baixo' : ''} ${!dentro && !liberada(c) ? 'bloqueada' : ''} ${dentro && S.chegou === c.id ? 'chegou' : ''}" data-anel="${c.id}" data-onde="${onde}">
+    : (semIdface() ? (r > 0 ? `<button class="bt forte tap" data-act="entrada-rapida" data-id="${c.id}">${ic(IC.entrar, 14)} Entrada</button>` : `<button class="bt ${semHoras(c) ? '' : 'forte'} tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 14)} Vender</button>`)
+      : r <= 0 || baixo ? `<button class="bt ${semHoras(c) ? '' : 'forte'} tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 14)} Vender</button>` : c.rosto ? `<button class="bt tap" data-act="avisar" data-id="${c.id}">${ic(IC.zap, 14)} Avisar</button>` : (rostoPronto() ? `<button class="bt tap" data-act="rosto-cam" data-id="${c.id}">${ic(IC.rosto, 14)} Cadastrar rosto</button>` : `<button class="bt tap" data-act="ficha" data-id="${c.id}">${ic(IC.camera, 14)} Tirar a foto</button>`));
+  return `<div class="anel ${baixo ? 'baixo' : ''} ${!dentro && !liberada(c) && !semIdface() ? 'bloqueada' : ''} ${dentro && S.chegou === c.id ? 'chegou' : ''}" data-anel="${c.id}" data-onde="${onde}">
     ${c.sapateira || dentro ? `<button class="sapb tap ${c.sapateira ? '' : 'vazia'}" data-act="sapateira" data-id="${c.id}" title="${c.sapateira ? 'Sapateira ' + c.sapateira + ' (toque para trocar)' : 'Escolher a sapateira'}" aria-label="${c.sapateira ? 'Sapateira ' + c.sapateira + ' de ' + esc(c.nome) : 'Escolher a sapateira de ' + esc(c.nome)}">${ic(IC.sapato, 12, 2.4)}${c.sapateira || ''}</button>` : ''}
     <button class="r tap" data-act="ficha" data-id="${c.id}" style="--p:${pct.toFixed(1)};--c:${baixo ? 'var(--erro)' : 'var(--verde-agua)'}" aria-label="Abrir a ficha de ${esc(c.nome)}">${c.foto ? `<span class="fotinha" style="background-image:url(${c.foto})"></span>` : ''}<b class="num ${c.entrou ? 'vivo' : ''}">${semHoras(c) && !c.entrou ? 'Sem horas' : esgotou(c) ? 'Acabou' : vivo(c)}<small>${semHoras(c) ? 'ainda não comprou' : `de ${tam(c)}`}</small></b></button>
     <span class="nome">${esc(c.nome)}${c.idade && !dentro ? ', ' + c.idade : ''}</span>
     <em>${dentro ? `desde ${hora(c.entrou)} · <span class="num" data-cron-txt="${c.id}">${hms(segDentro(c))}</span>` : esc(c.resp)}</em>
     <div class="mini">${botoes}</div>
-    ${dentro ? '' : `<div class="libera"><span>${liberada(c) ? 'Acesso autorizado' : 'Acesso bloqueado'}</span>${chave(c, true)}</div>`}
+    ${dentro || semIdface() ? '' : `<div class="libera"><span>${liberada(c) ? 'Acesso autorizado' : 'Acesso bloqueado'}</span>${chave(c, true)}</div>`}
   </div>`;
 }
 // a situação da criança em uma frase: está aqui, vai embora em X, o tempo acabou, não está aqui
@@ -1177,11 +1179,12 @@ const nomeLinha = l => l.servico ? l.servico + (l.min ? ' · ' + dur(l.min) : ''
 async function registrarAtendimento(id) {
   const c = crianca(id), L = linhasDoCarrinho(); if (!c) return; if (!L.length) { toast('Escolha o serviço'); return; }
   if (L.some(l => l.outro) && !(numero(val('v-valor')) >= 0)) { toast('Qual é o valor do outro item?'); $('#v-valor').focus(); return; }
+  const en = $('#v-entrar-campo'), entrar = !!en && !en.hidden && !!($('#v-entrar') || {}).checked;   // sem iDFace: pagou e já entra
   const total = L.reduce((a, l) => a + l.v, 0), min = L.reduce((a, l) => a + l.min, 0), nome = c.nome, aviso = `Venda registrada para ${nome} · ${brl(total)}${min ? ' · +' + dur(min) + ' de recreação' : ''}`;
   if (MODO === 'servidor') {
     const bt = $('#v-ok'); if (bt) bt.disabled = true;
-    try { const o = L.find(l => l.outro), r = await api('atender', { id, linhas: L.filter(l => l.s).map(l => ({ s: l.s, q: l.q })), pacotes: L.filter(l => l.pac != null).map(l => l.pac), outro: o ? { n: o.servico, v: o.v } : null });
-      await carregar(); fecharFolha(); desenhar(); toast(aviso, async () => { try { await api('desfazer_venda', { vendas: r.vendas, registros: r.registros }); await carregar(); } catch (e) { toast(e.message); } desenhar(); }); }
+    try { const o = L.find(l => l.outro), r = await api('atender', { id, linhas: L.filter(l => l.s).map(l => ({ s: l.s, q: l.q })), pacotes: L.filter(l => l.pac != null).map(l => l.pac), outro: o ? { n: o.servico, v: o.v } : null, entrar });
+      await carregar(); fecharFolha(); desenhar(); toast(aviso + (r.entrada ? ' · entrou' : ''), async () => { try { if (r.entrada) await api('desfazer_entrada', { id, registro: r.entrada.registro, mensagem: r.entrada.mensagem }); await api('desfazer_venda', { vendas: r.vendas, registros: r.registros }); await carregar(); } catch (e) { toast(e.message); } desenhar(); }); }
     catch (e) { toast(e.message); if (bt) bt.disabled = false; }
     return;
   }
@@ -1189,12 +1192,16 @@ async function registrarAtendimento(id) {
   for (const l of L) { const compra = { id: novoId(), crianca: c.id, h: l.min / 60, m: l.min, v: l.v, servico: l.servico, itens: l.itens, quando: new Date(), por: EU.nome }; S.compras.unshift(compra); novas.push(compra);
     if (l.min) { c.pacote += l.min / 60; c.liberado = true; c.venda = { h: l.min / 60, m: l.min, v: l.v, servico: l.servico, com: l.itens, quando: new Date() }; }
     registrar('venda', c.nome, `${nomeLinha(l)} · ${brl(l.v)}`); regs.push(S.registros[0]); }
+  let desfazEntrada = null;
+  if (entrar && !c.entrou && restante(c) > 0) { c.entrou = new Date(); registrar('ent', c.nome, 'Entrada registrada'); const regE = S.registros[0]; desfazEntrada = () => { c.entrou = null; S.registros = S.registros.filter(x => x !== regE); }; }
   fecharFolha(); desenhar();
-  toast(aviso, () => { Object.assign(c, era); S.compras = S.compras.filter(x => !novas.includes(x)); S.registros = S.registros.filter(x => !regs.includes(x)); });
+  toast(aviso + (desfazEntrada ? ' · entrou' : ''), () => { if (desfazEntrada) desfazEntrada(); Object.assign(c, era); S.compras = S.compras.filter(x => !novas.includes(x)); S.registros = S.registros.filter(x => !regs.includes(x)); });
 }
 function entrada(c, origem = 'iDFace') {
+  if (!c || c.entrou) return;
+  if (origem !== 'iDFace' && restante(c) <= 0) { toast(`${c.nome} não tem tempo de recreação. Registre a venda antes.`, () => atender(c.id), 'Vender'); return; }
   if (MODO === 'servidor') return entradaServidor(c);
-  c.entrou = new Date(); registrar('ent', c.nome, origem === 'iDFace' ? 'Rosto reconhecido na entrada' : 'Entrada registrada à mão');
+  c.entrou = new Date(); registrar('ent', c.nome, origem === 'iDFace' ? 'Rosto reconhecido na entrada' : (semIdface() ? 'Entrada registrada' : 'Entrada registrada à mão'));
   const reg = S.registros[0], primeiroNome = c.resp.split(' ')[0];
   const desfazMsg = S.cfg.autoMsg !== 'nao' ? mensagemAuto(c, `Oi, ${primeiroNome}! ${c.nome} chegou na Play Space às ${hora(c.entrou)} 💛 Tem ${hm(restante(c))} no pacote. Qualquer coisa a gente te chama por aqui.`, true) : null;
   toast(`${c.nome} entrou · ${hm(restante(c))} no banco${desfazMsg ? ' · ' + primeiroNome + ' avisada' : ''}`, () => { c.entrou = null; S.registros = S.registros.filter(r => r !== reg); if (desfazMsg) desfazMsg(); });
@@ -1204,7 +1211,7 @@ function saida(c, origem = 'iDFace') {
   const deb = cobrar(minDentro(c)), entrouEm = c.entrou; c.usado += deb; if (S.cfg.bloqueioAuto === 'sim' && restante(c) <= 0) c.liberado = false;
   const visita = { dia: new Date(), entrou: hora(c.entrou), saiu: hora(new Date()), deb }; c.visitas.unshift(visita);
   const sap = c.sapateira || 0; c.sapateira = null;   // a sapateira fica livre na saída
-  c.entrou = null; registrar('sai', c.nome, `${hm(deb)} debitadas · restam ${hm(restante(c))}${sap ? ' · sapato na sapateira ' + sap : ''}${origem === 'iDFace' ? '' : ' · saída à mão'}`);
+  c.entrou = null; registrar('sai', c.nome, `${hm(deb)} debitadas · restam ${hm(restante(c))}${sap ? ' · sapato na sapateira ' + sap : ''}${origem === 'iDFace' || semIdface() ? '' : ' · saída à mão'}`);
   const reg = S.registros[0], r = restante(c);
   const desfazMsg = S.cfg.autoMsg === 'ambos' ? mensagemAuto(c, `${c.nome} saiu às ${hora(new Date())}. Hoje ficou ${hm(deb)}${r > 0 ? ` e ainda tem ${hm(r)} no pacote` : ' e o pacote acabou'}. Até a próxima! 🧸`, false) : null;
   toast(`${c.nome} saiu${sap ? ' · sapato na sapateira ' + sap : ''} · ${hm(deb)} debitadas`, () => { c.entrou = entrouEm; c.usado -= deb; if (sap && !donoSap(sap)) c.sapateira = sap; c.visitas = c.visitas.filter(v => v !== visita); S.registros = S.registros.filter(r => r !== reg); if (desfazMsg) desfazMsg(); });
@@ -1258,7 +1265,7 @@ const dataTxt = () => `${SEMANA[agora.getDay()]}, ${agora.getDate()} de ${MESES[
 const botaoVersao = () => `<button type="button" class="versao tap ${ATU.nova ? 'nova' : ''}" data-act="atualizar" title="${ATU.nova ? 'Nova versão ' + ATU.nova + ': toque para atualizar' : 'Versão ' + VERSAO + ': toque para conferir se há versão nova'}">${ic(IC.renova, 13, 2.6)} ${ATU.nova ? 'Atualizar para ' + esc(ATU.nova) : 'v' + VERSAO}</button>`;
 const telFmt = n => { const d = String(n || '').replace(/\D/, '').replace(/^55/, ''); return d.length >= 10 ? `(${d.slice(0, 2)}) ${d.length === 11 ? d[2] + ' ' + d.slice(3, 7) : d.slice(2, 6)}-${d.slice(-4)}` : d; };
 const chipWhats = () => { const w = S.whats || {}; return `<button class="chip suave tap" data-act="${supervisorOuMais() ? 'whats' : 'nada'}"><i class="pt ${w.conectado ? '' : 'off'}"></i>${w.conectado ? 'Conectado' + (w.numero ? ' · ' + telFmt(w.numero) : '') : (w.configurado ? 'WhatsApp desconectado' : 'WhatsApp não configurado')}</button>`; };
-const chipIdface = () => { const i = S.cfg.idface, ok = i.ligado && (MODO !== 'servidor' || i.ativo); return `<button class="chip suave tap" data-act="idface"><i class="pt ${ok ? '' : 'off'}"></i>${ic(IC.rosto, 16)} iDFace ${!i.ligado ? 'desligado' : (ok ? 'lendo' : 'sem contato')}</button>`; };
+const chipIdface = () => { const i = S.cfg.idface, ok = i.ligado && (MODO !== 'servidor' || i.ativo); if (!i.ligado) return `<button class="chip suave tap" data-act="idface" title="O iDFace está desligado: a entrada e a saída são marcadas na tela. Toque para ligar.">${ic(IC.entrar, 16)} Entrada na tela</button>`; return `<button class="chip suave tap" data-act="idface"><i class="pt ${ok ? '' : 'off'}"></i>${ic(IC.rosto, 16)} iDFace ${!i.ligado ? 'desligado' : (ok ? 'lendo' : 'sem contato')}</button>`; };
 
 /* ---------- Horas ---------- */
 function cartaoCrianca(c) {
@@ -1283,12 +1290,12 @@ function telaHoras() {
   return faixa('Controle de horas', nDentro ? `${nDentro} ${nDentro === 1 ? 'criança' : 'crianças'} no espaço agora` : 'Ninguém no espaço agora', chipIdface()) + secaoDicas() + `
   <section class="a-hero">
     <button class="tit tap" data-act="dia"><div class="pers" data-pers="dentro">${PERS.urso}<b class="placa num" data-placa="dentro">${n}</b></div><div class="txt"><small>No espaço agora</small><span>${n === 0 ? 'ninguém por enquanto' : n === 1 ? 'uma criança brincando' : n + ' crianças brincando'}</span></div></button>
-    ${n ? `<div class="aneis">${dentro.map(c => anel(c, 'hero')).join('')}</div>` : `<p class="vazio-h">Quando uma criança olhar para o iDFace, o anel dela aparece aqui com o tempo correndo.</p>`}
+    ${n ? `<div class="aneis">${dentro.map(c => anel(c, 'hero')).join('')}</div>` : `<p class="vazio-h">${semIdface() ? 'Quando uma criança entrar (botão Entrada), o anel dela aparece aqui com o tempo correndo.' : 'Quando uma criança olhar para o iDFace, o anel dela aparece aqui com o tempo correndo.'}</p>`}
   </section>
   <div class="tiles">
     ${tile('t-mostarda', 'dia', 'Horas vendidas hoje', hm(minVend), `${nVend} ${nVend === 1 ? 'venda' : 'vendas'} · ${brl(valorVend)}`, 'poste', 'vendidas')}
-    ${tile('t-menta', 'dia', 'Horas usadas hoje', hm(usadasHoje), 'debitadas pelo rosto', 'balao', 'usadas')}
-    ${tile('t-coral', 'acabando', 'Pacotes acabando', acabando, `menos de ${hm(S.cfg.aviso)} no banco`, 'relogio', 'acabando', acabando ? 'alerta' : '')}
+    ${tile('t-menta', 'dia', 'Horas usadas hoje', hm(usadasHoje), semIdface() ? 'tempo de recreação' : 'debitadas pelo rosto', 'balao', 'usadas')}
+    ${tile('t-coral', 'acabando', 'Tempo acabando', acabando, `menos de ${dur(S.cfg.aviso)} no saldo`, 'relogio', 'acabando', acabando ? 'alerta' : '')}
   </div>
   <section class="sec"><div class="sec-cab"><h2><i style="background:var(--mostarda)"></i>Banco de horas</h2><button class="link tap" data-act="todas">Todas as crianças</button></div>
     ${fora.length ? `<div class="a-lista">${fora.map(c => `<div class="a-card">${anel(c)}</div>`).join('')}</div>` : (S.criancas.length ? `<div class="card vazio"><b>Todo mundo está no espaço.</b><span>Quando uma criança sair, o banco de horas dela volta para cá.</span></div>` : '')}
@@ -1302,7 +1309,7 @@ function painelHoje() {
   return `<div class="painel atividades"><div class="sec-cab"><h2>Atividades do dia</h2><button class="link tap" data-ir="agenda">Agenda</button></div>
     ${doDia.length ? doDia.map(x => itemComp(x, hojeStr)).join('') : `<p class="explica">Nada marcado para hoje, ${SEMANA[agora.getDay()].toLowerCase()}, ${agora.getDate()} de ${MESES[agora.getMonth()]}.</p>`}</div>
   <div class="painel recepcao"><h2>Hoje na recepção</h2>${listaRegistros(regs)}
-  <button class="marca tap" data-act="idface">${ic(IC.rosto, 18)}<span>O iDFace leu <b>${regs.filter(r => r.tipo === 'ent' || r.tipo === 'sai').length} rostos</b> nas últimas 24 h. ${!S.cfg.idface.ligado ? 'Aparelho desligado em Ajustes.' : (MODO === 'servidor' ? (S.cfg.idface.ativo ? 'Aparelho conectado.' : 'Aparelho sem contato: toque para ver.') : 'Última leitura há poucos segundos.')}</span></button></div>`;
+  <button class="marca tap" data-act="idface">${ic(IC.rosto, 18)}<span>${semIdface() ? `<b>${regs.filter(r => r.tipo === 'ent' || r.tipo === 'sai').length} entradas e saídas</b> marcadas na tela nas últimas 24 h. O iDFace está desligado: toque para ligar quando for usar.` : `O iDFace leu <b>${regs.filter(r => r.tipo === 'ent' || r.tipo === 'sai').length} rostos</b> nas últimas 24 h. `}${!S.cfg.idface.ligado ? '' : (MODO === 'servidor' ? (S.cfg.idface.ativo ? 'Aparelho conectado.' : 'Aparelho sem contato: toque para ver.') : 'Última leitura há poucos segundos.')}</span></button></div>`;
 }
 const listaRegistros = regs => `<div class="reg">${regs.length ? regs.map(r => `<div class="ev ${r.tipo}"><time>${hora(r.h)}</time><div><b>${esc(r.nome)}</b><span>${esc(r.txt)}</span></div></div>`).join('') : '<p class="explica">Nada registrado ainda hoje.</p>'}</div>`;
 
@@ -1310,14 +1317,15 @@ function folhaFicha(id) {
   const c = crianca(id); if (!c) return; const [et, cls] = estado(c);
   abrirFolha(`${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}`, `
     <div class="linha">${avatarComUrso(c, 'g')}<div class="txt"><b style="white-space:normal">${esc(c.resp)}${relSabe(c) ? ', ' + esc(c.rel) : ''}</b><span style="white-space:normal">${esc(fones(c))}${c.cpf ? (fones(c) ? ' · ' : '') + esc(docTxt(c)) : ''}</span>${c.obs ? `<span style="color:var(--coral);font-weight:700;white-space:normal;overflow-wrap:anywhere">${esc(c.obs)}</span>` : ''}</div><span class="pill ${cls}">${et}</span></div>
-    <div class="marca libera-ficha">${ic(IC.rosto, 18)}<span>${textoAcesso(c)}</span>${chave(c)}</div>
+    ${semIdface() ? '' : `<div class="marca libera-ficha">${ic(IC.rosto, 18)}<span>${textoAcesso(c)}</span>${chave(c)}</div>`}
     <div class="marca sap-linha">${ic(IC.sapato, 18)}<span>${c.sapateira ? `<b>Sapateira ${c.sapateira}</b> · é onde está o sapato dela.` : `<b>Sem sapateira</b> · escolha onde fica o sapato enquanto ela brinca.`}</span><button class="bt tap" data-act="sapateira" data-id="${c.id}">${c.sapateira ? 'Trocar' : 'Escolher'}</button></div>
     ${c.entrou ? `<div class="marca">${ic(IC.horas, 18)}<span>Está no espaço desde <b>${hora(c.entrou)}</b>: <b class="num" data-cron-txt="${c.id}">${hms(segDentro(c))}</b> até agora, <b>${hm(cobrar(minDentro(c)))}</b> a debitar pela regra atual.</span></div>` : ''}
     ${blocos(c, false)}
     <div class="saldo"><span>comprou ${tam(c)}</span><span>usou ${hm(usadoAgora(c))}</span></div>
     <div class="acoes">
-      ${podeManual() && c.entrou ? `<button class="bt claro tap" data-act="saida" data-id="${c.id}" title="Só para corrigir: o normal é a saída pelo rosto">${ic(IC.sair)} Saída à mão</button>` : ''}
-      <button class="bt forte tap" data-act="vender" data-id="${c.id}">${ic(IC.mais)} Vender</button>
+      ${semIdface() ? (c.entrou ? `<button class="bt forte tap" data-act="saida" data-id="${c.id}">${ic(IC.sair)} Saída</button>` : restante(c) > 0 ? `<button class="bt forte tap" data-act="entrada" data-id="${c.id}">${ic(IC.entrar)} Entrada</button>` : '')
+        : podeManual() && c.entrou ? `<button class="bt claro tap" data-act="saida" data-id="${c.id}" title="Só para corrigir: o normal é a saída pelo rosto">${ic(IC.sair)} Saída à mão</button>` : ''}
+      <button class="bt ${semIdface() && (c.entrou || restante(c) > 0) ? '' : 'forte'} tap" data-act="vender" data-id="${c.id}">${ic(IC.mais)} Vender</button>
       <button class="bt tap" data-act="historico" data-id="${c.id}">${ic(IC.historico)} Histórico</button>
       <button class="bt tap" data-act="avisar" data-id="${c.id}">${ic(IC.zap)} Avisar ${esc(primeiro(c.resp))}</button>
       ${rostoPronto() ? `<button class="bt ${c.rosto ? '' : 'forte'} tap" data-act="rosto-cam" data-id="${c.id}">${ic(IC.rosto)} ${c.rosto ? 'Refazer o rosto no iDFace' : 'Cadastrar rosto no iDFace'}</button>` : ''}
@@ -1342,6 +1350,8 @@ function atualizarCarrinho() { // redesenha as linhas dos serviços e o total a 
   const L = linhasDoCarrinho(), total = L.reduce((t, l) => t + l.v, 0), min = L.reduce((t, l) => t + l.min, 0), t = $('#v-total'), ok = $('#v-ok');
   if (t) t.textContent = brl(total); if (ok) { ok.disabled = !L.length; ok.innerHTML = `${ic(IC.check)} ${L.length ? 'Registrar a venda · ' + brl(total) : 'Escolha o serviço'}`; }
   const m = $('#v-tempo'); if (m) { m.hidden = !min; m.textContent = min ? `Entra ${dur(min)} de recreação no saldo.` : ''; }
+  const en = $('#v-entrar-campo'), cb = $('#v-entrar'), cr = crianca(CARRINHO.id); if (en) en.hidden = !(L.length && cr && (min > 0 || restante(cr) > 0));   // só oferece a entrada se a criança vai ter tempo para brincar
+  if (cb && CARRINHO.entrar == null) cb.checked = min > 0;   // vem marcada quando a venda tem recreação; se a pessoa mexer, vale a escolha dela
 }
 // o atendimento: quem é a criança, qual serviço ela quer e quanto dá. O valor a pagar aparece na hora
 function folhaVender(id) {
@@ -1352,7 +1362,7 @@ function folhaVender(id) {
     <div class="campo"><label>Qual serviço?</label><div class="servicos" id="v-servicos">${linhasServico()}</div></div>
     ${(S.cfg.pacotes || []).length ? `<div class="campo"><label>Pacotes de horas</label><div class="opcoes" id="v-pacotes">${S.cfg.pacotes.map((x, i) => `<button type="button" class="opc tap" data-act="pac-marca" data-i="${i}" aria-pressed="false"><b>${dur(x.h * 60)}</b><span>${brl(x.v)}</span>${x.com ? `<em>vem com ${esc(x.com)}</em>` : ''}</button>`).join('')}</div></div>` : ''}
     <details class="outro"><summary>Outro item</summary><div class="outro-item"><input id="v-item" placeholder="O que foi" autocomplete="off" maxlength="40" aria-label="O que foi vendido"><input id="v-valor" inputmode="decimal" placeholder="R$" autocomplete="off" aria-label="Valor em reais"></div></details>
-    <div class="pe-f"><span class="explica" id="v-tempo" hidden></span><div class="total"><span>Total a pagar</span><b class="num" id="v-total">R$ 0</b></div><button class="bt forte largo tap" id="v-ok" data-act="atender-ok" data-id="${c.id}" disabled>${ic(IC.check)} Escolha o serviço</button></div>`);
+    <div class="pe-f"><span class="explica" id="v-tempo" hidden></span>${semIdface() && !c.entrou ? `<label class="marca" id="v-entrar-campo" hidden><input type="checkbox" id="v-entrar" checked><span><b>Dar entrada agora.</b> O tempo de recreação começa a contar ao registrar a venda.</span></label>` : ''}<div class="total"><span>Total a pagar</span><b class="num" id="v-total">R$ 0</b></div><button class="bt forte largo tap" id="v-ok" data-act="atender-ok" data-id="${c.id}" disabled>${ic(IC.check)} Escolha o serviço</button></div>`);
 }
 // o atendimento completo: a venda no meio e, em tela larga, os dados e o histórico do cliente ao lado
 function atender(id) {
@@ -1482,20 +1492,20 @@ function folhaDia() {
 }
 function folhaLista(filtro) {
   const lista = filtro === 'acabando' ? paraRenovar() : S.criancas;
-  abrirFolha(filtro === 'acabando' ? 'Pacotes acabando' : 'Todas as crianças', `
+  abrirFolha(filtro === 'acabando' ? 'Tempo acabando' : 'Todas as crianças', `
     ${filtro === 'acabando' ? `<p class="explica">Menos de ${hm(S.cfg.aviso)} no banco. Toque para vender horas ou avisar o responsável.</p>` : `<div class="campo"><input id="busca" placeholder="Buscar pelo nome da criança ou do responsável" autocomplete="off"></div>`}
     <div class="grupo" id="lista-criancas">${itensLista(lista)}</div>`);
 }
 const itensLista = lista => lista.length ? lista.map(c => { const [et, cls] = estado(c); return `<button class="it tap" data-act="ficha" data-id="${c.id}">${avatar(c)}<div class="txt"><b>${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}</b><span>${esc(c.resp)} · restam ${hm(restante(c))} de ${tam(c)}</span></div><span class="pill ${cls}">${c.entrou ? 'No espaço' : et}</span>${ic(IC.vai, 18)}</button>`; }).join('') : '<div class="it"><span class="explica">Ninguém encontrado.</span></div>';
 function folhaIdface() {
   const i = S.cfg.idface, serv = MODO === 'servidor';
-  const situacaoTxt = !i.ligado ? `<b>Desligado.</b> O aparelho guarda as leituras; quando religar, tudo entra de onde parou.`
+  const situacaoTxt = !i.ligado ? `<b>Desligado.</b> A entrada e a saída são marcadas na tela, pelos botões Entrada e Saída. Quando for usar o aparelho, é só ligar aqui: os botões somem e o rosto volta a mandar.`
     : (serv ? (i.ativo ? `<b>Conectado.</b> O aparelho falou com o sistema há ${Math.round(i.segundos || 0)} s${i.periodo ? ', a cada ' + i.periodo + ' s' : ''}.${i.fila ? ' Na fila para o aparelho: ' + i.fila + '.' : ''}${i.erro ? ' Último aviso: ' + esc(i.erro) : ''}` : (i.ultimo_contato ? `<b>Sem contato</b> desde ${esc(String(i.ultimo_contato).slice(11, 16))}. Confira se o iDFace está ligado e com internet.` : `<b>Ainda não conectado.</b> Baixe o conector abaixo e rode num computador da mesma rede do aparelho, ou cole o endereço direto no iDFace.`)) : `<b>Tudo certo.</b> O aparelho consulta o sistema a cada segundo e manda cada rosto reconhecido na hora.`);
   abrirFolha('iDFace da recepção', `
     <div class="marca"><i class="pt ${i.ligado && (!serv || i.ativo) ? '' : 'off'}" style="width:10px;height:10px;border-radius:50%;background:${i.ligado && (!serv || i.ativo) ? 'var(--ok)' : 'var(--erro)'}"></i><span>${situacaoTxt}</span></div>
     <div class="dois"><div class="campo"><label for="i-ip">IP do aparelho na loja</label><input id="i-ip" value="${esc(i.ip)}" placeholder="192.168.0.129" ${gestor() ? '' : 'disabled'}></div><div class="campo"><label for="i-usuario">Usuário do aparelho</label><input id="i-usuario" value="${esc(i.usuario || 'admin')}" ${gestor() ? '' : 'disabled'}></div></div>
     <div class="campo"><label for="i-nome">Nome do aparelho</label><input id="i-nome" value="${esc(i.nome)}" ${gestor() ? '' : 'disabled'}></div>
-    ${gestor() ? `<div class="acoes"><button class="bt forte tap" data-act="idface-salvar">${ic(IC.check)} Salvar</button><button class="bt tap" data-act="idface-toggle">${i.ligado ? 'Desligar leitura' : 'Ligar leitura'}</button></div>
+    ${gestor() ? `<div class="acoes"><button class="bt forte tap" data-act="idface-salvar">${ic(IC.check)} Salvar</button><button class="bt tap" data-act="idface-toggle">${i.ligado ? 'Desligar o iDFace (marcar na tela)' : 'Ligar o iDFace'}</button></div>
     <div class="sec"><div class="sec-cab"><h2 style="font-size:15px">Conectar com um computador da loja</h2></div><p class="explica">Rode uma vez num computador na mesma rede do aparelho: ele acha o iDFace, pede a senha do menu e liga a conexão com o site. Depois disso o computador não precisa de mais nada.</p>
       <div class="acoes"><button class="bt claro tap" data-act="idface-bat">${ic(IC.check)} Windows (.bat)</button><button class="bt claro tap" data-act="idface-command">${ic(IC.check)} Mac (.command)</button></div>
       ${serv ? `<p class="explica"><b>No Mac, o jeito mais fácil:</b> abra o Terminal (⌘ + espaço, digite Terminal), cole esta linha e dê Enter. Faz tudo igual ao arquivo, sem a Apple barrar:</p><div class="campo"><input readonly value="${esc(`bash <(curl -fsSL '${i.url_ponte}?acao=conectar_sh&chave=${i.chave}')`)}" onclick="this.select()" style="font-family:ui-monospace,Menlo,monospace;font-size:12px"></div><p class="explica">Se preferir o arquivo .command e a Apple disser que "não pôde verificar": Ajustes do Sistema → Privacidade e Segurança → role até o fim → <b>Abrir Mesmo Assim</b>.</p>` : ''}</div>` : ''}
@@ -1580,7 +1590,7 @@ function dicas() {
     add('comp-' + x.id, 'ideia', 'agenda', `<b>${esc(x.titulo)} ${falta <= 1 ? 'começa agora' : 'começa às ' + x.hora + ', daqui a ' + (falta < 60 ? falta + ' min' : hm(falta))}.</b> Está na agenda de hoje.`, 'Ver', 'comp', x.id);
   }
   // 5. cadastro incompleto e acesso bloqueado com saldo
-  if (!serv || S.cfg.idface.ligado) for (const c of S.criancas) {
+  if (S.cfg.idface.ligado) for (const c of S.criancas) {   // sem o iDFace (entrada na tela), ninguém precisa de rosto cadastrado
     if (!c.rosto) add('rosto-' + c.id, 'ideia', 'rosto', `<b>${esc(c.nome)} ainda não tem o rosto no iDFace.</b> Sem ele, a entrada não é lida. Cadastre quando chegar.`, rostoPronto() ? 'Cadastrar rosto' : 'Abrir a ficha', rostoPronto() ? 'rosto-cam' : 'ficha', c.id);
     else if (!liberada(c) && restante(c) > 0 && !c.entrou) add('bloq-' + c.id, 'ideia', 'rosto', `<b>${esc(c.nome)} está com o acesso bloqueado no iDFace, mas tem ${hm(restante(c))} no banco.</b> Se for para entrar, autorize.`, 'Autorizar o acesso', 'liberar', c.id);
   }
@@ -1680,7 +1690,7 @@ function sugestoes(conv) {
   const c = crianca(conv.crianca), r = hm(restante(c)), ultima = conv.msgs[conv.msgs.length - 1];
   const s = [];
   if (c.entrou) s.push(`${c.nome} está aqui desde ${hora(c.entrou)} e ainda tem ${r} no pacote. Fica tranquila!`);
-  else s.push(`Oi, ${c.resp}! ${c.nome} ainda tem ${r} no pacote. Quando quiser vir, é só chegar e olhar para a câmera.`);
+  else s.push(`Oi, ${c.resp}! ${c.nome} ainda tem ${r} no pacote. Quando quiser vir, é só chegar${semIdface() ? '' : ' e olhar para a câmera'}.`);
   if (restante(c) <= 120) s.push(`${c.resp}, o pacote de ${c.nome} está com ${r}. Quer renovar?${precosTxt() ? ' ' + precosTxt() + '.' : ''}`);
   if (ultima && /pacote|quanto|pre[çc]o/i.test(ultima.txt)) s.push(`${precosTxt() || 'Já te passo os valores'}. O tempo comprado soma ao que já tem.`);
   if (ultima && /ficar|at[ée]|tr[âa]nsito/i.test(ultima.txt)) s.push(`Pode sim! Se passar do tempo do pacote a gente te avisa por aqui, combinado? 💛`);
@@ -2020,7 +2030,8 @@ document.addEventListener('click', e => {
   const f = e.target.closest('[data-fecha]'); if (f && (f.tagName === 'BUTTON' || e.target === f)) fecharFolha();
 });
 document.addEventListener('change', e => {
-  const t = e.target; if (t.type !== 'file' || !t.files || !t.files[0]) return;
+  const t = e.target; if (t.id === 'v-entrar' && CARRINHO) { CARRINHO.entrar = t.checked; return; }
+  if (t.type !== 'file' || !t.files || !t.files[0]) return;
   if (t.id === 'f-foto') lerFoto(t.files[0], url => { FOTO_TEMP = url; const prev = $('#f-foto-prev'); if (prev) { prev.classList.add('foto'); prev.style.backgroundImage = `url(${url})`; prev.innerHTML = ''; } const l = $('label[for="f-foto"]'); if (l) l.innerHTML = `${ic(IC.camera)} Tirar outra`; });
   if (t.id === 'ficha-foto') { const c = crianca(t.dataset.id); lerFoto(t.files[0], async url => { if (MODO === 'servidor') { try { await api('foto_salvar', { id: c.id, foto: url }); await carregar(); } catch (e) { toast(e.message); return; } } else { c.foto = url; c.rosto = true; } toast(`Foto de ${c.nome} a caminho do iDFace`); fecharFolha(); desenhar(); setTimeout(() => folhaFicha(c.id), 250); }); }
 });
