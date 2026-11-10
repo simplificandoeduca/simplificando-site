@@ -1546,6 +1546,10 @@ body.has-dock .toast,body.has-dock .utoast{bottom:calc(176px + env(safe-area-ins
 .cs-del{position:absolute;top:0;right:0;bottom:0;width:104px;border:0;background:#E5484D;color:#fff;font:inherit;font-size:13px;font-weight:800;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer}
 .cs-del .i{width:20px;height:20px}
 .cs-wrap:focus-within .cs-row{transform:translateX(-104px)}
+#novav{position:fixed;z-index:2147483000;left:50%;transform:translateX(-50%);top:calc(10px + env(safe-area-inset-top,0px));width:min(460px,calc(100% - 2 * max(16px,env(safe-area-inset-left,0px))));display:flex;align-items:center;gap:12px;padding:10px 10px 10px 18px;border-radius:22px;background:#0F1712;color:#F6F5EF;box-shadow:0 12px 34px rgba(0,0,0,.35);animation:novav-in .45s cubic-bezier(.2,1.1,.35,1)}
+#novav span{flex:1;min-width:0;display:flex;flex-direction:column}#novav b{font-size:15px;font-weight:800}#novav small{font-size:12px;color:#A9B0AA}
+#novav button{flex:none;display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 16px;border:0;border-radius:999px;background:#C6F04A;color:#0F1712;font:inherit;font-size:14px;font-weight:800;cursor:pointer}#novav button .i{width:16px;height:16px}
+@keyframes novav-in{from{opacity:0;transform:translate(-50%,-20px)}}
 .ver-pill{display:inline-flex;align-items:center;gap:5px;margin-top:6px;padding:3px 9px;border-radius:999px;background:var(--chip,rgba(0,0,0,.06));font-size:11.5px;font-weight:700;color:var(--muted);width:max-content}.ver-pill .i{width:12px;height:12px}
 .ck-list{display:flex;flex-direction:column;gap:8px}
 .ck{display:flex;align-items:flex-start;gap:12px;width:100%;padding:12px 14px;border:0;border-radius:18px;background:var(--card);box-shadow:inset 0 0 0 1.5px var(--sep);color:var(--fg);text-align:left;font:inherit;font-size:14px;line-height:1.42;transition:box-shadow .2s}
@@ -1664,7 +1668,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '10 nov · 83'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '10 nov · 84'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -5677,7 +5681,7 @@ function boot(){
   const rp = FB && resetParams();
   if(rp) openNovo(rp); else if(location.hash==='#redefinir') openReset(); else if(readSess()) startApp(); else { renderLogin(); if(location.hash==='#sem-personal'){ history.replaceState(null,'',location.pathname); try { selfStart(); } catch(e){ /* fica no login */ } } }
   setInterval(tick, 250);
-  offlineSetup();
+  offlineSetup(); versaoSetup();
 }
 /* erros do app: quando algo quebra no celular da aluna, manda um aviso curto para o painel do personal (erros.php) */
 const ERRS = { n:0, vistos:{} };
@@ -5730,6 +5734,36 @@ function pushCard(){
   if(IOS && !STANDALONE) return `<p class="foot0">No iPhone, para receber o aviso com o app fechado: toque em ${ic('up')} Compartilhar → <b>Adicionar à Tela de Início</b> e abra o Simplificando pelo ícone. Depois ligue os avisos aqui.</p>`;
   if(pushPode()) return `<button type="button" class="btn block" data-a="push-on">${ic('bell')}Avisar mesmo com o app fechado</button><p class="foot0">Sem isso, os lembretes aparecem só com o app aberto.</p>`;
   return `<p class="foot0">Os lembretes aparecem enquanto o app estiver aberto.</p>`;
+}
+/* versão nova: o app confere no site se tem versão mais nova e mostra o aviso com o botão Atualizar agora */
+let NOVAV = '', novaAt = 0;
+async function versaoCheca(force){
+  if(!navigator.onLine || (!force && Date.now()-novaAt < 5*60e3)) return; novaAt = Date.now();
+  try {
+    const txt = await fetch(location.pathname+'?v='+Date.now(), { cache:'no-store' }).then(r => r.ok ? r.text() : '');
+    const m = txt.match(/const\s+APPV = '([^']+)'/); if(!m || m[1]===APPV) return;
+    NOVAV = m[1]; versaoAviso();
+  } catch(e){ /* sem internet: confere na próxima */ }
+}
+function versaoAviso(){
+  if(!NOVAV) return; let el = document.getElementById('novav');
+  if(!el){ el = document.createElement('div'); el.id = 'novav'; el.setAttribute('role','status'); document.body.appendChild(el); }
+  el.innerHTML = `<span><b>Versão nova do app</b><small>${esc(NOVAV)} · você está na ${esc(APPV)}</small></span><button type="button" id="novav-go">${ic('refresh')}Atualizar agora</button>`;
+  el.querySelector('#novav-go').onclick = versaoAtualiza;
+}
+async function versaoAtualiza(){
+  const b = document.getElementById('novav-go'); if(b){ b.disabled = true; b.textContent = 'Atualizando…'; }
+  try { save(); } catch(e){ /* nada para salvar */ }
+  try { const r = navigator.serviceWorker && await navigator.serviceWorker.getRegistration(); if(r) await r.update(); } catch(e){ /* sem service worker */ }
+  try { if(window.caches){ const ks = await caches.keys(); await Promise.all(ks.filter(k => k.startsWith('simp-treino-')).map(k => caches.open(k).then(c => c.keys().then(rs => Promise.all(rs.filter(q => new URL(q.url).pathname===location.pathname).map(q => c.delete(q))))))); } } catch(e){ /* sem cache */ }
+  location.replace(location.pathname+'?atualizar='+Date.now()+location.hash);
+}
+function versaoSetup(){
+  try { const q = new URLSearchParams(location.search); if(q.has('atualizar')){ history.replaceState(null,'',location.pathname+location.hash); setTimeout(() => toast('App atualizado: versão '+APPV), 900); } } catch(e){ /* sem histórico */ }
+  setTimeout(() => versaoCheca(true), 4000);
+  document.addEventListener('visibilitychange', () => { if(document.visibilityState==='visible') versaoCheca(); });
+  window.addEventListener('online', () => versaoCheca(true));
+  setInterval(() => versaoCheca(), 30*60e3);
 }
 /* sem internet: o app fica guardado no celular (sw.js na pasta do app) e avisa quando o sinal cai ou volta */
 function offlineSetup(){
