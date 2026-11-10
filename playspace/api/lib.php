@@ -69,6 +69,10 @@ function db(): PDO {
     try { $pdo->exec("ALTER TABLE criancas ADD COLUMN foto_origem TEXT NOT NULL DEFAULT ''"); } catch (Throwable $e) { }
     $pdo->exec('PRAGMA user_version = 3');
   }
+  if ($v < 4) { // 0.58: a chavinha "entrada liberada" (desligada, o iDFace recusa o rosto e a leitura não conta)
+    try { $pdo->exec('ALTER TABLE criancas ADD COLUMN liberado INTEGER NOT NULL DEFAULT 1'); } catch (Throwable $e) { }
+    $pdo->exec('PRAGMA user_version = 4');
+  }
   return $pdo;
 }
 function cfg(string $k, $padrao = null) { $q = db()->prepare('SELECT valor FROM config WHERE chave = ?'); $q->execute([$k]); $v = $q->fetchColumn(); return $v === false ? $padrao : json_decode((string)$v, true); }
@@ -186,6 +190,7 @@ function mandarMensagem(array $c, string $texto, bool $auto = false, string $fot
 function processarRosto(int $idfaceUser, string $quando, string $origem = 'iDFace'): string {
   $db = db(); $q = $db->prepare('SELECT * FROM criancas WHERE idface_id = ? AND ativo = 1'); $q->execute([$idfaceUser]); $c = $q->fetch();
   if (!$c) return 'sem criança';
+  if (isset($c['liberado']) && !(int)$c['liberado']) return 'bloqueada';   // a chavinha está desligada: a leitura não conta
   // a mesma criança lida duas vezes seguidas (ficou parada na frente da câmera) conta uma vez só
   $ult = $db->prepare('SELECT quando FROM registros WHERE crianca_id = ? AND tipo IN (\'ent\', \'sai\') ORDER BY id DESC LIMIT 1'); $ult->execute([$c['id']]); $u = $ult->fetchColumn();
   if ($u && abs(strtotime($quando) - strtotime((string)$u)) < 90) return 'repetida';

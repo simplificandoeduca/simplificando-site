@@ -27,7 +27,7 @@ $val = fn(string $k, string $p = '') => trim((string)($in[$k] ?? $p));
 function criancaPublica(array $c): array {
   return ['id' => (int)$c['id'], 'nome' => $c['nome'], 'idade' => (int)$c['idade'], 'resp' => $c['resp'], 'rel' => $c['rel'], 'tel' => $c['tel'], 'cpf' => $c['cpf'], 'obs' => $c['obs'],
     'pacote' => round((int)$c['pacote_min'] / 60, 2), 'usado' => (int)$c['usado_min'], 'entrou' => $c['entrou'], 'idface_id' => $c['idface_id'] === null ? null : (int)$c['idface_id'],
-    'rosto' => !empty($c['rosto']) || $c['idface_id'] !== null, 'foto' => (string)$c['foto'], 'ativo' => (bool)$c['ativo']];
+    'rosto' => !empty($c['rosto']) || $c['idface_id'] !== null, 'foto' => (string)$c['foto'], 'ativo' => (bool)$c['ativo'], 'liberado' => !isset($c['liberado']) || (bool)$c['liberado']];
 }
 function dados(array $eu): array {
   $db = db(); $hojeMenos = date('Y-m-d H:i:s', time() - 86400);
@@ -270,6 +270,15 @@ switch ($acao) {
     gravarCfg('idface', $c); responder(['idface' => idfaceEstado()]);
   }
   case 'idface_nova_chave': { $u = exigir(); podeAjustar($u); require_once __DIR__ . '/idface-lib.php'; gravarCfg('ponte_chave', bin2hex(random_bytes(20))); responder(['idface' => idfaceEstado()]); }
+  case 'crianca_liberar': { // a chavinha: liberada, a criança bate o rosto e as horas correm; bloqueada, o iDFace recusa
+    exigir(); $c = crianca((int)($in['id'] ?? 0)); if (!$c) falha('Criança não encontrada.', 404);
+    $lib = empty($in['liberado']) ? 0 : 1; $db->prepare('UPDATE criancas SET liberado = ? WHERE id = ?')->execute([$lib, $c['id']]);
+    if ($c['idface_id'] !== null) { // no aparelho, a regra de acesso entra ou sai
+      if ($lib) { apagarCfg('desregra_' . $c['id']); apagarCfg('regra_ok_' . $c['id']); gravarCfg('regra_' . $c['id'], (int)$c['idface_id']); }
+      else { apagarCfg('regra_' . $c['id']); gravarCfg('desregra_' . $c['id'], (int)$c['idface_id']); }
+    }
+    responder(['liberado' => (bool)$lib]);
+  }
   case 'idface_rosto': { // o aparelho vai pedir o rosto da criança ("olhe para a câmera"); fica na fila até o aparelho buscar
     exigir(); $c = crianca((int)($in['id'] ?? 0)); if (!$c) falha('Criança não encontrada.', 404);
     require_once __DIR__ . '/idface-lib.php'; $e = idfaceEstado(); if (!$e['ligado']) falha('O iDFace está desligado em Ajustes.'); if (!$e['ativo']) falha('O iDFace está sem contato com o site agora. Confira o aparelho e tente de novo.');

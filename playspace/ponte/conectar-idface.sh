@@ -71,8 +71,14 @@ limpa() { printf '%s' "$1" | LC_ALL=C tr -d '\000-\037\177' | sed 's/\[20[01]~//
 read -r -p "Usuário do iDFace [$USUARIO]: " u; u=$(limpa "$u"); [ -n "$u" ] && USUARIO=$u
 read -r -p 'Senha do iDFace (a que abre o menu do aparelho; de fábrica costuma ser admin): ' SENHA; SENHA=$(limpa "$SENHA")
 esc() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
-resp=$(curl -s -m 8 -X POST "http://$IP/login.fcgi" -H 'Content-Type: application/json' -d "{\"login\":\"$(esc "$USUARIO")\",\"password\":\"$(esc "$SENHA")\"}")
-SESSAO=$(printf '%s' "$resp" | sed -n 's/.*"session" *: *"\([^"]*\)".*/\1/p')
+# o aparelho diferencia maiúsculas: tenta como foi digitado e depois Admin / admin / ADMIN
+SESSAO=''
+for cand in "$USUARIO" "$(printf '%s' "$USUARIO" | cut -c1 | tr a-z A-Z)$(printf '%s' "$USUARIO" | cut -c2- | tr A-Z a-z)" "$(printf '%s' "$USUARIO" | tr A-Z a-z)" "$(printf '%s' "$USUARIO" | tr a-z A-Z)"; do
+  resp=$(curl -s -m 8 -X POST "http://$IP/login.fcgi" -H 'Content-Type: application/json' -d "{\"login\":\"$(esc "$cand")\",\"password\":\"$(esc "$SENHA")\"}")
+  SESSAO=$(printf '%s' "$resp" | sed -n 's/.*"session" *: *"\([^"]*\)".*/\1/p')
+  if [ -n "$SESSAO" ]; then [ "$cand" != "$USUARIO" ] && diz "${AM}(o aparelho aceitou o usuário como '$cand')${C0}"; USUARIO=$cand; break; fi
+  [ -z "$resp" ] && break
+done
 if [ -z "$SESSAO" ]; then
   [ -z "$resp" ] && fim erro "o iDFace em $IP não respondeu ao login (a conexão caiu?). Confira o cabo e rode de novo."
   fim erro "o iDFace recusou o usuário '$USUARIO' com essa senha. Use os mesmos que abrem o menu do aparelho (de fábrica: admin / admin). Resposta dele: ${resp:0:160}"

@@ -140,6 +140,11 @@ function Testar-Login($ip, $us, $se) { # entra no iDFace com o que foi digitado 
   if ($cod -eq 401 -or $t -match 'Invalid login') { return @{ ok = $false; cod = 'senha' } }
   return @{ ok = $false; cod = 'nao_idface' }
 }
+function Variantes-Usuario($u) { # o iDFace diferencia maiusculas: tenta como veio e depois Admin / admin / ADMIN
+  $u = [string]$u; if (-not $u) { $u = 'admin' }; $l = @($u)
+  foreach ($v in @(($u.Substring(0, 1).ToUpper() + $u.Substring(1).ToLower()), $u.ToLower(), $u.ToUpper())) { if ($l -notcontains $v) { $l += $v } }
+  return $l
+}
 function Login-Tela($corpo) {
   if ($TELA.fase -ne 'senha') { return '{"ok":false,"cod":"espera"}' }
   $j = $null; try { $j = $corpo | ConvertFrom-Json } catch { }
@@ -147,8 +152,9 @@ function Login-Tela($corpo) {
   $ip = ([string]$j.ip).Trim(); $us = ([string]$j.usuario).Trim(); $se = [string]$j.senha
   if (-not $us) { $us = 'admin' }
   if (-not ($ip -match '^(https?://)?[A-Za-z0-9.-]+(:\d+)?/?$')) { return '{"ok":false,"cod":"ip"}' }
-  $r = Testar-Login $ip $us $se
-  if ($r.ok) { $TELA.login = @{ ip = $ip; usuario = $us; senha = $se }; $TELA.ip = $ip; $TELA.usuario = $us; $TELA.fase = 'trabalhando'; Anotar ('Login ok com o iDFace em ' + $ip) }
+  $r = $null
+  foreach ($cand in (Variantes-Usuario $us)) { $r = Testar-Login $ip $cand $se; if ($r.ok) { $us = $cand; break }; if ($r.cod -ne 'senha') { break } }
+  if ($r.ok) { $TELA.login = @{ ip = $ip; usuario = $us; senha = $se }; $TELA.ip = $ip; $TELA.usuario = $us; $TELA.fase = 'trabalhando'; Anotar ('Login ok com o iDFace em ' + $ip + ' como ' + $us) }
   else { Anotar ('Tentativa de entrar no iDFace em ' + $ip + ': ' + $r.cod) }
   return ($r | ConvertTo-Json -Compress)
 }
@@ -415,7 +421,8 @@ Anotar "Ponte $VERSAO ligada: iDFace em $base, site $($cfg.site)"
 while (-not $TELA) {
   $recusou = $false
   try {
-    $t = Aparelho 'login.fcgi' @{ login = $cfg.usuario; password = $senhaAparelho }
+    $t = $null
+    foreach ($cand in (Variantes-Usuario $cfg.usuario)) { $t = Aparelho 'login.fcgi' @{ login = $cand; password = $senhaAparelho }; if ($t -is [string] -or $t.session) { if ($t.session -and $cand -ne $cfg.usuario) { $cfg.usuario = $cand; ($cfg | ConvertTo-Json) | Set-Content -Path $arqConfig -Encoding UTF8 }; break } }
     if ($t -is [string]) { # respondeu, mas nao como um iDFace (ex.: pagina de um roteador): o IP esta errado
       Anotar ('Teste do iDFace: ' + $base + ' nao respondeu como um iDFace (' + $t.Substring(0, [Math]::Min(80, $t.Length)).Trim() + ')')
       if ($UMA_VEZ) { Fim $false 'nao_idface' 'NAO DEU: esse endereco nao e o iDFace. Em Play Space > Ajustes, abra "Ele nao achou o aparelho sozinho? Informe o IP", salve o IP certo e rode este arquivo de novo.' }

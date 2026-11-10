@@ -502,6 +502,16 @@ body.so .conteudo { padding-left: 16px; padding-right: 16px; }
 .rosto-alvo.viva::after { animation: alvo-pulsa 1.4s ease-out infinite; border-color: var(--ok); }
 .rosto-alvo.ok { background: var(--ok-bg); color: var(--ok); } .rosto-alvo.ok::after { border-color: var(--ok); opacity: 1; animation: none; }
 @keyframes alvo-pulsa { 0% { transform: scale(1); opacity: .7; } 100% { transform: scale(1.25); opacity: 0; } }
+/* ---------- redesenho silencioso (sincronia): nada entra deslizando ---------- */
+body.quieto .a-card, body.quieto .conv, body.quieto .oficina, body.quieto .tiles .tile, body.quieto .a-hero .anel, body.quieto .sobe, body.quieto .anel .r { animation: none !important; }
+/* ---------- a chavinha "entrada liberada" (estilo iPhone) ---------- */
+.chave { width: 50px; height: 30px; border-radius: 999px; background: var(--borda-2); position: relative; flex: none; transition: background .3s; cursor: pointer; }
+.chave i { position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, .25); transition: transform .32s var(--spring); }
+.chave.on { background: var(--ok); } .chave.on i { transform: translateX(20px); }
+.chave.p { width: 40px; height: 24px; } .chave.p i { width: 18px; height: 18px; } .chave.p.on i { transform: translateX(16px); }
+.libera { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 6px; font-size: 11.5px; font-weight: 700; color: var(--tinta-2); }
+.anel.bloqueada .r { filter: grayscale(.7); opacity: .55; } .anel.bloqueada .libera { color: var(--erro); }
+.libera-ficha span { flex: 1; }
 /* ---------- folhas (iPhone): sobem de baixo, no desktop viram cartão no centro ---------- */
 .folha-fundo { position: fixed; inset: 0; z-index: 40; background: var(--escurece); display: flex; align-items: flex-end; justify-content: center; opacity: 0; transition: opacity .32s; }
 .folha-fundo.ve { opacity: 1; }
@@ -607,7 +617,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.57';
+const VERSAO = '0.58';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -707,7 +717,7 @@ async function carregar() { // devolve true quando algo mudou no servidor
   try {
     const d = await api('dados');
     // o que muda sozinho a cada contato do aparelho não conta como novidade (senão a tela redesenhava a cada 6 s e "piscava")
-    const assinatura = JSON.stringify({ ...d, agora: 0, idface: { ...d.idface, segundos: 0, ultimo_contato: 0, ultima_batida: 0, periodo: 0, erro: '' } }); const mudou = assinatura !== ULTIMA_CARGA; ULTIMA_CARGA = assinatura;
+    const assinatura = JSON.stringify({ ...d, agora: 0, idface: { ...d.idface, segundos: 0, ultimo_contato: 0, ultima_batida: 0, periodo: 0, erro: '', fila: 0 } }); const mudou = assinatura !== ULTIMA_CARGA; ULTIMA_CARGA = assinatura;
     S.criancas = d.criancas.map(c => ({ ...c, entrou: c.entrou ? dataDe(c.entrou) : null, visitas: (c.visitas || []).map(v => ({ ...v, dia: dataDe(v.dia) })) }));
     S.registros = d.registros.map(r => ({ ...r, h: dataDe(r.h) }));
     S.conversas = d.conversas.map(x => ({ ...x, msgs: x.msgs.map(m => ({ ...m, h: dataDe(m.h) })) }));
@@ -728,7 +738,7 @@ async function sincronizar() {
   if (MODO !== 'servidor' || document.hidden || document.body.classList.contains('so') || $('#folha .folha-fundo')) return;
   const t = $('#zap-texto'); if (t && (document.activeElement === t || t.value.trim())) return;
   if (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) return;
-  try { if (await carregar()) desenhar(); } catch (e) { /* tenta de novo no próximo ciclo */ }
+  try { if (await carregar()) desenhar(true); } catch (e) { /* tenta de novo no próximo ciclo */ }
 }
 // os bichinhos da tela de entrar: o ursinho (corpo atrás do cartão, patinhas na frente), o passarinho no canto e o coelhinho de lado
 const BICHOS_ENTRADA = `<span class="urso-login" aria-hidden="true"><svg viewBox="0 0 124 96"><circle cx="30" cy="26" r="13" fill="#D9A07F"/><circle cx="94" cy="26" r="13" fill="#D9A07F"/><circle cx="30" cy="26" r="7" fill="#C98B6B"/><circle cx="94" cy="26" r="7" fill="#C98B6B"/><circle cx="62" cy="56" r="36" fill="#D9A07F"/><ellipse cx="62" cy="72" rx="15" ry="11" fill="#F5D9C6"/><ellipse cx="62" cy="67" rx="5" ry="3.6" fill="#3B3B3B"/><path d="M62 70 v5 M56 78 q6 4 12 0" stroke="#3B3B3B" stroke-width="1.8" fill="none" stroke-linecap="round"/><circle class="olho" cx="48" cy="52" r="4.6" fill="#3B3B3B"/><circle class="olho" cx="76" cy="52" r="4.6" fill="#3B3B3B"/><circle class="olho" cx="49.6" cy="50.4" r="1.4" fill="#fff"/><circle class="olho" cx="77.6" cy="50.4" r="1.4" fill="#fff"/><rect class="palpebra e" x="41" y="45" width="14" height="13" rx="6" fill="#D9A07F"/><rect class="palpebra d" x="69" y="45" width="14" height="13" rx="6" fill="#D9A07F"/><circle cx="36" cy="64" r="5" fill="#F5BEA9" opacity=".55"/><circle cx="88" cy="64" r="5" fill="#F5BEA9" opacity=".55"/></svg></span><span class="patas-login" aria-hidden="true"><svg viewBox="0 0 124 30"><g class="pata e"><ellipse cx="34" cy="15" rx="13" ry="9.5" fill="#E3B08E" stroke="#C98B6B" stroke-width="1.6"/><path d="M26 10 v4 M34 8 v4 M42 10 v4" stroke="#C98B6B" stroke-width="2" stroke-linecap="round"/></g><g class="pata d"><ellipse cx="90" cy="15" rx="13" ry="9.5" fill="#E3B08E" stroke="#C98B6B" stroke-width="1.6"/><path d="M82 10 v4 M90 8 v4 M98 10 v4" stroke="#C98B6B" stroke-width="2" stroke-linecap="round"/></g></svg></span><span class="coelho-login" aria-hidden="true"><svg viewBox="0 0 46 60"><ellipse cx="16" cy="14" rx="5" ry="13" fill="#F5D9C6" stroke="#E8C4B0" stroke-width="1.5"/><ellipse cx="30" cy="12" rx="5" ry="13" fill="#F5D9C6" stroke="#E8C4B0" stroke-width="1.5" transform="rotate(10 30 12)"/><ellipse cx="16" cy="16" rx="2.2" ry="8" fill="#F5BEA9"/><circle cx="23" cy="36" r="16" fill="#FCE3D8" stroke="#E8C4B0" stroke-width="1.5"/><circle cx="17" cy="34" r="2.4" fill="#3B3B3B"/><circle cx="29" cy="34" r="2.4" fill="#3B3B3B"/><ellipse cx="23" cy="41" rx="2.6" ry="1.8" fill="#E25B3F"/><path d="M23 43 v3 M19 47 q4 3 8 0" stroke="#3B3B3B" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="M9 40 h6 M9 44 h6 M31 40 h6 M31 44 h6" stroke="#C98B6B" stroke-width="1" stroke-linecap="round" opacity=".6"/></svg></span>`;
@@ -752,7 +762,7 @@ function telaSo(html) { // telas sem o menu (entrar, primeiro acesso)
 }
 function telaEntrar() {
   telaSo(`<h1 style="font-size:24px;font-weight:800">Play Space</h1><p class="explica">Entre com o seu login da equipe.</p>
-    <div class="campo"><label for="l-login">Login</label><input id="l-login" autocapitalize="off" autocomplete="username"></div>
+    <div class="campo"><label for="l-login">Login</label><input id="l-login" autocapitalize="none" autocomplete="username" spellcheck="false" style="text-transform:lowercase"></div>
     <div class="campo"><label for="l-senha">Senha</label><input id="l-senha" type="password" autocomplete="current-password"></div>
     <button class="bt forte largo tap" data-act="entrar">${ic(IC.check)} Entrar</button>
     <p class="rodape">Play Space Horas v${VERSAO}</p>`);
@@ -760,7 +770,7 @@ function telaEntrar() {
 function telaCriarGestor() {
   telaSo(`<h1 style="font-size:24px;font-weight:800">Bem-vinda ao Play Space</h1><p class="explica">Primeiro acesso: crie a conta da gestora. Depois ela cadastra o resto da equipe em Ajustes.</p>
     <div class="campo"><label for="g-nome">Seu nome</label><input id="g-nome" autocomplete="name"></div>
-    <div class="campo"><label for="g-login">Login (curto, sem espaços)</label><input id="g-login" autocapitalize="off" autocomplete="username"></div>
+    <div class="campo"><label for="g-login">Login (curto, sem espaços)</label><input id="g-login" autocapitalize="none" autocomplete="username" spellcheck="false" style="text-transform:lowercase"></div>
     <div class="campo"><label for="g-senha">Senha (pelo menos 6 caracteres)</label><input id="g-senha" type="password" autocomplete="new-password"></div>
     <button class="bt forte largo tap" data-act="criar-gestor">${ic(IC.check)} Criar e entrar</button>`);
 }
@@ -845,11 +855,12 @@ function anel(c, onde = 'banco') {
   const botoes = dentro
     ? `<button class="bt claro tap" data-act="saida-rapida" data-id="${c.id}">${ic(IC.sair, 14)} Saída</button><button class="bt tap" data-act="avisar" data-id="${c.id}" aria-label="Avisar ${esc(c.resp)}">${ic(IC.zap, 14)}</button>`
     : (r <= 0 || baixo ? `<button class="bt forte tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 14)} Vender</button>` : c.rosto ? `<button class="bt tap" data-act="entrada-rapida" data-id="${c.id}">${ic(IC.entrar, 14)} Entrada</button>` : (rostoPronto() ? `<button class="bt tap" data-act="rosto-cam" data-id="${c.id}">${ic(IC.rosto, 14)} Cadastrar rosto</button>` : `<button class="bt tap" data-act="ficha" data-id="${c.id}">${ic(IC.camera, 14)} Tirar a foto</button>`));
-  return `<div class="anel ${baixo ? 'baixo' : ''}" data-anel="${c.id}" data-onde="${onde}">
+  return `<div class="anel ${baixo ? 'baixo' : ''} ${!dentro && !liberada(c) ? 'bloqueada' : ''}" data-anel="${c.id}" data-onde="${onde}">
     <button class="r tap" data-act="ficha" data-id="${c.id}" style="--p:${pct.toFixed(1)};--c:${baixo ? 'var(--erro)' : 'var(--verde-agua)'}" aria-label="Abrir a ficha de ${esc(c.nome)}">${c.foto ? `<span class="fotinha" style="background-image:url(${c.foto})"></span>` : ''}<b class="num">${r <= 0 ? 'Acabou' : hm(r)}<small>${r <= 0 ? `pacote de ${c.pacote}h` : `de ${c.pacote}h`}</small></b></button>
     <span class="nome">${esc(c.nome)}${c.idade && !dentro ? ', ' + c.idade : ''}</span>
     <em>${dentro ? `desde ${hora(c.entrou)} · <span class="num" data-cron-txt="${c.id}">${hm(minDentro(c))}</span>` : esc(c.resp)}</em>
     <div class="mini">${botoes}</div>
+    ${dentro ? '' : `<div class="libera"><span>${liberada(c) ? 'Entrada liberada' : 'Entrada bloqueada'}</span>${chave(c, true)}</div>`}
   </div>`;
 }
 // a situação da criança em uma frase: está aqui, vai embora em X, o tempo acabou, não está aqui
@@ -910,12 +921,13 @@ const naoLidas = () => S.conversas.filter(x => !x.lidas).length;
 function nav() {
   const badge = k => k === 'zap' && naoLidas() ? `<b>${naoLidas()}</b>` : '';
   const alerta = k => k === 'zap' && naoLidas() ? 'alerta' : '';   // mensagem sem resposta: a bolinha do WhatsApp fica vermelha
-  $('#nav-lado').innerHTML = `<span class="logo">${LOGO}</span>` + ABAS.map(([k, t, i]) => `<button class="ab tap ${alerta(k)}" data-ir="${k}" ${S.tela === k ? 'aria-current="page"' : ''} aria-label="${t}" title="${t}${naoLidas() && k === 'zap' ? ' · ' + naoLidas() + ' sem resposta' : ''}">${ic(IC[i])}${badge(k)}</button>`).join('') + `<span class="espaco"></span><button type="button" class="fab tap" data-act="nova" aria-label="Cadastrar criança" title="Cadastrar criança">${PASSARINHO_FAB}<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button><button class="av-eu tap" data-act="conta" title="${esc(EU.nomeCompleto || EU.nome)}">${esc((EU.nome || 'EU').slice(0, 2).toUpperCase())}</button>`;
-  const fabT = $('.trilho .fab'), zapT = $('.trilho [data-ir="zap"]');
+  const ladoHtml = `<span class="logo">${LOGO}</span>` + ABAS.map(([k, t, i]) => `<button class="ab tap ${alerta(k)}" data-ir="${k}" ${S.tela === k ? 'aria-current="page"' : ''} aria-label="${t}" title="${t}${naoLidas() && k === 'zap' ? ' · ' + naoLidas() + ' sem resposta' : ''}">${ic(IC[i])}${badge(k)}</button>`).join('') + `<span class="espaco"></span><button type="button" class="fab tap" data-act="nova" aria-label="Cadastrar criança" title="Cadastrar criança">${PASSARINHO_FAB}<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button><button class="av-eu tap" data-act="conta" title="${esc(EU.nomeCompleto || EU.nome)}">${esc((EU.nome || 'EU').slice(0, 2).toUpperCase())}</button>`;
+  if (ladoHtml !== NAV_CACHE) { $('#nav-lado').innerHTML = ladoHtml; NAV_CACHE = ladoHtml; }   // só mexe no trilho quando algo nele mudou (senão o passarinho recomeça)
+  const fabT = NAV_CACHE === ladoHtml && $('#nav-lado').dataset.medido === ladoHtml ? null : $('.trilho .fab'), zapT = $('.trilho [data-ir="zap"]'); if (fabT) $('#nav-lado').dataset.medido = ladoHtml;
   if (fabT && zapT) { const fr = fabT.getBoundingClientRect(), zr = zapT.getBoundingClientRect(); if (fr.height) { fabT.style.setProperty('--voo-y', `${Math.round(zr.top + 8 - fr.top)}px`); const bi = $('.bicho', fabT); bi.style.animation = 'none'; void bi.offsetWidth; bi.style.animation = ''; } }   // a animação recomeça já sabendo a altura
   $('#nav-baixo').innerHTML = ABAS.map(([k, t, i]) => `<button class="${alerta(k)}" data-ir="${k}" ${S.tela === k ? 'aria-current="page"' : ''}>${ic(IC[i], 21)}${t}${badge(k)}</button>`).join('') + (ABAS.some(a => a[0] === 'ajustes') ? '' : `<button data-act="conta">${ic(IC.rosto, 21)}Conta</button>`);
 }
-let toastT, DESFAZ = null;
+let toastT, DESFAZ = null, NAV_CACHE = '';
 function toast(txt, desfazer) { const t = $('#toast'); DESFAZ = desfazer || null; t.innerHTML = `<span>${esc(txt)}</span>${desfazer ? '<button type="button" data-act="desfazer">Desfazer</button>' : ''}`; t.classList.add('ve'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('ve'), desfazer ? 6000 : 2400); }
 function abrirFolha(titulo, html, rotulo) {
   const f = $('#folha');
@@ -955,7 +967,7 @@ function cartaoCrianca(c) {
     ? `<button class="bt claro tap" data-act="saida-rapida" data-id="${c.id}">${ic(IC.sair)} Saída</button><button class="bt tap" data-act="avisar" data-id="${c.id}">${ic(IC.zap)} Avisar ${esc(c.resp)}</button>`
     : `<button class="bt forte tap" data-act="vender" data-id="${c.id}">${ic(IC.mais)} Vender horas</button>${c.rosto ? `<button class="bt claro tap" data-act="entrada-rapida" data-id="${c.id}">${ic(IC.entrar)} Entrada</button>` : (rostoPronto() ? `<button class="bt tap" data-act="rosto-cam" data-id="${c.id}">${ic(IC.rosto)} Cadastrar rosto</button>` : `<button class="bt tap" data-act="ficha" data-id="${c.id}">${ic(IC.camera)} Tirar a foto</button>`)}`;
   return `<div class="card tap" role="button" tabindex="0" data-act="ficha" data-id="${c.id}" aria-label="Abrir a ficha de ${esc(c.nome)}">
-    <div class="linha">${avatar(c)}<div class="txt"><b>${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}</b><span>${esc(c.resp)} (${esc(c.rel)})${c.tel ? ' · ' + esc(c.tel) : ''}</span></div>${c.entrou ? `<div class="cron num" data-cron="${c.id}">${cronometro(c)}</div>` : `<span class="pill ${c.rosto ? 'p-neutro' : 'p-aviso'}">${c.rosto ? 'Rosto ok' : 'Falta o rosto'}</span>`}</div>
+    <div class="linha">${avatar(c)}<div class="txt"><b>${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}</b><span>${esc(c.resp)} (${esc(c.rel)})${c.tel ? ' · ' + esc(c.tel) : ''}</span></div>${c.entrou ? `<div class="cron num" data-cron="${c.id}">${cronometro(c)}</div>` : `${chave(c, true)}<span class="pill ${!liberada(c) ? 'p-erro' : c.rosto ? 'p-neutro' : 'p-aviso'}">${!liberada(c) ? 'Bloqueada' : c.rosto ? 'Rosto ok' : 'Falta o rosto'}</span>`}</div>
     ${blocos(c)}
     <div class="acoes">${botoes}</div>
   </div>`;
@@ -998,6 +1010,7 @@ function folhaFicha(id) {
   const c = crianca(id); if (!c) return; const [et, cls] = estado(c);
   abrirFolha(`${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}`, `
     <div class="linha">${avatarComUrso(c, 'g')}<div class="txt"><b style="white-space:normal">${esc(c.resp)}, ${esc(c.rel)}</b><span>${esc(c.tel)}${c.cpf ? ' · CPF ' + esc(c.cpf) : ''}</span>${c.obs ? `<span style="color:var(--coral);font-weight:700">${esc(c.obs)}</span>` : ''}</div><span class="pill ${cls}">${et}</span></div>
+    <div class="marca libera-ficha">${ic(IC.rosto, 18)}<span><b>${liberada(c) ? 'Entrada liberada' : 'Entrada bloqueada'}</b> · ${liberada(c) ? 'ela bate o rosto no iDFace e as horas começam a contar.' : 'o iDFace recusa o rosto dela até você liberar.'}</span>${chave(c)}</div>
     ${c.entrou ? `<div class="marca">${ic(IC.horas, 18)}<span>Está no espaço desde <b>${hora(c.entrou)}</b>: <b class="num" data-cron-txt="${c.id}">${hm(minDentro(c))}</b> até agora, <b>${hm(cobrar(minDentro(c)))}</b> a debitar pela regra atual.</span></div>` : ''}
     ${blocos(c, false)}
     <div class="saldo"><span>${c.pacote}h compradas</span><span>${hm(usadoAgora(c))} usadas</span></div>
@@ -1070,6 +1083,9 @@ function folhaIdface() {
       <div class="simul">${S.criancas.filter(c => c.rosto).map(c => `<button class="tap" data-act="simular" data-id="${c.id}">${avatar(c)}${esc(c.nome)}<span>${c.entrou ? 'está dentro · sai' : 'está fora · entra'}</span></button>`).join('')}</div></div>`);
 }
 
+/* ---------- a chavinha "entrada liberada": ligada, a criança bate o rosto e as horas correm; desligada, o iDFace recusa ---------- */
+const liberada = c => c.liberado !== false;
+const chave = (c, p = false) => `<button type="button" class="chave ${p ? 'p' : ''} ${liberada(c) ? 'on' : ''} tap" role="switch" aria-checked="${liberada(c)}" data-act="liberar" data-id="${c.id}" title="${liberada(c) ? 'Entrada liberada: toque para bloquear' : 'Entrada bloqueada: toque para liberar'}" aria-label="Entrada de ${esc(c.nome)} ${liberada(c) ? 'liberada' : 'bloqueada'}"><i></i></button>`;
 /* ---------- o rosto no iDFace: a folha que acompanha o aparelho pedindo para a criança olhar ---------- */
 let ROSTO_T = 0;
 const rostoPronto = () => MODO === 'servidor' && S.cfg.idface.ligado && S.cfg.idface.ativo;
@@ -1259,15 +1275,15 @@ function folhaPacote(i) {
 function folhaEquipe(u) {
   abrirFolha(u ? 'Editar pessoa' : 'Nova pessoa', `
     <div class="campo"><label for="e-nome">Nome</label><input id="e-nome" value="${esc(u ? u.nome : '')}" autocomplete="off"></div>
-    <div class="dois"><div class="campo"><label for="e-login">Entra como</label><input id="e-login" value="${esc(u ? u.login : '')}" placeholder="apelido curto" autocapitalize="off" autocomplete="off"></div><div class="campo"><label for="e-papel">Papel</label><select id="e-papel">${Object.entries(PAPEIS).map(([k, n]) => `<option value="${k}" ${(u ? u.papel : 'atendente') === k ? 'selected' : ''}>${n}</option>`).join('')}</select></div></div>
+    <div class="dois"><div class="campo"><label for="e-login">Entra como</label><input id="e-login" value="${esc(u ? u.login : '')}" placeholder="apelido curto" autocapitalize="none" spellcheck="false" style="text-transform:lowercase" autocomplete="off"></div><div class="campo"><label for="e-papel">Papel</label><select id="e-papel">${Object.entries(PAPEIS).map(([k, n]) => `<option value="${k}" ${(u ? u.papel : 'atendente') === k ? 'selected' : ''}>${n}</option>`).join('')}</select></div></div>
     <div class="campo"><label for="e-senha">${u ? 'Nova senha (deixe em branco para manter)' : 'Senha inicial'}</label><input id="e-senha" type="password" placeholder="${u ? '' : 'Ela troca depois em Ajustes'}" autocomplete="new-password"></div>
     <p class="explica"><b>Gestor</b> vê tudo e mexe nos ajustes, na equipe e nas integrações. <b>Supervisor</b> faz tudo da loja e vê os ajustes, mas não os altera. <b>Atendente</b> cuida das horas, do WhatsApp e da agenda.</p>
     <div class="acoes"><button class="bt forte tap" data-act="equipe-salvar" data-id="${u ? u.id : ''}" style="flex:1;justify-content:center">${ic(IC.check)} Salvar</button>${u ? `<button class="bt claro tap" data-act="equipe-apagar" data-id="${u.id}" style="color:var(--erro)">Remover</button>` : ''}</div>`);
 }
 
 /* ---------- desenhar e reagir ---------- */
-function desenhar() {
-  document.body.classList.remove('so'); nav();
+function desenhar(quieto = false) { // quieto: redesenho da sincronia, sem as animações de entrada (senão a tela "pisca")
+  document.body.classList.toggle('quieto', !!quieto); document.body.classList.remove('so'); nav();
   $('#miolo').innerHTML = ({ horas: telaHoras, zap: telaZap, agenda: telaAgenda, ajustes: telaAjustes })[S.tela]();
   $('#hoje').innerHTML = painelHoje();
   $('#fab-ancora').hidden = S.tela !== 'horas';
@@ -1283,6 +1299,12 @@ const ACOES = {
   desfazer: () => { if (DESFAZ) { DESFAZ(); DESFAZ = null; } $('#toast').classList.remove('ve'); fecharFolha(); desenhar(); setTimeout(() => toast('Desfeito'), 50); },
   'saida-rapida': el => { saida(crianca(el.dataset.id), 'mão'); desenhar(); },
   'entrada-rapida': el => { entrada(crianca(el.dataset.id), 'mão'); desenhar(); },
+  liberar: el => { // a chavinha: muda na hora, avisa o servidor, e o aviso tem Desfazer
+    const c = crianca(el.dataset.id); if (!c) return; const antes = liberada(c), depois = !antes;
+    const aplicar = v => { c.liberado = v; if (MODO === 'servidor') api('crianca_liberar', { id: c.id, liberado: v }).catch(e => toast(e.message)); const f = $('.folha'); desenhar(true); if (f) { const ch = $(`.folha .chave[data-id="${c.id}"]`); if (ch) { ch.classList.toggle('on', v); ch.setAttribute('aria-checked', v); const m = ch.closest('.marca'); if (m) m.querySelector('span').innerHTML = `<b>${v ? 'Entrada liberada' : 'Entrada bloqueada'}</b> · ${v ? 'ela bate o rosto no iDFace e as horas começam a contar.' : 'o iDFace recusa o rosto dela até você liberar.'}`; } } };
+    aplicar(depois);
+    toast(depois ? `${c.nome}: entrada liberada. É só bater o rosto.` : `${c.nome}: entrada bloqueada no iDFace.`, () => aplicar(antes));
+  },
   vender: el => folhaVender(el.dataset.id),
   'vender-ok': el => { vender(crianca(el.dataset.id), S.cfg.pacotes[+el.dataset.i]); fecharFolha(); desenhar(); },
   entrada: el => { entrada(crianca(el.dataset.id), 'mão'); fecharFolha(); desenhar(); },
@@ -1395,6 +1417,7 @@ document.addEventListener('focusin', e => { const m = CAMPOS_OLHAR[e.target.id];
 document.addEventListener('focusout', e => { const card = $('.palco'); if (!card || !CAMPOS_OLHAR[e.target.id]) return; setTimeout(() => { if (!CAMPOS_OLHAR[(document.activeElement || {}).id]) { card.dataset.olha = ''; card.classList.remove('digitando'); } }, 120); });
 document.addEventListener('input', e => {
   if (CAMPOS_OLHAR[e.target.id]) { const card = $('.palco'); if (card && card.dataset.olha !== CAMPOS_OLHAR[e.target.id]) { card.dataset.olha = CAMPOS_OLHAR[e.target.id]; olharPara(e.target, true); } else olharPara(e.target); }
+  if (['l-login', 'g-login', 'e-login'].includes(e.target.id)) { const v = e.target.value.toLowerCase(); if (v !== e.target.value) e.target.value = v; }
   if (e.target.id === 'f-cpf') { const v = cpfFmt(e.target.value); if (v !== e.target.value) e.target.value = v; }
   if (e.target.id === 'busca') { const q = e.target.value.toLowerCase(); $('#lista-criancas').innerHTML = itensLista(S.criancas.filter(c => (c.nome + ' ' + c.resp).toLowerCase().includes(q))); }
   if (e.target.id === 'pc-h') $$('#pc-rapido button').forEach(b => b.setAttribute('aria-pressed', b.dataset.h === e.target.value));
