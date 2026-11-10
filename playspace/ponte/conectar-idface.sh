@@ -56,10 +56,10 @@ else
   wait
   IP=$(head -n 1 "$tmp/achados" 2>/dev/null); rm -rf "$tmp"
   if [ -n "$IP" ]; then diz "${VD}✓${C0} Achei o iDFace em $IP."; else
-    diz "${AM}Não achei o aparelho sozinho.${C0} No iDFace: Menu → Configurações → Rede mostra o IP."
+    diz "${AM}Não achei o aparelho sozinho.${C0} Ele está no cabo de rede do mesmo roteador deste Mac? No visor: Menu → Configurações → Rede mostra o IP (e deixe o DHCP ligado)."
     read -r -p 'IP do iDFace: ' IP
     [ -z "$IP" ] && fim erro 'sem o IP não dá para continuar.'
-    testa_idface "$IP" || fim erro "$IP não respondeu como um iDFace. Confira o IP e se o Mac está na mesma rede."
+    testa_idface "$IP" || fim erro "$IP não respondeu como um iDFace. Confira: (1) o iDFace está no CABO de rede do mesmo roteador deste Mac? (2) no visor dele, em Menu → Configurações → Rede, o DHCP está ligado? Ligue, toque em Ok e rode de novo."
   fi
 fi
 
