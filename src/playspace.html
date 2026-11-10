@@ -782,7 +782,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.72';
+const VERSAO = '0.73';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -1379,6 +1379,7 @@ const campoObs = v => `<div class="campo"><label for="f-obs">Restrições e obse
 function marcarAtalhos() { const t = $('#f-obs'); if (!t) return; const partes = obsPartes(t.value); $$('.atalhos [data-t]').forEach(b => { const f = b.dataset.t; b.setAttribute('aria-pressed', f === '' ? !partes.length : f.endsWith(' ') ? partes.some(x => x.toLowerCase().startsWith(f.trim().toLowerCase())) : partes.includes(f)); }); }
 // no cadastro: digitou o CPF (ou o RNE) e o cliente já existe → mostra as crianças dele (com o botão Histórico) e preenche o responsável
 let CLIENTE_AUTO = null;   // o que a tela preencheu sozinha (some de novo se o documento mudar)
+let CLIENTE_VISTO = '';     // o documento do cliente que o cadastro já mostrou (para avisar uma vez só)
 const docTipo = () => ($('#f-cpf') || { dataset: {} }).dataset.doc === 'rne' ? 'rne' : 'cpf';
 const segDoc = tipo => `<div class="seg mini" id="f-doc-seg" role="group" aria-label="Tipo de documento">${[['cpf', 'CPF'], ['rne', 'RNE']].map(([v, n]) => `<button type="button" data-act="doc-tipo" data-v="${v}" aria-pressed="${tipo === v}" title="${v === 'rne' ? 'Estrangeiro: Registro Nacional de Estrangeiro' : 'CPF'}">${n}</button>`).join('')}</div>`;
 const campoDoc = (tipo, v) => `<div class="campo"><div class="rot-linha"><label for="f-cpf" id="f-doc-rot">${tipo === 'rne' ? 'RNE' : 'CPF'} do responsável</label>${segDoc(tipo)}</div><input id="f-cpf" data-doc="${tipo}" inputmode="${tipo === 'rne' ? 'text' : 'numeric'}" value="${esc(v || '')}" placeholder="${tipo === 'rne' ? 'Número do RNE' : '000.000.000-00'}" maxlength="${tipo === 'rne' ? 20 : 14}" autocomplete="off"><span class="explica" id="f-cpf-aviso" style="color:var(--erro)" hidden></span></div>`;
@@ -1388,17 +1389,23 @@ function cartaoCliente(fam) {
   const r = fam[0];
   return `<div class="cliente-ja"><div class="cab"><span class="ico">${ic(IC.check, 15, 3)}</span><div class="txt"><b>Cliente já cadastrado</b><span>${esc(r.resp)}${relP(r)}${r.tel ? ' · ' + esc(r.tel) : ''}</span></div><button type="button" class="bt tap" data-act="historico" data-id="${r.id}">${ic(IC.historico)} Histórico</button></div>
     ${fam.map(c => { const u = ultimaVisita(c); return `<div class="cr">${avatar(c)}<div class="txt"><b>${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}</b><span>${c.entrou ? 'no espaço agora' : u ? 'veio em ' + diaCurto(new Date(u)) : 'ainda não veio'} · consumiu ${hm(usadoAgora(c))} · tem ${hm(restante(c))}</span></div></div>`; }).join('')}
-    <p class="explica">O responsável já está preenchido. Para cadastrar outra criança dele, escreva o nome dela abaixo.</p></div>`;
+    <p class="explica">O responsável já está preenchido. Para cadastrar outra criança dele, escreva o nome dela abaixo. Para vender para uma das crianças acima, use o botão Vender no histórico.</p></div>`;
 }
 function clienteNoCadastro() {
   const alvo = $('#f-cliente'); if (!alvo) return; const tipo = docTipo(), doc = val('f-cpf'), fam = clientePorDoc(tipo, doc), aviso = $('#f-cpf-aviso');
   if (aviso) { const ruim = tipo === 'cpf' && soDig(doc).length === 11 && !fam.length && !cpfValido(doc); aviso.hidden = !ruim; aviso.textContent = ruim ? 'Confira o CPF: os números não batem.' : ''; }
-  if (!fam.length) { alvo.innerHTML = ''; if (CLIENTE_AUTO) { for (const k in CLIENTE_AUTO) { const i = $('#' + k); if (i && i.value === CLIENTE_AUTO[k]) i.value = ''; } CLIENTE_AUTO = null; } return; }
+  if (!fam.length) { alvo.innerHTML = ''; if (CLIENTE_AUTO) { for (const k in CLIENTE_AUTO) { const i = $('#' + k); if (i && i.value === CLIENTE_AUTO[k]) i.value = ''; } CLIENTE_AUTO = null; }
+    CLIENTE_VISTO = ''; if (LADO && LADO.doCadastro) fecharLado(); return; }   // o documento mudou: o histórico que o cadastro abriu sai junto
   const r = fam[0]; alvo.innerHTML = cartaoCliente(fam); CLIENTE_AUTO = CLIENTE_AUTO || {};
+  // já é cliente: o histórico abre sozinho ao lado do cadastro (em tela larga); no celular, um aviso com o atalho
+  const chaveDoc = docChave(tipo, doc);
+  if (chaveDoc !== CLIENTE_VISTO) { CLIENTE_VISTO = chaveDoc;
+    if (innerWidth >= 820) { const b = LADO && crianca(LADO.id); if (!(b && mesmoCliente(b, r))) { abrirHistorico(r.id); if (LADO) LADO.doCadastro = true; } }
+    else toast(`Este ${tipo === 'rne' ? 'RNE' : 'CPF'} já tem cadastro: ${r.resp}`, () => abrirHistorico(r.id), 'Ver o histórico'); }
   for (const [k, v] of [['f-resp', r.resp], ['f-tel', r.tel], ['f-tel2', r.tel2]]) { const i = $('#' + k); if (i && v && !i.value.trim()) { i.value = v; CLIENTE_AUTO[k] = v; } }
 }
 function folhaCrianca(c) {
-  FOTO_TEMP = ''; CLIENTE_AUTO = null; SAP_TEMP = 0;
+  FOTO_TEMP = ''; CLIENTE_AUTO = null; CLIENTE_VISTO = ''; SAP_TEMP = 0;
   if (!c) { // cadastro novo: primeiro o responsável (documento, nome e telefones), depois a criança; as horas são vendidas à parte
     abrirFolha('Cadastrar', `
     <div class="bloco-f"><small class="rot">Responsável</small>
