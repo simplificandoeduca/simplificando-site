@@ -66,7 +66,7 @@ A folha mostra se o aparelho está **Conectado** (falou nos últimos 2 min), **S
 
 ## 6. Regra das horas (Ajustes → Horas)
 
-Tudo configurável, porque a cliente ainda não decidiu: **arredondamento** (exato, 15 ou 30 min), **cortesia** (minutos que não contam), **mínimo** por visita, **aviso** de pacote acabando e os **pacotes** (horas + valor, incluindo hora avulsa). Uma linha abaixo mostra na prática quanto cada tempo cobraria.
+Como o tempo de brincar é descontado do saldo: **arredondamento** (exato, 15 ou 30 min), **cortesia** (minutos que não contam), **mínimo** por visita e o **aviso** de tempo acabando. Uma linha abaixo mostra na prática quanto cada tempo cobraria. Os preços ficam em **Serviços e preços** (seção 6a).
 
 ## 6a. Cadastro, cliente e histórico
 
@@ -84,7 +84,13 @@ Tudo configurável, porque a cliente ainda não decidiu: **arredondamento** (exa
 - O número fica à vista no anel da criança. Na **saída**, a sapateira **fica livre sozinha** e o aviso diz onde está o sapato ("Helena saiu · sapato na sapateira 12"); o mesmo fica anotado em "Hoje na recepção".
 - **Ajustes → Sapateiras** mostra o mapa (quem está com qual), libera uma esquecida e muda a quantidade (44 por padrão).
 
-**Produtos e extras** (Ajustes → Produtos e extras): a lista do que é vendido à parte das horas (carrinho, meia, lanche), com nome e valor. Cada item aparece na folha **Vender** com um toque; o campo "Outro" registra algo fora da lista. Em cada **pacote de horas** dá para anotar o que **vem junto** (ex.: meia antiderrapante): isso fica gravado na venda e aparece no histórico como "Pacote de 10h · veio com meia antiderrapante".
+**Atendimento e serviços**: ao terminar o cadastro, o sistema abre o **atendimento** da criança: no meio, os serviços com o preço e o **total a pagar**; ao lado (em tela larga), os dados e o histórico de compras do cliente. O mesmo atendimento abre pelo botão **Vender** (ficha, Banco de horas, histórico).
+
+- Os serviços de fábrica são **Recreação** (R$ 80 a cada 30 min), **Carrinho fusquinha** (R$ 15 a cada 30 min) e **Carrinho de bebê** (R$ 30, das 10h às 22h). Em cada linha, o **+** põe mais um período (ou mais uma unidade) e o **−** tira; o valor da linha e o total aparecem na hora. **Registrar a venda** grava tudo de uma vez; o aviso tem **Desfazer**.
+- O tempo de **Recreação** vendido entra no saldo de brincar da criança (meia hora conta) e libera o acesso dela; os carrinhos ficam só anotados na venda, com a duração.
+- **Ajustes → Serviços e preços** muda o nome, o valor e a forma de cobrar (valor único ou a cada período de tantos minutos), cria serviços novos (uma meia, um lanche) e diz qual deles é tempo de brincar. O valor cobrado sai sempre dessa tabela.
+- **Pacotes de horas** são opcionais (Ajustes → Pacotes de horas): horas vendidas de uma vez com preço fechado. Se houver, aparecem no atendimento, abaixo dos serviços. **Outro item**, no pé do atendimento, registra algo fora da tabela.
+- **Avisar quando restar** (Ajustes → Controle de horas) começa em 10 minutos, porque a recreação é vendida de 30 em 30.
 
 ## 6b. Banco de horas (aba)
 

@@ -86,6 +86,12 @@ function db(): PDO {
     try { $pdo->exec("ALTER TABLE criancas ADD COLUMN tel2 TEXT NOT NULL DEFAULT ''"); } catch (Throwable $e) { }
     $pdo->exec('PRAGMA user_version = 7');
   }
+  if ($v < 8) { // 0.71: a venda guarda os minutos de brincar que deu (meia hora conta) e o nome do serviço vendido
+    try { $pdo->exec('ALTER TABLE vendas ADD COLUMN minutos INTEGER NOT NULL DEFAULT 0'); } catch (Throwable $e) { }
+    try { $pdo->exec("ALTER TABLE vendas ADD COLUMN servico TEXT NOT NULL DEFAULT ''"); } catch (Throwable $e) { }
+    try { $pdo->exec('UPDATE vendas SET minutos = CAST(horas * 60 AS INTEGER) WHERE minutos = 0 AND horas > 0'); } catch (Throwable $e) { }
+    $pdo->exec('PRAGMA user_version = 8');
+  }
   return $pdo;
 }
 function cfg(string $k, $padrao = null) { $q = db()->prepare('SELECT valor FROM config WHERE chave = ?'); $q->execute([$k]); $v = $q->fetchColumn(); return $v === false ? $padrao : json_decode((string)$v, true); }
@@ -101,8 +107,25 @@ function urlBase(): string { // .../playspace
 }
 
 /* ---------- a regra das horas (as mesmas opções da tela de Ajustes) ---------- */
-const REGRA_PADRAO = ['arredonda' => 1, 'cortesia' => 10, 'minimo' => 0, 'aviso' => 30, 'autoMsg' => 'ambos', 'bloqueioAuto' => 'sim', 'pacotes' => [['h' => 1, 'v' => 60], ['h' => 5, 'v' => 250], ['h' => 10, 'v' => 450], ['h' => 20, 'v' => 800]], 'extras' => [], 'sapateiras' => 44];   // extras: produtos e serviços vendidos à parte (carrinho, meia): [['n' => nome, 'v' => valor]]
-function regra(): array { $r = cfg('regra', null); return (is_array($r) ? $r : []) + REGRA_PADRAO; }
+// os serviços da loja. modo 'periodo': cobra a cada `min` minutos; 'fixo': valor único. banco: o tempo comprado entra no saldo de brincar da criança
+const SERVICOS_PADRAO = [
+  ['id' => 'recreacao', 'n' => 'Recreação', 'v' => 80, 'modo' => 'periodo', 'min' => 30, 'banco' => true, 'obs' => ''],
+  ['id' => 'fusquinha', 'n' => 'Carrinho fusquinha', 'v' => 15, 'modo' => 'periodo', 'min' => 30, 'banco' => false, 'obs' => ''],
+  ['id' => 'bebe', 'n' => 'Carrinho de bebê', 'v' => 30, 'modo' => 'fixo', 'min' => 0, 'banco' => false, 'obs' => 'das 10h às 22h'],
+];
+const PACOTES_DE_EXEMPLO = [['h' => 1, 'v' => 60], ['h' => 5, 'v' => 250], ['h' => 10, 'v' => 450], ['h' => 20, 'v' => 800]];   // inventados nas primeiras versões: saem sozinhos se ninguém mexeu neles
+const REGRA_PADRAO = ['arredonda' => 1, 'cortesia' => 10, 'minimo' => 0, 'aviso' => 10, 'autoMsg' => 'ambos', 'bloqueioAuto' => 'sim', 'pacotes' => [], 'extras' => [], 'sapateiras' => 44];
+function regra(): array {
+  $r = cfg('regra', null); $r = (is_array($r) ? $r : []) + REGRA_PADRAO;
+  if (($r['pacotes'] ?? []) == PACOTES_DE_EXEMPLO) $r['pacotes'] = [];
+  if (!isset($r['servicos']) || !is_array($r['servicos'])) { // ninguém mexeu ainda: os três serviços da loja, mais o que já estava em "produtos e extras"
+    $r['servicos'] = SERVICOS_PADRAO;
+    if ((int)$r['aviso'] === 30) $r['aviso'] = 10;   // a recreação é vendida de 30 em 30 min: avisar com 30 min marcava todo mundo como "acabando" já na compra
+    foreach ((array)($r['extras'] ?? []) as $k => $e) if (trim((string)($e['n'] ?? '')) !== '') $r['servicos'][] = ['id' => 'x' . $k, 'n' => (string)$e['n'], 'v' => (float)($e['v'] ?? 0), 'modo' => 'fixo', 'min' => 0, 'banco' => false, 'obs' => ''];
+  }
+  return $r;
+}
+function dur(int $min): string { return $min < 60 ? $min . ' min' : intdiv($min, 60) . 'h' . ($min % 60 ? str_pad((string)($min % 60), 2, '0', STR_PAD_LEFT) : ''); }   // 30 min, 1h, 1h30
 function cobrar(float $minutos): int {
   $r = regra(); $m = max(0, $minutos - (int)$r['cortesia']);
   if ($m <= 0) return 0;
@@ -182,17 +205,19 @@ function bloquearAcesso(array $c, bool $liberar): void {
   if ($liberar) { apagarCfg('desregra_' . $c['id']); apagarCfg('regra_ok_' . $c['id']); gravarCfg('regra_' . $c['id'], (int)$c['idface_id']); }
   else { apagarCfg('regra_' . $c['id']); gravarCfg('desregra_' . $c['id'], (int)$c['idface_id']); }
 }
-// $itens: o que mais foi na venda. Com horas, é o que veio junto no pacote ("meia"); sem horas (0), é o próprio produto ("Carrinho")
-function fazerVenda(array $c, int $horas, float $valor, ?int $por, string $itens = ''): array {
-  $db = db(); $itens = mb_substr(trim($itens), 0, 80);
-  if ($horas > 0) {
-    $db->prepare('UPDATE criancas SET pacote_min = pacote_min + ? WHERE id = ?')->execute([$horas * 60, $c['id']]);
-    if (isset($c['liberado']) && !(int)$c['liberado']) bloquearAcesso($c, true);   // pagou as horas: o acesso volta
+// $min: minutos de brincar que a venda põe no saldo da criança (0 = nenhum). $servico: o nome do serviço vendido (Recreação, Carrinho fusquinha).
+// $itens: o detalhe. Num serviço, a duração ou a observação; num pacote antigo, o que veio junto; sem serviço e sem minutos, o próprio produto.
+function fazerVenda(array $c, int $min, float $valor, ?int $por, string $itens = '', string $servico = ''): array {
+  $db = db(); $itens = mb_substr(trim($itens), 0, 80); $servico = mb_substr(trim($servico), 0, 60); $min = max(0, $min);
+  if ($min > 0) {
+    $db->prepare('UPDATE criancas SET pacote_min = pacote_min + ? WHERE id = ?')->execute([$min, $c['id']]);
+    if (isset($c['liberado']) && !(int)$c['liberado']) bloquearAcesso($c, true);   // pagou o tempo: o acesso volta
   }
-  $db->prepare('INSERT INTO vendas (crianca_id, horas, valor, quando, por, itens) VALUES (?, ?, ?, ?, ?, ?)')->execute([$c['id'], $horas, $valor, agora(), $por, $itens]);
+  $db->prepare('INSERT INTO vendas (crianca_id, horas, minutos, valor, quando, por, itens, servico) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')->execute([$c['id'], round($min / 60, 2), $min, $valor, agora(), $por, $itens, $servico]);
   $venda = (int)$db->lastInsertId();
   $dinheiro = 'R$ ' . number_format($valor, fmod($valor, 1) ? 2 : 0, ',', '.');
-  $texto = $horas > 0 ? ($horas === 1 ? 'Hora avulsa' : 'Pacote de ' . $horas . 'h') . ($itens !== '' ? ' com ' . $itens : '') . ' vendido · ' . $dinheiro : $itens . ' · ' . $dinheiro;
+  if ($servico !== '') $texto = $servico . ($min > 0 ? ' · ' . dur($min) : '') . ($itens !== '' ? ' · ' . $itens : '') . ' · ' . $dinheiro;
+  else $texto = $min > 0 ? ($min === 60 ? 'Hora avulsa' : 'Pacote de ' . dur($min)) . ($itens !== '' ? ' com ' . $itens : '') . ' vendido · ' . $dinheiro : $itens . ' · ' . $dinheiro;
   $reg = registrar('venda', (int)$c['id'], $c['nome'], $texto);
   return ['venda' => $venda, 'registro' => $reg];
 }

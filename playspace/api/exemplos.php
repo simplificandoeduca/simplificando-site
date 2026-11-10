@@ -32,7 +32,7 @@ function exemplosCarregar(?int $por): array {
   foreach (['Helena' => 12, 'Theo' => 7] as $nome => $sap) if (!donoSapateira($sap)) $db->prepare('UPDATE criancas SET sapateira = ? WHERE id = ?')->execute([$sap, $nomeId[$nome]]);
   $reg = $db->prepare('INSERT INTO registros (quando, tipo, crianca_id, nome, texto) VALUES (?, ?, ?, ?, ?)');
   $vis = $db->prepare('INSERT INTO visitas (crianca_id, entrou, saiu, debitado_min, origem) VALUES (?, ?, ?, ?, ?)');
-  $ven = $db->prepare('INSERT INTO vendas (crianca_id, horas, valor, quando, por, itens) VALUES (?, ?, ?, ?, ?, ?)');
+  $ven = $db->prepare('INSERT INTO vendas (crianca_id, horas, minutos, valor, quando, por, itens, servico) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');   // horas, minutos de brincar, valor, quando, quem, detalhe, serviço
   $msg = $db->prepare('INSERT INTO mensagens (crianca_id, de, texto, quando, por, auto, foto, lida, wa_id, erro) VALUES (?, ?, ?, ?, ?, ?, \'\', ?, \'\', \'\')');
   $hm = fn(int $m) => $m <= 0 ? '0h' : ($m < 60 ? '0h' . str_pad((string)$m, 2, '0', STR_PAD_LEFT) : intdiv($m, 60) . 'h' . ($m % 60 ? str_pad((string)($m % 60), 2, '0', STR_PAD_LEFT) : ''));
   $hora = fn(string $q) => substr($q, 11, 5);
@@ -47,10 +47,12 @@ function exemplosCarregar(?int $por): array {
   $id = $nomeId['Helena'];
   $msg->execute([$id, 'ela', 'Obrigada! Ela vai ficar até umas 16h, tudo bem?', $t(110), '', 0, 1]);
   $msg->execute([$id, 'nos', 'Tudo bem, Mariana! Avisamos quando faltar pouco tempo no pacote.', $t(105), 'Camila', 0, 1]);
-  $ven->execute([$id, 10, 450, $t(125), $por, 'meia antiderrapante']); $reg->execute([$t(125), 'venda', $id, 'Helena', 'Pacote de 10h com meia antiderrapante vendido · R$ 450']);
-  $ven->execute([$id, 0, 30, $t(123), $por, 'Carrinho']); $reg->execute([$t(123), 'venda', $id, 'Helena', 'Carrinho · R$ 30']);   // um produto à parte, para o histórico do cliente
+  $ven->execute([$id, 2, 120, 320, $t(125), $por, '', 'Recreação']); $reg->execute([$t(125), 'venda', $id, 'Helena', 'Recreação · 2h · R$ 320']);
+  $ven->execute([$id, 0, 0, 30, $t(123), $por, 'das 10h às 22h', 'Carrinho de bebê']); $reg->execute([$t(123), 'venda', $id, 'Helena', 'Carrinho de bebê · das 10h às 22h · R$ 30']);   // um serviço à parte, para o histórico do cliente
+  $ven->execute([$id, 8, 480, 1280, $d(-10, '14:50'), $por, '', 'Recreação']);
   // as compras antigas dos outros dois (aparecem no Banco de horas e no histórico)
-  $ven->execute([$nomeId['Theo'], 5, 250, $d(-9, '13:50'), $por, '']); $ven->execute([$nomeId['Miguel'], 10, 450, $d(-6, '12:55'), $por, '']);
+  $ven->execute([$nomeId['Theo'], 5, 300, 800, $d(-9, '13:50'), $por, '', 'Recreação']); $ven->execute([$nomeId['Theo'], 0, 0, 30, $d(-9, '13:52'), $por, '1h', 'Carrinho fusquinha']);
+  $ven->execute([$nomeId['Miguel'], 10, 600, 1600, $d(-6, '12:55'), $por, '', 'Recreação']);
   // Theo: o pai perguntou e ninguém respondeu ainda
   $msg->execute([$nomeId['Theo'], 'ela', 'Quanto tempo ainda tem no pacote dele?', $t(4), '', 0, 0]);
   // Miguel: veio ontem, o pacote acabou; hoje a equipe ofereceu renovar
@@ -58,8 +60,8 @@ function exemplosCarregar(?int $por): array {
   $msg->execute([$id, 'nos', 'Oi, Carla! Miguel chegou na Play Space às 14:20 💛 Tem 1h50 no pacote. Qualquer coisa a gente te chama por aqui.', $d(-1, '14:20'), 'sistema', 1, 1]);
   $msg->execute([$id, 'nos', 'Miguel saiu às 16:10. Hoje ficou 1h50 e o pacote acabou. Até a próxima! 🧸', $d(-1, '16:10'), 'sistema', 1, 1]);
   $msg->execute([$id, 'ela', 'Obrigada! Ele adorou a piscina de bolinhas 😄', $d(-1, '16:40'), '', 0, 1]);
-  $msg->execute([$id, 'nos', 'Oi, Carla! O pacote do Miguel acabou ontem. Quer renovar? 10h por R$ 450 ou 5h por R$ 250 💛', $t(150), 'Beatriz', 0, 1]);
-  $msg->execute([$id, 'ela', 'Pode ser as 10h! Passo aí amanhã pra acertar.', $t(140), '', 0, 1]);
+  $msg->execute([$id, 'nos', 'Oi, Carla! As horas do Miguel acabaram ontem. Quer renovar? A recreação é R$ 80 a cada 30 minutos 💛', $t(150), 'Beatriz', 0, 1]);
+  $msg->execute([$id, 'ela', 'Pode ser 1 hora! Passo aí amanhã pra acertar.', $t(140), '', 0, 1]);
   // visitas de dias anteriores, para a ficha ter histórico
   foreach ([['Helena', -3, '14:00', '16:10', 130], ['Helena', -7, '10:30', '12:38', 128], ['Helena', -10, '15:00', '17:40', 160], ['Miguel', -2, '14:20', '17:00', 160], ['Miguel', -6, '13:00', '16:30', 210],
             ['Theo', -2, '15:00', '17:30', 150], ['Theo', -9, '14:00', '16:08', 128]] as $v)

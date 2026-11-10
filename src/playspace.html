@@ -594,6 +594,23 @@ body.quieto .dica { animation: none !important; }
 .dois.alinha .campo > label, .dois.alinha .rot-linha { min-height: 28px; display: flex; align-items: center; }
 .campo.discreto > label { color: var(--apagado); } .campo.discreto input { background: transparent; border-style: dashed; }   /* o segundo telefone é opcional */
 .campo.discreto input:focus, .campo.discreto input:not(:placeholder-shown) { background: var(--card); border-style: solid; }
+[hidden] { display: none !important; }
+/* ---------- atendimento: os serviços, a quantidade e o total a pagar ---------- */
+.servicos { display: flex; flex-direction: column; gap: 8px; }
+.serv { display: grid; grid-template-columns: 1fr auto 92px; align-items: center; gap: 10px; background: var(--card); border: 2px solid var(--borda); border-radius: 18px; padding: 10px 12px; }
+.serv.on { border-color: var(--coral); background: var(--coral-2); }
+.serv .txt { min-width: 0; } .serv .txt b { display: block; font-family: var(--display); font-weight: 800; font-size: 17px; } .serv .txt span { display: block; font-size: 12.5px; color: var(--tinta-2); }
+.serv .qtd { display: flex; align-items: center; gap: 6px; }
+.serv .qtd button { width: 42px; height: 42px; border-radius: 14px; background: var(--menta); font-size: 24px; font-weight: 800; line-height: 1; display: flex; align-items: center; justify-content: center; }
+.serv .qtd button[disabled] { opacity: .3; pointer-events: none; }
+.serv .qtd button[data-act="serv-mais"] { background: var(--coral); color: #fff; }
+.serv .qtd b { min-width: 62px; text-align: center; font-family: var(--display); font-weight: 800; font-size: 16px; white-space: nowrap; }
+.serv .valor { text-align: right; font-family: var(--display); font-weight: 800; font-size: 16px; white-space: nowrap; }
+.total { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 0 2px 8px; } .total span { font-weight: 800; color: var(--tinta-2); } .total b { font-family: var(--display); font-weight: 800; font-size: 26px; }
+.bt[disabled] { opacity: .45; pointer-events: none; }
+details.outro > summary { cursor: pointer; font-size: 13px; font-weight: 800; color: var(--tinta-2); list-style: none; } details.outro > summary::-webkit-details-marker { display: none; }
+details.outro > summary::before { content: "+ "; } details.outro[open] > summary::before { content: "− "; } details.outro .outro-item { margin-top: 8px; grid-template-columns: 1fr 110px; }
+@media (max-width: 480px) { .serv { grid-template-columns: 1fr auto; } .serv .valor { grid-column: 1 / -1; text-align: left; } .serv .valor:empty { display: none; } }
 /* ---------- sapateiras: a grade de números (as em uso ficam hachuradas) e o selo no anel da criança ---------- */
 .sapateiras { display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 6px; }
 .sap { height: 38px; border-radius: 11px; border: 1.5px solid var(--borda-2); background: var(--card); font-family: var(--display); font-weight: 800; font-size: 14px; color: var(--tinta); }
@@ -765,7 +782,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.70';
+const VERSAO = '0.71';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -796,7 +813,7 @@ async function atualizarAgora(bt) {
 }
 const S = {
   tela: 'horas', zapAberta: 1, zapModo: 'lista', zapDia: isoDia(agora), mes: { y: agora.getFullYear(), m: agora.getMonth() }, diaSel: isoDia(agora),
-  cfg: { arredonda: 1, cortesia: 10, minimo: 0, aviso: 30, autoMsg: 'ambos', bloqueioAuto: 'sim', pacotes: [{ h: 1, v: 60 }, { h: 5, v: 250 }, { h: 10, v: 450 }, { h: 20, v: 800, com: 'meia antiderrapante' }], extras: [{ n: 'Carrinho', v: 30 }, { n: 'Meia antiderrapante', v: 15 }], sapateiras: 44, idface: { ip: '192.168.0.129', nome: 'Recepção', ligado: true, ultima: antes(0.2) }, tema: lido('ps-tema', 'sistema'), anim: lido('ps-anim', 'auto') },
+  cfg: { arredonda: 1, cortesia: 10, minimo: 0, aviso: 10, autoMsg: 'ambos', bloqueioAuto: 'sim', pacotes: [], servicos: [{ id: 'recreacao', n: 'Recreação', v: 80, modo: 'periodo', min: 30, banco: true, obs: '' }, { id: 'fusquinha', n: 'Carrinho fusquinha', v: 15, modo: 'periodo', min: 30, banco: false, obs: '' }, { id: 'bebe', n: 'Carrinho de bebê', v: 30, modo: 'fixo', min: 0, banco: false, obs: 'das 10h às 22h' }], sapateiras: 44, idface: { ip: '192.168.0.129', nome: 'Recepção', ligado: true, ultima: antes(0.2) }, tema: lido('ps-tema', 'sistema'), anim: lido('ps-anim', 'auto') },
   equipe: [{ id: 1, nome: 'Camila Duarte', papel: 'gestor', login: 'camila' }, { id: 2, nome: 'Beatriz Lima', papel: 'supervisor', login: 'bia' }, { id: 3, nome: 'João Pedro', papel: 'atendente', login: 'jp' }],
   whats: { conectado: true, numero: '5511912345678', nome: 'Play Space' }, vendasHoje: null,
   criancas: [
@@ -813,7 +830,7 @@ const S = {
     { h: antes(47), tipo: 'ent', nome: 'Helena', txt: 'Rosto reconhecido na entrada' },
     { h: antes(93), tipo: 'ent', nome: 'Alice', txt: 'Rosto reconhecido na entrada' },
     { h: antes(111), tipo: 'sai', nome: 'Laura', txt: '2h20 debitadas · restam 7h40' },
-    { h: antes(140), tipo: 'venda', nome: 'Davi', txt: 'Pacote de 5h vendido · R$ 250' },
+    { h: antes(140), tipo: 'venda', nome: 'Davi', txt: 'Recreação · 5h · R$ 800' },
     { h: antes(150), tipo: 'ent', nome: 'Miguel', txt: 'Rosto reconhecido na entrada' },
     { h: antes(251), tipo: 'ent', nome: 'Laura', txt: 'Rosto reconhecido na entrada' },
   ],
@@ -829,12 +846,12 @@ const S = {
   compromissos: [],
 };
 // compromissos do mês: as oficinas reais de novembro e alguns exemplos
-S.criancas.forEach((c, i) => { c.venda = { h: c.pacote, v: (S.cfg.pacotes.find(p => p.h === c.pacote) || { v: c.pacote * 50 }).v, quando: antes(1440 * (2 + i * 3)) }; });   // a última contratação de cada uma, para a aba Banco de horas
+S.criancas.forEach((c, i) => { c.venda = { h: c.pacote, m: c.pacote * 60, v: c.pacote * 160, servico: 'Recreação', quando: antes(1440 * (2 + i * 3)) }; });   // a última compra de tempo de cada uma, para a aba Banco de horas
 S.criancas[0].sapateira = 12; S.criancas[1].sapateira = 7; S.criancas[2].sapateira = 23;   // quem está no espaço já guardou o sapato
-Object.assign(S.criancas[0].venda, { h: 5, v: 250 }); S.criancas[4].venda.quando = antes(260); S.criancas[5].venda.quando = antes(140);   // Helena comprou em duas vezes; Laura e Davi compraram hoje
-// todas as compras (prévia): a contratação de cada criança e alguns produtos à parte, para o histórico do cliente
-S.compras = S.criancas.map(c => ({ id: novoId(), crianca: c.id, h: c.venda.h, v: c.venda.v, itens: c.venda.h === 20 ? 'meia antiderrapante' : '', quando: c.venda.quando, por: 'Camila' }));
-S.compras.push({ id: novoId(), crianca: 1, h: 5, v: 250, itens: '', quando: antes(1440 * 9), por: 'Bia' }, { id: novoId(), crianca: 1, h: 0, v: 30, itens: 'Carrinho', quando: antes(2880 + 10), por: 'Bia' }, { id: novoId(), crianca: 6, h: 0, v: 15, itens: 'Meia antiderrapante', quando: antes(138), por: 'Camila' });
+Object.assign(S.criancas[0].venda, { h: 5, m: 300, v: 800 }); S.criancas[4].venda.quando = antes(260); S.criancas[5].venda.quando = antes(140);   // Helena comprou em duas vezes; Laura e Davi compraram hoje
+// todas as compras (prévia): a recreação de cada criança e alguns serviços à parte, para o histórico do cliente
+S.compras = S.criancas.map(c => ({ id: novoId(), crianca: c.id, h: c.venda.h, m: c.venda.m, v: c.venda.v, servico: 'Recreação', itens: '', quando: c.venda.quando, por: 'Camila' }));
+S.compras.push({ id: novoId(), crianca: 1, h: 5, m: 300, v: 800, servico: 'Recreação', itens: '', quando: antes(1440 * 9), por: 'Bia' }, { id: novoId(), crianca: 1, h: 0, m: 0, v: 30, servico: 'Carrinho de bebê', itens: 'das 10h às 22h', quando: antes(2880 + 10), por: 'Bia' }, { id: novoId(), crianca: 6, h: 0, m: 0, v: 15, servico: 'Carrinho fusquinha', itens: '30 min', quando: antes(138), por: 'Camila' });
 S.compras.sort((a, b) => b.quando - a.quando);
 (function semear() {
   const y = S.mes.y, m = S.mes.m, d = dd => `${y}-${p2(m + 1)}-${p2(dd)}`;
@@ -1054,6 +1071,12 @@ const cpfValido = v => { const d = soDig(v); if (d.length !== 11 || /^(\d)\1{10}
 const iniciais = n => String(n || '').trim().split(/\s+/).map(x => x[0] || '').slice(0, 2).join('').toUpperCase();
 const numero = t => { t = String(t == null ? '' : t).trim().replace(/[^\d.,]/g, ''); if (t === '') return NaN; return t.includes(',') ? +t.replace(/\./g, '').replace(',', '.') : +t; };   // "30", "30,50", "1.250,00"
 const semHoras = c => !(c.pacote > 0);   // cadastrada, mas ainda não comprou nenhuma hora
+const dur = min => { min = Math.round(min); return min < 60 ? min + ' min' : Math.floor(min / 60) + 'h' + (min % 60 ? p2(min % 60) : ''); };   // 30 min, 1h, 1h30
+const tam = c => dur(c.pacote * 60);   // quanto tempo a criança já comprou ao todo
+// os serviços da loja (Ajustes): 'periodo' cobra a cada tantos minutos; 'fixo' é valor único; banco = o tempo vendido é tempo de brincar
+const precoServ = x => x.modo === 'periodo' ? `${brl(x.v)} a cada ${dur(x.min || 30)}` : brl(x.v);
+const precosTxt = () => { const rec = (S.cfg.servicos || []).find(x => x.banco), pacs = (S.cfg.pacotes || []).map(x => `${dur(x.h * 60)} por ${brl(x.v)}`); return [rec ? `A ${rec.n.toLowerCase()} é ${precoServ(rec)}` : '', pacs.length ? `${rec ? 'Também temos pacotes' : 'Temos pacotes'}: ${pacs.join(', ')}` : ''].filter(Boolean).join('. '); };
+const minDe = v => v.m != null ? v.m : Math.round((v.h || 0) * 60);   // os minutos de brincar de uma venda
 /* ---------- sapateiras: onde fica o sapato da criança enquanto ela brinca (cada número com uma criança de cada vez) ---------- */
 const nSap = () => Math.max(1, Math.min(200, Math.round(+S.cfg.sapateiras) || 44));
 const donoSap = n => S.criancas.find(c => c.sapateira === n) || null;   // quem está usando aquele número agora
@@ -1091,8 +1114,8 @@ function folhaSapMapa() {
 }
 function blocos(c, comEstado = true) {
   const r = restante(c), pct = pctVivo(c), baixo = !semHoras(c) && r <= S.cfg.aviso, [et, cls] = estado(c);
-  return `<div class="horas ${baixo ? 'baixo' : ''} ${c.entrou ? 'dentro' : ''}" data-horas="${c.id}" aria-label="Restam ${hm(r)} de ${c.pacote} horas">
-    <div class="topo"><span class="resta num">${semHoras(c) ? 'Sem horas' : esgotou(c) ? 'Acabou' : vivo(c)}<small>${semHoras(c) || esgotou(c) ? '' : (c.entrou ? 'correndo' : 'restantes')}</small></span><span class="de">${semHoras(c) ? 'ainda não comprou' : 'de ' + c.pacote + 'h'}${comEstado ? ` <span class="pill ${cls}">${et}</span>` : ''}</span></div>
+  return `<div class="horas ${baixo ? 'baixo' : ''} ${c.entrou ? 'dentro' : ''}" data-horas="${c.id}" aria-label="Restam ${hm(r)} de ${tam(c)}">
+    <div class="topo"><span class="resta num">${semHoras(c) ? 'Sem horas' : esgotou(c) ? 'Acabou' : vivo(c)}<small>${semHoras(c) || esgotou(c) ? '' : (c.entrou ? 'correndo' : 'restantes')}</small></span><span class="de">${semHoras(c) ? 'ainda não comprou' : 'de ' + tam(c)}${comEstado ? ` <span class="pill ${cls}">${et}</span>` : ''}</span></div>
     <div class="linha-h" style="--pct:${pct.toFixed(1)}%"><i style="width:${pct.toFixed(1)}%"></i></div>
   </div>`;
 }
@@ -1105,7 +1128,7 @@ function anel(c, onde = 'banco') {
     : (r <= 0 || baixo ? `<button class="bt ${semHoras(c) ? '' : 'forte'} tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 14)} Vender</button>` : c.rosto ? `<button class="bt tap" data-act="avisar" data-id="${c.id}">${ic(IC.zap, 14)} Avisar</button>` : (rostoPronto() ? `<button class="bt tap" data-act="rosto-cam" data-id="${c.id}">${ic(IC.rosto, 14)} Cadastrar rosto</button>` : `<button class="bt tap" data-act="ficha" data-id="${c.id}">${ic(IC.camera, 14)} Tirar a foto</button>`));
   return `<div class="anel ${baixo ? 'baixo' : ''} ${!dentro && !liberada(c) ? 'bloqueada' : ''} ${dentro && S.chegou === c.id ? 'chegou' : ''}" data-anel="${c.id}" data-onde="${onde}">
     ${c.sapateira || dentro ? `<button class="sapb tap ${c.sapateira ? '' : 'vazia'}" data-act="sapateira" data-id="${c.id}" title="${c.sapateira ? 'Sapateira ' + c.sapateira + ' (toque para trocar)' : 'Escolher a sapateira'}" aria-label="${c.sapateira ? 'Sapateira ' + c.sapateira + ' de ' + esc(c.nome) : 'Escolher a sapateira de ' + esc(c.nome)}">${ic(IC.sapato, 12, 2.4)}${c.sapateira || ''}</button>` : ''}
-    <button class="r tap" data-act="ficha" data-id="${c.id}" style="--p:${pct.toFixed(1)};--c:${baixo ? 'var(--erro)' : 'var(--verde-agua)'}" aria-label="Abrir a ficha de ${esc(c.nome)}">${c.foto ? `<span class="fotinha" style="background-image:url(${c.foto})"></span>` : ''}<b class="num ${c.entrou ? 'vivo' : ''}">${semHoras(c) && !c.entrou ? 'Sem horas' : esgotou(c) ? 'Acabou' : vivo(c)}<small>${semHoras(c) ? 'ainda não comprou' : esgotou(c) ? `pacote de ${c.pacote}h` : `de ${c.pacote}h`}</small></b></button>
+    <button class="r tap" data-act="ficha" data-id="${c.id}" style="--p:${pct.toFixed(1)};--c:${baixo ? 'var(--erro)' : 'var(--verde-agua)'}" aria-label="Abrir a ficha de ${esc(c.nome)}">${c.foto ? `<span class="fotinha" style="background-image:url(${c.foto})"></span>` : ''}<b class="num ${c.entrou ? 'vivo' : ''}">${semHoras(c) && !c.entrou ? 'Sem horas' : esgotou(c) ? 'Acabou' : vivo(c)}<small>${semHoras(c) ? 'ainda não comprou' : `de ${tam(c)}`}</small></b></button>
     <span class="nome">${esc(c.nome)}${c.idade && !dentro ? ', ' + c.idade : ''}</span>
     <em>${dentro ? `desde ${hora(c.entrou)} · <span class="num" data-cron-txt="${c.id}">${hms(segDentro(c))}</span>` : esc(c.resp)}</em>
     <div class="mini">${botoes}</div>
@@ -1139,10 +1162,35 @@ async function entradaServidor(c) {
 async function saidaServidor(c) {
   try { const r = await api('saida', { id: c.id }); await carregar(); desenhar(); toast(`${c.nome} saiu${r.sapateira ? ' · sapato na sapateira ' + r.sapateira : ''} · ${hm(r.debitado)} debitadas`, async () => { await api('desfazer_saida', { id: c.id, visita: r.visita, registro: r.registro, mensagem: r.mensagem ? r.mensagem.id : 0, sapateira: r.sapateira || 0 }); await carregar(); desenhar(); }); } catch (e) { toast(e.message); }
 }
-// pac: { h, v, com } para horas (com = o que vem junto no pacote) ou { h: 0, v, itens } para um produto à parte (carrinho, meia)
-const textoVendido = (c, pac) => pac.h ? `+${pac.h}h para ${c.nome} · ${brl(pac.v)}${pac.com ? ' · com ' + pac.com : ''}` : `${pac.itens} para ${c.nome} · ${brl(pac.v)}`;
-async function venderServidor(c, pac) {
-  try { const r = await api('vender', { id: c.id, horas: pac.h, valor: pac.v, itens: pac.h ? (pac.com || '') : pac.itens }); await carregar(); desenhar(); toast(textoVendido(c, pac), async () => { await api('desfazer_venda', { venda: r.venda, registro: r.registro }); await carregar(); desenhar(); }); } catch (e) { toast(e.message); }
+// o atendimento registra de uma vez o que foi escolhido: serviços (com a quantidade), pacotes e um item avulso.
+// linhas: [{ servico, min (minutos de brincar que entram no saldo), v, itens (detalhe) }]
+function linhasDoCarrinho() {
+  const L = [], k = CARRINHO; if (!k) return L;
+  for (const x of S.cfg.servicos || []) { const q = k.q[x.id] || 0; if (!q) continue;
+    if (x.modo === 'periodo') { const t = q * (x.min || 30); L.push({ s: x.id, q, servico: x.n, min: x.banco ? t : 0, v: q * x.v, itens: x.banco ? '' : dur(t) }); }
+    else L.push({ s: x.id, q, servico: x.n, min: 0, v: q * x.v, itens: (q > 1 ? q + ' unidades' + (x.obs ? ' · ' : '') : '') + (x.obs || '') }); }
+  for (const i of k.pac) { const x = S.cfg.pacotes[i]; if (x) L.push({ pac: i, servico: '', min: x.h * 60, v: x.v, itens: x.com || '' }); }
+  const on = val('v-item'), ov = numero(val('v-valor')); if (on) L.push({ outro: true, servico: on, min: 0, v: ov >= 0 ? ov : 0, itens: '' });
+  return L;
+}
+const nomeLinha = l => l.servico ? l.servico + (l.min ? ' · ' + dur(l.min) : '') + (l.itens ? ' · ' + l.itens : '') : (l.min === 60 ? 'Hora avulsa' : 'Pacote de ' + dur(l.min)) + (l.itens ? ' com ' + l.itens : '');
+async function registrarAtendimento(id) {
+  const c = crianca(id), L = linhasDoCarrinho(); if (!c) return; if (!L.length) { toast('Escolha o serviço'); return; }
+  if (L.some(l => l.outro) && !(numero(val('v-valor')) >= 0)) { toast('Qual é o valor do outro item?'); $('#v-valor').focus(); return; }
+  const total = L.reduce((a, l) => a + l.v, 0), min = L.reduce((a, l) => a + l.min, 0), nome = c.nome, aviso = `Venda registrada para ${nome} · ${brl(total)}${min ? ' · +' + dur(min) + ' de recreação' : ''}`;
+  if (MODO === 'servidor') {
+    const bt = $('#v-ok'); if (bt) bt.disabled = true;
+    try { const o = L.find(l => l.outro), r = await api('atender', { id, linhas: L.filter(l => l.s).map(l => ({ s: l.s, q: l.q })), pacotes: L.filter(l => l.pac != null).map(l => l.pac), outro: o ? { n: o.servico, v: o.v } : null });
+      await carregar(); fecharFolha(); desenhar(); toast(aviso, async () => { try { await api('desfazer_venda', { vendas: r.vendas, registros: r.registros }); await carregar(); } catch (e) { toast(e.message); } desenhar(); }); }
+    catch (e) { toast(e.message); if (bt) bt.disabled = false; }
+    return;
+  }
+  const era = { pacote: c.pacote, liberado: c.liberado, venda: c.venda }, novas = [], regs = [];
+  for (const l of L) { const compra = { id: novoId(), crianca: c.id, h: l.min / 60, m: l.min, v: l.v, servico: l.servico, itens: l.itens, quando: new Date(), por: EU.nome }; S.compras.unshift(compra); novas.push(compra);
+    if (l.min) { c.pacote += l.min / 60; c.liberado = true; c.venda = { h: l.min / 60, m: l.min, v: l.v, servico: l.servico, com: l.itens, quando: new Date() }; }
+    registrar('venda', c.nome, `${nomeLinha(l)} · ${brl(l.v)}`); regs.push(S.registros[0]); }
+  fecharFolha(); desenhar();
+  toast(aviso, () => { Object.assign(c, era); S.compras = S.compras.filter(x => !novas.includes(x)); S.registros = S.registros.filter(x => !regs.includes(x)); });
 }
 function entrada(c, origem = 'iDFace') {
   if (MODO === 'servidor') return entradaServidor(c);
@@ -1162,15 +1210,6 @@ function saida(c, origem = 'iDFace') {
   toast(`${c.nome} saiu${sap ? ' · sapato na sapateira ' + sap : ''} · ${hm(deb)} debitadas`, () => { c.entrou = entrouEm; c.usado -= deb; if (sap && !donoSap(sap)) c.sapateira = sap; c.visitas = c.visitas.filter(v => v !== visita); S.registros = S.registros.filter(r => r !== reg); if (desfazMsg) desfazMsg(); });
   if (restante(c) <= S.cfg.aviso) setTimeout(() => toast(`Aviso: ${c.nome} tem só ${hm(restante(c))} no pacote`), 2600);
 }
-function vender(c, pac) {
-  if (MODO === 'servidor') return venderServidor(c, pac);
-  const compra = { id: novoId(), crianca: c.id, h: pac.h, v: pac.v, itens: pac.h ? (pac.com || '') : pac.itens, quando: new Date(), por: EU.nome }, era = { pacote: c.pacote, liberado: c.liberado, venda: c.venda };
-  S.compras.unshift(compra);
-  if (pac.h) { c.pacote += pac.h; c.liberado = true; c.venda = { h: pac.h, v: pac.v, quando: new Date(), com: pac.com || '' }; }
-  registrar('venda', c.nome, pac.h ? `${pac.h === 1 ? 'Hora avulsa' : 'Pacote de ' + pac.h + 'h'}${pac.com ? ' com ' + pac.com : ''} vendido · ${brl(pac.v)}` : `${pac.itens} · ${brl(pac.v)}`); const reg = S.registros[0];
-  toast(textoVendido(c, pac), () => { Object.assign(c, era); S.compras = S.compras.filter(x => x !== compra); S.registros = S.registros.filter(r => r !== reg); });
-}
-
 /* ---------- casca: navegação, toast, folhas ---------- */
 const naoLidas = () => S.conversas.filter(x => !x.lidas).length;
 function nav() {
@@ -1237,8 +1276,8 @@ function telaHoras() {
   const dentro = S.criancas.filter(c => c.entrou), fora = S.criancas.filter(c => !c.entrou);
   const acabando = paraRenovar().length;
   const usadasHoje = S.criancas.reduce((a, c) => a + c.visitas.filter(v => agora - new Date(v.dia) < 86400000).reduce((b, v) => b + v.deb, 0) + (c.entrou ? cobrar(minDentro(c)) : 0), 0);
-  const vendas = S.compras.filter(v => v.h > 0 && agora - v.quando < 86400000);
-  const horasVend = S.vendasHoje ? S.vendasHoje.horas : vendas.reduce((a, v) => a + v.h, 0), valorVend = S.vendasHoje ? S.vendasHoje.valor : vendas.reduce((a, v) => a + v.v, 0), nVend = S.vendasHoje ? S.vendasHoje.n : vendas.length;
+  const vendas = S.compras.filter(v => agora - v.quando < 86400000);   // tudo o que foi vendido nas últimas 24 h (recreação, carrinhos, pacotes)
+  const minVend = S.vendasHoje ? (S.vendasHoje.min != null ? S.vendasHoje.min : (S.vendasHoje.horas || 0) * 60) : vendas.reduce((a, v) => a + minDe(v), 0), valorVend = S.vendasHoje ? S.vendasHoje.valor : vendas.reduce((a, v) => a + v.v, 0), nVend = S.vendasHoje ? S.vendasHoje.n : vendas.length;
   const n = dentro.length;
   const nDentro = S.criancas.filter(c => c.entrou).length;
   return faixa('Controle de horas', nDentro ? `${nDentro} ${nDentro === 1 ? 'criança' : 'crianças'} no espaço agora` : 'Ninguém no espaço agora', chipIdface()) + secaoDicas() + `
@@ -1247,7 +1286,7 @@ function telaHoras() {
     ${n ? `<div class="aneis">${dentro.map(c => anel(c, 'hero')).join('')}</div>` : `<p class="vazio-h">Quando uma criança olhar para o iDFace, o anel dela aparece aqui com o tempo correndo.</p>`}
   </section>
   <div class="tiles">
-    ${tile('t-mostarda', 'dia', 'Horas vendidas hoje', horasVend + 'h', `${nVend} ${nVend === 1 ? 'pacote' : 'pacotes'} · ${brl(valorVend)}`, 'poste', 'vendidas')}
+    ${tile('t-mostarda', 'dia', 'Horas vendidas hoje', hm(minVend), `${nVend} ${nVend === 1 ? 'venda' : 'vendas'} · ${brl(valorVend)}`, 'poste', 'vendidas')}
     ${tile('t-menta', 'dia', 'Horas usadas hoje', hm(usadasHoje), 'debitadas pelo rosto', 'balao', 'usadas')}
     ${tile('t-coral', 'acabando', 'Pacotes acabando', acabando, `menos de ${hm(S.cfg.aviso)} no banco`, 'relogio', 'acabando', acabando ? 'alerta' : '')}
   </div>
@@ -1275,7 +1314,7 @@ function folhaFicha(id) {
     <div class="marca sap-linha">${ic(IC.sapato, 18)}<span>${c.sapateira ? `<b>Sapateira ${c.sapateira}</b> · é onde está o sapato dela.` : `<b>Sem sapateira</b> · escolha onde fica o sapato enquanto ela brinca.`}</span><button class="bt tap" data-act="sapateira" data-id="${c.id}">${c.sapateira ? 'Trocar' : 'Escolher'}</button></div>
     ${c.entrou ? `<div class="marca">${ic(IC.horas, 18)}<span>Está no espaço desde <b>${hora(c.entrou)}</b>: <b class="num" data-cron-txt="${c.id}">${hms(segDentro(c))}</b> até agora, <b>${hm(cobrar(minDentro(c)))}</b> a debitar pela regra atual.</span></div>` : ''}
     ${blocos(c, false)}
-    <div class="saldo"><span>${c.pacote}h compradas</span><span>${hm(usadoAgora(c))} usadas</span></div>
+    <div class="saldo"><span>comprou ${tam(c)}</span><span>usou ${hm(usadoAgora(c))}</span></div>
     <div class="acoes">
       ${podeManual() && c.entrou ? `<button class="bt claro tap" data-act="saida" data-id="${c.id}" title="Só para corrigir: o normal é a saída pelo rosto">${ic(IC.sair)} Saída à mão</button>` : ''}
       <button class="bt forte tap" data-act="vender" data-id="${c.id}">${ic(IC.mais)} Vender</button>
@@ -1290,15 +1329,36 @@ function folhaFicha(id) {
       <div class="grupo">${c.visitas.length ? c.visitas.map(v => { const d = new Date(v.dia); return `<div class="it"><div class="txt"><b>${d.getDate()} de ${MESES[d.getMonth()]}</b><span>${v.entrou} às ${v.saiu}</span></div><span class="pill p-neutro">${hm(v.deb)}</span></div>`; }).join('') : '<div class="it"><span class="explica">Ainda não veio brincar.</span></div>'}</div>
     </div>`);
 }
+let CARRINHO = null;   // o que está sendo escolhido no atendimento: { id (criança), q: { idDoServiço: quantidade }, pac: [índices dos pacotes] }
+function linhasServico() {
+  return (S.cfg.servicos || []).map(x => { const q = CARRINHO.q[x.id] || 0, per = x.modo === 'periodo';
+    return `<div class="serv ${q ? 'on' : ''}"><div class="txt"><b>${esc(x.n)}</b><span>${precoServ(x)}${x.obs ? ' · ' + esc(x.obs) : ''}</span></div>
+      <div class="qtd"><button type="button" class="tap" data-act="serv-menos" data-s="${esc(x.id)}" aria-label="Tirar ${per ? dur(x.min || 30) + ' de ' : 'um '}${esc(x.n)}" ${q ? '' : 'disabled'}>−</button><b class="num">${per ? (q ? dur(q * (x.min || 30)) : '0 min') : q}</b><button type="button" class="tap" data-act="serv-mais" data-s="${esc(x.id)}" aria-label="Pôr ${per ? dur(x.min || 30) + ' de ' : 'um '}${esc(x.n)}">+</button></div>
+      <b class="valor num">${q ? brl(q * x.v) : ''}</b></div>`; }).join('');
+}
+function atualizarCarrinho() { // redesenha as linhas dos serviços e o total a pagar
+  const a = $('#v-servicos'); if (a) a.innerHTML = linhasServico();
+  $$('#v-pacotes [data-i]').forEach(b => b.setAttribute('aria-pressed', CARRINHO.pac.includes(+b.dataset.i)));
+  const L = linhasDoCarrinho(), total = L.reduce((t, l) => t + l.v, 0), min = L.reduce((t, l) => t + l.min, 0), t = $('#v-total'), ok = $('#v-ok');
+  if (t) t.textContent = brl(total); if (ok) { ok.disabled = !L.length; ok.innerHTML = `${ic(IC.check)} ${L.length ? 'Registrar a venda · ' + brl(total) : 'Escolha o serviço'}`; }
+  const m = $('#v-tempo'); if (m) { m.hidden = !min; m.textContent = min ? `Entra ${dur(min)} de recreação no saldo.` : ''; }
+}
+// o atendimento: quem é a criança, qual serviço ela quer e quanto dá. O valor a pagar aparece na hora
 function folhaVender(id) {
-  const c = crianca(id); if (!c) return; const ex = S.cfg.extras || [];
-  abrirFolha('Vender', `<p class="explica">Para <b>${esc(c.nome)}</b>, que tem ${hm(restante(c))} no banco. Um toque vende; as horas somam ao que já existe.</p>
-    <div class="campo"><label>Horas</label><div class="opcoes">${S.cfg.pacotes.map((p, i) => `<button class="opc tap" data-act="vender-ok" data-id="${c.id}" data-i="${i}"><b>${p.h === 1 ? 'Avulsa' : p.h + 'h'}</b><span>${brl(p.v)}${p.h > 1 ? ' · ' + brl(Math.round(p.v / p.h)) + '/h' : ' · 1 hora'}</span>${p.com ? `<em>vem com ${esc(p.com)}</em>` : ''}</button>`).join('')}</div></div>
-    <div class="campo"><label>Produtos e extras</label>
-      ${ex.length ? `<div class="opcoes extras">${ex.map((x, i) => `<button class="opc tap" data-act="vender-extra" data-id="${c.id}" data-i="${i}"><b>${esc(x.n)}</b><span>${brl(x.v)}</span></button>`).join('')}</div>` : ''}
-      <div class="outro-item"><input id="v-item" placeholder="Outro: o que foi (ex.: carrinho)" autocomplete="off" maxlength="40" aria-label="O que foi vendido"><input id="v-valor" inputmode="decimal" placeholder="R$" autocomplete="off" aria-label="Valor em reais"><button class="bt tap" data-act="vender-outro" data-id="${c.id}">${ic(IC.mais)} Vender</button></div>
-    </div>
-    <p class="explica">Pacotes, preços e a lista de produtos são editados em Ajustes. Cada venda fica no histórico do cliente.</p>`);
+  const c = crianca(id); if (!c) return; CARRINHO = { id: c.id, q: {}, pac: [] };
+  abrirFolha('Atendimento', `
+    <div class="linha">${avatar(c)}<div class="txt"><b style="white-space:normal">${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}</b><span style="white-space:normal">${esc(c.resp)}${fones(c) ? ' · ' + esc(fones(c)) : ''}</span><span style="white-space:normal">${semHoras(c) ? 'ainda sem tempo de recreação' : 'tem ' + hm(restante(c)) + ' de recreação'}${c.sapateira ? ' · sapateira ' + c.sapateira : ''}</span></div><button class="bt tap" data-act="historico" data-id="${c.id}">${ic(IC.historico)} Histórico</button></div>
+    ${c.obs ? `<p class="h-obs">${ic(IC.sino, 14)}<span>${esc(c.obs)}</span></p>` : ''}
+    <div class="campo"><label>Qual serviço?</label><div class="servicos" id="v-servicos">${linhasServico()}</div></div>
+    ${(S.cfg.pacotes || []).length ? `<div class="campo"><label>Pacotes de horas</label><div class="opcoes" id="v-pacotes">${S.cfg.pacotes.map((x, i) => `<button type="button" class="opc tap" data-act="pac-marca" data-i="${i}" aria-pressed="false"><b>${dur(x.h * 60)}</b><span>${brl(x.v)}</span>${x.com ? `<em>vem com ${esc(x.com)}</em>` : ''}</button>`).join('')}</div></div>` : ''}
+    <details class="outro"><summary>Outro item</summary><div class="outro-item"><input id="v-item" placeholder="O que foi" autocomplete="off" maxlength="40" aria-label="O que foi vendido"><input id="v-valor" inputmode="decimal" placeholder="R$" autocomplete="off" aria-label="Valor em reais"></div></details>
+    <div class="pe-f"><span class="explica" id="v-tempo" hidden></span><div class="total"><span>Total a pagar</span><b class="num" id="v-total">R$ 0</b></div><button class="bt forte largo tap" id="v-ok" data-act="atender-ok" data-id="${c.id}" disabled>${ic(IC.check)} Escolha o serviço</button></div>`);
+}
+// o atendimento completo: a venda no meio e, em tela larga, os dados e o histórico do cliente ao lado
+function atender(id) {
+  const c = crianca(id); if (!c) return; const jaAberto = LADO && crianca(LADO.id) && mesmoCliente(crianca(LADO.id), c);
+  if (innerWidth >= 820 && !jaAberto) abrirHistorico(c.id);
+  folhaVender(c.id);
 }
 // as restrições ficam no campo de observações; os atalhos só escrevem mais rápido (dá para apagar e mudar à vontade)
 const OBS_ATALHOS = [['', 'Sem restrição'], ['Alergia a ', 'Alergia'], ['Pode fazer pintura no rosto', 'Pode pintura'], ['Não fazer pintura no rosto', 'Sem pintura'], ['Pode mexer no cabelo', 'Pode mexer no cabelo'], ['Não mexer no cabelo', 'Não mexer no cabelo']];
@@ -1342,7 +1402,7 @@ function folhaCrianca(c) {
       <div class="campo"><label>Sapateira <span class="leve">· onde fica o sapato enquanto ela brinca</span></label>${gradeSap(0, 0, 'cadastro')}<span class="explica">As hachuradas já estão em uso. Pode deixar sem e escolher depois, na ficha; ela fica livre sozinha quando a criança sai.</span></div>
       ${campoObs('')}
     </div>
-    <p class="explica" style="text-align:center">As horas são vendidas depois, na ficha (botão Vender). A idade pode ser completada na ficha.</p>
+    <p class="explica" style="text-align:center">Ao cadastrar, abre o atendimento: o serviço que a criança vai querer e o valor a pagar.</p>
     <div class="pe-f"><button class="bt forte largo tap" data-act="salvar-crianca">${ic(IC.check)} Cadastrar</button></div>`);
     if (window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches) setTimeout(() => { const i = $('#f-cpf'); if (i) i.focus(); }, 420);   // no computador, o cursor já começa no documento
     return;
@@ -1364,7 +1424,8 @@ function folhaCrianca(c) {
 }
 /* ---------- histórico do cliente: uma aba à direita com tudo do responsável e das crianças dele ---------- */
 let LADO = null;   // { id (uma das crianças do cliente), dados: { vendas, visitas } | null, erro, todas, reg }
-const nomeCompra = v => v.h ? (v.h === 1 ? 'Hora avulsa' : 'Pacote de ' + v.h + 'h') + (v.itens ? ' · veio com ' + esc(v.itens) : '') : esc(v.itens || 'Produto');
+const nomeCompra = v => { const m = minDe(v); return v.servico ? esc(v.servico) + (m ? ' · ' + dur(m) : '') + (v.itens ? ' · ' + esc(v.itens) : '') : m ? (m === 60 ? 'Hora avulsa' : 'Pacote de ' + dur(m)) + (v.itens ? ' · veio com ' + esc(v.itens) : '') : esc(v.itens || 'Produto'); };
+const nomeUltima = c => c.venda ? (c.venda.servico ? c.venda.servico + ' · ' + dur(minDe(c.venda)) : (minDe(c.venda) === 60 ? 'Hora avulsa' : dur(minDe(c.venda)))) : '';
 const quandoFoi = d => `${d.getDate()} de ${MESES[d.getMonth()].slice(0, 3)}${d.getFullYear() !== agora.getFullYear() ? ' de ' + d.getFullYear() : ''} às ${hora(d)}`;
 const juntar = L => L.length > 1 ? L.slice(0, -1).join(', ') + ' e ' + L[L.length - 1] : (L[0] || '');
 function abrirHistorico(id) {
@@ -1425,7 +1486,7 @@ function folhaLista(filtro) {
     ${filtro === 'acabando' ? `<p class="explica">Menos de ${hm(S.cfg.aviso)} no banco. Toque para vender horas ou avisar o responsável.</p>` : `<div class="campo"><input id="busca" placeholder="Buscar pelo nome da criança ou do responsável" autocomplete="off"></div>`}
     <div class="grupo" id="lista-criancas">${itensLista(lista)}</div>`);
 }
-const itensLista = lista => lista.length ? lista.map(c => { const [et, cls] = estado(c); return `<button class="it tap" data-act="ficha" data-id="${c.id}">${avatar(c)}<div class="txt"><b>${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}</b><span>${esc(c.resp)} · restam ${hm(restante(c))} de ${c.pacote}h</span></div><span class="pill ${cls}">${c.entrou ? 'No espaço' : et}</span>${ic(IC.vai, 18)}</button>`; }).join('') : '<div class="it"><span class="explica">Ninguém encontrado.</span></div>';
+const itensLista = lista => lista.length ? lista.map(c => { const [et, cls] = estado(c); return `<button class="it tap" data-act="ficha" data-id="${c.id}">${avatar(c)}<div class="txt"><b>${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}</b><span>${esc(c.resp)} · restam ${hm(restante(c))} de ${tam(c)}</span></div><span class="pill ${cls}">${c.entrou ? 'No espaço' : et}</span>${ic(IC.vai, 18)}</button>`; }).join('') : '<div class="it"><span class="explica">Ninguém encontrado.</span></div>';
 function folhaIdface() {
   const i = S.cfg.idface, serv = MODO === 'servidor';
   const situacaoTxt = !i.ligado ? `<b>Desligado.</b> O aparelho guarda as leituras; quando religar, tudo entra de onde parou.`
@@ -1447,11 +1508,10 @@ function folhaIdface() {
 const primeiro = n => String(n || '').trim().split(' ')[0];
 const paraRenovar = () => S.criancas.filter(c => !semHoras(c) && restante(c) <= S.cfg.aviso).sort((a, b) => restante(a) - restante(b) || a.nome.localeCompare(b.nome));
 const diaCurto = d => `${d.getDate()} de ${MESES[d.getMonth()].slice(0, 3)}`;
-const textoVenda = c => c.venda ? `${c.venda.h === 1 ? 'hora avulsa' : c.venda.h + 'h'} por ${brl(c.venda.v)}, em ${diaCurto(c.venda.quando)}` : 'sem compra registrada';
+const textoVenda = c => c.venda ? `${esc(nomeUltima(c)).toLowerCase()} por ${brl(c.venda.v)}, em ${diaCurto(c.venda.quando)}` : 'sem compra registrada';
 function textoRenovar(c) {
-  const r = restante(c), pacs = S.cfg.pacotes.filter(x => x.h > 1).map(x => `${x.h}h por ${brl(x.v)}`);
-  const lista = pacs.length > 1 ? pacs.slice(0, -1).join(', ') + ' ou ' + pacs[pacs.length - 1] : (pacs[0] || '');
-  return (semHoras(c) ? `Oi, ${primeiro(c.resp)}! O cadastro de ${c.nome} na Play Space está pronto 💛 Quer já deixar as horas compradas?` : r <= 0 ? `Oi, ${primeiro(c.resp)}! As horas de ${c.nome} na Play Space acabaram 💛 Quer renovar?` : `Oi, ${primeiro(c.resp)}! Restam só ${hm(r)} no pacote de ${c.nome} na Play Space 💛 Quer já deixar renovado?`) + (lista ? ` Temos ${lista}.` : '') + ' É só responder aqui que a gente deixa tudo pronto!';
+  const r = restante(c), lista = precosTxt();
+  return (semHoras(c) ? `Oi, ${primeiro(c.resp)}! O cadastro de ${c.nome} na Play Space está pronto 💛 Quer já deixar as horas compradas?` : r <= 0 ? `Oi, ${primeiro(c.resp)}! As horas de ${c.nome} na Play Space acabaram 💛 Quer renovar?` : `Oi, ${primeiro(c.resp)}! Restam só ${hm(r)} no pacote de ${c.nome} na Play Space 💛 Quer já deixar renovado?`) + (lista ? ` ${lista}.` : '') + ' É só responder aqui que a gente deixa tudo pronto!';
 }
 // a última vez que alguém da equipe chamou esse responsável para renovar (para ninguém chamar duas vezes)
 function chamadaRenovar(c) {
@@ -1467,7 +1527,7 @@ function linhasBanco() {
   return lista.map(c => { const r = restante(c), zerou = !semHoras(c) && r <= 0, baixo = !semHoras(c) && r <= S.cfg.aviso; return `<div class="banco-linha ${zerou ? 'zerou' : baixo ? 'baixo' : ''}">
     <button class="quem tap" data-act="ficha" data-id="${c.id}" aria-label="Abrir a ficha de ${esc(c.nome)}">${avatar(c)}<span class="txt"><b>${esc(c.nome)}${c.idade ? ', ' + c.idade : ''}</b><span>${esc(c.resp)}${relP(c)}${c.tel ? ' · ' + esc(c.tel) : ''}</span></span></button>
     <div class="saldo-c">${blocos(c)}</div>
-    <button class="ult tap" data-act="historico" data-id="${c.id}" title="Abrir o histórico de ${esc(c.resp)}"><small>Última contratação</small><b>${c.venda ? (c.venda.h === 1 ? 'Hora avulsa' : c.venda.h + ' horas') + ' · ' + brl(c.venda.v) : 'Sem compra ainda'}</b><span>${c.venda ? diaCurto(c.venda.quando) + (c.entrou ? ' · no espaço agora' : '') : (c.entrou ? 'no espaço agora' : '')}</span><em>${ic(IC.historico, 13, 2.4)} Histórico</em></button>
+    <button class="ult tap" data-act="historico" data-id="${c.id}" title="Abrir o histórico de ${esc(c.resp)}"><small>Última contratação</small><b>${c.venda ? esc(nomeUltima(c)) + ' · ' + brl(c.venda.v) : 'Sem compra ainda'}</b><span>${c.venda ? diaCurto(c.venda.quando) + (c.entrou ? ' · no espaço agora' : '') : (c.entrou ? 'no espaço agora' : '')}</span><em>${ic(IC.historico, 13, 2.4)} Histórico</em></button>
     <div class="acoes"><button class="bt ${baixo ? 'forte' : ''} tap" data-act="renovar" data-id="${c.id}" title="Chamar ${esc(c.resp)} no WhatsApp para renovar">${ic(IC.zap, 16)} ${baixo ? 'Chamar para renovar' : 'WhatsApp'}</button><button class="bt tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 16)} Vender</button></div>
   </div>`; }).join('');
 }
@@ -1621,8 +1681,8 @@ function sugestoes(conv) {
   const s = [];
   if (c.entrou) s.push(`${c.nome} está aqui desde ${hora(c.entrou)} e ainda tem ${r} no pacote. Fica tranquila!`);
   else s.push(`Oi, ${c.resp}! ${c.nome} ainda tem ${r} no pacote. Quando quiser vir, é só chegar e olhar para a câmera.`);
-  if (restante(c) <= 120) s.push(`${c.resp}, o pacote de ${c.nome} está com ${r}. Quer renovar? Temos ${S.cfg.pacotes.map(p => (p.h === 1 ? 'hora avulsa' : p.h + 'h') + ' por ' + brl(p.v)).join(', ')}.`);
-  if (ultima && /pacote|quanto|pre[çc]o/i.test(ultima.txt)) s.push(`Nossos pacotes: ${S.cfg.pacotes.map(p => (p.h === 1 ? 'hora avulsa' : p.h + 'h') + ' por ' + brl(p.v)).join(' · ')}. As horas não vencem e somam ao que já tem.`);
+  if (restante(c) <= 120) s.push(`${c.resp}, o pacote de ${c.nome} está com ${r}. Quer renovar?${precosTxt() ? ' ' + precosTxt() + '.' : ''}`);
+  if (ultima && /pacote|quanto|pre[çc]o/i.test(ultima.txt)) s.push(`${precosTxt() || 'Já te passo os valores'}. O tempo comprado soma ao que já tem.`);
   if (ultima && /ficar|at[ée]|tr[âa]nsito/i.test(ultima.txt)) s.push(`Pode sim! Se passar do tempo do pacote a gente te avisa por aqui, combinado? 💛`);
   return s.slice(0, 3);
 }
@@ -1643,7 +1703,7 @@ function telaZap() {
   <div class="zap" data-modo="${S.zapModo}">
     <div class="conversas">${lista}</div>
     <div class="papo">
-      <div class="cab"><button class="volta tap" data-act="zap-lista" aria-label="Voltar">${ic(IC.volta, 18)}</button>${avatarComUrso(c)}<div class="txt"><b>${esc(c.resp)}</b><span>${relDe(c)} · ${c.pacote}h compradas</span></div><button class="bt claro tap" data-act="ficha" data-id="${c.id}">Ficha</button></div>
+      <div class="cab"><button class="volta tap" data-act="zap-lista" aria-label="Voltar">${ic(IC.volta, 18)}</button>${avatarComUrso(c)}<div class="txt"><b>${esc(c.resp)}</b><span>${relDe(c)} · comprou ${tam(c)}</span></div><button class="bt claro tap" data-act="ficha" data-id="${c.id}">Ficha</button></div>
       ${(() => { const st = situacao(c); return `<button class="situacao ${st.cls} tap" data-act="ficha" data-id="${c.id}" data-situacao="${c.id}">${c.entrou ? ic(IC.horas, 16) : ic(IC.rosto, 16)}<span>${esc(st.txt)}</span></button>`; })()}
       <div class="msgs" id="msgs">${msgsHtml}</div>
       <div class="sug"><small>Sugestões de resposta</small>${sugestoes(conv).map(s => `<button class="tap" data-act="sugestao">${esc(s)}</button>`).join('')}</div>
@@ -1705,18 +1765,18 @@ function telaAjustes() {
       <div class="campo"><label>Arredondamento</label>${seg('arredonda', ARREDONDA.map(([v, n]) => [v, n]), cfg.arredonda)}<span class="explica">${ARREDONDA.find(a => a[0] === cfg.arredonda)[2]}</span></div>
       <div class="campo"><label>Cortesia na entrada</label>${seg('cortesia', [[0, 'Nenhuma'], [5, '5 min'], [10, '10 min'], [15, '15 min']], cfg.cortesia)}<span class="explica">Os primeiros minutos não contam, para a criança tirar o sapato e se acomodar.</span></div>
       <div class="campo"><label>Tempo mínimo por visita</label>${seg('minimo', [[0, 'Nenhum'], [30, '30 min'], [60, '1 hora']], cfg.minimo)}<span class="explica">Mesmo uma passada rápida debita pelo menos isso.</span></div>
-      <div class="campo"><label>Avisar quando restar</label>${seg('aviso', [[30, '30 min'], [60, '1 hora'], [120, '2 horas']], cfg.aviso)}<span class="explica">O pacote fica marcado como "Acabando" e a equipe pode avisar o responsável.</span></div>
+      <div class="campo"><label>Avisar quando restar</label>${seg('aviso', [[5, '5 min'], [10, '10 min'], [15, '15 min'], [30, '30 min'], [60, '1 hora']], cfg.aviso)}<span class="explica">O pacote fica marcado como "Acabando" e a equipe pode avisar o responsável.</span></div>
       <div class="campo"><label>Quando o pacote zerar</label>${seg('bloqueioAuto', [['sim', 'Bloquear o acesso sozinho'], ['nao', 'Deixar autorizado']], cfg.bloqueioAuto || 'sim')}<span class="explica">Bloqueando sozinho, o iDFace passa a recusar o rosto da criança até alguém vender horas (a venda libera de novo). Quem acabou de ser cadastrado e ainda não comprou horas também começa bloqueado. Assim o controle fica com o aparelho, não com o funcionário.</span></div>
       <div class="marca">${ic(IC.sino, 18)}<span><b>Na prática, hoje:</b> ${exemplo(8)} · ${exemplo(47)} · ${exemplo(95)} · ${exemplo(130)}</span></div>
     </div>
     <div class="sec">
-      <div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.presente, 20)} Pacotes de horas</h2><button class="link tap" data-act="pacote-novo">Novo pacote</button></div>
-        <div class="grupo">${cfg.pacotes.map((p, i) => `<button class="it tap" data-act="pacote-editar" data-i="${i}"><div class="txt"><b>${nomePacote(p)}</b><span>${brl(p.v)}${p.h > 1 ? ' · ' + brl(Math.round(p.v / p.h)) + ' por hora' : ''}${p.com ? ' · vem com ' + esc(p.com) : ''}</span></div><span class="vai">${ic(IC.vai, 18)}</span></button>`).join('')}</div>
-        <p class="explica">Toque num pacote para mudar as horas, o valor ou o que vem junto. A hora avulsa é o pacote de 1 hora.</p>
+      <div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.presente, 20)} Serviços e preços</h2><button class="link tap" data-act="sv-novo">Novo serviço</button></div>
+        <div class="grupo">${(cfg.servicos || []).map((x, i) => `<button class="it tap" data-act="sv-editar" data-i="${i}"><div class="txt"><b>${esc(x.n)}</b><span>${precoServ(x)}${x.obs ? ' · ' + esc(x.obs) : ''}${x.banco ? ' · conta o tempo de brincar' : ''}</span></div><span class="vai">${ic(IC.vai, 18)}</span></button>`).join('')}</div>
+        <p class="explica">É o que aparece no atendimento, com o valor a pagar calculado na hora. Toque num serviço para mudar o nome, o valor ou a forma de cobrar.</p>
       </div>
-      <div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.presente, 20)} Produtos e extras</h2><button class="link tap" data-act="extra-novo">Novo item</button></div>
-        ${(cfg.extras || []).length ? `<div class="grupo">${cfg.extras.map((x, i) => `<button class="it tap" data-act="extra-editar" data-i="${i}"><div class="txt"><b>${esc(x.n)}</b><span>${brl(x.v)}</span></div><span class="vai">${ic(IC.vai, 18)}</span></button>`).join('')}</div>` : ''}
-        <p class="explica">O que é vendido à parte das horas: carrinho, meia, lanche. Cada item aparece na folha Vender com um toque e fica no histórico do cliente.</p>
+      <div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.presente, 20)} Pacotes de horas</h2><button class="link tap" data-act="pacote-novo">Novo pacote</button></div>
+        ${cfg.pacotes.length ? `<div class="grupo">${cfg.pacotes.map((p, i) => `<button class="it tap" data-act="pacote-editar" data-i="${i}"><div class="txt"><b>${nomePacote(p)}</b><span>${brl(p.v)}${p.h > 1 ? ' · ' + brl(Math.round(p.v / p.h)) + ' por hora' : ''}${p.com ? ' · vem com ' + esc(p.com) : ''}</span></div><span class="vai">${ic(IC.vai, 18)}</span></button>`).join('')}</div>` : ''}
+        <p class="explica">Opcional: horas vendidas de uma vez, com preço fechado (ex.: 10 horas). ${cfg.pacotes.length ? 'Aparecem no atendimento, abaixo dos serviços.' : 'Nenhum pacote cadastrado por enquanto.'}</p>
       </div>
       <div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.sapato, 20)} Sapateiras</h2></div>
         <button class="grupo tap" data-act="sap-mapa" style="width:100%"><div class="it"><div class="txt"><b>${nSap()} sapateiras · ${S.criancas.filter(c => c.sapateira).length} em uso agora</b><span>Toque para ver o mapa, liberar uma esquecida ou mudar a quantidade</span></div><span class="vai">${ic(IC.vai, 18)}</span></div></button>
@@ -1755,13 +1815,16 @@ function folhaPacote(i) {
     <p class="explica">O pacote de 1 hora é a hora avulsa. Os pacotes aparecem na venda, do menor para o maior. O que vem junto fica anotado em cada venda, no histórico do cliente.</p>
     <div class="acoes"><button class="bt forte tap" data-act="pacote-salvar" data-i="${i == null ? '' : i}" style="flex:1;justify-content:center">${ic(IC.check)} Salvar</button>${p ? `<button class="bt claro tap" data-act="pacote-apagar" data-i="${i}" style="color:var(--erro)">Apagar</button>` : ''}</div>`);
 }
-function folhaExtra(i) {
-  const x = i == null ? null : (S.cfg.extras || [])[i];
-  abrirFolha(x ? 'Editar item' : 'Novo produto ou extra', `
-    <div class="campo"><label for="ex-n">O que é</label><input id="ex-n" value="${esc(x ? x.n : '')}" placeholder="ex.: Carrinho" maxlength="40" autocomplete="off"></div>
-    <div class="campo"><label for="ex-v">Valor (R$)</label><input id="ex-v" inputmode="decimal" value="${x ? String(x.v).replace('.', ',') : ''}" placeholder="30" autocomplete="off"></div>
-    <p class="explica">Aparece na folha Vender, logo abaixo das horas. Um toque registra a venda para a criança e ela entra no histórico do cliente.</p>
-    <div class="acoes"><button class="bt forte tap" data-act="extra-salvar" data-i="${i == null ? '' : i}" style="flex:1;justify-content:center">${ic(IC.check)} Salvar</button>${x ? `<button class="bt claro tap" data-act="extra-apagar" data-i="${i}" style="color:var(--erro)">Apagar</button>` : ''}</div>`);
+function folhaServico(i) {
+  const x = i == null ? null : (S.cfg.servicos || [])[i], per = !!x && x.modo === 'periodo';
+  abrirFolha(x ? 'Editar serviço' : 'Novo serviço', `
+    <div class="campo"><label for="sv-n">Nome</label><input id="sv-n" value="${esc(x ? x.n : '')}" maxlength="40" autocomplete="off"></div>
+    <div class="campo"><label>Como cobra</label><div class="seg" id="sv-modo">${[['fixo', 'Valor único'], ['periodo', 'A cada período']].map(([v, n]) => `<button type="button" data-act="sv-modo" data-v="${v}" aria-pressed="${(per ? 'periodo' : 'fixo') === v}">${n}</button>`).join('')}</div></div>
+    <div class="dois"><div class="campo"><label for="sv-v">Valor (R$)</label><input id="sv-v" inputmode="decimal" value="${x ? String(x.v).replace('.', ',') : ''}" autocomplete="off"></div>
+      <div class="campo" id="sv-min-campo" ${per ? '' : 'hidden'}><label for="sv-min">Período (minutos)</label><input id="sv-min" type="number" inputmode="numeric" min="5" max="240" step="5" value="${x && x.min ? x.min : 30}"></div></div>
+    <label class="marca" id="sv-banco-campo" ${per ? '' : 'hidden'}><input type="checkbox" id="sv-banco" ${x && x.banco ? 'checked' : ''}><span><b>É tempo de brincar.</b> O tempo vendido entra no saldo da criança e vai sendo descontado enquanto ela está no espaço.</span></label>
+    <div class="campo"><label for="sv-obs">Observação (opcional)</label><input id="sv-obs" value="${esc(x ? x.obs || '' : '')}" placeholder="ex.: das 10h às 22h" maxlength="60" autocomplete="off"></div>
+    <div class="acoes"><button class="bt forte tap" data-act="sv-salvar" data-i="${i == null ? '' : i}" style="flex:1;justify-content:center">${ic(IC.check)} Salvar</button>${x ? `<button class="bt claro tap" data-act="sv-apagar" data-i="${i}" style="color:var(--erro)">Apagar</button>` : ''}</div>`);
 }
 function folhaEquipe(u) {
   abrirFolha(u ? 'Editar pessoa' : 'Nova pessoa', `
@@ -1797,10 +1860,11 @@ const ACOES = {
     aplicar(depois);
     toast(depois ? `${c.nome}: acesso autorizado no iDFace. As horas começam quando bater o rosto.` : `${c.nome}: acesso bloqueado no iDFace. O aparelho vai recusar o rosto.`, () => aplicar(antes));
   },
-  vender: el => folhaVender(el.dataset.id),
-  'vender-ok': el => { vender(crianca(el.dataset.id), S.cfg.pacotes[+el.dataset.i]); fecharFolha(); desenhar(); },
-  'vender-extra': el => { const x = (S.cfg.extras || [])[+el.dataset.i]; if (!x) return; vender(crianca(el.dataset.id), { h: 0, v: x.v, itens: x.n }); fecharFolha(); desenhar(); },
-  'vender-outro': el => { const n = val('v-item'), v = numero(val('v-valor')); if (!n) { toast('O que foi vendido?'); $('#v-item').focus(); return; } if (!(v >= 0)) { toast('Qual foi o valor?'); $('#v-valor').focus(); return; } vender(crianca(el.dataset.id), { h: 0, v, itens: n }); fecharFolha(); desenhar(); },
+  vender: el => atender(+el.dataset.id),
+  'serv-mais': el => { if (!CARRINHO) return; const x = (S.cfg.servicos || []).find(y => y.id === el.dataset.s); if (!x) return; CARRINHO.q[x.id] = Math.min(48, (CARRINHO.q[x.id] || 0) + 1); atualizarCarrinho(); },
+  'serv-menos': el => { if (!CARRINHO) return; CARRINHO.q[el.dataset.s] = Math.max(0, (CARRINHO.q[el.dataset.s] || 0) - 1); atualizarCarrinho(); },
+  'pac-marca': el => { if (!CARRINHO) return; const i = +el.dataset.i; CARRINHO.pac = CARRINHO.pac.includes(i) ? CARRINHO.pac.filter(k => k !== i) : [...CARRINHO.pac, i]; atualizarCarrinho(); },
+  'atender-ok': el => registrarAtendimento(+el.dataset.id),
   entrada: el => { entrada(crianca(el.dataset.id), 'mão'); fecharFolha(); desenhar(); },
   saida: el => { saida(crianca(el.dataset.id), 'mão'); fecharFolha(); desenhar(); },
   avisar: el => { const c = crianca(el.dataset.id); let conv = S.conversas.find(x => x.crianca === c.id); if (!conv) { conv = { id: novoId(), crianca: c.id, lidas: true, msgs: [] }; S.conversas.push(conv); } S.zapAberta = conv.id; S.zapModo = 'papo'; S.zapDia = isoDia(agora); fecharFolha(); trocarTela('zap'); const t = $('#zap-texto'); if (t) { t.value = c.entrou ? `Oi, ${c.resp}! ${c.nome} está aqui desde ${hora(c.entrou)} e ainda tem ${hm(restante(c))} no pacote.` : `Oi, ${c.resp}! O pacote de ${c.nome} está com ${hm(restante(c))}. Quer renovar?`; t.focus(); } },
@@ -1820,13 +1884,13 @@ const ACOES = {
       const dados = id ? { id: +id, nome, idade: +val('f-idade') || 0, resp, tel, tel2, doc, cpf, obs } : { nome, resp, tel, tel2, doc, cpf, obs, sapateira: SAP_TEMP };
       api('crianca_salvar', dados).then(async r => { await carregar(); fecharFolha(); desenhar();
         if (id) { toast('Cadastro salvo'); return; }
-        toast(`${nome} cadastrada. As horas entram quando vender.`, () => folhaVender(r.id), 'Vender'); }).catch(async e => { toast(e.message); if (/sapateira/i.test(e.message)) { try { await carregar(); } catch (x) { } SAP_TEMP = 0; redesenharSap(); } });
+        if (innerWidth >= 820) toast(`${nome} cadastrada. Agora o atendimento.`); setTimeout(() => atender(r.id), 260); }).catch(async e => { toast(e.message); if (/sapateira/i.test(e.message)) { try { await carregar(); } catch (x) { } SAP_TEMP = 0; redesenharSap(); } });
       return;
     }
     if (id) { const c = crianca(id); Object.assign(c, { nome, idade: +val('f-idade') || c.idade, resp: resp || c.resp, tel, tel2, doc, cpf, obs }); toast('Cadastro salvo'); }
     else {
       const c = { id: novoId(), nome, idade: 0, resp, rel: 'responsável', tel, tel2, doc, cpf, obs, pacote: 0, usado: 0, entrou: null, rosto: false, foto: '', visitas: [], venda: null, sapateira: SAP_TEMP || null, liberado: S.cfg.bloqueioAuto !== 'sim' }; S.criancas.push(c);
-      toast(`${nome} cadastrada. As horas entram quando vender.`, () => folhaVender(c.id), 'Vender');
+      fecharFolha(); desenhar(); if (innerWidth >= 820) toast(`${nome} cadastrada. Agora o atendimento.`); setTimeout(() => atender(c.id), 260); return;
     }
     fecharFolha(); desenhar();
   },
@@ -1909,14 +1973,18 @@ const ACOES = {
     if (el.dataset.id) Object.assign(S.compromissos.find(c => c.id === +el.dataset.id), { titulo, tipo, dia, hora: hora_, obs }); else S.compromissos.push({ id: novoId(), titulo, tipo, dia, hora: hora_, obs, sub: TIPOS[tipo][0] });
     S.diaSel = dia; const d = new Date(dia + 'T12:00'); S.mes = { y: d.getFullYear(), m: d.getMonth() }; toast('Marcado na agenda'); fecharFolha(); desenhar();
   },
-  'extra-novo': () => folhaExtra(null), 'extra-editar': el => folhaExtra(+el.dataset.i),
-  'extra-salvar': el => {
-    const n = val('ex-n'), v = numero(val('ex-v')); if (!n) { toast('Como se chama o item?'); $('#ex-n').focus(); return; } if (!(v >= 0)) { toast('Qual é o valor?'); $('#ex-v').focus(); return; }
-    const L = S.cfg.extras = (S.cfg.extras || []).slice(), i = el.dataset.i === '' ? -1 : +el.dataset.i; if (L.some((x, k) => k !== i && x.n.toLowerCase() === n.toLowerCase())) { toast(`Já existe ${n} na lista`); return; }
-    if (i >= 0) L[i] = { n, v }; else L.push({ n, v });
-    if (MODO === 'servidor') api('regra_salvar', { extras: L }).catch(e => toast(e.message)); toast(`${n} por ${brl(v)}`); fecharFolha(); desenhar();
+  'sv-novo': () => folhaServico(null), 'sv-editar': el => folhaServico(+el.dataset.i),
+  'sv-modo': el => { $$('#sv-modo button').forEach(b => b.setAttribute('aria-pressed', b === el)); const per = el.dataset.v === 'periodo'; for (const k of ['sv-min-campo', 'sv-banco-campo']) { const c = $('#' + k); if (c) c.hidden = !per; } },
+  'sv-salvar': el => {
+    const n = val('sv-n'), v = numero(val('sv-v')), per = ($('#sv-modo [aria-pressed="true"]') || {}).dataset.v === 'periodo', min = Math.round(+val('sv-min')) || 30;
+    if (!n) { toast('Como se chama o serviço?'); $('#sv-n').focus(); return; } if (!(v >= 0)) { toast('Qual é o valor?'); $('#sv-v').focus(); return; } if (per && !(min >= 5 && min <= 240)) { toast('O período vai de 5 a 240 minutos'); $('#sv-min').focus(); return; }
+    const L = (S.cfg.servicos || []).slice(), i = el.dataset.i === '' ? -1 : +el.dataset.i; if (L.some((x, k) => k !== i && x.n.toLowerCase() === n.toLowerCase())) { toast(`Já existe ${n} na lista`); return; }
+    const novo = { id: i >= 0 ? L[i].id : 's' + novoId(), n, v, modo: per ? 'periodo' : 'fixo', min: per ? min : 0, banco: per && !!($('#sv-banco') || {}).checked, obs: val('sv-obs') };
+    if (i >= 0) L[i] = novo; else L.push(novo); S.cfg.servicos = L;
+    if (MODO === 'servidor') api('regra_salvar', { servicos: L }).then(r => { S.cfg.servicos = r.regra.servicos; desenhar(true); }).catch(e => toast(e.message)); toast(`${n}: ${precoServ(novo)}`); fecharFolha(); desenhar();
   },
-  'extra-apagar': el => { const L = S.cfg.extras = (S.cfg.extras || []).slice(), [x] = L.splice(+el.dataset.i, 1); if (MODO === 'servidor') api('regra_salvar', { extras: L }).catch(e => toast(e.message)); toast(`${x.n} saiu da lista`, () => { S.cfg.extras = [...S.cfg.extras, x]; if (MODO === 'servidor') api('regra_salvar', { extras: S.cfg.extras }).catch(() => {}); }); fecharFolha(); desenhar(); },
+  'sv-apagar': el => { const L = (S.cfg.servicos || []).slice(); if (L.length <= 1) { toast('Deixe pelo menos um serviço'); return; } const [x] = L.splice(+el.dataset.i, 1); S.cfg.servicos = L; if (MODO === 'servidor') api('regra_salvar', { servicos: L }).catch(e => toast(e.message));
+    toast(`${x.n} saiu da lista`, () => { S.cfg.servicos = [...S.cfg.servicos, x]; if (MODO === 'servidor') api('regra_salvar', { servicos: S.cfg.servicos }).catch(() => {}); }); fecharFolha(); desenhar(); },
   'pacote-novo': () => folhaPacote(null),
   'pacote-editar': el => folhaPacote(+el.dataset.i),
   'pacote-horas': el => { $('#pc-h').value = el.dataset.h; $$('#pc-rapido button').forEach(b => b.setAttribute('aria-pressed', b === el)); },
@@ -1930,7 +1998,7 @@ const ACOES = {
     if (i >= 0) S.cfg.pacotes[i] = pac; else S.cfg.pacotes.push(pac);
     S.cfg.pacotes.sort((a, b) => a.h - b.h); if (MODO === 'servidor') api('regra_salvar', { pacotes: S.cfg.pacotes }).catch(e => toast(e.message)); toast(`${nomePacote({ h })} por ${brl(v)}`); fecharFolha(); desenhar();
   },
-  'pacote-apagar': el => { if (S.cfg.pacotes.length <= 1) { toast('Deixe pelo menos um pacote'); return; } const [p] = S.cfg.pacotes.splice(+el.dataset.i, 1); if (MODO === 'servidor') api('regra_salvar', { pacotes: S.cfg.pacotes }).catch(e => toast(e.message)); toast(`${nomePacote(p)} apagado`, () => { S.cfg.pacotes.push(p); S.cfg.pacotes.sort((a, b) => a.h - b.h); if (MODO === 'servidor') api('regra_salvar', { pacotes: S.cfg.pacotes }).catch(() => {}); }); fecharFolha(); desenhar(); },
+  'pacote-apagar': el => { const [p] = S.cfg.pacotes.splice(+el.dataset.i, 1); if (MODO === 'servidor') api('regra_salvar', { pacotes: S.cfg.pacotes }).catch(e => toast(e.message)); toast(`${nomePacote(p)} apagado`, () => { S.cfg.pacotes.push(p); S.cfg.pacotes.sort((a, b) => a.h - b.h); if (MODO === 'servidor') api('regra_salvar', { pacotes: S.cfg.pacotes }).catch(() => {}); }); fecharFolha(); desenhar(); },
   'equipe-novo': () => folhaEquipe(null), 'equipe-editar': el => folhaEquipe(S.equipe.find(u => u.id === +el.dataset.id)),
   'equipe-salvar': el => { const nome = val('e-nome'); if (!nome) { toast('Falta o nome'); return; } const d = { nome, login: val('e-login') || nome.split(' ')[0].toLowerCase(), papel: val('e-papel'), senha: ($('#e-senha') || { value: '' }).value }; if (MODO === 'servidor') { api('usuario_salvar', { id: el.dataset.id ? +el.dataset.id : 0, ...d }).then(async () => { await carregar(); toast('Equipe atualizada'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } delete d.senha; if (el.dataset.id) Object.assign(S.equipe.find(u => u.id === +el.dataset.id), d); else S.equipe.push({ id: novoId(), ...d }); toast('Equipe atualizada'); fecharFolha(); desenhar(); },
   'equipe-apagar': el => { if (MODO === 'servidor') { api('usuario_apagar', { id: +el.dataset.id }).then(async () => { await carregar(); toast('Removida da equipe'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } S.equipe = S.equipe.filter(u => u.id !== +el.dataset.id); toast('Removida da equipe'); fecharFolha(); desenhar(); },
@@ -1963,6 +2031,7 @@ document.addEventListener('input', e => {
   if (['l-login', 'g-login', 'e-login'].includes(e.target.id)) { const v = e.target.value.toLowerCase(); if (v !== e.target.value) e.target.value = v; }
   if (e.target.id === 'f-cpf') { const v = e.target.dataset.doc === 'rne' ? rneFmt(e.target.value) : cpfFmt(e.target.value); if (v !== e.target.value) e.target.value = v; clienteNoCadastro(); }
   if (e.target.id === 'f-obs') marcarAtalhos();
+  if (e.target.id === 'v-item' || e.target.id === 'v-valor') atualizarCarrinho();
   if (e.target.id === 'banco-busca') { S.bancoBusca = e.target.value; const l = $('#banco-lista'); if (l) l.innerHTML = linhasBanco(); }
   if (e.target.id === 'busca') { const q = e.target.value.toLowerCase(); $('#lista-criancas').innerHTML = itensLista(S.criancas.filter(c => (c.nome + ' ' + c.resp).toLowerCase().includes(q))); }
   if (e.target.id === 'pc-h') $$('#pc-rapido button').forEach(b => b.setAttribute('aria-pressed', b.dataset.h === e.target.value));
@@ -1984,7 +2053,7 @@ setInterval(() => {
   $$('[data-cron-txt]').forEach(el => { const c = crianca(el.dataset.cronTxt); if (c && c.entrou) el.textContent = hms(segDentro(c)); });
   $$('[data-horas]').forEach(el => { const c = crianca(el.dataset.horas); if (c && c.entrou) { const novo = document.createElement('div'); novo.innerHTML = blocos(c); el.replaceWith(novo.firstElementChild); } });
   $$('[data-situacao]').forEach(el => { const c = crianca(el.dataset.situacao); if (!c || !c.entrou) return; const st = situacao(c); el.className = `situacao ${st.cls} tap`; $('span', el).textContent = st.txt; });
-  $$('[data-anel][data-onde="hero"]').forEach(el => { const c = crianca(el.dataset.anel); if (!c || !c.entrou) return; const r = restante(c), pct = pctVivo(c), baixo = r <= S.cfg.aviso; el.classList.toggle('baixo', baixo); const b = $('.r', el), pTxt = pct.toFixed(1), cor = baixo ? 'var(--erro)' : 'var(--verde-agua)'; if (b.style.getPropertyValue('--p') !== pTxt) b.style.setProperty('--p', pTxt); if (b.style.getPropertyValue('--c') !== cor) b.style.setProperty('--c', cor); $('.r b', el).innerHTML = `${esgotou(c) ? 'Acabou' : vivo(c)}<small>${esgotou(c) ? `pacote de ${c.pacote}h` : `de ${c.pacote}h`}</small>`; });
+  $$('[data-anel][data-onde="hero"]').forEach(el => { const c = crianca(el.dataset.anel); if (!c || !c.entrou) return; const r = restante(c), pct = pctVivo(c), baixo = r <= S.cfg.aviso; el.classList.toggle('baixo', baixo); const b = $('.r', el), pTxt = pct.toFixed(1), cor = baixo ? 'var(--erro)' : 'var(--verde-agua)'; if (b.style.getPropertyValue('--p') !== pTxt) b.style.setProperty('--p', pTxt); if (b.style.getPropertyValue('--c') !== cor) b.style.setProperty('--c', cor); $('.r b', el).innerHTML = `${esgotou(c) ? 'Acabou' : vivo(c)}<small>${`de ${tam(c)}`}</small>`; });
 }, 1000);
 iniciar();
 </script>
