@@ -1580,7 +1580,6 @@ body.has-dock .toast,body.has-dock .utoast{bottom:calc(176px + env(safe-area-ins
 #novav span{flex:1;min-width:0;display:flex;flex-direction:column}#novav b{font-size:15px;font-weight:800}#novav small{font-size:12px;color:#A9B0AA}
 #novav button{flex:none;display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 16px;border:0;border-radius:999px;background:#C6F04A;color:#0F1712;font:inherit;font-size:14px;font-weight:800;cursor:pointer}#novav button .i{width:16px;height:16px}
 @keyframes novav-in{from{opacity:0;transform:translate(-50%,-20px)}}
-.lg-semp{margin-top:6px;font-size:14px}
 .ver-btn{margin-top:8px;align-self:flex-start;width:max-content}.ver-btn.nova{background:#C6F04A;color:#0F1712}
 .ver-pill{display:inline-flex;align-items:center;gap:5px;margin-top:6px;padding:3px 9px;border-radius:999px;background:var(--chip,rgba(0,0,0,.06));font-size:11.5px;font-weight:700;color:var(--muted);width:max-content}.ver-pill .i{width:12px;height:12px}
 .ck-list{display:flex;flex-direction:column;gap:8px}
@@ -1700,7 +1699,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '10 nov · 94'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '10 nov · 95'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -1872,7 +1871,7 @@ function requestPasswordReset(email){
 function readReset(){ try { const v = JSON.parse(localStorage.getItem(RSKEY)||'null'); return v && v.token && v.exp>Date.now() ? v : null; } catch(e){ return null; } }
 function resetPassword(token, pw){
   const r = readReset(); if(!r || r.token!==token) return { ok:false, err:'Link inválido ou expirado. Peça um novo.' };
-  if(String(pw).length<8) return { ok:false, err:'A senha precisa de pelo menos 8 caracteres.' };
+  if(!/^\d{6}$/.test(String(pw))) return { ok:false, err:'A senha tem que ter 6 números.' };
   const ov = pwOverrides(); ov[r.code] = String(pw);
   try { localStorage.setItem(PWKEY, JSON.stringify(ov)); localStorage.removeItem(RSKEY); } catch(e){ return { ok:false, err:'Não deu para salvar neste navegador.' }; }
   return { ok:true, code:r.code };
@@ -2155,11 +2154,10 @@ function renderLogin(focusSel){
         <div class="lg-field${err?' err':''}"><input id="lg-pw" class="lg-inp" type="${LG.show?'text':'password'}" ${FB?'inputmode="numeric" maxlength="6"':'maxlength="64"'} autocomplete="current-password" autocapitalize="off" spellcheck="false" placeholder="Sua senha" aria-describedby="lg-err lg-help" aria-invalid="${!!err}" value="${esc(c)}">
           <button type="button" class="lg-eye" data-a="lg-eye" aria-pressed="${LG.show}" aria-label="${LG.show?'Esconder senha':'Mostrar senha'}">${ic(LG.show?'eyeOff':'eye')}</button></div>
         <p id="lg-err" class="lg-err" role="alert">${err}</p>
-        <p id="lg-help" class="lg-help">${LG.help ? esc(LG.help) : FB?'A senha de 6 números que seu personal enviou.':'Use a senha que seu personal enviou.'}</p>
+        <p id="lg-help" class="lg-help">${LG.help ? esc(LG.help) : 'A senha de 6 números cadastrada.'}</p>
         <button type="submit" class="btn primary block lg-go"${c.length?'':' disabled'}>Entrar${ic('chev')}</button>
       </form>
       <div class="lg-links"><button type="button" class="linkbtn" data-a="lg-forgot">Esqueci a senha</button><button type="button" class="linkbtn" data-a="lg-self">Treinar sem personal</button></div>
-      ${FB ? `<button type="button" class="btn block lg-semp" data-a="su-entrar">${ic('lock')}Treina sem personal? Entrar com e-mail e senha</button>` : ''}
       <p class="lg-legal"><button type="button" class="linkbtn" data-a="lg-doc" data-v="termos">Termos de uso</button><span aria-hidden="true">·</span><button type="button" class="linkbtn" data-a="lg-doc" data-v="privacidade">Privacidade</button></p>
       ${FB?'':`<p class="lg-demo">${ic('bolt')}<span>Para testar: <b>482913</b> (Lucas) ou <b>731506</b> (Marina)</span></p>`}</div>`;
   }
@@ -2193,8 +2191,8 @@ function vNovo(){
   return `<div class="lg-in su"><p class="eyebrow">Simplificando</p><h1 class="lg-h">${al?'Escolha sua senha nova':'Crie uma senha nova'}<span class="dot" aria-hidden="true"></span></h1>
     <p class="muted">${n.email ? 'Conta: <b>'+esc(n.email)+'</b>' : n.err ? '' : 'Conferindo o link…'}</p>
     <form class="lg-form su-form" data-lg="novo" novalidate>
-      <label class="flabel" for="nv-a">${al?'Senha nova (6 números)':'Senha nova (pelo menos 8 caracteres)'}</label><div class="inp-wrap"><input class="inp" id="nv-a" type="password" ${al?'inputmode="numeric" maxlength="6"':'maxlength="64"'} autocomplete="new-password" value="${esc(n.a)}"></div>
-      <label class="flabel" for="nv-b">Repita a senha</label><div class="inp-wrap"><input class="inp" id="nv-b" type="password" ${al?'inputmode="numeric" maxlength="6"':'maxlength="64"'} autocomplete="new-password" value="${esc(n.b)}"></div>
+      <label class="flabel" for="nv-a">Senha nova (6 números)</label><div class="inp-wrap"><input class="inp" id="nv-a" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password" value="${esc(n.a)}"></div>
+      <label class="flabel" for="nv-b">Repita a senha</label><div class="inp-wrap"><input class="inp" id="nv-b" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password" value="${esc(n.b)}"></div>
       <p class="lg-err" id="nv-err" role="alert">${esc(n.err||'')}</p>
       <button type="submit" class="btn primary block lg-go"${n.busy||!n.email?' disabled':''}>${al?'Salvar e entrar':'Salvar senha'}${ic('chev')}</button>
     </form>
@@ -2204,8 +2202,7 @@ function vNovo(){
 async function novoSalvar(){
   const n = LG.nv, a = (document.getElementById('nv-a')||{}).value||'', b = (document.getElementById('nv-b')||{}).value||''; n.a = a; n.b = b;
   const bad = m => { n.err = m; const e = document.getElementById('nv-err'); if(e) e.textContent = m; vibrate([40,40,40]); };
-  if(n.aluno && !/^\d{6}$/.test(a)) return bad('A senha tem que ter exatamente 6 números.');
-  if(!n.aluno && a.length<8) return bad('A senha precisa de pelo menos 8 caracteres.');
+  if(!/^\d{6}$/.test(a)) return bad('A senha tem que ter exatamente 6 números.');
   if(a!==b) return bad('As duas senhas não são iguais.');
   n.busy = true; renderLogin();
   const r = await FB.resetSave(n.oob, a, n.aluno);
@@ -2276,26 +2273,26 @@ function vForgot(){
       <p class="mp-foot">Não foi você? Pode ignorar este e-mail. Sua senha continua a mesma.</p></section>` : ''}
     <button type="button" class="btn block ghost" data-a="lg-back">Voltar ao login</button></div>`;
 }
-const pwRules = (a,b) => ({ len:a.length>=8, match:!!a && a===b });
+const pwRules = (a,b) => ({ len:/^\d{6}$/.test(a), match:!!a && a===b });
 function pwStrength(a){ if(!a) return ['','']; let k = 0; if(/[a-zA-Z]/.test(a)) k++; if(/\d/.test(a)) k++; if(/[^a-zA-Z0-9]/.test(a)) k++; if(a.length>=12) k++; return a.length<8 ? ['fraca','w1'] : k>=3 ? ['forte','w3'] : ['média','w2']; }
 function vReset(){
   const r = LG.rs, tk = readReset();
   if(r.done) return `<div class="lg-in su lg-ok"><span class="lg-okc" aria-hidden="true">${ic('check')}</span><h1 class="lg-h">Senha alterada<span class="dot" aria-hidden="true"></span></h1><p class="muted" role="status">Pronto. Use a nova senha para entrar. A antiga não funciona mais neste aparelho.</p><button type="button" class="btn primary block" data-a="lg-back">Ir para o login${ic('chev')}</button></div>`;
   if(!tk) return `<div class="lg-in su"><h1 class="lg-h">Link inválido<span class="dot" aria-hidden="true"></span></h1><p class="muted">Esse link expirou ou já foi usado. Peça um novo em “Esqueci a senha”.</p><button type="button" class="btn primary block" data-a="lg-forgot">Pedir novo link</button><button type="button" class="btn block ghost" data-a="lg-back">Voltar ao login</button></div>`;
-  const ru = pwRules(r.a,r.b), stg = pwStrength(r.a);
-  const fld = (id,lab,v,show,k,ac) => `<label class="flabel" for="${id}">${lab}</label><div class="lg-field sm"><input id="${id}" class="lg-inp" type="${show?'text':'password'}" maxlength="64" autocomplete="${ac}" autocapitalize="off" spellcheck="false" value="${esc(v)}" aria-describedby="rs-rules"><button type="button" class="lg-eye" data-a="lg-eye${k}" aria-pressed="${show}" aria-label="${show?'Esconder':'Mostrar'} ${lab.toLowerCase()}">${ic(show?'eyeOff':'eye')}</button></div>`;
+  const ru = pwRules(r.a,r.b), stg = ['',''];
+  const fld = (id,lab,v,show,k,ac) => `<label class="flabel" for="${id}">${lab}</label><div class="lg-field sm"><input id="${id}" class="lg-inp" type="${show?'text':'password'}" inputmode="numeric" maxlength="6" autocomplete="${ac}" autocapitalize="off" spellcheck="false" value="${esc(v)}" aria-describedby="rs-rules"><button type="button" class="lg-eye" data-a="lg-eye${k}" aria-pressed="${show}" aria-label="${show?'Esconder':'Mostrar'} ${lab.toLowerCase()}">${ic(show?'eyeOff':'eye')}</button></div>`;
   return `<div class="lg-in su"><div class="lg-hero"><span class="lg-logo sm">${bigLogo()}</span></div><p class="eyebrow">Nova senha</p><h1 class="lg-h">Crie sua nova senha<span class="dot" aria-hidden="true"></span></h1>
     <form class="lg-form" data-lg="reset" novalidate>${fld('rs-1','Nova senha',r.a,r.s1,1,'new-password')}
       <p class="rs-str ${stg[1]}" data-rs-str aria-live="polite">${stg[0]?'Força da senha: <b>'+stg[0]+'</b>':''}</p>
       ${fld('rs-2','Confirme a nova senha',r.b,r.s2,2,'new-password')}
-      <ul class="rs-rules" id="rs-rules"><li data-rule="len" class="${ru.len?'ok':''}">${ic('check')}Pelo menos 8 caracteres</li><li class="ok">${ic('check')}Letras, números e símbolos valem</li><li data-rule="match" class="${ru.match?'ok':''}">${ic('check')}As duas senhas iguais</li></ul>
+      <ul class="rs-rules" id="rs-rules"><li data-rule="len" class="${ru.len?'ok':''}">${ic('check')}6 números</li><li data-rule="match" class="${ru.match?'ok':''}">${ic('check')}As duas senhas iguais</li></ul>
       <p class="lg-err" id="rs-err" role="alert">${r.err}</p>
       <button type="submit" class="btn primary block lg-go"${ru.len&&ru.match?'':' disabled'}>Salvar nova senha</button></form></div>`;
 }
 function rsInput(){
   const a = document.getElementById('rs-1'), b = document.getElementById('rs-2'); if(!a || !b) return;
   LG.rs.a = a.value; LG.rs.b = b.value; LG.rs.err = '';
-  const ru = pwRules(a.value,b.value), stg = pwStrength(a.value);
+  const ru = pwRules(a.value,b.value), stg = ['',''];
   document.querySelectorAll('#login [data-rule]').forEach(li => li.classList.toggle('ok', !!ru[li.dataset.rule]));
   const st = document.querySelector('#login [data-rs-str]'); if(st){ st.className = 'rs-str '+stg[1]; st.innerHTML = stg[0] ? 'Força da senha: <b>'+stg[0]+'</b>' : ''; }
   const go = document.querySelector('#login .lg-go'); if(go) go.disabled = !(ru.len && ru.match);
@@ -2854,7 +2851,7 @@ let AFTER = null; // abre "Meus treinos" assim que o app carregar
 function selfStart(){ LG.view = 'setup'; LG.step = 1; LG.serr = ''; LG.gen = false; renderLogin('#su-nome'); }
 const waterSug = () => { const p = num(LG.f.peso); return p>=30 && p<=250 ? Math.round(p*35/100)*100 : 3000; };
 const suWaterTxt = () => num(LG.f.peso)>=30 ? 'Meta de água: '+fmtL(waterSug())+' por dia (35 ml por kg).' : 'Sem o peso, a meta de água fica em 3,0 L por dia.';
-const suOk1 = () => !!(LG.f.nome.trim() && mailOk(LG.f.email) && LG.f.senha.length>=8 && ckOk(LG.f.ck, true));
+const suOk1 = () => !!(LG.f.nome.trim() && mailOk(LG.f.email) && /^\d{6}$/.test(LG.f.senha) && ckOk(LG.f.ck, true));
 function suTop(){ const w = document.getElementById('login'); if(w) w.scrollTop = 0; }
 function vSetup(){
   const f = LG.f, st = LG.step;
@@ -2868,7 +2865,7 @@ function vSetup(){
     <form class="lg-form su-form" data-lg="conta" novalidate>
       <label class="flabel" for="su-nome">Como você quer ser chamado?</label><div class="inp-wrap"><input class="inp" id="su-nome" autocomplete="given-name" maxlength="40" placeholder="Seu nome" value="${esc(f.nome)}" data-su="nome"></div>
       <label class="flabel" for="su-email">E-mail</label><div class="inp-wrap"><input class="inp" id="su-email" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" maxlength="80" placeholder="voce@email.com" value="${esc(f.email)}" data-su="email"></div>
-      <label class="flabel" for="su-senha">Crie uma senha</label><div class="inp-wrap pw"><input class="inp" id="su-senha" type="${f.show?'text':'password'}" autocomplete="new-password" autocapitalize="off" spellcheck="false" maxlength="64" placeholder="Pelo menos 8 caracteres" value="${esc(f.senha)}" data-su="senha"><button type="button" class="lg-eye" data-a="su-eye" aria-pressed="${f.show}" aria-label="${f.show?'Esconder senha':'Mostrar senha'}">${ic(f.show?'eyeOff':'eye')}</button></div>
+      <label class="flabel" for="su-senha">Crie uma senha de 6 números</label><div class="inp-wrap pw"><input class="inp" id="su-senha" type="${f.show?'text':'password'}" inputmode="numeric" pattern="[0-9]*" autocomplete="new-password" autocapitalize="off" spellcheck="false" maxlength="6" placeholder="6 números" value="${esc(f.senha)}" data-su="senha"><button type="button" class="lg-eye" data-a="su-eye" aria-pressed="${f.show}" aria-label="${f.show?'Esconder senha':'Mostrar senha'}">${ic(f.show?'eyeOff':'eye')}</button></div>
       ${aceiteBoxes(f.ck, true, 'su-ck')}
       <p class="lg-err" id="su-err" role="alert">${esc(LG.serr||'')}</p>
       <button type="submit" class="btn primary block lg-go su-go"${suOk1()?'':' disabled'}>Criar conta${ic('chev')}</button>
@@ -2900,7 +2897,7 @@ function vEntrar(){
     <p class="eyebrow">Treinar sem personal</p><h1 class="lg-h">Entre na sua conta<span class="dot" aria-hidden="true"></span></h1>
     <form class="lg-form su-form" data-lg="entrar" novalidate>
       <label class="flabel" for="en-email">E-mail</label><div class="inp-wrap"><input class="inp" id="en-email" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" maxlength="80" placeholder="voce@email.com" value="${esc(e.email)}" data-en="email"></div>
-      <label class="flabel" for="en-senha">Senha</label><div class="inp-wrap pw"><input class="inp" id="en-senha" type="${e.show?'text':'password'}" autocomplete="current-password" autocapitalize="off" spellcheck="false" maxlength="64" placeholder="Sua senha" value="${esc(e.senha)}" data-en="senha"><button type="button" class="lg-eye" data-a="su-eye2" aria-pressed="${e.show}" aria-label="${e.show?'Esconder senha':'Mostrar senha'}">${ic(e.show?'eyeOff':'eye')}</button></div>
+      <label class="flabel" for="en-senha">Senha</label><div class="inp-wrap pw"><input class="inp" id="en-senha" type="${e.show?'text':'password'}" autocomplete="current-password" autocapitalize="off" spellcheck="false" maxlength="64" placeholder="Sua senha de 6 números" value="${esc(e.senha)}" data-en="senha"><button type="button" class="lg-eye" data-a="su-eye2" aria-pressed="${e.show}" aria-label="${e.show?'Esconder senha':'Mostrar senha'}">${ic(e.show?'eyeOff':'eye')}</button></div>
       <p class="lg-err" id="en-err" role="alert">${esc(LG.serr||'')}</p>
       <button type="submit" class="btn primary block lg-go">Entrar${ic('chev')}</button>
     </form>
@@ -2916,7 +2913,7 @@ async function suConta(){
   const f = LG.f, email = f.email.trim().toLowerCase();
   if(!cleanName(f.nome)) return suErr('Digite seu nome.');
   if(!mailOk(email)) return suErr('Confira o e-mail. Ex.: voce@email.com');
-  if(f.senha.length<8) return suErr('A senha precisa de pelo menos 8 caracteres.');
+  if(!/^\d{6}$/.test(f.senha)) return suErr('A senha tem que ter 6 números.');
   if(!ckOk(f.ck, true)) return suErr('Para criar a conta, marque as três caixas de aceite.');
   if(LG.uid && LG.uidMail===email){ LG.step = 2; renderLogin(); suTop(); return; }
   suBusy(true);
@@ -5623,7 +5620,7 @@ function onInput(ev){
   if(el.id==='lg-em'){ LG.email = el.value; LG.help = ''; return; }
   if(el.id==='fg-email'){ LG.fg.email = el.value; const go = document.querySelector('#login .lg-go'); if(go) go.disabled = !el.value.trim(); const e = document.getElementById('fg-err'); if(e) e.textContent = ''; return; }
   if(el.id==='rs-1' || el.id==='rs-2'){ rsInput(); return; }
-  if(el.dataset.su){ LG.f[el.dataset.su] = el.value; const go = document.querySelector('#login .su-go'); if(go) go.disabled = !suOk1(); const wt = document.querySelector('#login [data-su-wt]'); if(wt) wt.textContent = suWaterTxt(); if(LG.serr){ LG.serr = ''; const e = document.getElementById('su-err'); if(e) e.textContent = ''; } return; }
+  if(el.dataset.su){ if(el.dataset.su==='senha' && /\D/.test(el.value)) el.value = el.value.replace(/\D/g,'').slice(0,6); LG.f[el.dataset.su] = el.value; const go = document.querySelector('#login .su-go'); if(go) go.disabled = !suOk1(); const wt = document.querySelector('#login [data-su-wt]'); if(wt) wt.textContent = suWaterTxt(); if(LG.serr){ LG.serr = ''; const e = document.getElementById('su-err'); if(e) e.textContent = ''; } return; }
   if(el.id==='ex-pw' && ui.sheet && ui.sheet.k==='excluir'){ ui.sheet.pw = el.value; ui.sheet.err = ''; return; }
   if(el.dataset.en){ LG.en[el.dataset.en] = el.value; if(LG.serr){ LG.serr = ''; const e = document.getElementById('en-err'); if(e) e.textContent = ''; } return; }
   if(el.dataset.mt && ui.sheet && ui.sheet.k==='meus'){
