@@ -331,7 +331,7 @@ function bloquearAcesso(array $c, bool $liberar): void {
 // $min: minutos de brincar que a venda põe no saldo da criança (0 = nenhum). $servico: o nome do serviço vendido (Recreação, Carrinho fusquinha).
 // $itens: o detalhe. Num serviço, a duração ou a observação; num pacote antigo, o que veio junto; sem serviço e sem minutos, o próprio produto.
 // $auto: a venda foi gerada pelo sistema (cobrança por atraso); $textoAuto é a linha que vai para "Hoje na recepção"
-// $mais: ['voucher' => código, 'pcd' => 1, 'cheio' => valor de tabela] quando a venda saiu por voucher ou com o desconto PCD
+// $mais: ['voucher' => 'sim', 'pcd' => 1, 'cheio' => valor de tabela] quando a venda saiu por voucher ou com o desconto PCD (as vendas antigas guardam o código do voucher no lugar do 'sim')
 function fazerVenda(array $c, int $min, float $valor, ?int $por, string $itens = '', string $servico = '', bool $auto = false, string $textoAuto = '', array $mais = []): array {
   $db = db(); $itens = mb_substr(trim($itens), 0, 140); $servico = mb_substr(trim($servico), 0, 60); $min = max(0, $min);
   if ($min > 0) {
@@ -349,6 +349,37 @@ function fazerVenda(array $c, int $min, float $valor, ?int $por, string $itens =
   return ['venda' => $venda, 'registro' => $reg];
 }
 function dinheiro(float $v): string { return 'R$ ' . number_format($v, fmod($v, 1) ? 2 : 0, ',', '.'); }
+/* ---------- voucher do shopping: 30 min de recreação grátis, um por visita, sem código ---------- */
+// voucherAberto: a criança já tem um voucher de hoje sem nenhuma saída depois dele (o desta visita, ou um guardado para a próxima entrada)
+function voucherAberto(array $c): bool {
+  $q = db()->prepare("SELECT 1 FROM vendas v WHERE v.crianca_id = ? AND v.voucher != '' AND v.quando >= ? AND v.quando > COALESCE((SELECT MAX(x.saiu) FROM visitas x WHERE x.crianca_id = v.crianca_id), '') LIMIT 1");
+  $q->execute([$c['id'], date('Y-m-d') . ' 00:00:00']); return (bool)$q->fetchColumn();
+}
+function voucherJaTem(array $c): string { return $c['nome'] . ($c['entrou'] ? ' já usou o voucher nesta visita.' : ' já tem um voucher de hoje, ainda sem usar.') . ' O voucher é um só por visita.'; }
+// Usa o voucher. Se a criança está no espaço e a visita já tem cobrança por atraso a receber, ele cobre a mais nova: a cobrança sai e o período
+// do voucher entra no lugar (o saldo fica igual, o valor a receber diminui). Sem cobrança pendente, entra como um período grátis no saldo:
+// passou dele (mais a tolerância), o tempo a mais é cobrado normalmente, ou sai do pacote de quem tem.
+// Devolve a venda, o registro, os minutos que entraram no saldo, o que cobriu e quantos vouchers a criança usou hoje (o 2º fica marcado).
+function usarVoucher(array $c, array $u): array {
+  $st = servicoTempo(); if (!$st) falha('Não há serviço de tempo de recreação para usar o voucher.');
+  if (voucherAberto($c)) falha(voucherJaTem($c));
+  $db = db(); $p = periodo(); $cobriu = null;
+  $q = $db->prepare("SELECT COUNT(*) FROM vendas WHERE crianca_id = ? AND voucher != '' AND quando >= ?"); $q->execute([$c['id'], date('Y-m-d') . ' 00:00:00']); $n = (int)$q->fetchColumn() + 1;
+  $db->exec('BEGIN IMMEDIATE');   // junto com a cobrança por atraso: uma coisa de cada vez
+  try {
+    $c = crianca((int)$c['id']); $auto = null;
+    if ($c['entrou']) { $qa = $db->prepare('SELECT * FROM vendas WHERE crianca_id = ? AND auto = 1 AND quando >= ? ORDER BY id DESC LIMIT 1'); $qa->execute([$c['id'], $c['entrou']]); $auto = $qa->fetch() ?: null; }
+    $x = fazerVenda($c, $p, 0.0, (int)$u['id'], 'voucher' . ($n > 1 ? ' (' . $n . 'º de hoje)' : '') . ($auto ? ' · cobriu a cobrança por atraso de ' . dinheiro((float)$auto['valor']) : ''), (string)$st['n'], false, '', ['voucher' => 'sim', 'cheio' => (float)$st['v']]);
+    if ($auto) {   // primeiro entra o período do voucher, depois sai a cobrança: o saldo nunca fica faltando no meio
+      $db->prepare('UPDATE criancas SET pacote_min = MAX(0, pacote_min - ?) WHERE id = ?')->execute([(int)$auto['minutos'], $c['id']]);
+      $db->prepare('DELETE FROM vendas WHERE id = ?')->execute([$auto['id']]);
+      if (!empty($auto['registro'])) $db->prepare("UPDATE registros SET texto = texto || ' · coberta pelo voucher' WHERE id = ? AND crianca_id = ? AND texto NOT LIKE '% · coberta pelo voucher'")->execute([(int)$auto['registro'], $c['id']]);
+      $cobriu = ['valor' => (float)$auto['valor'], 'minutos' => (int)$auto['minutos']];
+    }
+    $db->exec('COMMIT');
+  } catch (Throwable $e) { try { $db->exec('ROLLBACK'); } catch (Throwable $e2) { } throw $e; }
+  return ['venda' => $x['venda'], 'registro' => $x['registro'], 'minutos' => $auto ? 0 : $p, 'cobriu' => $cobriu, 'n' => $n];
+}
 function nomeDaVenda(array $v): string { // "Recreação · 30 min", "Carrinho de bebê · das 10h às 22h", "Pacote de 5h"
   $min = (int)($v['minutos'] ?? 0); $s = trim((string)($v['servico'] ?? '')); $it = trim((string)($v['itens'] ?? ''));
   if ($s !== '') return $s . ($min > 0 ? ' · ' . dur($min) : '') . ($it !== '' ? ' · ' . $it : '');

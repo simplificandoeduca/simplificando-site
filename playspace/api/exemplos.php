@@ -31,14 +31,14 @@ function exemplosCarregar(?int $por): array {
   // (pcd, voucher, obs, fam = mesma família de outra criança, sem = sem sapateira). Os horários cobrem todas as situações da lista.
   $dentro = [
     ['Ana Clara', 'Carla Menezes', 2, 1],                      ['Bento', 'Rodrigo Alves', 4, 1],
-    ['Cecília', 'Fernanda Castro', 5, 1, ['voucher' => 'SHOP-1001']], ['Davi Luiz', 'Tiago Lima', 7, 1],
+    ['Cecília', 'Fernanda Castro', 5, 1, ['voucher' => 1]],    ['Davi Luiz', 'Tiago Lima', 7, 1],
     ['Elisa', 'Patrícia Nunes', 8, 2],                         ['Felipe', 'Marcos Vieira', 10, 1],
     ['Gabriela', 'Aline Prado', 11, 1, ['obs' => 'Alergia a corante']], ['Theo', 'Rafael Lima', 12, 1],
     ['Heitor', 'Bruno Teixeira', 13, 1, ['sem' => 1]],         ['Isabela', 'Juliana Rocha', 14, 1, ['pcd' => 1]],
     ['Joaquim', 'André Martins', 15, 2],                       ['Lara', 'Camila Farias', 16, 1],
     ['Noah', 'Vanessa Duarte', 18, 1],                         ['Olívia', 'Renata Campos', 21, 1],
     ['Pedro', 'Gustavo Ribeiro', 22, 1, ['obs' => 'Não mexer no cabelo']], ['Rafaela', 'Daniela Moraes', 24, 1],
-    ['Samuel', 'Leandro Pires', 25, 1, ['voucher' => 'SHOP-1002']], ['Valentina', 'Priscila Azevedo', 26, 1],
+    ['Samuel', 'Leandro Pires', 25, 1, ['voucher' => 1]],      ['Valentina', 'Priscila Azevedo', 26, 1],
     ['Yuri', 'Eduardo Barros', 28, 1, ['sem' => 1]],           ['Zoe', 'Larissa Monteiro', 29, 1],
     ['Antônio', 'Felipe Cardoso', 31, 1],                      ['Bia', 'Simone Araújo', 33, 1],
     ['Caio', 'Roberto Nogueira', 35, 1, ['pcd' => 1]],         ['Dora', 'Luciana Freitas', 37, 1],
@@ -65,7 +65,7 @@ function exemplosCarregar(?int $por): array {
     $ins->execute([$nome, 0, $resp, $tel, $cpf, (string)($x['obs'] ?? ''), $min + $autos * $P, 0, $entrou, $t(60 * 24 * 12), $pcd ? 1 : 0]);
     $id = (int)$db->lastInsertId(); $ids[] = $id; $nomeId[$nome] = $id; $nDentro++;
     if (empty($x['sem'])) { do { $sap++; } while ($sap <= 44 && donoSapateira($sap)); if ($sap <= 44) $db->prepare('UPDATE criancas SET sapateira = ? WHERE id = ?')->execute([$sap, $id]); }
-    if (isset($x['voucher'])) $vender($id, $nome, $min, 0.0, $entrou, 'voucher ' . $x['voucher'], ['voucher' => $x['voucher'], 'cheio' => $per * $V]);
+    if (isset($x['voucher'])) $vender($id, $nome, $min, 0.0, $entrou, 'voucher', ['voucher' => 'sim', 'cheio' => $per * $V]);
     elseif ($pcd) $vender($id, $nome, $min, $per * $VP, $entrou, $rotPcd, ['pcd' => 1, 'cheio' => $per * $V]);
     else $vender($id, $nome, $min, $per * $V, $entrou, '');
     $reg->execute([$entrou, 'ent', $id, $nome, 'Entrada registrada']);

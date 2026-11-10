@@ -41,7 +41,10 @@ function dados(array $eu): array {
   $atrasos = []; foreach ($db->query('SELECT v.crianca_id, COUNT(*) n, SUM(v.valor) t FROM vendas v JOIN criancas c ON c.id = v.crianca_id WHERE v.auto = 1 AND c.entrou IS NOT NULL AND v.quando >= c.entrou GROUP BY v.crianca_id')->fetchAll() as $a) $atrasos[(int)$a['crianca_id']] = ['n' => (int)$a['n'], 'valor' => (float)$a['t']];
   // uv: a última linha de venda de cada criança (entre as 2000 linhas mais novas do dia a dia). A tela usa para saber que um atendimento que ficou em aberto num aparelho já foi registrado em outro
   $uv = []; foreach ($db->query("SELECT crianca_id, MAX(id) m FROM registros WHERE id > (SELECT COALESCE(MAX(id), 0) - 2000 FROM registros) AND tipo = 'venda' AND crianca_id IS NOT NULL GROUP BY crianca_id")->fetchAll() as $l) $uv[(int)$l['crianca_id']] = (int)$l['m'];
-  foreach ($criancas as &$c) { $c['visitas'] = $porCrianca[$c['id']] ?? []; $c['venda'] = $ultimas[$c['id']] ?? null; $c['atraso'] = $atrasos[$c['id']] ?? null; $c['uv'] = $uv[$c['id']] ?? 0; if (ehExemplo($c['id'])) $c['teste'] = true; }   // teste: criança dos dados de exemplo (o botão do rodapé)
+  // vouch: a criança tem um voucher de hoje sem saída depois dele (o da visita em curso, ou um guardado): a tela mostra e não oferece outro
+  $vou = []; $qv = $db->prepare("SELECT DISTINCT v.crianca_id FROM vendas v WHERE v.voucher != '' AND v.quando >= ? AND v.quando > COALESCE((SELECT MAX(x.saiu) FROM visitas x WHERE x.crianca_id = v.crianca_id), '')"); $qv->execute([date('Y-m-d') . ' 00:00:00']);
+  foreach ($qv->fetchAll() as $l) $vou[(int)$l['crianca_id']] = true;
+  foreach ($criancas as &$c) { $c['visitas'] = $porCrianca[$c['id']] ?? []; $c['venda'] = $ultimas[$c['id']] ?? null; $c['atraso'] = $atrasos[$c['id']] ?? null; $c['uv'] = $uv[$c['id']] ?? 0; $c['vouch'] = isset($vou[$c['id']]); if (ehExemplo($c['id'])) $c['teste'] = true; }   // teste: criança dos dados de exemplo (o botão do rodapé)
   unset($c);
   $registros = array_map(fn($r) => ['id' => (int)$r['id'], 'h' => $r['quando'], 'tipo' => $r['tipo'], 'nome' => $r['nome'], 'txt' => $r['texto'], 'crianca' => $r['crianca_id'] === null ? null : (int)$r['crianca_id']], $db->query('SELECT * FROM registros ORDER BY id DESC LIMIT 300')->fetchAll());
   $msgs = $db->query('SELECT * FROM mensagens ORDER BY quando ASC, id ASC')->fetchAll();
@@ -313,16 +316,12 @@ switch ($acao) {
     }
     // pacote de horas não tem o desconto PCD: ele vale só na recreação avulsa
     foreach ((array)($in['pacotes'] ?? []) as $i) { $p = $r['pacotes'][(int)$i] ?? null; if ($p) $linhas[] = ['servico' => '', 'min' => (int)$p['h'] * 60, 'valor' => (float)$p['v'], 'itens' => (string)($p['com'] ?? '')]; }
-    // voucher: um ou mais períodos de recreação sem cobrança, com o código (ou de onde veio) anotado para a supervisão conferir
-    $vo = (array)($in['voucher'] ?? []); $vq = max(0, min(48, (int)($vo['q'] ?? 0))); $repetido = null;
-    if ($vq > 0) {
-      $st = servicoTempo(); if (!$st) falha('Não há serviço de tempo de recreação para usar o voucher.');
-      $cod = mb_substr(trim(preg_replace('/\s+/u', ' ', (string)($vo['codigo'] ?? ''))), 0, 40); if (mb_strlen($cod) < 3) falha('Escreva o código do voucher (ou de onde ele veio).');
-      $qv = $db->prepare("SELECT v.quando, c.nome FROM vendas v JOIN criancas c ON c.id = v.crianca_id WHERE v.voucher != '' AND LOWER(v.voucher) = LOWER(?) ORDER BY v.id DESC LIMIT 1"); $qv->execute([$cod]); $repetido = $qv->fetch() ?: null;
-      $linhas[] = ['servico' => (string)$st['n'], 'min' => $vq * max(1, (int)($st['min'] ?? 30)), 'valor' => 0.0, 'itens' => 'voucher ' . $cod . ($repetido ? ' (código já usado em ' . date('d/m', strtotime((string)$repetido['quando'])) . ' por ' . $repetido['nome'] . ')' : ''), 'mais' => ['voucher' => $cod, 'cheio' => $vq * (float)$st['v']]];
-    }
+    // voucher do shopping: 30 min de recreação grátis, um por visita, sem código. A tela só marca (voucher: true); a tela antiga mandava { q, codigo } e vale como um voucher.
+    // Confere antes de vender qualquer coisa, para não ficar uma venda pela metade
+    $vo = $in['voucher'] ?? null; $comVoucher = is_array($vo) ? (int)($vo['q'] ?? 0) > 0 : !empty($vo);
+    if ($comVoucher) { if (!servicoTempo()) falha('Não há serviço de tempo de recreação para usar o voucher.'); if (voucherAberto($c)) falha(voucherJaTem($c)); }
     $o = (array)($in['outro'] ?? []); $on = mb_substr(trim((string)($o['n'] ?? '')), 0, 60); if ($on !== '') $linhas[] = ['servico' => $on, 'min' => 0, 'valor' => max(0, (float)($o['v'] ?? 0)), 'itens' => ''];
-    if (!$linhas) falha('Escolha o serviço.');
+    if (!$linhas && !$comVoucher) falha('Escolha o serviço.');
     // a criança já teve uma venda registrada (em outro aparelho) depois que esta tela abriu o atendimento: avisa antes de cobrar de novo. "mesmo_assim" confirma
     $visto = (int)($in['visto'] ?? 0);
     if ($visto > 0 && empty($in['mesmo_assim'])) {
@@ -331,7 +330,9 @@ switch ($acao) {
     }
     $vendas = []; $regs = []; $total = 0; $min = 0;
     foreach ($linhas as $l) { $x = fazerVenda($c, $l['min'], $l['valor'], (int)$u['id'], $l['itens'], $l['servico'], false, '', $l['mais'] ?? []); $vendas[] = $x['venda']; $regs[] = $x['registro']; $total += $l['valor']; $min += $l['min']; $c = crianca((int)$c['id']); }
-    $resp = ['vendas' => $vendas, 'registros' => $regs, 'total' => $total, 'minutos' => $min, 'voucher_repetido' => $repetido ? ['nome' => (string)$repetido['nome'], 'quando' => (string)$repetido['quando']] : null];
+    $vinfo = null;   // o voucher entra por último: com cobrança por atraso a receber, ele cobre essa cobrança em vez de somar tempo
+    if ($comVoucher) { $v = usarVoucher($c, $u); $vendas[] = $v['venda']; $regs[] = $v['registro']; $min += $v['minutos']; $c = crianca((int)$c['id']); $vinfo = ['n' => $v['n'], 'cobriu' => $v['cobriu']]; }
+    $resp = ['vendas' => $vendas, 'registros' => $regs, 'total' => $total, 'minutos' => $min, 'voucher' => $vinfo];
     if (!empty($in['entrar']) && modoManual() && !$c['entrou'] && restante($c) >= periodo()) { // sem iDFace: pagou e já entra, o tempo começa a contar
       $e = fazerEntrada($c, 'mão'); $resp['entrada'] = ['registro' => $e['registro'], 'mensagem' => is_array($e['mensagem']) ? (int)($e['mensagem']['id'] ?? 0) : 0];
     }

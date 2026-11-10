@@ -189,13 +189,17 @@ Quando a criança continua no espaço depois do **tempo comprado mais a tolerân
 - O atendimento mostra o preço já com o desconto e o selo **PCD 50%**; a lista do espaço e a ficha mostram o selo **PCD**.
 - Cada venda com desconto fica anotada ("Recreação · 30 min · PCD 50% · R$ 40") em Hoje na recepção e no histórico do cliente. **Marcar ou desmarcar PCD também fica anotado no dia**, com o nome de quem fez, porque muda o preço.
 
-**Voucher: período de recreação sem cobrança.**
+**Voucher do shopping: 30 min de recreação grátis, um por visita, sem código.**
 
-- No atendimento, abaixo dos serviços, a linha **Voucher** tem o mesmo + e −: cada toque no + põe um período (30 min) de Recreação sem cobrar. O **código do voucher (ou de onde ele veio) é obrigatório**.
-- Dá para juntar na mesma venda um período por voucher e outros pagos (ex.: 30 min de voucher + 30 min pagos = 1 h, R$ 80).
-- A venda fica anotada com o código ("Recreação · 30 min · voucher SHOP-0042 · R$ 0"). **Se o mesmo código já foi usado**, o sistema avisa na hora e marca na linha por quem e quando, para a supervisão conferir; ele não bloqueia, porque alguns vouchers não têm número único.
-- Passou do tempo do voucher mais a tolerância, a cobrança por atraso é normal (R$ 80, ou R$ 40 se a criança for PCD).
-- Em **Hoje na recepção** (bloco "Horas vendidas hoje"), um resumo mostra quantos vouchers e quantas vendas com desconto PCD houve nas últimas 24 h e quanto isso representou.
+- No atendimento, abaixo dos serviços, a linha **Voucher** é só de marcar: um toque marca, outro desmarca. Não tem quantidade nem código.
+- **Os primeiros 30 min saem grátis; o que passar disso volta a ser cobrado normalmente.** Sem pacote: ficou até 39 min (30 + a tolerância), não paga nada; ficou 1 h, paga 1 período (R$ 80); ficou 2 h, paga 3 períodos (R$ 240). A cobrança nasce sozinha, como toda cobrança por atraso (R$ 40 por período se a criança for PCD).
+- **Quem tem pacote de horas**: o voucher cobre os primeiros 30 min e o resto sai do pacote, sem cobrança. Ex.: pacote de 5 h + voucher, ficou 2 h: sobram 3h30.
+- Dá para juntar na mesma venda o voucher e períodos pagos (ex.: voucher + 30 min pagos = 1 h, R$ 80).
+- **Um por visita**: quem já usou o voucher na visita (ou tem um de hoje guardado, ainda sem entrar) não ganha outro; a linha aparece como "já usado nesta visita". Se a criança sair e voltar no mesmo dia com outro voucher, o sistema aceita e anota "voucher (2º de hoje)", para a supervisão ver.
+- **O voucher chegou depois** (o responsável trouxe na hora de buscar): na folha da **Saída**, quando há valor a receber, aparece **Tem voucher? Usar agora**. Um toque e ele cobre um período da cobrança por atraso (R$ 80 a menos); o aviso tem Desfazer. O mesmo acontece ao marcar o Voucher no atendimento de uma criança que está no espaço com cobrança a receber.
+- A lista do espaço mostra um presentinho ao lado do nome de quem está com voucher; a ficha e a folha da saída dizem "Voucher usado: 30 min desta visita saíram grátis".
+- A venda fica anotada ("Recreação · 30 min · voucher · R$ 0") em Hoje na recepção e no histórico do cliente. Quando o voucher cobre uma cobrança, a linha da cobrança fica marcada "coberta pelo voucher".
+- Em **Hoje na recepção** (bloco "Horas vendidas hoje"), um resumo mostra quantos vouchers e quantas vendas com desconto PCD houve nas últimas 24 h e quanto isso representou: é o número para conferir com os vouchers de papel recolhidos no dia.
 
 ## 6i. Falta finalizar: cada atendimento continua de onde parou
 
@@ -204,7 +208,7 @@ O atendimento tem três etapas: **cadastro**, **escolher o serviço** e **regist
 - **Faixa "Falta finalizar"**, no alto da tela inicial: uma linha para cada atendimento em aberto, com o nome da criança, o responsável, em que ponto parou e a hora. Tocar continua dali.
   - *cadastro pela metade · falta um telefone e o nome da criança*: o cadastro novo foi fechado antes de salvar. Abre o cadastro com tudo o que já estava escrito (documento, responsável, telefones, nome, PCD, sapateira e observações).
   - *falta escolher o serviço*: o cadastro foi feito hoje e a venda ainda não. Abre direto o atendimento.
-  - *R$ 80 escolhido · falta registrar*: o serviço já estava escolhido. Abre o atendimento com tudo de volta: quantidades, pacote, voucher com o código, outro item com o valor e a escolha de dar entrada.
+  - *R$ 80 escolhido · falta registrar*: o serviço já estava escolhido. Abre o atendimento com tudo de volta: quantidades, pacote, voucher marcado, outro item com o valor e a escolha de dar entrada.
 - **Tocar no cliente em qualquer lugar** (a busca da tela inicial, o Banco de horas, o histórico) faz a mesma coisa: enquanto o atendimento está em aberto, o toque abre o atendimento, não a ficha. O botão **Atender**/**Vender** vira **Continuar**. Para ver a ficha mesmo assim, o atendimento tem o atalho **Ver a ficha**.
 - **Criança que já está no espaço** e ficou com uma venda pela metade (ex.: mais 30 min): ela aparece na faixa, e o toque na linha dela continua abrindo a ficha, que mostra o aviso **Atendimento em aberto** com o botão **Continuar**.
 - **Fechou sem terminar?** Um aviso diz que ficou guardado e traz o botão **Continuar**. Dentro do atendimento retomado, **Começar do zero** limpa o que estava escolhido.
