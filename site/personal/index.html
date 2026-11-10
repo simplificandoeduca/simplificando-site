@@ -3091,10 +3091,11 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '10 nov · 90'; // Versão do painel: 10 nov · 90
+const PAINELV = '10 nov · 95'; // Versão do painel: 10 nov · 95
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
+  fetch('/treino/?v='+Date.now(), { cache:'no-store' }).then(r => r.ok ? r.text() : '').then(t => { const m = t.match(/const\s+APPV = '([^']+)'/); ATU.app = m ? m[1] : ''; if(ui.view==='ajustes') render(); }).catch(() => {});
   fetch('/atualizar.php?acao=ver', { cache:'no-store' }).then(r => r.ok ? r.json() : Promise.reject()).then(j => { ATU.st = 'ok'; ATU.nova = (j && j.nova) || ''; if(ui.view==='ajustes') render(); })
     .catch(() => { ATU.st = 'sem'; if(ui.view==='ajustes') render(); });
 }
@@ -3103,7 +3104,7 @@ function atuCard(){
   if(ATU.st==='sem') return ''; // fora do site (prévia ou teste): o botão não aparece
   const vnum = v => +((String(v||'').match(/·\s*(\d+)/)||[])[1]||0), nova = ATU.nova && vnum(ATU.nova) > vnum(PAINELV), indo = ATU.st==='indo';
   return '<section class="card'+(nova ? ' blk-brand' : '')+'"><span class="label">'+ic('refresh')+'Atualizar o site</span>'+
-    '<p class="muted">Versão no ar: <b>'+esc(PAINELV)+'</b>'+(ATU.st==='vendo' ? ' · procurando versão nova…' : nova ? ' · <b>versão nova pronta: '+esc(ATU.nova)+'</b>' : ATU.nova ? ' · já é a mais nova' : '')+'</p>'+
+    '<p class="muted">Painel no ar: <b>'+esc(PAINELV)+'</b>'+(ATU.app ? ' · app do aluno no ar: <b>'+esc(ATU.app)+'</b>' : '')+'</p>'+(ATU.st==='vendo' ? '<p class="muted">Procurando versão nova…</p>' : nova ? '<p class="muted"><b>Versão nova pronta: '+esc(ATU.nova)+'</b></p>' : ATU.nova ? '<p class="muted">Já é a mais nova.</p>' : '')+
     '<div class="btn-row"><button type="button" class="btn'+(nova ? ' ink' : '')+'" data-a="atuGo"'+(indo ? ' disabled' : '')+'>'+ic('refresh')+(indo ? 'Atualizando…' : 'Atualizar agora')+'</button></div>'+
     (ATU.msg ? '<p class="err" role="alert">'+esc(ATU.msg)+'</p>' : '')+
     '<p class="foot">Baixa do GitHub a versão mais nova do app e do painel e coloca no ar. Leva uns segundos e a página recarrega sozinha.</p></section>';
