@@ -34,7 +34,7 @@ function dados(array $eu): array {
   $criancas = array_map('criancaPublica', $db->query('SELECT * FROM criancas WHERE ativo = 1 ORDER BY nome')->fetchAll());
   $visitas = $db->query('SELECT * FROM visitas ORDER BY id DESC LIMIT 400')->fetchAll();
   $porCrianca = []; foreach ($visitas as $v) $porCrianca[(int)$v['crianca_id']][] = ['id' => (int)$v['id'], 'dia' => $v['saiu'], 'entrou' => substr($v['entrou'], 11, 5), 'saiu' => substr($v['saiu'], 11, 5), 'deb' => (int)$v['debitado_min']];
-  $ultimas = []; foreach ($db->query('SELECT v.crianca_id, v.horas, v.valor, v.quando FROM vendas v JOIN (SELECT crianca_id, MAX(id) AS m FROM vendas GROUP BY crianca_id) u ON u.m = v.id')->fetchAll() as $v) $ultimas[(int)$v['crianca_id']] = ['h' => (int)$v['horas'], 'v' => (float)$v['valor'], 'quando' => $v['quando']];
+  $ultimas = []; foreach ($db->query('SELECT v.crianca_id, v.horas, v.valor, v.quando, v.itens FROM vendas v JOIN (SELECT crianca_id, MAX(id) AS m FROM vendas WHERE horas > 0 GROUP BY crianca_id) u ON u.m = v.id')->fetchAll() as $v) $ultimas[(int)$v['crianca_id']] = ['h' => (int)$v['horas'], 'v' => (float)$v['valor'], 'quando' => $v['quando'], 'com' => (string)$v['itens']];
   foreach ($criancas as &$c) { $c['visitas'] = $porCrianca[$c['id']] ?? []; $c['venda'] = $ultimas[$c['id']] ?? null; }
   unset($c);
   $registros = array_map(fn($r) => ['id' => (int)$r['id'], 'h' => $r['quando'], 'tipo' => $r['tipo'], 'nome' => $r['nome'], 'txt' => $r['texto'], 'crianca' => $r['crianca_id'] === null ? null : (int)$r['crianca_id']], $db->query('SELECT * FROM registros ORDER BY id DESC LIMIT 300')->fetchAll());
@@ -47,11 +47,12 @@ function dados(array $eu): array {
     if ($m['de'] === 'ela' && empty($m['lida'])) $conversas[$cid]['lidas'] = false;
   }
   $compromissos = array_map(fn($x) => ['id' => (int)$x['id'], 'dia' => $x['dia'], 'hora' => $x['hora'], 'titulo' => $x['titulo'], 'tipo' => $x['tipo'], 'sub' => $x['sub'], 'obs' => $x['obs'], 'feito' => !empty($x['feito'])], $db->query('SELECT * FROM compromissos ORDER BY dia, hora')->fetchAll());
-  $vendasHoje = $db->prepare('SELECT COUNT(*) n, COALESCE(SUM(horas),0) h, COALESCE(SUM(valor),0) v FROM vendas WHERE quando > ?'); $vendasHoje->execute([$hojeMenos]); $vh = $vendasHoje->fetch();
+  $vendasHoje = $db->prepare('SELECT COUNT(*) n, COALESCE(SUM(horas),0) h, COALESCE(SUM(valor),0) v FROM vendas WHERE quando > ? AND horas > 0'); $vendasHoje->execute([$hojeMenos]); $vh = $vendasHoje->fetch();
+  $extrasHoje = $db->prepare('SELECT COUNT(*) n, COALESCE(SUM(valor),0) v FROM vendas WHERE quando > ? AND horas = 0'); $extrasHoje->execute([$hojeMenos]); $eh = $extrasHoje->fetch();
   $equipe = $eu['papel'] === 'atendente' ? [] : array_map(fn($u) => ['id' => (int)$u['id'], 'nome' => $u['nome'], 'login' => $u['login'], 'papel' => $u['papel']], $db->query('SELECT id, nome, login, papel FROM usuarios WHERE ativo = 1 ORDER BY nome')->fetchAll());
   require_once __DIR__ . '/idface-lib.php';
   return ['criancas' => array_values($criancas), 'registros' => $registros, 'conversas' => array_values($conversas), 'compromissos' => $compromissos, 'regra' => regra(),
-    'vendas_hoje' => ['n' => (int)$vh['n'], 'horas' => (int)$vh['h'], 'valor' => (float)$vh['v']], 'equipe' => $equipe, 'eu' => $eu, 'versao' => PLAY_VERSAO,
+    'vendas_hoje' => ['n' => (int)$vh['n'], 'horas' => (int)$vh['h'], 'valor' => (float)$vh['v'], 'extras' => ['n' => (int)$eh['n'], 'valor' => (float)$eh['v']]], 'equipe' => $equipe, 'eu' => $eu, 'versao' => PLAY_VERSAO,
     'idface' => idfaceEstado(), 'whats' => whatsResumo(), 'agora' => agora(), 'exemplo' => ($ex = cfg('exemplo', null)) && is_array($ex) ? count($ex['criancas'] ?? []) : 0];
 }
 function whatsResumo(): array { $c = whatsCfg(); return ['conectado' => whatsPronto($c), 'numero' => $c['numero'], 'nome' => $c['nome'], 'configurado' => $c['chave'] !== '']; }
@@ -60,7 +61,7 @@ function textoCriancaBasico(array &$in, array $atual = []): array {
   $nome = trim((string)($in['nome'] ?? $atual['nome'] ?? '')); if ($nome === '') falha('Falta o nome da criança.');
   return ['nome' => mb_substr($nome, 0, 60), 'idade' => max(0, min(17, (int)($in['idade'] ?? $atual['idade'] ?? 0))), 'resp' => mb_substr(trim((string)($in['resp'] ?? $atual['resp'] ?? '')), 0, 80),
     'rel' => mb_substr(trim((string)($in['rel'] ?? $atual['rel'] ?? 'responsável')), 0, 20), 'tel' => mb_substr(trim((string)($in['tel'] ?? $atual['tel'] ?? '')), 0, 30),
-    'cpf' => preg_replace('/[^\d.\-]/', '', (string)($in['cpf'] ?? $atual['cpf'] ?? '')), 'obs' => mb_substr(trim((string)($in['obs'] ?? $atual['obs'] ?? '')), 0, 200)];
+    'cpf' => preg_replace('/[^\d.\-]/', '', (string)($in['cpf'] ?? $atual['cpf'] ?? '')), 'obs' => mb_substr(trim((string)($in['obs'] ?? $atual['obs'] ?? '')), 0, 500)];
 }
 
 switch ($acao) {
@@ -126,7 +127,9 @@ switch ($acao) {
     $pac = (array)($in['pacote'] ?? []); $horas = max(0, (int)($pac['h'] ?? 0)); $valor = (float)($pac['v'] ?? 0);
     $foto = (string)($in['foto'] ?? ''); if ($foto !== '' && !preg_match('#^data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$#', $foto)) $foto = '';
     if (strlen($foto) > 1500000) falha('A foto ficou grande demais. Tire outra.');
-    $db->prepare('INSERT INTO criancas (nome, idade, resp, rel, tel, cpf, obs, pacote_min, usado_min, foto, foto_origem, rosto, criado_em) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?)')->execute([$d['nome'], $d['idade'], $d['resp'], $d['rel'], $d['tel'], $d['cpf'], $d['obs'], $foto, $foto !== '' ? 'celular' : '', $foto !== '' ? 1 : 0, agora()]);
+    // o cadastro não vende mais o pacote: sem horas, o acesso nasce bloqueado (se a regra é bloquear sozinho) e a primeira venda libera
+    $liberado = ($horas > 0 || regra()['bloqueioAuto'] !== 'sim') ? 1 : 0;
+    $db->prepare('INSERT INTO criancas (nome, idade, resp, rel, tel, cpf, obs, pacote_min, usado_min, foto, foto_origem, rosto, liberado, criado_em) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?)')->execute([$d['nome'], $d['idade'], $d['resp'], $d['rel'], $d['tel'], $d['cpf'], $d['obs'], $foto, $foto !== '' ? 'celular' : '', $foto !== '' ? 1 : 0, $liberado, agora()]);
     $id = (int)$db->lastInsertId(); $c = crianca($id);
     if ($horas > 0) fazerVenda($c, $horas, $valor, (int)$u['id']);
     gravarCfg('mandar_' . $id, $id); // vai para o iDFace (nome agora, foto quando o aparelho confirmar o cadastro)
@@ -175,14 +178,28 @@ switch ($acao) {
   }
   case 'vender': {
     $u = exigir(); $c = crianca((int)($in['id'] ?? 0)); if (!$c) falha('Criança não encontrada.', 404);
-    $horas = (int)($in['horas'] ?? 0); $valor = (float)($in['valor'] ?? 0); if ($horas <= 0) falha('Quantas horas?');
-    responder(fazerVenda($c, $horas, $valor, (int)$u['id']));
+    $horas = max(0, (int)($in['horas'] ?? 0)); $valor = max(0, (float)($in['valor'] ?? 0)); $itens = mb_substr(trim((string)($in['itens'] ?? '')), 0, 80);
+    if ($horas <= 0 && $itens === '') falha('O que foi vendido?');
+    responder(fazerVenda($c, $horas, $valor, (int)$u['id'], $itens));
+  }
+  case 'historico': { // tudo de um cliente (as crianças do mesmo responsável): todas as compras e todas as visitas
+    exigir(); session_write_close();
+    $ids = array_values(array_unique(array_filter(array_map('intval', (array)($in['ids'] ?? []))))); if (!$ids || count($ids) > 30) falha('Cliente não encontrado.', 404);
+    $marcas = implode(',', array_fill(0, count($ids), '?'));
+    $q = $db->prepare("SELECT v.*, u.nome AS por_nome FROM vendas v LEFT JOIN usuarios u ON u.id = v.por WHERE v.crianca_id IN ($marcas) ORDER BY v.quando DESC, v.id DESC LIMIT 500"); $q->execute($ids);
+    $vendas = array_map(fn($v) => ['id' => (int)$v['id'], 'crianca' => (int)$v['crianca_id'], 'h' => (int)$v['horas'], 'v' => (float)$v['valor'], 'itens' => (string)($v['itens'] ?? ''), 'quando' => $v['quando'], 'por' => (string)($v['por_nome'] ?? '')], $q->fetchAll());
+    $q = $db->prepare("SELECT * FROM visitas WHERE crianca_id IN ($marcas) ORDER BY saiu DESC, id DESC LIMIT 1000"); $q->execute($ids);
+    $visitas = array_map(fn($v) => ['id' => (int)$v['id'], 'crianca' => (int)$v['crianca_id'], 'dia' => $v['saiu'], 'entrou' => substr($v['entrou'], 11, 5), 'saiu' => substr($v['saiu'], 11, 5), 'deb' => (int)$v['debitado_min']], $q->fetchAll());
+    responder(['vendas' => $vendas, 'visitas' => $visitas]);
   }
   case 'desfazer_venda': {
     exigir(); $q = $db->prepare('SELECT * FROM vendas WHERE id = ?'); $q->execute([(int)($in['venda'] ?? 0)]); $v = $q->fetch(); if (!$v) falha('Nada para desfazer.');
     $db->prepare('UPDATE criancas SET pacote_min = MAX(0, pacote_min - ?) WHERE id = ?')->execute([(int)$v['horas'] * 60, $v['crianca_id']]);
     $db->prepare('DELETE FROM vendas WHERE id = ?')->execute([$v['id']]);
     if (!empty($in['registro'])) $db->prepare('DELETE FROM registros WHERE id = ?')->execute([(int)$in['registro']]);
+    // desfez as horas e o saldo voltou a zero: o acesso volta a ficar bloqueado (senão vender e desfazer liberava a entrada de graça)
+    $c = crianca((int)$v['crianca_id']);
+    if ($c && (int)$v['horas'] > 0 && $c['entrou'] === null && restante($c) <= 0 && regra()['bloqueioAuto'] === 'sim' && (!isset($c['liberado']) || (int)$c['liberado'])) bloquearAcesso($c, false);
     responder();
   }
 
@@ -244,8 +261,12 @@ switch ($acao) {
     if (isset($in['autoMsg']) && in_array($in['autoMsg'], ['ambos', 'entrada', 'nao'], true)) $r['autoMsg'] = $in['autoMsg'];
     if (isset($in['bloqueioAuto']) && in_array($in['bloqueioAuto'], ['sim', 'nao'], true)) $r['bloqueioAuto'] = $in['bloqueioAuto'];
     if (isset($in['pacotes']) && is_array($in['pacotes'])) {
-      $ps = []; foreach ($in['pacotes'] as $p) { $h = (int)($p['h'] ?? 0); $v = (float)($p['v'] ?? 0); if ($h > 0 && $v >= 0) $ps[$h] = ['h' => $h, 'v' => $v]; }
+      $ps = []; foreach ($in['pacotes'] as $p) { $h = (int)($p['h'] ?? 0); $v = (float)($p['v'] ?? 0); if ($h > 0 && $v >= 0) { $ps[$h] = ['h' => $h, 'v' => $v]; $com = mb_substr(trim((string)($p['com'] ?? '')), 0, 60); if ($com !== '') $ps[$h]['com'] = $com; } }
       if (!$ps) falha('Deixe pelo menos um pacote.'); ksort($ps); $r['pacotes'] = array_values($ps);
+    }
+    if (isset($in['extras']) && is_array($in['extras'])) { // produtos e serviços vendidos à parte (carrinho, meia)
+      $es = []; foreach ($in['extras'] as $e) { $n = mb_substr(trim((string)($e['n'] ?? '')), 0, 40); $v = (float)($e['v'] ?? 0); if ($n !== '' && $v >= 0 && count($es) < 30) $es[] = ['n' => $n, 'v' => $v]; }
+      $r['extras'] = $es;
     }
     gravarCfg('regra', $r); responder(['regra' => $r]);
   }

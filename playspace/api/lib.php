@@ -73,6 +73,10 @@ function db(): PDO {
     try { $pdo->exec('ALTER TABLE criancas ADD COLUMN liberado INTEGER NOT NULL DEFAULT 1'); } catch (Throwable $e) { }
     $pdo->exec('PRAGMA user_version = 4');
   }
+  if ($v < 5) { // 0.68: o que mais foi na venda (carrinho, produto que veio no pacote); venda só de produto tem horas = 0
+    try { $pdo->exec("ALTER TABLE vendas ADD COLUMN itens TEXT NOT NULL DEFAULT ''"); } catch (Throwable $e) { }
+    $pdo->exec('PRAGMA user_version = 5');
+  }
   return $pdo;
 }
 function cfg(string $k, $padrao = null) { $q = db()->prepare('SELECT valor FROM config WHERE chave = ?'); $q->execute([$k]); $v = $q->fetchColumn(); return $v === false ? $padrao : json_decode((string)$v, true); }
@@ -88,7 +92,7 @@ function urlBase(): string { // .../playspace
 }
 
 /* ---------- a regra das horas (as mesmas opções da tela de Ajustes) ---------- */
-const REGRA_PADRAO = ['arredonda' => 1, 'cortesia' => 10, 'minimo' => 0, 'aviso' => 30, 'autoMsg' => 'ambos', 'bloqueioAuto' => 'sim', 'pacotes' => [['h' => 1, 'v' => 60], ['h' => 5, 'v' => 250], ['h' => 10, 'v' => 450], ['h' => 20, 'v' => 800]]];
+const REGRA_PADRAO = ['arredonda' => 1, 'cortesia' => 10, 'minimo' => 0, 'aviso' => 30, 'autoMsg' => 'ambos', 'bloqueioAuto' => 'sim', 'pacotes' => [['h' => 1, 'v' => 60], ['h' => 5, 'v' => 250], ['h' => 10, 'v' => 450], ['h' => 20, 'v' => 800]], 'extras' => []];   // extras: produtos e serviços vendidos à parte (carrinho, meia): [['n' => nome, 'v' => valor]]
 function regra(): array { $r = cfg('regra', null); return (is_array($r) ? $r : []) + REGRA_PADRAO; }
 function cobrar(float $minutos): int {
   $r = regra(); $m = max(0, $minutos - (int)$r['cortesia']);
@@ -167,13 +171,18 @@ function bloquearAcesso(array $c, bool $liberar): void {
   if ($liberar) { apagarCfg('desregra_' . $c['id']); apagarCfg('regra_ok_' . $c['id']); gravarCfg('regra_' . $c['id'], (int)$c['idface_id']); }
   else { apagarCfg('regra_' . $c['id']); gravarCfg('desregra_' . $c['id'], (int)$c['idface_id']); }
 }
-function fazerVenda(array $c, int $horas, float $valor, ?int $por): array {
-  $db = db();
-  $db->prepare('UPDATE criancas SET pacote_min = pacote_min + ? WHERE id = ?')->execute([$horas * 60, $c['id']]);
-  if (isset($c['liberado']) && !(int)$c['liberado']) bloquearAcesso($c, true);   // pagou: o acesso volta
-  $db->prepare('INSERT INTO vendas (crianca_id, horas, valor, quando, por) VALUES (?, ?, ?, ?, ?)')->execute([$c['id'], $horas, $valor, agora(), $por]);
+// $itens: o que mais foi na venda. Com horas, é o que veio junto no pacote ("meia"); sem horas (0), é o próprio produto ("Carrinho")
+function fazerVenda(array $c, int $horas, float $valor, ?int $por, string $itens = ''): array {
+  $db = db(); $itens = mb_substr(trim($itens), 0, 80);
+  if ($horas > 0) {
+    $db->prepare('UPDATE criancas SET pacote_min = pacote_min + ? WHERE id = ?')->execute([$horas * 60, $c['id']]);
+    if (isset($c['liberado']) && !(int)$c['liberado']) bloquearAcesso($c, true);   // pagou as horas: o acesso volta
+  }
+  $db->prepare('INSERT INTO vendas (crianca_id, horas, valor, quando, por, itens) VALUES (?, ?, ?, ?, ?, ?)')->execute([$c['id'], $horas, $valor, agora(), $por, $itens]);
   $venda = (int)$db->lastInsertId();
-  $reg = registrar('venda', (int)$c['id'], $c['nome'], ($horas === 1 ? 'Hora avulsa' : 'Pacote de ' . $horas . 'h') . ' vendido · R$ ' . number_format($valor, 0, ',', '.'));
+  $dinheiro = 'R$ ' . number_format($valor, fmod($valor, 1) ? 2 : 0, ',', '.');
+  $texto = $horas > 0 ? ($horas === 1 ? 'Hora avulsa' : 'Pacote de ' . $horas . 'h') . ($itens !== '' ? ' com ' . $itens : '') . ' vendido · ' . $dinheiro : $itens . ' · ' . $dinheiro;
+  $reg = registrar('venda', (int)$c['id'], $c['nome'], $texto);
   return ['venda' => $venda, 'registro' => $reg];
 }
 // guarda a mensagem na conversa e, se o WhatsApp estiver conectado, manda de verdade (texto e, se houver, a foto)

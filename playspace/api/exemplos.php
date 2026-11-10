@@ -30,7 +30,7 @@ function exemplosCarregar(?int $por): array {
   }
   $reg = $db->prepare('INSERT INTO registros (quando, tipo, crianca_id, nome, texto) VALUES (?, ?, ?, ?, ?)');
   $vis = $db->prepare('INSERT INTO visitas (crianca_id, entrou, saiu, debitado_min, origem) VALUES (?, ?, ?, ?, ?)');
-  $ven = $db->prepare('INSERT INTO vendas (crianca_id, horas, valor, quando, por) VALUES (?, ?, ?, ?, ?)');
+  $ven = $db->prepare('INSERT INTO vendas (crianca_id, horas, valor, quando, por, itens) VALUES (?, ?, ?, ?, ?, ?)');
   $msg = $db->prepare('INSERT INTO mensagens (crianca_id, de, texto, quando, por, auto, foto, lida, wa_id, erro) VALUES (?, ?, ?, ?, ?, ?, \'\', ?, \'\', \'\')');
   $hm = fn(int $m) => $m <= 0 ? '0h' : ($m < 60 ? '0h' . str_pad((string)$m, 2, '0', STR_PAD_LEFT) : intdiv($m, 60) . 'h' . ($m % 60 ? str_pad((string)($m % 60), 2, '0', STR_PAD_LEFT) : ''));
   $hora = fn(string $q) => substr($q, 11, 5);
@@ -45,7 +45,10 @@ function exemplosCarregar(?int $por): array {
   $id = $nomeId['Helena'];
   $msg->execute([$id, 'ela', 'Obrigada! Ela vai ficar até umas 16h, tudo bem?', $t(110), '', 0, 1]);
   $msg->execute([$id, 'nos', 'Tudo bem, Mariana! Avisamos quando faltar pouco tempo no pacote.', $t(105), 'Camila', 0, 1]);
-  $ven->execute([$id, 10, 450, $t(125), $por]); $reg->execute([$t(125), 'venda', $id, 'Helena', 'Pacote de 10h vendido · R$ 450']);
+  $ven->execute([$id, 10, 450, $t(125), $por, 'meia antiderrapante']); $reg->execute([$t(125), 'venda', $id, 'Helena', 'Pacote de 10h com meia antiderrapante vendido · R$ 450']);
+  $ven->execute([$id, 0, 30, $t(123), $por, 'Carrinho']); $reg->execute([$t(123), 'venda', $id, 'Helena', 'Carrinho · R$ 30']);   // um produto à parte, para o histórico do cliente
+  // as compras antigas dos outros dois (aparecem no Banco de horas e no histórico)
+  $ven->execute([$nomeId['Theo'], 5, 250, $d(-9, '13:50'), $por, '']); $ven->execute([$nomeId['Miguel'], 10, 450, $d(-6, '12:55'), $por, '']);
   // Theo: o pai perguntou e ninguém respondeu ainda
   $msg->execute([$nomeId['Theo'], 'ela', 'Quanto tempo ainda tem no pacote dele?', $t(4), '', 0, 0]);
   // Miguel: veio ontem, o pacote acabou; hoje a equipe ofereceu renovar
