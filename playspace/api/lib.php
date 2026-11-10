@@ -150,7 +150,7 @@ const PACOTES_DE_EXEMPLO = [['h' => 1, 'v' => 60], ['h' => 5, 'v' => 250], ['h' 
 // tolerancia: quantos minutos depois do fim do tempo comprado a criança ainda pode ficar sem gerar nova cobrança
 // autoMsg 'nao': nenhum aviso automático no WhatsApp (a loja não quer que o responsável fique acompanhando o tempo)
 // fecha: a hora em que a loja fecha (24 = meia-noite): depois dela o tempo de quem ficou marcado no espaço para de contar
-// pcdDesc: o desconto, em %, da criança PCD em todo tempo de recreação (avulso, pacote e cobrança por atraso)
+// pcdDesc: o desconto, em %, da criança PCD na recreação avulsa (o serviço por período e a cobrança por atraso); pacote de horas e carrinhos não têm
 const REGRA_PADRAO = ['tolerancia' => 9, 'fecha' => 22, 'pcdDesc' => 50, 'aviso' => 10, 'autoMsg' => 'nao', 'bloqueioAuto' => 'sim', 'pacotes' => [], 'extras' => [], 'sapateiras' => 44, 'cancelaMin' => 9];
 function regra(): array {
   if (isset($GLOBALS['_regra'])) return $GLOBALS['_regra'];   // lida uma vez por pedido (a conta do tempo consulta a regra muitas vezes)
@@ -174,7 +174,7 @@ function servicoTempo(): ?array { foreach ((array)regra()['servicos'] as $s) if 
 function periodo(): int { $s = servicoTempo(); return max(5, (int)($s['min'] ?? 30)); }
 function periodosDe(float $minutos): int { return max(1, (int)ceil(($minutos - max(0, (int)regra()['tolerancia'])) / periodo())); }
 function cobrar(float $minutos): int { return periodosDe($minutos) * periodo(); }
-// o preço do tempo de recreação para esta criança: a criança PCD paga com o desconto (50% de fábrica)
+// o preço da recreação avulsa para esta criança: a criança PCD paga com o desconto (50% de fábrica)
 function pcdDesc(): int { return max(0, min(100, (int)(regra()['pcdDesc'] ?? 50))); }
 function precoPcd(array $c, float $v): float { return !empty($c['pcd']) ? round($v * (100 - pcdDesc()) / 100, 2) : $v; }
 // quantos minutos a visita conta até $fim: no máximo até a hora em que a loja fecha (no dia da entrada) e nunca mais de 12 h.

@@ -292,12 +292,12 @@ switch ($acao) {
     $linhas = [];
     foreach ((array)($in['linhas'] ?? []) as $l) {
       $s = $porId[(string)($l['s'] ?? '')] ?? null; $q = min(48, (int)($l['q'] ?? 0)); if (!$s || $q < 1) continue;
-      if (($s['modo'] ?? 'fixo') === 'periodo') { $tot = $q * max(1, (int)($s['min'] ?? 30)); $tempo = !empty($s['banco']); $un = $tempo ? precoPcd($c, (float)$s['v']) : (float)$s['v']; $comPcd = $un < (float)$s['v'];   // a criança PCD paga o tempo de recreação com desconto
+      if (($s['modo'] ?? 'fixo') === 'periodo') { $tot = $q * max(1, (int)($s['min'] ?? 30)); $tempo = !empty($s['banco']); $un = $tempo ? precoPcd($c, (float)$s['v']) : (float)$s['v']; $comPcd = $un < (float)$s['v'];   // a criança PCD paga a recreação avulsa com desconto (carrinhos e pacotes, não)
         $linhas[] = ['servico' => (string)$s['n'], 'min' => $tempo ? $tot : 0, 'valor' => $q * $un, 'itens' => ($tempo ? '' : dur($tot)) . ($comPcd ? 'PCD ' . pcdDesc() . '%' : ''), 'mais' => $comPcd ? ['pcd' => 1, 'cheio' => $q * (float)$s['v']] : []]; }
       else { $obs = trim((string)($s['obs'] ?? '')); $linhas[] = ['servico' => (string)$s['n'], 'min' => 0, 'valor' => $q * (float)$s['v'], 'itens' => ($q > 1 ? $q . ' unidades' . ($obs !== '' ? ' · ' : '') : '') . $obs]; }
     }
-    foreach ((array)($in['pacotes'] ?? []) as $i) { $p = $r['pacotes'][(int)$i] ?? null; if (!$p) continue; $un = precoPcd($c, (float)$p['v']); $comPcd = $un < (float)$p['v']; $com = (string)($p['com'] ?? '');
-      $linhas[] = ['servico' => '', 'min' => (int)$p['h'] * 60, 'valor' => $un, 'itens' => $com . ($comPcd ? ($com !== '' ? ' · ' : '') . 'PCD ' . pcdDesc() . '%' : ''), 'mais' => $comPcd ? ['pcd' => 1, 'cheio' => (float)$p['v']] : []]; }
+    // pacote de horas não tem o desconto PCD: ele vale só na recreação avulsa
+    foreach ((array)($in['pacotes'] ?? []) as $i) { $p = $r['pacotes'][(int)$i] ?? null; if ($p) $linhas[] = ['servico' => '', 'min' => (int)$p['h'] * 60, 'valor' => (float)$p['v'], 'itens' => (string)($p['com'] ?? '')]; }
     // voucher: um ou mais períodos de recreação sem cobrança, com o código (ou de onde veio) anotado para a supervisão conferir
     $vo = (array)($in['voucher'] ?? []); $vq = max(0, min(48, (int)($vo['q'] ?? 0))); $repetido = null;
     if ($vq > 0) {

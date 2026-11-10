@@ -182,9 +182,9 @@ Quando a criança continua no espaço depois do **tempo comprado mais a tolerân
 
 ## 6h. Criança PCD e voucher
 
-**Criança PCD: 50% de desconto na recreação.**
+**Criança PCD: 50% de desconto, só na recreação avulsa.**
 
-- No cadastro (e em **Editar**), marque **Criança PCD**. A partir daí todo tempo de recreação dela sai pela metade: a Recreação no atendimento (R$ 40 a cada 30 min), os pacotes de horas e a **cobrança por atraso**. Os carrinhos e outros produtos continuam com o preço cheio.
+- No cadastro (e em **Editar**), marque **Criança PCD**. A partir daí a **recreação avulsa** dela sai pela metade: a Recreação no atendimento (R$ 40 a cada 30 min) e a **cobrança por atraso**, que é um período avulso a mais. **Pacote de horas, carrinho de bebê, fusquinha e outros produtos não têm desconto.**
 - O atendimento mostra o preço já com o desconto e o selo **PCD 50%**; a lista do espaço e a ficha mostram o selo **PCD**.
 - Cada venda com desconto fica anotada ("Recreação · 30 min · PCD 50% · R$ 40") em Hoje na recepção e no histórico do cliente. **Marcar ou desmarcar PCD também fica anotado no dia**, com o nome de quem fez, porque muda o preço.
 

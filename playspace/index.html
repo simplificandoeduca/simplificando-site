@@ -870,7 +870,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.77';
+const VERSAO = '0.78';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -1104,7 +1104,7 @@ if (MOV_MQ) { const mudouMov = () => { aplicarAnim(); redesenharDicas(); }; MOV_
 const servicoTempo = () => (S.cfg.servicos || []).find(x => x.banco && x.modo === 'periodo') || null;
 const periodo = () => { const x = servicoTempo(); return Math.max(5, (x && +x.min) || 30); };
 const tolerancia = () => Math.max(0, +S.cfg.tolerancia || 0);
-// a criança PCD paga todo tempo de recreação com desconto (50% de fábrica): serviço avulso, pacote e cobrança por atraso
+// a criança PCD paga a recreação avulsa com desconto (50% de fábrica): o serviço por período e a cobrança por atraso. Pacote de horas e carrinhos, não
 const pcdDesc = () => Math.max(0, Math.min(100, S.cfg.pcdDesc == null ? 50 : +S.cfg.pcdDesc));
 const precoDe = (c, v) => c && c.pcd ? Math.round(v * (100 - pcdDesc())) / 100 : v;
 const rotPcd = () => 'PCD ' + pcdDesc() + '%';
@@ -1309,7 +1309,7 @@ function linhasDoCarrinho() {
     const pcd = !!(x.banco && c && c.pcd && pcdDesc() > 0), un = pcd ? precoDe(c, x.v) : x.v, mais = pcd ? { pcd: true, cheio: q * x.v } : {};   // a criança PCD paga o tempo de recreação com desconto
     if (x.modo === 'periodo') { const t = q * (x.min || 30); L.push({ s: x.id, q, servico: x.n, min: x.banco ? t : 0, v: q * un, itens: (x.banco ? '' : dur(t)) + (pcd ? rotPcd() : ''), ...mais }); }
     else L.push({ s: x.id, q, servico: x.n, min: 0, v: q * x.v, itens: (q > 1 ? q + ' unidades' + (x.obs ? ' · ' : '') : '') + (x.obs || '') }); }
-  for (const i of k.pac) { const x = S.cfg.pacotes[i]; if (!x) continue; const pcd = !!(c && c.pcd && pcdDesc() > 0); L.push({ pac: i, servico: '', min: x.h * 60, v: pcd ? precoDe(c, x.v) : x.v, itens: (x.com || '') + (pcd ? (x.com ? ' · ' : '') + rotPcd() : ''), ...(pcd ? { pcd: true, cheio: x.v } : {}) }); }
+  for (const i of k.pac) { const x = S.cfg.pacotes[i]; if (x) L.push({ pac: i, servico: '', min: x.h * 60, v: x.v, itens: x.com || '' }); }   // pacote de horas não tem o desconto PCD
   if (st && k.vq > 0) L.push({ vou: true, q: k.vq, servico: st.n, min: k.vq * (st.min || 30), v: 0, itens: 'voucher ' + String(k.vcod || '').trim(), voucher: String(k.vcod || '').trim(), cheio: k.vq * st.v });
   const on = val('v-item'), ov = numero(val('v-valor')); if (on) L.push({ outro: true, servico: on, min: 0, v: ov >= 0 ? ov : 0, itens: '' });
   return L;
@@ -1576,7 +1576,7 @@ const atrasoFicha = c => c.atraso && c.atraso.n ? `<div class="marca canc">${ic(
 function folhaFicha(id) {
   const c = crianca(id); if (!c) return; const [et, cls] = estado(c);
   abrirFolha(`${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}`, `
-    <div class="linha">${avatarComUrso(c, 'g')}<div class="txt"><b style="white-space:normal">${esc(c.resp)}${relSabe(c) ? ', ' + esc(c.rel) : ''}</b>${c.pcd ? `<span style="white-space:normal"><em class="selo-pcd">Criança PCD</em> ${pcdDesc()}% de desconto na recreação</span>` : ''}<span style="white-space:normal">${esc(fones(c))}${c.cpf ? (fones(c) ? ' · ' : '') + esc(docTxt(c)) : ''}</span>${c.obs ? `<span style="color:var(--coral);font-weight:700;white-space:normal;overflow-wrap:anywhere">${esc(c.obs)}</span>` : ''}</div><span class="pill ${cls}">${et}</span></div>
+    <div class="linha">${avatarComUrso(c, 'g')}<div class="txt"><b style="white-space:normal">${esc(c.resp)}${relSabe(c) ? ', ' + esc(c.rel) : ''}</b>${c.pcd ? `<span style="white-space:normal"><em class="selo-pcd">Criança PCD</em> ${pcdDesc()}% de desconto na recreação avulsa</span>` : ''}<span style="white-space:normal">${esc(fones(c))}${c.cpf ? (fones(c) ? ' · ' : '') + esc(docTxt(c)) : ''}</span>${c.obs ? `<span style="color:var(--coral);font-weight:700;white-space:normal;overflow-wrap:anywhere">${esc(c.obs)}</span>` : ''}</div><span class="pill ${cls}">${et}</span></div>
     ${semIdface() ? '' : `<div class="marca libera-ficha">${ic(IC.rosto, 18)}<span>${textoAcesso(c)}</span>${chave(c)}</div>`}
     <div class="marca sap-linha">${ic(IC.sapato, 18)}<span>${c.sapateira ? `<b>Sapateira ${c.sapateira}</b> · é onde está o sapato dela.` : `<b>Sem sapateira</b> · escolha onde fica o sapato enquanto ela brinca.`}</span><button class="bt tap" data-act="sapateira" data-id="${c.id}">${c.sapateira ? 'Trocar' : 'Escolher'}</button></div>
     ${c.entrou ? `<div class="marca">${ic(IC.horas, 18)}<span>Entrou às <b>${hora(c.entrou)}</b> e está há <b class="num" data-cron-txt="${c.id}">${hms(segDentro(c))}</b> no espaço. <span data-ficha-tempo="${c.id}">${tempoFicha(c)}</span></span></div><div data-ficha-atraso="${c.id}">${atrasoFicha(c)}</div><div data-ficha-cancela="${c.id}" data-estado="${estadoCancelar(c)}">${blocoCancelar(c)}</div>` : ''}
@@ -1715,7 +1715,7 @@ function folhaCrianca(c) {
     </div>
     <div class="bloco-f"><small class="rot">Criança</small>
       <div class="campo"><label for="f-nome">Nome da criança<span class="obg" aria-hidden="true">*</span></label><input id="f-nome" autocomplete="off"></div>
-      <label class="marca" id="f-pcd-campo"><input type="checkbox" id="f-pcd"><span><b>Criança PCD.</b> Paga ${100 - pcdDesc()}% do valor no tempo de recreação.</span></label>
+      <label class="marca" id="f-pcd-campo"><input type="checkbox" id="f-pcd"><span><b>Criança PCD.</b> Paga ${100 - pcdDesc()}% do valor na recreação avulsa. Pacote e carrinhos não têm desconto.</span></label>
       <div class="campo"><label>Sapateira <span class="leve">· onde fica o sapato enquanto ela brinca</span></label>${gradeSap(0, 0, 'cadastro')}<span class="explica">As hachuradas já estão em uso. Pode deixar sem e escolher depois, na ficha; ela fica livre sozinha quando a criança sai.</span></div>
       ${campoObs('')}
     </div>
@@ -1735,7 +1735,7 @@ function folhaCrianca(c) {
     <div class="bloco-f"><small class="rot">Criança</small>
       <div class="dois"><div class="campo"><label for="f-nome">Nome da criança<span class="obg" aria-hidden="true">*</span></label><input id="f-nome" value="${esc(c.nome)}" autocomplete="off"></div>
         <div class="campo"><label for="f-idade">Idade</label><input id="f-idade" type="number" min="1" max="14" inputmode="numeric" value="${c.idade || ''}" placeholder="anos"></div></div>
-      <label class="marca" id="f-pcd-campo"><input type="checkbox" id="f-pcd" ${c.pcd ? 'checked' : ''}><span><b>Criança PCD.</b> Paga ${100 - pcdDesc()}% do valor no tempo de recreação. Mudar esta marca fica anotado no dia.</span></label>
+      <label class="marca" id="f-pcd-campo"><input type="checkbox" id="f-pcd" ${c.pcd ? 'checked' : ''}><span><b>Criança PCD.</b> Paga ${100 - pcdDesc()}% do valor na recreação avulsa. Pacote e carrinhos não têm desconto. Mudar esta marca fica anotado no dia.</span></label>
       ${campoObs(c.obs)}
     </div>
     <div class="pe-f"><p class="falta-linha" id="f-falta"></p><button class="bt forte largo tap" data-act="salvar-crianca" data-id="${c.id}">${ic(IC.check)} Salvar</button></div>`);
@@ -2191,7 +2191,7 @@ function telaAjustes() {
       <div class="campo"><label>A loja fecha às</label>${seg('fecha', [[20, '20h'], [21, '21h'], [22, '22h'], [23, '23h'], [24, 'Meia-noite']], +cfg.fecha || 22)}<span class="explica">Depois dessa hora o tempo para de contar. Assim uma saída esquecida não vira cobrança a noite toda (a supervisão corrige a hora depois, em "Saída com outra hora").</span></div>
       <div class="campo"><label>Marcar "acabando" quando faltar</label>${seg('aviso', [[5, '5 min'], [10, '10 min'], [15, '15 min'], [30, '30 min'], [60, '1 hora']], cfg.aviso)}<span class="explica">A criança fica em amarelo na lista do espaço, só para a equipe ver. Nada é enviado ao responsável.</span></div>
       <div class="campo"><label>Quando o pacote zerar</label>${seg('bloqueioAuto', [['sim', 'Bloquear o acesso sozinho'], ['nao', 'Deixar autorizado']], cfg.bloqueioAuto || 'sim')}<span class="explica">Bloqueando sozinho, o iDFace passa a recusar o rosto da criança até alguém vender horas (a venda libera de novo). Quem acabou de ser cadastrado e ainda não comprou horas também começa bloqueado. Assim o controle fica com o aparelho, não com o funcionário.</span></div>
-      <div class="marca">${ic(IC.presente, 18)}<span><b>Criança PCD</b> paga ${100 - pcdDesc()}% do valor em todo tempo de recreação (avulso, pacote e cobrança por atraso): marque no cadastro. <b>Voucher</b> é um período sem cobrança, lançado no atendimento com o código. Os dois ficam anotados na venda e em Hoje na recepção.</span></div>
+      <div class="marca">${ic(IC.presente, 18)}<span><b>Criança PCD</b> paga ${100 - pcdDesc()}% do valor só na recreação avulsa (e na cobrança por atraso dela); pacote de horas, carrinho de bebê e fusquinha não têm desconto. Marque no cadastro. <b>Voucher</b> é um período sem cobrança, lançado no atendimento com o código. Os dois ficam anotados na venda e em Hoje na recepção.</span></div>
       <div class="marca">${ic(IC.sino, 18)}<span><b>Na prática, hoje:</b> ${exemplo(11)} · ${exemplo(periodo() + tolerancia())} · ${exemplo(periodo() + tolerancia() + 1)} · ${exemplo(2 * periodo() + tolerancia() + 1)}</span></div>
     </div>
     <div class="sec">
