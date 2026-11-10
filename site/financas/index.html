@@ -464,7 +464,7 @@ function logo(){
 $('#logo').innerHTML = logo(); document.querySelector('.top .mic').innerHTML = I.mic;
 
 /* ========== estado ========== */
-const FINV = '10 nov · 22'; // Versão do Finanças: 10 nov · 22
+const FINV = '10 nov · 23'; // Versão do Finanças: 10 nov · 23
 const DONO = { nome:'Eduardo Matias', iniciais:'EM' }; // perfil único desta página
 const LS = 'simplificando-financas', LST = 'simplificando-financas-tema';
 const CATS = ['Mercado', 'Comida', 'Transporte', 'Casa', 'Lazer', 'Saúde', 'Roupas', 'Assinaturas', 'Outros'];
@@ -586,8 +586,9 @@ function faturaDe(c){ // a fatura ABERTA na data de referência: hoje (no mês a
   return { ini, fim, total:sum(itens, g => g.valor), irmao:sum(itens.filter(g => g.quem === 'irmao'), g => g.valor) };
 }
 function pagosFatura(c, f){ // pagamentos da fatura do cartão no período (fatura, ou o mês escolhido se não tiver fechamento)
-  const its = S.pagFatura.filter(x => x.cartao === c.id && (f ? x.data >= f.ini && x.data <= f.fim : (x.data || '').slice(0, 7) === UI.mes));
-  return { itens:its.sort((a, b) => b.data.localeCompare(a.data)), total:sum(its, x => x.valor) };
+  const todos = S.pagFatura.filter(x => x.cartao === c.id && (f ? x.data >= f.ini && x.data <= f.fim : (x.data || '').slice(0, 7) === UI.mes)).sort((a, b) => b.data.localeCompare(a.data));
+  const its = todos.filter(x => x.qual !== 'anterior'), ant = todos.filter(x => x.qual === 'anterior');
+  return { itens:its, total:sum(its, x => x.valor), anteriores:ant, totalAnt:sum(ant, x => x.valor) };
 }
 function aplicarFixos(){ // cria o gasto de cada fixo no dia certo do mês atual (uma vez só, mesmo que depois seja apagado)
   const mes = nowKey(), hoje = todayISO(), ultimo = new Date(+mes.slice(0, 4), +mes.slice(5, 7), 0).getDate();
@@ -726,9 +727,9 @@ function rCartao(){
   if (tot) h += `<div class="bar" style="--sw:var(--c${(c.cor ?? 7) % 8})"><div class="t"><i style="width:${Math.round(meu / tot * 100)}%"></i>${ir ? `<i class="ir" style="width:${Math.round(ir / tot * 100)}%"></i>` : ''}</div></div>`;
   const pf = c.tipo === 'conta' ? null : pagosFatura(c, f);
   if (f) h += `<p class="sub">Fatura atual, de ${esc(shortDate(f.ini))} a ${esc(shortDate(f.fim))} (fecha dia ${c.fecha}): <b>${esc(fmt(Math.max(0, f.total - (pf ? pf.total : 0))))}</b>${pf && pf.total ? ' · compras ' + esc(fmt(f.total)) + ' · pago ' + esc(fmt(pf.total)) : ''}${f.irmao ? ' · ' + n + ' ' + esc(fmt(f.irmao)) : ''}</p>`;
-  if (pf && pf.total) {
+  if (pf && (pf.total || pf.totalAnt)) {
     const base = f ? f.total : tot, falta = base - pf.total;
-    h += `<div class="card ${falta <= 0 ? 'blk-ok' : ''}" style="gap:8px"><div class="hd"><h2 style="font-size:15px">Pagamento da fatura</h2><span class="pill">${falta <= 0 ? 'quitada' : 'falta ' + esc(fmt(falta))}</span></div><p class="sub">Já pago: <b>${esc(fmt(pf.total))}</b> de ${esc(fmt(base))}${falta < 0 ? ' · pagou ' + esc(fmt(-falta)) + ' a mais (fica de crédito)' : ''}.</p><div class="list" style="margin:0 -6px">${pf.itens.map(x => `<button type="button" class="row" data-a="ed-pagfat" data-k="${x.id}"><span class="ic">💸</span><span class="tx"><b>${esc(x.obs || 'Pagamento da fatura')}</b><span>${esc(dayLabel(x.data))}${x.conta === false ? ' · não saiu da conta' : ''}</span></span><span class="val in">${esc(fmt(x.valor))}</span></button>`).join('')}</div></div>`;
+    h += `<div class="card ${falta <= 0 ? 'blk-ok' : ''}" style="gap:8px"><div class="hd"><h2 style="font-size:15px">Pagamento da fatura</h2><span class="pill">${falta <= 0 ? 'quitada' : 'falta ' + esc(fmt(falta))}</span></div><p class="sub">Já pago: <b>${esc(fmt(pf.total))}</b> de ${esc(fmt(base))}${falta < 0 ? ' · pagou ' + esc(fmt(-falta)) + ' a mais (fica de crédito)' : ''}.</p><div class="list" style="margin:0 -6px">${pf.itens.map(x => `<button type="button" class="row" data-a="ed-pagfat" data-k="${x.id}"><span class="ic">💸</span><span class="tx"><b>${esc(x.obs || 'Pagamento da fatura')}</b><span>${esc(dayLabel(x.data))}${x.conta === false ? ' · não saiu da conta' : ''}</span></span><span class="val in">${esc(fmt(x.valor))}</span></button>`).join('')}${pf.anteriores.map(x => `<button type="button" class="row" data-a="ed-pagfat" data-k="${x.id}" style="opacity:.7"><span class="ic">🧾</span><span class="tx"><b>${esc(x.obs || 'Pagamento')}</b><span>${esc(dayLabel(x.data))} · fatura anterior (não desconta desta)</span></span><span class="val">${esc(fmt(x.valor))}</span></button>`).join('')}</div></div>`;
   }
   h += `<div class="seg"><button type="button" class="${!UI.xQuem ? 'on' : ''}" data-a="x-quem" data-k="">Tudo</button><button type="button" class="${UI.xQuem === 'eu' ? 'on' : ''}" data-a="x-quem" data-k="eu">Meus</button><button type="button" class="${UI.xQuem === 'irmao' ? 'on' : ''}" data-a="x-quem" data-k="irmao">${n}</button></div>`;
   if (!its.length) h += `<div class="list"><div class="empty"><b>Nada neste cartão</b><span>Nenhum gasto em ${esc(monthLabel(UI.mes))}${UI.xQuem ? ' com esse filtro' : ''}.</span></div></div>`;
@@ -1109,16 +1110,17 @@ function sheetGuardar(x){
     <div class="btns"><button type="button" class="btn primary wide" data-s="salvar-guardado" style="flex:1 1 100%">Salvar</button>${edit ? `<button type="button" class="btn danger" data-s="apagar-guardado">${I.trash}Apagar</button>` : ''}</div>`, { kind:'guardar', id:x.id, dig:x.valor ? String(x.valor) : '' });
 }
 function sheetPagFatura(x, cartaoId){
-  const edit = !!(x && x.id); x = Object.assign({ data:todayISO(), valor:0, obs:'', conta:true, cartao:cartaoId }, x || {});
+  const edit = !!(x && x.id); x = Object.assign({ data:todayISO(), valor:0, obs:'', conta:true, cartao:cartaoId, qual:'atual' }, x || {});
   const c = cartao(x.cartao), f = faturaDe(c), pf = pagosFatura(c, f), base = f ? f.total : sum(gastosMes().filter(g => g.cartao === c.id), g => g.valor), falta = Math.max(0, base - pf.total + (edit ? x.valor : 0));
   const temConta = S.cartoes.some(k => k.tipo === 'conta');
   Sheet.open(`<div class="hd"><h2>${edit ? 'Editar pagamento' : 'Pagar fatura · ' + esc(c.nome)}</h2><button type="button" class="x" data-s="fechar" aria-label="Fechar">${I.x}</button></div>
     ${amtHTML(x.valor, falta ? 'Falta pagar ' + fmt(falta) + ' desta fatura' : 'Quanto você pagou da fatura')}${padHTML()}
     ${!edit && falta ? `<button type="button" class="btn" data-s="tudo" data-k="${falta}">Paguei tudo (${esc(fmt(falta))})</button>` : ''}
+    <div class="sec"><p class="lbl">Esse pagamento é de qual fatura?</p><div class="seg"><button type="button" class="${x.qual !== 'anterior' ? 'on' : ''}" data-c="qual" data-k="atual">Desta (atual)</button><button type="button" class="${x.qual === 'anterior' ? 'on' : ''}" data-c="qual" data-k="anterior">Da anterior (já fechada)</button></div><p class="sub">O Nubank lista no extrato de agora até o pagamento da fatura que fechou. Esse não desconta da atual.</p></div>
     <div class="grid2"><label class="field">Data<input type="date" id="s-data" value="${esc(x.data)}"></label><label class="field">Observação<input id="s-obs" value="${esc(x.obs || '')}" placeholder="Ex.: antecipado"></label></div>
     ${temConta ? `<label class="gate-keep" style="display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600"><input type="checkbox" id="s-conta" ${x.conta === false ? '' : 'checked'} style="width:20px;height:20px;accent-color:var(--lime)">Saiu da minha conta (desconta do saldo)</label>` : ''}
     <p class="sub">Pagar a fatura não é um gasto novo: os gastos já estão contados no cartão. Aqui só marcamos quanto da fatura já foi pago.</p>
-    <div class="btns"><button type="button" class="btn primary wide" data-s="salvar-pagfat" style="flex:1 1 100%">Salvar</button>${edit ? `<button type="button" class="btn danger" data-s="apagar-pagfat">${I.trash}Apagar</button>` : ''}</div>`, { kind:'pagfat', id:x.id, cartao:x.cartao, dig:x.valor ? String(x.valor) : '' });
+    <div class="btns"><button type="button" class="btn primary wide" data-s="salvar-pagfat" style="flex:1 1 100%">Salvar</button>${edit ? `<button type="button" class="btn danger" data-s="apagar-pagfat">${I.trash}Apagar</button>` : ''}</div>`, { kind:'pagfat', id:x.id, cartao:x.cartao, dig:x.valor ? String(x.valor) : '', qual:x.qual || 'atual' });
 }
 function sheetGuardados(){
   const its = S.guardados.filter(inMes).sort((a, b) => b.data.localeCompare(a.data));
@@ -1277,7 +1279,7 @@ Sheet.box.addEventListener('click', ev => {
   }
   if (a === 'salvar-pagfat') {
     const v = cents(), data = val('s-data'); if (v <= 0) return toast('Digite o valor pago.'); if (!okData(data)) return toast('Confira a data.');
-    const cb = document.getElementById('s-conta'), o = { valor:v, data, obs:val('s-obs').trim(), conta:cb ? cb.checked : false, cartao:s.cartao };
+    const cb = document.getElementById('s-conta'), o = { valor:v, data, obs:val('s-obs').trim(), conta:cb ? cb.checked : false, cartao:s.cartao, qual:s.qual === 'anterior' ? 'anterior' : 'atual' };
     if (s.id) { const x = S.pagFatura.find(y => y.id === s.id); if (x) Object.assign(x, o); } else S.pagFatura.push(Object.assign({ id:uid(), cr:Date.now() }, o));
     save(); Sheet.close(); render(); toast('Pagamento da fatura anotado: ' + fmt(v) + '.');
   }
