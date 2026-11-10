@@ -710,6 +710,18 @@ body.quieto .dica { animation: none !important; }
 .retoma > svg { flex: none; color: var(--aviso); } .retoma > span { flex: 1; min-width: 190px; } .retoma .link { flex: none; }
 .marca.retoma-f { background: var(--aviso-bg); } .marca.retoma-f > svg { flex: none; color: var(--aviso); } .marca.retoma-f > span { flex: 1; min-width: 0; }
 @media (max-width: 560px) { .pend-lista { grid-template-columns: 1fr; } }
+/* ---------- 0.81: a aba Pacotes (a tabela de preços) e os dois tipos de pacote ---------- */
+.pac-sec { gap: 8px; } .pac-sec .explica { margin-top: -4px; }
+.pac-lista { display: flex; flex-direction: column; gap: 6px; }
+.pac-l { display: flex; align-items: center; gap: 12px; background: var(--card); border: 1px solid var(--borda); border-radius: 16px; padding: 10px 12px; }
+.pac-l .h { flex: none; min-width: 54px; height: 44px; padding: 0 8px; border-radius: 13px; background: var(--tinta); color: var(--creme); font-family: var(--display); font-weight: 800; font-size: 18px; display: flex; align-items: center; justify-content: center; }
+.pac-l .txt { flex: 1; min-width: 0; } .pac-l .txt b { display: block; font-family: var(--display); font-weight: 800; font-size: 20px; line-height: 1.15; } .pac-l .txt span { display: block; font-size: 12.5px; color: var(--tinta-2); }
+.pac-l .parc { flex: none; text-align: right; font-weight: 800; font-size: 13.5px; color: var(--coral); white-space: nowrap; }
+.pac-l .lap { flex: none; width: 34px; height: 34px; border-radius: 11px; background: var(--menta); display: flex; align-items: center; justify-content: center; }
+.pac-falta { display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; background: var(--aviso-bg); border-radius: 14px; padding: 9px 12px; font-size: 13px; }
+.pac-falta > span { flex: 1; min-width: 160px; }
+.rot-pac { display: block; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--apagado); margin: 6px 0 5px; } #v-pacotes .rot-pac:first-of-type { margin-top: 0; }
+@media (max-width: 480px) { .pac-l { display: grid; grid-template-columns: auto 1fr auto; gap: 2px 12px; } .pac-l .h { grid-row: 1 / span 2; align-self: start; } .pac-l .txt { grid-column: 2; grid-row: 1; } .pac-l .parc { grid-column: 2; grid-row: 2; text-align: left; } .pac-l .lap { grid-column: 3; grid-row: 1 / span 2; } }
 /* ---------- atendimento: os serviços, a quantidade e o total a pagar ---------- */
 .servicos { display: flex; flex-direction: column; gap: 8px; }
 .serv { display: grid; grid-template-columns: 1fr auto 92px; align-items: center; gap: 10px; background: var(--card); border: 2px solid var(--borda); border-radius: 18px; padding: 10px 12px; }
@@ -903,7 +915,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.80';
+const VERSAO = '0.81';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -934,7 +946,7 @@ async function atualizarAgora(bt) {
 }
 const S = {
   tela: 'horas', zapAberta: 1, zapModo: 'lista', zapDia: isoDia(agora), mes: { y: agora.getFullYear(), m: agora.getMonth() }, diaSel: isoDia(agora),
-  cfg: { tolerancia: 9, fecha: 22, pcdDesc: 50, aviso: 10, autoMsg: 'nao', bloqueioAuto: 'sim', pacotes: [], servicos: [{ id: 'recreacao', n: 'Recreação', v: 80, modo: 'periodo', min: 30, banco: true, obs: '' }, { id: 'fusquinha', n: 'Carrinho fusquinha', v: 15, modo: 'periodo', min: 30, banco: false, obs: '' }, { id: 'bebe', n: 'Carrinho de bebê', v: 30, modo: 'fixo', min: 0, banco: false, obs: 'das 10h às 22h' }], sapateiras: 44, cancelaMin: 9, idface: { ip: '192.168.0.129', nome: 'Recepção', ligado: false, ultima: antes(0.2) }, tema: lido('ps-tema', 'sistema'), anim: lido('ps-anim', 'auto') }, espOrdem: lido('ps-esp-ordem', 'tempo'),
+  cfg: { tolerancia: 9, fecha: 22, pcdDesc: 50, aviso: 10, autoMsg: 'nao', bloqueioAuto: 'sim', pacotes: [{ h: 5, v: 680, tipo: 'produto', parc: 3 }, { h: 5, v: 420, tipo: 'seco' }, { h: 10, v: 1220, tipo: 'produto', parc: 4 }, { h: 15, v: 1720, tipo: 'produto', parc: 4 }], servicos: [{ id: 'recreacao', n: 'Recreação', v: 80, modo: 'periodo', min: 30, banco: true, obs: '' }, { id: 'fusquinha', n: 'Carrinho fusquinha', v: 15, modo: 'periodo', min: 30, banco: false, obs: '' }, { id: 'bebe', n: 'Carrinho de bebê', v: 30, modo: 'fixo', min: 0, banco: false, obs: 'das 10h às 22h' }], sapateiras: 44, cancelaMin: 9, idface: { ip: '192.168.0.129', nome: 'Recepção', ligado: false, ultima: antes(0.2) }, tema: lido('ps-tema', 'sistema'), anim: lido('ps-anim', 'auto') }, espOrdem: lido('ps-esp-ordem', 'tempo'),
   equipe: [{ id: 1, nome: 'Camila Duarte', papel: 'gestor', login: 'camila' }, { id: 2, nome: 'Beatriz Lima', papel: 'supervisor', login: 'bia' }, { id: 3, nome: 'João Pedro', papel: 'atendente', login: 'jp' }],
   whats: { conectado: true, numero: '5511912345678', nome: 'Play Space' }, vendasHoje: null,
   criancas: [
@@ -998,7 +1010,15 @@ S.cancelamentos = [{ id: novoId(), crianca: 5, nome: 'Laura', resp: 'Bruno', ent
   add(d(10), '09:00', 'Post: programação da semana 2', 'postagem', 'Postagem'); add(d(29), '15:00', 'Fashion Day · edição de verão', 'festa', 'Evento');
   add(isoDia(agora), '15:00', 'Massinha caseira', 'oficina', 'Oficina de'); add(isoDia(agora), '10:00', 'Post: fotos da semana', 'postagem', 'Postagem'); S.compromissos[S.compromissos.length - 1].feito = true;   // para a caixinha "Atividades do dia" da prévia
 })();
-const nomePacote = p => p.h === 1 ? 'Hora avulsa' : p.h + ' horas';
+// pacotes de horas: cada tamanho pode ter dois tipos, "com produto" (o cliente leva o produto, que já está no valor) e "seco" (só as horas)
+const TAMANHOS_PAC = [5, 10, 15, 20, 30];   // os tamanhos que a loja vende
+const tipoPac = p => (p.tipo || (p.com ? 'produto' : 'seco')) === 'produto' ? 'produto' : 'seco';
+const ordPac = (a, b) => (a.h - b.h) || ((tipoPac(a) === 'seco') - (tipoPac(b) === 'seco'));   // por horas, com produto antes do seco (a mesma ordem do servidor)
+const pacDe = (h, tipo) => (S.cfg.pacotes || []).find(p => p.h === h && tipoPac(p) === tipo) || null;
+const nomePacote = p => (p.h === 1 ? 'Hora avulsa' : p.h + ' horas') + (p.tipo || p.com ? (tipoPac(p) === 'seco' ? ' · seco' : ' · com ' + (p.com || 'produto')) : '');
+const centavos = v => Math.round(v * 100) / 100;
+const parcTxt = p => p.parc > 1 ? `${p.parc}x de ${brl(centavos(p.v / p.parc))}` : '';   // "3x de R$ 226,67"
+let VOLTA_PAC = false;   // o editor de pacote foi aberto pela aba Pacotes: depois de salvar, volta para ela
 const TIPOS = { oficina: ['Oficina', 'var(--coral)'], festa: ['Festa', 'var(--pessego)'], compromisso: ['Compromisso', 'var(--mostarda)'], postagem: ['Postagem', 'var(--verde-agua)'] };
 const PAPEIS = { gestor: 'Gestor', supervisor: 'Supervisor', atendente: 'Atendente' };
 const PASSARINHO_FAB = `<span class="bicho passarinho" aria-hidden="true"><svg viewBox="0 0 60 44"><ellipse cx="30" cy="30" rx="17" ry="13" fill="#8FBFB0"/><circle cx="40" cy="20" r="10" fill="#8FBFB0"/><path d="M49 20 L58 23 L49 26Z" fill="#F0BB5F"/><circle cx="43" cy="18" r="1.8" fill="#3B3B3B"/><path d="M22 30 q-8 -6 -2 -12" stroke="#6FA394" stroke-width="4" stroke-linecap="round" fill="none"/><path d="M40 10 q2 -6 6 -4" stroke="#6FA394" stroke-width="2.5" stroke-linecap="round" fill="none"/></svg></span>`;
@@ -1267,7 +1287,7 @@ const dur = min => { min = Math.round(min); return min < 60 ? min + ' min' : Mat
 const tam = c => dur(c.pacote * 60);   // quanto tempo a criança já comprou ao todo
 // os serviços da loja (Ajustes): 'periodo' cobra a cada tantos minutos; 'fixo' é valor único; banco = o tempo vendido é tempo de brincar
 const precoServ = x => x.modo === 'periodo' ? `${brl(x.v)} a cada ${dur(x.min || 30)}` : brl(x.v);
-const precosTxt = () => { const rec = (S.cfg.servicos || []).find(x => x.banco), pacs = (S.cfg.pacotes || []).map(x => `${dur(x.h * 60)} por ${brl(x.v)}`); return [rec ? `A ${rec.n.toLowerCase()} é ${precoServ(rec)}` : '', pacs.length ? `${rec ? 'Também temos pacotes' : 'Temos pacotes'}: ${pacs.join(', ')}` : ''].filter(Boolean).join('. '); };
+const precosTxt = () => { const rec = (S.cfg.servicos || []).find(x => x.banco), todos = S.cfg.pacotes || [], comProd = todos.filter(x => tipoPac(x) === 'produto'), pacs = (comProd.length ? comProd : todos).map(x => `${dur(x.h * 60)} por ${brl(x.v)}`); return [rec ? `A ${rec.n.toLowerCase()} é ${precoServ(rec)}` : '', pacs.length ? `${rec ? 'Também temos pacotes' : 'Temos pacotes'}: ${pacs.join(', ')}` : ''].filter(Boolean).join('. '); };
 const minDe = v => v.m != null ? v.m : Math.round((v.h || 0) * 60);   // os minutos de brincar de uma venda
 /* ---------- sapateiras: onde fica o sapato da criança enquanto ela brinca (cada número com uma criança de cada vez) ---------- */
 const nSap = () => Math.max(1, Math.min(200, Math.round(+S.cfg.sapateiras) || 44));
@@ -1366,13 +1386,41 @@ function linhasDoCarrinho(k = CARRINHO, item = val('v-item'), valor = val('v-val
     const pcd = !!(x.banco && c && c.pcd && pcdDesc() > 0), un = pcd ? precoDe(c, x.v) : x.v, mais = pcd ? { pcd: true, cheio: q * x.v } : {};   // a criança PCD paga o tempo de recreação com desconto
     if (x.modo === 'periodo') { const t = q * (x.min || 30); L.push({ s: x.id, q, servico: x.n, min: x.banco ? t : 0, v: q * un, itens: (x.banco ? '' : dur(t)) + (pcd ? rotPcd() : ''), ...mais }); }
     else L.push({ s: x.id, q, servico: x.n, min: 0, v: q * x.v, itens: (q > 1 ? q + ' unidades' + (x.obs ? ' · ' : '') : '') + (x.obs || '') }); }
-  for (const i of k.pac) { const x = S.cfg.pacotes[i]; if (x) L.push({ pac: i, servico: '', min: x.h * 60, v: x.v, itens: x.com || '' }); }   // pacote de horas não tem o desconto PCD
+  for (const i of k.pac) { const x = S.cfg.pacotes[i]; if (x) L.push({ pac: i, ph: x.h, ptipo: tipoPac(x), servico: '', min: x.h * 60, v: x.v, itens: tipoPac(x) === 'seco' ? 'seco' : (x.com || 'produto') }); }   // pacote de horas não tem o desconto PCD
   if (st && k.vq > 0 && !temVoucher(c)) { const cobre = !!(c && c.entrou && c.atraso && c.atraso.n > 0);   // com cobrança por atraso a receber, o voucher cobre essa cobrança em vez de somar tempo
     L.push({ vou: true, q: 1, cobre, servico: st.n, min: cobre ? 0 : (st.min || 30), v: 0, itens: 'voucher' + (cobre ? ' · cobriu a cobrança por atraso de ' + brl(umaCobranca(c)) : ''), voucher: 'sim', cheio: st.v }); }
   const on = item, ov = numero(valor); if (on) L.push({ outro: true, servico: on, min: 0, v: ov >= 0 ? ov : 0, itens: '' });
   return L;
 }
-const nomeLinha = l => l.servico ? l.servico + (l.min ? ' · ' + dur(l.min) : '') + (l.itens ? ' · ' + l.itens : '') : (l.min === 60 ? 'Hora avulsa' : 'Pacote de ' + dur(l.min)) + (l.itens ? ' com ' + l.itens : '');
+// como a venda de um pacote aparece: "Pacote de 5h com produto", "Pacote seco de 5h", "Hora avulsa"
+const nomePacVenda = (min, itens) => itens === 'seco' ? 'Pacote seco de ' + dur(min) : (min === 60 ? 'Hora avulsa' : 'Pacote de ' + dur(min)) + (itens ? ' com ' + itens : '');
+// a aba Pacotes da tela inicial: a tabela de preços para mostrar ao cliente (a mesma do cartão da loja), com o valor da hora, da meia hora e a parcela
+const linhaPacote = p => `<div class="pac-l"><b class="h num">${p.h}h</b><div class="txt"><b class="num">${brl(p.v)}</b><span>${brl(centavos(p.v / p.h))} a hora · ${brl(centavos(p.v / p.h / 2))} a meia hora${p.com ? ' · com ' + esc(p.com) : ''}</span></div>${parcTxt(p) ? `<span class="parc num">${parcTxt(p)}</span>` : ''}${gestor() ? `<button type="button" class="lap tap" data-act="pacote-editar" data-i="${S.cfg.pacotes.indexOf(p)}" data-de="pacotes" aria-label="Mudar o pacote de ${p.h} horas" title="Mudar o valor">${ic(IC.lapis, 15)}</button>` : ''}</div>`;
+function folhaPacotes() {
+  const P = S.cfg.pacotes || [], rec = servicoTempo();
+  const sec = (tipo, tit, sub) => { const L = P.filter(p => tipoPac(p) === tipo), F = gestor() ? TAMANHOS_PAC.filter(h => !pacDe(h, tipo)) : []; if (!L.length && !F.length) return '';
+    return `<div class="sec pac-sec"><div class="sec-cab"><h2 style="font-size:17px">${tit}</h2></div><p class="explica">${sub}</p>${L.length ? `<div class="pac-lista">${L.map(linhaPacote).join('')}</div>` : ''}
+      ${F.length ? `<div class="pac-falta"><span>Falta o valor de ${juntar(F.map(h => h + ' h'))}. Toque para colocar:</span>${F.map(h => `<button type="button" class="link tap" data-act="pacote-novo" data-h="${h}" data-tipo="${tipo}">${h} h</button>`).join('')}</div>` : ''}</div>`; };
+  abrirFolha('Pacotes de horas', `
+    <p class="explica">As horas do pacote não têm prazo: o cliente usa quando quiser.${rec ? ` Sem pacote, a ${esc(rec.n.toLowerCase())} é ${precoServ(rec)} (${brl(centavos(rec.v * 60 / (rec.min || 30)))} a hora).` : ''}</p>
+    ${sec('produto', 'Pacote com produto', 'O cliente leva o produto junto: ele já está no valor do pacote.')}
+    ${sec('seco', 'Pacote seco', 'Só as horas, sem o produto.')}
+    ${!P.length && !gestor() ? '<p class="explica">Nenhum pacote cadastrado ainda. A gestora cadastra em Ajustes.</p>' : ''}
+    <p class="explica" style="text-align:center">Para vender, abra o atendimento do cliente: os mesmos pacotes aparecem lá, é só tocar.</p>`);
+}
+// os pacotes no atendimento: primeiro os com produto, depois os secos
+function pacotesNoAtendimento() {
+  const P = S.cfg.pacotes || []; if (!P.length) return '';
+  const bt = ([x, i]) => `<button type="button" class="opc tap" data-act="pac-marca" data-i="${i}" aria-pressed="false"><b>${dur(x.h * 60)}</b><span>${brl(x.v)}</span>${parcTxt(x) ? `<em>${parcTxt(x)}</em>` : ''}${x.com ? `<em>com ${esc(x.com)}</em>` : ''}</button>`;
+  const grupo = (tipo, rot) => { const L = P.map((x, i) => [x, i]).filter(([x]) => tipoPac(x) === tipo); return L.length ? `<small class="rot-pac">${rot}</small><div class="opcoes">${L.map(bt).join('')}</div>` : ''; };
+  return `<div class="campo" id="v-pacotes"><label>Pacotes de horas <span class="leve">· sem prazo para usar</span></label>${grupo('produto', 'Com produto')}${grupo('seco', 'Seco · só as horas')}</div>`;
+}
+function salvarPacotes() { if (MODO === 'servidor') api('regra_salvar', { pacotes: S.cfg.pacotes }).then(r => { if (r.regra && Array.isArray(r.regra.pacotes)) S.cfg.pacotes = r.regra.pacotes; }).catch(e => toast(e.message)); }
+function contaPacote() { // no editor: o valor da hora, da meia hora e da parcela, para conferir com a tabela da loja
+  const a = $('#pc-conta'); if (!a) return; const h = +val('pc-h'), v = +val('pc-v'), parc = +val('pc-parc') || 1;
+  a.textContent = h > 0 && v > 0 ? `${brl(centavos(v / h))} a hora · ${brl(centavos(v / h / 2))} a meia hora${parc > 1 ? ' · ' + parcTxt({ v, parc }) : ''}` : '';
+}
+const nomeLinha = l => l.servico ? l.servico + (l.min ? ' · ' + dur(l.min) : '') + (l.itens ? ' · ' + l.itens : '') : nomePacVenda(l.min, l.itens);
 async function registrarAtendimento(id, mesmoAssim) { // mesmoAssim: a equipe confirmou depois do aviso de que a criança já teve uma venda agora há pouco
   const aberto = $('#folha .folha-fundo:not(.saindo) #v-ok'); if (!aberto || +aberto.dataset.id !== +id) { atender(id); return; }   // o atendimento desta criança precisa estar na tela (o aviso de venda repetida pode ser tocado depois de fechar)
   const c = crianca(id), L = linhasDoCarrinho(); if (!c) return; if (!L.length) { toast('Escolha o serviço'); return; }
@@ -1383,7 +1431,7 @@ async function registrarAtendimento(id, mesmoAssim) { // mesmoAssim: a equipe co
   const total = L.reduce((a, l) => a + l.v, 0), min = L.reduce((a, l) => a + l.min, 0), nome = c.nome, aviso = `Venda registrada para ${nome} · ${brl(total)}${min ? ' · +' + dur(min) + ' de recreação' : ''}`;
   if (MODO === 'servidor') {
     const bt = $('#v-ok'); if (bt) bt.disabled = true;
-    try { const o = L.find(l => l.outro), r = await api('atender', { id, linhas: L.filter(l => l.s).map(l => ({ s: l.s, q: l.q })), pacotes: L.filter(l => l.pac != null).map(l => l.pac), outro: o ? { n: o.servico, v: o.v } : null, voucher: vou ? true : null, entrar, visto: (CARRINHO && CARRINHO.visto) || 0, mesmo_assim: !!mesmoAssim });
+    try { const o = L.find(l => l.outro), r = await api('atender', { id, linhas: L.filter(l => l.s).map(l => ({ s: l.s, q: l.q })), pacotes: L.filter(l => l.pac != null).map(l => ({ h: l.ph, tipo: l.ptipo, v: l.v })), outro: o ? { n: o.servico, v: o.v } : null, voucher: vou ? true : null, entrar, visto: (CARRINHO && CARRINHO.visto) || 0, mesmo_assim: !!mesmoAssim });
       await carregar(); atendimentoFeito(id); fecharFolha(); desenhar(); const k = crianca(id); toast(avisoVoucher(r.voucher, nome) + aviso + (r.entrada ? ' · entrou' + (k && k.entrou ? ', tempo até ' + hora(fimVisita(k)) : '') : ''), async () => { voltarRascunho(id, rasc); try { if (r.entrada) await api('desfazer_entrada', { id, registro: r.entrada.registro, mensagem: r.entrada.mensagem }); await api('desfazer_venda', { vendas: r.vendas, registros: r.registros }); await carregar(); } catch (e) { toast(e.message); } desenhar(); }); }
     catch (e) { if (bt) bt.disabled = false; if (e.status === 409) toast(e.message, () => registrarAtendimento(id, true), 'Registrar mesmo assim'); else toast(e.message); }   // 409: outro aparelho já registrou uma venda para esta criança
     return;
@@ -1611,7 +1659,7 @@ function telaHoras() {
   const usadasHoje = S.criancas.reduce((a, c) => a + c.visitas.filter(v => agora - new Date(v.dia) < 86400000).reduce((b, v) => b + v.deb, 0) + (c.entrou ? cobrar(minConta(c)) : 0), 0);
   const vendas = S.compras.filter(v => agora - v.quando < 86400000);   // tudo o que foi vendido nas últimas 24 h (recreação, carrinhos, pacotes)
   const minVend = S.vendasHoje ? (S.vendasHoje.min != null ? S.vendasHoje.min : (S.vendasHoje.horas || 0) * 60) : vendas.reduce((a, v) => a + minDe(v), 0), valorVend = S.vendasHoje ? S.vendasHoje.valor : vendas.reduce((a, v) => a + v.v, 0), nVend = S.vendasHoje ? S.vendasHoje.n : vendas.length;
-  return faixa('No espaço agora', n ? `${n} ${n === 1 ? 'criança' : 'crianças'}${passou ? ' · ' + passou + (passou === 1 ? ' passou' : ' passaram') + ' do tempo' : ''}` : 'Ninguém por enquanto', chipIdface()) + htmlPend() + `
+  return faixa('No espaço agora', n ? `${n} ${n === 1 ? 'criança' : 'crianças'}${passou ? ' · ' + passou + (passou === 1 ? ' passou' : ' passaram') + ' do tempo' : ''}` : 'Ninguém por enquanto', `<button type="button" class="chip tap" data-act="pacotes" title="A tabela dos pacotes de horas, para mostrar ao cliente">${ic(IC.presente, 16)} Pacotes</button>` + chipIdface()) + htmlPend() + `
   <section class="espaco">
     <div class="esp-cab">
       <div class="dias" id="esp-filtros">${chipsEspaco()}</div>
@@ -1680,7 +1728,7 @@ function lerEtapas() { // ao entrar: o que este aparelho guardou hoje (o que é 
 // o carrinho como ficou guardado: só o que ainda existe na tabela de serviços e nos pacotes
 function carrinhoDe(c, r) {
   const q = {}; for (const x of S.cfg.servicos || []) if (r.q && r.q[x.id] > 0) q[x.id] = Math.min(48, +r.q[x.id]);
-  const pac = [...new Set((r.pac || []).map(p => (S.cfg.pacotes || []).findIndex(y => y.h === p.h && y.v === p.v)).filter(i => i >= 0))];
+  const pac = [...new Set((r.pac || []).map(p => (S.cfg.pacotes || []).findIndex(y => y.h === p.h && y.v === p.v && (!p.tipo || tipoPac(y) === p.tipo))).filter(i => i >= 0))];
   return { id: c.id, q, pac, vq: servicoTempo() && !temVoucher(c) && +r.vq > 0 ? 1 : 0, entrar: r.entrar == null ? null : !!r.entrar };
 }
 const linhasDoRascunho = (c, r) => linhasDoCarrinho(carrinhoDe(c, r), r.item || '', r.valor || '');
@@ -1707,7 +1755,7 @@ function textoPend(c) { // em que etapa parou o atendimento desta criança
 function guardarRascunho() {
   const k = CARRINHO, ok = $('#folha #v-ok'); if (ETAPA_FEITA || !k || !ok || +ok.dataset.id !== k.id) return false; const c = crianca(k.id); if (!c) return false;
   const q = {}; for (const x of S.cfg.servicos || []) if (k.q[x.id] > 0) q[x.id] = k.q[x.id];
-  const item = val('v-item'), novo = { n: c.nome, q, pac: k.pac.map(i => (S.cfg.pacotes || [])[i]).filter(Boolean).map(p => ({ h: p.h, v: p.v })), vq: k.vq ? 1 : 0, item, valor: item ? val('v-valor') : '', entrar: k.entrar == null ? null : !!k.entrar, reg: MODO === 'servidor' ? ULT_REG : null };
+  const item = val('v-item'), novo = { n: c.nome, q, pac: k.pac.map(i => (S.cfg.pacotes || [])[i]).filter(Boolean).map(p => ({ h: p.h, v: p.v, tipo: tipoPac(p) })), vq: k.vq ? 1 : 0, item, valor: item ? val('v-valor') : '', entrar: k.entrar == null ? null : !!k.entrar, reg: MODO === 'servidor' ? ULT_REG : null };
   const velho = RASC[c.id];
   if (!Object.keys(q).length && !novo.pac.length && !novo.vq && !item) { if (velho) { delete RASC[c.id]; salvarEtapas(); } return false; }
   if (velho && JSON.stringify({ ...velho, em: 0, reg: 0 }) === JSON.stringify({ ...novo, em: 0, reg: 0 })) return true;   // nada mudou: a hora em que parou continua a mesma
@@ -1793,7 +1841,7 @@ function folhaVender(id, primeira) { // primeira: acabou de sair do cadastro (n�
     <div class="linha">${avatar(c)}<div class="txt"><b style="white-space:normal">${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}${c.pcd ? ` <em class="selo-pcd">${rotPcd()}</em>` : ''}</b><span style="white-space:normal">${esc(c.resp)}${fones(c) ? ' · ' + esc(fones(c)) : ''}</span><span style="white-space:normal">${semHoras(c) ? 'ainda sem tempo de recreação' : 'tem ' + hm(restante(c)) + ' de recreação'}${c.sapateira ? ' · sapateira ' + c.sapateira : ''}</span></div><button class="bt tap" data-act="historico" data-id="${c.id}">${ic(IC.historico)} Histórico</button></div>
     ${c.obs ? `<p class="h-obs">${ic(IC.sino, 14)}<span>${esc(c.obs)}</span></p>` : ''}
     ${nota}<div class="campo"><label>Qual serviço?</label><div class="servicos" id="v-servicos">${linhasServico()}</div></div>
-    ${(S.cfg.pacotes || []).length ? `<div class="campo"><label>Pacotes de horas</label><div class="opcoes" id="v-pacotes">${S.cfg.pacotes.map((x, i) => `<button type="button" class="opc tap" data-act="pac-marca" data-i="${i}" aria-pressed="false"><b>${dur(x.h * 60)}</b><span>${brl(x.v)}</span>${x.com ? `<em>vem com ${esc(x.com)}</em>` : ''}</button>`).join('')}</div></div>` : ''}
+    ${pacotesNoAtendimento()}
     <details class="outro"${r && r.item ? ' open' : ''}><summary>Outro item</summary><div class="outro-item"><input id="v-item" value="${esc(r ? r.item || '' : '')}" placeholder="O que foi" autocomplete="off" maxlength="40" aria-label="O que foi vendido"><input id="v-valor" value="${esc(r ? r.valor || '' : '')}" inputmode="decimal" placeholder="R$" autocomplete="off" aria-label="Valor em reais"></div></details>
     <div class="pe-f"><span class="explica" id="v-tempo" hidden></span>${semIdface() && !c.entrou ? `<label class="marca" id="v-entrar-campo" hidden><input type="checkbox" id="v-entrar" checked><span><b>Dar entrada agora.</b> O tempo de recreação começa a contar ao registrar a venda.</span></label>` : ''}<div class="total"><span>Total a pagar</span><b class="num" id="v-total">R$ 0</b></div><button class="bt forte largo tap" id="v-ok" data-act="atender-ok" data-id="${c.id}" disabled>${ic(IC.check)} Escolha o serviço</button></div>`);
   ETAPA_FEITA = false;   // daqui em diante, fechar sem registrar guarda o que foi escolhido
@@ -2008,7 +2056,7 @@ async function marcarVisto(id) { // id = 0: todos os que estão para conferir
 }
 /* ---------- histórico do cliente: uma aba à direita com tudo do responsável e das crianças dele ---------- */
 let LADO = null;   // { id (uma das crianças do cliente), dados: { vendas, visitas } | null, erro, todas, reg }
-const nomeCompra = v => { const m = minDe(v); return v.servico ? esc(v.servico) + (m ? ' · ' + dur(m) : '') + (v.itens ? ' · ' + esc(v.itens) : '') : m ? (m === 60 ? 'Hora avulsa' : 'Pacote de ' + dur(m)) + (v.itens ? ' · veio com ' + esc(v.itens) : '') : esc(v.itens || 'Produto'); };
+const nomeCompra = v => { const m = minDe(v); return v.servico ? esc(v.servico) + (m ? ' · ' + dur(m) : '') + (v.itens ? ' · ' + esc(v.itens) : '') : m ? esc(nomePacVenda(m, v.itens)) : esc(v.itens || 'Produto'); };
 const nomeUltima = c => c.venda ? (c.venda.servico ? c.venda.servico + ' · ' + dur(minDe(c.venda)) : (minDe(c.venda) === 60 ? 'Hora avulsa' : dur(minDe(c.venda)))) : '';
 const quandoFoi = d => `${d.getDate()} de ${MESES[d.getMonth()].slice(0, 3)}${d.getFullYear() !== agora.getFullYear() ? ' de ' + d.getFullYear() : ''} às ${hora(d)}`;
 const juntar = L => L.length > 1 ? L.slice(0, -1).join(', ') + ' e ' + L[L.length - 1] : (L[0] || '');
@@ -2373,8 +2421,8 @@ function telaAjustes() {
         <p class="explica">É o que aparece no atendimento, com o valor a pagar calculado na hora. Toque num serviço para mudar o nome, o valor ou a forma de cobrar.</p>
       </div>
       <div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.presente, 20)} Pacotes de horas</h2><button class="link tap" data-act="pacote-novo">Novo pacote</button></div>
-        ${cfg.pacotes.length ? `<div class="grupo">${cfg.pacotes.map((p, i) => `<button class="it tap" data-act="pacote-editar" data-i="${i}"><div class="txt"><b>${nomePacote(p)}</b><span>${brl(p.v)}${p.h > 1 ? ' · ' + brl(Math.round(p.v / p.h)) + ' por hora' : ''}${p.com ? ' · vem com ' + esc(p.com) : ''}</span></div><span class="vai">${ic(IC.vai, 18)}</span></button>`).join('')}</div>` : ''}
-        <p class="explica">Opcional: horas vendidas de uma vez, com preço fechado (ex.: 10 horas). ${cfg.pacotes.length ? 'Aparecem no atendimento, abaixo dos serviços.' : 'Nenhum pacote cadastrado por enquanto.'}</p>
+        ${cfg.pacotes.length ? `<div class="grupo">${cfg.pacotes.map((p, i) => `<button class="it tap" data-act="pacote-editar" data-i="${i}"><div class="txt"><b>${esc(nomePacote(p))}</b><span>${brl(p.v)}${p.h > 1 ? ' · ' + brl(centavos(p.v / p.h)) + ' a hora' : ''}${parcTxt(p) ? ' · ' + parcTxt(p) : ''}</span></div><span class="vai">${ic(IC.vai, 18)}</span></button>`).join('')}</div>` : ''}
+        <p class="explica">Horas vendidas de uma vez, com preço fechado e sem prazo para usar. Cada tamanho pode ter dois preços: <b>com produto</b> (o cliente leva o produto, que já está no valor) e <b>seco</b> (só as horas). ${cfg.pacotes.length ? 'Aparecem na aba Pacotes da tela inicial e no atendimento.' : 'Nenhum pacote cadastrado por enquanto.'}</p>
       </div>
       <div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.sapato, 20)} Sapateiras</h2></div>
         <button class="grupo tap" data-act="sap-mapa" style="width:100%"><div class="it"><div class="txt"><b>${nSap()} sapateiras · ${S.criancas.filter(c => c.sapateira).length} em uso agora</b><span>Toque para ver o mapa, liberar uma esquecida ou mudar a quantidade</span></div><span class="vai">${ic(IC.vai, 18)}</span></div></button>
@@ -2404,14 +2452,18 @@ function telaAjustes() {
   </div>
   `;
 }
-function folhaPacote(i) {
-  const p = i == null ? null : S.cfg.pacotes[i];
+function folhaPacote(i, pre) { // pre: { h, tipo } para já abrir no tamanho e no tipo que faltam
+  const p = i == null ? null : S.cfg.pacotes[i], tipo = p ? tipoPac(p) : (pre && pre.tipo) || 'produto', h0 = p ? p.h : (pre && pre.h) || 5;
   abrirFolha(p ? 'Editar pacote' : 'Novo pacote', `
-    <div class="campo"><label>Horas</label><div class="seg" id="pc-rapido">${[1, 2, 5, 10, 20].map(h => `<button type="button" data-act="pacote-horas" data-h="${h}" aria-pressed="${p ? p.h === h : h === 5}">${h === 1 ? 'Avulsa' : h + 'h'}</button>`).join('')}</div></div>
-    <div class="dois"><div class="campo"><label for="pc-h">Ou digite as horas</label><input id="pc-h" type="number" inputmode="numeric" min="1" step="1" value="${p ? p.h : 5}"></div><div class="campo"><label for="pc-v">Valor (R$)</label><input id="pc-v" type="number" inputmode="decimal" min="1" step="1" value="${p ? p.v : ''}" placeholder="250"></div></div>
-    <div class="campo"><label for="pc-com">Vem junto no pacote (opcional)</label><input id="pc-com" value="${esc(p && p.com || '')}" placeholder="ex.: meia antiderrapante" maxlength="60" autocomplete="off"></div>
-    <p class="explica">O pacote de 1 hora é a hora avulsa. Os pacotes aparecem na venda, do menor para o maior. O que vem junto fica anotado em cada venda, no histórico do cliente.</p>
+    <div class="campo"><label>Tipo</label><div class="seg" id="pc-tipo">${[['produto', 'Com produto'], ['seco', 'Seco · só as horas']].map(([v, n]) => `<button type="button" data-act="pacote-tipo" data-v="${v}" aria-pressed="${tipo === v}">${n}</button>`).join('')}</div></div>
+    <div class="campo"><label>Horas</label><div class="seg" id="pc-rapido">${TAMANHOS_PAC.map(h => `<button type="button" data-act="pacote-horas" data-h="${h}" aria-pressed="${h0 === h}">${h}h</button>`).join('')}</div></div>
+    <div class="dois"><div class="campo"><label for="pc-h">Ou digite as horas</label><input id="pc-h" type="number" inputmode="numeric" min="1" step="1" value="${h0}"></div><div class="campo"><label for="pc-v">Valor do pacote (R$)</label><input id="pc-v" type="number" inputmode="decimal" min="1" step="0.01" value="${p ? p.v : ''}" placeholder="680"></div></div>
+    <div class="dois"><div class="campo"><label for="pc-parc">Parcela em até</label><select id="pc-parc">${[1, 2, 3, 4, 5, 6, 8, 10, 12].map(n => `<option value="${n}" ${(p && p.parc || 1) === n ? 'selected' : ''}>${n === 1 ? 'não parcela' : n + ' vezes'}</option>`).join('')}</select></div>
+      <div class="campo" id="pc-com-campo" ${tipo === 'seco' ? 'hidden' : ''}><label for="pc-com">Qual é o produto (opcional)</label><input id="pc-com" value="${esc(p && p.com || '')}" placeholder="ex.: kit Play Space" maxlength="60" autocomplete="off"></div></div>
+    <p class="explica" id="pc-conta" style="font-weight:700"></p>
+    <p class="explica">Com produto: o cliente leva o produto, que já está no valor. Seco: só as horas. O mesmo tamanho pode ter os dois. Os pacotes aparecem na aba Pacotes da tela inicial e no atendimento.</p>
     <div class="acoes"><button class="bt forte tap" data-act="pacote-salvar" data-i="${i == null ? '' : i}" style="flex:1;justify-content:center">${ic(IC.check)} Salvar</button>${p ? `<button class="bt claro tap" data-act="pacote-apagar" data-i="${i}" style="color:var(--erro)">Apagar</button>` : ''}</div>`);
+  contaPacote();
 }
 function folhaServico(i) {
   const x = i == null ? null : (S.cfg.servicos || [])[i], per = !!x && x.modo === 'periodo';
@@ -2627,20 +2679,22 @@ const ACOES = {
   },
   'sv-apagar': el => { const L = (S.cfg.servicos || []).slice(); if (L.length <= 1) { toast('Deixe pelo menos um serviço'); return; } const [x] = L.splice(+el.dataset.i, 1); S.cfg.servicos = L; if (MODO === 'servidor') api('regra_salvar', { servicos: L }).catch(e => toast(e.message));
     toast(`${x.n} saiu da lista`, () => { S.cfg.servicos = [...S.cfg.servicos, x]; if (MODO === 'servidor') api('regra_salvar', { servicos: S.cfg.servicos }).catch(() => {}); }); fecharFolha(); desenhar(); },
-  'pacote-novo': () => folhaPacote(null),
-  'pacote-editar': el => folhaPacote(+el.dataset.i),
-  'pacote-horas': el => { $('#pc-h').value = el.dataset.h; $$('#pc-rapido button').forEach(b => b.setAttribute('aria-pressed', b === el)); },
+  pacotes: () => folhaPacotes(),
+  'pacote-novo': el => { const d = (el && el.dataset) || {}; VOLTA_PAC = !!d.tipo; folhaPacote(null, d.h ? { h: +d.h, tipo: d.tipo } : null); },
+  'pacote-editar': el => { VOLTA_PAC = el.dataset.de === 'pacotes'; folhaPacote(+el.dataset.i); },
+  'pacote-horas': el => { $('#pc-h').value = el.dataset.h; $$('#pc-rapido button').forEach(b => b.setAttribute('aria-pressed', b === el)); contaPacote(); },
   'pacote-salvar': el => {
-    const h = +val('pc-h'), v = +val('pc-v');
+    const h = +val('pc-h'), v = +val('pc-v'), tipo = ($('#pc-tipo [aria-pressed="true"]') || { dataset: {} }).dataset.v === 'seco' ? 'seco' : 'produto', parc = +val('pc-parc') || 1;
     if (!(h > 0)) { toast('Quantas horas tem o pacote?'); $('#pc-h').focus(); return; }
     if (!(v > 0)) { toast('Qual é o valor?'); $('#pc-v').focus(); return; }
-    const i = el.dataset.i === '' ? -1 : +el.dataset.i, repetido = S.cfg.pacotes.findIndex((p, k) => p.h === h && k !== i);
-    if (repetido >= 0) { toast(`Já existe o pacote de ${nomePacote({ h }).toLowerCase()}`); return; }
-    const com = val('pc-com'), pac = com ? { h, v, com } : { h, v };
+    const i = el.dataset.i === '' ? -1 : +el.dataset.i, repetido = S.cfg.pacotes.findIndex((p, k) => p.h === h && tipoPac(p) === tipo && k !== i);
+    if (repetido >= 0) { toast(`Já existe o pacote de ${h} horas ${tipo === 'seco' ? 'seco' : 'com produto'}`); return; }
+    const com = tipo === 'produto' ? val('pc-com') : '', pac = { h, v, tipo, ...(com ? { com } : {}), ...(parc > 1 ? { parc } : {}) };
     if (i >= 0) S.cfg.pacotes[i] = pac; else S.cfg.pacotes.push(pac);
-    S.cfg.pacotes.sort((a, b) => a.h - b.h); if (MODO === 'servidor') api('regra_salvar', { pacotes: S.cfg.pacotes }).catch(e => toast(e.message)); toast(`${nomePacote({ h })} por ${brl(v)}`); fecharFolha(); desenhar();
+    S.cfg.pacotes.sort(ordPac); salvarPacotes(); toast(`${nomePacote(pac)} por ${brl(v)}`); fecharFolha(); desenhar(); if (VOLTA_PAC) { VOLTA_PAC = false; setTimeout(folhaPacotes, 300); }
   },
-  'pacote-apagar': el => { const [p] = S.cfg.pacotes.splice(+el.dataset.i, 1); if (MODO === 'servidor') api('regra_salvar', { pacotes: S.cfg.pacotes }).catch(e => toast(e.message)); toast(`${nomePacote(p)} apagado`, () => { S.cfg.pacotes.push(p); S.cfg.pacotes.sort((a, b) => a.h - b.h); if (MODO === 'servidor') api('regra_salvar', { pacotes: S.cfg.pacotes }).catch(() => {}); }); fecharFolha(); desenhar(); },
+  'pacote-tipo': el => { $$('#pc-tipo button').forEach(b => b.setAttribute('aria-pressed', b === el)); const c = $('#pc-com-campo'); if (c) c.hidden = el.dataset.v === 'seco'; },
+  'pacote-apagar': el => { const [p] = S.cfg.pacotes.splice(+el.dataset.i, 1); salvarPacotes(); toast(`${nomePacote(p)} apagado`, () => { S.cfg.pacotes.push(p); S.cfg.pacotes.sort(ordPac); salvarPacotes(); }); fecharFolha(); desenhar(); if (VOLTA_PAC) { VOLTA_PAC = false; setTimeout(folhaPacotes, 300); } },
   'equipe-novo': () => folhaEquipe(null), 'equipe-editar': el => folhaEquipe(S.equipe.find(u => u.id === +el.dataset.id)),
   'equipe-salvar': el => { const nome = val('e-nome'); if (!nome) { toast('Falta o nome'); return; } const d = { nome, login: val('e-login') || nome.split(' ')[0].toLowerCase(), papel: val('e-papel'), senha: ($('#e-senha') || { value: '' }).value }; if (MODO === 'servidor') { api('usuario_salvar', { id: el.dataset.id ? +el.dataset.id : 0, ...d }).then(async () => { await carregar(); toast('Equipe atualizada'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } delete d.senha; if (el.dataset.id) Object.assign(S.equipe.find(u => u.id === +el.dataset.id), d); else S.equipe.push({ id: novoId(), ...d }); toast('Equipe atualizada'); fecharFolha(); desenhar(); },
   'equipe-apagar': el => { if (MODO === 'servidor') { api('usuario_apagar', { id: +el.dataset.id }).then(async () => { await carregar(); toast('Removida da equipe'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } S.equipe = S.equipe.filter(u => u.id !== +el.dataset.id); toast('Removida da equipe'); fecharFolha(); desenhar(); },
@@ -2662,7 +2716,8 @@ document.addEventListener('click', e => {
   const f = e.target.closest('[data-fecha]'); if (f && (f.tagName === 'BUTTON' || e.target === f)) fecharFolha();
 });
 document.addEventListener('change', e => {
-  const t = e.target; if (t.id === 'v-entrar' && CARRINHO) { CARRINHO.entrar = t.checked; guardarRascunho(); return; }
+  const t = e.target; if (t.id === 'pc-parc') { contaPacote(); return; }
+  if (t.id === 'v-entrar' && CARRINHO) { CARRINHO.entrar = t.checked; guardarRascunho(); return; }
   if (t.dataset && t.dataset.cancVenda && CANCELA) { const id = +t.dataset.cancVenda; if (t.checked) CANCELA.fica.delete(id); else CANCELA.fica.add(id); resumoCancelar(); return; }
   if (t.type !== 'file' || !t.files || !t.files[0]) return;
   if (t.id === 'f-foto') lerFoto(t.files[0], url => { FOTO_TEMP = url; const prev = $('#f-foto-prev'); if (prev) { prev.classList.add('foto'); prev.style.backgroundImage = `url(${url})`; prev.innerHTML = ''; } const l = $('label[for="f-foto"]'); if (l) l.innerHTML = `${ic(IC.camera)} Tirar outra`; });
@@ -2684,6 +2739,7 @@ document.addEventListener('input', e => {
   if (e.target.id === 'banco-busca') { S.bancoBusca = e.target.value; const l = $('#banco-lista'); if (l) l.innerHTML = linhasBanco(); }
   if (e.target.id === 'busca') { const q = e.target.value.toLowerCase(); $('#lista-criancas').innerHTML = itensLista(S.criancas.filter(c => (c.nome + ' ' + c.resp).toLowerCase().includes(q))); }
   if (e.target.id === 'pc-h') $$('#pc-rapido button').forEach(b => b.setAttribute('aria-pressed', b.dataset.h === e.target.value));
+  if (e.target.id === 'pc-h' || e.target.id === 'pc-v') contaPacote();
   if (e.target.id === 'zap-texto') { e.target.style.height = 'auto'; e.target.style.height = Math.min(120, e.target.scrollHeight) + 'px'; }
 });
 document.addEventListener('keydown', e => {

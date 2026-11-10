@@ -112,7 +112,7 @@ O tempo é debitado **sempre em períodos inteiros** (o período da Recreação:
 - Os serviços de fábrica são **Recreação** (R$ 80 a cada 30 min), **Carrinho fusquinha** (R$ 15 a cada 30 min) e **Carrinho de bebê** (R$ 30, das 10h às 22h). Em cada linha, o **+** põe mais um período (ou mais uma unidade) e o **−** tira; o valor da linha e o total aparecem na hora. **Registrar a venda** grava tudo de uma vez; o aviso tem **Desfazer**.
 - O tempo de **Recreação** vendido entra no saldo de brincar da criança (meia hora conta) e libera o acesso dela; os carrinhos ficam só anotados na venda, com a duração.
 - **Ajustes → Serviços e preços** muda o nome, o valor e a forma de cobrar (valor único ou a cada período de tantos minutos), cria serviços novos (uma meia, um lanche) e diz qual deles é tempo de brincar. O valor cobrado sai sempre dessa tabela.
-- **Pacotes de horas** são opcionais (Ajustes → Pacotes de horas): horas vendidas de uma vez com preço fechado. Se houver, aparecem no atendimento, abaixo dos serviços. **Outro item**, no pé do atendimento, registra algo fora da tabela.
+- **Pacotes de horas**: aparecem no atendimento, abaixo dos serviços, em dois grupos (com produto e seco); a tabela completa fica na aba **Pacotes** da tela inicial (seção 6j). **Outro item**, no pé do atendimento, registra algo fora da tabela.
 - **Avisar quando restar** (Ajustes → Controle de horas) começa em 10 minutos, porque a recreação é vendida de 30 em 30.
 
 ## 6b. Banco de horas (aba)
@@ -222,6 +222,30 @@ O que é de todos os aparelhos e o que é de cada um:
 - **O que estava escolhido** (serviços, voucher, outro item) e **o cadastro pela metade** ficam guardados **no aparelho em que foram feitos**: continuam lá se a página for recarregada ou atualizada, e não aparecem nos outros aparelhos.
 - Ao **sair da conta**, os cadastros pela metade são apagados do aparelho (têm documento e telefone do responsável).
 - **Sem venda em dobro**: se a venda daquela criança for registrada em outro aparelho, o que estava escolhido aqui sai da faixa sozinho. E se o atendimento estiver aberto na tela nessa hora, ao tocar em Registrar o sistema avisa *"Já foi registrada uma venda para Mari às 14:05: Recreação · 30 min · R$ 80"* e só registra outra se a atendente tocar em **Registrar mesmo assim**.
+
+## 6j. Pacotes de horas (botão Pacotes na tela inicial)
+
+No alto da tela inicial, ao lado de **Entrada na tela**, o botão vermelho **Pacotes** abre a tabela de preços, a mesma do cartão da loja, para mostrar ao cliente: horas, valor do pacote, valor da hora, da meia hora e a parcela. As horas do pacote não têm prazo para usar.
+
+Cada tamanho pode ter **dois preços**:
+
+- **Pacote com produto**: o cliente leva o produto junto (o "brinde"), que já está no valor do pacote. É a tabela principal.
+- **Pacote seco**: só as horas, sem o produto.
+
+Valores que já vêm instalados (os da loja em novembro de 2026):
+
+| Pacote | Tipo | Valor | Hora | Meia hora | Parcela |
+|---|---|---|---|---|---|
+| 5 h | com produto | R$ 680 | R$ 136 | R$ 68 | 3x de R$ 226,67 |
+| 10 h | com produto | R$ 1.220 | R$ 122 | R$ 61 | 4x de R$ 305 |
+| 15 h | com produto | R$ 1.720 | R$ 114,67 | R$ 57,33 | 4x de R$ 430 |
+| 5 h | seco | R$ 420 | R$ 84 | R$ 42 | |
+
+- **Os outros tamanhos (20 h e 30 h, e os secos de 10 a 30 h) ficam sem valor até a gestora colocar.** Na aba Pacotes, só ela vê a linha "Falta o valor de 20 h e 30 h": um toque no tamanho abre o cadastro já no tipo certo. Também dá para mudar um valor pelo lápis da linha, ou em **Ajustes → Pacotes de horas**. Pacote sem valor não aparece para a atendente nem no atendimento.
+- No cadastro do pacote: o **tipo**, as **horas**, o **valor**, em **quantas vezes parcela** e, no pacote com produto, **qual é o produto** (opcional; aparece na venda). A linha de baixo mostra o valor da hora, da meia hora e da parcela, para conferir com a tabela da loja.
+- **Vender** continua no atendimento do cliente: os pacotes aparecem lá, é só tocar. A venda fica anotada como "Pacote de 10h com produto" ou "Pacote seco de 5h", em Hoje na recepção e no histórico.
+- **Criança PCD não tem desconto em pacote** (seção 6h). O voucher junta com o pacote: os primeiros 30 min saem do voucher e o resto das horas do pacote.
+- Se a gestora mudar a tabela enquanto um atendimento está aberto em outro aparelho, a venda não troca de pacote sozinha: o sistema avisa "O valor do pacote mudou" e pede para abrir o atendimento de novo.
 
 ## 7. Atualizar
 

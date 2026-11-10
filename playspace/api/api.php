@@ -315,7 +315,15 @@ switch ($acao) {
       else { $obs = trim((string)($s['obs'] ?? '')); $linhas[] = ['servico' => (string)$s['n'], 'min' => 0, 'valor' => $q * (float)$s['v'], 'itens' => ($q > 1 ? $q . ' unidades' . ($obs !== '' ? ' · ' : '') : '') . $obs]; }
     }
     // pacote de horas não tem o desconto PCD: ele vale só na recreação avulsa
-    foreach ((array)($in['pacotes'] ?? []) as $i) { $p = $r['pacotes'][(int)$i] ?? null; if ($p) $linhas[] = ['servico' => '', 'min' => (int)$p['h'] * 60, 'valor' => (float)$p['v'], 'itens' => (string)($p['com'] ?? '')]; }
+    // a tela manda as horas, o tipo (com produto ou seco) e o valor que mostrou: se a tabela mudou no meio do atendimento, avisa em vez de vender outro pacote
+    foreach ((array)($in['pacotes'] ?? []) as $i) {
+      if (is_array($i)) { $p = null; $h = (int)($i['h'] ?? 0); $tp = ($i['tipo'] ?? '') === 'produto' ? 'produto' : 'seco';
+        foreach ($r['pacotes'] as $x) if ((int)$x['h'] === $h && tipoPacote($x) === $tp) { $p = $x; break; }
+        if (!$p) falha('O pacote de ' . $h . ' h' . ($tp === 'seco' ? ' seco' : ' com produto') . ' não está mais na tabela. Feche e abra o atendimento de novo.');
+        if (isset($i['v']) && abs((float)$p['v'] - (float)$i['v']) > 0.005) falha('O valor do pacote de ' . $h . ' h mudou para ' . dinheiro((float)$p['v']) . '. Feche e abra o atendimento de novo.');
+      } else $p = $r['pacotes'][(int)$i] ?? null;   // a tela antiga mandava a posição na lista
+      if ($p) $linhas[] = ['servico' => '', 'min' => (int)$p['h'] * 60, 'valor' => (float)$p['v'], 'itens' => tipoPacote($p) === 'seco' ? 'seco' : (trim((string)($p['com'] ?? '')) ?: 'produto')];
+    }
     // voucher do shopping: 30 min de recreação grátis, um por visita, sem código. A tela só marca (voucher: true); a tela antiga mandava { q, codigo } e vale como um voucher.
     // Confere antes de vender qualquer coisa, para não ficar uma venda pela metade
     $vo = $in['voucher'] ?? null; $comVoucher = is_array($vo) ? (int)($vo['q'] ?? 0) > 0 : !empty($vo);
@@ -425,7 +433,11 @@ switch ($acao) {
     if (isset($in['bloqueioAuto']) && in_array($in['bloqueioAuto'], ['sim', 'nao'], true)) $r['bloqueioAuto'] = $in['bloqueioAuto'];
     if (isset($in['sapateiras'])) { $n = (int)$in['sapateiras']; if ($n < 1 || $n > 200) falha('Quantas sapateiras existem? De 1 a 200.'); $r['sapateiras'] = $n; }
     if (isset($in['pacotes']) && is_array($in['pacotes'])) {
-      $ps = []; foreach ($in['pacotes'] as $p) { $h = (int)($p['h'] ?? 0); $v = (float)($p['v'] ?? 0); if ($h > 0 && $v >= 0) { $ps[$h] = ['h' => $h, 'v' => $v]; $com = mb_substr(trim((string)($p['com'] ?? '')), 0, 60); if ($com !== '') $ps[$h]['com'] = $com; } }
+      // cada tamanho pode existir em dois tipos: com produto (o brinde já está no valor) e seco (só as horas). parc = em até quantas vezes parcela
+      $ps = []; foreach ($in['pacotes'] as $p) { $h = (int)($p['h'] ?? 0); $v = (float)($p['v'] ?? 0); if ($h <= 0 || $h > 500 || $v < 0) continue;
+        $com = mb_substr(trim((string)($p['com'] ?? '')), 0, 60); $x = ['h' => $h, 'v' => $v, 'tipo' => tipoPacote(['tipo' => $p['tipo'] ?? null, 'com' => $com])];
+        if ($x['tipo'] === 'produto' && $com !== '') $x['com'] = $com; $parc = (int)($p['parc'] ?? 0); if ($parc > 1 && $parc <= 12) $x['parc'] = $parc;
+        $ps[chavePacote($x)] = $x; }
       ksort($ps); $r['pacotes'] = array_values($ps);   // pacotes são opcionais: a lista pode ficar vazia
     }
     if (isset($in['servicos']) && is_array($in['servicos'])) { // os serviços e produtos da loja: valor único ou a cada tantos minutos

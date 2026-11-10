@@ -124,6 +124,21 @@ function db(): PDO {
     try { $pdo->exec('ALTER TABLE vendas ADD COLUMN cheio REAL'); } catch (Throwable $e) { }   // o valor de tabela, quando a venda saiu com desconto PCD ou por voucher
     $pdo->exec('PRAGMA user_version = 12');
   }
+  if ($v < 13) { // 0.81: os pacotes da loja, em dois tipos (com produto e seco). Os valores que a loja passou entram na tabela; o que já estava cadastrado de outros tamanhos fica
+    try {
+      $q = $pdo->query("SELECT valor FROM config WHERE chave = 'regra'")->fetchColumn(); $rg = $q !== false ? json_decode((string)$q, true) : null; if (!is_array($rg)) $rg = [];
+      $atuais = (array)($rg['pacotes'] ?? []); if ($atuais == PACOTES_DE_EXEMPLO) $atuais = [];
+      $ps = [];
+      foreach ($atuais as $p) { $h = (int)($p['h'] ?? 0); if ($h <= 0) continue; $p['h'] = $h;
+        if (!isset($p['tipo'])) { $p['tipo'] = tipoPacote($p);   // pacote antigo com o mesmo valor da tabela "com produto": é esse pacote, não um seco
+          foreach (PACOTES_DA_LOJA as $l) if ($l['tipo'] === 'produto' && $l['h'] === $h && abs((float)$l['v'] - (float)($p['v'] ?? 0)) < 0.005) $p['tipo'] = 'produto'; }
+        $ps[chavePacote($p)] = $p; }
+      foreach (PACOTES_DA_LOJA as $l) { $k = chavePacote($l); $ps[$k] = $l + ($ps[$k] ?? []); }   // vale o valor que a loja passou; o nome do produto que já estava fica
+      ksort($ps); $rg['pacotes'] = array_values($ps);
+      $pdo->prepare("INSERT INTO config (chave, valor) VALUES ('regra', ?) ON CONFLICT(chave) DO UPDATE SET valor = excluded.valor")->execute([json_encode($rg, JSON_UNESCAPED_UNICODE)]);
+    } catch (Throwable $e) { }
+    $pdo->exec('PRAGMA user_version = 13');
+  }
   return $pdo;
 }
 function cfg(string $k, $padrao = null) { $q = db()->prepare('SELECT valor FROM config WHERE chave = ?'); $q->execute([$k]); $v = $q->fetchColumn(); return $v === false ? $padrao : json_decode((string)$v, true); }
@@ -145,6 +160,13 @@ const SERVICOS_PADRAO = [
   ['id' => 'fusquinha', 'n' => 'Carrinho fusquinha', 'v' => 15, 'modo' => 'periodo', 'min' => 30, 'banco' => false, 'obs' => ''],
   ['id' => 'bebe', 'n' => 'Carrinho de bebê', 'v' => 30, 'modo' => 'fixo', 'min' => 0, 'banco' => false, 'obs' => 'das 10h às 22h'],
 ];
+// os pacotes da loja (tabela "Nossos pacotes", novembro de 2026): com produto, o brinde já está no valor; seco, só as horas. parc = em até quantas vezes
+const PACOTES_DA_LOJA = [['h' => 5, 'v' => 680, 'tipo' => 'produto', 'parc' => 3], ['h' => 10, 'v' => 1220, 'tipo' => 'produto', 'parc' => 4], ['h' => 15, 'v' => 1720, 'tipo' => 'produto', 'parc' => 4], ['h' => 5, 'v' => 420, 'tipo' => 'seco']];
+// o tipo de um pacote: 'produto' (vem com o produto, que já está no valor) ou 'seco' (só as horas). Pacote antigo, sem o tipo: é "com produto" se tem o nome do produto
+function tipoPacote(array $p): string { return ($p['tipo'] ?? (trim((string)($p['com'] ?? '')) !== '' ? 'produto' : 'seco')) === 'produto' ? 'produto' : 'seco'; }
+function chavePacote(array $p): string { return sprintf('%05d-%d', (int)$p['h'], tipoPacote($p) === 'produto' ? 0 : 1); }   // a ordem da lista: por horas, com produto antes do seco
+// como a venda de um pacote aparece: "Pacote de 5h com produto", "Pacote seco de 5h", "Hora avulsa"
+function nomePacoteVenda(int $min, string $itens): string { if ($itens === 'seco') return 'Pacote seco de ' . dur($min); return ($min === 60 ? 'Hora avulsa' : 'Pacote de ' . dur($min)) . ($itens !== '' ? ' com ' . $itens : ''); }
 const PACOTES_DE_EXEMPLO = [['h' => 1, 'v' => 60], ['h' => 5, 'v' => 250], ['h' => 10, 'v' => 450], ['h' => 20, 'v' => 800]];   // inventados nas primeiras versões: saem sozinhos se ninguém mexeu neles
 // cancelaMin: até quantos minutos depois da entrada o próprio atendente cancela sem cobrar (0 = só gestor e supervisor cancelam)
 // tolerancia: quantos minutos depois do fim do tempo comprado a criança ainda pode ficar sem gerar nova cobrança
@@ -343,7 +365,7 @@ function fazerVenda(array $c, int $min, float $valor, ?int $por, string $itens =
   $venda = (int)$db->lastInsertId();
   $dinheiro = 'R$ ' . number_format($valor, fmod($valor, 1) ? 2 : 0, ',', '.');
   if ($servico !== '') $texto = $servico . ($min > 0 ? ' · ' . dur($min) : '') . ($itens !== '' ? ' · ' . $itens : '') . ' · ' . $dinheiro;
-  else $texto = $min > 0 ? ($min === 60 ? 'Hora avulsa' : 'Pacote de ' . dur($min)) . ($itens !== '' ? ' com ' . $itens : '') . ' vendido · ' . $dinheiro : $itens . ' · ' . $dinheiro;
+  else $texto = $min > 0 ? nomePacoteVenda($min, $itens) . ' vendido · ' . $dinheiro : $itens . ' · ' . $dinheiro;
   $reg = $auto ? registrar('cobr', (int)$c['id'], $c['nome'], $textoAuto !== '' ? $textoAuto : $texto) : registrar('venda', (int)$c['id'], $c['nome'], $texto);
   $db->prepare('UPDATE vendas SET registro = ? WHERE id = ?')->execute([$reg, $venda]);
   return ['venda' => $venda, 'registro' => $reg];
@@ -383,7 +405,7 @@ function usarVoucher(array $c, array $u): array {
 function nomeDaVenda(array $v): string { // "Recreação · 30 min", "Carrinho de bebê · das 10h às 22h", "Pacote de 5h"
   $min = (int)($v['minutos'] ?? 0); $s = trim((string)($v['servico'] ?? '')); $it = trim((string)($v['itens'] ?? ''));
   if ($s !== '') return $s . ($min > 0 ? ' · ' . dur($min) : '') . ($it !== '' ? ' · ' . $it : '');
-  return $min > 0 ? ($min === 60 ? 'Hora avulsa' : 'Pacote de ' . dur($min)) . ($it !== '' ? ' com ' . $it : '') : ($it !== '' ? $it : 'Produto');
+  return $min > 0 ? nomePacoteVenda($min, $it) : ($it !== '' ? $it : 'Produto');
 }
 
 /* ---------- cancelar a entrada sem cobrar ---------- */
