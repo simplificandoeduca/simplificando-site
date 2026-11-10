@@ -464,7 +464,7 @@ function logo(){
 $('#logo').innerHTML = logo(); document.querySelector('.top .mic').innerHTML = I.mic;
 
 /* ========== estado ========== */
-const FINV = '10 nov · 19'; // Versão do Finanças: 10 nov · 19
+const FINV = '10 nov · 20'; // Versão do Finanças: 10 nov · 20
 const DONO = { nome:'Eduardo Matias', iniciais:'EM' }; // perfil único desta página
 const LS = 'simplificando-financas', LST = 'simplificando-financas-tema';
 const CATS = ['Mercado', 'Comida', 'Transporte', 'Casa', 'Lazer', 'Saúde', 'Roupas', 'Assinaturas', 'Outros'];
@@ -572,14 +572,16 @@ function irmaoPendente(){
   return { gasto, pago, deve:gasto - pago };
 }
 function faturaDe(c){ // a fatura ABERTA na data de referência: hoje (no mês atual) ou o dia 15 do mês escolhido.
-  // Ex.: fecha dia 2 e hoje é 10/11 -> fatura de 03/11 a 02/12 (a que está acumulando agora)
+  // Regra do Nubank: compra feita no dia do fechamento já entra na fatura seguinte.
+  // Ex.: fecha dia 2 e hoje é 10/11 -> fatura de 02/11 a 01/12
   if (!c.fecha) return null;
   const hoje = todayISO(), ref = UI.mes === nowKey() ? hoje : UI.mes + '-15';
   const ultimo = m => new Date(+m.slice(0, 4), +m.slice(5, 7), 0).getDate();
   const fechaEm = m => m + '-' + p2(Math.min(c.fecha, ultimo(m)));
-  let fim = fechaEm(UI.mes); if (ref > fim) fim = fechaEm(addMonths(UI.mes + '-01', 1).slice(0, 7));
-  const d = parseISO(addMonths(fim, -1)); d.setDate(d.getDate() + 1);
-  const ini = d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate());
+  let ini = fechaEm(UI.mes);
+  if (ref < ini) ini = fechaEm(addMonths(UI.mes + '-01', -1).slice(0, 7));
+  const d = parseISO(fechaEm(addMonths(ini, 1).slice(0, 7))); d.setDate(d.getDate() - 1);
+  const fim = d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate());
   const itens = S.gastos.filter(g => g.cartao === c.id && g.data >= ini && g.data <= fim);
   return { ini, fim, total:sum(itens, g => g.valor), irmao:sum(itens.filter(g => g.quem === 'irmao'), g => g.valor) };
 }
@@ -705,8 +707,8 @@ function rResumo(){
   h += `<div class="card" style="padding:0;gap:0"><div class="hd" style="padding:18px 16px 8px"><h2>Meus cartões</h2><span class="pill">${esc(fmt(meus + doIrmao))}</span></div>`;
   for (const c of S.cartoes) {
     const its = gm.filter(g => g.cartao === c.id), v = sum(its, g => g.valor), vi = sum(its.filter(g => g.quem === 'irmao'), g => g.valor), f = faturaDe(c);
-    const pf = c.tipo === 'conta' ? null : pagosFatura(c, f), sub = (c.tipo === 'conta' ? 'Débito e Pix' : 'Crédito' + (c.fecha ? ' · fecha dia ' + c.fecha : '')) + (vi ? ' · ' + n + ' ' + esc(fmt(vi)) : '') + (pf && pf.total ? ' · pago ' + esc(fmt(pf.total)) + ' · falta ' + esc(fmt(Math.max(0, (f ? f.total : v) - pf.total))) : '');
-    h += `<button type="button" class="rc" data-a="ver-cartao" data-k="${c.id}" style="--ga:var(--g${(c.cor ?? 7) % 8});--gb:${corVis(c)}">${ccHTML(c, '', 'mini')}<span class="tx"><b>${esc(c.nome)}</b><span>${sub}</span><span class="bar2"><i style="width:${Math.round((v - vi) / totCart * 100)}%"></i>${vi ? `<i class="ir" style="width:${Math.round(vi / totCart * 100)}%"></i>` : ''}</span></span><span class="v">${esc(fmt(f ? f.total : v))}<small>${f ? 'fatura' : 'no mês'}</small></span><span class="chev">${I.chev}</span></button>`;
+    const pf = c.tipo === 'conta' ? null : pagosFatura(c, f), sub = (c.tipo === 'conta' ? 'Débito e Pix' : 'Crédito' + (c.fecha ? ' · fecha dia ' + c.fecha : '')) + (vi ? ' · ' + n + ' ' + esc(fmt(vi)) : '') + (pf && pf.total ? ' · compras ' + esc(fmt(f ? f.total : v)) + ' · pago ' + esc(fmt(pf.total)) : '');
+    h += `<button type="button" class="rc" data-a="ver-cartao" data-k="${c.id}" style="--ga:var(--g${(c.cor ?? 7) % 8});--gb:${corVis(c)}">${ccHTML(c, '', 'mini')}<span class="tx"><b>${esc(c.nome)}</b><span>${sub}</span><span class="bar2"><i style="width:${Math.round((v - vi) / totCart * 100)}%"></i>${vi ? `<i class="ir" style="width:${Math.round(vi / totCart * 100)}%"></i>` : ''}</span></span><span class="v">${esc(fmt(pf && pf.total ? Math.max(0, (f ? f.total : v) - pf.total) : (f ? f.total : v)))}<small>${f ? 'fatura atual' : 'no mês'}</small></span><span class="chev">${I.chev}</span></button>`;
   }
   h += `<button type="button" class="rc novo" data-a="add-cartao-resumo">${I.plus}Novo cartão</button></div>`;
   h += `<p class="sub" style="text-align:center">${gm.length ? 'Toque num cartão para ver o extrato. A barra mostra quanto cada um pesa no mês' + (doIrmao ? '; a parte clara é do ' + n : '') + '.' : 'Nenhum gasto em ' + esc(monthLabel(UI.mes)) + '. Toque no <b>+</b> para lançar.'}</p>`;
@@ -722,8 +724,8 @@ function rCartao(){
   h += ccHTML(c, f ? 'Fecha dia ' + c.fecha : undefined);
   h += `<div class="kp3"><div><b>${esc(fmt(tot))}</b><span>No mês</span></div><div><b>${esc(fmt(meu))}</b><span>Meu</span></div><div><b>${esc(fmt(ir))}</b><span>${n}</span></div></div>`;
   if (tot) h += `<div class="bar" style="--sw:var(--c${(c.cor ?? 7) % 8})"><div class="t"><i style="width:${Math.round(meu / tot * 100)}%"></i>${ir ? `<i class="ir" style="width:${Math.round(ir / tot * 100)}%"></i>` : ''}</div></div>`;
-  if (f) h += `<p class="sub">Fatura aberta, de ${esc(shortDate(f.ini))} a ${esc(shortDate(f.fim))} (fecha dia ${c.fecha}): <b>${esc(fmt(f.total))}</b>${f.irmao ? ' · ' + n + ' ' + esc(fmt(f.irmao)) : ''}</p>`;
   const pf = c.tipo === 'conta' ? null : pagosFatura(c, f);
+  if (f) h += `<p class="sub">Fatura atual, de ${esc(shortDate(f.ini))} a ${esc(shortDate(f.fim))} (fecha dia ${c.fecha}): <b>${esc(fmt(Math.max(0, f.total - (pf ? pf.total : 0))))}</b>${pf && pf.total ? ' · compras ' + esc(fmt(f.total)) + ' · pago ' + esc(fmt(pf.total)) : ''}${f.irmao ? ' · ' + n + ' ' + esc(fmt(f.irmao)) : ''}</p>`;
   if (pf && pf.total) {
     const base = f ? f.total : tot, falta = base - pf.total;
     h += `<div class="card ${falta <= 0 ? 'blk-ok' : ''}" style="gap:8px"><div class="hd"><h2 style="font-size:15px">Pagamento da fatura</h2><span class="pill">${falta <= 0 ? 'quitada' : 'falta ' + esc(fmt(falta))}</span></div><p class="sub">Já pago: <b>${esc(fmt(pf.total))}</b> de ${esc(fmt(base))}${falta < 0 ? ' · pagou ' + esc(fmt(-falta)) + ' a mais (fica de crédito)' : ''}.</p><div class="list" style="margin:0 -6px">${pf.itens.map(x => `<button type="button" class="row" data-a="ed-pagfat" data-k="${x.id}"><span class="ic">💸</span><span class="tx"><b>${esc(x.obs || 'Pagamento da fatura')}</b><span>${esc(dayLabel(x.data))}${x.conta === false ? ' · não saiu da conta' : ''}</span></span><span class="val in">${esc(fmt(x.valor))}</span></button>`).join('')}</div></div>`;
