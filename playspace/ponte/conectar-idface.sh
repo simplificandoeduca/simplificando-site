@@ -67,7 +67,7 @@ fi
 [ -z "$USUARIO" ] && USUARIO=admin
 diz ''
 read -r -p "Usuário do iDFace [$USUARIO]: " u; [ -n "$u" ] && USUARIO=$u
-read -r -s -p 'Senha do iDFace (de fábrica costuma ser admin): ' SENHA; diz ''
+read -r -p 'Senha do iDFace (a que abre o menu do aparelho; de fábrica costuma ser admin): ' SENHA
 esc() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
 resp=$(curl -s -m 8 -X POST "http://$IP/login.fcgi" -H 'Content-Type: application/json' -d "{\"login\":\"$(esc "$USUARIO")\",\"password\":\"$(esc "$SENHA")\"}")
 SESSAO=$(printf '%s' "$resp" | sed -n 's/.*"session" *: *"\([^"]*\)".*/\1/p')
