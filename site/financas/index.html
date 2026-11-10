@@ -345,6 +345,10 @@ button.row:active{background:var(--ctl)}
 .orc .ln b{color:var(--fg);font-variant-numeric:tabular-nums}
 .orc .ln.tot{border-top:1px solid var(--sep);padding-top:6px;margin-top:2px;font-weight:700;color:var(--fg)}
 .prog{height:10px;border-radius:999px;background:var(--ctl);overflow:hidden}.prog i{display:block;height:100%;background:var(--accent);border-radius:999px;transition:width .4s var(--ease)}
+.blk-rosa{--card:#FFD6E3;--fg:#0F1712;--muted:rgba(15,23,18,.68);--ctl:rgba(15,23,18,.1);--sep:rgba(15,23,18,.2);--ctl-fg:#0F1712;--accent:#0F1712;--on-accent:#FFD6E3;--card-line:transparent;--focus:#0F1712}
+.blk-rosa .prog{background:rgba(15,23,18,.12)}.blk-rosa .prog i{background:#E0467C}
+.blk-rosa.feito{--card:#FFB8CF}
+.porco{font-size:30px;line-height:1;flex:none}
 .blk-verde{--card:#1F5E3A;--fg:#F6F5EF;--muted:rgba(246,245,239,.72);--ctl:rgba(246,245,239,.14);--sep:rgba(246,245,239,.22);--ctl-fg:#F6F5EF;--card-line:transparent}
 .blk-verde .cta .l1 .ic{background:rgba(246,245,239,.14)}
 .blk-verde .conta-st.ok{background:var(--ok);color:#0F1712}
@@ -473,7 +477,7 @@ function logo(){
 $('#logo').innerHTML = logo(); document.querySelector('.top .mic').innerHTML = I.mic;
 
 /* ========== estado ========== */
-const FINV = '10 nov · 34'; // Versão do Finanças: 10 nov · 34
+const FINV = '10 nov · 35'; // Versão do Finanças: 10 nov · 35
 const DONO = { nome:'Eduardo Matias', iniciais:'EM' }; // perfil único desta página
 const LS = 'simplificando-financas', LST = 'simplificando-financas-tema';
 const CATS = ['Mercado', 'Comida', 'Transporte', 'Casa', 'Lazer', 'Saúde', 'Roupas', 'Assinaturas', 'Outros'];
@@ -695,11 +699,11 @@ function rResumo(){
   // cofrinho
   if (o.meta || o.guardado) {
     const falta = Math.max(0, o.meta - o.guardado), pct = o.meta ? Math.min(100, Math.round(o.guardado / o.meta * 100)) : 100;
-    h += `<div class="card ${falta ? (new Date().getDate() > 10 && UI.mes === nowKey() ? 'blk-warn' : '') : 'blk-ok'}"><div class="hd"><h2>Cofrinho</h2><span class="pill">${pct}% da meta</span></div>
+    h += `<div class="card blk-rosa ${falta ? '' : 'feito'}"><div class="hd"><span class="porco" aria-hidden="true">🐷</span><h2>Cofrinho</h2><span class="pill">${pct}% da meta</span></div>
       <p class="big">${fmtBig(o.guardado)}<small style="margin-left:6px">de ${esc(fmt(o.meta))}</small></p><div class="prog"><i style="width:${pct}%"></i></div>
       <p class="sub">${falta ? 'Faltam <b>' + esc(fmt(falta)) + '</b> para guardar este mês. Quando o salário cair, guarde primeiro e gaste depois.' : 'Meta do mês batida. Isso é o que faz sobrar no mês que vem.'}</p>
       <div class="btns">${falta ? `<button type="button" class="btn primary" data-a="guardar-tudo" data-k="${falta}">Guardei ${esc(fmt(falta))}</button>` : ''}<button type="button" class="btn" data-a="guardar">${I.plus}Outro valor</button>${S.guardados.filter(inMes).length ? `<button type="button" class="btn" data-a="ver-guardados">Ver</button>` : ''}</div></div>`;
-  } else h += `<div class="card"><div class="hd"><h2>Cofrinho</h2></div><p class="sub">Defina em Ajustes quanto quer guardar por mês (um valor ou uma porcentagem da renda). O "posso gastar" já desconta isso, então guardar deixa de ser o que sobra e vira a primeira conta a pagar.</p><div class="btns"><button type="button" class="btn primary" data-a="tab" data-k="ajustes">Definir meta</button></div></div>`;
+  } else h += `<div class="card blk-rosa"><div class="hd"><span class="porco" aria-hidden="true">🐷</span><h2>Cofrinho</h2></div><p class="sub">Defina em Ajustes quanto quer guardar por mês (um valor ou uma porcentagem da renda). O "posso gastar" já desconta isso, então guardar deixa de ser o que sobra e vira a primeira conta a pagar.</p><div class="btns"><button type="button" class="btn primary" data-a="tab" data-k="ajustes">Definir meta</button></div></div>`;
   // contas do mês (boleto / Pix)
   const cm = contasMes();
   if (cm.length) {
