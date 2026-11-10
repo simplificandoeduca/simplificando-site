@@ -113,6 +113,7 @@ main{max-width:720px;margin:0 auto;padding:4px max(16px,env(safe-area-inset-righ
 .chips{display:flex;gap:8px;flex-wrap:wrap}
 .chips.scroll{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -18px;padding:2px 18px}
 .chips.scroll::-webkit-scrollbar{display:none}
+.chips.small{gap:6px}.chips.small .opt{min-height:34px;padding:0 11px;font-size:13px;gap:5px}
 .opt{min-height:40px;padding:0 14px;border:0;border-radius:999px;background:var(--ctl);color:var(--ctl-fg);font-size:14px;font-weight:600;transition:transform .2s var(--spring),background .2s;white-space:nowrap;display:inline-flex;align-items:center;gap:7px}
 .opt .sw{width:9px;height:9px;border-radius:50%;background:var(--sw,var(--muted));flex:none}
 .opt.on{background:var(--accent);color:var(--on-accent);font-weight:800}
@@ -451,7 +452,7 @@ function logo(){
 $('#logo').innerHTML = logo(); document.querySelector('.top .mic').innerHTML = I.mic;
 
 /* ========== estado ========== */
-const FINV = '10 nov · 11'; // Versão do Finanças: 10 nov · 11
+const FINV = '10 nov · 12'; // Versão do Finanças: 10 nov · 12
 const DONO = { nome:'Eduardo Matias', iniciais:'EM' }; // perfil único desta página
 const LS = 'simplificando-financas', LST = 'simplificando-financas-tema';
 const CATS = ['Mercado', 'Comida', 'Transporte', 'Casa', 'Lazer', 'Saúde', 'Roupas', 'Assinaturas', 'Outros'];
@@ -847,8 +848,8 @@ function sheetGasto(g){
     <div class="sec"><p class="lbl">Cartão</p>${chipsHTML('cartao', S.cartoes, g.cartao, swOf)}</div>
     <div class="sec"><p class="lbl">Quem gastou</p><div class="seg" id="quem"><button type="button" class="${st.quem !== 'irmao' ? 'on' : ''}" data-c="quem" data-k="eu">Eu</button><button type="button" class="${st.quem === 'irmao' ? 'on' : ''}" data-c="quem" data-k="irmao">${esc(S.irmao.nome)}</button></div></div>
     <div class="sec"><label class="field">O que foi <span style="font-weight:500;color:var(--muted)">(opcional)</span><span class="inline"><input id="s-desc" value="${esc(g.desc)}" placeholder="Ex.: mercado, Uber, farmácia" autocomplete="off"><button type="button" class="mic sm ghost" data-voz="s-desc" aria-label="Falar a descrição">${I.mic}</button></span></label>
-    ${sug.length && !edit ? `<div class="chips scroll">${sug.map(s => `<button type="button" class="opt" data-c="sug" data-k="${esc(s.desc)}" data-cat="${esc(s.cat)}">${esc(s.desc)}</button>`).join('')}</div>` : ''}</div>
-    <div class="sec"><p class="lbl">Categoria</p><div class="chips scroll">${S.cats.map(c => `<button type="button" class="opt ${st.cat === c ? 'on' : ''}" data-c="cat" data-k="${esc(c)}">${esc(c)}</button>`).join('')}</div></div>
+    ${sug.length && !edit ? `<div class="chips small">${sug.map(s => `<button type="button" class="opt" data-c="sug" data-k="${esc(s.desc)}" data-cat="${esc(s.cat)}">${esc(s.desc)}</button>`).join('')}</div>` : ''}</div>
+    <div class="sec"><p class="lbl">Categoria</p><div class="chips small">${S.cats.map(c => `<button type="button" class="opt ${st.cat === c ? 'on' : ''}" data-c="cat" data-k="${esc(c)}">${esc(c)}</button>`).join('')}</div></div>
     <div class="grid2"><label class="field">Data<input type="date" id="s-data" value="${esc(g.data)}"></label>${!edit && cc.tipo !== 'conta' ? `<label class="field">Parcelas<select id="s-parc">${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(n => `<option value="${n}">${n === 1 ? 'À vista' : n + '× (divide o valor)'}</option>`).join('')}</select></label>` : ''}</div>
     <div class="btns" style="margin-top:4px"><button type="button" class="btn primary wide" data-s="salvar-gasto" style="flex:1 1 100%">${edit ? 'Salvar' : 'Salvar gasto'}</button></div>${edit ? `<div class="btns" id="s-del" style="justify-content:center"><button type="button" class="btn danger" data-s="${g.grp ? 'apagar-opcoes' : 'apagar-gasto'}">${I.trash}Apagar</button></div>` : ''}`, st);
 }
@@ -889,7 +890,7 @@ function sheetFixo(f){
     <div class="sec"><p class="lbl">Como paga</p><div class="seg"><button type="button" class="${st.forma !== 'boleto' ? 'on' : ''}" data-c="forma" data-k="cartao">No cartão (lança sozinho)</button><button type="button" class="${st.forma === 'boleto' ? 'on' : ''}" data-c="forma" data-k="boleto">Boleto ou Pix (eu confirmo)</button></div></div>
     <div class="sec"><p class="lbl">${st.forma === 'boleto' ? 'Sai de' : 'Cartão'}</p>${chipsHTML('cartao', S.cartoes, f.cartao, swOf)}</div>
     <div class="sec"><p class="lbl">Quem paga</p><div class="seg"><button type="button" class="${st.quem !== 'irmao' ? 'on' : ''}" data-c="quem" data-k="eu">Eu</button><button type="button" class="${st.quem === 'irmao' ? 'on' : ''}" data-c="quem" data-k="irmao">${esc(S.irmao.nome)}</button></div></div>
-    <div class="sec"><p class="lbl">Categoria</p><div class="chips scroll">${S.cats.map(c => `<button type="button" class="opt ${st.cat === c ? 'on' : ''}" data-c="cat" data-k="${esc(c)}">${esc(c)}</button>`).join('')}</div></div>
+    <div class="sec"><p class="lbl">Categoria</p><div class="chips small">${S.cats.map(c => `<button type="button" class="opt ${st.cat === c ? 'on' : ''}" data-c="cat" data-k="${esc(c)}">${esc(c)}</button>`).join('')}</div></div>
     <div class="grid2"><label class="field">${st.forma === 'boleto' ? 'Vence dia' : 'Dia do mês'}<input type="number" id="s-dia" min="1" max="31" inputmode="numeric" value="${f.dia || 1}"></label><label class="field">Situação<select id="s-ativo"><option value="1" ${f.ativo !== false ? 'selected' : ''}>Ativo</option><option value="0" ${f.ativo === false ? 'selected' : ''}>Pausado</option></select></label></div>
     <div class="btns"><button type="button" class="btn primary wide" data-s="salvar-fixo" style="flex:1 1 100%">Salvar</button>${edit ? `<button type="button" class="btn danger" data-s="apagar-fixo">${I.trash}Apagar</button>` : ''}</div>`, st);
 }
