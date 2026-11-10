@@ -477,7 +477,7 @@ function logo(){
 $('#logo').innerHTML = logo(); document.querySelector('.top .mic').innerHTML = I.mic;
 
 /* ========== estado ========== */
-const FINV = '10 nov · 37'; // Versão do Finanças: 10 nov · 37
+const FINV = '10 nov · 38'; // Versão do Finanças: 10 nov · 38
 const DONO = { nome:'Eduardo Matias', iniciais:'EM' }; // perfil único desta página
 const LS = 'simplificando-financas', LST = 'simplificando-financas-tema';
 const CATS = ['Mercado', 'Comida', 'Transporte', 'Casa', 'Lazer', 'Saúde', 'Roupas', 'Assinaturas', 'Outros'];
@@ -1175,16 +1175,7 @@ function chuteCat(desc){ const d = semAcento(desc); for (const [re, c] of CAT_KW
 function lerImportacao(texto){
   const out = [], hoje = todayISO(), ano = +hoje.slice(0, 4);
   const t = String(texto || '').replace(/\r/g, '');
-  if (/<OFX>|<STMTTRN>/i.test(t)) { // extrato OFX
-    const re = /<STMTTRN>([\s\S]*?)<\/STMTTRN>/gi; let m;
-    while ((m = re.exec(t))) {
-      const g = k => { const x = m[1].match(new RegExp('<' + k + '>([^<\\n]*)', 'i')); return x ? x[1].trim() : ''; };
-      const dt = g('DTPOSTED').slice(0, 8), amt = parseFloat(g('TRNAMT').replace(',', '.')), memo = g('MEMO') || g('NAME');
-      if (!isFinite(amt) || amt >= 0) continue; // em OFX, gasto é negativo
-      out.push({ data:dt.slice(0, 4) + '-' + dt.slice(4, 6) + '-' + dt.slice(6, 8), valor:Math.round(-amt * 100), desc:memo.replace(/\s+/g, ' ').trim(), on:true });
-    }
-    return out;
-  }
+  if (/<OFX>|<STMTTRN>/i.test(t)) return lerOFX(t);
   const linhas = t.split('\n').map(l => l.trim()).filter(Boolean);
   if (!linhas.length) return out;
   const head = semAcento(linhas[0]);
@@ -1244,18 +1235,71 @@ function sheetImportar(cartaoId){
     <div id="imp-out"></div>`, st);
   const f = $('#imp-file'); if (f) f.addEventListener('change', () => { const file = f.files[0]; if (!file) return; const fr = new FileReader(); fr.onload = () => { $('#imp-txt').value = String(fr.result || ''); lerImp(); }; fr.readAsText(file, 'utf-8'); });
 }
+/* Extrato de conta (OFX): separa o que é gasto do que não é.
+   - transferência entre as suas contas (o próprio nome no memo): não é gasto nem renda
+   - pagamento de fatura de cartão: já está nos cartões
+   - boleto/Pix que bate com uma conta fixa do boleto: marca a conta como paga
+   - aplicação/resgate de investimento: vai para o cofrinho (aplicação) ou fica de fora (resgate)
+   - entradas: viram receita (salário) ou pagamento do irmão; ficam desmarcadas para você conferir
+   O saldo do fim do extrato (LEDGERBAL) pode virar o saldo da conta. */
+function lerOFX(t){
+  const out = [], tag = (b, k) => { const x = b.match(new RegExp('<' + k + '>([^<\\r\\n]*)', 'i')); return x ? x[1].trim() : ''; };
+  const iso = d => d.slice(0, 4) + '-' + d.slice(4, 6) + '-' + d.slice(6, 8);
+  const meu = semAcento(DONO.nome).split(' ').filter(w => w.length > 2), nomeIr = semAcento(S.irmao.nome || '');
+  const ehMeu = m => { const n = semAcento(m); return meu.length >= 2 && meu.every(w => n.includes(w)); };
+  const limpa = m => m.replace(/\s+/g, ' ').replace(/^(Compra no d[eé]bito|Transfer[eê]ncia enviada pelo Pix|Transfer[eê]ncia recebida pelo Pix|Transfer[eê]ncia Recebida|Pagamento de boleto efetuado)\s*-\s*/i, '').replace(/\s+-\s+(•|\d{2}\.\d{3}|[\d.]{8,}).*$/, '').replace(/\s+-\s+[A-Z0-9 .()]*(IP|S\.A\.|LTDA)[^-]*(Ag[eê]ncia.*)?$/i, '').trim();
+  const re = /<STMTTRN>([\s\S]*?)<\/STMTTRN>/gi; let m;
+  while ((m = re.exec(t))) {
+    const b = m[1], data = iso(tag(b, 'DTPOSTED')), amt = parseFloat(tag(b, 'TRNAMT').replace(',', '.')), memo = tag(b, 'MEMO') || tag(b, 'NAME'), fitid = tag(b, 'FITID');
+    if (!isFinite(amt) || !amt) continue;
+    const valor = Math.round(Math.abs(amt) * 100), nm = semAcento(memo), desc = limpa(memo) || memo;
+    const x = { data, valor, desc, fitid, on:false, tipo:'gasto', nota:'' };
+    if (ehMeu(memo)) { x.tipo = 'nada'; x.nota = amt < 0 ? 'transferência para outra conta sua' : 'transferência de outra conta sua'; }
+    else if (/pagamento de fatura/.test(nm)) { x.tipo = 'nada'; x.nota = 'pagamento de fatura (já está nos cartões)'; }
+    else if (/aplicacao rdb|aplicacao|caixinha|guardar/.test(nm) && amt < 0) { x.tipo = 'guardar'; x.on = true; x.nota = 'investimento: vai para o cofrinho'; x.desc = 'Investimento (' + desc + ')'; }
+    else if (/resgate/.test(nm)) { x.tipo = 'nada'; x.nota = 'resgate de investimento'; }
+    else if (amt > 0) {
+      x.tipo = nomeIr && nomeIr.length > 2 && nm.includes(nomeIr) ? 'pag' : 'receita';
+      x.nota = x.tipo === 'pag' ? S.irmao.nome + ' pagou' : 'entrada: vira receita (confira)';
+    } else {
+      x.on = true;
+      const fx = S.fixos.find(f => f.ativo !== false && f.forma === 'boleto' && (Math.abs(f.valor - valor) <= 100 || nm.includes(semAcento(f.nome))));
+      if (fx) { x.tipo = 'conta'; x.fixo = fx.id; x.nota = 'conta fixa: ' + fx.nome + ' (marca como paga)'; x.desc = fx.nome; }
+      else if (/compra no debito/.test(nm)) x.nota = 'compra no débito';
+      else if (/pix/.test(nm)) x.nota = 'Pix enviado';
+      else if (/boleto/.test(nm)) x.nota = 'boleto';
+    }
+    out.push(x);
+  }
+  const bal = t.match(/<LEDGERBAL>[\s\S]*?<BALAMT>([^<\r\n]+)[\s\S]*?<DTASOF>(\d{8})/i);
+  out.saldo = bal ? { valor:Math.round(parseFloat(bal[1].replace(',', '.')) * 100), data:iso(bal[2]) } : null;
+  out.conta = tag(t, 'ACCTID');
+  return out;
+}
 function lerImp(){
   const st = Sheet.st; if (!st || st.kind !== 'importar') return;
   const itens = lerImportacao(val('imp-txt'));
-  for (const x of itens) { x.cat = x.cat || chuteCat(x.desc); const lim = t => semAcento(t).replace(/[^a-z0-9]/g, ''); x.dup = S.gastos.some(g => g.data === x.data && g.valor === x.valor && lim(g.desc) === lim(x.desc)); if (x.dup) x.on = false; }
-  st.itens = itens; mostrarImp();
+  const lim = t => semAcento(t).replace(/[^a-z0-9]/g, '');
+  for (const x of itens) {
+    x.cat = x.cat || (x.tipo && x.tipo !== 'gasto' ? '' : chuteCat(x.desc));
+    const ja = (x.fitid && (S.gastos.some(g => g.fitid === x.fitid) || S.receitas.some(r => r.fitid === x.fitid) || S.guardados.some(r => r.fitid === x.fitid) || S.pagamentos.some(r => r.fitid === x.fitid)))
+      || S.gastos.some(g => g.data === x.data && g.valor === x.valor && lim(g.desc) === lim(x.desc))
+      || (x.tipo === 'conta' && S.gastos.some(g => g.fixo === x.fixo && (g.data || '').slice(0, 7) === x.data.slice(0, 7)));
+    x.dup = !!ja; if (x.dup) x.on = false;
+  }
+  st.itens = itens; st.ofx = !!itens.saldo || itens.some(x => x.tipo);
+  st.saldoOfx = itens.saldo || null; st.usarSaldo = !!itens.saldo && (!S.saldos.length || itens.saldo.data >= (S.saldos[S.saldos.length - 1].data || isoDe(S.saldos[S.saldos.length - 1].cr)));
+  if (st.ofx) { const pix = S.cartoes.find(c => c.tipo === 'conta'); st.cartao = pix ? pix.id : contaId(); }
+  mostrarImp();
 }
 function mostrarImp(){
   const st = Sheet.st, out = $('#imp-out'); if (!st || !out) return;
-  if (!st.itens.length) { out.innerHTML = `<p class="sub">Não achei linhas com valor. Cada linha precisa ter o valor (ex.: 32,90) e, se possível, a data (ex.: 03/11).</p>`; return; }
-  const sel = st.itens.filter(x => x.on), tot = sum(sel, x => x.valor);
-  out.innerHTML = `<p class="lbl">Li ${st.itens.length} ${st.itens.length === 1 ? 'linha' : 'linhas'}. Desmarque o que não for gasto.</p><div class="imp-prev">${st.itens.map((x, i) => `<label class="imp-row ${x.on ? '' : 'off'}"><input type="checkbox" data-imp="${i}" ${x.on ? 'checked' : ''}><span class="d">${esc(shortDate(x.data))}</span><span class="t">${esc(x.desc)}<small>${x.dup ? 'já lançado' : esc(x.cat || 'sem categoria')}</small></span><span class="v">${esc(fmt(x.valor))}</span></label>`).join('')}</div>
-    <button type="button" class="btn primary wide" data-s="imp-salvar" ${sel.length ? '' : 'disabled'}>Importar ${sel.length} ${sel.length === 1 ? 'gasto' : 'gastos'} · ${esc(fmt(tot))}</button>`;
+  if (!st.itens.length && !st.saldoOfx) { out.innerHTML = `<p class="sub">Não achei linhas com valor. Cada linha precisa ter o valor (ex.: 32,90) e, se possível, a data (ex.: 03/11).</p>`; return; }
+  const sel = st.itens.filter(x => x.on), tot = sum(sel.filter(x => !x.tipo || x.tipo === 'gasto' || x.tipo === 'conta'), x => x.valor);
+  const rotulo = { gasto:'gasto', conta:'conta paga', guardar:'cofrinho', receita:'receita', pag:'irmão pagou', nada:'fica de fora' };
+  out.innerHTML = `${st.saldoOfx ? `<label class="imp-row" style="border-radius:16px;background:var(--card);margin-bottom:8px"><input type="checkbox" data-imp-saldo ${st.usarSaldo ? 'checked' : ''}><span class="t">Usar o saldo do banco: <b>${esc(fmt(st.saldoOfx.valor))}</b> em ${esc(shortDate(st.saldoOfx.data))}<small>${st.usarSaldo ? 'vira o saldo da conta no Resumo' : 'mais antigo que o saldo que você já informou'}</small></span></label>` : ''}
+    <p class="lbl">Li ${st.itens.length} ${st.itens.length === 1 ? 'linha' : 'linhas'}. ${st.ofx ? 'Já separei o que não é gasto; confira.' : 'Desmarque o que não for gasto.'}</p>${st.itens.some(x => x.data.slice(0, 7) !== nowKey()) ? `<div class="btns"><button type="button" class="btn sm" data-s="imp-mes">Só ${esc(monthLabel(nowKey()).split(' ')[0].toLowerCase())}</button><button type="button" class="btn sm" data-s="imp-tudo">Marcar tudo que é gasto</button></div>` : ''}<div class="imp-prev">${st.itens.map((x, i) => `<label class="imp-row ${x.on ? '' : 'off'}"><input type="checkbox" data-imp="${i}" ${x.on ? 'checked' : ''} ${x.tipo === 'nada' ? 'disabled' : ''}><span class="d">${esc(shortDate(x.data))}</span><span class="t">${esc(x.desc)}<small>${x.dup ? 'já lançado' : esc(x.nota || x.cat || 'sem categoria')}</small></span><span class="v">${x.tipo === 'receita' || x.tipo === 'pag' ? '+' : ''}${esc(fmt(x.valor))}</span></label>`).join('')}</div>
+    <button type="button" class="btn primary wide" data-s="imp-salvar" ${sel.length || st.usarSaldo ? '' : 'disabled'}>${sel.length ? 'Importar ' + sel.length + (sel.length === 1 ? ' item' : ' itens') + (tot ? ' · gastos ' + esc(fmt(tot)) : '') : st.usarSaldo ? 'Só atualizar o saldo' : 'Nada para importar'}</button>`;
 }
 
 function textoCobranca(){
@@ -1281,7 +1325,7 @@ function cents(){ const s = Sheet.st; return (s.neg ? -1 : 1) * (parseInt(s.dig 
 function val(id){ const el = document.getElementById(id); return el ? el.value : ''; }
 function okData(d){ return /^\d{4}-\d{2}-\d{2}$/.test(d); }
 
-Sheet.box.addEventListener('change', ev => { const cb = ev.target.closest('[data-imp]'); const s = Sheet.st; if (!cb || !s || s.kind !== 'importar') return; s.itens[+cb.dataset.imp].on = cb.checked; mostrarImp(); });
+Sheet.box.addEventListener('change', ev => { const sb = ev.target.closest('[data-imp-saldo]'); if (sb && Sheet.st) { Sheet.st.usarSaldo = sb.checked; mostrarImp(); return; } const cb = ev.target.closest('[data-imp]'); const s = Sheet.st; if (!cb || !s || s.kind !== 'importar') return; s.itens[+cb.dataset.imp].on = cb.checked; mostrarImp(); });
 Sheet.box.addEventListener('click', ev => {
   const s = Sheet.st; if (!s) return;
   const p = ev.target.closest('[data-p]'); if (p) { const k = p.dataset.p; if (k === 'bk') s.dig = (s.dig || '').slice(0, -1); else if ((s.dig || '').length < 10) s.dig = ((s.dig || '') + k).replace(/^0+(?=\d)/, ''); refreshAmt(); return; }
@@ -1314,11 +1358,25 @@ Sheet.box.addEventListener('click', ev => {
     save(); Sheet.close(); render(); toast('Gasto fixo salvo.');
   }
   if (a === 'imp-ler') { lerImp(); return; }
+  if (a === 'imp-mes') { for (const x of s.itens) if (x.data.slice(0, 7) !== nowKey()) x.on = false; mostrarImp(); return; }
+  if (a === 'imp-tudo') { for (const x of s.itens) if (!x.dup && (x.tipo === 'gasto' || x.tipo === 'conta' || x.tipo === 'guardar' || !x.tipo)) x.on = true; mostrarImp(); return; }
   if (a === 'imp-salvar') {
-    const sel = s.itens.filter(x => x.on); if (!sel.length) return;
-    const cr = Date.now(); let k = 0;
-    for (const x of sel) S.gastos.push({ id:uid(), cr:cr + (k++), valor:x.valor, data:x.data, cartao:s.cartao, quem:s.quem === 'irmao' ? 'irmao' : 'eu', desc:x.desc, cat:x.cat || '' });
-    S.ult.cartao = s.cartao; save(); Sheet.close(); render(); toast(sel.length + ' gastos importados para ' + cartao(s.cartao).nome + '.'); return;
+    const sel = s.itens.filter(x => x.on); if (!sel.length && !s.usarSaldo) return;
+    const cr = Date.now(); let k = 0; const cont = { gasto:0, conta:0, guardar:0, receita:0, pag:0 };
+    for (const x of sel) {
+      const t = x.tipo || 'gasto', base = { id:uid(), cr:cr + (k++), valor:x.valor, data:x.data, fitid:x.fitid || undefined };
+      if (t === 'receita') S.receitas.push(Object.assign(base, { fonte:S.fontes[0].id, obs:x.desc }));
+      else if (t === 'pag') S.pagamentos.push(Object.assign(base, { obs:x.desc }));
+      else if (t === 'guardar') S.guardados.push(Object.assign(base, { obs:x.desc }));
+      else if (t === 'conta') { const f = S.fixos.find(y => y.id === x.fixo); S.gastos.push(Object.assign(base, { cartao:contaId(), quem:f && f.quem === 'irmao' ? 'irmao' : 'eu', desc:f ? f.nome : x.desc, cat:f ? f.cat || '' : '', fixo:x.fixo, boleto:true })); if (f) S.fixosFeitos[f.id + '|' + x.data.slice(0, 7)] = true; }
+      else S.gastos.push(Object.assign(base, { cartao:s.cartao, quem:s.quem === 'irmao' ? 'irmao' : 'eu', desc:x.desc, cat:x.cat || '' }));
+      cont[t] = (cont[t] || 0) + 1;
+    }
+    // o saldo do banco entra por último, então tudo que foi importado acima fica antes dele (não desconta de novo)
+    if (s.usarSaldo && s.saldoOfx) { S.saldos.push({ valor:s.saldoOfx.valor, cr:Date.now() + 1000, data:s.saldoOfx.data }); if (S.saldos.length > 60) S.saldos = S.saldos.slice(-60); }
+    S.ult.cartao = s.cartao; save(); Sheet.close(); render();
+    const partes = []; if (cont.gasto) partes.push(cont.gasto + ' gastos'); if (cont.conta) partes.push(cont.conta + ' contas pagas'); if (cont.guardar) partes.push(cont.guardar + ' no cofrinho'); if (cont.receita) partes.push(cont.receita + ' receitas'); if (cont.pag) partes.push(cont.pag + ' pagamentos do irmão'); if (s.usarSaldo && s.saldoOfx) partes.push('saldo ' + fmt(s.saldoOfx.valor));
+    toast('Importado: ' + partes.join(', ') + '.'); return;
   }
   if (a === 'salvar-pagfat') {
     const v = cents(), data = val('s-data'); if (v <= 0) return toast('Digite o valor pago.'); if (!okData(data)) return toast('Confira a data.');
