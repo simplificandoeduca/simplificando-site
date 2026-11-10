@@ -473,7 +473,7 @@ function logo(){
 $('#logo').innerHTML = logo(); document.querySelector('.top .mic').innerHTML = I.mic;
 
 /* ========== estado ========== */
-const FINV = '10 nov · 33'; // Versão do Finanças: 10 nov · 33
+const FINV = '10 nov · 34'; // Versão do Finanças: 10 nov · 34
 const DONO = { nome:'Eduardo Matias', iniciais:'EM' }; // perfil único desta página
 const LS = 'simplificando-financas', LST = 'simplificando-financas-tema';
 const CATS = ['Mercado', 'Comida', 'Transporte', 'Casa', 'Lazer', 'Saúde', 'Roupas', 'Assinaturas', 'Outros'];
@@ -683,6 +683,15 @@ function rResumo(){
       <div class="orc"><div class="ln"><span>Renda ${o.prevConf ? 'prevista' : 'recebida'}</span><b>${esc(fmt(o.prevista))}</b></div><div class="ln"><span>− Faturas dos cartões (só minha parte)</span><b>${esc(fmt(o.faturas))}</b></div><div class="ln"><span>− Boletos${o.boletosL.length ? ' (' + esc(o.boletosL.map(f => f.nome).join(', ')) + ')' : ''}</span><b>${esc(fmt(o.boletos))}</b></div><div class="ln"><span>− Guardar este mês</span><b>${esc(fmt(o.meta))}</b></div><div class="ln tot"><span>Já gastei (fora os fixos)</span><b>${esc(fmt(o.variavel))}</b></div></div>
       ${!o.prevConf ? '<p class="sub">Dica: em Ajustes, informe quanto entra por mês de cada emprego. Assim a conta vale desde o dia 1, antes de o salário cair.</p>' : ''}</div>`;
   }
+  // saldo
+  h += `<div class="card ${sa && sa.est < 0 ? 'blk-bad' : 'blk-water'}"><div class="hd"><p class="eyebrow">Saldo na conta</p>${sa ? `<span class="pill">informado ${esc(whenLabel(sa.last.cr))}</span>` : ''}</div>`;
+  if (!sa) h += `<p class="big">—</p><p class="sub">Veja o saldo no banco uma vez e anote aqui. Depois, a página acompanha sozinha com o que você lançar.</p><div class="btns"><button type="button" class="btn primary" data-a="saldo">Informar saldo de hoje</button></div>`;
+  else {
+    const mov = [];
+    if (sa.rec) mov.push('+' + fmt(sa.rec) + ' recebidos'); if (sa.gua) mov.push('−' + fmt(sa.gua) + ' guardados'); if (sa.fat) mov.push('−' + fmt(sa.fat) + ' de fatura paga'); if (sa.pag) mov.push('+' + fmt(sa.pag) + ' do ' + esc(S.irmao.nome)); if (sa.gas) mov.push('−' + fmt(sa.gas) + ' gastos na conta');
+    h += `<p class="big">${fmtBig(sa.est)}</p><p class="sub">${mov.length ? 'Você informou ' + fmt(sa.last.valor) + '. Desde então: ' + mov.join(' · ') + '.' : 'Nada lançado na conta desde que você informou.'}</p><div class="btns"><button type="button" class="btn primary" data-a="saldo">${I.refresh}Atualizar saldo</button></div>`;
+  }
+  h += `</div>`;
   // cofrinho
   if (o.meta || o.guardado) {
     const falta = Math.max(0, o.meta - o.guardado), pct = o.meta ? Math.min(100, Math.round(o.guardado / o.meta * 100)) : 100;
@@ -707,15 +716,6 @@ function rResumo(){
     }
     h += `</div>`;
   }
-  // saldo
-  h += `<div class="card ${sa && sa.est < 0 ? 'blk-bad' : 'blk-water'}"><div class="hd"><p class="eyebrow">Saldo na conta</p>${sa ? `<span class="pill">informado ${esc(whenLabel(sa.last.cr))}</span>` : ''}</div>`;
-  if (!sa) h += `<p class="big">—</p><p class="sub">Veja o saldo no banco uma vez e anote aqui. Depois, a página acompanha sozinha com o que você lançar.</p><div class="btns"><button type="button" class="btn primary" data-a="saldo">Informar saldo de hoje</button></div>`;
-  else {
-    const mov = [];
-    if (sa.rec) mov.push('+' + fmt(sa.rec) + ' recebidos'); if (sa.gua) mov.push('−' + fmt(sa.gua) + ' guardados'); if (sa.fat) mov.push('−' + fmt(sa.fat) + ' de fatura paga'); if (sa.pag) mov.push('+' + fmt(sa.pag) + ' do ' + esc(S.irmao.nome)); if (sa.gas) mov.push('−' + fmt(sa.gas) + ' gastos na conta');
-    h += `<p class="big">${fmtBig(sa.est)}</p><p class="sub">${mov.length ? 'Você informou ' + fmt(sa.last.valor) + '. Desde então: ' + mov.join(' · ') + '.' : 'Nada lançado na conta desde que você informou.'}</p><div class="btns"><button type="button" class="btn primary" data-a="saldo">${I.refresh}Atualizar saldo</button></div>`;
-  }
-  h += `</div>`;
   // kpis
   h += `<div class="kpis">
     <button type="button" class="kpi" data-a="scroll" data-k="rec"><b>${esc(fmt(recebido))}</b><span>Recebi no mês</span></button>
