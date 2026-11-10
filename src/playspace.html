@@ -494,6 +494,14 @@ body.so .conteudo { padding-left: 16px; padding-right: 16px; }
 @keyframes passaro-festa { 0%, 100% { transform: translate(0, 0) scaleX(-1); } 50% { transform: translate(0, -16px) scaleX(-1) rotate(-12deg); } }
 .qr { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
 .qr img { width: min(280px, 80vw); height: auto; border-radius: 16px; background: #fff; padding: 10px; border: 1px solid var(--borda); }
+/* ---------- o rosto no iDFace ---------- */
+.rosto-cena { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; padding: 6px 0 4px; }
+.rosto-cena h3 { font-size: 19px; font-weight: 700; } .rosto-cena h3 b { color: var(--coral); }
+.rosto-alvo { width: 112px; height: 112px; border-radius: 50%; background: var(--menta); color: var(--tinta-2); display: flex; align-items: center; justify-content: center; position: relative; }
+.rosto-alvo::after { content: ""; position: absolute; inset: -6px; border-radius: 50%; border: 3px solid var(--verde-agua); opacity: .5; }
+.rosto-alvo.viva::after { animation: alvo-pulsa 1.4s ease-out infinite; border-color: var(--ok); }
+.rosto-alvo.ok { background: var(--ok-bg); color: var(--ok); } .rosto-alvo.ok::after { border-color: var(--ok); opacity: 1; animation: none; }
+@keyframes alvo-pulsa { 0% { transform: scale(1); opacity: .7; } 100% { transform: scale(1.25); opacity: 0; } }
 /* ---------- folhas (iPhone): sobem de baixo, no desktop viram cartão no centro ---------- */
 .folha-fundo { position: fixed; inset: 0; z-index: 40; background: var(--escurece); display: flex; align-items: flex-end; justify-content: center; opacity: 0; transition: opacity .32s; }
 .folha-fundo.ve { opacity: 1; }
@@ -599,7 +607,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.53';
+const VERSAO = '0.54';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -835,7 +843,7 @@ function anel(c, onde = 'banco') {
   const dentro = onde === 'hero';
   const botoes = dentro
     ? `<button class="bt claro tap" data-act="saida-rapida" data-id="${c.id}">${ic(IC.sair, 14)} Saída</button><button class="bt tap" data-act="avisar" data-id="${c.id}" aria-label="Avisar ${esc(c.resp)}">${ic(IC.zap, 14)}</button>`
-    : (r <= 0 || baixo ? `<button class="bt forte tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 14)} Vender</button>` : c.rosto ? `<button class="bt tap" data-act="entrada-rapida" data-id="${c.id}">${ic(IC.entrar, 14)} Entrada</button>` : `<button class="bt tap" data-act="ficha" data-id="${c.id}">${ic(IC.camera, 14)} Tirar a foto</button>`);
+    : (r <= 0 || baixo ? `<button class="bt forte tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 14)} Vender</button>` : c.rosto ? `<button class="bt tap" data-act="entrada-rapida" data-id="${c.id}">${ic(IC.entrar, 14)} Entrada</button>` : (rostoPronto() ? `<button class="bt tap" data-act="rosto-cam" data-id="${c.id}">${ic(IC.rosto, 14)} Cadastrar rosto</button>` : `<button class="bt tap" data-act="ficha" data-id="${c.id}">${ic(IC.camera, 14)} Tirar a foto</button>`));
   return `<div class="anel ${baixo ? 'baixo' : ''}" data-anel="${c.id}" data-onde="${onde}">
     <button class="r tap" data-act="ficha" data-id="${c.id}" style="--p:${pct.toFixed(1)};--c:${baixo ? 'var(--erro)' : 'var(--verde-agua)'}" aria-label="Abrir a ficha de ${esc(c.nome)}">${c.foto ? `<span class="fotinha" style="background-image:url(${c.foto})"></span>` : ''}<b class="num">${r <= 0 ? 'Acabou' : hm(r)}<small>${r <= 0 ? `pacote de ${c.pacote}h` : `de ${c.pacote}h`}</small></b></button>
     <span class="nome">${esc(c.nome)}${c.idade && !dentro ? ', ' + c.idade : ''}</span>
@@ -944,7 +952,7 @@ function cartaoCrianca(c) {
   const [et, cls] = estado(c);
   const botoes = c.entrou
     ? `<button class="bt claro tap" data-act="saida-rapida" data-id="${c.id}">${ic(IC.sair)} Saída</button><button class="bt tap" data-act="avisar" data-id="${c.id}">${ic(IC.zap)} Avisar ${esc(c.resp)}</button>`
-    : `<button class="bt forte tap" data-act="vender" data-id="${c.id}">${ic(IC.mais)} Vender horas</button>${c.rosto ? `<button class="bt claro tap" data-act="entrada-rapida" data-id="${c.id}">${ic(IC.entrar)} Entrada</button>` : `<button class="bt tap" data-act="ficha" data-id="${c.id}">${ic(IC.camera)} Tirar a foto</button>`}`;
+    : `<button class="bt forte tap" data-act="vender" data-id="${c.id}">${ic(IC.mais)} Vender horas</button>${c.rosto ? `<button class="bt claro tap" data-act="entrada-rapida" data-id="${c.id}">${ic(IC.entrar)} Entrada</button>` : (rostoPronto() ? `<button class="bt tap" data-act="rosto-cam" data-id="${c.id}">${ic(IC.rosto)} Cadastrar rosto</button>` : `<button class="bt tap" data-act="ficha" data-id="${c.id}">${ic(IC.camera)} Tirar a foto</button>`)}`;
   return `<div class="card tap" role="button" tabindex="0" data-act="ficha" data-id="${c.id}" aria-label="Abrir a ficha de ${esc(c.nome)}">
     <div class="linha">${avatar(c)}<div class="txt"><b>${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}</b><span>${esc(c.resp)} (${esc(c.rel)})${c.tel ? ' · ' + esc(c.tel) : ''}</span></div>${c.entrou ? `<div class="cron num" data-cron="${c.id}">${cronometro(c)}</div>` : `<span class="pill ${c.rosto ? 'p-neutro' : 'p-aviso'}">${c.rosto ? 'Rosto ok' : 'Falta o rosto'}</span>`}</div>
     ${blocos(c)}
@@ -996,7 +1004,8 @@ function folhaFicha(id) {
       ${c.entrou ? `<button class="bt claro tap" data-act="saida" data-id="${c.id}">${ic(IC.sair)} Registrar saída</button>` : `<button class="bt claro tap" data-act="entrada" data-id="${c.id}">${ic(IC.entrar)} Registrar entrada</button>`}
       <button class="bt forte tap" data-act="vender" data-id="${c.id}">${ic(IC.mais)} Vender horas</button>
       <button class="bt tap" data-act="avisar" data-id="${c.id}">${ic(IC.zap)} Avisar ${esc(c.resp)}</button>
-      <label class="bt tap" for="ficha-foto">${ic(IC.camera)} ${c.foto ? 'Trocar a foto' : 'Tirar a foto'}</label><input type="file" id="ficha-foto" data-id="${c.id}" accept="image/*" capture="user" hidden>
+      ${rostoPronto() ? `<button class="bt ${c.rosto ? '' : 'forte'} tap" data-act="rosto-cam" data-id="${c.id}">${ic(IC.rosto)} ${c.rosto ? 'Refazer o rosto no iDFace' : 'Cadastrar rosto no iDFace'}</button>` : ''}
+      <label class="bt tap" for="ficha-foto">${ic(IC.camera)} ${c.foto ? 'Trocar a foto' : (rostoPronto() ? 'Foto para o WhatsApp' : 'Tirar a foto')}</label><input type="file" id="ficha-foto" data-id="${c.id}" accept="image/*" capture="user" hidden>
       <button class="bt tap" data-act="editar" data-id="${c.id}">${ic(IC.lapis)} Editar</button>
       ${supervisorOuMais() ? `<button class="bt claro tap" data-act="apagar" data-id="${c.id}" style="color:var(--erro)">Remover</button>` : ''}
     </div>
@@ -1014,7 +1023,7 @@ function folhaCrianca(c) {
   const ed = !!c;
   FOTO_TEMP = '';
   if (!ed) return abrirFolha('Cadastrar', `
-    <div class="foto-cap"><span class="av g" id="f-foto-prev">${ic(IC.camera, 30)}</span><div class="txt"><label class="bt forte tap" for="f-foto">${ic(IC.camera)} Tirar a foto da criança</label><input type="file" id="f-foto" accept="image/*" capture="user" hidden><span class="explica">A foto vai para o iDFace: é ela que libera o rosto da criança no aparelho.</span></div></div>
+    <div class="foto-cap"><span class="av g" id="f-foto-prev">${ic(IC.camera, 30)}</span><div class="txt"><label class="bt forte tap" for="f-foto">${ic(IC.camera)} Tirar a foto da criança</label><input type="file" id="f-foto" accept="image/*" capture="user" hidden><span class="explica">${rostoPronto() ? 'Opcional: vai no aviso de chegada no WhatsApp. O rosto a criança cadastra olhando para o iDFace, logo depois de salvar.' : 'A foto vai para o iDFace: é ela que libera o rosto da criança no aparelho.'}</span></div></div>
     <div class="campo"><label for="f-nome">Nome da criança</label><input id="f-nome" placeholder="Como ela gosta de ser chamada" autocomplete="off"></div>
     <div class="campo"><label for="f-resp">Nome do pai, da mãe ou responsável</label><input id="f-resp" placeholder="Quem traz e busca" autocomplete="off"></div>
     <div class="campo"><label>Quem é</label><div class="seg" id="f-rel-seg">${['mãe', 'pai', 'responsável'].map((r, i) => `<button type="button" data-seg="${r}" aria-pressed="${i === 0}">${r[0].toUpperCase() + r.slice(1)}</button>`).join('')}</div></div>
@@ -1060,6 +1069,31 @@ function folhaIdface() {
       <div class="simul">${S.criancas.filter(c => c.rosto).map(c => `<button class="tap" data-act="simular" data-id="${c.id}">${avatar(c)}${esc(c.nome)}<span>${c.entrou ? 'está dentro · sai' : 'está fora · entra'}</span></button>`).join('')}</div></div>`);
 }
 
+/* ---------- o rosto no iDFace: a folha que acompanha o aparelho pedindo para a criança olhar ---------- */
+let ROSTO_T = 0;
+const rostoPronto = () => MODO === 'servidor' && S.cfg.idface.ligado && S.cfg.idface.ativo;
+function folhaRosto(id) {
+  const c = crianca(id); if (!c) return; clearInterval(ROSTO_T);
+  abrirFolha('Rosto no iDFace', `
+    <div class="rosto-cena"><div class="rosto-alvo">${ic(IC.rosto, 54, 1.6)}</div><h3>Peça para <b>${esc(c.nome)}</b> olhar para o iDFace</h3><p class="explica">De frente, a uns 50 cm da câmera, sem boné. O aparelho avisa quando pegar.</p></div>
+    <div class="marca" id="rosto-estado"><i class="pt" style="width:10px;height:10px;border-radius:50%;background:var(--aviso)"></i><span>Mandando para o aparelho…</span></div>
+    <div class="acoes" id="rosto-acoes"><button class="bt claro tap" data-act="fechar">Deixar para depois</button></div>`);
+  api('idface_rosto', { id }).then(() => { acompanharRosto(id); }).catch(e => { const el = $('#rosto-estado span'); if (el) el.innerHTML = `<b>${esc(e.message)}</b>`; const i = $('#rosto-estado i'); if (i) i.style.background = 'var(--erro)'; $('#rosto-acoes').innerHTML = `<button class="bt forte tap" data-act="rosto-de-novo" data-id="${id}">Tentar de novo</button><button class="bt claro tap" data-act="fechar">Fechar</button>`; });
+}
+function acompanharRosto(id) {
+  const textos = { criando: 'Cadastrando a criança no aparelho…', fila: 'Na fila: o aparelho busca em até 5 segundos…', capturando: '<b>O aparelho está esperando o rosto.</b> Agora é olhar para a câmera.', nada: 'Aguardando o aparelho…' };
+  clearInterval(ROSTO_T);
+  const passo = async () => {
+    if (!$('#rosto-estado')) { clearInterval(ROSTO_T); return; }
+    try {
+      const r = await api('idface_rosto_estado', { id }); const el = $('#rosto-estado span'), i = $('#rosto-estado i');
+      if (r.fase === 'ok') { clearInterval(ROSTO_T); i.style.background = 'var(--ok)'; el.innerHTML = `<b>Rosto cadastrado!</b> Da próxima vez é só olhar para o iDFace.`; $('.rosto-alvo').classList.add('ok'); await carregar(); desenhar(); setTimeout(() => { fecharFolha(); toast(`${crianca(id).nome}: rosto cadastrado no iDFace ✓`); }, 1600); return; }
+      if (r.fase === 'erro') { clearInterval(ROSTO_T); i.style.background = 'var(--erro)'; el.innerHTML = `<b>${esc(r.erro)}</b>`; $('#rosto-acoes').innerHTML = `<button class="bt forte tap" data-act="rosto-de-novo" data-id="${id}">Tentar de novo</button><button class="bt claro tap" data-act="fechar">Deixar para depois</button>`; return; }
+      i.style.background = r.fase === 'capturando' ? 'var(--ok)' : 'var(--aviso)'; el.innerHTML = textos[r.fase] || textos.nada; $('.rosto-alvo').classList.toggle('viva', r.fase === 'capturando');
+    } catch (e) { /* tenta no próximo */ }
+  };
+  passo(); ROSTO_T = setInterval(passo, 2000);
+}
 /* ---------- WhatsApp ---------- */
 let QR_TIMER = null;
 function folhaWhats(cfg) {
@@ -1254,6 +1288,8 @@ const ACOES = {
   saida: el => { saida(crianca(el.dataset.id), 'mão'); fecharFolha(); desenhar(); },
   avisar: el => { const c = crianca(el.dataset.id); let conv = S.conversas.find(x => x.crianca === c.id); if (!conv) { conv = { id: novoId(), crianca: c.id, lidas: true, msgs: [] }; S.conversas.push(conv); } S.zapAberta = conv.id; S.zapModo = 'papo'; S.zapDia = isoDia(agora); fecharFolha(); trocarTela('zap'); const t = $('#zap-texto'); if (t) { t.value = c.entrou ? `Oi, ${c.resp}! ${c.nome} está aqui desde ${hora(c.entrou)} e ainda tem ${hm(restante(c))} no pacote.` : `Oi, ${c.resp}! O pacote de ${c.nome} está com ${hm(restante(c))}. Quer renovar?`; t.focus(); } },
   rosto: el => { const c = crianca(el.dataset.id); if (MODO === 'servidor') { api('idface_mandar', { id: c.id }).then(() => toast(`${c.nome} mandada de novo para o iDFace`)).catch(e => toast(e.message)); fecharFolha(); return; } c.rosto = true; toast(`${c.nome} mandada para o iDFace. Agora é só olhar para a câmera.`, () => { c.rosto = false; }); fecharFolha(); desenhar(); },
+  'rosto-cam': el => folhaRosto(+el.dataset.id),
+  'rosto-de-novo': el => { fecharFolha(); setTimeout(() => folhaRosto(+el.dataset.id), 250); },
   apagar: el => { const c = crianca(el.dataset.id); if (MODO === 'servidor') { api('crianca_apagar', { id: c.id }).then(async () => { await carregar(); fecharFolha(); desenhar(); toast(`${c.nome} removida do cadastro`); }).catch(e => toast(e.message)); return; } S.criancas = S.criancas.filter(x => x !== c); fecharFolha(); desenhar(); toast(`${c.nome} removida`, () => { S.criancas.push(c); }); },
   editar: el => folhaCrianca(crianca(el.dataset.id)),
   nova: () => folhaCrianca(null),
@@ -1263,7 +1299,9 @@ const ACOES = {
       const id = el.dataset.id; const dados = id ? { id: +id, nome, idade: +val('f-idade') || 0, resp: val('f-resp'), rel: val('f-rel'), tel: val('f-tel'), cpf: cpfFmt(val('f-cpf')), obs: val('f-obs') }
         : { nome, resp: val('f-resp'), rel: ($('#f-rel-seg [aria-pressed="true"]') || {}).dataset.seg || 'responsável', tel: val('f-tel'), cpf: cpfFmt(val('f-cpf')), pacote: S.cfg.pacotes[+(($('#f-pac [aria-pressed="true"]') || {}).dataset.seg || 0)] || S.cfg.pacotes[0], foto: FOTO_TEMP };
       if (!id && !dados.resp) { toast('Falta o nome de quem é responsável'); $('#f-resp').focus(); return; }
-      api('crianca_salvar', dados).then(async () => { FOTO_TEMP = ''; await carregar(); fecharFolha(); desenhar(); toast(id ? 'Cadastro salvo' : `${nome} cadastrada: ${dados.pacote.h}h no banco. ${dados.foto ? 'Foto a caminho do iDFace.' : 'Falta a foto para o iDFace.'}`); }).catch(e => toast(e.message));
+      api('crianca_salvar', dados).then(async r => { FOTO_TEMP = ''; await carregar(); fecharFolha(); desenhar();
+        if (!id && rostoPronto()) { toast(`${nome} cadastrada: ${dados.pacote.h}h no banco. Agora o rosto.`); setTimeout(() => folhaRosto(r.id), 300); return; }
+        toast(id ? 'Cadastro salvo' : `${nome} cadastrada: ${dados.pacote.h}h no banco. ${dados.foto ? 'Foto a caminho do iDFace.' : 'Falta a foto para o iDFace.'}`); }).catch(e => toast(e.message));
       return;
     }
     if (el.dataset.id) { const c = crianca(el.dataset.id); Object.assign(c, { nome, idade: +val('f-idade') || c.idade, resp: val('f-resp') || c.resp, rel: val('f-rel'), tel: val('f-tel'), cpf: cpfFmt(val('f-cpf')), obs: val('f-obs') }); toast('Cadastro salvo'); }

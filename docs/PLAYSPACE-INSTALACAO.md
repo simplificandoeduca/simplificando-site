@@ -51,7 +51,7 @@ As respostas dos responsáveis entram na aba **WhatsApp**, organizada por dia (H
 
 O aparelho reconhece o rosto da criança: fora → entra; dentro → sai e debita as horas da regra. Duas leituras seguidas em menos de 90 s contam uma vez só.
 
-**Cadastro**: cada criança nova com foto é mandada sozinha para o aparelho (nome e foto). Sem foto, a ficha mostra *Falta a foto*: toque e tire a foto ali mesmo. Dá para reenviar pela ficha (*Mandar ao iDFace*).
+**Cadastro do rosto**: com o aparelho conectado, ao salvar uma criança nova o sistema abre "Rosto no iDFace": o aparelho entra no modo de cadastro e a criança só precisa olhar para a câmera. A tela acompanha (na fila → esperando o rosto → cadastrado). Dá para refazer pela ficha (*Cadastrar rosto no iDFace*). A foto pelo celular ficou opcional: ela vai no aviso de chegada do WhatsApp e, sem aparelho conectado, continua servindo para cadastrar o rosto.
 
 **Ligar o aparelho ao site** (modo *push*: o iDFace chama o site a cada 5 s; não precisa abrir porta no roteador):
 

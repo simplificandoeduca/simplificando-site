@@ -270,6 +270,19 @@ switch ($acao) {
     gravarCfg('idface', $c); responder(['idface' => idfaceEstado()]);
   }
   case 'idface_nova_chave': { $u = exigir(); podeAjustar($u); require_once __DIR__ . '/idface-lib.php'; gravarCfg('ponte_chave', bin2hex(random_bytes(20))); responder(['idface' => idfaceEstado()]); }
+  case 'idface_rosto': { // o aparelho vai pedir o rosto da criança ("olhe para a câmera"); fica na fila até o aparelho buscar
+    exigir(); $c = crianca((int)($in['id'] ?? 0)); if (!$c) falha('Criança não encontrada.', 404);
+    require_once __DIR__ . '/idface-lib.php'; $e = idfaceEstado(); if (!$e['ligado']) falha('O iDFace está desligado em Ajustes.'); if (!$e['ativo']) falha('O iDFace está sem contato com o site agora. Confira o aparelho e tente de novo.');
+    apagarCfg('rosto_erro_' . $c['id']); apagarCfg('rosto_ok_' . $c['id']); apagarCfg('rosto_em_' . $c['id']);
+    if ($c['idface_id'] === null) gravarCfg('mandar_' . $c['id'], (int)$c['id']);
+    gravarCfg('pedirosto_' . $c['id'], (int)$c['id']); responder();
+  }
+  case 'idface_rosto_estado': { // a folha "olhe para a câmera" pergunta a cada 2 s
+    exigir(); $id = (int)($in['id'] ?? 0); $c = crianca($id); if (!$c) falha('Criança não encontrada.', 404);
+    $ps = cfg('push_estado', []); $fly = is_array($ps) ? ($ps['inflight'] ?? null) : null;
+    $fase = cfg('rosto_ok_' . $id) ? 'ok' : (cfg('rosto_erro_' . $id) ? 'erro' : (is_array($fly) && ($fly['tipo'] ?? '') === 'rosto' && (int)($fly['crianca'] ?? 0) === $id ? 'capturando' : (cfg('pedirosto_' . $id) ? ($c['idface_id'] === null ? 'criando' : 'fila') : 'nada')));
+    responder(['fase' => $fase, 'erro' => (string)cfg('rosto_erro_' . $id, ''), 'rosto' => !empty($c['rosto'])]);
+  }
   case 'idface_mandar': { // manda (ou manda de novo) a criança para o aparelho
     exigir(); $c = crianca((int)($in['id'] ?? 0)); if (!$c) falha('Criança não encontrada.', 404);
     if ($c['idface_id'] !== null && $c['foto'] !== '') gravarCfg('foto_' . $c['id'], (int)$c['idface_id']); else gravarCfg('mandar_' . $c['id'], (int)$c['id']);

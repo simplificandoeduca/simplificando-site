@@ -80,6 +80,7 @@ function acaoPush(string $rota): void {
       if ($tipo === 'apagar' && !empty($fly['alvo'])) apagarCfg('apagar_' . (int)$fly['alvo']); // sai da fila com qualquer resposta
       if (!empty($j['error'])) {
         $st['erro'] = 'o aparelho respondeu: ' . substr((string)$j['error'], 0, 200);
+        if ($tipo === 'rosto' && !empty($fly['crianca'])) { apagarCfg('pedirosto_' . (int)$fly['crianca']); gravarCfg('rosto_erro_' . (int)$fly['crianca'], 'O aparelho recusou a captura: ' . substr((string)$j['error'], 0, 120)); }
         if (in_array($tipo, ['criar', 'foto', 'renomear'], true) && !empty($fly['crianca'])) { $k = 'falhas_' . $tipo . '_' . (int)$fly['crianca']; $n = (int)cfg($k, 0) + 1; gravarCfg($k, $n); if ($n >= 3) { apagarCfg(($tipo === 'criar' ? 'mandar_' : ($tipo === 'foto' ? 'foto_' : 'renomear_')) . (int)$fly['crianca']); apagarCfg($k); } }
       } else {
         $st['erro'] = '';
@@ -89,6 +90,12 @@ function acaoPush(string $rota): void {
           $uid = (int)(((array)($resp['ids'] ?? []))[0] ?? 0); $cid = (int)($fly['crianca'] ?? 0);
           if ($uid && $cid) { $db->prepare('UPDATE criancas SET idface_id = ? WHERE id = ? AND idface_id IS NULL')->execute([$uid, $cid]); apagarCfg('mandar_' . $cid); $cr = crianca($cid); if ($cr && $cr['foto'] !== '') gravarCfg('foto_' . $cid, $uid); }
           $st['usuarios_em'] = 0;
+        }
+        elseif ($tipo === 'rosto') { // o aparelho capturou (ou não) o rosto da criança
+          $cid = (int)($fly['crianca'] ?? 0); $ok = is_array($resp) && (!empty($resp['success']) || (isset($resp['user_id']) && empty($resp['error'])));
+          apagarCfg('pedirosto_' . $cid);
+          if ($ok) { $db->prepare('UPDATE criancas SET rosto = 1 WHERE id = ?')->execute([$cid]); gravarCfg('rosto_ok_' . $cid, agora()); apagarCfg('rosto_erro_' . $cid); }
+          else gravarCfg('rosto_erro_' . $cid, 'O aparelho não conseguiu capturar o rosto' . (is_array($resp) && !empty($resp['error']) ? ' (' . substr((string)$resp['error'], 0, 80) . ')' : '') . '. Tente de novo com a criança de frente, a uns 50 cm da câmera.');
         }
         elseif ($tipo === 'foto') { apagarCfg('foto_' . (int)$fly['crianca']); $db->prepare('UPDATE criancas SET rosto = 1 WHERE id = ?')->execute([(int)$fly['crianca']]); }
         elseif ($tipo === 'renomear') apagarCfg('renomear_' . (int)$fly['crianca']);
@@ -108,6 +115,15 @@ function acaoPush(string $rota): void {
   elseif ((float)($st['periodo'] ?? 0) > 20 && time() - (int)($st['periodo_ajuste_em'] ?? 0) > 3600) { $tipo = 'periodo'; $st['periodo_ajuste_em'] = time(); $cmd = pushComando('set_configuration', ['push_server' => ['push_request_period' => '5']]); }
   elseif ($mandar) {
     foreach ($mandar as $k => $v) { $cr = crianca((int)$v); if ($cr && $cr['ativo'] && $cr['idface_id'] === null) { $cid = (int)$cr['id']; $tipo = 'criar'; $cmd = pushComando('create_objects', ['object' => 'users', 'values' => [['name' => mb_substr($cr['nome'], 0, 50), 'registration' => REGISTRO_PREFIXO . $cr['id']]]]); break; } apagarCfg($k); }
+  }
+  if (!$cmd) { // o rosto ao vivo: o aparelho entra no modo de cadastro e pede para a criança olhar para a câmera
+    foreach (cfgComo('pedirosto_') as $k => $v) {
+      $cid = (int)substr($k, 10); $cr = crianca($cid);
+      if (!$cr || !$cr['ativo']) { apagarCfg($k); continue; }
+      if ($cr['idface_id'] === null) { if (!cfg('mandar_' . $cid)) gravarCfg('mandar_' . $cid, $cid); continue; }   // primeiro o cadastro no aparelho
+      $tipo = 'rosto'; gravarCfg('rosto_em_' . $cid, agora());
+      $cmd = pushComando('remote_enroll', ['type' => 'face', 'user_id' => (int)$cr['idface_id'], 'save' => true, 'sync' => true, 'auto' => true]); break;
+    }
   }
   if (!$cmd && $fotos) {
     foreach ($fotos as $k => $uid) { $cid = (int)substr($k, 5); $cr = crianca($cid); if ($cr && $cr['foto'] !== '' && $cr['idface_id'] !== null) { $tipo = 'foto'; $cmd = pushComando('user_set_image_list', ['match' => false, 'user_images' => [['user_id' => (int)$cr['idface_id'], 'image' => fotoBase64($cr['foto'])]]]); break; } apagarCfg($k); }
