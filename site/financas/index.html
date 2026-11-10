@@ -468,7 +468,7 @@ function logo(){
 $('#logo').innerHTML = logo(); document.querySelector('.top .mic').innerHTML = I.mic;
 
 /* ========== estado ========== */
-const FINV = '10 nov · 31'; // Versão do Finanças: 10 nov · 31
+const FINV = '10 nov · 32'; // Versão do Finanças: 10 nov · 32
 const DONO = { nome:'Eduardo Matias', iniciais:'EM' }; // perfil único desta página
 const LS = 'simplificando-financas', LST = 'simplificando-financas-tema';
 const CATS = ['Mercado', 'Comida', 'Transporte', 'Casa', 'Lazer', 'Saúde', 'Roupas', 'Assinaturas', 'Outros'];
@@ -627,13 +627,17 @@ function metaGuardar(prevista){ const m = S.meta || {}; return m.tipo === 'pct' 
 function orcamento(){
   const rm = S.receitas.filter(inMes), recebido = sum(rm, r => r.valor), prevConf = sum(S.fontes, f => f.prev || 0);
   const prevista = Math.max(prevConf, recebido);
-  const fixos = S.fixos.filter(f => f.ativo !== false && f.quem !== 'irmao'), fixosTotal = sum(fixos, f => f.valor);
+  // faturas dos cartões de crédito: só a minha parte, já descontando o que paguei
+  let faturas = 0; const cartoesF = [];
+  for (const c of S.cartoes) { if (c.tipo === 'conta') continue; const f = faturaDe(c), pf = pagosFatura(c, f); const gm = gastosMes().filter(g => g.cartao === c.id); const tot = f ? f.total : sum(gm, g => g.valor), ir = f ? f.irmao : sum(gm.filter(g => g.quem === 'irmao'), g => g.valor); const minha = Math.max(0, tot - ir - pf.total); faturas += minha; cartoesF.push({ c, minha }); }
+  const boletosL = S.fixos.filter(f => f.ativo !== false && f.quem !== 'irmao' && f.forma === 'boleto'), boletos = sum(boletosL, f => f.valor);
   const meta = metaGuardar(prevista);
   const gm = gastosMes().filter(g => g.quem !== 'irmao');
   const variavel = sum(gm.filter(g => !g.fixo), g => g.valor);
-  const orc = prevista - fixosTotal - meta, restante = orc - variavel, dias = diasRestantes();
+  const pixVar = sum(gm.filter(g => !g.fixo && cartao(g.cartao).tipo === 'conta'), g => g.valor);
+  const fixosTotal = faturas + boletos, orc = prevista - fixosTotal - meta, restante = orc - pixVar, dias = diasRestantes();
   const guardado = sum(S.guardados.filter(inMes), x => x.valor);
-  return { prevista, prevConf, recebido, fixosTotal, meta, variavel, orc, restante, dias, porDia:dias ? Math.floor(restante / dias) : 0, guardado };
+  return { prevista, prevConf, recebido, faturas, boletos, boletosL, fixosTotal, meta, variavel, pixVar, orc, restante, dias, porDia:dias ? Math.floor(restante / dias) : 0, guardado };
 }
 function contasMes(){ // boletos e Pix fixos do mês escolhido, com situação
   const [y, m] = UI.mes.split('-').map(Number), ultimo = new Date(y, m, 0).getDate(), hoje = todayISO();
@@ -670,8 +674,8 @@ function rResumo(){
     const cls = o.restante < 0 ? 'blk-bad' : o.orc > 0 && o.restante < o.orc * 0.2 ? 'blk-warn' : 'blk-lime';
     h += `<div class="card ${cls}"><div class="hd"><p class="eyebrow">Posso gastar ${UI.mes === nowKey() ? 'ainda' : 'no mês'}</p>${!o.prevConf ? `<button type="button" class="btn sm" data-a="tab" data-k="ajustes">Renda prevista</button>` : ''}</div>
       <p class="big">${fmtBig(o.restante)}</p>
-      <p class="sub">${o.restante < 0 ? 'Passou do planejado em ' + esc(fmt(-o.restante)) + '. Segura o cartão até o fim do mês.' : o.dias ? 'Dá <b>' + esc(fmt(o.porDia)) + ' por dia</b> até o fim do mês, já separando o que você vai guardar.' : 'Mês fechado.'}</p>
-      <div class="orc"><div class="ln"><span>Renda ${o.prevConf ? 'prevista' : 'recebida'}</span><b>${esc(fmt(o.prevista))}</b></div><div class="ln"><span>− Contas fixas (cartão, boleto e Pix)</span><b>${esc(fmt(o.fixosTotal))}</b></div><div class="ln"><span>− Guardar este mês</span><b>${esc(fmt(o.meta))}</b></div><div class="ln tot"><span>= Dá para gastar</span><b>${esc(fmt(o.orc))}</b></div><div class="ln"><span>Já gastei (fora os fixos)</span><b>${esc(fmt(o.variavel))}</b></div></div>
+      <p class="sub">${o.restante < 0 ? 'Passou do planejado em ' + esc(fmt(-o.restante)) + '. Segura o cartão até o fim do mês.' : o.dias ? 'Dá <b>' + esc(fmt(o.porDia)) + ' por dia</b> até o fim do mês. Já desconta as faturas, os boletos, o Pix gasto e o que você vai guardar.' : 'Mês fechado.'}</p>
+      <div class="orc"><div class="ln"><span>Renda ${o.prevConf ? 'prevista' : 'recebida'}</span><b>${esc(fmt(o.prevista))}</b></div><div class="ln"><span>− Faturas dos cartões (só minha parte)</span><b>${esc(fmt(o.faturas))}</b></div><div class="ln"><span>− Boletos${o.boletosL.length ? ' (' + esc(o.boletosL.map(f => f.nome).join(', ')) + ')' : ''}</span><b>${esc(fmt(o.boletos))}</b></div><div class="ln"><span>− Guardar este mês</span><b>${esc(fmt(o.meta))}</b></div><div class="ln tot"><span>Já gastei (fora os fixos)</span><b>${esc(fmt(o.variavel))}</b></div></div>
       ${!o.prevConf ? '<p class="sub">Dica: em Ajustes, informe quanto entra por mês de cada emprego. Assim a conta vale desde o dia 1, antes de o salário cair.</p>' : ''}</div>`;
   }
   // cofrinho
