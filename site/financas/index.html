@@ -468,7 +468,7 @@ function logo(){
 $('#logo').innerHTML = logo(); document.querySelector('.top .mic').innerHTML = I.mic;
 
 /* ========== estado ========== */
-const FINV = '10 nov · 30'; // Versão do Finanças: 10 nov · 30
+const FINV = '10 nov · 31'; // Versão do Finanças: 10 nov · 31
 const DONO = { nome:'Eduardo Matias', iniciais:'EM' }; // perfil único desta página
 const LS = 'simplificando-financas', LST = 'simplificando-financas-tema';
 const CATS = ['Mercado', 'Comida', 'Transporte', 'Casa', 'Lazer', 'Saúde', 'Roupas', 'Assinaturas', 'Outros'];
@@ -723,7 +723,7 @@ function rResumo(){
   h += `<div class="card" style="padding:0;gap:0"><div class="hd" style="padding:18px 16px 8px"><h2>Meus cartões</h2><span class="pill">${esc(fmt(meus + doIrmao))}</span></div>`;
   for (const c of S.cartoes) {
     const its = gm.filter(g => g.cartao === c.id), v = sum(its, g => g.valor), vi = sum(its.filter(g => g.quem === 'irmao'), g => g.valor), f = faturaDe(c);
-    const pf = c.tipo === 'conta' ? null : pagosFatura(c, f), viF = f ? f.irmao : vi, sub = c.tipo === 'conta' ? 'Débito e Pix' + (vi ? ' · ' + n + ' ' + esc(fmt(vi)) : '') : 'Crédito' + (c.fecha ? ' · fecha dia ' + c.fecha : '') + ' · eu pago ' + esc(fmt((f ? f.total : v) - viF)) + (viF ? ' · ' + n + ' ' + esc(fmt(viF)) : '') + ' · já pago ' + esc(fmt(pf ? pf.total : 0));
+    const pf = c.tipo === 'conta' ? null : pagosFatura(c, f), viF = f ? f.irmao : vi, sub = c.tipo === 'conta' ? 'Débito e Pix' + (vi ? ' · ' + n + ' ' + esc(fmt(vi)) : '') : 'Crédito' + (c.fecha ? ' · fecha dia ' + c.fecha : '') + ' · eu pago ' + esc(fmt(Math.max(0, (f ? f.total : v) - viF - (pf ? pf.total : 0)))) + (viF ? ' · ' + n + ' ' + esc(fmt(viF)) : '') + ' · já pago ' + esc(fmt(pf ? pf.total : 0));
     h += `<button type="button" class="rc" data-a="ver-cartao" data-k="${c.id}" style="--ga:var(--g${(c.cor ?? 7) % 8});--gb:${corVis(c)}">${ccHTML(c, '', 'mini')}<span class="tx"><b>${esc(c.nome)}</b><span>${sub}</span><span class="bar2"><i style="width:${Math.round((v - vi) / totCart * 100)}%"></i>${vi ? `<i class="ir" style="width:${Math.round(vi / totCart * 100)}%"></i>` : ''}</span></span><span class="v">${esc(fmt(pf && pf.total ? Math.max(0, (f ? f.total : v) - pf.total) : (f ? f.total : v)))}<small>${f ? 'fatura atual' : 'no mês'}</small></span><span class="chev">${I.chev}</span></button>`;
   }
   h += `<button type="button" class="rc novo" data-a="add-cartao-resumo">${I.plus}Novo cartão</button></div>`;
