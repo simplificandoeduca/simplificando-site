@@ -1580,6 +1580,7 @@ body.has-dock .toast,body.has-dock .utoast{bottom:calc(176px + env(safe-area-ins
 #novav span{flex:1;min-width:0;display:flex;flex-direction:column}#novav b{font-size:15px;font-weight:800}#novav small{font-size:12px;color:#A9B0AA}
 #novav button{flex:none;display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 16px;border:0;border-radius:999px;background:#C6F04A;color:#0F1712;font:inherit;font-size:14px;font-weight:800;cursor:pointer}#novav button .i{width:16px;height:16px}
 @keyframes novav-in{from{opacity:0;transform:translate(-50%,-20px)}}
+.lg-semp{margin-top:6px;font-size:14px}
 .ver-btn{margin-top:8px;align-self:flex-start;width:max-content}.ver-btn.nova{background:#C6F04A;color:#0F1712}
 .ver-pill{display:inline-flex;align-items:center;gap:5px;margin-top:6px;padding:3px 9px;border-radius:999px;background:var(--chip,rgba(0,0,0,.06));font-size:11.5px;font-weight:700;color:var(--muted);width:max-content}.ver-pill .i{width:12px;height:12px}
 .ck-list{display:flex;flex-direction:column;gap:8px}
@@ -1699,7 +1700,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '10 nov · 93'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '10 nov · 94'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -1935,7 +1936,11 @@ const FB = (() => {
   async function resetSave(oob, nova, aluno){
     try { const em = await auth.verifyPasswordResetCode(oob); await auth.confirmPasswordReset(oob, aluno ? pass(nova) : nova);
       if(!aluno) return { ok:true, email:em };
-      await auth.signInWithEmailAndPassword(em, pass(nova)); await setCodigo(nova); const r = await fetchMe(); if(r.out){ await logout(); return { err:r.err||'Seu acesso não está liberado. Fale com seu personal.' }; } return { ok:true, email:em, p:r.p }; }
+      await auth.signInWithEmailAndPassword(em, pass(nova));
+      // conta de quem treina sem personal (não tem acesso de aluno): a senha fica do jeito que ela digitou
+      const u = auth.currentUser; let ehAluno = false; try { ehAluno = (await db.collection('appAlunos').doc(u.uid).get()).exists; } catch(e){ ehAluno = !(e && e.code==='permission-denied'); }
+      if(!ehAluno){ try { await u.updatePassword(nova); } catch(e){ /* segue: o "entrar" também aceita o formato antigo */ } await logout(); return { ok:true, email:em, self:true }; }
+      await setCodigo(nova); const r = await fetchMe(); if(r.out){ await logout(); return { err:r.err||'Seu acesso não está liberado. Fale com seu personal.' }; } return { ok:true, email:em, p:r.p }; }
     catch(e){ return { err:resetErr(e) }; }
   }
   async function logout(){ try { localStorage.removeItem(CK); } catch(e){ /* nada */ } try { await auth.signOut(); } catch(e){ /* nada */ } }
@@ -1946,7 +1951,8 @@ const FB = (() => {
   }
   async function signIn(email, pw){
     try { const c = await auth.signInWithEmailAndPassword(email, pw); return { uid:c.user.uid, nome:c.user.displayName||'' }; }
-    catch(e){ const k = e && e.code; return { err: k==='auth/too-many-requests' ? 'Muitas tentativas. Espere alguns minutos e tente de novo.' : k==='auth/network-request-failed' ? 'Sem internet. Conecte e tente de novo.' : 'E-mail ou senha não conferem.' }; }
+    catch(e){ const k = e && e.code;
+      if(/^\d{6}$/.test(String(pw)) && !/too-many|network/.test(k||'')){ try { const c = await auth.signInWithEmailAndPassword(email, pass(pw)); try { await c.user.updatePassword(String(pw)); } catch(e2){ /* fica no formato antigo */ } return { uid:c.user.uid, nome:c.user.displayName||'' }; } catch(e3){ /* não era isso */ } } return { err: k==='auth/too-many-requests' ? 'Muitas tentativas. Espere alguns minutos e tente de novo.' : k==='auth/network-request-failed' ? 'Sem internet. Conecte e tente de novo.' : 'E-mail ou senha não conferem.' }; }
   }
   async function resetMail(email, aluno){
     try { auth.languageCode = 'pt-BR'; } catch(e){ /* idioma padrão */ }
@@ -2153,6 +2159,7 @@ function renderLogin(focusSel){
         <button type="submit" class="btn primary block lg-go"${c.length?'':' disabled'}>Entrar${ic('chev')}</button>
       </form>
       <div class="lg-links"><button type="button" class="linkbtn" data-a="lg-forgot">Esqueci a senha</button><button type="button" class="linkbtn" data-a="lg-self">Treinar sem personal</button></div>
+      ${FB ? `<button type="button" class="btn block lg-semp" data-a="su-entrar">${ic('lock')}Treina sem personal? Entrar com e-mail e senha</button>` : ''}
       <p class="lg-legal"><button type="button" class="linkbtn" data-a="lg-doc" data-v="termos">Termos de uso</button><span aria-hidden="true">·</span><button type="button" class="linkbtn" data-a="lg-doc" data-v="privacidade">Privacidade</button></p>
       ${FB?'':`<p class="lg-demo">${ic('bolt')}<span>Para testar: <b>482913</b> (Lucas) ou <b>731506</b> (Marina)</span></p>`}</div>`;
   }
