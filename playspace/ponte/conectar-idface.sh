@@ -66,12 +66,17 @@ fi
 # ---------- 2. entrar no aparelho ----------
 [ -z "$USUARIO" ] && USUARIO=admin
 diz ''
-read -r -p "Usuário do iDFace [$USUARIO]: " u; [ -n "$u" ] && USUARIO=$u
-read -r -p 'Senha do iDFace (a que abre o menu do aparelho; de fábrica costuma ser admin): ' SENHA
+printf '\033[?2004l'   # desliga o "colar entre colchetes" do Terminal: colar a senha mandava caracteres invisíveis junto
+limpa() { printf '%s' "$1" | LC_ALL=C tr -d '\000-\037\177' | sed 's/\[20[01]~//g; s/^[[:space:]]*//; s/[[:space:]]*$//'; }
+read -r -p "Usuário do iDFace [$USUARIO]: " u; u=$(limpa "$u"); [ -n "$u" ] && USUARIO=$u
+read -r -p 'Senha do iDFace (a que abre o menu do aparelho; de fábrica costuma ser admin): ' SENHA; SENHA=$(limpa "$SENHA")
 esc() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
 resp=$(curl -s -m 8 -X POST "http://$IP/login.fcgi" -H 'Content-Type: application/json' -d "{\"login\":\"$(esc "$USUARIO")\",\"password\":\"$(esc "$SENHA")\"}")
 SESSAO=$(printf '%s' "$resp" | sed -n 's/.*"session" *: *"\([^"]*\)".*/\1/p')
-[ -z "$SESSAO" ] && fim erro 'o iDFace recusou o usuário ou a senha. Use os mesmos que entram no menu do aparelho e rode de novo.'
+if [ -z "$SESSAO" ]; then
+  [ -z "$resp" ] && fim erro "o iDFace em $IP não respondeu ao login (a conexão caiu?). Confira o cabo e rode de novo."
+  fim erro "o iDFace recusou o usuário '$USUARIO' com essa senha. Use os mesmos que abrem o menu do aparelho (de fábrica: admin / admin). Resposta dele: ${resp:0:160}"
+fi
 diz "${VD}✓${C0} Entrei no iDFace."
 
 # ---------- 3. ligar o modo push apontando para o site ----------
