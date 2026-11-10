@@ -175,6 +175,8 @@ body.so .rodape-global { display: none; }
 .a-card:nth-child(n+6), .conv:nth-child(n+6), .oficina:nth-child(n+6) { animation-delay: .25s; }
 .anel .r::after { content: ""; position: absolute; inset: 8px; border-radius: 50%; background: var(--anel-miolo, var(--card)); }
 .anel .r b { position: relative; z-index: 1; font-family: var(--display); font-weight: 800; font-size: 17px; line-height: 1.05; color: var(--tinta); }
+.anel .r b.vivo { font-size: 15px; letter-spacing: -.02em; }
+.a-card .r b.vivo { font-size: 13.5px; }
 .anel .r b small { display: block; font-family: var(--texto); font-weight: 700; font-size: 10px; color: var(--tinta-2); margin-top: 1px; }
 .anel.baixo .r b { color: var(--erro); }
 .anel .nome { font-family: var(--display); font-weight: 600; font-size: 14px; color: var(--tinta); max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -617,7 +619,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.59';
+const VERSAO = '0.60';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -803,6 +805,13 @@ const crianca = id => S.criancas.find(c => c.id === +id);
 const minDentro = c => c.entrou ? (agora.getTime() - c.entrou.getTime()) / 60000 : 0;
 const usadoAgora = c => c.usado + (c.entrou ? cobrar(minDentro(c)) : 0);
 const restante = c => Math.max(0, c.pacote * 60 - usadoAgora(c));
+// ao vivo (com a criança dentro): o cronômetro corre segundo a segundo, sem a regra de arredondamento, que só vale na saída
+const segDentro = c => c.entrou ? Math.max(0, (agora.getTime() - c.entrou.getTime()) / 1000) : 0;
+const restanteVivo = c => Math.max(0, c.pacote * 3600 - c.usado * 60 - segDentro(c));
+const hms = seg => { seg = Math.max(0, Math.floor(seg)); const h = Math.floor(seg / 3600), m = Math.floor(seg % 3600 / 60); return (h ? h + ':' + p2(m) : String(m)) + ':' + p2(seg % 60); };
+const vivo = c => c.entrou ? hms(restanteVivo(c)) : hm(restante(c));           // o que resta, correndo se estiver dentro
+const esgotou = c => c.entrou ? restanteVivo(c) <= 0 : restante(c) <= 0;
+const pctVivo = c => c.pacote ? Math.max(0, Math.min(100, (c.entrou ? restanteVivo(c) / (c.pacote * 36) : restante(c) / (c.pacote * 60) * 100))) : 0;
 const estado = c => { const r = restante(c); return r <= 0 ? ['Zerado', 'p-erro'] : r <= S.cfg.aviso ? ['Acabando', 'p-aviso'] : ['Em dia', 'p-ok']; };
 // os personagens das contas do dia: cada um segura a placa onde o número aparece (a placa fica no mesmo lugar em todos)
 const PLACA = '<rect x="56" y="8" width="58" height="48" rx="10" fill="#FFFDF9" stroke="#3B3B3B" stroke-width="2"/>';
@@ -843,23 +852,23 @@ function diasComConversa() { const set = new Set([isoDia(agora)]); S.conversas.f
 function lerFoto(arquivo, cb) { const r = new FileReader(); r.onload = () => { const img = new Image(); img.onload = () => { const L = 480, k = Math.min(1, L / Math.max(img.width, img.height)), cv = document.createElement('canvas'); cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k); cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height); cb(cv.toDataURL('image/jpeg', .82)); }; img.src = r.result; }; r.readAsDataURL(arquivo); }
 const cpfFmt = v => { v = String(v).replace(/\D/g, '').slice(0, 11); return v.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2'); };
 function blocos(c, comEstado = true) {
-  const r = restante(c), pct = c.pacote ? Math.max(0, Math.min(100, r / (c.pacote * 60) * 100)) : 0, baixo = r <= S.cfg.aviso, [et, cls] = estado(c);
+  const r = restante(c), pct = pctVivo(c), baixo = r <= S.cfg.aviso, [et, cls] = estado(c);
   return `<div class="horas ${baixo ? 'baixo' : ''} ${c.entrou ? 'dentro' : ''}" data-horas="${c.id}" aria-label="Restam ${hm(r)} de ${c.pacote} horas">
-    <div class="topo"><span class="resta num">${r <= 0 ? 'Acabou' : hm(r)}<small>${r <= 0 ? '' : 'restantes'}</small></span><span class="de">de ${c.pacote}h${comEstado ? ` <span class="pill ${cls}">${et}</span>` : ''}</span></div>
+    <div class="topo"><span class="resta num">${esgotou(c) ? 'Acabou' : vivo(c)}<small>${esgotou(c) ? '' : (c.entrou ? 'correndo' : 'restantes')}</small></span><span class="de">de ${c.pacote}h${comEstado ? ` <span class="pill ${cls}">${et}</span>` : ''}</span></div>
     <div class="linha-h" style="--pct:${pct.toFixed(1)}%"><i style="width:${pct.toFixed(1)}%"></i></div>
   </div>`;
 }
 // o anel de uma criança: o que resta do pacote, com o tempo dentro; pequeno no banco de horas, maior no cartão de quem está no espaço
 function anel(c, onde = 'banco') {
-  const r = restante(c), pct = c.pacote ? Math.max(0, Math.min(100, r / (c.pacote * 60) * 100)) : 0, baixo = r <= S.cfg.aviso;
+  const r = restante(c), pct = pctVivo(c), baixo = r <= S.cfg.aviso;
   const dentro = onde === 'hero';
   const botoes = dentro
     ? `${podeManual() ? `<button class="bt claro tap" data-act="saida-rapida" data-id="${c.id}">${ic(IC.sair, 14)} Saída</button>` : ''}<button class="bt tap" data-act="avisar" data-id="${c.id}" aria-label="Avisar ${esc(c.resp)}">${ic(IC.zap, 14)}${podeManual() ? '' : ' Avisar'}</button>`
     : (r <= 0 || baixo ? `<button class="bt forte tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 14)} Vender</button>` : c.rosto ? (podeManual() ? `<button class="bt tap" data-act="entrada-rapida" data-id="${c.id}">${ic(IC.entrar, 14)} Entrada</button>` : `<button class="bt tap" data-act="avisar" data-id="${c.id}">${ic(IC.zap, 14)} Avisar</button>`) : (rostoPronto() ? `<button class="bt tap" data-act="rosto-cam" data-id="${c.id}">${ic(IC.rosto, 14)} Cadastrar rosto</button>` : `<button class="bt tap" data-act="ficha" data-id="${c.id}">${ic(IC.camera, 14)} Tirar a foto</button>`));
   return `<div class="anel ${baixo ? 'baixo' : ''} ${!dentro && !liberada(c) ? 'bloqueada' : ''}" data-anel="${c.id}" data-onde="${onde}">
-    <button class="r tap" data-act="ficha" data-id="${c.id}" style="--p:${pct.toFixed(1)};--c:${baixo ? 'var(--erro)' : 'var(--verde-agua)'}" aria-label="Abrir a ficha de ${esc(c.nome)}">${c.foto ? `<span class="fotinha" style="background-image:url(${c.foto})"></span>` : ''}<b class="num">${r <= 0 ? 'Acabou' : hm(r)}<small>${r <= 0 ? `pacote de ${c.pacote}h` : `de ${c.pacote}h`}</small></b></button>
+    <button class="r tap" data-act="ficha" data-id="${c.id}" style="--p:${pct.toFixed(1)};--c:${baixo ? 'var(--erro)' : 'var(--verde-agua)'}" aria-label="Abrir a ficha de ${esc(c.nome)}">${c.foto ? `<span class="fotinha" style="background-image:url(${c.foto})"></span>` : ''}<b class="num ${c.entrou ? 'vivo' : ''}">${esgotou(c) ? 'Acabou' : vivo(c)}<small>${esgotou(c) ? `pacote de ${c.pacote}h` : `de ${c.pacote}h`}</small></b></button>
     <span class="nome">${esc(c.nome)}${c.idade && !dentro ? ', ' + c.idade : ''}</span>
-    <em>${dentro ? `desde ${hora(c.entrou)} · <span class="num" data-cron-txt="${c.id}">${hm(minDentro(c))}</span>` : esc(c.resp)}</em>
+    <em>${dentro ? `desde ${hora(c.entrou)} · <span class="num" data-cron-txt="${c.id}">${hms(segDentro(c))}</span>` : esc(c.resp)}</em>
     <div class="mini">${botoes}</div>
     ${dentro ? '' : `<div class="libera"><span>${liberada(c) ? 'Acesso autorizado' : 'Acesso bloqueado'}</span>${chave(c, true)}</div>`}
   </div>`;
@@ -879,7 +888,7 @@ function situacao(c) {
 // o ursinho espiando por cima da foto (brincadeira do WhatsApp e da ficha)
 const URSINHO = `<svg class="espia" viewBox="0 0 60 34" aria-hidden="true"><circle cx="13" cy="12" r="7" fill="#C98B6B"/><circle cx="47" cy="12" r="7" fill="#C98B6B"/><circle cx="30" cy="20" r="17" fill="#D9A07F"/><ellipse cx="30" cy="27" rx="7" ry="5" fill="#F5D9C6"/><circle cx="24" cy="18" r="2" fill="#3B3B3B"/><circle cx="36" cy="18" r="2" fill="#3B3B3B"/><ellipse cx="30" cy="25" rx="2.6" ry="1.8" fill="#3B3B3B"/><ellipse cx="8" cy="33" rx="6" ry="3.5" fill="#D9A07F"/><ellipse cx="52" cy="33" rx="6" ry="3.5" fill="#D9A07F"/></svg>`;
 const avatarComUrso = (c, g = '') => `<span class="com-urso">${URSINHO}${avatar(c, g)}</span>`;
-const cronometro = c => { const m = minDentro(c); return `${Math.floor(m / 60)}:${p2(Math.floor(m % 60))}<small>desde ${hora(c.entrou)}</small>`; };
+const cronometro = c => `${hms(segDentro(c))}<small>desde ${hora(c.entrou)}</small>`;
 function registrar(tipo, nome, txt) { S.registros.unshift({ h: new Date(), tipo, nome, txt }); }
 function mensagemAuto(c, txt, comFoto) {
   let conv = S.conversas.find(x => x.crianca === c.id); if (!conv) { conv = { id: novoId(), crianca: c.id, lidas: true, msgs: [] }; S.conversas.push(conv); }
@@ -1012,7 +1021,7 @@ function folhaFicha(id) {
   abrirFolha(`${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}`, `
     <div class="linha">${avatarComUrso(c, 'g')}<div class="txt"><b style="white-space:normal">${esc(c.resp)}, ${esc(c.rel)}</b><span>${esc(c.tel)}${c.cpf ? ' · CPF ' + esc(c.cpf) : ''}</span>${c.obs ? `<span style="color:var(--coral);font-weight:700">${esc(c.obs)}</span>` : ''}</div><span class="pill ${cls}">${et}</span></div>
     <div class="marca libera-ficha">${ic(IC.rosto, 18)}<span>${textoAcesso(c)}</span>${chave(c)}</div>
-    ${c.entrou ? `<div class="marca">${ic(IC.horas, 18)}<span>Está no espaço desde <b>${hora(c.entrou)}</b>: <b class="num" data-cron-txt="${c.id}">${hm(minDentro(c))}</b> até agora, <b>${hm(cobrar(minDentro(c)))}</b> a debitar pela regra atual.</span></div>` : ''}
+    ${c.entrou ? `<div class="marca">${ic(IC.horas, 18)}<span>Está no espaço desde <b>${hora(c.entrou)}</b>: <b class="num" data-cron-txt="${c.id}">${hms(segDentro(c))}</b> até agora, <b>${hm(cobrar(minDentro(c)))}</b> a debitar pela regra atual.</span></div>` : ''}
     ${blocos(c, false)}
     <div class="saldo"><span>${c.pacote}h compradas</span><span>${hm(usadoAgora(c))} usadas</span></div>
     <div class="acoes">
@@ -1438,10 +1447,10 @@ setInterval(() => {
   agora.setTime(Date.now());
   $$('[data-relogio]').forEach(el => { el.innerHTML = relogioTxt(); }); if (agora.getSeconds() === 0) $$('[data-data]').forEach(el => { el.textContent = dataTxt(); });
   $$('[data-cron]').forEach(el => { const c = crianca(el.dataset.cron); if (c && c.entrou) el.innerHTML = cronometro(c); });
-  $$('[data-cron-txt]').forEach(el => { const c = crianca(el.dataset.cronTxt); if (c && c.entrou) el.textContent = hm(minDentro(c)); });
+  $$('[data-cron-txt]').forEach(el => { const c = crianca(el.dataset.cronTxt); if (c && c.entrou) el.textContent = hms(segDentro(c)); });
   $$('[data-horas]').forEach(el => { const c = crianca(el.dataset.horas); if (c && c.entrou) { const novo = document.createElement('div'); novo.innerHTML = blocos(c); el.replaceWith(novo.firstElementChild); } });
   $$('[data-situacao]').forEach(el => { const c = crianca(el.dataset.situacao); if (!c || !c.entrou) return; const st = situacao(c); el.className = `situacao ${st.cls} tap`; $('span', el).textContent = st.txt; });
-  $$('[data-anel][data-onde="hero"]').forEach(el => { const c = crianca(el.dataset.anel); if (!c || !c.entrou) return; const r = restante(c), pct = c.pacote ? Math.max(0, Math.min(100, r / (c.pacote * 60) * 100)) : 0, baixo = r <= S.cfg.aviso; el.classList.toggle('baixo', baixo); const b = $('.r', el); b.style.setProperty('--p', pct.toFixed(1)); b.style.setProperty('--c', baixo ? 'var(--erro)' : 'var(--verde-agua)'); $('.r b', el).innerHTML = `${r <= 0 ? 'Acabou' : hm(r)}<small>${r <= 0 ? `pacote de ${c.pacote}h` : `de ${c.pacote}h`}</small>`; });
+  $$('[data-anel][data-onde="hero"]').forEach(el => { const c = crianca(el.dataset.anel); if (!c || !c.entrou) return; const r = restante(c), pct = pctVivo(c), baixo = r <= S.cfg.aviso; el.classList.toggle('baixo', baixo); const b = $('.r', el); b.style.setProperty('--p', pct.toFixed(1)); b.style.setProperty('--c', baixo ? 'var(--erro)' : 'var(--verde-agua)'); $('.r b', el).innerHTML = `${esgotou(c) ? 'Acabou' : vivo(c)}<small>${esgotou(c) ? `pacote de ${c.pacote}h` : `de ${c.pacote}h`}</small>`; });
 }, 1000);
 iniciar();
 </script>
