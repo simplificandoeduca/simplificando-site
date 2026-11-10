@@ -18,6 +18,7 @@ const REGISTRO_PREFIXO = 'P'; // a matrícula no aparelho: P + id da criança
 function pushComando(string $endpoint, $body): array { return ['verb' => 'POST', 'endpoint' => $endpoint, 'body' => $body, 'contentType' => 'application/json']; }
 function quandoDoTs(int $ts): string { return date('Y-m-d H:i:s', $ts + 60 * (int)cfg('ajuste_min', 0)); }
 function ultimoLog(string $aparelho): int { $q = db()->prepare('SELECT MAX(log_id) FROM batidas WHERE aparelho = ?'); $q->execute([$aparelho]); return max((int)$q->fetchColumn(), (int)cfg('log_corte', 0)); }
+function regrasFila(): array { $r = []; foreach (cfgComo('regra_') as $k => $v) if (preg_match('/^regra_\d+$/', $k)) $r[$k] = $v; return $r; }   // só a fila (regra_<id>), não regra_id nem regra_ok_
 function fotoBase64(string $foto): string { return preg_match('#^data:image/[a-z]+;base64,(.+)$#s', $foto, $m) ? $m[1] : $foto; }
 // a resposta do aparelho com a imagem: procura o primeiro texto base64 grande numa chave "image"
 function acharImagem($r): string {
@@ -69,6 +70,7 @@ function guardarUsuariosAparelho(array $us): void {
     if (preg_match('/^' . REGISTRO_PREFIXO . '(\d+)$/', $mat, $m)) {
       $cid = (int)$m[1]; $c = crianca($cid);
       if ($c && $c['idface_id'] === null) { try { $db->prepare('UPDATE criancas SET idface_id = ? WHERE id = ?')->execute([$id, $cid]); apagarCfg('mandar_' . $cid); if ($c['foto'] !== '') gravarCfg('foto_' . $cid, $id); } catch (Throwable $e) { } }
+      if ($c && !cfg('regra_ok_' . $cid) && !cfg('regra_' . $cid)) gravarCfg('regra_' . $cid, $id);
       continue;
     }
     $q = $db->prepare('SELECT 1 FROM criancas WHERE idface_id = ?'); $q->execute([$id]);
@@ -96,6 +98,8 @@ function acaoPush(string $rota): void {
       if ($tipo === 'apagar' && !empty($fly['alvo'])) apagarCfg('apagar_' . (int)$fly['alvo']); // sai da fila com qualquer resposta
       if (!empty($j['error'])) {
         $st['erro'] = 'o aparelho respondeu: ' . substr((string)$j['error'], 0, 200);
+        if ($tipo === 'regra' && !empty($fly['crianca'])) { $cid = (int)$fly['crianca']; $n = (int)cfg('falhas_regra_' . $cid, 0) + 1; gravarCfg('falhas_regra_' . $cid, $n); if ($n >= 3) { apagarCfg('regra_' . $cid); apagarCfg('falhas_regra_' . $cid); } if (stripos((string)$j['error'], 'exist') !== false || stripos((string)$j['error'], 'UNIQUE') !== false) { apagarCfg('regra_' . $cid); gravarCfg('regra_ok_' . $cid, agora()); } }
+        if ($tipo === 'regras_lista' || $tipo === 'regra_criar') gravarCfg('regra_id', 0);
         if ($tipo === 'rosto' && !empty($fly['crianca'])) { apagarCfg('pedirosto_' . (int)$fly['crianca']); gravarCfg('rosto_erro_' . (int)$fly['crianca'], 'O aparelho recusou a captura: ' . substr((string)$j['error'], 0, 120)); }
         if (in_array($tipo, ['criar', 'foto', 'renomear'], true) && !empty($fly['crianca'])) { $k = 'falhas_' . $tipo . '_' . (int)$fly['crianca']; $n = (int)cfg($k, 0) + 1; gravarCfg($k, $n); if ($n >= 3) { apagarCfg(($tipo === 'criar' ? 'mandar_' : ($tipo === 'foto' ? 'foto_' : 'renomear_')) . (int)$fly['crianca']); apagarCfg($k); } }
       } else {
@@ -104,9 +108,22 @@ function acaoPush(string $rota): void {
         elseif ($tipo === 'usuarios') { guardarUsuariosAparelho((array)($resp['users'] ?? [])); $st['usuarios_em'] = time(); }
         elseif ($tipo === 'criar') {
           $uid = (int)(((array)($resp['ids'] ?? []))[0] ?? 0); $cid = (int)($fly['crianca'] ?? 0);
-          if ($uid && $cid) { $db->prepare('UPDATE criancas SET idface_id = ? WHERE id = ? AND idface_id IS NULL')->execute([$uid, $cid]); apagarCfg('mandar_' . $cid); $cr = crianca($cid); if ($cr && $cr['foto'] !== '') gravarCfg('foto_' . $cid, $uid); }
+          if ($uid && $cid) {
+            $up = $db->prepare('UPDATE criancas SET idface_id = ? WHERE id = ? AND idface_id IS NULL'); $up->execute([$uid, $cid]);
+            if ($up->rowCount()) { $cr = crianca($cid); if ($cr && $cr['foto'] !== '') gravarCfg('foto_' . $cid, $uid); gravarCfg('regra_' . $cid, $uid); }
+            else gravarCfg('apagar_' . $uid, $uid);   // a criança já tinha cadastro no aparelho: este saiu duplicado, apaga
+            apagarCfg('mandar_' . $cid);
+          }
           $st['usuarios_em'] = 0;
         }
+        // a regra de acesso do aparelho: sem ela, o rosto é reconhecido mas o visor diz "Não autorizado" e a leitura não vale
+        elseif ($tipo === 'regras_lista') {
+          $rs = (array)($resp['access_rules'] ?? []); $id = 0;
+          foreach ($rs as $r) { if (is_array($r) && isset($r['id'])) { $id = (int)$r['id']; break; } }
+          if ($id) gravarCfg('regra_id', $id); else gravarCfg('regra_id', 'criar');
+        }
+        elseif ($tipo === 'regra_criar') { $id = (int)(((array)($resp['ids'] ?? []))[0] ?? 0); if ($id) gravarCfg('regra_id', $id); else gravarCfg('regra_id', 0); }
+        elseif ($tipo === 'regra') { $cid = (int)($fly['crianca'] ?? 0); apagarCfg('regra_' . $cid); gravarCfg('regra_ok_' . $cid, agora()); }
         elseif ($tipo === 'rosto') { // o aparelho capturou (ou não) o rosto da criança
           $cid = (int)($fly['crianca'] ?? 0); $ok = is_array($resp) && (!empty($resp['success']) || (isset($resp['user_id']) && empty($resp['error'])));
           apagarCfg('pedirosto_' . $cid);
@@ -136,6 +153,15 @@ function acaoPush(string $rota): void {
   elseif ((float)($st['periodo'] ?? 0) > 4 && time() - (int)($st['periodo_ajuste_em'] ?? 0) > 3600) { $tipo = 'periodo'; $st['periodo_ajuste_em'] = time(); $cmd = pushComando('set_configuration', ['push_server' => ['push_request_period' => '3']]); }
   elseif ($mandar) {
     foreach ($mandar as $k => $v) { $cr = crianca((int)$v); if ($cr && $cr['ativo'] && $cr['idface_id'] === null) { $cid = (int)$cr['id']; $tipo = 'criar'; $cmd = pushComando('create_objects', ['object' => 'users', 'values' => [['name' => mb_substr($cr['nome'], 0, 50), 'registration' => REGISTRO_PREFIXO . $cr['id']]]]); break; } apagarCfg($k); }
+  }
+  if (!$cmd && regrasFila()) { // a regra de acesso para quem acabou de entrar no aparelho
+    $rid = cfg('regra_id', null);
+    if ($rid === null) { $tipo = 'regras_lista'; $cmd = pushComando('load_objects', ['object' => 'access_rules']); }
+    elseif ($rid === 'criar') { $tipo = 'regra_criar'; $cmd = pushComando('create_objects', ['object' => 'access_rules', 'values' => [['name' => 'Play Space', 'type' => 1, 'priority' => 0]]]); }
+    elseif ((int)$rid > 0) {
+      foreach (regrasFila() as $k => $uid) { $cid = (int)substr($k, 6); $cr = crianca($cid); if (!$cr || $cr['idface_id'] === null) { apagarCfg($k); continue; } $tipo = 'regra'; $cmd = pushComando('create_objects', ['object' => 'user_access_rules', 'values' => [['user_id' => (int)$cr['idface_id'], 'access_rule_id' => (int)$rid]]]); break; }
+    }
+    else foreach (regrasFila() as $k => $uid) apagarCfg($k);   // o aparelho não tem regras nem deixou criar: segue sem
   }
   if (!$cmd) { // o rosto ao vivo: o aparelho entra no modo de cadastro e pede para a criança olhar para a câmera
     foreach (cfgComo('pedirosto_') as $k => $v) {
