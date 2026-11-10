@@ -464,7 +464,7 @@ function logo(){
 $('#logo').innerHTML = logo(); document.querySelector('.top .mic').innerHTML = I.mic;
 
 /* ========== estado ========== */
-const FINV = '10 nov · 25'; // Versão do Finanças: 10 nov · 25
+const FINV = '10 nov · 26'; // Versão do Finanças: 10 nov · 26
 const DONO = { nome:'Eduardo Matias', iniciais:'EM' }; // perfil único desta página
 const LS = 'simplificando-financas', LST = 'simplificando-financas-tema';
 const CATS = ['Mercado', 'Comida', 'Transporte', 'Casa', 'Lazer', 'Saúde', 'Roupas', 'Assinaturas', 'Outros'];
@@ -597,6 +597,8 @@ function pagosFatura(c, f){ // pagamentos da fatura do cartão no período (fatu
 function aplicarFixos(){ // cria o gasto de cada fixo no dia certo do mês atual (uma vez só, mesmo que depois seja apagado)
   const mes = nowKey(), hoje = todayISO(), ultimo = new Date(+mes.slice(0, 4), +mes.slice(5, 7), 0).getDate();
   let n = 0;
+  // contas no boleto/Pix sempre saem da conta corrente (corrige as salvas antes apontando para um cartão)
+  for (const f of S.fixos) if (f.forma === 'boleto' && cartao(f.cartao).tipo !== 'conta') { f.cartao = contaId(); n++; }
   for (const f of S.fixos) {
     if (f.ativo === false || f.forma === 'boleto') continue;
     const key = f.id + '|' + mes; if (S.fixosFeitos[key]) continue;
@@ -678,7 +680,7 @@ function rResumo(){
     h += `<div class="card" style="padding-bottom:8px"><div class="hd"><h2>Contas do mês</h2><span class="pill">${aberto ? 'falta ' + esc(fmt(aberto)) : 'tudo pago'}</span></div><div class="list" style="margin:0 -6px">`;
     for (const x of cm) {
       const stH = x.pago ? '<span class="conta-st ok">Paga</span>' : x.st === 'atrasada' ? `<span class="conta-st bad">Atrasada ${-x.dias}d</span>` : x.st === 'vence' ? `<span class="conta-st warn">${x.dias === 0 ? 'Vence hoje' : 'Vence em ' + x.dias + 'd'}</span>` : `<span class="conta-st">Dia ${x.f.dia}</span>`;
-      h += `<div class="cta"><div class="l1"><span class="ic" style="width:30px;height:30px;border-radius:10px;background:var(--ctl);display:inline-flex;align-items:center;justify-content:center;font-size:14px">${x.pago ? '✅' : '📄'}</span><b>${esc(x.f.nome)}</b><span class="val">${esc(fmt(x.f.valor))}</span></div><div class="l2">${stH}<span class="t">${x.pago ? 'Paga em ' + esc(shortDate(x.pago.data)) : 'Vence ' + esc(shortDate(x.venc))} · ${esc(cartao(x.f.cartao).nome)}${x.f.quem === 'irmao' ? ' · ' + nIr : ''}</span>${x.pago ? `<button type="button" class="btn sm" data-a="despagar-conta" data-k="${x.pago.id}">Desfazer</button>` : `<button type="button" class="btn sm primary" data-a="pagar-conta" data-k="${x.f.id}">Paguei</button>`}</div></div>`;
+      h += `<div class="cta"><div class="l1"><span class="ic" style="width:30px;height:30px;border-radius:10px;background:var(--ctl);display:inline-flex;align-items:center;justify-content:center;font-size:14px">${x.pago ? '✅' : '📄'}</span><b>${esc(x.f.nome)}</b><span class="val">${esc(fmt(x.f.valor))}</span></div><div class="l2">${stH}<span class="t">${x.pago ? 'Paga em ' + esc(shortDate(x.pago.data)) : 'Vence ' + esc(shortDate(x.venc))} · boleto/Pix${x.f.quem === 'irmao' ? ' · ' + nIr : ''}</span>${x.pago ? `<button type="button" class="btn sm" data-a="despagar-conta" data-k="${x.pago.id}">Desfazer</button>` : `<button type="button" class="btn sm primary" data-a="pagar-conta" data-k="${x.f.id}">Paguei</button>`}</div></div>`;
     }
     h += `</div><p class="sub" style="padding-top:8px">Toque em "Paguei" no dia que pagar: o valor entra nos gastos do mês e sai do saldo da conta.</p></div>`;
   }
@@ -1351,7 +1353,7 @@ document.addEventListener('click', ev => {
   if (a === 'guardar-tudo') { const v = +k; if (v > 0) { S.guardados.push({ id:uid(), cr:Date.now(), valor:v, data:todayISO(), obs:'' }); save(); render(); toast('Guardado: ' + fmt(v) + '. Meta do mês batida!'); } }
   if (a === 'ver-guardados') sheetGuardados();
   if (a === 'ed-guardado') { const x = S.guardados.find(y => y.id === k); if (x) sheetGuardar(x); }
-  if (a === 'pagar-conta') { const f = S.fixos.find(x => x.id === k); if (!f) return; S.gastos.push({ id:uid(), cr:Date.now(), valor:f.valor, data:todayISO(), cartao:f.cartao, quem:f.quem === 'irmao' ? 'irmao' : 'eu', desc:f.nome, cat:f.cat || '', fixo:f.id, boleto:true }); S.fixosFeitos[f.id + '|' + UI.mes] = true; save(); render(); toast(f.nome + ' paga: ' + fmt(f.valor) + '.'); }
+  if (a === 'pagar-conta') { const f = S.fixos.find(x => x.id === k); if (!f) return; S.gastos.push({ id:uid(), cr:Date.now(), valor:f.valor, data:todayISO(), cartao:contaId(), quem:f.quem === 'irmao' ? 'irmao' : 'eu', desc:f.nome, cat:f.cat || '', fixo:f.id, boleto:true }); S.fixosFeitos[f.id + '|' + UI.mes] = true; save(); render(); toast(f.nome + ' paga: ' + fmt(f.valor) + '.'); }
   if (a === 'despagar-conta') { const g = S.gastos.find(x => x.id === k); if (!g) return; S.gastos = S.gastos.filter(x => x.id !== k); delete S.fixosFeitos[g.fixo + '|' + UI.mes]; save(); render(); toast('Pagamento desfeito.'); }
   if (a === 'meta-tipo') { S.meta = Object.assign({ tipo:'valor', valor:0, pct:10 }, S.meta || {}, { tipo:k }); save(); render(); }
   if (a === 'ed-fixo') { const f = S.fixos.find(x => x.id === k); if (f) sheetFixo(f); }
