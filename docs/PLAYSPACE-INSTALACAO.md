@@ -85,6 +85,16 @@ No topo da aba Horas, o próprio sistema sugere o que fazer agora, uma frase e u
 
 Aparecem as 3 mais importantes, com "Ver as N dicas" para o resto. Cada dica pode ser dispensada no X (vale para o dia, naquele aparelho). Quem já foi chamado para renovar nos últimos 3 dias não volta a aparecer.
 
+## 6d. Bonequinhos (Ajustes → Aparência)
+
+Os bonequinhos (o ursinho, o balão, o cavalinho, o despertador, o guindaste da tela de entrar) seguem o aparelho:
+
+- Em **Automático**, eles se mexem normalmente. Se o aparelho estiver com as animações do sistema desligadas (no Windows: *Mostrar animações no Windows* desligado, ou o ajuste "melhor desempenho"; no iPhone: *Reduzir Movimento*), eles ficam **quietos**, cada um parado na sua pose. Nesse caso aparece a dica "Os bonequinhos estão quietos neste computador", com o botão **Animar os bonequinhos**: um toque e eles voltam a se mexer naquele aparelho. O X da dica dispensa de vez.
+- **Animados**: mexem sempre, mesmo com as animações do sistema desligadas.
+- **Quietos**: ficam parados sempre.
+
+A escolha vale só para aquele aparelho (fica guardada no navegador).
+
 ## 7. Atualizar
 
 Botão **Atualizar** ao lado da versão. Ele baixa a versão nova do GitHub (ramo principal ou de trabalho, a mais nova), confere a versão dentro do arquivo e troca os arquivos de forma atômica. Não mexe em `~/playspace-dados/`. Se o GitHub demorar a refletir (cache de ~5 min), espere e toque de novo.
@@ -95,4 +105,5 @@ Botão **Atualizar** ao lado da versão. Ele baixa a versão nova do GitHub (ram
 - **A Evolution recusou a chave**: a apikey está errada ou é de outra instância. Confira em Ajustes → WhatsApp.
 - **iDFace "Sem contato"**: aparelho desligado, sem internet, ou o endereço push ficou errado no aparelho. Rode o conector de novo.
 - **Mensagem do responsável não aparece**: o telefone no cadastro não bate com o número de onde veio (precisa dos últimos 8 dígitos iguais). Ajuste o telefone na ficha.
+- **Os bonequinhos estão parados num computador**: as animações do sistema estão desligadas nele. Toque em **Animar os bonequinhos** na dica, ou escolha **Animados** em Ajustes → Aparência (seção 6d).
 - Erros do servidor vão para o log de erros do PHP (cPanel → *Erros*) com o prefixo `[playspace]`.
