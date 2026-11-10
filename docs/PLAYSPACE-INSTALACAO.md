@@ -72,6 +72,19 @@ Tudo configurável, porque a cliente ainda não decidiu: **arredondamento** (exa
 
 A aba **Banco de horas** mostra todas as crianças com o saldo, a **última contratação** (quantas horas, valor e dia) e a situação. No topo, **Para renovar** lista quem zerou ou está acabando, com o aviso pronto: "As horas do Miguel acabaram. Chame a Carla (mãe) no WhatsApp para ver se quer renovar." O botão **Chamar no WhatsApp** abre a conversa com a mensagem de renovação já escrita (com os pacotes e preços de Ajustes): é conferir e enviar. Depois de chamada, o cartão mostra "Já chamada hoje às 14:20 por Beatriz", para ninguém chamar duas vezes. Quando o iDFace registra uma saída que zera o pacote, a tela avisa na hora com o mesmo botão. O selo na aba mostra quantas crianças estão para renovar.
 
+## 6c. Dicas do sistema
+
+No topo da aba Horas, o próprio sistema sugere o que fazer agora, uma frase e um botão por dica:
+
+- **Horas acabando ou acabadas**: "Catarina tem só mais 1h disponível. Mande mensagem para a Mariana (mãe) para ver se gostaria de comprar mais horas." O botão **Mandar mensagem** abre uma folha com o texto pronto (dá para ajustar) e envia sem sair da tela.
+- **Família esperando resposta** no WhatsApp há mais de 3 minutos, com o botão **Responder**.
+- **iDFace sem contato** ou **WhatsApp desconectado**: o que impede o sistema de trabalhar sozinho.
+- **Agenda**: o que começa nas próximas 2 horas.
+- **Cadastro**: criança sem rosto no iDFace, ou com o acesso bloqueado mas com saldo.
+- **Quem sumiu**: criança com horas guardadas que não vem há 14 dias ou mais.
+
+Aparecem as 3 mais importantes, com "Ver as N dicas" para o resto. Cada dica pode ser dispensada no X (vale para o dia, naquele aparelho). Quem já foi chamado para renovar nos últimos 3 dias não volta a aparecer.
+
 ## 7. Atualizar
 
 Botão **Atualizar** ao lado da versão. Ele baixa a versão nova do GitHub (ramo principal ou de trabalho, a mais nova), confere a versão dentro do arquivo e troca os arquivos de forma atômica. Não mexe em `~/playspace-dados/`. Se o GitHub demorar a refletir (cache de ~5 min), espere e toque de novo.
