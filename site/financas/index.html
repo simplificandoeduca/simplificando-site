@@ -464,7 +464,7 @@ function logo(){
 $('#logo').innerHTML = logo(); document.querySelector('.top .mic').innerHTML = I.mic;
 
 /* ========== estado ========== */
-const FINV = '10 nov · 24'; // Versão do Finanças: 10 nov · 24
+const FINV = '10 nov · 25'; // Versão do Finanças: 10 nov · 25
 const DONO = { nome:'Eduardo Matias', iniciais:'EM' }; // perfil único desta página
 const LS = 'simplificando-financas', LST = 'simplificando-financas-tema';
 const CATS = ['Mercado', 'Comida', 'Transporte', 'Casa', 'Lazer', 'Saúde', 'Roupas', 'Assinaturas', 'Outros'];
@@ -511,6 +511,10 @@ const ccHTML = (c, extra, cls) => {
 };
 const EMO = { mercado:'🛒', comida:'🍔', transporte:'🚗', casa:'🏠', lazer:'🎉', saude:'💊', roupas:'👕', assinaturas:'📺', outros:'💳' };
 const emoji = g => EMO[String(g.cat || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()] || (g.fixo ? '🔁' : '💳');
+const contaId = () => { // a conta (débito/Pix) de onde saem boletos; cria uma se não existir
+  let c = S.cartoes.find(k => k.tipo === 'conta'); if (c) return c.id;
+  c = { id:'conta', nome:'Conta (débito / Pix)', cor:4, tipo:'conta', fecha:null }; S.cartoes.push(c); return c.id;
+};
 const needsSetup = () => S.fontes.some(f => /^Emprego \d$/.test(f.nome)) || S.cartoes.some(c => /^Cartão \d$/.test(c.nome));
 
 /* ========== nuvem ========== */
@@ -809,7 +813,7 @@ function rAjustes(){
     ${mt.tipo === 'pct' ? `<label class="field">Porcentagem da renda prevista<input type="number" min="1" max="90" inputmode="numeric" data-f="meta-pct" value="${mt.pct || 10}"></label>` : `<label class="field">Valor por mês<input inputmode="decimal" data-f="meta-valor" value="${mt.valor ? esc((mt.valor / 100).toFixed(2).replace('.', ',')) : ''}" placeholder="Ex.: 300,00"></label>`}</div>`;
   h += `<div class="card"><div class="hd"><h2>Gastos fixos</h2><button type="button" class="btn sm" data-a="add-fixo">${I.plus}Fixo</button></div><p class="sub">No cartão (assinaturas, parcelas) entram sozinhos no dia certo. Boleto ou Pix (financiamento, DAS, internet) aparecem em "Contas do mês" e você toca em "Paguei".</p>`;
   if (!S.fixos.length) h += `<p class="sub">Nenhum gasto fixo ainda. Dica: toque no microfone e diga "fixo aluguel 1200 na conta dia 5".</p>`;
-  else { h += `<div class="list" style="margin:0 -6px">`; for (const f of S.fixos) { const c = cartao(f.cartao); h += `<button type="button" class="row" data-a="ed-fixo" data-k="${f.id}"><span class="sw" style="--sw:${swOf(c)}"></span><span class="tx"><b>${esc(f.nome)}</b><span>${f.forma === 'boleto' ? 'Boleto/Pix · vence dia ' : 'Dia '}${f.dia || 1} · ${esc(c.nome)}${f.quem === 'irmao' ? ' · ' + esc(S.irmao.nome) : ''}${f.ativo === false ? ' · pausado' : ''}</span></span><span class="val">${esc(fmt(f.valor))}<small>por mês</small></span></button>`; } h += `</div><p class="sub">Total fixo: <b>${esc(fmt(sum(S.fixos.filter(f => f.ativo !== false), f => f.valor)))}</b> por mês.</p>`; }
+  else { h += `<div class="list" style="margin:0 -6px">`; for (const f of S.fixos) { const c = cartao(f.cartao); h += `<button type="button" class="row" data-a="ed-fixo" data-k="${f.id}"><span class="sw" style="--sw:${swOf(c)}"></span><span class="tx"><b>${esc(f.nome)}</b><span>${f.forma === 'boleto' ? 'Boleto/Pix · vence dia ' + (f.dia || 1) : 'Dia ' + (f.dia || 1) + ' · ' + esc(c.nome)}${f.quem === 'irmao' ? ' · ' + esc(S.irmao.nome) : ''}${f.ativo === false ? ' · pausado' : ''}</span></span><span class="val">${esc(fmt(f.valor))}<small>por mês</small></span></button>`; } h += `</div><p class="sub">Total fixo: <b>${esc(fmt(sum(S.fixos.filter(f => f.ativo !== false), f => f.valor)))}</b> por mês.</p>`; }
   h += `</div>`;
   h += `<div class="card"><h2>Quem usa seu cartão</h2><p class="sub">Nome, WhatsApp e chave Pix (entra na mensagem de cobrança).</p>
     <div class="inline"><label class="field">Nome<input id="in-irmao" data-f="irmao-nome" value="${esc(S.irmao.nome)}" placeholder="Irmão"></label><button type="button" class="mic sm ghost" style="margin-top:22px" data-voz="in-irmao" aria-label="Falar o nome">${I.mic}</button></div>
@@ -912,7 +916,7 @@ function sheetFixo(f){
     ${amtHTML(f.valor, 'Valor de cada mês')}${padHTML()}
     <div class="sec"><label class="field">Nome<span class="inline"><input id="s-nome" value="${esc(f.nome)}" placeholder="Ex.: aluguel, Netflix, academia"><button type="button" class="mic sm ghost" data-voz="s-nome" aria-label="Falar o nome">${I.mic}</button></span></label></div>
     <div class="sec"><p class="lbl">Como paga</p><div class="seg"><button type="button" class="${st.forma !== 'boleto' ? 'on' : ''}" data-c="forma" data-k="cartao">No cartão (lança sozinho)</button><button type="button" class="${st.forma === 'boleto' ? 'on' : ''}" data-c="forma" data-k="boleto">Boleto ou Pix (eu confirmo)</button></div></div>
-    <div class="sec"><p class="lbl">${st.forma === 'boleto' ? 'Sai de' : 'Cartão'}</p>${chipsHTML('cartao', S.cartoes, f.cartao, swOf)}</div>
+    ${st.forma === 'boleto' ? '' : `<div class="sec"><p class="lbl">Cartão</p>${chipsHTML('cartao', S.cartoes, f.cartao, swOf)}</div>`}
     <div class="sec"><p class="lbl">Quem paga</p><div class="seg"><button type="button" class="${st.quem !== 'irmao' ? 'on' : ''}" data-c="quem" data-k="eu">Eu</button><button type="button" class="${st.quem === 'irmao' ? 'on' : ''}" data-c="quem" data-k="irmao">${esc(S.irmao.nome)}</button></div></div>
     <div class="sec"><p class="lbl">Categoria</p><div class="chips small">${S.cats.map(c => `<button type="button" class="opt ${st.cat === c ? 'on' : ''}" data-c="cat" data-k="${esc(c)}">${esc(c)}</button>`).join('')}</div></div>
     <div class="grid2"><label class="field">${st.forma === 'boleto' ? 'Vence dia' : 'Dia do mês'}<input type="number" id="s-dia" min="1" max="31" inputmode="numeric" value="${f.dia || 1}"></label><label class="field">Situação<select id="s-ativo"><option value="1" ${f.ativo !== false ? 'selected' : ''}>Ativo</option><option value="0" ${f.ativo === false ? 'selected' : ''}>Pausado</option></select></label></div>
@@ -1073,7 +1077,7 @@ function vozSalvar(p){
   else if (p.tipo === 'pag') S.pagamentos.push({ id:uid(), cr, valor:Math.abs(p.valor), data:p.data, obs:p.desc });
   else if (p.tipo === 'receita') S.receitas.push({ id:uid(), cr, fonte:p.fonte, valor:Math.abs(p.valor), data:p.data, obs:p.desc });
   else if (p.tipo === 'guardar') S.guardados.push({ id:uid(), cr, valor:Math.abs(p.valor), data:p.data, obs:p.desc });
-  else if (p.tipo === 'fixo') { let ct = p.cartao; if (p.forma === 'boleto') { const cc = S.cartoes.find(c => c.tipo === 'conta'); if (cc) ct = cc.id; } S.fixos.push({ id:uid(), nome:p.desc || 'Conta fixa', valor:Math.abs(p.valor), cartao:ct, dia:p.dia || 1, quem:p.quem, cat:p.cat, ativo:true, forma:p.forma || 'cartao' }); }
+  else if (p.tipo === 'fixo') { const ct = p.forma === 'boleto' ? contaId() : p.cartao; S.fixos.push({ id:uid(), nome:p.desc || 'Conta fixa', valor:Math.abs(p.valor), cartao:ct, dia:p.dia || 1, quem:p.quem, cat:p.cat, ativo:true, forma:p.forma || 'cartao' }); }
   else { S.gastos.push({ id:uid(), cr, valor:Math.abs(p.valor), data:p.data, cartao:p.cartao, quem:p.quem, desc:p.desc, cat:p.cat }); S.ult.cartao = p.cartao; }
   save(); Sheet.close(); render();
   toast({ saldo:'Saldo anotado: ', pag:S.irmao.nome + ' pagou ', receita:'Receita salva: ', fixo:'Conta fixa salva: ', guardar:'Guardado: ', gasto:'Gasto salvo: ' }[p.tipo] + fmt(Math.abs(p.valor)) + '.');
@@ -1266,7 +1270,7 @@ Sheet.box.addEventListener('click', ev => {
   if (a === 'salvar-fixo') {
     const v = cents(), nome = val('s-nome').trim(), dia = Math.min(31, Math.max(1, parseInt(val('s-dia') || '1', 10) || 1));
     if (v <= 0) return toast('Digite o valor mensal.'); if (!nome) return toast('Dê um nome ao gasto fixo.');
-    const o = { nome, valor:v, cartao:s.cartao, dia, quem:s.quem === 'irmao' ? 'irmao' : 'eu', cat:s.cat || '', ativo:val('s-ativo') !== '0', forma:s.forma === 'boleto' ? 'boleto' : 'cartao' };
+    const o = { nome, valor:v, cartao:s.forma === 'boleto' ? contaId() : s.cartao, dia, quem:s.quem === 'irmao' ? 'irmao' : 'eu', cat:s.cat || '', ativo:val('s-ativo') !== '0', forma:s.forma === 'boleto' ? 'boleto' : 'cartao' };
     if (s.id) { const f = S.fixos.find(x => x.id === s.id); if (f) Object.assign(f, o); } else S.fixos.push(Object.assign({ id:uid() }, o));
     save(); Sheet.close(); render(); toast('Gasto fixo salvo.');
   }
