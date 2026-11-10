@@ -4876,7 +4876,8 @@ function stArc(c,cx,cy,r,a0,a1){ const k = Math.PI/180; c.beginPath(); c.arc(cx,
 function stCrono(c,D,T){
   const W = 1080, H = 1920;
   c.fillStyle = T.bg; c.fillRect(0,0,W,H);
-  stLogoDraw(c,90,110,110);
+  stDecoFundo(c,'crono',T.bg,[[60,70,500,170],[200,250,680,110],[40,1250,1000,190],[40,1730,1000,120],[560,100,500,130]]);
+  stLogoDraw(c,90,110,110); stGorro(c,90,110,110); stTag(c,1000,165,'right');
   stTxt(c,'simplificando',226,183,'900 52px '+ST_SANS,T.tx,'left',-2);
   c.font = '900 52px '+ST_SANS; stLs(c,-2); const lw = c.measureText('simplificando').width; stLs(c,0);
   stTxt(c,'.',226+lw,183,'900 52px '+ST_SANS,T.dot);
@@ -4921,6 +4922,7 @@ function stCupom(c,D,cor){
   const X = 90, PW = 900, P = 70, rows = D.cargas.length || 1;
   const hm = 64+120+44+182+18+32+ (36+4+36) + rows*67 + (36+4+36) + 120 + 2*67 + 40 + 28, G = 24, hs = 28+44+110+26+40+56, h = hm+G+hs;
   const Y = Math.max(40, Math.round((H-h)/2)), Z = 28, ym = Y+hm, ys = ym-Z+G;
+  stDecoFundo(c,'cupom',bg,[[X,Y,PW,h+30],[240,Y-130,600,100]]); if(Y>=170) stTag(c,540,Y-84,'center');
   // cupom com o pé picotado
   c.fillStyle = paper; c.beginPath(); c.moveTo(X,Y+36); c.arcTo(X,Y,X+36,Y,36); c.lineTo(X+PW-36,Y); c.arcTo(X+PW,Y,X+PW,Y+36,36);
   c.lineTo(X+PW,ym-Z); for(let x=PW-30;x>=0;x-=30){ c.lineTo(X+x, (PW-x)/30%2 ? ym : ym-Z); } c.closePath(); c.fill();
@@ -4928,9 +4930,9 @@ function stCupom(c,D,cor){
   c.beginPath(); c.moveTo(X,ys); for(let x=30;x<=PW;x+=30){ c.lineTo(X+x, (PW-x)/30%2 ? ys+Z : ys); }
   c.lineTo(X+PW,ys+hs-36); c.arcTo(X+PW,ys+hs,X+PW-36,ys+hs,36); c.lineTo(X+36,ys+hs); c.arcTo(X,ys+hs,X,ys+hs-36,36); c.closePath(); c.fill();
   let y = Y+64;
-  stLogoDraw(c,X+P,y,120);
+  stLogoDraw(c,X+P,y,120); stGorro(c,X+P,y,120);
   const dt = String(D.dia).padStart(2,'0')+'/'+String(D.mes+1).padStart(2,'0')+'/'+D.d.getFullYear()+(D.hr?' · '+D.hr:'');
-  const hd = ['CUPOM DO TREINO', dt].concat(D.gym ? [D.gym.toUpperCase()] : []);
+  const hd = [temaAtivo() ? ST_DECO[temaAtivo()].cupom : 'CUPOM DO TREINO', dt].concat(D.gym ? [D.gym.toUpperCase()] : []);
   c.font = '600 30px '+ST_MONO; hd.forEach((s,i) => stTxt(c,stCorte(c,s,560),X+PW-P,y+34+i*45,'600 30px '+ST_MONO,'#5B625D','right'));
   y += 120+44;
   c.font = '900 96px '+ST_SANS; stLs(c,-4); const l1 = 'Treino '+D.t, w1 = c.measureText(l1).width; stLs(c,0);
@@ -4997,6 +4999,7 @@ function stFoto(c,D,s){
   // hashtag
   c.save(); c.translate(x+470, y+h+40); c.rotate(-3*Math.PI/180); c.fillStyle = s.cor==='verde' ? STC.dk : STC.lm; stRR(c,-150,-38,300,76,22); c.fill();
   stTxt(c,'#simplificando',0,12,'900 34px '+ST_SANS,s.cor==='verde'?STC.lm:STC.dk,'center'); c.restore();
+  stDecoFoto(c,s);
 }
 let stBlobT = 0, stOk = false;
 function stBlob(s){
@@ -5046,8 +5049,63 @@ async function stRender(){
   stDraw(s); stBind(s); stBlob(s); stThumbs(s.i, s.cor);
 }
 const quem = () => isPersonal() ? { nome:ACCT.nome||'', tipo:'personal' } : { nome:S.nome||'', tipo:'autonomo' };
-/* datas especiais: o story ganha um visual da data (a programação fica na aba Estatísticas do painel) */
-function temaAtivo(){ return ''; }
+/* datas especiais: nos dias de Natal, Ano Novo e Carnaval o story ganha enfeites da data (a programação aparece na aba Estatísticas do painel) */
+function stPascoa(y){ const a = y%19, b = Math.floor(y/100), c = y%100, d = Math.floor(b/4), e = b%4, f = Math.floor((b+8)/25), g = Math.floor((b-f+1)/3), h = (19*a+b-d-g+15)%30, i = Math.floor(c/4), k = c%4, l = (32+2*e+2*i-h-k)%7, m = Math.floor((a+11*h+22*l)/451), mo = Math.floor((h+l-7*m+114)/31), da = ((h+l-7*m+114)%31)+1; return new Date(y, mo-1, da); }
+function stDatas(y){ const p = stPascoa(y), dd = n => new Date(p.getFullYear(), p.getMonth(), p.getDate()+n);
+  return [['anonovo', new Date(y-1,11,26), new Date(y,0,2,23)], ['carnaval', dd(-50), new Date(dd(-46).getTime()+23*3600e3)], ['natal', new Date(y,11,15), new Date(y,11,25,23)], ['anonovo', new Date(y,11,26), new Date(y+1,0,2,23)]]; }
+function temaAtivo(){ const d = parse(today()), t = stDatas(d.getFullYear()).find(x => d>=x[1] && d<=x[2]); return t ? t[0] : ''; }
+const stAno = () => { const d = parse(today()); return d.getMonth()===11 ? d.getFullYear()+1 : d.getFullYear(); };
+const ST_DECO = { natal:{ tag:() => 'Feliz Natal', cupom:'CUPOM DE NATAL', pill:'#1E7A46', ink:'#FFFFFF' }, anonovo:{ tag:() => 'Bora, '+stAno()+'!', cupom:'CUPOM DE ANO NOVO', pill:'#E9B949', ink:'#0F1712' }, carnaval:{ tag:() => 'É Carnaval!', cupom:'CUPOM DE CARNAVAL', pill:'#A98BFF', ink:'#0F1712' } };
+const stRng = seed => () => (seed = (seed*16807) % 2147483647) / 2147483647;
+const stClaro = hex => { const h = String(hex).replace('#',''); if(h.length<6) return true; const r = parseInt(h.slice(0,2),16), g = parseInt(h.slice(2,4),16), b = parseInt(h.slice(4,6),16); return (r*299+g*587+b*114)/1000 > 150; };
+function stFloco(c,x,y,r,cor){ c.save(); c.translate(x,y); c.strokeStyle = cor; c.lineWidth = Math.max(2.5, r/5); c.lineCap = 'round';
+  for(let k=0;k<6;k++){ c.rotate(Math.PI/3); c.beginPath(); c.moveTo(0,0); c.lineTo(0,-r); c.moveTo(0,-r*.55); c.lineTo(-r*.25,-r*.78); c.moveTo(0,-r*.55); c.lineTo(r*.25,-r*.78); c.stroke(); } c.restore(); }
+function stBrilho(c,x,y,r,cor){ c.save(); c.translate(x,y); c.fillStyle = cor; c.beginPath(); c.moveTo(0,-r); c.quadraticCurveTo(r*.12,-r*.12,r,0); c.quadraticCurveTo(r*.12,r*.12,0,r); c.quadraticCurveTo(-r*.12,r*.12,-r,0); c.quadraticCurveTo(-r*.12,-r*.12,0,-r); c.fill(); c.restore(); }
+const ST_CONF = ['#FF4646','#C6F04A','#A98BFF','#FF9A3C','#5AB8FF','#F6F5EF'];
+// enfeites de fundo: desenhados antes do conteúdo e fora das áreas de texto
+function stDecoFundo(c, m, bg, fora){
+  const t = temaAtivo(); if(!t) return;
+  const W = 1080, H = 1920, rnd = stRng(m==='cupom' ? 917 : 4211), claro = stClaro(bg), livre = (x,y) => !(fora||[]).some(([a,b,w,h]) => x>a-24 && x<a+w+24 && y>b-24 && y<b+h+24);
+  c.save();
+  if(t==='carnaval'){
+    c.lineWidth = 12; c.lineCap = 'round';
+    [[-40,34,'#FF9A3C'],[-40,1880,'#A98BFF']].forEach(([x0,y0,cor]) => { c.strokeStyle = cor; c.globalAlpha = .95; c.beginPath(); c.moveTo(x0,y0); for(let k=1;k<=20;k++) c.quadraticCurveTo(x0+k*60-30, y0+(k%2?-34:34), x0+k*60, y0); c.stroke(); });
+    c.globalAlpha = 1;
+    for(let i=0;i<90;i++){ const x = rnd()*W, y = rnd()*H, a = rnd()*Math.PI, cor = ST_CONF[Math.floor(rnd()*ST_CONF.length)]; if(!livre(x,y) || (claro && cor==='#F6F5EF') || cor.toLowerCase()===String(bg).toLowerCase()) continue;
+      c.save(); c.translate(x,y); c.rotate(a); c.fillStyle = cor; if(rnd()<.35){ c.beginPath(); c.arc(0,0,9,0,Math.PI*2); c.fill(); } else c.fillRect(-8,-15,16,30); c.restore(); }
+  } else if(t==='natal'){
+    const cor = claro ? 'rgba(47,120,201,.45)' : 'rgba(255,255,255,.85)';
+    for(let i=0;i<46;i++){ const x = rnd()*W, y = rnd()*H, r = 12+rnd()*20; if(livre(x,y)) stFloco(c,x,y,r,cor); }
+  } else if(t==='anonovo'){
+    for(let i=0;i<60;i++){ const x = rnd()*W, y = rnd()*H, r = 8+rnd()*22; if(!livre(x,y)) continue; if(rnd()<.6) stBrilho(c,x,y,r, rnd()<.75 ? '#E9B949' : (claro ? '#0F1712' : '#F6F5EF')); else { c.fillStyle = '#E9B949'; c.beginPath(); c.arc(x,y,r/4,0,Math.PI*2); c.fill(); } }
+  }
+  c.restore();
+}
+// selo da data (ex.: "Treino de Natal") e gorro de Papai Noel no logo
+function stTag(c, x, y, al, rot){
+  const t = temaAtivo(); if(!t) return; const D2 = ST_DECO[t], txt = D2.tag().toUpperCase();
+  c.save(); c.translate(x,y); if(rot) c.rotate(rot*Math.PI/180); c.font = '900 34px '+ST_SANS; stLs(c,3); const w = c.measureText(txt).width+64; stLs(c,0);
+  const x0 = al==='right' ? -w : al==='center' ? -w/2 : 0;
+  c.shadowColor = 'rgba(0,0,0,.18)'; c.shadowBlur = 18; c.shadowOffsetY = 6; c.fillStyle = D2.pill; stRR(c,x0,-36,w,72,36); c.fill(); c.shadowColor = 'transparent';
+  stTxt(c,txt,x0+w/2,12,'900 34px '+ST_SANS,D2.ink,'center',3); c.restore();
+}
+function stGorro(c, x, y, n){
+  if(temaAtivo()!=='natal') return;
+  n *= .86; c.save(); c.translate(x+n*.62, y+6); c.rotate(-14*Math.PI/180);
+  c.fillStyle = '#D7263D'; c.beginPath(); c.moveTo(-n*.52, -n*.02); c.quadraticCurveTo(-n*.2, -n*.95, n*.5, -n*.92); c.quadraticCurveTo(n*.62, -n*.55, n*.52, -n*.02); c.closePath(); c.fill();
+  c.fillStyle = '#FFFFFF'; c.shadowColor = 'rgba(0,0,0,.2)'; c.shadowBlur = 8; stRR(c,-n*.6,-n*.16,n*1.2,n*.28,n*.14); c.fill();
+  c.beginPath(); c.arc(n*.52, -n*.9, n*.15, 0, Math.PI*2); c.fill(); c.restore();
+}
+function stDecoFoto(c, s){
+  const t = temaAtivo(); if(!t) return;
+  const x = s.sx, y = s.sy, rnd = stRng(733), box = [x-40, y-150, 740, 560];
+  c.save();
+  for(let i=0;i<26;i++){ const px = x-120+rnd()*880, py = y-260+rnd()*760; if(px>box[0] && px<box[0]+box[2] && py>box[1] && py<box[1]+box[3]) continue;
+    if(t==='natal') stFloco(c,px,py,12+rnd()*16,'rgba(255,255,255,.9)'); else if(t==='anonovo') stBrilho(c,px,py,10+rnd()*18,'#E9B949');
+    else { c.save(); c.translate(px,py); c.rotate(rnd()*3); c.fillStyle = ST_CONF[Math.floor(rnd()*5)]; c.fillRect(-8,-15,16,30); c.restore(); } }
+  c.restore();
+  stTag(c, x+20, y-120, 'left', -5);
+}
 // conta qual modelo de story a pessoa postou (uma vez por modelo, a cada vez que abre o compartilhar)
 function stLog(s, acao){ if(!FB || !s) return; const L = s.logged || (s.logged = {}); if(L[s.m]) return; L[s.m] = 1; FB.evento('storiesUso', Object.assign(quem(), { modelo:s.m, cor:s.cor||'', acao, tema:temaAtivo(), em:Date.now() })); }
 function stNome(s){ const h = S.history[s.i]; return 'simplificando-treino-'+(h ? h.t+'-'+h.date : 'hoje')+'.png'; }
