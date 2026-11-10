@@ -117,6 +117,13 @@ function db(): PDO {
     } catch (Throwable $e) { }
     $pdo->exec('PRAGMA user_version = 11');
   }
+  if ($v < 12) { // 0.76: criança PCD (paga metade na recreação) e venda com voucher (período sem cobrança, com o código anotado)
+    try { $pdo->exec('ALTER TABLE criancas ADD COLUMN pcd INTEGER NOT NULL DEFAULT 0'); } catch (Throwable $e) { }
+    try { $pdo->exec("ALTER TABLE vendas ADD COLUMN voucher TEXT NOT NULL DEFAULT ''"); } catch (Throwable $e) { }
+    try { $pdo->exec('ALTER TABLE vendas ADD COLUMN pcd INTEGER NOT NULL DEFAULT 0'); } catch (Throwable $e) { }
+    try { $pdo->exec('ALTER TABLE vendas ADD COLUMN cheio REAL'); } catch (Throwable $e) { }   // o valor de tabela, quando a venda saiu com desconto PCD ou por voucher
+    $pdo->exec('PRAGMA user_version = 12');
+  }
   return $pdo;
 }
 function cfg(string $k, $padrao = null) { $q = db()->prepare('SELECT valor FROM config WHERE chave = ?'); $q->execute([$k]); $v = $q->fetchColumn(); return $v === false ? $padrao : json_decode((string)$v, true); }
@@ -143,7 +150,8 @@ const PACOTES_DE_EXEMPLO = [['h' => 1, 'v' => 60], ['h' => 5, 'v' => 250], ['h' 
 // tolerancia: quantos minutos depois do fim do tempo comprado a criança ainda pode ficar sem gerar nova cobrança
 // autoMsg 'nao': nenhum aviso automático no WhatsApp (a loja não quer que o responsável fique acompanhando o tempo)
 // fecha: a hora em que a loja fecha (24 = meia-noite): depois dela o tempo de quem ficou marcado no espaço para de contar
-const REGRA_PADRAO = ['tolerancia' => 9, 'fecha' => 22, 'aviso' => 10, 'autoMsg' => 'nao', 'bloqueioAuto' => 'sim', 'pacotes' => [], 'extras' => [], 'sapateiras' => 44, 'cancelaMin' => 9];
+// pcdDesc: o desconto, em %, da criança PCD em todo tempo de recreação (avulso, pacote e cobrança por atraso)
+const REGRA_PADRAO = ['tolerancia' => 9, 'fecha' => 22, 'pcdDesc' => 50, 'aviso' => 10, 'autoMsg' => 'nao', 'bloqueioAuto' => 'sim', 'pacotes' => [], 'extras' => [], 'sapateiras' => 44, 'cancelaMin' => 9];
 function regra(): array {
   if (isset($GLOBALS['_regra'])) return $GLOBALS['_regra'];   // lida uma vez por pedido (a conta do tempo consulta a regra muitas vezes)
   return $GLOBALS['_regra'] = regraDoBanco();
@@ -166,6 +174,9 @@ function servicoTempo(): ?array { foreach ((array)regra()['servicos'] as $s) if 
 function periodo(): int { $s = servicoTempo(); return max(5, (int)($s['min'] ?? 30)); }
 function periodosDe(float $minutos): int { return max(1, (int)ceil(($minutos - max(0, (int)regra()['tolerancia'])) / periodo())); }
 function cobrar(float $minutos): int { return periodosDe($minutos) * periodo(); }
+// o preço do tempo de recreação para esta criança: a criança PCD paga com o desconto (50% de fábrica)
+function pcdDesc(): int { return max(0, min(100, (int)(regra()['pcdDesc'] ?? 50))); }
+function precoPcd(array $c, float $v): float { return !empty($c['pcd']) ? round($v * (100 - pcdDesc()) / 100, 2) : $v; }
 // quantos minutos a visita conta até $fim: no máximo até a hora em que a loja fecha (no dia da entrada) e nunca mais de 12 h.
 // Assim uma saída esquecida não vira cobrança a noite toda (a supervisão corrige a hora da saída depois).
 function minutosDaVisita(array $c, int $fim): float {
@@ -239,8 +250,10 @@ function acertarCobrancas(array $c, ?string $quando = null): array {
       $min = minutosDaVisita($c, $fim); $falta = (int)$c['usado_min'] + cobrar($min) - (int)$c['pacote_min'];
       for ($n = $falta > 0 ? (int)ceil($falta / $p) : 0; $n > 0; $n--) {
         $semTempo = $min <= (int)regra()['tolerancia'];   // ainda no primeiro período: entrou sem ter um período inteiro comprado
-        $x = fazerVenda($c, $p, (float)$s['v'], null, $semTempo ? 'entrou sem tempo comprado' : 'cobrança por atraso', (string)$s['n'], true,
-          ($semTempo ? 'Cobrança gerada na entrada: entrou sem tempo comprado' : 'Nova cobrança por atraso: ficou além do tempo comprado') . ' · ' . $s['n'] . ' +' . dur($p) . ' · ' . dinheiro((float)$s['v']) . ' a receber na saída');
+        $preco = precoPcd($c, (float)$s['v']); $pcdTxt = $preco < (float)$s['v'] ? ' · PCD ' . pcdDesc() . '%' : '';   // a criança PCD paga a cobrança por atraso com o mesmo desconto
+        $x = fazerVenda($c, $p, $preco, null, ($semTempo ? 'entrou sem tempo comprado' : 'cobrança por atraso') . $pcdTxt, (string)$s['n'], true,
+          ($semTempo ? 'Cobrança gerada na entrada: entrou sem tempo comprado' : 'Nova cobrança por atraso: ficou além do tempo comprado') . ' · ' . $s['n'] . ' +' . dur($p) . ' · ' . dinheiro($preco) . $pcdTxt . ' a receber na saída',
+          $pcdTxt !== '' ? ['pcd' => 1, 'cheio' => (float)$s['v']] : []);
         $criadas[] = $x['venda']; $c = crianca((int)$c['id']);
       }
     }
@@ -313,13 +326,15 @@ function bloquearAcesso(array $c, bool $liberar): void {
 // $min: minutos de brincar que a venda põe no saldo da criança (0 = nenhum). $servico: o nome do serviço vendido (Recreação, Carrinho fusquinha).
 // $itens: o detalhe. Num serviço, a duração ou a observação; num pacote antigo, o que veio junto; sem serviço e sem minutos, o próprio produto.
 // $auto: a venda foi gerada pelo sistema (cobrança por atraso); $textoAuto é a linha que vai para "Hoje na recepção"
-function fazerVenda(array $c, int $min, float $valor, ?int $por, string $itens = '', string $servico = '', bool $auto = false, string $textoAuto = ''): array {
-  $db = db(); $itens = mb_substr(trim($itens), 0, 80); $servico = mb_substr(trim($servico), 0, 60); $min = max(0, $min);
+// $mais: ['voucher' => código, 'pcd' => 1, 'cheio' => valor de tabela] quando a venda saiu por voucher ou com o desconto PCD
+function fazerVenda(array $c, int $min, float $valor, ?int $por, string $itens = '', string $servico = '', bool $auto = false, string $textoAuto = '', array $mais = []): array {
+  $db = db(); $itens = mb_substr(trim($itens), 0, 140); $servico = mb_substr(trim($servico), 0, 60); $min = max(0, $min);
   if ($min > 0) {
     $db->prepare('UPDATE criancas SET pacote_min = pacote_min + ? WHERE id = ?')->execute([$min, $c['id']]);
     if (isset($c['liberado']) && !(int)$c['liberado']) bloquearAcesso($c, true);   // pagou o tempo: o acesso volta
   }
-  $db->prepare('INSERT INTO vendas (crianca_id, horas, minutos, valor, quando, por, itens, servico, auto) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')->execute([$c['id'], round($min / 60, 2), $min, $valor, agora(), $por, $itens, $servico, $auto ? 1 : 0]);
+  $db->prepare('INSERT INTO vendas (crianca_id, horas, minutos, valor, quando, por, itens, servico, auto, voucher, pcd, cheio) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    ->execute([$c['id'], round($min / 60, 2), $min, $valor, agora(), $por, $itens, $servico, $auto ? 1 : 0, (string)($mais['voucher'] ?? ''), empty($mais['pcd']) ? 0 : 1, $mais['cheio'] ?? null]);
   $venda = (int)$db->lastInsertId();
   $dinheiro = 'R$ ' . number_format($valor, fmod($valor, 1) ? 2 : 0, ',', '.');
   if ($servico !== '') $texto = $servico . ($min > 0 ? ' · ' . dur($min) : '') . ($itens !== '' ? ' · ' . $itens : '') . ' · ' . $dinheiro;
