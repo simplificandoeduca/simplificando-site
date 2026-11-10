@@ -1698,7 +1698,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '10 nov · 84'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '10 nov · 85'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -5768,7 +5768,8 @@ function pushCard(){
 /* versão nova: o app confere no site se tem versão mais nova e mostra o aviso com o botão Atualizar agora */
 let NOVAV = '', novaAt = 0;
 async function versaoCheca(force){
-  if(!navigator.onLine || (!force && Date.now()-novaAt < 5*60e3)) return; novaAt = Date.now();
+  if(NOVAV){ versaoAviso(); if(!force) return; }
+  if(!navigator.onLine || (!force && Date.now()-novaAt < 20e3)) return; novaAt = Date.now();
   try {
     const txt = await fetch(location.pathname+'?v='+Date.now(), { cache:'no-store' }).then(r => r.ok ? r.text() : '');
     const m = txt.match(/const\s+APPV = '([^']+)'/); if(!m || m[1]===APPV) return;
@@ -5790,10 +5791,14 @@ async function versaoAtualiza(){
 }
 function versaoSetup(){
   try { const q = new URLSearchParams(location.search); if(q.has('atualizar')){ history.replaceState(null,'',location.pathname+location.hash); setTimeout(() => toast('App atualizado: versão '+APPV), 900); } } catch(e){ /* sem histórico */ }
-  setTimeout(() => versaoCheca(true), 4000);
+  // confere logo que o app abre e toda vez que a pessoa volta para ele, em qualquer aba
+  setTimeout(() => versaoCheca(true), 800);
   document.addEventListener('visibilitychange', () => { if(document.visibilityState==='visible') versaoCheca(); });
+  window.addEventListener('pageshow', () => versaoCheca()); window.addEventListener('focus', () => versaoCheca());
   window.addEventListener('online', () => versaoCheca(true));
-  setInterval(() => versaoCheca(), 30*60e3);
+  setInterval(() => { if(document.visibilityState==='visible') versaoCheca(); }, 5*60e3);
+  // o sw.js avisa quando uma versão nova acabou de ser baixada
+  try { navigator.serviceWorker && navigator.serviceWorker.addEventListener('message', ev => { if(ev.data && ev.data.nova) versaoCheca(true); }); } catch(e){ /* sem service worker */ }
 }
 /* sem internet: o app fica guardado no celular (sw.js na pasta do app) e avisa quando o sinal cai ou volta */
 function offlineSetup(){

@@ -2,7 +2,7 @@
    - A página: tenta a internet primeiro (pega a versão nova); se a internet falhar ou demorar, abre a cópia guardada.
    - Arquivos fixos (Firebase, ícones, fontes): usa a cópia guardada e atualiza por trás.
    - Banco de dados, login e e-mails não passam por aqui: o próprio Firebase cuida de reenviar quando o sinal volta. */
-const CACHE = 'simp-treino-v2';
+const CACHE = 'simp-treino-v3';
 const CORE = ['./', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-180.png', './firebase-config.js',
   './fb/firebase-app-compat.js', './fb/firebase-auth-compat.js', './fb/firebase-firestore-compat.js'];
 const BASE = new URL('./', self.location).pathname;
@@ -12,7 +12,9 @@ self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => Promise.all(CORE.map(u => c.add(new Request(u, {cache: 'reload'})).catch(() => null)))).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith('simp-treino-') && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith('simp-treino-') && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())
+    // avisa o app aberto que chegou versão nova (ele mostra o botão Atualizar agora)
+    .then(() => self.clients.matchAll({ type:'window' })).then(cs => cs.forEach(c => c.postMessage({ nova:true }))));
 });
 
 function guarda(req, res) {
