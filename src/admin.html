@@ -2133,6 +2133,7 @@ function vPainel(){
   if(!Store.loaded) return h+loadingCard();
   h += stashCard();
   if(all.length) h += semanaCard();
+  h += lembreteDatas();
   if(!all.length){
     return h+'<section class="card blk-brand empty"><span class="label">'+ic('users')+'Comece por aqui</span><h2 class="big">Cadastre seu primeiro aluno<span class="dot" aria-hidden="true"></span></h2><p class="muted">Com o aluno cadastrado, você monta o treino, define metas de água e cardio, controla a mensalidade e gera o código de acesso ao app.</p><div class="btn-row"><button type="button" class="btn ink" data-a="novo">'+ic('plus')+'Novo aluno</button><button type="button" class="btn" data-a="go" data-v="biblioteca">'+ic('book')+'Montar biblioteca</button></div></section>'+
       '<section class="card"><span class="label">'+ic('check')+'Três passos</span><div class="soon-rows"><div><b>1. Biblioteca</b><span>Cadastre os exercícios com dicas e erro comum.</span></div><div><b>2. Modelos</b><span>Monte treinos A, B, C para reaproveitar.</span></div><div><b>3. Alunos</b><span>Aplique um modelo e ajuste por aluno.</span></div><div><b>4. Acesso</b><span>Envie o código pelo WhatsApp.</span></div></div></section>'+activityPh();
@@ -2205,6 +2206,24 @@ function comentariosCard(){
     '<span class="cm-d">'+(x.agora ? 'agora, no treino de hoje' : ev2Dias(x.d)+(x.t ? ' · Treino '+esc(x.t) : ''))+'</span></span>'+ic('chev','chev')+'</button>').join('')+'</div>'+
     (L.length>10 ? '<p class="foot">Mais '+(L.length-10)+' nos últimos 20 dias. Veja na Evolução de cada aluno.</p>' : '')+'</section>';
 }
+/* ---------- datas especiais: lembrete só no painel, 10 dias antes, para preparar o design novo dos stories ---------- */
+function pascoaD(y){ const a = y%19, b = Math.floor(y/100), c = y%100, d = Math.floor(b/4), e = b%4, f = Math.floor((b+8)/25), g = Math.floor((b-f+1)/3), h = (19*a+b-d-g+15)%30, i = Math.floor(c/4), k = c%4, l = (32+2*e+2*i-h-k)%7, m = Math.floor((a+11*h+22*l)/451), mo = Math.floor((h+l-7*m+114)/31), da = ((h+l-7*m+114)%31)+1; return new Date(y, mo-1, da); }
+const isoD = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+function datasEsp(y){
+  const p = pascoaD(y), dom2 = m => { const x = new Date(y,m,1); return new Date(y, m, 1+((7-x.getDay())%7)+7); };
+  return [['carnaval','Carnaval', new Date(y, p.getMonth(), p.getDate()-50)], ['pascoa','Páscoa', p], ['maes','Dia das Mães', dom2(4)], ['pais','Dia dos Pais', dom2(7)], ['natal','Natal', new Date(y,11,25)], ['anonovo','Ano Novo', new Date(y,11,31)]]
+    .map(([k,n,d]) => ({ key:k+'-'+y, k, nome:n, d:isoD(d) }));
+}
+const proxDatas = () => { const t0 = today(), y = +t0.slice(0,4); return datasEsp(y).concat(datasEsp(y+1)).filter(x => x.d>=t0).sort((a,b) => a.d.localeCompare(b.d)); };
+function lembreteDatas(){
+  const ok = (C.config.geral && C.config.geral.datasOk) || [], t0 = today();
+  const L = proxDatas().filter(x => diffDays(x.d, t0)<=10 && !ok.includes(x.key));
+  return L.map(x => { const n = diffDays(x.d, t0);
+    return '<section class="card blk-lime"><div class="card-h"><span class="label">'+ic('cake')+'Lembrete · design dos stories</span><span class="pill">'+fmtDm(x.d)+'</span></div>'+
+      '<h2 class="big">'+(n<=0 ? 'Hoje é '+esc(x.nome) : 'Faltam '+plural(n,'dia')+' para '+(x.k==='pascoa'||x.k==='natal'||x.k==='carnaval' ? 'o ' : '')+esc(x.nome))+'<span class="dot" aria-hidden="true"></span></h2>'+
+      '<p class="muted">Hora de preparar os designs novos dos stories para '+esc(x.nome)+'. Esse aviso aparece só aqui no seu painel.</p>'+
+      '<div class="btn-row"><button type="button" class="btn ink" data-a="datOk" data-k="'+esc(x.key)+'">'+ic('check')+'Já preparei</button></div></section>'; }).join('');
+}
 /* ---------- Estatísticas: o que os alunos usam e sugerem, para decidir as próximas mudanças ---------- */
 const ST = { sug:null, sto:null, err:'', at:0, loading:false };
 const ST_MOD = [['crono','Cronômetro','O tempo de treino em destaque'],['cupom','Cupom','As cargas do dia, em forma de cupom'],['foto','Foto','A foto da pessoa com figurinhas']];
@@ -2238,6 +2257,11 @@ function vEstat(){
         (op ? (P2.length ? '<div class="est-who">'+P2.map(x => '<div><b>'+esc(x.nome)+'</b><span>'+tipoTxt(x.tipo)+' · '+plural(x.n,'vez','vezes')+' · último '+new Date(x.ult).toLocaleDateString('pt-BR')+(Object.keys(x.cores).length ? ' · cor '+Object.keys(x.cores).sort((a,b) => x.cores[b]-x.cores[a]).map(k => ST_COR[k]||k).join(', ') : '')+'</span></div>').join('')+'</div>' : '<p class="foot">Ninguém postou este modelo no período.</p>') : '')+'</div>'; }).join('')+'</div>'+
     (menos && menos[1]<.2 ? '<p class="callout">'+ic('alert')+'<span>O modelo <b>'+menos[0]+'</b> está bem menos usado ('+Math.round(menos[1]*100)+'% dos stories). Vale testar um visual novo para ele.</span></p>' : '')+
     '<p class="foot">Conta cada vez que alguém toca em Compartilhar ou Baixar imagem no fim do treino (uma vez por modelo a cada abertura). Vale para alunos com e sem personal.</p></section>';
+  // próximas datas especiais
+  const ok0 = (C.config.geral && C.config.geral.datasOk) || [], t00 = today();
+  h += '<h3 class="sec">Datas especiais<span class="dot" aria-hidden="true"></span></h3><section class="card"><span class="label">'+ic('cake')+'Próximas datas para os stories</span><p class="muted">O lembrete aparece no Painel 10 dias antes de cada data.</p><div class="list">'+
+    proxDatas().slice(0,6).map(x => { const n = diffDays(x.d, t00), feito = ok0.includes(x.key);
+      return '<div class="row"><span class="ico'+(n<=10 && !feito ? ' lime' : '')+'">'+ic('cake')+'</span><span class="main-t"><b>'+esc(x.nome)+'</b><span>'+new Date(x.d+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+(n>10 ? ' · lembrete a partir de '+fmtDm(addDays(x.d,-10)) : '')+'</span></span><span class="end"><span class="pill '+(feito ? 'ok' : n<=10 ? 'warn' : 'line')+'">'+(feito ? 'Preparado' : n<=0 ? 'Hoje' : 'em '+plural(n,'dia'))+'</span></span></div>'; }).join('')+'</div></section>';
   // sugestões
   const fil = ui.estS || 'novas', S2 = ST.sug.filter(x => fil==='todas' || !x.lida), novas = ST.sug.filter(x => !x.lida).length;
   h += '<h3 class="sec">Sugestões<span class="dot" aria-hidden="true"></span></h3><section class="card"><div class="card-h"><span class="label">'+ic('msg')+'Caixinha de sugestões do app</span>'+(novas ? '<span class="pill bad">'+plural(novas,'nova','novas')+'</span>' : '<span class="pill line">Nenhuma nova</span>')+'</div>'+
@@ -3037,7 +3061,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '10 nov · 89'; // Versão do painel: 10 nov · 89
+const PAINELV = '10 nov · 90'; // Versão do painel: 10 nov · 90
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -4256,6 +4280,7 @@ function act(a,d,btn){
     case 'pfF': PF[d.g] = d.v; break;
     case 'pgRefresh': loadProg(true); break;
     case 'estRefresh': loadEst(true); toast('Atualizando'); break;
+    case 'datOk': { const g = C.config.geral || (C.config.geral = clone(DEF_CFG)); g.datasOk = (g.datasOk||[]).filter(k => k!==d.k).concat([d.k]).slice(-40); Store.save('config','geral',0); toast('Combinado. O lembrete dessa data saiu do Painel.'); break; }
     case 'estP': ui.estP = d.v; break;
     case 'estS': ui.estS = d.v; break;
     case 'estMod': ui.estOpen = ui.estOpen===d.v ? '' : d.v; break;
