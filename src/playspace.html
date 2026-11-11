@@ -1557,7 +1557,7 @@ const cartaoLimpeza = () => { const u = ultimaLimpeza();
 const SERV_IMP = 'PACOTE DO SISTEMA ANTERIOR', IMP_MAX_LINHAS = 10000, IMP_MAX_MIN = 60000;   // 60000 min = mil horas: mais que isso é coluna errada
 let IM = null;         // a planilha aberta na folha: { nome, M, larg, cab, col, un, rep, lote, R, ... }
 let IMP_LOTE = null;   // (prévia) a última importação, para o Desfazer
-const impLimpo = t => MAI(String(t == null ? '' : t).normalize('NFD').replace(/[̀-ͯ]/g, ''));   // sem acento e em maiúsculas, para comparar nomes
+const impLimpo = t => MAI(String(t == null ? '' : t).normalize('NFD').replace(/[\u0300-\u036f]/g, ''));   // sem acento e em maiúsculas, para comparar nomes
 const impNum = n => (+n || 0).toLocaleString('pt-BR');
 const impHm = min => { min = Math.max(0, Math.round(min)); return impNum(Math.floor(min / 60)) + 'h' + (min % 60 ? p2(min % 60) : ''); };   // 14.285h30: o total de uma importação passa fácil de mil horas
 const letraCol = i => { let s = ''; for (i++; i > 0; i = Math.floor((i - 1) / 26)) s = String.fromCharCode(65 + (i - 1) % 26) + s; return s; };
@@ -1595,12 +1595,12 @@ function horasEmMin(v, un) {
 /* ----- ler a planilha: texto colado, CSV, tabela de página e Excel (.xlsx) ----- */
 // Texto: o que foi colado do Excel vem com as colunas separadas por tabulação; o CSV, por ponto e vírgula ou vírgula. Aspas protegem o separador.
 function lerTabela(txt) {
-  txt = String(txt || '').replace(/^﻿/, '').replace(/\r\n?/g, '\n');
+  txt = String(txt || '').replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
   const amostra = txt.split('\n').filter(l => l.trim()).slice(0, 15);
   const conta = sep => { let com = 0, tot = 0; for (const l of amostra) { let n = 0, asp = false; for (const ch of l) { if (ch === '"') asp = !asp; else if (ch === sep && !asp) n++; } if (n) com++; tot += n; } return com * 100000 + tot; };
   let sep = '\t'; if (!conta('\t')) { let melhor = 0; for (const s of [';', ',', '|']) { const c = conta(s); if (c > melhor) { melhor = c; sep = s; } } }
   const M = []; let lin = [], cel = '', asp = false;
-  const fimCel = () => { lin.push(cel.replace(/ /g, ' ').replace(/\s+/g, ' ').trim()); cel = ''; }, fimLin = () => { fimCel(); if (lin.some(c => c !== '')) M.push(lin); lin = []; };
+  const fimCel = () => { lin.push(cel.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim()); cel = ''; }, fimLin = () => { fimCel(); if (lin.some(c => c !== '')) M.push(lin); lin = []; };
   for (let i = 0; i < txt.length; i++) { const ch = txt[i];
     if (asp) { if (ch !== '"') cel += ch; else if (txt[i + 1] === '"') { cel += '"'; i++; } else asp = false; }
     else if (ch === '"' && !cel.trim()) { asp = true; cel = ''; }
@@ -1752,7 +1752,9 @@ const htmlImportar1 = () => `
 function folhaImportar() {
   if (MODO === 'servidor' && !gestor()) return; IM = null;
   abrirFolha('Importar clientes e horas', `<div class="im-corpo" id="im-corpo">${htmlImportar1()}</div>`);
+  acertarModeloImp();
 }
+function acertarModeloImp() { const pela = baixarPelaPrevia(); if (pela) pela.then(dl => { const b = $('#im-corpo [data-act="importar-modelo"]'); if (b && !dl) b.hidden = true; }); }   // na prévia, sem a permissão de baixar, o botão do modelo some
 function mostrarPlanilha(M, nome) {
   if (!$('#im-corpo')) return; M = (M || []).filter(l => l.some(x => String(x == null ? '' : x).trim()));
   if (!M.length) { toast('Não achei nenhuma linha nessa planilha.'); return; }
@@ -1864,9 +1866,15 @@ async function desfazerImportacao() {
     S.importacao = fica.length + hFica.length ? { ...S.importacao, cadastros: fica.length, horas: hFica.length, min: fica.reduce((a, c) => a + saldoMin(c), 0) + hFica.reduce((a, v) => a + minDe(v), 0), desfeita: true } : null; if (!S.importacao) IMP_LOTE = null; }
   fecharFolha(); desenhar(); toast(`Importação desfeita: ${r.sairam === 1 && !r.horas_sairam ? 'saiu' : 'saíram'} ${fraseImp(r.sairam, r.horas_sairam || 0)}${r.ficaram + (r.horas_ficaram || 0) ? `; ${r.ficaram === 1 && !r.horas_ficaram ? 'ficou' : 'ficaram'} ${fraseImp(r.ficaram, r.horas_ficaram || 0)}` : ''}.`);
 }
-const baixarModeloImp = () => {
-  const csv = '﻿CRIANÇA;RESPONSÁVEL;CPF;TELEFONE;OUTRO TELEFONE;SALDO DE HORAS;OBSERVAÇÕES\r\nANA CLARA EXEMPLO;MARIA EXEMPLO;529.982.247-25;(11) 9 9999-0000;;5:30;ALERGIA A AMENDOIM\r\nPEDRO EXEMPLO;MARIA EXEMPLO;529.982.247-25;(11) 9 9999-0000;;2;\r\n';
-  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = 'modelo-importacao-play-space.csv';
+const MODELO_IMP = 'modelo-importacao-play-space.csv';
+// dentro da prévia publicada o arquivo não baixa por um link comum: sai pelo visualizador, se ele deixar (senão, o botão some)
+const baixarPelaPrevia = () => window.claude && typeof window.claude.use === 'function' ? window.claude.use('downloads').catch(() => null) : null;
+const baixarModeloImp = async () => {
+  const csv = '\uFEFFCRIANÇA;RESPONSÁVEL;CPF;TELEFONE;OUTRO TELEFONE;SALDO DE HORAS;OBSERVAÇÕES\r\nANA CLARA EXEMPLO;MARIA EXEMPLO;529.982.247-25;(11) 9 9999-0000;;5:30;ALERGIA A AMENDOIM\r\nPEDRO EXEMPLO;MARIA EXEMPLO;529.982.247-25;(11) 9 9999-0000;;2;\r\n';
+  const pela = baixarPelaPrevia();
+  if (pela) { const dl = await pela; if (!dl) { toast('Aqui na prévia o modelo não baixa. As colunas dele: criança, responsável, CPF, telefone, saldo de horas e observações.'); return; }
+    try { await dl.save({ filename: MODELO_IMP, data: csv }); } catch (e) { if (!e || e.code !== 'declined') toast('Não deu para baixar o modelo aqui. As colunas dele: criança, responsável, CPF, telefone, saldo de horas e observações.'); } return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = MODELO_IMP;
   document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 800);
 };
 const cartaoImportar = () => { const u = S.importacao;
@@ -4214,7 +4222,7 @@ const ACOES = {
   'pq-cadastrar': () => { const pre = PQ, q = val('pq-busca'), cpf = soNumerosBusca(q) ? cpfFmt(q) : ''; PQ = null; folhaCrianca(null, null, { pre, cpf }); },
   limpeza: () => folhaLimpeza(false),
   importar: () => folhaImportar(),
-  'importar-trocar': () => { IM = null; const c = $('#im-corpo'); if (c) c.innerHTML = htmlImportar1(); },
+  'importar-trocar': () => { IM = null; const c = $('#im-corpo'); if (c) { c.innerHTML = htmlImportar1(); acertarModeloImp(); } },
   'importar-modelo': () => baixarModeloImp(),
   'importar-un': el => { if (!IM) return; IM.un = el.dataset.v === 'min' ? 'min' : 'h'; lerLinhas(); pintarImportar(); },
   'importar-ja': el => { if (!IM) return; IM.ja = el.dataset.v === 'nada' ? 'nada' : 'horas'; lerLinhas(); pintarImportar(); },
