@@ -2,7 +2,7 @@
    - A página: tenta a internet primeiro (pega a versão nova); se a internet falhar ou demorar, abre a cópia guardada.
    - Arquivos fixos (Firebase, ícones, fontes): usa a cópia guardada e atualiza por trás.
    - Banco de dados, login e e-mails não passam por aqui: o próprio Firebase cuida de reenviar quando o sinal volta. */
-const VERSAO = '11 nov · 102'; // muda a cada versão (o build grava): assim o celular sempre percebe que tem sw.js novo
+const VERSAO = '11 nov · 103'; // muda a cada versão (o build grava): assim o celular sempre percebe que tem sw.js novo
 const CACHE = 'simp-treino-v4';
 let ATUALIZANDO = false; // true quando já tinha uma versão instalada (atualização, não primeira vez)
 const CORE = ['./', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-180.png', './firebase-config.js',

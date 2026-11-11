@@ -1703,7 +1703,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '11 nov · 102'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '11 nov · 103'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -1987,7 +1987,7 @@ const FB = (() => {
     catch(e){ return { err: e && e.code==='auth/requires-recent-login' ? 'Por segurança, saia, entre de novo e tente outra vez.' : 'Não deu para excluir agora. Confira a internet e tente de novo.' }; }
   }
   // registro avulso (caixinha de sugestões, modelo de story usado): cada um grava só com o próprio uid; só o dono do painel lê
-  async function evento(col, d){ const u = auth.currentUser || await ready(); if(!u) return false; try { await db.collection(col).add(Object.assign({}, d, { uid:u.uid })); return true; } catch(e){ return false; } }
+  async function evento(col, d){ const u = auth.currentUser || await ready(); if(!u) return 'sem-login'; try { await db.collection(col).add(Object.assign({}, d, { uid:u.uid })); return true; } catch(e){ return (e && e.code) || 'erro'; } }
   return { login, fetchMe, logout, toAluno, cached, signUp, signIn, resetMail, resetCheck, resetSave, setCodigo, autoLoad, autoSave, autoFlush, perfil, progresso, progLoad, deleteSelf, evento, account:aid => { const c = cached(); return c && c.aid===aid ? toAluno(c) : null; } };
 })();
 // abriu com a conta guardada (ou voltou para o app): confere online se o personal mudou o treino ou bloqueou o acesso
@@ -4661,7 +4661,7 @@ function sugEnviar(b){
   if(b) b.disabled = true;
   FB.evento('sugestoes', Object.assign(quem(), { texto:v.slice(0,1000), em:Date.now(), ver:APPV })).then(ok => {
     if(b) b.disabled = false;
-    if(ok){ ui.sugD = ''; if(t) t.value = ''; toast('Sugestão enviada. Obrigado!'); } else toast('Não deu para enviar agora. Confira a internet e tente de novo.');
+    if(ok===true){ ui.sugD = ''; if(t) t.value = ''; toast('Sugestão enviada. Obrigado!'); } else toast('Não deu para enviar agora. Confira a internet e tente de novo.');
   });
 }
 document.addEventListener('input', e => { if(e.target && e.target.id==='sug-txt') ui.sugD = e.target.value; });
@@ -5091,7 +5091,11 @@ const quem = () => isPersonal() ? { nome:ACCT.nome||'', tipo:'personal' } : { no
 /* datas especiais: o story ganha um visual da data (a programação fica na aba Estatísticas do painel) */
 function temaAtivo(){ return ''; }
 // conta qual modelo de story a pessoa postou (uma vez por modelo, a cada vez que abre o compartilhar)
-function stLog(s, acao){ if(!FB || !s) return; const L = s.logged || (s.logged = {}); if(L[s.m]) return; L[s.m] = 1; FB.evento('storiesUso', Object.assign(quem(), { modelo:s.m, cor:s.cor||'', acao, tema:temaAtivo(), em:Date.now() })); }
+// registro do comprovante (story): 'abriu' a tela, 'baixar' e 'share' contam separados, uma vez cada por modelo a cada abertura
+function stReg(s, acao, tema){ if(!FB || !s) return; const vid = s.m==='cbon' && s.tipo==='video', k = s.m+'|'+acao+(vid?'v':''), L = s.logged || (s.logged = {}); if(L[k]) return; L[k] = 1;
+  FB.evento('storiesUso', Object.assign(quem(), { modelo:s.m, cor:s.cor||'', acao:acao+(vid && acao!=='abriu' ? '-video' : ''), tema, em:Date.now() })).then(r => {
+    if(r==='permission-denied') errSend('Regras do Firebase desatualizadas: o registro dos comprovantes ('+(tema==='cardio'?'cardio':'treino')+') foi bloqueado. Cole o REGRAS-FIRESTORE.txt novo no Firebase.', 'storiesUso', 0, 0, ''); }); }
+function stLog(s, acao){ stReg(s, acao, temaAtivo() || 'treino'); }
 function stNome(s){ const h = S.history[s.i]; return 'simplificando-treino-'+(h ? h.t+'-'+h.date : 'hoje')+'.png'; }
 function stBaixar(s){
   if(!s.blob) return;
@@ -5147,7 +5151,7 @@ function stPick(i){
 function stOpen(i,m){
   const old = ui.sheet && ui.sheet.k==='story' ? ui.sheet : null;
   ui.sheet = {k:'story', i, m:m||PREF.stM||'crono', cor:PREF.stCor||'vermelho', sx:70, sy:1280, px:0, py:0, back:old ? old.back : i};
-  renderSheet(true); stRender();
+  renderSheet(true); stRender(); stLog(ui.sheet, 'abriu');
 }
 function stSet(k,v){ const s = ui.sheet; s[k] = v; s.blob = null; PREF[k==='m'?'stM':'stCor'] = v; savePref(); renderSheet(); stRender(); }
 
@@ -5292,7 +5296,7 @@ function cThumbs(s, cor){
 }
 function cOpen(j, m){
   ui.sheet = {k:'cstory', j, m:m||PREF.cstM||'cbon', cor:(PREF.cstCor||{})[m||PREF.cstM||'cbon'] || CST_COR0[m||'cbon'], tipo:PREF.cstTipo||'foto', blob:null, vblob:null, grav:false};
-  renderSheet(true); cRender();
+  renderSheet(true); cRender(); cLog(ui.sheet, 'abriu');
 }
 function vCStory(){
   const s = ui.sheet, D = cDados(s.j); if(!D) return '';
@@ -5350,8 +5354,7 @@ async function cShare(s){
   if(navigator.canShare && navigator.canShare({files:[f]})){ try { await navigator.share({files:[f]}); } catch(e){ if(e && e.name!=='AbortError') cSalvar(blob, nome); } }
   else { cSalvar(blob, nome); toast('Seu navegador não abre o compartilhar. O arquivo foi salvo: poste pelo Instagram ou WhatsApp.'); }
 }
-function cLog(s, acao){ if(!FB || !s) return; const k = s.m+(s.tipo==='video' && s.m==='cbon' ? 'v' : ''), L = s.logged || (s.logged = {}); if(L[k]) return; L[k] = 1;
-  FB.evento('storiesUso', Object.assign(quem(), { modelo:s.m, cor:s.cor||'', acao:acao+(s.m==='cbon' && s.tipo==='video' ? '-video' : ''), tema:'cardio', em:Date.now() })); }
+function cLog(s, acao){ stReg(s, acao, 'cardio'); }
 
 /* ---------- render ---------- */
 let $app, $sheet, $rest, $toast, $tabs, $fx, toastT, lpT = 0, lpAt = 0, lpXY = null;
