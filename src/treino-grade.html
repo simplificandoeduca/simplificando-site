@@ -1673,7 +1673,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '11 nov · 101'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '11 nov · 102'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -5923,8 +5923,11 @@ function errSend(msg, src, line, col, stack){
     else fetch(url, {method:'POST', body, headers:{'Content-Type':'application/json'}, keepalive:true}).catch(() => {});
   } catch(e){ /* sem aviso */ }
 }
-window.addEventListener('error', ev => { if(ev && ev.message && !/^Script error\.?$/i.test(ev.message)) errSend(ev.message, ev.filename, ev.lineno, ev.colno, ev.error && ev.error.stack); });
-window.addEventListener('unhandledrejection', ev => { const r = ev && ev.reason; errSend('Promessa sem tratamento: '+(r && r.message ? r.message : String(r)), '', 0, 0, r && r.stack); });
+// falhas conhecidas do Safari/iPhone no banco interno (IndexedDB) que o login do Firebase usa quando o app volta do segundo plano:
+// o próprio Firebase tenta de novo e o aluno não percebe nada, então não viram aviso no painel
+const ERR_IGNORA = /without an in-progress transaction|Connection to Indexed Database server lost|Database deleted by request of the user agent|IDBDatabase|IndexedDB/i;
+window.addEventListener('error', ev => { if(ev && ev.message && !/^Script error\.?$/i.test(ev.message) && !ERR_IGNORA.test(ev.message)) errSend(ev.message, ev.filename, ev.lineno, ev.colno, ev.error && ev.error.stack); });
+window.addEventListener('unhandledrejection', ev => { const r = ev && ev.reason, m = r && r.message ? r.message : String(r); if(ERR_IGNORA.test(m)){ try { ev.preventDefault(); } catch(e){ /* nada */ } return; } errSend('Promessa sem tratamento: '+m, '', 0, 0, r && r.stack); });
 /* lembrete de água com o app fechado: o celular se inscreve no push.php e o servidor avisa no horário */
 const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent), STANDALONE = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone===true;
 const pushPode = () => !!(FB && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window);
