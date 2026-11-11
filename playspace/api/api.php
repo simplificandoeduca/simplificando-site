@@ -75,7 +75,8 @@ function dados(array $eu): array {
   $pend = array_values(array_filter(array_map(fn($p) => ['id' => (int)$p['id'], 'em' => $p['criado_em']], $q->fetchAll()), fn($p) => !isset($fora[$p['id']])));
   return ['criancas' => array_values($criancas), 'registros' => $registros, 'conversas' => array_values($conversas), 'compromissos' => $compromissos, 'regra' => regra(), 'cancelamentos' => $canc, 'pendentes' => $pend, 'produtos' => produtos(), 'alugueis' => alugueis(), 'pagamentos_hoje' => pagamentosDesde($hojeMenos), 'cupons' => cuponsDaTela(),
     'vendas_hoje' => ['n' => (int)$vh['n'], 'min' => (int)$vh['m'], 'horas' => round((int)$vh['m'] / 60, 2), 'valor' => (float)$vh['v']], 'atraso_hoje' => $atrasoHoje, 'descontos_hoje' => $descontosHoje, 'equipe' => $equipe, 'eu' => $eu, 'versao' => PLAY_VERSAO,
-    'idface' => idfaceEstado(), 'whats' => whatsResumo(), 'agora' => agora(), 'exemplo' => ($ex = cfg('exemplo', null)) && is_array($ex) ? count($ex['criancas'] ?? []) : 0];
+    'idface' => idfaceEstado(), 'whats' => whatsResumo(), 'agora' => agora(), 'exemplo' => ($ex = cfg('exemplo', null)) && is_array($ex) ? count($ex['criancas'] ?? []) : 0,
+    'limpeza' => $eu['papel'] === 'gestor' ? ['oferta' => cfg('limpeza_oferta', null) !== null, 'ultima' => limpezaPublica()] : null];   // 0.98: só o gestor recebe (é ele quem limpa e quem desfaz)
 }
 // quem a equipe tirou de "Falta finalizar" hoje: [id da criança => dia]. O que é de outro dia não conta mais
 function pendFora(): array { $f = cfg('pend_fora', []); $hoje = date('Y-m-d'); return is_array($f) ? array_filter($f, fn($d) => $d === $hoje) : []; }
@@ -650,7 +651,16 @@ switch ($acao) {
     if ($c['idface_id'] !== null && $c['foto'] !== '') gravarCfg('foto_' . $c['id'], (int)$c['idface_id']); else gravarCfg('mandar_' . $c['id'], (int)$c['id']);
     responder();
   }
-  case 'exemplos_carregar': { // o teste do rodapé: 34 crianças de exemplo (30 no espaço, em horários diferentes), conversas e agenda
+  /* ---------- 0.98: começar do zero. Só o gestor, e a limpeza pede a senha dele de novo ---------- */
+  case 'limpeza_previa': { $u = exigir(); podeAjustar($u); responder(['agora' => limpezaResumo(), 'ultima' => limpezaPublica()]); }   // o que a folha mostra antes de apagar
+  case 'cadastros_limpar': {
+    $u = exigir(); podeAjustar($u);
+    if (!senhaConfere($u, (string)($in['senha'] ?? ''))) { usleep(400000); falha('A senha não confere. Nada foi apagado.', 403); }
+    responder(limparCadastros($u));
+  }
+  case 'cadastros_voltar': { $u = exigir(); podeAjustar($u); responder(limpezaDesfazer($u)); }   // o Desfazer da limpeza, enquanto não houver cadastro novo
+  case 'limpeza_depois': { $u = exigir(); podeAjustar($u); apagarCfg('limpeza_oferta'); responder(); }   // "agora não": a oferta que veio com a atualização não aparece de novo (a limpeza continua em Ajustes)
+  case 'exemplos_carregar': { // o teste do rodapé: 10 crianças de exemplo no espaço, em horários diferentes, e alguns compromissos na agenda
     $u = exigir(); podeAjustar($u); require_once __DIR__ . '/exemplos.php'; responder(exemplosCarregar((int)$u['id']));
   }
   case 'exemplos_apagar': { $u = exigir(); podeAjustar($u); require_once __DIR__ . '/exemplos.php'; exemplosApagar(); responder(); }

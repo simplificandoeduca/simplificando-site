@@ -16,21 +16,20 @@ Os dados ficam fora da pasta pública, em `~/playspace-dados/` (criada sozinha n
 2. Abra `https://seusite.com.br/playspace/`. Como ainda não há ninguém cadastrado, aparece **"Bem-vinda ao Play Space"**: crie a conta da gestora (nome, login curto, senha de 6+ caracteres). Pronto, está dentro.
 3. Dali em diante, **Atualizar** no topo da tela baixa as versões novas direto do GitHub. Só a gestora ou a supervisora veem o botão.
 
-## 2b. Teste com 30 crianças (botão no rodapé)
+## 2b. Teste com 10 crianças (botão no rodapé)
 
-Para ver como a tela fica com o espaço cheio, a gestora toca em **Teste: 30 crianças**, no rodapé de qualquer tela (ou em Ajustes → Dados de exemplo). Entram 34 crianças fictícias:
+Para ver como a tela fica com movimento, a gestora toca em **Teste: 10 crianças**, no rodapé de qualquer tela (ou em Ajustes → Dados de exemplo). Entram 10 crianças fictícias, todas no espaço:
 
-- **30 no espaço agora**, com nomes, responsáveis e horários de entrada diferentes: umas acabaram de entrar (com o atalho de cancelar), outras estão no tempo, acabando, **na tolerância** e três **já com cobrança por atraso**; duas são **PCD** e duas entraram com **voucher**; algumas têm restrição anotada e duas estão sem sapateira. Há **duas famílias com duas crianças** (aparecem juntas na lista) e **três crianças chamadas PEDRO**, de responsáveis diferentes, para ver como o nome do responsável separa uma da outra.
-- **4 fora do espaço** (uma com a entrada cancelada, para a supervisão conferir; duas que já saíram hoje, uma delas com cobrança por atraso; e a **Marina**, com o cadastro feito agora há pouco e o atendimento por fazer, que aparece em **Falta finalizar**), para testar a busca.
-- **5 crianças com pacote de horas** (ELISA, FELIPE, JOAQUIM, JOÃO e RAFAELA) e as outras na recreação avulsa, para ver o filtro **Pacotes / Horas avulsas**.
-- **4 carrinhos fora da loja**: três fusquinhas (um dentro do tempo, um que já passou e um de quem não está no espaço) e um carrinho de bebê, para ver as linhas com o botão **Devolveu** (seção 6o).
+- **10 no espaço agora**, com nomes, responsáveis e horários de entrada diferentes: umas acabaram de entrar (com o atalho de cancelar), outras estão no tempo, acabando, **na tolerância** e duas **já com cobrança por atraso**; uma é **PCD** e uma entrou com **voucher**; duas têm restrição anotada e uma está sem sapateira. Há **uma família com duas crianças** (aparecem juntas na lista).
+- **2 crianças com pacote de horas** (ELISA e FELIPE, irmãos) e as outras na recreação avulsa, para ver o filtro **Pacotes / Horas avulsas**.
+- **3 carrinhos fora da loja**: dois fusquinhas (um dentro do tempo e um que já passou) e um carrinho de bebê, para ver as linhas com o botão **Devolveu** (seção 6o).
 - Vendas e registros do dia e compromissos na agenda.
 
 Elas se comportam como crianças de verdade: o tempo corre, a cobrança por atraso nasce sozinha, dá para dar saída, cancelar e vender. Nada vai para o iDFace. Nas crianças de teste o relógio não para na hora de fechar a loja, para o teste funcionar a qualquer hora.
 
-Para tirar, o mesmo botão vira **Tirar o teste**: saem as 34 crianças e tudo o que nasceu delas (vendas, cobranças, carrinhos fora, linhas do dia, agenda). Os cadastros de verdade ficam. Só a gestora coloca e tira o teste; a equipe vê as crianças de teste na tela enquanto elas estiverem lá.
+Para tirar, o mesmo botão vira **Tirar o teste**: saem as 10 crianças e tudo o que nasceu delas (vendas, cobranças, carrinhos fora, linhas do dia, agenda). Os cadastros de verdade ficam. Só a gestora coloca e tira o teste; a equipe vê as crianças de teste na tela enquanto elas estiverem lá.
 
-Na prévia (sem servidor) o mesmo botão existe e faz a mesma coisa na própria tela.
+Na prévia (sem servidor) o mesmo botão existe e faz a mesma coisa na própria tela. Até a 0.97 o teste colocava 30 crianças no espaço (e 4 fora); a loja pediu só 10.
 
 ## 3. Equipe e papéis (Ajustes → Equipe)
 
@@ -202,7 +201,7 @@ A primeira tela (aba **Espaço**) mostra **todo mundo numa lista, uma linha por 
 O resto da tela continua igual:
 
 - a faixa **Falta finalizar** só aparece quando alguém ficou com o cadastro ou o atendimento pela metade (veja 6i);
-- **no alto**: quantas crianças estão no espaço, quantas passaram do tempo e **quantos carrinhos há para devolver**; o **sininho** dos avisos (só quando há algum, seção 6c), **Pacotes e produtos** e **Entrada na tela**;
+- **no alto**: quantas crianças estão no espaço, quantas passaram do tempo e **quantos carrinhos há para devolver**; o **sininho** dos avisos (só quando há algum, seção 6c), e **Pacotes e produtos**. O botão "Entrada na tela" saiu na 0.98: a entrada é dada no atendimento, na ficha ou pela busca (seção 4b), e o iDFace continua em Ajustes;
 - **Atividades da semana**: em tela larga (1400 px ou mais) ficam na coluna da direita, por dia, sempre à vista. Em tela menor e no celular viram **uma linha só** embaixo da lista; um toque abre os dias;
 - **no pé**, dois atalhos: **Banco de horas** (quem não está no espaço) e **Hoje na recepção** (cada entrada, saída, venda, pagamento, devolução, cancelamento e mudança de estoque do dia). Os números do dia estão no alto de **Hoje na recepção**.
 
@@ -263,7 +262,14 @@ O que é de todos os aparelhos e o que é de cada um:
 
 ## 6j. Pacotes de horas (botão Pacotes na tela inicial)
 
-No alto da tela inicial, ao lado de **Entrada na tela**, o botão vermelho **Pacotes e produtos** (no celular, só **Pacotes**) abre a tabela de preços para mostrar ao cliente, em duas abas: **Pacotes de horas** e **Produtos** (seção 6l). As horas do pacote não têm prazo para usar.
+No alto da tela inicial, o botão vermelho **Pacotes e produtos** (no celular, só **Pacotes**) abre a tabela de preços, para mostrar ao cliente **e para vender**, em duas abas: **Pacotes de horas** e **Produtos** (seção 6l). As horas do pacote não têm prazo para usar.
+
+**Vender por aqui (0.98):** cada linha da tabela tem o botão **Vender** (um toque em qualquer ponto da linha faz o mesmo). A tela pergunta **para qual cliente**: escreva os **três primeiros números do CPF** do responsável (ou o nome dele, ou o da criança) e os clientes aparecem, cada um com as crianças e o saldo de horas de cada uma. O CPF aparece só com o começo e o fim, porque outra pessoa pode estar olhando a tela. **Um toque na criança abre o atendimento com o pacote já na venda**: é conferir (a entrada vem marcada, se a criança vai entrar agora) e tocar em **Pagamento**.
+
+- **Cliente novo:** o botão **Cliente novo: cadastrar** abre o cadastro com o CPF que foi escrito e, ao cadastrar, o atendimento abre com o pacote na venda.
+- **Trocar** volta para a tabela, para escolher outro pacote. Com uma criança só na lista, **Enter** já escolhe.
+- Na aba **Produtos** é igual: um toque no produto, o cliente pelo CPF, e o atendimento abre com o produto na venda.
+- O caminho de sempre continua valendo: abrir o atendimento do cliente e escolher o pacote lá. As horas do pacote entram no saldo da criança escolhida.
 
 A tabela vem **por tempo e, dentro do mesmo tempo, por valor**, com as colunas **Tempo, Valor, Hora, Meia hora** e o **nome do pacote**. O tempo aparece em horas (2h, 5h, 10h): não há coluna de minutos. O valor da hora e da meia hora o sistema calcula sozinho. Se algum pacote parcela, aparece também a coluna **Parcela**.
 
@@ -326,7 +332,7 @@ Produtos que já vêm instalados (os da tela "Produtos disponíveis" do sistema 
 - **Apagar** tira o produto da lista (o aviso tem Desfazer); as vendas antigas dele continuam no histórico.
 - **Criança PCD não tem desconto em produto**, como no pacote (seção 6h).
 - Se a gestora mudar o valor de um produto enquanto um atendimento está aberto em outro aparelho, a venda não sai no valor antigo: o sistema avisa "O valor de Maleta mudou" e pede para abrir o atendimento de novo.
-- No **teste com 30 crianças** (seção 2b), o que for vendido de produto para uma criança de teste volta para o estoque quando o teste é tirado.
+- No **teste com 10 crianças** (seção 2b), o que for vendido de produto para uma criança de teste volta para o estoque quando o teste é tirado.
 
 ## 6m. Reabrir a visita (a criança saiu e voltou logo)
 
@@ -490,6 +496,27 @@ A escolha fica na própria folha do cupom, na linha "Neste aparelho: … · muda
    Feche todas as janelas do Chrome antes de abrir por esse atalho (se o Chrome já estiver aberto, ele ignora a opção).
 
 **Este cupom não é nota fiscal.** É o comprovante de entrada que o responsável assina (não tem CNPJ, nem chave, nem imposto). O acompanhamento de nota fiscal que existia na 0.93 (marcar "emitido" a cada pagamento) fica guardado no sistema, sem botão para ligar; se a loja passar a emitir nota fiscal pelo sistema, ele volta.
+
+## 6t. Limpar os cadastros (começar do zero)
+
+Para quando os testes acabam e a loja vai começar de verdade. Fica em **Ajustes → Limpar os cadastros**, e **só o Gestor** vê e faz.
+
+**O que sai:** todos os cadastros (crianças e responsáveis, inclusive os que já tinham sido removidos, com as fotos), as horas compradas, as vendas e os pagamentos, as entradas e saídas, as entradas canceladas e o movimento do dia.
+
+**O que fica:** a equipe e as senhas, a regra das horas, os serviços e preços, os pacotes, os produtos (o que tinha sido vendido volta para o estoque, porque a venda deixou de existir), a agenda, as sapateiras e os outros ajustes. Os números de cadastro recomeçam do 1.
+
+**Como é:**
+
+1. A folha mostra **quanto há para apagar** (cadastros, fotos, vendas e visitas) e avisa se há criança no espaço naquela hora.
+2. O Gestor escreve **a própria senha** e toca em **Apagar todos os cadastros**. Com a senha errada, nada é apagado.
+3. Antes de apagar, o servidor guarda uma **cópia de segurança do banco inteiro** (na pasta de dados, em `copias`, trancada como o banco; ficam as 3 últimas).
+4. As outras telas abertas se atualizam sozinhas e ficam vazias. No dia fica a linha "Todos os cadastros foram apagados para começar do zero… por FULANO".
+
+**Desfazer:** o aviso que aparece depois de apagar tem **Desfazer**, e o cartão em Ajustes mostra a última limpeza com **Desfazer a limpeza**. Vale **enquanto não houver cadastro novo**: depois do primeiro cadastro (ou do teste do rodapé) não dá mais, para não misturar os dois. Se o sistema for atualizado para uma versão que mude o banco, a cópia antiga também deixa de servir para o Desfazer.
+
+**Na atualização para a 0.98:** a loja pediu para limpar os cadastros feitos nos testes. Por isso, na primeira vez que o Gestor abre o sistema depois de atualizar, a folha **Limpar os cadastros** aparece sozinha. **Nada é apagado sem ele confirmar com a senha.** "Agora não" fecha a folha e a oferta não aparece mais (a limpeza continua em Ajustes). Atendente e Supervisor não veem nada disso.
+
+As cópias de segurança guardam os dados que foram apagados. Para sumir com elas de vez, apague os arquivos `copia-….sqlite` da pasta `playspace-dados/copias` (ao lado do `public_html`), pelo Gerenciador de arquivos do cPanel.
 
 ## 7. Atualizar
 

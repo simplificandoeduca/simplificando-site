@@ -815,6 +815,22 @@ body.quieto .dica { animation: none !important; }
 /* 0.97: copiar o CPF, e os clientes pelo começo do CPF no cadastro */
 .copia { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 8px; background: var(--menta); color: var(--tinta); vertical-align: middle; margin-left: 6px; flex: none; }
 .com-copia { position: relative; } .campo .com-copia input { padding-right: 50px; } .com-copia .copia { position: absolute; right: 7px; top: 50%; transform: translateY(-50%); width: 34px; height: 34px; border-radius: 10px; margin: 0; }
+/* 0.98: a venda que começa pelo pacote, e a folha "Limpar os cadastros" */
+.pac-tab tr.vd { cursor: pointer; } .pac-tab tr.vd:hover > * { background: rgba(125, 165, 140, .13); }
+.pac-tab .vd-c { padding-left: 2px; padding-right: 8px; width: 1%; }
+.pac-tab .pp-v { height: 30px; padding: 0 10px; border-radius: 10px; background: var(--coral); color: #fff; font-weight: 800; font-size: 12.5px; display: inline-flex; align-items: center; gap: 3px; }
+@media (max-width: 560px) { .pac-tab .pp-v span { display: none; } .pac-tab .pp-v { padding: 0; width: 26px; height: 26px; justify-content: center; } .pac-tab .vd-c { padding-right: 4px; } }
+.pq-item { display: flex; align-items: center; gap: 10px; background: var(--mostarda-2); border-radius: 16px; padding: 10px 12px; flex-wrap: wrap; }
+.pq-item .pq-ic { width: 38px; height: 38px; border-radius: 12px; background: var(--card); display: flex; align-items: center; justify-content: center; flex: none; }
+.pq-item .txt { flex: 1; min-width: 120px; } .pq-item .txt > b { display: block; font-family: var(--display); font-weight: 800; font-size: 17px; line-height: 1.2; } .pq-item .txt > span { display: block; font-size: 12.5px; color: var(--tinta-2); }
+.pq-item .pq-v { font-family: var(--display); font-weight: 800; font-size: 19px; flex: none; }
+.pq-lista { display: flex; flex-direction: column; gap: 10px; min-height: 96px; } .pq-dica { text-align: center; padding: 14px 8px; }
+.pq-cli .cr .txt > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lz-n { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; } .lz-n > div { background: var(--card); border: 1px solid var(--borda); border-radius: 14px; padding: 10px 6px; text-align: center; }
+.lz-n b { display: block; font-family: var(--display); font-weight: 800; font-size: 24px; line-height: 1.1; } .lz-n span { font-size: 12px; color: var(--tinta-2); }
+@media (max-width: 480px) { .lz-n { grid-template-columns: repeat(2, 1fr); } }
+.marca.lz-sai { background: var(--erro-bg, #FBE3DC); } .marca.lz-sai svg { color: var(--erro); }
+.bt.perigo { background: var(--erro); color: #fff; } .lz-pe { display: flex; flex-direction: column; gap: 8px; }
 .cliente-ja.sug { background: var(--mostarda-2); } .cliente-ja.sug .cr .txt { flex: 1; min-width: 0; } .cliente-ja.sug .cr .txt > b { display: block; font-weight: 800; } .cliente-ja.sug .cr .txt > span { display: block; font-size: 12.5px; color: var(--tinta-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* 0.94: o cupom impresso (papel de 80 mm; a área impressa tem 72 mm) */
 .papel { width: 72mm; max-width: 100%; box-sizing: border-box; padding: 2mm 0 5mm; background: #fff; color: #000; font: 600 12.5px/1.4 Arial, Helvetica, sans-serif; letter-spacing: 0; text-transform: none; text-align: left; }
@@ -1155,6 +1171,7 @@ const IC = {
   horas: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/>',
   cupom: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9.5 8h5M9.5 12h5"/>',
   copia: '<rect x="9" y="9" width="11" height="11" rx="2.2"/><path d="M5.5 15V6.2A2.2 2.2 0 0 1 7.7 4H15"/>',
+  lixo: '<path d="M4 7h16M9 7V4.5h6V7M6.5 7l.9 12a2 2 0 0 0 2 1.8h5.2a2 2 0 0 0 2-1.8l.9-12M10 11v6M14 11v6"/>',
   zap: '<path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.1A8.5 8.5 0 1 1 21 12z"/>',
   banco: '<path d="M6 3h12M6 21h12M7 3v3.5a5 5 0 0 0 10 0V3M7 21v-3.5a5 5 0 0 1 10 0V21"/>',
   dica: '<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z"/>',
@@ -1185,7 +1202,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.97';
+const VERSAO = '0.98';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -1355,6 +1372,7 @@ async function carregar() { // devolve true quando algo mudou no servidor
     S.cupons = (d.cupons || []).map(k => ({ ...k, quando: dataDe(k.quando), em: k.em ? dataDe(k.em) : null }));   // 0.93: o cupom fiscal de cada pagamento
     S.pagHoje = d.pagamentos_hoje || null;   // o que entrou por cada forma de pagamento nas últimas 24 h   // o que saiu da loja e ainda não voltou (carrinho, fusquinha)
     S.vendasHoje = d.vendas_hoje; S.atrasoHoje = d.atraso_hoje || null; S.descontosHoje = d.descontos_hoje || null; S.whats = d.whats; S.eu = d.eu; S.exemplo = d.exemplo || 0;
+    S.limpeza = d.limpeza ? { oferta: !!d.limpeza.oferta, ultima: d.limpeza.ultima ? { ...d.limpeza.ultima, em: dataDe(d.limpeza.ultima.em) } : null } : null;   // 0.98: só o gestor recebe
     S.cancelamentos = (d.cancelamentos || []).map(x => ({ ...x, entrou: dataDe(x.entrou), quando: dataDe(x.quando), visto_em: x.visto_em ? dataDe(x.visto_em) : null }));
     S.pend = {}; for (const p of d.pendentes || []) S.pend[p.id] = dataDe(p.em);   // cadastro feito hoje e ainda sem atendimento (para "Falta finalizar")
     nomesEmMaiusculas();
@@ -1432,7 +1450,64 @@ function telaCriarGestor() {
     <div class="campo"><label for="g-senha">Senha (pelo menos 6 caracteres)</label><input id="g-senha" type="password" autocomplete="new-password"></div>
     <button class="bt forte largo tap" data-act="criar-gestor">${ic(IC.check)} Criar e entrar</button>`);
 }
-async function depoisDeEntrar() { lerEtapas(); await carregar(); desenhar(); conferirAtualizacao(false); }
+async function depoisDeEntrar() { lerEtapas(); await carregar(); desenhar(); conferirAtualizacao(false); oferecerLimpeza(); }
+/* ---------- 0.98: limpar os cadastros (começar do zero) ---------- */
+// Para quando os testes acabam e a loja vai começar de verdade. Saem todos os cadastros (crianças e responsáveis, com as fotos) e o que
+// nasceu deles: horas, vendas, pagamentos, visitas e o movimento do dia. Ficam a equipe, a regra, os serviços, os pacotes, os produtos
+// (o que foi vendido volta para o estoque), a agenda e os ajustes. Só o gestor faz, e no servidor confirma com a senha; antes de apagar
+// o servidor guarda uma cópia do banco, e dá para desfazer enquanto não houver cadastro novo.
+// A atualização para a 0.98 não apaga nada sozinha: ela só oferece a limpeza ao gestor, uma vez (a loja pediu para limpar os testes).
+let LZ = null;             // a folha "Limpar os cadastros": { n: o que há para apagar, oferta }
+let LIMPEZA_ERA = null;    // (prévia) o que havia antes da limpeza, para o Desfazer
+function oferecerLimpeza() { if (MODO === 'servidor' && gestor() && S.limpeza && S.limpeza.oferta) setTimeout(() => { if (!$('#folha .folha-fundo') && S.limpeza && S.limpeza.oferta) folhaLimpeza(true); }, 700); }
+const ultimaLimpeza = () => S.limpeza && S.limpeza.ultima ? S.limpeza.ultima : null;
+const podeDesfazerLimpeza = () => { const u = ultimaLimpeza(); return !!u && (MODO === 'servidor' ? !!u.desfaz : !!LIMPEZA_ERA && !S.criancas.length && !S.compras.length); };
+const contasPrevia = () => ({ cadastros: S.criancas.length, removidos: 0, dentro: S.criancas.filter(c => c.entrou).length, responsaveis: new Set(S.criancas.map(c => docDe(c) || 't' + (tel8(c) || c.id))).size, fotos: S.criancas.filter(c => c.foto).length,
+  vendas: S.compras.length, valor: centavos((S.pagamentos || []).reduce((a, p) => a + (+p.v || 0), 0)), visitas: S.criancas.reduce((a, c) => a + (c.visitas || []).length, 0), registros: S.registros.length });
+const numerosLimpeza = q => [['cadastros', 'cadastro', 'cadastros'], ['fotos', 'foto', 'fotos'], ['vendas', 'venda', 'vendas'], ['visitas', 'visita', 'visitas']].map(([k, um, mais]) => `<div><b class="num">${q ? q[k] : '…'}</b><span>${q && q[k] === 1 ? um : mais}</span></div>`).join('');
+function pintarLimpeza() {
+  const a = $('#lz-n'), ok = $('#lz-ok'); if (!a || !LZ || !LZ.n) return; const q = LZ.n, nada = !q.cadastros && !q.vendas && !q.visitas;
+  a.innerHTML = numerosLimpeza(q);
+  const m = $('#lz-mais'); if (m) m.innerHTML = nada ? '<b>O sistema já está limpo:</b> não há cadastro para apagar.'
+    : [q.responsaveis ? `${q.responsaveis} ${q.responsaveis === 1 ? 'responsável' : 'responsáveis'}` : '', q.valor ? `${brl(q.valor)} em pagamentos` : '', q.removidos ? `${q.removidos} ${q.removidos === 1 ? 'cadastro que já estava removido' : 'cadastros que já estavam removidos'}` : '',
+       q.dentro ? `<b style="color:var(--erro)">${q.dentro} ${q.dentro === 1 ? 'criança está' : 'crianças estão'} no espaço agora e ${q.dentro === 1 ? 'sai' : 'saem'} também</b>` : ''].filter(Boolean).join(' · ');
+  if (ok) ok.disabled = nada || (MODO === 'servidor' && !($('#lz-senha') || { value: '' }).value);
+}
+async function folhaLimpeza(oferta) {
+  const serv = MODO === 'servidor'; LZ = { n: null, oferta: !!oferta };
+  abrirFolha('Limpar os cadastros', `
+    ${oferta ? `<p class="retoma" id="lz-oferta">${ic(IC.sino, 16)}<span><b>Esta versão traz a limpeza que a loja pediu:</b> apagar os cadastros feitos nos testes, para começar de verdade. Nada foi apagado ainda.</span></p>` : ''}
+    <div class="lz-n" id="lz-n">${numerosLimpeza(null)}</div>
+    <p class="explica" id="lz-mais">Contando o que há no sistema…</p>
+    <div class="marca lz-sai">${ic(IC.lixo, 18)}<span><b>Sai:</b> todos os cadastros (crianças e responsáveis, com as fotos), as horas compradas, as vendas e os pagamentos, as entradas e saídas e o movimento do dia.</span></div>
+    <div class="marca">${ic(IC.check, 18, 2.6)}<span><b>Fica:</b> a equipe e as senhas, a regra das horas, os serviços e preços, os pacotes, os produtos (o que foi vendido volta para o estoque), a agenda e os ajustes.</span></div>
+    ${serv ? `<div class="campo"><label for="lz-senha">Sua senha, para confirmar</label><input id="lz-senha" type="password" autocomplete="current-password" placeholder="A senha de ${esc(EU.login || EU.nome)}"></div>` : ''}
+    <p class="explica">${serv ? 'Antes de apagar, o sistema guarda uma cópia de segurança. ' : ''}Dá para desfazer enquanto não houver cadastro novo.</p>
+    <div class="pe-f lz-pe"><button type="button" class="bt perigo largo tap" id="lz-ok" data-act="limpeza-ok" disabled>${ic(IC.lixo)} Apagar todos os cadastros</button>${oferta ? `<button type="button" class="bt claro largo tap" data-act="limpeza-depois">Agora não</button>` : ''}</div>`);
+  try { const q = serv ? (await api('limpeza_previa')).agora : contasPrevia(); if (!LZ) return; LZ.n = q; } catch (e) { toast(e.message); return; }
+  pintarLimpeza();
+}
+function limparAparelho() { RASC = {}; RASC_CAD = []; PEND_FORA = {}; CARRINHO = null; PAG = null; ETAPA_FEITA = true; salvarEtapas(); }   // o que este aparelho guardava pela metade era de cadastros que não existem mais
+function limparPrevia() { // (prévia) a mesma limpeza, na memória
+  const q = S.criancas.length;
+  LIMPEZA_ERA = { criancas: S.criancas, compras: S.compras, registros: S.registros, cancelamentos: S.cancelamentos || [], conversas: S.conversas || [], pagamentos: S.pagamentos || [], cupons: S.cupons || [], teste: !!S.testePrevia, est: (S.produtos || []).map(p => [p.id, p.est]), rasc: RASC, cad: RASC_CAD, fora: PEND_FORA };
+  for (const v of S.compras) if (v.prod) { const p = produto(v.prod); if (p && p.est != null) p.est += v.qtd || 0; }   // o produto vendido volta para o estoque
+  S.criancas = []; S.compras = []; S.registros = []; S.cancelamentos = []; S.conversas = []; S.pagamentos = []; S.cupons = []; S.testePrevia = false; limparAparelho();
+  registrar('cad', 'CADASTROS', `Todos os cadastros foram apagados para começar do zero: ${q} ${q === 1 ? 'cadastro' : 'cadastros'} · por ${EU.nome}`);
+  S.limpeza = { oferta: false, ultima: { em: new Date(), por: EU.nome, cadastros: q, desfaz: true } };
+}
+function voltarPrevia() {
+  const e = LIMPEZA_ERA; if (!e || S.criancas.length || S.compras.length) return false;
+  Object.assign(S, { criancas: e.criancas, compras: e.compras, registros: e.registros, cancelamentos: e.cancelamentos, conversas: e.conversas, pagamentos: e.pagamentos, cupons: e.cupons, testePrevia: e.teste, limpeza: null });
+  for (const [id, est] of e.est) { const p = produto(id); if (p) p.est = est; }
+  RASC = e.rasc; RASC_CAD = e.cad; PEND_FORA = e.fora; LIMPEZA_ERA = null; return true;
+}
+const cartaoLimpeza = () => { const u = ultimaLimpeza();
+  return `<div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.lixo, 20)} Limpar os cadastros</h2></div>
+        <button class="grupo tap" data-act="limpeza" style="width:100%"><div class="it"><div class="txt"><b>Apagar todos os cadastros</b><span>Crianças, responsáveis, fotos, vendas e visitas. A equipe, os preços, os pacotes e os produtos ficam.</span></div><span class="vai">${ic(IC.vai, 18)}</span></div></button>
+        <p class="explica">${u ? `Última limpeza: ${diaCurto(u.em)} às ${hora(u.em)}, por ${esc(u.por)} · ${u.cadastros} ${u.cadastros === 1 ? 'cadastro apagado' : 'cadastros apagados'}. ${podeDesfazerLimpeza() ? `<button class="link tap" data-act="limpeza-desfazer">Desfazer a limpeza</button>` : 'Já há cadastro novo: não dá mais para desfazer.'}`
+          : `Para quando os testes acabarem e a loja for começar de verdade. Só o gestor faz${MODO === 'servidor' ? ', com a senha, e o sistema guarda uma cópia de segurança antes' : ''}.`}</p>
+      </div>`; };
 async function iniciar() {
   if (ATU.podeAqui) {
     try {
@@ -1705,34 +1780,76 @@ const nomePacVenda = (min, itens) => itens === 'seco' ? 'Pacote seco de ' + dur(
 // a parcela (se algum pacote parcela) e o nome do pacote. A gestora tem o lápis em cada linha e o botão de novo pacote
 function tabelaPacotes(L) {
   const g = gestor(), P = S.cfg.pacotes || [], parc = L.some(p => p.parc > 1), nome = L.some(p => p.nome || p.com);
-  return `<table class="pac-tab"><thead><tr><th>Tempo</th><th>Valor</th><th>Hora</th><th>Meia hora</th>${parc ? '<th>Parcela</th>' : ''}${nome ? '<th class="nm">Pacote</th>' : ''}${g ? '<th></th>' : ''}</tr></thead><tbody>${L.map(p => `<tr><th class="num">${dur(p.h * 60)}</th><td class="v num">${brl(p.v)}</td><td class="num">${brl(centavos(p.v / p.h))}</td><td class="num">${brl(centavos(p.v / p.h / 2))}</td>${parc ? (parcTxt(p, true) ? `<td class="p num">${parcTxt(p, true)}</td>` : '<td class="num" style="color:var(--apagado)">—</td>') : ''}${nome ? `<td class="nm">${esc(p.nome || '')}${p.com ? (p.nome ? ' · ' : '') + 'com ' + esc(p.com) : ''}</td>` : ''}${g ? `<td><button type="button" class="lap tap" data-act="pacote-editar" data-i="${P.indexOf(p)}" data-de="pacotes" aria-label="Mudar o pacote de ${dur(p.h * 60)} por ${brl(p.v)}" title="Mudar este pacote">${ic(IC.lapis, 14)}</button></td>` : ''}</tr>`).join('')}</tbody></table>`;
+  return `<table class="pac-tab"><thead><tr><th>Tempo</th><th>Valor</th><th>Hora</th><th>Meia hora</th>${parc ? '<th>Parcela</th>' : ''}${nome ? '<th class="nm">Pacote</th>' : ''}${g ? '<th></th>' : ''}<th></th></tr></thead><tbody>${L.map(p => `<tr class="vd" data-act="pp-vender" data-pac="${P.indexOf(p)}" title="Vender este pacote"><th class="num">${dur(p.h * 60)}</th><td class="v num">${brl(p.v)}</td><td class="num">${brl(centavos(p.v / p.h))}</td><td class="num">${brl(centavos(p.v / p.h / 2))}</td>${parc ? (parcTxt(p, true) ? `<td class="p num">${parcTxt(p, true)}</td>` : '<td class="num" style="color:var(--apagado)">—</td>') : ''}${nome ? `<td class="nm">${esc(p.nome || '')}${p.com ? (p.nome ? ' · ' : '') + 'com ' + esc(p.com) : ''}</td>` : ''}${g ? `<td><button type="button" class="lap tap" data-act="pacote-editar" data-i="${P.indexOf(p)}" data-de="pacotes" aria-label="Mudar o pacote de ${dur(p.h * 60)} por ${brl(p.v)}" title="Mudar este pacote">${ic(IC.lapis, 14)}</button></td>` : ''}<td class="vd-c"><button type="button" class="pp-v tap" data-act="pp-vender" data-pac="${P.indexOf(p)}" aria-label="Vender o pacote de ${dur(p.h * 60)} por ${brl(p.v)}"><span>Vender</span>${ic(IC.vai, 13, 2.8)}</button></td></tr>`).join('')}</tbody></table>`;
 }
 function corpoPacotes() {
   const P = S.cfg.pacotes || [], rec = servicoTempo(), prod = P.filter(p => tipoPac(p) === 'produto'), seco = P.filter(p => tipoPac(p) === 'seco');
   const bloco = (L, tit, sub) => L.length ? `<div class="pac-bloco">${tit ? `<div class="pac-tit"><h2>${tit}</h2><span>${sub}</span></div>` : ''}${tabelaPacotes(L)}</div>` : '';
   return `
-    <p class="explica">As horas do pacote não têm prazo: o cliente usa quando quiser.</p>
+    <p class="explica"><b>Toque no pacote para vender</b>: depois é só escolher o cliente pelo CPF. As horas não têm prazo: o cliente usa quando quiser.</p>
     ${prod.length ? bloco(prod, 'Com produto', 'o cliente leva o produto, que já está no valor') + bloco(seco, 'Só as horas', 'sem o produto') : bloco(seco, '', '')}
     ${!P.length ? `<p class="explica">Nenhum pacote cadastrado ainda.${gestor() ? '' : ' A gestora cadastra aqui ou em Ajustes.'}</p>` : ''}
     ${gestor() ? `<button type="button" class="bt tap" data-act="pacote-novo" data-de="pacotes" style="align-self:flex-start">${ic(IC.mais, 16)} Novo pacote</button>` : ''}
     ${rec ? `<div class="pac-avulso"><span>Sem pacote:</span><b class="num">${precoServ(rec)}</b><span class="num">${brl(centavos(rec.v * 60 / (rec.min || 30)))} a hora</span></div>` : ''}
-    <p class="explica" style="text-align:center">Para vender, abra o atendimento do cliente: os mesmos pacotes aparecem lá.</p>`;
+    <p class="explica" style="text-align:center">Os mesmos pacotes também aparecem no atendimento de cada cliente.</p>`;
 }
 // a aba Produtos: o que a loja vende além do tempo, com o valor e o estoque. A gestora tem o lápis em cada linha e o botão de novo produto
 function tabelaProdutos(L) {
   const g = gestor(), est = L.some(p => p.est != null);
-  return `<table class="pac-tab prod-tab"><thead><tr><th class="nm">Produto</th><th>Valor</th>${est ? '<th>Estoque</th>' : ''}${g ? '<th></th>' : ''}</tr></thead><tbody>${L.map(p => `<tr><th class="nm">${esc(p.n)}</th><td class="v num">${brl(p.v)}</td>${est ? `<td class="num${estFalta(p) ? ' falta' : ''}">${p.est == null ? '<span style="color:var(--apagado)">—</span>' : p.est}</td>` : ''}${g ? `<td><button type="button" class="lap tap" data-act="produto-editar" data-id="${p.id}" data-de="pacotes" aria-label="Mudar ${esc(p.n)}, ${brl(p.v)}" title="Mudar o nome, o valor ou o estoque">${ic(IC.lapis, 14)}</button></td>` : ''}</tr>`).join('')}</tbody></table>`;
+  return `<table class="pac-tab prod-tab"><thead><tr><th class="nm">Produto</th><th>Valor</th>${est ? '<th>Estoque</th>' : ''}${g ? '<th></th>' : ''}<th></th></tr></thead><tbody>${L.map(p => `<tr class="vd" data-act="pp-vender" data-prod="${p.id}" title="Vender este produto"><th class="nm">${esc(p.n)}</th><td class="v num">${brl(p.v)}</td>${est ? `<td class="num${estFalta(p) ? ' falta' : ''}">${p.est == null ? '<span style="color:var(--apagado)">—</span>' : p.est}</td>` : ''}${g ? `<td><button type="button" class="lap tap" data-act="produto-editar" data-id="${p.id}" data-de="pacotes" aria-label="Mudar ${esc(p.n)}, ${brl(p.v)}" title="Mudar o nome, o valor ou o estoque">${ic(IC.lapis, 14)}</button></td>` : ''}<td class="vd-c"><button type="button" class="pp-v tap" data-act="pp-vender" data-prod="${p.id}" aria-label="Vender ${esc(p.n)}, ${brl(p.v)}"><span>Vender</span>${ic(IC.vai, 13, 2.8)}</button></td></tr>`).join('')}</tbody></table>`;
 }
 function corpoProdutos() {
   const P = S.produtos || [], g = gestor();
   return `
-    <p class="explica">O que a loja vende além do tempo, com o valor de cada um${P.some(p => p.est != null) ? ' e quantos há no estoque' : ''}.</p>
+    <p class="explica">${P.length ? '<b>Toque no produto para vender</b>: depois é só escolher o cliente pelo CPF. ' : ''}O que a loja vende além do tempo, com o valor de cada um${P.some(p => p.est != null) ? ' e quantos há no estoque' : ''}.</p>
     ${P.length ? tabelaProdutos(P) : `<p class="explica">Nenhum produto cadastrado ainda.${g ? '' : ' A gestora cadastra aqui ou em Ajustes.'}</p>`}
     ${g ? `<button type="button" class="bt tap" data-act="produto-novo" data-de="pacotes" style="align-self:flex-start">${ic(IC.mais, 16)} Novo produto</button>` : ''}
-    <p class="explica" style="text-align:center">Para vender, abra o atendimento do cliente: os produtos aparecem lá, depois dos pacotes. O estoque baixa sozinho.</p>`;
+    <p class="explica" style="text-align:center">Os produtos também aparecem no atendimento de cada cliente, depois dos pacotes. O estoque baixa sozinho.</p>`;
+}
+/* ---------- 0.98: a venda que começa pelo pacote (ou pelo produto) ---------- */
+// Em "Pacotes e produtos", um toque no pacote (ou no produto) começa a venda: a tela pede o cliente, pelo CPF (os três primeiros
+// números já mostram quem tem o CPF começando assim) ou pelo nome. Escolhida a criança, o atendimento abre com o item já na venda.
+// Cliente que ainda não tem cadastro: o cadastro abre com o CPF escrito e, ao cadastrar, segue para o atendimento com o item.
+let PQ = null;        // o item escolhido em "Pacotes e produtos", enquanto a tela pergunta para quem é: { pac: índice } ou { prod: id }
+let CAD_PRE = null;   // o mesmo item, enquanto o cadastro do cliente novo está aberto (cada cadastro que abre começa sem nada)
+const itemPre = pre => { if (!pre) return null;
+  if (pre.pac != null) { const x = (S.cfg.pacotes || [])[pre.pac]; return x ? { pac: true, n: `${dur(x.h * 60)} de recreação`, sub: [x.nome || '', x.com ? 'com ' + x.com : '', 'sem prazo para usar'].filter(Boolean).join(' · '), v: x.v, curto: `O pacote de ${dur(x.h * 60)} (${brl(x.v)})` } : null; }
+  const p = produto(pre.prod); return p ? { pac: false, n: p.n, sub: p.est == null ? 'produto da loja' : estTxt(p), v: p.v, curto: `${p.n} (${brl(p.v)})` } : null; };
+const soNumerosBusca = q => !!soDig(q) && !/[a-zà-ú]/i.test(q);
+// quem aparece para escolher: pelo começo do CPF (três números ou mais) ou pelo nome do responsável ou da criança (duas letras ou mais).
+// Devolve os clientes (um por responsável), cada um com as crianças dele
+function clientesParaVenda(q) {
+  const txt = String(q || '').trim(), dig = soDig(txt); let base;
+  if (soNumerosBusca(txt)) { if (dig.length < 3) return { falta: 3 - dig.length, L: [] }; base = S.criancas.filter(c => c.doc !== 'rne' && soDig(c.cpf).startsWith(dig)); }
+  else { if (txt.length < 2) return { falta: 0, L: [] }; const k = txt.toLowerCase(); base = S.criancas.filter(c => (c.nome + ' ' + c.resp).toLowerCase().includes(k) || (c.doc === 'rne' && String(c.cpf || '').toLowerCase().includes(k))); }
+  const vistos = new Set(), L = [];
+  for (const c of base) { if (vistos.has(c.id)) continue; const fam = familia(c); fam.forEach(x => vistos.add(x.id)); L.push({ c, fam }); }
+  return { falta: 0, L: L.sort((a, b) => a.c.resp.localeCompare(b.c.resp)) };
+}
+const docCurto = c => !c.cpf ? 'sem documento' : c.doc === 'rne' ? 'RNE ' + esc(c.cpf) : (d => `CPF ${d.slice(0, 3)}.•••.•••-${d.slice(9)}`)(soDig(c.cpf));   // o CPF só com o começo e o fim: outra pessoa pode estar olhando a tela
+function listaParaQuem(q) {
+  const txt = String(q || '').trim(), r = clientesParaVenda(txt), dig = soDig(txt), it = itemPre(PQ);
+  if (!txt) return `<p class="explica pq-dica">Escreva os <b>três primeiros números do CPF</b> do responsável (ou o nome dele, ou o da criança): os clientes aparecem aqui para escolher.</p>`;
+  if (r.falta) return `<p class="explica pq-dica">${r.falta === 1 ? 'Mais um número' : 'Mais ' + r.falta + ' números'} do CPF e os clientes aparecem.</p>`;
+  if (!soNumerosBusca(txt) && txt.length < 2) return `<p class="explica pq-dica">Mais uma letra do nome e os clientes aparecem.</p>`;
+  if (!r.L.length) { const inteiro = soNumerosBusca(txt) && dig.length === 11;
+    return `<div class="cliente-ja sug pq-nada"><small class="rot-cr">${inteiro ? (cpfValido(txt) ? 'Nenhum cliente com o CPF ' + esc(cpfFmt(dig)) : 'Confira o CPF: os números não batem') : soNumerosBusca(txt) ? 'Nenhum cliente com o CPF começando com ' + esc(cpfFmt(dig)) : 'Nenhum cliente com esse nome'}</small>
+      <p class="explica">É cliente novo? Toque em <b>Cliente novo: cadastrar</b>, aqui embaixo: ao terminar o cadastro, o atendimento abre${it ? ' com ' + esc(it.curto.replace(/^O /, 'o ')) + ' já na venda' : ''}.</p></div>`; }
+  return r.L.slice(0, 8).map(x => `<div class="cliente-ja pq-cli"><div class="cab"><div class="txt"><b>${esc(x.c.resp)}</b><span>${docCurto(x.c)}${x.fam.length > 1 ? ' · ' + x.fam.length + ' crianças' : ''}</span></div></div>
+    ${x.fam.map(c => `<button type="button" class="cr tap" data-act="pq-crianca" data-id="${c.id}" aria-label="Vender para ${esc(c.nome)}, de ${esc(c.resp)}">${avatar(c)}<span class="txt"><b>${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}</b><span>${c.entrou ? 'no espaço agora · ' : ''}saldo ${hm(saldoAgora(c))}</span></span><em>Vender ${ic(IC.vai, 14, 2.6)}</em></button>`).join('')}</div>`).join('')
+    + (r.L.length > 8 ? `<p class="explica">Há mais ${r.L.length - 8}: escreva mais um pouco para afinar.</p>` : '');
+}
+function folhaParaQuem(pre) {
+  const it = itemPre(pre); if (!it) return; PQ = pre;
+  abrirFolha(it.pac ? 'Vender o pacote' : 'Vender o produto', `
+    <div class="pq-item"><span class="pq-ic">${ic(it.pac ? IC.presente : IC.sacola, 20)}</span><div class="txt"><b>${esc(it.n)}</b><span>${esc(it.sub)}</span></div><b class="num pq-v">${brl(it.v)}</b><button type="button" class="link tap" data-act="pq-trocar">Trocar</button></div>
+    <div class="campo"><label for="pq-busca">Para qual cliente? <span class="leve">· CPF do responsável, ou o nome</span></label><input id="pq-busca" autocomplete="off" placeholder="Os 3 primeiros números do CPF já bastam" aria-label="CPF do responsável ou nome do cliente"></div>
+    <div class="pq-lista" id="pq-lista">${listaParaQuem('')}</div>
+    <div class="pe-f"><button type="button" class="bt claro largo tap" data-act="pq-cadastrar">${ic(IC.mais, 16)} Cliente novo: cadastrar</button></div>`);
+  setTimeout(() => { const i = $('#pq-busca'); if (i) i.focus(); }, 380);
 }
 function folhaPacotes(aba) {
-  ABA_PP = aba === 'produtos' ? 'produtos' : 'pacotes';
+  PQ = null; ABA_PP = aba === 'produtos' ? 'produtos' : 'pacotes';
   abrirFolha('Pacotes e produtos', `
     <div class="seg" id="pp-abas" role="group" aria-label="O que mostrar">${[['pacotes', 'Pacotes de horas', (S.cfg.pacotes || []).length], ['produtos', 'Produtos', (S.produtos || []).length]].map(([v, n, q]) => `<button type="button" data-act="pp-aba" data-v="${v}" aria-pressed="${ABA_PP === v}">${n}${q ? ` <small class="num">${q}</small>` : ''}</button>`).join('')}</div>
     <div class="pp-corpo" id="pp-corpo">${ABA_PP === 'produtos' ? corpoProdutos() : corpoPacotes()}</div>`);
@@ -2202,7 +2319,7 @@ const dataTxt = () => `${SEMANA[agora.getDay()]}, ${agora.getDate()} de ${MESES[
 const botaoVersao = () => `<button type="button" class="versao tap ${ATU.nova ? 'nova' : ''}" data-act="atualizar" title="${ATU.nova ? 'Nova versão ' + ATU.nova + ': toque para atualizar' : 'Versão ' + VERSAO + ': toque para conferir se há versão nova'}">${ic(IC.renova, 13, 2.6)} ${ATU.nova ? 'Atualizar para ' + esc(ATU.nova) : 'v' + VERSAO}</button>`;
 const telFmt = n => { const d = String(n || '').replace(/\D/, '').replace(/^55/, ''); return d.length >= 10 ? `(${d.slice(0, 2)}) ${d.length === 11 ? d[2] + ' ' + d.slice(3, 7) : d.slice(2, 6)}-${d.slice(-4)}` : d; };
 const chipWhats = () => { const w = S.whats || {}; return `<button class="chip suave tap" data-act="${supervisorOuMais() ? 'whats' : 'nada'}"><i class="pt ${w.conectado ? '' : 'off'}"></i>${w.conectado ? 'Conectado' + (w.numero ? ' · ' + telFmt(w.numero) : '') : (w.configurado ? 'WhatsApp desconectado' : 'WhatsApp não configurado')}</button>`; };
-const chipIdface = () => { const i = S.cfg.idface, ok = i.ligado && (MODO !== 'servidor' || i.ativo); if (!i.ligado) return `<button class="chip suave tap" data-act="idface" title="O iDFace está desligado: a entrada e a saída são marcadas na tela. Toque para ligar.">${ic(IC.entrar, 16)} Entrada na tela</button>`; return `<button class="chip suave tap" data-act="idface"><i class="pt ${ok ? '' : 'off'}"></i>${ic(IC.rosto, 16)} iDFace ${!i.ligado ? 'desligado' : (ok ? 'lendo' : 'sem contato')}</button>`; };
+const chipIdface = () => { const i = S.cfg.idface, ok = i.ligado && (MODO !== 'servidor' || i.ativo); if (!i.ligado) return '';   /* 0.98: com o iDFace desligado não há botão no alto (a "Entrada na tela" saiu); o iDFace continua em Ajustes */ return `<button class="chip suave tap" data-act="idface"><i class="pt ${ok ? '' : 'off'}"></i>${ic(IC.rosto, 16)} iDFace ${!i.ligado ? 'desligado' : (ok ? 'lendo' : 'sem contato')}</button>`; };
 
 /* ---------- Horas ---------- */
 // A tela inicial: todas as crianças que estão no espaço, numa lista, com o tempo correndo. Tocar na criança abre a ficha.
@@ -2435,12 +2552,10 @@ function reabrirPrevia(c) { // (prévia) o mesmo que o servidor faz
   registrar('reab', c.nome, `Visita reaberta: a saída das ${hora(saiu)} foi desfeita (${fora < 1 ? 'menos de 1 min' : fora + ' min'} fora) · o tempo continua desde a entrada das ${hora(ini)} · por ${EU.nome}`);
   const ja = c.atraso ? c.atraso.n : 0; acertarDemo(c, true); return { ini, sap, cobr: (c.atraso ? c.atraso.n : 0) - ja };
 }
-// (prévia) o teste do rodapé: 30 crianças no espaço, com nomes e horários diferentes, e o mesmo botão para tirar
-const TESTE_PREVIA = [['Ana Clara', 'Carla Menezes', 2, 1], ['Bento', 'Rodrigo Alves', 4, 1], ['Cecília', 'Fernanda Castro', 5, 1, { voucher: 1 }], ['Davi Luiz', 'Tiago Lima', 7, 1], ['Elisa', 'Patrícia Nunes', 8, 2, { pac: 1 }], ['Felipe', 'Patrícia Nunes', 8, 2, { fam: 'Elisa', pac: 1 }],
-  ['Gabriela', 'Aline Prado', 11, 1, { obs: 'Alergia a corante' }], ['Téo', 'Rafaela Lima', 12, 1], ['Heitor', 'Bruno Teixeira', 13, 1, { sem: 1 }], ['Isabela', 'Juliana Rocha', 14, 1, { pcd: 1 }], ['Joaquim', 'André Martins', 15, 2, { pac: 1 }], ['Lara', 'Camila Farias', 16, 1],
-  ['Pedro', 'Vanessa Duarte', 18, 1], ['Olívia', 'Renata Campos', 21, 1], ['Pedro', 'Gustavo Ribeiro', 22, 1, { obs: 'Não mexer no cabelo' }], ['Rafaela', 'Daniela Moraes', 24, 1, { pac: 1 }], ['Samuel', 'Leandro Pires', 25, 1, { voucher: 1 }], ['Valentina', 'Priscila Azevedo', 26, 1],
-  ['Pedro', 'Eduardo Barros', 28, 1, { sem: 1 }], ['Zoe', 'Larissa Monteiro', 29, 1], ['Antônio', 'Felipe Cardoso', 31, 1], ['Bia', 'Simone Araújo', 33, 1], ['Caio', 'Roberto Nogueira', 35, 1, { pcd: 1 }], ['Dora', 'Luciana Freitas', 37, 1],
-  ['João', 'Sérgio Lopes', 34, 2, { pac: 1 }], ['Enzo', 'Marcelo Tavares', 42, 1], ['Flora', 'Bianca Sales', 47, 1, { obs: 'Pode fazer pintura no rosto' }], ['Lívia', 'Mônica Sá', 47, 2, { obs: 'Alergia a amendoim' }], ['Íris', 'Mônica Sá', 47, 2, { fam: 'Lívia' }], ['Gael', 'Paulo Henrique Cunha', 56, 1]];
+// (prévia) o teste do rodapé: 10 crianças no espaço, com nomes e horários diferentes, e o mesmo botão para tirar
+const TESTE_PREVIA = [['Ana Clara', 'Carla Menezes', 2, 1], ['Cecília', 'Fernanda Castro', 5, 1, { voucher: 1 }], ['Elisa', 'Patrícia Nunes', 8, 2, { pac: 1 }], ['Felipe', 'Patrícia Nunes', 8, 2, { fam: 'Elisa', pac: 1 }],
+  ['Gabriela', 'Aline Prado', 14, 1, { obs: 'Alergia a corante' }], ['Isabela', 'Juliana Rocha', 18, 1, { pcd: 1 }], ['Lara', 'Camila Farias', 24, 1], ['Pedro', 'Gustavo Ribeiro', 33, 1, { sem: 1 }],
+  ['Lívia', 'Mônica Sá', 47, 1, { obs: 'Alergia a amendoim' }], ['Gael', 'Paulo Henrique Cunha', 72, 1]];
 function colocarTestePrevia() {
   const x = servicoTempo() || { n: 'Recreação', v: 80 }, p = periodo(), tol = tolerancia(), usados = new Set(S.criancas.map(c => c.sapateira).filter(Boolean)); let sap = 0;
   const TEL_T = {};   // o telefone de cada criança do teste: os irmãos (fam) ficam com o mesmo, e é por ele que a lista junta a família
@@ -2459,10 +2574,10 @@ function colocarTestePrevia() {
   const sv = servicosVolta(), porTempo = sv.find(k => k.modo === 'periodo'), semHora = sv.find(k => k.modo !== 'periodo');
   const sai = (nome, k, ha) => { const c = S.criancas.find(z => z.teste && z.nome === nome); if (!c || !k) return; const q = new Date(Date.now() - ha * 60000), min = k.modo === 'periodo' ? (k.min || 30) : 0, itens = min ? dur(min) : (k.obs || '');
     S.compras.push({ id: novoId(), crianca: c.id, h: 0, m: 0, v: k.v, servico: k.n, itens, quando: q, por: 'João', alug: { s: k.id, n: k.n, m: min, q: 1 } }); S.registros.push({ h: q, tipo: 'venda', nome, txt: `${k.n}${itens ? ' · ' + itens : ''} · ${brl(k.v)}`, teste: true }); };
-  sai('Lara', porTempo, 16); sai('Bento', porTempo, ((porTempo && porTempo.min) || 30) + 13); sai('Elisa', semHora, 95);
+  sai('Lara', porTempo, 16); sai('Gael', porTempo, ((porTempo && porTempo.min) || 30) + 13); sai('Lívia', semHora, 45);
   S.compras.sort((a, b) => b.quando - a.quando); S.registros.sort((a, b) => b.h - a.h); S.testePrevia = true; nomesEmMaiusculas();
 }
-function tirarTestePrevia() { // tira as 30 e tudo o que nasceu delas (vendas, linhas do dia, cancelamentos)
+function tirarTestePrevia() { // tira as 10 e tudo o que nasceu delas (vendas, linhas do dia, cancelamentos)
   const ids = new Set(S.criancas.filter(c => c.teste).map(c => c.id)), nomes = new Set(S.criancas.filter(c => c.teste).map(c => c.nome));
   if (LADO && ids.has(LADO.id)) fecharLado();
   S.criancas = S.criancas.filter(c => !c.teste); S.compras = S.compras.filter(v => !ids.has(v.crianca)); S.registros = S.registros.filter(r => !r.teste && !nomes.has(r.nome));
@@ -2480,7 +2595,7 @@ function numerosDoDia() {
 // No alto: os avisos (quando há), os pacotes e produtos. No pé: os atalhos para o Banco de horas e para o movimento do dia.
 function telaHoras() {
   const dentro = S.criancas.filter(c => c.entrou), n = dentro.length, passou = dentro.filter(c => situacaoTempo(c) === 'passou').length, fora = alugNaLista().length;   // fora: carrinhos e fusquinhas que saíram e ainda não voltaram
-  return faixa('No espaço agora', (n ? `${n} ${n === 1 ? 'criança' : 'crianças'}${passou ? ' · ' + passou + (passou === 1 ? ' passou' : ' passaram') + ' do tempo' : ''}` : 'Ninguém por enquanto') + (fora ? ` · ${fora} para devolver` : ''), chipAvisos() + chipCupons() + `<button type="button" class="chip tap" data-act="pacotes" title="Os pacotes de horas e os produtos, com os valores, para mostrar ao cliente">${ic(IC.presente, 16)} <span>Pacotes<span class="so-largo"> e produtos</span></span></button>` + chipIdface()) + htmlPend() + `
+  return faixa('No espaço agora', (n ? `${n} ${n === 1 ? 'criança' : 'crianças'}${passou ? ' · ' + passou + (passou === 1 ? ' passou' : ' passaram') + ' do tempo' : ''}` : 'Ninguém por enquanto') + (fora ? ` · ${fora} para devolver` : ''), chipAvisos() + chipCupons() + `<button type="button" class="chip tap" data-act="pacotes" title="Os pacotes de horas e os produtos, com os valores: para mostrar ao cliente e para vender">${ic(IC.presente, 16)} <span>Pacotes<span class="so-largo"> e produtos</span></span></button>` + chipIdface()) + htmlPend() + `
   <section class="espaco">
     <div class="esp-cab${inicioLista() ? ' lst' : ''}">
       <div class="campo"><input id="esp-busca" value="${esc(S.espBusca || '')}" placeholder="Buscar criança, responsável, telefone ou CPF" autocomplete="off" aria-label="Buscar criança, responsável, telefone ou CPF"></div>
@@ -2671,7 +2786,7 @@ function atualizarCarrinho() { // redesenha as linhas dos serviços e o total a 
   guardarRascunho();   // o que está escolhido fica guardado: se fechar sem registrar, continua daqui
 }
 // o atendimento: quem é a criança, qual serviço ela quer e quanto dá. O valor a pagar aparece na hora
-function folhaVender(id, primeira) { // primeira: acabou de sair do cadastro (não precisa dizer que o cadastro foi feito)
+function folhaVender(id, primeira, pre) { // primeira: acabou de sair do cadastro (não precisa dizer que o cadastro foi feito); pre: o item que veio de "Pacotes e produtos"
   const c = crianca(id); if (!c) return;
   guardarEtapa(false);   // se outro atendimento estava aberto sem registrar, ele fica guardado antes de trocar
   const r = rascunhoDe(c.id), fichaBt = `<button type="button" class="link tap" data-act="ficha-ver" data-id="${c.id}">Ver a ficha</button>`;
@@ -2679,12 +2794,15 @@ function folhaVender(id, primeira) { // primeira: acabou de sair do cadastro (n�
     : !primeira && pendNovo(c) ? `<p class="retoma" id="v-retoma">${ic(IC.historico, 16)}<span><b>Cadastro feito às ${hora(new Date(pendEm(c)))}.</b> Falta escolher o serviço.</span>${fichaBt}</p>` : '';
   CARRINHO = r ? carrinhoDe(c, r) : { id: c.id, q: {}, pac: [], pr: {}, vq: 0 }; ETAPA_FEITA = true; PAG = null;   // cada atendimento começa sem forma de pagamento escolhida
   CARRINHO.visto = MODO === 'servidor' ? ULT_REG : 0;   // a última linha do dia que esta tela conhecia ao abrir: o servidor avisa se a criança ganhou outra venda depois
+  const it = itemPre(pre);   // 0.98: a venda começou em "Pacotes e produtos": o pacote (ou o produto) escolhido lá já entra na venda
+  if (it) { if (pre.pac != null) { if (!CARRINHO.pac.includes(pre.pac)) CARRINHO.pac.push(pre.pac); } else CARRINHO.pr[pre.prod] = Math.max(1, CARRINHO.pr[pre.prod] || 0); }
+  const notaPre = it ? `<p class="retoma" id="v-pre">${ic(it.pac ? IC.presente : IC.sacola, 16)}<span><b>${esc(it.curto)} já está na venda.</b> Confira e toque em Pagamento.</span></p>` : '';
   abrirFolha('Atendimento', `<div id="v-escolha">
     <div class="linha">${avatar(c)}<div class="txt"><b style="white-space:normal">${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}${c.pcd ? ` <em class="selo-pcd">${rotPcd()}</em>` : ''}</b><span style="white-space:normal">${esc(c.resp)}${fones(c) ? ' · ' + esc(fones(c)) : ''}</span>${c.entrou || c.sapateira ? `<span style="white-space:normal">${[c.entrou ? 'no espaço desde ' + hora(c.entrou) : '', c.sapateira ? 'sapateira ' + c.sapateira : ''].filter(Boolean).join(' · ')}</span>` : ''}</div><button class="bt tap" data-act="historico" data-id="${c.id}">${ic(IC.historico)} Histórico</button></div>
     ${obsAlerta(c)}
     <div class="h-saldo f-saldo" data-ficha-saldo="${c.id}" data-k="${pacMin(c)}|${usadoAgora(c)}" aria-label="Horas do cliente">${saldoFicha(c)}</div>
     ${semIdface() && !c.entrou && temPeriodo(c) ? `<button type="button" class="bt forte largo tap" id="v-entrar-saldo" data-act="entrada" data-id="${c.id}" title="Não precisa vender nada: a criança entra usando as horas que já tem">${ic(IC.entrar)} Dar entrada com o saldo (${hm(saldoMin(c))})</button>` : ''}
-    ${nota}<div class="campo"><label>${servicoTempo() ? 'Tempo de recreação <span class="leve">· avulso, de ' + porExt(periodo()) + ' em ' + porExt(periodo()) + '</span>' : 'Qual serviço?'}</label><div class="servicos" id="v-servicos">${linhasServico('tempo')}</div></div>
+    ${nota}${notaPre}<div class="campo"><label>${servicoTempo() ? 'Tempo de recreação <span class="leve">· avulso, de ' + porExt(periodo()) + ' em ' + porExt(periodo()) + '</span>' : 'Qual serviço?'}</label><div class="servicos" id="v-servicos">${linhasServico('tempo')}</div></div>
     ${pacotesNoAtendimento()}
     ${outrosServicos().length ? `<div class="campo"><label>Outros serviços</label><div class="servicos" id="v-servicos2">${linhasServico('outros')}</div></div>` : ''}
     ${produtosNoAtendimento()}
@@ -2692,13 +2810,14 @@ function folhaVender(id, primeira) { // primeira: acabou de sair do cadastro (n�
     <div class="pe-f"><span class="explica" id="v-tempo" hidden></span>${semIdface() && !c.entrou ? `<label class="marca" id="v-entrar-campo" hidden><input type="checkbox" id="v-entrar" checked><span><b>Dar entrada agora.</b> O tempo de recreação começa a contar ao registrar a venda.</span></label>` : ''}<div class="total"><span>Total a pagar</span><b class="num" id="v-total">R$ 0</b></div><button class="bt forte largo tap" id="v-ok" data-act="atender-ok" data-id="${c.id}" disabled>${ic(IC.check)} Escolha o serviço</button></div>
     </div><div id="v-pag" hidden></div>`);
   ETAPA_FEITA = false;   // daqui em diante, fechar sem registrar guarda o que foi escolhido
-  if (r) { const cb = $('#v-entrar'); if (cb && CARRINHO.entrar != null) cb.checked = CARRINHO.entrar; atualizarCarrinho(); }
+  if (r) { const cb = $('#v-entrar'); if (cb && CARRINHO.entrar != null) cb.checked = CARRINHO.entrar; }
+  if (r || it) atualizarCarrinho();
 }
 // o atendimento completo: a venda no meio e, em tela larga, os dados e o histórico do cliente ao lado
-function atender(id, primeira) {
+function atender(id, primeira, pre) {
   const c = crianca(id); if (!c) return; const jaAberto = LADO && crianca(LADO.id) && mesmoCliente(crianca(LADO.id), c);
   if (innerWidth >= 820 && !jaAberto) abrirHistorico(c.id);
-  folhaVender(c.id, primeira);
+  folhaVender(c.id, primeira, pre);
 }
 // as restrições ficam no campo de observações; os atalhos só escrevem mais rápido (dá para apagar e mudar à vontade)
 const OBS_ATALHOS = [['', 'Sem restrição'], ['ALERGIA A ', 'Alergia'], ['PODE FAZER PINTURA NO ROSTO', 'Pode pintura'], ['NÃO FAZER PINTURA NO ROSTO', 'Sem pintura'], ['PODE MEXER NO CABELO', 'Pode mexer no cabelo'], ['NÃO MEXER NO CABELO', 'Não mexer no cabelo']];
@@ -2783,13 +2902,15 @@ function atualizarFalta() {
     let m = $('.msg-falta', campo); if (f) { if (!m) { m = document.createElement('span'); m.className = 'msg-falta'; campo.appendChild(m); } m.textContent = f[2] + '.'; } else if (m) m.remove();
   }
 }
-function folhaCrianca(c, d) { // d: um cadastro novo que ficou pela metade, para continuar
+function folhaCrianca(c, d, extra) { // d: um cadastro novo que ficou pela metade, para continuar; extra: { pre, cpf } quando a venda começou em "Pacotes e produtos"
   guardarEtapa(false);   // o que estava aberto e não foi concluído fica guardado antes de trocar de folha
-  FOTO_TEMP = ''; CLIENTE_AUTO = null; CLIENTE_VISTO = ''; SAP_TEMP = 0;
+  FOTO_TEMP = ''; CLIENTE_AUTO = null; CLIENTE_VISTO = ''; SAP_TEMP = 0; CAD_PRE = null;
   if (!c) { // cadastro novo: primeiro o responsável (documento, nome e telefones), depois a criança; as horas são vendidas à parte
     d = d && RASC_CAD.includes(d) ? d : null; CAD_K = d ? d.k : 0; if (d && d.sap >= 1 && d.sap <= nSap() && !donoSap(d.sap)) SAP_TEMP = d.sap;   // a sapateira só volta marcada se continua livre
     const v = d || { doc: 'cpf', cpf: '', resp: '', tel: '', tel2: '', nome: '', pcd: false, obs: '' }; ETAPA_FEITA = true;
-    abrirFolha('Cadastrar', `${d ? `<p class="retoma" id="f-retoma">${ic(IC.historico, 16)}<span><b>Continuando o cadastro de onde parou</b>, às ${hora(new Date(d.em))}.</span><button type="button" class="link tap" data-act="cadastro-zero">Começar do zero</button></p>` : ''}
+    if (extra) { CAD_PRE = itemPre(extra.pre) ? extra.pre : null; if (!d && extra.cpf) v.cpf = extra.cpf; }
+    const itPre = itemPre(CAD_PRE);
+    abrirFolha('Cadastrar', `${itPre ? `<p class="retoma" id="f-pre">${ic(itPre.pac ? IC.presente : IC.sacola, 16)}<span>Depois do cadastro, o atendimento abre com <b>${esc(itPre.curto.replace(/^O /, 'o '))}</b> já na venda.</span></p>` : ''}${d ? `<p class="retoma" id="f-retoma">${ic(IC.historico, 16)}<span><b>Continuando o cadastro de onde parou</b>, às ${hora(new Date(d.em))}.</span><button type="button" class="link tap" data-act="cadastro-zero">Começar do zero</button></p>` : ''}
     <div class="bloco-f"><small class="rot">Responsável</small>
       <div class="dois alinha">${campoDoc(v.doc === 'rne' ? 'rne' : 'cpf', v.cpf)}
         <div class="campo"><label for="f-resp">Nome do responsável<span class="obg" aria-hidden="true">*</span></label><input id="f-resp" value="${esc(v.resp)}" autocomplete="off"></div></div>
@@ -2804,8 +2925,8 @@ function folhaCrianca(c, d) { // d: um cadastro novo que ficou pela metade, para
     </div>
     <p class="explica" style="text-align:center">Ao cadastrar, abre o atendimento: o serviço que a criança vai querer e o valor a pagar.</p>
     <div class="pe-f"><p class="falta-linha" id="f-falta"></p><button class="bt forte largo tap" data-act="salvar-crianca">${ic(IC.check)} Cadastrar</button></div>`);
-    ETAPA_FEITA = false; FALTA_TENTOU = false; if (d) { clienteNoCadastro(); marcarAtalhos(); } atualizarFalta();   // daqui em diante, fechar sem salvar guarda o que foi escrito
-    if (window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches) setTimeout(() => { const F = d ? faltaNoCadastro(null) : [], i = $('#' + (F.length ? F[0][0] : d ? 'f-nome' : 'f-cpf')); if (i) i.focus(); }, 420);   // no computador, o cursor já começa no documento (ou, ao continuar, no que falta)
+    ETAPA_FEITA = false; FALTA_TENTOU = false; if (d || v.cpf) { clienteNoCadastro(); marcarAtalhos(); } atualizarFalta();   // daqui em diante, fechar sem salvar guarda o que foi escrito
+    if (window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches) setTimeout(() => { const F = d ? faltaNoCadastro(null) : [], i = $('#' + (F.length ? F[0][0] : d ? 'f-nome' : soDig(v.cpf).length === 11 ? 'f-resp' : 'f-cpf')); if (i) { i.focus(); if (i.id === 'f-cpf' && i.value) i.setSelectionRange(i.value.length, i.value.length); } }, 420);   // no computador, o cursor já começa no documento (ou, ao continuar, no que falta)
     return;
   }
   const tipo = c.doc === 'rne' ? 'rne' : 'cpf';
@@ -3324,9 +3445,10 @@ function telaAjustes() {
         <p class="explica"><b>Desligado é o padrão:</b> a loja não manda aviso de chegada, de saída nem de tempo, para o responsável não ficar de olho no relógio. Se ligar, as mensagens dizem só que a criança chegou ou saiu, sem falar de tempo nem de saldo.</p>
       </div>` : ''}
       ${MODO === 'servidor' && gestor() ? `<div class="card"><div class="sec-cab"><h2 style="font-size:18px">Dados de exemplo</h2>${S.exemplo ? `<span class="pill p-aviso">${S.exemplo} crianças de exemplo</span>` : ''}</div>
-        <p class="explica">${S.exemplo ? 'As crianças de teste estão no sistema para a equipe ver a tela cheia e conhecer tudo. Antes de começar a usar de verdade, tire-as aqui (ou em "Tirar o teste", no rodapé): os cadastros reais ficam.' : 'Coloca 34 crianças fictícias: 30 no espaço agora, com nomes e horários de entrada diferentes (umas acabando o tempo, outras na tolerância ou já com cobrança por atraso, duas PCD e duas com voucher) e 4 fora, com carrinhos fora da loja, pacotes de horas e compromissos na agenda. Nada vai para o iDFace. O mesmo botão fica no rodapé de todas as telas.'}</p>
-        <div class="acoes">${S.exemplo ? `<button class="bt claro tap" data-act="exemplos-apagar" style="color:var(--erro)">Tirar o teste</button>` : `<button class="bt tap" data-act="exemplos-carregar">Colocar o teste: 30 crianças no espaço</button>`}</div>
+        <p class="explica">${S.exemplo ? 'As crianças de teste estão no sistema para a equipe ver a tela cheia e conhecer tudo. Antes de começar a usar de verdade, tire-as aqui (ou em "Tirar o teste", no rodapé): os cadastros reais ficam.' : 'Coloca 10 crianças fictícias no espaço agora, com nomes e horários de entrada diferentes (umas acabando o tempo, outras na tolerância ou já com cobrança por atraso, uma PCD e uma com voucher), com carrinhos fora da loja, pacotes de horas e compromissos na agenda. Nada vai para o iDFace. O mesmo botão fica no rodapé de todas as telas.'}</p>
+        <div class="acoes">${S.exemplo ? `<button class="bt claro tap" data-act="exemplos-apagar" style="color:var(--erro)">Tirar o teste</button>` : `<button class="bt tap" data-act="exemplos-carregar">Colocar o teste: 10 crianças no espaço</button>`}</div>
       </div>` : ''}
+      ${gestor() ? cartaoLimpeza() : ''}
       <div class="card"><div class="sec-cab"><h2 style="font-size:18px">Aparência</h2></div>${seg('tema', [['sistema', 'Como o celular'], ['claro', 'Claro'], ['escuro', 'Escuro']], cfg.tema)}
         <div class="campo"><label>Tela inicial neste aparelho</label>${seg('inicio', [['lista', 'Lista'], ['servico', 'Por serviço']], inicioLista() ? 'lista' : 'servico')}<span class="explica">Lista: uma linha por cliente, como uma planilha, com os filtros por serviço. Por serviço: três colunas (horas avulsas, pacotes e carrinhos).</span></div>
         <div class="campo"><label>Bonequinhos neste aparelho</label>${seg('anim', [['auto', 'Automático'], ['cheia', 'Animados'], ['leve', 'Quietos']], animEscolha())}<span class="explica">No automático, o sistema segue o aparelho: se as animações dele estiverem desligadas (comum em Windows ajustado para ficar mais rápido), os bonequinhos ficam quietos.${semMovimento() ? ' <b>Neste aparelho elas estão desligadas.</b>' : ''} Em Animados, eles se mexem sempre.</span></div></div>
@@ -3387,7 +3509,7 @@ function desenhar(quieto = false) { // quieto: redesenho da sincronia, sem as an
   $('#miolo').innerHTML = ({ horas: telaHoras, banco: telaBanco, zap: telaZap, agenda: telaAgenda, ajustes: telaAjustes })[S.tela]();
   $('#hoje').innerHTML = painelHoje();
   $('#fab-ancora').hidden = S.tela !== 'horas';
-  $('#rodape-global').innerHTML = `<span>${MODO === 'demo' ? 'Prévia com dados de exemplo · ' : ''}<b>Play Space Horas</b></span>${botaoVersao()}${MODO === 'servidor' ? (gestor() ? `<button type="button" class="versao tap exemplo-bt" data-act="exemplos-${S.exemplo ? 'apagar' : 'carregar'}" title="${S.exemplo ? 'Tira as crianças de teste; os cadastros de verdade ficam' : 'Coloca 30 crianças de teste no espaço, em horários diferentes, para ver a tela cheia'}">${S.exemplo ? 'Tirar o teste' : 'Teste: 30 crianças'}</button>` : '') : `<button type="button" class="versao tap exemplo-bt" data-act="teste-previa" title="${S.testePrevia ? 'Tira as 30 crianças de teste' : 'Coloca 30 crianças de teste no espaço, em horários diferentes, para ver a tela cheia'}">${S.testePrevia ? 'Tirar o teste' : 'Teste: 30 crianças'}</button>`}`;
+  $('#rodape-global').innerHTML = `<span>${MODO === 'demo' ? 'Prévia com dados de exemplo · ' : ''}<b>Play Space Horas</b></span>${botaoVersao()}${MODO === 'servidor' ? (gestor() ? `<button type="button" class="versao tap exemplo-bt" data-act="exemplos-${S.exemplo ? 'apagar' : 'carregar'}" title="${S.exemplo ? 'Tira as crianças de teste; os cadastros de verdade ficam' : 'Coloca 10 crianças de teste no espaço, em horários diferentes, para ver a tela com movimento'}">${S.exemplo ? 'Tirar o teste' : 'Teste: 10 crianças'}</button>` : '') : `<button type="button" class="versao tap exemplo-bt" data-act="teste-previa" title="${S.testePrevia ? 'Tira as 10 crianças de teste' : 'Coloca 10 crianças de teste no espaço, em horários diferentes, para ver a tela com movimento'}">${S.testePrevia ? 'Tirar o teste' : 'Teste: 10 crianças'}</button>`}`;
   animarPlacas();
   if (foco) { const i = $('#esp-busca'); if (i) { i.focus(); try { i.setSelectionRange(foco[0], foco[1]); } catch (e) { } } }
   if (LADO) { if (MODO !== 'servidor' || LADO.reg !== ULT_REG) { LADO.reg = ULT_REG; buscarHistorico(); } else desenharLado(); }   // a aba do histórico acompanha o que mudou
@@ -3451,7 +3573,7 @@ const ACOES = {
   'esp-filtro': el => { const f = el.dataset.f; S.espFiltro = espFiltro() === f && f !== 'todas' ? 'todas' : f; atualizarEspaco(); },   /* "Saíram há pouco": tocar de novo volta para quem está no espaço */
   devolver: el => devolver(el.dataset.id, el.dataset.s),
   reabrir: el => folhaReabrir(+el.dataset.id),
-  'cliente-atender': el => { const id = +el.dataset.id; if (!crianca(id)) return; cadastroFeito(); fecharFolha(); setTimeout(() => atender(id), 260); },   /* a criança já está salva: larga o cadastro novo e vai direto para o atendimento dela */
+  'cliente-atender': el => { const id = +el.dataset.id; if (!crianca(id)) return; const pre = CAD_PRE; cadastroFeito(); fecharFolha(); setTimeout(() => atender(id, false, pre), 260); },   /* a criança já está salva: larga o cadastro novo e vai direto para o atendimento dela */
   'obs-ver': el => { const c = crianca(el.dataset.id); if (c && c.obs) toast(`${c.nome}: ${c.obs}`, () => folhaFicha(c.id), 'Ficha'); },   /* o OBS da lista: o texto aparece só com o toque, no aviso do pé da tela */
   'obs-abre': el => { const cx = el.closest('.obs-cx'), c = crianca(el.dataset.id), corpo = cx && $('.obs-corpo', cx), bt = cx && $('.obs-bt', cx); if (!c || !corpo) return;
     const abre = corpo.hidden || el !== bt && !el.closest('.obs-corpo') ; corpo.hidden = !abre; if (bt) bt.setAttribute('aria-expanded', abre); cx.classList.toggle('aberta', abre);
@@ -3509,6 +3631,7 @@ const ACOES = {
   editar: el => folhaCrianca(crianca(el.dataset.id)),
   nova: () => folhaCrianca(null),
   'salvar-crianca': el => {
+    const pre = el.dataset.id ? null : CAD_PRE;   /* 0.98: a venda começou em "Pacotes e produtos": o item segue para o atendimento */
     const id = el.dataset.id, nome = MAI(val('f-nome')), resp = MAI(val('f-resp')), doc = docTipo(), cpf = doc === 'rne' ? rneFmt(val('f-cpf')).trim() : cpfFmt(val('f-cpf')), obs = val('f-obs'), pcd = !!($('#f-pcd') || {}).checked;
     let tel = val('f-tel'), tel2 = val('f-tel2'); if (!tel && tel2) { tel = tel2; tel2 = ''; }   // só um telefone preenchido: ele é o principal
     const F = faltaNoCadastro(id ? crianca(id) : null);   // sem documento, responsável, telefone e nome da criança o cadastro não fecha
@@ -3518,14 +3641,14 @@ const ACOES = {
       const dados = id ? { id: +id, nome, idade: +val('f-idade') || 0, resp, tel, tel2, doc, cpf, obs, pcd } : { nome, resp, tel, tel2, doc, cpf, obs, pcd, sapateira: SAP_TEMP };
       api('crianca_salvar', dados).then(async r => { await carregar(); if (id) renomearRascunho(+id, nome); else cadastroFeito(); fecharFolha(); desenhar();
         if (id) { toast('Cadastro salvo'); return; }
-        if (innerWidth >= 820) toast(`${nome} cadastrada. Agora o atendimento.`); setTimeout(() => atender(r.id, true), 260); }).catch(async e => { toast(e.message); if (/sapateira/i.test(e.message)) { try { await carregar(); } catch (x) { } SAP_TEMP = 0; redesenharSap(); } });
+        if (innerWidth >= 820) toast(`${nome} cadastrada. Agora o atendimento.`); setTimeout(() => atender(r.id, true, pre), 260); }).catch(async e => { toast(e.message); if (/sapateira/i.test(e.message)) { try { await carregar(); } catch (x) { } SAP_TEMP = 0; redesenharSap(); } });
       return;
     }
     if (id) { const c = crianca(id); if (!!c.pcd !== pcd) registrar('cad', nome, (pcd ? `Marcada como criança PCD: ${pcdDesc()}% de desconto na recreação` : 'Deixou de estar marcada como criança PCD') + ' · por ' + EU.nome); Object.assign(c, { nome, idade: +val('f-idade') || c.idade, resp: resp || c.resp, tel, tel2, doc, cpf, obs, pcd }); renomearRascunho(c.id, nome); toast('Cadastro salvo'); }
     else {
       if (pcd) registrar('cad', nome, `Cadastrada como criança PCD: ${pcdDesc()}% de desconto na recreação · por ${EU.nome}`);
       const c = { id: novoId(), nome, idade: 0, resp, rel: 'responsável', tel, tel2, doc, cpf, obs, pcd, pacote: 0, usado: 0, entrou: null, rosto: false, foto: '', visitas: [], venda: null, sapateira: SAP_TEMP || null, liberado: S.cfg.bloqueioAuto !== 'sim', criado: new Date() }; S.criancas.push(c);
-      cadastroFeito(); fecharFolha(); desenhar(); if (innerWidth >= 820) toast(`${nome} cadastrada. Agora o atendimento.`); setTimeout(() => atender(c.id, true), 260); return;
+      cadastroFeito(); fecharFolha(); desenhar(); if (innerWidth >= 820) toast(`${nome} cadastrada. Agora o atendimento.`); setTimeout(() => atender(c.id, true, pre), 260); return;
     }
     fecharFolha(); desenhar();
   },
@@ -3583,9 +3706,9 @@ const ACOES = {
   'idface-toggle': () => { const lig = !S.cfg.idface.ligado; if (MODO === 'servidor') { api('idface_salvar', { ligado: lig }).then(async () => { await carregar(); toast(lig ? 'Leitura ligada' : 'Leitura desligada'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } S.cfg.idface.ligado = lig; toast(lig ? 'Leitura ligada' : 'Leitura desligada'); fecharFolha(); desenhar(); },
   'idface-bat': () => { if (MODO === 'servidor') { location.href = 'api/idface.php?acao=conectar_bat'; toast('Baixando "Conectar o iDFace.bat" (Windows)…'); return; } toast('No sistema de verdade, baixa o conector com IP e chave já preenchidos'); },
   'idface-command': () => { if (MODO === 'servidor') { location.href = 'api/idface.php?acao=conectar_command'; toast('Baixando "Conectar o iDFace" para Mac…'); return; } toast('No sistema de verdade, baixa o conector para Mac com IP e chave já preenchidos'); },
-  'exemplos-carregar': async () => { try { toast('Colocando as crianças de teste…'); const r = await api('exemplos_carregar'); await carregar(); S.tela = 'horas'; S.espFiltro = 'todas'; S.espBusca = ''; desenhar(); window.scrollTo({ top: 0 }); toast(`Teste no ar: ${r.dentro || 30} crianças no espaço, em horários diferentes. Para tirar, "Tirar o teste", lá embaixo.`, () => ACOES['exemplos-apagar'](), 'Tirar'); } catch (e) { toast(e.message); } },
+  'exemplos-carregar': async () => { try { toast('Colocando as crianças de teste…'); const r = await api('exemplos_carregar'); await carregar(); S.tela = 'horas'; S.espFiltro = 'todas'; S.espBusca = ''; desenhar(); window.scrollTo({ top: 0 }); toast(`Teste no ar: ${r.dentro || 10} crianças no espaço, em horários diferentes. Para tirar, "Tirar o teste", lá embaixo.`, () => ACOES['exemplos-apagar'](), 'Tirar'); } catch (e) { toast(e.message); } },
   'exemplos-apagar': async () => { try { await api('exemplos_apagar'); await carregar(); desenhar(); toast('Teste tirado. Só ficou o que é de verdade.'); } catch (e) { toast(e.message); } },
-  'teste-previa': () => { if (S.testePrevia) tirarTestePrevia(); else colocarTestePrevia(); S.tela = 'horas'; S.espFiltro = 'todas'; S.espBusca = ''; desenhar(); window.scrollTo({ top: 0 }); toast(S.testePrevia ? 'Teste no ar: 30 crianças no espaço, em horários diferentes. Para tirar, "Tirar o teste", lá embaixo.' : 'Teste tirado.', S.testePrevia ? () => ACOES['teste-previa']() : null, S.testePrevia ? 'Tirar' : undefined); },
+  'teste-previa': () => { if (S.testePrevia) tirarTestePrevia(); else colocarTestePrevia(); S.tela = 'horas'; S.espFiltro = 'todas'; S.espBusca = ''; desenhar(); window.scrollTo({ top: 0 }); toast(S.testePrevia ? 'Teste no ar: 10 crianças no espaço, em horários diferentes. Para tirar, "Tirar o teste", lá embaixo.' : 'Teste tirado.', S.testePrevia ? () => ACOES['teste-previa']() : null, S.testePrevia ? 'Tirar' : undefined); },
   'idface-chave': () => { api('idface_nova_chave').then(async () => { await carregar(); fecharFolha(); desenhar(); setTimeout(folhaIdface, 250); toast('Chave nova. Rode o conector de novo no aparelho.'); }).catch(e => toast(e.message)); },
   simular: el => { const c = crianca(el.dataset.id); if (MODO === 'servidor') { api('idface_simular', { id: c.id }).then(async r => { await carregar(); fecharFolha(); desenhar(); toast(`${c.nome}: ${r.resultado} registrada como se fosse o iDFace`); }).catch(e => toast(e.message)); return; } if (c.entrou) saida(c); else entrada(c); fecharFolha(); desenhar(); },
   conta: () => abrirFolha(esc(EU.nomeCompleto || EU.nome), `<div class="marca">${ic(IC.check, 18)}<span><b>${PAPEIS[EU.papel] || EU.papel}</b> · login ${esc(EU.login)}${MODO === 'demo' ? ' · prévia sem servidor' : ''}</span></div>${MODO === 'demo' ? `<div class="campo"><label>Na prévia, ver a tela como</label><div class="seg">${Object.entries(PAPEIS).map(([k, n]) => `<button type="button" data-act="ver-como" data-v="${k}" aria-pressed="${EU.papel === k}">${n}</button>`).join('')}</div><span class="explica">O atendente cancela a entrada só dentro do prazo; gestor e supervisor conferem os cancelamentos.</span></div>` : ''}<div class="acoes">${supervisorOuMais() ? `<button class="bt tap" data-act="ir-ajustes">${ic(IC.ajustes)} Ajustes</button>` : ''}<button class="bt claro tap" data-act="sair">Sair da conta</button></div>`),
@@ -3630,6 +3753,20 @@ const ACOES = {
   'sv-apagar': el => { const L = (S.cfg.servicos || []).slice(); if (L.length <= 1) { toast('Deixe pelo menos um serviço'); return; } const [x] = L.splice(+el.dataset.i, 1); S.cfg.servicos = L; if (MODO === 'servidor') api('regra_salvar', { servicos: L }).catch(e => toast(e.message));
     toast(`${x.n} saiu da lista`, () => { S.cfg.servicos = [...S.cfg.servicos, x]; if (MODO === 'servidor') api('regra_salvar', { servicos: S.cfg.servicos }).catch(() => {}); }); fecharFolha(); desenhar(); },
   pacotes: () => folhaPacotes(),
+  'pp-vender': el => { const pre = el.dataset.pac != null ? { pac: +el.dataset.pac } : { prod: +el.dataset.prod }; if (itemPre(pre)) folhaParaQuem(pre); },   /* 0.98: um toque no pacote (ou no produto) começa a venda: falta dizer para quem */
+  'pq-trocar': () => folhaPacotes(ABA_PP),
+  'pq-crianca': el => { const pre = PQ, id = +el.dataset.id; if (!crianca(id)) return; PQ = null; atender(id, false, pre); },
+  'pq-cadastrar': () => { const pre = PQ, q = val('pq-busca'), cpf = soNumerosBusca(q) ? cpfFmt(q) : ''; PQ = null; folhaCrianca(null, null, { pre, cpf }); },
+  limpeza: () => folhaLimpeza(false),
+  'limpeza-ok': async el => { if (!LZ || !LZ.n) return; const q = LZ.n.cadastros;
+    if (MODO === 'servidor') { el.disabled = true; try { await api('cadastros_limpar', { senha: ($('#lz-senha') || { value: '' }).value }); } catch (e) { toast(e.message); const s = $('#lz-senha'); if (s) { s.value = ''; s.focus(); } pintarLimpeza(); return; } limparAparelho(); try { await carregar(); } catch (e) { } }
+    else limparPrevia();
+    LZ = null; fecharFolha(); if (LADO) fecharLado(); S.tela = 'horas'; S.espBusca = ''; S.espFiltro = 'todas'; desenhar(); window.scrollTo({ top: 0 });
+    toast(`Pronto: ${q} ${q === 1 ? 'cadastro apagado' : 'cadastros apagados'}. O sistema está limpo.`, () => ACOES['limpeza-desfazer'](), 'Desfazer'); },
+  'limpeza-desfazer': async () => {
+    if (MODO === 'servidor') { try { const r = await api('cadastros_voltar'); await carregar(); desenhar(); toast(`Limpeza desfeita: ${r.voltaram} ${r.voltaram === 1 ? 'cadastro voltou' : 'cadastros voltaram'}.`); } catch (e) { toast(e.message); try { await carregar(); desenhar(true); } catch (x) { } } return; }
+    if (!voltarPrevia()) { toast('Já há cadastro novo depois da limpeza: não dá mais para desfazer.'); desenhar(true); return; } desenhar(); toast('Limpeza desfeita: os cadastros voltaram.'); },
+  'limpeza-depois': async () => { if (MODO === 'servidor') { try { await api('limpeza_depois'); } catch (e) { } } if (S.limpeza) S.limpeza.oferta = false; LZ = null; fecharFolha(); toast('Tudo bem, nada foi apagado. Quando quiser: Ajustes → Limpar os cadastros.'); },
   'pacote-novo': el => { const d = (el && el.dataset) || {}; VOLTA_PAC = d.de === 'pacotes' || !!d.tipo; folhaPacote(null, d.h ? { h: +d.h, tipo: d.tipo } : null); },
   'pacote-editar': el => { VOLTA_PAC = el.dataset.de === 'pacotes'; folhaPacote(+el.dataset.i); },
   'pacote-horas': el => { $('#pc-h').value = el.dataset.h; $$('#pc-rapido button').forEach(b => b.setAttribute('aria-pressed', b === el)); contaPacote(); },
@@ -3718,6 +3855,8 @@ document.addEventListener('input', e => {
   if (e.target.id === 'v-item' || e.target.id === 'v-valor') atualizarCarrinho();
   if (e.target.classList && e.target.classList.contains('pg-valor') && PAG) { PAG.v[e.target.dataset.pgF] = e.target.value; desenharPag(false); }
   if (e.target.id === 'esp-busca') { S.espBusca = e.target.value; atualizarEspaco(); }
+  if (e.target.id === 'pq-busca') { const q = e.target.value; if (soNumerosBusca(q)) { const v = cpfFmt(q); if (v !== q) e.target.value = v; } const l = $('#pq-lista'); if (l) l.innerHTML = listaParaQuem(e.target.value); }   // só números: vai ficando com a cara de CPF
+  if (e.target.id === 'lz-senha') pintarLimpeza();
   if (e.target.id === 's-hora' && $('#s-conta')) previaSaida();
   if (e.target.id === 'banco-busca') { S.bancoBusca = e.target.value; const l = $('#banco-lista'); if (l) l.innerHTML = linhasBanco(); }
   if (e.target.id === 'busca') { const q = e.target.value.toLowerCase(); $('#lista-criancas').innerHTML = itensLista(S.criancas.filter(c => (c.nome + ' ' + c.resp).toLowerCase().includes(q))); }
@@ -3729,6 +3868,8 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { if ($('#folha .folha-fundo')) fecharFolha(); else if (LADO) fecharLado(); }
   if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[role="button"][data-act]')) { e.preventDefault(); e.target.click(); }
   if (e.key === 'Enter' && !e.shiftKey && e.target.id === 'zap-texto') { e.preventDefault(); ACOES.enviar(); }
+  if (e.key === 'Enter' && e.target.id === 'pq-busca') { e.preventDefault(); const b = $$('#pq-lista [data-act="pq-crianca"]'); if (b.length === 1) b[0].click(); return; }   // só uma criança na lista: Enter escolhe
+  if (e.key === 'Enter' && e.target.id === 'lz-senha') { e.preventDefault(); const ok = $('#lz-ok'); if (ok && !ok.disabled) ok.click(); return; }
   if (e.key === 'Enter' && e.target.id === 'cp-num') { e.preventDefault(); const ok = $('#cp-ok'); if (ok && !ok.disabled) ok.click(); return; }
   if (e.key === 'Enter' && e.target.classList && e.target.classList.contains('pg-valor')) { e.preventDefault(); const ok = $('#p-ok') || $('#s-ok'); if (ok && !ok.disabled) ok.click(); }
   if (e.key === 'Enter' && ['l-login', 'l-senha'].includes(e.target.id)) { e.preventDefault(); e.target.id === 'l-login' ? $('#l-senha').focus() : ACOES.entrar(); }

@@ -252,6 +252,11 @@ function db(): PDO {
     $pdo->exec('CREATE INDEX IF NOT EXISTS pagamentos_cupom ON pagamentos (cupom_id)');
     $pdo->exec('PRAGMA user_version = 21');
   }
+  if ($v < 22) { // 0.98: a loja vai começar a fase de verdade e pediu para limpar os cadastros de teste. A limpeza não roda sozinha na atualização:
+    // fica oferecida uma vez ao gestor, que vê o que vai sair e confirma com a senha. Banco que ainda não tem cadastro não oferece nada.
+    try { if ((int)$pdo->query('SELECT COUNT(*) FROM criancas')->fetchColumn() > 0) $pdo->prepare("INSERT OR REPLACE INTO config (chave, valor) VALUES ('limpeza_oferta', ?)")->execute([json_encode(['em' => agora()])]); } catch (Throwable $e) { }
+    $pdo->exec('PRAGMA user_version = 22');
+  }
   return $pdo;
 }
 function cfg(string $k, $padrao = null) { $q = db()->prepare('SELECT valor FROM config WHERE chave = ?'); $q->execute([$k]); $v = $q->fetchColumn(); return $v === false ? $padrao : json_decode((string)$v, true); }
@@ -849,4 +854,126 @@ function processarRosto(int $idfaceUser, string $quando, string $origem = 'iDFac
     if ($k && abs(strtotime($quando) - strtotime((string)$k)) < 600) return 'cancelada'; }
   if ($c['entrou']) { fazerSaida($c, $origem, $quando); return 'saída'; }
   fazerEntrada($c, $origem, $quando); return 'entrada';
+}
+
+/* ---------- 0.98: começar do zero (apagar todos os cadastros) ---------- */
+// O que sai: todos os cadastros (crianças e responsáveis, os ativos e os que já tinham sido removidos, com as fotos) e tudo o que nasceu
+// deles: vendas, pagamentos, visitas, as linhas do dia, as entradas canceladas, as conversas, os cupons e as leituras do iDFace.
+// O que fica: a equipe e as senhas, a regra das horas, os serviços e preços, os pacotes, os produtos (o que tinha sido vendido volta
+// para o estoque: a venda deixou de existir), a agenda, as sapateiras e os outros ajustes.
+// Antes de apagar, o banco inteiro é copiado para a pasta de dados (ficam as 3 últimas cópias); pela tela dá para desfazer
+// enquanto não houver cadastro novo.
+const TABELAS_CADASTRO = ['cupons', 'pagamentos', 'visitas', 'vendas', 'registros', 'mensagens', 'batidas', 'cancelamentos', 'criancas'];
+const CHAVES_CADASTRO = '/^(mandar|foto|renomear|regra|regra_ok|desregra|falhas_regra|rosto_erro|rosto_ok|rosto_em|pedirosto|baixarfoto)_\d+$/';   // o que o sistema guarda por criança (regra_id e as outras chaves da loja não entram)
+function senhaConfere(array $u, string $senha): bool { // a senha de quem está logado (para confirmar o que não tem volta fácil)
+  $q = db()->prepare('SELECT senha FROM usuarios WHERE id = ?'); $q->execute([$u['id']]); $h = (string)$q->fetchColumn(); $q->closeCursor();
+  return $senha !== '' && password_verify($senha, $h);
+}
+function limpezaResumo(): array { // o que há para apagar agora
+  $db = db(); $n = fn(string $sql) => (int)$db->query($sql)->fetchColumn();
+  return ['cadastros' => $n('SELECT COUNT(*) FROM criancas'), 'removidos' => $n('SELECT COUNT(*) FROM criancas WHERE ativo = 0'), 'dentro' => $n('SELECT COUNT(*) FROM criancas WHERE ativo = 1 AND entrou IS NOT NULL'),
+    'responsaveis' => $n("SELECT COUNT(DISTINCT CASE WHEN cpf != '' THEN cpf ELSE 'sem' || id END) FROM criancas"), 'fotos' => $n("SELECT COUNT(*) FROM criancas WHERE foto != ''"),
+    'vendas' => $n('SELECT COUNT(*) FROM vendas'), 'valor' => round((float)$db->query('SELECT COALESCE(SUM(valor), 0) FROM pagamentos')->fetchColumn(), 2), 'visitas' => $n('SELECT COUNT(*) FROM visitas'), 'registros' => $n('SELECT COUNT(*) FROM registros')];
+}
+function pastaCopias(): string {
+  $d = pastaDados() . '/copias'; if (!is_dir($d)) @mkdir($d, 0700, true);
+  if (!is_dir($d) || !is_writable($d)) falha('Não consegui criar a pasta das cópias de segurança. Nada foi apagado.', 500);
+  if (!file_exists($d . '/.htaccess')) @file_put_contents($d . '/.htaccess', "<IfModule mod_authz_core.c>\n  Require all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\n  Order allow,deny\n  Deny from all\n</IfModule>\n");
+  if (!file_exists($d . '/index.html')) @file_put_contents($d . '/index.html', '');
+  return $d;
+}
+// uma cópia inteira do banco, feita pelo próprio SQLite (sai coerente mesmo com outra tela gravando). Devolve o nome do arquivo.
+// O nome não começa por "playspace-" (é por esse começo que o sistema acha o banco de verdade) e leva um pedaço sorteado
+function copiarBanco(): string {
+  $db = db(); $dir = pastaCopias(); $nome = 'copia-' . date('Ymd-His') . '-' . bin2hex(random_bytes(6)) . '.sqlite'; $arq = $dir . '/' . $nome;
+  try { $db->exec('VACUUM INTO ' . $db->quote($arq)); }   // o banco inteiro, igual ao de verdade (tabelas, índices e gatilhos)
+  catch (Throwable $e) { // SQLite antigo (antes do 3.27) não tem o VACUUM INTO, e ele também não roda com uma consulta aberta nesta conexão:
+    // a cópia é feita tabela por tabela, numa leitura só. Fica com os dados de todas as tabelas, que é o que o Desfazer usa
+    @unlink($arq);
+    try {
+      $db->exec('ATTACH DATABASE ' . $db->quote($arq) . ' AS copia');
+      $db->beginTransaction();
+      foreach ($db->query("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")->fetchAll(PDO::FETCH_COLUMN) as $t) $db->exec('CREATE TABLE copia."' . $t . '" AS SELECT * FROM main."' . $t . '"');
+      $db->exec('PRAGMA copia.user_version = ' . (int)$db->query('PRAGMA user_version')->fetchColumn());
+      $db->commit();
+      $db->exec('DETACH DATABASE copia');
+    } catch (Throwable $e2) {
+      if ($db->inTransaction()) $db->rollBack();
+      try { $db->exec('DETACH DATABASE copia'); } catch (Throwable $x) { }
+      @unlink($arq); registrarErro('cópia do banco: ' . $e->getMessage() . ' / ' . $e2->getMessage());
+      falha('Não consegui fazer a cópia de segurança do banco. Nada foi apagado.', 500);
+    }
+  }
+  if (!is_file($arq) || filesize($arq) < 1024) { @unlink($arq); falha('A cópia de segurança do banco não ficou inteira. Nada foi apagado.', 500); }
+  @chmod($arq, 0600);
+  // ficam a cópia nova e as duas anteriores. A nova nunca entra na conta do que sai (duas cópias feitas no mesmo segundo têm a mesma hora no nome)
+  $outras = array_values(array_filter(glob($dir . '/copia-*.sqlite') ?: [], fn($f) => $f !== $arq));
+  usort($outras, fn($a, $b) => ((int)@filemtime($a) <=> (int)@filemtime($b)) ?: strcmp($a, $b));   // as mais antigas primeiro
+  foreach (array_slice($outras, 0, max(0, count($outras) - 2)) as $velha) @unlink($velha);
+  return $nome;
+}
+function cadastrosNaCopia(string $arq): int { // abre a cópia e conta: só apaga se ela estiver inteira
+  if (!is_file($arq)) return -1;   // (anexar um arquivo que não existe criaria um banco vazio com esse nome)
+  $db = db(); $db->exec('ATTACH DATABASE ' . $db->quote($arq) . ' AS copia');
+  try { return (int)$db->query('SELECT COUNT(*) FROM copia.criancas')->fetchColumn(); } catch (Throwable $e) { return -1; } finally { try { $db->exec('DETACH DATABASE copia'); } catch (Throwable $e) { } }
+}
+function limparCadastros(array $u): array {
+  $db = db(); $antes = limpezaResumo(); $quem = primeiroNome((string)$u['nome']);
+  if (!$antes['cadastros'] && !$antes['vendas'] && !$antes['visitas']) falha('Não há cadastro para apagar: o sistema já está limpo.', 409);
+  $copia = copiarBanco();
+  if (cadastrosNaCopia(pastaCopias() . '/' . $copia) !== $antes['cadastros']) falha('A cópia de segurança não confere com o banco. Nada foi apagado.', 500);
+  $ex = cfg('exemplo', null); $comp = is_array($ex) ? array_values(array_map('intval', (array)($ex['compromissos'] ?? []))) : [];   // a agenda fica; só saem os compromissos que vieram com o teste
+  $db->beginTransaction();
+  try {
+    foreach ($db->query('SELECT produto_id, qtd FROM vendas WHERE produto_id IS NOT NULL')->fetchAll() as $v) devolverEstoque($v);   // o produto vendido volta para o estoque
+    $fila = []; foreach ($db->query('SELECT idface_id FROM criancas WHERE idface_id IS NOT NULL')->fetchAll() as $c) { $fila[] = (int)$c['idface_id']; gravarCfg('apagar_' . (int)$c['idface_id'], (int)$c['idface_id']); }   // quem está no iDFace sai de lá na próxima conversa com o aparelho
+    foreach (TABELAS_CADASTRO as $t) $db->exec("DELETE FROM $t");
+    try { $db->exec("DELETE FROM sqlite_sequence WHERE name = 'cupons'"); } catch (Throwable $e) { }
+    foreach ($db->query('SELECT chave FROM config')->fetchAll(PDO::FETCH_COLUMN) as $k) if (preg_match(CHAVES_CADASTRO, (string)$k)) apagarCfg((string)$k);
+    apagarCfg('exemplo'); apagarCfg('pend_fora'); apagarCfg('limpeza_oferta');
+    if ($comp) $db->prepare('DELETE FROM compromissos WHERE id IN (' . implode(',', array_fill(0, count($comp), '?')) . ')')->execute($comp);
+    gravarCfg('limpeza', ['em' => agora(), 'por' => $quem, 'copia' => $copia, 'n' => $antes, 'fila' => $fila, 'comp' => $comp, 'banco' => (int)$db->query('PRAGMA user_version')->fetchColumn()]);
+    registrar('cad', null, 'CADASTROS', 'Todos os cadastros foram apagados para começar do zero: ' . $antes['cadastros'] . ($antes['cadastros'] === 1 ? ' cadastro' : ' cadastros') . ', ' . $antes['vendas'] . ($antes['vendas'] === 1 ? ' venda' : ' vendas') . ' e ' . $antes['visitas'] . ($antes['visitas'] === 1 ? ' visita' : ' visitas') . ' · por ' . $quem);
+    $db->commit();
+  } catch (Throwable $e) { if ($db->inTransaction()) $db->rollBack(); registrarErro('limpeza: ' . $e->getMessage()); falha('Não consegui apagar os cadastros. Nada foi mudado.', 500); }
+  try { $db->exec('VACUUM'); } catch (Throwable $e) { }   // devolve ao disco o espaço das fotos
+  return ['apagados' => $antes, 'ultima' => limpezaPublica()];
+}
+// '' se a última limpeza ainda pode ser desfeita; senão, o porquê
+function limpezaVolta(array $l): string {
+  $db = db(); $arq = pastaDados() . '/copias/' . basename((string)($l['copia'] ?? ''));
+  if (empty($l['copia']) || !is_file($arq)) return 'A cópia de segurança dessa limpeza não está mais guardada.';
+  if ((int)($l['banco'] ?? 0) !== (int)$db->query('PRAGMA user_version')->fetchColumn()) return 'O sistema foi atualizado depois da limpeza: a cópia é de uma versão anterior.';
+  if ((int)$db->query('SELECT COUNT(*) FROM criancas')->fetchColumn() > 0 || (int)$db->query('SELECT COUNT(*) FROM vendas')->fetchColumn() > 0) return 'Já há cadastro novo depois da limpeza: desfazer agora misturaria os dois.';
+  return '';
+}
+function limpezaPublica(): ?array { // a última limpeza, para a tela mostrar e oferecer o Desfazer enquanto der
+  $l = cfg('limpeza', null); if (!is_array($l) || empty($l['em'])) return null;
+  return ['em' => (string)$l['em'], 'por' => (string)($l['por'] ?? ''), 'cadastros' => (int)($l['n']['cadastros'] ?? 0), 'desfaz' => limpezaVolta($l) === ''];
+}
+function limpezaDesfazer(array $u): array {
+  $db = db(); $l = cfg('limpeza', null); if (!is_array($l) || empty($l['copia'])) falha('Não há limpeza para desfazer.', 404);
+  $motivo = limpezaVolta($l); if ($motivo !== '') falha($motivo, 409);
+  $db->exec('ATTACH DATABASE ' . $db->quote(pastaDados() . '/copias/' . basename((string)$l['copia'])) . ' AS copia');
+  try {
+    $db->beginTransaction();
+    foreach (TABELAS_CADASTRO as $t) { $db->exec("DELETE FROM $t"); $db->exec("INSERT INTO $t SELECT * FROM copia.$t"); }
+    try { $db->exec("DELETE FROM sqlite_sequence WHERE name = 'cupons'"); $db->exec("INSERT INTO sqlite_sequence (name, seq) SELECT name, seq FROM copia.sqlite_sequence WHERE name = 'cupons'"); } catch (Throwable $e) { }
+    foreach ($db->query('SELECT produto_id, qtd FROM vendas WHERE produto_id IS NOT NULL')->fetchAll() as $v) mexerEstoque((int)$v['produto_id'], (int)$v['qtd'], -1);   // as vendas voltaram: o estoque baixa de novo
+    $por = $db->prepare('INSERT OR REPLACE INTO config (chave, valor) VALUES (?, ?)');
+    foreach ($db->query('SELECT chave, valor FROM copia.config')->fetchAll() as $r) if (preg_match(CHAVES_CADASTRO, (string)$r['chave']) || in_array($r['chave'], ['exemplo', 'pend_fora'], true)) $por->execute([$r['chave'], $r['valor']]);
+    foreach ((array)($l['fila'] ?? []) as $id) apagarCfg('apagar_' . (int)$id);   // quem ia sair do iDFace não sai mais
+    $comp = array_values(array_filter(array_map('intval', (array)($l['comp'] ?? []))));
+    if ($comp) $db->exec('INSERT OR IGNORE INTO compromissos SELECT * FROM copia.compromissos WHERE id IN (' . implode(',', $comp) . ')');
+    apagarCfg('limpeza'); unset($GLOBALS['_exemplo']);
+    $n = (int)$db->query('SELECT COUNT(*) FROM criancas')->fetchColumn();
+    registrar('cad', null, 'CADASTROS', 'A limpeza foi desfeita: ' . $n . ($n === 1 ? ' cadastro voltou' : ' cadastros voltaram') . ', com as vendas e as visitas · por ' . primeiroNome((string)$u['nome']));
+    $db->commit();
+  } catch (Throwable $e) {
+    if ($db->inTransaction()) $db->rollBack(); registrarErro('desfazer a limpeza: ' . $e->getMessage());
+    try { $db->exec('DETACH DATABASE copia'); } catch (Throwable $x) { }
+    falha('Não consegui desfazer a limpeza. Nada foi mudado.', 500);
+  }
+  try { $db->exec('DETACH DATABASE copia'); } catch (Throwable $e) { }
+  return ['voltaram' => $n];
 }
