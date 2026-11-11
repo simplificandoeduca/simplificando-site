@@ -36,7 +36,7 @@ Na prévia (sem servidor) o mesmo botão existe e faz a mesma coisa na própria 
 
 | Papel | O que faz |
 |---|---|
-| **Gestor** | Tudo: regra das horas, serviços, pacotes, produtos, equipe, iDFace. Pode remover crianças. |
+| **Gestor** | Tudo: regra das horas, serviços, pacotes, produtos, equipe, iDFace. Pode remover crianças; **cadastro com horas guardadas, só o Gestor remove, e confirmando** (seção 6r). |
 | **Supervisor** | Tudo da loja (horas, cadastro, agenda) e *vê* os Ajustes, mas não os altera. **Confere as entradas canceladas**, cancela uma entrada mesmo fora do prazo e **corrige a hora de uma saída esquecida**. |
 | **Atendente** | Horas, cadastro de criança e agenda. Não vê Ajustes. Cancela uma entrada sem cobrar só dentro do prazo (9 min), escrevendo o motivo. |
 
@@ -70,7 +70,7 @@ Enquanto a loja não usa o iDFace, a **leitura fica desligada** (Ajustes → iDF
 
 - No **atendimento**, ao registrar uma venda com Recreação, a opção **Dar entrada agora** já vem marcada: a venda é gravada e o tempo começa a contar. Para quem está comprando para outro dia, é só desmarcar.
 - Quem já tem **um período inteiro guardado** ganha o botão **Entrada** (na busca da tela inicial e na ficha). Sem um período comprado, a entrada não é aceita: aparece **Vender** (ou **Atender**, na busca).
-- Quem está no espaço tem o botão **Saída** na linha da lista e na ficha. O toque abre a **folha da saída** (de quem é, quanto ficou, o que debita e, se passou do tempo, o valor a receber) e o segundo toque confirma. São dois toques de propósito: com 40 crianças na lista, um toque errado não tira a criança errada. A saída libera a sapateira e avisa onde está o sapato.
+- Quem está no espaço tem o botão **Saída** na linha da lista e na ficha. O toque abre o **Pagamento da saída** (seção 6r): de quem é, quanto ficou e como a visita é paga, com as horas do cliente e, se passou do tempo, com o valor a receber e a forma de pagamento. O segundo toque confirma. São dois toques de propósito: com 40 crianças na lista, um toque errado não tira a criança errada. A saída libera a sapateira e avisa onde está o sapato.
 - Qualquer pessoa da equipe (inclusive Atendente) marca entrada e saída, e os avisos têm **Desfazer**. O Desfazer é para o toque errado e só vale nos instantes seguintes (o servidor aceita até 2 minutos); depois disso, tirar uma entrada é pelo **cancelamento com motivo** (seção 6e).
 - Somem da tela as coisas que só fazem sentido com o aparelho: acesso autorizado/bloqueado, "falta o rosto" e os avisos de aparelho sem contato.
 
@@ -135,7 +135,7 @@ O tempo é debitado **sempre em períodos inteiros** (o período da Recreação:
 
 ## 6b. Banco de horas (aba)
 
-A aba **Banco de horas** mostra todas as crianças com o saldo, a **última contratação** (quantas horas, valor e dia; tocar nela abre o histórico do cliente) e a situação. A busca acha por criança, responsável, telefone ou CPF. Quem foi cadastrado e ainda não comprou aparece como **Sem horas**. O filtro **Pacote acabou** mostra quem comprou pacote de horas e ficou sem um período guardado. *Com o módulo do WhatsApp ligado (seção 4):* **"Para renovar" vale só para quem comprou pacote de horas** e ficou sem um período guardado, e só depois que saiu: quem compra a recreação avulsa não entra na lista, e ninguém é chamado enquanto a criança está no espaço. No topo, **Para renovar** lista quem zerou ou está acabando, com o aviso pronto: "As horas do Miguel acabaram. Chame a Carla (mãe) no WhatsApp para ver se quer renovar." O botão **Chamar no WhatsApp** abre a conversa com a mensagem de renovação já escrita (com os pacotes e preços de Ajustes): é conferir e enviar. Depois de chamada, o cartão mostra "Já chamada hoje às 14:20 por Beatriz", para ninguém chamar duas vezes. Quando o iDFace registra uma saída que zera o pacote, a tela avisa na hora com o mesmo botão. O selo na aba mostra quantas crianças estão para renovar.
+A aba **Banco de horas** mostra todas as crianças com o saldo (**as horas não expiram**, seção 6r), a **última contratação** (quantas horas, valor e dia; tocar nela abre o histórico do cliente) e a situação. A busca acha por criança, responsável, telefone ou CPF. Quem foi cadastrado e ainda não comprou aparece como **Sem horas**. O filtro **Pacote acabou** mostra quem comprou pacote de horas e ficou sem um período guardado. *Com o módulo do WhatsApp ligado (seção 4):* **"Para renovar" vale só para quem comprou pacote de horas** e ficou sem um período guardado, e só depois que saiu: quem compra a recreação avulsa não entra na lista, e ninguém é chamado enquanto a criança está no espaço. No topo, **Para renovar** lista quem zerou ou está acabando, com o aviso pronto: "As horas do Miguel acabaram. Chame a Carla (mãe) no WhatsApp para ver se quer renovar." O botão **Chamar no WhatsApp** abre a conversa com a mensagem de renovação já escrita (com os pacotes e preços de Ajustes): é conferir e enviar. Depois de chamada, o cartão mostra "Já chamada hoje às 14:20 por Beatriz", para ninguém chamar duas vezes. Quando o iDFace registra uma saída que zera o pacote, a tela avisa na hora com o mesmo botão. O selo na aba mostra quantas crianças estão para renovar.
 
 ## 6c. Avisos do sistema (o sininho no alto da tela inicial)
 
@@ -207,7 +207,7 @@ Saíram os filtros por serviço e a ordem por nome das versões anteriores: as c
 Quando a criança continua no espaço depois do **tempo comprado mais a tolerância** (30 min + 9 = 39:00), o sistema registra sozinho **mais um período** (Recreação +0h30, R$ 80). Se ela continuar, depois de mais 30 min e da tolerância (1h09) nasce outro, e assim por diante.
 
 - **Todo mundo fica sabendo**: aviso em todas as telas abertas ("Nova cobrança por atraso: Alice passou do tempo comprado · R$ 80 a receber na saída"), uma dica, o selo **+ R$ 80** na linha da criança e a linha "Nova cobrança por atraso: ficou além do tempo comprado" em Hoje na recepção. A venda entra no histórico do cliente marcada como *cobrança por atraso*.
-- **Na saída**, a folha mostra o valor a receber e o botão vira **Recebi R$ 80 · dar saída**.
+- **Na saída**, a tela de pagamento mostra o valor a receber e pede a forma de pagamento; com a forma escolhida, o botão vira **Recebi R$ 80 no Pix · dar saída** (seção 6r).
 - Quem gera a cobrança é o servidor, a cada poucos segundos enquanto alguma tela estiver aberta, e de novo na saída: mesmo com tudo fechado, a conta fecha certa.
 - **Saída esquecida** (a criança foi embora e ninguém marcou): Gestor ou Supervisor usa **Saída com outra hora** (na ficha ou na folha da saída), escreve a hora em que ela saiu de verdade e o motivo. O tempo é refeito e as cobranças por atraso que sobraram são desfeitas. Se a saída já foi marcada, a ficha tem **Corrigir** ao lado da visita (últimos dois dias). Tudo fica anotado em Hoje na recepção.
 - **Na atualização para a 0.75**, quem já estava marcado como "no espaço" não ganha cobrança para trás: a regra vale para as entradas feitas depois de atualizar.
@@ -375,7 +375,7 @@ Depois de escolher o serviço (horas avulsas, pacote, carrinho, produto), o aten
 - **Desfazer** a venda (no aviso) tira também o pagamento.
 - **O servidor confere**: o pagamento tem de fechar com o total que ele mesmo calcula pela tabela. Se o valor de um serviço mudou no meio do atendimento, aparece "O pagamento não fecha com o total" e nada é vendido: é fechar e abrir o atendimento de novo.
 
-**Na saída, com cobrança por atraso a receber**, a folha da saída mostra as mesmas quatro formas em **Recebido como?**. Sem escolher a forma, a saída não é dada (a tela pergunta "Como recebeu R$ 80?"). Também dá para dividir. A linha do dia fica "… cobrança por atraso: R$ 80 · recebido: Dinheiro". Sem nada a receber, a saída continua igual: dois toques.
+**Na saída**, o toque em Saída já abre o **Pagamento da saída** (seção 6r): a visita é paga com as horas do cliente e, se passou do tempo, com as mesmas quatro formas, em **Forma de pagamento**. Sem escolher a forma, a saída não é dada (o botão diz "Escolha a forma de pagamento" e a tela pergunta "Como recebeu R$ 80?"). Também dá para dividir. A linha do dia fica "… cobrança por atraso: R$ 80 · recebido: Dinheiro".
 
 **Cancelar a entrada de quem já pagou**: o aviso e a linha do dia dizem o que devolver e por qual forma ("devolver ao cliente: Crédito R$ 80").
 
@@ -405,6 +405,30 @@ Onde o OBS aparece:
 - o OBS aberto diz **quem anotou e quando**; a mudança vira uma linha em **Hoje na recepção** ("Observação alterada · por JOÃO"), sem repetir o texto.
 
 O texto da observação não aparece em nenhuma tela sem que alguém toque no OBS, nem na dica que surge ao parar o mouse.
+
+## 6r. Pagamento da saída, e as horas que não expiram
+
+**O toque em Saída abre direto o Pagamento da saída**, para ninguém esquecer de receber. A tela diz sempre **como aquela visita é paga**:
+
+- em cima, a criança, o responsável e a sapateira; depois "Entrou às 14:02 e ficou 0h52. A visita conta 1h" (sempre períodos inteiros);
+- **Horas do cliente** (quadro verde, com o ✓): quanto a visita usa das horas que o cliente já tem e como fica o saldo. Ex.: "usa 1h. Saldo: 5h → 4h. As horas não expiram.";
+- **Passou do tempo comprado** (quadro rosa), só quando a criança ficou além das horas que tinha: quanto passou, quantas cobranças por atraso e **A receber agora: R$ 80**. Logo abaixo ficam o **Tem voucher?** (seção 6h) e a **Forma de pagamento**: Pix, Dinheiro, Crédito e Débito, em até três formas, igual à venda (seção 6p).
+
+O botão de baixo diz o que vai acontecer:
+
+- **Usar 1h das horas · dar saída**: a visita é paga só com as horas do cliente. Um toque e a saída está dada.
+- **Escolha a forma de pagamento**: há valor a receber e a forma ainda não foi escolhida. A saída não é dada sem ela.
+- **Recebi R$ 80 no Pix · dar saída**: forma escolhida; o toque registra o pagamento e dá a saída. Dividindo em mais de uma forma, o botão pede o valor que falta ("Quanto no Pix?") e, com a conta fechada, vira **Recebi R$ 80 · dar saída**.
+
+A tela acompanha o relógio: se a tolerância estourar com ela aberta, o quadro rosa e as formas de pagamento aparecem na hora. Gestor e Supervisor continuam com **Corrigir a hora** (a criança saiu antes e a saída não foi marcada), na mesma tela.
+
+**As horas compradas não expiram, nunca.** Não existe prazo de validade no sistema: um pacote comprado hoje vale daqui a dez anos, inteiro. O saldo só diminui quando a criança usa (a visita) ou quando uma venda é desfeita ou cancelada.
+
+- O Pagamento da saída, a comanda ("As horas não expiram: o saldo fica guardado até ser usado") e o alto do Banco de horas dizem isso, para a equipe responder ao cliente sem dúvida.
+- **Remover um cadastro que tem horas guardadas** esconderia essas horas. Por isso: o **Supervisor não remove** cadastro com horas (a tela avisa "Só o gestor remove um cadastro com horas"); o **Gestor** vê o aviso com o saldo e precisa tocar em **Remover mesmo assim**. A remoção vira uma linha em Hoje na recepção ("Cadastro removido com 4h30 guardadas · por CAMILA").
+- Mesmo removido, **nada é apagado do banco de dados**: o cadastro fica inativo, com as horas, as vendas, os pagamentos e as visitas. Ainda não há um botão para trazer um cadastro removido de volta: se precisar, peça ao suporte.
+- Cadastro sem horas guardadas continua sendo removido como antes (Gestor ou Supervisor, um toque).
+- Para as horas valerem por muitos anos, o que precisa durar é o banco de dados: faça de tempos em tempos a cópia da pasta `~/playspace-dados/` (seção 1).
 
 ## 7. Atualizar
 

@@ -204,6 +204,12 @@ switch ($acao) {
   }
   case 'crianca_apagar': {
     $u = exigir(['gestor', 'supervisor']); $c = crianca((int)($in['id'] ?? 0)); if (!$c) falha('Criança não encontrada.', 404);
+    // 0.92: as horas compradas nunca expiram. Remover o cadastro esconde o saldo: com horas guardadas, só o gestor remove, e confirmando.
+    // Nada é apagado do banco (o cadastro fica inativo, com as horas, as vendas e as visitas), e a remoção vira uma linha do dia.
+    $guardado = $c['ativo'] ? restante($c) : 0;
+    if ($guardado > 0 && $u['papel'] !== 'gestor') falha($c['nome'] . ' tem ' . hm($guardado) . ' guardadas, e as horas não expiram. Só o gestor remove um cadastro com horas.', 403);
+    if ($guardado > 0 && empty($in['confirmado'])) falha($c['nome'] . ' tem ' . hm($guardado) . ' guardadas, e as horas não expiram. Confirme para remover o cadastro mesmo assim.', 409);
+    if ($guardado > 0) registrar('cad', (int)$c['id'], (string)$c['nome'], 'Cadastro removido com ' . hm($guardado) . ' guardadas (as horas continuam no banco de dados) · por ' . primeiroNome((string)$u['nome']));
     $db->prepare('UPDATE criancas SET ativo = 0, idface_id = NULL, sapateira = NULL WHERE id = ?')->execute([$c['id']]);
     if ($c['idface_id'] !== null) gravarCfg('apagar_' . (int)$c['idface_id'], (int)$c['idface_id']);
     apagarCfg('mandar_' . $c['id']); apagarCfg('foto_' . $c['id']);
