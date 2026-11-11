@@ -759,6 +759,20 @@ body.quieto .dica { animation: none !important; }
 .obs-cx .campo textarea { background: var(--card); }
 .h-obs { align-items: center; color: var(--erro); }
 .reg .ev.obs b::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; background: var(--erro); }
+/* 0.94: o cupom impresso (papel de 80 mm; a área impressa tem 72 mm) */
+.papel { width: 72mm; max-width: 100%; box-sizing: border-box; padding: 2mm 0 5mm; background: #fff; color: #000; font: 600 12.5px/1.4 Arial, Helvetica, sans-serif; letter-spacing: 0; text-transform: none; text-align: left; }
+.papel p { margin: 0; overflow-wrap: anywhere; } .papel .c-loja { font-size: 14.5px; font-weight: 700; } .papel .c-tit { font-weight: 700; } .papel .c-esp { height: 3.4mm; }
+.papel .c-linha { display: flex; justify-content: space-between; gap: 8px; } .papel .c-linha span:last-child { white-space: nowrap; flex: none; }
+.papel .c-total { font-weight: 700; border-top: 1px dashed #000; margin-top: 1mm; padding-top: 1mm; }
+.papel .c-assina { margin-top: 11mm; border-bottom: 1px dashed #000; padding-bottom: .6mm; } .papel .c-aviso { margin-top: 2mm; font-size: 11.5px; }
+.papel-previa { display: flex; justify-content: center; align-items: flex-start; padding: 16px 10px; border-radius: 16px; background: var(--menta-risco); max-height: 52vh; overflow: auto; flex: none; }
+.papel-previa .papel { width: 80mm; padding: 5mm 4mm 7mm; box-shadow: 0 8px 22px rgba(59, 59, 59, .18); border-radius: 3px; flex: none; }
+#cupom-print { position: fixed; left: -300vw; top: 0; width: 72mm; }
+@media print {
+  body.imprimindo { background: #fff !important; margin: 0 !important; padding: 0 !important; }
+  body.imprimindo > *:not(#cupom-print) { display: none !important; }
+  body.imprimindo #cupom-print { position: static; width: 72mm; margin: 0 4mm; }
+}
 /* 0.93: o cupom fiscal de cada pagamento */
 .cupons-ch b { background: var(--mostarda); color: #3B3B3B; } .cupons-ch.alerta b { background: var(--erro); color: #fff; }
 .cp-dados { display: flex; flex-direction: column; gap: 4px; padding: 0 2px; font-size: 13.5px; color: var(--tinta-2); } .cp-dados b { color: var(--tinta); }
@@ -1092,7 +1106,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.93';
+const VERSAO = '0.94';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -1123,7 +1137,7 @@ async function atualizarAgora(bt) {
 }
 const S = {
   tela: 'horas', zapAberta: 1, zapModo: 'lista', zapDia: isoDia(agora), mes: { y: agora.getFullYear(), m: agora.getMonth() }, diaSel: isoDia(agora),
-  cfg: { tolerancia: 9, fecha: 22, pcdDesc: 50, aviso: 10, autoMsg: 'nao', bloqueioAuto: 'sim', cupom: 'sim', pacotes: [{ h: 2, v: 280, tipo: 'seco', nome: '02 HORAS 260' }, { h: 3, v: 225, tipo: 'seco', nome: '03 HORAS 360' }, { h: 4, v: 380, tipo: 'seco', nome: '04 HORAS 420' }, { h: 5, v: 390, tipo: 'seco', nome: '05 HORAS 360 ESPECIAL' }, { h: 5, v: 420, tipo: 'seco', nome: 'PACOTE 05 HORAS 420' }, { h: 5, v: 480, tipo: 'seco', nome: '05 HORAS 450' }, { h: 5, v: 500, tipo: 'seco', nome: '05 HORAS 380' }, { h: 10, v: 820, tipo: 'seco', nome: '10 HORAS 840' }], servicos: [{ id: 'recreacao', n: 'RECREAÇÃO', v: 80, modo: 'periodo', min: 30, banco: true, obs: '', volta: false }, { id: 'fusquinha', n: 'CARRINHO FUSQUINHA', v: 15, modo: 'periodo', min: 30, banco: false, obs: '', volta: true }, { id: 'bebe', n: 'CARRINHO DE BEBÊ', v: 30, modo: 'fixo', min: 0, banco: false, obs: 'DAS 10H ÀS 22H', volta: true }], sapateiras: 44, cancelaMin: 9, reabreMin: 30, idface: { ip: '192.168.0.129', nome: 'Recepção', ligado: false, ultima: antes(0.2) }, tema: lido('ps-tema', 'sistema'), anim: lido('ps-anim', 'auto') }, espOrdem: lido('ps-esp-ordem', 'tempo'),
+  cfg: { tolerancia: 9, fecha: 22, pcdDesc: 50, aviso: 10, autoMsg: 'nao', bloqueioAuto: 'sim', cupomLoja: 'PLAY SPACE', cupomTel: '', pacotes: [{ h: 2, v: 280, tipo: 'seco', nome: '02 HORAS 260' }, { h: 3, v: 225, tipo: 'seco', nome: '03 HORAS 360' }, { h: 4, v: 380, tipo: 'seco', nome: '04 HORAS 420' }, { h: 5, v: 390, tipo: 'seco', nome: '05 HORAS 360 ESPECIAL' }, { h: 5, v: 420, tipo: 'seco', nome: 'PACOTE 05 HORAS 420' }, { h: 5, v: 480, tipo: 'seco', nome: '05 HORAS 450' }, { h: 5, v: 500, tipo: 'seco', nome: '05 HORAS 380' }, { h: 10, v: 820, tipo: 'seco', nome: '10 HORAS 840' }], servicos: [{ id: 'recreacao', n: 'RECREAÇÃO', v: 80, modo: 'periodo', min: 30, banco: true, obs: '', volta: false }, { id: 'fusquinha', n: 'CARRINHO FUSQUINHA', v: 15, modo: 'periodo', min: 30, banco: false, obs: '', volta: true }, { id: 'bebe', n: 'CARRINHO DE BEBÊ', v: 30, modo: 'fixo', min: 0, banco: false, obs: 'DAS 10H ÀS 22H', volta: true }], sapateiras: 44, cancelaMin: 9, reabreMin: 30, idface: { ip: '192.168.0.129', nome: 'Recepção', ligado: false, ultima: antes(0.2) }, tema: lido('ps-tema', 'sistema'), anim: lido('ps-anim', 'auto') }, espOrdem: lido('ps-esp-ordem', 'tempo'),
   equipe: [{ id: 1, nome: 'Camila Duarte', papel: 'gestor', login: 'camila' }, { id: 2, nome: 'Beatriz Lima', papel: 'supervisor', login: 'bia' }, { id: 3, nome: 'João Pedro', papel: 'atendente', login: 'jp' }],
   whats: { conectado: true, numero: '5511912345678', nome: 'Play Space' }, vendasHoje: null,
   // os produtos da loja (na prévia, os mesmos que a migração 16 instala no servidor). est = estoque; null = a loja não controla o estoque desse produto
@@ -1580,14 +1594,15 @@ function mensagemAuto(c, txt, comFoto) {
 }
 async function entradaServidor(c) {
   try { const r = await api('entrada', { id: c.id }); await carregar(); desenhar(); const k = crianca(c.id);
-    toast(`${c.nome} entrou${k && k.entrou ? ' · tempo comprado até ' + hora(fimVisita(k)) : ''}`, async () => { try { await api('desfazer_entrada', { id: c.id, registro: r.registro, mensagem: r.mensagem ? r.mensagem.id : 0 }); await carregar(); } catch (e) { toast(e.message); } desenhar(); }); } catch (e) { toast(e.message); }
+    toast(`${c.nome} entrou${k && k.entrou ? ' · tempo comprado até ' + hora(fimVisita(k)) : ''}`, async () => { try { await api('desfazer_entrada', { id: c.id, registro: r.registro, mensagem: r.mensagem ? r.mensagem.id : 0 }); await carregar(); } catch (e) { toast(e.message); } desenhar(); });
+    if (k && k.entrou) setTimeout(() => papelDepois({ tipo: 'entrada', id: c.id }), 420); } catch (e) { toast(e.message); }   // 0.94: entrou, o cupom de entrada sai (depois de a folha que estava aberta fechar)
 }
 // corr: { quando: 'HH:MM', motivo } quando a supervisão diz a hora em que a criança saiu de verdade
-async function saidaServidor(c, corr, pag) {
+async function saidaServidor(c, corr, pag, papel) {
   try { const r = await api('saida', { id: c.id, ...(corr ? { quando: corr.quando, motivo: corr.motivo } : {}), ...(pag && pag.length ? { pagamento: pag } : {}) }); await carregar(); fecharFolha(); desenhar();
     const txt = `${c.nome} saiu${corr ? ' às ' + corr.quando : ''} · ${dur(r.debitado)} debitados${r.atraso && r.atraso.n ? ' · ' + brl(r.atraso.valor) + (r.pago ? ' de atraso recebido (' + r.pago + ')' : ' de atraso a receber') : ''}${r.sapateira ? ' · sapato na sapateira ' + r.sapateira : ''}`;
     if (corr) toast(txt, () => folhaDia(), 'Ver o dia'); else toast(txt, async () => { try { await api('desfazer_saida', { id: c.id, visita: r.visita, registro: r.registro, mensagem: r.mensagem ? r.mensagem.id : 0, sapateira: r.sapateira || 0 }); await carregar(); } catch (e) { toast(e.message); } desenhar(); });
-    if (r.cupom) folhaCupom(r.cupom, true); }   // 0.93: recebeu na saída, o cupom fiscal abre para ser emitido
+    if (r.cupom) folhaCupom(r.cupom, true); else papelDepois(papel); }   // 0.94: recebeu na saída, sai o cupom da saída
   catch (e) { toast(e.message); const b = $('#s-ok'); if (b) b.disabled = false; }
 }
 // o atendimento registra de uma vez o que foi escolhido: serviços (com a quantidade), pacotes e um item avulso.
@@ -1733,7 +1748,7 @@ async function registrarAtendimento(id, mesmoAssim, pag) { // mesmoAssim: a equi
   if (MODO === 'servidor') {
     const bt = $('#v-ok'), bp = $('#p-ok'); if (bt) bt.disabled = true; if (bp) bp.disabled = true;
     try { const o = L.find(l => l.outro), r = await api('atender', { id, linhas: L.filter(l => l.s).map(l => ({ s: l.s, q: l.q })), pacotes: L.filter(l => l.pac != null).map(l => ({ h: l.ph, tipo: l.ptipo, v: l.v, nome: l.pnome })), produtos: L.filter(l => l.prod).map(l => ({ p: l.prod, q: l.q, v: l.pv })), outro: o ? { n: o.servico, v: o.v } : null, voucher: vou ? true : null, entrar, visto: (CARRINHO && CARRINHO.visto) || 0, mesmo_assim: !!mesmoAssim, pagamento: pag && pag.length ? pag : null });
-      await carregar(); atendimentoFeito(id); fecharFolha(); desenhar(); const k = crianca(id); toast(avisoVoucher(r.voucher, nome) + aviso + (r.entrada ? ' · entrou' + (k && k.entrou ? ', tempo até ' + hora(fimVisita(k)) : '') : ''), async () => { voltarRascunho(id, rasc); try { if (r.entrada) await api('desfazer_entrada', { id, registro: r.entrada.registro, mensagem: r.entrada.mensagem }); await api('desfazer_venda', { vendas: r.vendas, registros: r.registros }); await carregar(); } catch (e) { toast(e.message); } desenhar(); }); if (r.cupom) folhaCupom(r.cupom, true); }   // 0.93: pagou, o cupom fiscal abre para ser emitido
+      await carregar(); atendimentoFeito(id); fecharFolha(); desenhar(); const k = crianca(id); toast(avisoVoucher(r.voucher, nome) + aviso + (r.entrada ? ' · entrou' + (k && k.entrou ? ', tempo até ' + hora(fimVisita(k)) : '') : ''), async () => { voltarRascunho(id, rasc); try { if (r.entrada) await api('desfazer_entrada', { id, registro: r.entrada.registro, mensagem: r.entrada.mensagem }); await api('desfazer_venda', { vendas: r.vendas, registros: r.registros }); await carregar(); } catch (e) { toast(e.message); } desenhar(); }); if (r.cupom) folhaCupom(r.cupom, true); else papelDepois({ tipo: 'entrada', id, itens: L.map(l => ({ n: nomeLinha(l), v: l.v })), formas: pag || [] }); }   // 0.94: registrou, o cupom sai para o responsável assinar
     catch (e) { if (bt) bt.disabled = false; if (bp) bp.disabled = false; if (e.status === 409) toast(e.message, () => registrarAtendimento(id, true, pag), 'Registrar mesmo assim'); else toast(e.message); }   // 409: outro aparelho já registrou uma venda para esta criança
     return;
   }
@@ -1752,7 +1767,7 @@ async function registrarAtendimento(id, mesmoAssim, pag) { // mesmoAssim: a equi
   if (entrar && !c.entrou && temPeriodo(c)) { c.entrou = new Date(); c.atraso = null; registrar('ent', c.nome, 'Entrada registrada'); const regE = S.registros[0]; desfazEntrada = () => { c.entrou = null; S.registros = S.registros.filter(x => x !== regE); }; }
   atendimentoFeito(id); fecharFolha(); desenhar();
   toast(avisoVoucher(vou ? { n: nV, cobriu: coberta ? { valor: coberta.v } : null } : null, nome) + aviso + (desfazEntrada ? ' · entrou, tempo até ' + hora(fimVisita(c)) : ''), () => { voltarRascunho(id, rasc); if (desfazEntrada) desfazEntrada(); Object.assign(c, era); if (coberta) { S.compras.push(coberta); if (coberta.reg) coberta.reg.txt = coberta.reg.txt.replace(' · coberta pelo voucher', ''); c.atraso = eraAtraso; } for (const x of novas) if (x.prod) { const p = produto(x.prod); if (p && p.est != null) p.est += x.qtd; } S.compras = S.compras.filter(x => !novas.includes(x)); S.registros = S.registros.filter(x => !regs.includes(x)); S.pagamentos = (S.pagamentos || []).filter(x => !pagos.includes(x)); });
-  if (cupomId) folhaCupom(cupomId, true);
+  if (cupomId) folhaCupom(cupomId, true); else papelDepois({ tipo: 'entrada', id, itens: L.map(l => ({ n: nomeLinha(l), v: l.v })), formas: pag || [] });   // 0.94: registrou, o cupom sai para o responsável assinar
 }
 function entrada(c, origem = 'iDFace') {
   if (!c || c.entrou) return;
@@ -1762,12 +1777,13 @@ function entrada(c, origem = 'iDFace') {
   const reg = S.registros[0], primeiroNome = nomeMsg(c.resp.split(' ')[0]);
   const desfazMsg = S.cfg.autoMsg !== 'nao' ? mensagemAuto(c, `Oi, ${primeiroNome}! ${nomeMsg(c.nome)} chegou na Play Space às ${hora(c.entrou)} 💛 Qualquer coisa a gente te chama por aqui.`, true) : null;
   toast(`${c.nome} entrou · tempo comprado até ${hora(fimVisita(c))}`, () => { c.entrou = null; S.registros = S.registros.filter(r => r !== reg); if (desfazMsg) desfazMsg(); });
+  if (origem !== 'iDFace') setTimeout(() => papelDepois({ tipo: 'entrada', id: c.id }), 420);   // 0.94: entrou pela tela, o cupom de entrada sai (depois de a folha que estava aberta fechar)
 }
 // A saída debita períodos inteiros. corr = { quando: 'HH:MM', motivo, em: Date }: a supervisão diz a hora em que a criança saiu de verdade
 // (saída esquecida); as cobranças por atraso que passaram a sobrar são desfeitas.
-function saida(c, origem = 'iDFace', corr = null, pag = null) { // pag: [{ f, v }], como a cobrança por atraso foi recebida
+function saida(c, origem = 'iDFace', corr = null, pag = null, papel = null) { // pag: [{ f, v }], como a cobrança por atraso foi recebida; papel: o cupom da saída (0.94)
   if (!c || !c.entrou) return;
-  if (MODO === 'servidor') return saidaServidor(c, corr, pag);
+  if (MODO === 'servidor') return saidaServidor(c, corr, pag, papel);
   const p = periodo(), entrouEm = c.entrou, fim = corr ? corr.em : new Date(agora), era = { pacote: c.pacote, usado: c.usado, liberado: c.liberado, atraso: c.atraso, venda: c.venda, visitas: c.visitas.slice(), compras: S.compras.slice(), regs: S.registros.slice(), pags: (S.pagamentos || []).slice() };
   acertarDemo(c, true);   // o que ficou devendo até agora vira cobrança por atraso (o servidor faz o mesmo na saída)
   const min = minConta(c, fim), deb = Math.min(cobrar(min), saldoMin(c)); let desfeitas = 0, valorDesf = 0;
@@ -1784,7 +1800,84 @@ function saida(c, origem = 'iDFace', corr = null, pag = null) { // pag: [{ f, v 
     () => { S.pagamentos = era.pags; Object.assign(c, { pacote: era.pacote, usado: era.usado, liberado: era.liberado, atraso: era.atraso, venda: era.venda, visitas: era.visitas, entrou: entrouEm, sapateira: sap && !donoSap(sap) ? sap : null }); S.compras = era.compras; S.registros = era.regs; });
   return cupomId;
 }
-/* ---------- 0.93: o cupom fiscal de cada pagamento ---------- */
+/* ---------- 0.94: o cupom impresso (Bematech MP-4200 TH, papel de 80 mm) ---------- */
+// O "cupom" da loja é um papel da impressora térmica do balcão, que o responsável assina. O sistema imprime no mesmo formato que a loja já usa:
+// a loja e o telefone, o responsável e o telefone dele, cada criança (o número do cadastro, a sapateira, a hora da entrada, o serviço e o valor
+// a cada período), o que foi pago, a data e a hora, a linha da assinatura, o nome e o CPF do responsável e o aviso de quem pode assinar a saída.
+// Sai depois de cada atendimento e de cada entrada (cupom de entrada) e depois de uma saída com pagamento (cupom da saída).
+// A impressão é a do navegador: a impressora fica instalada no computador do balcão, como qualquer impressora, e o cupom já vai na largura do
+// papel. Cada aparelho guarda o que faz depois de um pagamento: mostra o cupom (para imprimir com um toque), imprime sozinho, ou não imprime.
+const MODOS_PAPEL = [['mostrar', 'Mostrar o cupom'], ['auto', 'Imprimir sozinho'], ['nao', 'Não imprimir']];
+const modoPapel = () => { const m = lido('ps-cupom', 'mostrar'); return MODOS_PAPEL.some(x => x[0] === m) ? m : 'mostrar'; };
+const textoModoPapel = () => ({ mostrar: 'Depois de cada atendimento esta tela abre com o cupom, para imprimir com um toque.', auto: 'O cupom vai direto para a impressora, sem abrir esta tela. É o modo do computador do balcão, onde a impressora está instalada.', nao: 'Este aparelho não imprime: o cupom não aparece aqui depois do atendimento. Para imprimir assim mesmo, use o botão Cupom na comanda da criança.' })[modoPapel()];
+const rotModoPapel = () => ({ mostrar: 'mostra o cupom depois de cada atendimento', auto: 'imprime sozinho', nao: 'não imprime' })[modoPapel()];
+const AVISO_PAPEL = 'ATENÇÃO: SOMENTE O RESPONSÁVEL QUE ASSINAR A ENTRADA DA CRIANÇA PODERÁ ASSINAR SUA SAÍDA.';
+const lojaPapel = () => ({ nome: S.cfg.cupomLoja || 'PLAY SPACE', tel: S.cfg.cupomTel || '', aviso: S.cfg.cupomAviso != null ? S.cfg.cupomAviso : AVISO_PAPEL });
+const brl2 = v => 'R$ ' + (Math.round((+v || 0) * 100) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });   // no papel o valor sai com os centavos: R$ 80,00
+const dataHora = d => `${p2(d.getDate())}/${p2(d.getMonth() + 1)}/${d.getFullYear()} às ${hora(d)}`;
+const formasPapel = L => !L || !L.length ? '' : L.length === 1 ? nomeForma(L[0].f) : L.map(p => `${nomeForma(p.f)} ${brl2(p.v)}`).join(' + ');
+// O cupom. spec: { tipo: 'entrada', id, itens: [{ n, v }], formas: [{ f, v }] } (o que acabou de ser vendido e pago, se houve venda)
+//             ou { tipo: 'saida', id, entrou, saiu, min, deb, proprias, saldo, n, valor, formas } (a conta da saída que acabou de ser dada).
+// spec.c e spec.fam trocam a criança e a família por dados de exemplo (o cupom de teste).
+function htmlPapel(spec) {
+  const c = spec.c || crianca(spec.id); if (!c) return ''; const L = lojaPapel(), st = servicoTempo(), p = periodo(), tol = tolerancia();
+  const cab = `<p class="c-loja">${esc(L.nome)}</p>${L.tel ? `<p>${esc(L.tel)}</p>` : ''}<p>Responsável: ${esc(c.resp)}</p>${fones(c) ? `<p>Telefone: ${esc(fones(c))}</p>` : ''}`;
+  const pago = (itens, formas, rot) => { const total = centavos((itens || []).reduce((t, i) => t + i.v, 0)); return !itens || !itens.length ? '' : `<p class="c-esp"></p><p>${rot}:</p>${itens.map(i => `<p class="c-linha"><span>${esc(i.n)}</span><span>${brl2(i.v)}</span></p>`).join('')}<p class="c-linha c-total"><span>Total</span><span>${brl2(total)}</span></p>${formasPapel(formas) ? `<p>Forma de pagamento: ${esc(formasPapel(formas))}</p>` : ''}`; };
+  const pe = aviso => `<p class="c-esp"></p><p>${dataHora(new Date())}</p><p class="c-assina">x</p><p>${esc(c.resp)}</p>${c.cpf ? `<p>${esc(c.cpf)}</p>` : ''}${aviso ? `<p class="c-aviso">${esc(aviso)}</p>` : ''}`;
+  const valorPeriodo = x => st ? `<p>Valor: ${brl2(precoDe(x, st.v))} a cada ${st.min || 30} minutos.</p>` : '';
+  if (spec.tipo === 'saida') {
+    return `<div class="papel">${cab}<p class="c-esp"></p><p class="c-tit">SAÍDA</p><p>Criança: ${esc(c.nome)}</p><p>N. Cadastro: ${c.id}</p>
+      <p>Entrada: ${hora(spec.entrou)} · Saída: ${hora(spec.saiu)}</p><p>Ficou ${dur(Math.floor(spec.min))} · a visita conta ${dur(spec.deb)}</p>
+      <p>Horas do cliente: usou ${dur(spec.proprias)} · saldo ${hm(spec.saldo)}</p>
+      ${pago(spec.n ? [{ n: `Além do tempo comprado: ${dur(spec.n * p)}`, v: spec.valor }] : [], spec.formas, 'Pagamento')}${pe('')}</div>`;
+  }
+  // o cupom de entrada lista as crianças deste responsável que estão no espaço (irmãos saem no mesmo cupom); se a do atendimento não entrou, sai só ela
+  const dentro = (spec.fam || familia(c)).filter(x => x.entrou).sort((a, b) => a.entrou - b.entrou), quem = dentro.some(x => x.id === c.id) ? dentro : [c];
+  const bloco = x => `<p class="c-esp"></p><p>Criança: ${esc(x.nome)}</p><p>N. Cadastro: ${x.id}</p>${x.sapateira ? `<p>N. Sapateira: ${x.sapateira}</p>` : ''}${x.entrou ? `<p>Entrada: ${hora(x.entrou)}</p>` : ''}
+    <p>Serviço(s):</p><p>${esc(st ? st.n : 'RECREAÇÃO')}${x.pcd ? ' · ' + rotPcd() : ''}</p>
+    ${!x.entrou ? `<p>Horas guardadas: ${hm(saldoMin(x))}</p>` : planoDe(x) === 'pacote' ? `<p>Horas do cliente: ${hm(saldoMin(x))}</p>` : `<p>Tempo comprado: ${dur(cobertoMin(x))} (até ${hora(fimVisita(x))})</p>`}
+    ${valorPeriodo(x)}`;
+  return `<div class="papel">${cab}${quem.map(bloco).join('')}${pago(spec.itens, spec.formas, 'Pagamento')}${pe(L.aviso + (L.aviso && tol ? ' ' : '') + (tol ? `TOLERÂNCIA DE ${tol} MINUTOS.` : ''))}</div>`;
+}
+// manda o cupom para a impressora: ele vai para uma área só de impressão, a página fica do tamanho do cupom (para o papel cortar logo depois do texto) e o navegador imprime
+function imprimirPapel(html) {
+  if (!html) return; let a = $('#cupom-print'); if (!a) { a = document.createElement('div'); a.id = 'cupom-print'; document.body.appendChild(a); }
+  let st = $('#cupom-pagina'); if (!st) { st = document.createElement('style'); st.id = 'cupom-pagina'; document.head.appendChild(st); }
+  a.innerHTML = html; const alt = Math.ceil(a.getBoundingClientRect().height * 25.4 / 96) + 10;
+  st.textContent = `@page { size: 80mm ${Math.max(60, alt)}mm; margin: 0; }`; document.body.classList.add('imprimindo');
+  const fim = () => { document.body.classList.remove('imprimindo'); window.removeEventListener('afterprint', fim); };
+  window.addEventListener('afterprint', fim); setTimeout(fim, 60000);
+  setTimeout(() => { try { window.print(); } catch (e) { fim(); toast('Este navegador não deixou imprimir. Use o Chrome no computador do balcão.'); } }, 80);
+}
+// depois de um atendimento, de uma entrada ou de uma saída com pagamento: o que este aparelho faz com o cupom
+function papelDepois(spec) { const m = modoPapel(); if (m === 'nao' || !spec) return; if (m === 'auto') { imprimirPapel(htmlPapel(spec)); return; } folhaPapel(spec); }
+let PAPEL = null;   // o cupom que está na folha: { spec, html }
+const segPapel = () => `<div class="seg" id="tk-modo">${MODOS_PAPEL.map(([v, n]) => `<button type="button" data-act="papel-modo" data-v="${v}" aria-pressed="${v === modoPapel()}">${n}</button>`).join('')}</div><span class="explica" id="tk-modo-txt">${textoModoPapel()}</span>`;
+function folhaPapel(spec) {
+  const html = htmlPapel(spec); if (!html) return; PAPEL = { spec, html };
+  abrirFolha(spec.tipo === 'saida' ? 'Cupom da saída' : 'Cupom de entrada', `
+    <div class="papel-previa" id="tk-previa">${html}</div>
+    <details class="outro" id="tk-aparelho"><summary>Neste aparelho: <span id="tk-modo-rot">${rotModoPapel()}</span> · mudar</summary><div class="campo" style="margin-top:8px">${segPapel()}</div></details>
+    <div class="pe-f"><button type="button" class="bt forte largo tap" id="tk-ok" data-act="papel-imprimir">${ic(IC.cupom)} Imprimir o cupom</button></div>`);
+  if (window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches) setTimeout(() => { const b = $('#tk-ok'); if (b) b.focus(); }, 380);   // no computador, Enter imprime
+}
+// um cupom de exemplo, para testar a impressora e ver o texto da loja
+const papelTeste = () => { const f = { id: 123, nome: 'CRIANÇA DE TESTE', resp: 'RESPONSÁVEL DE TESTE', tel: '(11) 9 0000-0000', tel2: '', cpf: '000.000.000-00', doc: 'cpf', sapateira: 12, entrou: new Date(), pacote: periodo() / 60, usado: 0, plano: 'avulso', visitas: [] }, st = servicoTempo();
+  return htmlPapel({ tipo: 'entrada', c: f, fam: [f], itens: st ? [{ n: `${st.n} · ${dur(periodo())}`, v: st.v }] : [], formas: st ? [{ f: 'pix', v: st.v }] : [] }); };
+// Ajustes → Cupom impresso: o nome e o telefone da loja, o aviso do pé, o que este aparelho faz e o cupom de teste
+function folhaPapelAjustes() {
+  const L = lojaPapel(), pode = MODO !== 'servidor' || gestor();
+  abrirFolha('Cupom impresso', `
+    <div class="campo"><label for="tk-loja">Nome da loja no cupom</label><input id="tk-loja" maxlength="40" autocomplete="off" value="${esc(L.nome)}" ${pode ? '' : 'disabled'}></div>
+    <div class="campo"><label for="tk-tel">Telefone da loja <span class="leve">· opcional</span></label><input id="tk-tel" maxlength="30" inputmode="tel" autocomplete="off" value="${esc(L.tel)}" placeholder="(11) 0000-0000" ${pode ? '' : 'disabled'}></div>
+    <div class="campo"><label for="tk-aviso">Aviso do pé do cupom</label><textarea id="tk-aviso" rows="3" maxlength="300" ${pode ? '' : 'disabled'}>${esc(L.aviso)}</textarea><span class="explica">Depois do aviso, o cupom diz sozinho a tolerância da regra das horas${tolerancia() ? ` (hoje, ${tolerancia()} minutos)` : ''}.</span></div>
+    ${pode ? `<div class="acoes"><button type="button" class="bt forte tap" data-act="papel-salvar">${ic(IC.check)} Salvar</button></div>` : '<p class="explica">Só o gestor muda o que vai escrito no cupom.</p>'}
+    <div class="campo"><label>Neste aparelho, depois de cada atendimento</label>${segPapel()}</div>
+    <div class="acoes"><button type="button" class="bt tap" data-act="papel-teste">${ic(IC.cupom)} Imprimir um cupom de teste</button></div>
+    <details class="outro"><summary>Como preparar o computador do balcão</summary><p class="explica" style="margin-top:8px">1. A impressora (Bematech MP-4200 TH) precisa estar instalada no Windows, como impressora, com o papel de 80 mm.<br>2. Abra o sistema no Chrome desse computador e toque em <b>Imprimir um cupom de teste</b>: na janela de impressão escolha a Bematech, margens "Nenhuma" e desmarque cabeçalhos e rodapés. O Chrome guarda a escolha.<br>3. Para o cupom sair sem abrir a janela de impressão, deixe aqui em <b>Imprimir sozinho</b> e abra o Chrome pelo atalho com impressão direta (está no passo a passo, seção 6t).</p></details>`);
+}
+
+/* ---------- 0.93: o acompanhamento da nota fiscal de cada pagamento (guardado: desde a 0.94 a tela não tem o botão que liga) ---------- */
 // "Toda vez que o pagamento é feito, precisa sair o cupom fiscal." Cada pagamento registrado (a venda do atendimento, ou a cobrança por atraso
 // recebida na saída) vira um cupom "a emitir", com os itens, o total, as formas de pagamento e o CPF do responsável. A equipe emite na máquina
 // e marca aqui (com o número, se quiser); se a venda for desfeita depois de emitido, o cupom fica "a cancelar na máquina".
@@ -1951,7 +2044,8 @@ function confirmarSaida(el) {
   if (receber > 0 && PAG && PAG.onde === 'saida' && $('#pg-formas')) { PAG.total = receber; const r = pagPartes();
     if (r.erro) { toast(PAG.formas.length ? r.erro : `Como recebeu ${brl(receber)}? Toque na forma de pagamento`); const a = $('#pg-formas'); if (a) a.scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
     pag = r.partes; }
-  el.disabled = true; const cupomId = saida(c, 'mão', corr, pag); if (MODO !== 'servidor') { fecharFolha(); desenhar(); if (cupomId) folhaCupom(cupomId, true); }
+  const papel = pag && pag.length ? { tipo: 'saida', id: c.id, entrou: c.entrou, saiu: corr ? corr.em : new Date(), min: k.min, deb: k.deb, proprias: horasProprias(k), saldo: saldoDepois(c, k), n: k.n, valor: receber, formas: pag } : null;   // 0.94: recebeu na saída, sai o cupom da saída
+  el.disabled = true; const cupomId = saida(c, 'mão', corr, pag, papel); if (MODO !== 'servidor') { fecharFolha(); desenhar(); if (cupomId) folhaCupom(cupomId, true); else papelDepois(papel); }
 }
 // (servidor) depois da saída: a supervisão corrige a hora de uma visita dos últimos dois dias
 function folhaCorrigirVisita(cid, vid) {
@@ -2319,6 +2413,7 @@ function folhaFicha(id) {
         : podeManual() && c.entrou ? `<button class="bt claro tap" data-act="saida" data-id="${c.id}" title="Só para corrigir: o normal é a saída pelo rosto">${ic(IC.sair)} Saída à mão</button>` : ''}
       <button class="bt ${semIdface() && (c.entrou || temPeriodo(c)) ? '' : 'forte'} tap" data-act="vender" data-id="${c.id}">${ic(IC.mais)} Vender</button>
       <button class="bt tap" data-act="historico" data-id="${c.id}">${ic(IC.historico)} Histórico</button>
+      ${c.entrou ? `<button class="bt tap" data-act="papel-ficha" data-id="${c.id}" title="Ver e imprimir o cupom de entrada">${ic(IC.cupom)} Cupom</button>` : ''}
       ${COM_WHATS ? `<button class="bt tap" data-act="avisar" data-id="${c.id}">${ic(IC.zap)} WhatsApp</button>` : ''}
       ${rostoPronto() ? `<button class="bt ${c.rosto ? '' : 'forte'} tap" data-act="rosto-cam" data-id="${c.id}">${ic(IC.rosto)} ${c.rosto ? 'Refazer o rosto no iDFace' : 'Cadastrar rosto no iDFace'}</button>` : ''}
       <label class="bt tap" for="ficha-foto">${ic(IC.camera)} ${c.foto ? 'Trocar a foto' : (rostoPronto() && COM_WHATS ? 'Foto para o WhatsApp' : 'Tirar a foto')}</label><input type="file" id="ficha-foto" data-id="${c.id}" accept="image/*" capture="user" hidden>
@@ -3067,9 +3162,9 @@ function telaAjustes() {
         ${(S.produtos || []).length ? `<div class="grupo">${S.produtos.map(p => `<button class="it tap" data-act="produto-editar" data-id="${p.id}"><div class="txt"><b>${esc(p.n)} · ${brl(p.v)}</b><span${estFalta(p) ? ' style="color:var(--erro);font-weight:800"' : ''}>${p.est == null ? 'sem controle de estoque' : estTxt(p)}</span></div><span class="vai">${ic(IC.vai, 18)}</span></button>`).join('')}</div>` : ''}
         <p class="explica">O que a loja vende além do tempo: nome, valor e estoque. O estoque baixa sozinho a cada venda e volta se a venda for desfeita. ${(S.produtos || []).length ? 'Aparecem na aba Pacotes da tela inicial e no atendimento.' : 'Nenhum produto cadastrado por enquanto.'}</p>
       </div>
-      <div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.cupom, 20)} Cupom fiscal</h2><span class="pill ${comCupom() ? 'p-ok' : 'p-neutro'}">${comCupom() ? 'Acompanhando' : 'Desligado'}</span></div>
-        <div class="campo"><label>Acompanhar o cupom fiscal de cada pagamento</label>${seg('cupom', [['nao', 'Desligado'], ['sim', 'Ligado']], comCupom() ? 'sim' : 'nao')}<span class="explica">Ligado, cada pagamento (na venda e na saída) vira um <b>cupom a emitir</b>: a tela abre o cupom com os itens, o total, a forma de pagamento e o CPF; a equipe emite na máquina e toca em <b>Cupom emitido</b>. O que ficar para depois aparece no alto da tela inicial, e nenhum pagamento fica sem cupom sem alguém ver.</span></div>
-        <p class="explica">A <b>emissão automática</b> (o sistema mandar o cupom direto para a máquina) depende do modelo da máquina e do tipo de cupom da loja. Quando isso estiver definido, ela entra aqui.</p>
+      <div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.cupom, 20)} Cupom impresso</h2><span class="pill ${modoPapel() === 'nao' ? 'p-neutro' : 'p-ok'}">${modoPapel() === 'auto' ? 'Imprime sozinho aqui' : modoPapel() === 'nao' ? 'Este aparelho não imprime' : 'Mostra o cupom aqui'}</span></div>
+        <button class="grupo tap" data-act="papel-ajustes" style="width:100%"><div class="it"><div class="txt"><b>${esc(lojaPapel().nome)}${lojaPapel().tel ? ' · ' + esc(lojaPapel().tel) : ''}</b><span>Toque para mudar o nome, o telefone e o aviso do cupom, escolher o que este aparelho faz, ou imprimir um teste</span></div><span class="vai">${ic(IC.vai, 18)}</span></div></button>
+        <p class="explica">O cupom sai depois de cada atendimento e de cada entrada, para o responsável assinar: a loja, o responsável, as crianças, o serviço, o valor e o que foi pago. Imprime na impressora térmica do balcão (Bematech MP-4200 TH, papel de 80 mm).</p>
       </div>
       <div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.sapato, 20)} Sapateiras</h2></div>
         <button class="grupo tap" data-act="sap-mapa" style="width:100%"><div class="it"><div class="txt"><b>${nSap()} sapateiras · ${S.criancas.filter(c => c.sapateira).length} em uso agora</b><span>Toque para ver o mapa, liberar uma esquecida ou mudar a quantidade</span></div><span class="vai">${ic(IC.vai, 18)}</span></div></button>
@@ -3193,6 +3288,13 @@ const ACOES = {
   atualizar: () => ATU.nova ? folhaAtualizar() : conferirAtualizacao(true),
   'atualizar-agora': el => atualizarAgora(el),
   desfazer: () => { if (DESFAZ) { DESFAZ(); DESFAZ = null; } $('#toast').classList.remove('ve'); fecharFolha(); desenhar(); setTimeout(() => toast('Desfeito'), 50); },
+  'papel-imprimir': () => { if (!PAPEL) return; imprimirPapel(PAPEL.html); fecharFolha(); },
+  'papel-ficha': el => folhaPapel({ tipo: 'entrada', id: +el.dataset.id }), 'papel-ajustes': () => folhaPapelAjustes(), 'papel-teste': () => imprimirPapel(papelTeste()),
+  'papel-modo': el => { guardar('ps-cupom', el.dataset.v); $$('#tk-modo [data-v]').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === modoPapel())); const t = $('#tk-modo-txt'); if (t) t.textContent = textoModoPapel(); const r = $('#tk-modo-rot'); if (r) r.textContent = rotModoPapel(); if (S.tela === 'ajustes') desenhar(true); },
+  'papel-salvar': () => { const nome = MAI(val('tk-loja')), tel = val('tk-tel'), aviso = MAI(val('tk-aviso')); if (!nome) { toast('Escreva o nome da loja que sai no cupom'); const i = $('#tk-loja'); if (i) i.focus(); return; }
+    const ok = () => { fecharFolha(); desenhar(); toast('Cupom salvo'); };
+    if (MODO === 'servidor') api('regra_salvar', { cupomLoja: nome, cupomTel: tel, cupomAviso: aviso }).then(r => { if (r.regra) Object.assign(S.cfg, { cupomLoja: r.regra.cupomLoja, cupomTel: r.regra.cupomTel, cupomAviso: r.regra.cupomAviso }); ok(); }).catch(e => toast(e.message));
+    else { Object.assign(S.cfg, { cupomLoja: nome, cupomTel: tel, cupomAviso: aviso }); ok(); } },
   cupons: () => folhaCupons(), cupom: el => folhaCupom(+el.dataset.id),
   'cupom-ok': el => { el.disabled = true; marcarCupom(+el.dataset.id, 'emitido', { numero: el.dataset.lista ? '' : val('cp-num') }, !!el.dataset.lista); },
   'cupom-cancelado': el => { el.disabled = true; marcarCupom(+el.dataset.id, 'cancelado', {}, !!el.dataset.lista); },
