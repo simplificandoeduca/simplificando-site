@@ -55,8 +55,10 @@ function exemplosCarregar(?int $por): array {
   $vis = $db->prepare('INSERT INTO visitas (crianca_id, entrou, saiu, debitado_min, origem) VALUES (?, ?, ?, ?, ?)');
   $ven = $db->prepare('INSERT INTO vendas (crianca_id, horas, minutos, valor, quando, por, itens, servico, auto, voucher, pcd, cheio) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
   $msg = $db->prepare("INSERT INTO mensagens (crianca_id, de, texto, quando, por, auto, foto, lida, wa_id, erro) VALUES (?, ?, ?, ?, ?, 0, '', ?, '', '')");
-  $vender = function (int $id, string $nome, int $min, float $valor, string $quando, string $itens, array $m = []) use ($ven, $reg, $por, $SN) {   // uma venda de recreação, com a linha do dia
+  $pagar = $db->prepare('INSERT INTO pagamentos (venda_id, crianca_id, forma, valor, quando, por) VALUES (?, ?, ?, ?, ?, ?)'); $formas = array_keys(FORMAS_PAGAMENTO);
+  $vender = function (int $id, string $nome, int $min, float $valor, string $quando, string $itens, array $m = []) use ($db, $ven, $reg, $por, $SN, $pagar, $formas) {   // uma venda de recreação, com a linha do dia
     $ven->execute([$id, round($min / 60, 2), $min, $valor, $quando, empty($m['auto']) ? $por : null, $itens, $SN, empty($m['auto']) ? 0 : 1, (string)($m['voucher'] ?? ''), empty($m['pcd']) ? 0 : 1, $m['cheio'] ?? null]);
+    if (empty($m['auto']) && $valor > 0) $pagar->execute([(int)$db->lastInsertId(), $id, $formas[$id % count($formas)], $valor, $quando, $por]);   // paga na hora da venda; a cobrança por atraso fica a receber
     $reg->execute([$quando, empty($m['auto']) ? 'venda' : 'cobr', $id, $nome, empty($m['auto']) ? $SN . ' · ' . dur($min) . ($itens !== '' ? ' · ' . $itens : '') . ' · ' . dinheiro($valor)
       : 'Nova cobrança por atraso: ficou além do tempo comprado · ' . $SN . ' +' . dur($min) . ' · ' . dinheiro($valor) . (empty($m['pcd']) ? '' : ' · ' . $m['rot']) . ' a receber na saída']);
   };
@@ -85,10 +87,11 @@ function exemplosCarregar(?int $por): array {
   }
   // o que saiu da loja e ainda não voltou (fica na lista até "Devolveu"): um fusquinha dentro do tempo, um que já passou, um de quem não está no espaço e um carrinho de bebê
   $alu = $db->prepare('INSERT INTO vendas (crianca_id, horas, minutos, valor, quando, por, itens, servico, alug, alug_min, qtd) VALUES (?, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?)');
-  $sair = function (string $nome, array $sv, float $ha, int $q = 1) use ($alu, $reg, &$nomeId, $por, $t) {
+  $sair = function (string $nome, array $sv, float $ha, int $q = 1) use ($db, $alu, $reg, &$nomeId, $por, $t, $pagar, $formas) {
     $porTempo = ($sv['modo'] ?? 'fixo') === 'periodo'; $m = $porTempo ? $q * max(1, (int)$sv['min']) : 0; $obs = (string)($sv['obs'] ?? ''); $valor = $q * (float)$sv['v'];
     $itens = $porTempo ? dur($m) : (($q > 1 ? $q . ' unidades' . ($obs !== '' ? ' · ' : '') : '') . $obs);
     $alu->execute([$nomeId[$nome], $valor, $t($ha), $por, $itens, (string)$sv['n'], (string)$sv['id'], $m, $porTempo ? 1 : $q]);
+    $pagar->execute([(int)$db->lastInsertId(), $nomeId[$nome], $formas[$nomeId[$nome] % count($formas)], $valor, $t($ha), $por]);
     $reg->execute([$t($ha), 'venda', $nomeId[$nome], $nome, $sv['n'] . ($itens !== '' ? ' · ' . $itens : '') . ' · ' . dinheiro($valor)]);
   };
   $porTempo = null; $semHora = null;
@@ -144,7 +147,7 @@ function exemplosApagar(): void {
   $db = db(); $ids = array_map('intval', $e['criancas']); $marcas = implode(',', array_fill(0, count($ids), '?'));
   $q = $db->prepare("SELECT produto_id, qtd FROM vendas WHERE produto_id IS NOT NULL AND crianca_id IN ($marcas)"); $q->execute($ids);
   foreach ($q->fetchAll() as $v) devolverEstoque($v);   // produto vendido para uma criança de teste: volta para o estoque (a venda nunca existiu)
-  foreach (['visitas', 'vendas', 'registros', 'mensagens', 'batidas', 'cancelamentos', 'criancas'] as $tabela) $db->prepare("DELETE FROM $tabela WHERE " . ($tabela === 'criancas' ? 'id' : 'crianca_id') . " IN ($marcas)")->execute($ids);
+  foreach (['pagamentos', 'visitas', 'vendas', 'registros', 'mensagens', 'batidas', 'cancelamentos', 'criancas'] as $tabela) $db->prepare("DELETE FROM $tabela WHERE " . ($tabela === 'criancas' ? 'id' : 'crianca_id') . " IN ($marcas)")->execute($ids);
   foreach ($ids as $id) { apagarCfg('mandar_' . $id); apagarCfg('foto_' . $id); apagarCfg('renomear_' . $id); apagarCfg('regra_' . $id); apagarCfg('desregra_' . $id); apagarCfg('regra_ok_' . $id); }
   $cids = array_map('intval', $e['compromissos'] ?? []);
   if ($cids) $db->prepare('DELETE FROM compromissos WHERE id IN (' . implode(',', array_fill(0, count($cids), '?')) . ')')->execute($cids);

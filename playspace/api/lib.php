@@ -14,6 +14,8 @@ const PAPEIS = ['gestor' => 'Gestor', 'supervisor' => 'Supervisor', 'atendente' 
 // 0.89: o módulo do WhatsApp fica desligado (a loja não vai usar essa parte por agora). Nada foi apagado: com true aqui (e COM_WHATS = true na tela),
 // a aba, os botões e os avisos voltam. Desligado, nenhuma mensagem automática sai, mesmo que a regra antiga mandasse
 const MODULO_WHATS = false;
+// 0.90: as formas de pagamento que a tela oferece depois da escolha do serviço. Um pagamento pode ser dividido em até três delas
+const FORMAS_PAGAMENTO = ['pix' => 'Pix', 'dinheiro' => 'Dinheiro', 'credito' => 'Crédito', 'debito' => 'Débito'];
 
 function falha(string $msg, int $st = 400): void { http_response_code($st); header('Content-Type: application/json; charset=utf-8'); echo json_encode(['ok' => false, 'erro' => $msg], JSON_UNESCAPED_UNICODE); exit; }
 function responder(array $d = []): void { header('Content-Type: application/json; charset=utf-8'); header('Cache-Control: no-store'); echo json_encode(['ok' => true] + $d, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); exit; }
@@ -230,6 +232,13 @@ function db(): PDO {
     try { $pdo->beginTransaction(); textosEmMaiusculas($pdo); $pdo->commit(); } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); }
     $pdo->exec('PRAGMA user_version = 18');
   }
+  if ($v < 19) { // 0.90: como cada venda foi paga (Pix, dinheiro, crédito, débito). Uma linha por venda e forma; apagar a venda apaga o pagamento dela
+    $pdo->exec('CREATE TABLE IF NOT EXISTS pagamentos (id INTEGER PRIMARY KEY, venda_id INTEGER NOT NULL, crianca_id INTEGER NOT NULL, forma TEXT NOT NULL, valor REAL NOT NULL DEFAULT 0, quando TEXT NOT NULL, por INTEGER)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS pagamentos_venda ON pagamentos (venda_id)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS pagamentos_quando ON pagamentos (quando)');
+    $pdo->exec('CREATE TRIGGER IF NOT EXISTS vendas_apaga_pagamentos AFTER DELETE ON vendas BEGIN DELETE FROM pagamentos WHERE venda_id = OLD.id; END');
+    $pdo->exec('PRAGMA user_version = 19');
+  }
   return $pdo;
 }
 function cfg(string $k, $padrao = null) { $q = db()->prepare('SELECT valor FROM config WHERE chave = ?'); $q->execute([$k]); $v = $q->fetchColumn(); return $v === false ? $padrao : json_decode((string)$v, true); }
@@ -400,7 +409,7 @@ function acertarCobrancas(array $c, ?string $quando = null): array {
 function acertarTodas(): int { $n = 0; foreach (db()->query('SELECT * FROM criancas WHERE entrou IS NOT NULL AND ativo = 1')->fetchAll() as $c) $n += count(acertarCobrancas($c)); return $n; }
 // as cobranças por atraso de uma visita (entre a entrada e a saída): quantas e quanto
 function atrasoDaVisita(int $criancaId, string $entrou, ?string $ate = null): array {
-  $q = db()->prepare('SELECT COUNT(*) n, COALESCE(SUM(valor), 0) v FROM vendas WHERE crianca_id = ? AND auto = 1 AND quando >= ? AND quando <= ?'); $q->execute([$criancaId, $entrou, $ate ?: '9999']); $a = $q->fetch();
+  $q = db()->prepare('SELECT COUNT(*) n, COALESCE(SUM(valor), 0) v FROM vendas WHERE crianca_id = ? AND auto = 1 AND quando >= ? AND quando <= ? AND NOT EXISTS (SELECT 1 FROM pagamentos p WHERE p.venda_id = vendas.id)'); $q->execute([$criancaId, $entrou, $ate ?: '9999']); $a = $q->fetch();   // só as que ainda não foram pagas
   return ['n' => (int)$a['n'], 'valor' => (float)$a['v']];
 }
 function fazerSaida(array $c, string $origem = 'iDFace', ?string $quando = null): array {
@@ -534,7 +543,7 @@ function usarVoucher(array $c, array $u): array {
   $db->exec('BEGIN IMMEDIATE');   // junto com a cobrança por atraso: uma coisa de cada vez
   try {
     $c = crianca((int)$c['id']); $auto = null;
-    if ($c['entrou']) { $qa = $db->prepare('SELECT * FROM vendas WHERE crianca_id = ? AND auto = 1 AND quando >= ? ORDER BY id DESC LIMIT 1'); $qa->execute([$c['id'], $c['entrou']]); $auto = $qa->fetch() ?: null; }
+    if ($c['entrou']) { $qa = $db->prepare('SELECT * FROM vendas WHERE crianca_id = ? AND auto = 1 AND quando >= ? AND NOT EXISTS (SELECT 1 FROM pagamentos p WHERE p.venda_id = vendas.id) ORDER BY id DESC LIMIT 1'); $qa->execute([$c['id'], $c['entrou']]); $auto = $qa->fetch() ?: null; }
     $x = fazerVenda($c, $p, 0.0, (int)$u['id'], 'voucher' . ($n > 1 ? ' (' . $n . 'º de hoje)' : '') . ($auto ? ' · cobriu a cobrança por atraso de ' . dinheiro((float)$auto['valor']) : ''), (string)$st['n'], false, '', ['voucher' => 'sim', 'cheio' => (float)$st['v']]);
     if ($auto) {   // primeiro entra o período do voucher, depois sai a cobrança: o saldo nunca fica faltando no meio
       $db->prepare('UPDATE criancas SET pacote_min = MAX(0, pacote_min - ?) WHERE id = ?')->execute([(int)$auto['minutos'], $c['id']]);
@@ -562,6 +571,52 @@ function mexerEstoque(int $produtoId, int $qtd, int $sinal): void {
   if ($produtoId > 0 && $qtd > 0) db()->prepare('UPDATE produtos SET estoque = estoque + ?, mudou_em = ? WHERE id = ? AND estoque IS NOT NULL')->execute([$sinal * $qtd, agora(), $produtoId]);
 }
 function devolverEstoque(array $venda): void { mexerEstoque((int)($venda['produto_id'] ?? 0), (int)($venda['qtd'] ?? 0), 1); }
+
+/* ---------- 0.90: a forma de pagamento (Pix, dinheiro, crédito, débito), em até três formas ---------- */
+// O que a tela manda: [{ f: 'pix', v: 200 }, { f: 'dinheiro', v: 100 }]. Devolve [forma => valor] (formas repetidas somam; valor zero não conta)
+function lerPagamento($bruto): array {
+  $o = [];
+  foreach ((array)$bruto as $p) {
+    if (!is_array($p)) continue; $f = (string)($p['f'] ?? ''); $v = round((float)($p['v'] ?? 0), 2);
+    if (!isset(FORMAS_PAGAMENTO[$f])) falha('Forma de pagamento desconhecida.'); if ($v <= 0) continue;
+    $o[$f] = round(($o[$f] ?? 0) + $v, 2);
+  }
+  if (count($o) > 3) falha('O pagamento pode ser dividido em até três formas.');
+  return $o;
+}
+// "Pix" (uma forma só) ou "Pix R$ 200 + Dinheiro R$ 100 + Crédito R$ 380"
+function textoPagamento(array $formas, bool $comValor = false): string {
+  if (count($formas) === 1 && !$comValor) return FORMAS_PAGAMENTO[array_key_first($formas)] ?? (string)array_key_first($formas);
+  $t = []; foreach ($formas as $f => $v) $t[] = (FORMAS_PAGAMENTO[$f] ?? $f) . ' ' . dinheiro((float)$v);
+  return implode(' + ', $t);
+}
+// quanto já foi pago dessas vendas, por forma: [forma => valor]
+function pagoPorForma(array $vendaIds): array {
+  $ids = array_values(array_filter(array_map('intval', $vendaIds))); if (!$ids) return [];
+  $o = []; foreach (db()->query('SELECT forma, SUM(valor) t FROM pagamentos WHERE venda_id IN (' . implode(',', $ids) . ') GROUP BY forma')->fetchAll() as $l) if ((float)$l['t'] > 0.004) $o[(string)$l['forma']] = round((float)$l['t'], 2);
+  return $o;
+}
+// Reparte o pagamento pelas vendas, na ordem: cada venda fica com as formas que a pagaram (até o valor dela).
+// Assim, se uma venda for desfeita ou deixar de ser cobrada, sai só o que era dela. Devolve o que de fato foi gravado: [forma => valor]
+function gravarPagamento(array $vendaIds, array $formas, int $criancaId, ?int $por, ?string $quando = null): array {
+  $db = db(); $quando = $quando ?: agora(); $gravado = [];
+  $q = $db->prepare('SELECT v.valor - COALESCE((SELECT SUM(p.valor) FROM pagamentos p WHERE p.venda_id = v.id), 0) FROM vendas v WHERE v.id = ?');
+  $ins = $db->prepare('INSERT INTO pagamentos (venda_id, crianca_id, forma, valor, quando, por) VALUES (?, ?, ?, ?, ?, ?)');
+  foreach ($vendaIds as $vid) {
+    $q->execute([(int)$vid]); $falta = $q->fetchColumn(); if ($falta === false) continue; $falta = round((float)$falta, 2);
+    foreach ($formas as $f => $resta) {
+      if ($falta < 0.005) break; if ($resta < 0.005) continue; $x = round(min($falta, $resta), 2);
+      $ins->execute([(int)$vid, $criancaId, $f, $x, $quando, $por]); $formas[$f] = round($resta - $x, 2); $falta = round($falta - $x, 2); $gravado[$f] = round(($gravado[$f] ?? 0) + $x, 2);
+    }
+  }
+  return $gravado;
+}
+// o que entrou por cada forma desde $desde (a tela mostra em Hoje na recepção)
+function pagamentosDesde(string $desde): array {
+  $o = array_fill_keys(array_keys(FORMAS_PAGAMENTO), 0.0); $q = db()->prepare('SELECT forma, SUM(valor) t FROM pagamentos WHERE quando > ? GROUP BY forma'); $q->execute([$desde]);
+  foreach ($q->fetchAll() as $l) $o[(string)$l['forma']] = round((float)$l['t'], 2);
+  return $o;
+}
 
 /* ---------- o que sai da loja e volta: carrinho de bebê, fusquinha ---------- */
 // O serviço marcado como "sai e volta" (regra.servicos[].volta) fica na lista da tela inicial desde a venda até alguém marcar que voltou.
@@ -634,6 +689,7 @@ function cancelarEntrada(array $c, array $u, string $motivo, ?array $vendaIds): 
   $db = db(); [$lim, $seg, $noPrazo] = prazoCancelar($c); $agora = agora(); $minDentro = intdiv($seg, 60);
   $alvo = []; foreach (vendasDaVisita($c) as $v) if ($vendaIds === null ? ((int)$v['minutos'] > 0 && vendaJuntoDaEntrada($v, $c)) : in_array((int)$v['id'], $vendaIds, true)) $alvo[] = $v;
   $sap = isset($c['sapateira']) && $c['sapateira'] !== null ? (int)$c['sapateira'] : 0;
+  $devolver = pagoPorForma(array_map(fn($v) => (int)$v['id'], $alvo));   // o que o cliente já pagou por essas vendas: é o que a loja devolve
   $db->beginTransaction();
   try {
     $itens = []; $valor = 0.0; $tempo = 0;
@@ -648,7 +704,7 @@ function cancelarEntrada(array $c, array $u, string $motivo, ?array $vendaIds): 
       ->execute([$c['id'], $c['nome'], $c['resp'], $c['entrou'], $agora, $minDentro, $valor, json_encode($itens, JSON_UNESCAPED_UNICODE), $motivo, (int)$u['id'], $u['nome'], $u['papel'], $noPrazo ? 0 : 1]);
     $id = (int)$db->lastInsertId();
     $oque = $itens ? 'não cobrado: ' . implode(', ', array_map(fn($i) => $i['n'] . ' (' . dinheiro($i['v']) . ')', $itens)) : 'o tempo não foi descontado';
-    $reg = registrar('canc', (int)$c['id'], $c['nome'], 'Entrada das ' . substr((string)$c['entrou'], 11, 5) . ' cancelada aos ' . ($minDentro < 60 ? $minDentro . ' min' : hm((int)$minDentro)) . ' · ' . $oque . ' · Motivo: ' . $motivo . ' · por ' . primeiroNome($u['nome']) . ($noPrazo ? '' : ' (fora do prazo' . ($lim > 0 ? ' de ' . $lim . ' min' : '') . ')'), $agora);
+    $reg = registrar('canc', (int)$c['id'], $c['nome'], 'Entrada das ' . substr((string)$c['entrou'], 11, 5) . ' cancelada aos ' . ($minDentro < 60 ? $minDentro . ' min' : hm((int)$minDentro)) . ' · ' . $oque . ($devolver ? ' · devolver ao cliente: ' . textoPagamento($devolver, true) : '') . ' · Motivo: ' . $motivo . ' · por ' . primeiroNome($u['nome']) . ($noPrazo ? '' : ' (fora do prazo' . ($lim > 0 ? ' de ' . $lim . ' min' : '') . ')'), $agora);
     $db->commit();
   } catch (Throwable $e) { $db->rollBack(); throw $e; }
   $c = crianca((int)$c['id']);
@@ -656,7 +712,7 @@ function cancelarEntrada(array $c, array $u, string $motivo, ?array $vendaIds): 
   if ($tempo > 0 && restante($c) < periodo() && regra()['bloqueioAuto'] === 'sim' && (!isset($c['liberado']) || (int)$c['liberado'])) bloquearAcesso($c, false);
   $msg = null;
   if (regra()['autoMsg'] === 'ambos') $msg = mandarMensagem($c, 'A entrada de ' . nomeMsg($c['nome']) . ' na Play Space foi cancelada às ' . substr($agora, 11, 5) . ' e ' . ($valor > 0 ? 'nada foi cobrado' : 'o tempo não foi descontado') . '. Até a próxima! 🧸', true);
-  return ['cancelamento' => $id, 'registro' => $reg, 'valor' => $valor, 'minutos' => $minDentro, 'tempo' => $tempo, 'sapateira' => $sap ?: null, 'fora' => !$noPrazo, 'mensagem' => $msg];
+  return ['cancelamento' => $id, 'registro' => $reg, 'valor' => $valor, 'minutos' => $minDentro, 'tempo' => $tempo, 'sapateira' => $sap ?: null, 'fora' => !$noPrazo, 'mensagem' => $msg, 'devolver' => $devolver ? textoPagamento($devolver, true) : ''];
 }
 function cancelamentoPublico(array $x): array {
   $itens = json_decode((string)$x['itens'], true);

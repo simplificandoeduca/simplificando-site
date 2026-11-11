@@ -126,10 +126,10 @@ O tempo é debitado **sempre em períodos inteiros** (o período da Recreação:
 - **Dar entrada com o saldo**: quando a criança está fora do espaço e tem pelo menos um período guardado, aparece o botão "Dar entrada com o saldo (4h30)": ela entra usando as horas que já tem, sem vender nada. Se a equipe escolher algo para vender, o botão some e a entrada vai junto com a venda (a caixa "Dar entrada agora").
 - Ao marcar tempo ou pacote, o atendimento diz como o saldo fica: "Entra 5h de recreação no saldo: fica com 9h30".
 
-- Os serviços de fábrica são **Recreação** (R$ 80 a cada meia hora), **Carrinho fusquinha** (R$ 15 a cada 30 min) e **Carrinho de bebê** (R$ 30, das 10h às 22h). Em cada linha, o **+** põe mais um período (ou mais uma unidade) e o **−** tira; o valor da linha e o total aparecem na hora. **Registrar a venda** grava tudo de uma vez; o aviso tem **Desfazer**.
+- Os serviços de fábrica são **Recreação** (R$ 80 a cada meia hora), **Carrinho fusquinha** (R$ 15 a cada 30 min) e **Carrinho de bebê** (R$ 30, das 10h às 22h). Em cada linha, o **+** põe mais um período (ou mais uma unidade) e o **−** tira; o valor da linha e o total aparecem na hora. Com algo escolhido, o botão do pé vira **Pagamento · R$ …**: um toque leva para a tela de pagamento (seção 6p), que grava tudo de uma vez; o aviso tem **Desfazer**.
 - O tempo de **Recreação** vendido entra no saldo de brincar da criança (meia hora conta) e libera o acesso dela; os carrinhos ficam só anotados na venda, com a duração.
 - **Ajustes → Serviços e preços** muda o nome, o valor e a forma de cobrar (valor único ou a cada período de tantos minutos), cria serviços novos (uma meia, um lanche) e diz qual deles é tempo de brincar. O valor cobrado sai sempre dessa tabela.
-- **Pacotes de horas**: aparecem no atendimento, abaixo dos serviços, por tempo e valor; a tabela completa fica no botão **Pacotes** da tela inicial (seção 6j).
+- **Pacotes de horas**: no atendimento ficam numa linha só, **Lista de pacotes**, para a tela não ficar cheia. Um toque abre a lista (um pacote por linha: o tempo, o nome e o valor); outro toque escolhe, a lista fecha e o pacote escolhido fica à vista na própria linha. Para trocar, é abrir de novo. A tabela completa, com o valor da hora, fica no botão **Pacotes** da tela inicial (seção 6j).
 - **Produtos** (Amigurumi, Maleta, Kit laço…): aparecem logo depois dos pacotes; um toque põe um na venda (seção 6l). **Outro item**, no pé do atendimento, registra algo fora da tabela.
 - **Avisar quando restar** (Ajustes → Controle de horas) começa em 10 minutos, porque a recreação é vendida de 30 em 30.
 
@@ -236,7 +236,7 @@ O atendimento tem três etapas: **cadastro**, **escolher o serviço** e **regist
 - **Faixa "Falta finalizar"**, no alto da tela inicial: uma linha para cada atendimento em aberto, com o nome da criança, o responsável, em que ponto parou e a hora. Tocar continua dali.
   - *cadastro pela metade · falta um telefone e o nome da criança*: o cadastro novo foi fechado antes de salvar. Abre o cadastro com tudo o que já estava escrito (documento, responsável, telefones, nome, PCD, sapateira e observações).
   - *falta escolher o serviço*: o cadastro foi feito hoje e a venda ainda não. Abre direto o atendimento.
-  - *R$ 80 escolhido · falta registrar*: o serviço já estava escolhido. Abre o atendimento com tudo de volta: quantidades, pacote, voucher marcado, outro item com o valor e a escolha de dar entrada.
+  - *R$ 80 escolhido · falta o pagamento*: o serviço já estava escolhido. Abre o atendimento com tudo de volta: quantidades, pacote, voucher marcado, outro item com o valor e a escolha de dar entrada.
 - **Tocar no cliente em qualquer lugar** (a busca da tela inicial, o Banco de horas, o histórico) faz a mesma coisa: enquanto o atendimento está em aberto, o toque abre o atendimento, não a ficha. O botão **Atender**/**Vender** vira **Continuar**. Para ver a ficha mesmo assim, o atendimento tem o atalho **Ver a ficha**.
 - **Criança que já está no espaço** e ficou com uma venda pela metade (ex.: mais 30 min): ela aparece na faixa, e o toque na linha dela continua abrindo a ficha, que mostra o aviso **Atendimento em aberto** com o botão **Continuar**.
 - **Fechou sem terminar?** Um aviso diz que ficou guardado e traz o botão **Continuar**. Dentro do atendimento retomado, **Começar do zero** limpa o que estava escolhido.
@@ -274,7 +274,7 @@ Pacotes que já vêm instalados (os da tela "Venda de pacotes de tempo" do siste
 - **Mudar a tabela**: só a gestora. Na aba Pacotes, o **lápis** no fim da linha abre o pacote e **Novo pacote** cria outro; também dá para fazer em **Ajustes → Pacotes de horas**.
 - No cadastro do pacote: as **horas**, o **valor**, o **nome** (opcional; serve para separar pacotes do mesmo tempo), o **tipo** (só as horas, ou com produto: o cliente leva o produto, que já está no valor), em **quantas vezes parcela** e, no pacote com produto, **qual é o produto**. Pode haver vários pacotes do mesmo tempo.
 - Quando a loja tem pacotes **com produto** e pacotes **só de horas**, a aba e o atendimento mostram cada tipo no seu bloco.
-- **Vender** continua no atendimento do cliente: os pacotes aparecem lá, por tempo e valor, é só tocar. A venda fica anotada com o nome do pacote ("Pacote 05 HORAS 380 · 5h · R$ 500"), em Hoje na recepção e no histórico.
+- **Vender** continua no atendimento do cliente: os pacotes estão em **Lista de pacotes** (um toque abre, outro escolhe). A venda fica anotada com o nome do pacote ("Pacote 05 HORAS 380 · 5h · R$ 500"), em Hoje na recepção e no histórico.
 - **Criança PCD não tem desconto em pacote** (seção 6h). O voucher junta com o pacote: a primeira meia hora sai do voucher e o resto das horas do pacote.
 - Se a gestora mudar a tabela enquanto um atendimento está aberto em outro aparelho, a venda não troca de pacote sozinha: o sistema avisa "O valor do pacote mudou" e pede para abrir o atendimento de novo.
 - Histórico das versões: a 0.81 instalou três valores "com produto" de uma tabela antiga, que a 0.82 tirou; a 0.83 instala a tabela acima. Quem já tinha o pacote de 5 h por R$ 420 não fica com ele em dobro.
@@ -356,6 +356,28 @@ O carrinho de bebê e o fusquinha saem da loja com o cliente e voltam. A partir 
 - Se a venda for desfeita (ou deixar de ser cobrada num cancelamento de entrada), o carrinho sai da lista sozinho.
 - Todos os aparelhos veem o carrinho entrar e sair da lista em poucos segundos.
 - O que foi vendido antes da 0.89 não entra na lista: vale para as vendas feitas a partir da atualização.
+
+## 6p. Pagamento: Pix, dinheiro, crédito e débito, em até três formas
+
+Depois de escolher o serviço (horas avulsas, pacote, carrinho, produto), o atendimento **passa para a tela de pagamento**. É a mesma folha: em cima fica **Voltar para a escolha**, que não perde nada do que estava marcado.
+
+- **O que aparece**: de quem é, o que foi escolhido com o valor de cada coisa, o **Total a pagar** e quatro botões grandes: **Pix**, **Dinheiro**, **Crédito** e **Débito**.
+- **Uma forma só** (o mais comum): um toque na forma e um toque em **Recebi R$ 420 no Pix · registrar**. A venda é gravada e, se a caixa "Dar entrada agora" estava marcada, a criança já entra.
+- **Dividir em duas ou três formas**: toque nas formas que o cliente vai usar. Aparece uma linha para cada uma: escreva o valor das primeiras, e **a última forma tocada fica com o resto**, para a conta fechar sempre com o total. Exemplo: Pix, Dinheiro e Crédito num total de R$ 420; escreve 200 no Pix e 100 no dinheiro, e o crédito fica com R$ 120.
+- Para tirar uma forma, toque nela de novo. A quarta forma não entra: são até três.
+- Se os valores passam do total, a tela avisa em vermelho e o botão fica desligado até acertar. Aceita centavos ("100,50").
+- **Nada a pagar** (só o voucher): não há tela de pagamento, o botão registra direto.
+- **O que fica anotado**: uma linha em **Hoje na recepção** ("Pagamento · R$ 420 · Pix R$ 200 + Dinheiro R$ 100 + Crédito R$ 120"), a forma em cada compra no **Histórico do cliente**, e o total por forma no alto de **Hoje na recepção** (Pix, Dinheiro, Crédito e Débito das últimas 24 horas).
+- **Desfazer** a venda (no aviso) tira também o pagamento.
+- **O servidor confere**: o pagamento tem de fechar com o total que ele mesmo calcula pela tabela. Se o valor de um serviço mudou no meio do atendimento, aparece "O pagamento não fecha com o total" e nada é vendido: é fechar e abrir o atendimento de novo.
+
+**Na saída, com cobrança por atraso a receber**, a folha da saída mostra as mesmas quatro formas em **Recebido como?**. Sem escolher a forma, a saída não é dada (a tela pergunta "Como recebeu R$ 80?"). Também dá para dividir. A linha do dia fica "… cobrança por atraso: R$ 80 · recebido: Dinheiro". Sem nada a receber, a saída continua igual: dois toques.
+
+**Cancelar a entrada de quem já pagou**: o aviso e a linha do dia dizem o que devolver e por qual forma ("devolver ao cliente: Crédito R$ 80").
+
+**Reabrir a visita** (seção 6m): a cobrança por atraso que já foi recebida na primeira saída não volta a aparecer como "a receber"; na segunda saída a tela cobra só o que é novo.
+
+O que ainda não tem forma anotada aparece numa frase em Hoje na recepção: é a cobrança por atraso de quem ainda está no espaço (será recebida na saída) ou uma saída lida pelo iDFace. As vendas feitas antes da 0.90 não têm forma de pagamento.
 
 ## 7. Atualizar
 

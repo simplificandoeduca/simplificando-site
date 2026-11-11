@@ -690,6 +690,44 @@ body.quieto .dica { animation: none !important; }
 .marca.alug-f { align-items: center; } .marca.alug-f > .bt { background: var(--coral); color: #fff; } .marca.alug-f .pas { color: var(--erro); }
 .marca.alug-f.passou { background: var(--erro-bg); }
 .reg .ev.dev b::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; background: var(--verde-agua); }
+/* 0.90: o atendimento tem duas páginas na mesma folha (a escolha e o pagamento); só uma aparece de cada vez */
+#v-escolha, #v-pag { display: contents; } #v-escolha[hidden], #v-pag[hidden] { display: none; }
+#v-escolha > .bt, #v-pag > .bt { flex: none; }
+/* as formas de pagamento: quatro botões grandes; a escolhida fica marcada, com o valor embaixo */
+.formas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.formas button { min-height: 66px; border: 2px solid var(--borda); border-radius: 18px; background: var(--card); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 8px 4px; min-width: 0; }
+.formas button b { font-family: var(--display); font-weight: 800; font-size: 16px; }
+.formas button span { font-size: 12px; font-weight: 800; color: var(--tinta-2); min-height: 15px; white-space: nowrap; }
+.formas button[aria-pressed="true"] { border-color: var(--coral); background: var(--coral-2); } .formas button[aria-pressed="true"] span { color: var(--coral); }
+.pg-partes { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; } .pg-partes:empty { display: none; }
+.pg-linha { display: grid; grid-template-columns: minmax(0, 1fr) 150px; align-items: center; gap: 10px; padding: 6px 6px 6px 14px; border-radius: 14px; background: var(--creme-2); font-weight: 800; }
+.pg-linha input { min-height: 42px; text-align: right; font-family: var(--display); font-weight: 800; font-size: 16px; }
+.pg-linha small { font-weight: 700; color: var(--tinta-2); }
+.pg-linha.resto { padding: 12px 14px; background: var(--menta); } .pg-linha.resto b { text-align: right; font-family: var(--display); font-size: 16px; }
+.pg-linha.resto.erro { background: var(--erro-bg); } .pg-linha.resto.erro b { color: var(--erro); }
+.pg-dica { margin-top: 8px; } .pg-dica.erro { color: var(--erro); font-weight: 800; }
+.pg-itens { list-style: none; margin: 0; padding: 12px 14px; display: flex; flex-direction: column; gap: 5px; border-radius: 16px; background: var(--creme-2); }
+.pg-itens li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 14px; font-weight: 700; color: var(--tinta-2); } .pg-itens li b { color: var(--tinta); white-space: nowrap; }
+.pg-volta { align-self: flex-start; display: inline-flex; align-items: center; gap: 4px; } .total.pg-total { padding-bottom: 0; }
+@media (max-width: 480px) { .formas { grid-template-columns: repeat(2, 1fr); } .pg-linha { grid-template-columns: minmax(0, 1fr) 120px; } }
+.h-saldo.dia-formas { grid-template-columns: repeat(4, 1fr); } @media (max-width: 480px) { .h-saldo.dia-formas { grid-template-columns: repeat(2, 1fr); } }
+.reg .ev.pag b::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; background: var(--ok); }
+/* 0.90: a lista de pacotes do atendimento: fechada é uma linha só (com o pacote escolhido à vista); aberta, um pacote por linha */
+.lista-pac { border: 2px solid var(--borda); border-radius: 18px; background: var(--card); }
+.lista-pac > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 14px; font-weight: 800; } .lista-pac > summary::-webkit-details-marker { display: none; }
+.lista-pac .lp-t { flex: none; } .lista-pac .lp-t small { font-weight: 700; color: var(--apagado); }
+.lista-pac .lp-s { flex: 1; min-width: 0; text-align: right; font-size: 13px; font-weight: 700; color: var(--tinta-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lista-pac.tem { border-color: var(--coral); background: var(--coral-2); } .lista-pac.tem .lp-s { color: var(--tinta); } .lista-pac.tem .lp-s b { color: var(--coral); }
+.lista-pac .lp-seta { flex: none; display: inline-flex; color: var(--apagado); transition: transform .25s; } .lista-pac[open] .lp-seta { transform: rotate(90deg); }
+.lista-pac .lp-corpo { padding: 0 10px 10px; } .lista-pac .rot-pac { margin: 8px 4px 5px; }
+.lista-pac .opcoes { display: flex; flex-direction: column; gap: 5px; }
+.lista-pac .opc { flex-direction: row; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 12px; border-width: 1px; background: var(--creme); }
+.lista-pac .opc b { order: 1; flex: none; min-width: 44px; font-size: 16px; }
+.lista-pac .opc .nm { order: 2; flex: 1; min-width: 0; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lista-pac .opc em { order: 3; flex: none; font-size: 11px; }
+.lista-pac .opc span { order: 4; flex: none; margin-left: auto; font-family: var(--display); font-weight: 800; font-size: 15px; color: var(--tinta); }
+.lista-pac .opc[aria-pressed="true"] { border-color: var(--coral); background: var(--coral-2); }
+@media (max-width: 480px) { .lista-pac .lp-t small { display: none; } }
 /* as crianças do mesmo responsável: uma embaixo da outra, dentro da mesma moldura */
 .esp-fam { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 2px; border-radius: 16px; background: var(--tinta-2); }
 .esp-fam > .esp-it { flex: 1; height: auto; border: 0; border-radius: 5px; } .esp-fam > .esp-it:first-child { border-radius: 14px 14px 5px 5px; } .esp-fam > .esp-it:last-child { border-radius: 5px 5px 14px 14px; }
@@ -1005,7 +1043,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.89';
+const VERSAO = '0.90';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -1171,7 +1209,8 @@ async function carregar() { // devolve true quando algo mudou no servidor
     S.cfg = { ...S.cfg, ...d.regra, idface: { ...S.cfg.idface, ...d.idface } };
     S.equipe = d.equipe || [];
     S.produtos = d.produtos || [];
-    S.alugueis = (d.alugueis || []).map(a => ({ ...a, ini: dataDe(a.ini) }));   // o que saiu da loja e ainda não voltou (carrinho, fusquinha)
+    S.alugueis = (d.alugueis || []).map(a => ({ ...a, ini: dataDe(a.ini) }));
+    S.pagHoje = d.pagamentos_hoje || null;   // o que entrou por cada forma de pagamento nas últimas 24 h   // o que saiu da loja e ainda não voltou (carrinho, fusquinha)
     S.vendasHoje = d.vendas_hoje; S.atrasoHoje = d.atraso_hoje || null; S.descontosHoje = d.descontos_hoje || null; S.whats = d.whats; S.eu = d.eu; S.exemplo = d.exemplo || 0;
     S.cancelamentos = (d.cancelamentos || []).map(x => ({ ...x, entrou: dataDe(x.entrou), quando: dataDe(x.quando), visto_em: x.visto_em ? dataDe(x.visto_em) : null }));
     S.pend = {}; for (const p of d.pendentes || []) S.pend[p.id] = dataDe(p.em);   // cadastro feito hoje e ainda sem atendimento (para "Falta finalizar")
@@ -1494,9 +1533,9 @@ async function entradaServidor(c) {
     toast(`${c.nome} entrou${k && k.entrou ? ' · tempo comprado até ' + hora(fimVisita(k)) : ''}`, async () => { try { await api('desfazer_entrada', { id: c.id, registro: r.registro, mensagem: r.mensagem ? r.mensagem.id : 0 }); await carregar(); } catch (e) { toast(e.message); } desenhar(); }); } catch (e) { toast(e.message); }
 }
 // corr: { quando: 'HH:MM', motivo } quando a supervisão diz a hora em que a criança saiu de verdade
-async function saidaServidor(c, corr) {
-  try { const r = await api('saida', { id: c.id, ...(corr ? { quando: corr.quando, motivo: corr.motivo } : {}) }); await carregar(); fecharFolha(); desenhar();
-    const txt = `${c.nome} saiu${corr ? ' às ' + corr.quando : ''} · ${dur(r.debitado)} debitados${r.atraso && r.atraso.n ? ' · ' + brl(r.atraso.valor) + ' de atraso a receber' : ''}${r.sapateira ? ' · sapato na sapateira ' + r.sapateira : ''}`;
+async function saidaServidor(c, corr, pag) {
+  try { const r = await api('saida', { id: c.id, ...(corr ? { quando: corr.quando, motivo: corr.motivo } : {}), ...(pag && pag.length ? { pagamento: pag } : {}) }); await carregar(); fecharFolha(); desenhar();
+    const txt = `${c.nome} saiu${corr ? ' às ' + corr.quando : ''} · ${dur(r.debitado)} debitados${r.atraso && r.atraso.n ? ' · ' + brl(r.atraso.valor) + (r.pago ? ' de atraso recebido (' + r.pago + ')' : ' de atraso a receber') : ''}${r.sapateira ? ' · sapato na sapateira ' + r.sapateira : ''}`;
     if (corr) toast(txt, () => folhaDia(), 'Ver o dia'); else toast(txt, async () => { try { await api('desfazer_saida', { id: c.id, visita: r.visita, registro: r.registro, mensagem: r.mensagem ? r.mensagem.id : 0, sapateira: r.sapateira || 0 }); await carregar(); } catch (e) { toast(e.message); } desenhar(); }); }
   catch (e) { toast(e.message); const b = $('#s-ok'); if (b) b.disabled = false; }
 }
@@ -1558,7 +1597,9 @@ function pacotesNoAtendimento() {
   const P = (S.cfg.pacotes || []).map((x, i) => [x, i]); if (!P.length) return '';
   const bt = ([x, i]) => `<button type="button" class="opc tap" data-act="pac-marca" data-i="${i}" aria-pressed="false"><b>${dur(x.h * 60)}</b><span>${brl(x.v)}</span>${parcTxt(x) ? `<em>${parcTxt(x)}</em>` : ''}${x.nome ? `<i class="nm">${esc(x.nome)}</i>` : ''}${x.com ? `<em>com ${esc(x.com)}</em>` : ''}</button>`;
   const prod = P.filter(([x]) => tipoPac(x) === 'produto'), seco = P.filter(([x]) => tipoPac(x) === 'seco'), grupo = (L, rot) => L.length ? `${rot ? `<small class="rot-pac">${rot}</small>` : ''}<div class="opcoes">${L.map(bt).join('')}</div>` : '';
-  return `<div class="campo" id="v-pacotes"><label>Pacotes de horas <span class="leve">· sem prazo para usar</span></label>${prod.length ? grupo(prod, 'Com produto') + grupo(seco, 'Só as horas') : grupo(seco, '')}</div>`;
+  // 0.90: em vez de todos os pacotes na tela, uma linha "Lista de pacotes": um toque abre a lista, outro escolhe (e a lista fecha, com o escolhido à vista)
+  return `<details class="lista-pac" id="v-pacotes"><summary class="tap">${ic(IC.presente, 18)}<span class="lp-t">Lista de pacotes <small>· sem prazo para usar</small></span><span class="lp-s" id="v-pac-resumo">${P.length} ${P.length === 1 ? 'pacote' : 'pacotes'}</span><i class="lp-seta" aria-hidden="true">${ic(IC.vai, 16, 2.6)}</i></summary>
+    <div class="lp-corpo">${prod.length ? grupo(prod, 'Com produto') + grupo(seco, 'Só as horas') : grupo(seco, '')}</div></details>`;
 }
 // os produtos no atendimento: um toque põe um na venda (o número e o − aparecem no botão). O estoque mostra quanto há e, com o produto na venda, quanto fica
 const botaoProduto = p => { const q = (CARRINHO && CARRINHO.pr && CARRINHO.pr[p.id]) || 0;
@@ -1573,19 +1614,75 @@ function contaPacote() { // no editor: o valor da hora, da meia hora e da parcel
   a.textContent = h > 0 && v > 0 ? `${brl(centavos(v / h))} a hora · ${brl(centavos(v / h / 2))} a meia hora${parc > 1 ? ' · ' + parcTxt({ v, parc }) : ''}` : '';
 }
 const nomeLinha = l => l.servico ? l.servico + (l.min ? ' · ' + dur(l.min) : '') + (l.itens ? ' · ' + l.itens : '') : nomePacVenda(l.min, l.itens);
-async function registrarAtendimento(id, mesmoAssim) { // mesmoAssim: a equipe confirmou depois do aviso de que a criança já teve uma venda agora há pouco
+/* ---------- 0.90: o pagamento. Depois de escolher o serviço, o atendimento passa para a tela de pagamento ---------- */
+// Pix, dinheiro, crédito ou débito. Um toque numa forma paga tudo nela; tocando em outra, o pagamento é dividido (até três formas):
+// escreve-se o valor das primeiras, e a última forma tocada fica com o resto, para a conta fechar sempre com o total.
+const FORMAS = [['pix', 'Pix', 'no Pix'], ['dinheiro', 'Dinheiro', 'em dinheiro'], ['credito', 'Crédito', 'no crédito'], ['debito', 'Débito', 'no débito']];
+const nomeForma = f => (FORMAS.find(x => x[0] === f) || [f, f])[1];
+const naForma = f => (FORMAS.find(x => x[0] === f) || [f, f, f])[2];
+let PAG = null;   // o pagamento que está na tela: { onde: 'venda' | 'saida', id, total, formas: [na ordem em que foram tocadas], v: { forma: 'o que foi digitado' } }
+function pagPartes(P = PAG) { // { partes: [{ f, v }], erro }: o valor de cada forma (a última fica com o resto) ou o que falta dizer
+  if (!P || !P.formas.length) return { partes: [], erro: 'Escolha a forma de pagamento' };
+  const partes = [], n = P.formas.length; let soma = 0;
+  for (let i = 0; i < n - 1; i++) { const f = P.formas[i], v = centavos(numero(P.v[f])); if (!(v > 0)) return { partes, erro: `Quanto ${naForma(f)}?`, falta: f }; soma = centavos(soma + v); partes.push({ f, v }); }
+  const resto = centavos(P.total - soma); if (!(resto > 0)) return { partes, erro: n > 1 ? 'Os valores passam do total: confira' : 'Nada a pagar' };
+  partes.push({ f: P.formas[n - 1], v: resto }); return { partes, erro: '' };
+}
+const textoPag = partes => partes.length === 1 ? nomeForma(partes[0].f) : partes.map(p => `${nomeForma(p.f)} ${brl(p.v)}`).join(' + ');   // "Pix" ou "Pix R$ 200 + Dinheiro R$ 480"
+const htmlPag = () => `<div class="formas" id="pg-formas" role="group" aria-label="Forma de pagamento">${FORMAS.map(([f, n]) => `<button type="button" class="tap" data-act="pag-forma" data-f="${f}" aria-pressed="false"><b>${n}</b><span class="num" data-pg-de="${f}"></span></button>`).join('')}</div><div class="pg-partes" id="pg-partes"></div><p class="explica pg-dica" id="pg-dica"></p>`;
+// refaz: redesenha os campos de valor (ao tocar numa forma). Enquanto a pessoa digita, só as contas mudam, para o cursor não sair do lugar
+function desenharPag(refaz = true) {
+  const P = PAG, a = $('#pg-formas'); if (!P || !a) return; const r = pagPartes(), n = P.formas.length, ult = P.formas[n - 1];
+  $$('#pg-formas [data-f]').forEach(b => { const f = b.dataset.f, tem = P.formas.includes(f), parte = r.partes.find(x => x.f === f); b.setAttribute('aria-pressed', tem); $('[data-pg-de]', b).textContent = !tem ? '' : parte ? brl(parte.v) : n > 1 && f === ult ? 'o resto' : ''; });
+  const cx = $('#pg-partes');
+  if (cx && refaz) cx.innerHTML = n < 2 ? '' : P.formas.map((f, i) => i < n - 1
+    ? `<label class="pg-linha"><span>${nomeForma(f)}</span><input class="pg-valor" data-pg-f="${f}" inputmode="decimal" autocomplete="off" placeholder="R$" value="${esc(P.v[f] || '')}" aria-label="Quanto ${naForma(f)}"></label>`
+    : `<div class="pg-linha resto" id="pg-resto-l"><span>${nomeForma(f)} <small>· o resto</small></span><b class="num" id="pg-resto"></b></div>`).join('');
+  const rs = $('#pg-resto'); if (rs) { const dig = P.formas.slice(0, -1).reduce((t, f) => t + (numero(P.v[f]) > 0 ? centavos(numero(P.v[f])) : 0), 0), resto = centavos(P.total - dig); rs.textContent = resto > 0 ? brl(resto) : 'não sobra nada'; $('#pg-resto-l').classList.toggle('erro', !(resto > 0)); }
+  const d = $('#pg-dica'); if (d) { const errado = n > 1 && !!r.erro && !r.falta; d.classList.toggle('erro', errado);
+    d.textContent = !n ? 'Toque na forma de pagamento. Para dividir, toque em mais de uma (até três).' : n === 1 ? `Tudo ${naForma(ult)}. Vai dividir? Toque em outra forma.` : r.erro ? r.erro + (errado ? '' : ' A última forma tocada fica com o resto.') : 'A última forma tocada fica com o resto. Para tirar uma forma, toque nela de novo.'; }
+  if (P.onde === 'venda') { const ok = $('#p-ok'); if (ok) { ok.disabled = !!r.erro; ok.innerHTML = `${ic(IC.check)} ${r.erro ? (n ? r.erro : 'Escolha a forma de pagamento') : `Recebi ${brl(P.total)}${r.partes.length === 1 ? ' ' + naForma(r.partes[0].f) : ''} · registrar${P.entrar ? ' e dar entrada' : ''}`}`; } }
+}
+// (prévia) reparte o pagamento pelas vendas, na ordem, como o servidor: cada venda fica com as formas que a pagaram
+function pagarPrevia(compras, partes) {
+  const fila = partes.map(p => ({ ...p })), novos = [];
+  for (const v of compras) { let falta = centavos(v.v - (S.pagamentos || []).filter(p => p.venda === v.id).reduce((t, p) => t + p.v, 0));
+    for (const p of fila) { if (falta < 0.005) break; if (p.v < 0.005) continue; const x = centavos(Math.min(falta, p.v)); novos.push({ venda: v.id, crianca: v.crianca, f: p.f, v: x, quando: new Date() }); p.v = centavos(p.v - x); falta = centavos(falta - x); } }
+  S.pagamentos = (S.pagamentos || []).concat(novos); return novos;
+}
+// como uma compra foi paga: o servidor manda pronto (v.pago); na prévia sai dos pagamentos guardados
+const pagoDaCompra = v => { if (v.pago != null) return v.pago; const o = {}; for (const p of S.pagamentos || []) if (p.venda === v.id) o[p.f] = centavos((o[p.f] || 0) + p.v); const L = Object.entries(o).map(([f, x]) => ({ f, v: x })); return L.length ? textoPag(L) : ''; };
+// o que entrou por cada forma nas últimas 24 h (em Hoje na recepção)
+const pagHoje = () => { if (MODO === 'servidor' && S.pagHoje) return S.pagHoje; const o = {}; for (const [f] of FORMAS) o[f] = 0; for (const p of S.pagamentos || []) if (agora - p.quando < 86400000) o[p.f] = centavos(o[p.f] + p.v); return o; };
+// do atendimento para o pagamento: o que foi escolhido, o total e as formas. Voltar não perde nada do que estava escolhido
+function abrirPagamento(id) {
+  const c = crianca(id), L = linhasDoCarrinho(), a = $('#v-pag'), e = $('#v-escolha'); if (!c || !a || !e) return; if (!L.length) { toast('Escolha o serviço'); return; }
+  if (L.some(l => l.outro) && !(numero(val('v-valor')) >= 0)) { toast('Qual é o valor do outro item?'); $('#v-valor').focus(); return; }
+  const total = centavos(L.reduce((t, l) => t + l.v, 0)); if (!(total > 0)) { registrarAtendimento(id); return; }   // nada a pagar (só o voucher): registra direto
+  const en = $('#v-entrar-campo'), entrar = !!en && !en.hidden && !!($('#v-entrar') || {}).checked, mesmo = PAG && PAG.onde === 'venda' && PAG.id === id && PAG.total === total;
+  PAG = { onde: 'venda', id, total, entrar, formas: mesmo ? PAG.formas : [], v: mesmo ? PAG.v : {} };   // voltou e veio de novo com o mesmo total: o que já estava marcado continua
+  a.innerHTML = `<button type="button" class="link tap pg-volta" data-act="pag-voltar">${ic(IC.volta, 14, 2.6)} Voltar para a escolha</button>
+    <div class="linha">${avatar(c)}<div class="txt"><b style="white-space:normal">${esc(c.nome)}</b><span style="white-space:normal">${esc(c.resp)}</span></div></div>
+    <ul class="pg-itens" aria-label="O que foi escolhido">${L.map(l => `<li><span>${esc(nomeLinha(l))}</span><b class="num">${brl(l.v)}</b></li>`).join('')}</ul>
+    <div class="total pg-total"><span>Total a pagar</span><b class="num" id="p-total">${brl(total)}</b></div>
+    <div class="campo"><label>Como o cliente vai pagar? <span class="leve">· pode dividir em até três formas</span></label>${htmlPag()}</div>
+    <div class="pe-f"><button class="bt forte largo tap" id="p-ok" data-act="pag-ok" data-id="${c.id}" disabled>${ic(IC.check)} Escolha a forma de pagamento</button></div>`;
+  e.hidden = true; a.hidden = false; const h = $('#folha .cab-f h2'), f = $('#folha .folha'); if (h) h.textContent = 'Pagamento'; if (f) f.scrollTop = 0; desenharPag();
+}
+function voltarDaEscolha() { const a = $('#v-pag'), e = $('#v-escolha'), h = $('#folha .cab-f h2'); if (!a || !e) return; a.hidden = true; e.hidden = false; if (h) h.textContent = 'Atendimento'; }
+async function registrarAtendimento(id, mesmoAssim, pag) { // mesmoAssim: a equipe confirmou depois do aviso de que a criança já teve uma venda agora há pouco. pag: [{ f, v }], como foi pago
   const aberto = $('#folha .folha-fundo:not(.saindo) #v-ok'); if (!aberto || +aberto.dataset.id !== +id) { atender(id); return; }   // o atendimento desta criança precisa estar na tela (o aviso de venda repetida pode ser tocado depois de fechar)
   const c = crianca(id), L = linhasDoCarrinho(); if (!c) return; if (!L.length) { toast('Escolha o serviço'); return; }
   if (L.some(l => l.outro) && !(numero(val('v-valor')) >= 0)) { toast('Qual é o valor do outro item?'); $('#v-valor').focus(); return; }
   const vou = L.find(l => l.vou);
   const en = $('#v-entrar-campo'), entrar = !!en && !en.hidden && !!($('#v-entrar') || {}).checked;   // sem iDFace: pagou e já entra
   const rasc = RASC[id] || null;   // se a venda for desfeita, o que estava escolhido volta
-  const total = L.reduce((a, l) => a + l.v, 0), min = L.reduce((a, l) => a + l.min, 0), nome = c.nome, aviso = `Venda registrada para ${nome} · ${brl(total)}${min ? ' · +' + dur(min) + ' de recreação' : ''}`;
+  const total = L.reduce((a, l) => a + l.v, 0), min = L.reduce((a, l) => a + l.min, 0), nome = c.nome, aviso = `Venda registrada para ${nome} · ${brl(total)}${pag && pag.length ? (pag.length === 1 ? ' ' + naForma(pag[0].f) : ' em ' + pag.length + ' formas') : ''}${min ? ' · +' + dur(min) + ' de recreação' : ''}`;
   if (MODO === 'servidor') {
-    const bt = $('#v-ok'); if (bt) bt.disabled = true;
-    try { const o = L.find(l => l.outro), r = await api('atender', { id, linhas: L.filter(l => l.s).map(l => ({ s: l.s, q: l.q })), pacotes: L.filter(l => l.pac != null).map(l => ({ h: l.ph, tipo: l.ptipo, v: l.v, nome: l.pnome })), produtos: L.filter(l => l.prod).map(l => ({ p: l.prod, q: l.q, v: l.pv })), outro: o ? { n: o.servico, v: o.v } : null, voucher: vou ? true : null, entrar, visto: (CARRINHO && CARRINHO.visto) || 0, mesmo_assim: !!mesmoAssim });
+    const bt = $('#v-ok'), bp = $('#p-ok'); if (bt) bt.disabled = true; if (bp) bp.disabled = true;
+    try { const o = L.find(l => l.outro), r = await api('atender', { id, linhas: L.filter(l => l.s).map(l => ({ s: l.s, q: l.q })), pacotes: L.filter(l => l.pac != null).map(l => ({ h: l.ph, tipo: l.ptipo, v: l.v, nome: l.pnome })), produtos: L.filter(l => l.prod).map(l => ({ p: l.prod, q: l.q, v: l.pv })), outro: o ? { n: o.servico, v: o.v } : null, voucher: vou ? true : null, entrar, visto: (CARRINHO && CARRINHO.visto) || 0, mesmo_assim: !!mesmoAssim, pagamento: pag && pag.length ? pag : null });
       await carregar(); atendimentoFeito(id); fecharFolha(); desenhar(); const k = crianca(id); toast(avisoVoucher(r.voucher, nome) + aviso + (r.entrada ? ' · entrou' + (k && k.entrou ? ', tempo até ' + hora(fimVisita(k)) : '') : ''), async () => { voltarRascunho(id, rasc); try { if (r.entrada) await api('desfazer_entrada', { id, registro: r.entrada.registro, mensagem: r.entrada.mensagem }); await api('desfazer_venda', { vendas: r.vendas, registros: r.registros }); await carregar(); } catch (e) { toast(e.message); } desenhar(); }); }
-    catch (e) { if (bt) bt.disabled = false; if (e.status === 409) toast(e.message, () => registrarAtendimento(id, true), 'Registrar mesmo assim'); else toast(e.message); }   // 409: outro aparelho já registrou uma venda para esta criança
+    catch (e) { if (bt) bt.disabled = false; if (bp) bp.disabled = false; if (e.status === 409) toast(e.message, () => registrarAtendimento(id, true, pag), 'Registrar mesmo assim'); else toast(e.message); }   // 409: outro aparelho já registrou uma venda para esta criança
     return;
   }
   const era = { pacote: c.pacote, liberado: c.liberado, venda: c.venda }, novas = [], regs = [];
@@ -1597,10 +1694,12 @@ async function registrarAtendimento(id, mesmoAssim) { // mesmoAssim: a equipe co
     if (l.min) { c.pacote += l.min / 60; c.liberado = true; c.venda = { h: l.min / 60, m: l.min, v: l.v, servico: l.servico, com: l.itens, quando: new Date() }; }
     registrar('venda', c.nome, `${nomeLinha(l)} · ${brl(l.v)}`); regs.push(S.registros[0]); compra.reg = S.registros[0];
     if (l.prod) { const p = produto(l.prod); compra.prod = l.prod; compra.qtd = l.q; if (p && p.est != null) p.est -= l.q; } }   // (prévia) o produto sai do estoque
+  const pagos = pag && pag.length && total > 0 ? pagarPrevia(novas, pag) : [];
+  if (pagos.length) { registrar('pag', c.nome, `Pagamento · ${brl(total)} · ${textoPag(pag)}`); regs.push(S.registros[0]); }
   let desfazEntrada = null;
   if (entrar && !c.entrou && temPeriodo(c)) { c.entrou = new Date(); c.atraso = null; registrar('ent', c.nome, 'Entrada registrada'); const regE = S.registros[0]; desfazEntrada = () => { c.entrou = null; S.registros = S.registros.filter(x => x !== regE); }; }
   atendimentoFeito(id); fecharFolha(); desenhar();
-  toast(avisoVoucher(vou ? { n: nV, cobriu: coberta ? { valor: coberta.v } : null } : null, nome) + aviso + (desfazEntrada ? ' · entrou, tempo até ' + hora(fimVisita(c)) : ''), () => { voltarRascunho(id, rasc); if (desfazEntrada) desfazEntrada(); Object.assign(c, era); if (coberta) { S.compras.push(coberta); if (coberta.reg) coberta.reg.txt = coberta.reg.txt.replace(' · coberta pelo voucher', ''); c.atraso = eraAtraso; } for (const x of novas) if (x.prod) { const p = produto(x.prod); if (p && p.est != null) p.est += x.qtd; } S.compras = S.compras.filter(x => !novas.includes(x)); S.registros = S.registros.filter(x => !regs.includes(x)); });
+  toast(avisoVoucher(vou ? { n: nV, cobriu: coberta ? { valor: coberta.v } : null } : null, nome) + aviso + (desfazEntrada ? ' · entrou, tempo até ' + hora(fimVisita(c)) : ''), () => { voltarRascunho(id, rasc); if (desfazEntrada) desfazEntrada(); Object.assign(c, era); if (coberta) { S.compras.push(coberta); if (coberta.reg) coberta.reg.txt = coberta.reg.txt.replace(' · coberta pelo voucher', ''); c.atraso = eraAtraso; } for (const x of novas) if (x.prod) { const p = produto(x.prod); if (p && p.est != null) p.est += x.qtd; } S.compras = S.compras.filter(x => !novas.includes(x)); S.registros = S.registros.filter(x => !regs.includes(x)); S.pagamentos = (S.pagamentos || []).filter(x => !pagos.includes(x)); });
 }
 function entrada(c, origem = 'iDFace') {
   if (!c || c.entrou) return;
@@ -1613,22 +1712,23 @@ function entrada(c, origem = 'iDFace') {
 }
 // A saída debita períodos inteiros. corr = { quando: 'HH:MM', motivo, em: Date }: a supervisão diz a hora em que a criança saiu de verdade
 // (saída esquecida); as cobranças por atraso que passaram a sobrar são desfeitas.
-function saida(c, origem = 'iDFace', corr = null) {
+function saida(c, origem = 'iDFace', corr = null, pag = null) { // pag: [{ f, v }], como a cobrança por atraso foi recebida
   if (!c || !c.entrou) return;
-  if (MODO === 'servidor') return saidaServidor(c, corr);
-  const p = periodo(), entrouEm = c.entrou, fim = corr ? corr.em : new Date(agora), era = { pacote: c.pacote, usado: c.usado, liberado: c.liberado, atraso: c.atraso, venda: c.venda, visitas: c.visitas.slice(), compras: S.compras.slice(), regs: S.registros.slice() };
+  if (MODO === 'servidor') return saidaServidor(c, corr, pag);
+  const p = periodo(), entrouEm = c.entrou, fim = corr ? corr.em : new Date(agora), era = { pacote: c.pacote, usado: c.usado, liberado: c.liberado, atraso: c.atraso, venda: c.venda, visitas: c.visitas.slice(), compras: S.compras.slice(), regs: S.registros.slice(), pags: (S.pagamentos || []).slice() };
   acertarDemo(c, true);   // o que ficou devendo até agora vira cobrança por atraso (o servidor faz o mesmo na saída)
   const min = minConta(c, fim), deb = Math.min(cobrar(min), saldoMin(c)); let desfeitas = 0, valorDesf = 0;
   if (corr) { const autos = S.compras.filter(v => v.crianca === c.id && v.auto && v.quando >= entrouEm).sort((a, b) => b.quando - a.quando);
     while (autos.length && pacMin(c) - c.usado - deb >= p) { const v = autos.shift(); S.compras = S.compras.filter(x => x !== v); c.pacote = Math.max(0, c.pacote - minDe(v) / 60); if (v.reg) v.reg.txt += ' · desfeita'; desfeitas++; valorDesf += v.v; } }
-  const at = S.compras.filter(v => v.crianca === c.id && v.auto && v.quando >= entrouEm), atraso = { n: at.length, valor: at.reduce((a, v) => a + v.v, 0) };
+  const at = S.compras.filter(v => v.crianca === c.id && v.auto && v.quando >= entrouEm && !(S.pagamentos || []).some(p => p.venda === v.id)), atraso = { n: at.length, valor: at.reduce((a, v) => a + v.v, 0) };   // só o que ainda não foi pago
+  const pago = pag && pag.length && atraso.valor > 0 ? textoPag(pag) : ''; if (pago) pagarPrevia(at.slice().sort((a, b) => a.quando - b.quando), pag);
   c.usado += deb; if (S.cfg.bloqueioAuto === 'sim' && !temPeriodo(c)) c.liberado = false;
   c.visitas.unshift({ dia: fim, entrou: hora(entrouEm), saiu: hora(fim), deb, ini: entrouEm, sap: c.sapateira || 0 });
   const sap = c.sapateira || 0; c.sapateira = null; c.entrou = null; c.atraso = null;   // a sapateira fica livre na saída
-  registrar('sai', c.nome, `Ficou ${dur(Math.floor(min))} · ${dur(deb)} debitados${saldoMin(c) > 0 ? ' · restam ' + hm(saldoMin(c)) : ''}${atraso.n ? ` · ${atraso.n > 1 ? atraso.n + ' cobranças' : 'cobrança'} por atraso: ${brl(atraso.valor)} a receber` : ''}${sap ? ' · sapato na sapateira ' + sap : ''}${origem === 'iDFace' || semIdface() ? '' : ' · saída à mão'}`);
+  registrar('sai', c.nome, `Ficou ${dur(Math.floor(min))} · ${dur(deb)} debitados${saldoMin(c) > 0 ? ' · restam ' + hm(saldoMin(c)) : ''}${atraso.n ? ` · ${atraso.n > 1 ? atraso.n + ' cobranças' : 'cobrança'} por atraso: ${brl(atraso.valor)}${pago ? ' · recebido: ' + pago : ' a receber'}` : ''}${sap ? ' · sapato na sapateira ' + sap : ''}${origem === 'iDFace' || semIdface() ? '' : ' · saída à mão'}`);
   if (corr) registrar('corr', c.nome, `Saída corrigida para ${hora(fim)} · ${dur(deb)} debitados${desfeitas ? ` · ${desfeitas > 1 ? desfeitas + ' cobranças por atraso desfeitas' : 'cobrança por atraso desfeita'}: ${brl(valorDesf)}` : ''} · Motivo: ${corr.motivo} · por ${EU.nome}`);
-  toast(`${c.nome} saiu${corr ? ' às ' + hora(fim) : ''} · ${dur(deb)} debitados${atraso.n ? ' · ' + brl(atraso.valor) + ' de atraso a receber' : ''}${sap ? ' · sapato na sapateira ' + sap : ''}`,
-    () => { Object.assign(c, { pacote: era.pacote, usado: era.usado, liberado: era.liberado, atraso: era.atraso, venda: era.venda, visitas: era.visitas, entrou: entrouEm, sapateira: sap && !donoSap(sap) ? sap : null }); S.compras = era.compras; S.registros = era.regs; });
+  toast(`${c.nome} saiu${corr ? ' às ' + hora(fim) : ''} · ${dur(deb)} debitados${atraso.n ? ' · ' + brl(atraso.valor) + (pago ? ' de atraso recebido (' + pago + ')' : ' de atraso a receber') : ''}${sap ? ' · sapato na sapateira ' + sap : ''}`,
+    () => { S.pagamentos = era.pags; Object.assign(c, { pacote: era.pacote, usado: era.usado, liberado: era.liberado, atraso: era.atraso, venda: era.venda, visitas: era.visitas, entrou: entrouEm, sapateira: sap && !donoSap(sap) ? sap : null }); S.compras = era.compras; S.registros = era.regs; });
 }
 // O toque em Saída abre a folha da saída: de quem é, quanto ficou, o que debita e, se passou do tempo, o que receber antes de liberar.
 // São dois toques por saída, de propósito: com 40 crianças na lista, um toque errado não tira a criança errada.
@@ -1644,13 +1744,17 @@ function folhaSaida(id, corrigir = false) {
   abrirFolha(`Saída de ${esc(c.nome)}`, `
     <div class="linha">${avatar(c)}<div class="txt"><b>${esc(c.nome)}</b><span>${esc(c.resp)}${c.sapateira ? ' · sapateira ' + c.sapateira : ''}</span></div></div>
     <div id="s-conta">${htmlContaSaida(c, k)}</div>
+    <div class="campo" id="s-pag"${k.n && k.valor > 0 ? '' : ' hidden'}><label>Recebido como? <span class="leve">· pode dividir em até três formas</span></label>${htmlPag()}</div>
     ${supervisorOuMais() ? `<details class="outro" id="s-corrige" ${corrigir ? 'open' : ''}><summary>A criança saiu antes e a saída não foi marcada? Corrigir a hora</summary>
       <div class="dois" style="margin-top:8px"><div class="campo"><label for="s-hora">Hora em que saiu de verdade</label><input id="s-hora" type="time" min="${hora(c.entrou)}" max="${hora(agora)}"></div>
         <div class="campo"><label for="s-motivo">Motivo<span class="obg" aria-hidden="true">*</span></label><input id="s-motivo" maxlength="200" placeholder="Ex.: a mãe buscou e a saída não foi marcada" autocomplete="off"></div></div>
       <p class="explica">O tempo é refeito pela hora certa e as cobranças por atraso que sobrarem são desfeitas. Fica anotado em "Hoje na recepção", com o seu nome.</p></details>` : ''}
     <div class="pe-f"><button class="bt forte largo tap" id="s-ok" data-act="saida-ok" data-id="${c.id}">${rotuloSaida(k)}</button></div>`);
+  PAG = { onde: 'saida', id: c.id, total: k.n ? centavos(k.valor) : 0, formas: [], v: {} }; desenharPag();
   if (!corrigir && window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches) setTimeout(() => { const b = $('#s-ok'); if (b) b.focus(); }, 380);   // no computador, Enter confirma
 }
+// a folha da saída mostra as formas de pagamento só quando há o que receber; se o valor muda (o tempo passou, usou o voucher, corrigiu a hora), a conta acompanha
+function pagSaida(k) { const cx = $('#s-pag'); if (!cx) return; const v = k && k.n ? centavos(k.valor) : 0; cx.hidden = !(v > 0); if (PAG && PAG.onde === 'saida' && PAG.total !== v) { PAG.total = v; desenharPag(false); } }
 const rotuloSaida = (k, hh) => `${ic(IC.sair)} ${hh ? 'Dar saída às ' + hh : k.n ? `Recebi ${brl(k.valor)} · dar saída` : 'Dar saída'}`;
 const htmlContaSaida = (c, k, hh) => `<div class="marca">${ic(IC.horas, 18)}<span>Entrou às <b>${hora(c.entrou)}</b> e ${hh ? 'saiu às <b>' + hh + '</b>: ficou' : 'ficou'} <b>${dur(Math.floor(k.min))}</b>. Debita <b>${dur(k.deb)}</b> (sempre períodos inteiros de ${porExt(periodo())}). Saldo depois da saída: <b>${hm(saldoDepois(c, k))}</b>.</span></div>
     ${k.n ? `<div class="marca canc a-receber">${ic(IC.sino, 18)}<span><b>${k.n === 1 ? 'Nova cobrança por atraso' : k.n + ' novas cobranças por atraso'}</b>: ficou além do tempo comprado.<br>A receber agora: <b class="valor">${brl(k.valor)}</b></span></div>` : (hh && k.desfeitas ? `<div class="marca">${ic(IC.check, 18, 2.6)}<span>Com essa hora, <b>${k.desfeitas === 1 ? 'a cobrança por atraso é desfeita' : 'as ' + k.desfeitas + ' cobranças por atraso são desfeitas'}</b>.</span></div>` : '')}
@@ -1658,13 +1762,13 @@ const htmlContaSaida = (c, k, hh) => `<div class="marca">${ic(IC.horas, 18)}<spa
       : k.n && !hh ? `<button type="button" class="marca tap vou-saida" data-act="saida-voucher" data-id="${c.id}">${ic(IC.presente, 18)}<span><b>Tem voucher?</b> Usar agora: cobre ${porExt(periodo())} (${brl(umaCobranca(c))} a menos).</span>${ic(IC.vai, 18)}</button>` : ''}`;
 function atualizarSaida() { // refaz a conta da folha da saída que está aberta (depois de usar o voucher)
   const bt = $('#s-ok'), alvo = $('#s-conta'); if (!bt || !alvo) return; const c = crianca(bt.dataset.id); if (!c || !c.entrou) return;
-  if (val('s-hora')) { previaSaida(); return; } const k = contaSaida(c); alvo.innerHTML = htmlContaSaida(c, k); bt.innerHTML = rotuloSaida(k);
+  if (val('s-hora')) { previaSaida(); return; } const k = contaSaida(c); alvo.innerHTML = htmlContaSaida(c, k); bt.innerHTML = rotuloSaida(k); pagSaida(k);
 }
 function previaSaida() { // a supervisão escreveu a hora em que a criança saiu de verdade: a conta é refeita na folha
   const i = $('#s-hora'), bt = $('#s-ok'), alvo = $('#s-conta'); if (!i || !bt || !alvo) return; const c = crianca(bt.dataset.id); if (!c || !c.entrou) return;
   const em = i.value ? horaNoDia(c.entrou, i.value) : null, ini = new Date(c.entrou); ini.setSeconds(0, 0);
-  if (!em || em < ini || em > agora) { const k = contaSaida(c); alvo.innerHTML = htmlContaSaida(c, k) + (i.value ? `<p class="explica" style="color:var(--erro)">A hora precisa ficar entre a entrada (${hora(c.entrou)}) e agora.</p>` : ''); bt.innerHTML = rotuloSaida(k); return; }
-  const k = contaSaida(c, em < c.entrou ? c.entrou : em); alvo.innerHTML = htmlContaSaida(c, k, i.value); bt.innerHTML = rotuloSaida(k, i.value);
+  if (!em || em < ini || em > agora) { const k = contaSaida(c); alvo.innerHTML = htmlContaSaida(c, k) + (i.value ? `<p class="explica" style="color:var(--erro)">A hora precisa ficar entre a entrada (${hora(c.entrou)}) e agora.</p>` : ''); bt.innerHTML = rotuloSaida(k); pagSaida(k); return; }
+  const k = contaSaida(c, em < c.entrou ? c.entrou : em); alvo.innerHTML = htmlContaSaida(c, k, i.value); bt.innerHTML = rotuloSaida(k, i.value); pagSaida(k);
 }
 function confirmarSaida(el) {
   const c = crianca(el.dataset.id); if (!c || !c.entrou) return; const hh = val('s-hora'); let corr = null;
@@ -1672,7 +1776,12 @@ function confirmarSaida(el) {
     if (!em || em < ini || em > agora) { toast(`A hora precisa ficar entre a entrada (${hora(c.entrou)}) e agora`); $('#s-hora').focus(); return; }
     if (motivo.length < 5) { toast('Escreva o motivo da correção da hora'); $('#s-motivo').focus(); return; }
     corr = { quando: hh, motivo, em: em < c.entrou ? new Date(c.entrou) : em }; }
-  el.disabled = true; saida(c, 'mão', corr); if (MODO !== 'servidor') { fecharFolha(); desenhar(); }
+  // há o que receber: a folha pede a forma de pagamento antes de dar a saída
+  const k = contaSaida(c, corr ? corr.em : undefined), receber = k.n ? centavos(k.valor) : 0; let pag = null;
+  if (receber > 0 && PAG && PAG.onde === 'saida' && $('#pg-formas')) { PAG.total = receber; const r = pagPartes();
+    if (r.erro) { toast(PAG.formas.length ? r.erro : `Como recebeu ${brl(receber)}? Toque na forma de pagamento`); const a = $('#pg-formas'); if (a) a.scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
+    pag = r.partes; }
+  el.disabled = true; saida(c, 'mão', corr, pag); if (MODO !== 'servidor') { fecharFolha(); desenhar(); }
 }
 // (servidor) depois da saída: a supervisão corrige a hora de uma visita dos últimos dois dias
 function folhaCorrigirVisita(cid, vid) {
@@ -2059,7 +2168,7 @@ const emAberto = x => { const c = x && typeof x === 'object' ? x : crianca(x); r
 function textoPend(c) { // em que etapa parou o atendimento desta criança
   const r = rascunhoDe(c.id); if (!r) return 'falta escolher o serviço';
   const L = linhasDoRascunho(c, r), t = L.reduce((a, l) => a + l.v, 0);
-  return (t ? brl(t) + ' escolhido' : L.some(l => l.vou) ? 'voucher escolhido' : 'serviço escolhido') + ' · falta registrar';
+  return (t ? brl(t) + ' escolhido' : L.some(l => l.vou) ? 'voucher escolhido' : 'serviço escolhido') + (t > 0 ? ' · falta o pagamento' : ' · falta registrar');   // com valor a pagar, o que falta é a tela de pagamento
 }
 // guarda (ou apaga, se ficou vazio) o que está escolhido no atendimento aberto. Devolve true quando ficou algo guardado
 function guardarRascunho() {
@@ -2133,10 +2242,12 @@ function linhasServico(parte) { // parte: 'tempo', 'outros' ou nada (todos). Sem
 function atualizarCarrinho() { // redesenha as linhas dos serviços e o total a pagar
   const a = $('#v-servicos'); if (a) a.innerHTML = linhasServico('tempo'); { const a2 = $('#v-servicos2'); if (a2) a2.innerHTML = linhasServico('outros'); }
   $$('#v-pacotes [data-i]').forEach(b => b.setAttribute('aria-pressed', CARRINHO.pac.includes(+b.dataset.i)));
+  { const rs = $('#v-pac-resumo'), det = $('#v-pacotes'); if (rs && det) { const sel = CARRINHO.pac.map(i => S.cfg.pacotes[i]).filter(Boolean), np = (S.cfg.pacotes || []).length;   // fechada, a lista diz o que foi escolhido
+      rs.innerHTML = sel.length ? sel.map(x => `<b>${dur(x.h * 60)} · ${brl(x.v)}</b>${x.nome ? ' ' + esc(x.nome) : ''}`).join(' + ') : `${np} ${np === 1 ? 'pacote' : 'pacotes'}`; det.classList.toggle('tem', !!sel.length); } }
   const pr = $('#v-produtos .prods'); if (pr) pr.innerHTML = (S.produtos || []).map(botaoProduto).join('');
   { const es = $('#v-entrar-saldo'); if (es) es.hidden = !!linhasDoCarrinho().length; }   // com algo escolhido, a entrada vai junto com a venda (a caixa "Dar entrada agora")
   const L = linhasDoCarrinho(), total = L.reduce((t, l) => t + l.v, 0), min = L.reduce((t, l) => t + l.min, 0), t = $('#v-total'), ok = $('#v-ok');
-  if (t) t.textContent = brl(total); if (ok) { ok.disabled = !L.length; ok.innerHTML = `${ic(IC.check)} ${L.length ? 'Registrar a venda · ' + brl(total) : 'Escolha o serviço'}`; }
+  if (t) t.textContent = brl(total); if (ok) { ok.disabled = !L.length; ok.innerHTML = !L.length ? `${ic(IC.check)} Escolha o serviço` : total > 0 ? `Pagamento · ${brl(total)} ${ic(IC.vai, 18, 2.6)}` : `${ic(IC.check)} Registrar · ${brl(total)}`; }
   const m = $('#v-tempo'), vc = L.find(l => l.cobre); if (m) { m.hidden = !min && !vc; m.textContent = (min ? `Entra ${dur(min)} de recreação no saldo: fica com ${hm(saldoAgora(crianca(CARRINHO.id)) + min)}. ` : '') + (vc ? `O voucher cobre a cobrança por atraso de ${brl(umaCobranca(crianca(CARRINHO.id)))}: ela sai do valor a receber na saída.` : ''); }
   const en = $('#v-entrar-campo'), cb = $('#v-entrar'), cr = crianca(CARRINHO.id); if (en) en.hidden = !(L.length && cr && saldoMin(cr) + min >= periodo());   // só oferece a entrada se a criança vai ter tempo para brincar
   if (cb && CARRINHO.entrar == null) cb.checked = min > 0;   // vem marcada quando a venda tem recreação; se a pessoa mexer, vale a escolha dela
@@ -2149,9 +2260,9 @@ function folhaVender(id, primeira) { // primeira: acabou de sair do cadastro (n�
   const r = rascunhoDe(c.id), fichaBt = `<button type="button" class="link tap" data-act="ficha-ver" data-id="${c.id}">Ver a ficha</button>`;
   const nota = r ? `<p class="retoma" id="v-retoma">${ic(IC.historico, 16)}<span><b>Continuando de onde parou</b>, às ${hora(new Date(r.em))}: o que já estava escolhido voltou.</span><button type="button" class="link tap" data-act="atender-zero">Começar do zero</button>${fichaBt}</p>`
     : !primeira && pendNovo(c) ? `<p class="retoma" id="v-retoma">${ic(IC.historico, 16)}<span><b>Cadastro feito às ${hora(new Date(pendEm(c)))}.</b> Falta escolher o serviço.</span>${fichaBt}</p>` : '';
-  CARRINHO = r ? carrinhoDe(c, r) : { id: c.id, q: {}, pac: [], pr: {}, vq: 0 }; ETAPA_FEITA = true;
+  CARRINHO = r ? carrinhoDe(c, r) : { id: c.id, q: {}, pac: [], pr: {}, vq: 0 }; ETAPA_FEITA = true; PAG = null;   // cada atendimento começa sem forma de pagamento escolhida
   CARRINHO.visto = MODO === 'servidor' ? ULT_REG : 0;   // a última linha do dia que esta tela conhecia ao abrir: o servidor avisa se a criança ganhou outra venda depois
-  abrirFolha('Atendimento', `
+  abrirFolha('Atendimento', `<div id="v-escolha">
     <div class="linha">${avatar(c)}<div class="txt"><b style="white-space:normal">${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}${c.pcd ? ` <em class="selo-pcd">${rotPcd()}</em>` : ''}</b><span style="white-space:normal">${esc(c.resp)}${fones(c) ? ' · ' + esc(fones(c)) : ''}</span>${c.entrou || c.sapateira ? `<span style="white-space:normal">${[c.entrou ? 'no espaço desde ' + hora(c.entrou) : '', c.sapateira ? 'sapateira ' + c.sapateira : ''].filter(Boolean).join(' · ')}</span>` : ''}</div><button class="bt tap" data-act="historico" data-id="${c.id}">${ic(IC.historico)} Histórico</button></div>
     ${obsAlerta(c)}
     <div class="h-saldo f-saldo" data-ficha-saldo="${c.id}" data-k="${pacMin(c)}|${usadoAgora(c)}" aria-label="Horas do cliente">${saldoFicha(c)}</div>
@@ -2161,7 +2272,8 @@ function folhaVender(id, primeira) { // primeira: acabou de sair do cadastro (n�
     ${outrosServicos().length ? `<div class="campo"><label>Outros serviços</label><div class="servicos" id="v-servicos2">${linhasServico('outros')}</div></div>` : ''}
     ${produtosNoAtendimento()}
     <details class="outro"${r && r.item ? ' open' : ''}><summary>Outro item</summary><div class="outro-item"><input id="v-item" value="${esc(r ? r.item || '' : '')}" placeholder="O que foi" autocomplete="off" maxlength="40" aria-label="O que foi vendido"><input id="v-valor" value="${esc(r ? r.valor || '' : '')}" inputmode="decimal" placeholder="R$" autocomplete="off" aria-label="Valor em reais"></div></details>
-    <div class="pe-f"><span class="explica" id="v-tempo" hidden></span>${semIdface() && !c.entrou ? `<label class="marca" id="v-entrar-campo" hidden><input type="checkbox" id="v-entrar" checked><span><b>Dar entrada agora.</b> O tempo de recreação começa a contar ao registrar a venda.</span></label>` : ''}<div class="total"><span>Total a pagar</span><b class="num" id="v-total">R$ 0</b></div><button class="bt forte largo tap" id="v-ok" data-act="atender-ok" data-id="${c.id}" disabled>${ic(IC.check)} Escolha o serviço</button></div>`);
+    <div class="pe-f"><span class="explica" id="v-tempo" hidden></span>${semIdface() && !c.entrou ? `<label class="marca" id="v-entrar-campo" hidden><input type="checkbox" id="v-entrar" checked><span><b>Dar entrada agora.</b> O tempo de recreação começa a contar ao registrar a venda.</span></label>` : ''}<div class="total"><span>Total a pagar</span><b class="num" id="v-total">R$ 0</b></div><button class="bt forte largo tap" id="v-ok" data-act="atender-ok" data-id="${c.id}" disabled>${ic(IC.check)} Escolha o serviço</button></div>
+    </div><div id="v-pag" hidden></div>`);
   ETAPA_FEITA = false;   // daqui em diante, fechar sem registrar guarda o que foi escolhido
   if (r) { const cb = $('#v-entrar'); if (cb && CARRINHO.entrar != null) cb.checked = CARRINHO.entrar; atualizarCarrinho(); }
 }
@@ -2337,22 +2449,24 @@ async function confirmarCancelar(el) {
   const t = $('#x-motivo'), motivo = (t ? t.value : '').replace(/\s+/g, ' ').trim();
   if (motivo.length < 5) { const cp = $('#x-motivo-campo'); if (cp) cp.classList.add('falta'); toast('Escreva o motivo do cancelamento: a supervisão vai conferir'); if (t) t.focus(); return; }
   const sel = (k.vendas || []).filter(v => !k.fica.has(v.id)), nome = c.nome, cid = c.id;
-  const avisa = (valor, sap) => toast(`Entrada de ${nome} cancelada · ${valor ? brl(valor) + ' não cobrado' : 'nada descontado'}${sap ? ' · sapateira ' + sap + ' livre' : ''}`, () => abrirHistorico(cid), 'Histórico');
+  const avisa = (valor, sap, dev) => toast(`Entrada de ${nome} cancelada · ${valor ? brl(valor) + ' não cobrado' : 'nada descontado'}${dev ? ' · devolver ao cliente: ' + dev : ''}${sap ? ' · sapateira ' + sap + ' livre' : ''}`, () => abrirHistorico(cid), 'Histórico');
   if (MODO === 'servidor') {
     el.disabled = true; el.dataset.enviando = '1';
-    try { const r = await api('cancelar_entrada', { id: cid, motivo, vendas: sel.map(v => v.id) }); CANCELA = null; await carregar(); fecharFolha(); desenhar(); avisa(r.valor, r.sapateira); }
+    try { const r = await api('cancelar_entrada', { id: cid, motivo, vendas: sel.map(v => v.id) }); CANCELA = null; await carregar(); fecharFolha(); desenhar(); avisa(r.valor, r.sapateira, r.devolver || ''); }
     catch (e) { toast(e.message); delete el.dataset.enviando; el.disabled = false; resumoCancelar(); }
     return;
   }
   const prazo = noPrazoCancelar(c), min = Math.floor(segDentro(c) / 60), entrouEm = c.entrou, valor = sel.reduce((a, v) => a + v.v, 0), tempo = sel.reduce((a, v) => a + v.m, 0), sap = c.sapateira || 0, itens = sel.map(v => ({ n: v.n, m: v.m, v: v.v }));
   for (const v of sel) { const compra = S.compras.find(x => x.id === v.id); if (compra && compra.reg) compra.reg.txt += ' · cancelada'; if (compra && compra.prod) { const p = produto(compra.prod); if (p && p.est != null) p.est += compra.qtd; } }   // (prévia) produto que deixa de ser cobrado volta para o estoque
+  const devPag = (S.pagamentos || []).filter(p => sel.some(v => v.id === p.venda)), devPor = {}; for (const p of devPag) devPor[p.f] = centavos((devPor[p.f] || 0) + p.v);   // (prévia) o que já tinha sido pago por essas vendas volta para o cliente
+  const dev = Object.entries(devPor).map(([f, v]) => `${nomeForma(f)} ${brl(v)}`).join(' + '); S.pagamentos = (S.pagamentos || []).filter(p => !devPag.includes(p));
   S.compras = S.compras.filter(x => !sel.some(v => v.id === x.id));
   c.pacote = Math.max(0, c.pacote - tempo / 60); c.entrou = null; c.sapateira = null;   // sai sem debitar nada; a sapateira fica livre
   if (tempo > 0) { const u = S.compras.filter(x => x.crianca === cid && minDe(x) > 0).sort((a, b) => b.quando - a.quando)[0]; c.venda = u ? { h: minDe(u) / 60, m: minDe(u), v: u.v, servico: u.servico, com: u.itens, quando: u.quando } : null; if (restante(c) <= 0 && S.cfg.bloqueioAuto === 'sim') c.liberado = false; }
   S.cancelamentos.unshift({ id: novoId(), crianca: cid, nome, resp: c.resp, entrou: entrouEm, quando: new Date(), min, valor, itens, motivo, por: EU.nomeCompleto || EU.nome, papel: EU.papel, fora: !prazo, visto_por: '', visto_em: null });
-  registrar('canc', nome, textoCancelado(entrouEm, min, itens, motivo, EU.nome, !prazo));
+  registrar('canc', nome, textoCancelado(entrouEm, min, itens, motivo, EU.nome, !prazo).replace(' · Motivo: ', (dev ? ' · devolver ao cliente: ' + dev : '') + ' · Motivo: '));
   if (S.cfg.autoMsg === 'ambos') mensagemAuto(c, `A entrada de ${nomeMsg(nome)} na Play Space foi cancelada às ${hora(new Date())} e ${valor > 0 ? 'nada foi cobrado' : 'o tempo não foi descontado'}. Até a próxima! 🧸`, false);
-  CANCELA = null; fecharFolha(); desenhar(); avisa(valor, sap);
+  CANCELA = null; fecharFolha(); desenhar(); avisa(valor, sap, dev);
 }
 const quandoCurto = d => (isoDia(d) === isoDia(agora) ? 'hoje' : isoDia(d) === isoDia(new Date(agora.getTime() - 86400000)) ? 'ontem' : diaCurto(d)) + ' às ' + hora(d);
 const itensCancelados = x => (x.itens || []).map(i => `${esc(i.n)} (${brl(i.v)})`).join(', ');
@@ -2424,7 +2538,7 @@ function desenharLado() {
         <div class="acoes"><button class="bt forte tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 16)} ${emAberto(c) ? 'Continuar o atendimento' : 'Vender'}</button>${COM_WHATS ? `<button class="bt tap" data-act="renovar" data-id="${c.id}">${ic(IC.zap, 16)} ${semHoras(c) ? 'Mandar mensagem' : 'Chamar para renovar'}</button>` : ''}</div>
       </div>`; }).join('')}</div>
     <div class="sec"><div class="sec-cab"><h2 style="font-size:16px">Compras</h2>${d ? `<span class="pill p-neutro">${d.vendas.length}</span>` : ''}</div>
-      ${!d ? `<p class="explica">${LADO.erro ? esc(LADO.erro) : 'Buscando as compras…'}</p>` : d.vendas.length ? `<div class="grupo">${d.vendas.map(v => `<div class="it"><div class="txt"><b>${nomeCompra(v)}</b><span>${quandoFoi(v.quando)}${varias ? ' · para ' + esc(nomeDe(v.crianca)) : ''}${v.por ? ' · por ' + esc(primeiro(v.por)) : ''}</span></div><b class="num">${brl(v.v)}</b></div>`).join('')}</div>` : `<p class="explica">Nenhuma compra registrada ainda.</p>`}</div>
+      ${!d ? `<p class="explica">${LADO.erro ? esc(LADO.erro) : 'Buscando as compras…'}</p>` : d.vendas.length ? `<div class="grupo">${d.vendas.map(v => `<div class="it"><div class="txt"><b>${nomeCompra(v)}</b><span>${quandoFoi(v.quando)}${varias ? ' · para ' + esc(nomeDe(v.crianca)) : ''}${v.por ? ' · por ' + esc(primeiro(v.por)) : ''}${pagoDaCompra(v) ? ' · ' + esc(pagoDaCompra(v)) : ''}</span></div><b class="num">${brl(v.v)}</b></div>`).join('')}</div>` : `<p class="explica">Nenhuma compra registrada ainda.</p>`}</div>
     <div class="sec"><div class="sec-cab"><h2 style="font-size:16px">Visitas</h2>${d ? `<span class="pill p-neutro">${d.visitas.length}</span>` : ''}</div>
       ${!d ? (LADO.erro ? '' : `<p class="explica">Buscando as visitas…</p>`) : d.visitas.length ? `<div class="grupo">${visitas.map(v => `<div class="it"><div class="txt"><b>${v.dia.getDate()} de ${MESES[v.dia.getMonth()]}${v.dia.getFullYear() !== agora.getFullYear() ? ' de ' + v.dia.getFullYear() : ''}</b><span>${varias ? esc(nomeDe(v.crianca)) + ' · ' : ''}${v.entrou} às ${v.saiu}</span></div><span class="pill p-neutro">${hm(v.deb)}</span></div>`).join('')}</div>${d.visitas.length > 6 ? `<button class="link tap" data-act="lado-todas" style="align-self:flex-start">${LADO.todas ? 'Mostrar só as últimas' : 'Ver as ' + d.visitas.length + ' visitas'}</button>` : ''}` : `<p class="explica">Ainda não veio brincar.</p>`}</div>
     ${d && d.cancelados && d.cancelados.length ? `<div class="sec"><div class="sec-cab"><h2 style="font-size:16px">Entradas canceladas</h2><span class="pill p-erro">${d.cancelados.length}</span></div>
@@ -2436,6 +2550,8 @@ function folhaDia() {
   const nCanc = supervisorOuMais() ? (S.cancelamentos || []).filter(x => agora - x.quando < 86400000).length : 0;
   const nd = numerosDoDia();
   abrirFolha('Hoje na recepção', `<div class="h-saldo dia-nums"><span>vendido hoje<b class="num">${brl(nd.valor)}</b><small>${nd.n} ${nd.n === 1 ? 'venda' : 'vendas'} · ${hm(nd.min)} de recreação</small></span><span>horas usadas<b class="num">${hm(nd.usadas)}</b><small>em períodos de ${porExt(periodo())}</small></span><span class="${nd.atr.n ? 'alerta' : ''}">cobranças por atraso<b class="num">${nd.atr.n}</b><small>${nd.atr.n ? brl(nd.atr.valor) + ' além do tempo' : 'ninguém passou'}</small></span></div>
+    ${(ph => { const rec = FORMAS.reduce((t, [f]) => t + (ph[f] || 0), 0), sem = centavos(nd.valor - rec);
+      return `<div class="h-saldo dia-formas" aria-label="Recebido por forma de pagamento nas últimas 24 horas">${FORMAS.map(([f, n]) => `<span>${n}<b class="num">${brl(ph[f] || 0)}</b></span>`).join('')}</div>${sem > 0.005 ? `<p class="explica">${brl(sem)} do vendido ${rec > 0 ? 'ainda ' : ''}não tem forma de pagamento anotada: cobrança por atraso a receber na saída, ou venda sem a tela de pagamento.</p>` : ''}`; })(pagHoje())}
     <p class="explica">${semIdface() ? 'Cada entrada, saída e venda marcada na tela vira uma linha aqui, na hora.' : 'Cada rosto reconhecido pelo iDFace vira uma linha aqui, na hora.'} As saídas mostram o que foi debitado.</p>
     ${(d => d.vouchers || d.pcd ? `<div class="marca">${ic(IC.presente, 18)}<span><b>Últimas 24 h:</b> ${[d.vouchers ? `${d.vouchers} ${d.vouchers === 1 ? 'voucher' : 'vouchers'} (${brl(d.voucher_valor)} sem cobrar)` : '', d.pcd ? `${d.pcd} ${d.pcd === 1 ? 'venda' : 'vendas'} com desconto PCD (${brl(d.pcd_valor)} de desconto)` : ''].filter(Boolean).join(' · ')}</span></div>` : '')(descontosHoje())}
     ${supervisorOuMais() ? `<button class="marca tap" data-act="cancelamentos" style="width:100%">${ic(IC.x, 18, 2.4)}<span><b>Entradas canceladas sem cobrar</b> · ${nCanc ? nCanc + ' nas últimas 24 h' : 'nenhuma nas últimas 24 h'}${aConferir().length ? ' · <b>' + aConferir().length + ' para conferir</b>' : ''}</span>${ic(IC.vai, 18)}</button>` : ''}${listaRegistros(regs)}`);
@@ -2915,8 +3031,15 @@ const ACOES = {
     const v = usarVoucherPrevia(c); desenhar(true); atualizarSaida(); toast(avisoVoucher(v, c.nome) || 'Voucher usado');
   },
   'serv-menos': el => { if (!CARRINHO) return; CARRINHO.q[el.dataset.s] = Math.max(0, (CARRINHO.q[el.dataset.s] || 0) - 1); atualizarCarrinho(); },
-  'pac-marca': el => { if (!CARRINHO) return; const i = +el.dataset.i; CARRINHO.pac = CARRINHO.pac.includes(i) ? CARRINHO.pac.filter(k => k !== i) : [...CARRINHO.pac, i]; atualizarCarrinho(); },
-  'atender-ok': el => registrarAtendimento(+el.dataset.id),
+  'pac-marca': el => { if (!CARRINHO) return; const i = +el.dataset.i; CARRINHO.pac = CARRINHO.pac.includes(i) ? CARRINHO.pac.filter(k => k !== i) : [...CARRINHO.pac, i]; atualizarCarrinho();
+    const d = el.closest('details'); if (d && CARRINHO.pac.includes(i)) d.open = false; },   /* escolheu: a lista fecha e o pacote escolhido fica à vista */
+  'atender-ok': el => abrirPagamento(+el.dataset.id),   /* com valor a pagar, abre a tela de pagamento; sem valor (só voucher), registra direto */
+  'pag-voltar': () => voltarDaEscolha(),
+  'pag-forma': el => { if (!PAG) return; const f = el.dataset.f, i = PAG.formas.indexOf(f);
+    if (i >= 0) { PAG.formas.splice(i, 1); delete PAG.v[f]; } else { if (PAG.formas.length >= 3) { toast('O pagamento pode ser dividido em até três formas'); return; } PAG.formas.push(f); }
+    if (PAG.formas.length) delete PAG.v[PAG.formas[PAG.formas.length - 1]];   /* a última forma tocada fica com o resto */
+    desenharPag(); const vazio = $$('#pg-partes .pg-valor').find(x => !x.value); if (vazio) vazio.focus(); },
+  'pag-ok': el => { if (!PAG || PAG.onde !== 'venda') return; const r = pagPartes(); if (r.erro) { toast(r.erro); return; } registrarAtendimento(+el.dataset.id, false, r.partes); },
   entrada: el => { entrada(crianca(el.dataset.id), 'mão'); fecharFolha(); desenhar(); },
   saida: el => pedirSaida(+el.dataset.id),
   avisar: el => { const c = crianca(el.dataset.id); let conv = S.conversas.find(x => x.crianca === c.id); if (!conv) { conv = { id: novoId(), crianca: c.id, lidas: true, msgs: [] }; S.conversas.push(conv); } S.zapAberta = conv.id; S.zapModo = 'papo'; S.zapDia = isoDia(agora); fecharFolha(); trocarTela('zap'); const t = $('#zap-texto'); if (t) { t.value = `Oi, ${nomeMsg(primeiro(c.resp))}! `; t.focus(); t.setSelectionRange(t.value.length, t.value.length); } },
@@ -3134,6 +3257,7 @@ document.addEventListener('input', e => {
   if (e.target.id === 'f-obs') marcarAtalhos();
   if (/^f-(cpf|resp|tel|tel2|nome|obs)$/.test(e.target.id)) guardarCadastro();   // o cadastro novo vai ficando guardado enquanto é escrito
   if (e.target.id === 'v-item' || e.target.id === 'v-valor') atualizarCarrinho();
+  if (e.target.classList && e.target.classList.contains('pg-valor') && PAG) { PAG.v[e.target.dataset.pgF] = e.target.value; desenharPag(false); }
   if (e.target.id === 'esp-busca') { S.espBusca = e.target.value; atualizarEspaco(); }
   if (e.target.id === 's-hora' && $('#s-conta')) previaSaida();
   if (e.target.id === 'banco-busca') { S.bancoBusca = e.target.value; const l = $('#banco-lista'); if (l) l.innerHTML = linhasBanco(); }
@@ -3146,6 +3270,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { if ($('#folha .folha-fundo')) fecharFolha(); else if (LADO) fecharLado(); }
   if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[role="button"][data-act]')) { e.preventDefault(); e.target.click(); }
   if (e.key === 'Enter' && !e.shiftKey && e.target.id === 'zap-texto') { e.preventDefault(); ACOES.enviar(); }
+  if (e.key === 'Enter' && e.target.classList && e.target.classList.contains('pg-valor')) { e.preventDefault(); const ok = $('#p-ok') || $('#s-ok'); if (ok && !ok.disabled) ok.click(); }
   if (e.key === 'Enter' && ['l-login', 'l-senha'].includes(e.target.id)) { e.preventDefault(); e.target.id === 'l-login' ? $('#l-senha').focus() : ACOES.entrar(); }
   if (e.key === 'Enter' && ['g-nome', 'g-login', 'g-senha'].includes(e.target.id)) { e.preventDefault(); const prox = { 'g-nome': '#g-login', 'g-login': '#g-senha' }[e.target.id]; prox ? $(prox).focus() : ACOES['criar-gestor'](); }
 });
@@ -3175,7 +3300,7 @@ setInterval(() => {
   if (S.tela === 'horas') { const ns = saiuHaPouco().length; if (ns !== N_SAIRAM) { N_SAIRAM = ns; if (!$('#folha .folha-fundo')) atualizarEspaco(); }   // alguém entrou no prazo de reabrir, ou saiu dele
     $$('[data-saiu]').forEach(el => { const t = haMin(new Date(+el.dataset.saiu)); if (el.textContent !== t) el.textContent = t; }); }
   { const sc = $('#s-conta'), sb = $('#s-ok'), sh = $('#s-hora');   // a folha da saída acompanha o relógio: se a tolerância estourar com ela aberta, o valor a receber muda na hora
-    if (sc && sb && !sb.disabled && !(sh && sh.value)) { const c = crianca(sb.dataset.id); if (c && c.entrou) { const k = contaSaida(c), chave = k.n + '|' + k.deb + '|' + Math.floor(k.min); if (sc.dataset.k !== chave) { sc.dataset.k = chave; sc.innerHTML = htmlContaSaida(c, k); sb.innerHTML = rotuloSaida(k); } } } }
+    if (sc && sb && !sb.disabled && !(sh && sh.value)) { const c = crianca(sb.dataset.id); if (c && c.entrou) { const k = contaSaida(c), chave = k.n + '|' + k.deb + '|' + Math.floor(k.min); if (sc.dataset.k !== chave) { sc.dataset.k = chave; sc.innerHTML = htmlContaSaida(c, k); sb.innerHTML = rotuloSaida(k); pagSaida(k); } } } }
   $$('[data-ficha-tempo]').forEach(el => { const c = crianca(el.dataset.fichaTempo); if (c && c.entrou) el.innerHTML = tempoFicha(c); });
   $$('[data-ficha-saldo]').forEach(el => { const c = crianca(el.dataset.fichaSaldo); if (!c) return; const k = pacMin(c) + '|' + usadoAgora(c); if (el.dataset.k !== k) { el.dataset.k = k; el.innerHTML = saldoFicha(c); } });   // o saldo da comanda acompanha o relógio
   if (MODO !== 'servidor') { let novas = 0; for (const c of S.criancas) if (c.entrou) novas += acertarDemo(c); if (novas) { $$('[data-ficha-atraso]').forEach(el => { const c = crianca(el.dataset.fichaAtraso); if (c) el.innerHTML = atrasoFicha(c); }); desenhar(true); } }

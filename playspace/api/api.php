@@ -38,7 +38,7 @@ function dados(array $eu): array {
   $porCrianca = []; foreach ($visitas as $v) $porCrianca[(int)$v['crianca_id']][] = ['id' => (int)$v['id'], 'dia' => $v['saiu'], 'ini' => $v['entrou'], 'entrou' => substr($v['entrou'], 11, 5), 'saiu' => substr($v['saiu'], 11, 5), 'deb' => (int)$v['debitado_min']];
   $ultimas = []; foreach ($db->query('SELECT v.crianca_id, v.minutos, v.valor, v.quando, v.itens, v.servico FROM vendas v JOIN (SELECT crianca_id, MAX(id) AS m FROM vendas WHERE minutos > 0 GROUP BY crianca_id) u ON u.m = v.id')->fetchAll() as $v) $ultimas[(int)$v['crianca_id']] = ['h' => round((int)$v['minutos'] / 60, 2), 'm' => (int)$v['minutos'], 'v' => (float)$v['valor'], 'quando' => $v['quando'], 'com' => (string)$v['itens'], 'servico' => (string)$v['servico']];
   // as cobranças por atraso da visita de quem está no espaço (quantas e quanto falta receber na saída)
-  $atrasos = []; foreach ($db->query('SELECT v.crianca_id, COUNT(*) n, SUM(v.valor) t FROM vendas v JOIN criancas c ON c.id = v.crianca_id WHERE v.auto = 1 AND c.entrou IS NOT NULL AND v.quando >= c.entrou GROUP BY v.crianca_id')->fetchAll() as $a) $atrasos[(int)$a['crianca_id']] = ['n' => (int)$a['n'], 'valor' => (float)$a['t']];
+  $atrasos = []; foreach ($db->query('SELECT v.crianca_id, COUNT(*) n, SUM(v.valor) t FROM vendas v JOIN criancas c ON c.id = v.crianca_id WHERE v.auto = 1 AND c.entrou IS NOT NULL AND v.quando >= c.entrou AND NOT EXISTS (SELECT 1 FROM pagamentos p WHERE p.venda_id = v.id) GROUP BY v.crianca_id')->fetchAll() as $a) $atrasos[(int)$a['crianca_id']] = ['n' => (int)$a['n'], 'valor' => (float)$a['t']];
   // uv: a última linha de venda de cada criança (entre as 2000 linhas mais novas do dia a dia). A tela usa para saber que um atendimento que ficou em aberto num aparelho já foi registrado em outro
   $uv = []; foreach ($db->query("SELECT crianca_id, MAX(id) m FROM registros WHERE id > (SELECT COALESCE(MAX(id), 0) - 2000 FROM registros) AND tipo = 'venda' AND crianca_id IS NOT NULL GROUP BY crianca_id")->fetchAll() as $l) $uv[(int)$l['crianca_id']] = (int)$l['m'];
   // vouch: a criança tem um voucher de hoje sem saída depois dele (o da visita em curso, ou um guardado): a tela mostra e não oferece outro
@@ -71,7 +71,7 @@ function dados(array $eu): array {
     AND NOT EXISTS (SELECT 1 FROM visitas x WHERE x.crianca_id = c.id) AND NOT EXISTS (SELECT 1 FROM cancelamentos k WHERE k.crianca_id = c.id) ORDER BY c.criado_em, c.id');
   $q->execute([date('Y-m-d') . ' 00:00:00']); $fora = pendFora();   // quem a equipe tirou da lista hoje ("não vai fazer agora") não volta
   $pend = array_values(array_filter(array_map(fn($p) => ['id' => (int)$p['id'], 'em' => $p['criado_em']], $q->fetchAll()), fn($p) => !isset($fora[$p['id']])));
-  return ['criancas' => array_values($criancas), 'registros' => $registros, 'conversas' => array_values($conversas), 'compromissos' => $compromissos, 'regra' => regra(), 'cancelamentos' => $canc, 'pendentes' => $pend, 'produtos' => produtos(), 'alugueis' => alugueis(),
+  return ['criancas' => array_values($criancas), 'registros' => $registros, 'conversas' => array_values($conversas), 'compromissos' => $compromissos, 'regra' => regra(), 'cancelamentos' => $canc, 'pendentes' => $pend, 'produtos' => produtos(), 'alugueis' => alugueis(), 'pagamentos_hoje' => pagamentosDesde($hojeMenos),
     'vendas_hoje' => ['n' => (int)$vh['n'], 'min' => (int)$vh['m'], 'horas' => round((int)$vh['m'] / 60, 2), 'valor' => (float)$vh['v']], 'atraso_hoje' => $atrasoHoje, 'descontos_hoje' => $descontosHoje, 'equipe' => $equipe, 'eu' => $eu, 'versao' => PLAY_VERSAO,
     'idface' => idfaceEstado(), 'whats' => whatsResumo(), 'agora' => agora(), 'exemplo' => ($ex = cfg('exemplo', null)) && is_array($ex) ? count($ex['criancas'] ?? []) : 0];
 }
@@ -242,6 +242,13 @@ switch ($acao) {
     }
     $r = fazerSaida($c, 'mão');
     if ($corrige !== null) { $k = corrigirSaida((int)$r['visita'], $corrige, $u, $motivo); $r['corrigida'] = $k; $r['debitado'] = $k['debitado']; $r['atraso'] = atrasoDaVisita((int)$c['id'], (string)$c['entrou'], date('Y-m-d H:i:s', time() + 5)); }
+    // 0.90: a forma em que as cobranças por atraso desta visita foram recebidas. Vale só para as que ainda não estavam pagas, até o valor de cada uma
+    $pg = lerPagamento($in['pagamento'] ?? null); $r['pago'] = '';
+    if ($pg) {
+      $q = $db->prepare('SELECT id FROM vendas WHERE crianca_id = ? AND auto = 1 AND quando >= ? AND NOT EXISTS (SELECT 1 FROM pagamentos p WHERE p.venda_id = vendas.id) ORDER BY id'); $q->execute([(int)$c['id'], (string)$c['entrou']]);
+      $eu2 = eu(); $pago = gravarPagamento(array_map(fn($l) => (int)$l['id'], $q->fetchAll()), $pg, (int)$c['id'], $eu2 ? (int)$eu2['id'] : null);
+      if ($pago) { $r['pago'] = textoPagamento($pago); $db->prepare("UPDATE registros SET texto = REPLACE(texto, ' a receber', ' · recebido: ' || ?) WHERE id = ? AND crianca_id = ?")->execute([$r['pago'], (int)$r['registro'], (int)$c['id']]); }
+    }
     responder($r);
   }
   case 'visita_corrigir': { // depois da saída: a supervisão corrige a hora (a criança saiu antes e a saída foi marcada tarde)
@@ -301,6 +308,7 @@ switch ($acao) {
     $db->prepare('UPDATE criancas SET entrou = ?, usado_min = MAX(0, usado_min - ?) WHERE id = ?')->execute([$v['entrou'], (int)$v['debitado_min'], $c['id']]);
     $sap = (int)($in['sapateira'] ?? 0); if ($sap > 0 && !donoSapateira($sap, (int)$c['id'])) $db->prepare('UPDATE criancas SET sapateira = ? WHERE id = ?')->execute([$sap, $c['id']]);
     $db->prepare('DELETE FROM visitas WHERE id = ?')->execute([$v['id']]);
+    $db->prepare('DELETE FROM pagamentos WHERE crianca_id = ? AND quando >= ? AND venda_id IN (SELECT id FROM vendas WHERE crianca_id = ? AND auto = 1 AND quando >= ?)')->execute([$c['id'], $v['saiu'], $c['id'], $v['entrou']]);   // o que foi recebido nessa saída
     if (!empty($in['registro'])) $db->prepare('DELETE FROM registros WHERE id = ? AND crianca_id = ?')->execute([(int)$in['registro'], $c['id']]);
     if (!empty($in['mensagem'])) $db->prepare('DELETE FROM mensagens WHERE id = ? AND crianca_id = ?')->execute([(int)$in['mensagem'], $c['id']]);
     responder();
@@ -352,11 +360,18 @@ switch ($acao) {
       $qd = $db->prepare("SELECT quando, texto FROM registros WHERE tipo = 'venda' AND crianca_id = ? AND id > ? ORDER BY id DESC LIMIT 1"); $qd->execute([(int)$c['id'], $visto]);
       if ($ja = $qd->fetch()) falha('Já foi registrada uma venda para ' . $c['nome'] . ' às ' . substr((string)$ja['quando'], 11, 5) . ': ' . $ja['texto'] . '. Confira antes de registrar outra.', 409);
     }
+    // 0.90: a forma de pagamento (até três). Confere antes de vender: tem de fechar com o total que o servidor calculou, não com o que a tela mostrou
+    $pg = lerPagamento($in['pagamento'] ?? null); $aPagar = round(array_sum(array_map(fn($l) => (float)$l['valor'], $linhas)), 2);
+    if ($pg && abs(array_sum($pg) - $aPagar) >= 0.01) falha('O pagamento (' . dinheiro((float)array_sum($pg)) . ') não fecha com o total, que é ' . dinheiro($aPagar) . '. Feche e abra o atendimento de novo.');
     $vendas = []; $regs = []; $total = 0; $min = 0;
     foreach ($linhas as $l) { $x = fazerVenda($c, $l['min'], $l['valor'], (int)$u['id'], $l['itens'], $l['servico'], false, '', $l['mais'] ?? []); $vendas[] = $x['venda']; $regs[] = $x['registro']; $total += $l['valor']; $min += $l['min']; $c = crianca((int)$c['id']); }
     $vinfo = null;   // o voucher entra por último: com cobrança por atraso a receber, ele cobre essa cobrança em vez de somar tempo
     if ($comVoucher) { $v = usarVoucher($c, $u); $vendas[] = $v['venda']; $regs[] = $v['registro']; $min += $v['minutos']; $c = crianca((int)$c['id']); $vinfo = ['n' => $v['n'], 'cobriu' => $v['cobriu']]; }
-    $resp = ['vendas' => $vendas, 'registros' => $regs, 'total' => $total, 'minutos' => $min, 'voucher' => $vinfo];
+    if ($pg && $aPagar > 0) { // fica anotado em cada venda e numa linha do dia ("Pagamento · R$ 680 · Pix R$ 200 + Dinheiro R$ 480")
+      $pago = gravarPagamento($vendas, $pg, (int)$c['id'], (int)$u['id']);
+      $regs[] = registrar('pag', (int)$c['id'], $c['nome'], 'Pagamento · ' . dinheiro($aPagar) . ' · ' . textoPagamento($pago ?: $pg));
+    }
+    $resp = ['vendas' => $vendas, 'registros' => $regs, 'total' => $total, 'minutos' => $min, 'voucher' => $vinfo, 'pagamento' => $pg ? textoPagamento($pg) : ''];
     if (!empty($in['entrar']) && modoManual() && !$c['entrou'] && restante($c) >= periodo()) { // sem iDFace: pagou e já entra, o tempo começa a contar
       $e = fazerEntrada($c, 'mão'); $resp['entrada'] = ['registro' => $e['registro'], 'mensagem' => is_array($e['mensagem']) ? (int)($e['mensagem']['id'] ?? 0) : 0];
     }
@@ -378,7 +393,9 @@ switch ($acao) {
     $ids = array_values(array_unique(array_filter(array_map('intval', (array)($in['ids'] ?? []))))); if (!$ids || count($ids) > 30) falha('Cliente não encontrado.', 404);
     $marcas = implode(',', array_fill(0, count($ids), '?'));
     $q = $db->prepare("SELECT v.*, u.nome AS por_nome FROM vendas v LEFT JOIN usuarios u ON u.id = v.por WHERE v.crianca_id IN ($marcas) ORDER BY v.quando DESC, v.id DESC LIMIT 500"); $q->execute($ids);
-    $vendas = array_map(fn($v) => ['id' => (int)$v['id'], 'crianca' => (int)$v['crianca_id'], 'h' => round((int)$v['minutos'] / 60, 2), 'm' => (int)$v['minutos'], 'v' => (float)$v['valor'], 'itens' => (string)($v['itens'] ?? ''), 'servico' => (string)($v['servico'] ?? ''), 'quando' => $v['quando'], 'por' => (string)($v['por_nome'] ?? ''), 'auto' => !empty($v['auto']), 'voucher' => (string)($v['voucher'] ?? ''), 'pcd' => !empty($v['pcd'])], $q->fetchAll());
+    $pagas = []; $qp = $db->prepare("SELECT venda_id, forma, SUM(valor) t FROM pagamentos WHERE crianca_id IN ($marcas) GROUP BY venda_id, forma ORDER BY MIN(id)"); $qp->execute($ids);
+    foreach ($qp->fetchAll() as $l) $pagas[(int)$l['venda_id']][(string)$l['forma']] = round((float)$l['t'], 2);
+    $vendas = array_map(fn($v) => ['pago' => isset($pagas[(int)$v['id']]) ? textoPagamento($pagas[(int)$v['id']]) : '', 'id' => (int)$v['id'], 'crianca' => (int)$v['crianca_id'], 'h' => round((int)$v['minutos'] / 60, 2), 'm' => (int)$v['minutos'], 'v' => (float)$v['valor'], 'itens' => (string)($v['itens'] ?? ''), 'servico' => (string)($v['servico'] ?? ''), 'quando' => $v['quando'], 'por' => (string)($v['por_nome'] ?? ''), 'auto' => !empty($v['auto']), 'voucher' => (string)($v['voucher'] ?? ''), 'pcd' => !empty($v['pcd'])], $q->fetchAll());
     $q = $db->prepare("SELECT * FROM visitas WHERE crianca_id IN ($marcas) ORDER BY saiu DESC, id DESC LIMIT 1000"); $q->execute($ids);
     $visitas = array_map(fn($v) => ['id' => (int)$v['id'], 'crianca' => (int)$v['crianca_id'], 'dia' => $v['saiu'], 'entrou' => substr($v['entrou'], 11, 5), 'saiu' => substr($v['saiu'], 11, 5), 'deb' => (int)$v['debitado_min']], $q->fetchAll());
     $q = $db->prepare("SELECT * FROM cancelamentos WHERE crianca_id IN ($marcas) ORDER BY id DESC LIMIT 200"); $q->execute($ids);
