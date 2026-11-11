@@ -122,7 +122,7 @@ O tempo é debitado **sempre em períodos inteiros** (o período da Recreação:
 
 **Atendimento e serviços**: ao terminar o cadastro, o sistema abre o **atendimento** da criança: no meio, os serviços com o preço e o **total a pagar**; ao lado (em tela larga), os dados e o histórico de compras do cliente. O mesmo atendimento abre pelo botão **Vender** (ficha, Banco de horas, histórico).
 
-- **O que o atendimento mostra, de cima para baixo**: quem é a criança e o responsável; a **observação do cadastro em vermelho** (alergia, o que pode e o que não pode), sempre à vista, porque só a equipe vê a tela; as **horas do cliente** em três números (**comprou**, **usou** e **saldo**, em destaque); depois o **tempo de recreação** avulso (com o voucher), os **pacotes de horas**, os **outros serviços** (carrinhos), os **produtos** e o **outro item**.
+- **O que o atendimento mostra, de cima para baixo**: quem é a criança e o responsável; o **OBS** da observação (vermelho e aceso quando há; o texto só aparece com um toque, seção 6q); as **horas do cliente** em três números (**comprou**, **usou** e **saldo**, em destaque); depois o **tempo de recreação** avulso (com o voucher), os **pacotes de horas**, os **outros serviços** (carrinhos), os **produtos** e o **outro item**.
 - **Dar entrada com o saldo**: quando a criança está fora do espaço e tem pelo menos um período guardado, aparece o botão "Dar entrada com o saldo (4h30)": ela entra usando as horas que já tem, sem vender nada. Se a equipe escolher algo para vender, o botão some e a entrada vai junto com a venda (a caixa "Dar entrada agora").
 - Ao marcar tempo ou pacote, o atendimento diz como o saldo fica: "Entra 5h de recreação no saldo: fica com 9h30".
 
@@ -174,29 +174,33 @@ Para quando a criança entra e desiste logo (chorou, não quis ficar, o respons�
 - **Ajustes → Regra das horas → Cancelar a entrada sem cobrar** muda o prazo (5, 9, 10 ou 15 min) ou deixa só para a supervisão.
 - Com o iDFace ligado, o rosto lido nos 10 minutos seguintes ao cancelamento não vira entrada de novo (é a criança saindo).
 
-## 6f. Tela inicial: só a lista, com os filtros por serviço
+## 6f. Tela inicial: três colunas, por serviço
 
-A primeira tela (aba **Espaço**) é **só a lista**: uma linha por criança que está no espaço e uma linha por carrinho (ou fusquinha) que saiu da loja e ainda não voltou. Num computador as linhas ficam em três colunas. Tudo o mais abre ao tocar na linha.
+A primeira tela (aba **Espaço**) mostra **todo mundo de uma vez, em três colunas com título e contagem**, sem filtro para tocar:
 
-- **A linha da criança mostra só o essencial**: o **nome da criança**, o **nome do responsável** embaixo, o **tempo que ela está no espaço** (correndo segundo a segundo) e o botão **Saída**.
-- **A linha do carrinho** (o que saiu da loja, seção 6o) tem o ícone do carrinho, **com quem está** (a criança e o responsável) em cima, **o que é** embaixo (CARRINHO FUSQUINHA, CARRINHO DE BEBÊ), há quanto tempo saiu e o botão **Devolveu**.
-- **A cor diz a situação**: verde = no tempo; amarela = acabando (faltam 10 min ou menos); vermelha = passou do tempo comprado. O tempo fica da mesma cor. Parando o mouse no tempo, aparece até que horas vai (ou quanto passou).
-- **Só aparecem na linha quando existem**: o **sininho vermelho** (há observação: um toque mostra o que é) e o selo **+ R$ 80** (há cobrança por atraso a receber).
-- **O responsável aparece sempre.** Com três PEDRO no espaço, é o nome do responsável que diz qual é qual.
-- **O que é do mesmo responsável fica junto**: as crianças e os carrinhos da mesma família, um embaixo do outro, dentro da mesma moldura, com um elo ao lado. O sistema junta quem tem o mesmo CPF (ou RNE) do responsável; em cadastros sem documento, quem tem o mesmo telefone.
-- **Tocar na linha abre a comanda** (a ficha), com tudo: responsável, telefones, documento, observação em vermelho, o que está fora da loja (com o **Devolveu**), **sapateira**, hora da entrada, até quando vai o tempo, quanto debita se sair agora, os três números (**comprou**, **usou** e **saldo**), o **cancelar a entrada**, as cobranças por atraso, o histórico e os botões.
-- **Os filtros são os serviços da loja**, numa linha só deles: **TODAS**, **RECREAÇÃO**, **CARRINHO FUSQUINHA** e **CARRINHO DE BEBÊ**, cada um com a contagem. São os serviços de Ajustes → Serviços e preços: o tempo de brincar e tudo o que estiver marcado como "sai da loja e volta". Tocar de novo no filtro escolhido volta para TODAS.
-- **Dentro da RECREAÇÃO** abrem-se ao lado **HORAS AVULSAS** e **PACOTES**, também com a contagem: quem está na recreação comprada por período (ou no voucher) e quem está usando as horas de um pacote. Tocar de novo mostra os dois. A conta: o tempo que a criança já usou consome as compras na ordem em que foram feitas; se ainda sobra alguma hora de pacote, ela está em PACOTES.
-- Saíram os filtros *Acabando*, *Passou do tempo* e *Com cobrança*: a cor da linha, a ordem (quem está mais perto de estourar vem primeiro) e o selo **+ R$ 80** já mostram isso na própria lista.
-- **SAÍRAM HÁ POUCO** só aparece quando há alguém no prazo de reabrir a visita (seção 6m).
-- **Embaixo dos filtros**, a **busca** e a ordem (**Tempo** ou **Nome**).
-- **Buscar** (criança, responsável, telefone ou CPF) filtra a lista e também acha quem tem cadastro e não está no espaço, com os botões **Entrada** (se tem um período guardado) e **Atender** (vender e dar entrada).
+- **RECREAÇÃO · Horas avulsas**: quem está na recreação comprada por período (ou no voucher).
+- **RECREAÇÃO · Pacotes**: quem está usando as horas de um pacote. A conta: o tempo que a criança já usou consome as compras na ordem em que foram feitas; se ainda sobra alguma hora de pacote, ela está em Pacotes.
+- **FORA DA LOJA · Carrinhos**: o que saiu da loja e ainda não voltou (seção 6o), separado por serviço: CARRINHO FUSQUINHA, CARRINHO DE BEBÊ. A coluna só existe se a loja tem algum serviço marcado como "sai da loja e volta".
+
+Em cada coluna, **uma linha por cliente**:
+
+- a **bolinha** da situação: verde = no tempo; amarela = acabando (faltam 10 min ou menos); vermelha, com a linha rosada = passou do tempo comprado. Quem está mais perto de estourar o tempo vem primeiro;
+- o **nome da criança** e, embaixo, o **nome do responsável** (com três PEDRO no espaço, é ele que diz qual é qual);
+- o **tempo** correndo e, embaixo dele, **até que horas vai** ("até 13:46") ou **quanto passou** ("passou 7 min");
+- o botão **Saída** (ou **Devolveu**, na coluna dos carrinhos).
+
+Só aparecem na linha quando existem: o **OBS** vermelho (há observação: o texto só aparece com um toque, seção 6q) e o selo **+ R$ 80** (cobrança por atraso a receber).
+
+- **Irmãos na mesma coluna ficam juntos**, um embaixo do outro, com um elo ao lado do nome do responsável. O sistema junta quem tem o mesmo CPF (ou RNE) do responsável; em cadastros sem documento, quem tem o mesmo telefone.
+- **Tocar na linha abre a comanda** (a ficha), com tudo: responsável, telefones, documento, o OBS, o que está fora da loja (com o **Devolveu**), **sapateira**, hora da entrada, até quando vai o tempo, quanto debita se sair agora, os três números (**comprou**, **usou** e **saldo**), o **cancelar a entrada**, as cobranças por atraso, o histórico e os botões.
+- **Em cima das colunas** fica só a **busca** (criança, responsável, telefone ou CPF). Ela filtra as três colunas e também acha quem tem cadastro e não está no espaço, com os botões **Entrada** (se tem um período guardado) e **Atender** (vender e dar entrada). Ao lado da busca, **SAÍRAM HÁ POUCO** só aparece quando há alguém no prazo de reabrir a visita (seção 6m).
+- **As colunas se ajustam ao espaço**: três num computador; duas quando a tela é menor ou quando o histórico do cliente está aberto ao lado; uma embaixo da outra no celular. Com muita gente num grupo só, a coluna dele fica mais comprida e a página rola.
 - A faixa **Falta finalizar** só aparece quando alguém ficou com o cadastro ou o atendimento pela metade (veja 6i).
 - **No alto**: quantas crianças estão no espaço, quantas passaram do tempo e **quantos carrinhos há para devolver**; o **sininho** dos avisos (só quando há algum, seção 6c), **Pacotes e produtos** e **Entrada na tela**.
-- **Atividades da semana**: em tela larga (1400 px ou mais) ficam na coluna da direita, por dia, sempre à vista. Em tela menor e no celular viram **uma linha só** embaixo da lista; um toque abre os dias. Dá para marcar como feito ali mesmo.
-- **No pé**, dois atalhos: **Banco de horas** (quem não está no espaço) e **Hoje na recepção** (cada entrada, saída, venda, devolução, cancelamento e mudança de estoque do dia, com o nome da criança e o do responsável em cada linha).
-- **Os números do dia** (quanto foi vendido, as horas usadas e as cobranças por atraso) estão no alto de **Hoje na recepção**.
-- A folha da **Saída** diz o "Saldo depois da saída", e o **Histórico do cliente** mostra o saldo de cada criança e o da família.
+- **Atividades da semana**: em tela larga (1400 px ou mais) ficam na coluna da direita, por dia, sempre à vista. Em tela menor e no celular viram **uma linha só** embaixo das colunas; um toque abre os dias.
+- **No pé**, dois atalhos: **Banco de horas** (quem não está no espaço) e **Hoje na recepção** (cada entrada, saída, venda, pagamento, devolução, cancelamento e mudança de estoque do dia). Os números do dia estão no alto de **Hoje na recepção**.
+
+Saíram os filtros por serviço e a ordem por nome das versões anteriores: as colunas já separam tudo, e para achar alguém pelo nome é só buscar.
 
 ## 6g. Cobrança por atraso
 
@@ -378,6 +382,29 @@ Depois de escolher o serviço (horas avulsas, pacote, carrinho, produto), o aten
 **Reabrir a visita** (seção 6m): a cobrança por atraso que já foi recebida na primeira saída não volta a aparecer como "a receber"; na segunda saída a tela cobra só o que é novo.
 
 O que ainda não tem forma anotada aparece numa frase em Hoje na recepção: é a cobrança por atraso de quem ainda está no espaço (será recebida na saída) ou uma saída lida pelo iDFace. As vendas feitas antes da 0.90 não têm forma de pagamento.
+
+## 6q. Observação: o OBS (só a equipe vê)
+
+A observação do cliente (alergia, quem pode buscar, o que a equipe precisar lembrar) **não fica mais escrita na tela**, porque o responsável pode estar olhando. No lugar dela aparece um **OBS**:
+
+- **OBS vermelho e aceso**: há observação. **Um toque mostra o texto; outro esconde.**
+- **OBS apagado** (cinza): não há observação. Um toque abre o campo para escrever.
+
+Onde o OBS aparece:
+
+- **na tela inicial**, ao lado do nome da criança (só quando há observação): o toque mostra o texto no aviso do pé da tela, por alguns segundos;
+- **no atendimento (a venda)** e **na comanda**, logo abaixo do nome: o toque abre o texto ali mesmo, com **Mudar**, **Esconder** e, se já houve mudança, **Ver a anterior**;
+- **no histórico do cliente**, em cada criança.
+
+**Dá para escrever ou mudar a observação em três lugares**: no cadastro (campo Restrições e observações), no atendimento e na comanda (toque no OBS → escrever → **Guardar**). Os atalhos (Alergia, Pode pintura, Não mexer no cabelo…) funcionam nos três. Qualquer pessoa da equipe pode anotar.
+
+**A observação não some:**
+
+- fica guardada no cadastro da criança e aparece (como OBS aceso) em todo atendimento dela, hoje e nas próximas visitas;
+- quando alguém muda ou apaga, **a observação anterior continua guardada**: em **Ver a anterior** dá para ler e, com um toque em **Voltar para esta**, recuperar;
+- o OBS aberto diz **quem anotou e quando**; a mudança vira uma linha em **Hoje na recepção** ("Observação alterada · por JOÃO"), sem repetir o texto.
+
+O texto da observação não aparece em nenhuma tela sem que alguém toque no OBS, nem na dica que surge ao parar o mouse.
 
 ## 7. Atualizar
 

@@ -714,6 +714,51 @@ body.quieto .dica { animation: none !important; }
 .lista-pac .opc span { order: 4; flex: none; margin-left: auto; font-family: var(--display); font-weight: 800; font-size: 15px; color: var(--tinta); }
 .lista-pac .opc[aria-pressed="true"] { border-color: var(--coral); background: var(--coral-2); }
 @media (max-width: 480px) { .lista-pac .lp-t small { display: none; } }
+/* 0.91: a tela inicial por serviço: três colunas com título e contagem; dentro, uma linha por cliente */
+.esp-cab .dias { flex: none; } .esp-cab .dias:empty { display: none; }
+.esp-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: start; } .esp-cols.duas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.esp-col { background: var(--card); border: 1px solid var(--borda); border-radius: 20px; box-shadow: var(--sombra); overflow: hidden; min-width: 0; }
+.esp-col > header { display: flex; align-items: center; gap: 10px; padding: 14px 16px 12px; border-bottom: 1px solid var(--borda); background: var(--menta-risco); }
+.esp-col > header i { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 11px; background: var(--card); color: var(--coral); flex: none; }
+.esp-col > header div { flex: 1; min-width: 0; } .esp-col > header small { display: block; font: 800 10.5px/1.2 var(--texto); letter-spacing: .09em; text-transform: uppercase; color: var(--tinta-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.esp-col > header b { font: 800 17px/1.15 var(--display); } .esp-col > header .n { font: 800 15px/1 var(--display); min-width: 34px; height: 30px; padding: 0 9px; border-radius: 15px; background: var(--tinta); color: var(--creme); display: grid; place-items: center; flex: none; }
+.esp-sub { padding: 9px 16px 5px; font: 800 10.5px/1 var(--texto); letter-spacing: .09em; text-transform: uppercase; color: var(--apagado); border-top: 1px solid var(--borda); } .esp-col > header + .esp-sub { border-top: 0; }
+.esp-vazio { padding: 18px 16px; font-size: 13px; font-weight: 700; color: var(--apagado); }
+.esp-col .esp-it { height: 52px; padding: 0 12px 0 36px; border: 0; border-top: 1px solid var(--borda); border-radius: 0; background: transparent; box-shadow: none; }
+.esp-col .esp-it.acabando, .esp-col .esp-it.passou, .esp-col .esp-it.cobranca { box-shadow: none; border-color: var(--borda); } .esp-col .esp-it.passou { background: var(--erro-bg); }
+.esp-col .esp-it::before { content: ""; position: absolute; left: 16px; top: 50%; width: 10px; height: 10px; margin-top: -5px; border-radius: 50%; background: var(--verde-agua); }
+.esp-col .esp-it.acabando::before { background: var(--mostarda); } .esp-col .esp-it.passou::before { background: var(--erro); } .esp-col .esp-it.livre::before { background: var(--apagado); }
+.esp-col > header + .esp-it, .esp-col > header + .esp-fam > .esp-it:first-child, .esp-sub + .esp-it, .esp-sub + .esp-fam > .esp-it:first-child { border-top: 0; }
+.esp-cols .esp-col .esp-fam { display: block; padding: 0; gap: 0; background: none; border-radius: 0; } .esp-cols .esp-col .esp-fam > .esp-it { flex: none; height: 52px; border: 0; border-top: 1px solid var(--borda); border-radius: 0; } .esp-cols .esp-col .esp-fam > .esp-it + .esp-it { border-top-color: transparent; }
+.esp-cols .esp-col > header + .esp-fam > .esp-it:first-child, .esp-cols .esp-col .esp-sub + .esp-fam > .esp-it:first-child { border-top: 0; }   /* a família: uma embaixo da outra, sem risco no meio */
+.esp-col .esp-it .tmp { grid-row: 1; align-self: end; font-size: 16px; line-height: 1.1; }
+.esp-it .at { grid-column: 2; grid-row: 2; align-self: start; position: relative; cursor: pointer; text-align: right; font-size: 11px; font-weight: 700; line-height: 1.2; color: var(--tinta-2); white-space: nowrap; }
+.esp-it.acabando .at { color: var(--aviso); } .esp-it.passou .at { color: var(--erro); }
+.esp-it .l1 .qt { flex: none; font-style: normal; font-size: 11px; font-weight: 800; color: var(--tinta-2); }
+.esp-col .esp-it.passou .acoes-e .bt { background: var(--card); }
+@media (max-width: 1080px) { .esp-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 700px) { .esp-cols, .esp-cols.duas { grid-template-columns: minmax(0, 1fr); } }
+/* as colunas se ajustam ao espaço que a lista tem de verdade (com o histórico do cliente aberto ao lado, sobra menos): três, duas ou uma */
+.espaco { container-type: inline-size; }
+@container (max-width: 980px) { .esp-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@container (max-width: 640px) { .esp-cols, .esp-cols.duas { grid-template-columns: minmax(0, 1fr); } }
+.esp-col { container-type: inline-size; }
+@container (max-width: 318px) { .esp-col .esp-it .acoes-e .bt .rt { display: none; } .esp-col .esp-it .acoes-e .bt { padding: 0 9px; } }   /* coluna estreita: o botão fica só com o ícone, para o nome caber */
+.esp-col .esp-it .l1 { overflow: hidden; }   /* o que não couber ao lado do nome é cortado, nunca fica por cima do relógio */
+/* 0.91: o OBS. Vermelho e aceso quando há observação; apagado quando não há. O texto só aparece para quem toca */
+.obs-bt { flex: none; display: inline-flex; align-items: center; justify-content: center; height: 30px; padding: 0 12px; border-radius: 999px; border: 1.5px solid var(--borda-2); background: var(--card); color: var(--apagado); font: 800 12px/1 var(--display); letter-spacing: .08em; }
+.obs-bt.on { border-color: var(--erro); background: var(--erro); color: #fff; box-shadow: 0 0 0 3px var(--erro-bg), 0 0 12px rgba(184, 64, 42, .45); }
+.obs-bt.mini { height: 20px; padding: 0 7px; font-size: 10px; box-shadow: none; position: relative; }
+.esp-it .l1 .obs { padding: 0 7px; margin: 0; color: #fff; }
+.obs-cx { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 8px 10px; border-radius: 14px; border: 1px dashed var(--borda-2); }
+.obs-cx.tem { border: 1px solid var(--erro); background: var(--erro-bg); } .obs-cx .obs-dica { flex: 1; min-width: 0; font-size: 13px; font-weight: 700; color: var(--tinta-2); } .obs-cx.tem .obs-dica { color: var(--erro); }
+.obs-cx.aberta .obs-dica { display: none; }
+.obs-cx .obs-corpo { flex: 1 1 100%; min-width: 0; display: flex; flex-direction: column; gap: 8px; } .obs-cx .obs-corpo[hidden] { display: none; }
+.obs-txt { margin: 0; font-size: 15px; font-weight: 800; line-height: 1.4; color: var(--erro); white-space: pre-wrap; overflow-wrap: anywhere; } .obs-txt.antes { color: var(--tinta-2); }
+.obs-meta { font-size: 11.5px; font-weight: 700; color: var(--tinta-2); } .obs-cx .acoes { gap: 6px; } .obs-cx .acoes .bt { height: 34px; padding: 0 12px; font-size: 13px; }
+.obs-cx .campo textarea { background: var(--card); }
+.h-obs { align-items: center; color: var(--erro); }
+.reg .ev.obs b::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; background: var(--erro); }
 /* as crianças do mesmo responsável: uma embaixo da outra, dentro da mesma moldura */
 .esp-fam { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 2px; border-radius: 16px; background: var(--tinta-2); }
 .esp-fam > .esp-it { flex: 1; height: auto; border: 0; border-radius: 5px; } .esp-fam > .esp-it:first-child { border-radius: 14px 14px 5px 5px; } .esp-fam > .esp-it:last-child { border-radius: 5px 5px 14px 14px; }
@@ -1027,7 +1072,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.90';
+const VERSAO = '0.91';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -1832,7 +1877,7 @@ const chipIdface = () => { const i = S.cfg.idface, ok = i.ligado && (MODO !== 's
 
 /* ---------- Horas ---------- */
 // A tela inicial: todas as crianças que estão no espaço, numa lista, com o tempo correndo. Tocar na criança abre a ficha.
-const ESP_ORDENS = [['tempo', 'Tempo'], ['nome', 'Nome']];   // por tempo: quem está mais perto de estourar vem primeiro; por nome: a listagem em ordem alfabética
+const ESP_ORDENS = [['tempo', 'Tempo']];   // por tempo: quem está mais perto de estourar vem primeiro; por nome: a listagem em ordem alfabética
 const espOrdem = () => ESP_ORDENS.some(o => o[0] === S.espOrdem) ? S.espOrdem : 'tempo';
 const sobraSeg = c => cobertoMin(c) * 60 - segDentro(c);   // negativo: já passou do tempo comprado
 const casaBusca = (c, q) => (c.nome + ' ' + c.resp + ' ' + (c.tel || '') + ' ' + (c.tel2 || '') + ' ' + (c.cpf || '') + ' ' + soDig(c.cpf) + ' ' + soDig(c.tel) + ' ' + soDig(c.tel2)).toLowerCase().includes(q);
@@ -1850,6 +1895,7 @@ const alugPassou = a => { const m = Math.max(1, Math.floor(-alugSobra(a) / 60));
 const alugSub = a => !alugHoje(a) ? 'saiu em ' + diaCurto(a.ini) + ' às ' + hora(a.ini) : a.min > 0 ? (alugSobra(a) < 0 ? 'passou ' + hms(-alugSobra(a)) : 'até ' + hora(new Date(+a.ini + a.min * 60000))) : 'saiu às ' + hora(a.ini);
 const alugTempo = a => alugHoje(a) ? hms(alugSeg(a)) : diaCurto(a.ini);   // de outro dia: em vez do relógio, o dia em que saiu
 const alugNome = a => (a.q > 1 ? a.q + ' × ' : '') + a.n;
+const alugSubCurto = a => !alugHoje(a) ? 'saiu em ' + diaCurto(a.ini) : a.min > 0 ? (alugSobra(a) < 0 ? 'passou ' + alugPassou(a) : 'até ' + hora(new Date(+a.ini + a.min * 60000))) : 'saiu às ' + hora(a.ini);   // embaixo do relógio
 // (prévia) o que está fora da loja sai das compras: cada venda de um serviço que "sai e volta" ainda não devolvida, juntando por criança e serviço, como o servidor faz
 function alugPrevia() {
   const G = [];
@@ -1867,27 +1913,43 @@ function planoDe(c) {
   return 'avulso';
 }
 // os filtros da lista: Todas, um por serviço da loja (o tempo de brincar e cada coisa que sai e volta) e, dentro da recreação, Horas avulsas ou Pacotes
-const servicosFiltro = () => [servicoTempo(), ...servicosVolta()].filter(Boolean);
-const espFiltro = () => { const f = S.espFiltro || 'todas'; return f === 'todas' || f === 'sairam' || servicosFiltro().some(x => x.id === f) ? f : 'todas'; };
-const espSub = () => { const st = servicoTempo(); return st && espFiltro() === st.id && ['avulso', 'pacote'].includes(S.espSub) ? S.espSub : ''; };
-// o que aparece na lista: as crianças que estão no espaço e o que saiu da loja e ainda não voltou, com o filtro, a busca e a ordem
-// (de saída: o que está mais perto de estourar o tempo vem primeiro). Cada item: { c: a criança, a: o que está fora (só nas linhas de carrinho), sobra }
+const espFiltro = () => S.espFiltro === 'sairam' ? 'sairam' : 'todas';   // a lista de quem está aqui, ou a de quem saiu há pouco (para reabrir a visita)
+// o que aparece na tela inicial: as crianças que estão no espaço e o que saiu da loja e ainda não voltou, com a busca.
+// Em cada coluna, o que está mais perto de estourar o tempo vem primeiro. Cada item: { c: a criança, a: o que está fora (só nas linhas de carrinho), sobra }
 function itensEspaco() {
-  const q = (S.espBusca || '').trim().toLowerCase(), f = espFiltro(), o = espOrdem(), st = servicoTempo(), sub = espSub(), noTempo = !!st && f === st.id;
-  let L = [];
-  if (f === 'todas' || noTempo) L = S.criancas.filter(c => c.entrou && (!sub || planoDe(c) === sub)).map(c => ({ c, sobra: sobraSeg(c) }));
-  if (f !== 'sairam' && !noTempo) L = L.concat(alugNaLista().filter(a => f === 'todas' || a.s === f).map(a => ({ c: crianca(a.crianca), a, sobra: alugSobra(a) })));
+  const q = (S.espBusca || '').trim().toLowerCase();
+  let L = S.criancas.filter(c => c.entrou).map(c => ({ c, sobra: sobraSeg(c) })).concat(alugNaLista().map(a => ({ c: crianca(a.crianca), a, sobra: alugSobra(a) })));
   if (q) L = L.filter(x => casaBusca(x.c, q) || (x.a && x.a.n.toLowerCase().includes(q)));
-  return L.sort((x, y) => (o === 'nome' ? 0 : x.sobra - y.sobra) || x.c.nome.localeCompare(y.c.nome) || (!!x.a - !!y.a));
+  return L.sort((x, y) => (x.sobra - y.sobra) || x.c.nome.localeCompare(y.c.nome) || (!!x.a - !!y.a));
 }
 function noEspaco() { return itensEspaco().filter(x => !x.a).map(x => x.c); }   // só as crianças, na ordem da lista
 const subEspaco = c => passouSeg(c) > 0 ? 'passou ' + hms(passouSeg(c)) : 'até ' + hora(fimVisita(c));
+const minPassou = seg => { const m = Math.max(1, Math.floor(seg / 60)); return m < 60 ? m + ' min' : dur(m); };
+const subCurto = c => passouSeg(c) > 0 ? 'passou ' + minPassou(passouSeg(c)) : 'até ' + hora(fimVisita(c));   // a linha pequena embaixo do relógio: "até 13:46" ou "passou 7 min"
 const pctEspaco = c => cobertoMin(c) ? Math.min(100, segDentro(c) / (cobertoMin(c) * 60) * 100) : 100;
 // o saldo: o que fica guardado se a criança sair agora (a visita em curso já descontada, em períodos inteiros)
 const saldoAgora = c => Math.max(0, pacMin(c) - usadoAgora(c));
 const saldoTxt = c => 'saldo ' + hm(saldoAgora(c));
-// a observação do cadastro (alergia, o que pode e o que não pode): em vermelho e à vista, porque só a equipe vê a tela
-const obsAlerta = c => c && c.obs ? `<div class="obs-alerta" role="note">${ic(IC.sino, 18, 2.4)}<span><b>Observação</b>${esc(c.obs)}</span></div>` : '';
+// 0.91: a observação do cliente é só para a equipe. Na tela fica um OBS: vermelho e aceso quando há observação, apagado quando não há.
+// O texto só aparece com um toque no OBS (o responsável pode estar olhando a tela) e some com outro. No mesmo lugar dá para escrever ou mudar.
+// Ao mudar, a observação anterior continua guardada (com quem mudou e quando): nada do que foi anotado se perde.
+function obsCaixa(c) {
+  return `<div class="obs-cx${c.obs ? ' tem' : ''}" data-obs-cx="${c.id}"><button type="button" class="obs-bt${c.obs ? ' on' : ''} tap" data-act="obs-abre" data-id="${c.id}" aria-expanded="false" aria-label="${c.obs ? 'Ver a observação' : 'Escrever uma observação'} de ${esc(c.nome)}">OBS</button><span class="obs-dica">${c.obs ? 'Tem observação. Toque no OBS para ver.' : 'Sem observação. Toque no OBS para escrever.'}</span><div class="obs-corpo" hidden></div></div>`;
+}
+const obsAlerta = c => c ? obsCaixa(c) : '';   // (a comanda e o atendimento chamam por este nome)
+const obsLida = c => `<p class="obs-txt">${esc(c.obs)}</p>${c.obs_por || c.obs_em ? `<small class="obs-meta">${c.obs_por ? 'anotada por ' + esc(c.obs_por) : 'anotada'}${c.obs_em ? ' ' + quandoCurto(dataDe(c.obs_em)) : ''}</small>` : ''}
+  <div class="acoes"><button type="button" class="bt tap" data-act="obs-editar" data-id="${c.id}">${ic(IC.lapis, 14)} Mudar</button>${c.obs_antes ? `<button type="button" class="bt claro tap" data-act="obs-anterior" data-id="${c.id}">Ver a anterior</button>` : ''}<button type="button" class="bt claro tap" data-act="obs-abre" data-id="${c.id}">Esconder</button></div>`;
+const obsEditor = c => `${campoObs(c.obs, 'ob-txt', 'Observação <span class="leve">· só a equipe vê</span>')}
+  <div class="acoes"><button type="button" class="bt forte tap" data-act="obs-salvar" data-id="${c.id}">${ic(IC.check, 14)} Guardar</button><button type="button" class="bt claro tap" data-act="obs-abre" data-id="${c.id}">Cancelar</button>${!c.obs && c.obs_antes ? `<button type="button" class="bt claro tap" data-act="obs-anterior" data-id="${c.id}">Ver a anterior</button>` : ''}</div>`;
+const obsAntes = c => `<small class="obs-meta">Observação anterior (a que estava antes da última mudança)</small><p class="obs-txt antes">${esc(c.obs_antes)}</p>
+  <div class="acoes"><button type="button" class="bt tap" data-act="obs-restaurar" data-id="${c.id}">${ic(IC.renova, 14)} Voltar para esta</button><button type="button" class="bt claro tap" data-act="obs-abre" data-id="${c.id}">Esconder</button></div>`;
+const redesenharObs = id => { const c = crianca(id); $$(`[data-obs-cx="${id}"]`).forEach(el => { if (c) el.outerHTML = obsCaixa(c); }); };
+async function salvarObs(c, txt) { // guarda a observação escrita na venda ou na comanda (vazia apaga); a anterior continua guardada
+  txt = MAIT(txt).slice(0, 500); const id = c.id, era = c.obs || ''; if (txt === era) { redesenharObs(id); return; }
+  if (MODO === 'servidor') { try { await api('obs_salvar', { id, obs: txt }); await carregar(); } catch (e) { toast(e.message); return; } }
+  else { if (era) c.obs_antes = era; c.obs = txt; c.obs_por = EU.nome; c.obs_em = new Date(); registrar('obs', c.nome, `${!era ? 'Observação anotada' : txt ? 'Observação alterada · a anterior continua guardada' : 'Observação apagada · a anterior continua guardada'} · por ${EU.nome}`); }
+  redesenharObs(id); desenhar(true); toast(txt ? 'Observação guardada. Só aparece para quem tocar no OBS.' : 'Observação apagada. A anterior continua guardada.');
+}
 // a conta da comanda (a ficha da criança): quanto comprou ao todo, quanto já usou (a visita de agora já contada, em períodos inteiros) e o saldo que fica
 const saldoFicha = c => `<span>comprou<b class="num">${hm(pacMin(c))}</b></span><span>usou<b class="num">${hm(usadoAgora(c))}</b></span><span class="tem" title="${c.entrou ? 'O que fica guardado se sair agora' : 'O que está guardado para a próxima visita'}">saldo<b class="num">${hm(saldoAgora(c))}</b></span>`;
 // o saldo que fica depois da saída: o que as novas cobranças por atraso somam (e as desfeitas tiram) também entra na conta
@@ -1905,28 +1967,30 @@ const haMin = d => { const m = Math.floor((agora - d) / 60000); return m < 1 ? '
 let N_SAIRAM = 0;   // quantos estavam em "Saíram há pouco" na última conta (quando muda, a lista é refeita)
 // as crianças do mesmo responsável ficam juntas na lista, uma embaixo da outra, no lugar da que vem primeiro na ordem escolhida
 function gruposEspaco(L) { const G = []; for (const x of L) { const g = G.find(k => mesmoCliente(k[0].c, x.c)); if (g) g.push(x); else G.push([x]); } return G; }
-// a linha de cada criança na tela inicial: só o nome dela, o do responsável (com três Pedros, é ele que diz qual é qual), o tempo correndo e a Saída.
-// Tudo o mais (sapateira, saldo, entrada, até quando vai, cancelar) fica na comanda, que abre ao tocar na linha. A cor da linha diz a situação:
-// verde no tempo, amarela acabando, vermelha quando passou. O sininho só aparece se há observação; o selo "+ R$", se há cobrança por atraso.
+// a linha de cada criança na tela inicial: o nome dela, o do responsável (com três Pedros, é ele que diz qual é qual), o tempo correndo
+// com "até quando" embaixo, e a Saída. A bolinha diz a situação: verde no tempo, amarela acabando, vermelha (e a linha rosada) quando passou.
+// O OBS vermelho só aparece se há observação (o texto fica escondido até alguém tocar); o selo "+ R$", se há cobrança por atraso a receber.
 function linhaEspaco(c, fam = 1) {
   const st = situacaoTempo(c), at = c.atraso && c.atraso.n ? c.atraso : null, abre = `data-act="ficha" data-id="${c.id}"`;
   return `<div class="esp-it ${st}${at ? ' cobranca' : ''}${S.chegou === c.id ? ' chegou' : ''}" data-esp="${c.id}">
     <button class="quem tap" ${abre} aria-label="Abrir a comanda de ${esc(c.nome)}, responsável ${esc(c.resp)}"></button>
-    <span class="l1" ${abre}><b>${esc(c.nome)}</b>${c.obs ? `<button type="button" class="obs tap" data-act="obs-ver" data-id="${c.id}" title="${esc(c.obs)}" aria-label="Ver a observação de ${esc(c.nome)}">${ic(IC.sino, 13, 2.4)}</button>` : ''}${at ? `<em class="cb" title="${at.n === 1 ? 'Cobrança por atraso' : at.n + ' cobranças por atraso'}: a receber na saída">+ ${brl(at.valor)}</em>` : ''}</span>
-    <span class="l2" ${abre} title="Responsável${fam > 1 ? ' · ' + fam + ' crianças juntas' : ''}">${fam > 1 ? `<i class="elo">${ic(IC.elo, 11, 2.6)}</i>` : ''}${esc(c.resp || 'sem responsável')}</span>
+    <span class="l1" ${abre}><b>${esc(c.nome)}</b>${c.obs ? `<button type="button" class="obs obs-bt on mini tap" data-act="obs-ver" data-id="${c.id}" title="Tem observação: toque para ver" aria-label="Ver a observação de ${esc(c.nome)}">OBS</button>` : ''}${at ? `<em class="cb" title="${at.n === 1 ? 'Cobrança por atraso' : at.n + ' cobranças por atraso'}: a receber na saída">+ ${brl(at.valor)}</em>` : ''}</span>
+    <span class="l2" ${abre} title="Responsável${fam > 1 ? ' · ' + fam + ' juntos' : ''}">${fam > 1 ? `<i class="elo">${ic(IC.elo, 11, 2.6)}</i>` : ''}${esc(c.resp || 'sem responsável')}</span>
     <b class="num tmp" ${abre} data-esp-t title="${subEspaco(c)}">${hms(segDentro(c))}</b>
+    <span class="at" ${abre} data-esp-at>${subCurto(c)}</span>
     <span class="acoes-e">${podeManual() ? `<button class="bt tap" data-act="saida-rapida" data-id="${c.id}" aria-label="Saída de ${esc(c.nome)}">${ic(IC.sair, 14)}<span class="rt">Saída</span></button>` : ''}</span>
   </div>`;
 }
-// a linha do que saiu da loja (carrinho, fusquinha): em cima, com quem está (a criança e o responsável); embaixo, o que é; há quanto tempo saiu e o botão Devolveu.
-// Com tempo comprado (o fusquinha), a cor segue a da criança: amarela quando falta pouco, vermelha quando passou. Tocar na linha abre a comanda.
+// a linha do que saiu da loja (carrinho, fusquinha), na coluna "Fora da loja": com quem está (a criança e o responsável), há quanto tempo saiu
+// e o botão Devolveu. O nome do serviço fica no título do grupo. Com tempo comprado (o fusquinha), a bolinha segue a da criança.
 function linhaAluguel(a, fam = 1) {
   const c = crianca(a.crianca), st = alugSit(a), abre = `data-act="ficha" data-id="${c.id}"`;
   return `<div class="esp-it alug ${st}" data-alug="${esc(a.id)}">
     <button class="quem tap" ${abre} aria-label="Abrir a comanda de ${esc(c.nome)}: ${esc(alugNome(a))} fora da loja"></button>
-    <span class="l1" ${abre} title="${esc(c.nome)} · responsável: ${esc(c.resp || 'sem responsável')}"><i class="sv-ic" aria-hidden="true">${ic(IC.carrinho, 14, 2.4)}</i><b>${esc(c.nome)}</b><span class="rs">${esc(c.resp || 'sem responsável')}</span></span>
-    <span class="l2" ${abre} title="O que está fora da loja${fam > 1 ? ' · junto com a família' : ''}">${fam > 1 ? `<i class="elo">${ic(IC.elo, 11, 2.6)}</i>` : ''}${esc(alugNome(a))}</span>
+    <span class="l1" ${abre} title="${esc(alugNome(a))}"><b>${esc(c.nome)}</b>${a.q > 1 ? `<em class="qt">× ${a.q}</em>` : ''}${c.obs ? `<button type="button" class="obs obs-bt on mini tap" data-act="obs-ver" data-id="${c.id}" title="Tem observação: toque para ver" aria-label="Ver a observação de ${esc(c.nome)}">OBS</button>` : ''}</span>
+    <span class="l2" ${abre} title="Responsável">${fam > 1 ? `<i class="elo">${ic(IC.elo, 11, 2.6)}</i>` : ''}${esc(c.resp || 'sem responsável')}</span>
     <b class="num tmp" ${abre} data-alug-t title="${alugSub(a)}">${alugTempo(a)}</b>
+    <span class="at" ${abre} data-alug-at>${alugSubCurto(a)}</span>
     <span class="acoes-e"><button class="bt tap" data-act="devolver" data-id="${c.id}" data-s="${esc(a.s)}" aria-label="${esc(alugNome(a))} de ${esc(c.nome)} voltou para a loja">${ic(IC.check, 14, 2.6)}<span class="rt">Devolveu</span></button></span>
   </div>`;
 }
@@ -1951,15 +2015,21 @@ async function devolver(cid, sv) {
 }
 // quem saiu há pouco (dentro do prazo de reabrir): a linha com o botão Reabrir
 const linhaSaiu = c => { const d = new Date(ultVis(c).dia); return `<div class="it"><button class="quem tap" data-act="ficha" data-id="${c.id}">${avatar(c)}<span class="txt"><b>${esc(c.nome)}</b><span>${esc(c.resp)} · saiu às ${hora(d)}, <time data-saiu="${+d}">${haMin(d)}</time> · ${temPeriodo(c) ? 'saldo ' + hm(saldoMin(c)) : 'sem saldo'}</span></span></button><button class="bt forte tap" data-act="reabrir" data-id="${c.id}" title="Desfaz a saída: o tempo continua contando desde a entrada">${ic(IC.renova, 14)} Reabrir</button><button class="bt tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 14)} Atender</button></div>`; };
-// os filtros em cima da lista: Todas e os serviços da loja (a recreação e o que sai e volta). Com a recreação escolhida, abrem-se ao lado
-// Horas avulsas e Pacotes. "Saíram há pouco" só aparece quando há alguém no prazo de reabrir a visita
+// "Saíram há pouco" é o único botão ao lado da busca, e só aparece quando há alguém no prazo de reabrir a visita
 function chipsEspaco() {
-  const f = espFiltro(), st = servicoTempo(), D = S.criancas.filter(c => c.entrou), A = alugNaLista(), ns = saiuHaPouco().length, sub = espSub();
-  const chip = (k, t, n, tit) => `<button class="tap" data-act="esp-filtro" data-f="${esc(k)}" aria-pressed="${f === k}"${tit ? ` title="${esc(tit)}"` : ''}>${esc(t)}<b>${n}</b></button>`;
-  const subs = st && f === st.id ? `<span class="sub" role="group" aria-label="Dentro de ${esc(st.n)}">${[['avulso', 'Horas avulsas', 'Quem comprou a recreação por período (ou está no voucher)'], ['pacote', 'Pacotes', 'Quem está usando as horas de um pacote']].map(([k, t, tit]) => `<button class="tap" data-act="esp-sub" data-v="${k}" aria-pressed="${sub === k}" title="${tit}">${t}<b>${D.filter(c => planoDe(c) === k).length}</b></button>`).join('')}</span>` : '';
-  return chip('todas', 'Todas', D.length + A.length) + (st ? chip(st.id, st.n, D.length, 'As crianças que estão no espaço') + subs : '')
-    + servicosVolta().map(x => chip(x.id, x.n, A.filter(a => a.s === x.id).length, 'O que saiu da loja e ainda não voltou')).join('')
-    + (ns || f === 'sairam' ? `<button class="tap" data-act="esp-filtro" data-f="sairam" aria-pressed="${f === 'sairam'}" title="Quem saiu nos últimos ${reabreLim()} min: dá para reabrir a visita">Saíram há pouco<b>${ns}</b></button>` : '');   // só aparece quando há alguém no prazo de reabrir
+  const f = espFiltro(), ns = saiuHaPouco().length;
+  return ns || f === 'sairam' ? `<button class="tap" data-act="esp-filtro" data-f="sairam" aria-pressed="${f === 'sairam'}" title="Quem saiu nos últimos ${reabreLim()} min: dá para reabrir a visita">Saíram há pouco<b>${ns}</b></button>` : '';
+}
+// 0.91: a tela inicial "por serviço": três colunas com título e contagem, tudo à vista de uma vez, sem filtro para tocar.
+// Horas avulsas e Pacotes (quem está na recreação) e Fora da loja (o que saiu e ainda não voltou, separado por serviço).
+function colunasEspaco(L) {
+  const st = servicoTempo(), rec = st ? st.n : 'RECREAÇÃO', cr = L.filter(x => !x.a), fora = L.filter(x => x.a), av = cr.filter(x => planoDe(x.c) !== 'pacote'), pa = cr.filter(x => planoDe(x.c) === 'pacote');
+  const linhas = I => gruposEspaco(I).map(g => g.length > 1 ? `<div class="esp-fam" role="group" aria-label="${g.length} linhas de ${esc(g[0].c.resp)}, juntas">${g.map(x => linhaItem(x, g.length)).join('')}</div>` : linhaItem(g[0])).join('');
+  const col = (id, icone, peq, tit, n, dentro, vazio) => `<section class="esp-col" data-col="${id}" aria-label="${esc(peq)}: ${esc(tit)}, ${n}"><header><i aria-hidden="true">${ic(icone, 18, 2.3)}</i><div><small>${esc(peq)}</small><b>${esc(tit)}</b></div><span class="n num">${n}</span></header>${dentro || `<p class="esp-vazio">${vazio}</p>`}</section>`;
+  const sv = servicosVolta(), ids = [...new Set([...sv.map(x => x.id), ...fora.map(x => x.a.s)])], nomeSv = id => (servicoDe(id) || { n: (fora.find(x => x.a.s === id) || { a: { n: id } }).a.n }).n;
+  const carr = ids.filter(id => fora.some(x => x.a.s === id)).map(id => { const I = fora.filter(x => x.a.s === id); return `<div class="esp-sub">${esc(nomeSv(id))} · ${I.length}</div>${linhas(I)}`; }).join('');
+  const soCarrinho = ids.length > 0 && ids.every(id => /carrinho/i.test(nomeSv(id)));
+  return `<div class="esp-cols${ids.length ? '' : ' duas'}">${col('avulso', IC.horas, rec, 'Horas avulsas', av.length, linhas(av), 'Ninguém nas horas avulsas agora.')}${col('pacote', IC.presente, rec, 'Pacotes', pa.length, linhas(pa), 'Ninguém usando pacote agora.')}${ids.length ? col('fora', IC.carrinho, 'Fora da loja', soCarrinho ? 'Carrinhos' : 'Para devolver', fora.length, carr, 'Nada fora da loja agora.') : ''}</div>`;
 }
 function corpoEspaco() {
   const n = S.criancas.filter(c => c.entrou).length + alugNaLista().length, L = itensEspaco(), q = (S.espBusca || '').trim().toLowerCase(), f = espFiltro();
@@ -1969,8 +2039,8 @@ function corpoEspaco() {
       <p class="explica">Reabrir desfaz a saída e o tempo continua contando desde a entrada, como se a criança não tivesse saído. Passou de ${reabreLim()} min, é uma entrada nova. <button class="link tap" data-act="esp-filtro" data-f="todas">Ver quem está no espaço</button></p></div>`; }
   else if (!n && !q) h = `<section class="a-hero"><button class="tit tap" data-act="dia"><div class="pers" data-pers="dentro">${PERS.urso}<b class="placa num" data-placa="dentro">0</b></div><div class="txt"><small>No espaço agora</small><span>ninguém por enquanto</span></div></button>
       <p class="vazio-h">${semIdface() ? 'Toque no + para cadastrar ou busque quem já tem cadastro. Quem entrar aparece aqui, numa lista, com o tempo correndo.' : 'Quando uma criança olhar para o iDFace, ela aparece aqui, numa lista, com o tempo correndo.'}</p></section>`;
-  else if (L.length) h = `<div class="esp-lista">${gruposEspaco(L).map(g => g.length > 1 ? `<div class="esp-fam" style="grid-row:span ${g.length}" role="group" aria-label="${g.length} linhas de ${esc(g[0].c.resp)}, juntas">${g.map(x => linhaItem(x, g.length)).join('')}</div>` : linhaItem(g[0])).join('')}</div>`;
-  else h = `<div class="card vazio"><b>${q ? 'Nada na lista com essa busca.' : 'Ninguém neste filtro agora.'}</b>${f !== 'todas' && n ? `<button class="link tap" data-act="esp-filtro" data-f="todas">Ver todas (${n})</button>` : ''}</div>`;
+  else if (L.length) h = colunasEspaco(L);
+  else h = `<div class="card vazio"><b>Ninguém no espaço com essa busca.</b></div>`;
   if (q.length >= 2 && f !== 'sairam') { // a busca também acha quem tem cadastro e não está no espaço: dá para atender dali mesmo (ou reabrir a visita de quem saiu há pouco)
     const fora = S.criancas.filter(c => !c.entrou && casaBusca(c, q)).sort((a, b) => a.nome.localeCompare(b.nome)).slice(0, 8);
     h += fora.length ? `<div class="esp-fora"><small class="rot">Com cadastro, fora do espaço</small><div class="grupo">${fora.map(c => `<div class="it"><button class="quem tap" data-act="ficha" data-id="${c.id}">${avatar(c)}<span class="txt"><b>${esc(c.nome)}</b><span>${esc(c.resp)}${c.tel ? ' · ' + esc(c.tel) : ''} · ${temPeriodo(c) ? hm(saldoMin(c)) + ' guardado' : 'sem tempo comprado'}${podeReabrir(c) ? ' · saiu ' + haMin(new Date(ultVis(c).dia)) : ''}${emAberto(c) ? ' · ' + esc(textoPend(c)) : ''}</span></span></button>${podeReabrir(c) ? `<button class="bt tap" data-act="reabrir" data-id="${c.id}" title="Desfaz a saída: o tempo continua contando desde a entrada">${ic(IC.renova, 14)} Reabrir</button>` : ''}${semIdface() && temPeriodo(c) ? `<button class="bt forte tap" data-act="entrada-rapida" data-id="${c.id}">${ic(IC.entrar, 14)} Entrada</button>` : ''}<button class="bt ${temPeriodo(c) ? '' : 'forte'} tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 14)} ${emAberto(c) ? 'Continuar' : 'Atender'}</button></div>`).join('')}</div></div>`
@@ -2051,9 +2121,8 @@ function telaHoras() {
   return faixa('No espaço agora', (n ? `${n} ${n === 1 ? 'criança' : 'crianças'}${passou ? ' · ' + passou + (passou === 1 ? ' passou' : ' passaram') + ' do tempo' : ''}` : 'Ninguém por enquanto') + (fora ? ` · ${fora} para devolver` : ''), chipAvisos() + `<button type="button" class="chip tap" data-act="pacotes" title="Os pacotes de horas e os produtos, com os valores, para mostrar ao cliente">${ic(IC.presente, 16)} <span>Pacotes<span class="so-largo"> e produtos</span></span></button>` + chipIdface()) + htmlPend() + `
   <section class="espaco">
     <div class="esp-cab">
-      <div class="dias" id="esp-filtros">${chipsEspaco()}</div>
       <div class="campo"><input id="esp-busca" value="${esc(S.espBusca || '')}" placeholder="Buscar criança, responsável, telefone ou CPF" autocomplete="off" aria-label="Buscar criança, responsável, telefone ou CPF"></div>
-      <div class="seg mini" id="esp-ordem" role="group" aria-label="Ordem da lista">${ESP_ORDENS.map(([v, t]) => `<button type="button" data-act="esp-ordem" data-v="${v}" aria-pressed="${espOrdem() === v}">${t}</button>`).join('')}</div>
+      <div class="dias" id="esp-filtros">${chipsEspaco()}</div>
     </div>
     <div id="esp-corpo">${corpoEspaco()}</div>
   </section>
@@ -2271,9 +2340,9 @@ function atender(id, primeira) {
 const OBS_ATALHOS = [['', 'Sem restrição'], ['ALERGIA A ', 'Alergia'], ['PODE FAZER PINTURA NO ROSTO', 'Pode pintura'], ['NÃO FAZER PINTURA NO ROSTO', 'Sem pintura'], ['PODE MEXER NO CABELO', 'Pode mexer no cabelo'], ['NÃO MEXER NO CABELO', 'Não mexer no cabelo']];
 const OBS_PAR = { 'PODE FAZER PINTURA NO ROSTO': 'NÃO FAZER PINTURA NO ROSTO', 'NÃO FAZER PINTURA NO ROSTO': 'PODE FAZER PINTURA NO ROSTO', 'PODE MEXER NO CABELO': 'NÃO MEXER NO CABELO', 'NÃO MEXER NO CABELO': 'PODE MEXER NO CABELO' };
 const obsPartes = t => String(t || '').split(/\s*[;\n]\s*/).map(x => x.trim().toLocaleUpperCase('pt-BR')).filter(Boolean);
-const campoObs = v => `<div class="campo"><label for="f-obs">Restrições e observações</label><textarea id="f-obs" rows="2" maxlength="500" placeholder="Alergias, se pode fazer pintura no rosto, se pode mexer no cabelo…">${esc(v || '')}</textarea>
+const campoObs = (v, id = 'f-obs', rot = 'Restrições e observações') => `<div class="campo"><label for="${id}">${rot}</label><textarea id="${id}" rows="2" maxlength="500" placeholder="Alergias, se pode fazer pintura no rosto, se pode mexer no cabelo, ou o que a equipe precisar lembrar…">${esc(v || '')}</textarea>
       <div class="atalhos">${OBS_ATALHOS.map(([t, n]) => `<button type="button" class="tap" data-act="obs-atalho" data-t="${esc(t)}" aria-pressed="${t === '' && !v}">${n}</button>`).join('')}</div></div>`;
-function marcarAtalhos() { const t = $('#f-obs'); if (!t) return; const partes = obsPartes(t.value); $$('.atalhos [data-t]').forEach(b => { const f = b.dataset.t; b.setAttribute('aria-pressed', f === '' ? !partes.length : f.endsWith(' ') ? partes.some(x => x.toLowerCase().startsWith(f.trim().toLowerCase())) : partes.includes(f)); }); }
+function marcarAtalhos() { const t = $('#f-obs') || $('#ob-txt'); if (!t) return; const partes = obsPartes(t.value); $$('.atalhos [data-t]').forEach(b => { const f = b.dataset.t; b.setAttribute('aria-pressed', f === '' ? !partes.length : f.endsWith(' ') ? partes.some(x => x.toLowerCase().startsWith(f.trim().toLowerCase())) : partes.includes(f)); }); }
 // no cadastro: digitou o CPF (ou o RNE) e o cliente já existe → mostra as crianças dele (com o botão Histórico) e preenche o responsável
 let CLIENTE_AUTO = null;   // o que a tela preencheu sozinha (some de novo se o documento mudar)
 let CLIENTE_VISTO = '';     // o documento do cliente que o cadastro já mostrou (para avisar uma vez só)
@@ -2518,7 +2587,7 @@ function desenharLado() {
       ${fam.map(c => { const [et, cls] = estado(c), u = ultima(c); return `<div class="h-cr">
         <button class="quem tap" data-act="ficha" data-id="${c.id}" aria-label="Abrir a ficha de ${esc(c.nome)}">${avatar(c)}<span class="txt"><b>${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}</b><span>${c.entrou ? 'No espaço desde ' + hora(c.entrou) : u ? 'Veio por último em ' + diaCurto(new Date(u)) : 'Ainda não veio brincar'}${c.sapateira ? ' · sapateira ' + c.sapateira : ''}</span></span><span class="pill ${c.entrou ? 'p-ok' : cls}">${c.entrou ? 'No espaço' : et}</span></button>
         <div class="h-saldo"><span>comprou<b class="num">${hm(c.pacote * 60)}</b></span><span>consumiu<b class="num">${hm(usadoAgora(c))}</b></span><span class="tem">saldo<b class="num">${hm(saldoAgora(c))}</b></span></div>
-        ${c.obs ? `<p class="h-obs">${ic(IC.sino, 14)}<span>${esc(c.obs)}</span></p>` : ''}
+        ${c.obs ? `<p class="h-obs"><button type="button" class="obs-bt on mini tap" data-act="obs-ver" data-id="${c.id}" aria-label="Ver a observação de ${esc(c.nome)}">OBS</button><span>Tem observação. Toque no OBS para ver.</span></p>` : ''}
         <div class="acoes"><button class="bt forte tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 16)} ${emAberto(c) ? 'Continuar o atendimento' : 'Vender'}</button>${COM_WHATS ? `<button class="bt tap" data-act="renovar" data-id="${c.id}">${ic(IC.zap, 16)} ${semHoras(c) ? 'Mandar mensagem' : 'Chamar para renovar'}</button>` : ''}</div>
       </div>`; }).join('')}</div>
     <div class="sec"><div class="sec-cab"><h2 style="font-size:16px">Compras</h2>${d ? `<span class="pill p-neutro">${d.vendas.length}</span>` : ''}</div>
@@ -2981,19 +3050,24 @@ const ACOES = {
   'visita-corrigir-ok': async el => { const hh = val('s-hora'), motivo = val('s-motivo');
     if (!/^\d{2}:\d{2}$/.test(hh)) { toast('Escreva a hora em que a criança saiu'); $('#s-hora').focus(); return; } if (motivo.length < 5) { toast('Escreva o motivo da correção da hora'); $('#s-motivo').focus(); return; }
     el.disabled = true; try { const r = await api('visita_corrigir', { visita: +el.dataset.v, quando: hh, motivo }); await carregar(); fecharFolha(); desenhar(); toast(`Saída corrigida para ${hh} · ${dur(r.debitado)} debitados${r.desfeitas ? ' · ' + brl(r.valor) + ' de atraso desfeito' : ''}`); } catch (e) { toast(e.message); el.disabled = false; } },
-  'esp-filtro': el => { const f = el.dataset.f; S.espFiltro = espFiltro() === f && f !== 'todas' ? 'todas' : f; S.espSub = ''; atualizarEspaco(); },   /* tocar de novo no filtro escolhido volta para Todas */
-  'esp-sub': el => { S.espSub = espSub() === el.dataset.v ? '' : el.dataset.v; atualizarEspaco(); },   /* dentro da recreação: horas avulsas ou pacotes (tocar de novo mostra as duas) */
+  'esp-filtro': el => { const f = el.dataset.f; S.espFiltro = espFiltro() === f && f !== 'todas' ? 'todas' : f; atualizarEspaco(); },   /* "Saíram há pouco": tocar de novo volta para quem está no espaço */
   devolver: el => devolver(el.dataset.id, el.dataset.s),
   reabrir: el => folhaReabrir(+el.dataset.id),
   'cliente-atender': el => { const id = +el.dataset.id; if (!crianca(id)) return; cadastroFeito(); fecharFolha(); setTimeout(() => atender(id), 260); },   /* a criança já está salva: larga o cadastro novo e vai direto para o atendimento dela */
-  'obs-ver': el => { const c = crianca(el.dataset.id); if (c && c.obs) toast(`${c.nome}: ${c.obs}`, () => folhaFicha(c.id), 'Ficha'); },
+  'obs-ver': el => { const c = crianca(el.dataset.id); if (c && c.obs) toast(`${c.nome}: ${c.obs}`, () => folhaFicha(c.id), 'Ficha'); },   /* o OBS da lista: o texto aparece só com o toque, no aviso do pé da tela */
+  'obs-abre': el => { const cx = el.closest('.obs-cx'), c = crianca(el.dataset.id), corpo = cx && $('.obs-corpo', cx), bt = cx && $('.obs-bt', cx); if (!c || !corpo) return;
+    const abre = corpo.hidden || el !== bt && !el.closest('.obs-corpo') ; corpo.hidden = !abre; if (bt) bt.setAttribute('aria-expanded', abre); cx.classList.toggle('aberta', abre);
+    if (abre) { corpo.innerHTML = c.obs ? obsLida(c) : obsEditor(c); marcarAtalhos(); const t = $('#ob-txt', corpo); if (t) t.focus(); } else corpo.innerHTML = ''; },
+  'obs-editar': el => { const cx = el.closest('.obs-cx'), c = crianca(el.dataset.id), corpo = cx && $('.obs-corpo', cx); if (!c || !corpo) return; corpo.innerHTML = obsEditor(c); marcarAtalhos(); const t = $('#ob-txt', corpo); if (t) { t.focus(); t.setSelectionRange(t.value.length, t.value.length); } },
+  'obs-anterior': el => { const cx = el.closest('.obs-cx'), c = crianca(el.dataset.id), corpo = cx && $('.obs-corpo', cx); if (c && corpo && c.obs_antes) corpo.innerHTML = obsAntes(c); },
+  'obs-restaurar': el => { const c = crianca(el.dataset.id); if (c && c.obs_antes) salvarObs(c, c.obs_antes); },
+  'obs-salvar': el => { const c = crianca(el.dataset.id); if (c) salvarObs(c, val('ob-txt')); },
   'reabrir-ok': async el => { /* desfaz a saída: o tempo continua desde a entrada */
     const c = crianca(el.dataset.id); if (!c) return; const nome = c.nome, id = c.id; el.disabled = true;
     const feito = (ini, sap, cobr) => { if (S.espFiltro === 'sairam') S.espFiltro = 'todas'; fecharFolha(); desenhar(); const txt = `Visita de ${nome} reaberta · o tempo conta desde ${hora(ini)}${cobr ? ' · cobrança por atraso lançada' : ''}`; if (sap) toast(txt + ' · sapateira ' + sap); else toast(txt, () => folhaSapateira(id), 'Sapateira'); };
     if (MODO === 'servidor') { try { const r = await api('reabrir_visita', { id }); await carregar(); feito(dataDe(r.entrou), r.sapateira, r.cobrancas); } catch (e) { el.disabled = false; toast(e.message); } return; }
     const r = reabrirPrevia(c); if (r) feito(r.ini, r.sap, r.cobr); else { el.disabled = false; toast(`Já passou de ${reabreLim()} min da saída de ${nome}`); }
   },
-  'esp-ordem': el => { S.espOrdem = el.dataset.v; guardar('ps-esp-ordem', S.espOrdem); $$('#esp-ordem button').forEach(b => b.setAttribute('aria-pressed', b === el)); atualizarEspaco(); },
   'entrada-rapida': el => { entrada(crianca(el.dataset.id), 'mão'); desenhar(); },
   liberar: el => { // a chavinha: muda na hora, avisa o servidor, e o aviso tem Desfazer
     const c = crianca(el.dataset.id); if (!c) return; const antes = liberada(c), depois = !antes;
@@ -3061,7 +3135,7 @@ const ACOES = {
     const r = $('#f-doc-rot'); if (r) r.textContent = (v === 'rne' ? 'RNE' : 'CPF') + ' do responsável'; clienteNoCadastro(); atualizarFalta(); i.focus();
   },
   'obs-atalho': el => { // os atalhos das restrições: escrevem no campo de observações (tocar de novo tira; "pode" e "não" se trocam)
-    const t = $('#f-obs'); if (!t) return; const f = el.dataset.t; let partes = obsPartes(t.value);
+    const t = $('#f-obs') || $('#ob-txt'); if (!t) return; const f = el.dataset.t; let partes = obsPartes(t.value);
     if (f === '') { t.value = ''; marcarAtalhos(); return; }   // sem restrição: limpa o campo
     if (f.endsWith(' ')) { // alergia: o primeiro toque escreve o começo e deixa o cursor para completar; tocar de novo tira
       const ini = f.trim().toLowerCase();
@@ -3238,7 +3312,7 @@ document.addEventListener('input', e => {
   if (e.target.id === 'f-cpf') { const v = e.target.dataset.doc === 'rne' ? rneFmt(e.target.value) : cpfFmt(e.target.value); if (v !== e.target.value) e.target.value = v; clienteNoCadastro(); }
   if (['f-cpf', 'f-resp', 'f-tel', 'f-tel2', 'f-nome'].includes(e.target.id)) atualizarFalta();
   if (e.target.id === 'x-motivo') { const cp = $('#x-motivo-campo'); if (cp && e.target.value.trim().length >= 5) cp.classList.remove('falta'); }
-  if (e.target.id === 'f-obs') marcarAtalhos();
+  if (e.target.id === 'f-obs' || e.target.id === 'ob-txt') marcarAtalhos();
   if (/^f-(cpf|resp|tel|tel2|nome|obs)$/.test(e.target.id)) guardarCadastro();   // o cadastro novo vai ficando guardado enquanto é escrito
   if (e.target.id === 'v-item' || e.target.id === 'v-valor') atualizarCarrinho();
   if (e.target.classList && e.target.classList.contains('pg-valor') && PAG) { PAG.v[e.target.dataset.pgF] = e.target.value; desenharPag(false); }
@@ -3277,10 +3351,12 @@ setInterval(() => {
   let mudouEstado = false;
   $$('.esp-it[data-esp]').forEach(el => { const c = crianca(el.dataset.esp); if (!c || !c.entrou) return; const st = situacaoTempo(c);
     if (!el.classList.contains(st)) { el.classList.remove('ok', 'acabando', 'passou'); el.classList.add(st); mudouEstado = true; }
-    const t = $('[data-esp-t]', el), sub = subEspaco(c); t.textContent = hms(segDentro(c)); if (t.title !== sub) t.title = sub; });
+    const t = $('[data-esp-t]', el), sub = subEspaco(c); t.textContent = hms(segDentro(c)); if (t.title !== sub) t.title = sub;
+    const at = $('[data-esp-at]', el), curto = subCurto(c); if (at && at.textContent !== curto) at.textContent = curto; });
   $$('.esp-it[data-alug]').forEach(el => { const a = (S.alugueis || []).find(x => x.id === el.dataset.alug); if (!a) return; const st = alugSit(a);
     if (!el.classList.contains(st)) { el.classList.remove('ok', 'acabando', 'passou', 'livre'); el.classList.add(st); }
-    const t = $('[data-alug-t]', el), txt = alugTempo(a), sub = alugSub(a); if (t.textContent !== txt) t.textContent = txt; if (t.title !== sub) t.title = sub; });
+    const t = $('[data-alug-t]', el), txt = alugTempo(a), sub = alugSub(a); if (t.textContent !== txt) t.textContent = txt; if (t.title !== sub) t.title = sub;
+    const at = $('[data-alug-at]', el), curto = alugSubCurto(a); if (at && at.textContent !== curto) at.textContent = curto; });
   if (S.tela === 'horas') { const ns = saiuHaPouco().length; if (ns !== N_SAIRAM) { N_SAIRAM = ns; if (!$('#folha .folha-fundo')) atualizarEspaco(); }   // alguém entrou no prazo de reabrir, ou saiu dele
     $$('[data-saiu]').forEach(el => { const t = haMin(new Date(+el.dataset.saiu)); if (el.textContent !== t) el.textContent = t; }); }
   { const sc = $('#s-conta'), sb = $('#s-ok'), sh = $('#s-hora');   // a folha da saída acompanha o relógio: se a tolerância estourar com ela aberta, o valor a receber muda na hora

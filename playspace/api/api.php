@@ -28,7 +28,8 @@ function criancaPublica(array $c): array {
   return ['id' => (int)$c['id'], 'nome' => $c['nome'], 'idade' => (int)$c['idade'], 'resp' => $c['resp'], 'rel' => $c['rel'], 'tel' => $c['tel'], 'cpf' => $c['cpf'], 'obs' => $c['obs'],
     'pacote' => round((int)$c['pacote_min'] / 60, 2), 'usado' => (int)$c['usado_min'], 'entrou' => $c['entrou'], 'idface_id' => $c['idface_id'] === null ? null : (int)$c['idface_id'],
     'rosto' => !empty($c['rosto']) || $c['idface_id'] !== null, 'foto' => (string)$c['foto'], 'ativo' => (bool)$c['ativo'], 'liberado' => !isset($c['liberado']) || (bool)$c['liberado'], 'sapateira' => isset($c['sapateira']) && $c['sapateira'] !== null ? (int)$c['sapateira'] : null,
-    'doc' => ($c['doc_tipo'] ?? 'cpf') === 'rne' ? 'rne' : 'cpf', 'tel2' => (string)($c['tel2'] ?? ''), 'pmin' => (int)$c['pacote_min'], 'pcd' => !empty($c['pcd'])];   // pmin: o tempo comprado em minutos exatos   // doc: o campo cpf guarda o CPF ou o RNE (estrangeiro)
+    'doc' => ($c['doc_tipo'] ?? 'cpf') === 'rne' ? 'rne' : 'cpf', 'tel2' => (string)($c['tel2'] ?? ''), 'pmin' => (int)$c['pacote_min'], 'pcd' => !empty($c['pcd']),
+    'obs_antes' => (string)($c['obs_antes'] ?? ''), 'obs_em' => $c['obs_em'] ?? null, 'obs_por' => (string)($c['obs_por'] ?? '')];   // a observação anterior, e quem mudou a de agora e quando   // pmin: o tempo comprado em minutos exatos   // doc: o campo cpf guarda o CPF ou o RNE (estrangeiro)
 }
 function dados(array $eu): array {
   $db = db(); $hojeMenos = date('Y-m-d H:i:s', time() - 86400);
@@ -171,6 +172,7 @@ switch ($acao) {
     if ($id) {
       $c = crianca($id); if (!$c) falha('Criança não encontrada.', 404);
       $d = textoCriancaBasico($in, $c); conferirCadastro($d, $c);
+      marcarObs($c, (string)$d['obs'], $u);   // a observação mudou: a anterior continua guardada, com quem mudou
       $db->prepare('UPDATE criancas SET nome = ?, idade = ?, resp = ?, rel = ?, tel = ?, tel2 = ?, doc_tipo = ?, cpf = ?, obs = ?, pcd = ? WHERE id = ?')->execute([$d['nome'], $d['idade'], $d['resp'], $d['rel'], $d['tel'], $d['tel2'], $d['doc'], $d['cpf'], $d['obs'], $d['pcd'], $id]);
       // marcar (ou desmarcar) PCD muda o preço: fica anotado no dia, com quem fez
       if ((int)($c['pcd'] ?? 0) !== $d['pcd']) registrar('cad', $id, $d['nome'], ($d['pcd'] ? 'Marcada como criança PCD: ' . pcdDesc() . '% de desconto na recreação' : 'Deixou de estar marcada como criança PCD') . ' · por ' . primeiroNome($u['nome']));
@@ -189,10 +191,16 @@ switch ($acao) {
     // o cadastro não vende mais o pacote: sem horas, o acesso nasce bloqueado (se a regra é bloquear sozinho) e a primeira venda libera
     $liberado = ($horas > 0 || regra()['bloqueioAuto'] !== 'sim') ? 1 : 0;
     $db->prepare('INSERT INTO criancas (nome, idade, resp, rel, tel, tel2, doc_tipo, cpf, obs, pacote_min, usado_min, foto, foto_origem, rosto, liberado, criado_em, pcd) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?)')->execute([$d['nome'], $d['idade'], $d['resp'], $d['rel'], $d['tel'], $d['tel2'], $d['doc'], $d['cpf'], $d['obs'], $foto, $foto !== '' ? 'celular' : '', $foto !== '' ? 1 : 0, $liberado, agora(), $d['pcd']]);
-    $id = (int)$db->lastInsertId(); if ($d['pcd']) registrar('cad', $id, $d['nome'], 'Cadastrada como criança PCD: ' . pcdDesc() . '% de desconto na recreação · por ' . primeiroNome($u['nome'])); if ($sap) $db->prepare('UPDATE criancas SET sapateira = ? WHERE id = ?')->execute([$sap, $id]); $c = crianca($id);
+    $id = (int)$db->lastInsertId(); if ($d['obs'] !== '') $db->prepare('UPDATE criancas SET obs_em = ?, obs_por = ? WHERE id = ?')->execute([agora(), primeiroNome((string)$u['nome']), $id]);
+    if ($d['pcd']) registrar('cad', $id, $d['nome'], 'Cadastrada como criança PCD: ' . pcdDesc() . '% de desconto na recreação · por ' . primeiroNome($u['nome'])); if ($sap) $db->prepare('UPDATE criancas SET sapateira = ? WHERE id = ?')->execute([$sap, $id]); $c = crianca($id);
     if ($horas > 0) fazerVenda($c, $horas * 60, $valor, (int)$u['id']);
     gravarCfg('mandar_' . $id, $id); // vai para o iDFace (nome agora, foto quando o aparelho confirmar o cadastro)
     responder(['id' => $id]);
+  }
+  case 'obs_salvar': { // a observação escrita (ou mudada) na venda ou na comanda, sem abrir o cadastro inteiro. Vazia apaga; a anterior continua guardada
+    $u = exigir(); $c = crianca((int)($in['id'] ?? 0)); if (!$c || !$c['ativo']) falha('Criança não encontrada.', 404);
+    marcarObs($c, mb_substr(emMaiusculas((string)($in['obs'] ?? '')), 0, 500), $u); $c = crianca((int)$c['id']);
+    responder(['obs' => (string)$c['obs'], 'obs_antes' => (string)$c['obs_antes'], 'obs_em' => $c['obs_em'], 'obs_por' => (string)$c['obs_por']]);
   }
   case 'crianca_apagar': {
     $u = exigir(['gestor', 'supervisor']); $c = crianca((int)($in['id'] ?? 0)); if (!$c) falha('Criança não encontrada.', 404);

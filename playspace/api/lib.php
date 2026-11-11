@@ -239,6 +239,10 @@ function db(): PDO {
     $pdo->exec('CREATE TRIGGER IF NOT EXISTS vendas_apaga_pagamentos AFTER DELETE ON vendas BEGIN DELETE FROM pagamentos WHERE venda_id = OLD.id; END');
     $pdo->exec('PRAGMA user_version = 19');
   }
+  if ($v < 20) { // 0.91: a observação do cliente não se perde: ao mudar, o texto anterior continua guardado, com quem mudou e quando
+    foreach (["ALTER TABLE criancas ADD COLUMN obs_antes TEXT NOT NULL DEFAULT ''", 'ALTER TABLE criancas ADD COLUMN obs_em TEXT', "ALTER TABLE criancas ADD COLUMN obs_por TEXT NOT NULL DEFAULT ''"] as $sql) { try { $pdo->exec($sql); } catch (Throwable $e) { } }
+    $pdo->exec('PRAGMA user_version = 20');
+  }
   return $pdo;
 }
 function cfg(string $k, $padrao = null) { $q = db()->prepare('SELECT valor FROM config WHERE chave = ?'); $q->execute([$k]); $v = $q->fetchColumn(); return $v === false ? $padrao : json_decode((string)$v, true); }
@@ -571,6 +575,16 @@ function mexerEstoque(int $produtoId, int $qtd, int $sinal): void {
   if ($produtoId > 0 && $qtd > 0) db()->prepare('UPDATE produtos SET estoque = estoque + ?, mudou_em = ? WHERE id = ? AND estoque IS NOT NULL')->execute([$sinal * $qtd, agora(), $produtoId]);
 }
 function devolverEstoque(array $venda): void { mexerEstoque((int)($venda['produto_id'] ?? 0), (int)($venda['qtd'] ?? 0), 1); }
+
+/* ---------- 0.91: a observação do cliente (só a equipe vê) ---------- */
+// A observação mudou: grava a nova, guarda a anterior (para ninguém perder o que estava escrito) e anota quem mudou e quando.
+// A linha do dia não repete o texto: a tela só mostra a observação a quem toca no OBS
+function marcarObs(array $c, string $nova, array $u): bool {
+  $velha = (string)$c['obs']; if ($nova === $velha) return false; $quem = primeiroNome((string)$u['nome']);
+  db()->prepare("UPDATE criancas SET obs = ?, obs_antes = CASE WHEN ? != '' THEN ? ELSE obs_antes END, obs_em = ?, obs_por = ? WHERE id = ?")->execute([$nova, $velha, $velha, agora(), $quem, (int)$c['id']]);
+  registrar('obs', (int)$c['id'], (string)$c['nome'], ($velha === '' ? 'Observação anotada' : ($nova === '' ? 'Observação apagada · a anterior continua guardada' : 'Observação alterada · a anterior continua guardada')) . ' · por ' . $quem);
+  return true;
+}
 
 /* ---------- 0.90: a forma de pagamento (Pix, dinheiro, crédito, débito), em até três formas ---------- */
 // O que a tela manda: [{ f: 'pix', v: 200 }, { f: 'dinheiro', v: 100 }]. Devolve [forma => valor] (formas repetidas somam; valor zero não conta)
