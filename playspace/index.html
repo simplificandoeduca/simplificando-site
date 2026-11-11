@@ -580,17 +580,30 @@ body.quieto .dica { animation: none !important; }
 .alerta-r .acoes { grid-column: 1 / -1; }
 .banco-topo { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .banco-topo .dias { flex: none; max-width: 100%; padding-bottom: 2px; } .banco-topo .campo { flex: 1; min-width: 220px; }
-.banco-lista { display: flex; flex-direction: column; gap: 8px; }
-.banco-linha { display: grid; grid-template-columns: minmax(180px, 1.2fr) minmax(200px, 1.5fr) minmax(150px, 1fr) auto; gap: 14px; align-items: center; background: var(--card); border: 1px solid var(--borda); border-radius: 18px; padding: 10px 14px; }
-.banco-linha.zerou { border-color: var(--erro-bg); box-shadow: inset 4px 0 0 var(--erro); } .banco-linha.baixo { box-shadow: inset 4px 0 0 var(--mostarda); }
-.banco-linha .quem { display: flex; align-items: center; gap: 12px; min-width: 0; text-align: left; }
+/* 0.99: o Banco de horas em lista enxuta: a criança, o saldo de horas, a última compra e o Vender. Nada corre nesta tela.
+   As colunas seguem a largura da própria lista (não a da janela): com o painel da direita ou o histórico abertos,
+   a lista aperta e esconde a última compra, em vez de uma coluna passar por cima da outra */
+.banco-lista { display: flex; flex-direction: column; gap: 6px; container-type: inline-size; --bl-ac: 172px; }
+.banco-cab, .banco-linha { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.1fr) minmax(0, 1.4fr) var(--bl-ac); gap: 14px; align-items: center; }
+.banco-cab { padding: 2px 15px 0; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--tinta-2); }
+.banco-cab span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.banco-linha { background: var(--card); border: 1px solid var(--borda); border-radius: 16px; padding: 8px 14px; min-height: 58px; }
+.banco-linha > * { min-width: 0; }
+.banco-linha.zerou { border-color: var(--erro-bg); box-shadow: inset 4px 0 0 var(--erro); }
+.banco-linha .quem { display: flex; align-items: center; gap: 12px; text-align: left; } .banco-linha .quem .av { flex: none; }
 .banco-linha .quem .txt { min-width: 0; } .banco-linha .quem .txt b { display: block; font-family: var(--display); font-weight: 600; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .banco-linha .quem .txt span { display: block; font-size: 12.5px; color: var(--tinta-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.banco-linha .ult small { display: block; font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--apagado); }
-.banco-linha .ult b { display: block; font-size: 14px; } .banco-linha .ult span { display: block; font-size: 12.5px; color: var(--tinta-2); }
-.banco-linha .acoes { flex-wrap: nowrap; justify-content: flex-end; }
-@media (max-width: 1100px) { .banco-linha { grid-template-columns: 1fr 1fr; } .banco-linha .acoes { justify-content: flex-start; flex-wrap: wrap; } }
-@media (max-width: 620px) { .banco-linha { grid-template-columns: 1fr; gap: 10px; } .alertas { grid-template-columns: 1fr; } }
+.banco-linha .bl-saldo { display: flex; align-items: center; gap: 4px 8px; flex-wrap: wrap; }
+.banco-linha .bl-saldo b { font-family: var(--display); font-weight: 800; font-size: 20px; line-height: 1.1; } .banco-linha .bl-saldo.zero b { color: var(--apagado); }
+.banco-linha .ult { text-align: left; } .banco-linha .ult b, .banco-linha .ult span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.banco-linha .ult b { font-size: 13.5px; font-weight: 700; } .banco-linha .ult span { font-size: 12px; color: var(--tinta-2); }
+.banco-linha .acoes { flex-wrap: nowrap; justify-content: flex-end; gap: 6px; }
+.banco-linha .bt.so-ic { width: 40px; padding: 0; justify-content: center; flex: none; }
+@container (max-width: 900px) { .banco-cab .bc-u, .banco-linha .ult { display: none; } .banco-cab, .banco-linha { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) var(--bl-ac); } }
+@container (max-width: 520px) { .banco-cab { display: none; } .banco-linha { grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; padding: 8px 10px; }
+  .banco-linha .acoes .rt, .banco-linha .bt.so-ic { display: none; } .banco-linha .acoes .bt { width: 40px; padding: 0; justify-content: center; }
+  .banco-linha .bl-saldo { flex-direction: column; align-items: flex-end; gap: 2px; } .banco-linha .quem { gap: 9px; } .banco-linha .quem .av { width: 36px; height: 36px; font-size: 13px; } }
+@media (max-width: 620px) { .alertas { grid-template-columns: 1fr; } }
 /* ---------- cadastro: responsável primeiro, cliente que já existe, atalhos das observações; venda de produtos ---------- */
 .bloco-f { display: flex; flex-direction: column; gap: 12px; }
 .bloco-f .rot { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--apagado); }
@@ -1019,7 +1032,6 @@ details.outro > summary::before { content: "+ "; } details.outro[open] > summary
 @media (min-width: 1200px) {
   body.com-lado .app { padding-right: min(440px, 46vw); }
   body.com-lado .hoje { display: none; }
-  body.com-lado .banco-linha { grid-template-columns: 1fr 1fr; } body.com-lado .banco-linha .acoes { justify-content: flex-start; flex-wrap: wrap; }
 }
 /* o botão de salvar das folhas compridas fica sempre à vista, no pé */
 .pe-f { position: sticky; bottom: 0; z-index: 2; padding: 12px 0 0; background: linear-gradient(to bottom, transparent, var(--creme) 12px); box-shadow: 0 44px 0 var(--creme); }
@@ -1037,8 +1049,6 @@ details.outro > summary::before { content: "+ "; } details.outro[open] > summary
 .h-saldo .tem { background: var(--menta); }
 .h-obs { font-size: 13px; font-weight: 700; color: var(--coral); display: flex; gap: 6px; align-items: flex-start; line-height: 1.35; overflow-wrap: anywhere; } .h-obs svg { flex: none; margin-top: 2px; } .h-obs span { min-width: 0; }
 .lado .grupo .it > b { font-family: var(--display); font-weight: 800; white-space: nowrap; flex: none; }
-.banco-linha .ult { text-align: left; min-width: 0; }
-.banco-linha .ult em { display: inline-flex; align-items: center; gap: 4px; font-style: normal; font-size: 12px; font-weight: 800; color: var(--coral); margin-top: 2px; }
 /* ---------- quem acabou de bater o rosto: o anel chega com um pulinho ---------- */
 @keyframes chegou { 0% { transform: scale(.55); opacity: 0; } 60% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(1); } }
 .a-hero .anel.chegou, body.quieto .a-hero .anel.chegou { animation: chegou .8s var(--spring) !important; }
@@ -1202,7 +1212,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.98';
+const VERSAO = '0.99';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -3151,20 +3161,26 @@ function chamadaRenovar(c) {
   return m ? `Já chamada ${isoDia(m.h) === isoDia(agora) ? 'hoje' : 'em ' + diaCurto(m.h)} às ${hora(m.h)}${m.por ? ' por ' + esc(m.por) : ''}` : null;
 }
 const filtroBanco = c => { const f = S.bancoFiltro || 'todas'; return f === 'renovar' ? precisaRenovar(c) : f === 'emdia' ? temPeriodo(c) : f === 'dentro' ? !!c.entrou : true; };
+// 0.99: a lista do Banco de horas ficou enxuta. Cada linha: a criança (com o responsável), o saldo de horas, a última compra
+// (um toque abre o histórico) e o Vender. Nada corre nesta tela: o tempo de quem está no espaço fica na tela inicial, e aqui a criança
+// só ganha o selo "No espaço". A lista vem em ordem alfabética (antes vinha pelo tempo que faltava, e as linhas trocavam de lugar sozinhas).
+const ultimaCurta = c => { const v = c.venda, s = String(v.servico || '').trim(); return s ? (/^pacote\b/i.test(s) ? s : s + ' · ' + dur(minDe(v))) : (minDe(v) === 60 ? 'Hora avulsa' : dur(minDe(v))); };   // "PACOTE 05 HORAS 420" ou "RECREAÇÃO · 0h30"
 function linhasBanco() {
   const q = (S.bancoBusca || '').toLowerCase();
-  const lista = S.criancas.filter(filtroBanco).filter(c => !q || (c.nome + ' ' + c.resp + ' ' + c.tel + ' ' + (c.tel2 || '') + ' ' + (c.cpf || '') + ' ' + soDig(c.cpf)).toLowerCase().includes(q)).sort((a, b) => restante(a) - restante(b) || a.nome.localeCompare(b.nome));
+  const lista = S.criancas.filter(filtroBanco).filter(c => !q || (c.nome + ' ' + c.resp + ' ' + c.tel + ' ' + (c.tel2 || '') + ' ' + (c.cpf || '') + ' ' + soDig(c.cpf)).toLowerCase().includes(q)).sort((a, b) => a.nome.localeCompare(b.nome) || a.resp.localeCompare(b.resp));
   if (!lista.length) return `<div class="card vazio"><b>${q ? 'Ninguém com esse nome.' : 'Nenhuma criança neste filtro.'}</b></div>`;
-  return lista.map(c => { const zerou = precisaRenovar(c), baixo = zerou; return `<div class="banco-linha ${zerou ? 'zerou' : baixo ? 'baixo' : ''}">
-    <button class="quem tap" data-act="ficha" data-id="${c.id}" aria-label="Abrir a ficha de ${esc(c.nome)}">${avatar(c)}<span class="txt"><b>${esc(c.nome)}${c.idade ? ', ' + c.idade : ''}</b><span>${esc(c.resp)}${relP(c)}${c.tel ? ' · ' + esc(c.tel) : ''}</span></span></button>
-    <div class="saldo-c">${blocos(c)}</div>
-    <button class="ult tap" data-act="historico" data-id="${c.id}" title="Abrir o histórico de ${esc(c.resp)}"><small>Última contratação</small><b>${c.venda ? esc(nomeUltima(c)) + ' · ' + brl(c.venda.v) : 'Sem compra ainda'}</b><span>${c.venda ? diaCurto(c.venda.quando) + (c.entrou ? ' · no espaço agora' : '') : (c.entrou ? 'no espaço agora' : '')}</span><em>${ic(IC.historico, 13, 2.4)} Histórico</em></button>
-    <div class="acoes">${COM_WHATS ? `<button class="bt ${baixo ? 'forte' : ''} tap" data-act="renovar" data-id="${c.id}" title="Chamar ${esc(c.resp)} no WhatsApp para renovar">${ic(IC.zap, 16)} ${baixo ? 'Chamar para renovar' : 'WhatsApp'}</button>` : ''}<button class="bt ${emAberto(c) || (!COM_WHATS && baixo) ? 'forte' : ''} tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 16)} ${emAberto(c) ? 'Continuar' : 'Vender'}</button></div>
+  return `<div class="banco-cab" aria-hidden="true"><span>Criança</span><span>Saldo de horas</span><span class="bc-u">Última compra</span><span></span></div>` + lista.map(c => { const zerou = precisaRenovar(c), s = saldoAgora(c), ab = emAberto(c);
+    const selo = c.entrou ? '<span class="pill p-ok">No espaço</span>' : ab ? '<span class="pill p-aviso">Falta finalizar</span>' : zerou ? '<span class="pill p-erro">Pacote acabou</span>' : '';
+    return `<div class="banco-linha${zerou ? ' zerou' : ''}">
+    <button class="quem tap" data-act="ficha" data-id="${c.id}" aria-label="Abrir a ficha de ${esc(c.nome)}">${avatar(c)}<span class="txt"><b>${esc(c.nome)}${c.idade ? ', ' + c.idade : ''}</b><span>${esc(c.resp)}${relP(c)}</span></span></button>
+    <div class="bl-saldo${s > 0 ? '' : ' zero'}" data-banco-saldo="${c.id}" data-k="${s}" aria-label="Saldo de horas: ${hm(s)}"><b class="num">${hm(s)}</b>${selo}</div>
+    <button class="ult tap" data-act="historico" data-id="${c.id}" title="Abrir o histórico de ${esc(c.resp)}">${c.venda ? `<b>${esc(ultimaCurta(c))} · ${brl(c.venda.v)}</b><span>${diaCurto(c.venda.quando)}</span>` : '<span>Sem compra ainda</span>'}</button>
+    <div class="acoes">${COM_WHATS ? `<button class="bt ${zerou ? 'forte' : ''} tap" data-act="renovar" data-id="${c.id}" title="Chamar ${esc(c.resp)} no WhatsApp para renovar">${ic(IC.zap, 16)} ${zerou ? 'Chamar para renovar' : 'WhatsApp'}</button>` : ''}<button class="bt so-ic tap" data-act="historico" data-id="${c.id}" title="Histórico de ${esc(c.resp)}" aria-label="Histórico de ${esc(c.resp)}">${ic(IC.historico, 16)}</button><button class="bt ${ab || (!COM_WHATS && zerou) ? 'forte' : ''} tap" data-act="vender" data-id="${c.id}" aria-label="${ab ? 'Continuar o atendimento de' : 'Vender para'} ${esc(c.nome)}">${ic(IC.mais, 16)}<span class="rt">${ab ? 'Continuar' : 'Vender'}</span></button></div>
   </div>`; }).join('');
 }
 function telaBanco() {
   const renovar = paraRenovar(), f = S.bancoFiltro || 'todas', n = k => S.criancas.filter(c => k === 'renovar' ? precisaRenovar(c) : k === 'emdia' ? temPeriodo(c) : k === 'dentro' ? !!c.entrou : true).length;
-  const saldo = S.criancas.reduce((a, c) => a + restante(c), 0);
+  const saldo = S.criancas.reduce((a, c) => a + saldoAgora(c), 0);
   const alertas = renovar.length ? renovar.map(c => { const zerou = saldoMin(c) <= 0, ja = chamadaRenovar(c); return `<div class="alerta-r ${zerou ? 'zerou' : ''}">
       ${avatar(c)}
       <div class="txt"><b>${zerou ? `As horas de ${esc(c.nome)} acabaram` : `Restam só ${hm(restante(c))} para ${esc(c.nome)}`}</b><span>Chame ${esc(c.resp)}${relP(c)} no WhatsApp para ver se quer renovar. Última contratação: ${textoVenda(c)}.</span>${ja ? `<em>${ja}</em>` : ''}</div>
@@ -3175,7 +3191,7 @@ function telaBanco() {
   ${COM_WHATS ? `<section class="sec"><div class="sec-cab"><h2><i></i>Para renovar</h2>${renovar.length ? `<span class="pill p-erro">${renovar.length}</span>` : ''}</div><div class="alertas">${alertas}</div></section>` : ''}
   <section class="sec"><div class="sec-cab"><h2><i style="background:var(--mostarda)"></i>Todas as crianças</h2></div>
     <div class="banco-topo"><div class="dias">${chip('todas', 'Todas')}${chip('renovar', COM_WHATS ? 'Para renovar' : 'Pacote acabou')}${chip('emdia', 'Com tempo guardado')}${chip('dentro', 'No espaço')}</div><div class="campo"><input id="banco-busca" value="${esc(S.bancoBusca || '')}" placeholder="Buscar criança, responsável, telefone, CPF ou RNE" autocomplete="off"></div></div>
-    <div class="banco-lista" id="banco-lista">${linhasBanco()}</div>
+    <div class="banco-lista" id="banco-lista"${COM_WHATS ? ' style="--bl-ac:360px"' : ''}>${linhasBanco()}</div>
   </section>`;
 }
 /* ---------- Dicas do sistema: ele olha os dados e sugere o que fazer agora, uma frase e um botão por dica ---------- */
@@ -3905,6 +3921,7 @@ setInterval(() => {
   { const sc = $('#s-conta'), sb = $('#s-ok'), sh = $('#s-hora');   // a folha da saída acompanha o relógio: se a tolerância estourar com ela aberta, o valor a receber muda na hora
     if (sc && sb && !sb.disabled && !(sh && sh.value)) { const c = crianca(sb.dataset.id); if (c && c.entrou) { const k = contaSaida(c), chave = k.n + '|' + k.deb + '|' + Math.floor(k.min); if (sc.dataset.k !== chave) { sc.dataset.k = chave; sc.innerHTML = htmlContaSaida(c, k); sb.innerHTML = rotuloSaida(k); pagSaida(k); } } } }
   $$('[data-ficha-tempo]').forEach(el => { const c = crianca(el.dataset.fichaTempo); if (c && c.entrou) el.innerHTML = tempoFicha(c); });
+  $$('[data-banco-saldo]').forEach(el => { const c = crianca(el.dataset.bancoSaldo); if (!c) return; const s = saldoAgora(c); if (el.dataset.k !== String(s)) { el.dataset.k = s; const b = $('b', el); if (b) b.textContent = hm(s); el.classList.toggle('zero', !(s > 0)); } });   // o saldo do Banco de horas só muda de período em período
   $$('[data-ficha-saldo]').forEach(el => { const c = crianca(el.dataset.fichaSaldo); if (!c) return; const k = pacMin(c) + '|' + usadoAgora(c); if (el.dataset.k !== k) { el.dataset.k = k; el.innerHTML = saldoFicha(c); } });   // o saldo da comanda acompanha o relógio
   if (MODO !== 'servidor') { let novas = 0; for (const c of S.criancas) if (c.entrou) novas += acertarDemo(c); if (novas) { $$('[data-ficha-atraso]').forEach(el => { const c = crianca(el.dataset.fichaAtraso); if (c) el.innerHTML = atrasoFicha(c); }); desenhar(true); } }
 }, 1000);

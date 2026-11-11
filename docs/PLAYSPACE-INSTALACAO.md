@@ -136,7 +136,16 @@ O tempo é debitado **sempre em períodos inteiros** (o período da Recreação:
 
 ## 6b. Banco de horas (aba)
 
-A aba **Banco de horas** mostra todas as crianças com o saldo (**as horas não expiram**, seção 6r), a **última contratação** (quantas horas, valor e dia; tocar nela abre o histórico do cliente) e a situação. A busca acha por criança, responsável, telefone ou CPF. Quem foi cadastrado e ainda não comprou aparece como **Sem horas**. O filtro **Pacote acabou** mostra quem comprou pacote de horas e ficou sem um período guardado. *Com o módulo do WhatsApp ligado (seção 4):* **"Para renovar" vale só para quem comprou pacote de horas** e ficou sem um período guardado, e só depois que saiu: quem compra a recreação avulsa não entra na lista, e ninguém é chamado enquanto a criança está no espaço. No topo, **Para renovar** lista quem zerou ou está acabando, com o aviso pronto: "As horas do Miguel acabaram. Chame a Carla (mãe) no WhatsApp para ver se quer renovar." O botão **Chamar no WhatsApp** abre a conversa com a mensagem de renovação já escrita (com os pacotes e preços de Ajustes): é conferir e enviar. Depois de chamada, o cartão mostra "Já chamada hoje às 14:20 por Beatriz", para ninguém chamar duas vezes. Quando o iDFace registra uma saída que zera o pacote, a tela avisa na hora com o mesmo botão. O selo na aba mostra quantas crianças estão para renovar.
+A aba **Banco de horas** é a lista de todos os cadastros, em ordem alfabética, uma linha por criança:
+
+- **a criança e o responsável** (um toque abre a ficha);
+- o **saldo de horas** (**as horas não expiram**, seção 6r). Quem ainda não comprou aparece com **0h**;
+- a **última compra**: o que foi, o valor e o dia (um toque abre o histórico do cliente);
+- o relógio (histórico) e o botão **Vender**, que vira **Continuar** quando o atendimento ficou pela metade.
+
+**Nada corre nesta tela** (0.99): o tempo de quem está no espaço fica na tela inicial; aqui a criança só ganha o selo **No espaço**. Saíram da linha os números correndo, a barrinha, o "tempo comprado até" e o telefone (que fica na ficha, a um toque). As colunas seguem a largura da própria lista: com o painel da direita ou o histórico abertos, ou no tablet, a última compra some da linha em vez de um texto passar por cima do outro; no celular ficam o nome, o saldo e o Vender.
+
+A busca acha por criança, responsável, telefone ou CPF. O filtro **Pacote acabou** mostra quem comprou pacote de horas e ficou sem um período guardado (a linha ganha a borda vermelha e o selo **Pacote acabou**). *Com o módulo do WhatsApp ligado (seção 4):* **"Para renovar" vale só para quem comprou pacote de horas** e ficou sem um período guardado, e só depois que saiu: quem compra a recreação avulsa não entra na lista, e ninguém é chamado enquanto a criança está no espaço. No topo, **Para renovar** lista quem zerou ou está acabando, com o aviso pronto: "As horas do Miguel acabaram. Chame a Carla (mãe) no WhatsApp para ver se quer renovar." O botão **Chamar no WhatsApp** abre a conversa com a mensagem de renovação já escrita (com os pacotes e preços de Ajustes): é conferir e enviar. Depois de chamada, o cartão mostra "Já chamada hoje às 14:20 por Beatriz", para ninguém chamar duas vezes. Quando o iDFace registra uma saída que zera o pacote, a tela avisa na hora com o mesmo botão. O selo na aba mostra quantas crianças estão para renovar.
 
 ## 6c. Avisos do sistema (o sininho no alto da tela inicial)
 
