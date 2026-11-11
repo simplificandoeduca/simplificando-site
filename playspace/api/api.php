@@ -44,7 +44,8 @@ function dados(array $eu): array {
   // vouch: a criança tem um voucher de hoje sem saída depois dele (o da visita em curso, ou um guardado): a tela mostra e não oferece outro
   $vou = []; $qv = $db->prepare("SELECT DISTINCT v.crianca_id FROM vendas v WHERE v.voucher != '' AND v.quando >= ? AND v.quando > COALESCE((SELECT MAX(x.saiu) FROM visitas x WHERE x.crianca_id = v.crianca_id), '')"); $qv->execute([date('Y-m-d') . ' 00:00:00']);
   foreach ($qv->fetchAll() as $l) $vou[(int)$l['crianca_id']] = true;
-  foreach ($criancas as &$c) { $c['visitas'] = $porCrianca[$c['id']] ?? []; $c['venda'] = $ultimas[$c['id']] ?? null; $c['atraso'] = $atrasos[$c['id']] ?? null; $c['uv'] = $uv[$c['id']] ?? 0; $c['vouch'] = isset($vou[$c['id']]); if (ehExemplo($c['id'])) $c['teste'] = true; }   // teste: criança dos dados de exemplo (o botão do rodapé)
+  $planos = planosDoEspaco();   // de onde sai o tempo de quem está no espaço: 'pacote' ou 'avulso'
+  foreach ($criancas as &$c) { if ($c['entrou']) $c['plano'] = $planos[$c['id']] ?? 'avulso'; $c['visitas'] = $porCrianca[$c['id']] ?? []; $c['venda'] = $ultimas[$c['id']] ?? null; $c['atraso'] = $atrasos[$c['id']] ?? null; $c['uv'] = $uv[$c['id']] ?? 0; $c['vouch'] = isset($vou[$c['id']]); if (ehExemplo($c['id'])) $c['teste'] = true; }   // teste: criança dos dados de exemplo (o botão do rodapé)
   unset($c);
   $registros = array_map(fn($r) => ['id' => (int)$r['id'], 'h' => $r['quando'], 'tipo' => $r['tipo'], 'nome' => $r['nome'], 'txt' => $r['texto'], 'crianca' => $r['crianca_id'] === null ? null : (int)$r['crianca_id']], $db->query('SELECT * FROM registros ORDER BY id DESC LIMIT 300')->fetchAll());
   $msgs = $db->query('SELECT * FROM mensagens ORDER BY quando ASC, id ASC')->fetchAll();
@@ -70,7 +71,7 @@ function dados(array $eu): array {
     AND NOT EXISTS (SELECT 1 FROM visitas x WHERE x.crianca_id = c.id) AND NOT EXISTS (SELECT 1 FROM cancelamentos k WHERE k.crianca_id = c.id) ORDER BY c.criado_em, c.id');
   $q->execute([date('Y-m-d') . ' 00:00:00']); $fora = pendFora();   // quem a equipe tirou da lista hoje ("não vai fazer agora") não volta
   $pend = array_values(array_filter(array_map(fn($p) => ['id' => (int)$p['id'], 'em' => $p['criado_em']], $q->fetchAll()), fn($p) => !isset($fora[$p['id']])));
-  return ['criancas' => array_values($criancas), 'registros' => $registros, 'conversas' => array_values($conversas), 'compromissos' => $compromissos, 'regra' => regra(), 'cancelamentos' => $canc, 'pendentes' => $pend, 'produtos' => produtos(),
+  return ['criancas' => array_values($criancas), 'registros' => $registros, 'conversas' => array_values($conversas), 'compromissos' => $compromissos, 'regra' => regra(), 'cancelamentos' => $canc, 'pendentes' => $pend, 'produtos' => produtos(), 'alugueis' => alugueis(),
     'vendas_hoje' => ['n' => (int)$vh['n'], 'min' => (int)$vh['m'], 'horas' => round((int)$vh['m'] / 60, 2), 'valor' => (float)$vh['v']], 'atraso_hoje' => $atrasoHoje, 'descontos_hoje' => $descontosHoje, 'equipe' => $equipe, 'eu' => $eu, 'versao' => PLAY_VERSAO,
     'idface' => idfaceEstado(), 'whats' => whatsResumo(), 'agora' => agora(), 'exemplo' => ($ex = cfg('exemplo', null)) && is_array($ex) ? count($ex['criancas'] ?? []) : 0];
 }
@@ -85,7 +86,7 @@ function textoCriancaBasico(array &$in, array $atual = []): array {
   $numDoc = $doc === 'rne' ? mb_substr(mb_strtoupper(trim(preg_replace('/[^A-Za-z0-9.\-\/ ]/', '', $bruto))), 0, 20) : preg_replace('/[^\d.\-]/', '', $bruto);
   return ['doc' => $doc, 'tel2' => mb_substr(trim((string)($in['tel2'] ?? $atual['tel2'] ?? '')), 0, 30),'nome' => mb_substr(maiusculo($nome), 0, 60), 'idade' => max(0, min(17, (int)($in['idade'] ?? $atual['idade'] ?? 0))), 'resp' => mb_substr(maiusculo((string)($in['resp'] ?? $atual['resp'] ?? '')), 0, 80),
     'rel' => mb_substr(trim((string)($in['rel'] ?? $atual['rel'] ?? 'responsável')), 0, 20), 'tel' => mb_substr(trim((string)($in['tel'] ?? $atual['tel'] ?? '')), 0, 30),
-    'cpf' => $numDoc, 'obs' => mb_substr(trim((string)($in['obs'] ?? $atual['obs'] ?? '')), 0, 500), 'pcd' => empty($in['pcd'] ?? $atual['pcd'] ?? 0) ? 0 : 1];
+    'cpf' => $numDoc, 'obs' => mb_substr(emMaiusculas((string)($in['obs'] ?? $atual['obs'] ?? '')), 0, 500), 'pcd' => empty($in['pcd'] ?? $atual['pcd'] ?? 0) ? 0 : 1];
 }
 function cpfValido(string $v): bool {
   $d = preg_replace('/\D/', '', $v); if (strlen($d) !== 11 || preg_match('/^(\d)\1{10}$/', $d)) return false;
@@ -121,7 +122,7 @@ switch ($acao) {
   }
   case 'criar_gestor': { // só quando ainda não existe ninguém
     if ((int)$db->query('SELECT COUNT(*) FROM usuarios')->fetchColumn() > 0) falha('O primeiro gestor já foi criado. Entre com o login dele.', 409);
-    $nome = $val('nome'); $login = mb_strtolower($val('login')); $senha = (string)($in['senha'] ?? '');
+    $nome = maiusculo($val('nome')); $login = mb_strtolower($val('login')); $senha = (string)($in['senha'] ?? '');
     if ($nome === '' || $login === '' || strlen($senha) < 6) falha('Preencha nome, login e uma senha com pelo menos 6 caracteres.');
     $db->prepare("INSERT INTO usuarios (nome, login, senha, papel, criado_em) VALUES (?, ?, ?, 'gestor', ?)")->execute([$nome, $login, password_hash($senha, PASSWORD_DEFAULT), agora()]);
     session_regenerate_id(true); $_SESSION['uid'] = (int)$db->lastInsertId();
@@ -160,6 +161,7 @@ switch ($acao) {
     $ap = ($em && time() - strtotime((string)$em) < 120) ? 1 : 0; $ic = cfg('idface', []); $lig = !is_array($ic) || !array_key_exists('ligado', $ic) || $ic['ligado'] ? 1 : 0;
     $d .= '|' . $db->query("SELECT COUNT(*) || ':' || COALESCE(SUM(visto_em IS NOT NULL), 0) FROM cancelamentos")->fetchColumn();   // um cancelamento conferido pela supervisão também muda a tela
     $d .= '|' . $db->query("SELECT COUNT(*) || ':' || COALESCE(SUM(ativo), 0) || ':' || COALESCE(SUM(estoque), 0) || ':' || COALESCE(SUM(estoque IS NULL), 0) || ':' || COALESCE(SUM(valor), 0) || ':' || COALESCE(SUM(LENGTH(nome)), 0) || ':' || COALESCE(MAX(mudou_em), '') FROM produtos")->fetchColumn();   // produto novo, valor novo ou estoque que mudou
+    $d .= '|' . $db->query("SELECT COUNT(*) || ':' || COALESCE(SUM(alug_min), 0) || ':' || COALESCE(SUM(qtd), 0) || ':' || COALESCE(MAX(id), 0) FROM vendas WHERE alug != '' AND voltou IS NULL")->fetchColumn();   // o que está fora da loja (carrinho, fusquinha)
     responder(['p' => md5("$a|$b|$c|$d|$ap|$lig|" . json_encode(whatsResumo()) . '|' . json_encode(regra()) . '|' . (cfg('exemplo') ? 1 : 0) . '|' . json_encode(pendFora()) . '|' . date('Y-m-d'))]);   // quem saiu de "Falta finalizar" e a virada do dia também mudam a tela
   }
 
@@ -233,7 +235,7 @@ switch ($acao) {
     $hh = trim((string)($in['quando'] ?? '')); $corrige = null;
     if ($hh !== '') {
       $u = exigir(['gestor', 'supervisor']); if (!preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $hh)) falha('Escreva a hora da saída assim: 14:30.');
-      $motivo = mb_substr(trim(preg_replace('/\s+/u', ' ', (string)($in['motivo'] ?? ''))), 0, 300); if (mb_strlen($motivo) < 5) falha('Escreva o motivo da correção da hora.');
+      $motivo = mb_substr(maiusculo((string)($in['motivo'] ?? '')), 0, 300); if (mb_strlen($motivo) < 5) falha('Escreva o motivo da correção da hora.');
       $corrige = substr((string)$c['entrou'], 0, 10) . ' ' . $hh . ':00';
       if (strtotime($corrige) > time()) falha('A hora corrigida não pode ser depois de agora.');
       if (strtotime($corrige) < strtotime(substr((string)$c['entrou'], 0, 16) . ':00')) falha('A hora corrigida não pode ser antes da entrada (' . substr((string)$c['entrou'], 11, 5) . ').');
@@ -244,7 +246,7 @@ switch ($acao) {
   }
   case 'visita_corrigir': { // depois da saída: a supervisão corrige a hora (a criança saiu antes e a saída foi marcada tarde)
     $u = exigir(['gestor', 'supervisor']); $hh = trim((string)($in['quando'] ?? '')); if (!preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $hh)) falha('Escreva a hora da saída assim: 14:30.');
-    $motivo = mb_substr(trim(preg_replace('/\s+/u', ' ', (string)($in['motivo'] ?? ''))), 0, 300); if (mb_strlen($motivo) < 5) falha('Escreva o motivo da correção da hora.');
+    $motivo = mb_substr(maiusculo((string)($in['motivo'] ?? '')), 0, 300); if (mb_strlen($motivo) < 5) falha('Escreva o motivo da correção da hora.');
     $q = $db->prepare('SELECT * FROM visitas WHERE id = ?'); $q->execute([(int)($in['visita'] ?? 0)]); $v = $q->fetch(); if (!$v) falha('Visita não encontrada.', 404);
     if (time() - strtotime((string)$v['saiu']) > 2 * 86400) falha('Só dá para corrigir saídas dos últimos dois dias.');
     responder(corrigirSaida((int)$v['id'], substr((string)$v['entrou'], 0, 10) . ' ' . $hh . ':00', $u, $motivo));
@@ -273,7 +275,7 @@ switch ($acao) {
   case 'cancelar_entrada': {
     $u = exigir(); $c = crianca((int)($in['id'] ?? 0)); if (!$c || !$c['ativo']) falha('Criança não encontrada.', 404);
     if (!$c['entrou']) falha($c['nome'] . ' não está no espaço: não há entrada para cancelar.');
-    $motivo = mb_substr(trim(preg_replace('/\s+/u', ' ', (string)($in['motivo'] ?? ''))), 0, 300);
+    $motivo = mb_substr(maiusculo((string)($in['motivo'] ?? '')), 0, 300);
     if (mb_strlen($motivo) < 5) falha('Escreva o motivo do cancelamento: a supervisão vai conferir.');
     [$lim, , $noPrazo] = prazoCancelar($c);
     if (!$noPrazo && !in_array($u['papel'], ['gestor', 'supervisor'], true)) falha($lim > 0 ? 'Já passou de ' . $lim . ' min da entrada de ' . $c['nome'] . ': agora só Gestor ou Supervisor cancela.' : 'Só Gestor ou Supervisor cancela a entrada.', 403);
@@ -316,8 +318,8 @@ switch ($acao) {
     foreach ((array)($in['linhas'] ?? []) as $l) {
       $s = $porId[(string)($l['s'] ?? '')] ?? null; $q = min(48, (int)($l['q'] ?? 0)); if (!$s || $q < 1) continue;
       if (($s['modo'] ?? 'fixo') === 'periodo') { $tot = $q * max(1, (int)($s['min'] ?? 30)); $tempo = !empty($s['banco']); $un = $tempo ? precoPcd($c, (float)$s['v']) : (float)$s['v']; $comPcd = $un < (float)$s['v'];   // a criança PCD paga a recreação avulsa com desconto (carrinhos e pacotes, não)
-        $linhas[] = ['servico' => (string)$s['n'], 'min' => $tempo ? $tot : 0, 'valor' => $q * $un, 'itens' => ($tempo ? '' : dur($tot)) . ($comPcd ? 'PCD ' . pcdDesc() . '%' : ''), 'mais' => $comPcd ? ['pcd' => 1, 'cheio' => $q * (float)$s['v']] : []]; }
-      else { $obs = trim((string)($s['obs'] ?? '')); $linhas[] = ['servico' => (string)$s['n'], 'min' => 0, 'valor' => $q * (float)$s['v'], 'itens' => ($q > 1 ? $q . ' unidades' . ($obs !== '' ? ' · ' : '') : '') . $obs]; }
+        $linhas[] = ['servico' => (string)$s['n'], 'min' => $tempo ? $tot : 0, 'valor' => $q * $un, 'itens' => ($tempo ? '' : dur($tot)) . ($comPcd ? 'PCD ' . pcdDesc() . '%' : ''), 'mais' => ($comPcd ? ['pcd' => 1, 'cheio' => $q * (float)$s['v']] : []) + (!$tempo && !empty($s['volta']) ? ['alug' => (string)$s['id'], 'alug_min' => $tot, 'qtd' => 1] : [])]; }
+      else { $obs = trim((string)($s['obs'] ?? '')); $linhas[] = ['servico' => (string)$s['n'], 'min' => 0, 'valor' => $q * (float)$s['v'], 'itens' => ($q > 1 ? $q . ' unidades' . ($obs !== '' ? ' · ' : '') : '') . $obs, 'mais' => !empty($s['volta']) ? ['alug' => (string)$s['id'], 'alug_min' => 0, 'qtd' => $q] : []]; }
     }
     // pacote de horas não tem o desconto PCD: ele vale só na recreação avulsa
     // a tela manda as horas, o tipo (com produto ou seco) e o valor que mostrou: se a tabela mudou no meio do atendimento, avisa em vez de vender outro pacote
@@ -342,7 +344,7 @@ switch ($acao) {
     // Confere antes de vender qualquer coisa, para não ficar uma venda pela metade
     $vo = $in['voucher'] ?? null; $comVoucher = is_array($vo) ? (int)($vo['q'] ?? 0) > 0 : !empty($vo);
     if ($comVoucher) { if (!servicoTempo()) falha('Não há serviço de tempo de recreação para usar o voucher.'); if (voucherAberto($c)) falha(voucherJaTem($c)); }
-    $o = (array)($in['outro'] ?? []); $on = mb_substr(trim((string)($o['n'] ?? '')), 0, 60); if ($on !== '') $linhas[] = ['servico' => $on, 'min' => 0, 'valor' => max(0, (float)($o['v'] ?? 0)), 'itens' => ''];
+    $o = (array)($in['outro'] ?? []); $on = mb_substr(maiusculo((string)($o['n'] ?? '')), 0, 60); if ($on !== '') $linhas[] = ['servico' => $on, 'min' => 0, 'valor' => max(0, (float)($o['v'] ?? 0)), 'itens' => ''];
     if (!$linhas && !$comVoucher) falha('Escolha o serviço.');
     // a criança já teve uma venda registrada (em outro aparelho) depois que esta tela abriu o atendimento: avisa antes de cobrar de novo. "mesmo_assim" confirma
     $visto = (int)($in['visto'] ?? 0);
@@ -359,6 +361,17 @@ switch ($acao) {
       $e = fazerEntrada($c, 'mão'); $resp['entrada'] = ['registro' => $e['registro'], 'mensagem' => is_array($e['mensagem']) ? (int)($e['mensagem']['id'] ?? 0) : 0];
     }
     responder($resp);
+  }
+  case 'devolver': { // o carrinho (ou o fusquinha) voltou para a loja: sai da lista. voltar = o Desfazer do aviso (só nos 10 min seguintes)
+    $u = exigir(); $c = crianca((int)($in['crianca'] ?? 0)); if (!$c || !$c['ativo']) falha('Criança não encontrada.', 404);
+    if (!empty($in['voltar'])) {
+      $ids = array_values(array_filter(array_map('intval', (array)($in['vendas'] ?? [])))); if (!$ids) falha('Nada para desfazer.');
+      $q = $db->prepare('UPDATE vendas SET voltou = NULL WHERE id IN (' . implode(',', $ids) . ") AND crianca_id = ? AND alug != '' AND voltou IS NOT NULL AND voltou >= ?");
+      $q->execute([(int)$c['id'], date('Y-m-d H:i:s', time() - 600)]); if (!$q->rowCount()) falha('Não dá mais para desfazer.');
+      $db->prepare("DELETE FROM registros WHERE id = ? AND crianca_id = ? AND tipo = 'dev'")->execute([(int)($in['registro'] ?? 0), (int)$c['id']]);
+      responder();
+    }
+    responder(devolverAluguel($c, (string)($in['s'] ?? ''), $u));
   }
   case 'historico': { // tudo de um cliente (as crianças do mesmo responsável): todas as compras e todas as visitas
     exigir(); session_write_close();
@@ -429,13 +442,13 @@ switch ($acao) {
   /* ---------- agenda ---------- */
   case 'comp_feito': { exigir(); $db->prepare('UPDATE compromissos SET feito = ? WHERE id = ?')->execute([empty($in['feito']) ? 0 : 1, (int)($in['id'] ?? 0)]); responder(); }
   case 'comp_salvar': {
-    exigir(); $id = (int)($in['id'] ?? 0); $titulo = mb_substr($val('titulo'), 0, 120); if ($titulo === '') falha('Falta dizer o quê.');
+    exigir(); $id = (int)($in['id'] ?? 0); $titulo = mb_substr(emMaiusculas($val('titulo')), 0, 120); if ($titulo === '') falha('Falta dizer o quê.');
     $dia = $val('dia'); if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dia)) falha('Dia inválido.');
     $hora = $val('hora', '15:00'); if (!preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $hora)) $hora = '15:00';
     $tipo = in_array($val('tipo'), ['oficina', 'festa', 'compromisso', 'postagem'], true) ? $val('tipo') : 'oficina';
     $subs = ['oficina' => 'Oficina', 'festa' => 'Festa', 'compromisso' => 'Compromisso', 'postagem' => 'Postagem'];
-    if ($id) $db->prepare('UPDATE compromissos SET dia = ?, hora = ?, titulo = ?, tipo = ?, sub = ?, obs = ? WHERE id = ?')->execute([$dia, $hora, $titulo, $tipo, $subs[$tipo], mb_substr($val('obs'), 0, 500), $id]);
-    else { $db->prepare('INSERT INTO compromissos (dia, hora, titulo, tipo, sub, obs, criado_em) VALUES (?, ?, ?, ?, ?, ?, ?)')->execute([$dia, $hora, $titulo, $tipo, $subs[$tipo], mb_substr($val('obs'), 0, 500), agora()]); $id = (int)$db->lastInsertId(); }
+    if ($id) $db->prepare('UPDATE compromissos SET dia = ?, hora = ?, titulo = ?, tipo = ?, sub = ?, obs = ? WHERE id = ?')->execute([$dia, $hora, $titulo, $tipo, $subs[$tipo], mb_substr(emMaiusculas($val('obs')), 0, 500), $id]);
+    else { $db->prepare('INSERT INTO compromissos (dia, hora, titulo, tipo, sub, obs, criado_em) VALUES (?, ?, ?, ?, ?, ?, ?)')->execute([$dia, $hora, $titulo, $tipo, $subs[$tipo], mb_substr(emMaiusculas($val('obs')), 0, 500), agora()]); $id = (int)$db->lastInsertId(); }
     responder(['id' => $id]);
   }
   case 'comp_apagar': { exigir(); $db->prepare('DELETE FROM compromissos WHERE id = ?')->execute([(int)($in['id'] ?? 0)]); responder(); }
@@ -450,19 +463,21 @@ switch ($acao) {
     if (isset($in['pacotes']) && is_array($in['pacotes'])) {
       // um pacote: horas, valor, tipo (com produto, o brinde já no valor; ou seco, só as horas), nome opcional e em até quantas vezes parcela. Pode haver vários do mesmo tempo
       $ps = []; foreach ($in['pacotes'] as $p) { $h = (int)($p['h'] ?? 0); $v = (float)($p['v'] ?? 0); if ($h <= 0 || $h > 500 || $v < 0) continue;
-        $com = mb_substr(trim((string)($p['com'] ?? '')), 0, 60); $x = ['h' => $h, 'v' => $v, 'tipo' => tipoPacote(['tipo' => $p['tipo'] ?? null, 'com' => $com])];
-        $nome = mb_substr(trim(preg_replace('/\s+/u', ' ', (string)($p['nome'] ?? ''))), 0, 40); if ($nome !== '') $x['nome'] = $nome;   // o nome é opcional: serve para separar pacotes do mesmo tempo
+        $com = mb_substr(maiusculo((string)($p['com'] ?? '')), 0, 60); $x = ['h' => $h, 'v' => $v, 'tipo' => tipoPacote(['tipo' => $p['tipo'] ?? null, 'com' => $com])];
+        $nome = mb_substr(maiusculo((string)($p['nome'] ?? '')), 0, 40); if ($nome !== '') $x['nome'] = $nome;   // o nome é opcional: serve para separar pacotes do mesmo tempo
         if ($x['tipo'] === 'produto' && $com !== '') $x['com'] = $com; $parc = (int)($p['parc'] ?? 0); if ($parc > 1 && $parc <= 12) $x['parc'] = $parc;
         $ps[chavePacote($x)] = $x; }
       ksort($ps); $r['pacotes'] = array_values($ps);   // pacotes são opcionais: a lista pode ficar vazia
     }
     if (isset($in['servicos']) && is_array($in['servicos'])) { // os serviços e produtos da loja: valor único ou a cada tantos minutos
-      $ss = []; $ids = [];
+      $ss = []; $ids = []; $eraVolta = []; foreach ((array)$r['servicos'] as $x) $eraVolta[(string)($x['id'] ?? '')] = !empty($x['volta']);
       foreach ($in['servicos'] as $k => $s) {
-        $n = mb_substr(trim((string)($s['n'] ?? '')), 0, 40); if ($n === '' || count($ss) >= 30) continue;
+        $n = mb_substr(maiusculo((string)($s['n'] ?? '')), 0, 40); if ($n === '' || count($ss) >= 30) continue;
         $id = preg_replace('/[^a-z0-9_]/', '', (string)($s['id'] ?? '')); if ($id === '' || isset($ids[$id])) $id = 's' . dechex(crc32($n . '|' . $k . '|' . microtime())); $ids[$id] = 1;
         $modo = ($s['modo'] ?? 'fixo') === 'periodo' ? 'periodo' : 'fixo';
-        $ss[] = ['id' => $id, 'n' => $n, 'v' => max(0, (float)($s['v'] ?? 0)), 'modo' => $modo, 'min' => $modo === 'periodo' ? max(5, min(240, (int)($s['min'] ?? 30))) : 0, 'banco' => $modo === 'periodo' && !empty($s['banco']), 'obs' => mb_substr(trim((string)($s['obs'] ?? '')), 0, 60)];
+        $ss[] = ['id' => $id, 'n' => $n, 'v' => max(0, (float)($s['v'] ?? 0)), 'modo' => $modo, 'min' => $modo === 'periodo' ? max(5, min(240, (int)($s['min'] ?? 30))) : 0, 'banco' => $modo === 'periodo' && !empty($s['banco']), 'obs' => mb_substr(maiusculo((string)($s['obs'] ?? '')), 0, 60),
+          // volta: sai da loja e volta (fica na lista até "Devolveu"). O tempo de brincar nunca; uma tela antiga, que não manda a marca, deixa como estava
+          'volta' => !($modo === 'periodo' && !empty($s['banco'])) && (array_key_exists('volta', (array)$s) ? !empty($s['volta']) : ($eraVolta[$id] ?? in_array($id, SERVICOS_QUE_VOLTAM, true)))];
       }
       if (!$ss) falha('Deixe pelo menos um serviço.'); $r['servicos'] = $ss; $r['extras'] = [];
     }
@@ -476,7 +491,7 @@ switch ($acao) {
   /* ---------- produtos da loja ---------- */
   case 'produto_salvar': { // só a gestora: nome, valor e estoque (vazio = a loja não controla o estoque desse produto)
     $u = exigir(); podeAjustar($u); $id = (int)($in['id'] ?? 0); $p = $id ? produto($id) : null; if ($id && (!$p || !$p['ativo'])) falha('Produto não encontrado.', 404);
-    $nome = mb_substr(trim(preg_replace('/\s+/u', ' ', (string)($in['n'] ?? ''))), 0, 40); if ($nome === '') falha('Como se chama o produto?');
+    $nome = mb_substr(maiusculo((string)($in['n'] ?? '')), 0, 40); if ($nome === '') falha('Como se chama o produto?');
     $valor = isset($in['v']) && is_numeric($in['v']) ? round((float)$in['v'], 2) : -1; if ($valor < 0 || $valor > 100000) falha('Qual é o valor do produto?');
     $e = $in['est'] ?? null; $est = ($e === null || $e === '') ? null : (int)$e; if ($est !== null && ($est < -9999 || $est > 99999)) falha('Quantos há no estoque?');
     $q = $db->prepare('SELECT id FROM produtos WHERE ativo = 1 AND id != ? AND nome = ? COLLATE NOCASE AND ABS(valor - ?) < 0.005'); $q->execute([$id, $nome, $valor]);
@@ -508,7 +523,7 @@ switch ($acao) {
   /* ---------- equipe ---------- */
   case 'usuario_salvar': {
     $u = exigir(); podeAjustar($u); $id = (int)($in['id'] ?? 0);
-    $nome = mb_substr($val('nome'), 0, 80); $login = mb_strtolower(preg_replace('/[^a-z0-9._-]/i', '', $val('login'))); $papel = in_array($val('papel'), array_keys(PAPEIS), true) ? $val('papel') : 'atendente'; $senha = (string)($in['senha'] ?? '');
+    $nome = mb_substr(maiusculo($val('nome')), 0, 80); $login = mb_strtolower(preg_replace('/[^a-z0-9._-]/i', '', $val('login'))); $papel = in_array($val('papel'), array_keys(PAPEIS), true) ? $val('papel') : 'atendente'; $senha = (string)($in['senha'] ?? '');
     if ($nome === '' || $login === '') falha('Preencha o nome e o login.');
     $q = $db->prepare('SELECT id FROM usuarios WHERE login = ? AND id <> ?'); $q->execute([$login, $id]); if ($q->fetchColumn()) falha('Já existe alguém com esse login.');
     if ($id) {

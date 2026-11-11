@@ -11,6 +11,9 @@ header('X-Content-Type-Options: nosniff');
 
 const PLAY_VERSAO = '0.30';
 const PAPEIS = ['gestor' => 'Gestor', 'supervisor' => 'Supervisor', 'atendente' => 'Atendente'];
+// 0.89: o módulo do WhatsApp fica desligado (a loja não vai usar essa parte por agora). Nada foi apagado: com true aqui (e COM_WHATS = true na tela),
+// a aba, os botões e os avisos voltam. Desligado, nenhuma mensagem automática sai, mesmo que a regra antiga mandasse
+const MODULO_WHATS = false;
 
 function falha(string $msg, int $st = 400): void { http_response_code($st); header('Content-Type: application/json; charset=utf-8'); echo json_encode(['ok' => false, 'erro' => $msg], JSON_UNESCAPED_UNICODE); exit; }
 function responder(array $d = []): void { header('Content-Type: application/json; charset=utf-8'); header('Cache-Control: no-store'); echo json_encode(['ok' => true] + $d, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); exit; }
@@ -34,6 +37,29 @@ function nomesEmMaiusculas(PDO $pdo, ?array $ids = null): void {
       if ($novo !== $velho) $up->execute(array_merge($novo, [$l['id']]));
     }
   }
+}
+// 0.89: tudo o que é digitado fica em maiúsculas. Texto livre (observação, motivo): mantém as quebras de linha
+function emMaiusculas(string $s): string { return mb_strtoupper(trim($s), 'UTF-8'); }
+// põe em maiúsculas o que já estava digitado no banco: observações, motivos, nomes de produtos, de serviços, de pacotes, da equipe e a agenda.
+// O que o sistema escreveu sozinho (as linhas do dia, as vendas antigas) fica como está; o login de cada pessoa também
+function textosEmMaiusculas(PDO $pdo): void {
+  foreach ([['criancas', ['obs'], 'emMaiusculas'], ['cancelamentos', ['motivo'], 'emMaiusculas'], ['compromissos', ['titulo', 'obs'], 'emMaiusculas'], ['produtos', ['nome'], 'maiusculo'], ['usuarios', ['nome'], 'maiusculo']] as [$t, $cols, $fn]) {
+    try {
+      $up = $pdo->prepare("UPDATE $t SET " . implode(', ', array_map(fn($k) => "$k = ?", $cols)) . ' WHERE id = ?');
+      foreach ($pdo->query('SELECT id, ' . implode(', ', $cols) . " FROM $t")->fetchAll() as $l) {
+        $velho = array_map(fn($k) => (string)$l[$k], $cols); $novo = array_map($fn, $velho);
+        if ($novo !== $velho) $up->execute(array_merge($novo, [$l['id']]));
+      }
+    } catch (Throwable $e) { }
+  }
+  try {
+    $q = $pdo->query("SELECT valor FROM config WHERE chave = 'regra'")->fetchColumn(); $rg = $q !== false ? json_decode((string)$q, true) : null;
+    if (is_array($rg)) { $antes = $rg;
+      foreach ((array)($rg['servicos'] ?? []) as $k => $x) if (is_array($x)) foreach (['n', 'obs'] as $f) if (isset($x[$f])) $rg['servicos'][$k][$f] = maiusculo((string)$x[$f]);
+      foreach ((array)($rg['pacotes'] ?? []) as $k => $x) if (is_array($x)) foreach (['nome', 'com'] as $f) if (isset($x[$f])) $rg['pacotes'][$k][$f] = maiusculo((string)$x[$f]);
+      if ($rg !== $antes) $pdo->prepare("UPDATE config SET valor = ? WHERE chave = 'regra'")->execute([json_encode($rg, JSON_UNESCAPED_UNICODE)]);
+    }
+  } catch (Throwable $e) { }
 }
 
 /* ---------- onde os dados ficam ---------- */
@@ -195,6 +221,15 @@ function db(): PDO {
     try { $pdo->beginTransaction(); nomesEmMaiusculas($pdo); $pdo->commit(); } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); }
     $pdo->exec('PRAGMA user_version = 17');
   }
+  if ($v < 18) { // 0.89: o que sai da loja e volta (carrinho de bebê, fusquinha) fica na lista até ser devolvido; e tudo o que foi digitado passa a maiúsculas
+    foreach (["ALTER TABLE vendas ADD COLUMN alug TEXT NOT NULL DEFAULT ''",        // o serviço que saiu (o id dele); vazio = venda comum
+              'ALTER TABLE vendas ADD COLUMN alug_min INTEGER NOT NULL DEFAULT 0',   // o tempo comprado, em minutos (0 = sem hora para voltar)
+              'ALTER TABLE vendas ADD COLUMN voltou TEXT'] as $sql) { try { $pdo->exec($sql); } catch (Throwable $e) { } }   // quando voltou (vazio = ainda está fora)
+    try { $pdo->exec("CREATE INDEX IF NOT EXISTS vendas_fora ON vendas (crianca_id) WHERE alug != '' AND voltou IS NULL"); } catch (Throwable $e) { }
+    try { $pdo->exec('CREATE INDEX IF NOT EXISTS vendas_crianca ON vendas (crianca_id, id)'); } catch (Throwable $e) { }
+    try { $pdo->beginTransaction(); textosEmMaiusculas($pdo); $pdo->commit(); } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); }
+    $pdo->exec('PRAGMA user_version = 18');
+  }
   return $pdo;
 }
 function cfg(string $k, $padrao = null) { $q = db()->prepare('SELECT valor FROM config WHERE chave = ?'); $q->execute([$k]); $v = $q->fetchColumn(); return $v === false ? $padrao : json_decode((string)$v, true); }
@@ -212,10 +247,13 @@ function urlBase(): string { // .../playspace
 /* ---------- a regra das horas (as mesmas opções da tela de Ajustes) ---------- */
 // os serviços da loja. modo 'periodo': cobra a cada `min` minutos; 'fixo': valor único. banco: o tempo comprado entra no saldo de brincar da criança
 const SERVICOS_PADRAO = [
-  ['id' => 'recreacao', 'n' => 'Recreação', 'v' => 80, 'modo' => 'periodo', 'min' => 30, 'banco' => true, 'obs' => ''],
-  ['id' => 'fusquinha', 'n' => 'Carrinho fusquinha', 'v' => 15, 'modo' => 'periodo', 'min' => 30, 'banco' => false, 'obs' => ''],
-  ['id' => 'bebe', 'n' => 'Carrinho de bebê', 'v' => 30, 'modo' => 'fixo', 'min' => 0, 'banco' => false, 'obs' => 'das 10h às 22h'],
+  ['id' => 'recreacao', 'n' => 'RECREAÇÃO', 'v' => 80, 'modo' => 'periodo', 'min' => 30, 'banco' => true, 'obs' => '', 'volta' => false],
+  ['id' => 'fusquinha', 'n' => 'CARRINHO FUSQUINHA', 'v' => 15, 'modo' => 'periodo', 'min' => 30, 'banco' => false, 'obs' => '', 'volta' => true],
+  ['id' => 'bebe', 'n' => 'CARRINHO DE BEBÊ', 'v' => 30, 'modo' => 'fixo', 'min' => 0, 'banco' => false, 'obs' => 'DAS 10H ÀS 22H', 'volta' => true],
 ];
+// volta: o serviço sai da loja e volta (o carrinho, o fusquinha). Vendido, fica na lista da tela inicial até alguém marcar "Devolveu".
+// Serviço cadastrado antes da 0.89, sem essa marca: vale para os dois carrinhos que a loja já tinha
+const SERVICOS_QUE_VOLTAM = ['fusquinha', 'bebe'];
 // o que a loja já passou da tabela de pacotes: o pacote seco de 5 h (R$ 420). Os outros valores a gestora coloca (a tabela nova ainda vem). parc = em até quantas vezes
 const PACOTES_DA_LOJA = [['h' => 5, 'v' => 420, 'tipo' => 'seco']];
 // os três valores "com produto" que a 0.81 instalou a partir de uma tabela antiga: [horas, valor, parcelas]. A 0.82 tira os que continuam como foram instalados
@@ -230,7 +268,7 @@ const PACOTES_DO_SISTEMA_ANTIGO = [[2, 280.0, '02 HORAS 260'], [3, 225.0, '03 HO
 // Lá o nome trazia um número que quase nunca bate com o valor ("AMIGURUMI 230" custa R$ 320): aqui fica só o nome. As duas "BONECA ARTICULADA 150" têm valores diferentes
 const PRODUTOS_DO_SISTEMA_ANTIGO = [['Amigurumi', 320.0, 8], ['Boneca articulada', 150.0, 19], ['Boneca articulada', 230.0, 40], ['Kit bijoux', 230.0, 10], ['Kit laço', 260.0, 8], ['Maleta', 350.0, 20], ['Maquiagem', 160.0, 4]];
 // como a venda de um pacote com nome aparece: o nome vira o "serviço" da venda ("Pacote 05 HORAS 380 · 5h")
-function servicoDoPacote(array $p): string { $n = trim((string)($p['nome'] ?? '')); return $n === '' ? '' : (preg_match('/^pacote\b/iu', $n) ? $n : 'Pacote ' . $n); }
+function servicoDoPacote(array $p): string { $n = trim((string)($p['nome'] ?? '')); return $n === '' ? '' : (preg_match('/^pacote\b/iu', $n) ? $n : 'PACOTE ' . $n); }
 function itensDoPacote(array $p): string { $prod = tipoPacote($p) === 'produto'; $com = trim((string)($p['com'] ?? ''));
   return trim((string)($p['nome'] ?? '')) === '' ? ($prod ? ($com ?: 'produto') : 'seco') : ($prod ? 'com ' . ($com ?: 'produto') : ''); }
 // como a venda de um pacote aparece: "Pacote de 5h com produto", "Pacote seco de 5h", "Hora avulsa"
@@ -255,6 +293,8 @@ function regraDoBanco(): array {
     if ((int)$r['aviso'] === 30) $r['aviso'] = 10;   // a recreação é vendida de 30 em 30 min: avisar com 30 min marcava todo mundo como "acabando" já na compra
     foreach ((array)($r['extras'] ?? []) as $k => $e) if (trim((string)($e['n'] ?? '')) !== '') $r['servicos'][] = ['id' => 'x' . $k, 'n' => (string)$e['n'], 'v' => (float)($e['v'] ?? 0), 'modo' => 'fixo', 'min' => 0, 'banco' => false, 'obs' => ''];
   }
+  foreach ($r['servicos'] as $k => $x) if (is_array($x) && !array_key_exists('volta', $x)) $r['servicos'][$k]['volta'] = empty($x['banco']) && in_array((string)($x['id'] ?? ''), SERVICOS_QUE_VOLTAM, true);
+  if (!MODULO_WHATS) $r['autoMsg'] = 'nao';   // com o módulo desligado, nenhum aviso automático sai
   return $r;
 }
 function dur(int $min): string { $min = max(0, $min); return intdiv($min, 60) . 'h' . ($min % 60 ? str_pad((string)($min % 60), 2, '0', STR_PAD_LEFT) : ''); }   // sempre em horas: 0h30, 1h, 1h30 (a loja vende meia hora e hora)
@@ -462,8 +502,9 @@ function fazerVenda(array $c, int $min, float $valor, ?int $por, string $itens =
     if (isset($c['liberado']) && !(int)$c['liberado']) bloquearAcesso($c, true);   // pagou o tempo: o acesso volta
   }
   $prod = (int)($mais['produto'] ?? 0); $qtd = $prod > 0 ? max(1, (int)($mais['qtd'] ?? 1)) : 0;   // venda de produto: qual e quantos (o estoque acompanha)
-  $db->prepare('INSERT INTO vendas (crianca_id, horas, minutos, valor, quando, por, itens, servico, auto, voucher, pcd, cheio, produto_id, qtd) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-    ->execute([$c['id'], round($min / 60, 2), $min, $valor, agora(), $por, $itens, $servico, $auto ? 1 : 0, (string)($mais['voucher'] ?? ''), empty($mais['pcd']) ? 0 : 1, $mais['cheio'] ?? null, $prod ?: null, $qtd]);
+  $alug = $prod ? '' : mb_substr((string)($mais['alug'] ?? ''), 0, 40); if ($alug !== '') $qtd = max(1, (int)($mais['qtd'] ?? 1));   // o que sai e volta: qual serviço e quantos saíram
+  $db->prepare('INSERT INTO vendas (crianca_id, horas, minutos, valor, quando, por, itens, servico, auto, voucher, pcd, cheio, produto_id, qtd, alug, alug_min) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    ->execute([$c['id'], round($min / 60, 2), $min, $valor, agora(), $por, $itens, $servico, $auto ? 1 : 0, (string)($mais['voucher'] ?? ''), empty($mais['pcd']) ? 0 : 1, $mais['cheio'] ?? null, $prod ?: null, $qtd, $alug, $alug !== '' ? max(0, (int)($mais['alug_min'] ?? 0)) : 0]);
   $venda = (int)$db->lastInsertId();
   if ($prod) mexerEstoque($prod, $qtd, -1);
   $dinheiro = 'R$ ' . number_format($valor, fmod($valor, 1) ? 2 : 0, ',', '.');
@@ -521,6 +562,56 @@ function mexerEstoque(int $produtoId, int $qtd, int $sinal): void {
   if ($produtoId > 0 && $qtd > 0) db()->prepare('UPDATE produtos SET estoque = estoque + ?, mudou_em = ? WHERE id = ? AND estoque IS NOT NULL')->execute([$sinal * $qtd, agora(), $produtoId]);
 }
 function devolverEstoque(array $venda): void { mexerEstoque((int)($venda['produto_id'] ?? 0), (int)($venda['qtd'] ?? 0), 1); }
+
+/* ---------- o que sai da loja e volta: carrinho de bebê, fusquinha ---------- */
+// O serviço marcado como "sai e volta" (regra.servicos[].volta) fica na lista da tela inicial desde a venda até alguém marcar que voltou.
+// Uma linha por criança e serviço: vender mais um período do mesmo carrinho soma o tempo na mesma linha; mais unidades (valor único) somam a quantidade.
+// Devolve [{ id, crianca, s (o serviço), n (o nome), q (quantos), min (tempo comprado; 0 = sem hora para voltar), ini (quando saiu), vendas }]
+function alugueis(?int $criancaId = null, ?string $servico = null): array {
+  $sql = "SELECT v.id, v.crianca_id, v.alug, v.alug_min, v.qtd, v.servico, v.quando FROM vendas v JOIN criancas c ON c.id = v.crianca_id AND c.ativo = 1 WHERE v.alug != '' AND v.voltou IS NULL";
+  $arg = []; if ($criancaId !== null) { $sql .= ' AND v.crianca_id = ?'; $arg[] = $criancaId; } if ($servico !== null) { $sql .= ' AND v.alug = ?'; $arg[] = $servico; }
+  $q = db()->prepare($sql . ' ORDER BY v.id'); $q->execute($arg); $g = [];
+  foreach ($q->fetchAll() as $v) {
+    $k = (int)$v['crianca_id'] . '-' . $v['alug']; $m = (int)$v['alug_min'];
+    if (!isset($g[$k])) $g[$k] = ['id' => $k, 'crianca' => (int)$v['crianca_id'], 's' => (string)$v['alug'], 'n' => (string)$v['servico'], 'q' => 0, 'min' => 0, 'ini' => $v['quando'], 'vendas' => []];
+    $g[$k]['min'] += $m; $g[$k]['q'] = $m > 0 ? max(1, $g[$k]['q']) : $g[$k]['q'] + max(1, (int)$v['qtd']); $g[$k]['vendas'][] = (int)$v['id'];
+  }
+  return array_values($g);
+}
+// "Devolveu": o que estava fora volta para a loja e sai da lista. Fica anotado em Hoje na recepção, com quanto tempo ficou fora e quem marcou.
+// Nada é cobrado aqui: se passou do tempo comprado, a linha diz quanto passou e a equipe vende o período a mais no atendimento
+function devolverAluguel(array $c, string $servico, array $u): array {
+  $db = db(); $g = alugueis((int)$c['id'], $servico); if (!$g) falha('Isso já foi marcado como devolvido.', 409);
+  $a = $g[0]; $agora = agora(); $marcas = implode(',', array_map('intval', $a['vendas']));
+  $db->prepare("UPDATE vendas SET voltou = ? WHERE id IN ($marcas) AND voltou IS NULL")->execute([$agora]);
+  $ficou = max(0, (int)floor((time() - strtotime((string)$a['ini'])) / 60)); $passou = $a['min'] > 0 ? max(0, $ficou - $a['min']) : 0;
+  $reg = registrar('dev', (int)$c['id'], $c['nome'], ($a['q'] > 1 ? $a['q'] . ' × ' : '') . $a['n'] . ' · devolvido · ficou ' . dur($ficou)
+    . ($a['min'] > 0 ? ' · tempo comprado: ' . dur($a['min']) . ($passou > 0 ? ' (passou ' . ($passou < 60 ? $passou . ' min' : dur($passou)) . ')' : '') : '') . ' · por ' . primeiroNome($u['nome']), $agora);
+  return ['vendas' => $a['vendas'], 'registro' => $reg, 'ficou' => $ficou, 'passou' => $passou, 'voltou' => $agora, 'nome' => $a['n'], 'q' => $a['q']];
+}
+
+/* ---------- de onde sai o tempo de quem está no espaço: pacote de horas ou recreação avulsa ---------- */
+// A venda é de pacote quando saiu da tabela de pacotes (o nome começa com "Pacote", ou não tem nome de serviço e não é a "hora avulsa" das primeiras versões).
+// Recreação por período, voucher e cobrança por atraso são avulsos
+function ehVendaDePacote(array $v): bool {
+  if ((int)$v['minutos'] <= 0 || !empty($v['auto']) || (string)($v['voucher'] ?? '') !== '') return false;
+  $s = trim((string)($v['servico'] ?? ''));
+  return $s === '' ? !((int)$v['minutos'] === 60 && (string)($v['itens'] ?? '') !== 'seco') : (bool)preg_match('/^pacote\b/iu', $s);
+}
+// [criança => 'pacote' | 'avulso'] de quem está no espaço. O tempo já usado consome as compras na ordem em que foram feitas:
+// se ainda sobra alguma hora de pacote, a criança está no pacote; senão, está na recreação avulsa
+function planosDoEspaco(): array {
+  $db = db(); $o = []; $resta = [];
+  foreach ($db->query('SELECT id, usado_min FROM criancas WHERE entrou IS NOT NULL AND ativo = 1')->fetchAll() as $c) { $o[(int)$c['id']] = 'avulso'; $resta[(int)$c['id']] = (int)$c['usado_min']; }
+  if (!$o) return $o;
+  $q = $db->query('SELECT v.crianca_id, v.minutos, v.servico, v.itens, v.auto, v.voucher FROM vendas v JOIN criancas c ON c.id = v.crianca_id WHERE c.entrou IS NOT NULL AND c.ativo = 1 AND v.minutos > 0 ORDER BY v.id');
+  foreach ($q->fetchAll() as $v) { $id = (int)$v['crianca_id']; $m = (int)$v['minutos'];
+    if (!isset($o[$id]) || $o[$id] === 'pacote') continue;
+    if ($resta[$id] >= $m) { $resta[$id] -= $m; continue; }   // esta compra já foi usada inteira
+    $resta[$id] = 0; if (ehVendaDePacote($v)) $o[$id] = 'pacote';
+  }
+  return $o;
+}
 
 /* ---------- cancelar a entrada sem cobrar ---------- */
 // Até regra.cancelaMin minutos depois da entrada (minutos cheios, contados do segundo em que entrou), o próprio atendente cancela;

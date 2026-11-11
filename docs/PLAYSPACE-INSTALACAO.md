@@ -22,11 +22,13 @@ Para ver como a tela fica com o espaço cheio, a gestora toca em **Teste: 30 cri
 
 - **30 no espaço agora**, com nomes, responsáveis e horários de entrada diferentes: umas acabaram de entrar (com o atalho de cancelar), outras estão no tempo, acabando, **na tolerância** e três **já com cobrança por atraso**; duas são **PCD** e duas entraram com **voucher**; algumas têm restrição anotada e duas estão sem sapateira. Há **duas famílias com duas crianças** (aparecem juntas na lista) e **três crianças chamadas PEDRO**, de responsáveis diferentes, para ver como o nome do responsável separa uma da outra.
 - **4 fora do espaço** (uma com a entrada cancelada, para a supervisão conferir; duas que já saíram hoje, uma delas com cobrança por atraso; e a **Marina**, com o cadastro feito agora há pouco e o atendimento por fazer, que aparece em **Falta finalizar**), para testar a busca.
-- Vendas e registros do dia, conversas no WhatsApp e compromissos na agenda.
+- **5 crianças com pacote de horas** (ELISA, FELIPE, JOAQUIM, JOÃO e RAFAELA) e as outras na recreação avulsa, para ver o filtro **Pacotes / Horas avulsas**.
+- **4 carrinhos fora da loja**: três fusquinhas (um dentro do tempo, um que já passou e um de quem não está no espaço) e um carrinho de bebê, para ver as linhas com o botão **Devolveu** (seção 6o).
+- Vendas e registros do dia e compromissos na agenda.
 
-Elas se comportam como crianças de verdade: o tempo corre, a cobrança por atraso nasce sozinha, dá para dar saída, cancelar e vender. Nada vai para o iDFace nem para o WhatsApp. Nas crianças de teste o relógio não para na hora de fechar a loja, para o teste funcionar a qualquer hora.
+Elas se comportam como crianças de verdade: o tempo corre, a cobrança por atraso nasce sozinha, dá para dar saída, cancelar e vender. Nada vai para o iDFace. Nas crianças de teste o relógio não para na hora de fechar a loja, para o teste funcionar a qualquer hora.
 
-Para tirar, o mesmo botão vira **Tirar o teste**: saem as 34 crianças e tudo o que nasceu delas (vendas, cobranças, linhas do dia, conversas, agenda). Os cadastros de verdade ficam. Só a gestora coloca e tira o teste; a equipe vê as crianças de teste na tela enquanto elas estiverem lá.
+Para tirar, o mesmo botão vira **Tirar o teste**: saem as 34 crianças e tudo o que nasceu delas (vendas, cobranças, carrinhos fora, linhas do dia, agenda). Os cadastros de verdade ficam. Só a gestora coloca e tira o teste; a equipe vê as crianças de teste na tela enquanto elas estiverem lá.
 
 Na prévia (sem servidor) o mesmo botão existe e faz a mesma coisa na própria tela.
 
@@ -34,13 +36,23 @@ Na prévia (sem servidor) o mesmo botão existe e faz a mesma coisa na própria 
 
 | Papel | O que faz |
 |---|---|
-| **Gestor** | Tudo: regra das horas, pacotes, equipe, WhatsApp, iDFace. Pode remover crianças. |
-| **Supervisor** | Tudo da loja (horas, cadastro, WhatsApp, agenda) e *vê* os Ajustes, mas não os altera. **Confere as entradas canceladas**, cancela uma entrada mesmo fora do prazo e **corrige a hora de uma saída esquecida**. |
-| **Atendente** | Horas, cadastro de criança, WhatsApp e agenda. Não vê Ajustes. Cancela uma entrada sem cobrar só dentro do prazo (9 min), escrevendo o motivo. |
+| **Gestor** | Tudo: regra das horas, serviços, pacotes, produtos, equipe, iDFace. Pode remover crianças. |
+| **Supervisor** | Tudo da loja (horas, cadastro, agenda) e *vê* os Ajustes, mas não os altera. **Confere as entradas canceladas**, cancela uma entrada mesmo fora do prazo e **corrige a hora de uma saída esquecida**. |
+| **Atendente** | Horas, cadastro de criança e agenda. Não vê Ajustes. Cancela uma entrada sem cobrar só dentro do prazo (9 min), escrevendo o motivo. |
 
 A gestora cadastra cada pessoa com nome, login e senha inicial. Cada um troca a própria senha no avatar (canto inferior esquerdo no computador, aba **Conta** no celular) → *Trocar a senha*. Para redefinir a senha de alguém, a gestora edita a pessoa e digita uma senha nova.
 
-## 4. WhatsApp (Ajustes → WhatsApp da loja)
+## 4. WhatsApp (desligado na 0.89)
+
+**A partir da 0.89 o módulo do WhatsApp fica desligado**, porque a loja não vai usar essa parte por agora. Com ele desligado:
+
+- some a aba **WhatsApp** do menu;
+- somem os cartões **WhatsApp da loja** e **Avisos automáticos** dos Ajustes;
+- somem os botões **WhatsApp**, **Chamar para renovar**, **Mandar mensagem** e **Divulgar no WhatsApp** (comanda, histórico, Banco de horas e agenda);
+- somem do sininho os avisos que mandavam chamar o responsável (pacote acabando, quem sumiu, família esperando resposta, WhatsApp desconectado);
+- o cadastro pede só **Telefone**; e **nenhuma mensagem automática sai**, mesmo que a regra antiga mandasse.
+
+Nada foi apagado: as conversas antigas e a conexão continuam guardadas. Para religar, basta pedir: são duas chaves no código (`COM_WHATS` na tela e `MODULO_WHATS` em `api/lib.php`) e tudo volta como era. O que vem abaixo vale para quando o módulo estiver ligado.
 
 Usa a mesma Evolution API da Sophi CRM.
 
@@ -123,22 +135,21 @@ O tempo é debitado **sempre em períodos inteiros** (o período da Recreação:
 
 ## 6b. Banco de horas (aba)
 
-A aba **Banco de horas** mostra todas as crianças com o saldo, a **última contratação** (quantas horas, valor e dia; tocar nela abre o histórico do cliente) e a situação. A busca acha por criança, responsável, telefone ou CPF. Quem foi cadastrado e ainda não comprou aparece como **Sem horas**. **"Para renovar" vale só para quem comprou pacote de horas** e ficou sem um período guardado, e só depois que saiu: quem compra a recreação avulsa não entra na lista, e ninguém é chamado enquanto a criança está no espaço. No topo, **Para renovar** lista quem zerou ou está acabando, com o aviso pronto: "As horas do Miguel acabaram. Chame a Carla (mãe) no WhatsApp para ver se quer renovar." O botão **Chamar no WhatsApp** abre a conversa com a mensagem de renovação já escrita (com os pacotes e preços de Ajustes): é conferir e enviar. Depois de chamada, o cartão mostra "Já chamada hoje às 14:20 por Beatriz", para ninguém chamar duas vezes. Quando o iDFace registra uma saída que zera o pacote, a tela avisa na hora com o mesmo botão. O selo na aba mostra quantas crianças estão para renovar.
+A aba **Banco de horas** mostra todas as crianças com o saldo, a **última contratação** (quantas horas, valor e dia; tocar nela abre o histórico do cliente) e a situação. A busca acha por criança, responsável, telefone ou CPF. Quem foi cadastrado e ainda não comprou aparece como **Sem horas**. O filtro **Pacote acabou** mostra quem comprou pacote de horas e ficou sem um período guardado. *Com o módulo do WhatsApp ligado (seção 4):* **"Para renovar" vale só para quem comprou pacote de horas** e ficou sem um período guardado, e só depois que saiu: quem compra a recreação avulsa não entra na lista, e ninguém é chamado enquanto a criança está no espaço. No topo, **Para renovar** lista quem zerou ou está acabando, com o aviso pronto: "As horas do Miguel acabaram. Chame a Carla (mãe) no WhatsApp para ver se quer renovar." O botão **Chamar no WhatsApp** abre a conversa com a mensagem de renovação já escrita (com os pacotes e preços de Ajustes): é conferir e enviar. Depois de chamada, o cartão mostra "Já chamada hoje às 14:20 por Beatriz", para ninguém chamar duas vezes. Quando o iDFace registra uma saída que zera o pacote, a tela avisa na hora com o mesmo botão. O selo na aba mostra quantas crianças estão para renovar.
 
 ## 6c. Avisos do sistema (o sininho no alto da tela inicial)
 
-O sistema continua avisando o que vale olhar agora, mas os avisos **não ocupam mais a tela inicial**: ficam no botão do **sininho**, no alto, com a contagem (em vermelho quando há algo importante). Um toque abre a lista, uma frase e um botão por aviso:
+O sistema continua avisando o que vale olhar agora, mas os avisos **não ocupam a tela inicial**: ficam no botão do **sininho**, no alto, com a contagem (em vermelho quando há algo importante). Um toque abre a lista, uma frase e um botão por aviso:
 
 - **Cobrança por atraso** de quem ainda está no espaço: "ALICE passou do tempo comprado: nova cobrança por atraso. R$ 80 a receber de JULIANA na saída."
 - **Entradas canceladas** para a supervisão conferir.
-- **Pacote de horas acabado** (só para quem comprou pacote e já saiu), com o botão **Mandar mensagem**. Nenhum aviso manda chamar o responsável por causa do tempo de quem está no espaço.
-- **Família esperando resposta** no WhatsApp há mais de 3 minutos, com o botão **Responder**.
-- **iDFace sem contato** ou **WhatsApp desconectado**: o que impede o sistema de trabalhar sozinho.
+- **iDFace sem contato**: o que impede o sistema de trabalhar sozinho (só com o iDFace ligado).
 - **Agenda**: o que começa nas próximas 2 horas.
 - **Cadastro**: criança sem rosto no iDFace, ou com o acesso bloqueado mas com saldo (só com o iDFace ligado em Ajustes).
-- **Quem sumiu**: criança com horas guardadas que não vem há 14 dias ou mais.
 
-Cada aviso pode ser dispensado no X (vale para o dia, naquele aparelho). Sem avisos, o sininho some. Quem já foi chamado para renovar nos últimos 3 dias não volta a aparecer. A nova cobrança por atraso e a entrada cancelada continuam aparecendo também no aviso rápido do pé da tela, em qualquer aba.
+Cada aviso pode ser dispensado no X (vale para o dia, naquele aparelho). Sem avisos, o sininho some. A nova cobrança por atraso e a entrada cancelada continuam aparecendo também no aviso rápido do pé da tela, em qualquer aba.
+
+Com o módulo do WhatsApp desligado (seção 4), **não aparecem** os avisos que mandavam chamar o responsável: pacote de horas acabado, quem sumiu, família esperando resposta e WhatsApp desconectado. Eles voltam junto com o módulo.
 
 ## 6d. Bonequinhos (Ajustes → Aparência)
 
@@ -163,23 +174,28 @@ Para quando a criança entra e desiste logo (chorou, não quis ficar, o respons�
 - **Ajustes → Regra das horas → Cancelar a entrada sem cobrar** muda o prazo (5, 9, 10 ou 15 min) ou deixa só para a supervisão.
 - Com o iDFace ligado, o rosto lido nos 10 minutos seguintes ao cancelamento não vira entrada de novo (é a criança saindo).
 
-## 6f. Tela inicial: só a lista de quem está no espaço
+## 6f. Tela inicial: só a lista, com os filtros por serviço
 
-A primeira tela (aba **Espaço**) é **só a lista das crianças que estão no espaço**, uma linha por criança. Num computador cabem cerca de 30 sem rolar, em três colunas. Tudo o mais abre ao tocar na criança.
+A primeira tela (aba **Espaço**) é **só a lista**: uma linha por criança que está no espaço e uma linha por carrinho (ou fusquinha) que saiu da loja e ainda não voltou. Num computador as linhas ficam em três colunas. Tudo o mais abre ao tocar na linha.
 
-- **Cada linha mostra só o essencial**: o **nome da criança**, o **nome do responsável** embaixo, o **tempo que ela está no espaço** (correndo segundo a segundo) e o botão **Saída**.
+- **A linha da criança mostra só o essencial**: o **nome da criança**, o **nome do responsável** embaixo, o **tempo que ela está no espaço** (correndo segundo a segundo) e o botão **Saída**.
+- **A linha do carrinho** (o que saiu da loja, seção 6o) tem o ícone do carrinho, **com quem está** (a criança e o responsável) em cima, **o que é** embaixo (CARRINHO FUSQUINHA, CARRINHO DE BEBÊ), há quanto tempo saiu e o botão **Devolveu**.
 - **A cor diz a situação**: verde = no tempo; amarela = acabando (faltam 10 min ou menos); vermelha = passou do tempo comprado. O tempo fica da mesma cor. Parando o mouse no tempo, aparece até que horas vai (ou quanto passou).
 - **Só aparecem na linha quando existem**: o **sininho vermelho** (há observação: um toque mostra o que é) e o selo **+ R$ 80** (há cobrança por atraso a receber).
 - **O responsável aparece sempre.** Com três PEDRO no espaço, é o nome do responsável que diz qual é qual.
-- **Crianças do mesmo responsável ficam juntas**: uma embaixo da outra, dentro da mesma moldura, com um elo ao lado do nome do responsável. O sistema junta quem tem o mesmo CPF (ou RNE) do responsável; em cadastros sem documento, quem tem o mesmo telefone.
-- **Tocar na linha abre a comanda** (a ficha), com tudo: responsável, telefones, documento, observação em vermelho, **sapateira**, hora da entrada, até quando vai o tempo, quanto debita se sair agora, os três números (**comprou**, **usou** e **saldo**), o **cancelar a entrada**, as cobranças por atraso, o histórico e os botões. A sapateira, o saldo, a hora da entrada e o atalho de cancelar saíram da linha: estão todos ali.
-- **Em cima da lista**, numa linha só: os filtros (**Todas** e, só quando há alguém, *Acabando*, *Passou do tempo*, *Com cobrança* e *Saíram há pouco*, este para reabrir a visita, seção 6m), a **busca** e a ordem (**Tempo**: quem está mais perto de estourar vem primeiro; ou **Nome**).
+- **O que é do mesmo responsável fica junto**: as crianças e os carrinhos da mesma família, um embaixo do outro, dentro da mesma moldura, com um elo ao lado. O sistema junta quem tem o mesmo CPF (ou RNE) do responsável; em cadastros sem documento, quem tem o mesmo telefone.
+- **Tocar na linha abre a comanda** (a ficha), com tudo: responsável, telefones, documento, observação em vermelho, o que está fora da loja (com o **Devolveu**), **sapateira**, hora da entrada, até quando vai o tempo, quanto debita se sair agora, os três números (**comprou**, **usou** e **saldo**), o **cancelar a entrada**, as cobranças por atraso, o histórico e os botões.
+- **Os filtros são os serviços da loja**, numa linha só deles: **TODAS**, **RECREAÇÃO**, **CARRINHO FUSQUINHA** e **CARRINHO DE BEBÊ**, cada um com a contagem. São os serviços de Ajustes → Serviços e preços: o tempo de brincar e tudo o que estiver marcado como "sai da loja e volta". Tocar de novo no filtro escolhido volta para TODAS.
+- **Dentro da RECREAÇÃO** abrem-se ao lado **HORAS AVULSAS** e **PACOTES**, também com a contagem: quem está na recreação comprada por período (ou no voucher) e quem está usando as horas de um pacote. Tocar de novo mostra os dois. A conta: o tempo que a criança já usou consome as compras na ordem em que foram feitas; se ainda sobra alguma hora de pacote, ela está em PACOTES.
+- Saíram os filtros *Acabando*, *Passou do tempo* e *Com cobrança*: a cor da linha, a ordem (quem está mais perto de estourar vem primeiro) e o selo **+ R$ 80** já mostram isso na própria lista.
+- **SAÍRAM HÁ POUCO** só aparece quando há alguém no prazo de reabrir a visita (seção 6m).
+- **Embaixo dos filtros**, a **busca** e a ordem (**Tempo** ou **Nome**).
 - **Buscar** (criança, responsável, telefone ou CPF) filtra a lista e também acha quem tem cadastro e não está no espaço, com os botões **Entrada** (se tem um período guardado) e **Atender** (vender e dar entrada).
 - A faixa **Falta finalizar** só aparece quando alguém ficou com o cadastro ou o atendimento pela metade (veja 6i).
-- **No alto**: o **sininho** dos avisos (só quando há algum, seção 6c), **Pacotes e produtos** e **Entrada na tela**.
-- **Atividades da semana**: em tela larga (1400 px ou mais) ficam na coluna da direita, por dia, sempre à vista. Em tela menor e no celular viram **uma linha só** embaixo da lista ("Hoje: Oficina do Baleiro às 15:00 · mais 1 hoje · 3 nos próximos dias"); um toque abre os dias. Dá para marcar como feito ali mesmo.
-- **No pé**, dois atalhos: **Banco de horas** (quem não está no espaço) e **Hoje na recepção** (cada entrada, saída, venda, cancelamento e mudança de estoque do dia, com o nome da criança e o do responsável em cada linha).
-- **Os números do dia** (quanto foi vendido, as horas usadas e as cobranças por atraso) saíram da tela inicial: estão no alto de **Hoje na recepção**.
+- **No alto**: quantas crianças estão no espaço, quantas passaram do tempo e **quantos carrinhos há para devolver**; o **sininho** dos avisos (só quando há algum, seção 6c), **Pacotes e produtos** e **Entrada na tela**.
+- **Atividades da semana**: em tela larga (1400 px ou mais) ficam na coluna da direita, por dia, sempre à vista. Em tela menor e no celular viram **uma linha só** embaixo da lista; um toque abre os dias. Dá para marcar como feito ali mesmo.
+- **No pé**, dois atalhos: **Banco de horas** (quem não está no espaço) e **Hoje na recepção** (cada entrada, saída, venda, devolução, cancelamento e mudança de estoque do dia, com o nome da criança e o do responsável em cada linha).
+- **Os números do dia** (quanto foi vendido, as horas usadas e as cobranças por atraso) estão no alto de **Hoje na recepção**.
 - A folha da **Saída** diz o "Saldo depois da saída", e o **Histórico do cliente** mostra o saldo de cada criança e o da família.
 
 ## 6g. Cobrança por atraso
@@ -314,13 +330,32 @@ Produtos que já vêm instalados (os da tela "Produtos disponíveis" do sistema 
 - Qualquer pessoa da equipe reabre dentro do prazo (com o iDFace ligado, só gestor e supervisor, como na saída à mão). Se depois daquela saída houve uma entrada cancelada, não reabre: aí é entrada nova.
 - O **Desfazer** do aviso da saída (os primeiros segundos) continua existindo, para o toque errado.
 
-## 6n. Nomes sempre em maiúsculas
+## 6n. Tudo o que é digitado fica em maiúsculas
 
-O nome da criança e o do responsável ficam **sempre em MAIÚSCULAS**, mesmo que sejam escritos em minúsculas.
+**Tudo o que a equipe digita sai em MAIÚSCULAS**, sem a opção de sair em minúsculas: o nome da criança e o do responsável, a observação, o motivo de um cancelamento ou de uma correção de hora, o "outro item" da venda, os nomes dos serviços, dos pacotes e dos produtos, a agenda e os nomes da equipe.
 
-- No cadastro, o campo já mostra em maiúsculas enquanto a pessoa escreve, e o sistema grava assim (tirando espaços sobrando).
-- Na atualização para a 0.85, os cadastros e as linhas do dia que já existiam foram convertidos de uma vez.
-- Nas mensagens automáticas do WhatsApp para o responsável (que vêm desligadas), o nome vai como se escreve ("Pedro Henrique"), para não parecer que a loja está gritando.
+- O campo já mostra em maiúsculas enquanto a pessoa escreve (no celular, o teclado abre em maiúsculas), e o sistema grava assim.
+- Ficam de fora só o que não pode mudar de caixa: o **login** (sempre em minúsculas), a **senha**, e os campos técnicos do iDFace e do WhatsApp.
+- Os atalhos da observação (Alergia, Pode pintura, Sem pintura…) também escrevem em maiúsculas.
+- Na atualização para a 0.89, o que já estava digitado no banco foi convertido de uma vez (observações, motivos, serviços, pacotes, produtos, agenda e equipe). Os nomes das crianças e dos responsáveis já estavam assim desde a 0.85.
+- O que o sistema escreve sozinho continua como texto normal ("Entrada registrada", "Ficou 0h45 · 1h debitados"), e as linhas antigas de Hoje na recepção ficam como foram escritas.
+- A busca não liga para maiúsculas e minúsculas.
+
+## 6o. O que sai da loja e volta: carrinho de bebê e fusquinha
+
+O carrinho de bebê e o fusquinha saem da loja com o cliente e voltam. A partir da 0.89, **vendido, o carrinho entra na lista da tela inicial e fica lá até alguém tocar em Devolveu**. Assim a equipe vê, na mesma lista das crianças, o que está fora e há quanto tempo.
+
+- **Quais serviços entram**: os que estão marcados como **Sai da loja e volta** em Ajustes → Serviços e preços (toque no serviço). O CARRINHO FUSQUINHA e o CARRINHO DE BEBÊ já vêm marcados. Um serviço novo (um patinete, por exemplo) entra na lista e ganha um filtro só de marcar a caixinha. O tempo de brincar (RECREAÇÃO) nunca entra.
+- **A linha**: o ícone do carrinho, a criança e o responsável em cima, o nome do serviço embaixo, o relógio contando desde a venda e o botão **Devolveu**. Com mais de uma unidade, aparece "2 × CARRINHO DE BEBÊ".
+- **Com tempo comprado** (o fusquinha, vendido a cada meia hora): a linha fica amarela quando faltam 10 min e vermelha quando passa do tempo comprado. Parando o mouse no relógio aparece até que horas vai, ou quanto passou. **Mais um período do mesmo fusquinha soma o tempo na mesma linha.**
+- **Sem hora para voltar** (o carrinho de bebê, valor único): a linha só conta o tempo.
+- **De outro dia**: se ninguém marcou a devolução, a linha continua na lista, em vermelho, com o dia em que saiu, no começo da lista.
+- **Devolveu**: um toque, na linha ou na comanda da criança. O carrinho sai da lista e fica anotado em **Hoje na recepção**: "CARRINHO FUSQUINHA · devolvido · ficou 0h44 · tempo comprado: 0h30 (passou 14 min) · por JOÃO". O aviso tem **Desfazer** (vale por 10 minutos).
+- **Nada é cobrado sozinho na devolução.** Se passou do tempo comprado, a linha fica vermelha, o aviso diz quanto passou e a equipe vende o período a mais pelo atendimento da criança (botão Vender da comanda).
+- Quem leva só o carrinho **não entra no espaço**: aparece na lista só a linha do carrinho. Se a criança também está na recreação, as duas linhas ficam juntas, na moldura da família.
+- Se a venda for desfeita (ou deixar de ser cobrada num cancelamento de entrada), o carrinho sai da lista sozinho.
+- Todos os aparelhos veem o carrinho entrar e sair da lista em poucos segundos.
+- O que foi vendido antes da 0.89 não entra na lista: vale para as vendas feitas a partir da atualização.
 
 ## 7. Atualizar
 

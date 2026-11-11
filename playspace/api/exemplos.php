@@ -24,8 +24,11 @@ function exemplosCarregar(?int $por): array {
   $t = fn(float $minAtras) => date('Y-m-d H:i:s', time() - (int)round($minAtras * 60));    // minutos atrás
   $d = fn(int $dias, string $h) => date('Y-m-d', strtotime("$dias days")) . " $h:00";      // dias para frente (negativo: para trás) numa hora
   $hora = fn(string $q) => substr($q, 11, 5);
-  $st = servicoTempo(); $P = periodo(); $V = (float)($st['v'] ?? 80); $SN = (string)($st['n'] ?? 'Recreação'); $tol = (int)regra()['tolerancia'];
+  $st = servicoTempo(); $P = periodo(); $V = (float)($st['v'] ?? 80); $SN = (string)($st['n'] ?? 'RECREAÇÃO'); $tol = (int)regra()['tolerancia'];
   $VP = precoPcd(['pcd' => 1], $V); $rotPcd = 'PCD ' . pcdDesc() . '%';
+  // quem tem pacote de horas (pac): o pacote de 5 h da tabela, comprado há três dias. O tempo sai do pacote, sem cobrança por atraso
+  $pk = null; foreach ((array)regra()['pacotes'] as $p) if ((int)($p['h'] ?? 0) === 5 && tipoPacote($p) === 'seco') { $pk = $p; if (abs((float)$p['v'] - 420) < 0.005) break; }
+  $pacH = $pk ? (int)$pk['h'] : 5; $pacV = $pk ? (float)$pk['v'] : 420.0; $pacServ = $pk ? servicoDoPacote($pk) : ''; $pacItens = $pk ? itensDoPacote($pk) : 'seco';
 
   // quem está no espaço: nome, responsável, entrou há (min), períodos comprados, e o que tem de diferente
   // (pcd, voucher, obs, fam = mesma família de outra criança, sem = sem sapateira). Os horários cobrem todas as situações da lista.
@@ -33,18 +36,18 @@ function exemplosCarregar(?int $por): array {
   $dentro = [
     ['Ana Clara', 'Carla Menezes', 2, 1],                      ['Bento', 'Rodrigo Alves', 4, 1],
     ['Cecília', 'Fernanda Castro', 5, 1, ['voucher' => 1]],    ['Davi Luiz', 'Tiago Lima', 7, 1],
-    ['Elisa', 'Patrícia Nunes', 8, 2],                         ['Felipe', 'Patrícia Nunes', 8, 2, ['fam' => 'Elisa']],
-    ['Gabriela', 'Aline Prado', 11, 1, ['obs' => 'Alergia a corante']], ['Theo', 'Rafael Lima', 12, 1],
+    ['Elisa', 'Patrícia Nunes', 8, 2, ['pac' => 1]],           ['Felipe', 'Patrícia Nunes', 8, 2, ['fam' => 'Elisa', 'pac' => 1]],
+    ['Gabriela', 'Aline Prado', 11, 1, ['obs' => 'ALERGIA A CORANTE']], ['Theo', 'Rafael Lima', 12, 1],
     ['Heitor', 'Bruno Teixeira', 13, 1, ['sem' => 1]],         ['Isabela', 'Juliana Rocha', 14, 1, ['pcd' => 1]],
-    ['Joaquim', 'André Martins', 15, 2],                       ['Lara', 'Camila Farias', 16, 1],
+    ['Joaquim', 'André Martins', 15, 2, ['pac' => 1]],                     ['Lara', 'Camila Farias', 16, 1],
     ['Pedro', 'Vanessa Duarte', 18, 1],                         ['Olívia', 'Renata Campos', 21, 1],
-    ['Pedro', 'Gustavo Ribeiro', 22, 1, ['obs' => 'Não mexer no cabelo']], ['Rafaela', 'Daniela Moraes', 24, 1],
+    ['Pedro', 'Gustavo Ribeiro', 22, 1, ['obs' => 'NÃO MEXER NO CABELO']], ['Rafaela', 'Daniela Moraes', 24, 1, ['pac' => 1]],
     ['Samuel', 'Leandro Pires', 25, 1, ['voucher' => 1]],      ['Valentina', 'Priscila Azevedo', 26, 1],
     ['Pedro', 'Eduardo Barros', 28, 1, ['sem' => 1]],           ['Zoe', 'Larissa Monteiro', 29, 1],
     ['Antônio', 'Felipe Cardoso', 31, 1],                      ['Bia', 'Simone Araújo', 33, 1],
     ['Caio', 'Roberto Nogueira', 35, 1, ['pcd' => 1]],         ['Dora', 'Luciana Freitas', 37, 1],
-    ['João', 'Sérgio Lopes', 34, 2],                           ['Enzo', 'Marcelo Tavares', 42, 1],
-    ['Flora', 'Bianca Sales', 47, 1, ['obs' => 'Pode fazer pintura no rosto']], ['Helena', 'Mariana Souza', 47, 2, ['obs' => 'Alergia a amendoim']],
+    ['João', 'Sérgio Lopes', 34, 2, ['pac' => 1]],                         ['Enzo', 'Marcelo Tavares', 42, 1],
+    ['Flora', 'Bianca Sales', 47, 1, ['obs' => 'PODE FAZER PINTURA NO ROSTO']], ['Helena', 'Mariana Souza', 47, 2, ['obs' => 'ALERGIA A AMENDOIM']],
     ['Íris', 'Mariana Souza', 47, 2, ['fam' => 'Helena']],     ['Gael', 'Paulo Henrique Cunha', 56, 1],
   ];
   $ins = $db->prepare("INSERT INTO criancas (nome, idade, resp, rel, tel, cpf, obs, pacote_min, usado_min, entrou, idface_id, foto, rosto, ativo, criado_em, pcd) VALUES (?, ?, ?, 'responsável', ?, ?, ?, ?, ?, ?, NULL, '', 0, 1, ?, ?)");
@@ -63,25 +66,35 @@ function exemplosCarregar(?int $por): array {
     if (isset($x['fam'])) { $cpf = $cpfDe[$x['fam']]; $tel = $telDe[$x['fam']]; } else { $cpf = exemploCpf($i + 1); $tel = '(11) 9 ' . (6100 + $i * 13) . '-' . (1000 + $i * 217); }
     $cpfDe[$nome] = $cpf; $telDe[$nome] = $tel;
     $min = $per * $P; $autos = max(0, (int)ceil(($ha - $tol) / $P) - $per);   // já passou do tempo comprado mais a tolerância: tem cobrança por atraso
+    $pac = !empty($x['pac']); if ($pac) { $min = $pacH * 60; $autos = 0; }
     $ins->execute([$nome, 0, $resp, $tel, $cpf, (string)($x['obs'] ?? ''), $min + $autos * $P, 0, $entrou, $t(60 * 24 * 12), $pcd ? 1 : 0]);
     $id = (int)$db->lastInsertId(); $ids[] = $id; $nomeId[$nome] = $id; $nDentro++;
     if (empty($x['sem'])) { do { $sap++; } while ($sap <= 44 && donoSapateira($sap)); if ($sap <= 44) $db->prepare('UPDATE criancas SET sapateira = ? WHERE id = ?')->execute([$sap, $id]); }
-    if (isset($x['voucher'])) $vender($id, $nome, $min, 0.0, $entrou, 'voucher', ['voucher' => 'sim', 'cheio' => $per * $V]);
+    if ($pac) $ven->execute([$id, $pacH, $min, $pacV, $t(60 * 24 * 3 + $i), $por, $pacItens, $pacServ, 0, '', 0, null]);
+    elseif (isset($x['voucher'])) $vender($id, $nome, $min, 0.0, $entrou, 'voucher', ['voucher' => 'sim', 'cheio' => $per * $V]);
     elseif ($pcd) $vender($id, $nome, $min, $per * $VP, $entrou, $rotPcd, ['pcd' => 1, 'cheio' => $per * $V]);
     else $vender($id, $nome, $min, $per * $V, $entrou, '');
     $reg->execute([$entrou, 'ent', $id, $nome, 'Entrada registrada']);
     for ($k = 1; $k <= $autos; $k++) $vender($id, $nome, $P, $pcd ? $VP : $V, date('Y-m-d H:i:s', strtotime($entrou) + (($per + $k - 1) * $P + $tol) * 60 + 1), 'cobrança por atraso' . ($pcd ? ' · ' . $rotPcd : ''), ['auto' => 1, 'pcd' => $pcd, 'cheio' => $pcd ? $V : null, 'rot' => $rotPcd]);
   }
-  // dois serviços à parte, para o histórico e para o dia
-  $outros = $db->prepare('INSERT INTO vendas (crianca_id, horas, minutos, valor, quando, por, itens, servico) VALUES (?, 0, 0, ?, ?, ?, ?, ?)');
-  $outros->execute([$nomeId['Elisa'], 30, $t(8), $por, 'das 10h às 22h', 'Carrinho de bebê']); $reg->execute([$t(8), 'venda', $nomeId['Elisa'], 'Elisa', 'Carrinho de bebê · das 10h às 22h · R$ 30']);
-  $outros->execute([$nomeId['Lara'], 15, $t(16), $por, dur(30), 'Carrinho fusquinha']); $reg->execute([$t(16), 'venda', $nomeId['Lara'], 'Lara', 'Carrinho fusquinha · ' . dur(30) . ' · R$ 15']);
 
   // três que não estão no espaço: nome, responsável
   foreach ([['Miguel', 'Carla Dias'], ['Nina', 'Tatiane Brito'], ['Otávio', 'Cláudio Reis']] as $i => $l) {
     $ins->execute([$l[0], 0, $l[1], '(11) 9 ' . (5400 + $i * 31) . '-' . (2000 + $i * 333), exemploCpf(60 + $i), '', 0, 0, null, $t(60 * 24 * 20), 0]);
     $id = (int)$db->lastInsertId(); $ids[] = $id; $nomeId[$l[0]] = $id;
   }
+  // o que saiu da loja e ainda não voltou (fica na lista até "Devolveu"): um fusquinha dentro do tempo, um que já passou, um de quem não está no espaço e um carrinho de bebê
+  $alu = $db->prepare('INSERT INTO vendas (crianca_id, horas, minutos, valor, quando, por, itens, servico, alug, alug_min, qtd) VALUES (?, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?)');
+  $sair = function (string $nome, array $sv, float $ha, int $q = 1) use ($alu, $reg, &$nomeId, $por, $t) {
+    $porTempo = ($sv['modo'] ?? 'fixo') === 'periodo'; $m = $porTempo ? $q * max(1, (int)$sv['min']) : 0; $obs = (string)($sv['obs'] ?? ''); $valor = $q * (float)$sv['v'];
+    $itens = $porTempo ? dur($m) : (($q > 1 ? $q . ' unidades' . ($obs !== '' ? ' · ' : '') : '') . $obs);
+    $alu->execute([$nomeId[$nome], $valor, $t($ha), $por, $itens, (string)$sv['n'], (string)$sv['id'], $m, $porTempo ? 1 : $q]);
+    $reg->execute([$t($ha), 'venda', $nomeId[$nome], $nome, $sv['n'] . ($itens !== '' ? ' · ' . $itens : '') . ' · ' . dinheiro($valor)]);
+  };
+  $porTempo = null; $semHora = null;
+  foreach ((array)regra()['servicos'] as $sv) if (!empty($sv['volta'])) { if (($sv['modo'] ?? 'fixo') === 'periodo') $porTempo = $porTempo ?? $sv; else $semHora = $semHora ?? $sv; }
+  if ($porTempo) { $sair('Lara', $porTempo, 16); $sair('Bento', $porTempo, (int)$porTempo['min'] + 13); $sair('Nina', $porTempo, 21); }
+  if ($semHora) $sair('Elisa', $semHora, 95);
   // Nina veio hoje: 35 min com 30 comprados (dentro da tolerância) → um período
   $id = $nomeId['Nina']; $vender($id, 'Nina', $P, $V, $t(150), ''); $reg->execute([$t(150), 'ent', $id, 'Nina', 'Entrada registrada']);
   $vis->execute([$id, $t(150), $t(115), $P, 'mão']); $reg->execute([$t(115), 'sai', $id, 'Nina', 'Ficou ' . dur(35) . ' · ' . dur($P) . ' debitados']);
@@ -94,9 +107,9 @@ function exemplosCarregar(?int $por): array {
   // Miguel: a entrada de hoje foi cancelada aos 6 min, sem cobrar; fica para a supervisão conferir. Veio também ontem.
   $id = $nomeId['Miguel'];
   $reg->execute([$t(96), 'venda', $id, 'Miguel', $SN . ' · ' . dur($P) . ' · ' . dinheiro($V) . ' · cancelada']); $reg->execute([$t(96), 'ent', $id, 'Miguel', 'Entrada registrada']);
-  $reg->execute([$t(90), 'canc', $id, 'Miguel', 'Entrada das ' . $hora($t(96)) . ' cancelada aos 6 min · não cobrado: ' . $SN . ' · ' . dur($P) . ' (' . dinheiro($V) . ') · Motivo: A criança chorou e não quis ficar · por João']);
+  $reg->execute([$t(90), 'canc', $id, 'Miguel', 'Entrada das ' . $hora($t(96)) . ' cancelada aos 6 min · não cobrado: ' . $SN . ' · ' . dur($P) . ' (' . dinheiro($V) . ') · Motivo: A CRIANÇA CHOROU E NÃO QUIS FICAR · por JOÃO']);
   $db->prepare('INSERT INTO cancelamentos (crianca_id, nome, resp, entrou, quando, minutos, valor, itens, motivo, por, por_nome, papel, fora) VALUES (?, ?, ?, ?, ?, 6, ?, ?, ?, ?, ?, ?, 0)')
-    ->execute([$id, 'Miguel', 'Carla Dias', $t(96), $t(90), $V, json_encode([['n' => $SN . ' · ' . dur($P), 'm' => $P, 'v' => $V]], JSON_UNESCAPED_UNICODE), 'A criança chorou e não quis ficar', $por, 'João (exemplo)', 'atendente']);
+    ->execute([$id, 'Miguel', 'Carla Dias', $t(96), $t(90), $V, json_encode([['n' => $SN . ' · ' . dur($P), 'm' => $P, 'v' => $V]], JSON_UNESCAPED_UNICODE), 'A CRIANÇA CHOROU E NÃO QUIS FICAR', $por, 'JOÃO (EXEMPLO)', 'atendente']);
   $ven->execute([$id, round($P / 60, 2), $P, $V, $d(-1, '14:20'), $por, '', $SN, 0, '', 0, null]); $vis->execute([$id, $d(-1, '14:20'), $d(-1, '14:52'), $P, 'mão']);
   $db->prepare('UPDATE criancas SET pacote_min = ?, usado_min = ? WHERE id = ?')->execute([$P, $P, $id]);
 
@@ -119,7 +132,7 @@ function exemplosCarregar(?int $por): array {
             [2, '15:00', 'Oficina de slime', 'oficina', 'Oficina', 'Até 12 crianças · levar aventais'], [5, '16:00', 'Festa da Lara (6 anos)', 'festa', 'Festa', 'Salão reservado das 15h às 19h'],
             [7, '10:00', 'Reunião com a escola Pequeno Príncipe', 'compromisso', 'Compromisso', 'Parceria para as férias'], [9, '09:00', 'Post: horário das férias', 'postagem', 'Postagem', 'Arte com o castelinho'],
             [12, '15:30', 'Oficina de pintura', 'oficina', 'Oficina', ''], [-3, '14:00', 'Oficina de massinha', 'oficina', 'Oficina', 'Feita · 9 crianças']] as $c) {
-    $comp->execute([date('Y-m-d', strtotime("$c[0] days")), $c[1], $c[2], $c[3], $c[4], $c[5], agora()]); $compIds[] = (int)$db->lastInsertId();
+    $comp->execute([date('Y-m-d', strtotime("$c[0] days")), $c[1], emMaiusculas($c[2]), $c[3], $c[4], emMaiusculas($c[5]), agora()]); $compIds[] = (int)$db->lastInsertId();
   }
   nomesEmMaiusculas($db, $ids);   // os nomes do teste também ficam em maiúsculas, como os de verdade
   gravarCfg('exemplo', ['criancas' => $ids, 'compromissos' => $compIds, 'em' => agora()]);
