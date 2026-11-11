@@ -629,16 +629,17 @@ body.quieto .dica { animation: none !important; }
 .esp-cab .dias button.f-al b { background: var(--erro); color: #fff; } .esp-cab .dias button.f-av b { background: var(--mostarda); color: #3B3B3B; }
 .esp-cab .campo { flex: 1; min-width: 220px; } .esp-cab .campo input { min-height: 40px; border-radius: 13px; }
 .esp-cab .seg.mini button { height: 28px; font-size: 12px; }
-.esp-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 5px; }
-.esp-it { position: relative; display: flex; align-items: center; gap: 8px; min-width: 0; height: 52px; padding: 0 8px 0 11px; background: var(--card); border: 1px solid var(--borda); border-radius: 14px; overflow: hidden; box-shadow: inset 4px 0 0 var(--verde-agua); }
+.esp-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); grid-auto-rows: 58px; gap: 5px; }
+.esp-it { position: relative; display: grid; grid-template-columns: 30px minmax(0, 1fr) auto auto; grid-template-rows: 32px 16px; column-gap: 8px; row-gap: 1px; align-items: center; align-content: center; min-width: 0; height: 58px; padding: 0 8px 2px 11px; background: var(--card); border: 1px solid var(--borda); border-radius: 14px; overflow: hidden; box-shadow: inset 4px 0 0 var(--verde-agua); transition: transform .35s var(--spring); }
 .esp-it.acabando { box-shadow: inset 4px 0 0 var(--mostarda); }
 .esp-it.passou { box-shadow: inset 4px 0 0 var(--erro); background: var(--erro-bg); }
 .esp-it.cobranca { border-color: var(--erro); }
-.esp-it .sapc { flex: none; width: 30px; height: 30px; border-radius: 10px; background: var(--tinta); color: var(--creme); font-family: var(--display); font-weight: 800; font-size: 13px; display: flex; align-items: center; justify-content: center; }
+.esp-it .sapc { grid-column: 1; grid-row: 1 / span 2; position: relative; width: 30px; height: 30px; border-radius: 10px; background: var(--tinta); color: var(--creme); font-family: var(--display); font-weight: 800; font-size: 13px; display: flex; align-items: center; justify-content: center; }
 .esp-it .sapc.vazia { background: transparent; border: 1px dashed var(--borda-2); color: var(--apagado); }
-.esp-it .quem { flex: 1; min-width: 0; height: 100%; display: flex; align-items: center; gap: 10px; text-align: left; }
-.esp-it .quem .txt { flex: 1; min-width: 0; }
-.esp-it .l1 { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.esp-it > .quem { position: absolute; inset: 0; border-radius: inherit; }   /* a linha inteira abre a ficha; a sapateira, o cancelar e a Saída ficam por cima */
+.esp-it:has(> .quem:active) { transform: scale(.985); }
+.esp-it > .l1, .esp-it > .l2, .esp-it > .tmp { position: relative; cursor: pointer; }
+.esp-it .l1 { grid-column: 2; grid-row: 1; display: flex; align-items: center; gap: 6px; min-width: 0; }
 .esp-it .l1 b { font-family: var(--display); font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .esp-it .l1 .obs { flex: none; color: var(--coral); display: inline-flex; }
 .esp-it .l1 .pcd, .selo-pcd { flex: none; font-style: normal; font-size: 10.5px; font-weight: 800; letter-spacing: .03em; color: var(--tinta); background: var(--verde-agua-2); border: 1px solid var(--verde-agua); border-radius: 999px; padding: 0 6px; white-space: nowrap; }
@@ -652,12 +653,18 @@ body.quieto .dica { animation: none !important; }
 .marca.vou-saida { width: 100%; cursor: pointer; background: var(--aviso-bg); } .marca.vou-saida > span { flex: 1; } .marca.vou-saida > svg:first-child { flex: none; color: var(--aviso); }
 .reg .ev.cad b::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; background: var(--verde-agua); }
 .esp-it .l1 .cb { flex: none; font-style: normal; font-size: 11px; font-weight: 800; color: #fff; background: var(--erro); border-radius: 999px; padding: 1px 7px; white-space: nowrap; }
-.esp-it .l2 { display: block; font-size: 12px; color: var(--tinta-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.esp-it .tempo { flex: none; text-align: right; line-height: 1.12; }
-.esp-it .tempo b { display: block; font-family: var(--display); font-weight: 800; font-size: 17px; letter-spacing: -.01em; }
-.esp-it .tempo small { display: block; font-size: 11px; font-weight: 700; color: var(--tinta-2); white-space: nowrap; }
-.esp-it.acabando .tempo small { color: var(--aviso); } .esp-it.passou .tempo b, .esp-it.passou .tempo small { color: var(--erro); }
-.esp-it .acoes-e { flex: none; display: flex; align-items: center; gap: 5px; }
+.esp-it .l2 { grid-column: 2 / -1; grid-row: 2; display: flex; align-items: center; gap: 7px; min-width: 0; font-size: 12px; line-height: 16px; color: var(--tinta-2); }
+.esp-it .l2 .rs { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .esp-it .l2 .rs b { font-weight: 800; color: var(--tinta); }
+.esp-it .l2 .elo { display: inline-flex; vertical-align: -1px; margin-right: 3px; color: var(--coral); }
+.esp-it .l2 .sd { flex: none; font-size: 11px; font-weight: 800; line-height: 15px; padding: 0 7px; border-radius: 999px; background: var(--menta); color: var(--tinta); white-space: nowrap; }
+.esp-it .l2 .sd.zero { background: none; padding: 0; font-weight: 700; color: var(--tinta-2); }
+.esp-it .l2 small { flex: none; font-size: 11px; font-weight: 700; color: var(--tinta-2); white-space: nowrap; }
+.esp-it .tmp { grid-column: 3; grid-row: 1; font-family: var(--display); font-weight: 800; font-size: 17px; letter-spacing: -.01em; text-align: right; white-space: nowrap; }
+/* as crianças do mesmo responsável: uma embaixo da outra, dentro da mesma moldura */
+.esp-fam { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 2px; border-radius: 16px; background: var(--tinta-2); }
+.esp-fam > .esp-it { flex: 1; height: auto; border: 0; border-radius: 5px; } .esp-fam > .esp-it:first-child { border-radius: 14px 14px 5px 5px; } .esp-fam > .esp-it:last-child { border-radius: 5px 5px 14px 14px; }
+.esp-it.acabando .l2 small { color: var(--aviso); } .esp-it.passou .tmp, .esp-it.passou .l2 small { color: var(--erro); }
+.esp-it .acoes-e { grid-column: 4; grid-row: 1; position: relative; display: flex; align-items: center; gap: 5px; }
 .esp-it .acoes-e .bt { height: 32px; padding: 0 10px; border-radius: 10px; font-size: 12px; gap: 5px; }
 .esp-it.passou .acoes-e .bt { background: var(--card); }
 .esp-it .canc-link { flex: none; display: inline-flex; align-items: center; gap: 3px; height: 26px; padding: 0 8px; border-radius: 999px; border: 1px solid var(--erro-bg); background: var(--card); color: var(--erro); font-size: 11px; font-weight: 800; white-space: nowrap; }
@@ -712,6 +719,16 @@ body.quieto .dica { animation: none !important; }
 .pac-tab tbody th, .pac-tab td { white-space: nowrap; }
 @media (max-width: 480px) { .pac-tab { font-size: 12px; } .pac-tab th, .pac-tab td { padding: 10px 2px; } .pac-tab tbody th, .pac-tab .v { font-size: 13.5px; } .pac-tab thead th { font-size: 9.5px; letter-spacing: 0; padding: 8px 2px; } .pac-tab .lap { width: 24px; } }
 .rot-pac { display: block; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--apagado); margin: 6px 0 5px; } #v-pacotes .rot-pac:first-of-type { margin-top: 0; }
+/* ---------- 0.85: nomes em maiúsculas no cadastro, reabrir a visita, atividades da semana ---------- */
+#f-nome, #f-resp { text-transform: uppercase; } #f-nome::placeholder, #f-resp::placeholder { text-transform: none; }
+.marca.reab > .bt { background: var(--coral); color: #fff; }
+.reg .ev.reab b::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; background: var(--aviso); }
+.reg .ev b .rr { font-family: var(--texto); font-size: 11px; font-weight: 700; color: var(--apagado); margin-left: 3px; }
+.sem-dia { display: flex; flex-direction: column; gap: 6px; }
+.sem-rot { display: block; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--apagado); margin-top: 2px; }
+.sem-dia.hoje-s .sem-rot { color: var(--coral); }
+.semana-pag { display: flex; flex-direction: column; gap: 10px; } .semana-pag .sec-cab h2 { font-size: 18px; }
+@media (min-width: 1400px) { body:not(.com-lado) .semana-pag { display: none; } .hoje .painel.semana { flex: 0 1 auto; max-height: 100%; } .hoje .painel.semana h2 { font-size: 16.5px; white-space: nowrap; } .hoje .painel.semana .sec-cab { flex-wrap: nowrap; } }   /* na tela larga a semana já está na coluna da direita */
 /* ---------- produtos: a aba Produtos (tabela) e os botões do atendimento ---------- */
 .pp-corpo { display: flex; flex-direction: column; gap: 14px; }
 @media (max-width: 700px) { .so-largo { display: none; } }   /* no celular o botão do alto diz só "Pacotes" (cabe ao lado do relógio) */
@@ -879,6 +896,14 @@ const p2 = n => String(n).padStart(2, '0');
 const hm = min => { min = Math.round(min); return Math.floor(min / 60) + 'h' + (min % 60 ? p2(min % 60) : ''); };
 const hora = d => p2(d.getHours()) + ':' + p2(d.getMinutes());
 const isoDia = d => d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate());
+// os nomes (da criança e do responsável) aparecem sempre em MAIÚSCULAS, mesmo escritos em minúsculas; na mensagem para o responsável vão como se escreve
+const MAI = t => String(t == null ? '' : t).replace(/\s+/g, ' ').trim().toLocaleUpperCase('pt-BR');
+const nomeMsg = t => String(t == null ? '' : t).trim().toLocaleLowerCase('pt-BR').replace(/(^|[\s'-])(\p{L})/gu, (m, a, b) => a + b.toLocaleUpperCase('pt-BR')).replace(/\s(Da|De|Do|Das|Dos|E)(?=\s)/g, m => m.toLowerCase());
+function nomesEmMaiusculas() { // o que chega (do servidor ou dos exemplos da prévia) fica como a loja pediu
+  for (const c of S.criancas || []) { c.nome = MAI(c.nome); c.resp = MAI(c.resp); }
+  for (const r of S.registros || []) if (r.tipo !== 'est') r.nome = MAI(r.nome);   // as linhas de estoque levam o nome do produto, que fica como está
+  for (const x of S.cancelamentos || []) { x.nome = MAI(x.nome); x.resp = MAI(x.resp); }
+}
 const brl = v => 'R$ ' + (+v || 0).toLocaleString('pt-BR', { minimumFractionDigits: (+v || 0) % 1 ? 2 : 0, maximumFractionDigits: 2 });
 const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 const SEMANA = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
@@ -922,13 +947,14 @@ const IC = {
   historico: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7.5V12l3 2"/>',
   presente: '<rect x="3" y="9" width="18" height="12" rx="2"/><path d="M3 13h18M12 9v12M12 9c-3 0-5-1.5-5-3.5S9.5 3 12 9c2.5-6 5-5.5 5-3.5S15 9 12 9z"/>',
   sacola: '<path d="M5 8h14l1 12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M9 11V7a3 3 0 0 1 6 0v4"/>',
+  elo: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.2 1.2"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.2-1.2"/>',
 };
 
 /* ---------- estado (dados de exemplo: a loja ainda não tem cadastro) ---------- */
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.84';
+const VERSAO = '0.85';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -959,24 +985,24 @@ async function atualizarAgora(bt) {
 }
 const S = {
   tela: 'horas', zapAberta: 1, zapModo: 'lista', zapDia: isoDia(agora), mes: { y: agora.getFullYear(), m: agora.getMonth() }, diaSel: isoDia(agora),
-  cfg: { tolerancia: 9, fecha: 22, pcdDesc: 50, aviso: 10, autoMsg: 'nao', bloqueioAuto: 'sim', pacotes: [{ h: 2, v: 280, tipo: 'seco', nome: '02 HORAS 260' }, { h: 3, v: 225, tipo: 'seco', nome: '03 HORAS 360' }, { h: 4, v: 380, tipo: 'seco', nome: '04 HORAS 420' }, { h: 5, v: 390, tipo: 'seco', nome: '05 HORAS 360 ESPECIAL' }, { h: 5, v: 420, tipo: 'seco', nome: 'PACOTE 05 HORAS 420' }, { h: 5, v: 480, tipo: 'seco', nome: '05 HORAS 450' }, { h: 5, v: 500, tipo: 'seco', nome: '05 HORAS 380' }, { h: 10, v: 820, tipo: 'seco', nome: '10 HORAS 840' }], servicos: [{ id: 'recreacao', n: 'Recreação', v: 80, modo: 'periodo', min: 30, banco: true, obs: '' }, { id: 'fusquinha', n: 'Carrinho fusquinha', v: 15, modo: 'periodo', min: 30, banco: false, obs: '' }, { id: 'bebe', n: 'Carrinho de bebê', v: 30, modo: 'fixo', min: 0, banco: false, obs: 'das 10h às 22h' }], sapateiras: 44, cancelaMin: 9, idface: { ip: '192.168.0.129', nome: 'Recepção', ligado: false, ultima: antes(0.2) }, tema: lido('ps-tema', 'sistema'), anim: lido('ps-anim', 'auto') }, espOrdem: lido('ps-esp-ordem', 'tempo'),
+  cfg: { tolerancia: 9, fecha: 22, pcdDesc: 50, aviso: 10, autoMsg: 'nao', bloqueioAuto: 'sim', pacotes: [{ h: 2, v: 280, tipo: 'seco', nome: '02 HORAS 260' }, { h: 3, v: 225, tipo: 'seco', nome: '03 HORAS 360' }, { h: 4, v: 380, tipo: 'seco', nome: '04 HORAS 420' }, { h: 5, v: 390, tipo: 'seco', nome: '05 HORAS 360 ESPECIAL' }, { h: 5, v: 420, tipo: 'seco', nome: 'PACOTE 05 HORAS 420' }, { h: 5, v: 480, tipo: 'seco', nome: '05 HORAS 450' }, { h: 5, v: 500, tipo: 'seco', nome: '05 HORAS 380' }, { h: 10, v: 820, tipo: 'seco', nome: '10 HORAS 840' }], servicos: [{ id: 'recreacao', n: 'Recreação', v: 80, modo: 'periodo', min: 30, banco: true, obs: '' }, { id: 'fusquinha', n: 'Carrinho fusquinha', v: 15, modo: 'periodo', min: 30, banco: false, obs: '' }, { id: 'bebe', n: 'Carrinho de bebê', v: 30, modo: 'fixo', min: 0, banco: false, obs: 'das 10h às 22h' }], sapateiras: 44, cancelaMin: 9, reabreMin: 30, idface: { ip: '192.168.0.129', nome: 'Recepção', ligado: false, ultima: antes(0.2) }, tema: lido('ps-tema', 'sistema'), anim: lido('ps-anim', 'auto') }, espOrdem: lido('ps-esp-ordem', 'tempo'),
   equipe: [{ id: 1, nome: 'Camila Duarte', papel: 'gestor', login: 'camila' }, { id: 2, nome: 'Beatriz Lima', papel: 'supervisor', login: 'bia' }, { id: 3, nome: 'João Pedro', papel: 'atendente', login: 'jp' }],
   whats: { conectado: true, numero: '5511912345678', nome: 'Play Space' }, vendasHoje: null,
   // os produtos da loja (na prévia, os mesmos que a migração 16 instala no servidor). est = estoque; null = a loja não controla o estoque desse produto
   produtos: [{ id: 1, n: 'Amigurumi', v: 320, est: 8 }, { id: 2, n: 'Boneca articulada', v: 150, est: 19 }, { id: 3, n: 'Boneca articulada', v: 230, est: 40 }, { id: 4, n: 'Kit bijoux', v: 230, est: 10 }, { id: 5, n: 'Kit laço', v: 260, est: 8 }, { id: 6, n: 'Maleta', v: 350, est: 20 }, { id: 7, n: 'Maquiagem', v: 160, est: 4 }],
   criancas: [
     { id: 1, nome: 'Helena', idade: 6, resp: 'Mariana Souza', rel: 'mãe', tel: '(11) 9 8765-4321', cpf: '529.982.247-25', obs: 'Alergia a amendoim; Pode fazer pintura no rosto', pacote: 10, usado: 540, entrou: antes(47), rosto: true, visitas: [{ dia: antes(2880), entrou: '14:05', saiu: '16:40', deb: 155 }, { dia: antes(7200), entrou: '10:10', saiu: '13:55', deb: 225 }] },
-    { id: 2, nome: 'Theo', idade: 4, resp: 'Rafael', rel: 'pai', tel: '(11) 9 7654-3210', cpf: '111.444.777-35', obs: '', pcd: true, pacote: 5, usado: 270, entrou: antes(12), rosto: true, visitas: [{ dia: antes(4320), entrou: '15:00', saiu: '17:35', deb: 155 }, { dia: antes(10080), entrou: '11:00', saiu: '13:00', deb: 120 }] },
+    { id: 2, nome: 'Theo', idade: 4, resp: 'Rafael', rel: 'pai', tel: '(11) 9 7654-3210', cpf: '111.444.777-35', obs: '', pcd: true, pacote: 10, usado: 270, entrou: antes(12), rosto: true, visitas: [{ dia: antes(4320), entrou: '15:00', saiu: '17:35', deb: 155 }, { dia: antes(10080), entrou: '11:00', saiu: '13:00', deb: 120 }] },
     { id: 3, nome: 'Alice', idade: 8, resp: 'Juliana', rel: 'mãe', tel: '(11) 9 6543-2109', cpf: '123.456.789-09', obs: 'Aniversário dia 15', pacote: 20, usado: 1170, entrou: antes(33), rosto: true, visitas: [{ dia: antes(1440), entrou: '14:00', saiu: '18:00', deb: 240 }] },
-    { id: 4, nome: 'Miguel', idade: 5, resp: 'Carla', rel: 'mãe', tel: '(11) 9 5432-1098', cpf: '390.533.447-05', obs: '', pacote: 10, usado: 360, entrou: null, rosto: true, visitas: [{ dia: antes(31), entrou: hora(antes(150)), saiu: hora(antes(31)), deb: 120 }] },
+    { id: 4, nome: 'Miguel', idade: 5, resp: 'Carla', rel: 'mãe', tel: '(11) 9 5432-1098', cpf: '390.533.447-05', obs: '', pacote: 10, usado: 360, entrou: null, rosto: true, visitas: [{ dia: antes(12), entrou: hora(antes(131)), saiu: hora(antes(12)), deb: 120, ini: antes(131), sap: 9 }] },
     { id: 5, nome: 'Laura', idade: 7, resp: 'Bruno', rel: 'pai', tel: '(11) 9 4321-0987', cpf: '248.438.034-80', obs: '', pacote: 10, usado: 150, entrou: null, rosto: true, visitas: [{ dia: antes(111), entrou: hora(antes(251)), saiu: hora(antes(111)), deb: 150 }] },
     { id: 6, nome: 'Davi', idade: 3, resp: 'Mariana Souza', rel: 'mãe', tel: '(11) 9 8765-4321', cpf: '529.982.247-25', obs: 'Não mexer no cabelo', pacote: 5, usado: 0, entrou: null, rosto: false, visitas: [] },
-    { id: 7, nome: 'Sofia', idade: 5, resp: 'Paula Mendes', rel: 'responsável', tel: '(11) 9 3210-9876', cpf: '987.654.321-00', obs: '', pacote: 1, usado: 0, entrou: antes(52), rosto: false, visitas: [], atraso: { n: 1, valor: 80 } },
+    { id: 7, nome: 'Sofia', idade: 5, resp: 'Mariana Souza', rel: 'mãe', tel: '(11) 9 8765-4321', cpf: '529.982.247-25', obs: '', pacote: 1, usado: 0, entrou: antes(52), rosto: false, visitas: [], atraso: { n: 1, valor: 80 } },
   ],
   registros: [
     { h: antes(12), tipo: 'ent', nome: 'Theo', txt: 'Entrada registrada' },
     { h: antes(13), tipo: 'cobr', nome: 'Sofia', txt: 'Nova cobrança por atraso: ficou além do tempo comprado · Recreação +0h30 · R$ 80 a receber na saída' },
-    { h: antes(31), tipo: 'sai', nome: 'Miguel', txt: 'Ficou 1h59 · 2h debitados · restam 4h' },
+    { h: antes(12), tipo: 'sai', nome: 'Miguel', txt: 'Ficou 1h59 · 2h debitados · restam 4h · sapato na sapateira 9' },
     { h: antes(33), tipo: 'ent', nome: 'Alice', txt: 'Entrada registrada' },
     { h: antes(47), tipo: 'ent', nome: 'Helena', txt: 'Entrada registrada' },
     { h: antes(52), tipo: 'ent', nome: 'Sofia', txt: 'Entrada registrada' },
@@ -986,7 +1012,7 @@ const S = {
     { h: antes(76), tipo: 'venda', nome: 'Laura', txt: 'Recreação · 0h30 · R$ 80 · cancelada' },
     { h: antes(111), tipo: 'sai', nome: 'Laura', txt: 'Ficou 2h20 · 2h30 debitados · restam 7h30' },
     { h: antes(140), tipo: 'venda', nome: 'Davi', txt: 'Recreação · 5h · R$ 800' },
-    { h: antes(150), tipo: 'ent', nome: 'Miguel', txt: 'Entrada registrada' },
+    { h: antes(131), tipo: 'ent', nome: 'Miguel', txt: 'Entrada registrada' },
     { h: antes(251), tipo: 'ent', nome: 'Laura', txt: 'Entrada registrada' },
   ],
   conversas: [
@@ -1016,6 +1042,7 @@ S.criancas.push({ id: 8, nome: 'Marina', idade: 0, resp: 'Marcelo Antunes', rel:
 RASC[6] = { n: 'Davi', q: { fusquinha: 1 }, pac: [], vq: 0, item: '', valor: '', entrar: null, reg: null, em: +antes(3) };
 // as entradas canceladas sem cobrar (prévia): uma de hoje, ainda para a supervisão conferir
 S.cancelamentos = [{ id: novoId(), crianca: 5, nome: 'Laura', resp: 'Bruno', entrou: antes(76), quando: antes(70), min: 6, valor: 80, itens: [{ n: 'Recreação · 0h30', m: 30, v: 80 }], motivo: 'A criança chorou e não quis ficar', por: 'João Pedro', papel: 'atendente', fora: false, visto_por: '', visto_em: null }];
+nomesEmMaiusculas(); for (const id in RASC) RASC[id].n = MAI(RASC[id].n);   // (prévia) os exemplos também em maiúsculas
 (function semear() {
   const y = S.mes.y, m = S.mes.m, d = dd => `${y}-${p2(m + 1)}-${p2(dd)}`;
   const add = (dia, hora, titulo, tipo, sub) => S.compromissos.push({ id: novoId(), dia, hora, titulo, tipo, sub: sub || '' });
@@ -1073,7 +1100,7 @@ async function carregar() { // devolve true quando algo mudou no servidor
     const d = await api('dados');
     // o que muda sozinho a cada contato do aparelho não conta como novidade (senão a tela redesenhava a cada 6 s e "piscava")
     const assinatura = JSON.stringify({ ...d, agora: 0, idface: { ...d.idface, segundos: 0, ultimo_contato: 0, ultima_batida: 0, periodo: 0, erro: '', fila: 0 } }); const mudou = assinatura !== ULTIMA_CARGA; ULTIMA_CARGA = assinatura;
-    S.criancas = d.criancas.map(c => ({ ...c, entrou: c.entrou ? dataDe(c.entrou) : null, venda: c.venda ? { ...c.venda, quando: dataDe(c.venda.quando) } : null, visitas: (c.visitas || []).map(v => ({ ...v, dia: dataDe(v.dia) })) }));
+    S.criancas = d.criancas.map(c => ({ ...c, entrou: c.entrou ? dataDe(c.entrou) : null, venda: c.venda ? { ...c.venda, quando: dataDe(c.venda.quando) } : null, visitas: (c.visitas || []).map(v => ({ ...v, dia: dataDe(v.dia), ini: v.ini ? dataDe(v.ini) : null })) }));
     S.registros = d.registros.map(r => ({ ...r, h: dataDe(r.h) }));
     S.conversas = d.conversas.map(x => ({ ...x, msgs: x.msgs.map(m => ({ ...m, h: dataDe(m.h) })) }));
     S.compromissos = d.compromissos;
@@ -1083,6 +1110,7 @@ async function carregar() { // devolve true quando algo mudou no servidor
     S.vendasHoje = d.vendas_hoje; S.atrasoHoje = d.atraso_hoje || null; S.descontosHoje = d.descontos_hoje || null; S.whats = d.whats; S.eu = d.eu; S.exemplo = d.exemplo || 0;
     S.cancelamentos = (d.cancelamentos || []).map(x => ({ ...x, entrou: dataDe(x.entrou), quando: dataDe(x.quando), visto_em: x.visto_em ? dataDe(x.visto_em) : null }));
     S.pend = {}; for (const p of d.pendentes || []) S.pend[p.id] = dataDe(p.em);   // cadastro feito hoje e ainda sem atendimento (para "Falta finalizar")
+    nomesEmMaiusculas();
     EU = { nome: d.eu.nome.split(' ')[0], nomeCompleto: d.eu.nome, papel: d.eu.papel, login: d.eu.login, id: d.eu.id };
     ABAS = TODAS_ABAS.filter(a => a[0] !== 'ajustes' || supervisorOuMais());
     if (!ABAS.some(a => a[0] === S.tela)) S.tela = 'horas';
@@ -1513,8 +1541,8 @@ function entrada(c, origem = 'iDFace') {
   if (origem !== 'iDFace' && !temPeriodo(c)) { toast(`${c.nome} não tem um período de recreação comprado. Registre a venda antes.`, () => atender(c.id), 'Vender'); return; }
   if (MODO === 'servidor') return entradaServidor(c);
   c.entrou = new Date(); c.atraso = null; registrar('ent', c.nome, origem === 'iDFace' ? 'Rosto reconhecido na entrada' : (semIdface() ? 'Entrada registrada' : 'Entrada registrada à mão'));
-  const reg = S.registros[0], primeiroNome = c.resp.split(' ')[0];
-  const desfazMsg = S.cfg.autoMsg !== 'nao' ? mensagemAuto(c, `Oi, ${primeiroNome}! ${c.nome} chegou na Play Space às ${hora(c.entrou)} 💛 Qualquer coisa a gente te chama por aqui.`, true) : null;
+  const reg = S.registros[0], primeiroNome = nomeMsg(c.resp.split(' ')[0]);
+  const desfazMsg = S.cfg.autoMsg !== 'nao' ? mensagemAuto(c, `Oi, ${primeiroNome}! ${nomeMsg(c.nome)} chegou na Play Space às ${hora(c.entrou)} 💛 Qualquer coisa a gente te chama por aqui.`, true) : null;
   toast(`${c.nome} entrou · tempo comprado até ${hora(fimVisita(c))}`, () => { c.entrou = null; S.registros = S.registros.filter(r => r !== reg); if (desfazMsg) desfazMsg(); });
 }
 // A saída debita períodos inteiros. corr = { quando: 'HH:MM', motivo, em: Date }: a supervisão diz a hora em que a criança saiu de verdade
@@ -1529,7 +1557,7 @@ function saida(c, origem = 'iDFace', corr = null) {
     while (autos.length && pacMin(c) - c.usado - deb >= p) { const v = autos.shift(); S.compras = S.compras.filter(x => x !== v); c.pacote = Math.max(0, c.pacote - minDe(v) / 60); if (v.reg) v.reg.txt += ' · desfeita'; desfeitas++; valorDesf += v.v; } }
   const at = S.compras.filter(v => v.crianca === c.id && v.auto && v.quando >= entrouEm), atraso = { n: at.length, valor: at.reduce((a, v) => a + v.v, 0) };
   c.usado += deb; if (S.cfg.bloqueioAuto === 'sim' && !temPeriodo(c)) c.liberado = false;
-  c.visitas.unshift({ dia: fim, entrou: hora(entrouEm), saiu: hora(fim), deb });
+  c.visitas.unshift({ dia: fim, entrou: hora(entrouEm), saiu: hora(fim), deb, ini: entrouEm, sap: c.sapateira || 0 });
   const sap = c.sapateira || 0; c.sapateira = null; c.entrou = null; c.atraso = null;   // a sapateira fica livre na saída
   registrar('sai', c.nome, `Ficou ${dur(Math.floor(min))} · ${dur(deb)} debitados${saldoMin(c) > 0 ? ' · restam ' + hm(saldoMin(c)) : ''}${atraso.n ? ` · ${atraso.n > 1 ? atraso.n + ' cobranças' : 'cobrança'} por atraso: ${brl(atraso.valor)} a receber` : ''}${sap ? ' · sapato na sapateira ' + sap : ''}${origem === 'iDFace' || semIdface() ? '' : ' · saída à mão'}`);
   if (corr) registrar('corr', c.nome, `Saída corrigida para ${hora(fim)} · ${dur(deb)} debitados${desfeitas ? ` · ${desfeitas > 1 ? desfeitas + ' cobranças por atraso desfeitas' : 'cobrança por atraso desfeita'}: ${brl(valorDesf)}` : ''} · Motivo: ${corr.motivo} · por ${EU.nome}`);
@@ -1658,54 +1686,104 @@ function noEspaco() { // quem está no espaço, com o filtro e a busca, na ordem
 }
 const subEspaco = c => passouSeg(c) > 0 ? 'passou ' + hms(passouSeg(c)) : 'até ' + hora(fimVisita(c));
 const pctEspaco = c => cobertoMin(c) ? Math.min(100, segDentro(c) / (cobertoMin(c) * 60) * 100) : 100;
-function linhaEspaco(c) {
-  const st = situacaoTempo(c), at = c.atraso && c.atraso.n ? c.atraso : null;
+// o saldo: o que fica guardado se a criança sair agora (a visita em curso já descontada, em períodos inteiros)
+const saldoAgora = c => Math.max(0, pacMin(c) - usadoAgora(c));
+const saldoTxt = c => 'saldo ' + hm(saldoAgora(c));
+/* ---------- reabrir a visita: a criança saiu e voltou logo em seguida ---------- */
+// Até S.cfg.reabreMin minutos depois da saída (30, de fábrica), a equipe reabre: a saída é desfeita e o tempo continua contando desde a entrada,
+// como se a criança não tivesse saído. Passou do prazo, é uma entrada nova. Fica anotado em Hoje na recepção, com quem reabriu.
+const reabreLim = () => S.cfg.reabreMin == null ? 30 : Math.max(0, +S.cfg.reabreMin || 0);
+const ultVis = c => (c.visitas || []).reduce((m, v) => !m || +new Date(v.dia) > +new Date(m.dia) ? v : m, null);   // a última visita: é a que pode ser reaberta
+const iniVisita = v => { if (v.ini) return new Date(v.ini); const d = horaNoDia(v.dia, v.entrou) || new Date(v.dia); if (d > new Date(v.dia)) d.setDate(d.getDate() - 1); return d; };   // a hora da entrada daquela visita
+const podeReabrir = c => { if (!c || c.entrou || !reabreLim() || !podeManual()) return false; const v = ultVis(c); if (!v) return false; const sai = +new Date(v.dia), ha = agora - sai;
+  return ha <= reabreLim() * 60000 && ha > -300000 && !(S.cancelamentos || []).some(x => x.crianca === c.id && +x.entrou >= sai); };   // depois dessa saída houve uma entrada cancelada: aí é entrada nova
+const saiuHaPouco = () => S.criancas.filter(podeReabrir).sort((a, b) => +new Date(ultVis(b).dia) - +new Date(ultVis(a).dia));
+const haMin = d => { const m = Math.floor((agora - d) / 60000); return m < 1 ? 'agora há pouco' : 'há ' + m + ' min'; };
+let N_SAIRAM = 0;   // quantos estavam em "Saíram há pouco" na última conta (quando muda, a lista é refeita)
+// as crianças do mesmo responsável ficam juntas na lista, uma embaixo da outra, no lugar da que vem primeiro na ordem escolhida
+function gruposEspaco(L) { const G = []; for (const c of L) { const g = G.find(x => mesmoCliente(x[0], c)); if (g) g.push(c); else G.push([c]); } return G; }
+// a "comanda" de cada criança: o nome dela e o do responsável (com três Pedros, é ele que diz qual é qual), o tempo correndo, o saldo e até quando vai o tempo comprado.
+// A linha inteira abre a ficha; a sapateira, o cancelar e a Saída são botões por cima dela. fam: quantas crianças do mesmo responsável estão juntas
+function linhaEspaco(c, fam = 1) {
+  const st = situacaoTempo(c), at = c.atraso && c.atraso.n ? c.atraso : null, abre = `data-act="ficha" data-id="${c.id}"`;
   return `<div class="esp-it ${st}${at ? ' cobranca' : ''}${S.chegou === c.id ? ' chegou' : ''}" data-esp="${c.id}">
+    <button class="quem tap" ${abre} aria-label="Abrir a ficha de ${esc(c.nome)}, responsável ${esc(c.resp)}"></button>
     <button class="sapc tap ${c.sapateira ? '' : 'vazia'}" data-act="sapateira" data-id="${c.id}" title="${c.sapateira ? 'Sapateira ' + c.sapateira + ' (toque para trocar)' : 'Escolher a sapateira'}" aria-label="${c.sapateira ? 'Sapateira ' + c.sapateira + ' de ' + esc(c.nome) : 'Escolher a sapateira de ' + esc(c.nome)}">${c.sapateira || ic(IC.sapato, 14, 2.2)}</button>
-    <button class="quem tap" data-act="ficha" data-id="${c.id}" aria-label="Abrir a ficha de ${esc(c.nome)}">
-      <span class="txt"><span class="l1"><b>${esc(c.nome)}</b>${c.pcd ? `<em class="pcd" title="Criança PCD: ${pcdDesc()}% de desconto na recreação">PCD</em>` : ''}${temVoucher(c) ? `<i class="vch" title="Voucher nesta visita: ${porExt(periodo())} grátis">${ic(IC.presente, 13, 2.4)}</i>` : ''}${c.obs ? `<i class="obs" title="${esc(c.obs)}">${ic(IC.sino, 13, 2.4)}</i>` : ''}${at ? `<em class="cb" title="${at.n === 1 ? 'Cobrança por atraso' : at.n + ' cobranças por atraso'}: a receber na saída">+ ${brl(at.valor)}</em>` : ''}</span><span class="l2">entrou ${hora(c.entrou)} · ${esc(c.resp)}</span></span>
-      <span class="tempo"><b class="num" data-esp-t>${hms(segDentro(c))}</b><small data-esp-s>${subEspaco(c)}</small></span>
-    </button>
+    <span class="l1" ${abre}><b>${esc(c.nome)}</b>${c.pcd ? `<em class="pcd" title="Criança PCD: ${pcdDesc()}% de desconto na recreação">PCD</em>` : ''}${temVoucher(c) ? `<i class="vch" title="Voucher nesta visita: ${porExt(periodo())} grátis">${ic(IC.presente, 13, 2.4)}</i>` : ''}${c.obs ? `<i class="obs" title="${esc(c.obs)}">${ic(IC.sino, 13, 2.4)}</i>` : ''}${at ? `<em class="cb" title="${at.n === 1 ? 'Cobrança por atraso' : at.n + ' cobranças por atraso'}: a receber na saída">+ ${brl(at.valor)}</em>` : ''}</span>
+    <b class="num tmp" ${abre} data-esp-t>${hms(segDentro(c))}</b>
     <span class="acoes-e">${noPrazoCancelar(c) ? `<button class="canc-link tap" data-act="cancelar" data-id="${c.id}" title="Cancelar a entrada sem cobrar (precisa escrever o motivo)">${ic(IC.x, 11, 3)}<span class="num" data-cancela="${c.id}">${mss(faltaCancelar(c))}</span></button>` : ''}${podeManual() ? `<button class="bt tap" data-act="saida-rapida" data-id="${c.id}" aria-label="Saída de ${esc(c.nome)}">${ic(IC.sair, 14)}<span class="rt">Saída</span></button>` : ''}</span>
+    <span class="l2" ${abre}><span class="rs" title="Responsável: ${esc(c.resp)}${fam > 1 ? ' · ' + fam + ' crianças juntas' : ''}">${fam > 1 ? `<i class="elo">${ic(IC.elo, 11, 2.6)}</i>` : ''}<b>${esc(c.resp || 'sem responsável')}</b> · entrou ${hora(c.entrou)}</span><span class="sd${saldoAgora(c) ? '' : ' zero'}" data-esp-sd title="Saldo: o que fica guardado se sair agora">${saldoTxt(c)}</span><small data-esp-s>${subEspaco(c)}</small></span>
     <i class="barra-e"><i data-esp-b style="width:${pctEspaco(c).toFixed(1)}%"></i></i>
   </div>`;
 }
+// quem saiu há pouco (dentro do prazo de reabrir): a linha com o botão Reabrir
+const linhaSaiu = c => { const d = new Date(ultVis(c).dia); return `<div class="it"><button class="quem tap" data-act="ficha" data-id="${c.id}">${avatar(c)}<span class="txt"><b>${esc(c.nome)}</b><span>${esc(c.resp)} · saiu às ${hora(d)}, <time data-saiu="${+d}">${haMin(d)}</time> · ${temPeriodo(c) ? 'saldo ' + hm(saldoMin(c)) : 'sem saldo'}</span></span></button><button class="bt forte tap" data-act="reabrir" data-id="${c.id}" title="Desfaz a saída: o tempo continua contando desde a entrada">${ic(IC.renova, 14)} Reabrir</button><button class="bt tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 14)} Atender</button></div>`; };
 function chipsEspaco() {
-  const D = S.criancas.filter(c => c.entrou), f = S.espFiltro || 'todas', n = k => k === 'todas' ? D.length : D.filter(c => k === 'cobranca' ? c.atraso && c.atraso.n : situacaoTempo(c) === k).length;
-  return [['todas', 'Todas', ''], ['acabando', 'Acabando', 'f-av'], ['passou', 'Passou do tempo', 'f-al'], ['cobranca', 'Com cobrança', 'f-al']].map(([k, t, cls]) => `<button class="tap ${n(k) ? cls : ''}" data-act="esp-filtro" data-f="${k}" aria-pressed="${f === k}">${t}<b>${n(k)}</b></button>`).join('');
+  const D = S.criancas.filter(c => c.entrou), f = S.espFiltro || 'todas', n = k => k === 'todas' ? D.length : D.filter(c => k === 'cobranca' ? c.atraso && c.atraso.n : situacaoTempo(c) === k).length, ns = saiuHaPouco().length;
+  return [['todas', 'Todas', ''], ['acabando', 'Acabando', 'f-av'], ['passou', 'Passou do tempo', 'f-al'], ['cobranca', 'Com cobrança', 'f-al']].map(([k, t, cls]) => `<button class="tap ${n(k) ? cls : ''}" data-act="esp-filtro" data-f="${k}" aria-pressed="${f === k}">${t}<b>${n(k)}</b></button>`).join('')
+    + (ns || f === 'sairam' ? `<button class="tap" data-act="esp-filtro" data-f="sairam" aria-pressed="${f === 'sairam'}" title="Quem saiu nos últimos ${reabreLim()} min: dá para reabrir a visita">Saíram há pouco<b>${ns}</b></button>` : '');   // só aparece quando há alguém no prazo de reabrir
 }
 function corpoEspaco() {
   const n = S.criancas.filter(c => c.entrou).length, L = noEspaco(), q = (S.espBusca || '').trim().toLowerCase(), f = S.espFiltro || 'todas';
   let h;
-  if (!n && !q) h = `<section class="a-hero"><button class="tit tap" data-act="dia"><div class="pers" data-pers="dentro">${PERS.urso}<b class="placa num" data-placa="dentro">0</b></div><div class="txt"><small>No espaço agora</small><span>ninguém por enquanto</span></div></button>
+  if (f === 'sairam') { const R = saiuHaPouco().filter(c => !q || casaBusca(c, q));
+    h = `<div class="esp-fora"><small class="rot">Saíram nos últimos ${reabreLim()} min · dá para reabrir a visita</small>${R.length ? `<div class="grupo">${R.map(linhaSaiu).join('')}</div>` : `<p class="explica">Ninguém saiu nos últimos ${reabreLim()} min${q ? ' com essa busca' : ''}.</p>`}
+      <p class="explica">Reabrir desfaz a saída e o tempo continua contando desde a entrada, como se a criança não tivesse saído. Passou de ${reabreLim()} min, é uma entrada nova. <button class="link tap" data-act="esp-filtro" data-f="todas">Ver quem está no espaço</button></p></div>`; }
+  else if (!n && !q) h = `<section class="a-hero"><button class="tit tap" data-act="dia"><div class="pers" data-pers="dentro">${PERS.urso}<b class="placa num" data-placa="dentro">0</b></div><div class="txt"><small>No espaço agora</small><span>ninguém por enquanto</span></div></button>
       <p class="vazio-h">${semIdface() ? 'Toque no + para cadastrar ou busque quem já tem cadastro. Quem entrar aparece aqui, numa lista, com o tempo correndo.' : 'Quando uma criança olhar para o iDFace, ela aparece aqui, numa lista, com o tempo correndo.'}</p></section>`;
-  else if (L.length) h = `<div class="esp-lista">${L.map(linhaEspaco).join('')}</div>`;
+  else if (L.length) h = `<div class="esp-lista">${gruposEspaco(L).map(g => g.length > 1 ? `<div class="esp-fam" style="grid-row:span ${g.length}" role="group" aria-label="${g.length} crianças de ${esc(g[0].resp)}, juntas">${g.map(c => linhaEspaco(c, g.length)).join('')}</div>` : linhaEspaco(g[0])).join('')}</div>`;
   else h = `<div class="card vazio"><b>${q ? 'Ninguém no espaço com essa busca.' : 'Nenhuma criança neste filtro.'}</b>${f !== 'todas' ? `<button class="link tap" data-act="esp-filtro" data-f="todas">Ver todas as ${n} que estão no espaço</button>` : ''}</div>`;
-  if (q.length >= 2) { // a busca também acha quem tem cadastro e não está no espaço: dá para atender dali mesmo
+  if (q.length >= 2 && f !== 'sairam') { // a busca também acha quem tem cadastro e não está no espaço: dá para atender dali mesmo (ou reabrir a visita de quem saiu há pouco)
     const fora = S.criancas.filter(c => !c.entrou && casaBusca(c, q)).sort((a, b) => a.nome.localeCompare(b.nome)).slice(0, 8);
-    h += fora.length ? `<div class="esp-fora"><small class="rot">Com cadastro, fora do espaço</small><div class="grupo">${fora.map(c => `<div class="it"><button class="quem tap" data-act="ficha" data-id="${c.id}">${avatar(c)}<span class="txt"><b>${esc(c.nome)}</b><span>${esc(c.resp)}${c.tel ? ' · ' + esc(c.tel) : ''} · ${temPeriodo(c) ? hm(saldoMin(c)) + ' guardado' : 'sem tempo comprado'}${emAberto(c) ? ' · ' + esc(textoPend(c)) : ''}</span></span></button>${semIdface() && temPeriodo(c) ? `<button class="bt forte tap" data-act="entrada-rapida" data-id="${c.id}">${ic(IC.entrar, 14)} Entrada</button>` : ''}<button class="bt ${temPeriodo(c) ? '' : 'forte'} tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 14)} ${emAberto(c) ? 'Continuar' : 'Atender'}</button></div>`).join('')}</div></div>`
+    h += fora.length ? `<div class="esp-fora"><small class="rot">Com cadastro, fora do espaço</small><div class="grupo">${fora.map(c => `<div class="it"><button class="quem tap" data-act="ficha" data-id="${c.id}">${avatar(c)}<span class="txt"><b>${esc(c.nome)}</b><span>${esc(c.resp)}${c.tel ? ' · ' + esc(c.tel) : ''} · ${temPeriodo(c) ? hm(saldoMin(c)) + ' guardado' : 'sem tempo comprado'}${podeReabrir(c) ? ' · saiu ' + haMin(new Date(ultVis(c).dia)) : ''}${emAberto(c) ? ' · ' + esc(textoPend(c)) : ''}</span></span></button>${podeReabrir(c) ? `<button class="bt tap" data-act="reabrir" data-id="${c.id}" title="Desfaz a saída: o tempo continua contando desde a entrada">${ic(IC.renova, 14)} Reabrir</button>` : ''}${semIdface() && temPeriodo(c) ? `<button class="bt forte tap" data-act="entrada-rapida" data-id="${c.id}">${ic(IC.entrar, 14)} Entrada</button>` : ''}<button class="bt ${temPeriodo(c) ? '' : 'forte'} tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 14)} ${emAberto(c) ? 'Continuar' : 'Atender'}</button></div>`).join('')}</div></div>`
       : `<div class="esp-fora"><p class="explica">Ninguém com cadastro e fora do espaço nessa busca. <button class="link tap" data-act="nova">Cadastrar</button></p></div>`;
   }
   return h;
 }
+// a folha que confirma: quem é, quando entrou e saiu, e como fica a conta se reabrir agora (o tempo fora também conta)
+function folhaReabrir(id) {
+  const c = crianca(id); if (!c) return;
+  if (!podeReabrir(c)) { toast(c.entrou ? `${c.nome} já está no espaço` : `Já passou de ${reabreLim()} min da saída de ${c.nome}: agora é uma entrada nova`); return; }
+  const v = ultVis(c), saiu = new Date(v.dia), ini = iniVisita(v), p = periodo(), x = servicoTempo();
+  const saldo = Math.max(0, pacMin(c) - Math.max(0, c.usado - v.deb)), cob = Math.floor(saldo / p) * p, dentro = Math.max(0, (agora - ini) / 60000), fim = new Date(+ini + cob * 60000);   // com o que foi debitado de volta
+  const n = Math.max(0, Math.ceil((cobrar(dentro) - saldo) / p)), valor = n * (x ? precoDe(c, x.v) : 0);   // as cobranças por atraso que nascem ao reabrir
+  const conta = n ? `<div class="marca canc">${ic(IC.sino, 18)}<span><b>Já são ${dur(Math.floor(dentro))} desde a entrada</b> e o tempo comprado ia até ${hora(fim)}. Ao reabrir, o sistema lança ${n === 1 ? 'uma cobrança por atraso' : n + ' cobranças por atraso'} (${brl(valor)}), a receber na saída.</span></div>`
+    : dentro > cob ? `<div class="marca">${ic(IC.horas, 18)}<span>O tempo comprado ia até <b>${hora(fim)}</b>: a visita volta já na tolerância de ${tolerancia()} min.</span></div>`
+    : `<div class="marca">${ic(IC.horas, 18)}<span>O tempo comprado vai até <b>${hora(fim)}</b>: ${cob - dentro < 1 ? 'falta menos de 1 min' : 'ainda ' + (cob - dentro < 2 ? 'falta 1 min' : 'faltam ' + minCurto(Math.floor(cob - dentro)))}.</span></div>`;
+  abrirFolha('Reabrir a visita', `
+    <div class="linha">${avatar(c)}<div class="txt"><b style="white-space:normal">${esc(c.nome)}</b><span style="white-space:normal">${esc(c.resp)}</span><span style="white-space:normal">entrou às ${hora(ini)} · saiu às ${hora(saiu)}, ${haMin(saiu)} · ${dur(v.deb)} debitados</span></div></div>
+    <p class="explica"><b>Reabrir desfaz a saída.</b> O tempo continua contando desde a entrada das ${hora(ini)}, como se a criança não tivesse saído: o que foi debitado volta para o saldo e a conta é refeita na próxima saída.</p>
+    ${conta}
+    <div class="pe-f"><span class="explica">Dá para reabrir até ${hora(new Date(+saiu + reabreLim() * 60000))} (${reabreLim()} min depois da saída). Fica anotado em Hoje na recepção, com quem reabriu.</span><button class="bt forte largo tap" id="rb-ok" data-act="reabrir-ok" data-id="${c.id}">${ic(IC.renova)} Reabrir a visita</button></div>`);
+}
+function reabrirPrevia(c) { // (prévia) o mesmo que o servidor faz
+  if (!podeReabrir(c)) return null; const v = ultVis(c), saiu = new Date(v.dia), ini = iniVisita(v), fora = Math.floor((agora - saiu) / 60000);
+  c.visitas = c.visitas.filter(x => x !== v); c.usado = Math.max(0, c.usado - v.deb); c.entrou = ini;
+  const at = S.compras.filter(x => x.crianca === c.id && x.auto && x.quando >= ini); c.atraso = at.length ? { n: at.length, valor: at.reduce((a, x) => a + x.v, 0) } : null;
+  const sap = v.sap && v.sap <= nSap() && !donoSap(v.sap) ? v.sap : 0; c.sapateira = sap || null; if (temPeriodo(c)) c.liberado = true;   // a sapateira volta, se ainda estiver livre
+  const linha = S.registros.find(r => r.tipo === 'sai' && r.nome === c.nome && Math.abs(r.h - saiu) < 60000); if (linha) linha.txt += ' · visita reaberta às ' + hora(new Date());
+  registrar('reab', c.nome, `Visita reaberta: a saída das ${hora(saiu)} foi desfeita (${fora < 1 ? 'menos de 1 min' : fora + ' min'} fora) · o tempo continua desde a entrada das ${hora(ini)} · por ${EU.nome}`);
+  const ja = c.atraso ? c.atraso.n : 0; acertarDemo(c, true); return { ini, sap, cobr: (c.atraso ? c.atraso.n : 0) - ja };
+}
 // (prévia) o teste do rodapé: 30 crianças no espaço, com nomes e horários diferentes, e o mesmo botão para tirar
-const TESTE_PREVIA = [['Ana Clara', 'Carla Menezes', 2, 1], ['Bento', 'Rodrigo Alves', 4, 1], ['Cecília', 'Fernanda Castro', 5, 1, { voucher: 1 }], ['Davi Luiz', 'Tiago Lima', 7, 1], ['Elisa', 'Patrícia Nunes', 8, 2], ['Felipe', 'Marcos Vieira', 10, 1],
+const TESTE_PREVIA = [['Ana Clara', 'Carla Menezes', 2, 1], ['Bento', 'Rodrigo Alves', 4, 1], ['Cecília', 'Fernanda Castro', 5, 1, { voucher: 1 }], ['Davi Luiz', 'Tiago Lima', 7, 1], ['Elisa', 'Patrícia Nunes', 8, 2], ['Felipe', 'Patrícia Nunes', 8, 2, { fam: 'Elisa' }],
   ['Gabriela', 'Aline Prado', 11, 1, { obs: 'Alergia a corante' }], ['Téo', 'Rafaela Lima', 12, 1], ['Heitor', 'Bruno Teixeira', 13, 1, { sem: 1 }], ['Isabela', 'Juliana Rocha', 14, 1, { pcd: 1 }], ['Joaquim', 'André Martins', 15, 2], ['Lara', 'Camila Farias', 16, 1],
-  ['Noah', 'Vanessa Duarte', 18, 1], ['Olívia', 'Renata Campos', 21, 1], ['Pedro', 'Gustavo Ribeiro', 22, 1, { obs: 'Não mexer no cabelo' }], ['Rafaela', 'Daniela Moraes', 24, 1], ['Samuel', 'Leandro Pires', 25, 1, { voucher: 1 }], ['Valentina', 'Priscila Azevedo', 26, 1],
-  ['Yuri', 'Eduardo Barros', 28, 1, { sem: 1 }], ['Zoe', 'Larissa Monteiro', 29, 1], ['Antônio', 'Felipe Cardoso', 31, 1], ['Bia', 'Simone Araújo', 33, 1], ['Caio', 'Roberto Nogueira', 35, 1, { pcd: 1 }], ['Dora', 'Luciana Freitas', 37, 1],
-  ['João', 'Sérgio Lopes', 34, 2], ['Enzo', 'Marcelo Tavares', 42, 1], ['Flora', 'Bianca Sales', 47, 1, { obs: 'Pode fazer pintura no rosto' }], ['Lívia', 'Mônica Sá', 47, 2, { obs: 'Alergia a amendoim' }], ['Íris', 'Mônica Sá', 47, 2], ['Gael', 'Paulo Henrique Cunha', 56, 1]];
+  ['Pedro', 'Vanessa Duarte', 18, 1], ['Olívia', 'Renata Campos', 21, 1], ['Pedro', 'Gustavo Ribeiro', 22, 1, { obs: 'Não mexer no cabelo' }], ['Rafaela', 'Daniela Moraes', 24, 1], ['Samuel', 'Leandro Pires', 25, 1, { voucher: 1 }], ['Valentina', 'Priscila Azevedo', 26, 1],
+  ['Pedro', 'Eduardo Barros', 28, 1, { sem: 1 }], ['Zoe', 'Larissa Monteiro', 29, 1], ['Antônio', 'Felipe Cardoso', 31, 1], ['Bia', 'Simone Araújo', 33, 1], ['Caio', 'Roberto Nogueira', 35, 1, { pcd: 1 }], ['Dora', 'Luciana Freitas', 37, 1],
+  ['João', 'Sérgio Lopes', 34, 2], ['Enzo', 'Marcelo Tavares', 42, 1], ['Flora', 'Bianca Sales', 47, 1, { obs: 'Pode fazer pintura no rosto' }], ['Lívia', 'Mônica Sá', 47, 2, { obs: 'Alergia a amendoim' }], ['Íris', 'Mônica Sá', 47, 2, { fam: 'Lívia' }], ['Gael', 'Paulo Henrique Cunha', 56, 1]];
 function colocarTestePrevia() {
   const x = servicoTempo() || { n: 'Recreação', v: 80 }, p = periodo(), tol = tolerancia(), usados = new Set(S.criancas.map(c => c.sapateira).filter(Boolean)); let sap = 0;
+  const TEL_T = {};   // o telefone de cada criança do teste: os irmãos (fam) ficam com o mesmo, e é por ele que a lista junta a família
   TESTE_PREVIA.forEach(([nome, resp, ha, per, m = {}], i) => {
     const entrou = new Date(Date.now() - (ha + (i % 7) * 0.13) * 60000), pcd = !!m.pcd, autos = Math.max(0, Math.ceil((ha - tol) / p) - per), un = pcd ? precoDe({ pcd: true }, x.v) : x.v;
-    const c = { id: 300 + i, teste: true, nome, idade: 0, resp, rel: 'responsável', tel: `(11) 9 ${6100 + i * 13}-${1000 + i * 217}`, tel2: '', doc: 'cpf', cpf: '', obs: m.obs || '', pcd, pacote: (per + autos) * p / 60, usado: 0, entrou, rosto: false, foto: '', visitas: [], venda: null, sapateira: null, liberado: true, atraso: autos ? { n: autos, valor: autos * un } : null };
+    const c = { id: 300 + i, teste: true, nome, idade: 0, resp, rel: 'responsável', tel: m.fam && TEL_T[m.fam] ? TEL_T[m.fam] : `(11) 9 ${6100 + i * 13}-${1000 + i * 217}`, tel2: '', doc: 'cpf', cpf: '', obs: m.obs || '', pcd, pacote: (per + autos) * p / 60, usado: 0, entrou, rosto: false, foto: '', visitas: [], venda: null, sapateira: null, liberado: true, atraso: autos ? { n: autos, valor: autos * un } : null };
     if (!m.sem) { do { sap++; } while (usados.has(sap)); if (sap <= nSap()) c.sapateira = sap; }
     const compra = { id: novoId(), crianca: c.id, h: per * p / 60, m: per * p, v: m.voucher ? 0 : per * un, servico: x.n, itens: m.voucher ? 'voucher' : pcd ? rotPcd() : '', quando: entrou, por: 'João', voucher: m.voucher ? 'sim' : '', pcd, cheio: m.voucher || pcd ? per * x.v : undefined };
     S.compras.push(compra); c.venda = { h: compra.h, m: compra.m, v: compra.v, servico: x.n, com: compra.itens, quando: entrou };
     S.registros.push({ h: entrou, tipo: 'venda', nome, txt: `${x.n} · ${dur(per * p)}${compra.itens ? ' · ' + compra.itens : ''} · ${brl(compra.v)}`, teste: true }, { h: entrou, tipo: 'ent', nome, txt: 'Entrada registrada', teste: true });
     for (let k = 1; k <= autos; k++) { const q = new Date(entrou.getTime() + ((per + k - 1) * p + tol) * 60000 + 1000); S.compras.push({ id: novoId(), crianca: c.id, h: p / 60, m: p, v: un, servico: x.n, itens: 'cobrança por atraso' + (pcd ? ' · ' + rotPcd() : ''), quando: q, por: '', auto: true, pcd, cheio: x.v }); S.registros.push({ h: q, tipo: 'cobr', nome, txt: textoCobranca(x, c), teste: true }); }
-    S.criancas.push(c); });
-  S.compras.sort((a, b) => b.quando - a.quando); S.registros.sort((a, b) => b.h - a.h); S.testePrevia = true;
+    TEL_T[nome] = c.tel; S.criancas.push(c); });
+  S.compras.sort((a, b) => b.quando - a.quando); S.registros.sort((a, b) => b.h - a.h); S.testePrevia = true; nomesEmMaiusculas();
 }
 function tirarTestePrevia() { // tira as 30 e tudo o que nasceu delas (vendas, linhas do dia, cancelamentos)
   const ids = new Set(S.criancas.filter(c => c.teste).map(c => c.id)), nomes = new Set(S.criancas.filter(c => c.teste).map(c => c.nome));
@@ -1728,6 +1806,7 @@ function telaHoras() {
     </div>
     <div id="esp-corpo">${corpoEspaco()}</div>
   </section>` + secaoDicas() + `
+  <section class="card semana-pag">${htmlSemana()}</section>
   <div class="tiles">
     ${tile('t-mostarda', 'dia', 'Horas vendidas hoje', hm(minVend), `${nVend} ${nVend === 1 ? 'venda' : 'vendas'} · ${brl(valorVend)}`, 'poste', 'vendidas')}
     ${tile('t-menta', 'dia', 'Horas usadas hoje', hm(usadasHoje), 'em períodos inteiros de ' + porExt(periodo()), 'balao', 'usadas')}
@@ -1737,15 +1816,19 @@ function telaHoras() {
   `;
 }
 const itemComp = (x, diaRef) => `<div class="oficina ${x.feito ? 'feita' : ''}"><button class="check tap" data-act="comp-feito" data-id="${x.id}" aria-label="${x.feito ? 'Desmarcar' : 'Marcar como feito'}" aria-pressed="${!!x.feito}" title="${x.feito ? 'Feito · toque para desmarcar' : 'Marcar como feito'}">${ic(IC.check, 14, 3)}</button><button class="corpo tap" data-act="comp" data-id="${x.id}"><i style="background:${TIPOS[x.tipo][1]}"></i><div class="txt"><small>${esc(x.sub || TIPOS[x.tipo][0])}</small><b>${esc(x.titulo)}</b></div><span class="q">${x.dia === diaRef ? x.hora : SEMANA[new Date(x.dia + 'T12:00').getDay()].slice(0, 3) + ' ' + +x.dia.slice(8) + ' · ' + x.hora}</span></button></div>`;
-function painelHoje() {
-  const regs = S.registros.filter(r => agora - r.h < 86400000), hojeStr = isoDia(agora);
-  const doDia = S.compromissos.filter(x => x.dia === hojeStr).sort((a, b) => a.hora.localeCompare(b.hora));
-  return `<div class="painel atividades"><div class="sec-cab"><h2>Atividades do dia</h2><button class="link tap" data-ir="agenda">Agenda</button></div>
-    ${doDia.length ? doDia.map(x => itemComp(x, hojeStr)).join('') : `<p class="explica">Nada marcado para hoje, ${SEMANA[agora.getDay()].toLowerCase()}, ${agora.getDate()} de ${MESES[agora.getMonth()]}.</p>`}</div>
-  <div class="painel recepcao">${(n => n ? `<div class="sec-cab"><h2>Hoje na recepção</h2><button class="link tap" data-act="cancelamentos">${n} ${n === 1 ? 'cancelamento' : 'cancelamentos'}</button></div>` : '<h2>Hoje na recepção</h2>')(supervisorOuMais() ? (S.cancelamentos || []).filter(x => agora - x.quando < 86400000).length : 0)}${listaRegistros(regs)}
-  <button class="marca tap" data-act="idface">${ic(IC.rosto, 18)}<span>${semIdface() ? `<b>${regs.filter(r => r.tipo === 'ent' || r.tipo === 'sai').length} entradas e saídas</b> marcadas na tela nas últimas 24 h. O iDFace está desligado: toque para ligar quando for usar.` : `O iDFace leu <b>${regs.filter(r => r.tipo === 'ent' || r.tipo === 'sai').length} rostos</b> nas últimas 24 h. `}${!S.cfg.idface.ligado ? '' : (MODO === 'servidor' ? (S.cfg.idface.ativo ? 'Aparelho conectado.' : 'Aparelho sem contato: toque para ver.') : 'Última leitura há poucos segundos.')}</span></button></div>`;
+// as atividades da semana (de hoje até daqui a 6 dias), por dia: ficam à vista para a equipe saber o que vem. "Hoje na recepção" continua
+// a um toque: abre pelos cartões do pé da tela inicial (Horas vendidas hoje, Horas usadas hoje, Cobranças por atraso)
+function htmlSemana() {
+  const dias = [...Array(7)].map((_, k) => { const d = new Date(agora); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + k); return d; });
+  const doDia = d => S.compromissos.filter(x => x.dia === isoDia(d)).sort((a, b) => a.hora.localeCompare(b.hora)), total = dias.reduce((n, d) => n + doDia(d).length, 0), fim = dias[6];
+  const blocos = dias.map((d, k) => { const L = doDia(d); if (!L.length && k) return '';   // hoje aparece sempre; os outros dias, só se tiverem alguma coisa
+    return `<div class="sem-dia${k ? '' : ' hoje-s'}"><small class="sem-rot">${k === 0 ? 'Hoje · ' : k === 1 ? 'Amanhã · ' : ''}${SEMANA[d.getDay()]}, ${d.getDate()}${d.getMonth() !== agora.getMonth() ? ' de ' + MESES[d.getMonth()] : ''}</small>${L.length ? L.map(x => itemComp(x, isoDia(d))).join('') : '<p class="explica">Nada marcado para hoje.</p>'}</div>`; }).join('');
+  return `<div class="sec-cab"><h2>Atividades da semana</h2><button class="link tap" data-ir="agenda">Agenda</button></div>
+    ${total ? blocos : `<p class="explica">Nada marcado de hoje até ${SEMANA[fim.getDay()]}, ${fim.getDate()} de ${MESES[fim.getMonth()]}.</p>`}`;
 }
-const listaRegistros = regs => `<div class="reg">${regs.length ? regs.map(r => `<div class="ev ${r.tipo}"${r.tipo === 'canc' && supervisorOuMais() ? ' data-act="cancelamentos" role="button" tabindex="0" title="Ver as entradas canceladas"' : ''}><time>${hora(r.h)}</time><div><b>${esc(r.nome)}</b><span>${esc(r.txt)}</span></div></div>`).join('') : '<p class="explica">Nada registrado ainda hoje.</p>'}</div>`;
+function painelHoje() { return `<div class="painel atividades semana">${htmlSemana()}</div>`; }   // a coluna da direita, nas telas largas
+const respDoRegistro = r => { if (r.tipo === 'est') return ''; const c = r.crianca ? crianca(r.crianca) : S.criancas.find(x => x.nome === r.nome); return c && c.resp ? c.resp : ''; };   // de quem é a criança daquela linha
+const listaRegistros = regs => `<div class="reg">${regs.length ? regs.map(r => `<div class="ev ${r.tipo}"${r.tipo === 'canc' && supervisorOuMais() ? ' data-act="cancelamentos" role="button" tabindex="0" title="Ver as entradas canceladas"' : ''}><time>${hora(r.h)}</time><div><b>${esc(r.nome)}${respDoRegistro(r) ? ` <small class="rr">${esc(respDoRegistro(r))}</small>` : ''}</b><span>${esc(r.txt)}</span></div></div>`).join('') : '<p class="explica">Nada registrado ainda hoje.</p>'}</div>`;
 
 // na ficha de quem está no espaço: até quando vai o tempo comprado, o que debita se sair agora e as cobranças por atraso
 const tempoFicha = c => `${passouSeg(c) > 0 ? `<b style="color:var(--erro)">Passou ${hms(passouSeg(c))} do tempo comprado</b> (ia até ${hora(fimVisita(c))}).` : `Tempo comprado até <b>${hora(fimVisita(c))}</b>.`} Se sair agora, debita <b>${dur(cobrar(minConta(c)))}</b>.`;
@@ -1755,6 +1838,7 @@ function folhaFicha(id) {
   abrirFolha(`${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}`, `
     <div class="linha">${avatarComUrso(c, 'g')}<div class="txt"><b style="white-space:normal">${esc(c.resp)}${relSabe(c) ? ', ' + esc(c.rel) : ''}</b>${c.pcd ? `<span style="white-space:normal"><em class="selo-pcd">Criança PCD</em> ${pcdDesc()}% de desconto na recreação avulsa</span>` : ''}<span style="white-space:normal">${esc(fones(c))}${c.cpf ? (fones(c) ? ' · ' : '') + esc(docTxt(c)) : ''}</span>${c.obs ? `<span style="color:var(--coral);font-weight:700;white-space:normal;overflow-wrap:anywhere">${esc(c.obs)}</span>` : ''}</div><span class="pill ${cls}">${et}</span></div>
     ${emAberto(c) ? `<div class="marca retoma-f">${ic(IC.historico, 18)}<span><b>Atendimento em aberto:</b> ${esc(textoPend(c))}.</span><button class="bt forte tap" data-act="vender" data-id="${c.id}">Continuar</button></div>` : ''}
+    ${podeReabrir(c) ? (d => `<div class="marca reab">${ic(IC.renova, 18)}<span><b>Saiu às ${hora(d)}</b>, ${haMin(d)}. Voltou? Dá para reabrir a visita até ${hora(new Date(+d + reabreLim() * 60000))}: o tempo continua contando desde a entrada.</span><button class="bt tap" data-act="reabrir" data-id="${c.id}">Reabrir a visita</button></div>`)(new Date(ultVis(c).dia)) : ''}
     ${semIdface() ? '' : `<div class="marca libera-ficha">${ic(IC.rosto, 18)}<span>${textoAcesso(c)}</span>${chave(c)}</div>`}
     <div class="marca sap-linha">${ic(IC.sapato, 18)}<span>${c.sapateira ? `<b>Sapateira ${c.sapateira}</b> · é onde está o sapato dela.` : `<b>Sem sapateira</b> · escolha onde fica o sapato enquanto ela brinca.`}</span><button class="bt tap" data-act="sapateira" data-id="${c.id}">${c.sapateira ? 'Trocar' : 'Escolher'}</button></div>
     ${c.entrou ? `<div class="marca">${ic(IC.horas, 18)}<span>Entrou às <b>${hora(c.entrou)}</b> e está há <b class="num" data-cron-txt="${c.id}">${hms(segDentro(c))}</b> no espaço. <span data-ficha-tempo="${c.id}">${tempoFicha(c)}</span></span></div><div data-ficha-atraso="${c.id}">${atrasoFicha(c)}</div><div data-ficha-cancela="${c.id}" data-estado="${estadoCancelar(c)}">${blocoCancelar(c)}</div>` : ''}
@@ -1799,7 +1883,7 @@ const vendeuDepois = (c, r) => MODO === 'servidor' && r.reg != null && (c.uv || 
 // o que estava escolhido para esta criança e ainda vale (é de hoje, é da mesma criança, sobrou algum item e ninguém registrou a venda depois); senão, nada
 function rascunhoDe(id) {
   const r = RASC[id]; if (!r) return null; const c = crianca(id);
-  if (c && r.n === c.nome && doDia(r.em) && !vendeuDepois(c, r) && linhasDoRascunho(c, r).length) return r;
+  if (c && MAI(r.n) === MAI(c.nome) && doDia(r.em) && !vendeuDepois(c, r) && linhasDoRascunho(c, r).length) return r;
   delete RASC[id]; salvarEtapas(); return null;
 }
 // cadastro feito hoje e o atendimento ainda por fazer (sem venda, sem visita): no servidor a lista vem pronta; na prévia sai da hora do cadastro
@@ -2093,7 +2177,7 @@ async function confirmarCancelar(el) {
   if (tempo > 0) { const u = S.compras.filter(x => x.crianca === cid && minDe(x) > 0).sort((a, b) => b.quando - a.quando)[0]; c.venda = u ? { h: minDe(u) / 60, m: minDe(u), v: u.v, servico: u.servico, com: u.itens, quando: u.quando } : null; if (restante(c) <= 0 && S.cfg.bloqueioAuto === 'sim') c.liberado = false; }
   S.cancelamentos.unshift({ id: novoId(), crianca: cid, nome, resp: c.resp, entrou: entrouEm, quando: new Date(), min, valor, itens, motivo, por: EU.nomeCompleto || EU.nome, papel: EU.papel, fora: !prazo, visto_por: '', visto_em: null });
   registrar('canc', nome, textoCancelado(entrouEm, min, itens, motivo, EU.nome, !prazo));
-  if (S.cfg.autoMsg === 'ambos') mensagemAuto(c, `A entrada de ${nome} na Play Space foi cancelada às ${hora(new Date())} e ${valor > 0 ? 'nada foi cobrado' : 'o tempo não foi descontado'}. Até a próxima! 🧸`, false);
+  if (S.cfg.autoMsg === 'ambos') mensagemAuto(c, `A entrada de ${nomeMsg(nome)} na Play Space foi cancelada às ${hora(new Date())} e ${valor > 0 ? 'nada foi cobrado' : 'o tempo não foi descontado'}. Até a próxima! 🧸`, false);
   CANCELA = null; fecharFolha(); desenhar(); avisa(valor, sap);
 }
 const quandoCurto = d => (isoDia(d) === isoDia(agora) ? 'hoje' : isoDia(d) === isoDia(new Date(agora.getTime() - 86400000)) ? 'ontem' : diaCurto(d)) + ' às ' + hora(d);
@@ -2472,6 +2556,7 @@ function telaAjustes() {
       <p class="explica">O tempo é debitado sempre em <b>períodos inteiros de ${porExt(periodo())}</b>${st ? ` (o período de ${esc(st.n)})` : ''}: não existe período quebrado. Quem ficou 11 minutos debita ${porExt(periodo())}, e cada visita debita pelo menos um período.</p>
       <div class="campo"><label>Tolerância depois do tempo comprado</label>${seg('tolerancia', [[0, 'Nenhuma'], [5, '5 min'], [9, '9 min'], [10, '10 min'], [15, '15 min']], tolerancia())}<span class="explica">Passou disso, o sistema gera sozinho a <b>cobrança por atraso</b> de mais um período${st ? ` (${precoServ(st)})` : ''} e avisa em todas as telas. O valor aparece na saída, para receber. Depois de cada período novo, a tolerância vale de novo.</span></div>
       <div class="campo"><label>Cancelar a entrada sem cobrar</label>${seg('cancelaMin', [[0, 'Só a supervisão'], [5, 'Até 5 min'], [9, 'Até 9 min'], [10, 'Até 10 min'], [15, 'Até 15 min']], cancelaLim())}<span class="explica">Nesse prazo, contado da entrada, o próprio atendente cancela e nada é cobrado, mas precisa escrever o motivo. Passou do prazo, só Gestor ou Supervisor cancela. ${supervisorOuMais() ? `<button class="link tap" data-act="cancelamentos">Ver as entradas canceladas${aConferir().length ? ' (' + aConferir().length + ' para conferir)' : ''}</button>` : ''}</span></div>
+      <div class="campo"><label>Reabrir a visita depois da saída</label>${seg('reabreMin', [[0, 'Não reabre'], [15, 'Até 15 min'], [30, 'Até 30 min'], [60, 'Até 1 hora']], reabreLim())}<span class="explica">Para quando a criança sai e volta logo em seguida (chorou e o responsável deixou ficar mais). Nesse prazo, quem saiu aparece em <b>Saíram há pouco</b>, na tela inicial, com o botão <b>Reabrir</b>: a saída é desfeita e o tempo continua contando desde a entrada, como se não tivesse saído. Fica anotado em Hoje na recepção, com quem reabriu. Passou do prazo, é uma entrada nova.</span></div>
       <div class="campo"><label>A loja fecha às</label>${seg('fecha', [[20, '20h'], [21, '21h'], [22, '22h'], [23, '23h'], [24, 'Meia-noite']], +cfg.fecha || 22)}<span class="explica">Depois dessa hora o tempo para de contar. Assim uma saída esquecida não vira cobrança a noite toda (a supervisão corrige a hora depois, em "Saída com outra hora").</span></div>
       <div class="campo"><label>Marcar "acabando" quando faltar</label>${seg('aviso', [[5, '5 min'], [10, '10 min'], [15, '15 min'], [30, '30 min'], [60, '1 hora']], cfg.aviso)}<span class="explica">A criança fica em amarelo na lista do espaço, só para a equipe ver. Nada é enviado ao responsável.</span></div>
       <div class="campo"><label>Quando o pacote zerar</label>${seg('bloqueioAuto', [['sim', 'Bloquear o acesso sozinho'], ['nao', 'Deixar autorizado']], cfg.bloqueioAuto || 'sim')}<span class="explica">Bloqueando sozinho, o iDFace passa a recusar o rosto da criança até alguém vender horas (a venda libera de novo). Quem acabou de ser cadastrado e ainda não comprou horas também começa bloqueado. Assim o controle fica com o aparelho, não com o funcionário.</span></div>
@@ -2603,6 +2688,13 @@ const ACOES = {
     if (!/^\d{2}:\d{2}$/.test(hh)) { toast('Escreva a hora em que a criança saiu'); $('#s-hora').focus(); return; } if (motivo.length < 5) { toast('Escreva o motivo da correção da hora'); $('#s-motivo').focus(); return; }
     el.disabled = true; try { const r = await api('visita_corrigir', { visita: +el.dataset.v, quando: hh, motivo }); await carregar(); fecharFolha(); desenhar(); toast(`Saída corrigida para ${hh} · ${dur(r.debitado)} debitados${r.desfeitas ? ' · ' + brl(r.valor) + ' de atraso desfeito' : ''}`); } catch (e) { toast(e.message); el.disabled = false; } },
   'esp-filtro': el => { S.espFiltro = el.dataset.f; atualizarEspaco(); },
+  reabrir: el => folhaReabrir(+el.dataset.id),
+  'reabrir-ok': async el => { /* desfaz a saída: o tempo continua desde a entrada */
+    const c = crianca(el.dataset.id); if (!c) return; const nome = c.nome, id = c.id; el.disabled = true;
+    const feito = (ini, sap, cobr) => { if (S.espFiltro === 'sairam') S.espFiltro = 'todas'; fecharFolha(); desenhar(); const txt = `Visita de ${nome} reaberta · o tempo conta desde ${hora(ini)}${cobr ? ' · cobrança por atraso lançada' : ''}`; if (sap) toast(txt + ' · sapateira ' + sap); else toast(txt, () => folhaSapateira(id), 'Sapateira'); };
+    if (MODO === 'servidor') { try { const r = await api('reabrir_visita', { id }); await carregar(); feito(dataDe(r.entrou), r.sapateira, r.cobrancas); } catch (e) { el.disabled = false; toast(e.message); } return; }
+    const r = reabrirPrevia(c); if (r) feito(r.ini, r.sap, r.cobr); else { el.disabled = false; toast(`Já passou de ${reabreLim()} min da saída de ${nome}`); }
+  },
   'esp-ordem': el => { S.espOrdem = el.dataset.v; guardar('ps-esp-ordem', S.espOrdem); $$('#esp-ordem button').forEach(b => b.setAttribute('aria-pressed', b === el)); atualizarEspaco(); },
   'entrada-rapida': el => { entrada(crianca(el.dataset.id), 'mão'); desenhar(); },
   liberar: el => { // a chavinha: muda na hora, avisa o servidor, e o aviso tem Desfazer
@@ -2637,7 +2729,7 @@ const ACOES = {
   editar: el => folhaCrianca(crianca(el.dataset.id)),
   nova: () => folhaCrianca(null),
   'salvar-crianca': el => {
-    const id = el.dataset.id, nome = val('f-nome'), resp = val('f-resp'), doc = docTipo(), cpf = doc === 'rne' ? rneFmt(val('f-cpf')).trim() : cpfFmt(val('f-cpf')), obs = val('f-obs'), pcd = !!($('#f-pcd') || {}).checked;
+    const id = el.dataset.id, nome = MAI(val('f-nome')), resp = MAI(val('f-resp')), doc = docTipo(), cpf = doc === 'rne' ? rneFmt(val('f-cpf')).trim() : cpfFmt(val('f-cpf')), obs = val('f-obs'), pcd = !!($('#f-pcd') || {}).checked;
     let tel = val('f-tel'), tel2 = val('f-tel2'); if (!tel && tel2) { tel = tel2; tel2 = ''; }   // só um telefone preenchido: ele é o principal
     const F = faltaNoCadastro(id ? crianca(id) : null);   // sem documento, responsável, telefone e nome da criança o cadastro não fecha
     if (F.length) { FALTA_TENTOU = true; atualizarFalta(); toast(F.length === 1 ? F[0][2] : 'Falta ' + juntar(F.map(x => x[1]))); const i = $('#' + F[0][0]); if (i) { i.focus(); i.scrollIntoView({ block: 'center', behavior: 'smooth' }); } return; }
@@ -2878,8 +2970,11 @@ setInterval(() => {
   $$('.esp-it[data-esp]').forEach(el => { const c = crianca(el.dataset.esp); if (!c || !c.entrou) return; const st = situacaoTempo(c);
     if (!el.classList.contains(st)) { el.classList.remove('ok', 'acabando', 'passou'); el.classList.add(st); mudouEstado = true; }
     const t = $('[data-esp-t]', el), sb = $('[data-esp-s]', el), b = $('[data-esp-b]', el), sub = subEspaco(c), w = pctEspaco(c).toFixed(1) + '%';
-    t.textContent = hms(segDentro(c)); if (sb.textContent !== sub) sb.textContent = sub; if (b.style.width !== w) b.style.width = w; });
+    t.textContent = hms(segDentro(c)); if (sb.textContent !== sub) sb.textContent = sub; if (b.style.width !== w) b.style.width = w;
+    const sd = $('[data-esp-sd]', el), stx = saldoTxt(c); if (sd && sd.textContent !== stx) { sd.textContent = stx; sd.classList.toggle('zero', !saldoAgora(c)); } });
   if (mudouEstado) { const ch = $('#esp-filtros'); if (ch) ch.innerHTML = chipsEspaco(); }
+  if (S.tela === 'horas') { const ns = saiuHaPouco().length; if (ns !== N_SAIRAM) { N_SAIRAM = ns; if (!$('#folha .folha-fundo')) atualizarEspaco(); }   // alguém entrou no prazo de reabrir, ou saiu dele
+    $$('[data-saiu]').forEach(el => { const t = haMin(new Date(+el.dataset.saiu)); if (el.textContent !== t) el.textContent = t; }); }
   { const sc = $('#s-conta'), sb = $('#s-ok'), sh = $('#s-hora');   // a folha da saída acompanha o relógio: se a tolerância estourar com ela aberta, o valor a receber muda na hora
     if (sc && sb && !sb.disabled && !(sh && sh.value)) { const c = crianca(sb.dataset.id); if (c && c.entrou) { const k = contaSaida(c), chave = k.n + '|' + k.deb + '|' + Math.floor(k.min); if (sc.dataset.k !== chave) { sc.dataset.k = chave; sc.innerHTML = htmlContaSaida(c, k); sb.innerHTML = rotuloSaida(k); } } } }
   $$('[data-ficha-tempo]').forEach(el => { const c = crianca(el.dataset.fichaTempo); if (c && c.entrou) el.innerHTML = tempoFicha(c); });

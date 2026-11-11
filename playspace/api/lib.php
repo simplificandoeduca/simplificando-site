@@ -16,6 +16,25 @@ function falha(string $msg, int $st = 400): void { http_response_code($st); head
 function responder(array $d = []): void { header('Content-Type: application/json; charset=utf-8'); header('Cache-Control: no-store'); echo json_encode(['ok' => true] + $d, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); exit; }
 function agora(): string { return date('Y-m-d H:i:s'); }
 function registrarErro(string $msg): void { error_log('[playspace] ' . $msg); }
+// os nomes (da criança e do responsável) ficam sempre em maiúsculas, com um espaço só entre as palavras, mesmo que tenham sido escritos em minúsculas
+function maiusculo(string $s): string { return mb_strtoupper(trim((string)preg_replace('/\s+/u', ' ', $s)), 'UTF-8'); }
+// na mensagem para o responsável o nome vai como se escreve ("Pedro Henrique da Silva"), não em maiúsculas
+function nomeMsg(string $s): string {
+  $t = mb_convert_case(mb_strtolower(trim($s), 'UTF-8'), MB_CASE_TITLE, 'UTF-8');
+  return (string)preg_replace_callback('/(?<=\s)(Da|De|Do|Das|Dos|E)(?=\s)/u', fn($m) => mb_strtolower($m[1], 'UTF-8'), $t);
+}
+// põe em maiúsculas os nomes que já estão no banco: todos ($ids = null) ou só os dessas crianças (o teste do rodapé)
+function nomesEmMaiusculas(PDO $pdo, ?array $ids = null): void {
+  $lista = $ids === null ? '' : implode(',', array_map('intval', $ids) ?: [0]);
+  foreach ([['criancas', 'id', ['nome', 'resp']], ['cancelamentos', 'crianca_id', ['nome', 'resp']], ['registros', 'crianca_id', ['nome']]] as [$t, $chave, $cols]) {
+    $up = $pdo->prepare("UPDATE $t SET " . implode(', ', array_map(fn($k) => "$k = ?", $cols)) . ' WHERE id = ?');
+    $onde = $ids === null ? ($t === 'registros' ? ' WHERE crianca_id IS NOT NULL' : '') : " WHERE $chave IN ($lista)";   // as linhas sem criança (estoque de produto) ficam como estão
+    foreach ($pdo->query('SELECT id, ' . implode(', ', $cols) . " FROM $t" . $onde)->fetchAll() as $l) {
+      $velho = array_map(fn($k) => (string)$l[$k], $cols); $novo = array_map('maiusculo', $velho);
+      if ($novo !== $velho) $up->execute(array_merge($novo, [$l['id']]));
+    }
+  }
+}
 
 /* ---------- onde os dados ficam ---------- */
 function pastaDados(): string {
@@ -172,6 +191,10 @@ function db(): PDO {
     } catch (Throwable $e) { }
     $pdo->exec('PRAGMA user_version = 16');
   }
+  if ($v < 17) { // 0.85: os nomes (criança e responsável) ficam sempre em maiúsculas: os que já estavam no banco são convertidos, nos cadastros e nas linhas do dia
+    try { $pdo->beginTransaction(); nomesEmMaiusculas($pdo); $pdo->commit(); } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); }
+    $pdo->exec('PRAGMA user_version = 17');
+  }
   return $pdo;
 }
 function cfg(string $k, $padrao = null) { $q = db()->prepare('SELECT valor FROM config WHERE chave = ?'); $q->execute([$k]); $v = $q->fetchColumn(); return $v === false ? $padrao : json_decode((string)$v, true); }
@@ -218,7 +241,8 @@ const PACOTES_DE_EXEMPLO = [['h' => 1, 'v' => 60], ['h' => 5, 'v' => 250], ['h' 
 // autoMsg 'nao': nenhum aviso automático no WhatsApp (a loja não quer que o responsável fique acompanhando o tempo)
 // fecha: a hora em que a loja fecha (24 = meia-noite): depois dela o tempo de quem ficou marcado no espaço para de contar
 // pcdDesc: o desconto, em %, da criança PCD na recreação avulsa (o serviço por período e a cobrança por atraso); pacote de horas e carrinhos não têm
-const REGRA_PADRAO = ['tolerancia' => 9, 'fecha' => 22, 'pcdDesc' => 50, 'aviso' => 10, 'autoMsg' => 'nao', 'bloqueioAuto' => 'sim', 'pacotes' => [], 'extras' => [], 'sapateiras' => 44, 'cancelaMin' => 9];
+// reabreMin: até quantos minutos depois da saída a equipe reabre a visita (a criança chorou e o responsável deixou ficar mais); 0 = não reabre
+const REGRA_PADRAO = ['tolerancia' => 9, 'fecha' => 22, 'pcdDesc' => 50, 'aviso' => 10, 'autoMsg' => 'nao', 'bloqueioAuto' => 'sim', 'pacotes' => [], 'extras' => [], 'sapateiras' => 44, 'cancelaMin' => 9, 'reabreMin' => 30];
 function regra(): array {
   if (isset($GLOBALS['_regra'])) return $GLOBALS['_regra'];   // lida uma vez por pedido (a conta do tempo consulta a regra muitas vezes)
   return $GLOBALS['_regra'] = regraDoBanco();
@@ -296,7 +320,7 @@ function fazerEntrada(array $c, string $origem = 'iDFace', ?string $quando = nul
   $reg = registrar('ent', (int)$c['id'], $c['nome'], $origem === 'iDFace' ? 'Rosto reconhecido na entrada' : (modoManual() ? 'Entrada registrada' : 'Entrada registrada à mão'), $quando);
   $msg = null;
   if (regra()['autoMsg'] !== 'nao') {
-    $texto = 'Oi, ' . primeiroNome($c['resp']) . '! ' . $c['nome'] . ' chegou na Play Space às ' . date('H:i', strtotime($quando)) . ' 💛 Qualquer coisa a gente te chama por aqui.';   // sem falar de tempo nem de saldo
+    $texto = 'Oi, ' . nomeMsg(primeiroNome($c['resp'])) . '! ' . nomeMsg($c['nome']) . ' chegou na Play Space às ' . date('H:i', strtotime($quando)) . ' 💛 Qualquer coisa a gente te chama por aqui.';   // sem falar de tempo nem de saldo
     $msg = mandarMensagem($c, $texto, true, $c['foto'] ?: '');
   }
   return ['registro' => $reg, 'mensagem' => $msg];
@@ -353,10 +377,42 @@ function fazerSaida(array $c, string $origem = 'iDFace', ?string $quando = null)
   $reg = registrar('sai', (int)$c['id'], $c['nome'], 'Ficou ' . dur((int)floor($min)) . ' · ' . dur($deb) . ' debitados' . ($r > 0 ? ' · restam ' . hm($r) : '') . ($atraso['n'] ? ' · ' . ($atraso['n'] > 1 ? $atraso['n'] . ' cobranças' : 'cobrança') . ' por atraso: ' . dinheiro($atraso['valor']) . ' a receber' : '') . ($sap ? ' · sapato na sapateira ' . $sap : '') . ($origem === 'iDFace' || modoManual() ? '' : ' · saída à mão'), $quando);
   $msg = null;
   if (regra()['autoMsg'] === 'ambos') {
-    $texto = $c['nome'] . ' saiu às ' . date('H:i', strtotime($quando)) . '. Até a próxima! 🧸';
+    $texto = nomeMsg($c['nome']) . ' saiu às ' . date('H:i', strtotime($quando)) . '. Até a próxima! 🧸';
     $msg = mandarMensagem($c, $texto, true);
   }
   return ['registro' => $reg, 'visita' => $visita, 'debitado' => $deb, 'minutos' => (int)floor($min), 'atraso' => $atraso, 'mensagem' => $msg, 'sapateira' => $sap ?: null];
+}
+/* ---------- reabrir a visita: a criança saiu e voltou logo em seguida ---------- */
+// Até regra.reabreMin minutos depois da saída, a equipe reabre: a saída é desfeita e o tempo continua contando desde a entrada,
+// como se a criança não tivesse saído (o que foi debitado volta para o saldo e a conta é refeita na próxima saída).
+// Fica anotado em "Hoje na recepção", com quem reabriu. Passou do prazo, é uma entrada nova.
+function ultimaVisita(int $criancaId): ?array { $q = db()->prepare('SELECT * FROM visitas WHERE crianca_id = ? ORDER BY saiu DESC, id DESC LIMIT 1'); $q->execute([$criancaId]); return $q->fetch() ?: null; }
+function reabrirVisita(array $c, array $u): array {
+  $db = db(); $lim = max(0, (int)(regra()['reabreMin'] ?? 30));
+  if ($c['entrou']) falha($c['nome'] . ' já está no espaço.');
+  if ($lim <= 0) falha('Reabrir a visita está desligado em Ajustes.');
+  $v = ultimaVisita((int)$c['id']); if (!$v) falha($c['nome'] . ' ainda não tem visita para reabrir.');
+  $fora = max(0, time() - strtotime((string)$v['saiu']));
+  if ($fora > $lim * 60 + 10) falha('Já passou de ' . $lim . ' min da saída de ' . $c['nome'] . ' (saiu às ' . substr((string)$v['saiu'], 11, 5) . '). Agora é uma entrada nova.');   // 10 s de folga para o pedido que já estava a caminho
+  $q = $db->prepare('SELECT 1 FROM cancelamentos WHERE crianca_id = ? AND entrou >= ?'); $q->execute([$c['id'], $v['saiu']]);   // uma entrada feita depois dessa saída e cancelada
+  if ($q->fetchColumn()) falha('Depois dessa saída houve uma entrada cancelada. Faça uma entrada nova.');
+  // a sapateira que a criança tinha na saída volta para ela, se ainda estiver livre
+  $q = $db->prepare("SELECT id, texto FROM registros WHERE crianca_id = ? AND tipo = 'sai' AND quando = ? ORDER BY id DESC LIMIT 1"); $q->execute([$c['id'], $v['saiu']]); $linha = $q->fetch() ?: null;
+  $sap = $linha && preg_match('/sapateira (\d+)/u', (string)$linha['texto'], $m) ? (int)$m[1] : 0;
+  if ($sap && ($sap > (int)regra()['sapateiras'] || donoSapateira($sap, (int)$c['id']))) $sap = 0;
+  $agora = agora(); $min = intdiv($fora, 60);
+  $db->beginTransaction();
+  try {
+    $db->prepare('UPDATE criancas SET entrou = ?, usado_min = MAX(0, usado_min - ?), sapateira = ? WHERE id = ?')->execute([$v['entrou'], (int)$v['debitado_min'], $sap ?: null, $c['id']]);
+    $db->prepare('DELETE FROM visitas WHERE id = ?')->execute([$v['id']]);
+    if ($linha) $db->prepare('UPDATE registros SET texto = texto || ? WHERE id = ?')->execute([' · visita reaberta às ' . substr($agora, 11, 5), $linha['id']]);
+    $reg = registrar('reab', (int)$c['id'], $c['nome'], 'Visita reaberta: a saída das ' . substr((string)$v['saiu'], 11, 5) . ' foi desfeita (' . ($min < 1 ? 'menos de 1 min' : $min . ' min') . ' fora) · o tempo continua desde a entrada das ' . substr((string)$v['entrou'], 11, 5) . ' · por ' . primeiroNome($u['nome']), $agora);
+    $db->commit();
+  } catch (Throwable $e) { $db->rollBack(); throw $e; }
+  $c = crianca((int)$c['id']);
+  if (restante($c) >= periodo() && isset($c['liberado']) && !(int)$c['liberado']) bloquearAcesso($c, true);   // a saída tinha bloqueado o acesso por falta de saldo: com o tempo de volta, libera
+  $novas = acertarCobrancas($c);   // o tempo fora também conta: se passou do tempo comprado mais a tolerância, a cobrança por atraso nasce agora
+  return ['registro' => $reg, 'entrou' => $v['entrou'], 'saiu' => $v['saiu'], 'fora_min' => $min, 'sapateira' => $sap ?: null, 'cobrancas' => count($novas)];
 }
 // A supervisão corrige a hora de uma saída (a criança saiu antes e a saída só foi marcada depois): o tempo debitado é refeito
 // e as cobranças por atraso que passaram a sobrar são desfeitas. Sempre com o motivo, que fica em "Hoje na recepção".
@@ -508,7 +564,7 @@ function cancelarEntrada(array $c, array $u, string $motivo, ?array $vendaIds): 
   // desfez o tempo e o saldo voltou a zero: o acesso volta a ficar bloqueado, como em quem ainda não comprou
   if ($tempo > 0 && restante($c) < periodo() && regra()['bloqueioAuto'] === 'sim' && (!isset($c['liberado']) || (int)$c['liberado'])) bloquearAcesso($c, false);
   $msg = null;
-  if (regra()['autoMsg'] === 'ambos') $msg = mandarMensagem($c, 'A entrada de ' . $c['nome'] . ' na Play Space foi cancelada às ' . substr($agora, 11, 5) . ' e ' . ($valor > 0 ? 'nada foi cobrado' : 'o tempo não foi descontado') . '. Até a próxima! 🧸', true);
+  if (regra()['autoMsg'] === 'ambos') $msg = mandarMensagem($c, 'A entrada de ' . nomeMsg($c['nome']) . ' na Play Space foi cancelada às ' . substr($agora, 11, 5) . ' e ' . ($valor > 0 ? 'nada foi cobrado' : 'o tempo não foi descontado') . '. Até a próxima! 🧸', true);
   return ['cancelamento' => $id, 'registro' => $reg, 'valor' => $valor, 'minutos' => $minDentro, 'tempo' => $tempo, 'sapateira' => $sap ?: null, 'fora' => !$noPrazo, 'mensagem' => $msg];
 }
 function cancelamentoPublico(array $x): array {

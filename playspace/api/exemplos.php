@@ -29,17 +29,18 @@ function exemplosCarregar(?int $por): array {
 
   // quem está no espaço: nome, responsável, entrou há (min), períodos comprados, e o que tem de diferente
   // (pcd, voucher, obs, fam = mesma família de outra criança, sem = sem sapateira). Os horários cobrem todas as situações da lista.
+  // Há duas famílias com duas crianças (ficam juntas na lista) e três "Pedro" de responsáveis diferentes (é o nome do responsável que diz qual é qual).
   $dentro = [
     ['Ana Clara', 'Carla Menezes', 2, 1],                      ['Bento', 'Rodrigo Alves', 4, 1],
     ['Cecília', 'Fernanda Castro', 5, 1, ['voucher' => 1]],    ['Davi Luiz', 'Tiago Lima', 7, 1],
-    ['Elisa', 'Patrícia Nunes', 8, 2],                         ['Felipe', 'Marcos Vieira', 10, 1],
+    ['Elisa', 'Patrícia Nunes', 8, 2],                         ['Felipe', 'Patrícia Nunes', 8, 2, ['fam' => 'Elisa']],
     ['Gabriela', 'Aline Prado', 11, 1, ['obs' => 'Alergia a corante']], ['Theo', 'Rafael Lima', 12, 1],
     ['Heitor', 'Bruno Teixeira', 13, 1, ['sem' => 1]],         ['Isabela', 'Juliana Rocha', 14, 1, ['pcd' => 1]],
     ['Joaquim', 'André Martins', 15, 2],                       ['Lara', 'Camila Farias', 16, 1],
-    ['Noah', 'Vanessa Duarte', 18, 1],                         ['Olívia', 'Renata Campos', 21, 1],
+    ['Pedro', 'Vanessa Duarte', 18, 1],                         ['Olívia', 'Renata Campos', 21, 1],
     ['Pedro', 'Gustavo Ribeiro', 22, 1, ['obs' => 'Não mexer no cabelo']], ['Rafaela', 'Daniela Moraes', 24, 1],
     ['Samuel', 'Leandro Pires', 25, 1, ['voucher' => 1]],      ['Valentina', 'Priscila Azevedo', 26, 1],
-    ['Yuri', 'Eduardo Barros', 28, 1, ['sem' => 1]],           ['Zoe', 'Larissa Monteiro', 29, 1],
+    ['Pedro', 'Eduardo Barros', 28, 1, ['sem' => 1]],           ['Zoe', 'Larissa Monteiro', 29, 1],
     ['Antônio', 'Felipe Cardoso', 31, 1],                      ['Bia', 'Simone Araújo', 33, 1],
     ['Caio', 'Roberto Nogueira', 35, 1, ['pcd' => 1]],         ['Dora', 'Luciana Freitas', 37, 1],
     ['João', 'Sérgio Lopes', 34, 2],                           ['Enzo', 'Marcelo Tavares', 42, 1],
@@ -114,11 +115,13 @@ function exemplosCarregar(?int $por): array {
 
   // agenda
   $comp = $db->prepare('INSERT INTO compromissos (dia, hora, titulo, tipo, sub, obs, criado_em) VALUES (?, ?, ?, ?, ?, ?, ?)'); $compIds = [];
-  foreach ([[2, '15:00', 'Oficina de slime', 'oficina', 'Oficina', 'Até 12 crianças · levar aventais'], [5, '16:00', 'Festa da Lara (6 anos)', 'festa', 'Festa', 'Salão reservado das 15h às 19h'],
+  foreach ([[0, '16:30', 'Contação de histórias', 'oficina', 'Oficina', 'Na sala do castelinho'], [1, '15:00', 'Oficina de pintura no rosto', 'oficina', 'Oficina', ''],
+            [2, '15:00', 'Oficina de slime', 'oficina', 'Oficina', 'Até 12 crianças · levar aventais'], [5, '16:00', 'Festa da Lara (6 anos)', 'festa', 'Festa', 'Salão reservado das 15h às 19h'],
             [7, '10:00', 'Reunião com a escola Pequeno Príncipe', 'compromisso', 'Compromisso', 'Parceria para as férias'], [9, '09:00', 'Post: horário das férias', 'postagem', 'Postagem', 'Arte com o castelinho'],
             [12, '15:30', 'Oficina de pintura', 'oficina', 'Oficina', ''], [-3, '14:00', 'Oficina de massinha', 'oficina', 'Oficina', 'Feita · 9 crianças']] as $c) {
     $comp->execute([date('Y-m-d', strtotime("$c[0] days")), $c[1], $c[2], $c[3], $c[4], $c[5], agora()]); $compIds[] = (int)$db->lastInsertId();
   }
+  nomesEmMaiusculas($db, $ids);   // os nomes do teste também ficam em maiúsculas, como os de verdade
   gravarCfg('exemplo', ['criancas' => $ids, 'compromissos' => $compIds, 'em' => agora()]);
   return ['criancas' => count($ids), 'dentro' => $nDentro];
 }

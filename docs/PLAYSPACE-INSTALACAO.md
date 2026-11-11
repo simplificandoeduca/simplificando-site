@@ -20,7 +20,7 @@ Os dados ficam fora da pasta pública, em `~/playspace-dados/` (criada sozinha n
 
 Para ver como a tela fica com o espaço cheio, a gestora toca em **Teste: 30 crianças**, no rodapé de qualquer tela (ou em Ajustes → Dados de exemplo). Entram 34 crianças fictícias:
 
-- **30 no espaço agora**, com nomes, responsáveis e horários de entrada diferentes: umas acabaram de entrar (com o atalho de cancelar), outras estão no tempo, acabando, **na tolerância** e três **já com cobrança por atraso**; duas são **PCD** e duas entraram com **voucher**; algumas têm restrição anotada e duas estão sem sapateira.
+- **30 no espaço agora**, com nomes, responsáveis e horários de entrada diferentes: umas acabaram de entrar (com o atalho de cancelar), outras estão no tempo, acabando, **na tolerância** e três **já com cobrança por atraso**; duas são **PCD** e duas entraram com **voucher**; algumas têm restrição anotada e duas estão sem sapateira. Há **duas famílias com duas crianças** (aparecem juntas na lista) e **três crianças chamadas PEDRO**, de responsáveis diferentes, para ver como o nome do responsável separa uma da outra.
 - **4 fora do espaço** (uma com a entrada cancelada, para a supervisão conferir; duas que já saíram hoje, uma delas com cobrança por atraso; e a **Marina**, com o cadastro feito agora há pouco e o atendimento por fazer, que aparece em **Falta finalizar**), para testar a busca.
 - Vendas e registros do dia, conversas no WhatsApp e compromissos na agenda.
 
@@ -162,14 +162,19 @@ Para quando a criança entra e desiste logo (chorou, não quis ficar, o respons�
 
 A primeira tela (aba **Espaço**) é a **lista de todas as crianças que estão no espaço**, uma linha por criança, com o tempo correndo. Num computador de 1366 x 768 cabem 30 sem rolar, em três colunas; o resto aparece rolando um pouco.
 
-- Cada linha mostra: a **sapateira**, o **nome** (com um sininho se há restrição ou observação), a **hora da entrada**, o **responsável**, o **tempo que a criança está no espaço** (correndo segundo a segundo) e **até que horas vai o tempo comprado**. Uma barrinha embaixo enche conforme o tempo passa.
+- Cada linha é a "comanda" da criança. Em cima: a **sapateira**, o **nome** (com um sininho se há restrição ou observação), o **tempo que ela está no espaço** (correndo segundo a segundo) e o botão **Saída**. Embaixo: o **nome do responsável** em destaque, a **hora da entrada**, o **saldo** e **até que horas vai o tempo comprado**. Uma barrinha embaixo enche conforme o tempo passa.
+- **O responsável aparece sempre.** Com três PEDRO no espaço, é o nome do responsável que diz qual é qual.
+- **Crianças do mesmo responsável ficam juntas**: uma embaixo da outra, dentro da mesma moldura, com um elo ao lado do nome do responsável. O sistema junta quem tem o mesmo CPF (ou RNE) do responsável; em cadastros sem documento, quem tem o mesmo telefone. A família fica no lugar da criança que vem primeiro na ordem escolhida.
+- **Saldo**: é o que fica guardado se a criança sair agora, já descontando a visita em curso (em períodos inteiros). Quem comprou só meia hora mostra "saldo 0h"; quem tem pacote mostra, por exemplo, "saldo 4h30", em destaque. O número acompanha o relógio.
 - **Cores**: verde = no tempo; amarelo = acabando (faltam 10 min ou menos); vermelho = passou do tempo comprado (a tolerância está correndo, e a linha mostra "passou 3:12"). Quem ganhou cobrança por atraso fica com o selo **+ R$ 80**.
-- De saída a lista vem por **Tempo**: quem está mais perto de estourar fica em cima. Dá para ordenar por **Entrada**, **Nome** ou **Sapateira**, e filtrar por *Acabando*, *Passou do tempo* e *Com cobrança*.
+- De saída a lista vem por **Tempo**: quem está mais perto de estourar fica em cima. Dá para ordenar por **Entrada**, **Nome** ou **Sapateira**, e filtrar por *Acabando*, *Passou do tempo* e *Com cobrança*. Quando alguém saiu há pouco, aparece também **Saíram há pouco**, para reabrir a visita (seção 6m).
 - **Tocar na criança abre a ficha**: responsável, telefones, documento, restrições, sapateira, hora da entrada, até quando vai o tempo, quanto debita se sair agora, cobranças por atraso, histórico e os botões.
 - Acima da lista, a faixa **Falta finalizar** mostra quem ficou com o cadastro ou o atendimento pela metade (veja 6i). Ela só aparece quando há alguém nessa situação.
 - **Buscar** (criança, responsável, telefone ou CPF) filtra a lista e também acha quem tem cadastro e não está no espaço, com os botões **Entrada** (se tem um período guardado) e **Atender** (vender e dar entrada). A lista continua se atualizando sozinha com o cursor na busca.
 - Nos primeiros 9 minutos a linha traz o atalho de **cancelar** com o tempo que falta; o botão **Saída** abre a folha da saída.
-- Abaixo da lista ficam as dicas, os números do dia (horas vendidas, horas usadas, cobranças por atraso) e o atalho para o Banco de horas, onde está quem não está no espaço.
+- Abaixo da lista ficam as dicas, as **Atividades da semana**, os números do dia (horas vendidas, horas usadas, cobranças por atraso) e o atalho para o Banco de horas, onde está quem não está no espaço.
+- **Atividades da semana**: o que está marcado na agenda de hoje até daqui a seis dias, separado por dia (Hoje, Amanhã, sexta 13…), para a equipe ver com facilidade o que vem. Em tela larga (1400 px ou mais) fica na coluna da direita, sempre à vista; em tela menor, na própria tela inicial. Dá para marcar como feito ali mesmo; **Agenda** abre o mês.
+- **Hoje na recepção** (cada entrada, saída, venda, cancelamento e mudança de estoque do dia) saiu da coluna da direita, mas continua a um toque: abre por qualquer um dos três cartões do pé da tela inicial (**Horas vendidas hoje**, **Horas usadas hoje**, **Cobranças por atraso hoje**). Cada linha traz o nome da criança e o do responsável.
 
 ## 6g. Cobrança por atraso
 
@@ -290,6 +295,26 @@ Produtos que já vêm instalados (os da tela "Produtos disponíveis" do sistema 
 - **Criança PCD não tem desconto em produto**, como no pacote (seção 6h).
 - Se a gestora mudar o valor de um produto enquanto um atendimento está aberto em outro aparelho, a venda não sai no valor antigo: o sistema avisa "O valor de Maleta mudou" e pede para abrir o atendimento de novo.
 - No **teste com 30 crianças** (seção 2b), o que for vendido de produto para uma criança de teste volta para o estoque quando o teste é tirado.
+
+## 6m. Reabrir a visita (a criança saiu e voltou logo)
+
+Às vezes a saída já foi marcada, a criança chora e o responsável deixa ficar mais. Em vez de fazer uma entrada nova, a equipe **reabre a visita**.
+
+- **Prazo**: até **30 minutos depois da saída** (muda em **Ajustes → Regra das horas → Reabrir a visita depois da saída**: não reabre, até 15 min, até 30 min ou até 1 hora). Passou do prazo, é uma entrada nova.
+- **Onde**: na tela inicial, quando alguém saiu dentro do prazo, aparece o filtro **Saíram há pouco** (com a contagem). Tocando nele, vem a lista de quem saiu, com o botão **Reabrir**. O mesmo botão aparece na busca (quem saiu há pouco) e na ficha da criança. O filtro some sozinho quando o prazo passa.
+- **O que acontece**: a saída é desfeita e **o tempo continua contando desde a entrada**, como se a criança não tivesse saído. O que foi debitado volta para o saldo e a conta é refeita na próxima saída. A sapateira que ela usava volta, se ainda estiver livre; senão o aviso oferece escolher outra.
+- **O tempo fora também conta.** Antes de confirmar, a folha mostra até quando ia o tempo comprado e, se o tempo fora fez passar da tolerância, quantas **cobranças por atraso** nascem ao reabrir e o valor.
+- **Fica anotado** em Hoje na recepção: a linha da saída ganha "visita reaberta às 15:06" e entra uma linha nova com a hora da saída desfeita, quanto tempo ficou fora e **quem reabriu**.
+- Qualquer pessoa da equipe reabre dentro do prazo (com o iDFace ligado, só gestor e supervisor, como na saída à mão). Se depois daquela saída houve uma entrada cancelada, não reabre: aí é entrada nova.
+- O **Desfazer** do aviso da saída (os primeiros segundos) continua existindo, para o toque errado.
+
+## 6n. Nomes sempre em maiúsculas
+
+O nome da criança e o do responsável ficam **sempre em MAIÚSCULAS**, mesmo que sejam escritos em minúsculas.
+
+- No cadastro, o campo já mostra em maiúsculas enquanto a pessoa escreve, e o sistema grava assim (tirando espaços sobrando).
+- Na atualização para a 0.85, os cadastros e as linhas do dia que já existiam foram convertidos de uma vez.
+- Nas mensagens automáticas do WhatsApp para o responsável (que vêm desligadas), o nome vai como se escreve ("Pedro Henrique"), para não parecer que a loja está gritando.
 
 ## 7. Atualizar
 
