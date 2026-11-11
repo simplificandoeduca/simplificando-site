@@ -243,6 +243,15 @@ function db(): PDO {
     foreach (["ALTER TABLE criancas ADD COLUMN obs_antes TEXT NOT NULL DEFAULT ''", 'ALTER TABLE criancas ADD COLUMN obs_em TEXT', "ALTER TABLE criancas ADD COLUMN obs_por TEXT NOT NULL DEFAULT ''"] as $sql) { try { $pdo->exec($sql); } catch (Throwable $e) { } }
     $pdo->exec('PRAGMA user_version = 20');
   }
+  if ($v < 21) { // 0.93: o cupom fiscal de cada pagamento. Nasce "pendente" (a emitir); a equipe marca "emitido"; se a venda for desfeita depois de emitido, vira "cancelar"
+    $pdo->exec("CREATE TABLE IF NOT EXISTS cupons (id INTEGER PRIMARY KEY AUTOINCREMENT, crianca_id INTEGER NOT NULL, nome TEXT NOT NULL DEFAULT '', resp TEXT NOT NULL DEFAULT '', cpf TEXT NOT NULL DEFAULT '', quando TEXT NOT NULL, origem TEXT NOT NULL DEFAULT 'venda',
+      valor REAL NOT NULL DEFAULT 0, itens TEXT NOT NULL DEFAULT '[]', formas TEXT NOT NULL DEFAULT '[]', status TEXT NOT NULL DEFAULT 'pendente', numero TEXT NOT NULL DEFAULT '', motivo TEXT NOT NULL DEFAULT '', por TEXT NOT NULL DEFAULT '', resolvido_em TEXT, resolvido_por TEXT NOT NULL DEFAULT '')");
+    $pdo->exec('CREATE INDEX IF NOT EXISTS cupons_status ON cupons (status)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS cupons_quando ON cupons (quando)');
+    try { $pdo->exec('ALTER TABLE pagamentos ADD COLUMN cupom_id INTEGER'); } catch (Throwable $e) { }   // de qual cupom é cada pagamento
+    $pdo->exec('CREATE INDEX IF NOT EXISTS pagamentos_cupom ON pagamentos (cupom_id)');
+    $pdo->exec('PRAGMA user_version = 21');
+  }
   return $pdo;
 }
 function cfg(string $k, $padrao = null) { $q = db()->prepare('SELECT valor FROM config WHERE chave = ?'); $q->execute([$k]); $v = $q->fetchColumn(); return $v === false ? $padrao : json_decode((string)$v, true); }
@@ -293,7 +302,8 @@ const PACOTES_DE_EXEMPLO = [['h' => 1, 'v' => 60], ['h' => 5, 'v' => 250], ['h' 
 // fecha: a hora em que a loja fecha (24 = meia-noite): depois dela o tempo de quem ficou marcado no espaço para de contar
 // pcdDesc: o desconto, em %, da criança PCD na recreação avulsa (o serviço por período e a cobrança por atraso); pacote de horas e carrinhos não têm
 // reabreMin: até quantos minutos depois da saída a equipe reabre a visita (a criança chorou e o responsável deixou ficar mais); 0 = não reabre
-const REGRA_PADRAO = ['tolerancia' => 9, 'fecha' => 22, 'pcdDesc' => 50, 'aviso' => 10, 'autoMsg' => 'nao', 'bloqueioAuto' => 'sim', 'pacotes' => [], 'extras' => [], 'sapateiras' => 44, 'cancelaMin' => 9, 'reabreMin' => 30];
+// cupom 'sim': cada pagamento vira um cupom fiscal a emitir, que a equipe acompanha na tela (0.93); 'nao' (de fábrica): o sistema não fala em cupom
+const REGRA_PADRAO = ['tolerancia' => 9, 'fecha' => 22, 'pcdDesc' => 50, 'aviso' => 10, 'autoMsg' => 'nao', 'bloqueioAuto' => 'sim', 'pacotes' => [], 'extras' => [], 'sapateiras' => 44, 'cancelaMin' => 9, 'reabreMin' => 30, 'cupom' => 'nao'];
 function regra(): array {
   if (isset($GLOBALS['_regra'])) return $GLOBALS['_regra'];   // lida uma vez por pedido (a conta do tempo consulta a regra muitas vezes)
   return $GLOBALS['_regra'] = regraDoBanco();
@@ -630,6 +640,76 @@ function pagamentosDesde(string $desde): array {
   $o = array_fill_keys(array_keys(FORMAS_PAGAMENTO), 0.0); $q = db()->prepare('SELECT forma, SUM(valor) t FROM pagamentos WHERE quando > ? GROUP BY forma'); $q->execute([$desde]);
   foreach ($q->fetchAll() as $l) $o[(string)$l['forma']] = round((float)$l['t'], 2);
   return $o;
+}
+
+/* ---------- 0.93: o cupom fiscal de cada pagamento ---------- */
+// "Toda vez que o pagamento é feito, precisa sair o cupom fiscal." O sistema ainda não fala com a máquina fiscal (isso depende da máquina e do
+// tipo de cupom da loja); o que ele já faz é não deixar nenhum pagamento sem cupom: cada pagamento registrado vira um cupom "pendente" (a emitir),
+// com os itens, o total, as formas de pagamento e o CPF do responsável; a equipe emite na máquina e marca "emitido" (com o número, se quiser).
+// Os estados: pendente → emitido | sem (sem cupom, com o motivo: só gestor e supervisor); emitido → cancelar (a venda foi desfeita: cancelar na máquina) → cancelado.
+// A emissão automática entra por cima disto: em vez de a equipe marcar, o emissor muda o estado e grava o número.
+function comCupom(): bool { return (regra()['cupom'] ?? 'nao') === 'sim'; }
+function cupom(int $id): ?array { $q = db()->prepare('SELECT * FROM cupons WHERE id = ?'); $q->execute([$id]); return $q->fetch() ?: null; }
+// O conteúdo do cupom sai dos pagamentos ligados a ele: os itens (cada venda, com o que foi pago dela), o total e as formas. Devolve o total
+function refazerCupom(int $id): float {
+  $db = db(); $itens = []; $total = 0.0; $formas = [];
+  $q = $db->prepare('SELECT v.id, v.servico, v.itens, v.minutos, SUM(p.valor) AS pago FROM pagamentos p JOIN vendas v ON v.id = p.venda_id WHERE p.cupom_id = ? GROUP BY v.id ORDER BY v.id'); $q->execute([$id]);
+  foreach ($q->fetchAll() as $v) { $itens[] = ['n' => nomeDaVenda($v), 'v' => round((float)$v['pago'], 2), 'venda' => (int)$v['id']]; $total += (float)$v['pago']; }
+  $q = $db->prepare('SELECT forma, SUM(valor) AS t FROM pagamentos WHERE cupom_id = ? GROUP BY forma ORDER BY MIN(id)'); $q->execute([$id]);
+  foreach ($q->fetchAll() as $l) $formas[] = ['f' => (string)$l['forma'], 'v' => round((float)$l['t'], 2)];
+  $db->prepare('UPDATE cupons SET valor = ?, itens = ?, formas = ? WHERE id = ?')->execute([round($total, 2), json_encode($itens, JSON_UNESCAPED_UNICODE), json_encode($formas, JSON_UNESCAPED_UNICODE), $id]);
+  return round($total, 2);
+}
+// Os pagamentos gravados depois de $depoisDe (o maior id que havia antes de gravar) viram um cupom a emitir. Devolve o id do cupom (0 = módulo desligado, ou nada foi pago)
+function criarCupom(array $c, string $origem, int $depoisDe, ?array $u): int {
+  if (!comCupom()) return 0; $db = db();
+  $q = $db->prepare('SELECT id FROM pagamentos WHERE id > ? AND crianca_id = ? AND cupom_id IS NULL'); $q->execute([$depoisDe, (int)$c['id']]);
+  $ids = array_map('intval', array_column($q->fetchAll(), 'id')); if (!$ids) return 0;
+  $db->prepare('INSERT INTO cupons (crianca_id, nome, resp, cpf, quando, origem, por) VALUES (?, ?, ?, ?, ?, ?, ?)')->execute([(int)$c['id'], (string)$c['nome'], (string)$c['resp'], (string)($c['cpf'] ?? ''), agora(), $origem === 'saida' ? 'saida' : 'venda', $u ? primeiroNome((string)$u['nome']) : '']);
+  $id = (int)$db->lastInsertId(); $db->exec('UPDATE pagamentos SET cupom_id = ' . $id . ' WHERE id IN (' . implode(',', $ids) . ')');
+  refazerCupom($id); return $id;
+}
+// Confere os cupons com os pagamentos: se a venda foi desfeita ou cancelada (ou a cobrança por atraso foi desfeita), o cupom acompanha.
+// Ainda não emitido: some, ou fica só com o que continuou pago. Já emitido: vira "cancelar" (o cupom tem de ser cancelado na máquina) e o que
+// continuou pago volta como um cupom novo, a emitir. É chamada a cada leitura e a cada pulso das telas (é barata: quase sempre não acha nada).
+function acertarCupons(): int {
+  $db = db(); $desde = date('Y-m-d H:i:s', time() - 7 * 86400);
+  $sql = "SELECT c.id FROM cupons c WHERE c.status IN ('pendente', 'emitido') AND c.quando > ? AND ABS(c.valor - COALESCE((SELECT SUM(p.valor) FROM pagamentos p WHERE p.cupom_id = c.id), 0)) >= 0.005";
+  $q = $db->prepare($sql . ' LIMIT 1'); $q->execute([$desde]); if (!$q->fetchColumn()) return 0;
+  $n = 0; $db->exec('BEGIN IMMEDIATE');   // uma tela de cada vez: duas conferindo no mesmo instante não geram a linha (nem o cupom novo) em dobro
+  try {
+    $q = $db->prepare($sql); $q->execute([$desde]); $soma = $db->prepare('SELECT COALESCE(SUM(valor), 0) FROM pagamentos WHERE cupom_id = ?');
+    foreach (array_map('intval', array_column($q->fetchAll(), 'id')) as $id) {
+      $k = cupom($id); if (!$k) continue; $soma->execute([$id]); $pago = round((float)$soma->fetchColumn(), 2); $n++;
+      if ($k['status'] === 'pendente') { if ($pago < 0.005) $db->prepare('DELETE FROM cupons WHERE id = ?')->execute([$id]); else refazerCupom($id); continue; }
+      $parte = $pago >= 0.005;   // só uma parte da venda foi desfeita
+      $db->prepare("UPDATE cupons SET status = 'cancelar', motivo = ? WHERE id = ?")->execute([$parte ? 'PARTE DA VENDA FOI DESFEITA' : 'A VENDA FOI DESFEITA', $id]);
+      registrar('cup', (int)$k['crianca_id'], (string)$k['nome'], 'Cupom fiscal' . ($k['numero'] !== '' ? ' nº ' . $k['numero'] : '') . ' de ' . dinheiro((float)$k['valor']) . ' a cancelar na máquina: ' . ($parte ? 'parte da venda foi desfeita' : 'a venda foi desfeita'));
+      if ($parte) {
+        $db->prepare('INSERT INTO cupons (crianca_id, nome, resp, cpf, quando, origem, por) VALUES (?, ?, ?, ?, ?, ?, ?)')->execute([(int)$k['crianca_id'], (string)$k['nome'], (string)$k['resp'], (string)$k['cpf'], agora(), (string)$k['origem'], (string)$k['por']]);
+        $novo = (int)$db->lastInsertId(); $db->prepare('UPDATE pagamentos SET cupom_id = ? WHERE cupom_id = ?')->execute([$novo, $id]); refazerCupom($novo);
+      }
+    }
+    $db->exec('COMMIT');
+  } catch (Throwable $e) { try { $db->exec('ROLLBACK'); } catch (Throwable $e2) { } throw $e; }
+  return $n;
+}
+function cupomPublico(array $k): array {
+  $itens = json_decode((string)$k['itens'], true); $formas = json_decode((string)$k['formas'], true);
+  return ['id' => (int)$k['id'], 'crianca' => (int)$k['crianca_id'], 'nome' => (string)$k['nome'], 'resp' => (string)$k['resp'], 'cpf' => (string)$k['cpf'], 'quando' => $k['quando'], 'origem' => (string)$k['origem'], 'valor' => (float)$k['valor'],
+    'itens' => is_array($itens) ? $itens : [], 'formas' => is_array($formas) ? $formas : [], 'status' => (string)$k['status'], 'numero' => (string)$k['numero'], 'motivo' => (string)$k['motivo'], 'por' => (string)$k['por'], 'em' => $k['resolvido_em'], 'quem' => (string)$k['resolvido_por']];
+}
+// o que a tela recebe: os cupons em aberto (a emitir e a cancelar, de qualquer dia) e os das últimas 24 h
+function cuponsDaTela(): array {
+  if (!comCupom()) return [];
+  $q = db()->prepare("SELECT * FROM cupons WHERE status IN ('pendente', 'cancelar') OR quando > ? ORDER BY id DESC LIMIT 300"); $q->execute([date('Y-m-d H:i:s', time() - 86400)]);
+  return array_map('cupomPublico', $q->fetchAll());
+}
+// (para o pulso) muda quando um cupom nasce, some, é marcado ou tem a marcação desfeita
+function pulsoCupons(): string {
+  $db = db(); $peso = "COALESCE(SUM(CASE status WHEN 'pendente' THEN 1 WHEN 'emitido' THEN 7 WHEN 'cancelar' THEN 41 WHEN 'cancelado' THEN 239 ELSE 1373 END), 0)";
+  $q = $db->prepare("SELECT COUNT(*) || ':' || COALESCE(MAX(id), 0) || ':' || $peso || ':' || COALESCE(SUM(LENGTH(numero)), 0) || ':' || COALESCE(SUM(valor), 0) || ':' || COALESCE(MAX(resolvido_em), '') FROM cupons WHERE quando > ?"); $q->execute([date('Y-m-d H:i:s', time() - 86400)]);
+  return $q->fetchColumn() . '|' . $db->query("SELECT COUNT(*) || ':' || COALESCE(MAX(id), 0) || ':' || $peso FROM cupons WHERE status IN ('pendente', 'cancelar')")->fetchColumn();
 }
 
 /* ---------- o que sai da loja e volta: carrinho de bebê, fusquinha ---------- */

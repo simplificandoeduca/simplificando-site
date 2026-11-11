@@ -34,6 +34,7 @@ function criancaPublica(array $c): array {
 function dados(array $eu): array {
   $db = db(); $hojeMenos = date('Y-m-d H:i:s', time() - 86400);
   acertarTodas();   // quem passou do tempo comprado mais a tolerância já aparece com a nova cobrança
+  acertarCupons();   // 0.93: venda desfeita ou cancelada: o cupom fiscal dela acompanha
   $criancas = array_map('criancaPublica', $db->query('SELECT * FROM criancas WHERE ativo = 1 ORDER BY nome')->fetchAll());
   $visitas = $db->query('SELECT * FROM visitas ORDER BY id DESC LIMIT 400')->fetchAll();
   $porCrianca = []; foreach ($visitas as $v) $porCrianca[(int)$v['crianca_id']][] = ['id' => (int)$v['id'], 'dia' => $v['saiu'], 'ini' => $v['entrou'], 'entrou' => substr($v['entrou'], 11, 5), 'saiu' => substr($v['saiu'], 11, 5), 'deb' => (int)$v['debitado_min']];
@@ -72,7 +73,7 @@ function dados(array $eu): array {
     AND NOT EXISTS (SELECT 1 FROM visitas x WHERE x.crianca_id = c.id) AND NOT EXISTS (SELECT 1 FROM cancelamentos k WHERE k.crianca_id = c.id) ORDER BY c.criado_em, c.id');
   $q->execute([date('Y-m-d') . ' 00:00:00']); $fora = pendFora();   // quem a equipe tirou da lista hoje ("não vai fazer agora") não volta
   $pend = array_values(array_filter(array_map(fn($p) => ['id' => (int)$p['id'], 'em' => $p['criado_em']], $q->fetchAll()), fn($p) => !isset($fora[$p['id']])));
-  return ['criancas' => array_values($criancas), 'registros' => $registros, 'conversas' => array_values($conversas), 'compromissos' => $compromissos, 'regra' => regra(), 'cancelamentos' => $canc, 'pendentes' => $pend, 'produtos' => produtos(), 'alugueis' => alugueis(), 'pagamentos_hoje' => pagamentosDesde($hojeMenos),
+  return ['criancas' => array_values($criancas), 'registros' => $registros, 'conversas' => array_values($conversas), 'compromissos' => $compromissos, 'regra' => regra(), 'cancelamentos' => $canc, 'pendentes' => $pend, 'produtos' => produtos(), 'alugueis' => alugueis(), 'pagamentos_hoje' => pagamentosDesde($hojeMenos), 'cupons' => cuponsDaTela(),
     'vendas_hoje' => ['n' => (int)$vh['n'], 'min' => (int)$vh['m'], 'horas' => round((int)$vh['m'] / 60, 2), 'valor' => (float)$vh['v']], 'atraso_hoje' => $atrasoHoje, 'descontos_hoje' => $descontosHoje, 'equipe' => $equipe, 'eu' => $eu, 'versao' => PLAY_VERSAO,
     'idface' => idfaceEstado(), 'whats' => whatsResumo(), 'agora' => agora(), 'exemplo' => ($ex = cfg('exemplo', null)) && is_array($ex) ? count($ex['criancas'] ?? []) : 0];
 }
@@ -163,6 +164,7 @@ switch ($acao) {
     $d .= '|' . $db->query("SELECT COUNT(*) || ':' || COALESCE(SUM(visto_em IS NOT NULL), 0) FROM cancelamentos")->fetchColumn();   // um cancelamento conferido pela supervisão também muda a tela
     $d .= '|' . $db->query("SELECT COUNT(*) || ':' || COALESCE(SUM(ativo), 0) || ':' || COALESCE(SUM(estoque), 0) || ':' || COALESCE(SUM(estoque IS NULL), 0) || ':' || COALESCE(SUM(valor), 0) || ':' || COALESCE(SUM(LENGTH(nome)), 0) || ':' || COALESCE(MAX(mudou_em), '') FROM produtos")->fetchColumn();   // produto novo, valor novo ou estoque que mudou
     $d .= '|' . $db->query("SELECT COUNT(*) || ':' || COALESCE(SUM(alug_min), 0) || ':' || COALESCE(SUM(qtd), 0) || ':' || COALESCE(MAX(id), 0) FROM vendas WHERE alug != '' AND voltou IS NULL")->fetchColumn();   // o que está fora da loja (carrinho, fusquinha)
+    acertarCupons(); $d .= '|' . pulsoCupons();   // 0.93: o cupom fiscal de cada pagamento (nasceu, foi marcado, ou a venda foi desfeita)
     responder(['p' => md5("$a|$b|$c|$d|$ap|$lig|" . json_encode(whatsResumo()) . '|' . json_encode(regra()) . '|' . (cfg('exemplo') ? 1 : 0) . '|' . json_encode(pendFora()) . '|' . date('Y-m-d'))]);   // quem saiu de "Falta finalizar" e a virada do dia também mudam a tela
   }
 
@@ -260,7 +262,9 @@ switch ($acao) {
     $pg = lerPagamento($in['pagamento'] ?? null); $r['pago'] = '';
     if ($pg) {
       $q = $db->prepare('SELECT id FROM vendas WHERE crianca_id = ? AND auto = 1 AND quando >= ? AND NOT EXISTS (SELECT 1 FROM pagamentos p WHERE p.venda_id = vendas.id) ORDER BY id'); $q->execute([(int)$c['id'], (string)$c['entrou']]);
-      $eu2 = eu(); $pago = gravarPagamento(array_map(fn($l) => (int)$l['id'], $q->fetchAll()), $pg, (int)$c['id'], $eu2 ? (int)$eu2['id'] : null);
+      $eu2 = eu(); $antesPg = (int)$db->query('SELECT COALESCE(MAX(id), 0) FROM pagamentos')->fetchColumn();
+      $pago = gravarPagamento(array_map(fn($l) => (int)$l['id'], $q->fetchAll()), $pg, (int)$c['id'], $eu2 ? (int)$eu2['id'] : null);
+      if ($pago) $r['cupom'] = criarCupom($c, 'saida', $antesPg, $eu2);   // 0.93: o cupom fiscal do que foi recebido na saída
       if ($pago) { $r['pago'] = textoPagamento($pago); $db->prepare("UPDATE registros SET texto = REPLACE(texto, ' a receber', ' · recebido: ' || ?) WHERE id = ? AND crianca_id = ?")->execute([$r['pago'], (int)$r['registro'], (int)$c['id']]); }
     }
     responder($r);
@@ -382,14 +386,49 @@ switch ($acao) {
     $vinfo = null;   // o voucher entra por último: com cobrança por atraso a receber, ele cobre essa cobrança em vez de somar tempo
     if ($comVoucher) { $v = usarVoucher($c, $u); $vendas[] = $v['venda']; $regs[] = $v['registro']; $min += $v['minutos']; $c = crianca((int)$c['id']); $vinfo = ['n' => $v['n'], 'cobriu' => $v['cobriu']]; }
     if ($pg && $aPagar > 0) { // fica anotado em cada venda e numa linha do dia ("Pagamento · R$ 680 · Pix R$ 200 + Dinheiro R$ 480")
+      $antesPg = (int)$db->query('SELECT COALESCE(MAX(id), 0) FROM pagamentos')->fetchColumn();
       $pago = gravarPagamento($vendas, $pg, (int)$c['id'], (int)$u['id']);
       $regs[] = registrar('pag', (int)$c['id'], $c['nome'], 'Pagamento · ' . dinheiro($aPagar) . ' · ' . textoPagamento($pago ?: $pg));
+      $cupomId = criarCupom($c, 'venda', $antesPg, $u);   // 0.93: o cupom fiscal deste pagamento, a emitir (0 = módulo desligado)
     }
-    $resp = ['vendas' => $vendas, 'registros' => $regs, 'total' => $total, 'minutos' => $min, 'voucher' => $vinfo, 'pagamento' => $pg ? textoPagamento($pg) : ''];
+    $resp = ['vendas' => $vendas, 'registros' => $regs, 'total' => $total, 'minutos' => $min, 'voucher' => $vinfo, 'pagamento' => $pg ? textoPagamento($pg) : '', 'cupom' => $cupomId ?? 0];
     if (!empty($in['entrar']) && modoManual() && !$c['entrou'] && restante($c) >= periodo()) { // sem iDFace: pagou e já entra, o tempo começa a contar
       $e = fazerEntrada($c, 'mão'); $resp['entrada'] = ['registro' => $e['registro'], 'mensagem' => is_array($e['mensagem']) ? (int)($e['mensagem']['id'] ?? 0) : 0];
     }
     responder($resp);
+  }
+  /* ---------- 0.93: o cupom fiscal de cada pagamento ---------- */
+  case 'cupom_emitido': { // a equipe emitiu o cupom na máquina e marca aqui (com o número, se quiser). Marcar de novo só acerta o número
+    $u = exigir(); acertarCupons(); $k = cupom((int)($in['id'] ?? 0)); if (!$k) falha('Esse pagamento foi desfeito: não há mais cupom a emitir.', 404);
+    $num = mb_substr(mb_strtoupper(preg_replace('/[^0-9A-Za-z.\-\/]/', '', (string)($in['numero'] ?? ''))), 0, 20);
+    if ($k['status'] === 'emitido') { if ($num !== '') $db->prepare('UPDATE cupons SET numero = ? WHERE id = ?')->execute([$num, (int)$k['id']]); responder(['cupom' => cupomPublico(cupom((int)$k['id']))]); }
+    if ($k['status'] !== 'pendente') falha('Esse cupom não está mais a emitir.', 409);
+    $db->prepare("UPDATE cupons SET status = 'emitido', numero = ?, resolvido_em = ?, resolvido_por = ? WHERE id = ? AND status = 'pendente'")->execute([$num, agora(), primeiroNome((string)$u['nome']), (int)$k['id']]);
+    responder(['cupom' => cupomPublico(cupom((int)$k['id']))]);
+  }
+  case 'cupom_sem': { // o pagamento fica sem cupom, com o motivo: só gestor e supervisor, e vira uma linha do dia
+    $u = exigir(['gestor', 'supervisor']); acertarCupons(); $k = cupom((int)($in['id'] ?? 0)); if (!$k) falha('Esse pagamento foi desfeito: não há mais cupom a emitir.', 404);
+    if ($k['status'] !== 'pendente') falha('Esse cupom não está mais a emitir.', 409);
+    $motivo = mb_substr(maiusculo((string)($in['motivo'] ?? '')), 0, 200); if (mb_strlen($motivo) < 5) falha('Escreva o motivo: por que este pagamento fica sem cupom fiscal?');
+    $db->prepare("UPDATE cupons SET status = 'sem', motivo = ?, resolvido_em = ?, resolvido_por = ? WHERE id = ? AND status = 'pendente'")->execute([$motivo, agora(), primeiroNome((string)$u['nome']), (int)$k['id']]);
+    $reg = registrar('cup', (int)$k['crianca_id'], (string)$k['nome'], 'Pagamento de ' . dinheiro((float)$k['valor']) . ' sem cupom fiscal · Motivo: ' . $motivo . ' · por ' . primeiroNome((string)$u['nome']));
+    responder(['cupom' => cupomPublico(cupom((int)$k['id'])), 'registro' => $reg]);
+  }
+  case 'cupom_cancelado': { // o cupom de uma venda desfeita foi cancelado na máquina
+    $u = exigir(); $k = cupom((int)($in['id'] ?? 0)); if (!$k) falha('Cupom não encontrado.', 404);
+    if ($k['status'] === 'cancelado') responder(['cupom' => cupomPublico($k)]);
+    if ($k['status'] !== 'cancelar') falha('Esse cupom não está na lista dos que precisam ser cancelados.', 409);
+    $db->prepare("UPDATE cupons SET status = 'cancelado', resolvido_em = ?, resolvido_por = ? WHERE id = ? AND status = 'cancelar'")->execute([agora(), primeiroNome((string)$u['nome']), (int)$k['id']]);
+    responder(['cupom' => cupomPublico(cupom((int)$k['id']))]);
+  }
+  case 'cupom_voltar': { // desfaz a marcação (toque errado): qualquer um nos 10 min seguintes; gestor e supervisor, a qualquer hora
+    $u = exigir(); $k = cupom((int)($in['id'] ?? 0)); if (!$k) falha('Cupom não encontrado.', 404);
+    if (!in_array($k['status'], ['emitido', 'sem', 'cancelado'], true)) falha('Nada para desfazer neste cupom.', 409);
+    if ($u['papel'] === 'atendente' && (!$k['resolvido_em'] || time() - strtotime((string)$k['resolvido_em']) > 600)) falha('Já passou de 10 min: agora só Gestor ou Supervisor desfaz a marcação do cupom.', 403);
+    if ($k['status'] === 'cancelado') $db->prepare("UPDATE cupons SET status = 'cancelar', resolvido_em = NULL, resolvido_por = '' WHERE id = ?")->execute([(int)$k['id']]);
+    else { $db->prepare("UPDATE cupons SET status = 'pendente', numero = '', motivo = '', resolvido_em = NULL, resolvido_por = '' WHERE id = ?")->execute([(int)$k['id']]);
+      if ($k['status'] === 'sem') registrar('cup', (int)$k['crianca_id'], (string)$k['nome'], 'O pagamento de ' . dinheiro((float)$k['valor']) . ' voltou para "cupom a emitir" · por ' . primeiroNome((string)$u['nome'])); }
+    acertarCupons(); $k2 = cupom((int)$k['id']); responder(['cupom' => $k2 ? cupomPublico($k2) : null]);
   }
   case 'devolver': { // o carrinho (ou o fusquinha) voltou para a loja: sai da lista. voltar = o Desfazer do aviso (só nos 10 min seguintes)
     $u = exigir(); $c = crianca((int)($in['crianca'] ?? 0)); if (!$c || !$c['ativo']) falha('Criança não encontrada.', 404);
@@ -490,6 +529,7 @@ switch ($acao) {
     foreach (['tolerancia' => [0, 5, 9, 10, 15], 'fecha' => [20, 21, 22, 23, 24], 'aviso' => [5, 10, 15, 30, 60, 120], 'cancelaMin' => [0, 5, 9, 10, 15], 'reabreMin' => [0, 15, 30, 60]] as $k => $ops) if (isset($in[$k]) && in_array((int)$in[$k], $ops, true)) $r[$k] = (int)$in[$k];
     if (isset($in['autoMsg']) && in_array($in['autoMsg'], ['ambos', 'entrada', 'nao'], true)) $r['autoMsg'] = $in['autoMsg'];
     if (isset($in['bloqueioAuto']) && in_array($in['bloqueioAuto'], ['sim', 'nao'], true)) $r['bloqueioAuto'] = $in['bloqueioAuto'];
+    if (isset($in['cupom']) && in_array($in['cupom'], ['sim', 'nao'], true)) $r['cupom'] = $in['cupom'];   // 0.93: acompanhar o cupom fiscal de cada pagamento
     if (isset($in['sapateiras'])) { $n = (int)$in['sapateiras']; if ($n < 1 || $n > 200) falha('Quantas sapateiras existem? De 1 a 200.'); $r['sapateiras'] = $n; }
     if (isset($in['pacotes']) && is_array($in['pacotes'])) {
       // um pacote: horas, valor, tipo (com produto, o brinde já no valor; ou seco, só as horas), nome opcional e em até quantas vezes parcela. Pode haver vários do mesmo tempo

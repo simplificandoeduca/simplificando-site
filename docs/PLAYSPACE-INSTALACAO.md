@@ -37,7 +37,7 @@ Na prévia (sem servidor) o mesmo botão existe e faz a mesma coisa na própria 
 | Papel | O que faz |
 |---|---|
 | **Gestor** | Tudo: regra das horas, serviços, pacotes, produtos, equipe, iDFace. Pode remover crianças; **cadastro com horas guardadas, só o Gestor remove, e confirmando** (seção 6r). |
-| **Supervisor** | Tudo da loja (horas, cadastro, agenda) e *vê* os Ajustes, mas não os altera. **Confere as entradas canceladas**, cancela uma entrada mesmo fora do prazo e **corrige a hora de uma saída esquecida**. |
+| **Supervisor** | Tudo da loja (horas, cadastro, agenda) e *vê* os Ajustes, mas não os altera. **Confere as entradas canceladas**, cancela uma entrada mesmo fora do prazo e **corrige a hora de uma saída esquecida**. Com o cupom fiscal ligado (seção 6s), pode deixar um pagamento **sem cupom, escrevendo o motivo**. |
 | **Atendente** | Horas, cadastro de criança e agenda. Não vê Ajustes. Cancela uma entrada sem cobrar só dentro do prazo (9 min), escrevendo o motivo. |
 
 A gestora cadastra cada pessoa com nome, login e senha inicial. Cada um troca a própria senha no avatar (canto inferior esquerdo no computador, aba **Conta** no celular) → *Trocar a senha*. Para redefinir a senha de alguém, a gestora edita a pessoa e digita uma senha nova.
@@ -377,6 +377,8 @@ Depois de escolher o serviço (horas avulsas, pacote, carrinho, produto), o aten
 
 **Na saída**, o toque em Saída já abre o **Pagamento da saída** (seção 6r): a visita é paga com as horas do cliente e, se passou do tempo, com as mesmas quatro formas, em **Forma de pagamento**. Sem escolher a forma, a saída não é dada (o botão diz "Escolha a forma de pagamento" e a tela pergunta "Como recebeu R$ 80?"). Também dá para dividir. A linha do dia fica "… cobrança por atraso: R$ 80 · recebido: Dinheiro".
 
+**Com o cupom fiscal ligado** (seção 6s), logo depois de registrar o pagamento (na venda ou na saída) a tela abre o **cupom a emitir** daquele pagamento.
+
 **Cancelar a entrada de quem já pagou**: o aviso e a linha do dia dizem o que devolver e por qual forma ("devolver ao cliente: Crédito R$ 80").
 
 **Reabrir a visita** (seção 6m): a cobrança por atraso que já foi recebida na primeira saída não volta a aparecer como "a receber"; na segunda saída a tela cobra só o que é novo.
@@ -429,6 +431,35 @@ A tela acompanha o relógio: se a tolerância estourar com ela aberta, o quadro 
 - Mesmo removido, **nada é apagado do banco de dados**: o cadastro fica inativo, com as horas, as vendas, os pagamentos e as visitas. Ainda não há um botão para trazer um cadastro removido de volta: se precisar, peça ao suporte.
 - Cadastro sem horas guardadas continua sendo removido como antes (Gestor ou Supervisor, um toque).
 - Para as horas valerem por muitos anos, o que precisa durar é o banco de dados: faça de tempos em tempos a cópia da pasta `~/playspace-dados/` (seção 1).
+
+## 6s. Cupom fiscal de cada pagamento
+
+"Toda vez que o pagamento é feito, precisa sair o cupom fiscal." O sistema **ainda não manda o cupom para a máquina** (isso depende da máquina e do tipo de cupom da loja: veja o fim desta seção). O que ele já faz é **não deixar nenhum pagamento sem cupom sem alguém ver**: cada pagamento vira um cupom a emitir, que a equipe emite na máquina e marca na tela.
+
+**Vem desligado.** Quem liga é o Gestor: **Ajustes → Cupom fiscal → Ligado**. Vale para os pagamentos feitos dali em diante, em todos os aparelhos.
+
+**Como funciona, com o módulo ligado:**
+
+- **Registrou o pagamento, o cupom abre.** Depois do "Recebi R$ 95 no Pix · registrar" (na venda) ou do "Recebi R$ 80 no débito · dar saída" (na saída), a tela abre o **Cupom fiscal** daquele pagamento: os itens com o valor de cada um, o **total**, a **forma de pagamento** e o **CPF do responsável** (para o "CPF na nota", se o cliente pedir).
+- A atendente emite o cupom na máquina e toca em **Cupom emitido**. O **número do cupom** é opcional (ajuda a conferir depois); Enter no número também confirma.
+- **Emitir depois**: o cupom fica esperando, e aparece **no alto da tela inicial** de todos os aparelhos, no aviso com o desenho do cupom e a quantidade (em tela larga, "Cupons"). Um toque abre a lista.
+- **A lista (Cupons fiscais)**: quantos há **a emitir**, quantos foram **emitidos nas últimas 24 h** e quantos há **a cancelar na máquina**. Em cada cupom a emitir, o botão **Emitido** resolve com um toque; tocar no nome abre o cupom inteiro. A mesma lista abre por **Hoje na recepção**, na linha "Cupons fiscais".
+- **Sem cupom**: se a máquina não emitiu (sem papel, fora do ar), só **Gestor ou Supervisor** deixa o pagamento sem cupom, **escrevendo o motivo**. Fica anotado em Hoje na recepção, com o nome de quem fez.
+- **Marcou errado**: o aviso tem **Desfazer**; depois, a folha do cupom tem "Desfazer esta marcação" (a atendente, nos 10 minutos seguintes; Gestor e Supervisor, a qualquer hora).
+
+**Se a venda for desfeita ou cancelada:**
+
+- o cupom **ainda não tinha sido emitido**: some sozinho (ou fica só com o que continuou pago);
+- o cupom **já tinha sido emitido**: vira **a cancelar na máquina** (o aviso do alto fica vermelho) e vira uma linha em Hoje na recepção ("Cupom fiscal nº 4521 de R$ 95 a cancelar na máquina: a venda foi desfeita"). Quem cancelar na máquina toca em **Cancelado**. Se só uma parte da venda foi desfeita, o que continuou pago volta como um cupom novo, a emitir.
+
+**O que não gera cupom:** o que não teve pagamento. A saída paga só com as horas do cliente, o voucher sozinho e as vendas de antes de ligar o módulo.
+
+**O que falta para o cupom sair sozinho.** As máquinas e os programas de cupom fiscal não são todos iguais, e o que manda é o **tipo de documento** da loja, não a marca da impressora:
+
+- em São Paulo, o aparelho SAT deixou de valer em 1º de janeiro de 2026: o cupom fiscal passou a ser a **NFC-e**, feita por um programa (com o certificado digital da empresa) e impressa numa impressora térmica comum;
+- a recreação é **serviço** (imposto da prefeitura) e o produto é **mercadoria** (imposto do estado): quem diz qual nota sai para cada um é o contador.
+
+Para ligar a emissão automática é preciso saber: uma **foto de um cupom** que a loja emite hoje e da **máquina** (frente e etiqueta com o modelo); o **programa** que emite hoje; e, do contador, o **certificado digital A1**, o **código CSC** da NFC-e e os **códigos fiscais** de cada item. Com isso, a emissão entra por cima deste módulo: em vez de a equipe marcar "emitido", o próprio sistema emite, guarda o número e manda imprimir.
 
 ## 7. Atualizar
 
