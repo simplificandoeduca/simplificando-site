@@ -734,6 +734,7 @@ body.quieto .dica { animation: none !important; }
 @media (max-width: 480px) { .pac-tab { font-size: 12px; } .pac-tab th, .pac-tab td { padding: 10px 2px; } .pac-tab tbody th, .pac-tab .v { font-size: 13.5px; } .pac-tab thead th { font-size: 9.5px; letter-spacing: 0; padding: 8px 2px; } .pac-tab .lap { width: 24px; } }
 .rot-pac { display: block; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--apagado); margin: 6px 0 5px; } #v-pacotes .rot-pac:first-of-type { margin-top: 0; }
 /* ---------- 0.85: nomes em maiúsculas no cadastro, reabrir a visita, atividades da semana ---------- */
+.h-saldo.f-saldo span { padding: 9px 12px; font-size: 12.5px; } .h-saldo.f-saldo b { font-size: 21px; line-height: 1.15; }   /* 0.86: o saldo na comanda */
 #f-nome, #f-resp { text-transform: uppercase; } #f-nome::placeholder, #f-resp::placeholder { text-transform: none; }
 .marca.reab > .bt { background: var(--coral); color: #fff; }
 .reg .ev.reab b::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; background: var(--aviso); }
@@ -970,7 +971,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.85';
+const VERSAO = '0.86';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -1602,7 +1603,7 @@ function folhaSaida(id, corrigir = false) {
   if (!corrigir && window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches) setTimeout(() => { const b = $('#s-ok'); if (b) b.focus(); }, 380);   // no computador, Enter confirma
 }
 const rotuloSaida = (k, hh) => `${ic(IC.sair)} ${hh ? 'Dar saída às ' + hh : k.n ? `Recebi ${brl(k.valor)} · dar saída` : 'Dar saída'}`;
-const htmlContaSaida = (c, k, hh) => `<div class="marca">${ic(IC.horas, 18)}<span>Entrou às <b>${hora(c.entrou)}</b> e ${hh ? 'saiu às <b>' + hh + '</b>: ficou' : 'ficou'} <b>${dur(Math.floor(k.min))}</b>. Debita <b>${dur(k.deb)}</b> (sempre períodos inteiros de ${porExt(periodo())}).</span></div>
+const htmlContaSaida = (c, k, hh) => `<div class="marca">${ic(IC.horas, 18)}<span>Entrou às <b>${hora(c.entrou)}</b> e ${hh ? 'saiu às <b>' + hh + '</b>: ficou' : 'ficou'} <b>${dur(Math.floor(k.min))}</b>. Debita <b>${dur(k.deb)}</b> (sempre períodos inteiros de ${porExt(periodo())}). Saldo depois da saída: <b>${hm(saldoDepois(c, k))}</b>.</span></div>
     ${k.n ? `<div class="marca canc a-receber">${ic(IC.sino, 18)}<span><b>${k.n === 1 ? 'Nova cobrança por atraso' : k.n + ' novas cobranças por atraso'}</b>: ficou além do tempo comprado.<br>A receber agora: <b class="valor">${brl(k.valor)}</b></span></div>` : (hh && k.desfeitas ? `<div class="marca">${ic(IC.check, 18, 2.6)}<span>Com essa hora, <b>${k.desfeitas === 1 ? 'a cobrança por atraso é desfeita' : 'as ' + k.desfeitas + ' cobranças por atraso são desfeitas'}</b>.</span></div>` : '')}
     ${temVoucher(c) ? `<div class="marca">${ic(IC.presente, 18)}<span><b>Voucher usado:</b> ${porExt(periodo())} desta visita ficou por conta do voucher. O que passou disso é cobrado normalmente.</span></div>`
       : k.n && !hh ? `<button type="button" class="marca tap vou-saida" data-act="saida-voucher" data-id="${c.id}">${ic(IC.presente, 18)}<span><b>Tem voucher?</b> Usar agora: cobre ${porExt(periodo())} (${brl(umaCobranca(c))} a menos).</span>${ic(IC.vai, 18)}</button>` : ''}`;
@@ -1705,6 +1706,10 @@ const pctEspaco = c => cobertoMin(c) ? Math.min(100, segDentro(c) / (cobertoMin(
 // o saldo: o que fica guardado se a criança sair agora (a visita em curso já descontada, em períodos inteiros)
 const saldoAgora = c => Math.max(0, pacMin(c) - usadoAgora(c));
 const saldoTxt = c => 'saldo ' + hm(saldoAgora(c));
+// a conta da comanda (a ficha da criança): quanto comprou ao todo, quanto já usou (a visita de agora já contada, em períodos inteiros) e o saldo que fica
+const saldoFicha = c => `<span>comprou<b class="num">${hm(pacMin(c))}</b></span><span>usou<b class="num">${hm(usadoAgora(c))}</b></span><span class="tem" title="${c.entrou ? 'O que fica guardado se sair agora' : 'O que está guardado para a próxima visita'}">saldo<b class="num">${hm(saldoAgora(c))}</b></span>`;
+// o saldo que fica depois da saída: o que as novas cobranças por atraso somam (e as desfeitas tiram) também entra na conta
+const saldoDepois = (c, k) => Math.max(0, pacMin(c) + (Math.max(0, k.n - (c.atraso ? c.atraso.n : 0)) - (k.desfeitas || 0)) * periodo() - c.usado - k.deb);
 /* ---------- reabrir a visita: a criança saiu e voltou logo em seguida ---------- */
 // Até S.cfg.reabreMin minutos depois da saída (30, de fábrica), a equipe reabre: a saída é desfeita e o tempo continua contando desde a entrada,
 // como se a criança não tivesse saído. Passou do prazo, é uma entrada nova. Fica anotado em Hoje na recepção, com quem reabriu.
@@ -1860,7 +1865,7 @@ function folhaFicha(id) {
     ${c.entrou ? `<div class="marca">${ic(IC.horas, 18)}<span>Entrou às <b>${hora(c.entrou)}</b> e está há <b class="num" data-cron-txt="${c.id}">${hms(segDentro(c))}</b> no espaço. <span data-ficha-tempo="${c.id}">${tempoFicha(c)}</span></span></div><div data-ficha-atraso="${c.id}">${atrasoFicha(c)}</div><div data-ficha-cancela="${c.id}" data-estado="${estadoCancelar(c)}">${blocoCancelar(c)}</div>` : ''}
     ${temVoucher(c) ? `<div class="marca">${ic(IC.presente, 18)}<span><b>${c.entrou ? 'Voucher usado nesta visita' : 'Voucher de hoje guardado'}:</b> ${porExt(periodo())} grátis. O que passar disso é cobrado normalmente, ou sai do pacote de quem tem.</span></div>` : ''}
     ${blocos(c, false)}
-    <div class="saldo"><span>comprou ${tam(c)}</span><span>usou ${hm(usadoAgora(c))}</span></div>
+    <div class="h-saldo f-saldo" data-ficha-saldo="${c.id}" data-k="${pacMin(c)}|${usadoAgora(c)}">${saldoFicha(c)}</div>
     <div class="acoes">
       ${semIdface() ? (c.entrou ? `<button class="bt forte tap" data-act="saida" data-id="${c.id}">${ic(IC.sair)} Saída</button>${supervisorOuMais() ? `<button class="bt claro tap" data-act="saida-corrigir" data-id="${c.id}" title="A criança saiu antes e a saída não foi marcada">Saída com outra hora</button>` : ''}` : temPeriodo(c) ? `<button class="bt forte tap" data-act="entrada" data-id="${c.id}">${ic(IC.entrar)} Entrada</button>` : '')
         : podeManual() && c.entrou ? `<button class="bt claro tap" data-act="saida" data-id="${c.id}" title="Só para corrigir: o normal é a saída pelo rosto">${ic(IC.sair)} Saída à mão</button>` : ''}
@@ -2034,7 +2039,7 @@ const camposTel = (t1, t2) => `<div class="dois"><div class="campo"><label for="
 function cartaoCliente(fam) {
   const r = fam[0];
   return `<div class="cliente-ja"><div class="cab"><span class="ico">${ic(IC.check, 15, 3)}</span><div class="txt"><b>Cliente já cadastrado</b><span>${esc(r.resp)}${relP(r)}${r.tel ? ' · ' + esc(r.tel) : ''}</span></div><button type="button" class="bt tap" data-act="historico" data-id="${r.id}">${ic(IC.historico)} Histórico</button></div>
-    ${fam.map(c => { const u = ultimaVisita(c); return `<div class="cr">${avatar(c)}<div class="txt"><b>${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}</b><span>${c.entrou ? 'no espaço agora' : u ? 'veio em ' + diaCurto(new Date(u)) : 'ainda não veio'} · consumiu ${hm(usadoAgora(c))} · tem ${hm(restante(c))}</span></div></div>`; }).join('')}
+    ${fam.map(c => { const u = ultimaVisita(c); return `<div class="cr">${avatar(c)}<div class="txt"><b>${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}</b><span>${c.entrou ? 'no espaço agora' : u ? 'veio em ' + diaCurto(new Date(u)) : 'ainda não veio'} · consumiu ${hm(usadoAgora(c))} · saldo ${hm(saldoAgora(c))}</span></div></div>`; }).join('')}
     <p class="explica">O responsável já está preenchido. Para cadastrar outra criança dele, escreva o nome dela abaixo. Para vender para uma das crianças acima, use o botão Vender no histórico.</p></div>`;
 }
 function clienteNoCadastro() {
@@ -2246,7 +2251,7 @@ function fecharLado() {
 function desenharLado() {
   const a = $('#lado .lado'); if (!a || !LADO) return; const base = crianca(LADO.id); if (!base) { fecharLado(); return; }
   const fam = familia(base), d = LADO.dados, varias = fam.length > 1, nomeDe = id => (crianca(id) || { nome: '' }).nome;
-  const comprado = fam.reduce((t, c) => t + c.pacote * 60, 0), usado = fam.reduce((t, c) => t + usadoAgora(c), 0), tem = fam.reduce((t, c) => t + restante(c), 0);
+  const comprado = fam.reduce((t, c) => t + c.pacote * 60, 0), usado = fam.reduce((t, c) => t + usadoAgora(c), 0), tem = fam.reduce((t, c) => t + saldoAgora(c), 0);
   const visitas = d ? (LADO.todas ? d.visitas : d.visitas.slice(0, 6)) : [], rola = a.scrollTop;
   const ultima = c => { const v = d && d.visitas.find(x => x.crianca === c.id); return v ? +v.dia : ultimaVisita(c); };
   a.innerHTML = `
@@ -2256,12 +2261,12 @@ function desenharLado() {
       <div><small>Pagou ao todo</small><b class="num">${d ? brl(d.vendas.reduce((t, v) => t + v.v, 0)) : '…'}</b></div>
       <div><small>Horas compradas</small><b class="num">${hm(comprado)}</b></div>
       <div><small>Horas consumidas</small><b class="num">${hm(usado)}</b></div>
-      <div class="tem"><small>Horas disponíveis</small><b class="num">${hm(tem)}</b></div>
+      <div class="tem"><small>Saldo de horas</small><b class="num">${hm(tem)}</b></div>
     </div>
     <div class="sec"><div class="sec-cab"><h2 style="font-size:16px">${varias ? 'Crianças' : 'Criança'}</h2>${varias ? `<span class="pill p-neutro">${fam.length}</span>` : ''}</div>
       ${fam.map(c => { const [et, cls] = estado(c), u = ultima(c); return `<div class="h-cr">
         <button class="quem tap" data-act="ficha" data-id="${c.id}" aria-label="Abrir a ficha de ${esc(c.nome)}">${avatar(c)}<span class="txt"><b>${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}</b><span>${c.entrou ? 'No espaço desde ' + hora(c.entrou) : u ? 'Veio por último em ' + diaCurto(new Date(u)) : 'Ainda não veio brincar'}${c.sapateira ? ' · sapateira ' + c.sapateira : ''}</span></span><span class="pill ${c.entrou ? 'p-ok' : cls}">${c.entrou ? 'No espaço' : et}</span></button>
-        <div class="h-saldo"><span>comprou<b class="num">${hm(c.pacote * 60)}</b></span><span>consumiu<b class="num">${hm(usadoAgora(c))}</b></span><span class="tem">tem<b class="num">${hm(restante(c))}</b></span></div>
+        <div class="h-saldo"><span>comprou<b class="num">${hm(c.pacote * 60)}</b></span><span>consumiu<b class="num">${hm(usadoAgora(c))}</b></span><span class="tem">saldo<b class="num">${hm(saldoAgora(c))}</b></span></div>
         ${c.obs ? `<p class="h-obs">${ic(IC.sino, 14)}<span>${esc(c.obs)}</span></p>` : ''}
         <div class="acoes"><button class="bt forte tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 16)} ${emAberto(c) ? 'Continuar o atendimento' : 'Vender'}</button><button class="bt tap" data-act="renovar" data-id="${c.id}">${ic(IC.zap, 16)} ${semHoras(c) ? 'Mandar mensagem' : 'Chamar para renovar'}</button></div>
       </div>`; }).join('')}</div>
@@ -2994,6 +2999,7 @@ setInterval(() => {
   { const sc = $('#s-conta'), sb = $('#s-ok'), sh = $('#s-hora');   // a folha da saída acompanha o relógio: se a tolerância estourar com ela aberta, o valor a receber muda na hora
     if (sc && sb && !sb.disabled && !(sh && sh.value)) { const c = crianca(sb.dataset.id); if (c && c.entrou) { const k = contaSaida(c), chave = k.n + '|' + k.deb + '|' + Math.floor(k.min); if (sc.dataset.k !== chave) { sc.dataset.k = chave; sc.innerHTML = htmlContaSaida(c, k); sb.innerHTML = rotuloSaida(k); } } } }
   $$('[data-ficha-tempo]').forEach(el => { const c = crianca(el.dataset.fichaTempo); if (c && c.entrou) el.innerHTML = tempoFicha(c); });
+  $$('[data-ficha-saldo]').forEach(el => { const c = crianca(el.dataset.fichaSaldo); if (!c) return; const k = pacMin(c) + '|' + usadoAgora(c); if (el.dataset.k !== k) { el.dataset.k = k; el.innerHTML = saldoFicha(c); } });   // o saldo da comanda acompanha o relógio
   if (MODO !== 'servidor') { let novas = 0; for (const c of S.criancas) if (c.entrou) novas += acertarDemo(c); if (novas) { $$('[data-ficha-atraso]').forEach(el => { const c = crianca(el.dataset.fichaAtraso); if (c) el.innerHTML = atrasoFicha(c); }); desenhar(true); } }
 }, 1000);
 iniciar();
