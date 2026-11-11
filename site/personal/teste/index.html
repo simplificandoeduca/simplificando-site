@@ -669,6 +669,10 @@ body{background:var(--bg)}
 h1{font-size:clamp(40px,6vw,56px)}
 h3.sec{font-size:22px;margin:14px 2px -2px}
 /* títulos dos cartões: frase normal com ícone num quadradinho colorido */
+.aj-h{all:unset;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;cursor:pointer;border-radius:12px}.aj-h:focus-visible{outline:2px solid var(--focus);outline-offset:4px}
+.aj-chev{transform:rotate(90deg);transition:transform .2s var(--ease);opacity:.6}.aj-min .aj-chev{transform:rotate(0)}
+.aj-min>*:not(.aj-h):not(.card-h),.aj-min>.card-h>*:not(.aj-h){display:none!important}.aj-c .card-h{flex-wrap:wrap}.aj-c .card-h>.aj-h{flex:1 1 auto;width:auto}
+.aj-all{justify-content:flex-end;margin-bottom:-4px}
 .label{font-size:15px;font-weight:800;letter-spacing:-.01em;text-transform:none;opacity:1;gap:10px;color:var(--fg)}
 .label .i{width:32px;height:32px;padding:7px;border-radius:10px;flex:none;color:var(--lc,#5E6B65);background:color-mix(in srgb,var(--lc,#5E6B65) 12%,transparent)}
 .i[data-n="drop"],.i[data-n="mic"]{--lc:#2F78C9}.i[data-n="pulse"],.i[data-n="check"],.i[data-n="send"]{--lc:#2C9446}.i[data-n="dumbbell"],.i[data-n="bolt"],.i[data-n="plus"]{--lc:#E8363A}
@@ -3208,7 +3212,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '11 nov · 107'; // Versão do painel: 11 nov · 107
+const PAINELV = '11 nov · 108'; // Versão do painel: 11 nov · 108
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -3570,11 +3574,25 @@ function vModelo(id){
 }
 
 /* ---------- Ajustes ---------- */
+/* Ajustes: cada cartão minimiza tocando no título (fica guardado neste aparelho) */
+const ajKey = t => String(t).replace(/<[^>]*>/g,'').trim();
+function ajFold(html){
+  const min = PREF.ajMin || [], keys = [];
+  const out = html.split('<section class="card').map((part, i) => {
+    if(i===0) return part;
+    const m = part.match(/<span class="label">([\s\S]*?)<\/span>/); if(!m) return '<section class="card'+part;
+    const k = ajKey(m[1]); if(!k) return '<section class="card'+part; keys.push(k);
+    const fech = min.includes(k), head = '<button type="button" class="aj-h" data-a="ajMin" data-k="'+esc(k)+'" aria-expanded="'+!fech+'"><span class="label">'+m[1]+'</span>'+ic('chev','aj-chev')+'</button>';
+    return '<section class="card aj-c'+(fech?' aj-min':'')+part.replace(m[0], head);
+  }).join('');
+  const todas = keys.length && keys.every(k => min.includes(k));
+  return '<div class="btn-row aj-all"><button type="button" class="btn small ghost" data-a="ajAll" data-v="'+(todas?'abrir':'min')+'">'+ic(todas?'down':'up')+(todas?'Abrir todos':'Minimizar todos')+'</button></div>'+out;
+}
 function vAjustes(){
   const c = cfg(), m = c.metasPadrao, b = p => 'config/geral/'+p, nEx = ['alunos','exercicios','modelos','config'].reduce((s,k) => s+Object.keys(C[k]).filter(id => C[k][id] && C[k][id].exemplo).length, 0);
   let h = header('Ajustes','Seu painel','');
   if(!Store.loaded) return h+loadingCard();
-  return h+'<section class="card"><span class="label">'+ic('user')+'Você</span><div class="form">'+inp({b:b('nomePersonal'),label:'Seu nome (assina a mensagem de acesso)',val:c.nomePersonal,ph:'Ex.: Personal Ana Lima'})+inp({b:b('linkApp'),label:'Link do app do aluno',val:c.linkApp,type:'url',im:'url',v:'url',ph:'https://'})+'</div></section>'+
+  return h+ajFold(''+'<section class="card"><span class="label">'+ic('user')+'Você</span><div class="form">'+inp({b:b('nomePersonal'),label:'Seu nome (assina a mensagem de acesso)',val:c.nomePersonal,ph:'Ex.: Personal Ana Lima'})+inp({b:b('linkApp'),label:'Link do app do aluno',val:c.linkApp,type:'url',im:'url',v:'url',ph:'https://'})+'</div></section>'+
     '<section class="card"><span class="label">'+ic('drop')+'Metas padrão para novos alunos</span><div class="form">'+
       inp({b:b('metasPadrao.waterGoal'),label:'Água por dia',val:m.waterGoal,t:'i',unit:'ml',v:'range',min:500,max:8000})+
       inp({b:b('metasPadrao.cardioGoal'),label:'Cardio por semana',val:m.cardioGoal,t:'i',unit:'min',v:'range',min:0,max:1200})+
@@ -3593,7 +3611,7 @@ function vAjustes(){
     atuCard()+errCard()+
     '<section class="card"><span class="label">'+ic('users')+'Importar alunos</span><p class="muted">Para alunos que já tinham treino em planilha: escolha o arquivo de importação (.json). Cada aluno entra com o treino, a carga da última semana, as metas e o histórico nas anotações. Quem já está no painel, com o mesmo nome ou e-mail, não é duplicado.</p><div class="btn-row"><button type="button" class="btn" data-a="impFile">'+ic('plus')+'Escolher arquivo</button><input type="file" id="imp-file" class="sr" accept=".json,application/json"></div></section>'+
     '<section class="card"><span class="label">'+ic('user')+'Acesso ao painel</span><p class="muted">Conectado como <b>'+esc(Gate.user()||'você')+'</b> neste aparelho.</p><button type="button" class="btn ghost block gate-out" data-gate-out="1">Sair do painel</button><p class="hint" style="text-align:center;margin:4px 0 0">Versão do painel: '+PAINELV+'</p></section>'+
-    '<section class="card"><span class="label">'+ic('note')+'Termos e privacidade</span><p class="muted" style="margin:0">Termos de uso e política de privacidade, versão 1. Os alunos aceitam no app: no cadastro de quem treina sem personal e no primeiro acesso de quem entra com a senha do personal. O aceite de cada um aparece na aba Perfis.</p><button type="button" class="btn block" data-a="termos">'+ic('note')+'Ler os termos</button></section>';
+    '<section class="card"><span class="label">'+ic('note')+'Termos e privacidade</span><p class="muted" style="margin:0">Termos de uso e política de privacidade, versão 1. Os alunos aceitam no app: no cadastro de quem treina sem personal e no primeiro acesso de quem entra com a senha do personal. O aceite de cada um aparece na aba Perfis.</p><button type="button" class="btn block" data-a="termos">'+ic('note')+'Ler os termos</button></section>');
 }
 
 /* ---------- folhas ---------- */
@@ -4455,6 +4473,8 @@ function act(a,d,btn){
     case 'rkSort': ui.rkSort = !ui.rkSort; if(ui.sheet && ui.sheet.k==='pick'){ renderSheet(); return false; } break;
     case 'pfRefresh': loadPerfis(true); toast('Atualizando a lista'); break;
     case 'pfOpen': if(d.k==='com'){ ui.view = 'alunos'; ui.aluno = d.id; ui.tab = 'acesso'; window.scrollTo(0,0); break; } { const pp = (PF.list||[]).find(x => x.uid===d.id); if(pp && pp.acomp){ PF.open = d.id; window.scrollTo(0,0); break; } } openSheet({k:'pf', id:d.id}); return false;
+    case 'ajMin': { const L = (PREF.ajMin||[]).slice(), i = L.indexOf(d.k); if(i<0) L.push(d.k); else L.splice(i,1); PREF.ajMin = L; savePref(); break; }
+    case 'ajAll': { if(d.v==='abrir') PREF.ajMin = []; else PREF.ajMin = Array.from(document.querySelectorAll('.aj-h')).map(b => b.dataset.k); savePref(); break; }
     case 'pfBack': PF.open = null; ui.pfTab = null; window.scrollTo(0,0); break;
     case 'pfTab': ui.pfTab = d.v; break;
     case 'pfAutoRefresh': if(PF.open) pfAutoLoad(PF.open, true); toast('Atualizando'); break;
