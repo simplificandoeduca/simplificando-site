@@ -773,6 +773,45 @@ body.quieto .dica { animation: none !important; }
 .obs-cx .campo textarea { background: var(--card); }
 .h-obs { align-items: center; color: var(--erro); }
 .reg .ev.obs b::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; background: var(--erro); }
+/* 0.95: a tela inicial em lista: uma linha por cliente, como uma planilha (as colunas por serviço continuam como opção, em Ajustes → Aparência) */
+.esp-it > .pt, .esp-it > .sv, .esp-it > .en, .esp-it .sv-m { display: none; }   /* só aparecem na lista */
+.esp-it .sel { flex: none; font-style: normal; font-size: 10.5px; font-weight: 800; letter-spacing: .05em; border-radius: 999px; padding: 2px 8px; white-space: nowrap; background: var(--verde-agua-2); color: var(--tinta); border: 1px solid var(--verde-agua); }
+.esp-it .sel.avulso { background: var(--mostarda-2); border-color: var(--mostarda); }
+.esp-cab.lst .dias { order: -1; flex: 0 1 auto; min-width: 0; max-width: 100%; }
+.esp-lst { background: var(--card); border: 1px solid var(--borda); border-radius: 20px; box-shadow: var(--sombra); overflow: hidden; }
+.esp-lst .esp-cabec, .esp-lst .esp-it { display: grid; grid-template-columns: 16px minmax(0, 1.25fr) minmax(0, 1.3fr) minmax(0, 1.4fr) 54px 84px 104px 112px; grid-template-rows: auto; column-gap: 14px; row-gap: 0; align-items: center; align-content: center; padding: 0 12px 0 18px; }
+.esp-lst .esp-cabec { height: 36px; background: var(--menta-risco); font: 800 11px/1 var(--texto); letter-spacing: .08em; text-transform: uppercase; color: var(--tinta-2); } .esp-lst .esp-cabec .d { text-align: right; }
+.esp-lst .esp-it { height: 48px; border: 0; border-top: 1px solid var(--borda); border-radius: 0; background: transparent; box-shadow: none; }
+.esp-lst .esp-it.acabando, .esp-lst .esp-it.passou, .esp-lst .esp-it.cobranca { box-shadow: none; border-color: var(--borda); } .esp-lst .esp-it.passou { background: var(--erro-bg); }
+.esp-lst .esp-it > .pt { display: grid; place-items: center; grid-column: 1; grid-row: 1; width: 16px; height: 16px; color: var(--coral); position: relative; pointer-events: none; }
+.esp-lst .esp-it:not(.alug) > .pt::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--verde-agua); }
+.esp-lst .esp-it.acabando:not(.alug) > .pt::before { background: var(--mostarda); } .esp-lst .esp-it.passou:not(.alug) > .pt::before { background: var(--erro); }
+.esp-lst .esp-it .l1 { grid-column: 2; grid-row: 1; overflow: hidden; } .esp-lst .esp-it .l1 b { font-size: 15.5px; }
+.esp-lst .esp-it .l2 { grid-column: 3; grid-row: 1; font-size: 13px; line-height: 1.25; }
+.esp-lst .esp-it > .sv { display: flex; align-items: center; gap: 7px; grid-column: 4; grid-row: 1; min-width: 0; position: relative; cursor: pointer; font-size: 12.5px; font-weight: 700; letter-spacing: .02em; white-space: nowrap; overflow: hidden; }
+.esp-lst .esp-it > .sv > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.esp-lst .esp-it > .en { display: block; grid-column: 5; grid-row: 1; position: relative; cursor: pointer; font-size: 13px; font-weight: 700; color: var(--tinta-2); }
+.esp-lst .esp-it .tmp { grid-column: 6; grid-row: 1; align-self: center; font-size: 17px; }
+.esp-lst .esp-it .at { grid-column: 7; grid-row: 1; align-self: center; text-align: left; font-size: 12px; }
+.esp-lst .esp-it .acoes-e { grid-column: 8; grid-row: 1; justify-self: end; }
+.esp-lst .esp-fam { display: block; padding: 0; gap: 0; background: none; border-radius: 0; }
+.esp-lst .esp-fam > .esp-it { flex: none; height: 48px; border: 0; border-top: 1px solid var(--borda); }
+.esp-lst .esp-fam > .esp-it, .esp-lst .esp-fam > .esp-it:first-child, .esp-lst .esp-fam > .esp-it:last-child { border-radius: 0; }
+.esp-lst .esp-fam > .esp-it + .esp-it { border-top-color: transparent; }   /* a família: uma embaixo da outra, sem risco no meio */
+.esp-lst > .esp-cabec + .esp-it, .esp-lst > .esp-cabec + .esp-fam > .esp-it:first-child { border-top: 0; }
+@container (max-width: 900px) {   /* tela menor, ou o histórico do cliente aberto ao lado: o responsável vai para baixo do nome e a hora da entrada sai */
+  .esp-lst .esp-cabec { display: none; }
+  .esp-lst .esp-it, .esp-lst .esp-fam > .esp-it { grid-template-columns: 16px minmax(0, 1.5fr) minmax(0, 1fr) auto auto; grid-template-rows: 20px 16px; row-gap: 1px; column-gap: 12px; height: 54px; }
+  .esp-lst .esp-it > .pt { grid-row: 1 / span 2; } .esp-lst .esp-it .l2 { grid-column: 2; grid-row: 2; font-size: 12px; line-height: 16px; }
+  .esp-lst .esp-it > .sv { grid-column: 3; grid-row: 1 / span 2; } .esp-lst .esp-it > .en { display: none; }
+  .esp-lst .esp-it .tmp { grid-column: 4; grid-row: 1; align-self: end; font-size: 16px; line-height: 1.1; } .esp-lst .esp-it .at { grid-column: 4; grid-row: 2; align-self: start; text-align: right; font-size: 11px; }
+  .esp-lst .esp-it .acoes-e { grid-column: 5; grid-row: 1 / span 2; }
+}
+@container (max-width: 560px) {   /* celular: o serviço vai para a linha do responsável ("MARIANA SOUZA · AVULSA") */
+  .esp-lst .esp-it, .esp-lst .esp-fam > .esp-it { grid-template-columns: 16px minmax(0, 1fr) auto auto; column-gap: 9px; padding: 0 8px 0 12px; }
+  .esp-lst .esp-it > .sv { display: none; } .esp-lst .esp-it .sv-m { display: inline; font-style: normal; font-weight: 800; color: var(--tinta); letter-spacing: .02em; }
+  .esp-lst .esp-it .tmp, .esp-lst .esp-it .at { grid-column: 3; } .esp-lst .esp-it .acoes-e { grid-column: 4; }
+}
 /* 0.94: o cupom impresso (papel de 80 mm; a área impressa tem 72 mm) */
 .papel { width: 72mm; max-width: 100%; box-sizing: border-box; padding: 2mm 0 5mm; background: #fff; color: #000; font: 600 12.5px/1.4 Arial, Helvetica, sans-serif; letter-spacing: 0; text-transform: none; text-align: left; }
 .papel p { margin: 0; overflow-wrap: anywhere; } .papel .c-loja { font-size: 14.5px; font-weight: 700; } .papel .c-tit { font-weight: 700; } .papel .c-esp { height: 3.4mm; }
@@ -1122,7 +1161,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.94';
+const VERSAO = '0.95';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -2165,6 +2204,10 @@ function planoDe(c) {
 }
 // os filtros da lista: Todas, um por serviço da loja (o tempo de brincar e cada coisa que sai e volta) e, dentro da recreação, Horas avulsas ou Pacotes
 const espFiltro = () => S.espFiltro === 'sairam' ? 'sairam' : 'todas';   // a lista de quem está aqui, ou a de quem saiu há pouco (para reabrir a visita)
+// 0.95: a tela inicial é uma lista (uma linha por cliente, como uma planilha). As três colunas por serviço continuam como opção deste aparelho (Ajustes → Aparência)
+const inicioLista = () => lido('ps-inicio', 'lista') !== 'servico';
+// o filtro por serviço da lista: '' = todas, 'rec' = quem está na recreação, ou o id de um serviço que sai da loja e volta (carrinho, fusquinha)
+const espServ = () => { const v = S.espServ || ''; return !inicioLista() || !v ? '' : v === 'rec' || servicosVolta().some(x => x.id === v) || alugNaLista().some(a => a.s === v) ? v : ''; };
 // o que aparece na tela inicial: as crianças que estão no espaço e o que saiu da loja e ainda não voltou, com a busca.
 // Em cada coluna, o que está mais perto de estourar o tempo vem primeiro. Cada item: { c: a criança, a: o que está fora (só nas linhas de carrinho), sobra }
 function itensEspaco() {
@@ -2222,11 +2265,14 @@ function gruposEspaco(L) { const G = []; for (const x of L) { const g = G.find(k
 // com "até quando" embaixo, e a Saída. A bolinha diz a situação: verde no tempo, amarela acabando, vermelha (e a linha rosada) quando passou.
 // O OBS vermelho só aparece se há observação (o texto fica escondido até alguém tocar); o selo "+ R$", se há cobrança por atraso a receber.
 function linhaEspaco(c, fam = 1) {
-  const st = situacaoTempo(c), at = c.atraso && c.atraso.n ? c.atraso : null, abre = `data-act="ficha" data-id="${c.id}"`;
+  const st = situacaoTempo(c), at = c.atraso && c.atraso.n ? c.atraso : null, abre = `data-act="ficha" data-id="${c.id}"`, pl = planoDe(c) === 'pacote' ? 'pacote' : 'avulso';
   return `<div class="esp-it ${st}${at ? ' cobranca' : ''}${S.chegou === c.id ? ' chegou' : ''}" data-esp="${c.id}">
     <button class="quem tap" ${abre} aria-label="Abrir a comanda de ${esc(c.nome)}, responsável ${esc(c.resp)}"></button>
+    <i class="pt" aria-hidden="true"></i>
     <span class="l1" ${abre}><b>${esc(c.nome)}</b>${c.obs ? `<button type="button" class="obs obs-bt on mini tap" data-act="obs-ver" data-id="${c.id}" title="Tem observação: toque para ver" aria-label="Ver a observação de ${esc(c.nome)}">OBS</button>` : ''}${at ? `<em class="cb" title="${at.n === 1 ? 'Cobrança por atraso' : at.n + ' cobranças por atraso'}: a receber na saída">+ ${brl(at.valor)}</em>` : ''}</span>
-    <span class="l2" ${abre} title="Responsável${fam > 1 ? ' · ' + fam + ' juntos' : ''}">${fam > 1 ? `<i class="elo">${ic(IC.elo, 11, 2.6)}</i>` : ''}${esc(c.resp || 'sem responsável')}</span>
+    <span class="l2" ${abre} title="Responsável${fam > 1 ? ' · ' + fam + ' juntos' : ''}">${fam > 1 ? `<i class="elo">${ic(IC.elo, 11, 2.6)}</i>` : ''}${esc(c.resp || 'sem responsável')}<i class="sv-m"> · ${pl === 'pacote' ? 'PACOTE' : 'AVULSA'}</i></span>
+    <span class="sv" ${abre}><span>${esc((servicoTempo() || { n: 'RECREAÇÃO' }).n)}</span><i class="sel ${pl}">${pl === 'pacote' ? 'PACOTE' : 'AVULSA'}</i></span>
+    <span class="en num" ${abre}>${hora(c.entrou)}</span>
     <b class="num tmp" ${abre} data-esp-t title="${subEspaco(c)}">${hms(segDentro(c))}</b>
     <span class="at" ${abre} data-esp-at>${subCurto(c)}</span>
     <span class="acoes-e">${podeManual() ? `<button class="bt tap" data-act="saida-rapida" data-id="${c.id}" aria-label="Saída de ${esc(c.nome)}">${ic(IC.sair, 14)}<span class="rt">Saída</span></button>` : ''}</span>
@@ -2238,8 +2284,11 @@ function linhaAluguel(a, fam = 1) {
   const c = crianca(a.crianca), st = alugSit(a), abre = `data-act="ficha" data-id="${c.id}"`;
   return `<div class="esp-it alug ${st}" data-alug="${esc(a.id)}">
     <button class="quem tap" ${abre} aria-label="Abrir a comanda de ${esc(c.nome)}: ${esc(alugNome(a))} fora da loja"></button>
+    <i class="pt" aria-hidden="true">${ic(IC.carrinho, 15, 2.3)}</i>
     <span class="l1" ${abre} title="${esc(alugNome(a))}"><b>${esc(c.nome)}</b>${a.q > 1 ? `<em class="qt">× ${a.q}</em>` : ''}${c.obs ? `<button type="button" class="obs obs-bt on mini tap" data-act="obs-ver" data-id="${c.id}" title="Tem observação: toque para ver" aria-label="Ver a observação de ${esc(c.nome)}">OBS</button>` : ''}</span>
-    <span class="l2" ${abre} title="Responsável">${fam > 1 ? `<i class="elo">${ic(IC.elo, 11, 2.6)}</i>` : ''}${esc(c.resp || 'sem responsável')}</span>
+    <span class="l2" ${abre} title="Responsável">${fam > 1 ? `<i class="elo">${ic(IC.elo, 11, 2.6)}</i>` : ''}${esc(c.resp || 'sem responsável')}<i class="sv-m"> · ${esc(alugNome(a).replace(/^carrinho\s+(de\s+)?/i, '') || alugNome(a))}</i></span>
+    <span class="sv" ${abre}><span>${esc(alugNome(a))}</span></span>
+    <span class="en num" ${abre}>${alugHoje(a) ? hora(a.ini) : diaCurto(a.ini)}</span>
     <b class="num tmp" ${abre} data-alug-t title="${alugSub(a)}">${alugTempo(a)}</b>
     <span class="at" ${abre} data-alug-at>${alugSubCurto(a)}</span>
     <span class="acoes-e"><button class="bt tap" data-act="devolver" data-id="${c.id}" data-s="${esc(a.s)}" aria-label="${esc(alugNome(a))} de ${esc(c.nome)} voltou para a loja">${ic(IC.check, 14, 2.6)}<span class="rt">Devolveu</span></button></span>
@@ -2269,7 +2318,18 @@ const linhaSaiu = c => { const d = new Date(ultVis(c).dia); return `<div class="
 // "Saíram há pouco" é o único botão ao lado da busca, e só aparece quando há alguém no prazo de reabrir a visita
 function chipsEspaco() {
   const f = espFiltro(), ns = saiuHaPouco().length;
-  return ns || f === 'sairam' ? `<button class="tap" data-act="esp-filtro" data-f="sairam" aria-pressed="${f === 'sairam'}" title="Quem saiu nos últimos ${reabreLim()} min: dá para reabrir a visita">Saíram há pouco<b>${ns}</b></button>` : '';
+  const sair = ns || f === 'sairam' ? `<button class="tap" data-act="esp-filtro" data-f="sairam" aria-pressed="${f === 'sairam'}" title="Quem saiu nos últimos ${reabreLim()} min: dá para reabrir a visita">Saíram há pouco<b>${ns}</b></button>` : '';
+  if (!inicioLista()) return sair;
+  const L = itensEspaco(), sv = espServ(), st = servicoTempo(), ids = [...new Set([...servicosVolta().map(x => x.id), ...L.filter(x => x.a).map(x => x.a.s)])], nome = id => (servicoDe(id) || { n: (L.find(x => x.a && x.a.s === id) || { a: { n: id } }).a.n }).n;
+  const chip = (v, t, n) => `<button class="tap" data-act="esp-serv" data-s="${esc(v)}" aria-pressed="${f !== 'sairam' && sv === v}">${esc(t)}<b>${n}</b></button>`;
+  return (ids.length ? chip('', 'Todas', L.length) + chip('rec', st ? st.n : 'RECREAÇÃO', L.filter(x => !x.a).length) + ids.map(id => chip(id, nome(id), L.filter(x => x.a && x.a.s === id).length)).join('') : '') + sair;
+}
+// 0.95: a tela inicial em lista: uma linha por cliente, como uma planilha. A situação (a bolinha, ou o carrinho no que saiu da loja), a criança,
+// o responsável, o serviço (com AVULSA ou PACOTE), a hora em que entrou, o tempo correndo com "até quando" ou "quanto passou", e a Saída (ou Devolveu).
+// O que está mais perto de estourar o tempo vem primeiro; as linhas do mesmo responsável ficam juntas, com o elo ao lado do nome dele.
+function listaEspaco(L) {
+  const linhas = gruposEspaco(L).map(g => g.length > 1 ? `<div class="esp-fam" role="group" aria-label="${g.length} linhas de ${esc(g[0].c.resp)}, juntas">${g.map(x => linhaItem(x, g.length)).join('')}</div>` : linhaItem(g[0])).join('');
+  return `<div class="esp-lst"><div class="esp-cabec" aria-hidden="true"><span></span><span>Criança</span><span>Responsável</span><span>Serviço</span><span>Entrou</span><span class="d">Tempo</span><span></span><span></span></div>${linhas}</div>`;
 }
 // 0.91: a tela inicial "por serviço": três colunas com título e contagem, tudo à vista de uma vez, sem filtro para tocar.
 // Horas avulsas e Pacotes (quem está na recreação) e Fora da loja (o que saiu e ainda não voltou, separado por serviço).
@@ -2290,7 +2350,9 @@ function corpoEspaco() {
       <p class="explica">Reabrir desfaz a saída e o tempo continua contando desde a entrada, como se a criança não tivesse saído. Passou de ${reabreLim()} min, é uma entrada nova. <button class="link tap" data-act="esp-filtro" data-f="todas">Ver quem está no espaço</button></p></div>`; }
   else if (!n && !q) h = `<section class="a-hero"><button class="tit tap" data-act="dia"><div class="pers" data-pers="dentro">${PERS.urso}<b class="placa num" data-placa="dentro">0</b></div><div class="txt"><small>No espaço agora</small><span>ninguém por enquanto</span></div></button>
       <p class="vazio-h">${semIdface() ? 'Toque no + para cadastrar ou busque quem já tem cadastro. Quem entrar aparece aqui, numa lista, com o tempo correndo.' : 'Quando uma criança olhar para o iDFace, ela aparece aqui, numa lista, com o tempo correndo.'}</p></section>`;
-  else if (L.length) h = colunasEspaco(L);
+  else if (L.length && !inicioLista()) h = colunasEspaco(L);
+  else if (L.length) { const sv = espServ(), LF = !sv ? L : L.filter(x => sv === 'rec' ? !x.a : x.a && x.a.s === sv);   // a lista, com o filtro por serviço
+    h = LF.length ? listaEspaco(LF) : `<div class="card vazio"><b>Nada neste filtro${q ? ' com essa busca' : ' agora'}.</b><span><button class="link tap" data-act="esp-serv" data-s="">Ver todas</button></span></div>`; }
   else h = `<div class="card vazio"><b>Ninguém no espaço com essa busca.</b></div>`;
   if (q.length >= 2 && f !== 'sairam') { // a busca também acha quem tem cadastro e não está no espaço: dá para atender dali mesmo (ou reabrir a visita de quem saiu há pouco)
     const fora = S.criancas.filter(c => !c.entrou && casaBusca(c, q)).sort((a, b) => a.nome.localeCompare(b.nome)).slice(0, 8);
@@ -2371,7 +2433,7 @@ function telaHoras() {
   const dentro = S.criancas.filter(c => c.entrou), n = dentro.length, passou = dentro.filter(c => situacaoTempo(c) === 'passou').length, fora = alugNaLista().length;   // fora: carrinhos e fusquinhas que saíram e ainda não voltaram
   return faixa('No espaço agora', (n ? `${n} ${n === 1 ? 'criança' : 'crianças'}${passou ? ' · ' + passou + (passou === 1 ? ' passou' : ' passaram') + ' do tempo' : ''}` : 'Ninguém por enquanto') + (fora ? ` · ${fora} para devolver` : ''), chipAvisos() + chipCupons() + `<button type="button" class="chip tap" data-act="pacotes" title="Os pacotes de horas e os produtos, com os valores, para mostrar ao cliente">${ic(IC.presente, 16)} <span>Pacotes<span class="so-largo"> e produtos</span></span></button>` + chipIdface()) + htmlPend() + `
   <section class="espaco">
-    <div class="esp-cab">
+    <div class="esp-cab${inicioLista() ? ' lst' : ''}">
       <div class="campo"><input id="esp-busca" value="${esc(S.espBusca || '')}" placeholder="Buscar criança, responsável, telefone ou CPF" autocomplete="off" aria-label="Buscar criança, responsável, telefone ou CPF"></div>
       <div class="dias" id="esp-filtros">${chipsEspaco()}</div>
     </div>
@@ -3205,6 +3267,7 @@ function telaAjustes() {
         <div class="acoes">${S.exemplo ? `<button class="bt claro tap" data-act="exemplos-apagar" style="color:var(--erro)">Tirar o teste</button>` : `<button class="bt tap" data-act="exemplos-carregar">Colocar o teste: 30 crianças no espaço</button>`}</div>
       </div>` : ''}
       <div class="card"><div class="sec-cab"><h2 style="font-size:18px">Aparência</h2></div>${seg('tema', [['sistema', 'Como o celular'], ['claro', 'Claro'], ['escuro', 'Escuro']], cfg.tema)}
+        <div class="campo"><label>Tela inicial neste aparelho</label>${seg('inicio', [['lista', 'Lista'], ['servico', 'Por serviço']], inicioLista() ? 'lista' : 'servico')}<span class="explica">Lista: uma linha por cliente, como uma planilha, com os filtros por serviço. Por serviço: três colunas (horas avulsas, pacotes e carrinhos).</span></div>
         <div class="campo"><label>Bonequinhos neste aparelho</label>${seg('anim', [['auto', 'Automático'], ['cheia', 'Animados'], ['leve', 'Quietos']], animEscolha())}<span class="explica">No automático, o sistema segue o aparelho: se as animações dele estiverem desligadas (comum em Windows ajustado para ficar mais rápido), os bonequinhos ficam quietos.${semMovimento() ? ' <b>Neste aparelho elas estão desligadas.</b>' : ''} Em Animados, eles se mexem sempre.</span></div></div>
     </div>
   </div>
@@ -3321,6 +3384,7 @@ const ACOES = {
   'visita-corrigir-ok': async el => { const hh = val('s-hora'), motivo = val('s-motivo');
     if (!/^\d{2}:\d{2}$/.test(hh)) { toast('Escreva a hora em que a criança saiu'); $('#s-hora').focus(); return; } if (motivo.length < 5) { toast('Escreva o motivo da correção da hora'); $('#s-motivo').focus(); return; }
     el.disabled = true; try { const r = await api('visita_corrigir', { visita: +el.dataset.v, quando: hh, motivo }); await carregar(); fecharFolha(); desenhar(); toast(`Saída corrigida para ${hh} · ${dur(r.debitado)} debitados${r.desfeitas ? ' · ' + brl(r.valor) + ' de atraso desfeito' : ''}`); } catch (e) { toast(e.message); el.disabled = false; } },
+  'esp-serv': el => { S.espServ = el.dataset.s || ''; S.espFiltro = 'todas'; atualizarEspaco(); },   /* o filtro por serviço da lista da tela inicial */
   'esp-filtro': el => { const f = el.dataset.f; S.espFiltro = espFiltro() === f && f !== 'todas' ? 'todas' : f; atualizarEspaco(); },   /* "Saíram há pouco": tocar de novo volta para quem está no espaço */
   devolver: el => devolver(el.dataset.id, el.dataset.s),
   reabrir: el => folhaReabrir(+el.dataset.id),
@@ -3565,7 +3629,7 @@ const ACOES = {
 };
 document.addEventListener('click', e => {
   const ir = e.target.closest('[data-ir]'); if (ir) { if (ir.dataset.ir !== S.tela) trocarTela(ir.dataset.ir); return; }
-  const seg = e.target.closest('.seg[data-cfg] button'); if (seg) { const k = seg.closest('.seg').dataset.cfg, v = seg.dataset.v; if (k !== 'tema' && k !== 'anim' && MODO === 'servidor' && !gestor()) { toast('Só o gestor muda a regra'); return; } S.cfg[k] = isNaN(+v) ? v : +v; if (k === 'tema') { guardar('ps-tema', v); aplicarTema(); } else if (k === 'anim') { escolherAnim(v); } else if (MODO === 'servidor') api('regra_salvar', { [k]: S.cfg[k] }).then(() => toast('Regra salva')).catch(e => toast(e.message)); desenhar(); return; }
+  const seg = e.target.closest('.seg[data-cfg] button'); if (seg) { const k = seg.closest('.seg').dataset.cfg, v = seg.dataset.v; if (k !== 'tema' && k !== 'anim' && k !== 'inicio' && MODO === 'servidor' && !gestor()) { toast('Só o gestor muda a regra'); return; } S.cfg[k] = isNaN(+v) ? v : +v; if (k === 'tema') { guardar('ps-tema', v); aplicarTema(); } else if (k === 'anim') { escolherAnim(v); } else if (k === 'inicio') { guardar('ps-inicio', v); S.espServ = ''; } else if (MODO === 'servidor') api('regra_salvar', { [k]: S.cfg[k] }).then(() => toast('Regra salva')).catch(e => toast(e.message)); desenhar(); return; }
   const segLocal = e.target.closest('[data-seg]'); if (segLocal && !segLocal.dataset.act) { const pai = segLocal.parentElement; $$('[data-seg]', pai).forEach(b => { b.setAttribute('aria-pressed', b === segLocal); b.style.borderColor = ''; b.style.background = ''; }); if (pai.id === 'p-brq') { segLocal.style.borderColor = 'var(--coral)'; segLocal.style.background = 'var(--coral-2)'; } return; }
   const act = e.target.closest('[data-act]'); if (act && ACOES[act.dataset.act]) { ACOES[act.dataset.act](act); return; }
   const f = e.target.closest('[data-fecha]'); if (f && (f.tagName === 'BUTTON' || e.target === f)) fecharFolha();
