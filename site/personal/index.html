@@ -748,7 +748,7 @@ h3.sec{font-size:22px;margin:14px 2px -2px}
 /* comentários e estatísticas */
 .cm-r{align-items:flex-start}.cm-r .ini{width:38px;height:38px;font-size:13px}.cm-r .main-t b{white-space:normal}
 .cm-q{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px}.cm-c{color:var(--fg)!important;font-size:14px!important}.cm-d{font-size:12px!important}
-.i[data-n="share2"],.i[data-n="dl"],.i[data-n="chart"]{--lc:#C84B92}
+.i[data-n="share2"],.i[data-n="chart"]{--lc:#C84B92}
 .est-seg{max-width:340px}
 .est-mods{display:flex;flex-direction:column;gap:10px}
 .est-m{border-radius:16px;box-shadow:inset 0 0 0 1px var(--line2);padding:12px 14px;display:flex;flex-direction:column;gap:10px}
@@ -760,7 +760,6 @@ h3.sec{font-size:22px;margin:14px 2px -2px}
 .est-v{display:flex;flex-direction:column;align-items:flex-end;font-size:12px;color:var(--muted);flex:none}.est-v b{font-size:22px;font-weight:900;color:var(--fg);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
 .est-bar{height:8px;border-radius:9px;background:var(--ctl);overflow:hidden}.est-bar i{display:block;height:100%;border-radius:9px;background:var(--brand)}
 .est-who{display:flex;flex-direction:column;border-top:1px solid var(--sep)}.est-who>div{display:flex;flex-direction:column;gap:2px;padding:9px 0;border-bottom:1px solid var(--sep)}.est-who>div:last-child{border-bottom:0}
-.est-ab{margin-top:10px}.est-ab summary{cursor:pointer;font-size:13.5px;font-weight:600;color:var(--muted);padding:6px 0}
 .est-who b{font-size:14.5px}.est-who span{font-size:12.5px;color:var(--muted)}
 .est-sug{display:flex;flex-direction:column;gap:10px}
 .est-s{border-radius:16px;padding:14px;background:var(--ctl);display:flex;flex-direction:column;gap:6px}.est-s.lida{background:transparent;box-shadow:inset 0 0 0 1px var(--line2)}
@@ -1900,11 +1899,7 @@ const FBP = (() => {
   async function listCol(name){ const q = await db.collection(name).orderBy('em','desc').limit(1500).get(); return q.docs.map(d => Object.assign({ id:d.id }, d.data())); }
   async function setLida(id, v){ await db.collection('sugestoes').doc(id).update({ lida:!!v }); }
   async function dropDoc(col, id){ await db.collection(col).doc(id).delete(); }
-  // testa se as regras publicadas já aceitam os comprovantes do cardio (cria e apaga um registro de teste)
-  async function testeRegras(){ const u = auth.currentUser; if(!u) return 'erro';
-    try { const r = await db.collection('storiesUso').add({ uid:u.uid, nome:'teste do painel', tipo:'personal', modelo:'cbon', cor:'', acao:'teste', tema:'cardio', em:Date.now() }); await r.delete().catch(() => {}); return 'ok'; }
-    catch(e){ return e && e.code==='permission-denied' ? 'regras' : 'erro'; } }
-  return { auth, db, fb, ownerUid, claim, account, rePass, dropAccount, listCodigos, dropCodigo, moveProg, okMail, publish, unpublish, listPerfis, dropPerfil, getAutonomo, listProgresso, dropProgresso, listCol, setLida, dropDoc, testeRegras };
+  return { auth, db, fb, ownerUid, claim, account, rePass, dropAccount, listCodigos, dropCodigo, moveProg, okMail, publish, unpublish, listPerfis, dropPerfil, getAutonomo, listProgresso, dropProgresso, listCol, setLida, dropDoc };
 })();
 
 const Store = (() => {
@@ -2261,15 +2256,14 @@ function lembreteDatas(){
       '<div class="btn-row"><button type="button" class="btn ink" data-a="datOk" data-k="'+esc(x.key)+'">'+ic('check')+'Já preparei</button></div></section>'; }).join('');
 }
 /* ---------- Estatísticas: o que os alunos usam e sugerem, para decidir as próximas mudanças ---------- */
-const ST = { sug:null, sto:null, err:'', at:0, loading:false, rg:'' };
+const ST = { sug:null, sto:null, err:'', at:0, loading:false };
 const ST_MODC = [['cbon','Boneco','O boneco do app em movimento (foto ou vídeo)'],['cbil','Bilhete','Passe de cardio: do sofá para a meta'],['csem','Semana','Os minutos de cardio da semana'],['cpul','Pulso','Batimento, tempo e pace']];
 const ST_MOD = [['crono','Cronômetro','O tempo de treino em destaque'],['cupom','Cupom','As cargas do dia, em forma de cupom'],['foto','Foto','A foto da pessoa com figurinhas']];
 const ST_COR = { vermelho:'Vermelho', laranja:'Laranja', lilas:'Lilás', verde:'Verde', preto:'Preto', branco:'Branco' };
 async function loadEst(force){
   if(!pfOnline() || ST.loading || ((ST.sug || ST.err) && !force && Date.now()-ST.at < 60e3)) return;
   ST.loading = true; ST.err = '';
-  try { const [a, b] = await Promise.all([FBP.listCol('sugestoes'), FBP.listCol('storiesUso')]); ST.sug = a; ST.sto = b.filter(x => x.acao!=='teste');
-    if(ST.rg!=='ok') ST.rg = await FBP.testeRegras(); }
+  try { const [a, b] = await Promise.all([FBP.listCol('sugestoes'), FBP.listCol('storiesUso')]); ST.sug = a; ST.sto = b.filter(x => x.acao!=='abriu' && x.acao!=='teste'); }
   catch(e){ ST.err = e && e.code==='permission-denied' ? 'regras' : 'rede'; }
   ST.at = Date.now(); ST.loading = false; if(ui.view==='estatisticas') render();
 }
@@ -2281,33 +2275,22 @@ function vEstat(){
   if(ST.err==='regras') return h+'<section class="card"><span class="label">'+ic('alert')+'Falta um passo no Firebase</span><p class="muted">Para receber as sugestões e saber quais stories os alunos postam, cole as regras novas (arquivo REGRAS-FIRESTORE.txt) no Firebase → Firestore → Regras e toque em Publicar. Depois toque em Atualizar.</p><div class="btn-row"><button type="button" class="btn small" data-a="estRefresh">'+ic('refresh')+'Atualizar</button></div></section>';
   if(ST.err) return h+'<section class="card"><p class="muted">Sem conexão para carregar as estatísticas. Confira a internet e toque em Atualizar.</p><div class="btn-row"><button type="button" class="btn small" data-a="estRefresh">'+ic('refresh')+'Atualizar</button></div></section>';
   if(!ST.sug) return h+loadingCard();
-  // comprovantes (stories): quem abriu, baixou ou compartilhou
+  // stories
   const grp = ui.estG==='cardio' ? 'cardio' : 'treino', GR = grp==='cardio' ? ST_MODC : ST_MOD, gk = GR.map(x => x[0]);
-  const per = ui.estP || '30', desde = per==='tudo' ? 0 : Date.now()-(+per)*864e5, A = ST.sto.filter(x => (x.em||0)>=desde && gk.includes(x.modelo));
-  const E = A.filter(x => x.acao!=='abriu'), AB = A.filter(x => x.acao==='abriu');
+  const per = ui.estP || '30', desde = per==='tudo' ? 0 : Date.now()-(+per)*864e5, E = ST.sto.filter(x => (x.em||0)>=desde && gk.includes(x.modelo));
   const tot = E.length, cnt = m => E.filter(x => x.modelo===m).length, mx = Math.max(1, ...GR.map(([m]) => cnt(m)));
-  const MN = Object.fromEntries(GR.map(([m,n]) => [m,n])), ACAO = a => /^share/.test(a||'') ? 'compartilhou' : 'baixou';
-  const agrupa = L => { const by = {}; L.forEach(x => { const k = x.uid||x.nome; const o = by[k] = by[k] || { k, nome:x.nome||'Sem nome', tipo:x.tipo, n:0, b:0, c:0, v:0, ult:0, mods:{}, cores:{} }; o.n++; if(ACAO(x.acao)==='baixou') o.b++; else o.c++; if(/video/.test(x.acao||'')) o.v++; o.ult = Math.max(o.ult, x.em||0); o.mods[x.modelo] = (o.mods[x.modelo]||0)+1; if(x.cor) o.cores[x.cor] = (o.cores[x.cor]||0)+1; }); return Object.values(by).sort((a,b) => b.ult-a.ult); };
-  const acoes = x => [x.b ? 'baixou '+plural(x.b,'vez','vezes') : '', x.c ? 'compartilhou '+plural(x.c,'vez','vezes') : '', x.v ? plural(x.v,'em vídeo','em vídeo') : ''].filter(Boolean).join(' · ');
-  const quem = agrupa(E), qk = new Set(quem.map(x => x.k)), soAbriu = agrupa(AB).filter(x => !qk.has(x.k));
-  const dt = t => new Date(t).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit' });
+  const pessoas = m => { const by = {}; E.filter(x => x.modelo===m).forEach(x => { const k = x.uid||x.nome; const o = by[k] = by[k] || { nome:x.nome||'Sem nome', tipo:x.tipo, n:0, ult:0, cores:{} }; o.n++; o.ult = Math.max(o.ult, x.em||0); if(x.cor) o.cores[x.cor] = (o.cores[x.cor]||0)+1; }); return Object.values(by).sort((a,b) => b.n-a.n || b.ult-a.ult); };
   const menos = tot>=6 ? GR.map(([m,n]) => [n, cnt(m)/tot]).sort((a,b) => a[1]-b[1])[0] : null;
-  h += '<h3 class="sec">Comprovantes baixados<span class="dot" aria-hidden="true"></span></h3>'+
-    (ST.rg==='regras' ? '<p class="callout">'+ic('alert')+'<span><b>As regras do Firebase estão antigas.</b> Os comprovantes do cardio estão sendo bloqueados e não aparecem aqui. Cole o arquivo REGRAS-FIRESTORE.txt novo no Firebase → Firestore → Regras, toque em Publicar e depois em Atualizar.</span></p>' : '')+
-    '<section class="card"><div class="card-h"><span class="label">'+ic('dl')+'Quem baixou</span><button type="button" class="btn small" data-a="estRefresh">'+ic('refresh')+'Atualizar</button></div><div class="card-h">'+
-    '<div class="seg est-seg" role="group" aria-label="Comprovantes de">'+[['treino','Treino'],['cardio','Cardio']].map(([v,l]) => '<button type="button" class="'+(grp===v?'on':'')+'" aria-pressed="'+(grp===v)+'" data-a="estG" data-v="'+v+'">'+l+'</button>').join('')+'</div>'+
+  h += '<h3 class="sec">Comprovantes baixados<span class="dot" aria-hidden="true"></span></h3><section class="card"><div class="card-h"><span class="label">'+ic('share2')+'Qual modelo cada um escolhe</span><button type="button" class="btn small" data-a="estRefresh">'+ic('refresh')+'Atualizar</button></div><div class="card-h">'+
+    '<div class="seg est-seg" role="group" aria-label="Stories de">'+[['treino','Treino'],['cardio','Cardio']].map(([v,l]) => '<button type="button" class="'+(grp===v?'on':'')+'" aria-pressed="'+(grp===v)+'" data-a="estG" data-v="'+v+'">'+l+'</button>').join('')+'</div>'+
     '<div class="seg est-seg" role="group" aria-label="Período">'+[['30','30 dias'],['90','90 dias'],['tudo','Tudo']].map(([v,l]) => '<button type="button" class="'+(per===v?'on':'')+'" aria-pressed="'+(per===v)+'" data-a="estP" data-v="'+v+'">'+l+'</button>').join('')+'</div></div>'+
-    '<p class="ev2-frase"><b>'+plural(tot,'comprovante baixado ou compartilhado','comprovantes baixados ou compartilhados')+'</b>'+(tot ? ' por '+plural(quem.length,'pessoa') : '')+'.</p>'+
-    (quem.length ? '<div class="est-who">'+quem.map(x => '<div><b>'+esc(x.nome)+'</b><span>'+tipoTxt(x.tipo)+' · '+acoes(x)+' · último '+dt(x.ult)+'</span><span>'+Object.keys(x.mods).map(m => esc(MN[m]||m)).join(', ')+'</span></div>').join('')+'</div>' : '<p class="foot">Ninguém baixou ou compartilhou comprovante '+(grp==='cardio'?'do cardio':'do treino')+' no período.</p>')+
-    (soAbriu.length ? '<details class="est-ab"><summary>'+plural(soAbriu.length,'pessoa abriu','pessoas abriram')+' a tela e não baixou'+(soAbriu.length>1?'am':'')+'</summary><div class="est-who">'+soAbriu.map(x => '<div><b>'+esc(x.nome)+'</b><span>'+tipoTxt(x.tipo)+' · abriu '+plural(x.n,'vez','vezes')+' · último '+dt(x.ult)+'</span></div>').join('')+'</div><p class="foot">Pode ter tirado print da tela em vez de baixar.</p></details>' : '')+
-    '</section>'+
-    '<section class="card"><span class="label">'+ic('share2')+'Qual modelo cada um escolhe</span>'+
-    '<div class="est-mods">'+GR.map(([m,n,d],i) => { const c = cnt(m), op = ui.estOpen===m, P2 = op ? agrupa(E.filter(x => x.modelo===m)).sort((a,b) => b.n-a.n || b.ult-a.ult) : null;
+    '<p class="ev2-frase"><b>'+plural(tot,'story postado','stories postados')+'</b>'+(tot ? ' por '+plural(new Set(E.map(x => x.uid||x.nome)).size,'pessoa') : '')+'.</p>'+
+    '<div class="est-mods">'+GR.map(([m,n,d],i) => { const c = cnt(m), op = ui.estOpen===m, P2 = op ? pessoas(m) : null;
       return '<div class="est-m'+(op?' on':'')+'"><button type="button" class="est-mh" data-a="estMod" data-v="'+m+'" aria-expanded="'+op+'"><span class="est-n">'+(i+1)+'</span><span class="est-t"><b>'+n+'</b><span>'+d+'</span></span><span class="est-v"><b>'+c+'</b>'+(tot ? Math.round(c/tot*100)+'%' : '')+'</span>'+ic('chev','chev')+'</button>'+
         '<span class="est-bar"><i style="width:'+Math.round(c/mx*100)+'%"></i></span>'+
-        (op ? (P2.length ? '<div class="est-who">'+P2.map(x => '<div><b>'+esc(x.nome)+'</b><span>'+tipoTxt(x.tipo)+' · '+acoes(x)+' · último '+dt(x.ult)+(Object.keys(x.cores).length ? ' · cor '+Object.keys(x.cores).sort((a,b) => x.cores[b]-x.cores[a]).map(k => ST_COR[k]||k).join(', ') : '')+'</span></div>').join('')+'</div>' : '<p class="foot">Ninguém baixou este modelo no período.</p>') : '')+'</div>'; }).join('')+'</div>'+
-    (menos && menos[1]<.2 ? '<p class="callout">'+ic('alert')+'<span>O modelo <b>'+menos[0]+'</b> está bem menos usado ('+Math.round(menos[1]*100)+'% dos comprovantes). Vale testar um visual novo para ele.</span></p>' : '')+
-    '<p class="foot">Conta cada toque em Baixar imagem ou Compartilhar no fim do treino ou do cardio (uma vez por modelo a cada abertura; no Boneco, foto e vídeo contam separados). Quem só abriu a tela aparece à parte. Vale para alunos com e sem personal.</p></section>';
+        (op ? (P2.length ? '<div class="est-who">'+P2.map(x => '<div><b>'+esc(x.nome)+'</b><span>'+tipoTxt(x.tipo)+' · '+plural(x.n,'vez','vezes')+' · último '+new Date(x.ult).toLocaleDateString('pt-BR')+(Object.keys(x.cores).length ? ' · cor '+Object.keys(x.cores).sort((a,b) => x.cores[b]-x.cores[a]).map(k => ST_COR[k]||k).join(', ') : '')+'</span></div>').join('')+'</div>' : '<p class="foot">Ninguém postou este modelo no período.</p>') : '')+'</div>'; }).join('')+'</div>'+
+    (menos && menos[1]<.2 ? '<p class="callout">'+ic('alert')+'<span>O modelo <b>'+menos[0]+'</b> está bem menos usado ('+Math.round(menos[1]*100)+'% dos stories). Vale testar um visual novo para ele.</span></p>' : '')+
+    '<p class="foot">Conta cada vez que alguém toca em Compartilhar ou Baixar imagem no fim do treino ou do cardio (uma vez por modelo a cada abertura; no Boneco, foto e vídeo contam separados). Vale para alunos com e sem personal.</p></section>';
   // próximas datas especiais
   const ok0 = (C.config.geral && C.config.geral.datasOk) || [], t00 = today();
   h += '<h3 class="sec">Datas especiais<span class="dot" aria-hidden="true"></span></h3><section class="card"><span class="label">'+ic('cake')+'Próximas datas para os stories</span><p class="muted">O lembrete aparece no Painel 10 dias antes de cada data.</p><div class="list">'+
@@ -2664,7 +2647,6 @@ function tAval(a){
   const table = L.length ? '<div class="tbl-wrap"><table class="tbl"><caption class="sr">Avaliações físicas</caption><thead><tr><th scope="col">Data</th><th scope="col">Peso kg</th><th scope="col">Gordura %</th><th scope="col">Magra kg</th>'+MEDIDAS.map(([,l]) => '<th scope="col">'+l+' cm</th>').join('')+'<th scope="col"><span class="sr">Ações</span></th></tr></thead><tbody>'+rows+'</tbody></table></div>' : '<p class="muted">Nenhuma avaliação ainda. Registre a primeira acima para acompanhar a evolução.</p>';
   return form+'<section class="card"><span class="label">'+ic('chart')+'Evolução</span>'+charts+table+'</section>';
 }
-IC.dl = '<path d="M12 4v11"/><path d="M7 10.5l5 5 5-5"/><path d="M5 20h14"/>';
 IC.share2 = '<circle cx="18" cy="5.5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="18.5" r="2.5"/><path d="M8.2 10.8l7.6-4.1M8.2 13.2l7.6 4.1"/>';
 IC.chart = '<path d="M5 19.5v-7M10.5 19.5v-14M16 19.5v-9.5M21.5 19.5H2.5"/>';
 function calcMM(){ const d = ui.draft.av, w = num(d.peso), g = num(d.gordura); return w!=null && g!=null ? '<b>'+fmtN(w*(1-g/100),1)+' kg</b>' : '<span class="calc-v">Peso e % de gordura</span>'; }
@@ -3113,7 +3095,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '11 nov · 103'; // Versão do painel: 11 nov · 103
+const PAINELV = '11 nov · 104'; // Versão do painel: 11 nov · 104
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
