@@ -125,20 +125,20 @@ O tempo é debitado **sempre em períodos inteiros** (o período da Recreação:
 
 A aba **Banco de horas** mostra todas as crianças com o saldo, a **última contratação** (quantas horas, valor e dia; tocar nela abre o histórico do cliente) e a situação. A busca acha por criança, responsável, telefone ou CPF. Quem foi cadastrado e ainda não comprou aparece como **Sem horas**. **"Para renovar" vale só para quem comprou pacote de horas** e ficou sem um período guardado, e só depois que saiu: quem compra a recreação avulsa não entra na lista, e ninguém é chamado enquanto a criança está no espaço. No topo, **Para renovar** lista quem zerou ou está acabando, com o aviso pronto: "As horas do Miguel acabaram. Chame a Carla (mãe) no WhatsApp para ver se quer renovar." O botão **Chamar no WhatsApp** abre a conversa com a mensagem de renovação já escrita (com os pacotes e preços de Ajustes): é conferir e enviar. Depois de chamada, o cartão mostra "Já chamada hoje às 14:20 por Beatriz", para ninguém chamar duas vezes. Quando o iDFace registra uma saída que zera o pacote, a tela avisa na hora com o mesmo botão. O selo na aba mostra quantas crianças estão para renovar.
 
-## 6c. Dicas do sistema
+## 6c. Avisos do sistema (o sininho no alto da tela inicial)
 
-Na tela inicial, logo abaixo da lista de quem está no espaço, o próprio sistema sugere o que fazer agora, uma frase e um botão por dica:
+O sistema continua avisando o que vale olhar agora, mas os avisos **não ocupam mais a tela inicial**: ficam no botão do **sininho**, no alto, com a contagem (em vermelho quando há algo importante). Um toque abre a lista, uma frase e um botão por aviso:
 
-- **Cobrança por atraso** de quem ainda está no espaço: "Alice passou do tempo comprado: nova cobrança por atraso. R$ 80 a receber de Juliana na saída."
+- **Cobrança por atraso** de quem ainda está no espaço: "ALICE passou do tempo comprado: nova cobrança por atraso. R$ 80 a receber de JULIANA na saída."
 - **Entradas canceladas** para a supervisão conferir.
-- **Pacote de horas acabado** (só para quem comprou pacote e já saiu), com o botão **Mandar mensagem**. Nenhuma dica manda chamar o responsável por causa do tempo de quem está no espaço.
+- **Pacote de horas acabado** (só para quem comprou pacote e já saiu), com o botão **Mandar mensagem**. Nenhum aviso manda chamar o responsável por causa do tempo de quem está no espaço.
 - **Família esperando resposta** no WhatsApp há mais de 3 minutos, com o botão **Responder**.
 - **iDFace sem contato** ou **WhatsApp desconectado**: o que impede o sistema de trabalhar sozinho.
 - **Agenda**: o que começa nas próximas 2 horas.
 - **Cadastro**: criança sem rosto no iDFace, ou com o acesso bloqueado mas com saldo (só com o iDFace ligado em Ajustes).
 - **Quem sumiu**: criança com horas guardadas que não vem há 14 dias ou mais.
 
-Aparecem as 3 mais importantes, com "Ver as N dicas" para o resto. Cada dica pode ser dispensada no X (vale para o dia, naquele aparelho). Quem já foi chamado para renovar nos últimos 3 dias não volta a aparecer.
+Cada aviso pode ser dispensado no X (vale para o dia, naquele aparelho). Sem avisos, o sininho some. Quem já foi chamado para renovar nos últimos 3 dias não volta a aparecer. A nova cobrança por atraso e a entrada cancelada continuam aparecendo também no aviso rápido do pé da tela, em qualquer aba.
 
 ## 6d. Bonequinhos (Ajustes → Aparência)
 
@@ -163,24 +163,24 @@ Para quando a criança entra e desiste logo (chorou, não quis ficar, o respons�
 - **Ajustes → Regra das horas → Cancelar a entrada sem cobrar** muda o prazo (5, 9, 10 ou 15 min) ou deixa só para a supervisão.
 - Com o iDFace ligado, o rosto lido nos 10 minutos seguintes ao cancelamento não vira entrada de novo (é a criança saindo).
 
-## 6f. Tela inicial: quem está no espaço
+## 6f. Tela inicial: só a lista de quem está no espaço
 
-A primeira tela (aba **Espaço**) é a **lista de todas as crianças que estão no espaço**, uma linha por criança, com o tempo correndo. Num computador de 1366 x 768 cabem 30 sem rolar, em três colunas; o resto aparece rolando um pouco.
+A primeira tela (aba **Espaço**) é **só a lista das crianças que estão no espaço**, uma linha por criança. Num computador cabem cerca de 30 sem rolar, em três colunas. Tudo o mais abre ao tocar na criança.
 
-- Cada linha é a "comanda" da criança. Em cima: a **sapateira**, o **nome** (com um sininho vermelho se há restrição ou observação: um toque nele mostra o que é), o **tempo que ela está no espaço** (correndo segundo a segundo) e o botão **Saída**. Embaixo: o **nome do responsável** em destaque, a **hora da entrada**, o **saldo** e **até que horas vai o tempo comprado**. Uma barrinha embaixo enche conforme o tempo passa.
+- **Cada linha mostra só o essencial**: o **nome da criança**, o **nome do responsável** embaixo, o **tempo que ela está no espaço** (correndo segundo a segundo) e o botão **Saída**.
+- **A cor diz a situação**: verde = no tempo; amarela = acabando (faltam 10 min ou menos); vermelha = passou do tempo comprado. O tempo fica da mesma cor. Parando o mouse no tempo, aparece até que horas vai (ou quanto passou).
+- **Só aparecem na linha quando existem**: o **sininho vermelho** (há observação: um toque mostra o que é) e o selo **+ R$ 80** (há cobrança por atraso a receber).
 - **O responsável aparece sempre.** Com três PEDRO no espaço, é o nome do responsável que diz qual é qual.
-- **Crianças do mesmo responsável ficam juntas**: uma embaixo da outra, dentro da mesma moldura, com um elo ao lado do nome do responsável. O sistema junta quem tem o mesmo CPF (ou RNE) do responsável; em cadastros sem documento, quem tem o mesmo telefone. A família fica no lugar da criança que vem primeiro na ordem escolhida.
-- **Saldo**: é o que fica guardado se a criança sair agora, já descontando a visita em curso (em períodos inteiros). Quem comprou só meia hora mostra "saldo 0h"; quem tem pacote mostra, por exemplo, "saldo 4h30", em destaque. O número acompanha o relógio.
-- **Cores**: verde = no tempo; amarelo = acabando (faltam 10 min ou menos); vermelho = passou do tempo comprado (a tolerância está correndo, e a linha mostra "passou 3:12"). Quem ganhou cobrança por atraso fica com o selo **+ R$ 80**.
-- De saída a lista vem por **Tempo**: quem está mais perto de estourar fica em cima. Dá para ordenar por **Entrada**, **Nome** ou **Sapateira**, e filtrar por *Acabando*, *Passou do tempo* e *Com cobrança*. Quando alguém saiu há pouco, aparece também **Saíram há pouco**, para reabrir a visita (seção 6m).
-- **Tocar na criança abre a ficha**: responsável, telefones, documento, restrições, sapateira, hora da entrada, até quando vai o tempo, quanto debita se sair agora, cobranças por atraso, histórico e os botões.
-- **O saldo na comanda**: na ficha, logo abaixo do tempo, ficam três números: **comprou**, **usou** e **saldo** (em destaque). O saldo é o que fica guardado se a criança sair agora e acompanha o relógio: cai sozinho a cada período que passa. Para quem está fora do espaço, é o que está guardado para a próxima visita. A folha da **Saída** também diz o "Saldo depois da saída", e o **Histórico do cliente** mostra o saldo de cada criança e o da família.
-- Acima da lista, a faixa **Falta finalizar** mostra quem ficou com o cadastro ou o atendimento pela metade (veja 6i). Ela só aparece quando há alguém nessa situação.
-- **Buscar** (criança, responsável, telefone ou CPF) filtra a lista e também acha quem tem cadastro e não está no espaço, com os botões **Entrada** (se tem um período guardado) e **Atender** (vender e dar entrada). A lista continua se atualizando sozinha com o cursor na busca.
-- Nos primeiros 9 minutos a linha traz o atalho de **cancelar** com o tempo que falta; o botão **Saída** abre a folha da saída.
-- Abaixo da lista ficam as dicas, as **Atividades da semana**, os números do dia (horas vendidas, horas usadas, cobranças por atraso) e o atalho para o Banco de horas, onde está quem não está no espaço.
-- **Atividades da semana**: o que está marcado na agenda de hoje até daqui a seis dias, separado por dia (Hoje, Amanhã, sexta 13…), para a equipe ver com facilidade o que vem. Em tela larga (1400 px ou mais) fica na coluna da direita, sempre à vista; em tela menor, na própria tela inicial. Dá para marcar como feito ali mesmo; **Agenda** abre o mês.
-- **Hoje na recepção** (cada entrada, saída, venda, cancelamento e mudança de estoque do dia) saiu da coluna da direita, mas continua a um toque: abre por qualquer um dos três cartões do pé da tela inicial (**Horas vendidas hoje**, **Horas usadas hoje**, **Cobranças por atraso hoje**). Cada linha traz o nome da criança e o do responsável.
+- **Crianças do mesmo responsável ficam juntas**: uma embaixo da outra, dentro da mesma moldura, com um elo ao lado do nome do responsável. O sistema junta quem tem o mesmo CPF (ou RNE) do responsável; em cadastros sem documento, quem tem o mesmo telefone.
+- **Tocar na linha abre a comanda** (a ficha), com tudo: responsável, telefones, documento, observação em vermelho, **sapateira**, hora da entrada, até quando vai o tempo, quanto debita se sair agora, os três números (**comprou**, **usou** e **saldo**), o **cancelar a entrada**, as cobranças por atraso, o histórico e os botões. A sapateira, o saldo, a hora da entrada e o atalho de cancelar saíram da linha: estão todos ali.
+- **Em cima da lista**, numa linha só: os filtros (**Todas** e, só quando há alguém, *Acabando*, *Passou do tempo*, *Com cobrança* e *Saíram há pouco*, este para reabrir a visita, seção 6m), a **busca** e a ordem (**Tempo**: quem está mais perto de estourar vem primeiro; ou **Nome**).
+- **Buscar** (criança, responsável, telefone ou CPF) filtra a lista e também acha quem tem cadastro e não está no espaço, com os botões **Entrada** (se tem um período guardado) e **Atender** (vender e dar entrada).
+- A faixa **Falta finalizar** só aparece quando alguém ficou com o cadastro ou o atendimento pela metade (veja 6i).
+- **No alto**: o **sininho** dos avisos (só quando há algum, seção 6c), **Pacotes e produtos** e **Entrada na tela**.
+- **Atividades da semana**: em tela larga (1400 px ou mais) ficam na coluna da direita, por dia, sempre à vista. Em tela menor e no celular viram **uma linha só** embaixo da lista ("Hoje: Oficina do Baleiro às 15:00 · mais 1 hoje · 3 nos próximos dias"); um toque abre os dias. Dá para marcar como feito ali mesmo.
+- **No pé**, dois atalhos: **Banco de horas** (quem não está no espaço) e **Hoje na recepção** (cada entrada, saída, venda, cancelamento e mudança de estoque do dia, com o nome da criança e o do responsável em cada linha).
+- **Os números do dia** (quanto foi vendido, as horas usadas e as cobranças por atraso) saíram da tela inicial: estão no alto de **Hoje na recepção**.
+- A folha da **Saída** diz o "Saldo depois da saída", e o **Histórico do cliente** mostra o saldo de cada criança e o da família.
 
 ## 6g. Cobrança por atraso
 
