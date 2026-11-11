@@ -1161,7 +1161,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.95';
+const VERSAO = '0.96';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -2263,13 +2263,14 @@ let N_SAIRAM = 0;   // quantos estavam em "Saíram há pouco" na última conta (
 function gruposEspaco(L) { const G = []; for (const x of L) { const g = G.find(k => mesmoCliente(k[0].c, x.c)); if (g) g.push(x); else G.push([x]); } return G; }
 // a linha de cada criança na tela inicial: o nome dela, o do responsável (com três Pedros, é ele que diz qual é qual), o tempo correndo
 // com "até quando" embaixo, e a Saída. A bolinha diz a situação: verde no tempo, amarela acabando, vermelha (e a linha rosada) quando passou.
-// O OBS vermelho só aparece se há observação (o texto fica escondido até alguém tocar); o selo "+ R$", se há cobrança por atraso a receber.
+// O OBS vermelho só aparece se há observação (o texto fica escondido até alguém tocar). A cobrança por atraso não aparece na linha (0.96):
+// o valor fica só no total, no pagamento da saída, para a equipe não confundir.
 function linhaEspaco(c, fam = 1) {
   const st = situacaoTempo(c), at = c.atraso && c.atraso.n ? c.atraso : null, abre = `data-act="ficha" data-id="${c.id}"`, pl = planoDe(c) === 'pacote' ? 'pacote' : 'avulso';
   return `<div class="esp-it ${st}${at ? ' cobranca' : ''}${S.chegou === c.id ? ' chegou' : ''}" data-esp="${c.id}">
     <button class="quem tap" ${abre} aria-label="Abrir a comanda de ${esc(c.nome)}, responsável ${esc(c.resp)}"></button>
     <i class="pt" aria-hidden="true"></i>
-    <span class="l1" ${abre}><b>${esc(c.nome)}</b>${c.obs ? `<button type="button" class="obs obs-bt on mini tap" data-act="obs-ver" data-id="${c.id}" title="Tem observação: toque para ver" aria-label="Ver a observação de ${esc(c.nome)}">OBS</button>` : ''}${at ? `<em class="cb" title="${at.n === 1 ? 'Cobrança por atraso' : at.n + ' cobranças por atraso'}: a receber na saída">+ ${brl(at.valor)}</em>` : ''}</span>
+    <span class="l1" ${abre}><b>${esc(c.nome)}</b>${c.obs ? `<button type="button" class="obs obs-bt on mini tap" data-act="obs-ver" data-id="${c.id}" title="Tem observação: toque para ver" aria-label="Ver a observação de ${esc(c.nome)}">OBS</button>` : ''}</span>
     <span class="l2" ${abre} title="Responsável${fam > 1 ? ' · ' + fam + ' juntos' : ''}">${fam > 1 ? `<i class="elo">${ic(IC.elo, 11, 2.6)}</i>` : ''}${esc(c.resp || 'sem responsável')}<i class="sv-m"> · ${pl === 'pacote' ? 'PACOTE' : 'AVULSA'}</i></span>
     <span class="sv" ${abre}><span>${esc((servicoTempo() || { n: 'RECREAÇÃO' }).n)}</span><i class="sel ${pl}">${pl === 'pacote' ? 'PACOTE' : 'AVULSA'}</i></span>
     <span class="en num" ${abre}>${hora(c.entrou)}</span>

@@ -179,7 +179,7 @@ Para quando a criança entra e desiste logo (chorou, não quis ficar, o respons�
 A primeira tela (aba **Espaço**) mostra **todo mundo numa lista, uma linha por cliente**, como uma planilha:
 
 - a **situação**: bolinha verde = no tempo; amarela = acabando (faltam 10 min ou menos); vermelha, com a linha rosada = passou do tempo comprado. No que saiu da loja (carrinho, fusquinha), no lugar da bolinha fica o desenho do carrinho;
-- a **criança**, com o **OBS** vermelho quando há observação (o texto só aparece com um toque, seção 6q) e o selo **+ R$ 80** quando há cobrança por atraso a receber;
+- a **criança**, com o **OBS** vermelho quando há observação (o texto só aparece com um toque, seção 6q). A cobrança por atraso **não aparece na linha**: o valor fica só no total, no pagamento da saída (seção 6r), para a equipe não confundir;
 - o **responsável** (com três PEDRO no espaço, é ele que diz qual é qual);
 - o **serviço**: RECREAÇÃO, com o selo **AVULSA** ou **PACOTE**; ou o que saiu da loja (CARRINHO FUSQUINHA, CARRINHO DE BEBÊ);
 - a hora em que **entrou**;
@@ -210,7 +210,7 @@ O resto da tela continua igual:
 
 Quando a criança continua no espaço depois do **tempo comprado mais a tolerância** (30 min + 9 = 39:00), o sistema registra sozinho **mais um período** (Recreação +0h30, R$ 80). Se ela continuar, depois de mais 30 min e da tolerância (1h09) nasce outro, e assim por diante.
 
-- **Todo mundo fica sabendo**: aviso em todas as telas abertas ("Nova cobrança por atraso: Alice passou do tempo comprado · R$ 80 a receber na saída"), uma dica, o selo **+ R$ 80** na linha da criança e a linha "Nova cobrança por atraso: ficou além do tempo comprado" em Hoje na recepção. A venda entra no histórico do cliente marcada como *cobrança por atraso*.
+- **Todo mundo fica sabendo**: aviso em todas as telas abertas ("Nova cobrança por atraso: Alice passou do tempo comprado · R$ 80 a receber na saída"), uma dica e a linha "Nova cobrança por atraso: ficou além do tempo comprado" em Hoje na recepção. A venda entra no histórico do cliente marcada como *cobrança por atraso*.
 - **Na saída**, a tela de pagamento mostra o valor a receber e pede a forma de pagamento; com a forma escolhida, o botão vira **Recebi R$ 80 no Pix · dar saída** (seção 6r).
 - Quem gera a cobrança é o servidor, a cada poucos segundos enquanto alguma tela estiver aberta, e de novo na saída: mesmo com tudo fechado, a conta fecha certa.
 - **Saída esquecida** (a criança foi embora e ninguém marcou): Gestor ou Supervisor usa **Saída com outra hora** (na ficha ou na folha da saída), escreve a hora em que ela saiu de verdade e o motivo. O tempo é refeito e as cobranças por atraso que sobraram são desfeitas. Se a saída já foi marcada, a ficha tem **Corrigir** ao lado da visita (últimos dois dias). Tudo fica anotado em Hoje na recepção.
