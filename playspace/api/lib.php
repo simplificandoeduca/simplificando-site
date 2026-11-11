@@ -150,6 +150,18 @@ function db(): PDO {
     } catch (Throwable $e) { }
     $pdo->exec('PRAGMA user_version = 14');
   }
+  if ($v < 15) { // 0.83: entram os pacotes do sistema que a loja usava. Quem já estava na tabela com o mesmo tempo e valor (o de 5 h por R$ 420) só ganha o nome
+    try {
+      $q = $pdo->query("SELECT valor FROM config WHERE chave = 'regra'")->fetchColumn(); $rg = $q !== false ? json_decode((string)$q, true) : null; if (!is_array($rg)) $rg = [];
+      $ps = array_values(array_filter((array)($rg['pacotes'] ?? []), fn($p) => is_array($p) && (int)($p['h'] ?? 0) > 0));
+      foreach (PACOTES_DO_SISTEMA_ANTIGO as [$h, $val, $nome]) { $achou = false;
+        foreach ($ps as $k => $p) if ((int)$p['h'] === $h && abs((float)($p['v'] ?? 0) - $val) < 0.005) { $achou = true; if (trim((string)($p['nome'] ?? '')) === '') $ps[$k]['nome'] = $nome; break; }
+        if (!$achou) $ps[] = ['h' => $h, 'v' => $val, 'tipo' => 'seco', 'nome' => $nome]; }
+      $ord = []; foreach ($ps as $p) { $p['h'] = (int)$p['h']; $p['tipo'] = tipoPacote($p); $ord[chavePacote($p)] = $p; } ksort($ord); $rg['pacotes'] = array_values($ord);
+      $pdo->prepare("INSERT INTO config (chave, valor) VALUES ('regra', ?) ON CONFLICT(chave) DO UPDATE SET valor = excluded.valor")->execute([json_encode($rg, JSON_UNESCAPED_UNICODE)]);
+    } catch (Throwable $e) { }
+    $pdo->exec('PRAGMA user_version = 15');
+  }
   return $pdo;
 }
 function cfg(string $k, $padrao = null) { $q = db()->prepare('SELECT valor FROM config WHERE chave = ?'); $q->execute([$k]); $v = $q->fetchColumn(); return $v === false ? $padrao : json_decode((string)$v, true); }
@@ -177,7 +189,14 @@ const PACOTES_DA_LOJA = [['h' => 5, 'v' => 420, 'tipo' => 'seco']];
 const PACOTES_DA_TABELA_ANTIGA = [[5, 680.0, 3], [10, 1220.0, 4], [15, 1720.0, 4]];
 // o tipo de um pacote: 'produto' (vem com o produto, que já está no valor) ou 'seco' (só as horas). Pacote antigo, sem o tipo: é "com produto" se tem o nome do produto
 function tipoPacote(array $p): string { return ($p['tipo'] ?? (trim((string)($p['com'] ?? '')) !== '' ? 'produto' : 'seco')) === 'produto' ? 'produto' : 'seco'; }
-function chavePacote(array $p): string { return sprintf('%05d-%d', (int)$p['h'], tipoPacote($p) === 'produto' ? 0 : 1); }   // a ordem da lista: por horas, com produto antes do seco
+// a ordem da lista (e o que faz dois pacotes serem o mesmo): por horas, depois por valor, com produto antes do seco, e o nome
+function chavePacote(array $p): string { return sprintf('%05d-%012.2f-%d-%s', (int)$p['h'], (float)($p['v'] ?? 0), tipoPacote($p) === 'produto' ? 0 : 1, mb_strtolower(trim((string)($p['nome'] ?? '')))); }
+// os pacotes do sistema que a loja usava (tela "Venda de pacotes de tempo", novembro de 2026): [horas, valor da coluna Valor, o nome que tinham lá]
+const PACOTES_DO_SISTEMA_ANTIGO = [[2, 280.0, '02 HORAS 260'], [3, 225.0, '03 HORAS 360'], [4, 380.0, '04 HORAS 420'], [5, 390.0, '05 HORAS 360 ESPECIAL'], [5, 500.0, '05 HORAS 380'], [5, 420.0, 'PACOTE 05 HORAS 420'], [5, 480.0, '05 HORAS 450'], [10, 820.0, '10 HORAS 840']];
+// como a venda de um pacote com nome aparece: o nome vira o "serviço" da venda ("Pacote 05 HORAS 380 · 5h")
+function servicoDoPacote(array $p): string { $n = trim((string)($p['nome'] ?? '')); return $n === '' ? '' : (preg_match('/^pacote\b/iu', $n) ? $n : 'Pacote ' . $n); }
+function itensDoPacote(array $p): string { $prod = tipoPacote($p) === 'produto'; $com = trim((string)($p['com'] ?? ''));
+  return trim((string)($p['nome'] ?? '')) === '' ? ($prod ? ($com ?: 'produto') : 'seco') : ($prod ? 'com ' . ($com ?: 'produto') : ''); }
 // como a venda de um pacote aparece: "Pacote de 5h com produto", "Pacote seco de 5h", "Hora avulsa"
 function nomePacoteVenda(int $min, string $itens): string { if ($itens === 'seco') return 'Pacote seco de ' . dur($min); return ($min === 60 ? 'Hora avulsa' : 'Pacote de ' . dur($min)) . ($itens !== '' ? ' com ' . $itens : ''); }
 const PACOTES_DE_EXEMPLO = [['h' => 1, 'v' => 60], ['h' => 5, 'v' => 250], ['h' => 10, 'v' => 450], ['h' => 20, 'v' => 800]];   // inventados nas primeiras versões: saem sozinhos se ninguém mexeu neles

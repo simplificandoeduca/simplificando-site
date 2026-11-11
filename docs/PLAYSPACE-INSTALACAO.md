@@ -227,19 +227,29 @@ O que é de todos os aparelhos e o que é de cada um:
 
 No alto da tela inicial, ao lado de **Entrada na tela**, o botão vermelho **Pacotes** abre a tabela de preços para mostrar ao cliente. As horas do pacote não têm prazo para usar.
 
-A tabela tem as colunas **Horas, Pacote, Hora, Meia hora e Parcela** (o valor da hora, da meia hora e da parcela o sistema calcula sozinho), em dois blocos, porque cada tamanho pode ter **dois preços**:
+A tabela vem **por tempo e, dentro do mesmo tempo, por valor**, com as colunas **Tempo, Valor, Hora, Meia hora** e o **nome do pacote**. O tempo aparece em horas (2h, 5h, 10h): não há coluna de minutos. O valor da hora e da meia hora o sistema calcula sozinho. Se algum pacote parcela, aparece também a coluna **Parcela**.
 
-- **Com produto**: o cliente leva o produto junto (o "brinde"), que já está no valor do pacote. É a tabela principal.
-- **Seco**: só as horas, sem o produto.
+Pacotes que já vêm instalados (os da tela "Venda de pacotes de tempo" do sistema que a loja usava, em novembro de 2026):
 
-Os tamanhos da loja são **5, 10, 15, 20 e 30 horas**.
+| Tempo | Valor | Hora | Meia hora | Nome no sistema antigo |
+|---|---|---|---|---|
+| 2h | R$ 280 | R$ 140 | R$ 70 | 02 HORAS 260 |
+| 3h | R$ 225 | R$ 75 | R$ 37,50 | 03 HORAS 360 |
+| 4h | R$ 380 | R$ 95 | R$ 47,50 | 04 HORAS 420 |
+| 5h | R$ 390 | R$ 78 | R$ 39 | 05 HORAS 360 ESPECIAL |
+| 5h | R$ 420 | R$ 84 | R$ 42 | PACOTE 05 HORAS 420 |
+| 5h | R$ 480 | R$ 96 | R$ 48 | 05 HORAS 450 |
+| 5h | R$ 500 | R$ 100 | R$ 50 | 05 HORAS 380 |
+| 10h | R$ 820 | R$ 82 | R$ 41 | 10 HORAS 840 |
 
-- **Valores**: só vem instalado o **pacote seco de 5 h, R$ 420**. Os outros a gestora coloca: na aba Pacotes, cada tamanho sem valor mostra **colocar o valor** (só para ela); um toque abre o cadastro já no tamanho e no tipo certos. O lápis no fim da linha muda um valor que já existe. Também dá para fazer tudo em **Ajustes → Pacotes de horas**. Pacote sem valor não aparece para a atendente nem no atendimento.
-- A versão 0.81 chegou a instalar três valores "com produto" (5 h, 10 h e 15 h) tirados de uma tabela antiga. Na atualização para a 0.82 eles **saem sozinhos**, a não ser que a gestora já tenha mexido neles.
-- No cadastro do pacote: o **tipo**, as **horas**, o **valor**, em **quantas vezes parcela** e, no pacote com produto, **qual é o produto** (opcional; aparece na venda). A linha de baixo mostra o valor da hora, da meia hora e da parcela, para conferir com a tabela da loja.
-- **Vender** continua no atendimento do cliente: os pacotes aparecem lá, em dois grupos, é só tocar. A venda fica anotada como "Pacote de 10h com produto" ou "Pacote seco de 5h", em Hoje na recepção e no histórico.
+- **O valor é o da coluna "Valor" do sistema antigo.** Em sete dos oito pacotes o número que está no nome não bate com esse valor (ex.: "05 HORAS 380" custa R$ 500). O nome ficou como estava, só para a equipe reconhecer o pacote; a gestora troca o nome ou o valor quando quiser.
+- **Mudar a tabela**: só a gestora. Na aba Pacotes, o **lápis** no fim da linha abre o pacote e **Novo pacote** cria outro; também dá para fazer em **Ajustes → Pacotes de horas**.
+- No cadastro do pacote: as **horas**, o **valor**, o **nome** (opcional; serve para separar pacotes do mesmo tempo), o **tipo** (só as horas, ou com produto: o cliente leva o produto, que já está no valor), em **quantas vezes parcela** e, no pacote com produto, **qual é o produto**. Pode haver vários pacotes do mesmo tempo.
+- Quando a loja tem pacotes **com produto** e pacotes **só de horas**, a aba e o atendimento mostram cada tipo no seu bloco.
+- **Vender** continua no atendimento do cliente: os pacotes aparecem lá, por tempo e valor, é só tocar. A venda fica anotada com o nome do pacote ("Pacote 05 HORAS 380 · 5h · R$ 500"), em Hoje na recepção e no histórico.
 - **Criança PCD não tem desconto em pacote** (seção 6h). O voucher junta com o pacote: a primeira meia hora sai do voucher e o resto das horas do pacote.
 - Se a gestora mudar a tabela enquanto um atendimento está aberto em outro aparelho, a venda não troca de pacote sozinha: o sistema avisa "O valor do pacote mudou" e pede para abrir o atendimento de novo.
+- Histórico das versões: a 0.81 instalou três valores "com produto" de uma tabela antiga, que a 0.82 tirou; a 0.83 instala a tabela acima. Quem já tinha o pacote de 5 h por R$ 420 não fica com ele em dobro.
 
 ## 6k. Como o tempo aparece
 
