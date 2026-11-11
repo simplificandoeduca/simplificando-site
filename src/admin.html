@@ -714,6 +714,7 @@ h3.sec{font-size:22px;margin:14px 2px -2px}
 .code span{background:var(--ctl)}
 /* folhas */
 .sheet .card{box-shadow:inset 0 0 0 1px var(--card-line)}
+.pf-tag.inc{background:#FFE9C7;color:#7A4A00}
 /* comentários e estatísticas */
 .cm-r{align-items:flex-start}.cm-r .ini{width:38px;height:38px;font-size:13px}.cm-r .main-t b{white-space:normal}
 .cm-q{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px}.cm-c{color:var(--fg)!important;font-size:14px!important}.cm-d{font-size:12px!important}
@@ -3061,7 +3062,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '10 nov · 96'; // Versão do painel: 10 nov · 96
+const PAINELV = '11 nov · 97'; // Versão do painel: 11 nov · 97
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -3149,7 +3150,7 @@ function pfList(){
   return L.map(r => {
     const al = r.sexo==='M' ? 'Aluno' : r.sexo==='F' ? 'Aluna' : 'Aluno(a)';
     const tag = r.k==='com' ? '<span class="pf-tag com">'+ic('users')+al+' do personal '+esc(nomeDono())+'</span>'
-      : '<span class="pf-tag sem">'+ic('user')+'Treina sem personal'+(r.plano==='ia' ? ' · treino da IA' : r.plano==='meu' ? ' · monta o próprio treino' : '')+'</span>'+(r.acomp ? '<span class="pf-tag acomp">'+ic('eye')+'Você acompanha</span>' : '');
+      : '<span class="pf-tag sem">'+ic('user')+'Treina sem personal'+(r.plano==='ia' ? ' · treino da IA' : r.plano==='meu' ? ' · monta o próprio treino' : '')+'</span>'+(!r.plano ? '<span class="pf-tag inc">'+ic('alert')+'Cadastro incompleto</span>' : '')+(r.acomp ? '<span class="pf-tag acomp">'+ic('eye')+'Você acompanha</span>' : '');
     const uso = r.last ? (pfUsando(r) ? 'Usando o app' : 'Parado')+' · último acesso '+pfQuando(r.last)
       : r.k==='com' ? (r.conta ? 'Ainda não entrou no app' : 'Acesso ao app ainda não liberado') : 'Sem registro de acesso';
     const extra = r.k==='com' ? (r.conta && !r.liberado ? ' · acesso bloqueado' : '')+(r.status!=='ativo' ? ' · '+esc(STATUS[r.status]||r.status) : '')+(r.exemplo ? ' · exemplo' : '') : (r.email ? ' · '+esc(r.email) : '');

@@ -1669,7 +1669,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '10 nov · 96'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '11 nov · 97'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -2891,6 +2891,7 @@ async function suConta(){
   suBusy(false);
   if(r.err) return suErr(r.err);
   LG.uid = r.uid; LG.uidMail = email; LG.serr = ''; LG.step = 2; renderLogin(); suTop();
+  if(FB) FB.perfil({ tipo:'autonomo', nome:cleanName(f.nome), email, plano:'', treinos:0, criadoEm:Date.now(), ultimoAcesso:Date.now(), ver:APPV });
 }
 async function suEntrar(){
   const e = LG.en, email = e.email.trim().toLowerCase();
@@ -2914,6 +2915,7 @@ async function suEntrar(){
   }
   // conta criada, mas o perfil ficou pela metade: segue o cadastro
   LG.uid = r.uid; LG.uidMail = email; LG.f.email = email; if(!LG.f.nome) LG.f.nome = r.nome || '';
+  if(FB) FB.perfil({ tipo:'autonomo', nome:cleanName(LG.f.nome)||'', email, ultimoAcesso:Date.now(), ver:APPV });
   LG.view = 'setup'; LG.step = 2; LG.serr = ''; renderLogin(); suTop();
 }
 async function suForgot(){
