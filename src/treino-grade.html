@@ -1673,7 +1673,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '11 nov · 100'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '11 nov · 101'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -5124,6 +5124,9 @@ function stSet(k,v){ const s = ui.sheet; s[k] = v; s.blob = null; PREF[k==='m'?'
 /* ---------- story do cardio: Boneco (foto ou vídeo), Bilhete, Semana e Pulso, em canvas 1080×1920 ---------- */
 const CST_MODS = [['cbon','Boneco','O boneco em movimento'],['cbil','Bilhete','Do sofá para a meta'],['csem','Semana','Seus minutos da semana'],['cpul','Pulso','Batimento e tempo']];
 const CST_COR0 = { cbon:'lilas', cbil:'preto', csem:'branco', cpul:'preto' };
+// frase do Boneco: muda todo dia (a mesma o dia inteiro, na foto e no vídeo)
+const CST_FRASES = ['Bora que é cardio','Cardio feito, mente leve','O coração agradece','Hoje teve suor','Fôlego em dia','Um passo de cada vez','Mais leve que ontem','Corpo em movimento','Constância vence','Missão cumprida','Hoje eu fui','Sem desculpa hoje','Suor que vale a pena','Disciplina em dia','Ritmo bom','A meta está mais perto','Mexer é viver','Energia renovada','Feito é melhor que perfeito','Pulso firme','Saúde em primeiro lugar','Cada minuto conta','O sofá perdeu','Foco no processo','Mais um pra conta','Cansaço bom','Bati o ponto no cardio','Hoje foi dia de cardio','O pulmão agradece','Devagar e sempre'];
+const cFrase = D => { const t = parse(D.date); const n = Math.floor((Date.UTC(t.getFullYear(), t.getMonth(), t.getDate()))/864e5); return CST_FRASES[((n % CST_FRASES.length) + CST_FRASES.length) % CST_FRASES.length]; };
 const CST_DE = { Esteira:'de esteira', Bicicleta:'de bike', Rua:'na rua', Escada:'de escada', 'Elíptico':'de elíptico', Outro:'de cardio' };
 function cPal(cor){
   const P = {
@@ -5178,7 +5181,7 @@ function cDraw(c, D, m, cor, o){
     stTxt(c,'min',90+w+24,560,'900 80px '+ST_SANS,P.tx); stTxt(c,(CST_DE[D.local]||'de cardio')+hoje,90+w+24,470,'700 40px '+ST_SANS,P.sub);
     c.fillStyle = P.paper; stRR(c,60,640,960,640,64); c.fill();
     if(!(o && o.sem)){ cLinhas(c,P,null); cBoneco(c,90,690,900,583,D,o && o.phase,o && o.dt); }
-    cTitulo(c,'Bora que é cardio',1420,96,P.tx,P.dot);
+    cTitulo(c,cFrase(D),1420,96,P.tx,P.dot);
     const pills = (D.km ? [D.kmT+' km','pace '+D.pace+'/km'] : [D.intT,D.min+' min']).concat([D.zona]);
     c.font = '800 40px '+ST_SANS; const ws = pills.map(t => c.measureText(t).width+72), tot = ws.reduce((a,b) => a+b,0)+2*20; let x = 540-tot/2;
     const pc = [[P.pan,P.panTx],[P.paper,STC.dk],[cor==='verde'?STC.dk:STC.lm, cor==='verde'?STC.lm:STC.dk]];
