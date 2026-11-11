@@ -40,7 +40,7 @@ rep("""<h3 class="sec">Precisa de atenção<span class="dot" aria-hidden="true">
 
 AGENDA = r'''
 /* ---------- versão de teste: botão "Cliente teste" e o app dos alunos simulado ---------- */
-const DEMO_K = 'simp-teste-app';
+const DEMO_K = 'simp-teste-app', SITE_TESTE = /^https?:$/.test(location.protocol) && /\/teste\/?/.test(location.pathname);
 const DEMO = {
   get(){ try { const v = JSON.parse(localStorage.getItem(DEMO_K)||'null'); if(v && typeof v==='object') return v; } catch(e){ /* sem armazenamento */ } return { prog:{}, sto:[], sug:[] }; },
   put(v){ try { localStorage.setItem(DEMO_K, JSON.stringify(v)); } catch(e){ /* sem armazenamento */ } },
@@ -56,7 +56,7 @@ function demoCard(){
   const tem = temDemo();
   return '<section class="card demo-c"><div class="card-h"><span class="label">'+ic('flag')+'Versão de teste</span>'+(tem ? '<span class="pill acc">Clientes de teste no painel</span>' : '')+'</div>'+
     '<p class="muted">'+(tem ? 'Estes alunos são fictícios, com treinos, agenda, pagamentos e uso do app simulados. Apague quando quiser começar do zero.' : 'O painel começa vazio. Toque em Cliente teste para criar alguns alunos fictícios e ver tudo funcionando: agenda, treinos, evolução e números.')+'</p>'+
-    '<div class="btn-row">'+(tem ? armBtn('demoWipe','x','Apagar dados de teste','Toque de novo para apagar','','trash') : '<button type="button" class="btn primary" data-a="demoSeed">'+ic('users')+'Cliente teste</button>')+'</div></section>';
+    '<div class="btn-row">'+(tem ? armBtn('demoWipe','x','Apagar dados de teste','Toque de novo para apagar','','trash') : '<button type="button" class="btn primary" data-a="demoSeed">'+ic('users')+'Cliente teste</button>')+(SITE_TESTE ? '<button type="button" class="btn ghost" data-a="demoSair">'+ic('chevL')+'Sair do teste</button>' : '')+'</div></section>';
 }
 const DOW_K = ['dom','seg','ter','qua','qui','sex','sab'];
 const ATEND = { presencial:'Presencial', online:'Online' };
@@ -169,6 +169,7 @@ rep("    case 'estLida':", """    case 'agD': ui.agD = d.v; break;
     case 'agDel': { if(!A) break; A.perfil.horarios = (A.perfil.horarios||[]).filter((_,i) => i!==+d.k); Store.save('alunos',ui.aluno,0); break; }
     case 'demoSeed': demoSeed(); ui.view = 'painel'; break;
     case 'demoWipe': demoWipe(); break;
+    case 'demoSair': try { localStorage.removeItem('simp-teste-ok'); sessionStorage.removeItem('simp-teste-ok'); } catch(e){} location.href = '../'; return false;
     case 'estLida':""")
 # o botão "apagar" de duas etapas (armBtn) precisa do primeiro toque
 rep("'applyToAluno','wipeEx']);", "'applyToAluno','wipeEx','demoWipe']);")
@@ -230,3 +231,12 @@ k = s.index('</style>'); s = s[:k] + CSS + s[k:]
 os.makedirs(R+'produto', exist_ok=True)
 open(R+'produto/painel-personal-teste.html', 'w').write(s)
 print('ok produto/painel-personal-teste.html', len(s)//1024, 'KB')
+# no site: /personal/teste/ (só abre depois do login de teste na tela do painel)
+web = s.replace('<meta name="theme-color" content="#0F1712">', '''<meta name="theme-color" content="#0F1712">
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" sizes="192x192" href="../icon-p-tab-192.png">
+<link rel="apple-touch-icon" href="../icon-p-180.png">
+<script>try { if(!localStorage.getItem('simp-teste-ok') && !sessionStorage.getItem('simp-teste-ok')) location.replace('../'); } catch(e){ location.replace('../'); }</script>''', 1)
+os.makedirs(R+'site/personal/teste', exist_ok=True)
+open(R+'site/personal/teste/index.html', 'w').write(web)
+print('ok site/personal/teste/index.html')

@@ -3095,7 +3095,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '11 nov · 104'; // Versão do painel: 11 nov · 104
+const PAINELV = '11 nov · 105'; // Versão do painel: 11 nov · 105
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -4435,6 +4435,22 @@ function gateFirebase(){
   }
   function view(){
     const first = st.first;
+    if(st.teste && !first){ // login da versão de teste (para outros personais conhecerem o painel)
+      g.innerHTML = `<div class="gate-in"><span class="gate-logo">${logo()}</span>
+        <p class="gate-eb">Versão de teste</p>
+        <h1>Testar o painel<span class="dot" aria-hidden="true"></span></h1>
+        <p class="gate-sub">Para personais conhecerem o painel. Os dados ficam só neste aparelho.</p>
+        <div class="wave-strip" aria-hidden="true">${WAVE}</div>
+        <form data-gate="form" novalidate>
+          <label for="g-u">Usuário<div class="gate-f"><input id="g-u" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Usuário de teste" required></div></label>
+          <label for="g-p">Senha${pw('g-p', 'Senha de teste', 'off')}</label>
+          <label class="gate-chk"><input type="checkbox" id="g-keep" checked>Continuar conectado neste aparelho</label>
+          <p class="gate-err" id="g-err" aria-live="polite"></p>
+          <button type="submit" class="gate-go">Entrar no teste</button>
+        </form>
+        <button type="button" class="gate-link" data-gate="teste">Voltar para o login do painel</button></div>`;
+      return;
+    }
     g.innerHTML = `<div class="gate-in"><span class="gate-logo">${logo()}</span>
       <p class="gate-eb">${first?'Primeiro acesso':'Painel do personal'}</p>
       <h1>${first?'Crie seu acesso':'Entrar'}<span class="dot" aria-hidden="true"></span></h1>
@@ -4448,7 +4464,7 @@ function gateFirebase(){
         <p class="gate-err${st.ok?' ok':''}" id="g-err" aria-live="polite">${esc(st.msg)}</p>
         <button type="submit" class="gate-go">${first?'Criar acesso e entrar':'Entrar'}</button>
       </form>
-      ${first?'':`<button type="button" class="gate-link" data-gate="forgot">Esqueci a senha</button>`}
+      ${first?'':`<button type="button" class="gate-link" data-gate="forgot">Esqueci a senha</button><button type="button" class="gate-link" data-gate="teste">Sou personal e quero testar o painel</button>`}
       <p class="gate-note">Seus alunos e treinos ficam salvos online. Entre com este e-mail em qualquer celular ou computador.</p></div>`;
   }
   function say(msg, ok){ st.msg = msg; st.ok = !!ok; const e = document.getElementById('g-err'); if(e){ e.textContent = msg; e.classList.toggle('ok', !!ok); } }
@@ -4467,6 +4483,7 @@ function gateFirebase(){
     const b = ev.target.closest('[data-gate]'); if(!b) return;
     const k = b.getAttribute('data-gate');
     if(k==='eye'){ st.show = !st.show; g.querySelectorAll('#g-p,#g-p2').forEach(i => { i.type = st.show ? 'text' : 'password'; }); g.querySelectorAll('.gate-eye').forEach(e => e.setAttribute('aria-label', st.show ? 'Esconder senha' : 'Mostrar senha')); }
+    if(k==='teste'){ st.teste = !st.teste; st.msg = ''; view(); setTimeout(() => { const u = document.getElementById('g-u'); if(u) u.focus(); }, 50); return; }
     if(k==='forgot'){
       const u = (document.getElementById('g-u')||{}).value || '';
       if(!okMail(u)){ say('Digite seu e-mail acima e toque em "Esqueci a senha" de novo.'); document.getElementById('g-u').focus(); return; }
@@ -4477,6 +4494,9 @@ function gateFirebase(){
   g.addEventListener('submit', async ev => {
     ev.preventDefault(); if(st.busy) return;
     const u = document.getElementById('g-u').value.trim(), p = document.getElementById('g-p').value, keep = document.getElementById('g-keep').checked;
+    if(st.teste || u.toLowerCase()==='teste'){ // versão de teste: abre o painel de demonstração (outra página, sem o banco online)
+      if(u.toLowerCase()==='teste' && p==='123456'){ try { (keep ? localStorage : sessionStorage).setItem('simp-teste-ok', '1'); } catch(e){} location.href = 'teste/'; return; }
+      say(st.teste ? 'Usuário ou senha de teste incorretos.' : 'Digite um e-mail válido.'); return; }
     if(!okMail(u)){ say('Digite um e-mail válido.'); document.getElementById('g-u').focus(); return; }
     if(st.first){
       const p2 = document.getElementById('g-p2').value;
