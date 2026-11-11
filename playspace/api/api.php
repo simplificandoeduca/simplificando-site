@@ -173,6 +173,7 @@ switch ($acao) {
   case 'crianca_salvar': {
     $u = exigir(); $id = (int)($in['id'] ?? 0);
     if ($id) {
+      if ($u['papel'] !== 'gestor') falha('Só o gestor muda um cadastro (em Ajustes → Cadastros).', 403);   // 1.00: a equipe cadastra e atende; mudar o que já está cadastrado é do administrador
       $c = crianca($id); if (!$c) falha('Criança não encontrada.', 404);
       $d = textoCriancaBasico($in, $c); conferirCadastro($d, $c);
       marcarObs($c, (string)$d['obs'], $u);   // a observação mudou: a anterior continua guardada, com quem mudou
@@ -206,7 +207,7 @@ switch ($acao) {
     responder(['obs' => (string)$c['obs'], 'obs_antes' => (string)$c['obs_antes'], 'obs_em' => $c['obs_em'], 'obs_por' => (string)$c['obs_por']]);
   }
   case 'crianca_apagar': {
-    $u = exigir(['gestor', 'supervisor']); $c = crianca((int)($in['id'] ?? 0)); if (!$c) falha('Criança não encontrada.', 404);
+    $u = exigir(['gestor']); $c = crianca((int)($in['id'] ?? 0)); if (!$c) falha('Criança não encontrada.', 404);   // 1.00: remover cadastro é só do gestor
     // 0.92: as horas compradas nunca expiram. Remover o cadastro esconde o saldo: com horas guardadas, só o gestor remove, e confirmando.
     // Nada é apagado do banco (o cadastro fica inativo, com as horas, as vendas e as visitas), e a remoção vira uma linha do dia.
     $guardado = $c['ativo'] ? restante($c) : 0;
@@ -251,7 +252,7 @@ switch ($acao) {
     // gestor e supervisor podem dizer a hora em que a criança saiu de verdade (saída esquecida), com o motivo
     $hh = trim((string)($in['quando'] ?? '')); $corrige = null;
     if ($hh !== '') {
-      $u = exigir(['gestor', 'supervisor']); if (!preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $hh)) falha('Escreva a hora da saída assim: 14:30.');
+      $u = exigir(['gestor']); if (!preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $hh)) falha('Escreva a hora da saída assim: 14:30.');   // 1.00: só o gestor
       $motivo = mb_substr(maiusculo((string)($in['motivo'] ?? '')), 0, 300); if (mb_strlen($motivo) < 5) falha('Escreva o motivo da correção da hora.');
       $corrige = substr((string)$c['entrou'], 0, 10) . ' ' . $hh . ':00';
       if (strtotime($corrige) > time()) falha('A hora corrigida não pode ser depois de agora.');
@@ -271,7 +272,7 @@ switch ($acao) {
     responder($r);
   }
   case 'visita_corrigir': { // depois da saída: a supervisão corrige a hora (a criança saiu antes e a saída foi marcada tarde)
-    $u = exigir(['gestor', 'supervisor']); $hh = trim((string)($in['quando'] ?? '')); if (!preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $hh)) falha('Escreva a hora da saída assim: 14:30.');
+    $u = exigir(['gestor']); $hh = trim((string)($in['quando'] ?? '')); if (!preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $hh)) falha('Escreva a hora da saída assim: 14:30.');   // 1.00: só o gestor
     $motivo = mb_substr(maiusculo((string)($in['motivo'] ?? '')), 0, 300); if (mb_strlen($motivo) < 5) falha('Escreva o motivo da correção da hora.');
     $q = $db->prepare('SELECT * FROM visitas WHERE id = ?'); $q->execute([(int)($in['visita'] ?? 0)]); $v = $q->fetch(); if (!$v) falha('Visita não encontrada.', 404);
     if (time() - strtotime((string)$v['saiu']) > 2 * 86400) falha('Só dá para corrigir saídas dos últimos dois dias.');
@@ -295,7 +296,7 @@ switch ($acao) {
     $u = exigir(); $c = crianca((int)($in['id'] ?? 0)); if (!$c || !$c['ativo']) falha('Criança não encontrada.', 404);
     if (!$c['entrou']) falha($c['nome'] . ' não está no espaço.');
     [$lim, $seg, $noPrazo] = prazoCancelar($c);
-    responder(['limite' => $lim, 'segundos' => $seg, 'no_prazo' => $noPrazo, 'pode' => $noPrazo || in_array($u['papel'], ['gestor', 'supervisor'], true), 'entrou' => $c['entrou'],
+    responder(['limite' => $lim, 'segundos' => $seg, 'no_prazo' => $noPrazo, 'pode' => $noPrazo, 'entrou' => $c['entrou'],
       'vendas' => array_map(fn($v) => ['id' => (int)$v['id'], 'n' => nomeDaVenda($v), 'm' => (int)$v['minutos'], 'v' => (float)$v['valor'], 'quando' => $v['quando'], 'junto' => vendaJuntoDaEntrada($v, $c)], vendasDaVisita($c))]);
   }
   case 'cancelar_entrada': {
@@ -304,7 +305,8 @@ switch ($acao) {
     $motivo = mb_substr(maiusculo((string)($in['motivo'] ?? '')), 0, 300);
     if (mb_strlen($motivo) < 5) falha('Escreva o motivo do cancelamento: a supervisão vai conferir.');
     [$lim, , $noPrazo] = prazoCancelar($c);
-    if (!$noPrazo && !in_array($u['papel'], ['gestor', 'supervisor'], true)) falha($lim > 0 ? 'Já passou de ' . $lim . ' min da entrada de ' . $c['nome'] . ': agora só Gestor ou Supervisor cancela.' : 'Só Gestor ou Supervisor cancela a entrada.', 403);
+    // 1.00: passou do prazo, ninguém cancela (nem gestor, nem supervisor), qualquer que seja o motivo: o período é cobrado
+    if (!$noPrazo) falha($lim > 0 ? 'Já passou de ' . $lim . ' min da entrada de ' . $c['nome'] . ': a entrada não pode mais ser cancelada. O período é cobrado.' : 'A loja não cancela entradas: o período é cobrado.', 403);
     $r = cancelarEntrada($c, $u, $motivo, isset($in['vendas']) && is_array($in['vendas']) ? array_map('intval', $in['vendas']) : null);
     $r['mensagem'] = is_array($r['mensagem']) ? ['id' => (int)$r['mensagem']['id'], 'erro' => (string)$r['mensagem']['erro']] : null;
     responder($r);
@@ -393,6 +395,7 @@ switch ($acao) {
       $cupomId = criarCupom($c, 'venda', $antesPg, $u);   // 0.93: o cupom fiscal deste pagamento, a emitir (0 = módulo desligado)
     }
     $resp = ['vendas' => $vendas, 'registros' => $regs, 'total' => $total, 'minutos' => $min, 'voucher' => $vinfo, 'pagamento' => $pg ? textoPagamento($pg) : '', 'cupom' => $cupomId ?? 0];
+    if ($min > 0 && $c['entrou']) { $des = desfazerCobrancasSobrando($c); if ($des['n']) { $resp['desfeitas'] = $des; $c = crianca((int)$c['id']); } }   // 1.00: comprou tempo com a criança no espaço: o que sobrou de cobrança por atraso sai
     if (!empty($in['entrar']) && modoManual() && !$c['entrou'] && restante($c) >= periodo()) { // sem iDFace: pagou e já entra, o tempo começa a contar
       $e = fazerEntrada($c, 'mão'); $resp['entrada'] = ['registro' => $e['registro'], 'mensagem' => is_array($e['mensagem']) ? (int)($e['mensagem']['id'] ?? 0) : 0];
     }
@@ -431,6 +434,11 @@ switch ($acao) {
       if ($k['status'] === 'sem') registrar('cup', (int)$k['crianca_id'], (string)$k['nome'], 'O pagamento de ' . dinheiro((float)$k['valor']) . ' voltou para "cupom a emitir" · por ' . primeiroNome((string)$u['nome'])); }
     acertarCupons(); $k2 = cupom((int)$k['id']); responder(['cupom' => $k2 ? cupomPublico($k2) : null]);
   }
+  case 'devolver_previa': { // 1.00: o que há para receber se o que está fora for devolvido agora (o tempo a mais do fusquinha)
+    exigir(); $c = crianca((int)($in['crianca'] ?? 0)); if (!$c || !$c['ativo']) falha('Criança não encontrada.', 404);
+    $g = alugueis((int)$c['id'], (string)($in['s'] ?? '')); if (!$g) falha('Isso já foi marcado como devolvido.', 409);
+    responder(['extra' => aluguelExtra($g[0])]);
+  }
   case 'devolver': { // o carrinho (ou o fusquinha) voltou para a loja: sai da lista. voltar = o Desfazer do aviso (só nos 10 min seguintes)
     $u = exigir(); $c = crianca((int)($in['crianca'] ?? 0)); if (!$c || !$c['ativo']) falha('Criança não encontrada.', 404);
     if (!empty($in['voltar'])) {
@@ -438,9 +446,13 @@ switch ($acao) {
       $q = $db->prepare('UPDATE vendas SET voltou = NULL WHERE id IN (' . implode(',', $ids) . ") AND crianca_id = ? AND alug != '' AND voltou IS NOT NULL AND voltou >= ?");
       $q->execute([(int)$c['id'], date('Y-m-d H:i:s', time() - 600)]); if (!$q->rowCount()) falha('Não dá mais para desfazer.');
       $db->prepare("DELETE FROM registros WHERE id = ? AND crianca_id = ? AND tipo = 'dev'")->execute([(int)($in['registro'] ?? 0), (int)$c['id']]);
+      $extra = (int)($in['extra'] ?? 0);   // 1.00: o tempo a mais que foi cobrado na devolução sai junto (a venda, o pagamento dela e as linhas do dia)
+      if ($extra) { $q = $db->prepare("SELECT id, registro FROM vendas WHERE id = ? AND crianca_id = ? AND itens LIKE 'tempo a mais%' AND quando >= ?"); $q->execute([$extra, (int)$c['id'], date('Y-m-d H:i:s', time() - 660)]);
+        if ($v = $q->fetch()) { $db->prepare('DELETE FROM vendas WHERE id = ?')->execute([(int)$v['id']]);
+          foreach (array_filter(array_map('intval', (array)($in['registros'] ?? []))) as $rid) $db->prepare("DELETE FROM registros WHERE id = ? AND crianca_id = ? AND tipo IN ('venda', 'pag')")->execute([$rid, (int)$c['id']]); } }
       responder();
     }
-    responder(devolverAluguel($c, (string)($in['s'] ?? ''), $u));
+    responder(devolverAluguel($c, (string)($in['s'] ?? ''), $u, lerPagamento($in['pagamento'] ?? null)));
   }
   case 'historico': { // tudo de um cliente (as crianças do mesmo responsável): todas as compras e todas as visitas
     exigir(); session_write_close();
@@ -527,7 +539,7 @@ switch ($acao) {
   /* ---------- ajustes: a regra das horas e os pacotes ---------- */
   case 'regra_salvar': {
     $u = exigir(); podeAjustar($u); $r = regra();
-    foreach (['tolerancia' => [0, 5, 9, 10, 15], 'fecha' => [20, 21, 22, 23, 24], 'aviso' => [5, 10, 15, 30, 60, 120], 'cancelaMin' => [0, 5, 9, 10, 15], 'reabreMin' => [0, 15, 30, 60]] as $k => $ops) if (isset($in[$k]) && in_array((int)$in[$k], $ops, true)) $r[$k] = (int)$in[$k];
+    foreach (['tolerancia' => [0, 5, 9, 10, 15], 'fecha' => [20, 21, 22, 23, 24], 'aviso' => [5, 10, 15, 30, 60, 120], 'cancelaMin' => [0, 5, 9, 10, 15], 'reabreMin' => [0, 15, 30, 60], 'tolCupom' => [0, 5, 9, 10, 15]] as $k => $ops) if (isset($in[$k]) && in_array((int)$in[$k], $ops, true)) $r[$k] = (int)$in[$k];
     if (isset($in['autoMsg']) && in_array($in['autoMsg'], ['ambos', 'entrada', 'nao'], true)) $r['autoMsg'] = $in['autoMsg'];
     if (isset($in['bloqueioAuto']) && in_array($in['bloqueioAuto'], ['sim', 'nao'], true)) $r['bloqueioAuto'] = $in['bloqueioAuto'];
     if (isset($in['cupom']) && in_array($in['cupom'], ['sim', 'nao'], true)) $r['cupom'] = $in['cupom'];   // 0.93: acompanhar o cupom fiscal de cada pagamento

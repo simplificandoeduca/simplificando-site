@@ -309,7 +309,7 @@ const PACOTES_DE_EXEMPLO = [['h' => 1, 'v' => 60], ['h' => 5, 'v' => 250], ['h' 
 // reabreMin: até quantos minutos depois da saída a equipe reabre a visita (a criança chorou e o responsável deixou ficar mais); 0 = não reabre
 // cupom 'sim': cada pagamento vira uma nota fiscal a emitir, que a equipe acompanha na tela (0.93). Fica guardado: desde a 0.94 a tela não tem mais o botão que liga
 // cupomLoja, cupomTel, cupomAviso (0.94): o nome e o telefone da loja e o aviso do pé do cupom impresso (o papel que o responsável assina na entrada)
-const REGRA_PADRAO = ['tolerancia' => 9, 'fecha' => 22, 'pcdDesc' => 50, 'aviso' => 10, 'autoMsg' => 'nao', 'bloqueioAuto' => 'sim', 'pacotes' => [], 'extras' => [], 'sapateiras' => 44, 'cancelaMin' => 9, 'reabreMin' => 30, 'cupom' => 'nao',
+const REGRA_PADRAO = ['tolerancia' => 9, 'fecha' => 22, 'pcdDesc' => 50, 'aviso' => 10, 'autoMsg' => 'nao', 'bloqueioAuto' => 'sim', 'pacotes' => [], 'extras' => [], 'sapateiras' => 44, 'cancelaMin' => 9, 'reabreMin' => 30, 'tolCupom' => 5, 'cupom' => 'nao',
   'cupomLoja' => 'PLAY SPACE', 'cupomTel' => '', 'cupomAviso' => 'ATENÇÃO: SOMENTE O RESPONSÁVEL QUE ASSINAR A ENTRADA DA CRIANÇA PODERÁ ASSINAR SUA SAÍDA.'];
 function regra(): array {
   if (isset($GLOBALS['_regra'])) return $GLOBALS['_regra'];   // lida uma vez por pedido (a conta do tempo consulta a regra muitas vezes)
@@ -433,9 +433,33 @@ function atrasoDaVisita(int $criancaId, string $entrou, ?string $ate = null): ar
   $q = db()->prepare('SELECT COUNT(*) n, COALESCE(SUM(valor), 0) v FROM vendas WHERE crianca_id = ? AND auto = 1 AND quando >= ? AND quando <= ? AND NOT EXISTS (SELECT 1 FROM pagamentos p WHERE p.venda_id = vendas.id)'); $q->execute([$criancaId, $entrou, $ate ?: '9999']); $a = $q->fetch();   // só as que ainda não foram pagas
   return ['n' => (int)$a['n'], 'valor' => (float)$a['v']];
 }
+// 1.00: a cobrança por atraso que deixou de ser necessária. O cliente comprou tempo (ou um pacote) com a criança no espaço, e o que ele
+// comprou já cobre o que ela ficou: as cobranças por atraso desta visita que ainda não foram pagas e sobraram são desfeitas (saem da conta,
+// e os minutos delas saem do saldo). Vale na hora da venda e, por garantia, na saída. É a mesma conta que a folha da saída já mostrava.
+function desfazerCobrancasSobrando(array $c, ?string $quando = null): array {
+  $nada = ['n' => 0, 'valor' => 0.0]; if (!$c['entrou'] || !servicoTempo()) return $nada;
+  $db = db(); $p = periodo(); $fim = $quando ? strtotime($quando) : time();
+  $q = $db->prepare('SELECT v.* FROM vendas v WHERE v.crianca_id = ? AND v.auto = 1 AND v.quando >= ? AND NOT EXISTS (SELECT 1 FROM pagamentos p WHERE p.venda_id = v.id) ORDER BY v.id DESC');
+  $q->execute([(int)$c['id'], (string)$c['entrou']]); $autos = $q->fetchAll(); if (!$autos) return $nada;
+  $minAutos = 0; foreach ($autos as $x) $minAutos += (int)$x['minutos'];
+  $comprado = (int)$c['pacote_min'] - $minAutos;   // o que o cliente comprou de verdade (sem as cobranças por atraso a receber)
+  $precisa = max(0, (int)ceil(((int)$c['usado_min'] + cobrar(minutosDaVisita($c, $fim)) - $comprado) / $p));   // quantas cobranças por atraso a visita ainda precisa
+  $tirar = array_slice($autos, 0, max(0, count($autos) - $precisa)); if (!$tirar) return $nada;   // as mais novas saem primeiro
+  $valor = 0.0; $db->beginTransaction();
+  try {
+    foreach ($tirar as $x) {
+      $db->prepare('UPDATE criancas SET pacote_min = MAX(0, pacote_min - ?) WHERE id = ?')->execute([(int)$x['minutos'], (int)$c['id']]);
+      $db->prepare('DELETE FROM vendas WHERE id = ?')->execute([(int)$x['id']]); $valor += (float)$x['valor'];
+      if (!empty($x['registro'])) $db->prepare("UPDATE registros SET texto = REPLACE(texto, ' a receber na saída', '') || ' · desfeita: o tempo comprado cobre a visita' WHERE id = ? AND crianca_id = ? AND texto NOT LIKE '% · desfeita%'")->execute([(int)$x['registro'], (int)$c['id']]);
+    }
+    $db->commit();
+  } catch (Throwable $e) { $db->rollBack(); throw $e; }
+  return ['n' => count($tirar), 'valor' => $valor];
+}
 function fazerSaida(array $c, string $origem = 'iDFace', ?string $quando = null): array {
   $db = db(); $quando = $quando ?: agora();
   if (acertarCobrancas($c, $quando)) $c = crianca((int)$c['id']);   // passou do tempo sem nenhuma tela aberta: a cobrança por atraso é gerada agora
+  if (desfazerCobrancasSobrando($c, $quando)['n']) $c = crianca((int)$c['id']);   // 1.00: o que o cliente comprou durante a visita cobre o tempo: a cobrança por atraso que sobrou é desfeita
   $min = minutosDaVisita($c, strtotime($quando)); $deb = min(cobrar($min), restante($c)); $atraso = atrasoDaVisita((int)$c['id'], (string)$c['entrou']);   // nunca debita mais do que há (a cobrança por atraso já cobriu o que faltava)
   $db->prepare('INSERT INTO visitas (crianca_id, entrou, saiu, debitado_min, origem) VALUES (?, ?, ?, ?, ?)')->execute([$c['id'], $c['entrou'], $quando, $deb, $origem]);
   $visita = (int)$db->lastInsertId();
@@ -736,14 +760,44 @@ function alugueis(?int $criancaId = null, ?string $servico = null): array {
 }
 // "Devolveu": o que estava fora volta para a loja e sai da lista. Fica anotado em Hoje na recepção, com quanto tempo ficou fora e quem marcou.
 // Nada é cobrado aqui: se passou do tempo comprado, a linha diz quanto passou e a equipe vende o período a mais no atendimento
-function devolverAluguel(array $c, string $servico, array $u): array {
+// 1.00: o que há para receber na devolução do que foi alugado por tempo (o fusquinha): os períodos inteiros que passaram do tempo comprado,
+// com a mesma tolerância da recreação (e o relógio para na hora em que a loja fecha, como o da visita). O que tem valor único
+// (o carrinho de bebê) não tem tempo a mais.
+function aluguelExtra(array $a): array {
+  $sv = null; foreach ((array)regra()['servicos'] as $s) if ((string)($s['id'] ?? '') === (string)$a['s']) { $sv = $s; break; }
+  $ini = strtotime((string)$a['ini']); $f = (int)(regra()['fecha'] ?? 22); $teto = $ini + 43200;
+  $fecha = strtotime(date('Y-m-d', $ini) . ($f >= 24 ? ' 23:59:59' : sprintf(' %02d:00:00', max(0, $f))));
+  if ($fecha > $ini && !ehExemplo((int)$a['crianca'])) $teto = min($teto, $fecha);
+  $ficou = max(0, (min(time(), $teto) - $ini) / 60); $r = ['n' => 0, 'min' => 0, 'valor' => 0.0, 'per' => 0, 'un' => 0.0];
+  if (!$sv || ($sv['modo'] ?? 'fixo') !== 'periodo' || (int)$a['min'] <= 0) return $r;
+  $per = max(1, (int)($sv['min'] ?? 30)); $tol = max(0, (int)regra()['tolerancia']);
+  $n = max(0, max(1, (int)ceil(($ficou - $tol) / $per)) - (int)ceil((int)$a['min'] / $per));
+  return ['n' => $n, 'min' => $n * $per, 'valor' => round($n * (float)$sv['v'], 2), 'per' => $per, 'un' => (float)$sv['v']];
+}
+// "Devolveu": o que estava fora volta para a loja e sai da lista. Fica anotado em Hoje na recepção, com quanto tempo ficou fora e quem marcou.
+// 1.00: se passou do tempo comprado, o período a mais é cobrado aqui e a devolução só fecha com a forma de pagamento.
+function devolverAluguel(array $c, string $servico, array $u, array $pg = []): array {
   $db = db(); $g = alugueis((int)$c['id'], $servico); if (!$g) falha('Isso já foi marcado como devolvido.', 409);
-  $a = $g[0]; $agora = agora(); $marcas = implode(',', array_map('intval', $a['vendas']));
+  $a = $g[0]; $agora = agora(); $marcas = implode(',', array_map('intval', $a['vendas'])); $x = aluguelExtra($a);
+  if ($x['valor'] > 0) {
+    if (!$pg) falha($a['n'] . ' passou do tempo comprado: falta receber ' . dinheiro($x['valor']) . ' (' . dur($x['min']) . ' a mais). Escolha a forma de pagamento.', 409);
+    if (abs(array_sum($pg) - $x['valor']) >= 0.01) falha('O pagamento (' . dinheiro((float)array_sum($pg)) . ') não fecha com o valor a receber, que é ' . dinheiro($x['valor']) . '. Feche e abra a devolução de novo.', 409);
+  }
   $db->prepare("UPDATE vendas SET voltou = ? WHERE id IN ($marcas) AND voltou IS NULL")->execute([$agora]);
   $ficou = max(0, (int)floor((time() - strtotime((string)$a['ini'])) / 60)); $passou = $a['min'] > 0 ? max(0, $ficou - $a['min']) : 0;
   $reg = registrar('dev', (int)$c['id'], $c['nome'], ($a['q'] > 1 ? $a['q'] . ' × ' : '') . $a['n'] . ' · devolvido · ficou ' . dur($ficou)
     . ($a['min'] > 0 ? ' · tempo comprado: ' . dur($a['min']) . ($passou > 0 ? ' (passou ' . ($passou < 60 ? $passou . ' min' : dur($passou)) . ')' : '') : '') . ' · por ' . primeiroNome($u['nome']), $agora);
-  return ['vendas' => $a['vendas'], 'registro' => $reg, 'ficou' => $ficou, 'passou' => $passou, 'voltou' => $agora, 'nome' => $a['n'], 'q' => $a['q']];
+  $r = ['vendas' => $a['vendas'], 'registro' => $reg, 'ficou' => $ficou, 'passou' => $passou, 'voltou' => $agora, 'nome' => $a['n'], 'q' => $a['q'], 'extra' => 0, 'registros' => [], 'pago' => '', 'valor' => 0.0];
+  if ($x['valor'] > 0) { // o tempo a mais vira uma venda (que já nasce devolvida, para não voltar para a lista) e o pagamento fica anotado nela
+    $v = fazerVenda($c, 0, $x['valor'], (int)$u['id'], 'tempo a mais · ' . dur($x['min']), (string)$a['n']);
+    $db->prepare("UPDATE vendas SET alug = '', alug_min = 0, voltou = ? WHERE id = ?")->execute([$agora, $v['venda']]);
+    $antesPg = (int)$db->query('SELECT COALESCE(MAX(id), 0) FROM pagamentos')->fetchColumn();
+    $pago = gravarPagamento([$v['venda']], $pg, (int)$c['id'], (int)$u['id']);
+    $rp = registrar('pag', (int)$c['id'], $c['nome'], 'Pagamento · ' . dinheiro($x['valor']) . ' · ' . textoPagamento($pago ?: $pg));
+    $r['extra'] = $v['venda']; $r['registros'] = [$v['registro'], $rp]; $r['pago'] = textoPagamento($pago ?: $pg); $r['valor'] = $x['valor']; $r['minutos'] = $x['min'];
+    $r['cupom'] = criarCupom($c, 'venda', $antesPg, $u);   // (o módulo do cupom fiscal, se estiver ligado)
+  }
+  return $r;
 }
 
 /* ---------- de onde sai o tempo de quem está no espaço: pacote de horas ou recreação avulsa ---------- */

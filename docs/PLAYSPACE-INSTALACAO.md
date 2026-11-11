@@ -114,9 +114,13 @@ O tempo é debitado **sempre em períodos inteiros** (o período da Recreação:
 - **Histórico do cliente**: abre numa aba à direita (no celular, na tela toda) e junta tudo do responsável: quanto pagou ao todo, horas compradas, consumidas e disponíveis; cada criança com o saldo, as restrições e os botões **Vender** e **Chamar para renovar**; **todas as compras** (pacote, o que veio junto, carrinho e outros produtos, valor, quem vendeu) e **todas as visitas**. Abre pelo botão **Histórico** no cadastro, na ficha da criança ou tocando na "Última contratação" do Banco de horas. O cliente é reconhecido pelo CPF ou pelo RNE; sem documento, pelo WhatsApp.
 - **Sem horas, sem entrada**: com a regra "Quando o pacote zerar → Bloquear o acesso sozinho" (o padrão), a criança recém-cadastrada começa com o acesso **bloqueado** no iDFace e é liberada sozinha na primeira venda de horas. Vender só um produto (carrinho) não libera. Desfazer uma venda que deixa o saldo em zero bloqueia de novo.
 
+**A ficha da criança tem só o atendimento (1.00):** **Saída** (ou **Entrada**), **Vender**, **Histórico** e **Cupom**, mais a sapateira e a observação. Saíram "Saída com outra hora", "Tirar a foto" (volta sozinha se o iDFace for ligado), "Editar" e "Remover".
+
+**Editar ou remover um cadastro é só do Gestor**, em **Ajustes → Cadastros**: a busca acha por criança, responsável, telefone ou CPF; um toque abre o cadastro para mudar (nome, responsável, telefones, documento, criança PCD, observações) e, no pé, **Remover este cadastro**. Atendente e Supervisor não mudam cadastro, nem pela tela, nem pelo servidor. A observação e a sapateira continuam com toda a equipe.
+
 **Sapateiras** (1 a 44): a criança tira o sapato para brincar e ele fica numa sapateira numerada.
 
-- No **cadastro**, a grade de números aparece logo depois do nome da criança: um toque escolhe. As que estão **em uso aparecem hachuradas** e não podem ser escolhidas (tocar numa delas mostra com quem está e oferece **Liberar**, para o caso de uma esquecida).
+- No **cadastro**, a grade de números aparece logo depois do nome da criança: um toque escolhe. As que estão **em uso aparecem hachuradas** e não podem ser escolhidas (tocar numa delas mostra com quem está e oferece **Liberar**, para o caso de uma esquecida). **A grade mostra de 1 a 24** e a seta **Mostrar todas** abre o resto (1.00); se houver alguma sapateira acima da 24 em uso, a grade já abre inteira, para nada ficar escondido. No mapa de Ajustes aparecem sempre todas.
 - Para quem já é cadastrado: na **ficha** (linha "Sapateira", botão Escolher ou Trocar), no **número da sapateira** no começo da linha de quem está no espaço (na tela inicial), ou no botão **Sapateira** do aviso que aparece quando o rosto é lido na entrada.
 - O número fica à vista no começo da linha da criança, na lista do espaço. Na **saída**, a sapateira **fica livre sozinha** e o aviso diz onde está o sapato ("Helena saiu · sapato na sapateira 12"); o mesmo fica anotado em "Hoje na recepção".
 - **Ajustes → Sapateiras** mostra o mapa (quem está com qual), libera uma esquecida e muda a quantidade (44 por padrão).
@@ -178,10 +182,10 @@ Para quando a criança entra e desiste logo (chorou, não quis ficar, o respons�
 - **Prazo**: até **9 minutos** depois da entrada (9 minutos cheios, contados do momento em que entrou), **o próprio atendente cancela**. O prazo corre à vista: na linha da criança, na lista do espaço, aparece o atalho com um **X e o tempo que falta** (8:42), e a ficha mostra até que horas dá. Quando o prazo acaba, o atalho some sozinho.
 - **Motivo obrigatório**: a folha "Cancelar a entrada" só aceita com o motivo escrito (há atalhos: "A criança chorou", "O responsável desistiu"…). Sem motivo, não cancela.
 - **O que deixa de ser cobrado**: a folha lista as vendas desta visita (as de hoje, feitas depois da última saída). Já vem marcada a **Recreação vendida junto com a entrada**; carrinho e o que foi comprado mais cedo ficam desmarcados (continuam cobrados), e dá para marcar se também não forem cobrados. O que for marcado sai das vendas do dia e do saldo da criança; se o cliente já pagou, o valor é devolvido. Nenhum tempo é descontado e a sapateira fica livre.
-- **Fora do prazo**, só **Gestor ou Supervisor** cancela (pela ficha da criança), também com motivo, e fica anotado "fora do prazo".
+- **Fora do prazo, ninguém cancela** (1.00): quando o prazo acaba, a opção some da ficha para todos, inclusive Gestor e Supervisor, e o servidor recusa o cancelamento. O período é cobrado, qualquer que seja o motivo.
 - **A supervisão vê tudo**: cada cancelamento vira uma dica no alto da tela de Gestor e Supervisor ("João cancelou a entrada de Helena, R$ 80 não cobrado. Motivo: …") e, se a supervisora estiver com o sistema aberto, um aviso na hora. O botão **Conferir** abre **Entradas canceladas**: quem, quando entrou, quanto ficou, o que não foi cobrado, o motivo e quem cancelou; **Marcar como visto** registra quem conferiu. A mesma lista abre em "Hoje na recepção" e em Ajustes → Regra das horas. O cancelamento também aparece na linha do dia (com a venda marcada "cancelada") e no **histórico do cliente**.
 - Se os avisos automáticos estão em "Entrada e saída", o responsável recebe no WhatsApp que a entrada foi cancelada e nada foi cobrado.
-- **Ajustes → Regra das horas → Cancelar a entrada sem cobrar** muda o prazo (5, 9, 10 ou 15 min) ou deixa só para a supervisão.
+- **Ajustes → Regra das horas → Cancelar a entrada sem cobrar** muda o prazo (5, 9, 10 ou 15 min) ou desliga o cancelamento (**Não cancela**).
 - Com o iDFace ligado, o rosto lido nos 10 minutos seguintes ao cancelamento não vira entrada de novo (é a criança saindo).
 
 ## 6f. Tela inicial: a lista
@@ -214,7 +218,7 @@ O resto da tela continua igual:
 - **Atividades da semana**: em tela larga (1400 px ou mais) ficam na coluna da direita, por dia, sempre à vista. Em tela menor e no celular viram **uma linha só** embaixo da lista; um toque abre os dias;
 - **no pé**, dois atalhos: **Banco de horas** (quem não está no espaço) e **Hoje na recepção** (cada entrada, saída, venda, pagamento, devolução, cancelamento e mudança de estoque do dia). Os números do dia estão no alto de **Hoje na recepção**.
 
-**As três colunas por serviço** (Horas avulsas, Pacotes e Carrinhos), que eram a tela inicial da 0.91 à 0.94, continuam no sistema como opção de cada aparelho: **Ajustes → Aparência → Tela inicial neste aparelho → Por serviço**. Como a aba Ajustes só aparece para Gestor e Supervisor, o aparelho dos atendentes fica na lista.
+**O bloco do responsável (1.00):** as crianças do mesmo responsável, e os carrinhos que elas pegaram, ficam sempre juntos, dentro de um **contorno vermelho**: é um bloco só, para ver de longe que são da mesma família. O vínculo é pelo responsável (o CPF dele; sem documento, o telefone). O bloco entra na lista no lugar da linha mais urgente dele. No **Banco de horas** os irmãos também ficam juntos, no mesmo contorno. As três colunas por serviço, que eram opção de cada aparelho, saíram: elas separavam a criança do carrinho do mesmo responsável. O aparelho que estava em colunas volta sozinho para a lista.
 
 ## 6g. Cobrança por atraso
 
@@ -223,7 +227,7 @@ Quando a criança continua no espaço depois do **tempo comprado mais a tolerân
 - **Todo mundo fica sabendo**: aviso em todas as telas abertas ("Nova cobrança por atraso: Alice passou do tempo comprado · R$ 80 a receber na saída"), uma dica e a linha "Nova cobrança por atraso: ficou além do tempo comprado" em Hoje na recepção. A venda entra no histórico do cliente marcada como *cobrança por atraso*.
 - **Na saída**, a tela de pagamento mostra o valor a receber e pede a forma de pagamento; com a forma escolhida, o botão vira **Recebi R$ 80 no Pix · dar saída** (seção 6r).
 - Quem gera a cobrança é o servidor, a cada poucos segundos enquanto alguma tela estiver aberta, e de novo na saída: mesmo com tudo fechado, a conta fecha certa.
-- **Saída esquecida** (a criança foi embora e ninguém marcou): Gestor ou Supervisor usa **Saída com outra hora** (na ficha ou na folha da saída), escreve a hora em que ela saiu de verdade e o motivo. O tempo é refeito e as cobranças por atraso que sobraram são desfeitas. Se a saída já foi marcada, a ficha tem **Corrigir** ao lado da visita (últimos dois dias). Tudo fica anotado em Hoje na recepção.
+- **Saída esquecida** (a criança foi embora e ninguém marcou): dê a saída normalmente. Depois, **só o Gestor** acerta a hora: na ficha da criança, **Corrigir** ao lado da visita (últimos dois dias), com o motivo. O tempo é refeito e as cobranças por atraso que sobraram são desfeitas; fica anotado em Hoje na recepção. O botão "Saída com outra hora" saiu na 1.00.
 - **Na atualização para a 0.75**, quem já estava marcado como "no espaço" não ganha cobrança para trás: a regra vale para as entradas feitas depois de atualizar.
 - O responsável não é avisado de nada disso pelo WhatsApp.
 
@@ -376,7 +380,7 @@ O carrinho de bebê e o fusquinha saem da loja com o cliente e voltam. A partir 
 - **Sem hora para voltar** (o carrinho de bebê, valor único): a linha só conta o tempo.
 - **De outro dia**: se ninguém marcou a devolução, a linha continua na lista, em vermelho, com o dia em que saiu, no começo da lista.
 - **Devolveu**: um toque, na linha ou na comanda da criança. O carrinho sai da lista e fica anotado em **Hoje na recepção**: "CARRINHO FUSQUINHA · devolvido · ficou 0h44 · tempo comprado: 0h30 (passou 14 min) · por JOÃO". O aviso tem **Desfazer** (vale por 10 minutos).
-- **Nada é cobrado sozinho na devolução.** Se passou do tempo comprado, a linha fica vermelha, o aviso diz quanto passou e a equipe vende o período a mais pelo atendimento da criança (botão Vender da comanda).
+- **Devolução com pagamento (1.00):** se o que foi alugado por tempo (o fusquinha) **passou do tempo comprado**, o toque em **Devolveu** abre o **Pagamento da devolução**: quanto ficou fora, quanto passou e o valor a receber (períodos inteiros, com a mesma tolerância da recreação). A devolução só fecha com a forma de pagamento (Pix, dinheiro, crédito ou débito, em até três formas). Dentro do tempo, ou no carrinho de valor único, devolve direto com um toque. O **Desfazer** do aviso põe o carrinho de volta na lista e desfaz o que foi cobrado.
 - Quem leva só o carrinho **não entra no espaço**: aparece na lista só a linha do carrinho. Se a criança também está na recreação, as duas linhas ficam juntas, na moldura da família.
 - Se a venda for desfeita (ou deixar de ser cobrada num cancelamento de entrada), o carrinho sai da lista sozinho.
 - Todos os aparelhos veem o carrinho entrar e sair da lista em poucos segundos.
@@ -443,7 +447,7 @@ O botão de baixo diz o que vai acontecer:
 - **Escolha a forma de pagamento**: há valor a receber e a forma ainda não foi escolhida. A saída não é dada sem ela.
 - **Recebi R$ 80 no Pix · dar saída**: forma escolhida; o toque registra o pagamento e dá a saída. Dividindo em mais de uma forma, o botão pede o valor que falta ("Quanto no Pix?") e, com a conta fechada, vira **Recebi R$ 80 · dar saída**.
 
-A tela acompanha o relógio: se a tolerância estourar com ela aberta, o quadro rosa e as formas de pagamento aparecem na hora. Gestor e Supervisor continuam com **Corrigir a hora** (a criança saiu antes e a saída não foi marcada), na mesma tela.
+A tela acompanha o relógio: se a tolerância estourar com ela aberta, o quadro rosa e as formas de pagamento aparecem na hora. **Pacote na saída (1.00):** a folha tem o botão **O cliente quer levar um pacote?**. Ele abre o atendimento com a lista de pacotes; depois do pagamento (e do cupom), **a saída abre de novo sozinha**, já usando as horas do pacote: a cobrança por atraso que estava a receber é desfeita e a visita sai do saldo novo. O mesmo vale para qualquer tempo comprado com a criança no espaço: o que o cliente comprou cobre a visita, e só fica a receber o que ainda faltar. A folha da saída não corrige mais a hora.
 
 **As horas compradas não expiram, nunca.** Não existe prazo de validade no sistema: um pacote comprado hoje vale daqui a dez anos, inteiro. O saldo só diminui quando a criança usa (a visita) ou quando uma venda é desfeita ou cancelada.
 
@@ -464,7 +468,7 @@ O cupom da loja é o papel da impressora térmica do balcão, que o responsável
 - **cada criança** dele que está no espaço (irmãos saem no mesmo cupom): o nome e a **idade**, o **número do cadastro**, a **sapateira**, a hora da **entrada**, o serviço, o tempo comprado (ou as horas do cliente) e o **valor a cada 30 minutos**;
 - o **pagamento** que acabou de ser feito: os itens, o total e a forma;
 - a **data e a hora**, a **linha da assinatura**, o **nome e o CPF** do responsável;
-- o **aviso** do pé ("Somente o responsável que assinar a entrada da criança poderá assinar sua saída"), seguido da tolerância da regra das horas.
+- o **aviso** do pé ("Somente o responsável que assinar a entrada da criança poderá assinar sua saída"), seguido da **tolerância que o cliente lê: 5 minutos** (1.00). A conta do sistema continua com a tolerância da regra das horas (9 min): a diferença é a folga da loja para os dias de fila. Muda em **Ajustes → Regra das horas → No cupom, o cliente lê tolerância de** (ou "Não mostrar").
 
 **VIA DO CLIENTE** (a que o responsável leva), só o básico:
 
