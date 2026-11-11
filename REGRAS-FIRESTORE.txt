@@ -94,12 +94,12 @@ service cloud.firestore {
       allow read, delete: if dono();
       allow update: if dono() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lida']);
     }
-    // qual modelo de story cada um postou (cronômetro, cupom ou foto), para a aba Estatísticas:
+    // qual modelo de story cada um postou (treino: cronômetro, cupom ou foto; cardio: boneco, bilhete, semana ou pulso), para a aba Estatísticas:
     // cada conta só cria o seu registro; só o dono do painel lê
     match /storiesUso/{id} {
       allow create: if logado() && request.resource.data.uid == request.auth.uid
         && request.resource.data.keys().hasOnly(['uid', 'nome', 'tipo', 'modelo', 'cor', 'acao', 'tema', 'em'])
-        && request.resource.data.modelo in ['crono', 'cupom', 'foto']
+        && request.resource.data.modelo in ['crono', 'cupom', 'foto', 'cbon', 'cbil', 'csem', 'cpul']
         && request.resource.data.em is int;
       allow read, delete: if dono();
     }

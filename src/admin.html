@@ -2227,6 +2227,7 @@ function lembreteDatas(){
 }
 /* ---------- Estatísticas: o que os alunos usam e sugerem, para decidir as próximas mudanças ---------- */
 const ST = { sug:null, sto:null, err:'', at:0, loading:false };
+const ST_MODC = [['cbon','Boneco','O boneco do app em movimento (foto ou vídeo)'],['cbil','Bilhete','Passe de cardio: do sofá para a meta'],['csem','Semana','Os minutos de cardio da semana'],['cpul','Pulso','Batimento, tempo e pace']];
 const ST_MOD = [['crono','Cronômetro','O tempo de treino em destaque'],['cupom','Cupom','As cargas do dia, em forma de cupom'],['foto','Foto','A foto da pessoa com figurinhas']];
 const ST_COR = { vermelho:'Vermelho', laranja:'Laranja', lilas:'Lilás', verde:'Verde', preto:'Preto', branco:'Branco' };
 async function loadEst(force){
@@ -2245,19 +2246,21 @@ function vEstat(){
   if(ST.err) return h+'<section class="card"><p class="muted">Sem conexão para carregar as estatísticas. Confira a internet e toque em Atualizar.</p><div class="btn-row"><button type="button" class="btn small" data-a="estRefresh">'+ic('refresh')+'Atualizar</button></div></section>';
   if(!ST.sug) return h+loadingCard();
   // stories
-  const per = ui.estP || '30', desde = per==='tudo' ? 0 : Date.now()-(+per)*864e5, E = ST.sto.filter(x => (x.em||0)>=desde);
-  const tot = E.length, cnt = m => E.filter(x => x.modelo===m).length, mx = Math.max(1, ...ST_MOD.map(([m]) => cnt(m)));
+  const grp = ui.estG==='cardio' ? 'cardio' : 'treino', GR = grp==='cardio' ? ST_MODC : ST_MOD, gk = GR.map(x => x[0]);
+  const per = ui.estP || '30', desde = per==='tudo' ? 0 : Date.now()-(+per)*864e5, E = ST.sto.filter(x => (x.em||0)>=desde && gk.includes(x.modelo));
+  const tot = E.length, cnt = m => E.filter(x => x.modelo===m).length, mx = Math.max(1, ...GR.map(([m]) => cnt(m)));
   const pessoas = m => { const by = {}; E.filter(x => x.modelo===m).forEach(x => { const k = x.uid||x.nome; const o = by[k] = by[k] || { nome:x.nome||'Sem nome', tipo:x.tipo, n:0, ult:0, cores:{} }; o.n++; o.ult = Math.max(o.ult, x.em||0); if(x.cor) o.cores[x.cor] = (o.cores[x.cor]||0)+1; }); return Object.values(by).sort((a,b) => b.n-a.n || b.ult-a.ult); };
-  const menos = tot>=6 ? ST_MOD.map(([m,n]) => [n, cnt(m)/tot]).sort((a,b) => a[1]-b[1])[0] : null;
+  const menos = tot>=6 ? GR.map(([m,n]) => [n, cnt(m)/tot]).sort((a,b) => a[1]-b[1])[0] : null;
   h += '<h3 class="sec">Stories postados<span class="dot" aria-hidden="true"></span></h3><section class="card"><div class="card-h"><span class="label">'+ic('share2')+'Qual modelo cada um escolhe</span><button type="button" class="btn small" data-a="estRefresh">'+ic('refresh')+'Atualizar</button></div><div class="card-h">'+
+    '<div class="seg est-seg" role="group" aria-label="Stories de">'+[['treino','Treino'],['cardio','Cardio']].map(([v,l]) => '<button type="button" class="'+(grp===v?'on':'')+'" aria-pressed="'+(grp===v)+'" data-a="estG" data-v="'+v+'">'+l+'</button>').join('')+'</div>'+
     '<div class="seg est-seg" role="group" aria-label="Período">'+[['30','30 dias'],['90','90 dias'],['tudo','Tudo']].map(([v,l]) => '<button type="button" class="'+(per===v?'on':'')+'" aria-pressed="'+(per===v)+'" data-a="estP" data-v="'+v+'">'+l+'</button>').join('')+'</div></div>'+
     '<p class="ev2-frase"><b>'+plural(tot,'story postado','stories postados')+'</b>'+(tot ? ' por '+plural(new Set(E.map(x => x.uid||x.nome)).size,'pessoa') : '')+'.</p>'+
-    '<div class="est-mods">'+ST_MOD.map(([m,n,d],i) => { const c = cnt(m), op = ui.estOpen===m, P2 = op ? pessoas(m) : null;
+    '<div class="est-mods">'+GR.map(([m,n,d],i) => { const c = cnt(m), op = ui.estOpen===m, P2 = op ? pessoas(m) : null;
       return '<div class="est-m'+(op?' on':'')+'"><button type="button" class="est-mh" data-a="estMod" data-v="'+m+'" aria-expanded="'+op+'"><span class="est-n">'+(i+1)+'</span><span class="est-t"><b>'+n+'</b><span>'+d+'</span></span><span class="est-v"><b>'+c+'</b>'+(tot ? Math.round(c/tot*100)+'%' : '')+'</span>'+ic('chev','chev')+'</button>'+
         '<span class="est-bar"><i style="width:'+Math.round(c/mx*100)+'%"></i></span>'+
         (op ? (P2.length ? '<div class="est-who">'+P2.map(x => '<div><b>'+esc(x.nome)+'</b><span>'+tipoTxt(x.tipo)+' · '+plural(x.n,'vez','vezes')+' · último '+new Date(x.ult).toLocaleDateString('pt-BR')+(Object.keys(x.cores).length ? ' · cor '+Object.keys(x.cores).sort((a,b) => x.cores[b]-x.cores[a]).map(k => ST_COR[k]||k).join(', ') : '')+'</span></div>').join('')+'</div>' : '<p class="foot">Ninguém postou este modelo no período.</p>') : '')+'</div>'; }).join('')+'</div>'+
     (menos && menos[1]<.2 ? '<p class="callout">'+ic('alert')+'<span>O modelo <b>'+menos[0]+'</b> está bem menos usado ('+Math.round(menos[1]*100)+'% dos stories). Vale testar um visual novo para ele.</span></p>' : '')+
-    '<p class="foot">Conta cada vez que alguém toca em Compartilhar ou Baixar imagem no fim do treino (uma vez por modelo a cada abertura). Vale para alunos com e sem personal.</p></section>';
+    '<p class="foot">Conta cada vez que alguém toca em Compartilhar ou Baixar imagem no fim do treino ou do cardio (uma vez por modelo a cada abertura; no Boneco, foto e vídeo contam separados). Vale para alunos com e sem personal.</p></section>';
   // próximas datas especiais
   const ok0 = (C.config.geral && C.config.geral.datasOk) || [], t00 = today();
   h += '<h3 class="sec">Datas especiais<span class="dot" aria-hidden="true"></span></h3><section class="card"><span class="label">'+ic('cake')+'Próximas datas para os stories</span><p class="muted">O lembrete aparece no Painel 10 dias antes de cada data.</p><div class="list">'+
@@ -3062,7 +3065,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '11 nov · 98'; // Versão do painel: 11 nov · 98
+const PAINELV = '11 nov · 99'; // Versão do painel: 11 nov · 99
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -4284,6 +4287,7 @@ function act(a,d,btn){
     case 'estRefresh': loadEst(true); toast('Atualizando'); break;
     case 'datOk': { const g = C.config.geral || (C.config.geral = clone(DEF_CFG)); g.datasOk = (g.datasOk||[]).filter(k => k!==d.k).concat([d.k]).slice(-40); Store.save('config','geral',0); toast('Combinado. O lembrete dessa data saiu do Painel.'); break; }
     case 'estP': ui.estP = d.v; break;
+    case 'estG': ui.estG = d.v; ui.estOpen = ''; break;
     case 'estS': ui.estS = d.v; break;
     case 'estMod': ui.estOpen = ui.estOpen===d.v ? '' : d.v; break;
     case 'estLida': { const x = (ST.sug||[]).find(y => y.id===d.k); if(x){ x.lida = !!d.v; FBP.setLida(d.k, !!d.v).catch(() => { x.lida = !d.v; toast('Não deu para salvar. Confira a internet.'); render(); }); } break; }

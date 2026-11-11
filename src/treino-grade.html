@@ -1550,6 +1550,10 @@ body.has-dock .toast,body.has-dock .utoast{bottom:calc(176px + env(safe-area-ins
 #novav span{flex:1;min-width:0;display:flex;flex-direction:column}#novav b{font-size:15px;font-weight:800}#novav small{font-size:12px;color:#A9B0AA}
 #novav button{flex:none;display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 16px;border:0;border-radius:999px;background:#C6F04A;color:#0F1712;font:inherit;font-size:14px;font-weight:800;cursor:pointer}#novav button .i{width:16px;height:16px}
 @keyframes novav-in{from{opacity:0;transform:translate(-50%,-20px)}}
+.stp-cards.c4{grid-template-columns:repeat(4,1fr);gap:8px}.stp-cards.c4 .stp-c b{font-size:13.5px}.stp-cards.c4 .stp-c small{font-size:10.5px}
+.stm.c4{grid-template-columns:repeat(4,1fr);gap:8px}
+.cst-tipo{margin:2px 0}
+.cs-st{flex:none;width:40px;height:40px;margin:-6px -6px -6px 4px;border:0;border-radius:50%;background:var(--ctl);color:var(--fg);display:grid;place-items:center;cursor:pointer}.cs-st .i{width:18px;height:18px}
 .ver-btn{margin-top:8px;align-self:flex-start;width:max-content}.ver-btn.nova{background:#C6F04A;color:#0F1712}
 .ver-pill{display:inline-flex;align-items:center;gap:5px;margin-top:6px;padding:3px 9px;border-radius:999px;background:var(--chip,rgba(0,0,0,.06));font-size:11.5px;font-weight:700;color:var(--muted);width:max-content}.ver-pill .i{width:12px;height:12px}
 .ck-list{display:flex;flex-direction:column;gap:8px}
@@ -1669,7 +1673,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '11 nov · 98'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '11 nov · 99'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -3890,6 +3894,7 @@ function logCardio(local,min,int_){
   if(wkB<S.cardioGoal && wkB+min>=S.cardioGoal) setTimeout(() => celebrate('Meta de cardio batida', S.cardioGoal+' min na semana. O anel fechou.', '', 'cardio'), RM() ? 0 : 450);
   else toast(`Cardio salvo: ${min} min · ${local}, ${INT_L[int_].toLowerCase()}.`);
   vibrate(20);
+  const jc = S.cardio.length-1; setTimeout(() => { if(!ui.sheet || ui.sheet.k==='cs' || ui.sheet.k==='cman') cPick(jc); }, RM() ? 600 : 1500);
 }
 function miniRing(p,label){
   const r = 15, c = 2*Math.PI*r;
@@ -3922,7 +3927,7 @@ function weekCompact(){
 }
 function cardioRecent(){
   const N = S.cardio.length, list = S.cardio.slice().reverse().slice(0,5).map((c,j) =>
-    `<div class="cs-wrap"><button type="button" class="cs-del" data-a="cdel" data-i="${N-1-j}" aria-label="Excluir ${esc(c.local)} de ${c.min} min (${dayLabel(c.date)})">${ic('trash')}Excluir</button><div class="row cs-row" data-cswipe><span class="num">${eqIc(LOCAIS.includes(c.local)?c.local:'Outro')}</span><span class="main"><b>${esc(c.local)} · ${c.min} min</b><span>${INT_L[c.int]||c.int}${c.km?' · '+fmtKm(c.km)+' km':''}</span></span><span class="when">${dayLabel(c.date)}</span></div></div>`).join('')
+    `<div class="cs-wrap"><button type="button" class="cs-del" data-a="cdel" data-i="${N-1-j}" aria-label="Excluir ${esc(c.local)} de ${c.min} min (${dayLabel(c.date)})">${ic('trash')}Excluir</button><div class="row cs-row" data-cswipe><span class="num">${eqIc(LOCAIS.includes(c.local)?c.local:'Outro')}</span><span class="main"><b>${esc(c.local)} · ${c.min} min</b><span>${INT_L[c.int]||c.int}${c.km?' · '+fmtKm(c.km)+' km':''}</span></span><span class="when">${dayLabel(c.date)}</span><button type="button" class="cs-st" data-a="cst-open" data-j="${N-1-j}" aria-label="Postar este cardio no story">${ic('share')}</button></div></div>`).join('')
     || '<div class="row"><span class="main"><span>Nenhum cardio registrado ainda.</span></span></div>';
   return `<h3 class="sec">Recentes<span class="dot" aria-hidden="true"></span></h3><div class="list">${list}</div>${N ? '<p class="foot0">Registrou errado? Arraste o cardio para a esquerda e toque em Excluir.</p>' : ''}`;
 }
@@ -5116,6 +5121,197 @@ function stOpen(i,m){
 }
 function stSet(k,v){ const s = ui.sheet; s[k] = v; s.blob = null; PREF[k==='m'?'stM':'stCor'] = v; savePref(); renderSheet(); stRender(); }
 
+/* ---------- story do cardio: Boneco (foto ou vídeo), Bilhete, Semana e Pulso, em canvas 1080×1920 ---------- */
+const CST_MODS = [['cbon','Boneco','O boneco em movimento'],['cbil','Bilhete','Do sofá para a meta'],['csem','Semana','Seus minutos da semana'],['cpul','Pulso','Batimento e tempo']];
+const CST_COR0 = { cbon:'lilas', cbil:'preto', csem:'branco', cpul:'preto' };
+const CST_DE = { Esteira:'de esteira', Bicicleta:'de bike', Rua:'na rua', Escada:'de escada', 'Elíptico':'de elíptico', Outro:'de cardio' };
+function cPal(cor){
+  const P = {
+    vermelho:{bg:STC.rd,tx:STC.cr,sub:'rgba(246,245,239,.82)',dot:STC.dk,acc:STC.lm,accTx:STC.dk,pan:STC.dk,panTx:STC.cr,paper:STC.cr,line:STC.lm,heart:STC.cr,mov:'rgba(15,23,18,.25)'},
+    laranja:{bg:STC.or,tx:STC.dk,sub:'rgba(15,23,18,.7)',dot:STC.cr,acc:STC.rd,accTx:STC.cr,pan:STC.dk,panTx:STC.cr,paper:STC.cr,line:STC.dk,heart:STC.rd,mov:STC.or},
+    lilas:{bg:STC.li,tx:STC.dk,sub:'rgba(15,23,18,.7)',dot:STC.cr,acc:STC.lm,accTx:STC.dk,pan:STC.dk,panTx:STC.cr,paper:STC.cr,line:STC.dk,heart:STC.rd,mov:STC.li},
+    verde:{bg:STC.lm,tx:STC.dk,sub:'rgba(15,23,18,.7)',dot:STC.rd,acc:STC.rd,accTx:STC.cr,pan:STC.dk,panTx:STC.cr,paper:STC.cr,line:STC.dk,heart:STC.rd,mov:'#9BC52E'},
+    preto:{bg:STC.dk,tx:STC.cr,sub:'#9AA29B',dot:STC.rd,acc:STC.lm,accTx:STC.dk,pan:'#1C2620',panTx:STC.cr,paper:STC.cr,line:STC.lm,heart:STC.rd,mov:STC.li},
+    branco:{bg:STC.cr,tx:STC.dk,sub:'#5B625D',dot:STC.rd,acc:STC.rd,accTx:STC.cr,pan:STC.dk,panTx:STC.cr,paper:'#FFFFFF',line:STC.rd,heart:STC.rd,mov:STC.li} };
+  return P[cor] || P.preto;
+}
+function cDados(j){
+  const c = S.cardio[j]; if(!c) return null;
+  const seg = monday(c.date), dias = Array.from({length:7},(_,i) => addDays(seg,i)), d = parse(c.date);
+  const km = +c.km || 0, p = km ? c.min/km : 0, pm = Math.floor(p), ps = Math.round((p-pm)*60);
+  return { j, local:c.local, min:c.min, km, kmT:km ? fmtKm(km) : '', int:c.int, intT:INT_L[c.int]||c.int, zona:CARDIO.zona||'Zona 2', date:c.date, hoje:c.date===today(),
+    dia:d.getDate(), mes:ST_MES[d.getMonth()], ano:d.getFullYear(), pace:km ? pm+"'"+String(ps===60?59:ps).padStart(2,'0')+'"' : '',
+    dias:dias.map(k => k<=c.date ? cardioOn(k) : -1), idx:dias.indexOf(c.date), semana:dias.filter(k => k<=c.date).reduce((t,k) => t+cardioOn(k),0), meta:S.cardioGoal||150 };
+}
+let CST_PONY = null; const CST_TMP = document.createElement('canvas');
+// desenha o mesmo boneco do app (aparelho, intensidade e boneco da pessoa) num quadro do story
+function cBoneco(c, x, y, w, h, D, phase, dt){
+  const kind = ANIM_KIND[D.local] || 'rope', k = Math.max(0, INTENS.indexOf(D.int));
+  if(CST_TMP.width!==Math.round(w)) CST_TMP.width = Math.round(w); if(CST_TMP.height!==Math.round(h)) CST_TMP.height = Math.round(h);
+  const keep = {}; ['ctx','kind','k','P','phase','col','sex','pony','w','h','dpr'].forEach(f => keep[f] = AN[f]);
+  try { AN.ctx = CST_TMP.getContext('2d'); AN.kind = kind; AN.k = k; AN.P = Object.assign({}, AP[kind][k]); AN.phase = phase==null ? STILL[kind] : phase; AN.col = readCols(document.documentElement); AN.sex = sexOf(); AN.pony = CST_PONY; AN.w = w; AN.h = h; AN.dpr = 1; drawAnim(dt||1/30); CST_PONY = AN.pony; }
+  catch(e){ /* sem boneco: segue o resto do story */ }
+  finally { Object.assign(AN, keep); }
+  c.drawImage(CST_TMP, x, y);
+}
+const cFreq = D => { const kind = ANIM_KIND[D.local] || 'rope'; return (AP[kind][Math.max(0, INTENS.indexOf(D.int))]||{}).freq || 1; };
+function cMarca(c,cor,dot){ stLogoDraw(c,90,110,110); stTxt(c,'simplificando',226,183,'900 52px '+ST_SANS,cor,'left',-2); c.font = '900 52px '+ST_SANS; stLs(c,-2); const lw = c.measureText('simplificando').width; stLs(c,0); stTxt(c,'.',226+lw,183,'900 52px '+ST_SANS,dot); }
+function cRodape(c,cor){ stTxt(c,'simplificandoeduca.com',90,1800,'700 32px '+ST_SANS,cor); stTxt(c,'#simplificando',990,1800,'700 32px '+ST_SANS,cor,'right'); }
+function cTitulo(c,s,y,size,cor,dot){ const z = stFit(c,s+'.',ST_SANS,size,900,900); c.font = '900 '+z+'px '+ST_SANS; stLs(c,-4); const w = c.measureText(s).width, wd = c.measureText('.').width; stLs(c,0); const x = 540-(w+wd)/2; stTxt(c,s,x,y,'900 '+z+'px '+ST_SANS,cor,'left',-4); stTxt(c,'.',x+w,y,'900 '+z+'px '+ST_SANS,dot); }
+function cCards(c,arr,y){ arr.forEach(([v,l,bg,fg,sb],i) => { const x = 90+i*308; c.fillStyle = bg; stRR(c,x,y,284,200,36); c.fill(); c.font = '900 80px '+ST_SANS; const z = Math.min(80, Math.floor(80*220/Math.max(1,c.measureText(v).width))); stTxt(c,v,x+34,y+108,'900 '+z+'px '+ST_SANS,fg,'left',-3); c.font = '600 30px '+ST_SANS; stTxt(c,stCorte(c,l,224),x+34,y+155,'600 30px '+ST_SANS,sb); }); }
+// sem: true = o fundo do Boneco sem o boneco (o vídeo desenha o boneco por cima)
+function cDraw(c, D, m, cor, o){
+  const P = cPal(cor), W = 1080, H = 1920, hoje = D.hoje ? ' hoje' : '';
+  c.setTransform(1,0,0,1,0,0); c.clearRect(0,0,W,H); c.fillStyle = P.bg; c.fillRect(0,0,W,H);
+  if(m==='cbon'){
+    cMarca(c,P.tx,P.dot);
+    const n = String(D.min); stTxt(c,n,90,560,'800 300px '+ST_MONO,P.tx,'left',-12); c.font = '800 300px '+ST_MONO; stLs(c,-12); const w = c.measureText(n).width; stLs(c,0);
+    stTxt(c,'min',90+w+24,560,'900 80px '+ST_SANS,P.tx); stTxt(c,(CST_DE[D.local]||'de cardio')+hoje,90+w+24,470,'700 40px '+ST_SANS,P.sub);
+    c.fillStyle = P.paper; stRR(c,60,640,960,640,64); c.fill();
+    c.strokeStyle = P.mov; c.lineCap = 'round'; c.lineWidth = 10; [[150,830,90],[120,900,140],[160,970,80]].forEach(([x,y,l]) => { c.beginPath(); c.moveTo(x,y); c.lineTo(x+l,y); c.stroke(); });
+    if(!(o && o.sem)) cBoneco(c,90,690,900,583,D,o && o.phase,o && o.dt);
+    cTitulo(c,'Bora que é cardio',1420,96,P.tx,P.dot);
+    const pills = (D.km ? [D.kmT+' km','pace '+D.pace+'/km'] : [D.intT,D.min+' min']).concat([D.zona]);
+    c.font = '800 40px '+ST_SANS; const ws = pills.map(t => c.measureText(t).width+72), tot = ws.reduce((a,b) => a+b,0)+2*20; let x = 540-tot/2;
+    const pc = [[P.pan,P.panTx],[P.paper,STC.dk],[cor==='verde'?STC.dk:STC.lm, cor==='verde'?STC.lm:STC.dk]];
+    pills.forEach((t,i) => { c.fillStyle = pc[i][0]; stRR(c,x,1510,ws[i],96,48); c.fill(); stTxt(c,t,x+ws[i]/2,1572,'800 40px '+ST_SANS,pc[i][1],'center'); x += ws[i]+20; });
+    cRodape(c,P.sub);
+  } else if(m==='cbil'){
+    c.fillStyle = P.acc; stRR(c,300,150,480,84,42); c.fill(); stTxt(c,'✓ CARDIO FEITO',540,206,'900 38px '+ST_SANS,P.accTx,'center',3);
+    const X = 90, Y = 290, PW = 900, H1 = 1000, H2 = 330, cut = 34;
+    c.fillStyle = P.paper; stRR(c,X,Y,PW,H1+H2,44); c.fill();
+    c.fillStyle = P.bg; [X, X+PW].forEach(x => { c.beginPath(); c.arc(x,Y+H1,cut,0,Math.PI*2); c.fill(); });
+    c.setLineDash([16,14]); c.strokeStyle = '#C9CCC4'; c.lineWidth = 4; c.beginPath(); c.moveTo(X+cut+10,Y+H1); c.lineTo(X+PW-cut-10,Y+H1); c.stroke(); c.setLineDash([]);
+    stLogoDraw(c,X+60,Y+56,100); stTxt(c,'PASSE DE CARDIO',X+PW-60,Y+100,'600 32px '+ST_MONO,'#5B625D','right',2);
+    stTxt(c,String(D.dia).padStart(2,'0')+'/'+D.date.slice(5,7)+'/'+D.ano,X+PW-60,Y+142,'600 32px '+ST_MONO,'#5B625D','right');
+    stTxt(c,'DE',X+60,Y+270,'800 30px '+ST_SANS,'#7A817C','left',4); stTxt(c,'PARA',X+PW-60,Y+270,'800 30px '+ST_SANS,'#7A817C','right',4);
+    stTxt(c,'SOFÁ',X+60,Y+380,'900 104px '+ST_SANS,STC.dk,'left',-5); stTxt(c,'META',X+PW-60,Y+380,'900 104px '+ST_SANS,STC.dk,'right',-5);
+    c.strokeStyle = STC.rd; c.lineWidth = 8; c.setLineDash([2,18]); c.lineCap = 'round'; c.beginPath(); c.moveTo(X+350,Y+340); c.lineTo(X+PW-420,Y+340); c.stroke(); c.setLineDash([]);
+    c.fillStyle = STC.rd; c.beginPath(); c.moveTo(X+PW-385,Y+340); c.lineTo(X+PW-420,Y+318); c.lineTo(X+PW-420,Y+362); c.closePath(); c.fill();
+    const F = [['APARELHO',D.local],['TEMPO',D.min+' min']].concat(D.km ? [['DISTÂNCIA',D.kmT+' km']] : []).concat([['INTENSIDADE',D.intT]]).concat(D.km ? [['PACE',D.pace+'/km']] : []).concat([['ASSENTO',D.zona]]);
+    F.forEach(([l,v],i) => { const x = X+60+(i%3)*270, y = Y+520+Math.floor(i/3)*190; stTxt(c,l,x,y,'800 26px '+ST_SANS,'#7A817C','left',3); c.font = '900 54px '+ST_SANS; stTxt(c,stCorte(c,v,250),x,y+66,'900 54px '+ST_SANS,STC.dk,'left',-2); });
+    stTxt(c,'SEMANA',X+60,Y+930,'800 26px '+ST_SANS,'#7A817C','left',3); c.fillStyle = '#E2E3DC'; stRR(c,X+250,Y+905,PW-310,28,14); c.fill();
+    c.fillStyle = STC.rd; stRR(c,X+250,Y+905,Math.max(28,(PW-310)*Math.min(1,D.semana/D.meta)),28,14); c.fill();
+    stTxt(c,D.semana+'/'+D.meta+' min',X+PW-60,Y+880,'600 28px '+ST_MONO,'#5B625D','right');
+    let sd = 77; const rnd = () => (sd = sd*16807 % 2147483647)/2147483647; let bx = X+60; c.fillStyle = STC.dk; while(bx < X+PW-60){ const w = 3+Math.floor(rnd()*9); c.fillRect(bx,Y+H1+60,w,150); bx += w+4+Math.floor(rnd()*7); }
+    stTxt(c,'simplificandoeduca.com · embarque confirmado',540,Y+H1+H2-50,'600 30px '+ST_MONO,'#5B625D','center');
+    cTitulo(c,'Cardio pago',1770,96,P.tx,P.dot);
+  } else if(m==='csem'){
+    cMarca(c,P.tx,P.dot);
+    stTxt(c,'MINHA SEMANA DE CARDIO',90,330,'800 34px '+ST_SANS,P.tx,'left',6);
+    const big = '+'+D.min+' min'; stTxt(c,big,90,500,'900 150px '+ST_SANS,P.tx,'left',-7); c.font = '900 150px '+ST_SANS; stLs(c,-7); const w = c.measureText(big).width; stLs(c,0); stTxt(c,'.',90+w,500,'900 150px '+ST_SANS,P.dot);
+    stTxt(c,[(CST_DE[D.local]||'de cardio')+hoje].concat(D.km ? [D.kmT+' km'] : []).concat([D.intT.toLowerCase()]).join(' · '),90,570,'700 40px '+ST_SANS,P.sub);
+    const top = 700, base = 1250, bw = 100, gap = (900-7*bw)/6, mx = Math.max(45, CARDIO.min*1.6, ...D.dias), dl = ['SEG','TER','QUA','QUI','SEX','SÁB','DOM'];
+    const yg = base-(base-top)*CARDIO.min/mx; c.setLineDash([14,12]); c.strokeStyle = P.sub; c.globalAlpha = .55; c.lineWidth = 4; c.beginPath(); c.moveTo(90,yg); c.lineTo(990,yg); c.stroke(); c.setLineDash([]); c.globalAlpha = 1;
+    stTxt(c,'meta do dia',990,yg-16,'700 26px '+ST_SANS,P.sub,'right');
+    D.dias.forEach((v,i) => { const x = 90+i*(bw+gap), eu = i===D.idx;
+      if(v<0){ c.strokeStyle = P.sub; c.globalAlpha = .45; c.lineWidth = 4; stRR(c,x+2,base-40,bw-4,40,20); c.stroke(); c.globalAlpha = 1; }
+      else if(v){ const h = Math.max(30,(base-top)*Math.min(v,mx)/mx); c.fillStyle = eu ? P.acc : P.tx; stRR(c,x,base-h,bw,h,26); c.fill(); stTxt(c,String(v),x+bw/2,base-h-24,'900 44px '+ST_SANS,eu ? P.acc : P.tx,'center'); }
+      else { c.fillStyle = P.sub; c.globalAlpha = .3; stRR(c,x,base-24,bw,24,12); c.fill(); c.globalAlpha = 1; }
+      stTxt(c,dl[i],x+bw/2,base+64,'800 30px '+ST_SANS,eu ? P.acc : P.sub,'center',2); });
+    c.fillStyle = P.pan; stRR(c,90,1420,900,250,44); c.fill();
+    stTxt(c,String(D.semana),140,1545,'900 110px '+ST_SANS,P.panTx,'left',-5); c.font = '900 110px '+ST_SANS; stLs(c,-5); const w2 = c.measureText(String(D.semana)).width; stLs(c,0);
+    stTxt(c,'/'+D.meta+' min',150+w2,1545,'800 44px '+ST_SANS,'#9AA29B');
+    stTxt(c,D.semana>=D.meta ? 'meta da semana batida!' : 'faltam '+(D.meta-D.semana)+' min para a meta',940,1530,'700 32px '+ST_SANS,STC.lm,'right');
+    c.fillStyle = '#2E3A33'; stRR(c,140,1590,800,30,15); c.fill(); c.fillStyle = STC.lm; stRR(c,140,1590,Math.max(30,800*Math.min(1,D.semana/D.meta)),30,15); c.fill();
+    cRodape(c,P.sub);
+  } else {
+    cMarca(c,P.tx,P.dot);
+    stTxt(c,'● CARDIO NA '+D.zona.toUpperCase(),540,330,'800 34px '+ST_SANS,P.line,'center',6);
+    const y0 = 790; c.lineJoin = 'round'; c.lineCap = 'round';
+    const pts = [[0,y0],[230,y0],[280,y0-40],[320,y0],[380,y0],[420,y0+70],[470,y0-250],[520,y0+120],[560,y0],[640,y0],[690,y0-50],[740,y0],[1080,y0]];
+    c.save(); c.shadowColor = P.line; c.shadowBlur = 36; c.strokeStyle = P.line; c.lineWidth = 16; c.beginPath(); pts.forEach(([x,y],i) => i ? c.lineTo(x,y) : c.moveTo(x,y)); c.stroke(); c.restore();
+    c.save(); c.translate(470,y0-320); c.scale(2,2); c.fillStyle = P.heart; c.beginPath(); c.moveTo(0,12); c.bezierCurveTo(-26,-6,-14,-30,0,-16); c.bezierCurveTo(14,-30,26,-6,0,12); c.fill(); c.restore();
+    stTxt(c,String(D.min).padStart(2,'0')+':00',540,1110,'800 250px '+ST_MONO,P.tx,'center',-10);
+    stTxt(c,'min '+(CST_DE[D.local]||'de cardio')+hoje,540,1190,'700 42px '+ST_SANS,P.sub,'center');
+    cTitulo(c,'Coração em dia',1380,104,P.tx,P.dot);
+    const c1 = cor==='vermelho' ? [STC.cr,STC.dk,'#5B625D'] : [STC.rd,STC.cr,'#3A0D0D'], c3 = cor==='verde' ? [STC.dk,STC.lm,'#9AA29B'] : [STC.lm,STC.dk,'#2F3A12'];
+    cCards(c,[[D.km ? D.kmT+' km' : D.intT, D.km ? 'distância' : 'intensidade', ...c1], [D.km ? D.pace : D.zona, D.km ? 'pace por km' : 'zona alvo', P.pan, P.panTx, '#9AA29B'], [String(D.dia), 'de '+D.mes, ...c3]], 1480);
+    cRodape(c,P.sub);
+  }
+}
+function cPick(j){
+  if(!S.cardio[j]) return; clearTimeout(stpT);
+  ui.sheet = {k:'cstpick', j, xOn:false}; renderSheet(true);
+  const s = ui.sheet; (stOk ? Promise.resolve() : stFontes().then(() => { stOk = true; })).then(() => { if(ui.sheet!==s) return; cThumbs(s, null); });
+  stpT = setTimeout(() => { if(ui.sheet!==s) return; s.xOn = true; const x = $sheet.querySelector('.stp-x'); if(x){ x.classList.add('on'); x.removeAttribute('tabindex'); x.removeAttribute('aria-hidden'); } }, 4000);
+}
+function vCStPick(){
+  const s = ui.sheet, D = cDados(s.j); if(!D) return '';
+  return `<div class="stp" role="dialog" aria-modal="true" aria-labelledby="stp-t" tabindex="-1">
+    <button type="button" class="btn round stp-x${s.xOn?' on':''}" data-a="cstp-x" aria-label="Agora não"${s.xOn?'':' tabindex="-1" aria-hidden="true"'}>${ic('x')}</button>
+    <div class="stp-h"><p class="eyebrow">${esc(D.local)} · ${D.min} min · ${esc(D.intT.toLowerCase())}</p><h2 id="stp-t">Cardio feito<span class="dot" aria-hidden="true"></span></h2><p>Agora mostra pra todo mundo. Escolha como quer postar no seu story:</p></div>
+    <div class="stp-cards c4">${CST_MODS.map(([m,n,d],j) => `<button type="button" class="stp-c" data-a="cstp-go" data-v="${m}" style="--d:${j*80}ms"><span class="stp-th"><canvas data-cst-th="${m}" width="270" height="480" aria-hidden="true"></canvas>${m==='cbon'?`<i>${ic('play')}</i>`:''}</span><b>${n}</b><small>${d}</small></button>`).join('')}</div>
+    <p class="stp-f">${ic('share')}Depois é só tocar em Instagram ou WhatsApp.</p></div>`;
+}
+function cThumbs(s, cor){
+  const D = cDados(s.j); if(!D) return;
+  $sheet.querySelectorAll('canvas[data-cst-th]').forEach(cv => { const c = cv.getContext('2d'), m = cv.dataset.cstTh, k = cv.width/1080, tmp = document.createElement('canvas'); tmp.width = 1080; tmp.height = 1920;
+    try { cDraw(tmp.getContext('2d'), D, m, cor || CST_COR0[m]); } catch(e){ return; } c.setTransform(1,0,0,1,0,0); c.clearRect(0,0,cv.width,cv.height); c.drawImage(tmp,0,0,cv.width,cv.height); cv.classList.add('on'); });
+}
+function cOpen(j, m){
+  ui.sheet = {k:'cstory', j, m:m||PREF.cstM||'cbon', cor:(PREF.cstCor||{})[m||PREF.cstM||'cbon'] || CST_COR0[m||'cbon'], tipo:PREF.cstTipo||'foto', blob:null, vblob:null, grav:false};
+  renderSheet(true); cRender();
+}
+function vCStory(){
+  const s = ui.sheet, D = cDados(s.j); if(!D) return '';
+  const vid = s.m==='cbon' && s.tipo==='video';
+  const acoes = vid
+    ? (s.vblob ? `<button type="button" class="btn primary block" data-a="cst-share">${ic('share')}Compartilhar vídeo no Instagram ou WhatsApp</button><button type="button" class="btn block" data-a="cst-gravar">${ic('play')}Gravar de novo</button>`
+      : `<button type="button" class="btn primary block" data-a="cst-gravar"${s.grav?' disabled':''}>${ic('play')}${s.grav ? 'Gravando o vídeo… 6 s' : 'Gerar vídeo (6 segundos)'}</button><p class="foot0">O vídeo é gravado aqui no celular. Depois aparece o botão de compartilhar.</p>`)
+    : `<button type="button" class="btn primary block" data-a="cst-share" data-st-go disabled>${ic('share')}Compartilhar no Instagram ou WhatsApp</button><button type="button" class="btn block" data-a="cst-down" data-st-go disabled>${ic('dl')}Baixar imagem</button>`;
+  return `<div class="sheet-wrap" data-a="cst-closebg"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t" tabindex="-1">${sheetTop(esc(D.local)+' · '+D.min+' min · '+dayLabel(D.date), 'Compartilhar no story<span class="dot" aria-hidden="true"></span>').replace('data-a="close"','data-a="cst-close"')}
+    <div class="stm c4" role="group" aria-label="Modelo da imagem">${CST_MODS.map(([m,n]) => `<button type="button" class="stm-c${s.m===m?' on':''}" aria-pressed="${s.m===m}" data-a="cst-m" data-v="${m}"><span class="stp-th"><canvas data-cst-th="${m}" width="135" height="240" aria-hidden="true"></canvas></span><b>${n}</b></button>`).join('')}</div>
+    ${s.m==='cbon' ? `<div class="iseg cst-tipo" role="group" aria-label="Foto ou vídeo">${[['foto','Foto'],['video','Vídeo']].map(([v,l]) => `<button type="button" class="${s.tipo===v?'on':''}" aria-pressed="${s.tipo===v}" data-a="cst-tipo" data-v="${v}">${l}</button>`).join('')}</div>` : ''}
+    <div class="st-cores" role="group" aria-label="Cor do fundo">${ST_CORES.map(([k,n,c]) => `<button type="button" class="${s.cor===k?'on':''}" style="--c:${c}" aria-pressed="${s.cor===k}" aria-label="${n}" title="${n}" data-a="cst-cor" data-v="${k}"></button>`).join('')}</div>
+    <div class="st-prev"><canvas id="st-cv" width="1080" height="1920" role="img" aria-label="Prévia da imagem do cardio para o story"></canvas></div>
+    ${acoes}
+    <p class="foot0">No celular, escolha Instagram (story) ou WhatsApp na lista que abrir.</p></div></div>`;
+}
+let CST_RAF = 0;
+async function cRender(){
+  const s = ui.sheet; if(!s || s.k!=='cstory') return; const D = cDados(s.j); if(!D) return;
+  if(!stOk){ await stFontes(); stOk = true; if(ui.sheet!==s) return; }
+  cancelAnimationFrame(CST_RAF); const cv = $sheet.querySelector('#st-cv'); if(!cv) return; const c = cv.getContext('2d');
+  cThumbs(s, s.cor);
+  if(s.m==='cbon' && s.tipo==='video'){
+    const base = document.createElement('canvas'); base.width = 1080; base.height = 1920; cDraw(base.getContext('2d'), D, 'cbon', s.cor, { sem:true });
+    let ph = .1, last = 0; const f = cFreq(D);
+    const step = now => { if(ui.sheet!==s || !cv.isConnected) return; const dt = last ? Math.min(.05,(now-last)/1000) : 1/30; last = now; ph += dt*f;
+      c.setTransform(1,0,0,1,0,0); c.drawImage(base,0,0); cBoneco(c,90,690,900,583,D,ph,dt); CST_RAF = requestAnimationFrame(step); };
+    CST_RAF = requestAnimationFrame(step); cv.classList.add('on'); return;
+  }
+  cDraw(c, D, s.m, s.cor); cv.classList.add('on'); stBlob(s);
+}
+function cSet(k, v){ const s = ui.sheet; s[k] = v; s.blob = null; s.vblob = null; if(k==='m'){ PREF.cstM = v; s.cor = (PREF.cstCor||{})[v] || CST_COR0[v]; } if(k==='cor'){ PREF.cstCor = Object.assign({}, PREF.cstCor, {[s.m]:v}); } if(k==='tipo') PREF.cstTipo = v; savePref(); renderSheet(); cRender(); }
+// grava 6 s do story do Boneco direto da prévia (o canvas já está animando)
+async function cGravar(){
+  const s = ui.sheet; if(!s || s.k!=='cstory' || s.grav) return;
+  const cv = $sheet.querySelector('#st-cv'), tipos = ['video/mp4;codecs=avc1.42E01E','video/mp4','video/webm;codecs=vp9','video/webm'];
+  const tipo = window.MediaRecorder && cv && cv.captureStream ? tipos.find(t => { try { return MediaRecorder.isTypeSupported(t); } catch(e){ return false; } }) : null;
+  if(!tipo){ toast('Este celular não grava vídeo por aqui. Use a opção Foto.'); return; }
+  s.grav = true; s.vblob = null; renderSheet(); await cRender();
+  const cv2 = $sheet.querySelector('#st-cv'); let rec, partes = [];
+  try { rec = new MediaRecorder(cv2.captureStream(30), { mimeType:tipo, videoBitsPerSecond:5e6 }); } catch(e){ s.grav = false; renderSheet(); cRender(); toast('Não deu para gravar o vídeo. Use a opção Foto.'); return; }
+  rec.ondataavailable = e => { if(e.data && e.data.size) partes.push(e.data); };
+  const fim = new Promise(ok => { rec.onstop = ok; });
+  rec.start(250); await new Promise(ok => setTimeout(ok, 6000)); rec.stop(); await fim;
+  if(ui.sheet!==s) return;
+  s.grav = false; s.vblob = partes.length ? new Blob(partes, { type:tipo.split(';')[0] }) : null;
+  if(!s.vblob) toast('Não deu para gravar o vídeo. Use a opção Foto.');
+  renderSheet(); cRender();
+}
+function cNome(s, blob){ const D = cDados(s.j); const ext = blob && /mp4/.test(blob.type) ? '.mp4' : blob && /webm/.test(blob.type) ? '.webm' : '.png'; return 'simplificando-cardio-'+(D ? D.date : 'hoje')+ext; }
+function cSalvar(blob, nome){ const u = URL.createObjectURL(blob), a = document.createElement('a'); a.href = u; a.download = nome; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 5000); toast('Salvo. Procure nos seus downloads ou na galeria.'); }
+async function cShare(s){
+  const vid = s.m==='cbon' && s.tipo==='video', blob = vid ? s.vblob : s.blob; if(!blob) return;
+  const nome = cNome(s, blob), f = new File([blob], nome, { type:blob.type });
+  if(navigator.canShare && navigator.canShare({files:[f]})){ try { await navigator.share({files:[f]}); } catch(e){ if(e && e.name!=='AbortError') cSalvar(blob, nome); } }
+  else { cSalvar(blob, nome); toast('Seu navegador não abre o compartilhar. O arquivo foi salvo: poste pelo Instagram ou WhatsApp.'); }
+}
+function cLog(s, acao){ if(!FB || !s) return; const k = s.m+(s.tipo==='video' && s.m==='cbon' ? 'v' : ''), L = s.logged || (s.logged = {}); if(L[k]) return; L[k] = 1;
+  FB.evento('storiesUso', Object.assign(quem(), { modelo:s.m, cor:s.cor||'', acao:acao+(s.m==='cbon' && s.tipo==='video' ? '-video' : ''), tema:'cardio', em:Date.now() })); }
+
 /* ---------- render ---------- */
 let $app, $sheet, $rest, $toast, $tabs, $fx, toastT, lpT = 0, lpAt = 0, lpXY = null;
 const TABS = [['hoje','Hoje','sun'],['treino','Treino','dumbbell'],['cardio','Cardio','pulse'],['agua','Água','drop'],['evo','Evolução','chart']];
@@ -5165,7 +5361,7 @@ function render(){
 function renderSheet(freshOpen){
   if(!ui.sheet){ $sheet.innerHTML = ''; document.body.classList.remove('locked'); return; }
   const oldWrap = $sheet.querySelector('.sheet-wrap:not(.closing)'), old = oldWrap && oldWrap.querySelector('.sheet'), st = old && !freshOpen ? old.scrollTop : 0;
-  $sheet.innerHTML = ui.sheet.k==='acomp' ? vAcomp() : ui.sheet.k==='doc' ? vDocSheet() : ui.sheet.k==='excluir' ? vExcluir() : ui.sheet.k==='meus' ? vMeus() : ui.sheet.k==='ia' ? vIA() : ui.sheet.k==='ex' ? vSheet(ui.sheet.id) : ui.sheet.k==='prof' ? vProfile() : ui.sheet.k==='cs' || ui.sheet.k==='cman' ? vCardioSheet() : ui.sheet.k==='gym' ? vGym() : ui.sheet.k==='exq' ? vExq(ui.sheet.id) : ui.sheet.k==='story' ? vStory() : ui.sheet.k==='stpick' ? vStPick() : vSummary(ui.sheet.i);
+  $sheet.innerHTML = ui.sheet.k==='acomp' ? vAcomp() : ui.sheet.k==='doc' ? vDocSheet() : ui.sheet.k==='excluir' ? vExcluir() : ui.sheet.k==='meus' ? vMeus() : ui.sheet.k==='ia' ? vIA() : ui.sheet.k==='ex' ? vSheet(ui.sheet.id) : ui.sheet.k==='prof' ? vProfile() : ui.sheet.k==='cs' || ui.sheet.k==='cman' ? vCardioSheet() : ui.sheet.k==='gym' ? vGym() : ui.sheet.k==='exq' ? vExq(ui.sheet.id) : ui.sheet.k==='story' ? vStory() : ui.sheet.k==='stpick' ? vStPick() : ui.sheet.k==='cstory' ? vCStory() : ui.sheet.k==='cstpick' ? vCStPick() : vSummary(ui.sheet.i);
   const sh = $sheet.querySelector('.sheet');
   const nw = $sheet.querySelector('.sheet-wrap');
   if(old && nw && sh){ nw.classList.add('still'); sh.scrollTop = st; }
@@ -5561,6 +5757,17 @@ function onClick(ev){
     case 'exq-done': { const bk = ui.sheet && ui.sheet.back; if(bk){ ui.sheet = bk; renderSheet(true); } else closeSheet(); toast(isPersonal() ? 'Comentário salvo. Vai para o seu personal.' : 'Comentário salvo.'); re = false; break; }
     case 'exq': { const x = excOf(d.ex, true), v = d.v, k = x.q.indexOf(v); if(k>=0) x.q.splice(k,1); else { if(EXQ3.includes(v)) x.q = x.q.filter(q => !EXQ3.includes(q)); x.q.push(v); } excHist(d.ex); renderSheet(); re = false; break; }
     case 'st-open': stPick(+d.i); re = false; break;
+    case 'cst-open': cPick(+d.j); re = false; break;
+    case 'cstp-go': { const s = ui.sheet; if(s && s.k==='cstpick'){ clearTimeout(stpT); PREF.cstM = d.v; savePref(); cOpen(s.j, d.v); } re = false; break; }
+    case 'cstp-x': { const s = ui.sheet; if(s && s.k==='cstpick' && s.xOn){ closeSheet(); toast('Quando quiser, poste pelo botão de compartilhar em Cardio › Recentes.'); } re = false; break; }
+    case 'cst-closebg': if(ev.target!==b){ re = false; break; } /* falls through */
+    case 'cst-close': cancelAnimationFrame(CST_RAF); closeSheet(); re = false; break;
+    case 'cst-m': if(ui.sheet && ui.sheet.k==='cstory' && ui.sheet.m!==d.v && !ui.sheet.grav) cSet('m', d.v); re = false; break;
+    case 'cst-cor': if(ui.sheet && ui.sheet.k==='cstory' && ui.sheet.cor!==d.v && !ui.sheet.grav) cSet('cor', d.v); re = false; break;
+    case 'cst-tipo': if(ui.sheet && ui.sheet.k==='cstory' && ui.sheet.tipo!==d.v && !ui.sheet.grav) cSet('tipo', d.v); re = false; break;
+    case 'cst-gravar': cGravar(); re = false; break;
+    case 'cst-share': if(ui.sheet && ui.sheet.k==='cstory'){ cLog(ui.sheet, 'share'); cShare(ui.sheet); } re = false; break;
+    case 'cst-down': if(ui.sheet && ui.sheet.k==='cstory' && ui.sheet.blob){ cLog(ui.sheet, 'baixar'); cSalvar(ui.sheet.blob, cNome(ui.sheet, ui.sheet.blob)); } re = false; break;
     case 'stp-go': { const s = ui.sheet; if(s && s.k==='stpick'){ clearTimeout(stpT); PREF.stM = d.v; savePref(); stOpen(s.i, d.v); } re = false; break; }
     case 'stp-x': { const s = ui.sheet; if(s && s.k==='stpick' && s.xOn){ ui.sheet = {k:'sum', i:s.i}; renderSheet(true); toast('Quando quiser, toque em Compartilhar no story.'); } re = false; break; }
     case 'st-closebg': if(ev.target!==b){ re = false; break; } /* falls through */
