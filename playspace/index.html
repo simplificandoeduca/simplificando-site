@@ -632,7 +632,7 @@ body.quieto .dica { animation: none !important; }
 .campo.discreto input:focus, .campo.discreto input:not(:placeholder-shown) { background: var(--card); border-style: solid; }
 /* 0.74: o que é obrigatório no cadastro e o que ainda falta */
 .campo label .obg { color: var(--coral); font-weight: 800; margin-left: 3px; }
-.campo.falta input, .campo.falta textarea { border-color: var(--erro); box-shadow: 0 0 0 3px var(--erro-bg); }
+.campo.falta input, .campo.falta textarea, .campo.falta select { border-color: var(--erro); box-shadow: 0 0 0 3px var(--erro-bg); }
 .campo .msg-falta { font-size: 12.5px; font-weight: 700; color: var(--erro); }
 .falta-linha { font-size: 12.5px; font-weight: 700; color: var(--tinta-2); text-align: center; margin: 0 0 8px; line-height: 1.35; }
 .falta-linha.erro { color: var(--erro); } .falta-linha:empty { display: none; }
@@ -851,6 +851,25 @@ body.quieto .dica { animation: none !important; }
 @media (max-width: 480px) { .lz-n { grid-template-columns: repeat(2, 1fr); } }
 .marca.lz-sai { background: var(--erro-bg, #FBE3DC); } .marca.lz-sai svg { color: var(--erro); }
 .bt.perigo { background: var(--erro); color: #fff; } .lz-pe { display: flex; flex-direction: column; gap: 8px; }
+/* 1.01: importar os clientes e as horas do sistema anterior */
+.im-corpo { display: contents; }
+.im-num { flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--coral); color: #fff; display: grid; place-items: center; font-family: var(--display); font-size: 13px; font-weight: 800; }
+.im-ou { display: flex; align-items: center; gap: 10px 16px; flex-wrap: wrap; }
+.marca.im-lido > span { flex: 1; min-width: 0; } .marca.im-lido > svg { color: var(--ok); }
+.im-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; } @media (max-width: 480px) { .im-cols { grid-template-columns: 1fr; } }
+.im-cols select { min-height: 42px; font-size: 13.5px; text-overflow: ellipsis; }
+.link.im-tit { align-self: flex-start; text-align: left; font-size: 12.5px; color: var(--tinta-2); font-weight: 700; text-decoration: underline; }
+.marca.im-colunas { width: 100%; cursor: pointer; font: inherit; color: inherit; text-align: left; background: var(--creme-2); border: 1px solid var(--borda); } .marca.im-colunas > svg { color: var(--tinta-2); }
+.marca.im-colunas > span { flex: 1; min-width: 0; font-size: 13px; line-height: 1.4; } .marca.im-colunas > em { flex: none; font-style: normal; font-weight: 800; font-size: 13px; color: var(--coral); }
+.im-ab { display: flex; flex-direction: column; gap: 10px; border: 1px solid var(--borda); border-radius: 16px; padding: 12px; background: var(--creme-2); }
+.im-ab-cab { display: flex; align-items: center; justify-content: space-between; gap: 10px; } .im-ab-cab b { font-size: 13.5px; }
+.im-avisos { display: flex; flex-direction: column; gap: 6px; } .im-avisos .erro { color: var(--erro); }
+.im-rep { display: inline-flex; gap: 4px 12px; flex-wrap: wrap; } .im-rep .link { font-size: 13px; } .im-rep .link[aria-pressed="true"] { text-decoration: underline; } .im-rep .link[aria-pressed="false"] { color: var(--tinta-2); font-weight: 700; }
+.im-amostra { overflow-x: auto; border: 1px solid var(--borda); border-radius: 14px; background: var(--card); }
+.im-amostra table { border-collapse: collapse; width: 100%; font-size: 12.5px; white-space: nowrap; }
+.im-amostra th, .im-amostra td { padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--borda); } .im-amostra th { font-size: 11px; color: var(--tinta-2); font-weight: 800; text-transform: uppercase; letter-spacing: .04em; } .im-amostra tbody tr:last-child td { border-bottom: 0; }
+.lz-n.im-dn { grid-template-columns: 1fr 1fr; }
+.banco-mais { text-align: center; padding: 10px 0 2px; }
 .cliente-ja.sug { background: var(--mostarda-2); } .cliente-ja.sug .cr .txt { flex: 1; min-width: 0; } .cliente-ja.sug .cr .txt > b { display: block; font-weight: 800; } .cliente-ja.sug .cr .txt > span { display: block; font-size: 12.5px; color: var(--tinta-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* 0.94: o cupom impresso (papel de 80 mm; a área impressa tem 72 mm) */
 .papel { width: 72mm; max-width: 100%; box-sizing: border-box; padding: 2mm 0 5mm; background: #fff; color: #000; font: 600 12.5px/1.4 Arial, Helvetica, sans-serif; letter-spacing: 0; text-transform: none; text-align: left; }
@@ -1163,7 +1182,7 @@ function nomesEmMaiusculas() { // o que chega (do servidor ou dos exemplos da pr
 const brl = v => 'R$ ' + (+v || 0).toLocaleString('pt-BR', { minimumFractionDigits: (+v || 0) % 1 ? 2 : 0, maximumFractionDigits: 2 });
 const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 const SEMANA = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
-let uid = 100; const novoId = () => ++uid;
+let uid = 100; const novoId = () => { if (++uid === 300) uid = 400; return uid; };   // (prévia) 300 a 399 são das crianças do teste do rodapé: uma importação grande não pode cair em cima delas
 // onde cada atendimento parou, para continuar dali sem voltar ao começo (vale até o fim do dia; no servidor fica guardado neste aparelho):
 // RASC = o que já estava escolhido no atendimento de cada criança e não foi registrado; RASC_CAD = os cadastros novos pela metade;
 // PEND_FORA = quem a equipe tirou de "Falta finalizar"; ETAPA_FEITA = a folha aberta já foi concluída (não é para guardar); CAD_K = a chave do cadastro novo aberto.
@@ -1190,6 +1209,7 @@ const IC = {
   horas: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/>',
   cupom: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9.5 8h5M9.5 12h5"/>',
   copia: '<rect x="9" y="9" width="11" height="11" rx="2.2"/><path d="M5.5 15V6.2A2.2 2.2 0 0 1 7.7 4H15"/>',
+  subir: '<path d="M12 15.5V4.5M7.5 9 12 4.5 16.5 9"/><path d="M5 14.5v3.3A2.2 2.2 0 0 0 7.2 20h9.6a2.2 2.2 0 0 0 2.2-2.2v-3.3"/>',
   lixo: '<path d="M4 7h16M9 7V4.5h6V7M6.5 7l.9 12a2 2 0 0 0 2 1.8h5.2a2 2 0 0 0 2-1.8l.9-12M10 11v6M14 11v6"/>',
   zap: '<path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.1A8.5 8.5 0 1 1 21 12z"/>',
   banco: '<path d="M6 3h12M6 21h12M7 3v3.5a5 5 0 0 0 10 0V3M7 21v-3.5a5 5 0 0 1 10 0V21"/>',
@@ -1221,7 +1241,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.00';
+const VERSAO = '1.01';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -1254,7 +1274,7 @@ const S = {
   tela: 'horas', zapAberta: 1, zapModo: 'lista', zapDia: isoDia(agora), mes: { y: agora.getFullYear(), m: agora.getMonth() }, diaSel: isoDia(agora),
   cfg: { tolerancia: 9, tolCupom: 5, fecha: 22, pcdDesc: 50, aviso: 10, autoMsg: 'nao', bloqueioAuto: 'sim', cupomLoja: 'PLAY SPACE', cupomTel: '', pacotes: [{ h: 2, v: 280, tipo: 'seco', nome: '02 HORAS 260' }, { h: 3, v: 225, tipo: 'seco', nome: '03 HORAS 360' }, { h: 4, v: 380, tipo: 'seco', nome: '04 HORAS 420' }, { h: 5, v: 390, tipo: 'seco', nome: '05 HORAS 360 ESPECIAL' }, { h: 5, v: 420, tipo: 'seco', nome: 'PACOTE 05 HORAS 420' }, { h: 5, v: 480, tipo: 'seco', nome: '05 HORAS 450' }, { h: 5, v: 500, tipo: 'seco', nome: '05 HORAS 380' }, { h: 10, v: 820, tipo: 'seco', nome: '10 HORAS 840' }], servicos: [{ id: 'recreacao', n: 'RECREAÇÃO', v: 80, modo: 'periodo', min: 30, banco: true, obs: '', volta: false }, { id: 'fusquinha', n: 'CARRINHO FUSQUINHA', v: 15, modo: 'periodo', min: 30, banco: false, obs: '', volta: true }, { id: 'bebe', n: 'CARRINHO DE BEBÊ', v: 30, modo: 'fixo', min: 0, banco: false, obs: 'DAS 10H ÀS 22H', volta: true }], sapateiras: 44, cancelaMin: 9, reabreMin: 30, idface: { ip: '192.168.0.129', nome: 'Recepção', ligado: false, ultima: antes(0.2) }, tema: lido('ps-tema', 'sistema'), anim: lido('ps-anim', 'auto') }, espOrdem: lido('ps-esp-ordem', 'tempo'),
   equipe: [{ id: 1, nome: 'Camila Duarte', papel: 'gestor', login: 'camila' }, { id: 2, nome: 'Beatriz Lima', papel: 'supervisor', login: 'bia' }, { id: 3, nome: 'João Pedro', papel: 'atendente', login: 'jp' }],
-  whats: { conectado: true, numero: '5511912345678', nome: 'Play Space' }, vendasHoje: null,
+  whats: { conectado: true, numero: '5511912345678', nome: 'Play Space' }, vendasHoje: null, importacao: null,
   // os produtos da loja (na prévia, os mesmos que a migração 16 instala no servidor). est = estoque; null = a loja não controla o estoque desse produto
   produtos: [{ id: 1, n: 'Amigurumi', v: 320, est: 8 }, { id: 2, n: 'Boneca articulada', v: 150, est: 19 }, { id: 3, n: 'Boneca articulada', v: 230, est: 40 }, { id: 4, n: 'Kit bijoux', v: 230, est: 10 }, { id: 5, n: 'Kit laço', v: 260, est: 8 }, { id: 6, n: 'Maleta', v: 350, est: 20 }, { id: 7, n: 'Maquiagem', v: 160, est: 4 }],
   criancas: [
@@ -1364,9 +1384,11 @@ const gestor = () => EU.papel === 'gestor';
 const supervisorOuMais = () => EU.papel === 'gestor' || EU.papel === 'supervisor';
 const semIdface = () => !S.cfg.idface.ligado;   // a leitura do iDFace está desligada em Ajustes: a equipe marca entrada e saída na tela
 const podeManual = () => MODO !== 'servidor' || semIdface() || supervisorOuMais();   // com o iDFace ligado, à mão é só para gestor e supervisor corrigirem
+let GZ = false;   // 1.01: o servidor manda a lista de cadastros comprimida e este aparelho lê (conferido uma vez, depois de entrar)
+async function conferirGz() { try { const r = await api('gz_teste', { gz: 1 }); GZ = !!r && typeof r.eco === 'string' && r.eco.length > 8000; } catch (e) { GZ = false; } }
 async function api(acao, dados = {}) {
   let r;
-  try { r = await fetch(API, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-Play': '1' }, body: JSON.stringify({ acao, ...dados }) }); }
+  try { r = await fetch(API, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-Play': '1' }, body: JSON.stringify(GZ && acao === 'dados' ? { acao, ...dados, gz: 1 } : { acao, ...dados }) }); }
   catch (e) { const err = new Error('Sem ligação com o servidor'); err.rede = true; throw err; }
   let j = null; try { j = await r.json(); } catch (e) { const err = new Error('O servidor não respondeu em JSON'); err.rede = true; throw err; }
   if (!j.ok) { const err = new Error(j.erro || 'Erro no servidor'); err.status = r.status; if (r.status === 401 && acao !== 'entrar' && !document.body.classList.contains('so')) { clearInterval(SYNC_T); telaEntrar(); } throw err; }
@@ -1392,6 +1414,7 @@ async function carregar() { // devolve true quando algo mudou no servidor
     S.pagHoje = d.pagamentos_hoje || null;   // o que entrou por cada forma de pagamento nas últimas 24 h   // o que saiu da loja e ainda não voltou (carrinho, fusquinha)
     S.vendasHoje = d.vendas_hoje; S.atrasoHoje = d.atraso_hoje || null; S.descontosHoje = d.descontos_hoje || null; S.whats = d.whats; S.eu = d.eu; S.exemplo = d.exemplo || 0;
     S.limpeza = d.limpeza ? { oferta: !!d.limpeza.oferta, ultima: d.limpeza.ultima ? { ...d.limpeza.ultima, em: dataDe(d.limpeza.ultima.em) } : null } : null;   // 0.98: só o gestor recebe
+    S.importacao = d.importacao ? { ...d.importacao, em: dataDe(d.importacao.em) } : null;   // 1.01: a última importação (só o gestor recebe)
     S.cancelamentos = (d.cancelamentos || []).map(x => ({ ...x, entrou: dataDe(x.entrou), quando: dataDe(x.quando), visto_em: x.visto_em ? dataDe(x.visto_em) : null }));
     S.pend = {}; for (const p of d.pendentes || []) S.pend[p.id] = dataDe(p.em);   // cadastro feito hoje e ainda sem atendimento (para "Falta finalizar")
     nomesEmMaiusculas();
@@ -1469,7 +1492,7 @@ function telaCriarGestor() {
     <div class="campo"><label for="g-senha">Senha (pelo menos 6 caracteres)</label><input id="g-senha" type="password" autocomplete="new-password"></div>
     <button class="bt forte largo tap" data-act="criar-gestor">${ic(IC.check)} Criar e entrar</button>`);
 }
-async function depoisDeEntrar() { lerEtapas(); await carregar(); desenhar(); conferirAtualizacao(false); oferecerLimpeza(); }
+async function depoisDeEntrar() { lerEtapas(); await conferirGz(); await carregar(); desenhar(); conferirAtualizacao(false); oferecerLimpeza(); }
 /* ---------- 0.98: limpar os cadastros (começar do zero) ---------- */
 // Para quando os testes acabam e a loja vai começar de verdade. Saem todos os cadastros (crianças e responsáveis, com as fotos) e o que
 // nasceu deles: horas, vendas, pagamentos, visitas e o movimento do dia. Ficam a equipe, a regra, os serviços, os pacotes, os produtos
@@ -1509,9 +1532,9 @@ async function folhaLimpeza(oferta) {
 function limparAparelho() { RASC = {}; RASC_CAD = []; PEND_FORA = {}; CARRINHO = null; PAG = null; ETAPA_FEITA = true; salvarEtapas(); }   // o que este aparelho guardava pela metade era de cadastros que não existem mais
 function limparPrevia() { // (prévia) a mesma limpeza, na memória
   const q = S.criancas.length;
-  LIMPEZA_ERA = { criancas: S.criancas, compras: S.compras, registros: S.registros, cancelamentos: S.cancelamentos || [], conversas: S.conversas || [], pagamentos: S.pagamentos || [], cupons: S.cupons || [], teste: !!S.testePrevia, est: (S.produtos || []).map(p => [p.id, p.est]), rasc: RASC, cad: RASC_CAD, fora: PEND_FORA };
+  LIMPEZA_ERA = { criancas: S.criancas, compras: S.compras, registros: S.registros, cancelamentos: S.cancelamentos || [], conversas: S.conversas || [], pagamentos: S.pagamentos || [], cupons: S.cupons || [], teste: !!S.testePrevia, est: (S.produtos || []).map(p => [p.id, p.est]), rasc: RASC, cad: RASC_CAD, fora: PEND_FORA, imp: S.importacao, impLote: IMP_LOTE };
   for (const v of S.compras) if (v.prod) { const p = produto(v.prod); if (p && p.est != null) p.est += v.qtd || 0; }   // o produto vendido volta para o estoque
-  S.criancas = []; S.compras = []; S.registros = []; S.cancelamentos = []; S.conversas = []; S.pagamentos = []; S.cupons = []; S.testePrevia = false; limparAparelho();
+  S.criancas = []; S.compras = []; S.registros = []; S.cancelamentos = []; S.conversas = []; S.pagamentos = []; S.cupons = []; S.testePrevia = false; S.importacao = null; IMP_LOTE = null; limparAparelho();
   registrar('cad', 'CADASTROS', `Todos os cadastros foram apagados para começar do zero: ${q} ${q === 1 ? 'cadastro' : 'cadastros'} · por ${EU.nome}`);
   S.limpeza = { oferta: false, ultima: { em: new Date(), por: EU.nome, cadastros: q, desfaz: true } };
 }
@@ -1519,13 +1542,13 @@ function voltarPrevia() {
   const e = LIMPEZA_ERA; if (!e || S.criancas.length || S.compras.length) return false;
   Object.assign(S, { criancas: e.criancas, compras: e.compras, registros: e.registros, cancelamentos: e.cancelamentos, conversas: e.conversas, pagamentos: e.pagamentos, cupons: e.cupons, testePrevia: e.teste, limpeza: null });
   for (const [id, est] of e.est) { const p = produto(id); if (p) p.est = est; }
-  RASC = e.rasc; RASC_CAD = e.cad; PEND_FORA = e.fora; LIMPEZA_ERA = null; return true;
+  RASC = e.rasc; RASC_CAD = e.cad; PEND_FORA = e.fora; S.importacao = e.imp || null; IMP_LOTE = e.impLote || null; LIMPEZA_ERA = null; return true;
 }
 /* ---------- 1.00: o painel do administrador: editar ou remover um cadastro ---------- */
 // A equipe cadastra e atende; mudar (ou remover) o que já está cadastrado é só do gestor, e só por aqui (Ajustes → Cadastros).
 const linhasAdmin = q => { const k = String(q || '').trim().toLowerCase(), L = S.criancas.filter(c => !k || casaBusca(c, k)).sort((a, b) => a.nome.localeCompare(b.nome) || a.resp.localeCompare(b.resp));
   if (!L.length) return `<p class="explica">${k ? 'Nenhum cadastro com essa busca.' : 'Nenhum cadastro ainda.'}</p>`;
-  return L.slice(0, 40).map(c => `<button type="button" class="cr tap" data-act="editar" data-id="${c.id}" aria-label="Editar o cadastro de ${esc(c.nome)}">${avatar(c)}<span class="txt"><b>${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}</b><span>${esc(c.resp)}${c.cpf ? ' · ' + esc(docTxt(c)) : ''}</span></span><em>Editar ${ic(IC.lapis, 13, 2.4)}</em></button>`).join('')
+  return L.slice(0, 40).map(c => `<button type="button" class="cr tap" data-act="editar" data-id="${c.id}" aria-label="Editar o cadastro de ${esc(c.nome)}">${avatar(c)}<span class="txt"><b>${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}</b><span>${esc(c.resp)}${c.cpf ? ' · ' + esc(docTxt(c)) : ''}${c.imp ? ' · veio na importação' : ''}</span></span><em>Editar ${ic(IC.lapis, 13, 2.4)}</em></button>`).join('')
     + (L.length > 40 ? `<p class="explica">Mostrando 40 de ${L.length}: escreva o nome ou o CPF para achar.</p>` : ''); };
 function folhaCadastros() {
   if (MODO === 'servidor' && !gestor()) return;
@@ -1541,6 +1564,334 @@ const cartaoLimpeza = () => { const u = ultimaLimpeza();
         <p class="explica">${u ? `Última limpeza: ${diaCurto(u.em)} às ${hora(u.em)}, por ${esc(u.por)} · ${u.cadastros} ${u.cadastros === 1 ? 'cadastro apagado' : 'cadastros apagados'}. ${podeDesfazerLimpeza() ? `<button class="link tap" data-act="limpeza-desfazer">Desfazer a limpeza</button>` : 'Já há cadastro novo: não dá mais para desfazer.'}`
           : `Para quando os testes acabarem e a loja for começar de verdade. Só o gestor faz${MODO === 'servidor' ? ', com a senha, e o sistema guarda uma cópia de segurança antes' : ''}.`}</p>
       </div>`; };
+/* ---------- 1.01: importar os clientes e as horas do sistema anterior ---------- */
+// A loja já tinha clientes (e horas vendidas) em outro sistema. O gestor traz tudo de uma planilha: cola do Excel ou escolhe o arquivo
+// (.xlsx, .csv ou texto). A tela acha sozinha qual coluna é o quê (dá para trocar), mostra quantos cadastros entram e como eles ficam,
+// e só então importa. Quem já está cadastrado não muda. As horas entram como um pacote de valor zero ("PACOTE DO SISTEMA ANTERIOR"):
+// aparecem no histórico, valem como pacote na entrada e não contam como venda do dia. Dá para desfazer: saem os cadastros importados
+// que ainda não tiveram movimento.
+const SERV_IMP = 'PACOTE DO SISTEMA ANTERIOR', IMP_MAX_LINHAS = 10000, IMP_MAX_MIN = 60000;   // 60000 min = mil horas: mais que isso é coluna errada
+let IM = null;         // a planilha aberta na folha: { nome, M, larg, cab, col, un, rep, lote, R, ... }
+let IMP_LOTE = null;   // (prévia) a última importação, para o Desfazer
+const impLimpo = t => MAI(String(t == null ? '' : t).normalize('NFD').replace(/[̀-ͯ]/g, ''));   // sem acento e em maiúsculas, para comparar nomes
+const impNum = n => (+n || 0).toLocaleString('pt-BR');
+const impHm = min => { min = Math.max(0, Math.round(min)); return impNum(Math.floor(min / 60)) + 'h' + (min % 60 ? p2(min % 60) : ''); };   // 14.285h30: o total de uma importação passa fácil de mil horas
+const letraCol = i => { let s = ''; for (i++; i > 0; i = Math.floor((i - 1) / 26)) s = String.fromCharCode(65 + (i - 1) % 26) + s; return s; };
+// o documento e o telefone como a planilha trouxe, com o mesmo trato do servidor
+function impDoc(v) {
+  const t = String(v == null ? '' : v).trim(); if (!t) return { doc: 'cpf', cpf: '' };
+  if (/[A-Za-z]/.test(t)) return { doc: 'rne', cpf: t.replace(/[^A-Za-z0-9.\-\/ ]/g, '').trim().toUpperCase().slice(0, 20) };
+  let d = soDig(t); if (d.length >= 8 && d.length <= 10 && cpfValido(d.padStart(11, '0'))) d = d.padStart(11, '0');   // a planilha comeu os zeros da frente
+  return { doc: 'cpf', cpf: d.length === 11 ? cpfFmt(d) : t.replace(/[^\d.\-]/g, '').slice(0, 20) };
+}
+function impTel(v) {
+  const t = String(v == null ? '' : v).trim(); if (!t) return ''; let d = soDig(t);
+  if ((d.length === 12 || d.length === 13) && d.startsWith('55')) d = d.slice(2);   // veio com o 55 do Brasil
+  if ((d.length === 11 || d.length === 12) && d[0] === '0') d = d.slice(1);         // veio com o zero antes do DDD
+  return d.length === 11 ? `(${d.slice(0, 2)}) ${d[2]} ${d.slice(3, 7)}-${d.slice(7)}` : d.length === 10 ? `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}` : t.slice(0, 30);
+}
+// As chaves de um cadastro, para saber se a criança já está no sistema. A primeira é a principal: o nome com o documento do responsável;
+// sem documento, o nome com o telefone; sem os dois, o nome com o responsável.
+function impChaves(nome, resp, doc, cpf, tel, tel2) {
+  const n = impLimpo(nome), o = [], dk = doc === 'rne' ? String(cpf || '').toUpperCase().replace(/[^A-Z0-9]/g, '') : soDig(cpf);
+  if (doc === 'rne' ? dk.length >= 5 : dk.length === 11) o.push(n + '|d:' + dk);
+  for (const t of [tel, tel2]) { const d = soDig(t); if (d.length >= 8) o.push(n + '|t:' + d.slice(-8)); }
+  o.push(n + '|r:' + impLimpo(resp)); return [...new Set(o)];
+}
+// "5", "5,5", "5h", "5h30", "5:30", "05:30:00", "90 min" → minutos. Vazio → null; o que não é hora → NaN
+function horasEmMin(v, un) {
+  let t = String(v == null ? '' : v).trim().toLowerCase(); if (!t || /^[-–—]+$/.test(t)) return null;
+  const sinal = /^[-−(]/.test(t) ? -1 : 1, num = s => parseFloat(String(s).replace(',', '.')); t = t.replace(/^[-−(+]\s*/, '').replace(/\)$/, '').trim();
+  let m = t.match(/^(\d+):(\d{1,2})(?::(\d{1,2}))?$/); if (m) return sinal * Math.round(+m[1] * 60 + +m[2] + (+m[3] || 0) / 60);
+  m = t.match(/^(\d+(?:[.,]\d+)?)\s*(?:h|hs|hr|hrs|hora|horas)\s*(?:e\s*)?(?:(\d{1,2})\s*(?:m|min|mins|minuto|minutos)?)?$/); if (m) return sinal * Math.round(num(m[1]) * 60 + (+m[2] || 0));
+  m = t.match(/^(\d+(?:[.,]\d+)?)\s*(?:m|min|mins|minuto|minutos)$/); if (m) return sinal * Math.round(num(m[1]));
+  if (/^\d{1,3}(\.\d{3})+,\d+$/.test(t) || /^\d{1,3}(\.\d{3}){2,}$/.test(t)) t = t.replace(/\./g, '');   // 1.234,5: o ponto é de milhar
+  return /^\d+([.,]\d+)?$/.test(t) ? sinal * Math.round(num(t) * (un === 'min' ? 1 : 60)) : NaN;
+}
+/* ----- ler a planilha: texto colado, CSV, tabela de página e Excel (.xlsx) ----- */
+// Texto: o que foi colado do Excel vem com as colunas separadas por tabulação; o CSV, por ponto e vírgula ou vírgula. Aspas protegem o separador.
+function lerTabela(txt) {
+  txt = String(txt || '').replace(/^﻿/, '').replace(/\r\n?/g, '\n');
+  const amostra = txt.split('\n').filter(l => l.trim()).slice(0, 15);
+  const conta = sep => { let com = 0, tot = 0; for (const l of amostra) { let n = 0, asp = false; for (const ch of l) { if (ch === '"') asp = !asp; else if (ch === sep && !asp) n++; } if (n) com++; tot += n; } return com * 100000 + tot; };
+  let sep = '\t'; if (!conta('\t')) { let melhor = 0; for (const s of [';', ',', '|']) { const c = conta(s); if (c > melhor) { melhor = c; sep = s; } } }
+  const M = []; let lin = [], cel = '', asp = false;
+  const fimCel = () => { lin.push(cel.replace(/ /g, ' ').replace(/\s+/g, ' ').trim()); cel = ''; }, fimLin = () => { fimCel(); if (lin.some(c => c !== '')) M.push(lin); lin = []; };
+  for (let i = 0; i < txt.length; i++) { const ch = txt[i];
+    if (asp) { if (ch !== '"') cel += ch; else if (txt[i + 1] === '"') { cel += '"'; i++; } else asp = false; }
+    else if (ch === '"' && !cel.trim()) { asp = true; cel = ''; }
+    else if (ch === sep) fimCel();
+    else if (ch === '\n') fimLin();
+    else cel += ch; }
+  if (cel !== '' || lin.length) fimLin();
+  return M;
+}
+// o "xls" de muito sistema é, na verdade, uma tabela de página
+const lerHtmlTabela = txt => $$('tr', new DOMParser().parseFromString(txt, 'text/html')).map(tr => $$('th,td', tr).map(c => c.textContent.replace(/\s+/g, ' ').trim())).filter(l => l.some(Boolean));
+// Excel (.xlsx): um zip com a planilha em XML. Lê a primeira aba; data e hora saem como texto (10/11/2026, 5:30)
+async function lerXlsx(buf) {
+  const naoDeu = new Error('Não consegui abrir esse arquivo do Excel. Abra a planilha, selecione tudo, copie e cole no quadro.');
+  if (typeof DecompressionStream !== 'function') throw new Error('Este navegador não abre o arquivo do Excel direto. Abra a planilha, selecione tudo, copie e cole no quadro.');
+  const u8 = new Uint8Array(buf), dv = new DataView(buf), td = new TextDecoder();
+  let p = u8.length - 22; while (p >= 0 && dv.getUint32(p, true) !== 0x06054b50) p--; if (p < 0) throw naoDeu;
+  const total = dv.getUint16(p + 10, true), arqs = {}; let o = dv.getUint32(p + 16, true);
+  for (let i = 0; i < total && o + 46 <= u8.length && dv.getUint32(o, true) === 0x02014b50; i++) {
+    const nl = dv.getUint16(o + 28, true); arqs[td.decode(u8.subarray(o + 46, o + 46 + nl))] = { met: dv.getUint16(o + 10, true), tam: dv.getUint32(o + 20, true), ini: dv.getUint32(o + 42, true) };
+    o += 46 + nl + dv.getUint16(o + 30, true) + dv.getUint16(o + 32, true); }
+  const abrir = async nome => { const a = arqs[nome]; if (!a) return '';
+    const ini = a.ini + 30 + dv.getUint16(a.ini + 26, true) + dv.getUint16(a.ini + 28, true), dados = u8.subarray(ini, ini + a.tam);
+    if (a.met === 0) return td.decode(dados); if (a.met !== 8) throw naoDeu;
+    return await new Response(new Blob([dados]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text(); };
+  const xml = t => new DOMParser().parseFromString(t || '<x/>', 'application/xml'), tag = (el, n) => Array.from(el.getElementsByTagNameNS('*', n));
+  let folha = '';   // a primeira aba, pela ordem da pasta de trabalho
+  try { const s = tag(xml(await abrir('xl/workbook.xml')), 'sheet')[0], rid = s ? Array.from(s.attributes).filter(a => a.localName === 'id' && a.name !== 'id').map(a => a.value)[0] : '';
+    const r = tag(xml(await abrir('xl/_rels/workbook.xml.rels')), 'Relationship').find(x => x.getAttribute('Id') === rid), alvo = r ? r.getAttribute('Target') || '' : '';
+    if (alvo) folha = alvo.startsWith('/') ? alvo.slice(1) : 'xl/' + alvo.replace(/^\.\//, ''); } catch (e) { if (e === naoDeu) throw e; }
+  if (!arqs[folha]) folha = Object.keys(arqs).filter(k => /^xl\/worksheets\/[^/]+\.xml$/.test(k)).sort((a, b) => a.length - b.length || a.localeCompare(b))[0];
+  if (!folha) throw naoDeu;
+  const textos = tag(xml(await abrir('xl/sharedStrings.xml')), 'si').map(si => tag(si, 't').filter(t => t.parentNode.localName !== 'rPh').map(t => t.textContent).join(''));
+  // quais formatos são de data ou de hora (o Excel guarda os dois como número)
+  const est = xml(await abrir('xl/styles.xml')), fmts = {}; tag(est, 'numFmt').forEach(f => { fmts[f.getAttribute('numFmtId')] = f.getAttribute('formatCode') || ''; });
+  const xfs = tag(est, 'cellXfs')[0], tipoXf = (xfs ? tag(xfs, 'xf') : []).map(x => { const id = +x.getAttribute('numFmtId') || 0, cod = fmts[id];
+    if (cod == null) return (id >= 14 && id <= 17) || id === 22 ? 'data' : (id >= 18 && id <= 21) || (id >= 45 && id <= 47) ? 'hora' : '';
+    const c = cod.replace(/"[^"]*"/g, '').replace(/\\./g, '').replace(/\[(?!h+\]|m+\]|s+\])[^\]]*\]/gi, ''); return /[dy]/i.test(c) ? 'data' : /[hs]/i.test(c) ? 'hora' : ''; });
+  const M = [];
+  for (const row of tag(xml(await abrir(folha)), 'row')) { const lin = []; let prox = 0;
+    for (const c of tag(row, 'c')) { const letras = ((c.getAttribute('r') || '').match(/^[A-Z]+/) || [''])[0]; let col = prox;
+      if (letras) { col = 0; for (const ch of letras) col = col * 26 + ch.charCodeAt(0) - 64; col--; } prox = col + 1;
+      const t = c.getAttribute('t') || 'n', v = tag(c, 'v')[0], bruto = v ? v.textContent : ''; let txt = '';
+      if (t === 's') txt = textos[+bruto] || ''; else if (t === 'inlineStr') txt = tag(c, 't').map(x => x.textContent).join(''); else if (t === 'str') txt = bruto; else if (t === 'b') txt = bruto === '1' ? 'SIM' : 'NÃO';
+      else if (t !== 'e' && bruto !== '') { const n = Number(bruto), k = tipoXf[+c.getAttribute('s') || 0] || '';
+        if (isNaN(n)) txt = bruto;
+        else if (k === 'hora' || (k === 'data' && n < 1)) { const min = Math.round(n * 1440); txt = Math.floor(min / 60) + ':' + p2(min % 60); }
+        else if (k === 'data') { const d = new Date(Math.round((n - 25569) * 86400000)); txt = p2(d.getUTCDate()) + '/' + p2(d.getUTCMonth() + 1) + '/' + d.getUTCFullYear(); }
+        else txt = Number.isInteger(n) ? String(n) : String(Math.round(n * 1e6) / 1e6).replace('.', ','); }
+      while (lin.length < col) lin.push(''); lin[col] = String(txt).replace(/\s+/g, ' ').trim(); }
+    if (lin.some(Boolean)) M.push(lin); }
+  return M;
+}
+async function lerArquivoImp(f) {
+  if (f.size > 12e6) throw new Error('Esse arquivo é grande demais. Abra a planilha, selecione as linhas, copie e cole no quadro.');
+  const buf = await f.arrayBuffer(), u = new Uint8Array(buf), colar = ' Abra a planilha, selecione tudo, copie e cole no quadro.';
+  if (u[0] === 0x50 && u[1] === 0x4B) return lerXlsx(buf);
+  if (u[0] === 0xD0 && u[1] === 0xCF && u[2] === 0x11 && u[3] === 0xE0) throw new Error('Esse é o Excel antigo (.xls), que não abre direto.' + colar);
+  if (u[0] === 0x25 && u[1] === 0x50 && u[2] === 0x44 && u[3] === 0x46) throw new Error('PDF não dá para importar: precisa ser a planilha (Excel ou CSV).');
+  let txt; if (u[0] === 0xFF && u[1] === 0xFE) txt = new TextDecoder('utf-16le').decode(u); else if (u[0] === 0xFE && u[1] === 0xFF) txt = new TextDecoder('utf-16be').decode(u);
+  else { try { txt = new TextDecoder('utf-8', { fatal: true }).decode(u); } catch (e) { txt = new TextDecoder('windows-1252').decode(u); } }   // o CSV que o Excel salva costuma vir sem ser UTF-8
+  return /<t[dh][\s>]/i.test(txt) && /^\s*(<\?xml|<!doctype|<html|<table|<meta|<style|<head|<body)/i.test(txt.slice(0, 800)) ? lerHtmlTabela(txt) : lerTabela(txt);
+}
+/* ----- qual coluna é o quê ----- */
+const CAMPOS_IMP = [   // campo, nome na tela, o que o título da coluna costuma dizer
+  ['nome', 'Criança', /\b(crianca|criancas|filho|filha|filhos|aluno|aluna|dependente|menor)\b/],
+  ['resp', 'Responsável', /\b(responsavel|responsaveis|resp|pai|mae|cliente|titular|adulto)\b/],
+  ['cpf', 'CPF ou RNE', /\b(cpf|rne|documento|doc)\b/],
+  ['tel', 'Telefone', /\b(telefone|telefones|celular|fone|whatsapp|whats|contato|tel|cel)\b/],
+  ['tel2', 'Outro telefone', /\b(recado|fixo|residencial|comercial)\b|\b(telefone|tel|celular|fone) ?2\b|\boutro (telefone|celular|fone)\b/],
+  ['saldo', 'Saldo de horas', /\b(saldo|restante|restantes|disponivel|disponiveis|sobra|sobrando|credito|creditos)\b/],
+  ['compradas', 'Horas compradas', /\b(compradas|comprado|contratadas|contratado|adquiridas|adquirido)\b|\btotal de horas\b|\bhoras totais\b/],
+  ['usadas', 'Horas usadas', /\b(usadas|usado|utilizadas|utilizado|consumidas|consumido|gastas|gasto)\b/],
+  ['obs', 'Observações', /\b(obs|observacao|observacoes|restricao|restricoes|alergia|alergias|anotacao|anotacoes)\b/]];
+const IMP_ORDEM = ['cpf', 'tel2', 'tel', 'saldo', 'compradas', 'usadas', 'obs', 'nome', 'resp'];   // "telefone do responsável" é telefone; "nome do responsável" é responsável
+const IMP_HORAS = ['saldo', 'compradas', 'usadas'];
+const tituloImp = t => impLimpo(t).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+function campoDoTitulo(t) {
+  const k = tituloImp(t); if (!k || k.length > 40 || /\d{5,}/.test(k)) return '';
+  for (const c of IMP_ORDEM) if (CAMPOS_IMP.find(x => x[0] === c)[2].test(k)) return c;
+  return /^nome( completo)?$/.test(k) ? 'nome?' : /^(horas|hora|hs|banco de horas|pacote de horas)$/.test(k) ? 'saldo' : '';
+}
+// a linha dos títulos: a que mais tem nome de coluna conhecido, entre as primeiras (relatório costuma ter um cabeçalho antes)
+function acharTitulos(M) {
+  let cab = -1, melhor = 0;
+  for (let i = 0; i < Math.min(M.length, 20); i++) { const n = M[i].filter(x => campoDoTitulo(x)).length; if (n > melhor && (n >= 2 || i === 0)) { melhor = n; cab = i; } }
+  return cab;
+}
+function colunasImp(M, cab) {
+  const col = {}; for (const [k] of CAMPOS_IMP) col[k] = -1; let duvida = -1;
+  if (cab >= 0) M[cab].forEach((t, i) => { const c = campoDoTitulo(t); if (c === 'nome?') { if (duvida < 0) duvida = i; return; } if (!c) return;
+    if (col[c] < 0) col[c] = i; else if (c === 'tel' && col.tel2 < 0) col.tel2 = i; });
+  if (duvida >= 0) { if (col.nome < 0) col.nome = duvida; else if (col.resp < 0) col.resp = duvida; }   // "Nome" sozinho: é a criança; se a criança já tem coluna, é o responsável
+  // o que o título não disse, o conteúdo diz: coluna de CPF e coluna de telefone são fáceis de reconhecer
+  const usadas = new Set(Object.values(col).filter(i => i >= 0)), dados = M.slice(cab + 1, cab + 61), larg = M[0] ? M[0].length : 0;
+  const parte = (i, f) => { const v = dados.map(l => l[i]).filter(Boolean); return v.length >= 2 ? v.filter(f).length / v.length : 0; };
+  const eCpf = v => { const d = soDig(v); return !/[a-z]/i.test(v) && d.length >= 9 && d.length <= 11 && cpfValido(d.padStart(11, '0')); }, eTel = v => { const d = soDig(v); return !/[a-z]/i.test(v) && d.length >= 10 && d.length <= 13 && !eCpf(v); };
+  for (let i = 0; i < larg; i++) { if (usadas.has(i)) continue;
+    if (col.cpf < 0 && parte(i, eCpf) >= .6) { col.cpf = i; usadas.add(i); } else if (col.tel < 0 && parte(i, eTel) >= .6) { col.tel = i; usadas.add(i); } }
+  return col;
+}
+// Passa a planilha para cadastros: confere cada linha, separa quem já está no sistema e quem veio repetido, e soma o que vai entrar
+function lerLinhas() {
+  if (!IM) return; const M = IM.M, col = IM.col, pega = (l, k) => col[k] >= 0 ? String(l[col[k]] == null ? '' : l[col[k]]).trim() : '';
+  const tem = new Map(); for (const x of S.criancas) for (const k of impChaves(x.nome, x.resp, x.doc === 'rne' ? 'rne' : 'cpf', x.cpf, x.tel, x.tel2)) if (!tem.has(k)) tem.set(k, x);
+  const n = { linhas: 0, ja: 0, jaCom: 0, semNome: 0, rep: 0, cpfRuim: 0, semDoc: 0, semTel: 0, semResp: 0, neg: 0, semHora: 0, fora: 0 }, L = [], H = [], vistas = new Map(), jaVistos = new Map(); let minJa = 0;
+  for (let i = IM.cab + 1; i < M.length; i++) { const l = M[i]; n.linhas++;
+    const nome = MAI(pega(l, 'nome')).slice(0, 60), resp = MAI(pega(l, 'resp')).slice(0, 80), { doc, cpf } = impDoc(pega(l, 'cpf'));
+    let t1 = pega(l, 'tel'), t2 = pega(l, 'tel2');
+    if (!t2 && soDig(t1).length >= 16) { const p = t1.split(/\s*(?:\/|;|,|\||\be\b|\bou\b)\s*/i).filter(x => soDig(x).length >= 8); if (p.length >= 2) { t1 = p[0]; t2 = p[1]; } }   // dois telefones na mesma célula
+    let tel = impTel(t1), tel2 = impTel(t2); if (!tel && tel2) { tel = tel2; tel2 = ''; }
+    if (!nome || (/^(TOTAL|TOTAIS|SOMA)\b/.test(nome) && !cpf && !tel)) { n.semNome++; continue; }   // sem o nome da criança não há cadastro (e a linha de total do relatório não é cliente)
+    // as horas: o saldo é o que vale; sem ele, o comprado menos o usado
+    const hs = k => { const v = pega(l, k); return v ? horasEmMin(v, IM.un) : null; }; let saldo = hs('saldo'), comp = hs('compradas'), usad = hs('usadas');
+    if ([saldo, comp, usad].some(x => x !== null && isNaN(x))) n.semHora++; const z = x => x === null || isNaN(x) ? null : x; saldo = z(saldo); comp = z(comp); usad = z(usad);
+    let pac = 0, usado = 0;
+    if (saldo !== null) { if (saldo < 0) { n.neg++; saldo = 0; } pac = comp !== null && comp >= saldo ? comp : saldo + Math.max(0, usad || 0); usado = pac - saldo; }
+    else if (comp !== null) { pac = Math.max(0, comp); usado = Math.min(pac, Math.max(0, usad || 0)); if (comp < 0) n.neg++; }
+    if (pac > IMP_MAX_MIN) { n.fora++; pac = 0; usado = 0; }
+    const ch = impChaves(nome, resp, doc, cpf, tel, tel2);
+    const ex = tem.get(ch[0]);
+    if (ex) {   // já está no sistema: o cadastro não muda. Se a planilha traz saldo, as horas entram (uma vez só: quem já recebeu de uma importação não recebe de novo)
+      const saldoEx = pac - usado, antes = jaVistos.get(ex.id);
+      if (antes) { n.rep++; if (IM.rep === 'somar' && antes.pac && saldoEx > 0) { antes.pac += saldoEx; minJa += saldoEx; } continue; }
+      const o = { nome, resp, doc, cpf, tel, tel2, obs: '', pac: saldoEx > 0 && !jaRecebeuImp(ex) ? saldoEx : 0, usado: 0, ja: ex.id }; jaVistos.set(ex.id, o);
+      if (o.pac) { n.jaCom++; minJa += o.pac; if (IM.ja === 'horas') { H.push(o); continue; } }
+      n.ja++; continue;
+    }
+    const ja = vistas.get(ch[0]);
+    if (ja) { n.rep++; if (IM.rep === 'somar') { ja.pac += pac; ja.usado += usado; if (ja.pac > IMP_MAX_MIN) { ja.pac = 0; ja.usado = 0; n.fora++; } } continue; }   // veio duas vezes na planilha: fica a primeira (ou as horas somam)
+    const o = { nome, resp, doc, cpf, tel, tel2, obs: MAIT(pega(l, 'obs')).slice(0, 500), pac, usado }; L.push(o); for (const k of ch) if (!vistas.has(k)) vistas.set(k, o);
+    if (!cpf) n.semDoc++; else if (doc === 'cpf' && !(soDig(cpf).length === 11 && cpfValido(cpf))) n.cpfRuim++;
+    if (!tel) n.semTel++; if (!resp) n.semResp++;
+  }
+  for (const o of H) if (o.pac > IMP_MAX_MIN) o.pac = IMP_MAX_MIN;
+  IM.R = { linhas: L, somas: H, n, minJa, min: L.reduce((a, x) => a + x.pac - x.usado, 0) + H.reduce((a, x) => a + x.pac, 0) };
+}
+const jaRecebeuImp = c => MODO === 'servidor' ? !!c.imph : S.compras.some(v => v.crianca === c.id && v.imp);   // já tem horas de uma importação
+// "12 cadastros e as horas de 3 que já estavam cadastrados"
+const fraseImp = (cad, horas) => [cad ? `${impNum(cad)} ${cad === 1 ? 'cadastro' : 'cadastros'}` : '', horas ? `as horas de ${impNum(horas)} que já ${horas === 1 ? 'estava cadastrado' : 'estavam cadastrados'}` : ''].filter(Boolean).join(' e ');
+/* ----- a folha ----- */
+const htmlImportar1 = () => `
+    <p class="explica">Traga de uma vez quem já era cliente no sistema anterior, com as horas que cada criança ainda tem. O cadastro de quem já está aqui não muda (só as horas dele entram), e dá para desfazer.</p>
+    <div class="marca"><b class="im-num">1</b><span>Abra a planilha de clientes (no Excel), selecione tudo com <b>Ctrl+A</b> e copie com <b>Ctrl+C</b>.</span></div>
+    <div class="marca"><b class="im-num">2</b><span>Toque no quadro abaixo e cole com <b>Ctrl+V</b>. Ou escolha o arquivo da planilha.</span></div>
+    <div class="campo"><label for="im-texto">Cole a planilha aqui</label><textarea id="im-texto" rows="4" spellcheck="false" autocomplete="off" placeholder="CRIANÇA    RESPONSÁVEL    CPF    TELEFONE    SALDO DE HORAS"></textarea></div>
+    <div class="im-ou"><label class="bt claro tap" for="im-arq">${ic(IC.subir, 18)} Escolher o arquivo</label><input id="im-arq" type="file" accept=".xlsx,.csv,.txt,.tsv,.xls,text/csv,text/plain" hidden><button type="button" class="link tap" data-act="importar-modelo">Baixar um modelo de planilha</button></div>
+    <p class="explica">Aceita Excel (.xlsx), CSV e texto. Uma linha por criança, com o nome dela. Responsável, CPF, telefone, observações e horas entram se a planilha tiver.</p>`;
+function folhaImportar() {
+  if (MODO === 'servidor' && !gestor()) return; IM = null;
+  abrirFolha('Importar clientes e horas', `<div class="im-corpo" id="im-corpo">${htmlImportar1()}</div>`);
+}
+function mostrarPlanilha(M, nome) {
+  if (!$('#im-corpo')) return; M = (M || []).filter(l => l.some(x => String(x == null ? '' : x).trim()));
+  if (!M.length) { toast('Não achei nenhuma linha nessa planilha.'); return; }
+  if (M.length > IMP_MAX_LINHAS + 20) { toast(`A planilha tem ${impNum(M.length)} linhas. Importe em partes de até ${impNum(IMP_MAX_LINHAS)}.`); return; }
+  const larg = M.reduce((a, l) => Math.max(a, l.length), 0); M = M.map(l => { const o = l.map(x => String(x == null ? '' : x)); while (o.length < larg) o.push(''); return o; });
+  const cab = acharTitulos(M), col = colunasImp(M, cab);
+  IM = { nome: nome || '', M, larg, cab, col, un: cab >= 0 && IMP_HORAS.some(k => col[k] >= 0 && /\bmin/.test(tituloImp(M[cab][col[k]]))) ? 'min' : 'h', rep: 'primeira', ja: 'horas', horas: 0, abertas: false,
+    lote: (Math.random().toString(36).slice(2, 10) + Date.now().toString(36)).replace(/[^a-z0-9]/g, '').padEnd(12, '0').slice(0, 20), feitas: 0, novos: 0, min: 0, jaEstavam: 0, indo: false, R: null };
+  lerLinhas(); pintarImportar();
+}
+async function abrirArquivoImp(f) {
+  try { toast('Lendo a planilha…'); mostrarPlanilha(await lerArquivoImp(f), f.name); } catch (e) { toast(e && e.message ? e.message : 'Não consegui ler esse arquivo.'); }
+  const i = $('#im-arq'); if (i) i.value = '';
+}
+function pintarImportar() {
+  const c = $('#im-corpo'); if (!c || !IM) return; const R = IM.R, n = R.n, q = R.linhas.length, h = R.somas.length, tit = IM.cab >= 0 ? IM.M[IM.cab] : [], dados = IM.M.slice(IM.cab + 1);
+  const exs = Array.from({ length: IM.larg }, (_, i) => { const v = (dados.slice(0, 200).find(l => l[i]) || [])[i] || ''; return v.length > 22 ? v.slice(0, 21) + '…' : v; });   // um exemplo do que há em cada coluna
+  const ops = k => `<option value="-1">${k === 'nome' ? 'Escolha a coluna' : 'A planilha não tem'}</option>` + exs.map((ex, i) => `<option value="${i}"${IM.col[k] === i ? ' selected' : ''}>${letraCol(i)} · ${esc(tit[i] || 'sem título')}${ex ? ' (' + esc(ex) + ')' : ''}</option>`).join('');
+  const temHoras = IMP_HORAS.some(k => IM.col[k] >= 0), fora = n.semNome, av = [];
+  const saldos = R.linhas.map(x => x.pac - x.usado).filter(m => m > 0).sort((a, b) => a - b), meioAlto = saldos.length >= 3 && saldos[Math.floor(saldos.length / 2)] >= 6000, altos = IM.un === 'h' && (meioAlto || n.fora > 0);   // metade dos saldos passa de 100 h, ou há saldo de mais de mil horas: a planilha deve estar em minutos
+  if (IM.col.nome < 0 || altos) IM.abertas = true; const abertas = IM.abertas;   // abertas por precisão ficam abertas (não fecham no meio da escolha)
+  if (altos && meioAlto) av.push(`<p class="explica erro">Os saldos estão altos: metade passa de 100 horas. Se a planilha guarda as horas em minutos, escolha <b>Minutos</b> aqui embaixo.</p>`);
+  if (IM.col.nome < 0) av.push(`<p class="explica erro">Escolha qual coluna tem o <b>nome da criança</b>: sem ele não há cadastro.</p>`);
+  else if (!q && !h) av.push(`<p class="explica erro">${n.ja ? 'Todas as crianças dessa planilha já estão cadastradas: não há o que importar.' : 'Nenhuma linha com o nome da criança nessa coluna.'}</p>`);
+  if (n.jaCom) av.push(`<p class="explica" id="im-ja"><b>${impNum(n.jaCom)}</b> que já ${n.jaCom === 1 ? 'está cadastrado tem' : 'estão cadastrados têm'} horas na planilha (${impHm(R.minJa)}): <span class="im-rep"><button type="button" class="link tap" data-act="importar-ja" data-v="horas" aria-pressed="${IM.ja === 'horas'}">colocar as horas</button><button type="button" class="link tap" data-act="importar-ja" data-v="nada" aria-pressed="${IM.ja !== 'horas'}">não mexer</button></span></p>`);
+  if (IM.col.nome >= 0 && IM.col.resp < 0) av.push(`<p class="explica">Sem a coluna do <b>responsável</b>, os cadastros entram sem o nome dele.</p>`);
+  if (n.rep) av.push(`<p class="explica"><b>${impNum(n.rep)}</b> ${n.rep === 1 ? 'linha repetida (a mesma criança, do mesmo responsável)' : 'linhas repetidas (a mesma criança, do mesmo responsável)'}: <span class="im-rep"><button type="button" class="link tap" data-act="importar-rep" data-v="primeira" aria-pressed="${IM.rep === 'primeira'}">fica a primeira</button><button type="button" class="link tap" data-act="importar-rep" data-v="somar" aria-pressed="${IM.rep === 'somar'}">somar as horas</button></span></p>`);
+  if (n.fora) av.push(`<p class="explica erro"><b>${impNum(n.fora)}</b> com mais de mil horas: ${n.fora === 1 ? 'entra' : 'entram'} sem horas. Confira a coluna das horas${IM.un === 'h' ? ' e, se a planilha guarda as horas em minutos, escolha <b>Minutos</b> aqui embaixo' : ''}.</p>`);
+  if (n.semHora) av.push(`<p class="explica erro"><b>${impNum(n.semHora)}</b> com horas que não deu para ler: ${n.semHora === 1 ? 'entra' : 'entram'} sem elas.</p>`);
+  if (n.neg) av.push(`<p class="explica"><b>${impNum(n.neg)}</b> com saldo negativo: ${n.neg === 1 ? 'entra' : 'entram'} com zero.</p>`);
+  if (n.cpfRuim) av.push(`<p class="explica"><b>${impNum(n.cpfRuim)}</b> com CPF que não confere: ${n.cpfRuim === 1 ? 'entra' : 'entram'} com o documento como está na planilha.</p>`);
+  if (q && (n.semDoc || n.semTel)) av.push(`<p class="explica">${[n.semDoc ? `<b>${impNum(n.semDoc)}</b> sem CPF` : '', n.semTel ? `<b>${impNum(n.semTel)}</b> sem telefone` : ''].filter(Boolean).join(' e ')}: entram assim mesmo, e o gestor completa depois em Ajustes → Cadastros.</p>`);
+  c.innerHTML = `
+    <div class="marca im-lido">${ic(IC.check, 18, 2.6)}<span><b>${impNum(n.linhas)} ${n.linhas === 1 ? 'linha lida' : 'linhas lidas'}</b>${IM.nome ? ' de ' + esc(IM.nome) : ''}${IM.cab > 0 ? ` · ${IM.cab === 1 ? 'a linha' : 'as ' + IM.cab + ' linhas'} antes dos títulos ${IM.cab === 1 ? 'ficou' : 'ficaram'} de fora` : ''}</span><button type="button" class="link tap" data-act="importar-trocar">Trocar</button></div>
+    <div class="lz-n" id="im-n"><div><b class="num">${impNum(q)}</b><span>${q === 1 ? 'cadastro novo' : 'cadastros novos'}</span></div><div><b class="num">${impHm(R.min)}</b><span>de saldo</span></div><div><b class="num">${impNum(n.ja + h)}</b><span>${n.ja + h === 1 ? 'já cadastrado' : 'já cadastrados'}</span></div><div><b class="num">${impNum(fora)}</b><span>sem o nome da criança</span></div></div>
+    ${av.length ? `<div class="im-avisos" id="im-avisos">${av.join('')}</div>` : ''}
+    ${q ? `<div class="campo"><label>Como ${q === 1 ? 'fica' : 'ficam'}${q > 5 ? ' (os 5 primeiros)' : ''}</label><div class="im-amostra" id="im-amostra"><table><thead><tr><th>Criança</th><th>Responsável</th><th>CPF ou RNE</th><th>Telefone</th><th>Saldo</th></tr></thead><tbody>${R.linhas.slice(0, 5).map(x => `<tr><td><b>${esc(x.nome)}</b></td><td>${esc(x.resp) || '—'}</td><td>${esc(x.cpf) || '—'}</td><td>${esc(x.tel) || '—'}${x.tel2 ? ' · ' + esc(x.tel2) : ''}</td><td class="num">${x.pac - x.usado > 0 ? hm(x.pac - x.usado) : '—'}</td></tr>`).join('')}</tbody></table></div></div>` : ''}
+    ${abertas ? `<div class="im-ab" id="im-ab"><div class="im-ab-cab"><b>Qual coluna é o quê</b>${IM.col.nome >= 0 && !altos ? `<button type="button" class="link tap" data-act="importar-colunas">Fechar</button>` : ''}</div>
+    <div class="im-cols">${CAMPOS_IMP.map(([k, r]) => `<div class="campo${k === 'nome' && IM.col.nome < 0 ? ' falta' : ''}"><label for="im-c-${k}">${r}${k === 'nome' ? '<span class="obg" aria-hidden="true">*</span>' : ''}</label><select id="im-c-${k}" data-im-col="${k}">${ops(k)}</select></div>`).join('')}</div>
+    ${temHoras ? `<div class="campo"><label>Os números das horas estão em</label><div class="seg" id="im-un"><button type="button" data-act="importar-un" data-v="h" aria-pressed="${IM.un === 'h'}">Horas</button><button type="button" data-act="importar-un" data-v="min" aria-pressed="${IM.un === 'min'}">Minutos</button></div><span class="explica">Vale para o número sozinho (5 ou 5,5). O que já vem como 5:30 ou 5h30 é lido como está.</span></div>` : ''}
+    <button type="button" class="link tap im-tit" data-act="importar-titulo">${IM.cab >= 0 ? 'A planilha não tem linha de títulos (a primeira linha já é um cliente)' : 'A primeira linha é a dos títulos das colunas'}</button>
+    </div>` : `<button type="button" class="marca im-colunas tap" data-act="importar-colunas" id="im-colunas">${ic(IC.lapis, 16, 2.4)}<span><b>Colunas:</b> ${CAMPOS_IMP.filter(([k]) => IM.col[k] >= 0).map(([k, r]) => `${r} (${letraCol(IM.col[k])})`).join(' · ')}${temHoras && IM.un === 'min' ? ' · horas em minutos' : ''}</span><em>Conferir</em></button>`}
+    <div class="pe-f"><button type="button" class="bt forte largo tap" id="im-ok" data-act="importar-ok"${(q || h) && IM.col.nome >= 0 ? '' : ' disabled'}>${ic(IC.subir)} ${q || h ? 'Importar ' + fraseImp(q, h).replace(/ que já estav(a|am) cadastrados?$/, h === 1 ? ' já cadastrado' : ' já cadastrados') : 'Nada para importar'}</button></div>`;
+}
+const fraseImportou = (q, min, horas) => `Importação feita: ${fraseImp(q, horas || 0) || 'nada de novo'}${min > 0 ? ', com ' + impHm(min) + ' de saldo' : ''}.`;
+// (prévia) a mesma importação, na memória
+function importarPrevia(L, H = []) {
+  const lote = IM.lote, quando = new Date(); let min = 0, horas = 0;
+  for (const x of H) { const c = crianca(x.ja); if (!c || !x.pac) continue;   /* quem já estava cadastrado: só as horas entram */
+    c.pacote += x.pac / 60; if (c.pmin != null) c.pmin += x.pac; c.liberado = true; c.venda = { h: x.pac / 60, m: x.pac, v: 0, servico: SERV_IMP, com: '', quando };
+    S.compras.push({ id: novoId(), crianca: c.id, h: x.pac / 60, m: x.pac, v: 0, servico: SERV_IMP, itens: '', quando, por: '', imp: true, lote, soma: true }); min += x.pac; horas++; }
+  for (const x of L) { const saldo = x.pac - x.usado, c = { id: novoId(), nome: x.nome, idade: 0, resp: x.resp, rel: 'responsável', tel: x.tel, tel2: x.tel2, doc: x.doc, cpf: x.cpf, obs: x.obs, pcd: false, pacote: x.pac / 60, usado: x.usado, entrou: null, rosto: false, foto: '', visitas: [],
+      venda: x.pac > 0 ? { h: x.pac / 60, m: x.pac, v: 0, servico: SERV_IMP, com: '', quando } : null, sapateira: null, liberado: saldo > 0 || S.cfg.bloqueioAuto !== 'sim', criado: quando, imp: true, lote };
+    if (x.obs) { c.obs_em = quando; c.obs_por = primeiro(EU.nome); }
+    S.criancas.push(c); if (x.pac > 0) S.compras.push({ id: novoId(), crianca: c.id, h: x.pac / 60, m: x.pac, v: 0, servico: SERV_IMP, itens: '', quando, por: '', imp: true, lote }); min += saldo; }
+  registrar('cad', 'CADASTROS', `Importação do sistema anterior: ${fraseImp(L.length, horas)}${min > 0 ? ', com ' + dur(min) + ' de saldo' : ''} · por ${primeiro(EU.nome)}`);
+  IMP_LOTE = lote; S.importacao = { em: quando, por: primeiro(EU.nome), cadastros: L.length, horas, min, desfeita: false };
+  return { novos: L.length, horas, min };
+}
+async function importarAgora() {
+  const im = IM; if (!im || !im.R || im.indo) return; const L = [...im.R.linhas, ...im.R.somas], ok = $('#im-ok'); if (!L.length || im.col.nome < 0) return;
+  im.indo = true; if (ok) ok.disabled = true;
+  if (MODO !== 'servidor') { const r = importarPrevia(im.R.linhas, im.R.somas); IM = null; fecharFolha(); desenhar(); toast(fraseImportou(r.novos, r.min, r.horas), () => trocarTela('banco'), 'Ver no Banco de horas'); return; }
+  try {
+    for (const tam = im.tam || 400; im.feitas < L.length; im.feitas += tam) {
+      if (ok) ok.textContent = `Importando… ${impNum(im.feitas)} de ${impNum(L.length)}`;
+      const r = await api('importar', { lote: im.lote, ja: im.ja, linhas: L.slice(im.feitas, im.feitas + tam).map(x => ({ nome: x.nome, resp: x.resp, cpf: x.cpf, tel: x.tel, tel2: x.tel2, obs: x.obs, pac: x.pac, usado: x.usado })) });
+      im.novos += r.novos; im.min += r.min; im.horas += r.horas || 0; im.jaEstavam += r.existentes;
+    }
+  } catch (e) {
+    im.indo = false; if (ok && ok.isConnected) { ok.disabled = false; ok.textContent = im.feitas ? 'Continuar a importação' : 'Tentar de novo'; }
+    toast(e.message + (im.feitas ? ' O que já entrou continua: toque para seguir de onde parou.' : '')); return;
+  }
+  const r = { novos: im.novos, min: im.min, horas: im.horas, ja: im.jaEstavam }, aberta = IM === im && !!$('#im-corpo'); if (IM === im) IM = null;
+  try { await carregar(); } catch (e) { }
+  if (aberta) fecharFolha(); desenhar(!aberta); toast(fraseImportou(r.novos, r.min, r.horas) + (r.ja ? ` ${impNum(r.ja)} já ${r.ja === 1 ? 'estava cadastrado e não mudou' : 'estavam cadastrados e não mudaram'}.` : ''), () => trocarTela('banco'), 'Ver no Banco de horas');
+}
+// o Desfazer: saem os cadastros da última importação que ainda não tiveram movimento
+const impSemMovimento = c => !!c.imp && !c.entrou && !(c.visitas || []).length && !c.foto && !S.compras.some(v => v.crianca === c.id && !v.imp) && !(S.cancelamentos || []).some(x => x.crianca === c.id);
+const horasInteirasImp = v => { const c = crianca(v.crianca); return !!c && !c.entrou && saldoMin(c) >= minDe(v); };   // as horas dadas a quem já estava cadastrado ainda estão inteiras no saldo
+const horasDaImp = () => S.compras.filter(v => v.imp && v.soma && v.lote === IMP_LOTE);
+const contaDesfazerImp = () => { const L = S.criancas.filter(c => c.imp && c.lote === IMP_LOTE), saem = L.filter(impSemMovimento).length, H = horasDaImp(), hs = H.filter(horasInteirasImp).length; return { saem, ficam: L.length - saem, horas_saem: hs, horas_ficam: H.length - hs }; };
+async function folhaDesfazerImp() {
+  const u = S.importacao; if (!u) return;
+  abrirFolha('Desfazer a importação', `
+    <p class="explica">A importação de ${diaCurto(u.em)} às ${hora(u.em)}, por ${esc(u.por)}.</p>
+    <div class="lz-n im-dn" id="id-n"><div><b class="num">…</b><span>saem</span></div><div><b class="num">…</b><span>ficam</span></div></div>
+    <div class="marca lz-sai">${ic(IC.lixo, 18)}<span><b>Saem</b> os cadastros que vieram nessa importação e ainda não tiveram movimento, com as horas que vieram junto.<span id="id-h1"></span></span></div>
+    <div class="marca">${ic(IC.check, 18, 2.6)}<span><b>Ficam</b> os importados que já tiveram venda, entrada ou visita, e todos os cadastros feitos aqui.<span id="id-h2"></span></span></div>
+    <div class="pe-f"><button type="button" class="bt perigo largo tap" id="id-ok" data-act="importar-desfazer-ok" disabled>${ic(IC.lixo)} Desfazer a importação</button></div>`);
+  let q; try { q = MODO === 'servidor' ? (await api('importar_previa')).ultima : contaDesfazerImp(); } catch (e) { toast(e.message); return; }
+  const a = $('#id-n'), ok = $('#id-ok'); if (!a || !ok) return; q = q || { saem: 0, ficam: 0 }; const hs = q.horas_saem || 0, hf = q.horas_ficam || 0, h1 = $('#id-h1'), h2 = $('#id-h2');
+  a.innerHTML = `<div><b class="num">${impNum(q.saem)}</b><span>${q.saem === 1 ? 'cadastro sai' : 'cadastros saem'}</span></div><div><b class="num">${impNum(q.ficam)}</b><span>${q.ficam === 1 ? 'fica' : 'ficam'}</span></div>`;
+  if (h1 && hs) h1.innerHTML = ` E as horas que ela deu a <b>${impNum(hs)}</b> que já ${hs === 1 ? 'estava cadastrado' : 'estavam cadastrados'} saem do saldo.`;
+  if (h2 && hf) h2.innerHTML = ` As horas de <b>${impNum(hf)}</b> já ${hf === 1 ? 'cadastrado ficam, porque já foram usadas (ou a criança está no espaço)' : 'cadastrados ficam, porque já foram usadas (ou a criança está no espaço)'}.`;
+  ok.disabled = !(q.saem + hs); if (!(q.saem + hs)) ok.innerHTML = 'Tudo já teve movimento: não dá para desfazer';
+}
+async function desfazerImportacao() {
+  const ok = $('#id-ok'); if (ok) ok.disabled = true; let r;
+  if (MODO === 'servidor') { try { r = await api('importar_desfazer'); await carregar(); } catch (e) { toast(e.message); if (ok) ok.disabled = false; return; } }
+  else { const sai = new Set(S.criancas.filter(c => c.imp && c.lote === IMP_LOTE && impSemMovimento(c)).map(c => c.id));
+    const hSai = horasDaImp().filter(horasInteirasImp);   /* as horas dadas a quem já estava cadastrado saem do saldo, se ainda estão inteiras */
+    for (const v of hSai) { const c = crianca(v.crianca), m = minDe(v); c.pacote = Math.max(0, c.pacote - m / 60); if (c.pmin != null) c.pmin = Math.max(0, c.pmin - m); S.compras = S.compras.filter(x => x !== v);
+      const u = S.compras.filter(x => x.crianca === c.id && minDe(x) > 0).sort((a, b) => b.quando - a.quando)[0]; c.venda = u ? { h: minDe(u) / 60, m: minDe(u), v: u.v, servico: u.servico, com: u.itens, quando: u.quando } : null;
+      if (saldoMin(c) <= 0 && S.cfg.bloqueioAuto === 'sim') c.liberado = false; }
+    S.criancas = S.criancas.filter(c => !sai.has(c.id)); S.compras = S.compras.filter(v => !sai.has(v.crianca));
+    const fica = S.criancas.filter(c => c.imp && c.lote === IMP_LOTE), hFica = horasDaImp(); r = { sairam: sai.size, ficaram: fica.length, horas_sairam: hSai.length, horas_ficaram: hFica.length };
+    registrar('cad', 'CADASTROS', `A importação do sistema anterior foi desfeita: ${sai.size === 1 && !hSai.length ? 'saiu' : 'saíram'} ${fraseImp(sai.size, hSai.length)}${fica.length + hFica.length ? ` · ${fica.length === 1 && !hFica.length ? 'ficou' : 'ficaram'} ${fraseImp(fica.length, hFica.length)}, porque já ${fica.length + hFica.length === 1 ? 'teve' : 'tiveram'} movimento` : ''} · por ${primeiro(EU.nome)}`);
+    S.importacao = fica.length + hFica.length ? { ...S.importacao, cadastros: fica.length, horas: hFica.length, min: fica.reduce((a, c) => a + saldoMin(c), 0) + hFica.reduce((a, v) => a + minDe(v), 0), desfeita: true } : null; if (!S.importacao) IMP_LOTE = null; }
+  fecharFolha(); desenhar(); toast(`Importação desfeita: ${r.sairam === 1 && !r.horas_sairam ? 'saiu' : 'saíram'} ${fraseImp(r.sairam, r.horas_sairam || 0)}${r.ficaram + (r.horas_ficaram || 0) ? `; ${r.ficaram === 1 && !r.horas_ficaram ? 'ficou' : 'ficaram'} ${fraseImp(r.ficaram, r.horas_ficaram || 0)}` : ''}.`);
+}
+const baixarModeloImp = () => {
+  const csv = '﻿CRIANÇA;RESPONSÁVEL;CPF;TELEFONE;OUTRO TELEFONE;SALDO DE HORAS;OBSERVAÇÕES\r\nANA CLARA EXEMPLO;MARIA EXEMPLO;529.982.247-25;(11) 9 9999-0000;;5:30;ALERGIA A AMENDOIM\r\nPEDRO EXEMPLO;MARIA EXEMPLO;529.982.247-25;(11) 9 9999-0000;;2;\r\n';
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = 'modelo-importacao-play-space.csv';
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 800);
+};
+const cartaoImportar = () => { const u = S.importacao;
+  return `<div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.subir, 20)} Importar clientes e horas</h2></div>
+        <button class="grupo tap" data-act="importar" style="width:100%"><div class="it"><div class="txt"><b>Trazer do sistema anterior</b><span>A planilha com as crianças, os responsáveis e as horas que cada uma ainda tem. É só colar do Excel ou escolher o arquivo.</span></div><span class="vai">${ic(IC.vai, 18)}</span></div></button>
+        <p class="explica">${u ? `Última importação: ${diaCurto(u.em)} às ${hora(u.em)}, por ${esc(u.por)} · ${fraseImp(u.cadastros, u.horas || 0)}${u.min ? ', com ' + impHm(u.min) + ' de saldo' : ''}${u.desfeita ? ' (o que ficou depois de desfazer)' : ''}. <button class="link tap" data-act="importar-desfazer">Desfazer a importação</button>`
+          : 'O cadastro de quem já está aqui não muda; se a planilha trouxer horas para ele, só as horas entram. Só o gestor importa, e dá para desfazer enquanto o que veio não tiver movimento.'}</p>
+      </div>`; };
+let IM_T = 0;   // a espera depois de colar ou escrever no quadro da planilha
 async function iniciar() {
   if (ATU.podeAqui) {
     try {
@@ -1862,8 +2213,12 @@ function clientesParaVenda(q) {
   const txt = String(q || '').trim(), dig = soDig(txt); let base;
   if (soNumerosBusca(txt)) { if (dig.length < 3) return { falta: 3 - dig.length, L: [] }; base = S.criancas.filter(c => c.doc !== 'rne' && soDig(c.cpf).startsWith(dig)); }
   else { if (txt.length < 2) return { falta: 0, L: [] }; const k = txt.toLowerCase(); base = S.criancas.filter(c => (c.nome + ' ' + c.resp).toLowerCase().includes(k) || (c.doc === 'rne' && String(c.cpf || '').toLowerCase().includes(k))); }
+  // 1.01: as famílias saem de um índice feito uma vez por busca (o mesmo critério de mesmoCliente: o documento; sem os dois documentos, o telefone)
+  const porDoc = new Map(), porTel = new Map(), chave = new Map(), junta = (m, k, x) => { const l = m.get(k); if (l) l.push(x); else m.set(k, [x]); };
+  for (const x of S.criancas) { const d = docDe(x), tl = tel8(x); chave.set(x.id, [d, tl]); if (d) junta(porDoc, d, x); if (tl) junta(porTel, tl, x); }
+  const familiaDe = c => { const [d, tl] = chave.get(c.id), o = new Map([[c.id, c]]); if (d) for (const x of porDoc.get(d)) o.set(x.id, x); if (tl) for (const x of porTel.get(tl)) if (!(d && chave.get(x.id)[0])) o.set(x.id, x); return [...o.values()].sort((a, b) => a.nome.localeCompare(b.nome)); };
   const vistos = new Set(), L = [];
-  for (const c of base) { if (vistos.has(c.id)) continue; const fam = familia(c); fam.forEach(x => vistos.add(x.id)); L.push({ c, fam }); }
+  for (const c of base) { if (vistos.has(c.id)) continue; const fam = familiaDe(c); fam.forEach(x => vistos.add(x.id)); L.push({ c, fam }); }
   return { falta: 0, L: L.sort((a, b) => a.c.resp.localeCompare(b.c.resp)) };
 }
 const docCurto = c => !c.cpf ? 'sem documento' : c.doc === 'rne' ? 'RNE ' + esc(c.cpf) : (d => `CPF ${d.slice(0, 3)}.•••.•••-${d.slice(9)}`)(soDig(c.cpf));   // o CPF só com o começo e o fim: outra pessoa pode estar olhando a tela
@@ -2678,7 +3033,7 @@ function tirarTestePrevia() { // tira as 10 e tudo o que nasceu delas (vendas, l
 function atualizarEspaco() { const a = $('#esp-corpo'), ch = $('#esp-filtros'); if (a) a.innerHTML = corpoEspaco(); if (ch) ch.innerHTML = chipsEspaco(); }
 // os números do dia (o que foi vendido, as horas usadas e as cobranças por atraso das últimas 24 h): ficam dentro de "Hoje na recepção"
 function numerosDoDia() {
-  const atr = atrasoHoje(), vendas = S.compras.filter(v => agora - v.quando < 86400000);
+  const atr = atrasoHoje(), vendas = S.compras.filter(v => !v.imp && agora - v.quando < 86400000);   /* 1.01: o pacote que veio na importação não é venda do dia */
   const usadas = S.criancas.reduce((a, c) => a + c.visitas.filter(v => agora - new Date(v.dia) < 86400000).reduce((b, v) => b + v.deb, 0) + (c.entrou ? cobrar(minConta(c)) : 0), 0);
   const min = S.vendasHoje ? (S.vendasHoje.min != null ? S.vendasHoje.min : (S.vendasHoje.horas || 0) * 60) : vendas.reduce((a, v) => a + minDe(v), 0);
   return { min, valor: S.vendasHoje ? S.vendasHoje.valor : vendas.reduce((a, v) => a + v.v, 0), n: S.vendasHoje ? S.vendasHoje.n : vendas.length, usadas, atr };
@@ -2785,7 +3140,7 @@ function rascunhoDe(id) {
 // cadastro feito hoje e o atendimento ainda por fazer (sem venda, sem visita): no servidor a lista vem pronta; na prévia sai da hora do cadastro
 const pendEm = c => MODO === 'servidor' ? (S.pend || {})[c.id] : c.criado;
 const pendNovo = c => !!c && !c.entrou && !PEND_FORA[c.id] && (MODO === 'servidor' ? !!(S.pend || {})[c.id]
-  : doDia(c.criado) && !c.visitas.length && !S.compras.some(v => v.crianca === c.id) && !(S.cancelamentos || []).some(x => x.crianca === c.id));
+  : !c.imp && doDia(c.criado) && !c.visitas.length && !S.compras.some(v => v.crianca === c.id) && !(S.cancelamentos || []).some(x => x.crianca === c.id));
 const emAberto = x => { const c = x && typeof x === 'object' ? x : crianca(x); return !!c && (!!rascunhoDe(c.id) || pendNovo(c)); };
 function textoPend(c) { // em que etapa parou o atendimento desta criança
   const r = rascunhoDe(c.id); if (!r) return 'falta escolher o serviço';
@@ -3048,7 +3403,7 @@ function vendasDaVisita(c) {
   const d0 = new Date(agora); d0.setHours(0, 0, 0, 0); let corte = +d0;
   for (const v of c.visitas || []) corte = Math.max(corte, +new Date(v.dia));
   for (const x of S.cancelamentos || []) if (x.crianca === c.id) corte = Math.max(corte, +x.quando);
-  return S.compras.filter(v => v.crianca === c.id && +v.quando >= corte).sort((a, b) => a.quando - b.quando).map(v => ({ id: v.id, n: nomeVendaTxt(v), m: minDe(v), v: v.v, quando: v.quando, junto: +v.quando >= +c.entrou - 1800000 }));
+  return S.compras.filter(v => v.crianca === c.id && !v.imp && +v.quando >= corte).sort((a, b) => a.quando - b.quando).map(v => ({ id: v.id, n: nomeVendaTxt(v), m: minDe(v), v: v.v, quando: v.quando, junto: +v.quando >= +c.entrou - 1800000 }));
 }
 const prazoCancelarTxt = c => { const min = Math.floor(segDentro(c) / 60), lim = cancelaLim();
   return noPrazoCancelar(c) ? `<div class="marca canc">${ic(IC.horas, 18)}<span>Entrou há <b>${min} min</b>. Dá para cancelar sem cobrar até <b>${ateCancelar(c)}</b> · faltam <b class="num">${mss(faltaCancelar(c))}</b>.</span></div>`
@@ -3249,6 +3604,7 @@ const filtroBanco = c => { const f = S.bancoFiltro || 'todas'; return f === 'ren
 // (um toque abre o histórico) e o Vender. Nada corre nesta tela: o tempo de quem está no espaço fica na tela inicial, e aqui a criança
 // só ganha o selo "No espaço". A lista vem em ordem alfabética (antes vinha pelo tempo que faltava, e as linhas trocavam de lugar sozinhas).
 const ultimaCurta = c => { const v = c.venda, s = String(v.servico || '').trim(); return s ? (/^pacote\b/i.test(s) ? s : s + ' · ' + dur(minDe(v))) : (minDe(v) === 60 ? 'Hora avulsa' : dur(minDe(v))); };   // "PACOTE 05 HORAS 420" ou "RECREAÇÃO · 0h30"
+const BANCO_MAX = 150;   // 1.01: quantos clientes a lista do Banco de horas desenha de uma vez (o resto vem pela busca)
 function linhasBanco() {
   const q = (S.bancoBusca || '').toLowerCase();
   const lista = S.criancas.filter(filtroBanco).filter(c => !q || (c.nome + ' ' + c.resp + ' ' + c.tel + ' ' + (c.tel2 || '') + ' ' + (c.cpf || '') + ' ' + soDig(c.cpf)).toLowerCase().includes(q)).sort((a, b) => a.nome.localeCompare(b.nome) || a.resp.localeCompare(b.resp));
@@ -3264,7 +3620,8 @@ function linhasBanco() {
     <div class="acoes">${COM_WHATS ? `<button class="bt ${zerou ? 'forte' : ''} tap" data-act="renovar" data-id="${c.id}" title="Chamar ${esc(c.resp)} no WhatsApp para renovar">${ic(IC.zap, 16)} ${zerou ? 'Chamar para renovar' : 'WhatsApp'}</button>` : ''}<button class="bt so-ic tap" data-act="historico" data-id="${c.id}" title="Histórico de ${esc(c.resp)}" aria-label="Histórico de ${esc(c.resp)}">${ic(IC.historico, 16)}</button><button class="bt ${ab || (!COM_WHATS && zerou) ? 'forte' : ''} tap" data-act="vender" data-id="${c.id}" aria-label="${ab ? 'Continuar o atendimento de' : 'Vender para'} ${esc(c.nome)}">${ic(IC.mais, 16)}<span class="rt">${ab ? 'Continuar' : 'Vender'}</span></button></div>
   </div>`; };
   return `<div class="banco-cab" aria-hidden="true"><span>Criança</span><span>Saldo de horas</span><span class="bc-u">Última compra</span><span></span></div>`
-    + fams.map(g => g.length > 1 ? `<div class="banco-fam" role="group" aria-label="${g.length} crianças de ${esc(g[0].resp)}, juntas">${g.map(linha).join('')}</div>` : linha(g[0])).join('');
+    + fams.slice(0, BANCO_MAX).map(g => g.length > 1 ? `<div class="banco-fam" role="group" aria-label="${g.length} crianças de ${esc(g[0].resp)}, juntas">${g.map(linha).join('')}</div>` : linha(g[0])).join('')
+    + (fams.length > BANCO_MAX ? `<p class="explica banco-mais">Mostrando os primeiros ${BANCO_MAX} de ${fams.length.toLocaleString('pt-BR')} clientes. Escreva o nome, o telefone ou o CPF na busca para achar os outros.</p>` : '');
 }
 function telaBanco() {
   const renovar = paraRenovar(), f = S.bancoFiltro || 'todas', n = k => S.criancas.filter(c => k === 'renovar' ? precisaRenovar(c) : k === 'emdia' ? temPeriodo(c) : k === 'dentro' ? !!c.entrou : true).length;
@@ -3557,6 +3914,7 @@ function telaAjustes() {
         <button class="grupo tap" data-act="cadastros" style="width:100%"><div class="it"><div class="txt"><b>Editar ou remover um cadastro</b><span>Nome, responsável, telefone, CPF e criança PCD. Só o gestor mexe aqui.</span></div><span class="vai">${ic(IC.vai, 18)}</span></div></button>
         <p class="explica">Na ficha da criança a equipe só atende: vende, dá entrada e saída. Mudar ou remover um cadastro é por aqui.</p>
       </div>` : ''}
+      ${gestor() ? cartaoImportar() : ''}
       ${gestor() ? cartaoLimpeza() : ''}
       <div class="card"><div class="sec-cab"><h2 style="font-size:18px">Aparência</h2></div>${seg('tema', [['sistema', 'Como o celular'], ['claro', 'Claro'], ['escuro', 'Escuro']], cfg.tema)}
         <div class="campo"><label>Bonequinhos neste aparelho</label>${seg('anim', [['auto', 'Automático'], ['cheia', 'Animados'], ['leve', 'Quietos']], animEscolha())}<span class="explica">No automático, o sistema segue o aparelho: se as animações dele estiverem desligadas (comum em Windows ajustado para ficar mais rápido), os bonequinhos ficam quietos.${semMovimento() ? ' <b>Neste aparelho elas estão desligadas.</b>' : ''} Em Animados, eles se mexem sempre.</span></div></div>
@@ -3871,6 +4229,17 @@ const ACOES = {
   'pq-crianca': el => { const pre = PQ, id = +el.dataset.id; if (!crianca(id)) return; PQ = null; atender(id, false, pre); },
   'pq-cadastrar': () => { const pre = PQ, q = val('pq-busca'), cpf = soNumerosBusca(q) ? cpfFmt(q) : ''; PQ = null; folhaCrianca(null, null, { pre, cpf }); },
   limpeza: () => folhaLimpeza(false),
+  importar: () => folhaImportar(),
+  'importar-trocar': () => { IM = null; const c = $('#im-corpo'); if (c) c.innerHTML = htmlImportar1(); },
+  'importar-modelo': () => baixarModeloImp(),
+  'importar-un': el => { if (!IM) return; IM.un = el.dataset.v === 'min' ? 'min' : 'h'; lerLinhas(); pintarImportar(); },
+  'importar-ja': el => { if (!IM) return; IM.ja = el.dataset.v === 'nada' ? 'nada' : 'horas'; lerLinhas(); pintarImportar(); },
+  'importar-rep': el => { if (!IM) return; IM.rep = el.dataset.v === 'somar' ? 'somar' : 'primeira'; lerLinhas(); pintarImportar(); },
+  'importar-titulo': () => { if (!IM) return; if (IM.cab >= 0) IM.cab = -1; else { IM.cab = 0; const c = colunasImp(IM.M, 0); for (const k in c) if (c[k] >= 0) IM.col[k] = c[k]; } lerLinhas(); pintarImportar(); },
+  'importar-colunas': () => { if (!IM) return; IM.abertas = !IM.abertas; pintarImportar(); },
+  'importar-ok': () => importarAgora(),
+  'importar-desfazer': () => folhaDesfazerImp(),
+  'importar-desfazer-ok': () => desfazerImportacao(),
   'limpeza-ok': async el => { if (!LZ || !LZ.n) return; const q = LZ.n.cadastros;
     if (MODO === 'servidor') { el.disabled = true; try { await api('cadastros_limpar', { senha: ($('#lz-senha') || { value: '' }).value }); } catch (e) { toast(e.message); const s = $('#lz-senha'); if (s) { s.value = ''; s.focus(); } pintarLimpeza(); return; } limparAparelho(); try { await carregar(); } catch (e) { } }
     else limparPrevia();
@@ -3951,7 +4320,9 @@ document.addEventListener('change', e => {
   const t = e.target; if (t.id === 'pc-parc') { contaPacote(); return; }
   if (t.id === 'v-entrar' && CARRINHO) { CARRINHO.entrar = t.checked; guardarRascunho(); return; }
   if (t.dataset && t.dataset.cancVenda && CANCELA) { const id = +t.dataset.cancVenda; if (t.checked) CANCELA.fica.delete(id); else CANCELA.fica.add(id); resumoCancelar(); return; }
+  if (t.dataset && t.dataset.imCol && IM) { const k = t.dataset.imCol, v = +t.value; for (const o in IM.col) if (o !== k && v >= 0 && IM.col[o] === v) IM.col[o] = -1; IM.col[k] = v; lerLinhas(); pintarImportar(); return; }   /* 1.01: a coluna de um campo da importação (a mesma coluna não fica em dois campos) */
   if (t.type !== 'file' || !t.files || !t.files[0]) return;
+  if (t.id === 'im-arq') { abrirArquivoImp(t.files[0]); return; }
   if (t.id === 'f-foto') lerFoto(t.files[0], url => { FOTO_TEMP = url; const prev = $('#f-foto-prev'); if (prev) { prev.classList.add('foto'); prev.style.backgroundImage = `url(${url})`; prev.innerHTML = ''; } const l = $('label[for="f-foto"]'); if (l) l.innerHTML = `${ic(IC.camera)} Tirar outra`; });
   if (t.id === 'ficha-foto') { const c = crianca(t.dataset.id); lerFoto(t.files[0], async url => { if (MODO === 'servidor') { try { await api('foto_salvar', { id: c.id, foto: url }); await carregar(); } catch (e) { toast(e.message); return; } } else { c.foto = url; c.rosto = true; } toast(`Foto de ${c.nome} a caminho do iDFace`); fecharFolha(); desenhar(); setTimeout(() => folhaFicha(c.id), 250); }); }
 });
@@ -3970,6 +4341,7 @@ document.addEventListener('input', e => {
   if (e.target.id === 'esp-busca') { S.espBusca = e.target.value; atualizarEspaco(); }
   if (e.target.id === 'pq-busca') { const q = e.target.value; if (soNumerosBusca(q)) { const v = cpfFmt(q); if (v !== q) e.target.value = v; } const l = $('#pq-lista'); if (l) l.innerHTML = listaParaQuem(e.target.value); }   // só números: vai ficando com a cara de CPF
   if (e.target.id === 'lz-senha') pintarLimpeza();
+  if (e.target.id === 'im-texto') { clearTimeout(IM_T); const v = e.target.value; if (/[\n\t]/.test(v)) IM_T = setTimeout(() => { const q = $('#im-texto'); if (q && q.value === v) mostrarPlanilha(lerTabela(v), ''); }, 500); }   /* a planilha escrita ou colada no quadro (onde o colar não passa pelo evento de baixo) */
   if (e.target.id === 'adm-busca') { const l = $('#adm-lista'); if (l) l.innerHTML = linhasAdmin(e.target.value); }
   if (e.target.id === 's-hora' && $('#s-conta')) previaSaida();
   if (e.target.id === 'banco-busca') { S.bancoBusca = e.target.value; const l = $('#banco-lista'); if (l) l.innerHTML = linhasBanco(); }
@@ -3977,6 +4349,11 @@ document.addEventListener('input', e => {
   if (e.target.id === 'pc-h') $$('#pc-rapido button').forEach(b => b.setAttribute('aria-pressed', b.dataset.h === e.target.value));
   if (e.target.id === 'pc-h' || e.target.id === 'pc-v') contaPacote();
   if (e.target.id === 'zap-texto') { e.target.style.height = 'auto'; e.target.style.height = Math.min(120, e.target.scrollHeight) + 'px'; }
+});
+// 1.01: colar a planilha no quadro da importação: o texto vai direto para a leitura (sem encher o quadro com milhares de linhas)
+document.addEventListener('paste', e => {
+  if (!e.target || e.target.id !== 'im-texto') return; let txt = ''; try { txt = (e.clipboardData || window.clipboardData).getData('text') || ''; } catch (x) { }
+  if (txt && /[\n\t;]/.test(txt)) { e.preventDefault(); clearTimeout(IM_T); mostrarPlanilha(lerTabela(txt), ''); }
 });
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { if ($('#folha .folha-fundo')) fecharFolha(); else if (LADO) fecharLado(); }

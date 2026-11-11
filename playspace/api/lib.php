@@ -18,7 +18,17 @@ const MODULO_WHATS = false;
 const FORMAS_PAGAMENTO = ['pix' => 'Pix', 'dinheiro' => 'Dinheiro', 'credito' => 'Crédito', 'debito' => 'Débito'];
 
 function falha(string $msg, int $st = 400): void { http_response_code($st); header('Content-Type: application/json; charset=utf-8'); echo json_encode(['ok' => false, 'erro' => $msg], JSON_UNESCAPED_UNICODE); exit; }
-function responder(array $d = []): void { header('Content-Type: application/json; charset=utf-8'); header('Cache-Control: no-store'); echo json_encode(['ok' => true] + $d, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); exit; }
+function responder(array $d = []): void {
+  header('Content-Type: application/json; charset=utf-8'); header('Cache-Control: no-store');
+  $j = (string)json_encode(['ok' => true] + $d, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+  // 1.01: com milhares de cadastros a lista fica grande. Ela vai comprimida quando a tela pede (gz = 1), e a tela só pede depois de conferir
+  // que lê a resposta comprimida deste servidor. Se o servidor já comprime sozinho, não mexe.
+  if (!empty($GLOBALS['_gz']) && strlen($j) > 8000 && function_exists('gzencode') && !headers_sent() && !ini_get('zlib.output_compression') && !ini_get('output_handler')) {
+    $z = @gzencode($j, 4);
+    if (is_string($z) && $z !== '') { header('Content-Encoding: gzip'); header('Vary: Accept-Encoding'); header('Content-Length: ' . strlen($z)); echo $z; exit; }
+  }
+  echo $j; exit;
+}
 function agora(): string { return date('Y-m-d H:i:s'); }
 function registrarErro(string $msg): void { error_log('[playspace] ' . $msg); }
 // os nomes (da criança e do responsável) ficam sempre em maiúsculas, com um espaço só entre as palavras, mesmo que tenham sido escritos em minúsculas
@@ -256,6 +266,12 @@ function db(): PDO {
     // fica oferecida uma vez ao gestor, que vê o que vai sair e confirma com a senha. Banco que ainda não tem cadastro não oferece nada.
     try { if ((int)$pdo->query('SELECT COUNT(*) FROM criancas')->fetchColumn() > 0) $pdo->prepare("INSERT OR REPLACE INTO config (chave, valor) VALUES ('limpeza_oferta', ?)")->execute([json_encode(['em' => agora()])]); } catch (Throwable $e) { }
     $pdo->exec('PRAGMA user_version = 22');
+  }
+  if ($v < 23) { // 1.01: importar os clientes e as horas do sistema anterior. O cadastro importado guarda de qual importação veio, para o Desfazer tirar só ela
+    try { $pdo->exec("ALTER TABLE criancas ADD COLUMN lote TEXT NOT NULL DEFAULT ''"); } catch (Throwable $e) { }
+    try { $pdo->exec("ALTER TABLE vendas ADD COLUMN lote TEXT NOT NULL DEFAULT ''"); } catch (Throwable $e) { }   // e o pacote de horas que a importação trouxe também (inclusive para quem já estava cadastrado)
+    try { $pdo->exec('CREATE INDEX IF NOT EXISTS visitas_crianca ON visitas (crianca_id)'); } catch (Throwable $e) { }   // com milhares de cadastros, achar as visitas de uma criança não pode varrer a tabela
+    $pdo->exec('PRAGMA user_version = 23');
   }
   return $pdo;
 }
@@ -568,6 +584,7 @@ function fazerVenda(array $c, int $min, float $valor, ?int $por, string $itens =
   $db->prepare('UPDATE vendas SET registro = ? WHERE id = ?')->execute([$reg, $venda]);
   return ['venda' => $venda, 'registro' => $reg];
 }
+const SERV_IMPORTADO = 'PACOTE DO SISTEMA ANTERIOR';   // 1.01: as horas que vieram na importação entram como um pacote de valor zero com este nome
 function dinheiro(float $v): string { return 'R$ ' . number_format($v, fmod($v, 1) ? 2 : 0, ',', '.'); }
 /* ---------- voucher do shopping: 30 min de recreação grátis, um por visita, sem código ---------- */
 // voucherAberto: a criança já tem um voucher de hoje sem nenhuma saída depois dele (o desta visita, ou um guardado para a próxima entrada)
@@ -834,7 +851,7 @@ function prazoCancelar(array $c): array { // [limite em minutos, segundos desde 
 function vendasDaVisita(array $c): array {
   $db = db(); $corte = date('Y-m-d') . ' 00:00:00';
   foreach (['SELECT MAX(saiu) FROM visitas WHERE crianca_id = ?', 'SELECT MAX(quando) FROM cancelamentos WHERE crianca_id = ?'] as $sql) { $q = $db->prepare($sql); $q->execute([$c['id']]); $s = (string)$q->fetchColumn(); if ($s > $corte) $corte = $s; }
-  $q = $db->prepare('SELECT * FROM vendas WHERE crianca_id = ? AND quando >= ? ORDER BY id'); $q->execute([$c['id'], $corte]);
+  $q = $db->prepare('SELECT * FROM vendas WHERE crianca_id = ? AND quando >= ? AND servico != ? ORDER BY id'); $q->execute([$c['id'], $corte, SERV_IMPORTADO]);   // 1.01: o pacote que veio na importação não é desta visita
   return $q->fetchAll();
 }
 // vendida junto com esta entrada (no mesmo atendimento, ou até 30 min antes dela): é a que a tela já traz marcada para não cobrar
@@ -927,19 +944,19 @@ function limpezaResumo(): array { // o que há para apagar agora
   $db = db(); $n = fn(string $sql) => (int)$db->query($sql)->fetchColumn();
   return ['cadastros' => $n('SELECT COUNT(*) FROM criancas'), 'removidos' => $n('SELECT COUNT(*) FROM criancas WHERE ativo = 0'), 'dentro' => $n('SELECT COUNT(*) FROM criancas WHERE ativo = 1 AND entrou IS NOT NULL'),
     'responsaveis' => $n("SELECT COUNT(DISTINCT CASE WHEN cpf != '' THEN cpf ELSE 'sem' || id END) FROM criancas"), 'fotos' => $n("SELECT COUNT(*) FROM criancas WHERE foto != ''"),
-    'vendas' => $n('SELECT COUNT(*) FROM vendas'), 'valor' => round((float)$db->query('SELECT COALESCE(SUM(valor), 0) FROM pagamentos')->fetchColumn(), 2), 'visitas' => $n('SELECT COUNT(*) FROM visitas'), 'registros' => $n('SELECT COUNT(*) FROM registros')];
+    'vendas' => $n("SELECT COUNT(*) FROM vendas WHERE servico != '" . SERV_IMPORTADO . "'"), 'valor' => round((float)$db->query('SELECT COALESCE(SUM(valor), 0) FROM pagamentos')->fetchColumn(), 2), 'visitas' => $n('SELECT COUNT(*) FROM visitas'), 'registros' => $n('SELECT COUNT(*) FROM registros')];
 }
-function pastaCopias(): string {
+function pastaCopias(string $nada = 'Nada foi apagado.'): string {
   $d = pastaDados() . '/copias'; if (!is_dir($d)) @mkdir($d, 0700, true);
-  if (!is_dir($d) || !is_writable($d)) falha('Não consegui criar a pasta das cópias de segurança. Nada foi apagado.', 500);
+  if (!is_dir($d) || !is_writable($d)) falha('Não consegui criar a pasta das cópias de segurança. ' . $nada, 500);
   if (!file_exists($d . '/.htaccess')) @file_put_contents($d . '/.htaccess', "<IfModule mod_authz_core.c>\n  Require all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\n  Order allow,deny\n  Deny from all\n</IfModule>\n");
   if (!file_exists($d . '/index.html')) @file_put_contents($d . '/index.html', '');
   return $d;
 }
 // uma cópia inteira do banco, feita pelo próprio SQLite (sai coerente mesmo com outra tela gravando). Devolve o nome do arquivo.
 // O nome não começa por "playspace-" (é por esse começo que o sistema acha o banco de verdade) e leva um pedaço sorteado
-function copiarBanco(): string {
-  $db = db(); $dir = pastaCopias(); $nome = 'copia-' . date('Ymd-His') . '-' . bin2hex(random_bytes(6)) . '.sqlite'; $arq = $dir . '/' . $nome;
+function copiarBanco(string $nada = 'Nada foi apagado.'): string {   // $nada: o fim da mensagem de erro (o que deixou de ser feito por falta da cópia)
+  $db = db(); $dir = pastaCopias($nada); $nome = 'copia-' . date('Ymd-His') . '-' . bin2hex(random_bytes(6)) . '.sqlite'; $arq = $dir . '/' . $nome;
   try { $db->exec('VACUUM INTO ' . $db->quote($arq)); }   // o banco inteiro, igual ao de verdade (tabelas, índices e gatilhos)
   catch (Throwable $e) { // SQLite antigo (antes do 3.27) não tem o VACUUM INTO, e ele também não roda com uma consulta aberta nesta conexão:
     // a cópia é feita tabela por tabela, numa leitura só. Fica com os dados de todas as tabelas, que é o que o Desfazer usa
@@ -955,15 +972,19 @@ function copiarBanco(): string {
       if ($db->inTransaction()) $db->rollBack();
       try { $db->exec('DETACH DATABASE copia'); } catch (Throwable $x) { }
       @unlink($arq); registrarErro('cópia do banco: ' . $e->getMessage() . ' / ' . $e2->getMessage());
-      falha('Não consegui fazer a cópia de segurança do banco. Nada foi apagado.', 500);
+      falha('Não consegui fazer a cópia de segurança do banco. ' . $nada, 500);
     }
   }
-  if (!is_file($arq) || filesize($arq) < 1024) { @unlink($arq); falha('A cópia de segurança do banco não ficou inteira. Nada foi apagado.', 500); }
+  if (!is_file($arq) || filesize($arq) < 1024) { @unlink($arq); falha('A cópia de segurança do banco não ficou inteira. ' . $nada, 500); }
   @chmod($arq, 0600);
   // ficam a cópia nova e as duas anteriores. A nova nunca entra na conta do que sai (duas cópias feitas no mesmo segundo têm a mesma hora no nome)
-  $outras = array_values(array_filter(glob($dir . '/copia-*.sqlite') ?: [], fn($f) => $f !== $arq));
+  // 1.01: a cópia de que uma limpeza ou uma importação ainda depende também não sai
+  $presas = []; foreach (['limpeza', 'importacao', 'importando'] as $k) { $x = cfg($k, null); if (is_array($x) && !empty($x['copia'])) $presas[basename((string)$x['copia'])] = true; }
+  $outras = array_values(array_filter(glob($dir . '/copia-*.sqlite') ?: [], fn($f) => $f !== $arq && !isset($presas[basename($f)])));
   usort($outras, fn($a, $b) => ((int)@filemtime($a) <=> (int)@filemtime($b)) ?: strcmp($a, $b));   // as mais antigas primeiro
   foreach (array_slice($outras, 0, max(0, count($outras) - 2)) as $velha) @unlink($velha);
+  // 1.01: os arquivos auxiliares (-wal, -shm) de uma cópia que já saiu não ficam para trás
+  foreach (glob($dir . '/copia-*.sqlite-*') ?: [] as $resto) if (!is_file((string)preg_replace('/-(wal|shm|journal)$/', '', $resto))) @unlink($resto);
   return $nome;
 }
 function cadastrosNaCopia(string $arq): int { // abre a cópia e conta: só apaga se ela estiver inteira
@@ -984,7 +1005,7 @@ function limparCadastros(array $u): array {
     foreach (TABELAS_CADASTRO as $t) $db->exec("DELETE FROM $t");
     try { $db->exec("DELETE FROM sqlite_sequence WHERE name = 'cupons'"); } catch (Throwable $e) { }
     foreach ($db->query('SELECT chave FROM config')->fetchAll(PDO::FETCH_COLUMN) as $k) if (preg_match(CHAVES_CADASTRO, (string)$k)) apagarCfg((string)$k);
-    apagarCfg('exemplo'); apagarCfg('pend_fora'); apagarCfg('limpeza_oferta');
+    apagarCfg('exemplo'); apagarCfg('pend_fora'); apagarCfg('limpeza_oferta'); apagarCfg('importacao'); apagarCfg('importando');   // 1.01: os cadastros importados saíram junto
     if ($comp) $db->prepare('DELETE FROM compromissos WHERE id IN (' . implode(',', array_fill(0, count($comp), '?')) . ')')->execute($comp);
     gravarCfg('limpeza', ['em' => agora(), 'por' => $quem, 'copia' => $copia, 'n' => $antes, 'fila' => $fila, 'comp' => $comp, 'banco' => (int)$db->query('PRAGMA user_version')->fetchColumn()]);
     registrar('cad', null, 'CADASTROS', 'Todos os cadastros foram apagados para começar do zero: ' . $antes['cadastros'] . ($antes['cadastros'] === 1 ? ' cadastro' : ' cadastros') . ', ' . $antes['vendas'] . ($antes['vendas'] === 1 ? ' venda' : ' vendas') . ' e ' . $antes['visitas'] . ($antes['visitas'] === 1 ? ' visita' : ' visitas') . ' · por ' . $quem);
@@ -1015,7 +1036,7 @@ function limpezaDesfazer(array $u): array {
     try { $db->exec("DELETE FROM sqlite_sequence WHERE name = 'cupons'"); $db->exec("INSERT INTO sqlite_sequence (name, seq) SELECT name, seq FROM copia.sqlite_sequence WHERE name = 'cupons'"); } catch (Throwable $e) { }
     foreach ($db->query('SELECT produto_id, qtd FROM vendas WHERE produto_id IS NOT NULL')->fetchAll() as $v) mexerEstoque((int)$v['produto_id'], (int)$v['qtd'], -1);   // as vendas voltaram: o estoque baixa de novo
     $por = $db->prepare('INSERT OR REPLACE INTO config (chave, valor) VALUES (?, ?)');
-    foreach ($db->query('SELECT chave, valor FROM copia.config')->fetchAll() as $r) if (preg_match(CHAVES_CADASTRO, (string)$r['chave']) || in_array($r['chave'], ['exemplo', 'pend_fora'], true)) $por->execute([$r['chave'], $r['valor']]);
+    foreach ($db->query('SELECT chave, valor FROM copia.config')->fetchAll() as $r) if (preg_match(CHAVES_CADASTRO, (string)$r['chave']) || in_array($r['chave'], ['exemplo', 'pend_fora', 'importacao'], true)) $por->execute([$r['chave'], $r['valor']]);
     foreach ((array)($l['fila'] ?? []) as $id) apagarCfg('apagar_' . (int)$id);   // quem ia sair do iDFace não sai mais
     $comp = array_values(array_filter(array_map('intval', (array)($l['comp'] ?? []))));
     if ($comp) $db->exec('INSERT OR IGNORE INTO compromissos SELECT * FROM copia.compromissos WHERE id IN (' . implode(',', $comp) . ')');

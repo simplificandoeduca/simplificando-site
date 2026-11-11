@@ -16,6 +16,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
   $in = json_decode($bruto, true); if (!is_array($in)) $in = $_POST;
 }
 $acao = (string)($in['acao'] ?? $_GET['acao'] ?? '');
+$GLOBALS['_gz'] = !empty($in['gz']) && stripos((string)($_SERVER['HTTP_ACCEPT_ENCODING'] ?? ''), 'gzip') !== false;   // 1.01: a tela pediu a resposta comprimida (ver responder())
 // a tela manda o cabeçalho X-Play: um formulário de outro site não consegue (proteção contra CSRF)
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_SERVER['HTTP_X_PLAY'] ?? '') !== '1') falha('Pedido sem o cabeçalho do app.', 403);
 iniciarSessao();
@@ -28,7 +29,7 @@ function criancaPublica(array $c): array {
   return ['id' => (int)$c['id'], 'nome' => $c['nome'], 'idade' => (int)$c['idade'], 'resp' => $c['resp'], 'rel' => $c['rel'], 'tel' => $c['tel'], 'cpf' => $c['cpf'], 'obs' => $c['obs'],
     'pacote' => round((int)$c['pacote_min'] / 60, 2), 'usado' => (int)$c['usado_min'], 'entrou' => $c['entrou'], 'idface_id' => $c['idface_id'] === null ? null : (int)$c['idface_id'],
     'rosto' => !empty($c['rosto']) || $c['idface_id'] !== null, 'foto' => (string)$c['foto'], 'ativo' => (bool)$c['ativo'], 'liberado' => !isset($c['liberado']) || (bool)$c['liberado'], 'sapateira' => isset($c['sapateira']) && $c['sapateira'] !== null ? (int)$c['sapateira'] : null,
-    'doc' => ($c['doc_tipo'] ?? 'cpf') === 'rne' ? 'rne' : 'cpf', 'tel2' => (string)($c['tel2'] ?? ''), 'pmin' => (int)$c['pacote_min'], 'pcd' => !empty($c['pcd']),
+    'doc' => ($c['doc_tipo'] ?? 'cpf') === 'rne' ? 'rne' : 'cpf', 'tel2' => (string)($c['tel2'] ?? ''), 'pmin' => (int)$c['pacote_min'], 'pcd' => !empty($c['pcd']), 'imp' => (string)($c['lote'] ?? '') !== '',
     'obs_antes' => (string)($c['obs_antes'] ?? ''), 'obs_em' => $c['obs_em'] ?? null, 'obs_por' => (string)($c['obs_por'] ?? '')];   // a observação anterior, e quem mudou a de agora e quando   // pmin: o tempo comprado em minutos exatos   // doc: o campo cpf guarda o CPF ou o RNE (estrangeiro)
 }
 function dados(array $eu): array {
@@ -47,7 +48,9 @@ function dados(array $eu): array {
   $vou = []; $qv = $db->prepare("SELECT DISTINCT v.crianca_id FROM vendas v WHERE v.voucher != '' AND v.quando >= ? AND v.quando > COALESCE((SELECT MAX(x.saiu) FROM visitas x WHERE x.crianca_id = v.crianca_id), '')"); $qv->execute([date('Y-m-d') . ' 00:00:00']);
   foreach ($qv->fetchAll() as $l) $vou[(int)$l['crianca_id']] = true;
   $planos = planosDoEspaco();   // de onde sai o tempo de quem está no espaço: 'pacote' ou 'avulso'
-  foreach ($criancas as &$c) { if ($c['entrou']) $c['plano'] = $planos[$c['id']] ?? 'avulso'; $c['visitas'] = $porCrianca[$c['id']] ?? []; $c['venda'] = $ultimas[$c['id']] ?? null; $c['atraso'] = $atrasos[$c['id']] ?? null; $c['uv'] = $uv[$c['id']] ?? 0; $c['vouch'] = isset($vou[$c['id']]); if (ehExemplo($c['id'])) $c['teste'] = true; }   // teste: criança dos dados de exemplo (o botão do rodapé)
+  // 1.01: quem já recebeu horas de uma importação (não recebe de novo: a tela mostra isso antes de importar)
+  $imph = array_flip(array_map('intval', $db->query("SELECT DISTINCT crianca_id FROM vendas WHERE servico = '" . SERV_IMPORTADO . "'")->fetchAll(PDO::FETCH_COLUMN)));
+  foreach ($criancas as &$c) { if ($c['entrou']) $c['plano'] = $planos[$c['id']] ?? 'avulso'; $c['visitas'] = $porCrianca[$c['id']] ?? []; $c['venda'] = $ultimas[$c['id']] ?? null; $c['atraso'] = $atrasos[$c['id']] ?? null; $c['uv'] = $uv[$c['id']] ?? 0; $c['vouch'] = isset($vou[$c['id']]); if (isset($imph[$c['id']])) $c['imph'] = true; if (ehExemplo($c['id'])) $c['teste'] = true; }   // teste: criança dos dados de exemplo (o botão do rodapé)
   unset($c);
   $registros = array_map(fn($r) => ['id' => (int)$r['id'], 'h' => $r['quando'], 'tipo' => $r['tipo'], 'nome' => $r['nome'], 'txt' => $r['texto'], 'crianca' => $r['crianca_id'] === null ? null : (int)$r['crianca_id']], $db->query('SELECT * FROM registros ORDER BY id DESC LIMIT 300')->fetchAll());
   $msgs = $db->query('SELECT * FROM mensagens ORDER BY quando ASC, id ASC')->fetchAll();
@@ -59,7 +62,7 @@ function dados(array $eu): array {
     if ($m['de'] === 'ela' && empty($m['lida'])) $conversas[$cid]['lidas'] = false;
   }
   $compromissos = array_map(fn($x) => ['id' => (int)$x['id'], 'dia' => $x['dia'], 'hora' => $x['hora'], 'titulo' => $x['titulo'], 'tipo' => $x['tipo'], 'sub' => $x['sub'], 'obs' => $x['obs'], 'feito' => !empty($x['feito'])], $db->query('SELECT * FROM compromissos ORDER BY dia, hora')->fetchAll());
-  $vendasHoje = $db->prepare('SELECT COUNT(*) n, COALESCE(SUM(minutos),0) m, COALESCE(SUM(valor),0) v FROM vendas WHERE quando > ?'); $vendasHoje->execute([$hojeMenos]); $vh = $vendasHoje->fetch();   // tudo o que foi vendido nas últimas 24 h; m = minutos de brincar
+  $vendasHoje = $db->prepare('SELECT COUNT(*) n, COALESCE(SUM(minutos),0) m, COALESCE(SUM(valor),0) v FROM vendas WHERE quando > ? AND servico != ?'); $vendasHoje->execute([$hojeMenos, SERV_IMPORTADO]); $vh = $vendasHoje->fetch();   // tudo o que foi vendido nas últimas 24 h; m = minutos de brincar
   $equipe = $eu['papel'] === 'atendente' ? [] : array_map(fn($u) => ['id' => (int)$u['id'], 'nome' => $u['nome'], 'login' => $u['login'], 'papel' => $u['papel']], $db->query('SELECT id, nome, login, papel FROM usuarios WHERE ativo = 1 ORDER BY nome')->fetchAll());
   $q = $db->prepare('SELECT COUNT(*) n, COALESCE(SUM(valor), 0) v FROM vendas WHERE auto = 1 AND quando > ?'); $q->execute([$hojeMenos]); $ah = $q->fetch(); $atrasoHoje = ['n' => (int)$ah['n'], 'valor' => (float)$ah['v']];   // cobranças por atraso das últimas 24 h
   $q = $db->prepare("SELECT COALESCE(SUM(voucher != ''), 0) nv, COALESCE(SUM(CASE WHEN voucher != '' THEN cheio ELSE 0 END), 0) vv, COALESCE(SUM(pcd = 1), 0) np, COALESCE(SUM(CASE WHEN pcd = 1 THEN cheio - valor ELSE 0 END), 0) vp FROM vendas WHERE quando > ?"); $q->execute([$hojeMenos]); $dh = $q->fetch();
@@ -69,18 +72,21 @@ function dados(array $eu): array {
   $canc = $eu['papel'] === 'atendente' ? [] : array_map('cancelamentoPublico', $db->query('SELECT * FROM cancelamentos ORDER BY id DESC LIMIT 80')->fetchAll());
   // cadastro feito hoje e o atendimento ainda por fazer: sem venda, sem visita, sem entrada cancelada e fora do espaço.
   // A tela mostra em "Falta finalizar" e, ao tocar na criança, abre direto o atendimento (continua de onde parou).
-  $q = $db->prepare('SELECT c.id, c.criado_em FROM criancas c WHERE c.ativo = 1 AND c.entrou IS NULL AND c.criado_em >= ? AND NOT EXISTS (SELECT 1 FROM vendas v WHERE v.crianca_id = c.id)
+  $q = $db->prepare('SELECT c.id, c.criado_em FROM criancas c WHERE c.ativo = 1 AND c.entrou IS NULL AND c.lote = \'\' AND c.criado_em >= ? AND NOT EXISTS (SELECT 1 FROM vendas v WHERE v.crianca_id = c.id)
     AND NOT EXISTS (SELECT 1 FROM visitas x WHERE x.crianca_id = c.id) AND NOT EXISTS (SELECT 1 FROM cancelamentos k WHERE k.crianca_id = c.id) ORDER BY c.criado_em, c.id');
   $q->execute([date('Y-m-d') . ' 00:00:00']); $fora = pendFora();   // quem a equipe tirou da lista hoje ("não vai fazer agora") não volta
   $pend = array_values(array_filter(array_map(fn($p) => ['id' => (int)$p['id'], 'em' => $p['criado_em']], $q->fetchAll()), fn($p) => !isset($fora[$p['id']])));
   return ['criancas' => array_values($criancas), 'registros' => $registros, 'conversas' => array_values($conversas), 'compromissos' => $compromissos, 'regra' => regra(), 'cancelamentos' => $canc, 'pendentes' => $pend, 'produtos' => produtos(), 'alugueis' => alugueis(), 'pagamentos_hoje' => pagamentosDesde($hojeMenos), 'cupons' => cuponsDaTela(),
     'vendas_hoje' => ['n' => (int)$vh['n'], 'min' => (int)$vh['m'], 'horas' => round((int)$vh['m'] / 60, 2), 'valor' => (float)$vh['v']], 'atraso_hoje' => $atrasoHoje, 'descontos_hoje' => $descontosHoje, 'equipe' => $equipe, 'eu' => $eu, 'versao' => PLAY_VERSAO,
     'idface' => idfaceEstado(), 'whats' => whatsResumo(), 'agora' => agora(), 'exemplo' => ($ex = cfg('exemplo', null)) && is_array($ex) ? count($ex['criancas'] ?? []) : 0,
-    'limpeza' => $eu['papel'] === 'gestor' ? ['oferta' => cfg('limpeza_oferta', null) !== null, 'ultima' => limpezaPublica()] : null];   // 0.98: só o gestor recebe (é ele quem limpa e quem desfaz)
+    'limpeza' => $eu['papel'] === 'gestor' ? ['oferta' => cfg('limpeza_oferta', null) !== null, 'ultima' => limpezaPublica()] : null,
+    'importacao' => $eu['papel'] === 'gestor' ? importacaoLeve() : null];   // 0.98: só o gestor recebe (é ele quem limpa e quem desfaz)
 }
 // quem a equipe tirou de "Falta finalizar" hoje: [id da criança => dia]. O que é de outro dia não conta mais
 function pendFora(): array { $f = cfg('pend_fora', []); $hoje = date('Y-m-d'); return is_array($f) ? array_filter($f, fn($d) => $d === $hoje) : []; }
 function whatsResumo(): array { $c = whatsCfg(); return ['conectado' => whatsPronto($c), 'numero' => $c['numero'], 'nome' => $c['nome'], 'configurado' => $c['chave'] !== '']; }
+// 1.01: a última importação, para o cartão de Ajustes (o arquivo da importação só é carregado se houve uma)
+function importacaoLeve(): ?array { if (cfg('importacao', null) === null) return null; require_once __DIR__ . '/importar.php'; return importacaoPublica(); }
 function podeAjustar(array $u): void { if ($u['papel'] !== 'gestor') falha('Só o gestor mexe nos ajustes.', 403); }
 function textoCriancaBasico(array &$in, array $atual = []): array {
   $nome = trim((string)($in['nome'] ?? $atual['nome'] ?? '')); if ($nome === '') falha('Falta o nome da criança.');
@@ -153,6 +159,7 @@ switch ($acao) {
 
   /* ---------- tudo que a tela mostra ---------- */
   case 'dados': { $u = exigir(); session_write_close(); responder(dados($u)); }
+  case 'gz_teste': { exigir(); responder(['eco' => str_repeat('Play Space · ', 900)]); }   // 1.01: a tela confere, uma vez, se lê a resposta comprimida deste servidor
   case 'pulso': { // barato: muda quando qualquer coisa que a tela mostra mudou; a tela pergunta a cada 2 s e só recarrega se mudou
     exigir(); session_write_close();
     acertarTodas();   // a cada pulso de qualquer tela aberta: passou da tolerância, nasce a nova cobrança (e o pulso muda, então todas as telas mostram)
@@ -671,6 +678,10 @@ switch ($acao) {
     responder(limparCadastros($u));
   }
   case 'cadastros_voltar': { $u = exigir(); podeAjustar($u); responder(limpezaDesfazer($u)); }   // o Desfazer da limpeza, enquanto não houver cadastro novo
+  // 1.01: importar os clientes e as horas do sistema anterior (só o gestor)
+  case 'importar_previa': { $u = exigir(); podeAjustar($u); require_once __DIR__ . '/importar.php'; responder(['ultima' => importacaoResumo(), 'lote' => IMPORTA_LOTE]); }
+  case 'importar': { $u = exigir(); podeAjustar($u); require_once __DIR__ . '/importar.php'; responder(importarLinhas(array_values((array)($in['linhas'] ?? [])), $u, (string)($in['lote'] ?? ''), (string)($in['ja'] ?? 'horas') !== 'nada')); }   // ja = 'nada': quem já está cadastrado não recebe as horas da planilha
+  case 'importar_desfazer': { $u = exigir(); podeAjustar($u); require_once __DIR__ . '/importar.php'; responder(importacaoDesfazer($u)); }
   case 'limpeza_depois': { $u = exigir(); podeAjustar($u); apagarCfg('limpeza_oferta'); responder(); }   // "agora não": a oferta que veio com a atualização não aparece de novo (a limpeza continua em Ajustes)
   case 'exemplos_carregar': { // o teste do rodapé: 10 crianças de exemplo no espaço, em horários diferentes, e alguns compromissos na agenda
     $u = exigir(); podeAjustar($u); require_once __DIR__ . '/exemplos.php'; responder(exemplosCarregar((int)$u['id']));

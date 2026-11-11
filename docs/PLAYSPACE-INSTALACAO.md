@@ -149,7 +149,7 @@ A aba **Banco de horas** é a lista de todos os cadastros, em ordem alfabética,
 
 **Nada corre nesta tela** (0.99): o tempo de quem está no espaço fica na tela inicial; aqui a criança só ganha o selo **No espaço**. Saíram da linha os números correndo, a barrinha, o "tempo comprado até" e o telefone (que fica na ficha, a um toque). As colunas seguem a largura da própria lista: com o painel da direita ou o histórico abertos, ou no tablet, a última compra some da linha em vez de um texto passar por cima do outro; no celular ficam o nome, o saldo e o Vender.
 
-A busca acha por criança, responsável, telefone ou CPF. O filtro **Pacote acabou** mostra quem comprou pacote de horas e ficou sem um período guardado (a linha ganha a borda vermelha e o selo **Pacote acabou**). *Com o módulo do WhatsApp ligado (seção 4):* **"Para renovar" vale só para quem comprou pacote de horas** e ficou sem um período guardado, e só depois que saiu: quem compra a recreação avulsa não entra na lista, e ninguém é chamado enquanto a criança está no espaço. No topo, **Para renovar** lista quem zerou ou está acabando, com o aviso pronto: "As horas do Miguel acabaram. Chame a Carla (mãe) no WhatsApp para ver se quer renovar." O botão **Chamar no WhatsApp** abre a conversa com a mensagem de renovação já escrita (com os pacotes e preços de Ajustes): é conferir e enviar. Depois de chamada, o cartão mostra "Já chamada hoje às 14:20 por Beatriz", para ninguém chamar duas vezes. Quando o iDFace registra uma saída que zera o pacote, a tela avisa na hora com o mesmo botão. O selo na aba mostra quantas crianças estão para renovar.
+A busca acha por criança, responsável, telefone ou CPF. O filtro **Pacote acabou** mostra quem comprou pacote de horas e ficou sem um período guardado (a linha ganha a borda vermelha e o selo **Pacote acabou**). *Com o módulo do WhatsApp ligado (seção 4):* **"Para renovar" vale só para quem comprou pacote de horas** e ficou sem um período guardado, e só depois que saiu: quem compra a recreação avulsa não entra na lista, e ninguém é chamado enquanto a criança está no espaço. No topo, **Para renovar** lista quem zerou ou está acabando, com o aviso pronto: "As horas do Miguel acabaram. Chame a Carla (mãe) no WhatsApp para ver se quer renovar." O botão **Chamar no WhatsApp** abre a conversa com a mensagem de renovação já escrita (com os pacotes e preços de Ajustes): é conferir e enviar. Depois de chamada, o cartão mostra "Já chamada hoje às 14:20 por Beatriz", para ninguém chamar duas vezes. Quando o iDFace registra uma saída que zera o pacote, a tela avisa na hora com o mesmo botão. O selo na aba mostra quantas crianças estão para renovar. **Com muitos cadastros (1.01)**, a lista desenha os primeiros 150 clientes e avisa no pé; os outros vêm pela busca.
 
 ## 6c. Avisos do sistema (o sininho no alto da tela inicial)
 
@@ -522,14 +522,45 @@ Para quando os testes acabam e a loja vai começar de verdade. Fica em **Ajustes
 
 1. A folha mostra **quanto há para apagar** (cadastros, fotos, vendas e visitas) e avisa se há criança no espaço naquela hora.
 2. O Gestor escreve **a própria senha** e toca em **Apagar todos os cadastros**. Com a senha errada, nada é apagado.
-3. Antes de apagar, o servidor guarda uma **cópia de segurança do banco inteiro** (na pasta de dados, em `copias`, trancada como o banco; ficam as 3 últimas).
+3. Antes de apagar, o servidor guarda uma **cópia de segurança do banco inteiro** (na pasta de dados, em `copias`, trancada como o banco; ficam as 3 últimas, mais a de que uma limpeza ou uma importação ainda depende para o Desfazer).
 4. As outras telas abertas se atualizam sozinhas e ficam vazias. No dia fica a linha "Todos os cadastros foram apagados para começar do zero… por FULANO".
 
-**Desfazer:** o aviso que aparece depois de apagar tem **Desfazer**, e o cartão em Ajustes mostra a última limpeza com **Desfazer a limpeza**. Vale **enquanto não houver cadastro novo**: depois do primeiro cadastro (ou do teste do rodapé) não dá mais, para não misturar os dois. Se o sistema for atualizado para uma versão que mude o banco, a cópia antiga também deixa de servir para o Desfazer.
+**Desfazer:** o aviso que aparece depois de apagar tem **Desfazer**, e o cartão em Ajustes mostra a última limpeza com **Desfazer a limpeza**. Vale **enquanto não houver cadastro novo**: depois do primeiro cadastro (ou do teste do rodapé) não dá mais, para não misturar os dois. Se o sistema for atualizado para uma versão que mude o banco, a cópia antiga também deixa de servir para o Desfazer. A limpeza leva junto os cadastros que vieram de uma importação (seção 6u) e o registro dela; o Desfazer da limpeza traz os dois de volta.
 
 **Na atualização para a 0.98:** a loja pediu para limpar os cadastros feitos nos testes. Por isso, na primeira vez que o Gestor abre o sistema depois de atualizar, a folha **Limpar os cadastros** aparece sozinha. **Nada é apagado sem ele confirmar com a senha.** "Agora não" fecha a folha e a oferta não aparece mais (a limpeza continua em Ajustes). Atendente e Supervisor não veem nada disso.
 
 As cópias de segurança guardam os dados que foram apagados. Para sumir com elas de vez, apague os arquivos `copia-….sqlite` da pasta `playspace-dados/copias` (ao lado do `public_html`), pelo Gerenciador de arquivos do cPanel.
+
+## 6u. Importar clientes e horas do sistema anterior
+
+Para trazer de uma vez quem já era cliente e as horas que cada criança ainda tem. Fica em **Ajustes → Importar clientes e horas**, e **só o Gestor** vê e faz.
+
+**A planilha:** uma linha por criança, com o nome dela. O resto entra se houver: responsável, CPF (ou RNE), telefone, outro telefone, observações e as horas. A primeira linha pode ser a dos títulos das colunas: o sistema reconhece "Criança", "Responsável", "CPF", "Telefone" ou "Celular", "Saldo", "Horas compradas", "Horas usadas", "Obs" e parecidos, e pula o cabeçalho de relatório que vier antes. Na folha há **Baixar um modelo de planilha**.
+
+**Como entra:**
+
+1. **Colar:** abra a planilha no Excel, selecione tudo (Ctrl+A), copie (Ctrl+C) e cole (Ctrl+V) no quadro da folha. Serve para qualquer planilha, inclusive o Excel antigo (.xls).
+2. **Ou escolher o arquivo:** Excel (.xlsx), CSV (com ponto e vírgula ou vírgula) ou texto. PDF não serve: precisa ser a planilha.
+
+**Conferir antes de importar:** a folha mostra quantos **cadastros novos** entram, o total de **horas**, quantos **já estão cadastrados** e quantas linhas ficam de fora (sem o nome da criança); os avisos (CPF que não confere, sem telefone, horas que não deu para ler, saldo negativo) e **como ficam os cinco primeiros**. A linha **Colunas** diz qual coluna virou o quê; **Conferir** abre para trocar e para dizer se os números das horas estão em **horas ou minutos**. Se faltar a coluna da criança, ou se os saldos parecerem estar em minutos, essa parte abre sozinha.
+
+**As horas:** valem "5", "5,5", "5:30", "5h30" e "90 min". Se a planilha tem o **saldo**, é ele que vale; se tem **compradas e usadas**, o saldo é a diferença. Elas entram como um **pacote de valor zero** chamado PACOTE DO SISTEMA ANTERIOR: aparece no histórico do cliente e na última compra do Banco de horas, vale como pacote na entrada, **não expira** (seção 6r) e **não conta como venda do dia** nem gera cupom. Saldo negativo entra como zero. Mais de mil horas numa linha é tratado como coluna errada: a criança entra sem horas e a folha avisa.
+
+**Quem já está cadastrado:** é a mesma criança (o mesmo nome) do mesmo responsável (o mesmo CPF; sem CPF, o mesmo telefone; sem os dois, o mesmo nome do responsável). O **cadastro não muda**. Se a planilha traz saldo para ela, **só as horas entram, e uma vez só**: quem já recebeu horas de uma importação não recebe de novo, então importar a mesma planilha duas vezes não dobra nada. Na folha dá para escolher **não mexer**.
+
+**Repetidas na planilha** (a mesma criança em duas linhas): fica a primeira, ou a folha **soma as horas**, à escolha.
+
+**O que acontece ao importar:**
+
+- o servidor guarda uma **cópia de segurança** do banco antes da primeira linha (pasta `copias`, como na limpeza da seção 6t);
+- as linhas vão em lotes de 400; uma planilha pode ter até 10 mil linhas. Se a internet cair no meio, o botão vira **Continuar a importação** e segue de onde parou, sem repetir ninguém;
+- o CPF que o Excel deixou sem os zeros da frente volta inteiro; o telefone com DDD fica no formato da tela; os nomes ficam em maiúsculas (seção 6n);
+- no dia fica **uma linha só**: "Importação do sistema anterior: N cadastros… por FULANO";
+- o cadastro importado **não aparece em Falta finalizar**. Sem horas, ele entra como qualquer cadastro sem tempo comprado (a primeira venda libera). Sem CPF ou sem telefone ele entra assim mesmo, e o Gestor completa depois em **Ajustes → Cadastros**, onde quem veio pela planilha aparece marcado com "veio na importação".
+
+**Desfazer a importação** (no cartão de Ajustes; vale para a **última** importação): saem os cadastros que vieram nela e **ainda não tiveram movimento** (venda, entrada, visita ou foto), com as horas que vieram junto; e as horas dadas a quem já estava cadastrado saem do saldo, se ainda estão inteiras e a criança está fora do espaço. O que já teve movimento fica. A folha mostra a conta (quantos saem, quantos ficam) antes de confirmar.
+
+**Com muitos cadastros (1.01):** a lista do **Banco de horas** desenha os primeiros 150 clientes e pede a busca para os outros (a busca por nome, telefone ou CPF continua achando todos). O servidor passa a mandar a lista de cadastros **comprimida**: com 3 mil cadastros são uns 140 KB, em vez de 1,6 MB, a cada atualização da tela. A tela confere sozinha, ao entrar, se o servidor e o aparelho se entendem assim; se não se entenderem, tudo continua como era.
 
 ## 7. Atualizar
 
@@ -538,6 +569,8 @@ Botão **Atualizar** ao lado da versão. Ele baixa a versão nova do GitHub (ram
 ## 8. Se der errado
 
 - **"Sem ligação com o servidor"** na tela de entrada: `api/api.php` não respondeu. Veja se a pasta `api/` subiu e se o PHP tem `pdo_sqlite`.
+- **A importação parou no meio** (seção 6u): o que já entrou continua. Toque em **Continuar a importação**; se a folha foi fechada, importe a mesma planilha de novo: quem já entrou aparece como "já cadastrado" e não é repetido, nem recebe as horas duas vezes.
+- **A planilha não é lida, ou as colunas saem trocadas:** copie as células no Excel e cole no quadro (é o caminho que sempre funciona), e confira a linha **Colunas** antes de importar. Arquivo .xls (Excel antigo) e PDF não abrem direto.
 - **A Evolution recusou a chave**: a apikey está errada ou é de outra instância. Confira em Ajustes → WhatsApp.
 - **iDFace "Sem contato"**: aparelho desligado, sem internet, ou o endereço push ficou errado no aparelho. Rode o conector de novo.
 - **Mensagem do responsável não aparece**: o telefone no cadastro não bate com o número de onde veio (precisa dos últimos 8 dígitos iguais). Ajuste o telefone na ficha.
