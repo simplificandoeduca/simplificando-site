@@ -70,7 +70,7 @@ function dados(array $eu): array {
     AND NOT EXISTS (SELECT 1 FROM visitas x WHERE x.crianca_id = c.id) AND NOT EXISTS (SELECT 1 FROM cancelamentos k WHERE k.crianca_id = c.id) ORDER BY c.criado_em, c.id');
   $q->execute([date('Y-m-d') . ' 00:00:00']); $fora = pendFora();   // quem a equipe tirou da lista hoje ("não vai fazer agora") não volta
   $pend = array_values(array_filter(array_map(fn($p) => ['id' => (int)$p['id'], 'em' => $p['criado_em']], $q->fetchAll()), fn($p) => !isset($fora[$p['id']])));
-  return ['criancas' => array_values($criancas), 'registros' => $registros, 'conversas' => array_values($conversas), 'compromissos' => $compromissos, 'regra' => regra(), 'cancelamentos' => $canc, 'pendentes' => $pend,
+  return ['criancas' => array_values($criancas), 'registros' => $registros, 'conversas' => array_values($conversas), 'compromissos' => $compromissos, 'regra' => regra(), 'cancelamentos' => $canc, 'pendentes' => $pend, 'produtos' => produtos(),
     'vendas_hoje' => ['n' => (int)$vh['n'], 'min' => (int)$vh['m'], 'horas' => round((int)$vh['m'] / 60, 2), 'valor' => (float)$vh['v']], 'atraso_hoje' => $atrasoHoje, 'descontos_hoje' => $descontosHoje, 'equipe' => $equipe, 'eu' => $eu, 'versao' => PLAY_VERSAO,
     'idface' => idfaceEstado(), 'whats' => whatsResumo(), 'agora' => agora(), 'exemplo' => ($ex = cfg('exemplo', null)) && is_array($ex) ? count($ex['criancas'] ?? []) : 0];
 }
@@ -159,6 +159,7 @@ switch ($acao) {
     $ps = cfg('push_estado', []); $pe = cfg('ponte_estado', []); $em = (is_array($ps) ? ($ps['em'] ?? null) : null) ?: (is_array($pe) ? ($pe['em'] ?? null) : null);
     $ap = ($em && time() - strtotime((string)$em) < 120) ? 1 : 0; $ic = cfg('idface', []); $lig = !is_array($ic) || !array_key_exists('ligado', $ic) || $ic['ligado'] ? 1 : 0;
     $d .= '|' . $db->query("SELECT COUNT(*) || ':' || COALESCE(SUM(visto_em IS NOT NULL), 0) FROM cancelamentos")->fetchColumn();   // um cancelamento conferido pela supervisão também muda a tela
+    $d .= '|' . $db->query("SELECT COUNT(*) || ':' || COALESCE(SUM(ativo), 0) || ':' || COALESCE(SUM(estoque), 0) || ':' || COALESCE(SUM(estoque IS NULL), 0) || ':' || COALESCE(SUM(valor), 0) || ':' || COALESCE(SUM(LENGTH(nome)), 0) || ':' || COALESCE(MAX(mudou_em), '') FROM produtos")->fetchColumn();   // produto novo, valor novo ou estoque que mudou
     responder(['p' => md5("$a|$b|$c|$d|$ap|$lig|" . json_encode(whatsResumo()) . '|' . json_encode(regra()) . '|' . (cfg('exemplo') ? 1 : 0) . '|' . json_encode(pendFora()) . '|' . date('Y-m-d'))]);   // quem saiu de "Falta finalizar" e a virada do dia também mudam a tela
   }
 
@@ -326,6 +327,13 @@ switch ($acao) {
       } else $p = $r['pacotes'][(int)$i] ?? null;   // a tela antiga mandava a posição na lista
       if ($p) $linhas[] = ['servico' => servicoDoPacote($p), 'min' => (int)$p['h'] * 60, 'valor' => (float)$p['v'], 'itens' => itensDoPacote($p)];
     }
+    // produtos: a tela manda o produto, a quantidade e o valor que mostrou. Se o valor mudou no meio do atendimento, avisa em vez de cobrar outro
+    foreach ((array)($in['produtos'] ?? []) as $l) {
+      if (!is_array($l)) continue; $q = min(99, (int)($l['q'] ?? 0)); if ($q < 1) continue;
+      $p = produto((int)($l['p'] ?? 0)); if (!$p || !$p['ativo']) falha('Um dos produtos saiu da lista. Feche e abra o atendimento de novo.');
+      if (isset($l['v']) && abs((float)$l['v'] - (float)$p['valor']) >= 0.005) falha('O valor de ' . $p['nome'] . ' mudou para ' . dinheiro((float)$p['valor']) . '. Feche e abra o atendimento de novo.');
+      $linhas[] = ['servico' => (string)$p['nome'], 'min' => 0, 'valor' => round($q * (float)$p['valor'], 2), 'itens' => $q > 1 ? $q . ' unidades' : '', 'mais' => ['produto' => (int)$p['id'], 'qtd' => $q]];
+    }
     // voucher do shopping: 30 min de recreação grátis, um por visita, sem código. A tela só marca (voucher: true); a tela antiga mandava { q, codigo } e vale como um voucher.
     // Confere antes de vender qualquer coisa, para não ficar uma venda pela metade
     $vo = $in['voucher'] ?? null; $comVoucher = is_array($vo) ? (int)($vo['q'] ?? 0) > 0 : !empty($vo);
@@ -367,6 +375,7 @@ switch ($acao) {
       if (time() - strtotime((string)$v['quando']) > 120) continue;   // o "Desfazer" do aviso só alcança a venda que acabou de ser feita
       $db->prepare('UPDATE criancas SET pacote_min = MAX(0, pacote_min - ?) WHERE id = ?')->execute([(int)$v['minutos'], $v['crianca_id']]);
       $db->prepare('DELETE FROM vendas WHERE id = ?')->execute([$v['id']]); $tempoDe[(int)$v['crianca_id']] = ($tempoDe[(int)$v['crianca_id']] ?? 0) + (int)$v['minutos'];
+      devolverEstoque($v);   // era venda de produto: as unidades voltam para o estoque
     }
     if (!$tempoDe) falha('Nada para desfazer.');
     foreach (array_filter(array_map('intval', array_merge((array)($in['registros'] ?? []), [(int)($in['registro'] ?? 0)]))) as $rid) $db->prepare('DELETE FROM registros WHERE id = ?')->execute([$rid]);
@@ -458,6 +467,38 @@ switch ($acao) {
       $r['extras'] = $es;
     }
     gravarCfg('regra', $r); responder(['regra' => $r]);
+  }
+
+  /* ---------- produtos da loja ---------- */
+  case 'produto_salvar': { // só a gestora: nome, valor e estoque (vazio = a loja não controla o estoque desse produto)
+    $u = exigir(); podeAjustar($u); $id = (int)($in['id'] ?? 0); $p = $id ? produto($id) : null; if ($id && (!$p || !$p['ativo'])) falha('Produto não encontrado.', 404);
+    $nome = mb_substr(trim(preg_replace('/\s+/u', ' ', (string)($in['n'] ?? ''))), 0, 40); if ($nome === '') falha('Como se chama o produto?');
+    $valor = isset($in['v']) && is_numeric($in['v']) ? round((float)$in['v'], 2) : -1; if ($valor < 0 || $valor > 100000) falha('Qual é o valor do produto?');
+    $e = $in['est'] ?? null; $est = ($e === null || $e === '') ? null : (int)$e; if ($est !== null && ($est < -9999 || $est > 99999)) falha('Quantos há no estoque?');
+    $q = $db->prepare('SELECT id FROM produtos WHERE ativo = 1 AND id != ? AND nome = ? COLLATE NOCASE AND ABS(valor - ?) < 0.005'); $q->execute([$id, $nome, $valor]);
+    if ($q->fetchColumn()) falha('Já existe um produto com este nome e este valor.');
+    $quem = ' · por ' . primeiroNome($u['nome']);
+    if ($p) {
+      $antes = $p['estoque'] === null ? null : (int)$p['estoque']; $novo = $est; $visto = $in['est_visto'] ?? null;
+      // a tela diz o estoque que mostrava: se alguém vendeu enquanto a folha estava aberta, vale a diferença (chegaram 10 → soma 10), para a venda não se perder
+      if ($est !== null && $antes !== null && $visto !== null && $visto !== '' && (int)$visto !== $antes) $novo = $antes + ($est - (int)$visto);
+      $db->prepare('UPDATE produtos SET nome = ?, valor = ?, estoque = ?, mudou_em = ? WHERE id = ?')->execute([$nome, $valor, $novo, agora(), $id]);
+      if ($novo !== $antes) registrar('est', null, $nome, 'Estoque: ' . ($antes === null ? 'sem controle' : $antes) . ' → ' . ($novo === null ? 'sem controle' : $novo) . $quem);
+      if (abs((float)$p['valor'] - $valor) >= 0.005) registrar('est', null, $nome, 'Valor: ' . dinheiro((float)$p['valor']) . ' → ' . dinheiro($valor) . $quem);
+    } else {
+      $db->prepare('INSERT INTO produtos (nome, valor, estoque, ativo, criado_em, mudou_em) VALUES (?, ?, ?, 1, ?, ?)')->execute([$nome, $valor, $est, agora(), agora()]); $id = (int)$db->lastInsertId();
+      registrar('est', null, $nome, 'Produto novo · ' . dinheiro($valor) . ($est === null ? '' : ' · estoque ' . $est) . $quem);
+    }
+    responder(['produto' => produtoPublico(produto($id)), 'produtos' => produtos()]);
+  }
+  case 'produto_apagar': { // sai da lista; as vendas antigas continuam no histórico. voltar = o Desfazer do aviso
+    $u = exigir(); podeAjustar($u); $p = produto((int)($in['id'] ?? 0)); if (!$p) falha('Produto não encontrado.', 404);
+    $volta = !empty($in['voltar']);
+    if ((bool)$p['ativo'] !== $volta) {
+      $db->prepare('UPDATE produtos SET ativo = ?, mudou_em = ? WHERE id = ?')->execute([$volta ? 1 : 0, agora(), (int)$p['id']]);
+      registrar('est', null, (string)$p['nome'], ($volta ? 'Produto voltou para a lista' : 'Produto tirado da lista') . ' · por ' . primeiroNome($u['nome']));
+    }
+    responder(['produtos' => produtos()]);
   }
 
   /* ---------- equipe ---------- */

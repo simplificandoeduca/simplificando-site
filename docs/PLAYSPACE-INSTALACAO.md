@@ -112,7 +112,8 @@ O tempo é debitado **sempre em períodos inteiros** (o período da Recreação:
 - Os serviços de fábrica são **Recreação** (R$ 80 a cada meia hora), **Carrinho fusquinha** (R$ 15 a cada 30 min) e **Carrinho de bebê** (R$ 30, das 10h às 22h). Em cada linha, o **+** põe mais um período (ou mais uma unidade) e o **−** tira; o valor da linha e o total aparecem na hora. **Registrar a venda** grava tudo de uma vez; o aviso tem **Desfazer**.
 - O tempo de **Recreação** vendido entra no saldo de brincar da criança (meia hora conta) e libera o acesso dela; os carrinhos ficam só anotados na venda, com a duração.
 - **Ajustes → Serviços e preços** muda o nome, o valor e a forma de cobrar (valor único ou a cada período de tantos minutos), cria serviços novos (uma meia, um lanche) e diz qual deles é tempo de brincar. O valor cobrado sai sempre dessa tabela.
-- **Pacotes de horas**: aparecem no atendimento, abaixo dos serviços, em dois grupos (com produto e seco); a tabela completa fica na aba **Pacotes** da tela inicial (seção 6j). **Outro item**, no pé do atendimento, registra algo fora da tabela.
+- **Pacotes de horas**: aparecem no atendimento, abaixo dos serviços, por tempo e valor; a tabela completa fica no botão **Pacotes** da tela inicial (seção 6j).
+- **Produtos** (Amigurumi, Maleta, Kit laço…): aparecem logo depois dos pacotes; um toque põe um na venda (seção 6l). **Outro item**, no pé do atendimento, registra algo fora da tabela.
 - **Avisar quando restar** (Ajustes → Controle de horas) começa em 10 minutos, porque a recreação é vendida de 30 em 30.
 
 ## 6b. Banco de horas (aba)
@@ -225,7 +226,7 @@ O que é de todos os aparelhos e o que é de cada um:
 
 ## 6j. Pacotes de horas (botão Pacotes na tela inicial)
 
-No alto da tela inicial, ao lado de **Entrada na tela**, o botão vermelho **Pacotes** abre a tabela de preços para mostrar ao cliente. As horas do pacote não têm prazo para usar.
+No alto da tela inicial, ao lado de **Entrada na tela**, o botão vermelho **Pacotes e produtos** (no celular, só **Pacotes**) abre a tabela de preços para mostrar ao cliente, em duas abas: **Pacotes de horas** e **Produtos** (seção 6l). As horas do pacote não têm prazo para usar.
 
 A tabela vem **por tempo e, dentro do mesmo tempo, por valor**, com as colunas **Tempo, Valor, Hora, Meia hora** e o **nome do pacote**. O tempo aparece em horas (2h, 5h, 10h): não há coluna de minutos. O valor da hora e da meia hora o sistema calcula sozinho. Se algum pacote parcela, aparece também a coluna **Parcela**.
 
@@ -259,6 +260,36 @@ O tempo de recreação aparece **sempre em horas**, nunca em minutos soltos:
 - **0:52:03** (horas, minutos e segundos): o cronômetro de quem está no espaço, na lista e na ficha. "passou 0:03:41" é quanto já passou do tempo comprado.
 - Nos preços, o período aparece por extenso: "R$ 80 a cada meia hora".
 - Ficam em minutos só os prazos curtos de configuração e de cancelamento (tolerância de 9 min, cancelar em até 9 min).
+
+## 6l. Produtos da loja (aba Produtos, atendimento e estoque)
+
+O botão vermelho do alto da tela inicial abre a folha **Pacotes e produtos**. A aba **Produtos** mostra o que a loja vende além do tempo: o **produto**, o **valor** e o **estoque**.
+
+Produtos que já vêm instalados (os da tela "Produtos disponíveis" do sistema que a loja usava, em novembro de 2026):
+
+| Produto | Valor | Estoque na foto | Nome no sistema antigo |
+|---|---|---|---|
+| Amigurumi | R$ 320 | 8 | AMIGURUMI 230 |
+| Boneca articulada | R$ 150 | 19 | BONECA ARTICULADA 150 |
+| Boneca articulada | R$ 230 | 40 | BONECA ARTICULADA 150 |
+| Kit bijoux | R$ 230 | 10 | KIT BIJOUX 150 |
+| Kit laço | R$ 260 | 8 | KIT LAÇO 150 |
+| Maleta | R$ 350 | 20 | MALETA 300 |
+| Maquiagem | R$ 160 | 4 | MAQUIAGEM (o número ficou atrás do cursor na foto) |
+
+- **O valor é o da coluna "Valor" do sistema antigo.** Lá o nome trazia um número que quase nunca bate com esse valor ("AMIGURUMI 230" custa R$ 320); aqui ficou só o nome. Há **duas "Boneca articulada"**, uma de R$ 150 e outra de R$ 230: se forem modelos diferentes, vale a gestora pôr a diferença no nome.
+- **O estoque é o que aparecia na foto.** A gestora confere a contagem e acerta pelo lápis.
+- **Vender**: no atendimento do cliente, os produtos aparecem depois dos pacotes. **Um toque põe um na venda**; o botão fica marcado, com o número e um **−** para tirar. Outro toque põe mais um. O total a pagar soma na hora. A venda fica anotada com o nome do produto ("Maleta · R$ 350", "Maleta · 2 unidades · R$ 700") em Hoje na recepção e no histórico do cliente.
+- **Pacote com produto**: toque no pacote de horas e no produto; o sistema soma os dois (ex.: 5h por R$ 420 + Kit laço por R$ 260 = R$ 680) e registra as duas linhas.
+- **Estoque**: baixa sozinho a cada venda. Volta sozinho no **Desfazer** e quando a entrada é cancelada sem cobrar o produto (seção 6e). No botão do atendimento aparece quanto há ("8 em estoque") e, com o produto na venda, quanto fica ("ficam 7").
+- **O estoque não barra a venda.** Se o sistema diz que não há mais, a tela avisa ("O estoque de Maleta no sistema está zerado. Confira antes de entregar.") e deixa vender; o estoque fica negativo e aparece **em vermelho**, para a gestora acertar a contagem.
+- **Mudar a lista**: só a gestora. Na aba Produtos, o **lápis** abre o produto e **Novo produto** cria outro; também dá para fazer em **Ajustes → Produtos**. No cadastro: o **nome**, o **valor** e o **estoque agora** (com − e +). Estoque em branco = o sistema não controla o estoque desse produto.
+- **Fica anotado**: toda mudança de estoque ou de valor feita pela gestora aparece em **Hoje na recepção**, com quem fez ("Maleta · Estoque: 20 → 25 · por Camila").
+- Se a gestora abre o produto para somar a mercadoria que chegou e, nesse meio tempo, alguém vende uma unidade, o sistema aplica a diferença (chegaram 10: soma 10), sem apagar a venda.
+- **Apagar** tira o produto da lista (o aviso tem Desfazer); as vendas antigas dele continuam no histórico.
+- **Criança PCD não tem desconto em produto**, como no pacote (seção 6h).
+- Se a gestora mudar o valor de um produto enquanto um atendimento está aberto em outro aparelho, a venda não sai no valor antigo: o sistema avisa "O valor de Maleta mudou" e pede para abrir o atendimento de novo.
+- No **teste com 30 crianças** (seção 2b), o que for vendido de produto para uma criança de teste volta para o estoque quando o teste é tirado.
 
 ## 7. Atualizar
 
