@@ -1673,7 +1673,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '11 nov · 99'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '11 nov · 100'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -5154,6 +5154,15 @@ function cBoneco(c, x, y, w, h, D, phase, dt){
   finally { Object.assign(AN, keep); }
   c.drawImage(CST_TMP, x, y);
 }
+// traços de velocidade atrás do boneco: parados na foto; no vídeo andam para trás e somem, em laço
+function cLinhas(c, P, t){
+  c.save(); c.strokeStyle = P.mov; c.lineCap = 'round'; c.lineWidth = 10;
+  [[150,830,90],[120,900,140],[160,970,80]].forEach(([x,y,l],i) => {
+    if(t==null){ c.beginPath(); c.moveTo(x,y); c.lineTo(x+l,y); c.stroke(); return; }
+    const f = (t*1.5 + i*.37) % 1, a = Math.sin(Math.PI*f), dx = 50 - f*120, ll = l*(.7+.3*a);
+    c.globalAlpha = a; c.beginPath(); c.moveTo(x+dx,y); c.lineTo(x+dx+ll,y); c.stroke(); });
+  c.restore();
+}
 const cFreq = D => { const kind = ANIM_KIND[D.local] || 'rope'; return (AP[kind][Math.max(0, INTENS.indexOf(D.int))]||{}).freq || 1; };
 function cMarca(c,cor,dot){ stLogoDraw(c,90,110,110); stTxt(c,'simplificando',226,183,'900 52px '+ST_SANS,cor,'left',-2); c.font = '900 52px '+ST_SANS; stLs(c,-2); const lw = c.measureText('simplificando').width; stLs(c,0); stTxt(c,'.',226+lw,183,'900 52px '+ST_SANS,dot); }
 function cRodape(c,cor){ stTxt(c,'simplificandoeduca.com',90,1800,'700 32px '+ST_SANS,cor); stTxt(c,'#simplificando',990,1800,'700 32px '+ST_SANS,cor,'right'); }
@@ -5168,8 +5177,7 @@ function cDraw(c, D, m, cor, o){
     const n = String(D.min); stTxt(c,n,90,560,'800 300px '+ST_MONO,P.tx,'left',-12); c.font = '800 300px '+ST_MONO; stLs(c,-12); const w = c.measureText(n).width; stLs(c,0);
     stTxt(c,'min',90+w+24,560,'900 80px '+ST_SANS,P.tx); stTxt(c,(CST_DE[D.local]||'de cardio')+hoje,90+w+24,470,'700 40px '+ST_SANS,P.sub);
     c.fillStyle = P.paper; stRR(c,60,640,960,640,64); c.fill();
-    c.strokeStyle = P.mov; c.lineCap = 'round'; c.lineWidth = 10; [[150,830,90],[120,900,140],[160,970,80]].forEach(([x,y,l]) => { c.beginPath(); c.moveTo(x,y); c.lineTo(x+l,y); c.stroke(); });
-    if(!(o && o.sem)) cBoneco(c,90,690,900,583,D,o && o.phase,o && o.dt);
+    if(!(o && o.sem)){ cLinhas(c,P,null); cBoneco(c,90,690,900,583,D,o && o.phase,o && o.dt); }
     cTitulo(c,'Bora que é cardio',1420,96,P.tx,P.dot);
     const pills = (D.km ? [D.kmT+' km','pace '+D.pace+'/km'] : [D.intT,D.min+' min']).concat([D.zona]);
     c.font = '800 40px '+ST_SANS; const ws = pills.map(t => c.measureText(t).width+72), tot = ws.reduce((a,b) => a+b,0)+2*20; let x = 540-tot/2;
@@ -5275,10 +5283,10 @@ async function cRender(){
   cancelAnimationFrame(CST_RAF); const cv = $sheet.querySelector('#st-cv'); if(!cv) return; const c = cv.getContext('2d');
   cThumbs(s, s.cor);
   if(s.m==='cbon' && s.tipo==='video'){
-    const base = document.createElement('canvas'); base.width = 1080; base.height = 1920; cDraw(base.getContext('2d'), D, 'cbon', s.cor, { sem:true });
+    const base = document.createElement('canvas'), P = cPal(s.cor); base.width = 1080; base.height = 1920; cDraw(base.getContext('2d'), D, 'cbon', s.cor, { sem:true });
     let ph = .1, last = 0; const f = cFreq(D);
     const step = now => { if(ui.sheet!==s || !cv.isConnected) return; const dt = last ? Math.min(.05,(now-last)/1000) : 1/30; last = now; ph += dt*f;
-      c.setTransform(1,0,0,1,0,0); c.drawImage(base,0,0); cBoneco(c,90,690,900,583,D,ph,dt); CST_RAF = requestAnimationFrame(step); };
+      c.setTransform(1,0,0,1,0,0); c.drawImage(base,0,0); cLinhas(c,P,now/1000); cBoneco(c,90,690,900,583,D,ph,dt); CST_RAF = requestAnimationFrame(step); };
     CST_RAF = requestAnimationFrame(step); cv.classList.add('on'); return;
   }
   cDraw(c, D, s.m, s.cor); cv.classList.add('on'); stBlob(s);
