@@ -109,7 +109,7 @@ O tempo é debitado **sempre em períodos inteiros** (o período da Recreação:
 
 **Atendimento e serviços**: ao terminar o cadastro, o sistema abre o **atendimento** da criança: no meio, os serviços com o preço e o **total a pagar**; ao lado (em tela larga), os dados e o histórico de compras do cliente. O mesmo atendimento abre pelo botão **Vender** (ficha, Banco de horas, histórico).
 
-- Os serviços de fábrica são **Recreação** (R$ 80 a cada 30 min), **Carrinho fusquinha** (R$ 15 a cada 30 min) e **Carrinho de bebê** (R$ 30, das 10h às 22h). Em cada linha, o **+** põe mais um período (ou mais uma unidade) e o **−** tira; o valor da linha e o total aparecem na hora. **Registrar a venda** grava tudo de uma vez; o aviso tem **Desfazer**.
+- Os serviços de fábrica são **Recreação** (R$ 80 a cada meia hora), **Carrinho fusquinha** (R$ 15 a cada 30 min) e **Carrinho de bebê** (R$ 30, das 10h às 22h). Em cada linha, o **+** põe mais um período (ou mais uma unidade) e o **−** tira; o valor da linha e o total aparecem na hora. **Registrar a venda** grava tudo de uma vez; o aviso tem **Desfazer**.
 - O tempo de **Recreação** vendido entra no saldo de brincar da criança (meia hora conta) e libera o acesso dela; os carrinhos ficam só anotados na venda, com a duração.
 - **Ajustes → Serviços e preços** muda o nome, o valor e a forma de cobrar (valor único ou a cada período de tantos minutos), cria serviços novos (uma meia, um lanche) e diz qual deles é tempo de brincar. O valor cobrado sai sempre dessa tabela.
 - **Pacotes de horas**: aparecem no atendimento, abaixo dos serviços, em dois grupos (com produto e seco); a tabela completa fica na aba **Pacotes** da tela inicial (seção 6j). **Outro item**, no pé do atendimento, registra algo fora da tabela.
@@ -172,7 +172,7 @@ A primeira tela (aba **Espaço**) é a **lista de todas as crianças que estão 
 
 ## 6g. Cobrança por atraso
 
-Quando a criança continua no espaço depois do **tempo comprado mais a tolerância** (30 min + 9 = 39:00), o sistema registra sozinho **mais um período** (Recreação +30 min, R$ 80). Se ela continuar, depois de mais 30 min e da tolerância (1h09) nasce outro, e assim por diante.
+Quando a criança continua no espaço depois do **tempo comprado mais a tolerância** (30 min + 9 = 39:00), o sistema registra sozinho **mais um período** (Recreação +0h30, R$ 80). Se ela continuar, depois de mais 30 min e da tolerância (1h09) nasce outro, e assim por diante.
 
 - **Todo mundo fica sabendo**: aviso em todas as telas abertas ("Nova cobrança por atraso: Alice passou do tempo comprado · R$ 80 a receber na saída"), uma dica, o selo **+ R$ 80** na linha da criança e a linha "Nova cobrança por atraso: ficou além do tempo comprado" em Hoje na recepção. A venda entra no histórico do cliente marcada como *cobrança por atraso*.
 - **Na saída**, a folha mostra o valor a receber e o botão vira **Recebi R$ 80 · dar saída**.
@@ -185,9 +185,9 @@ Quando a criança continua no espaço depois do **tempo comprado mais a tolerân
 
 **Criança PCD: 50% de desconto, só na recreação avulsa.**
 
-- No cadastro (e em **Editar**), marque **Criança PCD**. A partir daí a **recreação avulsa** dela sai pela metade: a Recreação no atendimento (R$ 40 a cada 30 min) e a **cobrança por atraso**, que é um período avulso a mais. **Pacote de horas, carrinho de bebê, fusquinha e outros produtos não têm desconto.**
+- No cadastro (e em **Editar**), marque **Criança PCD**. A partir daí a **recreação avulsa** dela sai pela metade: a Recreação no atendimento (R$ 40 a cada meia hora) e a **cobrança por atraso**, que é um período avulso a mais. **Pacote de horas, carrinho de bebê, fusquinha e outros produtos não têm desconto.**
 - O atendimento mostra o preço já com o desconto e o selo **PCD 50%**; a lista do espaço e a ficha mostram o selo **PCD**.
-- Cada venda com desconto fica anotada ("Recreação · 30 min · PCD 50% · R$ 40") em Hoje na recepção e no histórico do cliente. **Marcar ou desmarcar PCD também fica anotado no dia**, com o nome de quem fez, porque muda o preço.
+- Cada venda com desconto fica anotada ("Recreação · 0h30 · PCD 50% · R$ 40") em Hoje na recepção e no histórico do cliente. **Marcar ou desmarcar PCD também fica anotado no dia**, com o nome de quem fez, porque muda o preço.
 
 **Voucher do shopping: 30 min de recreação grátis, um por visita, sem código.**
 
@@ -197,8 +197,8 @@ Quando a criança continua no espaço depois do **tempo comprado mais a tolerân
 - Dá para juntar na mesma venda o voucher e períodos pagos (ex.: voucher + 30 min pagos = 1 h, R$ 80).
 - **Um por visita**: quem já usou o voucher na visita (ou tem um de hoje guardado, ainda sem entrar) não ganha outro; a linha aparece como "já usado nesta visita". Se a criança sair e voltar no mesmo dia com outro voucher, o sistema aceita e anota "voucher (2º de hoje)", para a supervisão ver.
 - **O voucher chegou depois** (o responsável trouxe na hora de buscar): na folha da **Saída**, quando há valor a receber, aparece **Tem voucher? Usar agora**. Um toque e ele cobre um período da cobrança por atraso (R$ 80 a menos); o aviso tem Desfazer. O mesmo acontece ao marcar o Voucher no atendimento de uma criança que está no espaço com cobrança a receber.
-- A lista do espaço mostra um presentinho ao lado do nome de quem está com voucher; a ficha e a folha da saída dizem "Voucher usado: 30 min desta visita saíram grátis".
-- A venda fica anotada ("Recreação · 30 min · voucher · R$ 0") em Hoje na recepção e no histórico do cliente. Quando o voucher cobre uma cobrança, a linha da cobrança fica marcada "coberta pelo voucher".
+- A lista do espaço mostra um presentinho ao lado do nome de quem está com voucher; a ficha e a folha da saída dizem "Voucher usado: meia hora desta visita ficou por conta do voucher".
+- A venda fica anotada ("Recreação · 0h30 · voucher · R$ 0") em Hoje na recepção e no histórico do cliente. Quando o voucher cobre uma cobrança, a linha da cobrança fica marcada "coberta pelo voucher".
 - Em **Hoje na recepção** (bloco "Horas vendidas hoje"), um resumo mostra quantos vouchers e quantas vendas com desconto PCD houve nas últimas 24 h e quanto isso representou: é o número para conferir com os vouchers de papel recolhidos no dia.
 
 ## 6i. Falta finalizar: cada atendimento continua de onde parou
@@ -221,31 +221,34 @@ O que é de todos os aparelhos e o que é de cada um:
 - **Cadastro feito e ainda sem venda** vem do servidor: aparece em todos os aparelhos, e o ✕ tira de todos.
 - **O que estava escolhido** (serviços, voucher, outro item) e **o cadastro pela metade** ficam guardados **no aparelho em que foram feitos**: continuam lá se a página for recarregada ou atualizada, e não aparecem nos outros aparelhos.
 - Ao **sair da conta**, os cadastros pela metade são apagados do aparelho (têm documento e telefone do responsável).
-- **Sem venda em dobro**: se a venda daquela criança for registrada em outro aparelho, o que estava escolhido aqui sai da faixa sozinho. E se o atendimento estiver aberto na tela nessa hora, ao tocar em Registrar o sistema avisa *"Já foi registrada uma venda para Mari às 14:05: Recreação · 30 min · R$ 80"* e só registra outra se a atendente tocar em **Registrar mesmo assim**.
+- **Sem venda em dobro**: se a venda daquela criança for registrada em outro aparelho, o que estava escolhido aqui sai da faixa sozinho. E se o atendimento estiver aberto na tela nessa hora, ao tocar em Registrar o sistema avisa *"Já foi registrada uma venda para Mari às 14:05: Recreação · 0h30 · R$ 80"* e só registra outra se a atendente tocar em **Registrar mesmo assim**.
 
 ## 6j. Pacotes de horas (botão Pacotes na tela inicial)
 
-No alto da tela inicial, ao lado de **Entrada na tela**, o botão vermelho **Pacotes** abre a tabela de preços, a mesma do cartão da loja, para mostrar ao cliente: horas, valor do pacote, valor da hora, da meia hora e a parcela. As horas do pacote não têm prazo para usar.
+No alto da tela inicial, ao lado de **Entrada na tela**, o botão vermelho **Pacotes** abre a tabela de preços para mostrar ao cliente. As horas do pacote não têm prazo para usar.
 
-Cada tamanho pode ter **dois preços**:
+A tabela tem as colunas **Horas, Pacote, Hora, Meia hora e Parcela** (o valor da hora, da meia hora e da parcela o sistema calcula sozinho), em dois blocos, porque cada tamanho pode ter **dois preços**:
 
-- **Pacote com produto**: o cliente leva o produto junto (o "brinde"), que já está no valor do pacote. É a tabela principal.
-- **Pacote seco**: só as horas, sem o produto.
+- **Com produto**: o cliente leva o produto junto (o "brinde"), que já está no valor do pacote. É a tabela principal.
+- **Seco**: só as horas, sem o produto.
 
-Valores que já vêm instalados (os da loja em novembro de 2026):
+Os tamanhos da loja são **5, 10, 15, 20 e 30 horas**.
 
-| Pacote | Tipo | Valor | Hora | Meia hora | Parcela |
-|---|---|---|---|---|---|
-| 5 h | com produto | R$ 680 | R$ 136 | R$ 68 | 3x de R$ 226,67 |
-| 10 h | com produto | R$ 1.220 | R$ 122 | R$ 61 | 4x de R$ 305 |
-| 15 h | com produto | R$ 1.720 | R$ 114,67 | R$ 57,33 | 4x de R$ 430 |
-| 5 h | seco | R$ 420 | R$ 84 | R$ 42 | |
-
-- **Os outros tamanhos (20 h e 30 h, e os secos de 10 a 30 h) ficam sem valor até a gestora colocar.** Na aba Pacotes, só ela vê a linha "Falta o valor de 20 h e 30 h": um toque no tamanho abre o cadastro já no tipo certo. Também dá para mudar um valor pelo lápis da linha, ou em **Ajustes → Pacotes de horas**. Pacote sem valor não aparece para a atendente nem no atendimento.
+- **Valores**: só vem instalado o **pacote seco de 5 h, R$ 420**. Os outros a gestora coloca: na aba Pacotes, cada tamanho sem valor mostra **colocar o valor** (só para ela); um toque abre o cadastro já no tamanho e no tipo certos. O lápis no fim da linha muda um valor que já existe. Também dá para fazer tudo em **Ajustes → Pacotes de horas**. Pacote sem valor não aparece para a atendente nem no atendimento.
+- A versão 0.81 chegou a instalar três valores "com produto" (5 h, 10 h e 15 h) tirados de uma tabela antiga. Na atualização para a 0.82 eles **saem sozinhos**, a não ser que a gestora já tenha mexido neles.
 - No cadastro do pacote: o **tipo**, as **horas**, o **valor**, em **quantas vezes parcela** e, no pacote com produto, **qual é o produto** (opcional; aparece na venda). A linha de baixo mostra o valor da hora, da meia hora e da parcela, para conferir com a tabela da loja.
-- **Vender** continua no atendimento do cliente: os pacotes aparecem lá, é só tocar. A venda fica anotada como "Pacote de 10h com produto" ou "Pacote seco de 5h", em Hoje na recepção e no histórico.
-- **Criança PCD não tem desconto em pacote** (seção 6h). O voucher junta com o pacote: os primeiros 30 min saem do voucher e o resto das horas do pacote.
+- **Vender** continua no atendimento do cliente: os pacotes aparecem lá, em dois grupos, é só tocar. A venda fica anotada como "Pacote de 10h com produto" ou "Pacote seco de 5h", em Hoje na recepção e no histórico.
+- **Criança PCD não tem desconto em pacote** (seção 6h). O voucher junta com o pacote: a primeira meia hora sai do voucher e o resto das horas do pacote.
 - Se a gestora mudar a tabela enquanto um atendimento está aberto em outro aparelho, a venda não troca de pacote sozinha: o sistema avisa "O valor do pacote mudou" e pede para abrir o atendimento de novo.
+
+## 6k. Como o tempo aparece
+
+O tempo de recreação aparece **sempre em horas**, nunca em minutos soltos:
+
+- **0h30, 1h, 1h30, 5h**: no atendimento, nas vendas, na saída ("ficou 0h52, debita 1h"), em Hoje na recepção e no histórico.
+- **0:52:03** (horas, minutos e segundos): o cronômetro de quem está no espaço, na lista e na ficha. "passou 0:03:41" é quanto já passou do tempo comprado.
+- Nos preços, o período aparece por extenso: "R$ 80 a cada meia hora".
+- Ficam em minutos só os prazos curtos de configuração e de cancelamento (tolerância de 9 min, cancelar em até 9 min).
 
 ## 7. Atualizar
 

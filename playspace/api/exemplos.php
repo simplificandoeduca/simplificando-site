@@ -74,7 +74,7 @@ function exemplosCarregar(?int $por): array {
   // dois serviços à parte, para o histórico e para o dia
   $outros = $db->prepare('INSERT INTO vendas (crianca_id, horas, minutos, valor, quando, por, itens, servico) VALUES (?, 0, 0, ?, ?, ?, ?, ?)');
   $outros->execute([$nomeId['Elisa'], 30, $t(8), $por, 'das 10h às 22h', 'Carrinho de bebê']); $reg->execute([$t(8), 'venda', $nomeId['Elisa'], 'Elisa', 'Carrinho de bebê · das 10h às 22h · R$ 30']);
-  $outros->execute([$nomeId['Lara'], 15, $t(16), $por, '30 min', 'Carrinho fusquinha']); $reg->execute([$t(16), 'venda', $nomeId['Lara'], 'Lara', 'Carrinho fusquinha · 30 min · R$ 15']);
+  $outros->execute([$nomeId['Lara'], 15, $t(16), $por, dur(30), 'Carrinho fusquinha']); $reg->execute([$t(16), 'venda', $nomeId['Lara'], 'Lara', 'Carrinho fusquinha · ' . dur(30) . ' · R$ 15']);
 
   // três que não estão no espaço: nome, responsável
   foreach ([['Miguel', 'Carla Dias'], ['Nina', 'Tatiane Brito'], ['Otávio', 'Cláudio Reis']] as $i => $l) {
@@ -83,7 +83,7 @@ function exemplosCarregar(?int $por): array {
   }
   // Nina veio hoje: 35 min com 30 comprados (dentro da tolerância) → um período
   $id = $nomeId['Nina']; $vender($id, 'Nina', $P, $V, $t(150), ''); $reg->execute([$t(150), 'ent', $id, 'Nina', 'Entrada registrada']);
-  $vis->execute([$id, $t(150), $t(115), $P, 'mão']); $reg->execute([$t(115), 'sai', $id, 'Nina', 'Ficou 35 min · ' . dur($P) . ' debitados']);
+  $vis->execute([$id, $t(150), $t(115), $P, 'mão']); $reg->execute([$t(115), 'sai', $id, 'Nina', 'Ficou ' . dur(35) . ' · ' . dur($P) . ' debitados']);
   $db->prepare('UPDATE criancas SET pacote_min = ?, usado_min = ? WHERE id = ?')->execute([$P, $P, $id]);
   // Otávio veio hoje: 1h10 com 30 comprados → três períodos, dois deles por atraso
   $id = $nomeId['Otávio']; $vender($id, 'Otávio', $P, $V, $t(125), ''); $reg->execute([$t(125), 'ent', $id, 'Otávio', 'Entrada registrada']);

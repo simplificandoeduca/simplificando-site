@@ -130,14 +130,25 @@ function db(): PDO {
       $atuais = (array)($rg['pacotes'] ?? []); if ($atuais == PACOTES_DE_EXEMPLO) $atuais = [];
       $ps = [];
       foreach ($atuais as $p) { $h = (int)($p['h'] ?? 0); if ($h <= 0) continue; $p['h'] = $h;
-        if (!isset($p['tipo'])) { $p['tipo'] = tipoPacote($p);   // pacote antigo com o mesmo valor da tabela "com produto": é esse pacote, não um seco
-          foreach (PACOTES_DA_LOJA as $l) if ($l['tipo'] === 'produto' && $l['h'] === $h && abs((float)$l['v'] - (float)($p['v'] ?? 0)) < 0.005) $p['tipo'] = 'produto'; }
+        if (!isset($p['tipo'])) $p['tipo'] = tipoPacote($p);   // pacote antigo, sem o tipo: é "com produto" se tem o nome do produto
         $ps[chavePacote($p)] = $p; }
       foreach (PACOTES_DA_LOJA as $l) { $k = chavePacote($l); $ps[$k] = $l + ($ps[$k] ?? []); }   // vale o valor que a loja passou; o nome do produto que já estava fica
       ksort($ps); $rg['pacotes'] = array_values($ps);
       $pdo->prepare("INSERT INTO config (chave, valor) VALUES ('regra', ?) ON CONFLICT(chave) DO UPDATE SET valor = excluded.valor")->execute([json_encode($rg, JSON_UNESCAPED_UNICODE)]);
     } catch (Throwable $e) { }
     $pdo->exec('PRAGMA user_version = 13');
+  }
+  if ($v < 14) { // 0.82: saem os três pacotes "com produto" instalados pela 0.81 (tabela antiga), se ninguém mexeu neles. O que a gestora cadastrou ou mudou fica
+    try {
+      $q = $pdo->query("SELECT valor FROM config WHERE chave = 'regra'")->fetchColumn(); $rg = $q !== false ? json_decode((string)$q, true) : null;
+      if (is_array($rg) && is_array($rg['pacotes'] ?? null)) {
+        $rg['pacotes'] = array_values(array_filter($rg['pacotes'], function ($p) {
+          foreach (PACOTES_DA_TABELA_ANTIGA as [$h, $val, $parc]) if ((int)($p['h'] ?? 0) === $h && tipoPacote($p) === 'produto' && abs((float)($p['v'] ?? 0) - $val) < 0.005 && (int)($p['parc'] ?? 0) === $parc && trim((string)($p['com'] ?? '')) === '') return false;
+          return true; }));
+        $pdo->prepare("UPDATE config SET valor = ? WHERE chave = 'regra'")->execute([json_encode($rg, JSON_UNESCAPED_UNICODE)]);
+      }
+    } catch (Throwable $e) { }
+    $pdo->exec('PRAGMA user_version = 14');
   }
   return $pdo;
 }
@@ -160,8 +171,10 @@ const SERVICOS_PADRAO = [
   ['id' => 'fusquinha', 'n' => 'Carrinho fusquinha', 'v' => 15, 'modo' => 'periodo', 'min' => 30, 'banco' => false, 'obs' => ''],
   ['id' => 'bebe', 'n' => 'Carrinho de bebê', 'v' => 30, 'modo' => 'fixo', 'min' => 0, 'banco' => false, 'obs' => 'das 10h às 22h'],
 ];
-// os pacotes da loja (tabela "Nossos pacotes", novembro de 2026): com produto, o brinde já está no valor; seco, só as horas. parc = em até quantas vezes
-const PACOTES_DA_LOJA = [['h' => 5, 'v' => 680, 'tipo' => 'produto', 'parc' => 3], ['h' => 10, 'v' => 1220, 'tipo' => 'produto', 'parc' => 4], ['h' => 15, 'v' => 1720, 'tipo' => 'produto', 'parc' => 4], ['h' => 5, 'v' => 420, 'tipo' => 'seco']];
+// o que a loja já passou da tabela de pacotes: o pacote seco de 5 h (R$ 420). Os outros valores a gestora coloca (a tabela nova ainda vem). parc = em até quantas vezes
+const PACOTES_DA_LOJA = [['h' => 5, 'v' => 420, 'tipo' => 'seco']];
+// os três valores "com produto" que a 0.81 instalou a partir de uma tabela antiga: [horas, valor, parcelas]. A 0.82 tira os que continuam como foram instalados
+const PACOTES_DA_TABELA_ANTIGA = [[5, 680.0, 3], [10, 1220.0, 4], [15, 1720.0, 4]];
 // o tipo de um pacote: 'produto' (vem com o produto, que já está no valor) ou 'seco' (só as horas). Pacote antigo, sem o tipo: é "com produto" se tem o nome do produto
 function tipoPacote(array $p): string { return ($p['tipo'] ?? (trim((string)($p['com'] ?? '')) !== '' ? 'produto' : 'seco')) === 'produto' ? 'produto' : 'seco'; }
 function chavePacote(array $p): string { return sprintf('%05d-%d', (int)$p['h'], tipoPacote($p) === 'produto' ? 0 : 1); }   // a ordem da lista: por horas, com produto antes do seco
@@ -188,7 +201,7 @@ function regraDoBanco(): array {
   }
   return $r;
 }
-function dur(int $min): string { return $min < 60 ? $min . ' min' : intdiv($min, 60) . 'h' . ($min % 60 ? str_pad((string)($min % 60), 2, '0', STR_PAD_LEFT) : ''); }   // 30 min, 1h, 1h30
+function dur(int $min): string { $min = max(0, $min); return intdiv($min, 60) . 'h' . ($min % 60 ? str_pad((string)($min % 60), 2, '0', STR_PAD_LEFT) : ''); }   // sempre em horas: 0h30, 1h, 1h30 (a loja vende meia hora e hora)
 // O tempo é sempre debitado em períodos inteiros (não existe período quebrado): quem ficou 11 min debita 30.
 // O período é o do serviço de tempo de brincar (Recreação, 30 min). O período seguinte só conta depois da tolerância:
 // com 30 min e tolerância de 9, até 39:00 é um período; passou disso, dois; depois de 1h09, três.
@@ -443,7 +456,7 @@ function cancelarEntrada(array $c, array $u, string $motivo, ?array $vendaIds): 
       ->execute([$c['id'], $c['nome'], $c['resp'], $c['entrou'], $agora, $minDentro, $valor, json_encode($itens, JSON_UNESCAPED_UNICODE), $motivo, (int)$u['id'], $u['nome'], $u['papel'], $noPrazo ? 0 : 1]);
     $id = (int)$db->lastInsertId();
     $oque = $itens ? 'não cobrado: ' . implode(', ', array_map(fn($i) => $i['n'] . ' (' . dinheiro($i['v']) . ')', $itens)) : 'o tempo não foi descontado';
-    $reg = registrar('canc', (int)$c['id'], $c['nome'], 'Entrada das ' . substr((string)$c['entrou'], 11, 5) . ' cancelada aos ' . $minDentro . ' min · ' . $oque . ' · Motivo: ' . $motivo . ' · por ' . primeiroNome($u['nome']) . ($noPrazo ? '' : ' (fora do prazo' . ($lim > 0 ? ' de ' . $lim . ' min' : '') . ')'), $agora);
+    $reg = registrar('canc', (int)$c['id'], $c['nome'], 'Entrada das ' . substr((string)$c['entrou'], 11, 5) . ' cancelada aos ' . ($minDentro < 60 ? $minDentro . ' min' : hm((int)$minDentro)) . ' · ' . $oque . ' · Motivo: ' . $motivo . ' · por ' . primeiroNome($u['nome']) . ($noPrazo ? '' : ' (fora do prazo' . ($lim > 0 ? ' de ' . $lim . ' min' : '') . ')'), $agora);
     $db->commit();
   } catch (Throwable $e) { $db->rollBack(); throw $e; }
   $c = crianca((int)$c['id']);
