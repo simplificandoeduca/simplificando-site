@@ -490,7 +490,7 @@ function logo(){
 $('#logo').innerHTML = logo(); document.querySelector('.top .mic').innerHTML = I.mic;
 
 /* ========== estado ========== */
-const FINV = '11 nov · 40'; // Versão do Finanças: 11 nov · 40
+const FINV = '11 nov · 41'; // Versão do Finanças: 11 nov · 41
 const DONO = { nome:'Eduardo Matias', iniciais:'EM' }; // perfil único desta página
 const LS = 'simplificando-financas', LST = 'simplificando-financas-tema';
 const CATS = ['Mercado', 'Comida', 'Transporte', 'Casa', 'Lazer', 'Saúde', 'Roupas', 'Assinaturas', 'Outros'];
@@ -604,6 +604,15 @@ function saldoAtual(){
   const rec = tot('rec'), pag = tot('pag'), gas = tot('gas'), gua = tot('gua'), fat = tot('fat');
   itens.sort((a, b) => b.data.localeCompare(a.data));
   return { last, dia, itens, rec, pag, gas, gua, fat, est:last.valor + rec + pag - gas - gua - fat };
+}
+// depois de salvar: diz o saldo novo, ou por que ele não mudou
+let SALDO_ANTES;
+function notaSaldo(data, ehConta){
+  const sa = saldoAtual(); if (!sa) return '';
+  if (SALDO_ANTES !== undefined && sa.est !== SALDO_ANTES) return ' Saldo na conta: ' + fmt(sa.est) + '.';
+  if (ehConta === false) return ' Cartão de crédito não mexe no saldo da conta.';
+  if (data && data < sa.dia) return ' Não mexe no saldo: a data é de antes do saldo informado (' + shortDate(sa.dia) + ').';
+  return '';
 }
 const isoDe = ms => { const d = new Date(ms); return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()); };
 function irmaoPendente(){
@@ -1148,7 +1157,7 @@ function vozSalvar(p){
   else if (p.tipo === 'fixo') { const ct = p.forma === 'boleto' ? contaId() : p.cartao; S.fixos.push({ id:uid(), nome:p.desc || 'Conta fixa', valor:Math.abs(p.valor), cartao:ct, dia:p.dia || 1, quem:p.quem, cat:p.cat, ativo:true, forma:p.forma || 'cartao' }); }
   else { S.gastos.push({ id:uid(), cr, valor:Math.abs(p.valor), data:p.data, cartao:p.cartao, quem:p.quem, desc:p.desc, cat:p.cat }); S.ult.cartao = p.cartao; }
   save(); Sheet.close(); render();
-  toast({ saldo:'Saldo anotado: ', pag:S.irmao.nome + ' pagou ', receita:'Receita salva: ', fixo:'Conta fixa salva: ', guardar:'Guardado: ', gasto:'Gasto salvo: ' }[p.tipo] + fmt(Math.abs(p.valor)) + '.');
+  toast({ saldo:'Saldo anotado: ', pag:S.irmao.nome + ' pagou ', receita:'Receita salva: ', fixo:'Conta fixa salva: ', guardar:'Guardado: ', gasto:'Gasto salvo: ' }[p.tipo] + fmt(Math.abs(p.valor)) + '.' + (p.tipo === 'saldo' || p.tipo === 'fixo' ? '' : notaSaldo(p.data, p.tipo === 'gasto' ? cartao(p.cartao).tipo === 'conta' : undefined)));
 }
 function vozNaFolha(){ // microfone dentro de uma folha: ouve e reabre a folha já preenchida
   const st = Sheet.st; if (!st) return;
@@ -1358,6 +1367,7 @@ function okData(d){ return /^\d{4}-\d{2}-\d{2}$/.test(d); }
 Sheet.box.addEventListener('change', ev => { const sb = ev.target.closest('[data-imp-saldo]'); if (sb && Sheet.st) { Sheet.st.usarSaldo = sb.checked; mostrarImp(); return; } const cb = ev.target.closest('[data-imp]'); const s = Sheet.st; if (!cb || !s || s.kind !== 'importar') return; s.itens[+cb.dataset.imp].on = cb.checked; mostrarImp(); });
 Sheet.box.addEventListener('click', ev => {
   const s = Sheet.st; if (!s) return;
+  try { const sa0 = saldoAtual(); SALDO_ANTES = sa0 ? sa0.est : undefined; } catch(e){ SALDO_ANTES = undefined; }
   const p = ev.target.closest('[data-p]'); if (p) { const k = p.dataset.p; if (k === 'bk') s.dig = (s.dig || '').slice(0, -1); else if ((s.dig || '').length < 10) s.dig = ((s.dig || '') + k).replace(/^0+(?=\d)/, ''); refreshAmt(); return; }
   const c = ev.target.closest('[data-c]');
   if (c) {
@@ -1421,7 +1431,7 @@ Sheet.box.addEventListener('click', ev => {
     const v = cents(), data = val('s-data'); if (v <= 0) return toast('Digite o valor guardado.'); if (!okData(data)) return toast('Confira a data.');
     const o = { valor:v, data, obs:val('s-obs').trim() };
     if (s.id) { const x = S.guardados.find(y => y.id === s.id); if (x) Object.assign(x, o); } else S.guardados.push(Object.assign({ id:uid(), cr:Date.now() }, o));
-    save(); Sheet.close(); render(); toast('Guardado: ' + fmt(v) + '. Boa!');
+    save(); Sheet.close(); render(); toast('Guardado: ' + fmt(v) + '. Boa!' + notaSaldo(data));
   }
   if (a === 'apagar-guardado') { if (!confirm('Apagar este registro?')) return; S.guardados = S.guardados.filter(x => x.id !== s.id); save(); Sheet.close(); render(); }
   if (a === 'apagar-fixo') { if (!confirm('Apagar este gasto fixo? Os gastos já lançados continuam.')) return; S.fixos = S.fixos.filter(x => x.id !== s.id); save(); Sheet.close(); render(); }
@@ -1439,7 +1449,7 @@ Sheet.box.addEventListener('click', ev => {
       S.ult.cartao = s.cartao;
     }
     const np = parseInt(val('s-parc') || '1', 10) || 1, msg = s.id ? 'Gasto atualizado.' : (base.quem === 'irmao' ? S.irmao.nome + ': ' : '') + fmt(v) + ' no ' + cartao(s.cartao).nome + (np > 1 ? ' em ' + np + '×' : '') + '. Salvo!';
-    save(); Sheet.close(); render(); toast(msg);
+    save(); Sheet.close(); render(); toast(msg + notaSaldo(val('s-data') || data, cartao(s.cartao).tipo === 'conta'));
   }
   if (a === 'repetir-gasto') { const g = S.gastos.find(x => x.id === s.id); if (!g) return; S.gastos.push({ id:uid(), cr:Date.now(), valor:g.valor, data:todayISO(), cartao:g.cartao, quem:g.quem, desc:g.desc, cat:g.cat }); save(); Sheet.close(); render(); toast('Repetido hoje: ' + fmt(g.valor) + '.'); }
   if (a === 'apagar-opcoes') { const g = S.gastos.find(x => x.id === s.id); const n = g ? S.gastos.filter(x => x.grp === g.grp).length : 0; const box = $('#s-del'); if (box) box.innerHTML = `<p class="lbl" style="flex:1 1 100%;text-align:center">Compra parcelada. Apagar o quê?</p><button type="button" class="btn danger" data-s="apagar-gasto">Só esta parcela</button><button type="button" class="btn danger" data-s="apagar-grupo">Todas as ${n} parcelas</button>`; return; }
@@ -1449,7 +1459,7 @@ Sheet.box.addEventListener('click', ev => {
     const v = cents(), data = val('s-data'); if (v <= 0) return toast('Digite o valor recebido.'); if (!okData(data)) return toast('Confira a data.');
     const o = { fonte:s.fonte, valor:v, data, obs:val('s-obs').trim() };
     if (s.id) { const r = S.receitas.find(x => x.id === s.id); if (r) Object.assign(r, o); } else S.receitas.push(Object.assign({ id:uid(), cr:Date.now() }, o));
-    save(); Sheet.close(); render(); { const oo = orcamento(); toast(oo.meta > oo.guardado ? 'Receita salva. Agora guarde ' + fmt(oo.meta - oo.guardado) + ' antes de gastar!' : 'Receita salva: ' + fmt(v) + '.'); }
+    save(); Sheet.close(); render(); { const oo = orcamento(); toast((oo.meta > oo.guardado ? 'Receita salva. Agora guarde ' + fmt(oo.meta - oo.guardado) + ' antes de gastar!' : 'Receita salva: ' + fmt(v) + '.') + notaSaldo(data)); }
   }
   if (a === 'apagar-receita') { if (!confirm('Apagar esta receita?')) return; S.receitas = S.receitas.filter(x => x.id !== s.id); save(); Sheet.close(); render(); }
   if (a === 'saldo-confirma') { const v = +b.dataset.k; S.saldos.push({ valor:v, cr:Date.now(), data:todayISO() }); if (S.saldos.length > 60) S.saldos = S.saldos.slice(-60); save(); Sheet.close(); render(); toast('Saldo confirmado: ' + fmt(v) + '.'); return; }
@@ -1458,7 +1468,7 @@ Sheet.box.addEventListener('click', ev => {
     const v = cents(), data = val('s-data'); if (v <= 0) return toast('Digite o valor pago.'); if (!okData(data)) return toast('Confira a data.');
     const o = { valor:v, data, obs:val('s-obs').trim() };
     if (s.id) { const x = S.pagamentos.find(y => y.id === s.id); if (x) Object.assign(x, o); } else S.pagamentos.push(Object.assign({ id:uid(), cr:Date.now() }, o));
-    save(); Sheet.close(); render(); toast('Pagamento anotado: ' + fmt(v) + '.');
+    save(); Sheet.close(); render(); toast('Pagamento anotado: ' + fmt(v) + '.' + notaSaldo(data));
   }
   if (a === 'apagar-pag') { if (!confirm('Apagar este pagamento?')) return; S.pagamentos = S.pagamentos.filter(x => x.id !== s.id); save(); Sheet.close(); render(); }
 });
@@ -1468,6 +1478,7 @@ async function copiar(t){
 }
 
 document.addEventListener('click', ev => {
+  if (!ev.target.closest('#sheet')) { try { const sa0 = saldoAtual(); SALDO_ANTES = sa0 ? sa0.est : undefined; } catch(e){ SALDO_ANTES = undefined; } }
   const vz = ev.target.closest('[data-voz]'); if (vz) { vozNoCampo(vz.dataset.voz, vz); return; }
   const b = ev.target.closest('[data-a]'); if (!b) return;
   const a = b.dataset.a, k = b.dataset.k;
@@ -1484,7 +1495,7 @@ document.addEventListener('click', ev => {
   if (a === 'aj-rec') { if (ev.target.closest('.hd') && ev.target.closest('button:not(.min-btn), input, label, select') ) return; ls.set(k, ls.get(k) === '1' ? '0' : '1'); render(); return; }
   if (a === 'ver-mov') { UI.verMov = !UI.verMov; render(); }
   if (a === 'contas-min') { ls.set('simplificando-financas-contas-' + UI.mes, k); render(); }
-  if (a === 'pagar-conta') { const f = S.fixos.find(x => x.id === k); if (!f) return; S.gastos.push({ id:uid(), cr:Date.now(), valor:f.valor, data:todayISO(), cartao:contaId(), quem:f.quem === 'irmao' ? 'irmao' : 'eu', desc:f.nome, cat:f.cat || '', fixo:f.id, boleto:true }); S.fixosFeitos[f.id + '|' + UI.mes] = true; save(); render(); toast(f.nome + ' paga: ' + fmt(f.valor) + '.'); }
+  if (a === 'pagar-conta') { const f = S.fixos.find(x => x.id === k); if (!f) return; S.gastos.push({ id:uid(), cr:Date.now(), valor:f.valor, data:todayISO(), cartao:contaId(), quem:f.quem === 'irmao' ? 'irmao' : 'eu', desc:f.nome, cat:f.cat || '', fixo:f.id, boleto:true }); S.fixosFeitos[f.id + '|' + UI.mes] = true; save(); render(); toast(f.nome + ' paga: ' + fmt(f.valor) + '.' + notaSaldo(todayISO())); }
   if (a === 'despagar-conta') { const g = S.gastos.find(x => x.id === k); if (!g) return; S.gastos = S.gastos.filter(x => x.id !== k); delete S.fixosFeitos[g.fixo + '|' + UI.mes]; save(); render(); toast('Pagamento desfeito.'); }
   if (a === 'meta-tipo') { S.meta = Object.assign({ tipo:'valor', valor:0, pct:10 }, S.meta || {}, { tipo:k }); save(); render(); }
   if (a === 'ed-fixo') { const f = S.fixos.find(x => x.id === k); if (f) sheetFixo(f); }
