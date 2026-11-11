@@ -798,19 +798,35 @@ body.quieto .dica { animation: none !important; }
   .esp-lst .esp-it > .sv { display: none; } .esp-lst .esp-it .sv-m { display: inline; font-style: normal; font-weight: 800; color: var(--tinta); letter-spacing: .02em; }
   .esp-lst .esp-it .tmp, .esp-lst .esp-it .at { grid-column: 3; } .esp-lst .esp-it .acoes-e { grid-column: 4; }
 }
+/* 0.97: copiar o CPF, e os clientes pelo começo do CPF no cadastro */
+.copia { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 8px; background: var(--menta); color: var(--tinta); vertical-align: middle; margin-left: 6px; flex: none; }
+.com-copia { position: relative; } .campo .com-copia input { padding-right: 50px; } .com-copia .copia { position: absolute; right: 7px; top: 50%; transform: translateY(-50%); width: 34px; height: 34px; border-radius: 10px; margin: 0; }
+.cliente-ja.sug { background: var(--mostarda-2); } .cliente-ja.sug .cr .txt { flex: 1; min-width: 0; } .cliente-ja.sug .cr .txt > b { display: block; font-weight: 800; } .cliente-ja.sug .cr .txt > span { display: block; font-size: 12.5px; color: var(--tinta-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* 0.94: o cupom impresso (papel de 80 mm; a área impressa tem 72 mm) */
 .papel { width: 72mm; max-width: 100%; box-sizing: border-box; padding: 2mm 0 5mm; background: #fff; color: #000; font: 600 12.5px/1.4 Arial, Helvetica, sans-serif; letter-spacing: 0; text-transform: none; text-align: left; }
+.papel .c-logo { display: block; width: 30mm; margin: 0 auto 2mm; } .papel .c-logo svg { display: block; width: 100%; height: auto; } .papel .c-logo.cor { display: none; }   /* no papel vai a logo em preto e branco */
+.papel .c-via { margin: 2mm 0 1.6mm; padding: .9mm 0; text-align: center; font-weight: 700; letter-spacing: .08em; border-top: 1px solid #000; border-bottom: 1px solid #000; }
 .papel p { margin: 0; overflow-wrap: anywhere; } .papel .c-loja { font-size: 14.5px; font-weight: 700; } .papel .c-tit { font-weight: 700; } .papel .c-esp { height: 3.4mm; }
 .papel .c-linha { display: flex; justify-content: space-between; gap: 8px; } .papel .c-linha span:last-child { white-space: nowrap; flex: none; }
 .papel .c-total { font-weight: 700; border-top: 1px dashed #000; margin-top: 1mm; padding-top: 1mm; }
 .papel .c-assina { margin-top: 11mm; border-bottom: 1px dashed #000; padding-bottom: .6mm; } .papel .c-aviso { margin-top: 2mm; font-size: 11.5px; }
-.papel-previa { display: flex; justify-content: center; align-items: flex-start; padding: 16px 10px; border-radius: 16px; background: var(--menta-risco); max-height: 52vh; overflow: auto; flex: none; }
-.papel-previa .papel { width: 80mm; padding: 5mm 4mm 7mm; box-shadow: 0 8px 22px rgba(59, 59, 59, .18); border-radius: 3px; flex: none; }
+/* 0.97: na tela o cupom tem cara de cupom: papel amarelinho, a letra do sistema, a logo colorida, os cantos de cima arredondados e o serrilhado embaixo.
+   Na impressora vai como sempre: preto no branco, na largura do papel. As duas vias aparecem lado a lado (uma embaixo da outra quando não cabem) */
+.papel-previa { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 18px 16px; padding: 18px 10px 22px; border-radius: 18px; background: var(--menta-risco); max-height: 54vh; overflow: auto; flex: none; }
+.papel-fx { flex: none; max-width: 100%; filter: drop-shadow(0 8px 12px rgba(120, 90, 30, .2)); }
+.papel-previa .papel { --dente: 12px; width: 66mm; padding: 5mm 4.5mm 9mm; background: linear-gradient(#FFF6DA, #FCEFC9); color: #4A3F33; font: 700 12px/1.45 var(--texto); border-radius: 16px 16px 0 0;
+  -webkit-mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / var(--dente) 100%; mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / var(--dente) 100%; }
+.papel-previa .papel .c-logo { width: 24mm; } .papel-previa .papel .c-logo.cor { display: block; } .papel-previa .papel .c-logo.pb { display: none; }
+.papel-previa .papel .c-loja { text-align: center; font: 800 15px/1.2 var(--display); color: #3B3229; } .papel-previa .papel .c-fone { text-align: center; }
+.papel-previa .papel .c-via { border: 0; margin: 2.4mm auto 2.4mm; padding: 1mm 3.5mm; width: max-content; max-width: 100%; border-radius: 999px; background: #3B3229; color: #FFF6DA; font-size: 10.5px; }
+.papel-previa .papel.cliente .c-via { background: var(--coral); color: #fff; }
+.papel-previa .papel .c-total, .papel-previa .papel .c-assina { border-color: #B9A070; } .papel-previa .papel .c-aviso { color: #6B5D4A; }
 #cupom-print { position: fixed; left: -300vw; top: 0; width: 72mm; }
 @media print {
   body.imprimindo { background: #fff !important; margin: 0 !important; padding: 0 !important; }
   body.imprimindo > *:not(#cupom-print) { display: none !important; }
   body.imprimindo #cupom-print { position: static; width: 72mm; margin: 0 4mm; }
+  body.imprimindo #cupom-print .papel .c-loja, body.imprimindo #cupom-print .papel .c-fone { text-align: center; }
 }
 /* 0.93: o cupom fiscal de cada pagamento */
 .cupons-ch b { background: var(--mostarda); color: #3B3B3B; } .cupons-ch.alerta b { background: var(--erro); color: #fff; }
@@ -1111,10 +1127,18 @@ const LOGO = `<svg viewBox="0 0 100 100" aria-hidden="true">
 <text x="18" y="51" font-family="Poppins,sans-serif" font-weight="800" font-size="13" fill="#fff" text-anchor="middle">P</text><text x="40" y="51" font-family="Poppins,sans-serif" font-weight="800" font-size="13" fill="#fff" text-anchor="middle">L</text><text x="62" y="51" font-family="Poppins,sans-serif" font-weight="800" font-size="13" fill="#3B3B3B" text-anchor="middle">A</text><text x="84" y="51" font-family="Poppins,sans-serif" font-weight="800" font-size="13" fill="#3B3B3B" text-anchor="middle">Y</text>
 <rect x="8" y="58" width="20" height="20" fill="#3B3B3B"/><circle cx="18" cy="68" r="7" fill="#F0BB5F"/><rect x="30" y="58" width="42" height="20" fill="#E25B3F"/><text x="51" y="72" font-family="Poppins,sans-serif" font-weight="800" font-size="10" fill="#fff" text-anchor="middle" letter-spacing="1">SPACE</text><rect x="74" y="58" width="20" height="20" fill="#F5BEA9"/><circle cx="84" cy="68" r="7" fill="#E25B3F"/>
 </svg>`;
+// a logo para o cupom impresso: as mesmas formas, só em preto e branco (a impressora térmica não tem cinza nem cor)
+const LOGO_PB = `<svg viewBox="4 6 92 74" aria-hidden="true">
+<path d="M6.8 35.2 L16 15.6 L25.2 35.2Z" fill="#fff" stroke="#000" stroke-width="1.6"/><path d="M28 32 L40 8 L52 32Z" fill="#000"/><path d="M54.8 35.2 L62 21.6 L69.2 35.2Z" fill="#fff" stroke="#000" stroke-width="1.6"/><path d="M72 34 L82 14 L92 34Z" fill="#000"/>
+<rect x="8" y="36" width="20" height="20" fill="#000"/><rect x="30" y="36" width="20" height="20" fill="#000"/><rect x="52.8" y="36.8" width="18.4" height="18.4" fill="#fff" stroke="#000" stroke-width="1.6"/><rect x="74.8" y="36.8" width="18.4" height="18.4" fill="#fff" stroke="#000" stroke-width="1.6"/>
+<text x="18" y="51" font-family="Poppins,Arial,sans-serif" font-weight="800" font-size="13" fill="#fff" text-anchor="middle">P</text><text x="40" y="51" font-family="Poppins,Arial,sans-serif" font-weight="800" font-size="13" fill="#fff" text-anchor="middle">L</text><text x="62" y="51" font-family="Poppins,Arial,sans-serif" font-weight="800" font-size="13" fill="#000" text-anchor="middle">A</text><text x="84" y="51" font-family="Poppins,Arial,sans-serif" font-weight="800" font-size="13" fill="#000" text-anchor="middle">Y</text>
+<rect x="8" y="58" width="20" height="20" fill="#000"/><circle cx="18" cy="68" r="7" fill="#fff"/><rect x="30" y="58" width="42" height="20" fill="#000"/><text x="51" y="72" font-family="Poppins,Arial,sans-serif" font-weight="800" font-size="10" fill="#fff" text-anchor="middle" letter-spacing="1">SPACE</text><rect x="74.8" y="58.8" width="18.4" height="18.4" fill="#fff" stroke="#000" stroke-width="1.6"/><circle cx="84" cy="68" r="7" fill="#000"/>
+</svg>`;
 const ic = (d, s = 22, w = 2.2) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 const IC = {
   horas: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/>',
   cupom: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9.5 8h5M9.5 12h5"/>',
+  copia: '<rect x="9" y="9" width="11" height="11" rx="2.2"/><path d="M5.5 15V6.2A2.2 2.2 0 0 1 7.7 4H15"/>',
   zap: '<path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.1A8.5 8.5 0 1 1 21 12z"/>',
   banco: '<path d="M6 3h12M6 21h12M7 3v3.5a5 5 0 0 0 10 0V3M7 21v-3.5a5 5 0 0 1 10 0V21"/>',
   dica: '<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z"/>',
@@ -1145,7 +1169,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '0.96';
+const VERSAO = '0.97';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -1858,51 +1882,66 @@ const formasPapel = L => !L || !L.length ? '' : L.length === 1 ? nomeForma(L[0].
 // O cupom. spec: { tipo: 'entrada', id, itens: [{ n, v }], formas: [{ f, v }] } (o que acabou de ser vendido e pago, se houve venda)
 //             ou { tipo: 'saida', id, entrou, saiu, min, deb, proprias, saldo, n, valor, formas } (a conta da saída que acabou de ser dada).
 // spec.c e spec.fam trocam a criança e a família por dados de exemplo (o cupom de teste).
-function htmlPapel(spec) {
-  const c = spec.c || crianca(spec.id); if (!c) return ''; const L = lojaPapel(), st = servicoTempo(), p = periodo(), tol = tolerancia();
-  const cab = `<p class="c-loja">${esc(L.nome)}</p>${L.tel ? `<p>${esc(L.tel)}</p>` : ''}<p>Responsável: ${esc(c.resp)}</p>${fones(c) ? `<p>Telefone: ${esc(fones(c))}</p>` : ''}`;
+// 0.97: sai sempre em duas vias. via 'loja': completa, com o telefone, o documento, o número do cadastro e a idade de cada criança, e a linha
+// da assinatura (é a que fica com a loja). via 'cliente': só o básico (o responsável, a criança, a sapateira, a entrada, o serviço, o pagamento,
+// a data e o aviso), sem telefone, sem CPF e sem assinatura: se o cliente perder o papel, os dados dele não vão junto.
+function htmlPapel(spec, via = 'loja') {
+  const c = spec.c || crianca(spec.id); if (!c) return ''; const L = lojaPapel(), st = servicoTempo(), p = periodo(), tol = tolerancia(), loja = via !== 'cliente';
+  const cab = `<span class="c-logo cor">${LOGO}</span><span class="c-logo pb">${LOGO_PB}</span><p class="c-loja">${esc(L.nome)}</p>${L.tel ? `<p class="c-fone">${esc(L.tel)}</p>` : ''}<p class="c-via">${loja ? 'VIA DA LOJA' : 'VIA DO CLIENTE'}</p>
+    <p>Responsável: ${esc(c.resp)}</p>${loja && fones(c) ? `<p>Telefone: ${esc(fones(c))}</p>` : ''}${loja && docTxt(c) ? `<p>${esc(docTxt(c))}</p>` : ''}`;
   const pago = (itens, formas, rot) => { const total = centavos((itens || []).reduce((t, i) => t + i.v, 0)); return !itens || !itens.length ? '' : `<p class="c-esp"></p><p>${rot}:</p>${itens.map(i => `<p class="c-linha"><span>${esc(i.n)}</span><span>${brl2(i.v)}</span></p>`).join('')}<p class="c-linha c-total"><span>Total</span><span>${brl2(total)}</span></p>${formasPapel(formas) ? `<p>Forma de pagamento: ${esc(formasPapel(formas))}</p>` : ''}`; };
-  const pe = aviso => `<p class="c-esp"></p><p>${dataHora(new Date())}</p><p class="c-assina">x</p><p>${esc(c.resp)}</p>${c.cpf ? `<p>${esc(c.cpf)}</p>` : ''}${aviso ? `<p class="c-aviso">${esc(aviso)}</p>` : ''}`;
+  const pe = aviso => `<p class="c-esp"></p><p>${dataHora(new Date())}</p>${loja ? `<p class="c-assina">x</p><p>${esc(c.resp)}</p>${c.cpf ? `<p>${esc(c.cpf)}</p>` : ''}` : ''}${aviso ? `<p class="c-aviso">${esc(aviso)}</p>` : ''}`;
   const valorPeriodo = x => st ? `<p>Valor: ${brl2(precoDe(x, st.v))} a cada ${st.min || 30} minutos.</p>` : '';
+  const idade = x => loja && x.idade > 0 ? ` (${x.idade} ${x.idade === 1 ? 'ano' : 'anos'})` : '';
   if (spec.tipo === 'saida') {
-    return `<div class="papel">${cab}<p class="c-esp"></p><p class="c-tit">SAÍDA</p><p>Criança: ${esc(c.nome)}</p><p>N. Cadastro: ${c.id}</p>
+    return `<div class="papel ${loja ? 'loja' : 'cliente'}">${cab}<p class="c-esp"></p><p class="c-tit">SAÍDA</p><p>Criança: ${esc(c.nome)}${idade(c)}</p>${loja ? `<p>N. Cadastro: ${c.id}</p>` : ''}
       <p>Entrada: ${hora(spec.entrou)} · Saída: ${hora(spec.saiu)}</p><p>Ficou ${dur(Math.floor(spec.min))} · a visita conta ${dur(spec.deb)}</p>
       <p>Horas do cliente: usou ${dur(spec.proprias)} · saldo ${hm(spec.saldo)}</p>
       ${pago(spec.n ? [{ n: `Além do tempo comprado: ${dur(spec.n * p)}`, v: spec.valor }] : [], spec.formas, 'Pagamento')}${pe('')}</div>`;
   }
   // o cupom de entrada lista as crianças deste responsável que estão no espaço (irmãos saem no mesmo cupom); se a do atendimento não entrou, sai só ela
   const dentro = (spec.fam || familia(c)).filter(x => x.entrou).sort((a, b) => a.entrou - b.entrou), quem = dentro.some(x => x.id === c.id) ? dentro : [c];
-  const bloco = x => `<p class="c-esp"></p><p>Criança: ${esc(x.nome)}</p><p>N. Cadastro: ${x.id}</p>${x.sapateira ? `<p>N. Sapateira: ${x.sapateira}</p>` : ''}${x.entrou ? `<p>Entrada: ${hora(x.entrou)}</p>` : ''}
+  const bloco = x => `<p class="c-esp"></p><p>Criança: ${esc(x.nome)}${idade(x)}</p>${loja ? `<p>N. Cadastro: ${x.id}</p>` : ''}${x.sapateira ? `<p>N. Sapateira: ${x.sapateira}</p>` : ''}${x.entrou ? `<p>Entrada: ${hora(x.entrou)}</p>` : ''}
     <p>Serviço(s):</p><p>${esc(st ? st.n : 'RECREAÇÃO')}${x.pcd ? ' · ' + rotPcd() : ''}</p>
     ${!x.entrou ? `<p>Horas guardadas: ${hm(saldoMin(x))}</p>` : planoDe(x) === 'pacote' ? `<p>Horas do cliente: ${hm(saldoMin(x))}</p>` : `<p>Tempo comprado: ${dur(cobertoMin(x))} (até ${hora(fimVisita(x))})</p>`}
     ${valorPeriodo(x)}`;
-  return `<div class="papel">${cab}${quem.map(bloco).join('')}${pago(spec.itens, spec.formas, 'Pagamento')}${pe(L.aviso + (L.aviso && tol ? ' ' : '') + (tol ? `TOLERÂNCIA DE ${tol} MINUTOS.` : ''))}</div>`;
+  return `<div class="papel ${loja ? 'loja' : 'cliente'}">${cab}${quem.map(bloco).join('')}${pago(spec.itens, spec.formas, 'Pagamento')}${pe(L.aviso + (L.aviso && tol ? ' ' : '') + (tol ? `TOLERÂNCIA DE ${tol} MINUTOS.` : ''))}</div>`;
 }
-// manda o cupom para a impressora: ele vai para uma área só de impressão, a página fica do tamanho do cupom (para o papel cortar logo depois do texto) e o navegador imprime
-function imprimirPapel(html) {
-  if (!html) return; let a = $('#cupom-print'); if (!a) { a = document.createElement('div'); a.id = 'cupom-print'; document.body.appendChild(a); }
+const viasPapel = spec => [htmlPapel(spec, 'loja'), htmlPapel(spec, 'cliente')].filter(Boolean);   // primeiro a da loja (o responsável assina), depois a do cliente
+// Manda as vias para a impressora, uma impressão para cada via: assim a impressora corta no fim de cada uma e saem dois cupons separados.
+// Cada via vai para uma área só de impressão, numa página do tamanho dela (para o papel cortar logo depois do texto).
+let IMPRIMINDO = false;
+function imprimirPapel(vias) {
+  const fila = (Array.isArray(vias) ? vias : [vias]).filter(Boolean); if (!fila.length || IMPRIMINDO) return; IMPRIMINDO = true;
+  let a = $('#cupom-print'); if (!a) { a = document.createElement('div'); a.id = 'cupom-print'; document.body.appendChild(a); }
   let st = $('#cupom-pagina'); if (!st) { st = document.createElement('style'); st.id = 'cupom-pagina'; document.head.appendChild(st); }
-  a.innerHTML = html; const alt = Math.ceil(a.getBoundingClientRect().height * 25.4 / 96) + 10;
-  st.textContent = `@page { size: 80mm ${Math.max(60, alt)}mm; margin: 0; }`; document.body.classList.add('imprimindo');
-  const fim = () => { document.body.classList.remove('imprimindo'); window.removeEventListener('afterprint', fim); };
-  window.addEventListener('afterprint', fim); setTimeout(fim, 60000);
-  setTimeout(() => { try { window.print(); } catch (e) { fim(); toast('Este navegador não deixou imprimir. Use o Chrome no computador do balcão.'); } }, 80);
+  const fim = () => { IMPRIMINDO = false; document.body.classList.remove('imprimindo'); };
+  const proxima = () => {
+    const html = fila.shift(); if (!html) { fim(); return; }
+    a.innerHTML = html; const alt = Math.ceil(a.getBoundingClientRect().height * 25.4 / 96) + 10;
+    st.textContent = `@page { size: 80mm ${Math.max(60, alt)}mm; margin: 0; }`; document.body.classList.add('imprimindo');
+    let seguiu = false, espera = 0; const segue = () => { if (seguiu) return; seguiu = true; window.removeEventListener('afterprint', segue); clearTimeout(espera); setTimeout(proxima, 300); };
+    window.addEventListener('afterprint', segue); espera = setTimeout(segue, 45000);   // se o navegador não avisar que terminou, a via seguinte vai assim mesmo
+    setTimeout(() => { const t0 = Date.now(); try { window.print(); } catch (e) { fila.length = 0; segue(); toast('Este navegador não deixou imprimir. Use o Chrome no computador do balcão.'); return; }
+      if (Date.now() - t0 > 400) segue(); }, 80);   // o Chrome só volta do print() quando a janela de impressão fecha: aí a via seguinte já pode ir
+  };
+  proxima();
 }
 // depois de um atendimento, de uma entrada ou de uma saída com pagamento: o que este aparelho faz com o cupom
-function papelDepois(spec) { const m = modoPapel(); if (m === 'nao' || !spec) return; if (m === 'auto') { imprimirPapel(htmlPapel(spec)); return; } folhaPapel(spec); }
-let PAPEL = null;   // o cupom que está na folha: { spec, html }
+function papelDepois(spec) { const m = modoPapel(); if (m === 'nao' || !spec) return; if (m === 'auto') { imprimirPapel(viasPapel(spec)); return; } folhaPapel(spec); }
+let PAPEL = null;   // o cupom que está na folha: { spec, vias }
 const segPapel = () => `<div class="seg" id="tk-modo">${MODOS_PAPEL.map(([v, n]) => `<button type="button" data-act="papel-modo" data-v="${v}" aria-pressed="${v === modoPapel()}">${n}</button>`).join('')}</div><span class="explica" id="tk-modo-txt">${textoModoPapel()}</span>`;
 function folhaPapel(spec) {
-  const html = htmlPapel(spec); if (!html) return; PAPEL = { spec, html };
+  const vias = viasPapel(spec); if (!vias.length) return; PAPEL = { spec, vias };
   abrirFolha(spec.tipo === 'saida' ? 'Cupom da saída' : 'Cupom de entrada', `
-    <div class="papel-previa" id="tk-previa">${html}</div>
+    <div class="papel-previa" id="tk-previa">${vias.map(v => `<div class="papel-fx">${v}</div>`).join('')}</div>
     <details class="outro" id="tk-aparelho"><summary>Neste aparelho: <span id="tk-modo-rot">${rotModoPapel()}</span> · mudar</summary><div class="campo" style="margin-top:8px">${segPapel()}</div></details>
-    <div class="pe-f"><button type="button" class="bt forte largo tap" id="tk-ok" data-act="papel-imprimir">${ic(IC.cupom)} Imprimir o cupom</button></div>`);
+    <div class="pe-f"><button type="button" class="bt forte largo tap" id="tk-ok" data-act="papel-imprimir">${ic(IC.cupom)} Imprimir as duas vias</button></div>`);
   if (window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches) setTimeout(() => { const b = $('#tk-ok'); if (b) b.focus(); }, 380);   // no computador, Enter imprime
 }
 // um cupom de exemplo, para testar a impressora e ver o texto da loja
-const papelTeste = () => { const f = { id: 123, nome: 'CRIANÇA DE TESTE', resp: 'RESPONSÁVEL DE TESTE', tel: '(11) 9 0000-0000', tel2: '', cpf: '000.000.000-00', doc: 'cpf', sapateira: 12, entrou: new Date(), pacote: periodo() / 60, usado: 0, plano: 'avulso', visitas: [] }, st = servicoTempo();
-  return htmlPapel({ tipo: 'entrada', c: f, fam: [f], itens: st ? [{ n: `${st.n} · ${dur(periodo())}`, v: st.v }] : [], formas: st ? [{ f: 'pix', v: st.v }] : [] }); };
+const papelTeste = () => { const f = { id: 123, idade: 5, nome: 'CRIANÇA DE TESTE', resp: 'RESPONSÁVEL DE TESTE', tel: '(11) 9 0000-0000', tel2: '', cpf: '000.000.000-00', doc: 'cpf', sapateira: 12, entrou: new Date(), pacote: periodo() / 60, usado: 0, plano: 'avulso', visitas: [] }, st = servicoTempo();
+  return viasPapel({ tipo: 'entrada', c: f, fam: [f], itens: st ? [{ n: `${st.n} · ${dur(periodo())}`, v: st.v }] : [], formas: st ? [{ f: 'pix', v: st.v }] : [] }); };
 // Ajustes → Cupom impresso: o nome e o telefone da loja, o aviso do pé, o que este aparelho faz e o cupom de teste
 function folhaPapelAjustes() {
   const L = lojaPapel(), pode = MODO !== 'servidor' || gestor();
@@ -1913,7 +1952,7 @@ function folhaPapelAjustes() {
     ${pode ? `<div class="acoes"><button type="button" class="bt forte tap" data-act="papel-salvar">${ic(IC.check)} Salvar</button></div>` : '<p class="explica">Só o gestor muda o que vai escrito no cupom.</p>'}
     <div class="campo"><label>Neste aparelho, depois de cada atendimento</label>${segPapel()}</div>
     <div class="acoes"><button type="button" class="bt tap" data-act="papel-teste">${ic(IC.cupom)} Imprimir um cupom de teste</button></div>
-    <details class="outro"><summary>Como preparar o computador do balcão</summary><p class="explica" style="margin-top:8px">1. A impressora (Bematech MP-4200 TH) precisa estar instalada no Windows, como impressora, com o papel de 80 mm.<br>2. Abra o sistema no Chrome desse computador e toque em <b>Imprimir um cupom de teste</b>: na janela de impressão escolha a Bematech, margens "Nenhuma" e desmarque cabeçalhos e rodapés. O Chrome guarda a escolha.<br>3. Para o cupom sair sem abrir a janela de impressão, deixe aqui em <b>Imprimir sozinho</b> e abra o Chrome pelo atalho com impressão direta (está no passo a passo, seção 6t).</p></details>`);
+    <details class="outro"><summary>Como preparar o computador do balcão</summary><p class="explica" style="margin-top:8px">1. A impressora (Bematech MP-4200 TH) precisa estar instalada no Windows, como impressora, com o papel de 80 mm.<br>2. Abra o sistema no Chrome desse computador e toque em <b>Imprimir um cupom de teste</b>: na janela de impressão escolha a Bematech, margens "Nenhuma" e desmarque cabeçalhos e rodapés. O Chrome guarda a escolha.<br>3. São duas impressões, uma para cada via: a janela de impressão abre duas vezes seguidas (primeiro a via da loja, depois a do cliente).<br>4. Para as duas vias saírem sem abrir a janela de impressão, deixe aqui em <b>Imprimir sozinho</b> e abra o Chrome pelo atalho com impressão direta (está no passo a passo, seção 6s).</p></details>`);
 }
 
 /* ---------- 0.93: o acompanhamento da nota fiscal de cada pagamento (guardado: desde a 0.94 a tela não tem o botão que liga) ---------- */
@@ -2188,6 +2227,15 @@ function planoDe(c) {
 }
 // os filtros da lista: Todas, um por serviço da loja (o tempo de brincar e cada coisa que sai e volta) e, dentro da recreação, Horas avulsas ou Pacotes
 const espFiltro = () => S.espFiltro === 'sairam' ? 'sairam' : 'todas';   // a lista de quem está aqui, ou a de quem saiu há pouco (para reabrir a visita)
+// 0.97: copiar o CPF (ou o RNE) com um toque, para colar em outro lugar sem escrever de novo
+async function copiarTexto(t, rot = 'CPF') {
+  t = String(t || '').trim(); if (!t) { toast(`Ainda não há ${rot} para copiar`); return; }
+  try { if (!(navigator.clipboard && window.isSecureContext)) throw new Error('sem acesso'); await navigator.clipboard.writeText(t); }
+  catch (e) { const a = document.createElement('textarea'); a.value = t; a.setAttribute('readonly', ''); a.style.cssText = 'position:fixed;left:-999px;top:0;opacity:0'; document.body.appendChild(a); a.select(); let ok = false; try { ok = document.execCommand('copy'); } catch (e2) { } a.remove(); if (!ok) { toast(`Não deu para copiar o ${rot} neste aparelho`); return; } }
+  toast(`${rot} copiado`);
+}
+const botaoCopiar = (t, rot = 'CPF') => `<button type="button" class="copia tap" data-act="copiar" data-t="${esc(t)}" data-rot="${rot}" title="Copiar o ${rot}" aria-label="Copiar o ${rot}">${ic(IC.copia, 14, 2.4)}</button>`;
+const copiaDoc = c => c && c.cpf ? botaoCopiar(c.cpf, c.doc === 'rne' ? 'RNE' : 'CPF') : '';
 // 0.95: a tela inicial é uma lista (uma linha por cliente, como uma planilha). As três colunas por serviço continuam como opção deste aparelho (Ajustes → Aparência)
 const inicioLista = () => lido('ps-inicio', 'lista') !== 'servico';
 // o filtro por serviço da lista: '' = todas, 'rec' = quem está na recreação, ou o id de um serviço que sai da loja e volta (carrinho, fusquinha)
@@ -2459,7 +2507,7 @@ const atrasoFicha = c => c.atraso && c.atraso.n ? `<div class="marca canc">${ic(
 function folhaFicha(id) {
   const c = crianca(id); if (!c) return; const [et, cls] = estado(c);
   abrirFolha(`${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}`, `
-    <div class="linha">${avatarComUrso(c, 'g')}<div class="txt"><b style="white-space:normal">${esc(c.resp)}${relSabe(c) ? ', ' + esc(c.rel) : ''}</b>${c.pcd ? `<span style="white-space:normal"><em class="selo-pcd">Criança PCD</em> ${pcdDesc()}% de desconto na recreação avulsa</span>` : ''}<span style="white-space:normal">${esc(fones(c))}${c.cpf ? (fones(c) ? ' · ' : '') + esc(docTxt(c)) : ''}</span></div><span class="pill ${cls}">${et}</span></div>
+    <div class="linha">${avatarComUrso(c, 'g')}<div class="txt"><b style="white-space:normal">${esc(c.resp)}${relSabe(c) ? ', ' + esc(c.rel) : ''}</b>${c.pcd ? `<span style="white-space:normal"><em class="selo-pcd">Criança PCD</em> ${pcdDesc()}% de desconto na recreação avulsa</span>` : ''}<span style="white-space:normal">${esc(fones(c))}${c.cpf ? (fones(c) ? ' · ' : '') + esc(docTxt(c)) : ''}${copiaDoc(c)}</span></div><span class="pill ${cls}">${et}</span></div>
     ${obsAlerta(c)}
     ${alugFicha(c)}
     ${emAberto(c) ? `<div class="marca retoma-f">${ic(IC.historico, 18)}<span><b>Atendimento em aberto:</b> ${esc(textoPend(c))}.</span><button class="bt forte tap" data-act="vender" data-id="${c.id}">Continuar</button></div>` : ''}
@@ -2648,7 +2696,7 @@ let CLIENTE_AUTO = null;   // o que a tela preencheu sozinha (some de novo se o 
 let CLIENTE_VISTO = '';     // o documento do cliente que o cadastro já mostrou (para avisar uma vez só)
 const docTipo = () => ($('#f-cpf') || { dataset: {} }).dataset.doc === 'rne' ? 'rne' : 'cpf';
 const segDoc = tipo => `<div class="seg mini" id="f-doc-seg" role="group" aria-label="Tipo de documento">${[['cpf', 'CPF'], ['rne', 'RNE']].map(([v, n]) => `<button type="button" data-act="doc-tipo" data-v="${v}" aria-pressed="${tipo === v}" title="${v === 'rne' ? 'Estrangeiro: Registro Nacional de Estrangeiro' : 'CPF'}">${n}</button>`).join('')}</div>`;
-const campoDoc = (tipo, v) => `<div class="campo"><div class="rot-linha"><label for="f-cpf"><span id="f-doc-rot">${tipo === 'rne' ? 'RNE' : 'CPF'} do responsável</span><span class="obg" aria-hidden="true">*</span></label>${segDoc(tipo)}</div><input id="f-cpf" data-doc="${tipo}" inputmode="${tipo === 'rne' ? 'text' : 'numeric'}" value="${esc(v || '')}" placeholder="${tipo === 'rne' ? 'Número do RNE' : '000.000.000-00'}" maxlength="${tipo === 'rne' ? 20 : 14}" autocomplete="off"><span class="explica" id="f-cpf-aviso" style="color:var(--erro)" hidden></span></div>`;
+const campoDoc = (tipo, v) => `<div class="campo"><div class="rot-linha"><label for="f-cpf"><span id="f-doc-rot">${tipo === 'rne' ? 'RNE' : 'CPF'} do responsável</span><span class="obg" aria-hidden="true">*</span></label>${segDoc(tipo)}</div><div class="com-copia"><input id="f-cpf" data-doc="${tipo}" inputmode="${tipo === 'rne' ? 'text' : 'numeric'}" value="${esc(v || '')}" placeholder="${tipo === 'rne' ? 'Número do RNE' : '000.000.000-00'}" maxlength="${tipo === 'rne' ? 20 : 14}" autocomplete="off"><button type="button" class="copia tap" data-act="copiar" data-alvo="f-cpf" title="Copiar o documento" aria-label="Copiar o documento">${ic(IC.copia, 16, 2.4)}</button></div><span class="explica" id="f-cpf-aviso" style="color:var(--erro)" hidden></span></div>`;
 const camposTel = (t1, t2) => `<div class="dois"><div class="campo"><label for="f-tel">Telefone${COM_WHATS ? ' (WhatsApp)' : ''}<span class="obg" aria-hidden="true">*</span></label><input id="f-tel" inputmode="tel" value="${esc(t1 || '')}" placeholder="(11) 9 0000-0000" autocomplete="off"></div>
         <div class="campo discreto"><label for="f-tel2">Outro telefone, se tiver</label><input id="f-tel2" inputmode="tel" value="${esc(t2 || '')}" placeholder="(11) 9 0000-0000" autocomplete="off"></div></div>`;
 // no cadastro, o CPF (ou RNE) de quem já é cliente traz o que está salvo: o responsável e as crianças dele.
@@ -2660,10 +2708,22 @@ function cartaoCliente(fam) {
     ${fam.map(c => { const u = ultimaVisita(c); return `<button type="button" class="cr tap" data-act="cliente-atender" data-id="${c.id}" aria-label="Atender ${esc(c.nome)}">${avatar(c)}<span class="txt"><b>${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}</b><span>${c.entrou ? 'no espaço agora' : u ? 'veio em ' + diaCurto(new Date(u)) : 'ainda não veio'} · saldo ${hm(saldoAgora(c))}${c.obs ? ' · tem observação' : ''}</span></span><em>${emAberto(c) ? 'Continuar' : c.entrou ? 'Vender' : 'Atender'} ${ic(IC.vai, 14, 2.6)}</em></button>`; }).join('')}
     <p class="explica">É outra criança deste responsável? Escreva só o nome dela abaixo: os dados do responsável já estão preenchidos.</p></div>`;
 }
+// 0.97: com os três primeiros números do CPF o cadastro já mostra quem tem um CPF que começa assim: um toque escolhe o cliente, sem escrever
+// o resto. Na lista o CPF aparece só com o começo e o fim (o responsável de outra pessoa pode estar olhando a tela)
+function sugestoesCpf(dig) {
+  const vistos = new Set(), L = [];
+  for (const c of S.criancas) { if (c.doc === 'rne') continue; const d = soDig(c.cpf); if (d.length !== 11 || !d.startsWith(dig) || vistos.has(d)) continue; vistos.add(d);
+    L.push({ d, resp: c.resp, fam: S.criancas.filter(x => x.doc !== 'rne' && soDig(x.cpf) === d).sort((a, b) => a.nome.localeCompare(b.nome)) }); }
+  return L.sort((a, b) => a.resp.localeCompare(b.resp));
+}
+const cartaoSugestoes = (L, dig) => `<div class="cliente-ja sug"><small class="rot-cr">${L.length === 1 ? 'Um cliente tem o CPF' : L.length + ' clientes têm o CPF'} começando com ${esc(cpfFmt(dig))} · toque para escolher</small>
+    ${L.slice(0, 8).map(x => `<button type="button" class="cr tap" data-act="cpf-escolher" data-cpf="${x.d}" aria-label="Escolher ${esc(x.resp)}"><span class="txt"><b>${esc(x.resp)}</b><span>CPF ${x.d.slice(0, 3)}.•••.•••-${x.d.slice(9)} · ${x.fam.map(c => esc(c.nome)).join(', ')}</span></span><em>Escolher ${ic(IC.vai, 14, 2.6)}</em></button>`).join('')}
+    ${L.length > 8 ? `<p class="explica">Há mais ${L.length - 8}: escreva mais um número para afinar.</p>` : ''}</div>`;
 function clienteNoCadastro() {
   const alvo = $('#f-cliente'); if (!alvo) return; const tipo = docTipo(), doc = val('f-cpf'), fam = clientePorDoc(tipo, doc), aviso = $('#f-cpf-aviso');
   if (aviso) { const ruim = tipo === 'cpf' && soDig(doc).length === 11 && !fam.length && !cpfValido(doc); aviso.hidden = !ruim; aviso.textContent = ruim ? 'Confira o CPF: os números não batem.' : ''; }
-  if (!fam.length) { alvo.innerHTML = ''; if (CLIENTE_AUTO) { for (const k in CLIENTE_AUTO) { const i = $('#' + k); if (i && i.value === CLIENTE_AUTO[k]) i.value = ''; } CLIENTE_AUTO = null; }
+  if (!fam.length) { const dig = soDig(doc), sug = tipo === 'cpf' && dig.length >= 3 && dig.length < 11 ? sugestoesCpf(dig) : [];
+    alvo.innerHTML = sug.length ? cartaoSugestoes(sug, dig) : ''; if (CLIENTE_AUTO) { for (const k in CLIENTE_AUTO) { const i = $('#' + k); if (i && i.value === CLIENTE_AUTO[k]) i.value = ''; } CLIENTE_AUTO = null; }
     CLIENTE_VISTO = ''; if (LADO && LADO.doCadastro) fecharLado(); return; }   // o documento mudou: o histórico que o cadastro abriu sai junto
   const r = fam[0]; alvo.innerHTML = cartaoCliente(fam); CLIENTE_AUTO = CLIENTE_AUTO || {};
   // já é cliente: o histórico abre sozinho ao lado do cadastro (em tela larga); no celular, um aviso com o atalho
@@ -2876,7 +2936,7 @@ function desenharLado() {
   const ultima = c => { const v = d && d.visitas.find(x => x.crianca === c.id); return v ? +v.dia : ultimaVisita(c); };
   a.innerHTML = `
     <div class="cab-f"><h2>Histórico do cliente</h2><button class="fechar tap" data-act="lado-fechar" aria-label="Fechar o histórico">${ic(IC.x, 18, 2.4)}</button></div>
-    <div class="linha"><span class="av g" style="background:${CORES[base.id % CORES.length]}">${esc(iniciais(base.resp))}</span><div class="txt"><b style="white-space:normal">${esc(base.resp)}</b><span style="white-space:normal">${relSabe(base) ? esc(base.rel) + ' de ' : 'responsável por '}${juntar(fam.map(c => esc(c.nome)))}</span><span style="white-space:normal">${esc(fones(base) || 'sem telefone')}${base.cpf ? ' · ' + esc(docTxt(base)) : ''}</span></div></div>
+    <div class="linha"><span class="av g" style="background:${CORES[base.id % CORES.length]}">${esc(iniciais(base.resp))}</span><div class="txt"><b style="white-space:normal">${esc(base.resp)}</b><span style="white-space:normal">${relSabe(base) ? esc(base.rel) + ' de ' : 'responsável por '}${juntar(fam.map(c => esc(c.nome)))}</span><span style="white-space:normal">${esc(fones(base) || 'sem telefone')}${base.cpf ? ' · ' + esc(docTxt(base)) : ''}${copiaDoc(base)}</span></div></div>
     <div class="h-nums">
       <div><small>Pagou ao todo</small><b class="num">${d ? brl(d.vendas.reduce((t, v) => t + v.v, 0)) : '…'}</b></div>
       <div><small>Horas compradas</small><b class="num">${hm(comprado)}</b></div>
@@ -3227,7 +3287,7 @@ function telaAjustes() {
       </div>
       <div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.cupom, 20)} Cupom impresso</h2><span class="pill ${modoPapel() === 'nao' ? 'p-neutro' : 'p-ok'}">${modoPapel() === 'auto' ? 'Imprime sozinho aqui' : modoPapel() === 'nao' ? 'Este aparelho não imprime' : 'Mostra o cupom aqui'}</span></div>
         <button class="grupo tap" data-act="papel-ajustes" style="width:100%"><div class="it"><div class="txt"><b>${esc(lojaPapel().nome)}${lojaPapel().tel ? ' · ' + esc(lojaPapel().tel) : ''}</b><span>Toque para mudar o nome, o telefone e o aviso do cupom, escolher o que este aparelho faz, ou imprimir um teste</span></div><span class="vai">${ic(IC.vai, 18)}</span></div></button>
-        <p class="explica">O cupom sai depois de cada atendimento e de cada entrada, para o responsável assinar: a loja, o responsável, as crianças, o serviço, o valor e o que foi pago. Imprime na impressora térmica do balcão (Bematech MP-4200 TH, papel de 80 mm).</p>
+        <p class="explica">O cupom sai depois de cada atendimento e de cada entrada, sempre em <b>duas vias</b>, com a logo: a <b>via da loja</b>, completa, para o responsável assinar; e a <b>via do cliente</b>, só com o básico (sem telefone e sem CPF). Imprime na impressora térmica do balcão (Bematech MP-4200 TH, papel de 80 mm).</p>
       </div>
       <div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.sapato, 20)} Sapateiras</h2></div>
         <button class="grupo tap" data-act="sap-mapa" style="width:100%"><div class="it"><div class="txt"><b>${nSap()} sapateiras · ${S.criancas.filter(c => c.sapateira).length} em uso agora</b><span>Toque para ver o mapa, liberar uma esquecida ou mudar a quantidade</span></div><span class="vai">${ic(IC.vai, 18)}</span></div></button>
@@ -3352,7 +3412,9 @@ const ACOES = {
   atualizar: () => ATU.nova ? folhaAtualizar() : conferirAtualizacao(true),
   'atualizar-agora': el => atualizarAgora(el),
   desfazer: () => { if (DESFAZ) { DESFAZ(); DESFAZ = null; } $('#toast').classList.remove('ve'); fecharFolha(); desenhar(); setTimeout(() => toast('Desfeito'), 50); },
-  'papel-imprimir': () => { if (!PAPEL) return; imprimirPapel(PAPEL.html); fecharFolha(); },
+  copiar: el => copiarTexto(el.dataset.alvo ? val(el.dataset.alvo) : el.dataset.t, el.dataset.rot || (el.dataset.alvo && docTipo() === 'rne' ? 'RNE' : 'CPF')),
+  'cpf-escolher': el => { const i = $('#f-cpf'); if (!i) return; i.value = cpfFmt(el.dataset.cpf); i.dispatchEvent(new Event('input', { bubbles: true })); const n = $('#f-nome'); if (n && !n.value) n.focus(); },   /* escolheu o cliente pelo começo do CPF: o cadastro traz o resto */
+  'papel-imprimir': () => { if (!PAPEL) return; imprimirPapel(PAPEL.vias); fecharFolha(); },
   'papel-ficha': el => folhaPapel({ tipo: 'entrada', id: +el.dataset.id }), 'papel-ajustes': () => folhaPapelAjustes(), 'papel-teste': () => imprimirPapel(papelTeste()),
   'papel-modo': el => { guardar('ps-cupom', el.dataset.v); $$('#tk-modo [data-v]').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === modoPapel())); const t = $('#tk-modo-txt'); if (t) t.textContent = textoModoPapel(); const r = $('#tk-modo-rot'); if (r) r.textContent = rotModoPapel(); if (S.tela === 'ajustes') desenhar(true); },
   'papel-salvar': () => { const nome = MAI(val('tk-loja')), tel = val('tk-tel'), aviso = MAI(val('tk-aviso')); if (!nome) { toast('Escreva o nome da loja que sai no cupom'); const i = $('#tk-loja'); if (i) i.focus(); return; }

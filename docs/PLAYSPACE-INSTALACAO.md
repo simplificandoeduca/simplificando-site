@@ -109,6 +109,8 @@ O tempo é debitado **sempre em períodos inteiros** (o período da Recreação:
 
 - **Restrições** (alergia, se pode ou não fazer pintura no rosto, se pode ou não mexer no cabelo) ficam no campo de observações e são opcionais. Os atalhos embaixo do campo só escrevem mais rápido: tocar de novo num atalho tira o que ele escreveu (inclusive a alergia), e **Sem restrição** limpa tudo. O texto é livre e pode ser mudado depois em **Editar**. Elas aparecem em destaque na ficha e no histórico.
 - **Cliente já cadastrado**: ao completar um CPF (ou RNE) que já existe, o cadastro avisa na hora: mostra quem é o responsável e as crianças dele (última vinda, horas consumidas, horas disponíveis), preenche os dados do responsável e **abre sozinho o histórico do cliente ao lado**, sem precisar tocar em nada (no celular, aparece o aviso "Este CPF já tem cadastro" com o atalho **Ver o histórico**). Se o documento for trocado, o histórico fecha. Para cadastrar um irmão, é só escrever o nome da nova criança. A mesma criança não entra duas vezes no mesmo CPF.
+- **Os três primeiros números do CPF já puxam o cliente**: no cadastro, ao escrever os **três primeiros números** do CPF, aparece a lista de todos os clientes cujo CPF começa assim: o nome do responsável, as crianças dele e o CPF só com o começo e o fim ("529.•••.•••-25", porque outra pessoa pode estar olhando a tela). **Um toque escolhe**: o CPF é preenchido inteiro e o cadastro segue como "Cliente já cadastrado" (os dados do responsável, as crianças e o histórico ao lado). A cada número a mais, a lista afina; aparecem até 8 de cada vez. Vale para CPF (o RNE continua sendo escrito inteiro).
+- **Copiar o CPF**: o botão dos dois quadradinhos copia o documento com um toque ("CPF copiado"), para colar onde precisar sem anotar de novo. Ele fica **dentro do campo do CPF** no cadastro, ao lado do CPF no alto da **ficha** da criança e no alto do **histórico do cliente**.
 - **Os dados ficam salvos, e o cliente que volta não escreve nada de novo**: no cartão "Cliente já cadastrado", cada criança dele é um botão, com quando veio, o saldo e o aviso "tem observação". **Um toque na criança abre o atendimento dela.** Se for outra criança do mesmo responsável, basta escrever o nome dela: os dados do responsável já vêm preenchidos. Nada disso se perde nas atualizações: cadastros, vendas, visitas e saldos ficam no banco de dados da loja.
 - **Histórico do cliente**: abre numa aba à direita (no celular, na tela toda) e junta tudo do responsável: quanto pagou ao todo, horas compradas, consumidas e disponíveis; cada criança com o saldo, as restrições e os botões **Vender** e **Chamar para renovar**; **todas as compras** (pacote, o que veio junto, carrinho e outros produtos, valor, quem vendeu) e **todas as visitas**. Abre pelo botão **Histórico** no cadastro, na ficha da criança ou tocando na "Última contratação" do Banco de horas. O cliente é reconhecido pelo CPF ou pelo RNE; sem documento, pelo WhatsApp.
 - **Sem horas, sem entrada**: com a regra "Quando o pacote zerar → Bloquear o acesso sozinho" (o padrão), a criança recém-cadastrada começa com o acesso **bloqueado** no iDFace e é liberada sozinha na primeira venda de horas. Vender só um produto (carrinho) não libera. Desfazer uma venda que deixa o saldo em zero bloqueia de novo.
@@ -438,37 +440,52 @@ A tela acompanha o relógio: se a tolerância estourar com ela aberta, o quadro 
 
 ## 6s. Cupom impresso (Bematech MP-4200 TH)
 
-O cupom da loja é o papel da impressora térmica do balcão, que o responsável assina. O sistema imprime **no mesmo formato do cupom que a loja já usava**:
+O cupom da loja é o papel da impressora térmica do balcão, que o responsável assina. O sistema imprime **no mesmo formato do cupom que a loja já usava**, com a **logo do Play Space** no alto, e **sempre em duas vias**, uma depois da outra, cada uma cortada sozinha:
 
-- o **nome e o telefone da loja**;
-- o **responsável** e o telefone dele;
-- **cada criança** dele que está no espaço (irmãos saem no mesmo cupom): o número do cadastro, a **sapateira**, a hora da **entrada**, o serviço, o tempo comprado (ou as horas do cliente) e o **valor a cada 30 minutos**;
+**VIA DA LOJA** (sai primeiro; é a que o responsável assina e fica com a loja), completa:
+
+- a logo, o **nome e o telefone da loja**;
+- o **responsável**, os **telefones** e o **CPF** (ou RNE) dele;
+- **cada criança** dele que está no espaço (irmãos saem no mesmo cupom): o nome e a **idade**, o **número do cadastro**, a **sapateira**, a hora da **entrada**, o serviço, o tempo comprado (ou as horas do cliente) e o **valor a cada 30 minutos**;
 - o **pagamento** que acabou de ser feito: os itens, o total e a forma;
 - a **data e a hora**, a **linha da assinatura**, o **nome e o CPF** do responsável;
 - o **aviso** do pé ("Somente o responsável que assinar a entrada da criança poderá assinar sua saída"), seguido da tolerância da regra das horas.
 
+**VIA DO CLIENTE** (a que o responsável leva), só o básico:
+
+- a logo, o nome e o telefone da loja;
+- o **nome do responsável**;
+- cada criança: o nome, a sapateira, a hora da entrada, o serviço, o tempo comprado e o valor a cada 30 minutos;
+- o **pagamento**: os itens, o total e a forma;
+- a **data e a hora**, o aviso do pé e a tolerância.
+
+A via do cliente **não leva telefone, CPF, número do cadastro, idade nem assinatura**: se o papel for perdido, ninguém fica com os dados do cliente. Nenhuma das duas vias leva a observação da criança (o OBS é só da equipe, seção 6q).
+
+**Na tela e no papel**: na tela, o cupom aparece com cara de cupom (papel amarelinho, a logo colorida, a ponta serrilhada), com as duas vias lado a lado. No papel ele sai **preto no branco**, com a logo em preto: a impressora térmica só imprime preto.
+
 **Quando sai:**
 
 - **cupom de entrada**: depois de cada atendimento registrado (a venda, com ou sem entrada) e depois de cada **Entrada** pelo botão (a criança que já tinha horas);
-- **cupom da saída**: depois de uma saída **com pagamento** (a hora da entrada e da saída, quanto ficou, o que usou das horas, o que foi recebido e a forma), também com a linha da assinatura;
+- **cupom da saída**: depois de uma saída **com pagamento** (a hora da entrada e da saída, quanto ficou, o que usou das horas, o que foi recebido e a forma), também em duas vias, com a linha da assinatura na via da loja;
 - **de novo, a qualquer hora**: na comanda de quem está no espaço, o botão **Cupom**.
 
 **O que cada aparelho faz** fica guardado no próprio aparelho (não muda os outros):
 
-- **Mostrar o cupom** (como vem): depois do atendimento a tela abre o cupom, e um toque em **Imprimir o cupom** manda para a impressora;
-- **Imprimir sozinho**: o cupom vai direto para a impressora, sem abrir a tela. É o modo do computador do balcão;
+- **Mostrar o cupom** (como vem): depois do atendimento a tela abre o cupom com as duas vias, e um toque em **Imprimir as duas vias** manda para a impressora;
+- **Imprimir sozinho**: as duas vias vão direto para a impressora, sem abrir a tela. É o modo do computador do balcão;
 - **Não imprimir**: para o celular e o tablet, que não têm a impressora. O cupom não aparece ali.
 
 A escolha fica na própria folha do cupom, na linha "Neste aparelho: … · mudar", e em **Ajustes → Cupom impresso**.
 
-**O que vai escrito** (só o Gestor muda): **Ajustes → Cupom impresso** → nome da loja, telefone e o aviso do pé. No mesmo lugar, **Imprimir um cupom de teste**.
+**O que vai escrito** (só o Gestor muda): **Ajustes → Cupom impresso** → nome da loja, telefone e o aviso do pé. No mesmo lugar, **Imprimir um cupom de teste** (saem as duas vias, com dados de exemplo).
 
 **Preparar o computador do balcão (uma vez):**
 
 1. A Bematech MP-4200 TH precisa estar instalada no Windows como impressora (o programa dela, do fabricante), com o papel de 80 mm. Se o sistema antigo já imprimia nesse computador, ela já está.
 2. Abra o sistema no **Chrome** desse computador, entre em Ajustes → Cupom impresso e toque em **Imprimir um cupom de teste**. Na janela de impressão: escolha a Bematech, em "Mais definições" coloque **Margens: Nenhuma** e desmarque **Cabeçalhos e rodapés**. O Chrome guarda essas escolhas.
-3. Se o cupom sair cortado no meio, pequeno demais ou com muito papel em branco no fim, o acerto é nas preferências da impressora no Windows (tamanho do papel de 80 mm e corte no fim do documento). Mande uma foto do cupom de teste que eu ajusto a largura e o tamanho da letra.
-4. **Para sair sem abrir a janela de impressão**: deixe a Bematech como **impressora padrão** do Windows; no sistema, escolha **Imprimir sozinho**; e abra o Chrome por um atalho com a impressão direta. Para criar o atalho: botão direito na área de trabalho → Novo → Atalho, e no destino escreva (com o endereço do sistema no fim):
+3. **São duas impressões, uma para cada via.** Sem o atalho do passo 5, a janela de impressão do Chrome abre **duas vezes** seguidas (primeiro a via da loja, depois a do cliente): é só confirmar as duas. Com o atalho, as duas saem sozinhas.
+4. Se o cupom sair cortado no meio, pequeno demais, com muito papel em branco no fim, ou se as duas vias saírem grudadas (sem corte entre elas), o acerto é nas preferências da impressora no Windows (tamanho do papel de 80 mm e corte no fim do documento). Mande uma foto do cupom de teste que eu ajusto a largura, o tamanho da letra e o da logo.
+5. **Para sair sem abrir a janela de impressão**: deixe a Bematech como **impressora padrão** do Windows; no sistema, escolha **Imprimir sozinho**; e abra o Chrome por um atalho com a impressão direta. Para criar o atalho: botão direito na área de trabalho → Novo → Atalho, e no destino escreva (com o endereço do sistema no fim):
    `"C:\Program Files\Google\Chrome\Application\chrome.exe" --kiosk-printing https://gamacertificacao.com.br/playspace/`
    Feche todas as janelas do Chrome antes de abrir por esse atalho (se o Chrome já estiver aberto, ele ignora a opção).
 
