@@ -552,7 +552,15 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeri
 .ev2-k{border-radius:22px;padding:16px;background:var(--card);box-shadow:inset 0 0 0 1px var(--card-line);display:flex;flex-direction:column;gap:5px;min-width:0}
 .ev2-k>.i{width:20px;height:20px;color:var(--muted)}.ev2-k .t{font-size:13px;font-weight:700;color:var(--muted)}
 .ev2-k b{font-size:30px;font-weight:900;letter-spacing:-.04em;line-height:1;font-variant-numeric:tabular-nums}.ev2-k b small{font-size:15px;font-weight:700;color:var(--muted);letter-spacing:0}
-.ev2-k .s{font-size:12.5px;color:var(--muted)}.ev2-k.ok{background:#E3F6E8;box-shadow:inset 0 0 0 1.5px #8ED6A4}.ev2-k.ok .s{color:#1E7E3C;font-weight:700}
+.ev2-k .s{font-size:12.5px;color:var(--muted)}
+.ev2-tap{cursor:pointer;-webkit-tap-highlight-color:transparent}.ev2-tap:active{transform:scale(.98)}.ev2-tap:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.ev2-ver{display:flex;align-items:center;gap:2px;margin-top:4px;font-size:12.5px;font-weight:800;color:var(--fg)}.ev2-ver .i{width:14px;height:14px}
+.ev2-d .b.ca.on.ev2-tap{box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--fg) 25%,transparent)}
+.sec-tg{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.sec-tg .btn{font-size:13px;letter-spacing:0}
+.evc-tot{display:flex;flex-direction:column;gap:4px;padding:14px 16px;border-radius:18px;background:color-mix(in srgb,var(--cardio) 22%,var(--card));margin-bottom:12px}.evc-tot b{font-size:30px;font-weight:900;letter-spacing:-.04em;line-height:1}.evc-tot b small{font-size:15px;color:var(--muted);letter-spacing:0}.evc-tot span{font-size:13.5px;color:var(--muted)}
+.evc-day{border-radius:18px;padding:4px 0}.evc-day.on{background:color-mix(in srgb,var(--cardio) 12%,transparent);padding:4px 10px;margin:0 -10px}
+.evc-dh{margin:10px 0 4px;font-size:12.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.evc-r{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--sep)}.evc-day .evc-r:last-child{border-bottom:0}.evc-l{flex:1;font-weight:700;font-size:16px}.evc-r b{font-size:16px;font-variant-numeric:tabular-nums}.ev2-k.ok{background:#E3F6E8;box-shadow:inset 0 0 0 1.5px #8ED6A4}.ev2-k.ok .s{color:#1E7E3C;font-weight:700}
 .ev2-bar{display:block;height:8px;border-radius:99px;background:var(--ctl);overflow:hidden}.ev2-bar i{display:block;height:100%;border-radius:99px;background:var(--brand)}.ev2-k.ok .ev2-bar i{background:#1E9E4A}
 .ev2-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
 .ev2-d{display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 2px;border-radius:16px;background:var(--ctl);min-width:0}
@@ -691,6 +699,8 @@ h3.sec{font-size:22px;margin:14px 2px -2px}
 .nav{font-weight:700;color:var(--muted)}.nav .i{color:var(--muted)}.nav:hover{color:var(--fg)}
 .nav.on{background:var(--fg);color:var(--bg)}.nav.on .i{color:var(--brand)}
 .tabbar{box-shadow:0 10px 30px rgba(15,23,18,.12),0 0 0 1px var(--card-line)}
+@supports (top:calc(1px + 1px)){.tabbar{bottom:auto;top:calc(var(--vvt,0px) + var(--vvh,100vh) - var(--tbh,68px) - 14px - env(safe-area-inset-bottom,0px))}}
+.kb .tabbar{display:none}
 /* painel */
 .kpi{gap:6px;padding:18px}
 .kpi>.i{width:34px;height:34px;padding:8px;border-radius:10px;opacity:1;background:var(--ctl)}
@@ -2932,6 +2942,22 @@ function ev2Spark(pts){
   const up = pts[pts.length-1]>=pts[0];
   return '<svg class="ev2-sp" viewBox="0 0 '+W+' '+H+'" aria-hidden="true"><polyline points="'+xy.map(p => p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ')+'" fill="none" stroke="'+(up?'#1E9E4A':'#E5533A')+'" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="'+xy[xy.length-1][0].toFixed(1)+'" cy="'+xy[xy.length-1][1].toFixed(1)+'" r="3.5" fill="'+(up?'#1E9E4A':'#E5533A')+'"/></svg>';
 }
+/* cardio da semana em uma janelinha: aparelho, minutos e intensidade de cada um */
+let EVC = null;
+const INT_TXT = i => /forte|alta/i.test(i||'') ? ['Forte','bad'] : /leve|baixa/i.test(i||'') ? ['Leve','ok'] : i ? ['Média','warn'] : ['—','line'];
+function vEvCardio(s){
+  const E = EVC; if(!E) return sheetTop('Cardio','')+'<p class="muted">Abra a Evolução do aluno de novo.</p>';
+  const ini = s.ini || E.ini, fim = addDays(ini, 6), L = E.L.filter(c => c.d>=ini && c.d<=fim).sort((x,y) => x.d.localeCompare(y.d)), tot = L.reduce((t,c) => t+(+c.min||0), 0);
+  const por = {}; L.forEach(c => { const k = c.l||'Outro'; por[k] = (por[k]||0)+(+c.min||0); });
+  const dias = Array.from({length:7}, (_,i) => addDays(ini, i)).filter(k => L.some(c => c.d===k));
+  const nav = '<div class="btn-row" style="justify-content:space-between;margin:0 0 10px"><button type="button" class="btn small ghost" data-a="evCardioSem" data-v="'+addDays(ini,-7)+'">'+ic('chevL')+'Semana anterior</button>'+(ini<E.ini ? '<button type="button" class="btn small ghost" data-a="evCardioSem" data-v="'+addDays(ini,7)+'">Próxima'+ic('chev')+'</button>' : '')+'</div>';
+  return sheetTop('Cardio da semana', E.nome+' · '+fmtDm(ini)+' a '+fmtDm(fim))+nav+
+    '<div class="evc-tot"><b>'+tot+'<small>'+(E.cg && ini===E.ini ? '/'+E.cg : '')+' min</small></b><span>'+plural(L.length,'cardio')+(Object.keys(por).length ? ' · '+Object.keys(por).sort((x,y) => por[y]-por[x]).map(k => esc(k)+' '+por[k]+' min').join(' · ') : '')+'</span></div>'+
+    (dias.length ? dias.map(k => '<div class="evc-day'+(s.dia===k?' on':'')+'"><p class="evc-dh">'+esc(dSem(k))+' · '+fmtDm(k)+(k===today() ? ' · hoje' : '')+'</p>'+L.filter(c => c.d===k).map(c => { const [it, cl] = INT_TXT(c.i);
+        return '<div class="evc-r"><span class="evc-l">'+esc(c.l||'Outro')+'</span><b>'+(+c.min||0)+' min</b><span class="pill '+cl+'">'+it+'</span></div>'; }).join('')+'</div>').join('')
+      : '<p class="muted">Nenhum cardio registrado nesta semana.</p>')+
+    '<p class="foot">Intensidade marcada pelo aluno no app: Leve, Média ou Forte.</p>';
+}
 function tEvol(a){
   const online = pfOnline(), own = !!a._pg; if(online && !own) loadProg();
   const box = (t, extra) => '<section class="card"><span class="label">'+ic('pulse')+'Evolução</span><p class="muted">'+t+'</p>'+(extra||'')+'</section>';
@@ -2969,16 +2995,17 @@ function tEvol(a){
   const kp = (icn, t, v, max, unid, cls, sub) => '<div class="ev2-k '+cls+'">'+ic(icn)+'<span class="t">'+t+'</span><b>'+v+(max ? '<small>/'+max+unid+'</small>' : '<small>'+unid+'</small>')+'</b>'+(max ? ev2Bar(+String(v).replace(',','.'), max) : '')+'<span class="s">'+sub+'</span></div>';
   h += '<h3 class="sec">Esta semana <small class="ev2-dt">'+fmtDm(ini)+' a '+fmtDm(fim)+'</small></h3><div class="ev2-ks">'+
     kp('dumbbell','Treinos', sw.H.length, meta, '', 'k-tr'+(meta && sw.H.length>=meta ? ' ok' : ''), meta ? (sw.H.length>=meta ? 'Meta batida' : 'Faltam '+(meta-sw.H.length)) : 'Sem meta definida')+
-    kp('pulse','Cardio', sw.cardio, cg, ' min', 'k-ca'+(cg && sw.cardio>=cg ? ' ok' : ''), cg ? (sw.cardio>=cg ? 'Meta batida' : 'Faltam '+(cg-sw.cardio)+' min') : 'Sem meta definida')+
+    kp('pulse','Cardio', sw.cardio, cg, ' min', 'k-ca'+(cg && sw.cardio>=cg ? ' ok' : ''), (cg ? (sw.cardio>=cg ? 'Meta batida' : 'Faltam '+(cg-sw.cardio)+' min') : 'Sem meta definida')+'<span class="ev2-ver">Ver cada cardio'+ic('chev')+'</span>').replace('<div class="ev2-k k-ca', '<div role="button" tabindex="0" data-a="evCardio" aria-label="Ver cada cardio da semana" class="ev2-k ev2-tap k-ca')+
     kp('drop','Dias na meta de água', aguaDias, wg ? diasSemana : 0, '', 'k-ag'+(wg && aguaDias>=diasSemana ? ' ok' : ''), wg ? 'Meta: '+fmtN(wg/1000,1)+' L por dia' : 'Sem meta definida')+
     kp('scale','Volume levantado', fmtN(sw.H.reduce((t,x) => t+(+x.vol||0),0)/1000,1), 0, ' t', 'k-vo', plural(sw.H.reduce((t,x) => t+(+x.sets||0),0),'série')+' feitas')+'</div>';
 
+  EVC = { nome:curto(a), ini, fim, cg, L:Cd.filter(c => c.d>=addDays(ini,-21) && c.d<=fim) };
   // 3. os 7 dias da semana
   h += '<section class="card"><div class="ev2-days">'+Array.from({length:7},(_,i) => { const k = addDays(ini,i), tr = H.filter(x => x.d===k), ca = Cd.filter(x => x.d===k).reduce((t,c) => t+(+c.min||0),0), w = +Wt[k]||0, ck = K[k], fut = k>t0;
     const dor = ck && (+ck.dor||0)>=2;
     return '<div class="ev2-d'+(k===t0?' hoje':'')+(fut?' fut':'')+'"><span class="n">'+dSem(k)+'</span><span class="dd">'+fmtDm(k).slice(0,2)+'</span>'+
       '<span class="b tr'+(tr.length?' on':'')+'" title="Treino">'+(tr.length ? esc(tr.map(x => x.t).join('')) : '–')+'</span>'+
-      '<span class="b ca'+(ca?' on':'')+'" title="Cardio">'+(ca ? ca+'′' : '–')+'</span>'+
+      (ca ? '<span class="b ca on ev2-tap" role="button" tabindex="0" data-a="evCardio" data-v="'+k+'" title="Ver o cardio do dia">'+ca+'′</span>' : '<span class="b ca" title="Cardio">–</span>')+
       '<span class="b ag'+(wg && w>=wg ? ' on' : w ? ' meio' : '')+'" title="Água">'+(w ? fmtN(w/1000,1) : '–')+'</span>'+
       (ck ? '<span class="ck'+(dor?' bad':'')+'" title="Check-in: sono '+ck.sono+'h, energia '+ck.energia+', dor '+ck.dor+'">'+(dor ? 'dor' : '✓')+'</span>' : '<span class="ck none">·</span>')+'</div>'; }).join('')+'</div>'+
     '<p class="ev2-leg"><i class="tr"></i>Treino (letra)<i class="ca"></i>Cardio (min)<i class="ag"></i>Água (L)<span>✓ check-in</span></p></section>';
@@ -2993,7 +3020,8 @@ function tEvol(a){
   // 5. evolução de carga por exercício
   const seq = {}; H.forEach(x => (x.ex||[]).forEach(e => { const top = Math.max(0, ...(e.s||[]).map(z => +z[0]||0)); if(!top) return; const k = e.n||e.id; (seq[k] = seq[k] || []).push({d:x.d, kg:top, reps:((e.s||[]).find(z => +z[0]===top)||[])[1]}); }));
   const ex = Object.keys(seq).map(n => { const s = seq[n], f = s[0], l = s[s.length-1], best = Math.max(...s.slice(0,-1).map(z => z.kg), 0); return { n, s, f, l, dif:l.kg-f.kg, rec:s.length>1 && l.kg>best }; }).sort((x,y) => y.l.d.localeCompare(x.l.d) || y.dif-x.dif);
-  if(ex.length) h += '<h3 class="sec">Evolução de carga</h3><section class="card ev2-tb"><div class="ev2-tr ev2-th"><span>Exercício</span><span>Início</span><span>Agora</span><span>Mudança</span><span class="hide-s">Tendência</span></div>'+
+  if(ex.length && PREF.evCargaMin) h += '<h3 class="sec sec-tg">Evolução de carga<button type="button" class="btn small ghost" data-a="evCargaTg" aria-expanded="false">'+ic('down')+'Abrir ('+plural(ex.length,'exercício','exercícios')+')</button></h3>';
+  else if(ex.length) h += '<h3 class="sec sec-tg">Evolução de carga<button type="button" class="btn small ghost" data-a="evCargaTg" aria-expanded="true">'+ic('up')+'Minimizar</button></h3><section class="card ev2-tb"><div class="ev2-tr ev2-th"><span>Exercício</span><span>Início</span><span>Agora</span><span>Mudança</span><span class="hide-s">Tendência</span></div>'+
     ex.map(e => { const pc = e.f.kg ? Math.round(e.dif/e.f.kg*100) : 0;
       return '<div class="ev2-tr"><span><b>'+esc(e.n)+'</b>'+(e.rec ? '<i class="ev2-rec">recorde</i>' : '')+'<small>'+plural(e.s.length,'treino')+' · último '+fmtDm(e.l.d)+'</small></span><span>'+fmtN(e.f.kg)+' kg</span><span><b>'+fmtN(e.l.kg)+' kg</b>'+(e.l.reps ? '<small>× '+e.l.reps+'</small>' : '')+'</span><span class="'+(e.dif>0?'up':e.dif<0?'dn':'eq')+'">'+(e.s.length<2 ? '<small>1º registro</small>' : (e.dif>0?'▲ +':e.dif<0?'▼ ':'= ')+fmtN(Math.abs(e.dif))+' kg'+(e.dif ? '<small>'+(pc>0?'+':'')+pc+'%</small>' : ''))+'</span><span class="hide-s">'+ev2Spark(e.s.slice(-8).map(z => z.kg))+'</span></div>'; }).join('')+
     '<p class="foot">Maior carga de cada treino. “Início” é o primeiro registro no app.</p></section>';
@@ -3208,7 +3236,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '12 nov · 109'; // Versão do painel: 12 nov · 109
+const PAINELV = '12 nov · 110'; // Versão do painel: 12 nov · 110
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -3726,6 +3754,7 @@ function vSheet(){
   }
   if(s.k==='pf') return pfSheet(s.id);
   if(s.k==='termos') return sheetTop('Simplificando','Termos e privacidade')+'<div class="docs">'+DOC_HTML+'</div>';
+  if(s.k==='evCardio') return vEvCardio(s);
   if(s.k==='preview'){
     const a = C.alunos[ui.aluno]; if(!a) return '';
     const A = Object.assign({_id:ui.aluno}, a), th = treinoHoje(A), m = a.metas || {}, c = m.cardio || {}, pi = payInfo(A);
@@ -4469,6 +4498,9 @@ function act(a,d,btn){
     case 'rkSort': ui.rkSort = !ui.rkSort; if(ui.sheet && ui.sheet.k==='pick'){ renderSheet(); return false; } break;
     case 'pfRefresh': loadPerfis(true); toast('Atualizando a lista'); break;
     case 'pfOpen': if(d.k==='com'){ ui.view = 'alunos'; ui.aluno = d.id; ui.tab = 'acesso'; window.scrollTo(0,0); break; } { const pp = (PF.list||[]).find(x => x.uid===d.id); if(pp && pp.acomp){ PF.open = d.id; window.scrollTo(0,0); break; } } openSheet({k:'pf', id:d.id}); return false;
+    case 'evCardio': openSheet({k:'evCardio', ini:EVC ? EVC.ini : null, dia:d.v||''}); return false;
+    case 'evCardioSem': if(ui.sheet && ui.sheet.k==='evCardio'){ ui.sheet.ini = d.v; ui.sheet.dia = ''; renderSheet(); } return false;
+    case 'evCargaTg': PREF.evCargaMin = !PREF.evCargaMin; savePref(); break;
     case 'ajMin': { const L = (PREF.ajMin||[]).slice(), i = L.indexOf(d.k); if(i<0) L.push(d.k); else L.splice(i,1); PREF.ajMin = L; savePref(); break; }
     case 'ajAll': { if(d.v==='abrir') PREF.ajMin = []; else PREF.ajMin = Array.from(document.querySelectorAll('.aj-h')).map(b => b.dataset.k); savePref(); break; }
     case 'pfBack': PF.open = null; ui.pfTab = null; window.scrollTo(0,0); break;
@@ -4747,7 +4779,14 @@ document.addEventListener('pointermove', e => { if(pkDrag) pkMove(e); });
 window.addEventListener('resize', pkAll);
 (function(){ // com o teclado aberto, a folha encolhe para caber na parte visível da tela
   const vv = window.visualViewport; if(!vv) return;
-  const set = () => { const r = document.documentElement.style; r.setProperty('--vvh', vv.height + 'px'); r.setProperty('--vvt', vv.offsetTop + 'px'); pkAll(); };
+  let maxH = 0;
+  const set = () => { const r = document.documentElement.style; r.setProperty('--vvh', vv.height + 'px'); r.setProperty('--vvt', vv.offsetTop + 'px'); pkAll();
+    // barra de abas: fica no pé da parte visível da tela (no iPhone ela às vezes ficava parada no meio depois de rolar ou fechar o teclado)
+    maxH = Math.max(maxH, vv.height); const ed = document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+    document.documentElement.classList.toggle('kb', !!ed && vv.height < maxH - 120);
+    const tb = document.getElementById('tabs'); if(tb) r.setProperty('--tbh', tb.offsetHeight + 'px'); };
+  window.addEventListener('orientationchange', () => { maxH = 0; setTimeout(set, 300); });
+  document.addEventListener('focusout', () => setTimeout(set, 250));
   vv.addEventListener('resize', set); vv.addEventListener('scroll', set); set();
 })();
 new MutationObserver(() => requestAnimationFrame(pkAll)).observe(document.body, { childList:true, subtree:true });
