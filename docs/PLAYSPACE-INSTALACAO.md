@@ -555,7 +555,14 @@ O cupom da loja é o papel da impressora térmica do balcão, que o responsável
 
 **O pacote e o comprovante de pagamento (1.10).** O pacote comprado sai na tabela com o **nome dele** e o valor; embaixo, as horas que ele dá ("2h de recreação"). Quem compra e **entra na hora** tem as horas do cliente no bloco da criança ("Entrada 16:05 · horas do cliente: 2h"). Quem compra **para usar depois** (ou leva só um produto) recebe só o **COMPROVANTE DE PAGAMENTO**, no jeito do comprovante do sistema anterior, mais enxuto: o título, a tabela, as horas guardadas embaixo do pacote ("Para EVA · horas guardadas: 2h"), o total pago com a forma, o número da venda e quem atendeu. Sem o bloco da criança, sem o número do cadastro e **sem a linha da assinatura** (não há o que assinar). Sai em duas vias; a do cliente, como sempre, sem CPF e sem telefone.
 
-**O comprovante da festa (1.12).** A venda da festa (seção 6w) sai como **COMPROVANTE DE PAGAMENTO**, nas duas vias: a tabela com **FESTA 20 CRIANÇAS** e, embaixo, o dia ("Fim de semana, férias, emenda ou feriado"), a data com o dia da semana e o horário ("Sábado, 21/11/2026 · das 10h30 às 13h30"), a duração ("3 horas · o espaço não fecha") e a cortesia dos adultos; a linha **Convidado adicional** com a quantidade e o valor de cada um; o total com a forma de pagamento; o número da venda e quem atendeu. **A via da loja tem a linha da assinatura** (o responsável assina que ficou ciente das condições); a do cliente não leva CPF nem telefone. O comprovante não traz o bloco da criança, mesmo que ela esteja no espaço. No papel de 80 mm, uma festa com convidados gasta cerca de 100 mm na via da loja e 78 mm na do cliente.
+**O comprovante da festa (1.12 e 1.13).** As vendas da Festa (seção 6w) saem como **COMPROVANTE DE PAGAMENTO**, nas duas vias:
+
+- a **festa nova**: a linha **FESTA 20 CRIANÇAS** e, embaixo, o tipo ("Festa de final de semana"), a data com o dia da semana e o horário ("Sábado, 21/11/2026 · das 10h30 às 13h30"), a duração ("3 horas · o espaço não fecha") e a cortesia dos adultos;
+- o **upgrade** (1.13): a linha **UPGRADE DE FESTA** com o valor da diferença e, embaixo, "De 10 para 15 crianças", o tipo da festa e a data;
+- o **adicional** (1.13): a linha **ADICIONAL DE FESTA** com a quantidade de crianças e, embaixo, "R$ 190,00 por criança";
+- o total com a forma de pagamento, o número da venda e quem atendeu.
+
+**A via da loja tem a linha da assinatura** (o responsável assina que ficou ciente das condições); a do cliente não leva CPF nem telefone. O comprovante não traz o bloco da criança, mesmo que ela esteja no espaço. No papel de 80 mm, uma festa com adicional gasta cerca de 100 mm na via da loja e 78 mm na do cliente; um upgrade, 84 mm e 62 mm; só o adicional, 80 mm e 58 mm.
 
 **Na tela e no papel**: na tela, o cupom aparece com cara de cupom (papel amarelinho, a logo colorida, a ponta serrilhada), com as duas vias lado a lado. No papel ele sai **preto no branco**, com a logo em preto: a impressora térmica só imprime preto.
 
@@ -658,20 +665,39 @@ A Play Space tem mais de uma unidade. O sistema já vem com **ANÁLIA FRANCO** e
 - **No servidor:** o banco passa para a versão 25 (tabela `unidades`, e a coluna `unidade_id` em `criancas`, `visitas`, `vendas` e `registros`). O que já existia fica sem unidade (aparece com um traço).
 - **O que ainda não é separado por unidade:** todos os aparelhos veem a mesma lista, com a coluna dizendo de qual unidade é cada linha. As sapateiras, a agenda, o estoque dos produtos e o resumo do dia ainda são um só para todas as unidades. Isso entra quando a segunda unidade for começar a usar o mesmo sistema.
 
-## 6w. Festa (1.12)
+## 6w. Festa (1.12 e 1.13)
 
-No alto da tela inicial, o botão vermelho é **Festa**. A festa é vendida **só por ele**: não aparece no cadastro, nem no atendimento, nem na tabela de pacotes. O caminho é curto:
+No alto da tela inicial, o botão vermelho é **Festa**. Tudo da festa é vendido **só por ele**: não aparece no cadastro, nem no atendimento, nem na tabela de pacotes. São três coisas, na mesma folha:
+
+- a **festa nova**, que é **festa de semana** ou **festa de final de semana** (a de final de semana vale também para férias, emenda e feriado);
+- o **upgrade de festa** (1.13): o cliente já fechou uma festa e quer uma maior. Cobra só a diferença de uma para a outra;
+- o **adicional de festa** (1.13): as crianças a mais do que o pacote. R$ 190 por criança.
+
+**O caminho:**
 
 1. **Festa** → a tela pergunta **de qual cliente é**: os três primeiros números do CPF do responsável (ou o nome dele, ou o da criança) já mostram os clientes, com as crianças de cada um. Um toque na criança escolhe. Para quem tem a data de nascimento no cadastro, a linha mostra o aniversário ("aniversário em 09/03"). **Cliente novo: cadastrar** abre o cadastro com o CPF escrito e, ao salvar, a Festa abre para ele.
-2. A folha **Festa** traz a tabela **"Nossos valores"** em botões: uma linha para cada quantidade de crianças (10, 15, 20, 25 e 30) e duas colunas, **Dias de semana** e **Fim de semana, férias, emenda e feriado**. **Um toque no valor escolhe as duas coisas** (outro toque no mesmo valor tira a escolha).
-3. **Convidado adicional** (R$ 190 cada): o **+** e o **−** ao lado. Dá para vender só os convidados adicionais, sem tocar em nenhum valor da tabela (o acerto depois da festa).
-4. **Data da festa** (opcional): só os números, as barras entram sozinhas, e o dia da semana aparece ao lado ("sábado"). Se a data cai num sábado ou num domingo, o valor de dia de semana fica travado e a escolha passa para o de fim de semana, com a mesma quantidade de crianças. Data que não existe ou que já passou não deixa seguir. Num dia de semana que é feriado, férias ou emenda, a equipe toca no valor da segunda coluna.
+2. A folha **Festa** abre com a escolha **Festa nova | Upgrade de festa** e, embaixo, a tabela **"Nossos valores"** em botões: uma linha para cada quantidade de crianças (10, 15, 20, 25 e 30) e duas colunas, **Festa de semana** e **Festa de final de semana**.
+3. Embaixo da tabela, a linha **Adicional de festa**, com o **+** e o **−**.
+4. **Data da festa** (opcional): só os números, as barras entram sozinhas, e o dia da semana aparece ao lado ("sábado"). Se a data cai num sábado ou num domingo, a festa de semana fica travada e a escolha passa para a de final de semana, com a mesma quantidade de crianças. Data que não existe ou que já passou não deixa seguir. Num dia de semana que é feriado, férias ou emenda, a equipe toca na coluna da festa de final de semana.
 5. **Pagamento · R$ …** → a tela de pagamento de sempre (Pix, dinheiro, crédito e débito, em até três formas; o desconto é só do Gestor). **A festa é paga na hora**: não existe "paga na saída", mesmo que a criança esteja no espaço. Embaixo das formas a tela faz a conta das parcelas: "No crédito, em até 4x sem juros: 4x de R$ 1.079,75" (do valor que vai no crédito). A parcela é passada na maquininha; o sistema registra "crédito".
 6. **Comprovante da festa**: abre com as duas vias, como os outros cupons (seção 6s).
 
+**Festa nova.** Um toque no valor escolhe as duas coisas de uma vez: a quantidade de crianças e o tipo da festa. Outro toque no mesmo valor tira a escolha.
+
+**Upgrade de festa (1.13).** É para quando o pai fechou a festa para 10 crianças e, perto do dia, quer para 15: paga só a diferença.
+
+- Em **Upgrade de festa**, o primeiro toque é na **festa que o cliente já tem** (ela fica verde, com "já tem"). Daí em diante as festas maiores **do mesmo tipo** mostram só a diferença ("+ R$ 450", "+ R$ 900"…) e o resto fica apagado. O segundo toque escolhe a festa nova ("passa para"). A linha de baixo confirma: "Upgrade de 10 para 15 crianças, festa de semana: cobra só a diferença, R$ 450".
+- **Se a festa do cliente foi vendida pelo sistema, ela já vem marcada** como a que ele tem (vale a festa vendida no nome de um irmão, e vale o último upgrade), com a data dela. Fica um toque só: o da festa nova. A folha avisa no alto: "No sistema, este cliente já tem a festa de semana para 10 crianças, em 21/11/2026".
+- Quem fechou a festa **fora do sistema** (antes dele, ou no contrato de papel) não tem a festa marcada: a folha diz "O sistema não tem a festa deste cliente: confira no contrato a festa que ele já fechou", e a equipe toca nela.
+- Para trocar a festa marcada como "já tem", um toque nela desmarca.
+- O upgrade é sempre para uma festa maior, do mesmo tipo. Quem já tem a de 30 crianças usa o adicional de festa.
+- **O que fica para o dono conferir:** a venda diz de quanto para quanto ("UPGRADE DE FESTA · de 10 para 15 crianças · festa de semana"). Quando a festa de origem não está no sistema, a venda leva "sem festa anterior no sistema"; quando o sistema tem outra festa para o cliente, leva "no sistema: festa de semana de 25 crianças". Essas anotações aparecem no histórico e em Hoje na recepção, não no comprovante do cliente.
+
+**Adicional de festa (1.13).** É para quando o pacote foi de 10 crianças e vieram 13: as 3 a mais entram a R$ 190 cada. O **+** põe uma criança, o **−** tira. Pode ser vendido **sozinho** (no dia da festa), **junto com a festa nova** (o pai já fecha 10 crianças e mais 2) ou **junto com o upgrade**.
+
 **Os valores** (os da tabela da loja, para as unidades Morumbi e Anália Franco):
 
-| Crianças | Dias de semana | Fim de semana, férias, emenda e feriado |
+| Crianças | Festa de semana | Festa de final de semana (e férias, emenda, feriado) |
 |---|---|---|
 | 10 | R$ 2.549 | R$ 2.849 |
 | 15 | R$ 2.999 | R$ 3.299 |
@@ -679,15 +705,15 @@ No alto da tela inicial, o botão vermelho é **Festa**. A festa é vendida **s�
 | 25 | R$ 3.899 | R$ 4.199 |
 | 30 | R$ 4.349 | R$ 4.649 |
 
-Convidado adicional: R$ 190.
+Adicional de festa: R$ 190 por criança. Pela tabela de hoje, cada 5 crianças a mais num upgrade são R$ 450.
 
-**O que a festa inclui** fica na própria folha, numa linha que abre, para a equipe dizer ao cliente: a duração (3 horas; o espaço não fecha para a festa), os horários (em dia de semana, durante todo o dia, dentro do horário da loja; em fim de semana, feriado, emenda e férias, das 10h30 às 13h30), os adultos (pai e mãe como cortesia, mais 4 adultos na hora do parabéns), as atividades, a alimentação, a papelaria, a lembrancinha (cupcake ou slime, para crianças de até 11 anos) e o pagamento (em até 4x sem juros no crédito; orçamento válido por 5 dias).
+**O que a festa inclui** fica na própria folha, numa linha que abre, para a equipe dizer ao cliente: a duração (3 horas; o espaço não fecha para a festa), os horários (festa de semana: durante todo o dia, dentro do horário da loja; festa de final de semana, feriado, emenda e férias: das 10h30 às 13h30), os adultos (pai e mãe como cortesia, mais 4 adultos na hora do parabéns), as atividades, a alimentação, a papelaria, a lembrancinha (cupcake ou slime, para crianças de até 11 anos), o upgrade, o adicional e o pagamento (em até 4x sem juros no crédito; orçamento válido por 5 dias).
 
-**O que fica registrado:** a festa vira uma venda ("FESTA 20 CRIANÇAS · fim de semana, férias, emenda ou feriado · festa em 21/11/2026") e, se houver, outra dos convidados ("FESTA: CONVIDADO ADICIONAL · 3 convidados"), com o pagamento. Aparecem no histórico do cliente e em Hoje na recepção, e entram no caixa pela forma recebida. **A festa não mexe nas horas do cliente, não dá entrada e não muda a visita de quem está no espaço.** O botão **Desfazer** tira a venda e o pagamento. O atendimento comum que estava guardado em "Falta finalizar" para o mesmo cliente continua lá.
+**O que fica registrado:** cada coisa vira uma venda, com o pagamento: "FESTA DE FINAL DE SEMANA · 20 crianças · festa em 21/11/2026", "UPGRADE DE FESTA · de 10 para 15 crianças · festa de semana" e "ADICIONAL DE FESTA · 3 crianças". Aparecem no histórico do cliente e em Hoje na recepção, e entram no caixa pela forma recebida. **Nada disso mexe nas horas do cliente, dá entrada ou muda a visita de quem está no espaço.** O botão **Desfazer** tira a venda e o pagamento. O atendimento comum que estava guardado em "Falta finalizar" para o mesmo cliente continua lá.
 
-**Trocar o cliente**, no alto da folha, volta para a escolha do cliente e mantém o que já estava escolhido (o valor, os convidados e a data). Fechar a folha sem vender não guarda nada: a festa não vai para "Falta finalizar".
+**Trocar o cliente**, no alto da folha, volta para a escolha do cliente e mantém o que já estava escolhido. Passar de "Festa nova" para "Upgrade de festa" (e voltar) guarda o que foi marcado em cada um, mas só entra na venda o que está na posição escolhida. Fechar a folha sem vender não guarda nada: a festa não vai para "Falta finalizar".
 
-**No servidor:** a tabela é a de fábrica (está no programa, em `lib.php`; vai para a tela junto com a regra e não fica gravada no banco). O valor cobrado sai dessa tabela, não do que a tela mandar: se a tela mostrar outro valor, a venda não é feita ("O valor da festa para 20 crianças mudou para R$ 3.749. Feche e abra a Festa de novo."). O servidor também recusa a data passada, o sábado ou domingo com valor de dia de semana, a quantidade fora da tabela, mais de 60 convidados adicionais, a festa "para pagar depois" e a festa sem forma de pagamento. Para mudar os valores da festa, peça ao suporte (ainda não há tela para isso).
+**No servidor:** a tabela é a de fábrica (está no programa, em `lib.php`; vai para a tela junto com a regra e não fica gravada no banco). O valor cobrado sai dessa tabela, não do que a tela mandar: se a tela mostrar outro valor, a venda não é feita ("O valor da festa para 20 crianças mudou para R$ 3.749. Feche e abra a Festa de novo."), e o mesmo vale para o upgrade e para o adicional. O servidor também recusa a data passada, o sábado ou domingo com a festa de semana, a quantidade fora da tabela, o upgrade para uma festa igual ou menor, a festa nova e o upgrade na mesma venda, mais de 60 crianças de adicional, a festa "para pagar depois" e a festa sem forma de pagamento. Para mudar os valores da festa, peça ao suporte (ainda não há tela para isso).
 
 ## 7. Atualizar
 

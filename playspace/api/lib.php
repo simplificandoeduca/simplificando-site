@@ -996,36 +996,68 @@ function venderVisitaAvulsa(array $c, ?array $u): ?array {
 }
 
 /* ---------- 1.12: a festa ---------- */
-// A tabela "Nossos valores" da loja: o valor pela quantidade de crianças, em dia de semana ou em fim de semana, férias, emenda e
-// feriado, e o convidado adicional. A festa é vendida só pelo botão Festa; o valor é o desta tabela, não o que a tela mandar.
+// A tabela "Nossos valores" da loja: o valor pela quantidade de crianças, na festa de semana ou na de final de semana (que vale também
+// para férias, emenda e feriado), e o adicional por criança. A festa é vendida só pelo botão Festa; o valor é o desta tabela, não o
+// que a tela mandar. 1.13: além da festa nova, o UPGRADE (o cliente já fechou uma festa e passa para uma maior: cobra só a diferença)
+// e o ADICIONAL DE FESTA (as crianças a mais do que o pacote, cada uma pelo valor do adicional).
 const FESTA_DE_FABRICA = ['n' => [10, 15, 20, 25, 30], 'semana' => [2549, 2999, 3449, 3899, 4349], 'fds' => [2849, 3299, 3749, 4199, 4649], 'extra' => 190, 'extraMax' => 60, 'horas' => 3, 'parcelas' => 4];
-const FESTA_DIAS = ['semana' => 'dia de semana', 'fds' => 'fim de semana, férias, emenda ou feriado'];
+const FESTA_SERVICO = ['semana' => 'FESTA DE SEMANA', 'fds' => 'FESTA DE FINAL DE SEMANA'];
+const FESTA_TIPOS = ['semana' => 'festa de semana', 'fds' => 'festa de final de semana'];
+// a festa que o sistema conhece do cliente (as crianças com o mesmo CPF): a venda de festa ou de upgrade mais recente. ['dia', 'n'] ou null.
+// Serve para anotar, na venda do upgrade, quando a festa de origem não está no sistema ou quando a do sistema é outra
+function festaDoCliente(array $c): ?array {
+  $db = db(); $ids = [(int)$c['id']]; $doc = (string)preg_replace('/\D/', '', (string)($c['cpf'] ?? ''));
+  if (($c['doc_tipo'] ?? 'cpf') !== 'rne' && strlen($doc) === 11) { $q = $db->prepare("SELECT id FROM criancas WHERE REPLACE(REPLACE(REPLACE(cpf, '.', ''), '-', ''), ' ', '') = ?"); $q->execute([$doc]); foreach ($q->fetchAll() as $l) $ids[] = (int)$l['id']; $ids = array_values(array_unique($ids)); }
+  $m = implode(',', array_fill(0, count($ids), '?'));
+  $q = $db->prepare("SELECT servico, itens FROM vendas WHERE crianca_id IN ($m) AND (servico LIKE 'FESTA %' OR servico = 'UPGRADE DE FESTA') ORDER BY id DESC LIMIT 1"); $q->execute($ids); $v = $q->fetch(); if (!$v) return null;
+  $s = (string)$v['servico']; $i = (string)$v['itens'];
+  if ($s === 'UPGRADE DE FESTA') return preg_match('/^de \d+ para (\d+) crianças · festa de (semana|final de semana)/u', $i, $x) ? ['dia' => $x[2] === 'semana' ? 'semana' : 'fds', 'n' => (int)$x[1]] : null;
+  if ($s === FESTA_SERVICO['semana'] || $s === FESTA_SERVICO['fds']) return preg_match('/^(\d+) crianças/u', $i, $x) ? ['dia' => $s === FESTA_SERVICO['semana'] ? 'semana' : 'fds', 'n' => (int)$x[1]] : null;
+  return preg_match('/^FESTA (\d+) CRIANÇAS$/u', $s, $x) ? ['dia' => strpos($i, 'dia de semana') === 0 ? 'semana' : 'fds', 'n' => (int)$x[1]] : null;   // como a 1.12 gravava
+}
 // as linhas da venda de uma festa, como as do atendimento: [['servico', 'min', 'valor', 'itens']]. $fe é o que a tela mandou:
-// dia ('semana' ou 'fds'), n (crianças), extra (convidados adicionais), data ('AAAA-MM-DD', opcional), v e ve (os valores que a tela mostrou)
-function linhasDaFesta($fe): array {
+//   festa nova: dia ('semana' ou 'fds'), n (crianças) e v (o valor que a tela mostrou);
+//   upgrade:    up = [dia, de, para, v];
+//   adicional:  extra (crianças a mais) e ve (o valor de cada uma que a tela mostrou);
+//   data ('AAAA-MM-DD', opcional): o dia da festa.
+function linhasDaFesta($fe, array $c): array {
   if (!is_array($fe)) return [];
-  $t = regra()['festa']; $dia = (string)($fe['dia'] ?? ''); $n = (int)($fe['n'] ?? 0); $extra = (int)($fe['extra'] ?? 0); $data = trim((string)($fe['data'] ?? ''));
-  if ($extra < 0 || $extra > (int)$t['extraMax']) falha('Quantos convidados adicionais? De 0 a ' . (int)$t['extraMax'] . '.');
-  if ($n <= 0 && $extra <= 0) falha('Escolha a festa: toque no valor, ou ponha os convidados adicionais.');
-  $quando = '';
+  $t = regra()['festa']; $dia = (string)($fe['dia'] ?? ''); $n = (int)($fe['n'] ?? 0); $extra = (int)($fe['extra'] ?? 0); $data = trim((string)($fe['data'] ?? '')); $up = is_array($fe['up'] ?? null) ? $fe['up'] : null;
+  if ($extra < 0 || $extra > (int)$t['extraMax']) falha('Quantas crianças no adicional de festa? De 0 a ' . (int)$t['extraMax'] . '.');
+  if ($n > 0 && $up) falha('Escolha a festa nova ou o upgrade de festa: os dois juntos, não.');
+  if ($n <= 0 && !$up && $extra <= 0) falha('Escolha a festa: toque no valor, faça o upgrade ou ponha o adicional de festa.');
+  $quando = ''; $fimDeSemana = false;
   if ($data !== '') {
     if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $data, $m) || !checkdate((int)$m[2], (int)$m[3], (int)$m[1]) || $data < date('Y-m-d')) falha('Confira a data da festa.');
-    $br = $m[3] . '/' . $m[2] . '/' . $m[1];
-    if ($n > 0 && $dia === 'semana' && (int)date('N', strtotime($data)) >= 6) falha('O dia ' . $br . ' cai num fim de semana: vale o valor de fim de semana.');
-    $quando = ' · festa em ' . $br;
+    $br = $m[3] . '/' . $m[2] . '/' . $m[1]; $fimDeSemana = (int)date('N', strtotime($data)) >= 6; $quando = ' · festa em ' . $br;
   }
+  $noSabado = fn(string $d) => $fimDeSemana && $d === 'semana' ? falha('O dia ' . $br . ' cai num fim de semana: vale a festa de final de semana.') : null;
   $L = [];
-  if ($n > 0) {
-    if (!isset(FESTA_DIAS[$dia])) falha('A festa é em dia de semana ou em fim de semana?');
+  if ($n > 0) { // a festa nova
+    if (!isset(FESTA_SERVICO[$dia])) falha('A festa é de semana ou de final de semana?');
+    $noSabado($dia);
     $i = array_search($n, $t['n'], true); if ($i === false) falha('A festa para ' . $n . ' crianças não está na tabela.');
     $v = (float)$t[$dia][$i];
     if (isset($fe['v']) && abs((float)$fe['v'] - $v) >= 0.005) falha('O valor da festa para ' . $n . ' crianças mudou para ' . dinheiro($v) . '. Feche e abra a Festa de novo.');
-    $L[] = ['servico' => 'FESTA ' . $n . ' CRIANÇAS', 'min' => 0, 'valor' => $v, 'itens' => FESTA_DIAS[$dia] . $quando];
+    $L[] = ['servico' => FESTA_SERVICO[$dia], 'min' => 0, 'valor' => $v, 'itens' => $n . ' crianças' . $quando];
   }
-  if ($extra > 0) {
+  if ($up) { // o upgrade: de uma festa para outra maior, do mesmo tipo. Cobra só a diferença entre as duas, pela tabela
+    $ud = (string)($up['dia'] ?? ''); $de = (int)($up['de'] ?? 0); $para = (int)($up['para'] ?? 0);
+    if (!isset(FESTA_SERVICO[$ud])) falha('O upgrade é de uma festa de semana ou de final de semana?');
+    $noSabado($ud);
+    $i = array_search($de, $t['n'], true); $j = array_search($para, $t['n'], true);
+    if ($i === false || $j === false) falha('O upgrade é entre duas festas da tabela.');
+    if ($j <= $i) falha('O upgrade é para uma festa maior: de ' . $de . ' para ' . $para . ' crianças não dá.');
+    $v = round((float)$t[$ud][$j] - (float)$t[$ud][$i], 2); if ($v <= 0) falha('Não há diferença a cobrar de ' . $de . ' para ' . $para . ' crianças.');
+    if (isset($up['v']) && abs((float)$up['v'] - $v) >= 0.005) falha('O valor do upgrade de ' . $de . ' para ' . $para . ' crianças mudou para ' . dinheiro($v) . '. Feche e abra a Festa de novo.');
+    $tem = festaDoCliente($c);   // o que o sistema sabe da festa deste cliente: fica anotado quando não bate com o que a tela disse
+    $nota = !$tem ? ' · sem festa anterior no sistema' : ($tem['n'] !== $de || $tem['dia'] !== $ud ? ' · no sistema: ' . FESTA_TIPOS[$tem['dia']] . ' de ' . $tem['n'] . ' crianças' : '');
+    $L[] = ['servico' => 'UPGRADE DE FESTA', 'min' => 0, 'valor' => $v, 'itens' => 'de ' . $de . ' para ' . $para . ' crianças · ' . FESTA_TIPOS[$ud] . $quando . $nota];
+  }
+  if ($extra > 0) { // o adicional de festa: as crianças a mais do que o pacote
     $ve = (float)$t['extra'];
-    if (isset($fe['ve']) && abs((float)$fe['ve'] - $ve) >= 0.005) falha('O valor do convidado adicional mudou para ' . dinheiro($ve) . '. Feche e abra a Festa de novo.');
-    $L[] = ['servico' => 'FESTA: CONVIDADO ADICIONAL', 'min' => 0, 'valor' => round($extra * $ve, 2), 'itens' => $extra . ($extra === 1 ? ' convidado' : ' convidados') . ($n > 0 ? '' : $quando)];
+    if (isset($fe['ve']) && abs((float)$fe['ve'] - $ve) >= 0.005) falha('O valor do adicional de festa mudou para ' . dinheiro($ve) . ' por criança. Feche e abra a Festa de novo.');
+    $L[] = ['servico' => 'ADICIONAL DE FESTA', 'min' => 0, 'valor' => round($extra * $ve, 2), 'itens' => $extra . ($extra === 1 ? ' criança' : ' crianças') . ($L ? '' : $quando)];
   }
   return $L;
 }

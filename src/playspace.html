@@ -739,15 +739,18 @@ body.quieto .dica { animation: none !important; }
 .pg-modo button[aria-checked="true"][data-m="depois"] { border-color: var(--erro); background: var(--erro-bg); color: var(--erro); }
 /* 1.12: a festa: a tabela de valores em botões, os convidados adicionais e o que a festa inclui */
 .fe-tab { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr); gap: 8px; align-items: center; }
-.fe-tab .fe-ch { align-self: end; text-align: center; font-size: 11.5px; font-weight: 800; line-height: 1.2; color: var(--tinta-2); padding: 0 2px 2px; }
+.fe-tab .fe-ch { align-self: end; text-align: center; font-family: var(--display); font-size: 13px; font-weight: 800; line-height: 1.2; color: var(--tinta); padding: 0 2px 2px; }
 .fe-tab .fe-n { font-family: var(--display); font-weight: 800; font-size: 14px; white-space: nowrap; padding-right: 4px; } .fe-tab .fe-n .num { font-size: 20px; }
 .fe-tab .fe-v { min-height: 50px; padding: 8px 6px; align-items: center; justify-content: center; text-align: center; } .fe-tab .fe-v b { font-size: 18px; white-space: nowrap; }
 .fe-tab .fe-v[disabled] { opacity: .38; pointer-events: none; }
+.fe-tab .fe-ch small { display: block; font-family: var(--texto); font-size: 10.5px; font-weight: 700; color: var(--tinta-2); }
+.fe-tab .fe-v small { font-size: 10px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; line-height: 1; color: var(--tinta-2); }   /* 1.13, no upgrade: "já tem" e "passa para" */
+.fe-tab .fe-v.fe-tem { border-color: var(--tinta); background: var(--menta); } .fe-tab .fe-v.fe-nova small { color: var(--coral); }
 .serv .qtd button[data-act="festa-mais"] { background: var(--coral); color: #fff; } #fe-extra .qtd b { min-width: 40px; }
 .fe-inc { margin: 10px 0 0; display: flex; flex-direction: column; gap: 7px; font-size: 13px; line-height: 1.35; } .fe-inc div { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 10px; } .fe-inc dt { font-weight: 800; color: var(--tinta-2); } .fe-inc dd { margin: 0; }
 @media (max-width: 480px) { .fe-tab { gap: 6px; } .fe-tab .fe-n { font-size: 12.5px; } .fe-tab .fe-n .num { font-size: 17px; } .fe-tab .fe-v b { font-size: 16px; } .fe-inc div { grid-template-columns: 84px minmax(0, 1fr); } }
-#s-av button { line-height: 1.15; } #s-av button[aria-checked="true"] { border-color: var(--coral); background: var(--coral-2); color: var(--tinta); }   /* 1.11: descontar do pacote ou pagar avulso */
-@media (max-width: 480px) { #s-av button { font-size: 13.5px; gap: 7px; padding: 6px 8px; } }
+#s-av button, #fe-modo button { line-height: 1.15; } #s-av button[aria-checked="true"], #fe-modo button[aria-checked="true"] { border-color: var(--coral); background: var(--coral-2); color: var(--tinta); }   /* 1.11: descontar do pacote ou pagar avulso */
+@media (max-width: 480px) { #s-av button, #fe-modo button { font-size: 13.5px; gap: 7px; padding: 6px 8px; } }
 /* 1.04: desconto do gestor na tela de pagamento (só ele vê): tipo, valor e motivo */
 .pg-desc { border: 2px solid var(--borda); border-radius: 16px; background: var(--card); }
 .pg-desc > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 11px 14px; font-size: 14px; } .pg-desc > summary::-webkit-details-marker { display: none; }
@@ -1312,7 +1315,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.12';
+const VERSAO = '1.13';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -2340,16 +2343,22 @@ function folhaParaQuem(pre) {
   setTimeout(() => { const i = $('#pq-busca'); if (i) i.focus(); }, 380);
 }
 /* ---------- 1.12: a festa ---------- */
-// O botão Festa (no lugar de "Pacotes e produtos"): a equipe escolhe o cliente, toca no valor da tabela "Nossos valores" (pela
-// quantidade de crianças e pelo dia), põe os convidados adicionais e segue para o pagamento. A festa só existe aqui: não aparece no
-// cadastro nem no atendimento. A venda usa o caminho do atendimento (o mesmo pagamento, o mesmo Desfazer) e sai com o comprovante.
+// O botão Festa (no lugar de "Pacotes e produtos"): a equipe escolhe o cliente e, na folha da Festa, vende uma de três coisas:
+//  - a festa nova: um toque no valor da tabela "Nossos valores" escolhe a quantidade de crianças e o tipo (festa de semana ou de final
+//    de semana, que vale também para férias, emenda e feriado);
+//  - 1.13, o upgrade de festa: o cliente já fechou uma festa e quer uma maior. Um toque na festa que ele já tem, outro na festa nova
+//    (do mesmo tipo), e cobra só a diferença entre as duas;
+//  - 1.13, o adicional de festa: as crianças a mais do que o pacote (fechou 10 e vieram 13), cada uma pelo valor do adicional.
+// A festa só existe aqui: não aparece no cadastro nem no atendimento. A venda usa o caminho do atendimento (o mesmo pagamento, o mesmo
+// Desfazer) e sai com o comprovante.
 const FESTA_FABRICA = { n: [10, 15, 20, 25, 30], semana: [2549, 2999, 3449, 3899, 4349], fds: [2849, 3299, 3749, 4199, 4649], extra: 190, extraMax: 60, horas: 3, parcelas: 4 };
-const FESTA_DIA = { semana: ['Dias de semana', 'dia de semana', 'Dia de semana'], fds: ['Fim de semana, férias, emenda e feriado', 'fim de semana, férias, emenda ou feriado', 'Fim de semana, férias, emenda ou feriado'] };   // [na tabela da tela, na venda, no comprovante]
+const FESTA_DIA = { semana: ['Festa de semana', 'festa de semana', 'FESTA DE SEMANA'], fds: ['Festa de final de semana', 'festa de final de semana', 'FESTA DE FINAL DE SEMANA'] };   // [na tela e no comprovante, no detalhe da venda, o nome da venda]
 const FESTA_HORA_FDS = 'das 10h30 às 13h30';
-const FESTA_INCLUI = [['Duração', '3 horas. O espaço não fecha para a festa.'], ['Horários', 'Em dia de semana, durante todo o dia, dentro do horário da loja. Em fim de semana, feriado, emenda e férias: das 10h30 às 13h30.'],
+const FESTA_INCLUI = [['Duração', '3 horas. O espaço não fecha para a festa.'], ['Horários', 'Festa de semana: durante todo o dia, dentro do horário da loja. Festa de final de semana (e de feriado, emenda e férias): das 10h30 às 13h30.'],
   ['Adultos', 'Pai e mãe como cortesia, mais 4 adultos para os registros na hora do parabéns.'], ['Atividades', 'Camarim de penteados, gincanas divertidas, piquenique, show de mágicas e teatro de fantoches.'],
   ['Alimentação', 'Bolo, 3 opções de doces, 3 opções de salgados, 2 opções de bebida, água, pipoca, cachorro-quente, balas e pirulitos.'], ['Papelaria', 'Topo de bolo. Festa tematizada: consulte a disponibilidade.'],
-  ['Lembrancinha', 'Cupcake ou slime, para crianças de até 11 anos.'], ['Pagamento', 'Em até 4x sem juros no cartão de crédito. Orçamento válido por 5 dias.'], ['Unidades', 'Valores para as festas nas unidades Morumbi e Anália Franco.']];
+  ['Lembrancinha', 'Cupcake ou slime, para crianças de até 11 anos.'], ['Upgrade', 'Quem já fechou uma festa e quer uma maior paga só a diferença entre as duas.'], ['Adicional', 'R$ 190 por criança a mais do que o pacote.'],
+  ['Pagamento', 'Em até 4x sem juros no cartão de crédito. Orçamento válido por 5 dias.'], ['Unidades', 'Valores para as festas nas unidades Morumbi e Anália Franco.']];
 const festaCfg = () => { const t = S.cfg.festa; return t && Array.isArray(t.n) && Array.isArray(t.semana) && Array.isArray(t.fds) && t.extra > 0 ? t : FESTA_FABRICA; };
 const festaData = iso => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ''); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; };
 const festaFds = iso => { const d = festaData(iso); return !!d && d.getDay() % 6 === 0; };   // sábado ou domingo
@@ -2359,47 +2368,91 @@ const festaDiaTxt = iso => { const s = festaSemana(iso); return s ? s.charAt(0).
 function festaDataDoCampo(txt) { const t = String(txt || '').trim(); if (!t) return { iso: '' }; const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(t), d = m ? new Date(+m[3], +m[2] - 1, +m[1]) : null;
   if (!d || d.getFullYear() !== +m[3] || d.getMonth() !== +m[2] - 1 || d.getDate() !== +m[1]) return { erro: 'Confira a data da festa' };
   const iso = `${m[3]}-${m[2]}-${m[1]}`; return iso < isoDia(agora) ? { erro: 'A data da festa já passou' } : { iso }; }
-// as linhas da venda da festa, como as do carrinho: o valor da tabela e os convidados adicionais. papel: o que vai embaixo do item no comprovante
-function linhasDaFesta(f) { const L = []; if (!f) return L; const T = festaCfg(), i = T.n.indexOf(f.n), dia = FESTA_DIA[f.dia] ? f.dia : '', tem = i >= 0 && !!dia, quando = f.data ? ' · festa em ' + nascBR(f.data) : '';
-  if (tem) L.push({ festa: 'pacote', q: 1, servico: `FESTA ${f.n} CRIANÇAS`, min: 0, v: T[dia][i], itens: FESTA_DIA[dia][1] + quando,
-    papel: [FESTA_DIA[dia][2], f.data ? festaDiaTxt(f.data) + (dia === 'fds' ? ' · ' + FESTA_HORA_FDS : '') : dia === 'fds' ? 'Horário: ' + FESTA_HORA_FDS : '', `Duração: ${T.horas || 3} horas · o espaço não fecha`, 'Cortesia: pai e mãe, mais 4 adultos no parabéns'].filter(Boolean) });
-  if (f.extra > 0) L.push({ festa: 'extra', q: f.extra, servico: 'FESTA: CONVIDADO ADICIONAL', min: 0, v: centavos(f.extra * T.extra), itens: f.extra + (f.extra === 1 ? ' convidado' : ' convidados') + (tem ? '' : quando), papel: [brl2(T.extra) + ' cada'].concat(!tem && f.data ? [festaDiaTxt(f.data)] : []) });
+// 1.13: a festa que uma venda diz (a venda de uma festa ou de um upgrade): { dia, n, data } ou null. Lê também como a 1.12 gravava
+function festaDaVenda(v) { const s = String(v.servico || ''), i = String(v.itens || ''), d = /festa em (\d\d)\/(\d\d)\/(\d{4})/.exec(i), data = d ? `${d[3]}-${d[2]}-${d[1]}` : ''; let m;
+  if (s === 'UPGRADE DE FESTA') return (m = /^de \d+ para (\d+) crianças · festa de (semana|final de semana)/.exec(i)) ? { dia: m[2] === 'semana' ? 'semana' : 'fds', n: +m[1], data } : null;
+  if (s === FESTA_DIA.semana[2] || s === FESTA_DIA.fds[2]) return (m = /^(\d+) crianças/.exec(i)) ? { dia: s === FESTA_DIA.semana[2] ? 'semana' : 'fds', n: +m[1], data } : null;
+  return (m = /^FESTA (\d+) CRIANÇAS$/.exec(s)) ? { dia: i.startsWith('dia de semana') ? 'semana' : 'fds', n: +m[1], data } : null; }
+// a festa que o cliente tem hoje, pelo que está no sistema: a venda de festa (ou de upgrade) mais recente dele, se a data dela não passou
+// (sem a data, vale a comprada nos últimos 180 dias). vendas: da mais nova para a mais velha
+function festaAtual(vendas) { for (const v of vendas) { const f = festaDaVenda(v); if (!f) continue; const q = v.quando instanceof Date ? v.quando : dataDe(v.quando);
+    return (f.data ? f.data < isoDia(agora) : agora - q > 180 * 864e5) ? null : { ...f, quando: q }; } return null; }
+let FESTA_TEM = null;   // o que o sistema sabe da festa do cliente da folha aberta: { id (a criança), tem: { dia, n, data, quando } ou null, pronto }
+function buscarFestaDoCliente(c) {
+  const marca = FESTA_TEM = { id: c.id, tem: null, pronto: false }, ids = familia(c).map(x => x.id).slice(0, 30), chegou = L => { if (FESTA_TEM !== marca) return; marca.tem = festaAtual(L); marca.pronto = true; festaPorTem(); atualizarFesta(); };
+  if (MODO === 'servidor') api('historico', { ids }).then(x => chegou(x.vendas || [])).catch(() => { if (FESTA_TEM === marca) { marca.pronto = true; atualizarFesta(); } });
+  else chegou(S.compras.filter(v => ids.includes(v.crianca)).sort((a, b) => b.quando - a.quando));
+}
+// no upgrade, a festa que o sistema conhece já vem marcada como a que o cliente tem (um toque nela desmarca, para a equipe escolher outra)
+function festaPorTem() { const f = CARRINHO && CARRINHO.festa, t = FESTA_TEM && CARRINHO && FESTA_TEM.id === CARRINHO.id ? FESTA_TEM.tem : null, T = festaCfg(); if (!f || f.modo !== 'upgrade' || f.de || !t) return;
+  const i = T.n.indexOf(t.n); if (i < 0 || i >= T.n.length - 1) return;
+  f.udia = t.dia; f.de = t.n; f.para = 0; if (!f.data && t.data && t.data >= isoDia(agora)) { f.data = t.data; const cp = $('#fe-data'); if (cp) cp.value = nascBR(t.data); } }
+// (prévia) a anotação que o servidor põe na venda do upgrade quando a festa de origem não está no sistema, ou quando a do sistema é outra
+const festaNota = (dia, de) => { const t = FESTA_TEM && FESTA_TEM.pronto && CARRINHO && FESTA_TEM.id === CARRINHO.id ? FESTA_TEM.tem : undefined; return t === undefined ? '' : !t ? ' · sem festa anterior no sistema' : t.n !== de || t.dia !== dia ? ` · no sistema: ${FESTA_DIA[t.dia][1]} de ${t.n} crianças` : ''; };
+// as linhas da venda da festa, como as do carrinho: a festa nova ou o upgrade, e o adicional. pn: o nome no comprovante; papel: o que vai embaixo do item
+function linhasDaFesta(f) { const L = []; if (!f) return L; const T = festaCfg(), quando = f.data ? ' · festa em ' + nascBR(f.data) : '', dataPapel = d => f.data ? festaDiaTxt(f.data) + (d === 'fds' ? ' · ' + FESTA_HORA_FDS : '') : d === 'fds' ? 'Horário: ' + FESTA_HORA_FDS : '';
+  if (f.modo === 'upgrade') { const d = FESTA_DIA[f.udia] ? f.udia : '', i = T.n.indexOf(f.de), j = T.n.indexOf(f.para);
+    if (d && i >= 0 && j > i) L.push({ festa: 'upgrade', q: 1, servico: 'UPGRADE DE FESTA', pn: 'UPGRADE DE FESTA', min: 0, v: centavos(T[d][j] - T[d][i]), itens: `de ${f.de} para ${f.para} crianças · ${FESTA_DIA[d][1]}${quando}`, nota: festaNota(d, f.de), papel: [`De ${f.de} para ${f.para} crianças`, FESTA_DIA[d][0], dataPapel(d)].filter(Boolean) }); }
+  else { const d = FESTA_DIA[f.dia] ? f.dia : '', i = T.n.indexOf(f.n);
+    if (d && i >= 0) L.push({ festa: 'pacote', q: 1, servico: FESTA_DIA[d][2], pn: `FESTA ${f.n} CRIANÇAS`, min: 0, v: T[d][i], itens: `${f.n} crianças${quando}`, papel: [FESTA_DIA[d][0], dataPapel(d), `Duração: ${T.horas || 3} horas · o espaço não fecha`, 'Cortesia: pai e mãe, mais 4 adultos no parabéns'].filter(Boolean) }); }
+  if (f.extra > 0) L.push({ festa: 'extra', q: f.extra, servico: 'ADICIONAL DE FESTA', pn: 'ADICIONAL DE FESTA', min: 0, v: centavos(f.extra * T.extra), itens: f.extra + (f.extra === 1 ? ' criança' : ' crianças') + (L.length ? '' : quando), papel: [brl2(T.extra) + ' por criança'].concat(!L.length && f.data ? [festaDiaTxt(f.data)] : []) });
   return L; }
 // o que vai para o servidor: o que foi escolhido e os valores que a tela mostrou (o servidor confere com a tabela dele)
-const festaEnvio = f => { const T = festaCfg(), i = T.n.indexOf(f.n), dia = FESTA_DIA[f.dia] ? f.dia : ''; return { dia, n: i >= 0 && dia ? f.n : 0, extra: f.extra || 0, data: f.data || '', ...(i >= 0 && dia ? { v: T[dia][i] } : {}), ...(f.extra > 0 ? { ve: T.extra } : {}) }; };
-// a folha da Festa de um cliente: a tabela de valores em botões (um toque escolhe as crianças e o dia), os convidados adicionais, a data
+const festaEnvio = f => { const L = linhasDaFesta(f), p = L.find(l => l.festa === 'pacote'), u = L.find(l => l.festa === 'upgrade'), e = L.find(l => l.festa === 'extra');
+  return { ...(p ? { dia: f.dia, n: f.n, v: p.v } : {}), ...(u ? { up: { dia: f.udia, de: f.de, para: f.para, v: u.v } } : {}), ...(e ? { extra: f.extra, ve: festaCfg().extra } : {}), data: f.data || '' }; };
+const festaFalta = f => f.modo === 'upgrade' ? (!f.de ? 'Toque na festa que o cliente já tem' : 'Toque na festa nova') : 'Toque no valor da festa';   // o que o botão de baixo pede enquanto nada foi escolhido
+// a folha da Festa de um cliente: a escolha "Festa nova | Upgrade de festa", a tabela de valores em botões, o adicional de festa, a data
 // (opcional) e o que a festa inclui. sel: o que já estava escolhido, quando só o cliente foi trocado
 function folhaFesta(id, sel) {
   const c = crianca(id); if (!c) return; guardarEtapa(false); VOLTA_SAIDA = 0;
-  CARRINHO = { id: c.id, q: {}, pac: [], pr: {}, vq: 0, festa: { dia: '', n: 0, extra: 0, data: '', ...(sel || {}) } }; ETAPA_FEITA = true; PAG = null; DESC = null;   // a festa não vai para "Falta finalizar": fechou sem vender, não guarda nada
+  CARRINHO = { id: c.id, q: {}, pac: [], pr: {}, vq: 0, festa: { modo: 'nova', dia: '', n: 0, udia: '', de: 0, para: 0, extra: 0, data: '', ...(sel || {}) } }; ETAPA_FEITA = true; PAG = null; DESC = null;   // a festa não vai para "Falta finalizar": fechou sem vender, não guarda nada
   CARRINHO.visto = MODO === 'servidor' ? ULT_REG : 0;
   const T = festaCfg(), f = CARRINHO.festa;
   abrirFolha('Festa', `<div id="v-escolha" class="fe">
     <div class="linha">${avatar(c)}<div class="txt"><b style="white-space:normal">${esc(c.nome)}${idadeTxt(c) ? ', ' + idadeTxt(c) : ''}</b><span style="white-space:normal">${esc(c.resp)}${fones(c) ? ' · ' + esc(fones(c)) : ''}</span></div><button type="button" class="link tap" data-act="festa-trocar">Trocar o cliente</button></div>
-    <div class="campo"><label id="fe-rot">Toque no valor <span class="leve">· pela quantidade de crianças e pelo dia da festa</span></label>
-      <div class="fe-tab" id="fe-tab" role="group" aria-labelledby="fe-rot"><span></span><span class="fe-ch">${FESTA_DIA.semana[0]}</span><span class="fe-ch">${FESTA_DIA.fds[0]}</span>
-        ${T.n.map((n, i) => `<b class="fe-n"><span class="num">${n}</span> crianças</b>${['semana', 'fds'].map(d => `<button type="button" class="opc tap fe-v" data-act="festa-valor" data-dia="${d}" data-n="${n}" aria-pressed="false" aria-label="${n} crianças, ${FESTA_DIA[d][1]}: ${brl(T[d][i])}"><b class="num">${brl(T[d][i])}</b></button>`).join('')}`).join('')}</div>
+    <div class="pg-modo" id="fe-modo" role="radiogroup" aria-label="O que o cliente quer"><button type="button" class="tap" role="radio" aria-checked="true" data-act="festa-modo" data-v="nova"><i aria-hidden="true"></i>Festa nova</button><button type="button" class="tap" role="radio" aria-checked="false" data-act="festa-modo" data-v="upgrade"><i aria-hidden="true"></i>Upgrade de festa</button></div>
+    <p class="explica" id="fe-tem" hidden></p>
+    <div class="campo"><label id="fe-rot"></label>
+      <div class="fe-tab" id="fe-tab" role="group" aria-labelledby="fe-rot"></div>
       <span class="explica" id="fe-hor"></span></div>
-    <div class="servicos"><div class="serv" id="fe-extra"><div class="txt"><b>Convidado adicional</b><span>${brl(T.extra)} cada</span></div>
-      <div class="qtd"><button type="button" class="tap" data-act="festa-menos" aria-label="Tirar um convidado adicional">−</button><b class="num" id="fe-extra-q">0</b><button type="button" class="tap" data-act="festa-mais" aria-label="Pôr um convidado adicional">+</button></div><b class="valor num" id="fe-extra-v"></b></div></div>
+    <div class="servicos"><div class="serv" id="fe-extra"><div class="txt"><b>Adicional de festa</b><span>${brl(T.extra)} por criança a mais do que o pacote</span></div>
+      <div class="qtd"><button type="button" class="tap" data-act="festa-menos" aria-label="Tirar uma criança do adicional de festa">−</button><b class="num" id="fe-extra-q">0</b><button type="button" class="tap" data-act="festa-mais" aria-label="Pôr uma criança no adicional de festa">+</button></div><b class="valor num" id="fe-extra-v"></b></div></div>
     <div class="campo"><label for="fe-data">Data da festa <span class="leve">· opcional</span></label><div class="nasc-l"><input id="fe-data" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" autocomplete="off" value="${esc(nascBR(f.data))}"><b class="nasc-id" id="fe-data-dia" aria-live="polite"></b></div></div>
     <details class="outro" id="fe-inclui"><summary>O que a festa inclui</summary><dl class="fe-inc">${FESTA_INCLUI.map(([t, d]) => `<div><dt>${t}</dt><dd>${d}</dd></div>`).join('')}</dl></details>
-    <div class="pe-f"><div class="total"><span>Total a pagar</span><b class="num" id="v-total">R$ 0</b></div><button class="bt forte largo tap" id="v-ok" data-act="atender-ok" data-id="${c.id}" disabled>${ic(IC.check)} Toque no valor da festa</button></div>
+    <div class="pe-f"><div class="total"><span>Total a pagar</span><b class="num" id="v-total">R$ 0</b></div><button class="bt forte largo tap" id="v-ok" data-act="atender-ok" data-id="${c.id}" disabled>${ic(IC.check)} ${festaFalta(f)}</button></div>
     </div><div id="v-pag" hidden></div>`);
-  atualizarFesta();
+  buscarFestaDoCliente(c); atualizarFesta();
 }
-// redesenha o que está escolhido na folha da Festa: o valor marcado, os convidados, o dia da semana da data e o total
+// a tabela de valores em botões. Na festa nova, um toque no valor escolhe a quantidade de crianças e o tipo. No upgrade, o primeiro toque
+// marca a festa que o cliente já tem; daí em diante as festas maiores do mesmo tipo mostram só a diferença, e um toque escolhe a nova
+function htmlTabelaFesta(f, fds) { const T = festaCfg(), up = f.modo === 'upgrade', ult = T.n.length - 1, ide = T.n.indexOf(f.de);
+  return `<span></span><span class="fe-ch">${FESTA_DIA.semana[0]}</span><span class="fe-ch">${FESTA_DIA.fds[0]}<small>e férias, emenda, feriado</small></span>` + T.n.map((n, i) => `<b class="fe-n"><span class="num">${n}</span> crianças</b>` + ['semana', 'fds'].map(d => {
+    const v = T[d][i]; let st = '', txt = brl(v), rot = `${n} crianças, ${FESTA_DIA[d][1]}: ${brl(v)}`, off = fds && d === 'semana', marca = false;
+    if (!up) marca = f.dia === d && f.n === n;
+    else if (!f.de) { off = off || i === ult; rot = `O cliente já tem a ${FESTA_DIA[d][1]} para ${n} crianças`; }
+    else if (d === f.udia && n === f.de) { st = 'tem'; rot = `O cliente já tem a ${FESTA_DIA[d][1]} para ${n} crianças. Toque para trocar`; }
+    else if (d === f.udia && i > ide) { const dif = centavos(v - T[d][ide]); txt = '+ ' + brl(dif); marca = f.para === n; st = marca ? 'nova' : ''; rot = `Passar para ${n} crianças: mais ${brl(dif)}`; }
+    else off = true;
+    return `<button type="button" class="opc tap fe-v${st ? ' fe-' + st : ''}" data-act="festa-valor" data-dia="${d}" data-n="${n}" aria-pressed="${marca}" aria-label="${rot}"${off ? ' disabled' : ''}>${st === 'tem' ? '<small>já tem</small>' : st === 'nova' ? '<small>passa para</small>' : ''}<b class="num">${txt}</b></button>`; }).join('')).join(''); }
+// redesenha o que está escolhido na folha da Festa: a escolha de cima, a tabela, o adicional, o dia da semana da data e o total
 function atualizarFesta() {
-  const f = CARRINHO && CARRINHO.festa; if (!f || !$('#fe-tab')) return; const T = festaCfg(), fds = festaFds(f.data);
-  if (fds && f.dia === 'semana') f.dia = 'fds';   // a data cai num sábado ou num domingo: vale o valor de fim de semana (a mesma quantidade de crianças)
-  $$('#fe-tab .fe-v').forEach(b => { b.setAttribute('aria-pressed', b.dataset.dia === f.dia && +b.dataset.n === f.n); b.disabled = fds && b.dataset.dia === 'semana'; });
+  const f = CARRINHO && CARRINHO.festa, tb = $('#fe-tab'); if (!f || !tb) return; const T = festaCfg(), fds = festaFds(f.data), up = f.modo === 'upgrade';
+  if (fds) { if (f.dia === 'semana') f.dia = 'fds'; if (f.udia === 'semana') f.udia = 'fds'; }   // a data cai num sábado ou num domingo: vale a festa de final de semana (a mesma quantidade de crianças)
+  $$('#fe-modo [data-v]').forEach(b => b.setAttribute('aria-checked', b.dataset.v === f.modo));
+  tb.innerHTML = htmlTabelaFesta(f, fds);
+  const rot = $('#fe-rot'); if (rot) rot.innerHTML = up ? 'Upgrade <span class="leve">· toque na festa que o cliente já tem e, depois, na festa nova</span>' : 'Toque no valor <span class="leve">· pela quantidade de crianças e pelo tipo de festa</span>';
+  const sabe = FESTA_TEM && FESTA_TEM.id === CARRINHO.id ? FESTA_TEM : null, t = sabe && sabe.tem, nt = $('#fe-tem');
+  if (nt) { nt.hidden = !(t || (up && sabe && sabe.pronto)); nt.innerHTML = t ? `No sistema, este cliente já tem a <b>${FESTA_DIA[t.dia][1]} para ${t.n} crianças</b>${t.data ? ', em ' + nascBR(t.data) : ', comprada em ' + pgData(t.quando)}.` : up && sabe && sabe.pronto ? 'O sistema não tem a festa deste cliente: confira no contrato a festa que ele já fechou.' : ''; }
   const q = $('#fe-extra-q'), v = $('#fe-extra-v'), cx = $('#fe-extra'), me = $('#fe-extra [data-act="festa-menos"]'), ma = $('#fe-extra [data-act="festa-mais"]');
   if (q) q.textContent = f.extra; if (v) v.textContent = f.extra ? brl(centavos(f.extra * T.extra)) : ''; if (cx) cx.classList.toggle('on', f.extra > 0); if (me) me.disabled = !f.extra; if (ma) ma.disabled = f.extra >= (T.extraMax || 60);
-  const i = $('#fe-data'), o = $('#fe-data-dia'), x = i ? festaDataDoCampo(i.value) : { iso: '' }, cheio = !!i && i.value.length === 10;
+  const cp = $('#fe-data'), o = $('#fe-data-dia'), x = cp ? festaDataDoCampo(cp.value) : { iso: '' }, cheio = !!cp && cp.value.length === 10;
   if (o) { o.textContent = x.iso ? festaSemana(x.iso) : cheio && x.erro ? (/passou/.test(x.erro) ? 'já passou' : 'confira a data') : ''; o.classList.toggle('erro', !!(cheio && x.erro)); }
-  const h = $('#fe-hor'); if (h) h.textContent = fds ? `${nascBR(f.data)} cai num ${festaSemana(f.data)}: vale o valor de fim de semana. A festa é ${FESTA_HORA_FDS}.` : f.dia === 'fds' ? `Fim de semana, férias, emenda e feriado: a festa é ${FESTA_HORA_FDS}.` : f.dia === 'semana' ? 'Em dia de semana a festa pode ser em qualquer horário, dentro do horário da loja.' : '';
-  const L = linhasDoCarrinho(), total = L.reduce((t, l) => t + l.v, 0), t = $('#v-total'), ok = $('#v-ok');
-  if (t) t.textContent = brl(total); if (ok) { ok.disabled = !L.length; ok.innerHTML = L.length ? `Pagamento · ${brl(total)} ${ic(IC.vai, 18, 2.6)}` : `${ic(IC.check)} Toque no valor da festa`; }
+  const h = $('#fe-hor'); if (h) { const i = T.n.indexOf(f.de), j = T.n.indexOf(f.para), dx = up ? f.udia : f.dia;
+    h.textContent = (fds ? `${nascBR(f.data)} cai num ${festaSemana(f.data)}: vale a festa de final de semana. ` : '')
+      + (up ? (!f.de ? (t && T.n.indexOf(t.n) === T.n.length - 1 ? `A festa deste cliente já é a de ${t.n} crianças, a maior da tabela: para mais crianças, use o adicional de festa.` : '') : j > i ? `Upgrade de ${f.de} para ${f.para} crianças, ${FESTA_DIA[f.udia][1]}: cobra só a diferença, ${brl(centavos(T[f.udia][j] - T[f.udia][i]))}.` : `Já tem a ${FESTA_DIA[f.udia][1]} para ${f.de} crianças. Agora toque na festa nova.`)
+        : dx === 'fds' ? `A festa de final de semana (e de férias, emenda e feriado) é ${FESTA_HORA_FDS}.` : dx === 'semana' ? 'A festa de semana pode ser em qualquer horário, dentro do horário da loja.' : ''); }
+  const L = linhasDoCarrinho(), total = L.reduce((a, l) => a + l.v, 0), tt = $('#v-total'), ok = $('#v-ok');
+  if (tt) tt.textContent = brl(total); if (ok) { ok.disabled = !L.length; ok.innerHTML = L.length ? `Pagamento · ${brl(total)} ${ic(IC.vai, 18, 2.6)}` : `${ic(IC.check)} ${festaFalta(f)}`; }
 }
 function folhaPacotes(aba) {
   PQ = null; ABA_PP = aba === 'produtos' ? 'produtos' : 'pacotes';
@@ -2605,7 +2658,7 @@ function repartirDescPrevia(total, compras) {
 const textoDesc = d => `Desconto · ${brl(d.valor)}${pctTxt(d.pct)} · Motivo: ${d.motivo} · por ${EU.nome}`;   // (prévia) a linha do dia
 // do atendimento para o pagamento: o que foi escolhido, o total e as formas. Voltar não perde nada do que estava escolhido
 function abrirPagamento(id) {
-  const c = crianca(id), L = linhasDoCarrinho(), a = $('#v-pag'), e = $('#v-escolha'); if (!c || !a || !e) return; const festa = !!(CARRINHO && CARRINHO.festa); if (!L.length) { toast(festa ? 'Toque no valor da festa' : 'Escolha o serviço'); return; }
+  const c = crianca(id), L = linhasDoCarrinho(), a = $('#v-pag'), e = $('#v-escolha'); if (!c || !a || !e) return; const festa = !!(CARRINHO && CARRINHO.festa); if (!L.length) { toast(festa ? festaFalta(CARRINHO.festa) : 'Escolha o serviço'); return; }
   if (festa) { const i = $('#fe-data'), x = i ? festaDataDoCampo(i.value) : { iso: '' }; if (x.erro) { toast(x.erro); i.focus(); return; } }   // 1.12: a data da festa, se foi escrita, precisa valer
   if (L.some(l => l.outro) && !(numero(val('v-valor')) >= 0)) { toast('Qual é o valor do outro item?'); $('#v-valor').focus(); return; }
   const total = centavos(L.reduce((t, l) => t + l.v, 0)); if (!(total > 0)) { registrarAtendimento(id); return; }   // nada a pagar (só o voucher): registra direto
@@ -2618,13 +2671,13 @@ function abrirPagamento(id) {
   if (!depois) PAG.modo = 'agora'; PAG.rotDepois = entrar || c.entrou ? 'Paga na saída' : 'Paga na devolução';
   const min = L.reduce((s, l) => s + l.min, 0), saldo = saldoAgora(c), comHoras = min > 0 && (saldo > 0 || L.some(l => l.pac != null));   // as linhas das horas só para quem já tem horas guardadas ou leva um pacote
   const linhas = L.map(l => { const x = l.s ? servicoDe(l.s) : null, tempo = !!x && ehTempo(x);
-    if (l.festa) return { n: esc(l.festa === 'extra' ? 'Convidado adicional' : l.servico), sub: esc(l.itens), v: brl(l.v) };   // 1.12
+    if (l.festa) return { n: esc(l.servico), sub: esc(l.itens), v: brl(l.v) };   // 1.12
     return { n: esc(nomeLinha(l)), meio: [l.min > 0 || (x && x.volta) ? esc(c.nome) : '', tempo ? (c.entrou ? hora(c.entrou) : entrar ? 'agora' : '') : ''], v: brl(l.v) }; });
   PAG.linhas = linhas;
   a.innerHTML = `${pgDetalhes(c, !festa)}
     ${pgSec('Itens selecionados')}
     <div id="pg-itens-v">${htmlItensVenda()}</div>
-    <button type="button" class="link tap pg-add pg-volta" data-act="pag-voltar">${festa ? ic(IC.volta, 14, 2.8) + ' Trocar o valor ou os convidados' : ic(IC.mais, 14, 2.8) + ' Adicionar ou trocar serviços'}</button>
+    <button type="button" class="link tap pg-add pg-volta" data-act="pag-voltar">${festa ? ic(IC.volta, 14, 2.8) + ' Trocar o que foi escolhido' : ic(IC.mais, 14, 2.8) + ' Adicionar ou trocar serviços'}</button>
     ${pgSec('Pagamento')}
     ${comHoras ? pgHoras(hm(saldo), '<i class="pg-mais">+</i>' + dur(min), hm(saldo + min), 'Horas desta compra') : ''}
     ${depois ? `<div class="pg-modo" role="radiogroup" aria-label="Quando o cliente paga"><button type="button" class="tap" role="radio" aria-checked="true" data-act="pag-modo" data-m="agora"><i aria-hidden="true"></i>Paga agora</button><button type="button" class="tap" role="radio" aria-checked="false" id="p-depois" data-act="pag-modo" data-m="depois"><i aria-hidden="true"></i>${PAG.rotDepois}</button></div>` : ''}
@@ -2657,7 +2710,7 @@ async function registrarAtendimento(id, mesmoAssim, pag, depois) { // mesmoAssim
   const nV = vou ? S.compras.filter(v => v.crianca === c.id && v.voucher && doDia(v.quando)).length + 1 : 0;   // (prévia) o 2º voucher do dia fica marcado, como no servidor
   if (vou && nV > 1) vou.itens = vou.itens.replace(/^voucher/, `voucher (${nV}º de hoje)`);
   const eraAtraso = c.atraso ? { ...c.atraso } : null; let coberta = null;   // (prévia) o voucher pode cobrir uma cobrança por atraso: o Desfazer devolve
-  for (const l of L) { if (l.cobre) coberta = cobrirPrevia(c); const mm = l.cobre ? periodo() : l.min, compra = { id: novoId(), crianca: c.id, h: mm / 60, m: mm, v: l.v, servico: l.servico, itens: l.itens, quando: new Date(), por: EU.nome, voucher: l.voucher || '', pcd: !!l.pcd, cheio: l.cheio, uni: minhaUni() || null }; if (l.s) { const x = servicoDe(l.s); if (x && x.volta && !ehTempo(x)) compra.alug = { s: x.id, n: x.n, m: x.modo === 'periodo' ? l.q * (x.min || 30) : 0, q: x.modo === 'periodo' ? 1 : l.q }; }   // sai da loja e volta: fica na lista até Devolveu
+  for (const l of L.map(x => x.nota ? { ...x, itens: x.itens + x.nota } : x)) { if (l.cobre) coberta = cobrirPrevia(c); const mm = l.cobre ? periodo() : l.min, compra = { id: novoId(), crianca: c.id, h: mm / 60, m: mm, v: l.v, servico: l.servico, itens: l.itens, quando: new Date(), por: EU.nome, voucher: l.voucher || '', pcd: !!l.pcd, cheio: l.cheio, uni: minhaUni() || null }; if (l.s) { const x = servicoDe(l.s); if (x && x.volta && !ehTempo(x)) compra.alug = { s: x.id, n: x.n, m: x.modo === 'periodo' ? l.q * (x.min || 30) : 0, q: x.modo === 'periodo' ? 1 : l.q }; }   // sai da loja e volta: fica na lista até Devolveu
     S.compras.unshift(compra); novas.push(compra);
     if (l.min) { c.pacote += l.min / 60; c.liberado = true; c.venda = { h: l.min / 60, m: l.min, v: l.v, servico: l.servico, com: l.itens, quando: new Date() }; }
     registrar('venda', c.nome, `${nomeLinha(l)} · ${brl(l.v)}`); regs.push(S.registros[0]); compra.reg = S.registros[0];
@@ -2769,7 +2822,7 @@ const dataCurta = d => `${p2(d.getDate())}/${p2(d.getMonth() + 1)}/${d.getFullYe
 // 1.10: n é como o item aparece na tabela do comprovante e q a quantidade. O que é vendido por tempo (a recreação, o fusquinha) conta
 // como um item, com o tempo no nome; o produto e o que é vendido por unidade levam a quantidade; o pacote vai pelo nome dele, e as
 // horas que ele dá (min) e o produto que vem junto (com) descem para a linha de baixo, como o tempo do carrinho.
-const linhaPapel = l => { if (l.festa) return { n: l.festa === 'extra' ? 'Convidado adicional' : l.servico, v: l.v, t: 'festa', s: '', q: l.q || 1, per: 0, sub: l.papel || [] };   /* 1.12: a festa, com o que vai embaixo do item */
+const linhaPapel = l => { if (l.festa) return { n: l.pn || l.servico, v: l.v, t: 'festa', s: '', q: l.q || 1, per: 0, sub: l.papel || [] };   /* 1.12: a festa, com o que vai embaixo do item */
   const x = l.s ? servicoDe(l.s) : null, t = l.pac != null ? 'pacote' : l.vou ? 'voucher' : l.prod ? 'produto' : x && ehTempo(x) ? 'tempo' : x && x.volta ? 'aluguel' : 'outro', un = t === 'produto' || (!!x && x.modo !== 'periodo');
   return { n: t === 'pacote' ? l.servico || nomePacVenda(l.min, l.itens) : un || t === 'aluguel' ? l.servico : nomeLinha(l), v: l.v, t, s: l.s || '', q: un ? l.q || 1 : 1, per: !un && x ? l.q || 1 : 0, ...(t === 'pacote' ? { min: l.min, com: l.servico ? l.itens || '' : '' } : {}), ...(un && x && x.obs ? { obs: x.obs } : {}) }; };
 function htmlPapel(spec, via = 'loja') {
@@ -4842,7 +4895,13 @@ const ACOES = {
   pacotes: () => folhaPacotes(),
   festa: () => folhaParaQuem({ festa: true }),   /* 1.12: o botão Festa: primeiro, de qual cliente é */
   'festa-trocar': () => folhaParaQuem({ festa: true, sel: CARRINHO && CARRINHO.festa ? { ...CARRINHO.festa } : null }),   /* troca o cliente e mantém o que já foi escolhido */
-  'festa-valor': el => { const f = CARRINHO && CARRINHO.festa; if (!f) return; const dia = el.dataset.dia, n = +el.dataset.n; if (f.dia === dia && f.n === n) { f.dia = ''; f.n = 0; } else { f.dia = dia; f.n = n; } atualizarFesta(); },   /* um toque no valor escolhe as crianças e o dia; outro toque tira */
+  'festa-modo': el => { const f = CARRINHO && CARRINHO.festa; if (!f) return; f.modo = el.dataset.v === 'upgrade' ? 'upgrade' : 'nova'; festaPorTem(); atualizarFesta(); },   /* 1.13: festa nova ou upgrade de festa */
+  'festa-valor': el => { const f = CARRINHO && CARRINHO.festa; if (!f) return; const dia = el.dataset.dia, n = +el.dataset.n;   /* festa nova: um toque no valor escolhe as crianças e o tipo (outro toque tira). Upgrade: o primeiro toque é a festa que o cliente já tem; o segundo, a nova */
+    if (f.modo !== 'upgrade') { if (f.dia === dia && f.n === n) { f.dia = ''; f.n = 0; } else { f.dia = dia; f.n = n; } }
+    else if (!f.de) { f.udia = dia; f.de = n; f.para = 0; }
+    else if (dia === f.udia && n === f.de) { f.udia = ''; f.de = 0; f.para = 0; }
+    else if (dia === f.udia && n > f.de) f.para = f.para === n ? 0 : n;
+    atualizarFesta(); },
   'festa-mais': () => { const f = CARRINHO && CARRINHO.festa; if (!f) return; f.extra = Math.min(festaCfg().extraMax || 60, (f.extra || 0) + 1); atualizarFesta(); },
   'festa-menos': () => { const f = CARRINHO && CARRINHO.festa; if (!f) return; f.extra = Math.max(0, (f.extra || 0) - 1); atualizarFesta(); },
   'sap-todas': () => { SAP_TODAS = !SAP_TODAS; redesenharSap(); },
