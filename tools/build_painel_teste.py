@@ -136,7 +136,7 @@ function demoSeed(){
     // o que a pessoa fez no app nas últimas 5 semanas
     if(x.app){ const h = [], c = [], w = {}, ck = {}; let n = 0;
       for(let i=-35;i<=0;i++){ const dia = addDays(t, i), dwi = (parse(dia).getDay()+6)%7, fixo = x.app.dias.map(o => (parse(addDays(t,o)).getDay()+6)%7);
-        w[dia] = Math.round((1600 + ((i*37+k*11) % 9)*150) / 50) * 50; const m3 = (((i+k)%3)+3)%3; ck[dia] = { sono:(x.app.sono && i>-3) ? 4 : 6+m3, energia:3+(m3%2), dor:(x.app.dor && i>-4) ? 3 : (i%4===0 ? 1 : 0) };
+        w[dia] = Math.round((base.metas.waterGoal*.72 + ((((i*37+k*11) % 9)+9) % 9)*base.metas.waterGoal*.05) / 50) * 50; const m3 = (((i+k)%3)+3)%3; ck[dia] = { sono:(x.app.sono && i>-3) ? 4 : 6+m3, energia:3+(m3%2), dor:(x.app.dor && i>-4) ? 3 : (i%4===0 ? 1 : 0) };
         if(fixo.includes(dwi) && !(x.app.agora && i===0) && (i>-3 || (((i*7+k)%9)+9)%9!==0)){ const L = Ls[n % Ls.length]; n++; const sem = Math.floor((i+35)/7);
           const exs = tr[L].ex.map((e, j) => { const kg0 = (/prancha|abdominal|flex[aã]o|dead bug|superman/i.test(e.nome) ? 0 : KG[e.alvo]!=null ? KG[e.alvo] : 10) * x.app.f, kg = kg0 ? Math.round((kg0 + sem*(kg0>20 ? 2 : 1))*2)/2 : 0, ns = +e.s; const sets = Array.from({length:ns}, (_,q) => [kg, Math.max(6, 12 - q - ((i+j)%2))]);
             const o = { id:e.id, n:e.nome, s:sets, q:[], c:'' }; if(e.aq){ o.w = 2; o.wt = 2; }
