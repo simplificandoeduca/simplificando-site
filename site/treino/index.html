@@ -2007,7 +2007,7 @@ function progRestore(){
     if(d.lay && (!PREF.cardioLayout || !PREF.treinoLayout)){ const c0 = PREF.cardioLayout, t0 = PREF.treinoLayout; PREF.cardioLayout = c0 || d.lay.c || undefined; PREF.treinoLayout = t0 || d.lay.t || undefined; if(PREF.cardioLayout!==c0 || PREF.treinoLayout!==t0){ S.lay = { c:PREF.cardioLayout||null, t:PREF.treinoLayout||null }; savePref(); ui.pstep = null; renderPick(); render(); } }
     let n = 0;
     const tem = new Set(S.history.map(h => h.date+'|'+h.t));
-    (d.h||[]).forEach(h => { if(!h || !h.d || tem.has(h.d+'|'+h.t)) return; tem.add(h.d+'|'+h.t); n++;
+    (d.h||[]).forEach(h0 => { if(!h0 || !h0.d) return; const h = Object.assign({}, h0, { d:ajPara(h0.d, h0.t) }); if(tem.has(h.d+'|'+h.t)) return; tem.add(h.d+'|'+h.t); n++;
       S.history.push({ date:h.d, t:h.t, min:h.min||0, vol:h.vol||0, sets:h.sets||0, prs:[], rpe:h.rpe||0, note:h.note||'', gym:h.gym||'', ex:h.ex||null, nuvem:true });
       (h.ex||[]).forEach(e => { if(!e || !e.id || !(e.s||[]).length) return; const mk = Math.max(...e.s.map(z => +z[0]||0)); if(!mk) return;
         const top = e.s.filter(z => +z[0]===mk), old = S.last[e.id];
@@ -2060,6 +2060,14 @@ const sexOf = () => ACCT && ACCT.sexo==='M' ? 'M' : 'F';
 const DEF_DESC = 'Ritmo em que dá para conversar, mas não para cantar.';
 const firstName = n => String(n||'').trim().split(/\s+/)[0] || '';
 const welcomeWord = s => s==='M' ? 'Bem-vindo' : 'Bem-vinda';
+/* o personal mudou o dia de um treino no painel (ex.: começou na segunda e finalizou na terça) */
+const AJ = () => (isPersonal() && ACCT.aluno && Array.isArray(ACCT.aluno.ajustes)) ? ACCT.aluno.ajustes.filter(x => x && x.de && x.t && x.para) : [];
+const ajPara = (d, t) => { const x = AJ().find(j => j.de===d && j.t===t); return x ? x.para : d; };
+function ajustaDias(){
+  const L = AJ(); if(!L.length || !S || !S.history) return;
+  let n = 0; S.history.forEach(h => { const x = L.find(j => j.de===h.date && j.t===h.t); if(x && !S.history.some(o => o!==h && o.date===x.para && o.t===h.t)){ h.date = x.para; n++; } });
+  if(n) S.history.sort((x,y) => x.date<y.date ? -1 : x.date>y.date ? 1 : 0);
+}
 function applyAccount(){
   if(isPersonal()){
     const a = ACCT.aluno, mc = a.metas.cardio || {};
@@ -2072,6 +2080,7 @@ function applyAccount(){
     SEMANA_TREINOS = a.metas.semanaTreinos || ACCT.dias.length || 3;
     S.nome = firstName(a.perfil.nome); if(ED[a.perfil.objetivo]) S.ed = a.perfil.objetivo;
     S.waterGoal = a.metas.waterGoal || 3000; S.cardioGoal = a.metas.cardioGoal || 120;
+    ajustaDias();
   } else {
     const c = S.conta || (S.conta = {sexo:'F', dias:[0,2,4], plan:'abc'});
     const own = c.plan==='meu' || c.plan==='ia';
@@ -5545,7 +5554,7 @@ function wireSlide(){
     if(k && (ev.key==='Enter' || ev.key===' ' || ev.key==='ArrowRight')){ ev.preventDefault(); done(k.closest('.slide')); }
   });
 }
-function startSession(t){ if(!S.session){ S.session = {t, start:Date.now(), acc:0, run:true, gym:''}; toast('Cronômetro do treino '+t+' ligado. Bom treino.'); ui.sheet = {k:'gym'}; setTimeout(() => { if(ui.sheet && ui.sheet.k==='gym') renderSheet(true); }, 0); } }
+function startSession(t){ if(!S.session){ S.session = {t, start:Date.now(), acc:0, run:true, gym:'', d:today()}; toast('Cronômetro do treino '+t+' ligado. Bom treino.'); ui.sheet = {k:'gym'}; setTimeout(() => { if(ui.sheet && ui.sheet.k==='gym') renderSheet(true); }, 0); } }
 /* ---------- academia do dia: o aluno escreve o nome uma vez; nos próximos treinos é só tocar ---------- */
 const gymKey = v => String(v||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
 const gymNome = v => String(v||'').replace(/\s+/g,' ').trim().slice(0,40);
@@ -5633,7 +5642,9 @@ function toggleSet(id,i){
 }
 function finish(){
   const ses = S.session; if(!ses) return;
-  const p = PLAN[ses.t], t0 = today(), log = S.logs[t0]||{}, prd = [];
+  // treino que começou num dia e foi finalizado no outro fica no dia em que começou (com as séries dos dois dias)
+  const hoje = today(), t0 = ses.d && ses.d<hoje ? ses.d : hoje, p = PLAN[ses.t], prd = [];
+  const log = Object.assign({}, S.logs[t0]||{}); if(t0!==hoje) Object.keys(S.logs[hoje]||{}).forEach(id => { const ok = (S.logs[hoje][id]||[]).filter(x => x.ok); if(ok.length) log[id] = ((log[id]||[]).filter(x => x.ok)).concat(ok); });
   let sets = 0, vol = 0;
   p.ex.forEach(e => {
     const ok = (log[e.id]||[]).filter(x => x.ok); if(!ok.length) return;
@@ -5643,7 +5654,7 @@ function finish(){
     S.last[e.id] = {kg:mk, lastKg:num(ok[ok.length-1].kg), reps:top.map(x => int(x.reps)), rir:top.map(x => x.rir==null ? 1 : x.rir), d:t0, g:ses.gym||''};
     if(ses.gym){ const gm = S.gymLast || (S.gymLast = {}), gk = gymKey(ses.gym); (gm[gk] = gm[gk] || {})[e.id] = S.last[e.id]; }
     const H = S.loadHist[e.id] = (S.loadHist[e.id]||[]).filter(x => x.d!==t0); H.push({d:t0,kg:mk}); while(H.length>16) H.shift();
-    const tb = todayBest(e.id), old = S.pr[e.id];
+    const tb = t0===hoje ? todayBest(e.id) : (() => { let v = 0, i = -1; (log[e.id]||[]).forEach((x,j) => { if(!x.ok) return; const w = e1(num(x.kg),int(x.reps)); if(w>v){ v = w; i = j; } }); return {v,i}; })(), old = S.pr[e.id];
     if(tb.i>=0){
       const x = log[e.id][tb.i], rec = {e1:tb.v, kg:num(x.kg), reps:int(x.reps), d:t0};
       if(!old) S.pr[e.id] = rec;
@@ -5651,14 +5662,14 @@ function finish(){
     }
   });
   if(!sets){ toast('Marque pelo menos uma série antes de finalizar.'); return; }
-  const min = Math.max(1, Math.round(elapsed()/60000)), sec = Math.max(1, Math.round(elapsed()/1000)), nd = new Date(), hr = String(nd.getHours()).padStart(2,'0')+':'+String(nd.getMinutes()).padStart(2,'0');
-  const WM = S.warm[t0]||{};
+  const min = Math.max(1, Math.round(elapsed()/60000)) > 240 && t0!==hoje ? 240 : Math.max(1, Math.round(elapsed()/60000)), sec = Math.min(Math.max(1, Math.round(elapsed()/1000)), t0!==hoje ? 240*60 : Infinity), nd = new Date(), hr = String(nd.getHours()).padStart(2,'0')+':'+String(nd.getMinutes()).padStart(2,'0');
+  const WM = Object.assign({}, S.warm[hoje]||{}, S.warm[t0]||{});
   const det = p.ex.map(e => { const ok = (log[e.id]||[]).filter(x => x.ok), c = excOf(e.id), wt = e.aq ? aqSeries(e).length : 0, w = wt ? (WM[e.id]||[]).slice(0,wt).filter(Boolean).length : 0;
     if(!ok.length && !w && !(c && (c.q.length || c.n))) return null;
     const o = {id:e.id, n:e.nome, s:ok.map(x => [num(x.kg), int(x.reps)]), q:c ? c.q.slice() : [], c:c ? c.n : ''}; if(wt){ o.w = w; o.wt = wt; } return o; }).filter(Boolean);
-  S.history.push({date:t0, t:ses.t, min, sec, hr, vol:Math.round(vol), sets, prs:prd.map(x => x.id), prd, rpe:0, note:'', gym:ses.gym||'', ex:det});
+  const novo = {date:t0, t:ses.t, min, sec, hr, vol:Math.round(vol), sets, prs:prd.map(x => x.id), prd, rpe:0, note:'', gym:ses.gym||'', ex:det}; S.history.push(novo); if(t0!==hoje) S.history.sort((x,y) => x.date<y.date ? -1 : x.date>y.date ? 1 : 0);
   S.session = null; ui.rest = null; renderRest();
-  stPick(S.history.length-1);
+  stPick(S.history.indexOf(novo));
 }
 
 function onClick(ev){
