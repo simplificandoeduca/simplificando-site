@@ -31,7 +31,7 @@ Para tirar, o mesmo botão vira **Tirar o teste**: saem as 10 crianças e tudo o
 
 Na prévia (sem servidor) o mesmo botão existe e faz a mesma coisa na própria tela. Até a 0.97 o teste colocava 30 crianças no espaço (e 4 fora); a loja pediu só 10.
 
-**Pago e não pago no teste (1.02):** das dez crianças, a ANA CLARA e o PEDRO ficaram de pagar na saída, e o fusquinha do GAEL, na devolução. As outras pagaram na entrada. Assim a lista mostra os dois selos.
+**Quem ficou de pagar depois, no teste (1.02):** das dez crianças, a ANA CLARA e o PEDRO ficaram de pagar na saída, e o fusquinha do GAEL, na devolução. As outras pagaram na entrada. Desde a 1.06 a lista não mostra mais os selos PAGO / NÃO PAGO: o que ficou para pagar aparece na ficha ("A receber") e é cobrado na saída ou na devolução. As dez nascem na **unidade** do aparelho que pediu o teste (seção 6v).
 
 ## 3. Equipe e papéis (Ajustes → Equipe)
 
@@ -118,7 +118,7 @@ O tempo é debitado **sempre em períodos inteiros** (o período da Recreação:
 
 **A ficha da criança tem só o atendimento (1.00):** **Saída** (ou **Entrada**), **Vender**, **Histórico** e **Cupom**, mais a sapateira e a observação. Saíram "Saída com outra hora", "Tirar a foto" (volta sozinha se o iDFace for ligado), "Editar" e "Remover".
 
-**A ficha mais limpa (1.02):** de cima para baixo ficam só o responsável e o telefone, o selo **Pago** (ou a linha do que falta receber, com **Receber**), o relógio ("entrou 14:10 · até 14:40", o tempo que resta e a barra) e a fileira de botões: **Saída**, **Vender**, **Histórico**, **Cupom**, **Sapateira** e, no prazo, **Cancelar entrada**. Saíram as frases compridas ("Entrou às… e está há… Se sair agora, debita…", "é onde está o sapato dela", "As horas não expiram…"). A cobrança por atraso virou a linha curta "Atraso · R$ 160 a receber". O **OBS** de quem não tem observação é um botão na fileira; com observação, continua a caixa vermelha no alto. A conta de horas (comprou, usou, saldo) só aparece para quem tem horas guardadas ou pacote, e a lista de visitas, só quando há visita.
+**A ficha mais limpa (1.02):** de cima para baixo ficam só o responsável e o telefone, a linha do que falta receber, com **Receber** (só quando há; desde a 1.06 não existe mais o selo **Pago**), o relógio ("entrou 14:10 · até 14:40", o tempo que resta e a barra) e a fileira de botões: **Saída**, **Vender**, **Histórico**, **Cupom**, **Sapateira** e, no prazo, **Cancelar entrada**. Saíram as frases compridas ("Entrou às… e está há… Se sair agora, debita…", "é onde está o sapato dela", "As horas não expiram…"). A cobrança por atraso virou a linha curta "Atraso · R$ 160 a receber". O **OBS** de quem não tem observação é um botão na fileira; com observação, continua a caixa vermelha no alto. A conta de horas (comprou, usou, saldo) só aparece para quem tem horas guardadas ou pacote, e a lista de visitas, só quando há visita.
 
 **Editar ou remover um cadastro é só do Gestor**, em **Ajustes → Cadastros**: a busca acha por criança, responsável, telefone ou CPF; um toque abre o cadastro para mudar (nome, responsável, telefones, documento, criança PCD, observações) e, no pé, **Remover este cadastro**. Atendente e Supervisor não mudam cadastro, nem pela tela, nem pelo servidor. A observação e a sapateira continuam com toda a equipe.
 
@@ -179,6 +179,8 @@ Os bonequinhos (o ursinho, o balão, o cavalinho, o despertador, o guindaste da 
 
 A escolha vale só para aquele aparelho (fica guardada no navegador).
 
+**Sem o passarinho no botão de mais (1.06):** o botão de cadastrar (o **+** do trilho da esquerda, no computador, e o botão redondo do canto, no celular) é só o **+**. O passarinho que espiava por trás dele e voava saiu.
+
 ## 6e. Cancelar a entrada sem cobrar
 
 Para quando a criança entra e desiste logo (chorou, não quis ficar, o responsável mudou de ideia) ou a entrada foi lançada errada.
@@ -200,6 +202,7 @@ A primeira tela (aba **Espaço**) mostra **todo mundo numa lista, uma linha por 
 - a **criança**, com o **OBS** vermelho quando há observação (o texto só aparece com um toque, seção 6q). A cobrança por atraso **não aparece na linha**: o valor fica só no total, no pagamento da saída (seção 6r), para a equipe não confundir;
 - o **responsável** (com três PEDRO no espaço, é ele que diz qual é qual);
 - o **serviço**: RECREAÇÃO, com o selo **AVULSA** ou **PACOTE**; ou o que saiu da loja (CARRINHO FUSQUINHA, CARRINHO DE BEBÊ);
+- a **unidade** em que a criança está (1.06; no lugar da coluna Pagamento, que tinha os selos PAGO / NÃO PAGO): ANÁLIA FRANCO, MORUMBI… É a unidade do aparelho em que a entrada foi dada (seção 6v); no carrinho, a de onde ele saiu. Sem unidade marcada, um traço. No celular a unidade fica no alto da tela e só aparece na linha quando a lista mistura unidades;
 - a hora em que **entrou**;
 - o **tempo** correndo e, ao lado, **até que horas vai** ("até 13:46") ou **quanto passou** ("passou 7 min");
 - o botão **Saída** (ou **Devolveu**, no que saiu da loja).
@@ -421,15 +424,15 @@ Depois de escolher o serviço (horas avulsas, pacote, carrinho, produto), o aten
 - **Desfazer** a venda (no aviso) tira também o pagamento.
 - **O servidor confere**: o pagamento tem de fechar com o total que ele mesmo calcula pela tabela. Se o valor de um serviço mudou no meio do atendimento, aparece "O pagamento não fecha com o total" e nada é vendido: é fechar e abrir o atendimento de novo.
 
-**Pago ou não pago (1.02).** Tem cliente que paga na entrada e tem cliente que só paga na saída. A tela mostra sempre qual é o caso:
+**Pagar na entrada ou só na saída (1.02; sem os selos desde a 1.06).** Tem cliente que paga na entrada e tem cliente que só paga na saída. A escolha continua na tela de pagamento, e o que ficou para pagar é cobrado na saída ou na devolução. **Na 1.06 os selos PAGO e NÃO PAGO saíram da tela** (da lista, do celular, da ficha e da linha do carrinho): o dono vai decidir depois como isso aparece. O que ficou:
 
-- **Na tela de pagamento do atendimento**, em Pagamento, a escolha fica sempre à vista (1.03): **Paga agora** (verde) ou **Paga na saída** (vermelho). Em "Paga agora" aparecem as formas de pagamento. Em "Paga na saída" a tela diz "R$ 80 a receber na saída" e o botão de baixo vira **Paga na saída · registrar e dar entrada**: a venda e a entrada são registradas sem pagamento, e a linha do dia diz "Não pago · R$ 80 a receber na saída". A escolha só existe quando há uma hora certa para receber depois: a criança entra agora (ou já está no espaço), ou a venda tem um carrinho que sai da loja e volta (aí a opção diz **Paga na devolução**). Venda de produto ou de pacote para quem não vai entrar é paga na hora.
-- **Na tela inicial**, a coluna **Pagamento** traz o selo **PAGO** (verde) ou **NÃO PAGO** (vermelho) em cada linha, da criança e do carrinho. No celular o selo fica na linha do responsável. O selo fala do que a equipe vendeu nesta visita; a cobrança por atraso tem a linha dela na ficha e entra na conta da saída.
-- **Na ficha**, quem está em dia tem o selo **Pago** no alto. Quem não pagou tem uma linha só: "Não pago · R$ 80", com o botão **Receber** (se já houver cobrança por atraso, "Não pago · R$ 80 + atraso R$ 80" e **Receber R$ 160**). O Receber abre as quatro formas de pagamento e recebe na hora, sem esperar a saída; o aviso tem Desfazer.
-- **Na saída**, a tabela do Pagamento da saída lista cada item que ficou para pagar ("ainda não pago") junto com a cobrança por atraso, se houver, e o **Total a receber**. Sem a forma de pagamento a saída não é dada. O Desfazer da saída devolve também o que foi recebido nela.
-- **Na devolução do carrinho** que ficou para pagar depois, o toque em Devolveu abre o Pagamento da devolução com "Ainda não pago: R$ 15" (e o tempo a mais, se passou).
-- **No cupom** da entrada sai "A pagar na saída" e "NÃO PAGO: A RECEBER NA SAÍDA"; no cupom da saída, "O que ficou para pagar na saída", com a forma em que foi recebido.
-- **No Histórico do cliente**, a compra aparece com **NÃO PAGO** enquanto não for recebida, e não entra em "Pagou ao todo".
+- **Na tela de pagamento do atendimento**, em Pagamento, a escolha fica sempre à vista (1.03): **Paga agora** (verde) ou **Paga na saída** (vermelho). Em "Paga agora" aparecem as formas de pagamento. Em "Paga na saída" a tela diz "R$ 80 a receber na saída" e o botão de baixo vira **Paga na saída · registrar e dar entrada**: a venda e a entrada são registradas sem pagamento, e a linha do dia diz "A receber na saída · R$ 80". A escolha só existe quando há uma hora certa para receber depois: a criança entra agora (ou já está no espaço), ou a venda tem um carrinho que sai da loja e volta (aí a opção diz **Paga na devolução**). Venda de produto ou de pacote para quem não vai entrar é paga na hora.
+- **Na tela inicial** não há mais selo: a coluna Pagamento virou **Unidade** (seção 6v).
+- **Na ficha**, quem ficou de pagar tem uma linha só: "A receber · R$ 80", com o botão **Receber** (se já houver cobrança por atraso, "A receber · R$ 80 + atraso R$ 80" e **Receber R$ 160**). Quem está em dia não tem linha nem selo. O Receber abre as quatro formas de pagamento e recebe na hora, sem esperar a saída; o aviso tem Desfazer.
+- **Na saída**, a tabela do Pagamento da saída lista cada item que ficou para pagar ("ficou para a saída") junto com a cobrança por atraso, se houver, e o **Total a receber**. Sem a forma de pagamento a saída não é dada. O Desfazer da saída devolve também o que foi recebido nela.
+- **Na devolução do carrinho** que ficou para pagar depois, o toque em Devolveu abre o Pagamento da devolução com o item "ficou para a devolução", R$ 15 (e o tempo a mais, se passou).
+- **No cupom** da entrada sai "A pagar na saída" e "A RECEBER NA SAÍDA"; no cupom da saída, "O que ficou para pagar na saída", com a forma em que foi recebido.
+- **No Histórico do cliente**, a compra aparece com **A RECEBER** enquanto não for recebida, e não entra em "Pagou ao todo".
 - **Cancelar a entrada** de quem não pagou não tem nada a devolver.
 - Quem entrou num dia e só saiu no outro (saída esquecida) continua com a conta aberta: o que ficou a pagar é cobrado na saída, mesmo depois da meia-noite.
 
@@ -519,18 +522,19 @@ A via do cliente **não leva telefone, CPF, número do cadastro, idade nem assin
 **Quando sai:**
 
 - **cupom de entrada**: depois de cada atendimento registrado (a venda, com ou sem entrada) e depois de cada **Entrada** pelo botão (a criança que já tinha horas);
-- **cupom da saída**: depois de uma saída **com pagamento** (a hora da entrada e da saída, quanto ficou, o que usou das horas, o que foi recebido e a forma), também em duas vias, com a linha da assinatura na via da loja;
+- **cupom da saída**: depois de **toda saída** (1.06: com ou sem pagamento; quem usa as horas do pacote também assina a saída). Traz a hora da entrada e da saída, quanto ficou, o que usou das horas e, se houve, o que foi recebido e a forma. Em duas vias, com a linha da assinatura na via da loja;
+- **cupom da devolução** (1.06): depois de **toda devolução** do que saiu da loja (carrinho de bebê, fusquinha), com ou sem valor a receber. Traz o item, a criança, a hora em que saiu e em que voltou, quanto ficou fora, o tempo comprado e, se houve, o tempo a mais e a forma de pagamento. Em duas vias, com a linha da assinatura na via da loja;
 - **de novo, a qualquer hora**: na comanda de quem está no espaço, o botão **Cupom**.
 
 **O que cada aparelho faz** fica guardado no próprio aparelho (não muda os outros):
 
 - **Mostrar o cupom** (como vem): depois do atendimento a tela abre o cupom com as duas vias, e um toque em **Imprimir as duas vias** manda para a impressora;
 - **Imprimir sozinho**: as duas vias vão direto para a impressora, sem abrir a tela. É o modo do computador do balcão;
-- **Não imprimir**: para o celular e o tablet, que não têm a impressora. O cupom não aparece ali.
+- **Não imprimir**: para o celular e o tablet, que não têm a impressora. O cupom não aparece ali (nem o da saída, nem o da devolução): a saída que precisa da assinatura é dada no computador do balcão.
 
 A escolha fica na própria folha do cupom, na linha "Neste aparelho: … · mudar", e em **Ajustes → Cupom impresso**.
 
-**O que vai escrito** (só o Gestor muda): **Ajustes → Cupom impresso** → nome da loja, telefone e o aviso do pé. No mesmo lugar, **Imprimir um cupom de teste** (saem as duas vias, com dados de exemplo).
+**O que vai escrito** (só o Gestor muda): **Ajustes → Cupom impresso** → nome da loja, telefone e o aviso do pé. Desde a 1.06, embaixo do nome da loja sai a **unidade** (a da visita; seção 6v). No mesmo lugar, **Imprimir um cupom de teste** (saem as duas vias, com dados de exemplo).
 
 **Preparar o computador do balcão (uma vez):**
 
@@ -595,6 +599,18 @@ Para trazer de uma vez quem já era cliente e as horas que cada criança ainda t
 **Desfazer a importação** (no cartão de Ajustes; vale para a **última** importação): saem os cadastros que vieram nela e **ainda não tiveram movimento** (venda, entrada, visita ou foto), com as horas que vieram junto; e as horas dadas a quem já estava cadastrado saem do saldo, se ainda estão inteiras e a criança está fora do espaço. O que já teve movimento fica. A folha mostra a conta (quantos saem, quantos ficam) antes de confirmar.
 
 **Com muitos cadastros (1.01):** a lista do **Banco de horas** desenha os primeiros 150 clientes e pede a busca para os outros (a busca por nome, telefone ou CPF continua achando todos). O servidor passa a mandar a lista de cadastros **comprimida**: com 3 mil cadastros são uns 140 KB, em vez de 1,6 MB, a cada atualização da tela. A tela confere sozinha, ao entrar, se o servidor e o aparelho se entendem assim; se não se entenderem, tudo continua como era.
+
+## 6v. Unidades (1.06)
+
+A Play Space tem mais de uma unidade. O sistema já vem com **ANÁLIA FRANCO** e **MORUMBI**, e o Gestor cadastra as outras quando quiser.
+
+- **Qual é a unidade deste aparelho:** na tela inicial, ao lado do título "No espaço agora", fica o botão com o nome da unidade (ex.: **ANÁLIA FRANCO**). Cada aparelho guarda a sua (computador do balcão, tablet, celular). Um toque abre **Unidade deste aparelho**, com as unidades para escolher. Aparelho que ainda não tem unidade mostra **Qual unidade?** em amarelo, e avisa logo depois de entrar ("Este aparelho ainda não tem unidade · Escolher").
+- **Quem troca:** o Gestor e o Supervisor. O atendente só escolhe quando o aparelho ainda não tem unidade nenhuma (para a entrada não ficar sem unidade); depois disso, vê o nome e não troca.
+- **O cadastro:** **Ajustes → Unidades** (só o Gestor). **Nova unidade** pede só o nome (fica em maiúsculas; não pode repetir). Um toque numa unidade muda o nome ou remove. Mudou o nome, muda em tudo o que já foi registrado nela. Unidade removida sai das escolhas, mas o que foi registrado nela continua com o nome; o aviso tem Desfazer. Não dá para remover uma unidade com criança no espaço.
+- **O que fica marcado com a unidade:** a entrada da criança (e a visita, quando ela sai), cada venda, o que saiu da loja (carrinho, fusquinha) e cada linha de Hoje na recepção. A cobrança por atraso, que nasce sozinha, fica com a unidade da visita. A entrada pelo iDFace fica sem unidade (o aparelho da porta não diz em qual está).
+- **Na lista** da tela inicial, a coluna **Unidade** mostra onde cada criança está (seção 6f). **No cupom**, a unidade sai embaixo do nome da loja.
+- **No servidor:** o banco passa para a versão 25 (tabela `unidades`, e a coluna `unidade_id` em `criancas`, `visitas`, `vendas` e `registros`). O que já existia fica sem unidade (aparece com um traço).
+- **O que ainda não é separado por unidade:** todos os aparelhos veem a mesma lista, com a coluna dizendo de qual unidade é cada linha. As sapateiras, a agenda, o estoque dos produtos e o resumo do dia ainda são um só para todas as unidades. Isso entra quando a segunda unidade for começar a usar o mesmo sistema.
 
 ## 7. Atualizar
 

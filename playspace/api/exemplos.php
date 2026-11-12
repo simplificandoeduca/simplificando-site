@@ -95,6 +95,8 @@ function exemplosCarregar(?int $por): array {
     $comp->execute([date('Y-m-d', strtotime("$c[0] days")), $c[1], emMaiusculas($c[2]), $c[3], $c[4], emMaiusculas($c[5]), agora()]); $compIds[] = (int)$db->lastInsertId();
   }
   nomesEmMaiusculas($db, $ids);   // os nomes do teste também ficam em maiúsculas, como os de verdade
+  if (($uni = unidadeDoPedido()) !== null && $ids) { $marcas = implode(',', array_fill(0, count($ids), '?'));   // 1.06: o teste nasce na unidade do aparelho que pediu
+    foreach (['criancas' => 'id', 'vendas' => 'crianca_id', 'registros' => 'crianca_id'] as $tabela => $col) $db->prepare("UPDATE $tabela SET unidade_id = ? WHERE $col IN ($marcas)")->execute(array_merge([$uni], $ids)); }
   gravarCfg('exemplo', ['criancas' => $ids, 'compromissos' => $compIds, 'em' => agora()]);
   return ['criancas' => count($ids), 'dentro' => $nDentro];
 }

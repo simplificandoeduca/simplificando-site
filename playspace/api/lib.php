@@ -279,7 +279,28 @@ function db(): PDO {
     try { $pdo->exec('ALTER TABLE vendas ADD COLUMN desc_por INTEGER'); } catch (Throwable $e) { }
     $pdo->exec('PRAGMA user_version = 24');
   }
+  if ($v < 25) { // 1.06: as unidades da Play Space (Anália Franco, Morumbi e as que vierem). A entrada, a visita, a venda e a linha do dia guardam a unidade do aparelho em que foram feitas
+    $pdo->exec('CREATE TABLE IF NOT EXISTS unidades (id INTEGER PRIMARY KEY, nome TEXT NOT NULL, ativo INTEGER NOT NULL DEFAULT 1, criado_em TEXT, mudou_em TEXT)');
+    try { if (!(int)$pdo->query('SELECT COUNT(*) FROM unidades')->fetchColumn()) { $q = $pdo->prepare('INSERT INTO unidades (nome, criado_em, mudou_em) VALUES (?, ?, ?)'); foreach (UNIDADES_DE_FABRICA as $n) $q->execute([$n, date('Y-m-d H:i:s'), date('Y-m-d H:i:s')]); } } catch (Throwable $e) { }
+    foreach (['criancas', 'visitas', 'vendas', 'registros'] as $t) { try { $pdo->exec("ALTER TABLE $t ADD COLUMN unidade_id INTEGER"); } catch (Throwable $e) { } }
+    $pdo->exec('PRAGMA user_version = 25');
+  }
   return $pdo;
+}
+/* ---------- 1.06: unidades ---------- */
+// A Play Space tem mais de uma unidade. O gestor cadastra as unidades em Ajustes; cada aparelho guarda em qual delas está e manda em todo
+// pedido (cabeçalho X-Play-Unidade). O servidor confere se a unidade existe e guarda na entrada, na venda e na linha do dia.
+// Unidade removida não some dos registros antigos: fica inativa (some só das escolhas).
+const UNIDADES_DE_FABRICA = ['ANÁLIA FRANCO', 'MORUMBI'];
+const UNIDADES_MAX = 30;
+function unidadePublica(array $u): array { return ['id' => (int)$u['id'], 'nome' => (string)$u['nome'], 'ativo' => !empty($u['ativo'])]; }
+function unidades(): array { return array_map('unidadePublica', db()->query('SELECT * FROM unidades ORDER BY ativo DESC, id')->fetchAll()); }   // as ativas primeiro; as inativas vão junto, para a tela saber o nome das antigas
+function unidadeDoPedido(): ?int {
+  if (!array_key_exists('_unidade', $GLOBALS)) {
+    $id = (int)($_SERVER['HTTP_X_PLAY_UNIDADE'] ?? 0); $GLOBALS['_unidade'] = null;
+    if ($id > 0) { $q = db()->prepare('SELECT id FROM unidades WHERE id = ? AND ativo = 1'); $q->execute([$id]); if ($q->fetchColumn()) $GLOBALS['_unidade'] = $id; }
+  }
+  return $GLOBALS['_unidade'];
 }
 function cfg(string $k, $padrao = null) { $q = db()->prepare('SELECT valor FROM config WHERE chave = ?'); $q->execute([$k]); $v = $q->fetchColumn(); return $v === false ? $padrao : json_decode((string)$v, true); }
 function gravarCfg(string $k, $v): void { if ($k === 'regra') unset($GLOBALS['_regra']); if ($k === 'exemplo') unset($GLOBALS['_exemplo']); db()->prepare('INSERT INTO config (chave, valor) VALUES (?, ?) ON CONFLICT(chave) DO UPDATE SET valor = excluded.valor')->execute([$k, json_encode($v, JSON_UNESCAPED_UNICODE)]); }
@@ -396,8 +417,8 @@ function exigir(array $papeis = []): array {
 }
 
 /* ---------- registros (o painel "Hoje na recepção") e as mensagens ---------- */
-function registrar(string $tipo, ?int $criancaId, string $nome, string $texto, ?string $quando = null): int {
-  db()->prepare('INSERT INTO registros (quando, tipo, crianca_id, nome, texto) VALUES (?, ?, ?, ?, ?)')->execute([$quando ?: agora(), $tipo, $criancaId, $nome, $texto]);
+function registrar(string $tipo, ?int $criancaId, string $nome, string $texto, ?string $quando = null, $unidade = false): int {   // 1.06: $unidade = false usa a do aparelho que fez o pedido
+  db()->prepare('INSERT INTO registros (quando, tipo, crianca_id, nome, texto, unidade_id) VALUES (?, ?, ?, ?, ?, ?)')->execute([$quando ?: agora(), $tipo, $criancaId, $nome, $texto, $unidade === false ? unidadeDoPedido() : ($unidade ? (int)$unidade : null)]);
   return (int)db()->lastInsertId();
 }
 function crianca(int $id): ?array { $q = db()->prepare('SELECT * FROM criancas WHERE id = ?'); $q->execute([$id]); return $q->fetch() ?: null; }
@@ -407,8 +428,8 @@ function crianca(int $id): ?array { $q = db()->prepare('SELECT * FROM criancas W
 function modoManual(): bool { $c = cfg('idface', null); return is_array($c) && array_key_exists('ligado', $c) && !$c['ligado']; }
 function fazerEntrada(array $c, string $origem = 'iDFace', ?string $quando = null): array {
   $db = db(); $quando = $quando ?: agora();
-  $db->prepare('UPDATE criancas SET entrou = ? WHERE id = ?')->execute([$quando, $c['id']]);
-  $c['entrou'] = $quando;
+  $db->prepare('UPDATE criancas SET entrou = ?, unidade_id = ? WHERE id = ?')->execute([$quando, unidadeDoPedido(), $c['id']]);   // 1.06: a unidade do aparelho em que a entrada foi dada (o iDFace não diz: fica sem)
+  $c['entrou'] = $quando; $c['unidade_id'] = unidadeDoPedido();
   $reg = registrar('ent', (int)$c['id'], $c['nome'], $origem === 'iDFace' ? 'Rosto reconhecido na entrada' : (modoManual() ? 'Entrada registrada' : 'Entrada registrada à mão'), $quando);
   $msg = null;
   if (regra()['autoMsg'] !== 'nao') {
@@ -483,7 +504,7 @@ function fazerSaida(array $c, string $origem = 'iDFace', ?string $quando = null)
   if (acertarCobrancas($c, $quando)) $c = crianca((int)$c['id']);   // passou do tempo sem nenhuma tela aberta: a cobrança por atraso é gerada agora
   if (desfazerCobrancasSobrando($c, $quando)['n']) $c = crianca((int)$c['id']);   // 1.00: o que o cliente comprou durante a visita cobre o tempo: a cobrança por atraso que sobrou é desfeita
   $min = minutosDaVisita($c, strtotime($quando)); $deb = min(cobrar($min), restante($c)); $atraso = atrasoDaVisita((int)$c['id'], (string)$c['entrou']);   // nunca debita mais do que há (a cobrança por atraso já cobriu o que faltava)
-  $db->prepare('INSERT INTO visitas (crianca_id, entrou, saiu, debitado_min, origem) VALUES (?, ?, ?, ?, ?)')->execute([$c['id'], $c['entrou'], $quando, $deb, $origem]);
+  $db->prepare('INSERT INTO visitas (crianca_id, entrou, saiu, debitado_min, origem, unidade_id) VALUES (?, ?, ?, ?, ?, ?)')->execute([$c['id'], $c['entrou'], $quando, $deb, $origem, $c['unidade_id'] ?? null]);   // 1.06: a visita fica com a unidade em que a criança entrou
   $visita = (int)$db->lastInsertId();
   $sap = isset($c['sapateira']) && $c['sapateira'] !== null ? (int)$c['sapateira'] : 0;   // a sapateira fica livre na saída
   $db->prepare('UPDATE criancas SET entrou = NULL, usado_min = usado_min + ?, sapateira = NULL WHERE id = ?')->execute([$deb, $c['id']]);
@@ -579,14 +600,16 @@ function fazerVenda(array $c, int $min, float $valor, ?int $por, string $itens =
   }
   $prod = (int)($mais['produto'] ?? 0); $qtd = $prod > 0 ? max(1, (int)($mais['qtd'] ?? 1)) : 0;   // venda de produto: qual e quantos (o estoque acompanha)
   $alug = $prod ? '' : mb_substr((string)($mais['alug'] ?? ''), 0, 40); if ($alug !== '') $qtd = max(1, (int)($mais['qtd'] ?? 1));   // o que sai e volta: qual serviço e quantos saíram
-  $db->prepare('INSERT INTO vendas (crianca_id, horas, minutos, valor, quando, por, itens, servico, auto, voucher, pcd, cheio, produto_id, qtd, alug, alug_min) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-    ->execute([$c['id'], round($min / 60, 2), $min, $valor, agora(), $por, $itens, $servico, $auto ? 1 : 0, (string)($mais['voucher'] ?? ''), empty($mais['pcd']) ? 0 : 1, $mais['cheio'] ?? null, $prod ?: null, $qtd, $alug, $alug !== '' ? max(0, (int)($mais['alug_min'] ?? 0)) : 0]);
+  $daVisita = !empty($c['entrou']) && isset($c['unidade_id']) && $c['unidade_id'] !== null ? (int)$c['unidade_id'] : null;
+  $uni = $auto ? $daVisita : (unidadeDoPedido() ?? $daVisita);   // 1.06: a unidade do aparelho que vendeu; a cobrança por atraso (que nasce sozinha) fica com a da visita
+  $db->prepare('INSERT INTO vendas (crianca_id, horas, minutos, valor, quando, por, itens, servico, auto, voucher, pcd, cheio, produto_id, qtd, alug, alug_min, unidade_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    ->execute([$c['id'], round($min / 60, 2), $min, $valor, agora(), $por, $itens, $servico, $auto ? 1 : 0, (string)($mais['voucher'] ?? ''), empty($mais['pcd']) ? 0 : 1, $mais['cheio'] ?? null, $prod ?: null, $qtd, $alug, $alug !== '' ? max(0, (int)($mais['alug_min'] ?? 0)) : 0, $uni]);
   $venda = (int)$db->lastInsertId();
   if ($prod) mexerEstoque($prod, $qtd, -1);
   $dinheiro = 'R$ ' . number_format($valor, fmod($valor, 1) ? 2 : 0, ',', '.');
   if ($servico !== '') $texto = $servico . ($min > 0 ? ' · ' . dur($min) : '') . ($itens !== '' ? ' · ' . $itens : '') . ' · ' . $dinheiro;
   else $texto = $min > 0 ? nomePacoteVenda($min, $itens) . ' vendido · ' . $dinheiro : $itens . ' · ' . $dinheiro;
-  $reg = $auto ? registrar('cobr', (int)$c['id'], $c['nome'], $textoAuto !== '' ? $textoAuto : $texto) : registrar('venda', (int)$c['id'], $c['nome'], $texto);
+  $reg = $auto ? registrar('cobr', (int)$c['id'], $c['nome'], $textoAuto !== '' ? $textoAuto : $texto, null, $uni) : registrar('venda', (int)$c['id'], $c['nome'], $texto, null, $uni);
   $db->prepare('UPDATE vendas SET registro = ? WHERE id = ?')->execute([$reg, $venda]);
   return ['venda' => $venda, 'registro' => $reg];
 }
@@ -837,12 +860,12 @@ function pulsoCupons(): string {
 // Uma linha por criança e serviço: vender mais um período do mesmo carrinho soma o tempo na mesma linha; mais unidades (valor único) somam a quantidade.
 // Devolve [{ id, crianca, s (o serviço), n (o nome), q (quantos), min (tempo comprado; 0 = sem hora para voltar), ini (quando saiu), vendas }]
 function alugueis(?int $criancaId = null, ?string $servico = null): array {
-  $sql = "SELECT v.id, v.crianca_id, v.alug, v.alug_min, v.qtd, v.servico, v.quando, v.valor - COALESCE((SELECT SUM(p.valor) FROM pagamentos p WHERE p.venda_id = v.id), 0) AS falta FROM vendas v JOIN criancas c ON c.id = v.crianca_id AND c.ativo = 1 WHERE v.alug != '' AND v.voltou IS NULL";
+  $sql = "SELECT v.id, v.crianca_id, v.alug, v.alug_min, v.qtd, v.servico, v.quando, v.unidade_id, v.valor - COALESCE((SELECT SUM(p.valor) FROM pagamentos p WHERE p.venda_id = v.id), 0) AS falta FROM vendas v JOIN criancas c ON c.id = v.crianca_id AND c.ativo = 1 WHERE v.alug != '' AND v.voltou IS NULL";
   $arg = []; if ($criancaId !== null) { $sql .= ' AND v.crianca_id = ?'; $arg[] = $criancaId; } if ($servico !== null) { $sql .= ' AND v.alug = ?'; $arg[] = $servico; }
   $q = db()->prepare($sql . ' ORDER BY v.id'); $q->execute($arg); $g = [];
   foreach ($q->fetchAll() as $v) {
     $k = (int)$v['crianca_id'] . '-' . $v['alug']; $m = (int)$v['alug_min'];
-    if (!isset($g[$k])) $g[$k] = ['id' => $k, 'crianca' => (int)$v['crianca_id'], 's' => (string)$v['alug'], 'n' => (string)$v['servico'], 'q' => 0, 'min' => 0, 'ini' => $v['quando'], 'vendas' => [], 'pend' => 0.0];
+    if (!isset($g[$k])) $g[$k] = ['id' => $k, 'crianca' => (int)$v['crianca_id'], 's' => (string)$v['alug'], 'n' => (string)$v['servico'], 'q' => 0, 'min' => 0, 'ini' => $v['quando'], 'vendas' => [], 'pend' => 0.0, 'uni' => $v['unidade_id'] === null ? null : (int)$v['unidade_id']];   // 1.06: uni = a unidade de onde saiu
     $g[$k]['pend'] = round($g[$k]['pend'] + max(0.0, (float)$v['falta']), 2);   // 1.02: o que ainda não foi pago (o cliente ficou de pagar na devolução)
     $g[$k]['min'] += $m; $g[$k]['q'] = $m > 0 ? max(1, $g[$k]['q']) : $g[$k]['q'] + max(1, (int)$v['qtd']); $g[$k]['vendas'][] = (int)$v['id'];
   }

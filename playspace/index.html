@@ -102,33 +102,10 @@ svg { display: block; }
 @keyframes pulsa-ab { 0% { box-shadow: 0 0 0 0 rgba(226, 91, 63, .5); } 70%, 100% { box-shadow: 0 0 0 12px rgba(226, 91, 63, 0); } }
 .barra button b { position: absolute; top: 1px; right: calc(50% - 22px); min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--coral); color: #fff; font-size: 10px; display: flex; align-items: center; justify-content: center; }
 .fab { position: fixed; z-index: 21; right: max(18px, env(safe-area-inset-right, 0px)); bottom: calc(88px + env(safe-area-inset-bottom, 0px)); width: 58px; height: 58px; border-radius: 20px; background: var(--coral); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 12px 28px rgba(226, 91, 63, .35); }
-.fab > svg { position: relative; z-index: 1; }
-.fab .bicho { position: absolute; left: 50%; bottom: 100%; width: 44px; height: 32px; margin-left: -22px; margin-bottom: -8px; z-index: 0; transform: translateY(100%); animation: espia-fab 11s ease-in-out infinite; pointer-events: none; }
-.fab .bicho svg { width: 100%; height: 100%; overflow: visible; }
-.fab .bicho.passarinho { animation-delay: 3s; }
-@keyframes espia-fab { 0%, 60%, 100% { transform: translateY(100%); } 66%, 84% { transform: translateY(14%); } 72% { transform: translateY(10%) rotate(-4deg); } 78% { transform: translateY(12%) rotate(4deg); } }
 .fab-ancora { display: contents; }
 @media (min-width: 820px) {
   .fab-ancora { display: none !important; }                                   /* no computador o + mora no trilho, em cima do selo da conta */
   .trilho .fab { position: relative; inset: auto; width: 56px; height: 56px; border-radius: 18px; margin-bottom: 14px; box-shadow: 0 10px 22px rgba(226, 91, 63, .28); flex: none; }
-  .trilho .fab .bicho { width: 42px; height: 30px; margin-left: -21px; animation: passaro-voo 18s ease-in-out 4s infinite; transform-origin: 50% 100%; }
-  :root[data-whats="nao"] .trilho .fab .bicho { animation: espia-fab 11s ease-in-out 3s infinite; }   /* sem a aba do WhatsApp, o passarinho só espia */
-}
-/* no trilho, de tempos em tempos o passarinho sai de trás do +, voa até o balãozinho do WhatsApp, bica três vezes e volta.
-   A altura do voo (--voo-y) é medida na tela, porque depende de onde o balãozinho está. */
-@keyframes passaro-voo {
-  0%, 30% { transform: translate(0, 100%) rotate(0); }
-  34% { transform: translate(0, 14%) rotate(0); }
-  36% { transform: translate(0, 10%) rotate(-10deg); }
-  41% { transform: translate(-10px, calc(var(--voo-y, -200px) + 14px)) rotate(8deg); }
-  44%, 46% { transform: translate(-8px, var(--voo-y, -200px)) rotate(0); }
-  48% { transform: translate(-8px, var(--voo-y, -200px)) rotate(26deg); } 50% { transform: translate(-8px, var(--voo-y, -200px)) rotate(2deg); }
-  52% { transform: translate(-8px, var(--voo-y, -200px)) rotate(26deg); } 54% { transform: translate(-8px, var(--voo-y, -200px)) rotate(2deg); }
-  56% { transform: translate(-8px, var(--voo-y, -200px)) rotate(26deg); } 58%, 62% { transform: translate(-8px, var(--voo-y, -200px)) rotate(0); }
-  64% { transform: translate(-6px, calc(var(--voo-y, -200px) - 10px)) rotate(-8deg); }
-  69% { transform: translate(0, 10%) rotate(6deg); }
-  72% { transform: translate(0, 14%) rotate(0); }
-  76%, 100% { transform: translate(0, 100%) rotate(0); }
 }
 .fab-ancora[hidden] { display: none; }
 .toast { position: fixed; z-index: 60; left: 50%; bottom: calc(100px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 20px); background: var(--tinta); color: var(--creme); padding: 11px 18px; border-radius: 999px; font-weight: 700; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .3s, transform .45s var(--spring); max-width: calc(100% - 32px); text-align: center; display: flex; align-items: center; gap: 14px; }
@@ -164,6 +141,19 @@ body.so .rodape-global { display: none; }
 .faixa .relogio span { display: block; font: 700 12px/1.2 var(--texto); color: var(--tinta-2); }
 .faixa .relogio span::first-letter { text-transform: uppercase; }
 @media (max-width: 560px) { .faixa .relogio { flex: 1; } }
+/* 1.06: a unidade deste aparelho, ao lado do título da tela inicial; e a folha de escolher a unidade */
+.faixa .tit-l { display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; }
+.uni-bt { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; height: 30px; padding: 0 13px 0 10px; border-radius: 999px; border: 1.5px solid var(--coral); background: transparent; color: var(--coral); font: 800 12px/1 var(--texto); letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+.uni-bt > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; } .uni-bt > svg { flex: none; }
+.uni-bt.falta { border-color: var(--mostarda); background: var(--aviso-bg); color: var(--aviso); animation: pulsa-uni 2.2s ease-in-out infinite; }
+@keyframes pulsa-uni { 0%, 100% { box-shadow: 0 0 0 0 rgba(240, 187, 95, .55); } 60% { box-shadow: 0 0 0 9px rgba(240, 187, 95, 0); } }
+:root[data-anim="leve"] .uni-bt.falta { animation: none; }
+.uni-lista { display: grid; gap: 8px; }
+.uni-op { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 8px 14px; border: 2px solid var(--borda); border-radius: 16px; background: var(--card); color: var(--tinta); text-align: left; }
+.uni-op > i { flex: none; width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--borda-2); }
+.uni-op > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; } .uni-op b { font: 800 16px/1.2 var(--display); overflow-wrap: anywhere; } .uni-op small { font-size: 12px; font-weight: 700; color: var(--tinta-2); }
+.uni-op[aria-checked="true"] { border-color: var(--ok); background: var(--ok-bg); color: var(--ok); } .uni-op[aria-checked="true"] > i { border-color: currentColor; background: radial-gradient(circle, currentColor 0 42%, transparent 46%); }
+.uni-op[disabled] { opacity: .8; cursor: default; }
 .versao.nova svg { animation: gira 1.6s linear infinite; }
 .versao.ocupado svg { animation: gira .9s linear infinite; }
 @keyframes gira { to { transform: rotate(360deg); } }
@@ -837,7 +827,7 @@ body.quieto .dica { animation: none !important; }
 .esp-it .sel.avulso { background: var(--mostarda-2); border-color: var(--mostarda); }
 .esp-cab.lst .dias { order: -1; flex: 0 1 auto; min-width: 0; max-width: 100%; }
 .esp-lst { background: var(--card); border: 1px solid var(--borda); border-radius: 20px; box-shadow: var(--sombra); overflow: hidden; }
-.esp-lst .esp-cabec, .esp-lst .esp-it { display: grid; grid-template-columns: 16px minmax(0, 1.2fr) minmax(0, 1.25fr) minmax(0, 1.3fr) 86px 54px 84px 100px 112px; grid-template-rows: auto; column-gap: 14px; row-gap: 0; align-items: center; align-content: center; padding: 0 12px 0 18px; }
+.esp-lst .esp-cabec, .esp-lst .esp-it { display: grid; grid-template-columns: 16px minmax(0, 1.2fr) minmax(0, 1.25fr) minmax(0, 1.3fr) minmax(0, .9fr) 54px 84px 100px 112px; grid-template-rows: auto; column-gap: 14px; row-gap: 0; align-items: center; align-content: center; padding: 0 12px 0 18px; }
 .esp-lst .esp-cabec { height: 36px; background: var(--menta-risco); font: 800 11px/1 var(--texto); letter-spacing: .08em; text-transform: uppercase; color: var(--tinta-2); } .esp-lst .esp-cabec .d { text-align: right; }
 .esp-lst .esp-it { height: 48px; border: 0; border-top: 1px solid var(--borda); border-radius: 0; background: transparent; box-shadow: none; }
 .esp-lst .esp-it.acabando, .esp-lst .esp-it.passou, .esp-lst .esp-it.cobranca { box-shadow: none; border-color: var(--borda); }
@@ -852,8 +842,9 @@ body.quieto .dica { animation: none !important; }
 .esp-lst .esp-it .tmp { grid-column: 7; grid-row: 1; align-self: center; font-size: 17px; }
 .esp-lst .esp-it .at { grid-column: 8; grid-row: 1; align-self: center; text-align: left; font-size: 12px; }
 .esp-lst .esp-it .acoes-e { grid-column: 9; grid-row: 1; justify-self: end; }
-.esp-it > .pgc, .esp-it .pg-m { display: none; }   /* 1.02: o selo PAGO / NÃO PAGO: uma coluna na lista; no celular vai para a linha do responsável */
-.esp-lst .esp-it > .pgc { display: block; grid-column: 5; grid-row: 1; position: relative; cursor: pointer; }
+.esp-it > .un, .esp-it .un-m { display: none; }   /* 1.06: a unidade em que a criança está: uma coluna na lista, no lugar do selo de pagamento */
+.esp-lst .esp-it > .un { display: block; grid-column: 5; grid-row: 1; position: relative; cursor: pointer; min-width: 0; font-size: 12px; font-weight: 800; letter-spacing: .03em; color: var(--tinta-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.esp-lst .esp-it > .un.sem { font-weight: 700; color: var(--apagado); }
 .esp-lst .esp-fam { display: block; padding: 0; gap: 0; background: none; border-radius: 0; }
 .esp-lst .esp-fam > .esp-it { flex: none; height: 48px; border: 0; border-top: 1px solid var(--borda); }
 .esp-lst .esp-fam > .esp-it, .esp-lst .esp-fam > .esp-it:first-child, .esp-lst .esp-fam > .esp-it:last-child { border-radius: 0; }
@@ -868,7 +859,7 @@ body.quieto .dica { animation: none !important; }
 @container (max-width: 900px) {   /* tela menor, ou o histórico do cliente aberto ao lado: o responsável vai para baixo do nome e a hora da entrada sai */
   .esp-lst .esp-cabec { display: none; }
   .esp-lst .esp-it, .esp-lst .esp-fam > .esp-it { grid-template-columns: 16px minmax(0, 1.5fr) minmax(0, 1fr) auto auto auto; grid-template-rows: 20px 16px; row-gap: 1px; column-gap: 12px; height: 54px; }
-  .esp-lst .esp-it > .pgc { grid-column: 4; grid-row: 1 / span 2; }
+  .esp-lst .esp-it > .un { grid-column: 4; grid-row: 1 / span 2; max-width: 120px; }
   .esp-lst .esp-it > .pt { grid-row: 1 / span 2; } .esp-lst .esp-it .l2 { grid-column: 2; grid-row: 2; font-size: 12px; line-height: 16px; }
   .esp-lst .esp-it > .sv { grid-column: 3; grid-row: 1 / span 2; } .esp-lst .esp-it > .en { display: none; }
   .esp-lst .esp-it .tmp { grid-column: 5; grid-row: 1; align-self: end; font-size: 16px; line-height: 1.1; } .esp-lst .esp-it .at { grid-column: 5; grid-row: 2; align-self: start; text-align: right; font-size: 11px; }
@@ -877,7 +868,7 @@ body.quieto .dica { animation: none !important; }
 @container (max-width: 560px) {   /* celular: o serviço vai para a linha do responsável ("MARIANA SOUZA · AVULSA") */
   .esp-lst .esp-it, .esp-lst .esp-fam > .esp-it { grid-template-columns: 16px minmax(0, 1fr) auto auto; column-gap: 9px; padding: 0 8px 0 12px; }
   .esp-lst .esp-it > .sv { display: none; } .esp-lst .esp-it .sv-m { display: inline; font-style: normal; font-weight: 800; color: var(--tinta); letter-spacing: .02em; }
-  .esp-lst .esp-it > .pgc { display: none; } .esp-lst .esp-it .pg-m { display: inline-block; margin-right: 6px; font-size: 9px; line-height: 14px; padding: 0 6px; vertical-align: 1px; }   /* no celular o selo vai para a linha do responsável */
+  .esp-lst .esp-it > .un { display: none; } .esp-lst.varias .esp-it .un-m { display: inline; font-style: normal; font-weight: 800; color: var(--coral); letter-spacing: .02em; }   /* no celular a unidade só aparece na linha quando a lista mistura mais de uma (ela já está no alto da tela) */
   .esp-lst .esp-it .tmp, .esp-lst .esp-it .at { grid-column: 3; } .esp-lst .esp-it .acoes-e { grid-column: 4; }
 }
 /* 0.97: copiar o CPF, e os clientes pelo começo do CPF no cadastro */
@@ -899,14 +890,9 @@ body.quieto .dica { animation: none !important; }
 @media (max-width: 480px) { .lz-n { grid-template-columns: repeat(2, 1fr); } }
 .marca.lz-sai { background: var(--erro-bg, #FBE3DC); } .marca.lz-sai svg { color: var(--erro); }
 .bt.perigo { background: var(--erro); color: #fff; } .lz-pe { display: flex; flex-direction: column; gap: 8px; }
-/* 1.02: pago ou não pago */
-.pg { flex: none; display: inline-block; font-style: normal; font-size: 10.5px; font-weight: 800; letter-spacing: .05em; line-height: 1.4; border-radius: 999px; padding: 2px 9px; white-space: nowrap; }
-.pg.sim { background: var(--ok-bg); color: var(--ok); border: 1px solid var(--ok); }
-.pg.nao { background: var(--erro); color: #fff; border: 1px solid var(--erro); }
+/* 1.02: o que ficou a receber (1.06: sem os selos PAGO / NÃO PAGO) */
 b.np { color: var(--erro); letter-spacing: .03em; }
 .marca.f-receber > span { flex: 1; min-width: 0; } .marca.f-receber > .bt { flex: none; background: var(--coral); color: #fff; }
-.f-pills { display: inline-flex; gap: 6px; flex: none; } .f-pills:empty { display: none; }
-.marca.alug-f .pg { margin-left: 4px; vertical-align: 1px; }
 /* 1.02: a ficha mais limpa */
 .obs-cx:not(.tem):not(.aberta) { border: 0; padding: 0; background: none; } .obs-cx:not(.tem):not(.aberta) .obs-dica { display: none; }
 .acoes > .obs-cx { flex: none; } .acoes > .obs-cx.aberta { flex: 1 1 100%; }   /* sem observação, o OBS fica na fileira dos botões; aberto, ganha a linha inteira */
@@ -935,7 +921,7 @@ b.np { color: var(--erro); letter-spacing: .03em; }
 .papel { width: 72mm; max-width: 100%; box-sizing: border-box; padding: 2mm 0 5mm; background: #fff; color: #000; font: 600 12.5px/1.4 Arial, Helvetica, sans-serif; letter-spacing: 0; text-transform: none; text-align: left; }
 .papel .c-logo { display: block; width: 30mm; margin: 0 auto 2mm; } .papel .c-logo svg { display: block; width: 100%; height: auto; } .papel .c-logo.cor { display: none; }   /* no papel vai a logo em preto e branco */
 .papel .c-via { margin: 2mm 0 1.6mm; padding: .9mm 0; text-align: center; font-weight: 700; letter-spacing: .08em; border-top: 1px solid #000; border-bottom: 1px solid #000; }
-.papel p { margin: 0; overflow-wrap: anywhere; } .papel .c-loja { font-size: 14.5px; font-weight: 700; } .papel .c-tit { font-weight: 700; } .papel .c-esp { height: 3.4mm; }
+.papel p { margin: 0; overflow-wrap: anywhere; } .papel .c-loja { font-size: 14.5px; font-weight: 700; } .papel .c-tit { font-weight: 700; } .papel .c-esp { height: 3.4mm; } .papel .c-uni { font-weight: 700; letter-spacing: .04em; }
 .papel .c-linha { display: flex; justify-content: space-between; gap: 8px; } .papel .c-linha span:last-child { white-space: nowrap; flex: none; }
 .papel .c-total { font-weight: 700; border-top: 1px dashed #000; margin-top: 1mm; padding-top: 1mm; }
 .papel .c-assina { margin-top: 11mm; border-bottom: 1px dashed #000; padding-bottom: .6mm; } .papel .c-aviso { margin-top: 2mm; font-size: 11.5px; }
@@ -946,7 +932,7 @@ b.np { color: var(--erro); letter-spacing: .03em; }
 .papel-previa .papel { --dente: 12px; width: 66mm; padding: 5mm 4.5mm 9mm; background: linear-gradient(#FFF6DA, #FCEFC9); color: #4A3F33; font: 700 12px/1.45 var(--texto); border-radius: 16px 16px 0 0;
   -webkit-mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / var(--dente) 100%; mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / var(--dente) 100%; }
 .papel-previa .papel .c-logo { width: 24mm; } .papel-previa .papel .c-logo.cor { display: block; } .papel-previa .papel .c-logo.pb { display: none; }
-.papel-previa .papel .c-loja { text-align: center; font: 800 15px/1.2 var(--display); color: #3B3229; } .papel-previa .papel .c-fone { text-align: center; }
+.papel-previa .papel .c-loja { text-align: center; font: 800 15px/1.2 var(--display); color: #3B3229; } .papel-previa .papel .c-fone, .papel-previa .papel .c-uni { text-align: center; }
 .papel-previa .papel .c-via { border: 0; margin: 2.4mm auto 2.4mm; padding: 1mm 3.5mm; width: max-content; max-width: 100%; border-radius: 999px; background: #3B3229; color: #FFF6DA; font-size: 10.5px; }
 .papel-previa .papel.cliente .c-via { background: var(--coral); color: #fff; }
 .papel-previa .papel .c-total, .papel-previa .papel .c-assina { border-color: #B9A070; } .papel-previa .papel .c-aviso { color: #6B5D4A; }
@@ -955,7 +941,7 @@ b.np { color: var(--erro); letter-spacing: .03em; }
   body.imprimindo { background: #fff !important; margin: 0 !important; padding: 0 !important; }
   body.imprimindo > *:not(#cupom-print) { display: none !important; }
   body.imprimindo #cupom-print { position: static; width: 72mm; margin: 0 4mm; }
-  body.imprimindo #cupom-print .papel .c-loja, body.imprimindo #cupom-print .papel .c-fone { text-align: center; }
+  body.imprimindo #cupom-print .papel .c-loja, body.imprimindo #cupom-print .papel .c-fone, body.imprimindo #cupom-print .papel .c-uni { text-align: center; }
 }
 /* 0.93: o cupom fiscal de cada pagamento */
 .cupons-ch b { background: var(--mostarda); color: #3B3B3B; } .cupons-ch.alerta b { background: var(--erro); color: #fff; }
@@ -1141,7 +1127,7 @@ details.outro > summary::before { content: "+ "; } details.outro[open] > summary
 .a-hero .anel.chegou, body.quieto .a-hero .anel.chegou { animation: chegou .8s var(--spring) !important; }
 .a-hero .anel.chegou .r { box-shadow: 0 0 0 6px rgba(63, 143, 94, .25); transition: box-shadow 1.2s; }
 /* ---------- bonequinhos quietos (o aparelho pede menos movimento, ou foi escolhido em Ajustes): cada um parado na sua pose ---------- */
-:root[data-anim="leve"] .pers, :root[data-anim="leve"] .pers *, :root[data-anim="leve"] .galope, :root[data-anim="leve"] .galope *, :root[data-anim="leve"] .fab .bicho, :root[data-anim="leve"] .com-urso .espia { animation: none !important; }
+:root[data-anim="leve"] .pers, :root[data-anim="leve"] .pers *, :root[data-anim="leve"] .galope, :root[data-anim="leve"] .galope *, :root[data-anim="leve"] .com-urso .espia { animation: none !important; }
 :root[data-anim="leve"] .pers .chama, :root[data-anim="leve"] .pers .coelho, :root[data-anim="leve"] .pers .cavalo, :root[data-anim="leve"] .pers .urso, :root[data-anim="leve"] .galope { display: none; }
 /* ---------- redesenho silencioso (sincronia): nada entra deslizando ---------- */
 body.quieto .a-card, body.quieto .conv, body.quieto .oficina, body.quieto .tiles .tile, body.quieto .a-hero .anel, body.quieto .sobe, body.quieto .anel .r { animation: none !important; }
@@ -1204,7 +1190,7 @@ body.quieto .a-card, body.quieto .conv, body.quieto .oficina, body.quieto .tiles
 <body>
 <div class="app">
   <aside class="trilho"><nav id="nav-lado"></nav></aside>
-  <main class="conteudo"><div class="miolo" id="miolo"></div><div class="fab-ancora" id="fab-ancora"><button type="button" class="fab tap" id="fab" data-act="nova" aria-label="Cadastrar criança" title="Cadastrar criança"><span class="bicho passarinho" aria-hidden="true"><svg viewBox="0 0 60 44"><ellipse cx="30" cy="30" rx="17" ry="13" fill="#8FBFB0"/><circle cx="40" cy="20" r="10" fill="#8FBFB0"/><path d="M49 20 L58 23 L49 26Z" fill="#F0BB5F"/><circle cx="43" cy="18" r="1.8" fill="#3B3B3B"/><path d="M22 30 q-8 -6 -2 -12" stroke="#6FA394" stroke-width="4" stroke-linecap="round" fill="none"/><path d="M40 10 q2 -6 6 -4" stroke="#6FA394" stroke-width="2.5" stroke-linecap="round" fill="none"/></svg></span><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button></div><p class="rodape rodape-global" id="rodape-global"></p></main>
+  <main class="conteudo"><div class="miolo" id="miolo"></div><div class="fab-ancora" id="fab-ancora"><button type="button" class="fab tap" id="fab" data-act="nova" aria-label="Cadastrar criança" title="Cadastrar criança"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button></div><p class="rodape rodape-global" id="rodape-global"></p></main>
   <aside class="hoje"><div id="hoje"></div></aside>
 </div>
 <nav class="barra" id="nav-baixo" aria-label="Menu"></nav>
@@ -1280,6 +1266,7 @@ const IC = {
   entrar: '<path d="M14 7l-5 5 5 5M9 12h12M3 4v16"/>',
   mais: '<path d="M12 5v14M5 12h14"/>',
   desconto: '<path d="M19 5L5 19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>',
+  pino: '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>',
   x: '<path d="M6 6l12 12M18 6L6 18"/>',
   volta: '<path d="M15 5l-7 7 7 7"/>',
   vai: '<path d="M9 5l7 7-7 7"/>',
@@ -1301,7 +1288,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.05';
+const VERSAO = '1.06';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -1335,6 +1322,7 @@ const S = {
   cfg: { tolerancia: 9, tolCupom: 5, fecha: 22, pcdDesc: 50, aviso: 10, autoMsg: 'nao', bloqueioAuto: 'sim', cupomLoja: 'PLAY SPACE', cupomTel: '', pacotes: [{ h: 2, v: 280, tipo: 'seco', nome: '02 HORAS 260' }, { h: 3, v: 225, tipo: 'seco', nome: '03 HORAS 360' }, { h: 4, v: 380, tipo: 'seco', nome: '04 HORAS 420' }, { h: 5, v: 390, tipo: 'seco', nome: '05 HORAS 360 ESPECIAL' }, { h: 5, v: 420, tipo: 'seco', nome: 'PACOTE 05 HORAS 420' }, { h: 5, v: 480, tipo: 'seco', nome: '05 HORAS 450' }, { h: 5, v: 500, tipo: 'seco', nome: '05 HORAS 380' }, { h: 10, v: 820, tipo: 'seco', nome: '10 HORAS 840' }], servicos: [{ id: 'recreacao', n: 'RECREAÇÃO', v: 80, modo: 'periodo', min: 30, banco: true, obs: '', volta: false }, { id: 'fusquinha', n: 'CARRINHO FUSQUINHA', v: 15, modo: 'periodo', min: 30, banco: false, obs: '', volta: true }, { id: 'bebe', n: 'CARRINHO DE BEBÊ', v: 30, modo: 'fixo', min: 0, banco: false, obs: 'DAS 10H ÀS 22H', volta: true }], sapateiras: 44, cancelaMin: 9, reabreMin: 30, idface: { ip: '192.168.0.129', nome: 'Recepção', ligado: false, ultima: antes(0.2) }, tema: lido('ps-tema', 'sistema'), anim: lido('ps-anim', 'auto') }, espOrdem: lido('ps-esp-ordem', 'tempo'),
   equipe: [{ id: 1, nome: 'Camila Duarte', papel: 'gestor', login: 'camila' }, { id: 2, nome: 'Beatriz Lima', papel: 'supervisor', login: 'bia' }, { id: 3, nome: 'João Pedro', papel: 'atendente', login: 'jp' }],
   whats: { conectado: true, numero: '5511912345678', nome: 'Play Space' }, vendasHoje: null, importacao: null,
+  unidades: [{ id: 1, nome: 'ANÁLIA FRANCO', ativo: true }, { id: 2, nome: 'MORUMBI', ativo: true }],   // 1.06: as unidades (na prévia, as duas de fábrica)
   // os produtos da loja (na prévia, os mesmos que a migração 16 instala no servidor). est = estoque; null = a loja não controla o estoque desse produto
   produtos: [{ id: 1, n: 'Amigurumi', v: 320, est: 8 }, { id: 2, n: 'Boneca articulada', v: 150, est: 19 }, { id: 3, n: 'Boneca articulada', v: 230, est: 40 }, { id: 4, n: 'Kit bijoux', v: 230, est: 10 }, { id: 5, n: 'Kit laço', v: 260, est: 8 }, { id: 6, n: 'Maleta', v: 350, est: 20 }, { id: 7, n: 'Maquiagem', v: 160, est: 4 }],
   criancas: [
@@ -1400,6 +1388,7 @@ RASC[6] = { n: 'Davi', q: { fusquinha: 1 }, pac: [], vq: 0, item: '', valor: '',
 // as entradas canceladas sem cobrar (prévia): uma de hoje, ainda para a supervisão conferir
 S.cancelamentos = [{ id: novoId(), crianca: 5, nome: 'Laura', resp: 'Bruno', entrou: antes(76), quando: antes(70), min: 6, valor: 80, itens: [{ n: 'RECREAÇÃO · 0h30', m: 30, v: 80 }], motivo: 'A criança chorou e não quis ficar', por: 'João Pedro', papel: 'atendente', fora: false, visto_por: '', visto_em: null }];
 nomesEmMaiusculas(); for (const id in RASC) RASC[id].n = MAI(RASC[id].n);   // (prévia) os exemplos também em maiúsculas
+for (const c of S.criancas) if (c.entrou) c.uni = 1; for (const v of S.compras) if (v.alug && !v.uni) v.uni = 1;   // (prévia) quem já está no espaço, e o carrinho que já saiu, estão na primeira unidade
 (function semear() {
   const y = S.mes.y, m = S.mes.m, d = dd => `${y}-${p2(m + 1)}-${p2(dd)}`;
   const add = (dia, hora, titulo, tipo, sub) => S.compromissos.push({ id: novoId(), dia, hora, titulo, tipo, sub: sub || '' });
@@ -1431,7 +1420,6 @@ const estFalta = (p, q = 0) => p.est != null && p.est - q < (q > 0 ? 0 : 1);   /
 let ABA_PP = 'pacotes';   // a aba aberta na folha "Pacotes e produtos"
 const TIPOS = { oficina: ['Oficina', 'var(--coral)'], festa: ['Festa', 'var(--pessego)'], compromisso: ['Compromisso', 'var(--mostarda)'], postagem: ['Postagem', 'var(--verde-agua)'] };
 const PAPEIS = { gestor: 'Gestor', supervisor: 'Supervisor', atendente: 'Atendente' };
-const PASSARINHO_FAB = `<span class="bicho passarinho" aria-hidden="true"><svg viewBox="0 0 60 44"><ellipse cx="30" cy="30" rx="17" ry="13" fill="#8FBFB0"/><circle cx="40" cy="20" r="10" fill="#8FBFB0"/><path d="M49 20 L58 23 L49 26Z" fill="#F0BB5F"/><circle cx="43" cy="18" r="1.8" fill="#3B3B3B"/><path d="M22 30 q-8 -6 -2 -12" stroke="#6FA394" stroke-width="4" stroke-linecap="round" fill="none"/><path d="M40 10 q2 -6 6 -4" stroke="#6FA394" stroke-width="2.5" stroke-linecap="round" fill="none"/></svg></span>`;
 // 0.89: o módulo do WhatsApp fica desligado (a loja não vai usar essa parte por agora). Nada foi apagado: com true aqui (e MODULO_WHATS = true em api/lib.php),
 // a aba, os botões "Chamar no WhatsApp", os avisos de renovar e os cartões dos Ajustes voltam
 const COM_WHATS = false;
@@ -1450,7 +1438,7 @@ let GZ = false;   // 1.01: o servidor manda a lista de cadastros comprimida e es
 async function conferirGz() { try { const r = await api('gz_teste', { gz: 1 }); GZ = !!r && typeof r.eco === 'string' && r.eco.length > 8000; } catch (e) { GZ = false; } }
 async function api(acao, dados = {}) {
   let r;
-  try { r = await fetch(API, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-Play': '1' }, body: JSON.stringify(GZ && acao === 'dados' ? { acao, ...dados, gz: 1 } : { acao, ...dados }) }); }
+  try { r = await fetch(API, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-Play': '1', ...(minhaUni() ? { 'X-Play-Unidade': String(minhaUni()) } : {}) }, body: JSON.stringify(GZ && acao === 'dados' ? { acao, ...dados, gz: 1 } : { acao, ...dados }) }); }
   catch (e) { const err = new Error('Sem ligação com o servidor'); err.rede = true; throw err; }
   let j = null; try { j = await r.json(); } catch (e) { const err = new Error('O servidor não respondeu em JSON'); err.rede = true; throw err; }
   if (!j.ok) { const err = new Error(j.erro || 'Erro no servidor'); err.status = r.status; if (r.status === 401 && acao !== 'entrar' && !document.body.classList.contains('so')) { clearInterval(SYNC_T); telaEntrar(); } throw err; }
@@ -1471,6 +1459,7 @@ async function carregar() { // devolve true quando algo mudou no servidor
     S.cfg = { ...S.cfg, ...d.regra, idface: { ...S.cfg.idface, ...d.idface } };
     S.equipe = d.equipe || [];
     S.produtos = d.produtos || [];
+    S.unidades = Array.isArray(d.unidades) ? d.unidades : [];   // 1.06: as unidades (as inativas vêm junto, para o nome das antigas)
     S.alugueis = (d.alugueis || []).map(a => ({ ...a, ini: dataDe(a.ini) }));
     S.cupons = (d.cupons || []).map(k => ({ ...k, quando: dataDe(k.quando), em: k.em ? dataDe(k.em) : null }));   // 0.93: o cupom fiscal de cada pagamento
     S.pagHoje = d.pagamentos_hoje || null;   // o que entrou por cada forma de pagamento nas últimas 24 h   // o que saiu da loja e ainda não voltou (carrinho, fusquinha)
@@ -1554,7 +1543,7 @@ function telaCriarGestor() {
     <div class="campo"><label for="g-senha">Senha (pelo menos 6 caracteres)</label><input id="g-senha" type="password" autocomplete="new-password"></div>
     <button class="bt forte largo tap" data-act="criar-gestor">${ic(IC.check)} Criar e entrar</button>`);
 }
-async function depoisDeEntrar() { lerEtapas(); await conferirGz(); await carregar(); desenhar(); conferirAtualizacao(false); oferecerLimpeza(); }
+async function depoisDeEntrar() { lerEtapas(); await conferirGz(); await carregar(); desenhar(); conferirAtualizacao(false); oferecerLimpeza(); lembrarUnidade(); }
 /* ---------- 0.98: limpar os cadastros (começar do zero) ---------- */
 // Para quando os testes acabam e a loja vai começar de verdade. Saem todos os cadastros (crianças e responsáveis, com as fotos) e o que
 // nasceu deles: horas, vendas, pagamentos, visitas e o movimento do dia. Ficam a equipe, a regra, os serviços, os pacotes, os produtos
@@ -2218,7 +2207,7 @@ async function saidaServidor(c, corr, pag, papel, dsc) {
     const at = r.atraso && r.atraso.n ? +r.atraso.valor || 0 : 0, pd = +r.pend || 0, dz = r.desc ? +r.desc.valor || 0 : 0;   // 1.04: dz = o desconto que o gestor deu nesta saída
     const txt = `${c.nome} saiu${corr ? ' às ' + corr.quando : ''} · ${dur(r.debitado)} debitados${pd > 0 ? ' · ' + (r.pago ? 'recebido ' + brl(centavos(pd + at - dz)) + ' (' + r.pago + ')' : brl(centavos(pd + at - dz)) + ' a receber') : at ? ' · ' + brl(centavos(at - dz)) + (r.pago ? ' de atraso recebido (' + r.pago + ')' : ' de atraso a receber') : ''}${dz > 0 ? ' · desconto de ' + brl(dz) : ''}${r.sapateira ? ' · sapato na sapateira ' + r.sapateira : ''}`;
     if (corr) toast(txt, () => folhaDia(), 'Ver o dia'); else toast(txt, async () => { try { await api('desfazer_saida', { id: c.id, visita: r.visita, registro: r.registro, mensagem: r.mensagem ? r.mensagem.id : 0, sapateira: r.sapateira || 0, ...(r.pag_de != null ? { pag_de: r.pag_de, pag_registro: r.pag_registro || 0 } : {}), ...(r.desc ? { desc: r.desc } : {}) }); await carregar(); } catch (e) { toast(e.message); } desenhar(); });
-    if (r.cupom) folhaCupom(r.cupom, true); else papelDepois(papel); }   // 0.94: recebeu na saída, sai o cupom da saída
+    if (r.cupom) folhaCupom(r.cupom, true); else papelDepois(papel); }   // 1.06: o cupom da saída sai sempre, para o responsável assinar
   catch (e) { toast(e.message); const b = $('#s-ok'); if (b) b.disabled = false; }
 }
 // o atendimento registra de uma vez o que foi escolhido: serviços (com a quantidade), pacotes e um item avulso.
@@ -2388,8 +2377,8 @@ const pagoDaCompra = v => { if (v.pago != null) return v.pago; const o = {}; for
 // o que entrou por cada forma nas últimas 24 h (em Hoje na recepção)
 const pagHoje = () => { if (MODO === 'servidor' && S.pagHoje) return S.pagHoje; const o = {}; for (const [f] of FORMAS) o[f] = 0; for (const p of S.pagamentos || []) if (agora - p.quando < 86400000) o[p.f] = centavos(o[p.f] + p.v); return o; };
 /* ---------- 1.02: pago ou não pago ---------- */
-// O cliente paga na entrada ou só na saída. O que foi registrado sem pagamento fica a receber: a tela mostra NÃO PAGO (e PAGO, em verde,
-// quando não falta nada), e o valor é recebido na saída da criança, na devolução do carrinho ou antes, pela ficha ("Receber").
+// O cliente paga na entrada ou só na saída. O que foi registrado sem pagamento fica a receber: o valor é recebido na saída da criança,
+// na devolução do carrinho ou antes, pela ficha ("Receber"). 1.06: os selos PAGO / NÃO PAGO saíram da tela (o dono decide depois como mostrar).
 // A cobrança por atraso continua com a conta dela: aparece na ficha e entra no que a saída recebe.
 const faltaCompra = v => Math.max(0, centavos(v.v - (S.pagamentos || []).filter(p => p.venda === v.id).reduce((t, p) => t + p.v, 0)));   // (prévia) quanto falta receber de uma compra
 const corteVisita = c => { const d0 = new Date(c.entrou && c.entrou < agora ? c.entrou : agora); d0.setHours(0, 0, 0, 0); let corte = +d0;   // de quando valem as compras "desta visita": hoje (ou o dia em que entrou, se ainda está no espaço), depois da última saída ou entrada cancelada
@@ -2404,14 +2393,12 @@ const atrasoValor = c => c && c.entrou && c.atraso ? centavos(+c.atraso.valor ||
 const aReceberDe = c => centavos(pendDe(c) + atrasoValor(c));   // tudo o que há para receber agora
 // no histórico do cliente: quanto falta receber de uma compra desta visita (o servidor manda pronto em v.np)
 const naoPagoDe = v => { if (MODO === 'servidor') return +v.np || 0; const c = crianca(v.crianca); if (!c) return 0; if (v.auto) return c.entrou && v.quando >= c.entrou ? faltaCompra(v) : 0; return pendentesPrevia(c).includes(v) ? faltaCompra(v) : 0; };
-const seloPago = pago => `<i class="pg ${pago ? 'sim' : 'nao'}">${pago ? 'PAGO' : 'NÃO PAGO'}</i>`;
 const comConta = c => !!c && (!!c.entrou || (S.alugueis || []).some(a => a.crianca === c.id));   // está no espaço, ou com um carrinho fora da loja: há o que estar pago ou não
-// na ficha: o selo PAGO fica no alto; quando falta receber, uma linha só, com o valor e o botão Receber
+// na ficha: quando falta receber, uma linha só, com o valor e o botão Receber (1.06: sem o selo Pago no alto)
 const chavePago = c => pendDe(c) + '|' + atrasoValor(c) + '|' + (comConta(c) ? 1 : 0);
-const seloFicha = c => comConta(c) && !(pendDe(c) > 0.004) ? '<span class="pill p-ok f-pago">Pago</span>' : '';
 function pagoFicha(c) {
   const pend = pendDe(c), at = atrasoValor(c), tot = centavos(pend + at); if (!(tot > 0.004)) return '';
-  const txt = pend > 0.004 ? `<b>Não pago</b> · ${brl(pend)}${at > 0 ? ' + atraso ' + brl(at) : ''}` : `<b>Atraso</b> · ${brl(at)} a receber`;
+  const txt = pend > 0.004 ? `<b>A receber</b> · ${brl(pend)}${at > 0 ? ' + atraso ' + brl(at) : ''}` : `<b>Atraso</b> · ${brl(at)} a receber`;
   return `<div class="marca canc f-receber">${ic(IC.sino, 18)}<span>${txt}</span><button class="bt forte tap" data-act="receber" data-id="${c.id}">Receber${pend > 0.004 && at > 0 ? ' ' + brl(tot) : ''}</button></div>`;
 }
 // Receber antes da saída: o que ficou a pagar (e as cobranças por atraso que já existem), com a forma de pagamento
@@ -2424,7 +2411,7 @@ async function folhaReceber(id) {
   } catch (e) { toast(e.message); return; }
   if (!(q.total > 0.004)) { toast(`Não há nada a receber de ${c.nome} agora`); if (MODO === 'servidor') { try { await carregar(); } catch (e) { } } desenhar(true); return; }
   REC = { id: c.id, total: centavos(q.total) };
-  const lr = (q.itens || []).map(i => ({ n: esc(i.n), sub: 'ainda não pago', meio: [esc(c.nome)], v: brl(i.v) }));
+  const lr = (q.itens || []).map(i => ({ n: esc(i.n), sub: 'a receber', meio: [esc(c.nome)], v: brl(i.v) }));
   if (q.atraso && q.atraso.n) lr.push({ n: `Atraso · mais ${dur(q.atraso.n * periodo())}`, sub: q.atraso.n === 1 ? 'uma cobrança por atraso' : q.atraso.n + ' cobranças por atraso', meio: [esc(c.nome)], v: brl(q.atraso.valor) });
   abrirFolha('Receber', `
     ${pgDetalhes(c)}
@@ -2541,7 +2528,7 @@ function abrirPagamento(id) {
     ${comHoras ? pgHoras(hm(saldo), '<i class="pg-mais">+</i>' + dur(min), hm(saldo + min), 'Horas desta compra') : ''}
     ${depois ? `<div class="pg-modo" role="radiogroup" aria-label="Quando o cliente paga"><button type="button" class="tap" role="radio" aria-checked="true" data-act="pag-modo" data-m="agora"><i aria-hidden="true"></i>Paga agora</button><button type="button" class="tap" role="radio" aria-checked="false" id="p-depois" data-act="pag-modo" data-m="depois"><i aria-hidden="true"></i>${PAG.rotDepois}</button></div>` : ''}
     <div class="campo" id="pg-agora"><label>Forma de pagamento <span class="leve">· pode dividir em até três formas</span></label>${htmlPag()}</div>
-    ${depois ? `<div class="marca canc" id="pg-fica" hidden>${ic(IC.sino, 18)}<span><b><span id="pg-fica-v">${brl(PAG.total)}</span> a receber na ${entrar || c.entrou ? 'saída' : 'devolução'}.</b> Até lá, a linha aparece como NÃO PAGO.</span></div>` : ''}
+    ${depois ? `<div class="marca canc" id="pg-fica" hidden>${ic(IC.sino, 18)}<span><b><span id="pg-fica-v">${brl(PAG.total)}</span> a receber na ${entrar || c.entrou ? 'saída' : 'devolução'}.</b></span></div>` : ''}
     ${htmlDesc()}
     <div class="pe-f"><button class="bt forte largo tap" id="p-ok" data-act="pag-ok" data-id="${c.id}" disabled>${ic(IC.check)} Escolha a forma de pagamento</button></div>`;
   e.hidden = true; a.hidden = false; const h = $('#folha .cab-f h2'), f = $('#folha .folha'); if (h) h.textContent = 'Pagamento'; if (f) f.scrollTop = 0; desenharPag();
@@ -2568,7 +2555,7 @@ async function registrarAtendimento(id, mesmoAssim, pag, depois) { // mesmoAssim
   const nV = vou ? S.compras.filter(v => v.crianca === c.id && v.voucher && doDia(v.quando)).length + 1 : 0;   // (prévia) o 2º voucher do dia fica marcado, como no servidor
   if (vou && nV > 1) vou.itens = vou.itens.replace(/^voucher/, `voucher (${nV}º de hoje)`);
   const eraAtraso = c.atraso ? { ...c.atraso } : null; let coberta = null;   // (prévia) o voucher pode cobrir uma cobrança por atraso: o Desfazer devolve
-  for (const l of L) { if (l.cobre) coberta = cobrirPrevia(c); const mm = l.cobre ? periodo() : l.min, compra = { id: novoId(), crianca: c.id, h: mm / 60, m: mm, v: l.v, servico: l.servico, itens: l.itens, quando: new Date(), por: EU.nome, voucher: l.voucher || '', pcd: !!l.pcd, cheio: l.cheio }; if (l.s) { const x = servicoDe(l.s); if (x && x.volta && !ehTempo(x)) compra.alug = { s: x.id, n: x.n, m: x.modo === 'periodo' ? l.q * (x.min || 30) : 0, q: x.modo === 'periodo' ? 1 : l.q }; }   // sai da loja e volta: fica na lista até Devolveu
+  for (const l of L) { if (l.cobre) coberta = cobrirPrevia(c); const mm = l.cobre ? periodo() : l.min, compra = { id: novoId(), crianca: c.id, h: mm / 60, m: mm, v: l.v, servico: l.servico, itens: l.itens, quando: new Date(), por: EU.nome, voucher: l.voucher || '', pcd: !!l.pcd, cheio: l.cheio, uni: minhaUni() || null }; if (l.s) { const x = servicoDe(l.s); if (x && x.volta && !ehTempo(x)) compra.alug = { s: x.id, n: x.n, m: x.modo === 'periodo' ? l.q * (x.min || 30) : 0, q: x.modo === 'periodo' ? 1 : l.q }; }   // sai da loja e volta: fica na lista até Devolveu
     S.compras.unshift(compra); novas.push(compra);
     if (l.min) { c.pacote += l.min / 60; c.liberado = true; c.venda = { h: l.min / 60, m: l.min, v: l.v, servico: l.servico, com: l.itens, quando: new Date() }; }
     registrar('venda', c.nome, `${nomeLinha(l)} · ${brl(l.v)}`); regs.push(S.registros[0]); compra.reg = S.registros[0];
@@ -2577,9 +2564,9 @@ async function registrarAtendimento(id, mesmoAssim, pag, depois) { // mesmoAssim
   if (dsc) { for (const [v, x] of repartirDescPrevia(dsc.valor, novas)) { v.v = centavos(v.v - x); v.desc = centavos((v.desc || 0) + x); v.descMotivo = dsc.motivo; } registrar('desc', c.nome, textoDesc(dsc)); regs.push(S.registros[0]); }   /* 1.04 (prévia): o desconto sai das compras desta venda */
   const pagos = pag && pag.length && total > 0 ? pagarPrevia(novas, pag) : [], cupomId = criarCupomPrevia(c, 'venda', pagos);   // 0.93: o cupom fiscal deste pagamento
   if (pagos.length) { registrar('pag', c.nome, `Pagamento · ${brl(total)} · ${textoPag(pag)}`); regs.push(S.registros[0]); }
-  else if (depois && total > 0) { registrar('pag', c.nome, `Não pago · ${brl(total)} a receber na ${entrar || c.entrou ? 'saída' : 'devolução'}`); regs.push(S.registros[0]); }   /* 1.02: o cliente paga na saída */
+  else if (depois && total > 0) { registrar('pag', c.nome, `A receber na ${entrar || c.entrou ? 'saída' : 'devolução'} · ${brl(total)}`); regs.push(S.registros[0]); }   /* 1.02: o cliente paga na saída */
   let desfazEntrada = null;
-  if (entrar && !c.entrou && temPeriodo(c)) { c.entrou = new Date(); c.atraso = null; registrar('ent', c.nome, 'Entrada registrada'); const regE = S.registros[0]; desfazEntrada = () => { c.entrou = null; S.registros = S.registros.filter(x => x !== regE); }; }
+  if (entrar && !c.entrou && temPeriodo(c)) { c.entrou = new Date(); c.uni = minhaUni() || null; c.atraso = null; registrar('ent', c.nome, 'Entrada registrada'); const regE = S.registros[0]; desfazEntrada = () => { c.entrou = null; S.registros = S.registros.filter(x => x !== regE); }; }
   atendimentoFeito(id); fecharFolha(); desenhar();
   toast(avisoVoucher(vou ? { n: nV, cobriu: coberta ? { valor: coberta.v } : null } : null, nome) + aviso + (desfazEntrada ? ' · entrou, tempo até ' + hora(fimVisita(c)) : ''), () => { voltarRascunho(id, rasc); if (desfazEntrada) desfazEntrada(); Object.assign(c, era); if (coberta) { S.compras.push(coberta); if (coberta.reg) coberta.reg.txt = coberta.reg.txt.replace(' · coberta pelo voucher', ''); c.atraso = eraAtraso; } for (const x of novas) if (x.prod) { const p = produto(x.prod); if (p && p.est != null) p.est += x.qtd; } S.compras = S.compras.filter(x => !novas.includes(x)); S.registros = S.registros.filter(x => !regs.includes(x)); S.pagamentos = (S.pagamentos || []).filter(x => !pagos.includes(x)); });
   VOLTA_SAIDA = 0; cupomDaVenda(id, cupomId, volta && depois && !(pag && pag.length) ? null : { tipo: 'entrada', id, itens: L.map(l => ({ n: nomeLinha(l), v: l.v })), formas: pag || [], depois: !!depois && !(pag && pag.length), desc: dsc ? dsc.valor : 0 }, volta);   // 0.94: registrou, o cupom sai para o responsável assinar
@@ -2596,7 +2583,7 @@ function entrada(c, origem = 'iDFace') {
   if (!c || c.entrou) return;
   if (origem !== 'iDFace' && !temPeriodo(c)) { toast(`${c.nome} não tem um período de recreação comprado. Registre a venda antes.`, () => atender(c.id), 'Vender'); return; }
   if (MODO === 'servidor') return entradaServidor(c);
-  c.entrou = new Date(); c.atraso = null; registrar('ent', c.nome, origem === 'iDFace' ? 'Rosto reconhecido na entrada' : (semIdface() ? 'Entrada registrada' : 'Entrada registrada à mão'));
+  c.entrou = new Date(); c.uni = minhaUni() || null; c.atraso = null; registrar('ent', c.nome, origem === 'iDFace' ? 'Rosto reconhecido na entrada' : (semIdface() ? 'Entrada registrada' : 'Entrada registrada à mão'));
   const reg = S.registros[0], primeiroNome = nomeMsg(c.resp.split(' ')[0]);
   const desfazMsg = S.cfg.autoMsg !== 'nao' ? mensagemAuto(c, `Oi, ${primeiroNome}! ${nomeMsg(c.nome)} chegou na Play Space às ${hora(c.entrou)} 💛 Qualquer coisa a gente te chama por aqui.`, true) : null;
   toast(`${c.nome} entrou · tempo comprado até ${hora(fimVisita(c))}`, () => { c.entrou = null; S.registros = S.registros.filter(r => r !== reg); if (desfazMsg) desfazMsg(); });
@@ -2644,12 +2631,13 @@ function saida(c, origem = 'iDFace', corr = null, pag = null, papel = null, dsc 
 // O "cupom" da loja é um papel da impressora térmica do balcão, que o responsável assina. O sistema imprime no mesmo formato que a loja já usa:
 // a loja e o telefone, o responsável e o telefone dele, cada criança (o número do cadastro, a sapateira, a hora da entrada, o serviço e o valor
 // a cada período), o que foi pago, a data e a hora, a linha da assinatura, o nome e o CPF do responsável e o aviso de quem pode assinar a saída.
-// Sai depois de cada atendimento e de cada entrada (cupom de entrada) e depois de uma saída com pagamento (cupom da saída).
+// Sai depois de cada atendimento e de cada entrada (cupom de entrada), de cada saída (cupom da saída) e de cada devolução do que saiu da
+// loja (cupom da devolução). 1.06: a saída e a devolução têm o cupom sempre, com ou sem pagamento, porque o responsável assina.
 // A impressão é a do navegador: a impressora fica instalada no computador do balcão, como qualquer impressora, e o cupom já vai na largura do
 // papel. Cada aparelho guarda o que faz depois de um pagamento: mostra o cupom (para imprimir com um toque), imprime sozinho, ou não imprime.
 const MODOS_PAPEL = [['mostrar', 'Mostrar o cupom'], ['auto', 'Imprimir sozinho'], ['nao', 'Não imprimir']];
 const modoPapel = () => { const m = lido('ps-cupom', 'mostrar'); return MODOS_PAPEL.some(x => x[0] === m) ? m : 'mostrar'; };
-const textoModoPapel = () => ({ mostrar: 'Depois de cada atendimento esta tela abre com o cupom, para imprimir com um toque.', auto: 'O cupom vai direto para a impressora, sem abrir esta tela. É o modo do computador do balcão, onde a impressora está instalada.', nao: 'Este aparelho não imprime: o cupom não aparece aqui depois do atendimento. Para imprimir assim mesmo, use o botão Cupom na comanda da criança.' })[modoPapel()];
+const textoModoPapel = () => ({ mostrar: 'Depois de cada atendimento, de cada saída e de cada devolução esta tela abre com o cupom, para imprimir com um toque.', auto: 'O cupom vai direto para a impressora, sem abrir esta tela. É o modo do computador do balcão, onde a impressora está instalada.', nao: 'Este aparelho não imprime: o cupom não aparece aqui depois do atendimento. Para imprimir assim mesmo, use o botão Cupom na comanda da criança.' })[modoPapel()];
 const rotModoPapel = () => ({ mostrar: 'mostra o cupom depois de cada atendimento', auto: 'imprime sozinho', nao: 'não imprime' })[modoPapel()];
 const AVISO_PAPEL = 'ATENÇÃO: SOMENTE O RESPONSÁVEL QUE ASSINAR A ENTRADA DA CRIANÇA PODERÁ ASSINAR SUA SAÍDA.';
 const lojaPapel = () => ({ nome: S.cfg.cupomLoja || 'PLAY SPACE', tel: S.cfg.cupomTel || '', aviso: S.cfg.cupomAviso != null ? S.cfg.cupomAviso : AVISO_PAPEL });
@@ -2663,13 +2651,19 @@ const formasPapel = L => !L || !L.length ? '' : L.length === 1 ? nomeForma(L[0].
 // da assinatura (é a que fica com a loja). via 'cliente': só o básico (o responsável, a criança, a sapateira, a entrada, o serviço, o pagamento,
 // a data e o aviso), sem telefone, sem CPF e sem assinatura: se o cliente perder o papel, os dados dele não vão junto.
 function htmlPapel(spec, via = 'loja') {
-  const c = spec.c || crianca(spec.id); if (!c) return ''; const L = lojaPapel(), st = servicoTempo(), p = periodo(), tol = tolCupom(), loja = via !== 'cliente';
-  const cab = `<span class="c-logo cor">${LOGO}</span><span class="c-logo pb">${LOGO_PB}</span><p class="c-loja">${esc(L.nome)}</p>${L.tel ? `<p class="c-fone">${esc(L.tel)}</p>` : ''}<p class="c-via">${loja ? 'VIA DA LOJA' : 'VIA DO CLIENTE'}</p>
+  const c = spec.c || crianca(spec.id); if (!c) return ''; const L = lojaPapel(), st = servicoTempo(), p = periodo(), tol = tolCupom(), loja = via !== 'cliente', uniP = nomeUni(spec.uni) || nomeUni(c.uni) || nomeUni(minhaUni());   // 1.06: a unidade da visita (ou a deste aparelho)
+  const cab = `<span class="c-logo cor">${LOGO}</span><span class="c-logo pb">${LOGO_PB}</span><p class="c-loja">${esc(L.nome)}</p>${uniP ? `<p class="c-uni">${esc(uniP)}</p>` : ''}${L.tel ? `<p class="c-fone">${esc(L.tel)}</p>` : ''}<p class="c-via">${loja ? 'VIA DA LOJA' : 'VIA DO CLIENTE'}</p>
     <p>Responsável: ${esc(c.resp)}</p>${loja && fones(c) ? `<p>Telefone: ${esc(fones(c))}</p>` : ''}${loja && docTxt(c) ? `<p>${esc(docTxt(c))}</p>` : ''}`;
-  const pago = (itens, formas, rot) => { const total = centavos((itens || []).reduce((t, i) => t + i.v, 0)); return !itens || !itens.length ? '' : `<p class="c-esp"></p><p>${rot}:</p>${itens.map(i => `<p class="c-linha"><span>${esc(i.n)}</span><span>${i.v < 0 ? '- ' + brl2(-i.v) : brl2(i.v)}</span></p>`).join('')}<p class="c-linha c-total"><span>Total</span><span>${brl2(total)}</span></p>${formasPapel(formas) ? `<p>Forma de pagamento: ${esc(formasPapel(formas))}</p>` : spec.depois ? `<p>NÃO PAGO: A RECEBER NA ${c.entrou ? 'SAÍDA' : 'DEVOLUÇÃO'}</p>` : ''}`; };
+  const pago = (itens, formas, rot) => { const total = centavos((itens || []).reduce((t, i) => t + i.v, 0)); return !itens || !itens.length ? '' : `<p class="c-esp"></p><p>${rot}:</p>${itens.map(i => `<p class="c-linha"><span>${esc(i.n)}</span><span>${i.v < 0 ? '- ' + brl2(-i.v) : brl2(i.v)}</span></p>`).join('')}<p class="c-linha c-total"><span>Total</span><span>${brl2(total)}</span></p>${formasPapel(formas) ? `<p>Forma de pagamento: ${esc(formasPapel(formas))}</p>` : spec.depois ? `<p>A RECEBER NA ${c.entrou ? 'SAÍDA' : 'DEVOLUÇÃO'}</p>` : ''}`; };
   const pe = aviso => `<p class="c-esp"></p><p>${dataHora(new Date())}</p>${loja ? `<p class="c-assina">x</p><p>${esc(c.resp)}</p>${c.cpf ? `<p>${esc(c.cpf)}</p>` : ''}` : ''}${aviso ? `<p class="c-aviso">${esc(aviso)}</p>` : ''}`;
   const valorPeriodo = x => st ? `<p>Valor: ${brl2(precoDe(x, st.v))} a cada ${st.min || 30} minutos.</p>` : '';
   const idade = x => loja && x.idade > 0 ? ` (${x.idade} ${x.idade === 1 ? 'ano' : 'anos'})` : '';
+  if (spec.tipo === 'devolucao') { // 1.06: o que saiu da loja voltou (carrinho, fusquinha): o responsável assina a devolução, com ou sem valor a receber
+    const itens = [spec.pend > 0 ? { n: spec.item + (spec.comprou ? ' · ' + dur(spec.comprou) : ''), v: spec.pend } : null, spec.extra && spec.extra.valor > 0 ? { n: `Tempo a mais: ${dur(spec.extra.min)}`, v: spec.extra.valor } : null].filter(Boolean);
+    return `<div class="papel ${loja ? 'loja' : 'cliente'}">${cab}<p class="c-esp"></p><p class="c-tit">DEVOLUÇÃO</p><p>${esc(spec.item)}${spec.q > 1 ? ' × ' + spec.q : ''}</p><p>Criança: ${esc(c.nome)}${idade(c)}</p>${loja ? `<p>N. Cadastro: ${c.id}</p>` : ''}
+      <p>Saiu: ${spec.outroDia ? dataHora(spec.saiu) : hora(spec.saiu)} · Voltou: ${hora(spec.voltou)}</p><p>Ficou ${dur(spec.ficou)} fora${spec.comprou ? ' · tempo comprado: ' + dur(spec.comprou) : ''}</p>
+      ${pago(itens, spec.formas, 'Pagamento')}${pe('')}</div>`;
+  }
   if (spec.tipo === 'saida') {
     return `<div class="papel ${loja ? 'loja' : 'cliente'}">${cab}<p class="c-esp"></p><p class="c-tit">SAÍDA</p><p>Criança: ${esc(c.nome)}${idade(c)}</p>${loja ? `<p>N. Cadastro: ${c.id}</p>` : ''}
       <p>Entrada: ${hora(spec.entrou)} · Saída: ${hora(spec.saiu)}</p><p>Ficou ${dur(Math.floor(spec.min))} · a visita conta ${dur(spec.deb)}</p>
@@ -2704,13 +2698,13 @@ function imprimirPapel(vias) {
   };
   proxima();
 }
-// depois de um atendimento, de uma entrada ou de uma saída com pagamento: o que este aparelho faz com o cupom
+// depois de um atendimento, de uma entrada, de uma saída ou de uma devolução: o que este aparelho faz com o cupom
 function papelDepois(spec) { const m = modoPapel(); if (m === 'nao' || !spec) return; if (m === 'auto') { imprimirPapel(viasPapel(spec)); return; } folhaPapel(spec); }
 let PAPEL = null;   // o cupom que está na folha: { spec, vias }
 const segPapel = () => `<div class="seg" id="tk-modo">${MODOS_PAPEL.map(([v, n]) => `<button type="button" data-act="papel-modo" data-v="${v}" aria-pressed="${v === modoPapel()}">${n}</button>`).join('')}</div><span class="explica" id="tk-modo-txt">${textoModoPapel()}</span>`;
 function folhaPapel(spec) {
   const vias = viasPapel(spec); if (!vias.length) return; PAPEL = { spec, vias };
-  abrirFolha(spec.tipo === 'saida' ? 'Cupom da saída' : 'Cupom de entrada', `
+  abrirFolha(spec.tipo === 'saida' ? 'Cupom da saída' : spec.tipo === 'devolucao' ? 'Cupom da devolução' : 'Cupom de entrada', `
     <div class="papel-previa" id="tk-previa">${vias.map(v => `<div class="papel-fx">${v}</div>`).join('')}</div>
     <details class="outro" id="tk-aparelho"><summary>Neste aparelho: <span id="tk-modo-rot">${rotModoPapel()}</span> · mudar</summary><div class="campo" style="margin-top:8px">${segPapel()}</div></details>
     <div class="pe-f"><button type="button" class="bt forte largo tap" id="tk-ok" data-act="papel-imprimir">${ic(IC.cupom)} Imprimir as duas vias</button></div>`);
@@ -2875,7 +2869,7 @@ function botaoSaida() { const x = contaDaFolhaSaida(), bt = $('#s-ok'); if (x &&
 // e as horas em três linhas (disponíveis, necessárias, saldo após a confirmação)
 const htmlContaSaida = (c, k, hh) => { const p = periodo(), minhas = horasProprias(k), antes = saldoAntesSaida(c), depois = saldoDepois(c, k), v = receberSaida(k), st = servicoTempo();
   const L = [{ n: esc(st ? st.n : 'RECREAÇÃO'), sub: `${hh ? 'saiu às ' + esc(hh) + ' · ' : ''}ficou ${dur(Math.floor(k.min))}`, meio: [esc(c.nome), c.sapateira ? String(c.sapateira) : '', hora(c.entrou)], v: minhas ? 'usa ' + dur(minhas) : '', h: true }];
-  if (k.pend > 0) for (const i of pendItens(c)) L.push({ n: esc(i.n), sub: 'ainda não pago', v: brl(i.v) });
+  if (k.pend > 0) for (const i of pendItens(c)) L.push({ n: esc(i.n), sub: 'ficou para a saída', v: brl(i.v) });
   if (k.n) L.push({ n: `Atraso · mais ${dur(k.n * p)}`, sub: k.n === 1 ? 'uma cobrança por atraso' : k.n + ' cobranças por atraso', v: brl(k.valor) });
   { const dv = centavos(brutoSaida(k) - v); if (dv > 0) L.push(linhaDesc(dv, descErro(brutoSaida(k), 'saida', c.id))); }   // 1.04: o desconto do gestor
   return `${pgSec('Itens selecionados')}
@@ -2908,7 +2902,7 @@ function confirmarSaida(el) {
   if (receber > 0 && PAG && PAG.onde === 'saida' && $('#pg-formas')) { PAG.total = receber; const r = pagPartes();
     if (r.erro) { toast(PAG.formas.length ? r.erro : `Como recebeu ${brl(receber)}? Toque na forma de pagamento`); const a = $('#pg-formas'); if (a) a.scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
     pag = r.partes; }
-  const papel = pag && pag.length ? { tipo: 'saida', id: c.id, entrou: c.entrou, saiu: corr ? corr.em : new Date(), min: k.min, deb: k.deb, proprias: horasProprias(k), saldo: saldoDepois(c, k), n: k.n, valor: bruto, pend: k.pend || 0, pendi: k.pend > 0 ? pendItens(c) : [], desc: dsc ? dsc.valor : 0, formas: pag } : null;   // 0.94: recebeu na saída, sai o cupom da saída
+  const papel = { tipo: 'saida', id: c.id, entrou: c.entrou, saiu: corr ? corr.em : new Date(), min: k.min, deb: k.deb, proprias: horasProprias(k), saldo: saldoDepois(c, k), n: k.n, valor: bruto, pend: k.pend || 0, pendi: k.pend > 0 ? pendItens(c) : [], desc: dsc ? dsc.valor : 0, formas: pag || [] };   // 1.06: toda saída tem o cupom, com ou sem pagamento (quem usa as horas também assina a saída)
   el.disabled = true; const cupomId = saida(c, 'mão', corr, pag, papel, dsc); if (MODO !== 'servidor') { fecharFolha(); desenhar(); if (cupomId) folhaCupom(cupomId, true); else papelDepois(papel); }
 }
 // (servidor) depois da saída: a supervisão corrige a hora de uma visita dos últimos dois dias
@@ -2927,10 +2921,8 @@ const naoLidas = () => S.conversas.filter(x => !x.lidas).length;
 function nav() {
   const badge = k => k === 'zap' && naoLidas() ? `<b>${naoLidas()}</b>` : (k === 'banco' && COM_WHATS && paraRenovar().length ? `<b>${paraRenovar().length}</b>` : '');
   const alerta = k => k === 'zap' && naoLidas() ? 'alerta' : '';   // mensagem sem resposta: a bolinha do WhatsApp fica vermelha
-  const ladoHtml = `<span class="logo">${LOGO}</span>` + ABAS.map(([k, t, i]) => `<button class="ab tap ${alerta(k)}" data-ir="${k}" ${S.tela === k ? 'aria-current="page"' : ''} aria-label="${t}" title="${t}${naoLidas() && k === 'zap' ? ' · ' + naoLidas() + ' sem resposta' : ''}">${ic(IC[i])}${badge(k)}</button>`).join('') + `<span class="espaco"></span><button type="button" class="fab tap" data-act="nova" aria-label="Cadastrar criança" title="Cadastrar criança">${PASSARINHO_FAB}<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button><button class="av-eu tap" data-act="conta" title="${esc(EU.nomeCompleto || EU.nome)}">${esc((EU.nome || 'EU').slice(0, 2).toUpperCase())}</button>`;
-  if (ladoHtml !== NAV_CACHE) { $('#nav-lado').innerHTML = ladoHtml; NAV_CACHE = ladoHtml; }   // só mexe no trilho quando algo nele mudou (senão o passarinho recomeça)
-  const fabT = NAV_CACHE === ladoHtml && $('#nav-lado').dataset.medido === ladoHtml ? null : $('.trilho .fab'), zapT = $('.trilho [data-ir="zap"]'); if (fabT) $('#nav-lado').dataset.medido = ladoHtml;
-  if (fabT && zapT) { const fr = fabT.getBoundingClientRect(), zr = zapT.getBoundingClientRect(); if (fr.height) { fabT.style.setProperty('--voo-y', `${Math.round(zr.top + 8 - fr.top)}px`); const bi = $('.bicho', fabT); bi.style.animation = 'none'; void bi.offsetWidth; bi.style.animation = ''; } }   // a animação recomeça já sabendo a altura
+  const ladoHtml = `<span class="logo">${LOGO}</span>` + ABAS.map(([k, t, i]) => `<button class="ab tap ${alerta(k)}" data-ir="${k}" ${S.tela === k ? 'aria-current="page"' : ''} aria-label="${t}" title="${t}${naoLidas() && k === 'zap' ? ' · ' + naoLidas() + ' sem resposta' : ''}">${ic(IC[i])}${badge(k)}</button>`).join('') + `<span class="espaco"></span><button type="button" class="fab tap" data-act="nova" aria-label="Cadastrar criança" title="Cadastrar criança"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button><button class="av-eu tap" data-act="conta" title="${esc(EU.nomeCompleto || EU.nome)}">${esc((EU.nome || 'EU').slice(0, 2).toUpperCase())}</button>`;
+  if (ladoHtml !== NAV_CACHE) { $('#nav-lado').innerHTML = ladoHtml; NAV_CACHE = ladoHtml; }   // só mexe no trilho quando algo nele mudou
   $('#nav-baixo').innerHTML = ABAS.map(([k, t, i]) => `<button class="${alerta(k)}" data-ir="${k}" ${S.tela === k ? 'aria-current="page"' : ''}>${ic(IC[i], 21)}${t}${badge(k)}</button>`).join('') + (ABAS.some(a => a[0] === 'ajustes') ? '' : `<button data-act="conta">${ic(IC.rosto, 21)}Conta</button>`);
 }
 let toastT, DESFAZ = null, NAV_CACHE = '';
@@ -2968,7 +2960,59 @@ function trocarTela(k, anima = true) {
   window.scrollTo({ top: 0 });
   if (anima) $('#miolo').animate([{ opacity: 0, transform: 'translateY(12px)' }, { opacity: 1, transform: 'none' }], { duration: 380, easing: 'cubic-bezier(.32,.72,0,1)' });
 }
-function faixa(titulo, sub, chip) { return `<div class="faixa"><span class="logo">${LOGO}</span><div class="tit"><small>${esc(sub)}</small><h1>${esc(titulo)}</h1></div><div class="relogio" title="Hora e data de agora"><b class="num" data-relogio>${relogioTxt()}</b><span data-data>${dataTxt()}</span></div>${ATU.nova ? botaoVersao() : ''}${chip || ''}</div>`; }
+/* ---------- 1.06: unidades ---------- */
+// A Play Space tem mais de uma unidade (Anália Franco, Morumbi e as que vierem). O gestor cadastra em Ajustes → Unidades. Cada aparelho guarda
+// em qual unidade está: a tela inicial mostra, ao lado do título, e todo pedido ao servidor leva a unidade, que fica guardada na entrada, na
+// venda e na linha do dia. Na lista, a coluna Unidade diz onde cada criança está. Unidade removida continua com o nome no que já foi registrado.
+const unidades = () => (S.unidades || []).filter(u => u.ativo !== false);   // as que dá para escolher
+const unidadeDe = id => (S.unidades || []).find(u => u.id === +id) || null;
+const nomeUni = id => { const u = id ? unidadeDe(id) : null; return u ? u.nome : ''; };
+// a unidade deste aparelho: a que foi escolhida aqui, se ainda existe. Na prévia, sem escolha, vale a primeira
+const minhaUni = () => { const u = unidadeDe(+lido('ps-unidade', 0) || 0); return u && u.ativo !== false ? u.id : (MODO !== 'servidor' && unidades().length ? unidades()[0].id : 0); };
+// quem troca a unidade do aparelho: gestor e supervisor. Com o aparelho ainda sem unidade, quem estiver nele escolhe (senão as entradas ficariam sem unidade)
+const podeTrocarUni = () => MODO !== 'servidor' || supervisorOuMais() || !minhaUni();
+const naUnidade = id => S.criancas.filter(c => c.entrou && c.uni === id).length;
+function botaoUnidade() {
+  if (!unidades().length) return ''; const n = nomeUni(minhaUni());
+  return `<button type="button" class="uni-bt tap${n ? '' : ' falta'}" data-act="unidade" title="${n ? 'Unidade deste aparelho' + (podeTrocarUni() ? ' · toque para trocar' : '') : 'Este aparelho ainda não tem unidade: toque para escolher'}" aria-label="${n ? 'Unidade deste aparelho: ' + esc(n) : 'Escolher a unidade deste aparelho'}">${ic(IC.pino, 14, 2.4)}<span>${n ? esc(n) : 'Qual unidade?'}</span></button>`;
+}
+function folhaUnidade() {
+  const L = unidades(), eu = minhaUni(), pode = podeTrocarUni();
+  abrirFolha('Unidade deste aparelho', `
+    <p class="explica">${eu ? `Este aparelho está em <b>${esc(nomeUni(eu))}</b>.` : '<b>Em qual unidade este aparelho está?</b>'} As entradas e as vendas feitas aqui ficam marcadas com a unidade.</p>
+    <div class="uni-lista" role="radiogroup" aria-label="Unidade deste aparelho">${L.map(u => { const n = naUnidade(u.id); return `<button type="button" class="uni-op tap" role="radio" aria-checked="${u.id === eu}" data-act="unidade-escolher" data-id="${u.id}"${pode ? '' : ' disabled'}><i aria-hidden="true"></i><span><b>${esc(u.nome)}</b>${n ? `<small>${n} ${n === 1 ? 'criança' : 'crianças'} no espaço agora</small>` : ''}</span></button>`; }).join('')}</div>
+    ${pode ? '' : '<p class="explica">Só o gestor ou o supervisor troca a unidade deste aparelho.</p>'}
+    ${MODO !== 'servidor' || gestor() ? `<button type="button" class="link tap pg-add" data-act="unidades-ir">${ic(IC.mais, 14, 2.8)} Cadastrar ou mudar as unidades <small>· em Ajustes</small></button>` : ''}`);
+}
+function escolherUnidade(id) { const u = unidadeDe(id); if (!u || u.ativo === false || !podeTrocarUni()) return; const era = minhaUni(); guardar('ps-unidade', u.id); fecharFolha(); desenhar(); if (era !== u.id) toast(`Este aparelho agora está em ${u.nome}`); }
+// depois de entrar: o aparelho que ainda não tem unidade lembra quem está nele (um aviso com o botão Escolher; não trava a tela)
+function lembrarUnidade() { if (MODO === 'servidor' && unidades().length && !minhaUni()) setTimeout(() => { if (!minhaUni() && !$('#folha .folha-fundo')) toast('Este aparelho ainda não tem unidade', () => folhaUnidade(), 'Escolher'); }, 1400); }
+// Ajustes → Unidades: nova, com outro nome, ou removida (só o gestor)
+function folhaUnidadeEditar(id) {
+  if (MODO === 'servidor' && !gestor()) { toast('Só o gestor cadastra as unidades'); return; }
+  const u = id ? unidadeDe(id) : null;
+  abrirFolha(u ? 'Unidade' : 'Nova unidade', `
+    <div class="campo"><label for="un-nome">Nome da unidade</label><input id="un-nome" value="${esc(u ? u.nome : '')}" maxlength="40" autocomplete="off" placeholder="Ex.: TATUAPÉ"></div>
+    <p class="explica">${u ? 'Mudando o nome, ele muda também no que já foi registrado nesta unidade.' : 'Depois de salvar, ela aparece na escolha da unidade de cada aparelho (o botão ao lado do título da tela inicial).'}</p>
+    <div class="acoes"><button class="bt forte tap" data-act="uni-salvar" data-id="${u ? u.id : ''}" style="flex:1;justify-content:center">${ic(IC.check)} Salvar</button>${u ? `<button class="bt claro tap" data-act="uni-apagar" data-id="${u.id}" style="color:var(--erro)">Remover</button>` : ''}</div>`);
+  if (!u) setTimeout(() => { const i = $('#un-nome'); if (i) i.focus(); }, 380);
+}
+async function salvarUnidade(el) {
+  const id = el.dataset.id ? +el.dataset.id : 0, nome = MAI(val('un-nome')).slice(0, 40);
+  if (!nome) { toast('Qual é o nome da unidade?'); const i = $('#un-nome'); if (i) i.focus(); return; }
+  if (unidades().some(u => u.id !== id && u.nome.toLowerCase() === nome.toLowerCase())) { toast('Já existe uma unidade com esse nome'); return; }
+  if (MODO === 'servidor') { el.disabled = true; try { const r = await api('unidade_salvar', { id, nome }); if (Array.isArray(r.unidades)) S.unidades = r.unidades; } catch (e) { el.disabled = false; toast(e.message); return; } }
+  else { const u = id ? unidadeDe(id) : null; if (u) u.nome = nome; else S.unidades.push({ id: Math.max(0, ...S.unidades.map(x => x.id)) + 1, nome, ativo: true }); }
+  toast(id ? `Unidade ${nome} salva` : `Nova unidade: ${nome}`); fecharFolha(); desenhar();
+}
+async function apagarUnidade(el) {
+  const u = unidadeDe(el.dataset.id); if (!u) return; const n = naUnidade(u.id); let reg = 0;
+  if (n) { toast(`${n === 1 ? 'Há uma criança' : 'Há ' + n + ' crianças'} no espaço em ${u.nome} agora. Dê a saída antes de remover a unidade.`); return; }
+  const tirar = async sim => { if (MODO === 'servidor') { const r = await api('unidade_apagar', sim ? { id: u.id } : { id: u.id, voltar: true, registro: reg }); if (sim) reg = r.registro || 0; if (Array.isArray(r.unidades)) S.unidades = r.unidades; } else u.ativo = !sim; };
+  try { await tirar(true); } catch (e) { toast(e.message); return; }
+  toast(`${u.nome} saiu das unidades`, async () => { try { await tirar(false); } catch (e) { toast(e.message); } desenhar(); }); fecharFolha(); desenhar();
+}
+function faixa(titulo, sub, chip, junto = '') { return `<div class="faixa"><span class="logo">${LOGO}</span><div class="tit"><small>${esc(sub)}</small>${junto ? `<div class="tit-l"><h1>${esc(titulo)}</h1>${junto}</div>` : `<h1>${esc(titulo)}</h1>`}</div><div class="relogio" title="Hora e data de agora"><b class="num" data-relogio>${relogioTxt()}</b><span data-data>${dataTxt()}</span></div>${ATU.nova ? botaoVersao() : ''}${chip || ''}</div>`; }
 const relogioTxt = () => `${hora(agora)}<small>:${p2(agora.getSeconds())}</small>`;
 const dataTxt = () => `${SEMANA[agora.getDay()]}, ${agora.getDate()} de ${MESES[agora.getMonth()]}`;
 const botaoVersao = () => `<button type="button" class="versao tap ${ATU.nova ? 'nova' : ''}" data-act="atualizar" title="${ATU.nova ? 'Nova versão ' + ATU.nova + ': toque para atualizar' : 'Versão ' + VERSAO + ': toque para conferir se há versão nova'}">${ic(IC.renova, 13, 2.6)} ${ATU.nova ? 'Atualizar para ' + esc(ATU.nova) : 'v' + VERSAO}</button>`;
@@ -3001,7 +3045,7 @@ const alugSubCurto = a => !alugHoje(a) ? 'saiu em ' + diaCurto(a.ini) : a.min > 
 function alugPrevia() {
   const G = [];
   for (const v of [...(S.compras || [])].sort((a, b) => a.quando - b.quando)) { if (!v.alug || v.voltou) continue; let g = G.find(x => x.crianca === v.crianca && x.s === v.alug.s);
-    if (!g) { g = { id: v.crianca + '-' + v.alug.s, crianca: v.crianca, s: v.alug.s, n: v.alug.n, q: 0, min: 0, ini: v.quando, vendas: [] }; G.push(g); }
+    if (!g) { g = { id: v.crianca + '-' + v.alug.s, crianca: v.crianca, s: v.alug.s, n: v.alug.n, q: 0, min: 0, ini: v.quando, vendas: [], uni: v.uni || (crianca(v.crianca) || {}).uni || null }; G.push(g); }
     g.min += v.alug.m; g.q = v.alug.m > 0 ? Math.max(1, g.q) : g.q + (v.alug.q || 1); g.vendas.push(v.id); }
   return G;
 }
@@ -3083,19 +3127,22 @@ const haMin = d => { const m = Math.floor((agora - d) / 60000); return m < 1 ? '
 let N_SAIRAM = 0;   // quantos estavam em "Saíram há pouco" na última conta (quando muda, a lista é refeita)
 // as crianças do mesmo responsável ficam juntas na lista, uma embaixo da outra, no lugar da que vem primeiro na ordem escolhida
 function gruposEspaco(L) { const G = []; for (const x of L) { const g = G.find(k => mesmoCliente(k[0].c, x.c)); if (g) g.push(x); else G.push([x]); } return G; }
+// 1.06: a unidade em que a criança está (ou de onde o carrinho saiu): a coluna "Unidade" da lista. Sem unidade marcada, um traço
+const celUnidade = (id, abre) => { const n = nomeUni(id); return `<span class="un${n ? '' : ' sem'}" ${abre} title="${n ? 'Unidade: ' + esc(n) : 'Sem unidade marcada'}">${n ? esc(n) : '—'}</span>`; };
+const uniMovel = id => { const n = nomeUni(id); return n ? `<i class="un-m"> · ${esc(n)}</i>` : ''; };   // no celular, só quando a lista mistura unidades
 // a linha de cada criança na tela inicial: o nome dela, o do responsável (com três Pedros, é ele que diz qual é qual), o tempo correndo
 // com "até quando" embaixo, e a Saída. A bolinha diz a situação: verde no tempo, amarela acabando, vermelha quando passou (1.05: a linha não fica mais rosada; só o relógio e o "passou X min" em vermelho).
 // O OBS vermelho só aparece se há observação (o texto fica escondido até alguém tocar). A cobrança por atraso não aparece na linha (0.96):
 // o valor fica só no total, no pagamento da saída, para a equipe não confundir.
 function linhaEspaco(c, fam = 1) {
-  const st = situacaoTempo(c), at = c.atraso && c.atraso.n ? c.atraso : null, abre = `data-act="ficha" data-id="${c.id}"`, pl = planoDe(c) === 'pacote' ? 'pacote' : 'avulso', pago = !(pendDe(c) > 0.004);   // 1.02: pago ou não pago, sempre à vista
+  const st = situacaoTempo(c), at = c.atraso && c.atraso.n ? c.atraso : null, abre = `data-act="ficha" data-id="${c.id}"`, pl = planoDe(c) === 'pacote' ? 'pacote' : 'avulso';
   return `<div class="esp-it ${st}${at ? ' cobranca' : ''}${S.chegou === c.id ? ' chegou' : ''}" data-esp="${c.id}">
     <button class="quem tap" ${abre} aria-label="Abrir a comanda de ${esc(c.nome)}, responsável ${esc(c.resp)}"></button>
     <i class="pt" aria-hidden="true"></i>
     <span class="l1" ${abre}><b>${esc(c.nome)}</b>${c.obs ? `<button type="button" class="obs obs-bt on mini tap" data-act="obs-ver" data-id="${c.id}" title="Tem observação: toque para ver" aria-label="Ver a observação de ${esc(c.nome)}">OBS</button>` : ''}</span>
-    <span class="l2" ${abre} title="Responsável${fam > 1 ? ' · ' + fam + ' juntos' : ''}"><i class="pg pg-m ${pago ? 'sim' : 'nao'}">${pago ? 'PAGO' : 'NÃO PAGO'}</i>${fam > 1 ? `<i class="elo">${ic(IC.elo, 11, 2.6)}</i>` : ''}${esc(c.resp || 'sem responsável')}<i class="sv-m"> · ${pl === 'pacote' ? 'PACOTE' : 'AVULSA'}</i></span>
+    <span class="l2" ${abre} title="Responsável${fam > 1 ? ' · ' + fam + ' juntos' : ''}">${fam > 1 ? `<i class="elo">${ic(IC.elo, 11, 2.6)}</i>` : ''}${esc(c.resp || 'sem responsável')}<i class="sv-m"> · ${pl === 'pacote' ? 'PACOTE' : 'AVULSA'}</i>${uniMovel(c.uni)}</span>
     <span class="sv" ${abre}><span>${esc((servicoTempo() || { n: 'RECREAÇÃO' }).n)}</span><i class="sel ${pl}">${pl === 'pacote' ? 'PACOTE' : 'AVULSA'}</i></span>
-    <span class="pgc" ${abre} data-esp-pg>${seloPago(pago)}</span>
+    ${celUnidade(c.uni, abre)}
     <span class="en num" ${abre}>${hora(c.entrou)}</span>
     <b class="num tmp" ${abre} data-esp-t title="${subEspaco(c)}">${hms(segDentro(c))}</b>
     <span class="at" ${abre} data-esp-at>${subCurto(c)}</span>
@@ -3105,14 +3152,14 @@ function linhaEspaco(c, fam = 1) {
 // a linha do que saiu da loja (carrinho, fusquinha), na coluna "Fora da loja": com quem está (a criança e o responsável), há quanto tempo saiu
 // e o botão Devolveu. O nome do serviço fica no título do grupo. Com tempo comprado (o fusquinha), a bolinha segue a da criança.
 function linhaAluguel(a, fam = 1) {
-  const c = crianca(a.crianca), st = alugSit(a), abre = `data-act="ficha" data-id="${c.id}"`, pago = !(pendAlug(a) > 0.004);
+  const c = crianca(a.crianca), st = alugSit(a), abre = `data-act="ficha" data-id="${c.id}"`;
   return `<div class="esp-it alug ${st}" data-alug="${esc(a.id)}">
     <button class="quem tap" ${abre} aria-label="Abrir a comanda de ${esc(c.nome)}: ${esc(alugNome(a))} fora da loja"></button>
     <i class="pt" aria-hidden="true">${ic(IC.carrinho, 15, 2.3)}</i>
     <span class="l1" ${abre} title="${esc(alugNome(a))}"><b>${esc(c.nome)}</b>${a.q > 1 ? `<em class="qt">× ${a.q}</em>` : ''}${c.obs ? `<button type="button" class="obs obs-bt on mini tap" data-act="obs-ver" data-id="${c.id}" title="Tem observação: toque para ver" aria-label="Ver a observação de ${esc(c.nome)}">OBS</button>` : ''}</span>
-    <span class="l2" ${abre} title="Responsável"><i class="pg pg-m ${pago ? 'sim' : 'nao'}">${pago ? 'PAGO' : 'NÃO PAGO'}</i>${fam > 1 ? `<i class="elo">${ic(IC.elo, 11, 2.6)}</i>` : ''}${esc(c.resp || 'sem responsável')}<i class="sv-m"> · ${esc(alugNome(a).replace(/^carrinho\s+(de\s+)?/i, '') || alugNome(a))}</i></span>
+    <span class="l2" ${abre} title="Responsável">${fam > 1 ? `<i class="elo">${ic(IC.elo, 11, 2.6)}</i>` : ''}${esc(c.resp || 'sem responsável')}<i class="sv-m"> · ${esc(alugNome(a).replace(/^carrinho\s+(de\s+)?/i, '') || alugNome(a))}</i>${uniMovel(a.uni)}</span>
     <span class="sv" ${abre}><span>${esc(alugNome(a))}</span></span>
-    <span class="pgc" ${abre}>${seloPago(pago)}</span>
+    ${celUnidade(a.uni, abre)}
     <span class="en num" ${abre}>${alugHoje(a) ? hora(a.ini) : diaCurto(a.ini)}</span>
     <b class="num tmp" ${abre} data-alug-t title="${alugSub(a)}">${alugTempo(a)}</b>
     <span class="at" ${abre} data-alug-at>${alugSubCurto(a)}</span>
@@ -3121,7 +3168,7 @@ function linhaAluguel(a, fam = 1) {
 }
 const linhaItem = (x, fam = 1) => x.a ? linhaAluguel(x.a, fam) : linhaEspaco(x.c, fam);
 // o que está fora da loja, na comanda da criança: com o botão Devolveu
-const alugFicha = c => (S.alugueis || []).filter(a => a.crianca === c.id).map(a => `<div class="marca alug-f ${alugSit(a)}">${ic(IC.carrinho, 18)}<span><b>${esc(alugNome(a))}</b> · ${alugHoje(a) ? 'saiu ' + hora(a.ini) : 'saiu em ' + diaCurto(a.ini)}${a.min > 0 && alugHoje(a) ? (alugSobra(a) < 0 ? ` · <b class="pas">passou ${alugPassou(a)}</b>` : ' · até ' + hora(new Date(+a.ini + a.min * 60000))) : ''} ${seloPago(!(pendAlug(a) > 0.004))}</span><button class="bt tap" data-act="devolver" data-id="${c.id}" data-s="${esc(a.s)}">${ic(IC.check, 16, 2.6)} Devolveu</button></div>`).join('');
+const alugFicha = c => (S.alugueis || []).filter(a => a.crianca === c.id).map(a => `<div class="marca alug-f ${alugSit(a)}">${ic(IC.carrinho, 18)}<span><b>${esc(alugNome(a))}</b> · ${alugHoje(a) ? 'saiu ' + hora(a.ini) : 'saiu em ' + diaCurto(a.ini)}${a.min > 0 && alugHoje(a) ? (alugSobra(a) < 0 ? ` · <b class="pas">passou ${alugPassou(a)}</b>` : ' · até ' + hora(new Date(+a.ini + a.min * 60000))) : ''}</span><button class="bt tap" data-act="devolver" data-id="${c.id}" data-s="${esc(a.s)}">${ic(IC.check, 16, 2.6)} Devolveu</button></div>`).join('');
 // "Devolveu": o que estava fora volta para a loja e sai da lista. 1.00: se passou do tempo comprado (com a mesma tolerância da recreação),
 // o período a mais é cobrado aqui: a folha da devolução mostra quanto e só fecha com a forma de pagamento. Dentro do tempo (ou no carrinho
 // de valor único), devolve direto. Fica anotado em Hoje na recepção; o Desfazer do aviso põe de volta na lista (e desfaz o que foi cobrado).
@@ -3139,7 +3186,7 @@ async function devolver(cid, sv) {
 }
 function folhaDevolver(c, a, x, pend = 0) {
   DEV = { cid: c.id, s: a.s, x, pend };
-  const total = centavos(x.valor + pend), ld = [{ n: esc(alugNome(a)), sub: [pend > 0 ? 'ainda não pago' : '', `ficou ${dur(Math.floor(alugSeg(a) / 60))} fora`, a.min > 0 ? 'comprou ' + dur(a.min) : ''].filter(Boolean).join(' · '), meio: [esc(c.nome), alugHoje(a) ? hora(a.ini) : diaCurto(a.ini)], v: pend > 0 ? brl(pend) : 'pago', h: !(pend > 0) }];
+  const total = centavos(x.valor + pend), ld = [{ n: esc(alugNome(a)), sub: [pend > 0 ? 'ficou para a devolução' : '', `ficou ${dur(Math.floor(alugSeg(a) / 60))} fora`, a.min > 0 ? 'comprou ' + dur(a.min) : ''].filter(Boolean).join(' · '), meio: [esc(c.nome), alugHoje(a) ? hora(a.ini) : diaCurto(a.ini)], v: pend > 0 ? brl(pend) : 'pago', h: !(pend > 0) }];
   if (x.valor > 0) ld.push({ n: `Tempo a mais · ${dur(x.min)}`, sub: x.n > 1 ? x.n + ' períodos' : '', v: brl(x.valor) });
   abrirFolha('Pagamento da devolução', `
     ${pgDetalhes(c, false)}
@@ -3154,11 +3201,13 @@ function botaoDevolver() { const bt = $('#d-ok'); if (!bt || !DEV || !PAG || PAG
   bt.innerHTML = r.erro ? `${ic(IC.check)} ${PAG.formas.length ? r.erro : 'Escolha a forma de pagamento'}` : `${ic(IC.check)} Recebi ${brl(PAG.total)}${r.partes.length === 1 ? ' ' + naForma(r.partes[0].f) : ''} · devolver`; }
 async function devolverJa(c, a, pag) {
   const sv = a.s, ficou = Math.floor(alugSeg(a) / 60), passou = a.min > 0 && alugSobra(a) < 0, refaz = () => { if ($('#folha .folha-fundo:not(.saindo)')) fecharFolha(); desenhar(true); };
+  const comPag = !!(pag && pag.length && DEV && DEV.cid === c.id && DEV.s === sv);   // veio da folha do pagamento da devolução
+  const papel = { tipo: 'devolucao', id: c.id, item: alugNome(a), q: a.q || 1, saiu: a.ini, outroDia: !alugHoje(a), voltou: new Date(), ficou, comprou: a.min || 0, extra: comPag ? DEV.x : null, pend: comPag ? DEV.pend || 0 : 0, formas: pag || [], uni: a.uni || null };   // 1.06: toda devolução tem o cupom, para o responsável assinar
   const pago = pag && pag.length ? ` · recebido ${brl(pag.reduce((s, p) => s + p.v, 0))} ${pag.length === 1 ? naForma(pag[0].f) : 'em ' + pag.length + ' formas'}` : '';
   const txt = `${alugNome(a)} de ${c.nome}: devolvido${alugHoje(a) ? ' · ficou ' + dur(ficou) : ''}${pago || (passou && alugHoje(a) ? ' · passou ' + alugPassou(a) + ' do tempo comprado' : '')}`;
   if (MODO === 'servidor') {
     try { const r = await api('devolver', { crianca: c.id, s: sv, pagamento: pag && pag.length ? pag : null }); await carregar(); refaz();
-      toast(txt, async () => { try { await api('devolver', { crianca: c.id, voltar: true, vendas: r.vendas, registro: r.registro, extra: r.extra || 0, registros: r.registros || [], ...(r.pag_de != null ? { pag_de: r.pag_de } : {}) }); await carregar(); } catch (e) { toast(e.message); } desenhar(true); }); }
+      toast(txt, async () => { try { await api('devolver', { crianca: c.id, voltar: true, vendas: r.vendas, registro: r.registro, extra: r.extra || 0, registros: r.registros || [], ...(r.pag_de != null ? { pag_de: r.pag_de } : {}) }); await carregar(); } catch (e) { toast(e.message); } desenhar(true); }); papelDepois(papel); }
     catch (e) { toast(e.message); try { await carregar(); } catch (e2) { } if (e.status === 409 && !pag) { desenhar(true); devolver(c.id, sv); } else refaz(); }   // 409 sem pagamento: passou do tempo enquanto a tela estava aberta
     return;
   }
@@ -3170,6 +3219,7 @@ async function devolverJa(c, a, pag) {
       S.compras.unshift(compra); novos.push(compra); registrar('venda', c.nome, `${a.n} · tempo a mais · ${dur(DEV.x.min)} · ${brl(DEV.x.valor)}`); regs.push(S.registros[0]); compra.reg = S.registros[0]; }
     pagos = pagarPrevia([...vendas, ...novos], pag); registrar('pag', c.nome, `Pagamento · ${brl(centavos(DEV.x.valor + (DEV.pend || 0)))} · ${textoPag(pag)}`); regs.push(S.registros[0]); }
   DEV = null; refaz(); toast(txt, () => { for (const v of vendas) delete v.voltou; S.compras = S.compras.filter(x => !novos.includes(x)); S.pagamentos = (S.pagamentos || []).filter(x => !pagos.includes(x)); S.registros = S.registros.filter(x => !regs.includes(x)); });
+  papelDepois(papel);
 }
 // quem saiu há pouco (dentro do prazo de reabrir): a linha com o botão Reabrir
 const linhaSaiu = c => { const d = new Date(ultVis(c).dia); return `<div class="it"><button class="quem tap" data-act="ficha" data-id="${c.id}">${avatar(c)}<span class="txt"><b>${esc(c.nome)}</b><span>${esc(c.resp)} · saiu às ${hora(d)}, <time data-saiu="${+d}">${haMin(d)}</time> · ${temPeriodo(c) ? 'saldo ' + hm(saldoMin(c)) : 'sem saldo'}</span></span></button><button class="bt forte tap" data-act="reabrir" data-id="${c.id}" title="Desfaz a saída: o tempo continua contando desde a entrada">${ic(IC.renova, 14)} Reabrir</button><button class="bt tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 14)} Atender</button></div>`; };
@@ -3187,7 +3237,7 @@ function chipsEspaco() {
 // O que está mais perto de estourar o tempo vem primeiro; as linhas do mesmo responsável ficam juntas, com o elo ao lado do nome dele.
 function listaEspaco(L) {
   const linhas = gruposEspaco(L).map(g => g.length > 1 ? `<div class="esp-fam" role="group" aria-label="${g.length} linhas de ${esc(g[0].c.resp)}, juntas">${g.map(x => linhaItem(x, g.length)).join('')}</div>` : linhaItem(g[0])).join('');
-  return `<div class="esp-lst"><div class="esp-cabec" aria-hidden="true"><span></span><span>Criança</span><span>Responsável</span><span>Serviço</span><span>Pagamento</span><span>Entrou</span><span class="d">Tempo</span><span></span><span></span></div>${linhas}</div>`;
+  return `<div class="esp-lst${new Set(L.map(x => (x.a ? x.a.uni : x.c.uni) || 0)).size > 1 ? ' varias' : ''}"><div class="esp-cabec" aria-hidden="true"><span></span><span>Criança</span><span>Responsável</span><span>Serviço</span><span>Unidade</span><span>Entrou</span><span class="d">Tempo</span><span></span><span></span></div>${linhas}</div>`;
 }
 // 0.91: a tela inicial "por serviço": três colunas com título e contagem, tudo à vista de uma vez, sem filtro para tocar.
 // Horas avulsas e Pacotes (quem está na recreação) e Fora da loja (o que saiu e ainda não voltou, separado por serviço).
@@ -3253,7 +3303,7 @@ function colocarTestePrevia() {
   const TEL_T = {};   // o telefone de cada criança do teste: os irmãos (fam) ficam com o mesmo, e é por ele que a lista junta a família
   TESTE_PREVIA.forEach(([nome, resp, ha, per, m = {}], i) => {
     const entrou = new Date(Date.now() - (ha + (i % 7) * 0.13) * 60000), pcd = !!m.pcd, pac = !!m.pac, autos = pac ? 0 : Math.max(0, Math.ceil((ha - tol) / p) - per), un = pcd ? precoDe({ pcd: true }, x.v) : x.v;   // pac: tem o pacote de 5 h, comprado há três dias
-    const c = { id: 300 + i, teste: true, nome, idade: 0, resp, rel: 'responsável', tel: m.fam && TEL_T[m.fam] ? TEL_T[m.fam] : `(11) 9 ${6100 + i * 13}-${1000 + i * 217}`, tel2: '', doc: 'cpf', cpf: '', obs: m.obs || '', pcd, pacote: pac ? 5 : (per + autos) * p / 60, usado: 0, entrou, rosto: false, foto: '', visitas: [], venda: null, sapateira: null, liberado: true, atraso: autos ? { n: autos, valor: autos * un } : null };
+    const c = { id: 300 + i, teste: true, nome, idade: 0, resp, rel: 'responsável', tel: m.fam && TEL_T[m.fam] ? TEL_T[m.fam] : `(11) 9 ${6100 + i * 13}-${1000 + i * 217}`, tel2: '', doc: 'cpf', cpf: '', obs: m.obs || '', pcd, pacote: pac ? 5 : (per + autos) * p / 60, usado: 0, entrou, rosto: false, foto: '', visitas: [], venda: null, sapateira: null, liberado: true, atraso: autos ? { n: autos, valor: autos * un } : null, uni: minhaUni() || null };
     if (!m.sem) { do { sap++; } while (usados.has(sap)); if (sap <= nSap()) c.sapateira = sap; }
     const compra = pac ? { id: novoId(), crianca: c.id, h: 5, m: 300, v: 420, servico: 'PACOTE 05 HORAS 420', itens: '', quando: new Date(entrou.getTime() - 3 * 86400000), por: 'João' }
       : { id: novoId(), crianca: c.id, h: per * p / 60, m: per * p, v: m.voucher ? 0 : per * un, servico: x.n, itens: m.voucher ? 'voucher' : pcd ? rotPcd() : '', quando: entrou, por: 'João', voucher: m.voucher ? 'sim' : '', pcd, cheio: m.voucher || pcd ? per * x.v : undefined };
@@ -3289,7 +3339,7 @@ function numerosDoDia() {
 // No alto: os avisos (quando há), os pacotes e produtos. No pé: os atalhos para o Banco de horas e para o movimento do dia.
 function telaHoras() {
   const dentro = S.criancas.filter(c => c.entrou), n = dentro.length, passou = dentro.filter(c => situacaoTempo(c) === 'passou').length, fora = alugNaLista().length;   // fora: carrinhos e fusquinhas que saíram e ainda não voltaram
-  return faixa('No espaço agora', (n ? `${n} ${n === 1 ? 'criança' : 'crianças'}${passou ? ' · ' + passou + (passou === 1 ? ' passou' : ' passaram') + ' do tempo' : ''}` : 'Ninguém por enquanto') + (fora ? ` · ${fora} para devolver` : ''), chipAvisos() + chipCupons() + `<button type="button" class="chip tap" data-act="pacotes" title="Os pacotes de horas e os produtos, com os valores: para mostrar ao cliente e para vender">${ic(IC.presente, 16)} <span>Pacotes<span class="so-largo"> e produtos</span></span></button>` + chipIdface()) + htmlPend() + `
+  return faixa('No espaço agora', (n ? `${n} ${n === 1 ? 'criança' : 'crianças'}${passou ? ' · ' + passou + (passou === 1 ? ' passou' : ' passaram') + ' do tempo' : ''}` : 'Ninguém por enquanto') + (fora ? ` · ${fora} para devolver` : ''), chipAvisos() + chipCupons() + `<button type="button" class="chip tap" data-act="pacotes" title="Os pacotes de horas e os produtos, com os valores: para mostrar ao cliente e para vender">${ic(IC.presente, 16)} <span>Pacotes<span class="so-largo"> e produtos</span></span></button>` + chipIdface(), botaoUnidade()) + htmlPend() + `
   <section class="espaco">
     <div class="esp-cab${inicioLista() ? ' lst' : ''}">
       <div class="campo"><input id="esp-busca" value="${esc(S.espBusca || '')}" placeholder="Buscar criança, responsável, telefone ou CPF" autocomplete="off" aria-label="Buscar criança, responsável, telefone ou CPF"></div>
@@ -3330,7 +3380,7 @@ const listaRegistros = regs => `<div class="reg">${regs.length ? regs.map(r => `
 function folhaFicha(id) { // 1.02: mais limpa. O que importa numa olhada: quem é, se está pago, o tempo e os botões
   const c = crianca(id); if (!c) return; const [et, cls] = estado(c);
   abrirFolha(`${esc(c.nome)}${c.idade ? ', ' + c.idade + ' anos' : ''}`, `
-    <div class="linha">${avatarComUrso(c, 'g')}<div class="txt"><b style="white-space:normal">${esc(c.resp)}${relSabe(c) ? ', ' + esc(c.rel) : ''}</b>${c.pcd ? `<span style="white-space:normal"><em class="selo-pcd">Criança PCD</em> ${pcdDesc()}% de desconto na recreação avulsa</span>` : ''}<span style="white-space:normal">${esc(fones(c))}${c.cpf ? (fones(c) ? ' · ' : '') + esc(docTxt(c)) : ''}${copiaDoc(c)}</span></div><span class="f-pills" data-ficha-selo="${c.id}">${seloFicha(c)}</span><span class="pill ${cls}">${et}</span></div>
+    <div class="linha">${avatarComUrso(c, 'g')}<div class="txt"><b style="white-space:normal">${esc(c.resp)}${relSabe(c) ? ', ' + esc(c.rel) : ''}</b>${c.pcd ? `<span style="white-space:normal"><em class="selo-pcd">Criança PCD</em> ${pcdDesc()}% de desconto na recreação avulsa</span>` : ''}<span style="white-space:normal">${esc(fones(c))}${c.cpf ? (fones(c) ? ' · ' : '') + esc(docTxt(c)) : ''}${copiaDoc(c)}</span></div><span class="pill ${cls}">${et}</span></div>
     <div data-ficha-pago="${c.id}" data-k="${chavePago(c)}">${pagoFicha(c)}</div>
     ${c.obs ? obsAlerta(c) : ''}
     ${alugFicha(c)}
@@ -3781,7 +3831,7 @@ function desenharLado() {
         <div class="acoes"><button class="bt forte tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 16)} ${emAberto(c) ? 'Continuar o atendimento' : 'Vender'}</button>${COM_WHATS ? `<button class="bt tap" data-act="renovar" data-id="${c.id}">${ic(IC.zap, 16)} ${semHoras(c) ? 'Mandar mensagem' : 'Chamar para renovar'}</button>` : ''}</div>
       </div>`; }).join('')}</div>
     <div class="sec"><div class="sec-cab"><h2 style="font-size:16px">Compras</h2>${d ? `<span class="pill p-neutro">${d.vendas.length}</span>` : ''}</div>
-      ${!d ? `<p class="explica">${LADO.erro ? esc(LADO.erro) : 'Buscando as compras…'}</p>` : d.vendas.length ? `<div class="grupo">${d.vendas.map(v => `<div class="it"><div class="txt"><b>${nomeCompra(v)}</b><span>${quandoFoi(v.quando)}${varias ? ' · para ' + esc(nomeDe(v.crianca)) : ''}${v.por ? ' · por ' + esc(primeiro(v.por)) : ''}${naoPagoDe(v) > 0.004 ? ' · <b class="np">NÃO PAGO</b>' : pagoDaCompra(v) ? ' · ' + esc(pagoDaCompra(v)) : ''}${v.desc > 0 ? ' · desconto de ' + brl(v.desc) : ''}</span></div><b class="num">${brl(v.v)}</b></div>`).join('')}</div>` : `<p class="explica">Nenhuma compra registrada ainda.</p>`}</div>
+      ${!d ? `<p class="explica">${LADO.erro ? esc(LADO.erro) : 'Buscando as compras…'}</p>` : d.vendas.length ? `<div class="grupo">${d.vendas.map(v => `<div class="it"><div class="txt"><b>${nomeCompra(v)}</b><span>${quandoFoi(v.quando)}${varias ? ' · para ' + esc(nomeDe(v.crianca)) : ''}${v.por ? ' · por ' + esc(primeiro(v.por)) : ''}${naoPagoDe(v) > 0.004 ? ' · <b class="np">A RECEBER</b>' : pagoDaCompra(v) ? ' · ' + esc(pagoDaCompra(v)) : ''}${v.desc > 0 ? ' · desconto de ' + brl(v.desc) : ''}</span></div><b class="num">${brl(v.v)}</b></div>`).join('')}</div>` : `<p class="explica">Nenhuma compra registrada ainda.</p>`}</div>
     <div class="sec"><div class="sec-cab"><h2 style="font-size:16px">Visitas</h2>${d ? `<span class="pill p-neutro">${d.visitas.length}</span>` : ''}</div>
       ${!d ? (LADO.erro ? '' : `<p class="explica">Buscando as visitas…</p>`) : d.visitas.length ? `<div class="grupo">${visitas.map(v => `<div class="it"><div class="txt"><b>${v.dia.getDate()} de ${MESES[v.dia.getMonth()]}${v.dia.getFullYear() !== agora.getFullYear() ? ' de ' + v.dia.getFullYear() : ''}</b><span>${varias ? esc(nomeDe(v.crianca)) + ' · ' : ''}${v.entrou} às ${v.saiu}</span></div><span class="pill p-neutro">${hm(v.deb)}</span></div>`).join('')}</div>${d.visitas.length > 6 ? `<button class="link tap" data-act="lado-todas" style="align-self:flex-start">${LADO.todas ? 'Mostrar só as últimas' : 'Ver as ' + d.visitas.length + ' visitas'}</button>` : ''}` : `<p class="explica">Ainda não veio brincar.</p>`}</div>
     ${d && d.cancelados && d.cancelados.length ? `<div class="sec"><div class="sec-cab"><h2 style="font-size:16px">Entradas canceladas</h2><span class="pill p-erro">${d.cancelados.length}</span></div>
@@ -4116,6 +4166,11 @@ function telaAjustes() {
       <div class="marca">${ic(IC.sino, 18)}<span><b>Na prática, hoje:</b> ${exemplo(11)} · ${exemplo(periodo() + tolerancia())} · ${exemplo(periodo() + tolerancia() + 1)} · ${exemplo(2 * periodo() + tolerancia() + 1)}</span></div>
     </div>
     <div class="sec">
+      <div class="card" id="aj-unidades"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.pino, 20)} Unidades</h2>${MODO !== 'servidor' || gestor() ? `<button class="link tap" data-act="uni-nova">Nova unidade</button>` : ''}</div>
+        ${unidades().length ? `<div class="grupo">${unidades().map(u => { const n = naUnidade(u.id); return `<button class="it tap" data-act="uni-editar" data-id="${u.id}"><div class="txt"><b>${esc(u.nome)}</b><span>${[u.id === minhaUni() ? 'este aparelho está aqui' : '', n ? n + (n === 1 ? ' criança' : ' crianças') + ' no espaço agora' : ''].filter(Boolean).join(' · ') || 'toque para mudar o nome'}</span></div><span class="vai">${ic(IC.vai, 18)}</span></button>`; }).join('')}</div>` : ''}
+        <button class="grupo tap" data-act="unidade" style="width:100%"><div class="it"><div class="txt"><b>Este aparelho: ${esc(nomeUni(minhaUni()) || 'sem unidade')}</b><span>Toque para ${minhaUni() ? 'trocar' : 'escolher'} a unidade deste aparelho</span></div><span class="vai">${ic(IC.vai, 18)}</span></div></button>
+        <p class="explica">As unidades da Play Space. A tela inicial diz em qual unidade o aparelho está, e cada entrada, venda e linha do dia fica marcada com ela. Na lista, a coluna <b>Unidade</b> mostra onde cada criança está. Para cadastrar mais uma, toque em <b>Nova unidade</b>.</p>
+      </div>
       <div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.presente, 20)} Serviços e preços</h2><button class="link tap" data-act="sv-novo">Novo serviço</button></div>
         <div class="grupo">${(cfg.servicos || []).map((x, i) => `<button class="it tap" data-act="sv-editar" data-i="${i}"><div class="txt"><b>${esc(x.n)}</b><span>${precoServ(x)}${x.obs ? ' · ' + esc(x.obs) : ''}${x.banco ? ' · conta o tempo de brincar' : ''}${x.volta ? ' · sai da loja e volta' : ''}</span></div><span class="vai">${ic(IC.vai, 18)}</span></button>`).join('')}</div>
         <p class="explica">É o que aparece no atendimento, com o valor a pagar calculado na hora. Toque num serviço para mudar o nome, o valor ou a forma de cobrar.</p>
@@ -4130,7 +4185,7 @@ function telaAjustes() {
       </div>
       <div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.cupom, 20)} Cupom impresso</h2><span class="pill ${modoPapel() === 'nao' ? 'p-neutro' : 'p-ok'}">${modoPapel() === 'auto' ? 'Imprime sozinho aqui' : modoPapel() === 'nao' ? 'Este aparelho não imprime' : 'Mostra o cupom aqui'}</span></div>
         <button class="grupo tap" data-act="papel-ajustes" style="width:100%"><div class="it"><div class="txt"><b>${esc(lojaPapel().nome)}${lojaPapel().tel ? ' · ' + esc(lojaPapel().tel) : ''}</b><span>Toque para mudar o nome, o telefone e o aviso do cupom, escolher o que este aparelho faz, ou imprimir um teste</span></div><span class="vai">${ic(IC.vai, 18)}</span></div></button>
-        <p class="explica">O cupom sai depois de cada atendimento e de cada entrada, sempre em <b>duas vias</b>, com a logo: a <b>via da loja</b>, completa, para o responsável assinar; e a <b>via do cliente</b>, só com o básico (sem telefone e sem CPF). Imprime na impressora térmica do balcão (Bematech MP-4200 TH, papel de 80 mm).</p>
+        <p class="explica">O cupom sai depois de cada atendimento, de cada entrada, de <b>cada saída</b> e de <b>cada devolução</b> (com ou sem pagamento), sempre em <b>duas vias</b>, com a logo: a <b>via da loja</b>, completa, para o responsável assinar; e a <b>via do cliente</b>, só com o básico (sem telefone e sem CPF). Imprime na impressora térmica do balcão (Bematech MP-4200 TH, papel de 80 mm).</p>
       </div>
       <div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.sapato, 20)} Sapateiras</h2></div>
         <button class="grupo tap" data-act="sap-mapa" style="width:100%"><div class="it"><div class="txt"><b>${nSap()} sapateiras · ${S.criancas.filter(c => c.sapateira).length} em uso agora</b><span>Toque para ver o mapa, liberar uma esquecida ou mudar a quantidade</span></div><span class="vai">${ic(IC.vai, 18)}</span></div></button>
@@ -4472,6 +4527,7 @@ const ACOES = {
   },
   'sv-apagar': el => { const L = (S.cfg.servicos || []).slice(); if (L.length <= 1) { toast('Deixe pelo menos um serviço'); return; } const [x] = L.splice(+el.dataset.i, 1); S.cfg.servicos = L; if (MODO === 'servidor') api('regra_salvar', { servicos: L }).catch(e => toast(e.message));
     toast(`${x.n} saiu da lista`, () => { S.cfg.servicos = [...S.cfg.servicos, x]; if (MODO === 'servidor') api('regra_salvar', { servicos: S.cfg.servicos }).catch(() => {}); }); fecharFolha(); desenhar(); },
+  unidade: () => folhaUnidade(), 'unidade-escolher': el => escolherUnidade(+el.dataset.id), 'unidades-ir': () => { fecharFolha(); trocarTela('ajustes'); }, 'uni-nova': () => folhaUnidadeEditar(0), 'uni-editar': el => folhaUnidadeEditar(+el.dataset.id), 'uni-salvar': el => salvarUnidade(el), 'uni-apagar': el => apagarUnidade(el),   /* 1.06: unidades */
   pacotes: () => folhaPacotes(),
   'sap-todas': () => { SAP_TODAS = !SAP_TODAS; redesenharSap(); },
   'pp-vender': el => { const pre = el.dataset.pac != null ? { pac: +el.dataset.pac } : { prod: +el.dataset.prod }; if (itemPre(pre)) folhaParaQuem(pre); },   /* 0.98: um toque no pacote (ou no produto) começa a venda: falta dizer para quem */
@@ -4646,7 +4702,7 @@ setInterval(() => {
     $$('[data-saiu]').forEach(el => { const t = haMin(new Date(+el.dataset.saiu)); if (el.textContent !== t) el.textContent = t; }); }
   { const sc = $('#s-conta'), sb = $('#s-ok'), sh = $('#s-hora');   // a folha da saída acompanha o relógio: se a tolerância estourar com ela aberta, o valor a receber muda na hora
     if (sc && sb && !sb.disabled && !(sh && sh.value)) { const c = crianca(sb.dataset.id); if (c && c.entrou) { const k = contaSaida(c), chave = k.n + '|' + k.deb + '|' + Math.floor(k.min); if (sc.dataset.k !== chave) { sc.dataset.k = chave; sc.innerHTML = htmlContaSaida(c, k); sb.innerHTML = rotuloSaida(k); pagSaida(k); } } } }
-  $$('[data-ficha-pago]').forEach(el => { const c = crianca(el.dataset.fichaPago); if (!c) return; const k = chavePago(c); if (el.dataset.k !== k) { el.dataset.k = k; el.innerHTML = pagoFicha(c); const s = $(`[data-ficha-selo="${c.id}"]`); if (s) s.innerHTML = seloFicha(c); } });   // 1.02: o que falta receber (nasceu uma cobrança por atraso, ou foi recebido)
+  $$('[data-ficha-pago]').forEach(el => { const c = crianca(el.dataset.fichaPago); if (!c) return; const k = chavePago(c); if (el.dataset.k !== k) { el.dataset.k = k; el.innerHTML = pagoFicha(c); } });   // 1.02: o que falta receber (nasceu uma cobrança por atraso, ou foi recebido)
   $$('[data-banco-saldo]').forEach(el => { const c = crianca(el.dataset.bancoSaldo); if (!c) return; const s = saldoAgora(c); if (el.dataset.k !== String(s)) { el.dataset.k = s; const b = $('b', el); if (b) b.textContent = hm(s); el.classList.toggle('zero', !(s > 0)); } });   // o saldo do Banco de horas só muda de período em período
   $$('[data-ficha-saldo]').forEach(el => { const c = crianca(el.dataset.fichaSaldo); if (!c) return; const k = pacMin(c) + '|' + usadoAgora(c); if (el.dataset.k !== k) { el.dataset.k = k; el.innerHTML = saldoFicha(c); } });   // o saldo da comanda acompanha o relógio
   if (MODO !== 'servidor') { let novas = 0; for (const c of S.criancas) if (c.entrou) novas += acertarDemo(c); if (novas) desenhar(true); }

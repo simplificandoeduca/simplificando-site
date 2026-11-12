@@ -29,7 +29,7 @@ function criancaPublica(array $c): array {
   return ['id' => (int)$c['id'], 'nome' => $c['nome'], 'idade' => (int)$c['idade'], 'resp' => $c['resp'], 'rel' => $c['rel'], 'tel' => $c['tel'], 'cpf' => $c['cpf'], 'obs' => $c['obs'],
     'pacote' => round((int)$c['pacote_min'] / 60, 2), 'usado' => (int)$c['usado_min'], 'entrou' => $c['entrou'], 'idface_id' => $c['idface_id'] === null ? null : (int)$c['idface_id'],
     'rosto' => !empty($c['rosto']) || $c['idface_id'] !== null, 'foto' => (string)$c['foto'], 'ativo' => (bool)$c['ativo'], 'liberado' => !isset($c['liberado']) || (bool)$c['liberado'], 'sapateira' => isset($c['sapateira']) && $c['sapateira'] !== null ? (int)$c['sapateira'] : null,
-    'doc' => ($c['doc_tipo'] ?? 'cpf') === 'rne' ? 'rne' : 'cpf', 'tel2' => (string)($c['tel2'] ?? ''), 'pmin' => (int)$c['pacote_min'], 'pcd' => !empty($c['pcd']), 'imp' => (string)($c['lote'] ?? '') !== '',
+    'doc' => ($c['doc_tipo'] ?? 'cpf') === 'rne' ? 'rne' : 'cpf', 'tel2' => (string)($c['tel2'] ?? ''), 'pmin' => (int)$c['pacote_min'], 'pcd' => !empty($c['pcd']), 'imp' => (string)($c['lote'] ?? '') !== '', 'uni' => isset($c['unidade_id']) && $c['unidade_id'] !== null ? (int)$c['unidade_id'] : null,
     'obs_antes' => (string)($c['obs_antes'] ?? ''), 'obs_em' => $c['obs_em'] ?? null, 'obs_por' => (string)($c['obs_por'] ?? '')];   // a observação anterior, e quem mudou a de agora e quando   // pmin: o tempo comprado em minutos exatos   // doc: o campo cpf guarda o CPF ou o RNE (estrangeiro)
 }
 function dados(array $eu): array {
@@ -53,7 +53,7 @@ function dados(array $eu): array {
   $pendi = pendItensDeTodos();   // 1.02: quanto cada criança ainda tem a pagar do que comprou nesta visita (a tela mostra PAGO ou NÃO PAGO); 1.03: item por item
   foreach ($criancas as &$c) { if ($c['entrou']) $c['plano'] = $planos[$c['id']] ?? 'avulso'; $c['visitas'] = $porCrianca[$c['id']] ?? []; $c['venda'] = $ultimas[$c['id']] ?? null; $c['atraso'] = $atrasos[$c['id']] ?? null; $c['uv'] = $uv[$c['id']] ?? 0; $c['vouch'] = isset($vou[$c['id']]); if (isset($imph[$c['id']])) $c['imph'] = true; if (isset($pendi[$c['id']])) { $c['pendi'] = $pendi[$c['id']]; $c['pend'] = round(array_sum(array_column($pendi[$c['id']], 'v')), 2); } if (ehExemplo($c['id'])) $c['teste'] = true; }   // teste: criança dos dados de exemplo (o botão do rodapé)
   unset($c);
-  $registros = array_map(fn($r) => ['id' => (int)$r['id'], 'h' => $r['quando'], 'tipo' => $r['tipo'], 'nome' => $r['nome'], 'txt' => $r['texto'], 'crianca' => $r['crianca_id'] === null ? null : (int)$r['crianca_id']], $db->query('SELECT * FROM registros ORDER BY id DESC LIMIT 300')->fetchAll());
+  $registros = array_map(fn($r) => ['id' => (int)$r['id'], 'h' => $r['quando'], 'tipo' => $r['tipo'], 'nome' => $r['nome'], 'txt' => $r['texto'], 'crianca' => $r['crianca_id'] === null ? null : (int)$r['crianca_id'], 'uni' => ($r['unidade_id'] ?? null) === null ? null : (int)$r['unidade_id']], $db->query('SELECT * FROM registros ORDER BY id DESC LIMIT 300')->fetchAll());
   $msgs = $db->query('SELECT * FROM mensagens ORDER BY quando ASC, id ASC')->fetchAll();
   $conversas = [];
   foreach ($msgs as $m) {
@@ -78,7 +78,7 @@ function dados(array $eu): array {
     AND NOT EXISTS (SELECT 1 FROM visitas x WHERE x.crianca_id = c.id) AND NOT EXISTS (SELECT 1 FROM cancelamentos k WHERE k.crianca_id = c.id) ORDER BY c.criado_em, c.id');
   $q->execute([date('Y-m-d') . ' 00:00:00']); $fora = pendFora();   // quem a equipe tirou da lista hoje ("não vai fazer agora") não volta
   $pend = array_values(array_filter(array_map(fn($p) => ['id' => (int)$p['id'], 'em' => $p['criado_em']], $q->fetchAll()), fn($p) => !isset($fora[$p['id']])));
-  return ['criancas' => array_values($criancas), 'registros' => $registros, 'conversas' => array_values($conversas), 'compromissos' => $compromissos, 'regra' => regra(), 'cancelamentos' => $canc, 'pendentes' => $pend, 'produtos' => produtos(), 'alugueis' => alugueis(), 'pagamentos_hoje' => pagamentosDesde($hojeMenos), 'cupons' => cuponsDaTela(),
+  return ['criancas' => array_values($criancas), 'registros' => $registros, 'conversas' => array_values($conversas), 'compromissos' => $compromissos, 'regra' => regra(), 'cancelamentos' => $canc, 'pendentes' => $pend, 'produtos' => produtos(), 'unidades' => unidades(), 'alugueis' => alugueis(), 'pagamentos_hoje' => pagamentosDesde($hojeMenos), 'cupons' => cuponsDaTela(),
     'vendas_hoje' => ['n' => (int)$vh['n'], 'min' => (int)$vh['m'], 'horas' => round((int)$vh['m'] / 60, 2), 'valor' => (float)$vh['v']], 'atraso_hoje' => $atrasoHoje, 'descontos_hoje' => $descontosHoje, 'equipe' => $equipe, 'eu' => $eu, 'versao' => PLAY_VERSAO,
     'idface' => idfaceEstado(), 'whats' => whatsResumo(), 'agora' => agora(), 'exemplo' => ($ex = cfg('exemplo', null)) && is_array($ex) ? count($ex['criancas'] ?? []) : 0,
     'limpeza' => $eu['papel'] === 'gestor' ? ['oferta' => cfg('limpeza_oferta', null) !== null, 'ultima' => limpezaPublica()] : null,
@@ -167,13 +167,14 @@ switch ($acao) {
     acertarTodas();   // a cada pulso de qualquer tela aberta: passou da tolerância, nasce a nova cobrança (e o pulso muda, então todas as telas mostram)
     $a = $db->query("SELECT COALESCE(MAX(id), 0) || ':' || COUNT(*) FROM registros")->fetchColumn();
     $b = $db->query("SELECT COALESCE(MAX(id), 0) || ':' || COUNT(*) || ':' || COALESCE(SUM(lida), 0) FROM mensagens")->fetchColumn();
-    $c = $db->query("SELECT COUNT(*) || ':' || COALESCE(SUM(pacote_min), 0) || ':' || COALESCE(SUM(usado_min), 0) || ':' || COALESCE(SUM(liberado), 0) || ':' || COALESCE(SUM(pcd), 0) || ':' || COALESCE(SUM(sapateira), 0) || ':' || COALESCE(SUM(sapateira IS NOT NULL), 0) || ':' || COALESCE(SUM(rosto), 0) || ':' || COALESCE(SUM(ativo), 0) || ':' || COALESCE(SUM(entrou IS NOT NULL), 0) || ':' || COALESCE(MAX(entrou), '') || ':' || COALESCE(SUM(idface_id), 0) || ':' || COALESCE(SUM(LENGTH(foto) + LENGTH(nome) + LENGTH(resp) + LENGTH(tel) + LENGTH(tel2) + LENGTH(cpf) + LENGTH(doc_tipo) + LENGTH(obs) + idade), 0) FROM criancas")->fetchColumn();
+    $c = $db->query("SELECT COUNT(*) || ':' || COALESCE(SUM(pacote_min), 0) || ':' || COALESCE(SUM(usado_min), 0) || ':' || COALESCE(SUM(liberado), 0) || ':' || COALESCE(SUM(pcd), 0) || ':' || COALESCE(SUM(sapateira), 0) || ':' || COALESCE(SUM(sapateira IS NOT NULL), 0) || ':' || COALESCE(SUM(rosto), 0) || ':' || COALESCE(SUM(ativo), 0) || ':' || COALESCE(SUM(entrou IS NOT NULL), 0) || ':' || COALESCE(MAX(entrou), '') || ':' || COALESCE(SUM(idface_id), 0) || ':' || COALESCE(SUM(unidade_id), 0) || ':' || COALESCE(SUM(LENGTH(foto) + LENGTH(nome) + LENGTH(resp) + LENGTH(tel) + LENGTH(tel2) + LENGTH(cpf) + LENGTH(doc_tipo) + LENGTH(obs) + idade), 0) FROM criancas")->fetchColumn();
     $d = $db->query("SELECT COUNT(*) || ':' || COALESCE(SUM(feito), 0) || ':' || COALESCE(MAX(id), 0) || ':' || COALESCE(SUM(LENGTH(titulo) + LENGTH(dia) + LENGTH(hora)), 0) FROM compromissos")->fetchColumn();
     $ps = cfg('push_estado', []); $pe = cfg('ponte_estado', []); $em = (is_array($ps) ? ($ps['em'] ?? null) : null) ?: (is_array($pe) ? ($pe['em'] ?? null) : null);
     $ap = ($em && time() - strtotime((string)$em) < 120) ? 1 : 0; $ic = cfg('idface', []); $lig = !is_array($ic) || !array_key_exists('ligado', $ic) || $ic['ligado'] ? 1 : 0;
     $d .= '|' . $db->query("SELECT COUNT(*) || ':' || COALESCE(SUM(visto_em IS NOT NULL), 0) FROM cancelamentos")->fetchColumn();   // um cancelamento conferido pela supervisão também muda a tela
     $d .= '|' . $db->query("SELECT COUNT(*) || ':' || COALESCE(SUM(ativo), 0) || ':' || COALESCE(SUM(estoque), 0) || ':' || COALESCE(SUM(estoque IS NULL), 0) || ':' || COALESCE(SUM(valor), 0) || ':' || COALESCE(SUM(LENGTH(nome)), 0) || ':' || COALESCE(MAX(mudou_em), '') FROM produtos")->fetchColumn();   // produto novo, valor novo ou estoque que mudou
     $d .= '|' . $db->query("SELECT COUNT(*) || ':' || COALESCE(SUM(alug_min), 0) || ':' || COALESCE(SUM(qtd), 0) || ':' || COALESCE(MAX(id), 0) FROM vendas WHERE alug != '' AND voltou IS NULL")->fetchColumn();   // o que está fora da loja (carrinho, fusquinha)
+    $d .= '|' . $db->query("SELECT COUNT(*) || ':' || COALESCE(SUM(ativo), 0) || ':' || COALESCE(SUM(LENGTH(nome)), 0) || ':' || COALESCE(MAX(mudou_em), '') FROM unidades")->fetchColumn();   // 1.06: unidade nova, com outro nome ou removida
     acertarCupons(); $d .= '|' . pulsoCupons();   // 0.93: o cupom fiscal de cada pagamento (nasceu, foi marcado, ou a venda foi desfeita)
     responder(['p' => md5("$a|$b|$c|$d|$ap|$lig|" . json_encode(whatsResumo()) . '|' . json_encode(regra()) . '|' . (cfg('exemplo') ? 1 : 0) . '|' . json_encode(pendFora()) . '|' . date('Y-m-d'))]);   // quem saiu de "Falta finalizar" e a virada do dia também mudam a tela
   }
@@ -419,7 +420,7 @@ switch ($acao) {
       $cupomId = criarCupom($c, 'venda', $antesPg, $u);   // 0.93: o cupom fiscal deste pagamento, a emitir (0 = módulo desligado)
     }
     $depois = !$pg && $aPagar > 0 && !empty($in['depois']);   // 1.02: o cliente vai pagar na saída (ou na devolução): a venda fica a receber
-    if ($depois) $regs[] = registrar('pag', (int)$c['id'], $c['nome'], 'Não pago · ' . dinheiro($aPagar) . ' a receber na ' . (!empty($in['entrar']) || $c['entrou'] ? 'saída' : 'devolução'));
+    if ($depois) $regs[] = registrar('pag', (int)$c['id'], $c['nome'], 'A receber na ' . (!empty($in['entrar']) || $c['entrou'] ? 'saída' : 'devolução') . ' · ' . dinheiro($aPagar));
     $resp = ['vendas' => $vendas, 'registros' => $regs, 'total' => $total, 'minutos' => $min, 'voucher' => $vinfo, 'pagamento' => $pg ? textoPagamento($pg) : '', 'cupom' => $cupomId ?? 0, 'a_receber' => $depois ? $aPagar : 0, 'desconto' => $ad['valor'] ?? 0];
     if ($min > 0 && $c['entrou']) { $des = desfazerCobrancasSobrando($c); if ($des['n']) { $resp['desfeitas'] = $des; $c = crianca((int)$c['id']); } }   // 1.00: comprou tempo com a criança no espaço: o que sobrou de cobrança por atraso sai
     if (!empty($in['entrar']) && modoManual() && !$c['entrou'] && restante($c) >= periodo()) { // sem iDFace: pagou e já entra, o tempo começa a contar
@@ -666,6 +667,33 @@ switch ($acao) {
   }
 
   /* ---------- equipe ---------- */
+  /* ---------- 1.06: unidades ---------- */
+  case 'unidade_salvar': { // nova (sem id) ou com outro nome. O nome fica em maiúsculas e não pode repetir entre as ativas
+    $u = exigir(); podeAjustar($u); $id = (int)($in['id'] ?? 0); $nome = mb_substr(maiusculo($val('nome')), 0, 40);
+    if ($nome === '') falha('Escreva o nome da unidade.');
+    foreach (unidades() as $x) if ($x['ativo'] && $x['id'] !== $id && mb_strtolower($x['nome'], 'UTF-8') === mb_strtolower($nome, 'UTF-8')) falha('Já existe uma unidade com esse nome.', 409);
+    if ($id) {
+      $q = $db->prepare('SELECT * FROM unidades WHERE id = ?'); $q->execute([$id]); $antes = $q->fetch(); if (!$antes) falha('Unidade não encontrada.', 404);
+      $db->prepare('UPDATE unidades SET nome = ?, ativo = 1, mudou_em = ? WHERE id = ?')->execute([$nome, agora(), $id]);
+      if ($antes['nome'] !== $nome) registrar('cad', null, 'UNIDADES', 'Unidade ' . $antes['nome'] . ' agora é ' . $nome . ' · por ' . primeiroNome((string)$u['nome']));
+    } else {
+      if ((int)$db->query('SELECT COUNT(*) FROM unidades WHERE ativo = 1')->fetchColumn() >= UNIDADES_MAX) falha('São no máximo ' . UNIDADES_MAX . ' unidades.');
+      $db->prepare('INSERT INTO unidades (nome, criado_em, mudou_em) VALUES (?, ?, ?)')->execute([$nome, agora(), agora()]); $id = (int)$db->lastInsertId();
+      registrar('cad', null, 'UNIDADES', 'Nova unidade: ' . $nome . ' · por ' . primeiroNome((string)$u['nome']));
+    }
+    responder(['id' => $id, 'unidades' => unidades()]);
+  }
+  case 'unidade_apagar': { // sai das escolhas; o que já foi registrado nela continua com o nome. voltar = o Desfazer do aviso
+    $u = exigir(); podeAjustar($u); $id = (int)($in['id'] ?? 0);
+    $q = $db->prepare('SELECT * FROM unidades WHERE id = ?'); $q->execute([$id]); $x = $q->fetch(); if (!$x) falha('Unidade não encontrada.', 404);
+    if (!empty($in['voltar'])) { $db->prepare('UPDATE unidades SET ativo = 1, mudou_em = ? WHERE id = ?')->execute([agora(), $id]); if (!empty($in['registro'])) $db->prepare("DELETE FROM registros WHERE id = ? AND tipo = 'cad'")->execute([(int)$in['registro']]); responder(['unidades' => unidades()]); }
+    $q = $db->prepare('SELECT COUNT(*) FROM criancas WHERE ativo = 1 AND entrou IS NOT NULL AND unidade_id = ?'); $q->execute([$id]); $n = (int)$q->fetchColumn();
+    if ($n) falha(($n === 1 ? 'Há uma criança' : "Há $n crianças") . ' no espaço nesta unidade agora. Dê a saída antes de remover a unidade.', 409);
+    $db->prepare('UPDATE unidades SET ativo = 0, mudou_em = ? WHERE id = ?')->execute([agora(), $id]);
+    $reg = registrar('cad', null, 'UNIDADES', 'Unidade removida: ' . $x['nome'] . ' · por ' . primeiroNome((string)$u['nome']));
+    responder(['registro' => $reg, 'unidades' => unidades()]);
+  }
+
   case 'usuario_salvar': {
     $u = exigir(); podeAjustar($u); $id = (int)($in['id'] ?? 0);
     $nome = mb_substr(maiusculo($val('nome')), 0, 80); $login = mb_strtolower(preg_replace('/[^a-z0-9._-]/i', '', $val('login'))); $papel = in_array($val('papel'), array_keys(PAPEIS), true) ? $val('papel') : 'atendente'; $senha = (string)($in['senha'] ?? '');
