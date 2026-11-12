@@ -125,7 +125,7 @@ function demoSeed(){
     const id = 'a-demo-'+(k+1), u = 'demo-u'+(k+1), base = newAluno({ nome:x.n, apelido:x.ap, whatsapp:'(11) 9'+(8000+k*111)+'-'+(1000+k*37), email:x.n.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'.')+'@exemplo.com', sexo:x.sx, objetivo:x.ob, origem:k%2 ? 'instagram' : 'particular', plano:x.pl });
     Object.assign(base.perfil, { nascimento:x.nasc, altura:x.alt, peso:x.peso, nivel:x.nv, inicio:addDays(t, x.ini), atendimento:x.at, horarios:x.hs.map(h => ({ d:dw(h[0]), h:h[1], dur:h[2]||60 })), local:x.at==='online' ? 'casa' : 'academia', tempoSessao:60 });
     const Ls = x.ob==='corrida' ? ['A','B'] : ['A','B','C'], tr = {}; Ls.forEach(L => { tr[L] = clone(T[L]); tr[L].ex.forEach(e => { e.id = newExId(e.exId); }); });
-    Object.assign(base.plano, { nome:'Protocolo '+(x.plIni<-40 ? 2 : 1), objetivoCiclo:ED[x.ob], inicio:addDays(t, x.plIni), semanas:8, frequencia:Ls.length, treinos:tr });
+    Object.assign(base.plano, { nome:'Protocolo '+(x.plIni<-40 ? 2 : 1), objetivoCiclo:ED[x.ob], inicio:addDays(t, x.plIni), semanas:8, frequencia:Ls.length, treinos:tr }); base.metas.semanaTreinos = Ls.length;
     base.financeiro.valor = x.v; base.financeiro.vencimentoDia = Math.min(28, +addDays(t, x.pago).slice(8,10)); base.financeiro.pagoAte = addDays(t, x.pago);
     base.financeiro.pagamentos = [1,2].map(m => ({ id:uid('p'), data:addDays(t, x.pago-30*m-2), valor:x.v, ref:addDays(t, x.pago-30*m).slice(0,7), forma:m===1 ? 'pix' : 'cartao' }));
     base.avaliacoes = x.av.map(v => ({ id:uid('av'), data:addDays(t, v[0]), peso:v[1], gordura:v[2], medidas:{ cintura:Math.round(x.alt*.45 - (v[0]>-40 ? 2 : 0)), quadril:Math.round(x.alt*.6) }, obs:'' }));
@@ -174,6 +174,9 @@ rep("    case 'estLida':", """    case 'agD': ui.agD = d.v; break;
 # o botão "apagar" de duas etapas (armBtn) precisa do primeiro toque
 rep("'applyToAluno','wipeEx']);", "'applyToAluno','wipeEx','demoWipe']);")
 
+# planos de cobrança genéricos (sem a assinatura do Instagram, que é do Simplificando)
+rep("const PLANOS = { instagram:'Assinatura Instagram', presencial:'Particular presencial', online:'Particular online', consultoria:'Consultoria' };",
+    "const PLANOS = { presencial:'Presencial', online:'Online', consultoria:'Consultoria' };")
 # ---------- Alunos: só alunos do personal, presencial ou online ----------
 rep("perfil:{ nome:d.nome.trim(),", "perfil:{ atendimento:d.atendimento==='online' ? 'online' : 'presencial', horarios:[], nome:d.nome.trim(),")
 rep("""      segB({d:'novo.origem',label:'Origem',val:d.origem||'particular',opts:Object.entries(ORIGEM)})+""",
