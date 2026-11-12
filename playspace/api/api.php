@@ -43,7 +43,7 @@ function dados(array $eu): array {
   // as cobranças por atraso da visita de quem está no espaço (quantas e quanto falta receber na saída)
   $atrasos = []; foreach ($db->query('SELECT v.crianca_id, COUNT(*) n, SUM(v.valor) t FROM criancas c CROSS JOIN vendas v ON v.crianca_id = c.id WHERE c.entrou IS NOT NULL AND v.auto = 1 AND v.quando >= c.entrou AND NOT EXISTS (SELECT 1 FROM pagamentos p WHERE p.venda_id = v.id) GROUP BY v.crianca_id')->fetchAll() as $a) $atrasos[(int)$a['crianca_id']] = ['n' => (int)$a['n'], 'valor' => (float)$a['t']];
   // uv: a última linha de venda de cada criança (entre as 2000 linhas mais novas do dia a dia). A tela usa para saber que um atendimento que ficou em aberto num aparelho já foi registrado em outro
-  $uv = []; foreach ($db->query("SELECT crianca_id, MAX(id) m FROM registros WHERE id > (SELECT COALESCE(MAX(id), 0) - 2000 FROM registros) AND tipo = 'venda' AND crianca_id IS NOT NULL GROUP BY crianca_id")->fetchAll() as $l) $uv[(int)$l['crianca_id']] = (int)$l['m'];
+  $uv = []; foreach ($db->query("SELECT crianca_id, MAX(id) m FROM registros WHERE id > (SELECT COALESCE(MAX(id), 0) - 2000 FROM registros) AND tipo = 'venda' AND crianca_id IS NOT NULL AND texto NOT LIKE 'FESTA %' AND texto NOT LIKE 'FESTA:%' GROUP BY crianca_id")->fetchAll() as $l) $uv[(int)$l['crianca_id']] = (int)$l['m'];   // 1.12: a venda da festa não derruba o atendimento comum que estava guardado
   // vouch: a criança tem um voucher de hoje sem saída depois dele (o da visita em curso, ou um guardado): a tela mostra e não oferece outro
   $vou = []; $qv = $db->prepare("SELECT v.crianca_id FROM vendas v WHERE v.quando >= ? AND v.voucher != '' AND v.quando > COALESCE((SELECT MAX(x.saiu) FROM visitas x WHERE x.crianca_id = v.crianca_id), '')"); $qv->execute([date('Y-m-d') . ' 00:00:00']);
   foreach ($qv->fetchAll() as $l) $vou[(int)$l['crianca_id']] = true;
@@ -404,6 +404,9 @@ switch ($acao) {
       if (isset($l['v']) && abs((float)$l['v'] - (float)$p['valor']) >= 0.005) falha('O valor de ' . $p['nome'] . ' mudou para ' . dinheiro((float)$p['valor']) . '. Feche e abra o atendimento de novo.');
       $linhas[] = ['servico' => (string)$p['nome'], 'min' => 0, 'valor' => round($q * (float)$p['valor'], 2), 'itens' => $q > 1 ? $q . ' unidades' : '', 'mais' => ['produto' => (int)$p['id'], 'qtd' => $q]];
     }
+    // 1.12: a festa (só pelo botão Festa): as linhas saem da tabela da loja, e a festa é paga na hora da venda
+    $festa = linhasDaFesta($in['festa'] ?? null); foreach ($festa as $l) $linhas[] = $l;
+    if ($festa && !empty($in['depois'])) falha('A festa é paga na hora da venda.');
     // voucher do shopping: 30 min de recreação grátis, um por visita, sem código. A tela só marca (voucher: true); a tela antiga mandava { q, codigo } e vale como um voucher.
     // Confere antes de vender qualquer coisa, para não ficar uma venda pela metade
     $vo = $in['voucher'] ?? null; $comVoucher = is_array($vo) ? (int)($vo['q'] ?? 0) > 0 : !empty($vo);
@@ -421,6 +424,7 @@ switch ($acao) {
     $desc = lerDesconto($in['desconto'] ?? null, $u); $cheio = $aPagar;   // 1.04: o desconto do gestor: o pagamento fecha com o total já descontado
     if ($desc) { if ($desc['valor'] > $cheio + 0.004) falha('O desconto (' . dinheiro($desc['valor']) . ') passa do total, que é ' . dinheiro($cheio) . '.'); $aPagar = round($cheio - $desc['valor'], 2); }
     if ($pg && abs(array_sum($pg) - $aPagar) >= 0.01) falha('O pagamento (' . dinheiro((float)array_sum($pg)) . ') não fecha com o total, que é ' . dinheiro($aPagar) . '. Feche e abra o atendimento de novo.');
+    if ($festa && !$pg && $aPagar > 0) falha('Escolha a forma de pagamento da festa.');   // 1.12: a festa não fica a receber
     $vendas = []; $regs = []; $total = 0; $min = 0;
     foreach ($linhas as $l) { $x = fazerVenda($c, $l['min'], $l['valor'], (int)$u['id'], $l['itens'], $l['servico'], false, '', $l['mais'] ?? []); $vendas[] = $x['venda']; $regs[] = $x['registro']; $total += $l['valor']; $min += $l['min']; $c = crianca((int)$c['id']); }
     $ad = [];   // 1.04: o desconto sai das vendas desta venda, em proporção ao valor de cada uma
@@ -645,7 +649,7 @@ switch ($acao) {
       $es = []; foreach ($in['extras'] as $e) { $n = mb_substr(trim((string)($e['n'] ?? '')), 0, 40); $v = (float)($e['v'] ?? 0); if ($n !== '' && $v >= 0 && count($es) < 30) $es[] = ['n' => $n, 'v' => $v]; }
       $r['extras'] = $es;
     }
-    gravarCfg('regra', $r); responder(['regra' => $r]);
+    $g = $r; unset($g['festa']); gravarCfg('regra', $g); responder(['regra' => $r]);   // 1.12: a tabela da festa é a de fábrica: vai para a tela, mas não fica gravada
   }
 
   /* ---------- produtos da loja ---------- */

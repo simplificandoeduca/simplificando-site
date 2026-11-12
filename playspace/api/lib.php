@@ -372,6 +372,7 @@ function regraDoBanco(): array {
   }
   foreach ($r['servicos'] as $k => $x) if (is_array($x) && !array_key_exists('volta', $x)) $r['servicos'][$k]['volta'] = empty($x['banco']) && in_array((string)($x['id'] ?? ''), SERVICOS_QUE_VOLTAM, true);
   if (!MODULO_WHATS) $r['autoMsg'] = 'nao';   // com o módulo desligado, nenhum aviso automático sai
+  $r['festa'] = FESTA_DE_FABRICA;   // 1.12: a tabela da festa vai com a regra para a tela (a de fábrica: não fica gravada)
   return $r;
 }
 function dur(int $min): string { $min = max(0, $min); return intdiv($min, 60) . 'h' . ($min % 60 ? str_pad((string)($min % 60), 2, '0', STR_PAD_LEFT) : ''); }   // sempre em horas: 0h30, 1h, 1h30 (a loja vende meia hora e hora)
@@ -992,6 +993,41 @@ function venderVisitaAvulsa(array $c, ?array $u): ?array {
   $preco = precoPcd($c, (float)$s['v']); $pcd = $preco < (float)$s['v']; $valor = round($min / $p * $preco, 2);
   $x = fazerVenda($c, $min, $valor, $u ? (int)$u['id'] : null, ITENS_AVULSO_SAIDA . ($pcd ? ' · PCD ' . pcdDesc() . '%' : ''), (string)$s['n'], false, '', $pcd ? ['pcd' => 1, 'cheio' => round($min / $p * (float)$s['v'], 2)] : []);
   return ['venda' => (int)$x['venda'], 'registro' => (int)$x['registro'], 'min' => $min, 'valor' => $valor];
+}
+
+/* ---------- 1.12: a festa ---------- */
+// A tabela "Nossos valores" da loja: o valor pela quantidade de crianças, em dia de semana ou em fim de semana, férias, emenda e
+// feriado, e o convidado adicional. A festa é vendida só pelo botão Festa; o valor é o desta tabela, não o que a tela mandar.
+const FESTA_DE_FABRICA = ['n' => [10, 15, 20, 25, 30], 'semana' => [2549, 2999, 3449, 3899, 4349], 'fds' => [2849, 3299, 3749, 4199, 4649], 'extra' => 190, 'extraMax' => 60, 'horas' => 3, 'parcelas' => 4];
+const FESTA_DIAS = ['semana' => 'dia de semana', 'fds' => 'fim de semana, férias, emenda ou feriado'];
+// as linhas da venda de uma festa, como as do atendimento: [['servico', 'min', 'valor', 'itens']]. $fe é o que a tela mandou:
+// dia ('semana' ou 'fds'), n (crianças), extra (convidados adicionais), data ('AAAA-MM-DD', opcional), v e ve (os valores que a tela mostrou)
+function linhasDaFesta($fe): array {
+  if (!is_array($fe)) return [];
+  $t = regra()['festa']; $dia = (string)($fe['dia'] ?? ''); $n = (int)($fe['n'] ?? 0); $extra = (int)($fe['extra'] ?? 0); $data = trim((string)($fe['data'] ?? ''));
+  if ($extra < 0 || $extra > (int)$t['extraMax']) falha('Quantos convidados adicionais? De 0 a ' . (int)$t['extraMax'] . '.');
+  if ($n <= 0 && $extra <= 0) falha('Escolha a festa: toque no valor, ou ponha os convidados adicionais.');
+  $quando = '';
+  if ($data !== '') {
+    if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $data, $m) || !checkdate((int)$m[2], (int)$m[3], (int)$m[1]) || $data < date('Y-m-d')) falha('Confira a data da festa.');
+    $br = $m[3] . '/' . $m[2] . '/' . $m[1];
+    if ($n > 0 && $dia === 'semana' && (int)date('N', strtotime($data)) >= 6) falha('O dia ' . $br . ' cai num fim de semana: vale o valor de fim de semana.');
+    $quando = ' · festa em ' . $br;
+  }
+  $L = [];
+  if ($n > 0) {
+    if (!isset(FESTA_DIAS[$dia])) falha('A festa é em dia de semana ou em fim de semana?');
+    $i = array_search($n, $t['n'], true); if ($i === false) falha('A festa para ' . $n . ' crianças não está na tabela.');
+    $v = (float)$t[$dia][$i];
+    if (isset($fe['v']) && abs((float)$fe['v'] - $v) >= 0.005) falha('O valor da festa para ' . $n . ' crianças mudou para ' . dinheiro($v) . '. Feche e abra a Festa de novo.');
+    $L[] = ['servico' => 'FESTA ' . $n . ' CRIANÇAS', 'min' => 0, 'valor' => $v, 'itens' => FESTA_DIAS[$dia] . $quando];
+  }
+  if ($extra > 0) {
+    $ve = (float)$t['extra'];
+    if (isset($fe['ve']) && abs((float)$fe['ve'] - $ve) >= 0.005) falha('O valor do convidado adicional mudou para ' . dinheiro($ve) . '. Feche e abra a Festa de novo.');
+    $L[] = ['servico' => 'FESTA: CONVIDADO ADICIONAL', 'min' => 0, 'valor' => round($extra * $ve, 2), 'itens' => $extra . ($extra === 1 ? ' convidado' : ' convidados') . ($n > 0 ? '' : $quando)];
+  }
+  return $L;
 }
 
 /* ---------- cancelar a entrada sem cobrar ---------- */

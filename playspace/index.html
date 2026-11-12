@@ -751,6 +751,15 @@ body.quieto .dica { animation: none !important; }
 .pg-modo button[aria-checked="true"] i { border-color: currentColor; background: radial-gradient(circle, currentColor 0 42%, transparent 46%); }
 .pg-modo button[aria-checked="true"][data-m="agora"] { border-color: var(--ok); background: var(--ok-bg); color: var(--ok); }
 .pg-modo button[aria-checked="true"][data-m="depois"] { border-color: var(--erro); background: var(--erro-bg); color: var(--erro); }
+/* 1.12: a festa: a tabela de valores em botões, os convidados adicionais e o que a festa inclui */
+.fe-tab { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr); gap: 8px; align-items: center; }
+.fe-tab .fe-ch { align-self: end; text-align: center; font-size: 11.5px; font-weight: 800; line-height: 1.2; color: var(--tinta-2); padding: 0 2px 2px; }
+.fe-tab .fe-n { font-family: var(--display); font-weight: 800; font-size: 14px; white-space: nowrap; padding-right: 4px; } .fe-tab .fe-n .num { font-size: 20px; }
+.fe-tab .fe-v { min-height: 50px; padding: 8px 6px; align-items: center; justify-content: center; text-align: center; } .fe-tab .fe-v b { font-size: 18px; white-space: nowrap; }
+.fe-tab .fe-v[disabled] { opacity: .38; pointer-events: none; }
+.serv .qtd button[data-act="festa-mais"] { background: var(--coral); color: #fff; } #fe-extra .qtd b { min-width: 40px; }
+.fe-inc { margin: 10px 0 0; display: flex; flex-direction: column; gap: 7px; font-size: 13px; line-height: 1.35; } .fe-inc div { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 10px; } .fe-inc dt { font-weight: 800; color: var(--tinta-2); } .fe-inc dd { margin: 0; }
+@media (max-width: 480px) { .fe-tab { gap: 6px; } .fe-tab .fe-n { font-size: 12.5px; } .fe-tab .fe-n .num { font-size: 17px; } .fe-tab .fe-v b { font-size: 16px; } .fe-inc div { grid-template-columns: 84px minmax(0, 1fr); } }
 #s-av button { line-height: 1.15; } #s-av button[aria-checked="true"] { border-color: var(--coral); background: var(--coral-2); color: var(--tinta); }   /* 1.11: descontar do pacote ou pagar avulso */
 @media (max-width: 480px) { #s-av button { font-size: 13.5px; gap: 7px; padding: 6px 8px; } }
 /* 1.04: desconto do gestor na tela de pagamento (só ele vê): tipo, valor e motivo */
@@ -1312,13 +1321,14 @@ const IC = {
   sacola: '<path d="M5 8h14l1 12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M9 11V7a3 3 0 0 1 6 0v4"/>',
   elo: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.2 1.2"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.2-1.2"/>',
   carrinho: '<path d="M3 5h2.4l2.3 9.5h9.8l2-7H6.6"/><circle cx="9.5" cy="18.5" r="1.7"/><circle cx="16.5" cy="18.5" r="1.7"/>',
+  festa: '<path d="M12 2.8c3.2 0 5.8 2.7 5.8 6.1 0 3.5-2.6 6.6-5.8 6.6s-5.8-3.1-5.8-6.6c0-3.4 2.6-6.1 5.8-6.1z"/><path d="M10.7 15.4l-.9 1.9h4.4l-.9-1.9"/><path d="M12 17.3c0 1.7 1.7 1.6 1.7 3.4"/>',   // 1.12: o balão do botão Festa
 };
 
 /* ---------- estado (dados de exemplo: a loja ainda não tem cadastro) ---------- */
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.11';
+const VERSAO = '1.12';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -1349,7 +1359,7 @@ async function atualizarAgora(bt) {
 }
 const S = {
   tela: 'horas', zapAberta: 1, zapModo: 'lista', zapDia: isoDia(agora), mes: { y: agora.getFullYear(), m: agora.getMonth() }, diaSel: isoDia(agora),
-  cfg: { tolerancia: 9, tolCupom: 5, fecha: 22, pcdDesc: 50, aviso: 10, autoMsg: 'nao', bloqueioAuto: 'sim', cupomLoja: 'PLAY SPACE', cupomTel: '', pacotes: [{ h: 2, v: 280, tipo: 'seco', nome: '02 HORAS 260' }, { h: 3, v: 225, tipo: 'seco', nome: '03 HORAS 360' }, { h: 4, v: 380, tipo: 'seco', nome: '04 HORAS 420' }, { h: 5, v: 390, tipo: 'seco', nome: '05 HORAS 360 ESPECIAL' }, { h: 5, v: 420, tipo: 'seco', nome: 'PACOTE 05 HORAS 420' }, { h: 5, v: 480, tipo: 'seco', nome: '05 HORAS 450' }, { h: 5, v: 500, tipo: 'seco', nome: '05 HORAS 380' }, { h: 10, v: 820, tipo: 'seco', nome: '10 HORAS 840' }], servicos: [{ id: 'recreacao', n: 'RECREAÇÃO', v: 80, modo: 'periodo', min: 30, banco: true, obs: '', volta: false }, { id: 'fusquinha', n: 'CARRINHO FUSQUINHA', v: 15, modo: 'periodo', min: 30, banco: false, obs: '', volta: true }, { id: 'bebe', n: 'CARRINHO DE BEBÊ', v: 30, modo: 'fixo', min: 0, banco: false, obs: 'DAS 10H ÀS 22H', volta: true }], sapateiras: 44, cancelaMin: 9, reabreMin: 30, idface: { ip: '192.168.0.129', nome: 'Recepção', ligado: false, ultima: antes(0.2) }, tema: lido('ps-tema', 'sistema'), anim: lido('ps-anim', 'auto') }, espOrdem: lido('ps-esp-ordem', 'tempo'),
+  cfg: { festa: { n: [10, 15, 20, 25, 30], semana: [2549, 2999, 3449, 3899, 4349], fds: [2849, 3299, 3749, 4199, 4649], extra: 190, extraMax: 60, horas: 3, parcelas: 4 }, tolerancia: 9, tolCupom: 5, fecha: 22, pcdDesc: 50, aviso: 10, autoMsg: 'nao', bloqueioAuto: 'sim', cupomLoja: 'PLAY SPACE', cupomTel: '', pacotes: [{ h: 2, v: 280, tipo: 'seco', nome: '02 HORAS 260' }, { h: 3, v: 225, tipo: 'seco', nome: '03 HORAS 360' }, { h: 4, v: 380, tipo: 'seco', nome: '04 HORAS 420' }, { h: 5, v: 390, tipo: 'seco', nome: '05 HORAS 360 ESPECIAL' }, { h: 5, v: 420, tipo: 'seco', nome: 'PACOTE 05 HORAS 420' }, { h: 5, v: 480, tipo: 'seco', nome: '05 HORAS 450' }, { h: 5, v: 500, tipo: 'seco', nome: '05 HORAS 380' }, { h: 10, v: 820, tipo: 'seco', nome: '10 HORAS 840' }], servicos: [{ id: 'recreacao', n: 'RECREAÇÃO', v: 80, modo: 'periodo', min: 30, banco: true, obs: '', volta: false }, { id: 'fusquinha', n: 'CARRINHO FUSQUINHA', v: 15, modo: 'periodo', min: 30, banco: false, obs: '', volta: true }, { id: 'bebe', n: 'CARRINHO DE BEBÊ', v: 30, modo: 'fixo', min: 0, banco: false, obs: 'DAS 10H ÀS 22H', volta: true }], sapateiras: 44, cancelaMin: 9, reabreMin: 30, idface: { ip: '192.168.0.129', nome: 'Recepção', ligado: false, ultima: antes(0.2) }, tema: lido('ps-tema', 'sistema'), anim: lido('ps-anim', 'auto') }, espOrdem: lido('ps-esp-ordem', 'tempo'),
   equipe: [{ id: 1, nome: 'Camila Duarte', papel: 'gestor', login: 'camila' }, { id: 2, nome: 'Beatriz Lima', papel: 'supervisor', login: 'bia' }, { id: 3, nome: 'João Pedro', papel: 'atendente', login: 'jp' }],
   whats: { conectado: true, numero: '5511912345678', nome: 'Play Space' }, vendasHoje: null, importacao: null,
   unidades: [{ id: 1, nome: 'ANÁLIA FRANCO', ativo: true }, { id: 2, nome: 'MORUMBI', ativo: true }],   // 1.06: as unidades (na prévia, as duas de fábrica)
@@ -2262,6 +2272,7 @@ function linhasDoCarrinho(k = CARRINHO, item = val('v-item'), valor = val('v-val
   for (const p of S.produtos || []) { const q = (k.pr || {})[p.id] || 0; if (q) L.push({ prod: p.id, q, pv: p.v, servico: p.n, min: 0, v: centavos(q * p.v), itens: q > 1 ? q + ' unidades' : '' }); }   // produto da loja: valor por unidade, sem o desconto PCD
   if (st && k.vq > 0 && !temVoucher(c)) { const cobre = !!(c && c.entrou && c.atraso && c.atraso.n > 0);   // com cobrança por atraso a receber, o voucher cobre essa cobrança em vez de somar tempo
     L.push({ vou: true, q: 1, cobre, servico: st.n, min: cobre ? 0 : (st.min || 30), v: 0, itens: 'voucher' + (cobre ? ' · cobriu a cobrança por atraso de ' + brl(umaCobranca(c)) : ''), voucher: 'sim', cheio: st.v }); }
+  for (const l of linhasDaFesta(k.festa)) L.push(l);   // 1.12: a festa (só pela folha da Festa)
   const on = item, ov = numero(valor); if (on) L.push({ outro: true, servico: on, min: 0, v: ov >= 0 ? ov : 0, itens: '' });
   return L;
 }
@@ -2304,6 +2315,7 @@ function corpoProdutos() {
 let PQ = null;        // o item escolhido em "Pacotes e produtos", enquanto a tela pergunta para quem é: { pac: índice } ou { prod: id }
 let CAD_PRE = null;   // o mesmo item, enquanto o cadastro do cliente novo está aberto (cada cadastro que abre começa sem nada)
 const itemPre = pre => { if (!pre) return null;
+  if (pre.festa) return { festa: true, pac: false, n: 'Festa', sub: '', v: 0, curto: 'a festa' };   /* 1.12: a venda começou no botão Festa */
   if (pre.pac != null) { const x = (S.cfg.pacotes || [])[pre.pac]; return x ? { pac: true, n: `${dur(x.h * 60)} de recreação`, sub: [x.nome || '', x.com ? 'com ' + x.com : '', 'sem prazo para usar'].filter(Boolean).join(' · '), v: x.v, curto: `O pacote de ${dur(x.h * 60)} (${brl(x.v)})` } : null; }
   const p = produto(pre.prod); return p ? { pac: false, n: p.n, sub: p.est == null ? 'produto da loja' : estTxt(p), v: p.v, curto: `${p.n} (${brl(p.v)})` } : null; };
 const soNumerosBusca = q => !!soDig(q) && !/[a-zà-ú]/i.test(q);
@@ -2329,19 +2341,81 @@ function listaParaQuem(q) {
   if (!soNumerosBusca(txt) && txt.length < 2) return `<p class="explica pq-dica">Mais uma letra do nome e os clientes aparecem.</p>`;
   if (!r.L.length) { const inteiro = soNumerosBusca(txt) && dig.length === 11;
     return `<div class="cliente-ja sug pq-nada"><small class="rot-cr">${inteiro ? (cpfValido(txt) ? 'Nenhum cliente com o CPF ' + esc(cpfFmt(dig)) : 'Confira o CPF: os números não batem') : soNumerosBusca(txt) ? 'Nenhum cliente com o CPF começando com ' + esc(cpfFmt(dig)) : 'Nenhum cliente com esse nome'}</small>
-      <p class="explica">É cliente novo? Toque em <b>Cliente novo: cadastrar</b>, aqui embaixo: ao terminar o cadastro, o atendimento abre${it ? ' com ' + esc(it.curto.replace(/^O /, 'o ')) + ' já na venda' : ''}.</p></div>`; }
+      <p class="explica">É cliente novo? Toque em <b>Cliente novo: cadastrar</b>, aqui embaixo: ao terminar o cadastro, ${it && it.festa ? 'a Festa abre para ele' : 'o atendimento abre' + (it ? ' com ' + esc(it.curto.replace(/^O /, 'o ')) + ' já na venda' : '')}.</p></div>`; }
   return r.L.slice(0, 8).map(x => `<div class="cliente-ja pq-cli"><div class="cab"><div class="txt"><b>${esc(x.c.resp)}</b><span>${docCurto(x.c)}${x.fam.length > 1 ? ' · ' + x.fam.length + ' crianças' : ''}</span></div></div>
-    ${x.fam.map(c => `<button type="button" class="cr tap" data-act="pq-crianca" data-id="${c.id}" aria-label="Vender para ${esc(c.nome)}, de ${esc(c.resp)}">${avatar(c)}<span class="txt"><b>${esc(c.nome)}${idadeTxt(c) ? ', ' + idadeTxt(c) : ''}</b><span>${c.entrou ? 'no espaço agora · ' : ''}saldo ${hm(saldoAgora(c))}</span></span><em>Vender ${ic(IC.vai, 14, 2.6)}</em></button>`).join('')}</div>`).join('')
+    ${x.fam.map(c => `<button type="button" class="cr tap" data-act="pq-crianca" data-id="${c.id}" aria-label="${it && it.festa ? 'Festa' : 'Vender'} para ${esc(c.nome)}, de ${esc(c.resp)}">${avatar(c)}<span class="txt"><b>${esc(c.nome)}${idadeTxt(c) ? ', ' + idadeTxt(c) : ''}</b><span>${it && it.festa ? (nascDe(c) ? 'aniversário em ' + nascBR(c.nasc).slice(0, 5) : c.entrou ? 'no espaço agora' : 'cliente da loja') : (c.entrou ? 'no espaço agora · ' : '') + 'saldo ' + hm(saldoAgora(c))}</span></span><em>${it && it.festa ? 'Escolher' : 'Vender'} ${ic(IC.vai, 14, 2.6)}</em></button>`).join('')}</div>`).join('')
     + (r.L.length > 8 ? `<p class="explica">Há mais ${r.L.length - 8}: escreva mais um pouco para afinar.</p>` : '');
 }
 function folhaParaQuem(pre) {
   const it = itemPre(pre); if (!it) return; PQ = pre;
-  abrirFolha(it.pac ? 'Vender o pacote' : 'Vender o produto', `
-    <div class="pq-item"><span class="pq-ic">${ic(it.pac ? IC.presente : IC.sacola, 20)}</span><div class="txt"><b>${esc(it.n)}</b><span>${esc(it.sub)}</span></div><b class="num pq-v">${brl(it.v)}</b><button type="button" class="link tap" data-act="pq-trocar">Trocar</button></div>
-    <div class="campo"><label for="pq-busca">Para qual cliente? <span class="leve">· CPF do responsável, ou o nome</span></label><input id="pq-busca" autocomplete="off" placeholder="Os 3 primeiros números do CPF já bastam" aria-label="CPF do responsável ou nome do cliente"></div>
+  abrirFolha(it.festa ? 'Festa' : it.pac ? 'Vender o pacote' : 'Vender o produto', `
+    ${it.festa ? '' : `<div class="pq-item"><span class="pq-ic">${ic(it.pac ? IC.presente : IC.sacola, 20)}</span><div class="txt"><b>${esc(it.n)}</b><span>${esc(it.sub)}</span></div><b class="num pq-v">${brl(it.v)}</b><button type="button" class="link tap" data-act="pq-trocar">Trocar</button></div>`}
+    <div class="campo"><label for="pq-busca">${it.festa ? 'A festa é de qual cliente?' : 'Para qual cliente?'} <span class="leve">· CPF do responsável, ou o nome</span></label><input id="pq-busca" autocomplete="off" placeholder="Os 3 primeiros números do CPF já bastam" aria-label="CPF do responsável ou nome do cliente"></div>
     <div class="pq-lista" id="pq-lista">${listaParaQuem('')}</div>
     <div class="pe-f"><button type="button" class="bt claro largo tap" data-act="pq-cadastrar">${ic(IC.mais, 16)} Cliente novo: cadastrar</button></div>`);
   setTimeout(() => { const i = $('#pq-busca'); if (i) i.focus(); }, 380);
+}
+/* ---------- 1.12: a festa ---------- */
+// O botão Festa (no lugar de "Pacotes e produtos"): a equipe escolhe o cliente, toca no valor da tabela "Nossos valores" (pela
+// quantidade de crianças e pelo dia), põe os convidados adicionais e segue para o pagamento. A festa só existe aqui: não aparece no
+// cadastro nem no atendimento. A venda usa o caminho do atendimento (o mesmo pagamento, o mesmo Desfazer) e sai com o comprovante.
+const FESTA_FABRICA = { n: [10, 15, 20, 25, 30], semana: [2549, 2999, 3449, 3899, 4349], fds: [2849, 3299, 3749, 4199, 4649], extra: 190, extraMax: 60, horas: 3, parcelas: 4 };
+const FESTA_DIA = { semana: ['Dias de semana', 'dia de semana', 'Dia de semana'], fds: ['Fim de semana, férias, emenda e feriado', 'fim de semana, férias, emenda ou feriado', 'Fim de semana, férias, emenda ou feriado'] };   // [na tabela da tela, na venda, no comprovante]
+const FESTA_HORA_FDS = 'das 10h30 às 13h30';
+const FESTA_INCLUI = [['Duração', '3 horas. O espaço não fecha para a festa.'], ['Horários', 'Em dia de semana, durante todo o dia, dentro do horário da loja. Em fim de semana, feriado, emenda e férias: das 10h30 às 13h30.'],
+  ['Adultos', 'Pai e mãe como cortesia, mais 4 adultos para os registros na hora do parabéns.'], ['Atividades', 'Camarim de penteados, gincanas divertidas, piquenique, show de mágicas e teatro de fantoches.'],
+  ['Alimentação', 'Bolo, 3 opções de doces, 3 opções de salgados, 2 opções de bebida, água, pipoca, cachorro-quente, balas e pirulitos.'], ['Papelaria', 'Topo de bolo. Festa tematizada: consulte a disponibilidade.'],
+  ['Lembrancinha', 'Cupcake ou slime, para crianças de até 11 anos.'], ['Pagamento', 'Em até 4x sem juros no cartão de crédito. Orçamento válido por 5 dias.'], ['Unidades', 'Valores para as festas nas unidades Morumbi e Anália Franco.']];
+const festaCfg = () => { const t = S.cfg.festa; return t && Array.isArray(t.n) && Array.isArray(t.semana) && Array.isArray(t.fds) && t.extra > 0 ? t : FESTA_FABRICA; };
+const festaData = iso => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ''); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; };
+const festaFds = iso => { const d = festaData(iso); return !!d && d.getDay() % 6 === 0; };   // sábado ou domingo
+const festaSemana = iso => { const d = festaData(iso); return d ? SEMANA[d.getDay()] + (d.getDay() % 6 ? '-feira' : '') : ''; };   // "sábado", "quarta-feira"
+const festaDiaTxt = iso => { const s = festaSemana(iso); return s ? s.charAt(0).toUpperCase() + s.slice(1) + ', ' + nascBR(iso) : ''; };   // "Sábado, 21/11/2026"
+// o que foi escrito no campo da data da festa (dd/mm/aaaa): { iso } de uma data que existe e não passou; vazio vale; senão { erro }
+function festaDataDoCampo(txt) { const t = String(txt || '').trim(); if (!t) return { iso: '' }; const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(t), d = m ? new Date(+m[3], +m[2] - 1, +m[1]) : null;
+  if (!d || d.getFullYear() !== +m[3] || d.getMonth() !== +m[2] - 1 || d.getDate() !== +m[1]) return { erro: 'Confira a data da festa' };
+  const iso = `${m[3]}-${m[2]}-${m[1]}`; return iso < isoDia(agora) ? { erro: 'A data da festa já passou' } : { iso }; }
+// as linhas da venda da festa, como as do carrinho: o valor da tabela e os convidados adicionais. papel: o que vai embaixo do item no comprovante
+function linhasDaFesta(f) { const L = []; if (!f) return L; const T = festaCfg(), i = T.n.indexOf(f.n), dia = FESTA_DIA[f.dia] ? f.dia : '', tem = i >= 0 && !!dia, quando = f.data ? ' · festa em ' + nascBR(f.data) : '';
+  if (tem) L.push({ festa: 'pacote', q: 1, servico: `FESTA ${f.n} CRIANÇAS`, min: 0, v: T[dia][i], itens: FESTA_DIA[dia][1] + quando,
+    papel: [FESTA_DIA[dia][2], f.data ? festaDiaTxt(f.data) + (dia === 'fds' ? ' · ' + FESTA_HORA_FDS : '') : dia === 'fds' ? 'Horário: ' + FESTA_HORA_FDS : '', `Duração: ${T.horas || 3} horas · o espaço não fecha`, 'Cortesia: pai e mãe, mais 4 adultos no parabéns'].filter(Boolean) });
+  if (f.extra > 0) L.push({ festa: 'extra', q: f.extra, servico: 'FESTA: CONVIDADO ADICIONAL', min: 0, v: centavos(f.extra * T.extra), itens: f.extra + (f.extra === 1 ? ' convidado' : ' convidados') + (tem ? '' : quando), papel: [brl2(T.extra) + ' cada'].concat(!tem && f.data ? [festaDiaTxt(f.data)] : []) });
+  return L; }
+// o que vai para o servidor: o que foi escolhido e os valores que a tela mostrou (o servidor confere com a tabela dele)
+const festaEnvio = f => { const T = festaCfg(), i = T.n.indexOf(f.n), dia = FESTA_DIA[f.dia] ? f.dia : ''; return { dia, n: i >= 0 && dia ? f.n : 0, extra: f.extra || 0, data: f.data || '', ...(i >= 0 && dia ? { v: T[dia][i] } : {}), ...(f.extra > 0 ? { ve: T.extra } : {}) }; };
+// a folha da Festa de um cliente: a tabela de valores em botões (um toque escolhe as crianças e o dia), os convidados adicionais, a data
+// (opcional) e o que a festa inclui. sel: o que já estava escolhido, quando só o cliente foi trocado
+function folhaFesta(id, sel) {
+  const c = crianca(id); if (!c) return; guardarEtapa(false); VOLTA_SAIDA = 0;
+  CARRINHO = { id: c.id, q: {}, pac: [], pr: {}, vq: 0, festa: { dia: '', n: 0, extra: 0, data: '', ...(sel || {}) } }; ETAPA_FEITA = true; PAG = null; DESC = null;   // a festa não vai para "Falta finalizar": fechou sem vender, não guarda nada
+  CARRINHO.visto = MODO === 'servidor' ? ULT_REG : 0;
+  const T = festaCfg(), f = CARRINHO.festa;
+  abrirFolha('Festa', `<div id="v-escolha" class="fe">
+    <div class="linha">${avatar(c)}<div class="txt"><b style="white-space:normal">${esc(c.nome)}${idadeTxt(c) ? ', ' + idadeTxt(c) : ''}</b><span style="white-space:normal">${esc(c.resp)}${fones(c) ? ' · ' + esc(fones(c)) : ''}</span></div><button type="button" class="link tap" data-act="festa-trocar">Trocar o cliente</button></div>
+    <div class="campo"><label id="fe-rot">Toque no valor <span class="leve">· pela quantidade de crianças e pelo dia da festa</span></label>
+      <div class="fe-tab" id="fe-tab" role="group" aria-labelledby="fe-rot"><span></span><span class="fe-ch">${FESTA_DIA.semana[0]}</span><span class="fe-ch">${FESTA_DIA.fds[0]}</span>
+        ${T.n.map((n, i) => `<b class="fe-n"><span class="num">${n}</span> crianças</b>${['semana', 'fds'].map(d => `<button type="button" class="opc tap fe-v" data-act="festa-valor" data-dia="${d}" data-n="${n}" aria-pressed="false" aria-label="${n} crianças, ${FESTA_DIA[d][1]}: ${brl(T[d][i])}"><b class="num">${brl(T[d][i])}</b></button>`).join('')}`).join('')}</div>
+      <span class="explica" id="fe-hor"></span></div>
+    <div class="servicos"><div class="serv" id="fe-extra"><div class="txt"><b>Convidado adicional</b><span>${brl(T.extra)} cada</span></div>
+      <div class="qtd"><button type="button" class="tap" data-act="festa-menos" aria-label="Tirar um convidado adicional">−</button><b class="num" id="fe-extra-q">0</b><button type="button" class="tap" data-act="festa-mais" aria-label="Pôr um convidado adicional">+</button></div><b class="valor num" id="fe-extra-v"></b></div></div>
+    <div class="campo"><label for="fe-data">Data da festa <span class="leve">· opcional</span></label><div class="nasc-l"><input id="fe-data" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" autocomplete="off" value="${esc(nascBR(f.data))}"><b class="nasc-id" id="fe-data-dia" aria-live="polite"></b></div></div>
+    <details class="outro" id="fe-inclui"><summary>O que a festa inclui</summary><dl class="fe-inc">${FESTA_INCLUI.map(([t, d]) => `<div><dt>${t}</dt><dd>${d}</dd></div>`).join('')}</dl></details>
+    <div class="pe-f"><div class="total"><span>Total a pagar</span><b class="num" id="v-total">R$ 0</b></div><button class="bt forte largo tap" id="v-ok" data-act="atender-ok" data-id="${c.id}" disabled>${ic(IC.check)} Toque no valor da festa</button></div>
+    </div><div id="v-pag" hidden></div>`);
+  atualizarFesta();
+}
+// redesenha o que está escolhido na folha da Festa: o valor marcado, os convidados, o dia da semana da data e o total
+function atualizarFesta() {
+  const f = CARRINHO && CARRINHO.festa; if (!f || !$('#fe-tab')) return; const T = festaCfg(), fds = festaFds(f.data);
+  if (fds && f.dia === 'semana') f.dia = 'fds';   // a data cai num sábado ou num domingo: vale o valor de fim de semana (a mesma quantidade de crianças)
+  $$('#fe-tab .fe-v').forEach(b => { b.setAttribute('aria-pressed', b.dataset.dia === f.dia && +b.dataset.n === f.n); b.disabled = fds && b.dataset.dia === 'semana'; });
+  const q = $('#fe-extra-q'), v = $('#fe-extra-v'), cx = $('#fe-extra'), me = $('#fe-extra [data-act="festa-menos"]'), ma = $('#fe-extra [data-act="festa-mais"]');
+  if (q) q.textContent = f.extra; if (v) v.textContent = f.extra ? brl(centavos(f.extra * T.extra)) : ''; if (cx) cx.classList.toggle('on', f.extra > 0); if (me) me.disabled = !f.extra; if (ma) ma.disabled = f.extra >= (T.extraMax || 60);
+  const i = $('#fe-data'), o = $('#fe-data-dia'), x = i ? festaDataDoCampo(i.value) : { iso: '' }, cheio = !!i && i.value.length === 10;
+  if (o) { o.textContent = x.iso ? festaSemana(x.iso) : cheio && x.erro ? (/passou/.test(x.erro) ? 'já passou' : 'confira a data') : ''; o.classList.toggle('erro', !!(cheio && x.erro)); }
+  const h = $('#fe-hor'); if (h) h.textContent = fds ? `${nascBR(f.data)} cai num ${festaSemana(f.data)}: vale o valor de fim de semana. A festa é ${FESTA_HORA_FDS}.` : f.dia === 'fds' ? `Fim de semana, férias, emenda e feriado: a festa é ${FESTA_HORA_FDS}.` : f.dia === 'semana' ? 'Em dia de semana a festa pode ser em qualquer horário, dentro do horário da loja.' : '';
+  const L = linhasDoCarrinho(), total = L.reduce((t, l) => t + l.v, 0), t = $('#v-total'), ok = $('#v-ok');
+  if (t) t.textContent = brl(total); if (ok) { ok.disabled = !L.length; ok.innerHTML = L.length ? `Pagamento · ${brl(total)} ${ic(IC.vai, 18, 2.6)}` : `${ic(IC.check)} Toque no valor da festa`; }
 }
 function folhaPacotes(aba) {
   PQ = null; ABA_PP = aba === 'produtos' ? 'produtos' : 'pacotes';
@@ -2401,6 +2475,7 @@ function desenharPag(refaz = true) {
   if (P.onde === 'saida') { botaoSaida(); botaoGrupo(); }   // na saída, o botão diz a forma escolhida (ou pede a forma)
   if (P.onde === 'devolucao') botaoDevolver();   // 1.00: na devolução também
   if (P.onde === 'receber') botaoReceber();   // 1.02: e no "Receber" da ficha
+  { const fp = $('#fe-parc'); if (fp) { const np = festaCfg().parcelas || 4, vc = (r.partes.find(x => x.f === 'credito') || {}).v || (P.formas.length ? 0 : P.total); fp.textContent = vc > 0 ? `No crédito, em até ${np}x sem juros: ${np}x de ${brl2(centavos(vc / np))}.` : `No crédito, em até ${np}x sem juros.`; } }   // 1.12: a festa
   if (P.onde === 'venda') { const ok = $('#p-ok'), zero = !(P.total > 0), dep = !zero && P.modo === 'depois', ag = $('#pg-agora'), fica = $('#pg-fica'), md = $('.pg-modo'); if (ag) ag.hidden = dep || zero; if (fica) fica.hidden = !dep; if (md) md.hidden = zero;   // 1.03: paga agora (as formas de pagamento) ou paga na saída; 1.04: com desconto total não há o que receber
     $$('.pg-modo [data-m]').forEach(b => b.setAttribute('aria-checked', (b.dataset.m === 'depois') === dep));
     if (ok) { ok.disabled = !dep && !zero && !!r.erro; ok.innerHTML = zero ? `${ic(IC.check)} Registrar com desconto total${P.entrar ? ' e dar entrada' : ''}` : dep ? `${ic(IC.horas)} ${P.rotDepois} · registrar${P.entrar ? ' e dar entrada' : ''}` : `${ic(IC.check)} ${r.erro ? (n ? r.erro : 'Escolha a forma de pagamento') : `Recebi ${brl(P.total)}${r.partes.length === 1 ? ' ' + naForma(r.partes[0].f) : ''} · registrar${P.entrar ? ' e dar entrada' : ''}`}`; } }
@@ -2529,7 +2604,7 @@ const htmlDesc = () => !DESC ? '' : `<details class="pg-desc" id="pg-desc"${nume
   <div class="pg-desc-c"><div class="pg-desc-t" role="radiogroup" aria-label="Tipo do desconto"><button type="button" class="tap" role="radio" aria-checked="${DESC.tipo !== 'pct'}" data-act="desc-tipo" data-t="valor">Por valor · R$</button><button type="button" class="tap" role="radio" aria-checked="${DESC.tipo === 'pct'}" data-act="desc-tipo" data-t="pct">Por percentual · %</button></div>
     <input id="pg-desc-m" autocomplete="off" maxlength="80" placeholder="Motivo do desconto" value="${esc(DESC.motivo)}" aria-label="Motivo do desconto"><input id="pg-desc-v" inputmode="decimal" autocomplete="off" placeholder="${DESC.tipo === 'pct' ? '%' : 'R$'}" value="${esc(DESC.v)}" aria-label="Valor do desconto"></div></details>`;
 // a tabela do pagamento do atendimento: os itens, o desconto do gestor (se houver) e o total
-const htmlItensVenda = () => { const d = centavos(PAG.cheio - PAG.total); return pgTabela([['Criança', ''], ['Entrada', 'entrada ']], (PAG.linhas || []).concat(d > 0 ? [linhaDesc(d, descErro(PAG.cheio, 'venda', PAG.id))] : []), brl(PAG.total), { rot: 'Total a pagar', id: 'p-total' }); };
+const htmlItensVenda = () => { const d = centavos(PAG.cheio - PAG.total); return pgTabela(PAG.festa ? [] : [['Criança', ''], ['Entrada', 'entrada ']], (PAG.linhas || []).concat(d > 0 ? [linhaDesc(d, descErro(PAG.cheio, 'venda', PAG.id))] : []), brl(PAG.total), { rot: 'Total a pagar', id: 'p-total' }); };
 function descMudou() { // o gestor mexeu no desconto: a tabela, o total, as formas de pagamento e o botão acompanham
   if (!DESC || !PAG) return;
   if (PAG.onde === 'venda' && descVale('venda', PAG.id)) { PAG.total = centavos(PAG.cheio - descDe(PAG.cheio, 'venda', PAG.id)); const a = $('#pg-itens-v'), f = $('#pg-fica-v'); if (a) a.innerHTML = htmlItensVenda(); if (f) f.textContent = brl(PAG.total); desenharPag(false); }
@@ -2546,48 +2621,51 @@ function repartirDescPrevia(total, compras) {
 const textoDesc = d => `Desconto · ${brl(d.valor)}${pctTxt(d.pct)} · Motivo: ${d.motivo} · por ${EU.nome}`;   // (prévia) a linha do dia
 // do atendimento para o pagamento: o que foi escolhido, o total e as formas. Voltar não perde nada do que estava escolhido
 function abrirPagamento(id) {
-  const c = crianca(id), L = linhasDoCarrinho(), a = $('#v-pag'), e = $('#v-escolha'); if (!c || !a || !e) return; if (!L.length) { toast('Escolha o serviço'); return; }
+  const c = crianca(id), L = linhasDoCarrinho(), a = $('#v-pag'), e = $('#v-escolha'); if (!c || !a || !e) return; const festa = !!(CARRINHO && CARRINHO.festa); if (!L.length) { toast(festa ? 'Toque no valor da festa' : 'Escolha o serviço'); return; }
+  if (festa) { const i = $('#fe-data'), x = i ? festaDataDoCampo(i.value) : { iso: '' }; if (x.erro) { toast(x.erro); i.focus(); return; } }   // 1.12: a data da festa, se foi escrita, precisa valer
   if (L.some(l => l.outro) && !(numero(val('v-valor')) >= 0)) { toast('Qual é o valor do outro item?'); $('#v-valor').focus(); return; }
   const total = centavos(L.reduce((t, l) => t + l.v, 0)); if (!(total > 0)) { registrarAtendimento(id); return; }   // nada a pagar (só o voucher): registra direto
   if (VOLTA_SAIDA === c.id) { registrarAtendimento(id, false, null, true); return; }   // 1.03: veio de "Adicionar serviços" da saída: o que foi escolhido entra no pagamento da saída, que abre de novo em seguida
   const en = $('#v-entrar-campo'), entrar = !!en && !en.hidden && !!($('#v-entrar') || {}).checked, mesmo = PAG && PAG.onde === 'venda' && PAG.id === id && (PAG.cheio != null ? PAG.cheio : PAG.total) === total;
-  PAG = { onde: 'venda', id, total, cheio: total, entrar, formas: mesmo ? PAG.formas : [], v: mesmo ? PAG.v : {}, modo: mesmo && PAG.modo === 'depois' ? 'depois' : 'agora' };
+  PAG = { onde: 'venda', id, total, cheio: total, entrar, festa, formas: mesmo ? PAG.formas : [], v: mesmo ? PAG.v : {}, modo: mesmo && PAG.modo === 'depois' ? 'depois' : 'agora' };
   if (!(mesmo && descVale('venda', id))) descNovo('venda', id); PAG.total = centavos(total - descDe(total, 'venda', id));   /* 1.04: o desconto do gestor (voltou com o mesmo total: o que ele escreveu continua) */   // voltou e veio de novo com o mesmo total: o que já estava marcado continua
   // 1.02: pagar depois só existe quando há uma hora certa para receber: a saída da criança (ela entra agora, ou já está no espaço) ou a devolução do carrinho
-  const comVolta = L.some(l => l.s && (x => !!x && !!x.volta && !ehTempo(x))(servicoDe(l.s))), depois = entrar || !!c.entrou || comVolta;
+  const comVolta = L.some(l => l.s && (x => !!x && !!x.volta && !ehTempo(x))(servicoDe(l.s))), depois = !festa && (entrar || !!c.entrou || comVolta);   // 1.12: a festa é paga na hora
   if (!depois) PAG.modo = 'agora'; PAG.rotDepois = entrar || c.entrou ? 'Paga na saída' : 'Paga na devolução';
   const min = L.reduce((s, l) => s + l.min, 0), saldo = saldoAgora(c), comHoras = min > 0 && (saldo > 0 || L.some(l => l.pac != null));   // as linhas das horas só para quem já tem horas guardadas ou leva um pacote
   const linhas = L.map(l => { const x = l.s ? servicoDe(l.s) : null, tempo = !!x && ehTempo(x);
+    if (l.festa) return { n: esc(l.festa === 'extra' ? 'Convidado adicional' : l.servico), sub: esc(l.itens), v: brl(l.v) };   // 1.12
     return { n: esc(nomeLinha(l)), meio: [l.min > 0 || (x && x.volta) ? esc(c.nome) : '', tempo ? (c.entrou ? hora(c.entrou) : entrar ? 'agora' : '') : ''], v: brl(l.v) }; });
   PAG.linhas = linhas;
-  a.innerHTML = `${pgDetalhes(c)}
+  a.innerHTML = `${pgDetalhes(c, !festa)}
     ${pgSec('Itens selecionados')}
     <div id="pg-itens-v">${htmlItensVenda()}</div>
-    <button type="button" class="link tap pg-add pg-volta" data-act="pag-voltar">${ic(IC.mais, 14, 2.8)} Adicionar ou trocar serviços</button>
+    <button type="button" class="link tap pg-add pg-volta" data-act="pag-voltar">${festa ? ic(IC.volta, 14, 2.8) + ' Trocar o valor ou os convidados' : ic(IC.mais, 14, 2.8) + ' Adicionar ou trocar serviços'}</button>
     ${pgSec('Pagamento')}
     ${comHoras ? pgHoras(hm(saldo), '<i class="pg-mais">+</i>' + dur(min), hm(saldo + min), 'Horas desta compra') : ''}
     ${depois ? `<div class="pg-modo" role="radiogroup" aria-label="Quando o cliente paga"><button type="button" class="tap" role="radio" aria-checked="true" data-act="pag-modo" data-m="agora"><i aria-hidden="true"></i>Paga agora</button><button type="button" class="tap" role="radio" aria-checked="false" id="p-depois" data-act="pag-modo" data-m="depois"><i aria-hidden="true"></i>${PAG.rotDepois}</button></div>` : ''}
-    <div class="campo" id="pg-agora"><label>Forma de pagamento <span class="leve">· pode dividir em até três formas</span></label>${htmlPag()}</div>
+    <div class="campo" id="pg-agora"><label>Forma de pagamento <span class="leve">· pode dividir em até três formas</span></label>${htmlPag()}${festa ? '<span class="explica" id="fe-parc"></span>' : ''}</div>
     ${depois ? `<div class="marca canc" id="pg-fica" hidden>${ic(IC.sino, 18)}<span><b><span id="pg-fica-v">${brl(PAG.total)}</span> a receber na ${entrar || c.entrou ? 'saída' : 'devolução'}.</b></span></div>` : ''}
     ${htmlDesc()}
     <div class="pe-f"><button class="bt forte largo tap" id="p-ok" data-act="pag-ok" data-id="${c.id}" disabled>${ic(IC.check)} Escolha a forma de pagamento</button></div>`;
   e.hidden = true; a.hidden = false; const h = $('#folha .cab-f h2'), f = $('#folha .folha'); if (h) h.textContent = 'Pagamento'; if (f) f.scrollTop = 0; desenharPag();
 }
-function voltarDaEscolha() { const a = $('#v-pag'), e = $('#v-escolha'), h = $('#folha .cab-f h2'); if (!a || !e) return; a.hidden = true; e.hidden = false; if (h) h.textContent = 'Atendimento'; }
+function voltarDaEscolha() { const a = $('#v-pag'), e = $('#v-escolha'), h = $('#folha .cab-f h2'); if (!a || !e) return; a.hidden = true; e.hidden = false; if (h) h.textContent = CARRINHO && CARRINHO.festa ? 'Festa' : 'Atendimento'; }
 async function registrarAtendimento(id, mesmoAssim, pag, depois) { // mesmoAssim: a equipe confirmou depois do aviso de que a criança já teve uma venda agora há pouco. pag: [{ f, v }], como foi pago. depois (1.02): o cliente paga na saída
   const aberto = $('#folha .folha-fundo:not(.saindo) #v-ok'); if (!aberto || +aberto.dataset.id !== +id) { atender(id); return; }   // o atendimento desta criança precisa estar na tela (o aviso de venda repetida pode ser tocado depois de fechar)
   const c = crianca(id), L = linhasDoCarrinho(); if (!c) return; if (!L.length) { toast('Escolha o serviço'); return; }
   if (L.some(l => l.outro) && !(numero(val('v-valor')) >= 0)) { toast('Qual é o valor do outro item?'); $('#v-valor').focus(); return; }
   const vou = L.find(l => l.vou);
   const en = $('#v-entrar-campo'), entrar = !!en && !en.hidden && !!($('#v-entrar') || {}).checked;   // sem iDFace: pagou e já entra
-  const rasc = RASC[id] || null;   // se a venda for desfeita, o que estava escolhido volta
+  const festa = !!(CARRINHO && CARRINHO.festa && L.some(l => l.festa));   // 1.12: a venda é a de uma festa
+  const rasc = festa ? null : RASC[id] || null;   // se a venda for desfeita, o que estava escolhido volta (a festa não mexe no atendimento que estava guardado)
   const volta = VOLTA_SAIDA === c.id;   // 1.00: a venda veio da folha da saída
   const cheio = centavos(L.reduce((a, l) => a + l.v, 0)), dsc = PAG && PAG.onde === 'venda' && PAG.id === id ? descEnvio(cheio, 'venda', id) : null, total = centavos(cheio - (dsc ? dsc.valor : 0));   // 1.04: com o desconto do gestor, o total é o valor já descontado
   const min = L.reduce((a, l) => a + l.min, 0), nome = c.nome, aviso = `Venda registrada para ${nome} · ${brl(total)}${dsc ? ' (desconto de ' + brl(dsc.valor) + ')' : ''}${pag && pag.length ? (pag.length === 1 ? ' ' + naForma(pag[0].f) : ' em ' + pag.length + ' formas') : depois && total > 0 ? ' a receber' : ''}${min ? ' · +' + dur(min) + ' de recreação' : ''}`;
   if (MODO === 'servidor') {
     const bt = $('#v-ok'), bp = $('#p-ok'), bd = $('#p-depois'); if (bt) bt.disabled = true; if (bp) bp.disabled = true; if (bd) bd.disabled = true;
-    try { const o = L.find(l => l.outro), r = await api('atender', { id, linhas: L.filter(l => l.s).map(l => ({ s: l.s, q: l.q })), pacotes: L.filter(l => l.pac != null).map(l => ({ h: l.ph, tipo: l.ptipo, v: l.v, nome: l.pnome })), produtos: L.filter(l => l.prod).map(l => ({ p: l.prod, q: l.q, v: l.pv })), outro: o ? { n: o.servico, v: o.v } : null, voucher: vou ? true : null, entrar, visto: (CARRINHO && CARRINHO.visto) || 0, mesmo_assim: !!mesmoAssim, pagamento: pag && pag.length ? pag : null, depois: !!depois && !(pag && pag.length), ...(dsc ? { desconto: dsc } : {}) });
-      await carregar(); atendimentoFeito(id); fecharFolha(); desenhar(); const k = crianca(id); deuCertoOu(atencaoVoucher(r.voucher, nome), avisoVoucher(r.voucher, nome) + aviso + (r.entrada ? ' · entrou' + (k && k.entrou ? ', tempo até ' + hora(fimVisita(k)) : '') : ''), async () => { voltarRascunho(id, rasc); try { if (r.entrada) await api('desfazer_entrada', { id, registro: r.entrada.registro, mensagem: r.entrada.mensagem }); await api('desfazer_venda', { vendas: r.vendas, registros: r.registros }); await carregar(); } catch (e) { toast(e.message); } desenhar(); }); VOLTA_SAIDA = 0; cupomDaVenda(id, r.cupom, volta && depois && !(pag && pag.length) ? null : { tipo: 'entrada', id, itens: L.map(linhaPapel), formas: pag || [], depois: !!depois && !(pag && pag.length), desc: dsc ? dsc.valor : 0, venda: (r.vendas || [])[0] || 0 }, volta); }   // 0.94: registrou, o cupom sai para o responsável assinar
+    try { const o = L.find(l => l.outro), r = await api('atender', { id, linhas: L.filter(l => l.s).map(l => ({ s: l.s, q: l.q })), pacotes: L.filter(l => l.pac != null).map(l => ({ h: l.ph, tipo: l.ptipo, v: l.v, nome: l.pnome })), produtos: L.filter(l => l.prod).map(l => ({ p: l.prod, q: l.q, v: l.pv })), outro: o ? { n: o.servico, v: o.v } : null, voucher: vou ? true : null, entrar, visto: (CARRINHO && CARRINHO.visto) || 0, mesmo_assim: !!mesmoAssim, pagamento: pag && pag.length ? pag : null, depois: !!depois && !(pag && pag.length), ...(dsc ? { desconto: dsc } : {}), ...(festa ? { festa: festaEnvio(CARRINHO.festa) } : {}) });
+      await carregar(); if (festa) ETAPA_FEITA = true; else atendimentoFeito(id); fecharFolha(); desenhar(); const k = crianca(id); deuCertoOu(atencaoVoucher(r.voucher, nome), avisoVoucher(r.voucher, nome) + aviso + (r.entrada ? ' · entrou' + (k && k.entrou ? ', tempo até ' + hora(fimVisita(k)) : '') : ''), async () => { voltarRascunho(id, rasc); try { if (r.entrada) await api('desfazer_entrada', { id, registro: r.entrada.registro, mensagem: r.entrada.mensagem }); await api('desfazer_venda', { vendas: r.vendas, registros: r.registros }); await carregar(); } catch (e) { toast(e.message); } desenhar(); }); VOLTA_SAIDA = 0; cupomDaVenda(id, r.cupom, volta && depois && !(pag && pag.length) ? null : { tipo: 'entrada', id, itens: L.map(linhaPapel), formas: pag || [], depois: !!depois && !(pag && pag.length), desc: dsc ? dsc.valor : 0, venda: (r.vendas || [])[0] || 0, festa }, volta); }   // 0.94: registrou, o cupom sai para o responsável assinar
     catch (e) { if (bt) bt.disabled = false; if (bp) bp.disabled = false; if (bd) bd.disabled = false; if (e.status === 409) toast(e.message, () => registrarAtendimento(id, true, pag, depois), 'Registrar mesmo assim'); else toast(e.message); }   // 409: outro aparelho já registrou uma venda para esta criança
     return;
   }
@@ -2607,9 +2685,9 @@ async function registrarAtendimento(id, mesmoAssim, pag, depois) { // mesmoAssim
   else if (depois && total > 0) { registrar('pag', c.nome, `A receber na ${entrar || c.entrou ? 'saída' : 'devolução'} · ${brl(total)}`); regs.push(S.registros[0]); }   /* 1.02: o cliente paga na saída */
   let desfazEntrada = null;
   if (entrar && !c.entrou && temPeriodo(c)) { c.entrou = new Date(); c.uni = minhaUni() || null; c.atraso = null; registrar('ent', c.nome, 'Entrada registrada'); const regE = S.registros[0]; desfazEntrada = () => { c.entrou = null; S.registros = S.registros.filter(x => x !== regE); }; }
-  atendimentoFeito(id); fecharFolha(); desenhar();
+  if (festa) ETAPA_FEITA = true; else atendimentoFeito(id); fecharFolha(); desenhar();
   deuCertoOu(atencaoVoucher(vou ? { n: nV, cobriu: coberta ? { valor: coberta.v } : null } : null, nome), avisoVoucher(vou ? { n: nV, cobriu: coberta ? { valor: coberta.v } : null } : null, nome) + aviso + (desfazEntrada ? ' · entrou, tempo até ' + hora(fimVisita(c)) : ''), () => { voltarRascunho(id, rasc); if (desfazEntrada) desfazEntrada(); Object.assign(c, era); if (coberta) { S.compras.push(coberta); if (coberta.reg) coberta.reg.txt = coberta.reg.txt.replace(' · coberta pelo voucher', ''); c.atraso = eraAtraso; } for (const x of novas) if (x.prod) { const p = produto(x.prod); if (p && p.est != null) p.est += x.qtd; } S.compras = S.compras.filter(x => !novas.includes(x)); S.registros = S.registros.filter(x => !regs.includes(x)); S.pagamentos = (S.pagamentos || []).filter(x => !pagos.includes(x)); });
-  VOLTA_SAIDA = 0; cupomDaVenda(id, cupomId, volta && depois && !(pag && pag.length) ? null : { tipo: 'entrada', id, itens: L.map(linhaPapel), formas: pag || [], depois: !!depois && !(pag && pag.length), desc: dsc ? dsc.valor : 0, venda: novas.length ? novas[0].id : 0 }, volta);   // 0.94: registrou, o cupom sai para o responsável assinar
+  VOLTA_SAIDA = 0; cupomDaVenda(id, cupomId, volta && depois && !(pag && pag.length) ? null : { tipo: 'entrada', id, itens: L.map(linhaPapel), formas: pag || [], depois: !!depois && !(pag && pag.length), desc: dsc ? dsc.valor : 0, venda: novas.length ? novas[0].id : 0, festa }, volta);   // 0.94: registrou, o cupom sai para o responsável assinar
 }
 // 1.00: depois de uma venda, o cupom (como sempre) e, se a venda veio da folha da saída, a saída dessa criança abre de novo quando o cupom fechar
 function cupomDaVenda(id, cupomId, spec, volta) {
@@ -2707,7 +2785,8 @@ const dataCurta = d => `${p2(d.getDate())}/${p2(d.getMonth() + 1)}/${d.getFullYe
 // 1.10: n é como o item aparece na tabela do comprovante e q a quantidade. O que é vendido por tempo (a recreação, o fusquinha) conta
 // como um item, com o tempo no nome; o produto e o que é vendido por unidade levam a quantidade; o pacote vai pelo nome dele, e as
 // horas que ele dá (min) e o produto que vem junto (com) descem para a linha de baixo, como o tempo do carrinho.
-const linhaPapel = l => { const x = l.s ? servicoDe(l.s) : null, t = l.pac != null ? 'pacote' : l.vou ? 'voucher' : l.prod ? 'produto' : x && ehTempo(x) ? 'tempo' : x && x.volta ? 'aluguel' : 'outro', un = t === 'produto' || (!!x && x.modo !== 'periodo');
+const linhaPapel = l => { if (l.festa) return { n: l.festa === 'extra' ? 'Convidado adicional' : l.servico, v: l.v, t: 'festa', s: '', q: l.q || 1, per: 0, sub: l.papel || [] };   /* 1.12: a festa, com o que vai embaixo do item */
+  const x = l.s ? servicoDe(l.s) : null, t = l.pac != null ? 'pacote' : l.vou ? 'voucher' : l.prod ? 'produto' : x && ehTempo(x) ? 'tempo' : x && x.volta ? 'aluguel' : 'outro', un = t === 'produto' || (!!x && x.modo !== 'periodo');
   return { n: t === 'pacote' ? l.servico || nomePacVenda(l.min, l.itens) : un || t === 'aluguel' ? l.servico : nomeLinha(l), v: l.v, t, s: l.s || '', q: un ? l.q || 1 : 1, per: !un && x ? l.q || 1 : 0, ...(t === 'pacote' ? { min: l.min, com: l.servico ? l.itens || '' : '' } : {}), ...(un && x && x.obs ? { obs: x.obs } : {}) }; };
 function htmlPapel(spec, via = 'loja') {
   const c = spec.c || crianca(spec.id); if (!c) return ''; const L = lojaPapel(), st = servicoTempo(), p = periodo(), tol = tolCupom(), loja = via !== 'cliente', uniP = nomeUni(spec.uni) || nomeUni(c.uni) || nomeUni(minhaUni());   // 1.06: a unidade da visita (ou a deste aparelho)
@@ -2747,7 +2826,8 @@ function htmlPapel(spec, via = 'loja') {
   // é entrada nem carrinho é só o comprovante de pagamento (com o título, sem a assinatura)
   const it = spec.itens || [], vendeu = it.length > 0, fam = spec.fam || familia(c);
   const dentro = fam.filter(x => x.entrou).sort((a, b) => a.entrou - b.entrou), fora = (S.alugueis || []).filter(a => fam.some(x => x.id === a.crianca));   // fora: o que saiu da loja com este responsável
-  const quem = dentro.some(x => x.id === c.id) ? dentro : !vendeu && !fora.length ? [c] : [];
+  const festa = !!spec.festa || it.some(i => i.t === 'festa');   // 1.12: a venda da festa é só o comprovante (com a assinatura na via da loja), esteja a criança no espaço ou não
+  const quem = festa ? [] : dentro.some(x => x.id === c.id) ? dentro : !vendeu && !fora.length ? [c] : [];
   const ate = (ini, min) => hora(new Date(ini.getTime() + min * 60000));
   const bloco = (x, i) => { const pac = planoDe(x) === 'pacote';
     return `${i ? '<p class="c-esp"></p>' : ''}<p><b>${esc(x.nome)}</b>${anos(x)}</p>${loja && x.entrou ? `<p>Cadastro ${x.id}${x.sapateira ? ' · Sapateira ' + x.sapateira : ''}</p>` : ''}
@@ -2761,9 +2841,9 @@ function htmlPapel(spec, via = 'loja') {
     if (i.t === 'pacote' && i.min > 0) sub.push(`${dur(i.min)} de recreação${i.com ? ' · ' + i.com : ''}`);
     if ((i.t === 'tempo' || i.t === 'pacote' || i.t === 'voucher') && !quem.length && !disse) { disse = true; sub.push(`Para ${c.nome} · horas guardadas: ${hm(saldoMin(c))}`); }
     return sub.length ? { ...i, sub } : i; });
-  const soFora = !vendeu && !quem.length ? fora.map(a => `<p><b>${esc(alugNome(a))}</b></p><p>Saída ${alugHoje(a) ? hora(a.ini) : dataHora(a.ini)}${a.min > 0 && alugHoje(a) ? ' · devolver até ' + ate(a.ini, a.min) : ''}</p>`).join('') : '';
+  const soFora = !festa && !vendeu && !quem.length ? fora.map(a => `<p><b>${esc(alugNome(a))}</b></p><p>Saída ${alugHoje(a) ? hora(a.ini) : dataHora(a.ini)}${a.min > 0 && alugHoje(a) ? ' · devolver até ' + ate(a.ini, a.min) : ''}</p>`).join('') : '';
   const entrou = quem.some(x => x.entrou), sai = itens.some(i => i.t === 'aluguel') || !!soFora, pagou = (spec.formas || []).length > 0;
-  return `<div class="papel ${loja ? 'loja' : 'cliente'}">${cab}${quem.length ? div + quem.map(bloco).join('') : ''}${soFora ? div + soFora : ''}${pago(itens, spec.formas, { desc: spec.desc, titulo: pagou && !entrou && !sai ? 'COMPROVANTE DE PAGAMENTO' : '' })}${pe(entrou ? L.aviso + (L.aviso && tol ? ' ' : '') + (tol ? `TOLERÂNCIA DE ${tol} MINUTOS.` : '') : '', entrou || sai)}</div>`;
+  return `<div class="papel ${loja ? 'loja' : 'cliente'}">${cab}${quem.length ? div + quem.map(bloco).join('') : ''}${soFora ? div + soFora : ''}${pago(itens, spec.formas, { desc: spec.desc, titulo: pagou && !entrou && !sai ? 'COMPROVANTE DE PAGAMENTO' : '' })}${pe(entrou ? L.aviso + (L.aviso && tol ? ' ' : '') + (tol ? `TOLERÂNCIA DE ${tol} MINUTOS.` : '') : '', entrou || sai || festa)}</div>`;
 }
 const viasPapel = spec => [htmlPapel(spec, 'loja'), htmlPapel(spec, 'cliente')].filter(Boolean);   // primeiro a da loja (o responsável assina), depois a do cliente
 // Manda as vias para a impressora, uma impressão para cada via: assim a impressora corta no fim de cada uma e saem dois cupons separados.
@@ -2810,7 +2890,7 @@ let PAPEL = null;   // o cupom que está na folha: { spec, vias }
 const segPapel = () => `<div class="seg" id="tk-modo">${MODOS_PAPEL.map(([v, n]) => `<button type="button" data-act="papel-modo" data-v="${v}" aria-pressed="${v === modoPapel()}">${n}</button>`).join('')}</div><span class="explica" id="tk-modo-txt">${textoModoPapel()}</span>`;
 function folhaPapel(spec) {
   const vias = viasPapel(spec); if (!vias.length) return; PAPEL = { spec, vias };
-  abrirFolha(spec.tipo === 'saida' ? 'Cupom da saída' : spec.tipo === 'devolucao' ? 'Cupom da devolução' : 'Cupom de entrada', `
+  abrirFolha(spec.tipo === 'saida' ? 'Cupom da saída' : spec.tipo === 'devolucao' ? 'Cupom da devolução' : spec.festa ? 'Comprovante da festa' : 'Cupom de entrada', `
     <div class="papel-previa" id="tk-previa">${vias.map(v => `<div class="papel-fx">${v}</div>`).join('')}</div>
     <details class="outro" id="tk-aparelho"><summary>Neste aparelho: <span id="tk-modo-rot">${rotModoPapel()}</span> · mudar</summary><div class="campo" style="margin-top:8px">${segPapel()}</div></details>
     <div class="pe-f"><button type="button" class="bt forte largo tap" id="tk-ok" data-act="papel-imprimir">${ic(IC.cupom)} Imprimir as duas vias</button>${!impDireta() && (MODO !== 'servidor' || supervisorOuMais()) ? `<button type="button" class="link tap imp-dica" id="tk-direta-ir" data-act="papel-ajustes">A janela de impressão do Windows aparece? Veja como imprimir direto</button>` : ''}</div>`);
@@ -3579,7 +3659,7 @@ function numerosDoDia() {
 // No alto: os avisos (quando há), os pacotes e produtos. No pé: os atalhos para o Banco de horas e para o movimento do dia.
 function telaHoras() {
   const dentro = S.criancas.filter(c => c.entrou), n = dentro.length, passou = dentro.filter(c => situacaoTempo(c) === 'passou').length, fora = alugNaLista().length;   // fora: carrinhos e fusquinhas que saíram e ainda não voltaram
-  return faixa('No espaço agora', (n ? `${n} ${n === 1 ? 'criança' : 'crianças'}${passou ? ' · ' + passou + (passou === 1 ? ' passou' : ' passaram') + ' do tempo' : ''}` : 'Ninguém por enquanto') + (fora ? ` · ${fora} para devolver` : ''), chipAvisos() + chipCupons() + `<button type="button" class="chip tap" data-act="pacotes" title="Os pacotes de horas e os produtos, com os valores: para mostrar ao cliente e para vender">${ic(IC.presente, 16)} <span>Pacotes<span class="so-largo"> e produtos</span></span></button>` + chipIdface(), botaoUnidade()) + htmlPend() + `
+  return faixa('No espaço agora', (n ? `${n} ${n === 1 ? 'criança' : 'crianças'}${passou ? ' · ' + passou + (passou === 1 ? ' passou' : ' passaram') + ' do tempo' : ''}` : 'Ninguém por enquanto') + (fora ? ` · ${fora} para devolver` : ''), chipAvisos() + chipCupons() + `<button type="button" class="chip tap" data-act="festa" title="Vender uma festa: escolha o cliente, toque no valor da tabela e receba">${ic(IC.festa, 16)} <span>Festa</span></button>` + chipIdface(), botaoUnidade()) + htmlPend() + `
   <section class="espaco">
     <div class="esp-cab${inicioLista() ? ' lst' : ''}">
       <div class="campo"><input id="esp-busca" value="${esc(S.espBusca || '')}" placeholder="Buscar criança, responsável, telefone ou CPF" autocomplete="off" aria-label="Buscar criança, responsável, telefone ou CPF"></div>
@@ -3754,6 +3834,7 @@ function linhasServico(parte) { // parte: 'tempo', 'outros' ou nada (todos). Sem
       : `<button type="button" class="serv voucher tap ${vq ? 'on' : ''}" data-act="vou-marca" aria-pressed="${!!vq}"><span class="txt"><b>Voucher</b><span>${c && c.entrou && c.atraso && c.atraso.n ? `cobre ${porExt(st.min || 30)} da cobrança por atraso (${brl(umaCobranca(c))} a menos)` : `${porExt(st.min || 30)} de ${esc(st.n)} grátis · um por visita`}</span></span><span class="vou-ch">${vq ? ic(IC.check, 16, 3) : ''}</span><b class="valor num">${vq ? 'Grátis' : ''}</b></button>`);
 }
 function atualizarCarrinho() { // redesenha as linhas dos serviços e o total a pagar
+  if (CARRINHO && CARRINHO.festa) { atualizarFesta(); return; }   // 1.12: a folha aberta é a da Festa
   const a = $('#v-servicos'); if (a) a.innerHTML = linhasServico('tempo'); { const a2 = $('#v-servicos2'); if (a2) a2.innerHTML = linhasServico('outros'); }
   $$('#v-pacotes [data-i]').forEach(b => b.setAttribute('aria-pressed', CARRINHO.pac.includes(+b.dataset.i)));
   { const rs = $('#v-pac-resumo'), det = $('#v-pacotes'); if (rs && det) { const sel = CARRINHO.pac.map(i => S.cfg.pacotes[i]).filter(Boolean), np = (S.cfg.pacotes || []).length;   // fechada, a lista diz o que foi escolhido
@@ -3799,7 +3880,7 @@ function folhaVender(id, primeira, pre, voltaSaida) { // primeira: acabou de sai
 }
 // o atendimento completo: a venda no meio e, em tela larga, os dados e o histórico do cliente ao lado
 function atender(id, primeira, pre, voltaSaida) {
-  const c = crianca(id); if (!c) return; const jaAberto = LADO && crianca(LADO.id) && mesmoCliente(crianca(LADO.id), c);
+  const c = crianca(id); if (!c) return; if (pre && pre.festa) { folhaFesta(c.id, pre.sel); return; }   /* 1.12: veio do botão Festa */ const jaAberto = LADO && crianca(LADO.id) && mesmoCliente(crianca(LADO.id), c);
   if (innerWidth >= 820 && !jaAberto) abrirHistorico(c.id);
   folhaVender(c.id, primeira, pre, voltaSaida);
 }
@@ -3894,7 +3975,7 @@ function folhaCrianca(c, d, extra) { // d: um cadastro novo que ficou pela metad
     const v = d || { doc: 'cpf', cpf: '', resp: '', tel: '', tel2: '', nome: '', nasc: '', pcd: false, obs: '' }; ETAPA_FEITA = true;
     if (extra) { CAD_PRE = itemPre(extra.pre) ? extra.pre : null; if (!d && extra.cpf) v.cpf = extra.cpf; }
     const itPre = itemPre(CAD_PRE);
-    abrirFolha('Cadastrar', `${itPre ? `<p class="retoma" id="f-pre">${ic(itPre.pac ? IC.presente : IC.sacola, 16)}<span>Depois do cadastro, o atendimento abre com <b>${esc(itPre.curto.replace(/^O /, 'o '))}</b> já na venda.</span></p>` : ''}${d ? `<p class="retoma" id="f-retoma">${ic(IC.historico, 16)}<span><b>Continuando o cadastro de onde parou</b>, às ${hora(new Date(d.em))}.</span><button type="button" class="link tap" data-act="cadastro-zero">Começar do zero</button></p>` : ''}
+    abrirFolha('Cadastrar', `${itPre ? `<p class="retoma" id="f-pre">${ic(itPre.festa ? IC.festa : itPre.pac ? IC.presente : IC.sacola, 16)}<span>${itPre.festa ? 'Depois do cadastro, a <b>Festa</b> abre para este cliente.' : `Depois do cadastro, o atendimento abre com <b>${esc(itPre.curto.replace(/^O /, 'o '))}</b> já na venda.`}</span></p>` : ''}${d ? `<p class="retoma" id="f-retoma">${ic(IC.historico, 16)}<span><b>Continuando o cadastro de onde parou</b>, às ${hora(new Date(d.em))}.</span><button type="button" class="link tap" data-act="cadastro-zero">Começar do zero</button></p>` : ''}
     <div class="bloco-f"><small class="rot">Responsável</small>
       <div class="dois alinha">${campoDoc(v.doc === 'rne' ? 'rne' : 'cpf', v.cpf)}
         <div class="campo"><label for="f-resp">Nome do responsável<span class="obg" aria-hidden="true">*</span></label><input id="f-resp" value="${esc(v.resp)}" autocomplete="off"></div></div>
@@ -4419,11 +4500,11 @@ function telaAjustes() {
       </div>
       <div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.presente, 20)} Pacotes de horas</h2><button class="link tap" data-act="pacote-novo">Novo pacote</button></div>
         ${cfg.pacotes.length ? `<div class="grupo">${cfg.pacotes.map((p, i) => `<button class="it tap" data-act="pacote-editar" data-i="${i}"><div class="txt"><b>${dur(p.h * 60)} · ${brl(p.v)}</b><span>${esc(nomePacote(p))}${p.h > 1 ? ' · ' + brl(centavos(p.v / p.h)) + ' a hora' : ''}${parcTxt(p) ? ' · ' + parcTxt(p) : ''}</span></div><span class="vai">${ic(IC.vai, 18)}</span></button>`).join('')}</div>` : ''}
-        <p class="explica">Horas vendidas de uma vez, com preço fechado e sem prazo para usar. Cada pacote tem o tempo, o valor e, se quiser, um nome; pode haver vários do mesmo tempo. ${cfg.pacotes.length ? 'Aparecem na aba Pacotes da tela inicial e no atendimento.' : 'Nenhum pacote cadastrado por enquanto.'}</p>
+        <p class="explica">Horas vendidas de uma vez, com preço fechado e sem prazo para usar. Cada pacote tem o tempo, o valor e, se quiser, um nome; pode haver vários do mesmo tempo. ${cfg.pacotes.length ? 'Aparecem no atendimento de cada cliente.' : 'Nenhum pacote cadastrado por enquanto.'} <button type="button" class="link tap" id="aj-tabela" data-act="pacotes">Abrir a tabela de pacotes e produtos</button></p>
       </div>
       <div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.sacola, 20)} Produtos</h2><button class="link tap" data-act="produto-novo">Novo produto</button></div>
         ${(S.produtos || []).length ? `<div class="grupo">${S.produtos.map(p => `<button class="it tap" data-act="produto-editar" data-id="${p.id}"><div class="txt"><b>${esc(p.n)} · ${brl(p.v)}</b><span${estFalta(p) ? ' style="color:var(--erro);font-weight:800"' : ''}>${p.est == null ? 'sem controle de estoque' : estTxt(p)}</span></div><span class="vai">${ic(IC.vai, 18)}</span></button>`).join('')}</div>` : ''}
-        <p class="explica">O que a loja vende além do tempo: nome, valor e estoque. O estoque baixa sozinho a cada venda e volta se a venda for desfeita. ${(S.produtos || []).length ? 'Aparecem na aba Pacotes da tela inicial e no atendimento.' : 'Nenhum produto cadastrado por enquanto.'}</p>
+        <p class="explica">O que a loja vende além do tempo: nome, valor e estoque. O estoque baixa sozinho a cada venda e volta se a venda for desfeita. ${(S.produtos || []).length ? 'Aparecem no atendimento de cada cliente, depois dos pacotes.' : 'Nenhum produto cadastrado por enquanto.'}</p>
       </div>
       <div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.cupom, 20)} Cupom impresso</h2><span class="pill ${modoPapel() === 'nao' ? 'p-neutro' : 'p-ok'}">${modoPapel() === 'auto' ? 'Imprime sozinho aqui' : modoPapel() === 'nao' ? 'Este aparelho não imprime' : 'Mostra o cupom aqui'}</span></div>
         <button class="grupo tap" data-act="papel-ajustes" style="width:100%"><div class="it"><div class="txt"><b>${esc(lojaPapel().nome)}${lojaPapel().tel ? ' · ' + esc(lojaPapel().tel) : ''}</b><span>Toque para mudar o nome, o telefone e o aviso do cupom, escolher o que este aparelho faz, ou imprimir um teste</span></div><span class="vai">${ic(IC.vai, 18)}</span></div></button>
@@ -4473,7 +4554,7 @@ function folhaPacote(i, pre) { // pre: { h, tipo } para já abrir num tempo e nu
     <div class="campo"><label>Tipo</label><div class="seg" id="pc-tipo">${[['seco', 'Só as horas'], ['produto', 'Com produto']].map(([v, n]) => `<button type="button" data-act="pacote-tipo" data-v="${v}" aria-pressed="${tipo === v}">${n}</button>`).join('')}</div></div>
     <div class="dois"><div class="campo"><label for="pc-parc">Parcela em até</label><select id="pc-parc">${[1, 2, 3, 4, 5, 6, 8, 10, 12].map(n => `<option value="${n}" ${(p && p.parc || 1) === n ? 'selected' : ''}>${n === 1 ? 'não parcela' : n + ' vezes'}</option>`).join('')}</select></div>
       <div class="campo" id="pc-com-campo" ${tipo === 'seco' ? 'hidden' : ''}><label for="pc-com">Qual é o produto (opcional)</label><input id="pc-com" value="${esc(p && p.com || '')}" placeholder="ex.: kit Play Space" maxlength="60" autocomplete="off"></div></div>
-    <p class="explica">Com produto: o cliente leva o produto, que já está no valor. Os pacotes aparecem na aba Pacotes da tela inicial e no atendimento, por tempo e valor.</p>
+    <p class="explica">Com produto: o cliente leva o produto, que já está no valor. Os pacotes aparecem no atendimento de cada cliente, por tempo e valor.</p>
     <div class="acoes"><button class="bt forte tap" data-act="pacote-salvar" data-i="${i == null ? '' : i}" style="flex:1;justify-content:center">${ic(IC.check)} Salvar</button>${p ? `<button class="bt claro tap" data-act="pacote-apagar" data-i="${i}" style="color:var(--erro)">Apagar</button>` : ''}</div>`);
   contaPacote();
 }
@@ -4775,6 +4856,11 @@ const ACOES = {
     deuCerto(`${x.n} saiu da lista`, () => { S.cfg.servicos = [...S.cfg.servicos, x]; if (MODO === 'servidor') api('regra_salvar', { servicos: S.cfg.servicos }).catch(() => {}); }); fecharFolha(); desenhar(); },
   unidade: () => folhaUnidade(), 'unidade-escolher': el => escolherUnidade(+el.dataset.id), 'unidades-ir': () => { fecharFolha(); trocarTela('ajustes'); }, 'uni-nova': () => folhaUnidadeEditar(0), 'uni-editar': el => folhaUnidadeEditar(+el.dataset.id), 'uni-salvar': el => salvarUnidade(el), 'uni-apagar': el => apagarUnidade(el),   /* 1.06: unidades */
   pacotes: () => folhaPacotes(),
+  festa: () => folhaParaQuem({ festa: true }),   /* 1.12: o botão Festa: primeiro, de qual cliente é */
+  'festa-trocar': () => folhaParaQuem({ festa: true, sel: CARRINHO && CARRINHO.festa ? { ...CARRINHO.festa } : null }),   /* troca o cliente e mantém o que já foi escolhido */
+  'festa-valor': el => { const f = CARRINHO && CARRINHO.festa; if (!f) return; const dia = el.dataset.dia, n = +el.dataset.n; if (f.dia === dia && f.n === n) { f.dia = ''; f.n = 0; } else { f.dia = dia; f.n = n; } atualizarFesta(); },   /* um toque no valor escolhe as crianças e o dia; outro toque tira */
+  'festa-mais': () => { const f = CARRINHO && CARRINHO.festa; if (!f) return; f.extra = Math.min(festaCfg().extraMax || 60, (f.extra || 0) + 1); atualizarFesta(); },
+  'festa-menos': () => { const f = CARRINHO && CARRINHO.festa; if (!f) return; f.extra = Math.max(0, (f.extra || 0) - 1); atualizarFesta(); },
   'sap-todas': () => { SAP_TODAS = !SAP_TODAS; redesenharSap(); },
   'pp-vender': el => { const pre = el.dataset.pac != null ? { pac: +el.dataset.pac } : { prod: +el.dataset.prod }; if (itemPre(pre)) folhaParaQuem(pre); },   /* 0.98: um toque no pacote (ou no produto) começa a venda: falta dizer para quem */
   'pq-trocar': () => folhaPacotes(ABA_PP),
@@ -4890,6 +4976,7 @@ document.addEventListener('input', e => {
   if (e.target.id === 'f-obs' || e.target.id === 'ob-txt') marcarAtalhos();
   if (/^f-(cpf|resp|tel|tel2|nome|obs)$/.test(e.target.id)) guardarCadastro();   // o cadastro novo vai ficando guardado enquanto é escrito
   if (e.target.id === 'v-item' || e.target.id === 'v-valor') atualizarCarrinho();
+  if (e.target.id === 'fe-data') { const d = soDig(e.target.value).slice(0, 8); e.target.value = d.length > 4 ? d.slice(0, 2) + '/' + d.slice(2, 4) + '/' + d.slice(4) : d.length > 2 ? d.slice(0, 2) + '/' + d.slice(2) : d; if (CARRINHO && CARRINHO.festa) CARRINHO.festa.data = festaDataDoCampo(e.target.value).iso || ''; atualizarFesta(); }   // 1.12: a data da festa
   if (e.target.classList && e.target.classList.contains('pg-valor') && PAG) { PAG.v[e.target.dataset.pgF] = e.target.value; desenharPag(false); }
   if (DESC && (e.target.id === 'pg-desc-v' || e.target.id === 'pg-desc-m')) { if (e.target.id === 'pg-desc-v') DESC.v = e.target.value; else DESC.motivo = e.target.value; descMudou(); }   // 1.04: o desconto do gestor
   if (e.target.id === 'esp-busca') { S.espBusca = e.target.value; atualizarEspaco(); }

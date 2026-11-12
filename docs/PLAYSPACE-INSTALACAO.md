@@ -289,9 +289,11 @@ O que é de todos os aparelhos e o que é de cada um:
 - Ao **sair da conta**, os cadastros pela metade são apagados do aparelho (têm documento e telefone do responsável).
 - **Sem venda em dobro**: se a venda daquela criança for registrada em outro aparelho, o que estava escolhido aqui sai da faixa sozinho. E se o atendimento estiver aberto na tela nessa hora, ao tocar em Registrar o sistema avisa *"Já foi registrada uma venda para Mari às 14:05: Recreação · 0h30 · R$ 80"* e só registra outra se a atendente tocar em **Registrar mesmo assim**.
 
-## 6j. Pacotes de horas (botão Pacotes na tela inicial)
+## 6j. Pacotes de horas (a tabela, em Ajustes)
 
-No alto da tela inicial, o botão vermelho **Pacotes e produtos** (no celular, só **Pacotes**) abre a tabela de preços, para mostrar ao cliente **e para vender**, em duas abas: **Pacotes de horas** e **Produtos** (seção 6l). As horas do pacote não têm prazo para usar.
+**Desde a 1.12 o botão vermelho do alto da tela inicial é o da Festa (seção 6w).** A tabela de pacotes e produtos saiu de lá e abre por **Ajustes → Pacotes de horas → Abrir a tabela de pacotes e produtos**; os pacotes e os produtos continuam sendo vendidos, como sempre, no atendimento de cada cliente. O resto desta seção vale para essa tabela.
+
+A folha **Pacotes e produtos** é a tabela de preços, para mostrar ao cliente **e para vender**, em duas abas: **Pacotes de horas** e **Produtos** (seção 6l). As horas do pacote não têm prazo para usar.
 
 **Vender por aqui (0.98):** cada linha da tabela tem o botão **Vender** (um toque em qualquer ponto da linha faz o mesmo). A tela pergunta **para qual cliente**: escreva os **três primeiros números do CPF** do responsável (ou o nome dele, ou o da criança) e os clientes aparecem, cada um com as crianças e o saldo de horas de cada uma. O CPF aparece só com o começo e o fim, porque outra pessoa pode estar olhando a tela. **Um toque na criança abre o atendimento com o pacote já na venda**: é conferir (a entrada vem marcada, se a criança vai entrar agora) e tocar em **Pagamento**.
 
@@ -553,6 +555,8 @@ O cupom da loja é o papel da impressora térmica do balcão, que o responsável
 
 **O pacote e o comprovante de pagamento (1.10).** O pacote comprado sai na tabela com o **nome dele** e o valor; embaixo, as horas que ele dá ("2h de recreação"). Quem compra e **entra na hora** tem as horas do cliente no bloco da criança ("Entrada 16:05 · horas do cliente: 2h"). Quem compra **para usar depois** (ou leva só um produto) recebe só o **COMPROVANTE DE PAGAMENTO**, no jeito do comprovante do sistema anterior, mais enxuto: o título, a tabela, as horas guardadas embaixo do pacote ("Para EVA · horas guardadas: 2h"), o total pago com a forma, o número da venda e quem atendeu. Sem o bloco da criança, sem o número do cadastro e **sem a linha da assinatura** (não há o que assinar). Sai em duas vias; a do cliente, como sempre, sem CPF e sem telefone.
 
+**O comprovante da festa (1.12).** A venda da festa (seção 6w) sai como **COMPROVANTE DE PAGAMENTO**, nas duas vias: a tabela com **FESTA 20 CRIANÇAS** e, embaixo, o dia ("Fim de semana, férias, emenda ou feriado"), a data com o dia da semana e o horário ("Sábado, 21/11/2026 · das 10h30 às 13h30"), a duração ("3 horas · o espaço não fecha") e a cortesia dos adultos; a linha **Convidado adicional** com a quantidade e o valor de cada um; o total com a forma de pagamento; o número da venda e quem atendeu. **A via da loja tem a linha da assinatura** (o responsável assina que ficou ciente das condições); a do cliente não leva CPF nem telefone. O comprovante não traz o bloco da criança, mesmo que ela esteja no espaço. No papel de 80 mm, uma festa com convidados gasta cerca de 100 mm na via da loja e 78 mm na do cliente.
+
 **Na tela e no papel**: na tela, o cupom aparece com cara de cupom (papel amarelinho, a logo colorida, a ponta serrilhada), com as duas vias lado a lado. No papel ele sai **preto no branco**, com a logo em preto: a impressora térmica só imprime preto.
 
 **Quando sai:**
@@ -653,6 +657,37 @@ A Play Space tem mais de uma unidade. O sistema já vem com **ANÁLIA FRANCO** e
 - **Na lista** da tela inicial, a coluna **Unidade** mostra onde cada criança está (seção 6f). **No cupom**, a unidade sai embaixo do nome da loja.
 - **No servidor:** o banco passa para a versão 25 (tabela `unidades`, e a coluna `unidade_id` em `criancas`, `visitas`, `vendas` e `registros`). O que já existia fica sem unidade (aparece com um traço).
 - **O que ainda não é separado por unidade:** todos os aparelhos veem a mesma lista, com a coluna dizendo de qual unidade é cada linha. As sapateiras, a agenda, o estoque dos produtos e o resumo do dia ainda são um só para todas as unidades. Isso entra quando a segunda unidade for começar a usar o mesmo sistema.
+
+## 6w. Festa (1.12)
+
+No alto da tela inicial, o botão vermelho é **Festa**. A festa é vendida **só por ele**: não aparece no cadastro, nem no atendimento, nem na tabela de pacotes. O caminho é curto:
+
+1. **Festa** → a tela pergunta **de qual cliente é**: os três primeiros números do CPF do responsável (ou o nome dele, ou o da criança) já mostram os clientes, com as crianças de cada um. Um toque na criança escolhe. Para quem tem a data de nascimento no cadastro, a linha mostra o aniversário ("aniversário em 09/03"). **Cliente novo: cadastrar** abre o cadastro com o CPF escrito e, ao salvar, a Festa abre para ele.
+2. A folha **Festa** traz a tabela **"Nossos valores"** em botões: uma linha para cada quantidade de crianças (10, 15, 20, 25 e 30) e duas colunas, **Dias de semana** e **Fim de semana, férias, emenda e feriado**. **Um toque no valor escolhe as duas coisas** (outro toque no mesmo valor tira a escolha).
+3. **Convidado adicional** (R$ 190 cada): o **+** e o **−** ao lado. Dá para vender só os convidados adicionais, sem tocar em nenhum valor da tabela (o acerto depois da festa).
+4. **Data da festa** (opcional): só os números, as barras entram sozinhas, e o dia da semana aparece ao lado ("sábado"). Se a data cai num sábado ou num domingo, o valor de dia de semana fica travado e a escolha passa para o de fim de semana, com a mesma quantidade de crianças. Data que não existe ou que já passou não deixa seguir. Num dia de semana que é feriado, férias ou emenda, a equipe toca no valor da segunda coluna.
+5. **Pagamento · R$ …** → a tela de pagamento de sempre (Pix, dinheiro, crédito e débito, em até três formas; o desconto é só do Gestor). **A festa é paga na hora**: não existe "paga na saída", mesmo que a criança esteja no espaço. Embaixo das formas a tela faz a conta das parcelas: "No crédito, em até 4x sem juros: 4x de R$ 1.079,75" (do valor que vai no crédito). A parcela é passada na maquininha; o sistema registra "crédito".
+6. **Comprovante da festa**: abre com as duas vias, como os outros cupons (seção 6s).
+
+**Os valores** (os da tabela da loja, para as unidades Morumbi e Anália Franco):
+
+| Crianças | Dias de semana | Fim de semana, férias, emenda e feriado |
+|---|---|---|
+| 10 | R$ 2.549 | R$ 2.849 |
+| 15 | R$ 2.999 | R$ 3.299 |
+| 20 | R$ 3.449 | R$ 3.749 |
+| 25 | R$ 3.899 | R$ 4.199 |
+| 30 | R$ 4.349 | R$ 4.649 |
+
+Convidado adicional: R$ 190.
+
+**O que a festa inclui** fica na própria folha, numa linha que abre, para a equipe dizer ao cliente: a duração (3 horas; o espaço não fecha para a festa), os horários (em dia de semana, durante todo o dia, dentro do horário da loja; em fim de semana, feriado, emenda e férias, das 10h30 às 13h30), os adultos (pai e mãe como cortesia, mais 4 adultos na hora do parabéns), as atividades, a alimentação, a papelaria, a lembrancinha (cupcake ou slime, para crianças de até 11 anos) e o pagamento (em até 4x sem juros no crédito; orçamento válido por 5 dias).
+
+**O que fica registrado:** a festa vira uma venda ("FESTA 20 CRIANÇAS · fim de semana, férias, emenda ou feriado · festa em 21/11/2026") e, se houver, outra dos convidados ("FESTA: CONVIDADO ADICIONAL · 3 convidados"), com o pagamento. Aparecem no histórico do cliente e em Hoje na recepção, e entram no caixa pela forma recebida. **A festa não mexe nas horas do cliente, não dá entrada e não muda a visita de quem está no espaço.** O botão **Desfazer** tira a venda e o pagamento. O atendimento comum que estava guardado em "Falta finalizar" para o mesmo cliente continua lá.
+
+**Trocar o cliente**, no alto da folha, volta para a escolha do cliente e mantém o que já estava escolhido (o valor, os convidados e a data). Fechar a folha sem vender não guarda nada: a festa não vai para "Falta finalizar".
+
+**No servidor:** a tabela é a de fábrica (está no programa, em `lib.php`; vai para a tela junto com a regra e não fica gravada no banco). O valor cobrado sai dessa tabela, não do que a tela mandar: se a tela mostrar outro valor, a venda não é feita ("O valor da festa para 20 crianças mudou para R$ 3.749. Feche e abra a Festa de novo."). O servidor também recusa a data passada, o sábado ou domingo com valor de dia de semana, a quantidade fora da tabela, mais de 60 convidados adicionais, a festa "para pagar depois" e a festa sem forma de pagamento. Para mudar os valores da festa, peça ao suporte (ainda não há tela para isso).
 
 ## 7. Atualizar
 
