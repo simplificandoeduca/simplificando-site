@@ -384,7 +384,7 @@ O carrinho de bebê e o fusquinha saem da loja com o cliente e voltam. A partir 
 - **Sem hora para voltar** (o carrinho de bebê, valor único): a linha só conta o tempo.
 - **De outro dia**: se ninguém marcou a devolução, a linha continua na lista, em vermelho, com o dia em que saiu, no começo da lista.
 - **Devolveu**: um toque, na linha ou na comanda da criança. O carrinho sai da lista e fica anotado em **Hoje na recepção**: "CARRINHO FUSQUINHA · devolvido · ficou 0h44 · tempo comprado: 0h30 (passou 14 min) · por JOÃO". O aviso tem **Desfazer** (vale por 10 minutos).
-- **Devolução com pagamento (1.00):** se o que foi alugado por tempo (o fusquinha) **passou do tempo comprado**, o toque em **Devolveu** abre o **Pagamento da devolução**: quanto ficou fora, quanto passou e o valor a receber (períodos inteiros, com a mesma tolerância da recreação). A devolução só fecha com a forma de pagamento (Pix, dinheiro, crédito ou débito, em até três formas). Dentro do tempo, ou no carrinho de valor único, devolve direto com um toque. O **Desfazer** do aviso põe o carrinho de volta na lista e desfaz o que foi cobrado. **1.02:** o carrinho registrado com "Paga na devolução" também abre o pagamento ao tocar em Devolveu, com o valor que ficou a pagar.
+- **Devolução com pagamento (1.00):** se o que foi alugado por tempo (o fusquinha) **passou do tempo comprado**, o toque em **Devolveu** abre o **Pagamento da devolução**: quanto ficou fora, quanto passou e o valor a receber (períodos inteiros, com a mesma tolerância da recreação). A devolução só fecha com a forma de pagamento (Pix, dinheiro, crédito ou débito, em até três formas). Dentro do tempo, ou no carrinho de valor único, devolve direto com um toque. O **Desfazer** do aviso põe o carrinho de volta na lista e desfaz o que foi cobrado. **1.02:** o carrinho registrado com "Paga na devolução" também abre o pagamento ao tocar em Devolveu, com o valor que ficou a pagar. **1.03:** a tela da devolução segue a mesma ordem das outras: Detalhes, a tabela com o carrinho (quando saiu, quanto ficou fora, quanto tempo foi comprado) e o **Tempo a mais**, o Total a receber e as formas de pagamento.
 - Quem leva só o carrinho **não entra no espaço**: aparece na lista só a linha do carrinho. Se a criança também está na recreação, as duas linhas ficam juntas, na moldura da família.
 - Se a venda for desfeita (ou deixar de ser cobrada num cancelamento de entrada), o carrinho sai da lista sozinho.
 - Todos os aparelhos veem o carrinho entrar e sair da lista em poucos segundos.
@@ -392,9 +392,16 @@ O carrinho de bebê e o fusquinha saem da loja com o cliente e voltam. A partir 
 
 ## 6p. Pagamento: Pix, dinheiro, crédito e débito, em até três formas
 
-Depois de escolher o serviço (horas avulsas, pacote, carrinho, produto), o atendimento **passa para a tela de pagamento**. É a mesma folha: em cima fica **Voltar para a escolha**, que não perde nada do que estava marcado.
+Depois de escolher o serviço (horas avulsas, pacote, carrinho, produto), o atendimento **passa para a tela de pagamento**. É a mesma folha: embaixo dos itens fica **Adicionar ou trocar serviços**, que volta para a escolha sem perder nada do que estava marcado.
 
-- **O que aparece**: de quem é, o que foi escolhido com o valor de cada coisa, o **Total a pagar** e quatro botões grandes: **Pix**, **Dinheiro**, **Crédito** e **Débito**.
+**As telas de pagamento na ordem do sistema anterior (1.03).** As quatro telas de pagamento (a do atendimento, a da saída, o Receber da ficha e a da devolução do carrinho) têm a mesma ordem da tela de fechamento que a equipe já conhecia:
+
+1. **Detalhes**: o cliente (o responsável), o CPF ou RNE, os telefones e quem está atendendo, com a data. Se a criança está no espaço, ao lado do nome aparece **ENTRADA 14:10**.
+2. **Itens selecionados**: uma tabela com o item, a criança, a entrada (na saída, também a sapateira) e o valor, e o **Total** embaixo. No celular ficam o item e o valor; o resto desce para uma linha pequena embaixo do item.
+3. **Adicionar serviços**: no atendimento, volta para a escolha; na saída, soma o que o cliente leva no próprio pagamento da saída (seção 6r).
+4. **Pagamento**: quando há horas na conta, três linhas, **Horas disponíveis**, **Horas necessárias** (ou "Horas desta compra") e **Saldo após confirmação**; depois, as formas de pagamento e o botão que confirma.
+
+- **O que aparece**: os Detalhes, a tabela dos itens com o **Total a pagar** e, em Pagamento, quatro botões grandes: **Pix**, **Dinheiro**, **Crédito** e **Débito**. Quem já tem horas guardadas, ou leva um pacote, vê também as três linhas das horas (ex.: Horas disponíveis 4h30 · Horas desta compra + 1h · Saldo após confirmação 5h30).
 - **Uma forma só** (o mais comum): um toque na forma e um toque em **Recebi R$ 420 no Pix · registrar**. A venda é gravada e, se a caixa "Dar entrada agora" estava marcada, a criança já entra.
 - **Dividir em duas ou três formas**: toque nas formas que o cliente vai usar. Aparece uma linha para cada uma: escreva o valor das primeiras, e **a última forma tocada fica com o resto**, para a conta fechar sempre com o total. Exemplo: Pix, Dinheiro e Crédito num total de R$ 420; escreve 200 no Pix e 100 no dinheiro, e o crédito fica com R$ 120.
 - Para tirar uma forma, toque nela de novo. A quarta forma não entra: são até três.
@@ -406,10 +413,10 @@ Depois de escolher o serviço (horas avulsas, pacote, carrinho, produto), o aten
 
 **Pago ou não pago (1.02).** Tem cliente que paga na entrada e tem cliente que só paga na saída. A tela mostra sempre qual é o caso:
 
-- **Na tela de pagamento do atendimento**, embaixo do botão de receber, há **Paga na saída · registrar e dar entrada**. A venda e a entrada são registradas sem pagamento, e a linha do dia diz "Não pago · R$ 80 a receber na saída". O botão só existe quando há uma hora certa para receber depois: a criança entra agora (ou já está no espaço), ou a venda tem um carrinho que sai da loja e volta (aí o botão diz **Paga na devolução**). Venda de produto ou de pacote para quem não vai entrar é paga na hora.
+- **Na tela de pagamento do atendimento**, em Pagamento, a escolha fica sempre à vista (1.03): **Paga agora** (verde) ou **Paga na saída** (vermelho). Em "Paga agora" aparecem as formas de pagamento. Em "Paga na saída" a tela diz "R$ 80 a receber na saída" e o botão de baixo vira **Paga na saída · registrar e dar entrada**: a venda e a entrada são registradas sem pagamento, e a linha do dia diz "Não pago · R$ 80 a receber na saída". A escolha só existe quando há uma hora certa para receber depois: a criança entra agora (ou já está no espaço), ou a venda tem um carrinho que sai da loja e volta (aí a opção diz **Paga na devolução**). Venda de produto ou de pacote para quem não vai entrar é paga na hora.
 - **Na tela inicial**, a coluna **Pagamento** traz o selo **PAGO** (verde) ou **NÃO PAGO** (vermelho) em cada linha, da criança e do carrinho. No celular o selo fica na linha do responsável. O selo fala do que a equipe vendeu nesta visita; a cobrança por atraso tem a linha dela na ficha e entra na conta da saída.
 - **Na ficha**, quem está em dia tem o selo **Pago** no alto. Quem não pagou tem uma linha só: "Não pago · R$ 80", com o botão **Receber** (se já houver cobrança por atraso, "Não pago · R$ 80 + atraso R$ 80" e **Receber R$ 160**). O Receber abre as quatro formas de pagamento e recebe na hora, sem esperar a saída; o aviso tem Desfazer.
-- **Na saída**, o Pagamento da saída mostra "Ainda não pago: R$ 80" junto com a cobrança por atraso, se houver, e o total em **A receber agora**. Sem a forma de pagamento a saída não é dada. O Desfazer da saída devolve também o que foi recebido nela.
+- **Na saída**, a tabela do Pagamento da saída lista cada item que ficou para pagar ("ainda não pago") junto com a cobrança por atraso, se houver, e o **Total a receber**. Sem a forma de pagamento a saída não é dada. O Desfazer da saída devolve também o que foi recebido nela.
 - **Na devolução do carrinho** que ficou para pagar depois, o toque em Devolveu abre o Pagamento da devolução com "Ainda não pago: R$ 15" (e o tempo a mais, se passou).
 - **No cupom** da entrada sai "A pagar na saída" e "NÃO PAGO: A RECEBER NA SAÍDA"; no cupom da saída, "O que ficou para pagar na saída", com a forma em que foi recebido.
 - **No Histórico do cliente**, a compra aparece com **NÃO PAGO** enquanto não for recebida, e não entra em "Pagou ao todo".
@@ -453,9 +460,10 @@ O texto da observação não aparece em nenhuma tela sem que alguém toque no OB
 
 **O toque em Saída abre direto o Pagamento da saída**, para ninguém esquecer de receber. A tela diz sempre **como aquela visita é paga**:
 
-- em cima, a criança, o responsável e a sapateira; depois "Entrou às 14:02 e ficou 0h52. A visita conta 1h" (sempre períodos inteiros);
-- **Horas do cliente** (quadro verde, com o ✓): quanto a visita usa das horas que o cliente já tem e como fica o saldo. Ex.: "usa 1h. Saldo: 5h → 4h. As horas não expiram.";
-- **Passou do tempo comprado** (quadro rosa), só quando a criança ficou além das horas que tinha: quanto passou, quantas cobranças por atraso e **A receber agora: R$ 80**. Logo abaixo ficam o **Tem voucher?** (seção 6h) e a **Forma de pagamento**: Pix, Dinheiro, Crédito e Débito, em até três formas, igual à venda (seção 6p).
+- **Detalhes**: o cliente, com **ENTRADA 14:02** ao lado do nome, o CPF, os telefones e quem está atendendo;
+- **Itens selecionados**: a linha da visita (RECREAÇÃO, com a criança, a sapateira, a hora da entrada, quanto ficou e quanto usa das horas do cliente), uma linha para cada coisa que ficou para pagar ("ainda não pago") e, se a criança ficou além do tempo, a linha **Atraso · mais 0h30**. Embaixo, o **Total a receber**;
+- **Adicionar serviços** (1.03): o cliente quer levar um pacote, ou um produto, na saída. O atendimento abre com a lista de pacotes e o botão vira **Somar na saída · R$ 420**: o que foi escolhido entra na tabela da saída, que abre de novo sozinha, e **tudo é recebido num pagamento só**, com um cupom só. As horas do pacote já contam: a cobrança por atraso que estava a receber é desfeita e a visita sai do saldo novo;
+- **Pagamento**: as três linhas das horas, como na tela anterior. Ex.: **Horas disponíveis 10h · Horas necessárias 0h30 · Saldo após confirmação 9h30**. Quando há valor a receber, a linha do meio mostra as duas coisas: "0h30 + R$ 80". Logo abaixo ficam o **Tem voucher?** (seção 6h) e a **Forma de pagamento**: Pix, Dinheiro, Crédito e Débito, em até três formas, igual à venda (seção 6p).
 
 O botão de baixo diz o que vai acontecer:
 
@@ -463,7 +471,7 @@ O botão de baixo diz o que vai acontecer:
 - **Escolha a forma de pagamento**: há valor a receber e a forma ainda não foi escolhida. A saída não é dada sem ela.
 - **Recebi R$ 80 no Pix · dar saída**: forma escolhida; o toque registra o pagamento e dá a saída. Dividindo em mais de uma forma, o botão pede o valor que falta ("Quanto no Pix?") e, com a conta fechada, vira **Recebi R$ 80 · dar saída**.
 
-A tela acompanha o relógio: se a tolerância estourar com ela aberta, o quadro rosa e as formas de pagamento aparecem na hora. **Pacote na saída (1.00):** a folha tem o botão **O cliente quer levar um pacote?**. Ele abre o atendimento com a lista de pacotes; depois do pagamento (e do cupom), **a saída abre de novo sozinha**, já usando as horas do pacote: a cobrança por atraso que estava a receber é desfeita e a visita sai do saldo novo. O mesmo vale para qualquer tempo comprado com a criança no espaço: o que o cliente comprou cobre a visita, e só fica a receber o que ainda faltar. A folha da saída não corrige mais a hora. **Quem ficou de pagar na saída (1.02):** a folha mostra "Ainda não pago" com o valor, soma com a cobrança por atraso (se houver) e só dá a saída com a forma de pagamento.
+A tela acompanha o relógio: se a tolerância estourar com ela aberta, a linha do atraso e as formas de pagamento aparecem na hora. **Pacote na saída (1.00, mudou na 1.03):** é o **Adicionar serviços** da lista acima; não há mais um pagamento à parte para o pacote. O mesmo vale para qualquer tempo comprado com a criança no espaço: o que o cliente comprou cobre a visita, e só fica a receber o que ainda faltar. A folha da saída não corrige mais a hora. **Quem ficou de pagar na saída (1.02):** a tabela lista o que ainda não foi pago, soma com a cobrança por atraso (se houver) e só dá a saída com a forma de pagamento. O cupom da saída traz cada item pelo nome (1.03).
 
 **As horas compradas não expiram, nunca.** Não existe prazo de validade no sistema: um pacote comprado hoje vale daqui a dez anos, inteiro. O saldo só diminui quando a criança usa (a visita) ou quando uma venda é desfeita ou cancelada.
 

@@ -695,22 +695,23 @@ function pendentesDaVisita(array $c): array {
   $o = []; foreach (vendasDaVisita($c) as $v) { if (!empty($v['auto']) || (float)$v['valor'] <= 0) continue; $f = faltaDaVenda((int)$v['id']); if ($f > 0.004) $o[] = $v + ['falta' => $f]; }
   return $o;
 }
-// [criança => quanto falta receber] das vendas de hoje (desde a última saída ou entrada cancelada de cada uma), sem as cobranças por atraso.
-// É a mesma conta de vendasDaVisita(), para todas as crianças de uma vez
-function pendDeTodos(): array {
+// [criança => [['n' => o que foi vendido, 'v' => quanto falta receber], ...]] das vendas de hoje (desde a última saída ou entrada cancelada
+// de cada uma), sem as cobranças por atraso. É a mesma conta de vendasDaVisita(), para todas as crianças de uma vez.
+// 1.03: item por item, na ordem em que foram vendidos, para a tela da saída listar o que ainda não foi pago
+function pendItensDeTodos(): array {
   $db = db(); $hoje = date('Y-m-d') . ' 00:00:00';
   // o piso: nenhuma venda de antes de hoje (ou do dia em que entrou quem está há mais tempo no espaço) pode ser "desta visita".
   // Com ele a consulta anda só pelas vendas recentes, sem buscar criança por criança (com anos de vendas no banco, de 290 ms para 10 ms)
   $min = (string)$db->query('SELECT MIN(entrou) FROM criancas WHERE entrou IS NOT NULL')->fetchColumn();
   $piso = $min !== '' && substr($min, 0, 10) . ' 00:00:00' < $hoje ? substr($min, 0, 10) . ' 00:00:00' : $hoje;
   $falta = 'v.valor - COALESCE((SELECT SUM(p.valor) FROM pagamentos p WHERE p.venda_id = v.id), 0)';
-  $q = $db->prepare("SELECT v.crianca_id c, $falta f FROM vendas v CROSS JOIN criancas k0 ON k0.id = v.crianca_id WHERE v.quando >= ? AND v.auto = 0 AND v.valor > 0 AND v.servico != ?
+  $q = $db->prepare("SELECT v.crianca_id c, v.servico, v.minutos, v.itens, $falta f FROM vendas v CROSS JOIN criancas k0 ON k0.id = v.crianca_id WHERE v.quando >= ? AND v.auto = 0 AND v.valor > 0 AND v.servico != ?
     AND v.quando >= CASE WHEN k0.entrou IS NOT NULL AND substr(k0.entrou, 1, 10) < substr(?, 1, 10) THEN substr(k0.entrou, 1, 10) || ' 00:00:00' ELSE ? END
     AND v.quando >= COALESCE((SELECT MAX(x.saiu) FROM visitas x WHERE x.crianca_id = v.crianca_id), '') AND v.quando >= COALESCE((SELECT MAX(k.quando) FROM cancelamentos k WHERE k.crianca_id = v.crianca_id), '')
-    AND $falta > 0.004");
+    AND $falta > 0.004 ORDER BY v.id");
   $q->execute([$piso, SERV_IMPORTADO, $hoje, $hoje]); $o = [];
-  foreach ($q->fetchAll() as $l) $o[(int)$l['c']] = ($o[(int)$l['c']] ?? 0) + (float)$l['f'];   // a soma por criança fica aqui: agrupar no SQL faria a consulta andar pelo índice da criança
-  return array_map(fn($f) => round($f, 2), $o);
+  foreach ($q->fetchAll() as $l) $o[(int)$l['c']][] = ['n' => nomeDaVenda($l), 'v' => round((float)$l['f'], 2)];   // juntar por criança fica aqui: agrupar no SQL faria a consulta andar pelo índice da criança
+  return $o;
 }
 // o que entrou por cada forma desde $desde (a tela mostra em Hoje na recepção)
 function pagamentosDesde(string $desde): array {
