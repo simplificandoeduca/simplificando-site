@@ -515,34 +515,32 @@ No servidor cada criança continua com a saída dela: a tela reparte o pagamento
 
 ## 6s. Cupom impresso (Bematech MP-4200 TH)
 
-O cupom da loja é o papel da impressora térmica do balcão, que o responsável assina. O sistema imprime **no mesmo formato do cupom que a loja já usava**, com a **logo do Play Space** no alto, e **sempre em duas vias**, uma depois da outra, cada uma cortada sozinha:
+O cupom da loja é o papel da impressora térmica do balcão, que o responsável assina. Sai com a **logo do Play Space** e **sempre em duas vias**, uma depois da outra, cada uma cortada sozinha.
 
-**VIA DA LOJA** (sai primeiro; é a que o responsável assina e fica com a loja), completa:
+**Desde a 1.09 o cupom é curto.** A logo fica pequena, ao lado do nome da loja; a data vai na faixa da via; um tracejado fino separa as partes (no lugar das linhas em branco); e cada cupom leva só o que interessa a ele. Uma recreação simples, que gastava 185 mm de papel na via da loja e 145 mm na do cliente, gasta 90 mm e 64 mm. O cupom do carrinho gasta 63 mm e 42 mm.
 
-- a logo, o **nome e o telefone da loja**;
-- o **responsável**, os **telefones** e o **CPF** (ou RNE) dele;
-- **cada criança** dele que está no espaço (irmãos saem no mesmo cupom): o nome e a **idade**, o **número do cadastro**, a **sapateira**, a hora da **entrada**, o serviço, o tempo comprado (ou as horas do cliente) e o **valor a cada 30 minutos**;
-- o **pagamento** que acabou de ser feito: os itens, o total e a forma;
-- a **data e a hora**, a **linha da assinatura**, o **nome e o CPF** do responsável;
-- o **aviso** do pé ("Somente o responsável que assinar a entrada da criança poderá assinar sua saída"), seguido da **tolerância que o cliente lê: 5 minutos** (1.00). A conta do sistema continua com a tolerância da regra das horas (9 min): a diferença é a folga da loja para os dias de fila. Muda em **Ajustes → Regra das horas → No cupom, o cliente lê tolerância de** (ou "Não mostrar").
+**VIA DA LOJA** (sai primeiro; é a que o responsável assina e fica com a loja):
 
-**VIA DO CLIENTE** (a que o responsável leva), só o básico:
+- a logo, o **nome da loja**, a **unidade** e o telefone da loja; a faixa "VIA DA LOJA" com a **data e a hora**;
+- o **responsável**, o **CPF** (ou RNE) e os **telefones** dele;
+- **cada criança** dele que está no espaço (irmãos saem no mesmo cupom): o nome e a idade, o **número do cadastro** e a **sapateira**, a hora da **entrada** com o tempo comprado e até que horas ele vai (ou as horas do cliente, para quem tem pacote) e o **valor a cada 30 minutos**;
+- **o que foi vendido**: uma linha por item, com o valor; o total (quando há mais de um item) e a forma de pagamento;
+- a **linha da assinatura**, com o nome e o CPF do responsável embaixo;
+- o **aviso** do pé ("Somente o responsável que assinar a entrada da criança poderá assinar sua saída"), seguido da **tolerância que o cliente lê: 5 minutos** (1.00). A conta do sistema continua com a tolerância da regra das horas (9 min): a diferença é a folga da loja para os dias de fila. Muda em **Ajustes → Regra das horas → No cupom, o cliente lê tolerância de** (ou "Não mostrar"). O aviso só sai quando há criança entrando.
 
-- a logo, o nome e o telefone da loja;
-- o **nome do responsável**;
-- cada criança: o nome, a sapateira, a hora da entrada, o serviço, o tempo comprado e o valor a cada 30 minutos;
-- o **pagamento**: os itens, o total e a forma;
-- a **data e a hora**, o aviso do pé e a tolerância.
+**VIA DO CLIENTE** (a que o responsável leva): o mesmo cupom, mas **do cliente só vai o nome do responsável**. Não leva CPF, telefone, número do cadastro, idade, **sapateira** (1.09) nem assinatura: se o papel for perdido, ninguém fica com os dados do cliente. Nenhuma das duas vias leva a observação da criança (o OBS é só da equipe, seção 6q).
 
-A via do cliente **não leva telefone, CPF, número do cadastro, idade nem assinatura**: se o papel for perdido, ninguém fica com os dados do cliente. Nenhuma das duas vias leva a observação da criança (o OBS é só da equipe, seção 6q).
+**O cupom do carrinho (1.09).** Quem leva só o carrinho (fusquinha, carrinho de bebê) recebe um cupom só do carrinho: o responsável, o item com o valor, **a hora em que saiu e até quando devolver**, e o pagamento. Não tem criança, número do cadastro, sapateira (mesmo que a criança do cadastro tenha uma marcada) nem nada da recreação. Com recreação e carrinho na mesma venda, o cupom traz a criança e os dois itens, com o total.
+
+**O pacote (1.09).** O pacote comprado sai entre os itens com o **nome dele**, as horas e o valor ("PACOTE 02 HORAS 260 · 2h … R$ 280,00"). Logo acima ficam as **horas do cliente** depois da compra ("Entrada 16:05 · horas do cliente: 2h", ou "Horas guardadas: 2h" para quem comprou e não entrou).
 
 **Na tela e no papel**: na tela, o cupom aparece com cara de cupom (papel amarelinho, a logo colorida, a ponta serrilhada), com as duas vias lado a lado. No papel ele sai **preto no branco**, com a logo em preto: a impressora térmica só imprime preto.
 
 **Quando sai:**
 
 - **cupom de entrada**: depois de cada atendimento registrado (a venda, com ou sem entrada) e depois de cada **Entrada** pelo botão (a criança que já tinha horas);
-- **cupom da saída**: depois de **toda saída** (1.06: com ou sem pagamento; quem usa as horas do pacote também assina a saída). Traz a hora da entrada e da saída, quanto ficou, o que usou das horas e, se houve, o que foi recebido e a forma. Em duas vias, com a linha da assinatura na via da loja;
-- **cupom da devolução** (1.06): depois de **toda devolução** do que saiu da loja (carrinho de bebê, fusquinha), com ou sem valor a receber. Traz o item, a criança, a hora em que saiu e em que voltou, quanto ficou fora, o tempo comprado e, se houve, o tempo a mais e a forma de pagamento. Em duas vias, com a linha da assinatura na via da loja;
+- **cupom da saída**: depois de **toda saída** (1.06: com ou sem pagamento; quem usa as horas do pacote também assina a saída). Traz "SAÍDA" e o nome da criança, a hora da entrada e da saída, quanto ficou, o tempo contado, o saldo de horas e, se houve, o que foi recebido e a forma. Em duas vias, com a linha da assinatura na via da loja;
+- **cupom da devolução** (1.06): depois de **toda devolução** do que saiu da loja (carrinho de bebê, fusquinha), com ou sem valor a receber. Traz "DEVOLUÇÃO" e o item, a hora em que saiu e em que voltou, quanto ficou fora, o tempo comprado e, se houve, o tempo a mais e a forma de pagamento (1.09: sem a criança e sem o número do cadastro). Em duas vias, com a linha da assinatura na via da loja;
 - **de novo, a qualquer hora**: na comanda de quem está no espaço, o botão **Cupom**.
 
 **O que cada aparelho faz** fica guardado no próprio aparelho (não muda os outros):
@@ -555,15 +553,19 @@ A escolha fica na própria folha do cupom, na linha "Neste aparelho: … · muda
 
 **O que vai escrito** (só o Gestor muda): **Ajustes → Cupom impresso** → nome da loja, telefone e o aviso do pé. Desde a 1.06, embaixo do nome da loja sai a **unidade** (a da visita; seção 6v). No mesmo lugar, **Imprimir um cupom de teste** (saem as duas vias, com dados de exemplo).
 
-**Preparar o computador do balcão (uma vez):**
+**Imprimir direto, sem a janela de escolher a impressora (1.09).** Nenhum site consegue pular a janela de impressão do navegador: quem pula é o próprio navegador, quando é aberto com a impressão direta. O sistema entrega o atalho pronto. No computador do balcão, uma vez:
 
 1. A Bematech MP-4200 TH precisa estar instalada no Windows como impressora (o programa dela, do fabricante), com o papel de 80 mm. Se o sistema antigo já imprimia nesse computador, ela já está.
-2. Abra o sistema no **Chrome** desse computador, entre em Ajustes → Cupom impresso e toque em **Imprimir um cupom de teste**. Na janela de impressão: escolha a Bematech, em "Mais definições" coloque **Margens: Nenhuma** e desmarque **Cabeçalhos e rodapés**. O Chrome guarda essas escolhas.
-3. **São duas impressões, uma para cada via.** Sem o atalho do passo 5, a janela de impressão do Chrome abre **duas vezes** seguidas (primeiro a via da loja, depois a do cliente): é só confirmar as duas. Com o atalho, as duas saem sozinhas.
-4. Se o cupom sair cortado no meio, pequeno demais, com muito papel em branco no fim, ou se as duas vias saírem grudadas (sem corte entre elas), o acerto é nas preferências da impressora no Windows (tamanho do papel de 80 mm e corte no fim do documento). Mande uma foto do cupom de teste que eu ajusto a largura, o tamanho da letra e o da logo.
-5. **Para sair sem abrir a janela de impressão**: deixe a Bematech como **impressora padrão** do Windows; no sistema, escolha **Imprimir sozinho**; e abra o Chrome por um atalho com a impressão direta. Para criar o atalho: botão direito na área de trabalho → Novo → Atalho, e no destino escreva (com o endereço do sistema no fim):
-   `"C:\Program Files\Google\Chrome\Application\chrome.exe" --kiosk-printing https://gamacertificacao.com.br/playspace/`
-   Feche todas as janelas do Chrome antes de abrir por esse atalho (se o Chrome já estiver aberto, ele ignora a opção).
+2. Deixe a Bematech como **impressora padrão** do Windows (Configurações → Bluetooth e dispositivos → Impressoras e scanners) e desligue **"Deixar o Windows gerenciar a minha impressora padrão"**, para ela não trocar sozinha.
+3. Entre no sistema como Gestor, vá em **Ajustes → Cupom impresso** e toque em **Baixar o atalho (Windows)**. Vem o arquivo **Play Space (imprime direto).bat**. Se o navegador perguntar, escolha manter o arquivo. Arraste o arquivo para a área de trabalho.
+4. Abra o sistema **sempre por esse atalho** (dois cliques; na primeira vez o Windows pode pedir para confirmar: "Mais informações" → "Executar assim mesmo"). Ele abre numa **janela só do sistema**, com um perfil só dele: na primeira vez, entre com o usuário e escolha a unidade do aparelho.
+5. Em Ajustes → Cupom impresso, toque em **Imprimir um cupom de teste**: as duas vias têm que sair sem perguntar nada. A mesma tela passa a dizer "Este computador abre o sistema pelo atalho da impressão direta".
+
+Daí em diante, **Imprimir as duas vias** manda direto para a impressora. Para nem precisar desse toque, escolha **Imprimir sozinho** neste aparelho.
+
+O atalho abre o Chrome (ou o Edge, se não houver Chrome) com a opção `--kiosk-printing`, o endereço do sistema e um perfil separado (`%LOCALAPPDATA%\PlaySpace\Navegador`), para a impressão direta valer mesmo com outro Chrome aberto no computador. Sem o atalho o sistema funciona igual, mas a janela de impressão abre uma vez para cada via (é só confirmar as duas).
+
+Se o cupom sair cortado no meio, com muito papel em branco no fim, ou se as duas vias saírem grudadas (sem corte entre elas), o acerto é nas preferências da impressora no Windows (tamanho do papel de 80 mm e corte no fim do documento). Mande uma foto do cupom de teste que eu ajusto a largura, o tamanho da letra e o da logo.
 
 **Este cupom não é nota fiscal.** É o comprovante de entrada que o responsável assina (não tem CNPJ, nem chave, nem imposto). O acompanhamento de nota fiscal que existia na 0.93 (marcar "emitido" a cada pagamento) fica guardado no sistema, sem botão para ligar; se a loja passar a emitir nota fiscal pelo sistema, ele volta.
 
