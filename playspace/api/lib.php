@@ -683,6 +683,35 @@ function gravarPagamento(array $vendaIds, array $formas, int $criancaId, ?int $p
   }
   return $gravado;
 }
+/* ---------- 1.02: pago ou não pago ---------- */
+// O cliente paga na entrada ou só na saída. A venda registrada sem pagamento fica a receber: a tela mostra NÃO PAGO, e o valor é recebido
+// na saída da criança, na devolução do carrinho ou antes, pela ficha ("Receber"). A cobrança por atraso continua com a conta dela.
+function faltaDaVenda(int $vendaId): float { // quanto falta receber de uma venda
+  $q = db()->prepare('SELECT v.valor - COALESCE((SELECT SUM(p.valor) FROM pagamentos p WHERE p.venda_id = v.id), 0) FROM vendas v WHERE v.id = ?'); $q->execute([$vendaId]); $f = $q->fetchColumn();
+  return $f === false ? 0.0 : max(0.0, round((float)$f, 2));
+}
+// as vendas desta visita (as que a equipe registrou, não as cobranças por atraso) que ainda têm valor a receber: cada uma com 'falta'
+function pendentesDaVisita(array $c): array {
+  $o = []; foreach (vendasDaVisita($c) as $v) { if (!empty($v['auto']) || (float)$v['valor'] <= 0) continue; $f = faltaDaVenda((int)$v['id']); if ($f > 0.004) $o[] = $v + ['falta' => $f]; }
+  return $o;
+}
+// [criança => quanto falta receber] das vendas de hoje (desde a última saída ou entrada cancelada de cada uma), sem as cobranças por atraso.
+// É a mesma conta de vendasDaVisita(), para todas as crianças de uma vez
+function pendDeTodos(): array {
+  $db = db(); $hoje = date('Y-m-d') . ' 00:00:00';
+  // o piso: nenhuma venda de antes de hoje (ou do dia em que entrou quem está há mais tempo no espaço) pode ser "desta visita".
+  // Com ele a consulta anda só pelas vendas recentes, sem buscar criança por criança (com anos de vendas no banco, de 290 ms para 10 ms)
+  $min = (string)$db->query('SELECT MIN(entrou) FROM criancas WHERE entrou IS NOT NULL')->fetchColumn();
+  $piso = $min !== '' && substr($min, 0, 10) . ' 00:00:00' < $hoje ? substr($min, 0, 10) . ' 00:00:00' : $hoje;
+  $falta = 'v.valor - COALESCE((SELECT SUM(p.valor) FROM pagamentos p WHERE p.venda_id = v.id), 0)';
+  $q = $db->prepare("SELECT v.crianca_id c, $falta f FROM vendas v CROSS JOIN criancas k0 ON k0.id = v.crianca_id WHERE v.quando >= ? AND v.auto = 0 AND v.valor > 0 AND v.servico != ?
+    AND v.quando >= CASE WHEN k0.entrou IS NOT NULL AND substr(k0.entrou, 1, 10) < substr(?, 1, 10) THEN substr(k0.entrou, 1, 10) || ' 00:00:00' ELSE ? END
+    AND v.quando >= COALESCE((SELECT MAX(x.saiu) FROM visitas x WHERE x.crianca_id = v.crianca_id), '') AND v.quando >= COALESCE((SELECT MAX(k.quando) FROM cancelamentos k WHERE k.crianca_id = v.crianca_id), '')
+    AND $falta > 0.004");
+  $q->execute([$piso, SERV_IMPORTADO, $hoje, $hoje]); $o = [];
+  foreach ($q->fetchAll() as $l) $o[(int)$l['c']] = ($o[(int)$l['c']] ?? 0) + (float)$l['f'];   // a soma por criança fica aqui: agrupar no SQL faria a consulta andar pelo índice da criança
+  return array_map(fn($f) => round($f, 2), $o);
+}
 // o que entrou por cada forma desde $desde (a tela mostra em Hoje na recepção)
 function pagamentosDesde(string $desde): array {
   $o = array_fill_keys(array_keys(FORMAS_PAGAMENTO), 0.0); $q = db()->prepare('SELECT forma, SUM(valor) t FROM pagamentos WHERE quando > ? GROUP BY forma'); $q->execute([$desde]);
@@ -765,12 +794,13 @@ function pulsoCupons(): string {
 // Uma linha por criança e serviço: vender mais um período do mesmo carrinho soma o tempo na mesma linha; mais unidades (valor único) somam a quantidade.
 // Devolve [{ id, crianca, s (o serviço), n (o nome), q (quantos), min (tempo comprado; 0 = sem hora para voltar), ini (quando saiu), vendas }]
 function alugueis(?int $criancaId = null, ?string $servico = null): array {
-  $sql = "SELECT v.id, v.crianca_id, v.alug, v.alug_min, v.qtd, v.servico, v.quando FROM vendas v JOIN criancas c ON c.id = v.crianca_id AND c.ativo = 1 WHERE v.alug != '' AND v.voltou IS NULL";
+  $sql = "SELECT v.id, v.crianca_id, v.alug, v.alug_min, v.qtd, v.servico, v.quando, v.valor - COALESCE((SELECT SUM(p.valor) FROM pagamentos p WHERE p.venda_id = v.id), 0) AS falta FROM vendas v JOIN criancas c ON c.id = v.crianca_id AND c.ativo = 1 WHERE v.alug != '' AND v.voltou IS NULL";
   $arg = []; if ($criancaId !== null) { $sql .= ' AND v.crianca_id = ?'; $arg[] = $criancaId; } if ($servico !== null) { $sql .= ' AND v.alug = ?'; $arg[] = $servico; }
   $q = db()->prepare($sql . ' ORDER BY v.id'); $q->execute($arg); $g = [];
   foreach ($q->fetchAll() as $v) {
     $k = (int)$v['crianca_id'] . '-' . $v['alug']; $m = (int)$v['alug_min'];
-    if (!isset($g[$k])) $g[$k] = ['id' => $k, 'crianca' => (int)$v['crianca_id'], 's' => (string)$v['alug'], 'n' => (string)$v['servico'], 'q' => 0, 'min' => 0, 'ini' => $v['quando'], 'vendas' => []];
+    if (!isset($g[$k])) $g[$k] = ['id' => $k, 'crianca' => (int)$v['crianca_id'], 's' => (string)$v['alug'], 'n' => (string)$v['servico'], 'q' => 0, 'min' => 0, 'ini' => $v['quando'], 'vendas' => [], 'pend' => 0.0];
+    $g[$k]['pend'] = round($g[$k]['pend'] + max(0.0, (float)$v['falta']), 2);   // 1.02: o que ainda não foi pago (o cliente ficou de pagar na devolução)
     $g[$k]['min'] += $m; $g[$k]['q'] = $m > 0 ? max(1, $g[$k]['q']) : $g[$k]['q'] + max(1, (int)$v['qtd']); $g[$k]['vendas'][] = (int)$v['id'];
   }
   return array_values($g);
@@ -796,22 +826,27 @@ function aluguelExtra(array $a): array {
 function devolverAluguel(array $c, string $servico, array $u, array $pg = []): array {
   $db = db(); $g = alugueis((int)$c['id'], $servico); if (!$g) falha('Isso já foi marcado como devolvido.', 409);
   $a = $g[0]; $agora = agora(); $marcas = implode(',', array_map('intval', $a['vendas'])); $x = aluguelExtra($a);
-  if ($x['valor'] > 0) {
-    if (!$pg) falha($a['n'] . ' passou do tempo comprado: falta receber ' . dinheiro($x['valor']) . ' (' . dur($x['min']) . ' a mais). Escolha a forma de pagamento.', 409);
-    if (abs(array_sum($pg) - $x['valor']) >= 0.01) falha('O pagamento (' . dinheiro((float)array_sum($pg)) . ') não fecha com o valor a receber, que é ' . dinheiro($x['valor']) . '. Feche e abra a devolução de novo.', 409);
+  $pend = round((float)($a['pend'] ?? 0), 2); $total = round($x['valor'] + $pend, 2);   // 1.02: o que ficou a pagar do carrinho entra na conta da devolução
+  if ($total > 0) {
+    if (!$pg) falha($x['valor'] > 0 ? $a['n'] . ' passou do tempo comprado: falta receber ' . dinheiro($total) . ' (' . dur($x['min']) . ' a mais' . ($pend > 0 ? ', mais o que não foi pago' : '') . '). Escolha a forma de pagamento.'
+      : $a['n'] . ' ainda não foi pago: falta receber ' . dinheiro($total) . '. Escolha a forma de pagamento.', 409);
+    if (abs(array_sum($pg) - $total) >= 0.01) falha('O pagamento (' . dinheiro((float)array_sum($pg)) . ') não fecha com o valor a receber, que é ' . dinheiro($total) . '. Feche e abra a devolução de novo.', 409);
   }
   $db->prepare("UPDATE vendas SET voltou = ? WHERE id IN ($marcas) AND voltou IS NULL")->execute([$agora]);
   $ficou = max(0, (int)floor((time() - strtotime((string)$a['ini'])) / 60)); $passou = $a['min'] > 0 ? max(0, $ficou - $a['min']) : 0;
   $reg = registrar('dev', (int)$c['id'], $c['nome'], ($a['q'] > 1 ? $a['q'] . ' × ' : '') . $a['n'] . ' · devolvido · ficou ' . dur($ficou)
     . ($a['min'] > 0 ? ' · tempo comprado: ' . dur($a['min']) . ($passou > 0 ? ' (passou ' . ($passou < 60 ? $passou . ' min' : dur($passou)) . ')' : '') : '') . ' · por ' . primeiroNome($u['nome']), $agora);
-  $r = ['vendas' => $a['vendas'], 'registro' => $reg, 'ficou' => $ficou, 'passou' => $passou, 'voltou' => $agora, 'nome' => $a['n'], 'q' => $a['q'], 'extra' => 0, 'registros' => [], 'pago' => '', 'valor' => 0.0];
-  if ($x['valor'] > 0) { // o tempo a mais vira uma venda (que já nasce devolvida, para não voltar para a lista) e o pagamento fica anotado nela
-    $v = fazerVenda($c, 0, $x['valor'], (int)$u['id'], 'tempo a mais · ' . dur($x['min']), (string)$a['n']);
-    $db->prepare("UPDATE vendas SET alug = '', alug_min = 0, voltou = ? WHERE id = ?")->execute([$agora, $v['venda']]);
-    $antesPg = (int)$db->query('SELECT COALESCE(MAX(id), 0) FROM pagamentos')->fetchColumn();
-    $pago = gravarPagamento([$v['venda']], $pg, (int)$c['id'], (int)$u['id']);
-    $rp = registrar('pag', (int)$c['id'], $c['nome'], 'Pagamento · ' . dinheiro($x['valor']) . ' · ' . textoPagamento($pago ?: $pg));
-    $r['extra'] = $v['venda']; $r['registros'] = [$v['registro'], $rp]; $r['pago'] = textoPagamento($pago ?: $pg); $r['valor'] = $x['valor']; $r['minutos'] = $x['min'];
+  $r = ['vendas' => $a['vendas'], 'registro' => $reg, 'ficou' => $ficou, 'passou' => $passou, 'voltou' => $agora, 'nome' => $a['n'], 'q' => $a['q'], 'extra' => 0, 'registros' => [], 'pago' => '', 'valor' => 0.0, 'pend' => $pend];
+  if ($total > 0) {
+    $antesPg = (int)$db->query('SELECT COALESCE(MAX(id), 0) FROM pagamentos')->fetchColumn(); $ids = array_map('intval', $a['vendas']);
+    if ($x['valor'] > 0) { // o tempo a mais vira uma venda (que já nasce devolvida, para não voltar para a lista) e o pagamento fica anotado nela
+      $v = fazerVenda($c, 0, $x['valor'], (int)$u['id'], 'tempo a mais · ' . dur($x['min']), (string)$a['n']);
+      $db->prepare("UPDATE vendas SET alug = '', alug_min = 0, voltou = ? WHERE id = ?")->execute([$agora, $v['venda']]);
+      $ids[] = (int)$v['venda']; $r['extra'] = $v['venda']; $r['registros'][] = $v['registro']; $r['minutos'] = $x['min'];
+    }
+    $pago = gravarPagamento($ids, $pg, (int)$c['id'], (int)$u['id']);   // primeiro o que ficou a pagar do carrinho, depois o tempo a mais
+    $r['registros'][] = registrar('pag', (int)$c['id'], $c['nome'], 'Pagamento · ' . dinheiro($total) . ' · ' . textoPagamento($pago ?: $pg));
+    $r['pago'] = textoPagamento($pago ?: $pg); $r['valor'] = $total; $r['pag_de'] = $antesPg;
     $r['cupom'] = criarCupom($c, 'venda', $antesPg, $u);   // (o módulo do cupom fiscal, se estiver ligado)
   }
   return $r;
@@ -831,7 +866,7 @@ function planosDoEspaco(): array {
   $db = db(); $o = []; $resta = [];
   foreach ($db->query('SELECT id, usado_min FROM criancas WHERE entrou IS NOT NULL AND ativo = 1')->fetchAll() as $c) { $o[(int)$c['id']] = 'avulso'; $resta[(int)$c['id']] = (int)$c['usado_min']; }
   if (!$o) return $o;
-  $q = $db->query('SELECT v.crianca_id, v.minutos, v.servico, v.itens, v.auto, v.voucher FROM vendas v JOIN criancas c ON c.id = v.crianca_id WHERE c.entrou IS NOT NULL AND c.ativo = 1 AND v.minutos > 0 ORDER BY v.id');
+  $q = $db->query('SELECT v.crianca_id, v.minutos, v.servico, v.itens, v.auto, v.voucher FROM criancas c CROSS JOIN vendas v ON v.crianca_id = c.id WHERE c.entrou IS NOT NULL AND c.ativo = 1 AND v.minutos > 0 ORDER BY v.id');
   foreach ($q->fetchAll() as $v) { $id = (int)$v['crianca_id']; $m = (int)$v['minutos'];
     if (!isset($o[$id]) || $o[$id] === 'pacote') continue;
     if ($resta[$id] >= $m) { $resta[$id] -= $m; continue; }   // esta compra já foi usada inteira
@@ -850,6 +885,7 @@ function prazoCancelar(array $c): array { // [limite em minutos, segundos desde 
 // as vendas que pagaram esta visita: as de hoje, feitas depois da última saída (ou do último cancelamento) da criança
 function vendasDaVisita(array $c): array {
   $db = db(); $corte = date('Y-m-d') . ' 00:00:00';
+  if (!empty($c['entrou']) && substr((string)$c['entrou'], 0, 10) < date('Y-m-d')) $corte = substr((string)$c['entrou'], 0, 10) . ' 00:00:00';   // 1.02: entrou ontem e ainda está no espaço (saída esquecida): a visita vale desde o dia da entrada
   foreach (['SELECT MAX(saiu) FROM visitas WHERE crianca_id = ?', 'SELECT MAX(quando) FROM cancelamentos WHERE crianca_id = ?'] as $sql) { $q = $db->prepare($sql); $q->execute([$c['id']]); $s = (string)$q->fetchColumn(); if ($s > $corte) $corte = $s; }
   $q = $db->prepare('SELECT * FROM vendas WHERE crianca_id = ? AND quando >= ? AND servico != ? ORDER BY id'); $q->execute([$c['id'], $corte, SERV_IMPORTADO]);   // 1.01: o pacote que veio na importação não é desta visita
   return $q->fetchAll();

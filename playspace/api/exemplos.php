@@ -33,10 +33,10 @@ function exemplosCarregar(?int $por): array {
   // São 10, e os horários cobrem as situações da lista: acabou de entrar, acabando o tempo, na tolerância e já com cobrança por atraso.
   // Há uma família com duas crianças (ficam juntas na lista).
   $dentro = [
-    ['Ana Clara', 'Carla Menezes', 2, 1],                                ['Cecília', 'Fernanda Castro', 5, 1, ['voucher' => 1]],
+    ['Ana Clara', 'Carla Menezes', 2, 1, ['np' => 1]],                              ['Cecília', 'Fernanda Castro', 5, 1, ['voucher' => 1]],
     ['Elisa', 'Patrícia Nunes', 8, 2, ['pac' => 1]],                     ['Felipe', 'Patrícia Nunes', 8, 2, ['fam' => 'Elisa', 'pac' => 1]],
     ['Gabriela', 'Aline Prado', 14, 1, ['obs' => 'ALERGIA A CORANTE']],  ['Isabela', 'Juliana Rocha', 18, 1, ['pcd' => 1]],
-    ['Lara', 'Camila Farias', 24, 1],                                    ['Pedro', 'Gustavo Ribeiro', 33, 1, ['sem' => 1]],
+    ['Lara', 'Camila Farias', 24, 1],                                    ['Pedro', 'Gustavo Ribeiro', 33, 1, ['sem' => 1, 'np' => 1]],
     ['Helena', 'Mariana Souza', 47, 1, ['obs' => 'ALERGIA A AMENDOIM']], ['Gael', 'Paulo Henrique Cunha', 72, 1],
   ];
   $ins = $db->prepare("INSERT INTO criancas (nome, idade, resp, rel, tel, cpf, obs, pacote_min, usado_min, entrou, idface_id, foto, rosto, ativo, criado_em, pcd) VALUES (?, ?, ?, 'responsável', ?, ?, ?, ?, ?, ?, NULL, '', 0, 1, ?, ?)");
@@ -46,7 +46,7 @@ function exemplosCarregar(?int $por): array {
   $pagar = $db->prepare('INSERT INTO pagamentos (venda_id, crianca_id, forma, valor, quando, por) VALUES (?, ?, ?, ?, ?, ?)'); $formas = array_keys(FORMAS_PAGAMENTO);
   $vender = function (int $id, string $nome, int $min, float $valor, string $quando, string $itens, array $m = []) use ($db, $ven, $reg, $por, $SN, $pagar, $formas) {   // uma venda de recreação, com a linha do dia
     $ven->execute([$id, round($min / 60, 2), $min, $valor, $quando, empty($m['auto']) ? $por : null, $itens, $SN, empty($m['auto']) ? 0 : 1, (string)($m['voucher'] ?? ''), empty($m['pcd']) ? 0 : 1, $m['cheio'] ?? null]);
-    if (empty($m['auto']) && $valor > 0) $pagar->execute([(int)$db->lastInsertId(), $id, $formas[$id % count($formas)], $valor, $quando, $por]);   // paga na hora da venda; a cobrança por atraso fica a receber
+    if (empty($m['auto']) && $valor > 0 && empty($m['np'])) $pagar->execute([(int)$db->lastInsertId(), $id, $formas[$id % count($formas)], $valor, $quando, $por]);   // paga na hora da venda; a cobrança por atraso fica a receber (1.02: np = ficou de pagar na saída)
     $reg->execute([$quando, empty($m['auto']) ? 'venda' : 'cobr', $id, $nome, empty($m['auto']) ? $SN . ' · ' . dur($min) . ($itens !== '' ? ' · ' . $itens : '') . ' · ' . dinheiro($valor)
       : 'Nova cobrança por atraso: ficou além do tempo comprado · ' . $SN . ' +' . dur($min) . ' · ' . dinheiro($valor) . (empty($m['pcd']) ? '' : ' · ' . $m['rot']) . ' a receber na saída']);
   };
@@ -63,23 +63,23 @@ function exemplosCarregar(?int $por): array {
     if ($pac) $ven->execute([$id, $pacH, $min, $pacV, $t(60 * 24 * 3 + $i), $por, $pacItens, $pacServ, 0, '', 0, null]);
     elseif (isset($x['voucher'])) $vender($id, $nome, $min, 0.0, $entrou, 'voucher', ['voucher' => 'sim', 'cheio' => $per * $V]);
     elseif ($pcd) $vender($id, $nome, $min, $per * $VP, $entrou, $rotPcd, ['pcd' => 1, 'cheio' => $per * $V]);
-    else $vender($id, $nome, $min, $per * $V, $entrou, '');
+    else $vender($id, $nome, $min, $per * $V, $entrou, '', empty($x['np']) ? [] : ['np' => 1]);
     $reg->execute([$entrou, 'ent', $id, $nome, 'Entrada registrada']);
     for ($k = 1; $k <= $autos; $k++) $vender($id, $nome, $P, $pcd ? $VP : $V, date('Y-m-d H:i:s', strtotime($entrou) + (($per + $k - 1) * $P + $tol) * 60 + 1), 'cobrança por atraso' . ($pcd ? ' · ' . $rotPcd : ''), ['auto' => 1, 'pcd' => $pcd, 'cheio' => $pcd ? $V : null, 'rot' => $rotPcd]);
   }
 
   // o que saiu da loja e ainda não voltou (fica na lista até "Devolveu"): um fusquinha dentro do tempo, um que já passou e um carrinho de bebê
   $alu = $db->prepare('INSERT INTO vendas (crianca_id, horas, minutos, valor, quando, por, itens, servico, alug, alug_min, qtd) VALUES (?, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?)');
-  $sair = function (string $nome, array $sv, float $ha, int $q = 1) use ($db, $alu, $reg, &$nomeId, $por, $t, $pagar, $formas) {
+  $sair = function (string $nome, array $sv, float $ha, int $q = 1, bool $np = false) use ($db, $alu, $reg, &$nomeId, $por, $t, $pagar, $formas) {
     $porTempo = ($sv['modo'] ?? 'fixo') === 'periodo'; $m = $porTempo ? $q * max(1, (int)$sv['min']) : 0; $obs = (string)($sv['obs'] ?? ''); $valor = $q * (float)$sv['v'];
     $itens = $porTempo ? dur($m) : (($q > 1 ? $q . ' unidades' . ($obs !== '' ? ' · ' : '') : '') . $obs);
     $alu->execute([$nomeId[$nome], $valor, $t($ha), $por, $itens, (string)$sv['n'], (string)$sv['id'], $m, $porTempo ? 1 : $q]);
-    $pagar->execute([(int)$db->lastInsertId(), $nomeId[$nome], $formas[$nomeId[$nome] % count($formas)], $valor, $t($ha), $por]);
+    if (!$np) $pagar->execute([(int)$db->lastInsertId(), $nomeId[$nome], $formas[$nomeId[$nome] % count($formas)], $valor, $t($ha), $por]);   // 1.02: np = ficou de pagar na devolução
     $reg->execute([$t($ha), 'venda', $nomeId[$nome], $nome, $sv['n'] . ($itens !== '' ? ' · ' . $itens : '') . ' · ' . dinheiro($valor)]);
   };
   $porTempo = null; $semHora = null;
   foreach ((array)regra()['servicos'] as $sv) if (!empty($sv['volta'])) { if (($sv['modo'] ?? 'fixo') === 'periodo') $porTempo = $porTempo ?? $sv; else $semHora = $semHora ?? $sv; }
-  if ($porTempo) { $sair('Lara', $porTempo, 16); $sair('Gael', $porTempo, (int)$porTempo['min'] + 13); }
+  if ($porTempo) { $sair('Lara', $porTempo, 16); $sair('Gael', $porTempo, (int)$porTempo['min'] + 13, 1, true); }
   if ($semHora) $sair('Helena', $semHora, 45);
   // uma conversa no WhatsApp (nenhuma mensagem automática: só o que a família e a equipe escreveram)
   $id = $nomeId['Helena'];

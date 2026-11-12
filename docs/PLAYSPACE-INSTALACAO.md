@@ -31,6 +31,8 @@ Para tirar, o mesmo botão vira **Tirar o teste**: saem as 10 crianças e tudo o
 
 Na prévia (sem servidor) o mesmo botão existe e faz a mesma coisa na própria tela. Até a 0.97 o teste colocava 30 crianças no espaço (e 4 fora); a loja pediu só 10.
 
+**Pago e não pago no teste (1.02):** das dez crianças, a ANA CLARA e o PEDRO ficaram de pagar na saída, e o fusquinha do GAEL, na devolução. As outras pagaram na entrada. Assim a lista mostra os dois selos.
+
 ## 3. Equipe e papéis (Ajustes → Equipe)
 
 | Papel | O que faz |
@@ -116,6 +118,8 @@ O tempo é debitado **sempre em períodos inteiros** (o período da Recreação:
 
 **A ficha da criança tem só o atendimento (1.00):** **Saída** (ou **Entrada**), **Vender**, **Histórico** e **Cupom**, mais a sapateira e a observação. Saíram "Saída com outra hora", "Tirar a foto" (volta sozinha se o iDFace for ligado), "Editar" e "Remover".
 
+**A ficha mais limpa (1.02):** de cima para baixo ficam só o responsável e o telefone, o selo **Pago** (ou a linha do que falta receber, com **Receber**), o relógio ("entrou 14:10 · até 14:40", o tempo que resta e a barra) e a fileira de botões: **Saída**, **Vender**, **Histórico**, **Cupom**, **Sapateira** e, no prazo, **Cancelar entrada**. Saíram as frases compridas ("Entrou às… e está há… Se sair agora, debita…", "é onde está o sapato dela", "As horas não expiram…"). A cobrança por atraso virou a linha curta "Atraso · R$ 160 a receber". O **OBS** de quem não tem observação é um botão na fileira; com observação, continua a caixa vermelha no alto. A conta de horas (comprou, usou, saldo) só aparece para quem tem horas guardadas ou pacote, e a lista de visitas, só quando há visita.
+
 **Editar ou remover um cadastro é só do Gestor**, em **Ajustes → Cadastros**: a busca acha por criança, responsável, telefone ou CPF; um toque abre o cadastro para mudar (nome, responsável, telefones, documento, criança PCD, observações) e, no pé, **Remover este cadastro**. Atendente e Supervisor não mudam cadastro, nem pela tela, nem pelo servidor. A observação e a sapateira continuam com toda a equipe.
 
 **Sapateiras** (1 a 44): a criança tira o sapato para brincar e ele fica numa sapateira numerada.
@@ -182,7 +186,7 @@ Para quando a criança entra e desiste logo (chorou, não quis ficar, o respons�
 - **Prazo**: até **9 minutos** depois da entrada (9 minutos cheios, contados do momento em que entrou), **o próprio atendente cancela**. O prazo corre à vista: na linha da criança, na lista do espaço, aparece o atalho com um **X e o tempo que falta** (8:42), e a ficha mostra até que horas dá. Quando o prazo acaba, o atalho some sozinho.
 - **Motivo obrigatório**: a folha "Cancelar a entrada" só aceita com o motivo escrito (há atalhos: "A criança chorou", "O responsável desistiu"…). Sem motivo, não cancela.
 - **O que deixa de ser cobrado**: a folha lista as vendas desta visita (as de hoje, feitas depois da última saída). Já vem marcada a **Recreação vendida junto com a entrada**; carrinho e o que foi comprado mais cedo ficam desmarcados (continuam cobrados), e dá para marcar se também não forem cobrados. O que for marcado sai das vendas do dia e do saldo da criança; se o cliente já pagou, o valor é devolvido. Nenhum tempo é descontado e a sapateira fica livre.
-- **Fora do prazo, ninguém cancela** (1.00): quando o prazo acaba, a opção some da ficha para todos, inclusive Gestor e Supervisor, e o servidor recusa o cancelamento. O período é cobrado, qualquer que seja o motivo.
+- **Fora do prazo, ninguém cancela** (1.00): quando o prazo acaba, a opção some da ficha para todos, inclusive Gestor e Supervisor, e o servidor recusa o cancelamento. O período é cobrado, qualquer que seja o motivo. **Na ficha (1.02)** o cancelamento é só o botão **Cancelar entrada · 6:57**, com o tempo que ainda falta; quando o prazo acaba o botão some, sem deixar aviso nenhum.
 - **A supervisão vê tudo**: cada cancelamento vira uma dica no alto da tela de Gestor e Supervisor ("João cancelou a entrada de Helena, R$ 80 não cobrado. Motivo: …") e, se a supervisora estiver com o sistema aberto, um aviso na hora. O botão **Conferir** abre **Entradas canceladas**: quem, quando entrou, quanto ficou, o que não foi cobrado, o motivo e quem cancelou; **Marcar como visto** registra quem conferiu. A mesma lista abre em "Hoje na recepção" e em Ajustes → Regra das horas. O cancelamento também aparece na linha do dia (com a venda marcada "cancelada") e no **histórico do cliente**.
 - Se os avisos automáticos estão em "Entrada e saída", o responsável recebe no WhatsApp que a entrada foi cancelada e nada foi cobrado.
 - **Ajustes → Regra das horas → Cancelar a entrada sem cobrar** muda o prazo (5, 9, 10 ou 15 min) ou desliga o cancelamento (**Não cancela**).
@@ -218,7 +222,7 @@ O resto da tela continua igual:
 - **Atividades da semana**: em tela larga (1400 px ou mais) ficam na coluna da direita, por dia, sempre à vista. Em tela menor e no celular viram **uma linha só** embaixo da lista; um toque abre os dias;
 - **no pé**, dois atalhos: **Banco de horas** (quem não está no espaço) e **Hoje na recepção** (cada entrada, saída, venda, pagamento, devolução, cancelamento e mudança de estoque do dia). Os números do dia estão no alto de **Hoje na recepção**.
 
-**O bloco do responsável (1.00):** as crianças do mesmo responsável, e os carrinhos que elas pegaram, ficam sempre juntos, dentro de um **contorno vermelho**: é um bloco só, para ver de longe que são da mesma família. O vínculo é pelo responsável (o CPF dele; sem documento, o telefone). O bloco entra na lista no lugar da linha mais urgente dele. No **Banco de horas** os irmãos também ficam juntos, no mesmo contorno. As três colunas por serviço, que eram opção de cada aparelho, saíram: elas separavam a criança do carrinho do mesmo responsável. O aparelho que estava em colunas volta sozinho para a lista.
+**O bloco do responsável (1.00):** as crianças do mesmo responsável, e os carrinhos que elas pegaram, ficam sempre juntos, dentro de um **contorno vermelho**: é um bloco só, para ver de longe que são da mesma família. O vínculo é pelo responsável (o CPF dele; sem documento, o telefone). O bloco entra na lista no lugar da linha mais urgente dele. No **Banco de horas** os irmãos também ficam juntos, no mesmo contorno. As três colunas por serviço, que eram opção de cada aparelho, saíram: elas separavam a criança do carrinho do mesmo responsável. O aparelho que estava em colunas volta sozinho para a lista. **A coluna Pagamento (1.02)** mostra em cada linha o selo PAGO ou NÃO PAGO (seção 6p).
 
 ## 6g. Cobrança por atraso
 
@@ -380,7 +384,7 @@ O carrinho de bebê e o fusquinha saem da loja com o cliente e voltam. A partir 
 - **Sem hora para voltar** (o carrinho de bebê, valor único): a linha só conta o tempo.
 - **De outro dia**: se ninguém marcou a devolução, a linha continua na lista, em vermelho, com o dia em que saiu, no começo da lista.
 - **Devolveu**: um toque, na linha ou na comanda da criança. O carrinho sai da lista e fica anotado em **Hoje na recepção**: "CARRINHO FUSQUINHA · devolvido · ficou 0h44 · tempo comprado: 0h30 (passou 14 min) · por JOÃO". O aviso tem **Desfazer** (vale por 10 minutos).
-- **Devolução com pagamento (1.00):** se o que foi alugado por tempo (o fusquinha) **passou do tempo comprado**, o toque em **Devolveu** abre o **Pagamento da devolução**: quanto ficou fora, quanto passou e o valor a receber (períodos inteiros, com a mesma tolerância da recreação). A devolução só fecha com a forma de pagamento (Pix, dinheiro, crédito ou débito, em até três formas). Dentro do tempo, ou no carrinho de valor único, devolve direto com um toque. O **Desfazer** do aviso põe o carrinho de volta na lista e desfaz o que foi cobrado.
+- **Devolução com pagamento (1.00):** se o que foi alugado por tempo (o fusquinha) **passou do tempo comprado**, o toque em **Devolveu** abre o **Pagamento da devolução**: quanto ficou fora, quanto passou e o valor a receber (períodos inteiros, com a mesma tolerância da recreação). A devolução só fecha com a forma de pagamento (Pix, dinheiro, crédito ou débito, em até três formas). Dentro do tempo, ou no carrinho de valor único, devolve direto com um toque. O **Desfazer** do aviso põe o carrinho de volta na lista e desfaz o que foi cobrado. **1.02:** o carrinho registrado com "Paga na devolução" também abre o pagamento ao tocar em Devolveu, com o valor que ficou a pagar.
 - Quem leva só o carrinho **não entra no espaço**: aparece na lista só a linha do carrinho. Se a criança também está na recreação, as duas linhas ficam juntas, na moldura da família.
 - Se a venda for desfeita (ou deixar de ser cobrada num cancelamento de entrada), o carrinho sai da lista sozinho.
 - Todos os aparelhos veem o carrinho entrar e sair da lista em poucos segundos.
@@ -399,6 +403,18 @@ Depois de escolher o serviço (horas avulsas, pacote, carrinho, produto), o aten
 - **O que fica anotado**: uma linha em **Hoje na recepção** ("Pagamento · R$ 420 · Pix R$ 200 + Dinheiro R$ 100 + Crédito R$ 120"), a forma em cada compra no **Histórico do cliente**, e o total por forma no alto de **Hoje na recepção** (Pix, Dinheiro, Crédito e Débito das últimas 24 horas).
 - **Desfazer** a venda (no aviso) tira também o pagamento.
 - **O servidor confere**: o pagamento tem de fechar com o total que ele mesmo calcula pela tabela. Se o valor de um serviço mudou no meio do atendimento, aparece "O pagamento não fecha com o total" e nada é vendido: é fechar e abrir o atendimento de novo.
+
+**Pago ou não pago (1.02).** Tem cliente que paga na entrada e tem cliente que só paga na saída. A tela mostra sempre qual é o caso:
+
+- **Na tela de pagamento do atendimento**, embaixo do botão de receber, há **Paga na saída · registrar e dar entrada**. A venda e a entrada são registradas sem pagamento, e a linha do dia diz "Não pago · R$ 80 a receber na saída". O botão só existe quando há uma hora certa para receber depois: a criança entra agora (ou já está no espaço), ou a venda tem um carrinho que sai da loja e volta (aí o botão diz **Paga na devolução**). Venda de produto ou de pacote para quem não vai entrar é paga na hora.
+- **Na tela inicial**, a coluna **Pagamento** traz o selo **PAGO** (verde) ou **NÃO PAGO** (vermelho) em cada linha, da criança e do carrinho. No celular o selo fica na linha do responsável. O selo fala do que a equipe vendeu nesta visita; a cobrança por atraso tem a linha dela na ficha e entra na conta da saída.
+- **Na ficha**, quem está em dia tem o selo **Pago** no alto. Quem não pagou tem uma linha só: "Não pago · R$ 80", com o botão **Receber** (se já houver cobrança por atraso, "Não pago · R$ 80 + atraso R$ 80" e **Receber R$ 160**). O Receber abre as quatro formas de pagamento e recebe na hora, sem esperar a saída; o aviso tem Desfazer.
+- **Na saída**, o Pagamento da saída mostra "Ainda não pago: R$ 80" junto com a cobrança por atraso, se houver, e o total em **A receber agora**. Sem a forma de pagamento a saída não é dada. O Desfazer da saída devolve também o que foi recebido nela.
+- **Na devolução do carrinho** que ficou para pagar depois, o toque em Devolveu abre o Pagamento da devolução com "Ainda não pago: R$ 15" (e o tempo a mais, se passou).
+- **No cupom** da entrada sai "A pagar na saída" e "NÃO PAGO: A RECEBER NA SAÍDA"; no cupom da saída, "O que ficou para pagar na saída", com a forma em que foi recebido.
+- **No Histórico do cliente**, a compra aparece com **NÃO PAGO** enquanto não for recebida, e não entra em "Pagou ao todo".
+- **Cancelar a entrada** de quem não pagou não tem nada a devolver.
+- Quem entrou num dia e só saiu no outro (saída esquecida) continua com a conta aberta: o que ficou a pagar é cobrado na saída, mesmo depois da meia-noite.
 
 **Na saída**, o toque em Saída já abre o **Pagamento da saída** (seção 6r): a visita é paga com as horas do cliente e, se passou do tempo, com as mesmas quatro formas, em **Forma de pagamento**. Sem escolher a forma, a saída não é dada (o botão diz "Escolha a forma de pagamento" e a tela pergunta "Como recebeu R$ 80?"). Também dá para dividir. A linha do dia fica "… cobrança por atraso: R$ 80 · recebido: Dinheiro".
 
@@ -447,7 +463,7 @@ O botão de baixo diz o que vai acontecer:
 - **Escolha a forma de pagamento**: há valor a receber e a forma ainda não foi escolhida. A saída não é dada sem ela.
 - **Recebi R$ 80 no Pix · dar saída**: forma escolhida; o toque registra o pagamento e dá a saída. Dividindo em mais de uma forma, o botão pede o valor que falta ("Quanto no Pix?") e, com a conta fechada, vira **Recebi R$ 80 · dar saída**.
 
-A tela acompanha o relógio: se a tolerância estourar com ela aberta, o quadro rosa e as formas de pagamento aparecem na hora. **Pacote na saída (1.00):** a folha tem o botão **O cliente quer levar um pacote?**. Ele abre o atendimento com a lista de pacotes; depois do pagamento (e do cupom), **a saída abre de novo sozinha**, já usando as horas do pacote: a cobrança por atraso que estava a receber é desfeita e a visita sai do saldo novo. O mesmo vale para qualquer tempo comprado com a criança no espaço: o que o cliente comprou cobre a visita, e só fica a receber o que ainda faltar. A folha da saída não corrige mais a hora.
+A tela acompanha o relógio: se a tolerância estourar com ela aberta, o quadro rosa e as formas de pagamento aparecem na hora. **Pacote na saída (1.00):** a folha tem o botão **O cliente quer levar um pacote?**. Ele abre o atendimento com a lista de pacotes; depois do pagamento (e do cupom), **a saída abre de novo sozinha**, já usando as horas do pacote: a cobrança por atraso que estava a receber é desfeita e a visita sai do saldo novo. O mesmo vale para qualquer tempo comprado com a criança no espaço: o que o cliente comprou cobre a visita, e só fica a receber o que ainda faltar. A folha da saída não corrige mais a hora. **Quem ficou de pagar na saída (1.02):** a folha mostra "Ainda não pago" com o valor, soma com a cobrança por atraso (se houver) e só dá a saída com a forma de pagamento.
 
 **As horas compradas não expiram, nunca.** Não existe prazo de validade no sistema: um pacote comprado hoje vale daqui a dez anos, inteiro. O saldo só diminui quando a criança usa (a visita) ou quando uma venda é desfeita ou cancelada.
 
