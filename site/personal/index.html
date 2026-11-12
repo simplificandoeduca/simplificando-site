@@ -118,7 +118,8 @@ a{color:inherit}
 :root[data-theme="light"] .eyebrow{color:color-mix(in srgb,var(--brand) 55%,#0F1712)}
 .card .eyebrow,.sheet .eyebrow,:root .card .eyebrow,:root .sheet .eyebrow{color:var(--muted)}
 h1{margin:4px 0 0;font-size:clamp(44px,7vw,62px);font-weight:900;letter-spacing:-.05em;line-height:1;text-wrap:balance}
-.avatar{width:46px;height:46px;flex:none;padding:0;border:0;background:none;border-radius:50%}
+.avatar{width:46px;height:46px;flex:none;padding:0;border:0;background:none;border-radius:50%}button.avatar{cursor:pointer;font:inherit;color:inherit}button.avatar:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.tp-op{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:0;font:inherit;color:inherit;background:var(--ctl);border-radius:18px;padding:14px 16px;cursor:pointer;margin-top:10px}.tp-op b{display:block;font-size:16px}.tp-op span{font-size:13px;color:var(--muted)}.tp-op .i{width:22px;height:22px;flex:none}.tp-op .chev{margin-left:auto;width:18px;height:18px;opacity:.5}
 .logo{width:100%;height:100%;display:block}
 .wave-strip{display:block;height:56px;margin:-10px 0 -6px}
 .wave-strip{overflow-x:clip;overflow-y:visible;position:relative;z-index:-1;pointer-events:none}
@@ -328,7 +329,7 @@ button.row:hover{background:var(--ctl)}
 .exc-h .nm input:focus{border-bottom-color:var(--fg)}
 .exc-h .nm span{font-size:12.5px;color:var(--muted)}
 .exc-tools{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:0;flex:none}
-@media (max-width:520px){.exc-h{flex-wrap:wrap}.exc-h .nm{flex:1 1 calc(100% - 46px)}.exc-tools{width:100%;justify-content:flex-start;margin:-6px 0 -4px 36px}}
+@media (max-width:520px){.exc-h{flex-wrap:wrap}.exc-h .nm{flex:1 1 calc(100% - 46px)}.exc-tools{width:calc(100% - 36px);justify-content:flex-start;margin:-6px 0 -4px 36px}}
 .exa-row{display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px;align-items:center}
 .exa-th{position:relative;display:block;width:96px;aspect-ratio:306/340;border:0;padding:0;border-radius:16px;background:#FFFFFF;box-shadow:inset 0 0 0 1px rgba(15,23,18,.10);overflow:hidden;cursor:pointer;color:#0F1712}
 .exa-th svg{display:block;width:100%;height:100%}
@@ -2166,7 +2167,7 @@ function saveTxt(){ const s = ui.saveSt; return s==='saving' ? 'Salvando' : s===
 const savePill = () => '<span class="savest '+(ui.saveSt==='saving'?'saving':ui.saveSt==='err'||ui.saveSt==='ro'?'err':'')+'" data-savest role="status"><i aria-hidden="true"></i><span>'+saveTxt()+'</span></span>';
 const themeBtn = () => '<button type="button" class="btn round" data-a="theme" aria-label="'+(curTheme()==='dark'?'Mudar para modo claro':'Mudar para modo escuro')+'">'+ic(curTheme()==='dark'?'sun':'moon')+'</button>';
 function header(title,eyebrow,actions){
-  return '<header class="top"><div class="top-txt"><p class="eyebrow">'+esc(eyebrow)+'</p><h1>'+esc(title)+'<span class="dot" aria-hidden="true"></span></h1></div><div class="top-act">'+(actions||'')+themeBtn()+'<span class="avatar" aria-hidden="true">'+logo()+'</span></div></header><div class="wave-strip" aria-hidden="true">'+WAVE+'</div>'+
+  return '<header class="top"><div class="top-txt"><p class="eyebrow">'+esc(eyebrow)+'</p><h1>'+esc(title)+'<span class="dot" aria-hidden="true"></span></h1></div><div class="top-act">'+(actions||'')+themeBtn()+'<button type="button" class="avatar" data-a="trocaPerfil" aria-label="Trocar de perfil" title="Trocar de perfil">'+logo()+'</button></div></header><div class="wave-strip" aria-hidden="true">'+WAVE+'</div>'+
     '<div class="btn-row" style="justify-content:space-between">'+savePill()+(Store.mode==='local'?'<span class="local-note">'+ic('alert')+'Modo local: os dados ficam só neste navegador</span>':'')+'</div>';
 }
 function hojeTxt(){ const s = new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'}); return s.charAt(0).toUpperCase()+s.slice(1); }
@@ -3652,6 +3653,14 @@ function vSheet(){
   if(s.k==='pf') return pfSheet(s.id);
   if(s.k==='termos') return sheetTop('Simplificando','Termos e privacidade')+'<div class="docs">'+DOC_HTML+'</div>';
   if(s.k==='evCardio') return vEvCardio(s);
+  if(s.k==='trocaPerfil'){
+    const teste = typeof SITE_TESTE!=='undefined', op = (a, icn, t, d, ex) => '<button type="button" class="tp-op" data-a="'+a+'"'+(ex||'')+'>'+ic(icn)+'<span><b>'+t+'</b><span>'+d+'</span></span>'+ic('chev','chev')+'</button>';
+    if(teste) return sheetTop('Trocar de perfil', 'Versão de teste')+'<p class="muted">Você está no painel de teste. Os dados ficam só neste aparelho.</p>'+
+      (SITE_TESTE ? op('demoSair','user','Voltar para o login do painel','Entrar com o seu e-mail e senha.') : '<p class="foot">Para entrar no seu painel, abra simplificandoeduca.com/personal.</p>');
+    return sheetTop('Trocar de perfil', 'Conectado como '+(Gate.user()||'você'))+
+      op('abrirTeste','flag','Abrir o painel de teste','O painel que você mostra para outros personais. Seus alunos não aparecem lá.')+
+      op('sairConta','x','Sair da conta','Volta para a tela de login neste aparelho.', ' data-gate-out="1"');
+  }
   if(s.k==='evMover'){
     const t0 = today(), dias = [-3,-2,-1,1].map(n => addDays(s.atual, n)).filter(k => k<=t0), sel = s.para || s.atual;
     return sheetTop('Mudar o dia do treino', 'Treino '+s.t+' · '+dSem(s.atual)+', '+fmtDm(s.atual))+
@@ -3698,7 +3707,7 @@ function navHtml(){
   const cnt = {alunos:Object.keys(C.alunos).filter(id => (C.alunos[id].perfil||{}).status!=='inativo').length, biblioteca:Object.keys(C.exercicios).length, modelos:Object.keys(C.modelos).length};
   return '<div class="brand-row"><span class="avatar" aria-hidden="true">'+logo()+'</span><div><b>Simplificando</b><span>Painel do personal</span></div></div>'+
     VIEWS.map(([k,l,icn]) => '<button type="button" class="nav'+(ui.view===k?' on':'')+'" data-a="go" data-v="'+k+'" aria-current="'+(ui.view===k?'page':'false')+'">'+ic(icn)+l+(cnt[k]!=null && Store.loaded?'<span class="cnt">'+cnt[k]+'</span>':'')+'</button>').join('')+
-    '<div class="side-foot">'+savePill()+'<p class="foot">'+esc(cfg().nomePersonal||'Defina seu nome em Ajustes')+'</p></div>';
+    '<div class="side-foot">'+savePill()+'<p class="foot">'+esc(cfg().nomePersonal||'Defina seu nome em Ajustes')+'</p><button type="button" class="btn small ghost block" data-a="trocaPerfil">'+ic('users')+'Trocar de perfil</button></div>';
 }
 function render(){
   const k = captureFocus(), sy = window.scrollY, ts0 = document.querySelector('.dtabs-in'), tsl = ts0 ? ts0.scrollLeft : null;
@@ -4406,6 +4415,9 @@ function act(a,d,btn){
       const para = a==='evMoverDesfaz' ? sh.de : (document.getElementById('mv-dia')||{}).value || sh.para; if(!isDate(para)) return false;
       A0.ajustes = (A0.ajustes||[]).filter(x => !(x.de===sh.de && x.t===sh.t)); if(para!==sh.de) A0.ajustes.push({ id:uid('aj'), de:sh.de, t:sh.t, para, em:new Date().toISOString() });
       Store.save('alunos', ui.aluno, 0); closeSheet(); toast('Treino '+sh.t+' agora está em '+dSem(para)+', '+fmtDm(para)+'.'); break; }
+    case 'trocaPerfil': openSheet({k:'trocaPerfil'}); return false;
+    case 'abrirTeste': try { sessionStorage.setItem('simp-teste-ok','1'); } catch(e){} location.href = (location.pathname.replace(/[^/]*$/,'') || '/')+'teste/'; return false;
+    case 'sairConta': return false;
     case 'evCargaTg': PREF.evCargaMin = !PREF.evCargaMin; savePref(); break;
     case 'ajMin': { const L = (PREF.ajMin||[]).slice(), i = L.indexOf(d.k); if(i<0) L.push(d.k); else L.splice(i,1); PREF.ajMin = L; savePref(); break; }
     case 'ajAll': { if(d.v==='abrir') PREF.ajMin = []; else PREF.ajMin = Array.from(document.querySelectorAll('.aj-h')).map(b => b.dataset.k); savePref(); break; }
