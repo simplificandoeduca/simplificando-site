@@ -136,6 +136,12 @@ h2.big{margin:0;font-size:32px;font-weight:900;letter-spacing:-.04em;line-height
 .stp-th canvas{display:block;width:100%;height:100%;opacity:0;transition:opacity .3s}.stp-th canvas.on{opacity:1}
 .stp-th i{position:absolute;right:6px;bottom:6px;width:28px;height:28px;border-radius:50%;background:var(--brand);color:var(--on-brand);display:flex;align-items:center;justify-content:center}.stp-th i .i{width:16px;height:16px}
 .stp-c b{margin-top:4px;font-size:15px;font-weight:900;letter-spacing:-.3px}.stp-c small{font-size:11.5px;line-height:1.3;color:var(--muted);text-align:center;max-width:110px}
+.ig-c{position:relative;display:flex;gap:12px;align-items:flex-start;margin-top:16px;padding:16px 16px 14px;border-radius:22px;background:linear-gradient(135deg,color-mix(in srgb,#E1306C 14%,var(--card)),color-mix(in srgb,#F77737 12%,var(--card)));box-shadow:inset 0 0 0 1px color-mix(in srgb,#E1306C 30%,transparent);animation:fade .4s ease .5s both}
+.ig-ic{flex:none;width:44px;height:44px;border-radius:14px;display:grid;place-items:center;color:#fff;background:linear-gradient(45deg,#F58529,#DD2A7B 55%,#8134AF)}.ig-ic .i{width:24px;height:24px}
+.ig-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;padding-right:22px}.ig-t b{font-size:16px;line-height:1.25}.ig-t>span{font-size:13.5px;color:var(--muted)}
+.ig-bt{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.ig-bt .btn .i{width:16px;height:16px}
+.ig-x{position:absolute;top:8px;right:8px;width:32px;height:32px;border:0;border-radius:50%;background:transparent;color:var(--muted);display:grid;place-items:center;cursor:pointer}.ig-x .i{width:16px;height:16px}
+.ig-tag{display:flex;align-items:center;gap:8px;margin-top:10px;padding:10px 12px;border-radius:16px;background:var(--ctl);font-size:14px}.ig-tag>.i{flex:none;width:20px;height:20px;color:#DD2A7B}.ig-tag span{flex:1;min-width:0}.ig-tag .btn{flex:none}
 .stp-f{display:flex;align-items:center;justify-content:center;gap:6px;margin:0;font-size:13px;color:var(--muted)}.stp-f .i{width:15px;height:15px}
 .stj{display:flex;align-items:center;gap:12px;width:100%;border:0;border-radius:22px;padding:14px 16px;margin:12px 0;background:var(--brand);color:var(--on-brand);font:inherit;text-align:left;cursor:pointer}
 .stj-i{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;flex:none}
@@ -1675,7 +1681,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '12 nov · 114'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '12 nov · 115'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -5117,7 +5123,7 @@ function vStory(){
     ${foto ? `<p class="foot0 st-tip"${s.ph?'':' hidden'}>Arraste a figurinha para mudar de lugar. Arraste a foto para ajustar o enquadramento. A foto fica só no seu celular.</p>` : ''}
     <button type="button" class="btn primary block" data-a="st-share" data-st-go disabled>${ic('share')}Compartilhar no Instagram ou WhatsApp</button>
     <button type="button" class="btn block" data-a="st-down" data-st-go disabled>${ic('dl')}Baixar imagem</button>
-    <p class="foot0">No celular, escolha Instagram (story) ou WhatsApp na lista que abrir.</p></div></div>`;
+    ${igTag()}<p class="foot0">No celular, escolha Instagram (story) ou WhatsApp na lista que abrir.</p></div></div>`;
 }
 const ST_MODS = [['crono','Cronômetro','Seu tempo de treino'],['cupom','Cupom','Suas cargas do dia'],['foto','Foto','Sua foto com figurinhas']];
 function stThumbs(i, cor){
@@ -5129,6 +5135,19 @@ function stThumbs(i, cor){
       cv.classList.add('on'); }); };
   if(stOk) run(); else stFontes().then(() => { stOk = true; run(); });
 }
+/* convite para seguir o Instagram: depois do treino ou do cardio, no máximo 1 vez por semana; some para quem já segue */
+const IG_USER = 'simplificando.educa', IG_URL = 'https://www.instagram.com/simplificando.educa/';
+const IG_SVG = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none"/></svg>';
+function igPode(){ const g = S.ig || {}, t = today(); if(g.sigo || g.x===t || g.abriu===t) return false; return !g.visto || g.visto===t || diffDays(t, g.visto) >= 7; }
+function igCard(pr){
+  if(!igPode()) return '';
+  const g = S.ig || (S.ig = {}); if(g.visto!==today()){ g.visto = today(); save(); }
+  return `<div class="ig-c" role="region" aria-label="Instagram do Simplificando"><button type="button" class="ig-x" data-a="ig-x" aria-label="Agora não">${ic('x')}</button>
+    <span class="ig-ic">${IG_SVG}</span><div class="ig-t"><b>${pr ? 'Bateu recorde 🔥' : 'Mandou bem ✅'} Siga @${IG_USER}</b><span>Toda semana tem dica de execução, de carga e de cardio.</span>
+    <div class="ig-bt"><button type="button" class="btn small primary" data-a="ig-abrir">${IG_SVG}Seguir no Instagram</button><button type="button" class="btn small" data-a="ig-sigo">Já sigo</button></div></div></div>`;
+}
+const igTag = () => `<div class="ig-tag">${IG_SVG}<span>Marque <b>@${IG_USER}</b> no story</span><button type="button" class="btn small" data-a="ig-copiar">Copiar @</button></div>`;
+function igSome(msg){ document.querySelectorAll('.ig-c').forEach(el => el.remove()); if(msg) toast(msg); }
 function vStPick(){
   const s = ui.sheet, h = S.history[s.i]; if(!h) return '';
   const p = PLAN[h.t] || {nome:'Treino'};
@@ -5136,7 +5155,7 @@ function vStPick(){
     <button type="button" class="btn round stp-x${s.xOn?' on':''}" data-a="stp-x" aria-label="Agora não"${s.xOn?'':' tabindex="-1" aria-hidden="true"'}>${ic('x')}</button>
     <div class="stp-h"><p class="eyebrow">Treino ${h.t} · ${esc(p.nome)} · ${h.min} min</p><h2 id="stp-t">Treino concluído<span class="dot" aria-hidden="true"></span></h2><p>Agora mostra pra todo mundo. Escolha como quer postar no seu story:</p></div>
     <div class="stp-cards">${ST_MODS.map(([m,n,d],j) => `<button type="button" class="stp-c" data-a="stp-go" data-v="${m}" style="--d:${j*90}ms"><span class="stp-th"><canvas data-st-th="${m}" width="270" height="480" aria-hidden="true"></canvas>${m==='foto'?`<i>${ic('camera')}</i>`:''}</span><b>${n}</b><small>${d}</small></button>`).join('')}</div>
-    <p class="stp-f">${ic('share')}Depois é só tocar em Instagram ou WhatsApp.</p></div>`;
+    <p class="stp-f">${ic('share')}Depois é só tocar em Instagram ou WhatsApp.</p>${igCard((h.prs||[]).length>0)}</div>`;
 }
 let stpT = 0;
 function stPick(i){
@@ -5284,7 +5303,7 @@ function vCStPick(){
     <button type="button" class="btn round stp-x${s.xOn?' on':''}" data-a="cstp-x" aria-label="Agora não"${s.xOn?'':' tabindex="-1" aria-hidden="true"'}>${ic('x')}</button>
     <div class="stp-h"><p class="eyebrow">${esc(D.local)} · ${D.min} min · ${esc(D.intT.toLowerCase())}</p><h2 id="stp-t">Cardio feito<span class="dot" aria-hidden="true"></span></h2><p>Agora mostra pra todo mundo. Escolha como quer postar no seu story:</p></div>
     <div class="stp-cards c4">${CST_MODS.map(([m,n,d],j) => `<button type="button" class="stp-c" data-a="cstp-go" data-v="${m}" style="--d:${j*80}ms"><span class="stp-th"><canvas data-cst-th="${m}" width="270" height="480" aria-hidden="true"></canvas>${m==='cbon'?`<i>${ic('play')}</i>`:''}</span><b>${n}</b><small>${d}</small></button>`).join('')}</div>
-    <p class="stp-f">${ic('share')}Depois é só tocar em Instagram ou WhatsApp.</p></div>`;
+    <p class="stp-f">${ic('share')}Depois é só tocar em Instagram ou WhatsApp.</p>${igCard(false)}</div>`;
 }
 function cThumbs(s, cor){
   const D = cDados(s.j); if(!D) return;
@@ -5307,7 +5326,7 @@ function vCStory(){
     ${s.m==='cbon' ? `<div class="iseg cst-tipo" role="group" aria-label="Foto ou vídeo">${[['foto','Foto'],['video','Vídeo']].map(([v,l]) => `<button type="button" class="${s.tipo===v?'on':''}" aria-pressed="${s.tipo===v}" data-a="cst-tipo" data-v="${v}">${l}</button>`).join('')}</div>` : ''}
     <div class="st-cores" role="group" aria-label="Cor do fundo">${ST_CORES.map(([k,n,c]) => `<button type="button" class="${s.cor===k?'on':''}" style="--c:${c}" aria-pressed="${s.cor===k}" aria-label="${n}" title="${n}" data-a="cst-cor" data-v="${k}"></button>`).join('')}</div>
     <div class="st-prev"><canvas id="st-cv" width="1080" height="1920" role="img" aria-label="Prévia da imagem do cardio para o story"></canvas></div>
-    ${acoes}
+    ${acoes}${igTag()}
     <p class="foot0">No celular, escolha Instagram (story) ou WhatsApp na lista que abrir.</p></div></div>`;
 }
 let CST_RAF = 0;
@@ -5819,6 +5838,11 @@ function onClick(ev){
     case 'st-m': if(ui.sheet && ui.sheet.k==='story' && ui.sheet.m!==d.v) stSet('m', d.v); re = false; break;
     case 'st-cor': if(ui.sheet && ui.sheet.k==='story' && ui.sheet.cor!==d.v) stSet('cor', d.v); re = false; break;
     case 'st-share': if(ui.sheet && ui.sheet.k==='story'){ stLog(ui.sheet, 'share'); stShare(ui.sheet); } re = false; break;
+    case 'ig-abrir': { const g = S.ig || (S.ig = {}); g.abriu = today(); save(); try { window.open(IG_URL, '_blank', 'noopener'); } catch(e){ /* sem pop-up */ } igSome(); re = false; break; }
+    case 'ig-sigo': { const g = S.ig || (S.ig = {}); g.sigo = true; save(); igSome('Valeu por seguir! 💪'); re = false; break; }
+    case 'ig-x': { const g = S.ig || (S.ig = {}); g.x = today(); save(); igSome(); re = false; break; }
+    case 'ig-copiar': { const v = '@'+IG_USER, ok = () => toast('Copiado. No story, toque em Aa ou em Mencionar e cole.'), fb = () => toast('Marque @'+IG_USER+' no story.');
+      try { if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(v).then(ok, fb); else fb(); } catch(e){ fb(); } re = false; break; }
     case 'st-down': if(ui.sheet && ui.sheet.k==='story'){ stLog(ui.sheet, 'baixar'); stBaixar(ui.sheet); } re = false; break;
     case 'sug-send': sugEnviar(b); re = false; break;
     case 'ver-checar': if(NOVAV) versaoAtualiza(); else versaoPerfil(b); re = false; break;
