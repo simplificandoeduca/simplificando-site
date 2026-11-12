@@ -225,7 +225,7 @@ O resto da tela continua igual:
 - **Atividades da semana**: em tela larga (1400 px ou mais) ficam na coluna da direita, por dia, sempre à vista. Em tela menor e no celular viram **uma linha só** embaixo da lista; um toque abre os dias;
 - **no pé**, dois atalhos: **Banco de horas** (quem não está no espaço) e **Hoje na recepção** (cada entrada, saída, venda, pagamento, devolução, cancelamento e mudança de estoque do dia). Os números do dia estão no alto de **Hoje na recepção**.
 
-**O bloco do responsável (1.00):** as crianças do mesmo responsável, e os carrinhos que elas pegaram, ficam sempre juntos, dentro de um **contorno vermelho**: é um bloco só, para ver de longe que são da mesma família. O vínculo é pelo responsável (o CPF dele; sem documento, o telefone). O bloco entra na lista no lugar da linha mais urgente dele. No **Banco de horas** os irmãos também ficam juntos, no mesmo contorno. As três colunas por serviço, que eram opção de cada aparelho, saíram: elas separavam a criança do carrinho do mesmo responsável. O aparelho que estava em colunas volta sozinho para a lista. **A coluna Pagamento (1.02)** mostra em cada linha o selo PAGO ou NÃO PAGO (seção 6p).
+**O bloco do responsável (1.00):** as crianças do mesmo responsável, e os carrinhos que elas pegaram, ficam sempre juntos, dentro de um **contorno vermelho**: é um bloco só, para ver de longe que são da mesma família. Desde a 1.07, a **Saída** de qualquer criança do bloco abre a conta de todas juntas, com o **Tirar** em cada uma (seção 6r). O vínculo é pelo responsável (o CPF dele; sem documento, o telefone). O bloco entra na lista no lugar da linha mais urgente dele. No **Banco de horas** os irmãos também ficam juntos, no mesmo contorno. As três colunas por serviço, que eram opção de cada aparelho, saíram: elas separavam a criança do carrinho do mesmo responsável. O aparelho que estava em colunas volta sozinho para a lista. **A coluna Pagamento (1.02)** mostra em cada linha o selo PAGO ou NÃO PAGO (seção 6p).
 
 ## 6g. Cobrança por atraso
 
@@ -474,7 +474,7 @@ O texto da observação não aparece em nenhuma tela sem que alguém toque no OB
 **O toque em Saída abre direto o Pagamento da saída**, para ninguém esquecer de receber. A tela diz sempre **como aquela visita é paga**:
 
 - **Detalhes**: o cliente, com **ENTRADA 14:02** ao lado do nome, o CPF, os telefones e quem está atendendo;
-- **Itens selecionados**: a linha da visita (RECREAÇÃO, com a criança, a sapateira, a hora da entrada, quanto ficou e quanto usa das horas do cliente), uma linha para cada coisa que ficou para pagar ("ainda não pago") e, se a criança ficou além do tempo, a linha **Atraso · mais 0h30**. Embaixo, o **Total a receber**;
+- **Itens selecionados**: a linha da visita (RECREAÇÃO, com a criança, a sapateira, a hora da entrada, quanto ficou e quanto usa das horas do cliente), uma linha para cada coisa que ficou para pagar ("ficou para a saída") e, se a criança ficou além do tempo, a linha **Atraso · mais 0h30**. Embaixo, o **Total a receber**;
 - **Adicionar serviços** (1.03): o cliente quer levar um pacote, ou um produto, na saída. O atendimento abre com a lista de pacotes e o botão vira **Somar na saída · R$ 420**: o que foi escolhido entra na tabela da saída, que abre de novo sozinha, e **tudo é recebido num pagamento só**, com um cupom só. As horas do pacote já contam: a cobrança por atraso que estava a receber é desfeita e a visita sai do saldo novo;
 - **Pagamento**: as três linhas das horas, como na tela anterior. Ex.: **Horas disponíveis 10h · Horas necessárias 0h30 · Saldo após confirmação 9h30**. Quando há valor a receber, a linha do meio mostra as duas coisas: "0h30 + R$ 80". Logo abaixo ficam o **Tem voucher?** (seção 6h) e a **Forma de pagamento**: Pix, Dinheiro, Crédito e Débito, em até três formas, igual à venda (seção 6p). Para o gestor, embaixo das formas fica o **Desconto** (seção 6p): o valor sai do que a saída recebe, e a linha do meio das horas já mostra o valor com o desconto.
 
@@ -485,6 +485,17 @@ O botão de baixo diz o que vai acontecer:
 - **Recebi R$ 80 no Pix · dar saída**: forma escolhida; o toque registra o pagamento e dá a saída. Dividindo em mais de uma forma, o botão pede o valor que falta ("Quanto no Pix?") e, com a conta fechada, vira **Recebi R$ 80 · dar saída**.
 
 A tela acompanha o relógio: se a tolerância estourar com ela aberta, a linha do atraso e as formas de pagamento aparecem na hora. **Pacote na saída (1.00, mudou na 1.03):** é o **Adicionar serviços** da lista acima; não há mais um pagamento à parte para o pacote. O mesmo vale para qualquer tempo comprado com a criança no espaço: o que o cliente comprou cobre a visita, e só fica a receber o que ainda faltar. A folha da saída não corrige mais a hora. **Quem ficou de pagar na saída (1.02):** a tabela lista o que ainda não foi pago, soma com a cobrança por atraso (se houver) e só dá a saída com a forma de pagamento. O cupom da saída traz cada item pelo nome (1.03).
+
+**Saída em conjunto (1.07): o responsável com mais de uma criança no espaço.** O toque em **Saída**, em qualquer uma delas, abre **uma conta só**, como o fechamento do sistema anterior:
+
+- cada criança tem a linha dela (a visita, com a sapateira, a hora da entrada e quanto usa das horas) e, embaixo, o que ficou para pagar e o atraso dela, com o nome ao lado. O **Total a receber** é um só, e as três linhas das horas somam as das crianças;
+- em cada linha de criança há o **Tirar**. A criança que vai **pagar à parte** (é de outro pai e veio com este responsável, ou não entra na conta dele) ou que **vai sair depois** fica fora desta conta e **continua no espaço**. Ela aparece em "Fora desta conta", e um toque no nome põe de volta. Depois, a Saída dela abre a conta dela;
+- o botão diz quem sai: **Usar 2h das horas · dar saída de SOFIA e HELENA**, ou **Recebi R$ 160 no Pix · dar saída de SOFIA e HELENA**;
+- **um pagamento só** (em até três formas), **um desconto** do gestor para a conta toda e **um cupom só**, com as crianças que saíram, o pagamento e uma linha de assinatura. O aviso também é um só, e o **Desfazer** devolve todas;
+- o voucher é de cada criança ("Tem voucher para SOFIA?"), e o **Adicionar serviços** soma na mesma conta;
+- quem não tem irmão no espaço continua com a tela de sempre. Quem está em "Falta finalizar" não entra na conta.
+
+No servidor cada criança continua com a saída dela: a tela reparte o pagamento por criança (na ordem das formas) e o desconto (em proporção ao que cada uma tem a receber). As horas continuam sendo de cada criança: cada uma usa as dela.
 
 **As horas compradas não expiram, nunca.** Não existe prazo de validade no sistema: um pacote comprado hoje vale daqui a dez anos, inteiro. O saldo só diminui quando a criança usa (a visita) ou quando uma venda é desfeita ou cancelada.
 

@@ -743,6 +743,11 @@ body.quieto .dica { animation: none !important; }
 .pg-desc-t button[aria-checked="true"] { border-color: var(--coral); background: var(--coral-2); color: var(--tinta); }
 .pg-desc-c input { min-width: 0; width: 100%; min-height: 44px; border-radius: 12px; border: 1px solid var(--borda-2); background: var(--creme-2); color: var(--tinta); padding: 0 12px; font: inherit; } #pg-desc-v { text-align: right; font-family: var(--display); font-weight: 800; font-size: 16px; }
 .pgt-r.pgt-desc > .pgt-v, .pgt-r.pgt-desc .pgt-i b { color: var(--ok); } .pgt-falta { color: var(--erro); }
+/* 1.07: a saída em conjunto: o "Tirar" de cada criança, e as que ficaram fora da conta */
+.pgt-x { margin-left: 8px; height: 26px; padding: 0 10px; border-radius: 999px; border: 1.5px solid var(--borda-2); background: var(--card); font: 800 11.5px/1 var(--texto); letter-spacing: .03em; color: var(--tinta-2); vertical-align: 1px; white-space: nowrap; }
+.pgt-x:hover, .pgt-x:focus-visible { border-color: var(--erro); color: var(--erro); }
+.sg-fora { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 8px 0 2px; padding: 9px 12px; border-radius: 14px; background: var(--menta); font-size: 13px; font-weight: 800; }
+.sg-dica { margin: 6px 2px 0; } .sg-fora > span { flex: 1 1 auto; } .sg-fora small { font-weight: 700; color: var(--tinta-2); } .sg-fora .chip { height: 30px; }
 .reg .ev.desc b::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; background: var(--mostarda); }
 @media (max-width: 480px) { .formas { grid-template-columns: repeat(2, 1fr); } .pg-linha { grid-template-columns: minmax(0, 1fr) 120px; } }
 .h-saldo.dia-formas { grid-template-columns: repeat(4, 1fr); } @media (max-width: 480px) { .h-saldo.dia-formas { grid-template-columns: repeat(2, 1fr); } }
@@ -1272,7 +1277,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.06';
+const VERSAO = '1.07';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -2342,7 +2347,7 @@ function desenharPag(refaz = true) {
   const rs = $('#pg-resto'); if (rs) { const dig = P.formas.slice(0, -1).reduce((t, f) => t + (numero(P.v[f]) > 0 ? centavos(numero(P.v[f])) : 0), 0), resto = centavos(P.total - dig); rs.textContent = resto > 0 ? brl(resto) : 'não sobra nada'; $('#pg-resto-l').classList.toggle('erro', !(resto > 0)); }
   const d = $('#pg-dica'); if (d) { const errado = n > 1 && !!r.erro && !r.falta; d.classList.toggle('erro', errado);
     d.textContent = !n ? 'Toque na forma de pagamento. Para dividir, toque em mais de uma (até três).' : n === 1 ? `Tudo ${naForma(ult)}. Vai dividir? Toque em outra forma.` : r.erro ? r.erro + (errado ? '' : ' A última forma tocada fica com o resto.') : 'A última forma tocada fica com o resto. Para tirar uma forma, toque nela de novo.'; }
-  if (P.onde === 'saida') botaoSaida();   // na saída, o botão diz a forma escolhida (ou pede a forma)
+  if (P.onde === 'saida') { botaoSaida(); botaoGrupo(); }   // na saída, o botão diz a forma escolhida (ou pede a forma)
   if (P.onde === 'devolucao') botaoDevolver();   // 1.00: na devolução também
   if (P.onde === 'receber') botaoReceber();   // 1.02: e no "Receber" da ficha
   if (P.onde === 'venda') { const ok = $('#p-ok'), zero = !(P.total > 0), dep = !zero && P.modo === 'depois', ag = $('#pg-agora'), fica = $('#pg-fica'), md = $('.pg-modo'); if (ag) ag.hidden = dep || zero; if (fica) fica.hidden = !dep; if (md) md.hidden = zero;   // 1.03: paga agora (as formas de pagamento) ou paga na saída; 1.04: com desconto total não há o que receber
@@ -2477,7 +2482,7 @@ const htmlItensVenda = () => { const d = centavos(PAG.cheio - PAG.total); return
 function descMudou() { // o gestor mexeu no desconto: a tabela, o total, as formas de pagamento e o botão acompanham
   if (!DESC || !PAG) return;
   if (PAG.onde === 'venda' && descVale('venda', PAG.id)) { PAG.total = centavos(PAG.cheio - descDe(PAG.cheio, 'venda', PAG.id)); const a = $('#pg-itens-v'), f = $('#pg-fica-v'); if (a) a.innerHTML = htmlItensVenda(); if (f) f.textContent = brl(PAG.total); desenharPag(false); }
-  else if (PAG.onde === 'saida') atualizarSaida();
+  else if (PAG.onde === 'saida') { atualizarSaida(); atualizarGrupo(); }
 }
 // (prévia) reparte o desconto pelas compras em proporção ao que falta receber de cada uma, fechando os centavos: a mesma conta do servidor
 function repartirDescPrevia(total, compras) {
@@ -2585,7 +2590,7 @@ function desfazerSobrandoPrevia(c, fim) {
   const resto = autos.filter(v => !tirar.includes(v)); c.atraso = resto.length ? { n: resto.length, valor: resto.reduce((s, v) => s + v.v, 0) } : null;
   return tirar.length;
 }
-function saida(c, origem = 'iDFace', corr = null, pag = null, papel = null, dsc = null) { // pag: [{ f, v }], como a cobrança por atraso foi recebida; papel: o cupom da saída (0.94)
+function saida(c, origem = 'iDFace', corr = null, pag = null, papel = null, dsc = null, quieto = false) {   // quieto (1.07, só na prévia): sem o aviso; devolve { cupomId, txt, desfaz } para a saída em conjunto avisar uma vez só // pag: [{ f, v }], como a cobrança por atraso foi recebida; papel: o cupom da saída (0.94)
   if (!c || !c.entrou) return;
   if (MODO === 'servidor') return saidaServidor(c, corr, pag, papel, dsc);
   const p = periodo(), entrouEm = c.entrou, fim = corr ? corr.em : new Date(agora), era = { pacote: c.pacote, usado: c.usado, liberado: c.liberado, atraso: c.atraso, venda: c.venda, visitas: c.visitas.slice(), compras: S.compras.slice(), regs: S.registros.slice(), pags: (S.pagamentos || []).slice() };
@@ -2607,9 +2612,10 @@ function saida(c, origem = 'iDFace', corr = null, pag = null, papel = null, dsc 
   if (dz > 0) registrar('desc', c.nome, textoDesc({ ...dsc, valor: dz }));   /* 1.04 */
   if (pago && pend > 0) registrar('pag', c.nome, `Pagamento na saída · ${brl(recebido)} · ${pago}`);   /* 1.02 */
   if (corr) registrar('corr', c.nome, `Saída corrigida para ${hora(fim)} · ${dur(deb)} debitados${desfeitas ? ` · ${desfeitas > 1 ? desfeitas + ' cobranças por atraso desfeitas' : 'cobrança por atraso desfeita'}: ${brl(valorDesf)}` : ''} · Motivo: ${corr.motivo} · por ${EU.nome}`);
-  toast(`${c.nome} saiu${corr ? ' às ' + hora(fim) : ''} · ${dur(deb)} debitados${pend > 0 ? ' · ' + (pago ? 'recebido ' + brl(recebido) + ' (' + pago + ')' : brl(recebido) + ' a receber') : atraso.n ? ' · ' + brl(centavos(atraso.valor - dz)) + (pago ? ' de atraso recebido (' + pago + ')' : ' de atraso a receber') : ''}${dz > 0 ? ' · desconto de ' + brl(dz) : ''}${sap ? ' · sapato na sapateira ' + sap : ''}`,
+  let quietoR = null; const avisa = quieto ? (t, f) => { quietoR = { txt: t, desfaz: f }; } : toast;
+  avisa(`${c.nome} saiu${corr ? ' às ' + hora(fim) : ''} · ${dur(deb)} debitados${pend > 0 ? ' · ' + (pago ? 'recebido ' + brl(recebido) + ' (' + pago + ')' : brl(recebido) + ' a receber') : atraso.n ? ' · ' + brl(centavos(atraso.valor - dz)) + (pago ? ' de atraso recebido (' + pago + ')' : ' de atraso a receber') : ''}${dz > 0 ? ' · desconto de ' + brl(dz) : ''}${sap ? ' · sapato na sapateira ' + sap : ''}`,
     () => { for (const [v, vv, d, m] of descs) { v.v = vv; v.desc = d; v.descMotivo = m; } S.pagamentos = era.pags; Object.assign(c, { pacote: era.pacote, usado: era.usado, liberado: era.liberado, atraso: era.atraso, venda: era.venda, visitas: era.visitas, entrou: entrouEm, sapateira: sap && !donoSap(sap) ? sap : null }); S.compras = era.compras; S.registros = era.regs; });
-  return cupomId;
+  return quieto ? { cupomId, deb, ...quietoR } : cupomId;
 }
 /* ---------- 0.94: o cupom impresso (Bematech MP-4200 TH, papel de 80 mm) ---------- */
 // O "cupom" da loja é um papel da impressora térmica do balcão, que o responsável assina. O sistema imprime no mesmo formato que a loja já usa:
@@ -2648,11 +2654,14 @@ function htmlPapel(spec, via = 'loja') {
       <p>Saiu: ${spec.outroDia ? dataHora(spec.saiu) : hora(spec.saiu)} · Voltou: ${hora(spec.voltou)}</p><p>Ficou ${dur(spec.ficou)} fora${spec.comprou ? ' · tempo comprado: ' + dur(spec.comprou) : ''}</p>
       ${pago(itens, spec.formas, 'Pagamento')}${pe('')}</div>`;
   }
-  if (spec.tipo === 'saida') {
-    return `<div class="papel ${loja ? 'loja' : 'cliente'}">${cab}<p class="c-esp"></p><p class="c-tit">SAÍDA</p><p>Criança: ${esc(c.nome)}${idade(c)}</p>${loja ? `<p>N. Cadastro: ${c.id}</p>` : ''}
-      <p>Entrada: ${hora(spec.entrou)} · Saída: ${hora(spec.saiu)}</p><p>Ficou ${dur(Math.floor(spec.min))} · a visita conta ${dur(spec.deb)}</p>
-      <p>Horas do cliente: usou ${dur(spec.proprias)} · saldo ${hm(spec.saldo)}</p>
-      ${pago([...(spec.pendi && spec.pendi.length ? spec.pendi.map(i => ({ n: i.n, v: i.v })) : [spec.pend > 0 ? { n: 'O que ficou para pagar na saída', v: spec.pend } : null]), spec.n ? { n: `Além do tempo comprado: ${dur(spec.n * p)}`, v: centavos(spec.valor - (spec.pend || 0)) } : null, spec.desc > 0 ? { n: 'Desconto', v: -spec.desc } : null].filter(Boolean), spec.formas, 'Pagamento')}${pe('')}</div>`;
+  if (spec.tipo === 'saida') { // 1.07: spec.grupo = a saída em conjunto: cada criança com a visita dela, e um pagamento só
+    const G = spec.grupo && spec.grupo.length ? spec.grupo : [spec], varias = G.length > 1, quem = x => varias ? crianca(x.id) || c : c;
+    const bloco = (x, i) => { const k = quem(x); return `${i ? '<p class="c-esp"></p>' : ''}<p>Criança: ${esc(k.nome)}${idade(k)}</p>${loja ? `<p>N. Cadastro: ${k.id}</p>` : ''}
+      <p>Entrada: ${hora(x.entrou)} · Saída: ${hora(x.saiu)}</p><p>Ficou ${dur(Math.floor(x.min))} · a visita conta ${dur(x.deb)}</p>
+      <p>Horas do cliente: usou ${dur(x.proprias)} · saldo ${hm(x.saldo)}</p>`; };
+    const itens = G.flatMap(x => { const de = varias ? ' · ' + quem(x).nome : ''; return [...(x.pendi && x.pendi.length ? x.pendi.map(i => ({ n: i.n + de, v: i.v })) : [x.pend > 0 ? { n: 'O que ficou para pagar na saída' + de, v: x.pend } : null]), x.n ? { n: `Além do tempo comprado: ${dur(x.n * p)}${de}`, v: centavos(x.valor - (x.pend || 0)) } : null]; }).concat([spec.desc > 0 ? { n: 'Desconto', v: -spec.desc } : null]).filter(Boolean);
+    return `<div class="papel ${loja ? 'loja' : 'cliente'}">${cab}<p class="c-esp"></p><p class="c-tit">SAÍDA</p>${G.map(bloco).join('')}
+      ${pago(itens, spec.formas, 'Pagamento')}${pe('')}</div>`;
   }
   // o cupom de entrada lista as crianças deste responsável que estão no espaço (irmãos saem no mesmo cupom); se a do atendimento não entrou, sai só ela
   const dentro = (spec.fam || familia(c)).filter(x => x.entrou).sort((a, b) => a.entrou - b.entrou), quem = dentro.some(x => x.id === c.id) ? dentro : [c];
@@ -2819,7 +2828,10 @@ function contaSaida(c, em) { // o que a saída debita e cobra se a criança sair
   return { min, deb, n, valor: Math.max(0, n - ja) * (x ? precoDe(c, x.v) : 0) + Math.min(n, ja) * (ja ? c.atraso.valor / ja : 0), desfeitas: Math.max(0, ja - n), pend: pendDe(c), cid: c.id };   // 1.02: pend = o que ficou para pagar na saída
 }
 function folhaSaida(id, corrigir = false) {
-  const c = crianca(id); if (!c || !c.entrou) return; const k = contaSaida(c), p = periodo(); descNovo('saida', c.id);   // 1.04: cada saída começa sem desconto
+  const c = crianca(id); if (!c || !c.entrou) return;
+  const juntas = corrigir ? [] : familia(c).filter(x => x.id !== c.id && x.entrou).sort((a, b) => a.entrou - b.entrou);
+  if (juntas.length) { folhaSaidaGrupo([c, ...juntas]); return; }   // 1.07: o responsável tem mais de uma criança no espaço: uma conta só, com o "Tirar" em cada linha
+  SAI = null; const k = contaSaida(c), p = periodo(); descNovo('saida', c.id);   // 1.04: cada saída começa sem desconto
   abrirFolha('Pagamento da saída', `
     ${pgDetalhes(c)}
     <div id="s-conta">${htmlContaSaida(c, k)}</div>
@@ -2828,6 +2840,103 @@ function folhaSaida(id, corrigir = false) {
     <div class="pe-f"><button class="bt forte largo tap" id="s-ok" data-act="saida-ok" data-id="${c.id}"></button></div>`);
   PAG = { onde: 'saida', id: c.id, total: receberSaida(k), formas: [], v: {} }; desenharPag(); botaoSaida();
   if (!corrigir && window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches) setTimeout(() => { const b = $('#s-ok'); if (b) b.focus(); }, 380);   // no computador, Enter confirma
+}
+/* ---------- 1.07: a saída em conjunto ---------- */
+// O mesmo responsável com mais de uma criança no espaço: o toque em Saída (em qualquer uma delas) abre uma conta só, com cada criança
+// numa linha, como o fechamento do sistema anterior. Cada linha tem o "Tirar": a criança que vai pagar à parte (é de outro pai e veio
+// com este responsável, ou não entra no pacote) ou que vai sair depois fica fora desta conta e continua no espaço, com a saída dela.
+// Um pagamento, um desconto e um cupom para as que ficaram. No servidor cada criança tem a saída dela: a tela reparte por criança o
+// desconto (em proporção ao que cada uma tem a receber) e o pagamento (na ordem das formas), e avisa uma vez só, com um Desfazer só.
+let SAI = null;        // a conta em conjunto que está na folha: { ids: [as crianças do responsável que estão no espaço; a que foi tocada vem primeiro], fora: Set (as que foram tiradas) }
+let SAI_VOLTA = null;  // quem estava fora da conta quando a equipe foi em "Adicionar serviços": a conta abre de novo igual
+const saiDentro = () => SAI ? SAI.ids.map(crianca).filter(c => c && c.entrou && !SAI.fora.has(c.id)) : [];
+const saiFora = () => SAI ? SAI.ids.map(crianca).filter(c => c && c.entrou && SAI.fora.has(c.id)) : [];
+function contaGrupo() { const L = saiDentro().map(c => ({ c, k: contaSaida(c) })), bruto = centavos(L.reduce((t, x) => t + brutoSaida(x.k), 0)), desc = descDe(bruto, 'saida', SAI.ids[0]); return { L, bruto, desc, receber: centavos(bruto - desc) }; }
+const chaveGrupo = g => g.L.map(x => [x.c.id, x.k.n, x.k.deb, Math.floor(x.k.min), x.k.pend || 0, centavos(x.k.valor || 0)].join(':')).join('|') + '#' + [...SAI.fora].join(',');
+// reparte um valor (o desconto) pelas bases (o que cada criança tem a receber), em proporção e fechando os centavos
+function repartirValor(total, bases) { const soma = centavos(bases.reduce((s, b) => s + b, 0)), alvo = centavos(Math.min(total, soma)), o = bases.map(() => 0); let resta = alvo; if (!(alvo > 0)) return o;
+  bases.forEach((b, i) => { const x = centavos(Math.min(b, resta, Math.floor(alvo * b / soma * 100) / 100)); o[i] = x; resta = centavos(resta - x); });
+  bases.forEach((b, i) => { if (resta < 0.005) return; const x = centavos(Math.min(resta, b - o[i])); if (x > 0) { o[i] = centavos(o[i] + x); resta = centavos(resta - x); } });
+  return o; }
+// o que cada criança leva da conta: [{ c, k, bruto, dsc: { valor, pct, motivo } | null, deve, pag: [{ f, v }] }]
+function repartirGrupo(g, dsc, pag) {
+  const D = repartirValor(dsc ? dsc.valor : 0, g.L.map(x => brutoSaida(x.k))), fila = (pag || []).map(p => ({ f: p.f, v: p.v }));
+  return g.L.map((x, i) => { const bruto = brutoSaida(x.k), o = { c: x.c, k: x.k, bruto, dsc: D[i] > 0 ? { valor: D[i], pct: dsc.pct, motivo: dsc.motivo } : null, deve: centavos(bruto - D[i]), pag: [] }; let falta = o.deve;
+    while (falta > 0.004 && fila.length) { const q = fila[0], v = centavos(Math.min(falta, q.v)); if (v > 0) { o.pag.push({ f: q.f, v }); q.v = centavos(q.v - v); falta = centavos(falta - v); } if (q.v < 0.005) fila.shift(); }
+    return o; });
+}
+const htmlContaGrupo = g => { const p = periodo(), st = servicoTempo(), varias = g.L.length > 1, de = c => SAI.ids.length > 1 ? ' · ' + esc(c.nome) : '', L = []; let antes = 0, minhas = 0, depois = 0;
+  for (const { c, k } of g.L) { const m = horasProprias(k); antes += saldoAntesSaida(c); minhas += m; depois += saldoDepois(c, k);
+    L.push({ n: esc(st ? st.n : 'RECREAÇÃO'), sub: `ficou ${dur(Math.floor(k.min))}`, meio: [esc(c.nome), c.sapateira ? String(c.sapateira) : '', hora(c.entrou)], h: true,
+      v: (m ? 'usa ' + dur(m) : '') + (varias ? `<button type="button" class="pgt-x tap" data-act="saida-tirar" data-id="${c.id}" title="Tirar ${esc(c.nome)} desta conta: paga à parte, ou sai depois" aria-label="Tirar ${esc(c.nome)} desta conta">Tirar</button>` : '') });
+    if (k.pend > 0) for (const i of pendItens(c)) L.push({ n: esc(i.n), sub: 'ficou para a saída' + de(c), v: brl(i.v) });
+    if (k.n) L.push({ n: `Atraso · mais ${dur(k.n * p)}`, sub: (k.n === 1 ? 'uma cobrança por atraso' : k.n + ' cobranças por atraso') + de(c), v: brl(k.valor) }); }
+  if (g.desc > 0) L.push(linhaDesc(g.desc, descErro(g.bruto, 'saida', SAI.ids[0])));
+  const fora = saiFora(), v = g.receber;
+  return `${pgSec('Itens selecionados')}
+    ${pgTabela([['Criança', ''], ['Sapateira', 'sapateira '], ['Entrada', 'entrada ']], L, brl(v), { rot: 'Total a receber', cls: v > 0 ? 'a-receber' : '' })}
+    ${varias ? `<p class="explica sg-dica">${g.L.length} crianças nesta conta. <b>Tirar</b> deixa a criança fora: ela paga à parte, na saída dela.</p>` : ''}
+    ${fora.length ? `<div class="sg-fora" id="sg-fora"><span>Fora desta conta <small>· ${fora.length === 1 ? 'paga à parte, na saída dela' : 'pagam à parte, na saída delas'}</small></span>${fora.map(c => `<button type="button" class="chip suave tap" data-act="saida-por" data-id="${c.id}" title="Pôr ${esc(c.nome)} de volta nesta conta">${ic(IC.mais, 13, 2.8)} ${esc(c.nome)}</button>`).join('')}</div>` : ''}
+    <button type="button" class="link tap pg-add pac-saida" data-act="saida-pacote" data-id="${g.L[0].c.id}">${ic(IC.mais, 14, 2.8)} Adicionar serviços <small>· pacote ou produto</small></button>
+    ${pgSec('Pagamento')}
+    ${pgHoras(hm(antes), dur(minhas) + (v > 0 ? '<i class="pg-mais">+</i>' + brl(v) : ''), hm(depois))}
+    ${g.L.filter(x => !x.k.n && x.k.desfeitas).map(x => `<div class="marca">${ic(IC.check, 18, 2.6)}<span>O que o cliente comprou cobre a visita${varias ? ' de ' + esc(x.c.nome) : ''}, <b>${x.k.desfeitas === 1 ? 'a cobrança por atraso é desfeita' : 'as ' + x.k.desfeitas + ' cobranças por atraso são desfeitas'}</b>.</span></div>`).join('')}
+    ${g.L.map(x => temVoucher(x.c) ? `<div class="marca">${ic(IC.presente, 18)}<span><b>Voucher usado${varias ? ' (' + esc(x.c.nome) + ')' : ''}:</b> ${porExt(p)} desta visita ficou por conta dele.</span></div>`
+      : x.k.n ? `<button type="button" class="marca tap vou-saida" data-act="saida-voucher" data-id="${x.c.id}">${ic(IC.presente, 18)}<span><b>Tem voucher${varias ? ' para ' + esc(x.c.nome) : ''}?</b> Usar agora: ${brl(umaCobranca(x.c))} a menos.</span>${ic(IC.vai, 18)}</button>` : '').join('')}`; };
+function folhaSaidaGrupo(G) {
+  const fora = SAI_VOLTA && SAI_VOLTA.base === G[0].id ? new Set([...SAI_VOLTA.fora].filter(i => G.some(c => c.id === i))) : new Set(); SAI_VOLTA = null;
+  SAI = { ids: G.map(c => c.id), fora }; descNovo('saida', G[0].id); const g = contaGrupo();
+  abrirFolha('Pagamento da saída', `
+    ${pgDetalhes(G[0], false)}
+    <div id="sg-conta" data-k="${esc(chaveGrupo(g))}">${htmlContaGrupo(g)}</div>
+    <div class="campo" id="s-pag"${g.receber > 0 ? '' : ' hidden'}><label>Forma de pagamento <span class="leve">· pode dividir em até três formas</span></label>${htmlPag()}</div>
+    <div id="s-desc"${g.bruto > 0 ? '' : ' hidden'}>${htmlDesc()}</div>
+    <div class="pe-f"><button class="bt forte largo tap" id="sg-ok" data-act="saida-grupo-ok"></button></div>`);
+  PAG = { onde: 'saida', id: G[0].id, total: g.receber, formas: [], v: {} }; desenharPag(); botaoGrupo();
+  if (window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches) setTimeout(() => { const b = $('#sg-ok'); if (b) b.focus(); }, 380);   // no computador, Enter confirma
+}
+// o botão diz quem sai: "Usar 2h das horas · dar saída de SOFIA e HELENA", ou "Recebi R$ 80 no Pix · dar saída de SOFIA e HELENA"
+function rotuloGrupo(g) { const h = g.L.reduce((t, x) => t + horasProprias(x.k), 0), quem = ' de ' + juntar(g.L.map(x => x.c.nome)), v = g.receber;
+  if (!(v > 0)) return `${ic(IC.sair)} ${h ? `Usar ${dur(h)} das horas · dar saída` : 'Dar saída'}${quem}`;
+  const P = PAG && PAG.onde === 'saida' ? PAG : null, x = P ? pagPartes({ ...P, total: v }) : { erro: '-', partes: [] };
+  return x.erro ? `${ic(IC.check)} ${P && P.formas.length ? x.erro : 'Escolha a forma de pagamento'}` : `${ic(IC.sair)} Recebi ${brl(v)}${x.partes.length === 1 ? ' ' + naForma(x.partes[0].f) : ''} · dar saída${quem}`; }
+function botaoGrupo(g) { const bt = $('#sg-ok'); if (!bt || !SAI) return; g = g || contaGrupo(); if (g.L.length) bt.innerHTML = rotuloGrupo(g); }
+function atualizarGrupo() { // refaz a conta em conjunto que está aberta (tirou ou pôs uma criança, o tempo passou, usou o voucher, mexeu no desconto)
+  const a = $('#sg-conta'), bt = $('#sg-ok'); if (!a || !bt || !SAI) return; const g = contaGrupo(); if (!g.L.length) { fecharFolha(); return; }
+  a.innerHTML = htmlContaGrupo(g); a.dataset.k = chaveGrupo(g);
+  const cx = $('#s-pag'), dx = $('#s-desc'); if (cx) cx.hidden = !(g.receber > 0); if (dx) dx.hidden = !(g.bruto > 0);
+  if (PAG && PAG.onde === 'saida' && PAG.total !== g.receber) { PAG.total = g.receber; desenharPag(false); } else botaoGrupo(g);
+}
+function saiTirar(id) { if (!SAI || !$('#sg-ok') || saiDentro().length <= 1) return; SAI.fora.add(+id); atualizarGrupo(); }
+function saiPor(id) { if (!SAI || !$('#sg-ok')) return; SAI.fora.delete(+id); atualizarGrupo(); }
+async function confirmarGrupo(el) {
+  if (!SAI) return; const g = contaGrupo(); if (!g.L.length) return;
+  const eD = descErro(g.bruto, 'saida', SAI.ids[0]); if (eD) { toast(eD); descFoco(eD); return; }
+  const dsc = descEnvio(g.bruto, 'saida', SAI.ids[0]); let pag = null;
+  if (g.receber > 0) { if (!PAG || PAG.onde !== 'saida' || !$('#pg-formas')) return; PAG.total = g.receber; const x = pagPartes();
+    if (x.erro) { toast(PAG.formas.length ? x.erro : `Como recebeu ${brl(g.receber)}? Toque na forma de pagamento`); const a = $('#pg-formas'); if (a) a.scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
+    pag = x.partes; }
+  const P = repartirGrupo(g, dsc, pag), sai = new Date(), nomes = P.map(x => x.c.nome), verbo = P.length === 1 ? 'saiu' : 'saíram';
+  const papelDe = L => ({ tipo: 'saida', id: L[0].c.id, grupo: L.map(x => ({ id: x.c.id, entrou: x.c.entrou, saiu: sai, min: x.k.min, deb: x.k.deb, proprias: horasProprias(x.k), saldo: saldoDepois(x.c, x.k), n: x.k.n, valor: x.bruto, pend: x.k.pend || 0, pendi: x.k.pend > 0 ? pendItens(x.c) : [] })),
+    desc: centavos(L.reduce((t, x) => t + (x.dsc ? x.dsc.valor : 0), 0)), formas: L === P ? pag || [] : L.flatMap(x => x.pag) });   // o cupom da saída em conjunto: cada criança, e um pagamento só
+  const papel = papelDe(P), recebeu = g.receber > 0 && pag ? ` · recebido ${brl(g.receber)} (${textoPag(pag)})` : '', desconto = dsc ? ` · desconto de ${brl(dsc.valor)}` : '';
+  el.disabled = true;
+  if (MODO === 'servidor') { const feitas = [];
+    try { for (const x of P) feitas.push({ x, r: await api('saida', { id: x.c.id, ...(x.pag.length ? { pagamento: x.pag } : {}), ...(x.dsc ? { desconto: x.dsc } : {}) }) }); }
+    catch (e) { // uma das saídas parou: as que já foram dadas ficam (com o cupom delas), e a tela diz qual falta
+      try { await carregar(); } catch (e2) { }
+      if (!feitas.length) { toast(e.message); desenhar(true); atualizarGrupo(); const b = $('#sg-ok'); if (b) b.disabled = false; return; }
+      fecharFolha(); desenhar(); toast(`${juntar(feitas.map(f => f.x.c.nome))} ${feitas.length === 1 ? 'saiu' : 'saíram'}. A saída de ${P[feitas.length].c.nome} não foi dada: ${e.message}`); papelDepois(papelDe(feitas.map(f => f.x))); return; }
+    await carregar(); fecharFolha(); desenhar();
+    const deb = feitas.reduce((t, f) => t + (+f.r.debitado || 0), 0), saps = feitas.map(f => f.r.sapateira).filter(Boolean);
+    toast(`${juntar(nomes)} ${verbo} · ${dur(deb)} debitados${recebeu}${desconto}${saps.length ? ' · ' + (saps.length === 1 ? 'sapato na sapateira ' : 'sapatos nas sapateiras ') + juntar(saps.map(String)) : ''}`,
+      async () => { try { for (const f of feitas.slice().reverse()) await api('desfazer_saida', { id: f.x.c.id, visita: f.r.visita, registro: f.r.registro, mensagem: f.r.mensagem ? f.r.mensagem.id : 0, sapateira: f.r.sapateira || 0, ...(f.r.pag_de != null ? { pag_de: f.r.pag_de, pag_registro: f.r.pag_registro || 0 } : {}), ...(f.r.desc ? { desc: f.r.desc } : {}) }); await carregar(); } catch (e) { toast(e.message); try { await carregar(); } catch (e2) { } } desenhar(); });
+    const cup = feitas.map(f => f.r.cupom).filter(Boolean); if (cup.length === 1) folhaCupom(cup[0], true); else if (cup.length) folhaCupons(); else papelDepois(papel);
+    return; }
+  const saps = P.map(x => x.c.sapateira).filter(Boolean), R = P.map(x => saida(x.c, 'mão', null, x.pag.length ? x.pag : null, null, x.dsc, true)).filter(Boolean);   // (prévia) cada criança sai, sem o aviso de cada uma
+  fecharFolha(); desenhar();
+  toast(`${juntar(nomes)} ${verbo} · ${dur(R.reduce((t, x) => t + (x.deb || 0), 0))} debitados${recebeu}${desconto}${saps.length ? ' · ' + (saps.length === 1 ? 'sapato na sapateira ' : 'sapatos nas sapateiras ') + juntar(saps.map(String)) : ''}`, () => { for (const x of R.slice().reverse()) if (x.desfaz) x.desfaz(); });
+  const cup = R.map(x => x.cupomId).filter(Boolean); if (cup.length === 1) folhaCupom(cup[0], true); else if (cup.length) folhaCupons(); else papelDepois(papel);
 }
 // a folha da saída mostra as formas de pagamento só quando há o que receber; se o valor muda (o tempo passou, usou o voucher, corrigiu a hora), a conta acompanha
 function pagSaida(k) { const cx = $('#s-pag'); if (!cx) return; const v = receberSaida(k), dx = $('#s-desc'); cx.hidden = !(v > 0); if (dx) dx.hidden = !(brutoSaida(k) > 0); if (PAG && PAG.onde === 'saida' && PAG.total !== v) { PAG.total = v; desenharPag(false); } }
@@ -4313,8 +4422,8 @@ const ACOES = {
   'cupom-cancelado': el => { el.disabled = true; marcarCupom(+el.dataset.id, 'cancelado', {}, !!el.dataset.lista); },
   'cupom-sem': el => { const m = val('cp-motivo'); if (m.length < 5) { toast('Escreva o motivo: por que este pagamento fica sem cupom?'); const i = $('#cp-motivo'); if (i) i.focus(); return; } marcarCupom(+el.dataset.id, 'sem', { motivo: m }); },
   'cupom-voltar': el => marcarCupom(+el.dataset.id, 'voltar', {}),
-  'saida-pacote': el => atender(+el.dataset.id, false, null, true),   /* 1.00: o cliente leva um pacote na saída: o atendimento abre com a lista de pacotes e, depois do pagamento, a saída abre de novo */
-  'saida-rapida': el => pedirSaida(+el.dataset.id), 'saida-ok': el => confirmarSaida(el), 'saida-corrigir': el => folhaSaida(+el.dataset.id, true),
+  'saida-pacote': el => { if (SAI && $('#sg-ok')) SAI_VOLTA = { base: SAI.ids[0], fora: new Set(SAI.fora) }; atender(+el.dataset.id, false, null, true); },   /* 1.00: o cliente leva um pacote na saída: o atendimento abre com a lista de pacotes e, depois do pagamento, a saída abre de novo */
+  'saida-rapida': el => pedirSaida(+el.dataset.id), 'saida-ok': el => confirmarSaida(el), 'saida-grupo-ok': el => confirmarGrupo(el), 'saida-tirar': el => saiTirar(el.dataset.id), 'saida-por': el => saiPor(el.dataset.id), 'saida-corrigir': el => folhaSaida(+el.dataset.id, true),
   'visita-corrigir': el => folhaCorrigirVisita(+el.dataset.id, +el.dataset.v),
   'visita-corrigir-ok': async el => { const hh = val('s-hora'), motivo = val('s-motivo');
     if (!/^\d{2}:\d{2}$/.test(hh)) { toast('Escreva a hora em que a criança saiu'); $('#s-hora').focus(); return; } if (motivo.length < 5) { toast('Escreva o motivo da correção da hora'); $('#s-motivo').focus(); return; }
@@ -4353,12 +4462,12 @@ const ACOES = {
   'saida-voucher': async el => { // na saída, o responsável mostrou o voucher: ele cobre um período da cobrança por atraso
     const c = crianca(el.dataset.id); if (!c || !c.entrou || temVoucher(c)) return; el.disabled = true;
     if (MODO === 'servidor') {
-      try { const r = await api('atender', { id: c.id, voucher: true }); await carregar(); desenhar(true); atualizarSaida();
+      try { const r = await api('atender', { id: c.id, voucher: true }); await carregar(); desenhar(true); atualizarSaida(); atualizarGrupo();
         toast(avisoVoucher(r.voucher, c.nome) || 'Voucher usado', async () => { try { await api('desfazer_venda', { vendas: r.vendas, registros: r.registros }); await carregar(); } catch (e) { toast(e.message); } desenhar(); }); }
       catch (e) { toast(e.message); el.disabled = false; }
       return;
     }
-    const v = usarVoucherPrevia(c); desenhar(true); atualizarSaida(); toast(avisoVoucher(v, c.nome) || 'Voucher usado');
+    const v = usarVoucherPrevia(c); desenhar(true); atualizarSaida(); atualizarGrupo(); toast(avisoVoucher(v, c.nome) || 'Voucher usado');
   },
   'serv-menos': el => { if (!CARRINHO) return; CARRINHO.q[el.dataset.s] = Math.max(0, (CARRINHO.q[el.dataset.s] || 0) - 1); atualizarCarrinho(); },
   'pac-marca': el => { if (!CARRINHO) return; const i = +el.dataset.i; CARRINHO.pac = CARRINHO.pac.includes(i) ? CARRINHO.pac.filter(k => k !== i) : [...CARRINHO.pac, i]; atualizarCarrinho();
@@ -4686,6 +4795,7 @@ setInterval(() => {
     $$('[data-saiu]').forEach(el => { const t = haMin(new Date(+el.dataset.saiu)); if (el.textContent !== t) el.textContent = t; }); }
   { const sc = $('#s-conta'), sb = $('#s-ok'), sh = $('#s-hora');   // a folha da saída acompanha o relógio: se a tolerância estourar com ela aberta, o valor a receber muda na hora
     if (sc && sb && !sb.disabled && !(sh && sh.value)) { const c = crianca(sb.dataset.id); if (c && c.entrou) { const k = contaSaida(c), chave = k.n + '|' + k.deb + '|' + Math.floor(k.min); if (sc.dataset.k !== chave) { sc.dataset.k = chave; sc.innerHTML = htmlContaSaida(c, k); sb.innerHTML = rotuloSaida(k); pagSaida(k); } } } }
+  { const gc = $('#sg-conta'), gb = $('#sg-ok'); if (gc && gb && !gb.disabled && SAI) { const g = contaGrupo(); if (!g.L.length) fecharFolha(); else if (gc.dataset.k !== chaveGrupo(g)) atualizarGrupo(); } }   // 1.07: a conta em conjunto também acompanha o relógio
   $$('[data-ficha-pago]').forEach(el => { const c = crianca(el.dataset.fichaPago); if (!c) return; const k = chavePago(c); if (el.dataset.k !== k) { el.dataset.k = k; el.innerHTML = pagoFicha(c); } });   // 1.02: o que falta receber (nasceu uma cobrança por atraso, ou foi recebido)
   $$('[data-banco-saldo]').forEach(el => { const c = crianca(el.dataset.bancoSaldo); if (!c) return; const s = saldoAgora(c); if (el.dataset.k !== String(s)) { el.dataset.k = s; const b = $('b', el); if (b) b.textContent = hm(s); el.classList.toggle('zero', !(s > 0)); } });   // o saldo do Banco de horas só muda de período em período
   $$('[data-ficha-saldo]').forEach(el => { const c = crianca(el.dataset.fichaSaldo); if (!c) return; const k = pacMin(c) + '|' + usadoAgora(c); if (el.dataset.k !== k) { el.dataset.k = k; el.innerHTML = saldoFicha(c); } });   // o saldo da comanda acompanha o relógio
