@@ -273,6 +273,12 @@ function db(): PDO {
     try { $pdo->exec('CREATE INDEX IF NOT EXISTS visitas_crianca ON visitas (crianca_id)'); } catch (Throwable $e) { }   // com milhares de cadastros, achar as visitas de uma criança não pode varrer a tabela
     $pdo->exec('PRAGMA user_version = 23');
   }
+  if ($v < 24) { // 1.04: desconto dado pelo gestor na tela de pagamento (em reais ou em percentual, com o motivo). A venda guarda quanto saiu do valor dela
+    try { $pdo->exec('ALTER TABLE vendas ADD COLUMN desc_valor REAL NOT NULL DEFAULT 0'); } catch (Throwable $e) { }
+    try { $pdo->exec("ALTER TABLE vendas ADD COLUMN desc_motivo TEXT NOT NULL DEFAULT ''"); } catch (Throwable $e) { }
+    try { $pdo->exec('ALTER TABLE vendas ADD COLUMN desc_por INTEGER'); } catch (Throwable $e) { }
+    $pdo->exec('PRAGMA user_version = 24');
+  }
   return $pdo;
 }
 function cfg(string $k, $padrao = null) { $q = db()->prepare('SELECT valor FROM config WHERE chave = ?'); $q->execute([$k]); $v = $q->fetchColumn(); return $v === false ? $padrao : json_decode((string)$v, true); }
@@ -682,6 +688,42 @@ function gravarPagamento(array $vendaIds, array $formas, int $criancaId, ?int $p
     }
   }
   return $gravado;
+}
+/* ---------- 1.04: desconto do gestor na tela de pagamento ---------- */
+// Só o gestor dá desconto: a tela manda o valor em reais (e o percentual, quando foi digitado em %) e o motivo. O desconto sai do valor das
+// vendas, em proporção ao que falta receber de cada uma, e fica guardado nelas (desc_valor, desc_motivo, desc_por), com uma linha no dia.
+// O pagamento fecha com o total já descontado.
+function lerDesconto($d, array $u): ?array { // ['valor' => em reais, 'pct' => o percentual digitado (ou 0), 'motivo'], ou null se não há desconto
+  if (!is_array($d)) return null; $v = round((float)($d['valor'] ?? 0), 2); if ($v <= 0) return null;
+  if (($u['papel'] ?? '') !== 'gestor') falha('Só o gestor dá desconto.', 403);
+  $pct = round((float)($d['pct'] ?? 0), 2); if ($pct < 0 || $pct > 100) falha('O desconto não passa de 100%.');
+  $motivo = mb_substr(maiusculo((string)($d['motivo'] ?? '')), 0, 120); if (mb_strlen($motivo) < 3) falha('Escreva o motivo do desconto.');
+  return ['valor' => $v, 'pct' => $pct, 'motivo' => $motivo];
+}
+// reparte o desconto pelas vendas ([venda => quanto falta receber]) em proporção, sem passar do que falta em cada uma e fechando os centavos: [venda => desconto]
+function repartirDesconto(float $total, array $faltas): array {
+  $faltas = array_filter(array_map(fn($x) => round((float)$x, 2), $faltas), fn($x) => $x > 0.004); $base = round(array_sum($faltas), 2); $o = [];
+  $alvo = round(min($total, $base), 2); if ($alvo <= 0) return $o; $resta = $alvo;
+  foreach ($faltas as $k => $f) { $x = round(min($f, $resta, $alvo * $f / $base), 2); if ($x > 0) { $o[$k] = $x; $resta = round($resta - $x, 2); } }
+  foreach ($faltas as $k => $f) { if ($resta < 0.005) break; $x = round(min($resta, $f - ($o[$k] ?? 0)), 2); if ($x > 0) { $o[$k] = round(($o[$k] ?? 0) + $x, 2); $resta = round($resta - $x, 2); } }   // os centavos que o arredondamento deixou
+  return $o;
+}
+// aplica o desconto nas vendas: ['valor' => total descontado, 'vendas' => [venda => desconto], 'registro' => a linha do dia] (ou [] se não havia o que descontar)
+function aplicarDesconto(array $d, array $faltas, array $c, array $u): array {
+  $rep = repartirDesconto((float)$d['valor'], $faltas); if (!$rep) return [];
+  $q = db()->prepare("UPDATE vendas SET valor = ROUND(valor - ?, 2), desc_valor = ROUND(desc_valor + ?, 2), desc_motivo = CASE WHEN desc_valor > 0.004 AND desc_motivo != '' THEN desc_motivo || ' + ' || ? ELSE ? END, desc_por = ? WHERE id = ?");   // quem já tinha um desconto fica com os dois motivos
+  foreach ($rep as $vid => $x) $q->execute([$x, $x, $d['motivo'], $d['motivo'], (int)$u['id'], (int)$vid]);
+  $total = round(array_sum($rep), 2); $pct = $d['pct'] > 0 ? ' (' . rtrim(rtrim(number_format((float)$d['pct'], 2, ',', ''), '0'), ',') . '%)' : '';
+  $reg = registrar('desc', (int)$c['id'], $c['nome'], 'Desconto · ' . dinheiro($total) . $pct . ' · Motivo: ' . $d['motivo'] . ' · por ' . primeiroNome((string)$u['nome']));
+  return ['valor' => $total, 'vendas' => $rep, 'registro' => $reg, 'motivo' => $d['motivo']];
+}
+// o Desfazer: devolve às vendas o desconto que tinha sido dado ([venda => desconto]), tira o motivo dele e apaga a linha do dia
+function tirarDesconto(int $criancaId, array $rep, int $registro, string $motivo = ''): void {
+  $db = db(); $fim = ' + ' . $motivo; $q = $db->prepare("UPDATE vendas SET valor = ROUND(valor + ?, 2), desc_valor = ROUND(desc_valor - ?, 2),
+    desc_motivo = CASE WHEN desc_valor - ? < 0.005 THEN '' WHEN ? != '' AND substr(desc_motivo, -length(?)) = ? THEN substr(desc_motivo, 1, length(desc_motivo) - length(?)) ELSE desc_motivo END,
+    desc_por = CASE WHEN desc_valor - ? < 0.005 THEN NULL ELSE desc_por END WHERE id = ? AND crianca_id = ? AND desc_valor >= ? - 0.005");
+  foreach ($rep as $vid => $x) { $x = round((float)$x, 2); if ($x > 0) $q->execute([$x, $x, $x, $motivo, $fim, $fim, $fim, $x, (int)$vid, $criancaId, $x]); }
+  if ($registro) $db->prepare("DELETE FROM registros WHERE id = ? AND crianca_id = ? AND tipo = 'desc'")->execute([$registro, $criancaId]);
 }
 /* ---------- 1.02: pago ou não pago ---------- */
 // O cliente paga na entrada ou só na saída. A venda registrada sem pagamento fica a receber: a tela mostra NÃO PAGO, e o valor é recebido

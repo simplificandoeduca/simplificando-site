@@ -401,6 +401,16 @@ Depois de escolher o serviço (horas avulsas, pacote, carrinho, produto), o aten
 3. **Adicionar serviços**: no atendimento, volta para a escolha; na saída, soma o que o cliente leva no próprio pagamento da saída (seção 6r).
 4. **Pagamento**: quando há horas na conta, três linhas, **Horas disponíveis**, **Horas necessárias** (ou "Horas desta compra") e **Saldo após confirmação**; depois, as formas de pagamento e o botão que confirma.
 
+**Desconto, só para o gestor (1.04).** Como na tela anterior, o pagamento tem o campo **Desconto**; aqui, só o gestor vê. Atendente e supervisor não veem o campo, e o servidor recusa o desconto de quem não é gestor.
+
+- Fica fechado, embaixo das formas de pagamento: **Desconto · só o gestor**. Um toque abre: **Por valor · R$** ou **Por percentual · %**, o **valor** e o **motivo** (obrigatório).
+- O desconto vira uma linha verde na tabela dos itens ("Desconto (10%) · CLIENTE ANTIGO · − R$ 9,50"), e o total, o valor em cada forma de pagamento e o botão de baixo já mostram o valor com o desconto. Sem o motivo, ou com um valor maior que o total, a tela avisa e não registra.
+- Vale no **pagamento do atendimento** (também com "Paga na saída": fica a receber o valor já descontado) e no **pagamento da saída** (sobre o que falta receber: o que ficou para pagar e a cobrança por atraso). Com 100% de desconto não há o que receber: o botão vira **Registrar com desconto total**.
+- O desconto é repartido entre os itens em proporção ao valor de cada um e fica guardado em cada venda, com o motivo e quem deu. No dia aparece a linha "Desconto · R$ 9,50 (10%) · Motivo: … · por CAMILA".
+- **Onde aparece depois**: em **Hoje na recepção** ("2 descontos do gestor (R$ 39,50)"), no **Histórico do cliente** (em cada compra: "desconto de R$ 8") e no cupom de papel (linha "Desconto").
+- **Desfazer**: o Desfazer da venda apaga a venda com o desconto; o Desfazer da saída devolve às vendas o desconto que foi dado nela.
+- O desconto da criança PCD e o voucher continuam como eram, e não se misturam com este na conta do dia.
+
 - **O que aparece**: os Detalhes, a tabela dos itens com o **Total a pagar** e, em Pagamento, quatro botões grandes: **Pix**, **Dinheiro**, **Crédito** e **Débito**. Quem já tem horas guardadas, ou leva um pacote, vê também as três linhas das horas (ex.: Horas disponíveis 4h30 · Horas desta compra + 1h · Saldo após confirmação 5h30).
 - **Uma forma só** (o mais comum): um toque na forma e um toque em **Recebi R$ 420 no Pix · registrar**. A venda é gravada e, se a caixa "Dar entrada agora" estava marcada, a criança já entra.
 - **Dividir em duas ou três formas**: toque nas formas que o cliente vai usar. Aparece uma linha para cada uma: escreva o valor das primeiras, e **a última forma tocada fica com o resto**, para a conta fechar sempre com o total. Exemplo: Pix, Dinheiro e Crédito num total de R$ 420; escreve 200 no Pix e 100 no dinheiro, e o crédito fica com R$ 120.
@@ -463,7 +473,7 @@ O texto da observação não aparece em nenhuma tela sem que alguém toque no OB
 - **Detalhes**: o cliente, com **ENTRADA 14:02** ao lado do nome, o CPF, os telefones e quem está atendendo;
 - **Itens selecionados**: a linha da visita (RECREAÇÃO, com a criança, a sapateira, a hora da entrada, quanto ficou e quanto usa das horas do cliente), uma linha para cada coisa que ficou para pagar ("ainda não pago") e, se a criança ficou além do tempo, a linha **Atraso · mais 0h30**. Embaixo, o **Total a receber**;
 - **Adicionar serviços** (1.03): o cliente quer levar um pacote, ou um produto, na saída. O atendimento abre com a lista de pacotes e o botão vira **Somar na saída · R$ 420**: o que foi escolhido entra na tabela da saída, que abre de novo sozinha, e **tudo é recebido num pagamento só**, com um cupom só. As horas do pacote já contam: a cobrança por atraso que estava a receber é desfeita e a visita sai do saldo novo;
-- **Pagamento**: as três linhas das horas, como na tela anterior. Ex.: **Horas disponíveis 10h · Horas necessárias 0h30 · Saldo após confirmação 9h30**. Quando há valor a receber, a linha do meio mostra as duas coisas: "0h30 + R$ 80". Logo abaixo ficam o **Tem voucher?** (seção 6h) e a **Forma de pagamento**: Pix, Dinheiro, Crédito e Débito, em até três formas, igual à venda (seção 6p).
+- **Pagamento**: as três linhas das horas, como na tela anterior. Ex.: **Horas disponíveis 10h · Horas necessárias 0h30 · Saldo após confirmação 9h30**. Quando há valor a receber, a linha do meio mostra as duas coisas: "0h30 + R$ 80". Logo abaixo ficam o **Tem voucher?** (seção 6h) e a **Forma de pagamento**: Pix, Dinheiro, Crédito e Débito, em até três formas, igual à venda (seção 6p). Para o gestor, embaixo das formas fica o **Desconto** (seção 6p): o valor sai do que a saída recebe, e a linha do meio das horas já mostra o valor com o desconto.
 
 O botão de baixo diz o que vai acontecer:
 

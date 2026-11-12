@@ -66,8 +66,9 @@ function dados(array $eu): array {
   $vendasHoje = $db->prepare('SELECT COUNT(*) n, COALESCE(SUM(minutos),0) m, COALESCE(SUM(valor),0) v FROM vendas WHERE quando > ? AND servico != ?'); $vendasHoje->execute([$hojeMenos, SERV_IMPORTADO]); $vh = $vendasHoje->fetch();   // tudo o que foi vendido nas últimas 24 h; m = minutos de brincar
   $equipe = $eu['papel'] === 'atendente' ? [] : array_map(fn($u) => ['id' => (int)$u['id'], 'nome' => $u['nome'], 'login' => $u['login'], 'papel' => $u['papel']], $db->query('SELECT id, nome, login, papel FROM usuarios WHERE ativo = 1 ORDER BY nome')->fetchAll());
   $q = $db->prepare('SELECT COUNT(*) n, COALESCE(SUM(valor), 0) v FROM vendas WHERE auto = 1 AND quando > ?'); $q->execute([$hojeMenos]); $ah = $q->fetch(); $atrasoHoje = ['n' => (int)$ah['n'], 'valor' => (float)$ah['v']];   // cobranças por atraso das últimas 24 h
-  $q = $db->prepare("SELECT COALESCE(SUM(voucher != ''), 0) nv, COALESCE(SUM(CASE WHEN voucher != '' THEN cheio ELSE 0 END), 0) vv, COALESCE(SUM(pcd = 1), 0) np, COALESCE(SUM(CASE WHEN pcd = 1 THEN cheio - valor ELSE 0 END), 0) vp FROM vendas WHERE quando > ?"); $q->execute([$hojeMenos]); $dh = $q->fetch();
-  $descontosHoje = ['vouchers' => (int)$dh['nv'], 'voucher_valor' => (float)$dh['vv'], 'pcd' => (int)$dh['np'], 'pcd_valor' => (float)$dh['vp']];   // o que saiu por voucher e com desconto PCD nas últimas 24 h
+  $q = $db->prepare("SELECT COALESCE(SUM(voucher != ''), 0) nv, COALESCE(SUM(CASE WHEN voucher != '' THEN cheio ELSE 0 END), 0) vv, COALESCE(SUM(pcd = 1), 0) np, COALESCE(SUM(CASE WHEN pcd = 1 THEN cheio - valor - desc_valor ELSE 0 END), 0) vp, COALESCE(SUM(desc_valor), 0) vd FROM vendas WHERE quando > ?"); $q->execute([$hojeMenos]); $dh = $q->fetch();
+  $q = $db->prepare("SELECT COUNT(*) FROM registros WHERE tipo = 'desc' AND quando > ?"); $q->execute([$hojeMenos]); $nd = $q->fetchColumn();   // 1.04: quantos descontos o gestor deu nas últimas 24 h
+  $descontosHoje = ['vouchers' => (int)$dh['nv'], 'voucher_valor' => (float)$dh['vv'], 'pcd' => (int)$dh['np'], 'pcd_valor' => (float)$dh['vp'], 'desc' => (int)$nd, 'desc_valor' => round((float)$dh['vd'], 2)];   // 1.04: e o desconto dado pelo gestor   // o que saiu por voucher e com desconto PCD nas últimas 24 h
   require_once __DIR__ . '/idface-lib.php';
   // as entradas canceladas sem cobrar: só gestor e supervisor recebem a lista (são eles que conferem o motivo)
   $canc = $eu['papel'] === 'atendente' ? [] : array_map('cancelamentoPublico', $db->query('SELECT * FROM cancelamentos ORDER BY id DESC LIMIT 80')->fetchAll());
@@ -267,14 +268,18 @@ switch ($acao) {
       if (strtotime($corrige) < strtotime(substr((string)$c['entrou'], 0, 16) . ':00')) falha('A hora corrigida não pode ser antes da entrada (' . substr((string)$c['entrou'], 11, 5) . ').');
     }
     $pendentes = pendentesDaVisita($c);   // 1.02: o que ficou para pagar na saída (visto antes de dar a saída: depois dela a visita já fechou)
+    $ud = eu(); $desc = lerDesconto($in['desconto'] ?? null, $ud ?: []);   // 1.04: o desconto do gestor (conferido antes de dar a saída)
     $r = fazerSaida($c, 'mão'); $r['pend'] = round(array_sum(array_map(fn($v) => (float)$v['falta'], $pendentes)), 2);
     if ($corrige !== null) { $k = corrigirSaida((int)$r['visita'], $corrige, $u, $motivo); $r['corrigida'] = $k; $r['debitado'] = $k['debitado']; $r['atraso'] = atrasoDaVisita((int)$c['id'], (string)$c['entrou'], date('Y-m-d H:i:s', time() + 5)); }
     // 0.90: a forma em que as cobranças por atraso desta visita foram recebidas. Vale só para as que ainda não estavam pagas, até o valor de cada uma
+    $q = $db->prepare('SELECT id, valor FROM vendas WHERE crianca_id = ? AND auto = 1 AND quando >= ? AND NOT EXISTS (SELECT 1 FROM pagamentos p WHERE p.venda_id = vendas.id) ORDER BY id'); $q->execute([(int)$c['id'], (string)$c['entrou']]); $autos = $q->fetchAll();   // as cobranças por atraso desta visita que ainda não foram pagas
+    if ($desc) { // 1.04: o desconto sai do que a saída recebe (o que ficou a pagar e as cobranças por atraso), em proporção
+      $faltas = []; foreach ($pendentes as $v) $faltas[(int)$v['id']] = (float)$v['falta']; foreach ($autos as $l) $faltas[(int)$l['id']] = (float)$l['valor'];
+      $ad = aplicarDesconto($desc, $faltas, $c, $ud); if ($ad) $r['desc'] = $ad; }
     $pg = lerPagamento($in['pagamento'] ?? null); $r['pago'] = '';
     if ($pg) {
-      $q = $db->prepare('SELECT id FROM vendas WHERE crianca_id = ? AND auto = 1 AND quando >= ? AND NOT EXISTS (SELECT 1 FROM pagamentos p WHERE p.venda_id = vendas.id) ORDER BY id'); $q->execute([(int)$c['id'], (string)$c['entrou']]);
       $eu2 = eu(); $antesPg = (int)$db->query('SELECT COALESCE(MAX(id), 0) FROM pagamentos')->fetchColumn();
-      $pago = gravarPagamento(array_merge(array_map(fn($v) => (int)$v['id'], $pendentes), array_map(fn($l) => (int)$l['id'], $q->fetchAll())), $pg, (int)$c['id'], $eu2 ? (int)$eu2['id'] : null);   // primeiro o que ficou a pagar, depois as cobranças por atraso
+      $pago = gravarPagamento(array_merge(array_map(fn($v) => (int)$v['id'], $pendentes), array_map(fn($l) => (int)$l['id'], $autos)), $pg, (int)$c['id'], $eu2 ? (int)$eu2['id'] : null);   // primeiro o que ficou a pagar, depois as cobranças por atraso
       if ($pago) { $r['pag_de'] = $antesPg;   // (para o Desfazer da saída tirar o que foi recebido nela)
         if ($r['pend'] > 0) $r['pag_registro'] = registrar('pag', (int)$c['id'], $c['nome'], 'Pagamento na saída · ' . dinheiro((float)array_sum($pago)) . ' · ' . textoPagamento($pago)); }
       if ($pago) $r['cupom'] = criarCupom($c, 'saida', $antesPg, $eu2);   // 0.93: o cupom fiscal do que foi recebido na saída
@@ -346,6 +351,7 @@ switch ($acao) {
     } else $db->prepare('DELETE FROM pagamentos WHERE crianca_id = ? AND quando >= ? AND venda_id IN (SELECT id FROM vendas WHERE crianca_id = ? AND auto = 1 AND quando >= ?)')->execute([$c['id'], $v['saiu'], $c['id'], $v['entrou']]);   // o que foi recebido nessa saída
     if (!empty($in['registro'])) $db->prepare('DELETE FROM registros WHERE id = ? AND crianca_id = ?')->execute([(int)$in['registro'], $c['id']]);
     if (!empty($in['mensagem'])) $db->prepare('DELETE FROM mensagens WHERE id = ? AND crianca_id = ?')->execute([(int)$in['mensagem'], $c['id']]);
+    if (!empty($in['desc']) && is_array($in['desc'])) tirarDesconto((int)$c['id'], (array)($in['desc']['vendas'] ?? []), (int)($in['desc']['registro'] ?? 0), mb_substr((string)($in['desc']['motivo'] ?? ''), 0, 120));   // 1.04: o desconto dado nessa saída volta para as vendas
     responder();
   }
   case 'vender': {
@@ -397,9 +403,13 @@ switch ($acao) {
     }
     // 0.90: a forma de pagamento (até três). Confere antes de vender: tem de fechar com o total que o servidor calculou, não com o que a tela mostrou
     $pg = lerPagamento($in['pagamento'] ?? null); $aPagar = round(array_sum(array_map(fn($l) => (float)$l['valor'], $linhas)), 2);
+    $desc = lerDesconto($in['desconto'] ?? null, $u); $cheio = $aPagar;   // 1.04: o desconto do gestor: o pagamento fecha com o total já descontado
+    if ($desc) { if ($desc['valor'] > $cheio + 0.004) falha('O desconto (' . dinheiro($desc['valor']) . ') passa do total, que é ' . dinheiro($cheio) . '.'); $aPagar = round($cheio - $desc['valor'], 2); }
     if ($pg && abs(array_sum($pg) - $aPagar) >= 0.01) falha('O pagamento (' . dinheiro((float)array_sum($pg)) . ') não fecha com o total, que é ' . dinheiro($aPagar) . '. Feche e abra o atendimento de novo.');
     $vendas = []; $regs = []; $total = 0; $min = 0;
     foreach ($linhas as $l) { $x = fazerVenda($c, $l['min'], $l['valor'], (int)$u['id'], $l['itens'], $l['servico'], false, '', $l['mais'] ?? []); $vendas[] = $x['venda']; $regs[] = $x['registro']; $total += $l['valor']; $min += $l['min']; $c = crianca((int)$c['id']); }
+    $ad = [];   // 1.04: o desconto sai das vendas desta venda, em proporção ao valor de cada uma
+    if ($desc && $cheio > 0) { $faltas = []; foreach ($linhas as $i => $l) $faltas[$vendas[$i]] = (float)$l['valor']; $ad = aplicarDesconto($desc, $faltas, $c, $u); if ($ad) { $regs[] = $ad['registro']; $total = round($total - $ad['valor'], 2); } }
     $vinfo = null;   // o voucher entra por último: com cobrança por atraso a receber, ele cobre essa cobrança em vez de somar tempo
     if ($comVoucher) { $v = usarVoucher($c, $u); $vendas[] = $v['venda']; $regs[] = $v['registro']; $min += $v['minutos']; $c = crianca((int)$c['id']); $vinfo = ['n' => $v['n'], 'cobriu' => $v['cobriu']]; }
     if ($pg && $aPagar > 0) { // fica anotado em cada venda e numa linha do dia ("Pagamento · R$ 680 · Pix R$ 200 + Dinheiro R$ 480")
@@ -410,7 +420,7 @@ switch ($acao) {
     }
     $depois = !$pg && $aPagar > 0 && !empty($in['depois']);   // 1.02: o cliente vai pagar na saída (ou na devolução): a venda fica a receber
     if ($depois) $regs[] = registrar('pag', (int)$c['id'], $c['nome'], 'Não pago · ' . dinheiro($aPagar) . ' a receber na ' . (!empty($in['entrar']) || $c['entrou'] ? 'saída' : 'devolução'));
-    $resp = ['vendas' => $vendas, 'registros' => $regs, 'total' => $total, 'minutos' => $min, 'voucher' => $vinfo, 'pagamento' => $pg ? textoPagamento($pg) : '', 'cupom' => $cupomId ?? 0, 'a_receber' => $depois ? $aPagar : 0];
+    $resp = ['vendas' => $vendas, 'registros' => $regs, 'total' => $total, 'minutos' => $min, 'voucher' => $vinfo, 'pagamento' => $pg ? textoPagamento($pg) : '', 'cupom' => $cupomId ?? 0, 'a_receber' => $depois ? $aPagar : 0, 'desconto' => $ad['valor'] ?? 0];
     if ($min > 0 && $c['entrou']) { $des = desfazerCobrancasSobrando($c); if ($des['n']) { $resp['desfeitas'] = $des; $c = crianca((int)$c['id']); } }   // 1.00: comprou tempo com a criança no espaço: o que sobrou de cobrança por atraso sai
     if (!empty($in['entrar']) && modoManual() && !$c['entrou'] && restante($c) >= periodo()) { // sem iDFace: pagou e já entra, o tempo começa a contar
       $e = fazerEntrada($c, 'mão'); $resp['entrada'] = ['registro' => $e['registro'], 'mensagem' => is_array($e['mensagem']) ? (int)($e['mensagem']['id'] ?? 0) : 0];
@@ -508,7 +518,7 @@ switch ($acao) {
     // 1.02: o que ainda não foi pago desta visita (o que ficou para a saída e as cobranças por atraso a receber): o histórico marca e não soma em "Pagou ao todo"
     $np = []; foreach ($ids as $cid) { $k = crianca($cid); if (!$k) continue; foreach (pendentesDaVisita($k) as $v) $np[(int)$v['id']] = (float)$v['falta'];
       if ($k['entrou']) { $qa = $db->prepare('SELECT id, valor FROM vendas WHERE crianca_id = ? AND auto = 1 AND quando >= ? AND NOT EXISTS (SELECT 1 FROM pagamentos p WHERE p.venda_id = vendas.id)'); $qa->execute([$cid, (string)$k['entrou']]); foreach ($qa->fetchAll() as $l) $np[(int)$l['id']] = (float)$l['valor']; } }
-    $vendas = array_map(fn($v) => ['np' => $np[(int)$v['id']] ?? 0, 'pago' => isset($pagas[(int)$v['id']]) ? textoPagamento($pagas[(int)$v['id']]) : '', 'id' => (int)$v['id'], 'crianca' => (int)$v['crianca_id'], 'h' => round((int)$v['minutos'] / 60, 2), 'm' => (int)$v['minutos'], 'v' => (float)$v['valor'], 'itens' => (string)($v['itens'] ?? ''), 'servico' => (string)($v['servico'] ?? ''), 'quando' => $v['quando'], 'por' => (string)($v['por_nome'] ?? ''), 'auto' => !empty($v['auto']), 'voucher' => (string)($v['voucher'] ?? ''), 'pcd' => !empty($v['pcd'])], $q->fetchAll());
+    $vendas = array_map(fn($v) => ['np' => $np[(int)$v['id']] ?? 0, 'pago' => isset($pagas[(int)$v['id']]) ? textoPagamento($pagas[(int)$v['id']]) : '', 'id' => (int)$v['id'], 'crianca' => (int)$v['crianca_id'], 'h' => round((int)$v['minutos'] / 60, 2), 'm' => (int)$v['minutos'], 'v' => (float)$v['valor'], 'itens' => (string)($v['itens'] ?? ''), 'servico' => (string)($v['servico'] ?? ''), 'quando' => $v['quando'], 'por' => (string)($v['por_nome'] ?? ''), 'auto' => !empty($v['auto']), 'voucher' => (string)($v['voucher'] ?? ''), 'pcd' => !empty($v['pcd']), 'desc' => round((float)($v['desc_valor'] ?? 0), 2), 'desc_motivo' => (string)($v['desc_motivo'] ?? '')], $q->fetchAll());
     $q = $db->prepare("SELECT * FROM visitas WHERE crianca_id IN ($marcas) ORDER BY saiu DESC, id DESC LIMIT 1000"); $q->execute($ids);
     $visitas = array_map(fn($v) => ['id' => (int)$v['id'], 'crianca' => (int)$v['crianca_id'], 'dia' => $v['saiu'], 'entrou' => substr($v['entrou'], 11, 5), 'saiu' => substr($v['saiu'], 11, 5), 'deb' => (int)$v['debitado_min']], $q->fetchAll());
     $q = $db->prepare("SELECT * FROM cancelamentos WHERE crianca_id IN ($marcas) ORDER BY id DESC LIMIT 200"); $q->execute($ids);
