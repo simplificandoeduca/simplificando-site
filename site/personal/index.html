@@ -729,6 +729,10 @@ h3.sec{font-size:22px;margin:14px 2px -2px}
 .kb .tabbar{display:none}
 /* painel */
 .kpi{gap:6px;padding:18px}
+.kpi-tap{cursor:pointer;-webkit-tap-highlight-color:transparent}.kpi-tap:active{transform:scale(.98)}.kpi-tap:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.kpi-ver{display:flex;align-items:center;gap:2px;font-size:12.5px;font-weight:800;color:var(--fg)!important;opacity:1!important}.kpi-ver .i{width:14px;height:14px}
+.rec-tot{display:flex;flex-direction:column;gap:4px;padding:14px 16px;border-radius:18px;background:color-mix(in srgb,#13917F 14%,var(--card));margin-bottom:12px}.rec-tot b{font-size:30px;font-weight:900;letter-spacing:-.04em;line-height:1}.rec-tot span{font-size:13.5px;color:var(--muted)}
+.rec-end{display:flex;flex-direction:column;align-items:flex-end;gap:4px}.rec-end b{font-size:15px;font-variant-numeric:tabular-nums}
 .kpi>.i{width:34px;height:34px;padding:8px;border-radius:10px;opacity:1;background:var(--ctl)}
 .kpi.blk-brand>.i,.kpi.blk-bad>.i,.kpi.blk-warn>.i{background:rgba(15,23,18,.12)}
 .kpi:not([class*="blk-"])>.i[data-n="wallet"]{background:#DFF2EE;color:#13917F}.kpi:not([class*="blk-"])>.i[data-n="alert"]{background:#FDE1DD;color:#C8302F}.kpi:not([class*="blk-"])>.i[data-n="cal"]{background:#FFE9D6;color:#E07015}
@@ -2193,7 +2197,7 @@ function vPainel(){
   const receita = ativos.reduce((s,a) => s + (a.financeiro && a.financeiro.plano ? (+a.financeiro.valor||0) : 0), 0);
   h += '<div class="kpis">'+
     '<div class="kpi blk-brand">'+ic('users')+'<b>'+ativos.length+'</b><span>alunos ativos de '+all.length+' cadastrados</span></div>'+
-    '<div class="kpi">'+ic('wallet')+'<b>'+money(receita).replace(/,\d\d$/,'')+'</b><span>receita prevista por mês</span></div>'+
+    '<div class="kpi kpi-tap" role="button" tabindex="0" data-a="receita" aria-label="Ver a mensalidade de cada aluno">'+ic('wallet')+'<b>'+money(receita).replace(/,\d\d$/,'')+'</b><span>receita prevista por mês</span><span class="kpi-ver">Ver cada aluno'+ic('chev')+'</span></div>'+
     '<div class="kpi'+(late.length?' blk-bad':'')+'">'+ic('alert')+'<b>'+late.length+'</b><span>'+(late.length===1?'pagamento atrasado':'pagamentos atrasados')+'</span></div>'+
     '<div class="kpi'+(plans.filter(([,p]) => p.k!=='none').length?' blk-warn':'')+'">'+ic('cal')+'<b>'+plans.filter(([,p]) => p.k!=='none').length+'</b><span>treinos para renovar em 7 dias</span></div></div>';
   const row = (a,icn,cls,txt,pill,pcls,tab) => '<button type="button" class="row" data-a="open" data-id="'+esc(a._id)+'" data-tab="'+tab+'"><span class="ico '+cls+'">'+ic(icn)+'</span><span class="main-t"><b>'+esc(nomeDe(a))+'</b><span>'+txt+'</span></span><span class="end">'+(pill?'<span class="pill '+(pcls||'')+'">'+pill+'</span>':'')+ic('chev','chev')+'</span></button>';
@@ -3136,7 +3140,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '12 nov · 113'; // Versão do painel: 12 nov · 113
+const PAINELV = '12 nov · 114'; // Versão do painel: 12 nov · 114
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -3653,6 +3657,19 @@ function vSheet(){
   if(s.k==='pf') return pfSheet(s.id);
   if(s.k==='termos') return sheetTop('Simplificando','Termos e privacidade')+'<div class="docs">'+DOC_HTML+'</div>';
   if(s.k==='evCardio') return vEvCardio(s);
+  if(s.k==='receita'){ // mensalidade de cada aluno ativo (a mesma conta da caixinha do Painel)
+    const L = alunos().filter(a => (P(a).status||'ativo')==='ativo'), com = L.filter(a => a.financeiro && a.financeiro.plano), sem = L.filter(a => !(a.financeiro && a.financeiro.plano));
+    const tot = com.reduce((t,a) => t+(+a.financeiro.valor||0), 0), ordem = {late:0, soon:1, ok:2};
+    com.sort((x,y) => (ordem[payInfo(x).k]-ordem[payInfo(y).k]) || (+y.financeiro.valor||0)-(+x.financeiro.valor||0));
+    const late = com.filter(a => payInfo(a).k==='late').reduce((t,a) => t+(+a.financeiro.valor||0), 0);
+    const row = a => { const f = a.financeiro, pi = payInfo(a), pr = P(a);
+      return '<button type="button" class="row" data-a="recOpen" data-id="'+esc(a._id)+'"><span class="ini" style="--c:var(--ed-'+(pr.objetivo||'hipertrofia')+')">'+esc(initials(pr.nome))+'</span><span class="main-t"><b>'+esc(nomeDe(a))+'</b><span>'+esc(PLANOS[f.plano]||f.plano)+' · vence dia '+clampI(f.vencimentoDia||10,1,28)+(FORMAS[f.forma] ? ' · '+FORMAS[f.forma] : '')+'</span></span><span class="end rec-end"><b>'+money(+f.valor||0)+'</b><span class="pill '+PAYCLS[pi.k]+'">'+pi.short+'</span></span></button>'; };
+    return sheetTop('Receita prevista', plural(com.length,'aluno pagante','alunos pagantes'))+
+      '<div class="rec-tot"><b>'+money(tot)+'</b><span>por mês'+(late ? ' · '+money(late)+' em atraso' : '')+'</span></div>'+
+      (com.length ? '<div class="list">'+com.map(row).join('')+'</div>' : '<p class="muted">Nenhum aluno ativo com plano de cobrança. Defina o plano na aba Financeiro de cada aluno.</p>')+
+      (sem.length ? '<p class="foot" style="margin-top:12px">Sem cobrança: '+esc(sem.map(a => curto(a)).join(', '))+'.</p>' : '')+
+      '<p class="foot">Conta só alunos ativos. Pausados e inativos ficam de fora. Toque no aluno para abrir o Financeiro dele.</p>';
+  }
   if(s.k==='trocaPerfil'){
     const teste = typeof SITE_TESTE!=='undefined', op = (a, icn, t, d, ex) => '<button type="button" class="tp-op" data-a="'+a+'"'+(ex||'')+'>'+ic(icn)+'<span><b>'+t+'</b><span>'+d+'</span></span>'+ic('chev','chev')+'</button>';
     if(teste) return sheetTop('Trocar de perfil', 'Versão de teste')+'<p class="muted">Você está no painel de teste. Os dados ficam só neste aparelho.</p>'+
@@ -4418,6 +4435,8 @@ function act(a,d,btn){
     case 'trocaPerfil': openSheet({k:'trocaPerfil'}); return false;
     case 'abrirTeste': try { sessionStorage.setItem('simp-teste-ok','1'); } catch(e){} location.href = (location.pathname.replace(/[^/]*$/,'') || '/')+'teste/'; return false;
     case 'sairConta': return false;
+    case 'receita': openSheet({k:'receita'}); return false;
+    case 'recOpen': closeSheet(); ui.view = 'alunos'; if(ui.aluno!==d.id){ ui.draft.av = {}; ui.draft.pay = {}; ui.draft.nota = ''; } ui.aluno = d.id; ui.tab = 'financeiro'; window.scrollTo(0,0); break;
     case 'evCargaTg': PREF.evCargaMin = !PREF.evCargaMin; savePref(); break;
     case 'ajMin': { const L = (PREF.ajMin||[]).slice(), i = L.indexOf(d.k); if(i<0) L.push(d.k); else L.splice(i,1); PREF.ajMin = L; savePref(); break; }
     case 'ajAll': { if(d.v==='abrir') PREF.ajMin = []; else PREF.ajMin = Array.from(document.querySelectorAll('.aj-h')).map(b => b.dataset.k); savePref(); break; }
