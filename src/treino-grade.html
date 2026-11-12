@@ -1863,7 +1863,7 @@ const FB = (() => {
   const auth = app.auth(), db = app.firestore();
   if(cfg.emulador){ auth.useEmulator('http://'+cfg.emulador+':9099'); db.useEmulator(cfg.emulador, 8080); }
   const CK = 'simplificando-conta', mail = c => 'a'+c+'@alunos.'+cfg.projectId+'.firebaseapp.com', pass = c => 'simp-'+c;
-  const toAluno = p => ({ codigo:p.aid, perfil:p.perfil||{}, metas:p.metas||{}, plano:p.plano||{nome:'', treinos:{}}, financeiro:p.financeiro||{}, email:'' });
+  const toAluno = p => ({ codigo:p.aid, perfil:p.perfil||{}, metas:p.metas||{}, plano:p.plano||{nome:'', treinos:{}}, financeiro:p.financeiro||{}, ajustes:Array.isArray(p.ajustes) ? p.ajustes : [], email:'' });
   const cached = () => { try { return JSON.parse(localStorage.getItem(CK)||'null'); } catch(e){ return null; } };
   const keep = v => { try { localStorage.setItem(CK, JSON.stringify(v)); } catch(e){ /* sem armazenamento */ } };
   const ready = () => new Promise(r => { const un = auth.onAuthStateChanged(u => { un(); r(u); }); });
@@ -2035,7 +2035,10 @@ const AJ = () => (isPersonal() && ACCT.aluno && Array.isArray(ACCT.aluno.ajustes
 const ajPara = (d, t) => { const x = AJ().find(j => j.de===d && j.t===t); return x ? x.para : d; };
 function ajustaDias(){
   const L = AJ(); if(!L.length || !S || !S.history) return;
-  let n = 0; S.history.forEach(h => { const x = L.find(j => j.de===h.date && j.t===h.t); if(x && !S.history.some(o => o!==h && o.date===x.para && o.t===h.t)){ h.date = x.para; n++; } });
+  let n = 0; const fora = new Set();
+  S.history.forEach(h => { const x = L.find(j => j.de===h.date && j.t===h.t); if(!x) return; n++;
+    if(S.history.some(o => o!==h && o.date===x.para && o.t===h.t)) fora.add(h); else h.date = x.para; }); // já veio da nuvem no dia certo: tira a cópia
+  if(fora.size) S.history = S.history.filter(h => !fora.has(h));
   if(n) S.history.sort((x,y) => x.date<y.date ? -1 : x.date>y.date ? 1 : 0);
 }
 function applyAccount(){
