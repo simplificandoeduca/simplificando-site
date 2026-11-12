@@ -99,6 +99,10 @@ svg { display: block; }
 .toast button { color: var(--mostarda); font-weight: 800; white-space: nowrap; padding: 4px 2px; }
 .toast span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 @media (min-width: 820px) { .toast { bottom: 32px; } }
+/* 1.08: o que deu certo não é mais anunciado embaixo. Com Desfazer, a faixa vira só o botão; o texto fica para o leitor de tela */
+.toast.so-bt { padding: 5px 6px; } .toast.so-bt button { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px 6px 12px; }
+.so-leitor { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.copia.ok { background: var(--ok-bg); color: var(--ok); }
 
 /* ---------- os telhadinhos do logo, usados como detalhe ---------- */
 :root {
@@ -1185,7 +1189,7 @@ body.quieto .a-card, body.quieto .conv, body.quieto .oficina, body.quieto .tiles
 <nav class="barra" id="nav-baixo" aria-label="Menu"></nav>
 <div id="folha"></div>
 <div id="lado"></div>
-<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div><div class="so-leitor" id="dito" aria-live="polite"></div>
 
 <script>
 'use strict';
@@ -1258,6 +1262,7 @@ const IC = {
   pino: '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>',
   x: '<path d="M6 6l12 12M18 6L6 18"/>',
   volta: '<path d="M15 5l-7 7 7 7"/>',
+  desfaz: '<path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',   // 1.08: a seta do botão Desfazer
   vai: '<path d="M9 5l7 7-7 7"/>',
   envia: '<path d="M4 12l16-8-6 16-2.5-6.5z"/>',
   lapis: '<path d="M4 20l4-1 10-10-3-3L5 16z"/>',
@@ -1277,7 +1282,7 @@ const IC = {
 const agora = new Date();
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.07';
+const VERSAO = '1.08';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -1482,19 +1487,13 @@ async function sincronizar() {
     if (await carregar()) { anunciar(antes); desenhar(true); }
   } catch (e) { /* tenta de novo no próximo ciclo */ } finally { SINCRONIZANDO = false; }
 }
-// o que o iDFace acabou de registrar aparece com um aviso e o anel da criança "chega" no cartão de quem está no espaço
+// 1.08: o que acontece sozinho (o iDFace leu um rosto, outro aparelho deu uma entrada ou uma saída, nasceu uma cobrança por atraso, uma
+// entrada foi cancelada) não é mais anunciado na faixa de baixo: a lista já mostra, e o sininho guarda o que precisa de atenção (a
+// cobrança por atraso e o cancelamento a conferir). Fica só o anel da criança que "chega" no cartão de quem está no espaço.
 function anunciar(antes) {
   if (!antes) return;
-  const canc = S.registros.find(r => r.id > antes && r.tipo === 'canc');   // alguém cancelou uma entrada em outro aparelho: a supervisão fica sabendo na hora
-  if (canc && supervisorOuMais()) { toast(`Entrada de ${canc.nome} cancelada sem cobrar. Confira o motivo.`, () => folhaCancelamentos(), 'Conferir'); return; }
-  const cob = S.registros.filter(r => r.id > antes && r.tipo === 'cobr');   // nova cobrança por atraso: todo mundo fica sabendo, em qualquer tela
-  if (cob.length) { const k = crianca(cob[0].crianca); toast(cob.length === 1 ? `Nova cobrança por atraso: ${cob[0].nome} passou do tempo comprado${k && k.atraso ? ' · ' + brl(k.atraso.valor) + ' a receber na saída' : ''}` : `${cob.length} novas cobranças por atraso: ${juntar([...new Set(cob.map(r => r.nome))])}`, () => { if (k) folhaFicha(k.id); }, 'Ver'); return; }
   const novos = S.registros.filter(r => r.id > antes && (r.tipo === 'ent' || r.tipo === 'sai')); if (!novos.length) return;
   const r = novos[0]; S.chegou = r.tipo === 'ent' ? r.crianca : 0; setTimeout(() => { S.chegou = 0; }, 1800);
-  const cr = crianca(r.crianca);
-  const sapSaida = r.tipo === 'sai' ? (String(r.txt).match(/sapateira (\d+)/) || [])[1] : '';
-  if (r.tipo === 'ent' && cr && !cr.sapateira) { toast(`${r.nome} entrou · ${hora(r.h)}. O tempo já está correndo.`, () => folhaSapateira(cr.id), 'Sapateira'); return; }
-  toast(r.tipo === 'ent' ? `${r.nome} entrou · ${hora(r.h)}${cr && cr.sapateira ? ' · sapateira ' + cr.sapateira : ''}. O tempo já está correndo.` : `${r.nome} saiu${sapSaida ? ' · sapato na sapateira ' + sapSaida : ''} · ${String(r.txt).replace(/ · sapato na sapateira \d+/, '')}`);
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { PULSO_N = 14; sincronizar(); } });
 // os bichinhos da tela de entrar: o ursinho (corpo atrás do cartão, patinhas na frente), o passarinho no canto e o coelhinho de lado
@@ -1532,7 +1531,7 @@ function telaCriarGestor() {
     <div class="campo"><label for="g-senha">Senha (pelo menos 6 caracteres)</label><input id="g-senha" type="password" autocomplete="new-password"></div>
     <button class="bt forte largo tap" data-act="criar-gestor">${ic(IC.check)} Criar e entrar</button>`);
 }
-async function depoisDeEntrar() { lerEtapas(); await conferirGz(); await carregar(); desenhar(); conferirAtualizacao(false); oferecerLimpeza(); lembrarUnidade(); }
+async function depoisDeEntrar() { lerEtapas(); await conferirGz(); await carregar(); desenhar(); conferirAtualizacao(false); oferecerLimpeza(); }
 /* ---------- 0.98: limpar os cadastros (começar do zero) ---------- */
 // Para quando os testes acabam e a loja vai começar de verdade. Saem todos os cadastros (crianças e responsáveis, com as fotos) e o que
 // nasceu deles: horas, vendas, pagamentos, visitas e o movimento do dia. Ficam a equipe, a regra, os serviços, os pacotes, os produtos
@@ -2007,6 +2006,7 @@ const textoCobranca = (x, c) => `Nova cobrança por atraso: ficou além do tempo
 const temVoucher = c => !!c && (MODO === 'servidor' ? !!c.vouch : (S.compras || []).some(v => v.crianca === c.id && v.voucher && doDia(v.quando) && !c.visitas.some(x => new Date(x.dia) > v.quando)));
 const umaCobranca = c => c && c.atraso && c.atraso.n ? c.atraso.valor / c.atraso.n : precoDe(c, (servicoTempo() || { v: 0 }).v);   // quanto vale um período a receber desta criança
 // o aviso depois de registrar um voucher: o que ele cobriu e, se for o caso, que é o segundo do dia
+const atencaoVoucher = (v, nome) => v && v.n > 1 ? `Atenção: é o ${v.n}º voucher de hoje para ${nome}` : '';   // 1.08: é só isto que a faixa de baixo ainda mostra do voucher
 const avisoVoucher = (v, nome) => !v ? '' : (v.cobriu ? `Voucher usado: cobriu a cobrança por atraso de ${brl(v.cobriu.valor)}. ` : '') + (v.n > 1 ? `Atenção: é o ${v.n}º voucher de hoje para ${nome}. ` : '');
 // (prévia) o voucher usado com cobrança por atraso a receber cobre a mais nova: ela sai e o período do voucher fica no lugar. Devolve a cobrança coberta (ou null)
 function cobrirPrevia(c) {
@@ -2032,7 +2032,6 @@ function acertarDemo(c, quieto) {
     const preco = precoDe(c, x.v), compra = { id: novoId(), crianca: c.id, h: p / 60, m: p, v: preco, servico: x.n, itens: 'cobrança por atraso' + (c.pcd ? ' · ' + rotPcd() : ''), quando: new Date(), por: '', auto: true, pcd: !!c.pcd, cheio: x.v }; S.compras.unshift(compra);
     c.pacote += p / 60; c.atraso = { n: (c.atraso ? c.atraso.n : 0) + 1, valor: (c.atraso ? c.atraso.valor : 0) + preco }; c.venda = { h: p / 60, m: p, v: preco, servico: x.n, com: compra.itens, quando: compra.quando };
     registrar('cobr', c.nome, textoCobranca(x, c)); compra.reg = S.registros[0]; }
-  if (n && !quieto) toast(`Nova cobrança por atraso: ${c.nome} passou do tempo comprado · ${brl(c.atraso.valor)} a receber na saída`, () => folhaFicha(c.id), 'Ver');
   return n;
 }
 // os personagens das contas do dia: cada um segura a placa onde o número aparece (a placa fica no mesmo lugar em todos)
@@ -2123,12 +2122,12 @@ async function escolherSap(id, n) { // n = 0 deixa a criança sem sapateira
   const aplicar = async v => { if (MODO === 'servidor') { await api('sapateira', { id, n: v }); await carregar(); } else crianca(id).sapateira = v || null; };
   try { await aplicar(n); } catch (e) { toast(e.message); if (MODO === 'servidor') { try { await carregar(); } catch (x) { } } redesenharSap(); return; }
   fecharFolha(); desenhar();
-  toast(n ? `${nome} na sapateira ${n}` : `Sapateira ${antes} livre de novo`, async () => { try { await aplicar(antes); } catch (e) { toast(e.message); } desenhar(); });
+  deuCerto(n ? `${nome} na sapateira ${n}` : `Sapateira ${antes} livre de novo`, async () => { try { await aplicar(antes); } catch (e) { toast(e.message); } desenhar(); });
 }
 async function liberarSap(n) { // tira o número de quem estiver com ele (sapateira esquecida)
   const d = donoSap(n); if (!d) return;
   try { if (MODO === 'servidor') { await api('sapateira_liberar', { n }); await carregar(); } else d.sapateira = null; } catch (e) { toast(e.message); return; }
-  redesenharSap(); desenhar(true); toast(`Sapateira ${n} livre`);
+  redesenharSap(); desenhar(true); deuCerto(`Sapateira ${n} livre`);
 }
 function folhaSapateira(id) { SAP_TODAS = false;
   const c = crianca(id); if (!c) return;
@@ -2187,7 +2186,7 @@ function mensagemAuto(c, txt, comFoto) {
 }
 async function entradaServidor(c) {
   try { const r = await api('entrada', { id: c.id }); await carregar(); desenhar(); const k = crianca(c.id);
-    toast(`${c.nome} entrou${k && k.entrou ? ' · tempo comprado até ' + hora(fimVisita(k)) : ''}`, async () => { try { await api('desfazer_entrada', { id: c.id, registro: r.registro, mensagem: r.mensagem ? r.mensagem.id : 0 }); await carregar(); } catch (e) { toast(e.message); } desenhar(); });
+    deuCerto(`${c.nome} entrou${k && k.entrou ? ' · tempo comprado até ' + hora(fimVisita(k)) : ''}`, async () => { try { await api('desfazer_entrada', { id: c.id, registro: r.registro, mensagem: r.mensagem ? r.mensagem.id : 0 }); await carregar(); } catch (e) { toast(e.message); } desenhar(); });
     if (k && k.entrou) setTimeout(() => papelDepois({ tipo: 'entrada', id: c.id }), 420); } catch (e) { toast(e.message); }   // 0.94: entrou, o cupom de entrada sai (depois de a folha que estava aberta fechar)
 }
 // corr: { quando: 'HH:MM', motivo } quando a supervisão diz a hora em que a criança saiu de verdade
@@ -2195,7 +2194,7 @@ async function saidaServidor(c, corr, pag, papel, dsc) {
   try { const r = await api('saida', { id: c.id, ...(corr ? { quando: corr.quando, motivo: corr.motivo } : {}), ...(pag && pag.length ? { pagamento: pag } : {}), ...(dsc ? { desconto: dsc } : {}) }); await carregar(); fecharFolha(); desenhar();
     const at = r.atraso && r.atraso.n ? +r.atraso.valor || 0 : 0, pd = +r.pend || 0, dz = r.desc ? +r.desc.valor || 0 : 0;   // 1.04: dz = o desconto que o gestor deu nesta saída
     const txt = `${c.nome} saiu${corr ? ' às ' + corr.quando : ''} · ${dur(r.debitado)} debitados${pd > 0 ? ' · ' + (r.pago ? 'recebido ' + brl(centavos(pd + at - dz)) + ' (' + r.pago + ')' : brl(centavos(pd + at - dz)) + ' a receber') : at ? ' · ' + brl(centavos(at - dz)) + (r.pago ? ' de atraso recebido (' + r.pago + ')' : ' de atraso a receber') : ''}${dz > 0 ? ' · desconto de ' + brl(dz) : ''}${r.sapateira ? ' · sapato na sapateira ' + r.sapateira : ''}`;
-    if (corr) toast(txt, () => folhaDia(), 'Ver o dia'); else toast(txt, async () => { try { await api('desfazer_saida', { id: c.id, visita: r.visita, registro: r.registro, mensagem: r.mensagem ? r.mensagem.id : 0, sapateira: r.sapateira || 0, ...(r.pag_de != null ? { pag_de: r.pag_de, pag_registro: r.pag_registro || 0 } : {}), ...(r.desc ? { desc: r.desc } : {}) }); await carregar(); } catch (e) { toast(e.message); } desenhar(); });
+    if (corr) deuCerto(txt); else deuCerto(txt, async () => { try { await api('desfazer_saida', { id: c.id, visita: r.visita, registro: r.registro, mensagem: r.mensagem ? r.mensagem.id : 0, sapateira: r.sapateira || 0, ...(r.pag_de != null ? { pag_de: r.pag_de, pag_registro: r.pag_registro || 0 } : {}), ...(r.desc ? { desc: r.desc } : {}) }); await carregar(); } catch (e) { toast(e.message); } desenhar(); });
     if (r.cupom) folhaCupom(r.cupom, true); else papelDepois(papel); }   // 1.06: o cupom da saída sai sempre, para o responsável assinar
   catch (e) { toast(e.message); const b = $('#s-ok'); if (b) b.disabled = false; }
 }
@@ -2418,7 +2417,7 @@ async function receberJa(el) {
   const c = crianca(REC.id); if (!c) return; if (el) el.disabled = true; const pag = r.partes, total = REC.total;
   if (MODO === 'servidor') {
     try { const x = await api('receber', { id: c.id, pagamento: pag }); REC = null; await carregar(); fecharFolha(); desenhar();
-      toast(`Recebido de ${c.nome}: ${brl(x.valor)} · ${x.pago}`, async () => { try { await api('receber', { id: c.id, voltar: true, pag_de: x.pag_de, registro: x.registro }); await carregar(); } catch (e) { toast(e.message); } desenhar(); });
+      deuCerto(`Recebido de ${c.nome}: ${brl(x.valor)} · ${x.pago}`, async () => { try { await api('receber', { id: c.id, voltar: true, pag_de: x.pag_de, registro: x.registro }); await carregar(); } catch (e) { toast(e.message); } desenhar(); });
       if (x.cupom) folhaCupom(x.cupom, true); }
     catch (e) { toast(e.message); if (el) el.disabled = false; if (e.status === 409) { try { await carregar(); } catch (e2) { } fecharFolha(); desenhar(true); } }   // 409: o valor mudou (outra tela recebeu, ou nasceu uma cobrança por atraso)
     return;
@@ -2426,7 +2425,7 @@ async function receberJa(el) {
   const P = pendentesPrevia(c), at = c.entrou ? S.compras.filter(v => v.crianca === c.id && v.auto && v.quando >= c.entrou && faltaCompra(v) > 0.004).sort((a, b) => a.quando - b.quando) : [], eraAtraso = c.atraso;
   const pagos = pagarPrevia([...P, ...at], pag); registrar('pag', c.nome, `Pagamento · ${brl(total)} · ${textoPag(pag)}`); const reg = S.registros[0]; if (at.length) c.atraso = null;   // as cobranças por atraso recebidas saem da conta "a receber"
   const cupomId = criarCupomPrevia(c, 'venda', pagos);
-  REC = null; fecharFolha(); desenhar(); toast(`Recebido de ${c.nome}: ${brl(total)} · ${textoPag(pag)}`, () => { S.pagamentos = (S.pagamentos || []).filter(x => !pagos.includes(x)); S.registros = S.registros.filter(x => x !== reg); c.atraso = eraAtraso; });
+  REC = null; fecharFolha(); desenhar(); deuCerto(`Recebido de ${c.nome}: ${brl(total)} · ${textoPag(pag)}`, () => { S.pagamentos = (S.pagamentos || []).filter(x => !pagos.includes(x)); S.registros = S.registros.filter(x => x !== reg); c.atraso = eraAtraso; });
   if (cupomId) folhaCupom(cupomId, true);
 }
 /* ---------- 1.03: as telas de pagamento, na ordem do fechamento do sistema anterior ---------- */
@@ -2536,7 +2535,7 @@ async function registrarAtendimento(id, mesmoAssim, pag, depois) { // mesmoAssim
   if (MODO === 'servidor') {
     const bt = $('#v-ok'), bp = $('#p-ok'), bd = $('#p-depois'); if (bt) bt.disabled = true; if (bp) bp.disabled = true; if (bd) bd.disabled = true;
     try { const o = L.find(l => l.outro), r = await api('atender', { id, linhas: L.filter(l => l.s).map(l => ({ s: l.s, q: l.q })), pacotes: L.filter(l => l.pac != null).map(l => ({ h: l.ph, tipo: l.ptipo, v: l.v, nome: l.pnome })), produtos: L.filter(l => l.prod).map(l => ({ p: l.prod, q: l.q, v: l.pv })), outro: o ? { n: o.servico, v: o.v } : null, voucher: vou ? true : null, entrar, visto: (CARRINHO && CARRINHO.visto) || 0, mesmo_assim: !!mesmoAssim, pagamento: pag && pag.length ? pag : null, depois: !!depois && !(pag && pag.length), ...(dsc ? { desconto: dsc } : {}) });
-      await carregar(); atendimentoFeito(id); fecharFolha(); desenhar(); const k = crianca(id); toast(avisoVoucher(r.voucher, nome) + aviso + (r.entrada ? ' · entrou' + (k && k.entrou ? ', tempo até ' + hora(fimVisita(k)) : '') : ''), async () => { voltarRascunho(id, rasc); try { if (r.entrada) await api('desfazer_entrada', { id, registro: r.entrada.registro, mensagem: r.entrada.mensagem }); await api('desfazer_venda', { vendas: r.vendas, registros: r.registros }); await carregar(); } catch (e) { toast(e.message); } desenhar(); }); VOLTA_SAIDA = 0; cupomDaVenda(id, r.cupom, volta && depois && !(pag && pag.length) ? null : { tipo: 'entrada', id, itens: L.map(l => ({ n: nomeLinha(l), v: l.v })), formas: pag || [], depois: !!depois && !(pag && pag.length), desc: dsc ? dsc.valor : 0 }, volta); }   // 0.94: registrou, o cupom sai para o responsável assinar
+      await carregar(); atendimentoFeito(id); fecharFolha(); desenhar(); const k = crianca(id); deuCertoOu(atencaoVoucher(r.voucher, nome), avisoVoucher(r.voucher, nome) + aviso + (r.entrada ? ' · entrou' + (k && k.entrou ? ', tempo até ' + hora(fimVisita(k)) : '') : ''), async () => { voltarRascunho(id, rasc); try { if (r.entrada) await api('desfazer_entrada', { id, registro: r.entrada.registro, mensagem: r.entrada.mensagem }); await api('desfazer_venda', { vendas: r.vendas, registros: r.registros }); await carregar(); } catch (e) { toast(e.message); } desenhar(); }); VOLTA_SAIDA = 0; cupomDaVenda(id, r.cupom, volta && depois && !(pag && pag.length) ? null : { tipo: 'entrada', id, itens: L.map(l => ({ n: nomeLinha(l), v: l.v })), formas: pag || [], depois: !!depois && !(pag && pag.length), desc: dsc ? dsc.valor : 0 }, volta); }   // 0.94: registrou, o cupom sai para o responsável assinar
     catch (e) { if (bt) bt.disabled = false; if (bp) bp.disabled = false; if (bd) bd.disabled = false; if (e.status === 409) toast(e.message, () => registrarAtendimento(id, true, pag, depois), 'Registrar mesmo assim'); else toast(e.message); }   // 409: outro aparelho já registrou uma venda para esta criança
     return;
   }
@@ -2557,7 +2556,7 @@ async function registrarAtendimento(id, mesmoAssim, pag, depois) { // mesmoAssim
   let desfazEntrada = null;
   if (entrar && !c.entrou && temPeriodo(c)) { c.entrou = new Date(); c.uni = minhaUni() || null; c.atraso = null; registrar('ent', c.nome, 'Entrada registrada'); const regE = S.registros[0]; desfazEntrada = () => { c.entrou = null; S.registros = S.registros.filter(x => x !== regE); }; }
   atendimentoFeito(id); fecharFolha(); desenhar();
-  toast(avisoVoucher(vou ? { n: nV, cobriu: coberta ? { valor: coberta.v } : null } : null, nome) + aviso + (desfazEntrada ? ' · entrou, tempo até ' + hora(fimVisita(c)) : ''), () => { voltarRascunho(id, rasc); if (desfazEntrada) desfazEntrada(); Object.assign(c, era); if (coberta) { S.compras.push(coberta); if (coberta.reg) coberta.reg.txt = coberta.reg.txt.replace(' · coberta pelo voucher', ''); c.atraso = eraAtraso; } for (const x of novas) if (x.prod) { const p = produto(x.prod); if (p && p.est != null) p.est += x.qtd; } S.compras = S.compras.filter(x => !novas.includes(x)); S.registros = S.registros.filter(x => !regs.includes(x)); S.pagamentos = (S.pagamentos || []).filter(x => !pagos.includes(x)); });
+  deuCertoOu(atencaoVoucher(vou ? { n: nV, cobriu: coberta ? { valor: coberta.v } : null } : null, nome), avisoVoucher(vou ? { n: nV, cobriu: coberta ? { valor: coberta.v } : null } : null, nome) + aviso + (desfazEntrada ? ' · entrou, tempo até ' + hora(fimVisita(c)) : ''), () => { voltarRascunho(id, rasc); if (desfazEntrada) desfazEntrada(); Object.assign(c, era); if (coberta) { S.compras.push(coberta); if (coberta.reg) coberta.reg.txt = coberta.reg.txt.replace(' · coberta pelo voucher', ''); c.atraso = eraAtraso; } for (const x of novas) if (x.prod) { const p = produto(x.prod); if (p && p.est != null) p.est += x.qtd; } S.compras = S.compras.filter(x => !novas.includes(x)); S.registros = S.registros.filter(x => !regs.includes(x)); S.pagamentos = (S.pagamentos || []).filter(x => !pagos.includes(x)); });
   VOLTA_SAIDA = 0; cupomDaVenda(id, cupomId, volta && depois && !(pag && pag.length) ? null : { tipo: 'entrada', id, itens: L.map(l => ({ n: nomeLinha(l), v: l.v })), formas: pag || [], depois: !!depois && !(pag && pag.length), desc: dsc ? dsc.valor : 0 }, volta);   // 0.94: registrou, o cupom sai para o responsável assinar
 }
 // 1.00: depois de uma venda, o cupom (como sempre) e, se a venda veio da folha da saída, a saída dessa criança abre de novo quando o cupom fechar
@@ -2575,7 +2574,7 @@ function entrada(c, origem = 'iDFace') {
   c.entrou = new Date(); c.uni = minhaUni() || null; c.atraso = null; registrar('ent', c.nome, origem === 'iDFace' ? 'Rosto reconhecido na entrada' : (semIdface() ? 'Entrada registrada' : 'Entrada registrada à mão'));
   const reg = S.registros[0], primeiroNome = nomeMsg(c.resp.split(' ')[0]);
   const desfazMsg = S.cfg.autoMsg !== 'nao' ? mensagemAuto(c, `Oi, ${primeiroNome}! ${nomeMsg(c.nome)} chegou na Play Space às ${hora(c.entrou)} 💛 Qualquer coisa a gente te chama por aqui.`, true) : null;
-  toast(`${c.nome} entrou · tempo comprado até ${hora(fimVisita(c))}`, () => { c.entrou = null; S.registros = S.registros.filter(r => r !== reg); if (desfazMsg) desfazMsg(); });
+  deuCerto(`${c.nome} entrou · tempo comprado até ${hora(fimVisita(c))}`, () => { c.entrou = null; S.registros = S.registros.filter(r => r !== reg); if (desfazMsg) desfazMsg(); });
   if (origem !== 'iDFace') setTimeout(() => papelDepois({ tipo: 'entrada', id: c.id }), 420);   // 0.94: entrou pela tela, o cupom de entrada sai (depois de a folha que estava aberta fechar)
 }
 // A saída debita períodos inteiros. corr = { quando: 'HH:MM', motivo, em: Date }: a supervisão diz a hora em que a criança saiu de verdade
@@ -2612,7 +2611,7 @@ function saida(c, origem = 'iDFace', corr = null, pag = null, papel = null, dsc 
   if (dz > 0) registrar('desc', c.nome, textoDesc({ ...dsc, valor: dz }));   /* 1.04 */
   if (pago && pend > 0) registrar('pag', c.nome, `Pagamento na saída · ${brl(recebido)} · ${pago}`);   /* 1.02 */
   if (corr) registrar('corr', c.nome, `Saída corrigida para ${hora(fim)} · ${dur(deb)} debitados${desfeitas ? ` · ${desfeitas > 1 ? desfeitas + ' cobranças por atraso desfeitas' : 'cobrança por atraso desfeita'}: ${brl(valorDesf)}` : ''} · Motivo: ${corr.motivo} · por ${EU.nome}`);
-  let quietoR = null; const avisa = quieto ? (t, f) => { quietoR = { txt: t, desfaz: f }; } : toast;
+  let quietoR = null; const avisa = quieto ? (t, f) => { quietoR = { txt: t, desfaz: f }; } : deuCerto;
   avisa(`${c.nome} saiu${corr ? ' às ' + hora(fim) : ''} · ${dur(deb)} debitados${pend > 0 ? ' · ' + (pago ? 'recebido ' + brl(recebido) + ' (' + pago + ')' : brl(recebido) + ' a receber') : atraso.n ? ' · ' + brl(centavos(atraso.valor - dz)) + (pago ? ' de atraso recebido (' + pago + ')' : ' de atraso a receber') : ''}${dz > 0 ? ' · desconto de ' + brl(dz) : ''}${sap ? ' · sapato na sapateira ' + sap : ''}`,
     () => { for (const [v, vv, d, m] of descs) { v.v = vv; v.desc = d; v.descMotivo = m; } S.pagamentos = era.pags; Object.assign(c, { pacote: era.pacote, usado: era.usado, liberado: era.liberado, atraso: era.atraso, venda: era.venda, visitas: era.visitas, entrou: entrouEm, sapateira: sap && !donoSap(sap) ? sap : null }); S.compras = era.compras; S.registros = era.regs; });
   return quieto ? { cupomId, deb, ...quietoR } : cupomId;
@@ -2780,8 +2779,8 @@ async function marcarCupom(id, oque, dados = {}, naLista = false) {
   } else marcarCupomPrevia(k, oque, dados);
   desenhar(true);
   if (naLista) redesenharCupons(); else if (oque === 'voltar') folhaCupom(id); else fecharFolha();
-  if (oque === 'voltar') { toast(`Marcação desfeita: o cupom de ${valor} de ${nome} voltou para "${antes === 'cancelado' ? 'a cancelar' : 'a emitir'}"`); return; }
-  toast(oque === 'emitido' ? `Cupom de ${valor} de ${nome} marcado como emitido${num ? ' · nº ' + num : ''}` : oque === 'sem' ? `O pagamento de ${valor} de ${nome} ficou sem cupom fiscal` : `Cupom de ${valor} de ${nome} cancelado na máquina`,
+  if (oque === 'voltar') { deuCerto(`Marcação desfeita: o cupom de ${valor} de ${nome} voltou para "${antes === 'cancelado' ? 'a cancelar' : 'a emitir'}"`); return; }
+  deuCerto(oque === 'emitido' ? `Cupom de ${valor} de ${nome} marcado como emitido${num ? ' · nº ' + num : ''}` : oque === 'sem' ? `O pagamento de ${valor} de ${nome} ficou sem cupom fiscal` : `Cupom de ${valor} de ${nome} cancelado na máquina`,
     async () => { try { if (MODO === 'servidor') { await api('cupom_voltar', { id }); await carregar(); } else marcarCupomPrevia(cupomDe(id), 'voltar', {}); } catch (e) { toast(e.message); } desenhar(true); });
 }
 // (prévia) o cupom nasce dos pagamentos que acabaram de ser registrados, e acompanha a venda, como no servidor
@@ -2929,13 +2928,13 @@ async function confirmarGrupo(el) {
       fecharFolha(); desenhar(); toast(`${juntar(feitas.map(f => f.x.c.nome))} ${feitas.length === 1 ? 'saiu' : 'saíram'}. A saída de ${P[feitas.length].c.nome} não foi dada: ${e.message}`); papelDepois(papelDe(feitas.map(f => f.x))); return; }
     await carregar(); fecharFolha(); desenhar();
     const deb = feitas.reduce((t, f) => t + (+f.r.debitado || 0), 0), saps = feitas.map(f => f.r.sapateira).filter(Boolean);
-    toast(`${juntar(nomes)} ${verbo} · ${dur(deb)} debitados${recebeu}${desconto}${saps.length ? ' · ' + (saps.length === 1 ? 'sapato na sapateira ' : 'sapatos nas sapateiras ') + juntar(saps.map(String)) : ''}`,
+    deuCerto(`${juntar(nomes)} ${verbo} · ${dur(deb)} debitados${recebeu}${desconto}${saps.length ? ' · ' + (saps.length === 1 ? 'sapato na sapateira ' : 'sapatos nas sapateiras ') + juntar(saps.map(String)) : ''}`,
       async () => { try { for (const f of feitas.slice().reverse()) await api('desfazer_saida', { id: f.x.c.id, visita: f.r.visita, registro: f.r.registro, mensagem: f.r.mensagem ? f.r.mensagem.id : 0, sapateira: f.r.sapateira || 0, ...(f.r.pag_de != null ? { pag_de: f.r.pag_de, pag_registro: f.r.pag_registro || 0 } : {}), ...(f.r.desc ? { desc: f.r.desc } : {}) }); await carregar(); } catch (e) { toast(e.message); try { await carregar(); } catch (e2) { } } desenhar(); });
     const cup = feitas.map(f => f.r.cupom).filter(Boolean); if (cup.length === 1) folhaCupom(cup[0], true); else if (cup.length) folhaCupons(); else papelDepois(papel);
     return; }
   const saps = P.map(x => x.c.sapateira).filter(Boolean), R = P.map(x => saida(x.c, 'mão', null, x.pag.length ? x.pag : null, null, x.dsc, true)).filter(Boolean);   // (prévia) cada criança sai, sem o aviso de cada uma
   fecharFolha(); desenhar();
-  toast(`${juntar(nomes)} ${verbo} · ${dur(R.reduce((t, x) => t + (x.deb || 0), 0))} debitados${recebeu}${desconto}${saps.length ? ' · ' + (saps.length === 1 ? 'sapato na sapateira ' : 'sapatos nas sapateiras ') + juntar(saps.map(String)) : ''}`, () => { for (const x of R.slice().reverse()) if (x.desfaz) x.desfaz(); });
+  deuCerto(`${juntar(nomes)} ${verbo} · ${dur(R.reduce((t, x) => t + (x.deb || 0), 0))} debitados${recebeu}${desconto}${saps.length ? ' · ' + (saps.length === 1 ? 'sapato na sapateira ' : 'sapatos nas sapateiras ') + juntar(saps.map(String)) : ''}`, () => { for (const x of R.slice().reverse()) if (x.desfaz) x.desfaz(); });
   const cup = R.map(x => x.cupomId).filter(Boolean); if (cup.length === 1) folhaCupom(cup[0], true); else if (cup.length) folhaCupons(); else papelDepois(papel);
 }
 // a folha da saída mostra as formas de pagamento só quando há o que receber; se o valor muda (o tempo passou, usou o voucher, corrigiu a hora), a conta acompanha
@@ -3020,11 +3019,25 @@ function nav() {
 }
 let toastT, DESFAZ = null, NAV_CACHE = '';
 let TOAST_ACAO = null;
+// 1.08: a faixa de baixo é só para o que precisa de atenção: um erro, o que falta para continuar, uma recusa, uma informação pedida.
+// O que deu certo não passa mais por aqui: passa por deuCerto(), logo abaixo.
 function toast(txt, desfazer, rotulo) { // com rotulo, o botão faz uma ação (ex.: "Chamar no WhatsApp") em vez de desfazer
-  const t = $('#toast'); DESFAZ = rotulo ? null : (desfazer || null); TOAST_ACAO = rotulo ? desfazer : null;
+  const t = $('#toast'), d = $('#dito'); DESFAZ = rotulo ? null : (desfazer || null); TOAST_ACAO = rotulo ? desfazer : null; t.classList.remove('so-bt'); if (d) d.textContent = '';
   t.innerHTML = `<span>${esc(txt)}</span>${rotulo ? `<button type="button" data-act="toast-acao">${esc(rotulo)}</button>` : (desfazer ? '<button type="button" data-act="desfazer">Desfazer</button>' : '')}`;
   t.classList.add('ve'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('ve'), rotulo ? 10000 : desfazer ? 6000 : 2400);
 }
+// 1.08: o que deu certo ("salvo", "X saiu · 1h debitados") não é mais anunciado na faixa de baixo: a tela já mostra o resultado.
+// Se a ação tem como desfazer, aparece só o botão Desfazer, por alguns segundos, sem texto. O texto vai para o leitor de tela (#dito)
+// e para a dica do botão (para quem parar o mouse nele saber o que será desfeito).
+function deuCerto(txt, desfazer) {
+  const t = $('#toast'), d = $('#dito'); if (d) { d.textContent = txt || ''; d.dataset.em = Date.now(); }
+  DESFAZ = desfazer || null; TOAST_ACAO = null; clearTimeout(toastT);
+  if (!desfazer) { t.classList.remove('ve'); return; }
+  t.innerHTML = `<button type="button" data-act="desfazer" title="Desfazer: ${esc(txt)}" aria-label="Desfazer: ${esc(txt)}">${ic(IC.desfaz, 15, 2.6)} Desfazer</button>`;
+  t.classList.add('ve', 'so-bt'); toastT = setTimeout(() => t.classList.remove('ve'), 6000);
+}
+// o que deu certo mas traz um alerta junto (o 2º voucher do dia): o alerta continua aparecendo na faixa, com o Desfazer quando há
+function deuCertoOu(alerta, txt, desfazer) { if (alerta) toast(alerta, desfazer); else deuCerto(txt, desfazer); }
 function abrirFolha(titulo, html, rotulo) {
   guardarEtapa(false);   // a folha que estava aberta e não foi concluída (atendimento, cadastro novo) fica guardada antes de trocar
   const f = $('#folha'); if (LADO && innerWidth < 820) fecharLado();   // no celular a aba do histórico ocupa a tela: sai para a folha aparecer
@@ -3077,9 +3090,7 @@ function folhaUnidade() {
     ${pode ? '' : '<p class="explica">Só o gestor ou o supervisor troca a unidade deste aparelho.</p>'}
     ${MODO !== 'servidor' || gestor() ? `<button type="button" class="link tap pg-add" data-act="unidades-ir">${ic(IC.mais, 14, 2.8)} Cadastrar ou mudar as unidades <small>· em Ajustes</small></button>` : ''}`);
 }
-function escolherUnidade(id) { const u = unidadeDe(id); if (!u || u.ativo === false || !podeTrocarUni()) return; const era = minhaUni(); guardar('ps-unidade', u.id); fecharFolha(); desenhar(); if (era !== u.id) toast(`Este aparelho agora está em ${u.nome}`); }
-// depois de entrar: o aparelho que ainda não tem unidade lembra quem está nele (um aviso com o botão Escolher; não trava a tela)
-function lembrarUnidade() { if (MODO === 'servidor' && unidades().length && !minhaUni()) setTimeout(() => { if (!minhaUni() && !$('#folha .folha-fundo')) toast('Este aparelho ainda não tem unidade', () => folhaUnidade(), 'Escolher'); }, 1400); }
+function escolherUnidade(id) { const u = unidadeDe(id); if (!u || u.ativo === false || !podeTrocarUni()) return; const era = minhaUni(); guardar('ps-unidade', u.id); fecharFolha(); desenhar(); if (era !== u.id) deuCerto(`Este aparelho agora está em ${u.nome}`); }
 // Ajustes → Unidades: nova, com outro nome, ou removida (só o gestor)
 function folhaUnidadeEditar(id) {
   if (MODO === 'servidor' && !gestor()) { toast('Só o gestor cadastra as unidades'); return; }
@@ -3096,14 +3107,14 @@ async function salvarUnidade(el) {
   if (unidades().some(u => u.id !== id && u.nome.toLowerCase() === nome.toLowerCase())) { toast('Já existe uma unidade com esse nome'); return; }
   if (MODO === 'servidor') { el.disabled = true; try { const r = await api('unidade_salvar', { id, nome }); if (Array.isArray(r.unidades)) S.unidades = r.unidades; } catch (e) { el.disabled = false; toast(e.message); return; } }
   else { const u = id ? unidadeDe(id) : null; if (u) u.nome = nome; else S.unidades.push({ id: Math.max(0, ...S.unidades.map(x => x.id)) + 1, nome, ativo: true }); }
-  toast(id ? `Unidade ${nome} salva` : `Nova unidade: ${nome}`); fecharFolha(); desenhar();
+  deuCerto(id ? `Unidade ${nome} salva` : `Nova unidade: ${nome}`); fecharFolha(); desenhar();
 }
 async function apagarUnidade(el) {
   const u = unidadeDe(el.dataset.id); if (!u) return; const n = naUnidade(u.id); let reg = 0;
   if (n) { toast(`${n === 1 ? 'Há uma criança' : 'Há ' + n + ' crianças'} no espaço em ${u.nome} agora. Dê a saída antes de remover a unidade.`); return; }
   const tirar = async sim => { if (MODO === 'servidor') { const r = await api('unidade_apagar', sim ? { id: u.id } : { id: u.id, voltar: true, registro: reg }); if (sim) reg = r.registro || 0; if (Array.isArray(r.unidades)) S.unidades = r.unidades; } else u.ativo = !sim; };
   try { await tirar(true); } catch (e) { toast(e.message); return; }
-  toast(`${u.nome} saiu das unidades`, async () => { try { await tirar(false); } catch (e) { toast(e.message); } desenhar(); }); fecharFolha(); desenhar();
+  deuCerto(`${u.nome} saiu das unidades`, async () => { try { await tirar(false); } catch (e) { toast(e.message); } desenhar(); }); fecharFolha(); desenhar();
 }
 function faixa(titulo, sub, chip, junto = '') { return `<div class="faixa"><span class="logo">${LOGO}</span><div class="tit"><small>${esc(sub)}</small>${junto ? `<div class="tit-l"><h1>${esc(titulo)}</h1>${junto}</div>` : `<h1>${esc(titulo)}</h1>`}</div><div class="relogio" title="Hora e data de agora"><b class="num" data-relogio>${relogioTxt()}</b><span data-data>${dataTxt()}</span></div>${ATU.nova ? botaoVersao() : ''}${chip || ''}</div>`; }
 const relogioTxt = () => `${hora(agora)}<small>:${p2(agora.getSeconds())}</small>`;
@@ -3153,11 +3164,11 @@ function planoDe(c) {
 // os filtros da lista: Todas, um por serviço da loja (o tempo de brincar e cada coisa que sai e volta) e, dentro da recreação, Horas avulsas ou Pacotes
 const espFiltro = () => S.espFiltro === 'sairam' ? 'sairam' : 'todas';   // a lista de quem está aqui, ou a de quem saiu há pouco (para reabrir a visita)
 // 0.97: copiar o CPF (ou o RNE) com um toque, para colar em outro lugar sem escrever de novo
-async function copiarTexto(t, rot = 'CPF') {
+async function copiarTexto(t, rot = 'CPF', el = null) {   // 1.08: el = o botão tocado: é ele que mostra que copiou (um ✓ por um instante)
   t = String(t || '').trim(); if (!t) { toast(`Ainda não há ${rot} para copiar`); return; }
   try { if (!(navigator.clipboard && window.isSecureContext)) throw new Error('sem acesso'); await navigator.clipboard.writeText(t); }
   catch (e) { const a = document.createElement('textarea'); a.value = t; a.setAttribute('readonly', ''); a.style.cssText = 'position:fixed;left:-999px;top:0;opacity:0'; document.body.appendChild(a); a.select(); let ok = false; try { ok = document.execCommand('copy'); } catch (e2) { } a.remove(); if (!ok) { toast(`Não deu para copiar o ${rot} neste aparelho`); return; } }
-  toast(`${rot} copiado`);
+  deuCerto(`${rot} copiado`); if (el && el.isConnected) { el.classList.add('ok'); el.innerHTML = ic(IC.check, 14, 2.8); setTimeout(() => { if (el.isConnected) { el.classList.remove('ok'); el.innerHTML = ic(IC.copia, 14, 2.4); } }, 1400); }
 }
 const botaoCopiar = (t, rot = 'CPF') => `<button type="button" class="copia tap" data-act="copiar" data-t="${esc(t)}" data-rot="${rot}" title="Copiar o ${rot}" aria-label="Copiar o ${rot}">${ic(IC.copia, 14, 2.4)}</button>`;
 const copiaDoc = c => c && c.cpf ? botaoCopiar(c.cpf, c.doc === 'rne' ? 'RNE' : 'CPF') : '';
@@ -3200,7 +3211,7 @@ async function salvarObs(c, txt) { // guarda a observação escrita na venda ou 
   txt = MAIT(txt).slice(0, 500); const id = c.id, era = c.obs || ''; if (txt === era) { redesenharObs(id); return; }
   if (MODO === 'servidor') { try { await api('obs_salvar', { id, obs: txt }); await carregar(); } catch (e) { toast(e.message); return; } }
   else { if (era) c.obs_antes = era; c.obs = txt; c.obs_por = EU.nome; c.obs_em = new Date(); registrar('obs', c.nome, `${!era ? 'Observação anotada' : txt ? 'Observação alterada · a anterior continua guardada' : 'Observação apagada · a anterior continua guardada'} · por ${EU.nome}`); }
-  redesenharObs(id); desenhar(true); toast(txt ? 'Observação guardada. Só aparece para quem tocar no OBS.' : 'Observação apagada. A anterior continua guardada.');
+  redesenharObs(id); desenhar(true); deuCerto(txt ? 'Observação guardada. Só aparece para quem tocar no OBS.' : 'Observação apagada. A anterior continua guardada.');
 }
 const comSaldoFicha = c => saldoAgora(c) > 0 || clientePacote(c) || (!c.entrou && pacMin(c) > 0);   // 1.02: quem só comprou o período desta visita não precisa da conta de horas na ficha
 // a conta da comanda (a ficha da criança): quanto comprou ao todo, quanto já usou (a visita de agora já contada, em períodos inteiros) e o saldo que fica
@@ -3300,7 +3311,7 @@ async function devolverJa(c, a, pag) {
   const txt = `${alugNome(a)} de ${c.nome}: devolvido${alugHoje(a) ? ' · ficou ' + dur(ficou) : ''}${pago || (passou && alugHoje(a) ? ' · passou ' + alugPassou(a) + ' do tempo comprado' : '')}`;
   if (MODO === 'servidor') {
     try { const r = await api('devolver', { crianca: c.id, s: sv, pagamento: pag && pag.length ? pag : null }); await carregar(); refaz();
-      toast(txt, async () => { try { await api('devolver', { crianca: c.id, voltar: true, vendas: r.vendas, registro: r.registro, extra: r.extra || 0, registros: r.registros || [], ...(r.pag_de != null ? { pag_de: r.pag_de } : {}) }); await carregar(); } catch (e) { toast(e.message); } desenhar(true); }); papelDepois(papel); }
+      deuCerto(txt, async () => { try { await api('devolver', { crianca: c.id, voltar: true, vendas: r.vendas, registro: r.registro, extra: r.extra || 0, registros: r.registros || [], ...(r.pag_de != null ? { pag_de: r.pag_de } : {}) }); await carregar(); } catch (e) { toast(e.message); } desenhar(true); }); papelDepois(papel); }
     catch (e) { toast(e.message); try { await carregar(); } catch (e2) { } if (e.status === 409 && !pag) { desenhar(true); devolver(c.id, sv); } else refaz(); }   // 409 sem pagamento: passou do tempo enquanto a tela estava aberta
     return;
   }
@@ -3311,7 +3322,7 @@ async function devolverJa(c, a, pag) {
     if (DEV.x.valor > 0) { const compra = { id: novoId(), crianca: c.id, h: 0, m: 0, v: DEV.x.valor, servico: a.n, itens: 'tempo a mais · ' + dur(DEV.x.min), quando: new Date(), por: EU.nome };
       S.compras.unshift(compra); novos.push(compra); registrar('venda', c.nome, `${a.n} · tempo a mais · ${dur(DEV.x.min)} · ${brl(DEV.x.valor)}`); regs.push(S.registros[0]); compra.reg = S.registros[0]; }
     pagos = pagarPrevia([...vendas, ...novos], pag); registrar('pag', c.nome, `Pagamento · ${brl(centavos(DEV.x.valor + (DEV.pend || 0)))} · ${textoPag(pag)}`); regs.push(S.registros[0]); }
-  DEV = null; refaz(); toast(txt, () => { for (const v of vendas) delete v.voltou; S.compras = S.compras.filter(x => !novos.includes(x)); S.pagamentos = (S.pagamentos || []).filter(x => !pagos.includes(x)); S.registros = S.registros.filter(x => !regs.includes(x)); });
+  DEV = null; refaz(); deuCerto(txt, () => { for (const v of vendas) delete v.voltou; S.compras = S.compras.filter(x => !novos.includes(x)); S.pagamentos = (S.pagamentos || []).filter(x => !pagos.includes(x)); S.registros = S.registros.filter(x => !regs.includes(x)); });
   papelDepois(papel);
 }
 // quem saiu há pouco (dentro do prazo de reabrir): a linha com o botão Reabrir
@@ -3570,12 +3581,12 @@ function guardarEtapa(avisa) {
   if (ok && CARRINHO && +ok.dataset.id === CARRINHO.id) {
     const c = crianca(CARRINHO.id), tem = guardarRascunho(); ETAPA_FEITA = true; if (!c || (!tem && !pendNovo(c))) return;
     desenhar(true); if (!avisa) return; const t = tem ? linhasDoRascunho(c, RASC[c.id]).reduce((a, l) => a + l.v, 0) : 0;
-    toast(tem ? `Atendimento de ${c.nome} guardado${t ? ': ' + brl(t) + ' escolhido' : ''}. Continua em "Falta finalizar".` : `${c.nome} ficou em "Falta finalizar": falta escolher o serviço.`, () => atender(c.id), 'Continuar');
+    deuCerto(tem ? `Atendimento de ${c.nome} guardado${t ? ': ' + brl(t) + ' escolhido' : ''}. Continua em "Falta finalizar".` : `${c.nome} ficou em "Falta finalizar": falta escolher o serviço.`);
     return;
   }
   if ($('[data-act="salvar-crianca"]:not([data-id])', f)) {
     const tem = guardarCadastro(), k = CAD_K; ETAPA_FEITA = true; if (!tem) return;
-    desenhar(true); if (avisa) toast('Cadastro guardado pela metade. Continua em "Falta finalizar".', () => continuarCadastro(k), 'Continuar');
+    desenhar(true); if (avisa) deuCerto('Cadastro guardado pela metade. Continua em "Falta finalizar".');
   }
 }
 // a faixa "Falta finalizar" da tela inicial: quem ficou com o cadastro ou o atendimento pela metade, do mais antigo para o mais novo
@@ -3873,7 +3884,7 @@ async function marcarVisto(id) { // id = 0: todos os que estão para conferir
   const L = (S.cancelamentos || []).filter(x => !x.visto_em && (!id || x.id === id)); if (!L.length) return;
   if (MODO === 'servidor') { try { await api('cancelamento_visto', id ? { id } : { todos: true }); } catch (e) { toast(e.message); return; } }
   for (const x of L) { x.visto_por = EU.nomeCompleto || EU.nome; x.visto_em = new Date(); }
-  const a = $('#canc-corpo'); if (a) a.innerHTML = htmlCancelamentos(); desenhar(true); toast(L.length === 1 ? 'Marcado como visto' : `${L.length} cancelamentos marcados como vistos`);
+  const a = $('#canc-corpo'); if (a) a.innerHTML = htmlCancelamentos(); desenhar(true); deuCerto(L.length === 1 ? 'Marcado como visto' : `${L.length} cancelamentos marcados como vistos`);
 }
 /* ---------- histórico do cliente: uma aba à direita com tudo do responsável e das crianças dele ---------- */
 let LADO = null;   // { id (uma das crianças do cliente), dados: { vendas, visitas } | null, erro, todas, reg }
@@ -4099,9 +4110,9 @@ function folhaMensagem(c, texto) {
 }
 async function mandarPara(c, txt) {
   txt = String(txt || '').trim(); if (!txt) { toast('A mensagem está vazia'); return; }
-  if (MODO === 'servidor') { try { const r = await api('mensagem_enviar', { crianca: c.id, texto: txt }); await carregar(); fecharFolha(); desenhar(true); toast(r.erro ? 'Guardada na conversa, mas não saiu: ' + r.erro : `Mensagem enviada para ${primeiro(c.resp)} no WhatsApp`); } catch (e) { toast(e.message); } return; }
+  if (MODO === 'servidor') { try { const r = await api('mensagem_enviar', { crianca: c.id, texto: txt }); await carregar(); fecharFolha(); desenhar(true); if (r.erro) toast('Guardada na conversa, mas não saiu: ' + r.erro); else deuCerto(`Mensagem enviada para ${primeiro(c.resp)} no WhatsApp`); } catch (e) { toast(e.message); } return; }
   let conv = S.conversas.find(x => x.crianca === c.id); if (!conv) { conv = { id: novoId(), crianca: c.id, lidas: true, msgs: [] }; S.conversas.push(conv); }
-  conv.msgs.push({ de: 'nos', txt, h: new Date(), por: EU.nome }); fecharFolha(); desenhar(true); toast(`Mensagem enviada para ${primeiro(c.resp)} no WhatsApp`);
+  conv.msgs.push({ de: 'nos', txt, h: new Date(), por: EU.nome }); fecharFolha(); desenhar(true); deuCerto(`Mensagem enviada para ${primeiro(c.resp)} no WhatsApp`);
 }
 /* ---------- a chavinha "entrada liberada": ligada, a criança bate o rosto e as horas correm; desligada, o iDFace recusa ---------- */
 const liberada = c => c.liberado !== false;
@@ -4125,7 +4136,7 @@ function acompanharRosto(id) {
     if (!$('#rosto-estado')) { clearInterval(ROSTO_T); return; }
     try {
       const r = await api('idface_rosto_estado', { id }); const el = $('#rosto-estado span'), i = $('#rosto-estado i');
-      if (r.fase === 'ok') { clearInterval(ROSTO_T); i.style.background = 'var(--ok)'; el.innerHTML = `<b>Rosto cadastrado!</b> Da próxima vez é só olhar para o iDFace. A foto do aparelho entra no cadastro em instantes.`; $('.rosto-alvo').classList.add('ok'); await carregar(); desenhar(); setTimeout(() => { fecharFolha(); toast(`${crianca(id).nome}: rosto cadastrado no iDFace ✓`); }, 1600); return; }
+      if (r.fase === 'ok') { clearInterval(ROSTO_T); i.style.background = 'var(--ok)'; el.innerHTML = `<b>Rosto cadastrado!</b> Da próxima vez é só olhar para o iDFace. A foto do aparelho entra no cadastro em instantes.`; $('.rosto-alvo').classList.add('ok'); await carregar(); desenhar(); setTimeout(() => { fecharFolha(); deuCerto(`${crianca(id).nome}: rosto cadastrado no iDFace ✓`); }, 1600); return; }
       if (r.fase === 'erro') { clearInterval(ROSTO_T); i.style.background = 'var(--erro)'; el.innerHTML = `<b>${esc(r.erro)}</b>`; $('#rosto-acoes').innerHTML = `<button class="bt forte tap" data-act="rosto-de-novo" data-id="${id}">Tentar de novo</button><button class="bt claro tap" data-act="fechar">Deixar para depois</button>`; return; }
       i.style.background = r.fase === 'capturando' ? 'var(--ok)' : 'var(--aviso)'; el.innerHTML = textos[r.fase] || textos.nada; $('.rosto-alvo').classList.toggle('viva', r.fase === 'capturando');
     } catch (e) { /* tenta no próximo */ }
@@ -4157,7 +4168,7 @@ async function conectarWhats() {
   const passo = async () => {
     try {
       const r = await api('whats_qr');
-      if (r.estado === 'conectado') { clearInterval(QR_TIMER); await carregar(); fecharFolha(); desenhar(); toast('WhatsApp conectado!'); return; }
+      if (r.estado === 'conectado') { clearInterval(QR_TIMER); await carregar(); fecharFolha(); desenhar(); deuCerto('WhatsApp conectado!'); return; }
       if (r.qr) area.innerHTML = `<div class="qr"><img src="${r.qr}" alt="QR Code do WhatsApp"><p class="explica">No celular da loja: WhatsApp → Dispositivos conectados → Conectar dispositivo → aponte para este código. Ele renova sozinho a cada 20 s.</p>${r.codigo ? `<p class="explica">Ou digite o código: <b>${esc(r.codigo)}</b></p>` : ''}</div>`;
       else area.innerHTML = '<p class="explica">Aguardando o QR Code…</p>';
     } catch (e) { clearInterval(QR_TIMER); area.innerHTML = `<p class="explica" style="color:var(--erro)">${esc(e.message)}</p>`; }
@@ -4199,7 +4210,7 @@ function telaZap() {
 }
 async function enviar(txt) {
   const conv = convDe(S.zapAberta); if (!conv || !txt.trim()) return;
-  if (MODO === 'servidor') { try { const r = await api('mensagem_enviar', { crianca: conv.crianca, texto: txt.trim() }); await carregar(); S.zapDia = isoDia(agora); desenhar(); toast(r.erro ? 'Guardada, mas não foi: ' + r.erro : 'Enviado no WhatsApp'); const m = $('#msgs'); if (m && m.lastElementChild) m.lastElementChild.scrollIntoView({ block: 'nearest' }); } catch (e) { toast(e.message); } return; }
+  if (MODO === 'servidor') { try { const r = await api('mensagem_enviar', { crianca: conv.crianca, texto: txt.trim() }); await carregar(); S.zapDia = isoDia(agora); desenhar(); if (r.erro) toast('Guardada, mas não foi: ' + r.erro); else deuCerto('Enviado no WhatsApp'); const m = $('#msgs'); if (m && m.lastElementChild) m.lastElementChild.scrollIntoView({ block: 'nearest' }); } catch (e) { toast(e.message); } return; }
   conv.msgs.push({ de: 'nos', txt: txt.trim(), h: new Date(), por: EU.nome }); conv.lidas = true; S.zapDia = isoDia(agora); desenhar();
   const m = $('#msgs'); if (m) m.lastElementChild.scrollIntoView({ block: 'nearest' });
 }
@@ -4393,12 +4404,12 @@ const ACOES = {
   continuar: el => { if (el.dataset.k) continuarCadastro(+el.dataset.k); else atender(+el.dataset.id); },
   'pend-tirar': el => { // "não vai fazer agora": sai de "Falta finalizar" (com Desfazer). No servidor, quem só tinha o cadastro feito sai da lista em todos os aparelhos
     if (el.dataset.k) { const i = RASC_CAD.findIndex(x => x.k === +el.dataset.k); if (i < 0) return; const [d] = RASC_CAD.splice(i, 1); salvarEtapas(); desenhar(true);
-      toast('Cadastro pela metade tirado da lista', () => { RASC_CAD.push(d); salvarEtapas(); }); return; }
+      deuCerto('Cadastro pela metade tirado da lista', () => { RASC_CAD.push(d); salvarEtapas(); }); return; }
     const c = crianca(el.dataset.id); if (!c) return; const r = RASC[c.id], novo = pendNovo(c), em = pendEm(c), serv = MODO === 'servidor';
     const fora = v => { if (!novo) return; if (!serv) { if (v) PEND_FORA[c.id] = Date.now(); else delete PEND_FORA[c.id]; return; }
       if (v) delete S.pend[c.id]; else S.pend[c.id] = em; api('pendente_tirar', { id: c.id, voltar: !v }).catch(e => toast(e.message)); };
     delete RASC[c.id]; salvarEtapas(); fora(true); desenhar(true);
-    toast(`${c.nome} saiu de "Falta finalizar"`, () => { if (r) RASC[c.id] = r; salvarEtapas(); fora(false); });
+    deuCerto(`${c.nome} saiu de "Falta finalizar"`, () => { if (r) RASC[c.id] = r; salvarEtapas(); fora(false); });
   },
   'atender-zero': () => { // começa o atendimento do zero: limpa o que estava escolhido
     if (!CARRINHO || !$('#v-ok')) return; CARRINHO = { id: CARRINHO.id, visto: CARRINHO.visto, q: {}, pac: [], pr: {}, vq: 0 };
@@ -4407,14 +4418,14 @@ const ACOES = {
   'cadastro-zero': () => { RASC_CAD = RASC_CAD.filter(x => x.k !== CAD_K); salvarEtapas(); ETAPA_FEITA = true; folhaCrianca(null); desenhar(true); },
   atualizar: () => ATU.nova ? folhaAtualizar() : conferirAtualizacao(true),
   'atualizar-agora': el => atualizarAgora(el),
-  desfazer: () => { if (DESFAZ) { DESFAZ(); DESFAZ = null; } $('#toast').classList.remove('ve'); fecharFolha(); desenhar(); setTimeout(() => toast('Desfeito'), 50); },
-  copiar: el => copiarTexto(el.dataset.alvo ? val(el.dataset.alvo) : el.dataset.t, el.dataset.rot || (el.dataset.alvo && docTipo() === 'rne' ? 'RNE' : 'CPF')),
+  desfazer: () => { if (DESFAZ) { DESFAZ(); DESFAZ = null; } $('#toast').classList.remove('ve'); fecharFolha(); desenhar(); setTimeout(() => deuCerto('Desfeito'), 50); },
+  copiar: el => copiarTexto(el.dataset.alvo ? val(el.dataset.alvo) : el.dataset.t, el.dataset.rot || (el.dataset.alvo && docTipo() === 'rne' ? 'RNE' : 'CPF'), el),
   'cpf-escolher': el => { const i = $('#f-cpf'); if (!i) return; i.value = cpfFmt(el.dataset.cpf); i.dispatchEvent(new Event('input', { bubbles: true })); const n = $('#f-nome'); if (n && !n.value) n.focus(); },   /* escolheu o cliente pelo começo do CPF: o cadastro traz o resto */
   'papel-imprimir': () => { if (!PAPEL) return; imprimirPapel(PAPEL.vias); fecharFolha(); },
   'papel-ficha': el => folhaPapel({ tipo: 'entrada', id: +el.dataset.id }), 'papel-ajustes': () => folhaPapelAjustes(), 'papel-teste': () => imprimirPapel(papelTeste()),
   'papel-modo': el => { guardar('ps-cupom', el.dataset.v); $$('#tk-modo [data-v]').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === modoPapel())); const t = $('#tk-modo-txt'); if (t) t.textContent = textoModoPapel(); const r = $('#tk-modo-rot'); if (r) r.textContent = rotModoPapel(); if (S.tela === 'ajustes') desenhar(true); },
   'papel-salvar': () => { const nome = MAI(val('tk-loja')), tel = val('tk-tel'), aviso = MAI(val('tk-aviso')); if (!nome) { toast('Escreva o nome da loja que sai no cupom'); const i = $('#tk-loja'); if (i) i.focus(); return; }
-    const ok = () => { fecharFolha(); desenhar(); toast('Cupom salvo'); };
+    const ok = () => { fecharFolha(); desenhar(); deuCerto('Cupom salvo'); };
     if (MODO === 'servidor') api('regra_salvar', { cupomLoja: nome, cupomTel: tel, cupomAviso: aviso }).then(r => { if (r.regra) Object.assign(S.cfg, { cupomLoja: r.regra.cupomLoja, cupomTel: r.regra.cupomTel, cupomAviso: r.regra.cupomAviso }); ok(); }).catch(e => toast(e.message));
     else { Object.assign(S.cfg, { cupomLoja: nome, cupomTel: tel, cupomAviso: aviso }); ok(); } },
   cupons: () => folhaCupons(), cupom: el => folhaCupom(+el.dataset.id),
@@ -4427,7 +4438,7 @@ const ACOES = {
   'visita-corrigir': el => folhaCorrigirVisita(+el.dataset.id, +el.dataset.v),
   'visita-corrigir-ok': async el => { const hh = val('s-hora'), motivo = val('s-motivo');
     if (!/^\d{2}:\d{2}$/.test(hh)) { toast('Escreva a hora em que a criança saiu'); $('#s-hora').focus(); return; } if (motivo.length < 5) { toast('Escreva o motivo da correção da hora'); $('#s-motivo').focus(); return; }
-    el.disabled = true; try { const r = await api('visita_corrigir', { visita: +el.dataset.v, quando: hh, motivo }); await carregar(); fecharFolha(); desenhar(); toast(`Saída corrigida para ${hh} · ${dur(r.debitado)} debitados${r.desfeitas ? ' · ' + brl(r.valor) + ' de atraso desfeito' : ''}`); } catch (e) { toast(e.message); el.disabled = false; } },
+    el.disabled = true; try { const r = await api('visita_corrigir', { visita: +el.dataset.v, quando: hh, motivo }); await carregar(); fecharFolha(); desenhar(); deuCerto(`Saída corrigida para ${hh} · ${dur(r.debitado)} debitados${r.desfeitas ? ' · ' + brl(r.valor) + ' de atraso desfeito' : ''}`); } catch (e) { toast(e.message); el.disabled = false; } },
   'esp-serv': el => { S.espServ = el.dataset.s || ''; S.espFiltro = 'todas'; atualizarEspaco(); },   /* o filtro por serviço da lista da tela inicial */
   'esp-filtro': el => { const f = el.dataset.f; S.espFiltro = espFiltro() === f && f !== 'todas' ? 'todas' : f; atualizarEspaco(); },   /* "Saíram há pouco": tocar de novo volta para quem está no espaço */
   devolver: el => devolver(el.dataset.id, el.dataset.s),
@@ -4445,7 +4456,7 @@ const ACOES = {
   'obs-salvar': el => { const c = crianca(el.dataset.id); if (c) salvarObs(c, val('ob-txt')); },
   'reabrir-ok': async el => { /* desfaz a saída: o tempo continua desde a entrada */
     const c = crianca(el.dataset.id); if (!c) return; const nome = c.nome, id = c.id; el.disabled = true;
-    const feito = (ini, sap, cobr) => { if (S.espFiltro === 'sairam') S.espFiltro = 'todas'; fecharFolha(); desenhar(); const txt = `Visita de ${nome} reaberta · o tempo conta desde ${hora(ini)}${cobr ? ' · cobrança por atraso lançada' : ''}`; if (sap) toast(txt + ' · sapateira ' + sap); else toast(txt, () => folhaSapateira(id), 'Sapateira'); };
+    const feito = (ini, sap, cobr) => { if (S.espFiltro === 'sairam') S.espFiltro = 'todas'; fecharFolha(); desenhar(); const txt = `Visita de ${nome} reaberta · o tempo conta desde ${hora(ini)}${cobr ? ' · cobrança por atraso lançada' : ''}`; if (sap) deuCerto(txt + ' · sapateira ' + sap); else deuCerto(txt); };
     if (MODO === 'servidor') { try { const r = await api('reabrir_visita', { id }); await carregar(); feito(dataDe(r.entrou), r.sapateira, r.cobrancas); } catch (e) { el.disabled = false; toast(e.message); } return; }
     const r = reabrirPrevia(c); if (r) feito(r.ini, r.sap, r.cobr); else { el.disabled = false; toast(`Já passou de ${reabreLim()} min da saída de ${nome}`); }
   },
@@ -4454,7 +4465,7 @@ const ACOES = {
     const c = crianca(el.dataset.id); if (!c) return; const antes = liberada(c), depois = !antes;
     const aplicar = v => { c.liberado = v; if (MODO === 'servidor') api('crianca_liberar', { id: c.id, liberado: v }).catch(e => toast(e.message)); const f = $('.folha'); desenhar(true); if (f) { const ch = $(`.folha .chave[data-id="${c.id}"]`); if (ch) { ch.classList.toggle('on', v); ch.setAttribute('aria-checked', v); const m = ch.closest('.marca'); if (m) m.querySelector('span').innerHTML = textoAcesso(c); } } };
     aplicar(depois);
-    toast(depois ? `${c.nome}: acesso autorizado no iDFace. As horas começam quando bater o rosto.` : `${c.nome}: acesso bloqueado no iDFace. O aparelho vai recusar o rosto.`, () => aplicar(antes));
+    deuCerto(depois ? `${c.nome}: acesso autorizado no iDFace. As horas começam quando bater o rosto.` : `${c.nome}: acesso bloqueado no iDFace. O aparelho vai recusar o rosto.`, () => aplicar(antes));
   },
   vender: el => atender(+el.dataset.id),
   'serv-mais': el => { if (!CARRINHO) return; const x = (S.cfg.servicos || []).find(y => y.id === el.dataset.s); if (!x) return; CARRINHO.q[x.id] = Math.min(48, (CARRINHO.q[x.id] || 0) + 1); atualizarCarrinho(); },
@@ -4463,11 +4474,11 @@ const ACOES = {
     const c = crianca(el.dataset.id); if (!c || !c.entrou || temVoucher(c)) return; el.disabled = true;
     if (MODO === 'servidor') {
       try { const r = await api('atender', { id: c.id, voucher: true }); await carregar(); desenhar(true); atualizarSaida(); atualizarGrupo();
-        toast(avisoVoucher(r.voucher, c.nome) || 'Voucher usado', async () => { try { await api('desfazer_venda', { vendas: r.vendas, registros: r.registros }); await carregar(); } catch (e) { toast(e.message); } desenhar(); }); }
+        deuCertoOu(atencaoVoucher(r.voucher, c.nome), avisoVoucher(r.voucher, c.nome) || 'Voucher usado', async () => { try { await api('desfazer_venda', { vendas: r.vendas, registros: r.registros }); await carregar(); } catch (e) { toast(e.message); } desenhar(); }); }
       catch (e) { toast(e.message); el.disabled = false; }
       return;
     }
-    const v = usarVoucherPrevia(c); desenhar(true); atualizarSaida(); atualizarGrupo(); toast(avisoVoucher(v, c.nome) || 'Voucher usado');
+    const v = usarVoucherPrevia(c); desenhar(true); atualizarSaida(); atualizarGrupo(); deuCertoOu(atencaoVoucher(v, c.nome), avisoVoucher(v, c.nome) || 'Voucher usado');
   },
   'serv-menos': el => { if (!CARRINHO) return; CARRINHO.q[el.dataset.s] = Math.max(0, (CARRINHO.q[el.dataset.s] || 0) - 1); atualizarCarrinho(); },
   'pac-marca': el => { if (!CARRINHO) return; const i = +el.dataset.i; CARRINHO.pac = CARRINHO.pac.includes(i) ? CARRINHO.pac.filter(k => k !== i) : [...CARRINHO.pac, i]; atualizarCarrinho();
@@ -4488,13 +4499,13 @@ const ACOES = {
   entrada: el => { entrada(crianca(el.dataset.id), 'mão'); fecharFolha(); desenhar(); },
   saida: el => pedirSaida(+el.dataset.id),
   avisar: el => { const c = crianca(el.dataset.id); let conv = S.conversas.find(x => x.crianca === c.id); if (!conv) { conv = { id: novoId(), crianca: c.id, lidas: true, msgs: [] }; S.conversas.push(conv); } S.zapAberta = conv.id; S.zapModo = 'papo'; S.zapDia = isoDia(agora); fecharFolha(); trocarTela('zap'); const t = $('#zap-texto'); if (t) { t.value = `Oi, ${nomeMsg(primeiro(c.resp))}! `; t.focus(); t.setSelectionRange(t.value.length, t.value.length); } },
-  rosto: el => { const c = crianca(el.dataset.id); if (MODO === 'servidor') { api('idface_mandar', { id: c.id }).then(() => toast(`${c.nome} mandada de novo para o iDFace`)).catch(e => toast(e.message)); fecharFolha(); return; } c.rosto = true; toast(`${c.nome} mandada para o iDFace. Agora é só olhar para a câmera.`, () => { c.rosto = false; }); fecharFolha(); desenhar(); },
+  rosto: el => { const c = crianca(el.dataset.id); if (MODO === 'servidor') { api('idface_mandar', { id: c.id }).then(() => deuCerto(`${c.nome} mandada de novo para o iDFace`)).catch(e => toast(e.message)); fecharFolha(); return; } c.rosto = true; deuCerto(`${c.nome} mandada para o iDFace. Agora é só olhar para a câmera.`, () => { c.rosto = false; }); fecharFolha(); desenhar(); },
   'rosto-cam': el => folhaRosto(+el.dataset.id),
   'rosto-de-novo': el => { fecharFolha(); setTimeout(() => folhaRosto(+el.dataset.id), 250); },
   apagar: el => { const c = crianca(el.dataset.id); if (!c) return; const h = saldoMin(c);   /* 0.92: as horas não expiram. Cadastro com horas guardadas: só o gestor remove, e confirmando */
     if (h > 0 && !gestor()) { toast(`${c.nome} tem ${hm(h)} guardadas, e as horas não expiram. Só o gestor remove um cadastro com horas.`); return; }
     if (h > 0 && el.dataset.conf !== '1') { toast(`${c.nome} tem ${hm(h)} guardadas, e as horas não expiram. Remover o cadastro esconde essas horas.`, () => ACOES.apagar({ dataset: { id: c.id, conf: '1' } }), 'Remover mesmo assim'); return; }
-    if (MODO === 'servidor') { api('crianca_apagar', { id: c.id, confirmado: h > 0 }).then(async () => { await carregar(); fecharFolha(); desenhar(); toast(`${c.nome} removida do cadastro`); }).catch(e => toast(e.message)); return; } S.criancas = S.criancas.filter(x => x !== c); fecharFolha(); desenhar(); toast(`${c.nome} removida`, () => { S.criancas.push(c); }); },
+    if (MODO === 'servidor') { api('crianca_apagar', { id: c.id, confirmado: h > 0 }).then(async () => { await carregar(); fecharFolha(); desenhar(); deuCerto(`${c.nome} removida do cadastro`); }).catch(e => toast(e.message)); return; } S.criancas = S.criancas.filter(x => x !== c); fecharFolha(); desenhar(); deuCerto(`${c.nome} removida`, () => { S.criancas.push(c); }); },
   editar: el => { if (MODO === 'servidor' && !gestor()) { toast('Só o gestor muda um cadastro'); return; } folhaCrianca(crianca(el.dataset.id)); },
   cadastros: () => folhaCadastros(),
   nova: () => folhaCrianca(null),
@@ -4508,15 +4519,15 @@ const ACOES = {
     if (MODO === 'servidor') {
       const dados = id ? { id: +id, nome, idade: +val('f-idade') || 0, resp, tel, tel2, doc, cpf, obs, pcd } : { nome, resp, tel, tel2, doc, cpf, obs, pcd, sapateira: SAP_TEMP };
       api('crianca_salvar', dados).then(async r => { await carregar(); if (id) renomearRascunho(+id, nome); else cadastroFeito(); fecharFolha(); desenhar();
-        if (id) { toast('Cadastro salvo'); return; }
-        if (innerWidth >= 820) toast(`${nome} cadastrada. Agora o atendimento.`); setTimeout(() => atender(r.id, true, pre), 260); }).catch(async e => { toast(e.message); if (/sapateira/i.test(e.message)) { try { await carregar(); } catch (x) { } SAP_TEMP = 0; redesenharSap(); } });
+        if (id) { deuCerto('Cadastro salvo'); return; }
+        if (innerWidth >= 820) deuCerto(`${nome} cadastrada. Agora o atendimento.`); setTimeout(() => atender(r.id, true, pre), 260); }).catch(async e => { toast(e.message); if (/sapateira/i.test(e.message)) { try { await carregar(); } catch (x) { } SAP_TEMP = 0; redesenharSap(); } });
       return;
     }
-    if (id) { const c = crianca(id); if (!!c.pcd !== pcd) registrar('cad', nome, (pcd ? `Marcada como criança PCD: ${pcdDesc()}% de desconto na recreação` : 'Deixou de estar marcada como criança PCD') + ' · por ' + EU.nome); Object.assign(c, { nome, idade: +val('f-idade') || c.idade, resp: resp || c.resp, tel, tel2, doc, cpf, obs, pcd }); renomearRascunho(c.id, nome); toast('Cadastro salvo'); }
+    if (id) { const c = crianca(id); if (!!c.pcd !== pcd) registrar('cad', nome, (pcd ? `Marcada como criança PCD: ${pcdDesc()}% de desconto na recreação` : 'Deixou de estar marcada como criança PCD') + ' · por ' + EU.nome); Object.assign(c, { nome, idade: +val('f-idade') || c.idade, resp: resp || c.resp, tel, tel2, doc, cpf, obs, pcd }); renomearRascunho(c.id, nome); deuCerto('Cadastro salvo'); }
     else {
       if (pcd) registrar('cad', nome, `Cadastrada como criança PCD: ${pcdDesc()}% de desconto na recreação · por ${EU.nome}`);
       const c = { id: novoId(), nome, idade: 0, resp, rel: 'responsável', tel, tel2, doc, cpf, obs, pcd, pacote: 0, usado: 0, entrou: null, rosto: false, foto: '', visitas: [], venda: null, sapateira: SAP_TEMP || null, liberado: S.cfg.bloqueioAuto !== 'sim', criado: new Date() }; S.criancas.push(c);
-      cadastroFeito(); fecharFolha(); desenhar(); if (innerWidth >= 820) toast(`${nome} cadastrada. Agora o atendimento.`); setTimeout(() => atender(c.id, true, pre), 260); return;
+      cadastroFeito(); fecharFolha(); desenhar(); if (innerWidth >= 820) deuCerto(`${nome} cadastrada. Agora o atendimento.`); setTimeout(() => atender(c.id, true, pre), 260); return;
     }
     fecharFolha(); desenhar();
   },
@@ -4548,7 +4559,7 @@ const ACOES = {
   'sap-total-salvar': () => {
     const n = Math.round(+val('sap-total')), maior = Math.max(0, ...S.criancas.map(c => c.sapateira || 0));
     if (!(n >= 1 && n <= 200)) { toast('Quantas sapateiras existem? De 1 a 200.'); return; } if (n < maior) { toast(`A sapateira ${maior} está em uso: libere antes de diminuir`); return; }
-    S.cfg.sapateiras = n; if (MODO === 'servidor') api('regra_salvar', { sapateiras: n }).catch(e => toast(e.message)); toast(`${n} sapateiras`); fecharFolha(); desenhar();
+    S.cfg.sapateiras = n; if (MODO === 'servidor') api('regra_salvar', { sapateiras: n }).catch(e => toast(e.message)); deuCerto(`${n} sapateiras`); fecharFolha(); desenhar();
   },
   cancelar: el => folhaCancelar(+el.dataset.id), 'canc-ok': el => confirmarCancelar(el), cancelamentos: () => folhaCancelamentos(),
   'canc-motivo': el => { const t = $('#x-motivo'); if (!t) return; t.value = el.dataset.t; const cp = $('#x-motivo-campo'); if (cp) cp.classList.remove('falta'); t.focus(); t.setSelectionRange(t.value.length, t.value.length); },
@@ -4556,7 +4567,7 @@ const ACOES = {
   'ver-como': el => { // (prévia) ver a tela como gestor, supervisor ou atendente
     if (MODO === 'servidor') return; const u = S.equipe.find(x => x.papel === el.dataset.v); if (!u) return;
     EU = { nome: u.nome.split(' ')[0], nomeCompleto: u.nome, papel: u.papel, login: u.login, id: u.id }; ABAS = TODAS_ABAS.filter(a => a[0] !== 'ajustes' || supervisorOuMais()); if (!ABAS.some(a => a[0] === S.tela)) S.tela = 'horas';
-    fecharFolha(); desenhar(); toast(`Agora você vê como ${PAPEIS[u.papel]}: ${u.nome}`); },
+    fecharFolha(); desenhar(); deuCerto(`Agora você vê como ${PAPEIS[u.papel]}: ${u.nome}`); },
   historico: el => abrirHistorico(el.dataset.id), 'lado-fechar': () => fecharLado(), 'lado-todas': () => { if (LADO) { LADO.todas = !LADO.todas; desenharLado(); } },
   dia: () => folhaDia(), todas: () => { S.bancoFiltro = 'todas'; trocarTela('banco'); }, acabando: () => { S.bancoFiltro = 'renovar'; trocarTela('banco'); },
   'toast-acao': () => { const f = TOAST_ACAO; TOAST_ACAO = null; $('#toast').classList.remove('ve'); if (f) f(); },
@@ -4564,21 +4575,21 @@ const ACOES = {
   renovar: el => { const c = crianca(el.dataset.id); if (c) folhaMensagem(c, textoRenovar(c)); },   // a mensagem de renovação pronta, numa folha: conferir e enviar
   saudade: el => { const c = crianca(el.dataset.id); if (c) folhaMensagem(c, textoSaudade(c)); },
   'mensagem-enviar': el => { const c = crianca(el.dataset.id); if (c) mandarPara(c, ($('#m-texto') || { value: '' }).value); },
-  'anim-ligar': () => { escolherAnim('cheia'); desenhar(); toast('Pronto: os bonequinhos se mexem neste aparelho.', () => escolherAnim('auto')); },
-  'dica-fora': el => { if (el.dataset.k === 'anim') { guardar('ps-anim-aviso', 1); redesenharDicas(); toast('Tudo bem, eles ficam quietos aqui. Para mudar: Ajustes, em Aparência.'); return; } DICAS_FORA.add(el.dataset.k); guardar('ps-dicas-' + isoDia(new Date()), [...DICAS_FORA]); redesenharDicas(); toast('Aviso dispensado por hoje'); },
+  'anim-ligar': () => { escolherAnim('cheia'); desenhar(); deuCerto('Pronto: os bonequinhos se mexem neste aparelho.', () => escolherAnim('auto')); },
+  'dica-fora': el => { if (el.dataset.k === 'anim') { guardar('ps-anim-aviso', 1); redesenharDicas(); toast('Tudo bem, eles ficam quietos aqui. Para mudar: Ajustes, em Aparência.'); return; } DICAS_FORA.add(el.dataset.k); guardar('ps-dicas-' + isoDia(new Date()), [...DICAS_FORA]); redesenharDicas(); deuCerto('Aviso dispensado por hoje'); },
   avisos: () => folhaAvisos(),
   semana: () => folhaSemana(), 'semana-agenda': () => { fecharFolha(); trocarTela('agenda'); },
   'conversa-ir': el => { const conv = convDe(el.dataset.id); if (!conv) return; const u = conv.msgs[conv.msgs.length - 1]; S.zapDia = isoDia(u ? u.h : agora); trocarTela('zap'); ACOES.conversa({ dataset: { id: conv.id } }); },
   idface: () => folhaIdface(),
-  'idface-salvar': () => { if (MODO === 'servidor') { api('idface_salvar', { ip: val('i-ip'), nome: val('i-nome') || 'Recepção', usuario: val('i-usuario') || 'admin' }).then(async () => { await carregar(); toast('iDFace salvo'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } S.cfg.idface.ip = val('i-ip'); S.cfg.idface.nome = val('i-nome') || 'Recepção'; toast('iDFace salvo'); fecharFolha(); desenhar(); },
-  'idface-toggle': () => { const lig = !S.cfg.idface.ligado; if (MODO === 'servidor') { api('idface_salvar', { ligado: lig }).then(async () => { await carregar(); toast(lig ? 'Leitura ligada' : 'Leitura desligada'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } S.cfg.idface.ligado = lig; toast(lig ? 'Leitura ligada' : 'Leitura desligada'); fecharFolha(); desenhar(); },
+  'idface-salvar': () => { if (MODO === 'servidor') { api('idface_salvar', { ip: val('i-ip'), nome: val('i-nome') || 'Recepção', usuario: val('i-usuario') || 'admin' }).then(async () => { await carregar(); deuCerto('iDFace salvo'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } S.cfg.idface.ip = val('i-ip'); S.cfg.idface.nome = val('i-nome') || 'Recepção'; deuCerto('iDFace salvo'); fecharFolha(); desenhar(); },
+  'idface-toggle': () => { const lig = !S.cfg.idface.ligado; if (MODO === 'servidor') { api('idface_salvar', { ligado: lig }).then(async () => { await carregar(); deuCerto(lig ? 'Leitura ligada' : 'Leitura desligada'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } S.cfg.idface.ligado = lig; deuCerto(lig ? 'Leitura ligada' : 'Leitura desligada'); fecharFolha(); desenhar(); },
   'idface-bat': () => { if (MODO === 'servidor') { location.href = 'api/idface.php?acao=conectar_bat'; toast('Baixando "Conectar o iDFace.bat" (Windows)…'); return; } toast('No sistema de verdade, baixa o conector com IP e chave já preenchidos'); },
   'idface-command': () => { if (MODO === 'servidor') { location.href = 'api/idface.php?acao=conectar_command'; toast('Baixando "Conectar o iDFace" para Mac…'); return; } toast('No sistema de verdade, baixa o conector para Mac com IP e chave já preenchidos'); },
-  'exemplos-carregar': async () => { try { toast('Colocando as crianças de teste…'); const r = await api('exemplos_carregar'); await carregar(); S.tela = 'horas'; S.espFiltro = 'todas'; S.espBusca = ''; desenhar(); window.scrollTo({ top: 0 }); toast(`Teste no ar: ${r.dentro || 10} crianças no espaço, em horários diferentes. Para tirar, "Tirar o teste", lá embaixo.`, () => ACOES['exemplos-apagar'](), 'Tirar'); } catch (e) { toast(e.message); } },
-  'exemplos-apagar': async () => { try { await api('exemplos_apagar'); await carregar(); desenhar(); toast('Teste tirado. Só ficou o que é de verdade.'); } catch (e) { toast(e.message); } },
-  'teste-previa': () => { if (S.testePrevia) tirarTestePrevia(); else colocarTestePrevia(); S.tela = 'horas'; S.espFiltro = 'todas'; S.espBusca = ''; desenhar(); window.scrollTo({ top: 0 }); toast(S.testePrevia ? 'Teste no ar: 10 crianças no espaço, em horários diferentes. Para tirar, "Tirar o teste", lá embaixo.' : 'Teste tirado.', S.testePrevia ? () => ACOES['teste-previa']() : null, S.testePrevia ? 'Tirar' : undefined); },
+  'exemplos-carregar': async () => { try { toast('Colocando as crianças de teste…'); const r = await api('exemplos_carregar'); await carregar(); S.tela = 'horas'; S.espFiltro = 'todas'; S.espBusca = ''; desenhar(); window.scrollTo({ top: 0 }); deuCerto(`Teste no ar: ${r.dentro || 10} crianças no espaço, em horários diferentes. Para tirar, "Tirar o teste", lá embaixo.`); } catch (e) { toast(e.message); } },
+  'exemplos-apagar': async () => { try { await api('exemplos_apagar'); await carregar(); desenhar(); deuCerto('Teste tirado. Só ficou o que é de verdade.'); } catch (e) { toast(e.message); } },
+  'teste-previa': () => { if (S.testePrevia) tirarTestePrevia(); else colocarTestePrevia(); S.tela = 'horas'; S.espFiltro = 'todas'; S.espBusca = ''; desenhar(); window.scrollTo({ top: 0 }); deuCerto(S.testePrevia ? 'Teste no ar: 10 crianças no espaço, em horários diferentes. Para tirar, "Tirar o teste", lá embaixo.' : 'Teste tirado.'); },
   'idface-chave': () => { api('idface_nova_chave').then(async () => { await carregar(); fecharFolha(); desenhar(); setTimeout(folhaIdface, 250); toast('Chave nova. Rode o conector de novo no aparelho.'); }).catch(e => toast(e.message)); },
-  simular: el => { const c = crianca(el.dataset.id); if (MODO === 'servidor') { api('idface_simular', { id: c.id }).then(async r => { await carregar(); fecharFolha(); desenhar(); toast(`${c.nome}: ${r.resultado} registrada como se fosse o iDFace`); }).catch(e => toast(e.message)); return; } if (c.entrou) saida(c); else entrada(c); fecharFolha(); desenhar(); },
+  simular: el => { const c = crianca(el.dataset.id); if (MODO === 'servidor') { api('idface_simular', { id: c.id }).then(async r => { await carregar(); fecharFolha(); desenhar(); deuCerto(`${c.nome}: ${r.resultado} registrada como se fosse o iDFace`); }).catch(e => toast(e.message)); return; } if (c.entrou) saida(c); else entrada(c); fecharFolha(); desenhar(); },
   conta: () => abrirFolha(esc(EU.nomeCompleto || EU.nome), `<div class="marca">${ic(IC.check, 18)}<span><b>${PAPEIS[EU.papel] || EU.papel}</b> · login ${esc(EU.login)}${MODO === 'demo' ? ' · prévia sem servidor' : ''}</span></div>${MODO === 'demo' ? `<div class="campo"><label>Na prévia, ver a tela como</label><div class="seg">${Object.entries(PAPEIS).map(([k, n]) => `<button type="button" data-act="ver-como" data-v="${k}" aria-pressed="${EU.papel === k}">${n}</button>`).join('')}</div><span class="explica">O atendente cancela a entrada só dentro do prazo; gestor e supervisor conferem os cancelamentos.</span></div>` : ''}<div class="acoes">${supervisorOuMais() ? `<button class="bt tap" data-act="ir-ajustes">${ic(IC.ajustes)} Ajustes</button>` : ''}<button class="bt claro tap" data-act="sair">Sair da conta</button></div>`),
   'ir-ajustes': () => { fecharFolha(); trocarTela('ajustes'); }, fechar: () => fecharFolha(),
   conversa: el => { const c = convDe(el.dataset.id); if (!c.lidas && MODO === 'servidor') api('mensagens_lidas', { crianca: c.crianca }).catch(() => {}); c.lidas = true; S.zapAberta = c.id; S.zapModo = 'papo'; desenhar(); $('.papo').animate([{ opacity: 0, transform: 'translateX(24px)' }, { opacity: 1, transform: 'none' }], { duration: 360, easing: 'cubic-bezier(.32,.72,0,1)' }); },
@@ -4592,21 +4603,21 @@ const ACOES = {
   'zap-data-ok': () => { const v = val('zap-data'); if (!v) { toast('Escolha uma data'); return; } S.zapDia = v; S.zapModo = 'lista'; fecharFolha(); desenhar(); },
   'zap-dia': el => { if ($('#folha .folha-fundo')) fecharFolha(); S.zapDia = el.dataset.dia; S.zapModo = 'lista'; desenhar(); const l = $('.conversas'); if (l) l.animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 320, easing: 'cubic-bezier(.32,.72,0,1)' }); },
   sugestao: el => { const t = $('#zap-texto'); t.value = el.textContent; t.focus(); t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; },
-  enviar: () => { const t = $('#zap-texto'); const v = t.value; t.value = ''; enviar(v); if (MODO !== 'servidor') toast('Enviado no WhatsApp'); },
+  enviar: () => { const t = $('#zap-texto'); const v = t.value; t.value = ''; enviar(v); if (MODO !== 'servidor') deuCerto('Enviado no WhatsApp'); },
   'dia-sel': el => { S.diaSel = el.dataset.dia; desenhar(); },
   mes: el => { const n = +el.dataset.n; if (n === 0) { S.mes = { y: agora.getFullYear(), m: agora.getMonth() }; S.diaSel = isoDia(agora); } else { const d = new Date(S.mes.y, S.mes.m + n, 1); S.mes = { y: d.getFullYear(), m: d.getMonth() }; S.diaSel = isoDia(d); } desenhar(); $('.cal').animate([{ opacity: .3, transform: `translateX(${n * 18}px)` }, { opacity: 1, transform: 'none' }], { duration: 340, easing: 'cubic-bezier(.32,.72,0,1)' }); },
   comp: el => folhaComp(el.dataset.id), 'novo-comp': () => folhaNovoComp(null),
   'comp-feito-folha': el => { fecharFolha(); ACOES['comp-feito'](el); },
-  'comp-feito': el => { const x = S.compromissos.find(c => c.id === +el.dataset.id); if (!x) return; x.feito = !x.feito; if (MODO === 'servidor') api('comp_feito', { id: x.id, feito: x.feito }).catch(e => toast(e.message)); desenhar(); { const sl = $('#semana-lista'); if (sl) sl.innerHTML = blocosSemana(); } toast(x.feito ? `${x.titulo}: feito ✓` : `${x.titulo}: voltou para a lista`, () => { x.feito = !x.feito; if (MODO === 'servidor') api('comp_feito', { id: x.id, feito: x.feito }).catch(() => {}); desenhar(); }); },
+  'comp-feito': el => { const x = S.compromissos.find(c => c.id === +el.dataset.id); if (!x) return; x.feito = !x.feito; if (MODO === 'servidor') api('comp_feito', { id: x.id, feito: x.feito }).catch(e => toast(e.message)); desenhar(); { const sl = $('#semana-lista'); if (sl) sl.innerHTML = blocosSemana(); } deuCerto(x.feito ? `${x.titulo}: feito ✓` : `${x.titulo}: voltou para a lista`, () => { x.feito = !x.feito; if (MODO === 'servidor') api('comp_feito', { id: x.id, feito: x.feito }).catch(() => {}); desenhar(); }); },
   'comp-editar': el => { const x = S.compromissos.find(c => c.id === +el.dataset.id); fecharFolha(); setTimeout(() => folhaNovoComp(x), 200); },
-  'comp-apagar': el => { if (MODO === 'servidor') { api('comp_apagar', { id: +el.dataset.id }).then(async () => { await carregar(); toast('Apagado'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } S.compromissos = S.compromissos.filter(c => c.id !== +el.dataset.id); toast('Apagado'); fecharFolha(); desenhar(); },
+  'comp-apagar': el => { if (MODO === 'servidor') { api('comp_apagar', { id: +el.dataset.id }).then(async () => { await carregar(); deuCerto('Apagado'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } S.compromissos = S.compromissos.filter(c => c.id !== +el.dataset.id); deuCerto('Apagado'); fecharFolha(); desenhar(); },
   'comp-zap': el => { const x = S.compromissos.find(c => c.id === +el.dataset.id); toast(`"${x.titulo}" pronto para mandar aos responsáveis`); fecharFolha(); },
   'comp-salvar': el => {
     const titulo = val('c-tit'); if (!titulo) { toast('Falta dizer o quê'); $('#c-tit').focus(); return; }
     const tipo = ($('#c-tipo [aria-pressed="true"]') || {}).dataset.seg || 'oficina', dia = val('c-dia') || S.diaSel, hora_ = val('c-hora') || '15:00', obs = val('c-obs');
-    if (MODO === 'servidor') { api('comp_salvar', { id: el.dataset.id ? +el.dataset.id : 0, titulo, tipo, dia, hora: hora_, obs }).then(async () => { await carregar(); S.diaSel = dia; const d = new Date(dia + 'T12:00'); S.mes = { y: d.getFullYear(), m: d.getMonth() }; toast('Marcado na agenda'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; }
+    if (MODO === 'servidor') { api('comp_salvar', { id: el.dataset.id ? +el.dataset.id : 0, titulo, tipo, dia, hora: hora_, obs }).then(async () => { await carregar(); S.diaSel = dia; const d = new Date(dia + 'T12:00'); S.mes = { y: d.getFullYear(), m: d.getMonth() }; deuCerto('Marcado na agenda'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; }
     if (el.dataset.id) Object.assign(S.compromissos.find(c => c.id === +el.dataset.id), { titulo, tipo, dia, hora: hora_, obs }); else S.compromissos.push({ id: novoId(), titulo, tipo, dia, hora: hora_, obs, sub: TIPOS[tipo][0] });
-    S.diaSel = dia; const d = new Date(dia + 'T12:00'); S.mes = { y: d.getFullYear(), m: d.getMonth() }; toast('Marcado na agenda'); fecharFolha(); desenhar();
+    S.diaSel = dia; const d = new Date(dia + 'T12:00'); S.mes = { y: d.getFullYear(), m: d.getMonth() }; deuCerto('Marcado na agenda'); fecharFolha(); desenhar();
   },
   'sv-novo': () => folhaServico(null), 'sv-editar': el => folhaServico(+el.dataset.i),
   'sv-modo': el => { $$('#sv-modo button').forEach(b => b.setAttribute('aria-pressed', b === el)); const per = el.dataset.v === 'periodo'; for (const k of ['sv-min-campo', 'sv-banco-campo']) { const c = $('#' + k); if (c) c.hidden = !per; } },
@@ -4616,10 +4627,10 @@ const ACOES = {
     const L = (S.cfg.servicos || []).slice(), i = el.dataset.i === '' ? -1 : +el.dataset.i; if (L.some((x, k) => k !== i && x.n.toLowerCase() === n.toLowerCase())) { toast(`Já existe ${n} na lista`); return; }
     const novo = { id: i >= 0 ? L[i].id : 's' + novoId(), n, v, modo: per ? 'periodo' : 'fixo', min: per ? min : 0, banco: per && !!($('#sv-banco') || {}).checked, obs: val('sv-obs') }; novo.volta = !novo.banco && !!($('#sv-volta') || {}).checked;
     if (i >= 0) L[i] = novo; else L.push(novo); S.cfg.servicos = L;
-    if (MODO === 'servidor') api('regra_salvar', { servicos: L }).then(r => { S.cfg.servicos = r.regra.servicos; desenhar(true); }).catch(e => toast(e.message)); toast(`${n}: ${precoServ(novo)}`); fecharFolha(); desenhar();
+    if (MODO === 'servidor') api('regra_salvar', { servicos: L }).then(r => { S.cfg.servicos = r.regra.servicos; desenhar(true); }).catch(e => toast(e.message)); deuCerto(`${n}: ${precoServ(novo)}`); fecharFolha(); desenhar();
   },
   'sv-apagar': el => { const L = (S.cfg.servicos || []).slice(); if (L.length <= 1) { toast('Deixe pelo menos um serviço'); return; } const [x] = L.splice(+el.dataset.i, 1); S.cfg.servicos = L; if (MODO === 'servidor') api('regra_salvar', { servicos: L }).catch(e => toast(e.message));
-    toast(`${x.n} saiu da lista`, () => { S.cfg.servicos = [...S.cfg.servicos, x]; if (MODO === 'servidor') api('regra_salvar', { servicos: S.cfg.servicos }).catch(() => {}); }); fecharFolha(); desenhar(); },
+    deuCerto(`${x.n} saiu da lista`, () => { S.cfg.servicos = [...S.cfg.servicos, x]; if (MODO === 'servidor') api('regra_salvar', { servicos: S.cfg.servicos }).catch(() => {}); }); fecharFolha(); desenhar(); },
   unidade: () => folhaUnidade(), 'unidade-escolher': el => escolherUnidade(+el.dataset.id), 'unidades-ir': () => { fecharFolha(); trocarTela('ajustes'); }, 'uni-nova': () => folhaUnidadeEditar(0), 'uni-editar': el => folhaUnidadeEditar(+el.dataset.id), 'uni-salvar': el => salvarUnidade(el), 'uni-apagar': el => apagarUnidade(el),   /* 1.06: unidades */
   pacotes: () => folhaPacotes(),
   'sap-todas': () => { SAP_TODAS = !SAP_TODAS; redesenharSap(); },
@@ -4643,10 +4654,10 @@ const ACOES = {
     if (MODO === 'servidor') { el.disabled = true; try { await api('cadastros_limpar', { senha: ($('#lz-senha') || { value: '' }).value }); } catch (e) { toast(e.message); const s = $('#lz-senha'); if (s) { s.value = ''; s.focus(); } pintarLimpeza(); return; } limparAparelho(); try { await carregar(); } catch (e) { } }
     else limparPrevia();
     LZ = null; fecharFolha(); if (LADO) fecharLado(); S.tela = 'horas'; S.espBusca = ''; S.espFiltro = 'todas'; desenhar(); window.scrollTo({ top: 0 });
-    toast(`Pronto: ${q} ${q === 1 ? 'cadastro apagado' : 'cadastros apagados'}. O sistema está limpo.`, () => ACOES['limpeza-desfazer'](), 'Desfazer'); },
+    deuCerto(`Pronto: ${q} ${q === 1 ? 'cadastro apagado' : 'cadastros apagados'}. O sistema está limpo.`, () => ACOES['limpeza-desfazer']()); },
   'limpeza-desfazer': async () => {
-    if (MODO === 'servidor') { try { const r = await api('cadastros_voltar'); await carregar(); desenhar(); toast(`Limpeza desfeita: ${r.voltaram} ${r.voltaram === 1 ? 'cadastro voltou' : 'cadastros voltaram'}.`); } catch (e) { toast(e.message); try { await carregar(); desenhar(true); } catch (x) { } } return; }
-    if (!voltarPrevia()) { toast('Já há cadastro novo depois da limpeza: não dá mais para desfazer.'); desenhar(true); return; } desenhar(); toast('Limpeza desfeita: os cadastros voltaram.'); },
+    if (MODO === 'servidor') { try { const r = await api('cadastros_voltar'); await carregar(); desenhar(); deuCerto(`Limpeza desfeita: ${r.voltaram} ${r.voltaram === 1 ? 'cadastro voltou' : 'cadastros voltaram'}.`); } catch (e) { toast(e.message); try { await carregar(); desenhar(true); } catch (x) { } } return; }
+    if (!voltarPrevia()) { toast('Já há cadastro novo depois da limpeza: não dá mais para desfazer.'); desenhar(true); return; } desenhar(); deuCerto('Limpeza desfeita: os cadastros voltaram.'); },
   'limpeza-depois': async () => { if (MODO === 'servidor') { try { await api('limpeza_depois'); } catch (e) { } } if (S.limpeza) S.limpeza.oferta = false; LZ = null; fecharFolha(); toast('Tudo bem, nada foi apagado. Quando quiser: Ajustes → Limpar os cadastros.'); },
   'pacote-novo': el => { const d = (el && el.dataset) || {}; VOLTA_PAC = d.de === 'pacotes' || !!d.tipo; folhaPacote(null, d.h ? { h: +d.h, tipo: d.tipo } : null); },
   'pacote-editar': el => { VOLTA_PAC = el.dataset.de === 'pacotes'; folhaPacote(+el.dataset.i); },
@@ -4659,10 +4670,10 @@ const ACOES = {
     if (repetido >= 0) { toast('Já existe um pacote igual a este: mesmo tempo, valor e nome'); return; }
     const com = tipo === 'produto' ? val('pc-com') : '', pac = { h, v, tipo, ...(nome ? { nome } : {}), ...(com ? { com } : {}), ...(parc > 1 ? { parc } : {}) };
     if (i >= 0) S.cfg.pacotes[i] = pac; else S.cfg.pacotes.push(pac);
-    S.cfg.pacotes.sort(ordPac); salvarPacotes(); toast(`Pacote de ${dur(h * 60)} por ${brl(v)}${nome ? ' · ' + nome : ''}`); fecharFolha(); desenhar(); if (VOLTA_PAC) { VOLTA_PAC = false; setTimeout(folhaPacotes, 300); }
+    S.cfg.pacotes.sort(ordPac); salvarPacotes(); deuCerto(`Pacote de ${dur(h * 60)} por ${brl(v)}${nome ? ' · ' + nome : ''}`); fecharFolha(); desenhar(); if (VOLTA_PAC) { VOLTA_PAC = false; setTimeout(folhaPacotes, 300); }
   },
   'pacote-tipo': el => { $$('#pc-tipo button').forEach(b => b.setAttribute('aria-pressed', b === el)); const c = $('#pc-com-campo'); if (c) c.hidden = el.dataset.v !== 'produto'; },
-  'pacote-apagar': el => { const [p] = S.cfg.pacotes.splice(+el.dataset.i, 1); salvarPacotes(); toast(`${nomePacote(p)} apagado`, () => { S.cfg.pacotes.push(p); S.cfg.pacotes.sort(ordPac); salvarPacotes(); }); fecharFolha(); desenhar(); if (VOLTA_PAC) { VOLTA_PAC = false; setTimeout(folhaPacotes, 300); } },
+  'pacote-apagar': el => { const [p] = S.cfg.pacotes.splice(+el.dataset.i, 1); salvarPacotes(); deuCerto(`${nomePacote(p)} apagado`, () => { S.cfg.pacotes.push(p); S.cfg.pacotes.sort(ordPac); salvarPacotes(); }); fecharFolha(); desenhar(); if (VOLTA_PAC) { VOLTA_PAC = false; setTimeout(folhaPacotes, 300); } },
   'pp-aba': el => { ABA_PP = el.dataset.v === 'produtos' ? 'produtos' : 'pacotes'; $$('#pp-abas button').forEach(b => b.setAttribute('aria-pressed', b === el)); const a = $('#pp-corpo'); if (a) a.innerHTML = ABA_PP === 'produtos' ? corpoProdutos() : corpoPacotes(); },
   'prod-mais': el => { /* um toque põe um produto na venda; o estoque não barra, só avisa */
     if (!CARRINHO) return; const p = produto(el.dataset.p); if (!p) return; const pr = CARRINHO.pr || (CARRINHO.pr = {}), q = Math.min(99, (pr[p.id] || 0) + 1); pr[p.id] = q;
@@ -4687,30 +4698,30 @@ const ACOES = {
       if (p) { if (p.est !== est) registrar('est', n, `Estoque: ${p.est == null ? 'sem controle' : p.est} → ${est == null ? 'sem controle' : est}${quem}`); if (Math.abs(p.v - v) >= 0.005) registrar('est', n, `Valor: ${brl(p.v)} → ${brl(v)}${quem}`); Object.assign(p, { n, v, est }); }
       else { S.produtos.push({ id: novoId(), n, v, est }); registrar('est', n, `Produto novo · ${brl(v)}${est == null ? '' : ' · estoque ' + est}${quem}`); }
       S.produtos.sort(ordProd); }
-    VOLTA_PAC = false; toast(`${n} · ${brl(v)}${est == null ? '' : ' · ' + estTxt({ est })}`); fecharFolha(); desenhar(); if (volta) setTimeout(() => folhaPacotes(volta), 300);
+    VOLTA_PAC = false; deuCerto(`${n} · ${brl(v)}${est == null ? '' : ' · ' + estTxt({ est })}`); fecharFolha(); desenhar(); if (volta) setTimeout(() => folhaPacotes(volta), 300);
   },
   'produto-apagar': async el => {
     const p = produto(el.dataset.id); if (!p) return; const volta = VOLTA_PAC;
     const tirar = async sim => { if (MODO === 'servidor') { const r = await api('produto_apagar', { id: p.id, voltar: !sim }); if (Array.isArray(r.produtos)) S.produtos = r.produtos; } else if (sim) S.produtos = S.produtos.filter(x => x !== p); else { S.produtos.push(p); S.produtos.sort(ordProd); } };
     try { await tirar(true); } catch (e) { toast(e.message); return; }
-    VOLTA_PAC = false; toast(`${p.n} saiu da lista de produtos`, async () => { try { await tirar(false); } catch (e) { toast(e.message); } desenhar(); }); fecharFolha(); desenhar(); if (volta) setTimeout(() => folhaPacotes(volta), 300);
+    VOLTA_PAC = false; deuCerto(`${p.n} saiu da lista de produtos`, async () => { try { await tirar(false); } catch (e) { toast(e.message); } desenhar(); }); fecharFolha(); desenhar(); if (volta) setTimeout(() => folhaPacotes(volta), 300);
   },
   'equipe-novo': () => folhaEquipe(null), 'equipe-editar': el => folhaEquipe(S.equipe.find(u => u.id === +el.dataset.id)),
-  'equipe-salvar': el => { const nome = val('e-nome'); if (!nome) { toast('Falta o nome'); return; } const d = { nome, login: val('e-login') || nome.split(' ')[0].toLowerCase(), papel: val('e-papel'), senha: ($('#e-senha') || { value: '' }).value }; if (MODO === 'servidor') { api('usuario_salvar', { id: el.dataset.id ? +el.dataset.id : 0, ...d }).then(async () => { await carregar(); toast('Equipe atualizada'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } delete d.senha; if (el.dataset.id) Object.assign(S.equipe.find(u => u.id === +el.dataset.id), d); else S.equipe.push({ id: novoId(), ...d }); toast('Equipe atualizada'); fecharFolha(); desenhar(); },
-  'equipe-apagar': el => { if (MODO === 'servidor') { api('usuario_apagar', { id: +el.dataset.id }).then(async () => { await carregar(); toast('Removida da equipe'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } S.equipe = S.equipe.filter(u => u.id !== +el.dataset.id); toast('Removida da equipe'); fecharFolha(); desenhar(); },
+  'equipe-salvar': el => { const nome = val('e-nome'); if (!nome) { toast('Falta o nome'); return; } const d = { nome, login: val('e-login') || nome.split(' ')[0].toLowerCase(), papel: val('e-papel'), senha: ($('#e-senha') || { value: '' }).value }; if (MODO === 'servidor') { api('usuario_salvar', { id: el.dataset.id ? +el.dataset.id : 0, ...d }).then(async () => { await carregar(); deuCerto('Equipe atualizada'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } delete d.senha; if (el.dataset.id) Object.assign(S.equipe.find(u => u.id === +el.dataset.id), d); else S.equipe.push({ id: novoId(), ...d }); deuCerto('Equipe atualizada'); fecharFolha(); desenhar(); },
+  'equipe-apagar': el => { if (MODO === 'servidor') { api('usuario_apagar', { id: +el.dataset.id }).then(async () => { await carregar(); deuCerto('Removida da equipe'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } S.equipe = S.equipe.filter(u => u.id !== +el.dataset.id); deuCerto('Removida da equipe'); fecharFolha(); desenhar(); },
   entrar: async () => { try { await api('entrar', { login: val('l-login'), senha: ($('#l-senha') || { value: '' }).value }); ursoReage('feliz'); await espera(700); await depoisDeEntrar(); ligarSincronia(); } catch (e) { ursoReage('nao'); toast(e.message); } },
   'criar-gestor': async () => { try { await api('criar_gestor', { nome: val('g-nome'), login: val('g-login'), senha: ($('#g-senha') || { value: '' }).value }); ursoReage('feliz'); await espera(700); await depoisDeEntrar(); ligarSincronia(); } catch (e) { ursoReage('nao'); toast(e.message); } },
   sair: async () => { if (MODO === 'servidor') { clearInterval(SYNC_T); try { await api('sair'); } catch (e) {} ETAPA_FEITA = true; RASC_CAD = []; salvarEtapas(); /* ao sair, os cadastros pela metade (dados do responsável) não ficam no aparelho */ fecharFolha(); telaEntrar(); return; } toast('Na prévia não há login'); },
   'trocar-senha': () => abrirFolha('Trocar a minha senha', `<div class="campo"><label for="s-atual">Senha atual</label><input id="s-atual" type="password" autocomplete="current-password"></div><div class="campo"><label for="s-nova">Senha nova (pelo menos 6)</label><input id="s-nova" type="password" autocomplete="new-password"></div><button class="bt forte largo tap" data-act="trocar-senha-ok">${ic(IC.check)} Trocar</button>`),
-  'trocar-senha-ok': async () => { try { await api('trocar_senha', { atual: ($('#s-atual') || { value: '' }).value, nova: ($('#s-nova') || { value: '' }).value }); fecharFolha(); toast('Senha trocada'); } catch (e) { toast(e.message); } },
+  'trocar-senha-ok': async () => { try { await api('trocar_senha', { atual: ($('#s-atual') || { value: '' }).value, nova: ($('#s-nova') || { value: '' }).value }); fecharFolha(); deuCerto('Senha trocada'); } catch (e) { toast(e.message); } },
   whats: () => folhaWhats(), nada: () => {},
-  'whats-salvar': async () => { try { const r = await api('whats_salvar', { url: val('w-url'), instancia: val('w-inst'), chave: ($('#w-chave') || { value: '' }).value.trim() }); toast('Salvo'); fecharFolha(); setTimeout(() => folhaWhats(r.config), 250); } catch (e) { toast(e.message); } },
+  'whats-salvar': async () => { try { const r = await api('whats_salvar', { url: val('w-url'), instancia: val('w-inst'), chave: ($('#w-chave') || { value: '' }).value.trim() }); deuCerto('Salvo'); fecharFolha(); setTimeout(() => folhaWhats(r.config), 250); } catch (e) { toast(e.message); } },
   'whats-conectar': () => conectarWhats(),
-  'whats-desconectar': async () => { try { await api('whats_desconectar'); await carregar(); fecharFolha(); desenhar(); toast('WhatsApp desconectado'); } catch (e) { toast(e.message); } },
+  'whats-desconectar': async () => { try { await api('whats_desconectar'); await carregar(); fecharFolha(); desenhar(); deuCerto('WhatsApp desconectado'); } catch (e) { toast(e.message); } },
 };
 document.addEventListener('click', e => {
   const ir = e.target.closest('[data-ir]'); if (ir) { if (ir.dataset.ir !== S.tela) trocarTela(ir.dataset.ir); return; }
-  const seg = e.target.closest('.seg[data-cfg] button'); if (seg) { const k = seg.closest('.seg').dataset.cfg, v = seg.dataset.v; if (k !== 'tema' && k !== 'anim' && k !== 'inicio' && MODO === 'servidor' && !gestor()) { toast('Só o gestor muda a regra'); return; } S.cfg[k] = isNaN(+v) ? v : +v; if (k === 'tema') { guardar('ps-tema', v); aplicarTema(); } else if (k === 'anim') { escolherAnim(v); } else if (k === 'inicio') { guardar('ps-inicio', v); S.espServ = ''; } else if (MODO === 'servidor') api('regra_salvar', { [k]: S.cfg[k] }).then(() => toast('Regra salva')).catch(e => toast(e.message)); desenhar(); return; }
+  const seg = e.target.closest('.seg[data-cfg] button'); if (seg) { const k = seg.closest('.seg').dataset.cfg, v = seg.dataset.v; if (k !== 'tema' && k !== 'anim' && k !== 'inicio' && MODO === 'servidor' && !gestor()) { toast('Só o gestor muda a regra'); return; } S.cfg[k] = isNaN(+v) ? v : +v; if (k === 'tema') { guardar('ps-tema', v); aplicarTema(); } else if (k === 'anim') { escolherAnim(v); } else if (k === 'inicio') { guardar('ps-inicio', v); S.espServ = ''; } else if (MODO === 'servidor') api('regra_salvar', { [k]: S.cfg[k] }).then(() => deuCerto('Regra salva')).catch(e => toast(e.message)); desenhar(); return; }
   const segLocal = e.target.closest('[data-seg]'); if (segLocal && !segLocal.dataset.act) { const pai = segLocal.parentElement; $$('[data-seg]', pai).forEach(b => { b.setAttribute('aria-pressed', b === segLocal); b.style.borderColor = ''; b.style.background = ''; }); if (pai.id === 'p-brq') { segLocal.style.borderColor = 'var(--coral)'; segLocal.style.background = 'var(--coral-2)'; } return; }
   const act = e.target.closest('[data-act]'); if (act && ACOES[act.dataset.act]) { ACOES[act.dataset.act](act); return; }
   const f = e.target.closest('[data-fecha]'); if (f && (f.tagName === 'BUTTON' || e.target === f)) fecharFolha();
@@ -4723,7 +4734,7 @@ document.addEventListener('change', e => {
   if (t.type !== 'file' || !t.files || !t.files[0]) return;
   if (t.id === 'im-arq') { abrirArquivoImp(t.files[0]); return; }
   if (t.id === 'f-foto') lerFoto(t.files[0], url => { FOTO_TEMP = url; const prev = $('#f-foto-prev'); if (prev) { prev.classList.add('foto'); prev.style.backgroundImage = `url(${url})`; prev.innerHTML = ''; } const l = $('label[for="f-foto"]'); if (l) l.innerHTML = `${ic(IC.camera)} Tirar outra`; });
-  if (t.id === 'ficha-foto') { const c = crianca(t.dataset.id); lerFoto(t.files[0], async url => { if (MODO === 'servidor') { try { await api('foto_salvar', { id: c.id, foto: url }); await carregar(); } catch (e) { toast(e.message); return; } } else { c.foto = url; c.rosto = true; } toast(`Foto de ${c.nome} a caminho do iDFace`); fecharFolha(); desenhar(); setTimeout(() => folhaFicha(c.id), 250); }); }
+  if (t.id === 'ficha-foto') { const c = crianca(t.dataset.id); lerFoto(t.files[0], async url => { if (MODO === 'servidor') { try { await api('foto_salvar', { id: c.id, foto: url }); await carregar(); } catch (e) { toast(e.message); return; } } else { c.foto = url; c.rosto = true; } deuCerto(`Foto de ${c.nome} a caminho do iDFace`); fecharFolha(); desenhar(); setTimeout(() => folhaFicha(c.id), 250); }); }
 });
 document.addEventListener('focusin', e => { const m = CAMPOS_OLHAR[e.target.id]; const card = $('.palco'); if (!card || !m || FOCO_AUTO) return; card.dataset.olha = m; olharPara(e.target, true); });
 document.addEventListener('focusout', e => { const card = $('.palco'); if (!card || !CAMPOS_OLHAR[e.target.id]) return; setTimeout(() => { if (!CAMPOS_OLHAR[(document.activeElement || {}).id]) { card.dataset.olha = ''; card.classList.remove('digitando'); } }, 120); });
