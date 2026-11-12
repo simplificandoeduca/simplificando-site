@@ -517,22 +517,23 @@ No servidor cada criança continua com a saída dela: a tela reparte o pagamento
 
 O cupom da loja é o papel da impressora térmica do balcão, que o responsável assina. Sai com a **logo do Play Space** e **sempre em duas vias**, uma depois da outra, cada uma cortada sozinha.
 
-**Desde a 1.09 o cupom é curto.** A logo fica pequena, ao lado do nome da loja; a data vai na faixa da via; um tracejado fino separa as partes (no lugar das linhas em branco); e cada cupom leva só o que interessa a ele. Uma recreação simples, que gastava 185 mm de papel na via da loja e 145 mm na do cliente, gasta 90 mm e 64 mm. O cupom do carrinho gasta 63 mm e 42 mm.
+**Desde a 1.09 o cupom é curto.** A logo fica pequena, ao lado do nome da loja; a data vai na faixa da via; um tracejado fino separa as partes (no lugar das linhas em branco); e cada cupom leva só o que interessa a ele. Uma recreação simples, que gastava 185 mm de papel na via da loja e 145 mm na do cliente, gasta 102 mm e 76 mm. O cupom do carrinho, que gastava 180 mm e 141 mm, gasta 75 mm e 53 mm.
 
 **VIA DA LOJA** (sai primeiro; é a que o responsável assina e fica com a loja):
 
 - a logo, o **nome da loja**, a **unidade** e o telefone da loja; a faixa "VIA DA LOJA" com a **data e a hora**;
 - o **responsável**, o **CPF** (ou RNE) e os **telefones** dele;
 - **cada criança** dele que está no espaço (irmãos saem no mesmo cupom): o nome e a idade, o **número do cadastro** e a **sapateira**, a hora da **entrada** com o tempo comprado e até que horas ele vai (ou as horas do cliente, para quem tem pacote) e o **valor a cada 30 minutos**;
-- **o que foi vendido**: uma linha por item, com o valor; o total (quando há mais de um item) e a forma de pagamento;
-- a **linha da assinatura**, com o nome e o CPF do responsável embaixo;
+- **o pagamento, como um comprovante** (1.10): a tabela **Descrição / Qtd / Valor**, o subtotal e o desconto (só quando há desconto) e o **total já com a forma de pagamento** ("Total pago no Pix"; se dividiu, o total e uma linha para cada forma);
+- uma linha pequena com o **número da venda** e **quem atendeu**;
+- a **linha da assinatura**, com o nome e o CPF do responsável embaixo, quando há o que assinar (a entrada da criança, o carrinho que sai, a saída, a devolução);
 - o **aviso** do pé ("Somente o responsável que assinar a entrada da criança poderá assinar sua saída"), seguido da **tolerância que o cliente lê: 5 minutos** (1.00). A conta do sistema continua com a tolerância da regra das horas (9 min): a diferença é a folga da loja para os dias de fila. Muda em **Ajustes → Regra das horas → No cupom, o cliente lê tolerância de** (ou "Não mostrar"). O aviso só sai quando há criança entrando.
 
 **VIA DO CLIENTE** (a que o responsável leva): o mesmo cupom, mas **do cliente só vai o nome do responsável**. Não leva CPF, telefone, número do cadastro, idade, **sapateira** (1.09) nem assinatura: se o papel for perdido, ninguém fica com os dados do cliente. Nenhuma das duas vias leva a observação da criança (o OBS é só da equipe, seção 6q).
 
-**O cupom do carrinho (1.09).** Quem leva só o carrinho (fusquinha, carrinho de bebê) recebe um cupom só do carrinho: o responsável, o item com o valor, **a hora em que saiu e até quando devolver**, e o pagamento. Não tem criança, número do cadastro, sapateira (mesmo que a criança do cadastro tenha uma marcada) nem nada da recreação. Com recreação e carrinho na mesma venda, o cupom traz a criança e os dois itens, com o total.
+**O cupom do carrinho (1.09).** Quem leva só o carrinho (fusquinha, carrinho de bebê) recebe um cupom só do carrinho: o responsável, o carrinho na tabela com o valor e, embaixo dele, o tempo comprado, **a hora em que saiu e até quando devolver**, e o total pago. Não tem criança, número do cadastro, sapateira (mesmo que a criança do cadastro tenha uma marcada) nem nada da recreação. Com recreação e carrinho na mesma venda, o cupom traz a criança e os dois itens, com o total.
 
-**O pacote (1.09).** O pacote comprado sai entre os itens com o **nome dele**, as horas e o valor ("PACOTE 02 HORAS 260 · 2h … R$ 280,00"). Logo acima ficam as **horas do cliente** depois da compra ("Entrada 16:05 · horas do cliente: 2h", ou "Horas guardadas: 2h" para quem comprou e não entrou).
+**O pacote e o comprovante de pagamento (1.10).** O pacote comprado sai na tabela com o **nome dele** e o valor; embaixo, as horas que ele dá ("2h de recreação"). Quem compra e **entra na hora** tem as horas do cliente no bloco da criança ("Entrada 16:05 · horas do cliente: 2h"). Quem compra **para usar depois** (ou leva só um produto) recebe só o **COMPROVANTE DE PAGAMENTO**, no jeito do comprovante do sistema anterior, mais enxuto: o título, a tabela, as horas guardadas embaixo do pacote ("Para EVA · horas guardadas: 2h"), o total pago com a forma, o número da venda e quem atendeu. Sem o bloco da criança, sem o número do cadastro e **sem a linha da assinatura** (não há o que assinar). Sai em duas vias; a do cliente, como sempre, sem CPF e sem telefone.
 
 **Na tela e no papel**: na tela, o cupom aparece com cara de cupom (papel amarelinho, a logo colorida, a ponta serrilhada), com as duas vias lado a lado. No papel ele sai **preto no branco**, com a logo em preto: a impressora térmica só imprime preto.
 
