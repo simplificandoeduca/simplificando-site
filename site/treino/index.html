@@ -233,6 +233,12 @@ textarea:focus{outline:none;border-color:var(--fg)}
 .switch .knob::after{content:"";position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:#F6F5EF;box-shadow:0 2px 6px rgba(0,0,0,.35);transition:transform .35s var(--spring)}
 .switch input:checked+.knob{background:var(--brand)}
 /* lembrete de água em azul forte, para não passar despercebido */
+.in-pq{list-style:none;margin:0 0 14px;padding:0;display:flex;flex-direction:column;gap:6px}.in-pq li{display:flex;gap:8px;align-items:center;font-size:14.5px}.in-pq .i{width:18px;height:18px;color:var(--brand);flex:none}
+.in-steps{list-style:none;margin:0 0 14px;padding:0;display:flex;flex-direction:column;gap:10px}.in-steps li{display:flex;gap:12px;align-items:center;background:var(--ctl);border-radius:16px;padding:12px 14px;font-size:15px;line-height:1.35}.in-steps li>span:nth-child(2){flex:1}
+.in-n{flex:none;width:30px;height:30px;border-radius:50%;background:var(--brand);color:var(--on-brand,#0F1712);display:grid;place-items:center;font-weight:900;font-size:15px}
+.in-ic{flex:none;width:36px;height:36px;border-radius:10px;background:var(--card);display:grid;place-items:center;color:#2F7BF6}.in-ic .i{width:20px;height:20px}
+.in-av{display:flex;gap:8px;align-items:flex-start;background:color-mix(in srgb,var(--brand) 14%,transparent);border-radius:14px;padding:10px 12px;font-size:14px;margin:0 0 12px}.in-av .i{width:18px;height:18px;flex:none;margin-top:1px}
+.in-go{font-size:17px}
 .rm-card{--rm:#1769E0;box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--rm) 55%,transparent)}.rm-card:not(.on){background:color-mix(in srgb,var(--rm) 9%,var(--card))}
 .rm-card .sw-row{align-items:center}.rm-card .sw-row>div{flex:1;min-width:0}.rm-ic{flex:none;width:40px;height:40px;border-radius:13px;display:grid;place-items:center;background:var(--rm);color:#fff;margin-right:2px}.rm-ic .i{width:21px;height:21px;color:#fff!important;stroke:#fff}
 .rm-card .sw-row b{color:var(--rm)}
@@ -1720,7 +1726,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '13 nov · 119'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '13 nov · 120'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -2138,7 +2144,7 @@ function startApp(){
   const lg = document.getElementById('login'); if(lg) lg.remove();
   document.body.classList.remove('locked');
   applyLook(); window.scrollTo(0,0); render(); renderPick();
-  fbRefresh(); acompAsk();
+  fbRefresh(); acompAsk(); instAsk();
   try { const vv = localStorage.getItem('simp-app-v'); if(vv && vv!==APPV) setTimeout(() => toast('App atualizado: versão '+APPV), 900); localStorage.setItem('simp-app-v', APPV); } catch(e){ /* sem armazenamento */ }
 }
 function logout(){
@@ -2538,6 +2544,33 @@ function afterDelete(msg){
 const acompOn = () => !!(S && S.acomp && S.acomp.on);
 const acompPode = () => !!(FB && ACCT && ACCT.mode==='self' && ACCT.uid);
 function acompSet(on){ S.acomp = { on:!!on, em:Date.now() }; save(); perfilSync(true); }
+/* depois de criar a conta (sem personal): mostrar como colocar o app na tela do celular (uma vez) */
+let INST_EV = null, instT = 0;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); INST_EV = e; if(ui.sheet && ui.sheet.k==='inst') renderSheet(); });
+window.addEventListener('appinstalled', () => { INST_EV = null; if(S && S.inst){ S.inst = 'feito'; save(); } if(ui.sheet && ui.sheet.k==='inst'){ closeSheet(); toast('App instalado. Abra pelo ícone na tela do celular.'); } });
+const ANDROID = /Android/i.test(navigator.userAgent), iosSafari = () => IOS && !/CriOS|FxiOS|EdgiOS|OPiOS|GSA\//.test(navigator.userAgent);
+function instAsk(){
+  clearInterval(instT); if(!S || S.inst!=='novo' || S.example) return;
+  if(STANDALONE || !(IOS || ANDROID)){ S.inst = 'feito'; save(); return; }
+  let n = 0;
+  instT = setInterval(() => { // espera as outras perguntas do começo (layout e acompanhamento) saírem da tela
+    if(++n > 60 || !S || S.inst!=='novo'){ clearInterval(instT); return; }
+    const livre = ACCT && !ui.sheet && !document.getElementById('login') && !document.getElementById('pick') && !document.querySelector('.wel') && (S.acomp || !acompPode());
+    if(livre){ clearInterval(instT); ui.sheet = {k:'inst'}; renderSheet(true); }
+  }, 1500);
+}
+const instPasso = (n, t, extra) => `<li><span class="in-n">${n}</span><span>${t}</span>${extra||''}</li>`;
+function vInst(){
+  const top = sheetTop('Último passo', 'Coloque o app na tela do celular<span class="dot" aria-hidden="true"></span>');
+  const pq = '<ul class="in-pq"><li>'+ic('check')+'Abre em tela cheia, como um aplicativo</li><li>'+ic('check')+'Funciona até sem internet na academia</li><li>'+ic('check')+'Recebe o lembrete de água'+(IOS ? ' (no iPhone, só pelo ícone)' : '')+'</li></ul>';
+  let corpo;
+  if(ANDROID && INST_EV) corpo = `<button type="button" class="btn primary block in-go" data-a="inst-go">${ic('dl')}Instalar o app</button><p class="foot0">Toque em Instalar e confirme. O ícone do Simplificando aparece na tela do celular.</p>`;
+  else if(ANDROID) corpo = `<ol class="in-steps">${instPasso(1, 'Toque nos <b>três pontinhos ⋮</b>, no canto de cima do Chrome.')}${instPasso(2, 'Toque em <b>Instalar app</b> (ou <b>Adicionar à tela inicial</b>).')}${instPasso(3, 'Confirme em <b>Instalar</b>. O ícone aparece na tela do celular.')}</ol>`;
+  else corpo = (iosSafari() ? '' : '<p class="in-av">'+ic('flag')+'<span>Abra este link no <b>Safari</b> para conseguir colocar o app na tela de início.</span></p>')+
+    `<ol class="in-steps">${instPasso(1, 'Toque em <b>Compartilhar</b>: o quadrado com a seta para cima, na barra de baixo do Safari.', '<span class="in-ic">'+ic('share')+'</span>')}${instPasso(2, 'Role a lista e toque em <b>Adicionar à Tela de Início</b>.', '<span class="in-ic">'+ic('plus')+'</span>')}${instPasso(3, 'Toque em <b>Adicionar</b>, no canto de cima. Depois abra o Simplificando pelo ícone.')}</ol>`;
+  return `<div class="sheet-wrap" data-a="inst-x"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t" tabindex="-1">${top.replace('data-a="close"','data-a="inst-x"')}${pq}${corpo}
+    <button type="button" class="btn ghost block" data-a="inst-ok">${ANDROID && INST_EV ? 'Agora não' : 'Pronto, já coloquei'}</button></div></div>`;
+}
 function acompAsk(){ if(!acompPode() || S.acomp || S.example) return; setTimeout(() => { if(ACCT && !ui.sheet && !S.acomp && !document.getElementById('login')){ ui.sheet = {k:'acomp'}; renderSheet(true); } }, 1600); }
 function vAcomp(){
   return `<div class="sheet-wrap" data-a="acomp-no"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t" tabindex="-1">${sheetTop('Simplificando', 'Quer ser acompanhado<span class="dot" aria-hidden="true"></span>')}
@@ -3003,7 +3036,7 @@ function suFinish(mode){
   if(!uid){ LG.step = 1; renderLogin(); return; }
   const s = fresh(false); s.nome = nome; s.ed = f.ed; s.waterGoal = waterSug(); s.cardioGoal = f.ed==='emagrecer' ? 150 : 120;
   s.conta = { sexo, peso:num(f.peso)||null, email:LG.uidMail||'', plan:mode, treinos: mode==='ia' && f.plan ? f.plan : {}, ia: mode==='ia' ? JSON.parse(JSON.stringify(IQ)) : null, semana: mode==='ia' ? iqN(IQ) : 0, dias:[] };
-  s.aceite = aceiteNovo(true); s._em = Date.now();
+  s.aceite = aceiteNovo(true); s._em = Date.now(); s.inst = 'novo';
   try { localStorage.setItem(autoKey(uid), JSON.stringify(s)); } catch(e){ /* sem armazenamento */ }
   if(FB){ FB.autoSave(uid, s, true); FB.perfil({ tipo:'autonomo', nome, email:LG.uidMail||'', sexo, objetivo:f.ed, plano:mode, treinos:mode==='ia' && f.plan ? Object.keys(f.plan).length : 0, criadoEm:Date.now(), ultimoAcesso:Date.now(), aceite:{ v:s.aceite.v, em:s.aceite.em }, ver:APPV }); }
   writeSess({mode:'self', uid}); LG.view = 'login'; LG.step = 1; LG.f = LGF0(); LG.uid = null; LG.uidMail = '';
@@ -5460,7 +5493,7 @@ function render(){
 function renderSheet(freshOpen){
   if(!ui.sheet){ $sheet.innerHTML = ''; document.body.classList.remove('locked'); return; }
   const oldWrap = $sheet.querySelector('.sheet-wrap:not(.closing)'), old = oldWrap && oldWrap.querySelector('.sheet'), st = old && !freshOpen ? old.scrollTop : 0;
-  $sheet.innerHTML = ui.sheet.k==='acomp' ? vAcomp() : ui.sheet.k==='doc' ? vDocSheet() : ui.sheet.k==='excluir' ? vExcluir() : ui.sheet.k==='meus' ? vMeus() : ui.sheet.k==='ia' ? vIA() : ui.sheet.k==='ex' ? vSheet(ui.sheet.id) : ui.sheet.k==='prof' ? vProfile() : ui.sheet.k==='cs' || ui.sheet.k==='cman' ? vCardioSheet() : ui.sheet.k==='gym' ? vGym() : ui.sheet.k==='exq' ? vExq(ui.sheet.id) : ui.sheet.k==='story' ? vStory() : ui.sheet.k==='stpick' ? vStPick() : ui.sheet.k==='cstory' ? vCStory() : ui.sheet.k==='cstpick' ? vCStPick() : vSummary(ui.sheet.i);
+  $sheet.innerHTML = ui.sheet.k==='inst' ? vInst() : ui.sheet.k==='acomp' ? vAcomp() : ui.sheet.k==='doc' ? vDocSheet() : ui.sheet.k==='excluir' ? vExcluir() : ui.sheet.k==='meus' ? vMeus() : ui.sheet.k==='ia' ? vIA() : ui.sheet.k==='ex' ? vSheet(ui.sheet.id) : ui.sheet.k==='prof' ? vProfile() : ui.sheet.k==='cs' || ui.sheet.k==='cman' ? vCardioSheet() : ui.sheet.k==='gym' ? vGym() : ui.sheet.k==='exq' ? vExq(ui.sheet.id) : ui.sheet.k==='story' ? vStory() : ui.sheet.k==='stpick' ? vStPick() : ui.sheet.k==='cstory' ? vCStory() : ui.sheet.k==='cstpick' ? vCStPick() : vSummary(ui.sheet.i);
   const sh = $sheet.querySelector('.sheet');
   const nw = $sheet.querySelector('.sheet-wrap');
   if(old && nw && sh){ nw.classList.add('still'); sh.scrollTop = st; }
@@ -5718,6 +5751,8 @@ function onClick(ev){
   if(a==='doc-open'){ ui.sheet = {k:'doc', d:d.v}; renderSheet(true); return; }
   if(a==='doc-tab'){ ui.sheet.d = d.v; renderSheet(); return; }
   if(a==='acc-open'){ ui.sheet = {k:'excluir'}; renderSheet(true); return; }
+  if(a==='inst-x' || a==='inst-ok'){ if(b.classList.contains('sheet-wrap') && ev.target!==b) return; if(S){ S.inst = 'visto'; save(); } closeSheet(); if(a==='inst-ok' && !(ANDROID && INST_EV)) toast('Boa! A partir de agora, abra pelo ícone.'); return; }
+  if(a==='inst-go'){ const evI = INST_EV; if(!evI) return; INST_EV = null; evI.prompt(); evI.userChoice.then(r => { if(r && r.outcome==='accepted'){ if(S){ S.inst = 'feito'; save(); } closeSheet(); toast('Instalando. O ícone aparece na tela do celular.'); } else renderSheet(); }).catch(() => renderSheet()); return; }
   if(a==='acomp-sim' || a==='acomp-no'){ if(b.classList.contains('sheet-wrap') && ev.target!==b) return; acompSet(a==='acomp-sim'); closeSheet(); toast(a==='acomp-sim' ? 'Pronto. O Eduardo vai acompanhar os seus treinos.' : 'Tudo bem. Dá pra ligar depois no Perfil.'); return; }
   if(a==='acc-del'){ if(armed==='acc-del') accDelete(); else { ui.arm = 'acc-del'; renderSheet(); } return; }
   let re = true;
