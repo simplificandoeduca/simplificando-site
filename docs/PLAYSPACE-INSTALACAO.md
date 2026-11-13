@@ -39,7 +39,7 @@ Na prévia (sem servidor) o mesmo botão existe e faz a mesma coisa na própria 
 |---|---|
 | **Gestor** | Tudo: regra das horas, serviços, pacotes, produtos, equipe, iDFace. Pode remover crianças; **cadastro com horas guardadas, só o Gestor remove, e confirmando** (seção 6r). **É quem desfaz e cancela o que já tem valor** (1.21, seção 6z). |
 | **Supervisor** | Tudo da loja (horas, cadastro, agenda) e *vê* os Ajustes, mas não os altera. **Confere as entradas canceladas**, cancela uma entrada mesmo fora do prazo e **corrige a hora de uma saída esquecida**. |
-| **Operador** (até a 1.20 chamava-se Atendente) | O dia a dia da recepção: cadastro, entrada, venda, saída, devolução, receber e agenda. Não vê Ajustes, não muda preço nem cadastro, não dá desconto. Cancela uma entrada sem cobrar só dentro do prazo (9 min), escrevendo o motivo. **Não desfaz o que tem valor** (1.21, seção 6z): a venda registrada só sai pelo cancelamento do Gestor, com o motivo. |
+| **Operador** (até a 1.20 chamava-se Atendente) | O dia a dia da recepção: cadastro, entrada, venda, saída, devolução, receber e agenda. Não vê Ajustes, não muda preço nem cadastro, não dá desconto por conta própria (pede ao gestor: seção 6zb). Cancela uma entrada sem cobrar só dentro do prazo (9 min), escrevendo o motivo. **Não desfaz o que tem valor** (1.21, seção 6z): a venda registrada só sai pelo cancelamento do Gestor, com o motivo. |
 
 A gestora cadastra cada pessoa com nome, login e senha inicial. Cada um troca a própria senha no avatar (canto inferior esquerdo no computador, aba **Conta** no celular) → *Trocar a senha*. Para redefinir a senha de alguém, a gestora edita a pessoa e digita uma senha nova.
 
@@ -463,7 +463,7 @@ Depois de escolher o serviço (horas avulsas, pacote, carrinho, produto), o aten
 3. **Adicionar serviços**: no atendimento, volta para a escolha; na saída, soma o que o cliente leva no próprio pagamento da saída (seção 6r).
 4. **Pagamento**: quando há horas na conta, três linhas, **Horas disponíveis**, **Horas necessárias** (ou "Horas desta compra") e **Saldo após confirmação**; depois, as formas de pagamento e o botão que confirma.
 
-**Desconto, só para o gestor (1.04).** Como na tela anterior, o pagamento tem o campo **Desconto**; aqui, só o gestor vê. Operador e supervisor não veem o campo, e o servidor recusa o desconto de quem não é gestor.
+**Desconto, só para o gestor (1.04).** Como na tela anterior, o pagamento tem o campo **Desconto**; aqui, só o gestor vê. Operador e supervisor não dão desconto, e o servidor recusa o de quem não é gestor (desde a 1.23 eles veem o campo para **pedir** o desconto ao gestor: seção 6zb).
 
 - Fica fechado, embaixo das formas de pagamento: **Desconto · só o gestor**. Um toque abre: **Por valor · R$** ou **Por percentual · %**, o **valor** e o **motivo** (obrigatório).
 - O desconto vira uma linha verde na tabela dos itens ("Desconto (10%) · CLIENTE ANTIGO · − R$ 9,50"), e o total, o valor em cada forma de pagamento e o botão de baixo já mostram o valor com o desconto. Sem o motivo, ou com um valor maior que o total, a tela avisa e não registra.
@@ -872,6 +872,23 @@ No servidor: `regra.estorno` (`gestor`, `supervisor` ou `todos`); `podeEstornar(
 **O número do cadastro.** Cada cadastro tem o seu número, único (é o mesmo que já saía no cupom, "Cadastro 123"). Agora ele aparece na **ficha** e no **histórico do cliente** ("Cadastro nº 123"), e **a busca acha por ele**: "123", "#123", "nº 123" ou "cadastro 123", na tela inicial e em Ajustes → Cadastros.
 
 No servidor: em `atender`, o fusquinha em aberto cria uma venda por carrinho (todas com a mesma linha do dia); `alugueis()` devolve `q` = quantos ainda estão fora; `devolver` aceita `quantos` (os que voltam agora) e responde `ficam`; `aluguelExtra` devolve `q`, `de` e o valor já multiplicado. O que sai da loja com valor único para em 4 por venda (`ALUG_MAX`). O banco não muda de versão.
+
+## 6zb. Pedidos de autorização e nota fiscal (1.23)
+
+O que só o gestor faz (dar desconto, autorizar a nota fiscal) e o que só quem estorna faz (cancelar uma venda), o operador **pede**. Há dois jeitos de autorizar, e os dois ficam guardados:
+
+- **Um toque na tela de quem autoriza.** O pedido aparece sozinho, em poucos segundos, num **cartão** por cima de qualquer tela (no computador, embaixo à direita; no celular, no alto), com um bipe e o número na aba do navegador: quem pede, o que pede, o cliente e o motivo. **Liberar** (ou **Negar**) é um toque. O cartão chega mesmo com uma folha aberta; dá para recolher. A tela precisa estar aberta e com o gestor logado (no celular dele, por exemplo): não há aviso com o sistema fechado.
+- **A senha de quem autoriza, no aparelho de quem pediu.** O gestor está ao lado: digita a senha dele ali e vale na hora. O campo esconde o que é digitado e não é tratado como senha pelo navegador (ele não oferece para guardar). Oito senhas erradas seguidas param os pedidos com senha daquele usuário por 15 minutos.
+
+**Desconto.** Na tela de pagamento (do atendimento e da saída), o operador vê **Desconto · o gestor autoriza**: escreve o valor (em R$ ou %) e o motivo e toca em **Pedir ao gestor**, ou o gestor digita a senha em **Liberar com a senha**. Enquanto espera, o total continua cheio. Liberado, a tela que estava aberta muda sozinha: "Desconto de R$ 10 liberado por CAMILA", e o total cai. O desconto liberado vale **até o valor liberado, para aquele cliente (ou os irmãos), por 30 minutos e uma vez** (a saída em conjunto reparte entre os irmãos). A linha do dia diz quem deu e quem autorizou, e o desconto fica no nome de quem autorizou. Para o gestor nada muda: ele dá o desconto direto.
+
+**Cancelar uma venda.** No histórico do cliente, o operador tem **Pedir o cancelamento** (com o motivo). Quem estorna recebe o pedido e, ao **Liberar o cancelamento**, a venda é cancelada na hora, no nome dele, com o motivo de quem pediu; os dois são avisados do que devolver ao cliente. Com a senha de quem estorna, a venda é cancelada ali mesmo. Vale o mesmo que a seção 6z (vendas da equipe dos últimos 7 dias, horas não usadas).
+
+**Nota fiscal (NF).** No histórico do cliente, cada compra com valor tem o **NF**. A folha traz em nome de quem a nota sai (o responsável e o CPF do cadastro; dá para trocar por outro nome, um CNPJ, e pôr um e-mail). **Só o gestor autoriza**: com a senha ali, ou pela tela dele (**Pedir ao gestor**); logado, ele autoriza com um toque. Autorizada, a folha mostra os **dados para emitir** (com **Copiar os dados**) e o campo **Número da nota emitida**: quem emitir marca o número, e a compra passa a mostrar "NF nº 123". O gestor corrige o número ou desfaz a marcação. **O sistema guarda o pedido, a autorização e o número; ele não emite a nota** (a emissão continua sendo feita no emissor da loja ou da prefeitura). Se uma venda com nota emitida for cancelada, a linha do dia avisa: "TEM NOTA FISCAL EMITIDA (Nº 123): CANCELAR A NOTA TAMBÉM". A recreação avulsa que a visita soma sozinha ainda não tem o NF.
+
+**Conferência.** Em **Hoje na recepção → Autorizações**: os pedidos que esperam, as **notas fiscais a emitir** e os últimos pedidos, cada um com quem pediu, quem liberou e **como** (toque ou senha). Gestor e supervisor veem todos; o operador, os dele.
+
+No servidor: tabela `pedidos` (banco **30**), com o tipo (`desconto`, `cancelar_venda`, `nf`), o estado (`pendente`, `liberado`, `usado`, `negado`, `cancelado`), quem pediu, quem decidiu, quando e como. Ações `pedido_criar` (com `senha`, vale na hora), `pedido_decidir`, `pedido_cancelar`, `nf_emitida` e `pedidos_lista`. O desconto de quem não é gestor vai com `autorizacao` (o pedido liberado) e o servidor confere tudo de novo. O `pulso` leva os pedidos de cada tela (`ped`), e a tela continua perguntando por eles mesmo com uma folha aberta. Uma venda apagada (cancelada, desfeita) solta os pedidos dela por um gatilho: o número de uma venda apagada pode voltar numa venda nova, e ela não herda nada.
 
 ## 7. Atualizar
 

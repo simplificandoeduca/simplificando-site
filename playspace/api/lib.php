@@ -306,6 +306,17 @@ function db(): PDO {
     try { $pdo->exec('ALTER TABLE visitas ADD COLUMN pag_de INTEGER'); } catch (Throwable $e) { }   // a saída que recebeu: o último pagamento que já existia antes dela (os dela vêm depois). Vazio = não recebeu nada
     $pdo->exec('PRAGMA user_version = 29');
   }
+  if ($v < 30) { // 1.23: os pedidos de autorização (desconto, cancelar uma venda, nota fiscal): quem pediu, quem decidiu, quando e como
+    $pdo->exec("CREATE TABLE IF NOT EXISTS pedidos (id INTEGER PRIMARY KEY, tipo TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pendente', crianca_id INTEGER, venda_id INTEGER, nome TEXT NOT NULL DEFAULT '', resp TEXT NOT NULL DEFAULT '',
+      texto TEXT NOT NULL DEFAULT '', motivo TEXT NOT NULL DEFAULT '', valor REAL NOT NULL DEFAULT 0, usado REAL NOT NULL DEFAULT 0, dados TEXT NOT NULL DEFAULT '{}',
+      pedido_por INTEGER, pedido_nome TEXT NOT NULL DEFAULT '', pedido_em TEXT NOT NULL, decidido_por INTEGER, decidido_nome TEXT NOT NULL DEFAULT '', decidido_em TEXT, como TEXT NOT NULL DEFAULT '',
+      feito_por INTEGER, feito_nome TEXT NOT NULL DEFAULT '', feito_em TEXT, numero TEXT NOT NULL DEFAULT '', resultado TEXT NOT NULL DEFAULT '', unidade_id INTEGER)");
+    $pdo->exec('CREATE INDEX IF NOT EXISTS pedidos_status ON pedidos (status, id)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS pedidos_venda ON pedidos (venda_id)');
+    // a venda apagada (cancelada, desfeita, limpeza) solta os pedidos dela: o número de uma venda apagada pode voltar numa venda nova
+    $pdo->exec("CREATE TRIGGER IF NOT EXISTS vendas_solta_pedidos AFTER DELETE ON vendas BEGIN UPDATE pedidos SET venda_id = NULL, status = CASE WHEN status IN ('pendente', 'liberado') THEN 'cancelado' ELSE status END, resultado = CASE WHEN resultado = '' THEN 'A VENDA SAIU' ELSE resultado END WHERE venda_id = OLD.id; END");
+    $pdo->exec('PRAGMA user_version = 30');
+  }
   return $pdo;
 }
 /* ---------- 1.06: unidades ---------- */
@@ -445,6 +456,142 @@ function exigir(array $papeis = []): array {
 function podeEstornar(array $u): bool { $q = (string)(regra()['estorno'] ?? 'gestor'); $p = (string)($u['papel'] ?? ''); return $p === 'gestor' || $q === 'todos' || ($q === 'supervisor' && $p === 'supervisor'); }
 function quemEstorna(): string { return (string)(regra()['estorno'] ?? 'gestor') === 'supervisor' ? 'o gestor ou o supervisor' : 'o gestor'; }
 const MOTIVO_DESFEITA = 'DESFEITA NA HORA (TOQUE ERRADO)';   // o motivo da entrada desfeita pelo botão do aviso por quem não estorna
+
+/* ---------- 1.23: os pedidos de autorização ---------- */
+// O que só o gestor faz (dar desconto, autorizar a nota fiscal) e o que só quem estorna faz (cancelar uma venda), o operador PEDE.
+// O pedido aparece na tela de quem autoriza, que libera ou nega com um toque; quem autoriza também pode digitar a senha dele no aparelho
+// de quem pediu. Fica guardado quem pediu, quem decidiu, quando e como (toque ou senha), e o que foi feito com a autorização.
+// status: pendente → liberado (o desconto pode ser usado; a nota pode ser emitida) → usado (o desconto foi aplicado; a venda foi cancelada;
+// a nota foi emitida, com o número) | negado | cancelado (quem pediu desistiu, ou a venda saiu).
+const PEDIDO_TIPOS = ['desconto', 'cancelar_venda', 'nf'];
+const PEDIDO_VALE_MIN = 30;   // o desconto liberado vale por 30 min; depois disso, pede de novo
+const PEDIDO_ESPERA_H = 12;   // o pedido de desconto ou de cancelamento sem resposta sai da tela depois disso (o da nota fiscal espera o gestor)
+const PEDIDO_JUNTO_SEG = 120;   // o desconto já usado em parte só completa a mesma conta (a saída em conjunto dos irmãos) dentro deste tempo
+function podeDecidir(array $u, string $tipo): bool { return $tipo === 'cancelar_venda' ? podeEstornar($u) : ($u['papel'] ?? '') === 'gestor'; }
+function quemDecide(string $tipo): string { return $tipo === 'cancelar_venda' ? quemEstorna() : 'o gestor'; }
+function pedido(int $id): ?array { $q = db()->prepare('SELECT * FROM pedidos WHERE id = ?'); $q->execute([$id]); return $q->fetch() ?: null; }
+function pedidoPublico(array $p): array {
+  $d = json_decode((string)$p['dados'], true);
+  $o = ['id' => (int)$p['id'], 'tipo' => (string)$p['tipo'], 'status' => (string)$p['status'], 'crianca' => $p['crianca_id'] === null ? null : (int)$p['crianca_id'], 'venda' => $p['venda_id'] === null ? null : (int)$p['venda_id'],
+    'nome' => (string)$p['nome'], 'resp' => (string)$p['resp'], 'texto' => (string)$p['texto'], 'motivo' => (string)$p['motivo'], 'valor' => round((float)$p['valor'], 2), 'usado' => round((float)$p['usado'], 2), 'dados' => is_array($d) ? $d : [],
+    'por' => (string)$p['pedido_nome'], 'por_id' => (int)$p['pedido_por'], 'em' => (string)$p['pedido_em'], 'dec' => (string)$p['decidido_nome'], 'dec_em' => $p['decidido_em'], 'como' => (string)$p['como'],
+    'feito_por' => (string)$p['feito_nome'], 'feito_em' => $p['feito_em'], 'numero' => (string)$p['numero'], 'resultado' => (string)$p['resultado'], 'uni' => ($p['unidade_id'] ?? null) === null ? null : (int)$p['unidade_id'], 'sem_venda' => $p['tipo'] !== 'desconto' && $p['venda_id'] === null];   // sem_venda: a venda do pedido saiu (foi cancelada ou desfeita)
+  if ($p['tipo'] === 'desconto' && $p['status'] === 'liberado' && $p['decidido_em']) $o['vale'] = date('Y-m-d H:i:s', strtotime((string)$p['decidido_em']) + PEDIDO_VALE_MIN * 60);   // até quando o desconto liberado pode ser usado
+  return $o;
+}
+// o que cada tela recebe (em toda carga e a cada pulso): os pedidos que esperam a resposta de quem está logado, e os dele mesmo
+// (o que ainda espera e o que foi respondido nas últimas horas, para a tela dizer o que o gestor decidiu)
+function pedidosDaTela(array $u): array {
+  $db = db(); $lim = date('Y-m-d H:i:s', time() - PEDIDO_ESPERA_H * 3600); $eu = (int)$u['id']; $o = [];
+  $q = $db->prepare("SELECT p.* FROM pedidos p WHERE p.status = 'pendente' AND (p.tipo = 'nf' OR p.pedido_em >= ?) ORDER BY p.id DESC LIMIT 60"); $q->execute([$lim]);
+  foreach ($q->fetchAll() as $p) { $meu = (int)$p['pedido_por'] === $eu; $decide = podeDecidir($u, (string)$p['tipo']);
+    if (($p['tipo'] !== 'desconto' && $p['venda_id'] === null) || !($meu || $decide)) continue;   // (o pedido de uma venda que saiu não espera mais nada: o gatilho já o cancelou)
+    $o[] = pedidoPublico($p) + ['meu' => $meu, 'decide' => $decide]; }
+  $q = $db->prepare("SELECT p.* FROM pedidos p WHERE p.pedido_por = ? AND p.status != 'pendente' AND COALESCE(p.decidido_em, p.pedido_em) >= ? ORDER BY p.id DESC LIMIT 30"); $q->execute([$eu, $lim]);
+  foreach ($q->fetchAll() as $p) $o[] = pedidoPublico($p) + ['meu' => true, 'decide' => false];
+  return $o;
+}
+// a senha de quem autoriza, digitada no aparelho de quem pediu: devolve quem é (ou falha). 8 tentativas erradas em 15 min param por 15 min
+function autorizadorPelaSenha(string $tipo, string $senha, array $u): array {
+  $db = db(); $chave = 'aut:' . (int)$u['id'];
+  $db->prepare('DELETE FROM tentativas WHERE quando < ?')->execute([time() - 900]);
+  $q = $db->prepare('SELECT COUNT(*) FROM tentativas WHERE login = ? AND quando > ?'); $q->execute([$chave, time() - 900]);
+  if ((int)$q->fetchColumn() >= 8) falha('Muitas tentativas de senha. Espere 15 minutos, ou peça para ' . quemDecide($tipo) . ' liberar na tela dele.', 429);
+  if ($senha !== '') foreach ($db->query("SELECT id, nome, login, papel, senha FROM usuarios WHERE ativo = 1 ORDER BY papel = 'gestor' DESC, id")->fetchAll() as $g) {
+    if (podeDecidir($g, $tipo) && password_verify($senha, (string)$g['senha'])) { unset($g['senha']); return $g; }
+  }
+  $db->prepare("INSERT INTO tentativas (login, ip, quando) VALUES (?, '', ?)")->execute([$chave, time()]); usleep(400000);
+  falha('A senha não confere com a ' . (quemDecide($tipo) === 'o gestor' ? 'do gestor' : 'do gestor nem com a do supervisor') . '.', 403);
+}
+function pedidoCriar(array $u, array $in): array {
+  $db = db(); $tipo = (string)($in['tipo'] ?? ''); if (!in_array($tipo, PEDIDO_TIPOS, true)) falha('Pedido desconhecido.');
+  $agora = agora(); $dados = []; $valor = 0.0; $vendaId = null; $motivo = mb_substr(maiusculo((string)($in['motivo'] ?? '')), 0, 300);
+  if ($tipo === 'desconto') {
+    $c = crianca((int)($in['crianca'] ?? 0)); if (!$c) falha('Cliente não encontrado.', 404);
+    $valor = round((float)($in['valor'] ?? 0), 2); if ($valor <= 0) falha('Escreva o valor do desconto.');
+    $pct = round((float)($in['pct'] ?? 0), 2); if ($pct < 0 || $pct > 100) falha('O desconto não passa de 100%.');
+    $base = round(max(0, (float)($in['base'] ?? 0)), 2); if ($base > 0 && $valor > $base + 0.004) falha('O desconto (' . dinheiro($valor) . ') passa do total, que é ' . dinheiro($base) . '.');
+    $motivo = mb_substr($motivo, 0, 120); if (mb_strlen($motivo) < 3) falha('Escreva o motivo do desconto.');
+    $dados = ['pct' => $pct, 'base' => $base, 'onde' => ($in['onde'] ?? '') === 'saida' ? 'saida' : 'venda'];
+    $texto = 'Desconto de ' . dinheiro($valor) . ($pct > 0 ? ' (' . rtrim(rtrim(number_format($pct, 2, ',', ''), '0'), ',') . '%)' : '') . ($base > 0 ? ' em ' . dinheiro($base) : '') . ($dados['onde'] === 'saida' ? ' · na saída' : '');
+    // um pedido de desconto por vez para o mesmo cliente: o anterior (sem resposta, ou liberado e não usado) deixa de valer
+    $db->prepare("UPDATE pedidos SET status = 'cancelado', resultado = 'TROCADO POR OUTRO PEDIDO' WHERE tipo = 'desconto' AND pedido_por = ? AND crianca_id = ? AND status IN ('pendente', 'liberado')")->execute([(int)$u['id'], (int)$c['id']]);
+  } else {
+    $q = $db->prepare('SELECT * FROM vendas WHERE id = ?'); $q->execute([(int)($in['venda'] ?? 0)]); $v = $q->fetch(); if (!$v) falha('Esta venda não existe mais: já foi desfeita ou cancelada.', 404);
+    $c = crianca((int)$v['crianca_id']); if (!$c) falha('Cliente não encontrado.', 404); $vendaId = (int)$v['id']; $valor = round((float)$v['valor'], 2); $nomeV = nomeDaVenda($v);
+    $pago = pagoPorForma([$vendaId]); $pagoTxt = $pago ? 'pago: ' . textoPagamento($pago, true) : ($valor > 0.004 ? 'ainda não foi paga' : '');
+    $oque = $nomeV . ' (' . dinheiro($valor) . ') · venda de ' . date('d/m', strtotime((string)$v['quando'])) . ' às ' . substr((string)$v['quando'], 11, 5) . ($pagoTxt !== '' ? ' · ' . $pagoTxt : '');
+    if ((string)($v['servico'] ?? '') === SERV_IMPORTADO) falha('As horas que vieram do sistema anterior não são uma venda: não dá para ' . ($tipo === 'nf' ? 'tirar a nota' : 'cancelar') . ' por aqui.');
+    if ($tipo === 'cancelar_venda') {
+      if (!empty($v['auto'])) falha('A recreação que a visita somou sozinha não é cancelada por aqui: ela é acertada na saída.');
+      if (time() - strtotime((string)$v['quando']) > VENDA_CANCELA_DIAS * 86400) falha('Só dá para cancelar vendas dos últimos ' . VENDA_CANCELA_DIAS . ' dias.');
+      if (mb_strlen($motivo) < 5) falha('Escreva o motivo do cancelamento.');
+      $min = (int)$v['minutos']; $resta = restante($c);
+      if ($min > 0 && $resta < $min) falha('As horas desta venda já foram usadas' . ($resta > 0 ? ' em parte: sobram ' . hm($resta) . ' de ' . hm($min) : '') . '. Não dá para cancelar a venda inteira.');
+      $q = $db->prepare("SELECT * FROM pedidos WHERE tipo = 'cancelar_venda' AND venda_id = ? AND status = 'pendente' ORDER BY id DESC LIMIT 1"); $q->execute([$vendaId]); $ja = $q->fetch();
+      if ($ja) return ['pedido' => pedidoPublico($ja), 'ja' => true];   // já havia o pedido desta venda, à espera
+      $dados = ['item' => $nomeV, 'quando' => (string)$v['quando'], 'pago' => $pago ? textoPagamento($pago, true) : '', 'min' => $min];
+      $texto = 'Cancelar a venda: ' . $oque;
+    } else { // a nota fiscal de uma compra
+      if ($valor <= 0.004) falha('Esta compra não tem valor: não há nota para tirar.');
+      $q = $db->prepare("SELECT * FROM pedidos WHERE tipo = 'nf' AND venda_id = ? AND status IN ('pendente', 'liberado', 'usado') ORDER BY id DESC LIMIT 1"); $q->execute([$vendaId]); $ja = $q->fetch();
+      if ($ja) return ['pedido' => pedidoPublico($ja), 'ja' => true];   // uma nota por compra
+      $nfNome = mb_substr(maiusculo((string)($in['nf_nome'] ?? '')), 0, 120); if ($nfNome === '') $nfNome = (string)($c['resp'] ?: $c['nome']);
+      $bruto = array_key_exists('nf_doc', $in) ? (string)$in['nf_doc'] : (($c['doc_tipo'] ?? 'cpf') === 'cpf' ? (string)$c['cpf'] : ''); $dig = (string)preg_replace('/\D/', '', $bruto);
+      if ($dig !== '' && strlen($dig) !== 11 && strlen($dig) !== 14) falha('Confira o CPF ou o CNPJ da nota: o CPF tem 11 números e o CNPJ, 14.');
+      $doc = strlen($dig) === 11 ? substr($dig, 0, 3) . '.' . substr($dig, 3, 3) . '.' . substr($dig, 6, 3) . '-' . substr($dig, 9) : (strlen($dig) === 14 ? substr($dig, 0, 2) . '.' . substr($dig, 2, 3) . '.' . substr($dig, 5, 3) . '/' . substr($dig, 8, 4) . '-' . substr($dig, 12) : '');
+      $email = mb_substr(trim((string)($in['nf_email'] ?? '')), 0, 120); if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) falha('Confira o e-mail para onde a nota vai.');
+      $dados = ['nome' => $nfNome, 'doc' => $doc, 'email' => mb_strtolower($email), 'item' => $nomeV, 'quando' => (string)$v['quando'], 'pago' => $pago ? textoPagamento($pago, true) : ''];
+      $texto = 'Nota fiscal: ' . $oque . ' · em nome de ' . $nfNome . ($doc !== '' ? ' · ' . (strlen($dig) === 14 ? 'CNPJ ' : 'CPF ') . $doc : '');
+      $motivo = '';
+    }
+  }
+  $db->prepare('INSERT INTO pedidos (tipo, status, crianca_id, venda_id, nome, resp, texto, motivo, valor, dados, pedido_por, pedido_nome, pedido_em, unidade_id) VALUES (?, \'pendente\', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    ->execute([$tipo, (int)$c['id'], $vendaId, (string)$c['nome'], (string)$c['resp'], $texto, $motivo, $valor, json_encode($dados, JSON_UNESCAPED_UNICODE), (int)$u['id'], (string)$u['nome'], $agora, unidadeDoPedido()]);
+  $id = (int)$db->lastInsertId();
+  if (podeDecidir($u, $tipo)) return pedidoDecidir($id, $u, true, 'proprio');   // quem pede já autoriza (o gestor): vale na hora
+  return ['pedido' => pedidoPublico(pedido($id))];
+}
+// liberar ou negar. $g = quem decide (quem está logado, ou o dono da senha digitada); $como = 'toque' | 'senha' | 'proprio'
+function pedidoDecidir(int $id, array $g, bool $ok, string $como = 'toque'): array {
+  $db = db(); $p = pedido($id); if (!$p) falha('Pedido não encontrado.', 404);
+  $tipo = (string)$p['tipo']; if (!podeDecidir($g, $tipo)) falha('Só ' . quemDecide($tipo) . ' responde a este pedido.', 403);
+  if ($p['status'] !== 'pendente') falha($p['status'] === 'cancelado' ? 'Este pedido não vale mais: foi cancelado.' : 'Este pedido já foi respondido' . ($p['decidido_nome'] !== '' ? ' por ' . primeiroNome((string)$p['decidido_nome']) : '') . '.', 409);
+  $agora = agora(); $extra = []; $status = $ok ? 'liberado' : 'negado'; $resultado = '';
+  if ($ok && $tipo === 'cancelar_venda') { // liberar o cancelamento É cancelar a venda (no nome de quem liberou, com o motivo de quem pediu)
+    $q = $db->prepare('SELECT 1 FROM vendas WHERE id = ?'); $q->execute([(int)$p['venda_id']]); $existe = $p['venda_id'] !== null && (bool)$q->fetchColumn(); $q->closeCursor();
+    if (!$existe) { $db->prepare("UPDATE pedidos SET status = 'cancelado', resultado = 'A VENDA NÃO EXISTE MAIS' WHERE id = ?")->execute([$id]); falha('Esta venda não existe mais: já foi desfeita ou cancelada. O pedido saiu da lista.', 404); }
+    $r = cancelarVenda((int)$p['venda_id'], $g, mb_substr((string)$p['motivo'] . ((int)$p['pedido_por'] !== (int)$g['id'] ? ' (PEDIDO DE ' . maiusculo(primeiroNome((string)$p['pedido_nome'])) . ')' : ''), 0, 300));
+    $status = 'usado'; $resultado = $r['devolver'] !== '' ? 'DEVOLVER AO CLIENTE: ' . $r['devolver'] : 'VENDA CANCELADA'; $extra['cancelada'] = $r;
+  }
+  $q = $db->prepare('UPDATE pedidos SET status = ?, decidido_por = ?, decidido_nome = ?, decidido_em = ?, como = ?, resultado = ?' . ($status === 'usado' ? ', feito_por = ?, feito_nome = ?, feito_em = ?' : '') . ' WHERE id = ?' . ($status === 'usado' ? '' : " AND status = 'pendente'"));
+  $q->execute(array_merge([$status, (int)$g['id'], (string)$g['nome'], $agora, $como, $resultado], $status === 'usado' ? [(int)$g['id'], (string)$g['nome'], $agora] : [], [$id]));
+  if (!$q->rowCount()) falha('Este pedido já foi respondido em outro aparelho.', 409);
+  return ['pedido' => pedidoPublico(pedido($id))] + $extra;
+}
+// o desconto de quem não é gestor: o pedido tem de ser dele, estar liberado, dentro do prazo, ser do mesmo cliente e caber no valor liberado
+function autorizacaoDeDesconto(int $id, array $u, ?array $c, float $v): array {
+  if ($id <= 0) falha('Só o gestor dá desconto.', 403);
+  $p = pedido($id); if (!$p || $p['tipo'] !== 'desconto' || (int)$p['pedido_por'] !== (int)$u['id']) falha('Só o gestor dá desconto.', 403);
+  if ($p['status'] === 'pendente') falha('O gestor ainda não respondeu ao pedido de desconto.', 409);
+  if ($p['status'] === 'negado') falha('O gestor não liberou este desconto.', 409);
+  // usado em parte agora há pouco: é a mesma conta (a saída em conjunto usa o mesmo desconto em mais de uma criança, uma em seguida da outra)
+  $junto = $p['status'] === 'usado' && (float)$p['usado'] < (float)$p['valor'] - 0.004 && $p['feito_em'] && time() - strtotime((string)$p['feito_em']) <= PEDIDO_JUNTO_SEG;
+  if ($p['status'] !== 'liberado' && !$junto) falha($p['status'] === 'usado' ? 'Este desconto já foi usado.' : 'O pedido de desconto não vale mais. Peça de novo.', 409);
+  if (time() - strtotime((string)$p['decidido_em']) > PEDIDO_VALE_MIN * 60) falha('A autorização do desconto venceu (vale por ' . PEDIDO_VALE_MIN . ' min). Peça de novo.', 409);
+  if ($c) { $pc = (int)$p['crianca_id']; if ((int)$c['id'] !== $pc && !in_array($pc, array_map(fn($x) => (int)$x['id'], irmaosDe($c)), true)) falha('O desconto foi liberado para outro cliente.', 409); }
+  if ($v > round((float)$p['valor'] - (float)$p['usado'], 2) + 0.004) falha('O desconto liberado é de ' . dinheiro((float)$p['valor']) . ((float)$p['usado'] > 0.004 ? ' (já foram usados ' . dinheiro((float)$p['usado']) . ')' : '') . '.', 409);
+  return $p;
+}
+function usarAutorizacao(?array $desc, float $valor): void { // o desconto autorizado foi aplicado: fica marcado quanto dele já foi usado
+  if (!$desc || empty($desc['aut']) || $valor <= 0) return;
+  db()->prepare("UPDATE pedidos SET usado = ROUND(usado + ?, 2), feito_em = ?, status = 'usado' WHERE id = ?")->execute([$valor, agora(), (int)$desc['aut']]);   // vale uma vez: usado, mesmo em parte, não fica para outra conta
+}
+// a conta deste cliente foi fechada (a venda, a saída): o pedido de desconto que ainda esperava a resposta não tem mais para onde ir
+function fecharPedidosDeDesconto(?array $u, array $c, string $onde): void { // $onde: 'venda' (o atendimento) ou 'saida'
+  if (!$u) return;
+  db()->prepare("UPDATE pedidos SET status = 'cancelado', resultado = 'A CONTA FOI FECHADA SEM ESPERAR A RESPOSTA' WHERE tipo = 'desconto' AND status = 'pendente' AND pedido_por = ? AND crianca_id = ? AND dados LIKE ?")->execute([(int)$u['id'], (int)$c['id'], '%"onde":"' . ($onde === 'saida' ? 'saida' : 'venda') . '"%']);
+}
 
 /* ---------- registros (o painel "Hoje na recepção") e as mensagens ---------- */
 function registrar(string $tipo, ?int $criancaId, string $nome, string $texto, ?string $quando = null, $unidade = false): int {   // 1.06: $unidade = false usa a do aparelho que fez o pedido
@@ -800,9 +947,12 @@ function gravarPagamento(array $vendaIds, array $formas, int $criancaId, ?int $p
 // Só o gestor dá desconto: a tela manda o valor em reais (e o percentual, quando foi digitado em %) e o motivo. O desconto sai do valor das
 // vendas, em proporção ao que falta receber de cada uma, e fica guardado nelas (desc_valor, desc_motivo, desc_por), com uma linha no dia.
 // O pagamento fecha com o total já descontado.
-function lerDesconto($d, array $u): ?array { // ['valor' => em reais, 'pct' => o percentual digitado (ou 0), 'motivo'], ou null se não há desconto
+function lerDesconto($d, array $u, ?array $c = null): ?array { // ['valor' => em reais, 'pct' => o percentual digitado (ou 0), 'motivo'], ou null se não há desconto
   if (!is_array($d)) return null; $v = round((float)($d['valor'] ?? 0), 2); if ($v <= 0) return null;
-  if (($u['papel'] ?? '') !== 'gestor') falha('Só o gestor dá desconto.', 403);
+  if (($u['papel'] ?? '') !== 'gestor') { // 1.23: quem não é gestor manda a autorização (o pedido que o gestor liberou): vale o motivo que ele viu, até o valor liberado
+    $p = autorizacaoDeDesconto((int)($d['autorizacao'] ?? 0), $u, $c, $v); $dd = json_decode((string)$p['dados'], true);
+    return ['valor' => $v, 'pct' => round((float)(is_array($dd) ? ($dd['pct'] ?? 0) : 0), 2), 'motivo' => (string)$p['motivo'], 'aut' => (int)$p['id'], 'aut_por' => (int)$p['decidido_por'], 'aut_nome' => (string)$p['decidido_nome']];
+  }
   $pct = round((float)($d['pct'] ?? 0), 2); if ($pct < 0 || $pct > 100) falha('O desconto não passa de 100%.');
   $motivo = mb_substr(maiusculo((string)($d['motivo'] ?? '')), 0, 120); if (mb_strlen($motivo) < 3) falha('Escreva o motivo do desconto.');
   return ['valor' => $v, 'pct' => $pct, 'motivo' => $motivo];
@@ -819,9 +969,10 @@ function repartirDesconto(float $total, array $faltas): array {
 function aplicarDesconto(array $d, array $faltas, array $c, array $u): array {
   $rep = repartirDesconto((float)$d['valor'], $faltas); if (!$rep) return [];
   $q = db()->prepare("UPDATE vendas SET valor = ROUND(valor - ?, 2), desc_valor = ROUND(desc_valor + ?, 2), desc_motivo = CASE WHEN desc_valor > 0.004 AND desc_motivo != '' THEN desc_motivo || ' + ' || ? ELSE ? END, desc_por = ? WHERE id = ?");   // quem já tinha um desconto fica com os dois motivos
-  foreach ($rep as $vid => $x) $q->execute([$x, $x, $d['motivo'], $d['motivo'], (int)$u['id'], (int)$vid]);
+  $deQuem = (int)($d['aut_por'] ?? 0) ?: (int)$u['id'];   // 1.23: com autorização, o desconto é de quem autorizou
+  foreach ($rep as $vid => $x) $q->execute([$x, $x, $d['motivo'], $d['motivo'], $deQuem, (int)$vid]);
   $total = round(array_sum($rep), 2); $pct = $d['pct'] > 0 ? ' (' . rtrim(rtrim(number_format((float)$d['pct'], 2, ',', ''), '0'), ',') . '%)' : '';
-  $reg = registrar('desc', (int)$c['id'], $c['nome'], 'Desconto · ' . dinheiro($total) . $pct . ' · Motivo: ' . $d['motivo'] . ' · por ' . primeiroNome((string)$u['nome']));
+  $reg = registrar('desc', (int)$c['id'], $c['nome'], 'Desconto · ' . dinheiro($total) . $pct . ' · Motivo: ' . $d['motivo'] . ' · por ' . primeiroNome((string)$u['nome']) . (!empty($d['aut_nome']) ? ' · autorizado por ' . primeiroNome((string)$d['aut_nome']) : ''));
   return ['valor' => $total, 'vendas' => $rep, 'registro' => $reg, 'motivo' => $d['motivo']];
 }
 // o Desfazer: devolve às vendas o desconto que tinha sido dado ([venda => desconto]), tira o motivo dele e apaga a linha do dia
@@ -1320,6 +1471,10 @@ function cancelarVenda(int $vendaId, array $u, string $motivo): array {
   $itens = [['n' => $nome, 'm' => $min, 'v' => $valor, 'tipo' => 'venda', 'dev' => $devolver ? textoPagamento($devolver, true) : '']];   // dev = o que a loja devolve ao cliente (o que ele já tinha pago), por forma
   $db->beginTransaction();
   try {
+    // 1.23: os pedidos presos a esta venda (o de cancelar, o da nota fiscal) deixam de valer quando ela é apagada (o gatilho da tabela);
+    // antes disso, fica marcado por quê, e se havia nota já emitida (ela continua guardada, com o aviso de cancelar a nota também)
+    $qn = $db->prepare("SELECT numero FROM pedidos WHERE venda_id = ? AND tipo = 'nf' AND status = 'usado' ORDER BY id DESC LIMIT 1"); $qn->execute([(int)$v['id']]); $nf = $qn->fetchColumn(); $qn->closeCursor();
+    $db->prepare("UPDATE pedidos SET resultado = 'A VENDA FOI CANCELADA' WHERE venda_id = ? AND status IN ('pendente', 'liberado', 'usado')")->execute([(int)$v['id']]);
     $d = $db->prepare('DELETE FROM vendas WHERE id = ?'); $d->execute([(int)$v['id']]);   // o pagamento dela sai junto (o gatilho da tabela)
     if (!$d->rowCount()) { $db->rollBack(); falha('Esta venda não existe mais: já foi desfeita ou cancelada.', 404); }   // outro aparelho cancelou no mesmo instante
     if ($min > 0) $db->prepare('UPDATE criancas SET pacote_min = MAX(0, pacote_min - ?) WHERE id = ?')->execute([$min, (int)$c['id']]);
@@ -1329,7 +1484,7 @@ function cancelarVenda(int $vendaId, array $u, string $motivo): array {
       ->execute([(int)$c['id'], $c['nome'], $c['resp'], (string)$v['quando'], $agora, $ha, $valor, json_encode($itens, JSON_UNESCAPED_UNICODE), $motivo, (int)$u['id'], $u['nome'], $u['papel']]);
     $id = (int)$db->lastInsertId();
     $reg = registrar('canc', (int)$c['id'], $c['nome'], 'Venda das ' . substr((string)$v['quando'], 11, 5) . ($outroDia ? ' de ' . date('d/m', strtotime((string)$v['quando'])) : '') . ' cancelada: ' . $nome . ' (' . dinheiro($valor) . ')'
-      . ($min > 0 ? ' · saem ' . hm($min) . ' do saldo' : '') . ($devolver ? ' · devolver ao cliente: ' . textoPagamento($devolver, true) : ($valor > 0.004 ? ' · não tinha sido paga' : '')) . ' · Motivo: ' . $motivo . ' · por ' . primeiroNome($u['nome']), $agora);
+      . ($min > 0 ? ' · saem ' . hm($min) . ' do saldo' : '') . ($devolver ? ' · devolver ao cliente: ' . textoPagamento($devolver, true) : ($valor > 0.004 ? ' · não tinha sido paga' : '')) . ($nf !== false ? ' · TEM NOTA FISCAL EMITIDA' . ((string)$nf !== '' ? ' (Nº ' . $nf . ')' : '') . ': CANCELAR A NOTA TAMBÉM' : '') . ' · Motivo: ' . $motivo . ' · por ' . primeiroNome($u['nome']), $agora);
     $db->commit();
   } catch (Throwable $e) { if ($db->inTransaction()) $db->rollBack(); throw $e; }
   $c = crianca((int)$c['id']);
@@ -1337,7 +1492,7 @@ function cancelarVenda(int $vendaId, array $u, string $motivo): array {
     if ($c['entrou']) acertarCobrancas($c);
     elseif (restante($c) < periodo() && regra()['bloqueioAuto'] === 'sim' && (!isset($c['liberado']) || (int)$c['liberado'])) bloquearAcesso($c, false);
   }
-  return ['cancelamento' => $id, 'registro' => $reg, 'valor' => $valor, 'minutos' => $min, 'nome' => $nome, 'devolver' => $devolver ? textoPagamento($devolver, true) : ''];
+  return ['cancelamento' => $id, 'registro' => $reg, 'valor' => $valor, 'minutos' => $min, 'nome' => $nome, 'devolver' => $devolver ? textoPagamento($devolver, true) : '', 'nf' => $nf === false ? null : (string)$nf];   // nf: a venda tinha nota fiscal emitida (o número, ou '')
 }
 // guarda a mensagem na conversa e, se o WhatsApp estiver conectado, manda de verdade (texto e, se houver, a foto)
 function mandarMensagem(array $c, string $texto, bool $auto = false, string $foto = '', string $por = ''): array {
@@ -1382,7 +1537,7 @@ function processarRosto(int $idfaceUser, string $quando, string $origem = 'iDFac
 // para o estoque: a venda deixou de existir), a agenda, as sapateiras e os outros ajustes.
 // Antes de apagar, o banco inteiro é copiado para a pasta de dados (ficam as 3 últimas cópias); pela tela dá para desfazer
 // enquanto não houver cadastro novo.
-const TABELAS_CADASTRO = ['cupons', 'pagamentos', 'visitas', 'vendas', 'registros', 'mensagens', 'batidas', 'cancelamentos', 'criancas'];
+const TABELAS_CADASTRO = ['cupons', 'pagamentos', 'visitas', 'vendas', 'registros', 'mensagens', 'batidas', 'cancelamentos', 'criancas', 'pedidos'];   // 1.23: os pedidos de autorização são dos cadastros
 const CHAVES_CADASTRO = '/^(mandar|foto|renomear|regra|regra_ok|desregra|falhas_regra|rosto_erro|rosto_ok|rosto_em|pedirosto|baixarfoto)_\d+$/';   // o que o sistema guarda por criança (regra_id e as outras chaves da loja não entram)
 function senhaConfere(array $u, string $senha): bool { // a senha de quem está logado (para confirmar o que não tem volta fácil)
   $q = db()->prepare('SELECT senha FROM usuarios WHERE id = ?'); $q->execute([$u['id']]); $h = (string)$q->fetchColumn(); $q->closeCursor();

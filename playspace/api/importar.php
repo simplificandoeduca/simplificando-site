@@ -161,6 +161,7 @@ function importacaoDesfazer(array $u): array {
       $marcas = implode(',', array_fill(0, count($parte), '?'));
       $db->prepare("DELETE FROM vendas WHERE crianca_id IN ($marcas)")->execute($parte);                       // só o pacote que veio na importação (quem teve outra venda não está na lista)
       $db->prepare("UPDATE registros SET crianca_id = NULL WHERE crianca_id IN ($marcas)")->execute($parte);  // a linha do dia fica, sem apontar para um cadastro que saiu
+      try { $db->prepare("DELETE FROM pedidos WHERE crianca_id IN ($marcas)")->execute($parte); } catch (Throwable $e) { }   // 1.23: os pedidos de autorização desses cadastros
       $db->prepare("DELETE FROM criancas WHERE id IN ($marcas)")->execute($parte);
     }
     $q = $db->prepare('SELECT COUNT(*) n, COALESCE(SUM(pacote_min - usado_min), 0) m FROM criancas WHERE lote = ?'); $q->execute([$lote]); $r = $q->fetch(); $ficam = (int)$r['n'];
