@@ -470,7 +470,7 @@ function planoDaCrianca(array $c): string {
 }
 // "recreação avulsa: R$ 240" ou "além do pacote 0h30: R$ 80": como as cobranças a receber de uma visita aparecem na linha da saída
 function textoAutos(array $atraso, string $plano): string {
-  return $plano === 'pacote' ? ITENS_ALEM . ' ' . dur((int)$atraso['n'] * periodo()) . ': ' . dinheiro((float)$atraso['valor']) : 'recreação avulsa: ' . dinheiro((float)$atraso['valor']);
+  return $plano === 'pacote' ? ITENS_ALEM . ' ' . dur((int)$atraso['n'] * periodo()) . ': ' . dinheiro((float)$atraso['valor']) : 'recreação avulsa ' . dur((int)$atraso['n'] * periodo()) . ': ' . dinheiro((float)$atraso['valor']);
 }
 // as cobranças que nasceram sozinhas nesta visita e ainda não foram pagas saem (a entrada foi desfeita): devolve quantas e quanto
 function tirarAutosDaVisita(array $c): array {
@@ -555,7 +555,9 @@ function fazerSaida(array $c, string $origem = 'iDFace', ?string $quando = null,
   $c['usado_min'] += $deb; $c['entrou'] = null;
   $r = restante($c);
   if ($r < periodo() && regra()['bloqueioAuto'] === 'sim') bloquearAcesso($c, false);   // não sobra um período inteiro: o iDFace passa a recusar até venderem tempo
-  $reg = registrar('sai', (int)$c['id'], $c['nome'], 'Ficou ' . dur((int)floor($min)) . ' · ' . dur($deb) . ' debitados' . ($r > 0 ? ' · restam ' . hm($r) : '') . ($atraso['n'] ? ' · ' . textoAutos($atraso, $plano) . ' a receber' : '') . ($sap ? ' · sapato na sapateira ' . $sap : '') . ($origem === 'iDFace' || modoManual() ? '' : ' · saída à mão'), $quando);
+  // 1.18: na recreação avulsa nada é "debitado" (o cliente não comprou período): a linha diz a recreação que a visita somou e, se houver, o tempo que saiu do que ele já tinha (voucher)
+  $proprias = max(0, $deb - (int)$atraso['n'] * periodo());
+  $reg = registrar('sai', (int)$c['id'], $c['nome'], 'Ficou ' . dur((int)floor($min)) . ($plano === 'pacote' ? ' · ' . dur($deb) . ' debitados' : ($proprias > 0 ? ' · ' . dur($proprias) . ' do tempo que já tinha' : '')) . ($r > 0 ? ' · restam ' . hm($r) : '') . ($atraso['n'] ? ' · ' . textoAutos($atraso, $plano) . ' a receber' : '') . ($sap ? ' · sapato na sapateira ' . $sap : '') . ($origem === 'iDFace' || modoManual() ? '' : ' · saída à mão'), $quando);
   $msg = null;
   if (regra()['autoMsg'] === 'ambos') {
     $texto = nomeMsg($c['nome']) . ' saiu às ' . date('H:i', strtotime($quando)) . '. Até a próxima! 🧸';

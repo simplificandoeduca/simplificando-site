@@ -1342,7 +1342,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.17';
+const VERSAO = '1.18';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -2061,7 +2061,12 @@ const precoTempo = c => { const x = servicoTempo(); return x ? `${brl(precoDe(c,
 // como o que o sistema lançou sozinho aparece nas contas: "RECREAÇÃO avulsa · 1h" (a conta normal de quem não tem pacote) ou "Além do pacote · 0h30"
 const nomeAutos = (c, n) => `${planoDe(c) !== 'pacote' ? esc((servicoTempo() || { n: 'RECREAÇÃO' }).n) + ' avulsa' : 'Além do pacote'} · ${dur(n * periodo())}`;
 const subAutos = c => planoDe(c) !== 'pacote' ? precoTempo(c) : 'as horas do pacote acabaram';
-const textoAutos = (a, plano) => plano === 'pacote' ? `além do pacote ${dur(a.n * periodo())}: ${brl(a.valor)}` : `recreação avulsa: ${brl(a.valor)}`;   // na linha da saída, em Hoje na recepção
+const textoAutos = (a, plano) => plano === 'pacote' ? `além do pacote ${dur(a.n * periodo())}: ${brl(a.valor)}` : `recreação avulsa ${dur(a.n * periodo())}: ${brl(a.valor)}`;   // na linha da saída, em Hoje na recepção
+// 1.18: o tempo da visita no aviso e na linha da saída. No pacote, as horas saem do saldo ("2h debitados"). Na recreação avulsa o cliente não
+// comprou período nenhum, então não há o que debitar: aparece a recreação que a visita somou e, se houver, o tempo que saiu do que ele já tinha (voucher).
+const propriasSaida = (deb, a) => Math.max(0, deb - (a && a.n ? a.n * periodo() : 0));
+const tempoSaidaTxt = (deb, a, plano) => plano === 'pacote' ? `${dur(deb)} debitados` : [propriasSaida(deb, a) > 0 ? `${dur(propriasSaida(deb, a))} do tempo que já tinha` : '', a && a.n ? `recreação avulsa ${dur(a.n * periodo())}` : ''].filter(Boolean).join(' · ') || `${dur(deb)} contados`;
+const tempoSaidaGrupo = L => { const deb = L.reduce((t, x) => t + x.deb, 0); return L.every(x => x.plano === 'pacote') ? `${dur(deb)} debitados` : L.some(x => x.plano === 'pacote') ? `tempo contado ${dur(deb)}` : tempoSaidaTxt(deb, { n: L.reduce((t, x) => t + ((x.a && x.a.n) || 0), 0) }, 'avulso'); };   // a saída em conjunto
 const entrouTxt = (k, comprado) => !k || !k.entrou ? '' : aberta(k) ? 'recreação avulsa, acerta na saída' : (comprado ? 'tempo comprado até ' : 'tempo até ') + hora(fimVisita(k));   // o que o aviso da entrada diz
 const hms = seg => { seg = Math.max(0, Math.floor(seg)); return Math.floor(seg / 3600) + ':' + p2(Math.floor(seg % 3600 / 60)) + ':' + p2(seg % 60); };   // o cronômetro, sempre com as horas: 0:52:03, 1:05:12
 const mss = seg => { seg = Math.max(0, Math.floor(seg)); return Math.floor(seg / 60) + ':' + p2(seg % 60); };   // só a contagem curta do prazo para cancelar: 8:58
@@ -2070,7 +2075,7 @@ const esgotou = c => c.entrou ? restanteVivo(c) <= 0 : saldoMin(c) <= 0;
 const pctVivo = c => c.entrou ? (cobertoMin(c) ? Math.max(0, Math.min(100, restanteVivo(c) / (cobertoMin(c) * 60) * 100)) : 0) : (pacMin(c) ? Math.max(0, Math.min(100, saldoMin(c) / pacMin(c) * 100)) : 0);
 // quem está no espaço: no tempo, acabando (faltam poucos minutos) ou passou (a tolerância está correndo; depois dela nasce a cobrança por atraso)
 const situacaoTempo = c => aberta(c) ? 'ok' : passouSeg(c) > 0 ? 'passou' : restanteVivo(c) <= S.cfg.aviso * 60 ? 'acabando' : 'ok';   // 1.15: na recreação avulsa não há prazo
-const estado = c => !c.entrou && emAberto(c) ? ['Falta finalizar', 'p-aviso'] : c.entrou ? (aberta(c) ? ['No espaço', 'p-ok'] : ({ passou: ['Passou do tempo', 'p-erro'], acabando: ['Acabando', 'p-aviso'], ok: ['No tempo', 'p-ok'] })[situacaoTempo(c)]) : semHoras(c) ? ['Sem horas', 'p-neutro'] : temPeriodo(c) ? ['Com tempo', 'p-ok'] : ['Sem tempo', 'p-neutro'];
+const estado = c => !c.entrou && emAberto(c) ? ['Falta finalizar', 'p-aviso'] : c.entrou ? (aberta(c) ? ['No espaço', 'p-ok'] : ({ passou: ['Passou do tempo', 'p-erro'], acabando: ['Acabando', 'p-aviso'], ok: ['No tempo', 'p-ok'] })[situacaoTempo(c)]) : temPeriodo(c) ? ['Com tempo', 'p-ok'] : semHoras(c) || !clientePacote(c) ? ['Sem horas', 'p-neutro'] : ['Sem tempo', 'p-neutro'];   // 1.18: "Sem tempo" é de quem tinha pacote e ele acabou; quem só usa a recreação avulsa não guarda horas
 const atrasoHoje = () => S.atrasoHoje || (L => ({ n: L.length, valor: L.reduce((a, v) => a + v.v, 0) }))((S.compras || []).filter(v => v.auto && !/^avulsa/.test(v.itens || '') && agora - v.quando < 86400000));   // 1.15: o tempo além do pacote nas últimas 24 h (a recreação avulsa é venda comum)
 const textoCobranca = (x, c) => `As horas do pacote acabaram · ${x.n} +${dur(periodo())} · ${brl(precoDe(c, x.v))}${c && c.pcd ? ' · ' + rotPcd() : ''} a receber na saída`;
 // o voucher do shopping: 30 min de recreação grátis, um por visita, sem código. temVoucher: a criança já tem um de hoje sem saída depois dele (o da visita, ou um guardado)
@@ -2272,7 +2277,8 @@ function blocos(c, comEstado = true) {
   </div>`; }
   const topo = c.entrou
     ? `<span class="resta num">${vivo(c)}<small>${st === 'passou' ? 'além do tempo' : 'restam'}</small></span><span class="de">entrou ${hora(c.entrou)} · ${st === 'passou' ? 'ia até' : 'até'} ${hora(fimVisita(c))}${pill}</span>`
-    : `<span class="resta num">${semHoras(c) ? 'Sem horas' : hm(saldoMin(c))}<small>${semHoras(c) ? '' : 'guardado'}</small></span><span class="de">${semHoras(c) ? 'ainda não comprou' : 'comprou ' + tam(c) + ' ao todo'}${pill}</span>`;
+    : comSaldoFicha(c) ? `<span class="resta num">${hm(saldoMin(c))}<small>guardado</small></span><span class="de">comprou ${tam(c)} ao todo${pill}</span>`
+    : `<span class="resta num">Sem horas</span><span class="de">recreação avulsa: acerta na saída${pill}</span>`;   /* 1.18: quem não tem pacote não "comprou" tempo: entra na recreação avulsa e acerta na saída */
   return `<div class="horas ${st !== 'ok' ? 'baixo' : ''} ${c.entrou ? 'dentro' : ''}" data-horas="${c.id}" data-est="${comEstado ? 1 : 0}" aria-label="${c.entrou ? 'Tempo comprado até ' + hora(fimVisita(c)) : 'Guardado: ' + hm(saldoMin(c))}">
     <div class="topo">${topo}</div>
     <div class="linha-h" style="--pct:${pct.toFixed(1)}%"><i style="width:${pct.toFixed(1)}%"></i></div>
@@ -2320,7 +2326,7 @@ async function entradaServidor(c) {
 async function saidaServidor(c, corr, pag, papel, dsc, av) {
   try { const r = await api('saida', { id: c.id, ...(corr ? { quando: corr.quando, motivo: corr.motivo } : { total: centavos((pag || []).reduce((t, x) => t + x.v, 0)) }), ...(pag && pag.length ? { pagamento: pag } : {}), ...(dsc ? { desconto: dsc } : {}), ...(av && !corr ? { avulso: true } : {}) }); await carregar(); fecharFolha(); desenhar();   // 1.15: total = o que a tela mostrou para receber (o servidor confere antes de dar a saída)
     const at = r.atraso && r.atraso.n ? +r.atraso.valor || 0 : 0, pd = +r.pend || 0, dz = r.desc ? +r.desc.valor || 0 : 0;   // 1.04: dz = o desconto que o gestor deu nesta saída
-    const txt = `${c.nome} saiu${corr ? ' às ' + corr.quando : ''} · ${dur(r.debitado)} debitados${pd > 0 ? ' · ' + (r.pago ? 'recebido ' + brl(centavos(pd + at - dz)) + ' (' + r.pago + ')' : brl(centavos(pd + at - dz)) + ' a receber') : at ? ' · ' + brl(centavos(at - dz)) + (r.pago ? ' recebido (' + r.pago + ')' : ' a receber') : ''}${dz > 0 ? ' · desconto de ' + brl(dz) : ''}${r.sapateira ? ' · sapato na sapateira ' + r.sapateira : ''}`;
+    const txt = `${c.nome} saiu${corr ? ' às ' + corr.quando : ''} · ${tempoSaidaTxt(+r.debitado || 0, r.atraso, r.plano)}${pd > 0 ? ' · ' + (r.pago ? 'recebido ' + brl(centavos(pd + at - dz)) + ' (' + r.pago + ')' : brl(centavos(pd + at - dz)) + ' a receber') : at ? ' · ' + brl(centavos(at - dz)) + (r.pago ? ' recebido (' + r.pago + ')' : ' a receber') : ''}${dz > 0 ? ' · desconto de ' + brl(dz) : ''}${r.sapateira ? ' · sapato na sapateira ' + r.sapateira : ''}`;
     if (corr) deuCerto(txt); else deuCerto(txt, async () => { try { await api('desfazer_saida', { id: c.id, visita: r.visita, registro: r.registro, mensagem: r.mensagem ? r.mensagem.id : 0, sapateira: r.sapateira || 0, ...(r.pag_de != null ? { pag_de: r.pag_de, pag_registro: r.pag_registro || 0 } : {}), ...(r.desc ? { desc: r.desc } : {}), ...(r.avulso ? { avulso: r.avulso } : {}) }); await carregar(); } catch (e) { toast(e.message); } desenhar(); });
     if (r.avulso && r.avulso.venda && papel) papel.venda = r.avulso.venda;
     if (r.cupom) folhaCupom(r.cupom, true); else papelDepois(papel); }   // 1.06: o cupom da saída sai sempre, para o responsável assinar
@@ -2867,14 +2873,14 @@ function saida(c, origem = 'iDFace', corr = null, pag = null, papel = null, dsc 
   c.usado += deb; if (S.cfg.bloqueioAuto === 'sim' && !temPeriodo(c)) c.liberado = false;
   c.visitas.unshift({ dia: fim, entrou: hora(entrouEm), saiu: hora(fim), deb, ini: entrouEm, sap: c.sapateira || 0 });
   const sap = c.sapateira || 0; c.sapateira = null; c.entrou = null; c.atraso = null;   // a sapateira fica livre na saída
-  registrar('sai', c.nome, `Ficou ${dur(Math.floor(min))} · ${dur(deb)} debitados${saldoMin(c) > 0 ? ' · restam ' + hm(saldoMin(c)) : ''}${atraso.n ? ` · ${textoAutos(atraso, plano)}${pago ? ' · recebido: ' + pago : ' a receber'}` : ''}${sap ? ' · sapato na sapateira ' + sap : ''}${origem === 'iDFace' || semIdface() ? '' : ' · saída à mão'}`);
+  registrar('sai', c.nome, `Ficou ${dur(Math.floor(min))}${plano === 'pacote' ? ' · ' + dur(deb) + ' debitados' : propriasSaida(deb, atraso) > 0 ? ' · ' + dur(propriasSaida(deb, atraso)) + ' do tempo que já tinha' : ''}${saldoMin(c) > 0 ? ' · restam ' + hm(saldoMin(c)) : ''}${atraso.n ? ` · ${textoAutos(atraso, plano)}${pago ? ' · recebido: ' + pago : ' a receber'}` : ''}${sap ? ' · sapato na sapateira ' + sap : ''}${origem === 'iDFace' || semIdface() ? '' : ' · saída à mão'}`);
   if (dz > 0) registrar('desc', c.nome, textoDesc({ ...dsc, valor: dz }));   /* 1.04 */
   if (pago && pend > 0) registrar('pag', c.nome, `Pagamento na saída · ${brl(recebido)} · ${pago}`);   /* 1.02 */
   if (corr) registrar('corr', c.nome, `Saída corrigida para ${hora(fim)} · ${dur(deb)} debitados${desfeitas ? ` · ${desfeitas > 1 ? desfeitas + ' cobranças de recreação desfeitas' : 'cobrança de recreação desfeita'}: ${brl(valorDesf)}` : ''} · Motivo: ${corr.motivo} · por ${EU.nome}`);
   let quietoR = null; const avisa = quieto ? (t, f) => { quietoR = { txt: t, desfaz: f }; } : deuCerto;
-  avisa(`${c.nome} saiu${corr ? ' às ' + hora(fim) : ''} · ${dur(deb)} debitados${pend > 0 ? ' · ' + (pago ? 'recebido ' + brl(recebido) + ' (' + pago + ')' : brl(recebido) + ' a receber') : atraso.n ? ' · ' + brl(centavos(atraso.valor - dz)) + (pago ? ' recebido (' + pago + ')' : ' a receber') : ''}${dz > 0 ? ' · desconto de ' + brl(dz) : ''}${sap ? ' · sapato na sapateira ' + sap : ''}`,
+  avisa(`${c.nome} saiu${corr ? ' às ' + hora(fim) : ''} · ${tempoSaidaTxt(deb, atraso, plano)}${pend > 0 ? ' · ' + (pago ? 'recebido ' + brl(recebido) + ' (' + pago + ')' : brl(recebido) + ' a receber') : atraso.n ? ' · ' + brl(centavos(atraso.valor - dz)) + (pago ? ' recebido (' + pago + ')' : ' a receber') : ''}${dz > 0 ? ' · desconto de ' + brl(dz) : ''}${sap ? ' · sapato na sapateira ' + sap : ''}`,
     () => { for (const [v, vv, d, m] of descs) { v.v = vv; v.desc = d; v.descMotivo = m; } S.pagamentos = era.pags; Object.assign(c, { pacote: era.pacote, usado: era.usado, liberado: era.liberado, atraso: era.atraso, venda: era.venda, visitas: era.visitas, entrou: entrouEm, sapateira: sap && !donoSap(sap) ? sap : null }); S.compras = era.compras; S.registros = era.regs; });
-  return quieto ? { cupomId, deb, venda: vAv, ...quietoR } : cupomId;
+  return quieto ? { cupomId, deb, a: atraso, plano, venda: vAv, ...quietoR } : cupomId;
 }
 /* ---------- 0.94: o cupom impresso (Bematech MP-4200 TH, papel de 80 mm) ---------- */
 // O "cupom" da loja é um papel da impressora térmica do balcão, que o responsável assina. O sistema imprime no mesmo formato que a loja já usa:
@@ -3000,16 +3006,31 @@ function imprimirPapel(vias) {
 // (--kiosk-printing, do Chrome e do Edge). Aí cada via vai sozinha para a impressora padrão do Windows. O sistema entrega o atalho
 // pronto (um .bat com o endereço deste site): ele abre o sistema numa janela só dele, com um perfil só dele, para a opção valer mesmo
 // com outro Chrome aberto no computador. Aberto pelo atalho, o endereço chega com ?direto=1 e o aparelho guarda que imprime direto.
+// 1.18: o arquivo baixado é um instalador. Além de abrir o sistema, ele cria o ícone "Play Space" na área de trabalho, com a logo: é por
+// esse ícone que a equipe abre o sistema dali em diante (fica com cara de programa: janela só dele, e o Imprimir já manda para a impressora).
+// Quem cria o ícone é o PowerShell do próprio Windows, e ele só faz isso (um atalho para o navegador): a logo quem baixa é o curl do
+// Windows, uma linha antes, para um arquivo provisório que só vira o ícone se chegar inteiro. Nada de "ExecutionPolicy Bypass" nem de
+// download pelo PowerShell: é o que os antivírus estranham num .bat. Se algum passo não der (bloqueado, sem internet, Windows antigo sem
+// curl), o sistema abre do mesmo jeito: sem a logo o atalho fica com o desenho do navegador, e sem o atalho o próprio arquivo serve de
+// atalho, como antes. O comando do PowerShell não tem aspas duplas nem %, para caber num .bat; no endereço, o % vai dobrado (num .bat, o % sozinho some).
 const impDireta = () => !!lido('ps-direto', 0);
 try { const u = new URL(location.href); if (u.searchParams.get('direto') === '1') { guardar('ps-direto', 1); u.searchParams.delete('direto'); history.replaceState(null, '', u.pathname + u.search + u.hash); } } catch (e) { }
-const ATALHO_IMP = 'Play Space (imprime direto).bat';
-const textoAtalhoImp = () => ['@echo off', 'rem Play Space: abre o sistema com a impressao direta (o cupom sai sem a janela de escolher a impressora).', 'rem Deixe a impressora do cupom como impressora padrao do Windows e abra o sistema sempre por este atalho.',
-  `set "URL=${location.origin + location.pathname}?direto=1"`, 'set "PERFIL=%LOCALAPPDATA%\\PlaySpace\\Navegador"',
+const ATALHO_IMP = 'Instalar Play Space (imprime direto).bat';
+const PS_ATALHO = "try { $q = [char]34; $w = New-Object -ComObject WScript.Shell; $a = $w.CreateShortcut((Join-Path ([Environment]::GetFolderPath('Desktop')) 'Play Space.lnk')); $a.TargetPath = $env:NAV; "
+  + "$a.Arguments = '--kiosk-printing --user-data-dir=' + $q + $env:PERFIL + $q + ' --no-first-run --no-default-browser-check --app=' + $q + $env:URL + $q; "
+  + "if ((Test-Path -LiteralPath $env:ICO) -and ((Get-Item -LiteralPath $env:ICO).Length -gt 2000)) { $a.IconLocation = $env:ICO + ',0' }; $a.Description = 'Play Space: o cupom sai direto na impressora'; $a.Save() } catch { }";
+const noBat = t => String(t).replace(/%/g, '%%');
+const textoAtalhoImp = () => ['@echo off', 'rem Play Space: instala a impressao direta neste computador (o cupom sai sem a janela de escolher a impressora).', 'rem Cria o icone Play Space na area de trabalho e abre o sistema. Deixe a impressora do cupom como impressora padrao do Windows', 'rem e, dali em diante, abra o sistema sempre pelo icone Play Space.',
+  `set "URL=${noBat(location.origin + location.pathname)}?direto=1"`, `set "ICOURL=${noBat(location.origin + location.pathname.replace(/[^/]*$/, ''))}img/playspace.ico"`, 'set "PASTA=%LOCALAPPDATA%\\PlaySpace"', 'set "PERFIL=%PASTA%\\Navegador"', 'set "ICO=%PASTA%\\playspace.ico"',
   'set "NAV=%ProgramFiles%\\Google\\Chrome\\Application\\chrome.exe"', 'if not exist "%NAV%" set "NAV=%ProgramFiles(x86)%\\Google\\Chrome\\Application\\chrome.exe"', 'if not exist "%NAV%" set "NAV=%LOCALAPPDATA%\\Google\\Chrome\\Application\\chrome.exe"',
   'if not exist "%NAV%" set "NAV=%ProgramFiles(x86)%\\Microsoft\\Edge\\Application\\msedge.exe"', 'if not exist "%NAV%" set "NAV=%ProgramFiles%\\Microsoft\\Edge\\Application\\msedge.exe"',
-  'if not exist "%NAV%" goto semnav', 'start "" "%NAV%" --kiosk-printing --user-data-dir="%PERFIL%" --no-first-run --no-default-browser-check --app="%URL%"', 'exit /b 0', ':semnav', 'echo Nao achei o Chrome nem o Edge neste computador.', 'pause', ''].join('\r\n');
+  'if not exist "%NAV%" goto semnav', 'if not exist "%PASTA%" mkdir "%PASTA%"', 'echo Preparando o Play Space neste computador. So um instante...', 'if not exist "%ICO%" curl.exe -s -f -L --connect-timeout 5 -m 20 -o "%ICO%.baixando" "%ICOURL%" >nul 2>&1 && move /y "%ICO%.baixando" "%ICO%" >nul 2>&1', `powershell -NoProfile -Command "${PS_ATALHO}" >nul 2>&1`, 'start "" "%NAV%" --kiosk-printing --user-data-dir="%PERFIL%" --no-first-run --no-default-browser-check --app="%URL%"', 'exit /b 0', ':semnav', 'echo Nao achei o Chrome nem o Edge neste computador.', 'pause', ''].join('\r\n');
+const noMac = () => /Mac/i.test((navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || navigator.userAgent || '') && !(navigator.maxTouchPoints > 1);
+const noShell = t => String(t).replace(/[$`\\"'!]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase());   // o endereço vai entre aspas no Terminal: nada que o Terminal leia como comando
+const abreMac = () => `open -na "Google Chrome" --args --kiosk-printing --user-data-dir="$HOME/Library/Application Support/PlaySpace" --no-first-run --no-default-browser-check --app="${noShell(location.origin + location.pathname)}?direto=1"`;
+const comandoMac = () => `printf '%s\\n' '#!/bin/sh' '${abreMac()}' > "$HOME/Desktop/Play Space.command"; chmod +x "$HOME/Desktop/Play Space.command"; ${abreMac()}`;
 function baixarAtalhoImp() {
-  if (MODO !== 'servidor') { toast('O atalho é baixado no site da loja: lá este botão entrega o arquivo já com o endereço do sistema.'); return; }
+  if (MODO !== 'servidor') { toast('O instalador é baixado no site da loja: lá este botão entrega o arquivo já com o endereço do sistema.'); return; }
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([textoAtalhoImp()], { type: 'application/octet-stream' })); a.download = ATALHO_IMP;
   document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 800);
 }
@@ -3022,7 +3043,7 @@ function folhaPapel(spec) {
   abrirFolha(tituloPapel(spec), `
     <div class="papel-previa" id="tk-previa">${vias.map(v => `<div class="papel-fx">${v}</div>`).join('')}</div>
     <details class="outro" id="tk-aparelho"><summary>Neste aparelho: <span id="tk-modo-rot">${rotModoPapel()}</span> · mudar</summary><div class="campo" style="margin-top:8px">${segPapel()}</div></details>
-    <div class="pe-f"><button type="button" class="bt forte largo tap" id="tk-ok" data-act="papel-imprimir">${ic(IC.cupom)} Imprimir as duas vias</button>${!impDireta() && (MODO !== 'servidor' || supervisorOuMais()) ? `<button type="button" class="link tap imp-dica" id="tk-direta-ir" data-act="papel-ajustes">A janela de impressão do Windows aparece? Veja como imprimir direto</button>` : ''}</div>`);
+    <div class="pe-f"><button type="button" class="bt forte largo tap" id="tk-ok" data-act="papel-imprimir">${ic(IC.cupom)} Imprimir as duas vias</button>${!impDireta() && (MODO !== 'servidor' || supervisorOuMais()) ? `<button type="button" class="link tap imp-dica" id="tk-direta-ir" data-act="papel-ajustes">A janela de impressão aparece? Veja como imprimir direto</button>` : ''}</div>`);
   if (window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches) setTimeout(() => { const b = $('#tk-ok'); if (b) b.focus(); }, 380);   // no computador, Enter imprime
 }
 /* ---------- 1.14: reimprimir o cupom ---------- */
@@ -3076,9 +3097,10 @@ function folhaPapelAjustes(direta) {   // direta (1.11): veio do "Veja como impr
     <div class="campo"><label>Neste aparelho, depois de cada atendimento</label>${segPapel()}</div>
     <div class="acoes"><button type="button" class="bt tap" data-act="papel-teste">${ic(IC.cupom)} Imprimir um cupom de teste</button></div>
     <div class="campo" id="tk-direta"><label>Imprimir direto, sem a janela de escolher a impressora</label>
-      ${impDireta() ? `<p class="imp-ok">${ic(IC.check, 16, 2.8)}<span>Este computador abre o sistema pelo atalho da impressão direta: cada via sai sozinha na impressora padrão do Windows.</span></p>` : `<span class="explica">O navegador só pula a janela de impressão quando o sistema é aberto pelo <b>atalho da impressão direta</b>. Baixe o atalho no computador do balcão, deixe na área de trabalho e abra o sistema <b>sempre por ele</b>.</span>`}
-      <div class="acoes"><button type="button" class="bt tap" data-act="papel-atalho">${ic(IC.baixa)} Baixar o atalho (Windows)</button></div>
-      <details class="outro"><summary>Passo a passo</summary><p class="explica" style="margin-top:8px">1. No Windows, deixe a impressora do cupom (Bematech MP-4200 TH, papel de 80 mm) como <b>impressora padrão</b>, e desligue "Deixar o Windows gerenciar a minha impressora padrão".<br>2. Toque em <b>Baixar o atalho</b>. Se o navegador perguntar, escolha manter o arquivo. Arraste o arquivo para a área de trabalho.<br>3. Abra o sistema com dois cliques nesse atalho (na primeira vez o Windows pode pedir para confirmar). Ele abre numa janela só dele: entre com o seu usuário e escolha a unidade.<br>4. Toque em <b>Imprimir um cupom de teste</b>: as duas vias têm que sair sem perguntar nada.<br>Sem o atalho, a janela de impressão abre uma vez para cada via: é só confirmar as duas.</p></details></div>`);
+      ${impDireta() ? `<p class="imp-ok">${ic(IC.check, 16, 2.8)}<span>Este computador abre o sistema pelo ícone da impressão direta: o toque em Imprimir já manda cada via para a impressora padrão, sem janela nenhuma.</span></p>` : `<span class="explica">Nenhum site consegue pular a janela de impressão: quem pula é o navegador, quando o sistema é aberto pelo <b>ícone Play Space</b> da área de trabalho. O instalador cria esse ícone (com a logo) no computador do balcão. Aberto por ele, o toque em <b>Imprimir</b> já manda o cupom para a impressora.</span>`}
+      <div class="acoes"><button type="button" class="bt tap" data-act="papel-atalho">${ic(IC.baixa)} Baixar o instalador (Windows)</button></div>
+      <details class="outro"><summary>Passo a passo</summary><p class="explica" style="margin-top:8px">1. No Windows, deixe a impressora do cupom (Bematech MP-4200 TH, papel de 80 mm) como <b>impressora padrão</b>, e desligue "Deixar o Windows gerenciar a minha impressora padrão".<br>2. Toque em <b>Baixar o instalador</b>. Se o navegador perguntar, escolha manter o arquivo.<br>3. Dê dois cliques no arquivo baixado (na primeira vez o Windows pode pedir para confirmar: "Mais informações" e "Executar assim mesmo"). Ele cria o ícone <b>Play Space</b> na área de trabalho e abre o sistema numa janela só dele: entre com o seu usuário e escolha a unidade.<br>4. Toque em <b>Imprimir um cupom de teste</b>: as duas vias têm que sair sem perguntar nada.<br>5. Dali em diante, abra o sistema <b>sempre pelo ícone Play Space</b>. Se o ícone não aparecer na área de trabalho, o próprio arquivo baixado serve de atalho: guarde na área de trabalho e abra por ele.<br>Para o cupom sair sem nem tocar em Imprimir, escolha acima <b>Imprimir sozinho</b>. Sem o ícone, a janela de impressão abre uma vez para cada via: é só confirmar as duas.</p></details>
+      ${noMac() ? `<details class="outro" id="tk-mac" open><summary>Este computador é um Mac</summary><p class="explica" style="margin-top:8px">No Mac não há instalador. Abra o <b>Terminal</b> (Command + espaço, escreva Terminal), cole o comando abaixo e aperte Enter: o sistema abre no Chrome, numa janela só dele, e o Imprimir vai direto para a impressora padrão do Mac. O comando também deixa na Mesa o atalho <b>Play Space.command</b>: dali em diante, dois cliques nele abrem o sistema do mesmo jeito.</p><div class="acoes"><button type="button" class="bt tap" data-act="copiar" data-rot="Comando" data-t="${esc(comandoMac())}">${ic(IC.copia, 16, 2.4)} Copiar o comando do Mac</button></div></details>` : ''}</div>`);
   if (direta) setTimeout(() => { const d = $('#tk-direta'); if (!d) return; const p = d.querySelector('details'); if (p) p.open = true; d.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 380);
 }
 
@@ -3315,14 +3337,14 @@ async function confirmarGrupo(el) {
       fecharFolha(); desenhar(); toast(`${juntar(feitas.map(f => f.x.c.nome))} ${feitas.length === 1 ? 'saiu' : 'saíram'}. A saída de ${P[feitas.length].c.nome} não foi dada: ${e.message}`); papelDepois(papelDe(feitas.map(f => f.x))); return; }
     await carregar(); fecharFolha(); desenhar();
     const deb = feitas.reduce((t, f) => t + (+f.r.debitado || 0), 0), saps = feitas.map(f => f.r.sapateira).filter(Boolean);
-    deuCerto(`${juntar(nomes)} ${verbo} · ${dur(deb)} debitados${recebeu}${desconto}${saps.length ? ' · ' + (saps.length === 1 ? 'sapato na sapateira ' : 'sapatos nas sapateiras ') + juntar(saps.map(String)) : ''}`,
+    deuCerto(`${juntar(nomes)} ${verbo} · ${tempoSaidaGrupo(feitas.map(f => ({ deb: +f.r.debitado || 0, a: f.r.atraso, plano: f.r.plano })))}${recebeu}${desconto}${saps.length ? ' · ' + (saps.length === 1 ? 'sapato na sapateira ' : 'sapatos nas sapateiras ') + juntar(saps.map(String)) : ''}`,
       async () => { try { for (const f of feitas.slice().reverse()) await api('desfazer_saida', { id: f.x.c.id, visita: f.r.visita, registro: f.r.registro, mensagem: f.r.mensagem ? f.r.mensagem.id : 0, sapateira: f.r.sapateira || 0, ...(f.r.pag_de != null ? { pag_de: f.r.pag_de, pag_registro: f.r.pag_registro || 0 } : {}), ...(f.r.desc ? { desc: f.r.desc } : {}), ...(f.r.avulso ? { avulso: f.r.avulso } : {}) }); await carregar(); } catch (e) { toast(e.message); try { await carregar(); } catch (e2) { } } desenhar(); });
     { const fa = feitas.find(f => f.r.avulso && f.r.avulso.venda); if (fa) papel.venda = fa.r.avulso.venda; }
     const cup = feitas.map(f => f.r.cupom).filter(Boolean); if (cup.length === 1) folhaCupom(cup[0], true); else if (cup.length) folhaCupons(); else papelDepois(papel);
     return; }
   const saps = P.map(x => x.c.sapateira).filter(Boolean), R = P.map(x => saida(x.c, 'mão', null, x.pag.length ? x.pag : null, null, x.dsc, true, !!x.k.av)).filter(Boolean);   // (prévia) cada criança sai, sem o aviso de cada uma
   fecharFolha(); desenhar(); { const va = R.find(x => x.venda); if (va) papel.venda = va.venda; }
-  deuCerto(`${juntar(nomes)} ${verbo} · ${dur(R.reduce((t, x) => t + (x.deb || 0), 0))} debitados${recebeu}${desconto}${saps.length ? ' · ' + (saps.length === 1 ? 'sapato na sapateira ' : 'sapatos nas sapateiras ') + juntar(saps.map(String)) : ''}`, () => { for (const x of R.slice().reverse()) if (x.desfaz) x.desfaz(); });
+  deuCerto(`${juntar(nomes)} ${verbo} · ${tempoSaidaGrupo(R.map(x => ({ deb: x.deb || 0, a: x.a, plano: x.plano })))}${recebeu}${desconto}${saps.length ? ' · ' + (saps.length === 1 ? 'sapato na sapateira ' : 'sapatos nas sapateiras ') + juntar(saps.map(String)) : ''}`, () => { for (const x of R.slice().reverse()) if (x.desfaz) x.desfaz(); });
   const cup = R.map(x => x.cupomId).filter(Boolean); if (cup.length === 1) folhaCupom(cup[0], true); else if (cup.length) folhaCupons(); else papelDepois(papel);
 }
 // a folha da saída mostra as formas de pagamento só quando há o que receber; se o valor muda (o tempo passou, usou o voucher, corrigiu a hora), a conta acompanha
@@ -3776,7 +3798,7 @@ function folhaReabrir(id) {
     : dentro > cob ? `<div class="marca">${ic(IC.horas, 18)}<span>O tempo comprado ia até <b>${hora(fim)}</b>: a visita volta já na tolerância de ${tolerancia()} min.</span></div>`
     : `<div class="marca">${ic(IC.horas, 18)}<span>O tempo comprado vai até <b>${hora(fim)}</b>: ${cob - dentro < 1 ? 'falta menos de 1 min' : 'ainda ' + (cob - dentro < 2 ? 'falta 1 min' : 'faltam ' + minCurto(Math.floor(cob - dentro)))}.</span></div>`;
   abrirFolha('Reabrir a visita', `
-    <div class="linha">${avatar(c)}<div class="txt"><b style="white-space:normal">${nomeResp(c)}</b>${c.resp ? `<span style="white-space:normal">${esc(c.nome)}</span>` : ''}<span style="white-space:normal">entrou às ${hora(ini)} · saiu às ${hora(saiu)}, ${haMin(saiu)} · ${dur(v.deb)} debitados</span></div></div>
+    <div class="linha">${avatar(c)}<div class="txt"><b style="white-space:normal">${nomeResp(c)}</b>${c.resp ? `<span style="white-space:normal">${esc(c.nome)}</span>` : ''}<span style="white-space:normal">entrou às ${hora(ini)} · saiu às ${hora(saiu)}, ${haMin(saiu)} · tempo contado ${dur(v.deb)}</span></div></div>
     <p class="explica"><b>Reabrir desfaz a saída.</b> O tempo continua contando desde a entrada das ${hora(ini)}, como se a criança não tivesse saído: o que foi debitado volta para o saldo e a conta é refeita na próxima saída.</p>
     ${conta}
     <div class="pe-f"><span class="explica">Dá para reabrir até ${hora(new Date(+saiu + reabreLim() * 60000))} (${reabreLim()} min depois da saída). Fica anotado em Hoje na recepção, com quem reabriu.</span><button class="bt forte largo tap" id="rb-ok" data-act="reabrir-ok" data-id="${c.id}">${ic(IC.renova)} Reabrir a visita</button></div>`);
@@ -4292,6 +4314,26 @@ async function marcarVisto(id) { // id = 0: todos os que estão para conferir
 }
 /* ---------- histórico do cliente: uma aba à direita com tudo do responsável e das crianças dele ---------- */
 let LADO = null;   // { id (uma das crianças do cliente), dados: { vendas, visitas } | null, erro, todas, reg }
+// 1.18: na recreação avulsa o cliente não compra períodos: no histórico, o que cada visita somou aparece numa linha só ("RECREAÇÃO avulsa · 1h30"),
+// e não um "0h30" para cada meia hora. O motor continua guardando um lançamento por período; aqui eles se juntam por criança e por visita
+// (o tempo além do pacote também). Quem está no espaço aparece com "até agora" e "acerta na saída".
+const tipoAuto = v => v.auto && minDe(v) > 0 ? (/^avulsa/.test(v.itens || '') ? 'avulsa' : /^além do pacote/.test(v.itens || '') ? 'alem' : '') : '';
+function comprasPorVisita(vendas, visitas) {
+  const L = [], G = new Map();
+  const visitaDe = v => { const c = crianca(v.crianca), q = +v.quando; if (c && c.entrou && q >= +c.entrou - 60000) return 'agora';
+    const x = (visitas || []).find(x => x.crianca === v.crianca && q <= +x.dia + 60000 && q >= +iniVisita(x) - 60000); return x ? 'v' + (x.id || +x.dia) : 'd' + isoDia(v.quando); };
+  for (const v of vendas) { const t = tipoAuto(v); if (!t) { L.push({ v }); continue; }
+    const vis = visitaDe(v), k = v.crianca + '|' + t + '|' + vis; let g = G.get(k); if (!g) { g = { g: [], tipo: t, agora: vis === 'agora' }; G.set(k, g); L.push(g); } g.g.push(v); }
+  return L;
+}
+const formasDaCompra = v => { if (v.pg) return v.pg; const o = {}; for (const p of S.pagamentos || []) if (p.venda === v.id) o[p.f] = centavos((o[p.f] || 0) + p.v); return o; };   // { pix: 80 }: do servidor vem pronto; na prévia sai dos pagamentos
+function compraDaVisita(x, varias, nomeDe) {
+  const min = x.g.reduce((t, v) => t + minDe(v), 0), val = centavos(x.g.reduce((t, v) => t + v.v, 0)), np = x.g.reduce((t, v) => t + naoPagoDe(v), 0), prim = x.g.reduce((a, v) => +v.quando < +a.quando ? v : a), desc = centavos(x.g.reduce((t, v) => t + (v.desc || 0), 0));
+  const o = {}; for (const v of x.g) for (const [f, q] of Object.entries(formasDaCompra(v))) o[f] = centavos((o[f] || 0) + q);
+  const pago = Object.keys(o).length ? textoPag(Object.entries(o).map(([f, v]) => ({ f, v }))) : '';
+  const nome = x.tipo === 'avulsa' ? `${esc(prim.servico || 'RECREAÇÃO')} avulsa · ${x.agora ? 'até agora ' : ''}${dur(min)}` : `Além do pacote · ${dur(min)}`;
+  return `<div class="it" data-visita="${x.tipo}"><div class="txt"><b>${nome}</b><span>${quandoFoi(prim.quando)}${varias ? ' · para ' + esc(nomeDe(prim.crianca)) : ''}${np > 0.004 ? ` · <b class="np">${x.agora ? 'ACERTA NA SAÍDA' : 'A RECEBER'}</b>` : pago ? ' · ' + esc(pago) : ''}${desc > 0 ? ' · desconto de ' + brl(desc) : ''}</span></div><b class="num">${brl(val)}</b></div>`;
+}
 const nomeCompra = v => { const m = minDe(v); return v.servico ? esc(v.servico) + (m ? ' · ' + dur(m) : '') + (v.itens ? ' · ' + esc(v.itens) : '') : m ? esc(nomePacVenda(m, v.itens)) : esc(v.itens || 'Produto'); };
 const nomeUltima = c => c.venda ? (c.venda.servico ? c.venda.servico + ' · ' + dur(minDe(c.venda)) : (minDe(c.venda) === 60 ? 'Hora avulsa' : dur(minDe(c.venda)))) : '';
 const quandoFoi = d => `${d.getDate()} de ${MESES[d.getMonth()].slice(0, 3)}${d.getFullYear() !== agora.getFullYear() ? ' de ' + d.getFullYear() : ''} às ${hora(d)}`;
@@ -4319,27 +4361,29 @@ function fecharLado() {
 function desenharLado() {
   const a = $('#lado .lado'); if (!a || !LADO) return; const base = crianca(LADO.id); if (!base) { fecharLado(); return; }
   const fam = familia(base), d = LADO.dados, varias = fam.length > 1, nomeDe = id => (crianca(id) || { nome: '' }).nome;
-  const comprado = fam.reduce((t, c) => t + c.pacote * 60, 0), usado = fam.reduce((t, c) => t + usadoAgora(c), 0), tem = fam.reduce((t, c) => t + saldoAgora(c), 0);
   const visitas = d ? (LADO.todas ? d.visitas : d.visitas.slice(0, 6)) : [], rola = a.scrollTop;
+  const compras = d ? comprasPorVisita(d.vendas, d.visitas) : [];   // 1.18: a recreação avulsa de cada visita numa linha só
+  const pacDe = c => comSaldoFicha(c) || !!(d && d.vendas.some(v => v.crianca === c.id && ehPacoteVenda(v))), famPac = fam.filter(pacDe), comPac = famPac.length > 0;   // 1.18: a conta de horas é de quem tem (ou já teve) pacote
+  const comprado = famPac.reduce((t, c) => t + c.pacote * 60, 0), usado = famPac.reduce((t, c) => t + usadoAgora(c), 0), tem = famPac.reduce((t, c) => t + saldoAgora(c), 0);   // os cartões somam só as crianças com pacote (a recreação avulsa do irmão não é hora comprada)
   const ultima = c => { const v = d && d.visitas.find(x => x.crianca === c.id); return v ? +v.dia : ultimaVisita(c); };
   a.innerHTML = `
     <div class="cab-f"><h2>Histórico do cliente</h2><button class="fechar tap" data-act="lado-fechar" aria-label="Fechar o histórico">${ic(IC.x, 18, 2.4)}</button></div>
     <div class="linha"><span class="av g" style="background:${CORES[base.id % CORES.length]}">${esc(iniciais(base.resp))}</span><div class="txt"><b style="white-space:normal">${esc(base.resp)}</b><span style="white-space:normal">${relSabe(base) ? esc(base.rel) + ' de ' : 'responsável por '}${juntar(fam.map(c => esc(c.nome)))}</span><span style="white-space:normal">${esc(fones(base) || 'sem telefone')}${base.cpf ? ' · ' + esc(docTxt(base)) : ''}${copiaDoc(base)}</span></div></div>
     <div class="h-nums">
       <div><small>Pagou ao todo</small><b class="num">${d ? brl(centavos(d.vendas.reduce((t, v) => t + v.v - naoPagoDe(v), 0))) : '…'}</b></div>
-      <div><small>Horas compradas</small><b class="num">${hm(comprado)}</b></div>
+      ${comPac ? `<div><small>Horas compradas</small><b class="num">${hm(comprado)}</b></div>
       <div><small>Horas consumidas</small><b class="num">${hm(usado)}</b></div>
-      <div class="tem"><small>Saldo de horas</small><b class="num">${hm(tem)}</b></div>
+      <div class="tem"><small>Saldo de horas</small><b class="num">${hm(tem)}</b></div>` : `<div><small>Visitas</small><b class="num">${d ? d.visitas.length : '…'}</b></div>`}
     </div>
     <div class="sec"><div class="sec-cab"><h2 style="font-size:16px">${varias ? 'Crianças' : 'Criança'}</h2>${varias ? `<span class="pill p-neutro">${fam.length}</span>` : ''}</div>
       ${fam.map(c => { const [et, cls] = estado(c), u = ultima(c); return `<div class="h-cr">
         <button class="quem tap" data-act="ficha" data-id="${c.id}" aria-label="Abrir a ficha de ${esc(c.nome)}">${avatar(c)}<span class="txt"><b>${esc(c.nome)}${idadeTxt(c) ? ', ' + idadeTxt(c) : ''}</b><span>${c.entrou ? 'No espaço desde ' + hora(c.entrou) : u ? 'Veio por último em ' + diaCurto(new Date(u)) : 'Ainda não veio brincar'}${c.sapateira ? ' · sapateira ' + c.sapateira : ''}</span></span><span class="pill ${c.entrou ? 'p-ok' : cls}">${c.entrou ? 'No espaço' : et}</span></button>
-        <div class="h-saldo"><span>comprou<b class="num">${hm(c.pacote * 60)}</b></span><span>consumiu<b class="num">${hm(usadoAgora(c))}</b></span><span class="tem">saldo<b class="num">${hm(saldoAgora(c))}</b></span></div>
+        ${pacDe(c) ? `<div class="h-saldo"><span>comprou<b class="num">${hm(c.pacote * 60)}</b></span><span>consumiu<b class="num">${hm(usadoAgora(c))}</b></span><span class="tem">saldo<b class="num">${hm(saldoAgora(c))}</b></span></div>` : ''}
         ${c.obs ? `<p class="h-obs"><button type="button" class="obs-bt on mini tap" data-act="obs-ver" data-id="${c.id}" aria-label="Ver a observação de ${esc(c.nome)}">OBS</button><span>Tem observação. Toque no OBS para ver.</span></p>` : ''}
         <div class="acoes"><button class="bt forte tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 16)} ${emAberto(c) ? 'Continuar o atendimento' : 'Vender'}</button>${COM_WHATS ? `<button class="bt tap" data-act="renovar" data-id="${c.id}">${ic(IC.zap, 16)} ${semHoras(c) ? 'Mandar mensagem' : 'Chamar para renovar'}</button>` : ''}</div>
       </div>`; }).join('')}</div>
-    <div class="sec"><div class="sec-cab"><h2 style="font-size:16px">Compras</h2>${d ? `<span class="pill p-neutro">${d.vendas.length}</span>` : ''}</div>
-      ${!d ? `<p class="explica">${LADO.erro ? esc(LADO.erro) : 'Buscando as compras…'}</p>` : d.vendas.length ? `<div class="grupo">${d.vendas.map(v => `<div class="it"><div class="txt"><b>${nomeCompra(v)}</b><span>${quandoFoi(v.quando)}${varias ? ' · para ' + esc(nomeDe(v.crianca)) : ''}${v.por ? ' · por ' + esc(primeiro(v.por)) : ''}${naoPagoDe(v) > 0.004 ? ' · <b class="np">A RECEBER</b>' : pagoDaCompra(v) ? ' · ' + esc(pagoDaCompra(v)) : ''}${v.desc > 0 ? ' · desconto de ' + brl(v.desc) : ''}</span></div><b class="num">${brl(v.v)}</b></div>`).join('')}</div>` : `<p class="explica">Nenhuma compra registrada ainda.</p>`}</div>
+    <div class="sec"><div class="sec-cab"><h2 style="font-size:16px">Compras</h2>${d ? `<span class="pill p-neutro">${compras.length}</span>` : ''}</div>
+      ${!d ? `<p class="explica">${LADO.erro ? esc(LADO.erro) : 'Buscando as compras…'}</p>` : d.vendas.length ? `<div class="grupo">${compras.map(x => x.g ? compraDaVisita(x, varias, nomeDe) : (v => `<div class="it"><div class="txt"><b>${nomeCompra(v)}</b><span>${quandoFoi(v.quando)}${varias ? ' · para ' + esc(nomeDe(v.crianca)) : ''}${v.por ? ' · por ' + esc(primeiro(v.por)) : ''}${naoPagoDe(v) > 0.004 ? ' · <b class="np">A RECEBER</b>' : pagoDaCompra(v) ? ' · ' + esc(pagoDaCompra(v)) : ''}${v.desc > 0 ? ' · desconto de ' + brl(v.desc) : ''}</span></div><b class="num">${brl(v.v)}</b></div>`)(x.v)).join('')}</div>` : `<p class="explica">Nenhuma compra registrada ainda.</p>`}</div>
     <div class="sec"><div class="sec-cab"><h2 style="font-size:16px">Visitas</h2>${d ? `<span class="pill p-neutro">${d.visitas.length}</span>` : ''}</div>
       ${!d ? (LADO.erro ? '' : `<p class="explica">Buscando as visitas…</p>`) : d.visitas.length ? `<div class="grupo">${visitas.map(v => `<div class="it"><div class="txt"><b>${v.dia.getDate()} de ${MESES[v.dia.getMonth()]}${v.dia.getFullYear() !== agora.getFullYear() ? ' de ' + v.dia.getFullYear() : ''}</b><span>${varias ? esc(nomeDe(v.crianca)) + ' · ' : ''}${v.entrou} às ${v.saiu}</span></div><span class="pill p-neutro">${hm(v.deb)}</span></div>`).join('')}</div>${d.visitas.length > 6 ? `<button class="link tap" data-act="lado-todas" style="align-self:flex-start">${LADO.todas ? 'Mostrar só as últimas' : 'Ver as ' + d.visitas.length + ' visitas'}</button>` : ''}` : `<p class="explica">Ainda não veio brincar.</p>`}</div>
     ${d && d.cancelados && d.cancelados.length ? `<div class="sec"><div class="sec-cab"><h2 style="font-size:16px">Entradas canceladas</h2><span class="pill p-erro">${d.cancelados.length}</span></div>
@@ -4353,7 +4397,7 @@ function folhaDia() {
   abrirFolha('Hoje na recepção', `<div class="h-saldo dia-nums"><span>vendido hoje<b class="num">${brl(nd.valor)}</b><small>${nd.n} ${nd.n === 1 ? 'venda' : 'vendas'} · ${hm(nd.min)} de recreação</small></span><span>horas usadas<b class="num">${hm(nd.usadas)}</b><small>em períodos de ${porExt(periodo())}</small></span><span class="${nd.atr.n ? 'alerta' : ''}">além do pacote<b class="num">${nd.atr.n ? dur(nd.atr.n * periodo()) : '0h'}</b><small>${nd.atr.n ? brl(nd.atr.valor) + ' a mais' : 'nenhum pacote acabou'}</small></span></div>
     ${(ph => { const rec = FORMAS.reduce((t, [f]) => t + (ph[f] || 0), 0), sem = centavos(nd.valor - rec);
       return `<div class="h-saldo dia-formas" aria-label="Recebido por forma de pagamento nas últimas 24 horas">${FORMAS.map(([f, n]) => `<span>${n}<b class="num">${brl(ph[f] || 0)}</b></span>`).join('')}</div>${sem > 0.005 ? `<p class="explica">${brl(sem)} do vendido ${rec > 0 ? 'ainda ' : ''}não tem forma de pagamento anotada: recreação a receber na saída, ou venda sem a tela de pagamento.</p>` : ''}`; })(pagHoje())}
-    <p class="explica">${semIdface() ? 'Cada entrada, saída e venda marcada na tela vira uma linha aqui, na hora.' : 'Cada rosto reconhecido pelo iDFace vira uma linha aqui, na hora.'} As saídas mostram o que foi debitado.</p>
+    <p class="explica">${semIdface() ? 'Cada entrada, saída e venda marcada na tela vira uma linha aqui, na hora.' : 'Cada rosto reconhecido pelo iDFace vira uma linha aqui, na hora.'} As saídas mostram quanto tempo a criança ficou e a conta da visita.</p>
     ${(d => d.vouchers || d.pcd || d.desc ? `<div class="marca">${ic(IC.presente, 18)}<span><b>Últimas 24 h:</b> ${[d.vouchers ? `${d.vouchers} ${d.vouchers === 1 ? 'voucher' : 'vouchers'} (${brl(d.voucher_valor)} sem cobrar)` : '', d.pcd ? `${d.pcd} ${d.pcd === 1 ? 'venda' : 'vendas'} com desconto PCD (${brl(d.pcd_valor)} de desconto)` : '', d.desc ? `${d.desc} ${d.desc === 1 ? 'desconto do gestor' : 'descontos do gestor'} (${brl(d.desc_valor)})` : ''].filter(Boolean).join(' · ')}</span></div>` : '')(descontosHoje())}
     ${comCupom() ? botaoCuponsDia() : ''}
     ${supervisorOuMais() ? `<button class="marca tap" data-act="cancelamentos" style="width:100%">${ic(IC.x, 18, 2.4)}<span><b>Entradas canceladas sem cobrar</b> · ${nCanc ? nCanc + ' nas últimas 24 h' : 'nenhuma nas últimas 24 h'}${aConferir().length ? ' · <b>' + aConferir().length + ' para conferir</b>' : ''}</span>${ic(IC.vai, 18)}</button>` : ''}${listaRegistros(regs)}`);
@@ -4405,6 +4449,8 @@ const filtroBanco = c => { const f = S.bancoFiltro || 'todas'; return f === 'ren
 // 0.99: a lista do Banco de horas ficou enxuta. Cada linha: a criança (com o responsável), o saldo de horas, a última compra
 // (um toque abre o histórico) e o Vender. Nada corre nesta tela: o tempo de quem está no espaço fica na tela inicial, e aqui a criança
 // só ganha o selo "No espaço". A lista vem em ordem alfabética (antes vinha pelo tempo que faltava, e as linhas trocavam de lugar sozinhas).
+// 1.18: a última compra no Banco de horas. A recreação avulsa não é um "0h30 de R$ 80": é a visita, acertada na saída (o valor de cada visita está no histórico)
+const ultimaBanco = c => /^avulsa/.test(c.venda.com || '') ? esc((c.venda.servico || 'RECREAÇÃO') + ' avulsa') : /^além do pacote/.test(c.venda.com || '') ? 'Além do pacote' : `${esc(ultimaCurta(c))} · ${brl(c.venda.v)}`;
 const ultimaCurta = c => { const v = c.venda, s = String(v.servico || '').trim(); return s ? (/^pacote\b/i.test(s) ? s : s + ' · ' + dur(minDe(v))) : (minDe(v) === 60 ? 'Hora avulsa' : dur(minDe(v))); };   // "PACOTE 05 HORAS 420" ou "RECREAÇÃO · 0h30"
 const BANCO_MAX = 150;   // 1.01: quantos clientes a lista do Banco de horas desenha de uma vez (o resto vem pela busca)
 function linhasBanco() {
@@ -4418,7 +4464,7 @@ function linhasBanco() {
     return `<div class="banco-linha${zerou ? ' zerou' : ''}">
     <button class="quem tap" data-act="ficha" data-id="${c.id}" aria-label="Abrir a ficha de ${esc(c.nome)}">${avatar(c)}<span class="txt"><b>${nomeResp(c)}${c.resp ? relP(c) : ''}</b><span>${c.resp ? esc(c.nome) : ''}${idadeDe(c) ? (c.resp ? ', ' : '') + idadeDe(c) : ''}</span></span></button>
     <div class="bl-saldo${s > 0 ? '' : ' zero'}" data-banco-saldo="${c.id}" data-k="${s}" aria-label="Saldo de horas: ${hm(s)}"><b class="num">${hm(s)}</b>${selo}</div>
-    <button class="ult tap" data-act="historico" data-id="${c.id}" title="Abrir o histórico de ${esc(c.resp)}">${c.venda ? `<b>${esc(ultimaCurta(c))} · ${brl(c.venda.v)}</b><span>${diaCurto(c.venda.quando)}</span>` : '<span>Sem compra ainda</span>'}</button>
+    <button class="ult tap" data-act="historico" data-id="${c.id}" title="Abrir o histórico de ${esc(c.resp)}">${c.venda ? `<b>${ultimaBanco(c)}</b><span>${diaCurto(c.venda.quando)}</span>` : '<span>Sem compra ainda</span>'}</button>
     <div class="acoes">${COM_WHATS ? `<button class="bt ${zerou ? 'forte' : ''} tap" data-act="renovar" data-id="${c.id}" title="Chamar ${esc(c.resp)} no WhatsApp para renovar">${ic(IC.zap, 16)} ${zerou ? 'Chamar para renovar' : 'WhatsApp'}</button>` : ''}<button class="bt so-ic tap" data-act="historico" data-id="${c.id}" title="Histórico de ${esc(c.resp)}" aria-label="Histórico de ${esc(c.resp)}">${ic(IC.historico, 16)}</button><button class="bt ${ab || (!COM_WHATS && zerou) ? 'forte' : ''} tap" data-act="vender" data-id="${c.id}" aria-label="${ab ? 'Continuar o atendimento de' : 'Vender para'} ${esc(c.nome)}">${ic(IC.mais, 16)}<span class="rt">${ab ? 'Continuar' : 'Vender'}</span></button></div>
   </div>`; };
   return `<div class="banco-cab" aria-hidden="true"><span>Responsável</span><span>Saldo de horas</span><span class="bc-u">Última compra</span><span></span></div>`
