@@ -750,6 +750,9 @@ h3.sec{font-size:22px;margin:14px 2px -2px}
 .est-v{display:flex;flex-direction:column;align-items:flex-end;font-size:12px;color:var(--muted);flex:none}.est-v b{font-size:22px;font-weight:900;color:var(--fg);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
 .est-bar{height:8px;border-radius:9px;background:var(--ctl);overflow:hidden}.est-bar i{display:block;height:100%;border-radius:9px;background:var(--brand)}
 .est-who{display:flex;flex-direction:column;border-top:1px solid var(--sep)}.est-who>div{display:flex;flex-direction:column;gap:2px;padding:9px 0;border-bottom:1px solid var(--sep)}.est-who>div:last-child{border-bottom:0}
+.or-bars{display:flex;flex-direction:column;gap:8px;margin:4px 0 10px}.or-b{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,2fr) 26px 38px;align-items:center;gap:8px;font-size:14px}.or-n{display:flex;align-items:center;gap:8px;font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.or-n i{flex:none;width:12px;height:12px;border-radius:4px}
+.or-bar{height:10px;border-radius:99px;background:var(--ctl);overflow:hidden}.or-bar i{display:block;height:100%;border-radius:inherit}.or-b b{text-align:right;font-variant-numeric:tabular-nums}.or-b em{font-style:normal;color:var(--muted);font-size:12.5px;text-align:right}
+.or-links{display:flex;flex-direction:column;gap:8px}.or-l{display:flex;align-items:center;gap:10px;background:var(--ctl);border-radius:14px;padding:10px 12px}.or-l span{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.or-l b{font-size:14px}.or-l code{font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .av-med{display:flex;flex-direction:column;gap:2px;margin:4px 0 10px}.av-mr{display:flex;align-items:center;gap:10px;padding:6px 0}.av-mr b{flex:1;display:flex;align-items:center;gap:10px;font-size:14.5px}.av-mr b i{width:12px;height:12px;border-radius:4px}.av-mr .av-v{flex:none;width:30px;text-align:right;font-weight:800;font-variant-numeric:tabular-nums}.av-mr .av-es{flex:none}
 .av-es{display:inline-flex;gap:1px;font-size:18px;color:color-mix(in srgb,var(--fg) 18%,transparent)}.av-es i{font-style:normal}.av-es i.on{color:#FFB21E}
 .est-who .av-rec{color:var(--fg)!important;font-size:13.5px!important}
@@ -2260,6 +2263,7 @@ async function loadEst(force){
   catch(e){ ST.err = e && e.code==='permission-denied' ? 'regras' : 'rede'; }
   // avaliações a cada 15 dias: separado, para as regras antigas não esconderem o resto da aba
   try { ST.av = await FBP.listCol('avaliacoes'); ST.avErr = ''; } catch(e){ ST.av = []; ST.avErr = e && e.code==='permission-denied' ? 'regras' : 'rede'; }
+  try { ST.or = await FBP.listCol('origens'); ST.orErr = ''; } catch(e){ ST.or = []; ST.orErr = e && e.code==='permission-denied' ? 'regras' : 'rede'; }
   ST.at = Date.now(); ST.loading = false; if(ui.view==='estatisticas') render();
 }
 const tipoTxt = t => t==='autonomo' ? 'sem personal' : 'com personal';
@@ -2291,6 +2295,19 @@ function vEstat(){
   h += '<h3 class="sec">Datas especiais<span class="dot" aria-hidden="true"></span></h3><section class="card"><span class="label">'+ic('cake')+'Próximas datas para os stories</span><p class="muted">O lembrete aparece no Painel 10 dias antes de cada data.</p><div class="list">'+
     proxDatas().slice(0,6).map(x => { const n = diffDays(x.d, t00), feito = ok0.includes(x.key);
       return '<div class="row"><span class="ico'+(n<=10 && !feito ? ' lime' : '')+'">'+ic('cake')+'</span><span class="main-t"><b>'+esc(x.nome)+'</b><span>'+new Date(x.d+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+(n>10 ? ' · lembrete a partir de '+fmtDm(addDays(x.d,-10)) : '')+'</span></span><span class="end"><span class="pill '+(feito ? 'ok' : n<=10 ? 'warn' : 'line')+'">'+(feito ? 'Preparado' : n<=0 ? 'Hoje' : 'em '+plural(n,'dia'))+'</span></span></div>'; }).join('')+'</div></section>';
+  // de onde vieram (cadastro de quem treina sem personal)
+  const FONTES = [['instagram','Instagram','#DD2A7B'],['tiktok','TikTok','#0F1712'],['indicacao','Indicação de amigo','#2E9E3E'],['google','Google','#1E73E0'],['youtube','YouTube','#E5484D'],['personal','Personal','#7E57C9'],['outro','Outro','#8A938D']];
+  const orV = {}; (ST.or||[]).forEach(x => { const k = x.uid || x.id; if(!orV[k] || (x.em||0) < (orV[k].em||0)) orV[k] = x; });
+  const orL = Object.values(orV).filter(x => (x.em||0)>=desde).sort((a,b) => (b.em||0)-(a.em||0)), orTot = orL.length, orN = k => orL.filter(x => x.fonte===k).length, orMax = Math.max(1, ...FONTES.map(([k]) => orN(k)));
+  const SITE = 'simplificandoeduca.com/treino';
+  h += '<h3 class="sec">De onde vieram<span class="dot" aria-hidden="true"></span></h3><section class="card"><div class="card-h"><span class="label">'+ic('users')+'Como conheceram o app</span><span class="pill line">'+plural(orTot,'cadastro')+'</span></div>'+
+    (ST.orErr==='regras' ? '<p class="callout">'+ic('alert')+'<span><b>Falta colar as regras novas no Firebase.</b> Sem elas, a origem dos cadastros não chega. Cole o REGRAS-FIRESTORE.txt no Firebase → Firestore → Regras e toque em Publicar.</span></p>' : '')+
+    (orTot ? '<div class="or-bars">'+FONTES.filter(([k]) => orN(k)).sort((a,b) => orN(b[0])-orN(a[0])).map(([k,n,c]) => { const v = orN(k); return '<div class="or-b"><span class="or-n"><i style="background:'+c+'"></i>'+n+'</span><span class="or-bar"><i style="width:'+Math.round(v/orMax*100)+'%;background:'+c+'"></i></span><b>'+v+'</b><em>'+Math.round(v/orTot*100)+'%</em></div>'; }).join('')+'</div>'+
+      '<details class="est-ab"><summary>Ver quem se cadastrou ('+orTot+')</summary><div class="est-who">'+orL.slice(0,60).map(x => { const f = FONTES.find(y => y[0]===x.fonte); return '<div><b>'+esc(x.nome||'Sem nome')+'</b><span>'+esc(f ? f[1] : x.fonte)+(x.ref ? ' · veio pelo link (de='+esc(x.ref)+')' : ' · escolheu no cadastro')+' · '+new Date(x.em||0).toLocaleDateString('pt-BR')+'</span></div>'; }).join('')+'</div></details>'
+      : '<p class="muted">'+(ST.orErr==='regras' ? 'Os cadastros aparecem aqui depois que as regras forem coladas.' : 'Ainda não chegou nenhum cadastro no período. Quem cria a conta para treinar sem personal responde "Como você conheceu o Simplificando?" e entra aqui.')+'</p>')+
+    '<p class="q" style="margin:14px 0 6px;font-size:13.5px;font-weight:800">Links para divulgar</p><p class="foot" style="margin:0 0 8px">Use um link em cada lugar. Quem entra por ele já aparece aqui com a origem certa, mesmo sem responder a pergunta.</p>'+
+    '<div class="or-links">'+[['instagram','Instagram (bio e stories)'],['tiktok','TikTok'],['youtube','YouTube'],['indicacao','WhatsApp e indicação']].map(([k,n]) => '<div class="or-l"><span><b>'+n+'</b><code>'+SITE+'?de='+k+'</code></span><button type="button" class="btn small" data-a="orCopy" data-v="https://'+SITE+'?de='+k+'">'+ic('copy')+'Copiar</button></div>').join('')+'</div>'+
+    '<p class="foot">Conta quem criou a conta para treinar sem personal, no período escolhido acima. Seus alunos com personal ficam no Painel, em “Por origem”.</p></section>';
   // avaliação do app (estrelas por área, a cada 15 dias)
   const AVA = [['treino','Treino','#E5484D'],['cardio','Cardio','#2E9E3E'],['agua','Água','#1E73E0'],['facil','Fácil de usar','#7E57C9'],['visual','Visual','#E08A00']];
   const avL = (ST.av||[]).filter(x => x && x.notas && (x.em||0)>=desde), med = k => { const v = avL.map(x => +x.notas[k]).filter(v => v>=1 && v<=5); return v.length ? v.reduce((t,x) => t+x,0)/v.length : 0; };
@@ -4470,6 +4487,7 @@ function act(a,d,btn){
     case 'sairConta': return false;
     case 'receita': openSheet({k:'receita'}); return false;
     case 'recOpen': closeSheet(); ui.view = 'alunos'; if(ui.aluno!==d.id){ ui.draft.av = {}; ui.draft.pay = {}; ui.draft.nota = ''; } ui.aluno = d.id; ui.tab = 'financeiro'; window.scrollTo(0,0); break;
+    case 'orCopy': { const v = d.v; try { navigator.clipboard.writeText(v).then(() => toast('Link copiado: '+v.replace('https://','')), () => toast(v.replace('https://',''))); } catch(e){ toast(v.replace('https://','')); } return false; }
     case 'evCargaTg': PREF.evCargaMin = !PREF.evCargaMin; savePref(); break;
     case 'ajMin': { const L = (PREF.ajMin||[]).slice(), i = L.indexOf(d.k); if(i<0) L.push(d.k); else L.splice(i,1); PREF.ajMin = L; savePref(); break; }
     case 'ajAll': { if(d.v==='abrir') PREF.ajMin = []; else PREF.ajMin = Array.from(document.querySelectorAll('.aj-h')).map(b => b.dataset.k); savePref(); break; }

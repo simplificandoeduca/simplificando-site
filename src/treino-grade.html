@@ -1805,6 +1805,10 @@ function progSync(now){
 let S = fresh(false);
 const PKEY = 'simplificando-pro-ui';
 let PREF = (() => { try { const v = JSON.parse(localStorage.getItem(PKEY)||'null'); return v && typeof v==='object' ? v : {glass:false}; } catch(e){ return {glass:false}; } })();
+/* de onde a pessoa veio: link com ?de=instagram (ou ?ref= / ?utm_source=) fica guardado no aparelho até ela criar a conta */
+const FONTES = [['instagram','Instagram'],['tiktok','TikTok'],['indicacao','Indicação de amigo'],['google','Google'],['youtube','YouTube'],['personal','Meu personal'],['outro','Outro']];
+const fonteDe = v => { v = String(v||'').toLowerCase().trim(); if(!v) return ''; if(/^(ig|insta)/.test(v)) return 'instagram'; if(/^(tt|tik)/.test(v)) return 'tiktok'; if(/^(yt|you)/.test(v)) return 'youtube'; if(/^goo/.test(v)) return 'google'; if(/^(ind|amig|wa|whats|zap)/.test(v)) return 'indicacao'; return FONTES.some(f => f[0]===v) ? v : 'outro'; };
+(function(){ try { const q = new URLSearchParams(location.search), r = (q.get('de') || q.get('ref') || q.get('utm_source') || '').slice(0,40); if(r && !PREF.ref){ PREF.ref = { raw:r, f:fonteDe(r), em:Date.now() }; localStorage.setItem(PKEY, JSON.stringify(PREF)); } } catch(e){ /* sem armazenamento */ } })();
 const ACC = { laranja:['Laranja','#FF9A2E'], roxo:['Lilás','#B794FF'], vermelho:['Vermelho','#FF4646'], verde:['Verde','#C8F542'], branco:['Branco neutro','n'] };
 if(!ACC[PREF.accent]) PREF.accent = 'vermelho';
 const FKEY = 'simplificando-pro-foto';
@@ -2966,7 +2970,7 @@ function iaResult(P, ed, q){
 const genView = () => `<div class="iq-gen" role="status" aria-live="polite"><span class="iq-orb" aria-hidden="true">${ic('spark')}</span><h1 class="lg-h">Montando seu treino<span class="dot" aria-hidden="true"></span></h1><ul><li>Lendo suas respostas</li><li>Escolhendo os exercícios</li><li>Ajustando séries, repetições e descanso</li></ul></div>`;
 
 /* cadastro: 1 conta · 2 perfil · 3 como montar · 4–6 perguntas da IA · 7 resultado */
-const LGF0 = () => ({ nome:'', email:'', senha:'', show:false, sexo:'F', ed:'hipertrofia', peso:'', plan:null, ck:{t:false, s:false, p:false} });
+const LGF0 = () => ({ nome:'', email:'', senha:'', show:false, sexo:'F', ed:'hipertrofia', peso:'', plan:null, ck:{t:false, s:false, p:false}, or:(PREF.ref && PREF.ref.f) || '' });
 let AFTER = null; // abre "Meus treinos" assim que o app carregar
 function selfStart(){ LG.view = 'setup'; LG.step = 1; LG.serr = ''; LG.gen = false; renderLogin('#su-nome'); }
 const waterSug = () => { const p = num(LG.f.peso); return p>=30 && p<=250 ? Math.round(p*35/100)*100 : 3000; };
@@ -2996,6 +3000,7 @@ function vSetup(){
     <div class="field"><span class="flabel" id="su-bn">Seu boneco</span><div class="iseg" role="group" aria-labelledby="su-bn">${[['F','Feminino'],['M','Masculino']].map(([v,l]) => `<button type="button" class="${f.sexo===v?'on':''}" aria-pressed="${f.sexo===v}" data-a="su-sexo" data-v="${v}">${l}</button>`).join('')}</div><p class="foot0">É quem aparece nas animações de cardio.</p></div>
     <div class="field"><span class="flabel" id="su-ed">Seu objetivo</span><div class="lg-opts" role="group" aria-labelledby="su-ed">${SELF_ED.map(k => togBtn('su-ed',k,f.ed===k,ED[k].nome)).join('')}</div></div>
     <div class="field"><label class="flabel" for="su-peso">Seu peso (opcional)</label><div class="inp-wrap"><input class="inp" id="su-peso" inputmode="decimal" autocomplete="off" placeholder="70" value="${esc(f.peso)}" data-su="peso"><span>kg</span></div><p class="foot0" data-su-wt>${suWaterTxt()}</p></div>
+    <div class="field"><span class="flabel" id="su-or">Como você conheceu o Simplificando? <span style="font-weight:500;color:var(--muted)">(opcional)</span></span><div class="lg-opts" role="group" aria-labelledby="su-or">${FONTES.map(([k,l]) => togBtn('su-or',k,f.or===k,l)).join('')}</div></div>
     <button type="button" class="btn primary block" data-a="su-next">Continuar${ic('chev')}</button>`;
   else if(st===3) body = `<h1 class="lg-h">Como você quer montar seu treino?<span class="dot" aria-hidden="true"></span></h1>
     <div class="su-modes">
@@ -3093,6 +3098,8 @@ function suFinish(mode){
   s.aceite = aceiteNovo(true); s._em = Date.now(); s.inst = 'novo';
   try { localStorage.setItem(autoKey(uid), JSON.stringify(s)); } catch(e){ /* sem armazenamento */ }
   if(FB){ FB.autoSave(uid, s, true); FB.perfil({ tipo:'autonomo', nome, email:LG.uidMail||'', sexo, objetivo:f.ed, plano:mode, treinos:mode==='ia' && f.plan ? Object.keys(f.plan).length : 0, criadoEm:Date.now(), ultimoAcesso:Date.now(), aceite:{ v:s.aceite.v, em:s.aceite.em }, ver:APPV }); }
+  const fonte = f.or || (PREF.ref && PREF.ref.f) || '';
+  if(FB && fonte) FB.evento('origens', { nome, tipo:'autonomo', fonte, ref:(PREF.ref && PREF.ref.raw) || '', em:Date.now(), ver:APPV }).then(ok => { if(ok==='permission-denied') errSend('Regras do Firebase desatualizadas: a origem do cadastro (Instagram, TikTok…) foi bloqueada. Cole o REGRAS-FIRESTORE.txt novo no Firebase.', 'origens', 0, 0, ''); });
   writeSess({mode:'self', uid}); LG.view = 'login'; LG.step = 1; LG.f = LGF0(); LG.uid = null; LG.uidMail = '';
   if(mode==='meu') AFTER = 'meus';
   welcome(firstName(nome), sexo, mode==='meu' ? 'Agora é só montar seu treino.' : 'Seu treino está pronto.');
@@ -3280,6 +3287,7 @@ function lgClick(a,d,b){
     case 'su-legacy': { const v = legacySelf(); writeSess({mode:'self'}); LG.view = 'login'; welcome(firstName(v && v.nome)||'de volta', v && v.conta && v.conta.sexo); return true; }
     case 'su-sexo': LG.f.sexo = d.v==='M' ? 'M' : 'F'; renderLogin(`[data-a="su-sexo"][data-v="${d.v}"]`); return true;
     case 'su-ed': LG.f.ed = d.v; renderLogin(`[data-a="su-ed"][data-v="${d.v}"]`); return true;
+    case 'su-or': LG.f.or = LG.f.or===d.v ? '' : d.v; renderLogin(`[data-a="su-or"][data-v="${d.v}"]`); return true;
     case 'su-mode': if(d.v==='ia'){ IQ = IQ0(); LG.step = 4; renderLogin(); suTop(); } else suFinish('meu'); return true;
     case 'su-done': suFinish('ia'); return true;
     case 'su-ck': { const c = LG.f.ck; c[d.v] = !c[d.v]; renderLogin(`[data-a="su-ck"][data-v="${d.v}"]`); return true; }

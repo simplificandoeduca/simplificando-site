@@ -208,11 +208,14 @@ rep("tipoTxt(x.tipo)+' · '+plural(x.n,'vez','vezes')", "plural(x.n,'vez','vezes
 rep("esc(x.nome||'Sem nome')+' · '+tipoTxt(x.tipo)+' · '", "esc(x.nome||'Sem nome')+' · '")
 rep(" Vale para alunos com e sem personal.</p></section>';", " Conta só os seus alunos.</p></section>';")
 rep("Fica no fim do Perfil, no app, para quem treina com e sem personal.", "Fica no fim do Perfil, no app dos seus alunos.")
-i = s.index("  // próximas datas especiais"); j = s.index("  // sugestões", i)
+i = s.index("  // próximas datas especiais"); j = s.index("  // de onde vieram (cadastro de quem treina sem personal)", i)
 s = s[:i] + s[j:]
 
 # o aviso de "modelo pouco usado" é para quem cria os designs, não para o personal
 rep("(menos && menos[1]<.2 ? '<p class=\"callout\">'", "(false ? '<p class=\"callout\">'")
+# "De onde vieram" é dos cadastros do Simplificando (sem personal): não entra no painel de teste
+i = s.index("  // de onde vieram (cadastro de quem treina sem personal)"); j = s.index("  // avaliação do app (estrelas por área, a cada 15 dias)", i)
+s = s[:i] + s[j:]
 # ---------- estilos da agenda ----------
 CSS = '''
 /* versão de teste: agenda e atendimento */

@@ -756,6 +756,9 @@ h3.sec{font-size:22px;margin:14px 2px -2px}
 .est-v{display:flex;flex-direction:column;align-items:flex-end;font-size:12px;color:var(--muted);flex:none}.est-v b{font-size:22px;font-weight:900;color:var(--fg);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
 .est-bar{height:8px;border-radius:9px;background:var(--ctl);overflow:hidden}.est-bar i{display:block;height:100%;border-radius:9px;background:var(--brand)}
 .est-who{display:flex;flex-direction:column;border-top:1px solid var(--sep)}.est-who>div{display:flex;flex-direction:column;gap:2px;padding:9px 0;border-bottom:1px solid var(--sep)}.est-who>div:last-child{border-bottom:0}
+.or-bars{display:flex;flex-direction:column;gap:8px;margin:4px 0 10px}.or-b{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,2fr) 26px 38px;align-items:center;gap:8px;font-size:14px}.or-n{display:flex;align-items:center;gap:8px;font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.or-n i{flex:none;width:12px;height:12px;border-radius:4px}
+.or-bar{height:10px;border-radius:99px;background:var(--ctl);overflow:hidden}.or-bar i{display:block;height:100%;border-radius:inherit}.or-b b{text-align:right;font-variant-numeric:tabular-nums}.or-b em{font-style:normal;color:var(--muted);font-size:12.5px;text-align:right}
+.or-links{display:flex;flex-direction:column;gap:8px}.or-l{display:flex;align-items:center;gap:10px;background:var(--ctl);border-radius:14px;padding:10px 12px}.or-l span{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.or-l b{font-size:14px}.or-l code{font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .av-med{display:flex;flex-direction:column;gap:2px;margin:4px 0 10px}.av-mr{display:flex;align-items:center;gap:10px;padding:6px 0}.av-mr b{flex:1;display:flex;align-items:center;gap:10px;font-size:14.5px}.av-mr b i{width:12px;height:12px;border-radius:4px}.av-mr .av-v{flex:none;width:30px;text-align:right;font-weight:800;font-variant-numeric:tabular-nums}.av-mr .av-es{flex:none}
 .av-es{display:inline-flex;gap:1px;font-size:18px;color:color-mix(in srgb,var(--fg) 18%,transparent)}.av-es i{font-style:normal}.av-es i.on{color:#FFB21E}
 .est-who .av-rec{color:var(--fg)!important;font-size:13.5px!important}
@@ -2405,6 +2408,7 @@ async function loadEst(force){
   catch(e){ ST.err = e && e.code==='permission-denied' ? 'regras' : 'rede'; }
   // avaliações a cada 15 dias: separado, para as regras antigas não esconderem o resto da aba
   try { const meus2 = new Set(Object.values(C.alunos).map(x => x.uid).filter(Boolean)); ST.av = DEMO.list('av').filter(x => meus2.has(x.uid)); ST.avErr = ''; } catch(e){ ST.av = []; ST.avErr = e && e.code==='permission-denied' ? 'regras' : 'rede'; }
+  try { ST.or = await FBP.listCol('origens'); ST.orErr = ''; } catch(e){ ST.or = []; ST.orErr = e && e.code==='permission-denied' ? 'regras' : 'rede'; }
   ST.at = Date.now(); ST.loading = false; if(ui.view==='estatisticas') render();
 }
 const tipoTxt = t => t==='autonomo' ? 'sem personal' : 'com personal';
@@ -2431,6 +2435,18 @@ function vEstat(){
         (op ? (P2.length ? '<div class="est-who">'+P2.map(x => '<div><b>'+esc(x.nome)+'</b><span>'+plural(x.n,'vez','vezes')+' · último '+new Date(x.ult).toLocaleDateString('pt-BR')+(Object.keys(x.cores).length ? ' · cor '+Object.keys(x.cores).sort((a,b) => x.cores[b]-x.cores[a]).map(k => ST_COR[k]||k).join(', ') : '')+'</span></div>').join('')+'</div>' : '<p class="foot">Ninguém postou este modelo no período.</p>') : '')+'</div>'; }).join('')+'</div>'+
     (false ? '<p class="callout">'+ic('alert')+'<span>O modelo <b>'+menos[0]+'</b> está bem menos usado ('+Math.round(menos[1]*100)+'% dos stories). Vale testar um visual novo para ele.</span></p>' : '')+
     '<p class="foot">Conta cada vez que alguém toca em Compartilhar ou Baixar imagem no fim do treino ou do cardio (uma vez por modelo a cada abertura; no Boneco, foto e vídeo contam separados). Conta só os seus alunos.</p></section>';
+  // avaliação do app (estrelas por área, a cada 15 dias)
+  const AVA = [['treino','Treino','#E5484D'],['cardio','Cardio','#2E9E3E'],['agua','Água','#1E73E0'],['facil','Fácil de usar','#7E57C9'],['visual','Visual','#E08A00']];
+  const avL = (ST.av||[]).filter(x => x && x.notas && (x.em||0)>=desde), med = k => { const v = avL.map(x => +x.notas[k]).filter(v => v>=1 && v<=5); return v.length ? v.reduce((t,x) => t+x,0)/v.length : 0; };
+  const estr = v => '<span class="av-es">'+[1,2,3,4,5].map(i => '<i class="'+(v>=i-.25?'on':'')+'">★</i>').join('')+'</span>';
+  const pior = avL.length ? AVA.map(([k,n]) => [n, med(k)]).filter(x => x[1]).sort((a,b) => a[1]-b[1])[0] : null;
+  h += '<h3 class="sec">Avaliação do app<span class="dot" aria-hidden="true"></span></h3><section class="card"><div class="card-h"><span class="label">'+ic('flag')+'Notas dos alunos (a cada 15 dias)</span><span class="pill line">'+plural(avL.length,'resposta')+'</span></div>'+
+    (ST.avErr==='regras' ? '<p class="callout">'+ic('alert')+'<span><b>Falta colar as regras novas no Firebase.</b> Sem elas, as avaliações do app não chegam. Cole o REGRAS-FIRESTORE.txt no Firebase → Firestore → Regras e toque em Publicar.</span></p>' : '')+
+    (avL.length ? '<div class="av-med">'+AVA.map(([k,n,c]) => { const m = med(k); return '<div class="av-mr"><b><i style="background:'+c+'"></i>'+n+'</b>'+estr(m)+'<span class="av-v">'+(m ? fmtN(m,1) : '—')+'</span></div>'; }).join('')+'</div>'+
+      (pior && pior[1]<3.5 ? '<p class="callout">'+ic('alert')+'<span><b>'+pior[0]+'</b> está com a nota mais baixa ('+fmtN(pior[1],1)+'). Vale olhar os recados abaixo.</span></p>' : '')+
+      '<div class="est-who">'+avL.slice(0,30).map(x => '<div><b>'+esc(x.nome||'Sem nome')+'</b><span>'+AVA.filter(([k]) => x.notas[k]).map(([k,n]) => n+' '+x.notas[k]+'★').join(' · ')+' · '+new Date(x.em||0).toLocaleDateString('pt-BR')+'</span>'+(x.texto ? '<span class="av-rec">“'+esc(x.texto)+'”</span>' : '')+'</div>').join('')+'</div>'
+      : '<p class="muted">'+(ST.avErr==='regras' ? 'As respostas aparecem aqui depois que as regras forem coladas.' : 'Ainda não chegou nenhuma avaliação no período. Ela aparece no app a partir de 14/11, a cada 15 dias, para quem treina com e sem personal.')+'</p>')+
+    '<p class="foot">Média de 1 a 5 estrelas de quem respondeu no período escolhido acima.</p></section>';
   // sugestões
   const fil = ui.estS || 'novas', S2 = ST.sug.filter(x => fil==='todas' || !x.lida), novas = ST.sug.filter(x => !x.lida).length;
   h += '<h3 class="sec">Sugestões<span class="dot" aria-hidden="true"></span></h3><section class="card"><div class="card-h"><span class="label">'+ic('msg')+'Caixinha de sugestões do app</span>'+(novas ? '<span class="pill bad">'+plural(novas,'nova','novas')+'</span>' : '<span class="pill line">Nenhuma nova</span>')+'</div>'+
@@ -4606,6 +4622,7 @@ function act(a,d,btn){
     case 'sairConta': return false;
     case 'receita': openSheet({k:'receita'}); return false;
     case 'recOpen': closeSheet(); ui.view = 'alunos'; if(ui.aluno!==d.id){ ui.draft.av = {}; ui.draft.pay = {}; ui.draft.nota = ''; } ui.aluno = d.id; ui.tab = 'financeiro'; window.scrollTo(0,0); break;
+    case 'orCopy': { const v = d.v; try { navigator.clipboard.writeText(v).then(() => toast('Link copiado: '+v.replace('https://','')), () => toast(v.replace('https://',''))); } catch(e){ toast(v.replace('https://','')); } return false; }
     case 'evCargaTg': PREF.evCargaMin = !PREF.evCargaMin; savePref(); break;
     case 'ajMin': { const L = (PREF.ajMin||[]).slice(), i = L.indexOf(d.k); if(i<0) L.push(d.k); else L.splice(i,1); PREF.ajMin = L; savePref(); break; }
     case 'ajAll': { if(d.v==='abrir') PREF.ajMin = []; else PREF.ajMin = Array.from(document.querySelectorAll('.aj-h')).map(b => b.dataset.k); savePref(); break; }
