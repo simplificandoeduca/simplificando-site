@@ -239,6 +239,14 @@ textarea:focus{outline:none;border-color:var(--fg)}
 .in-ic{flex:none;width:36px;height:36px;border-radius:10px;background:var(--card);display:grid;place-items:center;color:#2F7BF6}.in-ic .i{width:20px;height:20px}
 .in-av{display:flex;gap:8px;align-items:flex-start;background:color-mix(in srgb,var(--brand) 14%,transparent);border-radius:14px;padding:10px 12px;font-size:14px;margin:0 0 12px}.in-av .i{width:18px;height:18px;flex:none;margin-top:1px}
 .in-go{font-size:17px}
+.in-card{display:flex;align-items:center;gap:12px;width:100%;margin-top:18px;border:0;text-align:left;font:inherit;color:inherit;background:color-mix(in srgb,var(--brand) 9%,var(--card,#fff));border-radius:18px;padding:12px 14px;box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--brand) 38%,transparent);cursor:pointer}
+.in-logo{flex:none;width:42px;height:42px;border-radius:12px;overflow:hidden;display:grid;place-items:center;background:#0F1712}.in-logo svg{width:100%;height:100%}
+.in-ct{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.in-ct b{font-size:15px}.in-ct span{font-size:13px;color:var(--muted)}
+.in-chev{width:20px;height:20px;color:var(--brand);transition:transform .2s}.in-chev.on{transform:rotate(90deg)}
+.in-login{margin-top:10px}
+.in-hs{display:flex;gap:12px;align-items:center;background:linear-gradient(135deg,#1B2A22,#0F1712);border-radius:18px;padding:12px;margin:0 0 12px;color:#F6F5EF}
+.in-grid{display:grid;grid-template-columns:repeat(4,30px);gap:7px;flex:none}.in-grid i{width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.14)}.in-grid span{width:30px;height:30px;border-radius:8px;overflow:hidden;box-shadow:0 0 0 2px var(--brand)}.in-grid span svg{width:100%;height:100%;display:block}
+.in-hs p{margin:0;font-size:13px;line-height:1.35;color:#C9D0CB}.in-hs p b{color:#fff}
 .rm-card{--rm:#1769E0;box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--rm) 55%,transparent)}.rm-card:not(.on){background:color-mix(in srgb,var(--rm) 9%,var(--card))}
 .rm-card .sw-row{align-items:center}.rm-card .sw-row>div{flex:1;min-width:0}.rm-ic{flex:none;width:40px;height:40px;border-radius:13px;display:grid;place-items:center;background:var(--rm);color:#fff;margin-right:2px}.rm-ic .i{width:21px;height:21px;color:#fff!important;stroke:#fff}
 .rm-card .sw-row b{color:var(--rm)}
@@ -1726,7 +1734,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '13 nov · 120'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '13 nov · 121'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -2144,7 +2152,7 @@ function startApp(){
   const lg = document.getElementById('login'); if(lg) lg.remove();
   document.body.classList.remove('locked');
   applyLook(); window.scrollTo(0,0); render(); renderPick();
-  fbRefresh(); acompAsk(); instAsk();
+  fbRefresh(); acompAsk(); instAsk(); siteAsk();
   try { const vv = localStorage.getItem('simp-app-v'); if(vv && vv!==APPV) setTimeout(() => toast('App atualizado: versão '+APPV), 900); localStorage.setItem('simp-app-v', APPV); } catch(e){ /* sem armazenamento */ }
 }
 function logout(){
@@ -2172,6 +2180,11 @@ function lgShell(){
   document.body.classList.add('locked');
   return w;
 }
+function instLogin(){
+  if(!instMobile()) return '';
+  return `<button type="button" class="in-card" data-a="lg-inst" aria-expanded="${!!LG.inst}"><span class="in-logo">${logo()}</span><span class="in-ct"><b>Use como aplicativo</b><span>Coloque na tela do celular. Sem loja, grátis.</span></span>${ic('chev', LG.inst ? 'in-chev on' : 'in-chev')}</button>`+
+    (LG.inst ? `<div class="in-login">${instCorpo()}</div>` : '');
+}
 function renderLogin(focusSel){
   const w = lgShell();
   if(LG.view==='setup'){ w.innerHTML = vSetup(); }
@@ -2198,6 +2211,7 @@ function renderLogin(focusSel){
       </form>
       <div class="lg-links"><button type="button" class="linkbtn" data-a="lg-forgot">Esqueci a senha</button><button type="button" class="linkbtn" data-a="lg-self">Treinar sem personal</button></div>
       <p class="lg-legal"><button type="button" class="linkbtn" data-a="lg-doc" data-v="termos">Termos de uso</button><span aria-hidden="true">·</span><button type="button" class="linkbtn" data-a="lg-doc" data-v="privacidade">Privacidade</button></p>
+      ${instLogin()}
       ${FB?'':`<p class="lg-demo">${ic('bolt')}<span>Para testar: <b>482913</b> (Lucas) ou <b>731506</b> (Marina)</span></p>`}</div>`;
   }
   const f = focusSel && w.querySelector(focusSel);
@@ -2556,20 +2570,41 @@ function instAsk(){
   instT = setInterval(() => { // espera as outras perguntas do começo (layout e acompanhamento) saírem da tela
     if(++n > 60 || !S || S.inst!=='novo'){ clearInterval(instT); return; }
     const livre = ACCT && !ui.sheet && !document.getElementById('login') && !document.getElementById('pick') && !document.querySelector('.wel') && (S.acomp || !acompPode());
-    if(livre){ clearInterval(instT); ui.sheet = {k:'inst'}; renderSheet(true); }
+    if(livre){ clearInterval(instT); SITE_FEITO = true; ui.sheet = {k:'inst'}; renderSheet(true); }
   }, 1500);
 }
 const instPasso = (n, t, extra) => `<li><span class="in-n">${n}</span><span>${t}</span>${extra||''}</li>`;
-function vInst(){
-  const top = sheetTop('Último passo', 'Coloque o app na tela do celular<span class="dot" aria-hidden="true"></span>');
-  const pq = '<ul class="in-pq"><li>'+ic('check')+'Abre em tela cheia, como um aplicativo</li><li>'+ic('check')+'Funciona até sem internet na academia</li><li>'+ic('check')+'Recebe o lembrete de água'+(IOS ? ' (no iPhone, só pelo ícone)' : '')+'</li></ul>';
+function instCorpo(){
   let corpo;
   if(ANDROID && INST_EV) corpo = `<button type="button" class="btn primary block in-go" data-a="inst-go">${ic('dl')}Instalar o app</button><p class="foot0">Toque em Instalar e confirme. O ícone do Simplificando aparece na tela do celular.</p>`;
   else if(ANDROID) corpo = `<ol class="in-steps">${instPasso(1, 'Toque nos <b>três pontinhos ⋮</b>, no canto de cima do Chrome.')}${instPasso(2, 'Toque em <b>Instalar app</b> (ou <b>Adicionar à tela inicial</b>).')}${instPasso(3, 'Confirme em <b>Instalar</b>. O ícone aparece na tela do celular.')}</ol>`;
   else corpo = (iosSafari() ? '' : '<p class="in-av">'+ic('flag')+'<span>Abra este link no <b>Safari</b> para conseguir colocar o app na tela de início.</span></p>')+
     `<ol class="in-steps">${instPasso(1, 'Toque em <b>Compartilhar</b>: o quadrado com a seta para cima, na barra de baixo do Safari.', '<span class="in-ic">'+ic('share')+'</span>')}${instPasso(2, 'Role a lista e toque em <b>Adicionar à Tela de Início</b>.', '<span class="in-ic">'+ic('plus')+'</span>')}${instPasso(3, 'Toque em <b>Adicionar</b>, no canto de cima. Depois abra o Simplificando pelo ícone.')}</ol>`;
+  return corpo;
+}
+const instMobile = () => !STANDALONE && (IOS || ANDROID);
+function vInst(){
+  const top = sheetTop('Último passo', 'Coloque o app na tela do celular<span class="dot" aria-hidden="true"></span>');
+  const pq = '<ul class="in-pq"><li>'+ic('check')+'Abre em tela cheia, como um aplicativo</li><li>'+ic('check')+'Funciona até sem internet na academia</li><li>'+ic('check')+'Recebe o lembrete de água'+(IOS ? ' (no iPhone, só pelo ícone)' : '')+'</li></ul>';
+  const corpo = instCorpo();
   return `<div class="sheet-wrap" data-a="inst-x"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t" tabindex="-1">${top.replace('data-a="close"','data-a="inst-x"')}${pq}${corpo}
     <button type="button" class="btn ghost block" data-a="inst-ok">${ANDROID && INST_EV ? 'Agora não' : 'Pronto, já coloquei'}</button></div></div>`;
+}
+let siteT = 0, SITE_FEITO = false;
+function siteAsk(){
+  clearInterval(siteT); if(SITE_FEITO || !instMobile() || !S || S.example) return;
+  let n = 0;
+  siteT = setInterval(() => {
+    if(++n > 80 || SITE_FEITO || !S){ clearInterval(siteT); return; }
+    if(S.inst==='novo' || S.session) return; // a conta recém-criada já recebe o "Último passo"; no meio do treino não atrapalha
+    const livre = ACCT && !ui.sheet && !document.getElementById('login') && !document.getElementById('pick') && !document.querySelector('.wel') && (S.acomp || !acompPode() || isPersonal());
+    if(livre){ clearInterval(siteT); SITE_FEITO = true; ui.sheet = {k:'site'}; renderSheet(true); }
+  }, 1500);
+}
+function vSite(){
+  const hs = `<div class="in-hs"><div class="in-grid"><i></i><i></i><i></i><span>${logo()}</span></div><p><b>Não precisa de App Store nem Play Store.</b> Fica na tela do celular, abre em tela cheia e funciona sem internet.</p></div>`;
+  return `<div class="sheet-wrap" data-a="site-x"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t" tabindex="-1">${sheetTop('Você está no site', 'Tenha o Simplificando como app<span class="dot" aria-hidden="true"></span>').replace('data-a="close"','data-a="site-x"')}
+    ${hs}${instCorpo()}<button type="button" class="btn ghost block" data-a="site-x">Continuar no site</button></div></div>`;
 }
 function acompAsk(){ if(!acompPode() || S.acomp || S.example) return; setTimeout(() => { if(ACCT && !ui.sheet && !S.acomp && !document.getElementById('login')){ ui.sheet = {k:'acomp'}; renderSheet(true); } }, 1600); }
 function vAcomp(){
@@ -3215,6 +3250,7 @@ function lgClick(a,d,b){
     case 'lg-close': { const w = document.querySelector('#login .sheet-wrap'); if(w) w.remove(); return true; }
     case 'lg-copy': lgCopy(); return true;
     case 'lg-self': selfStart(); return true;
+    case 'lg-inst': LG.inst = !LG.inst; renderLogin(); return true;
     case 'su-back': if(LG.gen) return true; if(LG.step>1){ LG.step--; LG.serr = ''; renderLogin(); suTop(); } else { LG.view = 'login'; LG.serr = ''; renderLogin('#lg-pw'); } return true;
     case 'su-next': suNext(); return true;
     case 'su-eye': LG.f.show = !LG.f.show; renderLogin('#su-senha'); return true;
@@ -5493,7 +5529,7 @@ function render(){
 function renderSheet(freshOpen){
   if(!ui.sheet){ $sheet.innerHTML = ''; document.body.classList.remove('locked'); return; }
   const oldWrap = $sheet.querySelector('.sheet-wrap:not(.closing)'), old = oldWrap && oldWrap.querySelector('.sheet'), st = old && !freshOpen ? old.scrollTop : 0;
-  $sheet.innerHTML = ui.sheet.k==='inst' ? vInst() : ui.sheet.k==='acomp' ? vAcomp() : ui.sheet.k==='doc' ? vDocSheet() : ui.sheet.k==='excluir' ? vExcluir() : ui.sheet.k==='meus' ? vMeus() : ui.sheet.k==='ia' ? vIA() : ui.sheet.k==='ex' ? vSheet(ui.sheet.id) : ui.sheet.k==='prof' ? vProfile() : ui.sheet.k==='cs' || ui.sheet.k==='cman' ? vCardioSheet() : ui.sheet.k==='gym' ? vGym() : ui.sheet.k==='exq' ? vExq(ui.sheet.id) : ui.sheet.k==='story' ? vStory() : ui.sheet.k==='stpick' ? vStPick() : ui.sheet.k==='cstory' ? vCStory() : ui.sheet.k==='cstpick' ? vCStPick() : vSummary(ui.sheet.i);
+  $sheet.innerHTML = ui.sheet.k==='site' ? vSite() : ui.sheet.k==='inst' ? vInst() : ui.sheet.k==='acomp' ? vAcomp() : ui.sheet.k==='doc' ? vDocSheet() : ui.sheet.k==='excluir' ? vExcluir() : ui.sheet.k==='meus' ? vMeus() : ui.sheet.k==='ia' ? vIA() : ui.sheet.k==='ex' ? vSheet(ui.sheet.id) : ui.sheet.k==='prof' ? vProfile() : ui.sheet.k==='cs' || ui.sheet.k==='cman' ? vCardioSheet() : ui.sheet.k==='gym' ? vGym() : ui.sheet.k==='exq' ? vExq(ui.sheet.id) : ui.sheet.k==='story' ? vStory() : ui.sheet.k==='stpick' ? vStPick() : ui.sheet.k==='cstory' ? vCStory() : ui.sheet.k==='cstpick' ? vCStPick() : vSummary(ui.sheet.i);
   const sh = $sheet.querySelector('.sheet');
   const nw = $sheet.querySelector('.sheet-wrap');
   if(old && nw && sh){ nw.classList.add('still'); sh.scrollTop = st; }
@@ -5751,8 +5787,9 @@ function onClick(ev){
   if(a==='doc-open'){ ui.sheet = {k:'doc', d:d.v}; renderSheet(true); return; }
   if(a==='doc-tab'){ ui.sheet.d = d.v; renderSheet(); return; }
   if(a==='acc-open'){ ui.sheet = {k:'excluir'}; renderSheet(true); return; }
+  if(a==='site-x'){ if(b.classList.contains('sheet-wrap') && ev.target!==b) return; closeSheet(); return; }
   if(a==='inst-x' || a==='inst-ok'){ if(b.classList.contains('sheet-wrap') && ev.target!==b) return; if(S){ S.inst = 'visto'; save(); } closeSheet(); if(a==='inst-ok' && !(ANDROID && INST_EV)) toast('Boa! A partir de agora, abra pelo ícone.'); return; }
-  if(a==='inst-go'){ const evI = INST_EV; if(!evI) return; INST_EV = null; evI.prompt(); evI.userChoice.then(r => { if(r && r.outcome==='accepted'){ if(S){ S.inst = 'feito'; save(); } closeSheet(); toast('Instalando. O ícone aparece na tela do celular.'); } else renderSheet(); }).catch(() => renderSheet()); return; }
+  if(a==='inst-go'){ const evI = INST_EV; if(!evI) return; INST_EV = null; evI.prompt(); evI.userChoice.then(r => { if(r && r.outcome==='accepted'){ if(S){ S.inst = 'feito'; save(); } closeSheet(); toast('Instalando. O ícone aparece na tela do celular.'); } else if(document.getElementById('login')) renderLogin(); else renderSheet(); }).catch(() => { if(document.getElementById('login')) renderLogin(); else renderSheet(); }); return; }
   if(a==='acomp-sim' || a==='acomp-no'){ if(b.classList.contains('sheet-wrap') && ev.target!==b) return; acompSet(a==='acomp-sim'); closeSheet(); toast(a==='acomp-sim' ? 'Pronto. O Eduardo vai acompanhar os seus treinos.' : 'Tudo bem. Dá pra ligar depois no Perfil.'); return; }
   if(a==='acc-del'){ if(armed==='acc-del') accDelete(); else { ui.arm = 'acc-del'; renderSheet(); } return; }
   let re = true;
