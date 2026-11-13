@@ -856,6 +856,7 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .esp-cols .esp-col .esp-fam { display: block; padding: 0; gap: 0; background: none; border-radius: 0; } .esp-cols .esp-col .esp-fam > .esp-it { flex: none; height: 52px; border: 0; border-top: 1px solid var(--borda); border-radius: 0; } .esp-cols .esp-col .esp-fam > .esp-it + .esp-it { border-top-color: transparent; }
 .esp-cols .esp-col > header + .esp-fam > .esp-it:first-child, .esp-cols .esp-col .esp-sub + .esp-fam > .esp-it:first-child { border-top: 0; }   /* a família: uma embaixo da outra, sem risco no meio */
 .esp-col .esp-it .tmp { grid-row: 1; align-self: end; font-size: 16px; line-height: 1.1; }
+.esp-col .esp-it .tmp:has(+ .at:empty) { grid-row: 1 / span 2; align-self: center; }   /* 1.24: nada embaixo do relógio: ele fica no meio da linha */
 .esp-it .at { grid-column: 2; grid-row: 2; align-self: start; position: relative; cursor: pointer; text-align: right; font-size: 11px; font-weight: 700; line-height: 1.2; color: var(--tinta-2); white-space: nowrap; }
 .esp-it.acabando .at { color: var(--aviso); } .esp-it.passou .at { color: var(--erro); }
 .esp-it .l1 .qt { flex: none; font-style: normal; font-size: 11px; font-weight: 800; color: var(--tinta-2); }
@@ -874,7 +875,7 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .obs-bt.mini { height: 20px; padding: 0 7px; font-size: 10px; box-shadow: none; position: relative; }
 .esp-it .l1 .obs { padding: 0 7px; margin: 0; color: #fff; }
 .esp-it .l1 .obs-bt.mini { height: 16px; padding: 0 6px; font-size: 9.5px; }   /* 1.16: o OBS acompanha a criança, na linha de baixo (mais baixa) */
-.esp-it .l1 .sv-m, .esp-it .l1 .un-m { flex: 0 100 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 12px; white-space: nowrap; }   /* se faltar lugar, encolhe o serviço antes do nome */
+.esp-it .l1 .sv-m, .esp-it .l1 .un-m { flex: 1 1 0; max-width: max-content; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 12px; white-space: nowrap; }   /* 1.24: crescem do zero até o tamanho deles, só com o que sobra: o nome não perde nada por causa deles (antes encolhiam junto, e o nome ganhava reticências por uma fração de pixel) */
 .obs-cx { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 8px 10px; border-radius: 14px; border: 1px dashed var(--borda-2); }
 .obs-cx.tem { border: 1px solid var(--erro); background: var(--erro-bg); } .obs-cx .obs-dica { flex: 1; min-width: 0; font-size: 13px; font-weight: 700; color: var(--tinta-2); } .obs-cx.tem .obs-dica { color: var(--erro); }
 .obs-cx.aberta .obs-dica { display: none; }
@@ -890,23 +891,24 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .esp-it .sel.avulso { background: var(--mostarda-2); border-color: var(--mostarda); }
 .esp-cab.lst .dias { order: -1; flex: 0 1 auto; min-width: 0; max-width: 100%; }
 .esp-lst { background: var(--card); border: 1px solid var(--borda); border-radius: 20px; box-shadow: var(--sombra); overflow: hidden; }
-.esp-lst .esp-cabec, .esp-lst .esp-it { display: grid; grid-template-columns: 16px minmax(0, 1.6fr) minmax(0, .95fr) minmax(0, 1.3fr) minmax(0, .9fr) 54px 84px 100px 112px; grid-template-rows: auto; column-gap: 14px; row-gap: 0; align-items: center; align-content: center; padding: 0 12px 0 18px; }
+.esp-lst .esp-cabec, .esp-lst .esp-it { display: grid; grid-template-columns: 16px minmax(0, 1.6fr) minmax(0, 1fr) minmax(152px, 1.05fr) minmax(108px, .7fr) 52px 96px 100px; grid-template-rows: auto; column-gap: 12px; row-gap: 0; align-items: center; align-content: center; padding: 0 12px 0 18px; }
 .esp-lst .esp-cabec { height: 36px; background: var(--menta-risco); font: 800 11px/1 var(--texto); letter-spacing: .08em; text-transform: uppercase; color: var(--tinta-2); } .esp-lst .esp-cabec .d { text-align: right; }
-.esp-lst .esp-it { height: 48px; border: 0; border-top: 1px solid var(--borda); border-radius: 0; background: transparent; box-shadow: none; }
+.esp-lst .esp-it { height: 48px; grid-template-rows: 21px 15px; row-gap: 1px; border: 0; border-top: 1px solid var(--borda); border-radius: 0; background: transparent; box-shadow: none; }   /* 1.24: duas linhas só na coluna do tempo (o relógio e, embaixo, até quando); o resto fica no meio */
 .esp-lst .esp-it.acabando, .esp-lst .esp-it.passou, .esp-lst .esp-it.cobranca { box-shadow: none; border-color: var(--borda); }
-.esp-lst .esp-it > .pt { display: grid; place-items: center; grid-column: 1; grid-row: 1; width: 16px; height: 16px; color: var(--coral); position: relative; pointer-events: none; }
+.esp-lst .esp-it > .pt { display: grid; place-items: center; grid-column: 1; grid-row: 1 / span 2; width: 16px; height: 16px; color: var(--coral); position: relative; pointer-events: none; }
 .esp-lst .esp-it:not(.alug) > .pt::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--verde-agua); }
 .esp-lst .esp-it.acabando:not(.alug) > .pt::before { background: var(--mostarda); } .esp-lst .esp-it.passou:not(.alug) > .pt::before { background: var(--erro); }
-.esp-lst .esp-it .l1 { grid-column: 3; grid-row: 1; overflow: hidden; } .esp-lst .esp-it .l1 b { font-size: 13px; } .esp-lst .esp-it .l1 .obs-bt.mini { height: 20px; padding: 0 7px; font-size: 10px; }
-.esp-lst .esp-it .l2 { grid-column: 2; grid-row: 1; font-size: 15.5px; line-height: 1.25; }
-.esp-lst .esp-it > .sv { display: flex; align-items: center; gap: 7px; grid-column: 4; grid-row: 1; min-width: 0; position: relative; cursor: pointer; font-size: 12.5px; font-weight: 700; letter-spacing: .02em; white-space: nowrap; overflow: hidden; }
+.esp-lst .esp-it .l1 { grid-column: 3; grid-row: 1 / span 2; overflow: hidden; } .esp-lst .esp-it .l1 b { font-size: 13px; } .esp-lst .esp-it .l1 .obs-bt.mini { height: 20px; padding: 0 7px; font-size: 10px; }
+.esp-lst .esp-it .l2 { grid-column: 2; grid-row: 1 / span 2; font-size: 15.5px; line-height: 1.25; }
+.esp-lst .esp-it > .sv { display: flex; align-items: center; gap: 7px; grid-column: 4; grid-row: 1 / span 2; min-width: 0; position: relative; cursor: pointer; font-size: 12.5px; font-weight: 700; letter-spacing: .02em; white-space: nowrap; overflow: hidden; }
 .esp-lst .esp-it > .sv > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.esp-lst .esp-it > .en { display: block; grid-column: 6; grid-row: 1; position: relative; cursor: pointer; font-size: 13px; font-weight: 700; color: var(--tinta-2); }
-.esp-lst .esp-it .tmp { grid-column: 7; grid-row: 1; align-self: center; font-size: 17px; }
-.esp-lst .esp-it .at { grid-column: 8; grid-row: 1; align-self: center; text-align: left; font-size: 12px; }
-.esp-lst .esp-it .acoes-e { grid-column: 9; grid-row: 1; justify-self: end; }
+.esp-lst .esp-it > .en { display: block; grid-column: 6; grid-row: 1 / span 2; position: relative; cursor: pointer; font-size: 13px; font-weight: 700; color: var(--tinta-2); white-space: nowrap; }
+.esp-lst .esp-it .tmp { grid-column: 7; grid-row: 1; align-self: end; justify-self: end; font-size: 17px; line-height: 1.15; }
+.esp-lst .esp-it .at { grid-column: 7; grid-row: 2; align-self: start; justify-self: end; text-align: right; font-size: 11px; }   /* 1.24: embaixo do relógio (justify-self: o que for mais largo que a coluna avança para a esquerda, nunca para cima do botão) */
+.esp-lst .esp-it .tmp:has(+ .at:empty) { grid-row: 1 / span 2; align-self: center; }   /* nada embaixo do relógio: ele fica no meio da linha */
+.esp-lst .esp-it .acoes-e { grid-column: 8; grid-row: 1 / span 2; justify-self: end; }
 .esp-it > .un, .esp-it .un-m { display: none; }   /* 1.06: a unidade em que a criança está: uma coluna na lista, no lugar do selo de pagamento */
-.esp-lst .esp-it > .un { display: block; grid-column: 5; grid-row: 1; position: relative; cursor: pointer; min-width: 0; font-size: 12px; font-weight: 800; letter-spacing: .03em; color: var(--tinta-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.esp-lst .esp-it > .un { display: block; grid-column: 5; grid-row: 1 / span 2; position: relative; cursor: pointer; min-width: 0; font-size: 12px; font-weight: 800; letter-spacing: .03em; color: var(--tinta-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .esp-lst .esp-it > .un.sem { font-weight: 700; color: var(--apagado); }
 .esp-lst .esp-fam { display: block; padding: 0; gap: 0; background: none; border-radius: 0; }
 .esp-lst .esp-fam > .esp-it { flex: none; height: 48px; border: 0; border-top: 1px solid var(--borda); }
@@ -921,18 +923,24 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .banco-fam { display: flex; flex-direction: column; gap: 4px; margin: 0 -7px; padding: 5px; border: 2.5px solid var(--coral); border-radius: 22px; }
 @container (max-width: 900px) {   /* tela menor, ou o histórico do cliente aberto ao lado: a criança vai para baixo do responsável e a hora da entrada sai */
   .esp-lst .esp-cabec { display: none; }
-  .esp-lst .esp-it, .esp-lst .esp-fam > .esp-it { grid-template-columns: 16px minmax(0, 1.7fr) minmax(0, 1fr) auto auto auto; grid-template-rows: 20px 16px; row-gap: 1px; column-gap: 12px; height: 54px; }
-  .esp-lst .esp-it > .un { grid-column: 4; grid-row: 1 / span 2; max-width: 120px; }
+  .esp-lst .esp-it, .esp-lst .esp-fam > .esp-it { grid-template-columns: 16px minmax(0, 1.25fr) minmax(150px, 1.2fr) minmax(0, .8fr) 92px 100px; grid-template-rows: 20px 16px; row-gap: 1px; column-gap: 12px; height: 54px; }   /* 1.24: larguras fixas (antes "auto": cada linha media do seu jeito e as colunas não alinhavam) */
+  .esp-lst .esp-it > .un { grid-column: 4; grid-row: 1 / span 2; }
   .esp-lst .esp-it > .pt { grid-row: 1 / span 2; } .esp-lst .esp-it .l2 { grid-column: 2; grid-row: 1; font-size: 15px; line-height: 20px; }
   .esp-lst .esp-it .l1 { grid-column: 2; grid-row: 2; } .esp-lst .esp-it .l1 b { font-size: 12px; } .esp-lst .esp-it .l1 .obs-bt.mini { height: 16px; padding: 0 6px; font-size: 9.5px; }
   .esp-lst .esp-it > .sv { grid-column: 3; grid-row: 1 / span 2; } .esp-lst .esp-it > .en { display: none; }
   .esp-lst .esp-it .tmp { grid-column: 5; grid-row: 1; align-self: end; font-size: 16px; line-height: 1.1; } .esp-lst .esp-it .at { grid-column: 5; grid-row: 2; align-self: start; text-align: right; font-size: 11px; }
+  .esp-lst .esp-it .tmp:has(+ .at:empty) { grid-row: 1 / span 2; align-self: center; }
   .esp-lst .esp-it .acoes-e { grid-column: 6; grid-row: 1 / span 2; }
 }
-@container (max-width: 560px) {   /* celular: o serviço vai para a linha da criança ("LAURA · AVULSA") */
+@container (max-width: 760px) {   /* 1.24: mais estreito: a coluna da unidade sai (a unidade está no alto da tela; quando a lista mistura unidades, vai para a linha da criança) */
+  .esp-lst .esp-it, .esp-lst .esp-fam > .esp-it { grid-template-columns: 16px minmax(0, 1.25fr) minmax(0, 1.25fr) 92px 100px; }
+  .esp-lst .esp-it > .un { display: none; } .esp-lst.varias .esp-it .un-m { display: inline; font-style: normal; font-weight: 800; color: var(--coral); letter-spacing: .02em; } .esp-lst.varias .esp-it .un-m.mesma { display: none; } .esp-lst.varias .esp-it .un-m:not(.mesma) { flex: none; max-width: none; }   /* a de outra unidade não encolhe: se faltar lugar, cede o nome */
+  .esp-lst .esp-it .tmp, .esp-lst .esp-it .at { grid-column: 4; } .esp-lst .esp-it .acoes-e { grid-column: 5; }
+}
+@container (max-width: 590px) {   /* celular: o serviço vai para a linha da criança ("LAURA · AVULSA"). 1.24: a partir de 590 (de 561 a 590 o RECREAÇÃO cortava ao lado da pílula) */
   .esp-lst .esp-it, .esp-lst .esp-fam > .esp-it { grid-template-columns: 16px minmax(0, 1fr) auto auto; column-gap: 9px; padding: 0 8px 0 12px; }
   .esp-lst .esp-it > .sv { display: none; } .esp-lst .esp-it .sv-m { display: inline; font-style: normal; font-weight: 800; color: var(--tinta); letter-spacing: .02em; }
-  .esp-lst .esp-it > .un { display: none; } .esp-lst.varias .esp-it .un-m { display: inline; font-style: normal; font-weight: 800; color: var(--coral); letter-spacing: .02em; }   /* no celular a unidade só aparece na linha quando a lista mistura mais de uma (ela já está no alto da tela) */
+  .esp-lst .esp-it > .un { display: none; } .esp-lst.varias .esp-it .un-m { display: inline; font-style: normal; font-weight: 800; color: var(--coral); letter-spacing: .02em; } .esp-lst.varias .esp-it .un-m.mesma { display: none; } .esp-lst.varias .esp-it .un-m:not(.mesma) { flex: none; max-width: none; } .esp-lst.varias .esp-it:has(.un-m:not(.mesma)) .l1 .sv-m { display: none; }   /* 1.24: na linha de quem está na outra unidade, a unidade no lugar do serviço. No celular a unidade só aparece na linha quando a lista mistura mais de uma (ela já está no alto da tela) */
   .esp-lst .esp-it .tmp, .esp-lst .esp-it .at { grid-column: 3; } .esp-lst .esp-it .acoes-e { grid-column: 4; }
 }
 /* 0.97: copiar o CPF, e os clientes pelo começo do CPF no cadastro */
@@ -1396,7 +1404,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.23';
+const VERSAO = '1.24';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -3650,7 +3658,7 @@ const alugPassou = a => { const m = Math.max(1, Math.floor(-alugSobra(a) / 60));
 const alugSub = a => !alugHoje(a) ? 'saiu em ' + diaCurto(a.ini) + ' às ' + hora(a.ini) : a.min > 0 ? (alugSobra(a) < 0 ? 'passou ' + hms(-alugSobra(a)) : 'até ' + hora(new Date(+a.ini + a.min * 60000))) : 'saiu às ' + hora(a.ini) + (alugAberto(a) ? ' · ' + alugAteAgora(a) + ' · ' + ITENS_ABERTO : '');
 const alugTempo = a => alugHoje(a) ? hms(alugSeg(a)) : diaCurto(a.ini);   // de outro dia: em vez do relógio, o dia em que saiu
 const alugNome = a => (a.q > 1 ? a.q + ' × ' : '') + a.n;
-const alugSubCurto = a => !alugHoje(a) ? 'saiu em ' + diaCurto(a.ini) : a.min > 0 ? (alugSobra(a) < 0 ? 'passou ' + alugPassou(a) : 'até ' + hora(new Date(+a.ini + a.min * 60000))) : alugAberto(a) ? alugAteAgora(a) : 'saiu às ' + hora(a.ini);   // embaixo do relógio
+const alugSubCurto = a => !alugHoje(a) ? 'de outro dia' : a.min > 0 ? (alugSobra(a) < 0 ? 'passou ' + alugPassou(a) : 'até ' + hora(new Date(+a.ini + a.min * 60000))) : alugAberto(a) ? alugAteAgora(a) : '';   // embaixo do relógio. 1.24: sem o "saiu às" (a hora da saída já está na coluna Entrou; o relógio de outro dia mostra a data)
 // 1.20: o que sai da loja e é cobrado por período (o fusquinha) não é vendido por tempo. A equipe só registra a saída (a venda nasce sem valor)
 // e a conta fecha na devolução, pelo tempo que ficou fora: períodos inteiros, o primeiro conta sempre e o seguinte só depois da tolerância
 // (a mesma da recreação), e o relógio para na hora em que a loja fecha. É "em aberto" o que saiu assim e ainda não voltou. O carrinho de
@@ -3764,7 +3772,7 @@ function gruposEspaco(L) { const G = []; for (const x of L) { const g = G.find(k
   return G; }
 // 1.06: a unidade em que a criança está (ou de onde o carrinho saiu): a coluna "Unidade" da lista. Sem unidade marcada, um traço
 const celUnidade = (id, abre) => { const n = nomeUni(id); return `<span class="un${n ? '' : ' sem'}" ${abre} title="${n ? 'Unidade: ' + esc(n) : 'Sem unidade marcada'}">${n ? esc(n) : '—'}</span>`; };
-const uniMovel = id => { const n = nomeUni(id); return n ? `<i class="un-m"> · ${esc(n)}</i>` : ''; };   // no celular, só quando a lista mistura unidades
+const uniMovel = id => { const n = nomeUni(id); return n ? `<i class="un-m${+id === minhaUni() ? ' mesma' : ''}"> · ${esc(n)}</i>` : ''; };   // 1.24: mesma = a unidade deste aparelho (já está no alto da tela)   // no celular, só quando a lista mistura unidades
 // a linha de cada criança na tela inicial: o responsável primeiro, em destaque (1.16: é a referência principal, como no sistema antigo), a criança, o tempo correndo
 // com "até quando" embaixo, e a Saída. A bolinha diz a situação: verde no tempo, amarela acabando, vermelha quando passou (1.05: a linha não fica mais rosada; só o relógio e o "passou X min" em vermelho).
 // O OBS vermelho só aparece se há observação (o texto fica escondido até alguém tocar). A cobrança por atraso não aparece na linha (0.96):
@@ -3795,7 +3803,7 @@ function linhaAluguel(a, fam = 1) {
     <span class="l1" ${abre} title="${esc(alugNome(a))}"><b>${esc(c.nome)}</b>${a.q > 1 ? `<em class="qt">× ${a.q}</em>` : ''}<i class="sv-m"> · ${esc(alugNome(a).replace(/^carrinho\s+(de\s+)?/i, '') || alugNome(a))}</i>${uniMovel(a.uni)}${c.obs ? `<button type="button" class="obs obs-bt on mini tap" data-act="obs-ver" data-id="${c.id}" title="Tem observação: toque para ver" aria-label="Ver a observação de ${esc(c.nome)}">OBS</button>` : ''}</span>
     <span class="sv" ${abre}><span>${esc(alugNome(a))}</span></span>
     ${celUnidade(a.uni, abre)}
-    <span class="en num" ${abre}>${alugHoje(a) ? hora(a.ini) : diaCurto(a.ini)}</span>
+    <span class="en num" ${abre}>${hora(a.ini)}</span>
     <b class="num tmp" ${abre} data-alug-t title="${alugSub(a)}">${alugTempo(a)}</b>
     <span class="at" ${abre} data-alug-at>${alugSubCurto(a)}</span>
     <span class="acoes-e"><button class="bt tap" data-act="devolver" data-id="${c.id}" data-s="${esc(a.s)}" aria-label="${esc(alugNome(a))} de ${esc(c.nome)} voltou para a loja">${ic(IC.check, 14, 2.6)}<span class="rt">Devolveu</span></button></span>
@@ -3917,7 +3925,7 @@ function chipsEspaco() {
 // O que está mais perto de estourar o tempo vem primeiro; as linhas do mesmo responsável ficam juntas, com o elo ao lado do nome dele.
 function listaEspaco(L) {
   const linhas = gruposEspaco(L).map(g => g.length > 1 ? `<div class="esp-fam" role="group" aria-label="${g.length} linhas de ${esc(g[0].c.resp)}, juntas">${g.map(x => linhaItem(x, g.length)).join('')}</div>` : linhaItem(g[0])).join('');
-  return `<div class="esp-lst${new Set(L.map(x => (x.a ? x.a.uni : x.c.uni) || 0)).size > 1 ? ' varias' : ''}"><div class="esp-cabec" aria-hidden="true"><span></span><span>Responsável</span><span>Criança</span><span>Serviço</span><span>Unidade</span><span>Entrou</span><span class="d">Tempo</span><span></span><span></span></div>${linhas}</div>`;
+  return `<div class="esp-lst${new Set(L.map(x => (x.a ? x.a.uni : x.c.uni) || 0)).size > 1 ? ' varias' : ''}"><div class="esp-cabec" aria-hidden="true"><span></span><span>Responsável</span><span>Criança</span><span>Serviço</span><span>Unidade</span><span>Entrou</span><span class="d">Tempo</span><span></span></div>${linhas}</div>`;
 }
 // 0.91: a tela inicial "por serviço": três colunas com título e contagem, tudo à vista de uma vez, sem filtro para tocar.
 // Horas avulsas e Pacotes (quem está na recreação) e Fora da loja (o que saiu e ainda não voltou, separado por serviço).

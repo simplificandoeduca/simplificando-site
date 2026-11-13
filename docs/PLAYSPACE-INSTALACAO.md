@@ -890,6 +890,12 @@ O que só o gestor faz (dar desconto, autorizar a nota fiscal) e o que só quem 
 
 No servidor: tabela `pedidos` (banco **30**), com o tipo (`desconto`, `cancelar_venda`, `nf`), o estado (`pendente`, `liberado`, `usado`, `negado`, `cancelado`), quem pediu, quem decidiu, quando e como. Ações `pedido_criar` (com `senha`, vale na hora), `pedido_decidir`, `pedido_cancelar`, `nf_emitida` e `pedidos_lista`. O desconto de quem não é gestor vai com `autorizacao` (o pedido liberado) e o servidor confere tudo de novo. O `pulso` leva os pedidos de cada tela (`ped`), e a tela continua perguntando por eles mesmo com uma folha aberta. Uma venda apagada (cancelada, desfeita) solta os pedidos dela por um gatilho: o número de uma venda apagada pode voltar numa venda nova, e ela não herda nada.
 
+## 6zc. A lista da tela inicial (1.24)
+
+- **Sem o "saiu às".** O carrinho (de bebê) não mostra mais "saiu às 16:47" ao lado do relógio: a hora em que saiu já está na coluna **Entrou**. O carrinho que saiu em outro dia diz **de outro dia** (o relógio mostra a data). O fusquinha continua com "até agora R$ 30", e a recreação com "até 18:35" ou "passou 3 min".
+- **Colunas redistribuídas.** A linha pequena (até quando, passou, até agora) fica **embaixo do relógio**, na coluna Tempo; o espaço que ela ocupava foi para **Serviço** e **Unidade**, que não cortam mais o RECREAÇÃO com o AVULSA/PACOTE nem o nome da unidade. Sem nada embaixo, o relógio fica no meio da linha.
+- **Tela mais estreita** (ou com o histórico aberto ao lado): as colunas ficam alinhadas de uma linha para a outra; com menos espaço ainda, a coluna **Unidade** sai (a unidade deste aparelho está no alto da tela). Quando a lista mistura unidades, a criança que está na **outra** unidade mostra o nome dela na própria linha ("HELENA · MORUMBI"), inteiro; as da mesma unidade não repetem. No celular, nessa linha a unidade fica no lugar do serviço.
+
 ## 7. Atualizar
 
 Botão **Atualizar** ao lado da versão. Ele baixa a versão nova do GitHub (ramo principal ou de trabalho, a mais nova), confere a versão dentro do arquivo e troca os arquivos de forma atômica. Não mexe em `~/playspace-dados/`. Se o GitHub demorar a refletir (cache de ~5 min), espere e toque de novo.
