@@ -438,6 +438,12 @@ switch ($acao) {
     $linhas = [];
     foreach ((array)($in['linhas'] ?? []) as $l) {
       $s = $porId[(string)($l['s'] ?? '')] ?? null; $q = min(48, (int)($l['q'] ?? 0)); if (!$s || $q < 1) continue;
+      if (alugEmAberto($s)) { // 1.20: o que sai da loja e é cobrado por período (o fusquinha) só "sai": não há tempo a escolher nem valor agora; a conta fecha na devolução
+        if ($ja = alugueis((int)$c['id'], (string)$s['id'])) falha($s['n'] . ' de ' . $c['nome'] . ' já está fora da loja desde as ' . substr((string)$ja[0]['ini'], 11, 5) . '. Marque a devolução antes de registrar outra saída.');
+        $per = max(1, (int)($s['min'] ?? 30));
+        $linhas[] = ['servico' => (string)$s['n'], 'min' => 0, 'valor' => 0.0, 'itens' => ITENS_ALUG_ABERTO, 'mais' => ['alug' => (string)$s['id'], 'alug_min' => 0, 'qtd' => 1, 'texto' => $s['n'] . ' · saiu da loja · ' . dinheiro((float)$s['v']) . ' a cada ' . $per . ' min, ' . ITENS_ALUG_ABERTO]];
+        continue; }
+      if (($s['modo'] ?? 'fixo') === 'periodo' && empty($s['banco']) && !empty($s['volta']) && ($ja = alugueis((int)$c['id'], (string)$s['id'])) && !empty($ja[0]['aberto'])) falha($s['n'] . ' de ' . $c['nome'] . ' já está fora da loja desde as ' . substr((string)$ja[0]['ini'], 11, 5) . ', com a conta para fechar na devolução. Marque a devolução antes de vender mais tempo.');
       if (($s['modo'] ?? 'fixo') === 'periodo') { $tot = $q * max(1, (int)($s['min'] ?? 30)); $tempo = !empty($s['banco']); $un = $tempo ? precoPcd($c, (float)$s['v']) : (float)$s['v']; $comPcd = $un < (float)$s['v'];   // a criança PCD paga a recreação avulsa com desconto (carrinhos e pacotes, não)
         $linhas[] = ['servico' => (string)$s['n'], 'min' => $tempo ? $tot : 0, 'valor' => $q * $un, 'itens' => ($tempo ? '' : dur($tot)) . ($comPcd ? 'PCD ' . pcdDesc() . '%' : ''), 'mais' => ($comPcd ? ['pcd' => 1, 'cheio' => $q * (float)$s['v']] : []) + (!$tempo && !empty($s['volta']) ? ['alug' => (string)$s['id'], 'alug_min' => $tot, 'qtd' => 1] : [])]; }
       else { $obs = trim((string)($s['obs'] ?? '')); $linhas[] = ['servico' => (string)$s['n'], 'min' => 0, 'valor' => $q * (float)$s['v'], 'itens' => ($q > 1 ? $q . ' unidades' . ($obs !== '' ? ' · ' : '') : '') . $obs, 'mais' => !empty($s['volta']) ? ['alug' => (string)$s['id'], 'alug_min' => 0, 'qtd' => $q] : []]; }
@@ -539,7 +545,8 @@ switch ($acao) {
   case 'devolver_previa': { // 1.00: o que há para receber se o que está fora for devolvido agora (o tempo a mais do fusquinha)
     exigir(); $c = crianca((int)($in['crianca'] ?? 0)); if (!$c || !$c['ativo']) falha('Criança não encontrada.', 404);
     $g = alugueis((int)$c['id'], (string)($in['s'] ?? '')); if (!$g) falha('Isso já foi marcado como devolvido.', 409);
-    responder(['extra' => aluguelExtra($g[0]), 'pend' => round((float)($g[0]['pend'] ?? 0), 2)]);   // 1.02: e o que ficou a pagar do próprio carrinho
+    [$lim, $seg, $noPrazo] = prazoCancelarAluguel($g[0]);   // 1.20: no prazo de cancelar (o mesmo da entrada), a saída em aberto pode ser cancelada sem cobrar
+    responder(['extra' => aluguelExtra($g[0]), 'pend' => round((float)($g[0]['pend'] ?? 0), 2), 'cancela' => ['limite' => $lim, 'segundos' => $seg, 'pode' => $noPrazo]]);   // 1.02: e o que ficou a pagar do próprio carrinho
   }
   case 'devolver': { // o carrinho (ou o fusquinha) voltou para a loja: sai da lista. voltar = o Desfazer do aviso (só nos 10 min seguintes)
     $u = exigir(); $c = crianca((int)($in['crianca'] ?? 0)); if (!$c || !$c['ativo']) falha('Criança não encontrada.', 404);
@@ -552,9 +559,14 @@ switch ($acao) {
       if ($extra) { $q = $db->prepare("SELECT id, registro FROM vendas WHERE id = ? AND crianca_id = ? AND itens LIKE 'tempo a mais%' AND quando >= ?"); $q->execute([$extra, (int)$c['id'], date('Y-m-d H:i:s', time() - 660)]);
         if ($v = $q->fetch()) { $db->prepare('DELETE FROM vendas WHERE id = ?')->execute([(int)$v['id']]); $tirou = true; } }
       if (isset($in['pag_de'])) { $db->prepare('DELETE FROM pagamentos WHERE crianca_id = ? AND id > ? AND quando >= ?')->execute([(int)$c['id'], (int)$in['pag_de'], date('Y-m-d H:i:s', time() - 660)]); $tirou = true; }   // 1.02: e o que foi recebido do próprio carrinho
+      $ab = is_array($in['aberto'] ?? null) ? (int)($in['aberto']['venda'] ?? 0) : 0;   // 1.20: a saída em aberto volta a ficar sem valor (a conta fecha de novo na próxima devolução)
+      if ($ab && in_array($ab, $ids, true)) { $q = $db->prepare("SELECT alug FROM vendas WHERE id = ? AND crianca_id = ? AND alug != '' AND alug_min = 0 AND voltou IS NULL"); $q->execute([$ab, (int)$c['id']]); $al = $q->fetchColumn();
+        $svA = $al !== false ? servicoPorId((string)$al) : null;
+        if ($svA !== null && ($svA['modo'] ?? 'fixo') === 'periodo' && empty($svA['banco'])) { $db->prepare('UPDATE vendas SET valor = 0, itens = ? WHERE id = ?')->execute([ITENS_ALUG_ABERTO, $ab]); $tirou = true; } }
       if ($tirou) foreach (array_filter(array_map('intval', (array)($in['registros'] ?? []))) as $rid) $db->prepare("DELETE FROM registros WHERE id = ? AND crianca_id = ? AND tipo IN ('venda', 'pag')")->execute([$rid, (int)$c['id']]);
       responder();
     }
+    if (!empty($in['cancelar'])) responder(cancelarAluguel($c, (string)($in['s'] ?? ''), $u, mb_substr(maiusculo((string)($in['motivo'] ?? '')), 0, 300)));   // 1.20: saiu por engano, ou o cliente desistiu: sem cobrar, no prazo, com o motivo
     responder(devolverAluguel($c, (string)($in['s'] ?? ''), $u, lerPagamento($in['pagamento'] ?? null)));
   }
   case 'receber_previa': { // 1.02: o que há para receber desta criança agora: o que ficou a pagar e as cobranças por atraso
@@ -716,14 +728,16 @@ switch ($acao) {
       ksort($ps); $r['pacotes'] = array_values($ps);   // pacotes são opcionais: a lista pode ficar vazia
     }
     if (isset($in['servicos']) && is_array($in['servicos'])) { // os serviços e produtos da loja: valor único ou a cada tantos minutos
-      $ss = []; $ids = []; $eraVolta = []; foreach ((array)$r['servicos'] as $x) $eraVolta[(string)($x['id'] ?? '')] = !empty($x['volta']);
+      $ss = []; $ids = []; $eraVolta = []; $eraTempo = []; foreach ((array)$r['servicos'] as $x) { $eraVolta[(string)($x['id'] ?? '')] = !empty($x['volta']); $eraTempo[(string)($x['id'] ?? '')] = !empty($x['porTempo']); }
       foreach ($in['servicos'] as $k => $s) {
         $n = mb_substr(maiusculo((string)($s['n'] ?? '')), 0, 40); if ($n === '' || count($ss) >= 30) continue;
         $id = preg_replace('/[^a-z0-9_]/', '', (string)($s['id'] ?? '')); if ($id === '' || isset($ids[$id])) $id = 's' . dechex(crc32($n . '|' . $k . '|' . microtime())); $ids[$id] = 1;
         $modo = ($s['modo'] ?? 'fixo') === 'periodo' ? 'periodo' : 'fixo';
         $ss[] = ['id' => $id, 'n' => $n, 'v' => max(0, (float)($s['v'] ?? 0)), 'modo' => $modo, 'min' => $modo === 'periodo' ? max(5, min(240, (int)($s['min'] ?? 30))) : 0, 'banco' => $modo === 'periodo' && !empty($s['banco']), 'obs' => mb_substr(maiusculo((string)($s['obs'] ?? '')), 0, 60),
           // volta: sai da loja e volta (fica na lista até "Devolveu"). O tempo de brincar nunca; uma tela antiga, que não manda a marca, deixa como estava
-          'volta' => !($modo === 'periodo' && !empty($s['banco'])) && (array_key_exists('volta', (array)$s) ? !empty($s['volta']) : ($eraVolta[$id] ?? in_array($id, SERVICOS_QUE_VOLTAM, true)))];
+          'volta' => !($modo === 'periodo' && !empty($s['banco'])) && (array_key_exists('volta', (array)$s) ? !empty($s['volta']) : ($eraVolta[$id] ?? in_array($id, SERVICOS_QUE_VOLTAM, true))),
+          // 1.20: porTempo = o que sai da loja e é cobrado a cada período é vendido por tempo comprado (como até a 1.19), em vez de fechar a conta na devolução. A tela que não manda a marca deixa como estava
+          'porTempo' => $modo === 'periodo' && empty($s['banco']) && (array_key_exists('porTempo', (array)$s) ? !empty($s['porTempo']) : ($eraTempo[$id] ?? false))];
       }
       if (!$ss) falha('Deixe pelo menos um serviço.'); $r['servicos'] = $ss; $r['extras'] = [];
     }

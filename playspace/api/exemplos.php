@@ -71,7 +71,11 @@ function exemplosCarregar(?int $por): array {
   // o que saiu da loja e ainda não voltou (fica na lista até "Devolveu"): um fusquinha dentro do tempo, um que já passou e um carrinho de bebê
   $alu = $db->prepare('INSERT INTO vendas (crianca_id, horas, minutos, valor, quando, por, itens, servico, alug, alug_min, qtd) VALUES (?, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?)');
   $sair = function (string $nome, array $sv, float $ha, int $q = 1, bool $np = false) use ($db, $alu, $reg, &$nomeId, $por, $t, $pagar, $formas) {
-    $porTempo = ($sv['modo'] ?? 'fixo') === 'periodo'; $m = $porTempo ? $q * max(1, (int)$sv['min']) : 0; $obs = (string)($sv['obs'] ?? ''); $valor = $q * (float)$sv['v'];
+    $obs = (string)($sv['obs'] ?? '');
+    if (alugEmAberto($sv)) { // 1.20: o que é cobrado por período só sai: sem valor agora, a conta fecha na devolução
+      $alu->execute([$nomeId[$nome], 0.0, $t($ha), $por, ITENS_ALUG_ABERTO, (string)$sv['n'], (string)$sv['id'], 0, 1]);
+      $reg->execute([$t($ha), 'venda', $nomeId[$nome], $nome, $sv['n'] . ' · saiu da loja · ' . dinheiro((float)$sv['v']) . ' a cada ' . max(1, (int)$sv['min']) . ' min, ' . ITENS_ALUG_ABERTO]); return; }
+    $porTempo = ($sv['modo'] ?? 'fixo') === 'periodo'; $m = $porTempo ? $q * max(1, (int)$sv['min']) : 0; $valor = $q * (float)$sv['v'];   // (vendido por tempo comprado, se o serviço estiver assim em Ajustes)
     $itens = $porTempo ? dur($m) : (($q > 1 ? $q . ' unidades' . ($obs !== '' ? ' · ' : '') : '') . $obs);
     $alu->execute([$nomeId[$nome], $valor, $t($ha), $por, $itens, (string)$sv['n'], (string)$sv['id'], $m, $porTempo ? 1 : $q]);
     if (!$np) $pagar->execute([(int)$db->lastInsertId(), $nomeId[$nome], $formas[$nomeId[$nome] % count($formas)], $valor, $t($ha), $por]);   // 1.02: np = ficou de pagar na devolução
