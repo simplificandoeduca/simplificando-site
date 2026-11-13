@@ -123,8 +123,10 @@ function conferirCadastro(array $d, array $atual = []): void {
   }
   if ($d['resp'] === '' && ($novo || trim((string)($atual['resp'] ?? '')) !== '')) falha('Falta o nome do responsável.');
   if ($novo || $so($d['tel']) !== $so((string)($atual['tel'] ?? '')) || $so($d['tel2']) !== $so((string)($atual['tel2'] ?? ''))) {
-    $maior = max(strlen($so($d['tel'])), strlen($so($d['tel2'])));
-    if ($maior === 0) falha('Falta um telefone do responsável.'); if ($maior < 10) falha('Telefone incompleto: coloque o DDD e o número.');
+    // 1.16: número de fora do Brasil começa com "+" (o código do país): não tem DDD e vale com 8 números ou mais
+    $fora = fn(string $t) => strpos(ltrim($t), '+') === 0; $completo = fn(string $t) => strlen($so($t)) >= ($fora($t) ? 8 : 10);
+    if ($so($d['tel']) === '' && $so($d['tel2']) === '') falha('Falta um telefone do responsável.');
+    if (!$completo($d['tel']) && !$completo($d['tel2'])) falha($fora($so($d['tel']) !== '' ? $d['tel'] : $d['tel2']) ? 'Telefone internacional incompleto: coloque o + com o código do país e o número.' : 'Telefone incompleto: coloque o DDD e o número.');
   }
 }
 
@@ -202,7 +204,7 @@ switch ($acao) {
     $pac = (array)($in['pacote'] ?? []); $horas = max(0, (int)($pac['h'] ?? 0)); $valor = (float)($pac['v'] ?? 0);
     $foto = (string)($in['foto'] ?? ''); if ($foto !== '' && !preg_match('#^data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$#', $foto)) $foto = '';
     if (strlen($foto) > 1500000) falha('A foto ficou grande demais. Tire outra.');
-    $sap = max(0, (int)($in['sapateira'] ?? 0));   // a sapateira escolhida no cadastro (0 = nenhuma)
+    $sap = max(0, (int)($in['sapateira'] ?? 0));   // (até a 1.15 a sapateira era escolhida no cadastro; desde a 1.16 a tela pergunta a cada entrada e não manda mais nada aqui)
     if ($sap > (int)regra()['sapateiras']) falha('Essa sapateira não existe.');
     if ($sap && ($dono = donoSapateira($sap))) falha('A sapateira ' . $sap . ' já está com ' . $dono['nome'] . '. Escolha outra.');
     // o cadastro não vende mais o pacote: sem horas, o acesso nasce bloqueado (se a regra é bloquear sozinho) e a primeira venda libera
@@ -317,7 +319,7 @@ switch ($acao) {
     // o "Desfazer" do aviso é para o toque errado, nos instantes seguintes; passou disso, a entrada só sai pelo cancelamento, com o motivo
     if (time() - strtotime((string)$c['entrou']) > 120) falha('O tempo de desfazer já passou. Para tirar esta entrada, use "Cancelar entrada" e escreva o motivo.');
     $tirou = tirarAutosDaVisita($c);   // 1.15: a recreação avulsa que o sistema lançou para esta entrada sai junto (a entrada nunca existiu)
-    $db->prepare('UPDATE criancas SET entrou = NULL WHERE id = ?')->execute([$c['id']]);
+    $db->prepare('UPDATE criancas SET entrou = NULL, sapateira = NULL WHERE id = ?')->execute([$c['id']]);   // 1.16: a sapateira marcada nesta entrada fica livre de novo
     if ($tirou['n']) { $k = crianca((int)$c['id']); if ($k && restante($k) < periodo() && regra()['bloqueioAuto'] === 'sim' && (!isset($k['liberado']) || (int)$k['liberado'])) bloquearAcesso($k, false); }
     if (!empty($in['registro'])) $db->prepare('DELETE FROM registros WHERE id = ? AND crianca_id = ?')->execute([(int)$in['registro'], $c['id']]);
     if (!empty($in['mensagem'])) $db->prepare('DELETE FROM mensagens WHERE id = ? AND crianca_id = ?')->execute([(int)$in['mensagem'], $c['id']]);

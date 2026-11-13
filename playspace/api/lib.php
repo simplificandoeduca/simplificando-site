@@ -294,6 +294,10 @@ function db(): PDO {
     $pdo->exec('CREATE INDEX IF NOT EXISTS papeis_crianca ON papeis (crianca_id, id)');
     $pdo->exec('PRAGMA user_version = 27');
   }
+  if ($v < 28) { // 1.16: a sapateira é de cada visita (marcada na entrada, livre na saída): as que ficaram presas a quem está fora do espaço (escolhidas no cadastro) são soltas
+    $pdo->exec('UPDATE criancas SET sapateira = NULL WHERE entrou IS NULL AND sapateira IS NOT NULL');
+    $pdo->exec('PRAGMA user_version = 28');
+  }
   return $pdo;
 }
 /* ---------- 1.06: unidades ---------- */

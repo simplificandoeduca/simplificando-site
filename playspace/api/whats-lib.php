@@ -12,7 +12,7 @@ function whatsToken(array &$c): string { if ($c['webhook_token'] === '') { $c['w
 function whatsPronto(array $c): bool { return $c['url'] !== '' && $c['chave'] !== '' && $c['instancia'] !== '' && !empty($c['conectado_em']); }
 function mascara(string $s): string { return $s === '' ? '' : (strlen($s) > 4 ? str_repeat('•', 6) . substr($s, -4) : '••••'); }
 function whatsPublico(array $c): array { whatsToken($c); return ['url' => $c['url'], 'instancia' => $c['instancia'], 'chave' => mascara((string)$c['chave']), 'tem_chave' => $c['chave'] !== '', 'numero' => $c['numero'], 'nome' => $c['nome'], 'conectado_em' => $c['conectado_em'], 'ultima_recebida' => $c['ultima_recebida'], 'webhook' => urlBase() . '/api/whats-webhook.php?t=' . $c['webhook_token']]; }
-function numeroLimpo(string $t): string { $d = preg_replace('/\D/', '', $t); if ($d !== '' && strlen($d) <= 11) $d = '55' . $d; return $d; }
+function numeroLimpo(string $t): string { $d = preg_replace('/\D/', '', $t); if ($d !== '' && strlen($d) <= 11 && strpos(ltrim($t), '+') !== 0) $d = '55' . $d; return $d; }   // 1.16: número com "+" já traz o código do país
 
 function http(string $metodo, string $url, array $cabecalhos = [], $corpo = null, int $tempo = 25): array {
   $ch = curl_init($url);
