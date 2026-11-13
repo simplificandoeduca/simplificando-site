@@ -543,6 +543,26 @@ switch ($acao) {
     $q = $db->prepare("SELECT * FROM cancelamentos WHERE crianca_id IN ($marcas) ORDER BY id DESC LIMIT 200"); $q->execute($ids);
     responder(['vendas' => $vendas, 'visitas' => $visitas, 'cancelados' => array_map('cancelamentoPublico', $q->fetchAll())]);
   }
+  /* ---------- 1.14: reimprimir o cupom ---------- */
+  case 'papel_guardar': { // a tela guarda as duas vias de cada cupom que sai, para reimprimir depois
+    $u = exigir(); $c = crianca((int)($in['crianca'] ?? 0)); if (!$c) falha('Criança não encontrada.', 404);
+    $tipo = in_array($in['tipo'] ?? '', ['entrada', 'saida', 'devolucao', 'festa', 'venda'], true) ? (string)$in['tipo'] : 'entrada';
+    responder(['id' => papelGuardar($c, $tipo, mb_substr(trim(strip_tags((string)($in['titulo'] ?? ''))), 0, 60), mb_substr(trim(strip_tags((string)($in['resumo'] ?? ''))), 0, 140), (array)($in['vias'] ?? []), $u)]);
+  }
+  case 'papel_lista': { // os últimos cupons de um cliente (as crianças do mesmo responsável), do mais novo para o mais velho
+    exigir(); session_write_close();
+    $ids = array_values(array_unique(array_filter(array_map('intval', (array)($in['ids'] ?? []))))); if (!$ids || count($ids) > 30) falha('Cliente não encontrado.', 404);
+    $marcas = implode(',', array_fill(0, count($ids), '?'));
+    $q = $db->prepare("SELECT p.id, p.crianca_id, p.quando, p.tipo, p.titulo, p.resumo, u.nome AS por_nome FROM papeis p LEFT JOIN usuarios u ON u.id = p.por WHERE p.crianca_id IN ($marcas) AND p.quando >= ? ORDER BY p.id DESC LIMIT 20");
+    $q->execute(array_merge($ids, [date('Y-m-d H:i:s', time() - PAPEL_DIAS * 86400)]));
+    responder(['papeis' => array_map('papelPublico', $q->fetchAll()), 'dias' => PAPEL_DIAS]);
+  }
+  case 'papel_ver': { // as vias de um cupom guardado
+    exigir(); session_write_close();
+    $q = $db->prepare('SELECT p.*, u.nome AS por_nome FROM papeis p LEFT JOIN usuarios u ON u.id = p.por WHERE p.id = ?'); $q->execute([(int)($in['id'] ?? 0)]); $l = $q->fetch();
+    if (!$l) falha('Este cupom não está mais guardado.', 404);
+    responder(papelPublico($l) + ['vias' => papelVias($l)]);
+  }
   case 'desfazer_venda': {
     exigir(); $ids = array_values(array_unique(array_filter(array_map('intval', array_merge((array)($in['vendas'] ?? []), [(int)($in['venda'] ?? 0)])))));
     $q = $db->prepare('SELECT * FROM vendas WHERE id = ?'); $tempoDe = [];   // criança => minutos de brincar desfeitos

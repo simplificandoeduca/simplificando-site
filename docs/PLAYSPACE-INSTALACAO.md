@@ -571,7 +571,18 @@ O cupom da loja é o papel da impressora térmica do balcão, que o responsável
 - **cupom de entrada**: depois de cada atendimento registrado (a venda, com ou sem entrada) e depois de cada **Entrada** pelo botão (a criança que já tinha horas);
 - **cupom da saída**: depois de **toda saída** (1.06: com ou sem pagamento; quem usa as horas do pacote também assina a saída). Traz "SAÍDA" e o nome da criança, a hora da entrada e da saída, quanto ficou, o tempo contado, o saldo de horas e, se houve, o que foi recebido e a forma. Em duas vias, com a linha da assinatura na via da loja;
 - **cupom da devolução** (1.06): depois de **toda devolução** do que saiu da loja (carrinho de bebê, fusquinha), com ou sem valor a receber. Traz "DEVOLUÇÃO" e o item, a hora em que saiu e em que voltou, quanto ficou fora, o tempo comprado e, se houve, o tempo a mais e a forma de pagamento (1.09: sem a criança e sem o número do cadastro). Em duas vias, com a linha da assinatura na via da loja;
-- **de novo, a qualquer hora**: na comanda de quem está no espaço, o botão **Cupom**.
+- **de novo, a qualquer hora** (1.14): na ficha de qualquer cliente, o botão **Reimprimir cupom** (ver abaixo).
+
+**Reimprimir o cupom (1.14).** O cliente perdeu o cupom, ou a impressora travou: a equipe reimprime pela ficha do cliente.
+
+- Um toque no cliente (na lista, na busca ou no Banco de horas) abre a ficha; nela, o botão **Reimprimir cupom**. Ele aparece para todo cliente, esteja a criança no espaço ou não.
+- Abre a lista **dos últimos cupons do cliente**, do mais novo para o mais velho, com o dia, a hora, de quem é e o valor: "Cupom da saída · hoje, 18:24 · ALICE", "Cupom de entrada · hoje, 17:50 · ALICE · R$ 80 no Pix", "Comprovante da festa", "Comprovante de pagamento", "Cupom da devolução". Os cupons dos irmãos (mesmo responsável) vêm juntos.
+- Um toque no cupom mostra as duas vias **iguais às que saíram** (a mesma hora, quem atendeu, os mesmos valores), com a linha **"Reimpressão · dia e hora"** no pé. **Imprimir as duas vias** manda de novo para a impressora; **Imprimir só a via do cliente** serve para quando o cliente só perdeu a via dele.
+- **O que fica guardado:** todo cupom que o sistema gera (entrada, saída, devolução, comprovante), mesmo no aparelho que está em "Não imprimir". Fica guardado no servidor por **60 dias**, e qualquer aparelho da loja reimprime. Vale a partir da 1.14: o que foi impresso antes dela não está guardado.
+- Para quem **já estava no espaço** quando a 1.14 chegou, a lista traz o "Cupom de entrada · como está agora", montado na hora (era o que o antigo botão Cupom fazia).
+- No servidor: banco na versão 27 (tabela `papeis`; cada cupom ocupa menos de 1 KB). **Limpar os cadastros** apaga também os cupons guardados.
+
+**O cupom sai sempre em pé (1.14).** Desde a 1.09 os cupons ficaram curtos, e a via que tinha menos de 80 mm de altura ia para a impressora como uma página "deitada" (mais larga do que alta): é isso que fazia o cupom **sair de lado**. Agora a página de impressão nunca tem menos de 82 mm de altura, para ficar sempre em pé. Na prática: as vias compridas não mudam; as curtas (a via do cliente, o cupom do carrinho) ganham alguns milímetros de papel em branco no fim.
 
 **O que cada aparelho faz** fica guardado no próprio aparelho (não muda os outros):
 

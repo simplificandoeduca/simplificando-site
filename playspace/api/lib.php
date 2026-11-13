@@ -289,6 +289,11 @@ function db(): PDO {
     try { $pdo->exec('ALTER TABLE criancas ADD COLUMN nascimento TEXT'); } catch (Throwable $e) { }
     $pdo->exec('PRAGMA user_version = 26');
   }
+  if ($v < 27) { // 1.14: os cupons que saíram (as duas vias de cada um), para reimprimir pela ficha do cliente
+    $pdo->exec("CREATE TABLE IF NOT EXISTS papeis (id INTEGER PRIMARY KEY, crianca_id INTEGER NOT NULL, quando TEXT NOT NULL, tipo TEXT NOT NULL DEFAULT '', titulo TEXT NOT NULL DEFAULT '', resumo TEXT NOT NULL DEFAULT '', vias BLOB NOT NULL, por INTEGER, unidade_id INTEGER)");
+    $pdo->exec('CREATE INDEX IF NOT EXISTS papeis_crianca ON papeis (crianca_id, id)');
+    $pdo->exec('PRAGMA user_version = 27');
+  }
   return $pdo;
 }
 /* ---------- 1.06: unidades ---------- */
@@ -995,6 +1000,31 @@ function venderVisitaAvulsa(array $c, ?array $u): ?array {
   return ['venda' => (int)$x['venda'], 'registro' => (int)$x['registro'], 'min' => $min, 'valor' => $valor];
 }
 
+/* ---------- 1.14: reimprimir o cupom ---------- */
+// Cada cupom que sai (entrada, saída, devolução, comprovante) fica guardado com as duas vias, do jeito que foi impresso, para a equipe
+// reimprimir pela ficha do cliente (o cliente perdeu, a impressora travou). Fica por PAPEL_DIAS dias. As vias chegam como o texto do
+// cupom (só marcações simples: o que não for delas é tirado aqui, e a tela limpa de novo antes de mostrar).
+const PAPEL_DIAS = 60;
+const PAPEL_MARCAS = '<div><p><span><b><i><small><em><strong>';
+function papelGuardar(array $c, string $tipo, string $titulo, string $resumo, array $vias, ?array $u): int {
+  $limpas = [];
+  foreach (array_slice(array_values($vias), 0, 2) as $v) { $v = trim(strip_tags((string)$v, PAPEL_MARCAS)); if ($v === '') continue; if (strlen($v) > 60000) falha('O cupom é grande demais para guardar.'); $limpas[] = $v; }
+  if (!$limpas) falha('O cupom veio vazio.');
+  $j = (string)json_encode($limpas, JSON_UNESCAPED_UNICODE); $blob = function_exists('gzcompress') ? gzcompress($j, 6) : $j;
+  $db = db(); $q = $db->prepare('INSERT INTO papeis (crianca_id, quando, tipo, titulo, resumo, vias, por, unidade_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+  $q->bindValue(1, (int)$c['id'], PDO::PARAM_INT); $q->bindValue(2, agora()); $q->bindValue(3, $tipo); $q->bindValue(4, $titulo); $q->bindValue(5, $resumo); $q->bindValue(6, $blob, PDO::PARAM_LOB);
+  $q->bindValue(7, $u ? (int)$u['id'] : null, $u ? PDO::PARAM_INT : PDO::PARAM_NULL); $un = unidadeDoPedido(); $q->bindValue(8, $un, $un === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
+  $q->execute(); $id = (int)$db->lastInsertId();
+  if ($id % 25 === 0) $db->prepare('DELETE FROM papeis WHERE quando < ?')->execute([date('Y-m-d H:i:s', time() - PAPEL_DIAS * 86400)]);   // de vez em quando, os antigos saem
+  return $id;
+}
+function papelVias(array $l): array {
+  $b = is_resource($l['vias']) ? (string)stream_get_contents($l['vias']) : (string)$l['vias'];
+  if ($b !== '' && $b[0] !== '[') { $x = function_exists('gzuncompress') ? @gzuncompress($b) : false; $b = $x === false ? '[]' : $x; }
+  $v = json_decode($b, true); return is_array($v) ? array_values(array_map('strval', $v)) : [];
+}
+function papelPublico(array $l): array { return ['id' => (int)$l['id'], 'crianca' => (int)$l['crianca_id'], 'quando' => $l['quando'], 'tipo' => (string)$l['tipo'], 'titulo' => (string)$l['titulo'], 'resumo' => (string)$l['resumo'], 'por' => (string)($l['por_nome'] ?? '')]; }
+
 /* ---------- 1.12: a festa ---------- */
 // A tabela "Nossos valores" da loja: o valor pela quantidade de crianças, na festa de semana ou na de final de semana (que vale também
 // para férias, emenda e feriado), e o adicional por criança. A festa é vendida só pelo botão Festa; o valor é o desta tabela, não o
@@ -1226,6 +1256,7 @@ function limparCadastros(array $u): array {
     foreach ($db->query('SELECT produto_id, qtd FROM vendas WHERE produto_id IS NOT NULL')->fetchAll() as $v) devolverEstoque($v);   // o produto vendido volta para o estoque
     $fila = []; foreach ($db->query('SELECT idface_id FROM criancas WHERE idface_id IS NOT NULL')->fetchAll() as $c) { $fila[] = (int)$c['idface_id']; gravarCfg('apagar_' . (int)$c['idface_id'], (int)$c['idface_id']); }   // quem está no iDFace sai de lá na próxima conversa com o aparelho
     foreach (TABELAS_CADASTRO as $t) $db->exec("DELETE FROM $t");
+    $db->exec('DELETE FROM papeis');   // 1.14: os cupons guardados para reimprimir saem junto (o Desfazer da limpeza não traz de volta)
     try { $db->exec("DELETE FROM sqlite_sequence WHERE name = 'cupons'"); } catch (Throwable $e) { }
     foreach ($db->query('SELECT chave FROM config')->fetchAll(PDO::FETCH_COLUMN) as $k) if (preg_match(CHAVES_CADASTRO, (string)$k)) apagarCfg((string)$k);
     apagarCfg('exemplo'); apagarCfg('pend_fora'); apagarCfg('limpeza_oferta'); apagarCfg('importacao'); apagarCfg('importando');   // 1.01: os cadastros importados saíram junto

@@ -107,6 +107,7 @@ function exemplosApagar(): void {
   $q = $db->prepare("SELECT produto_id, qtd FROM vendas WHERE produto_id IS NOT NULL AND crianca_id IN ($marcas)"); $q->execute($ids);
   foreach ($q->fetchAll() as $v) devolverEstoque($v);   // produto vendido para uma criança de teste: volta para o estoque (a venda nunca existiu)
   foreach (['cupons', 'pagamentos', 'visitas', 'vendas', 'registros', 'mensagens', 'batidas', 'cancelamentos', 'criancas'] as $tabela) $db->prepare("DELETE FROM $tabela WHERE " . ($tabela === 'criancas' ? 'id' : 'crianca_id') . " IN ($marcas)")->execute($ids);
+  try { $db->prepare("DELETE FROM papeis WHERE crianca_id IN ($marcas)")->execute($ids); } catch (Throwable $x) { }   // 1.14: os cupons guardados das crianças de teste
   foreach ($ids as $id) { apagarCfg('mandar_' . $id); apagarCfg('foto_' . $id); apagarCfg('renomear_' . $id); apagarCfg('regra_' . $id); apagarCfg('desregra_' . $id); apagarCfg('regra_ok_' . $id); }
   $cids = array_map('intval', $e['compromissos'] ?? []);
   if ($cids) $db->prepare('DELETE FROM compromissos WHERE id IN (' . implode(',', array_fill(0, count($cids), '?')) . ')')->execute($cids);
