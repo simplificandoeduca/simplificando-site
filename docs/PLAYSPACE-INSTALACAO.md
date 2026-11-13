@@ -126,7 +126,7 @@ O tempo é debitado **sempre em períodos inteiros** (o período da Recreação:
 
 **A ficha mais limpa (1.02):** de cima para baixo ficam só a criança (o responsável está no título) e o telefone, a linha do que falta receber, com **Receber** (só quando há; desde a 1.06 não existe mais o selo **Pago**), o relógio ("entrou 14:10 · até 14:40", o tempo que resta e a barra; na recreação avulsa, 1.15, o tempo correndo e "Recreação avulsa · até agora 1h · R$ 160 · acerta na saída") e a fileira de botões: **Saída** (ou **Entrada**, para quem está fora), **Vender**, **Histórico**, **Reimprimir cupom**, **Sapateira** e, no prazo, **Cancelar entrada**. Saíram as frases compridas ("Entrou às… e está há… Se sair agora, debita…", "é onde está o sapato dela", "As horas não expiram…"). Para quem tem pacote e ele acabou, a linha curta "Além do pacote · R$ 80 a receber". O **OBS** de quem não tem observação é um botão na fileira; com observação, continua a caixa vermelha no alto. A conta de horas (comprou, usou, saldo) só aparece para quem tem horas guardadas ou pacote, e a lista de visitas, só quando há visita.
 
-**Editar ou remover um cadastro é só do Gestor**, em **Ajustes → Cadastros**: a busca acha por responsável, criança, telefone ou CPF; um toque abre o cadastro para mudar (nome, data de nascimento, responsável, telefones, documento, criança PCD, observações) e, no pé, **Remover este cadastro**. Atendente e Supervisor não mudam cadastro, nem pela tela, nem pelo servidor. A observação e a sapateira continuam com toda a equipe.
+**Editar ou remover um cadastro é só do Gestor**, em **Ajustes → Cadastros** (o nome e o telefone a equipe corrige pela ficha desde a 1.19: seção 6x): a busca acha por responsável, criança, telefone ou CPF; um toque abre o cadastro para mudar (nome, data de nascimento, responsável, telefones, documento, criança PCD, observações) e, no pé, **Remover este cadastro**. Atendente e Supervisor não mudam cadastro, nem pela tela, nem pelo servidor. A observação e a sapateira continuam com toda a equipe.
 
 **Sapateiras** (1 a 44): a criança tira o sapato para brincar e ele fica numa sapateira numerada.
 
@@ -760,6 +760,48 @@ Adicional de festa: R$ 190 por criança. Pela tabela de hoje, cada 5 crianças a
 **Trocar o cliente**, no alto da folha, volta para a escolha do cliente e mantém o que já estava escolhido. Passar de "Festa nova" para "Upgrade de festa" (e voltar) guarda o que foi marcado em cada um, mas só entra na venda o que está na posição escolhida. Fechar a folha sem vender não guarda nada: a festa não vai para "Falta finalizar".
 
 **No servidor:** a tabela é a de fábrica (está no programa, em `lib.php`; vai para a tela junto com a regra e não fica gravada no banco). O valor cobrado sai dessa tabela, não do que a tela mandar: se a tela mostrar outro valor, a venda não é feita ("O valor da festa para 20 crianças mudou para R$ 3.749. Feche e abra a Festa de novo."), e o mesmo vale para o upgrade e para o adicional. O servidor também recusa a data passada, o sábado ou domingo com a festa de semana, a quantidade fora da tabela, o upgrade para uma festa igual ou menor, a festa nova e o upgrade na mesma venda, mais de 60 crianças de adicional, a festa "para pagar depois" e a festa sem forma de pagamento. Para mudar os valores da festa, peça ao suporte (ainda não há tela para isso).
+
+## 6x. Corrigir o nome e o telefone pela ficha (1.19)
+
+A equipe digitou um nome errado no cadastro e o cupom saiu com o nome errado: dá para acertar na hora, sem chamar o Gestor.
+
+- Na ficha do cliente, **o nome do responsável** (o título), **o nome da criança** e **o telefone** têm um lápis pequeno ao lado: **um toque em cima abre "Corrigir o cadastro"**, já com o campo certo selecionado.
+- A folha tem só quatro campos: **nome do responsável, nome da criança, telefone e outro telefone**. O CPF (ou RNE) e a data de nascimento continuam com o Gestor, em Ajustes → Cadastros.
+- **Qualquer pessoa da equipe corrige** (atendente, supervisor ou gestor). **Nada é apagado, e não existe botão de excluir**: remover um cadastro continua sendo só do Gestor, e mesmo lá o cadastro fica guardado no banco.
+- **Vale para os irmãos, onde o dado estava igual:** o nome do responsável e os telefones são do cliente, então o que for corrigido muda também nas outras crianças dele (a folha avisa quais são). O nome da criança muda só nela. Duas proteções, para a correção nunca apagar o que a tela não mostrou:
+  - **só o que mudou vai para os irmãos, e só no irmão em que estava igual.** Se o cadastro de um irmão tem outro telefone (o Gestor mudou só nele), esse telefone continua; a folha avisa: "O que está diferente no cadastro de PEDRO continua como está." Corrigir só o nome da criança não mexe em irmão nenhum;
+  - **cadastro antigo sem CPF:** o que junta os irmãos é o telefone. Nesse caso a correção só acompanha quem tem também **o mesmo nome de responsável**: um telefone repetido em cadastros de pessoas diferentes não leva o nome de uma para a outra.
+- **Fica anotado quem mudou:** uma linha em Hoje na recepção, por exemplo `Cadastro corrigido: responsável de "ANA SILVA" para "ANA SOUZA" · telefone de (11) 9 1111-1111 para (11) 9 2222-2222 · também em LUCAS · por CAMILA` (o "também em" diz em quais irmãos a correção entrou). A mesma linha aparece no relatório do cliente (seção 6y).
+- **Telefone:** escrito só com os números, ele é arrumado no formato da tela, (11) 9 0000-0000. Número de fora do Brasil começa com `+`. Sem telefone completo a correção não salva. O telefone em que ninguém mexeu fica escrito como estava.
+- **O cupom com o nome certo:** se a criança (ou um irmão) está no espaço e um nome mudou, a tela oferece **Imprimir o cupom**: é o cupom de entrada de novo, já com o nome corrigido. No aparelho que está em "Não imprimir" ela só confirma a correção. Os cupons que já tinham sido impressos continuam guardados como saíram; por isso, depois de uma correção, o **Reimprimir cupom** da ficha mostra no alto da lista o **Cupom de entrada · como está agora** (com o nome certo) de quem está no espaço, além do guardado.
+- **Acompanhamento de nota fiscal** (o módulo da 0.93, que hoje fica guardado sem botão para ligar, seção 6s): se ele voltar a ser usado, o cupom que ainda está **a emitir** passa a mostrar o nome corrigido (o da criança e o do responsável); o que já foi marcado como emitido fica como saiu.
+
+No servidor: ação `cadastro_corrigir` (nome, resp, tel, tel2), para qualquer usuário que entrou; não aceita mudar documento, nascimento, observação nem PCD. A resposta diz quantas coisas mudaram (`mudou`) e em quantos irmãos a correção entrou (`irmaos`).
+
+## 6y. Relatório do cliente (1.19)
+
+O extrato do cliente, no jeito do relatório do sistema anterior: o que ele comprou, cada visita e o saldo que ficou depois de cada movimento. Serve para conferir uma reclamação ("tiraram uma hora a mais"), para mostrar ao cliente e para guardar.
+
+**Onde fica:** o botão **Relatório** na ficha do cliente, ao lado de Histórico, e no painel do histórico (à direita). O relatório é do **cliente**: o responsável e todas as crianças dele juntas.
+
+**O que mostra:**
+
+- **O período:** 30 dias, 90 dias, 12 meses (o que abre) ou Tudo; ou as datas **De** e **Até**, escolhidas à mão.
+- **O resumo do período:** saldo no início, horas compradas, horas usadas e saldo no fim, e quanto o cliente pagou no período.
+- **Os movimentos, do mais antigo para o mais novo.** Em cada linha: a data e a hora, o que foi, o detalhe (a criança quando há irmãos, o valor e a forma de pagamento, quem vendeu, a unidade) e, à direita, **as horas que entraram (+) ou saíram (−) e o saldo que ficou**.
+  - **Compra de pacote** (e as horas que vieram do sistema anterior): soma as horas.
+  - **Visita:** "entrou 14:05 · saiu 18:00 · ficou 3h55" e as horas que saíram do pacote. A visita na **recreação avulsa** não mexe no saldo: aparece com o tempo contado e o valor pago.
+  - **Outras compras** (carrinho, produto, festa): aparecem com o valor, sem horas.
+  - **Ocorrências:** saída corrigida, visita reaberta, entrada cancelada, desconto e cadastro corrigido entram como linha de aviso, com o texto que ficou em Hoje na recepção. É o que explica um acerto.
+  - **No espaço agora:** quem está brincando aparece no fim, com a hora da entrada (e o que a recreação avulsa já soma, a acertar na saída).
+
+**O saldo fecha sempre com o do sistema.** O saldo no fim de "hoje" é o saldo que a ficha mostra. Se os movimentos guardados não explicam esse saldo (um cadastro antigo, horas que vieram de antes), a diferença para mais aparece como **saldo no início**, e a diferença para menos vira a linha **Acerto de saldo** no fim do relatório, dizendo quanto falta explicar. Num cadastro em ordem essa linha não existe.
+
+**Imprimir no cupom:** sai uma via na impressora do cupom (80 mm), com o alto da loja, o cliente, o período, o resumo e uma linha por movimento. Com o computador aberto pelo ícone da impressão direta (seção 6s), sai sem a janela de impressão. Cada movimento ocupa perto de 1 cm de papel: **com mais de 40 movimentos a tela avisa antes** ("São 120 movimentos: o cupom sai comprido…") e só imprime com o toque em **Imprimir assim mesmo**; um período menor ou a planilha gastam menos papel.
+
+**Abrir em planilha:** baixa um arquivo `relatorio-nome-do-responsavel-AAAA-MM-DD.csv`, que o Excel abre com dois cliques: o resumo em cima e uma linha por movimento (data, hora, movimento, detalhe, criança, unidade, valor, pagamento, horas e saldo, estes dois em número).
+
+No servidor: o relatório usa a ação `historico` com `tudo: 1`, que manda todas as vendas e visitas do cliente (até 5 mil de cada), a hora completa da entrada e a unidade de cada visita, a unidade de cada venda e as ocorrências (`ocorr`).
 
 ## 7. Atualizar
 

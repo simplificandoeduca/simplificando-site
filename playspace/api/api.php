@@ -216,6 +216,48 @@ switch ($acao) {
     gravarCfg('mandar_' . $id, $id); // vai para o iDFace (nome agora, foto quando o aparelho confirmar o cadastro)
     responder(['id' => $id]);
   }
+  case 'cadastro_corrigir': { // 1.19: a equipe acerta o nome (do responsável ou da criança) e os telefones digitados errado, pela ficha.
+    // Qualquer pessoa da equipe faz. Não muda o documento nem a data de nascimento (isso é do gestor, em Ajustes → Cadastros) e não apaga nada.
+    // O nome do responsável e os telefones valem para os irmãos (é o mesmo cliente), onde estavam iguais. Fica uma linha no dia: de quê para quê, e quem mudou.
+    $u = exigir(); $c = crianca((int)($in['id'] ?? 0)); if (!$c || !$c['ativo']) falha('Criança não encontrada.', 404);
+    $e = []; foreach (['nome', 'resp', 'tel', 'tel2'] as $k) if (array_key_exists($k, $in)) $e[$k] = (string)$in[$k];
+    $d = textoCriancaBasico($e, $c); conferirCadastro($d, $c);
+    if ($d['tel'] === '' && $d['tel2'] !== '') { $d['tel'] = $d['tel2']; $d['tel2'] = ''; }   // só um telefone: ele é o principal
+    $vazio = fn(string $t) => $t === '' ? '(vazio)' : $t; $mud = [];
+    $kn = fn($t) => maiusculo((string)$t);   // o nome comparado sem ligar para maiúscula e espaço sobrando
+    $kt = function ($t) { $n = (string)preg_replace('/\D/', '', (string)$t); return strlen($n) >= 8 ? substr($n, -8) : $n; };   // o telefone comparado pelo final (como a tela junta os irmãos)
+    $mResp = $d['resp'] !== $kn($c['resp']); $mNome = $d['nome'] !== $kn($c['nome']); $mTel = $d['tel'] !== trim((string)$c['tel']); $mTel2 = $d['tel2'] !== trim((string)$c['tel2']);
+    if ($mResp) $mud[] = 'responsável de "' . $c['resp'] . '" para "' . $d['resp'] . '"';
+    if ($mNome) $mud[] = 'criança de "' . $c['nome'] . '" para "' . $d['nome'] . '"';
+    if ($mTel) $mud[] = 'telefone de ' . $vazio((string)$c['tel']) . ' para ' . $vazio($d['tel']);
+    if ($mTel2) $mud[] = 'outro telefone de ' . $vazio((string)$c['tel2']) . ' para ' . $vazio($d['tel2']);
+    if (!$mud) responder(['id' => (int)$c['id'], 'mudou' => 0, 'irmaos' => 0]);
+    // Quem acompanha: os outros cadastros do mesmo cliente. Pelo documento, sempre. Quando o que junta é só o telefone (cadastro antigo, sem documento),
+    // só com o mesmo nome de responsável: um telefone repetido não leva a correção para o cadastro de outra pessoa. E cada dado só muda no irmão onde
+    // estava igual ao daqui: o que a tela não mostrou (um telefone diferente no cadastro do irmão) não é sobrescrito.
+    $irm = irmaosDe($c); $doc = chaveDocCadastro($c); $junto = [];   // antes de mudar: é pelo documento (ou pelo telefone) de agora que os irmãos são achados
+    $db->beginTransaction();
+    try {
+      $db->prepare('UPDATE criancas SET nome = ?, resp = ?, tel = ?, tel2 = ? WHERE id = ?')->execute([$d['nome'], $d['resp'], $d['tel'], $d['tel2'], (int)$c['id']]);
+      $qi = $db->prepare('UPDATE criancas SET resp = ?, tel = ?, tel2 = ? WHERE id = ?');
+      $qc = $db->prepare("UPDATE cupons SET nome = ?, resp = ? WHERE crianca_id = ? AND status = 'pendente'");   // o cupom fiscal ainda não emitido sai com o nome certo (o já emitido fica como saiu)
+      $qc->execute([$d['nome'], $d['resp'], (int)$c['id']]);
+      foreach ($irm as $x) {
+        if (!(($doc !== '' && chaveDocCadastro($x) === $doc) || ($kn($c['resp']) !== '' && $kn($x['resp']) === $kn($c['resp'])))) continue;
+        $n = ['resp' => (string)$x['resp'], 'tel' => (string)$x['tel'], 'tel2' => (string)$x['tel2']];
+        if ($mResp && $kn($x['resp']) === $kn($c['resp'])) $n['resp'] = $d['resp'];
+        if ($mTel && $kt($x['tel']) === $kt($c['tel'])) $n['tel'] = $d['tel'];
+        if ($mTel2 && $kt($x['tel2']) === $kt($c['tel2'])) $n['tel2'] = $d['tel2'];
+        if ($n['resp'] === (string)$x['resp'] && $n['tel'] === (string)$x['tel'] && $n['tel2'] === (string)$x['tel2']) continue;
+        $qi->execute([$n['resp'], $n['tel'], $n['tel2'], (int)$x['id']]); $qc->execute([(string)$x['nome'], $n['resp'], (int)$x['id']]); $junto[] = (string)$x['nome'];
+      }
+      $tambem = $junto ? ' · também em ' . (count($junto) > 1 ? implode(', ', array_slice($junto, 0, -1)) . ' e ' . $junto[count($junto) - 1] : $junto[0]) : '';
+      registrar('cad', (int)$c['id'], $d['nome'], 'Cadastro corrigido: ' . implode(' · ', $mud) . $tambem . ' · por ' . primeiroNome((string)$u['nome']));
+      if ($c['idface_id'] !== null && $c['nome'] !== $d['nome']) gravarCfg('renomear_' . (int)$c['id'], (int)$c['idface_id']);   // o aparelho recebe o nome novo
+      $db->commit();
+    } catch (Throwable $t) { $db->rollBack(); throw $t; }
+    responder(['id' => (int)$c['id'], 'mudou' => count($mud), 'irmaos' => count($junto)]);
+  }
   case 'obs_salvar': { // a observação escrita (ou mudada) na venda ou na comanda, sem abrir o cadastro inteiro. Vazia apaga; a anterior continua guardada
     $u = exigir(); $c = crianca((int)($in['id'] ?? 0)); if (!$c || !$c['ativo']) falha('Criança não encontrada.', 404);
     marcarObs($c, mb_substr(emMaiusculas((string)($in['obs'] ?? '')), 0, 500), $u); $c = crianca((int)$c['id']);
@@ -546,17 +588,22 @@ switch ($acao) {
     exigir(); session_write_close();
     $ids = array_values(array_unique(array_filter(array_map('intval', (array)($in['ids'] ?? []))))); if (!$ids || count($ids) > 30) falha('Cliente não encontrado.', 404);
     $marcas = implode(',', array_fill(0, count($ids), '?'));
-    $q = $db->prepare("SELECT v.*, u.nome AS por_nome FROM vendas v LEFT JOIN usuarios u ON u.id = v.por WHERE v.crianca_id IN ($marcas) ORDER BY v.quando DESC, v.id DESC LIMIT 500"); $q->execute($ids);
+    $tudo = !empty($in['tudo']); $limV = $tudo ? 5000 : 500; $limS = $tudo ? 5000 : 1000;   // 1.19: o relatório do cliente (o extrato) pede tudo, para o saldo de cada linha fechar
+    $uni = fn($v) => isset($v['unidade_id']) && $v['unidade_id'] !== null ? (int)$v['unidade_id'] : null;
+    $q = $db->prepare("SELECT v.*, u.nome AS por_nome FROM vendas v LEFT JOIN usuarios u ON u.id = v.por WHERE v.crianca_id IN ($marcas) ORDER BY v.quando DESC, v.id DESC LIMIT $limV"); $q->execute($ids);
     $pagas = []; $qp = $db->prepare("SELECT venda_id, forma, SUM(valor) t FROM pagamentos WHERE crianca_id IN ($marcas) GROUP BY venda_id, forma ORDER BY MIN(id)"); $qp->execute($ids);
     foreach ($qp->fetchAll() as $l) $pagas[(int)$l['venda_id']][(string)$l['forma']] = round((float)$l['t'], 2);
     // 1.02: o que ainda não foi pago desta visita (o que ficou para a saída e as cobranças por atraso a receber): o histórico marca e não soma em "Pagou ao todo"
     $np = []; foreach ($ids as $cid) { $k = crianca($cid); if (!$k) continue; foreach (pendentesDaVisita($k) as $v) $np[(int)$v['id']] = (float)$v['falta'];
       if ($k['entrou']) { $qa = $db->prepare('SELECT id, valor FROM vendas WHERE crianca_id = ? AND auto = 1 AND quando >= ? AND NOT EXISTS (SELECT 1 FROM pagamentos p WHERE p.venda_id = vendas.id)'); $qa->execute([$cid, (string)$k['entrou']]); foreach ($qa->fetchAll() as $l) $np[(int)$l['id']] = (float)$l['valor']; } }
-    $vendas = array_map(fn($v) => ['np' => $np[(int)$v['id']] ?? 0, 'pago' => isset($pagas[(int)$v['id']]) ? textoPagamento($pagas[(int)$v['id']]) : '', 'pg' => $pagas[(int)$v['id']] ?? null, 'id' => (int)$v['id'], 'crianca' => (int)$v['crianca_id'], 'h' => round((int)$v['minutos'] / 60, 2), 'm' => (int)$v['minutos'], 'v' => (float)$v['valor'], 'itens' => (string)($v['itens'] ?? ''), 'servico' => (string)($v['servico'] ?? ''), 'quando' => $v['quando'], 'por' => (string)($v['por_nome'] ?? ''), 'auto' => !empty($v['auto']), 'voucher' => (string)($v['voucher'] ?? ''), 'pcd' => !empty($v['pcd']), 'desc' => round((float)($v['desc_valor'] ?? 0), 2), 'desc_motivo' => (string)($v['desc_motivo'] ?? '')], $q->fetchAll());
-    $q = $db->prepare("SELECT * FROM visitas WHERE crianca_id IN ($marcas) ORDER BY saiu DESC, id DESC LIMIT 1000"); $q->execute($ids);
-    $visitas = array_map(fn($v) => ['id' => (int)$v['id'], 'crianca' => (int)$v['crianca_id'], 'dia' => $v['saiu'], 'entrou' => substr($v['entrou'], 11, 5), 'saiu' => substr($v['saiu'], 11, 5), 'deb' => (int)$v['debitado_min']], $q->fetchAll());
+    $vendas = array_map(fn($v) => ['np' => $np[(int)$v['id']] ?? 0, 'pago' => isset($pagas[(int)$v['id']]) ? textoPagamento($pagas[(int)$v['id']]) : '', 'pg' => $pagas[(int)$v['id']] ?? null, 'id' => (int)$v['id'], 'crianca' => (int)$v['crianca_id'], 'h' => round((int)$v['minutos'] / 60, 2), 'm' => (int)$v['minutos'], 'v' => (float)$v['valor'], 'itens' => (string)($v['itens'] ?? ''), 'servico' => (string)($v['servico'] ?? ''), 'quando' => $v['quando'], 'por' => (string)($v['por_nome'] ?? ''), 'auto' => !empty($v['auto']), 'voucher' => (string)($v['voucher'] ?? ''), 'pcd' => !empty($v['pcd']), 'desc' => round((float)($v['desc_valor'] ?? 0), 2), 'desc_motivo' => (string)($v['desc_motivo'] ?? ''), 'un' => $uni($v)], $q->fetchAll());
+    $q = $db->prepare("SELECT * FROM visitas WHERE crianca_id IN ($marcas) ORDER BY saiu DESC, id DESC LIMIT $limS"); $q->execute($ids);
+    $visitas = array_map(fn($v) => ['id' => (int)$v['id'], 'crianca' => (int)$v['crianca_id'], 'dia' => $v['saiu'], 'entrou' => substr($v['entrou'], 11, 5), 'saiu' => substr($v['saiu'], 11, 5), 'deb' => (int)$v['debitado_min'], 'e' => $v['entrou'], 'un' => $uni($v)], $q->fetchAll());
+    // as ocorrências que explicam um acerto: saída corrigida, visita reaberta, entrada cancelada, desconto e cadastro corrigido (só quando a tela pede tudo)
+    $ocorr = []; if ($tudo) { $qo = $db->prepare("SELECT quando, tipo, crianca_id, texto FROM registros WHERE crianca_id IN ($marcas) AND tipo IN ('corr', 'reab', 'canc', 'desc', 'cad') ORDER BY quando DESC, id DESC LIMIT 1000"); $qo->execute($ids);
+      $ocorr = array_map(fn($g) => ['q' => $g['quando'], 'tipo' => (string)$g['tipo'], 'crianca' => (int)$g['crianca_id'], 'texto' => (string)$g['texto']], $qo->fetchAll()); }
     $q = $db->prepare("SELECT * FROM cancelamentos WHERE crianca_id IN ($marcas) ORDER BY id DESC LIMIT 200"); $q->execute($ids);
-    responder(['vendas' => $vendas, 'visitas' => $visitas, 'cancelados' => array_map('cancelamentoPublico', $q->fetchAll())]);
+    responder(['vendas' => $vendas, 'visitas' => $visitas, 'cancelados' => array_map('cancelamentoPublico', $q->fetchAll()), 'ocorr' => $ocorr]);
   }
   /* ---------- 1.14: reimprimir o cupom ---------- */
   case 'papel_guardar': { // a tela guarda as duas vias de cada cupom que sai, para reimprimir depois

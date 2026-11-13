@@ -932,6 +932,19 @@ b.np { color: var(--erro); letter-spacing: .03em; }
 .banco-mais { text-align: center; padding: 10px 0 2px; }
 .cliente-ja.sug { background: var(--mostarda-2); } .cliente-ja.sug .cr .txt { flex: 1; min-width: 0; } .cliente-ja.sug .cr .txt > b { display: block; font-weight: 800; } .cliente-ja.sug .cr .txt > span { display: block; font-size: 12.5px; color: var(--tinta-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* 0.94: o cupom impresso (papel de 80 mm; a área impressa tem 72 mm) */
+/* 1.19: um toque no nome ou no telefone, na ficha, abre a correção (o lápis só avisa que dá para tocar) */
+.edita { display: inline; text-align: left; font: inherit; color: inherit; padding: 0; margin: 0; background: none; border: 0; cursor: pointer; white-space: normal; border-radius: 8px; }
+.edita .lapis { display: inline-flex; vertical-align: -1px; margin-left: 6px; color: var(--apagado); } .edita:hover .lapis, .edita:focus-visible .lapis { color: var(--coral); }
+#cz-nome, #cz-resp { text-transform: uppercase; }
+/* 1.19: o relatório do cliente (o extrato): a data, o movimento e, à direita, as horas que entraram ou saíram e o saldo que ficou */
+#rel-per, .rel-datas, .rel-nums { margin-top: 10px; } #rel-conta { margin: 10px 0 6px; }
+.grupo .it.rel-it { align-items: flex-start; gap: 10px; padding: 10px 12px; }
+.rel-q { flex: none; width: 60px; display: flex; flex-direction: column; font-variant-numeric: tabular-nums; } .rel-q b { font-size: 13px; font-weight: 800; } .rel-q small { font-size: 12px; color: var(--tinta-2); }
+.rel-h { flex: none; min-width: 64px; display: flex; flex-direction: column; align-items: flex-end; } .rel-h b { font-size: 15px; font-weight: 800; color: var(--apagado); } .rel-h.mais b { color: var(--ok); } .rel-h.menos b { color: var(--erro); } .rel-h small { font-size: 11.5px; color: var(--tinta-2); white-space: nowrap; }
+.rel-it[data-tipo="ocorr"] .txt b, .rel-it[data-tipo="acerto"] .txt b { font-weight: 700; color: var(--tinta-2); } .rel-it[data-tipo="agora"] .txt b { color: var(--ok); }
+.rel-pe { display: flex; gap: 10px; flex-wrap: wrap; } .rel-pe .bt { flex: 1 1 200px; justify-content: center; }
+.lado-acoes { margin: 8px 0 4px; }
+.papel.relp .c-cab, .papel.relp .c-item { grid-template-columns: 1fr 13mm; } .papel.relp .c-item { margin-top: .7mm; }   /* no relatório a coluna da direita só leva as horas */
 .papel { width: 72mm; max-width: 100%; box-sizing: border-box; padding: 1mm 0 1.5mm; background: #fff; color: #000; font: 600 12px/1.3 Arial, Helvetica, sans-serif; letter-spacing: 0; text-transform: none; text-align: left; }
 .papel p { margin: 0; overflow-wrap: anywhere; } .papel b { font-weight: 800; }
 /* 1.09: o cupom mais curto. O alto: a logo pequena ao lado do nome da loja (antes ficava em cima, grande, e levava 4 cm de papel); as
@@ -1304,6 +1317,7 @@ const IC = {
   vai: '<path d="M9 5l7 7-7 7"/>',
   envia: '<path d="M4 12l16-8-6 16-2.5-6.5z"/>',
   lapis: '<path d="M4 20l4-1 10-10-3-3L5 16z"/>',
+  relatorio: '<path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M10 12h5M10 16h5"/>',   // 1.19: o relatório (extrato) do cliente
   check: '<path d="M5 12l5 5L20 7"/>',
   sino: '<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 21h4"/>',
   renova: '<path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/>',
@@ -1326,7 +1340,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.18';
+const VERSAO = '1.19';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -1364,10 +1378,10 @@ const S = {
   // os produtos da loja (na prévia, os mesmos que a migração 16 instala no servidor). est = estoque; null = a loja não controla o estoque desse produto
   produtos: [{ id: 1, n: 'Amigurumi', v: 320, est: 8 }, { id: 2, n: 'Boneca articulada', v: 150, est: 19 }, { id: 3, n: 'Boneca articulada', v: 230, est: 40 }, { id: 4, n: 'Kit bijoux', v: 230, est: 10 }, { id: 5, n: 'Kit laço', v: 260, est: 8 }, { id: 6, n: 'Maleta', v: 350, est: 20 }, { id: 7, n: 'Maquiagem', v: 160, est: 4 }],
   criancas: [
-    { id: 1, nome: 'Helena', idade: 6, resp: 'Mariana Souza', rel: 'mãe', tel: '(11) 9 8765-4321', cpf: '529.982.247-25', obs: 'Alergia a amendoim; Pode fazer pintura no rosto', pacote: 10, usado: 540, entrou: antes(47), rosto: true, visitas: [{ dia: antes(2880), entrou: '14:05', saiu: '16:40', deb: 155 }, { dia: antes(7200), entrou: '10:10', saiu: '13:55', deb: 225 }] },
-    { id: 2, nome: 'Theo', idade: 4, resp: 'Rafael', rel: 'pai', tel: '(11) 9 7654-3210', cpf: '111.444.777-35', obs: '', pcd: true, pacote: 10, usado: 270, entrou: antes(12), rosto: true, visitas: [{ dia: antes(4320), entrou: '15:00', saiu: '17:35', deb: 155 }, { dia: antes(10080), entrou: '11:00', saiu: '13:00', deb: 120 }] },
-    { id: 3, nome: 'Alice', idade: 8, resp: 'Juliana', rel: 'mãe', tel: '(11) 9 6543-2109', cpf: '123.456.789-09', obs: 'Aniversário dia 15', pacote: 20, usado: 1170, entrou: antes(33), rosto: true, visitas: [{ dia: antes(1440), entrou: '14:00', saiu: '18:00', deb: 240 }] },
-    { id: 4, nome: 'Miguel', idade: 5, resp: 'Carla', rel: 'mãe', tel: '(11) 9 5432-1098', cpf: '390.533.447-05', obs: '', pacote: 10, usado: 360, entrou: null, rosto: true, visitas: [{ dia: antes(12), entrou: hora(antes(131)), saiu: hora(antes(12)), deb: 120, ini: antes(131), sap: 9 }] },
+    { id: 1, nome: 'Helena', idade: 6, resp: 'Mariana Souza', rel: 'mãe', tel: '(11) 9 8765-4321', cpf: '529.982.247-25', obs: 'Alergia a amendoim; Pode fazer pintura no rosto', pacote: 10, usado: 540, entrou: antes(47), rosto: true, visitas: [{ dia: antes(2880), entrou: '14:05', saiu: '18:00', deb: 240 }, { dia: antes(7200), entrou: '10:10', saiu: '15:05', deb: 300 }] },
+    { id: 2, nome: 'Theo', idade: 4, resp: 'Rafael', rel: 'pai', tel: '(11) 9 7654-3210', cpf: '111.444.777-35', obs: '', pcd: true, pacote: 10, usado: 270, entrou: antes(12), rosto: true, visitas: [{ dia: antes(4320), entrou: '15:00', saiu: '17:25', deb: 150 }, { dia: antes(5760), entrou: '11:00', saiu: '13:00', deb: 120 }] },
+    { id: 3, nome: 'Alice', idade: 8, resp: 'Juliana', rel: 'mãe', tel: '(11) 9 6543-2109', cpf: '123.456.789-09', obs: 'Aniversário dia 15', pacote: 20, usado: 1170, entrou: antes(33), rosto: true, visitas: [{ dia: antes(1440), entrou: '14:00', saiu: '18:00', deb: 240 }, { dia: antes(4320), entrou: '13:30', saiu: '17:30', deb: 240 }, { dia: antes(5760), entrou: '14:10', saiu: '18:05', deb: 240 }, { dia: antes(8640), entrou: '10:00', saiu: '14:00', deb: 240 }, { dia: antes(10080), entrou: '15:00', saiu: '18:25', deb: 210 }] },
+    { id: 4, nome: 'Miguel', idade: 5, resp: 'Carla', rel: 'mãe', tel: '(11) 9 5432-1098', cpf: '390.533.447-05', obs: '', pacote: 10, usado: 360, entrou: null, rosto: true, visitas: [{ dia: antes(12), entrou: hora(antes(131)), saiu: hora(antes(12)), deb: 120, ini: antes(131), sap: 9 }, { dia: antes(8640), entrou: '14:00', saiu: '18:00', deb: 240 }] },
     { id: 5, nome: 'Laura', idade: 7, resp: 'Bruno', rel: 'pai', tel: '(11) 9 4321-0987', cpf: '248.438.034-80', obs: '', pacote: 10, usado: 150, entrou: null, rosto: true, visitas: [{ dia: antes(111), entrou: hora(antes(251)), saiu: hora(antes(111)), deb: 150 }] },
     { id: 6, nome: 'Davi', idade: 3, resp: 'Mariana Souza', rel: 'mãe', tel: '(11) 9 8765-4321', cpf: '529.982.247-25', obs: 'Não mexer no cabelo', pacote: 5, usado: 0, entrou: null, rosto: false, visitas: [] },
     { id: 7, nome: 'Sofia', idade: 5, resp: 'Mariana Souza', rel: 'mãe', tel: '(11) 9 8765-4321', cpf: '529.982.247-25', obs: '', pacote: 1, usado: 0, entrou: antes(52), rosto: false, visitas: [], atraso: { n: 2, valor: 160 } },
@@ -3053,7 +3067,9 @@ async function folhaReimprimir(id) {
   const c = crianca(id); if (!c) return; const fam = familia(c), ids = fam.map(x => x.id).slice(0, 30); let L = [], dias = 60;
   if (MODO === 'servidor') { try { const x = await api('papel_lista', { ids }); L = (x.papeis || []).map(k => ({ ...k, quando: dataDe(k.quando) })); dias = x.dias || dias; } catch (e) { toast(e.message); return; } }
   else L = (S.papeis || []).filter(x => ids.includes(x.crianca)).slice(0, 20);
-  const dentro = fam.filter(x => x.entrou && !L.some(k => k.tipo === 'entrada' && k.crianca === x.id && k.quando >= x.entrou));   // quem está no espaço e não tem o cupom de entrada guardado (entrou antes de os cupons serem guardados): o cupom de agora
+  // 1.19: o cadastro foi corrigido depois de o cupom sair: o guardado é a cópia do que foi impresso (com o nome antigo), então o de entrada volta a ser oferecido "como está agora"
+  const corrigido = (S.registros || []).reduce((m, r) => r.tipo === 'cad' && /^Cadastro corrigido/.test(r.txt || '') && (r.crianca != null ? ids.includes(r.crianca) : fam.some(x => x.nome === r.nome)) ? Math.max(m, +r.h) : m, 0);
+  const dentro = fam.filter(x => x.entrou && !L.some(k => k.tipo === 'entrada' && k.crianca === x.id && k.quando >= x.entrou && +k.quando > corrigido));   // quem está no espaço e não tem o cupom de entrada guardado (entrou antes de os cupons serem guardados, ou o cadastro foi corrigido depois): o cupom de agora
   abrirFolha('Reimprimir o cupom', `<p class="explica" id="rp-rot">Os últimos cupons de <b>${esc(c.resp)}</b>. Toque no cupom para ver e imprimir de novo.</p>
     ${L.length || dentro.length ? `<div class="grupo" id="rp-lista">${dentro.map(x => `<button type="button" class="it tap" data-act="papel-ficha" data-id="${x.id}"><div class="txt"><b>Cupom de entrada</b><span>hoje, ${hora(x.entrou)} · ${esc(x.nome)} · como está agora</span></div><span class="vai">${ic(IC.vai, 18)}</span></button>`).join('')}${L.map(x => `<button type="button" class="it tap" data-act="papel-guardado" data-id="${x.id}"><div class="txt"><b>${esc(x.titulo)}</b><span>${quandoPapel(x.quando)}${x.resumo ? ' · ' + esc(x.resumo) : ''}</span></div><span class="vai">${ic(IC.vai, 18)}</span></button>`).join('')}</div>`
       : `<p class="explica" id="rp-vazio">Nenhum cupom guardado para este cliente. Os cupons ficam guardados por ${dias} dias, a partir da versão 1.14.</p>`}`);
@@ -3435,7 +3451,7 @@ function abrirFolha(titulo, html, rotulo) {
   if (SAP_ENT) { const s = SAP_ENT; SAP_ENT = null; s.depois(true); }   // 1.16: outra folha tomou o lugar da pergunta da sapateira: o cupom da entrada fica guardado
   guardarEtapa(false);   // a folha que estava aberta e não foi concluída (atendimento, cadastro novo) fica guardada antes de trocar
   const f = $('#folha'); if (LADO && innerWidth < 820) fecharLado();   // no celular a aba do histórico ocupa a tela: sai para a folha aparecer
-  f.innerHTML = `<div class="folha-fundo" data-fecha><div class="folha" role="dialog" aria-modal="true" aria-label="${esc(rotulo || titulo)}"><div class="alca"></div>
+  f.innerHTML = `<div class="folha-fundo" data-fecha><div class="folha" role="dialog" aria-modal="true" aria-label="${rotulo ? esc(rotulo) : String(titulo).replace(/<[^>]*>/g, '')}"><div class="alca"></div>
     <div class="cab-f"><h2>${titulo}</h2><button class="fechar tap" data-fecha aria-label="Fechar">${ic(IC.x, 18, 2.4)}</button></div>${html}</div></div>`;
   document.body.classList.add('travado');
   requestAnimationFrame(() => requestAnimationFrame(() => f.firstElementChild.classList.add('ve')));
@@ -3883,8 +3899,8 @@ const listaRegistros = regs => `<div class="reg">${regs.length ? regs.map((r, i,
 // na ficha de quem está no espaço: até quando vai o tempo comprado, o que debita se sair agora e as cobranças por atraso
 function folhaFicha(id) { // 1.02: mais limpa. O que importa numa olhada: quem é, se está pago, o tempo e os botões
   const c = crianca(id); if (!c) return; const [et, cls] = estado(c);
-  abrirFolha(`${nomeResp(c)}${c.resp && relSabe(c) ? ', ' + esc(c.rel) : ''}`, `
-    <div class="linha">${avatarComUrso(c, 'g')}<div class="txt"><b style="white-space:normal">${esc(c.nome)}${idadeTxt(c) ? ', ' + idadeTxt(c) : ''}</b>${c.pcd ? `<span style="white-space:normal"><em class="selo-pcd">Criança PCD</em> ${pcdDesc()}% de desconto na recreação avulsa</span>` : ''}<span style="white-space:normal">${esc(fones(c))}${c.cpf ? (fones(c) ? ' · ' : '') + esc(docTxt(c)) : ''}${copiaDoc(c)}</span></div><span class="pill ${cls}">${et}</span></div>
+  abrirFolha(`<button type="button" class="edita tap" data-act="corrigir" data-id="${c.id}" data-campo="resp" title="Corrigir o nome do responsável">${nomeResp(c)}${c.resp && relSabe(c) ? ', ' + esc(c.rel) : ''}${lapis()}</button>`, `
+    <div class="linha">${avatarComUrso(c, 'g')}<div class="txt"><b style="white-space:normal"><button type="button" class="edita tap" data-act="corrigir" data-id="${c.id}" data-campo="nome" title="Corrigir o nome da criança">${esc(c.nome)}${idadeTxt(c) ? ', ' + idadeTxt(c) : ''}${lapis()}</button></b>${c.pcd ? `<span style="white-space:normal"><em class="selo-pcd">Criança PCD</em> ${pcdDesc()}% de desconto na recreação avulsa</span>` : ''}<span style="white-space:normal"><button type="button" class="edita tap" data-act="corrigir" data-id="${c.id}" data-campo="tel" title="Corrigir o telefone">${esc(fones(c)) || 'sem telefone'}${lapis()}</button>${c.cpf ? ' · ' + esc(docTxt(c)) : ''}${copiaDoc(c)}</span></div><span class="pill ${cls}">${et}</span></div>
     <div data-ficha-pago="${c.id}" data-k="${chavePago(c)}">${pagoFicha(c)}</div>
     ${c.obs ? obsAlerta(c) : ''}
     ${alugFicha(c)}
@@ -3899,6 +3915,7 @@ function folhaFicha(id) { // 1.02: mais limpa. O que importa numa olhada: quem �
         : podeManual() && c.entrou ? `<button class="bt claro tap" data-act="saida" data-id="${c.id}" title="Só para corrigir: o normal é a saída pelo rosto">${ic(IC.sair)} Saída à mão</button>` : ''}
       <button class="bt ${semIdface() ? '' : 'forte'} tap" data-act="vender" data-id="${c.id}">${ic(IC.mais)} Vender</button>
       <button class="bt tap" data-act="historico" data-id="${c.id}">${ic(IC.historico)} Histórico</button>
+      <button class="bt tap" data-act="relatorio" data-id="${c.id}" title="O extrato do cliente: compras, visitas e o saldo de cada dia, para ver, imprimir no cupom ou abrir em planilha">${ic(IC.relatorio)} Relatório</button>
       <button class="bt tap" data-act="papel-reimprimir" data-id="${c.id}" title="Ver e imprimir de novo um cupom deste cliente: o cliente perdeu, ou a impressora travou">${ic(IC.cupom)} Reimprimir cupom</button>
       ${c.entrou || c.sapateira ? `<button class="bt tap" data-act="sapateira" data-id="${c.id}" title="${c.sapateira ? 'Trocar a sapateira' : 'Escolher a sapateira'}">${ic(IC.sapato)} ${c.sapateira ? 'Sapateira ' + c.sapateira : 'Sapateira'}</button>` : ''}
       ${c.entrou ? `<span class="f-canc" data-ficha-cancela="${c.id}" data-estado="${estadoCancelar(c)}">${blocoCancelar(c)}</span>` : ''}
@@ -4322,6 +4339,191 @@ const nomeCompra = v => { const m = minDe(v); return v.servico ? esc(v.servico) 
 const nomeUltima = c => c.venda ? (c.venda.servico ? c.venda.servico + ' · ' + dur(minDe(c.venda)) : (minDe(c.venda) === 60 ? 'Hora avulsa' : dur(minDe(c.venda)))) : '';
 const quandoFoi = d => `${d.getDate()} de ${MESES[d.getMonth()].slice(0, 3)}${d.getFullYear() !== agora.getFullYear() ? ' de ' + d.getFullYear() : ''} às ${hora(d)}`;
 const juntar = L => L.length > 1 ? L.slice(0, -1).join(', ') + ' e ' + L[L.length - 1] : (L[0] || '');
+/* ---------- 1.19: corrigir o nome e o telefone pela ficha ---------- */
+// Pedido do dono: "quero que dê opção de alterar o nome ou o telefone quando elas clicarem em cima. Excluir jamais." A equipe digita um
+// nome errado no cadastro, o cupom sai com o nome errado e é preciso acertar na hora. Um toque no nome (do responsável ou da criança) ou
+// no telefone, na ficha, abre a correção. Só esses campos: o documento e a data de nascimento continuam com o Gestor (Ajustes → Cadastros),
+// e nada é apagado. O nome do responsável e os telefones valem para os irmãos (é o mesmo cliente). Fica uma linha em Hoje na recepção:
+// de quê para quê, e quem mudou. Se a criança está no espaço e um nome mudou, a tela oferece o cupom de entrada de novo, com o nome certo.
+const lapis = () => `<i class="lapis" aria-hidden="true">${ic(IC.lapis, 12, 2.4)}</i>`;
+const telArruma = t => { t = String(t || '').trim(); if (telFora(t)) return soDig(t) ? t : ''; let d = soDig(t); if (!d) return '';
+  if ((d.length === 12 || d.length === 13) && d.slice(0, 2) === '55') d = d.slice(2); if ((d.length === 11 || d.length === 12) && d[0] === '0') d = d.slice(1);
+  return d.length === 11 ? `(${d.slice(0, 2)}) ${d[2]} ${d.slice(3, 7)}-${d.slice(7)}` : d.length === 10 ? `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}` : t; };
+// Quem acompanha a correção: os outros cadastros do mesmo cliente. Pelo documento, sempre. Quando o que junta é só o telefone (cadastro antigo,
+// sem documento), só com o mesmo nome de responsável: um telefone repetido não leva a correção para o cadastro de outra pessoa. E cada dado só
+// muda no irmão onde estava igual ao daqui: o que a tela não mostrou (um telefone diferente no cadastro do irmão) não é sobrescrito.
+const chaveNome = t => MAI(t), chaveTel = t => { const d = soDig(t); return d.length >= 8 ? d.slice(-8) : d; };
+const mesmoTel = (a, b) => soDig(a) === soDig(b) && telFora(a) === telFora(b);
+const acompanham = c => familia(c).filter(x => x.id !== c.id && (!!(docDe(c) && docDe(c) === docDe(x)) || !!(chaveNome(c.resp) && chaveNome(c.resp) === chaveNome(x.resp))));
+const igualNoCadastro = (c, x) => chaveNome(c.resp) === chaveNome(x.resp) && chaveTel(c.tel) === chaveTel(x.tel) && chaveTel(c.tel2) === chaveTel(x.tel2);
+function folhaCorrigir(id, campo) {
+  const c = crianca(id); if (!c) return; const irm = acompanham(c), difer = irm.filter(x => !igualNoCadastro(c, x));
+  abrirFolha('Corrigir o cadastro', `
+    <p class="explica">Para acertar um nome ou um telefone digitado errado. Nada é apagado: a mudança fica anotada em Hoje na recepção, com o seu nome.</p>
+    <div class="campo"><label for="cz-resp">Nome do responsável</label><input id="cz-resp" value="${esc(c.resp || '')}" maxlength="80" autocomplete="off" autocapitalize="characters"></div>
+    <div class="campo"><label for="cz-nome">Nome da criança</label><input id="cz-nome" value="${esc(c.nome || '')}" maxlength="60" autocomplete="off" autocapitalize="characters"></div>
+    <div class="dois alinha"><div class="campo"><label for="cz-tel">Telefone</label><input id="cz-tel" inputmode="tel" value="${esc(c.tel || '')}" placeholder="(11) 9 0000-0000" autocomplete="off"></div>
+      <div class="campo discreto"><label for="cz-tel2">Outro telefone</label><input id="cz-tel2" inputmode="tel" value="${esc(c.tel2 || '')}" placeholder="(11) 9 0000-0000" autocomplete="off"></div></div>
+    ${irm.length ? `<p class="explica" id="cz-irmaos">O nome do responsável e os telefones mudam também em ${juntar(irm.map(x => esc(x.nome)))}: é o mesmo cliente.${difer.length ? ` <span id="cz-difer">O que está diferente no cadastro de ${juntar(difer.map(x => esc(x.nome)))} continua como está.</span>` : ''}</p>` : ''}
+    <p class="explica">O ${c.doc === 'rne' ? 'RNE' : 'CPF'} e a data de nascimento ficam com o Gestor, em Ajustes → Cadastros.</p>
+    <div class="pe-f"><button type="button" class="bt forte largo tap" id="cz-ok" data-act="corrigir-salvar" data-id="${c.id}">${ic(IC.check, 18, 2.6)} Salvar a correção</button></div>`);
+  const alvo = { resp: 'cz-resp', nome: 'cz-nome', tel: 'cz-tel' }[campo] || 'cz-resp';
+  if (window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches) setTimeout(() => { const i = $('#' + alvo); if (i) { i.focus(); i.select(); } }, 380);
+}
+async function salvarCorrecao(el) {
+  const c = crianca(el.dataset.id); if (!c || !$('#cz-nome')) return;
+  // o que ninguém mexeu fica escrito como estava (um telefone guardado sem os parênteses não vira "mudança" só por abrir a folha)
+  const nomeLido = (i, antes) => { const v = MAI($('#' + i).value); return v === MAI(antes) ? (antes || '') : v; }, telLido = (i, antes) => { const v = $('#' + i).value; return mesmoTel(v, antes) ? (antes || '') : telArruma(v); };
+  const resp = nomeLido('cz-resp', c.resp), nome = nomeLido('cz-nome', c.nome); let tel = telLido('cz-tel', c.tel), tel2 = telLido('cz-tel2', c.tel2);
+  if (!tel && tel2) { tel = tel2; tel2 = ''; }   // só um telefone: ele é o principal
+  const falta = (i, msg) => { toast(msg); const x = $('#' + i); if (x) x.focus(); };
+  if (!nome) return falta('cz-nome', 'Falta o nome da criança');
+  if (!resp && String(c.resp || '').trim()) return falta('cz-resp', 'Falta o nome do responsável');
+  if (soDig(tel) !== soDig(c.tel) || soDig(tel2) !== soDig(c.tel2)) {
+    if (!soDig(tel) && !soDig(tel2)) return falta('cz-tel', 'Falta um telefone do responsável');
+    if (!telCompleto(tel) && !telCompleto(tel2)) return falta('cz-tel', telFora(tel || tel2) ? 'Telefone internacional incompleto: coloque o + com o código do país e o número' : 'Telefone incompleto: coloque o DDD e o número'); }
+  const vazio = t => t || '(vazio)', M = [];
+  if (resp !== (c.resp || '')) M.push(`responsável de "${c.resp || ''}" para "${resp}"`); if (nome !== c.nome) M.push(`criança de "${c.nome}" para "${nome}"`);
+  if (tel !== (c.tel || '')) M.push(`telefone de ${vazio(c.tel)} para ${vazio(tel)}`); if (tel2 !== (c.tel2 || '')) M.push(`outro telefone de ${vazio(c.tel2)} para ${vazio(tel2)}`);
+  const volta = () => { fecharFolha(); setTimeout(() => folhaFicha(c.id), 260); };
+  if (!M.length) { volta(); return; }
+  const mResp = resp !== (c.resp || ''), mTel = tel !== (c.tel || ''), mTel2 = tel2 !== (c.tel2 || ''), mudouNome = mResp || nome !== c.nome, segue = acompanham(c); el.disabled = true;
+  if (MODO === 'servidor') { try { await api('cadastro_corrigir', { id: c.id, resp, nome, tel, tel2 }); await carregar(); } catch (e) { el.disabled = false; toast(e.message); return; } }
+  else { const era = { resp: c.resp, tel: c.tel, tel2: c.tel2 }, junto = [], mexidos = [c];
+    for (const x of segue) { let m = 0;   // cada dado só muda no irmão onde estava igual ao daqui
+      if (mResp && chaveNome(x.resp) === chaveNome(era.resp)) { x.resp = resp; m = 1; }
+      if (mTel && chaveTel(x.tel) === chaveTel(era.tel)) { x.tel = tel; m = 1; }
+      if (mTel2 && chaveTel(x.tel2) === chaveTel(era.tel2)) { x.tel2 = tel2; m = 1; }
+      if (m) { junto.push(x.nome); mexidos.push(x); } }
+    c.resp = resp; c.nome = nome; c.tel = tel; c.tel2 = tel2;
+    for (const k of S.cupons || []) { const d = k.status === 'pendente' && mexidos.find(x => x.id === k.crianca); if (d) { k.nome = d.nome; k.resp = d.resp; } }   // o cupom fiscal ainda não emitido sai com o nome certo (o já emitido fica como saiu)
+    registrar('cad', nome, `Cadastro corrigido: ${M.join(' · ')}${junto.length ? ' · também em ' + juntar(junto) : ''} · por ${primeiro(EU.nome)}`); }
+  renomearRascunho(c.id, nome); desenhar(true); volta();
+  const dentro = [c, ...segue].map(x => crianca(x.id)).find(x => x && x.entrou);
+  if (mudouNome && dentro && modoPapel() !== 'nao') toast('Cadastro corrigido. O cupom de entrada pode sair de novo, com o nome certo.', () => folhaPapel({ tipo: 'entrada', id: dentro.id }), 'Imprimir o cupom');
+  else deuCerto('Cadastro corrigido');
+}
+
+/* ---------- 1.19: o relatório do cliente (o extrato) ---------- */
+// Pedido do dono, com a foto do extrato do sistema anterior: "em cada cliente ter a opção relatório… com essas informações, mas na nossa
+// estética… imprimir em cupom esse relatório ou abrir uma planilha". O relatório é do cliente (o responsável e as crianças dele): por
+// período, o saldo no início, as horas compradas e usadas, o saldo no fim e cada movimento, do mais antigo para o mais novo, com o saldo
+// que ficou depois dele. Uma compra soma as horas dela; uma visita tira o que saiu do pacote (a recreação avulsa não mexe no saldo: aparece
+// com o tempo e o valor); as ocorrências (saída corrigida, visita reaberta, entrada cancelada, desconto, cadastro corrigido) entram como
+// linha de aviso, para explicar um acerto. O saldo de cada linha é contado de hoje para trás: a última linha fecha sempre com o saldo
+// que o sistema mostra, e o que não tem movimento guardado aparece no "saldo no início".
+let REL = null;   // { id, per: '30d' | '90d' | '12m' | 'tudo' | 'datas', de, ate, dados: { vendas, visitas, ocorr }, erro }
+const PER_REL = [['30d', '30 dias', 30], ['90d', '90 dias', 90], ['12m', '12 meses', 365], ['tudo', 'Tudo', 0]];
+const OCORR_REL = { corr: 'Saída corrigida', reab: 'Visita reaberta', canc: 'Entrada cancelada', desc: 'Desconto', cad: 'Cadastro' };
+function abrirRelatorio(id) { const c = crianca(id); if (!c) return; REL = { id: c.id, per: '12m', de: '', ate: '', dados: null, erro: '' };
+  abrirFolha('Relatório do cliente', '<div id="rel-corpo"></div>'); desenharRelatorio(); buscarRelatorio(); }
+async function buscarRelatorio() {
+  const marca = REL; if (!marca) return; const base = crianca(marca.id); if (!base) return; const fam = familia(base), ids = fam.map(x => x.id);
+  if (MODO === 'servidor') {
+    try { const r = await api('historico', { ids, tudo: 1 }); if (REL !== marca) return;
+      marca.dados = { vendas: r.vendas.map(v => ({ ...v, quando: dataDe(v.quando) })), visitas: r.visitas.map(v => ({ ...v, dia: dataDe(v.dia), ini: v.e ? dataDe(v.e) : null })), ocorr: (r.ocorr || []).map(g => ({ ...g, q: dataDe(g.q) })) }; marca.erro = ''; }
+    catch (e) { if (REL !== marca) return; marca.erro = e.message; }
+  } else { const nomes = new Set(fam.map(x => x.nome));
+    marca.dados = { vendas: S.compras.filter(v => ids.includes(v.crianca)), visitas: fam.flatMap(x => x.visitas.map(v => ({ ...v, crianca: x.id, dia: new Date(v.dia) }))),
+      ocorr: S.registros.filter(g => OCORR_REL[g.tipo] && nomes.has(g.nome)).map(g => ({ q: new Date(g.h), tipo: g.tipo, texto: g.txt, crianca: (fam.find(x => x.nome === g.nome) || {}).id })) }; }
+  desenharRelatorio();
+}
+const minutosEntre = (a, b, senao) => { const m = t => { const k = /^(\d{1,2}):(\d{2})$/.exec(String(t || '')); return k ? +k[1] * 60 + +k[2] : null; }, x = m(a), y = m(b); return x != null && y != null ? (y - x + 1440) % 1440 : Math.max(0, senao || 0); };   // de "14:05" a "16:40"
+const hmS = (min, menos = '−') => (min < 0 ? menos : '') + hm(Math.abs(min));   // o saldo com sinal (um histórico que não fecha pode passar abaixo de zero)
+const nomeCompraTxt = v => { const m = minDe(v); return v.servico ? v.servico + (m ? ' · ' + dur(m) : '') + (v.itens ? ' · ' + v.itens : '') : m ? nomePacVenda(m, v.itens) : (v.itens || 'Produto'); };
+const formasTxt = o => { const L = Object.entries(o || {}).map(([f, v]) => ({ f, v })); return L.length ? textoPag(L) : ''; };
+function extratoDe(fam, d) {
+  const E = [], varias = fam.length > 1, nomeDe = id => (crianca(id) || { nome: '' }).nome, uni = x => nomeUni(x.un != null ? x.un : x.uni) || '';
+  // os lançamentos automáticos (recreação avulsa, tempo além do pacote) pertencem a uma visita: a que está correndo, ou uma que já fechou
+  const daVisita = new Map(), abertos = new Map(), soltos = new Set(), poe = (m, k, v) => { if (!m.has(k)) m.set(k, []); m.get(k).push(v); };
+  for (const v of d.vendas) { if (!tipoAuto(v)) continue; const c = crianca(v.crianca), q = +v.quando;
+    if (c && c.entrou && q >= +c.entrou - 60000) { poe(abertos, c.id, v); continue; }
+    const x = d.visitas.find(x => x.crianca === v.crianca && q <= +x.dia + 60000 && q >= +iniVisita(x) - 60000); if (x) poe(daVisita, x, v); else soltos.add(v); }
+  for (const v of d.vendas) { if (tipoAuto(v) && !soltos.has(v)) continue; const m = minDe(v), np = naoPagoDe(v);
+    E.push({ q: v.quando, n: v.id || 0, tipo: 'compra', crianca: v.crianca, titulo: nomeCompraTxt(v), quem: varias ? nomeDe(v.crianca) : '', info: '', pag: np > 0.004 ? 'a receber' : formasTxt(formasDaCompra(v)), extra: '', fim: pontos(v.desc > 0 ? 'desconto de ' + brl(v.desc) : '', v.por ? 'por ' + primeiro(v.por) : ''), valor: v.v || 0, np, efeito: m > 0 ? m : 0, un: uni(v) }); }
+  for (const x of d.visitas) { const A = daVisita.get(x) || [], am = A.reduce((t, v) => t + minDe(v), 0), av = centavos(A.reduce((t, v) => t + v.v, 0)), np = A.reduce((t, v) => t + naoPagoDe(v), 0), ini = iniVisita(x), entrouH = x.entrou || hora(ini), saiuH = x.saiu || hora(x.dia), ficou = minutosEntre(entrouH, saiuH, Math.round((+x.dia - +ini) / 60000));
+    const avulsa = A.some(v => tipoAuto(v) === 'avulsa'), o = {}; for (const v of A) for (const [f, q] of Object.entries(formasDaCompra(v))) o[f] = centavos((o[f] || 0) + q);
+    E.push({ q: x.dia, n: x.id || 0, tipo: 'visita', crianca: x.crianca, titulo: 'RECREAÇÃO' + (avulsa ? ' avulsa' : ''), quem: varias ? nomeDe(x.crianca) : '', info: `entrou ${entrouH} · saiu ${saiuH} · ficou ${dur(ficou)}`, hr: saiuH,
+      pag: av > 0 ? (np > 0.004 ? 'a receber' : formasTxt(o)) : '', extra: am ? (avulsa ? 'recreação avulsa ' : 'além do pacote ') + dur(am) : '', valor: av, np, efeito: -Math.max(0, (x.deb || 0) - am), un: uni(x) }); }
+  for (const c of fam) { if (!c.entrou) continue; const A = abertos.get(c.id) || [], am = A.reduce((t, v) => t + minDe(v), 0), av = centavos(A.reduce((t, v) => t + v.v, 0));
+    E.push({ q: new Date(agora), tipo: 'agora', crianca: c.id, titulo: 'No espaço agora', quem: varias ? c.nome : '', info: 'entrou às ' + hora(c.entrou), pag: av > 0 ? 'acerta na saída' : '', extra: am ? `recreação ${planoDe(c) === 'pacote' ? 'além do pacote' : 'avulsa'} até agora ${dur(am)}` : '', valor: av, np: av, efeito: 0, un: nomeUni(c.uni) || '' }); }
+  for (const g of d.ocorr || []) E.push({ q: g.q, tipo: 'ocorr', crianca: g.crianca || 0, titulo: OCORR_REL[g.tipo] || 'Ocorrência', quem: varias && g.crianca ? nomeDe(g.crianca) : '', info: g.texto || '', pag: '', extra: '', valor: 0, np: 0, efeito: 0, un: '' });
+  const ordem = { compra: 0, visita: 1, ocorr: 2, agora: 3 }; E.sort((a, b) => a.q - b.q || ordem[a.tipo] - ordem[b.tipo] || (a.n || 0) - (b.n || 0));   // na mesma hora: a compra antes da visita, e o que foi lançado primeiro antes
+  // o saldo de cada linha. O saldo de hoje é o do sistema (sem o que a visita que está correndo ainda vai acertar). Quando os movimentos
+  // guardados não explicam esse saldo (cadastro antigo, horas que vieram de antes), a diferença para mais é o saldo no início do histórico;
+  // a diferença para menos vira uma linha de acerto no fim. Assim o extrato fecha sempre com o saldo que o sistema mostra, e a diferença fica à vista.
+  const hoje = fam.reduce((t, c) => t + Math.max(0, pacMin(c) - c.usado - (abertos.get(c.id) || []).reduce((a, v) => a + minDe(v), 0)), 0), dif = hoje - E.reduce((t, e) => t + e.efeito, 0);
+  const antes = Math.max(0, dif); let s = antes; for (const e of E) { s += e.efeito; e.saldo = s; }
+  if (dif < 0) E.push({ q: new Date(agora), tipo: 'acerto', crianca: 0, titulo: 'Acerto de saldo', quem: '', info: `o sistema tem ${dur(-dif)} a menos do que os movimentos guardados explicam`, pag: '', extra: '', valor: 0, np: 0, efeito: dif, un: '', saldo: hoje });
+  return { E, antes };
+}
+function periodoRel() { const fim = new Date(agora); fim.setHours(23, 59, 59, 999);
+  if (REL.per === 'datas') return { de: REL.de ? new Date(REL.de + 'T00:00:00') : null, ate: REL.ate ? new Date(REL.ate + 'T23:59:59.999') : fim };
+  const p = PER_REL.find(x => x[0] === REL.per) || PER_REL[2]; if (!p[2]) return { de: null, ate: fim };
+  const de = new Date(fim); de.setDate(de.getDate() - p[2]); de.setHours(0, 0, 0, 0); return { de, ate: fim }; }
+function contaRel() {   // as linhas do período e o resumo dele
+  const base = crianca(REL.id), fam = familia(base), X = extratoDe(fam, REL.dados), { de, ate } = periodoRel();
+  const L = X.E.filter(e => (!de || e.q >= de) && e.q <= ate), antes = de ? X.E.filter(e => e.q < de) : [], abre = antes.length ? antes[antes.length - 1].saldo : X.antes;
+  return { base, fam, L, de, ate, abre, fecha: L.length ? L[L.length - 1].saldo : abre, mais: L.reduce((t, e) => t + Math.max(0, e.efeito), 0), menos: L.reduce((t, e) => t + Math.max(0, -e.efeito), 0),
+    pago: centavos(L.reduce((t, e) => t + e.valor - e.np, 0)), visitas: L.filter(e => e.tipo === 'visita').length, primeira: X.E.length ? X.E[0].q : null };
+}
+const dataBr = d => `${p2(d.getDate())}/${p2(d.getMonth() + 1)}/${d.getFullYear()}`, dataBrCurta = d => `${p2(d.getDate())}/${p2(d.getMonth() + 1)}/${String(d.getFullYear()).slice(2)}`;
+const horasRel = (e, menos = '−') => e.efeito > 0 ? '+' + dur(e.efeito) : e.efeito < 0 ? menos + dur(-e.efeito) : '';
+const detalheRel = e => pontos(e.quem, e.info, e.extra, e.valor ? brl(e.valor) + (e.pag ? ' · ' + e.pag : '') : e.pag, e.fim, e.un);
+const periodoTxt = R => `${R.de ? dataBr(R.de) : R.primeira ? dataBr(R.primeira) : 'o início'} a ${dataBr(R.ate)}`;
+const linhaRel = e => `<div class="it rel-it" data-tipo="${e.tipo}"><span class="rel-q"><b>${dataBrCurta(e.q)}</b><small>${e.hr || hora(e.q)}</small></span><div class="txt"><b style="white-space:normal">${esc(e.titulo)}</b><span style="white-space:normal">${esc(detalheRel(e))}</span></div><span class="rel-h ${e.efeito > 0 ? 'mais' : e.efeito < 0 ? 'menos' : ''}"><b class="num">${horasRel(e) || '—'}</b><small>saldo ${hmS(e.saldo)}</small></span></div>`;
+function desenharRelatorio() {
+  const a = $('#rel-corpo'); if (!a || !REL) return; const base = crianca(REL.id); if (!base) { fecharFolha(); return; } const fam = familia(base);
+  const cab = `<div class="linha"><span class="av g" style="background:${CORES[base.id % CORES.length]}">${esc(iniciais(base.resp || base.nome))}</span><div class="txt"><b style="white-space:normal">${esc(base.resp || base.nome)}</b><span style="white-space:normal">${relSabe(base) ? esc(base.rel) + ' de ' : 'responsável por '}${juntar(fam.map(c => esc(c.nome)))}</span><span style="white-space:normal">${esc(pontos(fones(base), docTxt(base)))}</span></div></div>
+    <div class="seg" id="rel-per">${PER_REL.map(([k, n]) => `<button type="button" data-act="rel-per" data-v="${k}" aria-pressed="${REL.per === k}">${n}</button>`).join('')}</div>`;
+  if (!REL.dados) { a.innerHTML = cab + `<p class="explica" id="rel-espera">${REL.erro ? esc(REL.erro) : 'Buscando os movimentos…'}</p>`; return; }
+  const R = contaRel(), iso = d => d ? isoDia(d) : '', hoje = isoDia(new Date(agora)), n = R.L.length;
+  a.innerHTML = `${cab}
+    <div class="dois rel-datas"><div class="campo"><label for="rel-de">De</label><input type="date" id="rel-de" value="${iso(R.de || R.primeira)}" max="${hoje}"></div><div class="campo"><label for="rel-ate">Até</label><input type="date" id="rel-ate" value="${iso(R.ate)}" max="${hoje}"></div></div>
+    <div class="h-nums rel-nums">
+      <div><small>Saldo no início</small><b class="num" id="rel-abre">${hmS(R.abre)}</b></div>
+      <div><small>Horas compradas</small><b class="num" id="rel-mais">${R.mais ? '+' : ''}${hm(R.mais)}</b></div>
+      <div><small>Horas usadas</small><b class="num" id="rel-menos">${R.menos ? '−' : ''}${hm(R.menos)}</b></div>
+      <div class="tem"><small>Saldo no fim</small><b class="num" id="rel-fecha">${hmS(R.fecha)}</b></div>
+    </div>
+    <p class="explica" id="rel-conta">${n ? `${n} ${n === 1 ? 'movimento' : 'movimentos'} · ${R.visitas} ${R.visitas === 1 ? 'visita' : 'visitas'} · pagou ${brl(R.pago)} no período` : 'Nenhum movimento neste período.'}</p>
+    ${n ? `<div class="grupo rel-lista">${R.L.map(linhaRel).join('')}</div>` : ''}
+    <div class="pe-f rel-pe"><button type="button" class="bt forte tap" data-act="rel-imprimir" ${n ? '' : 'disabled'}>${ic(IC.cupom)} Imprimir no cupom</button><button type="button" class="bt tap" data-act="rel-planilha" ${n ? '' : 'disabled'}>${ic(IC.baixa)} Abrir em planilha</button></div>`;
+}
+// o relatório no papel do cupom (80 mm): o alto da loja, o cliente, o período, o resumo e uma linha (mais o detalhe) por movimento
+function papelRelatorio(R) {
+  const L = lojaPapel(), c = R.base, uniP = nomeUni(minhaUni()), lin = (rot, val, cls = '') => `<p class="c-linha c-pt${cls}"><span>${rot}</span><i></i><span>${val}</span></p>`, n = R.L.length;
+  return `<div class="papel loja relp"><div class="c-topo"><span class="c-logo cor">${LOGO}</span><span class="c-logo pb">${LOGO_PB}</span><div class="c-quem"><p class="c-loja">${esc(L.nome)}</p>${uniP ? `<p class="c-uni">${esc(uniP)}</p>` : ''}${L.tel ? `<p class="c-fone">${esc(L.tel)}</p>` : ''}</div></div>
+    <p class="c-via"><span>RELATÓRIO</span><span>${dataCurta(agoraJa())}</span></p>
+    <p>Responsável: <b>${esc(c.resp || c.nome)}</b></p>${docTxt(c) || fones(c) ? `<p>${esc(pontos(docTxt(c), fones(c)))}</p>` : ''}<p>${R.fam.length > 1 ? 'Crianças' : 'Criança'}: ${esc(juntar(R.fam.map(x => x.nome)))}</p>
+    <p class="c-div"></p><p class="c-titulo">${esc(periodoTxt(R).toUpperCase())}</p>
+    ${lin('Saldo no início', hmS(R.abre, '-'))}${lin('Horas compradas', (R.mais ? '+' : '') + hm(R.mais))}${lin('Horas usadas', (R.menos ? '-' : '') + hm(R.menos))}${lin('Saldo no fim', hmS(R.fecha, '-'), ' c-total')}${lin('Pago no período', brl2(R.pago))}
+    <p class="c-div"></p><p class="c-cab"><span>Movimento</span><span>Horas</span></p>
+    ${R.L.map(e => `<p class="c-item"><span><b>${dataBrCurta(e.q)}</b> ${esc(e.titulo)}</span><span>${horasRel(e, '-')}</span></p><p class="c-sub">${esc(pontos(e.hr || hora(e.q), detalheRel(e), 'saldo ' + hmS(e.saldo, '-')))}</p>`).join('')}
+    <p class="c-rod">${n} ${n === 1 ? 'movimento' : 'movimentos'} · emitido por ${esc(MAI(primeiro((typeof EU !== 'undefined' && EU && EU.nome) || 'equipe')))}</p></div>`;
+}
+// um relatório comprido gasta papel (cada movimento ocupa perto de 1 cm): acima de 40 movimentos a tela avisa antes, e imprime se a pessoa confirmar
+function imprimirRelatorio(mesmo) { if (!REL || !REL.dados) return; const R = contaRel(), n = R.L.length; if (!n) return;
+  if (n > 40 && mesmo !== true) { toast(`São ${n} movimentos: o cupom sai comprido. Um período menor ou a planilha gastam menos papel.`, () => imprimirRelatorio(true), 'Imprimir assim mesmo'); return; }
+  imprimirPapel([papelRelatorio(R)]); }
+// a planilha: um arquivo .csv que o Excel abre direto (ponto e vírgula entre as colunas, vírgula nos números), com o resumo em cima e uma linha por movimento
+function planilhaRelatorio(R) {
+  const c = R.base, num = v => (Math.round(v * 100) / 100).toFixed(2).replace('.', ','), ehNum = v => /^-?\d+(,\d+)?$/.test(v);
+  const cel = v => { v = v == null ? '' : String(v); if (/^[=+\-@]/.test(v) && !ehNum(v)) v = ' ' + v;   // um texto que começa com = + - @ não pode virar fórmula na planilha
+    return /[";\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }, lin = (...v) => v.map(cel).join(';');
+  const T = [lin('Relatório do cliente', c.resp || c.nome), lin('Documento', docTxt(c)), lin('Telefone', fones(c)), lin(R.fam.length > 1 ? 'Crianças' : 'Criança', juntar(R.fam.map(x => x.nome))), lin('Período', periodoTxt(R)),
+    lin('Saldo no início (horas)', num(R.abre / 60)), lin('Horas compradas', num(R.mais / 60)), lin('Horas usadas', num(R.menos / 60)), lin('Saldo no fim (horas)', num(R.fecha / 60)), lin('Pago no período (R$)', num(R.pago)), '',
+    lin('Data', 'Hora', 'Movimento', 'Detalhe', 'Criança', 'Unidade', 'Valor (R$)', 'Pagamento', 'Horas', 'Saldo (horas)')];
+  for (const e of R.L) T.push(lin(dataBr(e.q), e.hr || hora(e.q), e.titulo, pontos(e.info, e.extra, e.fim), e.crianca ? (crianca(e.crianca) || { nome: '' }).nome : '', e.un, e.valor ? num(e.valor) : '', e.pag, e.efeito ? num(e.efeito / 60) : '', num(e.saldo / 60)));
+  return '﻿' + T.join('\r\n') + '\r\n';
+}
+const nomeArqRel = R => `relatorio-${String(R.base.resp || R.base.nome).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase().slice(0, 40) || 'cliente'}-${isoDia(new Date(agora))}.csv`;
+async function baixarRelatorio() { if (!REL || !REL.dados) return; const R = contaRel(); if (!R.L.length) return; const nome = nomeArqRel(R), csv = planilhaRelatorio(R), pela = baixarPelaPrevia();
+  if (pela) { const dl = await pela; if (!dl) { toast('Aqui na prévia a planilha não baixa. No sistema da loja este botão entrega o arquivo.'); return; }   // na prévia publicada o arquivo sai pelo próprio visualizador
+    try { await dl.save({ filename: nome, data: csv }); deuCerto('Planilha baixada'); } catch (e) { if (!e || e.code !== 'declined') toast('Não deu para baixar a planilha aqui.'); } return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = nome;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 800); deuCerto('Planilha baixada'); }
+
 function abrirHistorico(id) {
   const c = crianca(id); if (!c) return;
   LADO = { id: c.id, dados: null, erro: '', todas: false, reg: ULT_REG };
@@ -4353,6 +4555,7 @@ function desenharLado() {
   a.innerHTML = `
     <div class="cab-f"><h2>Histórico do cliente</h2><button class="fechar tap" data-act="lado-fechar" aria-label="Fechar o histórico">${ic(IC.x, 18, 2.4)}</button></div>
     <div class="linha"><span class="av g" style="background:${CORES[base.id % CORES.length]}">${esc(iniciais(base.resp))}</span><div class="txt"><b style="white-space:normal">${esc(base.resp)}</b><span style="white-space:normal">${relSabe(base) ? esc(base.rel) + ' de ' : 'responsável por '}${juntar(fam.map(c => esc(c.nome)))}</span><span style="white-space:normal">${esc(fones(base) || 'sem telefone')}${base.cpf ? ' · ' + esc(docTxt(base)) : ''}${copiaDoc(base)}</span></div></div>
+    <div class="acoes lado-acoes"><button class="bt tap" data-act="relatorio" data-id="${base.id}" title="O extrato do cliente, para imprimir no cupom ou abrir em planilha">${ic(IC.relatorio)} Relatório</button></div>
     <div class="h-nums">
       <div><small>Pagou ao todo</small><b class="num">${d ? brl(centavos(d.vendas.reduce((t, v) => t + v.v - naoPagoDe(v), 0))) : '…'}</b></div>
       ${comPac ? `<div><small>Horas compradas</small><b class="num">${hm(comprado)}</b></div>
@@ -5009,7 +5212,10 @@ const ACOES = {
     if (MODO === 'servidor') return; const u = S.equipe.find(x => x.papel === el.dataset.v); if (!u) return;
     EU = { nome: u.nome.split(' ')[0], nomeCompleto: u.nome, papel: u.papel, login: u.login, id: u.id }; ABAS = TODAS_ABAS.filter(a => a[0] !== 'ajustes' || supervisorOuMais()); if (!ABAS.some(a => a[0] === S.tela)) S.tela = 'horas';
     fecharFolha(); desenhar(); deuCerto(`Agora você vê como ${PAPEIS[u.papel]}: ${u.nome}`); },
-  historico: el => abrirHistorico(el.dataset.id), 'lado-fechar': () => fecharLado(), 'lado-todas': () => { if (LADO) { LADO.todas = !LADO.todas; desenharLado(); } },
+  historico: el => abrirHistorico(el.dataset.id), 'lado-fechar': () => fecharLado(),
+  corrigir: el => folhaCorrigir(el.dataset.id, el.dataset.campo), 'corrigir-salvar': el => salvarCorrecao(el),   // 1.19: acertar o nome ou o telefone pela ficha
+  relatorio: el => abrirRelatorio(el.dataset.id), 'rel-per': el => { if (REL) { REL.per = el.dataset.v; desenharRelatorio(); } }, 'rel-imprimir': () => imprimirRelatorio(), 'rel-planilha': () => baixarRelatorio(),   // 1.19: o relatório do cliente
+  'lado-todas': () => { if (LADO) { LADO.todas = !LADO.todas; desenharLado(); } },
   dia: () => folhaDia(), todas: () => { S.bancoFiltro = 'todas'; trocarTela('banco'); }, acabando: () => { S.bancoFiltro = 'renovar'; trocarTela('banco'); },
   'toast-acao': () => { const f = TOAST_ACAO; TOAST_ACAO = null; $('#toast').classList.remove('ve'); if (f) f(); },
   'banco-filtro': el => { S.bancoFiltro = el.dataset.f; desenhar(true); },
@@ -5180,6 +5386,7 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('change', e => {
   const t = e.target; if (t.id === 'pc-parc') { contaPacote(); return; }
+  if ((t.id === 'rel-de' || t.id === 'rel-ate') && REL) { REL.per = 'datas'; REL.de = ($('#rel-de') || {}).value || ''; REL.ate = ($('#rel-ate') || {}).value || ''; desenharRelatorio(); return; }   /* 1.19: as datas do relatório do cliente */
   if (t.id === 'v-entrar' && CARRINHO) { CARRINHO.entrar = t.checked; guardarRascunho(); return; }
   if (t.dataset && t.dataset.cancVenda && CANCELA) { const id = +t.dataset.cancVenda; if (t.checked) CANCELA.fica.delete(id); else CANCELA.fica.add(id); resumoCancelar(); return; }
   if (t.dataset && t.dataset.imCol && IM) { const k = t.dataset.imCol, v = +t.value; for (const o in IM.col) if (o !== k && v >= 0 && IM.col[o] === v) IM.col[o] = -1; IM.col[k] = v; lerLinhas(); pintarImportar(); return; }   /* 1.01: a coluna de um campo da importação (a mesma coluna não fica em dois campos) */

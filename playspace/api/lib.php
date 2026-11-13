@@ -435,6 +435,25 @@ function registrar(string $tipo, ?int $criancaId, string $nome, string $texto, ?
   db()->prepare('INSERT INTO registros (quando, tipo, crianca_id, nome, texto, unidade_id) VALUES (?, ?, ?, ?, ?, ?)')->execute([$quando ?: agora(), $tipo, $criancaId, $nome, $texto, $unidade === false ? unidadeDoPedido() : ($unidade ? (int)$unidade : null)]);
   return (int)db()->lastInsertId();
 }
+// 1.19: os outros cadastros ativos do mesmo cliente, do jeito que a tela junta os irmãos: o mesmo documento do responsável; quando um dos
+// dois não tem documento, o mesmo telefone (os 8 últimos números). Serve para a correção do nome do responsável e dos telefones valer para todos.
+function chaveDocCadastro(array $x): string {
+  $v = (string)($x['cpf'] ?? '');
+  if (($x['doc_tipo'] ?? 'cpf') === 'rne') { $r = (string)preg_replace('/[^A-Z0-9]/', '', mb_strtoupper($v)); return strlen($r) >= 5 ? 'r' . $r : ''; }
+  $d = (string)preg_replace('/\D/', '', $v); return strlen($d) === 11 ? 'c' . $d : '';
+}
+function chaveTelCadastro(array $x): string { $d = (string)preg_replace('/\D/', '', (string)($x['tel'] ?? '')); return strlen($d) >= 8 ? substr($d, -8) : ''; }
+function irmaosDe(array $c): array {
+  $doc = chaveDocCadastro($c); $tel = chaveTelCadastro($c); if ($doc === '' && $tel === '') return [];
+  // o banco separa os candidatos (o mesmo documento escrito de qualquer jeito, ou o telefone com o mesmo final); a conferência exata é feita abaixo
+  $docLimpo = $doc !== '' ? substr($doc, 1) : '~';
+  $q = db()->prepare("SELECT * FROM criancas WHERE ativo = 1 AND id != ? AND (upper(replace(replace(replace(replace(cpf, '.', ''), '-', ''), ' ', ''), '/', '')) = ? OR (? != '' AND tel LIKE ?))");
+  $q->execute([(int)$c['id'], $docLimpo, $tel, '%' . substr($tel, -4)]);
+  return array_values(array_filter($q->fetchAll(), function ($x) use ($doc, $tel) {
+    $dx = chaveDocCadastro($x);
+    return ($doc !== '' && $dx === $doc) || (!($doc !== '' && $dx !== '') && $tel !== '' && chaveTelCadastro($x) === $tel);
+  }));
+}
 function crianca(int $id): ?array { $q = db()->prepare('SELECT * FROM criancas WHERE id = ?'); $q->execute([$id]); return $q->fetch() ?: null; }
 
 /* ---------- entrada, saída e venda: a mesma lógica para o iDFace e para o toque na tela ---------- */
