@@ -490,7 +490,7 @@ function logo(){
 $('#logo').innerHTML = logo(); document.querySelector('.top .mic').innerHTML = I.mic;
 
 /* ========== estado ========== */
-const FINV = '11 nov · 43'; // Versão do Finanças: 11 nov · 43
+const FINV = '13 nov · 44'; // Versão do Finanças: 13 nov · 44
 const DONO = { nome:'Eduardo Matias', iniciais:'EM' }; // perfil único desta página
 const LS = 'simplificando-financas', LST = 'simplificando-financas-tema';
 const CATS = ['Mercado', 'Comida', 'Transporte', 'Casa', 'Lazer', 'Saúde', 'Roupas', 'Assinaturas', 'Outros'];
@@ -743,7 +743,9 @@ function rResumo(){
   // cofrinho
   if (o.meta || o.guardado) {
     const falta = Math.max(0, o.meta - o.guardado), pct = o.meta ? Math.min(100, Math.round(o.guardado / o.meta * 100)) : 100;
-    h += `<div class="card blk-rosa ${falta ? '' : 'feito'}"><div class="hd"><span class="porco" aria-hidden="true">🐷</span><h2>Cofrinho</h2><span class="pill">${pct}% da meta</span></div>
+    const kCof = 'simplificando-financas-cofre-' + UI.mes; let minC = ls.get(kCof); minC = minC === null ? !falta : minC === '1';
+    h += `<div class="card blk-rosa ${falta ? '' : 'feito'}"><div class="hd"><span class="porco" aria-hidden="true">🐷</span><h2>Cofrinho</h2><span class="pill">${falta ? pct + '% da meta' : 'meta batida · ' + esc(fmt(o.guardado))}</span>${falta ? '' : `<button type="button" class="min-btn ${minC ? '' : 'aberto'}" data-a="cofre-min" data-k="${minC ? '0' : '1'}" aria-label="${minC ? 'Mostrar' : 'Minimizar'}"><svg class="i" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>`}</div>`;
+    if (!falta && minC) h += `</div>`; else h += `
       <p class="big">${fmtBig(o.guardado)}<small style="margin-left:6px">de ${esc(fmt(o.meta))}</small></p><div class="prog"><i style="width:${pct}%"></i></div>
       <p class="sub">${falta ? 'Faltam <b>' + esc(fmt(falta)) + '</b> para guardar este mês. Quando o salário cair, guarde primeiro e gaste depois.' : 'Meta do mês batida. Isso é o que faz sobrar no mês que vem.'}</p>
       <div class="btns">${falta ? `<button type="button" class="btn primary" data-a="guardar-tudo" data-k="${falta}">Guardei ${esc(fmt(falta))}</button>` : ''}<button type="button" class="btn" data-a="guardar">${I.plus}Outro valor</button>${S.guardados.filter(inMes).length ? `<button type="button" class="btn" data-a="ver-guardados">Ver</button>` : ''}</div></div>`;
@@ -1507,6 +1509,7 @@ document.addEventListener('click', ev => {
   if (a === 'ed-guardado') { const x = S.guardados.find(y => y.id === k); if (x) sheetGuardar(x); }
   if (a === 'aj-rec') { if (ev.target.closest('.hd') && ev.target.closest('button:not(.min-btn), input, label, select') ) return; ls.set(k, ls.get(k) === '1' ? '0' : '1'); render(); return; }
   if (a === 'ver-mov') { UI.verMov = !UI.verMov; render(); }
+  if (a === 'cofre-min') { ls.set('simplificando-financas-cofre-' + UI.mes, k); render(); }
   if (a === 'contas-min') { ls.set('simplificando-financas-contas-' + UI.mes, k); render(); }
   if (a === 'pagar-conta') { const f = S.fixos.find(x => x.id === k); if (!f) return; S.gastos.push({ id:uid(), cr:Date.now(), valor:f.valor, data:todayISO(), cartao:contaId(), quem:f.quem === 'irmao' ? 'irmao' : 'eu', desc:f.nome, cat:f.cat || '', fixo:f.id, boleto:true }); S.fixosFeitos[f.id + '|' + UI.mes] = true; save(); render(); toast(f.nome + ' paga: ' + fmt(f.valor) + '.' + notaSaldo(todayISO())); }
   if (a === 'despagar-conta') { const g = S.gastos.find(x => x.id === k); if (!g) return; S.gastos = S.gastos.filter(x => x.id !== k); delete S.fixosFeitos[g.fixo + '|' + UI.mes]; save(); render(); toast('Pagamento desfeito.'); }
