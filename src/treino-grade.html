@@ -1690,7 +1690,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '13 nov · 118'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '13 nov · 119'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -4196,13 +4196,13 @@ function vAgua(){
   const hit7 = Array.from({length:7},(_,i) => daysAgo(6-i)).filter(k => (S.water[k]||0)>=g).length;
   const rt = remindTxt();
   return header('Água','Meta de '+fmtL(g)+' por dia')+exampleNote()+waterHero()+
-    `<section class="card"><div class="card-h"><span class="label">${ic('timer')}Ao longo do dia</span><span class="pill">${L.length} copo${L.length===1?'':'s'}</span></div>${waterTimeline()}
-      <div class="leg"><span><i></i>você</span><span><i class="dash"></i>ritmo ideal até 21h</span></div>
-      ${L.length?`<div class="drinks">${L.map(e => `<span class="chip">${hm(e.m)} · ${e.ml} ml</span>`).join('')}</div>`:''}</section>`+
     `<section class="card rm-card${S.remind.on?' on':''}"><div class="sw-row"><span class="rm-ic">${ic('bell')}</span><div><b>Lembretes de água</b><span>${S.remind.on ? 'Das '+hmTxt(RINI())+' às '+hmTxt(RFIM())+', contando do último copo.' : 'Toque no botão azul para o app te lembrar de beber água.'}</span></div><label class="switch"><input type="checkbox" data-sw="remind"${S.remind.on?' checked':''}><span class="knob"></span><span class="sr">Lembretes de água</span></label></div>
       ${S.remind.on?`<div class="field"><span class="flabel">Horário dos lembretes</span><div class="rm-h"><label><span>Começa às</span><input type="time" class="inp" data-remind="ini" value="${hhmm(RINI())}" step="900"></label><label><span>Termina às</span><input type="time" class="inp" data-remind="fim" value="${hhmm(RFIM())}" step="900"></label></div></div>
       <div class="field"><span class="flabel">Lembrar a cada</span>${seg('remind-ev',[30,60,90],[30,60,90].includes(S.remind.every)?S.remind.every:90,['30 min','1 hora','1h30'],'Intervalo dos lembretes')}</div><p class="zone">${ic('bell')}<span><b>${rt}</b></span></p>`:''}
       ${S.remind.on ? pushCard() : ''}</section>`+
+    `<section class="card"><div class="card-h"><span class="label">${ic('timer')}Ao longo do dia</span><span class="pill">${L.length} copo${L.length===1?'':'s'}</span></div>${waterTimeline()}
+      <div class="leg"><span><i></i>você</span><span><i class="dash"></i>ritmo ideal até 21h</span></div>
+      ${L.length?`<div class="drinks">${L.map(e => `<span class="chip">${hm(e.m)} · ${e.ml} ml</span>`).join('')}</div>`:''}</section>`+
     `<section class="card"><div class="card-h"><span class="label">${ic('chart')}Últimos 7 dias</span><span class="pill${hit7>=5?' ok':''}">${hit7} de 7 na meta</span></div>${weekWaterBars()}</section>`+
     (isPersonal() ? `<section class="card"><div class="sw-row"><div><b>Meta de água: ${fmtL(g)} por dia</b><span>Definida pelo seu personal. Se precisar mudar, fale com ele.</span></div><span class="pill">${ic('lock')}Personal</span></div></section>`
       : `<section class="card"><div class="field"><span class="flabel">Meta de água por dia</span><div class="stepper"><button type="button" class="btn round" data-a="goal" data-d="-250" aria-label="Diminuir meta de água">${ic('minus')}</button><output>${fmtL(g)}</output><button type="button" class="btn round" data-a="goal" data-d="250" aria-label="Aumentar meta de água">${ic('plus')}</button></div></div><p class="foot0">Uma referência comum é 35 ml por kg de peso.</p></section>`);
