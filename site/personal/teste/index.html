@@ -2856,14 +2856,60 @@ function renovaText(a){
     (+f.valor ? '💳 Renovação: '+money(f.valor)+' por mês'+(f.forma && FORMAS[f.forma] ? ' ('+FORMAS[f.forma]+')' : '')+'.\n\n' : '')+
     'Me responde que eu já começo o próximo ciclo! Vamos pra cima! 🔥'+(c.nomePersonal ? '\n\n'+c.nomePersonal : '');
 }
+/* 1ª semana: o painel lê a primeira semana de treinos no app e monta a análise (dor, água, cardio, aquecimento e cargas) */
+const DIA_LONGO = ['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
+function semanaText(a){
+  const c = cfg(), nome = curto(a), pr = P(a), pl = a.plano || {}, m = a.metas || {};
+  const pg = typeof progDe==='function' ? progDe(a) : null, d = (pg && pg.d) || {};
+  const ini0 = isDate(pl.inicio) ? pl.inicio : '', Hall = (d.h||[]).filter(h => !ini0 || h.d>=ini0).sort((x,y) => x.d<y.d ? -1 : 1);
+  const ini = Hall.length ? Hall[0].d : (ini0 || today()), fim = addDays(ini, 6), inW = k => k>=ini && k<=fim;
+  const H = Hall.filter(h => inW(h.d)), Cd = (d.c||[]).filter(x => inW(x.d)), W = d.w || {}, K = d.k || {}, wg = +m.waterGoal || +d.wg || 0;
+  const ult = H[H.length-1], quando = !ult ? '' : ult.d===today() ? 'hoje' : ult.d===addDays(today(),-1) ? 'ontem' : 'na '+DIA_LONGO[parse(ult.d).getDay()]+' ('+fmtDm(ult.d)+')';
+  const L = [];
+  L.push('Ótimo dia, '+nome+', tudo bem? 😃\n');
+  L.push(ult ? 'Recebi a notificação '+quando+' que você finalizou seu último treino, e analisando os seus primeiros '+plural(H.length,'dia','dias')+' de treino cheguei nas seguintes conclusões 👇🏻\n'
+    : 'Analisando a sua primeira semana cheguei nas seguintes conclusões 👇🏻\n');
+  // dor (check-in) e dor marcada nos exercícios
+  const dores = Object.keys(K).filter(k => inW(k) && (+K[k].dor||0)>=1), dmax = Math.max(0, ...dores.map(k => +K[k].dor||0));
+  const dorEx = []; H.forEach(h => (h.ex||[]).forEach(e => { if((e.q||[]).some(q => /dor/i.test(q)) && !dorEx.includes(e.n)) dorEx.push(e.n); }));
+  L.push('🏥 *Dor:* '+(dores.length
+    ? 'Durante a semana, após os dias de treino, vi que relatou dor muscular '+(['','leve','média','forte'][dmax]||'')+(dorEx.length ? ' e marcou dor em '+dorEx.slice(0,3).join(', ') : '')+'. Isso atrapalhou você a realizar algum outro treino?'
+    : dorEx.length ? 'Vi que marcou dor em '+dorEx.slice(0,3).join(', ')+'. Isso atrapalhou você a realizar algum outro treino? Me conta como está.'
+    : 'Não relatou dor muscular durante a semana, ótimo sinal! Se sentir qualquer desconforto, me avisa.')+'\n');
+  // água
+  const dW = Object.keys(W).filter(k => inW(k) && +W[k]>0), bate = wg ? dW.filter(k => +W[k]>=wg).length : 0, perto = wg ? dW.filter(k => +W[k]>=wg*.8).length : 0;
+  const med = dW.length ? dW.reduce((t,k) => t+(+W[k]||0),0)/dW.length : 0;
+  L.push('💧 *Água:* '+(!wg ? 'Ainda não definimos sua meta de água; vou colocar no app para você acompanhar.'
+    : bate>=3 ? 'Bateu a meta diária em '+bate+' dos 7 dias, excelente! O objetivo é manter pelo menos 3 dias por semana.'
+    : dW.length && perto>=Math.ceil(dW.length*.6) ? 'Está chegando perto da meta diária '+(perto===dW.length ? 'todos os '+plural(perto,'dia','dias') : 'na maioria dos dias')+'. Para a primeira semana está perfeito; o objetivo para as próximas será bater essa meta em pelo menos 3 dos 7 dias.'
+    : dW.length ? 'Ficou abaixo da meta na maior parte dos dias (média de '+fmtN(med/1000,1)+' L de '+fmtN(wg/1000,1)+' L). O objetivo para as próximas semanas é bater a meta em pelo menos 3 dos 7 dias.'
+    : 'Não vi registro de água no app essa semana. Lembra de marcar os copos: o objetivo é bater a meta em pelo menos 3 dos 7 dias.')+'\n');
+  // cardio + obrigatório
+  const cMin = Cd.reduce((t,x) => t+(+x.min||0),0), cDias = new Set(Cd.map(x => x.d)).size, OB = ((m.cardio||{}).obrig||[]).filter(o => o && o.local && +o.min>0);
+  const falta = OB.filter(o => Cd.filter(x => x.l===o.local && +x.min>=+o.min).length < Math.max(1, +o.vezes||(o.dias||[]).length||1));
+  const obTxt = OB.length ? (falta.length ? ' mas ficou faltando '+falta.map(o => 'os '+o.min+' min de '+String(o.local).toLowerCase()+' "obrigatório"').join(' e ')+' que colocamos no seu treino' : ' e cumpriu o cardio obrigatório que colocamos no seu treino 👏') : '';
+  L.push('🫀 *Cardio:* '+(cDias ? (cDias>=Math.min(5, H.length||5) ? 'Todos os dias você fez um pouco de cardio' : 'Você fez cardio em '+plural(cDias,'dia','dias')+' ('+cMin+' min no total)')+obTxt+'.'
+    : 'Não vi cardio registrado essa semana'+(OB.length ? ', e tem '+OB.map(o => o.min+' min de '+String(o.local).toLowerCase()).join(' e ')+' "obrigatório" no seu treino' : '')+'. Vamos encaixar nos próximos dias?')+'\n');
+  // aquecimento pulado e progressão de carga
+  const pulou = H.filter(h => (h.ex||[]).some(e => +e.wt>0 && (+e.w||0)<+e.wt));
+  const dia = h => DIA_LONGO[parse(h.d).getDay()]+(h.nm ? ' ('+h.nm+')' : '');
+  const partes = [];
+  if(pulou.length) partes.push((pulou.length===1 ? 'No treino de '+dia(pulou[0]) : 'Nos treinos de '+pulou.map(dia).join(', ').replace(/, ([^,]*)$/,' e $1'))+' vi que você pulou o aquecimento, e queria reforçar o quão necessário ele é para evitar uma possível lesão e dores na execução.');
+  let ex = null; H.forEach(h => (h.ex||[]).forEach(e => { const S2 = (e.s||[]).filter(z => +z[0]>0); if(S2.length>=3 && S2.every(z => +z[0]===+S2[0][0]) && (!ex || +S2[0][1] > +ex.r)) ex = { n:e.n, kg:+S2[0][0], r:+S2[0][1], n2:S2.length }; }));
+  if(ex){ const arr = v => v>=20 ? Math.round(v/2)*2 : Math.round(v), k2 = Math.max(ex.kg+1, arr(ex.kg*1.3)), k3 = Math.max(k2+1, arr(ex.kg*1.7)), r = ex.r;
+    partes.push('Analisei também as cargas que você utilizou em cada série e dia de treino, e é extremamente necessário que, a cada série, você tente aumentar o peso do exercício quando realizar as repetições máximas (Ex: '+ex.n+' - você realizou '+ex.n2+'x com '+fmtN(ex.kg)+' kg e '+r+' rep; o ideal seria -> '+fmtN(ex.kg)+' kg '+r+' rep | '+fmtN(k2)+' kg '+Math.max(1,r-2)+'-'+r+' rep | '+fmtN(k3)+' kg '+Math.max(1,r-4)+'-'+Math.max(1,r-2)+' rep).'); }
+  if(ex || pulou.length) partes.push('Então, para essa próxima semana, sempre que você realizar o máximo de repetições na primeira série já pode aumentar o peso, mesmo que isso faça o número de repetições cair 1 a 2.');
+  L.push('💪🏼 *'+(ED[pr.objetivo]||'Treino')+':* '+(partes.length ? partes.join(' ') : (H.length ? 'As cargas e o aquecimento estão no caminho certo. Continue tentando subir o peso sempre que fizer o máximo de repetições na primeira série.' : 'Ainda não vi treinos registrados no app essa semana. Me conta como foi!')));
+  return L.join('\n')+(c.nomePersonal ? '\n\n'+c.nomePersonal : '');
+}
 function msgsCard(a){
   if(pfOnline()) loadProg();
   const pl = a.plano || {}, pi = planInfo(a), dias = isDate(pl.inicio) ? diffDays(today(), pl.inicio) : -1;
-  const sug = pi.k==='soon' || pi.k==='expired' ? 'renova' : dias>=12 && dias<=21 ? 'checkin' : dias>=0 && dias<=3 ? 'primeiro' : '';
-  const k = ui.msgK || sug || 'checkin', txt = k==='renova' ? renovaText(a) : k==='primeiro' ? primeiroText(a) : checkinText(a), wa = String(P(a).whatsapp||'').replace(/\D/g,'');
-  const aviso = sug==='primeiro' ? 'O ciclo começou '+(dias===0 ? 'hoje' : dias===1 ? 'ontem' : 'há '+dias+' dias')+': pergunte como foi o primeiro treino.' : sug==='renova' ? (pi.k==='expired' ? 'O ciclo venceu: hora de mandar a renovação.' : 'O ciclo vence em breve: hora de mandar a renovação.') : sug==='checkin' ? 'Faz '+dias+' dias que o ciclo começou: hora do check-in.' : '';
+  const sug = pi.k==='soon' || pi.k==='expired' ? 'renova' : dias>=12 && dias<=21 ? 'checkin' : dias>=6 && dias<=11 ? 'semana' : dias>=0 && dias<=3 ? 'primeiro' : '';
+  const k = ui.msgK || sug || 'checkin', txt = k==='renova' ? renovaText(a) : k==='primeiro' ? primeiroText(a) : k==='semana' ? semanaText(a) : checkinText(a), wa = String(P(a).whatsapp||'').replace(/\D/g,'');
+  const aviso = sug==='primeiro' ? 'O ciclo começou '+(dias===0 ? 'hoje' : dias===1 ? 'ontem' : 'há '+dias+' dias')+': pergunte como foi o primeiro treino.' : sug==='renova' ? (pi.k==='expired' ? 'O ciclo venceu: hora de mandar a renovação.' : 'O ciclo vence em breve: hora de mandar a renovação.') : sug==='checkin' ? 'Faz '+dias+' dias que o ciclo começou: hora do check-in.' : sug==='semana' ? 'Primeira semana concluída: mande a análise da 1ª semana.' : '';
   return '<section class="card"><span class="label">'+ic('msg')+'Mensagens de acompanhamento</span>'+(aviso ? '<p class="callout">'+ic('alert')+'<span>'+aviso+'</span></p>' : '')+
-    '<div class="seg" role="group" aria-label="Mensagem">'+[['primeiro','1º treino'],['checkin','Check-in 15 dias'],['renova','Renovação']].map(([v,l]) => '<button type="button" class="'+(k===v?'on':'')+'" aria-pressed="'+(k===v)+'" data-a="msgK" data-v="'+v+'">'+l+'</button>').join('')+'</div>'+
+    '<div class="seg" role="group" aria-label="Mensagem">'+[['primeiro','1º treino'],['semana','1ª semana'],['checkin','Check-in 15 dias'],['renova','Renovação']].map(([v,l]) => '<button type="button" class="'+(k===v?'on':'')+'" aria-pressed="'+(k===v)+'" data-a="msgK" data-v="'+v+'">'+l+'</button>').join('')+'</div>'+
     '<label class="sr" for="msg2-txt">Mensagem</label><textarea id="msg2-txt" class="share" readonly>'+esc(txt)+'</textarea>'+
     '<div class="btn-row"><button type="button" class="btn primary" data-a="msg2Copy">'+ic('copy')+'Copiar mensagem</button>'+(wa.length>=10 ? '<a class="btn ghost" href="https://wa.me/'+(wa.length<=11?'55':'')+wa+'?text='+encodeURIComponent(txt)+'" target="_blank" rel="noopener">'+ic('msg')+'Abrir no WhatsApp</a>' : '')+'</div>'+
     '<p class="foot">Os números (treinos, cargas que subiram, cardio e água) vêm do que o aluno registra no app desde o início do ciclo.</p></section>';
@@ -3253,7 +3299,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '13 nov · 121'; // Versão do painel: 13 nov · 121
+const PAINELV = '13 nov · 122'; // Versão do painel: 13 nov · 122
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
