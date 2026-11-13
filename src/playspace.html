@@ -305,6 +305,7 @@ span.av.g { font-size: 22px; } .simul span.av { font-size: 15px; }
 .horas .resta { font-family: var(--display); font-weight: 800; font-size: 24px; line-height: 1; color: var(--tinta); white-space: nowrap; }
 .horas .resta small { font-family: var(--texto); font-weight: 700; font-size: 13px; color: var(--tinta-2); margin-left: 5px; }
 .horas.baixo .resta { color: var(--erro); }
+.horas .av-conta { margin: 0; font-size: 13.5px; line-height: 1.35; color: var(--tinta-2); font-weight: 600; } .horas .av-conta b { color: var(--tinta); font-weight: 800; }   /* 1.15: a recreação avulsa na ficha: quanto soma até agora */
 .horas .de { font-size: 12.5px; color: var(--tinta-2); font-weight: 700; white-space: nowrap; display: inline-flex; align-items: center; gap: 8px; }
 .linha-h { height: 10px; border-radius: 999px; background: var(--menta-risco); overflow: hidden; position: relative; }
 .linha-h i { display: block; height: 100%; border-radius: 999px; background: var(--verde-agua); transition: width .6s var(--ios), background .3s; }
@@ -1098,6 +1099,7 @@ b.np { color: var(--erro); letter-spacing: .03em; }
 .serv .qtd button { width: 42px; height: 42px; border-radius: 14px; background: var(--menta); font-size: 24px; font-weight: 800; line-height: 1; display: flex; align-items: center; justify-content: center; }
 .serv .qtd button[disabled] { opacity: .3; pointer-events: none; }
 .serv .qtd button[data-act="serv-mais"] { background: var(--coral); color: #fff; }
+.bt.av-entrar { height: auto; min-height: 58px; padding: 9px 16px; flex-direction: column; gap: 3px; line-height: 1.2; } .bt.av-entrar > span { display: inline-flex; align-items: center; gap: 8px; } .bt.av-entrar small { font: 700 12.5px/1.2 var(--texto); opacity: .92; letter-spacing: 0; }   /* 1.15: o botão da entrada na recreação avulsa, com o valor embaixo */
 .serv .qtd b { min-width: 62px; text-align: center; font-family: var(--display); font-weight: 800; font-size: 16px; white-space: nowrap; }
 .serv .valor { text-align: right; font-family: var(--display); font-weight: 800; font-size: 16px; white-space: nowrap; }
 .total { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 0 2px 8px; } .total span { font-weight: 800; color: var(--tinta-2); } .total b { font-family: var(--display); font-weight: 800; font-size: 26px; }
@@ -1313,9 +1315,14 @@ const IC = {
 
 /* ---------- estado (dados de exemplo: a loja ainda não tem cadastro) ---------- */
 const agora = new Date();
+// 1.15: o relógio da tela segue o do servidor. DESVIO = quanto a hora do servidor está adiante da deste aparelho (ms). As contas de tempo
+// (o cronômetro, os períodos da recreação, o valor da saída) usam a hora do servidor, que é a que vale na saída: o aparelho com o
+// relógio adiantado, atrasado ou em outro fuso mostra o mesmo que os outros. Só conta de 3 s para cima (menos que isso é a rede)
+let DESVIO = 0;
+const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.14';
+const VERSAO = '1.15';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -1359,16 +1366,14 @@ const S = {
     { id: 4, nome: 'Miguel', idade: 5, resp: 'Carla', rel: 'mãe', tel: '(11) 9 5432-1098', cpf: '390.533.447-05', obs: '', pacote: 10, usado: 360, entrou: null, rosto: true, visitas: [{ dia: antes(12), entrou: hora(antes(131)), saiu: hora(antes(12)), deb: 120, ini: antes(131), sap: 9 }] },
     { id: 5, nome: 'Laura', idade: 7, resp: 'Bruno', rel: 'pai', tel: '(11) 9 4321-0987', cpf: '248.438.034-80', obs: '', pacote: 10, usado: 150, entrou: null, rosto: true, visitas: [{ dia: antes(111), entrou: hora(antes(251)), saiu: hora(antes(111)), deb: 150 }] },
     { id: 6, nome: 'Davi', idade: 3, resp: 'Mariana Souza', rel: 'mãe', tel: '(11) 9 8765-4321', cpf: '529.982.247-25', obs: 'Não mexer no cabelo', pacote: 5, usado: 0, entrou: null, rosto: false, visitas: [] },
-    { id: 7, nome: 'Sofia', idade: 5, resp: 'Mariana Souza', rel: 'mãe', tel: '(11) 9 8765-4321', cpf: '529.982.247-25', obs: '', pacote: 1, usado: 0, entrou: antes(52), rosto: false, visitas: [], atraso: { n: 1, valor: 80 } },
+    { id: 7, nome: 'Sofia', idade: 5, resp: 'Mariana Souza', rel: 'mãe', tel: '(11) 9 8765-4321', cpf: '529.982.247-25', obs: '', pacote: 1, usado: 0, entrou: antes(52), rosto: false, visitas: [], atraso: { n: 2, valor: 160 } },
   ],
   registros: [
     { h: antes(12), tipo: 'ent', nome: 'Theo', txt: 'Entrada registrada' },
-    { h: antes(13), tipo: 'cobr', nome: 'Sofia', txt: 'Nova cobrança por atraso: ficou além do tempo comprado · RECREAÇÃO +0h30 · R$ 80 a receber na saída' },
     { h: antes(12), tipo: 'sai', nome: 'Miguel', txt: 'Ficou 1h59 · 2h debitados · restam 4h · sapato na sapateira 9' },
     { h: antes(33), tipo: 'ent', nome: 'Alice', txt: 'Entrada registrada' },
     { h: antes(47), tipo: 'ent', nome: 'Helena', txt: 'Entrada registrada' },
     { h: antes(52), tipo: 'ent', nome: 'Sofia', txt: 'Entrada registrada' },
-    { h: antes(52), tipo: 'venda', nome: 'Sofia', txt: 'RECREAÇÃO · 0h30 · R$ 80' },
     { h: antes(70), tipo: 'canc', nome: 'Laura', txt: `Entrada das ${hora(antes(76))} cancelada aos 6 min · não cobrado: RECREAÇÃO · 0h30 (R$ 80) · Motivo: A CRIANÇA CHOROU E NÃO QUIS FICAR · por JOÃO` },
     { h: antes(76), tipo: 'ent', nome: 'Laura', txt: 'Entrada registrada' },
     { h: antes(76), tipo: 'venda', nome: 'Laura', txt: 'RECREAÇÃO · 0h30 · R$ 80 · cancelada' },
@@ -1396,9 +1401,9 @@ Object.assign(S.criancas[0].venda, { h: 5, m: 300, v: 800 }); S.criancas[4].vend
 S.criancas.forEach(c => { c.venda.servico = 'PACOTE ' + p2(c.venda.h) + ' HORAS'; });   // quem comprou várias horas de uma vez comprou um pacote (é o que separa "Pacotes" de "Horas avulsas")
 S.compras = S.criancas.map(c => ({ id: novoId(), crianca: c.id, h: c.venda.h, m: c.venda.m, v: c.venda.v, servico: c.venda.servico, itens: '', quando: c.venda.quando, por: 'Camila' }));
 S.compras.push({ id: novoId(), crianca: 1, h: 5, m: 300, v: 800, servico: 'PACOTE 05 HORAS', itens: '', quando: antes(1440 * 9), por: 'Bia' }, { id: novoId(), crianca: 1, h: 0, m: 0, v: 30, servico: 'CARRINHO DE BEBÊ', itens: 'DAS 10H ÀS 22H', quando: antes(2880 + 10), por: 'Bia', voltou: antes(2880 - 120) }, { id: novoId(), crianca: 6, h: 0, m: 0, v: 15, servico: 'CARRINHO FUSQUINHA', itens: '0h30', quando: antes(138), por: 'Camila', voltou: antes(105) });
-// a Sofia comprou 30 min hoje, passou do tempo e o sistema gerou a cobrança por atraso de mais um período
-S.compras = S.compras.filter(v => v.crianca !== 7); S.compras.push({ id: novoId(), crianca: 7, h: .5, m: 30, v: 80, servico: 'RECREAÇÃO', itens: '', quando: antes(52), por: 'João' }, { id: novoId(), crianca: 7, h: .5, m: 30, v: 80, servico: 'RECREAÇÃO', itens: 'cobrança por atraso', quando: antes(13), por: '', auto: true });
-S.criancas[6].venda = { h: .5, m: 30, v: 80, servico: 'RECREAÇÃO', com: 'cobrança por atraso', quando: antes(13) };
+// 1.15: a Sofia está na recreação avulsa: entrou há 52 min sem comprar nada, e a visita já conta dois períodos (o 2º nasceu quando a tolerância do 1º acabou), a receber na saída
+S.compras = S.compras.filter(v => v.crianca !== 7); S.compras.push({ id: novoId(), crianca: 7, h: .5, m: 30, v: 80, servico: 'RECREAÇÃO', itens: 'avulsa', quando: antes(52), por: '', auto: true }, { id: novoId(), crianca: 7, h: .5, m: 30, v: 80, servico: 'RECREAÇÃO', itens: 'avulsa', quando: antes(13), por: '', auto: true });
+S.criancas[6].venda = { h: .5, m: 30, v: 80, servico: 'RECREAÇÃO', com: 'avulsa', quando: antes(13) };
 // (prévia) o que saiu da loja e ainda não voltou: um fusquinha dentro do tempo (MIGUEL), um que já passou (LAURA) e um carrinho de bebê (THEO).
 // alug = { s: o serviço, n: o nome, m: o tempo comprado (0 = sem hora para voltar), q: quantos }; fica na lista até alguém tocar em Devolveu
 S.compras.push({ id: novoId(), crianca: 4, h: 0, m: 0, v: 15, servico: 'CARRINHO FUSQUINHA', itens: '0h30', quando: antes(18), por: 'João', alug: { s: 'fusquinha', n: 'CARRINHO FUSQUINHA', m: 30, q: 1 } },
@@ -1476,7 +1481,8 @@ let CARREGANDO = false, ULTIMA_CARGA = '';
 async function carregar() { // devolve true quando algo mudou no servidor
   if (CARREGANDO) return false; CARREGANDO = true;
   try {
-    const d = await api('dados');
+    const t0 = Date.now(), d = await api('dados'), t1 = Date.now();
+    if (d.agora && t1 - t0 < 4000) { const dv = +dataDe(d.agora) + 500 - (t0 + t1) / 2; DESVIO = Math.abs(dv) >= 3000 ? Math.round(dv) : 0; agora.setTime(Date.now() + DESVIO); }   // 1.15: a hora do servidor (ver DESVIO)
     // o que muda sozinho a cada contato do aparelho não conta como novidade (senão a tela redesenhava a cada 6 s e "piscava")
     const assinatura = JSON.stringify({ ...d, agora: 0, idface: { ...d.idface, segundos: 0, ultimo_contato: 0, ultima_batida: 0, periodo: 0, erro: '', fila: 0 } }); const mudou = assinatura !== ULTIMA_CARGA; ULTIMA_CARGA = assinatura;
     S.criancas = d.criancas.map(c => ({ ...c, entrou: c.entrou ? dataDe(c.entrou) : null, venda: c.venda ? { ...c.venda, quando: dataDe(c.venda.quando) } : null, visitas: (c.visitas || []).map(v => ({ ...v, dia: dataDe(v.dia), ini: v.ini ? dataDe(v.ini) : null })) }));
@@ -2025,22 +2031,34 @@ const restante = c => c.entrou ? Math.max(0, cobertoMin(c) - minDentro(c)) : sal
 const restanteVivo = c => Math.max(0, cobertoMin(c) * 60 - segDentro(c));               // segundos que faltam do tempo comprado (quem está no espaço)
 const passouSeg = c => c.entrou ? Math.max(0, segDentro(c) - cobertoMin(c) * 60) : 0;     // segundos além do tempo comprado: é a tolerância correndo
 const fimVisita = c => new Date(c.entrou.getTime() + cobertoMin(c) * 60000);             // a hora em que o tempo comprado termina
+/* ---------- 1.15: a recreação avulsa é acertada na saída ---------- */
+// O cliente sem pacote não compra períodos na entrada: a criança entra e o tempo dela é contado em períodos (meia hora, com a tolerância
+// entre um e outro). Cada período que a visita passa a precisar vira sozinho uma venda a receber, e a saída recebe todas de uma vez.
+// Quem está assim no espaço (aberta) não tem "até quando", nem "acabando", nem "passou do tempo": só o tempo correndo. Passar do tempo
+// só existe para quem entrou com horas de pacote e elas acabaram (aí o que vier a mais é o tempo além do pacote).
+const aberta = c => !!c && !!c.entrou && planoDe(c) !== 'pacote';
+const precoTempo = c => { const x = servicoTempo(); return x ? `${brl(precoDe(c, x.v))} a cada ${porExt(x.min || 30)}${c && c.pcd && pcdDesc() > 0 ? ' · ' + rotPcd() : ''}` : ''; };   // "R$ 80 a cada meia hora"
+// como o que o sistema lançou sozinho aparece nas contas: "RECREAÇÃO avulsa · 1h" (a conta normal de quem não tem pacote) ou "Além do pacote · 0h30"
+const nomeAutos = (c, n) => `${planoDe(c) !== 'pacote' ? esc((servicoTempo() || { n: 'RECREAÇÃO' }).n) + ' avulsa' : 'Além do pacote'} · ${dur(n * periodo())}`;
+const subAutos = c => planoDe(c) !== 'pacote' ? precoTempo(c) : 'as horas do pacote acabaram';
+const textoAutos = (a, plano) => plano === 'pacote' ? `além do pacote ${dur(a.n * periodo())}: ${brl(a.valor)}` : `recreação avulsa: ${brl(a.valor)}`;   // na linha da saída, em Hoje na recepção
+const entrouTxt = (k, comprado) => !k || !k.entrou ? '' : aberta(k) ? 'recreação avulsa, acerta na saída' : (comprado ? 'tempo comprado até ' : 'tempo até ') + hora(fimVisita(k));   // o que o aviso da entrada diz
 const hms = seg => { seg = Math.max(0, Math.floor(seg)); return Math.floor(seg / 3600) + ':' + p2(Math.floor(seg % 3600 / 60)) + ':' + p2(seg % 60); };   // o cronômetro, sempre com as horas: 0:52:03, 1:05:12
 const mss = seg => { seg = Math.max(0, Math.floor(seg)); return Math.floor(seg / 60) + ':' + p2(seg % 60); };   // só a contagem curta do prazo para cancelar: 8:58
-const vivo = c => c.entrou ? (passouSeg(c) > 0 ? '+' + hms(passouSeg(c)) : hms(restanteVivo(c))) : hm(saldoMin(c));
+const vivo = c => c.entrou ? (aberta(c) ? hms(segDentro(c)) : passouSeg(c) > 0 ? '+' + hms(passouSeg(c)) : hms(restanteVivo(c))) : hm(saldoMin(c));
 const esgotou = c => c.entrou ? restanteVivo(c) <= 0 : saldoMin(c) <= 0;
 const pctVivo = c => c.entrou ? (cobertoMin(c) ? Math.max(0, Math.min(100, restanteVivo(c) / (cobertoMin(c) * 60) * 100)) : 0) : (pacMin(c) ? Math.max(0, Math.min(100, saldoMin(c) / pacMin(c) * 100)) : 0);
 // quem está no espaço: no tempo, acabando (faltam poucos minutos) ou passou (a tolerância está correndo; depois dela nasce a cobrança por atraso)
-const situacaoTempo = c => passouSeg(c) > 0 ? 'passou' : restanteVivo(c) <= S.cfg.aviso * 60 ? 'acabando' : 'ok';
-const estado = c => !c.entrou && emAberto(c) ? ['Falta finalizar', 'p-aviso'] : c.entrou ? ({ passou: ['Passou do tempo', 'p-erro'], acabando: ['Acabando', 'p-aviso'], ok: ['No tempo', 'p-ok'] })[situacaoTempo(c)] : semHoras(c) ? ['Sem horas', 'p-neutro'] : temPeriodo(c) ? ['Com tempo', 'p-ok'] : ['Sem tempo', 'p-neutro'];
-const atrasoHoje = () => S.atrasoHoje || (L => ({ n: L.length, valor: L.reduce((a, v) => a + v.v, 0) }))((S.compras || []).filter(v => v.auto && agora - v.quando < 86400000));   // cobranças por atraso das últimas 24 h
-const textoCobranca = (x, c) => `Nova cobrança por atraso: ficou além do tempo comprado · ${x.n} +${dur(periodo())} · ${brl(precoDe(c, x.v))}${c && c.pcd ? ' · ' + rotPcd() : ''} a receber na saída`;
+const situacaoTempo = c => aberta(c) ? 'ok' : passouSeg(c) > 0 ? 'passou' : restanteVivo(c) <= S.cfg.aviso * 60 ? 'acabando' : 'ok';   // 1.15: na recreação avulsa não há prazo
+const estado = c => !c.entrou && emAberto(c) ? ['Falta finalizar', 'p-aviso'] : c.entrou ? (aberta(c) ? ['No espaço', 'p-ok'] : ({ passou: ['Passou do tempo', 'p-erro'], acabando: ['Acabando', 'p-aviso'], ok: ['No tempo', 'p-ok'] })[situacaoTempo(c)]) : semHoras(c) ? ['Sem horas', 'p-neutro'] : temPeriodo(c) ? ['Com tempo', 'p-ok'] : ['Sem tempo', 'p-neutro'];
+const atrasoHoje = () => S.atrasoHoje || (L => ({ n: L.length, valor: L.reduce((a, v) => a + v.v, 0) }))((S.compras || []).filter(v => v.auto && !/^avulsa/.test(v.itens || '') && agora - v.quando < 86400000));   // 1.15: o tempo além do pacote nas últimas 24 h (a recreação avulsa é venda comum)
+const textoCobranca = (x, c) => `As horas do pacote acabaram · ${x.n} +${dur(periodo())} · ${brl(precoDe(c, x.v))}${c && c.pcd ? ' · ' + rotPcd() : ''} a receber na saída`;
 // o voucher do shopping: 30 min de recreação grátis, um por visita, sem código. temVoucher: a criança já tem um de hoje sem saída depois dele (o da visita, ou um guardado)
 const temVoucher = c => !!c && (MODO === 'servidor' ? !!c.vouch : (S.compras || []).some(v => v.crianca === c.id && v.voucher && doDia(v.quando) && !c.visitas.some(x => new Date(x.dia) > v.quando)));
 const umaCobranca = c => c && c.atraso && c.atraso.n ? c.atraso.valor / c.atraso.n : precoDe(c, (servicoTempo() || { v: 0 }).v);   // quanto vale um período a receber desta criança
 // o aviso depois de registrar um voucher: o que ele cobriu e, se for o caso, que é o segundo do dia
 const atencaoVoucher = (v, nome) => v && v.n > 1 ? `Atenção: é o ${v.n}º voucher de hoje para ${nome}` : '';   // 1.08: é só isto que a faixa de baixo ainda mostra do voucher
-const avisoVoucher = (v, nome) => !v ? '' : (v.cobriu ? `Voucher usado: cobriu a cobrança por atraso de ${brl(v.cobriu.valor)}. ` : '') + (v.n > 1 ? `Atenção: é o ${v.n}º voucher de hoje para ${nome}. ` : '');
+const avisoVoucher = (v, nome) => !v ? '' : (v.cobriu ? `Voucher usado: cobriu ${porExt(periodo())} de recreação (${brl(v.cobriu.valor)} a menos). ` : '') + (v.n > 1 ? `Atenção: é o ${v.n}º voucher de hoje para ${nome}. ` : '');
 // (prévia) o voucher usado com cobrança por atraso a receber cobre a mais nova: ela sai e o período do voucher fica no lugar. Devolve a cobrança coberta (ou null)
 function cobrirPrevia(c) {
   const a = c.entrou ? S.compras.filter(v => v.crianca === c.id && v.auto && v.quando >= c.entrou).sort((x, y) => y.quando - x.quando)[0] : null; if (!a) return null;
@@ -2050,7 +2068,7 @@ function cobrirPrevia(c) {
 // (prévia) usa o voucher fora do atendimento (o atalho da folha da saída): cobre a cobrança por atraso mais nova ou, sem cobrança, entra como um período grátis
 function usarVoucherPrevia(c) {
   const st = servicoTempo(); if (!st || temVoucher(c)) return null; const p = periodo(), n = S.compras.filter(v => v.crianca === c.id && v.voucher && doDia(v.quando)).length + 1, a = cobrirPrevia(c);
-  const itens = 'voucher' + (n > 1 ? ` (${n}º de hoje)` : '') + (a ? ' · cobriu a cobrança por atraso de ' + brl(a.v) : '');
+  const itens = 'voucher' + (n > 1 ? ` (${n}º de hoje)` : '') + (a ? ' · cobriu ' + dur(minDe(a)) + ' de recreação (' + brl(a.v) + ')' : '');
   const compra = { id: novoId(), crianca: c.id, h: p / 60, m: p, v: 0, servico: st.n, itens, quando: new Date(), por: EU.nome, voucher: 'sim', pcd: false, cheio: st.v }; S.compras.unshift(compra);
   if (!a) { c.pacote += p / 60; c.liberado = true; }
   registrar('venda', c.nome, `${st.n} · ${dur(p)} · ${itens} · ${brl(0)}`); compra.reg = S.registros[0];
@@ -2060,11 +2078,11 @@ function usarVoucherPrevia(c) {
 const descontosHoje = () => S.descontosHoje || (L => ({ vouchers: L.filter(v => v.voucher).length, voucher_valor: L.filter(v => v.voucher).reduce((a, v) => a + (v.cheio || 0), 0), pcd: L.filter(v => v.pcd).length, pcd_valor: L.filter(v => v.pcd).reduce((a, v) => a + ((v.cheio || v.v) - v.v - (v.desc || 0)), 0), desc: (S.registros || []).filter(r => r.tipo === 'desc' && agora - r.h < 86400000).length, desc_valor: centavos(L.reduce((a, v) => a + (v.desc || 0), 0)) }))((S.compras || []).filter(v => agora - v.quando < 86400000));
 // (prévia) o que o servidor faz sozinho: passou do tempo comprado mais a tolerância, nasce a cobrança de mais um período. Devolve quantas criou.
 function acertarDemo(c, quieto) {
-  const x = servicoTempo(); if (MODO === 'servidor' || !x || !c.entrou) return 0; const p = periodo(); let n = 0;
+  const x = servicoTempo(); if (MODO === 'servidor' || !x || !c.entrou) return 0; const p = periodo(); let n = 0; const avulsa = planoDe(c) !== 'pacote';   // 1.15: a conta normal da recreação avulsa, ou o tempo além do pacote
   while (c.usado + cobrar(minConta(c)) > pacMin(c) && n < 48) { n++;
-    const preco = precoDe(c, x.v), compra = { id: novoId(), crianca: c.id, h: p / 60, m: p, v: preco, servico: x.n, itens: 'cobrança por atraso' + (c.pcd ? ' · ' + rotPcd() : ''), quando: new Date(), por: '', auto: true, pcd: !!c.pcd, cheio: x.v }; S.compras.unshift(compra);
+    const preco = precoDe(c, x.v), compra = { id: novoId(), crianca: c.id, h: p / 60, m: p, v: preco, servico: x.n, itens: (avulsa ? 'avulsa' : 'além do pacote') + (c.pcd ? ' · ' + rotPcd() : ''), quando: new Date(), por: '', auto: true, pcd: !!c.pcd, cheio: x.v }; S.compras.unshift(compra);
     c.pacote += p / 60; c.atraso = { n: (c.atraso ? c.atraso.n : 0) + 1, valor: (c.atraso ? c.atraso.valor : 0) + preco }; c.venda = { h: p / 60, m: p, v: preco, servico: x.n, com: compra.itens, quando: compra.quando };
-    registrar('cobr', c.nome, textoCobranca(x, c)); compra.reg = S.registros[0]; }
+    if (!avulsa) { registrar('cobr', c.nome, textoCobranca(x, c)); compra.reg = S.registros[0]; } }   // o período da recreação avulsa não vira linha do dia (a linha da saída diz o total)
   return n;
 }
 // os personagens das contas do dia: cada um segura a placa onde o número aparece (a placa fica no mesmo lugar em todos)
@@ -2192,6 +2210,11 @@ function folhaSapMapa() {
 }
 function blocos(c, comEstado = true) {
   const pct = pctVivo(c), [et, cls] = estado(c), st = c.entrou ? situacaoTempo(c) : 'ok', pill = comEstado ? ` <span class="pill ${cls}">${et}</span>` : '';
+  if (aberta(c)) { const k = contaSaida(c), p = periodo();   // 1.15: na recreação avulsa não há "restam" nem barra: o tempo correndo e quanto a visita soma até agora
+    return `<div class="horas dentro aberta" data-horas="${c.id}" data-est="${comEstado ? 1 : 0}" aria-label="Recreação avulsa desde ${hora(c.entrou)}">
+    <div class="topo"><span class="resta num">${hms(segDentro(c))}<small>no espaço</small></span><span class="de">entrou ${hora(c.entrou)}${pill}</span></div>
+    <p class="av-conta"><b>Recreação avulsa</b> · ${k.n ? `até agora ${dur(k.n * p)} · <b class="num">${brl(k.valor)}</b> · acerta na saída` : `até agora, por conta ${temVoucher(c) ? 'do voucher' : 'do tempo que já tem'} · o que passar acerta na saída`}</p>
+  </div>`; }
   const topo = c.entrou
     ? `<span class="resta num">${vivo(c)}<small>${st === 'passou' ? 'além do tempo' : 'restam'}</small></span><span class="de">entrou ${hora(c.entrou)} · ${st === 'passou' ? 'ia até' : 'até'} ${hora(fimVisita(c))}${pill}</span>`
     : `<span class="resta num">${semHoras(c) ? 'Sem horas' : hm(saldoMin(c))}<small>${semHoras(c) ? '' : 'guardado'}</small></span><span class="de">${semHoras(c) ? 'ainda não comprou' : 'comprou ' + tam(c) + ' ao todo'}${pill}</span>`;
@@ -2219,6 +2242,7 @@ function blocoCancelar(c) {
 // a situação da criança em uma frase (aparece para a equipe em cima da conversa do WhatsApp)
 function situacao(c) {
   if (c.entrou) { const st = situacaoTempo(c);
+    if (aberta(c)) return { cls: 'p-ok', txt: `${c.nome} está aqui desde ${hora(c.entrou)} · recreação avulsa.`, curto: `${c.nome} está aqui` };
     if (st === 'passou') return { cls: 'p-erro', txt: `${c.nome} passou ${hms(passouSeg(c))} do tempo comprado.`, curto: `${c.nome} passou do tempo` };
     return { cls: st === 'acabando' ? 'p-aviso' : 'p-ok', txt: `${c.nome} está aqui desde ${hora(c.entrou)} · tempo comprado até ${hora(fimVisita(c))}.`, curto: `${c.nome} está aqui` }; }
   return { cls: 'p-neutro', txt: temPeriodo(c) ? `${c.nome} não está aqui · ${hm(saldoMin(c))} guardado.` : `${c.nome} não está aqui.`, curto: `${c.nome} não está aqui` };
@@ -2234,18 +2258,19 @@ function mensagemAuto(c, txt, comFoto) {
 }
 async function entradaServidor(c) {
   try { const r = await api('entrada', { id: c.id }); await carregar(); desenhar(); const k = crianca(c.id);
-    deuCerto(`${c.nome} entrou${k && k.entrou ? ' · tempo comprado até ' + hora(fimVisita(k)) : ''}`, async () => { try { await api('desfazer_entrada', { id: c.id, registro: r.registro, mensagem: r.mensagem ? r.mensagem.id : 0 }); await carregar(); } catch (e) { toast(e.message); } desenhar(); });
+    deuCerto(`${c.nome} entrou${k && k.entrou ? ' · ' + entrouTxt(k, true) : ''}`, async () => { try { await api('desfazer_entrada', { id: c.id, registro: r.registro, mensagem: r.mensagem ? r.mensagem.id : 0 }); await carregar(); } catch (e) { toast(e.message); } desenhar(); });
     if (k && k.entrou) setTimeout(() => papelDepois({ tipo: 'entrada', id: c.id }), 420); } catch (e) { toast(e.message); }   // 0.94: entrou, o cupom de entrada sai (depois de a folha que estava aberta fechar)
 }
 // corr: { quando: 'HH:MM', motivo } quando a supervisão diz a hora em que a criança saiu de verdade
 async function saidaServidor(c, corr, pag, papel, dsc, av) {
-  try { const r = await api('saida', { id: c.id, ...(corr ? { quando: corr.quando, motivo: corr.motivo } : {}), ...(pag && pag.length ? { pagamento: pag } : {}), ...(dsc ? { desconto: dsc } : {}), ...(av && !corr ? { avulso: true } : {}) }); await carregar(); fecharFolha(); desenhar();
+  try { const r = await api('saida', { id: c.id, ...(corr ? { quando: corr.quando, motivo: corr.motivo } : { total: centavos((pag || []).reduce((t, x) => t + x.v, 0)) }), ...(pag && pag.length ? { pagamento: pag } : {}), ...(dsc ? { desconto: dsc } : {}), ...(av && !corr ? { avulso: true } : {}) }); await carregar(); fecharFolha(); desenhar();   // 1.15: total = o que a tela mostrou para receber (o servidor confere antes de dar a saída)
     const at = r.atraso && r.atraso.n ? +r.atraso.valor || 0 : 0, pd = +r.pend || 0, dz = r.desc ? +r.desc.valor || 0 : 0;   // 1.04: dz = o desconto que o gestor deu nesta saída
-    const txt = `${c.nome} saiu${corr ? ' às ' + corr.quando : ''} · ${dur(r.debitado)} debitados${pd > 0 ? ' · ' + (r.pago ? 'recebido ' + brl(centavos(pd + at - dz)) + ' (' + r.pago + ')' : brl(centavos(pd + at - dz)) + ' a receber') : at ? ' · ' + brl(centavos(at - dz)) + (r.pago ? ' de atraso recebido (' + r.pago + ')' : ' de atraso a receber') : ''}${dz > 0 ? ' · desconto de ' + brl(dz) : ''}${r.sapateira ? ' · sapato na sapateira ' + r.sapateira : ''}`;
+    const txt = `${c.nome} saiu${corr ? ' às ' + corr.quando : ''} · ${dur(r.debitado)} debitados${pd > 0 ? ' · ' + (r.pago ? 'recebido ' + brl(centavos(pd + at - dz)) + ' (' + r.pago + ')' : brl(centavos(pd + at - dz)) + ' a receber') : at ? ' · ' + brl(centavos(at - dz)) + (r.pago ? ' recebido (' + r.pago + ')' : ' a receber') : ''}${dz > 0 ? ' · desconto de ' + brl(dz) : ''}${r.sapateira ? ' · sapato na sapateira ' + r.sapateira : ''}`;
     if (corr) deuCerto(txt); else deuCerto(txt, async () => { try { await api('desfazer_saida', { id: c.id, visita: r.visita, registro: r.registro, mensagem: r.mensagem ? r.mensagem.id : 0, sapateira: r.sapateira || 0, ...(r.pag_de != null ? { pag_de: r.pag_de, pag_registro: r.pag_registro || 0 } : {}), ...(r.desc ? { desc: r.desc } : {}), ...(r.avulso ? { avulso: r.avulso } : {}) }); await carregar(); } catch (e) { toast(e.message); } desenhar(); });
     if (r.avulso && r.avulso.venda && papel) papel.venda = r.avulso.venda;
     if (r.cupom) folhaCupom(r.cupom, true); else papelDepois(papel); }   // 1.06: o cupom da saída sai sempre, para o responsável assinar
-  catch (e) { toast(e.message); const b = $('#s-ok'); if (b) b.disabled = false; }
+  catch (e) { toast(e.message); if (e.status === 409) { try { await carregar(); } catch (e2) { } desenhar(true); atualizarSaida(); }   // 1.15: o valor mudou (nasceu mais um período): a folha mostra a conta nova, e é só confirmar de novo
+    const b = $('#s-ok'); if (b) b.disabled = false; }
 }
 // o atendimento registra de uma vez o que foi escolhido: serviços (com a quantidade), pacotes e um item avulso.
 // linhas: [{ servico, min (minutos de brincar que entram no saldo), v, itens (detalhe) }]
@@ -2258,7 +2283,7 @@ function linhasDoCarrinho(k = CARRINHO, item = val('v-item'), valor = val('v-val
   for (const i of k.pac) { const x = S.cfg.pacotes[i]; if (x) L.push({ pac: i, ph: x.h, ptipo: tipoPac(x), pnome: x.nome || '', servico: servPac(x), min: x.h * 60, v: x.v, itens: itensPac(x) }); }   // pacote de horas não tem o desconto PCD
   for (const p of S.produtos || []) { const q = (k.pr || {})[p.id] || 0; if (q) L.push({ prod: p.id, q, pv: p.v, servico: p.n, min: 0, v: centavos(q * p.v), itens: q > 1 ? q + ' unidades' : '' }); }   // produto da loja: valor por unidade, sem o desconto PCD
   if (st && k.vq > 0 && !temVoucher(c)) { const cobre = !!(c && c.entrou && c.atraso && c.atraso.n > 0);   // com cobrança por atraso a receber, o voucher cobre essa cobrança em vez de somar tempo
-    L.push({ vou: true, q: 1, cobre, servico: st.n, min: cobre ? 0 : (st.min || 30), v: 0, itens: 'voucher' + (cobre ? ' · cobriu a cobrança por atraso de ' + brl(umaCobranca(c)) : ''), voucher: 'sim', cheio: st.v }); }
+    L.push({ vou: true, q: 1, cobre, servico: st.n, min: cobre ? 0 : (st.min || 30), v: 0, itens: 'voucher' + (cobre ? ' · cobriu ' + dur(st.min || 30) + ' de recreação (' + brl(umaCobranca(c)) + ')' : ''), voucher: 'sim', cheio: st.v }); }
   for (const l of linhasDaFesta(k.festa)) L.push(l);   // 1.12: a festa (só pela folha da Festa)
   const on = item, ov = numero(valor); if (on) L.push({ outro: true, servico: on, min: 0, v: ov >= 0 ? ov : 0, itens: '' });
   return L;
@@ -2549,8 +2574,9 @@ const comConta = c => !!c && (!!c.entrou || (S.alugueis || []).some(a => a.crian
 // na ficha: quando falta receber, uma linha só, com o valor e o botão Receber (1.06: sem o selo Pago no alto)
 const chavePago = c => pendDe(c) + '|' + atrasoValor(c) + '|' + (comConta(c) ? 1 : 0);
 function pagoFicha(c) {
-  const pend = pendDe(c), at = atrasoValor(c), tot = centavos(pend + at); if (!(tot > 0.004)) return '';
-  const txt = pend > 0.004 ? `<b>A receber</b> · ${brl(pend)}${at > 0 ? ' + atraso ' + brl(at) : ''}` : `<b>Atraso</b> · ${brl(at)} a receber`;
+  const pend = pendDe(c), at = atrasoValor(c), tot = centavos(pend + at), av = aberta(c); if (!(tot > 0.004)) return '';
+  if (av && !(pend > 0.004)) return '';   // 1.15: só a recreação avulsa correndo: não é aviso, é a conta da visita (fica embaixo do relógio) e é acertada na saída
+  const txt = pend > 0.004 ? `<b>A receber</b> · ${brl(pend)}${at > 0 ? (av ? ' + recreação ' : ' + além do pacote ') + brl(at) : ''}` : `<b>Além do pacote</b> · ${brl(at)} a receber`;
   return `<div class="marca canc f-receber">${ic(IC.sino, 18)}<span>${txt}</span><button class="bt forte tap" data-act="receber" data-id="${c.id}">Receber${pend > 0.004 && at > 0 ? ' ' + brl(tot) : ''}</button></div>`;
 }
 // Receber antes da saída: o que ficou a pagar (e as cobranças por atraso que já existem), com a forma de pagamento
@@ -2564,7 +2590,7 @@ async function folhaReceber(id) {
   if (!(q.total > 0.004)) { toast(`Não há nada a receber de ${c.nome} agora`); if (MODO === 'servidor') { try { await carregar(); } catch (e) { } } desenhar(true); return; }
   REC = { id: c.id, total: centavos(q.total) };
   const lr = (q.itens || []).map(i => ({ n: esc(i.n), sub: 'a receber', meio: [esc(c.nome)], v: brl(i.v) }));
-  if (q.atraso && q.atraso.n) lr.push({ n: `Atraso · mais ${dur(q.atraso.n * periodo())}`, sub: q.atraso.n === 1 ? 'uma cobrança por atraso' : q.atraso.n + ' cobranças por atraso', meio: [esc(c.nome)], v: brl(q.atraso.valor) });
+  if (q.atraso && q.atraso.n) lr.push({ n: nomeAutos(c, q.atraso.n), sub: subAutos(c), meio: [esc(c.nome)], v: brl(q.atraso.valor) });
   abrirFolha('Receber', `
     ${pgDetalhes(c)}
     ${pgSec('Itens selecionados')}
@@ -2702,7 +2728,7 @@ async function registrarAtendimento(id, mesmoAssim, pag, depois) { // mesmoAssim
   if (MODO === 'servidor') {
     const bt = $('#v-ok'), bp = $('#p-ok'), bd = $('#p-depois'); if (bt) bt.disabled = true; if (bp) bp.disabled = true; if (bd) bd.disabled = true;
     try { const o = L.find(l => l.outro), r = await api('atender', { id, linhas: L.filter(l => l.s).map(l => ({ s: l.s, q: l.q })), pacotes: L.filter(l => l.pac != null).map(l => ({ h: l.ph, tipo: l.ptipo, v: l.v, nome: l.pnome })), produtos: L.filter(l => l.prod).map(l => ({ p: l.prod, q: l.q, v: l.pv })), outro: o ? { n: o.servico, v: o.v } : null, voucher: vou ? true : null, entrar, visto: (CARRINHO && CARRINHO.visto) || 0, mesmo_assim: !!mesmoAssim, pagamento: pag && pag.length ? pag : null, depois: !!depois && !(pag && pag.length), ...(dsc ? { desconto: dsc } : {}), ...(festa ? { festa: festaEnvio(CARRINHO.festa) } : {}) });
-      await carregar(); if (festa) ETAPA_FEITA = true; else atendimentoFeito(id); fecharFolha(); desenhar(); const k = crianca(id); deuCertoOu(atencaoVoucher(r.voucher, nome), avisoVoucher(r.voucher, nome) + aviso + (r.entrada ? ' · entrou' + (k && k.entrou ? ', tempo até ' + hora(fimVisita(k)) : '') : ''), async () => { voltarRascunho(id, rasc); try { if (r.entrada) await api('desfazer_entrada', { id, registro: r.entrada.registro, mensagem: r.entrada.mensagem }); await api('desfazer_venda', { vendas: r.vendas, registros: r.registros }); await carregar(); } catch (e) { toast(e.message); } desenhar(); }); VOLTA_SAIDA = 0; cupomDaVenda(id, r.cupom, volta && depois && !(pag && pag.length) ? null : { tipo: 'entrada', id, itens: L.map(linhaPapel), formas: pag || [], depois: !!depois && !(pag && pag.length), desc: dsc ? dsc.valor : 0, venda: (r.vendas || [])[0] || 0, festa }, volta); }   // 0.94: registrou, o cupom sai para o responsável assinar
+      await carregar(); if (festa) ETAPA_FEITA = true; else atendimentoFeito(id); fecharFolha(); desenhar(); const k = crianca(id); deuCertoOu(atencaoVoucher(r.voucher, nome), avisoVoucher(r.voucher, nome) + aviso + (r.entrada ? ' · entrou' + (k && k.entrou ? ', ' + entrouTxt(k) : '') : ''), async () => { voltarRascunho(id, rasc); try { if (r.entrada) await api('desfazer_entrada', { id, registro: r.entrada.registro, mensagem: r.entrada.mensagem }); await api('desfazer_venda', { vendas: r.vendas, registros: r.registros }); await carregar(); } catch (e) { toast(e.message); } desenhar(); }); VOLTA_SAIDA = 0; cupomDaVenda(id, r.cupom, volta && depois && !(pag && pag.length) ? null : { tipo: 'entrada', id, itens: L.map(linhaPapel), formas: pag || [], depois: !!depois && !(pag && pag.length), desc: dsc ? dsc.valor : 0, venda: (r.vendas || [])[0] || 0, festa }, volta); }   // 0.94: registrou, o cupom sai para o responsável assinar
     catch (e) { if (bt) bt.disabled = false; if (bp) bp.disabled = false; if (bd) bd.disabled = false; if (e.status === 409) toast(e.message, () => registrarAtendimento(id, true, pag, depois), 'Registrar mesmo assim'); else toast(e.message); }   // 409: outro aparelho já registrou uma venda para esta criança
     return;
   }
@@ -2721,9 +2747,10 @@ async function registrarAtendimento(id, mesmoAssim, pag, depois) { // mesmoAssim
   if (pagos.length) { registrar('pag', c.nome, `Pagamento · ${brl(total)} · ${textoPag(pag)}`); regs.push(S.registros[0]); }
   else if (depois && total > 0) { registrar('pag', c.nome, `A receber na ${entrar || c.entrou ? 'saída' : 'devolução'} · ${brl(total)}`); regs.push(S.registros[0]); }   /* 1.02: o cliente paga na saída */
   let desfazEntrada = null;
-  if (entrar && !c.entrou && temPeriodo(c)) { c.entrou = new Date(); c.uni = minhaUni() || null; c.atraso = null; registrar('ent', c.nome, 'Entrada registrada'); const regE = S.registros[0]; desfazEntrada = () => { c.entrou = null; S.registros = S.registros.filter(x => x !== regE); }; }
+  if (entrar && !c.entrou) { c.entrou = new Date(); c.uni = minhaUni() || null; c.atraso = null; registrar('ent', c.nome, 'Entrada registrada'); const regE = S.registros[0], pacE = c.pacote, vendaE = c.venda; acertarDemo(c, true);   // 1.15: entra com ou sem tempo comprado; sem ele, o primeiro período da recreação avulsa nasce aqui
+    desfazEntrada = () => { const ini = c.entrou; S.compras = S.compras.filter(v => !(v.crianca === c.id && v.auto && ini && v.quando >= ini)); c.entrou = null; c.atraso = null; c.pacote = pacE; c.venda = vendaE; S.registros = S.registros.filter(x => x !== regE); }; }
   if (festa) ETAPA_FEITA = true; else atendimentoFeito(id); fecharFolha(); desenhar();
-  deuCertoOu(atencaoVoucher(vou ? { n: nV, cobriu: coberta ? { valor: coberta.v } : null } : null, nome), avisoVoucher(vou ? { n: nV, cobriu: coberta ? { valor: coberta.v } : null } : null, nome) + aviso + (desfazEntrada ? ' · entrou, tempo até ' + hora(fimVisita(c)) : ''), () => { voltarRascunho(id, rasc); if (desfazEntrada) desfazEntrada(); Object.assign(c, era); if (coberta) { S.compras.push(coberta); if (coberta.reg) coberta.reg.txt = coberta.reg.txt.replace(' · coberta pelo voucher', ''); c.atraso = eraAtraso; } for (const x of novas) if (x.prod) { const p = produto(x.prod); if (p && p.est != null) p.est += x.qtd; } S.compras = S.compras.filter(x => !novas.includes(x)); S.registros = S.registros.filter(x => !regs.includes(x)); S.pagamentos = (S.pagamentos || []).filter(x => !pagos.includes(x)); });
+  deuCertoOu(atencaoVoucher(vou ? { n: nV, cobriu: coberta ? { valor: coberta.v } : null } : null, nome), avisoVoucher(vou ? { n: nV, cobriu: coberta ? { valor: coberta.v } : null } : null, nome) + aviso + (desfazEntrada ? ' · entrou, ' + entrouTxt(c) : ''), () => { voltarRascunho(id, rasc); if (desfazEntrada) desfazEntrada(); Object.assign(c, era); if (coberta) { S.compras.push(coberta); if (coberta.reg) coberta.reg.txt = coberta.reg.txt.replace(' · coberta pelo voucher', ''); c.atraso = eraAtraso; } for (const x of novas) if (x.prod) { const p = produto(x.prod); if (p && p.est != null) p.est += x.qtd; } S.compras = S.compras.filter(x => !novas.includes(x)); S.registros = S.registros.filter(x => !regs.includes(x)); S.pagamentos = (S.pagamentos || []).filter(x => !pagos.includes(x)); });
   VOLTA_SAIDA = 0; cupomDaVenda(id, cupomId, volta && depois && !(pag && pag.length) ? null : { tipo: 'entrada', id, itens: L.map(linhaPapel), formas: pag || [], depois: !!depois && !(pag && pag.length), desc: dsc ? dsc.valor : 0, venda: novas.length ? novas[0].id : 0, festa }, volta);   // 0.94: registrou, o cupom sai para o responsável assinar
 }
 // 1.00: depois de uma venda, o cupom (como sempre) e, se a venda veio da folha da saída, a saída dessa criança abre de novo quando o cupom fechar
@@ -2736,13 +2763,13 @@ function cupomDaVenda(id, cupomId, spec, volta) {
   folhaPapel(spec); if (volta && PAPEL) PAPEL.depois = abre;
 }
 function entrada(c, origem = 'iDFace') {
-  if (!c || c.entrou) return;
-  if (origem !== 'iDFace' && !temPeriodo(c)) { toast(`${c.nome} não tem um período de recreação comprado. Registre a venda antes.`, () => atender(c.id), 'Vender'); return; }
+  if (!c || c.entrou) return;   // 1.15: quem não tem horas entra na recreação avulsa (não precisa mais comprar um período antes)
   if (MODO === 'servidor') return entradaServidor(c);
+  const eraE = { pacote: c.pacote, atraso: c.atraso, venda: c.venda };
   c.entrou = new Date(); c.uni = minhaUni() || null; c.atraso = null; registrar('ent', c.nome, origem === 'iDFace' ? 'Rosto reconhecido na entrada' : (semIdface() ? 'Entrada registrada' : 'Entrada registrada à mão'));
-  const reg = S.registros[0], primeiroNome = nomeMsg(c.resp.split(' ')[0]);
+  const reg = S.registros[0], primeiroNome = nomeMsg(c.resp.split(' ')[0]); acertarDemo(c, true);   // (prévia) o primeiro período da recreação avulsa nasce na entrada, como no servidor
   const desfazMsg = S.cfg.autoMsg !== 'nao' ? mensagemAuto(c, `Oi, ${primeiroNome}! ${nomeMsg(c.nome)} chegou na Play Space às ${hora(c.entrou)} 💛 Qualquer coisa a gente te chama por aqui.`, true) : null;
-  deuCerto(`${c.nome} entrou · tempo comprado até ${hora(fimVisita(c))}`, () => { c.entrou = null; S.registros = S.registros.filter(r => r !== reg); if (desfazMsg) desfazMsg(); });
+  deuCerto(`${c.nome} entrou · ${entrouTxt(c, true)}`, () => { const ini = c.entrou; if (ini) S.compras = S.compras.filter(v => !(v.crianca === c.id && v.auto && v.quando >= ini && !(S.pagamentos || []).some(p => p.venda === v.id))); c.entrou = null; Object.assign(c, eraE); S.registros = S.registros.filter(r => r !== reg); if (desfazMsg) desfazMsg(); });
   if (origem !== 'iDFace') setTimeout(() => papelDepois({ tipo: 'entrada', id: c.id }), 420);   // 0.94: entrou pela tela, o cupom de entrada sai (depois de a folha que estava aberta fechar)
 }
 // A saída debita períodos inteiros. corr = { quando: 'HH:MM', motivo, em: Date }: a supervisão diz a hora em que a criança saiu de verdade
@@ -2760,7 +2787,7 @@ function desfazerSobrandoPrevia(c, fim) {
 function saida(c, origem = 'iDFace', corr = null, pag = null, papel = null, dsc = null, quieto = false, av = false) {   // av (1.11): a visita paga avulsa, sem descontar do pacote   // quieto (1.07, só na prévia): sem o aviso; devolve { cupomId, txt, desfaz } para a saída em conjunto avisar uma vez só // pag: [{ f, v }], como a cobrança por atraso foi recebida; papel: o cupom da saída (0.94)
   if (!c || !c.entrou) return;
   if (MODO === 'servidor') return saidaServidor(c, corr, pag, papel, dsc, av);
-  const p = periodo(), entrouEm = c.entrou, fim = corr ? corr.em : new Date(agora), era = { pacote: c.pacote, usado: c.usado, liberado: c.liberado, atraso: c.atraso, venda: c.venda, visitas: c.visitas.slice(), compras: S.compras.slice(), regs: S.registros.slice(), pags: (S.pagamentos || []).slice() };
+  const p = periodo(), entrouEm = c.entrou, plano = planoDe(c), fim = corr ? corr.em : new Date(agora), era = { pacote: c.pacote, usado: c.usado, liberado: c.liberado, atraso: c.atraso, venda: c.venda, visitas: c.visitas.slice(), compras: S.compras.slice(), regs: S.registros.slice(), pags: (S.pagamentos || []).slice() };
   acertarDemo(c, true);   // o que ficou devendo até agora vira cobrança por atraso (o servidor faz o mesmo na saída)
   if (!corr) desfazerSobrandoPrevia(c, fim);   // 1.00: e a que sobrou (o cliente comprou tempo durante a visita) é desfeita
   let vAv = 0;   /* 1.11: o número da venda avulsa desta saída, para o cupom */
@@ -2780,12 +2807,12 @@ function saida(c, origem = 'iDFace', corr = null, pag = null, papel = null, dsc 
   c.usado += deb; if (S.cfg.bloqueioAuto === 'sim' && !temPeriodo(c)) c.liberado = false;
   c.visitas.unshift({ dia: fim, entrou: hora(entrouEm), saiu: hora(fim), deb, ini: entrouEm, sap: c.sapateira || 0 });
   const sap = c.sapateira || 0; c.sapateira = null; c.entrou = null; c.atraso = null;   // a sapateira fica livre na saída
-  registrar('sai', c.nome, `Ficou ${dur(Math.floor(min))} · ${dur(deb)} debitados${saldoMin(c) > 0 ? ' · restam ' + hm(saldoMin(c)) : ''}${atraso.n ? ` · ${atraso.n > 1 ? atraso.n + ' cobranças' : 'cobrança'} por atraso: ${brl(atraso.valor)}${pago ? ' · recebido: ' + pago : ' a receber'}` : ''}${sap ? ' · sapato na sapateira ' + sap : ''}${origem === 'iDFace' || semIdface() ? '' : ' · saída à mão'}`);
+  registrar('sai', c.nome, `Ficou ${dur(Math.floor(min))} · ${dur(deb)} debitados${saldoMin(c) > 0 ? ' · restam ' + hm(saldoMin(c)) : ''}${atraso.n ? ` · ${textoAutos(atraso, plano)}${pago ? ' · recebido: ' + pago : ' a receber'}` : ''}${sap ? ' · sapato na sapateira ' + sap : ''}${origem === 'iDFace' || semIdface() ? '' : ' · saída à mão'}`);
   if (dz > 0) registrar('desc', c.nome, textoDesc({ ...dsc, valor: dz }));   /* 1.04 */
   if (pago && pend > 0) registrar('pag', c.nome, `Pagamento na saída · ${brl(recebido)} · ${pago}`);   /* 1.02 */
-  if (corr) registrar('corr', c.nome, `Saída corrigida para ${hora(fim)} · ${dur(deb)} debitados${desfeitas ? ` · ${desfeitas > 1 ? desfeitas + ' cobranças por atraso desfeitas' : 'cobrança por atraso desfeita'}: ${brl(valorDesf)}` : ''} · Motivo: ${corr.motivo} · por ${EU.nome}`);
+  if (corr) registrar('corr', c.nome, `Saída corrigida para ${hora(fim)} · ${dur(deb)} debitados${desfeitas ? ` · ${desfeitas > 1 ? desfeitas + ' cobranças de recreação desfeitas' : 'cobrança de recreação desfeita'}: ${brl(valorDesf)}` : ''} · Motivo: ${corr.motivo} · por ${EU.nome}`);
   let quietoR = null; const avisa = quieto ? (t, f) => { quietoR = { txt: t, desfaz: f }; } : deuCerto;
-  avisa(`${c.nome} saiu${corr ? ' às ' + hora(fim) : ''} · ${dur(deb)} debitados${pend > 0 ? ' · ' + (pago ? 'recebido ' + brl(recebido) + ' (' + pago + ')' : brl(recebido) + ' a receber') : atraso.n ? ' · ' + brl(centavos(atraso.valor - dz)) + (pago ? ' de atraso recebido (' + pago + ')' : ' de atraso a receber') : ''}${dz > 0 ? ' · desconto de ' + brl(dz) : ''}${sap ? ' · sapato na sapateira ' + sap : ''}`,
+  avisa(`${c.nome} saiu${corr ? ' às ' + hora(fim) : ''} · ${dur(deb)} debitados${pend > 0 ? ' · ' + (pago ? 'recebido ' + brl(recebido) + ' (' + pago + ')' : brl(recebido) + ' a receber') : atraso.n ? ' · ' + brl(centavos(atraso.valor - dz)) + (pago ? ' recebido (' + pago + ')' : ' a receber') : ''}${dz > 0 ? ' · desconto de ' + brl(dz) : ''}${sap ? ' · sapato na sapateira ' + sap : ''}`,
     () => { for (const [v, vv, d, m] of descs) { v.v = vv; v.desc = d; v.descMotivo = m; } S.pagamentos = era.pags; Object.assign(c, { pacote: era.pacote, usado: era.usado, liberado: era.liberado, atraso: era.atraso, venda: era.venda, visitas: era.visitas, entrou: entrouEm, sapateira: sap && !donoSap(sap) ? sap : null }); S.compras = era.compras; S.registros = era.regs; });
   return quieto ? { cupomId, deb, venda: vAv, ...quietoR } : cupomId;
 }
@@ -2830,7 +2857,7 @@ function htmlPapel(spec, via = 'loja') {
   const c = spec.c || crianca(spec.id); if (!c) return ''; const L = lojaPapel(), st = servicoTempo(), p = periodo(), tol = tolCupom(), loja = via !== 'cliente', uniP = nomeUni(spec.uni) || nomeUni(c.uni) || nomeUni(minhaUni());   // 1.06: a unidade da visita (ou a deste aparelho)
   const div = '<p class="c-div"></p>', anos = x => loja && idadeTxt(x) ? ` (${idadeTxt(x)})` : '';
   const cab = `<div class="c-topo"><span class="c-logo cor">${LOGO}</span><span class="c-logo pb">${LOGO_PB}</span><div class="c-quem"><p class="c-loja">${esc(L.nome)}</p>${uniP ? `<p class="c-uni">${esc(uniP)}</p>` : ''}${L.tel ? `<p class="c-fone">${esc(L.tel)}</p>` : ''}</div></div>
-    <p class="c-via"><span>${loja ? 'VIA DA LOJA' : 'VIA DO CLIENTE'}</span><span>${dataCurta(new Date())}</span></p>
+    <p class="c-via"><span>${loja ? 'VIA DA LOJA' : 'VIA DO CLIENTE'}</span><span>${dataCurta(agoraJa())}</span></p>
     <p>Responsável: <b>${esc(c.resp)}</b></p>${loja && (docTxt(c) || fones(c)) ? `<p>${esc([docTxt(c), fones(c)].filter(Boolean).join(' · '))}</p>` : ''}`;
   // o que foi vendido e como foi pago: uma linha por item (com o detalhe dele embaixo, se houver), o total quando há mais de uma linha, e a forma
   // 1.10: o pagamento no jeito de um comprovante: a tabela (com a quantidade, quando os itens têm), o subtotal e o desconto só quando
@@ -2854,8 +2881,8 @@ function htmlPapel(spec, via = 'loja') {
     const G = spec.grupo && spec.grupo.length ? spec.grupo : [spec], varias = G.length > 1, quem = x => varias ? crianca(x.id) || c : c;
     const bloco = (x, i) => { const k = quem(x); return `${i ? '<p class="c-esp"></p>' : ''}<p><b>SAÍDA · ${esc(k.nome)}</b>${anos(k)}${loja ? ' · cadastro ' + k.id : ''}</p>
       <p>Entrada ${hora(x.entrou)} · saída ${hora(x.saiu)} · ficou ${dur(Math.floor(x.min))}</p>
-      <p>Tempo contado: ${dur(x.deb)} · saldo de horas: ${hm(x.saldo)}</p>`; };
-    const itens = G.flatMap(x => { const de = varias ? ' · ' + quem(x).nome : ''; return [...(x.pendi && x.pendi.length ? x.pendi.map(i => ({ n: i.n + de, v: i.v })) : [x.pend > 0 ? { n: 'O que ficou para pagar na saída' + de, v: x.pend } : null]), x.n ? { n: `Além do tempo comprado: ${dur(x.n * p)}${de}`, v: centavos(x.valor - (x.pend || 0) - (x.av ? x.av.valor : 0)) } : null, x.av ? { n: `${st ? st.n : 'RECREAÇÃO'} avulsa · ${dur(x.av.min)}${de}`, v: x.av.valor } : null]; }).filter(Boolean);   // 1.10: o desconto sai na linha dele, embaixo do subtotal
+      <p>Tempo contado: ${dur(x.deb)}${x.plano !== 'avulso' || x.saldo > 0 || x.proprias > 0 ? ' · saldo de horas: ' + hm(x.saldo) : ''}</p>`; };
+    const itens = G.flatMap(x => { const de = varias ? ' · ' + quem(x).nome : ''; return [...(x.pendi && x.pendi.length ? x.pendi.map(i => ({ n: i.n + de, v: i.v })) : [x.pend > 0 ? { n: 'O que ficou para pagar na saída' + de, v: x.pend } : null]), x.n ? { n: `${x.plano === 'pacote' ? 'Além do pacote' : (st ? st.n : 'RECREAÇÃO') + ' avulsa'} · ${dur(x.n * p)}${de}`, v: centavos(x.valor - (x.pend || 0) - (x.av ? x.av.valor : 0)) } : null, x.av ? { n: `${st ? st.n : 'RECREAÇÃO'} avulsa · ${dur(x.av.min)}${de}`, v: x.av.valor } : null]; }).filter(Boolean);   // 1.10: o desconto sai na linha dele, embaixo do subtotal
     return `<div class="papel ${loja ? 'loja' : 'cliente'}">${cab}${div}${G.map(bloco).join('')}
       ${pago(itens, spec.formas, { desc: spec.desc })}${pe('', true)}</div>`;
   }
@@ -2867,10 +2894,13 @@ function htmlPapel(spec, via = 'loja') {
   const festa = !!spec.festa || it.some(i => i.t === 'festa');   // 1.12: a venda da festa é só o comprovante (com a assinatura na via da loja), esteja a criança no espaço ou não
   const quem = festa ? [] : dentro.some(x => x.id === c.id) ? dentro : !vendeu && !fora.length ? [c] : [];
   const ate = (ini, min) => hora(new Date(ini.getTime() + min * 60000));
-  const bloco = (x, i) => { const pac = planoDe(x) === 'pacote';
+  // 1.15: quem entra sem pacote está na recreação avulsa: o cupom diz o valor de cada período e que o acerto é na saída (não há "até quando").
+  // ja = o tempo que a criança já tinha ao entrar e não é de pacote (o voucher, um resto de tempo comprado): aparece ao lado da entrada
+  const bloco = (x, i) => { const pac = planoDe(x) === 'pacote', ja = x.entrou && !pac ? Math.max(0, saldoMin(x) - (x.atraso ? x.atraso.n : 0) * p) : 0;
     return `${i ? '<p class="c-esp"></p>' : ''}<p><b>${esc(x.nome)}</b>${anos(x)}</p>${loja && x.entrou ? `<p>Cadastro ${x.id}${x.sapateira ? ' · Sapateira ' + x.sapateira : ''}</p>` : ''}
-    <p>${x.entrou ? `Entrada ${hora(x.entrou)} · ${pac ? 'horas do cliente: ' + hm(saldoMin(x)) : dur(cobertoMin(x)) + ' · até ' + hora(fimVisita(x))}` : 'Horas guardadas: ' + hm(saldoMin(x))}</p>
-    ${st && x.entrou ? `<p>${pac ? 'Acabando as horas' : esc(st.n)}${x.pcd ? ' · ' + rotPcd() : ''}${pac ? ': ' : ' · '}${brl2(precoDe(x, st.v))} a cada ${st.min || 30} min</p>` : ''}`; };
+    <p>${x.entrou ? `Entrada ${hora(x.entrou)} · ${pac ? 'horas do cliente: ' + hm(saldoMin(x)) : (st ? esc(st.n) + ' avulsa' : 'acerto na saída') + (x.pcd ? ' · ' + rotPcd() : '')}` : 'Horas guardadas: ' + hm(saldoMin(x))}</p>
+    ${st && x.entrou ? (pac ? `<p>Acabando as horas${x.pcd ? ' · ' + rotPcd() : ''}: ${brl2(precoDe(x, st.v))} a cada ${st.min || 30} min</p>`
+      : `<p>${ja > 0 ? dur(ja) + (temVoucher(x) ? ' do voucher' : ' já comprado') + ' · depois, ' : ''}${brl2(precoDe(x, st.v))} a cada ${st.min || 30} min, na saída</p>`) : ''}`; };
   // embaixo de cada item, o que interessa dele: o que sai da loja e volta leva a hora em que saiu e até quando devolver; o pacote, as
   // horas que ele dá; e, para quem comprou tempo e não entrou, de quem são as horas e quanto ficou guardado (uma vez só)
   let disse = false;
@@ -3131,6 +3161,18 @@ let AV = new Set(), AV_VOLTA = null;
 // o tempo já comprado para a visita em curso que não é de pacote (a recreação por período, o voucher, a cobrança por atraso já paga): não é cobrado de novo
 const tvisDe = c => MODO === 'servidor' ? +c.tvis || 0 : S.compras.filter(v => v.crianca === c.id && !v.imp && minDe(v) > 0 && +v.quando >= corteVisita(c) && !ehPacoteVenda(v) && (!v.auto || (S.pagamentos || []).some(p => p.venda === v.id))).reduce((t, v) => t + minDe(v), 0);
 const segAvulso = (pode, on) => !pode ? '' : `<div class="pg-modo" id="s-av" role="radiogroup" aria-label="De onde sai o tempo desta visita"><button type="button" class="tap" role="radio" aria-checked="${!on}" data-act="saida-avulso" data-v="0"><i aria-hidden="true"></i>Descontar do pacote</button><button type="button" class="tap" role="radio" aria-checked="${!!on}" data-act="saida-avulso" data-v="1"><i aria-hidden="true"></i>Pagar avulso</button></div>`;
+// 1.15: as linhas de uma criança na conta da saída. Quem está na recreação avulsa e não usa horas próprias tem uma linha só, já com o
+// valor ("RECREAÇÃO avulsa · 1h30 · ficou 1h12 · R$ 240"). Quem usa horas tem a linha da visita ("usa 2h") e, se elas não bastaram, a
+// do que foi além: "Além do pacote" para quem entrou com pacote, "RECREAÇÃO avulsa" para quem tinha só um voucher ou um resto de tempo
+function linhasVisita(c, k, o = {}) {   // o: { hh: a hora corrigida, de: " · NOME" (na conta em conjunto), tirar: o botão Tirar }
+  const p = periodo(), st = servicoTempo(), rec = esc(st ? st.n : 'RECREAÇÃO'), minhas = horasProprias(k), de = o.de || '', av = planoDe(c) !== 'pacote', so = av && k.n > 0 && !minhas;
+  const ficou = `${o.hh ? 'saiu às ' + esc(o.hh) + ' · ' : ''}ficou ${dur(Math.floor(k.min))}`, meio = [esc(c.nome), c.sapateira ? String(c.sapateira) : '', hora(c.entrou)];
+  const L = [so ? { n: `${rec} avulsa · ${dur(k.n * p)}`, sub: ficou, meio, v: brl(k.valor) + (o.tirar || '') } : { n: rec, sub: ficou, meio, v: (minhas ? 'usa ' + dur(minhas) : '') + (o.tirar || ''), h: true }];
+  if (k.pend > 0) for (const i of pendItens(c)) L.push({ n: esc(i.n), sub: 'ficou para a saída' + de, v: brl(i.v) });
+  if (k.n && !so) L.push({ n: nomeAutos(c, k.n), sub: subAutos(c) + de, v: brl(k.valor) });
+  if (k.av) L.push(linhaAvulso(k, de));
+  return L;
+}
 const linhaAvulso = (k, de = '') => ({ n: `${esc((servicoTempo() || { n: 'RECREAÇÃO' }).n)} avulsa · ${dur(k.av.min)}`, sub: 'não desconta do pacote' + de, v: brl(k.av.valor) });
 let SAI = null;        // a conta em conjunto que está na folha: { ids: [as crianças do responsável que estão no espaço; a que foi tocada vem primeiro], fora: Set (as que foram tiradas) }
 let SAI_VOLTA = null;  // quem estava fora da conta quando a equipe foi em "Adicionar serviços": a conta abre de novo igual
@@ -3152,11 +3194,7 @@ function repartirGrupo(g, dsc, pag) {
 }
 const htmlContaGrupo = g => { const p = periodo(), st = servicoTempo(), varias = g.L.length > 1, de = c => SAI.ids.length > 1 ? ' · ' + esc(c.nome) : '', L = []; let antes = 0, minhas = 0, depois = 0;
   for (const { c, k } of g.L) { const m = horasProprias(k); antes += saldoAntesSaida(c); minhas += m; depois += saldoDepois(c, k);
-    L.push({ n: esc(st ? st.n : 'RECREAÇÃO'), sub: `ficou ${dur(Math.floor(k.min))}`, meio: [esc(c.nome), c.sapateira ? String(c.sapateira) : '', hora(c.entrou)], h: true,
-      v: (m ? 'usa ' + dur(m) : '') + (varias ? `<button type="button" class="pgt-x tap" data-act="saida-tirar" data-id="${c.id}" title="Tirar ${esc(c.nome)} desta conta: paga à parte, ou sai depois" aria-label="Tirar ${esc(c.nome)} desta conta">Tirar</button>` : '') });
-    if (k.pend > 0) for (const i of pendItens(c)) L.push({ n: esc(i.n), sub: 'ficou para a saída' + de(c), v: brl(i.v) });
-    if (k.n) L.push({ n: `Atraso · mais ${dur(k.n * p)}`, sub: (k.n === 1 ? 'uma cobrança por atraso' : k.n + ' cobranças por atraso') + de(c), v: brl(k.valor) });
-    if (k.av) L.push(linhaAvulso(k, de(c))); }
+    L.push(...linhasVisita(c, k, { de: de(c), tirar: varias ? `<button type="button" class="pgt-x tap" data-act="saida-tirar" data-id="${c.id}" title="Tirar ${esc(c.nome)} desta conta: paga à parte, ou sai depois" aria-label="Tirar ${esc(c.nome)} desta conta">Tirar</button>` : '' })); }
   if (g.desc > 0) L.push(linhaDesc(g.desc, descErro(g.bruto, 'saida', SAI.ids[0])));
   const fora = saiFora(), v = g.receber;
   return `${pgSec('Itens selecionados')}
@@ -3166,8 +3204,8 @@ const htmlContaGrupo = g => { const p = periodo(), st = servicoTempo(), varias =
     <button type="button" class="link tap pg-add pac-saida" data-act="saida-pacote" data-id="${g.L[0].c.id}">${ic(IC.mais, 14, 2.8)} Adicionar serviços <small>· pacote ou produto</small></button>
     ${pgSec('Pagamento')}
     ${segAvulso(g.L.some(x => x.k.pac > 0), g.L.some(x => x.k.av))}
-    ${pgHoras(hm(antes), dur(minhas) + (v > 0 ? '<i class="pg-mais">+</i>' + brl(v) : ''), hm(depois))}
-    ${g.L.filter(x => !x.k.n && x.k.desfeitas).map(x => `<div class="marca">${ic(IC.check, 18, 2.6)}<span>O que o cliente comprou cobre a visita${varias ? ' de ' + esc(x.c.nome) : ''}, <b>${x.k.desfeitas === 1 ? 'a cobrança por atraso é desfeita' : 'as ' + x.k.desfeitas + ' cobranças por atraso são desfeitas'}</b>.</span></div>`).join('')}
+    ${antes > 0 || minhas > 0 || depois > 0 ? pgHoras(hm(antes), dur(minhas) + (v > 0 ? '<i class="pg-mais">+</i>' + brl(v) : ''), hm(depois)) : ''}
+    ${g.L.filter(x => !x.k.n && x.k.desfeitas).map(x => `<div class="marca">${ic(IC.check, 18, 2.6)}<span>O que o cliente comprou cobre a visita${varias ? ' de ' + esc(x.c.nome) : ''}: <b>${dur(x.k.desfeitas * p)} de recreação a menos na conta</b>.</span></div>`).join('')}
     ${g.L.map(x => temVoucher(x.c) ? `<div class="marca">${ic(IC.presente, 18)}<span><b>Voucher usado${varias ? ' (' + esc(x.c.nome) + ')' : ''}:</b> ${porExt(p)} desta visita ficou por conta dele.</span></div>`
       : x.k.n ? `<button type="button" class="marca tap vou-saida" data-act="saida-voucher" data-id="${x.c.id}">${ic(IC.presente, 18)}<span><b>Tem voucher${varias ? ' para ' + esc(x.c.nome) : ''}?</b> Usar agora: ${brl(umaCobranca(x.c))} a menos.</span>${ic(IC.vai, 18)}</button>` : '').join('')}`; };
 function folhaSaidaGrupo(G) {
@@ -3204,13 +3242,13 @@ async function confirmarGrupo(el) {
   if (g.receber > 0) { if (!PAG || PAG.onde !== 'saida' || !$('#pg-formas')) return; PAG.total = g.receber; const x = pagPartes();
     if (x.erro) { toast(PAG.formas.length ? x.erro : `Como recebeu ${brl(g.receber)}? Toque na forma de pagamento`); const a = $('#pg-formas'); if (a) a.scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
     pag = x.partes; }
-  const P = repartirGrupo(g, dsc, pag), sai = new Date(), nomes = P.map(x => x.c.nome), verbo = P.length === 1 ? 'saiu' : 'saíram';
-  const papelDe = L => ({ tipo: 'saida', id: L[0].c.id, grupo: L.map(x => ({ id: x.c.id, entrou: x.c.entrou, saiu: sai, min: x.k.min, deb: x.k.deb, proprias: horasProprias(x.k), saldo: saldoDepois(x.c, x.k), n: x.k.n, valor: x.bruto, pend: x.k.pend || 0, pendi: x.k.pend > 0 ? pendItens(x.c) : [], av: x.k.av || null })),
+  const P = repartirGrupo(g, dsc, pag), sai = agoraJa(), nomes = P.map(x => x.c.nome), verbo = P.length === 1 ? 'saiu' : 'saíram';
+  const papelDe = L => ({ tipo: 'saida', id: L[0].c.id, grupo: L.map(x => ({ id: x.c.id, plano: planoDe(x.c), entrou: x.c.entrou, saiu: sai, min: x.k.min, deb: x.k.deb, proprias: horasProprias(x.k), saldo: saldoDepois(x.c, x.k), n: x.k.n, valor: x.bruto, pend: x.k.pend || 0, pendi: x.k.pend > 0 ? pendItens(x.c) : [], av: x.k.av || null })),
     desc: centavos(L.reduce((t, x) => t + (x.dsc ? x.dsc.valor : 0), 0)), formas: L === P ? pag || [] : L.flatMap(x => x.pag) });   // o cupom da saída em conjunto: cada criança, e um pagamento só
   const papel = papelDe(P), recebeu = g.receber > 0 && pag ? ` · recebido ${brl(g.receber)} (${textoPag(pag)})` : '', desconto = dsc ? ` · desconto de ${brl(dsc.valor)}` : '';
   el.disabled = true;
   if (MODO === 'servidor') { const feitas = [];
-    try { for (const x of P) feitas.push({ x, r: await api('saida', { id: x.c.id, ...(x.pag.length ? { pagamento: x.pag } : {}), ...(x.dsc ? { desconto: x.dsc } : {}), ...(x.k.av ? { avulso: true } : {}) }) }); }
+    try { for (const x of P) feitas.push({ x, r: await api('saida', { id: x.c.id, total: centavos(x.pag.reduce((t, q) => t + q.v, 0)), ...(x.pag.length ? { pagamento: x.pag } : {}), ...(x.dsc ? { desconto: x.dsc } : {}), ...(x.k.av ? { avulso: true } : {}) }) }); }   // 1.15: total = a parte desta criança (o servidor confere)
     catch (e) { // uma das saídas parou: as que já foram dadas ficam (com o cupom delas), e a tela diz qual falta
       try { await carregar(); } catch (e2) { }
       if (!feitas.length) { toast(e.message); desenhar(true); atualizarGrupo(); const b = $('#sg-ok'); if (b) b.disabled = false; return; }
@@ -3250,18 +3288,15 @@ function botaoSaida() { const x = contaDaFolhaSaida(), bt = $('#s-ok'); if (x &&
 // 1.03: a conta da saída na ordem da tela anterior: os itens (a visita, o que ainda não foi pago, o atraso) com o total, Adicionar serviços,
 // e as horas em três linhas (disponíveis, necessárias, saldo após a confirmação)
 const htmlContaSaida = (c, k, hh) => { const p = periodo(), minhas = horasProprias(k), antes = saldoAntesSaida(c), depois = saldoDepois(c, k), v = receberSaida(k), st = servicoTempo();
-  const L = [{ n: esc(st ? st.n : 'RECREAÇÃO'), sub: `${hh ? 'saiu às ' + esc(hh) + ' · ' : ''}ficou ${dur(Math.floor(k.min))}`, meio: [esc(c.nome), c.sapateira ? String(c.sapateira) : '', hora(c.entrou)], v: minhas ? 'usa ' + dur(minhas) : '', h: true }];
-  if (k.pend > 0) for (const i of pendItens(c)) L.push({ n: esc(i.n), sub: 'ficou para a saída', v: brl(i.v) });
-  if (k.n) L.push({ n: `Atraso · mais ${dur(k.n * p)}`, sub: k.n === 1 ? 'uma cobrança por atraso' : k.n + ' cobranças por atraso', v: brl(k.valor) });
-  if (k.av) L.push(linhaAvulso(k));   // 1.11: a visita paga avulsa
+  const L = linhasVisita(c, k, { hh });   // 1.15: a visita (com o valor, na recreação avulsa), o que ficou para a saída, o tempo além do pacote e, 1.11, a visita paga avulsa
   { const dv = centavos(brutoSaida(k) - v); if (dv > 0) L.push(linhaDesc(dv, descErro(brutoSaida(k), 'saida', c.id))); }   // 1.04: o desconto do gestor
   return `${pgSec('Itens selecionados')}
     ${pgTabela([['Criança', ''], ['Sapateira', 'sapateira '], ['Entrada', 'entrada ']], L, brl(v), { rot: 'Total a receber', cls: v > 0 ? 'a-receber' : '' })}
     ${hh ? '' : `<button type="button" class="link tap pg-add pac-saida" data-act="saida-pacote" data-id="${c.id}">${ic(IC.mais, 14, 2.8)} Adicionar serviços <small>· pacote ou produto</small></button>`}
     ${pgSec('Pagamento')}
     ${hh ? '' : segAvulso(k.pac > 0, !!k.av)}
-    ${pgHoras(hm(antes), dur(minhas) + (v > 0 ? '<i class="pg-mais">+</i>' + brl(v) : ''), hm(depois))}
-    ${k.n ? '' : (k.desfeitas ? `<div class="marca">${ic(IC.check, 18, 2.6)}<span>${hh ? 'Com essa hora' : 'O que o cliente comprou cobre a visita'}, <b>${k.desfeitas === 1 ? 'a cobrança por atraso é desfeita' : 'as ' + k.desfeitas + ' cobranças por atraso são desfeitas'}</b>.</span></div>` : '')}
+    ${antes > 0 || minhas > 0 || depois > 0 ? pgHoras(hm(antes), dur(minhas) + (v > 0 ? '<i class="pg-mais">+</i>' + brl(v) : ''), hm(depois)) : ''}
+    ${k.n ? '' : (k.desfeitas ? `<div class="marca">${ic(IC.check, 18, 2.6)}<span>${hh ? 'Com essa hora' : 'O que o cliente comprou cobre a visita'}: <b>${dur(k.desfeitas * p)} de recreação a menos na conta</b>.</span></div>` : '')}
     ${temVoucher(c) ? `<div class="marca">${ic(IC.presente, 18)}<span><b>Voucher usado:</b> ${porExt(p)} desta visita ficou por conta dele.</span></div>`
       : k.n && !hh ? `<button type="button" class="marca tap vou-saida" data-act="saida-voucher" data-id="${c.id}">${ic(IC.presente, 18)}<span><b>Tem voucher?</b> Usar agora: ${brl(umaCobranca(c))} a menos.</span>${ic(IC.vai, 18)}</button>` : ''}`; };
 function atualizarSaida() { // refaz a conta da folha da saída que está aberta (depois de usar o voucher)
@@ -3286,7 +3321,7 @@ function confirmarSaida(el) {
   if (receber > 0 && PAG && PAG.onde === 'saida' && $('#pg-formas')) { PAG.total = receber; const r = pagPartes();
     if (r.erro) { toast(PAG.formas.length ? r.erro : `Como recebeu ${brl(receber)}? Toque na forma de pagamento`); const a = $('#pg-formas'); if (a) a.scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
     pag = r.partes; }
-  const papel = { tipo: 'saida', id: c.id, entrou: c.entrou, saiu: corr ? corr.em : new Date(), min: k.min, deb: k.deb, proprias: horasProprias(k), saldo: saldoDepois(c, k), n: k.n, valor: bruto, pend: k.pend || 0, pendi: k.pend > 0 ? pendItens(c) : [], av: k.av || null, desc: dsc ? dsc.valor : 0, formas: pag || [] };   // 1.06: toda saída tem o cupom, com ou sem pagamento (quem usa as horas também assina a saída)
+  const papel = { tipo: 'saida', id: c.id, plano: planoDe(c), entrou: c.entrou, saiu: corr ? corr.em : agoraJa(), min: k.min, deb: k.deb, proprias: horasProprias(k), saldo: saldoDepois(c, k), n: k.n, valor: bruto, pend: k.pend || 0, pendi: k.pend > 0 ? pendItens(c) : [], av: k.av || null, desc: dsc ? dsc.valor : 0, formas: pag || [] };   // 1.06: toda saída tem o cupom, com ou sem pagamento (quem usa as horas também assina a saída)
   el.disabled = true; const cupomId = saida(c, 'mão', corr, pag, papel, dsc, false, !!k.av); if (MODO !== 'servidor') { fecharFolha(); desenhar(); if (cupomId) folhaCupom(cupomId, true); else papelDepois(papel); }
 }
 // (servidor) depois da saída: a supervisão corrige a hora de uma visita dos últimos dois dias
@@ -3421,6 +3456,7 @@ const chipIdface = () => { const i = S.cfg.idface, ok = i.ligado && (MODO !== 's
 const ESP_ORDENS = [['tempo', 'Tempo']];   // por tempo: quem está mais perto de estourar vem primeiro; por nome: a listagem em ordem alfabética
 const espOrdem = () => ESP_ORDENS.some(o => o[0] === S.espOrdem) ? S.espOrdem : 'tempo';
 const sobraSeg = c => cobertoMin(c) * 60 - segDentro(c);   // negativo: já passou do tempo comprado
+const sobraLista = c => aberta(c) ? 1e7 - segDentro(c) : sobraSeg(c);   // 1.15: a ordem da lista. Quem está na recreação avulsa não tem prazo: vem depois de quem tem pacote, de quem entrou há mais tempo para quem acabou de entrar
 const casaBusca = (c, q) => (c.nome + ' ' + c.resp + ' ' + (c.tel || '') + ' ' + (c.tel2 || '') + ' ' + (c.cpf || '') + ' ' + soDig(c.cpf) + ' ' + soDig(c.tel) + ' ' + soDig(c.tel2)).toLowerCase().includes(q);
 /* ---------- 0.89: o que sai da loja e volta (carrinho de bebê, fusquinha) fica na lista até ser devolvido ---------- */
 // O serviço marcado como "sai e volta" (Ajustes → Serviços) entra na lista da tela inicial na hora da venda e sai quando alguém toca em Devolveu.
@@ -3473,14 +3509,14 @@ const espServ = () => { const v = S.espServ || ''; return !inicioLista() || !v ?
 // Em cada coluna, o que está mais perto de estourar o tempo vem primeiro. Cada item: { c: a criança, a: o que está fora (só nas linhas de carrinho), sobra }
 function itensEspaco() {
   const q = (S.espBusca || '').trim().toLowerCase();
-  let L = S.criancas.filter(c => c.entrou).map(c => ({ c, sobra: sobraSeg(c) })).concat(alugNaLista().map(a => ({ c: crianca(a.crianca), a, sobra: alugSobra(a) })));
+  let L = S.criancas.filter(c => c.entrou).map(c => ({ c, sobra: sobraLista(c) })).concat(alugNaLista().map(a => ({ c: crianca(a.crianca), a, sobra: alugSobra(a) })));
   if (q) L = L.filter(x => casaBusca(x.c, q) || (x.a && x.a.n.toLowerCase().includes(q)));
   return L.sort((x, y) => (x.sobra - y.sobra) || x.c.nome.localeCompare(y.c.nome) || (!!x.a - !!y.a));
 }
 function noEspaco() { return itensEspaco().filter(x => !x.a).map(x => x.c); }   // só as crianças, na ordem da lista
-const subEspaco = c => passouSeg(c) > 0 ? 'passou ' + hms(passouSeg(c)) : 'até ' + hora(fimVisita(c));
+const subEspaco = c => aberta(c) ? 'recreação avulsa · acerta na saída' : passouSeg(c) > 0 ? 'passou ' + hms(passouSeg(c)) : 'até ' + hora(fimVisita(c));
 const minPassou = seg => { const m = Math.max(1, Math.floor(seg / 60)); return m < 60 ? m + ' min' : dur(m); };
-const subCurto = c => passouSeg(c) > 0 ? 'passou ' + minPassou(passouSeg(c)) : 'até ' + hora(fimVisita(c));   // a linha pequena embaixo do relógio: "até 13:46" ou "passou 7 min"
+const subCurto = c => aberta(c) ? '' : passouSeg(c) > 0 ? 'passou ' + minPassou(passouSeg(c)) : 'até ' + hora(fimVisita(c));   // a linha pequena embaixo do relógio: "até 13:46" ou "passou 7 min"
 const pctEspaco = c => cobertoMin(c) ? Math.min(100, segDentro(c) / (cobertoMin(c) * 60) * 100) : 100;
 // o saldo: o que fica guardado se a criança sair agora (a visita em curso já descontada, em períodos inteiros)
 const saldoAgora = c => Math.max(0, pacMin(c) - usadoAgora(c));
@@ -3505,7 +3541,7 @@ async function salvarObs(c, txt) { // guarda a observação escrita na venda ou 
   else { if (era) c.obs_antes = era; c.obs = txt; c.obs_por = EU.nome; c.obs_em = new Date(); registrar('obs', c.nome, `${!era ? 'Observação anotada' : txt ? 'Observação alterada · a anterior continua guardada' : 'Observação apagada · a anterior continua guardada'} · por ${EU.nome}`); }
   redesenharObs(id); desenhar(true); deuCerto(txt ? 'Observação guardada. Só aparece para quem tocar no OBS.' : 'Observação apagada. A anterior continua guardada.');
 }
-const comSaldoFicha = c => saldoAgora(c) > 0 || clientePacote(c) || (!c.entrou && pacMin(c) > 0);   // 1.02: quem só comprou o período desta visita não precisa da conta de horas na ficha
+const comSaldoFicha = c => saldoAgora(c) > 0 || clientePacote(c);   // 1.15: a conta de horas é de quem tem horas guardadas ou é cliente de pacote; quem só usa a recreação avulsa não precisa dela
 // a conta da comanda (a ficha da criança): quanto comprou ao todo, quanto já usou (a visita de agora já contada, em períodos inteiros) e o saldo que fica
 const saldoFicha = c => `<span>comprou<b class="num">${hm(pacMin(c))}</b></span><span>usou<b class="num">${hm(usadoAgora(c))}</b></span><span class="tem" title="${c.entrou ? 'O que fica guardado se sair agora' : 'O que está guardado para a próxima visita'}">saldo<b class="num">${hm(saldoAgora(c))}</b></span>`;
 // o saldo que fica depois da saída: o que as novas cobranças por atraso somam (e as desfeitas tiram) também entra na conta
@@ -3522,7 +3558,9 @@ const saiuHaPouco = () => S.criancas.filter(podeReabrir).sort((a, b) => +new Dat
 const haMin = d => { const m = Math.floor((agora - d) / 60000); return m < 1 ? 'agora há pouco' : 'há ' + m + ' min'; };
 let N_SAIRAM = 0;   // quantos estavam em "Saíram há pouco" na última conta (quando muda, a lista é refeita)
 // as crianças do mesmo responsável ficam juntas na lista, uma embaixo da outra, no lugar da que vem primeiro na ordem escolhida
-function gruposEspaco(L) { const G = []; for (const x of L) { const g = G.find(k => mesmoCliente(k[0].c, x.c)); if (g) g.push(x); else G.push([x]); } return G; }
+function gruposEspaco(L) { const G = []; for (const x of L) { const g = G.find(k => mesmoCliente(k[0].c, x.c)); if (g) g.push(x); else G.push([x]); }
+  for (const g of G) if (g.length > 1) g.sort((a, b) => (a.a ? 1 : 0) - (b.a ? 1 : 0));   // 1.15: dentro do bloco do responsável, as crianças primeiro e depois os carrinhos delas (o bloco continua no lugar da linha mais urgente)
+  return G; }
 // 1.06: a unidade em que a criança está (ou de onde o carrinho saiu): a coluna "Unidade" da lista. Sem unidade marcada, um traço
 const celUnidade = (id, abre) => { const n = nomeUni(id); return `<span class="un${n ? '' : ' sem'}" ${abre} title="${n ? 'Unidade: ' + esc(n) : 'Sem unidade marcada'}">${n ? esc(n) : '—'}</span>`; };
 const uniMovel = id => { const n = nomeUni(id); return n ? `<i class="un-m"> · ${esc(n)}</i>` : ''; };   // no celular, só quando a lista mistura unidades
@@ -3531,7 +3569,7 @@ const uniMovel = id => { const n = nomeUni(id); return n ? `<i class="un-m"> · 
 // O OBS vermelho só aparece se há observação (o texto fica escondido até alguém tocar). A cobrança por atraso não aparece na linha (0.96):
 // o valor fica só no total, no pagamento da saída, para a equipe não confundir.
 function linhaEspaco(c, fam = 1) {
-  const st = situacaoTempo(c), at = c.atraso && c.atraso.n ? c.atraso : null, abre = `data-act="ficha" data-id="${c.id}"`, pl = planoDe(c) === 'pacote' ? 'pacote' : 'avulso';
+  const st = situacaoTempo(c), at = !aberta(c) && c.atraso && c.atraso.n ? c.atraso : null, abre = `data-act="ficha" data-id="${c.id}"`, pl = planoDe(c) === 'pacote' ? 'pacote' : 'avulso';
   return `<div class="esp-it ${st}${at ? ' cobranca' : ''}${S.chegou === c.id ? ' chegou' : ''}" data-esp="${c.id}">
     <button class="quem tap" ${abre} aria-label="Abrir a comanda de ${esc(c.nome)}, responsável ${esc(c.resp)}"></button>
     <i class="pt" aria-hidden="true"></i>
@@ -3660,7 +3698,7 @@ function corpoEspaco() {
   else h = `<div class="card vazio"><b>Ninguém no espaço com essa busca.</b></div>`;
   if (q.length >= 2 && f !== 'sairam') { // a busca também acha quem tem cadastro e não está no espaço: dá para atender dali mesmo (ou reabrir a visita de quem saiu há pouco)
     const fora = S.criancas.filter(c => !c.entrou && casaBusca(c, q)).sort((a, b) => a.nome.localeCompare(b.nome)).slice(0, 8);
-    h += fora.length ? `<div class="esp-fora"><small class="rot">Com cadastro, fora do espaço</small><div class="grupo">${fora.map(c => `<div class="it"><button class="quem tap" data-act="ficha" data-id="${c.id}">${avatar(c)}<span class="txt"><b>${esc(c.nome)}</b><span>${esc(c.resp)}${c.tel ? ' · ' + esc(c.tel) : ''} · ${temPeriodo(c) ? hm(saldoMin(c)) + ' guardado' : 'sem tempo comprado'}${podeReabrir(c) ? ' · saiu ' + haMin(new Date(ultVis(c).dia)) : ''}${emAberto(c) ? ' · ' + esc(textoPend(c)) : ''}</span></span></button>${podeReabrir(c) ? `<button class="bt tap" data-act="reabrir" data-id="${c.id}" title="Desfaz a saída: o tempo continua contando desde a entrada">${ic(IC.renova, 14)} Reabrir</button>` : ''}${semIdface() && temPeriodo(c) ? `<button class="bt forte tap" data-act="entrada-rapida" data-id="${c.id}">${ic(IC.entrar, 14)} Entrada</button>` : ''}<button class="bt ${temPeriodo(c) ? '' : 'forte'} tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 14)} ${emAberto(c) ? 'Continuar' : 'Atender'}</button></div>`).join('')}</div></div>`
+    h += fora.length ? `<div class="esp-fora"><small class="rot">Com cadastro, fora do espaço</small><div class="grupo">${fora.map(c => `<div class="it"><button class="quem tap" data-act="ficha" data-id="${c.id}">${avatar(c)}<span class="txt"><b>${esc(c.nome)}</b><span>${esc(c.resp)}${c.tel ? ' · ' + esc(c.tel) : ''} · ${temPeriodo(c) ? hm(saldoMin(c)) + ' guardado' : 'sem horas guardadas'}${podeReabrir(c) ? ' · saiu ' + haMin(new Date(ultVis(c).dia)) : ''}${emAberto(c) ? ' · ' + esc(textoPend(c)) : ''}</span></span></button>${podeReabrir(c) ? `<button class="bt tap" data-act="reabrir" data-id="${c.id}" title="Desfaz a saída: o tempo continua contando desde a entrada">${ic(IC.renova, 14)} Reabrir</button>` : ''}${semIdface() ? `<button class="bt forte tap" data-act="entrada-rapida" data-id="${c.id}" title="${temPeriodo(c) ? 'Entra usando as horas que já tem' : 'Sem pacote: entra na recreação avulsa e acerta na saída'}">${ic(IC.entrar, 14)} Entrada</button>` : ''}<button class="bt ${semIdface() || temPeriodo(c) ? '' : 'forte'} tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 14)} ${emAberto(c) ? 'Continuar' : 'Atender'}</button></div>`).join('')}</div></div>`
       : `<div class="esp-fora"><p class="explica">Ninguém com cadastro e fora do espaço nessa busca. <button class="link tap" data-act="nova">Cadastrar</button></p></div>`;
   }
   return h;
@@ -3672,7 +3710,7 @@ function folhaReabrir(id) {
   const v = ultVis(c), saiu = new Date(v.dia), ini = iniVisita(v), p = periodo(), x = servicoTempo();
   const saldo = Math.max(0, pacMin(c) - Math.max(0, c.usado - v.deb)), cob = Math.floor(saldo / p) * p, dentro = Math.max(0, (agora - ini) / 60000), fim = new Date(+ini + cob * 60000);   // com o que foi debitado de volta
   const n = Math.max(0, Math.ceil((cobrar(dentro) - saldo) / p)), valor = n * (x ? precoDe(c, x.v) : 0);   // as cobranças por atraso que nascem ao reabrir
-  const conta = n ? `<div class="marca canc">${ic(IC.sino, 18)}<span><b>Já são ${dur(Math.floor(dentro))} desde a entrada</b> e o tempo comprado ia até ${hora(fim)}. Ao reabrir, o sistema lança ${n === 1 ? 'uma cobrança por atraso' : n + ' cobranças por atraso'} (${brl(valor)}), a receber na saída.</span></div>`
+  const conta = n ? `<div class="marca canc">${ic(IC.sino, 18)}<span><b>Já são ${dur(Math.floor(dentro))} desde a entrada.</b> Ao reabrir, a conta continua de onde parou: mais ${dur(n * p)} de recreação (${brl(valor)}), a receber na saída.</span></div>`
     : dentro > cob ? `<div class="marca">${ic(IC.horas, 18)}<span>O tempo comprado ia até <b>${hora(fim)}</b>: a visita volta já na tolerância de ${tolerancia()} min.</span></div>`
     : `<div class="marca">${ic(IC.horas, 18)}<span>O tempo comprado vai até <b>${hora(fim)}</b>: ${cob - dentro < 1 ? 'falta menos de 1 min' : 'ainda ' + (cob - dentro < 2 ? 'falta 1 min' : 'faltam ' + minCurto(Math.floor(cob - dentro)))}.</span></div>`;
   abrirFolha('Reabrir a visita', `
@@ -3698,16 +3736,18 @@ function colocarTestePrevia() {
   const x = servicoTempo() || { n: 'Recreação', v: 80 }, p = periodo(), tol = tolerancia(), usados = new Set(S.criancas.map(c => c.sapateira).filter(Boolean)); let sap = 0;
   const TEL_T = {};   // o telefone de cada criança do teste: os irmãos (fam) ficam com o mesmo, e é por ele que a lista junta a família
   TESTE_PREVIA.forEach(([nome, resp, ha, per, m = {}], i) => {
-    const entrou = new Date(Date.now() - (ha + (i % 7) * 0.13) * 60000), pcd = !!m.pcd, pac = !!m.pac, autos = pac ? 0 : Math.max(0, Math.ceil((ha - tol) / p) - per), un = pcd ? precoDe({ pcd: true }, x.v) : x.v;   // pac: tem o pacote de 5 h, comprado há três dias
+    const entrou = new Date(Date.now() - (ha + (i % 7) * 0.13) * 60000), pcd = !!m.pcd, pac = !!m.pac, un = pcd ? precoDe({ pcd: true }, x.v) : x.v;   // pac: tem o pacote de 5 h, comprado há três dias
+    per = pac ? 0 : m.voucher ? 1 : 0; const autos = pac ? 0 : Math.max(0, periodosDe(ha) - per);   // 1.15: sem pacote, a criança está na recreação avulsa: cada período que a visita já precisa é uma venda a receber na saída (o voucher cobre o primeiro)
     const c = { id: 300 + i, teste: true, nome, idade: 0, resp, rel: 'responsável', tel: m.fam && TEL_T[m.fam] ? TEL_T[m.fam] : `(11) 9 ${6100 + i * 13}-${1000 + i * 217}`, tel2: '', doc: 'cpf', cpf: '', obs: m.obs || '', pcd, pacote: pac ? 5 : (per + autos) * p / 60, usado: 0, entrou, rosto: false, foto: '', visitas: [], venda: null, sapateira: null, liberado: true, atraso: autos ? { n: autos, valor: autos * un } : null, uni: minhaUni() || null };
     if (!m.sem) { do { sap++; } while (usados.has(sap)); if (sap <= nSap()) c.sapateira = sap; }
     const compra = pac ? { id: novoId(), crianca: c.id, h: 5, m: 300, v: 420, servico: 'PACOTE 05 HORAS 420', itens: '', quando: new Date(entrou.getTime() - 3 * 86400000), por: 'João' }
-      : { id: novoId(), crianca: c.id, h: per * p / 60, m: per * p, v: m.voucher ? 0 : per * un, servico: x.n, itens: m.voucher ? 'voucher' : pcd ? rotPcd() : '', quando: entrou, por: 'João', voucher: m.voucher ? 'sim' : '', pcd, cheio: m.voucher || pcd ? per * x.v : undefined };
-    S.compras.push(compra); c.venda = { h: compra.h, m: compra.m, v: compra.v, servico: compra.servico, com: compra.itens, quando: compra.quando };
-    if (compra.v > 0 && !m.np) S.pagamentos = (S.pagamentos || []).concat({ venda: compra.id, crianca: c.id, f: i % 3 === 1 ? 'dinheiro' : 'pix', v: compra.v, quando: compra.quando });   /* 1.02: pagou na entrada (np: ficou de pagar na saída) */
-    if (!pac) S.registros.push({ h: entrou, tipo: 'venda', nome, txt: `${x.n} · ${dur(per * p)}${compra.itens ? ' · ' + compra.itens : ''} · ${brl(compra.v)}`, teste: true });
+      : m.voucher ? { id: novoId(), crianca: c.id, h: p / 60, m: p, v: 0, servico: x.n, itens: 'voucher', quando: entrou, por: 'João', voucher: 'sim', pcd: false, cheio: x.v } : null;
+    if (compra) { S.compras.push(compra); c.venda = { h: compra.h, m: compra.m, v: compra.v, servico: compra.servico, com: compra.itens, quando: compra.quando }; }
+    if (compra && compra.v > 0) S.pagamentos = (S.pagamentos || []).concat({ venda: compra.id, crianca: c.id, f: i % 3 === 1 ? 'dinheiro' : 'pix', v: compra.v, quando: compra.quando });   // o pacote foi pago quando foi comprado
+    if (compra && !pac) S.registros.push({ h: entrou, tipo: 'venda', nome, txt: `${x.n} · ${dur(p)} · ${compra.itens} · ${brl(compra.v)}`, teste: true });
     S.registros.push({ h: entrou, tipo: 'ent', nome, txt: 'Entrada registrada', teste: true });
-    for (let k = 1; k <= autos; k++) { const q = new Date(entrou.getTime() + ((per + k - 1) * p + tol) * 60000 + 1000); S.compras.push({ id: novoId(), crianca: c.id, h: p / 60, m: p, v: un, servico: x.n, itens: 'cobrança por atraso' + (pcd ? ' · ' + rotPcd() : ''), quando: q, por: '', auto: true, pcd, cheio: x.v }); S.registros.push({ h: q, tipo: 'cobr', nome, txt: textoCobranca(x, c), teste: true }); }
+    for (let k = 1; k <= autos; k++) { const n = per + k, q = n === 1 ? entrou : new Date(entrou.getTime() + ((n - 1) * p + tol) * 60000 + 1000), a = { id: novoId(), crianca: c.id, h: p / 60, m: p, v: un, servico: x.n, itens: 'avulsa' + (pcd ? ' · ' + rotPcd() : ''), quando: q, por: '', auto: true, pcd, cheio: x.v };   // o 1º período nasce na entrada; os outros, quando a tolerância do anterior acaba
+      S.compras.push(a); c.venda = { h: a.h, m: a.m, v: a.v, servico: a.servico, com: a.itens, quando: a.quando }; }
     TEL_T[nome] = c.tel; S.criancas.push(c); });
   // o que saiu da loja e ainda não voltou: um fusquinha dentro do tempo, um que já passou e um carrinho de bebê
   const sv = servicosVolta(), porTempo = sv.find(k => k.modo === 'periodo'), semHora = sv.find(k => k.modo !== 'periodo');
@@ -3787,9 +3827,9 @@ function folhaFicha(id) { // 1.02: mais limpa. O que importa numa olhada: quem �
     ${blocos(c, false)}
     ${comSaldoFicha(c) ? `<div class="h-saldo f-saldo" data-ficha-saldo="${c.id}" data-k="${pacMin(c)}|${usadoAgora(c)}">${saldoFicha(c)}</div>` : ''}
     <div class="acoes">
-      ${semIdface() ? (c.entrou ? `<button class="bt forte tap" data-act="saida" data-id="${c.id}">${ic(IC.sair)} Saída</button>` : temPeriodo(c) ? `<button class="bt forte tap" data-act="entrada" data-id="${c.id}">${ic(IC.entrar)} Entrada</button>` : '')
+      ${semIdface() ? (c.entrou ? `<button class="bt forte tap" data-act="saida" data-id="${c.id}">${ic(IC.sair)} Saída</button>` : `<button class="bt forte tap" data-act="entrada" data-id="${c.id}" title="${temPeriodo(c) ? 'Entra usando as horas que já tem' : 'Sem pacote: entra na recreação avulsa e acerta na saída'}">${ic(IC.entrar)} Entrada</button>`)
         : podeManual() && c.entrou ? `<button class="bt claro tap" data-act="saida" data-id="${c.id}" title="Só para corrigir: o normal é a saída pelo rosto">${ic(IC.sair)} Saída à mão</button>` : ''}
-      <button class="bt ${semIdface() && (c.entrou || temPeriodo(c)) ? '' : 'forte'} tap" data-act="vender" data-id="${c.id}">${ic(IC.mais)} Vender</button>
+      <button class="bt ${semIdface() ? '' : 'forte'} tap" data-act="vender" data-id="${c.id}">${ic(IC.mais)} Vender</button>
       <button class="bt tap" data-act="historico" data-id="${c.id}">${ic(IC.historico)} Histórico</button>
       <button class="bt tap" data-act="papel-reimprimir" data-id="${c.id}" title="Ver e imprimir de novo um cupom deste cliente: o cliente perdeu, ou a impressora travou">${ic(IC.cupom)} Reimprimir cupom</button>
       ${c.entrou || c.sapateira ? `<button class="bt tap" data-act="sapateira" data-id="${c.id}" title="${c.sapateira ? 'Trocar a sapateira' : 'Escolher a sapateira'}">${ic(IC.sapato)} ${c.sapateira ? 'Sapateira ' + c.sapateira : 'Sapateira'}</button>` : ''}
@@ -3901,13 +3941,13 @@ const ehTempo = x => !!(x.banco && x.modo === 'periodo');   // serviço que é t
 const outrosServicos = () => servicoTempo() ? (S.cfg.servicos || []).filter(x => !ehTempo(x)) : [];
 function linhasServico(parte) { // parte: 'tempo', 'outros' ou nada (todos). Sem serviço de tempo cadastrado, tudo fica na primeira lista
   const c = crianca(CARRINHO.id), st = servicoTempo(), vq = CARRINHO.vq || 0;
-  return (S.cfg.servicos || []).filter(x => !parte || !st || (parte === 'tempo') === ehTempo(x)).map(x => { const q = CARRINHO.q[x.id] || 0, per = x.modo === 'periodo', pcd = !!(x.banco && c && c.pcd && pcdDesc() > 0), un = pcd ? precoDe(c, x.v) : x.v;
+  return (S.cfg.servicos || []).filter(x => !parte || !st || (parte === 'tempo') === ehTempo(x)).filter(x => !ehTempo(x) || !semIdface() || (CARRINHO.q[x.id] || 0) > 0).map(x => { const q = CARRINHO.q[x.id] || 0, per = x.modo === 'periodo', pcd = !!(x.banco && c && c.pcd && pcdDesc() > 0), un = pcd ? precoDe(c, x.v) : x.v;
     return `<div class="serv ${q ? 'on' : ''}"><div class="txt"><b>${esc(x.n)}</b><span>${pcd ? `${brl(un)}${per ? ' a cada ' + porExt(x.min || 30) : ''} <em class="selo-pcd">${rotPcd()}</em>` : precoServ(x)}${x.obs ? ' · ' + esc(x.obs) : ''}</span></div>
       <div class="qtd"><button type="button" class="tap" data-act="serv-menos" data-s="${esc(x.id)}" aria-label="Tirar ${per ? dur(x.min || 30) + ' de ' : 'um '}${esc(x.n)}" ${q ? '' : 'disabled'}>−</button><b class="num">${per ? (q ? dur(q * (x.min || 30)) : '0h') : q}</b><button type="button" class="tap" data-act="serv-mais" data-s="${esc(x.id)}" aria-label="Pôr ${per ? dur(x.min || 30) + ' de ' : 'um '}${esc(x.n)}">+</button></div>
       <b class="valor num">${q ? brl(q * un) : ''}</b></div>`; }).join('')
     // o voucher do shopping: 30 min de recreação grátis, um por visita, sem código. É só marcar; quem já usou nesta visita não ganha outro
     + (!st || parte === 'outros' ? '' : temVoucher(c) ? `<div class="serv voucher usado"><span class="txt"><b>Voucher</b><span>${c.entrou ? 'já usado nesta visita' : 'já tem um de hoje, ainda sem usar'} · é um por visita</span></span><span class="vou-ch on">${ic(IC.check, 16, 3)}</span><b class="valor num"></b></div>`
-      : `<button type="button" class="serv voucher tap ${vq ? 'on' : ''}" data-act="vou-marca" aria-pressed="${!!vq}"><span class="txt"><b>Voucher</b><span>${c && c.entrou && c.atraso && c.atraso.n ? `cobre ${porExt(st.min || 30)} da cobrança por atraso (${brl(umaCobranca(c))} a menos)` : `${porExt(st.min || 30)} de ${esc(st.n)} grátis · um por visita`}</span></span><span class="vou-ch">${vq ? ic(IC.check, 16, 3) : ''}</span><b class="valor num">${vq ? 'Grátis' : ''}</b></button>`);
+      : `<button type="button" class="serv voucher tap ${vq ? 'on' : ''}" data-act="vou-marca" aria-pressed="${!!vq}"><span class="txt"><b>Voucher</b><span>${c && c.entrou && c.atraso && c.atraso.n ? `cobre ${porExt(st.min || 30)} desta visita (${brl(umaCobranca(c))} a menos na saída)` : `${porExt(st.min || 30)} de ${esc(st.n)} grátis · um por visita`}</span></span><span class="vou-ch">${vq ? ic(IC.check, 16, 3) : ''}</span><b class="valor num">${vq ? 'Grátis' : ''}</b></button>`);
 }
 function atualizarCarrinho() { // redesenha as linhas dos serviços e o total a pagar
   if (CARRINHO && CARRINHO.festa) { atualizarFesta(); return; }   // 1.12: a folha aberta é a da Festa
@@ -3919,9 +3959,10 @@ function atualizarCarrinho() { // redesenha as linhas dos serviços e o total a 
   { const es = $('#v-entrar-saldo'); if (es) es.hidden = !!linhasDoCarrinho().length; }   // com algo escolhido, a entrada vai junto com a venda (a caixa "Dar entrada agora")
   const L = linhasDoCarrinho(), total = L.reduce((t, l) => t + l.v, 0), min = L.reduce((t, l) => t + l.min, 0), t = $('#v-total'), ok = $('#v-ok');
   if (t) t.textContent = brl(total); if (ok) { ok.disabled = !L.length; ok.innerHTML = !L.length ? `${ic(IC.check)} Escolha o serviço` : total > 0 ? `${VOLTA_SAIDA ? 'Somar na saída' : 'Pagamento'} · ${brl(total)} ${ic(IC.vai, 18, 2.6)}` : `${ic(IC.check)} Registrar · ${brl(total)}`; }
-  const m = $('#v-tempo'), vc = L.find(l => l.cobre); if (m) { m.hidden = !min && !vc; m.textContent = (min ? `Entra ${dur(min)} de recreação no saldo: fica com ${hm(saldoAgora(crianca(CARRINHO.id)) + min)}. ` : '') + (vc ? `O voucher cobre a cobrança por atraso de ${brl(umaCobranca(crianca(CARRINHO.id)))}: ela sai do valor a receber na saída.` : ''); }
-  const en = $('#v-entrar-campo'), cb = $('#v-entrar'), cr = crianca(CARRINHO.id); if (en) en.hidden = !(L.length && cr && saldoMin(cr) + min >= periodo());   // só oferece a entrada se a criança vai ter tempo para brincar
-  if (cb && CARRINHO.entrar == null) cb.checked = min > 0;   // vem marcada quando a venda tem recreação; se a pessoa mexer, vale a escolha dela
+  const m = $('#v-tempo'), vc = L.find(l => l.cobre); if (m) { m.hidden = !min && !vc; m.textContent = (min ? `Entra ${dur(min)} de recreação no saldo: fica com ${hm(saldoAgora(crianca(CARRINHO.id)) + min)}. ` : '') + (vc ? `O voucher cobre ${porExt(periodo())} desta visita: ${brl(umaCobranca(crianca(CARRINHO.id)))} a menos na saída.` : ''); }
+  const en = $('#v-entrar-campo'), cb = $('#v-entrar'), cr = crianca(CARRINHO.id); if (en) en.hidden = !(L.length && cr);   // 1.15: a entrada pode ir junto com qualquer venda (sem horas, a criança entra na recreação avulsa)
+  if (cb && CARRINHO.entrar == null) cb.checked = min > 0;   // vem marcada quando a venda tem recreação (pacote, voucher); a venda só de carrinho ou de produto não dá a entrada sozinha (o carrinho é usado fora da loja): quem quiser, marca. Se a pessoa mexer, vale a escolha dela
+  { const tx = $('#v-entrar-txt'); if (tx && cr) tx.textContent = saldoMin(cr) + min >= periodo() ? 'O tempo de recreação começa a contar ao registrar a venda.' : `Recreação avulsa: ${precoTempo(cr)}, acerta na saída.`; }
   guardarRascunho();   // o que está escolhido fica guardado: se fechar sem registrar, continua daqui
 }
 // o atendimento: quem é a criança, qual serviço ela quer e quanto dá. O valor a pagar aparece na hora
@@ -3940,14 +3981,15 @@ function folhaVender(id, primeira, pre, voltaSaida) { // primeira: acabou de sai
   abrirFolha('Atendimento', `<div id="v-escolha">
     <div class="linha">${avatar(c)}<div class="txt"><b style="white-space:normal">${esc(c.nome)}${idadeTxt(c) ? ', ' + idadeTxt(c) : ''}${c.pcd ? ` <em class="selo-pcd">${rotPcd()}</em>` : ''}</b><span style="white-space:normal">${esc(c.resp)}${fones(c) ? ' · ' + esc(fones(c)) : ''}</span>${c.entrou || c.sapateira ? `<span style="white-space:normal">${[c.entrou ? 'no espaço desde ' + hora(c.entrou) : '', c.sapateira ? 'sapateira ' + c.sapateira : ''].filter(Boolean).join(' · ')}</span>` : ''}</div><button class="bt tap" data-act="historico" data-id="${c.id}">${ic(IC.historico)} Histórico</button></div>
     ${obsAlerta(c)}
-    <div class="h-saldo f-saldo" data-ficha-saldo="${c.id}" data-k="${pacMin(c)}|${usadoAgora(c)}" aria-label="Horas do cliente">${saldoFicha(c)}</div>
-    ${semIdface() && !c.entrou && temPeriodo(c) ? `<button type="button" class="bt forte largo tap" id="v-entrar-saldo" data-act="entrada" data-id="${c.id}" title="Não precisa vender nada: a criança entra usando as horas que já tem">${ic(IC.entrar)} Dar entrada com o saldo (${hm(saldoMin(c))})</button>` : ''}
-    ${nota}${notaPre}${VOLTA_SAIDA ? `<p class="retoma" id="v-volta">${ic(IC.sair, 16)}<span><b>Adicionar à saída de ${esc(c.nome)}.</b> Escolha o que o cliente leva: entra no pagamento da saída, que abre de novo em seguida.</span></p>` : ''}<div class="campo"><label>${servicoTempo() ? 'Tempo de recreação <span class="leve">· avulso, de ' + porExt(periodo()) + ' em ' + porExt(periodo()) + '</span>' : 'Qual serviço?'}</label><div class="servicos" id="v-servicos">${linhasServico('tempo')}</div></div>
+    ${comSaldoFicha(c) ? `<div class="h-saldo f-saldo" data-ficha-saldo="${c.id}" data-k="${pacMin(c)}|${usadoAgora(c)}" aria-label="Horas do cliente">${saldoFicha(c)}</div>` : ''}
+    ${semIdface() && !c.entrou ? (temPeriodo(c) ? `<button type="button" class="bt forte largo tap" id="v-entrar-saldo" data-act="entrada" data-id="${c.id}" title="Não precisa vender nada: a criança entra usando as horas que já tem">${ic(IC.entrar)} Dar entrada com o saldo (${hm(saldoMin(c))})</button>`
+      : `<button type="button" class="bt forte largo tap av-entrar" id="v-entrar-saldo" data-act="entrada" data-id="${c.id}" title="Sem pacote: a criança entra na recreação avulsa e o cliente acerta na saída, pelo tempo que ela ficar"><span>${ic(IC.entrar)} Dar entrada · Recreação avulsa</span><small>${esc(precoTempo(c))} · acerta na saída</small></button>`) : ''}
+    ${nota}${notaPre}${VOLTA_SAIDA ? `<p class="retoma" id="v-volta">${ic(IC.sair, 16)}<span><b>Adicionar à saída de ${esc(c.nome)}.</b> Escolha o que o cliente leva: entra no pagamento da saída, que abre de novo em seguida.</span></p>` : ''}<div class="campo">${!servicoTempo() ? '<label>Qual serviço?</label>' : !semIdface() ? '<label>Tempo de recreação <span class="leve">· avulso, de ' + porExt(periodo()) + ' em ' + porExt(periodo()) + '</span></label>' : ''}<div class="servicos" id="v-servicos">${linhasServico('tempo')}</div></div>
     ${pacotesNoAtendimento()}
     ${outrosServicos().length ? `<div class="campo"><label>Outros serviços</label><div class="servicos" id="v-servicos2">${linhasServico('outros')}</div></div>` : ''}
     ${produtosNoAtendimento()}
     <details class="outro"${r && r.item ? ' open' : ''}><summary>Outro item</summary><div class="outro-item"><input id="v-item" value="${esc(r ? r.item || '' : '')}" placeholder="O que foi" autocomplete="off" maxlength="40" aria-label="O que foi vendido"><input id="v-valor" value="${esc(r ? r.valor || '' : '')}" inputmode="decimal" placeholder="R$" autocomplete="off" aria-label="Valor em reais"></div></details>
-    <div class="pe-f"><span class="explica" id="v-tempo" hidden></span>${semIdface() && !c.entrou ? `<label class="marca" id="v-entrar-campo" hidden><input type="checkbox" id="v-entrar" checked><span><b>Dar entrada agora.</b> O tempo de recreação começa a contar ao registrar a venda.</span></label>` : ''}<div class="total"><span>Total a pagar</span><b class="num" id="v-total">R$ 0</b></div><button class="bt forte largo tap" id="v-ok" data-act="atender-ok" data-id="${c.id}" disabled>${ic(IC.check)} Escolha o serviço</button></div>
+    <div class="pe-f"><span class="explica" id="v-tempo" hidden></span>${semIdface() && !c.entrou ? `<label class="marca" id="v-entrar-campo" hidden><input type="checkbox" id="v-entrar" checked><span><b>Dar entrada agora.</b> <span id="v-entrar-txt">O tempo de recreação começa a contar ao registrar a venda.</span></span></label>` : ''}<div class="total"><span>Total a pagar</span><b class="num" id="v-total">R$ 0</b></div><button class="bt forte largo tap" id="v-ok" data-act="atender-ok" data-id="${c.id}" disabled>${ic(IC.check)} Escolha o serviço</button></div>
     </div><div id="v-pag" hidden></div>`);
   ETAPA_FEITA = false;   // daqui em diante, fechar sem registrar guarda o que foi escolhido
   if (r) { const cb = $('#v-entrar'); if (cb && CARRINHO.entrar != null) cb.checked = CARRINHO.entrar; }
@@ -4096,7 +4138,7 @@ const nomeVendaTxt = v => { const m = minDe(v); return v.servico ? v.servico + (
 // (prévia) as vendas que pagaram esta visita: as de hoje, feitas depois da última saída ou do último cancelamento da criança
 function vendasDaVisita(c) {
   const corte = corteVisita(c);   // 1.02: quem entrou ontem e ainda está no espaço conta desde o dia em que entrou
-  return S.compras.filter(v => v.crianca === c.id && !v.imp && +v.quando >= corte).sort((a, b) => a.quando - b.quando).map(v => ({ id: v.id, n: nomeVendaTxt(v), m: minDe(v), v: v.v, quando: v.quando, junto: +v.quando >= +c.entrou - 1800000 }));
+  return S.compras.filter(v => v.crianca === c.id && !v.imp && +v.quando >= corte).sort((a, b) => a.quando - b.quando).map(v => ({ id: v.id, n: nomeVendaTxt(v), m: minDe(v), v: v.v, quando: v.quando, junto: +v.quando >= +c.entrou - 1800000, auto: !!v.auto && faltaCompra(v) > 0.004 }));
 }
 const prazoCancelarTxt = c => { const min = Math.floor(segDentro(c) / 60), lim = cancelaLim();
   return noPrazoCancelar(c) ? `<div class="marca canc">${ic(IC.horas, 18)}<span>Entrou há <b>${min} min</b>. Dá para cancelar sem cobrar até <b>${ateCancelar(c)}</b> · faltam <b class="num">${mss(faltaCancelar(c))}</b>.</span></div>`
@@ -4114,7 +4156,7 @@ function folhaCancelar(id) {
       <div class="atalhos">${MOTIVOS.map(t => `<button type="button" class="tap" data-act="canc-motivo" data-t="${esc(t)}">${t}</button>`).join('')}</div></div>
     <div class="pe-f"><p class="falta-linha" id="x-resumo"></p><button class="bt forte largo tap" id="x-ok" data-act="canc-ok" data-id="${c.id}" disabled>${ic(IC.x, 18, 2.6)} Cancelar a entrada</button></div>`);
   // de saída, só deixa de ser cobrado o tempo de brincar vendido junto com esta entrada; o resto (carrinho, pacote comprado mais cedo) a pessoa marca se for o caso
-  const chegou = L => { if (CANCELA !== marca) return; marca.vendas = L.map(v => ({ ...v, quando: dataDe(v.quando) })); marca.fica = new Set(marca.vendas.filter(v => !(v.m && v.junto)).map(v => v.id)); desenharCancelar(); };
+  const chegou = L => { if (CANCELA !== marca) return; marca.vendas = L.map(v => ({ ...v, quando: dataDe(v.quando) })); marca.fica = new Set(marca.vendas.filter(v => !v.auto && !(v.m && v.junto)).map(v => v.id)); desenharCancelar(); };   // 1.15: a recreação avulsa da visita (auto) sai sempre com a entrada
   if (MODO === 'servidor') api('cancelar_previa', { id: c.id }).then(r => chegou(r.vendas || [])).catch(e => { if (CANCELA !== marca) return; marca.erro = e.message; desenharCancelar(); });
   else chegou(vendasDaVisita(c));
 }
@@ -4123,7 +4165,7 @@ function desenharCancelar() { // as vendas desta visita: marcada = não cobrar
   if (k.erro) alvo.innerHTML = `<p class="explica" style="color:var(--erro)">${esc(k.erro)}</p>`;
   else if (!k.vendas) alvo.innerHTML = `<p class="explica">Buscando as vendas desta visita…</p>`;
   else if (!k.vendas.length) alvo.innerHTML = `<div class="marca">${ic(IC.check, 18, 2.6)}<span><b>Nenhuma venda nesta visita.</b> ${c ? esc(c.nome) : 'A criança'} entrou com o tempo que já tinha: nada é descontado do saldo.</span></div>`;
-  else alvo.innerHTML = k.vendas.map(v => `<label class="marca"><input type="checkbox" data-canc-venda="${v.id}" ${k.fica.has(v.id) ? '' : 'checked'}><span><b>${esc(v.n)}</b> <span class="leve">· vendido às ${hora(v.quando)}</span></span><b class="num">${brl(v.v)}</b></label>`).join('') + (k.vendas.length > 1 ? `<span class="explica">Marcado = não cobrar. O que ficar desmarcado continua cobrado (ex.: o carrinho que o cliente vai continuar usando).</span>` : '');
+  else alvo.innerHTML = k.vendas.map(v => `<label class="marca"><input type="checkbox" data-canc-venda="${v.id}" ${k.fica.has(v.id) ? '' : 'checked'}${v.auto ? ' disabled' : ''}><span><b>${esc(v.n)}</b> <span class="leve">· vendido às ${hora(v.quando)}</span></span><b class="num">${brl(v.v)}</b></label>`).join('') + (k.vendas.length > 1 ? `<span class="explica">Marcado = não cobrar. O que ficar desmarcado continua cobrado (ex.: o carrinho que o cliente vai continuar usando).</span>` : '');
   resumoCancelar();
 }
 function resumoCancelar() { // a linha acima do botão: quanto deixa de ser cobrado; o botão só libera com as vendas na tela e dentro do que a pessoa pode
@@ -4153,7 +4195,7 @@ async function confirmarCancelar(el) {
   const devPag = (S.pagamentos || []).filter(p => sel.some(v => v.id === p.venda)), devPor = {}; for (const p of devPag) devPor[p.f] = centavos((devPor[p.f] || 0) + p.v);   // (prévia) o que já tinha sido pago por essas vendas volta para o cliente
   const dev = Object.entries(devPor).map(([f, v]) => `${nomeForma(f)} ${brl(v)}`).join(' + '); S.pagamentos = (S.pagamentos || []).filter(p => !devPag.includes(p));
   S.compras = S.compras.filter(x => !sel.some(v => v.id === x.id));
-  c.pacote = Math.max(0, c.pacote - tempo / 60); c.entrou = null; c.sapateira = null;   // sai sem debitar nada; a sapateira fica livre
+  c.pacote = Math.max(0, c.pacote - tempo / 60); c.entrou = null; c.sapateira = null; c.atraso = null;   // sai sem debitar nada; a sapateira fica livre
   if (tempo > 0) { const u = S.compras.filter(x => x.crianca === cid && minDe(x) > 0).sort((a, b) => b.quando - a.quando)[0]; c.venda = u ? { h: minDe(u) / 60, m: minDe(u), v: u.v, servico: u.servico, com: u.itens, quando: u.quando } : null; if (restante(c) <= 0 && S.cfg.bloqueioAuto === 'sim') c.liberado = false; }
   S.cancelamentos.unshift({ id: novoId(), crianca: cid, nome, resp: c.resp, entrou: entrouEm, quando: new Date(), min, valor, itens, motivo, por: EU.nomeCompleto || EU.nome, papel: EU.papel, fora: !prazo, visto_por: '', visto_em: null });
   registrar('canc', nome, textoCancelado(entrouEm, min, itens, motivo, EU.nome, !prazo).replace(' · Motivo: ', (dev ? ' · devolver ao cliente: ' + dev : '') + ' · Motivo: '));
@@ -4241,9 +4283,9 @@ function folhaDia() {
   const regs = S.registros.filter(r => agora - r.h < 86400000);
   const nCanc = supervisorOuMais() ? (S.cancelamentos || []).filter(x => agora - x.quando < 86400000).length : 0;
   const nd = numerosDoDia();
-  abrirFolha('Hoje na recepção', `<div class="h-saldo dia-nums"><span>vendido hoje<b class="num">${brl(nd.valor)}</b><small>${nd.n} ${nd.n === 1 ? 'venda' : 'vendas'} · ${hm(nd.min)} de recreação</small></span><span>horas usadas<b class="num">${hm(nd.usadas)}</b><small>em períodos de ${porExt(periodo())}</small></span><span class="${nd.atr.n ? 'alerta' : ''}">cobranças por atraso<b class="num">${nd.atr.n}</b><small>${nd.atr.n ? brl(nd.atr.valor) + ' além do tempo' : 'ninguém passou'}</small></span></div>
+  abrirFolha('Hoje na recepção', `<div class="h-saldo dia-nums"><span>vendido hoje<b class="num">${brl(nd.valor)}</b><small>${nd.n} ${nd.n === 1 ? 'venda' : 'vendas'} · ${hm(nd.min)} de recreação</small></span><span>horas usadas<b class="num">${hm(nd.usadas)}</b><small>em períodos de ${porExt(periodo())}</small></span><span class="${nd.atr.n ? 'alerta' : ''}">além do pacote<b class="num">${nd.atr.n ? dur(nd.atr.n * periodo()) : '0h'}</b><small>${nd.atr.n ? brl(nd.atr.valor) + ' a mais' : 'nenhum pacote acabou'}</small></span></div>
     ${(ph => { const rec = FORMAS.reduce((t, [f]) => t + (ph[f] || 0), 0), sem = centavos(nd.valor - rec);
-      return `<div class="h-saldo dia-formas" aria-label="Recebido por forma de pagamento nas últimas 24 horas">${FORMAS.map(([f, n]) => `<span>${n}<b class="num">${brl(ph[f] || 0)}</b></span>`).join('')}</div>${sem > 0.005 ? `<p class="explica">${brl(sem)} do vendido ${rec > 0 ? 'ainda ' : ''}não tem forma de pagamento anotada: cobrança por atraso a receber na saída, ou venda sem a tela de pagamento.</p>` : ''}`; })(pagHoje())}
+      return `<div class="h-saldo dia-formas" aria-label="Recebido por forma de pagamento nas últimas 24 horas">${FORMAS.map(([f, n]) => `<span>${n}<b class="num">${brl(ph[f] || 0)}</b></span>`).join('')}</div>${sem > 0.005 ? `<p class="explica">${brl(sem)} do vendido ${rec > 0 ? 'ainda ' : ''}não tem forma de pagamento anotada: recreação a receber na saída, ou venda sem a tela de pagamento.</p>` : ''}`; })(pagHoje())}
     <p class="explica">${semIdface() ? 'Cada entrada, saída e venda marcada na tela vira uma linha aqui, na hora.' : 'Cada rosto reconhecido pelo iDFace vira uma linha aqui, na hora.'} As saídas mostram o que foi debitado.</p>
     ${(d => d.vouchers || d.pcd || d.desc ? `<div class="marca">${ic(IC.presente, 18)}<span><b>Últimas 24 h:</b> ${[d.vouchers ? `${d.vouchers} ${d.vouchers === 1 ? 'voucher' : 'vouchers'} (${brl(d.voucher_valor)} sem cobrar)` : '', d.pcd ? `${d.pcd} ${d.pcd === 1 ? 'venda' : 'vendas'} com desconto PCD (${brl(d.pcd_valor)} de desconto)` : '', d.desc ? `${d.desc} ${d.desc === 1 ? 'desconto do gestor' : 'descontos do gestor'} (${brl(d.desc_valor)})` : ''].filter(Boolean).join(' · ')}</span></div>` : '')(descontosHoje())}
     ${comCupom() ? botaoCuponsDia() : ''}
@@ -4352,8 +4394,8 @@ function dicas() {
   if (COM_WHATS && serv && S.whats && !S.whats.conectado) add('whats', 'alerta', 'zap', `<b>O WhatsApp da loja não está conectado.</b> Os avisos de chegada e saída não estão saindo para as famílias.`, supervisorOuMais() ? 'Conectar' : '', 'whats');
   // 2. horas acabando ou acabadas (quem já foi chamado nos últimos dias não aparece de novo)
   // 0c. cobrança por atraso de quem ainda está no espaço: todo mundo vê, com o valor a receber na saída
-  for (const c of S.criancas) if (c.entrou && c.atraso && c.atraso.n)
-    add('cobr-' + c.id + '-' + c.atraso.n, 'alerta', 'horas', `<b>${esc(c.nome)} passou do tempo comprado: ${c.atraso.n === 1 ? 'nova cobrança por atraso' : c.atraso.n + ' cobranças por atraso'}.</b> ${brl(c.atraso.valor)} a receber de ${esc(primeiro(c.resp))} na saída.`, 'Ver a ficha', 'ficha', c.id);
+  for (const c of S.criancas) if (c.entrou && c.atraso && c.atraso.n && !aberta(c))   // 1.15: a recreação avulsa correndo não é aviso; só o pacote que acabou
+    add('cobr-' + c.id + '-' + c.atraso.n, 'alerta', 'horas', `<b>As horas do pacote de ${esc(c.nome)} acabaram: ${dur(c.atraso.n * periodo())} a mais.</b> ${brl(c.atraso.valor)} a receber de ${esc(primeiro(c.resp))} na saída.`, 'Ver a ficha', 'ficha', c.id);
   if (COM_WHATS) for (const c of paraRenovar()) {
     if (chamadaRenovar(c)) continue; const r = restante(c);
     if (r <= 0) add('zerou-' + c.id, 'alerta', 'horas', `<b>As horas de ${esc(c.nome)} acabaram${c.entrou ? ' e ela ainda está no espaço' : ''}.</b> Mande mensagem para ${esc(c.resp)}${relP(c)} para ver se quer renovar.`, 'Mandar mensagem', 'renovar', c.id);
@@ -4553,15 +4595,15 @@ function telaAjustes() {
   return faixa('Ajustes', 'Como a loja funciona', chipIdface()) + `
   <div class="cards" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr))">
     <div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.horas, 20)} Regra das horas</h2></div>
-      <p class="explica">O tempo é debitado sempre em <b>períodos inteiros de ${porExt(periodo())}</b>${st ? ` (o período de ${esc(st.n)})` : ''}: não existe período quebrado. Quem ficou 11 minutos debita ${porExt(periodo())}, e cada visita debita pelo menos um período.</p>
-      <div class="campo"><label>Tolerância depois do tempo comprado</label>${seg('tolerancia', [[0, 'Nenhuma'], [5, '5 min'], [9, '9 min'], [10, '10 min'], [15, '15 min']], tolerancia())}<span class="explica">Passou disso, o sistema gera sozinho a <b>cobrança por atraso</b> de mais um período${st ? ` (${precoServ(st)})` : ''} e avisa em todas as telas. O valor aparece na saída, para receber. Depois de cada período novo, a tolerância vale de novo.</span></div>
+      <p class="explica">O tempo é debitado sempre em <b>períodos inteiros de ${porExt(periodo())}</b>${st ? ` (o período de ${esc(st.n)})` : ''}: não existe período quebrado. Quem ficou 11 minutos debita ${porExt(periodo())}, e cada visita debita pelo menos um período. <b>Sem pacote, o cliente não compra o período na entrada</b>: a criança entra na recreação avulsa e a saída cobra os períodos que ela ficou.</p>
+      <div class="campo"><label>Tolerância entre um período e outro</label>${seg('tolerancia', [[0, 'Nenhuma'], [5, '5 min'], [9, '9 min'], [10, '10 min'], [15, '15 min']], tolerancia())}<span class="explica">Passou disso, conta <b>mais um período</b>${st ? ` (${precoServ(st)})` : ''}. Na recreação avulsa ele entra na conta da saída; quem tem pacote usa as horas dele e, se elas acabaram, o período vira <b>cobrança além do pacote</b>, com aviso em todas as telas. Depois de cada período novo, a tolerância vale de novo.</span></div>
       <div class="campo"><label>No cupom, o cliente lê tolerância de</label>${seg('tolCupom', [[0, 'Não mostrar'], [5, '5 min'], [9, '9 min'], [10, '10 min'], [15, '15 min']], tolCupom())}<span class="explica">É só o que sai escrito no cupom impresso. A conta do sistema continua com a tolerância de cima: a diferença é a folga da loja para os dias de fila.</span></div>
       <div class="campo"><label>Cancelar a entrada sem cobrar</label>${seg('cancelaMin', [[0, 'Não cancela'], [5, 'Até 5 min'], [9, 'Até 9 min'], [10, 'Até 10 min'], [15, 'Até 15 min']], cancelaLim())}<span class="explica">Nesse prazo, contado da entrada, o próprio atendente cancela e nada é cobrado, mas precisa escrever o motivo. Passou do prazo, a opção some e ninguém cancela mais (nem o gestor): o período é cobrado. ${supervisorOuMais() ? `<button class="link tap" data-act="cancelamentos">Ver as entradas canceladas${aConferir().length ? ' (' + aConferir().length + ' para conferir)' : ''}</button>` : ''}</span></div>
       <div class="campo"><label>Reabrir a visita depois da saída</label>${seg('reabreMin', [[0, 'Não reabre'], [15, 'Até 15 min'], [30, 'Até 30 min'], [60, 'Até 1 hora']], reabreLim())}<span class="explica">Para quando a criança sai e volta logo em seguida (chorou e o responsável deixou ficar mais). Nesse prazo, quem saiu aparece em <b>Saíram há pouco</b>, na tela inicial, com o botão <b>Reabrir</b>: a saída é desfeita e o tempo continua contando desde a entrada, como se não tivesse saído. Fica anotado em Hoje na recepção, com quem reabriu. Passou do prazo, é uma entrada nova.</span></div>
       <div class="campo"><label>A loja fecha às</label>${seg('fecha', [[20, '20h'], [21, '21h'], [22, '22h'], [23, '23h'], [24, 'Meia-noite']], +cfg.fecha || 22)}<span class="explica">Depois dessa hora o tempo para de contar. Assim uma saída esquecida não vira cobrança a noite toda (o gestor corrige a hora da visita depois, na ficha da criança).</span></div>
-      <div class="campo"><label>Marcar "acabando" quando faltar</label>${seg('aviso', [[5, '5 min'], [10, '10 min'], [15, '15 min'], [30, '30 min'], [60, '1 hora']], cfg.aviso)}<span class="explica">A criança fica em amarelo na lista do espaço, só para a equipe ver. Nada é enviado ao responsável.</span></div>
+      <div class="campo"><label>Marcar "acabando" quando faltar</label>${seg('aviso', [[5, '5 min'], [10, '10 min'], [15, '15 min'], [30, '30 min'], [60, '1 hora']], cfg.aviso)}<span class="explica">Vale para quem entrou com pacote: a criança fica em amarelo na lista do espaço quando as horas dele estão no fim, só para a equipe ver. Na recreação avulsa não há prazo. Nada é enviado ao responsável.</span></div>
       <div class="campo"><label>Quando o pacote zerar</label>${seg('bloqueioAuto', [['sim', 'Bloquear o acesso sozinho'], ['nao', 'Deixar autorizado']], cfg.bloqueioAuto || 'sim')}<span class="explica">Bloqueando sozinho, o iDFace passa a recusar o rosto da criança até alguém vender horas (a venda libera de novo). Quem acabou de ser cadastrado e ainda não comprou horas também começa bloqueado. Assim o controle fica com o aparelho, não com o funcionário.</span></div>
-      <div class="marca">${ic(IC.presente, 18)}<span><b>Criança PCD</b> paga ${100 - pcdDesc()}% do valor só na recreação avulsa (e na cobrança por atraso dela); pacote de horas, carrinho de bebê e fusquinha não têm desconto. Marque no cadastro. <b>Voucher</b>: ${porExt(periodo())} de recreação grátis, um por visita, marcado no atendimento (ou na saída). O que passar disso é cobrado normalmente, ou sai do pacote de quem tem. Os dois ficam anotados na venda e em Hoje na recepção.</span></div>
+      <div class="marca">${ic(IC.presente, 18)}<span><b>Criança PCD</b> paga ${100 - pcdDesc()}% do valor só na recreação avulsa (e no tempo além do pacote); pacote de horas, carrinho de bebê e fusquinha não têm desconto. Marque no cadastro. <b>Voucher</b>: ${porExt(periodo())} de recreação grátis, um por visita, marcado no atendimento (ou na saída). O que passar disso é cobrado normalmente, ou sai do pacote de quem tem. Os dois ficam anotados na venda e em Hoje na recepção.</span></div>
       <div class="marca">${ic(IC.sino, 18)}<span><b>Na prática, hoje:</b> ${exemplo(11)} · ${exemplo(periodo() + tolerancia())} · ${exemplo(periodo() + tolerancia() + 1)} · ${exemplo(2 * periodo() + tolerancia() + 1)}</span></div>
     </div>
     <div class="sec">
@@ -4755,7 +4797,7 @@ const ACOES = {
   'obs-salvar': el => { const c = crianca(el.dataset.id); if (c) salvarObs(c, val('ob-txt')); },
   'reabrir-ok': async el => { /* desfaz a saída: o tempo continua desde a entrada */
     const c = crianca(el.dataset.id); if (!c) return; const nome = c.nome, id = c.id; el.disabled = true;
-    const feito = (ini, sap, cobr) => { if (S.espFiltro === 'sairam') S.espFiltro = 'todas'; fecharFolha(); desenhar(); const txt = `Visita de ${nome} reaberta · o tempo conta desde ${hora(ini)}${cobr ? ' · cobrança por atraso lançada' : ''}`; if (sap) deuCerto(txt + ' · sapateira ' + sap); else deuCerto(txt); };
+    const feito = (ini, sap, cobr) => { if (S.espFiltro === 'sairam') S.espFiltro = 'todas'; fecharFolha(); desenhar(); const txt = `Visita de ${nome} reaberta · o tempo conta desde ${hora(ini)}${cobr ? ' · mais recreação na conta da saída' : ''}`; if (sap) deuCerto(txt + ' · sapateira ' + sap); else deuCerto(txt); };
     if (MODO === 'servidor') { try { const r = await api('reabrir_visita', { id }); await carregar(); feito(dataDe(r.entrou), r.sapateira, r.cobrancas); } catch (e) { el.disabled = false; toast(e.message); } return; }
     const r = reabrirPrevia(c); if (r) feito(r.ini, r.sap, r.cobr); else { el.disabled = false; toast(`Já passou de ${reabreLim()} min da saída de ${nome}`); }
   },
@@ -5093,7 +5135,7 @@ document.addEventListener('keydown', e => {
 window.addEventListener('storage', e => { if (e.key === 'ps-etapas' && MODO === 'servidor' && !document.body.classList.contains('so') && !$('#folha .folha-fundo')) { lerEtapas(); desenhar(true); } });   // outra aba deste aparelho guardou ou concluiu um atendimento
 window.addEventListener('hashchange', () => { const h = location.hash.slice(1); if (ABAS.some(a => a[0] === h) && h !== S.tela) trocarTela(h); });
 setInterval(() => {
-  agora.setTime(Date.now());
+  agora.setTime(Date.now() + DESVIO);
   $$('[data-relogio]').forEach(el => { el.innerHTML = relogioTxt(); });
   if (agora.getSeconds() % 30 === 0 && S.tela === 'horas' && !$('#folha .folha-fundo')) { document.body.classList.add('quieto'); redesenharDicas(); } if (agora.getSeconds() === 0) $$('[data-data]').forEach(el => { el.textContent = dataTxt(); });
   $$('[data-cron]').forEach(el => { const c = crianca(el.dataset.cron); if (c && c.entrou) el.innerHTML = cronometro(c); });

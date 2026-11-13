@@ -2,8 +2,8 @@
 /* =====================================================================
    Play Space — dados de exemplo: um dia cheio, para ver como a tela inicial fica com o espaço lotado.
    10 crianças fictícias, todas no espaço, com nomes, responsáveis e horários de entrada diferentes (umas acabaram de
-   entrar, outras estão acabando o tempo, na tolerância ou já com cobrança por atraso; uma é PCD, uma entrou com voucher
-   e dois irmãos têm pacote de horas). Mais as vendas e os registros do dia, três carrinhos fora da loja, uma conversa
+   entrar, outras já estão há mais de uma hora; quase todas na recreação avulsa, que é acertada na saída; uma é PCD, uma
+   entrou com voucher e dois irmãos têm pacote de horas). Mais as vendas e os registros do dia, três carrinhos fora da loja, uma conversa
    no WhatsApp e alguns compromissos na agenda.
    Tudo o que entra aqui fica anotado em config 'exemplo' e sai inteiro com exemplosApagar().
    Nada é mandado ao iDFace nem ao WhatsApp: só entra no banco.
@@ -47,25 +47,25 @@ function exemplosCarregar(?int $por): array {
   $vender = function (int $id, string $nome, int $min, float $valor, string $quando, string $itens, array $m = []) use ($db, $ven, $reg, $por, $SN, $pagar, $formas) {   // uma venda de recreação, com a linha do dia
     $ven->execute([$id, round($min / 60, 2), $min, $valor, $quando, empty($m['auto']) ? $por : null, $itens, $SN, empty($m['auto']) ? 0 : 1, (string)($m['voucher'] ?? ''), empty($m['pcd']) ? 0 : 1, $m['cheio'] ?? null]);
     if (empty($m['auto']) && $valor > 0 && empty($m['np'])) $pagar->execute([(int)$db->lastInsertId(), $id, $formas[$id % count($formas)], $valor, $quando, $por]);   // paga na hora da venda; a cobrança por atraso fica a receber (1.02: np = ficou de pagar na saída)
-    $reg->execute([$quando, empty($m['auto']) ? 'venda' : 'cobr', $id, $nome, empty($m['auto']) ? $SN . ' · ' . dur($min) . ($itens !== '' ? ' · ' . $itens : '') . ' · ' . dinheiro($valor)
-      : 'Nova cobrança por atraso: ficou além do tempo comprado · ' . $SN . ' +' . dur($min) . ' · ' . dinheiro($valor) . (empty($m['pcd']) ? '' : ' · ' . $m['rot']) . ' a receber na saída']);
+    if (empty($m['auto'])) $reg->execute([$quando, 'venda', $id, $nome, $SN . ' · ' . dur($min) . ($itens !== '' ? ' · ' . $itens : '') . ' · ' . dinheiro($valor)]);   // 1.15: o período da recreação avulsa não vira linha do dia
   };
   $ids = []; $nomeId = []; $cpfDe = []; $telDe = []; $nDentro = 0; $sap = 0;
   foreach ($dentro as $i => $l) {
     [$nome, $resp, $ha, $per] = $l; $x = $l[4] ?? []; $pcd = !empty($x['pcd']); $entrou = $t($ha + ($i % 7) * 0.13);   // os segundos também variam
     if (isset($x['fam'])) { $cpf = $cpfDe[$x['fam']]; $tel = $telDe[$x['fam']]; } else { $cpf = exemploCpf($i + 1); $tel = '(11) 9 ' . (6100 + $i * 13) . '-' . (1000 + $i * 217); }
     $cpfDe[$nome] = $cpf; $telDe[$nome] = $tel;
-    $min = $per * $P; $autos = max(0, (int)ceil(($ha - $tol) / $P) - $per);   // já passou do tempo comprado mais a tolerância: tem cobrança por atraso
-    $pac = !empty($x['pac']); if ($pac) { $min = $pacH * 60; $autos = 0; }
+    // 1.15: ninguém compra período na entrada. Quem não tem pacote está na recreação avulsa: cada período que a visita já precisa é
+    // uma venda a receber na saída (a primeira nasce na entrada). O voucher cobre o primeiro período; o pacote cobre a visita inteira
+    $pac = !empty($x['pac']); $vou = isset($x['voucher']); $per = $pac ? 0 : ($vou ? 1 : 0);
+    $min = $pac ? $pacH * 60 : $per * $P; $autos = $pac ? 0 : max(0, periodosDe((float)$ha) - $per);
     $ins->execute([$nome, 0, $resp, $tel, $cpf, (string)($x['obs'] ?? ''), $min + $autos * $P, 0, $entrou, $t(60 * 24 * 12), $pcd ? 1 : 0]);
     $id = (int)$db->lastInsertId(); $ids[] = $id; $nomeId[$nome] = $id; $nDentro++;
     if (empty($x['sem'])) { do { $sap++; } while ($sap <= 44 && donoSapateira($sap)); if ($sap <= 44) $db->prepare('UPDATE criancas SET sapateira = ? WHERE id = ?')->execute([$sap, $id]); }
     if ($pac) $ven->execute([$id, $pacH, $min, $pacV, $t(60 * 24 * 3 + $i), $por, $pacItens, $pacServ, 0, '', 0, null]);
-    elseif (isset($x['voucher'])) $vender($id, $nome, $min, 0.0, $entrou, 'voucher', ['voucher' => 'sim', 'cheio' => $per * $V]);
-    elseif ($pcd) $vender($id, $nome, $min, $per * $VP, $entrou, $rotPcd, ['pcd' => 1, 'cheio' => $per * $V]);
-    else $vender($id, $nome, $min, $per * $V, $entrou, '', empty($x['np']) ? [] : ['np' => 1]);
+    elseif ($vou) $vender($id, $nome, $min, 0.0, $entrou, 'voucher', ['voucher' => 'sim', 'cheio' => $per * $V]);
     $reg->execute([$entrou, 'ent', $id, $nome, 'Entrada registrada']);
-    for ($k = 1; $k <= $autos; $k++) $vender($id, $nome, $P, $pcd ? $VP : $V, date('Y-m-d H:i:s', strtotime($entrou) + (($per + $k - 1) * $P + $tol) * 60 + 1), 'cobrança por atraso' . ($pcd ? ' · ' . $rotPcd : ''), ['auto' => 1, 'pcd' => $pcd, 'cheio' => $pcd ? $V : null, 'rot' => $rotPcd]);
+    for ($k = 1; $k <= $autos; $k++) { $n = $per + $k;   // o período da visita que esta venda paga: o 1º nasce na entrada; os outros, quando a tolerância do anterior acaba
+      $vender($id, $nome, $P, $pcd ? $VP : $V, $n === 1 ? $entrou : date('Y-m-d H:i:s', strtotime($entrou) + (($n - 1) * $P + $tol) * 60 + 1), ITENS_AVULSA . ($pcd ? ' · ' . $rotPcd : ''), ['auto' => 1, 'pcd' => $pcd, 'cheio' => $pcd ? $V : null, 'rot' => $rotPcd]); }
   }
 
   // o que saiu da loja e ainda não voltou (fica na lista até "Devolveu"): um fusquinha dentro do tempo, um que já passou e um carrinho de bebê

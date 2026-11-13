@@ -20,12 +20,12 @@ Os dados ficam fora da pasta pública, em `~/playspace-dados/` (criada sozinha n
 
 Para ver como a tela fica com movimento, a gestora toca em **Teste: 10 crianças**, no rodapé de qualquer tela (ou em Ajustes → Dados de exemplo). Entram 10 crianças fictícias, todas no espaço:
 
-- **10 no espaço agora**, com nomes, responsáveis e horários de entrada diferentes: umas acabaram de entrar (com o atalho de cancelar), outras estão no tempo, acabando, **na tolerância** e duas **já com cobrança por atraso**; uma é **PCD** e uma entrou com **voucher**; duas têm restrição anotada e uma está sem sapateira. Há **uma família com duas crianças** (aparecem juntas na lista).
+- **10 no espaço agora**, com nomes, responsáveis e horários de entrada diferentes: umas acabaram de entrar (com o atalho de cancelar), outras estão há mais de uma hora; quase todas estão na **recreação avulsa** (1.15: acertam na saída, e duas já somam mais de um período), dois irmãos têm **pacote de horas**; uma é **PCD** e uma entrou com **voucher**; duas têm restrição anotada e uma está sem sapateira. Há **uma família com duas crianças** (aparecem juntas na lista).
 - **2 crianças com pacote de horas** (ELISA e FELIPE, irmãos) e as outras na recreação avulsa, para ver o filtro **Pacotes / Horas avulsas**.
 - **3 carrinhos fora da loja**: dois fusquinhas (um dentro do tempo e um que já passou) e um carrinho de bebê, para ver as linhas com o botão **Devolveu** (seção 6o).
 - Vendas e registros do dia e compromissos na agenda.
 
-Elas se comportam como crianças de verdade: o tempo corre, a cobrança por atraso nasce sozinha, dá para dar saída, cancelar e vender. Nada vai para o iDFace. Nas crianças de teste o relógio não para na hora de fechar a loja, para o teste funcionar a qualquer hora.
+Elas se comportam como crianças de verdade: o tempo corre, os períodos da recreação avulsa nascem sozinhos, dá para dar saída, cancelar e vender. Nada vai para o iDFace. Nas crianças de teste o relógio não para na hora de fechar a loja, para o teste funcionar a qualquer hora.
 
 Para tirar, o mesmo botão vira **Tirar o teste**: saem as 10 crianças e tudo o que nasceu delas (vendas, cobranças, carrinhos fora, linhas do dia, agenda). Os cadastros de verdade ficam. Só a gestora coloca e tira o teste; a equipe vê as crianças de teste na tela enquanto elas estiverem lá.
 
@@ -69,9 +69,10 @@ As respostas dos responsáveis entram na aba **WhatsApp**, organizada por dia (H
 
 Enquanto a loja não usa o iDFace, a **leitura fica desligada** (Ajustes → iDFace; a versão 0.72 já desliga sozinha) e a equipe marca tudo na tela:
 
-- No **atendimento**, ao registrar uma venda com Recreação, a opção **Dar entrada agora** já vem marcada: a venda é gravada e o tempo começa a contar. Para quem está comprando para outro dia, é só desmarcar.
-- Quem já tem **um período inteiro guardado** ganha o botão **Entrada** (na busca da tela inicial e na ficha). Sem um período comprado, a entrada não é aceita: aparece **Vender** (ou **Atender**, na busca).
-- Quem está no espaço tem o botão **Saída** na linha da lista e na ficha. O toque abre o **Pagamento da saída** (seção 6r): de quem é, quanto ficou e como a visita é paga, com as horas do cliente e, se passou do tempo, com o valor a receber e a forma de pagamento. O segundo toque confirma. São dois toques de propósito: com 40 crianças na lista, um toque errado não tira a criança errada. A saída libera a sapateira e avisa onde está o sapato.
+- No **atendimento** de quem não tem horas, o primeiro botão é **Dar entrada · Recreação avulsa** (1.15, seção 6g): um toque e a criança entra, sem comprar nada; o valor é acertado na saída. Quem tem horas guardadas tem, no mesmo lugar, **Dar entrada com o saldo**.
+- Vendendo alguma coisa junto (um pacote, um produto, o carrinho), a opção **Dar entrada agora** já vem marcada: a venda é gravada e o tempo começa a contar. Para quem está comprando para outro dia, é só desmarcar.
+- **Todo cliente tem o botão Entrada** na busca da tela inicial e na ficha: quem tem horas usa as horas; quem não tem entra na recreação avulsa.
+- Quem está no espaço tem o botão **Saída** na linha da lista e na ficha. O toque abre o **Pagamento da saída** (seção 6r): de quem é, quanto ficou e como a visita é paga: com as horas do cliente ou, na recreação avulsa, com o valor do tempo que ficou e a forma de pagamento. O segundo toque confirma. São dois toques de propósito: com 40 crianças na lista, um toque errado não tira a criança errada. A saída libera a sapateira e avisa onde está o sapato.
 - Qualquer pessoa da equipe (inclusive Atendente) marca entrada e saída; logo depois de cada uma aparece, por alguns segundos, o botão **Desfazer** (1.08: só o botão, sem texto; seção 6c). O Desfazer é para o toque errado e só vale nos instantes seguintes (o servidor aceita até 2 minutos); depois disso, tirar uma entrada é pelo **cancelamento com motivo** (seção 6e).
 - Somem da tela as coisas que só fazem sentido com o aparelho: acesso autorizado/bloqueado, "falta o rosto" e os avisos de aparelho sem contato.
 
@@ -98,10 +99,10 @@ A folha mostra se o aparelho está **Conectado** (falou nos últimos 2 min), **S
 
 O tempo é debitado **sempre em períodos inteiros** (o período da Recreação: 30 min). Não existe período quebrado: quem ficou 11 min debita 30, e toda visita debita pelo menos um período (a única saída sem cobrança é o cancelamento em até 9 min, seção 6e). Os serviços também são cobrados por período cheio: o carrinho fusquinha devolvido com 21 min custa os mesmos R$ 15.
 
-- **Tolerância depois do tempo comprado** (9 min de fábrica): com 30 min comprados, até 39:00 continua valendo um período. Para o responsável a equipe fala em 5 minutos; os 9 só aparecem em Ajustes.
-- **Cobrança por atraso**: passou da tolerância, o sistema registra sozinho mais um período (seção 6g).
+- **Tolerância entre um período e outro** (9 min de fábrica): até 39:00 continua valendo um período; até 1h09, dois. Para o responsável a equipe fala em 5 minutos; os 9 só aparecem em Ajustes.
+- **Passou da tolerância**, o sistema conta sozinho mais um período. Na recreação avulsa ele entra na conta da saída; quem tem pacote usa as horas dele e, se elas acabaram, o período vira cobrança **além do pacote** (seção 6g).
 - **A loja fecha às** (22h de fábrica): depois dessa hora o tempo para de contar, para uma saída esquecida não virar cobrança a noite toda.
-- **Marcar "acabando"** (10 min): a criança fica em amarelo na lista; nada é enviado ao responsável.
+- **Marcar "acabando"** (10 min): quem entrou com pacote fica em amarelo na lista quando as horas dele estão no fim; nada é enviado ao responsável. Na recreação avulsa não há prazo.
 - **Cancelar a entrada sem cobrar** (seção 6e) e **Quando o pacote zerar** continuam como antes. Uma linha no fim do cartão mostra na prática quanto cada tempo debita. Os preços ficam em **Serviços e preços** (seção 6a).
 
 ## 6a. Cadastro, cliente e histórico
@@ -119,7 +120,7 @@ O tempo é debitado **sempre em períodos inteiros** (o período da Recreação:
 
 **A ficha da criança tem só o atendimento (1.00):** **Saída** (ou **Entrada**), **Vender**, **Histórico** e **Cupom**, mais a sapateira e a observação. Saíram "Saída com outra hora", "Tirar a foto" (volta sozinha se o iDFace for ligado), "Editar" e "Remover".
 
-**A ficha mais limpa (1.02):** de cima para baixo ficam só o responsável e o telefone, a linha do que falta receber, com **Receber** (só quando há; desde a 1.06 não existe mais o selo **Pago**), o relógio ("entrou 14:10 · até 14:40", o tempo que resta e a barra) e a fileira de botões: **Saída**, **Vender**, **Histórico**, **Cupom**, **Sapateira** e, no prazo, **Cancelar entrada**. Saíram as frases compridas ("Entrou às… e está há… Se sair agora, debita…", "é onde está o sapato dela", "As horas não expiram…"). A cobrança por atraso virou a linha curta "Atraso · R$ 160 a receber". O **OBS** de quem não tem observação é um botão na fileira; com observação, continua a caixa vermelha no alto. A conta de horas (comprou, usou, saldo) só aparece para quem tem horas guardadas ou pacote, e a lista de visitas, só quando há visita.
+**A ficha mais limpa (1.02):** de cima para baixo ficam só o responsável e o telefone, a linha do que falta receber, com **Receber** (só quando há; desde a 1.06 não existe mais o selo **Pago**), o relógio ("entrou 14:10 · até 14:40", o tempo que resta e a barra; na recreação avulsa, 1.15, o tempo correndo e "Recreação avulsa · até agora 1h · R$ 160 · acerta na saída") e a fileira de botões: **Saída** (ou **Entrada**, para quem está fora), **Vender**, **Histórico**, **Reimprimir cupom**, **Sapateira** e, no prazo, **Cancelar entrada**. Saíram as frases compridas ("Entrou às… e está há… Se sair agora, debita…", "é onde está o sapato dela", "As horas não expiram…"). Para quem tem pacote e ele acabou, a linha curta "Além do pacote · R$ 80 a receber". O **OBS** de quem não tem observação é um botão na fileira; com observação, continua a caixa vermelha no alto. A conta de horas (comprou, usou, saldo) só aparece para quem tem horas guardadas ou pacote, e a lista de visitas, só quando há visita.
 
 **Editar ou remover um cadastro é só do Gestor**, em **Ajustes → Cadastros**: a busca acha por criança, responsável, telefone ou CPF; um toque abre o cadastro para mudar (nome, data de nascimento, responsável, telefones, documento, criança PCD, observações) e, no pé, **Remover este cadastro**. Atendente e Supervisor não mudam cadastro, nem pela tela, nem pelo servidor. A observação e a sapateira continuam com toda a equipe.
 
@@ -160,7 +161,7 @@ A busca acha por criança, responsável, telefone ou CPF. O filtro **Pacote acab
 
 O sistema continua avisando o que vale olhar agora, mas os avisos **não ocupam a tela inicial**: ficam no botão do **sininho**, no alto, com a contagem (em vermelho quando há algo importante). Um toque abre a lista, uma frase e um botão por aviso:
 
-- **Cobrança por atraso** de quem ainda está no espaço: "ALICE passou do tempo comprado: nova cobrança por atraso. R$ 80 a receber de JULIANA na saída."
+- **Pacote que acabou** com a criança ainda no espaço: "As horas do pacote de ALICE acabaram: 0h30 a mais. R$ 80 a receber de JULIANA na saída." A recreação avulsa correndo não é aviso (1.15): é a conta normal da visita.
 - **Entradas canceladas** para a supervisão conferir.
 - **iDFace sem contato**: o que impede o sistema de trabalhar sozinho (só com o iDFace ligado).
 - **Agenda**: o que começa nas próximas 2 horas.
@@ -171,7 +172,7 @@ Cada aviso pode ser dispensado no X (vale para o dia, naquele aparelho). Sem avi
 **A faixa do pé da tela (1.08).** A faixa escura que aparecia embaixo a cada atividade saiu:
 
 - **O que deu certo não é mais anunciado**: entrada, saída, venda, pagamento recebido, cadastro salvo, regra salva, unidade trocada… A tela já mostra o resultado (a folha fecha, a lista muda).
-- **O que acontece sozinho também não**: a cobrança por atraso que nasce, a entrada ou a saída dada em outro aparelho, a entrada cancelada por um atendente. A lista mostra, e o sininho guarda a cobrança por atraso e o cancelamento a conferir (ele fica vermelho na hora, em todas as telas).
+- **O que acontece sozinho também não**: o pacote que acaba, a entrada ou a saída dada em outro aparelho, a entrada cancelada por um atendente. A lista mostra, e o sininho guarda o pacote que acabou e o cancelamento a conferir (ele fica vermelho na hora, em todas as telas).
 - **Desfazer**: quando a ação tem como desfazer (entrada, saída, venda, recebimento, devolução, voucher, apagar um pacote ou um produto, a limpeza…), aparece no pé da tela **só o botão Desfazer**, sem texto, por 6 segundos. Parando o mouse nele, a dica diz o que será desfeito.
 - **O que pede atenção continua aparecendo, com o texto**: um erro; o que falta para continuar ("Como recebeu R$ 80? Toque na forma de pagamento", "Escreva o motivo…"); uma recusa ("Já existe uma unidade com esse nome", "Só o gestor muda a regra"); o alerta do 2º voucher do dia da mesma criança; a entrada cancelada, para quem cancelou (com o que devolver ao cliente); o resumo da importação; e a observação pedida no OBS.
 - **Copiar o CPF** mostra um ✓ no próprio botão, por um instante.
@@ -196,7 +197,7 @@ Para quando a criança entra e desiste logo (chorou, não quis ficar, o respons�
 
 - **Prazo**: até **9 minutos** depois da entrada (9 minutos cheios, contados do momento em que entrou), **o próprio atendente cancela**. O prazo corre à vista: na linha da criança, na lista do espaço, aparece o atalho com um **X e o tempo que falta** (8:42), e a ficha mostra até que horas dá. Quando o prazo acaba, o atalho some sozinho.
 - **Motivo obrigatório**: a folha "Cancelar a entrada" só aceita com o motivo escrito (há atalhos: "A criança chorou", "O responsável desistiu"…). Sem motivo, não cancela.
-- **O que deixa de ser cobrado**: a folha lista as vendas desta visita (as de hoje, feitas depois da última saída). Já vem marcada a **Recreação vendida junto com a entrada**; carrinho e o que foi comprado mais cedo ficam desmarcados (continuam cobrados), e dá para marcar se também não forem cobrados. O que for marcado sai das vendas do dia e do saldo da criança; se o cliente já pagou, o valor é devolvido. Nenhum tempo é descontado e a sapateira fica livre.
+- **O que deixa de ser cobrado**: a folha lista as vendas desta visita (as de hoje, feitas depois da última saída). Já vem marcada a **Recreação desta entrada** (na recreação avulsa, 1.15, é o período que o sistema lançou: ele aparece travado, porque sai sempre junto com a entrada cancelada); carrinho e o que foi comprado mais cedo ficam desmarcados (continuam cobrados), e dá para marcar se também não forem cobrados. O que for marcado sai das vendas do dia e do saldo da criança; se o cliente já pagou, o valor é devolvido. Nenhum tempo é descontado e a sapateira fica livre.
 - **Fora do prazo, ninguém cancela** (1.00): quando o prazo acaba, a opção some da ficha para todos, inclusive Gestor e Supervisor, e o servidor recusa o cancelamento. O período é cobrado, qualquer que seja o motivo. **Na ficha (1.02)** o cancelamento é só o botão **Cancelar entrada · 6:57**, com o tempo que ainda falta; quando o prazo acaba o botão some, sem deixar aviso nenhum.
 - **A supervisão vê tudo**: cada cancelamento vira uma dica no alto da tela de Gestor e Supervisor ("João cancelou a entrada de Helena, R$ 80 não cobrado. Motivo: …") e o sininho fica vermelho na hora em todas as telas da supervisão (1.08: sem o aviso no pé da tela). O botão **Conferir** abre **Entradas canceladas**: quem, quando entrou, quanto ficou, o que não foi cobrado, o motivo e quem cancelou; **Marcar como visto** registra quem conferiu. A mesma lista abre em "Hoje na recepção" e em Ajustes → Regra das horas. O cancelamento também aparece na linha do dia (com a venda marcada "cancelada") e no **histórico do cliente**.
 - Se os avisos automáticos estão em "Entrada e saída", o responsável recebe no WhatsApp que a entrada foi cancelada e nada foi cobrado.
@@ -207,23 +208,23 @@ Para quando a criança entra e desiste logo (chorou, não quis ficar, o respons�
 
 A primeira tela (aba **Espaço**) mostra **todo mundo numa lista, uma linha por cliente**, como uma planilha:
 
-- a **situação**: bolinha verde = no tempo; amarela = acabando (faltam 10 min ou menos); vermelha = passou do tempo comprado. Desde a 1.05 a linha não fica mais toda vermelha: só o relógio e o "passou 7 min" ficam em vermelho, o que já basta para ver quem passou. No que saiu da loja (carrinho, fusquinha), no lugar da bolinha fica o desenho do carrinho;
-- a **criança**, com o **OBS** vermelho quando há observação (o texto só aparece com um toque, seção 6q). A cobrança por atraso **não aparece na linha**: o valor fica só no total, no pagamento da saída (seção 6r), para a equipe não confundir;
+- a **situação**: bolinha verde = no tempo; amarela = acabando (faltam 10 min ou menos); vermelha = passou do tempo comprado. **Amarelo e vermelho só existem para quem entrou com pacote** (1.15): na recreação avulsa não há prazo, e a bolinha fica verde. Desde a 1.05 a linha não fica mais toda vermelha: só o relógio e o "passou 7 min" ficam em vermelho, o que já basta para ver quem passou. No que saiu da loja (carrinho, fusquinha), no lugar da bolinha fica o desenho do carrinho;
+- a **criança**, com o **OBS** vermelho quando há observação (o texto só aparece com um toque, seção 6q). O valor a receber **não aparece na linha** (nem o da recreação avulsa, nem o do tempo além do pacote): fica na ficha e no pagamento da saída (seção 6r), para a equipe não confundir;
 - o **responsável** (com três PEDRO no espaço, é ele que diz qual é qual);
 - o **serviço**: RECREAÇÃO, com o selo **AVULSA** ou **PACOTE**; ou o que saiu da loja (CARRINHO FUSQUINHA, CARRINHO DE BEBÊ);
 - a **unidade** em que a criança está (1.06; no lugar da coluna Pagamento, que tinha os selos PAGO / NÃO PAGO): ANÁLIA FRANCO, MORUMBI… É a unidade do aparelho em que a entrada foi dada (seção 6v); no carrinho, a de onde ele saiu. Sem unidade marcada, um traço. No celular a unidade fica no alto da tela e só aparece na linha quando a lista mistura unidades;
 - a hora em que **entrou**;
-- o **tempo** correndo e, ao lado, **até que horas vai** ("até 13:46") ou **quanto passou** ("passou 7 min");
+- o **tempo** correndo e, para quem tem pacote, **até que horas vai** ("até 13:46") ou **quanto passou** ("passou 7 min"); na recreação avulsa, só o tempo correndo;
 - o botão **Saída** (ou **Devolveu**, no que saiu da loja).
 
-**Quem está mais perto de estourar o tempo vem primeiro.** As linhas do mesmo responsável (irmãos, ou a criança e o carrinho dela) ficam **juntas**, com um elo ao lado do nome dele. O sistema junta quem tem o mesmo CPF (ou RNE) do responsável; em cadastros sem documento, quem tem o mesmo telefone.
+**Quem tem pacote e está mais perto do fim das horas vem primeiro; depois, quem está na recreação avulsa, de quem entrou há mais tempo para quem acabou de entrar.** As linhas do mesmo responsável (irmãos, ou a criança e o carrinho dela) ficam **juntas**, com um elo ao lado do nome dele. O sistema junta quem tem o mesmo CPF (ou RNE) do responsável; em cadastros sem documento, quem tem o mesmo telefone.
 
 **Em cima da lista:**
 
 - os **filtros por serviço**, com a contagem de cada um: **TODAS**, **RECREAÇÃO** e um para cada coisa que sai da loja e volta (seção 6o). Um toque mostra só aquele serviço; **SAÍRAM HÁ POUCO** aparece no fim quando há alguém no prazo de reabrir a visita (seção 6m);
-- a **busca** (criança, responsável, telefone ou CPF). Ela filtra a lista e também acha quem tem cadastro e não está no espaço, com os botões **Entrada** (se tem um período guardado) e **Atender** (vender e dar entrada).
+- a **busca** (criança, responsável, telefone ou CPF). Ela filtra a lista e também acha quem tem cadastro e não está no espaço, com os botões **Entrada** (um toque: quem tem horas usa as horas; quem não tem entra na recreação avulsa) e **Atender** (vender e dar entrada).
 
-**Tocar na linha abre a comanda** (a ficha), com tudo: responsável, telefones, documento, o OBS, o que está fora da loja (com o **Devolveu**), **sapateira**, hora da entrada, até quando vai o tempo, quanto debita se sair agora, os três números (**comprou**, **usou** e **saldo**), o **cancelar a entrada**, as cobranças por atraso, o histórico e os botões.
+**Tocar na linha abre a comanda** (a ficha), com tudo: responsável, telefones, documento, o OBS, o que está fora da loja (com o **Devolveu**), **sapateira**, hora da entrada, até quando vai o tempo, quanto debita se sair agora, os três números (**comprou**, **usou** e **saldo**, para quem tem horas), o **cancelar a entrada**, o que a visita soma até agora, o histórico e os botões.
 
 **A lista se ajusta ao espaço**: no computador, todas as colunas; em tela menor (ou com o histórico do cliente aberto ao lado), o responsável vai para baixo do nome e a hora da entrada sai; no celular, a segunda linha fica "MARIANA SOUZA · AVULSA" (ou "CARLA · FUSQUINHA").
 
@@ -236,33 +237,46 @@ O resto da tela continua igual:
 
 **O bloco do responsável (1.00):** as crianças do mesmo responsável, e os carrinhos que elas pegaram, ficam sempre juntos, dentro de um **contorno vermelho**: é um bloco só, para ver de longe que são da mesma família. Desde a 1.07, a **Saída** de qualquer criança do bloco abre a conta de todas juntas, com o **Tirar** em cada uma (seção 6r). O vínculo é pelo responsável (o CPF dele; sem documento, o telefone). O bloco entra na lista no lugar da linha mais urgente dele. No **Banco de horas** os irmãos também ficam juntos, no mesmo contorno. As três colunas por serviço, que eram opção de cada aparelho, saíram: elas separavam a criança do carrinho do mesmo responsável. O aparelho que estava em colunas volta sozinho para a lista. **A coluna Pagamento (1.02)** mostra em cada linha o selo PAGO ou NÃO PAGO (seção 6p).
 
-## 6g. Cobrança por atraso
+## 6g. Recreação avulsa: acerto na saída (1.15), e o tempo além do pacote
 
-Quando a criança continua no espaço depois do **tempo comprado mais a tolerância** (30 min + 9 = 39:00), o sistema registra sozinho **mais um período** (Recreação +0h30, R$ 80). Se ela continuar, depois de mais 30 min e da tolerância (1h09) nasce outro, e assim por diante.
+**O cliente sem pacote não compra meia hora na entrada.** Ele deixa a criança, sabendo o valor (R$ 80 a cada meia hora, de fábrica), e **acerta na saída o tempo que ela ficou**. Na tela:
 
-- **Todo mundo fica sabendo**: em todas as telas abertas, o sininho ganha o aviso ("ALICE passou do tempo comprado: nova cobrança por atraso. R$ 80 a receber de JULIANA na saída"), a linha da criança fica com o relógio em vermelho e o "passou X min", e entra a linha "Nova cobrança por atraso: ficou além do tempo comprado" em Hoje na recepção. Desde a 1.08 não há mais o aviso no pé da tela (seção 6c). A venda entra no histórico do cliente marcada como *cobrança por atraso*.
-- **Na saída**, a tela de pagamento mostra o valor a receber e pede a forma de pagamento; com a forma escolhida, o botão vira **Recebi R$ 80 no Pix · dar saída** (seção 6r).
-- Quem gera a cobrança é o servidor, a cada poucos segundos enquanto alguma tela estiver aberta, e de novo na saída: mesmo com tudo fechado, a conta fecha certa.
-- **Saída esquecida** (a criança foi embora e ninguém marcou): dê a saída normalmente. Depois, **só o Gestor** acerta a hora: na ficha da criança, **Corrigir** ao lado da visita (últimos dois dias), com o motivo. O tempo é refeito e as cobranças por atraso que sobraram são desfeitas; fica anotado em Hoje na recepção. O botão "Saída com outra hora" saiu na 1.00.
-- **Na atualização para a 0.75**, quem já estava marcado como "no espaço" não ganha cobrança para trás: a regra vale para as entradas feitas depois de atualizar.
+- **A entrada é um toque.** No atendimento de quem não tem horas, o primeiro botão é **Dar entrada · Recreação avulsa**, com o valor embaixo ("R$ 80 a cada meia hora · acerta na saída"). Não existe mais a linha de vender meia hora com − e +. O mesmo toque está no botão **Entrada** da ficha e da busca. Quem tem horas guardadas continua com **Dar entrada com o saldo**, e os pacotes continuam na lista logo abaixo.
+- **O cupom de entrada** diz "Entrada 14:02 · acerto na saída" e "RECREAÇÃO avulsa · R$ 80,00 a cada 30 min" (não há mais "até 14:32").
+- **Na lista**, a criança fica com o selo **AVULSA** e o tempo correndo. **Não tem "até", nem amarelo, nem "passou do tempo"**: quem está na recreação avulsa não tem prazo.
+- **Na ficha**, embaixo do relógio: "Recreação avulsa · até agora 1h · R$ 160 · acerta na saída". O valor acompanha o relógio.
+- **Na saída**, a conta é uma linha só: "RECREAÇÃO avulsa · 1h30 · ficou 1h12 · R$ 240". Escolhida a forma, **Recebi R$ 240 no Pix · dar saída**. O cupom da saída repete a linha, e Hoje na recepção anota "Ficou 1h12 · 1h30 debitados · recreação avulsa: R$ 240 · recebido: Pix".
+
+**Como o valor é contado:** em períodos inteiros (meia hora), com a tolerância entre um e outro (9 min de fábrica; seção 6). Até 39 min, um período (R$ 80); até 1h09, dois (R$ 160); até 1h39, três (R$ 240). A criança PCD paga a metade; o voucher cobre meia hora (seção 6h). O único jeito de não cobrar é cancelar a entrada no prazo (seção 6e).
+
+**Por baixo**, o sistema lança sozinho cada período que a visita passa a precisar (uma venda *RECREAÇÃO · 0h30 · avulsa*, a receber), a cada poucos segundos enquanto houver tela aberta, e de novo na saída: é o que aparece no histórico do cliente. Esses períodos **não viram linha em Hoje na recepção** nem aviso no sininho (são a conta normal da visita). Desfazer a entrada, ou cancelá-la, tira o que foi lançado.
+
+**A saída confere o valor.** A tela manda para o servidor o total que mostrou; se a visita ganhou mais um período com a folha aberta, o servidor não dá a saída e avisa "O valor a receber mudou para R$ 160. Confira e confirme de novo": a folha já mostra a conta nova, e o segundo toque passa. Assim ninguém sai com período sem receber. O relógio da tela segue o do servidor: todos os aparelhos mostram o mesmo tempo, mesmo com o relógio de um deles errado.
+
+**Passar do tempo só existe para quem tem pacote.** Quem entrou com horas de pacote tem prazo (as horas dele): a linha mostra "até 15:40", fica amarela quando falta pouco e, quando as horas acabam, vermelha, com "passou 4 min". Passada a tolerância, nasce a cobrança **além do pacote** (RECREAÇÃO +0h30, R$ 80), e aí todo mundo fica sabendo: o sininho avisa ("As horas do pacote de ALICE acabaram: 0h30 a mais. R$ 80 a receber de JULIANA na saída"), entra a linha "As horas do pacote acabaram" em Hoje na recepção, a ficha mostra "Além do pacote · R$ 80 a receber" e a saída traz a linha **Além do pacote · 0h30**. O cartão **além do pacote**, no alto de Hoje na recepção, soma só isso.
+
+- **Saída esquecida** (a criança foi embora e ninguém marcou): dê a saída normalmente. Depois, **só o Gestor** acerta a hora: na ficha da criança, **Corrigir** ao lado da visita (últimos dois dias), com o motivo. O tempo é refeito e os períodos que sobraram são desfeitos; fica anotado em Hoje na recepção.
+- **A loja que usa o iDFace** continua vendendo o período no atendimento (é a venda que libera o rosto na porta); o que passar dele entra como recreação avulsa na saída.
+- **Quem já estava no espaço na atualização** continua valendo: quem tinha comprado meia hora usa essa meia hora, e o que passar dela é acertado na saída, já sem a palavra "atraso".
 - O responsável não é avisado de nada disso pelo WhatsApp.
+- No servidor: a ação `entrada` não exige mais um período comprado; as vendas que nascem sozinhas levam `avulsa` ou `além do pacote` no detalhe; a ação `saida` aceita `total` (o valor que a tela mostrou) e responde 409 quando a conta mudou. O banco continua na versão 27.
 
 ## 6h. Criança PCD e voucher
 
 **Criança PCD: 50% de desconto, só na recreação avulsa.**
 
-- No cadastro (e em **Editar**), marque **Criança PCD**. A partir daí a **recreação avulsa** dela sai pela metade: a Recreação no atendimento (R$ 40 a cada meia hora) e a **cobrança por atraso**, que é um período avulso a mais. **Pacote de horas, carrinho de bebê, fusquinha e outros produtos não têm desconto.**
+- No cadastro (e em **Editar**), marque **Criança PCD**. A partir daí a **recreação avulsa** dela sai pela metade: R$ 40 a cada meia hora, na conta da saída (e também no tempo além do pacote). **Pacote de horas, carrinho de bebê, fusquinha e outros produtos não têm desconto.**
 - O atendimento mostra o preço já com o desconto e o selo **PCD 50%**; a lista do espaço e a ficha mostram o selo **PCD**.
 - Cada venda com desconto fica anotada ("Recreação · 0h30 · PCD 50% · R$ 40") em Hoje na recepção e no histórico do cliente. **Marcar ou desmarcar PCD também fica anotado no dia**, com o nome de quem fez, porque muda o preço.
 
 **Voucher do shopping: 30 min de recreação grátis, um por visita, sem código.**
 
 - No atendimento, abaixo dos serviços, a linha **Voucher** é só de marcar: um toque marca, outro desmarca. Não tem quantidade nem código.
-- **Os primeiros 30 min saem grátis; o que passar disso volta a ser cobrado normalmente.** Sem pacote: ficou até 39 min (30 + a tolerância), não paga nada; ficou 1 h, paga 1 período (R$ 80); ficou 2 h, paga 3 períodos (R$ 240). A cobrança nasce sozinha, como toda cobrança por atraso (R$ 40 por período se a criança for PCD).
+- **Os primeiros 30 min saem grátis; o que passar disso volta a ser cobrado normalmente.** Sem pacote: ficou até 39 min (30 + a tolerância), não paga nada; ficou 1 h, paga 1 período (R$ 80); ficou 2 h, paga 3 períodos (R$ 240). O que passar do voucher é recreação avulsa, acertada na saída (R$ 40 por período se a criança for PCD).
 - **Quem tem pacote de horas**: o voucher cobre os primeiros 30 min e o resto sai do pacote, sem cobrança. Ex.: pacote de 5 h + voucher, ficou 2 h: sobram 3h30.
 - Dá para juntar na mesma venda o voucher e períodos pagos (ex.: voucher + 30 min pagos = 1 h, R$ 80).
 - **Um por visita**: quem já usou o voucher na visita (ou tem um de hoje guardado, ainda sem entrar) não ganha outro; a linha aparece como "já usado nesta visita". Se a criança sair e voltar no mesmo dia com outro voucher, o sistema aceita e anota "voucher (2º de hoje)", para a supervisão ver.
-- **O voucher chegou depois** (o responsável trouxe na hora de buscar): na folha da **Saída**, quando há valor a receber, aparece **Tem voucher? Usar agora**. Um toque e ele cobre um período da cobrança por atraso (R$ 80 a menos); aparece o botão Desfazer. Se for o **2º voucher do dia** da mesma criança, o sistema avisa no pé da tela ("Atenção: é o 2º voucher de hoje para …"). O mesmo acontece ao marcar o Voucher no atendimento de uma criança que está no espaço com cobrança a receber.
+- **O voucher chegou depois** (o responsável trouxe na hora de buscar): na folha da **Saída**, quando há valor a receber, aparece **Tem voucher? Usar agora**. Um toque e ele cobre um período da visita (R$ 80 a menos); aparece o botão Desfazer. Se for o **2º voucher do dia** da mesma criança, o sistema avisa no pé da tela ("Atenção: é o 2º voucher de hoje para …"). O mesmo acontece ao marcar o Voucher no atendimento de uma criança que está no espaço com cobrança a receber.
 - A lista do espaço mostra um presentinho ao lado do nome de quem está com voucher; a ficha e a folha da saída dizem "Voucher usado: meia hora desta visita ficou por conta do voucher".
 - A venda fica anotada ("Recreação · 0h30 · voucher · R$ 0") em Hoje na recepção e no histórico do cliente. Quando o voucher cobre uma cobrança, a linha da cobrança fica marcada "coberta pelo voucher".
 - Em **Hoje na recepção** (bloco "Horas vendidas hoje"), um resumo mostra quantos vouchers e quantas vendas com desconto PCD houve nas últimas 24 h e quanto isso representou: é o número para conferir com os vouchers de papel recolhidos no dia.
@@ -372,7 +386,7 @@ Produtos que já vêm instalados (os da tela "Produtos disponíveis" do sistema 
 - **Prazo**: até **30 minutos depois da saída** (muda em **Ajustes → Regra das horas → Reabrir a visita depois da saída**: não reabre, até 15 min, até 30 min ou até 1 hora). Passou do prazo, é uma entrada nova.
 - **Onde**: na tela inicial, quando alguém saiu dentro do prazo, aparece o filtro **Saíram há pouco** (com a contagem). Tocando nele, vem a lista de quem saiu, com o botão **Reabrir**. O mesmo botão aparece na busca (quem saiu há pouco) e na ficha da criança. O filtro some sozinho quando o prazo passa.
 - **O que acontece**: a saída é desfeita e **o tempo continua contando desde a entrada**, como se a criança não tivesse saído. O que foi debitado volta para o saldo e a conta é refeita na próxima saída. A sapateira que ela usava volta, se ainda estiver livre; senão o aviso oferece escolher outra.
-- **O tempo fora também conta.** Antes de confirmar, a folha mostra até quando ia o tempo comprado e, se o tempo fora fez passar da tolerância, quantas **cobranças por atraso** nascem ao reabrir e o valor.
+- **O tempo fora também conta.** Antes de confirmar, a folha mostra até quando ia o tempo comprado e, se o tempo fora fez a visita precisar de mais um período, quanto de recreação entra a mais na conta ao reabrir, e o valor.
 - **Fica anotado** em Hoje na recepção: a linha da saída ganha "visita reaberta às 15:06" e entra uma linha nova com a hora da saída desfeita, quanto tempo ficou fora e **quem reabriu**.
 - Qualquer pessoa da equipe reabre dentro do prazo (com o iDFace ligado, só gestor e supervisor, como na saída à mão). Se depois daquela saída houve uma entrada cancelada, não reabre: aí é entrada nova.
 - O botão **Desfazer** que aparece depois da saída (os primeiros segundos) continua existindo, para o toque errado.
@@ -419,7 +433,7 @@ Depois de escolher o serviço (horas avulsas, pacote, carrinho, produto), o aten
 
 - Fica fechado, embaixo das formas de pagamento: **Desconto · só o gestor**. Um toque abre: **Por valor · R$** ou **Por percentual · %**, o **valor** e o **motivo** (obrigatório).
 - O desconto vira uma linha verde na tabela dos itens ("Desconto (10%) · CLIENTE ANTIGO · − R$ 9,50"), e o total, o valor em cada forma de pagamento e o botão de baixo já mostram o valor com o desconto. Sem o motivo, ou com um valor maior que o total, a tela avisa e não registra.
-- Vale no **pagamento do atendimento** (também com "Paga na saída": fica a receber o valor já descontado) e no **pagamento da saída** (sobre o que falta receber: o que ficou para pagar e a cobrança por atraso). Com 100% de desconto não há o que receber: o botão vira **Registrar com desconto total**.
+- Vale no **pagamento do atendimento** (também com "Paga na saída": fica a receber o valor já descontado) e no **pagamento da saída** (sobre o que falta receber: o que ficou para pagar, a recreação avulsa e o tempo além do pacote). Com 100% de desconto não há o que receber: o botão vira **Registrar com desconto total**.
 - O desconto é repartido entre os itens em proporção ao valor de cada um e fica guardado em cada venda, com o motivo e quem deu. No dia aparece a linha "Desconto · R$ 9,50 (10%) · Motivo: … · por CAMILA".
 - **Onde aparece depois**: em **Hoje na recepção** ("2 descontos do gestor (R$ 39,50)"), no **Histórico do cliente** (em cada compra: "desconto de R$ 8") e no cupom de papel (linha "Desconto").
 - **Desfazer**: o Desfazer da venda apaga a venda com o desconto; o Desfazer da saída devolve às vendas o desconto que foi dado nela.
@@ -439,23 +453,23 @@ Depois de escolher o serviço (horas avulsas, pacote, carrinho, produto), o aten
 
 - **Na tela de pagamento do atendimento**, em Pagamento, a escolha fica sempre à vista (1.03): **Paga agora** (verde) ou **Paga na saída** (vermelho). Em "Paga agora" aparecem as formas de pagamento. Em "Paga na saída" a tela diz "R$ 80 a receber na saída" e o botão de baixo vira **Paga na saída · registrar e dar entrada**: a venda e a entrada são registradas sem pagamento, e a linha do dia diz "A receber na saída · R$ 80". A escolha só existe quando há uma hora certa para receber depois: a criança entra agora (ou já está no espaço), ou a venda tem um carrinho que sai da loja e volta (aí a opção diz **Paga na devolução**). Venda de produto ou de pacote para quem não vai entrar é paga na hora.
 - **Na tela inicial** não há mais selo: a coluna Pagamento virou **Unidade** (seção 6v).
-- **Na ficha**, quem ficou de pagar tem uma linha só: "A receber · R$ 80", com o botão **Receber** (se já houver cobrança por atraso, "A receber · R$ 80 + atraso R$ 80" e **Receber R$ 160**). Quem está em dia não tem linha nem selo. O Receber abre as quatro formas de pagamento e recebe na hora, sem esperar a saída; o aviso tem Desfazer.
-- **Na saída**, a tabela do Pagamento da saída lista cada item que ficou para pagar ("ficou para a saída") junto com a cobrança por atraso, se houver, e o **Total a receber**. Sem a forma de pagamento a saída não é dada. O Desfazer da saída devolve também o que foi recebido nela.
+- **Na ficha**, quem ficou de pagar tem uma linha só: "A receber · R$ 80", com o botão **Receber** (com a recreação avulsa da visita junto, "A receber · R$ 30 + recreação R$ 160" e **Receber R$ 190**; para quem tem pacote e ele acabou, "Além do pacote · R$ 80 a receber"). Só a recreação avulsa correndo não gera essa linha: ela é acertada na saída. Quem está em dia não tem linha nem selo. O Receber abre as quatro formas de pagamento e recebe na hora, sem esperar a saída; o aviso tem Desfazer.
+- **Na saída**, a tabela do Pagamento da saída lista cada item que ficou para pagar ("ficou para a saída") junto com a recreação avulsa (ou o tempo além do pacote), se houver, e o **Total a receber**. Sem a forma de pagamento a saída não é dada. O Desfazer da saída devolve também o que foi recebido nela.
 - **Na devolução do carrinho** que ficou para pagar depois, o toque em Devolveu abre o Pagamento da devolução com o item "ficou para a devolução", R$ 15 (e o tempo a mais, se passou).
 - **No cupom** da entrada sai "A pagar na saída" e "A RECEBER NA SAÍDA"; no cupom da saída, "O que ficou para pagar na saída", com a forma em que foi recebido.
 - **No Histórico do cliente**, a compra aparece com **A RECEBER** enquanto não for recebida, e não entra em "Pagou ao todo".
 - **Cancelar a entrada** de quem não pagou não tem nada a devolver.
 - Quem entrou num dia e só saiu no outro (saída esquecida) continua com a conta aberta: o que ficou a pagar é cobrado na saída, mesmo depois da meia-noite.
 
-**Na saída**, o toque em Saída já abre o **Pagamento da saída** (seção 6r): a visita é paga com as horas do cliente e, se passou do tempo, com as mesmas quatro formas, em **Forma de pagamento**. Sem escolher a forma, a saída não é dada (o botão diz "Escolha a forma de pagamento" e a tela pergunta "Como recebeu R$ 80?"). Também dá para dividir. A linha do dia fica "… cobrança por atraso: R$ 80 · recebido: Dinheiro".
+**Na saída**, o toque em Saída já abre o **Pagamento da saída** (seção 6r): a visita é paga com as horas do cliente e, quando há valor a receber (a recreação avulsa, o tempo além do pacote ou o que ficou para a saída), com as mesmas quatro formas, em **Forma de pagamento**. Sem escolher a forma, a saída não é dada (o botão diz "Escolha a forma de pagamento" e a tela pergunta "Como recebeu R$ 80?"). Também dá para dividir. A linha do dia fica "… recreação avulsa: R$ 80 · recebido: Dinheiro".
 
 **Depois de registrar**, a tela abre o **cupom** para imprimir e o responsável assinar (seção 6s).
 
 **Cancelar a entrada de quem já pagou**: o aviso e a linha do dia dizem o que devolver e por qual forma ("devolver ao cliente: Crédito R$ 80").
 
-**Reabrir a visita** (seção 6m): a cobrança por atraso que já foi recebida na primeira saída não volta a aparecer como "a receber"; na segunda saída a tela cobra só o que é novo.
+**Reabrir a visita** (seção 6m): o que já foi recebido na primeira saída não volta a aparecer como "a receber"; na segunda saída a tela cobra só o que é novo.
 
-O que ainda não tem forma anotada aparece numa frase em Hoje na recepção: é a cobrança por atraso de quem ainda está no espaço (será recebida na saída) ou uma saída lida pelo iDFace. As vendas feitas antes da 0.90 não têm forma de pagamento.
+O que ainda não tem forma anotada aparece numa frase em Hoje na recepção: é a recreação de quem ainda está no espaço (será recebida na saída) ou uma saída lida pelo iDFace. As vendas feitas antes da 0.90 não têm forma de pagamento.
 
 ## 6q. Observação: o OBS (só a equipe vê)
 
@@ -485,9 +499,9 @@ O texto da observação não aparece em nenhuma tela sem que alguém toque no OB
 **O toque em Saída abre direto o Pagamento da saída**, para ninguém esquecer de receber. A tela diz sempre **como aquela visita é paga**:
 
 - **Detalhes**: o cliente, com **ENTRADA 14:02** ao lado do nome, o CPF, os telefones e quem está atendendo;
-- **Itens selecionados**: a linha da visita (RECREAÇÃO, com a criança, a sapateira, a hora da entrada, quanto ficou e quanto usa das horas do cliente), uma linha para cada coisa que ficou para pagar ("ficou para a saída") e, se a criança ficou além do tempo, a linha **Atraso · mais 0h30**. Embaixo, o **Total a receber**;
-- **Adicionar serviços** (1.03): o cliente quer levar um pacote, ou um produto, na saída. O atendimento abre com a lista de pacotes e o botão vira **Somar na saída · R$ 420**: o que foi escolhido entra na tabela da saída, que abre de novo sozinha, e **tudo é recebido num pagamento só**, com um cupom só. As horas do pacote já contam: a cobrança por atraso que estava a receber é desfeita e a visita sai do saldo novo;
-- **Pagamento**: as três linhas das horas, como na tela anterior. Ex.: **Horas disponíveis 10h · Horas necessárias 0h30 · Saldo após confirmação 9h30**. Quando há valor a receber, a linha do meio mostra as duas coisas: "0h30 + R$ 80". Logo abaixo ficam o **Tem voucher?** (seção 6h) e a **Forma de pagamento**: Pix, Dinheiro, Crédito e Débito, em até três formas, igual à venda (seção 6p). Para o gestor, embaixo das formas fica o **Desconto** (seção 6p): o valor sai do que a saída recebe, e a linha do meio das horas já mostra o valor com o desconto.
+- **Itens selecionados**: a linha da visita (RECREAÇÃO, com a criança, a sapateira, a hora da entrada, quanto ficou e quanto usa das horas do cliente), uma linha para cada coisa que ficou para pagar ("ficou para a saída") e, para quem tem pacote e ele acabou, a linha **Além do pacote · 0h30**. Na recreação avulsa (1.15, seção 6g) a visita é uma linha só, já com o valor: **RECREAÇÃO avulsa · 1h30**. Embaixo, o **Total a receber**;
+- **Adicionar serviços** (1.03): o cliente quer levar um pacote, ou um produto, na saída. O atendimento abre com a lista de pacotes e o botão vira **Somar na saída · R$ 420**: o que foi escolhido entra na tabela da saída, que abre de novo sozinha, e **tudo é recebido num pagamento só**, com um cupom só. As horas do pacote já contam: a recreação que estava a receber é desfeita e a visita sai do saldo novo;
+- **Pagamento**: as três linhas das horas, como na tela anterior (só para quem tem horas: na recreação avulsa elas não aparecem). Ex.: **Horas disponíveis 10h · Horas necessárias 0h30 · Saldo após confirmação 9h30**. Quando há valor a receber, a linha do meio mostra as duas coisas: "0h30 + R$ 80". Logo abaixo ficam o **Tem voucher?** (seção 6h) e a **Forma de pagamento**: Pix, Dinheiro, Crédito e Débito, em até três formas, igual à venda (seção 6p). Para o gestor, embaixo das formas fica o **Desconto** (seção 6p): o valor sai do que a saída recebe, e a linha do meio das horas já mostra o valor com o desconto.
 
 O botão de baixo diz o que vai acontecer:
 
@@ -495,11 +509,11 @@ O botão de baixo diz o que vai acontecer:
 - **Escolha a forma de pagamento**: há valor a receber e a forma ainda não foi escolhida. A saída não é dada sem ela.
 - **Recebi R$ 80 no Pix · dar saída**: forma escolhida; o toque registra o pagamento e dá a saída. Dividindo em mais de uma forma, o botão pede o valor que falta ("Quanto no Pix?") e, com a conta fechada, vira **Recebi R$ 80 · dar saída**.
 
-A tela acompanha o relógio: se a tolerância estourar com ela aberta, a linha do atraso e as formas de pagamento aparecem na hora. **Pacote na saída (1.00, mudou na 1.03):** é o **Adicionar serviços** da lista acima; não há mais um pagamento à parte para o pacote. O mesmo vale para qualquer tempo comprado com a criança no espaço: o que o cliente comprou cobre a visita, e só fica a receber o que ainda faltar. A folha da saída não corrige mais a hora. **Quem ficou de pagar na saída (1.02):** a tabela lista o que ainda não foi pago, soma com a cobrança por atraso (se houver) e só dá a saída com a forma de pagamento. O cupom da saída traz cada item pelo nome (1.03).
+A tela acompanha o relógio: se a tolerância estourar com ela aberta, a conta e as formas de pagamento mudam na hora (e o servidor confere o total antes de dar a saída, seção 6g). **Pacote na saída (1.00, mudou na 1.03):** é o **Adicionar serviços** da lista acima; não há mais um pagamento à parte para o pacote. O mesmo vale para qualquer tempo comprado com a criança no espaço: o que o cliente comprou cobre a visita, e só fica a receber o que ainda faltar. A folha da saída não corrige mais a hora. **Quem ficou de pagar na saída (1.02):** a tabela lista o que ainda não foi pago, soma com a recreação (se houver) e só dá a saída com a forma de pagamento. O cupom da saída traz cada item pelo nome (1.03).
 
 **Saída em conjunto (1.07): o responsável com mais de uma criança no espaço.** O toque em **Saída**, em qualquer uma delas, abre **uma conta só**, como o fechamento do sistema anterior:
 
-- cada criança tem a linha dela (a visita, com a sapateira, a hora da entrada e quanto usa das horas) e, embaixo, o que ficou para pagar e o atraso dela, com o nome ao lado. O **Total a receber** é um só, e as três linhas das horas somam as das crianças;
+- cada criança tem a linha dela (a visita, com a sapateira, a hora da entrada e quanto usa das horas) e, embaixo, o que ficou para pagar e o tempo além do pacote dela, com o nome ao lado (na recreação avulsa, a linha da criança já traz o valor). O **Total a receber** é um só, e as três linhas das horas somam as das crianças;
 - em cada linha de criança há o **Tirar**. A criança que vai **pagar à parte** (é de outro pai e veio com este responsável, ou não entra na conta dele) ou que **vai sair depois** fica fora desta conta e **continua no espaço**. Ela aparece em "Fora desta conta", e um toque no nome põe de volta. Depois, a Saída dela abre a conta dela;
 - o botão diz quem sai: **Usar 2h das horas · dar saída de SOFIA e HELENA**, ou **Recebi R$ 160 no Pix · dar saída de SOFIA e HELENA**;
 - **um pagamento só** (em até três formas), **um desconto** do gestor para a conta toda e **um cupom só**, com as crianças que saíram, o pagamento e uma linha de assinatura. O botão **Desfazer** também é um só, e devolve todas;
@@ -516,14 +530,14 @@ No servidor cada criança continua com a saída dela: a tela reparte o pagamento
 Regras da conta:
 
 - a escolha só aparece quando a visita usaria horas guardadas. Quem só tem o tempo comprado hoje (a recreação avulsa paga na entrada) não vê a escolha: esse tempo já foi pago e não é cobrado de novo. Se o cliente com pacote comprou meia hora na entrada e ficou uma hora, o avulso cobra só a meia hora que sairia do pacote;
-- a **cobrança por atraso** continua valendo (ela é o tempo além do que o cliente tinha) e soma na mesma conta; o **desconto do gestor** vale sobre o total;
+- o **tempo além do pacote** continua valendo e soma na mesma conta; o **desconto do gestor** vale sobre o total;
 - na **saída em conjunto**, a escolha vale para a conta: todas as crianças que usariam o pacote pagam avulso. Para uma só pagar avulso, use o **Tirar** e dê a saída dela à parte;
 - o **cupom da saída** leva a linha "RECREAÇÃO avulsa · 1h", o total pago com a forma e o **número da venda**; o saldo de horas impresso é o do pacote, inteiro;
 - a venda fica no histórico do cliente e no dia como "avulso na saída: não descontou do pacote", e entra no caixa na forma em que foi recebida;
 - o botão **Desfazer** da saída tira a venda avulsa e o pagamento dela, e devolve a criança ao espaço. Ao abrir a saída de novo, a tela volta em "Descontar do pacote";
 - ao tocar em **Adicionar serviços** e voltar, a escolha continua como estava.
 
-No servidor: a ação `saida` aceita `avulso` e devolve a venda feita; a saída avulsa não desfaz cobrança por atraso (o tempo avulso não cobre o atraso que já estava cobrado).
+No servidor: a ação `saida` aceita `avulso` e devolve a venda feita; a saída avulsa não desfaz a cobrança além do pacote (o tempo avulso não cobre o que já estava cobrado).
 
 **As horas compradas não expiram, nunca.** Não existe prazo de validade no sistema: um pacote comprado hoje vale daqui a dez anos, inteiro. O saldo só diminui quando a criança usa (a visita) ou quando uma venda é desfeita ou cancelada.
 
@@ -671,7 +685,7 @@ A Play Space tem mais de uma unidade. O sistema já vem com **ANÁLIA FRANCO** e
 - **Qual é a unidade deste aparelho:** na tela inicial, ao lado do título "No espaço agora", fica o botão com o nome da unidade (ex.: **ANÁLIA FRANCO**). Cada aparelho guarda a sua (computador do balcão, tablet, celular). Um toque abre **Unidade deste aparelho**, com as unidades para escolher. Aparelho que ainda não tem unidade mostra **Qual unidade?** em amarelo, até alguém escolher (1.08: sem o aviso ao entrar; o botão já pede).
 - **Quem troca:** o Gestor e o Supervisor. O atendente só escolhe quando o aparelho ainda não tem unidade nenhuma (para a entrada não ficar sem unidade); depois disso, vê o nome e não troca.
 - **O cadastro:** **Ajustes → Unidades** (só o Gestor). **Nova unidade** pede só o nome (fica em maiúsculas; não pode repetir). Um toque numa unidade muda o nome ou remove. Mudou o nome, muda em tudo o que já foi registrado nela. Unidade removida sai das escolhas, mas o que foi registrado nela continua com o nome; o aviso tem Desfazer. Não dá para remover uma unidade com criança no espaço.
-- **O que fica marcado com a unidade:** a entrada da criança (e a visita, quando ela sai), cada venda, o que saiu da loja (carrinho, fusquinha) e cada linha de Hoje na recepção. A cobrança por atraso, que nasce sozinha, fica com a unidade da visita. A entrada pelo iDFace fica sem unidade (o aparelho da porta não diz em qual está).
+- **O que fica marcado com a unidade:** a entrada da criança (e a visita, quando ela sai), cada venda, o que saiu da loja (carrinho, fusquinha) e cada linha de Hoje na recepção. O período que nasce sozinho (recreação avulsa, ou além do pacote) fica com a unidade da visita. A entrada pelo iDFace fica sem unidade (o aparelho da porta não diz em qual está).
 - **Na lista** da tela inicial, a coluna **Unidade** mostra onde cada criança está (seção 6f). **No cupom**, a unidade sai embaixo do nome da loja.
 - **No servidor:** o banco passa para a versão 25 (tabela `unidades`, e a coluna `unidade_id` em `criancas`, `visitas`, `vendas` e `registros`). O que já existia fica sem unidade (aparece com um traço).
 - **O que ainda não é separado por unidade:** todos os aparelhos veem a mesma lista, com a coluna dizendo de qual unidade é cada linha. As sapateiras, a agenda, o estoque dos produtos e o resumo do dia ainda são um só para todas as unidades. Isso entra quando a segunda unidade for começar a usar o mesmo sistema.
