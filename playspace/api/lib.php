@@ -986,11 +986,11 @@ function planosDoEspaco(): array {
   return $o;
 }
 /* ---------- 1.11: a data de nascimento ---------- */
-// 'AAAA-MM-DD' de uma data que existe, não é futura e é de criança (até 17 anos); senão, ''
+// 'AAAA-MM-DD' de uma data que existe e não é futura (1.17: de qualquer idade, até 120 anos; antes só valia até 17); senão, ''
 function idadeDeNascimento(string $nasc, ?string $em = null): int { try { return (int)(new DateTime($nasc))->diff(new DateTime($em ?: date('Y-m-d')))->y; } catch (Throwable $e) { return 0; } }
 function nascimentoValido(string $s): string {
   if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', trim($s), $m) || !checkdate((int)$m[2], (int)$m[3], (int)$m[1])) return '';
-  if ($m[0] > date('Y-m-d') || idadeDeNascimento($m[0]) > 17) return '';
+  if ($m[0] > date('Y-m-d') || (int)$m[1] < 1900 || idadeDeNascimento($m[0]) > 120) return '';
   return $m[0];
 }
 /* ---------- 1.11: "pagar avulso" na saída (não descontar do pacote) ---------- */

@@ -1342,7 +1342,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.16';
+const VERSAO = '1.17';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -2151,13 +2151,18 @@ const idadeRot = i => !i ? '' : i.a >= 1 ? `${i.a} ${i.a === 1 ? 'ano' : 'anos'}
 const idadeDe = c => { const i = idadeEm(nascDe(c)); return i ? i.a : (c && +c.idade) || 0; };   // em anos
 const idadeTxt = c => { const i = idadeEm(nascDe(c)); return i ? idadeRot(i) : c && c.idade > 0 ? `${c.idade} ${c.idade === 1 ? 'ano' : 'anos'}` : ''; };   // "5 anos", "8 meses" ou ''
 const nascBR = iso => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ''); return m ? `${m[3]}/${m[2]}/${m[1]}` : ''; };
-// o que foi escrito no campo (dd/mm/aaaa): { iso, idade } de uma data que existe, não é futura e é de criança (até 17 anos); vazio vale; senão { erro }
-function nascDoCampo(txt) { const t = String(txt || '').trim(); if (!t) return { iso: '' }; const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(t); if (!m) return { erro: 'Escreva a data de nascimento assim: 15/03/2021' };
-  const d = new Date(+m[3], +m[2] - 1, +m[1]), i = d.getFullYear() === +m[3] && d.getMonth() === +m[2] - 1 && d.getDate() === +m[1] ? idadeEm(d) : null;
-  return !i || i.a > 17 ? { erro: 'Confira a data de nascimento' } : { iso: `${m[3]}-${m[2]}-${m[1]}`, idade: i }; }
+// o que foi escrito no campo (dd/mm/aaaa): { iso, idade } de uma data que existe e não é futura; vazio vale; senão { erro, curto }.
+// 1.17: a idade aparece para qualquer data real, também a de um adulto (antes só valia até 17 anos, e a de um adulto dava "confira a data").
+// Quando não vale, o aviso diz por quê: o dia não existe (31/02), a data está no futuro, ou o ano não faz sentido (mais de 120 anos).
+const IDADE_MAX = 120;
+function nascDoCampo(txt) { const t = String(txt || '').trim(); if (!t) return { iso: '' }; const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(t); if (!m) return { erro: 'Escreva a data de nascimento assim: 15/03/2021', curto: 'confira a data' };
+  const d = new Date(+m[3], +m[2] - 1, +m[1]);
+  if (+m[3] < 100 || d.getFullYear() !== +m[3] || d.getMonth() !== +m[2] - 1 || d.getDate() !== +m[1]) return { erro: 'Confira a data de nascimento: esse dia não existe', curto: 'não existe' };
+  const i = idadeEm(d); if (!i) return { erro: 'Confira a data de nascimento: ela está no futuro', curto: 'no futuro' };
+  return i.a > IDADE_MAX ? { erro: 'Confira a data de nascimento: o ano', curto: 'confira o ano' } : { iso: `${m[3]}-${m[2]}-${m[1]}`, idade: i }; }
 const campoNasc = v => `<div class="campo"><label for="f-nasc">Nascimento <span class="leve">· opcional</span></label><div class="nasc-l"><input id="f-nasc" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" autocomplete="off" value="${esc(v || '')}"><b class="nasc-id" id="f-nasc-id" aria-live="polite"></b></div></div>`;
 // a idade aparece ao lado do campo assim que a data está completa; no Editar cadastro, o campo Idade acompanha (e fica travado enquanto há data)
-function atualizarNasc() { const i = $('#f-nasc'), o = $('#f-nasc-id'); if (!i || !o) return; const x = nascDoCampo(i.value), cheio = i.value.length === 10; o.textContent = x.idade ? idadeRot(x.idade) : cheio && x.erro ? 'confira a data' : ''; o.classList.toggle('erro', !!(cheio && x.erro));
+function atualizarNasc() { const i = $('#f-nasc'), o = $('#f-nasc-id'); if (!i || !o) return; const x = nascDoCampo(i.value), cheio = i.value.length === 10; o.textContent = x.idade ? idadeRot(x.idade) : cheio && x.erro ? x.curto || 'confira a data' : ''; o.classList.toggle('erro', !!(cheio && x.erro));
   const n = $('#f-idade'), cx = $('#f-idade-cx'); if (n) { n.disabled = !!x.idade; if (x.idade) n.value = x.idade.a || ''; } if (cx) cx.hidden = !!x.idade; }   /* com a data, a idade já está ao lado dela: o campo da idade só aparece sem a data */
 const soDig = v => String(v == null ? '' : v).replace(/\D/g, '');
 // o documento do responsável: CPF (11 números) ou RNE de estrangeiro (letras e números). O campo c.cpf guarda o número; c.doc diz qual é
@@ -4185,7 +4190,7 @@ function folhaCrianca(c, d, extra) { // d: um cadastro novo que ficou pela metad
     <div class="bloco-f"><small class="rot">Criança</small>
       <div class="dois"><div class="campo"><label for="f-nome">Nome da criança<span class="obg" aria-hidden="true">*</span></label><input id="f-nome" value="${esc(c.nome)}" autocomplete="off"></div>
         ${campoNasc(nascBR(c.nasc))}</div>
-      <div class="campo" id="f-idade-cx" style="max-width:150px"${nascDe(c) ? ' hidden' : ''}><label for="f-idade">Idade <span class="leve">· em anos</span></label><input id="f-idade" type="number" min="1" max="17" inputmode="numeric" value="${idadeDe(c) || ''}" placeholder="anos"></div>
+      <div class="campo" id="f-idade-cx" style="max-width:150px"${nascDe(c) ? ' hidden' : ''}><label for="f-idade">Idade <span class="leve">· em anos</span></label><input id="f-idade" type="number" min="1" max="120" inputmode="numeric" value="${idadeDe(c) || ''}" placeholder="anos"></div>
       <label class="marca" id="f-pcd-campo"><input type="checkbox" id="f-pcd" ${c.pcd ? 'checked' : ''}><span><b>Criança PCD.</b> Paga ${100 - pcdDesc()}% do valor na recreação avulsa. Pacote e carrinhos não têm desconto. Mudar esta marca fica anotado no dia.</span></label>
       ${campoObs(c.obs)}
     </div>
@@ -4919,7 +4924,7 @@ const ACOES = {
     if (!tel && tel2) { tel = tel2; tel2 = ''; }   // só um telefone preenchido: ele é o principal
     const F = faltaNoCadastro(id ? crianca(id) : null);   // sem documento, responsável, telefone e nome da criança o cadastro não fecha
     if (F.length) { FALTA_TENTOU = true; atualizarFalta(); toast(F.length === 1 ? F[0][2] : 'Falta ' + juntar(F.map(x => x[1]))); const i = $('#' + F[0][0]); if (i) { i.focus(); i.scrollIntoView({ block: 'center', behavior: 'smooth' }); } return; }
-    const nasc = nascDoCampo(val('f-nasc')); if (nasc.erro) { toast(nasc.erro); const i = $('#f-nasc'); if (i) { i.focus(); i.scrollIntoView({ block: 'center', behavior: 'smooth' }); } return; }   // 1.11: a data de nascimento é opcional; escrita, precisa ser de criança
+    const nasc = nascDoCampo(val('f-nasc')); if (nasc.erro) { toast(nasc.erro); const i = $('#f-nasc'); if (i) { i.focus(); i.scrollIntoView({ block: 'center', behavior: 'smooth' }); } return; }   // 1.11: a data de nascimento é opcional; escrita, precisa ser uma data que existe e já passou (1.17: de qualquer idade)
     if (!id) { const ja = clientePorDoc(doc, cpf).find(x => x.nome.trim().toLowerCase() === nome.toLowerCase()); if (ja) { toast(`${ja.nome} já tem cadastro com este ${doc === 'rne' ? 'RNE' : 'CPF'}`, () => abrirHistorico(ja.id), 'Ver o histórico'); return; } }
     if (MODO === 'servidor') {
       const dados = id ? { id: +id, nome, idade: +val('f-idade') || 0, nasc: nasc.iso, resp, tel, tel2, doc, cpf, obs, pcd } : { nome, nasc: nasc.iso, resp, tel, tel2, doc, cpf, obs, pcd };

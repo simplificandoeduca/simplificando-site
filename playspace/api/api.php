@@ -96,9 +96,9 @@ function textoCriancaBasico(array &$in, array $atual = []): array {
   // o documento do responsável: CPF (só números, ponto e traço) ou RNE de estrangeiro (letras e números)
   $doc = ($in['doc'] ?? $atual['doc_tipo'] ?? 'cpf') === 'rne' ? 'rne' : 'cpf'; $bruto = (string)($in['cpf'] ?? $atual['cpf'] ?? '');
   $numDoc = $doc === 'rne' ? mb_substr(mb_strtoupper(trim(preg_replace('/[^A-Za-z0-9.\-\/ ]/', '', $bruto))), 0, 20) : preg_replace('/[^\d.\-]/', '', $bruto);
-  // 1.11: a data de nascimento é opcional. Veio vazia: fica sem (ou é apagada). Veio escrita: precisa ser uma data de criança. Com ela, a idade guardada sai dela
+  // 1.11: a data de nascimento é opcional. Veio vazia: fica sem (ou é apagada). Veio escrita: precisa ser uma data que existe e já passou (1.17: de qualquer idade). Com ela, a idade guardada sai dela
   $nasc = (string)($atual['nascimento'] ?? ''); if (array_key_exists('nasc', $in)) { $bruta = trim((string)$in['nasc']); $nasc = $bruta === '' ? '' : nascimentoValido($bruta); if ($bruta !== '' && $nasc === '') falha('Confira a data de nascimento.'); }
-  return ['doc' => $doc, 'tel2' => mb_substr(trim((string)($in['tel2'] ?? $atual['tel2'] ?? '')), 0, 30),'nome' => mb_substr(maiusculo($nome), 0, 60), 'nascimento' => $nasc, 'idade' => $nasc !== '' ? min(17, idadeDeNascimento($nasc)) : max(0, min(17, (int)($in['idade'] ?? $atual['idade'] ?? 0))), 'resp' => mb_substr(maiusculo((string)($in['resp'] ?? $atual['resp'] ?? '')), 0, 80),
+  return ['doc' => $doc, 'tel2' => mb_substr(trim((string)($in['tel2'] ?? $atual['tel2'] ?? '')), 0, 30),'nome' => mb_substr(maiusculo($nome), 0, 60), 'nascimento' => $nasc, 'idade' => $nasc !== '' ? min(120, idadeDeNascimento($nasc)) : max(0, min(120, (int)($in['idade'] ?? $atual['idade'] ?? 0))), 'resp' => mb_substr(maiusculo((string)($in['resp'] ?? $atual['resp'] ?? '')), 0, 80),
     'rel' => mb_substr(trim((string)($in['rel'] ?? $atual['rel'] ?? 'responsável')), 0, 20), 'tel' => mb_substr(trim((string)($in['tel'] ?? $atual['tel'] ?? '')), 0, 30),
     'cpf' => $numDoc, 'obs' => mb_substr(emMaiusculas((string)($in['obs'] ?? $atual['obs'] ?? '')), 0, 500), 'pcd' => empty($in['pcd'] ?? $atual['pcd'] ?? 0) ? 0 : 1];
 }
