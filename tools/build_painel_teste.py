@@ -24,6 +24,7 @@ rep("const L = await FBP.listProgresso(), by = {};", "const L = DEMO.listProgres
 rep("const [a, b] = await Promise.all([FBP.listCol('sugestoes'), FBP.listCol('storiesUso')]); ST.sug = a; ST.sto = b.filter(x => x.acao!=='abriu' && x.acao!=='teste');",
     "const meus = new Set(Object.values(C.alunos).map(x => x.uid).filter(Boolean)), a = DEMO.list('sug').filter(x => meus.has(x.uid)), b = DEMO.list('sto').filter(x => meus.has(x.uid)); ST.sug = a; ST.sto = b;")
 rep("FBP.setLida(d.k, !!d.v).catch(", "DEMO.setLida(d.k, !!d.v).catch(")
+rep("try { ST.av = await FBP.listCol('avaliacoes'); ST.avErr = ''; }", "try { const meus2 = new Set(Object.values(C.alunos).map(x => x.uid).filter(Boolean)); ST.av = DEMO.list('av').filter(x => meus2.has(x.uid)); ST.avErr = ''; }")
 rep("FBP.dropDoc('sugestoes', d.k).catch(", "DEMO.dropDoc('sug', d.k).catch(")
 
 # ---------- abas: Painel, Alunos, Biblioteca, Estatísticas ----------
@@ -151,8 +152,9 @@ function demoSeed(){
       D.prog[id] = { uid:u, em:now - (x.app.agora ? 2 : (k+1)*47)*60e3, d }; }
     (x.sto||[]).forEach((s2, j) => D.sto.push({ id:'st'+k+'-'+j, uid:u, nome:x.n, tipo:'personal', modelo:s2[0], cor:['vermelho','preto','lilas'][j%3], acao:s2[1], tema:/^c/.test(s2[0]) ? 'cardio' : 'treino', em:now - s2[2]*864e5 - 3600e3*(j+1) }));
     if(x.sug) D.sug.push({ id:'sg'+k, uid:u, nome:x.n, tipo:'personal', texto:x.sug, em:now - (k+2)*864e5 });
+    if(x.app){ D.av = D.av||[]; const nt = [[5,4,4,5,4],[4,3,3,4,5],[5,5,3,4,4],[5,4,5,5,5],[4,4,4,3,4]][k%5]; D.av.push({ id:'av'+k, uid:u, nome:x.n, tipo:'personal', notas:{ treino:nt[0], cardio:nt[1], agua:nt[2], facil:nt[3], visual:nt[4] }, texto:['Amei o cronômetro de descanso!','Queria mais opções de cardio em casa.','','O lembrete de água me salvou.','Podia ter tema escuro mais escuro.'][k%5], em:now - (k+1)*2*864e5 }); }
   });
-  DEMO.put(D); PG.by = null; PG.at = 0; ST.sug = null; ST.at = 0;
+  DEMO.put(D); PG.by = null; PG.at = 0; ST.sug = null; ST.av = null; ST.at = 0;
   if(!cfg().nomePersonal){ if(!C.config.geral) C.config.geral = clone(DEF_CFG); C.config.geral.nomePersonal = 'Personal Teste'; Store.save('config','geral',0); }
   toast(pessoas.length+' clientes de teste criados');
 }

@@ -209,6 +209,11 @@ textarea:focus{outline:none;border-color:var(--fg)}
 .in-ic{flex:none;width:36px;height:36px;border-radius:10px;background:var(--card);display:grid;place-items:center;color:#2F7BF6}.in-ic .i{width:20px;height:20px}
 .in-av{display:flex;gap:8px;align-items:flex-start;background:color-mix(in srgb,var(--brand) 14%,transparent);border-radius:14px;padding:10px 12px;font-size:14px;margin:0 0 12px}.in-av .i{width:18px;height:18px;flex:none;margin-top:1px}
 .in-go{font-size:17px}
+.av-rows{display:flex;flex-direction:column;margin:4px 0 2px}.av-r{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--sep)}.av-r:last-child{border-bottom:0}
+.av-r b{display:flex;align-items:center;gap:12px;font-size:15.5px;min-width:0}
+.av-ic{flex:none;width:38px;height:38px;border-radius:11px;background:var(--c);display:grid;place-items:center}.av-ic svg{width:22px;height:22px;fill:#fff;stroke:none}.av-ic svg .k{fill:none;stroke:var(--c);stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.av-st{display:flex;flex:none}.av-st button{border:0;background:none;padding:2px 3px;font-size:25px;line-height:1;color:color-mix(in srgb,var(--fg) 18%,transparent);cursor:pointer}.av-st button.on{color:#FFB21E}
+.av-txt{min-height:64px;resize:vertical;margin-bottom:6px}
 .in-card{display:flex;align-items:center;gap:12px;width:100%;margin-top:18px;border:0;text-align:left;font:inherit;color:inherit;background:color-mix(in srgb,var(--brand) 9%,var(--card,#fff));border-radius:18px;padding:12px 14px;box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--brand) 38%,transparent);cursor:pointer}
 .in-logo{flex:none;width:42px;height:42px;border-radius:12px;overflow:hidden;display:grid;place-items:center;background:#0F1712}.in-logo svg{width:100%;height:100%}
 .in-ct{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.in-ct b{font-size:15px}.in-ct span{font-size:13px;color:var(--muted)}
@@ -2122,7 +2127,7 @@ function startApp(){
   const lg = document.getElementById('login'); if(lg) lg.remove();
   document.body.classList.remove('locked');
   applyLook(); window.scrollTo(0,0); render(); renderPick();
-  fbRefresh(); acompAsk(); instAsk(); siteAsk();
+  fbRefresh(); acompAsk(); instAsk(); siteAsk(); avalAsk();
   try { const vv = localStorage.getItem('simp-app-v'); if(vv && vv!==APPV) setTimeout(() => toast('App atualizado: versão '+APPV), 900); localStorage.setItem('simp-app-v', APPV); } catch(e){ /* sem armazenamento */ }
 }
 function logout(){
@@ -2575,6 +2580,50 @@ function vSite(){
   const hs = `<div class="in-hs"><div class="in-grid"><i></i><i></i><i></i><span>${logo()}</span></div><p><b>Não precisa de App Store nem Play Store.</b> Fica na tela do celular, abre em tela cheia e funciona sem internet.</p></div>`;
   return `<div class="sheet-wrap" data-a="site-x"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t" tabindex="-1">${sheetTop('Você está no site', 'Tenha o Simplificando como app<span class="dot" aria-hidden="true"></span>').replace('data-a="close"','data-a="site-x"')}
     ${hs}${instCorpo()}<button type="button" class="btn ghost block" data-a="site-x">Continuar no site</button></div></div>`;
+}
+/* avaliação do app: a partir de 14/11, a cada 15 dias ao abrir; estrelas por área (modelo 2: símbolo branco no quadrado colorido) */
+const AVAL_INI = '2026-11-14', AVAL_DIAS = 15;
+const AVAL_AREAS = [
+  ['treino','Treino','#E5484D','<rect x="2.5" y="9" width="3" height="6" rx="1.2"/><rect x="5" y="6.5" width="3.4" height="11" rx="1.5"/><rect x="15.6" y="6.5" width="3.4" height="11" rx="1.5"/><rect x="18.5" y="9" width="3" height="6" rx="1.2"/><rect x="8" y="10.8" width="8" height="2.4" rx="1"/>'],
+  ['cardio','Cardio','#2E9E3E','<path d="M12 20.6S3.4 15.4 3.4 9.3a4.4 4.4 0 0 1 8.6-1.3 4.4 4.4 0 0 1 8.6 1.3c0 6.1-8.6 11.3-8.6 11.3z"/><path class="k" d="M6.6 12.6h2.9l1.5-2.5 2 4 1.4-1.5h3"/>'],
+  ['agua','Água','#1E73E0','<path d="M12 3s6.4 6.8 6.4 11.4a6.4 6.4 0 0 1-12.8 0C5.6 9.8 12 3 12 3z"/><path class="k" d="M9.3 14.7a2.8 2.8 0 0 0 2.5 2.5"/>'],
+  ['facil','Fácil de usar','#7E57C9','<circle cx="12" cy="12" r="9"/><path class="k" d="M7.8 12.3l2.8 2.8 5.6-5.8"/>'],
+  ['visual','Visual','#E08A00','<path d="M10.5 2.5l2 5.4 5.4 2-5.4 2-2 5.4-2-5.4-5.4-2 5.4-2z"/><path d="M18 13.5l1 2.6 2.6 1-2.6 1-1 2.6-1-2.6-2.6-1 2.6-1z"/><circle cx="5.5" cy="18.5" r="1.7"/>']
+];
+const avIc = (svg, cor) => `<span class="av-ic" style="--c:${cor}"><svg viewBox="0 0 24 24" aria-hidden="true">${svg}</svg></span>`;
+let avalT = 0, AVAL_FEITO = false;
+function avalPode(){ const t = today(), g = (S && S.aval) || {}; if(!S || S.example || t < AVAL_INI) return false; return !g.ult || diffDays(t, g.ult) >= AVAL_DIAS; }
+function avalAsk(){
+  clearInterval(avalT); if(AVAL_FEITO || !avalPode()) return;
+  let n = 0;
+  avalT = setInterval(() => {
+    if(++n > 120 || AVAL_FEITO || !avalPode()){ clearInterval(avalT); return; }
+    if(S.session || S.inst==='novo') return; // no meio do treino ou logo depois de criar a conta, não
+    const livre = ACCT && !ui.sheet && !document.getElementById('login') && !document.getElementById('pick') && !document.querySelector('.wel') && !document.querySelector('.stp') && (S.acomp || !acompPode() || isPersonal());
+    if(livre){ clearInterval(avalT); AVAL_FEITO = true; ui.sheet = {k:'aval', notas:{}}; renderSheet(true); }
+  }, 2000);
+}
+function vAval(){
+  const n = ui.sheet.notas || {};
+  return `<div class="sheet-wrap" data-a="av-x"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t" tabindex="-1">${sheetTop('Avaliação rápida', 'Dá uma nota pra gente?').replace('data-a="close"','data-a="av-x"')}
+    <p class="foot0" style="margin-top:-6px">Toque nas estrelas. Leva 10 segundos.</p>
+    <div class="av-rows">${AVAL_AREAS.map(([k,l,c,svg]) => `<div class="av-r"><b>${avIc(svg,c)}${l}</b><span class="av-st" role="radiogroup" aria-label="Nota para ${l}">${[1,2,3,4,5].map(v => `<button type="button" class="${(n[k]||0)>=v?'on':''}" data-a="av-n" data-k="${k}" data-v="${v}" role="radio" aria-checked="${n[k]===v}" aria-label="${v} estrela${v>1?'s':''}">★</button>`).join('')}</span></div>`).join('')}</div>
+    <label class="flabel" for="av-txt" style="margin-top:12px">Algo pra melhorar? <span style="font-weight:500;color:var(--muted)">(opcional)</span></label>
+    <textarea id="av-txt" class="inp av-txt" maxlength="1000" placeholder="Escreva aqui…"></textarea>
+    <button type="button" class="btn primary block" data-a="av-go"${Object.keys(n).length ? '' : ' disabled'}>Enviar notas</button>
+    <button type="button" class="btn ghost block" data-a="av-x">Agora não</button></div></div>`;
+}
+function avalFim(enviou){ const g = S.aval || (S.aval = {}); g.ult = today(); if(enviou) g.env = today(); save(); }
+function avalEnviar(b){
+  const s2 = ui.sheet; if(!s2 || s2.k!=='aval') return;
+  const notas = Object.assign({}, s2.notas || {}); if(!Object.keys(notas).length){ toast('Toque nas estrelas de pelo menos uma área.'); return; }
+  const t = document.getElementById('av-txt'), texto = t ? t.value.trim().slice(0,1000) : '';
+  avalFim(true); closeSheet();
+  if(!FB){ toast('Valeu pela avaliação! 💪'); return; }
+  FB.evento('avaliacoes', Object.assign(quem(), { notas, texto, em:Date.now(), ver:APPV })).then(ok => {
+    if(ok===true) toast('Valeu pela avaliação! 💪');
+    else { const g = S.aval || {}; delete g.ult; delete g.env; save(); toast('Não deu para enviar agora. Vamos pedir de novo na próxima vez.'); if(ok==='permission-denied') errSend('Regras do Firebase desatualizadas: a avaliação do app foi bloqueada. Cole o REGRAS-FIRESTORE.txt novo no Firebase.', 'avaliacoes', 0, 0, ''); }
+  });
 }
 function acompAsk(){ if(!acompPode() || S.acomp || S.example) return; setTimeout(() => { if(ACCT && !ui.sheet && !S.acomp && !document.getElementById('login')){ ui.sheet = {k:'acomp'}; renderSheet(true); } }, 1600); }
 function vAcomp(){
@@ -5499,7 +5548,7 @@ function render(){
 function renderSheet(freshOpen){
   if(!ui.sheet){ $sheet.innerHTML = ''; document.body.classList.remove('locked'); return; }
   const oldWrap = $sheet.querySelector('.sheet-wrap:not(.closing)'), old = oldWrap && oldWrap.querySelector('.sheet'), st = old && !freshOpen ? old.scrollTop : 0;
-  $sheet.innerHTML = ui.sheet.k==='site' ? vSite() : ui.sheet.k==='inst' ? vInst() : ui.sheet.k==='acomp' ? vAcomp() : ui.sheet.k==='doc' ? vDocSheet() : ui.sheet.k==='excluir' ? vExcluir() : ui.sheet.k==='meus' ? vMeus() : ui.sheet.k==='ia' ? vIA() : ui.sheet.k==='ex' ? vSheet(ui.sheet.id) : ui.sheet.k==='prof' ? vProfile() : ui.sheet.k==='cs' || ui.sheet.k==='cman' ? vCardioSheet() : ui.sheet.k==='gym' ? vGym() : ui.sheet.k==='exq' ? vExq(ui.sheet.id) : ui.sheet.k==='story' ? vStory() : ui.sheet.k==='stpick' ? vStPick() : ui.sheet.k==='cstory' ? vCStory() : ui.sheet.k==='cstpick' ? vCStPick() : vSummary(ui.sheet.i);
+  $sheet.innerHTML = ui.sheet.k==='aval' ? vAval() : ui.sheet.k==='site' ? vSite() : ui.sheet.k==='inst' ? vInst() : ui.sheet.k==='acomp' ? vAcomp() : ui.sheet.k==='doc' ? vDocSheet() : ui.sheet.k==='excluir' ? vExcluir() : ui.sheet.k==='meus' ? vMeus() : ui.sheet.k==='ia' ? vIA() : ui.sheet.k==='ex' ? vSheet(ui.sheet.id) : ui.sheet.k==='prof' ? vProfile() : ui.sheet.k==='cs' || ui.sheet.k==='cman' ? vCardioSheet() : ui.sheet.k==='gym' ? vGym() : ui.sheet.k==='exq' ? vExq(ui.sheet.id) : ui.sheet.k==='story' ? vStory() : ui.sheet.k==='stpick' ? vStPick() : ui.sheet.k==='cstory' ? vCStory() : ui.sheet.k==='cstpick' ? vCStPick() : vSummary(ui.sheet.i);
   const sh = $sheet.querySelector('.sheet');
   const nw = $sheet.querySelector('.sheet-wrap');
   if(old && nw && sh){ nw.classList.add('still'); sh.scrollTop = st; }
@@ -5757,6 +5806,11 @@ function onClick(ev){
   if(a==='doc-open'){ ui.sheet = {k:'doc', d:d.v}; renderSheet(true); return; }
   if(a==='doc-tab'){ ui.sheet.d = d.v; renderSheet(); return; }
   if(a==='acc-open'){ ui.sheet = {k:'excluir'}; renderSheet(true); return; }
+  if(a==='av-x'){ if(b.classList.contains('sheet-wrap') && ev.target!==b) return; avalFim(false); closeSheet(); return; }
+  if(a==='av-n'){ const s2 = ui.sheet; if(!s2 || s2.k!=='aval') return; const v = +d.v; s2.notas = s2.notas || {}; s2.notas[d.k] = v;
+    b.parentElement.querySelectorAll('button').forEach((x,i) => { x.classList.toggle('on', i < v); x.setAttribute('aria-checked', String(i+1===v)); });
+    const go = document.querySelector('#sheet [data-a="av-go"]'); if(go) go.disabled = false; return; }
+  if(a==='av-go'){ avalEnviar(b); return; }
   if(a==='site-x'){ if(b.classList.contains('sheet-wrap') && ev.target!==b) return; closeSheet(); return; }
   if(a==='inst-x' || a==='inst-ok'){ if(b.classList.contains('sheet-wrap') && ev.target!==b) return; if(S){ S.inst = 'visto'; save(); } closeSheet(); if(a==='inst-ok' && !(ANDROID && INST_EV)) toast('Boa! A partir de agora, abra pelo ícone.'); return; }
   if(a==='inst-go'){ const evI = INST_EV; if(!evI) return; INST_EV = null; evI.prompt(); evI.userChoice.then(r => { if(r && r.outcome==='accepted'){ if(S){ S.inst = 'feito'; save(); } closeSheet(); toast('Instalando. O ícone aparece na tela do celular.'); } else if(document.getElementById('login')) renderLogin(); else renderSheet(); }).catch(() => { if(document.getElementById('login')) renderLogin(); else renderSheet(); }); return; }

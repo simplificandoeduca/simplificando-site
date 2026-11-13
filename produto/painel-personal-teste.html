@@ -756,6 +756,9 @@ h3.sec{font-size:22px;margin:14px 2px -2px}
 .est-v{display:flex;flex-direction:column;align-items:flex-end;font-size:12px;color:var(--muted);flex:none}.est-v b{font-size:22px;font-weight:900;color:var(--fg);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
 .est-bar{height:8px;border-radius:9px;background:var(--ctl);overflow:hidden}.est-bar i{display:block;height:100%;border-radius:9px;background:var(--brand)}
 .est-who{display:flex;flex-direction:column;border-top:1px solid var(--sep)}.est-who>div{display:flex;flex-direction:column;gap:2px;padding:9px 0;border-bottom:1px solid var(--sep)}.est-who>div:last-child{border-bottom:0}
+.av-med{display:flex;flex-direction:column;gap:2px;margin:4px 0 10px}.av-mr{display:flex;align-items:center;gap:10px;padding:6px 0}.av-mr b{flex:1;display:flex;align-items:center;gap:10px;font-size:14.5px}.av-mr b i{width:12px;height:12px;border-radius:4px}.av-mr span{width:30px;text-align:right;font-weight:800;font-variant-numeric:tabular-nums}
+.av-es{display:inline-flex;gap:1px;font-size:18px;color:color-mix(in srgb,var(--fg) 18%,transparent)}.av-es i{font-style:normal}.av-es i.on{color:#FFB21E}
+.est-who .av-rec{color:var(--fg)!important;font-size:13.5px!important}
 .est-who b{font-size:14.5px}.est-who span{font-size:12.5px;color:var(--muted)}
 .est-sug{display:flex;flex-direction:column;gap:10px}
 .est-s{border-radius:16px;padding:14px;background:var(--ctl);display:flex;flex-direction:column;gap:6px}.est-s.lida{background:transparent;box-shadow:inset 0 0 0 1px var(--line2)}
@@ -2283,8 +2286,9 @@ function demoSeed(){
       D.prog[id] = { uid:u, em:now - (x.app.agora ? 2 : (k+1)*47)*60e3, d }; }
     (x.sto||[]).forEach((s2, j) => D.sto.push({ id:'st'+k+'-'+j, uid:u, nome:x.n, tipo:'personal', modelo:s2[0], cor:['vermelho','preto','lilas'][j%3], acao:s2[1], tema:/^c/.test(s2[0]) ? 'cardio' : 'treino', em:now - s2[2]*864e5 - 3600e3*(j+1) }));
     if(x.sug) D.sug.push({ id:'sg'+k, uid:u, nome:x.n, tipo:'personal', texto:x.sug, em:now - (k+2)*864e5 });
+    if(x.app){ D.av = D.av||[]; const nt = [[5,4,4,5,4],[4,3,3,4,5],[5,5,3,4,4],[5,4,5,5,5],[4,4,4,3,4]][k%5]; D.av.push({ id:'av'+k, uid:u, nome:x.n, tipo:'personal', notas:{ treino:nt[0], cardio:nt[1], agua:nt[2], facil:nt[3], visual:nt[4] }, texto:['Amei o cronômetro de descanso!','Queria mais opções de cardio em casa.','','O lembrete de água me salvou.','Podia ter tema escuro mais escuro.'][k%5], em:now - (k+1)*2*864e5 }); }
   });
-  DEMO.put(D); PG.by = null; PG.at = 0; ST.sug = null; ST.at = 0;
+  DEMO.put(D); PG.by = null; PG.at = 0; ST.sug = null; ST.av = null; ST.at = 0;
   if(!cfg().nomePersonal){ if(!C.config.geral) C.config.geral = clone(DEF_CFG); C.config.geral.nomePersonal = 'Personal Teste'; Store.save('config','geral',0); }
   toast(pessoas.length+' clientes de teste criados');
 }
@@ -2399,6 +2403,8 @@ async function loadEst(force){
   ST.loading = true; ST.err = '';
   try { const meus = new Set(Object.values(C.alunos).map(x => x.uid).filter(Boolean)), a = DEMO.list('sug').filter(x => meus.has(x.uid)), b = DEMO.list('sto').filter(x => meus.has(x.uid)); ST.sug = a; ST.sto = b; }
   catch(e){ ST.err = e && e.code==='permission-denied' ? 'regras' : 'rede'; }
+  // avaliações a cada 15 dias: separado, para as regras antigas não esconderem o resto da aba
+  try { const meus2 = new Set(Object.values(C.alunos).map(x => x.uid).filter(Boolean)); ST.av = DEMO.list('av').filter(x => meus2.has(x.uid)); ST.avErr = ''; } catch(e){ ST.av = []; ST.avErr = e && e.code==='permission-denied' ? 'regras' : 'rede'; }
   ST.at = Date.now(); ST.loading = false; if(ui.view==='estatisticas') render();
 }
 const tipoTxt = t => t==='autonomo' ? 'sem personal' : 'com personal';

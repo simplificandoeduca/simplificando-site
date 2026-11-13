@@ -94,6 +94,19 @@ service cloud.firestore {
       allow read, delete: if dono();
       allow update: if dono() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lida']);
     }
+    // avaliação do app a cada 15 dias (estrelas de 1 a 5 por área e um recado opcional):
+    // cada conta só cria a sua; só o dono do painel lê, marca como lida ou apaga
+    match /avaliacoes/{id} {
+      allow create: if logado() && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['uid', 'nome', 'tipo', 'notas', 'texto', 'em', 'ver'])
+        && request.resource.data.notas is map
+        && request.resource.data.notas.keys().hasOnly(['treino', 'cardio', 'agua', 'facil', 'visual'])
+        && request.resource.data.notas.size() > 0
+        && request.resource.data.texto is string && request.resource.data.texto.size() <= 1000
+        && request.resource.data.em is int;
+      allow read, delete: if dono();
+      allow update: if dono() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lida']);
+    }
     // qual modelo de story cada um postou (treino: cronômetro, cupom ou foto; cardio: boneco, bilhete, semana ou pulso), para a aba Estatísticas:
     // cada conta só cria o seu registro; só o dono do painel lê
     match /storiesUso/{id} {
