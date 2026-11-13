@@ -37,9 +37,9 @@ Na prévia (sem servidor) o mesmo botão existe e faz a mesma coisa na própria 
 
 | Papel | O que faz |
 |---|---|
-| **Gestor** | Tudo: regra das horas, serviços, pacotes, produtos, equipe, iDFace. Pode remover crianças; **cadastro com horas guardadas, só o Gestor remove, e confirmando** (seção 6r). |
+| **Gestor** | Tudo: regra das horas, serviços, pacotes, produtos, equipe, iDFace. Pode remover crianças; **cadastro com horas guardadas, só o Gestor remove, e confirmando** (seção 6r). **É quem desfaz e cancela o que já tem valor** (1.21, seção 6z). |
 | **Supervisor** | Tudo da loja (horas, cadastro, agenda) e *vê* os Ajustes, mas não os altera. **Confere as entradas canceladas**, cancela uma entrada mesmo fora do prazo e **corrige a hora de uma saída esquecida**. |
-| **Atendente** | Horas, cadastro de criança e agenda. Não vê Ajustes. Cancela uma entrada sem cobrar só dentro do prazo (9 min), escrevendo o motivo. |
+| **Operador** (até a 1.20 chamava-se Atendente) | O dia a dia da recepção: cadastro, entrada, venda, saída, devolução, receber e agenda. Não vê Ajustes, não muda preço nem cadastro, não dá desconto. Cancela uma entrada sem cobrar só dentro do prazo (9 min), escrevendo o motivo. **Não desfaz o que tem valor** (1.21, seção 6z): a venda registrada só sai pelo cancelamento do Gestor, com o motivo. |
 
 A gestora cadastra cada pessoa com nome, login e senha inicial. Cada um troca a própria senha no avatar (canto inferior esquerdo no computador, aba **Conta** no celular) → *Trocar a senha*. Para redefinir a senha de alguém, a gestora edita a pessoa e digita uma senha nova.
 
@@ -74,7 +74,7 @@ Enquanto a loja não usa o iDFace, a **leitura fica desligada** (Ajustes → iDF
 - **Todo cliente tem o botão Entrada** na busca da tela inicial e na ficha: quem tem horas usa as horas; quem não tem entra na recreação avulsa.
 - **Depois de cada entrada pela tela abre a pergunta da sapateira (1.16, seção 6a)**: um toque no número, ou **Sem sapateira**; em seguida sai o cupom da entrada.
 - Quem está no espaço tem o botão **Saída** na linha da lista e na ficha. O toque abre o **Pagamento da saída** (seção 6r): de quem é, quanto ficou e como a visita é paga: com as horas do cliente ou, na recreação avulsa, com o valor do tempo que ficou e a forma de pagamento. O segundo toque confirma. São dois toques de propósito: com 40 crianças na lista, um toque errado não tira a criança errada. A saída libera a sapateira e avisa onde está o sapato.
-- Qualquer pessoa da equipe (inclusive Atendente) marca entrada e saída; logo depois de cada uma aparece, por alguns segundos, o botão **Desfazer** (1.08: só o botão, sem texto; seção 6c). O Desfazer é para o toque errado e só vale nos instantes seguintes (o servidor aceita até 2 minutos); depois disso, tirar uma entrada é pelo **cancelamento com motivo** (seção 6e).
+- Qualquer pessoa da equipe (inclusive o Operador) marca entrada e saída; logo depois de cada uma aparece, por alguns segundos, o botão **Desfazer** (1.08: só o botão, sem texto; seção 6c). O Desfazer é para o toque errado e só vale nos instantes seguintes (o servidor aceita até 2 minutos); depois disso, tirar uma entrada é pelo **cancelamento com motivo** (seção 6e). **Desde a 1.21**, para quem não é o Gestor, o Desfazer só existe no que não tem valor, e a entrada que ele desfaz fica registrada (seção 6z).
 - Somem da tela as coisas que só fazem sentido com o aparelho: acesso autorizado/bloqueado, "falta o rosto" e os avisos de aparelho sem contato.
 
 Para passar a usar o aparelho: Ajustes → iDFace → **Ligar o iDFace**. Os botões Entrada e Saída somem (fica só a saída de correção para Gestor e Supervisor) e o rosto volta a mandar.
@@ -179,7 +179,7 @@ Cada aviso pode ser dispensado no X (vale para o dia, naquele aparelho). Sem avi
 **A faixa do pé da tela (1.08).** A faixa escura que aparecia embaixo a cada atividade saiu:
 
 - **O que deu certo não é mais anunciado**: entrada, saída, venda, pagamento recebido, cadastro salvo, regra salva, unidade trocada… A tela já mostra o resultado (a folha fecha, a lista muda).
-- **O que acontece sozinho também não**: o pacote que acaba, a entrada ou a saída dada em outro aparelho, a entrada cancelada por um atendente. A lista mostra, e o sininho guarda o pacote que acabou e o cancelamento a conferir (ele fica vermelho na hora, em todas as telas).
+- **O que acontece sozinho também não**: o pacote que acaba, a entrada ou a saída dada em outro aparelho, a entrada cancelada por um operador. A lista mostra, e o sininho guarda o pacote que acabou e o cancelamento a conferir (ele fica vermelho na hora, em todas as telas).
 - **Desfazer**: quando a ação tem como desfazer (entrada, saída, venda, recebimento, devolução, voucher, apagar um pacote ou um produto, a limpeza…), aparece no pé da tela **só o botão Desfazer**, sem texto, por 6 segundos. Parando o mouse nele, a dica diz o que será desfeito.
 - **O que pede atenção continua aparecendo, com o texto**: um erro; o que falta para continuar ("Como recebeu R$ 80? Toque na forma de pagamento", "Escreva o motivo…"); uma recusa ("Já existe uma unidade com esse nome", "Só o gestor muda a regra"); o alerta do 2º voucher do dia da mesma criança; a entrada cancelada, para quem cancelou (com o que devolver ao cliente); o resumo da importação; e a observação pedida no OBS.
 - **Copiar o CPF** mostra um ✓ no próprio botão, por um instante.
@@ -202,7 +202,7 @@ A escolha vale só para aquele aparelho (fica guardada no navegador).
 
 Para quando a criança entra e desiste logo (chorou, não quis ficar, o responsável mudou de ideia) ou a entrada foi lançada errada.
 
-- **Prazo**: até **9 minutos** depois da entrada (9 minutos cheios, contados do momento em que entrou), **o próprio atendente cancela**. O prazo corre à vista: na linha da criança, na lista do espaço, aparece o atalho com um **X e o tempo que falta** (8:42), e a ficha mostra até que horas dá. Quando o prazo acaba, o atalho some sozinho.
+- **Prazo**: até **9 minutos** depois da entrada (9 minutos cheios, contados do momento em que entrou), **o próprio operador cancela**. O prazo corre à vista: na linha da criança, na lista do espaço, aparece o atalho com um **X e o tempo que falta** (8:42), e a ficha mostra até que horas dá. Quando o prazo acaba, o atalho some sozinho.
 - **Motivo obrigatório**: a folha "Cancelar a entrada" só aceita com o motivo escrito (há atalhos: "A criança chorou", "O responsável desistiu"…). Sem motivo, não cancela.
 - **O que deixa de ser cobrado**: a folha lista as vendas desta visita (as de hoje, feitas depois da última saída). Já vem marcada a **Recreação desta entrada** (na recreação avulsa, 1.15, é o período que o sistema lançou: ele aparece travado, porque sai sempre junto com a entrada cancelada); carrinho e o que foi comprado mais cedo ficam desmarcados (continuam cobrados), e dá para marcar se também não forem cobrados. O que for marcado sai das vendas do dia e do saldo da criança; se o cliente já pagou, o valor é devolvido. Nenhum tempo é descontado e a sapateira fica livre.
 - **Fora do prazo, ninguém cancela** (1.00): quando o prazo acaba, a opção some da ficha para todos, inclusive Gestor e Supervisor, e o servidor recusa o cancelamento. O período é cobrado, qualquer que seja o motivo. **Na ficha (1.02)** o cancelamento é só o botão **Cancelar entrada · 6:57**, com o tempo que ainda falta; quando o prazo acaba o botão some, sem deixar aviso nenhum.
@@ -210,6 +210,7 @@ Para quando a criança entra e desiste logo (chorou, não quis ficar, o respons�
 - Se os avisos automáticos estão em "Entrada e saída", o responsável recebe no WhatsApp que a entrada foi cancelada e nada foi cobrado.
 - **Ajustes → Regra das horas → Cancelar a entrada sem cobrar** muda o prazo (5, 9, 10 ou 15 min) ou desliga o cancelamento (**Não cancela**).
 - Com o iDFace ligado, o rosto lido nos 10 minutos seguintes ao cancelamento não vira entrada de novo (é a criança saindo).
+- **Desde a 1.21 (a blindagem do operador, seção 6z):** quem não é o Gestor cancela a entrada, mas **não tira a cobrança do que já foi pago** (devolver dinheiro é do Gestor) **nem do que é coisa** (um produto, uma meia, um carrinho: saiu com o cliente): essas linhas vêm travadas na folha ("Continua cobrada: só o gestor tira esta cobrança"). O **tempo que ainda não foi pago** (a recreação avulsa da visita, o pacote ou a recreação "paga na saída") sai com a entrada, como sempre saiu: nada foi recebido, as horas saem do saldo e o cancelamento fica na lista, com o que deixou de ser cobrado. **O que continua cobrado e ainda não foi pago não some mais com a visita** (até a 1.20, a meia "paga na saída" saía da conta junto com a entrada cancelada, e nada mais a pedia): a folha avisa "Continua a receber: R$ 30 (MEIA)", a linha do dia diz "ficou a receber" e, cancelada a entrada, a tela **abre o recebimento**. Vale para todos os papéis. A lista que a supervisão confere passou a se chamar **Cancelamentos**: além da entrada cancelada, mostra a entrada desfeita na hora pelo operador, a saída do carrinho cancelada e a venda cancelada pelo gestor.
 
 ## 6f. Tela inicial: a lista
 
@@ -462,7 +463,7 @@ Depois de escolher o serviço (horas avulsas, pacote, carrinho, produto), o aten
 3. **Adicionar serviços**: no atendimento, volta para a escolha; na saída, soma o que o cliente leva no próprio pagamento da saída (seção 6r).
 4. **Pagamento**: quando há horas na conta, três linhas, **Horas disponíveis**, **Horas necessárias** (ou "Horas desta compra") e **Saldo após confirmação**; depois, as formas de pagamento e o botão que confirma.
 
-**Desconto, só para o gestor (1.04).** Como na tela anterior, o pagamento tem o campo **Desconto**; aqui, só o gestor vê. Atendente e supervisor não veem o campo, e o servidor recusa o desconto de quem não é gestor.
+**Desconto, só para o gestor (1.04).** Como na tela anterior, o pagamento tem o campo **Desconto**; aqui, só o gestor vê. Operador e supervisor não veem o campo, e o servidor recusa o desconto de quem não é gestor.
 
 - Fica fechado, embaixo das formas de pagamento: **Desconto · só o gestor**. Um toque abre: **Por valor · R$** ou **Por percentual · %**, o **valor** e o **motivo** (obrigatório).
 - O desconto vira uma linha verde na tabela dos itens ("Desconto (10%) · CLIENTE ANTIGO · − R$ 9,50"), e o total, o valor em cada forma de pagamento e o botão de baixo já mostram o valor com o desconto. Sem o motivo, ou com um valor maior que o total, a tela avisa e não registra.
@@ -721,7 +722,7 @@ Para trazer de uma vez quem já era cliente e as horas que cada criança ainda t
 A Play Space tem mais de uma unidade. O sistema já vem com **ANÁLIA FRANCO** e **MORUMBI**, e o Gestor cadastra as outras quando quiser.
 
 - **Qual é a unidade deste aparelho:** na tela inicial, ao lado do título "No espaço agora", fica o botão com o nome da unidade (ex.: **ANÁLIA FRANCO**). Cada aparelho guarda a sua (computador do balcão, tablet, celular). Um toque abre **Unidade deste aparelho**, com as unidades para escolher. Aparelho que ainda não tem unidade mostra **Qual unidade?** em amarelo, até alguém escolher (1.08: sem o aviso ao entrar; o botão já pede).
-- **Quem troca:** o Gestor e o Supervisor. O atendente só escolhe quando o aparelho ainda não tem unidade nenhuma (para a entrada não ficar sem unidade); depois disso, vê o nome e não troca.
+- **Quem troca:** o Gestor e o Supervisor. O operador só escolhe quando o aparelho ainda não tem unidade nenhuma (para a entrada não ficar sem unidade); depois disso, vê o nome e não troca.
 - **O cadastro:** **Ajustes → Unidades** (só o Gestor). **Nova unidade** pede só o nome (fica em maiúsculas; não pode repetir). Um toque numa unidade muda o nome ou remove. Mudou o nome, muda em tudo o que já foi registrado nela. Unidade removida sai das escolhas, mas o que foi registrado nela continua com o nome; o aviso tem Desfazer. Não dá para remover uma unidade com criança no espaço.
 - **O que fica marcado com a unidade:** a entrada da criança (e a visita, quando ela sai), cada venda, o que saiu da loja (carrinho, fusquinha) e cada linha de Hoje na recepção. O período que nasce sozinho (recreação avulsa, ou além do pacote) fica com a unidade da visita. A entrada pelo iDFace fica sem unidade (o aparelho da porta não diz em qual está).
 - **Na lista** da tela inicial, a coluna **Unidade** mostra onde cada criança está (seção 6f). **No cupom**, a unidade sai embaixo do nome da loja.
@@ -784,7 +785,7 @@ A equipe digitou um nome errado no cadastro e o cupom saiu com o nome errado: d�
 
 - Na ficha do cliente, **o nome do responsável** (o título), **o nome da criança** e **o telefone** têm um lápis pequeno ao lado: **um toque em cima abre "Corrigir o cadastro"**, já com o campo certo selecionado.
 - A folha tem só quatro campos: **nome do responsável, nome da criança, telefone e outro telefone**. O CPF (ou RNE) e a data de nascimento continuam com o Gestor, em Ajustes → Cadastros.
-- **Qualquer pessoa da equipe corrige** (atendente, supervisor ou gestor). **Nada é apagado, e não existe botão de excluir**: remover um cadastro continua sendo só do Gestor, e mesmo lá o cadastro fica guardado no banco.
+- **Qualquer pessoa da equipe corrige** (operador, supervisor ou gestor). **Nada é apagado, e não existe botão de excluir**: remover um cadastro continua sendo só do Gestor, e mesmo lá o cadastro fica guardado no banco.
 - **Vale para os irmãos, onde o dado estava igual:** o nome do responsável e os telefones são do cliente, então o que for corrigido muda também nas outras crianças dele (a folha avisa quais são). O nome da criança muda só nela. Duas proteções, para a correção nunca apagar o que a tela não mostrou:
   - **só o que mudou vai para os irmãos, e só no irmão em que estava igual.** Se o cadastro de um irmão tem outro telefone (o Gestor mudou só nele), esse telefone continua; a folha avisa: "O que está diferente no cadastro de PEDRO continua como está." Corrigir só o nome da criança não mexe em irmão nenhum;
   - **cadastro antigo sem CPF:** o que junta os irmãos é o telefone. Nesse caso a correção só acompanha quem tem também **o mesmo nome de responsável**: um telefone repetido em cadastros de pessoas diferentes não leva o nome de uma para a outra.
@@ -819,6 +820,45 @@ O extrato do cliente, no jeito do relatório do sistema anterior: o que ele comp
 **Abrir em planilha:** baixa um arquivo `relatorio-nome-do-responsavel-AAAA-MM-DD.csv`, que o Excel abre com dois cliques: o resumo em cima e uma linha por movimento (data, hora, movimento, detalhe, criança, unidade, valor, pagamento, horas e saldo, estes dois em número).
 
 No servidor: o relatório usa a ação `historico` com `tudo: 1`, que manda todas as vendas e visitas do cliente (até 5 mil de cada), a hora completa da entrada e a unidade de cada visita, a unidade de cada venda e as ocorrências (`ocorr`).
+
+## 6z. Blindagem do operador (1.21)
+
+Pedido do dono: um usuário do tipo operador, com acesso só ao que ele precisa, e que **não consiga desfazer a venda que ele mesmo gerou**. A preocupação é o desvio: vender, receber e apagar a venda.
+
+**O papel.** O "Atendente" passou a se chamar **Operador** (em Ajustes → Equipe; quem já era atendente virou operador sozinho, sem mexer em nada). Ele faz o dia a dia da recepção: cadastro, entrada, venda, saída, devolução, receber, agenda. Não entra em Ajustes, não muda preço, pacote, produto, equipe nem cadastro, não dá desconto, não corrige a hora de uma saída. No cupom, "Atendente FULANO" continua sendo quem atendeu.
+
+**Quem estorna.** "Estornar" é desfazer ou cancelar o que já tem valor: a venda registrada, o pagamento recebido, a saída e a devolução que receberam. De fábrica, **só o Gestor**. Em **Ajustes → Regra das horas → Quem desfaz ou cancela o que já tem valor** dá para escolher **Só o gestor**, **Gestor e supervisor** ou **Toda a equipe** (como era até a 1.20). Só o Gestor muda.
+
+**O que muda para quem não estorna (o operador e, de fábrica, o supervisor):**
+
+| O que ele fez | O botão Desfazer | Se precisar mesmo voltar atrás |
+|---|---|---|
+| Venda com valor (paga ou a receber) | **não aparece** | o Gestor cancela a venda no histórico do cliente, com o motivo |
+| Voucher (sem valor) | aparece, como antes | — |
+| Entrada | aparece, mas **fica registrada**: a entrada sai, a linha "Entrada registrada" continua no dia e nasce a linha "Entrada das 14:30 desfeita na hora … por JOÃO"; vai para a lista de conferência | depois de 2 min, "Cancelar entrada" com o motivo (no prazo de 9 min) |
+| Saída do fusquinha (acerta na devolução) | aparece, e também **fica registrada** | no prazo, "Cancelar a saída" na folha da devolução, com o motivo |
+| Saída que recebeu pagamento | **não aparece** | se a criança voltou, **Reabrir visita** (o que foi pago continua pago); senão, o Gestor |
+| Saída sem nada a receber (usou as horas) | aparece, como antes | — |
+| Devolução que recebeu (o fusquinha, o tempo a mais) | **não aparece** | o Gestor |
+| Devolução sem nada a receber (carrinho de bebê já pago) | aparece, como antes | — |
+| Recebimento ("Receber") | **não aparece** | o Gestor |
+
+Não é só a tela: **o servidor recusa** cada um desses pedidos de quem não estorna (resposta 403, "Só o gestor desfaz…"), mesmo que venham de uma tela antiga ou de fora da tela. E mais três fechaduras do lado do servidor:
+
+- **Venda a receber só com hora certa de receber.** Quem não estorna só deixa uma venda sem pagamento quando a criança está no espaço (ou entra agora: a saída recebe) ou quando tudo o que tem valor sai da loja (a devolução recebe). Senão: "Escolha a forma de pagamento. Sem a criança no espaço, só o gestor deixa uma venda a receber." Na tela, **"Paga na devolução" só aparece quando tudo o que tem valor sai da loja**, para todos os papéis: um pacote vendido junto com o carrinho não era recebido na devolução.
+- **A saída dele sempre fecha a conta.** Sem o total que a tela mostrou, vale como "nada a receber" e é conferido igual: se há o que receber, a saída não é dada.
+- **A ação antiga `vender`** (das primeiras versões, com minutos e valor livres; a tela não usa mais) ficou só para o Gestor. E o Desfazer de uma venda só apaga as linhas do dia daquela venda (da mesma criança, de agora há pouco): não serve para apagar outra linha.
+- **Cancelar a entrada** (no prazo, com o motivo) continua com o operador, mas ele não tira a cobrança do que já foi pago nem do que é coisa (produto, meia, carrinho); o tempo ainda não pago sai com a entrada. O que continua cobrado e não foi pago fica a receber, e a tela abre o recebimento (seção 6e).
+
+**Cancelar uma venda (quem estorna).** No **histórico do cliente** (o painel da direita), cada compra feita pela equipe nos últimos **7 dias** ganha o link **Cancelar esta venda**. A folha mostra a venda, **o que devolver ao cliente** (por forma: "Pix R$ 30"), se saem horas do saldo e se o produto volta para o estoque, e pede o **motivo** (há atalhos). Confirmado: a venda sai da conta com o pagamento dela, as horas saem do saldo, o produto volta para o estoque, a linha do dia fica marcada "cancelada" e nasce a linha "Venda das 14:05 cancelada: MEIA (R$ 30) · devolver ao cliente: Pix R$ 30 · Motivo: … · por CAMILA". O Gestor faz isso de qualquer aparelho, inclusive do celular, sem precisar estar na loja. Não cancela: a recreação que a visita somou sozinha (é acertada na saída), as horas que vieram do sistema anterior, venda com mais de 7 dias e pacote cujas horas já foram usadas ("sobram 1h de 2h"). Pacote cancelado com a criança no espaço: a visita passa a dever a recreação avulsa. Para o operador, na venda da última meia hora, o histórico diz "Lançou errado? Só o gestor cancela esta venda."
+
+**A lista de conferência (Cancelamentos).** Tudo o que foi cancelado ou desfeito sem cobrar fica numa lista só, com o motivo e o nome de quem fez, para Gestor e Supervisor conferirem e marcarem como visto (o sininho avisa na hora): a **entrada cancelada** no prazo, a **entrada desfeita na hora** por quem não estorna, a **saída do carrinho** cancelada ou desfeita e a **venda cancelada**. O operador não vê a lista.
+
+**O que a 1.21 consertou da 1.20.** Cancelar a saída do fusquinha (1.20) fechava a "visita" da criança como se a entrada tivesse sido cancelada: o que ela tinha ficado de pagar na saída (uma meia "paga na saída") saía da conta, e a saída não cobrava mais. Agora cada cancelamento tem o seu tipo, e **só o cancelamento da entrada fecha a visita**; a conta do que há para receber só fecha na saída.
+
+**O que o sistema não alcança.** Entrada que não é registrada, dinheiro recebido e lançado como Pix, voucher ou marca de PCD dados a quem pagou cheio: isso se pega com conferência (o fechamento por forma de pagamento contra o extrato do banco e da maquininha, a contagem dos vouchers de papel, a lista de Cancelamentos), não com trava de tela.
+
+No servidor: `regra.estorno` (`gestor`, `supervisor` ou `todos`); `podeEstornar()` decide em `desfazer_venda`, `desfazer_entrada`, `desfazer_saida`, `devolver` (voltar), `receber` (voltar), `cancelar_entrada` e `atender`; a ação nova `venda_cancelar` (`venda`, `motivo`); o banco passa para a versão **29**: `cancelamentos.tipo` ('' = a entrada, `desfeita`, `aluguel`, `venda`) e `visitas.pag_de` (a saída que recebeu pagamento). A atualização faz isso sozinha, e os cancelamentos de fusquinha da 1.20 ficam com o tipo certo.
 
 ## 7. Atualizar
 

@@ -10,7 +10,7 @@ date_default_timezone_set('America/Sao_Paulo');
 header('X-Content-Type-Options: nosniff');
 
 const PLAY_VERSAO = '0.30';
-const PAPEIS = ['gestor' => 'Gestor', 'supervisor' => 'Supervisor', 'atendente' => 'Atendente'];
+const PAPEIS = ['gestor' => 'Gestor', 'supervisor' => 'Supervisor', 'atendente' => 'Operador'];   // 1.21: o atendente passa a se chamar Operador (a chave no banco continua a mesma)
 // 0.89: o módulo do WhatsApp fica desligado (a loja não vai usar essa parte por agora). Nada foi apagado: com true aqui (e COM_WHATS = true na tela),
 // a aba, os botões e os avisos voltam. Desligado, nenhuma mensagem automática sai, mesmo que a regra antiga mandasse
 const MODULO_WHATS = false;
@@ -298,6 +298,14 @@ function db(): PDO {
     $pdo->exec('UPDATE criancas SET sapateira = NULL WHERE entrou IS NULL AND sapateira IS NOT NULL');
     $pdo->exec('PRAGMA user_version = 28');
   }
+  if ($v < 29) { // 1.21: o que foi cancelado. '' = a entrada (no prazo, com o motivo); 'desfeita' = a entrada desfeita na hora por quem não estorna;
+    // 'aluguel' = a saída do que acerta na devolução (1.20); 'venda' = uma venda, cancelada por quem estorna. Só o cancelamento da ENTRADA fecha
+    // a visita (as vendas feitas antes dele deixam de ser dela): os outros ficam na lista de conferência e não mexem nessa conta
+    try { $pdo->exec("ALTER TABLE cancelamentos ADD COLUMN tipo TEXT NOT NULL DEFAULT ''"); } catch (Throwable $e) { }
+    try { $pdo->exec("UPDATE cancelamentos SET tipo = 'aluguel' WHERE tipo = '' AND itens LIKE '%\"tipo\":\"aluguel\"%'"); } catch (Throwable $e) { }
+    try { $pdo->exec('ALTER TABLE visitas ADD COLUMN pag_de INTEGER'); } catch (Throwable $e) { }   // a saída que recebeu: o último pagamento que já existia antes dela (os dela vêm depois). Vazio = não recebeu nada
+    $pdo->exec('PRAGMA user_version = 29');
+  }
   return $pdo;
 }
 /* ---------- 1.06: unidades ---------- */
@@ -365,7 +373,8 @@ const PACOTES_DE_EXEMPLO = [['h' => 1, 'v' => 60], ['h' => 5, 'v' => 250], ['h' 
 // reabreMin: até quantos minutos depois da saída a equipe reabre a visita (a criança chorou e o responsável deixou ficar mais); 0 = não reabre
 // cupom 'sim': cada pagamento vira uma nota fiscal a emitir, que a equipe acompanha na tela (0.93). Fica guardado: desde a 0.94 a tela não tem mais o botão que liga
 // cupomLoja, cupomTel, cupomAviso (0.94): o nome e o telefone da loja e o aviso do pé do cupom impresso (o papel que o responsável assina na entrada)
-const REGRA_PADRAO = ['tolerancia' => 9, 'fecha' => 22, 'pcdDesc' => 50, 'aviso' => 10, 'autoMsg' => 'nao', 'bloqueioAuto' => 'sim', 'pacotes' => [], 'extras' => [], 'sapateiras' => 44, 'cancelaMin' => 9, 'reabreMin' => 30, 'tolCupom' => 5, 'cupom' => 'nao',
+// estorno (1.21): quem desfaz ou cancela o que já tem valor. 'gestor' (de fábrica), 'supervisor' (o gestor e o supervisor) ou 'todos' (como era até a 1.20)
+const REGRA_PADRAO = ['tolerancia' => 9, 'fecha' => 22, 'pcdDesc' => 50, 'aviso' => 10, 'autoMsg' => 'nao', 'bloqueioAuto' => 'sim', 'pacotes' => [], 'extras' => [], 'sapateiras' => 44, 'cancelaMin' => 9, 'reabreMin' => 30, 'tolCupom' => 5, 'cupom' => 'nao', 'estorno' => 'gestor',
   'cupomLoja' => 'PLAY SPACE', 'cupomTel' => '', 'cupomAviso' => 'ATENÇÃO: SOMENTE O RESPONSÁVEL QUE ASSINAR A ENTRADA DA CRIANÇA PODERÁ ASSINAR SUA SAÍDA.'];
 function regra(): array {
   if (isset($GLOBALS['_regra'])) return $GLOBALS['_regra'];   // lida uma vez por pedido (a conta do tempo consulta a regra muitas vezes)
@@ -429,6 +438,13 @@ function exigir(array $papeis = []): array {
   if ($papeis && !in_array($u['papel'], $papeis, true)) falha('Só ' . implode(' ou ', array_map(fn($p) => PAPEIS[$p] ?? $p, $papeis)) . ' faz isso.', 403);
   return $u;
 }
+/* ---------- 1.21: a blindagem do operador ---------- */
+// Quem estorna desfaz e cancela o que já tem valor: a venda registrada, o pagamento recebido, a saída e a devolução que receberam.
+// De fábrica é só o gestor (regra.estorno). Quem não estorna continua fazendo tudo da recepção (cadastro, entrada, venda, saída,
+// devolução, receber); o que ele errar e tiver valor é cancelado por quem estorna, com o motivo, e fica na lista de conferência.
+function podeEstornar(array $u): bool { $q = (string)(regra()['estorno'] ?? 'gestor'); $p = (string)($u['papel'] ?? ''); return $p === 'gestor' || $q === 'todos' || ($q === 'supervisor' && $p === 'supervisor'); }
+function quemEstorna(): string { return (string)(regra()['estorno'] ?? 'gestor') === 'supervisor' ? 'o gestor ou o supervisor' : 'o gestor'; }
+const MOTIVO_DESFEITA = 'DESFEITA NA HORA (TOQUE ERRADO)';   // o motivo da entrada desfeita pelo botão do aviso por quem não estorna
 
 /* ---------- registros (o painel "Hoje na recepção") e as mensagens ---------- */
 function registrar(string $tipo, ?int $criancaId, string $nome, string $texto, ?string $quando = null, $unidade = false): int {   // 1.06: $unidade = false usa a do aparelho que fez o pedido
@@ -596,7 +612,7 @@ function reabrirVisita(array $c, array $u): array {
   $v = ultimaVisita((int)$c['id']); if (!$v) falha($c['nome'] . ' ainda não tem visita para reabrir.');
   $fora = max(0, time() - strtotime((string)$v['saiu']));
   if ($fora > $lim * 60 + 10) falha('Já passou de ' . $lim . ' min da saída de ' . $c['nome'] . ' (saiu às ' . substr((string)$v['saiu'], 11, 5) . '). Agora é uma entrada nova.');   // 10 s de folga para o pedido que já estava a caminho
-  $q = $db->prepare('SELECT 1 FROM cancelamentos WHERE crianca_id = ? AND entrou >= ?'); $q->execute([$c['id'], $v['saiu']]);   // uma entrada feita depois dessa saída e cancelada
+  $q = $db->prepare("SELECT 1 FROM cancelamentos WHERE crianca_id = ? AND entrou >= ? AND tipo = ''"); $q->execute([$c['id'], $v['saiu']]);   // uma entrada feita depois dessa saída e cancelada
   if ($q->fetchColumn()) falha('Depois dessa saída houve uma entrada cancelada. Faça uma entrada nova.');
   // a sapateira que a criança tinha na saída volta para ela, se ainda estiver livre
   $q = $db->prepare("SELECT id, texto FROM registros WHERE crianca_id = ? AND tipo = 'sai' AND quando = ? ORDER BY id DESC LIMIT 1"); $q->execute([$c['id'], $v['saiu']]); $linha = $q->fetch() ?: null;
@@ -824,7 +840,7 @@ function faltaDaVenda(int $vendaId): float { // quanto falta receber de uma vend
 }
 // as vendas desta visita (as que a equipe registrou, não as cobranças por atraso) que ainda têm valor a receber: cada uma com 'falta'
 function pendentesDaVisita(array $c): array {
-  $o = []; foreach (vendasDaVisita($c) as $v) { if (!empty($v['auto']) || (float)$v['valor'] <= 0) continue; $f = faltaDaVenda((int)$v['id']); if ($f > 0.004) $o[] = $v + ['falta' => $f]; }
+  $o = []; foreach (vendasDaVisita($c, true) as $v) { if (!empty($v['auto']) || (float)$v['valor'] <= 0) continue; $f = faltaDaVenda((int)$v['id']); if ($f > 0.004) $o[] = $v + ['falta' => $f]; }
   return $o;
 }
 // [criança => [['n' => o que foi vendido, 'v' => quanto falta receber], ...]] das vendas de hoje (desde a última saída ou entrada cancelada
@@ -839,8 +855,8 @@ function pendItensDeTodos(): array {
   $falta = 'v.valor - COALESCE((SELECT SUM(p.valor) FROM pagamentos p WHERE p.venda_id = v.id), 0)';
   $q = $db->prepare("SELECT v.crianca_id c, v.servico, v.minutos, v.itens, $falta f FROM vendas v CROSS JOIN criancas k0 ON k0.id = v.crianca_id WHERE v.quando >= ? AND v.auto = 0 AND v.valor > 0 AND v.servico != ?
     AND v.quando >= CASE WHEN k0.entrou IS NOT NULL AND substr(k0.entrou, 1, 10) < substr(?, 1, 10) THEN substr(k0.entrou, 1, 10) || ' 00:00:00' ELSE ? END
-    AND v.quando >= COALESCE((SELECT MAX(x.saiu) FROM visitas x WHERE x.crianca_id = v.crianca_id), '') AND v.quando >= COALESCE((SELECT MAX(k.quando) FROM cancelamentos k WHERE k.crianca_id = v.crianca_id), '')
-    AND $falta > 0.004 ORDER BY v.id");
+    AND v.quando >= COALESCE((SELECT MAX(x.saiu) FROM visitas x WHERE x.crianca_id = v.crianca_id), '')
+    AND $falta > 0.004 ORDER BY v.id");   // 1.21: só a saída fecha a conta do que há para receber (a entrada cancelada, não)
   $q->execute([$piso, SERV_IMPORTADO, $hoje, $hoje]); $o = [];
   foreach ($q->fetchAll() as $l) $o[(int)$l['c']][] = ['n' => nomeDaVenda($l), 'v' => round((float)$l['f'], 2)];   // juntar por criança fica aqui: agrupar no SQL faria a consulta andar pelo índice da criança
   return $o;
@@ -1011,12 +1027,14 @@ function prazoCancelarAluguel(array $a): array { // [limite em minutos, segundos
   $lim = max(0, (int)regra()['cancelaMin']); $seg = max(0, time() - strtotime((string)$a['ini']));
   return [$lim, $seg, !empty($a['aberto']) && $lim > 0 && $seg <= $lim * 60 + 10];
 }
-function cancelarAluguel(array $c, string $servico, array $u, string $motivo): array {
+// $desfeita (1.21): desfeita na hora, pelo botão do aviso, por quem não estorna: sai sem olhar o prazo (o botão só existe nos instantes seguintes) e fica registrada
+function cancelarAluguel(array $c, string $servico, array $u, string $motivo, bool $desfeita = false): array {
   $db = db(); $g = alugueis((int)$c['id'], $servico); if (!$g) falha('Isso já foi marcado como devolvido.', 409);
   $a = $g[0]; if (empty($a['aberto'])) falha('Só o que é cobrado na devolução pode ser cancelado por aqui.');
-  [$lim, $seg, $noPrazo] = prazoCancelarAluguel($a);
+  [$lim, $seg, $noPrazo] = prazoCancelarAluguel($a); if ($desfeita) $noPrazo = true;
   if (!$noPrazo) falha($lim > 0 ? 'Já passou de ' . $lim . ' min da saída de ' . $a['n'] . ': não pode mais ser cancelado. O período é cobrado.' : 'A loja não cancela: o período é cobrado.', 403);
   if (mb_strlen($motivo) < 5) falha('Escreva o motivo do cancelamento: a supervisão vai conferir.');
+  if (!podeEstornar($u) && pagoPorForma(array_map('intval', $a['vendas']))) falha('Isso já recebeu pagamento: só ' . quemEstorna() . ' cancela.', 403);   // 1.21 (a saída em aberto não tem pagamento: é só por garantia)
   $agora = agora(); $min = intdiv($seg, 60); $itens = [['n' => (string)$a['n'], 'm' => 0, 'v' => 0.0, 'tipo' => 'aluguel']];
   $db->beginTransaction();
   try {
@@ -1025,10 +1043,10 @@ function cancelarAluguel(array $c, string $servico, array $u, string $motivo): a
       $db->prepare('DELETE FROM pagamentos WHERE venda_id = ? AND crianca_id = ?')->execute([$vid, (int)$c['id']]);   // (a saída em aberto não tem pagamento: é só para não sobrar nada)
       $db->prepare('DELETE FROM vendas WHERE id = ? AND crianca_id = ?')->execute([$vid, (int)$c['id']]);
       if ($rg) $db->prepare("UPDATE registros SET texto = texto || ' · cancelada' WHERE id = ? AND crianca_id = ? AND tipo = 'venda' AND texto NOT LIKE '% · cancelada'")->execute([$rg, (int)$c['id']]); }
-    $db->prepare('INSERT INTO cancelamentos (crianca_id, nome, resp, entrou, quando, minutos, valor, itens, motivo, por, por_nome, papel, fora) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, 0)')
+    $db->prepare("INSERT INTO cancelamentos (crianca_id, nome, resp, entrou, quando, minutos, valor, itens, motivo, por, por_nome, papel, fora, tipo) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, 0, 'aluguel')")
       ->execute([(int)$c['id'], $c['nome'], $c['resp'], (string)$a['ini'], $agora, $min, json_encode($itens, JSON_UNESCAPED_UNICODE), $motivo, (int)$u['id'], $u['nome'], $u['papel']]);
     $id = (int)$db->lastInsertId();
-    $reg = registrar('canc', (int)$c['id'], $c['nome'], 'Saída das ' . substr((string)$a['ini'], 11, 5) . ' de ' . $a['n'] . ' cancelada aos ' . ($min < 60 ? $min . ' min' : hm($min)) . ' · nada foi cobrado · Motivo: ' . $motivo . ' · por ' . primeiroNome($u['nome']), $agora);
+    $reg = registrar('canc', (int)$c['id'], $c['nome'], 'Saída das ' . substr((string)$a['ini'], 11, 5) . ' de ' . $a['n'] . ($desfeita ? ' desfeita na hora' : ' cancelada aos ' . ($min < 60 ? $min . ' min' : hm($min))) . ' · nada foi cobrado · Motivo: ' . $motivo . ' · por ' . primeiroNome($u['nome']), $agora);
     $db->commit();
   } catch (Throwable $e) { $db->rollBack(); throw $e; }
   return ['cancelamento' => $id, 'registro' => $reg, 'minutos' => $min, 'nome' => (string)$a['n']];
@@ -1084,7 +1102,7 @@ function tempoAvulsoDeTodos(): array {
   $falta = 'v.valor - COALESCE((SELECT SUM(p.valor) FROM pagamentos p WHERE p.venda_id = v.id), 0)';
   $q = $db->prepare("SELECT v.crianca_id c, v.servico, v.minutos, v.itens, v.auto, v.voucher, $falta f FROM vendas v CROSS JOIN criancas k0 ON k0.id = v.crianca_id WHERE v.quando >= ? AND v.minutos > 0 AND v.servico != ? AND k0.entrou IS NOT NULL
     AND v.quando >= CASE WHEN substr(k0.entrou, 1, 10) < substr(?, 1, 10) THEN substr(k0.entrou, 1, 10) || ' 00:00:00' ELSE ? END
-    AND v.quando >= COALESCE((SELECT MAX(x.saiu) FROM visitas x WHERE x.crianca_id = v.crianca_id), '') AND v.quando >= COALESCE((SELECT MAX(k.quando) FROM cancelamentos k WHERE k.crianca_id = v.crianca_id), '') ORDER BY v.id");
+    AND v.quando >= COALESCE((SELECT MAX(x.saiu) FROM visitas x WHERE x.crianca_id = v.crianca_id), '') AND v.quando >= COALESCE((SELECT MAX(k.quando) FROM cancelamentos k WHERE k.crianca_id = v.crianca_id AND k.tipo = ''), '') ORDER BY v.id");
   $q->execute([$piso, SERV_IMPORTADO, $hoje, $hoje]); $o = [];
   foreach ($q->fetchAll() as $l) { if (ehVendaDePacote($l) || (!empty($l['auto']) && (float)$l['f'] > 0.004)) continue; $o[(int)$l['c']] = ($o[(int)$l['c']] ?? 0) + (int)$l['minutos']; }
   return $o;
@@ -1212,19 +1230,34 @@ function prazoCancelar(array $c): array { // [limite em minutos, segundos desde 
   return [$lim, $seg, $lim > 0 && $c['entrou'] && $seg <= $lim * 60 + 10];   // 10 s de folga para o pedido que já estava a caminho quando o relógio da tela zerou
 }
 // as vendas que pagaram esta visita: as de hoje, feitas depois da última saída (ou do último cancelamento) da criança
-function vendasDaVisita(array $c): array {
+// $paraReceber (1.21): a conta do que há para receber só fecha na saída: a entrada cancelada não tira da conta o que continuou cobrado e não foi pago
+function vendasDaVisita(array $c, bool $paraReceber = false): array {
   $db = db(); $corte = date('Y-m-d') . ' 00:00:00';
   if (!empty($c['entrou']) && substr((string)$c['entrou'], 0, 10) < date('Y-m-d')) $corte = substr((string)$c['entrou'], 0, 10) . ' 00:00:00';   // 1.02: entrou ontem e ainda está no espaço (saída esquecida): a visita vale desde o dia da entrada
-  foreach (['SELECT MAX(saiu) FROM visitas WHERE crianca_id = ?', 'SELECT MAX(quando) FROM cancelamentos WHERE crianca_id = ?'] as $sql) { $q = $db->prepare($sql); $q->execute([$c['id']]); $s = (string)$q->fetchColumn(); if ($s > $corte) $corte = $s; }
+  foreach (array_merge(['SELECT MAX(saiu) FROM visitas WHERE crianca_id = ?'], $paraReceber ? [] : ["SELECT MAX(quando) FROM cancelamentos WHERE crianca_id = ? AND tipo = ''"]) as $sql) { $q = $db->prepare($sql); $q->execute([$c['id']]); $s = (string)$q->fetchColumn(); if ($s > $corte) $corte = $s; }
   $q = $db->prepare('SELECT * FROM vendas WHERE crianca_id = ? AND quando >= ? AND servico != ? ORDER BY id'); $q->execute([$c['id'], $corte, SERV_IMPORTADO]);   // 1.01: o pacote que veio na importação não é desta visita
   return $q->fetchAll();
 }
 // vendida junto com esta entrada (no mesmo atendimento, ou até 30 min antes dela): é a que a tela já traz marcada para não cobrar
 function vendaJuntoDaEntrada(array $v, array $c): bool { return (bool)$c['entrou'] && strtotime((string)$v['quando']) >= strtotime((string)$c['entrou']) - 1800; }
 // $vendaIds: as vendas que deixam de ser cobradas (só valem as desta visita); null = o tempo de brincar vendido junto com a entrada
-function cancelarEntrada(array $c, array $u, string $motivo, ?array $vendaIds): array {
-  $db = db(); [$lim, $seg, $noPrazo] = prazoCancelar($c); $agora = agora(); $minDentro = intdiv($seg, 60);
+// $desfeita (1.21): a entrada desfeita na hora, pelo botão do aviso, por quem não estorna. Fica registrada com o tipo 'desfeita' (não fecha a visita)
+function vendaPresa(array $v): bool { return (empty($v['auto']) && (float)$v['valor'] > 0.004) || (bool)pagoPorForma([(int)$v['id']]); }   // 1.21: a cobrança que só quem estorna tira: a venda com valor e o que já foi pago
+// no cancelamento da entrada (no prazo, com o motivo, registrado): o que já foi pago e o que é coisa (não tem tempo de brincar) continuam presos;
+// o tempo que ainda não foi pago (pacote ou recreação "paga na saída") sai com a entrada, como sempre saiu
+function vendaPresaNoCancelamento(array $v): bool { return (bool)pagoPorForma([(int)$v['id']]) || (empty($v['auto']) && (float)$v['valor'] > 0.004 && (int)$v['minutos'] <= 0); }
+function cancelarEntrada(array $c, array $u, string $motivo, ?array $vendaIds, bool $desfeita = false): array {
+  $db = db(); [$lim, $seg, $noPrazo] = prazoCancelar($c); if ($desfeita) $noPrazo = true; $agora = agora(); $minDentro = intdiv($seg, 60);
   $alvo = []; foreach (vendasDaVisita($c) as $v) if ($vendaIds === null ? ((int)$v['minutos'] > 0 && vendaJuntoDaEntrada($v, $c)) : in_array((int)$v['id'], $vendaIds, true)) $alvo[] = $v;
+  if (!podeEstornar($u)) { // 1.21: quem não estorna cancela a entrada, mas o que já foi pago e o que é coisa (produto, carrinho) continuam como estão
+    $presas = array_values(array_filter($alvo, 'vendaPresaNoCancelamento'));
+    if ($presas && $vendaIds !== null && !$desfeita) falha('Só ' . quemEstorna() . ' tira a cobrança de uma venda (' . implode(', ', array_map('nomeDaVenda', array_slice($presas, 0, 3))) . '). Cancele só a entrada, ou chame ' . quemEstorna() . '.', 403);
+    $alvo = array_values(array_filter($alvo, fn($v) => !vendaPresaNoCancelamento($v)));
+  }
+  // 1.21: o que continua cobrado e ainda não foi pago fica a receber (não sai da conta com a visita): a linha do dia diz, e a tela abre o recebimento.
+  // O que saiu da loja (o carrinho) não entra aqui: é recebido na devolução
+  $saem = array_flip(array_map(fn($v) => (int)$v['id'], $alvo)); $ficou = $desfeita ? [] : array_values(array_filter(pendentesDaVisita($c), fn($v) => !isset($saem[(int)$v['id']]) && !((string)($v['alug'] ?? '') !== '' && $v['voltou'] === null)));
+  $ficouValor = round(array_sum(array_map(fn($v) => (float)$v['falta'], $ficou)), 2);
   // 1.15: a recreação avulsa desta visita (o que o sistema lançou sozinho e ainda não foi pago) sai sempre junto com a entrada cancelada
   $ja = array_flip(array_map(fn($v) => (int)$v['id'], $alvo));
   $qa = $db->prepare('SELECT * FROM vendas WHERE crianca_id = ? AND auto = 1 AND quando >= ? AND NOT EXISTS (SELECT 1 FROM pagamentos p WHERE p.venda_id = vendas.id) ORDER BY id'); $qa->execute([$c['id'], (string)$c['entrou']]);
@@ -1241,24 +1274,65 @@ function cancelarEntrada(array $c, array $u, string $motivo, ?array $vendaIds): 
       $itens[] = ['n' => nomeDaVenda($v), 'm' => (int)$v['minutos'], 'v' => (float)$v['valor']]; $valor += (float)$v['valor']; $tempo += (int)$v['minutos'];
     }
     $db->prepare('UPDATE criancas SET entrou = NULL, sapateira = NULL WHERE id = ?')->execute([$c['id']]);   // sai sem debitar nada; a sapateira fica livre
-    $db->prepare('INSERT INTO cancelamentos (crianca_id, nome, resp, entrou, quando, minutos, valor, itens, motivo, por, por_nome, papel, fora) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-      ->execute([$c['id'], $c['nome'], $c['resp'], $c['entrou'], $agora, $minDentro, $valor, json_encode($itens, JSON_UNESCAPED_UNICODE), $motivo, (int)$u['id'], $u['nome'], $u['papel'], $noPrazo ? 0 : 1]);
+    $db->prepare('INSERT INTO cancelamentos (crianca_id, nome, resp, entrou, quando, minutos, valor, itens, motivo, por, por_nome, papel, fora, tipo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      ->execute([$c['id'], $c['nome'], $c['resp'], $c['entrou'], $agora, $minDentro, $valor, json_encode($itens, JSON_UNESCAPED_UNICODE), $motivo, (int)$u['id'], $u['nome'], $u['papel'], $noPrazo ? 0 : 1, $desfeita ? 'desfeita' : '']);
     $id = (int)$db->lastInsertId();
     $oque = $itens ? 'não cobrado: ' . implode(', ', array_map(fn($i) => $i['n'] . ' (' . dinheiro($i['v']) . ')', $itens)) : 'o tempo não foi descontado';
-    $reg = registrar('canc', (int)$c['id'], $c['nome'], 'Entrada das ' . substr((string)$c['entrou'], 11, 5) . ' cancelada aos ' . ($minDentro < 60 ? $minDentro . ' min' : hm((int)$minDentro)) . ' · ' . $oque . ($devolver ? ' · devolver ao cliente: ' . textoPagamento($devolver, true) : '') . ' · Motivo: ' . $motivo . ' · por ' . primeiroNome($u['nome']) . ($noPrazo ? '' : ' (fora do prazo' . ($lim > 0 ? ' de ' . $lim . ' min' : '') . ')'), $agora);
+    $reg = registrar('canc', (int)$c['id'], $c['nome'], 'Entrada das ' . substr((string)$c['entrou'], 11, 5) . ($desfeita ? ' desfeita na hora' : ' cancelada aos ' . ($minDentro < 60 ? $minDentro . ' min' : hm((int)$minDentro))) . ' · ' . $oque . ($devolver ? ' · devolver ao cliente: ' . textoPagamento($devolver, true) : '') . ($ficou ? ' · ficou a receber: ' . implode(', ', array_map(fn($v) => nomeDaVenda($v) . ' (' . dinheiro((float)$v['falta']) . ')', $ficou)) : '') . ' · Motivo: ' . $motivo . ' · por ' . primeiroNome($u['nome']) . ($noPrazo ? '' : ' (fora do prazo' . ($lim > 0 ? ' de ' . $lim . ' min' : '') . ')'), $agora);
     $db->commit();
   } catch (Throwable $e) { $db->rollBack(); throw $e; }
   $c = crianca((int)$c['id']);
   // desfez o tempo e o saldo voltou a zero: o acesso volta a ficar bloqueado, como em quem ainda não comprou
   if ($tempo > 0 && restante($c) < periodo() && regra()['bloqueioAuto'] === 'sim' && (!isset($c['liberado']) || (int)$c['liberado'])) bloquearAcesso($c, false);
   $msg = null;
-  if (regra()['autoMsg'] === 'ambos') $msg = mandarMensagem($c, 'A entrada de ' . nomeMsg($c['nome']) . ' na Play Space foi cancelada às ' . substr($agora, 11, 5) . ' e ' . ($valor > 0 ? 'nada foi cobrado' : 'o tempo não foi descontado') . '. Até a próxima! 🧸', true);
-  return ['cancelamento' => $id, 'registro' => $reg, 'valor' => $valor, 'minutos' => $minDentro, 'tempo' => $tempo, 'sapateira' => $sap ?: null, 'fora' => !$noPrazo, 'mensagem' => $msg, 'devolver' => $devolver ? textoPagamento($devolver, true) : ''];
+  if (regra()['autoMsg'] === 'ambos' && !$desfeita) $msg = mandarMensagem($c, 'A entrada de ' . nomeMsg($c['nome']) . ' na Play Space foi cancelada às ' . substr($agora, 11, 5) . ' e ' . ($valor > 0 ? 'nada foi cobrado' : 'o tempo não foi descontado') . '. Até a próxima! 🧸', true);
+  return ['cancelamento' => $id, 'registro' => $reg, 'valor' => $valor, 'minutos' => $minDentro, 'tempo' => $tempo, 'sapateira' => $sap ?: null, 'fora' => !$noPrazo, 'mensagem' => $msg, 'devolver' => $devolver ? textoPagamento($devolver, true) : '', 'ficou' => $ficouValor];
 }
 function cancelamentoPublico(array $x): array {
   $itens = json_decode((string)$x['itens'], true);
   return ['id' => (int)$x['id'], 'crianca' => (int)$x['crianca_id'], 'nome' => $x['nome'], 'resp' => $x['resp'], 'entrou' => $x['entrou'], 'quando' => $x['quando'], 'min' => (int)$x['minutos'], 'valor' => (float)$x['valor'],
-    'itens' => is_array($itens) ? $itens : [], 'motivo' => $x['motivo'], 'por' => $x['por_nome'], 'papel' => $x['papel'], 'fora' => (bool)$x['fora'], 'visto_por' => (string)$x['visto_por'], 'visto_em' => $x['visto_em']];
+    'itens' => is_array($itens) ? $itens : [], 'motivo' => $x['motivo'], 'por' => $x['por_nome'], 'papel' => $x['papel'], 'fora' => (bool)$x['fora'], 'visto_por' => (string)$x['visto_por'], 'visto_em' => $x['visto_em'], 'tipo' => (string)($x['tipo'] ?? '')];
+}
+/* ---------- 1.21: cancelar uma venda (só quem estorna), com o motivo ---------- */
+// Quem não estorna não desfaz a venda que registrou. Quando ela precisa mesmo sair (foi no nome errado, o cliente desistiu e a loja devolve
+// o dinheiro), quem estorna cancela pelo histórico do cliente: as horas dela saem do saldo, o produto volta para o estoque, o pagamento
+// dela sai (a linha do dia diz o que devolver ao cliente, por forma) e fica na lista de conferência, com o motivo e quem cancelou.
+// Vale para o que a equipe vendeu nos últimos dias; o que a visita somou sozinha (a recreação avulsa) é acertado na saída, não por aqui.
+const VENDA_CANCELA_DIAS = 7;
+function vendaCancelavel(array $v): bool { return empty($v['auto']) && (string)($v['servico'] ?? '') !== SERV_IMPORTADO && time() - strtotime((string)$v['quando']) <= VENDA_CANCELA_DIAS * 86400; }
+function cancelarVenda(int $vendaId, array $u, string $motivo): array {
+  $db = db(); $q = $db->prepare('SELECT * FROM vendas WHERE id = ?'); $q->execute([$vendaId]); $v = $q->fetch();
+  if (!$v) falha('Esta venda não existe mais: já foi desfeita ou cancelada.', 404);
+  $c = crianca((int)$v['crianca_id']); if (!$c) falha('Cliente não encontrado.', 404);
+  if (!empty($v['auto'])) falha('A recreação que a visita somou sozinha não é cancelada por aqui: ela é acertada na saída.');
+  if ((string)($v['servico'] ?? '') === SERV_IMPORTADO) falha('As horas que vieram do sistema anterior não são uma venda: não dá para cancelar por aqui.');
+  if (time() - strtotime((string)$v['quando']) > VENDA_CANCELA_DIAS * 86400) falha('Só dá para cancelar vendas dos últimos ' . VENDA_CANCELA_DIAS . ' dias.');
+  if (mb_strlen($motivo) < 5) falha('Escreva o motivo do cancelamento.');
+  $min = (int)$v['minutos']; $resta = restante($c);
+  if ($min > 0 && $resta < $min) falha('As horas desta venda já foram usadas' . ($resta > 0 ? ' em parte: sobram ' . hm($resta) . ' de ' . hm($min) : '') . '. Não dá para cancelar a venda inteira.');
+  $devolver = pagoPorForma([(int)$v['id']]); $agora = agora(); $nome = nomeDaVenda($v); $valor = round((float)$v['valor'], 2);
+  $ha = max(0, intdiv(time() - strtotime((string)$v['quando']), 60)); $outroDia = substr((string)$v['quando'], 0, 10) !== substr($agora, 0, 10);
+  $itens = [['n' => $nome, 'm' => $min, 'v' => $valor, 'tipo' => 'venda', 'dev' => $devolver ? textoPagamento($devolver, true) : '']];   // dev = o que a loja devolve ao cliente (o que ele já tinha pago), por forma
+  $db->beginTransaction();
+  try {
+    $d = $db->prepare('DELETE FROM vendas WHERE id = ?'); $d->execute([(int)$v['id']]);   // o pagamento dela sai junto (o gatilho da tabela)
+    if (!$d->rowCount()) { $db->rollBack(); falha('Esta venda não existe mais: já foi desfeita ou cancelada.', 404); }   // outro aparelho cancelou no mesmo instante
+    if ($min > 0) $db->prepare('UPDATE criancas SET pacote_min = MAX(0, pacote_min - ?) WHERE id = ?')->execute([$min, (int)$c['id']]);
+    devolverEstoque($v);   // era venda de produto: as unidades voltam para o estoque
+    if (!empty($v['registro'])) $db->prepare("UPDATE registros SET texto = texto || ' · cancelada' WHERE id = ? AND crianca_id = ? AND tipo = 'venda' AND texto NOT LIKE '% · cancelada'")->execute([(int)$v['registro'], (int)$c['id']]);
+    $db->prepare("INSERT INTO cancelamentos (crianca_id, nome, resp, entrou, quando, minutos, valor, itens, motivo, por, por_nome, papel, fora, tipo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'venda')")
+      ->execute([(int)$c['id'], $c['nome'], $c['resp'], (string)$v['quando'], $agora, $ha, $valor, json_encode($itens, JSON_UNESCAPED_UNICODE), $motivo, (int)$u['id'], $u['nome'], $u['papel']]);
+    $id = (int)$db->lastInsertId();
+    $reg = registrar('canc', (int)$c['id'], $c['nome'], 'Venda das ' . substr((string)$v['quando'], 11, 5) . ($outroDia ? ' de ' . date('d/m', strtotime((string)$v['quando'])) : '') . ' cancelada: ' . $nome . ' (' . dinheiro($valor) . ')'
+      . ($min > 0 ? ' · saem ' . hm($min) . ' do saldo' : '') . ($devolver ? ' · devolver ao cliente: ' . textoPagamento($devolver, true) : ($valor > 0.004 ? ' · não tinha sido paga' : '')) . ' · Motivo: ' . $motivo . ' · por ' . primeiroNome($u['nome']), $agora);
+    $db->commit();
+  } catch (Throwable $e) { if ($db->inTransaction()) $db->rollBack(); throw $e; }
+  $c = crianca((int)$c['id']);
+  if ($min > 0) { // as horas saíram do saldo: quem está no espaço passa a dever o tempo da visita (nasce a recreação avulsa); quem está fora volta a ficar sem acesso
+    if ($c['entrou']) acertarCobrancas($c);
+    elseif (restante($c) < periodo() && regra()['bloqueioAuto'] === 'sim' && (!isset($c['liberado']) || (int)$c['liberado'])) bloquearAcesso($c, false);
+  }
+  return ['cancelamento' => $id, 'registro' => $reg, 'valor' => $valor, 'minutos' => $min, 'nome' => $nome, 'devolver' => $devolver ? textoPagamento($devolver, true) : ''];
 }
 // guarda a mensagem na conversa e, se o WhatsApp estiver conectado, manda de verdade (texto e, se houver, a foto)
 function mandarMensagem(array $c, string $texto, bool $auto = false, string $foto = '', string $por = ''): array {
