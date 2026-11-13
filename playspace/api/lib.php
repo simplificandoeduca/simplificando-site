@@ -691,6 +691,7 @@ function fazerVenda(array $c, int $min, float $valor, ?int $por, string $itens =
   if ($servico !== '') $texto = $servico . ($min > 0 ? ' · ' . dur($min) : '') . ($itens !== '' ? ' · ' . $itens : '') . ' · ' . $dinheiro;
   else $texto = $min > 0 ? nomePacoteVenda($min, $itens) . ' vendido · ' . $dinheiro : $itens . ' · ' . $dinheiro;
   if (!$auto && trim((string)($mais['texto'] ?? '')) !== '') $texto = mb_substr(trim((string)$mais['texto']), 0, 300);   // 1.20: a linha do dia já vem escrita (a saída do fusquinha, que não tem valor na hora)
+  if (!$auto && !empty($mais['registro'])) { $db->prepare('UPDATE vendas SET registro = ? WHERE id = ?')->execute([(int)$mais['registro'], $venda]); return ['venda' => $venda, 'registro' => (int)$mais['registro']]; }   // 1.22: mais um do mesmo (o 2º fusquinha da mesma saída): a linha do dia é a do primeiro
   if ($auto && !empty($mais['quieto'])) return ['venda' => $venda, 'registro' => 0];   // 1.15: o período da recreação avulsa não vira linha do dia (a linha da saída diz o total)
   $reg = $auto ? registrar('cobr', (int)$c['id'], $c['nome'], $textoAuto !== '' ? $textoAuto : $texto, null, $uni) : registrar('venda', (int)$c['id'], $c['nome'], $texto, null, $uni);
   $db->prepare('UPDATE vendas SET registro = ? WHERE id = ?')->execute([$reg, $venda]);
@@ -948,6 +949,7 @@ function pulsoCupons(): string {
 const ITENS_ALUG_ABERTO = 'acerta na devolução';
 function servicoPorId(string $id): ?array { foreach ((array)regra()['servicos'] as $s) if (is_array($s) && (string)($s['id'] ?? '') === $id) return $s; return null; }
 // (em Ajustes, o serviço pode voltar a ser vendido por tempo comprado, como era até a 1.19: fica com a marca porTempo)
+const ALUG_MAX = 4;   // 1.22: quantos carrinhos (de bebê ou fusquinhas) saem de uma vez para a mesma criança
 function alugEmAberto(?array $sv): bool { return $sv !== null && !empty($sv['volta']) && empty($sv['banco']) && ($sv['modo'] ?? 'fixo') === 'periodo' && empty($sv['porTempo']); }
 function alugueis(?int $criancaId = null, ?string $servico = null): array {
   $sql = "SELECT v.id, v.crianca_id, v.alug, v.alug_min, v.qtd, v.servico, v.itens, v.quando, v.unidade_id, v.valor - COALESCE((SELECT SUM(p.valor) FROM pagamentos p WHERE p.venda_id = v.id), 0) AS falta FROM vendas v JOIN criancas c ON c.id = v.crianca_id AND c.ativo = 1 WHERE v.alug != '' AND v.voltou IS NULL";
@@ -962,7 +964,7 @@ function alugueis(?int $criancaId = null, ?string $servico = null): array {
   }
   // 1.20: em aberto é da própria saída, e não de como o serviço está agora em Ajustes (o gestor pode trocar "quando a conta fecha" com um fusquinha fora).
   // O valor e o tamanho do período saem do serviço na hora da devolução: ele precisa continuar cobrado a cada período
-  foreach ($g as $k => $x) { $sv = servicoPorId($x['s']); $g[$k]['aberto'] = !empty($x['ab']) && $x['min'] <= 0 && $sv !== null && ($sv['modo'] ?? 'fixo') === 'periodo'; unset($g[$k]['ab']); if ($g[$k]['aberto']) $g[$k]['q'] = 1; }
+  foreach ($g as $k => $x) { $sv = servicoPorId($x['s']); $g[$k]['aberto'] = !empty($x['ab']) && $x['min'] <= 0 && $sv !== null && ($sv['modo'] ?? 'fixo') === 'periodo'; unset($g[$k]['ab']); }   // (1.22: em aberto, q = quantos carrinhos desta saída ainda estão fora)
   return array_values($g);
 }
 // "Devolveu": o que estava fora volta para a loja e sai da lista. Fica anotado em Hoje na recepção, com quanto tempo ficou fora e quem marcou.
@@ -972,7 +974,7 @@ function alugueis(?int $criancaId = null, ?string $servico = null): array {
 // (o carrinho de bebê) não tem tempo a mais.
 // 1.20: em aberto (o fusquinha, que só "sai" e acerta na devolução), a conta é o tempo todo: o primeiro período conta sempre, e o seguinte
 // só depois da tolerância (com 30 min e tolerância de 9: até 39:00 é um período; passou disso, dois). Vem marcada com 'aberto' => true.
-function aluguelExtra(array $a): array {
+function aluguelExtra(array $a, ?int $quantos = null): array {   // $quantos (1.22): quantos carrinhos voltam agora (em aberto); sem dizer, todos os que estão fora
   $sv = servicoPorId((string)$a['s']);
   $ini = strtotime((string)$a['ini']); $f = (int)(regra()['fecha'] ?? 22); $teto = $ini + 43200;
   $fecha = strtotime(date('Y-m-d', $ini) . ($f >= 24 ? ' 23:59:59' : sprintf(' %02d:00:00', max(0, $f))));
@@ -981,17 +983,19 @@ function aluguelExtra(array $a): array {
   if (!$sv || ($sv['modo'] ?? 'fixo') !== 'periodo') return $r;
   $per = max(1, (int)($sv['min'] ?? 30)); $tol = max(0, (int)regra()['tolerancia']);
   if ((int)$a['min'] <= 0) { if (empty($a['aberto'])) return $r;
-    $n = max(1, (int)ceil(($ficou - $tol) / $per));
-    return ['n' => $n, 'min' => $n * $per, 'valor' => round($n * (float)$sv['v'], 2), 'per' => $per, 'un' => (float)$sv['v'], 'aberto' => true]; }
+    $n = max(1, (int)ceil(($ficou - $tol) / $per)); $de = max(1, (int)($a['q'] ?? 1)); $k = $quantos === null ? $de : max(1, min($de, $quantos));
+    return ['n' => $n, 'min' => $n * $per, 'valor' => round($n * (float)$sv['v'] * $k, 2), 'per' => $per, 'un' => (float)$sv['v'], 'aberto' => true, 'q' => $k, 'de' => $de]; }
   $n = max(0, max(1, (int)ceil(($ficou - $tol) / $per)) - (int)ceil((int)$a['min'] / $per));
   return ['n' => $n, 'min' => $n * $per, 'valor' => round($n * (float)$sv['v'], 2), 'per' => $per, 'un' => (float)$sv['v']];
 }
 // "Devolveu": o que estava fora volta para a loja e sai da lista. Fica anotado em Hoje na recepção, com quanto tempo ficou fora e quem marcou.
 // 1.00: se passou do tempo comprado, o período a mais é cobrado aqui e a devolução só fecha com a forma de pagamento.
-function devolverAluguel(array $c, string $servico, array $u, array $pg = []): array {
+function devolverAluguel(array $c, string $servico, array $u, array $pg = [], ?int $quantos = null): array {
   $db = db(); $g = alugueis((int)$c['id'], $servico); if (!$g) falha('Isso já foi marcado como devolvido.', 409);
-  $a = $g[0]; $agora = agora(); $marcas = implode(',', array_map('intval', $a['vendas'])); $x = aluguelExtra($a); $aberto = !empty($x['aberto']);   // 1.20: em aberto, a conta inteira nasce aqui
-  $pend = round((float)($a['pend'] ?? 0), 2); $total = round($x['valor'] + $pend, 2);   // 1.02: o que ficou a pagar do carrinho entra na conta da devolução
+  $a = $g[0]; $agora = agora(); $x = aluguelExtra($a, $quantos); $aberto = !empty($x['aberto']);   // 1.20: em aberto, a conta inteira nasce aqui
+  $vids = array_map('intval', $a['vendas']); $de = max(1, (int)$a['q']); if ($aberto) $vids = array_slice($vids, 0, (int)$x['q']);   // 1.22: voltaram só alguns dos que saíram: os primeiros da saída; os outros continuam fora
+  $volta = count($vids); $parte = $aberto && $volta < count($a['vendas']); $marcas = implode(',', $vids);
+  $pend = $parte ? 0.0 : round((float)($a['pend'] ?? 0), 2); $total = round($x['valor'] + $pend, 2);   // 1.02: o que ficou a pagar do carrinho entra na conta da devolução
   if ($total > 0) {
     if (!$pg) falha($aberto ? $a['n'] . ': falta receber ' . dinheiro($total) . ' (' . dur($x['min']) . '). Escolha a forma de pagamento.'
       : ($x['valor'] > 0 ? $a['n'] . ' passou do tempo comprado: falta receber ' . dinheiro($total) . ' (' . dur($x['min']) . ' a mais' . ($pend > 0 ? ', mais o que não foi pago' : '') . '). Escolha a forma de pagamento.'
@@ -1001,13 +1005,14 @@ function devolverAluguel(array $c, string $servico, array $u, array $pg = []): a
   $qv = $db->prepare("UPDATE vendas SET voltou = ? WHERE id IN ($marcas) AND voltou IS NULL"); $qv->execute([$agora]);
   if (!$qv->rowCount()) falha('Isso já foi marcado como devolvido.', 409);   // 1.20: outro aparelho devolveu no mesmo instante: este não recebe de novo
   $ficou = max(0, (int)floor((time() - strtotime((string)$a['ini'])) / 60)); $passou = $a['min'] > 0 ? max(0, $ficou - $a['min']) : 0;
-  $reg = registrar('dev', (int)$c['id'], $c['nome'], ($a['q'] > 1 ? $a['q'] . ' × ' : '') . $a['n'] . ' · devolvido · ficou ' . dur($ficou)
-    . ($aberto ? ' · ' . dur($x['min']) . ': ' . dinheiro($x['valor']) : ($a['min'] > 0 ? ' · tempo comprado: ' . dur($a['min']) . ($passou > 0 ? ' (passou ' . ($passou < 60 ? $passou . ' min' : dur($passou)) . ')' : '') : '')) . ' · por ' . primeiroNome($u['nome']), $agora);
-  $r = ['vendas' => $a['vendas'], 'registro' => $reg, 'ficou' => $ficou, 'passou' => $passou, 'voltou' => $agora, 'nome' => $a['n'], 'q' => $a['q'], 'extra' => 0, 'registros' => [], 'pago' => '', 'valor' => 0.0, 'pend' => $pend];
+  $reg = registrar('dev', (int)$c['id'], $c['nome'], ($parte ? $volta . ' de ' . $de . ' × ' : ($a['q'] > 1 ? $a['q'] . ' × ' : '')) . $a['n'] . ' · devolvido · ficou ' . dur($ficou)
+    . ($aberto ? ' · ' . ($volta > 1 ? $volta . ' × ' : '') . dur($x['min']) . ': ' . dinheiro($x['valor']) : ($a['min'] > 0 ? ' · tempo comprado: ' . dur($a['min']) . ($passou > 0 ? ' (passou ' . ($passou < 60 ? $passou . ' min' : dur($passou)) . ')' : '') : '')) . ' · por ' . primeiroNome($u['nome']), $agora);
+  $r = ['vendas' => $vids, 'registro' => $reg, 'ficou' => $ficou, 'passou' => $passou, 'voltou' => $agora, 'nome' => $a['n'], 'q' => $aberto ? $volta : $a['q'], 'ficam' => $parte ? $de - $volta : 0, 'extra' => 0, 'registros' => [], 'pago' => '', 'valor' => 0.0, 'pend' => $pend];
   if ($total > 0) {
-    $antesPg = (int)$db->query('SELECT COALESCE(MAX(id), 0) FROM pagamentos')->fetchColumn(); $ids = array_map('intval', $a['vendas']);
-    if ($aberto) { // 1.20: a venda que marcou a saída ganha o valor e o tempo cobrado (fica uma linha só no histórico do cliente); o Desfazer devolve o zero
-      if ($x['valor'] > 0) { $db->prepare('UPDATE vendas SET valor = ?, itens = ? WHERE id = ?')->execute([$x['valor'], dur($x['min']), $ids[0]]); $r['aberto'] = ['venda' => $ids[0], 'min' => $x['min'], 'valor' => $x['valor']]; $r['minutos'] = $x['min']; }
+    $antesPg = (int)$db->query('SELECT COALESCE(MAX(id), 0) FROM pagamentos')->fetchColumn(); $ids = $vids;
+    if ($aberto) { // 1.20: a venda que marcou a saída ganha o valor e o tempo cobrado (fica uma linha só no histórico do cliente); o Desfazer devolve o zero. 1.22: cada carrinho que voltou, a sua
+      if ($x['valor'] > 0) { $cada = round($x['n'] * $x['un'], 2); foreach ($ids as $vid) $db->prepare('UPDATE vendas SET valor = ?, itens = ? WHERE id = ?')->execute([$cada, dur($x['min']), $vid]);
+        $r['aberto'] = ['venda' => $ids[0], 'vendas' => $ids, 'min' => $x['min'], 'valor' => $x['valor']]; $r['minutos'] = $x['min']; }
     } elseif ($x['valor'] > 0) { // o tempo a mais vira uma venda (que já nasce devolvida, para não voltar para a lista) e o pagamento fica anotado nela
       $v = fazerVenda($c, 0, $x['valor'], (int)$u['id'], 'tempo a mais · ' . dur($x['min']), (string)$a['n']);
       $db->prepare("UPDATE vendas SET alug = '', alug_min = 0, voltou = ? WHERE id = ?")->execute([$agora, $v['venda']]);
@@ -1035,7 +1040,7 @@ function cancelarAluguel(array $c, string $servico, array $u, string $motivo, bo
   if (!$noPrazo) falha($lim > 0 ? 'Já passou de ' . $lim . ' min da saída de ' . $a['n'] . ': não pode mais ser cancelado. O período é cobrado.' : 'A loja não cancela: o período é cobrado.', 403);
   if (mb_strlen($motivo) < 5) falha('Escreva o motivo do cancelamento: a supervisão vai conferir.');
   if (!podeEstornar($u) && pagoPorForma(array_map('intval', $a['vendas']))) falha('Isso já recebeu pagamento: só ' . quemEstorna() . ' cancela.', 403);   // 1.21 (a saída em aberto não tem pagamento: é só por garantia)
-  $agora = agora(); $min = intdiv($seg, 60); $itens = [['n' => (string)$a['n'], 'm' => 0, 'v' => 0.0, 'tipo' => 'aluguel']];
+  $agora = agora(); $min = intdiv($seg, 60); $nq = ((int)$a['q'] > 1 ? (int)$a['q'] . ' × ' : '') . (string)$a['n']; $itens = [['n' => $nq, 'm' => 0, 'v' => 0.0, 'tipo' => 'aluguel']];   // 1.22: "2 × CARRINHO FUSQUINHA"
   $db->beginTransaction();
   try {
     $qr = $db->prepare('SELECT registro FROM vendas WHERE id = ? AND crianca_id = ?');
@@ -1046,10 +1051,10 @@ function cancelarAluguel(array $c, string $servico, array $u, string $motivo, bo
     $db->prepare("INSERT INTO cancelamentos (crianca_id, nome, resp, entrou, quando, minutos, valor, itens, motivo, por, por_nome, papel, fora, tipo) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, 0, 'aluguel')")
       ->execute([(int)$c['id'], $c['nome'], $c['resp'], (string)$a['ini'], $agora, $min, json_encode($itens, JSON_UNESCAPED_UNICODE), $motivo, (int)$u['id'], $u['nome'], $u['papel']]);
     $id = (int)$db->lastInsertId();
-    $reg = registrar('canc', (int)$c['id'], $c['nome'], 'Saída das ' . substr((string)$a['ini'], 11, 5) . ' de ' . $a['n'] . ($desfeita ? ' desfeita na hora' : ' cancelada aos ' . ($min < 60 ? $min . ' min' : hm($min))) . ' · nada foi cobrado · Motivo: ' . $motivo . ' · por ' . primeiroNome($u['nome']), $agora);
+    $reg = registrar('canc', (int)$c['id'], $c['nome'], 'Saída das ' . substr((string)$a['ini'], 11, 5) . ' de ' . $nq . ($desfeita ? ' desfeita na hora' : ' cancelada aos ' . ($min < 60 ? $min . ' min' : hm($min))) . ' · nada foi cobrado · Motivo: ' . $motivo . ' · por ' . primeiroNome($u['nome']), $agora);
     $db->commit();
   } catch (Throwable $e) { $db->rollBack(); throw $e; }
-  return ['cancelamento' => $id, 'registro' => $reg, 'minutos' => $min, 'nome' => (string)$a['n']];
+  return ['cancelamento' => $id, 'registro' => $reg, 'minutos' => $min, 'nome' => $nq];
 }
 
 /* ---------- de onde sai o tempo de quem está no espaço: pacote de horas ou recreação avulsa ---------- */

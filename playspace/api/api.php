@@ -452,10 +452,12 @@ switch ($acao) {
     $linhas = [];
     foreach ((array)($in['linhas'] ?? []) as $l) {
       $s = $porId[(string)($l['s'] ?? '')] ?? null; $q = min(48, (int)($l['q'] ?? 0)); if (!$s || $q < 1) continue;
+      if (!empty($s['volta']) && ($s['modo'] ?? 'fixo') !== 'periodo') $q = min(ALUG_MAX, $q);   // 1.22: o que sai da loja com valor único (o carrinho de bebê): até 4 de uma vez
       if (alugEmAberto($s)) { // 1.20: o que sai da loja e é cobrado por período (o fusquinha) só "sai": não há tempo a escolher nem valor agora; a conta fecha na devolução
         if ($ja = alugueis((int)$c['id'], (string)$s['id'])) falha($s['n'] . ' de ' . $c['nome'] . ' já está fora da loja desde as ' . substr((string)$ja[0]['ini'], 11, 5) . '. Marque a devolução antes de registrar outra saída.');
-        $per = max(1, (int)($s['min'] ?? 30));
-        $linhas[] = ['servico' => (string)$s['n'], 'min' => 0, 'valor' => 0.0, 'itens' => ITENS_ALUG_ABERTO, 'mais' => ['alug' => (string)$s['id'], 'alug_min' => 0, 'qtd' => 1, 'texto' => $s['n'] . ' · saiu da loja · ' . dinheiro((float)$s['v']) . ' a cada ' . $per . ' min, ' . ITENS_ALUG_ABERTO]];
+        $per = max(1, (int)($s['min'] ?? 30)); $qa = max(1, min(ALUG_MAX, $q));   // 1.22: saem até 4 de uma vez. Cada um é uma linha (um pode voltar antes do outro); a linha do dia é uma só
+        for ($i = 0; $i < $qa; $i++) $linhas[] = ['servico' => (string)$s['n'], 'min' => 0, 'valor' => 0.0, 'itens' => ITENS_ALUG_ABERTO, 'mais' => ['alug' => (string)$s['id'], 'alug_min' => 0, 'qtd' => 1]
+          + ($i === 0 ? ['texto' => ($qa > 1 ? $qa . ' × ' : '') . $s['n'] . ' · ' . ($qa > 1 ? 'saíram' : 'saiu') . ' da loja · ' . dinheiro((float)$s['v']) . ' a cada ' . $per . ' min' . ($qa > 1 ? ', cada um' : '') . ', ' . ITENS_ALUG_ABERTO] : ['mesmaLinha' => true])];
         continue; }
       if (($s['modo'] ?? 'fixo') === 'periodo' && empty($s['banco']) && !empty($s['volta']) && ($ja = alugueis((int)$c['id'], (string)$s['id'])) && !empty($ja[0]['aberto'])) falha($s['n'] . ' de ' . $c['nome'] . ' já está fora da loja desde as ' . substr((string)$ja[0]['ini'], 11, 5) . ', com a conta para fechar na devolução. Marque a devolução antes de vender mais tempo.');
       if (($s['modo'] ?? 'fixo') === 'periodo') { $tot = $q * max(1, (int)($s['min'] ?? 30)); $tempo = !empty($s['banco']); $un = $tempo ? precoPcd($c, (float)$s['v']) : (float)$s['v']; $comPcd = $un < (float)$s['v'];   // a criança PCD paga a recreação avulsa com desconto (carrinhos e pacotes, não)
@@ -508,7 +510,8 @@ switch ($acao) {
       if (!$naSaida && !$soVolta) falha('Escolha a forma de pagamento. Sem a criança no espaço, só ' . quemEstorna() . ' deixa uma venda a receber.', 403);
     }
     $vendas = []; $regs = []; $total = 0; $min = 0;
-    foreach ($linhas as $l) { $x = fazerVenda($c, $l['min'], $l['valor'], (int)$u['id'], $l['itens'], $l['servico'], false, '', $l['mais'] ?? []); $vendas[] = $x['venda']; $regs[] = $x['registro']; $total += $l['valor']; $min += $l['min']; $c = crianca((int)$c['id']); }
+    foreach ($linhas as $l) { $mais = $l['mais'] ?? []; if (!empty($mais['mesmaLinha']) && $regs) $mais['registro'] = (int)end($regs);   // 1.22: o 2º fusquinha da mesma saída fica na linha do dia do primeiro
+      $x = fazerVenda($c, $l['min'], $l['valor'], (int)$u['id'], $l['itens'], $l['servico'], false, '', $mais); $vendas[] = $x['venda']; $regs[] = $x['registro']; $total += $l['valor']; $min += $l['min']; $c = crianca((int)$c['id']); }
     $ad = [];   // 1.04: o desconto sai das vendas desta venda, em proporção ao valor de cada uma
     if ($desc && $cheio > 0) { $faltas = []; foreach ($linhas as $i => $l) $faltas[$vendas[$i]] = (float)$l['valor']; $ad = aplicarDesconto($desc, $faltas, $c, $u); if ($ad) { $regs[] = $ad['registro']; $total = round($total - $ad['valor'], 2); } }
     $vinfo = null;   // o voucher entra por último: com cobrança por atraso a receber, ele cobre essa cobrança em vez de somar tempo
@@ -584,15 +587,16 @@ switch ($acao) {
       if ($extra) { $q = $db->prepare("SELECT id, registro FROM vendas WHERE id = ? AND crianca_id = ? AND itens LIKE 'tempo a mais%' AND quando >= ?"); $q->execute([$extra, (int)$c['id'], date('Y-m-d H:i:s', time() - 660)]);
         if ($v = $q->fetch()) { $db->prepare('DELETE FROM vendas WHERE id = ?')->execute([(int)$v['id']]); $tirou = true; } }
       if (isset($in['pag_de'])) { $db->prepare('DELETE FROM pagamentos WHERE crianca_id = ? AND id > ? AND quando >= ?')->execute([(int)$c['id'], (int)$in['pag_de'], date('Y-m-d H:i:s', time() - 660)]); $tirou = true; }   // 1.02: e o que foi recebido do próprio carrinho
-      $ab = is_array($in['aberto'] ?? null) ? (int)($in['aberto']['venda'] ?? 0) : 0;   // 1.20: a saída em aberto volta a ficar sem valor (a conta fecha de novo na próxima devolução)
-      if ($ab && in_array($ab, $ids, true)) { $q = $db->prepare("SELECT alug FROM vendas WHERE id = ? AND crianca_id = ? AND alug != '' AND alug_min = 0 AND voltou IS NULL"); $q->execute([$ab, (int)$c['id']]); $al = $q->fetchColumn();
+      // 1.20: a saída em aberto volta a ficar sem valor (a conta fecha de novo na próxima devolução). 1.22: cada carrinho que tinha voltado
+      $abs = is_array($in['aberto'] ?? null) ? array_values(array_unique(array_filter(array_map('intval', array_merge((array)($in['aberto']['vendas'] ?? []), [(int)($in['aberto']['venda'] ?? 0)]))))) : [];
+      foreach ($abs as $ab) if (in_array($ab, $ids, true)) { $q = $db->prepare("SELECT alug FROM vendas WHERE id = ? AND crianca_id = ? AND alug != '' AND alug_min = 0 AND voltou IS NULL"); $q->execute([$ab, (int)$c['id']]); $al = $q->fetchColumn();
         $svA = $al !== false ? servicoPorId((string)$al) : null;
         if ($svA !== null && ($svA['modo'] ?? 'fixo') === 'periodo' && empty($svA['banco'])) { $db->prepare('UPDATE vendas SET valor = 0, itens = ? WHERE id = ?')->execute([ITENS_ALUG_ABERTO, $ab]); $tirou = true; } }
       if ($tirou) foreach (array_filter(array_map('intval', (array)($in['registros'] ?? []))) as $rid) $db->prepare("DELETE FROM registros WHERE id = ? AND crianca_id = ? AND tipo IN ('venda', 'pag')")->execute([$rid, (int)$c['id']]);
       responder();
     }
     if (!empty($in['cancelar'])) responder(cancelarAluguel($c, (string)($in['s'] ?? ''), $u, mb_substr(maiusculo((string)($in['motivo'] ?? '')), 0, 300)));   // 1.20: saiu por engano, ou o cliente desistiu: sem cobrar, no prazo, com o motivo
-    responder(devolverAluguel($c, (string)($in['s'] ?? ''), $u, lerPagamento($in['pagamento'] ?? null)));
+    responder(devolverAluguel($c, (string)($in['s'] ?? ''), $u, lerPagamento($in['pagamento'] ?? null), isset($in['quantos']) ? (int)$in['quantos'] : null));   // 1.22: quantos voltaram agora (dos que saíram juntos)
   }
   case 'receber_previa': { // 1.02: o que há para receber desta criança agora: o que ficou a pagar e as cobranças por atraso
     exigir(); $c = crianca((int)($in['id'] ?? 0)); if (!$c || !$c['ativo']) falha('Criança não encontrada.', 404);
