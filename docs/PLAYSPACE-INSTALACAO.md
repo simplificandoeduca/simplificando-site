@@ -961,7 +961,7 @@ Vale para todos os comprovantes (entrada, saída, conta do responsável, venda e
 - os números: **no espaço agora** (e quantos passaram do tempo), **entradas de hoje** (e quantos já saíram), **carrinhos fora da loja**, **faturado hoje** (e quantas vendas), **caixa do dia** (o recebido) e **descontos** (com os cancelamentos do dia);
 - **Entradas por hora**: um gráfico de colunas, com a hora de agora marcada e o pico do dia; passando o mouse (ou tocando) numa coluna aparece o número; "Ver em tabela" mostra os mesmos números;
 - **Caixa do dia**: o recebido por forma de pagamento (Pix, dinheiro, crédito, débito), em barras;
-- **Faturado por serviço**: o que foi vendido hoje, em barras: a recreação e cada carrinho pelo nome; os **pacotes de horas**, os **produtos** da loja e as **festas**, cada um num grupo só;
+- **Faturado por serviço**: o que foi vendido hoje, em barras: a recreação e cada carrinho pelo nome; os **pacotes de horas**, os **produtos** da loja e as **festas**, cada um num grupo só (o pacote é a venda de horas sem nome de serviço ou com o nome começando por PACOTE; cada venda fica com o nome que o serviço tinha na hora dela);
 - **Últimas entradas e saídas** (o toque abre o histórico do cliente) e **Últimos cancelamentos** (quem cancelou, o quê e o motivo; o toque abre a lista de conferência);
 - no alto, **Para aprovar**, com os pedidos ali mesmo (no computador) e o atalho **Abrir Aprovações**.
 

@@ -1072,11 +1072,11 @@ function painelDoDia(): array {
   $q = $db->prepare("SELECT COALESCE(unidade_id, 0) u, COUNT(*) n, COALESCE(SUM(valor), 0) v FROM cancelamentos WHERE quando >= ? AND tipo != 'desfeita' GROUP BY u"); $q->execute([$hoje]);
   foreach ($q->fetchAll() as $l) { $u = (int)$l['u']; $um($u); $o[$u]['cancelados'] = (int)$l['n']; $o[$u]['cancelado'] = round((float)$l['v'], 2); }
   // 1.27: o faturado de hoje por serviço (o gráfico do painel). Os produtos da loja num grupo, as festas em outro, o serviço pelo nome (a
-  // recreação, cada carrinho) e os pacotes de horas num grupo só. Só o que tem valor; anda pelo índice da hora da venda, como as contas de cima
-  $nomes = array_map(fn($s) => mb_strtoupper(trim((string)($s['n'] ?? ''))), array_values(array_filter((array)(regra()['servicos'] ?? []), 'is_array')));
-  $q = $db->prepare("SELECT COALESCE(unidade_id, 0) u, servico s, (COALESCE(produto_id, 0) > 0) p, (alug != '') a, (minutos > 0) m, COUNT(*) n, COALESCE(SUM(valor), 0) v FROM vendas WHERE quando >= ? AND servico != ? AND valor > 0 GROUP BY u, s, p, a, m"); $q->execute([$hoje, SERV_IMPORTADO]);
+  // recreação, cada carrinho) e os pacotes de horas num grupo só. Só o que tem valor; anda pelo índice da hora da venda, como as contas de cima.
+  // O grupo sai da própria venda: trocar o nome de um serviço em Ajustes no meio do dia não muda onde as vendas já feitas aparecem
+  $q = $db->prepare("SELECT COALESCE(unidade_id, 0) u, servico s, (COALESCE(produto_id, 0) > 0) p, (alug != '') a, (minutos > 0 AND auto = 0 AND voucher = '') m, COUNT(*) n, COALESCE(SUM(valor), 0) v FROM vendas WHERE quando >= ? AND servico != ? AND valor > 0 GROUP BY u, s, p, a, m"); $q->execute([$hoje, SERV_IMPORTADO]);
   $sv = []; foreach ($q->fetchAll() as $l) { $u = (int)$l['u']; $n = mb_strtoupper(trim((string)$l['s']));
-    $g = $l['p'] ? 'PRODUTOS' : (mb_strpos($n, 'FESTA') !== false ? 'FESTA' : ($l['a'] || in_array($n, $nomes, true) ? $n : ($l['m'] ? 'PACOTES DE HORAS' : ($n !== '' ? $n : 'OUTROS'))));
+    $g = $l['p'] ? 'PRODUTOS' : (mb_strpos($n, 'FESTA') !== false ? 'FESTA' : (!$l['a'] && $l['m'] && ($n === '' || preg_match('/^PACOTE\b/u', $n)) ? 'PACOTES DE HORAS' : ($n !== '' ? $n : 'OUTROS')));   // (o pacote é a venda de horas sem nome de serviço ou com o nome começando por PACOTE; o resto fica com o nome que tinha na hora da venda)
     if (!isset($sv[$u][$g])) $sv[$u][$g] = ['n' => $g, 'q' => 0, 'v' => 0.0]; $sv[$u][$g]['q'] += (int)$l['n']; $sv[$u][$g]['v'] = round($sv[$u][$g]['v'] + (float)$l['v'], 2); }
   foreach ($sv as $u => $L) { $um($u); $L = array_values($L); usort($L, fn($a, $b) => [$b['v'], $b['q'], $a['n']] <=> [$a['v'], $a['q'], $b['n']]); $o[$u]['servicos'] = $L; }
   ksort($o); return ['desde' => $hoje, 'unidades' => array_values($o)];
