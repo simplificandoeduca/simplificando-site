@@ -559,6 +559,16 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeri
 .evc-r{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--sep)}.evc-day .evc-r:last-child{border-bottom:0}.evc-l{flex:1;font-weight:700;font-size:16px}.evc-r b{font-size:16px;font-variant-numeric:tabular-nums}.ev2-k.ok{background:#E3F6E8;box-shadow:inset 0 0 0 1.5px #8ED6A4}.ev2-k.ok .s{color:#1E7E3C;font-weight:700}
 .ev2-bar{display:block;height:8px;border-radius:99px;background:var(--ctl);overflow:hidden}.ev2-bar i{display:block;height:100%;border-radius:99px;background:var(--brand)}.ev2-k.ok .ev2-bar i{background:#1E9E4A}
 .ev2-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.ob2-i{padding:2px 0 14px;border-bottom:1px solid var(--sep);margin-bottom:12px}.ob2-i:last-of-type{border-bottom:0;margin-bottom:0;padding-bottom:4px}
+.ob2-t{display:block;font-size:17px;font-weight:900;letter-spacing:-.02em}.ob2-s{display:block;font-size:13px;color:var(--muted);margin-top:2px}
+.ob2-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-top:10px}
+.ob2-d{display:flex;flex-direction:column;align-items:center;gap:5px;padding:8px 2px;border-radius:14px;background:var(--ctl);min-width:0}.ob2-d.hoje{box-shadow:inset 0 0 0 2px var(--fg)}.ob2-d.fut{opacity:.55}
+.ob2-d .n{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
+.ob2-d .b{display:flex;align-items:center;justify-content:center;gap:2px;width:100%;max-width:58px;min-height:24px;border-radius:9px;font-size:11.5px;font-weight:800;color:var(--muted);background:var(--card)}.ob2-d .b .i{width:12px;height:12px}
+.ob2-d .b.ok{background:#8EE85F;color:#0F1712}.ob2-d .b.meio{background:#FFD8A8;color:#0F1712}.ob2-d .b.faltou{background:#FF7A72;color:#0F1712}.ob2-d .b.pede{box-shadow:inset 0 0 0 1.5px var(--fg);color:var(--fg)}
+.ob2-ant{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:10px 0 0;font-size:12px}.ob2-ant>span:first-child{color:var(--muted);font-weight:700;margin-right:2px}
+.ob2-w{padding:4px 9px;border-radius:99px;font-weight:800;font-variant-numeric:tabular-nums;background:var(--ctl)}.ob2-w.ok{background:#E3F6E8;color:#1E7E3C}.ob2-w.meio{background:#FFF0DC;color:#9A5A00}.ob2-w.nao{background:#FFE5E3;color:#B3261E}
+@media (max-width:760px){.ob2-d .b{font-size:10.5px}.ob2-d .b .i{display:none}}
 .ev2-d{display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 2px;border-radius:16px;background:var(--ctl);min-width:0}
 .ev2-d.hoje{box-shadow:inset 0 0 0 2px var(--fg)}.ev2-d.fut{opacity:.4}
 .ev2-d .n{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em}.ev2-d .dd{font-size:11px;color:var(--muted);margin-top:-4px}
@@ -2937,6 +2947,23 @@ function tEvol(a){
     kp('scale','Volume levantado', fmtN(sw.H.reduce((t,x) => t+(+x.vol||0),0)/1000,1), 0, ' t', 'k-vo', plural(sw.H.reduce((t,x) => t+(+x.sets||0),0),'série')+' feitas')+'</div>';
 
   EVC = { nome:curto(a), ini, fim, cg, L:Cd.filter(c => c.d>=addDays(ini,-21) && c.d<=fim) };
+  // 2b. cardio obrigatório: dia a dia, se fez o aparelho com o tempo pedido
+  const OBs = ((m.cardio||{}).obrig||[]).filter(o => o && o.local && +o.min>0);
+  if(OBs.length){
+    const obMinD = (o,k) => Cd.filter(c => c.d===k && c.l===o.local).reduce((t,c) => t+(+c.min||0),0);
+    const obSem = (o,w) => Array.from({length:7},(_,i) => addDays(w,i)).filter(k => k<=t0 && obMinD(o,k)>=+o.min).length;
+    h += '<h3 class="sec">Cardio obrigatório <small class="ev2-dt">'+fmtDm(ini)+' a '+fmtDm(fim)+'</small></h3><section class="card ob2">'+OBs.map(o => {
+      const alvo = (o.dias||[]).length || +o.vezes || 1, feitos = obSem(o, ini), quando = (o.dias||[]).length ? DSEMK.filter(x => o.dias.includes(x[0])).map(x => x[1]).join(', ') : alvo+'x por semana';
+      const pill = feitos>=alvo ? '<span class="pill ok">'+ic('check')+'Cumprido</span>' : '<span class="pill warn">Faltam '+(alvo-feitos)+'</span>';
+      const dias = DSEMK.map(([dk,dl],i) => { const k = addDays(ini,i), mi = obMinD(o,k), fixo = (o.dias||[]).includes(dk), passou = k<t0;
+        const st = mi>=+o.min ? 'ok' : mi>0 ? 'meio' : fixo && passou ? 'faltou' : fixo ? 'pede' : '';
+        const tx = st==='ok' ? ic('check')+mi+'′' : st==='meio' ? mi+'′' : st==='faltou' ? 'faltou' : st==='pede' ? (k===t0 ? 'hoje' : 'pedido') : '–';
+        return '<div class="ob2-d'+(k===t0?' hoje':'')+(k>t0?' fut':'')+'"><span class="n">'+dl+'</span><span class="b '+st+(mi ? ' ev2-tap" role="button" tabindex="0" data-a="evCardio" data-v="'+k : '')+'" title="'+(mi ? mi+' min de '+esc(o.local) : 'Sem '+esc(String(o.local).toLowerCase()))+'">'+tx+'</span></div>'; }).join('');
+      const ant = Array.from({length:4},(_,i) => addDays(ini, -7*(i+1))).map(w => { const f = obSem(o,w); return '<span class="ob2-w '+(f>=alvo ? 'ok' : f ? 'meio' : 'nao')+'">'+fmtDm(w)+' · '+f+'/'+alvo+'</span>'; }).join('');
+      return '<div class="ob2-i"><div class="card-h"><div><b class="ob2-t">'+esc(o.local)+' · '+(+o.min)+' min</b><span class="ob2-s">'+quando+' · '+feitos+' de '+alvo+' nesta semana</span></div>'+pill+'</div>'+
+        '<div class="ob2-days">'+dias+'</div><p class="ob2-ant"><span>Semanas anteriores</span>'+ant+'</p></div>'; }).join('')+
+      '<p class="foot">Conta o dia em que '+(P(a).sexo==='F' ? 'ela' : 'ele')+' registrou esse aparelho com pelo menos o tempo pedido. Toque no dia para ver o cardio.</p></section>';
+  }
   // 3. os 7 dias da semana
   h += '<section class="card"><div class="ev2-days">'+Array.from({length:7},(_,i) => { const k = addDays(ini,i), tr = H.filter(x => x.d===k), ca = Cd.filter(x => x.d===k).reduce((t,c) => t+(+c.min||0),0), w = +Wt[k]||0, ck = K[k], fut = k>t0;
     const dor = ck && (+ck.dor||0)>=2;
@@ -3173,7 +3200,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '14 nov · 124'; // Versão do painel: 14 nov · 124
+const PAINELV = '14 nov · 125'; // Versão do painel: 14 nov · 125
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
