@@ -991,6 +991,30 @@ O que cada um vê a mais continua como nas versões anteriores: o **gestor** tem
 
 **Detalhes.** Com o **histórico do cliente** aberto ao lado, o menu só fica aberto de 1560 px para cima; antes disso ele encolhe para o trilho enquanto o histórico está aberto, para a lista não ficar espremida. A coluna da direita (as atividades da semana) aparece, com o menu aberto, a partir de 1620 px; até lá a semana fica na linha do pé da lista. Em tela baixa (notebook de 768 px de altura) o menu fica mais junto, e rola se ainda assim não couber.
 
+## 6zi. A festa marcada: o calendário das unidades, o tema, a entrada na festa e o relatório (1.29)
+
+Pedido da dona: marcar a data da festa num calendário que mostre as festas das duas unidades; pôr o tema da festa (para não ter, sem saber, Harry Potter no Morumbi e no Anália no mesmo dia, com material para comprar em dobro); na entrada, identificar quem é o aniversariante (não paga) e quem é convidado; avisar quando passar do combinado, para cobrar o adicional (o upgrade só antes do dia da festa); e um relatório com as crianças que vieram e o contato, para mandar ao pai quando ele pedir.
+
+**A venda da festa.** O botão Festa continua o mesmo, agora com três escolhas no alto: **Festa nova**, **Upgrade** e **Adicional**.
+- Na **festa nova**, a **data é obrigatória** e vem antes da tabela de valores. O botão **Calendário** mostra as festas já marcadas das unidades, cada uma com a cor da unidade e o tema. No computador (e no tablet deitado) o calendário **abre sozinho ao lado da folha**; no celular abre dentro da folha. Um toque no dia marca a festa; dia que já passou não se escolhe; sábado e domingo viram festa de final de semana.
+- Depois da tabela: a **unidade** da festa (vem a do aparelho), o **aniversariante** (quando o cliente tem mais de uma criança), o **tema** (com os temas já usados para escolher) e o **horário** da festa de semana (a de final de semana é das 10h30 às 13h30).
+- **Tema repetido:** com o dia e o tema escritos, se já houver outra festa com o mesmo tema nesse dia (em qualquer unidade), a folha avisa na hora, com a unidade e a festa. No calendário, o dia com tema repetido fica com um **!** vermelho.
+- O comprovante da festa sai com o tema, o aniversariante e a unidade.
+- O **Upgrade** parte da festa marcada do cliente e só existe **antes do dia da festa**. No dia (ou depois), ele fica travado e manda para o Adicional.
+- O **Adicional** vai para a festa marcada do cliente e soma no combinado (crianças da festa + adicional).
+
+**A tela Festas.** No menu (o item **Festas**, e o botão **Festas** na Agenda): o calendário do mês com as festas das unidades (a sigla da unidade e o tema em cada dia, o **!** do tema repetido), as festas do dia escolhido e as próximas festas. Cada festa abre a folha dela.
+
+**O dia da festa.**
+- Na lista do espaço aparece a faixa **Festa hoje** (a da unidade do aparelho): o tema, o aniversariante, quantos convidados vieram e o combinado.
+- A criança entra pela festa no **atendimento** (depois do cadastro, ou pela busca): em cima aparece **Entrar na festa · convidado**; para a criança da festa, **Entrar na festa · aniversariante**. A faixa Festa hoje tem também **Dar entrada na festa**, que abre a busca do cliente.
+- Quem entra pela festa **não paga e não gasta horas**: na lista aparece **FESTA** com **CONVIDADO** ou **ANIVERSARIANTE**, e a saída sai **sem cobrança** (o que a criança comprar na visita continua sendo cobrado). Quem sai e volta no mesmo dia não conta de novo. O aniversariante não conta no combinado.
+- **Passou do combinado:** quando o convidado que entra passa do combinado, a recepção vê na hora "Passou do combinado: 21ª criança numa festa de 20. Cobre o adicional…", com o botão **Cobrar o adicional**. A gestora vê a festa em **Aprovações** (e no Painel), em "Festas com criança a mais", com **Cobrar o adicional** (abre a venda já no Adicional, com quantas crianças passaram), **Ver a festa** e **Não cobrar**. Depois do adicional pago, o aviso some.
+
+**A folha da festa e o relatório.** Tocando na festa (na faixa, na tela Festas ou nas Aprovações): o combinado, quantos convidados vieram, quem está no espaço, o adicional a cobrar e **Quem veio**, com cada criança, a idade, o responsável e o telefone, na ordem em que entraram (o aniversariante primeiro). Para mandar ao responsável do aniversariante: **Copiar a lista** (texto pronto para colar no WhatsApp), **Planilha** (abre no Excel) ou **Imprimir** (no papel do cupom). A lista tem o telefone de outras famílias: é só para o responsável do aniversariante. Na mesma folha dá para **mudar o tema, o horário, o dia ou a unidade** (o dia só antes de a festa começar, e só para o mesmo tipo de festa); fica anotado em Hoje na recepção, com quem mudou.
+
+**As festas de antes.** Ao atualizar, as festas já vendidas com a data escrita (de hoje em diante) entram sozinhas no calendário, sem tema: é só abrir a festa e pôr o tema.
+
 ## 7. Atualizar
 
 Botão **Atualizar** ao lado da versão. Ele baixa a versão nova do GitHub (ramo principal ou de trabalho, a mais nova), confere a versão dentro do arquivo e troca os arquivos de forma atômica. Não mexe em `~/playspace-dados/`. Se o GitHub demorar a refletir (cache de ~5 min), espere e toque de novo.

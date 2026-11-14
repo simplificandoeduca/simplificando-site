@@ -326,6 +326,28 @@ function db(): PDO {
     $pdo->exec("CREATE INDEX IF NOT EXISTS vendas_voltou ON vendas (voltou) WHERE alug != '' AND voltou IS NOT NULL");
     $pdo->exec('PRAGMA user_version = 31');
   }
+  if ($v < 32) { // 1.29: a festa marcada (data, unidade, tema, aniversariante, horário) e quem entrou nela. As crianças do pacote (n) e o
+    // adicional (extra) não ficam na festa: saem das vendas ligadas a ela (vendas.festa_id). A festa nova e o upgrade guardam em festa_n a
+    // quantidade de crianças da festa depois dela; o adicional guarda em qtd quantas crianças a mais. Venda cancelada: a festa acompanha sozinha
+    $pdo->exec("CREATE TABLE IF NOT EXISTS festas (id INTEGER PRIMARY KEY, crianca_id INTEGER NOT NULL, unidade_id INTEGER, data TEXT NOT NULL, hora TEXT NOT NULL DEFAULT '', tema TEXT NOT NULL DEFAULT '', dia TEXT NOT NULL DEFAULT 'semana', criado_em TEXT, por INTEGER, mudou_em TEXT)");
+    $pdo->exec('CREATE INDEX IF NOT EXISTS festas_data ON festas (data)');
+    $pdo->exec("CREATE TABLE IF NOT EXISTS festa_presencas (id INTEGER PRIMARY KEY, festa_id INTEGER NOT NULL, crianca_id INTEGER NOT NULL, papel TEXT NOT NULL DEFAULT 'convidado', quando TEXT NOT NULL, por INTEGER, a_mais INTEGER NOT NULL DEFAULT 0, UNIQUE (festa_id, crianca_id))");
+    foreach (['ALTER TABLE vendas ADD COLUMN festa_id INTEGER', 'ALTER TABLE vendas ADD COLUMN festa_n INTEGER NOT NULL DEFAULT 0', 'ALTER TABLE criancas ADD COLUMN festa_id INTEGER', 'ALTER TABLE visitas ADD COLUMN festa_id INTEGER'] as $sql) { try { $pdo->exec($sql); } catch (Throwable $e) { } }
+    $pdo->exec('CREATE INDEX IF NOT EXISTS vendas_festa ON vendas (festa_id) WHERE festa_id IS NOT NULL');
+    // as festas já vendidas com a data escrita, de hoje em diante, entram no calendário (o tema e o horário ficam para a equipe pôr)
+    try {
+      $hoje = date('Y-m-d'); $ins = $pdo->prepare('INSERT INTO festas (crianca_id, unidade_id, data, dia, criado_em, mudou_em) VALUES (?, ?, ?, ?, ?, ?)');
+      foreach ($pdo->query("SELECT * FROM vendas WHERE servico IN ('FESTA DE SEMANA', 'FESTA DE FINAL DE SEMANA') AND itens LIKE '%festa em %' ORDER BY id")->fetchAll() as $x) {
+        if (!preg_match('/^(\d+) crianças.*festa em (\d\d)\/(\d\d)\/(\d{4})/u', (string)$x['itens'], $m)) continue; $data = $m[4] . '-' . $m[3] . '-' . $m[2]; if ($data < $hoje) continue;
+        $ins->execute([(int)$x['crianca_id'], $x['unidade_id'], $data, $x['servico'] === 'FESTA DE SEMANA' ? 'semana' : 'fds', $x['quando'], $x['quando']]); $fid = (int)$pdo->lastInsertId();
+        $pdo->prepare('UPDATE vendas SET festa_id = ?, festa_n = ? WHERE id = ?')->execute([$fid, (int)$m[1], (int)$x['id']]);
+        $q = $pdo->prepare("SELECT id, servico, itens FROM vendas WHERE festa_id IS NULL AND id > ? AND servico IN ('UPGRADE DE FESTA', 'ADICIONAL DE FESTA') AND itens LIKE ? AND crianca_id = ?"); $q->execute([(int)$x['id'], '%festa em ' . $m[2] . '/' . $m[3] . '/' . $m[4] . '%', (int)$x['crianca_id']]);
+        foreach ($q->fetchAll() as $y) { if ($y['servico'] === 'UPGRADE DE FESTA' && preg_match('/^de \d+ para (\d+) crianças/u', (string)$y['itens'], $k)) $pdo->prepare('UPDATE vendas SET festa_id = ?, festa_n = ? WHERE id = ?')->execute([$fid, (int)$k[1], (int)$y['id']]);
+          elseif ($y['servico'] === 'ADICIONAL DE FESTA' && preg_match('/^(\d+) criança/u', (string)$y['itens'], $k)) $pdo->prepare('UPDATE vendas SET festa_id = ?, qtd = ? WHERE id = ?')->execute([$fid, (int)$k[1], (int)$y['id']]); }
+      }
+    } catch (Throwable $e) { }
+    $pdo->exec('PRAGMA user_version = 32');
+  }
   return $pdo;
 }
 /* ---------- 1.06: unidades ---------- */
@@ -660,10 +682,10 @@ function crianca(int $id): ?array { $q = db()->prepare('SELECT * FROM criancas W
 /* ---------- entrada, saída e venda: a mesma lógica para o iDFace e para o toque na tela ---------- */
 // sem o iDFace (leitura desligada em Ajustes), a equipe marca a entrada e a saída na tela
 function modoManual(): bool { $c = cfg('idface', null); return is_array($c) && array_key_exists('ligado', $c) && !$c['ligado']; }
-function fazerEntrada(array $c, string $origem = 'iDFace', ?string $quando = null): array {
+function fazerEntrada(array $c, string $origem = 'iDFace', ?string $quando = null, ?int $festa = null): array {   // $festa (1.29): a festa em que a criança entra (a visita não cobra nem gasta horas)
   $db = db(); $quando = $quando ?: agora();
-  $db->prepare('UPDATE criancas SET entrou = ?, unidade_id = ? WHERE id = ?')->execute([$quando, unidadeDoPedido(), $c['id']]);   // 1.06: a unidade do aparelho em que a entrada foi dada (o iDFace não diz: fica sem)
-  $c['entrou'] = $quando; $c['unidade_id'] = unidadeDoPedido();
+  $db->prepare('UPDATE criancas SET entrou = ?, unidade_id = ?, festa_id = ? WHERE id = ?')->execute([$quando, unidadeDoPedido(), $festa ?: null, $c['id']]);   // 1.06: a unidade do aparelho em que a entrada foi dada (o iDFace não diz: fica sem)
+  $c['entrou'] = $quando; $c['unidade_id'] = unidadeDoPedido(); $c['festa_id'] = $festa ?: null;
   $reg = registrar('ent', (int)$c['id'], $c['nome'], $origem === 'iDFace' ? 'Rosto reconhecido na entrada' : (modoManual() ? 'Entrada registrada' : 'Entrada registrada à mão'), $quando);
   $msg = null;
   if (regra()['autoMsg'] !== 'nao') {
@@ -710,7 +732,7 @@ function ehExemplo(int $id): bool {
   return in_array($id, $GLOBALS['_exemplo'], true);
 }
 function acertarCobrancas(array $c, ?string $quando = null): array {
-  if (!$c['entrou'] || !servicoTempo()) return [];
+  if (!$c['entrou'] || !servicoTempo() || !empty($c['festa_id'])) return [];   // 1.29: a visita da festa não gera cobrança
   if ((string)$c['entrou'] < (string)cfg('cobranca_desde', '') && !ehExemplo((int)$c['id'])) return [];   // já estava no espaço quando esta regra chegou: não gera cobrança para trás
   $fim = $quando ? strtotime($quando) : time();
   if ((int)$c['usado_min'] + cobrar(minutosDaVisita($c, $fim)) <= (int)$c['pacote_min']) return [];
@@ -743,7 +765,7 @@ function atrasoDaVisita(int $criancaId, string $entrou, ?string $ate = null): ar
 // comprou já cobre o que ela ficou: as cobranças por atraso desta visita que ainda não foram pagas e sobraram são desfeitas (saem da conta,
 // e os minutos delas saem do saldo). Vale na hora da venda e, por garantia, na saída. É a mesma conta que a folha da saída já mostrava.
 function desfazerCobrancasSobrando(array $c, ?string $quando = null): array {
-  $nada = ['n' => 0, 'valor' => 0.0]; if (!$c['entrou'] || !servicoTempo()) return $nada;
+  $nada = ['n' => 0, 'valor' => 0.0]; if (!$c['entrou'] || !servicoTempo() || !empty($c['festa_id'])) return $nada;
   $db = db(); $p = periodo(); $fim = $quando ? strtotime($quando) : time();
   $q = $db->prepare('SELECT v.* FROM vendas v WHERE v.crianca_id = ? AND v.auto = 1 AND v.quando >= ? AND NOT EXISTS (SELECT 1 FROM pagamentos p WHERE p.venda_id = v.id) ORDER BY v.id DESC');
   $q->execute([(int)$c['id'], (string)$c['entrou']]); $autos = $q->fetchAll(); if (!$autos) return $nada;
@@ -764,6 +786,7 @@ function desfazerCobrancasSobrando(array $c, ?string $quando = null): array {
 }
 function fazerSaida(array $c, string $origem = 'iDFace', ?string $quando = null, bool $avulso = false): array {   // $avulso (1.11): a visita acabou de ser vendida avulsa (venderVisitaAvulsa)
   $db = db(); $quando = $quando ?: agora();
+  if (!empty($c['festa_id'])) return saidaDaFesta($c, $origem, $quando);   // 1.29: a visita da festa: sai sem debitar e sem cobrar
   $plano = planoDaCrianca($c);   // 1.15: antes de debitar: recreação avulsa, ou pacote (para a linha da saída dizer o que é o valor a receber)
   if (acertarCobrancas($c, $quando)) $c = crianca((int)$c['id']);   // o que a visita precisa até a hora da saída e ainda não tinha sido lançado nasce agora
   if (!$avulso && desfazerCobrancasSobrando($c, $quando)['n']) $c = crianca((int)$c['id']);   // 1.00: o que o cliente comprou durante a visita cobre o tempo: a cobrança por atraso que sobrou é desfeita
@@ -806,7 +829,7 @@ function reabrirVisita(array $c, array $u): array {
   $agora = agora(); $min = intdiv($fora, 60);
   $db->beginTransaction();
   try {
-    $db->prepare('UPDATE criancas SET entrou = ?, usado_min = MAX(0, usado_min - ?), sapateira = ? WHERE id = ?')->execute([$v['entrou'], (int)$v['debitado_min'], $sap ?: null, $c['id']]);
+    $db->prepare('UPDATE criancas SET entrou = ?, usado_min = MAX(0, usado_min - ?), sapateira = ?, festa_id = ? WHERE id = ?')->execute([$v['entrou'], (int)$v['debitado_min'], $sap ?: null, $v['festa_id'] ?? null, $c['id']]);   // 1.29: a visita da festa volta a ser da festa
     $db->prepare('DELETE FROM visitas WHERE id = ?')->execute([$v['id']]);
     if ($linha) $db->prepare('UPDATE registros SET texto = texto || ? WHERE id = ?')->execute([' · visita reaberta às ' . substr($agora, 11, 5), $linha['id']]);
     $reg = registrar('reab', (int)$c['id'], $c['nome'], 'Visita reaberta: a saída das ' . substr((string)$v['saiu'], 11, 5) . ' foi desfeita (' . ($min < 1 ? 'menos de 1 min' : $min . ' min') . ' fora) · o tempo continua desde a entrada das ' . substr((string)$v['entrou'], 11, 5) . ' · por ' . primeiroNome($u['nome']), $agora);
@@ -1307,11 +1330,11 @@ function ehVendaDePacote(array $v): bool {
 // se ainda sobra alguma hora de pacote, a criança está no pacote; senão, está na recreação avulsa
 function planosDoEspaco(): array {
   $db = db(); $o = []; $resta = [];
-  foreach ($db->query('SELECT id, usado_min FROM criancas WHERE entrou IS NOT NULL AND ativo = 1')->fetchAll() as $c) { $o[(int)$c['id']] = 'avulso'; $resta[(int)$c['id']] = (int)$c['usado_min']; }
+  foreach ($db->query('SELECT id, usado_min, festa_id FROM criancas WHERE entrou IS NOT NULL AND ativo = 1')->fetchAll() as $c) { $o[(int)$c['id']] = !empty($c['festa_id']) ? 'festa' : 'avulso'; $resta[(int)$c['id']] = (int)$c['usado_min']; }   // 1.29: 'festa' = está na festa
   if (!$o) return $o;
   $q = $db->query('SELECT v.crianca_id, v.minutos, v.servico, v.itens, v.auto, v.voucher FROM criancas c CROSS JOIN vendas v ON v.crianca_id = c.id WHERE c.entrou IS NOT NULL AND c.ativo = 1 AND v.minutos > 0 ORDER BY v.id');
   foreach ($q->fetchAll() as $v) { $id = (int)$v['crianca_id']; $m = (int)$v['minutos'];
-    if (!isset($o[$id]) || $o[$id] === 'pacote') continue;
+    if (!isset($o[$id]) || $o[$id] !== 'avulso') continue;
     if ($resta[$id] >= $m) { $resta[$id] -= $m; continue; }   // esta compra já foi usada inteira
     $resta[$id] = 0; if (ehVendaDePacote($v)) $o[$id] = 'pacote';
   }
@@ -1425,7 +1448,7 @@ function festaDoCliente(array $c): ?array {
 //   data ('AAAA-MM-DD', opcional): o dia da festa.
 function linhasDaFesta($fe, array $c): array {
   if (!is_array($fe)) return [];
-  $t = regra()['festa']; $dia = (string)($fe['dia'] ?? ''); $n = (int)($fe['n'] ?? 0); $extra = (int)($fe['extra'] ?? 0); $data = trim((string)($fe['data'] ?? '')); $up = is_array($fe['up'] ?? null) ? $fe['up'] : null;
+  $t = regra()['festa']; $fa = festaDaFamilia($c, (int)($fe['festa'] ?? 0)); /* 1.29: a festa marcada deste cliente (o upgrade e o adicional vão para ela) */ $dia = (string)($fe['dia'] ?? ''); $n = (int)($fe['n'] ?? 0); $extra = (int)($fe['extra'] ?? 0); $data = trim((string)($fe['data'] ?? '')); $up = is_array($fe['up'] ?? null) ? $fe['up'] : null;
   if ($extra < 0 || $extra > (int)$t['extraMax']) falha('Quantas crianças no adicional de festa? De 0 a ' . (int)$t['extraMax'] . '.');
   if ($n > 0 && $up) falha('Escolha a festa nova ou o upgrade de festa: os dois juntos, não.');
   if ($n <= 0 && !$up && $extra <= 0) falha('Escolha a festa: toque no valor, faça o upgrade ou ponha o adicional de festa.');
@@ -1438,15 +1461,23 @@ function linhasDaFesta($fe, array $c): array {
   $L = [];
   if ($n > 0) { // a festa nova
     if (!isset(FESTA_SERVICO[$dia])) falha('A festa é de semana ou de final de semana?');
+    if ($data === '') falha('Escolha a data da festa no calendário.');   // 1.29: a festa nova sempre tem o dia (é o que aparece no calendário das unidades)
     $noSabado($dia);
+    $nova = festaNovaDoPedido($fe, $c, $dia, $data);
     $i = array_search($n, $t['n'], true); if ($i === false) falha('A festa para ' . $n . ' crianças não está na tabela.');
     $v = (float)$t[$dia][$i];
     if (isset($fe['v']) && abs((float)$fe['v'] - $v) >= 0.005) falha('O valor da festa para ' . $n . ' crianças mudou para ' . dinheiro($v) . '. Feche e abra a Festa de novo.');
-    $L[] = ['servico' => FESTA_SERVICO[$dia], 'min' => 0, 'valor' => $v, 'itens' => $n . ' crianças' . $quando];
+    $L[] = ['servico' => FESTA_SERVICO[$dia], 'min' => 0, 'valor' => $v, 'itens' => $n . ' crianças' . $quando . ($nova['tema'] !== '' ? ' · ' . $nova['tema'] : ''), 'festa_acao' => ['tipo' => 'nova', 'n' => $n] + $nova];
   }
   if ($up) { // o upgrade: de uma festa para outra maior, do mesmo tipo. Cobra só a diferença entre as duas, pela tabela
     $ud = (string)($up['dia'] ?? ''); $de = (int)($up['de'] ?? 0); $para = (int)($up['para'] ?? 0);
     if (!isset(FESTA_SERVICO[$ud])) falha('O upgrade é de uma festa de semana ou de final de semana?');
+    if ($fa) { // 1.29: a festa está no sistema: o upgrade é dela, e só antes do dia (no dia, as crianças a mais são o adicional)
+      $nome = (string)(crianca((int)$fa['crianca_id'])['nome'] ?? ''); $faBr = substr($fa['data'], 8, 2) . '/' . substr($fa['data'], 5, 2) . '/' . substr($fa['data'], 0, 4);
+      if ($fa['data'] <= date('Y-m-d')) falha(($fa['data'] === date('Y-m-d') ? 'A festa de ' . $nome . ' é hoje' : 'A festa de ' . $nome . ' já foi, em ' . $faBr) . ': não tem mais upgrade. As crianças a mais entram como adicional de festa.');
+      if ((int)$fa['n'] !== $de || $fa['dia'] !== $ud) falha('A festa de ' . $nome . ' é a ' . FESTA_TIPOS[$fa['dia']] . ' de ' . (int)$fa['n'] . ' crianças. Feche e abra a Festa de novo.');
+      if ($data === '') { $data = $fa['data']; $br = $faBr; $quando = ' · festa em ' . $br; $fimDeSemana = (int)date('N', strtotime($data)) >= 6; }
+    }
     $noSabado($ud);
     $i = array_search($de, $t['n'], true); $j = array_search($para, $t['n'], true);
     if ($i === false || $j === false) falha('O upgrade é entre duas festas da tabela.');
@@ -1455,14 +1486,118 @@ function linhasDaFesta($fe, array $c): array {
     if (isset($up['v']) && abs((float)$up['v'] - $v) >= 0.005) falha('O valor do upgrade de ' . $de . ' para ' . $para . ' crianças mudou para ' . dinheiro($v) . '. Feche e abra a Festa de novo.');
     $tem = festaDoCliente($c);   // o que o sistema sabe da festa deste cliente: fica anotado quando não bate com o que a tela disse
     $nota = !$tem ? ' · sem festa anterior no sistema' : ($tem['n'] !== $de || $tem['dia'] !== $ud ? ' · no sistema: ' . FESTA_TIPOS[$tem['dia']] . ' de ' . $tem['n'] . ' crianças' : '');
-    $L[] = ['servico' => 'UPGRADE DE FESTA', 'min' => 0, 'valor' => $v, 'itens' => 'de ' . $de . ' para ' . $para . ' crianças · ' . FESTA_TIPOS[$ud] . $quando . $nota];
+    $L[] = ['servico' => 'UPGRADE DE FESTA', 'min' => 0, 'valor' => $v, 'itens' => 'de ' . $de . ' para ' . $para . ' crianças · ' . FESTA_TIPOS[$ud] . $quando . ($fa ? '' : $nota), 'festa_acao' => $fa ? ['tipo' => 'up', 'festa' => (int)$fa['id'], 'n' => $para] : null];
   }
   if ($extra > 0) { // o adicional de festa: as crianças a mais do que o pacote
     $ve = (float)$t['extra'];
     if (isset($fe['ve']) && abs((float)$fe['ve'] - $ve) >= 0.005) falha('O valor do adicional de festa mudou para ' . dinheiro($ve) . ' por criança. Feche e abra a Festa de novo.');
-    $L[] = ['servico' => 'ADICIONAL DE FESTA', 'min' => 0, 'valor' => round($extra * $ve, 2), 'itens' => $extra . ($extra === 1 ? ' criança' : ' crianças') . ($L ? '' : $quando)];
+    if ($fa && !$L && $quando === '') $quando = ' · festa em ' . substr($fa['data'], 8, 2) . '/' . substr($fa['data'], 5, 2) . '/' . substr($fa['data'], 0, 4);   // 1.29: o adicional da festa marcada diz o dia dela
+    $L[] = ['servico' => 'ADICIONAL DE FESTA', 'min' => 0, 'valor' => round($extra * $ve, 2), 'itens' => $extra . ($extra === 1 ? ' criança' : ' crianças') . ($L ? '' : $quando), 'festa_acao' => ['tipo' => 'extra', 'q' => $extra, 'festa' => $n > 0 ? 0 : ($fa ? (int)$fa['id'] : 0)]];
   }
   return $L;
+}
+
+/* ---------- 1.29: a festa marcada ---------- */
+// A festa nova vira um registro com o dia, a unidade, o tema, o horário e o aniversariante (uma criança do cliente). O upgrade e o adicional
+// vão para a festa marcada do cliente. A quantidade de crianças combinada sai das vendas ligadas à festa: a maior festa_n (a festa nova ou o
+// último upgrade) mais o adicional (a soma de qtd). Venda cancelada sai da conta sozinha; sem a venda da festa, ela some do calendário.
+// No dia, cada criança entra na festa como aniversariante ou convidada (festa_presencas): a visita não cobra e não gasta horas. O aniversariante
+// não paga e não conta no combinado. O convidado que passa do combinado fica marcado (a_mais) e a gestora vê o adicional a cobrar.
+const FESTA_HORA_FDS = '10:30';   // a festa de final de semana é das 10h30 às 13h30
+function horaDaFesta($h, string $dia): string {
+  if ($dia === 'fds') return FESTA_HORA_FDS; $h = trim((string)$h); if ($h === '') return '';
+  if (!preg_match('/^([01]?\d|2[0-3])[:h]([0-5]\d)$/', $h, $m)) falha('Escreva o horário da festa assim: 15:00.'); return str_pad($m[1], 2, '0', STR_PAD_LEFT) . ':' . $m[2];
+}
+// a conta de cada festa: n (a festa contratada), extra (o adicional), conv e aniv (quem entrou), a_mais (convidados além do combinado)
+const FESTA_CONTA_SQL = "SELECT f.*, (SELECT MAX(v.festa_n) FROM vendas v WHERE v.festa_id = f.id AND v.festa_n > 0) AS n,
+  (SELECT COALESCE(SUM(v.qtd), 0) FROM vendas v WHERE v.festa_id = f.id AND v.servico = 'ADICIONAL DE FESTA') AS extra,
+  (SELECT COUNT(*) FROM festa_presencas p WHERE p.festa_id = f.id AND p.papel = 'convidado') AS conv,
+  (SELECT COUNT(*) FROM festa_presencas p WHERE p.festa_id = f.id AND p.papel = 'aniversariante') AS aniv,
+  (SELECT COUNT(*) FROM criancas k WHERE k.festa_id = f.id AND k.entrou IS NOT NULL) AS dentro FROM festas f";
+function festaComConta(int $id): ?array { if ($id <= 0) return null; $q = db()->prepare(FESTA_CONTA_SQL . ' WHERE f.id = ?'); $q->execute([$id]); $f = $q->fetch(); return $f && (int)$f['n'] > 0 ? $f : null; }   // sem a venda da festa (cancelada), ela não existe mais
+function festaPublica(array $f): array {
+  $c = crianca((int)$f['crianca_id']) ?: []; $nasc = (string)($c['nascimento'] ?? ''); $n = (int)$f['n']; $x = (int)$f['extra'];
+  return ['id' => (int)$f['id'], 'crianca' => (int)$f['crianca_id'], 'nome' => (string)($c['nome'] ?? ''), 'idade' => $nasc !== '' ? idadeDeNascimento($nasc, $f['data']) : (int)($c['idade'] ?? 0), 'nasc' => $nasc !== '',
+    'resp' => (string)($c['resp'] ?? ''), 'tel' => (string)($c['tel'] ?? ''), 'tel2' => (string)($c['tel2'] ?? ''), 'uni' => $f['unidade_id'] === null ? null : (int)$f['unidade_id'],
+    'data' => (string)$f['data'], 'hora' => (string)$f['hora'], 'tema' => (string)$f['tema'], 'dia' => (string)$f['dia'], 'n' => $n, 'extra' => $x, 'conv' => (int)$f['conv'], 'aniv' => (int)$f['aniv'], 'dentro' => (int)$f['dentro'], 'criada' => (string)$f['criado_em']];
+}
+// as festas do calendário: de 60 dias atrás até mais de um ano para a frente, das unidades todas
+function festasDaTela(): array {
+  $q = db()->prepare('SELECT * FROM (' . FESTA_CONTA_SQL . ' WHERE f.data >= ? AND f.data <= ?) WHERE n > 0 ORDER BY data, hora, id LIMIT 600'); $q->execute([date('Y-m-d', time() - 60 * 86400), date('Y-m-d', time() + 430 * 86400)]);
+  return array_map('festaPublica', $q->fetchAll());
+}
+function festasPulso(): string { return (string)db()->query("SELECT COUNT(*) || ':' || COALESCE(MAX(mudou_em), '') || ':' || COALESCE(SUM(LENGTH(tema) + LENGTH(hora) + LENGTH(data) + COALESCE(unidade_id, 0)), 0) FROM festas")->fetchColumn()
+  . '|' . db()->query("SELECT COUNT(*) || ':' || COALESCE(MAX(id), 0) || ':' || COALESCE(SUM(papel = 'aniversariante'), 0) FROM festa_presencas")->fetchColumn()
+  . '|' . db()->query("SELECT COUNT(*) || ':' || COALESCE(SUM(festa_n), 0) || ':' || COALESCE(SUM(qtd), 0) FROM vendas WHERE festa_id IS NOT NULL")->fetchColumn(); }
+// a festa marcada do cliente (as crianças com o mesmo documento): a que a tela disse, ou a mais perto de hoje em diante (a de hoje primeiro)
+function festaDaFamilia(array $c, int $id = 0): ?array {
+  $ids = array_merge([(int)$c['id']], array_map(fn($x) => (int)$x['id'], irmaosDe($c)));
+  if ($id > 0) { $f = festaComConta($id); if (!$f) falha('A festa não está mais marcada (a venda dela foi cancelada).'); if (!in_array((int)$f['crianca_id'], $ids, true)) falha('Essa festa é de outro cliente.'); return $f; }
+  $q = db()->prepare('SELECT * FROM (' . FESTA_CONTA_SQL . ' WHERE f.crianca_id IN (' . implode(',', $ids) . ') AND f.data >= ?) WHERE n > 0 ORDER BY data, id LIMIT 1'); $q->execute([date('Y-m-d')]);
+  return $q->fetch() ?: null;
+}
+// o que a tela mandou para a festa nova: a unidade, o tema, o horário e o aniversariante (uma das crianças do cliente)
+function festaNovaDoPedido(array $fe, array $c, string $dia, string $data): array {
+  $uni = isset($fe['uni']) && $fe['uni'] !== '' && $fe['uni'] !== null ? (int)$fe['uni'] : unidadeDoPedido();
+  if ($uni !== null) { $ok = false; foreach (unidades() as $u) if ($u['id'] === $uni && $u['ativo']) $ok = true; if (!$ok) falha('Escolha a unidade da festa.'); }
+  $aniv = (int)($fe['aniv'] ?? 0) ?: (int)$c['id']; $fam = array_merge([(int)$c['id']], array_map(fn($x) => (int)$x['id'], irmaosDe($c)));
+  if (!in_array($aniv, $fam, true)) falha('O aniversariante precisa ser uma das crianças deste cliente.');
+  return ['uni' => $uni, 'tema' => mb_substr(maiusculo((string)($fe['tema'] ?? '')), 0, 60), 'hora' => horaDaFesta($fe['hora'] ?? '', $dia), 'aniv' => $aniv, 'dia' => $dia, 'data' => $data];
+}
+// depois das vendas: a festa nova nasce, e cada venda fica ligada à festa dela. Devolve o número da festa (0 = nenhuma)
+function gravarFesta(array $linhas, array $vendas, array $u): int {
+  $db = db(); $nova = 0; $ultima = 0;
+  foreach ($linhas as $i => $l) { $a = $l['festa_acao'] ?? null; $v = (int)($vendas[$i] ?? 0); if (!$a || !$v) continue;
+    if ($a['tipo'] === 'nova') {
+      $db->prepare('INSERT INTO festas (crianca_id, unidade_id, data, hora, tema, dia, criado_em, por, mudou_em) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')->execute([$a['aniv'], $a['uni'], $a['data'], $a['hora'], $a['tema'], $a['dia'], agora(), (int)$u['id'], agora()]);
+      $nova = $ultima = (int)$db->lastInsertId(); $db->prepare('UPDATE vendas SET festa_id = ?, festa_n = ? WHERE id = ?')->execute([$nova, (int)$a['n'], $v]);
+    } elseif ($a['tipo'] === 'up') { $ultima = (int)$a['festa']; $db->prepare('UPDATE vendas SET festa_id = ?, festa_n = ? WHERE id = ?')->execute([$ultima, (int)$a['n'], $v]); $db->prepare('UPDATE festas SET mudou_em = ? WHERE id = ?')->execute([agora(), $ultima]); }
+    elseif ($a['tipo'] === 'extra') { $fid = (int)($a['festa'] ?? 0) ?: $nova; if ($fid) { $ultima = $fid; $db->prepare('UPDATE vendas SET festa_id = ?, qtd = ? WHERE id = ?')->execute([$fid, (int)$a['q'], $v]); $db->prepare('UPDATE festas SET mudou_em = ? WHERE id = ?')->execute([agora(), $fid]); } }
+  }
+  return $ultima;
+}
+// a criança entra na festa (só no dia dela, na unidade dela). O aniversariante é uma criança do cliente da festa. Quem já tinha entrado
+// nesta festa hoje (saiu e voltou) não conta de novo.
+function festaEntrada(array $f, array $c, string $papel, array $u): array {
+  $db = db(); $agora = agora(); $nova = false; $aMais = 0; $pos = 0; $cap = (int)$f['n'] + (int)$f['extra'];
+  $doCliente = in_array((int)$c['id'], array_merge([(int)$f['crianca_id']], array_map(fn($x) => (int)$x['id'], irmaosDe(crianca((int)$f['crianca_id']) ?: ['id' => 0, 'cpf' => '', 'tel' => '']))), true);
+  if ($papel === 'aniversariante' && !$doCliente) falha('O aniversariante é da família de ' . (crianca((int)$f['crianca_id'])['nome'] ?? 'quem fez a festa') . '. ' . $c['nome'] . ' entra como convidado.');
+  $db->exec('BEGIN IMMEDIATE');   // duas recepções ao mesmo tempo não pegam a mesma vaga
+  try {
+    $q = $db->prepare('SELECT * FROM festa_presencas WHERE festa_id = ? AND crianca_id = ?'); $q->execute([(int)$f['id'], (int)$c['id']]); $ja = $q->fetch();
+    if (!$ja) {
+      $q = $db->prepare("SELECT COUNT(*) FROM festa_presencas WHERE festa_id = ? AND papel = 'convidado'"); $q->execute([(int)$f['id']]); $pos = (int)$q->fetchColumn() + 1;
+      $aMais = $papel === 'convidado' && $pos > $cap ? 1 : 0; $nova = true;
+      $db->prepare('INSERT INTO festa_presencas (festa_id, crianca_id, papel, quando, por, a_mais) VALUES (?, ?, ?, ?, ?, ?)')->execute([(int)$f['id'], (int)$c['id'], $papel, $agora, (int)$u['id'], $aMais]);
+    } elseif ($ja['papel'] !== $papel) { $db->prepare('UPDATE festa_presencas SET papel = ?, a_mais = 0 WHERE id = ?')->execute([$papel, (int)$ja['id']]); }
+    $db->exec('COMMIT');
+  } catch (Throwable $e) { try { $db->exec('ROLLBACK'); } catch (Throwable $e2) { } throw $e; }
+  try { $e = fazerEntrada($c, 'mão', $agora, (int)$f['id']); }
+  catch (Throwable $x) { if ($nova) $db->prepare('DELETE FROM festa_presencas WHERE festa_id = ? AND crianca_id = ?')->execute([(int)$f['id'], (int)$c['id']]); throw $x; }
+  $nome = (string)(crianca((int)$f['crianca_id'])['nome'] ?? '');
+  $db->prepare('UPDATE registros SET texto = ? WHERE id = ?')->execute(['Entrada na festa de ' . $nome . ($f['tema'] !== '' ? ' (' . $f['tema'] . ')' : '') . ' · ' . ($papel === 'aniversariante' ? 'aniversariante' : 'convidado') . ($aMais ? ' · ' . $pos . 'ª criança: passou do combinado (' . $cap . ')' : ''), (int)$e['registro']]);
+  $db->prepare('UPDATE festas SET mudou_em = ? WHERE id = ?')->execute([agora(), (int)$f['id']]);
+  return ['registro' => $e['registro'], 'mensagem' => is_array($e['mensagem']) ? (int)($e['mensagem']['id'] ?? 0) : 0, 'festa' => festaPublica(festaComConta((int)$f['id']) ?: $f), 'a_mais' => (bool)$aMais, 'pos' => $pos, 'nova' => $nova];
+}
+// a entrada na festa desfeita ou cancelada: a presença que nasceu nela sai (quem já tinha vindo antes, hoje, continua contando)
+function tirarPresencaDaEntrada(array $c): void { if (empty($c['festa_id']) || !$c['entrou']) return; db()->prepare('DELETE FROM festa_presencas WHERE festa_id = ? AND crianca_id = ? AND quando >= ?')->execute([(int)$c['festa_id'], (int)$c['id'], (string)$c['entrou']]); db()->prepare('UPDATE festas SET mudou_em = ? WHERE id = ?')->execute([agora(), (int)$c['festa_id']]); }
+// a saída de quem está na festa: não debita nada e não cobra (o que foi comprado nesta visita e ficou a pagar continua na conta da saída)
+function saidaDaFesta(array $c, string $origem, string $quando): array {
+  $db = db(); $min = minutosDaVisita($c, strtotime($quando)); $fid = (int)$c['festa_id'];
+  $db->prepare('INSERT INTO visitas (crianca_id, entrou, saiu, debitado_min, origem, unidade_id, festa_id) VALUES (?, ?, ?, 0, ?, ?, ?)')->execute([$c['id'], $c['entrou'], $quando, $origem, $c['unidade_id'] ?? null, $fid]);
+  $visita = (int)$db->lastInsertId(); $sap = isset($c['sapateira']) && $c['sapateira'] !== null ? (int)$c['sapateira'] : 0;
+  $db->prepare('UPDATE criancas SET entrou = NULL, sapateira = NULL, festa_id = NULL WHERE id = ?')->execute([$c['id']]);
+  $q = $db->prepare('SELECT f.tema, c.nome FROM festas f LEFT JOIN criancas c ON c.id = f.crianca_id WHERE f.id = ?'); $q->execute([$fid]); $f = $q->fetch() ?: ['tema' => '', 'nome' => ''];
+  $reg = registrar('sai', (int)$c['id'], $c['nome'], 'Saiu da festa de ' . $f['nome'] . ' · ficou ' . dur((int)floor($min)) . ($sap ? ' · sapato na sapateira ' . $sap : '') . ($origem === 'iDFace' || modoManual() ? '' : ' · saída à mão'), $quando);
+  $msg = null; if (regra()['autoMsg'] === 'ambos') $msg = mandarMensagem($c, nomeMsg($c['nome']) . ' saiu às ' . date('H:i', strtotime($quando)) . '. Até a próxima! 🧸', true);
+  return ['registro' => $reg, 'visita' => $visita, 'debitado' => 0, 'minutos' => (int)floor($min), 'atraso' => ['n' => 0, 'valor' => 0.0], 'plano' => 'festa', 'mensagem' => $msg, 'sapateira' => $sap ?: null, 'festa' => $fid];
+}
+// o relatório da festa: quem veio (aniversariante e convidados), com o responsável e os telefones, na ordem em que entraram
+function festaRelatorio(array $f): array {
+  $q = db()->prepare('SELECT p.papel, p.quando, p.a_mais, c.id, c.nome, c.idade, c.nascimento, c.resp, c.rel, c.tel, c.tel2, c.entrou, c.festa_id FROM festa_presencas p JOIN criancas c ON c.id = p.crianca_id WHERE p.festa_id = ? ORDER BY p.papel = \'convidado\', p.quando, p.id');
+  $q->execute([(int)$f['id']]);
+  return array_map(fn($x) => ['id' => (int)$x['id'], 'nome' => (string)$x['nome'], 'idade' => (string)($x['nascimento'] ?? '') !== '' ? idadeDeNascimento((string)$x['nascimento'], $f['data']) : (int)$x['idade'], 'papel' => (string)$x['papel'], 'quando' => (string)$x['quando'], 'a_mais' => !empty($x['a_mais']),
+    'resp' => (string)$x['resp'], 'tel' => (string)$x['tel'], 'tel2' => (string)($x['tel2'] ?? ''), 'dentro' => $x['entrou'] !== null && (int)$x['festa_id'] === (int)$f['id']], $q->fetchAll());
 }
 
 /* ---------- cancelar a entrada sem cobrar ---------- */
@@ -1516,7 +1651,8 @@ function cancelarEntrada(array $c, array $u, string $motivo, ?array $vendaIds, b
       if (!empty($v['registro'])) $db->prepare("UPDATE registros SET texto = texto || ' · cancelada' WHERE id = ? AND crianca_id = ? AND tipo IN ('venda', 'cobr') AND texto NOT LIKE '% · cancelada'")->execute([(int)$v['registro'], $c['id']]);
       $itens[] = ['n' => nomeDaVenda($v), 'm' => (int)$v['minutos'], 'v' => (float)$v['valor']]; $valor += (float)$v['valor']; $tempo += (int)$v['minutos'];
     }
-    $db->prepare('UPDATE criancas SET entrou = NULL, sapateira = NULL WHERE id = ?')->execute([$c['id']]);   // sai sem debitar nada; a sapateira fica livre
+    $db->prepare('UPDATE criancas SET entrou = NULL, sapateira = NULL, festa_id = NULL WHERE id = ?')->execute([$c['id']]);   // sai sem debitar nada; a sapateira fica livre
+    if (!empty($c['festa_id'])) tirarPresencaDaEntrada($c);   // 1.29: a entrada na festa cancelada não conta como criança que veio
     $db->prepare('INSERT INTO cancelamentos (crianca_id, nome, resp, entrou, quando, minutos, valor, itens, motivo, por, por_nome, papel, fora, tipo, atendente, unidade_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
       ->execute([$c['id'], $c['nome'], $c['resp'], $c['entrou'], $agora, $minDentro, $valor, json_encode($itens, JSON_UNESCAPED_UNICODE), $motivo, (int)$u['id'], $u['nome'], $u['papel'], $noPrazo ? 0 : 1, $desfeita ? 'desfeita' : '', atendente(), unidadeDoPedido()]);
     $id = (int)$db->lastInsertId();
@@ -1648,7 +1784,7 @@ function processarRosto(int $idfaceUser, string $quando, string $origem = 'iDFac
 // para o estoque: a venda deixou de existir), a agenda, as sapateiras e os outros ajustes.
 // Antes de apagar, o banco inteiro é copiado para a pasta de dados (ficam as 3 últimas cópias); pela tela dá para desfazer
 // enquanto não houver cadastro novo.
-const TABELAS_CADASTRO = ['cupons', 'pagamentos', 'visitas', 'vendas', 'registros', 'mensagens', 'batidas', 'cancelamentos', 'criancas', 'pedidos'];   // 1.23: os pedidos de autorização são dos cadastros
+const TABELAS_CADASTRO = ['cupons', 'pagamentos', 'visitas', 'vendas', 'registros', 'mensagens', 'batidas', 'cancelamentos', 'criancas', 'pedidos', 'festas', 'festa_presencas'];   // 1.29: as festas marcadas e quem veio nelas também   // 1.23: os pedidos de autorização são dos cadastros
 const CHAVES_CADASTRO = '/^(mandar|foto|renomear|regra|regra_ok|desregra|falhas_regra|rosto_erro|rosto_ok|rosto_em|pedirosto|baixarfoto)_\d+$/';   // o que o sistema guarda por criança (regra_id e as outras chaves da loja não entram)
 function senhaConfere(array $u, string $senha): bool { // a senha de quem está logado (para confirmar o que não tem volta fácil)
   $q = db()->prepare('SELECT senha FROM usuarios WHERE id = ?'); $q->execute([$u['id']]); $h = (string)$q->fetchColumn(); $q->closeCursor();
