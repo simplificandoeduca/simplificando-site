@@ -987,7 +987,9 @@ O que cada um vê a mais continua como nas versões anteriores: o **gestor** tem
 
 **Onde nada muda.** Abaixo de 1280 px fica tudo como estava: o **trilho de ícones** no tablet e nas janelas menores, e a **barra de baixo** com a faixa de filtros horizontal no celular (a gestora no celular continua com as Aprovações e o Painel da 1.27). A unidade continua sendo trocada no botão ao lado do título da lista (e em Ajustes).
 
-**Detalhes.** Com o **histórico do cliente** aberto ao lado, o menu só fica aberto de 1560 px para cima; antes disso ele encolhe para o trilho enquanto o histórico está aberto, para a lista não ficar espremida. A coluna da direita (as atividades da semana) aparece, com o menu aberto, a partir de 1580 px; até lá a semana fica na linha do pé da lista. Em tela baixa (notebook de 768 px de altura) o menu fica mais junto, e rola se ainda assim não couber.
+**Acertos da revisão.** Os números de Comandas abertas acompanham os outros aparelhos mesmo com o cursor na busca do Banco de horas, e fora da lista não seguem a busca que ficou escrita nela (tocar num item abre a lista sem a busca). Com o grupo fechado e a lista filtrada, o item escolhido continua à vista debaixo do nome do grupo. De 1280 a 1365 px, na lista de uma unidade só, a coluna Unidade sai (ela já está no cartão do menu), para os nomes caberem.
+
+**Detalhes.** Com o **histórico do cliente** aberto ao lado, o menu só fica aberto de 1560 px para cima; antes disso ele encolhe para o trilho enquanto o histórico está aberto, para a lista não ficar espremida. A coluna da direita (as atividades da semana) aparece, com o menu aberto, a partir de 1620 px; até lá a semana fica na linha do pé da lista. Em tela baixa (notebook de 768 px de altura) o menu fica mais junto, e rola se ainda assim não couber.
 
 ## 7. Atualizar
 

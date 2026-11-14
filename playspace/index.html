@@ -123,7 +123,7 @@ body.mn .trilho nav::-webkit-scrollbar { display: block; width: 6px; } body.mn .
 .mn-grp { display: flex; align-items: center; gap: 9px; width: 100%; height: 32px; padding: 0 10px; border-radius: 12px; text-align: left; font: 700 12px/1 var(--display); letter-spacing: .08em; text-transform: uppercase; color: var(--tinta-2); }
 .mn-grp > span { flex: 1; min-width: 0; } .mn-grp > svg { flex: none; } .mn-grp > svg:last-child { transition: transform .2s; } .mn-grp[aria-expanded="false"] > svg:last-child { transform: rotate(-90deg); }
 .mn-grp.on { color: var(--tinta); }
-.mn-itens { display: flex; flex-direction: column; gap: 1px; } .mn-itens[hidden] { display: none; }
+.mn-itens { display: flex; flex-direction: column; gap: 1px; } .mn-itens[hidden], .mn-itens.so-on > :not([aria-pressed="true"]) { display: none; }
 .mi { display: flex; align-items: center; gap: 8px; height: 34px; margin-left: 8px; padding: 0 12px; border-radius: 12px; text-align: left; font: 700 14.5px/1.3 var(--texto); color: var(--tinta); }
 .mi > span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #esp-filtros.mn-itens .mi > span { text-transform: lowercase; } #esp-filtros.mn-itens .mi > span::first-letter { text-transform: uppercase; }   /* (o nome do serviço é guardado em maiúsculas: no menu, "Carrinho fusquinha") */
@@ -146,7 +146,11 @@ body.mn .trilho .fab > svg { width: 15px; height: 15px; flex: none; stroke-width
   body.mn .trilho nav { gap: 3px; padding: 8px 12px 6px; } .mi, body.mn .trilho .fab { height: 24px; font-size: 13px; } .mn-grp { height: 22px; font-size: 11.5px; } .mn-bloco + .mn-bloco { padding-top: 2px; } .mn-eu { padding: 4px 9px; } .mn-selo { width: 30px; height: 30px; line-height: 30px; font-size: 11.5px; } .mn-eu-t > span { font-size: 11.5px; line-height: 1.3; } .mn-marca .lg { width: 28px; height: 28px; } .mn-marca b { font-size: 16px; }
 }
 @media (pointer: coarse) and (min-height: 990px) { .mi, body.mn .trilho .fab { height: 38px; } .mn-grp { height: 34px; } }   /* tela de toque grande (tablet deitado): os itens um pouco mais altos para o dedo */
-@media (min-width: 1400px) and (max-width: 1579.98px) { body.mn .hoje { display: none; } body.mn:not(.com-lado) .semana-pag { display: flex; } }   /* com o menu aberto, a coluna da direita só cabe a partir de 1580 px: até lá a semana fica na linha do pé, como nas telas menores */
+@media (min-width: 1400px) and (max-width: 1619.98px) { body.mn .hoje { display: none; } body.mn:not(.com-lado) .semana-pag { display: flex; } }   /* com o menu aberto, a coluna da direita só cabe a partir de 1620 px: até lá a semana fica na linha do pé, como nas telas menores */
+@media (min-width: 1280px) and (max-width: 1365.98px) {   /* a janela mais estreita com o menu aberto: na lista de uma unidade só, a coluna Unidade sai (está no cartão do menu) e os nomes cabem */
+  body.mn .esp-lst:not(.varias) .esp-cabec, body.mn .esp-lst:not(.varias) .esp-it { grid-template-columns: 16px minmax(0, 1.6fr) minmax(0, 1fr) minmax(152px, 1.05fr) 52px 96px 100px; }
+  body.mn .esp-lst:not(.varias) .esp-cabec > span:nth-child(5), body.mn .esp-lst:not(.varias) .esp-it > .un { display: none; }
+  body.mn .esp-lst:not(.varias) .esp-it > .en { grid-column: 5; } body.mn .esp-lst:not(.varias) .esp-it .tmp, body.mn .esp-lst:not(.varias) .esp-it .at { grid-column: 6; } body.mn .esp-lst:not(.varias) .esp-it .acoes-e { grid-column: 7; } }
 .toast { position: fixed; z-index: 60; left: 50%; bottom: calc(100px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 20px); background: var(--tinta); color: var(--creme); padding: 11px 18px; border-radius: 999px; font-weight: 700; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .3s, transform .45s var(--spring); max-width: calc(100% - 32px); text-align: center; display: flex; align-items: center; gap: 14px; }
 .toast.ve { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
 .toast button { color: var(--mostarda); font-weight: 800; white-space: nowrap; padding: 4px 2px; }
@@ -1814,7 +1818,7 @@ function ligarSincronia() { clearInterval(SYNC_T); SYNC_T = setInterval(sincroni
 async function sincronizar() {
   if (MODO !== 'servidor' || SINCRONIZANDO || document.body.classList.contains('so')) return;
   const t = $('#zap-texto'), ae = document.activeElement;
-  const parado = document.hidden || !!$('#folha .folha-fundo') || !!(t && (ae === t || t.value.trim())) || !!(ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && ae.id !== 'esp-busca');   // a busca da lista do espaço não segura a atualização
+  const parado = document.hidden || !!$('#folha .folha-fundo') || !!(t && (ae === t || t.value.trim())) || !!(ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && ae.id !== 'esp-busca' && !(ae.id === 'banco-busca' && mnLigado()));   // a busca da lista do espaço não segura a atualização (1.28: com o menu aberto, a do Banco também não)
   if (parado && !pedAtento()) return;   // 1.23: quem autoriza, ou espera uma resposta, continua perguntando pelos pedidos (a tela de baixo só recarrega quando está livre)
   SINCRONIZANDO = true;
   try {
@@ -3770,13 +3774,13 @@ const naoLidas = () => S.conversas.filter(x => !x.lidas).length;
 const MN_LARG = 1280, MN_LARG_LADO = 1560;
 const menuAberto = () => innerWidth >= MN_LARG && (innerWidth >= MN_LARG_LADO || !document.body.classList.contains('com-lado'));
 const mnLigado = () => document.body.classList.contains('mn');
-function acertaMenu() { if (NAV_CACHE && !document.body.classList.contains('so') && menuAberto() !== mnLigado()) desenhar(true); }   // a largura (ou o histórico ao lado) trocou o menu: redesenha
+function acertaMenu() { if (NAV_CACHE && !document.body.classList.contains('so') && menuAberto() !== mnLigado()) { if (S.tela === 'horas') desenhar(true); else nav(); } }   // a largura (ou o histórico ao lado) trocou o menu: redesenha
 const mnFechados = () => { const v = lido('ps-menu-fechados', []); return Array.isArray(v) ? v : []; };   // os grupos que a pessoa fechou (só isto fica guardado no aparelho)
 const MN_IC = { clientes: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.8a3.5 3.5 0 0 1 0 6.4M17.5 14.2a6.5 6.5 0 0 1 4 5.8"/>', vender: '<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.3"/>', seta: '<path d="M6 9l6 6 6-6"/>', lado: '<path d="M9 5l7 7-7 7"/>' };
 function menuHtml(nPn, badge) {
   const fe = mnFechados(), tem = k => ABAS.some(a => a[0] === k), cur = k => S.tela === k ? ' aria-current="page"' : '';
-  const grupo = (id, icone, nome, itens, fechado = '', on = false) => { const ab = !fe.includes(id), alvo = id === 'comandas' ? 'esp-filtros' : 'mn-' + id;
-    return `<div class="mn-bloco"><button type="button" class="mn-grp tap${on ? ' on' : ''}" data-act="mn-grupo" data-g="${id}" aria-expanded="${ab}" aria-controls="${alvo}" title="${ab ? 'Fechar' : 'Abrir'} o grupo ${nome}">${ic(icone, 17)}<span>${nome}</span>${ab ? '' : fechado}${ic(MN_IC.seta, 15, 2.6)}</button><div class="mn-itens" id="${alvo}"${ab ? '' : ' hidden'}>${itens}</div></div>`; };
+  const grupo = (id, icone, nome, itens, fechado = '', on = false) => { const ab = !fe.includes(id), alvo = id === 'comandas' ? 'esp-filtros' : 'mn-' + id, so = !ab && id === 'comandas' && S.tela === 'horas' && !!(espServ() || espFiltro() !== 'todas');   // (grupo fechado com a lista filtrada: o item escolhido continua à vista)
+    return `<div class="mn-bloco"><button type="button" class="mn-grp tap${on ? ' on' : ''}" data-act="mn-grupo" data-g="${id}" aria-expanded="${ab}" aria-controls="${alvo}" title="${ab ? 'Fechar' : 'Abrir'} o grupo ${nome}">${ic(icone, 17)}<span>${nome}</span>${ab ? '' : fechado}${ic(MN_IC.seta, 15, 2.6)}</button><div class="mn-itens${so ? ' so-on' : ''}" id="${alvo}"${ab || so ? '' : ' hidden'}>${itens}</div></div>`; };
   const item = (atr, txt, b = '', cls = '') => `<button type="button" class="mi tap${cls ? ' ' + cls : ''}" ${atr}><span>${txt}</span>${b}</button>`;
   const solto = (k, icone, nome) => `<div class="mn-bloco"><button type="button" class="mn-grp solto tap" data-ir="${k}"${cur(k)}>${ic(icone, 17)}<span>${nome}</span>${badge(k)}${ic(MN_IC.lado, 15, 2.6)}</button></div>`;
   const uni = nomeUni(minhaUni());
@@ -3994,8 +3998,8 @@ try { localStorage.removeItem('ps-inicio'); } catch (e) { }   // 1.00: a tela in
 const espServ = () => { const v = S.espServ || ''; return !inicioLista() || !v ? '' : v === 'rec' || servicosVolta().some(x => x.id === v) || alugNaLista().some(a => a.s === v) ? v : ''; };
 // o que aparece na tela inicial: as crianças que estão no espaço e o que saiu da loja e ainda não voltou, com a busca.
 // Em cada coluna, o que está mais perto de estourar o tempo vem primeiro. Cada item: { c: a criança, a: o que está fora (só nas linhas de carrinho), sobra }
-function itensEspaco() {
-  const q = (S.espBusca || '').trim().toLowerCase();
+function itensEspaco(semBusca) {   // semBusca: os números do menu fora da lista não seguem a busca que ficou escrita nela
+  const q = semBusca ? '' : (S.espBusca || '').trim().toLowerCase();
   let L = S.criancas.filter(c => c.entrou).map(c => ({ c, sobra: sobraLista(c) })).concat(alugNaLista().map(a => ({ c: crianca(a.crianca), a, sobra: alugSobra(a) })));
   if (q) L = L.filter(x => casaBusca(x.c, q) || (x.a && x.a.n.toLowerCase().includes(q)));
   return L.sort((x, y) => (x.sobra - y.sobra) || x.c.nome.localeCompare(y.c.nome) || (!!x.a - !!y.a));
@@ -4248,8 +4252,8 @@ function chipsEspaco() {
   const f = espFiltro(), ns = saiuHaPouco().length, nf = (F => F.V.length + F.D.length)(finalizadosHoje());
   const sair = (ns || f === 'sairam' ? `<button class="${cl}" data-act="esp-filtro" data-f="sairam" aria-pressed="${aqui && f === 'sairam'}" title="Quem saiu nos últimos ${reabreLim()} min: dá para reabrir a visita">${rot('Saíram há pouco')}<b>${ns}</b></button>` : '')
     + (nf || f === 'fim' ? `<button class="${cl} fim-chip" data-act="esp-filtro" data-f="fim" aria-pressed="${aqui && f === 'fim'}" title="Todo mundo que saiu hoje, e o que voltou para a loja hoje">${rot('Finalizados do dia')}<b>${nf}</b></button>` : '');   // 1.25
-  if (!inicioLista()) return (mn ? `<button class="${cl}" data-act="esp-filtro" data-f="todas" aria-pressed="${aqui && f === 'todas'}">${rot('Todas')}<b>${itensEspaco().length}</b></button>` : '') + sair;
-  const L = itensEspaco(), sv = espServ(), st = servicoTempo(), ids = [...new Set([...servicosVolta().map(x => x.id), ...L.filter(x => x.a).map(x => x.a.s)])], nome = id => (servicoDe(id) || { n: (L.find(x => x.a && x.a.s === id) || { a: { n: id } }).a.n }).n;
+  if (!inicioLista()) return (mn ? `<button class="${cl}" data-act="esp-filtro" data-f="todas" aria-pressed="${aqui && f === 'todas'}">${rot('Todas')}<b>${itensEspaco(!aqui).length}</b></button>` : '') + sair;
+  const L = itensEspaco(!aqui), sv = espServ(), st = servicoTempo(), ids = [...new Set([...servicosVolta().map(x => x.id), ...L.filter(x => x.a).map(x => x.a.s)])], nome = id => (servicoDe(id) || { n: (L.find(x => x.a && x.a.s === id) || { a: { n: id } }).a.n }).n;
   const chip = (v, t, n) => `<button class="${cl}" data-act="esp-serv" data-s="${esc(v)}" aria-pressed="${aqui && f === 'todas' && sv === v}">${rot(esc(t))}<b>${n}</b></button>`;
   return (ids.length || mn ? chip('', 'Todas', L.length) + (ids.length ? chip('rec', st ? st.n : 'RECREAÇÃO', L.filter(x => !x.a).length) + ids.map(id => chip(id, nome(id), L.filter(x => x.a && x.a.s === id).length)).join('') : '') : '') + sair;
 }
@@ -6065,7 +6069,7 @@ function folhaEquipe(u) {
 
 /* ---------- desenhar e reagir ---------- */
 function desenhar(quieto = false) { // quieto: redesenho da sincronia, sem as animações de entrada (senão a tela "pisca")
-  const ae = document.activeElement, foco = ae && ae.id === 'esp-busca' ? [ae.selectionStart, ae.selectionEnd] : null;
+  const ae = document.activeElement, foco = ae && (ae.id === 'esp-busca' || ae.id === 'banco-busca') ? [ae.selectionStart, ae.selectionEnd, ae.id] : null;
   if (MODO !== 'servidor') { S.alugueis = alugPrevia(); acertarCuponsPrevia(); }   // (prévia) o que está fora da loja sai das compras; e o cupom acompanha a venda
   conferirFolhaCupom();
   document.body.classList.toggle('quieto', !!quieto); document.body.classList.remove('so'); nav();
@@ -6079,7 +6083,7 @@ function desenhar(quieto = false) { // quieto: redesenho da sincronia, sem as an
   $('#fab-ancora').hidden = S.tela !== 'horas';
   $('#rodape-global').innerHTML = `<span>${MODO === 'demo' ? 'Prévia com dados de exemplo · ' : ''}<b>Play Space Horas</b></span>${botaoVersao()}${MODO === 'servidor' ? (gestor() ? `<button type="button" class="versao tap exemplo-bt" data-act="exemplos-${S.exemplo ? 'apagar' : 'carregar'}" title="${S.exemplo ? 'Tira as crianças de teste; os cadastros de verdade ficam' : 'Coloca 10 crianças de teste no espaço, em horários diferentes, para ver a tela com movimento'}">${S.exemplo ? 'Tirar o teste' : 'Teste: 10 crianças'}</button>` : '') : `<button type="button" class="versao tap exemplo-bt" data-act="teste-previa" title="${S.testePrevia ? 'Tira as 10 crianças de teste' : 'Coloca 10 crianças de teste no espaço, em horários diferentes, para ver a tela com movimento'}">${S.testePrevia ? 'Tirar o teste' : 'Teste: 10 crianças'}</button>`}`;
   animarPlacas();
-  if (foco) { const i = $('#esp-busca'); if (i) { i.focus(); try { i.setSelectionRange(foco[0], foco[1]); } catch (e) { } } }
+  if (foco) { const i = $('#' + foco[2]); if (i) { i.focus(); try { i.setSelectionRange(foco[0], foco[1]); } catch (e) { } } }
   if (LADO) { if (MODO !== 'servidor' || LADO.reg !== ULT_REG) { LADO.reg = ULT_REG; buscarHistorico(); } else desenharLado(); }   // a aba do histórico acompanha o que mudou
   if (S.tela === 'zap') { const m = $('#msgs'); if (m && m.lastElementChild) m.lastElementChild.scrollIntoView({ block: 'nearest' }); }
   desenharPedidos();   // 1.23: o cartão de quem autoriza
@@ -6144,10 +6148,10 @@ const ACOES = {
   'visita-corrigir-ok': async el => { const hh = val('s-hora'), motivo = val('s-motivo');
     if (!/^\d{2}:\d{2}$/.test(hh)) { toast('Escreva a hora em que a criança saiu'); $('#s-hora').focus(); return; } if (motivo.length < 5) { toast('Escreva o motivo da correção da hora'); $('#s-motivo').focus(); return; }
     el.disabled = true; try { const r = await api('visita_corrigir', { visita: +el.dataset.v, quando: hh, motivo }); await carregar(); fecharFolha(); desenhar(); deuCerto(`Saída corrigida para ${hh} · ${dur(r.debitado)} debitados${r.desfeitas ? ' · ' + brl(r.valor) + ' de atraso desfeito' : ''}`); } catch (e) { toast(e.message); el.disabled = false; } },
-  'esp-serv': el => { S.espServ = el.dataset.s || ''; S.espFiltro = 'todas'; if (S.tela !== 'horas') { trocarTela('horas'); return; } atualizarEspaco(); },   /* o filtro por serviço da lista da tela inicial */
-  'esp-filtro': el => { const f = el.dataset.f; S.espFiltro = S.tela === 'horas' && espFiltro() === f && f !== 'todas' ? 'todas' : f; if (S.tela !== 'horas') { trocarTela('horas'); return; } atualizarEspaco(); },
+  'esp-serv': el => { S.espServ = el.dataset.s || ''; S.espFiltro = 'todas'; if (S.tela !== 'horas') { if (mnLigado()) S.espBusca = ''; trocarTela('horas'); return; } atualizarEspaco(); },   /* o filtro por serviço da lista da tela inicial */
+  'esp-filtro': el => { const f = el.dataset.f; S.espFiltro = S.tela === 'horas' && espFiltro() === f && f !== 'todas' ? 'todas' : f; if (S.tela !== 'horas') { if (mnLigado()) S.espBusca = ''; trocarTela('horas'); return; } atualizarEspaco(); },
   'mn-grupo': el => { const g = el.dataset.g, f = mnFechados(), i = f.indexOf(g); if (i < 0) f.push(g); else f.splice(i, 1); guardar('ps-menu-fechados', f); nav(); },   /* 1.28: abrir ou fechar um grupo do menu (fica guardado no aparelho) */
-  'mn-consultar': () => { S.bancoFiltro = 'todas'; if (S.tela !== 'banco') trocarTela('banco'); else desenhar(true); setTimeout(() => { const i = $('#banco-busca'); if (i) { i.focus(); i.select(); } }, 90); },   /* 1.28: Consultar cliente: o Banco de horas com todos os clientes e o cursor já na busca */   /* "Saíram há pouco": tocar de novo volta para quem está no espaço */
+  'mn-consultar': () => { S.bancoFiltro = 'todas'; if (S.tela !== 'banco') { S.bancoBusca = ''; trocarTela('banco'); } else desenhar(true); setTimeout(() => { const i = $('#banco-busca'); if (i) { i.focus(); i.select(); } }, 90); },   /* 1.28: Consultar cliente: o Banco de horas com todos os clientes e o cursor já na busca */   /* "Saíram há pouco": tocar de novo volta para quem está no espaço */
   devolver: el => { SAI_VOLTA = null; AV_VOLTA = null; devolver(el.dataset.id, el.dataset.s); },
   'devolver-cancelar': el => cancelarSaidaAlug(el),   // 1.20: no prazo, a saída do que acerta na devolução é cancelada sem cobrar (com o motivo)
   'serv-marca': el => { if (!CARRINHO) return; const x = servicoDe(el.dataset.s); if (!x) return; CARRINHO.q[x.id] = Math.min(maxServ(x), (CARRINHO.q[x.id] || 0) + 1); atualizarCarrinho(); },   // 1.20: o fusquinha, um toque só
@@ -6552,7 +6556,7 @@ setInterval(() => {
     const t = $('[data-alug-t]', el), txt = alugTempo(a), sub = alugSub(a); if (t.textContent !== txt) t.textContent = txt; if (t.title !== sub) t.title = sub;
     const at = $('[data-alug-at]', el), curto = alugSubCurto(a); if (at && at.textContent !== curto) at.textContent = curto; });
   $$('[data-alug-conta]').forEach(el => { const a = (S.alugueis || []).find(x => x.id === el.dataset.alugConta); if (!a) return; const t = alugAteAgora(a); if (el.textContent !== t) el.textContent = t; });   // 1.20: o "até agora R$ …" do fusquinha, na comanda
-  if (S.tela === 'horas') { const ns = saiuHaPouco().length; if (ns !== N_SAIRAM) { N_SAIRAM = ns; if (!$('#folha .folha-fundo')) atualizarEspaco(); }   // alguém entrou no prazo de reabrir, ou saiu dele
+  if (S.tela === 'horas' || (mnLigado() && !document.body.classList.contains('so'))) { const ns = saiuHaPouco().length; if (ns !== N_SAIRAM) { N_SAIRAM = ns; if (S.tela !== 'horas') nav(); else if (!$('#folha .folha-fundo')) atualizarEspaco(); }   // alguém entrou no prazo de reabrir, ou saiu dele
     $$('[data-saiu]').forEach(el => { const t = haMin(new Date(+el.dataset.saiu)); if (el.textContent !== t) el.textContent = t; }); }
   { const sc = $('#s-conta'), sb = $('#s-ok'), sh = $('#s-hora');   // a folha da saída acompanha o relógio: se a tolerância estourar com ela aberta, o valor a receber muda na hora
     if (sc && sb && !sb.disabled && !(sh && sh.value)) { const c = crianca(sb.dataset.id); if (c && c.entrou) { const k = contaSaida(c), chave = k.n + '|' + k.deb + '|' + Math.floor(k.min) + '|' + k.pac + '|' + (k.av ? k.av.min : 0); if (sc.dataset.k !== chave) { sc.dataset.k = chave; sc.innerHTML = htmlContaSaida(c, k); sb.innerHTML = rotuloSaida(k); pagSaida(k); } } } }
