@@ -1803,7 +1803,9 @@ async function sincronizar() {
   if (MODO !== 'servidor' || SINCRONIZANDO || document.body.classList.contains('so')) return;
   const t = $('#zap-texto'), ae = document.activeElement;
   const parado = document.hidden || !!$('#folha .folha-fundo') || !!(t && (ae === t || t.value.trim())) || !!(ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && ae.id !== 'esp-busca' && !(ae.id === 'banco-busca' && mnLigado()));   // a busca da lista do espaço não segura a atualização (1.28: com o menu aberto, a do Banco também não)
-  if (BANCO_PEND && !parado && !(ae && ae.id === 'banco-busca')) desenhar(true);   // 1.28: o cursor saiu da busca do Banco: o resto da tela se acerta (os dados já estavam aqui)
+  if (BANCO_PEND && !parado && !(ae && ae.id === 'banco-busca') && !$(':active')) {   // 1.28: o cursor saiu da busca do Banco: o resto da tela se acerta (os dados já estavam aqui). Com o botão do mouse apertado fica para o ciclo seguinte (o clique se perderia), e o foco do teclado volta para o mesmo botão
+    const q = ae && ae.dataset ? ['act', 'id', 'f'].map(a => ae.dataset[a] === undefined ? '' : `[data-${a}="${CSS.escape(ae.dataset[a])}"]`).join('') : '', k = q ? $$(q).indexOf(ae) : -1;
+    desenhar(true); if (k >= 0 && !ae.isConnected) { const n = $$(q)[k]; if (n) n.focus({ preventScroll: true }); } }
   if (parado && !pedAtento()) return;   // 1.23: quem autoriza, ou espera uma resposta, continua perguntando pelos pedidos (a tela de baixo só recarrega quando está livre)
   SINCRONIZANDO = true;
   try {
