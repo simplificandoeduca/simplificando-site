@@ -2,7 +2,7 @@
    - A página: tenta a internet primeiro (pega a versão nova); se a internet falhar ou demorar, abre a cópia guardada.
    - Arquivos fixos (Firebase, ícones, fontes): usa a cópia guardada e atualiza por trás.
    - Banco de dados, login e e-mails não passam por aqui: o próprio Firebase cuida de reenviar quando o sinal volta. */
-const VERSAO = '14 nov · 125'; // muda a cada versão (o build grava): assim o celular sempre percebe que tem sw.js novo
+const VERSAO = '14 nov · 126'; // muda a cada versão (o build grava): assim o celular sempre percebe que tem sw.js novo
 const CACHE = 'simp-treino-v4';
 let ATUALIZANDO = false; // true quando já tinha uma versão instalada (atualização, não primeira vez)
 const CORE = ['./', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-180.png', './firebase-config.js',
@@ -56,18 +56,28 @@ self.addEventListener('fetch', e => {
   if (FONTES.includes(u.hostname)) e.respondWith(fixo(req));
 });
 
-/* lembrete de água com o app fechado: o servidor (push.php) só "cutuca"; a mensagem é montada aqui */
+/* avisos com o app fechado: o servidor (push.php) só "cutuca"; a mensagem é montada aqui.
+   Se tem treino aberto há quase 3h (o app guarda o início em simp-estado), o aviso é do treino (uma vez por treino); senão, é o da água. */
 const FRASES = ['Hora de beber água 💧', 'Um copo agora? 💧', 'Sua garrafinha está te chamando 💧', 'Pausa rápida para a água 💧'];
+const TREINO = BASE + '__treino';
+const agua = () => self.registration.showNotification(FRASES[Math.floor(Math.random() * FRASES.length)], { body: 'Toque para registrar o copo no Simplificando.', icon: 'icon-192.png', badge: 'icon-192.png', tag: 'agua', renotify: true, data: { url: BASE + '#agua', abrir: 'agua' } });
+const durTxt = ms => { const m = Math.round(ms / 60000), h = Math.floor(m / 60), r = m % 60; return h ? h + 'h' + (r ? String(r).padStart(2, '0') : '') : r + ' min'; };
 self.addEventListener('push', e => {
-  const t = FRASES[Math.floor(Math.random() * FRASES.length)];
-  e.waitUntil(self.registration.showNotification(t, { body: 'Toque para registrar o copo no Simplificando.', icon: 'icon-192.png', badge: 'icon-192.png', tag: 'agua', renotify: true, data: { url: BASE + '#agua' } }));
+  e.waitUntil(caches.open('simp-estado').then(c => c.match(TREINO).then(r => r ? r.json() : null).catch(() => null).then(tr => {
+    if (tr && tr.ini && !tr.av && Date.now() - tr.ini >= 3 * 3600e3 - 20 * 60e3) {
+      tr.av = 1;
+      return c.put(TREINO, new Response(JSON.stringify(tr), { headers: { 'Content-Type': 'application/json' } })).then(() =>
+        self.registration.showNotification('Seu treino ainda está aberto ⏱️', { body: 'Treino ' + tr.t + (tr.nome ? ' · ' + tr.nome : '') + ': ' + durTxt(Date.now() - tr.ini) + ' de treino. Esqueceu de finalizar? Toque para salvar e ajustar o tempo.', icon: 'icon-192.png', badge: 'icon-192.png', tag: 'treino', renotify: true, requireInteraction: true, data: { url: BASE + '#treino-aberto', abrir: 'treino' } }));
+    }
+    return agua();
+  })).catch(agua));
 });
 self.addEventListener('notificationclick', e => {
   e.notification.close();
-  const url = (e.notification.data && e.notification.data.url) || BASE;
+  const d = e.notification.data || {}, url = d.url || BASE, abrir = d.abrir || 'agua';
   e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(ws => {
     const w = ws.find(c => new URL(c.url).pathname.startsWith(BASE));
-    if (w) { w.focus(); w.postMessage({ abrir: 'agua' }); return; }
+    if (w) { w.focus(); w.postMessage({ abrir }); return; }
     return self.clients.openWindow(url);
   }));
 });

@@ -248,6 +248,11 @@ textarea:focus{outline:none;border-color:var(--fg)}
 .cm-ic{width:72px;height:72px;border-radius:24px;margin:0 auto 16px;display:grid;place-items:center;background:color-mix(in srgb,var(--brand) 14%,transparent);color:var(--brand)}.cm-ic .i{width:36px;height:36px}
 .cm-logo{display:block;width:92px;height:92px;border-radius:26px;overflow:hidden;background:#0F1712;padding:4px;margin:0 auto 16px;box-shadow:0 14px 34px -10px rgba(15,23,18,.55)}.cm-logo svg{width:100%;height:100%;display:block}
 .cm-ok{width:72px;height:72px;border-radius:50%;margin:0 auto 16px;display:grid;place-items:center;background:#E3F6E8;color:#1E9E4A}.cm-ok .i{width:38px;height:38px;stroke-width:2.6}
+.esq-l{margin:18px 0 8px;font-size:14px;font-weight:800;color:var(--fg)}
+.esq-st{display:flex;align-items:center;justify-content:center;gap:18px}.esq-st b{min-width:120px;font-size:34px;font-weight:900;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.cm .esq-del{margin-top:6px;font-size:14px;color:var(--muted);min-height:44px}.cm .esq-del.on{color:#C2261C;font-weight:800}
+/* relógio do iPhone (app na tela de início): faixa de vidro atrás da hora e da bateria, o conteúdo some desfocado por baixo */
+body::before{content:'';position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);z-index:35;pointer-events:none;background:color-mix(in srgb,var(--bg) 72%,transparent);-webkit-backdrop-filter:blur(18px) saturate(1.6);backdrop-filter:blur(18px) saturate(1.6);box-shadow:0 1px 0 color-mix(in srgb,var(--fg) 8%,transparent)}
 .cm .cm-b{margin-top:22px;font-size:17px;min-height:56px}.cm .cm-b2{margin-top:10px;font-size:16px;min-height:52px}.cm .cm-g{margin-top:4px;font-size:15px;color:var(--muted)}
 .cm-bar{display:block;height:8px;border-radius:9px;background:var(--ctl);overflow:hidden;margin-top:20px}.cm-bar i{display:block;height:100%;width:30%;border-radius:inherit;background:var(--brand);animation:cmBar 1.6s ease-in-out infinite}
 @keyframes cmBar{0%{transform:translateX(-100%)}100%{transform:translateX(340%)}}
@@ -1755,7 +1760,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '14 nov · 125'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '14 nov · 126'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -1823,6 +1828,7 @@ let LASTSYNC = '';
 const syncTxt = () => { const em = S._em; S._em = 0; const t = JSON.stringify(S); S._em = em; return t; };
 function save(){
   if(!ACCT) return;
+  sesUlt();
   if(FB && ACCT.mode==='self' && ACCT.uid){
     const t = syncTxt(); if(t!==LASTSYNC){ LASTSYNC = t; S._em = Date.now(); ACCT.dirty = true; }
     if(ACCT.dirty && ACCT.syncOk){ ACCT.dirty = false; FB.autoSave(ACCT.uid, S); }
@@ -1835,9 +1841,9 @@ let PROGTXT = '', progT = null, progBusy = false;
 function progPayload(){
   const H = (S.history||[]).slice(-80).map(h => ({ d:h.date, t:h.t, nm:(PLAN[h.t]||{}).nome||'', min:h.min||0, sets:h.sets||0, vol:h.vol||0, rpe:h.rpe||0, note:h.note||'', gym:h.gym||'', ex:h.ex||null }));
   const w = {}, k = {}; for(let i=0; i<28; i++){ const dd = daysAgo(i); if(S.water && S.water[dd]) w[dd] = S.water[dd]; if(S.checkin && S.checkin[dd]) k[dd] = S.checkin[dd]; }
-  const t0 = today(), X0 = (S.exc||{})[t0] || {}, fin = (S.history||[]).some(h => h.date===t0 && h.ex);
+  const t0 = tDia(), X0 = (S.exc||{})[t0] || {}, fin = (S.history||[]).some(h => h.date===t0 && h.ex);
   const xc = fin ? [] : Object.keys(X0).map(id => { const c = X0[id], e = Object.values(PLAN).flatMap(p => p.ex||[]).find(x => x.id===id); return c && ((c.q||[]).length || c.n) ? { id, n:e ? e.nome : '', q:(c.q||[]).slice(), c:c.n||'' } : null; }).filter(Boolean);
-  return JSON.stringify({ v:1, lay:S.lay||null, xc:xc.length ? { d:t0, ex:xc } : null, h:H, c:(S.cardio||[]).slice(-60).map(c => ({d:c.date, l:c.local, min:c.min, i:c.int})), w, wg:S.waterGoal||0, k, ses:S.session ? {t:S.session.t, gym:S.session.gym||'', d:today()} : null });
+  return JSON.stringify({ v:1, lay:S.lay||null, xc:xc.length ? { d:t0, ex:xc } : null, h:H, c:(S.cardio||[]).slice(-60).map(c => ({d:c.date, l:c.local, min:c.min, i:c.int})), w, wg:S.waterGoal||0, k, ses:S.session ? {t:S.session.t, gym:S.session.gym||'', d:S.session.d||today()} : null });
 }
 function progSync(now){
   if(!ACCT || !isPersonal() || !FB || !ACCT.code || !S || !PROG_OK) return;
@@ -1894,10 +1900,10 @@ function applyLook(){
 const applyGlass = applyLook;
 function tidy(){
   if(S && S.remind && ![30,60,90].includes(+S.remind.every)) S.remind.every = 90;
-  const t = today();
-  Object.keys(S.logs).forEach(k => { if(k!==t) delete S.logs[k]; });
-  Object.keys(S.warm).forEach(k => { if(k!==t) delete S.warm[k]; });
-  if(S.exc) Object.keys(S.exc).forEach(k => { if(k!==t) delete S.exc[k]; });
+  const t = today(), td = tDia(); // o dia do treino aberto não é apagado
+  Object.keys(S.logs).forEach(k => { if(k!==t && k!==td) delete S.logs[k]; });
+  Object.keys(S.warm).forEach(k => { if(k!==t && k!==td) delete S.warm[k]; });
+  if(S.exc) Object.keys(S.exc).forEach(k => { if(k!==t && k!==td) delete S.exc[k]; });
   Object.keys(S.wlog).forEach(k => { if(diffDays(t,k)>2) delete S.wlog[k]; });
 }
 tidy();
@@ -3414,17 +3420,27 @@ function startKg(id){
   if(L) return L.lastKg!=null ? L.lastKg : L.kg;
   return suggest(id).kg;
 }
+/* dia do treino: enquanto um treino está aberto, tudo fica no dia em que ele começou (treino que passa da meia-noite não some) */
+function tDia(){ return (typeof S!=='undefined' && S && S.session && S.session.d) || today(); }
 function getLog(id){
-  const t = today(); S.logs[t] = S.logs[t] || {};
+  const t = tDia(); S.logs[t] = S.logs[t] || {};
   if(!S.logs[t][id]){
     const e = findEx(id).e, k0 = startKg(id);
     S.logs[t][id] = Array.from({length:e.s}, () => ({kg:k0!=null?fmtKg(k0):'', reps:'', ok:false, rir:null}));
   }
-  return S.logs[t][id];
+  return fitLog(id, S.logs[t][id]);
 }
-const logOf = id => (S.logs[today()]||{})[id] || [];
+/* as séries do dia acompanham o plano: se o treino foi editado depois de abrir o exercício,
+   completa as que faltam e tira as que sobraram (só as não feitas e que não foram adicionadas na hora) */
+function fitLog(id, L){
+  const f = findEx(id), n = f && f.e ? Math.max(1, +f.e.s||1) : 0; if(!n) return L;
+  while(L.length>n){ const z = L[L.length-1]; if(!z || z.ok || z.add) break; L.pop(); }
+  if(L.length<n){ const l = L[L.length-1], k0 = l && l.kg!=='' ? null : startKg(id); while(L.length<n) L.push({kg:l && l.kg!=='' ? l.kg : (k0!=null ? fmtKg(k0) : ''), reps:'', ok:false, rir:null}); }
+  return L;
+}
+const logOf = id => { const L = (S.logs[tDia()]||{})[id]; return L ? fitLog(id, L) : []; };
 const doneSets = id => logOf(id).filter(x => x.ok).length;
-const totalSets = t => PLAN[t].ex.reduce((a,e) => a+Math.max(e.s, logOf(e.id).length), 0);
+const totalSets = t => PLAN[t].ex.reduce((a,e) => a+exN(e), 0);
 const doneSetsPlan = t => PLAN[t].ex.reduce((a,e) => a+doneSets(e.id), 0);
 const liveVol = t => PLAN[t].ex.reduce((a,e) => a+logOf(e.id).filter(x=>x.ok).reduce((b,x) => b+num(x.kg)*int(x.reps), 0), 0);
 function todayBest(id, except){
@@ -3682,11 +3698,11 @@ function weekCard(){
 
 /* ---------- Treino: grade (uma bolha por série) ---------- */
 const REST = 60, GKEY = 'simplificando-pro-grade';
-function loadGS(){ try { const v = JSON.parse(localStorage.getItem(GKEY+':'+uidOf())||'null'); return v && v.d===today() && Array.isArray(v.skip) ? v : {d:today(), skip:[]}; } catch(e){ return {d:today(), skip:[]}; } }
+function loadGS(){ try { const v = JSON.parse(localStorage.getItem(GKEY+':'+uidOf())||'null'); return v && v.d===tDia() && Array.isArray(v.skip) ? v : {d:tDia(), skip:[]}; } catch(e){ return {d:tDia(), skip:[]}; } }
 let GS = {d:today(), skip:[]};
 function saveG(){ try { localStorage.setItem(GKEY+':'+uidOf(), JSON.stringify(GS)); } catch(e){ /* sem armazenamento */ } }
-const isSkip = id => GS.d===today() && GS.skip.includes(id);
-function toggleSkip(id){ if(GS.d!==today()) GS = {d:today(), skip:[]}; const k = GS.skip.indexOf(id); if(k>=0) GS.skip.splice(k,1); else GS.skip.push(id); saveG(); }
+const isSkip = id => GS.d===tDia() && GS.skip.includes(id);
+function toggleSkip(id){ if(GS.d!==tDia()) GS = {d:tDia(), skip:[]}; const k = GS.skip.indexOf(id); if(k>=0) GS.skip.splice(k,1); else GS.skip.push(id); saveG(); }
 const GRP = a => { const w = a.split(' ')[0]; return ({Deltoide:'Ombro',Dorsal:'Costas',Peitoral:'Peito'})[w] || w; };
 const exN = e => Math.max(e.s, logOf(e.id).length);
 function gTot(t){ let tot = 0, dn = 0; PLAN[t].ex.forEach(e => { const d = doneSets(e.id); dn += d; tot += isSkip(e.id) ? d : exN(e); }); return {tot,dn}; }
@@ -3811,7 +3827,7 @@ function warmPills(e, ws, act, exAttr){
 const warmNota = e => suggest(e.id).kg ? '' : `<small class="wnote">% da carga que você vai usar na 1ª série</small>`;
 function tWarm(e){
   if(!e.aq || doneSets(e.id)) return '';
-  const ws = (S.warm[today()]||{})[e.id] || [];
+  const ws = (S.warm[tDia()]||{})[e.id] || [];
   return `<div class="twarm"><span>${ic('flame')}Aquecimento</span>${warmPills(e, ws, 'twarm', ` data-ex="${e.id}"`)}${warmNota(e)}</div>`;
 }
 /* observação que o personal escreveu no exercício: em destaque em todos os jeitos de treino */
@@ -3825,10 +3841,10 @@ const sesCancel = () => ui.arm==='cancel'
 let sesCancelT = 0;
 function cancelSession(){
   const ses = S.session; if(!ses) return;
-  const t0 = today(), ids = ((PLAN[ses.t]||{}).ex||[]).map(e => e.id);
+  const t0 = tDia(), ids = ((PLAN[ses.t]||{}).ex||[]).map(e => e.id);
   [S.logs, S.warm, S.exc].forEach(D => { const d = D && D[t0]; if(!d) return; ids.forEach(id => delete d[id]); if(!Object.keys(d).length) delete D[t0]; });
   if(GS.d===t0){ GS.skip = GS.skip.filter(id => !ids.includes(id)); saveG(); }
-  S.session = null; ui.rest = null; renderRest(); save();
+  S.session = null; ui.rest = null; renderRest(); save(); treinoAviso();
   toast('Treino cancelado. Nada foi registrado.');
 }
 function tSesBar(c){
@@ -5025,7 +5041,7 @@ function vSheet(id){
       ${last?`<p class="sug-last">Última vez (${dayLabel(last.d)}${last.g?' · '+esc(last.g):''}): ${fmtKg(last.kg)} kg × ${last.reps.join(', ')}${pr?' · recorde '+fmtKg(pr.kg)+' × '+pr.reps:''}</p>`:''}</div>`;
     let warm = '';
     if(e.aq){
-      const ws = (S.warm[today()]||{})[id] || [];
+      const ws = (S.warm[tDia()]||{})[id] || [];
       warm = `<div class="warm"><span class="flabel">${ic('flame')}Aquecimento antes da primeira série</span><div class="warm-row">${warmPills(e, ws, 'warm', '')}</div>${warmNota(e)}</div>`;
     }
     const bs = partner ? `<p class="warn">${ic('layers')}<span><b>Bi-set</b>Faça junto com ${partner.nome}, sem descanso entre os dois. Descanse ${e.d}s depois do par.</span></p>` : '';
@@ -5619,7 +5635,7 @@ function render(){
 function renderSheet(freshOpen){
   if(!ui.sheet){ $sheet.innerHTML = ''; document.body.classList.remove('locked'); return; }
   const oldWrap = $sheet.querySelector('.sheet-wrap:not(.closing)'), old = oldWrap && oldWrap.querySelector('.sheet'), st = old && !freshOpen ? old.scrollTop : 0;
-  $sheet.innerHTML = ui.sheet.k==='aval' ? vAval() : (ui.sheet.k==='site' || ui.sheet.k==='inst' || ui.sheet.k==='baixar') ? vBaixar() : ui.sheet.k==='acomp' ? vAcomp() : ui.sheet.k==='doc' ? vDocSheet() : ui.sheet.k==='excluir' ? vExcluir() : ui.sheet.k==='meus' ? vMeus() : ui.sheet.k==='ia' ? vIA() : ui.sheet.k==='ex' ? vSheet(ui.sheet.id) : ui.sheet.k==='prof' ? vProfile() : ui.sheet.k==='cs' || ui.sheet.k==='cman' ? vCardioSheet() : ui.sheet.k==='gym' ? vGym() : ui.sheet.k==='exq' ? vExq(ui.sheet.id) : ui.sheet.k==='story' ? vStory() : ui.sheet.k==='stpick' ? vStPick() : ui.sheet.k==='cstory' ? vCStory() : ui.sheet.k==='cstpick' ? vCStPick() : vSummary(ui.sheet.i);
+  $sheet.innerHTML = ui.sheet.k==='aval' ? vAval() : ui.sheet.k==='esq' ? vEsq() : (ui.sheet.k==='site' || ui.sheet.k==='inst' || ui.sheet.k==='baixar') ? vBaixar() : ui.sheet.k==='acomp' ? vAcomp() : ui.sheet.k==='doc' ? vDocSheet() : ui.sheet.k==='excluir' ? vExcluir() : ui.sheet.k==='meus' ? vMeus() : ui.sheet.k==='ia' ? vIA() : ui.sheet.k==='ex' ? vSheet(ui.sheet.id) : ui.sheet.k==='prof' ? vProfile() : ui.sheet.k==='cs' || ui.sheet.k==='cman' ? vCardioSheet() : ui.sheet.k==='gym' ? vGym() : ui.sheet.k==='exq' ? vExq(ui.sheet.id) : ui.sheet.k==='story' ? vStory() : ui.sheet.k==='stpick' ? vStPick() : ui.sheet.k==='cstory' ? vCStory() : ui.sheet.k==='cstpick' ? vCStPick() : vSummary(ui.sheet.i);
   const sh = $sheet.querySelector('.sheet');
   const nw = $sheet.querySelector('.sheet-wrap');
   if(old && nw && sh){ nw.classList.add('still'); sh.scrollTop = st; }
@@ -5744,7 +5760,7 @@ function wireSlide(){
     if(k && (ev.key==='Enter' || ev.key===' ' || ev.key==='ArrowRight')){ ev.preventDefault(); done(k.closest('.slide')); }
   });
 }
-function startSession(t){ if(!S.session){ S.session = {t, start:Date.now(), acc:0, run:true, gym:'', d:today()}; toast('Cronômetro do treino '+t+' ligado. Bom treino.'); ui.sheet = {k:'gym'}; setTimeout(() => { if(ui.sheet && ui.sheet.k==='gym') renderSheet(true); }, 0); } }
+function startSession(t){ if(!S.session){ S.session = {t, start:Date.now(), acc:0, run:true, gym:'', d:today(), ini:Date.now()}; setTimeout(treinoAviso, 0); toast('Cronômetro do treino '+t+' ligado. Bom treino.'); ui.sheet = {k:'gym'}; setTimeout(() => { if(ui.sheet && ui.sheet.k==='gym') renderSheet(true); }, 0); } }
 /* ---------- academia do dia: o aluno escreve o nome uma vez; nos próximos treinos é só tocar ---------- */
 const gymKey = v => String(v||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
 const gymNome = v => String(v||'').replace(/\s+/g,' ').trim().slice(0,40);
@@ -5759,7 +5775,7 @@ function setGym(v){
   else { L.push({n:nm, d:today(), c:1}); L.sort((a,b) => String(b.d||'').localeCompare(String(a.d||''))); if(L.length>20) L.length = 20; }
   S.session.gym = nm;
   // séries de hoje ainda não feitas passam a começar com a carga da última vez nesta academia
-  const lg = S.logs[today()] || {};
+  const lg = S.logs[tDia()] || {};
   Object.keys(lg).forEach(id => { if(!findEx(id)) return; const k0 = startKg(id); lg[id].forEach(x => { if(!x.ok && !x.man) x.kg = k0!=null ? fmtKg(k0) : ''; }); });
   return true;
 }
@@ -5774,7 +5790,7 @@ function vGym(){
 }
 /* ---------- "como foi" em cada exercício ---------- */
 const EXQ = ['Leve','Na medida','Pesado','Senti dor','Aparelho diferente','Aparelho ocupado'], EXQ3 = EXQ.slice(0,3);
-function excOf(id, make){ const t = today(), D = S.exc || (make ? (S.exc = {}) : null); if(!D) return null; if(!D[t]){ if(!make) return null; D[t] = {}; } if(!D[t][id] && make) D[t][id] = {q:[], n:''}; return D[t][id] || null; }
+function excOf(id, make){ const t = tDia(), D = S.exc || (make ? (S.exc = {}) : null); if(!D) return null; if(!D[t]){ if(!make) return null; D[t] = {}; } if(!D[t][id] && make) D[t][id] = {q:[], n:''}; return D[t][id] || null; }
 // treino de hoje já finalizado: o comentário novo vai junto para o histórico
 function excHist(id){ const c = excOf(id), h = (S.history||[]).slice().reverse().find(x => x.date===today() && (x.ex||[]).some(y => y.id===id)); if(!h || !c) return; const y = h.ex.find(z => z.id===id); y.q = c.q.slice(); y.c = c.n; }
 const excBox = (id, e, bare) => { const x = excOf(id) || {q:[], n:''};
@@ -5852,13 +5868,14 @@ function finish(){
     }
   });
   if(!sets){ toast('Marque pelo menos uma série antes de finalizar.'); return; }
-  const min = Math.max(1, Math.round(elapsed()/60000)) > 240 && t0!==hoje ? 240 : Math.max(1, Math.round(elapsed()/60000)), sec = Math.min(Math.max(1, Math.round(elapsed()/1000)), t0!==hoje ? 240*60 : Infinity), nd = new Date(), hr = String(nd.getHours()).padStart(2,'0')+':'+String(nd.getMinutes()).padStart(2,'0');
+  const el = ses.fix || elapsed(), cap = t0!==hoje && !ses.fix; // tempo ajustado pelo aluno (treino esquecido aberto) vale como está
+  const min = Math.max(1, Math.round(el/60000)) > 240 && cap ? 240 : Math.max(1, Math.round(el/60000)), sec = Math.min(Math.max(1, Math.round(el/1000)), cap ? 240*60 : Infinity), nd = new Date(), hr = String(nd.getHours()).padStart(2,'0')+':'+String(nd.getMinutes()).padStart(2,'0');
   const WM = Object.assign({}, S.warm[hoje]||{}, S.warm[t0]||{});
   const det = p.ex.map(e => { const ok = (log[e.id]||[]).filter(x => x.ok), c = excOf(e.id), wt = e.aq ? aqSeries(e).length : 0, w = wt ? (WM[e.id]||[]).slice(0,wt).filter(Boolean).length : 0;
     if(!ok.length && !w && !(c && (c.q.length || c.n))) return null;
     const o = {id:e.id, n:e.nome, s:ok.map(x => [num(x.kg), int(x.reps)]), q:c ? c.q.slice() : [], c:c ? c.n : ''}; if(wt){ o.w = w; o.wt = wt; } return o; }).filter(Boolean);
   const novo = {date:t0, t:ses.t, min, sec, hr, vol:Math.round(vol), sets, prs:prd.map(x => x.id), prd, rpe:0, note:'', gym:ses.gym||'', ex:det}; S.history.push(novo); if(t0!==hoje) S.history.sort((x,y) => x.date<y.date ? -1 : x.date>y.date ? 1 : 0);
-  S.session = null; ui.rest = null; renderRest();
+  S.session = null; ui.rest = null; renderRest(); treinoAviso();
   stPick(S.history.indexOf(novo));
 }
 
@@ -5873,6 +5890,7 @@ function onClick(ev){
   if(a.slice(0,3)==='iq-'){ iqClick(a,d,b); return; }
   if(a==='closebg' && ev.target!==b) return;
   const armed = ui.arm; ui.arm = null;
+  if(a.slice(0,4)==='esq-'){ if(a==='esq-x' && b.classList.contains('sheet-wrap') && ev.target!==b) return; if(a==='esq-del') ui.arm = armed; esqClick(a,d); return; }
   if(mtClick(a,d,b,armed)){ save(); render(); return; }
   if(a==='doc-open'){ ui.sheet = {k:'doc', d:d.v}; renderSheet(true); return; }
   if(a==='doc-tab'){ ui.sheet.d = d.v; renderSheet(); return; }
@@ -5905,7 +5923,7 @@ function onClick(ev){
     case 't': ui.t = d.v; break;
     case 'start': ui.t = d.t; startSession(d.t); break;
     case 'pause': { const s = S.session; if(s.run){ s.acc += Date.now()-s.start; s.run = false; } else { s.start = Date.now(); s.run = true; } break; }
-    case 'finish': if(armed==='finish') finish(); else ui.arm = 'finish'; break;
+    case 'finish': if(esqLongo() && !S.session.fix){ esqAbre(true); re = false; break; } if(armed==='finish') finish(); else ui.arm = 'finish'; break;
     case 'ses-cancel': clearTimeout(sesCancelT); if(armed==='cancel') cancelSession(); else { ui.arm = 'cancel'; sesCancelT = setTimeout(() => { if(ui.arm==='cancel'){ ui.arm = null; render(); } }, 6000); } break;
     case 'open': {
       const was = ui.sheet && ui.sheet.k==='ex';
@@ -5917,8 +5935,8 @@ function onClick(ev){
     case 'pane': ui.pane = d.v; renderSheet(); re = false; break;
     case 'setok': toggleSet(ui.sheet.id, +d.i); re = false; break;
     case 'rir': getLog(ui.sheet.id)[+d.i].rir = +d.v; save(); renderSheet(); re = false; break;
-    case 'warm': { const t = today(); S.warm[t] = S.warm[t]||{}; const w = S.warm[t][ui.sheet.id] = S.warm[t][ui.sheet.id]||[]; w[+d.i] = !w[+d.i]; save(); renderSheet(); re = false; break; }
-    case 'addset': { const L = getLog(ui.sheet.id), l = L[L.length-1]; L.push({kg:l?l.kg:'', reps:'', ok:false, rir:null}); save(); renderSheet(); re = false; break; }
+    case 'warm': { const t = tDia(); S.warm[t] = S.warm[t]||{}; const w = S.warm[t][ui.sheet.id] = S.warm[t][ui.sheet.id]||[]; w[+d.i] = !w[+d.i]; save(); renderSheet(); re = false; break; }
+    case 'addset': { const L = getLog(ui.sheet.id), l = L[L.length-1]; L.push({kg:l?l.kg:'', reps:'', ok:false, rir:null, add:true}); save(); renderSheet(); re = false; break; }
     case 'rest': startRest(ui.sheet && ui.sheet.id ? nextSet(findEx(ui.sheet.id).t, ui.sheet.id) : null); re = false; break;
     case 'rest-add': if(ui.rest && !ui.rest.done){ ui.rest.end += 15000; ui.rest.total += 15; renderRest(); } re = false; break;
     case 'skiprest': ui.rest = null; renderRest(); re = false; break;
@@ -5940,7 +5958,7 @@ function onClick(ev){
     case 'grir': if(ui.pop){ getLog(ui.pop.id)[ui.pop.i].rir = +d.v; } break;
     case 'gedit': ui.editRow = ui.editRow===d.ex ? null : d.ex; ui.pop = null; if(ui.editRow) toast('Edição ligada: toque numa série para ajustar.'); break;
     case 'gskip': { toggleSkip(d.ex); ui.pop = null; if(ui.editRow===d.ex) ui.editRow = null; const nm = findEx(d.ex).e.nome; toast(isSkip(d.ex) ? nm+' pulado hoje.' : nm+' de volta ao treino.'); break; }
-    case 'gadd': { const L = getLog(d.ex), l = L[L.length-1]; L.push({kg:l?l.kg:'', reps:'', ok:false, rir:null}); ui.pop = {id:d.ex, i:L.length-1, mode:'confirm'}; ui.popScroll = true; break; }
+    case 'gadd': { const L = getLog(d.ex), l = L[L.length-1]; L.push({kg:l?l.kg:'', reps:'', ok:false, rir:null, add:true}); ui.pop = {id:d.ex, i:L.length-1, mode:'confirm'}; ui.popScroll = true; break; }
     case 'grepeat': {
       const t = ui.t || nextTreino(); let n = 0;
       PLAN[t].ex.forEach(e => { const la = lastFor(e.id); if(!la || isSkip(e.id)) return; getLog(e.id).forEach((x,i) => { if(x.ok) return; x.kg = fmtKg(la.kg); x.reps = String(la.reps[i]!=null ? la.reps[i] : la.reps[la.reps.length-1]); n++; }); });
@@ -5991,7 +6009,7 @@ function onClick(ev){
     case 'tstep': tStepAct(d); break;
     case 'fdone': case 'fck': tConfirm(d.ex, +d.i); re = false; break;
     case 'tun': { const x = getLog(d.ex)[+d.i]; if(x){ x.ok = false; x.rir = null; } ui.tsel = {id:d.ex, i:+d.i}; toast('Série desmarcada.'); break; }
-    case 'twarm': { const t = today(); S.warm[t] = S.warm[t]||{}; const w = S.warm[t][d.ex] = S.warm[t][d.ex]||[]; w[+d.i] = !w[+d.i]; break; }
+    case 'twarm': { const t = tDia(); S.warm[t] = S.warm[t]||{}; const w = S.warm[t][d.ex] = S.warm[t][d.ex]||[]; w[+d.i] = !w[+d.i]; break; }
     case 'howto': ui.sheet = {k:'ex', id:d.ex}; ui.pane = 'exec'; renderSheet(true); re = false; break;
     case 'fnav': fNav(+d.d); re = false; break;
     case 'fexp': { const k = ui.fopen.indexOf(d.ex); if(k>=0) ui.fopen.splice(k,1); else ui.fopen.push(d.ex); break; }
@@ -6090,7 +6108,7 @@ function onInput(ev){
     return;
   }
   if(el.dataset.mx && ui.sheet && ui.sheet.k==='meus'){ const t = S.conta.treinos[ui.sheet.ed], e = t && t.ex[+el.dataset.i]; if(e){ e.r = String(el.value).replace(/[<>&"]/g,'').slice(0,14); save(); } return; }
-  if(el.dataset.set){ const y = getLog(el.dataset.ex)[+el.dataset.i]; y[el.dataset.set] = el.value.trim(); if(el.dataset.set==='kg' && !y.ok) y.man = true; if(el.dataset.fix) el.dataset.len = el.value.trim().length; save(); }
+  if(el.dataset.set){ const y = getLog(el.dataset.ex)[+el.dataset.i]; if(!y) return; y[el.dataset.set] = el.value.trim(); if(el.dataset.set==='kg' && !y.ok) y.man = true; if(el.dataset.fix) el.dataset.len = el.value.trim().length; save(); }
   if(el.dataset.prof){ S.nome = el.value.trim().slice(0,40); save(); }
   if(el.dataset.note!=null){ const h = S.history[+el.dataset.note]; if(h){ h.note = el.value; save(); } }
   if(el.dataset.exn){ const x = excOf(el.dataset.exn, true); x.n = el.value.slice(0,300); excHist(el.dataset.exn); save(); }
@@ -6197,6 +6215,44 @@ function errSend(msg, src, line, col, stack){
 const ERR_IGNORA = /without an in-progress transaction|Connection to Indexed Database server lost|Database deleted by request of the user agent|IDBDatabase|IndexedDB/i;
 window.addEventListener('error', ev => { if(ev && ev.message && !/^Script error\.?$/i.test(ev.message) && !ERR_IGNORA.test(ev.message)) errSend(ev.message, ev.filename, ev.lineno, ev.colno, ev.error && ev.error.stack); });
 window.addEventListener('unhandledrejection', ev => { const r = ev && ev.reason, m = r && r.message ? r.message : String(r); if(ERR_IGNORA.test(m)){ try { ev.preventDefault(); } catch(e){ /* nada */ } return; } errSend('Promessa sem tratamento: '+m, '', 0, 0, r && r.stack); });
+/* ---------- treino esquecido aberto: aviso no celular com 3h de treino e janela para salvar com o tempo certo ---------- */
+const ESQ_MS = 3*3600e3;
+const sesIni = s => s ? (s.ini || (s.run ? s.start-s.acc : Date.now()-s.acc)) : 0;
+const esqLongo = () => !!S.session && Date.now()-sesIni(S.session) >= ESQ_MS;
+function sesUlt(){ const s = S && S.session; if(!s) return; const L = S.logs[s.d||today()] || {}; let n = 0; Object.keys(L).forEach(id => (L[id]||[]).forEach(x => { if(x && x.ok) n++; })); if(n>(s.nOk||0)) s.ult = Date.now(); s.nOk = n; }
+const durTxt = m => { m = Math.max(0, Math.round(m)); const h = Math.floor(m/60), r = m%60; return h ? h+'h'+(r ? String(r).padStart(2,'0') : '') : r+' min'; };
+/* sugestão: até a última série feita + 5 min; sem série, o tempo do cronômetro */
+function esqSug(){ const s = S.session; if(!s) return 60; const ini = sesIni(s), m = s.ult && s.ult>ini ? (s.ult-ini)/60000+5 : elapsed()/60000; return Math.max(5, Math.min(300, Math.round(m/5)*5)); }
+function esqAbre(fim){ if(!S.session) return; ui.arm = null; ui.sheet = { k:'esq', min:esqSug(), fim:!!fim }; renderSheet(true); }
+function esqAsk(){ const s = S.session; if(!ACCT || !s || ui.sheet || !esqLongo()) return; if(s.esqOk && Date.now()-s.esqOk < 2*3600e3) return; esqAbre(false); }
+function vEsq(){
+  const s = S.session, sh = ui.sheet, p = PLAN[s.t] || {}, ini = new Date(sesIni(s)), hj = today(), dd = s.d && s.d!==hj ? (s.d===daysAgo(1) ? 'ontem' : 'em '+s.d.slice(8,10)+'/'+s.d.slice(5,7)) : 'hoje';
+  const hr = String(ini.getHours()).padStart(2,'0')+':'+String(ini.getMinutes()).padStart(2,'0'), aberto = durTxt((Date.now()-sesIni(s))/60000), sug = esqSug(), ok = (s.nOk||0);
+  return `<div class="sheet-wrap cm-w"${sh.fim ? ' data-a="esq-x"' : ''}><div class="sheet cm esq" role="dialog" aria-modal="true" aria-labelledby="cm-t" tabindex="-1">
+    <span class="cm-ic">${ic('timer')}</span><h2 id="cm-t">${sh.fim ? 'Confira o tempo do treino' : 'Seu treino ainda está aberto'}<span class="dot">${sh.fim ? '.' : '?'}</span></h2>
+    <p class="cm-sub">Treino ${s.t}${p.nome ? ' · '+esc(p.nome) : ''} começou ${dd} às ${hr} e está aberto há <b>${aberto}</b>${ok ? ' ('+ok+' série'+(ok===1?'':'s')+' feita'+(ok===1?'':'s')+')' : ''}.</p>
+    <p class="esq-l">Quanto tempo você treinou de verdade?</p>
+    <div class="esq-st"><button type="button" class="btn round" data-a="esq-m" data-d="-5" aria-label="Menos 5 minutos">${ic('minus')}</button><b aria-live="polite">${durTxt(sh.min)}</b><button type="button" class="btn round" data-a="esq-m" data-d="5" aria-label="Mais 5 minutos">${ic('plus')}</button></div>
+    <p class="cm-g">${s.ult ? 'Pela sua última série, sugerimos '+durTxt(sug)+'.' : 'Ajuste de 5 em 5 minutos.'}</p>
+    <button type="button" class="btn primary block cm-b" data-a="esq-ok">${ic('check')}Salvar treino com ${durTxt(sh.min)}</button>
+    ${sh.fim ? `<button type="button" class="btn block cm-b2" data-a="esq-x">Voltar ao treino</button>` : `<button type="button" class="btn block cm-b2" data-a="esq-cont">Ainda estou treinando</button>`}
+    ${ok ? '' : (ui.arm==='esq-del' ? `<button type="button" class="btn ghost block esq-del on" data-a="esq-del">Toque de novo para descartar</button>` : `<button type="button" class="btn ghost block esq-del" data-a="esq-del">Descartar este treino</button>`)}</div></div>`;
+}
+function esqClick(a, d){
+  const sh = ui.sheet; if(!sh || sh.k!=='esq' || !S.session) return false;
+  if(a==='esq-m'){ sh.min = Math.max(5, Math.min(600, sh.min + +d.d)); renderSheet(); refocus(`[data-a="esq-m"][data-d="${d.d}"]`); return true; }
+  if(a==='esq-ok'){ S.session.fix = sh.min*60000; ui.sheet = null; renderSheet(); finish(); if(S.session) S.session.fix = 0; save(); render(); return true; }
+  if(a==='esq-cont'){ S.session.esqOk = Date.now(); ui.sheet = null; save(); renderSheet(); toast('Beleza. Bom treino!'); return true; }
+  if(a==='esq-x'){ ui.sheet = null; renderSheet(); return true; }
+  if(a==='esq-del'){ if(ui.arm==='esq-del'){ ui.arm = null; ui.sheet = null; renderSheet(); cancelSession(); render(); } else { ui.arm = 'esq-del'; renderSheet(); refocus('[data-a="esq-del"]'); } return true; }
+  return false;
+}
+/* o celular guarda o início do treino aberto (o service worker lê no aviso) e avisa o push.php para mandar a notificação com 3h */
+function treinoAviso(){
+  const s = S && S.session, ini = s ? sesIni(s) : 0, url = new URL('__treino', location.href).href;
+  try { if(window.caches) caches.open('simp-estado').then(c => c.match(url).then(r => r ? r.json() : null).catch(() => null).then(o => ini ? c.put(url, new Response(JSON.stringify({ ini, t:s.t, nome:(PLAN[s.t]||{}).nome||'', av:o && o.ini===ini ? o.av||0 : 0 }), {headers:{'Content-Type':'application/json'}})) : c.delete(url))).catch(() => {}); } catch(e){ /* sem cache */ }
+  if(pushLigado() && PREF.pushId && PREF.trIni!==ini){ PREF.trIni = ini; savePref(); pushPost('treino', {ini}); }
+}
 /* lembrete de água com o app fechado: o celular se inscreve no push.php e o servidor avisa no horário */
 const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent), STANDALONE = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone===true;
 const pushPode = () => !!(FB && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window);
@@ -6216,7 +6272,7 @@ async function pushEnable(){
     if(!PREF.pushId) PREF.pushId = Array.from(crypto.getRandomValues(new Uint8Array(12)), b => (b%36).toString(36)).join('')+Date.now().toString(36);
     const r = await pushPost('assinar', pushDados(sub.toJSON()));
     if(!r.ok) throw new Error('servidor');
-    PREF.pushOn = true; savePref(); if(!S.remind.on){ S.remind.on = true; save(); }
+    PREF.pushOn = true; savePref(); if(!S.remind.on){ S.remind.on = true; save(); } PREF.trIni = null; treinoAviso();
     toast('Pronto. Os lembretes de água chegam no celular mesmo com o app fechado.'); render();
   } catch(e){ toast('Não deu para ligar os avisos agora. Confira a internet e tente de novo.'); }
 }
@@ -6287,7 +6343,12 @@ function offlineSetup(){
   const ok = 'serviceWorker' in navigator && FB && (location.protocol==='https:' || location.hostname==='localhost' || location.hostname==='127.0.0.1');
   const reg = () => navigator.serviceWorker.register('sw.js').catch(() => { /* sem guardar offline */ });
   if(ok){ if(document.readyState==='complete') reg(); else window.addEventListener('load', reg); }
-  try { navigator.serviceWorker && navigator.serviceWorker.addEventListener('message', ev => { if(ev.data && ev.data.abrir==='agua' && ACCT){ ui.tab = 'agua'; ui.enter = true; render(); } }); } catch(e){ /* sem mensagens */ }
+  try { navigator.serviceWorker && navigator.serviceWorker.addEventListener('message', ev => { if(ev.data && ev.data.abrir==='agua' && ACCT){ ui.tab = 'agua'; ui.enter = true; render(); } if(ev.data && ev.data.abrir==='treino' && ACCT && S.session){ ui.tab = 'treino'; ui.t = S.session.t; render(); esqAsk(); } }); } catch(e){ /* sem mensagens */ }
+  if(location.hash==='#treino-aberto'){ history.replaceState(null,'',location.pathname+location.search); if(ACCT && S.session){ ui.tab = 'treino'; ui.t = S.session.t; render(); } }
+  /* treino aberto há 3h ou mais: pergunta ao abrir ou voltar para o app (e confere a cada minuto) */
+  setTimeout(() => { if(ACCT){ treinoAviso(); esqAsk(); } }, 1800);
+  document.addEventListener('visibilitychange', () => { if(document.visibilityState==='visible' && ACCT) setTimeout(esqAsk, 600); });
+  setInterval(() => { if(ACCT && document.visibilityState==='visible') esqAsk(); }, 60000);
   if(location.hash==='#agua' && ACCT){ ui.tab = 'agua'; render(); history.replaceState(null,'',location.pathname+location.search); }
   window.addEventListener('offline', () => toast('Sem internet. Pode treinar normalmente: tudo fica salvo no celular e sobe quando o sinal voltar.'));
   window.addEventListener('online', () => { toast('Internet de volta. Salvando seus treinos.'); try { if(typeof progSync==='function' && ACCT && ACCT.mode==='personal') progSync(true); if(typeof fbRefresh==='function' && ACCT) fbRefresh(); } catch(e){ /* sem sincronizar agora */ } });
