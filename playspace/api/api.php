@@ -309,13 +309,14 @@ switch ($acao) {
     responder(fazerEntrada($c, 'mão'));
   }
   case 'festa_entrada': { // 1.29: a criança entra na festa de hoje, como aniversariante ou convidado: sem cobrar e sem gastar horas
-    $u = modoManual() ? exigir() : exigir(['gestor', 'supervisor']);
+    $u = exigir();   // (toda a equipe, também com o iDFace ligado: o aparelho não sabe que a criança veio para a festa)
     $f = festaComConta((int)($in['festa'] ?? 0)); if (!$f) falha('A festa não está mais marcada.', 404);
     $nomeF = (string)(crianca((int)$f['crianca_id'])['nome'] ?? '');
     if ($f['data'] !== date('Y-m-d')) falha('A festa de ' . $nomeF . ' é em ' . substr($f['data'], 8, 2) . '/' . substr($f['data'], 5, 2) . '/' . substr($f['data'], 0, 4) . ': a entrada na festa é só no dia.');
     $un = unidadeDoPedido(); if ($un !== null && $f['unidade_id'] !== null && (int)$f['unidade_id'] !== $un) { $nu = ''; foreach (unidades() as $x) if ($x['id'] === (int)$f['unidade_id']) $nu = $x['nome']; falha('A festa de ' . $nomeF . ' é na unidade ' . $nu . '. A entrada é dada lá.'); }
     $c = crianca((int)($in['id'] ?? 0)); if (!$c || !$c['ativo']) falha('Criança não encontrada.', 404);
-    if ($c['entrou']) falha($c['nome'] . ' já está no espaço.');
+    if ($c['entrou'] && !empty($c['festa_id'])) falha($c['nome'] . ' já está numa festa.');
+    if ($c['entrou'] && substr((string)$c['entrou'], 0, 10) !== date('Y-m-d')) falha($c['nome'] . ' está no espaço desde outro dia: dê a saída antes.');   // quem entrou hoje como recreação passa para a festa
     responder(festaEntrada($f, $c, ($in['papel'] ?? '') === 'aniversariante' ? 'aniversariante' : 'convidado', $u));
   }
   case 'festa_salvar': { // 1.29: o tema, o horário, o dia (do mesmo tipo de festa) e a unidade da festa marcada. Fica na linha do dia, com quem mudou
@@ -340,7 +341,7 @@ switch ($acao) {
   }
   case 'festa_relatorio': { // 1.29: quem veio na festa, com o responsável e os telefones (para mandar ao responsável do aniversariante)
     exigir(); $f = festaComConta((int)($in['id'] ?? 0)); if (!$f) falha('A festa não está mais marcada.', 404);
-    responder(['festa' => festaPublica($f), 'criancas' => festaRelatorio($f)]);
+    responder(['festa' => festaPublica($f), 'criancas' => festaRelatorioLinhas($f, festaRelatorio($f))]);
   }
   case 'saida': {
     $us = modoManual() ? exigir() : exigir(['gestor', 'supervisor']); $c = crianca((int)($in['id'] ?? 0)); if (!$c) falha('Criança não encontrada.', 404);

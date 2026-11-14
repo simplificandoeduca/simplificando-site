@@ -334,13 +334,16 @@ function db(): PDO {
     $pdo->exec("CREATE TABLE IF NOT EXISTS festa_presencas (id INTEGER PRIMARY KEY, festa_id INTEGER NOT NULL, crianca_id INTEGER NOT NULL, papel TEXT NOT NULL DEFAULT 'convidado', quando TEXT NOT NULL, por INTEGER, a_mais INTEGER NOT NULL DEFAULT 0, UNIQUE (festa_id, crianca_id))");
     foreach (['ALTER TABLE vendas ADD COLUMN festa_id INTEGER', 'ALTER TABLE vendas ADD COLUMN festa_n INTEGER NOT NULL DEFAULT 0', 'ALTER TABLE criancas ADD COLUMN festa_id INTEGER', 'ALTER TABLE visitas ADD COLUMN festa_id INTEGER'] as $sql) { try { $pdo->exec($sql); } catch (Throwable $e) { } }
     $pdo->exec('CREATE INDEX IF NOT EXISTS vendas_festa ON vendas (festa_id) WHERE festa_id IS NOT NULL');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS criancas_festa ON criancas (festa_id) WHERE festa_id IS NOT NULL');   // (quem está numa festa: a conta de cada festa)
     // as festas já vendidas com a data escrita, de hoje em diante, entram no calendário (o tema e o horário ficam para a equipe pôr)
     try {
       $hoje = date('Y-m-d'); $ins = $pdo->prepare('INSERT INTO festas (crianca_id, unidade_id, data, dia, criado_em, mudou_em) VALUES (?, ?, ?, ?, ?, ?)');
-      foreach ($pdo->query("SELECT * FROM vendas WHERE servico IN ('FESTA DE SEMANA', 'FESTA DE FINAL DE SEMANA') AND itens LIKE '%festa em %' ORDER BY id")->fetchAll() as $x) {
+      foreach ($pdo->query("SELECT * FROM vendas WHERE festa_id IS NULL AND servico IN ('FESTA DE SEMANA', 'FESTA DE FINAL DE SEMANA') AND itens LIKE '%festa em %' ORDER BY id")->fetchAll() as $x) {
         if (!preg_match('/^(\d+) crianças.*festa em (\d\d)\/(\d\d)\/(\d{4})/u', (string)$x['itens'], $m)) continue; $data = $m[4] . '-' . $m[3] . '-' . $m[2]; if ($data < $hoje) continue;
         $ins->execute([(int)$x['crianca_id'], $x['unidade_id'], $data, $x['servico'] === 'FESTA DE SEMANA' ? 'semana' : 'fds', $x['quando'], $x['quando']]); $fid = (int)$pdo->lastInsertId();
         $pdo->prepare('UPDATE vendas SET festa_id = ?, festa_n = ? WHERE id = ?')->execute([$fid, (int)$m[1], (int)$x['id']]);
+        $j = $pdo->prepare("SELECT id, itens FROM vendas WHERE festa_id IS NULL AND servico = 'ADICIONAL DE FESTA' AND crianca_id = ? AND id > ? AND quando >= ? AND quando <= datetime(?, '+5 seconds')"); $j->execute([(int)$x['crianca_id'], (int)$x['id'], $x['quando'], $x['quando']]);   // o adicional vendido junto (sem a data no texto)
+        foreach ($j->fetchAll() as $y) if (preg_match('/^(\d+) criança/u', (string)$y['itens'], $k)) $pdo->prepare('UPDATE vendas SET festa_id = ?, qtd = ? WHERE id = ?')->execute([$fid, (int)$k[1], (int)$y['id']]);
         $q = $pdo->prepare("SELECT id, servico, itens FROM vendas WHERE festa_id IS NULL AND id > ? AND servico IN ('UPGRADE DE FESTA', 'ADICIONAL DE FESTA') AND itens LIKE ? AND crianca_id = ?"); $q->execute([(int)$x['id'], '%festa em ' . $m[2] . '/' . $m[3] . '/' . $m[4] . '%', (int)$x['crianca_id']]);
         foreach ($q->fetchAll() as $y) { if ($y['servico'] === 'UPGRADE DE FESTA' && preg_match('/^de \d+ para (\d+) crianças/u', (string)$y['itens'], $k)) $pdo->prepare('UPDATE vendas SET festa_id = ?, festa_n = ? WHERE id = ?')->execute([$fid, (int)$k[1], (int)$y['id']]);
           elseif ($y['servico'] === 'ADICIONAL DE FESTA' && preg_match('/^(\d+) criança/u', (string)$y['itens'], $k)) $pdo->prepare('UPDATE vendas SET festa_id = ?, qtd = ? WHERE id = ?')->execute([$fid, (int)$k[1], (int)$y['id']]); }
@@ -1533,8 +1536,10 @@ function festasPulso(): string { return (string)db()->query("SELECT COUNT(*) || 
 function festaDaFamilia(array $c, int $id = 0): ?array {
   $ids = array_merge([(int)$c['id']], array_map(fn($x) => (int)$x['id'], irmaosDe($c)));
   if ($id > 0) { $f = festaComConta($id); if (!$f) falha('A festa não está mais marcada (a venda dela foi cancelada).'); if (!in_array((int)$f['crianca_id'], $ids, true)) falha('Essa festa é de outro cliente.'); return $f; }
-  $q = db()->prepare('SELECT * FROM (' . FESTA_CONTA_SQL . ' WHERE f.crianca_id IN (' . implode(',', $ids) . ') AND f.data >= ?) WHERE n > 0 ORDER BY data, id LIMIT 1'); $q->execute([date('Y-m-d')]);
-  return $q->fetch() ?: null;
+  $q = db()->prepare('SELECT * FROM (' . FESTA_CONTA_SQL . ' WHERE f.crianca_id IN (' . implode(',', $ids) . ') AND f.data >= ?) WHERE n > 0 ORDER BY data, id'); $q->execute([date('Y-m-d', time() - 30 * 86400)]); $L = $q->fetchAll(); $hoje = date('Y-m-d');
+  $prox = array_values(array_filter($L, fn($f) => $f['data'] >= $hoje)); $pas = array_reverse(array_values(array_filter($L, fn($f) => $f['data'] < $hoje)));   // (1.29: a da criança escolhida primeiro; sem festa daqui para a frente, a mais recente dos últimos 30 dias)
+  foreach ([$prox, $pas] as $G) { foreach ($G as $f) if ((int)$f['crianca_id'] === (int)$c['id']) return $f; if ($G) return $G[0]; }
+  return null;
 }
 // o que a tela mandou para a festa nova: a unidade, o tema, o horário e o aniversariante (uma das crianças do cliente)
 function festaNovaDoPedido(array $fe, array $c, string $dia, string $data): array {
@@ -1572,12 +1577,14 @@ function festaEntrada(array $f, array $c, string $papel, array $u): array {
     } elseif ($ja['papel'] !== $papel) { $db->prepare('UPDATE festa_presencas SET papel = ?, a_mais = 0 WHERE id = ?')->execute([$papel, (int)$ja['id']]); }
     $db->exec('COMMIT');
   } catch (Throwable $e) { try { $db->exec('ROLLBACK'); } catch (Throwable $e2) { } throw $e; }
-  try { $e = fazerEntrada($c, 'mão', $agora, (int)$f['id']); }
+  $passou = (bool)$c['entrou'];   // já estava no espaço (entrou hoje como recreação: pelo rosto, ou por engano): a visita passa a ser da festa
+  try { if ($passou) { $t = tirarAutosDaVisita($c); $db->prepare('UPDATE criancas SET festa_id = ? WHERE id = ?')->execute([(int)$f['id'], (int)$c['id']]); $e = ['registro' => registrar('ent', (int)$c['id'], $c['nome'], '', null), 'mensagem' => null, 'tirou' => $t]; }
+    else $e = fazerEntrada($c, 'mão', $agora, (int)$f['id']); }
   catch (Throwable $x) { if ($nova) $db->prepare('DELETE FROM festa_presencas WHERE festa_id = ? AND crianca_id = ?')->execute([(int)$f['id'], (int)$c['id']]); throw $x; }
   $nome = (string)(crianca((int)$f['crianca_id'])['nome'] ?? '');
-  $db->prepare('UPDATE registros SET texto = ? WHERE id = ?')->execute(['Entrada na festa de ' . $nome . ($f['tema'] !== '' ? ' (' . $f['tema'] . ')' : '') . ' · ' . ($papel === 'aniversariante' ? 'aniversariante' : 'convidado') . ($aMais ? ' · ' . $pos . 'ª criança: passou do combinado (' . $cap . ')' : ''), (int)$e['registro']]);
+  $db->prepare('UPDATE registros SET texto = ? WHERE id = ?')->execute([($passou ? 'Passou para a festa de ' : 'Entrada na festa de ') . $nome . ($f['tema'] !== '' ? ' (' . $f['tema'] . ')' : '') . ' · ' . ($papel === 'aniversariante' ? 'aniversariante' : 'convidado') . ($aMais ? ' · ' . $pos . 'ª criança: passou do combinado (' . $cap . ')' : ''), (int)$e['registro']]);
   $db->prepare('UPDATE festas SET mudou_em = ? WHERE id = ?')->execute([agora(), (int)$f['id']]);
-  return ['registro' => $e['registro'], 'mensagem' => is_array($e['mensagem']) ? (int)($e['mensagem']['id'] ?? 0) : 0, 'festa' => festaPublica(festaComConta((int)$f['id']) ?: $f), 'a_mais' => (bool)$aMais, 'pos' => $pos, 'nova' => $nova];
+  return ['registro' => $e['registro'], 'mensagem' => is_array($e['mensagem']) ? (int)($e['mensagem']['id'] ?? 0) : 0, 'festa' => festaPublica(festaComConta((int)$f['id']) ?: $f), 'a_mais' => (bool)$aMais, 'pos' => $pos, 'nova' => $nova, 'passou' => $passou, 'tirou' => $passou ? $e['tirou'] : null];
 }
 // a entrada na festa desfeita ou cancelada: a presença que nasceu nela sai (quem já tinha vindo antes, hoje, continua contando)
 function tirarPresencaDaEntrada(array $c): void { if (empty($c['festa_id']) || !$c['entrou']) return; db()->prepare('DELETE FROM festa_presencas WHERE festa_id = ? AND crianca_id = ? AND quando >= ?')->execute([(int)$c['festa_id'], (int)$c['id'], (string)$c['entrou']]); db()->prepare('UPDATE festas SET mudou_em = ? WHERE id = ?')->execute([agora(), (int)$c['festa_id']]); }
@@ -1594,10 +1601,13 @@ function saidaDaFesta(array $c, string $origem, string $quando): array {
 }
 // o relatório da festa: quem veio (aniversariante e convidados), com o responsável e os telefones, na ordem em que entraram
 function festaRelatorio(array $f): array {
-  $q = db()->prepare('SELECT p.papel, p.quando, p.a_mais, c.id, c.nome, c.idade, c.nascimento, c.resp, c.rel, c.tel, c.tel2, c.entrou, c.festa_id FROM festa_presencas p JOIN criancas c ON c.id = p.crianca_id WHERE p.festa_id = ? ORDER BY p.papel = \'convidado\', p.quando, p.id');
-  $q->execute([(int)$f['id']]);
+  $q = db()->prepare('SELECT p.papel, p.quando, p.a_mais, p.id pid, c.id, c.nome, c.idade, c.nascimento, c.resp, c.rel, c.tel, c.tel2, c.entrou, c.festa_id FROM festa_presencas p JOIN criancas c ON c.id = p.crianca_id WHERE p.festa_id = ? ORDER BY p.papel = \'convidado\', p.quando, p.id');
+  $q->execute([(int)$f['id']]); $cap = (int)($f['n'] ?? 0) + (int)($f['extra'] ?? 0); $pos = 0;
+  return array_map(function ($x) use ($f, $cap, &$pos) { if ($x['papel'] === 'convidado') $pos++; $x['a_mais'] = $x['papel'] === 'convidado' && $pos > $cap; return $x; }, $q->fetchAll());
+}
+function festaRelatorioLinhas(array $f, array $L): array {   // (as linhas que vão para a tela)
   return array_map(fn($x) => ['id' => (int)$x['id'], 'nome' => (string)$x['nome'], 'idade' => (string)($x['nascimento'] ?? '') !== '' ? idadeDeNascimento((string)$x['nascimento'], $f['data']) : (int)$x['idade'], 'papel' => (string)$x['papel'], 'quando' => (string)$x['quando'], 'a_mais' => !empty($x['a_mais']),
-    'resp' => (string)$x['resp'], 'tel' => (string)$x['tel'], 'tel2' => (string)($x['tel2'] ?? ''), 'dentro' => $x['entrou'] !== null && (int)$x['festa_id'] === (int)$f['id']], $q->fetchAll());
+    'resp' => (string)$x['resp'], 'tel' => (string)$x['tel'], 'tel2' => (string)($x['tel2'] ?? ''), 'dentro' => $x['entrou'] !== null && (int)$x['festa_id'] === (int)$f['id']], $L);
 }
 
 /* ---------- cancelar a entrada sem cobrar ---------- */
