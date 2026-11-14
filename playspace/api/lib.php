@@ -464,6 +464,10 @@ function exigir(array $papeis = []): array {
 // devolução, receber); o que ele errar e tiver valor é cancelado por quem estorna, com o motivo, e fica na lista de conferência.
 function podeEstornar(array $u): bool { $q = (string)(regra()['estorno'] ?? 'gestor'); $p = (string)($u['papel'] ?? ''); return $p === 'gestor' || $q === 'todos' || ($q === 'supervisor' && $p === 'supervisor'); }
 function quemEstorna(): string { return (string)(regra()['estorno'] ?? 'gestor') === 'supervisor' ? 'o gestor ou o supervisor' : 'o gestor'; }
+// 1.26: o Desfazer é só do gestor (o operador e o supervisor não desfazem nada; uma tela antiga ainda aberta recebe a recusa).
+// regra 'desfazer' = 'todos' (não aparece em Ajustes): o jeito da 1.25, com as travas de antes (a do valor, a dos 10 min).
+function podeDesfazer(array $u): bool { return (string)($u['papel'] ?? '') === 'gestor' || (string)(regra()['desfazer'] ?? 'gestor') === 'todos'; }
+function exigirDesfazer(array $u): void { if (!podeDesfazer($u)) falha('Só o gestor desfaz. Se foi engano, chame o gestor.', 403); }
 const MOTIVO_DESFEITA = 'DESFEITA NA HORA (TOQUE ERRADO)';   // o motivo da entrada desfeita pelo botão do aviso por quem não estorna
 
 /* ---------- 1.25: o nome de quem cancelou, e o aviso que chega à gestora ---------- */

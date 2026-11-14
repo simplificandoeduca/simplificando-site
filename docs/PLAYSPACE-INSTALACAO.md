@@ -922,6 +922,14 @@ A lista continua na aba **Espaço**. Num aparelho em que a gestora prefere abrir
 
 No servidor: banco **31**, com o nome da atendente e a unidade em `cancelamentos` (colunas `atendente` e `unidade_id`) e o tipo novo `atendimento` (o "não vai fazer agora"), e os índices das contas do dia. As ações de cancelar recebem `atendente` (obrigatório para quem não é gestor): `cancelar_entrada`, `desfazer_entrada` e `desfazer_venda` (quando ficam registrados), `devolver` com `cancelar`, `venda_cancelar`, `pedido_criar` (cancelar venda: o nome vai no pedido) e `pendente_tirar` (que agora registra o atendimento cancelado; `voltar` com `cancelamento` tira). `dados` leva `avisos` (só para o gestor), `painel` (só para o gestor) e `finalizados`; o `pulso` leva `av` (os avisos), como leva os pedidos. Os itens a receber de cada criança (`pendi`) levam o número da venda (`id`).
 
+## 6ze. O Desfazer só na conta do gestor (1.26)
+
+O botão **Desfazer** (o que aparece embaixo por alguns segundos depois de cada ação) agora é **só do gestor**. O operador e o supervisor não veem o Desfazer em nada: a entrada, a saída, a devolução do carrinho, a venda, o recebimento, o voucher, a troca de sapateira, o "não vai fazer agora" e o "Desfazer esta marcação" do cupom fiscal. Para eles, a ação é feita e a tela mostra o resultado, sem o botão embaixo (os avisos de erro e os botões como **Ver o histórico** continuam).
+
+Quem não é gestor e errou: a entrada errada ainda se cancela nos primeiros minutos, pela ficha, com o motivo e o nome da atendente (a gestora recebe o aviso); a venda com valor, pelo pedido de cancelamento (a gestora libera com um toque); o resto, chamando o gestor, que tem o Desfazer, o **Reabrir** e o histórico do cliente.
+
+No servidor, as ações de desfazer (`desfazer_entrada`, `desfazer_saida`, `desfazer_venda`, `devolver` e `receber` com `voltar`, `pendente_tirar` com `voltar` e `cupom_voltar`) recusam quem não é gestor ("Só o gestor desfaz"), inclusive quando o pedido vem de uma tela antiga que ficou aberta num aparelho. Para voltar ao jeito da 1.25, a regra guarda `desfazer: "todos"` (não aparece em Ajustes).
+
 ## 7. Atualizar
 
 Botão **Atualizar** ao lado da versão. Ele baixa a versão nova do GitHub (ramo principal ou de trabalho, a mais nova), confere a versão dentro do arquivo e troca os arquivos de forma atômica. Não mexe em `~/playspace-dados/`. Se o GitHub demorar a refletir (cache de ~5 min), espere e toque de novo.

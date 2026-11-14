@@ -363,7 +363,7 @@ switch ($acao) {
     responder(corrigirSaida((int)$v['id'], substr((string)$v['entrou'], 0, 10) . ' ' . $hh . ':00', $u, $motivo));
   }
   case 'desfazer_entrada': { // volta a criança para fora e apaga o registro e o aviso
-    $us = modoManual() ? exigir() : exigir(['gestor', 'supervisor']); $c = crianca((int)($in['id'] ?? 0)); if (!$c || !$c['entrou']) falha('Nada para desfazer.');
+    $us = modoManual() ? exigir() : exigir(['gestor', 'supervisor']); exigirDesfazer($us); $c = crianca((int)($in['id'] ?? 0)); if (!$c || !$c['entrou']) falha('Nada para desfazer.');
     // o "Desfazer" do aviso é para o toque errado, nos instantes seguintes; passou disso, a entrada só sai pelo cancelamento, com o motivo
     if (time() - strtotime((string)$c['entrou']) > 120) falha('O tempo de desfazer já passou. Para tirar esta entrada, use "Cancelar entrada" e escreva o motivo.');
     if (!podeEstornar($us)) { // 1.21: quem não estorna não apaga a entrada: ela sai, mas fica registrada no nome dele, na lista de conferência (nada some sem rastro)
@@ -406,7 +406,7 @@ switch ($acao) {
   case 'pendente_tirar': { // "não vai fazer agora": a criança sai de "Falta finalizar" em todos os aparelhos (voltar = o Desfazer do aviso)
     // 1.25: e fica registrado como atendimento cancelado, com o nome da atendente e o motivo (a gestora recebe o aviso). Sem id: o cadastro pela metade
     $u = exigir(); $id = (int)($in['id'] ?? 0); $c = $id ? crianca($id) : null; if ($id && (!$c || !$c['ativo'])) falha('Criança não encontrada.', 404);
-    if (!empty($in['voltar'])) { if ($id) { $f = pendFora(); unset($f[$id]); gravarCfg('pend_fora', $f); } if (!empty($in['cancelamento'])) tirarCancelamentoAtendimento((int)$in['cancelamento'], (int)($in['registro'] ?? 0), $u);
+    if (!empty($in['voltar'])) { exigirDesfazer($u); if ($id) { $f = pendFora(); unset($f[$id]); gravarCfg('pend_fora', $f); } if (!empty($in['cancelamento'])) tirarCancelamentoAtendimento((int)$in['cancelamento'], (int)($in['registro'] ?? 0), $u);
       elseif ($id) { $q = $db->prepare("SELECT id FROM cancelamentos WHERE crianca_id = ? AND tipo = 'atendimento' AND por = ? AND quando >= ? ORDER BY id DESC LIMIT 1"); $q->execute([$id, (int)$u['id'], date('Y-m-d H:i:s', time() - 600)]); $k = (int)$q->fetchColumn();   // (sem o número: o último dele, desta criança)
         if ($k) { $q = $db->prepare("SELECT id FROM registros WHERE crianca_id = ? AND tipo = 'canc' AND texto LIKE 'Atendimento cancelado%' ORDER BY id DESC LIMIT 1"); $q->execute([$id]); tirarCancelamentoAtendimento($k, (int)$q->fetchColumn(), $u); } }
       responder(); }
@@ -422,7 +422,7 @@ switch ($acao) {
     responder(['avisos' => avisosDaGestora($u)]);   // 1.25: os avisos que ainda faltam ver (o cartão da gestora)
   }
   case 'desfazer_saida': {
-    $us = modoManual() ? exigir() : exigir(['gestor', 'supervisor']); $c = crianca((int)($in['id'] ?? 0)); if (!$c) falha('Nada para desfazer.');
+    $us = modoManual() ? exigir() : exigir(['gestor', 'supervisor']); exigirDesfazer($us); $c = crianca((int)($in['id'] ?? 0)); if (!$c) falha('Nada para desfazer.');
     $q = $db->prepare('SELECT * FROM visitas WHERE id = ? AND crianca_id = ?'); $q->execute([(int)($in['visita'] ?? 0), $c['id']]); $v = $q->fetch(); if (!$v) falha('Nada para desfazer.');
     if (time() - strtotime((string)$v['saiu']) > 120) falha('O tempo de desfazer esta saída já passou.');
     $estorna = podeEstornar($us);
@@ -569,8 +569,8 @@ switch ($acao) {
     $db->prepare("UPDATE cupons SET status = 'cancelado', resolvido_em = ?, resolvido_por = ? WHERE id = ? AND status = 'cancelar'")->execute([agora(), primeiroNome((string)$u['nome']), (int)$k['id']]);
     responder(['cupom' => cupomPublico(cupom((int)$k['id']))]);
   }
-  case 'cupom_voltar': { // desfaz a marcação (toque errado): qualquer um nos 10 min seguintes; gestor e supervisor, a qualquer hora
-    $u = exigir(); $k = cupom((int)($in['id'] ?? 0)); if (!$k) falha('Cupom não encontrado.', 404);
+  case 'cupom_voltar': { // desfaz a marcação (toque errado). 1.26: só o gestor (com a regra 'desfazer' = 'todos': qualquer um nos 10 min, gestor e supervisor a qualquer hora)
+    $u = exigir(); exigirDesfazer($u); $k = cupom((int)($in['id'] ?? 0)); if (!$k) falha('Cupom não encontrado.', 404);
     if (!in_array($k['status'], ['emitido', 'sem', 'cancelado'], true)) falha('Nada para desfazer neste cupom.', 409);
     if ($u['papel'] === 'atendente' && (!$k['resolvido_em'] || time() - strtotime((string)$k['resolvido_em']) > 600)) falha('Já passou de 10 min: agora só Gestor ou Supervisor desfaz a marcação do cupom.', 403);
     if ($k['status'] === 'cancelado') $db->prepare("UPDATE cupons SET status = 'cancelar', resolvido_em = NULL, resolvido_por = '' WHERE id = ?")->execute([(int)$k['id']]);
@@ -586,7 +586,7 @@ switch ($acao) {
   }
   case 'devolver': { // o carrinho (ou o fusquinha) voltou para a loja: sai da lista. voltar = o Desfazer do aviso (só nos 10 min seguintes)
     $u = exigir(); $c = crianca((int)($in['crianca'] ?? 0)); if (!$c || !$c['ativo']) falha('Criança não encontrada.', 404);
-    if (!empty($in['voltar'])) {
+    if (!empty($in['voltar'])) { exigirDesfazer($u);
       $ids = array_values(array_filter(array_map('intval', (array)($in['vendas'] ?? [])))); if (!$ids) falha('Nada para desfazer.');
       if (!podeEstornar($u)) { // 1.21: a devolução que recebeu (o tempo do fusquinha, o tempo a mais, o que tinha ficado a pagar) não é desfeita por quem não estorna
         $qv = $db->prepare('SELECT MIN(voltou) FROM vendas WHERE id IN (' . implode(',', $ids) . ") AND crianca_id = ? AND alug != '' AND voltou IS NOT NULL"); $qv->execute([(int)$c['id']]); $volt = (string)$qv->fetchColumn();
@@ -619,7 +619,7 @@ switch ($acao) {
   }
   case 'receber': { // 1.02: recebe agora o que ficou a pagar (sem esperar a saída). voltar = o Desfazer do aviso
     $u = exigir(); $c = crianca((int)($in['id'] ?? 0)); if (!$c || !$c['ativo']) falha('Criança não encontrada.', 404);
-    if (!empty($in['voltar'])) {
+    if (!empty($in['voltar'])) { exigirDesfazer($u);
       if (!podeEstornar($u)) falha('Pagamento recebido: só ' . quemEstorna() . ' desfaz.', 403);   // 1.21
       if (!isset($in['pag_de'])) falha('Nada para desfazer.');
       $q = $db->prepare('DELETE FROM pagamentos WHERE crianca_id = ? AND id > ? AND quando >= ?'); $q->execute([(int)$c['id'], (int)$in['pag_de'], date('Y-m-d H:i:s', time() - 180)]);
@@ -727,7 +727,7 @@ switch ($acao) {
     responder(['pedidos' => array_map('pedidoPublico', $q->fetchAll())]);
   }
   case 'desfazer_venda': {
-    $u = exigir(); $ids = array_values(array_unique(array_filter(array_map('intval', array_merge((array)($in['vendas'] ?? []), [(int)($in['venda'] ?? 0)])))));
+    $u = exigir(); exigirDesfazer($u); $ids = array_values(array_unique(array_filter(array_map('intval', array_merge((array)($in['vendas'] ?? []), [(int)($in['venda'] ?? 0)])))));
     $q = $db->prepare('SELECT * FROM vendas WHERE id = ?'); $tempoDe = []; $alvo = [];   // criança => minutos de brincar desfeitos
     foreach ($ids as $vid) {
       $q->execute([$vid]); $v = $q->fetch(); if (!$v) continue;

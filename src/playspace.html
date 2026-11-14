@@ -1417,7 +1417,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.25';
+const VERSAO = '1.26';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -1567,6 +1567,11 @@ const supervisorOuMais = () => EU.papel === 'gestor' || EU.papel === 'supervisor
 const quemEstornaCfg = () => (S.cfg && S.cfg.estorno) || 'gestor';
 const podeEstornar = () => gestor() || quemEstornaCfg() === 'todos' || (quemEstornaCfg() === 'supervisor' && EU.papel === 'supervisor');
 const quemEstorna = () => quemEstornaCfg() === 'supervisor' ? 'o gestor ou o supervisor' : 'o gestor';
+// 1.26: o botão Desfazer é só do gestor (pedido do dono). O operador e o supervisor não têm o Desfazer em nada (a entrada, a saída, a
+// devolução, a venda, o recebimento, o voucher, a sapateira, o "não vai fazer agora", a marcação do cupom): se erraram, a entrada ainda
+// se cancela nos primeiros minutos (com o motivo e o nome da atendente), a venda pelo pedido de cancelamento, e o resto com o gestor.
+// O servidor também recusa. A regra 'desfazer' = 'todos' (não aparece em Ajustes) volta ao jeito da 1.25.
+function mostraDesfazer() { return gestor() || !!(S.cfg && S.cfg.desfazer === 'todos'); }
 const MOTIVO_DESFEITA = 'DESFEITA NA HORA (TOQUE ERRADO)';
 const cancTipo = x => (x && x.tipo) || (cancAlug(x) ? 'aluguel' : '');   // '' = a entrada cancelada; 'desfeita' = desfeita na hora; 'aluguel' = a saída do carrinho; 'venda'
 const cancFechaVisita = x => cancTipo(x) === '';   // só o cancelamento da ENTRADA fecha a visita (as vendas de antes deixam de ser dela)
@@ -3288,7 +3293,7 @@ function folhaCupons() { abrirFolha('Cupons fiscais', `<p class="explica">Cada p
 function folhaCupom(id, novo) {
   const k = cupomDe(id); if (!k || !comCupom()) { if (!novo) folhaCupons(); return; }
   const c = crianca(k.crianca), [rot, cls] = CUPOM_ST[k.status] || CUPOM_ST.pendente, doc = docCupom(k);
-  const volta = (supervisorOuMais() || (k.em && agora - k.em < 600000)) ? `<button type="button" class="link tap cp-depois" data-act="cupom-voltar" data-id="${k.id}">Desfazer esta marcação</button>` : '';
+  const volta = mostraDesfazer() && (supervisorOuMais() || (k.em && agora - k.em < 600000)) ? `<button type="button" class="link tap cp-depois" data-act="cupom-voltar" data-id="${k.id}">Desfazer esta marcação</button>` : '';
   const corpo = k.status === 'pendente' ? `
       <div class="campo"><label for="cp-num">Número do cupom <span class="leve">· opcional, ajuda a conferir depois</span></label><input id="cp-num" inputmode="numeric" maxlength="20" autocomplete="off" placeholder="Ex.: 001234"></div>
       ${supervisorOuMais() ? `<details class="outro" id="cp-sem"><summary>A máquina não emitiu? Deixar este pagamento sem cupom</summary><div class="campo" style="margin-top:8px"><label for="cp-motivo">Motivo<span class="obg" aria-hidden="true">*</span></label><input id="cp-motivo" maxlength="200" autocomplete="off" placeholder="Ex.: a máquina ficou sem papel"></div><div class="acoes"><button type="button" class="bt claro tap" data-act="cupom-sem" data-id="${k.id}" style="color:var(--erro)">Registrar sem cupom</button></div><p class="explica">Fica anotado em "Hoje na recepção", com o seu nome.</p></details>` : ''}
@@ -3632,6 +3637,7 @@ let TOAST_ACAO = null;
 // 1.08: a faixa de baixo é só para o que precisa de atenção: um erro, o que falta para continuar, uma recusa, uma informação pedida.
 // O que deu certo não passa mais por aqui: passa por deuCerto(), logo abaixo.
 function toast(txt, desfazer, rotulo) { // com rotulo, o botão faz uma ação (ex.: "Chamar no WhatsApp") em vez de desfazer
+  if (desfazer && !rotulo && !mostraDesfazer()) desfazer = null;   // 1.26: o Desfazer é só do gestor (o aviso continua, sem o botão)
   const t = $('#toast'), d = $('#dito'); DESFAZ = rotulo ? null : (desfazer || null); TOAST_ACAO = rotulo ? desfazer : null; t.classList.remove('so-bt'); if (d) d.textContent = '';
   t.innerHTML = `<span>${esc(txt)}</span>${rotulo ? `<button type="button" data-act="toast-acao">${esc(rotulo)}</button>` : (desfazer ? '<button type="button" data-act="desfazer">Desfazer</button>' : '')}`;
   t.classList.add('ve'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('ve'), rotulo ? 10000 : desfazer ? 6000 : 2400);
@@ -3640,6 +3646,7 @@ function toast(txt, desfazer, rotulo) { // com rotulo, o botão faz uma ação (
 // Se a ação tem como desfazer, aparece só o botão Desfazer, por alguns segundos, sem texto. O texto vai para o leitor de tela (#dito)
 // e para a dica do botão (para quem parar o mouse nele saber o que será desfeito).
 function deuCerto(txt, desfazer, ms = 6000) {   // ms: quanto tempo o botão Desfazer fica (a limpeza dos cadastros pede mais)
+  if (desfazer && !mostraDesfazer()) desfazer = null;   // 1.26: o Desfazer é só do gestor: para os outros, nada aparece embaixo
   const t = $('#toast'), d = $('#dito'); if (d) { d.textContent = txt || ''; d.dataset.em = Date.now(); }
   DESFAZ = desfazer || null; TOAST_ACAO = null; clearTimeout(toastT);
   if (!desfazer) { t.classList.remove('ve'); return; }
@@ -5658,7 +5665,7 @@ function telaAjustes() {
       <div class="campo"><label>Tolerância entre um período e outro</label>${seg('tolerancia', [[0, 'Nenhuma'], [5, '5 min'], [9, '9 min'], [10, '10 min'], [15, '15 min']], tolerancia())}<span class="explica">Passou disso, conta <b>mais um período</b>${st ? ` (${precoServ(st)})` : ''}. Na recreação avulsa ele entra na conta da saída; quem tem pacote usa as horas dele e, se elas acabaram, o período vira <b>cobrança além do pacote</b>, com aviso em todas as telas. Depois de cada período novo, a tolerância vale de novo.</span></div>
       <div class="campo"><label>No cupom, o cliente lê tolerância de</label>${seg('tolCupom', [[0, 'Não mostrar'], [5, '5 min'], [9, '9 min'], [10, '10 min'], [15, '15 min']], tolCupom())}<span class="explica">É só o que sai escrito no cupom impresso. A conta do sistema continua com a tolerância de cima: a diferença é a folga da loja para os dias de fila.</span></div>
       <div class="campo"><label>Cancelar a entrada sem cobrar</label>${seg('cancelaMin', [[0, 'Não cancela'], [5, 'Até 5 min'], [9, 'Até 9 min'], [10, 'Até 10 min'], [15, 'Até 15 min']], cancelaLim())}<span class="explica">Nesse prazo, contado da entrada, o próprio operador cancela e nada é cobrado, mas precisa escrever o motivo. Passou do prazo, a opção some e ninguém cancela mais (nem o gestor): o período é cobrado. ${supervisorOuMais() ? `<button class="link tap" data-act="cancelamentos">Ver os cancelamentos${aConferir().length ? ' (' + aConferir().length + ' para conferir)' : ''}</button>` : ''}</span></div>
-      <div class="campo" id="aj-estorno"><label>Quem desfaz ou cancela o que já tem valor</label>${seg('estorno', [['gestor', 'Só o gestor'], ['supervisor', 'Gestor e supervisor'], ['todos', 'Toda a equipe']], quemEstornaCfg())}<span class="explica">Vale para a venda registrada, o pagamento recebido e a saída ou a devolução que receberam. <b>Quem não está aqui não tem o botão Desfazer nessas horas</b>: se errou, chama ${quemEstorna()}, que cancela a venda no histórico do cliente, com o motivo (a tela diz o que devolver). A entrada que ele desfaz na hora continua saindo com um toque, mas fica na lista de conferência, no nome dele. “Toda a equipe” é como era até a versão 1.20.</span></div>
+      <div class="campo" id="aj-estorno"><label>Quem desfaz ou cancela o que já tem valor</label>${seg('estorno', [['gestor', 'Só o gestor'], ['supervisor', 'Gestor e supervisor'], ['todos', 'Toda a equipe']], quemEstornaCfg())}<span class="explica">Vale para a venda registrada, o pagamento recebido e a saída ou a devolução que receberam: quem não está aqui, se errou, chama ${quemEstorna()}, que cancela a venda no histórico do cliente, com o motivo (a tela diz o que devolver). <b>O botão Desfazer é só do gestor</b>: o operador e o supervisor não têm o Desfazer em nada. A entrada errada eles ainda cancelam nos primeiros minutos, pela ficha, com o motivo e o nome da atendente.</span></div>
       <div class="campo"><label>Reabrir a visita depois da saída</label>${seg('reabreMin', [[0, 'Não reabre'], [15, 'Até 15 min'], [30, 'Até 30 min'], [60, 'Até 1 hora']], reabreLim())}<span class="explica">Para quando a criança sai e volta logo em seguida (chorou e o responsável deixou ficar mais). Nesse prazo, quem saiu aparece em <b>Saíram há pouco</b>, na tela inicial, com o botão <b>Reabrir</b>: a saída é desfeita e o tempo continua contando desde a entrada, como se não tivesse saído. Fica anotado em Hoje na recepção, com quem reabriu. Passou do prazo, é uma entrada nova.</span></div>
       <div class="campo"><label>A loja fecha às</label>${seg('fecha', [[20, '20h'], [21, '21h'], [22, '22h'], [23, '23h'], [24, 'Meia-noite']], +cfg.fecha || 22)}<span class="explica">Depois dessa hora o tempo para de contar. Assim uma saída esquecida não vira cobrança a noite toda (o gestor corrige a hora da visita depois, na ficha da criança).</span></div>
       <div class="campo"><label>Marcar "acabando" quando faltar</label>${seg('aviso', [[5, '5 min'], [10, '10 min'], [15, '15 min'], [30, '30 min'], [60, '1 hora']], cfg.aviso)}<span class="explica">Vale para quem entrou com pacote: a criança fica em amarelo na lista do espaço quando as horas dele estão no fim, só para a equipe ver. Na recreação avulsa não há prazo. Nada é enviado ao responsável.</span></div>
@@ -5813,7 +5820,8 @@ const ACOES = {
   'cadastro-zero': () => { RASC_CAD = RASC_CAD.filter(x => x.k !== CAD_K); salvarEtapas(); ETAPA_FEITA = true; folhaCrianca(null); desenhar(true); },
   atualizar: () => ATU.nova ? folhaAtualizar() : conferirAtualizacao(true),
   'atualizar-agora': el => atualizarAgora(el),
-  desfazer: () => { const f = DESFAZ;
+  desfazer: () => { if (!mostraDesfazer()) { DESFAZ = null; clearTimeout(toastT); $('#toast').classList.remove('ve'); return; }   // 1.26: (a tela trocou de papel com o botão aberto)
+    const f = DESFAZ;
     if (f && f.atd && pedeAtendente()) { DESFAZ = null; clearTimeout(toastT); $('#toast').classList.remove('ve');   // 1.25: o Desfazer que fica registrado pede o nome antes
       const sapE = SAP_ENT; SAP_ENT = null; const fp = $('#folha .folha-fundo:not(.saindo)'), seguinte = PAPEL && PAPEL.depois && fp && $('#tk-previa', fp) ? PAPEL.depois : null; if (seguinte) PAPEL.depois = null;   // (o cupom que estava na tela tinha um passo seguinte: a saída que reabre)   // (a pergunta da sapateira que estava aberta fica parada: desfeita a entrada, não há cupom; se a atendente desistir, ela volta)
       folhaAtendente({ titulo: 'Desfazer', texto: `<b>${esc(f.atd)}.</b> Fica registrado, com o seu nome, e a gestora recebe o aviso.`, botao: `${ic(IC.desfaz, 18, 2.6)} Desfazer`,
@@ -5836,7 +5844,7 @@ const ACOES = {
   'cupom-ok': el => { el.disabled = true; marcarCupom(+el.dataset.id, 'emitido', { numero: el.dataset.lista ? '' : val('cp-num') }, !!el.dataset.lista); },
   'cupom-cancelado': el => { el.disabled = true; marcarCupom(+el.dataset.id, 'cancelado', {}, !!el.dataset.lista); },
   'cupom-sem': el => { const m = val('cp-motivo'); if (m.length < 5) { toast('Escreva o motivo: por que este pagamento fica sem cupom?'); const i = $('#cp-motivo'); if (i) i.focus(); return; } marcarCupom(+el.dataset.id, 'sem', { motivo: m }); },
-  'cupom-voltar': el => marcarCupom(+el.dataset.id, 'voltar', {}),
+  'cupom-voltar': el => { if (mostraDesfazer()) marcarCupom(+el.dataset.id, 'voltar', {}); },
   'saida-pacote': el => { SAI_VOLTA = SAI && $('#sg-ok') ? { base: +el.dataset.id, fora: new Set(SAI.fora), foraA: new Set(SAI.foraA || []), alug: [...(SAI.alug || [])] } : { base: +el.dataset.id, fora: new Set(), foraA: new Set(), alug: [] };   /* 1.25: a volta é pela criança que reabre a folha; o carrinho que sair agora não entra na conta */ AV_VOLTA = { base: +el.dataset.id, ids: new Set(AV) }; atender(+el.dataset.id, false, null, true); },
   'saida-avulso': el => { const on = el.dataset.v === '1';   /* 1.11: descontar do pacote, ou pagar avulso */
     if (SAI && $('#sg-ok')) { SAI.av = on; AV = on ? new Set(SAI.ids) : new Set(); atualizarGrupo(); return; }
