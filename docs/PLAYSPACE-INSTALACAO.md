@@ -37,9 +37,9 @@ Na prévia (sem servidor) o mesmo botão existe e faz a mesma coisa na própria 
 
 | Papel | O que faz |
 |---|---|
-| **Gestor** | Tudo: regra das horas, serviços, pacotes, produtos, equipe, iDFace. Pode remover crianças; **cadastro com horas guardadas, só o Gestor remove, e confirmando** (seção 6r). **É quem desfaz e cancela o que já tem valor** (1.21, seção 6z). |
-| **Supervisor** | Tudo da loja (horas, cadastro, agenda) e *vê* os Ajustes, mas não os altera. **Confere as entradas canceladas**, cancela uma entrada mesmo fora do prazo e **corrige a hora de uma saída esquecida**. |
-| **Operador** (até a 1.20 chamava-se Atendente) | O dia a dia da recepção: cadastro, entrada, venda, saída, devolução, receber e agenda. Não vê Ajustes, não muda preço nem cadastro, não dá desconto por conta própria (pede ao gestor: seção 6zb). Cancela uma entrada sem cobrar só dentro do prazo (9 min), escrevendo o motivo. **Não desfaz o que tem valor** (1.21, seção 6z): a venda registrada só sai pelo cancelamento do Gestor, com o motivo. |
+| **Gestor** | Tudo: regra das horas, serviços, pacotes, produtos, equipe, iDFace. Pode remover crianças; **cadastro com horas guardadas, só o Gestor remove, e confirmando** (seção 6r). **É quem desfaz e cancela o que já tem valor** (1.21, seção 6z) e, desde a 1.26, **o único com o botão Desfazer** (seção 6ze). |
+| **Supervisor** | Tudo da loja (horas, cadastro, agenda) e *vê* os Ajustes, mas não os altera. **Confere as entradas canceladas**, cancela uma entrada mesmo fora do prazo e **corrige a hora de uma saída esquecida**. Desde a 1.26 não tem o botão Desfazer (seção 6ze). |
+| **Operador** (até a 1.20 chamava-se Atendente) | O dia a dia da recepção: cadastro, entrada, venda, saída, devolução, receber e agenda. Não vê Ajustes, não muda preço nem cadastro, não dá desconto por conta própria (pede ao gestor: seção 6zb). Cancela uma entrada sem cobrar só dentro do prazo (9 min), escrevendo o motivo. **Não desfaz o que tem valor** (1.21, seção 6z): a venda registrada só sai pelo cancelamento do Gestor, com o motivo. Desde a 1.26 não tem o botão **Desfazer** em nada (seção 6ze). |
 
 A gestora cadastra cada pessoa com nome, login e senha inicial. Cada um troca a própria senha no avatar (canto inferior esquerdo no computador, aba **Conta** no celular) → *Trocar a senha*. Para redefinir a senha de alguém, a gestora edita a pessoa e digita uma senha nova.
 
@@ -74,7 +74,7 @@ Enquanto a loja não usa o iDFace, a **leitura fica desligada** (Ajustes → iDF
 - **Todo cliente tem o botão Entrada** na busca da tela inicial e na ficha: quem tem horas usa as horas; quem não tem entra na recreação avulsa.
 - **Depois de cada entrada pela tela abre a pergunta da sapateira (1.16, seção 6a)**: um toque no número, ou **Sem sapateira**; em seguida sai o cupom da entrada.
 - Quem está no espaço tem o botão **Saída** na linha da lista e na ficha. O toque abre o **Pagamento da saída** (seção 6r): de quem é, quanto ficou e como a visita é paga: com as horas do cliente ou, na recreação avulsa, com o valor do tempo que ficou e a forma de pagamento. O segundo toque confirma. São dois toques de propósito: com 40 crianças na lista, um toque errado não tira a criança errada. A saída libera a sapateira e avisa onde está o sapato.
-- Qualquer pessoa da equipe (inclusive o Operador) marca entrada e saída; logo depois de cada uma aparece, por alguns segundos, o botão **Desfazer** (1.08: só o botão, sem texto; seção 6c). O Desfazer é para o toque errado e só vale nos instantes seguintes (o servidor aceita até 2 minutos); depois disso, tirar uma entrada é pelo **cancelamento com motivo** (seção 6e). **Desde a 1.21**, para quem não é o Gestor, o Desfazer só existe no que não tem valor, e a entrada que ele desfaz fica registrada (seção 6z).
+- Qualquer pessoa da equipe (inclusive o Operador) marca entrada e saída. **Para o Gestor**, logo depois de cada uma aparece, por alguns segundos, o botão **Desfazer** (1.08: só o botão, sem texto; seção 6c). O Desfazer é para o toque errado e só vale nos instantes seguintes (o servidor aceita até 2 minutos); depois disso, tirar uma entrada é pelo **cancelamento com motivo** (seção 6e). **Desde a 1.26 o Desfazer é só do Gestor** (seção 6ze): o Operador e o Supervisor não têm o botão; a entrada errada eles cancelam pela ficha, no prazo, com o motivo e o nome da atendente.
 - Somem da tela as coisas que só fazem sentido com o aparelho: acesso autorizado/bloqueado, "falta o rosto" e os avisos de aparelho sem contato.
 
 Para passar a usar o aparelho: Ajustes → iDFace → **Ligar o iDFace**. Os botões Entrada e Saída somem (fica só a saída de correção para Gestor e Supervisor) e o rosto volta a mandar.
@@ -309,7 +309,7 @@ O atendimento tem três etapas: **cadastro**, **escolher o serviço** e **regist
 - **Tocar no cliente em qualquer lugar** (a busca da tela inicial, o Banco de horas, o histórico) faz a mesma coisa: enquanto o atendimento está em aberto, o toque abre o atendimento, não a ficha. O botão **Atender**/**Vender** vira **Continuar**. Para ver a ficha mesmo assim, o atendimento tem o atalho **Ver a ficha**.
 - **Criança que já está no espaço** e ficou com uma venda pela metade (ex.: mais 30 min): ela aparece na faixa, e o toque na linha dela continua abrindo a ficha, que mostra o aviso **Atendimento em aberto** com o botão **Continuar**.
 - **Fechou sem terminar?** Um aviso diz que ficou guardado e traz o botão **Continuar**. Dentro do atendimento retomado, **Começar do zero** limpa o que estava escolhido.
-- **Não vai fazer agora** (o cliente desistiu): o **✕** da linha tira da faixa (aparece o botão Desfazer). Daí em diante o toque naquele cliente volta a abrir a ficha.
+- **Não vai fazer agora** (o cliente desistiu): o **✕** da linha tira da faixa (para o Gestor, aparece o botão Desfazer; seção 6ze). Daí em diante o toque naquele cliente volta a abrir a ficha.
 - **Registrou a venda**, sai da faixa. Se a venda for desfeita no aviso, o que estava escolhido volta.
 - **Tudo vale até o fim do dia.** No dia seguinte a faixa começa vazia; o cadastro que ficou sem venda continua no Banco de horas, como qualquer cliente.
 
@@ -406,7 +406,7 @@ Produtos que já vêm instalados (os da tela "Produtos disponíveis" do sistema 
 - **O tempo fora também conta.** Antes de confirmar, a folha mostra até quando ia o tempo comprado e, se o tempo fora fez a visita precisar de mais um período, quanto de recreação entra a mais na conta ao reabrir, e o valor.
 - **Fica anotado** em Hoje na recepção: a linha da saída ganha "visita reaberta às 15:06" e entra uma linha nova com a hora da saída desfeita, quanto tempo ficou fora e **quem reabriu**.
 - Qualquer pessoa da equipe reabre dentro do prazo (com o iDFace ligado, só gestor e supervisor, como na saída à mão). Se depois daquela saída houve uma entrada cancelada, não reabre: aí é entrada nova.
-- O botão **Desfazer** que aparece depois da saída (os primeiros segundos) continua existindo, para o toque errado.
+- O botão **Desfazer** que aparece depois da saída (os primeiros segundos) continua existindo, para o toque errado (desde a 1.26, só para o Gestor: seção 6ze).
 
 ## 6n. Tudo o que é digitado fica em maiúsculas
 
@@ -445,7 +445,7 @@ O que vem abaixo vale para os carrinhos em geral; onde fala em **tempo comprado*
 - **Com tempo comprado** (o fusquinha, vendido a cada meia hora): o relógio fica amarelo quando faltam 10 min e vermelho quando passa do tempo comprado, com o "passou 7 min" embaixo, também em vermelho (desde a 1.05 a linha não fica mais toda vermelha; na ficha, a linha do carrinho também não). Parando o mouse no relógio aparece até que horas vai, ou quanto passou. **Mais um período do mesmo fusquinha soma o tempo na mesma linha.**
 - **Sem hora para voltar** (o carrinho de bebê, valor único): a linha só conta o tempo.
 - **De outro dia**: se ninguém marcou a devolução, a linha continua na lista, no começo, com o dia em que saiu escrito em vermelho no lugar do relógio.
-- **Devolveu**: um toque, na linha ou na comanda da criança. O carrinho sai da lista e fica anotado em **Hoje na recepção**: "CARRINHO FUSQUINHA · devolvido · ficou 0h44 · tempo comprado: 0h30 (passou 14 min) · por JOÃO". Depois do toque aparece o botão **Desfazer**, por alguns segundos.
+- **Devolveu**: um toque, na linha ou na comanda da criança. O carrinho sai da lista e fica anotado em **Hoje na recepção**: "CARRINHO FUSQUINHA · devolvido · ficou 0h44 · tempo comprado: 0h30 (passou 14 min) · por JOÃO". Depois do toque aparece o botão **Desfazer**, por alguns segundos (desde a 1.26, só para o Gestor: seção 6ze).
 - **Devolução com pagamento (1.00):** se o que foi alugado por tempo (o fusquinha) **passou do tempo comprado**, o toque em **Devolveu** abre o **Pagamento da devolução**: quanto ficou fora, quanto passou e o valor a receber (períodos inteiros, com a mesma tolerância da recreação). A devolução só fecha com a forma de pagamento (Pix, dinheiro, crédito ou débito, em até três formas). Dentro do tempo, ou no carrinho de valor único, devolve direto com um toque. O **Desfazer** do aviso põe o carrinho de volta na lista e desfaz o que foi cobrado. **1.02:** o carrinho registrado com "Paga na devolução" também abre o pagamento ao tocar em Devolveu, com o valor que ficou a pagar. **1.03:** a tela da devolução segue a mesma ordem das outras: Detalhes, a tabela com o carrinho (quando saiu, quanto ficou fora, quanto tempo foi comprado) e o **Tempo a mais**, o Total a receber e as formas de pagamento.
 - Quem leva só o carrinho **não entra no espaço**: aparece na lista só a linha do carrinho. Se a criança também está na recreação, as duas linhas ficam juntas, na moldura da família.
 - Se a venda for desfeita (ou deixar de ser cobrada num cancelamento de entrada), o carrinho sai da lista sozinho.
@@ -831,6 +831,8 @@ Pedido do dono: um usuário do tipo operador, com acesso só ao que ele precisa,
 
 **O que muda para quem não estorna (o operador e, de fábrica, o supervisor):**
 
+**Desde a 1.26 o botão Desfazer é só do Gestor (seção 6ze):** onde a tabela diz "aparece", vale para o Gestor; o operador e o supervisor não têm o botão em nenhuma das linhas.
+
 | O que ele fez | O botão Desfazer | Se precisar mesmo voltar atrás |
 |---|---|---|
 | Venda com valor (paga ou a receber) | **não aparece** | o Gestor cancela a venda no histórico do cliente, com o motivo |
@@ -926,9 +928,11 @@ No servidor: banco **31**, com o nome da atendente e a unidade em `cancelamentos
 
 O botão **Desfazer** (o que aparece embaixo por alguns segundos depois de cada ação) agora é **só do gestor**. O operador e o supervisor não veem o Desfazer em nada: a entrada, a saída, a devolução do carrinho, a venda, o recebimento, o voucher, a troca de sapateira, o "não vai fazer agora" e o "Desfazer esta marcação" do cupom fiscal. Para eles, a ação é feita e a tela mostra o resultado, sem o botão embaixo (os avisos de erro e os botões como **Ver o histórico** continuam).
 
-Quem não é gestor e errou: a entrada errada ainda se cancela nos primeiros minutos, pela ficha, com o motivo e o nome da atendente (a gestora recebe o aviso); a venda com valor, pelo pedido de cancelamento (a gestora libera com um toque); o resto, chamando o gestor, que tem o Desfazer, o **Reabrir** e o histórico do cliente.
+Quem não é gestor e errou: a entrada errada ainda se cancela nos primeiros minutos, pela ficha, com o motivo e o nome da atendente (a gestora recebe o aviso), enquanto **Cancelar a entrada sem cobrar** não estiver em "Não cancela". A saída dada por engano volta pelo **Reabrir**, no prazo (seção 6m: sem o iDFace, qualquer pessoa da equipe reabre). A venda com valor sai pelo pedido de cancelamento (a gestora libera com um toque). O pagamento recebido por engano, a gestora cancela no histórico do cliente, com o motivo.
 
-No servidor, as ações de desfazer (`desfazer_entrada`, `desfazer_saida`, `desfazer_venda`, `devolver` e `receber` com `voltar`, `pendente_tirar` com `voltar` e `cupom_voltar`) recusam quem não é gestor ("Só o gestor desfaz"), inclusive quando o pedido vem de uma tela antiga que ficou aberta num aparelho. Para voltar ao jeito da 1.25, a regra guarda `desfazer: "todos"` (não aparece em Ajustes).
+O Desfazer do gestor vale para o que ele mesmo fez, no aparelho dele e nos segundos seguintes: não alcança o que foi feito no aparelho do operador. A devolução marcada no carrinho errado não tem como voltar para a lista (nem pela gestora): confira o carrinho antes de tocar em **Devolveu**.
+
+No servidor, as ações de desfazer (`desfazer_entrada`, `desfazer_saida`, `desfazer_venda`, `devolver` e `receber` com `voltar`, `pendente_tirar` com `voltar` e `cupom_voltar`) recusam quem não é gestor ("Só o gestor desfaz"), inclusive quando o pedido vem de uma tela antiga que ficou aberta num aparelho. A regra aceita `desfazer: "todos"` (o jeito da 1.25), que não aparece em Ajustes e nenhuma ação grava: existe para os testes dos roteiros antigos (tabela `config`, chave `regra`).
 
 ## 7. Atualizar
 
