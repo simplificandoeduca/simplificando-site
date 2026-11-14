@@ -84,6 +84,7 @@ function dados(array $eu): array {
     'idface' => idfaceEstado(), 'whats' => whatsResumo(), 'agora' => agora(), 'exemplo' => ($ex = cfg('exemplo', null)) && is_array($ex) ? count($ex['criancas'] ?? []) : 0,
     'limpeza' => $eu['papel'] === 'gestor' ? ['oferta' => cfg('limpeza_oferta', null) !== null, 'ultima' => limpezaPublica()] : null,
     'importacao' => $eu['papel'] === 'gestor' ? importacaoLeve() : null,
+    'avisos' => avisosDaGestora($eu), 'painel' => $eu['papel'] === 'gestor' ? painelDoDia() : null, 'finalizados' => finalizadosDoDia(),   // 1.25: o que a gestora ainda não viu, o dia de cada unidade, e os finalizados do dia
     'pedidos' => pedidosDaTela($eu), 'nf_emitir' => $eu['papel'] === 'atendente' ? 0 : (int)$db->query("SELECT COUNT(*) FROM pedidos WHERE tipo = 'nf' AND status = 'liberado'")->fetchColumn()];   // 1.23: os pedidos de autorização desta tela, e quantas notas autorizadas esperam o número   // 0.98: só o gestor recebe (é ele quem limpa e quem desfaz)
 }
 // quem a equipe tirou de "Falta finalizar" hoje: [id da criança => dia]. O que é de outro dia não conta mais
@@ -183,7 +184,7 @@ switch ($acao) {
     $d .= '|' . $db->query("SELECT COUNT(*) || ':' || COALESCE(SUM(ativo), 0) || ':' || COALESCE(SUM(LENGTH(nome)), 0) || ':' || COALESCE(MAX(mudou_em), '') FROM unidades")->fetchColumn();   // 1.06: unidade nova, com outro nome ou removida
     $d .= '|' . $db->query("SELECT COALESCE(SUM(status = 'liberado'), 0) || ':' || COALESCE(SUM(status = 'usado'), 0) FROM pedidos WHERE tipo = 'nf'")->fetchColumn();   // 1.23: nota fiscal autorizada ou emitida
     acertarCupons(); $d .= '|' . pulsoCupons();   // 0.93: o cupom fiscal de cada pagamento (nasceu, foi marcado, ou a venda foi desfeita)
-    responder(['p' => md5("$a|$b|$c|$d|$ap|$lig|" . json_encode(whatsResumo()) . '|' . json_encode(regra()) . '|' . (cfg('exemplo') ? 1 : 0) . '|' . json_encode(pendFora()) . '|' . date('Y-m-d')), 'ped' => pedidosDaTela($u)]);   // 1.23: ped = os pedidos de autorização desta tela (chegam mesmo com uma folha aberta)   // quem saiu de "Falta finalizar" e a virada do dia também mudam a tela
+    responder(['p' => md5("$a|$b|$c|$d|$ap|$lig|" . json_encode(whatsResumo()) . '|' . json_encode(regra()) . '|' . (cfg('exemplo') ? 1 : 0) . '|' . json_encode(pendFora()) . '|' . date('Y-m-d')), 'ped' => pedidosDaTela($u), 'av' => avisosDaGestora($u)]);   // 1.25: av = os cancelamentos que a gestora ainda não viu   // 1.23: ped = os pedidos de autorização desta tela (chegam mesmo com uma folha aberta)   // quem saiu de "Falta finalizar" e a virada do dia também mudam a tela
   }
 
   /* ---------- crianças ---------- */
@@ -366,6 +367,7 @@ switch ($acao) {
     // o "Desfazer" do aviso é para o toque errado, nos instantes seguintes; passou disso, a entrada só sai pelo cancelamento, com o motivo
     if (time() - strtotime((string)$c['entrou']) > 120) falha('O tempo de desfazer já passou. Para tirar esta entrada, use "Cancelar entrada" e escreva o motivo.');
     if (!podeEstornar($us)) { // 1.21: quem não estorna não apaga a entrada: ela sai, mas fica registrada no nome dele, na lista de conferência (nada some sem rastro)
+      lerAtendente($in, $us);   // 1.25: com o nome da atendente (a gestora recebe o aviso)
       $k = cancelarEntrada($c, $us, MOTIVO_DESFEITA, [], true);
       responder(['registrado' => true, 'cancelamento' => $k['cancelamento']]);
     }
@@ -396,20 +398,28 @@ switch ($acao) {
     [$lim, , $noPrazo] = prazoCancelar($c);
     // 1.00: passou do prazo, ninguém cancela (nem gestor, nem supervisor), qualquer que seja o motivo: o período é cobrado
     if (!$noPrazo) falha($lim > 0 ? 'Já passou de ' . $lim . ' min da entrada de ' . $c['nome'] . ': a entrada não pode mais ser cancelada. O período é cobrado.' : 'A loja não cancela entradas: o período é cobrado.', 403);
+    lerAtendente($in, $u);   // 1.25
     $r = cancelarEntrada($c, $u, $motivo, isset($in['vendas']) && is_array($in['vendas']) ? array_map('intval', $in['vendas']) : null);
     $r['mensagem'] = is_array($r['mensagem']) ? ['id' => (int)$r['mensagem']['id'], 'erro' => (string)$r['mensagem']['erro']] : null;
     responder($r);
   }
   case 'pendente_tirar': { // "não vai fazer agora": a criança sai de "Falta finalizar" em todos os aparelhos (voltar = o Desfazer do aviso)
-    exigir(); $id = (int)($in['id'] ?? 0); $c = crianca($id); if (!$c || !$c['ativo']) falha('Criança não encontrada.', 404);
-    $f = pendFora(); if (!empty($in['voltar'])) unset($f[$id]); else $f[$id] = date('Y-m-d');
-    gravarCfg('pend_fora', $f); responder();
+    // 1.25: e fica registrado como atendimento cancelado, com o nome da atendente e o motivo (a gestora recebe o aviso). Sem id: o cadastro pela metade
+    $u = exigir(); $id = (int)($in['id'] ?? 0); $c = $id ? crianca($id) : null; if ($id && (!$c || !$c['ativo'])) falha('Criança não encontrada.', 404);
+    if (!empty($in['voltar'])) { if ($id) { $f = pendFora(); unset($f[$id]); gravarCfg('pend_fora', $f); } if (!empty($in['cancelamento'])) tirarCancelamentoAtendimento((int)$in['cancelamento'], (int)($in['registro'] ?? 0), $u);
+      elseif ($id) { $q = $db->prepare("SELECT id FROM cancelamentos WHERE crianca_id = ? AND tipo = 'atendimento' AND por = ? AND quando >= ? ORDER BY id DESC LIMIT 1"); $q->execute([$id, (int)$u['id'], date('Y-m-d H:i:s', time() - 600)]); $k = (int)$q->fetchColumn();   // (sem o número: o último dele, desta criança)
+        if ($k) { $q = $db->prepare("SELECT id FROM registros WHERE crianca_id = ? AND tipo = 'canc' AND texto LIKE 'Atendimento cancelado%' ORDER BY id DESC LIMIT 1"); $q->execute([$id]); tirarCancelamentoAtendimento($k, (int)$q->fetchColumn(), $u); } }
+      responder(); }
+    lerAtendente($in, $u);
+    if ($id) { $f = pendFora(); $f[$id] = date('Y-m-d'); gravarCfg('pend_fora', $f); }
+    responder(cancelarAtendimento($c, $in, $u));
   }
   case 'cancelamento_visto': { // a supervisão conferiu: fica marcado quem viu e quando
     $u = exigir(['gestor', 'supervisor']);
     if (!empty($in['todos'])) $db->prepare("UPDATE cancelamentos SET visto_por = ?, visto_em = ? WHERE visto_em IS NULL")->execute([$u['nome'], agora()]);
+    elseif (!empty($in['ids']) && is_array($in['ids'])) { $ids = array_slice(array_values(array_filter(array_map('intval', $in['ids']))), 0, 100); if ($ids) $db->prepare('UPDATE cancelamentos SET visto_por = ?, visto_em = ? WHERE visto_em IS NULL AND id IN (' . implode(',', $ids) . ')')->execute([$u['nome'], agora()]); }   // 1.25: os avisos que estão no painel
     else $db->prepare("UPDATE cancelamentos SET visto_por = ?, visto_em = ? WHERE id = ? AND visto_em IS NULL")->execute([$u['nome'], agora(), (int)($in['id'] ?? 0)]);
-    responder();
+    responder(['avisos' => avisosDaGestora($u)]);   // 1.25: os avisos que ainda faltam ver (o cartão da gestora)
   }
   case 'desfazer_saida': {
     $us = modoManual() ? exigir() : exigir(['gestor', 'supervisor']); $c = crianca((int)($in['id'] ?? 0)); if (!$c) falha('Nada para desfazer.');
@@ -599,7 +609,7 @@ switch ($acao) {
       if ($tirou) foreach (array_filter(array_map('intval', (array)($in['registros'] ?? []))) as $rid) $db->prepare("DELETE FROM registros WHERE id = ? AND crianca_id = ? AND tipo IN ('venda', 'pag')")->execute([$rid, (int)$c['id']]);
       responder();
     }
-    if (!empty($in['cancelar'])) responder(cancelarAluguel($c, (string)($in['s'] ?? ''), $u, mb_substr(maiusculo((string)($in['motivo'] ?? '')), 0, 300)));   // 1.20: saiu por engano, ou o cliente desistiu: sem cobrar, no prazo, com o motivo
+    if (!empty($in['cancelar'])) { lerAtendente($in, $u); responder(cancelarAluguel($c, (string)($in['s'] ?? ''), $u, mb_substr(maiusculo((string)($in['motivo'] ?? '')), 0, 300))); }   // 1.25: com o nome da atendente   // 1.20: saiu por engano, ou o cliente desistiu: sem cobrar, no prazo, com o motivo
     responder(devolverAluguel($c, (string)($in['s'] ?? ''), $u, lerPagamento($in['pagamento'] ?? null), isset($in['quantos']) ? (int)$in['quantos'] : null));   // 1.22: quantos voltaram agora (dos que saíram juntos)
   }
   case 'receber_previa': { // 1.02: o que há para receber desta criança agora: o que ficou a pagar e as cobranças por atraso
@@ -675,6 +685,7 @@ switch ($acao) {
   }
   case 'venda_cancelar': { // 1.21: quem estorna cancela uma venda registrada, com o motivo (pelo histórico do cliente)
     $u = exigir(); if (!podeEstornar($u)) falha('Só ' . quemEstorna() . ' cancela uma venda.', 403);
+    if (mb_strlen(maiusculo((string)($in['motivo'] ?? ''))) >= 5) lerAtendente($in, $u);   // 1.25 (sem o motivo, o erro é o do motivo)
     responder(cancelarVenda((int)($in['venda'] ?? 0), $u, mb_substr(maiusculo((string)($in['motivo'] ?? '')), 0, 300)));
   }
   /* ---------- 1.23: pedidos de autorização (desconto, cancelar uma venda, nota fiscal) ---------- */
@@ -728,6 +739,8 @@ switch ($acao) {
     if (!podeEstornar($u)) {
       foreach ($alvo as $v) if (vendaPresa($v)) falha('Só ' . quemEstorna() . ' desfaz uma venda com valor: ela é cancelada no histórico do cliente, com o motivo.', 403);
       // a saída do que acerta na devolução (o fusquinha), desfeita na hora, fica registrada como saída cancelada, no nome de quem desfez (como a entrada)
+      $abertos = fn($v) => (string)$v['alug'] !== '' && $v['voltou'] === null && (int)$v['alug_min'] === 0 && (string)$v['itens'] === ITENS_ALUG_ABERTO;
+      if (array_filter($alvo, $abertos)) lerAtendente($in, $u);   // 1.25: com o nome da atendente
       foreach ($alvo as $i => $v) if ((string)$v['alug'] !== '' && $v['voltou'] === null && (int)$v['alug_min'] === 0 && (string)$v['itens'] === ITENS_ALUG_ABERTO) {
         $k = crianca((int)$v['crianca_id']); if (!$k || !alugueis((int)$k['id'], (string)$v['alug'])) continue;
         cancelarAluguel($k, (string)$v['alug'], $u, MOTIVO_DESFEITA, true); unset($alvo[$i]); $tempoDe[(int)$v['crianca_id']] = $tempoDe[(int)$v['crianca_id']] ?? 0; if (!empty($v['registro'])) $ficaLinha[(int)$v['registro']] = 1;
