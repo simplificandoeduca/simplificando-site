@@ -85,7 +85,7 @@ function dados(array $eu): array {
     'idface' => idfaceEstado(), 'whats' => whatsResumo(), 'agora' => agora(), 'exemplo' => ($ex = cfg('exemplo', null)) && is_array($ex) ? count($ex['criancas'] ?? []) : 0,
     'limpeza' => $eu['papel'] === 'gestor' ? ['oferta' => cfg('limpeza_oferta', null) !== null, 'ultima' => limpezaPublica()] : null,
     'importacao' => $eu['papel'] === 'gestor' ? importacaoLeve() : null,
-    'avisos' => avisosDaGestora($eu), 'painel' => $eu['papel'] === 'gestor' ? painelDoDia() : null, 'finalizados' => finalizadosDoDia(),   // 1.25: o que a gestora ainda não viu, o dia de cada unidade, e os finalizados do dia
+    'avisos' => avisosDaGestora($eu), 'painel' => $eu['papel'] === 'gestor' ? painelDoDia() : null, 'caixa' => caixaDoDia(), 'finalizados' => finalizadosDoDia(),   // 1.25: o que a gestora ainda não viu, o dia de cada unidade, e os finalizados do dia
     'pedidos' => pedidosDaTela($eu), 'nf_emitir' => $eu['papel'] === 'atendente' ? 0 : (int)$db->query("SELECT COUNT(*) FROM pedidos WHERE tipo = 'nf' AND status = 'liberado'")->fetchColumn()];   // 1.23: os pedidos de autorização desta tela, e quantas notas autorizadas esperam o número   // 0.98: só o gestor recebe (é ele quem limpa e quem desfaz)
 }
 // quem a equipe tirou de "Falta finalizar" hoje: [id da criança => dia]. O que é de outro dia não conta mais

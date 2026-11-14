@@ -1019,6 +1019,20 @@ Pedido da dona: marcar a data da festa num calendário que mostre as festas das 
 
 **As festas de antes.** Ao atualizar, as festas já vendidas com a data escrita (de hoje em diante) entram sozinhas no calendário, sem tema: é só abrir a festa e pôr o tema. O adicional vendido junto com a festa, e o upgrade com a data dela, ficam ligados à festa (contam no combinado).
 
+## 6zj. O caixa do dia e o cupom só com a via da loja (1.30)
+
+Pedido da dona: um caixa para as meninas do atendimento, no **Finalizados do dia**, com o ícone de caixa: o que foi pago no dia, as formas de pagamento, tudo destrinchado, e os carrinhos à parte (não entram no faturamento da recreação). E no cupom: identificar a via de entrada e a via de saída, o cliente assina as duas, a via da saída sem o saldo de horas do cliente (só o tempo descontado de cada criança), e sem a via do cliente.
+
+**O caixa do dia.** O item **Finalizados do dia** (no menu, em Comandas abertas, e na faixa de filtros da lista) agora tem o ícone de caixa e fica sempre à vista. Tocando nele, a lista abre com o **Caixa do dia** em cima e, embaixo, quem saiu hoje (como antes). O caixa é o que foi **recebido hoje**, desde a meia-noite, na unidade deste aparelho:
+- o total recebido e quanto entrou em **Pix, dinheiro, crédito e débito**;
+- o que foi pago, separado: **Recreação avulsa** (o tempo de quem não usa pacote), **Pacotes de horas**, **Festas** (festa, upgrade e adicional), e, quando houver, **Produtos da loja** e **Outros** — cada um com o total, as formas e quantas vendas;
+- **Total sem os carrinhos**;
+- **Carrinhos**, à parte (o fusquinha e o carrinho de bebê, cada um com o seu valor);
+- **Total do dia**.
+O botão **Imprimir** (no celular, só o ícone) tira o caixa no papel do cupom (para o fechamento). A venda antiga de carrinho (de antes da 1.20) também conta nos carrinhos. A gestora escolhe a unidade (ou todas) no próprio caixa.
+
+**O cupom.** Sai **só a via da loja** (a via do cliente saiu, e a opção de imprimi-la também). Cada cupom diz qual é: **VIA DE ENTRADA**, **VIA DE SAÍDA**, **VIA DE DEVOLUÇÃO** (o carrinho que voltou), **VIA DE SAÍDA DO CARRINHO**, **VIA DA FESTA** ou **VIA DE PAGAMENTO** (venda sem entrada). A via de entrada e a via de saída têm sempre a linha para o responsável **assinar**. Na via de saída, cada criança mostra só o tempo: **Tempo descontado** (quando o tempo saiu todo das horas do cliente) ou **Tempo contado** (quando a saída cobrou tempo: recreação avulsa, além do pacote, ou pago avulso); o saldo de horas do cliente não sai mais. Na festa, "Festa · sem desconto de horas". Os cupons guardados antes, ao reimprimir, saem só com a via da loja.
+
 ## 7. Atualizar
 
 Botão **Atualizar** ao lado da versão. Ele baixa a versão nova do GitHub (ramo principal ou de trabalho, a mais nova), confere a versão dentro do arquivo e troca os arquivos de forma atômica. Não mexe em `~/playspace-dados/`. Se o GitHub demorar a refletir (cache de ~5 min), espere e toque de novo.

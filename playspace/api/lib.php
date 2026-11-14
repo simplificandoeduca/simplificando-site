@@ -1107,6 +1107,32 @@ function painelDoDia(): array {
   foreach ($sv as $u => $L) { $um($u); $L = array_values($L); usort($L, fn($a, $b) => [$b['v'], $b['q'], $a['n']] <=> [$a['v'], $a['q'], $b['n']]); $o[$u]['servicos'] = $L; }
   ksort($o); return ['desde' => $hoje, 'unidades' => array_values($o)];
 }
+// 1.30: o caixa do dia da recepção. O que foi RECEBIDO hoje (desde a meia-noite), por unidade (a da venda), por forma de pagamento e pelo que
+// foi pago: a recreação avulsa (o tempo que não é pacote: os períodos, o tempo além do pacote, o avulso da saída), os pacotes de horas, a
+// festa (a festa nova, o upgrade, o adicional), os produtos da loja, os carrinhos (o que sai da loja e volta: o fusquinha, o carrinho de bebê,
+// cada um com o nome dele) e o resto. Os carrinhos ficam à parte porque não entram no faturamento da recreação.
+function grupoDoCaixa(array $l): string {
+  $n = mb_strtoupper(trim((string)$l['s']));
+  if (!empty($l['pr'])) return 'produtos';
+  if ((string)$l['a'] !== '') return 'carrinhos';
+  foreach ((array)regra()['servicos'] as $s) if (!empty($s['volta']) && mb_strtoupper(trim((string)($s['n'] ?? ''))) === $n) return 'carrinhos';   // (a venda antiga do carrinho, sem o "sai e volta")
+  if (mb_strpos($n, 'FESTA') !== false) return 'festa';
+  if ((int)$l['m'] > 0 && empty($l['au']) && (string)$l['vo'] === '' && ($n === '' || preg_match('/^PACOTE\b/u', $n))) return 'pacotes';
+  $st = servicoTempo(); if ((int)$l['m'] > 0 || ($st && $n === mb_strtoupper(trim((string)$st['n'])))) return 'recreacao';
+  return 'outros';
+}
+function caixaDoDia(): array {
+  $q = db()->prepare("SELECT COALESCE(v.unidade_id, 0) u, p.forma f, p.valor val, p.venda_id vid, v.servico s, (COALESCE(v.produto_id, 0) > 0) pr, v.alug a, v.minutos m, v.auto au, v.voucher vo FROM pagamentos p JOIN vendas v ON v.id = p.venda_id WHERE p.quando >= ? ORDER BY p.id");
+  $q->execute([date('Y-m-d') . ' 00:00:00']); $o = [];
+  foreach ($q->fetchAll() as $l) { $u = (int)$l['u']; $g = grupoDoCaixa($l); $f = (string)$l['f']; $v = round((float)$l['val'], 2);
+    if (!isset($o[$u])) $o[$u] = ['uni' => $u, 'grupos' => []];
+    if (!isset($o[$u]['grupos'][$g])) $o[$u]['grupos'][$g] = ['formas' => [], 'total' => 0.0, 'vendas' => [], 'itens' => []];
+    $x = &$o[$u]['grupos'][$g]; $x['formas'][$f] = round(($x['formas'][$f] ?? 0) + $v, 2); $x['total'] = round($x['total'] + $v, 2); $x['vendas'][(int)$l['vid']] = 1;
+    if ($g === 'carrinhos') { $nm = mb_strtoupper(trim((string)$l['s'])) ?: 'CARRINHO'; $x['itens'][$nm] = round(($x['itens'][$nm] ?? 0) + $v, 2); }
+    unset($x); }
+  foreach ($o as &$x) foreach ($x['grupos'] as &$g) $g['vendas'] = count($g['vendas']); unset($x, $g);
+  return ['desde' => date('Y-m-d') . ' 00:00:00', 'unidades' => array_values($o)];
+}
 // as saídas de hoje (cada visita, com o que ela vendeu) e o que voltou para a loja hoje: o filtro "Finalizados do dia" da lista
 function finalizadosDoDia(): array {
   $db = db(); $hoje = date('Y-m-d') . ' 00:00:00'; $vis = []; $dev = [];
