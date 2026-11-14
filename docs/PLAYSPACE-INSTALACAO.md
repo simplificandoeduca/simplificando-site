@@ -969,6 +969,26 @@ Vale para todos os comprovantes (entrada, saída, conta do responsável, venda e
 
 No servidor: `dados.painel.unidades[]` ganhou `servicos` (`[{ n, q, v }]`: o nome, quantas vendas com valor e o total de hoje, do maior para o menor). O resto do painel sai do que a tela já recebia (quem está no espaço, os finalizados do dia, os cancelamentos). Sem mudança no banco. Neste aparelho: `ps-painel-uni` (a unidade do painel; 0 = todas) e `ps-inicio-gestor` (`painel`, `aprovar` ou `horas`).
 
+## 6zh. O menu lateral aberto (1.28)
+
+Pedido do dono: um menu parecido com o do sistema antigo, que a equipe conhece. Das três maquetes ele escolheu o **formato 1: o menu lateral aberto**, com tudo escrito, em grupos, e os filtros da lista (que eram a faixa horizontal) como itens de um grupo.
+
+**Onde aparece.** No computador com a janela larga, de **1280 px para cima** (o computador do balcão). No lugar do trilho de ícones fica o menu aberto, com:
+
+- no alto, a **marca** (tocar leva para a lista de quem está no espaço) e o **cartão de quem está usando**: Usuário, Unidade (a do aparelho) e Perfil. Tocar no cartão abre a conta (trocar de usuário, sair), como o selo de antes;
+- **Clientes**: *Consultar cliente* (abre o Banco de horas com todos os clientes e o cursor já na busca: nome, telefone, CPF ou nº do cadastro), ***+ Cadastrar cliente*** (o botão de mais de sempre, agora escrito) e *Banco de horas*;
+- **Comandas abertas**: os **filtros da lista**, com o número de cada um: *Todas*, a recreação, cada carrinho, *Saíram há pouco* e *Finalizados do dia* (os dois últimos aparecem quando há alguém, como antes). Tocar em um leva para a lista já filtrada, de qualquer tela. São os mesmos botões de antes (as mesmas ações e os mesmos números): só mudaram de lugar, e por isso a faixa de filtros **não aparece mais no meio** quando o menu está aberto;
+- **Vender**: *Vender horas* (os pacotes: escolhe o pacote e depois o cliente) e *Festa*;
+- **Agenda**.
+
+O que cada um vê a mais continua como nas versões anteriores: o **gestor** tem o grupo **Gestão** (*Painel* e *Aprovações*, com o número do que espera a resposta) e **Ajustes**; a **supervisora** tem **Ajustes**; o **operador** não tem o Painel nem as Aprovações. Com o WhatsApp ligado, ele aparece em Clientes.
+
+**Os grupos abrem e fecham** tocando no nome (a setinha). O que a pessoa fechou fica guardado no aparelho (`ps-menu-fechados`), e só isso. Com o grupo Gestão fechado, o número das aprovações aparece no nome do grupo.
+
+**Onde nada muda.** Abaixo de 1280 px fica tudo como estava: o **trilho de ícones** no tablet e nas janelas menores, e a **barra de baixo** com a faixa de filtros horizontal no celular (a gestora no celular continua com as Aprovações e o Painel da 1.27). A unidade continua sendo trocada no botão ao lado do título da lista (e em Ajustes).
+
+**Detalhes.** Com o **histórico do cliente** aberto ao lado, o menu só fica aberto de 1560 px para cima; antes disso ele encolhe para o trilho enquanto o histórico está aberto, para a lista não ficar espremida. A coluna da direita (as atividades da semana) aparece, com o menu aberto, a partir de 1580 px; até lá a semana fica na linha do pé da lista. Em tela baixa (notebook de 768 px de altura) o menu fica mais junto, e rola se ainda assim não couber.
+
 ## 7. Atualizar
 
 Botão **Atualizar** ao lado da versão. Ele baixa a versão nova do GitHub (ramo principal ou de trabalho, a mais nova), confere a versão dentro do arquivo e troca os arquivos de forma atômica. Não mexe em `~/playspace-dados/`. Se o GitHub demorar a refletir (cache de ~5 min), espere e toque de novo.

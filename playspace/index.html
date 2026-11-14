@@ -108,6 +108,45 @@ svg { display: block; }
   .trilho .fab { position: relative; inset: auto; width: 56px; height: 56px; border-radius: 18px; margin-bottom: 14px; box-shadow: 0 10px 22px rgba(226, 91, 63, .28); flex: none; }
 }
 .fab-ancora[hidden] { display: none; }
+/* ---------- 1.28: o menu lateral aberto (formato 1) ---------- */
+/* No computador largo (1280 px ou mais) o trilho de ícones vira um menu aberto, com tudo escrito, em grupos, como o do sistema antigo: o
+   cartão de quem está usando; Clientes; Comandas abertas (os filtros da lista, com os números); Vender; Agenda. O gestor tem Gestão e
+   Ajustes. A classe body.mn é posta pelo nav(); sem ela (tela menor, ou o histórico do cliente aberto até 1560 px) fica o trilho de sempre. */
+body.mn .trilho nav { width: 264px; align-items: stretch; gap: 8px; padding: 16px 14px 14px; scrollbar-width: thin; scrollbar-color: var(--borda-2) transparent; }
+body.mn .trilho nav::-webkit-scrollbar { display: block; width: 6px; } body.mn .trilho nav::-webkit-scrollbar-thumb { background: var(--borda-2); border-radius: 3px; }
+.mn-marca { display: flex; align-items: center; gap: 10px; padding: 2px 4px; border-radius: 14px; text-align: left; }
+.mn-marca .lg { width: 40px; height: 40px; flex: none; } .mn-marca .lg svg { display: block; width: 100%; height: 100%; } .mn-marca b { font: 800 19px/1 var(--display); letter-spacing: -.01em; }
+.mn-eu { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border-radius: 16px; background: var(--menta-risco); border: 1px solid var(--borda); text-align: left; }
+.mn-selo { width: 40px; height: 40px; flex: none; -webkit-mask: var(--selo) no-repeat center / 100% 100%; mask: var(--selo) no-repeat center / 100% 100%; background: var(--mostarda); color: #3B3B3B; font: 800 14px/40px var(--display); text-align: center; }
+.mn-eu-t { min-width: 0; display: flex; flex-direction: column; } .mn-eu-t > span { font: 700 12px/1.45 var(--texto); color: var(--tinta-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .mn-eu-t b { color: var(--tinta); font-weight: 800; }
+.mn-bloco { display: flex; flex-direction: column; gap: 1px; } .mn-bloco + .mn-bloco { border-top: 1px solid var(--borda); padding-top: 6px; }
+.mn-grp { display: flex; align-items: center; gap: 9px; width: 100%; height: 32px; padding: 0 10px; border-radius: 12px; text-align: left; font: 700 12px/1 var(--display); letter-spacing: .08em; text-transform: uppercase; color: var(--tinta-2); }
+.mn-grp > span { flex: 1; min-width: 0; } .mn-grp > svg { flex: none; } .mn-grp > svg:last-child { transition: transform .2s; } .mn-grp[aria-expanded="false"] > svg:last-child { transform: rotate(-90deg); }
+.mn-grp.on { color: var(--tinta); }
+.mn-itens { display: flex; flex-direction: column; gap: 1px; } .mn-itens[hidden] { display: none; }
+.mi { display: flex; align-items: center; gap: 8px; height: 34px; margin-left: 8px; padding: 0 12px; border-radius: 12px; text-align: left; font: 700 14.5px/1.3 var(--texto); color: var(--tinta); }
+.mi > span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#esp-filtros.mn-itens .mi > span { text-transform: lowercase; } #esp-filtros.mn-itens .mi > span::first-letter { text-transform: uppercase; }   /* (o nome do serviço é guardado em maiúsculas: no menu, "Carrinho fusquinha") */
+.mn-grp b, .mi b { flex: none; min-width: 22px; height: 20px; padding: 0 6px; border-radius: 10px; background: var(--menta); color: var(--tinta); font: 800 11px/20px var(--display); letter-spacing: 0; text-align: center; }
+.mn-grp:hover, .mi:hover, .mn-marca:hover { background: var(--menta); } .mn-eu:hover { border-color: var(--borda-2); }
+.mi[aria-current], .mi[aria-pressed="true"], .mn-grp.solto[aria-current] { background: var(--tinta); color: var(--creme); }
+.mi[aria-current] b, .mi[aria-pressed="true"] b, .mi.alerta b, .mn-grp b.mn-n, .mn-grp.solto b { background: var(--coral); color: #fff; }
+.mi.alerta:not([aria-current]) { color: var(--coral); }
+body.mn .trilho .fab { position: static; width: auto; height: 34px; margin: 0 0 0 8px; padding: 0 12px; border-radius: 12px; background: none; box-shadow: none; color: var(--coral); justify-content: flex-start; gap: 8px; font: 700 14.5px/1.3 var(--texto); }   /* o + de sempre, agora escrito: "Cadastrar cliente" */
+body.mn .trilho .fab > svg { width: 15px; height: 15px; flex: none; stroke-width: 2.8; } body.mn .trilho .fab::after { content: 'Cadastrar cliente'; } body.mn .trilho .fab:hover { background: var(--coral-2); }
+@media (max-height: 929px) {   /* a janela mais baixa: tudo um pouco mais junto, para o menu (o do gestor é o mais comprido) caber sem rolar */
+  body.mn .trilho nav { gap: 6px; padding: 14px 12px 12px; } .mi, body.mn .trilho .fab { height: 31px; } .mn-grp { height: 29px; } .mn-bloco + .mn-bloco { padding-top: 5px; } .mn-eu { padding: 8px 11px; } .mn-marca .lg { width: 36px; height: 36px; }
+}
+@media (max-height: 829px) {   /* notebook de 768 de altura */
+  body.mn .trilho nav { padding: 12px 12px 10px; } .mi, body.mn .trilho .fab { height: 28px; font-size: 14px; } .mn-grp { height: 26px; } .mn-bloco + .mn-bloco { padding-top: 4px; }
+  .mn-eu { padding: 6px 10px; } .mn-selo { width: 34px; height: 34px; line-height: 34px; font-size: 12.5px; } .mn-eu-t > span { line-height: 1.35; } .mn-marca .lg { width: 32px; height: 32px; } .mn-marca b { font-size: 17px; }
+}
+@media (max-height: 758px) { body.mn .trilho nav { gap: 4px; padding: 10px 12px 8px; } .mi, body.mn .trilho .fab { height: 26px; font-size: 13.5px; } .mn-grp { height: 24px; } .mn-bloco + .mn-bloco { padding-top: 3px; } }
+@media (max-height: 699px) {   /* janela bem baixa (o navegador com as barras num notebook de 768): o mais junto que ainda dá para ler; se nem assim couber, o menu rola */
+  body.mn .trilho nav { gap: 3px; padding: 8px 12px 6px; } .mi, body.mn .trilho .fab { height: 24px; font-size: 13px; } .mn-grp { height: 22px; font-size: 11.5px; } .mn-bloco + .mn-bloco { padding-top: 2px; } .mn-eu { padding: 4px 9px; } .mn-selo { width: 30px; height: 30px; line-height: 30px; font-size: 11.5px; } .mn-eu-t > span { font-size: 11.5px; line-height: 1.3; } .mn-marca .lg { width: 28px; height: 28px; } .mn-marca b { font-size: 16px; }
+}
+@media (pointer: coarse) and (min-height: 990px) { .mi, body.mn .trilho .fab { height: 38px; } .mn-grp { height: 34px; } }   /* tela de toque grande (tablet deitado): os itens um pouco mais altos para o dedo */
+@media (min-width: 1400px) and (max-width: 1579.98px) { body.mn .hoje { display: none; } body.mn:not(.com-lado) .semana-pag { display: flex; } }   /* com o menu aberto, a coluna da direita só cabe a partir de 1580 px: até lá a semana fica na linha do pé, como nas telas menores */
 .toast { position: fixed; z-index: 60; left: 50%; bottom: calc(100px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 20px); background: var(--tinta); color: var(--creme); padding: 11px 18px; border-radius: 999px; font-weight: 700; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .3s, transform .45s var(--spring); max-width: calc(100% - 32px); text-align: center; display: flex; align-items: center; gap: 14px; }
 .toast.ve { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
 .toast button { color: var(--mostarda); font-weight: 800; white-space: nowrap; padding: 4px 2px; }
@@ -1516,7 +1555,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.27';
+const VERSAO = '1.28';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -3723,12 +3762,44 @@ function folhaCorrigirVisita(cid, vid) {
 }
 /* ---------- casca: navegação, toast, folhas ---------- */
 const naoLidas = () => S.conversas.filter(x => !x.lidas).length;
+/* ---------- 1.28: o menu lateral aberto (formato 1) ---------- */
+// Pedido do dono: o menu parecido com o do sistema antigo, que a equipe conhece: aberto, com tudo escrito, em grupos, e os filtros da
+// lista (que eram a faixa horizontal) como itens do grupo "Comandas abertas". Só no computador largo: de MN_LARG px para cima. Abaixo
+// disso continua o trilho de ícones (tablet) e a barra de baixo (celular). Com o histórico do cliente aberto ao lado, o menu só fica
+// aberto de MN_LARG_LADO px para cima (antes disso a lista ficaria espremida entre os dois).
+const MN_LARG = 1280, MN_LARG_LADO = 1560;
+const menuAberto = () => innerWidth >= MN_LARG && (innerWidth >= MN_LARG_LADO || !document.body.classList.contains('com-lado'));
+const mnLigado = () => document.body.classList.contains('mn');
+function acertaMenu() { if (NAV_CACHE && !document.body.classList.contains('so') && menuAberto() !== mnLigado()) desenhar(true); }   // a largura (ou o histórico ao lado) trocou o menu: redesenha
+const mnFechados = () => { const v = lido('ps-menu-fechados', []); return Array.isArray(v) ? v : []; };   // os grupos que a pessoa fechou (só isto fica guardado no aparelho)
+const MN_IC = { clientes: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.8a3.5 3.5 0 0 1 0 6.4M17.5 14.2a6.5 6.5 0 0 1 4 5.8"/>', vender: '<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.3"/>', seta: '<path d="M6 9l6 6 6-6"/>', lado: '<path d="M9 5l7 7-7 7"/>' };
+function menuHtml(nPn, badge) {
+  const fe = mnFechados(), tem = k => ABAS.some(a => a[0] === k), cur = k => S.tela === k ? ' aria-current="page"' : '';
+  const grupo = (id, icone, nome, itens, fechado = '', on = false) => { const ab = !fe.includes(id), alvo = id === 'comandas' ? 'esp-filtros' : 'mn-' + id;
+    return `<div class="mn-bloco"><button type="button" class="mn-grp tap${on ? ' on' : ''}" data-act="mn-grupo" data-g="${id}" aria-expanded="${ab}" aria-controls="${alvo}" title="${ab ? 'Fechar' : 'Abrir'} o grupo ${nome}">${ic(icone, 17)}<span>${nome}</span>${ab ? '' : fechado}${ic(MN_IC.seta, 15, 2.6)}</button><div class="mn-itens" id="${alvo}"${ab ? '' : ' hidden'}>${itens}</div></div>`; };
+  const item = (atr, txt, b = '', cls = '') => `<button type="button" class="mi tap${cls ? ' ' + cls : ''}" ${atr}><span>${txt}</span>${b}</button>`;
+  const solto = (k, icone, nome) => `<div class="mn-bloco"><button type="button" class="mn-grp solto tap" data-ir="${k}"${cur(k)}>${ic(icone, 17)}<span>${nome}</span>${badge(k)}${ic(MN_IC.lado, 15, 2.6)}</button></div>`;
+  const uni = nomeUni(minhaUni());
+  return `<button type="button" class="mn-marca tap" data-ir="horas"${cur('horas')} aria-label="Espaço" title="Tela inicial: quem está no espaço"><span class="lg">${LOGO}</span><b>Play Space</b></button>`
+    + `<button type="button" class="mn-eu tap" data-act="conta" title="${esc(EU.nomeCompleto || EU.nome)} · toque para ver a conta ou sair"><span class="mn-selo">${esc((EU.nome || 'EU').slice(0, 2).toUpperCase())}</span><span class="mn-eu-t"><span>Usuário: <b>${esc(EU.nome || '')}</b></span>${unidades().length ? `<span>Unidade: <b>${esc(uni || 'SEM UNIDADE')}</b></span>` : ''}<span>Perfil: <b>${esc(String(PAPEIS[EU.papel] || EU.papel || '').toUpperCase())}</b></span></span></button>`
+    + (tem('painel') || tem('aprovar') ? grupo('gestao', IC.painel, 'Gestão', (tem('painel') ? item(`data-ir="painel"${cur('painel')}`, 'Painel') : '') + (tem('aprovar') ? item(`data-ir="aprovar"${cur('aprovar')} title="O que espera a sua resposta: os pedidos e os cancelamentos para ver"`, 'Aprovações', badge('aprovar'), nPn ? 'alerta' : '') : ''), nPn ? `<b class="mn-n">${nPn}</b>` : '', S.tela === 'painel' || S.tela === 'aprovar') : '')
+    + grupo('clientes', MN_IC.clientes, 'Clientes', item('data-act="mn-consultar" title="Achar um cliente pelo nome, telefone, CPF ou nº do cadastro"', 'Consultar cliente')
+      + `<button type="button" class="fab tap" data-act="nova" aria-label="Cadastrar criança" title="Cadastrar criança"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>`
+      + (tem('banco') ? item(`data-ir="banco"${cur('banco')} title="Todos os clientes e as horas guardadas de cada um"`, 'Banco de horas', badge('banco')) : '') + (tem('zap') ? item(`data-ir="zap"${cur('zap')}`, 'WhatsApp', badge('zap'), naoLidas() ? 'alerta' : '') : ''), '', S.tela === 'banco' || S.tela === 'zap')
+    + grupo('comandas', IC.horas, 'Comandas abertas', chipsEspaco(), '', S.tela === 'horas')
+    + grupo('vender', MN_IC.vender, 'Vender', item('data-act="pacotes" title="Vender um pacote de horas: escolha o pacote e depois o cliente"', 'Vender horas') + item('data-act="festa" title="Vender uma festa: escolha o cliente, toque no valor da tabela e receba"', 'Festa'))
+    + (tem('agenda') ? solto('agenda', IC.agenda, 'Agenda') : '') + (tem('ajustes') ? solto('ajustes', IC.ajustes, 'Ajustes') : '');
+}
 function nav() {
   const nPn = gestor() ? pedidosParaMim().length + avisosParaMim().length : 0;   // 1.25: o que espera a resposta da gestora
   const badge = k => k === 'aprovar' && nPn ? `<b>${nPn}</b>` : k === 'zap' && naoLidas() ? `<b>${naoLidas()}</b>` : (k === 'banco' && COM_WHATS && paraRenovar().length ? `<b>${paraRenovar().length}</b>` : '');
   const alerta = k => (k === 'zap' && naoLidas()) || (k === 'aprovar' && nPn) ? 'alerta' : '';   // mensagem sem resposta: a bolinha do WhatsApp fica vermelha
-  const ladoHtml = `<span class="logo">${LOGO}</span>` + ABAS.map(([k, t, i]) => `<button class="ab tap ${alerta(k)}" data-ir="${k}" ${S.tela === k ? 'aria-current="page"' : ''} aria-label="${t}" title="${t}${naoLidas() && k === 'zap' ? ' · ' + naoLidas() + ' sem resposta' : ''}">${ic(IC[i])}${badge(k)}</button>`).join('') + `<span class="espaco"></span><button type="button" class="fab tap" data-act="nova" aria-label="Cadastrar criança" title="Cadastrar criança"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button><button class="av-eu tap" data-act="conta" title="${esc(EU.nomeCompleto || EU.nome)}">${esc((EU.nome || 'EU').slice(0, 2).toUpperCase())}</button>`;
-  if (ladoHtml !== NAV_CACHE) { $('#nav-lado').innerHTML = ladoHtml; NAV_CACHE = ladoHtml; }   // só mexe no trilho quando algo nele mudou
+  const mn = menuAberto(); document.body.classList.toggle('mn', mn);   // 1.28: no computador largo, o menu aberto no lugar do trilho de ícones
+  const ladoHtml = mn ? menuHtml(nPn, badge) : `<span class="logo">${LOGO}</span>` + ABAS.map(([k, t, i]) => `<button class="ab tap ${alerta(k)}" data-ir="${k}" ${S.tela === k ? 'aria-current="page"' : ''} aria-label="${t}" title="${t}${naoLidas() && k === 'zap' ? ' · ' + naoLidas() + ' sem resposta' : ''}">${ic(IC[i])}${badge(k)}</button>`).join('') + `<span class="espaco"></span><button type="button" class="fab tap" data-act="nova" aria-label="Cadastrar criança" title="Cadastrar criança"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button><button class="av-eu tap" data-act="conta" title="${esc(EU.nomeCompleto || EU.nome)}">${esc((EU.nome || 'EU').slice(0, 2).toUpperCase())}</button>`;
+  const lado = $('#nav-lado');
+  if (ladoHtml !== NAV_CACHE || (!lado.firstChild && !document.body.classList.contains('so'))) {   // só mexe no trilho quando algo nele mudou (ou quando ele foi esvaziado na tela de entrada); o foco do teclado e a rolagem do menu ficam onde estavam
+    const ae = document.activeElement, q = ae && lado.contains(ae) ? ['act', 'ir', 's', 'f', 'g'].map(a => ae.dataset[a] === undefined ? '' : `[data-${a}="${CSS.escape(ae.dataset[a])}"]`).join('') : '', rola = lado.scrollTop;
+    lado.innerHTML = ladoHtml; NAV_CACHE = ladoHtml; lado.scrollTop = rola; if (q) { const n = lado.querySelector(q); if (n) n.focus({ preventScroll: true }); } }
   $('#nav-baixo').innerHTML = ABAS.map(([k, t, i]) => `<button class="${alerta(k)}" data-ir="${k}" ${S.tela === k ? 'aria-current="page"' : ''}>${ic(IC[i], 21)}${t}${badge(k)}</button>`).join('') + (ABAS.some(a => a[0] === 'ajustes') ? '' : `<button data-act="conta">${ic(IC.rosto, 21)}Conta</button>`);
 }
 let toastT, DESFAZ = null, NAV_CACHE = '';
@@ -4171,13 +4242,16 @@ function corpoFinalizados(q) {
 }
 // "Saíram há pouco" é o único botão ao lado da busca, e só aparece quando há alguém no prazo de reabrir a visita
 function chipsEspaco() {
+  // 1.28: com o menu lateral aberto, estes botões são os itens do grupo "Comandas abertas" (as mesmas ações e os mesmos números); o
+  // escolhido só fica marcado quando a tela é a lista
+  const mn = mnLigado(), aqui = !mn || S.tela === 'horas', cl = mn ? 'mi tap' : 'tap', rot = t => mn ? `<span>${t}</span>` : t;
   const f = espFiltro(), ns = saiuHaPouco().length, nf = (F => F.V.length + F.D.length)(finalizadosHoje());
-  const sair = (ns || f === 'sairam' ? `<button class="tap" data-act="esp-filtro" data-f="sairam" aria-pressed="${f === 'sairam'}" title="Quem saiu nos últimos ${reabreLim()} min: dá para reabrir a visita">Saíram há pouco<b>${ns}</b></button>` : '')
-    + (nf || f === 'fim' ? `<button class="tap fim-chip" data-act="esp-filtro" data-f="fim" aria-pressed="${f === 'fim'}" title="Todo mundo que saiu hoje, e o que voltou para a loja hoje">Finalizados do dia<b>${nf}</b></button>` : '');   // 1.25
-  if (!inicioLista()) return sair;
+  const sair = (ns || f === 'sairam' ? `<button class="${cl}" data-act="esp-filtro" data-f="sairam" aria-pressed="${aqui && f === 'sairam'}" title="Quem saiu nos últimos ${reabreLim()} min: dá para reabrir a visita">${rot('Saíram há pouco')}<b>${ns}</b></button>` : '')
+    + (nf || f === 'fim' ? `<button class="${cl} fim-chip" data-act="esp-filtro" data-f="fim" aria-pressed="${aqui && f === 'fim'}" title="Todo mundo que saiu hoje, e o que voltou para a loja hoje">${rot('Finalizados do dia')}<b>${nf}</b></button>` : '');   // 1.25
+  if (!inicioLista()) return (mn ? `<button class="${cl}" data-act="esp-filtro" data-f="todas" aria-pressed="${aqui && f === 'todas'}">${rot('Todas')}<b>${itensEspaco().length}</b></button>` : '') + sair;
   const L = itensEspaco(), sv = espServ(), st = servicoTempo(), ids = [...new Set([...servicosVolta().map(x => x.id), ...L.filter(x => x.a).map(x => x.a.s)])], nome = id => (servicoDe(id) || { n: (L.find(x => x.a && x.a.s === id) || { a: { n: id } }).a.n }).n;
-  const chip = (v, t, n) => `<button class="tap" data-act="esp-serv" data-s="${esc(v)}" aria-pressed="${f === 'todas' && sv === v}">${esc(t)}<b>${n}</b></button>`;
-  return (ids.length ? chip('', 'Todas', L.length) + chip('rec', st ? st.n : 'RECREAÇÃO', L.filter(x => !x.a).length) + ids.map(id => chip(id, nome(id), L.filter(x => x.a && x.a.s === id).length)).join('') : '') + sair;
+  const chip = (v, t, n) => `<button class="${cl}" data-act="esp-serv" data-s="${esc(v)}" aria-pressed="${aqui && f === 'todas' && sv === v}">${rot(esc(t))}<b>${n}</b></button>`;
+  return (ids.length || mn ? chip('', 'Todas', L.length) + (ids.length ? chip('rec', st ? st.n : 'RECREAÇÃO', L.filter(x => !x.a).length) + ids.map(id => chip(id, nome(id), L.filter(x => x.a && x.a.s === id).length)).join('') : '') : '') + sair;
 }
 // 0.95: a tela inicial em lista: uma linha por cliente, como uma planilha. A situação (a bolinha, ou o carrinho no que saiu da loja), a criança,
 // o responsável, o serviço (com AVULSA ou PACOTE), a hora em que entrou, o tempo correndo com "até quando" ou "quanto passou", e a Saída (ou Devolveu).
@@ -4277,7 +4351,7 @@ function tirarTestePrevia() { // tira as 10 e tudo o que nasceu delas (vendas, l
   S.criancas = S.criancas.filter(c => !c.teste); S.compras = S.compras.filter(v => !ids.has(v.crianca)); S.registros = S.registros.filter(r => !r.teste && !nomes.has(r.nome));
   S.cancelamentos = (S.cancelamentos || []).filter(x => !ids.has(x.crianca)); S.conversas = S.conversas.filter(x => !ids.has(x.crianca)); S.pagamentos = (S.pagamentos || []).filter(x => !ids.has(x.crianca)); S.testePrevia = false;
 }
-function atualizarEspaco() { const a = $('#esp-corpo'), ch = $('#esp-filtros'); if (a) a.innerHTML = corpoEspaco(); if (ch) ch.innerHTML = chipsEspaco(); }
+function atualizarEspaco() { const a = $('#esp-corpo'), ch = $('#esp-filtros'); if (a) a.innerHTML = corpoEspaco(); if (mnLigado()) nav(); else if (ch) ch.innerHTML = chipsEspaco(); }   // (1.28: com o menu aberto os filtros moram no menu)
 // os números do dia (o que foi vendido, as horas usadas e as cobranças por atraso das últimas 24 h): ficam dentro de "Hoje na recepção"
 function numerosDoDia() {
   const atr = atrasoHoje(), vendas = S.compras.filter(v => !v.imp && agora - v.quando < 86400000);   /* 1.01: o pacote que veio na importação não é venda do dia */
@@ -4367,6 +4441,7 @@ const grLinhas = (L, cor) => { const max = Math.max(0, ...L.map(x => x.v)); retu
 let PN_R = null, GR_T = 0, GR_DICA = null;
 function graficosPainel() { const el = $('#gr-horas'); if (!el || S.tela !== 'painel') return; const r = PN_R || painelResumo(pnUni()), [de, ate] = grFaixaHoras(r.horas); el.innerHTML = grHorasSvg(Math.max(260, Math.floor(el.clientWidth) || 600), r.horas, de, ate); }
 addEventListener('resize', () => { clearTimeout(GR_T); GR_T = setTimeout(graficosPainel, 140); });
+addEventListener('resize', () => acertaMenu());   // 1.28: a janela passou de 1280 px (para um lado ou para o outro): o menu aberto e o trilho trocam de lugar
 // a dica dos gráficos: uma só, com o valor em destaque e o que ele é embaixo (o texto entra como texto, nunca como HTML)
 function grDica(alvo, x, y) {
   if (!GR_DICA) { GR_DICA = document.createElement('div'); GR_DICA.id = 'gr-dica'; GR_DICA.setAttribute('role', 'tooltip'); GR_DICA.hidden = true; document.body.appendChild(GR_DICA); }
@@ -4447,7 +4522,7 @@ function telaHoras() {
   <section class="espaco">
     <div class="esp-cab${inicioLista() ? ' lst' : ''}">
       <div class="campo"><input id="esp-busca" value="${esc(S.espBusca || '')}" placeholder="Buscar responsável, criança, telefone, CPF ou nº do cadastro" autocomplete="off" aria-label="Buscar responsável, criança, telefone ou CPF"></div>
-      <div class="dias" id="esp-filtros">${chipsEspaco()}</div>
+      ${mnLigado() ? '' : `<div class="dias" id="esp-filtros">${chipsEspaco()}</div>`}
     </div>
     <div id="esp-corpo">${corpoEspaco()}</div>
   </section>
@@ -5503,7 +5578,7 @@ async function baixarRelatorio() { if (!REL || !REL.dados) return; const R = con
 function abrirHistorico(id) {
   const c = crianca(id); if (!c) return;
   LADO = { id: c.id, dados: null, erro: '', todas: false, reg: ULT_REG };
-  $('#lado').innerHTML = `<aside class="lado" role="dialog" aria-label="Histórico do cliente"></aside>`; document.body.classList.add('com-lado'); graficosPainel();
+  $('#lado').innerHTML = `<aside class="lado" role="dialog" aria-label="Histórico do cliente"></aside>`; document.body.classList.add('com-lado'); acertaMenu(); graficosPainel();
   desenharLado(); requestAnimationFrame(() => requestAnimationFrame(() => { const a = $('#lado .lado'); if (a) a.classList.add('ve'); }));
   buscarHistorico();
 }
@@ -5517,7 +5592,7 @@ async function buscarHistorico() {
   desenharLado();
 }
 function fecharLado() {
-  const a = $('#lado .lado'); LADO = null; document.body.classList.remove('com-lado'); graficosPainel(); setTimeout(desenharPedidos, 0); if (!a) return;
+  const a = $('#lado .lado'); LADO = null; document.body.classList.remove('com-lado'); acertaMenu(); graficosPainel(); setTimeout(desenharPedidos, 0); if (!a) return;
   a.classList.remove('ve'); setTimeout(() => { if (!LADO) $('#lado').innerHTML = ''; }, 400);
 }
 function desenharLado() {
@@ -6069,8 +6144,10 @@ const ACOES = {
   'visita-corrigir-ok': async el => { const hh = val('s-hora'), motivo = val('s-motivo');
     if (!/^\d{2}:\d{2}$/.test(hh)) { toast('Escreva a hora em que a criança saiu'); $('#s-hora').focus(); return; } if (motivo.length < 5) { toast('Escreva o motivo da correção da hora'); $('#s-motivo').focus(); return; }
     el.disabled = true; try { const r = await api('visita_corrigir', { visita: +el.dataset.v, quando: hh, motivo }); await carregar(); fecharFolha(); desenhar(); deuCerto(`Saída corrigida para ${hh} · ${dur(r.debitado)} debitados${r.desfeitas ? ' · ' + brl(r.valor) + ' de atraso desfeito' : ''}`); } catch (e) { toast(e.message); el.disabled = false; } },
-  'esp-serv': el => { S.espServ = el.dataset.s || ''; S.espFiltro = 'todas'; atualizarEspaco(); },   /* o filtro por serviço da lista da tela inicial */
-  'esp-filtro': el => { const f = el.dataset.f; S.espFiltro = espFiltro() === f && f !== 'todas' ? 'todas' : f; if (S.tela !== 'horas') { trocarTela('horas'); return; } atualizarEspaco(); },   /* "Saíram há pouco": tocar de novo volta para quem está no espaço */
+  'esp-serv': el => { S.espServ = el.dataset.s || ''; S.espFiltro = 'todas'; if (S.tela !== 'horas') { trocarTela('horas'); return; } atualizarEspaco(); },   /* o filtro por serviço da lista da tela inicial */
+  'esp-filtro': el => { const f = el.dataset.f; S.espFiltro = S.tela === 'horas' && espFiltro() === f && f !== 'todas' ? 'todas' : f; if (S.tela !== 'horas') { trocarTela('horas'); return; } atualizarEspaco(); },
+  'mn-grupo': el => { const g = el.dataset.g, f = mnFechados(), i = f.indexOf(g); if (i < 0) f.push(g); else f.splice(i, 1); guardar('ps-menu-fechados', f); nav(); },   /* 1.28: abrir ou fechar um grupo do menu (fica guardado no aparelho) */
+  'mn-consultar': () => { S.bancoFiltro = 'todas'; if (S.tela !== 'banco') trocarTela('banco'); else desenhar(true); setTimeout(() => { const i = $('#banco-busca'); if (i) { i.focus(); i.select(); } }, 90); },   /* 1.28: Consultar cliente: o Banco de horas com todos os clientes e o cursor já na busca */   /* "Saíram há pouco": tocar de novo volta para quem está no espaço */
   devolver: el => { SAI_VOLTA = null; AV_VOLTA = null; devolver(el.dataset.id, el.dataset.s); },
   'devolver-cancelar': el => cancelarSaidaAlug(el),   // 1.20: no prazo, a saída do que acerta na devolução é cancelada sem cobrar (com o motivo)
   'serv-marca': el => { if (!CARRINHO) return; const x = servicoDe(el.dataset.s); if (!x) return; CARRINHO.q[x.id] = Math.min(maxServ(x), (CARRINHO.q[x.id] || 0) + 1); atualizarCarrinho(); },   // 1.20: o fusquinha, um toque só
