@@ -147,10 +147,10 @@ body.mn .trilho .fab > svg { width: 15px; height: 15px; flex: none; stroke-width
 }
 @media (pointer: coarse) and (min-height: 990px) { .mi, body.mn .trilho .fab { height: 38px; } .mn-grp { height: 34px; } }   /* tela de toque grande (tablet deitado): os itens um pouco mais altos para o dedo */
 @media (min-width: 1400px) and (max-width: 1619.98px) { body.mn .hoje { display: none; } body.mn:not(.com-lado) .semana-pag { display: flex; } }   /* com o menu aberto, a coluna da direita só cabe a partir de 1620 px: até lá a semana fica na linha do pé, como nas telas menores */
-@media (min-width: 1280px) and (max-width: 1365.98px) {   /* a janela mais estreita com o menu aberto: na lista de uma unidade só, a coluna Unidade sai (está no cartão do menu) e os nomes cabem */
-  body.mn .esp-lst:not(.varias) .esp-cabec, body.mn .esp-lst:not(.varias) .esp-it { grid-template-columns: 16px minmax(0, 1.6fr) minmax(0, 1fr) minmax(152px, 1.05fr) 52px 96px 100px; }
-  body.mn .esp-lst:not(.varias) .esp-cabec > span:nth-child(5), body.mn .esp-lst:not(.varias) .esp-it > .un { display: none; }
-  body.mn .esp-lst:not(.varias) .esp-it > .en { grid-column: 5; } body.mn .esp-lst:not(.varias) .esp-it .tmp, body.mn .esp-lst:not(.varias) .esp-it .at { grid-column: 6; } body.mn .esp-lst:not(.varias) .esp-it .acoes-e { grid-column: 7; } }
+@media (min-width: 1280px) and (max-width: 1365.98px) {   /* a janela mais estreita com o menu aberto: quando ninguém no espaço é de outra unidade (so-minha), a coluna Unidade sai (está no cartão do menu) e os nomes cabem */
+  body.mn .esp-lst.so-minha .esp-cabec, body.mn .esp-lst.so-minha .esp-it { grid-template-columns: 16px minmax(0, 1.6fr) minmax(0, 1fr) minmax(152px, 1.05fr) 52px 96px 100px; }
+  body.mn .esp-lst.so-minha .esp-cabec > span:nth-child(5), body.mn .esp-lst.so-minha .esp-it > .un { display: none; }
+  body.mn .esp-lst.so-minha .esp-it > .en { grid-column: 5; } body.mn .esp-lst.so-minha .esp-it .tmp, body.mn .esp-lst.so-minha .esp-it .at { grid-column: 6; } body.mn .esp-lst.so-minha .esp-it .acoes-e { grid-column: 7; } }
 .toast { position: fixed; z-index: 60; left: 50%; bottom: calc(100px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 20px); background: var(--tinta); color: var(--creme); padding: 11px 18px; border-radius: 999px; font-weight: 700; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .3s, transform .45s var(--spring); max-width: calc(100% - 32px); text-align: center; display: flex; align-items: center; gap: 14px; }
 .toast.ve { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
 .toast button { color: var(--mostarda); font-weight: 800; white-space: nowrap; padding: 4px 2px; }
@@ -1811,7 +1811,7 @@ async function carregar() { // devolve true quando algo mudou no servidor
   } finally { CARREGANDO = false; }
 }
 // a cada poucos segundos, o que mudou no servidor (rosto lido pelo iDFace, mensagem que chegou) aparece sozinho
-let SYNC_T = 0, PULSO = '', PULSO_N = 0, ULT_REG = 0, SINCRONIZANDO = false;
+let SYNC_T = 0, PULSO = '', PULSO_N = 0, ULT_REG = 0, SINCRONIZANDO = false, BANCO_PEND = false;   // BANCO_PEND: a novidade chegou com o cursor na busca do Banco e só o menu e as linhas foram trocados
 function ligarSincronia() { clearInterval(SYNC_T); SYNC_T = setInterval(sincronizar, 2000); }
 // a cada 2 s a tela pergunta um "pulso" leve; só quando ele muda (alguém bateu o rosto, chegou mensagem) ela recarrega tudo.
 // De 30 em 30 s recarrega de qualquer jeito, por garantia.
@@ -1819,13 +1819,18 @@ async function sincronizar() {
   if (MODO !== 'servidor' || SINCRONIZANDO || document.body.classList.contains('so')) return;
   const t = $('#zap-texto'), ae = document.activeElement;
   const parado = document.hidden || !!$('#folha .folha-fundo') || !!(t && (ae === t || t.value.trim())) || !!(ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && ae.id !== 'esp-busca' && !(ae.id === 'banco-busca' && mnLigado()));   // a busca da lista do espaço não segura a atualização (1.28: com o menu aberto, a do Banco também não)
+  if (BANCO_PEND && !parado && !(ae && ae.id === 'banco-busca')) desenhar(true);   // 1.28: o cursor saiu da busca do Banco: o resto da tela se acerta (os dados já estavam aqui)
   if (parado && !pedAtento()) return;   // 1.23: quem autoriza, ou espera uma resposta, continua perguntando pelos pedidos (a tela de baixo só recarrega quando está livre)
   SINCRONIZANDO = true;
   try {
     if (!parado) PULSO_N++; const r = await api('pulso'), p = r.p; pedidosChegaram(r.ped); avisosChegaram(r.av);
     if (parado || (p === PULSO && PULSO_N % 15 !== 0)) return;
     PULSO = p; const antes = ULT_REG;
-    if (await carregar()) { anunciar(antes); desenhar(true); }
+    if (await carregar()) { anunciar(antes); const bb = document.activeElement;
+      // 1.28: com o cursor na busca do Banco (o "Consultar cliente" deixa lá) troca só o menu e as linhas: o campo não é refeito, então a
+      // seleção, o acento a caminho e a rolagem ficam como estão; o resto da tela é redesenhado quando o cursor sair da busca
+      if (bb && bb.id === 'banco-busca' && S.tela === 'banco') { nav(); const l = $('#banco-lista'); if (l) l.innerHTML = linhasBanco(); BANCO_PEND = true; }
+      else desenhar(true); }
   } catch (e) { /* tenta de novo no próximo ciclo */ } finally { SINCRONIZANDO = false; }
 }
 // 1.08: o que acontece sozinho (o iDFace leu um rosto, outro aparelho deu uma entrada ou uma saída, nasceu uma cobrança por atraso, uma
@@ -4262,7 +4267,9 @@ function chipsEspaco() {
 // O que está mais perto de estourar o tempo vem primeiro; as linhas do mesmo responsável ficam juntas, com o elo ao lado do nome dele.
 function listaEspaco(L) {
   const linhas = gruposEspaco(L).map(g => g.length > 1 ? `<div class="esp-fam" role="group" aria-label="${g.length} linhas de ${esc(g[0].c.resp)}, juntas">${g.map(x => linhaItem(x, g.length)).join('')}</div>` : linhaItem(g[0])).join('');
-  return `<div class="esp-lst${new Set(L.map(x => (x.a ? x.a.uni : x.c.uni) || 0)).size > 1 ? ' varias' : ''}"><div class="esp-cabec" aria-hidden="true"><span></span><span>Responsável</span><span>Criança</span><span>Serviço</span><span>Unidade</span><span>Entrou</span><span class="d">Tempo</span><span></span></div>${linhas}</div>`;
+  // so-minha (1.28): ninguém no espaço é de outra unidade (a conta é de todos, sem a busca e sem o filtro, para a coluna não ir e vir)
+  const U = x => (x.a ? x.a.uni : x.c.uni) || 0, eu = minhaUni();
+  return `<div class="esp-lst${new Set(L.map(U)).size > 1 ? ' varias' : ''}${[...L, ...itensEspaco(true)].some(x => U(x) && U(x) !== eu) ? '' : ' so-minha'}"><div class="esp-cabec" aria-hidden="true"><span></span><span>Responsável</span><span>Criança</span><span>Serviço</span><span>Unidade</span><span>Entrou</span><span class="d">Tempo</span><span></span></div>${linhas}</div>`;
 }
 // 0.91: a tela inicial "por serviço": três colunas com título e contagem, tudo à vista de uma vez, sem filtro para tocar.
 // Horas avulsas e Pacotes (quem está na recreação) e Fora da loja (o que saiu e ainda não voltou, separado por serviço).
@@ -6069,7 +6076,8 @@ function folhaEquipe(u) {
 
 /* ---------- desenhar e reagir ---------- */
 function desenhar(quieto = false) { // quieto: redesenho da sincronia, sem as animações de entrada (senão a tela "pisca")
-  const ae = document.activeElement, foco = ae && (ae.id === 'esp-busca' || ae.id === 'banco-busca') ? [ae.selectionStart, ae.selectionEnd, ae.id] : null;
+  const ae = document.activeElement, foco = ae && (ae.id === 'esp-busca' || ae.id === 'banco-busca') ? [ae.selectionStart, ae.selectionEnd, ae.id, ae.selectionDirection] : null;
+  BANCO_PEND = false;
   if (MODO !== 'servidor') { S.alugueis = alugPrevia(); acertarCuponsPrevia(); }   // (prévia) o que está fora da loja sai das compras; e o cupom acompanha a venda
   conferirFolhaCupom();
   document.body.classList.toggle('quieto', !!quieto); document.body.classList.remove('so'); nav();
@@ -6083,7 +6091,7 @@ function desenhar(quieto = false) { // quieto: redesenho da sincronia, sem as an
   $('#fab-ancora').hidden = S.tela !== 'horas';
   $('#rodape-global').innerHTML = `<span>${MODO === 'demo' ? 'Prévia com dados de exemplo · ' : ''}<b>Play Space Horas</b></span>${botaoVersao()}${MODO === 'servidor' ? (gestor() ? `<button type="button" class="versao tap exemplo-bt" data-act="exemplos-${S.exemplo ? 'apagar' : 'carregar'}" title="${S.exemplo ? 'Tira as crianças de teste; os cadastros de verdade ficam' : 'Coloca 10 crianças de teste no espaço, em horários diferentes, para ver a tela com movimento'}">${S.exemplo ? 'Tirar o teste' : 'Teste: 10 crianças'}</button>` : '') : `<button type="button" class="versao tap exemplo-bt" data-act="teste-previa" title="${S.testePrevia ? 'Tira as 10 crianças de teste' : 'Coloca 10 crianças de teste no espaço, em horários diferentes, para ver a tela com movimento'}">${S.testePrevia ? 'Tirar o teste' : 'Teste: 10 crianças'}</button>`}`;
   animarPlacas();
-  if (foco) { const i = $('#' + foco[2]); if (i) { i.focus(); try { i.setSelectionRange(foco[0], foco[1]); } catch (e) { } } }
+  if (foco) { const i = $('#' + foco[2]); if (i) { i.focus({ preventScroll: true }); try { i.setSelectionRange(foco[0], foco[1], foco[3] || 'none'); } catch (e) { } } }   // (sem rolar a página até o campo; com o sentido da seleção)
   if (LADO) { if (MODO !== 'servidor' || LADO.reg !== ULT_REG) { LADO.reg = ULT_REG; buscarHistorico(); } else desenharLado(); }   // a aba do histórico acompanha o que mudou
   if (S.tela === 'zap') { const m = $('#msgs'); if (m && m.lastElementChild) m.lastElementChild.scrollIntoView({ block: 'nearest' }); }
   desenharPedidos();   // 1.23: o cartão de quem autoriza
