@@ -3390,11 +3390,19 @@ function getLog(id){
     const e = findEx(id).e, k0 = startKg(id);
     S.logs[t][id] = Array.from({length:e.s}, () => ({kg:k0!=null?fmtKg(k0):'', reps:'', ok:false, rir:null}));
   }
-  return S.logs[t][id];
+  return fitLog(id, S.logs[t][id]);
 }
-const logOf = id => (S.logs[today()]||{})[id] || [];
+/* as séries do dia acompanham o plano: se o treino foi editado depois de abrir o exercício,
+   completa as que faltam e tira as que sobraram (só as não feitas e que não foram adicionadas na hora) */
+function fitLog(id, L){
+  const f = findEx(id), n = f && f.e ? Math.max(1, +f.e.s||1) : 0; if(!n) return L;
+  while(L.length>n){ const z = L[L.length-1]; if(!z || z.ok || z.add) break; L.pop(); }
+  if(L.length<n){ const l = L[L.length-1], k0 = l && l.kg!=='' ? null : startKg(id); while(L.length<n) L.push({kg:l && l.kg!=='' ? l.kg : (k0!=null ? fmtKg(k0) : ''), reps:'', ok:false, rir:null}); }
+  return L;
+}
+const logOf = id => { const L = (S.logs[today()]||{})[id]; return L ? fitLog(id, L) : []; };
 const doneSets = id => logOf(id).filter(x => x.ok).length;
-const totalSets = t => PLAN[t].ex.reduce((a,e) => a+Math.max(e.s, logOf(e.id).length), 0);
+const totalSets = t => PLAN[t].ex.reduce((a,e) => a+exN(e), 0);
 const doneSetsPlan = t => PLAN[t].ex.reduce((a,e) => a+doneSets(e.id), 0);
 const liveVol = t => PLAN[t].ex.reduce((a,e) => a+logOf(e.id).filter(x=>x.ok).reduce((b,x) => b+num(x.kg)*int(x.reps), 0), 0);
 function todayBest(id, except){
@@ -5888,7 +5896,7 @@ function onClick(ev){
     case 'setok': toggleSet(ui.sheet.id, +d.i); re = false; break;
     case 'rir': getLog(ui.sheet.id)[+d.i].rir = +d.v; save(); renderSheet(); re = false; break;
     case 'warm': { const t = today(); S.warm[t] = S.warm[t]||{}; const w = S.warm[t][ui.sheet.id] = S.warm[t][ui.sheet.id]||[]; w[+d.i] = !w[+d.i]; save(); renderSheet(); re = false; break; }
-    case 'addset': { const L = getLog(ui.sheet.id), l = L[L.length-1]; L.push({kg:l?l.kg:'', reps:'', ok:false, rir:null}); save(); renderSheet(); re = false; break; }
+    case 'addset': { const L = getLog(ui.sheet.id), l = L[L.length-1]; L.push({kg:l?l.kg:'', reps:'', ok:false, rir:null, add:true}); save(); renderSheet(); re = false; break; }
     case 'rest': startRest(ui.sheet && ui.sheet.id ? nextSet(findEx(ui.sheet.id).t, ui.sheet.id) : null); re = false; break;
     case 'rest-add': if(ui.rest && !ui.rest.done){ ui.rest.end += 15000; ui.rest.total += 15; renderRest(); } re = false; break;
     case 'skiprest': ui.rest = null; renderRest(); re = false; break;
@@ -5910,7 +5918,7 @@ function onClick(ev){
     case 'grir': if(ui.pop){ getLog(ui.pop.id)[ui.pop.i].rir = +d.v; } break;
     case 'gedit': ui.editRow = ui.editRow===d.ex ? null : d.ex; ui.pop = null; if(ui.editRow) toast('Edição ligada: toque numa série para ajustar.'); break;
     case 'gskip': { toggleSkip(d.ex); ui.pop = null; if(ui.editRow===d.ex) ui.editRow = null; const nm = findEx(d.ex).e.nome; toast(isSkip(d.ex) ? nm+' pulado hoje.' : nm+' de volta ao treino.'); break; }
-    case 'gadd': { const L = getLog(d.ex), l = L[L.length-1]; L.push({kg:l?l.kg:'', reps:'', ok:false, rir:null}); ui.pop = {id:d.ex, i:L.length-1, mode:'confirm'}; ui.popScroll = true; break; }
+    case 'gadd': { const L = getLog(d.ex), l = L[L.length-1]; L.push({kg:l?l.kg:'', reps:'', ok:false, rir:null, add:true}); ui.pop = {id:d.ex, i:L.length-1, mode:'confirm'}; ui.popScroll = true; break; }
     case 'grepeat': {
       const t = ui.t || nextTreino(); let n = 0;
       PLAN[t].ex.forEach(e => { const la = lastFor(e.id); if(!la || isSkip(e.id)) return; getLog(e.id).forEach((x,i) => { if(x.ok) return; x.kg = fmtKg(la.kg); x.reps = String(la.reps[i]!=null ? la.reps[i] : la.reps[la.reps.length-1]); n++; }); });
@@ -6060,7 +6068,7 @@ function onInput(ev){
     return;
   }
   if(el.dataset.mx && ui.sheet && ui.sheet.k==='meus'){ const t = S.conta.treinos[ui.sheet.ed], e = t && t.ex[+el.dataset.i]; if(e){ e.r = String(el.value).replace(/[<>&"]/g,'').slice(0,14); save(); } return; }
-  if(el.dataset.set){ const y = getLog(el.dataset.ex)[+el.dataset.i]; y[el.dataset.set] = el.value.trim(); if(el.dataset.set==='kg' && !y.ok) y.man = true; if(el.dataset.fix) el.dataset.len = el.value.trim().length; save(); }
+  if(el.dataset.set){ const y = getLog(el.dataset.ex)[+el.dataset.i]; if(!y) return; y[el.dataset.set] = el.value.trim(); if(el.dataset.set==='kg' && !y.ok) y.man = true; if(el.dataset.fix) el.dataset.len = el.value.trim().length; save(); }
   if(el.dataset.prof){ S.nome = el.value.trim().slice(0,40); save(); }
   if(el.dataset.note!=null){ const h = S.history[+el.dataset.note]; if(h){ h.note = el.value; save(); } }
   if(el.dataset.exn){ const x = excOf(el.dataset.exn, true); x.n = el.value.slice(0,300); excHist(el.dataset.exn); save(); }
