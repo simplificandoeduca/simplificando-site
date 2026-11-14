@@ -641,31 +641,67 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .aut-b { display: flex; gap: 8px; } .aut-b .bt { min-height: 46px; height: auto; justify-content: center; } .aut-b .bt.forte { flex: 1; background: var(--ok); } .aut-b .bt.nao { flex: none; background: var(--card); border: 1.5px solid var(--borda-2); }
 /* 1.25: o painel da gestora */
 .painel { display: flex; flex-direction: column; gap: 16px; }
-.painel .sec-cab h2 { font-size: 18px; } .pn-links { display: flex; gap: 14px; flex-wrap: wrap; } .pn-links .link { font-size: 13.5px; }
+.painel .sec-cab h2 { font-size: 18px; } .pn-links { display: flex; gap: 14px; flex-wrap: wrap; } .pn-links .link { font-size: 13.5px; } #pn-n:empty { display: none; }
 .pn-aprov { display: flex; flex-direction: column; }
 .pn-aprov .aut-it { padding: 12px 0; display: flex; flex-direction: column; gap: 9px; border-top: 1.5px solid var(--borda-2); } .pn-aprov .aut-it:first-child { border-top: 0; padding-top: 4px; }
 @media (min-width: 700px) { .pn-aprov .aut-it { flex-direction: row; align-items: center; gap: 16px; } .pn-aprov .aut-t { flex: 1; } .pn-aprov .aut-b { flex: none; width: 330px; } }
 .pn-sub { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 12px 0 4px; border-top: 1.5px solid var(--borda-2); font-size: 13.5px; } .pn-sub:first-child { border-top: 0; padding-top: 0; }
 .pn-aprov .aut-it.aviso .aut-b .bt.forte { background: var(--coral); }
 .pn-vazio { display: flex; align-items: center; gap: 10px; color: var(--tinta-2); font-size: 14px; line-height: 1.4; } .pn-vazio svg { color: var(--ok); flex: none; }
-.pn-dia { display: flex; flex-direction: column; gap: 10px; }
-.pn-tot { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.pn-tot span { background: var(--creme-2); border-radius: 14px; padding: 9px 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0; } .pn-tot small { font-size: 12px; font-weight: 700; color: var(--tinta-2); } .pn-tot b { font: 800 19px/1.2 var(--display); }
-.pn-unis { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 12px; }
-.pn-uni { gap: 12px; } .pn-u-cab { display: flex; align-items: center; justify-content: space-between; gap: 8px; } .pn-u-cab b { font: 800 16px/1.2 var(--display); letter-spacing: .02em; }
-.pn-u-esp { display: flex; align-items: center; gap: 12px; } .pn-u-esp > b { font: 800 44px/1 var(--display); color: var(--coral); min-width: 44px; text-align: center; }
-.pn-u-esp span { display: flex; flex-direction: column; gap: 2px; font-weight: 700; font-size: 14.5px; } .pn-u-esp small { font-size: 12.5px; font-weight: 700; color: var(--tinta-2); } .pn-u-esp small.pas { color: var(--erro); }
-.pn-u-din { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0; } .pn-u-din div { background: var(--creme-2); border-radius: 14px; padding: 9px 12px; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.pn-u-din dt { font-size: 12px; font-weight: 700; color: var(--tinta-2); } .pn-u-din dd { margin: 0; font: 800 20px/1.2 var(--display); } .pn-u-din small { font-size: 11.5px; color: var(--tinta-2); font-weight: 700; }
-.pn-formas { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; } .pn-formas span { display: flex; flex-direction: column; gap: 1px; padding: 6px 8px; border: 1px solid var(--borda); border-radius: 12px; min-width: 0; } .pn-formas span.zero { opacity: .55; }
-.pn-formas small { font-size: 11.5px; font-weight: 700; color: var(--tinta-2); } .pn-formas b { font-size: 13.5px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pn-u-x { font-size: 12.5px; font-weight: 700; color: var(--tinta-2); margin: 0; }
+/* 1.27: o painel (o seletor de unidade, os números do dia, os gráficos e as listas) */
+:root { --gr-1: #E25B3F; --gr-2: #1F9C87; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --gr-1: #DE6548; --gr-2: #27A892; } }
+:root[data-theme="dark"] { --gr-1: #DE6548; --gr-2: #27A892; }
+.pn-sel { display: flex; gap: 6px; padding: 5px; background: var(--menta-risco); border: 1px solid var(--borda); border-radius: 24px; overflow-x: auto; scrollbar-width: none; } .pn-sel::-webkit-scrollbar { display: none; }
+.pn-sel button { flex: 1 0 0; min-width: 104px; min-height: 62px; padding: 8px 12px; border-radius: 19px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: var(--tinta-2); transition: background .25s, color .25s, transform .3s var(--spring); }
+.pn-sel button b { font: 800 16.5px/1.15 var(--display); letter-spacing: .03em; text-align: center; } .pn-sel button small { font-size: 12px; font-weight: 700; white-space: nowrap; } .pn-sel button small i { font-style: normal; }
+.pn-sel button[aria-selected="true"] { background: var(--tinta); color: var(--creme); box-shadow: 0 6px 18px rgba(59, 50, 40, .22); } .pn-sel button:active { transform: scale(.97); }
+.pn-aprov-ir { display: none; justify-content: center; min-height: 52px; height: auto; font-size: 15px; }
+.pn-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.pn-k { background: var(--card); border: 1px solid var(--borda); border-radius: 20px; padding: 14px 16px 13px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.pn-k small { font-size: 12.5px; font-weight: 800; color: var(--tinta-2); } .pn-k b { font: 800 30px/1.15 var(--display); letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pn-k span { font-size: 12.5px; font-weight: 700; color: var(--tinta-2); line-height: 1.3; } .pn-k span.pas { color: var(--erro); } .pn-k.heroi b { font-size: 42px; line-height: 1.05; color: var(--coral); }
+.pn-grade { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; } .pn-g { gap: 12px; } .pn-g.larga { grid-column: 1 / -1; }
+.pn-g-cab { display: flex; align-items: baseline; justify-content: space-between; gap: 6px 12px; flex-wrap: wrap; } .pn-g-cab h3 { font: 800 16.5px/1.2 var(--display); margin: 0; } .pn-g-cab small { font-size: 12.5px; font-weight: 700; color: var(--tinta-2); } .pn-g-cab small b { color: var(--tinta); font-weight: 800; } .pn-g-cab .link { font-size: 13px; }
+.gr { min-height: 216px; } .gr svg { display: block; max-width: 100%; height: auto; overflow: visible; }
+.gr-g { stroke: var(--borda-2); stroke-width: 1; shape-rendering: crispEdges; } .gr-g0 { stroke: var(--apagado); }
+.gr-ey, .gr-ex { font: 700 11px var(--texto); fill: var(--tinta-2); } .gr-ex.agora { fill: var(--tinta); font-weight: 800; } .gr-v { font: 800 12.5px var(--display); fill: var(--tinta); } .gr-vazio { font: 700 13.5px var(--texto); fill: var(--tinta-2); }
+.gr-b { fill: var(--gr-1); transition: opacity .15s; } .gr-agora { fill: var(--menta-risco); } .gr-hit { fill: transparent; } .gr-col { outline: none; }
+.gr-col:hover .gr-b, .gr-col:focus-visible .gr-b { opacity: .76; } .gr-col:focus-visible .gr-hit { stroke: var(--coral); stroke-width: 2; }
+.gr-tab summary { font-size: 12.5px; font-weight: 800; color: var(--tinta-2); cursor: pointer; width: fit-content; } .gr-tab table { margin-top: 8px; border-collapse: collapse; font-size: 13px; } .gr-tab th, .gr-tab td { padding: 3px 14px 3px 0; text-align: left; } .gr-tab th { color: var(--tinta-2); font-size: 12px; }
+.gr-linhas { display: flex; flex-direction: column; gap: 11px; padding: 2px 0; }
+.gr-l { display: grid; grid-template-columns: minmax(78px, 36%) minmax(0, 1fr) 96px; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 700; border-radius: 6px; outline-offset: 4px; }
+.gr-n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .gr-t { display: block; height: 16px; } .gr-t i { display: block; height: 100%; border-radius: 0 4px 4px 0; transition: opacity .15s; }
+.gr-l b { font: 800 14px/1.2 var(--display); white-space: nowrap; text-align: right; } .gr-l.zero, .gr-l.zero b { color: var(--apagado); } .gr-l:hover .gr-t i, .gr-l:focus-visible .gr-t i { opacity: .76; }
+#gr-dica { position: fixed; z-index: 80; pointer-events: none; display: flex; flex-direction: column; gap: 1px; max-width: 260px; padding: 7px 11px; border-radius: 11px; background: var(--tinta); color: var(--creme); font-size: 12px; font-weight: 700; line-height: 1.3; box-shadow: 0 8px 22px rgba(0, 0, 0, .24); }
+#gr-dica[hidden] { display: none; } #gr-dica b { font: 800 14px/1.2 var(--display); }
+.pn-lista { display: flex; flex-direction: column; } .pn-nada { margin: 0; padding: 4px 0; color: var(--tinta-2); font-size: 13.5px; font-weight: 700; }
+.pn-li { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 10px; align-items: start; width: 100%; padding: 9px 0; border-top: 1px solid var(--borda); text-align: left; } .pn-li:first-child { border-top: 0; padding-top: 2px; } .pn-li:last-child { padding-bottom: 2px; }
+.pn-li time { font: 800 13px/1.5 var(--display); color: var(--tinta-2); } .pn-li-t { display: flex; flex-direction: column; gap: 1px; min-width: 0; } .pn-li-t b { font-size: 14px; line-height: 1.35; overflow-wrap: anywhere; } .pn-li-t > span { font-size: 12.5px; font-weight: 700; color: var(--tinta-2); line-height: 1.35; overflow-wrap: anywhere; }
+.pn-mv { display: inline-block; margin-right: 3px; padding: 1px 8px; border-radius: 999px; font: 800 11px/1.6 var(--texto); font-style: normal; letter-spacing: .03em; text-transform: uppercase; vertical-align: 1px; } .pn-mv.ent { background: var(--menta); color: var(--tinta); } .pn-mv.sai { background: var(--creme-2); color: var(--tinta-2); border: 1px solid var(--borda-2); }
+.pn-comp table { width: 100%; border-collapse: collapse; font-size: 14px; } .pn-comp th, .pn-comp td { padding: 8px 10px 8px 0; text-align: right; border-top: 1px solid var(--borda); white-space: nowrap; } .pn-comp thead th { border-top: 0; padding-top: 0; font-size: 12px; font-weight: 800; color: var(--tinta-2); }
+.pn-comp th:first-child { text-align: left; } .pn-comp td { font-weight: 800; } .pn-comp tbody th .link { font: 800 14px/1.2 var(--display); letter-spacing: .02em; }
+@media (max-width: 820px) { .pn-grade { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 700px) { .pn-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; } .pn-k { padding: 12px 13px 11px; border-radius: 18px; } .pn-k b { font-size: 23px; } .pn-k.heroi b { font-size: 34px; } .gr { min-height: 184px; }
+  .pn-sel button { min-width: 96px; min-height: 56px; padding: 7px 8px; } .pn-sel button b { font-size: 13.5px; } .pn-sel button small { font-size: 11.5px; } .pn-sel button small i { display: none; }
+  .pn-aprov-c.tem .pn-aprov, .pn-aprov-c.tem .pn-links { display: none; } .pn-aprov-c.tem .pn-aprov-ir { display: flex; }
+  .pn-comp { overflow-x: auto; } .pn-comp table { font-size: 13px; }
+  .gr-linhas { gap: 12px; } .gr-l { grid-template-columns: minmax(0, 1fr) auto; gap: 5px 10px; } .gr-l .gr-t { grid-column: 1 / -1; grid-row: 2; height: 12px; } .gr-l.zero .gr-t { display: none; } }
+/* 1.27: as Aprovações (só o que espera a resposta, em cartões grandes: a tela do celular da gestora) */
+.aprovar { display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 760px; margin: 0 auto; }
+.ap-lista { display: flex; flex-direction: column; gap: 12px; }
+.ap-tit { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; margin-top: 4px; } .ap-tit h2 { margin: 0; font: 800 17px/1.2 var(--display); display: flex; align-items: center; gap: 8px; } .ap-tit .link { font-size: 13.5px; }
+.ap-lista .aut-it { display: flex; flex-direction: column; gap: 14px; padding: 16px; background: var(--card); border: 1.5px solid var(--coral); border-radius: 22px; box-shadow: var(--sombra); } .ap-lista .aut-it.aviso { border-color: var(--borda-2); }
+.ap-lista .aut-t { gap: 4px; font-size: 14.5px; line-height: 1.4; } .ap-lista .aut-t small { font-size: 12.5px; } .ap-lista .aut-t b { font: 800 18px/1.25 var(--display); }
+.ap-lista .aut-b { gap: 10px; } .ap-lista .aut-b .bt { min-height: 56px; padding: 0 16px; border-radius: 17px; font-size: 15.5px; white-space: normal; text-align: center; } .ap-lista .aut-b .bt.forte { flex: 2; } .ap-lista .aut-b .bt.nao { flex: 1; } .ap-lista .aut-it.aviso .aut-b .bt.forte { background: var(--coral); }
+.ap-vazio { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 46px 22px; text-align: center; background: var(--card); border: 1px solid var(--borda); border-radius: 26px; }
+.ap-vazio i { width: 76px; height: 76px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--ok-bg); color: var(--ok); margin-bottom: 4px; } .ap-vazio b { font: 800 23px/1.2 var(--display); } .ap-vazio span { max-width: 430px; color: var(--tinta-2); font-size: 14.5px; line-height: 1.45; }
+.ap-pe { display: flex; gap: 10px; flex-wrap: wrap; } .ap-pe .bt { flex: 1 1 170px; justify-content: center; min-height: 48px; height: auto; white-space: normal; text-align: center; }
 /* 1.25: os finalizados do dia */
 .esp-fora.fim .fim-it .quem { flex: 1; min-width: 0; } .fim-v { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; flex: none; text-align: right; font-size: 14px; }
 .fim-v small { font-size: 11.5px; font-weight: 800; } .fim-v small.pas { color: var(--erro); }
 .fim-it .av.carr { display: grid; place-items: center; background: var(--creme-2); color: var(--tinta-2); }
 .pn-pe { display: flex; gap: 10px; flex-wrap: wrap; } .pn-pe .bt { flex: 1 1 200px; justify-content: center; min-height: 48px; }
-@media (max-width: 480px) { .pn-tot { grid-template-columns: 1fr 1fr; } .pn-tot span:first-child { grid-column: 1 / -1; } .pn-formas { grid-template-columns: 1fr 1fr; } }
 .aut-senha { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; } .aut-senha input { flex: 1 1 150px; min-width: 0; } .aut-senha .bt { flex: none; height: auto; min-height: 44px; }
 .pg-desc-a { display: flex; flex-direction: column; gap: 8px; padding: 0 10px 10px; } .pg-desc-a > .bt { justify-content: center; min-height: 44px; height: auto; }
 .pg-desc-e { display: flex; align-items: center; gap: 8px; margin: 0; padding: 9px 11px; border-radius: 12px; background: var(--aviso-bg); font-size: 13.5px; } .pg-desc-e > svg { flex: none; color: var(--aviso); } .pg-desc-e > span { flex: 1; }
@@ -1051,6 +1087,47 @@ b.np { color: var(--erro); letter-spacing: .03em; }
 .papel-previa .papel .c-via span:first-child { padding: .9mm 2.6mm; border-radius: 999px; background: #3B3229; color: #FFF6DA; font-size: 10px; letter-spacing: .05em; }
 .papel-previa .papel.cliente .c-via span:first-child { background: var(--coral); color: #fff; }
 .papel-previa .papel .c-total, .papel-previa .papel .c-assina, .papel-previa .papel .c-div, .papel-previa .papel .c-cab, .papel-previa .papel .c-pt i { border-color: #B9A070; } .papel-previa .papel .c-cab, .papel-previa .papel .c-item { grid-template-columns: 1fr 17mm; } .papel-previa .papel .c-cab.q, .papel-previa .papel .c-item.q { grid-template-columns: 1fr 6.5mm 16mm; } .papel-previa .papel .c-item { font-size: 11.5px; } .papel-previa .papel .c-rod { color: #6B5D4A; } .papel-previa .papel .c-aviso { color: #6B5D4A; }
+/* 1.27: o comprovante mais bonito. O castelo no meio, grande, com o nome da loja embaixo; cada parte com respiro (o cliente, cada criança,
+   a tabela, o total, a assinatura, o aviso); o total em destaque; o pé centralizado e um arremate no fim. Papel importa, mas não manda:
+   uma via comum passa de uns 8,5 cm para uns 12,5 cm. As regras de cima continuam valendo no que não é dito aqui, e estas valem também
+   para os cupons guardados antes (a reimpressão). Nada de text-transform nem de texto novo: o que está escrito no cupom não muda. */
+.papel { padding: 2mm 0 2.5mm; line-height: 1.38; }
+.papel .c-topo { flex-direction: column; align-items: center; gap: 1.9mm; text-align: center; }
+.papel .c-quem { max-width: 100%; }
+.papel .c-logo { width: 22mm; }
+.papel .c-loja { font-size: 18px; line-height: 1.15; letter-spacing: .16em; padding-left: .16em; }
+.papel .c-uni { margin-top: .9mm; font-size: 11px; letter-spacing: .22em; padding-left: .22em; }
+.papel .c-fone { margin-top: .5mm; font-size: 11.5px; letter-spacing: .04em; }
+.papel .c-via { margin: 2.9mm 0 2.6mm; padding: 1.25mm 0 1.15mm; border-top-width: 1.5px; border-bottom-width: 1.5px; }
+.papel .c-via span:first-child { letter-spacing: .14em; }
+.papel .c-resp b { font-size: 13.5px; }
+.papel .c-doc { margin-top: .5mm; font-size: 11.5px; }
+.papel .c-div { margin: 2.5mm 0; }
+.papel .c-esp { height: 2.6mm; }
+.papel .c-bt { margin-bottom: .4mm; } .papel .c-bt b { font-size: 12.5px; } .papel .c-bt.c-bd b { font-size: 12px; }
+.papel .c-tit.c-bt { font-size: 12.5px; }
+.papel .c-titulo { margin-bottom: 2.2mm; font-size: 12.5px; letter-spacing: .1em; }
+.papel .c-cab { padding-bottom: .9mm; margin-bottom: 1.3mm; letter-spacing: .06em; }
+.papel .c-item { margin-top: 1.1mm; } .papel .c-cab + .c-item { margin-top: 0; }
+.papel .c-sub { margin-top: .2mm; }
+.papel .c-linha.c-pt { margin-top: .9mm; }
+.papel .c-linha.c-total { margin-top: 2.2mm; padding-top: 1.6mm; border-top-width: 1.5px; font-size: 15px; }
+.papel .c-areceber { margin-top: 1.6mm; text-align: center; letter-spacing: .04em; }
+.papel .c-rod { margin-top: 2.7mm; text-align: center; letter-spacing: .03em; }
+.papel .c-assina { margin-top: 10mm; padding-bottom: .7mm; margin-bottom: 1.2mm; border-bottom-style: solid; }
+.papel .c-ass-nome { text-align: center; font-size: 11.5px; }
+.papel .c-aviso { margin-top: 2.8mm; text-align: center; line-height: 1.36; }
+.papel .c-rod.c-reimp { margin-top: 2.2mm; }
+.papel.cliente::after, .papel.relp::after { content: ''; display: block; width: 14mm; margin: 3.6mm auto 0; border-top: 1.5px solid #000; }   /* o arremate da via do cliente: um traço curto no meio (na da loja o fim é a assinatura) */
+.papel.relp { line-height: 1.33; } .papel.relp .c-item { margin-top: 1mm; } .papel.relp .c-cab + .c-item { margin-top: 0; } .papel.relp .c-linha.c-pt { margin-top: .5mm; } .papel.relp .c-linha.c-total { margin-top: 1.4mm; padding-top: 1.1mm; font-size: 13.5px; }
+/* na tela (a folha do cupom): o mesmo desenho, no papel amarelinho */
+.papel-previa .papel { padding: 5mm 3.6mm 9mm; line-height: 1.44; }
+.papel-previa .papel .c-logo { width: 21mm; }
+.papel-previa .papel .c-loja { font: 800 18px/1.15 var(--display); letter-spacing: .1em; padding-left: .1em; }
+.papel-previa .papel .c-via { margin: 3mm 0 2.6mm; }
+.papel-previa .papel .c-linha.c-total { font-size: 14px; }
+.papel-previa .papel .c-assina { border-bottom-style: dashed; }
+.papel-previa .papel::after { border-color: #B9A070; }
 #cupom-print { position: fixed; left: -300vw; top: 0; width: 72mm; }
 @media print {
   body.imprimindo { background: #fff !important; margin: 0 !important; padding: 0 !important; }
@@ -1404,6 +1481,7 @@ const IC = {
   sacola: '<path d="M5 8h14l1 12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M9 11V7a3 3 0 0 1 6 0v4"/>',
   elo: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.2 1.2"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.2-1.2"/>',
   carrinho: '<path d="M3 5h2.4l2.3 9.5h9.8l2-7H6.6"/><circle cx="9.5" cy="18.5" r="1.7"/><circle cx="16.5" cy="18.5" r="1.7"/>',
+  aprovar: '<circle cx="12" cy="12" r="9"/><path d="M8 12.4l2.7 2.7L16 9.6"/>',
   painel: '<rect x="3.5" y="3.5" width="7.5" height="9" rx="2"/><rect x="13" y="3.5" width="7.5" height="5.5" rx="2"/><rect x="13" y="11" width="7.5" height="9.5" rx="2"/><rect x="3.5" y="14.5" width="7.5" height="6" rx="2"/>',   // 1.25: o painel da gestora
   festa: '<path d="M12 2.8c3.2 0 5.8 2.7 5.8 6.1 0 3.5-2.6 6.6-5.8 6.6s-5.8-3.1-5.8-6.6c0-3.4 2.6-6.1 5.8-6.1z"/><path d="M10.7 15.4l-.9 1.9h4.4l-.9-1.9"/><path d="M12 17.3c0 1.7 1.7 1.6 1.7 3.4"/>',   // 1.12: o balão do botão Festa
 };
@@ -1417,7 +1495,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.26';
+const VERSAO = '1.27';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -1552,8 +1630,8 @@ const PAPEIS = { gestor: 'Gestor', supervisor: 'Supervisor', atendente: 'Operado
 // a aba, os botões "Chamar no WhatsApp", os avisos de renovar e os cartões dos Ajustes voltam
 const COM_WHATS = false;
 document.documentElement.dataset.whats = COM_WHATS ? 'sim' : 'nao';
-const TODAS_ABAS = [['painel', 'Painel', 'painel'], ['horas', 'Espaço', 'horas'], ['banco', 'Banco', 'banco'], ['zap', 'WhatsApp', 'zap'], ['agenda', 'Agenda', 'agenda'], ['ajustes', 'Ajustes', 'ajustes']].filter(a => COM_WHATS || a[0] !== 'zap');
-const abasDoPapel = () => TODAS_ABAS.filter(a => (a[0] !== 'ajustes' || supervisorOuMais()) && (a[0] !== 'painel' || gestor()));   // 1.25: o painel é só do gestor
+const TODAS_ABAS = [['painel', 'Painel', 'painel'], ['aprovar', 'Aprovar', 'aprovar'], ['horas', 'Espaço', 'horas'], ['banco', 'Banco', 'banco'], ['zap', 'WhatsApp', 'zap'], ['agenda', 'Agenda', 'agenda'], ['ajustes', 'Ajustes', 'ajustes']].filter(a => COM_WHATS || a[0] !== 'zap');
+const abasDoPapel = () => TODAS_ABAS.filter(a => (a[0] !== 'ajustes' || supervisorOuMais()) && ((a[0] !== 'painel' && a[0] !== 'aprovar') || gestor()));   // 1.25: o painel é só do gestor; 1.27: as Aprovações também
 let ABAS = TODAS_ABAS;
 /* ---------- o servidor: api/api.php. Sem ele (a prévia), tudo roda em modo demonstração com os dados de exemplo ---------- */
 const API = 'api/api.php';
@@ -3071,7 +3149,7 @@ function htmlPapel(spec, via = 'loja') {
   const div = '<p class="c-div"></p>', anos = x => loja && idadeTxt(x) ? ` (${idadeTxt(x)})` : '';
   const cab = `<div class="c-topo"><span class="c-logo cor">${LOGO}</span><span class="c-logo pb">${LOGO_PB}</span><div class="c-quem"><p class="c-loja">${esc(L.nome)}</p>${uniP ? `<p class="c-uni">${esc(uniP)}</p>` : ''}${L.tel ? `<p class="c-fone">${esc(L.tel)}</p>` : ''}</div></div>
     <p class="c-via"><span>${loja ? 'VIA DA LOJA' : 'VIA DO CLIENTE'}</span><span>${dataCurta(agoraJa())}</span></p>
-    <p>Responsável: <b>${esc(c.resp)}</b></p>${loja && (docTxt(c) || fones(c)) ? `<p>${esc([docTxt(c), fones(c)].filter(Boolean).join(' · '))}</p>` : ''}`;
+    <p class="c-resp">Responsável: <b>${esc(c.resp)}</b></p>${loja && (docTxt(c) || fones(c)) ? `<p class="c-doc">${esc([docTxt(c), fones(c)].filter(Boolean).join(' · '))}</p>` : ''}`;
   // o que foi vendido e como foi pago: uma linha por item (com o detalhe dele embaixo, se houver), o total quando há mais de uma linha, e a forma
   // 1.10: o pagamento no jeito de um comprovante: a tabela (com a quantidade, quando os itens têm), o subtotal e o desconto só quando
   // há desconto, o total em destaque já com a forma de pagamento (uma linha por forma, se dividiu). o.titulo: "COMPROVANTE DE PAGAMENTO"
@@ -3079,27 +3157,27 @@ function htmlPapel(spec, via = 'loja') {
     const lin = (rot, val, cls = '') => `<p class="c-linha c-pt${cls}"><span>${rot}</span><i></i><span>${val}</span></p>`, subs = i => (Array.isArray(i.sub) ? i.sub : i.sub ? [i.sub] : []).map(t => `<p class="c-sub">${esc(t)}</p>`).join('');
     return `${div}${o.titulo ? `<p class="c-titulo">${o.titulo}</p>` : ''}<p class="c-cab${comQ ? ' q' : ''}"><span>Descrição</span>${comQ ? '<span>Qtd</span>' : ''}<span>Valor</span></p>
       ${itens.map(i => `<p class="c-item${comQ ? ' q' : ''}"><span>${esc(i.n)}</span>${comQ ? `<span>${i.q || 1}</span>` : ''}<span>${brl2(i.v)}</span></p>${subs(i)}`).join('')}
-      ${desc ? lin('Subtotal', brl2(bruto)) + lin('Desconto', '- ' + brl2(desc)) : ''}${F.length === 1 ? lin('Total pago ' + esc(naForma(F[0].f)), brl2(total), ' c-total') : lin('Total', brl2(total), ' c-total') + F.map(p => lin(esc(nomeForma(p.f)), brl2(p.v))).join('')}${!F.length && spec.depois ? `<p><b>A RECEBER NA ${c.entrou ? 'SAÍDA' : 'DEVOLUÇÃO'}</b></p>` : ''}`; };
+      ${desc ? lin('Subtotal', brl2(bruto)) + lin('Desconto', '- ' + brl2(desc)) : ''}${F.length === 1 ? lin('Total pago ' + esc(naForma(F[0].f)), brl2(total), ' c-total') : lin('Total', brl2(total), ' c-total') + F.map(p => lin(esc(nomeForma(p.f)), brl2(p.v))).join('')}${!F.length && spec.depois ? `<p class="c-areceber"><b>A RECEBER NA ${c.entrou ? 'SAÍDA' : 'DEVOLUÇÃO'}</b></p>` : ''}`; };
   // o pé: quem atendeu (e o número da venda, quando houve), a linha da assinatura na via da loja quando há o que assinar (a entrada da
   // criança, o carrinho que sai, a saída, a devolução) e o aviso
   const rod = `<p class="c-rod">${spec.venda ? `Venda nº ${spec.venda} · ` : ''}Atendente ${esc(MAI(primeiro((typeof EU !== 'undefined' && EU && EU.nome) || 'equipe')))}</p>`;
-  const pe = (aviso, assina) => `${rod}${loja && assina ? `<p class="c-assina">x</p><p>${esc(c.resp)}${c.cpf ? ' · ' + esc(c.cpf) : ''}</p>` : ''}${aviso ? `<p class="c-aviso">${esc(aviso)}</p>` : ''}`;
+  const pe = (aviso, assina) => `${rod}${loja && assina ? `<p class="c-assina">x</p><p class="c-ass-nome">${esc(c.resp)}${c.cpf ? ' · ' + esc(c.cpf) : ''}</p>` : ''}${aviso ? `<p class="c-aviso">${esc(aviso)}</p>` : ''}`;
   if (spec.tipo === 'devolucao') { // 1.06: o que saiu da loja voltou (carrinho, fusquinha): o responsável assina a devolução, com ou sem valor a receber
     const xa = spec.extra && spec.extra.aberto && spec.extra.valor > 0 ? spec.extra : null;   // 1.20: em aberto, a linha é a do tempo cobrado
     const itens = xa ? [{ n: `${spec.item} · ${dur(xa.min)}`, v: xa.valor, sub: `${xa.q > 1 ? xa.q + ' carrinhos · ' : ''}${xa.n} × ${xa.per} min · ${brl2(xa.un)} cada` }]
       : [spec.pend > 0 ? { n: spec.item + (spec.comprou ? ' · ' + dur(spec.comprou) : ''), v: spec.pend } : null, spec.extra && spec.extra.valor > 0 ? { n: `Tempo a mais: ${dur(spec.extra.min)}`, v: spec.extra.valor } : null].filter(Boolean);
-    return `<div class="papel ${loja ? 'loja' : 'cliente'}">${cab}${div}<p class="c-tit">DEVOLUÇÃO · ${esc(spec.item)}</p>
+    return `<div class="papel ${loja ? 'loja' : 'cliente'}">${cab}${div}<p class="c-tit c-bt">DEVOLUÇÃO · ${esc(spec.item)}</p>
       <p>Saiu ${spec.outroDia ? dataHora(spec.saiu) : hora(spec.saiu)} · voltou ${hora(spec.voltou)} · ficou ${dur(spec.ficou)}</p>${spec.comprou ? `<p>Tempo comprado: ${dur(spec.comprou)}</p>` : ''}
       ${pago(itens, spec.formas, { desc: spec.desc })}${pe('', true)}</div>`;
   }
   if (spec.tipo === 'saida') { // 1.07: spec.grupo = a saída em conjunto: cada criança com a visita dela, e um pagamento só
     const A = spec.alug || [], G = spec.grupo && (spec.grupo.length || A.length) ? spec.grupo : [spec], varias = G.length > 1, quem = x => varias ? crianca(x.id) || c : c, nomes = G.length + A.length > 1;   // 1.25: A = os carrinhos da conta do responsável
-    const bloco = (x, i) => { const k = quem(x); return `${i ? '<p class="c-esp"></p>' : ''}<p><b>SAÍDA · ${esc(k.nome)}</b>${anos(k)}${loja ? ' · cadastro ' + k.id : ''}</p>
+    const bloco = (x, i) => { const k = quem(x); return `${i ? '<p class="c-esp"></p>' : ''}<p class="c-bt"><b>SAÍDA · ${esc(k.nome)}</b>${anos(k)}${loja ? ' · cadastro ' + k.id : ''}</p>
       <p>Entrada ${hora(x.entrou)} · saída ${hora(x.saiu)} · ficou ${dur(Math.floor(x.min))}</p>
       <p>Tempo contado: ${dur(x.deb)}${x.plano !== 'avulso' || x.saldo > 0 || x.proprias > 0 ? ' · saldo de horas: ' + hm(x.saldo) : ''}</p>`; };
     const itens = G.flatMap(x => { const de = varias ? ' · ' + quem(x).nome : ''; return [...(x.pendi && x.pendi.length ? x.pendi.map(i => ({ n: i.n + de, v: i.v })) : [x.pend > 0 ? { n: 'O que ficou para pagar na saída' + de, v: x.pend } : null]), x.n ? { n: `${x.plano === 'pacote' ? 'Além do pacote' : (st ? st.n : 'RECREAÇÃO') + ' avulsa'} · ${dur(x.n * p)}${de}`, v: centavos(x.valor - (x.pend || 0) - (x.av ? x.av.valor : 0)) } : null, x.av ? { n: `${st ? st.n : 'RECREAÇÃO'} avulsa · ${dur(x.av.min)}${de}`, v: x.av.valor } : null]; }).filter(Boolean);   // 1.10: o desconto sai na linha dele, embaixo do subtotal
     const deA = y => nomes && crianca(y.id) ? ' · ' + crianca(y.id).nome : '';
-    const blocoA = (y, i) => `${i || G.length ? '<p class="c-esp"></p>' : ''}<p><b>DEVOLUÇÃO · ${esc(y.item)}</b>${esc(deA(y))}</p><p>Saiu ${y.outroDia ? dataHora(y.saiu) : hora(y.saiu)} · voltou ${hora(y.voltou)} · ficou ${dur(y.ficou)}</p>${y.comprou ? `<p>Tempo comprado: ${dur(y.comprou)}</p>` : ''}`;
+    const blocoA = (y, i) => `${i || G.length ? '<p class="c-esp"></p>' : ''}<p class="c-bt c-bd"><b>DEVOLUÇÃO · ${esc(y.item)}</b>${esc(deA(y))}</p><p>Saiu ${y.outroDia ? dataHora(y.saiu) : hora(y.saiu)} · voltou ${hora(y.voltou)} · ficou ${dur(y.ficou)}</p>${y.comprou ? `<p>Tempo comprado: ${dur(y.comprou)}</p>` : ''}`;
     const itensA = A.flatMap(y => { const xa = y.extra && y.extra.aberto && y.extra.valor > 0 ? y.extra : null, de = deA(y);
       return xa ? [{ n: `${y.item} · ${dur(xa.min)}${de}`, v: xa.valor, sub: `${xa.q > 1 ? xa.q + ' carrinhos · ' : ''}${xa.n} × ${xa.per} min · ${brl2(xa.un)} cada` }]
         : [y.pend > 0 ? { n: y.item + (y.comprou ? ' · ' + dur(y.comprou) : '') + de, v: y.pend } : null, y.extra && y.extra.valor > 0 ? { n: `Tempo a mais: ${dur(y.extra.min)}${de}`, v: y.extra.valor } : null].filter(Boolean); });
@@ -3117,7 +3195,7 @@ function htmlPapel(spec, via = 'loja') {
   // 1.15: quem entra sem pacote está na recreação avulsa: o cupom diz o valor de cada período e que o acerto é na saída (não há "até quando").
   // ja = o tempo que a criança já tinha ao entrar e não é de pacote (o voucher, um resto de tempo comprado): aparece ao lado da entrada
   const bloco = (x, i) => { const pac = planoDe(x) === 'pacote', ja = x.entrou && !pac ? Math.max(0, saldoMin(x) - (x.atraso ? x.atraso.n : 0) * p) : 0;
-    return `${i ? '<p class="c-esp"></p>' : ''}<p><b>${esc(x.nome)}</b>${anos(x)}</p>${loja && x.entrou ? `<p>Cadastro ${x.id}${x.sapateira ? ' · Sapateira ' + x.sapateira : ''}</p>` : ''}
+    return `${i ? '<p class="c-esp"></p>' : ''}<p class="c-bt"><b>${esc(x.nome)}</b>${anos(x)}</p>${loja && x.entrou ? `<p>Cadastro ${x.id}${x.sapateira ? ' · Sapateira ' + x.sapateira : ''}</p>` : ''}
     <p>${x.entrou ? `Entrada ${hora(x.entrou)} · ${pac ? 'horas do cliente: ' + hm(saldoMin(x)) : (st ? esc(st.n) + ' avulsa' : 'acerto na saída') + (x.pcd ? ' · ' + rotPcd() : '')}` : 'Horas guardadas: ' + hm(saldoMin(x))}</p>
     ${st && x.entrou ? (pac ? `<p>Acabando as horas${x.pcd ? ' · ' + rotPcd() : ''}: ${brl2(precoDe(x, st.v))} a cada ${st.min || 30} min</p>`
       : `<p>${ja > 0 ? dur(ja) + (temVoucher(x) ? ' do voucher' : ' já comprado') + ' · depois, ' : ''}${brl2(precoDe(x, st.v))} a cada ${st.min || 30} min, na saída</p>`) : ''}`; };
@@ -3130,8 +3208,8 @@ function htmlPapel(spec, via = 'loja') {
     if ((i.t === 'tempo' || i.t === 'pacote' || i.t === 'voucher') && !quem.length && !disse) { disse = true; sub.push(`Para ${c.nome} · horas guardadas: ${hm(saldoMin(c))}`); }
     return sub.length ? { ...i, sub } : i; });
   const naDev = (sv, q = 1) => sv ? ` · ${brl2(sv.v)} a cada ${sv.min || 30} min${q > 1 ? ', cada um' : ''}, na devolução` : '';   // 1.20: o que acerta na devolução diz o preço de cada período
-  const soFora = !festa && !vendeu && !quem.length ? fora.map(a => `<p><b>${esc(alugNome(a))}</b></p><p>Saída ${alugHoje(a) ? hora(a.ini) : dataHora(a.ini)}${a.min > 0 && alugHoje(a) ? ' · devolver até ' + ate(a.ini, a.min) : ''}${alugAberto(a) ? naDev(servicoDe(a.s), a.q) : ''}</p>`).join('') : '';
-  const blocoAberto = emAberto.map(i => { const a = (S.alugueis || []).find(a => a.crianca === c.id && a.s === i.s), ini = a && a.ini ? a.ini : new Date(); return `<p><b>${i.q > 1 ? i.q + ' × ' : ''}${esc(i.n)}</b></p><p>Saída ${hora(ini)}${naDev(servicoDe(i.s), i.q)}</p>`; }).join('');
+  const soFora = !festa && !vendeu && !quem.length ? fora.map(a => `<p class="c-bt"><b>${esc(alugNome(a))}</b></p><p>Saída ${alugHoje(a) ? hora(a.ini) : dataHora(a.ini)}${a.min > 0 && alugHoje(a) ? ' · devolver até ' + ate(a.ini, a.min) : ''}${alugAberto(a) ? naDev(servicoDe(a.s), a.q) : ''}</p>`).join('') : '';
+  const blocoAberto = emAberto.map(i => { const a = (S.alugueis || []).find(a => a.crianca === c.id && a.s === i.s), ini = a && a.ini ? a.ini : new Date(); return `<p class="c-bt"><b>${i.q > 1 ? i.q + ' × ' : ''}${esc(i.n)}</b></p><p>Saída ${hora(ini)}${naDev(servicoDe(i.s), i.q)}</p>`; }).join('');
   const entrou = quem.some(x => x.entrou), sai = itens.some(i => i.t === 'aluguel') || !!soFora || !!blocoAberto, pagou = (spec.formas || []).length > 0;
   return `<div class="papel ${loja ? 'loja' : 'cliente'}">${cab}${quem.length ? div + quem.map(bloco).join('') : ''}${soFora ? div + soFora : ''}${blocoAberto ? div + blocoAberto : ''}${pago(itens, spec.formas, { desc: spec.desc, titulo: pagou && !entrou && !sai ? 'COMPROVANTE DE PAGAMENTO' : '' })}${pe(entrou ? L.aviso + (L.aviso && tol ? ' ' : '') + (tol ? `TOLERÂNCIA DE ${tol} MINUTOS.` : '') : '', entrou || sai || festa)}</div>`;
 }
@@ -3626,8 +3704,8 @@ function folhaCorrigirVisita(cid, vid) {
 const naoLidas = () => S.conversas.filter(x => !x.lidas).length;
 function nav() {
   const nPn = gestor() ? pedidosParaMim().length + avisosParaMim().length : 0;   // 1.25: o que espera a resposta da gestora
-  const badge = k => k === 'painel' && nPn ? `<b>${nPn}</b>` : k === 'zap' && naoLidas() ? `<b>${naoLidas()}</b>` : (k === 'banco' && COM_WHATS && paraRenovar().length ? `<b>${paraRenovar().length}</b>` : '');
-  const alerta = k => (k === 'zap' && naoLidas()) || (k === 'painel' && nPn) ? 'alerta' : '';   // mensagem sem resposta: a bolinha do WhatsApp fica vermelha
+  const badge = k => k === 'aprovar' && nPn ? `<b>${nPn}</b>` : k === 'zap' && naoLidas() ? `<b>${naoLidas()}</b>` : (k === 'banco' && COM_WHATS && paraRenovar().length ? `<b>${paraRenovar().length}</b>` : '');
+  const alerta = k => (k === 'zap' && naoLidas()) || (k === 'aprovar' && nPn) ? 'alerta' : '';   // mensagem sem resposta: a bolinha do WhatsApp fica vermelha
   const ladoHtml = `<span class="logo">${LOGO}</span>` + ABAS.map(([k, t, i]) => `<button class="ab tap ${alerta(k)}" data-ir="${k}" ${S.tela === k ? 'aria-current="page"' : ''} aria-label="${t}" title="${t}${naoLidas() && k === 'zap' ? ' · ' + naoLidas() + ' sem resposta' : ''}">${ic(IC[i])}${badge(k)}</button>`).join('') + `<span class="espaco"></span><button type="button" class="fab tap" data-act="nova" aria-label="Cadastrar criança" title="Cadastrar criança"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button><button class="av-eu tap" data-act="conta" title="${esc(EU.nomeCompleto || EU.nome)}">${esc((EU.nome || 'EU').slice(0, 2).toUpperCase())}</button>`;
   if (ladoHtml !== NAV_CACHE) { $('#nav-lado').innerHTML = ladoHtml; NAV_CACHE = ladoHtml; }   // só mexe no trilho quando algo nele mudou
   $('#nav-baixo').innerHTML = ABAS.map(([k, t, i]) => `<button class="${alerta(k)}" data-ir="${k}" ${S.tela === k ? 'aria-current="page"' : ''}>${ic(IC[i], 21)}${t}${badge(k)}</button>`).join('') + (ABAS.some(a => a[0] === 'ajustes') ? '' : `<button data-act="conta">${ic(IC.rosto, 21)}Conta</button>`);
@@ -4186,47 +4264,157 @@ function numerosDoDia() {
   const min = S.vendasHoje ? (S.vendasHoje.min != null ? S.vendasHoje.min : (S.vendasHoje.horas || 0) * 60) : vendas.reduce((a, v) => a + minDe(v), 0);
   return { min, valor: S.vendasHoje ? S.vendasHoje.valor : vendas.reduce((a, v) => a + v.v, 0), n: S.vendasHoje ? S.vendasHoje.n : vendas.length, usadas, atr };
 }
-/* ---------- 1.25: o painel da gestora ---------- */
-// A tela inicial de quem é gestor (a lista do espaço continua na aba Espaço). Numa tela só: o que espera a resposta dela (os pedidos de
-// autorização, com Liberar e Negar, e os cancelamentos que ela ainda não viu), o dia de cada unidade (faturado e recebido desde a
-// meia-noite, por forma, com os descontos e os cancelamentos) e quantas crianças estão no espaço agora, com os carrinhos fora da loja.
-// O faturado é o que foi vendido hoje (já com o desconto); a unidade é a da venda. No servidor a conta vem pronta (S.painel); na prévia sai das compras.
-const inicioGestor = () => lido('ps-inicio-gestor', 'painel') === 'horas' ? 'horas' : 'painel';   // (deste aparelho: Ajustes → Aparência)
+/* ---------- 1.25 e 1.27: as telas da gestora (o painel, as Aprovações e a unidade) ---------- */
+// O PAINEL é a operação do dia numa tela: quem está no espaço agora, os carrinhos fora, as entradas (e a que horas), o faturado (e de quê),
+// o caixa do dia (o recebido, por forma), os descontos, os últimos cancelamentos e as últimas entradas e saídas. O dia é o de calendário
+// (desde a meia-noite). O faturado é o que foi vendido hoje (já com o desconto); a unidade é a da venda. No servidor o dinheiro vem pronto
+// (S.painel); na prévia sai das compras. O movimento (entradas, saídas) sai de quem está no espaço e dos finalizados do dia.
+// A UNIDADE: com mais de uma, o seletor do alto troca a tela INTEIRA (números, gráficos e listas) para aquela unidade, ou para todas
+// juntas. É só o que o painel MOSTRA: a unidade em que o aparelho REGISTRA (o botão ao lado do título da lista) não muda com ele.
+// AS APROVAÇÕES: uma tela só com o que espera a resposta da gestora (os pedidos, com Liberar e Negar, e os cancelamentos da equipe, com
+// Visto), em cartões grandes, pensada para o celular. São sempre de todas as unidades: nenhum pedido fica escondido por causa do seletor.
+const INICIOS_GESTOR = ['painel', 'aprovar', 'horas'];
+const inicioGestorCfg = () => { const v = lido('ps-inicio-gestor', 'painel'); return INICIOS_GESTOR.includes(v) ? v : 'painel'; };
+const telaEstreita = () => innerWidth < 820;
+const nParaAprovar = () => pedidosParaMim().length + avisosParaMim().length;
+// ao abrir: o que este aparelho guardou (Ajustes → Aparência). No celular, com o ajuste em "Painel" e havendo o que aprovar, abre nas Aprovações
+const inicioGestor = () => { const v = inicioGestorCfg(); return v === 'painel' && telaEstreita() && nParaAprovar() > 0 ? 'aprovar' : v; };
+// de que é a venda, para o gráfico "Faturado por serviço": os produtos da loja num grupo, as festas em outro, o serviço pelo nome (a recreação,
+// cada carrinho) e os pacotes de horas num grupo só
+const servDaVenda = v => { const n = MAI(v.servico || ''); if (v.prod || (S.produtos || []).some(p => MAI(p.n) === n)) return 'PRODUTOS'; if (n.includes('FESTA')) return 'FESTA';
+  return v.alug || (S.cfg.servicos || []).some(s => MAI(s.n) === n) ? n : minDe(v) > 0 ? 'PACOTES DE HORAS' : n || 'OUTROS'; };
 function painelDia() {
   if (MODO === 'servidor') return (S.painel && S.painel.unidades) || [];
-  const d0 = new Date(agora); d0.setHours(0, 0, 0, 0); const o = new Map(), um = u => { if (!o.has(u)) o.set(u, { uni: u, faturado: 0, vendas: 0, desc: 0, recebido: 0, formas: Object.fromEntries(FORMAS.map(f => [f[0], 0])), cancelados: 0, cancelado: 0 }); return o.get(u); };
+  const d0 = new Date(agora); d0.setHours(0, 0, 0, 0); const o = new Map(), um = u => { if (!o.has(u)) o.set(u, { uni: u, faturado: 0, vendas: 0, desc: 0, recebido: 0, formas: Object.fromEntries(FORMAS.map(f => [f[0], 0])), cancelados: 0, cancelado: 0, sv: new Map() }); return o.get(u); };
   const primeira = (unidades()[0] || {}).id || 0, uniDe = v => v ? v.uni || (crianca(v.crianca) || {}).uni || primeira : primeira;   // (prévia) os exemplos sem unidade ficam na primeira
-  for (const v of S.compras || []) if (!v.imp && v.quando >= d0) { const x = um(uniDe(v)); x.faturado = centavos(x.faturado + v.v); x.vendas++; x.desc = centavos(x.desc + (v.desc || 0)); }
+  for (const v of S.compras || []) if (!v.imp && v.quando >= d0) { const x = um(uniDe(v)); x.faturado = centavos(x.faturado + v.v); x.vendas++; x.desc = centavos(x.desc + (v.desc || 0));
+    if (v.v > 0) { const n = servDaVenda(v), s = x.sv.get(n) || { n, q: 0, v: 0 }; s.q++; s.v = centavos(s.v + v.v); x.sv.set(n, s); } }
   for (const p of S.pagamentos || []) if (p.quando >= d0) { const x = um(uniDe(S.compras.find(v => v.id === p.venda) || { crianca: p.crianca })); x.formas[p.f] = centavos((x.formas[p.f] || 0) + p.v); x.recebido = centavos(x.recebido + p.v); }
   for (const k of S.cancelamentos || []) if (k.quando >= d0 && cancTipo(k) !== 'desfeita') { const x = um(k.uni || primeira); x.cancelados++; x.cancelado = centavos(x.cancelado + (k.valor || 0)); }
-  return [...o.values()];
+  return [...o.values()].map(({ sv, ...x }) => ({ ...x, servicos: [...sv.values()] }));
 }
+// a unidade de cada coisa, para o painel: a que está anotada, se ainda é conhecida (na prévia, o que não tem unidade fica na primeira)
+const uniNoPainel = u => (u && unidadeDe(u) ? +u : 0) || (MODO !== 'servidor' ? ((unidades()[0] || {}).id || 0) : 0);
+// as unidades que o painel oferece: as ativas e a que foi desativada hoje e ainda tem movimento
+function unidadesDoPainel(L = painelDia()) { const U = [...unidades()]; for (const x of L) if (x.uni && !U.some(u => u.id === x.uni) && unidadeDe(x.uni)) U.push(unidadeDe(x.uni)); return U; }
+// a unidade que o painel mostra: o número dela; 0 = todas; -1 = o que não tem unidade. Fica guardada no aparelho e começa na unidade dele
+function pnUni(U = unidadesDoPainel()) { if (U.length < 2) return 0; const g = lido('ps-painel-uni', null), id = g == null ? minhaUni() : +g; return id === -1 || U.some(u => u.id === id) ? id : 0; }
+// tudo o que o painel mostra de uma unidade (id; 0 = todas; -1 = sem unidade). B: o que é igual para todas (lido uma vez por desenho)
+function painelBase() { const d0 = new Date(agora); d0.setHours(0, 0, 0, 0); return { d0, L: painelDia(), F: finalizadosHoje(), A: alugNaLista() }; }
+function painelResumo(id, B = painelBase()) {
+  const da = u => !id || (id === -1 ? !uniNoPainel(u) : uniNoPainel(u) === id), L = B.L.filter(x => da(x.uni)), soma = k => centavos(L.reduce((t, x) => t + (+x[k] || 0), 0)), conta = k => L.reduce((t, x) => t + (+x[k] || 0), 0);
+  const formas = Object.fromEntries(FORMAS.map(([f]) => [f, centavos(L.reduce((t, x) => t + (+(x.formas || {})[f] || 0), 0))])), sv = new Map();
+  for (const x of L) for (const s of x.servicos || []) { const n = MAI(s.n), o = sv.get(n) || { n, q: 0, v: 0 }; o.q += +s.q || 0; o.v = centavos(o.v + (+s.v || 0)); sv.set(n, o); }
+  const dentro = S.criancas.filter(c => c.entrou && da(c.uni)), mov = [];
+  for (const c of dentro) if (c.entrou >= B.d0) mov.push({ t: c.entrou, e: 1, crianca: c.id, nome: c.nome, resp: c.resp, uni: c.uni || 0 });
+  for (const v of B.F.V) { if (!da(v.uni)) continue; mov.push({ t: v.saiu, e: 0, crianca: v.crianca, nome: v.nome, resp: v.resp, uni: v.uni || 0 }); if (v.entrou >= B.d0) mov.push({ t: v.entrou, e: 1, crianca: v.crianca, nome: v.nome, resp: v.resp, uni: v.uni || 0 }); }
+  mov.sort((a, b) => b.t - a.t || a.e - b.e);
+  const horas = Array(24).fill(0); for (const m of mov) if (m.e) horas[m.t.getHours()]++;
+  const canc = (S.cancelamentos || []).filter(x => x.quando >= B.d0 && cancTipo(x) !== 'desfeita' && da(x.uni)).sort((a, b) => b.quando - a.quando);
+  return { id, dentro: dentro.length, passou: dentro.filter(c => situacaoTempo(c) === 'passou').length, carrinhos: B.A.filter(a => da(a.uni)).reduce((t, a) => t + (a.q || 1), 0), entradas: mov.filter(m => m.e).length, saidas: mov.filter(m => !m.e).length, horas, mov, canc,
+    faturado: soma('faturado'), vendas: conta('vendas'), desc: soma('desc'), recebido: soma('recebido'), formas, cancelados: conta('cancelados'), cancelado: soma('cancelado'),
+    servicos: [...sv.values()].sort((a, b) => b.v - a.v || b.q - a.q || a.n.localeCompare(b.n)) };
+}
+const painelTemAlgo = r => r.dentro + r.carrinhos + r.entradas + r.saidas + r.vendas + r.cancelados > 0 || r.faturado > 0 || r.recebido > 0 || r.desc > 0;
+/* os gráficos: as colunas em SVG, desenhadas na largura de verdade do cartão (o texto não estica nem encolhe); as barras deitadas em HTML.
+   Uma série só em cada um (uma cor): quem diz o que é é o título. Os valores que não cabem no desenho estão na dica (passar o mouse,
+   tocar ou chegar com o Tab) e na tabela. */
+const grPasso = max => { for (const p of [1, 2, 5, 10, 20, 50, 100]) if (max / p <= 4) return p; return Math.ceil(max / 400) * 100; };
+// as horas que o gráfico mostra: do começo do movimento (9h, ou antes se houve) até a loja fechar (ou depois, se houve)
+function grFaixaHoras(horas) { const com = horas.map((v, h) => v ? h : -1).filter(h => h >= 0), hA = agora.getHours(), fecha = Math.min(24, Math.max(1, +S.cfg.fecha || 22));
+  return [Math.max(0, Math.min(9, hA, ...com)), Math.min(23, Math.max(fecha - 1, hA, ...com))]; }
+function grHorasSvg(W, horas, de, ate) {
+  const H = W < 520 ? 184 : 216, mE = 26, mD = 6, mT = 22, mB = 24, n = ate - de + 1, pw = W - mE - mD, ph = H - mT - mB, banda = pw / n, lb = Math.max(6, Math.min(24, Math.floor(banda * .56)));
+  const max = Math.max(0, ...horas.slice(de, ate + 1)), passo = grPasso(Math.max(1, max)), teto = Math.max(passo, Math.ceil(max / passo) * passo), y = v => mT + ph - (v / teto) * ph, base = mT + ph, hA = agora.getHours();
+  const cada = banda >= 30 ? 1 : banda >= 17 ? 2 : 3, pico = max > 0 ? horas.indexOf(max, de) : -1, f = v => (Math.round(v * 10) / 10);
+  let g = '';
+  for (let t = 0; t <= teto; t += passo) g += `<line class="gr-g${t ? '' : ' gr-g0'}" x1="${mE}" x2="${W - mD}" y1="${f(y(t))}" y2="${f(y(t))}"/><text class="gr-ey" x="${mE - 6}" y="${f(y(t) + 4)}" text-anchor="end">${t}</text>`;
+  for (let h = de; h <= ate; h++) {
+    const v = horas[h], x0 = mE + (h - de) * banda, cx = x0 + banda / 2, bx = cx - lb / 2, by = y(v), r = Math.min(4, lb / 2, base - by), dica = `${v} ${v === 1 ? 'entrada' : 'entradas'}|das ${h}h às ${h + 1}h`;
+    g += `<g class="gr-col" tabindex="0" role="img" aria-label="${h}h: ${v} ${v === 1 ? 'entrada' : 'entradas'}" data-dica="${dica}">${h === hA ? `<rect class="gr-agora" x="${f(x0 + 1)}" y="${mT - 6}" width="${f(banda - 2)}" height="${ph + 6}" rx="6"/>` : ''}`
+      + (v > 0 ? `<path class="gr-b" d="M${f(bx)},${base} V${f(by + r)} Q${f(bx)},${f(by)} ${f(bx + r)},${f(by)} H${f(bx + lb - r)} Q${f(bx + lb)},${f(by)} ${f(bx + lb)},${f(by + r)} V${base} Z"/>` : '')
+      + (v > 0 && (h === pico || h === hA) ? `<text class="gr-v" x="${f(cx)}" y="${f(by - 6)}" text-anchor="middle">${v}</text>` : '')
+      + (h === hA || ((h - de) % cada === 0 && !(cada > 1 && Math.abs(h - hA) < cada)) ? `<text class="gr-ex${h === hA ? ' agora' : ''}" x="${f(cx)}" y="${H - 6}" text-anchor="middle">${h}h</text>` : '')
+      + `<rect class="gr-hit" x="${f(x0)}" y="${mT - 6}" width="${f(banda)}" height="${ph + mB + 6}"/></g>`;
+  }
+  if (!max) g += `<text class="gr-vazio" x="${f(mE + pw / 2)}" y="${f(mT + ph / 2)}" text-anchor="middle">Nenhuma entrada hoje ainda</text>`;
+  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="group" aria-label="Entradas por hora, hoje">${g}</svg>`;
+}
+// as barras deitadas: o nome, a barra e o valor em cada linha (todas na mesma régua). L: [{ n, v, txt, dica }]
+const grLinhas = (L, cor) => { const max = Math.max(0, ...L.map(x => x.v)); return `<div class="gr-linhas">${L.map(x => `<div class="gr-l${x.v > 0 ? '' : ' zero'}" tabindex="0" data-dica="${esc(x.dica)}"><span class="gr-n">${esc(x.n)}</span><span class="gr-t"><i style="width:${max > 0 && x.v > 0 ? Math.max(1.5, x.v / max * 100).toFixed(1) : 0}%;background:var(${cor})"></i></span><b class="num">${x.txt}</b></div>`).join('')}</div>`; };
+let PN_R = null, GR_T = 0, GR_DICA = null;
+function graficosPainel() { const el = $('#gr-horas'); if (!el || S.tela !== 'painel') return; const r = PN_R || painelResumo(pnUni()), [de, ate] = grFaixaHoras(r.horas); el.innerHTML = grHorasSvg(Math.max(260, Math.floor(el.clientWidth) || 600), r.horas, de, ate); }
+addEventListener('resize', () => { clearTimeout(GR_T); GR_T = setTimeout(graficosPainel, 140); });
+// a dica dos gráficos: uma só, com o valor em destaque e o que ele é embaixo (o texto entra como texto, nunca como HTML)
+function grDica(alvo, x, y) {
+  if (!GR_DICA) { GR_DICA = document.createElement('div'); GR_DICA.id = 'gr-dica'; GR_DICA.setAttribute('role', 'tooltip'); GR_DICA.hidden = true; document.body.appendChild(GR_DICA); }
+  if (!alvo) { GR_DICA.hidden = true; return; }
+  const [v, q] = String(alvo.dataset.dica || '').split('|'); GR_DICA.textContent = ''; const b = document.createElement('b'); b.textContent = v; GR_DICA.appendChild(b);
+  if (q) { const s = document.createElement('span'); s.textContent = q; GR_DICA.appendChild(s); }
+  GR_DICA.hidden = false; const w = GR_DICA.offsetWidth, h = GR_DICA.offsetHeight; GR_DICA.style.left = Math.max(6, Math.min(innerWidth - w - 6, x - w / 2)) + 'px'; GR_DICA.style.top = Math.max(6, y - h - 14) + 'px';
+}
+const grAlvo = e => e.target && e.target.closest ? e.target.closest('[data-dica]') : null;
+document.addEventListener('pointermove', e => { const a = grAlvo(e); if (a) grDica(a, e.clientX, e.clientY); else if (GR_DICA && !GR_DICA.hidden) grDica(null); });
+document.addEventListener('pointerdown', e => { const a = grAlvo(e); if (a) grDica(a, e.clientX, e.clientY); else if (GR_DICA && !GR_DICA.hidden) grDica(null); });
+document.addEventListener('focusin', e => { const a = grAlvo(e); if (a) { const q = a.getBoundingClientRect(); grDica(a, q.left + q.width / 2, q.top + 6); } });
+document.addEventListener('focusout', () => { if (GR_DICA) grDica(null); });
+addEventListener('scroll', () => { if (GR_DICA && !GR_DICA.hidden) grDica(null); }, { passive: true });
 function htmlAprovar() { // o que espera a resposta da gestora: os pedidos (Liberar / Negar) e os cancelamentos que ela ainda não viu (Visto)
   const P = pedidosParaMim(), A = avisosParaMim();
   if (!P.length && !A.length) return `<div class="pn-vazio">${ic(IC.check, 20, 2.6)}<span><b>Nada esperando a sua resposta.</b> Quando alguém pedir um desconto, o cancelamento de uma venda ou uma nota fiscal, ou cancelar alguma coisa, aparece aqui na hora.</span></div>`;
   return `${P.map(htmlPedido).join('')}${A.length ? `<div class="pn-sub"><b>Cancelamentos para ver</b>${A.length > 1 ? `<button type="button" class="link tap" data-act="av-vistos">Marcar ${A.length === 2 ? 'os dois' : 'os ' + A.length} como vistos</button>` : ''}</div>${A.map(htmlAviso).join('')}` : ''}`;
 }
 function telaPainel() {
-  const L = painelDia(), U = [...unidades()], tem = id => U.some(u => u.id === id);
-  for (const x of L) if (x.uni && !tem(x.uni) && unidadeDe(x.uni)) U.push(unidadeDe(x.uni));   // (a unidade que foi desativada hoje ainda aparece com o que fez)
-  const dentro = id => S.criancas.filter(c => c.entrou && (id ? c.uni === id : !c.uni || !U.some(u => u.id === c.uni))), fora = id => alugNaLista().filter(a => id ? a.uni === id : !a.uni || !U.some(u => u.id === a.uni));
-  const dia = id => L.find(x => (x.uni || 0) === id) || { faturado: 0, vendas: 0, desc: 0, recebido: 0, formas: {}, cancelados: 0, cancelado: 0 };
-  const card = (id, nome) => { const d = dia(id), n = dentro(id).length, ca = fora(id).reduce((t, a) => t + (a.q || 1), 0), passou = dentro(id).filter(c => situacaoTempo(c) === 'passou').length;
-    return `<div class="card pn-uni" data-uni="${id}"><div class="pn-u-cab"><b>${esc(nome)}</b>${id && id === minhaUni() ? '<span class="pill p-neutro">este aparelho</span>' : ''}</div>
-      <div class="pn-u-esp"><b class="num">${n}</b><span>${n === 1 ? 'criança' : 'crianças'} no espaço agora${passou ? `<small class="pas">${passou} ${passou === 1 ? 'passou' : 'passaram'} do tempo</small>` : ''}${ca ? `<small>${ca} ${ca === 1 ? 'carrinho' : 'carrinhos'} fora da loja</small>` : ''}</span></div>
-      <dl class="pn-u-din"><div><dt>Faturado hoje</dt><dd class="num">${brl(d.faturado)}</dd><small>${d.vendas ? d.vendas + (d.vendas === 1 ? ' venda' : ' vendas') : 'nenhuma venda'}</small></div><div><dt>Recebido hoje</dt><dd class="num">${brl(d.recebido)}</dd></div></dl>
-      <div class="pn-formas">${FORMAS.map(([f, nf]) => `<span${(d.formas || {})[f] > 0 ? '' : ' class="zero"'}><small>${nf}</small><b class="num">${brl((d.formas || {})[f] || 0)}</b></span>`).join('')}</div>
-      ${d.desc > 0 || d.cancelados ? `<p class="pn-u-x">${[d.desc > 0 ? 'Descontos: ' + brl(d.desc) : '', d.cancelados ? `${d.cancelados} ${d.cancelados === 1 ? 'cancelamento' : 'cancelamentos'}${d.cancelado > 0 ? ' (' + brl(d.cancelado) + ' não cobrados)' : ''}` : ''].filter(Boolean).join(' · ')}</p>` : ''}</div>`; };
-  const semUni = dia(0), sem = semUni.faturado > 0 || semUni.recebido > 0 || semUni.vendas > 0 || semUni.cancelados > 0 || semUni.desc > 0 || dentro(0).length > 0 || fora(0).length > 0;   // o que não tem unidade (o iDFace, o que é de antes da 1.06)
-  const cards = U.map(u => card(u.id, u.nome)).join('') + (sem || !U.length ? card(0, U.length ? 'Sem unidade' : 'A loja') : '');
-  const tot = k => centavos(L.reduce((t, x) => t + (+x[k] || 0), 0)), nDentro = S.criancas.filter(c => c.entrou).length, nP = pedidosParaMim().length + avisosParaMim().length, h = agora.getHours();
+  const B = painelBase(), U = unidadesDoPainel(B.L), varias = U.length > 1, sem = varias && painelTemAlgo(painelResumo(-1, B)), id = (k => k === -1 && !sem ? 0 : k)(pnUni(U)), r = PN_R = painelResumo(id, B), nP = nParaAprovar(), h = agora.getHours();
+  const nomeDe = k => k === -1 ? 'SEM UNIDADE' : k ? nomeUni(k) : 'TODAS', ops = varias ? [...U.map(u => u.id), ...(sem ? [-1] : []), 0] : [];
+  const noEspaco = k => S.criancas.filter(c => c.entrou && (!k || (k === -1 ? !uniNoPainel(c.uni) : uniNoPainel(c.uni) === k))).length;
+  const sel = varias ? `<div class="pn-sel" role="tablist" aria-label="Unidade que o painel mostra">${ops.map(k => { const q = noEspaco(k); return `<button type="button" class="tap" role="tab" aria-selected="${k === id}" data-act="pn-uni" data-id="${k}"><b>${esc(nomeDe(k))}</b><small>${q ? q + ' no espaço' : 'ninguém no espaço'}${k > 0 && k === minhaUni() ? '<i> · este aparelho</i>' : ''}</small></button>`; }).join('')}</div>` : '';
+  const tile = (cls, rot, v, sub, subCls = '') => `<div class="pn-k ${cls}"><small>${rot}</small><b class="num">${v}</b><span class="${subCls}">${sub}</span></div>`;
+  const kpis = tile('heroi', 'No espaço agora', r.dentro, r.passou ? `${r.passou} ${r.passou === 1 ? 'passou' : 'passaram'} do tempo` : r.dentro ? (r.dentro === 1 ? 'criança' : 'crianças') : 'ninguém por enquanto', r.passou ? 'pas' : '')
+    + tile('', 'Entradas hoje', r.entradas, r.saidas ? `${r.saidas} ${r.saidas === 1 ? 'já saiu' : 'já saíram'}` : 'nenhuma saída ainda')
+    + tile('', 'Carrinhos fora da loja', r.carrinhos, r.carrinhos ? 'para devolver' : 'todos na loja')
+    + tile('', 'Faturado hoje', brl(r.faturado), r.vendas ? `${r.vendas} ${r.vendas === 1 ? 'venda' : 'vendas'}` : 'nenhuma venda')
+    + tile('', 'Caixa do dia', brl(r.recebido), 'recebido desde a meia-noite')
+    + tile('', 'Descontos hoje', brl(r.desc), r.cancelados ? `${r.cancelados} ${r.cancelados === 1 ? 'cancelamento' : 'cancelamentos'}${r.cancelado > 0 ? ' · ' + brl(r.cancelado) + ' não cobrados' : ''}` : 'nenhum cancelamento');
+  const comp = !id && varias ? `<div class="card pn-g pn-comp"><div class="pn-g-cab"><h3>Cada unidade hoje</h3><small>toque no nome para ver só ela</small></div><table><thead><tr><th>Unidade</th><th>No espaço</th><th>Entradas</th><th>Faturado</th><th>Caixa</th></tr></thead><tbody>${ops.filter(q => q).map(q => { const x = painelResumo(q, B); return `<tr><th><button type="button" class="link tap" data-act="pn-uni" data-id="${q}">${esc(nomeDe(q))}</button></th><td class="num">${x.dentro}</td><td class="num">${x.entradas}</td><td class="num">${brl(x.faturado)}</td><td class="num">${brl(x.recebido)}</td></tr>`; }).join('')}</tbody></table></div>` : '';
+  const [de, ate] = grFaixaHoras(r.horas), pico = Math.max(0, ...r.horas), hPico = pico ? r.horas.indexOf(pico) : -1;
+  const tabHoras = `<details class="gr-tab"><summary>Ver em tabela</summary><table><thead><tr><th>Hora</th><th>Entradas</th></tr></thead><tbody>${Array.from({ length: ate - de + 1 }, (_, i) => `<tr><td>${de + i}h</td><td class="num">${r.horas[de + i]}</td></tr>`).join('')}</tbody></table></details>`;
+  const caixa = grLinhas(FORMAS.map(([f, nf]) => ({ n: nf, v: r.formas[f] || 0, txt: brl(r.formas[f] || 0), dica: `${brl(r.formas[f] || 0)}|${nf}${r.recebido > 0 ? ' · ' + Math.round((r.formas[f] || 0) / r.recebido * 100) + '% do recebido' : ''}` })), '--gr-2');
+  const SV = r.servicos.slice(0, 5), resto = r.servicos.slice(5); if (resto.length) SV.push({ n: resto.length === 1 ? resto[0].n : 'OUTROS', q: resto.reduce((t, s) => t + s.q, 0), v: centavos(resto.reduce((t, s) => t + s.v, 0)) });
+  const serv = SV.length ? grLinhas(SV.map(s => ({ n: s.n, v: s.v, txt: brl(s.v), dica: `${brl(s.v)}|${s.n} · ${s.q} ${s.q === 1 ? 'venda' : 'vendas'}${r.faturado > 0 ? ' · ' + Math.round(s.v / r.faturado * 100) + '% do faturado' : ''}` })), '--gr-2') : '<p class="pn-nada">Nenhuma venda com valor hoje.</p>';
+  const ondeDe = u => !id && varias && nomeUni(uniNoPainel(u)) ? ' · ' + esc(nomeUni(uniNoPainel(u))) : '';
+  const canc = r.canc.length ? r.canc.slice(0, 5).map(x => `<button type="button" class="pn-li tap" data-act="cancelamentos"><time>${hora(x.quando)}</time><span class="pn-li-t"><b>${cancOQue(x)}</b><span>${esc(quemCancelou(x))}${x.resp || x.nome ? ' · ' + esc(x.resp ? x.resp + (x.nome ? ' · ' + x.nome : '') : x.nome) : ''}${x.motivo ? ' · Motivo: ' + esc(x.motivo) : ''}${ondeDe(x.uni)}</span></span></button>`).join('') : '<p class="pn-nada">Nenhum cancelamento hoje.</p>';
+  const mov = r.mov.length ? r.mov.slice(0, 8).map(m => `<button type="button" class="pn-li tap" data-act="historico" data-id="${m.crianca}"><time>${hora(m.t)}</time><span class="pn-li-t"><b><i class="pn-mv ${m.e ? 'ent' : 'sai'}">${m.e ? 'entrou' : 'saiu'}</i> ${esc(m.resp || m.nome)}</b><span>${esc(m.nome)}${ondeDe(m.uni)}</span></span></button>`).join('') : '<p class="pn-nada">Ninguém entrou nem saiu hoje ainda.</p>';
+  const onde = id ? nomeDe(id) : varias ? 'todas as unidades' : U[0] ? U[0].nome : '';
   return faixa('Painel', `${h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite'}, ${primeiro(EU.nome)} · ${dataTxt()}`, chipAvisos()) + `
-  <section class="painel">
-    <div class="card pn-aprov-c"><div class="sec-cab"><h2>Para aprovar <span class="pill p-erro" id="pn-n">${nP || ''}</span></h2><span class="pn-links"><button type="button" class="link tap" data-act="autorizacoes">Autorizações</button><button type="button" class="link tap" data-act="cancelamentos">Cancelamentos</button></span></div><div class="pn-aprov" id="pn-aprov">${htmlAprovar()}</div></div>
-    <div class="pn-dia"><div class="sec-cab"><h2>Hoje${U.length > 1 ? ' em cada unidade' : ''}</h2><small class="leve">desde a meia-noite</small></div>
-      ${U.length > 1 ? `<div class="pn-tot"><span><small>No espaço agora</small><b class="num">${nDentro}</b></span><span><small>Faturado hoje</small><b class="num">${brl(tot('faturado'))}</b></span><span><small>Recebido hoje</small><b class="num">${brl(tot('recebido'))}</b></span></div>` : ''}
-      <div class="pn-unis">${cards}</div></div>
+  <section class="painel" data-uni="${id}">
+    <div class="card pn-aprov-c${nP ? ' tem' : ''}"><div class="sec-cab"><h2>Para aprovar <span class="pill p-erro" id="pn-n">${nP || ''}</span></h2><span class="pn-links"><button type="button" class="link tap" data-ir="aprovar">Abrir Aprovações</button><button type="button" class="link tap" data-act="autorizacoes">Autorizações</button><button type="button" class="link tap" data-act="cancelamentos">Cancelamentos</button></span></div><div class="pn-aprov" id="pn-aprov">${htmlAprovar()}</div><button type="button" class="bt forte tap pn-aprov-ir" data-ir="aprovar">${ic(IC.aprovar, 18)} Abrir Aprovações <span id="pn-n2">${nP ? '(' + nP + ')' : ''}</span></button></div>
+    ${sel}
+    <div class="pn-kpis">${kpis}</div>
+    ${comp}
+    <div class="pn-grade">
+      <div class="card pn-g larga"><div class="pn-g-cab"><h3>Entradas por hora</h3><small>${r.entradas ? `${r.entradas} hoje${hPico >= 0 ? ` · mais movimento às ${hPico}h` : ''}` : 'hoje'}${onde ? ' · ' + esc(onde) : ''}</small></div><div class="gr" id="gr-horas"></div>${tabHoras}</div>
+      <div class="card pn-g"><div class="pn-g-cab"><h3>Caixa do dia</h3><small>recebido: <b class="num">${brl(r.recebido)}</b></small></div>${caixa}</div>
+      <div class="card pn-g"><div class="pn-g-cab"><h3>Faturado por serviço</h3><small>vendido: <b class="num">${brl(r.faturado)}</b></small></div>${serv}</div>
+      <div class="card pn-g"><div class="pn-g-cab"><h3>Últimas entradas e saídas</h3><button type="button" class="link tap" data-act="dia">Hoje na recepção</button></div><div class="pn-lista" id="pn-mov">${mov}</div></div>
+      <div class="card pn-g"><div class="pn-g-cab"><h3>Últimos cancelamentos</h3><button type="button" class="link tap" data-act="cancelamentos">Ver todos</button></div><div class="pn-lista" id="pn-canc">${canc}</div></div>
+    </div>
     <div class="pn-pe"><button type="button" class="bt forte tap" data-ir="horas">${ic(IC.horas, 18)} Lista do espaço</button><button type="button" class="bt tap" data-act="dia">Hoje na recepção</button></div>
+  </section>`;
+}
+// as Aprovações: só o que espera a resposta, em cartões grandes (os mesmos pedidos e avisos do cartão e do painel, com os mesmos botões)
+const aprovarSub = () => { const n = nParaAprovar(); return n ? `${n} esperando a sua resposta` : 'Nada esperando a sua resposta'; };
+function htmlAprovarTela() {
+  const P = pedidosParaMim(), A = avisosParaMim();
+  if (!P.length && !A.length) return `<div class="ap-vazio"><i aria-hidden="true">${ic(IC.check, 34, 2.6)}</i><b>Tudo em dia</b><span>Nada esperando a sua resposta. Quando alguém pedir um desconto, o cancelamento de uma venda ou uma nota fiscal, ou cancelar alguma coisa, aparece aqui na hora, com o aviso sonoro.</span></div>`;
+  return (P.length ? `<div class="ap-tit"><h2>Pedidos <span class="pill p-erro">${P.length}</span></h2></div>${P.map(htmlPedido).join('')}` : '')
+    + (A.length ? `<div class="ap-tit"><h2>Cancelamentos para ver <span class="pill p-neutro">${A.length}</span></h2>${A.length > 1 ? `<button type="button" class="link tap" data-act="av-vistos">Marcar ${A.length === 2 ? 'os dois' : 'os ' + A.length} como vistos</button>` : ''}</div>${A.map(htmlAviso).join('')}` : '');
+}
+function telaAprovar() {
+  return faixa('Aprovações', aprovarSub(), chipAvisos()) + `
+  <section class="aprovar">
+    <div class="ap-lista" id="ap-lista">${htmlAprovarTela()}</div>
+    <div class="ap-pe"><button type="button" class="bt tap" data-ir="painel">${ic(IC.painel, 18)} Painel</button><button type="button" class="bt tap" data-act="autorizacoes">Autorizações já respondidas</button><button type="button" class="bt tap" data-act="cancelamentos">Todos os cancelamentos</button></div>
   </section>`;
 }
 // A tela inicial é só a lista de quem está no espaço: a criança, o responsável, o tempo e a Saída. O resto abre ao tocar na criança.
@@ -4782,9 +4970,10 @@ function desenharPedidos() { // o cartão fica por cima de tudo (folha aberta, h
   document.title = (L.length + A.length ? `(${L.length + A.length}) ` : '') + TITULO_ABA;
   const novos = [...L.filter(p => !AUT_VISTOS.has(p.id)), ...A.filter(x => !AUT_VISTOS.has('av' + x.id))]; for (const p of L) AUT_VISTOS.add(p.id); for (const x of A) AUT_VISTOS.add('av' + x.id);
   if (novos.length) { AUT_MIN = false; bipe(); }
-  const pn = $('#pn-aprov'); if (pn) { pn.innerHTML = htmlAprovar(); const q = $('#pn-n'); if (q) q.textContent = pedidosParaMim().length + avisosParaMim().length || ''; }   // 1.25: o painel da gestora mostra os mesmos, na própria tela
+  const pn = $('#pn-aprov'); if (pn) { const n = nParaAprovar(), q = $('#pn-n'), q2 = $('#pn-n2'), cx = pn.closest('.pn-aprov-c'); pn.innerHTML = htmlAprovar(); if (q) q.textContent = n || ''; if (q2) q2.textContent = n ? '(' + n + ')' : ''; if (cx) cx.classList.toggle('tem', n > 0); }
+  const ap = $('#ap-lista'); if (ap) { ap.innerHTML = htmlAprovarTela(); const s = $('#miolo .faixa .tit small'); if (s) s.textContent = aprovarSub(); }   // 1.25: o painel da gestora mostra os mesmos, na própria tela
   if (typeof nav === 'function' && $('#nav-lado')) nav();   // (o número na aba do painel)
-  if ((!L.length && !A.length) || (S.tela === 'painel' && !$('#folha .folha-fundo:not(.saindo)') && !LADO)) { a.hidden = true; a.innerHTML = ''; return; }   // (no painel à vista, o cartão não aparece: está tudo ali)
+  if ((!L.length && !A.length) || ((S.tela === 'painel' || S.tela === 'aprovar') && !$('#folha .folha-fundo:not(.saindo)') && !LADO)) { a.hidden = true; a.innerHTML = ''; return; }   // (no painel à vista, o cartão não aparece: está tudo ali)
   a.hidden = false; const tit = [L.length ? (L.length === 1 ? '1 pedido de autorização' : L.length + ' pedidos de autorização') : '', A.length ? (A.length === 1 ? '1 cancelamento' : A.length + ' cancelamentos') : ''].filter(Boolean).join(' · ');
   a.innerHTML = `<div class="aut-cx${novos.length ? ' chegou' : ''}" role="region" aria-label="${A.length && !L.length ? 'Cancelamentos' : 'Pedidos de autorização'}" aria-live="polite"><button type="button" class="aut-cab tap" data-act="aut-min" aria-expanded="${!AUT_MIN}">${ic(IC.sino, 18)}<b>${tit}</b><span>${AUT_MIN ? 'Abrir' : 'Recolher'}</span></button>${AUT_MIN ? '' : `<div class="aut-lst">${L.map(htmlPedido).join('')}${A.map(htmlAviso).join('')}</div>`}</div>`;
 }
@@ -5260,7 +5449,7 @@ function papelRelatorio(R) {
   const L = lojaPapel(), c = R.base, uniP = nomeUni(minhaUni()), lin = (rot, val, cls = '') => `<p class="c-linha c-pt${cls}"><span>${rot}</span><i></i><span>${val}</span></p>`, n = R.L.length;
   return `<div class="papel loja relp"><div class="c-topo"><span class="c-logo cor">${LOGO}</span><span class="c-logo pb">${LOGO_PB}</span><div class="c-quem"><p class="c-loja">${esc(L.nome)}</p>${uniP ? `<p class="c-uni">${esc(uniP)}</p>` : ''}${L.tel ? `<p class="c-fone">${esc(L.tel)}</p>` : ''}</div></div>
     <p class="c-via"><span>RELATÓRIO</span><span>${dataCurta(agoraJa())}</span></p>
-    <p>Responsável: <b>${esc(c.resp || c.nome)}</b></p>${docTxt(c) || fones(c) ? `<p>${esc(pontos(docTxt(c), fones(c)))}</p>` : ''}<p>${R.fam.length > 1 ? 'Crianças' : 'Criança'}: ${esc(juntar(R.fam.map(x => x.nome)))}</p>
+    <p class="c-resp">Responsável: <b>${esc(c.resp || c.nome)}</b></p>${docTxt(c) || fones(c) ? `<p class="c-doc">${esc(pontos(docTxt(c), fones(c)))}</p>` : ''}<p>${R.fam.length > 1 ? 'Crianças' : 'Criança'}: ${esc(juntar(R.fam.map(x => x.nome)))}</p>
     <p class="c-div"></p><p class="c-titulo">${esc(periodoTxt(R).toUpperCase())}</p>
     ${lin('Saldo no início', hmS(R.abre, '-'))}${lin('Horas compradas', (R.mais ? '+' : '') + hm(R.mais))}${lin('Horas usadas', (R.menos ? '-' : '') + hm(R.menos))}${lin('Saldo no fim', hmS(R.fecha, '-'), ' c-total')}${lin('Pago no período', brl2(R.pago))}
     <p class="c-div"></p><p class="c-cab"><span>Movimento</span><span>Horas</span></p>
@@ -5724,7 +5913,7 @@ function telaAjustes() {
       ${gestor() ? cartaoImportar() : ''}
       ${gestor() ? cartaoLimpeza() : ''}
       <div class="card"><div class="sec-cab"><h2 style="font-size:18px">Aparência</h2></div>${seg('tema', [['sistema', 'Como o celular'], ['claro', 'Claro'], ['escuro', 'Escuro']], cfg.tema)}
-        ${gestor() ? `<div class="campo"><label>Ao abrir, neste aparelho</label>${seg('inicioGestor', [['painel', 'Painel'], ['horas', 'Lista do espaço']], inicioGestor())}<span class="explica">O painel mostra o que espera a sua resposta, o dia de cada unidade e quantas crianças estão no espaço. A lista continua na aba Espaço.</span></div>` : ''}
+        ${gestor() ? `<div class="campo"><label>Ao abrir, neste aparelho</label>${seg('inicioGestor', [['painel', 'Painel'], ['aprovar', 'Aprovações'], ['horas', 'Lista do espaço']], inicioGestorCfg())}<span class="explica">O <b>Painel</b> é o dia da loja: quem está no espaço, as entradas, o caixa e os cancelamentos, com a unidade que você escolher. As <b>Aprovações</b> são só os pedidos esperando a sua resposta. No celular, com esta escolha em Painel, havendo pedido esperando o sistema já abre nas Aprovações. A lista continua na aba Espaço.</span></div>` : ''}
         <div class="campo"><label>Bonequinhos neste aparelho</label>${seg('anim', [['auto', 'Automático'], ['cheia', 'Animados'], ['leve', 'Quietos']], animEscolha())}<span class="explica">No automático, o sistema segue o aparelho: se as animações dele estiverem desligadas (comum em Windows ajustado para ficar mais rápido), os bonequinhos ficam quietos.${semMovimento() ? ' <b>Neste aparelho elas estão desligadas.</b>' : ''} Em Animados, eles se mexem sempre.</span></div></div>
     </div>
   </div>
@@ -5783,8 +5972,10 @@ function desenhar(quieto = false) { // quieto: redesenho da sincronia, sem as an
   if (MODO !== 'servidor') { S.alugueis = alugPrevia(); acertarCuponsPrevia(); }   // (prévia) o que está fora da loja sai das compras; e o cupom acompanha a venda
   conferirFolhaCupom();
   document.body.classList.toggle('quieto', !!quieto); document.body.classList.remove('so'); nav();
-  if (S.tela === 'painel' && !gestor()) S.tela = 'horas';   // (o painel é só do gestor)
-  $('#miolo').innerHTML = ({ painel: telaPainel, horas: telaHoras, banco: telaBanco, zap: telaZap, agenda: telaAgenda, ajustes: telaAjustes })[S.tela]();
+  if ((S.tela === 'painel' || S.tela === 'aprovar') && !gestor()) S.tela = 'horas';   // (o painel e as Aprovações são só do gestor)
+  PN_R = null;
+  $('#miolo').innerHTML = ({ painel: telaPainel, aprovar: telaAprovar, horas: telaHoras, banco: telaBanco, zap: telaZap, agenda: telaAgenda, ajustes: telaAjustes })[S.tela]();
+  graficosPainel();
   $('#hoje').innerHTML = painelHoje();
   $('#fab-ancora').hidden = S.tela !== 'horas';
   $('#rodape-global').innerHTML = `<span>${MODO === 'demo' ? 'Prévia com dados de exemplo · ' : ''}<b>Play Space Horas</b></span>${botaoVersao()}${MODO === 'servidor' ? (gestor() ? `<button type="button" class="versao tap exemplo-bt" data-act="exemplos-${S.exemplo ? 'apagar' : 'carregar'}" title="${S.exemplo ? 'Tira as crianças de teste; os cadastros de verdade ficam' : 'Coloca 10 crianças de teste no espaço, em horários diferentes, para ver a tela com movimento'}">${S.exemplo ? 'Tirar o teste' : 'Teste: 10 crianças'}</button>` : '') : `<button type="button" class="versao tap exemplo-bt" data-act="teste-previa" title="${S.testePrevia ? 'Tira as 10 crianças de teste' : 'Coloca 10 crianças de teste no espaço, em horários diferentes, para ver a tela com movimento'}">${S.testePrevia ? 'Tirar o teste' : 'Teste: 10 crianças'}</button>`}`;
@@ -5986,6 +6177,7 @@ const ACOES = {
     S.cfg.sapateiras = n; if (MODO === 'servidor') api('regra_salvar', { sapateiras: n }).catch(e => toast(e.message)); deuCerto(`${n} sapateiras`); fecharFolha(); desenhar();
   },
   cancelar: el => folhaCancelar(+el.dataset.id), 'canc-ok': el => confirmarCancelar(el), cancelamentos: () => folhaCancelamentos(),
+  'pn-uni': el => { guardar('ps-painel-uni', +el.dataset.id || 0); desenhar(true); },
   'av-visto': el => marcarVisto(+el.dataset.id),   // 1.25: o aviso da gestora
   'av-vistos': () => marcarVisto(avisosParaMim().map(x => x.id)),   // (só os que estão no painel)
   'canc-motivo': el => { const alvo = el.dataset.alvo || 'x-motivo', t = $('#' + alvo); if (!t) return; t.value = el.dataset.t; const cp = $('#' + alvo + '-campo'); if (cp) cp.classList.remove('falta'); t.focus(); t.setSelectionRange(t.value.length, t.value.length); },   // (1.20: o motivo do cancelamento da saída do carrinho usa o mesmo atalho, em outro campo)

@@ -587,6 +587,8 @@ O cupom da loja é o papel da impressora térmica do balcão, que o responsável
 
 **Desde a 1.09 o cupom é curto.** A logo fica pequena, ao lado do nome da loja; a data vai na faixa da via; um tracejado fino separa as partes (no lugar das linhas em branco); e cada cupom leva só o que interessa a ele. Uma recreação simples, que gastava 185 mm de papel na via da loja e 145 mm na do cliente, gasta 102 mm e 76 mm. O cupom do carrinho, que gastava 180 mm e 141 mm, gasta 75 mm e 53 mm.
 
+**Desde a 1.27 o cupom tem mais respiro** (seção 6zf): a logo voltou para o meio, grande, e as partes ganharam espaço entre elas. O que vai escrito em cada via continua o mesmo.
+
 **VIA DA LOJA** (sai primeiro; é a que o responsável assina e fica com a loja):
 
 - a logo, o **nome da loja**, a **unidade** e o telefone da loja; a faixa "VIA DA LOJA" com a **data e a hora**;
@@ -933,6 +935,39 @@ Quem não é gestor e errou: a entrada errada ainda se cancela nos primeiros min
 O Desfazer do gestor vale para o que ele mesmo fez, no aparelho dele e nos segundos seguintes: não alcança o que foi feito no aparelho do operador. A devolução marcada no carrinho errado não tem como voltar para a lista (nem pela gestora): confira o carrinho antes de tocar em **Devolveu**.
 
 No servidor, as ações de desfazer (`desfazer_entrada`, `desfazer_saida`, `desfazer_venda`, `devolver` e `receber` com `voltar`, `pendente_tirar` com `voltar` e `cupom_voltar`) recusam quem não é gestor ("Só o gestor desfaz"), inclusive quando o pedido vem de uma tela antiga que ficou aberta num aparelho. A regra aceita `desfazer: "todos"` (o jeito da 1.25), que não aparece em Ajustes e nenhuma ação grava: existe para os testes dos roteiros antigos (tabela `config`, chave `regra`).
+
+## 6zf. O comprovante mais bonito (1.27)
+
+Pedido do dono: o comprovante não precisa só economizar papel; tem de ser bonito, com o castelo no meio e espaço entre as coisas. O que mudou foi **só o desenho**: o texto de cada via, a ordem das linhas e o que vai na via da loja e na do cliente continuam como na seção 6s.
+
+- **O alto centralizado:** o castelo no meio, grande (22 mm), com o **nome da loja** embaixo, em letras espaçadas, a **unidade** e o telefone.
+- **Respiro entre as partes:** a faixa da via (VIA DA LOJA / VIA DO CLIENTE, com a data), o responsável (o nome em destaque), cada criança, a tabela do pagamento, o total, quem atendeu, a assinatura e o aviso ficam separados por espaço e por um tracejado fino.
+- **O total em destaque** (letra maior, com um traço cheio em cima), como num comprovante de pagamento.
+- **A assinatura com mais lugar para a caneta** (10 mm em branco, linha cheia), com o nome e o CPF do responsável centralizados embaixo.
+- **O pé centralizado** (quem atendeu, o número da venda, o aviso), e a via do cliente termina com um traço curto no meio.
+
+**Quanto papel:** uma via comum passa de uns 8,5 cm para uns 12,5 cm (a entrada: de 84 para 121 mm na via da loja e de 58 para 96 mm na do cliente; a saída: de 86 para 128 mm e de 64 para 107 mm; o comprovante do pacote: de 66 para 104 mm). O relatório do cliente no cupom ganhou só o alto novo e um pouco de espaço (uns 5 cm a mais num relatório de 9 movimentos).
+
+Vale para todos os comprovantes (entrada, saída, conta do responsável, venda e pacote, devolução do carrinho, festa, relatório do cliente e o cupom de teste) e também para os **cupons guardados antes** da 1.27: na reimpressão eles saem com o desenho novo. Na tela, a folha do cupom (o papel amarelinho) mostra o mesmo desenho. Nada muda em Ajustes → Cupom impresso nem na impressão direta.
+
+## 6zg. As telas da gestora: Aprovações, o painel e a unidade (1.27)
+
+**Aprovações.** O gestor ganhou uma aba só para responder: **Aprovar** (no computador, na barra da esquerda; no celular, na barra de baixo), com o número do que está esperando. Nela aparece só o que espera a resposta dele, em cartões grandes: os **pedidos** (desconto, cancelamento de venda, nota fiscal), com **Liberar** e **Negar**, e os **cancelamentos da equipe** que ele ainda não viu, com **Visto**. Um toque resolve; quando não há nada, a tela diz "Tudo em dia". As Aprovações são sempre de **todas as unidades** (cada cartão diz de qual é): nenhum pedido fica escondido. O cartão que pula no canto da tela continua nas outras abas, e as regras de antes não mudaram (quem pede, quem decide, a senha do gestor no aparelho de quem pediu).
+
+**No celular.** Pelo telefone, o gestor entra e, **havendo pedido esperando, já cai nas Aprovações**; sem nada esperando, abre no Painel. Em **Ajustes → Aparência → Ao abrir, neste aparelho** dá para fixar: **Painel**, **Aprovações** (abre sempre nelas) ou **Lista do espaço**. No celular, o "Para aprovar" do painel vira um botão só (**Abrir Aprovações**), para o painel não ficar comprido.
+
+**O painel.** A aba **Painel** virou o resumo do dia da operação (desde a meia-noite):
+
+- os números: **no espaço agora** (e quantos passaram do tempo), **entradas de hoje** (e quantos já saíram), **carrinhos fora da loja**, **faturado hoje** (e quantas vendas), **caixa do dia** (o recebido) e **descontos** (com os cancelamentos do dia);
+- **Entradas por hora**: um gráfico de colunas, com a hora de agora marcada e o pico do dia; passando o mouse (ou tocando) numa coluna aparece o número; "Ver em tabela" mostra os mesmos números;
+- **Caixa do dia**: o recebido por forma de pagamento (Pix, dinheiro, crédito, débito), em barras;
+- **Faturado por serviço**: o que foi vendido hoje, em barras: a recreação e cada carrinho pelo nome; os **pacotes de horas**, os **produtos** da loja e as **festas**, cada um num grupo só;
+- **Últimas entradas e saídas** (o toque abre o histórico do cliente) e **Últimos cancelamentos** (quem cancelou, o quê e o motivo; o toque abre a lista de conferência);
+- no alto, **Para aprovar**, com os pedidos ali mesmo (no computador) e o atalho **Abrir Aprovações**.
+
+**A unidade.** Com mais de uma unidade, o painel tem no alto um seletor grande: **ANÁLIA FRANCO | MORUMBI | TODAS** (cada botão já diz quantas crianças estão lá). Tocar em uma troca **a tela inteira**: todos os números, os gráficos e as listas passam a ser daquela unidade. Em **TODAS** os números são a soma, e aparece a tabela **Cada unidade hoje**, para comparar (tocar no nome leva para a unidade). O seletor é só o que o painel **mostra** e fica guardado no aparelho (começa na unidade dele); ele **não muda a unidade em que o aparelho registra** as entradas e as vendas, que continua no botão ao lado do título da lista. O que não tem unidade (o iDFace, o que é de antes da 1.06) entra em TODAS e, quando existe no dia, ganha o botão **SEM UNIDADE**.
+
+No servidor: `dados.painel.unidades[]` ganhou `servicos` (`[{ n, q, v }]`: o nome, quantas vendas com valor e o total de hoje, do maior para o menor). O resto do painel sai do que a tela já recebia (quem está no espaço, os finalizados do dia, os cancelamentos). Sem mudança no banco. Neste aparelho: `ps-painel-uni` (a unidade do painel; 0 = todas) e `ps-inicio-gestor` (`painel`, `aprovar` ou `horas`).
 
 ## 7. Atualizar
 
