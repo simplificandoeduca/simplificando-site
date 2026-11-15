@@ -1224,13 +1224,14 @@ function devolvidoHoje(): array {
   foreach ($o as &$x) unset($x['vendas']); unset($x); return $o;
 }
 function caixaDoDia(): array {
-  $q = db()->prepare("SELECT COALESCE(p.unidade_id, v.unidade_id, 0) u, p.forma f, p.valor val, p.venda_id vid, v.servico s, (COALESCE(v.produto_id, 0) > 0) pr, v.alug a, v.minutos m, v.auto au, v.voucher vo FROM pagamentos p JOIN vendas v ON v.id = p.venda_id WHERE p.quando >= ? ORDER BY p.id");   // 1.31: a unidade em que o dinheiro entrou
+  $q = db()->prepare("SELECT COALESCE(p.unidade_id, v.unidade_id, 0) u, p.forma f, p.valor val, p.venda_id vid, v.servico s, (COALESCE(v.produto_id, 0) > 0) pr, v.alug a, v.minutos m, v.auto au, v.voucher vo, v.festa_id fid FROM pagamentos p JOIN vendas v ON v.id = p.venda_id WHERE p.quando >= ? ORDER BY p.id");   // 1.31: a unidade em que o dinheiro entrou
   $q->execute([date('Y-m-d') . ' 00:00:00']); $o = [];
   foreach ($q->fetchAll() as $l) { $u = (int)$l['u']; $g = grupoDoCaixa($l); $f = (string)$l['f']; $v = round((float)$l['val'], 2);
     if (!isset($o[$u])) $o[$u] = ['uni' => $u, 'grupos' => []];
     if (!isset($o[$u]['grupos'][$g])) $o[$u]['grupos'][$g] = ['formas' => [], 'total' => 0.0, 'vendas' => [], 'itens' => []];
     $x = &$o[$u]['grupos'][$g]; $x['formas'][$f] = round(($x['formas'][$f] ?? 0) + $v, 2); $x['total'] = round($x['total'] + $v, 2); $x['vendas'][(int)$l['vid']] = 1;
     if ($g === 'carrinhos') { $nm = mb_strtoupper(trim((string)$l['s'])) ?: 'CARRINHO'; $x['itens'][$nm] = round(($x['itens'][$nm] ?? 0) + $v, 2); }
+    if ($g === 'festa') { $nm = !empty($l['fid']) ? rotuloFestaCaixa((int)$l['fid'], (string)$l['s']) : (mb_strtoupper(trim((string)$l['s'])) ?: 'FESTA'); $x['itens'][$nm] = round(($x['itens'][$nm] ?? 0) + $v, 2); }   // 1.38: de qual festa
     unset($x); }
   foreach ($o as &$x) foreach ($x['grupos'] as &$g) $g['vendas'] = count($g['vendas']); unset($x, $g);
   foreach (devolvidoHoje() as $u => $d) { if (!isset($o[$u])) $o[$u] = ['uni' => $u, 'grupos' => []]; $o[$u]['devolvido'] = $d; }   // 1.31
@@ -1652,6 +1653,22 @@ function festaPublica(array $f): array {
   return ['id' => (int)$f['id'], 'crianca' => (int)$f['crianca_id'], 'nome' => (string)($c['nome'] ?? ''), 'idade' => $nasc !== '' ? idadeDeNascimento($nasc, $f['data']) : (int)($c['idade'] ?? 0), 'nasc' => $nasc !== '',
     'resp' => (string)($c['resp'] ?? ''), 'tel' => (string)($c['tel'] ?? ''), 'tel2' => (string)($c['tel2'] ?? ''), 'uni' => $f['unidade_id'] === null ? null : (int)$f['unidade_id'],
     'data' => (string)$f['data'], 'hora' => (string)$f['hora'], 'tema' => (string)$f['tema'], 'dia' => (string)$f['dia'], 'n' => $n, 'extra' => $x, 'conv' => (int)$f['conv'], 'aniv' => (int)$f['aniv'], 'dentro' => (int)$f['dentro'], 'criada' => (string)$f['criado_em']];
+}
+// 1.38: a venda da festa em partes (a festa, o upgrade, o adicional): cada parte com o dia em que foi vendida, quem vendeu e o que foi
+// pago (em que dia e em que forma). A festa é uma venda só para quem olha; cada pagamento continua no caixa do dia em que entrou
+function festaVendas(array $f): array {
+  $q = db()->prepare('SELECT v.id, v.servico, v.itens, v.valor, v.desc_valor, v.quando, u.nome AS por_nome FROM vendas v LEFT JOIN usuarios u ON u.id = v.por WHERE v.festa_id = ? ORDER BY v.quando, v.id'); $q->execute([(int)$f['id']]); $V = $q->fetchAll();
+  if (!$V) return []; $P = [];
+  foreach (db()->query('SELECT venda_id, forma, valor, quando FROM pagamentos WHERE venda_id IN (' . implode(',', array_map(fn($v) => (int)$v['id'], $V)) . ') ORDER BY quando, id')->fetchAll() as $p)
+    $P[(int)$p['venda_id']][] = ['f' => (string)$p['forma'], 'v' => round((float)$p['valor'], 2), 'quando' => (string)$p['quando']];
+  return array_map(fn($v) => ['id' => (int)$v['id'], 'servico' => (string)$v['servico'], 'itens' => (string)$v['itens'], 'v' => round((float)$v['valor'], 2), 'desc' => round((float)$v['desc_valor'], 2), 'quando' => (string)$v['quando'], 'por' => primeiroNome((string)($v['por_nome'] ?? '')), 'pag' => $P[(int)$v['id']] ?? []], $V);
+}
+// (o caixa do dia) de qual festa é o que entrou hoje: "festa de ALICE (20/11)" e, se a festa foi vendida em outro dia, quando
+function rotuloFestaCaixa(int $fid, string $servico): string {
+  static $m = []; if (!isset($m[$fid])) { $q = db()->prepare('SELECT f.data, c.nome, (SELECT MIN(v.quando) FROM vendas v WHERE v.festa_id = f.id AND v.festa_n > 0) vendida FROM festas f LEFT JOIN criancas c ON c.id = f.crianca_id WHERE f.id = ?'); $q->execute([$fid]); $m[$fid] = $q->fetch() ?: null; }
+  $x = $m[$fid]; $s = mb_strtoupper(trim($servico)) ?: 'FESTA'; if (!$x) return $s;
+  $dm = fn($d) => substr((string)$d, 8, 2) . '/' . substr((string)$d, 5, 2);
+  return $s . ' · festa de ' . (string)$x['nome'] . ' (' . $dm($x['data']) . ')' . ($x['vendida'] && substr((string)$x['vendida'], 0, 10) !== date('Y-m-d') ? ' · a festa foi vendida em ' . $dm($x['vendida']) : '');
 }
 // as festas do calendário: de 60 dias atrás até mais de um ano para a frente, das unidades todas
 function festasDaTela(): array {

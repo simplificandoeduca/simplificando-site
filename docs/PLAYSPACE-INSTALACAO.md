@@ -1111,6 +1111,14 @@ Sem uma saída para receber (a compra de um pacote para guardar, sem entrar; só
 
 O bloco embaixo do **Desconto** se chama **Alterar pacote** quando há um pacote na conta (as horas e o valor; o gestor libera, como no desconto; seção 6zp). Com só produto, continua **Alterar valor**.
 
+## 6zr. A festa vendida em partes (1.38)
+
+Pedido do dono: a festa vendida no dia 10 entra no caixa do dia 10; o upgrade dela, vendido no dia 15, entra no caixa do dia 15. Mas tudo tem de aparecer como uma venda só, com as datas, para saber por que a festa foi faturada em dias diferentes.
+
+- **Cada pagamento entra no caixa do dia em que foi feito** (como já era): a festa no dia em que foi paga; o upgrade e o adicional, no dia em que foram pagos.
+- **A folha da festa** (toque na festa, em Festas ou na faixa da festa de hoje) ganhou **A venda da festa**: a festa, o upgrade e o adicional, cada um com o dia e a hora em que foi vendido, quem vendeu, o que foi pago (em que dia e em que forma) e o que falta receber, e o **Total da festa**. Vendida em partes, em dias diferentes, a folha avisa: "cada parte entra no caixa do dia em que foi paga".
+- **No caixa do dia**, embaixo de **Festas**, o que entrou hoje e de qual festa: "UPGRADE DE FESTA · festa de ALICE (20/11) · a festa foi vendida em 10/11". No caixa impresso também.
+
 ## 7. Atualizar
 
 Botão **Atualizar** ao lado da versão. Ele baixa a versão nova do GitHub (ramo principal ou de trabalho, a mais nova), confere a versão dentro do arquivo e troca os arquivos de forma atômica. Não mexe em `~/playspace-dados/`. Se o GitHub demorar a refletir (cache de ~5 min), espere e toque de novo.

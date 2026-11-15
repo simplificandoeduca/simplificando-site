@@ -1269,6 +1269,8 @@ b.np { color: var(--erro); letter-spacing: .03em; }
 .papel .c-linha.c-total span:first-child { flex: 0 1 auto; min-width: 0; max-width: none; } .papel .c-linha.c-total i { min-width: 2mm; }   /* ("Total pago em dinheiro" com valor grande: o rótulo quebra, o valor fica inteiro na coluna) */
 .papel .c-areceber { margin-top: 1.6mm; text-align: center; letter-spacing: .04em; }
 .papel .c-ped { margin-top: 1mm; font-size: 10.5px; text-align: center; letter-spacing: .02em; }   /* 1.33: a resposta do que foi pedido, discreta */
+.cx-fes { display: flex; flex-direction: column; gap: 2px; margin: -2px 0 6px 12px; } .cx-fes small { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; color: var(--tinta-2); } .cx-fes small span { min-width: 0; overflow-wrap: anywhere; } .cx-fes small b { flex: none; font-weight: 700; }   /* 1.38: o que entrou de cada festa */
+.fv-vendas { display: flex; flex-direction: column; border: 1px solid var(--borda); border-radius: 14px; background: var(--card); } .fv-vd { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-top: 1px solid var(--borda); } .fv-vd:first-child { border-top: 0; } .fv-vd .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; } .fv-vd .txt span { font-size: 12.5px; color: var(--tinta-2); overflow-wrap: anywhere; } .fv-vd > b { flex: none; } .fv-vd.tot { background: var(--creme-2); border-radius: 0 0 14px 14px; } .fv-vd .ar { color: var(--erro); font-weight: 800; }   /* 1.38: a venda da festa em partes */
 .papel .c-rod { margin-top: 2.7mm; text-align: center; letter-spacing: .03em; }
 .papel .c-assina { margin-top: 10mm; padding-bottom: .7mm; margin-bottom: 1.2mm; border-bottom-style: solid; }
 .papel .c-ass-nome { text-align: center; font-size: 11.5px; }
@@ -1654,7 +1656,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.37';
+const VERSAO = '1.38';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -3140,12 +3142,25 @@ let FV = null;   // a festa aberta na folha: { id, dados: { criancas } | null, e
 function folhaFestaVer(id) { const f = festaPorId(id); if (!f) { toast('A festa não está mais marcada.'); return; }
   FV = { id: f.id, dados: null, erro: '' }; abrirFolha('Festa de ' + esc(f.nome), '<div id="fv-corpo" class="fv"></div>'); desenharFestaVer(); buscarFestaVer(); }
 async function buscarFestaVer() { const marca = FV; if (!marca) return;
-  if (MODO === 'servidor') { try { const r = await api('festa_relatorio', { id: marca.id }); if (FV !== marca) return; marca.dados = { criancas: (r.criancas || []).map(x => ({ ...x, quando: dataDe(x.quando) })) }; marca.erro = ''; } catch (e) { if (FV !== marca) return; marca.erro = e.message; } }
-  else marca.dados = { criancas: relatorioPrevia(marca.id) };
+  if (MODO === 'servidor') { try { const r = await api('festa_relatorio', { id: marca.id }); if (FV !== marca) return; marca.dados = { criancas: (r.criancas || []).map(x => ({ ...x, quando: dataDe(x.quando) })), vendas: (r.vendas || []).map(v => ({ ...v, quando: dataDe(v.quando), pag: (v.pag || []).map(p => ({ ...p, quando: dataDe(p.quando) })) })) }; marca.erro = ''; } catch (e) { if (FV !== marca) return; marca.erro = e.message; } }
+  else marca.dados = { criancas: relatorioPrevia(marca.id), vendas: vendasFestaPrevia(marca.id) };
   desenharFestaVer(); }
 function relatorioPrevia(fid) { const f = festaPorId(fid), cap = f ? capFesta(f) : 0; let pos = 0;
   return (S.festaPres || []).filter(p => p.festa === fid).sort((a, b) => (a.papel === 'convidado') - (b.papel === 'convidado') || a.quando - b.quando).map(p => { const c = crianca(p.crianca) || {}; if (p.papel === 'convidado') pos++;
     return { id: c.id, nome: c.nome || '', idade: idadeNaData(c, f ? f.data : isoDia(agora)), papel: p.papel, quando: p.quando, a_mais: p.papel === 'convidado' && pos > cap, resp: c.resp || '', tel: c.tel || '', tel2: c.tel2 || '', dentro: !!(c.entrou && c.festa === fid) }; }); }
+// 1.38 (prévia) a venda da festa em partes, como o servidor manda: cada venda ligada à festa, com o dia, quem vendeu e o que foi pago
+const vendasFestaPrevia = fid => (S.compras || []).filter(v => v.festa === fid).sort((a, b) => a.quando - b.quando).map(v => ({ id: v.id, servico: v.servico || '', itens: v.itens || '', v: v.v, desc: v.desc || 0, quando: new Date(v.quando), por: primeiro(v.por || ''), pag: (S.pagamentos || []).filter(p => p.venda === v.id).map(p => ({ f: p.f, v: p.v, quando: new Date(p.quando) })) }));
+// 1.38: "A venda da festa": a festa é uma venda só para quem olha, em partes vendidas (e pagas) em dias diferentes; cada parte entra no
+// caixa do dia em que foi paga
+function htmlVendaFesta(V) { if (!V || !V.length) return '';
+  const dm = d => p2(d.getDate()) + '/' + p2(d.getMonth() + 1), dias = new Set(), tot = centavos(V.reduce((t, v) => t + v.v, 0)), pago = centavos(V.reduce((t, v) => t + Math.min(v.v, v.pag.reduce((s, p) => s + p.v, 0)), 0));
+  const linha = v => { const pg = v.pag.reduce((s, p) => s + p.v, 0), falta = centavos(v.v - pg), porDia = {}; for (const p of v.pag) { const k = dm(p.quando); (porDia[k] = porDia[k] || []).push(p); dias.add(isoDia(p.quando)); }
+    const pgTxt = Object.entries(porDia).map(([d, L]) => `pago em ${d}: ${L.map(p => nomeForma(p.f) + ' ' + brl(p.v)).join(' + ')}`).join(' · ');
+    return `<div class="fv-vd"><span class="txt"><b>${esc(v.servico)}</b><span>${esc(v.itens)}</span><span>vendido em ${dm(v.quando)} às ${hora(v.quando)}${v.por ? ' por ' + esc(MAI(v.por)) : ''}${v.desc > 0 ? ' · desconto de ' + brl(v.desc) : ''}</span>${pgTxt ? `<span>${esc(pgTxt)}</span>` : ''}${falta > 0.004 ? `<span class="ar">a receber: ${brl(falta)}</span>` : ''}</span><b class="num">${brl(v.v)}</b></div>`; };
+  const corpo = V.map(linha).join('');
+  return `<div class="sec-cab fv-cab"><h3>A venda da festa${V.length > 1 ? ` <span class="pill p-neutro">${V.length} partes</span>` : ''}</h3></div>
+    <div class="fv-vendas">${corpo}<div class="fv-vd tot"><span class="txt"><b>Total da festa</b>${pago < tot - 0.004 ? `<span class="ar">a receber: ${brl(centavos(tot - pago))}</span>` : ''}</span><b class="num">${brl(tot)}</b></div></div>
+    ${dias.size > 1 ? `<p class="explica">Vendida em partes, em dias diferentes: cada parte entra no caixa do dia em que foi paga.</p>` : ''}`; }
 const fonesDe = x => [x.tel, x.tel2].filter(t => soDig(t).length >= 8).join(' / ');
 const anosTxt = n => n ? n + (n === 1 ? ' ano' : ' anos') : '';
 function desenharFestaVer() {
@@ -3158,6 +3173,7 @@ function desenharFestaVer() {
     <div class="fv-nums"><div><small>Combinado</small><b class="num">${cap}</b><span>${f.n} da festa${f.extra ? ' + ' + f.extra + ' do adicional' : ''}</span></div><div class="${am ? 'amais' : ''}"><small>Convidados que vieram</small><b class="num">${f.conv}</b><span>${f.aniv ? (f.aniv === 1 ? 'e o aniversariante' : 'e ' + f.aniv + ' aniversariantes') : f.data > hj ? 'a festa ainda não chegou' : 'o aniversariante não entrou'}</span></div><div><small>No espaço agora</small><b class="num">${f.dentro}</b><span>${f.dentro === 1 ? 'criança' : 'crianças'}</span></div></div>
     ${am ? `<div class="fv-amais">${ic(IC.sino, 18)}<span><b>${am} ${am === 1 ? 'criança' : 'crianças'} a mais do que o combinado.</b> Cobre o adicional de festa de ${esc(f.resp || 'responsável')}: ${am} × ${brl(T.extra)} = <b>${brl(am * T.extra)}</b>.</span><button type="button" class="bt forte tap" data-act="festa-adicional" data-id="${f.id}">Cobrar o adicional</button></div>` : ''}
     ${hoje && aqui ? `<button type="button" class="bt forte largo tap" data-act="festa-entrar-q" data-id="${f.id}">${ic(IC.entrar)} Dar entrada na festa</button>` : ''}
+    ${FV.dados ? htmlVendaFesta(FV.dados.vendas) : ''}
     <div class="sec-cab fv-cab"><h3>Quem veio${L && L.length ? ` <span class="pill p-neutro">${L.length}</span>` : ''}</h3>${L && L.length ? `<span class="fv-acoes"><button type="button" class="bt tap" data-act="fv-copiar">${ic(IC.copia, 16)} Copiar a lista</button><button type="button" class="bt tap" data-act="fv-planilha">Planilha</button><button type="button" class="bt tap" data-act="fv-imprimir">Imprimir</button></span>` : ''}</div>
     ${!L ? `<p class="explica${FV.erro ? ' erro' : ''}">${FV.erro ? esc(FV.erro) : 'Carregando…'}</p>` : !L.length ? `<p class="explica">${f.data > hj ? 'A festa ainda não chegou.' : 'Ninguém entrou nesta festa.'} No dia, cada criança entra pelo atendimento: <b>Entrar na festa</b>.</p>`
       : `<div class="fv-lista">${L.map((x, i) => `<div class="fv-it${x.a_mais ? ' amais' : ''}"><span class="n num">${x.papel === 'aniversariante' ? '★' : i + 1 - nAniv}</span><span class="txt"><b>${esc(x.nome)}${x.idade ? ', ' + anosTxt(x.idade) : ''}${x.papel === 'aniversariante' ? ' <em class="tag-an">aniversariante</em>' : ''}${x.a_mais ? ' <em class="tag-am">a mais</em>' : ''}</b><span>${esc(x.resp || '—')}${fonesDe(x) ? ' · ' + esc(fonesDe(x)) : ''}</span></span><span class="q num">${x.quando ? hora(x.quando) : ''}${x.dentro ? '<small>no espaço</small>' : ''}</span></div>`).join('')}</div>
@@ -4735,13 +4751,18 @@ function grupoCxPrevia(v) { const n = String(v.servico || '').trim().toUpperCase
   if (v.prod) return 'produtos'; if (v.alug || (S.cfg.servicos || []).some(s => s.volta && String(s.n || '').trim().toUpperCase() === n)) return 'carrinhos'; if (minDe(v) > 0 && !v.auto && !v.voucher && (!n || /^PACOTE(?![0-9A-Z_])/.test(n))) return 'pacotes';   // 1.31: antes da festa (como no painel)
   if (n.includes('FESTA')) return 'festa';
   if (minDe(v) > 0 || (st && n === String(st.n || '').trim().toUpperCase())) return 'recreacao'; return 'outros'; }
+// 1.38 (prévia) de qual festa é o que entrou hoje, como no servidor: "UPGRADE DE FESTA · festa de ALICE (20/11) · a festa foi vendida em 10/11"
+function rotuloFestaCxPrevia(v) { const s = String(v.servico || 'FESTA').trim().toUpperCase(), f = v.festa ? festaPorId(v.festa) : null; if (!f) return s;
+  const dm = d => d.slice(8, 10) + '/' + d.slice(5, 7), vs = (S.compras || []).filter(x => x.festa === f.id && +x.festa_n > 0).map(x => new Date(x.quando)).sort((a, b) => a - b)[0];
+  return `${s} · festa de ${f.nome} (${dm(f.data)})${vs && isoDia(vs) !== isoDia(agora) ? ' · a festa foi vendida em ' + dm(isoDia(vs)) : ''}`; }
 function caixaUnidades() { // [{ uni, grupos: { recreacao: { formas, total, vendas, itens } ... } }]: o servidor manda; na prévia, a mesma conta
   if (MODO === 'servidor') return (S.caixa && S.caixa.unidades) || [];
   const d0 = new Date(agora); d0.setHours(0, 0, 0, 0); const o = {}, primeira = (unidades()[0] || {}).id || 0;   // (a mesma unidade do painel: o que não tem unidade fica na primeira)
   for (const p of S.pagamentos || []) { if (!(+new Date(p.quando) >= +d0)) continue; const v = (S.compras || []).find(x => x.id === p.venda); if (!v) continue;
     const u = +(p.uni || v.uni || (crianca(v.crianca) || {}).uni || primeira), g = grupoCxPrevia(v), x = ((o[u] = o[u] || { uni: u, grupos: {} }).grupos[g] = o[u].grupos[g] || { formas: {}, total: 0, vendas: new Set(), itens: {} });
     x.formas[p.f] = centavos((x.formas[p.f] || 0) + (+p.v || 0)); x.total = centavos(x.total + (+p.v || 0)); x.vendas.add(v.id);
-    if (g === 'carrinhos') { const nm = String(v.servico || 'CARRINHO').toUpperCase(); x.itens[nm] = centavos((x.itens[nm] || 0) + (+p.v || 0)); } }
+    if (g === 'carrinhos') { const nm = String(v.servico || 'CARRINHO').toUpperCase(); x.itens[nm] = centavos((x.itens[nm] || 0) + (+p.v || 0)); }
+    if (g === 'festa') { const nm = rotuloFestaCxPrevia(v); x.itens[nm] = centavos((x.itens[nm] || 0) + (+p.v || 0)); } }   // 1.38: de qual festa
   for (const e of S.estornos || []) { if (!(+new Date(e.quando) >= +d0)) continue; const u = +(e.uni || primeira), x = o[u] = o[u] || { uni: u, grupos: {} }, d = x.dev = x.dev || { total: 0, formas: {}, grupos: {}, itens: {}, n: 0, vs: new Set() };   // 1.31: a venda de outro dia devolvida hoje
     d.total = centavos(d.total + e.v); d.formas[e.f] = centavos((d.formas[e.f] || 0) + e.v); d.grupos[e.g] = centavos((d.grupos[e.g] || 0) + e.v); if (e.item) d.itens[e.item] = centavos((d.itens[e.item] || 0) + e.v); d.vs.add(e.venda); d.n = d.vs.size; }
   return Object.values(o).map(x => ({ uni: x.uni, grupos: Object.fromEntries(Object.entries(x.grupos).map(([k, g]) => [k, { ...g, vendas: g.vendas.size }])), ...(x.dev ? { devolvido: (({ vs, ...d }) => d)(x.dev) } : {}) })); }
@@ -4761,7 +4782,8 @@ const formasCx = F => FORMAS.filter(([f]) => (F || {})[f] > 0).map(([f, n]) => `
 function htmlCaixaDia() {
   const u = cxUni(), K = contaCaixa(u), U = unidades(), onde = u ? nomeUni(u) : U.length > 1 ? 'todas as unidades' : (U[0] || {}).nome || '';
   const linha = (n, sub, g, cls = '') => `<div class="cx-g${cls}"><div class="cx-l"><b>${n}</b><span class="num">${brl2(g ? g.total : 0)}</span></div>${g && g.total > 0 ? `<small>${esc(formasCx(g.formas))}${g.vendas ? ' · ' + g.vendas + (g.vendas === 1 ? ' venda' : ' vendas') : ''}</small>` : sub ? `<small>${sub}</small>` : ''}</div>`;
-  const grupos = GRUPOS_CX.filter(([k]) => ['recreacao', 'pacotes', 'festa'].includes(k) || (K.G[k] && K.G[k].total > 0)).map(([k, n]) => linha(n, 'nada recebido hoje', K.G[k])).join('');
+  const itensF = K.G.festa ? Object.entries(K.G.festa.itens || {}) : [];   // 1.38: o que entrou de cada festa (o upgrade diz quando a festa foi vendida)
+  const grupos = GRUPOS_CX.filter(([k]) => ['recreacao', 'pacotes', 'festa'].includes(k) || (K.G[k] && K.G[k].total > 0)).map(([k, n]) => linha(n, 'nada recebido hoje', K.G[k]) + (k === 'festa' && itensF.length ? `<div class="cx-fes">${itensF.map(([nm, v]) => `<small><span>${esc(nm)}</span><b class="num">${brl2(v)}</b></small>`).join('')}</div>` : '')).join('');
   const gc = K.G.carrinhos, itensC = gc ? Object.entries(gc.itens).sort((a, b) => b[1] - a[1]).map(([n, v]) => `${esc(n)} ${brl2(v)}`).join(' · ') : '';
   return `<section class="cx" aria-label="Caixa do dia">
     <div class="cx-cab"><span class="cx-ic">${ic(IC.caixa, 24)}</span><div class="txt"><small>Caixa do dia${onde ? ' · ' + esc(onde) : ''} · desde a meia-noite</small><b class="num">${brl2(K.total)}</b><span>recebido hoje</span></div><button type="button" class="bt tap" data-act="cx-imprimir" aria-label="Imprimir o caixa do dia" title="Imprimir o caixa do dia">${ic(IC.cupom, 16)}<span class="cx-imp">Imprimir</span></button></div>
@@ -4779,7 +4801,7 @@ function papelCaixa() { const u = cxUni(), K = contaCaixa(u), L = lojaPapel(), l
     <p class="c-via"><span>CAIXA DO DIA</span><span>${dataCurta(agoraJa())}</span></p>
     <p class="c-cab"><span>Por forma de pagamento</span><span>Valor</span></p>${FORMAS.map(([f, n]) => lin(n, brl2(K.soma[f] || 0))).join('')}
     <p class="c-div"></p><p class="c-cab"><span>Pelo que foi pago</span><span>Valor</span></p>
-    ${GRUPOS_CX.filter(([k]) => ['recreacao', 'pacotes', 'festa'].includes(k) || (K.G[k] && K.G[k].total > 0)).map(([k, n]) => lin(n, brl2(K.G[k] ? K.G[k].total : 0))).join('')}
+    ${GRUPOS_CX.filter(([k]) => ['recreacao', 'pacotes', 'festa'].includes(k) || (K.G[k] && K.G[k].total > 0)).map(([k, n]) => lin(n, brl2(K.G[k] ? K.G[k].total : 0)) + (k === 'festa' && K.G.festa ? Object.entries(K.G.festa.itens || {}).map(([nm, v]) => `<p class="c-sub">${esc(nm)}: ${brl2(v)}</p>`).join('') : '')).join('')}
     ${K.dev.total > 0 ? lin('Devolvido hoje', '− ' + brl2(K.dev.total)) + `<p class="c-sub">venda de outro dia cancelada · ${esc(formasCx(K.dev.formas))}</p>` : ''}
     ${lin('Sem os carrinhos', brl2(K.semCarr), ' c-total')}
     ${lin('Carrinhos', brl2(K.carr))}${K.G.carrinhos ? Object.entries(K.G.carrinhos.itens).map(([n, v]) => `<p class="c-sub">${esc(n)}: ${brl2(v)}</p>`).join('') : ''}

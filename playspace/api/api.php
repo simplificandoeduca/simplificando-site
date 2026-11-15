@@ -341,7 +341,7 @@ switch ($acao) {
   }
   case 'festa_relatorio': { // 1.29: quem veio na festa, com o responsável e os telefones (para mandar ao responsável do aniversariante)
     exigir(); $f = festaComConta((int)($in['id'] ?? 0)); if (!$f) falha('A festa não está mais marcada.', 404);
-    responder(['festa' => festaPublica($f), 'criancas' => festaRelatorioLinhas($f, festaRelatorio($f))]);
+    responder(['festa' => festaPublica($f), 'criancas' => festaRelatorioLinhas($f, festaRelatorio($f)), 'vendas' => festaVendas($f)]);   // 1.38: e a venda da festa em partes
   }
   case 'saida': {
     $us = modoManual() ? exigir() : exigir(['gestor', 'supervisor']); $c = crianca((int)($in['id'] ?? 0)); if (!$c) falha('Criança não encontrada.', 404);
