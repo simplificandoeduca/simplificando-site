@@ -536,20 +536,21 @@ function avisosDaGestora(array $u): array {
 // de quem pediu. Fica guardado quem pediu, quem decidiu, quando e como (toque ou senha), e o que foi feito com a autorização.
 // status: pendente → liberado (o desconto pode ser usado; a nota pode ser emitida) → usado (o desconto foi aplicado; a venda foi cancelada;
 // a nota foi emitida, com o número) | negado | cancelado (quem pediu desistiu, ou a venda saiu).
-const PEDIDO_TIPOS = ['desconto', 'cancelar_venda', 'nf'];
+const PEDIDO_TIPOS = ['desconto', 'cancelar_venda', 'nf', 'valor'];   // 1.33: valor = alterar o valor de um pacote ou de um produto na venda
 const PEDIDO_VALE_MIN = 30;   // o desconto liberado vale por 30 min; depois disso, pede de novo
 const PEDIDO_ESPERA_H = 12;   // o pedido de desconto ou de cancelamento sem resposta sai da tela depois disso (o da nota fiscal espera o gestor)
 const PEDIDO_JUNTO_SEG = 120;   // o desconto já usado em parte só completa a mesma conta (a saída em conjunto dos irmãos) dentro deste tempo
-function podeDecidir(array $u, string $tipo): bool { return $tipo === 'cancelar_venda' ? podeEstornar($u) : ($u['papel'] ?? '') === 'gestor'; }
-function quemDecide(string $tipo): string { return $tipo === 'cancelar_venda' ? quemEstorna() : 'o gestor'; }
+function podeDecidir(array $u, string $tipo): bool { return $tipo === 'cancelar_venda' ? podeEstornar($u) : ($tipo === 'valor' ? in_array($u['papel'] ?? '', ['gestor', 'supervisor'], true) : ($u['papel'] ?? '') === 'gestor'); }   // 1.33: a alteração de valor, a supervisora ou o gestor
+function quemDecide(string $tipo): string { return $tipo === 'cancelar_venda' ? quemEstorna() : ($tipo === 'valor' ? 'o supervisor ou o gestor' : 'o gestor'); }
+const PEDIDO_SEM_VENDA = ['desconto', 'valor'];   // 1.33: os pedidos que nascem antes da venda (os outros são de uma venda que já existe)
 function pedido(int $id): ?array { $q = db()->prepare('SELECT * FROM pedidos WHERE id = ?'); $q->execute([$id]); return $q->fetch() ?: null; }
 function pedidoPublico(array $p): array {
   $d = json_decode((string)$p['dados'], true);
   $o = ['id' => (int)$p['id'], 'tipo' => (string)$p['tipo'], 'status' => (string)$p['status'], 'crianca' => $p['crianca_id'] === null ? null : (int)$p['crianca_id'], 'venda' => $p['venda_id'] === null ? null : (int)$p['venda_id'],
     'nome' => (string)$p['nome'], 'resp' => (string)$p['resp'], 'texto' => (string)$p['texto'], 'motivo' => (string)$p['motivo'], 'valor' => round((float)$p['valor'], 2), 'usado' => round((float)$p['usado'], 2), 'dados' => is_array($d) ? $d : [],
     'por' => (string)$p['pedido_nome'], 'por_id' => (int)$p['pedido_por'], 'em' => (string)$p['pedido_em'], 'dec' => (string)$p['decidido_nome'], 'dec_em' => $p['decidido_em'], 'como' => (string)$p['como'],
-    'feito_por' => (string)$p['feito_nome'], 'feito_em' => $p['feito_em'], 'numero' => (string)$p['numero'], 'resultado' => (string)$p['resultado'], 'uni' => ($p['unidade_id'] ?? null) === null ? null : (int)$p['unidade_id'], 'sem_venda' => $p['tipo'] !== 'desconto' && $p['venda_id'] === null];   // sem_venda: a venda do pedido saiu (foi cancelada ou desfeita)
-  if ($p['tipo'] === 'desconto' && $p['status'] === 'liberado' && $p['decidido_em']) $o['vale'] = date('Y-m-d H:i:s', strtotime((string)$p['decidido_em']) + PEDIDO_VALE_MIN * 60);   // até quando o desconto liberado pode ser usado
+    'feito_por' => (string)$p['feito_nome'], 'feito_em' => $p['feito_em'], 'numero' => (string)$p['numero'], 'resultado' => (string)$p['resultado'], 'uni' => ($p['unidade_id'] ?? null) === null ? null : (int)$p['unidade_id'], 'sem_venda' => !in_array($p['tipo'], PEDIDO_SEM_VENDA, true) && $p['venda_id'] === null];   // sem_venda: a venda do pedido saiu (foi cancelada ou desfeita)
+  if (in_array($p['tipo'], PEDIDO_SEM_VENDA, true) && $p['status'] === 'liberado' && $p['decidido_em']) $o['vale'] = date('Y-m-d H:i:s', strtotime((string)$p['decidido_em']) + PEDIDO_VALE_MIN * 60);   // até quando o desconto liberado pode ser usado
   return $o;
 }
 // o que cada tela recebe (em toda carga e a cada pulso): os pedidos que esperam a resposta de quem está logado, e os dele mesmo
@@ -558,7 +559,7 @@ function pedidosDaTela(array $u): array {
   $db = db(); $lim = date('Y-m-d H:i:s', time() - PEDIDO_ESPERA_H * 3600); $eu = (int)$u['id']; $o = [];
   $q = $db->prepare("SELECT p.* FROM pedidos p WHERE p.status = 'pendente' AND (p.tipo = 'nf' OR p.pedido_em >= ?) ORDER BY p.id DESC LIMIT 60"); $q->execute([$lim]);
   foreach ($q->fetchAll() as $p) { $meu = (int)$p['pedido_por'] === $eu; $decide = podeDecidir($u, (string)$p['tipo']);
-    if (($p['tipo'] !== 'desconto' && $p['venda_id'] === null) || !($meu || $decide)) continue;   // (o pedido de uma venda que saiu não espera mais nada: o gatilho já o cancelou)
+    if ((!in_array($p['tipo'], PEDIDO_SEM_VENDA, true) && $p['venda_id'] === null) || !($meu || $decide)) continue;   // (o pedido de uma venda que saiu não espera mais nada: o gatilho já o cancelou)
     $o[] = pedidoPublico($p) + ['meu' => $meu, 'decide' => $decide]; }
   $q = $db->prepare("SELECT p.* FROM pedidos p WHERE p.pedido_por = ? AND p.status != 'pendente' AND COALESCE(p.decidido_em, p.pedido_em) >= ? ORDER BY p.id DESC LIMIT 30"); $q->execute([$eu, $lim]);
   foreach ($q->fetchAll() as $p) $o[] = pedidoPublico($p) + ['meu' => true, 'decide' => false];
@@ -589,6 +590,16 @@ function pedidoCriar(array $u, array $in): array {
     $texto = 'Desconto de ' . dinheiro($valor) . ($pct > 0 ? ' (' . rtrim(rtrim(number_format($pct, 2, ',', ''), '0'), ',') . '%)' : '') . ($base > 0 ? ' em ' . dinheiro($base) : '') . ($dados['onde'] === 'saida' ? ' · na saída' : '');
     // um pedido de desconto por vez para o mesmo cliente: o anterior (sem resposta, ou liberado e não usado) deixa de valer
     $db->prepare("UPDATE pedidos SET status = 'cancelado', resultado = 'TROCADO POR OUTRO PEDIDO' WHERE tipo = 'desconto' AND pedido_por = ? AND crianca_id = ? AND status IN ('pendente', 'liberado')")->execute([(int)$u['id'], (int)$c['id']]);
+  } elseif ($tipo === 'valor') { // 1.33: o valor novo de um pacote ou de um produto da venda que está sendo feita
+    $c = crianca((int)($in['crianca'] ?? 0)); if (!$c) falha('Cliente não encontrado.', 404);
+    $it = itemDoValor((array)($in['item'] ?? [])); $para = round((float)($in['para'] ?? 0), 2);
+    if ($para <= 0) falha('Escreva o valor novo.'); if ($para > 99999) falha('Confira o valor novo: ' . dinheiro($para) . '.');
+    if (abs($para - $it['de']) < 0.005) falha('O valor novo é igual ao de agora (' . dinheiro($it['de']) . ').');
+    $motivo = mb_substr($motivo, 0, 120); if (mb_strlen($motivo) < 3) falha('Escreva o motivo: o que muda no valor.');
+    $valor = $para; $dados = ['item' => $it, 'de' => $it['de'], 'para' => $para];
+    $texto = 'Alterar o valor: ' . $it['n'] . ' de ' . dinheiro($it['de']) . ' para ' . dinheiro($para);
+    // uma alteração por vez para o mesmo cliente: a anterior (sem resposta, ou aprovada e não usada) deixa de valer
+    $db->prepare("UPDATE pedidos SET status = 'cancelado', resultado = 'TROCADO POR OUTRO PEDIDO' WHERE tipo = 'valor' AND pedido_por = ? AND crianca_id = ? AND status IN ('pendente', 'liberado')")->execute([(int)$u['id'], (int)$c['id']]);
   } else {
     $q = $db->prepare('SELECT * FROM vendas WHERE id = ?'); $q->execute([(int)($in['venda'] ?? 0)]); $v = $q->fetch(); if (!$v) falha('Esta venda não existe mais: já foi desfeita ou cancelada.', 404);
     $c = crianca((int)$v['crianca_id']); if (!$c) falha('Cliente não encontrado.', 404); $vendaId = (int)$v['id']; $valor = round((float)$v['valor'], 2); $nomeV = nomeDaVenda($v);
@@ -643,6 +654,44 @@ function pedidoDecidir(int $id, array $g, bool $ok, string $como = 'toque'): arr
   if (!$q->rowCount()) falha('Este pedido já foi respondido em outro aparelho.', 409);
   return ['pedido' => pedidoPublico(pedido($id))] + $extra;
 }
+// 1.33: o pacote ou o produto da alteração de valor, achado na tabela da loja: o nome, o valor de agora (de) e como achar de novo na venda
+function itemDoPacote(array $x): array {
+  $h = (int)$x['h']; $tp = tipoPacote($x); $n = servicoDoPacote($x); if ($n === '') $n = 'PACOTE ' . ($tp === 'seco' ? 'SECO ' : '') . 'DE ' . $h . 'H';
+  return ['k' => 'pac', 'h' => $h, 'tipo' => $tp, 'nome' => (string)($x['nome'] ?? ''), 'de' => round((float)$x['v'], 2), 'n' => $n];
+}
+function itemDoProduto(array $p, int $q): array { return ['k' => 'prod', 'p' => (int)$p['id'], 'q' => $q, 'de' => round($q * (float)$p['valor'], 2), 'n' => ($q > 1 ? $q . ' × ' : '') . (string)$p['nome']]; }
+function itemDoValor(array $i): array {
+  if (($i['k'] ?? '') === 'pac') { $h = (int)($i['h'] ?? 0); $tp = ($i['tipo'] ?? '') === 'produto' ? 'produto' : 'seco'; $nm = mb_strtolower(trim((string)($i['nome'] ?? ''))); $val = isset($i['v']) ? (float)$i['v'] : null;
+    foreach ((array)(regra()['pacotes'] ?? []) as $x) { if ((int)$x['h'] !== $h || tipoPacote($x) !== $tp || mb_strtolower(trim((string)($x['nome'] ?? ''))) !== $nm) continue;
+      if ($val !== null && abs((float)$x['v'] - $val) >= 0.005) continue; return itemDoPacote($x); }
+    falha('Este pacote não está mais na tabela, ou o valor dele mudou. Feche e abra o atendimento de novo.'); }
+  if (($i['k'] ?? '') === 'prod') { $p = produto((int)($i['p'] ?? 0)); if (!$p || !$p['ativo']) falha('Este produto saiu da lista. Feche e abra o atendimento de novo.');
+    return itemDoProduto($p, max(1, min(99, (int)($i['q'] ?? 1)))); }
+  falha('Escolha o pacote ou o produto que muda de valor.');
+}
+// a alteração de valor na venda: o pedido tem de ser de quem vende, aprovado há menos de 30 min, do mesmo cliente (ou de um irmão) e do
+// mesmo item, com o mesmo valor de tabela de quando foi pedido. Devolve o que a venda usa: o valor novo, o nome, o motivo e quem aprovou
+function autorizacaoDeValor(int $id, array $u, array $c, array $it): array {
+  $p = pedido($id); if (!$p || $p['tipo'] !== 'valor') falha('A alteração de valor não foi encontrada. Peça de novo.', 409);
+  if ((int)$p['pedido_por'] !== (int)$u['id']) falha('Esta alteração de valor foi pedida em outro login. Peça de novo.', 403);
+  if ($p['status'] === 'pendente') falha('A alteração de valor ainda espera a resposta do supervisor ou do gestor.', 409);
+  if ($p['status'] === 'negado') falha('A alteração de valor não foi aprovada.', 409);
+  if ($p['status'] !== 'liberado') falha($p['status'] === 'usado' ? 'Esta alteração de valor já foi usada em outra venda.' : 'A alteração de valor não vale mais. Peça de novo.', 409);
+  if (time() - strtotime((string)$p['decidido_em']) > PEDIDO_VALE_MIN * 60) falha('A aprovação da alteração de valor venceu (vale por ' . PEDIDO_VALE_MIN . ' min). Peça de novo.', 409);
+  $pc = (int)$p['crianca_id']; if ($pc !== (int)$c['id'] && !in_array($pc, array_map(fn($x) => (int)$x['id'], irmaosDe($c)), true)) falha('A alteração de valor foi aprovada para outro cliente.', 409);
+  $d = json_decode((string)$p['dados'], true); $pi = is_array($d) ? (array)($d['item'] ?? []) : [];
+  $mesmo = ($pi['k'] ?? '') === $it['k'] && ($it['k'] === 'pac' ? (int)($pi['h'] ?? 0) === $it['h'] && ($pi['tipo'] ?? '') === $it['tipo'] && mb_strtolower(trim((string)($pi['nome'] ?? ''))) === mb_strtolower(trim($it['nome']))
+    : (int)($pi['p'] ?? 0) === $it['p'] && (int)($pi['q'] ?? 0) === $it['q']) && abs((float)($d['de'] ?? -1) - $it['de']) < 0.005;
+  if (!$mesmo) falha('A alteração aprovada é de outro item (' . ($pi['n'] ?? '') . '), ou o valor da tabela mudou. Peça de novo.', 409);
+  return ['id' => (int)$p['id'], 'para' => round((float)($d['para'] ?? 0), 2), 'de' => $it['de'], 'n' => $it['n'], 'motivo' => (string)$p['motivo'], 'por' => (string)$p['pedido_nome'], 'dec' => (string)$p['decidido_nome']];
+}
+// a venda saiu com o valor alterado: o pedido fica usado (com a venda) e o dia ganha a linha "Valor alterado"
+function usarAlteracao(array $a, int $vendaId, array $c, array $u): int {
+  db()->prepare("UPDATE pedidos SET status = 'usado', usado = ?, venda_id = ?, feito_por = ?, feito_nome = ?, feito_em = ?, resultado = 'VALOR ALTERADO NA VENDA' WHERE id = ? AND status = 'liberado'")
+    ->execute([$a['para'], $vendaId, (int)$u['id'], (string)$u['nome'], agora(), $a['id']]);
+  $por = primeiroNome($a['por']); $dec = primeiroNome($a['dec']);
+  return registrar('alt', (int)$c['id'], $c['nome'], 'Valor alterado · ' . $a['n'] . ': ' . dinheiro($a['de']) . ' → ' . dinheiro($a['para']) . ' · Motivo: ' . $a['motivo'] . ' · por ' . $por . ($dec !== '' && mb_strtoupper($dec) !== mb_strtoupper($por) ? ' · aprovado por ' . $dec : ''));
+}
 // o desconto de quem não é gestor: o pedido tem de ser dele, estar liberado, dentro do prazo, ser do mesmo cliente e caber no valor liberado
 function autorizacaoDeDesconto(int $id, array $u, ?array $c, float $v): array {
   if ($id <= 0) falha('Só o gestor dá desconto.', 403);
@@ -665,6 +714,7 @@ function usarAutorizacao(?array $desc, float $valor): void { // o desconto autor
 function fecharPedidosDeDesconto(?array $u, array $c, string $onde): void { // $onde: 'venda' (o atendimento) ou 'saida'
   if (!$u) return;
   db()->prepare("UPDATE pedidos SET status = 'cancelado', resultado = 'A CONTA FOI FECHADA SEM ESPERAR A RESPOSTA' WHERE tipo = 'desconto' AND status = 'pendente' AND pedido_por = ? AND crianca_id = ? AND dados LIKE ?")->execute([(int)$u['id'], (int)$c['id'], '%"onde":"' . ($onde === 'saida' ? 'saida' : 'venda') . '"%']);
+  if ($onde !== 'saida') db()->prepare("UPDATE pedidos SET status = 'cancelado', resultado = 'A CONTA FOI FECHADA SEM ESPERAR A RESPOSTA' WHERE tipo = 'valor' AND status = 'pendente' AND pedido_por = ? AND crianca_id = ?")->execute([(int)$u['id'], (int)$c['id']]);   // 1.33
 }
 
 /* ---------- registros (o painel "Hoje na recepção") e as mensagens ---------- */

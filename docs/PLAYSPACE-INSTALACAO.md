@@ -1067,6 +1067,23 @@ Pedido da dona: os pedidos que esperam a aprovação do gestor subirem como noti
 
 **Por dentro.** É o aviso padrão dos navegadores (Web Push): a chave da loja é criada sozinha no servidor na primeira vez e fica guardada nele; cada aviso vai cifrado só para aquele aparelho. O servidor só manda avisos para os serviços dos navegadores (Google, Apple, Mozilla, Microsoft). O aparelho que o serviço diz que não existe mais sai da lista sozinho. O arquivo `sw.js` (na pasta do Play Space) é o que recebe o aviso no aparelho; ele não guarda nada e não mexe no carregamento da tela.
 
+## 6zm. Alterar valor, com a aprovação da supervisora (1.33)
+
+Pedido da dona: além do desconto, um campo para **alterar o valor** de um pacote ou de um produto (por exemplo, vender um brinquedo junto com o pacote, sem o brinquedo estar cadastrado), que a supervisora aprova.
+
+**Na tela de pagamento do atendimento**, embaixo do Desconto, o bloco **Alterar valor** (toca e abre):
+1. escolha o pacote ou o produto (com um item só, ele já vem escolhido);
+2. o campo do valor já vem com o valor de agora: escreva o valor novo, e o motivo (o que muda: "COM O BRINQUEDO …");
+3. toque em **Pedir aprovação**. O pedido aparece para a supervisora e para o gestor (nas Aprovações, no cartão por cima da tela e como notificação no celular de quem ligou os avisos). A supervisora também pode digitar a senha ali mesmo (**Aprovar com a senha**).
+
+Enquanto espera, a conta continua com o valor da tabela. Aprovado, o item passa a valer o valor novo na tabela do pagamento, no total, nas formas de pagamento e no cupom; a linha do item diz "Valor alterado · na tabela, R$ …". A aprovação vale por 30 minutos. **Tirar** volta ao valor da tabela; **Cancelar o pedido** desiste. A supervisora e o gestor alteram direto (o botão é **Alterar o valor**).
+
+Fica registrado: a linha do dia "Valor alterado · PACOTE …: R$ 225 → R$ 260 · Motivo: … · por … · aprovado por …", o pedido nas Autorizações (quem pediu, quem aprovou e como) e a venda com o valor novo (o caixa do dia soma o valor novo). O servidor confere de novo: o pedido aprovado é de quem está vendendo, do mesmo cliente, do mesmo item e do mesmo valor de tabela.
+
+**A supervisora tem a aba Aprovações** (com o aviso no celular, seção 6zl) para responder aos pedidos de alterar valor. O desconto continua sendo só do gestor.
+
+**No cupom**, discreta, embaixo do total, a resposta do que foi pedido naquela conta (só quando alguém pediu): "Desconto: aprovado por …", "Desconto: não aprovado" ou "Desconto: pendente de aprovação" (a conta foi fechada antes da resposta, com o valor sem desconto). O mesmo para a alteração de valor.
+
 ## 7. Atualizar
 
 Botão **Atualizar** ao lado da versão. Ele baixa a versão nova do GitHub (ramo principal ou de trabalho, a mais nova), confere a versão dentro do arquivo e troca os arquivos de forma atômica. Não mexe em `~/playspace-dados/`. Se o GitHub demorar a refletir (cache de ~5 min), espere e toque de novo.

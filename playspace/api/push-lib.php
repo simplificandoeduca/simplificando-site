@@ -90,10 +90,10 @@ function pushPedido(array $p): array {
   $L = array_values(array_filter(db()->query('SELECT i.*, u.papel FROM push_inscricoes i JOIN usuarios u ON u.id = i.usuario_id AND u.ativo = 1 ORDER BY i.id')->fetchAll(),
     fn($i) => (int)$i['usuario_id'] !== (int)$p['pedido_por'] && podeDecidir(['id' => (int)$i['usuario_id'], 'papel' => (string)$i['papel']], (string)$p['tipo'])));
   if (!$L) return ['ok' => 0, 'erro' => 0, 'saiu' => 0];
-  $titulo = ['desconto' => 'Pedido de desconto', 'cancelar_venda' => 'Pedido para cancelar uma venda', 'nf' => 'Pedido de nota fiscal'][(string)$p['tipo']] ?? 'Pedido de autorização';
+  $titulo = ['desconto' => 'Pedido de desconto', 'cancelar_venda' => 'Pedido para cancelar uma venda', 'nf' => 'Pedido de nota fiscal', 'valor' => 'Pedido para alterar um valor'][(string)$p['tipo']] ?? 'Pedido de autorização';
   $uni = ''; if (($p['unidade_id'] ?? null) !== null) foreach (unidades() as $x) if ((int)$x['id'] === (int)$p['unidade_id']) $uni = (string)$x['nome'];
   $quem = trim((string)$p['pedido_nome']); $corpo = mb_substr(($quem !== '' ? $quem . ($uni !== '' ? ' · ' . $uni : '') . ': ' : ($uni !== '' ? $uni . ': ' : '')) . trim((string)$p['texto']), 0, 180);
-  return pushMandar($L, fn($i) => ['t' => $titulo, 'b' => $corpo, 'tag' => 'pedido-' . (int)$p['id'], 'url' => (string)$i['papel'] === 'gestor' ? './#aprovar' : './']);
+  return pushMandar($L, fn($i) => ['t' => $titulo, 'b' => $corpo, 'tag' => 'pedido-' . (int)$p['id'], 'url' => in_array((string)$i['papel'], ['gestor', 'supervisor'], true) ? './#aprovar' : './']);   // 1.33: a supervisora também tem as Aprovações
 }
 // depois de responder à tela: quem pediu não espera os avisos saírem (o PHP fecha a conexão e continua). A sessão é solta antes
 function pushDepois(callable $f): void {

@@ -517,6 +517,7 @@ switch ($acao) {
       else { $obs = trim((string)($s['obs'] ?? '')); $linhas[] = ['servico' => (string)$s['n'], 'min' => 0, 'valor' => $q * (float)$s['v'], 'itens' => ($q > 1 ? $q . ' unidades' . ($obs !== '' ? ' · ' : '') : '') . $obs, 'mais' => !empty($s['volta']) ? ['alug' => (string)$s['id'], 'alug_min' => 0, 'qtd' => $q] : []]; }
     }
     // pacote de horas não tem o desconto PCD: ele vale só na recreação avulsa
+    $altUsadas = [];   // 1.33: as alterações de valor desta venda
     // a tela manda as horas, o tipo (com produto ou seco) e o valor que mostrou: se a tabela mudou no meio do atendimento, avisa em vez de vender outro pacote
     foreach ((array)($in['pacotes'] ?? []) as $i) {
       if (is_array($i)) { $p = null; $outro = null; $h = (int)($i['h'] ?? 0); $tp = ($i['tipo'] ?? '') === 'produto' ? 'produto' : 'seco';
@@ -526,14 +527,20 @@ switch ($acao) {
         if (!$p && $outro) falha('O valor do pacote de ' . $h . ' h mudou para ' . dinheiro((float)$outro['v']) . '. Feche e abra o atendimento de novo.');
         if (!$p) falha('O pacote de ' . $h . ' h não está mais na tabela. Feche e abra o atendimento de novo.');
       } else $p = $r['pacotes'][(int)$i] ?? null;   // a tela antiga mandava a posição na lista
-      if ($p) $linhas[] = ['servico' => servicoDoPacote($p), 'min' => (int)$p['h'] * 60, 'valor' => (float)$p['v'], 'itens' => itensDoPacote($p)];
+      if ($p) { $lv = ['servico' => servicoDoPacote($p), 'min' => (int)$p['h'] * 60, 'valor' => (float)$p['v'], 'itens' => itensDoPacote($p)];
+        if (is_array($i) && !empty($i['alt'])) { $aid = (int)$i['alt']; if (isset($altUsadas[$aid])) falha('A mesma alteração de valor só vale para um item.'); $altUsadas[$aid] = 1;   // 1.33: o valor alterado (aprovado)
+          $a = autorizacaoDeValor($aid, $u, $c, itemDoPacote($p)); $lv['valor'] = $a['para']; $lv['alt'] = $a; }
+        $linhas[] = $lv; }
     }
     // produtos: a tela manda o produto, a quantidade e o valor que mostrou. Se o valor mudou no meio do atendimento, avisa em vez de cobrar outro
     foreach ((array)($in['produtos'] ?? []) as $l) {
       if (!is_array($l)) continue; $q = min(99, (int)($l['q'] ?? 0)); if ($q < 1) continue;
       $p = produto((int)($l['p'] ?? 0)); if (!$p || !$p['ativo']) falha('Um dos produtos saiu da lista. Feche e abra o atendimento de novo.');
       if (isset($l['v']) && abs((float)$l['v'] - (float)$p['valor']) >= 0.005) falha('O valor de ' . $p['nome'] . ' mudou para ' . dinheiro((float)$p['valor']) . '. Feche e abra o atendimento de novo.');
-      $linhas[] = ['servico' => (string)$p['nome'], 'min' => 0, 'valor' => round($q * (float)$p['valor'], 2), 'itens' => $q > 1 ? $q . ' unidades' : '', 'mais' => ['produto' => (int)$p['id'], 'qtd' => $q]];
+      $lv = ['servico' => (string)$p['nome'], 'min' => 0, 'valor' => round($q * (float)$p['valor'], 2), 'itens' => $q > 1 ? $q . ' unidades' : '', 'mais' => ['produto' => (int)$p['id'], 'qtd' => $q]];
+      if (!empty($l['alt'])) { $aid = (int)$l['alt']; if (isset($altUsadas[$aid])) falha('A mesma alteração de valor só vale para um item.'); $altUsadas[$aid] = 1;   // 1.33
+        $a = autorizacaoDeValor($aid, $u, $c, itemDoProduto($p, $q)); $lv['valor'] = $a['para']; $lv['alt'] = $a; }
+      $linhas[] = $lv;
     }
     // 1.12: a festa (só pelo botão Festa): as linhas saem da tabela da loja, e a festa é paga na hora da venda
     $festa = linhasDaFesta($in['festa'] ?? null, $c); foreach ($festa as $l) $linhas[] = $l;
@@ -564,6 +571,7 @@ switch ($acao) {
     $vendas = []; $regs = []; $total = 0; $min = 0;
     foreach ($linhas as $l) { $mais = $l['mais'] ?? []; if (!empty($mais['mesmaLinha']) && $regs) $mais['registro'] = (int)end($regs);   // 1.22: o 2º fusquinha da mesma saída fica na linha do dia do primeiro
       $x = fazerVenda($c, $l['min'], $l['valor'], (int)$u['id'], $l['itens'], $l['servico'], false, '', $mais); $vendas[] = $x['venda']; $regs[] = $x['registro']; $total += $l['valor']; $min += $l['min']; $c = crianca((int)$c['id']); }
+    foreach ($linhas as $i => $l) if (!empty($l['alt'])) $regs[] = usarAlteracao($l['alt'], (int)$vendas[$i], $c, $u);   // 1.33: o valor alterado fica registrado (o pedido, usado, com a venda)
     $festaId = $festa ? gravarFesta($linhas, $vendas, $u) : 0;   // 1.29: a festa nova nasce; o upgrade e o adicional ficam com a festa deles
     $ad = [];   // 1.04: o desconto sai das vendas desta venda, em proporção ao valor de cada uma
     if ($desc && $cheio > 0) { $faltas = []; foreach ($linhas as $i => $l) $faltas[$vendas[$i]] = (float)$l['valor']; $ad = aplicarDesconto($desc, $faltas, $c, $u); if ($ad) { $regs[] = $ad['registro']; $total = round($total - $ad['valor'], 2); usarAutorizacao($desc, (float)$ad['valor']); } }
@@ -699,7 +707,7 @@ switch ($acao) {
     $q = $db->prepare("SELECT * FROM visitas WHERE crianca_id IN ($marcas) ORDER BY saiu DESC, id DESC LIMIT $limS"); $q->execute($ids);
     $visitas = array_map(fn($v) => ['id' => (int)$v['id'], 'crianca' => (int)$v['crianca_id'], 'dia' => $v['saiu'], 'entrou' => substr($v['entrou'], 11, 5), 'saiu' => substr($v['saiu'], 11, 5), 'deb' => (int)$v['debitado_min'], 'e' => $v['entrou'], 'un' => $uni($v)], $q->fetchAll());
     // as ocorrências que explicam um acerto: saída corrigida, visita reaberta, entrada cancelada, desconto e cadastro corrigido (só quando a tela pede tudo)
-    $ocorr = []; if ($tudo) { $qo = $db->prepare("SELECT quando, tipo, crianca_id, texto FROM registros WHERE crianca_id IN ($marcas) AND tipo IN ('corr', 'reab', 'canc', 'desc', 'cad') ORDER BY quando DESC, id DESC LIMIT 1000"); $qo->execute($ids);
+    $ocorr = []; if ($tudo) { $qo = $db->prepare("SELECT quando, tipo, crianca_id, texto FROM registros WHERE crianca_id IN ($marcas) AND tipo IN ('corr', 'reab', 'canc', 'desc', 'alt', 'cad') ORDER BY quando DESC, id DESC LIMIT 1000"); $qo->execute($ids);
       $ocorr = array_map(fn($g) => ['q' => $g['quando'], 'tipo' => (string)$g['tipo'], 'crianca' => (int)$g['crianca_id'], 'texto' => (string)$g['texto']], $qo->fetchAll()); }
     $q = $db->prepare("SELECT * FROM cancelamentos WHERE crianca_id IN ($marcas) ORDER BY id DESC LIMIT 200"); $q->execute($ids);
     responder(['vendas' => $vendas, 'visitas' => $visitas, 'cancelados' => array_map('cancelamentoPublico', $q->fetchAll()), 'ocorr' => $ocorr]);
@@ -747,7 +755,7 @@ switch ($acao) {
   case 'pedido_cancelar': { // quem pediu desiste (ou tira o desconto liberado que não vai usar); o gestor também tira a nota autorizada que não vai sair
     $u = exigir(); $p = pedido((int)($in['id'] ?? 0)); if (!$p) falha('Pedido não encontrado.', 404);
     $meu = (int)$p['pedido_por'] === (int)$u['id']; if (!$meu && !podeDecidir($u, (string)$p['tipo'])) falha('Este pedido é de outra pessoa.', 403);
-    $pode = $p['status'] === 'pendente' || ($p['status'] === 'liberado' && ($p['tipo'] === 'desconto' || ($p['tipo'] === 'nf' && $u['papel'] === 'gestor')));
+    $pode = $p['status'] === 'pendente' || ($p['status'] === 'liberado' && (in_array($p['tipo'], PEDIDO_SEM_VENDA, true) || ($p['tipo'] === 'nf' && $u['papel'] === 'gestor')));
     if ($pode) $db->prepare("UPDATE pedidos SET status = 'cancelado', resultado = ? WHERE id = ? AND status = ?")->execute([$meu ? 'CANCELADO POR QUEM PEDIU' : 'CANCELADO POR ' . maiusculo(primeiroNome((string)$u['nome'])), (int)$p['id'], (string)$p['status']]);
     responder(['pedido' => pedidoPublico(pedido((int)$p['id'])), 'pedidos' => pedidosDaTela($u)]);
   }
@@ -1060,7 +1068,7 @@ switch ($acao) {
     $u = exigir(); require_once __DIR__ . '/push-lib.php'; $ep = (string)($in['endpoint'] ?? '');
     $q = $db->prepare('SELECT * FROM push_inscricoes WHERE usuario_id = ?' . ($ep !== '' ? ' AND endpoint = ?' : '') . ' ORDER BY id'); $q->execute($ep !== '' ? [(int)$u['id'], $ep] : [(int)$u['id']]); $L = $q->fetchAll();
     if (!$L) falha('Os avisos ainda não estão ligados neste aparelho.', 409);
-    $r = pushMandar($L, fn($i) => ['t' => 'Play Space', 'b' => 'Aviso de teste: os pedidos de autorização vão chegar assim, mesmo com o Play Space fechado.', 'tag' => 'ps-teste', 'url' => $u['papel'] === 'gestor' ? './#aprovar' : './']);
+    $r = pushMandar($L, fn($i) => ['t' => 'Play Space', 'b' => 'Aviso de teste: os pedidos de autorização vão chegar assim, mesmo com o Play Space fechado.', 'tag' => 'ps-teste', 'url' => in_array($u['papel'], ['gestor', 'supervisor'], true) ? './#aprovar' : './']);
     if (!$r['ok']) falha($r['saiu'] ? 'O serviço de avisos do navegador desligou este aparelho. Toque em "Ativar avisos" de novo.' : 'O aviso não saiu agora (o serviço de avisos do navegador não respondeu). Tente de novo em instantes.', 502);
     responder(['enviados' => $r['ok'], 'falhas' => $r['erro']]);
   }
