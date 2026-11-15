@@ -137,6 +137,12 @@ body.mn .trilho .fab > svg { width: 15px; height: 15px; flex: none; stroke-width
   body.mn .esp-lst.so-minha .esp-cabec, body.mn .esp-lst.so-minha .esp-it { grid-template-columns: 16px minmax(0, 1.6fr) minmax(0, 1fr) minmax(152px, 1.05fr) 52px 96px 100px; }
   body.mn .esp-lst.so-minha .esp-cabec > span:nth-child(5), body.mn .esp-lst.so-minha .esp-it > .un { display: none; }
   body.mn .esp-lst.so-minha .esp-it > .en { grid-column: 5; } body.mn .esp-lst.so-minha .esp-it .tmp, body.mn .esp-lst.so-minha .esp-it .at { grid-column: 6; } body.mn .esp-lst.so-minha .esp-it .acoes-e { grid-column: 7; } }
+/* 1.40: a faixa de quando a internet cai (e de quando ela volta e o que ficou guardado vai para o servidor) */
+#off { position: fixed; z-index: 58; top: max(8px, env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; width: max-content; max-width: calc(100vw - 24px); padding: 8px 16px; border-radius: 999px; background: var(--tinta); color: var(--creme); font-size: 13px; line-height: 1.3; box-shadow: 0 8px 22px rgba(59, 50, 40, .25); }
+#off i { flex: none; width: 9px; height: 9px; border-radius: 50%; background: #f2b33d; } #off.env i { background: #6fcf8a; } #off.prob { background: var(--coral); } #off.prob i { background: var(--creme); }
+#off .link { color: inherit; font-weight: 800; text-decoration: underline; white-space: nowrap; }
+.off-lst { display: flex; flex-direction: column; gap: 8px; } .off-it { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--borda); border-radius: 14px; background: var(--card); }
+.off-it > span { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; } .off-it small { color: var(--tinta-2); font-size: 12.5px; } .off-it .off-err { color: var(--erro); }
 .toast { position: fixed; z-index: 60; left: 50%; bottom: calc(100px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 20px); background: var(--tinta); color: var(--creme); padding: 11px 18px; border-radius: 999px; font-weight: 700; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .3s, transform .45s var(--spring); max-width: calc(100% - 32px); text-align: center; display: flex; align-items: center; gap: 14px; }
 .toast.ve { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
 .toast button { color: var(--mostarda); font-weight: 800; white-space: nowrap; padding: 4px 2px; }
@@ -1640,7 +1646,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.39';
+const VERSAO = '1.40';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -1862,19 +1868,114 @@ let GZ = false;   // 1.01: o servidor manda a lista de cadastros comprimida e es
 async function conferirGz() { try { const r = await api('gz_teste', { gz: 1 }); GZ = !!r && typeof r.eco === 'string' && r.eco.length > 8000; } catch (e) { GZ = false; } }
 async function api(acao, dados = {}) {
   let r;
-  try { r = await fetch(API, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-Play': '1', ...(minhaUni() ? { 'X-Play-Unidade': String(minhaUni()) } : {}) }, body: JSON.stringify(GZ && acao === 'dados' ? { acao, ...dados, gz: 1 } : { acao, ...dados }) }); }
-  catch (e) { const err = new Error('Sem ligação com o servidor'); err.rede = true; throw err; }
+  const ab = typeof AbortController === 'function' ? new AbortController() : null, prazo = setTimeout(() => { if (ab) ab.abort(); }, acao === 'pulso' ? 9000 : 120000);   // 1.40: a internet que não responde também conta como sem internet
+  try { r = await fetch(API, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-Play': '1', ...(minhaUni() ? { 'X-Play-Unidade': String(minhaUni()) } : {}) }, body: JSON.stringify(GZ && acao === 'dados' ? { acao, ...dados, gz: 1 } : { acao, ...dados }), ...(ab ? { signal: ab.signal } : {}) }); }
+  catch (e) { const err = new Error(MODO === 'servidor' && EU && EU.id ? 'Sem internet: isto precisa da internet. O resto do Play Space continua funcionando.' : 'Sem ligação com o servidor'); err.rede = true; if (MODO === 'servidor' && EU && EU.id) offLigar(); throw err; }
+  finally { clearTimeout(prazo); }
   let j = null; try { j = await r.json(); } catch (e) { const err = new Error('O servidor não respondeu em JSON'); err.rede = true; throw err; }
   if (!j.ok) { const err = new Error(j.erro || 'Erro no servidor'); err.status = r.status; if (r.status === 401 && acao !== 'entrar' && !document.body.classList.contains('so')) { clearInterval(SYNC_T); telaEntrar(); } throw err; }
   return j;
 }
 const dataDe = t => t instanceof Date ? t : new Date(String(t).replace(' ', 'T'));
 let CARREGANDO = false, ULTIMA_CARGA = '';
+/* ---------- 1.40: sem internet, o Play Space continua ---------- */
+// A recepção não para quando a internet cai. O app fica guardado no aparelho (abre mesmo sem internet) e os dados da última vez também.
+// Sem internet, o cadastro, a entrada, a sapateira e a saída (com o pagamento) continuam: cada um fica na fila deste computador, com a hora
+// em que foi feito e uma marca única, e a tela segue com o que foi feito. Quando a internet volta, a fila vai sozinha, na ordem; o servidor
+// usa a hora de cada um e não repete o que já tinha chegado. O que o servidor não aceitar fica em "Envios para conferir". O que precisa do
+// servidor na hora (o carrinho, o voucher, a festa, os pedidos de aprovação, cancelar e desfazer) espera a internet.
+const OFF_ACOES = ['crianca_salvar', 'atender', 'entrada', 'sapateira', 'saida', 'papel_guardar'];
+const OFF = { on: false, desde: null, fila: [], prob: [], enviando: false, tentando: false };
+const IDB = (() => { let p = null;
+  const abrir = () => p || (p = new Promise((ok, nao) => { try { const r = indexedDB.open('playspace', 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => ok(r.result); r.onerror = () => nao(r.error); } catch (e) { nao(e); } }));
+  const tx = (modo, f) => abrir().then(db => new Promise((ok, nao) => { const t = db.transaction('kv', modo), q = f(t.objectStore('kv')); t.oncomplete = () => ok(q && q.result); t.onerror = () => nao(t.error); }));
+  return { ler: k => tx('readonly', s => s.get(k)).catch(() => null), por: (k, v) => tx('readwrite', s => s.put(v, k)).catch(() => null), tirar: k => tx('readwrite', s => s.delete(k)).catch(() => null) }; })();
+const uidNovo = () => Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 8);
+let OFF_GUARDA_T = 0;
+function offGuardarDados(d) { if (MODO !== 'servidor') return; clearTimeout(OFF_GUARDA_T); OFF_GUARDA_T = setTimeout(() => { IDB.por('dados', { d, em: Date.now(), versao: VERSAO }); }, 1200); }   // a lista da última vez, para abrir sem internet
+const filaGuardar = () => IDB.por('fila', { fila: OFF.fila, prob: OFF.prob });
+async function offLerFila() { const f = await IDB.ler('fila'); if (f) { OFF.fila = Array.isArray(f.fila) ? f.fila : []; OFF.prob = Array.isArray(f.prob) ? f.prob : []; } }
+function offRegistrarSW() { try { if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => { }); } catch (e) { } }
+function offLigar() { if (OFF.on || MODO !== 'servidor') return; OFF.on = true; OFF.desde = new Date(); offFaixa(); }
+// a faixa de cima: sem internet (com o que está guardado para enviar), enviando, ou o que o servidor não aceitou
+function offFaixa() {
+  let f = $('#off'); const n = OFF.fila.length, p = OFF.prob.length;
+  if (!OFF.on && !n && !p) { if (f) f.remove(); return; }
+  if (!f) { f = document.createElement('div'); f.id = 'off'; f.setAttribute('role', 'status'); f.setAttribute('aria-live', 'polite'); document.body.appendChild(f); }
+  f.className = OFF.on ? 'sem' : n ? 'env' : 'prob';
+  f.innerHTML = OFF.on ? `<i aria-hidden="true"></i><span><b>Sem internet</b> desde ${hora(OFF.desde || new Date())} · o Play Space continua funcionando${n ? ` · <b>${n}</b> ${n === 1 ? 'guardado' : 'guardados'} para enviar` : ''}</span>`
+    : n ? `<i aria-hidden="true"></i><span><b>Internet de volta</b> · enviando ${n === 1 ? 'o que ficou guardado' : n + ' guardados'}…</span>`
+    : `<i aria-hidden="true"></i><span><b>${p === 1 ? '1 envio' : p + ' envios'} para conferir</b> (o servidor não aceitou)</span><button type="button" class="link tap" data-act="off-ver">Ver</button>`;
+}
+// com internet, vai na hora (como sempre, já com a marca); sem internet, ou com a fila esperando (para não passar na frente), fica na fila
+async function apiOff(acao, dados, loc) {
+  const uid = uidNovo();
+  if (!OFF.on && !OFF.fila.length) { try { return await api(acao, { ...dados, offline: { uid } }); } catch (e) { if (!e.rede) throw e; offLigar(); } }
+  const it = { uid, acao, dados: JSON.parse(JSON.stringify(dados)), loc: loc || {}, em: Math.floor((Date.now() + DESVIO) / 1000), por: EU && EU.id || 0 };
+  if (acao === 'crianca_salvar' && !dados.id) it.tmp = -(Date.now() % 1000000000);   // o cadastro novo tem um número provisório até chegar ao servidor
+  const r = offEfeito(it); OFF.fila.push(it); filaGuardar(); offFaixa(); if (!OFF.on) offEnviar();
+  return { ok: true, offline: true, ...r };
+}
+// o que a tela mostra do que está na fila (na hora, e de novo se o app for aberto sem internet)
+function offEfeito(it) {
+  const d = it.dados || {}, L = it.loc || {}, em = new Date(it.em * 1000);
+  if (it.acao === 'crianca_salvar') {
+    if (d.id) { const c = crianca(d.id); if (c) Object.assign(c, { nome: d.nome, nasc: d.nasc || '', resp: d.resp, tel: d.tel, tel2: d.tel2 || '', doc: d.doc, cpf: d.cpf, obs: d.obs || '', pcd: !!d.pcd }); return {}; }
+    if (!crianca(it.tmp)) S.criancas.push({ id: it.tmp, nome: d.nome, idade: 0, resp: d.resp, rel: '', tel: d.tel, cpf: d.cpf, obs: d.obs || '', pacote: 0, usado: 0, entrou: null, idface_id: null, rosto: false, foto: '', ativo: true, liberado: true, sapateira: null, doc: d.doc, tel2: d.tel2 || '', pmin: 0, pcd: !!d.pcd, imp: false, uni: minhaUni() || null, obs_antes: '', obs_em: null, obs_por: '', nasc: d.nasc || '', festa: null, visitas: [], venda: null, atraso: null, pend: 0, pendi: [], tvis: 0, semNet: true });
+    return { id: it.tmp }; }
+  const c = crianca(d.id); if (!c) return {};
+  if (it.acao === 'entrada' || (it.acao === 'atender' && d.entrar && !c.entrou)) Object.assign(c, { entrou: em, uni: minhaUni() || null, atraso: null, tvis: 0, sapateira: null });
+  if (it.acao === 'atender') {
+    for (const l of L.L || []) { if (l.tempo) continue; if (l.min > 0) { c.pmin = pacMin(c) + l.min; c.pacote = c.pmin / 60; } if (l.v > 0 && !(d.pagamento && d.pagamento.length)) { c.pend = centavos((+c.pend || 0) + l.v); c.pendi = [...(c.pendi || []), { n: l.n, v: l.v, id: 0, alt: '' }]; } }
+    if (c.entrou) c.plano = (L.L || []).some(l => l.min > 0) || saldoMin(c) > 0 ? 'pacote' : c.plano || 'avulso';
+    return { entrada: d.entrar ? { registro: 0, mensagem: 0 } : null, vendas: [], registros: [] }; }
+  if (it.acao === 'entrada') { c.plano = saldoMin(c) > 0 ? 'pacote' : 'avulso'; return { registro: 0 }; }
+  if (it.acao === 'sapateira') { c.sapateira = d.n || null; return {}; }
+  if (it.acao === 'saida') { const sap = c.sapateira; Object.assign(c, { usado: Math.max(0, pacMin(c) - (+L.saldo || 0)), entrou: null, atraso: null, pend: 0, pendi: [], sapateira: null, tvis: 0, plano: null });
+    return { debitado: L.deb || 0, atraso: L.atraso || null, plano: L.plano || '', pend: L.pend || 0, pago: (d.pagamento || []).length ? textoPag(d.pagamento) : '', desc: d.desconto ? { valor: +d.desconto.valor || 0 } : null, sapateira: sap || 0 }; }
+  return {};
+}
+const offTrocarId = (de, para) => { for (const it of OFF.fila) for (const k of ['id', 'crianca']) if (it.dados && it.dados[k] === de) it.dados[k] = para; const c = crianca(de); if (c) c.id = para; };
+// a internet voltou: a fila vai, na ordem. O que o servidor recusar vai para "Envios para conferir"; se a internet cair de novo, para e espera
+async function offEnviar() {
+  if (OFF.enviando || OFF.on || MODO !== 'servidor' || !OFF.fila.length) { offFaixa(); return; }
+  OFF.enviando = true; offFaixa(); let n = 0;
+  try {
+    while (OFF.fila.length && !OFF.on) { const it = OFF.fila[0];
+      try { const r = await api(it.acao, { ...it.dados, offline: { uid: it.uid, em: it.em } }); n++; OFF.fila.shift(); if (it.tmp && r && r.id) offTrocarId(it.tmp, +r.id); }
+      catch (e) { if (e.rede || e.status === 401) break; OFF.fila.shift(); OFF.prob.push({ ...it, erro: e.message, quando: Date.now() }); if (it.tmp) for (const x of OFF.fila) if (x.dados && (x.dados.id === it.tmp || x.dados.crianca === it.tmp)) x.dep = it.uid; }
+      await filaGuardar(); offFaixa(); }
+  } finally { OFF.enviando = false; }
+  if (!OFF.fila.length && !OFF.on) { try { await carregar(); } catch (e) { } desenhar(true); if (n) toast(`Internet de volta: ${n === 1 ? 'o que ficou guardado foi enviado' : n + ' registros guardados foram enviados'} ao servidor${OFF.prob.length ? ' · ' + OFF.prob.length + ' para conferir' : ''}`); }
+  offFaixa();
+}
+async function offTentar() { // sem internet: de tempos em tempos (e quando o aparelho avisa que voltou) pergunta ao servidor
+  if (OFF.tentando || MODO !== 'servidor') return; OFF.tentando = true;
+  try { await api('pulso'); OFF.on = false; } catch (e) { if (!e.rede) OFF.on = false; } finally { OFF.tentando = false; }
+  if (!OFF.on) { offFaixa(); if (OFF.fila.length) await offEnviar(); else { try { await carregar(); } catch (e) { } desenhar(true); } }
+}
+async function offAbrirGuardado() { // abriu sem internet: a lista da última vez, guardada neste aparelho, e o que ficou na fila
+  const g = await IDB.ler('dados'); if (!g || !g.d || !g.d.eu) return false;
+  MODO = 'servidor'; OFF.on = true; OFF.desde = new Date(); lerEtapas(); aplicarDados(g.d); for (const it of OFF.fila) offEfeito(it);
+  ABAS = abasDoPapel(); desenhar(); offFaixa(); ligarSincronia(); return true;
+}
+function folhaOffProb() { // o que o servidor não aceitou: quem fez, quando, o que era e por quê. Conferido, sai da lista
+  const nome = it => { const c = crianca((it.dados || {}).id || (it.dados || {}).crianca); return (c && c.nome) || (it.dados || {}).nome || ''; };
+  const rot = { crianca_salvar: 'Cadastro', atender: 'Atendimento', entrada: 'Entrada', sapateira: 'Sapateira', saida: 'Saída', papel_guardar: 'Cupom guardado' };
+  abrirFolha('Envios para conferir', `<p class="explica">Isto foi feito sem internet e o servidor não aceitou quando a internet voltou (outro aparelho já tinha feito, ou a conta mudou). Confira com o cliente e faça de novo, se for o caso.</p>
+    <div class="off-lst">${OFF.prob.map((it, i) => `<div class="off-it"><span><b>${esc(rot[it.acao] || it.acao)}${nome(it) ? ' · ' + esc(nome(it)) : ''}</b><small>feito em ${esc(dataCurta(new Date(it.em * 1000)))}${(it.dados || {}).pagamento && it.dados.pagamento.length ? ' · ' + esc(textoPag(it.dados.pagamento)) + ' ' + brl(it.dados.pagamento.reduce((t, p) => t + p.v, 0)) : ''}</small><small class="off-err">${esc(it.erro || '')}</small></span><button type="button" class="bt tap" data-act="off-ok" data-i="${i}">Conferido</button></div>`).join('') || '<p class="explica">Nada para conferir.</p>'}</div>`);
+}
+window.addEventListener('offline', () => offLigar()); window.addEventListener('online', () => { if (OFF.on) offTentar(); });
 async function carregar() { // devolve true quando algo mudou no servidor
-  if (CARREGANDO) return false; CARREGANDO = true;
+  if (CARREGANDO || OFF.on || OFF.fila.length || OFF.enviando) return false;   // 1.40: sem internet, ou com a fila esperando, a tela fica com o que foi feito aqui
+  CARREGANDO = true;
   try {
     const t0 = Date.now(), d = await api('dados'), t1 = Date.now();
     if (d.agora && t1 - t0 < 4000) { const dv = +dataDe(d.agora) + 500 - (t0 + t1) / 2; DESVIO = Math.abs(dv) >= 3000 ? Math.round(dv) : 0; agora.setTime(Date.now() + DESVIO); }   // 1.15: a hora do servidor (ver DESVIO)
+    const mudou = aplicarDados(d); if (mudou) offGuardarDados(d); return mudou;
+  } finally { CARREGANDO = false; }
+}
+function aplicarDados(d) { // 1.40: o que veio do servidor (ou o que ficou guardado no aparelho) vira a tela
     // o que muda sozinho a cada contato do aparelho não conta como novidade (senão a tela redesenhava a cada 6 s e "piscava")
     const assinatura = JSON.stringify({ ...d, agora: 0, idface: { ...d.idface, segundos: 0, ultimo_contato: 0, ultima_batida: 0, periodo: 0, erro: '', fila: 0 } }); const mudou = assinatura !== ULTIMA_CARGA; ULTIMA_CARGA = assinatura;
     S.criancas = d.criancas.map(c => ({ ...c, festaPapel: c.festa_papel || null, entrou: c.entrou ? dataDe(c.entrou) : null, venda: c.venda ? { ...c.venda, quando: dataDe(c.venda.quando) } : null, visitas: (c.visitas || []).map(v => ({ ...v, dia: dataDe(v.dia), ini: v.ini ? dataDe(v.ini) : null })) }));
@@ -1901,7 +2002,6 @@ async function carregar() { // devolve true quando algo mudou no servidor
     S.painel = d.painel || null; S.finalizados = d.finalizados || null; S.caixa = d.caixa || null;   // 1.30: o caixa do dia   // 1.25: o dia de cada unidade (só o gestor recebe) e os finalizados do dia
     ULT_REG = S.registros.reduce((m, r) => Math.max(m, r.id || 0), 0);
     return mudou;
-  } finally { CARREGANDO = false; }
 }
 // a cada poucos segundos, o que mudou no servidor (rosto lido pelo iDFace, mensagem que chegou) aparece sozinho
 let SYNC_T = 0, PULSO = '', PULSO_N = 0, ULT_REG = 0, SINCRONIZANDO = false, BANCO_PEND = false;   // BANCO_PEND: a novidade chegou com o cursor na busca do Banco e só o menu e as linhas foram trocados
@@ -1910,6 +2010,7 @@ function ligarSincronia() { clearInterval(SYNC_T); SYNC_T = setInterval(sincroni
 // De 30 em 30 s recarrega de qualquer jeito, por garantia.
 async function sincronizar() {
   if (MODO !== 'servidor' || SINCRONIZANDO || document.body.classList.contains('so')) return;
+  if (OFF.on) { offTentar(); return; } if (OFF.fila.length) { offEnviar(); return; }   // 1.40
   const t = $('#zap-texto'), ae = document.activeElement;
   const parado = document.hidden || !!$('#folha .folha-fundo') || !!(t && (ae === t || t.value.trim())) || !!(ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && ae.id !== 'esp-busca' && !(ae.id === 'banco-busca' && mnLigado()));   // a busca da lista do espaço não segura a atualização (1.28: com o menu aberto, a do Banco também não)
   if (BANCO_PEND && !parado && !(ae && ae.id === 'banco-busca') && !$(':active')) {   // 1.28: o cursor saiu da busca do Banco: o resto da tela se acerta (os dados já estavam aqui). Com o botão do mouse apertado fica para o ciclo seguinte (o clique se perderia), e o foco do teclado volta para o mesmo botão
@@ -1974,7 +2075,7 @@ function telaCriarGestor() {
     <button class="bt forte largo tap" data-act="criar-gestor">${ic(IC.check)} Criar e entrar</button>`);
 }
 // 1.25: o gestor começa no painel (a não ser que a página tenha sido aberta numa aba, como #horas)
-async function depoisDeEntrar(doLogin = false) { lerEtapas(); await conferirGz(); await carregar(); if (gestor() && (doLogin || !HASH_INICIO)) S.tela = inicioGestor(); desenhar(); conferirAtualizacao(false); oferecerLimpeza(); }
+async function depoisDeEntrar(doLogin = false) { lerEtapas(); await conferirGz(); if (OFF.fila.length) await offEnviar(); await carregar(); if (gestor() && (doLogin || !HASH_INICIO)) S.tela = inicioGestor(); desenhar(); conferirAtualizacao(false); oferecerLimpeza(); }
 /* ---------- 0.98: limpar os cadastros (começar do zero) ---------- */
 // Para quando os testes acabam e a loja vai começar de verdade. Saem todos os cadastros (crianças e responsáveis, com as fotos) e o que
 // nasceu deles: horas, vendas, pagamentos, visitas e o movimento do dia. Ficam a equipe, a regra, os serviços, os pacotes, os produtos
@@ -2384,12 +2485,13 @@ const cartaoImportar = () => { const u = S.importacao;
 let IM_T = 0;   // a espera depois de colar ou escrever no quadro da planilha
 async function iniciar() {
   if (ATU.podeAqui) {
+    offRegistrarSW(); await offLerFila();   // 1.40
     try {
       const e = await api('estado'); MODO = 'servidor';
       if (e.primeiro_acesso) return telaCriarGestor();
       if (!e.usuario) return telaEntrar();
       await depoisDeEntrar(); ligarSincronia(); return;
-    } catch (err) { if (!err.rede) { toast(err.message); return; } }
+    } catch (err) { if (!err.rede) { toast(err.message); return; } if (await offAbrirGuardado()) return; }   // 1.40: sem internet, com o que ficou guardado neste aparelho
   }
   semearCuponsPrevia(); ABAS = abasDoPapel(); if (gestor() && !HASH_INICIO) S.tela = inicioGestor(); desenhar(); conferirAtualizacao(false);
 }
@@ -2607,7 +2709,7 @@ function gradeSap(sel, de = 0, modo = 'crianca') {
 function redesenharSap() { $$('.sapateiras').forEach(g => { const de = +g.dataset.de || 0, c = de ? crianca(de) : null; g.outerHTML = gradeSap(c ? c.sapateira || 0 : 0, de, g.dataset.modo); }); }
 async function escolherSap(id, n) { // n = 0 deixa a criança sem sapateira
   const c = crianca(id); if (!c) return; const antes = c.sapateira || 0, nome = c.nome;
-  const aplicar = async v => { if (MODO === 'servidor') { await api('sapateira', { id, n: v }); await carregar(); } else crianca(id).sapateira = v || null; };
+  const aplicar = async v => { if (MODO === 'servidor') { await apiOff('sapateira', { id, n: v }); await carregar(); } else crianca(id).sapateira = v || null; };
   try { await aplicar(n); } catch (e) { toast(e.message); if (MODO === 'servidor') { try { await carregar(); } catch (x) { } } redesenharSap(); return; }
   fecharFolha(); desenhar();
   deuCerto(n ? `${nome} na sapateira ${n}` : `Sapateira ${antes} livre de novo`, async () => { try { await aplicar(antes); } catch (e) { toast(e.message); } desenhar(); });
@@ -2634,7 +2736,7 @@ function pedirSapateira(id, depois) { // depois(quieto): o que vem em seguida (o
 async function marcarSapEntrada(id, n) { // o número tocado na pergunta da entrada: guarda e segue para o cupom
   const c = crianca(id), g = $('#folha .sapateiras'); if (!c || !c.entrou) { largarSapEntrada(); return; }
   if (g) g.style.pointerEvents = 'none';   // um toque só: enquanto o servidor responde, a grade não aceita outro número
-  try { if (MODO === 'servidor') { await api('sapateira', { id, n }); await carregar(); } else c.sapateira = n; }
+  try { if (MODO === 'servidor') { await apiOff('sapateira', { id, n }); await carregar(); } else c.sapateira = n; }
   catch (e) { toast(e.message); if (MODO === 'servidor') { try { await carregar(); } catch (x) { } } redesenharSap(); return; }
   fecharFolha(); desenhar(true);
 }
@@ -2705,16 +2807,17 @@ function mensagemAuto(c, txt, comFoto) {
   const m = { de: 'nos', txt, h: new Date(), auto: true, por: 'automática', foto: comFoto ? (c.foto || 'idface') : '' }; conv.msgs.push(m); return () => { conv.msgs = conv.msgs.filter(x => x !== m); };
 }
 async function entradaServidor(c) {
-  try { const r = await api('entrada', { id: c.id }); await carregar(); desenhar(); const k = crianca(c.id);
-    deuCerto(`${c.nome} entrou${k && k.entrou ? ' · ' + entrouTxt(k, true) : ''}`, marcaAtd(async () => { largarSapEntrada(c.id); try { await api('desfazer_entrada', { id: c.id, registro: r.registro, mensagem: r.mensagem ? r.mensagem.id : 0, atendente: ATD_NOME }); await carregar(); } catch (e) { DESFAZ_ERRO = e.message; toast(e.message); } desenhar(); }, !podeEstornar(), `Desfazer a entrada de ${c.nome}`));   // 1.25: quem não estorna diz o nome (fica registrado)
+  try { const r = await apiOff('entrada', { id: c.id }); await carregar(); desenhar(); const k = crianca(c.id);   // 1.40: sem internet, fica na fila
+    deuCerto(`${c.nome} entrou${k && k.entrou ? ' · ' + entrouTxt(k, true) : ''}`, r.offline ? null : marcaAtd(async () => { largarSapEntrada(c.id); try { await api('desfazer_entrada', { id: c.id, registro: r.registro, mensagem: r.mensagem ? r.mensagem.id : 0, atendente: ATD_NOME }); await carregar(); } catch (e) { DESFAZ_ERRO = e.message; toast(e.message); } desenhar(); }, !podeEstornar(), `Desfazer a entrada de ${c.nome}`));   // 1.25: quem não estorna diz o nome (fica registrado)
     if (k && k.entrou) setTimeout(() => pedirSapateira(c.id, q => papelDaEntrada(c.id, q)), 420); } catch (e) { toast(e.message); }   // 0.94: entrou, o cupom de entrada sai (depois de a folha que estava aberta fechar)
 }
 // corr: { quando: 'HH:MM', motivo } quando a supervisão diz a hora em que a criança saiu de verdade
 async function saidaServidor(c, corr, pag, papel, dsc, av) {
-  try { const r = await api('saida', { id: c.id, ...(corr ? { quando: corr.quando, motivo: corr.motivo } : { total: centavos((pag || []).reduce((t, x) => t + x.v, 0)) }), ...(pag && pag.length ? { pagamento: pag } : {}), ...(dsc ? { desconto: dsc } : {}), ...(av && !corr ? { avulso: true } : {}) }); await carregar(); fecharFolha(); desenhar();   // 1.15: total = o que a tela mostrou para receber (o servidor confere antes de dar a saída)
+  const k0 = corr ? contaSaida(c, corr.em) : contaSaida(c), loc = { saldo: saldoDepois(c, k0), deb: k0.deb, atraso: k0.n ? { n: k0.n, valor: k0.valor } : null, plano: planoDe(c), pend: k0.pend || 0 };   // 1.40: o que a tela mostra se ficar na fila
+  try { const r = await apiOff('saida', { id: c.id, ...(corr ? { quando: corr.quando, motivo: corr.motivo } : { total: centavos((pag || []).reduce((t, x) => t + x.v, 0)) }), ...(pag && pag.length ? { pagamento: pag } : {}), ...(dsc ? { desconto: dsc } : {}), ...(av && !corr ? { avulso: true } : {}) }, loc); await carregar(); fecharFolha(); desenhar();   // 1.15: total = o que a tela mostrou para receber (o servidor confere antes de dar a saída)
     const at = r.atraso && r.atraso.n ? +r.atraso.valor || 0 : 0, pd = +r.pend || 0, dz = r.desc ? +r.desc.valor || 0 : 0;   // 1.04: dz = o desconto que o gestor deu nesta saída
     const txt = `${c.nome} saiu${corr ? ' às ' + corr.quando : ''} · ${tempoSaidaTxt(+r.debitado || 0, r.atraso, r.plano)}${pd > 0 ? ' · ' + (r.pago ? 'recebido ' + brl(centavos(pd + at - dz)) + ' (' + r.pago + ')' : brl(centavos(pd + at - dz)) + ' a receber') : at ? ' · ' + brl(centavos(at - dz)) + (r.pago ? ' recebido (' + r.pago + ')' : ' a receber') : ''}${dz > 0 ? ' · desconto de ' + brl(dz) : ''}${r.sapateira ? ' · sapato na sapateira ' + r.sapateira : ''}`;
-    if (corr || (r.pag_de != null && !podeEstornar())) deuCerto(txt); else deuCerto(txt, async () => { try { await api('desfazer_saida', { id: c.id, visita: r.visita, registro: r.registro, mensagem: r.mensagem ? r.mensagem.id : 0, sapateira: r.sapateira || 0, ...(r.pag_de != null ? { pag_de: r.pag_de, pag_registro: r.pag_registro || 0 } : {}), ...(r.desc ? { desc: r.desc } : {}), ...(r.avulso ? { avulso: r.avulso } : {}) }); await carregar(); } catch (e) { toast(e.message); } desenhar(); });
+    if (corr || r.offline || (r.pag_de != null && !podeEstornar())) deuCerto(txt); else deuCerto(txt, async () => { try { await api('desfazer_saida', { id: c.id, visita: r.visita, registro: r.registro, mensagem: r.mensagem ? r.mensagem.id : 0, sapateira: r.sapateira || 0, ...(r.pag_de != null ? { pag_de: r.pag_de, pag_registro: r.pag_registro || 0 } : {}), ...(r.desc ? { desc: r.desc } : {}), ...(r.avulso ? { avulso: r.avulso } : {}) }); await carregar(); } catch (e) { toast(e.message); } desenhar(); });
     if (r.avulso && r.avulso.venda && papel) papel.venda = r.avulso.venda;
     if (r.cupom) folhaCupom(r.cupom, true); else papelDepois(papel); }   // 1.06: o cupom da saída sai sempre, para o responsável assinar
   catch (e) { toast(e.message); if (e.status === 409) { try { await carregar(); } catch (e2) { } desenhar(true); atualizarSaida(); }   // 1.15: o valor mudou (nasceu mais um período): a folha mostra a conta nova, e é só confirmar de novo
@@ -3617,6 +3720,8 @@ async function registrarAtendimento(id, mesmoAssim, pag, depois) { // mesmoAssim
   const en = $('#v-entrar-campo'), entrar = !!en && !en.hidden && !!($('#v-entrar') || {}).checked;   // sem iDFace: pagou e já entra
   if (vou && voucherNaEntrada() && (c.entrou || (semIdface() && !entrar))) { toast(c.entrou ? `O voucher só vale na entrada: ${c.nome} já está no espaço.` : 'O voucher é dado na entrada: marque "Dar entrada agora".'); return; }   // 1.35
   const festa = !!(CARRINHO && CARRINHO.festa && L.some(l => l.festa));   // 1.12: a venda é a de uma festa
+  if (MODO === 'servidor' && OFF.on) { const sai = l => l.aberto || (!!l.s && (x => !!x && !!x.volta && !ehTempo(x))(servicoDe(l.s))), qual = festa ? 'A festa' : vou ? 'O voucher' : L.some(l => l.alt) ? 'O valor alterado' : L.some(sai) ? 'O carrinho' : '';   // 1.40
+    if (qual) { toast(`Sem internet: ${qual.toLowerCase()} precisa da internet. Tire do atendimento, ou espere a internet voltar.`); return; } }
   const rasc = festa ? null : RASC[id] || null;   // se a venda for desfeita, o que estava escolhido volta (a festa não mexe no atendimento que estava guardado)
   const volta = VOLTA_SAIDA === c.id;   // 1.00: a venda veio da folha da saída
   const cheio = centavos(L.reduce((a, l) => a + l.v, 0)), dsc = PAG && PAG.onde === 'venda' && PAG.id === id ? descEnvio(cheio, 'venda', id) : null, total = centavos(cheio - (dsc ? dsc.valor : 0));   // 1.04: com o desconto do gestor, o total é o valor já descontado
@@ -3625,8 +3730,8 @@ async function registrarAtendimento(id, mesmoAssim, pag, depois) { // mesmoAssim
   const min = L.reduce((a, l) => a + l.min, 0), nome = c.nome, aviso = soAberto ? `${juntar(abertos.map(nomeQ))} de ${nome}: ${qtdAbertos(L) > 1 ? 'saíram' : 'saiu'} da loja · ${ITENS_ABERTO}` : `Venda registrada para ${nome} · ${brl(total)}${dsc ? ' (desconto de ' + brl(dsc.valor) + ')' : ''}${pag && pag.length ? (pag.length === 1 ? ' ' + naForma(pag[0].f) : ' em ' + pag.length + ' formas') : depois && total > 0 ? ' a receber' : ''}${min ? ' · +' + dur(min) + ' de recreação' : ''}${abertos.length ? ' · ' + juntar(abertos.map(nomeQ)) + ': ' + ITENS_ABERTO : ''}`;
   if (MODO === 'servidor') {
     const bt = $('#v-ok'), bp = $('#p-ok'), bd = $('#p-depois'); if (bt) bt.disabled = true; if (bp) bp.disabled = true; if (bd) bd.disabled = true;
-    try { const o = L.find(l => l.outro), r = await api('atender', { id, linhas: L.filter(l => l.s).map(l => ({ s: l.s, q: l.q })), pacotes: L.filter(l => l.pac != null).map(l => ({ h: l.ph, tipo: l.ptipo, v: l.vTab != null ? l.vTab : l.v, nome: l.pnome, ...(l.alt ? { alt: l.alt } : {}) })), produtos: L.filter(l => l.prod).map(l => ({ p: l.prod, q: l.q, v: l.pv, ...(l.alt ? { alt: l.alt } : {}) })), outro: o ? { n: o.servico, v: o.v } : null, voucher: vou ? true : null, entrar, visto: (CARRINHO && CARRINHO.visto) || 0, mesmo_assim: !!mesmoAssim, pagamento: pag && pag.length ? pag : null, depois: !!depois && !(pag && pag.length), ...(dsc ? { desconto: dsc } : {}), ...(festa ? { festa: festaEnvio(CARRINHO.festa) } : {}) });
-      await carregar(); if (festa) ETAPA_FEITA = true; else atendimentoFeito(id); fecharFolha(); desenhar(); const k = crianca(id); deuCertoOu(atencaoVoucher(r.voucher, nome), avisoVoucher(r.voucher, nome) + aviso + (r.entrada ? ' · entrou' + (k && k.entrou ? ', ' + entrouTxt(k) : '') : ''), cheio > 0 && !podeEstornar() ? null : marcaAtd(async () => { voltarRascunho(id, rasc); largarSapEntrada(id); try { if (r.entrada) await api('desfazer_entrada', { id, registro: r.entrada.registro, mensagem: r.entrada.mensagem, atendente: ATD_NOME }); await api('desfazer_venda', { vendas: r.vendas, registros: r.registros, atendente: ATD_NOME }); await carregar(); } catch (e) { DESFAZ_ERRO = e.message; toast(e.message); } desenhar(); }, !podeEstornar() && (!!r.entrada || abertos.length > 0), r.entrada ? `Desfazer a entrada de ${nome}` : `Desfazer a saída de ${juntar(abertos.map(nomeQ))}`)); VOLTA_SAIDA = 0;
+    try { const o = L.find(l => l.outro), r = await apiOff('atender', { id, linhas: L.filter(l => l.s).map(l => ({ s: l.s, q: l.q })), pacotes: L.filter(l => l.pac != null).map(l => ({ h: l.ph, tipo: l.ptipo, v: l.vTab != null ? l.vTab : l.v, nome: l.pnome, ...(l.alt ? { alt: l.alt } : {}) })), produtos: L.filter(l => l.prod).map(l => ({ p: l.prod, q: l.q, v: l.pv, ...(l.alt ? { alt: l.alt } : {}) })), outro: o ? { n: o.servico, v: o.v } : null, voucher: vou ? true : null, entrar, visto: (CARRINHO && CARRINHO.visto) || 0, mesmo_assim: !!mesmoAssim, pagamento: pag && pag.length ? pag : null, depois: !!depois && !(pag && pag.length), ...(dsc ? { desconto: dsc } : {}), ...(festa ? { festa: festaEnvio(CARRINHO.festa) } : {}) }, { L: L.map(l => ({ n: nomeLinha(l), v: l.v || 0, min: l.min || 0, tempo: !!l.s && (x => !!x && ehTempo(x))(servicoDe(l.s)) })) });   // 1.40: sem internet, fica na fila
+      await carregar(); if (festa) ETAPA_FEITA = true; else atendimentoFeito(id); fecharFolha(); desenhar(); const k = crianca(id); deuCertoOu(atencaoVoucher(r.voucher, nome), avisoVoucher(r.voucher, nome) + aviso + (r.entrada ? ' · entrou' + (k && k.entrou ? ', ' + entrouTxt(k) : '') : ''), (cheio > 0 && !podeEstornar()) || r.offline ? null : marcaAtd(async () => { voltarRascunho(id, rasc); largarSapEntrada(id); try { if (r.entrada) await api('desfazer_entrada', { id, registro: r.entrada.registro, mensagem: r.entrada.mensagem, atendente: ATD_NOME }); await api('desfazer_venda', { vendas: r.vendas, registros: r.registros, atendente: ATD_NOME }); await carregar(); } catch (e) { DESFAZ_ERRO = e.message; toast(e.message); } desenhar(); }, !podeEstornar() && (!!r.entrada || abertos.length > 0), r.entrada ? `Desfazer a entrada de ${nome}` : `Desfazer a saída de ${juntar(abertos.map(nomeQ))}`)); VOLTA_SAIDA = 0;
       const specV = volta && depois && !(pag && pag.length) ? null : { tipo: 'entrada', id, itens: L.map(linhaPapel), formas: pag || [], depois: !!depois && !(pag && pag.length), desc: dsc ? dsc.valor : 0, venda: (r.vendas || [])[0] || 0, festa, ped: pedP }, cupomV = q => cupomDaVenda(id, r.cupom, specV, volta, q);
       if (r.entrada) pedirSapateira(id, cupomV); else cupomV(false); }   /* 1.16: entrou junto com a venda: primeiro a sapateira, depois o cupom */   // 0.94: registrou, o cupom sai para o responsável assinar
     catch (e) { if (bt) bt.disabled = false; if (bp) bp.disabled = false; if (bd) bd.disabled = false; if (e.status === 409) toast(e.message, () => registrarAtendimento(id, true, pag, depois), 'Registrar mesmo assim'); else toast(e.message); }   // 409: outro aparelho já registrou uma venda para esta criança
@@ -3910,7 +4015,7 @@ function resumoPapel(spec) { const c = spec.c || crianca(spec.id), F = (spec.for
 function guardarPapel(spec, vias) {
   try { const c = spec && (spec.c || crianca(spec.id)); if (!c || !vias || !vias.length) return;
     const reg = { crianca: c.id, tipo: spec.festa ? 'festa' : spec.tipo || 'entrada', titulo: spec.tipo === 'entrada' && !spec.festa && /COMPROVANTE DE PAGAMENTO/.test(vias[0]) ? 'Comprovante de pagamento' : tituloPapel(spec), resumo: resumoPapel(spec), vias: vias.map(v => v.replace(LOGO, '{LOGO}').replace(LOGO_PB, '{LOGO_PB}')) };
-    if (MODO === 'servidor') api('papel_guardar', reg).catch(() => { }); else S.papeis = [{ ...reg, id: novoId(), quando: new Date(), por: EU.nome }, ...(S.papeis || [])].slice(0, 60);
+    if (MODO === 'servidor') apiOff('papel_guardar', reg).catch(() => { }); else S.papeis = [{ ...reg, id: novoId(), quando: new Date(), por: EU.nome }, ...(S.papeis || [])].slice(0, 60);
   } catch (e) { }   // guardar o cupom nunca atrapalha a venda nem a saída
 }
 // o texto guardado volta para a tela só com as marcações simples do cupom (o resto é tirado), e com a logo de novo
@@ -3953,7 +4058,7 @@ function folhaPapelAjustes(direta) {   // direta (1.11): veio do "Veja como impr
     <div class="campo"><label>Neste aparelho, depois de cada atendimento</label>${segPapel()}</div>
     <div class="acoes"><button type="button" class="bt tap" data-act="papel-teste">${ic(IC.cupom)} Imprimir um cupom de teste</button></div>
     <div class="campo" id="tk-direta"><label>Imprimir direto, sem a janela de escolher a impressora</label>
-      ${impDireta() ? `<p class="imp-ok">${ic(IC.check, 16, 2.8)}<span>Este computador abre o sistema pelo ícone da impressão direta: o toque em Imprimir já manda cada via para a impressora padrão, sem janela nenhuma.</span></p>` : `<span class="explica">Nenhum site consegue pular a janela de impressão: quem pula é o navegador, quando o sistema é aberto pelo <b>ícone Play Space</b> da área de trabalho. O instalador cria esse ícone (com a logo) no computador do balcão. Aberto por ele, o toque em <b>Imprimir</b> já manda o cupom para a impressora.</span>`}
+      ${impDireta() ? `<p class="imp-ok">${ic(IC.check, 16, 2.8)}<span>Este computador abre o sistema pelo ícone da impressão direta: o toque em Imprimir já manda cada via para a impressora padrão, sem janela nenhuma. E abre mesmo sem internet.</span></p>` : `<span class="explica">Nenhum site consegue pular a janela de impressão: quem pula é o navegador, quando o sistema é aberto pelo <b>ícone Play Space</b> da área de trabalho. O instalador cria esse ícone (com a logo) no computador do balcão. Aberto por ele, o toque em <b>Imprimir</b> já manda o cupom para a impressora. <b>E o Play Space abre por ele mesmo sem internet</b> (1.40).</span>`}
       <div class="acoes"><button type="button" class="bt tap" data-act="papel-atalho">${ic(IC.baixa)} Baixar o instalador (Windows)</button></div>
       <details class="outro"><summary>Passo a passo</summary><p class="explica" style="margin-top:8px">1. No Windows, deixe a impressora do cupom (Bematech MP-4200 TH, papel de 80 mm) como <b>impressora padrão</b>, e desligue "Deixar o Windows gerenciar a minha impressora padrão".<br>2. Toque em <b>Baixar o instalador</b>. Se o navegador perguntar, escolha manter o arquivo.<br>3. Dê dois cliques no arquivo baixado (na primeira vez o Windows pode pedir para confirmar: "Mais informações" e "Executar assim mesmo"). Ele cria o ícone <b>Play Space</b> na área de trabalho e abre o sistema numa janela só dele: entre com o seu usuário e escolha a unidade.<br>4. Toque em <b>Imprimir um cupom de teste</b>: as duas vias têm que sair sem perguntar nada.<br>5. Dali em diante, abra o sistema <b>sempre pelo ícone Play Space</b>. Se o ícone não aparecer na área de trabalho, o próprio arquivo baixado serve de atalho: guarde na área de trabalho e abra por ele.<br>Para o cupom sair sem nem tocar em Imprimir, escolha acima <b>Imprimir sozinho</b>. Sem o ícone, a janela de impressão abre uma vez para cada via: é só confirmar as duas.</p></details>
       ${noMac() ? `<details class="outro" id="tk-mac" open><summary>Este computador é um Mac</summary><p class="explica" style="margin-top:8px">No Mac não há instalador. Abra o <b>Terminal</b> (Command + espaço, escreva Terminal), cole o comando abaixo e aperte Enter: o sistema abre no Chrome, numa janela só dele, e o Imprimir vai direto para a impressora padrão do Mac. O comando também deixa na Mesa o atalho <b>Play Space.command</b>: dali em diante, dois cliques nele abrem o sistema do mesmo jeito.</p><div class="acoes"><button type="button" class="bt tap" data-act="copiar" data-rot="Comando" data-t="${esc(comandoMac())}">${ic(IC.copia, 16, 2.4)} Copiar o comando do Mac</button></div></details>` : ''}</div>`);
@@ -4232,8 +4337,9 @@ async function confirmarGrupo(el) {
     desc: centavos(L.reduce((t, x) => t + (x.dsc ? x.dsc.valor : 0), 0)), formas: L === P && Y === Q ? pag || [] : [...L.flatMap(x => x.pag), ...Y.flatMap(y => y.pag)] });   // o cupom da conta: cada criança, cada carrinho, e um pagamento só
   const papel = papelDe(P, Q), recebeu = g.receber > 0 && pag ? ` · recebido ${brl(g.receber)} (${textoPag(pag)})` : '', desconto = dsc ? ` · desconto de ${brl(dsc.valor)}` : '';
   el.disabled = true;
+  if (MODO === 'servidor' && OFF.on && Q.length) { toast('Sem internet: a devolução do carrinho precisa da internet. Tire o carrinho da conta (ele é cobrado depois), ou espere a internet voltar.'); el.disabled = false; return; }   // 1.40
   if (MODO === 'servidor') { const feitas = [], devs = [];
-    try { for (const x of P) feitas.push({ x, r: await api('saida', { id: x.c.id, total: centavos(x.pag.reduce((t, q) => t + q.v, 0)), ...(x.pag.length ? { pagamento: x.pag } : {}), ...(x.dsc ? { desconto: x.dsc } : {}), ...(x.k.av ? { avulso: true } : {}) }) });   // 1.15: total = a parte desta criança (o servidor confere)
+    try { for (const x of P) feitas.push({ x, r: await apiOff('saida', { id: x.c.id, total: centavos(x.pag.reduce((t, q) => t + q.v, 0)), ...(x.pag.length ? { pagamento: x.pag } : {}), ...(x.dsc ? { desconto: x.dsc } : {}), ...(x.k.av ? { avulso: true } : {}) }, { saldo: saldoDepois(x.c, x.k), deb: x.k.deb, atraso: x.k.n ? { n: x.k.n, valor: x.k.valor } : null, plano: planoDe(x.c), pend: x.k.pend || 0 }) });   /* 1.40: sem internet, fica na fila */   // 1.15: total = a parte desta criança (o servidor confere)
       for (const y of Q) devs.push({ y, r: await api('devolver', { crianca: y.a.crianca, s: y.a.s, pagamento: y.pag.length ? y.pag : null, ...(y.x.aberto ? { quantos: y.x.q || y.a.q || 1 } : {}) }) }); }   // 1.25: depois, cada carrinho com a parte dele
     catch (e) { // parou no meio: o que já foi feito fica (com o cupom), e a tela diz o que faltou
       try { await carregar(); } catch (e2) { }
@@ -4243,7 +4349,7 @@ async function confirmarGrupo(el) {
     await carregar(); fecharFolha(); desenhar();
     const saps = feitas.map(f => f.r.sapateira).filter(Boolean), trava = !podeEstornar() && (feitas.some(f => f.r.pag_de != null) || devs.some(d => d.r.pag_de != null || d.r.extra || d.r.aberto));
     deuCerto(`${[P.length ? `${juntar(nomes)} ${verbo} · ${tempoSaidaGrupo(feitas.map(f => ({ deb: +f.r.debitado || 0, a: f.r.atraso, plano: f.r.plano })))}` : '', devTxt(Q)].filter(Boolean).join(' · ')}${recebeu}${desconto}${saps.length ? ' · ' + (saps.length === 1 ? 'sapato na sapateira ' : 'sapatos nas sapateiras ') + juntar(saps.map(String)) : ''}`,
-      trava ? null : async () => { try { for (const d of devs.slice().reverse()) await api('devolver', { crianca: d.y.a.crianca, voltar: true, vendas: d.r.vendas, registro: d.r.registro, extra: d.r.extra || 0, registros: d.r.registros || [], ...(d.r.pag_de != null ? { pag_de: d.r.pag_de } : {}), ...(d.r.aberto ? { aberto: d.r.aberto } : {}) });   // primeiro as devoluções (o pagamento delas é o mais novo)
+      trava || feitas.some(f => f.r.offline) ? null : async () => { try { for (const d of devs.slice().reverse()) await api('devolver', { crianca: d.y.a.crianca, voltar: true, vendas: d.r.vendas, registro: d.r.registro, extra: d.r.extra || 0, registros: d.r.registros || [], ...(d.r.pag_de != null ? { pag_de: d.r.pag_de } : {}), ...(d.r.aberto ? { aberto: d.r.aberto } : {}) });   // primeiro as devoluções (o pagamento delas é o mais novo)
         for (const f of feitas.slice().reverse()) await api('desfazer_saida', { id: f.x.c.id, visita: f.r.visita, registro: f.r.registro, mensagem: f.r.mensagem ? f.r.mensagem.id : 0, sapateira: f.r.sapateira || 0, ...(f.r.pag_de != null ? { pag_de: f.r.pag_de, pag_registro: f.r.pag_registro || 0 } : {}), ...(f.r.desc ? { desc: f.r.desc } : {}), ...(f.r.avulso ? { avulso: f.r.avulso } : {}) }); await carregar(); } catch (e) { toast(e.message); try { await carregar(); } catch (e2) { } } desenhar(); });
     { const fa = feitas.find(f => f.r.avulso && f.r.avulso.venda); if (fa) papel.venda = fa.r.avulso.venda; }
     const cup = feitas.map(f => f.r.cupom).filter(Boolean); if (cup.length === 1) folhaCupom(cup[0], true); else if (cup.length) folhaCupons(); else papelDepois(papel);
@@ -6992,7 +7098,7 @@ const ACOES = {
     if (!id) { const ja = clientePorDoc(doc, cpf).find(x => x.nome.trim().toLowerCase() === nome.toLowerCase()); if (ja) { toast(`${ja.nome} já tem cadastro com este ${doc === 'rne' ? 'RNE' : 'CPF'}`, () => abrirHistorico(ja.id), 'Ver o histórico'); return; } }
     if (MODO === 'servidor') {
       const dados = id ? { id: +id, nome, idade: +val('f-idade') || 0, nasc: nasc.iso, resp, tel, tel2, doc, cpf, obs, pcd } : { nome, nasc: nasc.iso, resp, tel, tel2, doc, cpf, obs, pcd };
-      api('crianca_salvar', dados).then(async r => { await carregar(); if (id) renomearRascunho(+id, nome); else cadastroFeito(); fecharFolha(); desenhar();
+      apiOff('crianca_salvar', dados).then(async r => { await carregar(); if (id) renomearRascunho(+id, nome); else cadastroFeito(); fecharFolha(); desenhar();
         if (id) { deuCerto('Cadastro salvo'); return; }
         depoisDoCadastro(r.id, nome, outra, pre, { doc, cpf, resp, tel, tel2 }); }).catch(e => toast(e.message));
       return;
@@ -7048,6 +7154,7 @@ const ACOES = {
   'desc-pedir': el => pedirDesconto(el), 'desc-largar': () => largarDesconto(),
   'alt-item': el => { if (!ALT || ALT.espera || ALT.lib) return; const l = linhasDoCarrinho().find(x => altChave(x) === el.dataset.k); if (!l) return; ALT.k = el.dataset.k; ALT.v = valTxt(l.v); ALT.hh = l.pac != null ? String(l.ph) : ''; ALT.aberto = true; altRedesenha(); const i = $('#pg-alt-v'); if (i) { i.focus(); i.select(); } },   /* 1.33 */
   'alt-pedir': el => pedirAlteracao(el), 'alt-largar': () => largarAlteracao(),
+  'off-ver': () => folhaOffProb(), 'off-ok': el => { OFF.prob.splice(+el.dataset.i, 1); filaGuardar(); offFaixa(); if (OFF.prob.length) folhaOffProb(); else fecharFolha(); },   /* 1.40 */
   'salt-item': el => { if (!ALTS || ALTS.espera) return; const i = altSaidaItens().find(x => x.id === +el.dataset.k); if (!i) return; ALTS.k = i.id; ALTS.v = valTxt(i.v); ALTS.hh = i.alt === 'pac' ? String(Math.round(i.h)) : ''; ALTS.aberto = true; altSaidaRedesenha(true); const v = $('#sa-alt-v'); if (v) { v.focus(); v.select(); } },   /* 1.39 */
   'salt-pedir': el => altSaidaPedir(el), 'salt-largar': () => altSaidaLargar(),
   nf: el => folhaNF(el.dataset.id), 'nf-pedir': el => pedirNF(el), 'nf-senha': el => acaoNF('senha', el), 'nf-emitida': el => acaoNF('emitida', el), 'nf-voltar': el => acaoNF('voltar', el), 'nf-largar': el => acaoNF('largar', el), 'nf-copiar': el => acaoNF('copiar', el),
@@ -7234,7 +7341,7 @@ const ACOES = {
   'equipe-apagar': el => { if (MODO === 'servidor') { api('usuario_apagar', { id: +el.dataset.id }).then(async () => { await carregar(); deuCerto('Removida da equipe'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } S.equipe = S.equipe.filter(u => u.id !== +el.dataset.id); deuCerto('Removida da equipe'); fecharFolha(); desenhar(); },
   entrar: async () => { try { await api('entrar', { login: val('l-login'), senha: ($('#l-senha') || { value: '' }).value }); ursoReage('feliz'); await espera(700); await depoisDeEntrar(true); ligarSincronia(); } catch (e) { ursoReage('nao'); toast(e.message); } },
   'criar-gestor': async () => { try { await api('criar_gestor', { nome: val('g-nome'), login: val('g-login'), senha: ($('#g-senha') || { value: '' }).value }); ursoReage('feliz'); await espera(700); await depoisDeEntrar(); ligarSincronia(); } catch (e) { ursoReage('nao'); toast(e.message); } },
-  sair: async () => { if (MODO === 'servidor') { clearInterval(SYNC_T); try { await api('sair'); } catch (e) {} ETAPA_FEITA = true; RASC_CAD = []; salvarEtapas(); /* ao sair, os cadastros pela metade (dados do responsável) não ficam no aparelho */ fecharFolha(); telaEntrar(); return; } toast('Na prévia não há login'); },
+  sair: async () => { if (MODO === 'servidor') { if (OFF.fila.length) { toast(`Ainda ${OFF.fila.length === 1 ? 'há 1 registro feito' : 'há ' + OFF.fila.length + ' registros feitos'} sem internet esperando para ir ao servidor. Espere a internet voltar para sair.`); return; } clearInterval(SYNC_T); IDB.tirar('dados'); try { await api('sair'); } catch (e) {}   /* 1.40 */ ETAPA_FEITA = true; RASC_CAD = []; salvarEtapas(); /* ao sair, os cadastros pela metade (dados do responsável) não ficam no aparelho */ fecharFolha(); telaEntrar(); return; } toast('Na prévia não há login'); },
   'trocar-senha': () => abrirFolha('Trocar a minha senha', `<div class="campo"><label for="s-atual">Senha atual</label><input id="s-atual" type="password" autocomplete="current-password"></div><div class="campo"><label for="s-nova">Senha nova (pelo menos 6)</label><input id="s-nova" type="password" autocomplete="new-password"></div><button class="bt forte largo tap" data-act="trocar-senha-ok">${ic(IC.check)} Trocar</button>`),
   'trocar-senha-ok': async () => { try { await api('trocar_senha', { atual: ($('#s-atual') || { value: '' }).value, nova: ($('#s-nova') || { value: '' }).value }); fecharFolha(); deuCerto('Senha trocada'); } catch (e) { toast(e.message); } },
   whats: () => folhaWhats(), nada: () => {},

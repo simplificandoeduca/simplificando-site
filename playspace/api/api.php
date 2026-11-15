@@ -23,6 +23,24 @@ iniciarSessao();
 $db = db();
 $ip = (string)($_SERVER['REMOTE_ADDR'] ?? '');
 $val = fn(string $k, string $p = '') => trim((string)($in[$k] ?? $p));
+// 1.40: o que foi feito sem internet chega depois, na ordem, com a hora em que foi feito ("offline": { uid, em }): o pedido inteiro corre
+// naquela hora (ver agoraTs). Cada envio tem uma marca única: o mesmo envio de novo (a internet caiu antes de a resposta chegar) não é feito
+// duas vezes, volta a mesma resposta. Com internet a tela já manda a marca (sem a hora), para o caso de a resposta se perder no caminho
+const OFFLINE_ACOES = ['crianca_salvar', 'atender', 'entrada', 'sapateira', 'saida', 'papel_guardar'];
+if (is_array($in['offline'] ?? null)) {
+  $off = $in['offline']; unset($in['offline']); $uid = (string)preg_replace('/[^A-Za-z0-9_-]/', '', (string)($off['uid'] ?? ''));
+  if ($uid === '' || strlen($uid) > 64) falha('Envio sem a marca.');
+  if (!in_array($acao, OFFLINE_ACOES, true)) falha('Isto não é feito sem internet.');
+  $db->exec('CREATE TABLE IF NOT EXISTS offline_envios (uid TEXT PRIMARY KEY, acao TEXT NOT NULL, em TEXT, recebido TEXT NOT NULL, por INTEGER, resposta TEXT NOT NULL)');
+  $q = $db->prepare('SELECT resposta FROM offline_envios WHERE uid = ?'); $q->execute([$uid]); $ja = $q->fetchColumn(); $q->closeCursor();
+  if ($ja !== false) { header('Content-Type: application/json; charset=utf-8'); header('Cache-Control: no-store'); echo $ja; exit; }   // já tinha chegado: a mesma resposta
+  $em = null;
+  if (isset($off['em'])) { $ts = (int)$off['em'];
+    if ($ts > time() + 300) falha('A hora deste envio está no futuro: confira o relógio do computador.', 409);
+    if ($ts < time() - OFFLINE_DIAS * 86400) falha('Este envio é de mais de ' . OFFLINE_DIAS . ' dias atrás: não entra sozinho. Confira com o gestor.', 409);
+    $GLOBALS['PS_AGORA'] = min($ts, time()); $em = date('Y-m-d H:i:s', $GLOBALS['PS_AGORA']); $in['mesmo_assim'] = true; }   // (a venda repetida é conferida pela marca)
+  $GLOBALS['PS_OFF'] = ['uid' => $uid, 'acao' => $acao, 'em' => $em];
+}
 
 /* ---------- o que a tela carrega de uma vez ---------- */
 function criancaPublica(array $c): array {

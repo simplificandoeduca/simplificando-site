@@ -1,7 +1,22 @@
-// Play Space 1.32: o serviço de avisos do aparelho (Web Push). Ele só mostra o aviso que o servidor mandou (um pedido de autorização) e, no
-// toque, abre o Play Space nas Aprovações. Não guarda nada em cache e não mexe no carregamento da tela (não há "fetch" aqui).
-self.addEventListener('install', () => self.skipWaiting());
-self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
+// Play Space: o serviço do aparelho.
+// (1) 1.32: os avisos de pedidos (Web Push): mostra o aviso que o servidor mandou e, no toque, abre o Play Space nas Aprovações.
+// (2) 1.40: o app guardado no aparelho, para abrir sem internet. A tela vem sempre da internet quando há (a versão nova chega na hora; se a
+//     internet demora, vem a guardada); as imagens e as letras vêm do que está guardado. A API e a atualização nunca passam por aqui.
+const CACHE = 'ps-app-1';
+self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./', 'manifest.json', 'img/icone-192.png', 'img/icone-512.png']).catch(() => { })).then(() => self.skipWaiting())));
+self.addEventListener('activate', e => e.waitUntil(caches.keys().then(K => Promise.all(K.filter(k => k.startsWith('ps-app-') && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())));
+const comPrazo = (p, ms) => new Promise((ok, nao) => { const t = setTimeout(() => nao(new Error('demorou')), ms); p.then(x => { clearTimeout(t); ok(x); }, e => { clearTimeout(t); nao(e); }); });
+self.addEventListener('fetch', e => {
+  const r = e.request; if (r.method !== 'GET') return; const u = new URL(r.url), letras = /^fonts\.(googleapis|gstatic)\.com$/.test(u.hostname);
+  if (u.origin !== self.location.origin && !letras) return;
+  if (!letras && (/\/api\//.test(u.pathname) || /\.php$/.test(u.pathname) || /versao\.json$/.test(u.pathname) || /sw\.js$/.test(u.pathname))) return;
+  e.respondWith((async () => {
+    const c = await caches.open(CACHE);
+    if (r.mode === 'navigate') { try { const x = await comPrazo(fetch(r), 7000); if (x && x.ok) c.put('./', x.clone()); return x; } catch (er) { return (await c.match('./')) || (await c.match(r)) || Response.error(); } }
+    const g = await c.match(r), rede = fetch(r).then(x => { if (x && (x.ok || x.type === 'opaque')) c.put(r, x.clone()); return x; }).catch(() => null);
+    return g || (await rede) || Response.error();
+  })());
+});
 self.addEventListener('push', e => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch (x) { d = { b: e.data ? e.data.text() : '' }; }

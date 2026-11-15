@@ -1129,6 +1129,17 @@ Pedido do dono: como a cobrança agora é sempre na saída (1.37), o **Alterar p
 - Sem pacote ou produto na conta, o bloco explica e leva direto para **Adicionar serviços**: o pacote entra para pagar nesta saída e, depois, é só alterar ali.
 - Não vale para a recreação, o carrinho, a festa, o voucher, nem para o que já foi pago (ou já teve desconto).
 
+## 6zt. Sem internet, o Play Space continua (1.40)
+
+Pedido do dono: se a internet cair, a recepção não pode parar. Com internet, tudo funciona como sempre (e a versão nova chega para todos); sem internet, o Play Space continua no computador e manda tudo sozinho quando a internet volta.
+
+- **O ícone na tela do computador**: em **Ajustes → Cupom impresso**, no bloco **Imprimir direto**, toque em **Baixar o instalador (Windows)** e dê dois cliques no arquivo baixado: ele cria o ícone **Play Space** na área de trabalho, com a logo (o mesmo da impressão direta). Abra o Play Space por ele uma vez com internet: daí em diante ele abre mesmo sem internet.
+- **Sem internet**, aparece em cima a faixa **Sem internet desde 15:20 · o Play Space continua funcionando**. A lista continua (quem está no espaço, o relógio, a conta de cada um), e continuam funcionando: **cadastro**, **entrada** (recreação, pacote, produto), **sapateira** e **saída com o pagamento** (inclusive a conta do responsável). Cada coisa feita fica guardada no computador (a faixa diz quantas: "3 guardados para enviar"). O cupom sai normalmente.
+- **A internet voltou**: o que ficou guardado vai sozinho para o servidor, na ordem, com a hora em que foi feito (a entrada das 15:20 fica às 15:20, e a saída é cobrada pela hora em que a criança saiu). No dia, cada linha diz "feito sem internet". O que já tinha chegado não é feito duas vezes.
+- **Esperam a internet** (avisa na hora): carrinho e fusquinha (saída e devolução), voucher, festa, pedidos de aprovação (desconto da atendente, alterar pacote), cancelar e desfazer. O desconto do gestor continua.
+- Se o servidor não aceitar algo (outro aparelho já tinha feito, ou a conta mudou), a faixa mostra **Envios para conferir · Ver**: o que era, quando foi feito e o motivo. Confira com o cliente e toque em **Conferido**.
+- O que fica guardado no computador é a lista da última vez e o que espera para ser enviado. Ao tocar em **Sair**, a lista guardada é apagada (com algo ainda esperando para ser enviado, o Play Space pede para esperar a internet voltar antes de sair).
+
 ## 7. Atualizar
 
 Botão **Atualizar** ao lado da versão. Ele baixa a versão nova do GitHub (ramo principal ou de trabalho, a mais nova), confere a versão dentro do arquivo e troca os arquivos de forma atômica. Não mexe em `~/playspace-dados/`. Se o GitHub demorar a refletir (cache de ~5 min), espere e toque de novo.

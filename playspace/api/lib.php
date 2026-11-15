@@ -21,6 +21,8 @@ function falha(string $msg, int $st = 400): void { http_response_code($st); head
 function responder(array $d = []): void {
   header('Content-Type: application/json; charset=utf-8'); header('Cache-Control: no-store');
   $j = (string)json_encode(['ok' => true] + $d, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+  if (!empty($GLOBALS['PS_OFF'])) { $o = $GLOBALS['PS_OFF']; try { $u0 = eu(); db()->prepare('INSERT OR IGNORE INTO offline_envios (uid, acao, em, recebido, por, resposta) VALUES (?, ?, ?, ?, ?, ?)')->execute([$o['uid'], $o['acao'], $o['em'], date('Y-m-d H:i:s'), $u0 ? (int)$u0['id'] : null, $j]);
+    if (random_int(1, 40) === 1) db()->prepare('DELETE FROM offline_envios WHERE recebido < ?')->execute([date('Y-m-d H:i:s', time() - 8 * 86400)]); } catch (Throwable $e) { } }   // 1.40
   // 1.01: com milhares de cadastros a lista fica grande. Ela vai comprimida quando a tela pede (gz = 1), e a tela só pede depois de conferir
   // que lê a resposta comprimida deste servidor. Se o servidor já comprime sozinho, não mexe.
   if (!empty($GLOBALS['_gz']) && strlen($j) > 8000 && function_exists('gzencode') && !headers_sent() && !ini_get('zlib.output_compression') && !ini_get('output_handler')) {
@@ -29,7 +31,10 @@ function responder(array $d = []): void {
   }
   echo $j; exit;
 }
-function agora(): string { return date('Y-m-d H:i:s'); }
+// 1.40: a hora "de agora" do pedido. O que foi feito sem internet chega depois com a hora em que foi feito: o pedido inteiro corre naquela hora
+function agoraTs(): int { return isset($GLOBALS['PS_AGORA']) ? (int)$GLOBALS['PS_AGORA'] : time(); }
+function agora(): string { return date('Y-m-d H:i:s', agoraTs()); }
+const OFFLINE_DIAS = 2;   // o que ficou sem internet por mais que isso não entra sozinho (o gestor confere)
 function registrarErro(string $msg): void { error_log('[playspace] ' . $msg); }
 // os nomes (da criança e do responsável) ficam sempre em maiúsculas, com um espaço só entre as palavras, mesmo que tenham sido escritos em minúsculas
 function maiusculo(string $s): string { return mb_strtoupper(trim((string)preg_replace('/\s+/u', ' ', $s)), 'UTF-8'); }
@@ -470,7 +475,7 @@ function minutosDaVisita(array $c, int $fim): float {
 }
 function hm(int $min): string { $min = max(0, $min); return intdiv($min, 60) . 'h' . ($min % 60 ? str_pad((string)($min % 60), 2, '0', STR_PAD_LEFT) : ''); }
 function restante(array $c): int { return max(0, (int)$c['pacote_min'] - (int)$c['usado_min']); }
-function minDentro(array $c): float { return $c['entrou'] ? (time() - strtotime((string)$c['entrou'])) / 60 : 0; }
+function minDentro(array $c): float { return $c['entrou'] ? (agoraTs() - strtotime((string)$c['entrou'])) / 60 : 0; }
 function primeiroNome(string $n): string { $p = preg_split('/\s+/', trim($n)); return $p[0] ?? $n; }
 
 /* ---------- sessão e quem está usando ---------- */
@@ -753,6 +758,7 @@ function fecharPedidosDeDesconto(?array $u, array $c, string $onde): void { // $
 
 /* ---------- registros (o painel "Hoje na recepção") e as mensagens ---------- */
 function registrar(string $tipo, ?int $criancaId, string $nome, string $texto, ?string $quando = null, $unidade = false): int {   // 1.06: $unidade = false usa a do aparelho que fez o pedido
+  if (!empty($GLOBALS['PS_OFF']['em'])) $texto .= ' · feito sem internet (chegou às ' . date('H:i') . ')';   // 1.40
   db()->prepare('INSERT INTO registros (quando, tipo, crianca_id, nome, texto, unidade_id) VALUES (?, ?, ?, ?, ?, ?)')->execute([$quando ?: agora(), $tipo, $criancaId, $nome, $texto, $unidade === false ? unidadeDoPedido() : ($unidade ? (int)$unidade : null)]);
   return (int)db()->lastInsertId();
 }
@@ -832,7 +838,7 @@ function ehExemplo(int $id): bool {
 function acertarCobrancas(array $c, ?string $quando = null): array {
   if (!$c['entrou'] || !servicoTempo() || !empty($c['festa_id'])) return [];   // 1.29: a visita da festa não gera cobrança
   if ((string)$c['entrou'] < (string)cfg('cobranca_desde', '') && !ehExemplo((int)$c['id'])) return [];   // já estava no espaço quando esta regra chegou: não gera cobrança para trás
-  $fim = $quando ? strtotime($quando) : time();
+  $fim = $quando ? strtotime($quando) : agoraTs();
   if ((int)$c['usado_min'] + cobrar(minutosDaVisita($c, $fim)) <= (int)$c['pacote_min']) return [];
   $db = db(); $s = servicoTempo(); $p = periodo(); $criadas = [];
   $db->exec('BEGIN IMMEDIATE');   // uma tela de cada vez: duas perguntando no mesmo instante não geram a cobrança em dobro
@@ -864,7 +870,7 @@ function atrasoDaVisita(int $criancaId, string $entrou, ?string $ate = null): ar
 // e os minutos delas saem do saldo). Vale na hora da venda e, por garantia, na saída. É a mesma conta que a folha da saída já mostrava.
 function desfazerCobrancasSobrando(array $c, ?string $quando = null): array {
   $nada = ['n' => 0, 'valor' => 0.0]; if (!$c['entrou'] || !servicoTempo() || !empty($c['festa_id'])) return $nada;
-  $db = db(); $p = periodo(); $fim = $quando ? strtotime($quando) : time();
+  $db = db(); $p = periodo(); $fim = $quando ? strtotime($quando) : agoraTs();
   $q = $db->prepare('SELECT v.* FROM vendas v WHERE v.crianca_id = ? AND v.auto = 1 AND v.quando >= ? AND NOT EXISTS (SELECT 1 FROM pagamentos p WHERE p.venda_id = v.id) ORDER BY v.id DESC');
   $q->execute([(int)$c['id'], (string)$c['entrou']]); $autos = $q->fetchAll(); if (!$autos) return $nada;
   $minAutos = 0; foreach ($autos as $x) $minAutos += (int)$x['minutos'];
@@ -916,7 +922,7 @@ function reabrirVisita(array $c, array $u): array {
   if ($c['entrou']) falha($c['nome'] . ' já está no espaço.');
   if ($lim <= 0) falha('Reabrir a visita está desligado em Ajustes.');
   $v = ultimaVisita((int)$c['id']); if (!$v) falha($c['nome'] . ' ainda não tem visita para reabrir.');
-  $fora = max(0, time() - strtotime((string)$v['saiu']));
+  $fora = max(0, agoraTs() - strtotime((string)$v['saiu']));
   if ($fora > $lim * 60 + 10) falha('Já passou de ' . $lim . ' min da saída de ' . $c['nome'] . ' (saiu às ' . substr((string)$v['saiu'], 11, 5) . '). Agora é uma entrada nova.');   // 10 s de folga para o pedido que já estava a caminho
   $q = $db->prepare("SELECT 1 FROM cancelamentos WHERE crianca_id = ? AND entrou >= ? AND tipo = ''"); $q->execute([$c['id'], $v['saiu']]);   // uma entrada feita depois dessa saída e cancelada
   if ($q->fetchColumn()) falha('Depois dessa saída houve uma entrada cancelada. Faça uma entrada nova.');
@@ -1414,7 +1420,7 @@ function aluguelExtra(array $a, ?int $quantos = null): array {   // $quantos (1.
   $ini = strtotime((string)$a['ini']); $f = (int)(regra()['fecha'] ?? 22); $teto = $ini + 43200;
   $fecha = strtotime(date('Y-m-d', $ini) . ($f >= 24 ? ' 23:59:59' : sprintf(' %02d:00:00', max(0, $f))));
   if ($fecha > $ini && !ehExemplo((int)$a['crianca'])) $teto = min($teto, $fecha);
-  $ficou = max(0, (min(time(), $teto) - $ini) / 60); $r = ['n' => 0, 'min' => 0, 'valor' => 0.0, 'per' => 0, 'un' => 0.0];
+  $ficou = max(0, (min(agoraTs(), $teto) - $ini) / 60); $r = ['n' => 0, 'min' => 0, 'valor' => 0.0, 'per' => 0, 'un' => 0.0];
   if (!$sv || ($sv['modo'] ?? 'fixo') !== 'periodo') return $r;
   $per = max(1, (int)($sv['min'] ?? 30)); $tol = max(0, (int)regra()['tolerancia']);
   if ((int)$a['min'] <= 0) { if (empty($a['aberto'])) return $r;
@@ -1439,7 +1445,7 @@ function devolverAluguel(array $c, string $servico, array $u, array $pg = [], ?i
   }
   $qv = $db->prepare("UPDATE vendas SET voltou = ? WHERE id IN ($marcas) AND voltou IS NULL"); $qv->execute([$agora]);
   if (!$qv->rowCount()) falha('Isso já foi marcado como devolvido.', 409);   // 1.20: outro aparelho devolveu no mesmo instante: este não recebe de novo
-  $ficou = max(0, (int)floor((time() - strtotime((string)$a['ini'])) / 60)); $passou = $a['min'] > 0 ? max(0, $ficou - $a['min']) : 0;
+  $ficou = max(0, (int)floor((agoraTs() - strtotime((string)$a['ini'])) / 60)); $passou = $a['min'] > 0 ? max(0, $ficou - $a['min']) : 0;
   $reg = registrar('dev', (int)$c['id'], $c['nome'], ($parte ? $volta . ' de ' . $de . ' × ' : ($a['q'] > 1 ? $a['q'] . ' × ' : '')) . $a['n'] . ' · devolvido · ficou ' . dur($ficou)
     . ($aberto ? ' · ' . ($volta > 1 ? $volta . ' × ' : '') . dur($x['min']) . ': ' . dinheiro($x['valor']) : ($a['min'] > 0 ? ' · tempo comprado: ' . dur($a['min']) . ($passou > 0 ? ' (passou ' . ($passou < 60 ? $passou . ' min' : dur($passou)) . ')' : '') : '')) . ' · por ' . primeiroNome($u['nome']), $agora);
   $r = ['vendas' => $vids, 'registro' => $reg, 'ficou' => $ficou, 'passou' => $passou, 'voltou' => $agora, 'nome' => $a['n'], 'q' => $aberto ? $volta : $a['q'], 'ficam' => $parte ? $de - $volta : 0, 'extra' => 0, 'registros' => [], 'pago' => '', 'valor' => 0.0, 'pend' => $pend];
@@ -1464,7 +1470,7 @@ function devolverAluguel(array $c, string $servico, array $u, array $pg = [], ?i
 // no nome da criança errada, o cliente desistiu. Fica na lista dos cancelamentos, com o motivo, para a supervisão conferir. Passou do prazo,
 // ninguém cancela: o período é cobrado (como na entrada).
 function prazoCancelarAluguel(array $a): array { // [limite em minutos, segundos desde a saída, ainda está no prazo]
-  $lim = max(0, (int)regra()['cancelaMin']); $seg = max(0, time() - strtotime((string)$a['ini']));
+  $lim = max(0, (int)regra()['cancelaMin']); $seg = max(0, agoraTs() - strtotime((string)$a['ini']));
   return [$lim, $seg, !empty($a['aberto']) && $lim > 0 && $seg <= $lim * 60 + 10];
 }
 // $desfeita (1.21): desfeita na hora, pelo botão do aviso, por quem não estorna: sai sem olhar o prazo (o botão só existe nos instantes seguintes) e fica registrada
@@ -1801,7 +1807,7 @@ function festaRelatorioLinhas(array $f, array $L): array {   // (as linhas que v
 // Até regra.cancelaMin minutos depois da entrada (minutos cheios, contados do segundo em que entrou), o próprio atendente cancela;
 // depois disso, só gestor ou supervisor. Sempre com o motivo escrito: fica na tabela cancelamentos para a supervisão conferir.
 function prazoCancelar(array $c): array { // [limite em minutos, segundos desde a entrada, ainda está no prazo]
-  $lim = max(0, (int)regra()['cancelaMin']); $seg = $c['entrou'] ? max(0, time() - strtotime((string)$c['entrou'])) : 0;
+  $lim = max(0, (int)regra()['cancelaMin']); $seg = $c['entrou'] ? max(0, agoraTs() - strtotime((string)$c['entrou'])) : 0;
   return [$lim, $seg, $lim > 0 && $c['entrou'] && $seg <= $lim * 60 + 10];   // 10 s de folga para o pedido que já estava a caminho quando o relógio da tela zerou
 }
 // as vendas que pagaram esta visita: as de hoje, feitas depois da última saída (ou do último cancelamento) da criança
@@ -1881,7 +1887,7 @@ function cancelarAtendimento(?array $c, array $in, array $u): array {
   $desde = preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', (string)($in['desde'] ?? '')) && (string)$in['desde'] <= $agora ? (string)$in['desde'] : $agora;   // quando o atendimento começou
   $itens = $oque !== '' ? [['n' => $oque, 'm' => 0, 'v' => $valor, 'tipo' => 'atendimento']] : [];
   db()->prepare("INSERT INTO cancelamentos (crianca_id, nome, resp, entrou, quando, minutos, valor, itens, motivo, por, por_nome, papel, fora, tipo, atendente, unidade_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'atendimento', ?, ?)")
-    ->execute([$c ? (int)$c['id'] : 0, $nome, $resp, $desde, $agora, max(0, intdiv(time() - strtotime($desde), 60)), $valor, json_encode($itens, JSON_UNESCAPED_UNICODE), $motivo, (int)$u['id'], $u['nome'], $u['papel'], atendente(), unidadeDoPedido()]);
+    ->execute([$c ? (int)$c['id'] : 0, $nome, $resp, $desde, $agora, max(0, intdiv(agoraTs() - strtotime($desde), 60)), $valor, json_encode($itens, JSON_UNESCAPED_UNICODE), $motivo, (int)$u['id'], $u['nome'], $u['papel'], atendente(), unidadeDoPedido()]);
   $id = (int)db()->lastInsertId();
   $reg = registrar('canc', $c ? (int)$c['id'] : null, $nome !== '' ? $nome : $resp, 'Atendimento cancelado' . ($oque !== '' ? ': ' . $oque . ($valor > 0 ? ' (' . dinheiro($valor) . ')' : '') : '') . ' · nada foi vendido · Motivo: ' . $motivo . ' · por ' . porQuem($u), $agora);
   return ['cancelamento' => $id, 'registro' => $reg];
