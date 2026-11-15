@@ -2,6 +2,8 @@
 // Lembrete de água com o app fechado (Web Push).
 // O app do aluno se inscreve aqui; um agendamento (cron) do cPanel roda este arquivo a cada 10 minutos
 // e manda o aviso para quem já passou do intervalo desde o último copo, dentro do horário e sem a meta batida.
+// Fim do descanso: o app avisa a hora em que o descanso termina; este pedido responde na hora e espera até lá para avisar
+// (se a pessoa continuou no app, o próprio app cancela antes).
 // O aviso vai sem conteúdo (o próprio app monta a mensagem), então não precisa de criptografia de conteúdo,
 // só da assinatura VAPID. As chaves e as inscrições ficam fora do site, na pasta de cima.
 header('Content-Type: application/json; charset=utf-8');
@@ -42,10 +44,10 @@ function vapid($endpoint, $ch) {
   openssl_sign("$h.$c", $sig, $ch['pem'], OPENSSL_ALGO_SHA256);
   return "$h.$c." . b64u(der2raw($sig));
 }
-function envia($endpoint, $ch) {
+function envia($endpoint, $ch, $urg = 'normal') {
   $c = curl_init($endpoint);
   curl_setopt_array($c, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => '', CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 15,
-    CURLOPT_HTTPHEADER => ['Authorization: vapid t=' . vapid($endpoint, $ch) . ', k=' . $ch['pub'], 'TTL: 3600', 'Urgency: normal', 'Content-Length: 0']]);
+    CURLOPT_HTTPHEADER => ['Authorization: vapid t=' . vapid($endpoint, $ch) . ', k=' . $ch['pub'], 'TTL: ' . ($urg === 'high' ? 120 : 3600), 'Urgency: ' . $urg, 'Content-Length: 0']]);
   curl_exec($c); $st = curl_getinfo($c, CURLINFO_HTTP_CODE); curl_close($c);
   return $st;
 }
@@ -60,20 +62,37 @@ $acao = $CLI ? ($argv[1] ?? 'cron') : ($_GET['acao'] ?? '');
 
 if ($acao === 'chave') { $ch = chaves(); sai(['ok' => true, 'pub' => $ch['pub']]); }
 
-if (in_array($acao, ['assinar', 'copo', 'sair'], true)) {
+if (in_array($acao, ['assinar', 'copo', 'sair', 'descanso'], true)) {
   if ($_SERVER['REQUEST_METHOD'] !== 'POST') sai(['ok' => false], 405);
   $j = json_decode((string)file_get_contents('php://input', false, null, 0, 8000), true);
   $id = is_array($j) && isset($j['id']) && preg_match('/^[a-z0-9]{12,40}$/', $j['id']) ? $j['id'] : '';
   if (!$id) sai(['ok' => false, 'erro' => 'Pedido inválido.'], 400);
   $v = le_in();
   if ($acao === 'sair') { unset($v[$id]); grava_in($v); sai(['ok' => true]); }
+  if ($acao === 'descanso') {
+    if (!isset($v[$id])) sai(['ok' => false]);
+    $fim = (int)floor(((float)($j['fim'] ?? 0)) / 1000); $k = preg_match('/^[a-z0-9]{4,16}$/', (string)($j['k'] ?? '')) ? (string)$j['k'] : '';
+    $marca = ($fim > 0 && $k) ? $fim . ':' . $k : '';
+    $v[$id]['ds'] = $marca; grava_in($v);
+    $espera = $fim - time();
+    if (!$marca || $espera > 600 || $espera < -5) sai(['ok' => true]);
+    // responde já e segura o envio até o fim do descanso
+    ignore_user_abort(true); @set_time_limit($espera + 60);
+    $out = json_encode(['ok' => true]); header('Content-Length: ' . strlen($out)); header('Connection: close'); echo $out;
+    if (function_exists('fastcgi_finish_request')) fastcgi_finish_request(); elseif (function_exists('litespeed_finish_request')) litespeed_finish_request(); else { while (ob_get_level()) @ob_end_flush(); flush(); }
+    if ($espera > 0) sleep($espera);
+    $v = le_in(); if (!isset($v[$id]) || ($v[$id]['ds'] ?? '') !== $marca) exit; // cancelado, mudou (+15 s) ou já avisado
+    $st = envia($v[$id]['e'], chaves(), 'high');
+    $v = le_in(); if (isset($v[$id])) { if ($st == 404 || $st == 410) unset($v[$id]); elseif (($v[$id]['ds'] ?? '') === $marca) $v[$id]['ds'] = ''; grava_in($v); }
+    exit;
+  }
   if ($acao === 'copo') { if (isset($v[$id])) { $v[$id]['copo'] = time(); if (!empty($j['meta'])) $v[$id]['meta'] = (string)$j['meta']; grava_in($v); } sai(['ok' => true]); }
   $e = $j['sub']['endpoint'] ?? '';
   if (!endpoint_ok($e)) sai(['ok' => false, 'erro' => 'Serviço de aviso desconhecido.'], 400);
   if (!isset($v[$id]) && count($v) >= 2000) sai(['ok' => false, 'erro' => 'Limite de inscrições.'], 429);
   $antes = $v[$id] ?? [];
   $v[$id] = ['e' => $e, 'ini' => $hm($j['ini'] ?? '', 480), 'fim' => $hm($j['fim'] ?? '', 1320), 'cada' => max(30, min(240, (int)($j['cada'] ?? 90))),
-    'tz' => max(-840, min(840, (int)($j['tz'] ?? 180))), 'meta' => (string)($j['meta'] ?? ($antes['meta'] ?? '')), 'copo' => (int)($antes['copo'] ?? 0), 'ultimo' => (int)($antes['ultimo'] ?? 0), 'em' => time()];
+    'tz' => max(-840, min(840, (int)($j['tz'] ?? 180))), 'meta' => (string)($j['meta'] ?? ($antes['meta'] ?? '')), 'copo' => (int)($antes['copo'] ?? 0), 'ultimo' => (int)($antes['ultimo'] ?? 0), 'ag' => isset($j['ag']) ? (int)!empty($j['ag']) : 1, 'ds' => (string)($antes['ds'] ?? ''), 'em' => time()];
   grava_in($v); sai(['ok' => true]);
 }
 
@@ -86,6 +105,7 @@ if ($acao === 'cron') {
   $ch = chaves(); $v = le_in(); $agora = time(); $env = 0; $tirou = 0;
   foreach ($v as $id => $s) {
     $local = $agora - $s['tz'] * 60; $min = (int)gmdate('G', $local) * 60 + (int)gmdate('i', $local); $dia = gmdate('Y-m-d', $local);
+    if (isset($s['ag']) && !$s['ag']) continue; // só os avisos do descanso (lembrete de água desligado)
     if ($min < $s['ini'] || $min > $s['fim']) continue;
     if ($s['meta'] === $dia) continue;
     // primeiro aviso do dia: no horário de início; depois, a cada intervalo desde o último copo ou aviso

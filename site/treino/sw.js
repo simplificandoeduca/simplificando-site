@@ -2,7 +2,7 @@
    - A página: tenta a internet primeiro (pega a versão nova); se a internet falhar ou demorar, abre a cópia guardada.
    - Arquivos fixos (Firebase, ícones, fontes): usa a cópia guardada e atualiza por trás.
    - Banco de dados, login e e-mails não passam por aqui: o próprio Firebase cuida de reenviar quando o sinal volta. */
-const VERSAO = '14 nov · 126'; // muda a cada versão (o build grava): assim o celular sempre percebe que tem sw.js novo
+const VERSAO = '15 nov · 127'; // muda a cada versão (o build grava): assim o celular sempre percebe que tem sw.js novo
 const CACHE = 'simp-treino-v4';
 let ATUALIZANDO = false; // true quando já tinha uma versão instalada (atualização, não primeira vez)
 const CORE = ['./', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-180.png', './firebase-config.js',
@@ -56,18 +56,40 @@ self.addEventListener('fetch', e => {
   if (FONTES.includes(u.hostname)) e.respondWith(fixo(req));
 });
 
-/* lembrete de água com o app fechado: o servidor (push.php) só "cutuca"; a mensagem é montada aqui */
+/* avisos com o app fechado: o servidor (push.php) só "cutuca"; a mensagem é montada aqui.
+   Fim do descanso (o app guarda os dados em simp-estado quando o descanso começa): "Bora, Joana! 💪"; senão, o lembrete de água. */
 const FRASES = ['Hora de beber água 💧', 'Um copo agora? 💧', 'Sua garrafinha está te chamando 💧', 'Pausa rápida para a água 💧'];
+const DESC = BASE + '__descanso';
+const agua = () => self.registration.showNotification(FRASES[Math.floor(Math.random() * FRASES.length)], { body: 'Toque para registrar o copo no Simplificando.', icon: 'icon-192.png', badge: 'icon-192.png', tag: 'agua', renotify: true, data: { url: BASE + '#agua', abrir: 'agua' } });
+const json = o => new Response(JSON.stringify(o), { headers: { 'Content-Type': 'application/json' } });
 self.addEventListener('push', e => {
-  const t = FRASES[Math.floor(Math.random() * FRASES.length)];
-  e.waitUntil(self.registration.showNotification(t, { body: 'Toque para registrar o copo no Simplificando.', icon: 'icon-192.png', badge: 'icon-192.png', tag: 'agua', renotify: true, data: { url: BASE + '#agua' } }));
+  e.waitUntil(caches.open('simp-estado').then(c => c.match(DESC).then(r => r ? r.json() : null).catch(() => null).then(d => {
+    const ag = Date.now();
+    if (d && d.fim && !d.av && ag >= d.fim - 20000 && ag <= d.fim + 180000) {
+      d.av = 1;
+      return c.put(DESC, json(d)).then(() => self.registration.showNotification('Bora' + (d.nome ? ', ' + d.nome : '') + '! 💪',
+        { body: 'Seu descanso acabou.' + (d.ex ? ' Próxima: ' + d.ex + ', série ' + d.s + ' de ' + d.n + '.' : ' Bora para a próxima série.'), icon: 'icon-192.png', badge: 'icon-192.png', tag: 'descanso', renotify: true, vibrate: [120, 60, 120],
+          actions: [{ action: 'abrir', title: 'Abrir treino' }, { action: 'mais', title: '+15 s' }], data: { url: BASE + '#treino', abrir: 'treino' } }));
+    }
+    return agua();
+  })).catch(agua));
 });
 self.addEventListener('notificationclick', e => {
   e.notification.close();
-  const url = (e.notification.data && e.notification.data.url) || BASE;
+  const dd = e.notification.data || {};
+  // +15 s (Android): pede ao servidor um aviso novo daqui a 15 segundos, sem abrir o app
+  if (e.action === 'mais') {
+    e.waitUntil(caches.open('simp-estado').then(c => c.match(DESC).then(r => r ? r.json() : null).then(d => {
+      if (!d || !d.id) return;
+      d.fim = Date.now() + 15000; d.k = Math.random().toString(36).slice(2, 10); d.av = 0;
+      return c.put(DESC, json(d)).then(() => fetch('/push.php?acao=descanso', { method: 'POST', body: JSON.stringify({ id: d.id, fim: d.fim, k: d.k }) })).catch(() => null);
+    })));
+    return;
+  }
+  const url = dd.url || BASE, abrir = dd.abrir || 'agua';
   e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(ws => {
     const w = ws.find(c => new URL(c.url).pathname.startsWith(BASE));
-    if (w) { w.focus(); w.postMessage({ abrir: 'agua' }); return; }
+    if (w) { w.focus(); w.postMessage({ abrir }); return; }
     return self.clients.openWindow(url);
   }));
 });

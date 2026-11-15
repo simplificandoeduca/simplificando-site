@@ -241,7 +241,7 @@ textarea:focus{outline:none;border-color:var(--fg)}
 .in-go{font-size:17px}
 /* janelas no meio da tela (compartilhar e baixar o app) */
 .sheet-wrap.cm-w{align-items:center;padding:20px max(20px,env(safe-area-inset-left,0px))}
-.sheet.cm{max-width:400px;border-radius:32px;padding:30px 24px 22px;text-align:center;animation:cmIn .34s cubic-bezier(.3,1.35,.5,1)}
+.sheet.cm{max-width:400px;border-radius:32px;padding:30px 24px 22px;text-align:center;box-shadow:0 24px 60px rgba(15,23,18,.22);animation:cmIn .34s cubic-bezier(.3,1.35,.5,1)}
 @keyframes cmIn{from{transform:scale(.88);opacity:0}}
 .cm h2{font-size:26px;line-height:1.08;letter-spacing:-.045em;font-weight:900;margin:0}.cm .dot{color:var(--brand)}
 .cm-sub{font-size:16px;line-height:1.4;color:var(--muted);margin:10px 0 0}.cm-sub b{color:var(--fg)}
@@ -1757,7 +1757,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '14 nov · 126'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '15 nov · 127'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -5621,7 +5621,7 @@ function render(){
 function renderSheet(freshOpen){
   if(!ui.sheet){ $sheet.innerHTML = ''; document.body.classList.remove('locked'); return; }
   const oldWrap = $sheet.querySelector('.sheet-wrap:not(.closing)'), old = oldWrap && oldWrap.querySelector('.sheet'), st = old && !freshOpen ? old.scrollTop : 0;
-  $sheet.innerHTML = ui.sheet.k==='aval' ? vAval() : (ui.sheet.k==='site' || ui.sheet.k==='inst' || ui.sheet.k==='baixar') ? vBaixar() : ui.sheet.k==='acomp' ? vAcomp() : ui.sheet.k==='doc' ? vDocSheet() : ui.sheet.k==='excluir' ? vExcluir() : ui.sheet.k==='meus' ? vMeus() : ui.sheet.k==='ia' ? vIA() : ui.sheet.k==='ex' ? vSheet(ui.sheet.id) : ui.sheet.k==='prof' ? vProfile() : ui.sheet.k==='cs' || ui.sheet.k==='cman' ? vCardioSheet() : ui.sheet.k==='gym' ? vGym() : ui.sheet.k==='exq' ? vExq(ui.sheet.id) : ui.sheet.k==='story' ? vStory() : ui.sheet.k==='stpick' ? vStPick() : ui.sheet.k==='cstory' ? vCStory() : ui.sheet.k==='cstpick' ? vCStPick() : vSummary(ui.sheet.i);
+  $sheet.innerHTML = ui.sheet.k==='aval' ? vAval() : ui.sheet.k==='dsask' ? vDsAsk() : (ui.sheet.k==='site' || ui.sheet.k==='inst' || ui.sheet.k==='baixar') ? vBaixar() : ui.sheet.k==='acomp' ? vAcomp() : ui.sheet.k==='doc' ? vDocSheet() : ui.sheet.k==='excluir' ? vExcluir() : ui.sheet.k==='meus' ? vMeus() : ui.sheet.k==='ia' ? vIA() : ui.sheet.k==='ex' ? vSheet(ui.sheet.id) : ui.sheet.k==='prof' ? vProfile() : ui.sheet.k==='cs' || ui.sheet.k==='cman' ? vCardioSheet() : ui.sheet.k==='gym' ? vGym() : ui.sheet.k==='exq' ? vExq(ui.sheet.id) : ui.sheet.k==='story' ? vStory() : ui.sheet.k==='stpick' ? vStPick() : ui.sheet.k==='cstory' ? vCStory() : ui.sheet.k==='cstpick' ? vCStPick() : vSummary(ui.sheet.i);
   const sh = $sheet.querySelector('.sheet');
   const nw = $sheet.querySelector('.sheet-wrap');
   if(old && nw && sh){ nw.classList.add('still'); sh.scrollTop = st; }
@@ -5647,6 +5647,7 @@ function bindDrag(sh){
   top.addEventListener('pointerup', end); top.addEventListener('pointercancel', end);
 }
 function renderRest(){
+  restPush();
   if(tLay()!=='grade'){ if(!$rest.hidden){ $rest.hidden = true; $rest.innerHTML = ''; } renderDock(); return; }
   { const dk = document.getElementById('rdock'); if(dk){ dk.remove(); document.body.classList.remove('has-dock'); } }
   if(!ui.rest){
@@ -5746,7 +5747,7 @@ function wireSlide(){
     if(k && (ev.key==='Enter' || ev.key===' ' || ev.key==='ArrowRight')){ ev.preventDefault(); done(k.closest('.slide')); }
   });
 }
-function startSession(t){ if(!S.session){ S.session = {t, start:Date.now(), acc:0, run:true, gym:'', d:today()}; toast('Cronômetro do treino '+t+' ligado. Bom treino.'); ui.sheet = {k:'gym'}; setTimeout(() => { if(ui.sheet && ui.sheet.k==='gym') renderSheet(true); }, 0); } }
+function startSession(t){ if(!S.session){ S.session = {t, start:Date.now(), acc:0, run:true, gym:'', d:today()}; dsAsk(); toast('Cronômetro do treino '+t+' ligado. Bom treino.'); ui.sheet = {k:'gym'}; setTimeout(() => { if(ui.sheet && ui.sheet.k==='gym') renderSheet(true); }, 0); } }
 /* ---------- academia do dia: o aluno escreve o nome uma vez; nos próximos treinos é só tocar ---------- */
 const gymKey = v => String(v||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
 const gymNome = v => String(v||'').replace(/\s+/g,' ').trim().slice(0,40);
@@ -5876,6 +5877,7 @@ function onClick(ev){
   if(a==='closebg' && ev.target!==b) return;
   const armed = ui.arm; ui.arm = null;
   if(mtClick(a,d,b,armed)){ save(); render(); return; }
+  if(a==='ds-sim' || a==='ds-no'){ if(b.classList.contains('sheet-wrap') && ev.target!==b) return; closeSheet(); if(a==='ds-sim') pushEnable(true); return; }
   if(a==='doc-open'){ ui.sheet = {k:'doc', d:d.v}; renderSheet(true); return; }
   if(a==='doc-tab'){ ui.sheet.d = d.v; renderSheet(); return; }
   if(a==='acc-open'){ ui.sheet = {k:'excluir'}; renderSheet(true); return; }
@@ -6136,6 +6138,7 @@ function tick(){
   }
   if(S.session){ const t = fmtDur(elapsed()); document.querySelectorAll('[data-tick="ses"]').forEach(n => { if(n.textContent!==t) n.textContent = t; }); }
   if(ui.rest){
+    restPerto();
     if(!ui.rest.done && Date.now()>=ui.rest.end){
       ui.rest.done = true; $rest.classList.add('done'); toast('Descanso acabou. Bora para a próxima série.'); vibrate([120,60,120]);
       setTimeout(() => { if(ui.rest && ui.rest.done){ ui.rest = null; renderRest(); } }, 900);
@@ -6199,14 +6202,42 @@ function errSend(msg, src, line, col, stack){
 const ERR_IGNORA = /without an in-progress transaction|Connection to Indexed Database server lost|Database deleted by request of the user agent|IDBDatabase|IndexedDB/i;
 window.addEventListener('error', ev => { if(ev && ev.message && !/^Script error\.?$/i.test(ev.message) && !ERR_IGNORA.test(ev.message)) errSend(ev.message, ev.filename, ev.lineno, ev.colno, ev.error && ev.error.stack); });
 window.addEventListener('unhandledrejection', ev => { const r = ev && ev.reason, m = r && r.message ? r.message : String(r); if(ERR_IGNORA.test(m)){ try { ev.preventDefault(); } catch(e){ /* nada */ } return; } errSend('Promessa sem tratamento: '+m, '', 0, 0, r && r.stack); });
+/* ---------- fim do descanso com o app fechado (opção 2: "Bora, Joana! 💪") ----------
+   Quando o descanso começa, o app avisa o push.php da hora em que ele termina e guarda o texto para o service worker.
+   Se a pessoa continua no app, cancela 2 s antes do fim (o próprio app avisa na tela); se saiu, o servidor manda a notificação na hora. */
+const RPS = { fim:0, k:'', cx:0 };
+function restPush(){
+  if(!PREF.pushId || !pushLigado()) return;
+  const r = ui.rest, fim = r && !r.done ? r.end : 0;
+  if(fim===RPS.fim || (fim && fim===RPS.cx)) return;
+  RPS.fim = fim; RPS.k = fim ? Math.random().toString(36).slice(2,10) : '';
+  let ex = '', se = 0, n = 0; const nx = r && r.next, f = nx && findEx(nx.id); if(f){ ex = f.e.nome; se = nx.i+1; n = exN(f.e); }
+  const url = new URL('__descanso', location.href).href, dado = { fim, k:RPS.k, id:PREF.pushId, nome:firstName(S.nome||''), ex, s:se, n, av:0 };
+  try { if(window.caches) caches.open('simp-estado').then(c => fim ? c.put(url, new Response(JSON.stringify(dado), {headers:{'Content-Type':'application/json'}})) : c.delete(url)).catch(() => {}); } catch(e){ /* sem cache */ }
+  pushPost('descanso', {fim, k:RPS.k});
+}
+function restPerto(){ const r = ui.rest; if(!r || r.done || !RPS.fim || RPS.fim!==r.end || document.visibilityState!=='visible') return; if(r.end-Date.now()<=2000){ RPS.cx = r.end; RPS.fim = 0; pushPost('descanso', {fim:0, k:''}); } }
+/* convite (uma vez, no começo de um treino) para quem ainda não ligou os avisos no celular */
+function dsAsk(){
+  if(PREF.dsAsk || !pushPode() || pushLigado() || (window.Notification && Notification.permission==='denied')) return;
+  const tenta = () => { if(!S.session || PREF.dsAsk) return; if(ui.sheet || document.getElementById('pick')){ setTimeout(tenta, 1500); return; } PREF.dsAsk = 1; savePref(); ui.sheet = {k:'dsask'}; renderSheet(true); };
+  setTimeout(tenta, 1500);
+}
+function vDsAsk(){
+  return `<div class="sheet-wrap cm-w" data-a="ds-no"><div class="sheet cm" role="dialog" aria-modal="true" aria-labelledby="cm-t" tabindex="-1">
+    <span class="cm-ic">${ic('bell')}</span><h2 id="cm-t">Quer ser avisado quando o descanso acabar<span class="dot">?</span></h2>
+    <p class="cm-sub">Se você sair do app durante o descanso, a gente te avisa na hora da próxima série.</p>
+    <button type="button" class="btn primary block cm-b" data-a="ds-sim">${ic('bell')}Quero ser avisado</button>
+    <button type="button" class="btn block cm-b2" data-a="ds-no">Agora não</button></div></div>`;
+}
 /* lembrete de água com o app fechado: o celular se inscreve no push.php e o servidor avisa no horário */
 const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent), STANDALONE = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone===true;
 const pushPode = () => !!(FB && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window);
 const pushLigado = () => pushPode() && PREF.pushOn && Notification.permission==='granted';
 const b64u8 = s => { const b = atob((s+'='.repeat((4-s.length%4)%4)).replace(/-/g,'+').replace(/_/g,'/')); return Uint8Array.from(b, c => c.charCodeAt(0)); };
 const pushPost = (acao, dados) => fetch('/push.php?acao='+acao, {method:'POST', body:JSON.stringify(Object.assign({id:PREF.pushId}, dados||{})), keepalive:true}).then(r => r.json()).catch(() => ({ok:false}));
-function pushDados(sub){ const meta = (S.water[today()]||0)>=S.waterGoal ? today() : ''; return Object.assign(sub ? {sub} : {}, {ini:hhmm(RINI()), fim:hhmm(RFIM()), cada:S.remind.every, tz:new Date().getTimezoneOffset(), meta}); }
-async function pushEnable(){
+function pushDados(sub){ const meta = (S.water[today()]||0)>=S.waterGoal ? today() : ''; return Object.assign(sub ? {sub} : {}, {ini:hhmm(RINI()), fim:hhmm(RFIM()), cada:S.remind.every, tz:new Date().getTimezoneOffset(), meta, ag:S.remind.on ? 1 : 0}); }
+async function pushEnable(soDescanso){
   if(!pushPode()){ toast(IOS && !STANDALONE ? 'No iPhone, adicione o app à tela de início e abra por lá para ligar os avisos.' : 'Este navegador não manda avisos com o app fechado.'); return; }
   try {
     const perm = await Notification.requestPermission();
@@ -6218,7 +6249,9 @@ async function pushEnable(){
     if(!PREF.pushId) PREF.pushId = Array.from(crypto.getRandomValues(new Uint8Array(12)), b => (b%36).toString(36)).join('')+Date.now().toString(36);
     const r = await pushPost('assinar', pushDados(sub.toJSON()));
     if(!r.ok) throw new Error('servidor');
-    PREF.pushOn = true; savePref(); if(!S.remind.on){ S.remind.on = true; save(); }
+    PREF.pushOn = true; savePref();
+    if(soDescanso){ if(S.remind.on) pushPost('assinar', pushDados(sub.toJSON())); toast('Pronto. Se sair do app no descanso, a gente te avisa na hora da próxima série.'); render(); return; }
+    if(!S.remind.on){ S.remind.on = true; save(); pushPost('assinar', pushDados(sub.toJSON())); }
     toast('Pronto. Os lembretes de água chegam no celular mesmo com o app fechado.'); render();
   } catch(e){ toast('Não deu para ligar os avisos agora. Confira a internet e tente de novo.'); }
 }
@@ -6227,7 +6260,7 @@ async function pushDisable(manter){
   if(!manter){ PREF.pushOn = false; savePref(); try { const reg = await navigator.serviceWorker.ready, sub = await reg.pushManager.getSubscription(); if(sub) await sub.unsubscribe(); } catch(e){ /* nada a desfazer */ } }
   render();
 }
-function pushSave(){ if(!pushLigado()) return; if(!S.remind.on){ pushDisable(true); return; } navigator.serviceWorker.ready.then(reg => reg.pushManager.getSubscription()).then(sub => { if(sub) pushPost('assinar', pushDados(sub.toJSON())); }).catch(() => {}); }
+function pushSave(){ if(!pushLigado()) return; navigator.serviceWorker.ready.then(reg => reg.pushManager.getSubscription()).then(sub => { if(sub) pushPost('assinar', pushDados(sub.toJSON())); }).catch(() => {}); }
 function pushCopo(){ if(pushLigado() && PREF.pushId) pushPost('copo', {meta:(S.water[today()]||0)>=S.waterGoal ? today() : ''}); }
 function pushCard(){
   if(pushLigado()) return `<p class="zone">${ic('bell')}<span><b>Avisos no celular ligados.</b> Chegam mesmo com o app fechado, das ${hmTxt(RINI())} às ${hmTxt(RFIM())}, e param quando a meta do dia é batida.</span></p><button type="button" class="btn ghost small self-start" data-a="push-off">Desligar avisos no celular</button>`;
@@ -6289,7 +6322,8 @@ function offlineSetup(){
   const ok = 'serviceWorker' in navigator && FB && (location.protocol==='https:' || location.hostname==='localhost' || location.hostname==='127.0.0.1');
   const reg = () => navigator.serviceWorker.register('sw.js').catch(() => { /* sem guardar offline */ });
   if(ok){ if(document.readyState==='complete') reg(); else window.addEventListener('load', reg); }
-  try { navigator.serviceWorker && navigator.serviceWorker.addEventListener('message', ev => { if(ev.data && ev.data.abrir==='agua' && ACCT){ ui.tab = 'agua'; ui.enter = true; render(); } }); } catch(e){ /* sem mensagens */ }
+  try { navigator.serviceWorker && navigator.serviceWorker.addEventListener('message', ev => { if(ev.data && ev.data.abrir==='agua' && ACCT){ ui.tab = 'agua'; ui.enter = true; render(); } if(ev.data && ev.data.abrir==='treino' && ACCT){ ui.tab = 'treino'; if(S.session) ui.t = S.session.t; render(); } }); } catch(e){ /* sem mensagens */ }
+  if(location.hash==='#treino' && ACCT){ ui.tab = 'treino'; if(S.session) ui.t = S.session.t; render(); history.replaceState(null,'',location.pathname+location.search); }
   if(location.hash==='#agua' && ACCT){ ui.tab = 'agua'; render(); history.replaceState(null,'',location.pathname+location.search); }
   window.addEventListener('offline', () => toast('Sem internet. Pode treinar normalmente: tudo fica salvo no celular e sobe quando o sinal voltar.'));
   window.addEventListener('online', () => { toast('Internet de volta. Salvando seus treinos.'); try { if(typeof progSync==='function' && ACCT && ACCT.mode==='personal') progSync(true); if(typeof fbRefresh==='function' && ACCT) fbRefresh(); } catch(e){ /* sem sincronizar agora */ } });
