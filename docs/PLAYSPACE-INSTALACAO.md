@@ -1140,6 +1140,16 @@ Pedido do dono: se a internet cair, a recepção não pode parar. Com internet, 
 - Se o servidor não aceitar algo (outro aparelho já tinha feito, ou a conta mudou), a faixa mostra **Envios para conferir · Ver**: o que era, quando foi feito e o motivo. Confira com o cliente e toque em **Conferido**.
 - O que fica guardado no computador é a lista da última vez e o que espera para ser enviado. Ao tocar em **Sair**, a lista guardada é apagada (com algo ainda esperando para ser enviado, o Play Space pede para esperar a internet voltar antes de sair).
 
+## 6zu. Alterar pacote: horas, valor do pacote e valor do produto (1.41)
+
+Pedido do dono: o **Alterar pacote** é para quando a loja quer um pacote de horas com o valor que ela define, igual ao desconto: o gestor aprova.
+
+- Embaixo do **Desconto** (no pagamento da entrada e no da saída): **Alterar pacote**, com três campos: **Valor do pacote**, **Horas** e **Valor do produto** (o produto é opcional: sem produto, deixe vazio). Embaixo, o **Total**.
+- Toque em **Pedir aprovação**: o gestor (ou a supervisora) aprova com um toque no celular, ou digita a senha ali mesmo (**Aprovar com a senha**). O gestor e a supervisora alteram direto (**Alterar o pacote**).
+- É sempre um pacote: sem pacote na conta, o bloco pede para escolher um da lista (qualquer um); as horas e os valores são definidos ali.
+- O gestor vê a conta: "PACOTE 03 HORAS 360 (3h, R$ 225) para 4h: pacote R$ 300 + produto R$ 60 = R$ 360". A linha do dia também.
+- **No cupom sai um valor só**: o pacote com as horas novas e o total (R$ 360), sem separar o pacote e o produto.
+
 ## 7. Atualizar
 
 Botão **Atualizar** ao lado da versão. Ele baixa a versão nova do GitHub (ramo principal ou de trabalho, a mais nova), confere a versão dentro do arquivo e troca os arquivos de forma atômica. Não mexe em `~/playspace-dados/`. Se o GitHub demorar a refletir (cache de ~5 min), espere e toque de novo.

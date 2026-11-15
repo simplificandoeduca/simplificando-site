@@ -1018,7 +1018,9 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .pg-alt-i button { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 42px; padding: 6px 12px; border: 2px solid var(--borda); border-radius: 12px; background: var(--creme-2); font-size: 13.5px; color: var(--tinta-2); text-align: left; }
 .pg-alt-i button b { min-width: 0; font-weight: 800; overflow-wrap: anywhere; } .pg-alt-i button span { flex: none; font-weight: 800; }
 .pg-alt-i button[aria-checked="true"] { border-color: var(--coral); background: var(--coral-2); color: var(--tinta); }
-#pg-alt-v, #sa-alt-v { text-align: right; font-family: var(--display); font-weight: 800; font-size: 16px; }
+.pg-alt-c.pg-alt-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } .pg-alt-3 .pg-alt-n, .pg-alt-3 .pg-alt-i { grid-column: 1 / -1; }   /* 1.41: as horas, o valor do pacote e o do produto */
+.pg-alt-tot { grid-column: 1 / -1; margin: 0; font-size: 13.5px; color: var(--tinta-2); } .pg-alt-tot b { color: var(--tinta); font-family: var(--display); font-size: 15px; }
+#pg-alt-p, #sa-alt-p, #pg-alt-v, #sa-alt-v { text-align: right; font-family: var(--display); font-weight: 800; font-size: 16px; }
 .pg-alt-n { grid-column: 1 / -1; margin: 0; font-size: 13px; color: var(--tinta-2); }
 .pg-alt-l { display: flex; flex-direction: column; gap: 4px; min-width: 0; font-size: 12.5px; font-weight: 800; color: var(--tinta-2); } .pg-alt-c.com-h { grid-template-columns: 1fr 1fr; } .pg-alt-c.com-h .pg-alt-l-m { grid-column: 1 / -1; }   /* 1.36: com as horas do pacote */
 #pg-alt-h, #sa-alt-h { text-align: right; font-family: var(--display); font-weight: 800; font-size: 16px; }
@@ -1662,7 +1664,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.40';
+const VERSAO = '1.41';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -3498,42 +3500,37 @@ const pendItens = c => MODO === 'servidor' ? (Array.isArray(c.pendi) && c.pendi.
 let ALTS = null;   // { grupo, ids, k: a venda escolhida, v, hh, motivo, ped, espera, neg, feito, aberto }
 const altDaCompraPrevia = v => { if (!v || v.auto || v.festa || v.voucher || v.alug || v.imp || !(v.v > 0.004) || +v.desc > 0.004 || faltaCompra(v) < v.v - 0.004) return ''; if (v.prod) return 'prod'; if (!(minDe(v) > 0)) return ''; const s = MAI(v.servico || ''); return s && (S.cfg.servicos || []).some(x => MAI(x.n || '') === s) ? '' : 'pac'; };
 const altSaidaCs = () => !ALTS ? [] : ALTS.grupo && SAI ? saiDentro() : ALTS.ids.map(i => crianca(i)).filter(c => c && c.entrou);
-const altSaidaItens = () => altSaidaCs().flatMap(c => pendItens(c).filter(i => i.id && i.alt).map(i => ({ ...i, c })));
+const altSaidaItens = () => altSaidaCs().flatMap(c => pendItens(c).filter(i => i.id && i.alt === 'pac').map(i => ({ ...i, c })));   // 1.41: sempre um pacote
 const altSaidaSig = () => !ALTS ? '' : JSON.stringify([altSaidaItens().map(i => [i.id, i.v, i.h, i.alt]), ALTS.ped, ALTS.espera, ALTS.neg, ALTS.feito ? ALTS.feito.id : 0, altDecide()]);
-function altSaidaNovo(ids, grupo) { ALTS = { grupo: !!grupo, ids: ids.slice(), k: 0, v: '', hh: '', motivo: '', ped: 0, espera: false, neg: null, feito: null, aberto: false }; altSaidaLigar(); }
+function altSaidaNovo(ids, grupo) { ALTS = { grupo: !!grupo, ids: ids.slice(), k: 0, v: '', hh: '', vp: '', motivo: '', ped: 0, espera: false, neg: null, feito: null, aberto: false }; altSaidaLigar(); }
 function altSaidaLigar() { // o meu pedido de alterar (da saída) destes clientes: esperando a resposta, ou respondido agora há pouco
   const cs = altSaidaCs(), p = (S.pedidos || []).filter(p => p.tipo === 'valor' && p.venda && (p.dados || {}).onde === 'saida' && pedMeu(p) && cs.some(c => c.id === p.crianca)).sort((a, b) => b.id - a.id)[0]; if (!p) return;
-  const recente = !!p.dec_em && agora - p.dec_em < PEDIDO_VALE_MIN * 60000, poe = () => { ALTS.k = p.venda; ALTS.v = valTxt(p.dados.para); ALTS.hh = String(p.dados.horas || (p.dados.item || {}).h || ''); ALTS.motivo = p.motivo; };
+  const recente = !!p.dec_em && agora - p.dec_em < PEDIDO_VALE_MIN * 60000, poe = () => { ALTS.k = p.venda; ALTS.v = valTxt(p.dados.pac != null ? p.dados.pac : p.dados.para); ALTS.vp = +p.dados.prod > 0 ? valTxt(p.dados.prod) : ''; ALTS.hh = String(p.dados.horas || (p.dados.item || {}).h || ''); ALTS.motivo = p.motivo; };
   if (p.status === 'pendente') { ALTS.ped = p.id; ALTS.espera = true; poe(); } else if (p.status === 'usado' && recente) ALTS.feito = p; else if (p.status === 'negado' && recente) { ALTS.neg = primeiro(p.dec) || 'A supervisora'; poe(); }
 }
 function htmlAltSaida() {
-  if (!ALTS) return ''; const I = altSaidaItens(), e = ALTS.espera ? pedidoPorId(ALTS.ped) : null, dec = altDecide(), f = ALTS.feito, temPac = I.some(i => i.alt === 'pac'), tit = temPac || !I.length ? 'Alterar pacote' : 'Alterar valor';
-  const feito = f ? `<div class="pg-desc lib pg-alt">${ic(IC.check, 18, 2.6)}<span><b>Valor alterado</b>: ${esc((f.dados.item || {}).n || '')} ${+f.dados.horas > 0 ? `(${dur((f.dados.item || {}).min || 0)}, ${brl(f.dados.de)}) para ${dur(f.dados.horas * 60)} por ${brl(f.dados.para)}` : `de ${brl(f.dados.de)} para ${brl(f.dados.para)}`} · ${f.como === 'proprio' ? 'por' : 'aprovado por'} ${esc(primeiro(f.dec))}${f.como === 'senha' ? ', com a senha' : ''} · ${esc(f.motivo)}</span></div>` : '';
-  const cab = `<summary>${ic(IC.lapis, 18)}<span><b>${tit}</b> <span class="leve">· ${dec ? (temPac || !I.length ? 'horas e valor' : 'pacote ou produto') : 'pede aprovação'}</span></span>${ic(IC.vai, 16)}</summary>`;
+  if (!ALTS) return ''; const I = altSaidaItens(), e = ALTS.espera ? pedidoPorId(ALTS.ped) : null, dec = altDecide(), f = ALTS.feito;
+  const feito = f ? `<div class="pg-desc lib pg-alt">${ic(IC.check, 18, 2.6)}<span><b>Pacote alterado</b>: ${esc(altTxt(f.dados))} · ${f.como === 'proprio' ? 'por' : 'aprovado por'} ${esc(primeiro(f.dec))}${f.como === 'senha' ? ', com a senha' : ''}${f.motivo ? ' · ' + esc(f.motivo) : ''}</span></div>` : '';
+  const cab = `<summary>${ic(IC.lapis, 18)}<span><b>Alterar pacote</b> <span class="leve">· ${dec ? 'horas e valor' : 'o gestor aprova'}</span></span>${ic(IC.vai, 16)}</summary>`;
   if (!I.length && !e) return feito + `<details class="pg-desc pg-alt" id="sa-alt"${ALTS.aberto ? ' open' : ''}>${cab}
-    <div class="pg-desc-c pg-alt-c"><p class="pg-alt-n">${f ? 'Para alterar outro, adicione' : 'Adicione'} o pacote ou o produto em <b>Adicionar serviços</b>: ele fica para pagar nesta saída. Depois, é só mudar as horas e o valor aqui.</p></div>
+    <div class="pg-desc-c pg-alt-c"><p class="pg-alt-n">${f ? 'Para alterar outro, adicione' : 'Adicione'} um pacote em <b>Adicionar serviços</b> (qualquer um): ele fica para pagar nesta saída. Depois, é só definir aqui as horas, o valor do pacote e o valor do produto. No cupom sai um valor só.</p></div>
     <div class="pg-desc-a"><button type="button" class="bt tap" data-act="saida-pacote" data-id="${ALTS.ids[0]}">${ic(IC.mais, 14, 2.8)} Adicionar serviços</button></div></details>`;
-  if (!I.some(i => i.id === ALTS.k) && !e) { const i = I.length === 1 ? I[0] : null; ALTS.k = i ? i.id : 0; ALTS.v = i ? valTxt(i.v) : ''; ALTS.hh = i && i.alt === 'pac' ? String(Math.round(i.h)) : ''; }   // com um item só, ele já vem escolhido, com o valor de agora
-  const trava = e ? ' disabled' : '', aberto = !!e || ALTS.aberto || !!ALTS.neg, it = I.find(i => i.id === ALTS.k), comH = !!it && it.alt === 'pac', varios = altSaidaCs().length > 1, nomeI = i => i.n + (varios ? ' · ' + i.c.nome : '');
+  if (!I.some(i => i.id === ALTS.k) && !e) { const i = I.length === 1 ? I[0] : null; ALTS.k = i ? i.id : 0; ALTS.v = i ? valTxt(i.v) : ''; ALTS.hh = i ? String(Math.round(i.h)) : ''; ALTS.vp = ''; }   // com um pacote só, ele já vem escolhido, com as horas e o valor de agora
+  const trava = e ? ' disabled' : '', aberto = !!e || ALTS.aberto || !!ALTS.neg, varios = altSaidaCs().length > 1, nomeI = i => i.n + (varios ? ' · ' + i.c.nome : '');
   return feito + `<details class="pg-desc pg-alt" id="sa-alt"${aberto ? ' open' : ''}>${cab}
-  <div class="pg-desc-c pg-alt-c${comH ? ' com-h' : ''}">${I.length > 1 ? `<div class="pg-alt-i" role="radiogroup" aria-label="O que muda de valor">${I.map(i => `<button type="button" class="tap" role="radio" aria-checked="${i.id === ALTS.k}" data-act="salt-item" data-k="${i.id}"${trava}><b>${esc(nomeI(i))}</b><span class="num">${brl(i.v)}</span></button>`).join('')}</div>`
+  <div class="pg-desc-c pg-alt-c pg-alt-3">${I.length > 1 ? `<div class="pg-alt-i" role="radiogroup" aria-label="Qual pacote muda">${I.map(i => `<button type="button" class="tap" role="radio" aria-checked="${i.id === ALTS.k}" data-act="salt-item" data-k="${i.id}"${trava}><b>${esc(nomeI(i))}</b><span class="num">${brl(i.v)}</span></button>`).join('')}</div>`
       : I.length ? `<p class="pg-alt-n">${esc(nomeI(I[0]))} · agora, <b>${brl(I[0].v)}</b></p>` : ''}
     ${ALTS.neg ? `<p class="pg-alt-n"><b>${esc(ALTS.neg)} não aprovou.</b> Dá para pedir de novo.</p>` : ''}
-    <label class="pg-alt-l pg-alt-l-m">O que muda<input id="sa-alt-m" autocomplete="off" maxlength="80" placeholder="Ex.: COM O BRINQUEDO" value="${esc(ALTS.motivo)}" aria-label="O que muda no valor (o motivo)"${trava}></label>${comH ? `<label class="pg-alt-l">Horas do pacote<input id="sa-alt-h" inputmode="numeric" autocomplete="off" maxlength="3" placeholder="Horas" value="${esc(ALTS.hh)}" aria-label="Horas do pacote"${trava}></label>` : ''}<label class="pg-alt-l">Valor novo (R$)<input id="sa-alt-v" inputmode="decimal" autocomplete="off" placeholder="Valor novo" value="${esc(ALTS.v)}" aria-label="Valor novo, em reais"${trava}></label></div>
-  <div class="pg-desc-a">${e ? `<p class="pg-desc-e">${ic(IC.sino, 16)}<span><b>Pedido enviado</b> às ${hora(e.em)}. Quando aprovar, o valor muda aqui.</span><button type="button" class="link tap" data-act="salt-largar">Cancelar o pedido</button></p>` : `<button type="button" class="bt forte tap" data-act="salt-pedir">${dec ? ic(IC.check, 16) + ' Alterar o valor' : ic(IC.sino, 16) + ' Pedir aprovação'}</button>`}
+    ${altCampos('sa-alt', ALTS, trava)}</div>
+  <div class="pg-desc-a">${e ? `<p class="pg-desc-e">${ic(IC.sino, 16)}<span><b>Pedido enviado</b> às ${hora(e.em)}. Quando aprovar, o valor muda aqui.</span><button type="button" class="link tap" data-act="salt-largar">Cancelar o pedido</button></p>` : `<button type="button" class="bt forte tap" data-act="salt-pedir">${dec ? ic(IC.check, 16) + ' Alterar o pacote' : ic(IC.sino, 16) + ' Pedir aprovação'}</button>`}
     ${dec ? '' : `<div class="aut-senha">${campoSenha('sa-alt-s', 'Senha de quem aprova')}<button type="button" class="bt tap" data-act="salt-pedir" data-senha="1">Aprovar com a senha</button></div>`}</div></details>`;
 }
 function altSaidaRedesenha(forca) { const a = $('#sa-box'); if (!a || !ALTS) return; const sig = altSaidaSig(); if (!forca && a.dataset.k === sig) return; const d = $('#sa-alt'); if (d && d.tagName === 'DETAILS') ALTS.aberto = d.open; a.dataset.k = sig; a.innerHTML = htmlAltSaida(); }
 function altSaidaDados() { // o que foi escrito, conferido: os dados do pedido, ou { erro, foco }
-  const i = altSaidaItens().find(x => x.id === ALTS.k); if (!i) return { erro: 'Escolha o pacote ou o produto que muda de valor', foco: 'item' };
-  const para = numero(ALTS.v), motivo = MAI(ALTS.motivo || ''), pac = i.alt === 'pac', hh = pac ? parseInt(soDig(ALTS.hh || ''), 10) : 0, m0 = Math.round(i.h * 60);
-  if (pac && !(hh >= 1 && hh <= 200)) return { erro: 'Escreva as horas do pacote (de 1 a 200)', foco: 'horas' };
-  if (!(para > 0)) return { erro: 'Escreva o valor novo', foco: 'valor' }; if (para > 99999) return { erro: 'Confira o valor novo', foco: 'valor' };
-  if (Math.abs(centavos(para) - i.v) < 0.005 && !(pac && hh * 60 !== m0)) return { erro: pac ? `Mude o valor ou as horas: está igual ao de agora (${dur(m0)} por ${brl(i.v)})` : `O valor novo é igual ao de agora (${brl(i.v)})`, foco: 'valor' };
-  if (motivo.length < 3) return { erro: 'Escreva o que muda no valor (o motivo)', foco: 'motivo' };
-  return { tipo: 'valor', crianca: i.c.id, venda: i.id, para: centavos(para), motivo, ...(pac ? { horas: hh } : {}) };
+  const i = altSaidaItens().find(x => x.id === ALTS.k); if (!i) return { erro: 'Escolha o pacote que muda', foco: 'item' };
+  return altConfere(ALTS, i.h, i.v, { tipo: 'valor', crianca: i.c.id, venda: i.id });   // 1.41: as horas, o valor do pacote e o do produto
 }
-const altSaidaFoco = f => { const d = $('#sa-alt'), i = $(f === 'motivo' ? '#sa-alt-m' : f === 'item' ? '#sa-alt .pg-alt-i button' : f === 'horas' ? '#sa-alt-h' : '#sa-alt-v'); if (d && d.tagName === 'DETAILS') d.open = true; if (i) i.focus(); };
+const altSaidaFoco = f => { const d = $('#sa-alt'), i = $(f === 'item' ? '#sa-alt .pg-alt-i button' : f === 'horas' ? '#sa-alt-h' : f === 'produto' ? '#sa-alt-p' : '#sa-alt-v'); if (d && d.tagName === 'DETAILS') d.open = true; if (i) i.focus(); };
 async function altSaidaPedir(el) { // pede (aparece para quem aprova, com o aviso no celular) ou, com a senha de quem aprova digitada aqui, vale na hora
   if (!ALTS) return; const comSenha = !!el.dataset.senha, senha = comSenha ? senhaDe('sa-alt-s') : '', e = ALTS.espera ? pedidoPorId(ALTS.ped) : null;
   if (comSenha && !senha) { toast('Digite a senha da supervisora ou do gestor'); const i = $('#sa-alt-s'); if (i) i.focus(); return; } if (e && !comSenha) return;
@@ -3546,7 +3543,7 @@ async function altSaidaPedir(el) { // pede (aparece para quem aprova, com o avis
   } catch (err) { toast(err.message); el.disabled = false; senhaErrada('sa-alt-s', err); if (MODO === 'servidor' && err.status === 409) { try { await carregar(); } catch (e2) { } ALTS.espera = false; ALTS.ped = 0; atualizarSaida(); atualizarGrupo(); altSaidaRedesenha(true); } }
 }
 async function altSaidaFeita(p) { // aprovada: a venda já mudou (no servidor) e a conta da saída acompanha
-  Object.assign(ALTS, { feito: p, espera: false, ped: 0, k: 0, v: '', hh: '', motivo: '', aberto: false, neg: null });
+  Object.assign(ALTS, { feito: p, espera: false, ped: 0, k: 0, v: '', hh: '', vp: '', motivo: '', aberto: false, neg: null });
   if (MODO === 'servidor') { try { await carregar(); } catch (e) { } }
   atualizarSaida(); atualizarGrupo(); { const d = $('#sa-alt'); if (d && d.tagName === 'DETAILS') d.open = false; } altSaidaRedesenha(true);   // (o bloco fecha: o que mudou fica na linha verde)
   if (LADO) buscarHistorico().catch(() => { });   // o histórico aberto ao lado acompanha
@@ -3558,7 +3555,7 @@ async function altSaidaLargar() { // cancela o pedido que esperava a resposta
 }
 function altSaidaResposta(p) { // a resposta de quem aprova chegou com a saída aberta
   const quem = primeiro(p.dec) || 'A supervisora';
-  if (p.status === 'usado') { toast(`${quem} aprovou: ${(p.dados.item || {}).n || 'o item'}${+p.dados.horas > 0 ? ' com ' + dur(p.dados.horas * 60) : ''} por ${brl(p.dados.para)}`); setTimeout(() => altSaidaFeita(p), 30); return; }
+  if (p.status === 'usado') { toast(`${quem} aprovou: ${altTxt(p.dados)}`); setTimeout(() => altSaidaFeita(p), 30); return; }
   ALTS.espera = false; ALTS.ped = 0; if (p.status === 'negado') { ALTS.neg = quem; toast(`${quem} não aprovou a alteração de valor`); } altSaidaRedesenha(true);
 }
 /* ---------- 1.04: desconto do gestor na tela de pagamento ---------- */
@@ -3606,17 +3603,33 @@ let ALT = null;   // { id (a criança), k (o item escolhido), v (o valor novo di
 const valTxt = v => (Math.round((+v || 0) * 100) / 100).toFixed(2).replace('.', ',');
 const altChave = l => l.pac != null ? `pac:${l.ph}:${l.ptipo}:${MAI(l.pnome || '')}:${centavos(l.vTab != null ? l.vTab : l.v)}` : l.prod ? `prod:${l.prod}:${l.q}` : '';
 const altChaveDe = it => !it ? '' : it.k === 'pac' ? `pac:${it.h}:${it.tipo}:${MAI(it.nome || '')}:${centavos(it.de)}` : `prod:${it.p}:${it.q}`;
-const altItens = L => L.filter(l => (l.pac != null || l.prod) && !l.festa && l.v > 0);
+const altItens = L => L.filter(l => l.pac != null && !l.festa && l.v > 0);   // 1.41: sempre um pacote
 const altNomeL = l => l.prod ? (l.q > 1 ? l.q + ' × ' : '') + l.servico : l.servico ? l.servico + ' · ' + dur(l.min) : nomePacVenda(l.min, l.itens);
 const altItem = l => l.pac != null ? { k: 'pac', h: l.ph, tipo: l.ptipo, nome: l.pnome || '', v: l.vTab != null ? l.vTab : l.v } : { k: 'prod', p: l.prod, q: l.q };
 const altValido = p => !!p && p.status === 'liberado' && (p.vale ? agora < p.vale : !!p.dec_em && agora - p.dec_em < PEDIDO_VALE_MIN * 60000);
 const altDecide = () => podeDecidirTipo('valor');
-function altPreparar(id) { if (ALT && ALT.id === id) return; ALT = { id, k: '', v: '', hh: '', motivo: '', ped: 0, lib: null, espera: false, neg: null, venceu: false }; altLigar(); }
+// 1.41: a conta do pacote alterado, como o gestor vê: "PACOTE 03 HORAS 360 (3h, R$ 225) para 4h: pacote R$ 300 + produto R$ 60 = R$ 360"
+const altTxt = d => { const it = d.item || {}, h0 = it.h != null ? +it.h : null, hn = +d.horas > 0 ? +d.horas : h0, de = `${it.n || 'o pacote'} (${h0 != null ? dur(h0 * 60) + ', ' : ''}${brl(d.de)})`;
+  return d.pac != null ? `${de} para ${hn != null ? dur(hn * 60) : ''}${+d.prod > 0 ? `: pacote ${brl(d.pac)} + produto ${brl(d.prod)} = ${brl(d.para)}` : ` por ${brl(d.para)}`}` : `${de} para ${+d.horas > 0 ? dur(d.horas * 60) + ' por ' : ''}${brl(d.para)}`; };
+// os três campos (o valor do pacote, as horas e o valor do produto, na ordem que a loja fala) e o total, que é o valor só que sai no cupom
+const altTot = A => { const vp = +numero(A.v) || 0, pr = A.vp && String(A.vp).trim() ? +numero(A.vp) || 0 : 0; return vp > 0 ? `Total: <b>${brl(centavos(vp + pr))}</b> <span class="leve">· no cupom sai um valor só</span>` : '<span class="leve">No cupom sai um valor só: o pacote e o produto juntos.</span>'; };
+const altCampos = (pre, A, trava) => `<label class="pg-alt-l">Valor do pacote<input id="${pre}-v" inputmode="decimal" autocomplete="off" placeholder="R$" value="${esc(A.v)}" aria-label="Valor do pacote, em reais"${trava}></label><label class="pg-alt-l">Horas<input id="${pre}-h" inputmode="numeric" autocomplete="off" maxlength="3" placeholder="Horas" value="${esc(A.hh)}" aria-label="Horas do pacote"${trava}></label><label class="pg-alt-l">Valor do produto<input id="${pre}-p" inputmode="decimal" autocomplete="off" placeholder="R$ 0" value="${esc(A.vp || '')}" aria-label="Valor do produto, em reais (sem produto, deixe vazio)"${trava}></label><p class="pg-alt-tot" id="${pre}-tot">${altTot(A)}</p>`;
+// as horas, o valor do pacote e o do produto, conferidos (na entrada e na saída): o pedido, ou { erro, foco }
+function altConfere(A, h0, v0, base) {
+  const hh = parseInt(soDig(A.hh || ''), 10), vp = +numero(A.v) || 0, pr = A.vp && String(A.vp).trim() ? +numero(A.vp) : 0;
+  if (!(hh >= 1 && hh <= 200)) return { erro: 'Escreva as horas do pacote (de 1 a 200)', foco: 'horas' };
+  if (!(vp > 0)) return { erro: 'Escreva o valor do pacote', foco: 'valor' };
+  if (!(pr >= 0)) return { erro: 'Confira o valor do produto', foco: 'produto' };
+  const tot = centavos(vp + pr); if (tot > 99999) return { erro: 'Confira os valores', foco: 'valor' };
+  if (Math.abs(tot - v0) < 0.005 && hh === Math.round(h0)) return { erro: `Mude as horas ou os valores: está igual ao de agora (${dur(Math.round(h0 * 60))} por ${brl(v0)})`, foco: 'valor' };
+  return { ...base, para: tot, horas: hh, pac: centavos(vp), prod: centavos(pr), motivo: '' };
+}
+function altPreparar(id) { if (ALT && ALT.id === id) return; ALT = { id, k: '', v: '', hh: '', vp: '', motivo: '', ped: 0, lib: null, espera: false, neg: null, venceu: false }; altLigar(); }
 function altLigar() { // o meu pedido de alterar valor deste cliente: esperando a resposta, ou aprovado e ainda não usado (ou negado agora há pouco)
   const c = crianca(ALT.id); if (!c) return;
   const M = (S.pedidos || []).filter(p => p.tipo === 'valor' && pedMeu(p) && (k => !!k && mesmoCliente(c, k))(crianca(p.crianca))).sort((a, b) => b.id - a.id), p = M.filter(p => p.status === 'pendente' || altValido(p))[0];
-  if (!p) { const n = M[0]; if (n && n.status === 'negado' && n.dec_em && agora - n.dec_em < PEDIDO_VALE_MIN * 60000) { ALT.neg = primeiro(n.dec) || 'A supervisora'; ALT.k = altChaveDe(n.dados.item); ALT.v = valTxt(n.dados.para); ALT.hh = String(n.dados.horas || (n.dados.item || {}).h || ''); ALT.motivo = n.motivo; } return; }
-  ALT.ped = p.id; ALT.k = altChaveDe(p.dados.item); ALT.v = valTxt(p.dados.para); ALT.hh = String(p.dados.horas || (p.dados.item || {}).h || ''); ALT.motivo = p.motivo; if (p.status === 'liberado') ALT.lib = p; else ALT.espera = true;
+  if (!p) { const n = M[0]; if (n && n.status === 'negado' && n.dec_em && agora - n.dec_em < PEDIDO_VALE_MIN * 60000) { ALT.neg = primeiro(n.dec) || 'A supervisora'; ALT.k = altChaveDe(n.dados.item); ALT.v = valTxt(n.dados.pac != null ? n.dados.pac : n.dados.para); ALT.vp = +n.dados.prod > 0 ? valTxt(n.dados.prod) : ''; ALT.hh = String(n.dados.horas || (n.dados.item || {}).h || ''); ALT.motivo = n.motivo; } return; }
+  ALT.ped = p.id; ALT.k = altChaveDe(p.dados.item); ALT.v = valTxt(p.dados.pac != null ? p.dados.pac : p.dados.para); ALT.vp = +p.dados.prod > 0 ? valTxt(p.dados.prod) : ''; ALT.hh = String(p.dados.horas || (p.dados.item || {}).h || ''); ALT.motivo = p.motivo; if (p.status === 'liberado') ALT.lib = p; else ALT.espera = true;
 }
 // as linhas da venda com a alteração aprovada: o item vale o valor novo (vTab guarda o da tabela, para o servidor achar o item)
 function altLinhas(L, id) {
@@ -3635,16 +3648,17 @@ function htmlAlt() {
   if (ALT.lib && !altValido(ALT.lib)) { ALT.lib = null; ALT.ped = 0; ALT.venceu = true; }   // a aprovação vale 30 min
   const p = ALT.lib, e = ALT.espera ? pedidoPorId(ALT.ped) : null;
   if (p) { const tem = L.some(l => altChave(l) === ALT.k);
-    return `<div class="pg-desc lib pg-alt" id="pg-alt">${ic(IC.check, 18, 2.6)}<span><b>Valor alterado${tem ? '' : ' (o item saiu da conta)'}</b>: ${esc((p.dados.item || {}).n || '')} ${+p.dados.horas > 0 ? `(${dur((p.dados.item || {}).h * 60)}, ${brl(p.dados.de)}) para ${dur(p.dados.horas * 60)} por ${brl(p.dados.para)}` : `de ${brl(p.dados.de)} para ${brl(p.dados.para)}`} · ${p.como === 'proprio' ? 'por' : 'aprovado por'} ${esc(primeiro(p.dec))}${p.como === 'senha' ? ', com a senha' : ''} · ${esc(p.motivo)}</span><button type="button" class="link tap" data-act="alt-largar">Tirar</button></div>`; }
-  if (!I.length) return '';
-  if (!I.some(l => altChave(l) === ALT.k) && !e) { ALT.k = I.length === 1 ? altChave(I[0]) : ''; ALT.v = I.length === 1 ? valTxt(I[0].v) : ''; ALT.hh = I.length === 1 && I[0].pac != null ? String(I[0].ph) : ''; }   // com um item só, ele já vem escolhido, com o valor de agora
-  const trava = e ? ' disabled' : '', aberto = !!e || !!ALT.aberto || !!ALT.neg || ALT.venceu, lp = I.find(l => altChave(l) === ALT.k), comH = !!lp && lp.pac != null;   // 1.36: o pacote também muda de horas
-  return `<details class="pg-desc pg-alt" id="pg-alt"${aberto ? ' open' : ''}><summary>${ic(IC.lapis, 18)}<span><b>${I.some(l => l.pac != null) ? 'Alterar pacote' : 'Alterar valor'}</b> <span class="leve">· ${dec ? (I.some(l => l.pac != null) ? 'horas e valor' : 'pacote ou produto') : 'pede aprovação'}</span></span>${ic(IC.vai, 16)}</summary>
-  <div class="pg-desc-c pg-alt-c${comH ? ' com-h' : ''}">${I.length > 1 ? `<div class="pg-alt-i" role="radiogroup" aria-label="O que muda de valor">${I.map(l => `<button type="button" class="tap" role="radio" aria-checked="${altChave(l) === ALT.k}" data-act="alt-item" data-k="${esc(altChave(l))}"${trava}><b>${esc(altNomeL(l))}</b><span class="num">${brl(l.v)}</span></button>`).join('')}</div>`
+    return `<div class="pg-desc lib pg-alt" id="pg-alt">${ic(IC.check, 18, 2.6)}<span><b>Pacote alterado${tem ? '' : ' (o pacote saiu da conta)'}</b>: ${esc(altTxt(p.dados))} · ${p.como === 'proprio' ? 'por' : 'aprovado por'} ${esc(primeiro(p.dec))}${p.como === 'senha' ? ', com a senha' : ''}${p.motivo ? ' · ' + esc(p.motivo) : ''}</span><button type="button" class="link tap" data-act="alt-largar">Tirar</button></div>`; }
+  const cab = `<summary>${ic(IC.lapis, 18)}<span><b>Alterar pacote</b> <span class="leve">· ${dec ? 'horas e valor' : 'o gestor aprova'}</span></span>${ic(IC.vai, 16)}</summary>`;
+  if (!I.length) return `<details class="pg-desc pg-alt" id="pg-alt"${ALT.aberto ? ' open' : ''}>${cab}<div class="pg-desc-c pg-alt-c"><p class="pg-alt-n">Escolha um pacote da lista (qualquer um). Aqui você define as horas, o valor do pacote e o valor do produto${dec ? '' : ', e o gestor aprova'}. No cupom sai um valor só.</p></div><div class="pg-desc-a"><button type="button" class="bt tap" data-act="pag-voltar">${ic(IC.mais, 14, 2.8)} Escolher o pacote</button></div></details>`;
+  if (!I.some(l => altChave(l) === ALT.k) && !e) { const l = I.length === 1 ? I[0] : null; ALT.k = l ? altChave(l) : ''; ALT.v = l ? valTxt(l.v) : ''; ALT.hh = l ? String(l.ph) : ''; ALT.vp = ''; }   // com um pacote só, ele já vem escolhido, com as horas e o valor da tabela
+  const trava = e ? ' disabled' : '', aberto = !!e || !!ALT.aberto || !!ALT.neg || ALT.venceu;
+  return `<details class="pg-desc pg-alt" id="pg-alt"${aberto ? ' open' : ''}>${cab}
+  <div class="pg-desc-c pg-alt-c pg-alt-3">${I.length > 1 ? `<div class="pg-alt-i" role="radiogroup" aria-label="Qual pacote muda">${I.map(l => `<button type="button" class="tap" role="radio" aria-checked="${altChave(l) === ALT.k}" data-act="alt-item" data-k="${esc(altChave(l))}"${trava}><b>${esc(altNomeL(l))}</b><span class="num">${brl(l.v)}</span></button>`).join('')}</div>`
       : `<p class="pg-alt-n">${esc(altNomeL(I[0]))} · na tabela, <b>${brl(I[0].v)}</b></p>`}
     ${ALT.neg ? `<p class="pg-alt-n"><b>${esc(ALT.neg)} não aprovou.</b> Dá para pedir de novo.</p>` : ALT.venceu ? '<p class="pg-alt-n"><b>A aprovação venceu</b> (vale por 30 min). Peça de novo.</p>' : ''}
-    <label class="pg-alt-l pg-alt-l-m">O que muda<input id="pg-alt-m" autocomplete="off" maxlength="80" placeholder="Ex.: COM O BRINQUEDO" value="${esc(ALT.motivo)}" aria-label="O que muda no valor (o motivo)"${trava}></label>${comH ? `<label class="pg-alt-l">Horas do pacote<input id="pg-alt-h" inputmode="numeric" autocomplete="off" maxlength="3" placeholder="Horas" value="${esc(ALT.hh)}" aria-label="Horas do pacote"${trava}></label>` : ''}<label class="pg-alt-l">Valor novo (R$)<input id="pg-alt-v" inputmode="decimal" autocomplete="off" placeholder="Valor novo" value="${esc(ALT.v)}" aria-label="Valor novo, em reais"${trava}></label></div>
-  <div class="pg-desc-a">${e ? `<p class="pg-desc-e">${ic(IC.sino, 16)}<span><b>Pedido enviado</b> às ${hora(e.em)}. Quando aprovar, o valor muda aqui.</span><button type="button" class="link tap" data-act="alt-largar">Cancelar o pedido</button></p>` : `<button type="button" class="bt forte tap" data-act="alt-pedir">${dec ? ic(IC.check, 16) + ' Alterar o valor' : ic(IC.sino, 16) + ' Pedir aprovação'}</button>`}
+    ${altCampos('pg-alt', ALT, trava)}</div>
+  <div class="pg-desc-a">${e ? `<p class="pg-desc-e">${ic(IC.sino, 16)}<span><b>Pedido enviado</b> às ${hora(e.em)}. Quando aprovar, o valor muda aqui.</span><button type="button" class="link tap" data-act="alt-largar">Cancelar o pedido</button></p>` : `<button type="button" class="bt forte tap" data-act="alt-pedir">${dec ? ic(IC.check, 16) + ' Alterar o pacote' : ic(IC.sino, 16) + ' Pedir aprovação'}</button>`}
     ${dec ? '' : `<div class="aut-senha">${campoSenha('pg-alt-s', 'Senha de quem aprova')}<button type="button" class="bt tap" data-act="alt-pedir" data-senha="1">Aprovar com a senha</button></div>`}</div></details>`;
 }
 function altRedesenha() { const d = $('#pg-alt'); if (!d || !ALT) return; if (d.tagName === 'DETAILS') ALT.aberto = d.open; d.outerHTML = htmlAlt(); }
@@ -3655,16 +3669,10 @@ function altMudou() { // o valor aprovado (ou tirado): a tabela, o total, as for
   const a = $('#pg-itens-v'), f = $('#pg-fica-v'), hv = $('#pg-horas-v'); if (a) a.innerHTML = htmlItensVenda(); if (f) f.textContent = brl(PAG.total); if (hv) hv.innerHTML = horasPagHtml(c, L); desenharPag(false); descRedesenha();
 }
 function altPedidoDados() { // o que foi escrito, conferido: os dados do pedido, ou { erro, foco }
-  const l = linhasDoCarrinho().find(x => (x.pac != null || x.prod) && altChave(x) === ALT.k); if (!l) return { erro: 'Escolha o pacote ou o produto que muda de valor', foco: 'item' };
-  const para = numero(ALT.v), motivo = MAI(ALT.motivo || ''), pac = l.pac != null, hh = pac ? parseInt(soDig(ALT.hh || ''), 10) : 0;
-  if (pac && !(hh >= 1 && hh <= 200)) return { erro: 'Escreva as horas do pacote (de 1 a 200)', foco: 'horas' };   // 1.36
-  if (!(para > 0)) return { erro: 'Escreva o valor novo', foco: 'valor' };
-  if (para > 99999) return { erro: 'Confira o valor novo', foco: 'valor' };
-  if (Math.abs(centavos(para) - l.v) < 0.005 && !(pac && hh !== l.ph)) return { erro: pac ? `Mude o valor ou as horas: está igual ao da tabela (${dur(l.ph * 60)} por ${brl(l.v)})` : `O valor novo é igual ao de agora (${brl(l.v)})`, foco: 'valor' };
-  if (motivo.length < 3) return { erro: 'Escreva o que muda no valor (o motivo)', foco: 'motivo' };
-  return { tipo: 'valor', crianca: ALT.id, item: altItem(l), para: centavos(para), motivo, ...(pac ? { horas: hh } : {}) };
+  const l = linhasDoCarrinho().find(x => x.pac != null && altChave(x) === ALT.k); if (!l) return { erro: 'Escolha o pacote que muda', foco: 'item' };
+  return altConfere(ALT, l.ph, l.v, { tipo: 'valor', crianca: ALT.id, item: altItem(l) });   // 1.41: as horas, o valor do pacote e o do produto
 }
-const altFoco = f => { const d = $('#pg-alt'), i = $(f === 'motivo' ? '#pg-alt-m' : f === 'item' ? '.pg-alt-i button' : f === 'horas' ? '#pg-alt-h' : '#pg-alt-v'); if (d && d.tagName === 'DETAILS') d.open = true; if (i) i.focus(); };
+const altFoco = f => { const d = $('#pg-alt'), i = $(f === 'item' ? '.pg-alt-i button' : f === 'horas' ? '#pg-alt-h' : f === 'produto' ? '#pg-alt-p' : '#pg-alt-v'); if (d && d.tagName === 'DETAILS') d.open = true; if (i) i.focus(); };
 async function pedirAlteracao(el) { // pede (aparece para quem aprova, com o aviso no celular) ou, com a senha de quem aprova digitada aqui, vale na hora
   if (!ALT || ALT.lib) return; const comSenha = !!el.dataset.senha, senha = comSenha ? senhaDe('pg-alt-s') : '', e = ALT.espera ? pedidoPorId(ALT.ped) : null;
   if (comSenha && !senha) { toast('Digite a senha da supervisora ou do gestor'); const i = $('#pg-alt-s'); if (i) i.focus(); return; } if (e && !comSenha) return;
@@ -3679,12 +3687,12 @@ async function pedirAlteracao(el) { // pede (aparece para quem aprova, com o avi
 async function largarAlteracao() { // cancela o pedido que esperava, ou tira a alteração aprovada que não vai ser usada
   if (!ALT || !ALT.ped) return; const id = ALT.ped;
   try { if (MODO === 'servidor') pedidosChegaram((await api('pedido_cancelar', { id })).pedidos, true); else { cancelarPedidoPrevia(pedidoPorId(id), true); pedidosMudaramPrevia(true); } } catch (e) { toast(e.message); }
-  ALT.ped = 0; ALT.lib = null; ALT.espera = false; ALT.aberto = true; const l = linhasDoCarrinho().find(x => altChave(x) === ALT.k); if (l) { ALT.v = valTxt(l.v); ALT.hh = l.pac != null ? String(l.ph) : ''; } altRedesenha(); altMudou();
+  ALT.ped = 0; ALT.lib = null; ALT.espera = false; ALT.aberto = true; const l = linhasDoCarrinho().find(x => altChave(x) === ALT.k); if (l) { ALT.v = valTxt(l.v); ALT.hh = l.pac != null ? String(l.ph) : ''; ALT.vp = ''; } altRedesenha(); altMudou();
 }
 function altResposta(p, vis) { // a resposta de quem aprova chegou
   const quem = primeiro(p.dec) || 'A supervisora';
   if (p.status === 'liberado') { ALT.lib = p; ALT.espera = false; ALT.neg = null; } else { ALT.espera = false; ALT.ped = 0; ALT.lib = null; if (p.status === 'negado') ALT.neg = quem; }
-  if (!vis) return; if (p.status === 'liberado') toast(`${quem} aprovou: ${(p.dados.item || {}).n || 'o item'}${+p.dados.horas > 0 ? ' com ' + dur(p.dados.horas * 60) : ''} por ${brl(p.dados.para)}`); else if (p.status === 'negado') toast(`${quem} não aprovou a alteração de valor`);
+  if (!vis) return; if (p.status === 'liberado') toast(`${quem} aprovou: ${altTxt(p.dados)}`); else if (p.status === 'negado') toast(`${quem} não aprovou a alteração de valor`);
   altRedesenha(); altMudou();
 }
 // 1.33: no cupom, discreta, a resposta do que foi pedido nesta conta (só quando alguém pediu): aprovado, não aprovado ou pendente de aprovação
@@ -5884,9 +5892,9 @@ const avisar = txt => toast(txt, () => { }, 'OK');   // a resposta de quem autor
 function pedidoRespondido(p) { // (na tela de quem pediu) chegou a resposta de quem autoriza
   const quem = primeiro(p.dec) || 'O gestor', cliente = p.resp || p.nome;
   if (p.tipo === 'valor') { if (ALTS && ALTS.ped === p.id && $('#sa-box')) { altSaidaResposta(p); return; }   // 1.39: na saída
-    if (p.venda && (p.dados || {}).onde === 'saida') { const it = (p.dados.item || {}).n || 'o item'; if (p.status === 'usado') avisar(`${quem} aprovou ${it}${+p.dados.horas > 0 ? ' com ' + dur(p.dados.horas * 60) : ''} por ${brl(p.dados.para)} para ${cliente}: o valor já mudou na conta da saída.`); else if (p.status === 'negado') avisar(`${quem} não aprovou a alteração de valor de ${it} (${cliente}).`); return; }
+    if (p.venda && (p.dados || {}).onde === 'saida') { const it = (p.dados.item || {}).n || 'o item'; if (p.status === 'usado') avisar(`${quem} aprovou ${altTxt(p.dados)} para ${cliente}: o valor já mudou na conta da saída.`); else if (p.status === 'negado') avisar(`${quem} não aprovou a alteração de valor de ${it} (${cliente}).`); return; }
     if (ALT && ALT.ped === p.id) { const vis = !!$('#pg-alt'); altResposta(p, vis); if (vis) return; }   // 1.33
-    const it = (p.dados.item || {}).n || 'o item'; if (p.status === 'liberado') avisar(`${quem} aprovou ${it}${+p.dados.horas > 0 ? ' com ' + dur(p.dados.horas * 60) : ''} por ${brl(p.dados.para)} para ${cliente}. Abra o pagamento para usar.`); else if (p.status === 'negado') avisar(`${quem} não aprovou a alteração de valor de ${it} (${cliente}).`); return; }
+    const it = (p.dados.item || {}).n || 'o item'; if (p.status === 'liberado') avisar(`${quem} aprovou ${altTxt(p.dados)} para ${cliente}. Abra o pagamento para usar.`); else if (p.status === 'negado') avisar(`${quem} não aprovou a alteração de valor de ${it} (${cliente}).`); return; }
   if (p.tipo === 'desconto') { if (DESC && DESC.pede && DESC.ped === p.id && $('#pg-desc')) { descResposta(p); return; }
     if (p.status === 'liberado') avisar(`${quem} liberou o desconto de ${brl(p.valor)} para ${cliente}. Abra o pagamento para usar.`); else if (p.status === 'negado') avisar(`${quem} não liberou o desconto de ${brl(p.valor)} para ${cliente}.`); return; }
   if (p.tipo === 'cancelar_venda') { if (p.status === 'usado') avisar(`${quem} cancelou a venda que você pediu (${p.dados.item || cliente})${/^DEVOLVER AO CLIENTE: /.test(p.resultado) ? ' · devolver ao cliente: ' + p.resultado.replace(/^DEVOLVER AO CLIENTE: /, '') : ''}`); else if (p.status === 'negado') avisar(`${quem} não liberou o cancelamento da venda (${p.dados.item || cliente}).`); }
@@ -6081,20 +6089,21 @@ function criarPedidoPrevia(d, senha) {
   if (tipo === 'desconto') { c = crianca(d.crianca); if (!c) return { erro: 'Cliente não encontrado.' }; valor = centavos(d.valor); dados = { pct: d.pct || 0, base: d.base || 0, onde: d.onde === 'saida' ? 'saida' : 'venda' };
     texto = `Desconto de ${brl(valor)}${d.pct > 0 ? ' (' + String(centavos(d.pct)).replace('.', ',') + '%)' : ''}${d.base > 0 ? ' em ' + brl(d.base) : ''}${dados.onde === 'saida' ? ' · na saída' : ''}`;
     for (const p of S.pedidos) if (p.tipo === 'desconto' && p.por_id === euId() && p.crianca === c.id && (p.status === 'pendente' || p.status === 'liberado')) { p.status = 'cancelado'; p.resultado = 'TROCADO POR OUTRO PEDIDO'; }
-  } else if (tipo === 'valor' && d.venda) { const v = S.compras.find(x => x.id === d.venda); if (!v) return { erro: 'Esta venda não existe mais: já foi desfeita ou cancelada.' }; c = crianca(v.crianca); if (!c) return { erro: 'Cliente não encontrado.' };   // 1.39: na saída
+  } else if (tipo === 'valor' && d.venda) { const pp = d.pac != null ? { pac: centavos(+d.pac), prod: centavos(+d.prod || 0) } : null; const v = S.compras.find(x => x.id === d.venda); if (!v) return { erro: 'Esta venda não existe mais: já foi desfeita ou cancelada.' }; c = crianca(v.crianca); if (!c) return { erro: 'Cliente não encontrado.' };   // 1.39: na saída
     const k = altDaCompraPrevia(v); if (!k) return { erro: 'Esta venda não tem o valor alterado por aqui (só o pacote ou o produto desta visita).' };
-    const de = centavos(v.v), mm = minDe(v), nm = k === 'pac' ? (v.servico || 'PACOTE') : nomeVendaTxt(v); valor = centavos(+d.para || 0); if (!(valor > 0)) return { erro: 'Escreva o valor novo.' };
+    const de = centavos(v.v), mm = minDe(v), nm = k === 'pac' ? (v.servico || 'PACOTE') : nomeVendaTxt(v); if (pp && !(pp.pac > 0)) return { erro: 'Escreva o valor do pacote.' }; valor = pp ? centavos(pp.pac + pp.prod) : centavos(+d.para || 0); if (!(valor > 0)) return { erro: 'Escreva o valor novo.' };
     let horas = null; if (k === 'pac' && d.horas != null) { const hh = parseInt(d.horas, 10); if (!(hh >= 1 && hh <= 200)) return { erro: 'As horas do pacote vão de 1 a 200.' }; if (hh * 60 !== mm) horas = hh; }
     if (Math.abs(valor - de) < 0.005 && horas == null) return { erro: `O valor novo é igual ao de agora (${brl(de)}).` };
-    motivo = motivo.slice(0, 120); if (motivo.length < 3) return { erro: 'Escreva o motivo: o que muda no valor.' };
-    venda = v.id; dados = { venda: v.id, item: { k: 'venda', tipo: k, n: nm, h: k === 'pac' ? Math.floor(mm / 60) : null, min: mm, de }, de, para: valor, horas, onde: 'saida' };
-    texto = (horas ? `Alterar o pacote: ${nm} (${dur(mm)}, ${brl(de)}) para ${horas}h por ${brl(valor)}` : `Alterar o valor: ${nm} de ${brl(de)} para ${brl(valor)}`) + ' · na saída';
+    motivo = motivo.slice(0, 120); if (!pp && motivo.length < 3) return { erro: 'Escreva o motivo: o que muda no valor.' };
+    venda = v.id; dados = { ...(pp || {}), venda: v.id, item: { k: 'venda', tipo: k, n: nm, h: k === 'pac' ? Math.floor(mm / 60) : null, min: mm, de }, de, para: valor, horas, onde: 'saida' };
+    texto = (pp ? 'Alterar o pacote: ' + altTxt(dados) : horas ? `Alterar o pacote: ${nm} (${dur(mm)}, ${brl(de)}) para ${horas}h por ${brl(valor)}` : `Alterar o valor: ${nm} de ${brl(de)} para ${brl(valor)}`) + ' · na saída';
     for (const p of S.pedidos) if (p.tipo === 'valor' && p.por_id === euId() && p.venda === v.id && (p.status === 'pendente' || p.status === 'liberado')) { p.status = 'cancelado'; p.resultado = 'TROCADO POR OUTRO PEDIDO'; }
   } else if (tipo === 'valor') { c = crianca(d.crianca); if (!c) return { erro: 'Cliente não encontrado.' }; const it = altItemPrevia(d.item || {}); if (it.erro) return it;   // 1.33
-    valor = centavos(+d.para || 0); if (!(valor > 0)) return { erro: 'Escreva o valor novo.' }; let horas = null; if (it.k === 'pac' && d.horas != null) { const hh = parseInt(d.horas, 10); if (!(hh >= 1 && hh <= 200)) return { erro: 'As horas do pacote vão de 1 a 200.' }; if (hh !== it.h) horas = hh; }   // 1.36
+    const pp = d.pac != null ? { pac: centavos(+d.pac), prod: centavos(+d.prod || 0) } : null; if (pp && !(pp.pac > 0)) return { erro: 'Escreva o valor do pacote.' };   // 1.41
+    valor = pp ? centavos(pp.pac + pp.prod) : centavos(+d.para || 0); if (!(valor > 0)) return { erro: 'Escreva o valor novo.' }; let horas = null; if (it.k === 'pac' && d.horas != null) { const hh = parseInt(d.horas, 10); if (!(hh >= 1 && hh <= 200)) return { erro: 'As horas do pacote vão de 1 a 200.' }; if (hh !== it.h) horas = hh; }   // 1.36
     if (Math.abs(valor - it.de) < 0.005 && horas == null) return { erro: `O valor novo é igual ao de agora (${brl(it.de)}).` };
-    motivo = motivo.slice(0, 120); if (motivo.length < 3) return { erro: 'Escreva o motivo: o que muda no valor.' };
-    dados = { item: it, de: it.de, para: valor, horas }; texto = horas ? `Alterar o valor: ${it.n} (${it.h}h, ${brl(it.de)}) para ${horas}h por ${brl(valor)}` : `Alterar o valor: ${it.n} de ${brl(it.de)} para ${brl(valor)}`;
+    motivo = motivo.slice(0, 120); if (!pp && motivo.length < 3) return { erro: 'Escreva o motivo: o que muda no valor.' };
+    dados = { item: it, de: it.de, para: valor, horas, ...(pp || {}) }; if (pp) texto = 'Alterar o pacote: ' + altTxt(dados); else texto = horas ? `Alterar o valor: ${it.n} (${it.h}h, ${brl(it.de)}) para ${horas}h por ${brl(valor)}` : `Alterar o valor: ${it.n} de ${brl(it.de)} para ${brl(valor)}`;
     for (const p of S.pedidos) if (p.tipo === 'valor' && !p.venda && p.por_id === euId() && p.crianca === c.id && (p.status === 'pendente' || p.status === 'liberado')) { p.status = 'cancelado'; p.resultado = 'TROCADO POR OUTRO PEDIDO'; }
   } else { const v = S.compras.find(x => x.id === d.venda); if (!v) return { erro: 'Esta venda não existe mais: já foi desfeita ou cancelada.' }; c = crianca(v.crianca); if (!c) return { erro: 'Cliente não encontrado.' }; venda = v.id; valor = v.v;
     const pago = devDaCompra(v), oque = `${nomeVendaTxt(v)} (${brl(v.v)}) · venda de ${p2(v.quando.getDate())}/${p2(v.quando.getMonth() + 1)} às ${hora(v.quando)}${pago ? ' · pago: ' + pago : v.v > 0 ? ' · ainda não foi paga' : ''}`;
@@ -6130,6 +6139,7 @@ function alterarCompraPrevia(p, quem) { // 1.39 (prévia): a alteração aprovad
   const hh = +d.horas || 0, m1 = hh > 0 ? hh * 60 : m0;
   if (m1 !== m0) { if (saldoMin(c) + m1 - m0 < 0) return sai('AS HORAS JÁ FORAM USADAS', `As horas deste pacote já foram usadas: não dá para diminuir para ${hh}h.`); c.pacote += (m1 - m0) / 60; if (v.servico) v.servico = 'PACOTE ' + hh + 'H'; v.m = m1; v.h = m1 / 60; }
   const de = v.v; v.v = centavos(+d.para); const por = MAI(primeiro(p.por)), dec = MAI(primeiro(quem.nomeCompleto || quem.nome || ''));
+  if (d.pac != null) { registrar('alt', c.nome, `Pacote alterado na saída · ${altTxt({ ...d, item: it })}${p.motivo ? ' · Motivo: ' + p.motivo : ''} · por ${por}${dec && dec !== por ? ' · aprovado por ' + dec : ''}`); return {}; }   // 1.41
   registrar('alt', c.nome, `Valor alterado na saída · ${it.n}${hh > 0 ? ` (${dur(m0)}): ${brl(de)} → ${hh}h por ` : `: ${brl(de)} → `}${brl(v.v)} · Motivo: ${p.motivo} · por ${por}${dec && dec !== por ? ' · aprovado por ' + dec : ''}`); return {};
 }
 function cancelarPedidoPrevia(p, meu) { if (p && (p.status === 'pendente' || (p.status === 'liberado' && (semVendaTipo(p.tipo) || (p.tipo === 'nf' && gestor()))))) { p.status = 'cancelado'; p.resultado = meu ? 'CANCELADO POR QUEM PEDIU' : 'CANCELADO POR ' + MAI(EU.nome); } return {}; }
@@ -6148,7 +6158,7 @@ const altItemPrevia = i => {
   return { erro: 'Escolha o pacote ou o produto que muda de valor.' };
 };
 function usarAltPrevia(l, v, c, regs) { const p = pedidoPorId(l.alt); if (!p) return; p.status = 'usado'; p.usado = l.v; p.venda = v.id; p.feito_por = EU.nomeCompleto || EU.nome; p.feito_em = new Date(); p.resultado = 'VALOR ALTERADO NA VENDA';
-  const por = MAI(primeiro(p.por)), dec = MAI(primeiro(p.dec)); registrar('alt', c.nome, `Valor alterado · ${p.dados.item.n}${+p.dados.horas > 0 ? ` (${p.dados.item.h}h): ${brl(p.dados.de)} → ${p.dados.horas}h por ` : `: ${brl(p.dados.de)} → `}${brl(p.dados.para)} · Motivo: ${p.motivo} · por ${por}${dec && dec !== por ? ' · aprovado por ' + dec : ''}`); regs.push(S.registros[0]); }
+  const por = MAI(primeiro(p.por)), dec = MAI(primeiro(p.dec)); registrar('alt', c.nome, p.dados.pac != null ? `Pacote alterado · ${altTxt(p.dados)}${p.motivo ? ' · Motivo: ' + p.motivo : ''} · por ${por}${dec && dec !== por ? ' · aprovado por ' + dec : ''}` : `Valor alterado · ${p.dados.item.n}${+p.dados.horas > 0 ? ` (${p.dados.item.h}h): ${brl(p.dados.de)} → ${p.dados.horas}h por ` : `: ${brl(p.dados.de)} → `}${brl(p.dados.para)} · Motivo: ${p.motivo} · por ${por}${dec && dec !== por ? ' · aprovado por ' + dec : ''}`); regs.push(S.registros[0]); }
 function fecharPedidosPrevia(c, onde) { for (const p of S.pedidos || []) if ((p.tipo === 'desconto' ? (p.dados.onde || 'venda') === onde : p.tipo === 'valor' && (onde === 'saida') === !!p.venda) && p.status === 'pendente' && p.por_id === euId() && p.crianca === c.id) { p.status = 'cancelado'; p.resultado = 'A CONTA FOI FECHADA SEM ESPERAR A RESPOSTA'; } }   // a conta fechou sem a resposta: o pedido não fica para depois
 function soltarPedidosPrevia(vendaId, resultado) { for (const p of S.pedidos || []) if (p.venda === vendaId && p.tipo !== 'desconto') { if (p.status === 'pendente' || p.status === 'liberado') p.status = 'cancelado'; if (!p.resultado) p.resultado = resultado || 'A VENDA SAIU'; } }
 
@@ -7168,10 +7178,10 @@ const ACOES = {
   'ped-ok': el => decidirPedido(el.dataset.id, true, el), 'ped-nao': el => decidirPedido(el.dataset.id, false, el), 'ped-desistir': el => desistirPedido(el.dataset.id, el),   // 1.23: os pedidos de autorização
   'aut-min': () => { AUT_MIN = !AUT_MIN; desenharPedidos(); }, autorizacoes: () => folhaAutorizacoes(), 'aut-cliente': el => { const id = +el.dataset.id; fecharFolha(); setTimeout(() => abrirHistorico(id), 300); },
   'desc-pedir': el => pedirDesconto(el), 'desc-largar': () => largarDesconto(),
-  'alt-item': el => { if (!ALT || ALT.espera || ALT.lib) return; const l = linhasDoCarrinho().find(x => altChave(x) === el.dataset.k); if (!l) return; ALT.k = el.dataset.k; ALT.v = valTxt(l.v); ALT.hh = l.pac != null ? String(l.ph) : ''; ALT.aberto = true; altRedesenha(); const i = $('#pg-alt-v'); if (i) { i.focus(); i.select(); } },   /* 1.33 */
+  'alt-item': el => { if (!ALT || ALT.espera || ALT.lib) return; const l = linhasDoCarrinho().find(x => altChave(x) === el.dataset.k); if (!l) return; ALT.k = el.dataset.k; ALT.v = valTxt(l.v); ALT.hh = l.pac != null ? String(l.ph) : ''; ALT.vp = ''; ALT.aberto = true; altRedesenha(); const i = $('#pg-alt-v'); if (i) { i.focus(); i.select(); } },   /* 1.33 */
   'alt-pedir': el => pedirAlteracao(el), 'alt-largar': () => largarAlteracao(),
   'off-ver': () => folhaOffProb(), 'off-ok': el => { OFF.prob.splice(+el.dataset.i, 1); filaGuardar(); offFaixa(); if (OFF.prob.length) folhaOffProb(); else fecharFolha(); },   /* 1.40 */
-  'salt-item': el => { if (!ALTS || ALTS.espera) return; const i = altSaidaItens().find(x => x.id === +el.dataset.k); if (!i) return; ALTS.k = i.id; ALTS.v = valTxt(i.v); ALTS.hh = i.alt === 'pac' ? String(Math.round(i.h)) : ''; ALTS.aberto = true; altSaidaRedesenha(true); const v = $('#sa-alt-v'); if (v) { v.focus(); v.select(); } },   /* 1.39 */
+  'salt-item': el => { if (!ALTS || ALTS.espera) return; const i = altSaidaItens().find(x => x.id === +el.dataset.k); if (!i) return; ALTS.k = i.id; ALTS.v = valTxt(i.v); ALTS.hh = String(Math.round(i.h)); ALTS.vp = ''; ALTS.aberto = true; altSaidaRedesenha(true); const v = $('#sa-alt-v'); if (v) { v.focus(); v.select(); } },   /* 1.39 */
   'salt-pedir': el => altSaidaPedir(el), 'salt-largar': () => altSaidaLargar(),
   nf: el => folhaNF(el.dataset.id), 'nf-pedir': el => pedirNF(el), 'nf-senha': el => acaoNF('senha', el), 'nf-emitida': el => acaoNF('emitida', el), 'nf-voltar': el => acaoNF('voltar', el), 'nf-largar': el => acaoNF('largar', el), 'nf-copiar': el => acaoNF('copiar', el),
   'venda-cancelar': el => folhaCancelarVenda(el.dataset.id), 'venda-cancelar-ok': el => confirmarCancelarVenda(el),   // 1.21: quem estorna cancela uma venda, com o motivo
@@ -7403,8 +7413,8 @@ document.addEventListener('input', e => {
   if (e.target.id === 'fv-hora' || e.target.id === 'fv-data') { const d = soDig(e.target.value).slice(0, e.target.id === 'fv-hora' ? 4 : 8); e.target.value = e.target.id === 'fv-hora' ? mascaraHora(e.target.value) : d.length > 4 ? d.slice(0, 2) + '/' + d.slice(2, 4) + '/' + d.slice(4) : d.length > 2 ? d.slice(0, 2) + '/' + d.slice(2) : d; }
   if (e.target.id === 'fe-data') { const d = soDig(e.target.value).slice(0, 8); e.target.value = d.length > 4 ? d.slice(0, 2) + '/' + d.slice(2, 4) + '/' + d.slice(4) : d.length > 2 ? d.slice(0, 2) + '/' + d.slice(2) : d; if (CARRINHO && CARRINHO.festa) CARRINHO.festa.data = festaDataDoCampo(e.target.value).iso || ''; atualizarFesta(); }   // 1.12: a data da festa
   if (e.target.classList && e.target.classList.contains('pg-valor') && PAG) { PAG.v[e.target.dataset.pgF] = e.target.value; desenharPag(false); }
-  if (ALTS && (e.target.id === 'sa-alt-v' || e.target.id === 'sa-alt-m' || e.target.id === 'sa-alt-h')) { if (e.target.id === 'sa-alt-v') ALTS.v = e.target.value; else if (e.target.id === 'sa-alt-h') { e.target.value = soDig(e.target.value).slice(0, 3); ALTS.hh = e.target.value; } else ALTS.motivo = e.target.value; }   // 1.39
-  if (ALT && (e.target.id === 'pg-alt-v' || e.target.id === 'pg-alt-m' || e.target.id === 'pg-alt-h')) { if (e.target.id === 'pg-alt-v') ALT.v = e.target.value; else if (e.target.id === 'pg-alt-h') { e.target.value = soDig(e.target.value).slice(0, 3); ALT.hh = e.target.value; } else ALT.motivo = e.target.value; }   // 1.33 (1.36: as horas)
+  if (ALTS && /^sa-alt-[vhp]$/.test(e.target.id)) { const k = e.target.id.slice(-1); if (k === 'h') { e.target.value = soDig(e.target.value).slice(0, 3); ALTS.hh = e.target.value; } else if (k === 'p') ALTS.vp = e.target.value; else ALTS.v = e.target.value; const t = $('#sa-alt-tot'); if (t) t.innerHTML = altTot(ALTS); }   // 1.39 (1.41)
+  if (ALT && /^pg-alt-[vhp]$/.test(e.target.id)) { const k = e.target.id.slice(-1); if (k === 'h') { e.target.value = soDig(e.target.value).slice(0, 3); ALT.hh = e.target.value; } else if (k === 'p') ALT.vp = e.target.value; else ALT.v = e.target.value; const t = $('#pg-alt-tot'); if (t) t.innerHTML = altTot(ALT); }   // 1.33 (1.41: as horas, o valor do pacote e o do produto, com o total)
   if (DESC && (e.target.id === 'pg-desc-v' || e.target.id === 'pg-desc-m')) { if (e.target.id === 'pg-desc-v') DESC.v = e.target.value; else DESC.motivo = e.target.value; descMudou(); }   // 1.04: o desconto do gestor
   if (e.target.id === 'esp-busca') { S.espBusca = e.target.value; atualizarEspaco(); }
   if (e.target.id === 'pq-busca') { const q = e.target.value; if (soNumerosBusca(q)) { const v = cpfFmt(q); if (v !== q) e.target.value = v; } const l = $('#pq-lista'); if (l) l.innerHTML = listaParaQuem(e.target.value); }   // só números: vai ficando com a cara de CPF

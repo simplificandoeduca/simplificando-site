@@ -600,22 +600,23 @@ function pedidoCriar(array $u, array $in): array {
     $c = crianca((int)$v['crianca_id']); if (!$c) falha('Cliente não encontrado.', 404); $k = altDaVenda($v); if ($k === '') falha('Esta venda não tem o valor alterado por aqui (só o pacote ou o produto desta visita).');
     if (pagoPorForma([(int)$v['id']])) falha('Esta venda já foi paga: o valor não muda mais.');
     $vendaId = (int)$v['id']; $de = round((float)$v['valor'], 2); $min = (int)$v['minutos']; $nm = $k === 'pac' ? (trim((string)$v['servico']) !== '' ? trim((string)$v['servico']) : 'PACOTE') : nomeDaVenda($v);   // (o pacote, sem as horas no nome: elas vêm ao lado)
-    $para = round((float)($in['para'] ?? 0), 2); if ($para <= 0) falha('Escreva o valor novo.'); if ($para > 99999) falha('Confira o valor novo: ' . dinheiro($para) . '.');
+    $para = round((float)($in['para'] ?? 0), 2); $pp = lerPacProd($in, $k); if ($pp) $para = $pp['para'];   // 1.41
+    if ($para <= 0) falha('Escreva o valor novo.'); if ($para > 99999) falha('Confira o valor novo: ' . dinheiro($para) . '.');
     $horas = null; if ($k === 'pac' && isset($in['horas'])) { $hh = (int)$in['horas']; if ($hh < 1 || $hh > 200) falha('As horas do pacote vão de 1 a 200.'); if ($hh * 60 !== $min) $horas = $hh; }
     if (abs($para - $de) < 0.005 && $horas === null) falha('O valor novo é igual ao de agora (' . dinheiro($de) . ').');
-    $motivo = mb_substr($motivo, 0, 120); if (mb_strlen($motivo) < 3) falha('Escreva o motivo: o que muda no valor.');
-    $valor = $para; $dados = ['venda' => $vendaId, 'item' => ['k' => 'venda', 'tipo' => $k, 'n' => $nm, 'h' => $k === 'pac' ? intdiv($min, 60) : null, 'min' => $min, 'de' => $de], 'de' => $de, 'para' => $para, 'horas' => $horas, 'onde' => 'saida'];
-    $texto = ($horas ? 'Alterar o pacote: ' . $nm . ' (' . dur($min) . ', ' . dinheiro($de) . ') para ' . $horas . 'h por ' . dinheiro($para) : 'Alterar o valor: ' . $nm . ' de ' . dinheiro($de) . ' para ' . dinheiro($para)) . ' · na saída';
+    $motivo = mb_substr($motivo, 0, 120); if (!$pp && mb_strlen($motivo) < 3) falha('Escreva o motivo: o que muda no valor.');
+    $valor = $para; $dados = ($pp ? ['pac' => $pp['pac'], 'prod' => $pp['prod']] : []) + ['venda' => $vendaId, 'item' => ['k' => 'venda', 'tipo' => $k, 'n' => $nm, 'h' => $k === 'pac' ? intdiv($min, 60) : null, 'min' => $min, 'de' => $de], 'de' => $de, 'para' => $para, 'horas' => $horas, 'onde' => 'saida'];
+    $texto = ($pp ? 'Alterar o pacote: ' . altTextoPac($nm, intdiv($min, 60), $de, $horas ?: intdiv($min, 60), $pp['pac'], $pp['prod'], $para) : ($horas ? 'Alterar o pacote: ' . $nm . ' (' . dur($min) . ', ' . dinheiro($de) . ') para ' . $horas . 'h por ' . dinheiro($para) : 'Alterar o valor: ' . $nm . ' de ' . dinheiro($de) . ' para ' . dinheiro($para))) . ' · na saída';
     $db->prepare("UPDATE pedidos SET status = 'cancelado', resultado = 'TROCADO POR OUTRO PEDIDO' WHERE tipo = 'valor' AND pedido_por = ? AND venda_id = ? AND status IN ('pendente', 'liberado')")->execute([(int)$u['id'], $vendaId]);   // um pedido por venda
   } elseif ($tipo === 'valor') { // 1.33: o valor novo de um pacote ou de um produto da venda que está sendo feita
     $c = crianca((int)($in['crianca'] ?? 0)); if (!$c) falha('Cliente não encontrado.', 404);
-    $it = itemDoValor((array)($in['item'] ?? [])); $para = round((float)($in['para'] ?? 0), 2);
+    $it = itemDoValor((array)($in['item'] ?? [])); $para = round((float)($in['para'] ?? 0), 2); $pp = lerPacProd($in, $it['k']); if ($pp) $para = $pp['para'];   // 1.41
     if ($para <= 0) falha('Escreva o valor novo.'); if ($para > 99999) falha('Confira o valor novo: ' . dinheiro($para) . '.');
     $horas = null; if ($it['k'] === 'pac' && isset($in['horas'])) { $hh = (int)$in['horas']; if ($hh < 1 || $hh > 200) falha('As horas do pacote vão de 1 a 200.'); if ($hh !== (int)$it['h']) $horas = $hh; }   // 1.36: o pacote que não existe na tabela (as horas também mudam)
     if (abs($para - $it['de']) < 0.005 && $horas === null) falha('O valor novo é igual ao de agora (' . dinheiro($it['de']) . ').');
-    $motivo = mb_substr($motivo, 0, 120); if (mb_strlen($motivo) < 3) falha('Escreva o motivo: o que muda no valor.');
-    $valor = $para; $dados = ['item' => $it, 'de' => $it['de'], 'para' => $para, 'horas' => $horas];
-    $texto = $horas ? 'Alterar o valor: ' . $it['n'] . ' (' . (int)$it['h'] . 'h, ' . dinheiro($it['de']) . ') para ' . $horas . 'h por ' . dinheiro($para) : 'Alterar o valor: ' . $it['n'] . ' de ' . dinheiro($it['de']) . ' para ' . dinheiro($para);
+    $motivo = mb_substr($motivo, 0, 120); if (!$pp && mb_strlen($motivo) < 3) falha('Escreva o motivo: o que muda no valor.');   // (1.41: com os três campos, o motivo é opcional)
+    $valor = $para; $dados = ['item' => $it, 'de' => $it['de'], 'para' => $para, 'horas' => $horas] + ($pp ? ['pac' => $pp['pac'], 'prod' => $pp['prod']] : []);
+    $texto = $pp ? 'Alterar o pacote: ' . altTextoPac($it['n'], (int)$it['h'], (float)$it['de'], $horas ?: (int)$it['h'], $pp['pac'], $pp['prod'], $para) : ($horas ? 'Alterar o valor: ' . $it['n'] . ' (' . (int)$it['h'] . 'h, ' . dinheiro($it['de']) . ') para ' . $horas . 'h por ' . dinheiro($para) : 'Alterar o valor: ' . $it['n'] . ' de ' . dinheiro($it['de']) . ' para ' . dinheiro($para));
     // uma alteração por vez para o mesmo cliente: a anterior (sem resposta, ou aprovada e não usada) deixa de valer
     $db->prepare("UPDATE pedidos SET status = 'cancelado', resultado = 'TROCADO POR OUTRO PEDIDO' WHERE tipo = 'valor' AND pedido_por = ? AND crianca_id = ? AND venda_id IS NULL AND status IN ('pendente', 'liberado')")->execute([(int)$u['id'], (int)$c['id']]);   // (1.39: o da saída fica)
   } else {
@@ -674,6 +675,17 @@ function pedidoDecidir(int $id, array $g, bool $ok, string $como = 'toque'): arr
   if ($status === 'usado' && $tipo === 'valor') $db->prepare('UPDATE pedidos SET usado = valor WHERE id = ?')->execute([$id]);   // 1.39
   return ['pedido' => pedidoPublico(pedido($id))] + $extra;
 }
+// 1.41: a conta do pacote alterado com os três campos: "PACOTE 03 HORAS 360 (3h, R$ 225) para 4h: pacote R$ 300 + produto R$ 60 = R$ 360"
+function altTextoPac(string $n, int $h0, float $de, int $h1, float $pac, float $prod, float $para): string {
+  return $n . ' (' . $h0 . 'h, ' . dinheiro($de) . ') para ' . $h1 . 'h' . ($prod > 0.004 ? ': pacote ' . dinheiro($pac) . ' + produto ' . dinheiro($prod) . ' = ' . dinheiro($para) : ' por ' . dinheiro($para));
+}
+// 1.41: o valor do pacote e o do produto (os campos da tela nova): o total é a soma. null = o pedido do jeito antigo (só o valor novo)
+function lerPacProd(array $in, string $k): ?array {
+  if (!isset($in['pac'])) return null; $pac = round((float)$in['pac'], 2); $prod = round((float)($in['prod'] ?? 0), 2);
+  if ($k !== 'pac') falha('O valor do pacote e o do produto são para um pacote.');
+  if ($pac <= 0) falha('Escreva o valor do pacote.'); if ($prod < 0) falha('Confira o valor do produto.');
+  return ['pac' => $pac, 'prod' => $prod, 'para' => round($pac + $prod, 2)];
+}
 // 1.39: a alteração aprovada na saída muda a venda na hora: o valor e, no pacote, as horas (o saldo do cliente acompanha). A venda tem de
 // estar como era quando foi pedida e sem pagamento; se não estiver, o pedido sai da lista (cancelado) e quem aprovou fica sabendo
 function alterarVendaNaSaida(array $p, array $g): array {
@@ -689,7 +701,7 @@ function alterarVendaNaSaida(array $p, array $g): array {
   $serv = $min1 !== $min0 && trim((string)$v['servico']) !== '' ? 'PACOTE ' . $hh . 'H' : (string)$v['servico'];
   $db->prepare('UPDATE vendas SET valor = ?, minutos = ?, horas = ?, servico = ? WHERE id = ?')->execute([$para, $min1, round($min1 / 60, 2), $serv, (int)$v['id']]);
   $por = primeiroNome((string)$p['pedido_nome']); $dec = primeiroNome((string)$g['nome']); $de = round((float)$v['valor'], 2);
-  $reg = registrar('alt', (int)$v['crianca_id'], (string)($c['nome'] ?? $p['nome']), 'Valor alterado na saída · ' . (string)($it['n'] ?? nomeDaVenda($v)) . ($hh > 0 ? ' (' . dur($min0) . '): ' . dinheiro($de) . ' → ' . $hh . 'h por ' : ': ' . dinheiro($de) . ' → ') . dinheiro($para) . ' · Motivo: ' . (string)$p['motivo'] . ' · por ' . $por . ($dec !== '' && mb_strtoupper($dec) !== mb_strtoupper($por) ? ' · aprovado por ' . $dec : ''));
+  $reg = registrar('alt', (int)$v['crianca_id'], (string)($c['nome'] ?? $p['nome']), isset($d['pac']) ? 'Pacote alterado na saída · ' . altTextoPac((string)($it['n'] ?? nomeDaVenda($v)), intdiv($min0, 60), $de, intdiv($min1, 60), (float)$d['pac'], (float)($d['prod'] ?? 0), $para) . ((string)$p['motivo'] !== '' ? ' · Motivo: ' . (string)$p['motivo'] : '') . ' · por ' . $por . ($dec !== '' && mb_strtoupper($dec) !== mb_strtoupper($por) ? ' · aprovado por ' . $dec : '') : 'Valor alterado na saída · ' . (string)($it['n'] ?? nomeDaVenda($v)) . ($hh > 0 ? ' (' . dur($min0) . '): ' . dinheiro($de) . ' → ' . $hh . 'h por ' : ': ' . dinheiro($de) . ' → ') . dinheiro($para) . ' · Motivo: ' . (string)$p['motivo'] . ' · por ' . $por . ($dec !== '' && mb_strtoupper($dec) !== mb_strtoupper($por) ? ' · aprovado por ' . $dec : ''));
   return ['venda' => (int)$v['id'], 'de' => $de, 'para' => $para, 'min' => $min1, 'registro' => $reg];
 }
 // 1.33: o pacote ou o produto da alteração de valor, achado na tabela da loja: o nome, o valor de agora (de) e como achar de novo na venda
@@ -722,13 +734,14 @@ function autorizacaoDeValor(int $id, array $u, array $c, array $it): array {
     : (int)($pi['p'] ?? 0) === $it['p'] && (int)($pi['q'] ?? 0) === $it['q']) && abs((float)($d['de'] ?? -1) - $it['de']) < 0.005;
   if (!$mesmo) falha('A alteração aprovada é de outro item (' . ($pi['n'] ?? '') . '), ou o valor da tabela mudou. Peça de novo.', 409);
   $hh = $it['k'] === 'pac' && !empty($d['horas']) ? (int)$d['horas'] : null;   // 1.36
-  return ['id' => (int)$p['id'], 'para' => round((float)($d['para'] ?? 0), 2), 'de' => $it['de'], 'n' => $it['n'], 'motivo' => (string)$p['motivo'], 'por' => (string)$p['pedido_nome'], 'dec' => (string)$p['decidido_nome'], 'horas' => $hh, 'h' => $it['k'] === 'pac' ? (int)$it['h'] : null];
+  return ['id' => (int)$p['id'], 'para' => round((float)($d['para'] ?? 0), 2), 'de' => $it['de'], 'n' => $it['n'], 'motivo' => (string)$p['motivo'], 'por' => (string)$p['pedido_nome'], 'dec' => (string)$p['decidido_nome'], 'horas' => $hh, 'h' => $it['k'] === 'pac' ? (int)$it['h'] : null, 'pac' => isset($d['pac']) ? (float)$d['pac'] : null, 'prod' => isset($d['prod']) ? (float)$d['prod'] : null];   // 1.41
 }
 // a venda saiu com o valor alterado: o pedido fica usado (com a venda) e o dia ganha a linha "Valor alterado"
 function usarAlteracao(array $a, int $vendaId, array $c, array $u): int {
   db()->prepare("UPDATE pedidos SET status = 'usado', usado = ?, venda_id = ?, feito_por = ?, feito_nome = ?, feito_em = ?, resultado = 'VALOR ALTERADO NA VENDA' WHERE id = ? AND status = 'liberado'")
     ->execute([$a['para'], $vendaId, (int)$u['id'], (string)$u['nome'], agora(), $a['id']]);
   $por = primeiroNome($a['por']); $dec = primeiroNome($a['dec']);
+  if ($a['pac'] !== null) return registrar('alt', (int)$c['id'], $c['nome'], 'Pacote alterado · ' . altTextoPac($a['n'], (int)$a['h'], (float)$a['de'], (int)($a['horas'] ?: $a['h']), (float)$a['pac'], (float)($a['prod'] ?? 0), (float)$a['para']) . ($a['motivo'] !== '' ? ' · Motivo: ' . $a['motivo'] : '') . ' · por ' . $por . ($dec !== '' && mb_strtoupper($dec) !== mb_strtoupper($por) ? ' · aprovado por ' . $dec : ''));   // 1.41
   return registrar('alt', (int)$c['id'], $c['nome'], 'Valor alterado · ' . $a['n'] . (!empty($a['horas']) ? ' (' . $a['h'] . 'h): ' . dinheiro($a['de']) . ' → ' . $a['horas'] . 'h por ' : ': ' . dinheiro($a['de']) . ' → ') . dinheiro($a['para']) . ' · Motivo: ' . $a['motivo'] . ' · por ' . $por . ($dec !== '' && mb_strtoupper($dec) !== mb_strtoupper($por) ? ' · aprovado por ' . $dec : ''));
 }
 // o desconto de quem não é gestor: o pedido tem de ser dele, estar liberado, dentro do prazo, ser do mesmo cliente e caber no valor liberado
