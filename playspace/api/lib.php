@@ -590,6 +590,18 @@ function pedidoCriar(array $u, array $in): array {
     $texto = 'Desconto de ' . dinheiro($valor) . ($pct > 0 ? ' (' . rtrim(rtrim(number_format($pct, 2, ',', ''), '0'), ',') . '%)' : '') . ($base > 0 ? ' em ' . dinheiro($base) : '') . ($dados['onde'] === 'saida' ? ' · na saída' : '');
     // um pedido de desconto por vez para o mesmo cliente: o anterior (sem resposta, ou liberado e não usado) deixa de valer
     $db->prepare("UPDATE pedidos SET status = 'cancelado', resultado = 'TROCADO POR OUTRO PEDIDO' WHERE tipo = 'desconto' AND pedido_por = ? AND crianca_id = ? AND status IN ('pendente', 'liberado')")->execute([(int)$u['id'], (int)$c['id']]);
+  } elseif ($tipo === 'valor' && (int)($in['venda'] ?? 0) > 0) { // 1.39: na saída, o pacote ou o produto desta visita que ficou para pagar na saída
+    $q = $db->prepare('SELECT * FROM vendas WHERE id = ?'); $q->execute([(int)$in['venda']]); $v = $q->fetch(); $q->closeCursor(); if (!$v) falha('Esta venda não existe mais: já foi desfeita ou cancelada.', 404);
+    $c = crianca((int)$v['crianca_id']); if (!$c) falha('Cliente não encontrado.', 404); $k = altDaVenda($v); if ($k === '') falha('Esta venda não tem o valor alterado por aqui (só o pacote ou o produto desta visita).');
+    if (pagoPorForma([(int)$v['id']])) falha('Esta venda já foi paga: o valor não muda mais.');
+    $vendaId = (int)$v['id']; $de = round((float)$v['valor'], 2); $min = (int)$v['minutos']; $nm = $k === 'pac' ? (trim((string)$v['servico']) !== '' ? trim((string)$v['servico']) : 'PACOTE') : nomeDaVenda($v);   // (o pacote, sem as horas no nome: elas vêm ao lado)
+    $para = round((float)($in['para'] ?? 0), 2); if ($para <= 0) falha('Escreva o valor novo.'); if ($para > 99999) falha('Confira o valor novo: ' . dinheiro($para) . '.');
+    $horas = null; if ($k === 'pac' && isset($in['horas'])) { $hh = (int)$in['horas']; if ($hh < 1 || $hh > 200) falha('As horas do pacote vão de 1 a 200.'); if ($hh * 60 !== $min) $horas = $hh; }
+    if (abs($para - $de) < 0.005 && $horas === null) falha('O valor novo é igual ao de agora (' . dinheiro($de) . ').');
+    $motivo = mb_substr($motivo, 0, 120); if (mb_strlen($motivo) < 3) falha('Escreva o motivo: o que muda no valor.');
+    $valor = $para; $dados = ['venda' => $vendaId, 'item' => ['k' => 'venda', 'tipo' => $k, 'n' => $nm, 'h' => $k === 'pac' ? intdiv($min, 60) : null, 'min' => $min, 'de' => $de], 'de' => $de, 'para' => $para, 'horas' => $horas, 'onde' => 'saida'];
+    $texto = ($horas ? 'Alterar o pacote: ' . $nm . ' (' . dur($min) . ', ' . dinheiro($de) . ') para ' . $horas . 'h por ' . dinheiro($para) : 'Alterar o valor: ' . $nm . ' de ' . dinheiro($de) . ' para ' . dinheiro($para)) . ' · na saída';
+    $db->prepare("UPDATE pedidos SET status = 'cancelado', resultado = 'TROCADO POR OUTRO PEDIDO' WHERE tipo = 'valor' AND pedido_por = ? AND venda_id = ? AND status IN ('pendente', 'liberado')")->execute([(int)$u['id'], $vendaId]);   // um pedido por venda
   } elseif ($tipo === 'valor') { // 1.33: o valor novo de um pacote ou de um produto da venda que está sendo feita
     $c = crianca((int)($in['crianca'] ?? 0)); if (!$c) falha('Cliente não encontrado.', 404);
     $it = itemDoValor((array)($in['item'] ?? [])); $para = round((float)($in['para'] ?? 0), 2);
@@ -600,7 +612,7 @@ function pedidoCriar(array $u, array $in): array {
     $valor = $para; $dados = ['item' => $it, 'de' => $it['de'], 'para' => $para, 'horas' => $horas];
     $texto = $horas ? 'Alterar o valor: ' . $it['n'] . ' (' . (int)$it['h'] . 'h, ' . dinheiro($it['de']) . ') para ' . $horas . 'h por ' . dinheiro($para) : 'Alterar o valor: ' . $it['n'] . ' de ' . dinheiro($it['de']) . ' para ' . dinheiro($para);
     // uma alteração por vez para o mesmo cliente: a anterior (sem resposta, ou aprovada e não usada) deixa de valer
-    $db->prepare("UPDATE pedidos SET status = 'cancelado', resultado = 'TROCADO POR OUTRO PEDIDO' WHERE tipo = 'valor' AND pedido_por = ? AND crianca_id = ? AND status IN ('pendente', 'liberado')")->execute([(int)$u['id'], (int)$c['id']]);
+    $db->prepare("UPDATE pedidos SET status = 'cancelado', resultado = 'TROCADO POR OUTRO PEDIDO' WHERE tipo = 'valor' AND pedido_por = ? AND crianca_id = ? AND venda_id IS NULL AND status IN ('pendente', 'liberado')")->execute([(int)$u['id'], (int)$c['id']]);   // (1.39: o da saída fica)
   } else {
     $q = $db->prepare('SELECT * FROM vendas WHERE id = ?'); $q->execute([(int)($in['venda'] ?? 0)]); $v = $q->fetch(); if (!$v) falha('Esta venda não existe mais: já foi desfeita ou cancelada.', 404);
     $c = crianca((int)$v['crianca_id']); if (!$c) falha('Cliente não encontrado.', 404); $vendaId = (int)$v['id']; $valor = round((float)$v['valor'], 2); $nomeV = nomeDaVenda($v);
@@ -650,10 +662,30 @@ function pedidoDecidir(int $id, array $g, bool $ok, string $como = 'toque'): arr
     $r = cancelarVenda((int)$p['venda_id'], $g, mb_substr((string)$p['motivo'] . ($outro ? ' (PEDIDO DE ' . ($at !== '' && $at !== $pn ? $at . ', LOGIN ' . $pn : $pn) . ')' : ''), 0, 300), $outro ? ($at !== '' ? $at : $pn) : null, $outro ? $pn : '');
     $status = 'usado'; $resultado = $r['devolver'] !== '' ? 'DEVOLVER AO CLIENTE: ' . $r['devolver'] : 'VENDA CANCELADA'; $extra['cancelada'] = $r;
   }
+  if ($ok && $tipo === 'valor' && $p['venda_id'] !== null) { $extra['alterada'] = alterarVendaNaSaida($p, $g); $status = 'usado'; $resultado = 'VALOR ALTERADO NA VENDA'; }   // 1.39
   $q = $db->prepare('UPDATE pedidos SET status = ?, decidido_por = ?, decidido_nome = ?, decidido_em = ?, como = ?, resultado = ?' . ($status === 'usado' ? ', feito_por = ?, feito_nome = ?, feito_em = ?' : '') . ' WHERE id = ?' . ($status === 'usado' ? '' : " AND status = 'pendente'"));
   $q->execute(array_merge([$status, (int)$g['id'], (string)$g['nome'], $agora, $como, $resultado], $status === 'usado' ? [(int)$g['id'], (string)$g['nome'], $agora] : [], [$id]));
   if (!$q->rowCount()) falha('Este pedido já foi respondido em outro aparelho.', 409);
+  if ($status === 'usado' && $tipo === 'valor') $db->prepare('UPDATE pedidos SET usado = valor WHERE id = ?')->execute([$id]);   // 1.39
   return ['pedido' => pedidoPublico(pedido($id))] + $extra;
+}
+// 1.39: a alteração aprovada na saída muda a venda na hora: o valor e, no pacote, as horas (o saldo do cliente acompanha). A venda tem de
+// estar como era quando foi pedida e sem pagamento; se não estiver, o pedido sai da lista (cancelado) e quem aprovou fica sabendo
+function alterarVendaNaSaida(array $p, array $g): array {
+  $db = db(); $id = (int)$p['id']; $d = json_decode((string)$p['dados'], true); $d = is_array($d) ? $d : []; $it = (array)($d['item'] ?? []);
+  $sai = function (string $res, string $msg) use ($db, $id) { $db->prepare("UPDATE pedidos SET status = 'cancelado', resultado = ? WHERE id = ?")->execute([$res, $id]); falha($msg . ' O pedido saiu da lista.', 409); };
+  $q = $db->prepare('SELECT * FROM vendas WHERE id = ?'); $q->execute([(int)$p['venda_id']]); $v = $q->fetch(); $q->closeCursor();
+  if (!$v) $sai('A VENDA NÃO EXISTE MAIS', 'Esta venda não existe mais: já foi desfeita ou cancelada.');
+  if (pagoPorForma([(int)$v['id']])) $sai('A VENDA JÁ FOI PAGA', 'Esta venda já foi paga: o valor não muda mais.');
+  $min0 = (int)$v['minutos']; if (abs((float)$v['valor'] - (float)($d['de'] ?? -1)) >= 0.005 || $min0 !== (int)($it['min'] ?? -1)) $sai('A VENDA MUDOU', 'Esta venda mudou depois do pedido. Peça de novo.');
+  $c = crianca((int)$v['crianca_id']); $para = round((float)($d['para'] ?? 0), 2); $hh = !empty($d['horas']) ? (int)$d['horas'] : 0; $min1 = $hh > 0 ? $hh * 60 : $min0;
+  if ($c && $min1 !== $min0) { if ((int)$c['pacote_min'] + $min1 - $min0 < (int)$c['usado_min']) $sai('AS HORAS JÁ FORAM USADAS', 'As horas deste pacote já foram usadas: não dá para diminuir para ' . $hh . 'h.');
+    $db->prepare('UPDATE criancas SET pacote_min = pacote_min + ? WHERE id = ?')->execute([$min1 - $min0, (int)$c['id']]); }
+  $serv = $min1 !== $min0 && trim((string)$v['servico']) !== '' ? 'PACOTE ' . $hh . 'H' : (string)$v['servico'];
+  $db->prepare('UPDATE vendas SET valor = ?, minutos = ?, horas = ?, servico = ? WHERE id = ?')->execute([$para, $min1, round($min1 / 60, 2), $serv, (int)$v['id']]);
+  $por = primeiroNome((string)$p['pedido_nome']); $dec = primeiroNome((string)$g['nome']); $de = round((float)$v['valor'], 2);
+  $reg = registrar('alt', (int)$v['crianca_id'], (string)($c['nome'] ?? $p['nome']), 'Valor alterado na saída · ' . (string)($it['n'] ?? nomeDaVenda($v)) . ($hh > 0 ? ' (' . dur($min0) . '): ' . dinheiro($de) . ' → ' . $hh . 'h por ' : ': ' . dinheiro($de) . ' → ') . dinheiro($para) . ' · Motivo: ' . (string)$p['motivo'] . ' · por ' . $por . ($dec !== '' && mb_strtoupper($dec) !== mb_strtoupper($por) ? ' · aprovado por ' . $dec : ''));
+  return ['venda' => (int)$v['id'], 'de' => $de, 'para' => $para, 'min' => $min1, 'registro' => $reg];
 }
 // 1.33: o pacote ou o produto da alteração de valor, achado na tabela da loja: o nome, o valor de agora (de) e como achar de novo na venda
 function itemDoPacote(array $x): array {
@@ -716,7 +748,7 @@ function usarAutorizacao(?array $desc, float $valor): void { // o desconto autor
 function fecharPedidosDeDesconto(?array $u, array $c, string $onde): void { // $onde: 'venda' (o atendimento) ou 'saida'
   if (!$u) return;
   db()->prepare("UPDATE pedidos SET status = 'cancelado', resultado = 'A CONTA FOI FECHADA SEM ESPERAR A RESPOSTA' WHERE tipo = 'desconto' AND status = 'pendente' AND pedido_por = ? AND crianca_id = ? AND dados LIKE ?")->execute([(int)$u['id'], (int)$c['id'], '%"onde":"' . ($onde === 'saida' ? 'saida' : 'venda') . '"%']);
-  if ($onde !== 'saida') db()->prepare("UPDATE pedidos SET status = 'cancelado', resultado = 'A CONTA FOI FECHADA SEM ESPERAR A RESPOSTA' WHERE tipo = 'valor' AND status = 'pendente' AND pedido_por = ? AND crianca_id = ?")->execute([(int)$u['id'], (int)$c['id']]);   // 1.33
+  db()->prepare("UPDATE pedidos SET status = 'cancelado', resultado = 'A CONTA FOI FECHADA SEM ESPERAR A RESPOSTA' WHERE tipo = 'valor' AND status = 'pendente' AND pedido_por = ? AND crianca_id = ? AND venda_id IS " . ($onde === 'saida' ? 'NOT NULL' : 'NULL'))->execute([(int)$u['id'], (int)$c['id']]);   // 1.33 (1.39: o da saída fecha com a saída)
 }
 
 /* ---------- registros (o painel "Hoje na recepção") e as mensagens ---------- */
@@ -1143,6 +1175,15 @@ function apagarPagamentosDaOperacao(int $criancaId, int $pagDe, string $desde): 
   if (!$p) return 0;
   $d = $db->prepare('DELETE FROM pagamentos WHERE crianca_id = ? AND id > ? AND quando = ? AND COALESCE(por, -1) = CAST(? AS INTEGER)'); $d->execute([$criancaId, $pagDe, (string)$p['quando'], (int)$p['por']]); return $d->rowCount();
 }
+// 1.39: o que o "Alterar pacote" da saída pode mudar: o pacote (as horas e o valor) ou o produto vendido nesta visita e ainda não pago.
+// Não vale para a recreação, o carrinho, a festa, o voucher, as horas importadas, nem para a venda que já teve desconto
+function altDaVenda(array $v): string {
+  if (!empty($v['auto']) || !empty($v['festa_id']) || (string)($v['voucher'] ?? '') !== '' || (string)($v['alug'] ?? '') !== '' || (float)($v['desc_valor'] ?? 0) > 0.004 || (float)($v['valor'] ?? 0) <= 0.004 || (string)($v['servico'] ?? '') === SERV_IMPORTADO) return '';
+  if (!empty($v['produto_id'])) return 'prod';
+  if ((int)($v['minutos'] ?? 0) <= 0) return '';
+  $s = mb_strtoupper(trim((string)($v['servico'] ?? ''))); if ($s !== '') foreach ((array)(regra()['servicos'] ?? []) as $x) if (mb_strtoupper(trim((string)($x['n'] ?? ''))) === $s) return '';
+  return 'pac';
+}
 function pendItensDeTodos(): array {
   $db = db(); $hoje = date('Y-m-d') . ' 00:00:00';
   // o piso: nenhuma venda de antes de hoje (ou do dia em que entrou quem está há mais tempo no espaço) pode ser "desta visita".
@@ -1150,12 +1191,12 @@ function pendItensDeTodos(): array {
   $min = (string)$db->query('SELECT MIN(entrou) FROM criancas WHERE entrou IS NOT NULL')->fetchColumn();
   $piso = $min !== '' && substr($min, 0, 10) . ' 00:00:00' < $hoje ? substr($min, 0, 10) . ' 00:00:00' : $hoje;
   $falta = 'v.valor - COALESCE((SELECT SUM(p.valor) FROM pagamentos p WHERE p.venda_id = v.id), 0)';
-  $q = $db->prepare("SELECT v.id, v.crianca_id c, v.servico, v.minutos, v.itens, $falta f FROM vendas v CROSS JOIN criancas k0 ON k0.id = v.crianca_id WHERE v.quando >= ? AND v.auto = 0 AND v.valor > 0 AND v.servico != ?
+  $q = $db->prepare("SELECT v.id, v.crianca_id c, v.servico, v.minutos, v.itens, v.valor, v.auto, v.produto_id, v.alug, v.festa_id, v.voucher, v.desc_valor, $falta f FROM vendas v CROSS JOIN criancas k0 ON k0.id = v.crianca_id WHERE v.quando >= ? AND v.auto = 0 AND v.valor > 0 AND v.servico != ?
     AND v.quando >= CASE WHEN k0.entrou IS NOT NULL AND substr(k0.entrou, 1, 10) < substr(?, 1, 10) THEN substr(k0.entrou, 1, 10) || ' 00:00:00' ELSE ? END
     AND v.quando >= COALESCE((SELECT MAX(x.saiu) FROM visitas x WHERE x.crianca_id = v.crianca_id), '')
     AND $falta > 0.004 ORDER BY v.id");   // 1.21: só a saída fecha a conta do que há para receber (a entrada cancelada, não)
   $q->execute([$piso, SERV_IMPORTADO, $hoje, $hoje]); $o = [];
-  foreach ($q->fetchAll() as $l) $o[(int)$l['c']][] = ['n' => nomeDaVenda($l), 'v' => round((float)$l['f'], 2), 'id' => (int)$l['id']];   // 1.25: id = a venda   // juntar por criança fica aqui: agrupar no SQL faria a consulta andar pelo índice da criança
+  foreach ($q->fetchAll() as $l) $o[(int)$l['c']][] = ['n' => nomeDaVenda($l), 'v' => round((float)$l['f'], 2), 'id' => (int)$l['id'], 'alt' => (float)$l['f'] >= (float)$l['valor'] - 0.004 ? altDaVenda($l) : '', 'h' => round((int)$l['minutos'] / 60, 2)];   // 1.39: alt = o "Alterar pacote" da saída vale para ela ('pac' ou 'prod')   // 1.25: id = a venda   // juntar por criança fica aqui: agrupar no SQL faria a consulta andar pelo índice da criança
   foreach (autosSemPagarDaSaida(null, $piso) as $l) $o[(int)$l['crianca_id']][] = ['n' => nomeDaVenda($l), 'v' => round((float)$l['valor'], 2), 'id' => (int)$l['id']];   // 1.31: a saída pelo rosto que não recebeu
   return $o;
 }

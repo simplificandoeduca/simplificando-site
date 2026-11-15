@@ -1119,6 +1119,16 @@ Pedido do dono: a festa vendida no dia 10 entra no caixa do dia 10; o upgrade de
 - **A folha da festa** (toque na festa, em Festas ou na faixa da festa de hoje) ganhou **A venda da festa**: a festa, o upgrade e o adicional, cada um com o dia e a hora em que foi vendido, quem vendeu, o que foi pago (em que dia e em que forma) e o que falta receber, e o **Total da festa**. Vendida em partes, em dias diferentes, a folha avisa: "cada parte entra no caixa do dia em que foi paga".
 - **No caixa do dia**, embaixo de **Festas**, o que entrou hoje e de qual festa: "UPGRADE DE FESTA · festa de ALICE (20/11) · a festa foi vendida em 10/11". No caixa impresso também.
 
+## 6zs. "Alterar pacote" também na saída (1.39)
+
+Pedido do dono: como a cobrança agora é sempre na saída (1.37), o **Alterar pacote** tem de estar na tela de pagamento da saída, embaixo do **Desconto**. Antes ele só aparecia na tela de pagamento da entrada.
+
+- Na **tela de pagamento da saída** (e na conta em conjunto do responsável), embaixo do Desconto: **Alterar pacote**. Ela escolhe o pacote ou o produto desta visita que ficou para pagar na saída, escreve **o que muda**, as **horas do pacote** e o **valor novo**, e toca em **Pedir aprovação**.
+- A supervisora ou o gestor aprova com um toque (em Aprovações, com o aviso no celular), ou digita a senha ali mesmo (**Aprovar com a senha**). A supervisora e o gestor alteram direto (**Alterar o valor**).
+- Aprovado, **a venda muda na hora**: o valor e, no pacote, as horas (o saldo do cliente acompanha). A conta da saída já mostra o valor novo, e o dia ganha a linha "Valor alterado na saída", com quem pediu e quem aprovou. No comprovante, discreto: "Valor alterado: aprovado por ...".
+- Sem pacote ou produto na conta, o bloco explica e leva direto para **Adicionar serviços**: o pacote entra para pagar nesta saída e, depois, é só alterar ali.
+- Não vale para a recreação, o carrinho, a festa, o voucher, nem para o que já foi pago (ou já teve desconto).
+
 ## 7. Atualizar
 
 Botão **Atualizar** ao lado da versão. Ele baixa a versão nova do GitHub (ramo principal ou de trabalho, a mais nova), confere a versão dentro do arquivo e troca os arquivos de forma atômica. Não mexe em `~/playspace-dados/`. Se o GitHub demorar a refletir (cache de ~5 min), espere e toque de novo.
