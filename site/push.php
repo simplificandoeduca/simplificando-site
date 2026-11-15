@@ -5,6 +5,7 @@
 // Fim do descanso: o app avisa a hora em que o descanso termina; este pedido responde na hora e espera até lá para avisar
 // (se a pessoa continuou no app, o próprio app cancela antes).
 // Treino esquecido aberto: avisa uma vez quem está com o treino aberto há 3 horas, a qualquer hora.
+// Lembrete do treino do dia: nos dias de treino, no horário escolhido, uma vez no dia (não avisa se já treinou).
 // O aviso vai sem conteúdo (o próprio app monta a mensagem), então não precisa de criptografia de conteúdo,
 // só da assinatura VAPID. As chaves e as inscrições ficam fora do site, na pasta de cima.
 header('Content-Type: application/json; charset=utf-8');
@@ -63,7 +64,7 @@ $acao = $CLI ? ($argv[1] ?? 'cron') : ($_GET['acao'] ?? '');
 
 if ($acao === 'chave') { $ch = chaves(); sai(['ok' => true, 'pub' => $ch['pub']]); }
 
-if (in_array($acao, ['assinar', 'copo', 'sair', 'descanso', 'treino'], true)) {
+if (in_array($acao, ['assinar', 'copo', 'sair', 'descanso', 'treino', 'lembrete'], true)) {
   if ($_SERVER['REQUEST_METHOD'] !== 'POST') sai(['ok' => false], 405);
   $j = json_decode((string)file_get_contents('php://input', false, null, 0, 8000), true);
   $id = is_array($j) && isset($j['id']) && preg_match('/^[a-z0-9]{12,40}$/', $j['id']) ? $j['id'] : '';
@@ -92,13 +93,22 @@ if (in_array($acao, ['assinar', 'copo', 'sair', 'descanso', 'treino'], true)) {
       if ((int)($v[$id]['tr'] ?? 0) !== $ini) { $v[$id]['tr'] = $ini; $v[$id]['trav'] = 0; grava_in($v); } }
     sai(['ok' => true]);
   }
+  if ($acao === 'lembrete') { // {on, h: minutos do dia, dias: [0=domingo..6], feito: dia em que já treinou, pausa: até que dia não avisar}
+    if (isset($v[$id])) {
+      $dt = function ($x) { return preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)$x) ? (string)$x : ''; };
+      $dias = array_values(array_unique(array_filter(array_map('intval', is_array($j['dias'] ?? null) ? $j['dias'] : []), function ($d) { return $d >= 0 && $d <= 6; })));
+      $v[$id]['lb'] = ['on' => empty($j['on']) ? 0 : 1, 'h' => max(0, min(1439, (int)($j['h'] ?? 1080))), 'dias' => $dias, 'feito' => $dt($j['feito'] ?? ''), 'pausa' => $dt($j['pausa'] ?? '')];
+      grava_in($v);
+    }
+    sai(['ok' => true]);
+  }
   if ($acao === 'copo') { if (isset($v[$id])) { $v[$id]['copo'] = time(); if (!empty($j['meta'])) $v[$id]['meta'] = (string)$j['meta']; grava_in($v); } sai(['ok' => true]); }
   $e = $j['sub']['endpoint'] ?? '';
   if (!endpoint_ok($e)) sai(['ok' => false, 'erro' => 'Serviço de aviso desconhecido.'], 400);
   if (!isset($v[$id]) && count($v) >= 2000) sai(['ok' => false, 'erro' => 'Limite de inscrições.'], 429);
   $antes = $v[$id] ?? [];
   $v[$id] = ['e' => $e, 'ini' => $hm($j['ini'] ?? '', 480), 'fim' => $hm($j['fim'] ?? '', 1320), 'cada' => max(30, min(240, (int)($j['cada'] ?? 90))),
-    'tz' => max(-840, min(840, (int)($j['tz'] ?? 180))), 'meta' => (string)($j['meta'] ?? ($antes['meta'] ?? '')), 'copo' => (int)($antes['copo'] ?? 0), 'ultimo' => (int)($antes['ultimo'] ?? 0), 'ag' => isset($j['ag']) ? (int)!empty($j['ag']) : 1, 'ds' => (string)($antes['ds'] ?? ''), 'tr' => (int)($antes['tr'] ?? 0), 'trav' => (int)($antes['trav'] ?? 0), 'em' => time()];
+    'tz' => max(-840, min(840, (int)($j['tz'] ?? 180))), 'meta' => (string)($j['meta'] ?? ($antes['meta'] ?? '')), 'copo' => (int)($antes['copo'] ?? 0), 'ultimo' => (int)($antes['ultimo'] ?? 0), 'ag' => isset($j['ag']) ? (int)!empty($j['ag']) : 1, 'ds' => (string)($antes['ds'] ?? ''), 'tr' => (int)($antes['tr'] ?? 0), 'trav' => (int)($antes['trav'] ?? 0), 'lb' => $antes['lb'] ?? null, 'lbav' => (string)($antes['lbav'] ?? ''), 'em' => time()];
   grava_in($v); sai(['ok' => true]);
 }
 
@@ -119,6 +129,15 @@ if ($acao === 'cron') {
       continue;
     }
     $local = $agora - $s['tz'] * 60; $min = (int)gmdate('G', $local) * 60 + (int)gmdate('i', $local); $dia = gmdate('Y-m-d', $local);
+    // lembrete do treino do dia: do horário escolhido até 2h depois, uma vez no dia
+    $lb = $s['lb'] ?? null;
+    if (is_array($lb) && !empty($lb['on']) && in_array((int)gmdate('w', $local), $lb['dias'] ?? [], true) && $min >= $lb['h'] && $min - $lb['h'] < 120
+        && ($s['lbav'] ?? '') !== $dia && ($lb['feito'] ?? '') !== $dia && !(($lb['pausa'] ?? '') && $lb['pausa'] >= $dia)) {
+      $st = envia($s['e'], $ch);
+      if ($st == 404 || $st == 410) { unset($v[$id]); $tirou++; continue; }
+      if ($st >= 200 && $st < 300) { $v[$id]['lbav'] = $dia; $v[$id]['ultimo'] = $agora; $env++; }
+      continue;
+    }
     if (isset($s['ag']) && !$s['ag']) continue; // só os avisos do descanso (lembrete de água desligado)
     if ($min < $s['ini'] || $min > $s['fim']) continue;
     if ($s['meta'] === $dia) continue;

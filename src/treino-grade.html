@@ -1586,6 +1586,8 @@ body.has-dock .toast,body.has-dock .utoast{bottom:calc(176px + env(safe-area-ins
 .mt-in{width:100%;min-width:0;height:40px;border:0;border-radius:12px;background:var(--card);color:var(--fg);font:inherit;font-size:15px;font-weight:900;text-align:center;outline:none;box-shadow:inset 0 0 0 1.5px transparent}
 .mt-in:focus{box-shadow:inset 0 0 0 2px var(--fg)}
 .mt-none{margin:0}
+.nt-hr{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:-4px 0 6px 48px;font-size:13px;font-weight:700;color:var(--muted)}.nt-hr .inp{width:120px;height:40px;text-align:center;font-weight:800;background:var(--card);border:0;border-radius:12px;padding:0 8px}
+@supports (-webkit-touch-callout:none){.nt-hr input[type=time]{-webkit-appearance:none;appearance:none;display:block;min-width:0;text-align:center}.nt-hr input[type=time]::-webkit-date-and-time-value{text-align:center;margin:0}}
 .nt-ic{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;flex:none;color:#fff;background:var(--c)}.nt-ic .i{width:19px;height:19px}
 .nt-ban{display:flex;gap:10px;align-items:center;border-radius:16px;padding:10px 12px;background:color-mix(in srgb,#1E9E4A 14%,var(--card));font-size:13.5px;line-height:1.35}.nt-ban .i{width:20px;height:20px;color:#1E9E4A;flex:none}.nt-ban b{font-weight:800}
 .nt-ban.off{background:color-mix(in srgb,#E8A10A 16%,var(--card))}.nt-ban.off .i{color:#B87A00}
@@ -1755,7 +1757,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '15 nov · 130'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '15 nov · 131'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -1823,7 +1825,7 @@ let LASTSYNC = '';
 const syncTxt = () => { const em = S._em; S._em = 0; const t = JSON.stringify(S); S._em = em; return t; };
 function save(){
   if(!ACCT) return;
-  sesUlt();
+  sesUlt(); try { lbSync(); } catch(e){ /* lembrete opcional */ }
   if(FB && ACCT.mode==='self' && ACCT.uid){
     const t = syncTxt(); if(t!==LASTSYNC){ LASTSYNC = t; S._em = Date.now(); ACCT.dirty = true; }
     if(ACCT.dirty && ACCT.syncOk){ ACCT.dirty = false; FB.autoSave(ACCT.uid, S); }
@@ -4919,6 +4921,33 @@ function sugEnviar(b){
   });
 }
 document.addEventListener('input', e => { if(e.target && e.target.id==='sug-txt') ui.sugD = e.target.value; });
+/* ---------- lembrete do treino do dia: "Bora treinar, Joana? 💪" nos dias de treino, no horário em que a pessoa costuma treinar ----------
+   O app guarda o texto em simp-estado (o service worker monta o aviso) e manda os dias e a hora para o push.php, que avisa uma vez no dia.
+   Não avisa se já treinou (ou está treinando) hoje; sem dia fixo, para quando bate a meta da semana. */
+const hmMin = t => { const m = /^(\d{1,2}):(\d{2})/.exec(String(t||'')); return m ? +m[1]*60 + +m[2] : null; };
+function lbHoraSug(){
+  const L = (S.history||[]).slice(-10).map(h => { const f = hmMin(h.hr); return f==null ? null : f - (+h.min||0); }).filter(v => v!=null && v>=240 && v<=23*60);
+  if(!L.length) return 18*60;
+  const m = L.reduce((a,v) => a+v, 0)/L.length - 30;
+  return Math.max(5*60, Math.min(22*60, Math.round(m/15)*15));
+}
+const lbHora = () => Number.isFinite(+PREF.lbH) && PREF.lbH!==null ? +PREF.lbH : lbHoraSug();
+const lbDias = () => noPlan() ? [] : tDays().map(i => (i+1)%7); // 0 = domingo, como o celular conta
+const lbDiasTxt = () => diasLivres() ? 'Todo dia, até bater a meta da semana' : joinPt(tDays().map(i => TDAYS_L[i]));
+let LBC = '';
+function lbSync(){
+  if(!S || !ACCT) return;
+  const hj = today(), wk = weekDays(0), on = PREF.avDia!==false && !noPlan();
+  const feito = (S.history||[]).some(h => h.date===hj) || (S.session && (S.session.d||hj)===hj) ? hj : '';
+  const pausa = diasLivres() && (S.history||[]).filter(h => wk.includes(h.date)).length >= SEMANA_TREINOS ? wk[6] : '';
+  const t = nextTreino(), dado = { on:on?1:0, h:lbHora(), dias:lbDias(), feito, pausa };
+  const txt = { nome:firstName(S.nome||''), t:t||'', tn:(PLAN[t]||{}).nome||'' }, k = JSON.stringify([dado, txt]);
+  if(k===LBC) return; LBC = k;
+  const url = new URL('__lembrete', location.href).href;
+  try { if(window.caches) caches.open('simp-estado').then(c => c.match(url).then(r => r ? r.json() : null).catch(() => null).then(o => c.put(url, new Response(JSON.stringify(Object.assign({}, dado, txt, { av:o && o.av || '' })), {headers:{'Content-Type':'application/json'}})))).catch(() => {}); } catch(e){ /* sem cache */ }
+  const ks = JSON.stringify(dado);
+  if(pushLigado() && PREF.pushId && PREF.lbK!==ks){ PREF.lbK = ks; savePref(); pushPost('lembrete', dado); }
+}
 /* ---------- Notificações (perfil): tudo o que o app avisa, cada um com uma chave; e o compartilhar com o Simplificando ---------- */
 const swN = (k,on,l) => `<label class="switch"><input type="checkbox" data-sw="${k}"${on?' checked':''}><span class="knob"></span><span class="sr">${l}</span></label>`;
 const cadaTxt = m => +m===30 ? '30 min' : +m===60 ? '1 hora' : '1h30';
@@ -4930,13 +4959,14 @@ function ntfBanner(){
 }
 function ntfBloco(pers){
   const L = [
+    ['avdia', PREF.avDia!==false && !noPlan(), '#7E57C9', ic('dumbbell'), 'Lembrete do treino', noPlan() ? 'Monte seu treino para receber' : PREF.avDia!==false ? lbDiasTxt()+', às '+hmTxt(lbHora()) : 'Desligado'],
     ['remind', S.remind.on, '#1A73E8', ic('drop'), 'Lembrete de água', S.remind.on ? 'A cada '+cadaTxt(S.remind.every)+', das '+hmTxt(RINI())+' às '+hmTxt(RFIM()) : 'Desligado'],
     ['avdesc', PREF.avDesc!==false, '#E8650A', ic('timer'), 'Fim do descanso', 'Quando você sai do app no descanso'],
     ['avtreino', PREF.avTreino!==false, '#E5484D', ic('flag'), 'Treino esquecido aberto', 'Um aviso com 3 horas de treino'],
   ];
   const row = ([k,on,c,icn,t,sub]) => `<div class="nt-row"><span class="nt-ic" style="--c:${c}">${icn}</span><div><b>${t}</b><span class="s">${sub}</span></div>${swN(k,on,t)}</div>`;
   return `<div class="prefs nta"><div class="pref-h"><b>Notificações</b><span>O que o app pode te avisar. Toque para ligar ou desligar.</span></div>${ntfBanner()}
-    ${L.map(row).join('')}
+    ${L.map(row).join('').replace('</div><div class="nt-row"><span class="nt-ic" style="--c:#1A73E8">', '</div>'+(PREF.avDia!==false && !noPlan() ? `<label class="nt-hr"><span>Horário do lembrete</span><input type="time" class="inp" data-lb="h" value="${hhmm(lbHora())}" step="900" aria-label="Horário do lembrete do treino"></label>` : '')+'<div class="nt-row"><span class="nt-ic" style="--c:#1A73E8">')}
     ${!pers && acompPode() ? `<p class="nt-sub">Privacidade</p>${row(['acomp', acompOn(), '#1E9E4A', CM_USERS, 'Compartilhar meus treinos com o Simplificando', 'Treinos, cargas, cardio, água e check-in'])}` : ''}</div>`;
 }
 function vProfile(){
@@ -6200,6 +6230,8 @@ function onChange(ev){
     return;
   }
   if(el.dataset.sw==='acomp'){ acompSet(el.checked); toast(el.checked ? 'Acompanhamento ligado.' : 'Acompanhamento desligado. Seus treinos não aparecem mais para ninguém.'); }
+  if(el.dataset.sw==='avdia'){ PREF.avDia = el.checked; savePref(); lbSync(); if(el.checked && !pushLigado() && pushPode()) pushEnable(true); else toast(el.checked ? 'Lembrete do treino ligado.' : 'Lembrete do treino desligado.'); renderSheet(); }
+  if(el.dataset.lb==='h'){ const v = hmMin(el.value); if(v!=null){ PREF.lbH = v; savePref(); lbSync(); toast('Lembrete do treino às '+hmTxt(v)+'.'); renderSheet(); } return; }
   if(el.dataset.sw==='avdesc'){ PREF.avDesc = el.checked; savePref(); restPush(); if(el.checked && !pushLigado() && pushPode()) pushEnable(true); else toast(el.checked ? 'Aviso do fim do descanso ligado.' : 'Aviso do fim do descanso desligado.'); renderSheet(); }
   if(el.dataset.sw==='avtreino'){ PREF.avTreino = el.checked; PREF.trIni = null; savePref(); treinoAviso(); if(el.checked && !pushLigado() && pushPode()) pushEnable(true); else toast(el.checked ? 'Aviso de treino esquecido ligado.' : 'Aviso de treino esquecido desligado.'); renderSheet(); }
   if(el.dataset.sw==='glass'){ PREF.glass = el.checked; savePref(); applyGlass(); toast(el.checked ? 'Liquid Glass ligado.' : 'Visual sólido de volta.'); }
@@ -6364,7 +6396,7 @@ async function pushEnable(soDescanso){
     if(!PREF.pushId) PREF.pushId = Array.from(crypto.getRandomValues(new Uint8Array(12)), b => (b%36).toString(36)).join('')+Date.now().toString(36);
     const r = await pushPost('assinar', pushDados(sub.toJSON()));
     if(!r.ok) throw new Error('servidor');
-    PREF.pushOn = true; savePref(); PREF.trIni = null; treinoAviso();
+    PREF.pushOn = true; savePref(); PREF.trIni = null; treinoAviso(); PREF.lbK = null; LBC = ''; lbSync();
     if(soDescanso){ if(S.remind.on) pushPost('assinar', pushDados(sub.toJSON())); toast('Pronto. Se sair do app no descanso, a gente te avisa na hora da próxima série.'); render(); return; }
     if(!S.remind.on){ S.remind.on = true; save(); pushPost('assinar', pushDados(sub.toJSON())); }
     toast('Pronto. Os lembretes de água chegam no celular mesmo com o app fechado.'); render();
@@ -6441,7 +6473,7 @@ function offlineSetup(){
   if(location.hash==='#treino' && ACCT){ ui.tab = 'treino'; if(S.session) ui.t = S.session.t; render(); history.replaceState(null,'',location.pathname+location.search); }
   if(location.hash==='#treino-aberto'){ history.replaceState(null,'',location.pathname+location.search); if(ACCT && S.session){ ui.tab = 'treino'; ui.t = S.session.t; render(); } }
   /* treino aberto há 3h ou mais: pergunta ao abrir ou voltar para o app (e confere a cada minuto) */
-  setTimeout(() => { if(ACCT){ treinoAviso(); esqAsk(); } }, 1800);
+  setTimeout(() => { if(ACCT){ treinoAviso(); lbSync(); esqAsk(); } }, 1800);
   document.addEventListener('visibilitychange', () => { if(document.visibilityState==='visible' && ACCT) setTimeout(esqAsk, 600); });
   setInterval(() => { if(ACCT && document.visibilityState==='visible') esqAsk(); }, 60000);
   if(location.hash==='#agua' && ACCT){ ui.tab = 'agua'; render(); history.replaceState(null,'',location.pathname+location.search); }
