@@ -1638,7 +1638,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.36';
+const VERSAO = '1.37';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -2462,6 +2462,7 @@ const estado = c => !c.entrou && emAberto(c) ? ['Falta finalizar', 'p-aviso'] : 
 const atrasoHoje = () => S.atrasoHoje || (L => ({ n: L.length, valor: L.reduce((a, v) => a + v.v, 0) }))((S.compras || []).filter(v => v.auto && !/^avulsa/.test(v.itens || '') && agora - v.quando < 86400000));   // 1.15: o tempo além do pacote nas últimas 24 h (a recreação avulsa é venda comum)
 const textoCobranca = (x, c) => `As horas do pacote acabaram · ${x.n} +${dur(periodo())} · ${brl(precoDe(c, x.v))}${c && c.pcd ? ' · ' + rotPcd() : ''} a receber na saída`;
 // o voucher do shopping: 30 min de recreação grátis, um por visita, sem código. temVoucher: a criança já tem um de hoje sem saída depois dele (o da visita, ou um guardado)
+const cobraNaSaida = () => S.cfg.cobrarNaSaida !== false;   // 1.37: com a saída (ou a devolução) para receber, cobra sempre lá (o dono: "senão fica confuso o que foi pago")
 const voucherNaEntrada = () => S.cfg.voucherEntrada !== false;   // 1.35: o voucher só na entrada (o dono: "na saída, nunca")
 const temVoucher = c => !!c && (MODO === 'servidor' ? !!c.vouch : (S.compras || []).some(v => v.crianca === c.id && v.voucher && doDia(v.quando) && !c.visitas.some(x => new Date(x.dia) > v.quando)));
 const umaCobranca = c => c && c.atraso && c.atraso.n ? c.atraso.valor / c.atraso.n : precoDe(c, (servicoTempo() || { v: 0 }).v);   // quanto vale um período a receber desta criança
@@ -3433,7 +3434,7 @@ function htmlAlt() {
   if (!I.length) return '';
   if (!I.some(l => altChave(l) === ALT.k) && !e) { ALT.k = I.length === 1 ? altChave(I[0]) : ''; ALT.v = I.length === 1 ? valTxt(I[0].v) : ''; ALT.hh = I.length === 1 && I[0].pac != null ? String(I[0].ph) : ''; }   // com um item só, ele já vem escolhido, com o valor de agora
   const trava = e ? ' disabled' : '', aberto = !!e || !!ALT.aberto || !!ALT.neg || ALT.venceu, lp = I.find(l => altChave(l) === ALT.k), comH = !!lp && lp.pac != null;   // 1.36: o pacote também muda de horas
-  return `<details class="pg-desc pg-alt" id="pg-alt"${aberto ? ' open' : ''}><summary>${ic(IC.lapis, 18)}<span><b>Alterar valor</b> <span class="leve">· ${dec ? 'pacote ou produto' : 'pede aprovação'}</span></span>${ic(IC.vai, 16)}</summary>
+  return `<details class="pg-desc pg-alt" id="pg-alt"${aberto ? ' open' : ''}><summary>${ic(IC.lapis, 18)}<span><b>${I.some(l => l.pac != null) ? 'Alterar pacote' : 'Alterar valor'}</b> <span class="leve">· ${dec ? (I.some(l => l.pac != null) ? 'horas e valor' : 'pacote ou produto') : 'pede aprovação'}</span></span>${ic(IC.vai, 16)}</summary>
   <div class="pg-desc-c pg-alt-c${comH ? ' com-h' : ''}">${I.length > 1 ? `<div class="pg-alt-i" role="radiogroup" aria-label="O que muda de valor">${I.map(l => `<button type="button" class="tap" role="radio" aria-checked="${altChave(l) === ALT.k}" data-act="alt-item" data-k="${esc(altChave(l))}"${trava}><b>${esc(altNomeL(l))}</b><span class="num">${brl(l.v)}</span></button>`).join('')}</div>`
       : `<p class="pg-alt-n">${esc(altNomeL(I[0]))} · na tabela, <b>${brl(I[0].v)}</b></p>`}
     ${ALT.neg ? `<p class="pg-alt-n"><b>${esc(ALT.neg)} não aprovou.</b> Dá para pedir de novo.</p>` : ALT.venceu ? '<p class="pg-alt-n"><b>A aprovação venceu</b> (vale por 30 min). Peça de novo.</p>' : ''}
@@ -3501,6 +3502,7 @@ function abrirPagamento(id) {
   // 1.02: pagar depois só existe quando há uma hora certa para receber: a saída da criança (ela entra agora, ou já está no espaço) ou a devolução do carrinho
   const saiDaLoja = l => !!l.s && (x => !!x && !!x.volta && !ehTempo(x))(servicoDe(l.s)), comVolta = L.some(saiDaLoja), depois = !festa && (entrar || !!c.entrou || (comVolta && L.every(l => !(l.v > 0) || saiDaLoja(l))));   // 1.21: a devolução só recebe o que saiu da loja: o resto (um pacote junto) é pago agora   // 1.12: a festa é paga na hora
   if (!depois) PAG.modo = 'agora'; PAG.rotDepois = entrar || c.entrou ? 'Paga na saída' : 'Paga na devolução';
+  const soNaSaida = depois && cobraNaSaida(); if (soNaSaida) { PAG.modo = 'depois'; PAG.rotDepois = entrar || c.entrou ? 'Cobrar na saída' : 'Cobrar na devolução'; }   // 1.37: sem "Paga agora"
   const min = L.reduce((s, l) => s + l.min, 0), saldo = saldoAgora(c), comHoras = min > 0 && (saldo > 0 || L.some(l => l.pac != null));   // as linhas das horas só para quem já tem horas guardadas ou leva um pacote
   const linhas = L.map(l => linhaPagDe(l, c, entrar));   // 1.33
   PAG.linhas = linhas;
@@ -3510,9 +3512,9 @@ function abrirPagamento(id) {
     <button type="button" class="link tap pg-add pg-volta" data-act="pag-voltar">${festa ? ic(IC.volta, 14, 2.8) + ' Trocar o que foi escolhido' : ic(IC.mais, 14, 2.8) + ' Adicionar ou trocar serviços'}</button>
     ${pgSec('Pagamento')}
     <div id="pg-horas-v">${horasPagHtml(c, L)}</div>
-    ${depois ? `<div class="pg-modo" role="radiogroup" aria-label="Quando o cliente paga"><button type="button" class="tap" role="radio" aria-checked="true" data-act="pag-modo" data-m="agora"><i aria-hidden="true"></i>Paga agora</button><button type="button" class="tap" role="radio" aria-checked="false" id="p-depois" data-act="pag-modo" data-m="depois"><i aria-hidden="true"></i>${PAG.rotDepois}</button></div>` : ''}
+    ${depois && !soNaSaida ? `<div class="pg-modo" role="radiogroup" aria-label="Quando o cliente paga"><button type="button" class="tap" role="radio" aria-checked="true" data-act="pag-modo" data-m="agora"><i aria-hidden="true"></i>Paga agora</button><button type="button" class="tap" role="radio" aria-checked="false" id="p-depois" data-act="pag-modo" data-m="depois"><i aria-hidden="true"></i>${PAG.rotDepois}</button></div>` : ''}
     <div class="campo" id="pg-agora"><label>Forma de pagamento <span class="leve">· pode dividir em até três formas</span></label>${htmlPag()}${festa ? '<span class="explica" id="fe-parc"></span>' : ''}</div>
-    ${depois ? `<div class="marca canc" id="pg-fica" hidden>${ic(IC.sino, 18)}<span><b><span id="pg-fica-v">${brl(PAG.total)}</span> a receber na ${entrar || c.entrou ? 'saída' : 'devolução'}.</b></span></div>` : ''}
+    ${depois ? `<div class="marca canc" id="pg-fica" hidden>${ic(IC.sino, 18)}<span><b><span id="pg-fica-v">${brl(PAG.total)}</span> a receber na ${entrar || c.entrou ? 'saída' : 'devolução'}.</b>${soNaSaida ? ` A cobrança é feita na ${entrar || c.entrou ? 'saída' : 'devolução'}.` : ''}</span></div>` : ''}
     ${htmlDesc()}
     ${htmlAlt()}
     <div class="pe-f"><button class="bt forte largo tap" id="p-ok" data-act="pag-ok" data-id="${c.id}" disabled>${ic(IC.check)} Escolha a forma de pagamento</button></div>`;

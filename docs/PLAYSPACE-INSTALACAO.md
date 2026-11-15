@@ -1103,6 +1103,14 @@ Pedido do dono: às vezes a equipe quer lançar um pacote que não existe (sem c
 
 Aprovado, a venda sai como "PACOTE 4H" (as horas novas), com o valor novo; o saldo do cliente recebe as horas novas; a tabela do pagamento diz "Alterado · na tabela, 3h por R$ 225"; as horas desta compra e o cupom acompanham; a linha do dia fica "Valor alterado · PACOTE 03 HORAS 360 (3h): R$ 225 → 4h por R$ 300 · Motivo: … · por … · aprovado por …". Para o produto continua só o valor.
 
+## 6zq. A cobrança sempre na saída; "Alterar pacote" (1.37)
+
+Pedido do dono: tirar o "Paga agora" da entrada, porque fica confuso saber o que foi pago e o que não foi. Quando a criança entra (ou já está no espaço), a tela de pagamento do atendimento não oferece mais a forma de pagamento: tudo o que foi escolhido (pacote, produto, recreação) fica **a receber na saída**, e o botão é **Cobrar na saída · registrar e dar entrada**. O carrinho que sai da loja (sem a criança entrar) fica a receber na devolução. Na saída, a folha cobra tudo de uma vez, com o Desconto ali também.
+
+Sem uma saída para receber (a compra de um pacote para guardar, sem entrar; só um produto; a festa), continua cobrando na hora.
+
+O bloco embaixo do **Desconto** se chama **Alterar pacote** quando há um pacote na conta (as horas e o valor; o gestor libera, como no desconto; seção 6zp). Com só produto, continua **Alterar valor**.
+
 ## 7. Atualizar
 
 Botão **Atualizar** ao lado da versão. Ele baixa a versão nova do GitHub (ramo principal ou de trabalho, a mais nova), confere a versão dentro do arquivo e troca os arquivos de forma atômica. Não mexe em `~/playspace-dados/`. Se o GitHub demorar a refletir (cache de ~5 min), espere e toque de novo.
