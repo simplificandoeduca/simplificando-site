@@ -1033,6 +1033,25 @@ O botão **Imprimir** (no celular, só o ícone) tira o caixa no papel do cupom 
 
 **O cupom.** Sai **só a via da loja** (a via do cliente saiu, e a opção de imprimi-la também). Cada cupom diz qual é: **VIA DE ENTRADA**, **VIA DE SAÍDA**, **VIA DE DEVOLUÇÃO** (o carrinho que voltou), **VIA DE SAÍDA DO CARRINHO**, **VIA DA FESTA** ou **VIA DE PAGAMENTO** (venda sem entrada). A via de entrada e a via de saída têm sempre a linha para o responsável **assinar**. Na via de saída, cada criança mostra só o tempo: **Tempo descontado** (quando o tempo saiu todo das horas do cliente) ou **Tempo contado** (quando a saída cobrou tempo: recreação avulsa, além do pacote, ou pago avulso); o saldo de horas do cliente não sai mais. Na festa, "Festa · sem desconto de horas". Os cupons guardados antes, ao reimprimir, saem só com a via da loja.
 
+## 6zk. O caixa conferido (1.31)
+
+Pedido da dona: conferir todas as contas, somas e porcentagens do caixa ("é dinheiro: tenha certeza que está tudo certo").
+
+**Como foi conferido.** Um livro-caixa feito à parte, operação por operação (pacote, recreação na entrada e acertada na saída, desconto em %, criança PCD, festa, adicional, upgrade, produto, carrinho de bebê, fusquinha na devolução, venda cancelada, Desfazer, as duas unidades), comparado com o caixa e com o painel da gestora depois de cada passo; e mais três sorteios de 40 operações cada, com pagamentos divididos em até três formas e centavos quebrados. Em todos: o total é a soma das formas e a soma dos tipos; "sem os carrinhos" é o total menos os carrinhos; o painel mostra o mesmo número do caixa.
+
+**O que mudou.**
+- **A venda paga em outro dia e cancelada hoje** (o dinheiro volta ao cliente hoje): sai do caixa de hoje, na linha **Devolvido hoje**, pela forma em que tinha entrado. Antes ela sumia do caixa do dia em que foi paga e o caixa de hoje ficava com o dinheiro a mais. A venda paga e cancelada no mesmo dia continua simplesmente saindo do caixa.
+- **O dinheiro conta na unidade em que entrou** (o aparelho que recebeu). Antes contava na unidade da venda: a recreação avulsa de quem entrou pelo rosto (o iDFace não diz a unidade) ficaria fora do caixa da unidade.
+- **As parcelas da festa no crédito** com a conta exata: quando não divide em centavos iguais, a diferença vai na 1ª parcela ("4x: 1x de R$ 877,29 + 3x de R$ 877,27"). Antes, "4x de R$ 877,28" somava R$ 3.509,12 para R$ 3.509,10.
+- **As porcentagens do painel** ("x% do recebido", "x% do faturado") somam sempre 100%.
+- **A saída pelo rosto (iDFace)** não passa pelo pagamento: o que a visita cobrou e ficou sem pagar continua **a receber** na ficha (Receber). Antes não havia onde receber.
+- **O Desfazer de um recebimento** tira só os pagamentos daquela operação (antes podia levar junto um pagamento que outro aparelho tinha acabado de receber da mesma criança).
+- **O pacote com "FESTA" no nome** (ex.: "FESTA DO PIJAMA") conta nos pacotes, no caixa e no painel.
+- **O preço da criança PCD** é calculado em centavos inteiros, igual na tela e no servidor (com preço de centavos quebrados, a venda podia ser recusada por 1 centavo).
+- **"1.500" digitado num valor** é mil e quinhentos (antes virava R$ 1,50).
+
+Uma segunda leitura do código, independente, conferiu também: a divisão do desconto entre as vendas (fecha sempre os centavos e nunca passa do que cada venda deve), o desconto em % (vale o valor em reais mostrado na tela), o PCD de 50%, os valores da festa (upgrade = a diferença da tabela, adicional = crianças × valor), os totais dos cupons e o recebido por forma.
+
 ## 7. Atualizar
 
 Botão **Atualizar** ao lado da versão. Ele baixa a versão nova do GitHub (ramo principal ou de trabalho, a mais nova), confere a versão dentro do arquivo e troca os arquivos de forma atômica. Não mexe em `~/playspace-dados/`. Se o GitHub demorar a refletir (cache de ~5 min), espere e toque de novo.

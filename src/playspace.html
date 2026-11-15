@@ -905,7 +905,7 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .cx-grupos { display: flex; flex-direction: column; border-radius: 16px; border: 1px solid var(--borda); overflow: hidden; }
 .cx-g { padding: 9px 12px; display: flex; flex-direction: column; gap: 1px; } .cx-g + .cx-g, .cx-sub + .cx-g { border-top: 1px solid var(--borda); }
 .cx-l { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; } .cx-l b { font-size: 14.5px; } .cx-l span { font-weight: 800; font-size: 15px; white-space: nowrap; } .cx-g small { font-size: 12px; color: var(--tinta-2); }
-.cx-g.carr { background: var(--mostarda-2); } .cx-carr { display: block; padding: 0 12px 9px; font-size: 12px; color: var(--tinta-2); background: var(--mostarda-2); }
+.cx-g.carr { background: var(--mostarda-2); } .cx-g.dev .cx-l span { color: var(--erro); } .cx-carr { display: block; padding: 0 12px 9px; font-size: 12px; color: var(--tinta-2); background: var(--mostarda-2); }
 .cx-sub, .cx-tot { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; padding: 9px 12px; border-top: 1px solid var(--borda-2); font-weight: 800; } .cx-sub { background: var(--menta-risco); font-size: 14px; } .cx-tot { background: var(--tinta); color: var(--creme); font-size: 15px; } .cx-tot b { font-size: 18px; }
 .cx-uni { align-self: flex-start; max-width: 100%; } .seg.cx-uni button { flex: 0 0 auto; padding: 0 14px; white-space: nowrap; }
 .fim-chip > svg { flex: none; color: var(--ok); } #esp-filtros.mn-itens .fim-chip > svg { margin-left: -2px; }
@@ -1619,7 +1619,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.30';
+const VERSAO = '1.31';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -2395,7 +2395,7 @@ const tolerancia = () => Math.max(0, +S.cfg.tolerancia || 0);
 const tolCupom = () => S.cfg.tolCupom == null ? 5 : Math.max(0, +S.cfg.tolCupom || 0);
 // a criança PCD paga a recreação avulsa com desconto (50% de fábrica): o serviço por período e a cobrança por atraso. Pacote de horas e carrinhos, não
 const pcdDesc = () => Math.max(0, Math.min(100, S.cfg.pcdDesc == null ? 50 : +S.cfg.pcdDesc));
-const precoDe = (c, v) => c && c.pcd ? Math.round(v * (100 - pcdDesc())) / 100 : v;
+const precoDe = (c, v) => c && c.pcd ? Math.round(Math.round(v * 100) * (100 - pcdDesc()) / 100) / 100 : v;   // 1.31: em centavos inteiros, a mesma conta do servidor
 const rotPcd = () => 'PCD ' + pcdDesc() + '%';
 const periodosDe = min => Math.max(1, Math.ceil((min - tolerancia()) / periodo()));
 function cobrar(minutos) { return periodosDe(minutos) * periodo(); }
@@ -2557,7 +2557,7 @@ const nomeResp = c => esc(c.resp || c.nome);                                    
 const nomeCri = (c, idade = false) => (c.resp ? esc(c.nome) : '') + (idade && idadeTxt(c) ? (c.resp ? ', ' : '') + idadeTxt(c) : '');   // a criança, em segundo (com a idade, se pedir)
 const pontos = (...p) => p.filter(Boolean).join(' · ');                                                                                    // junta com " · " só o que existe
 const porResp = (a, b) => String(a.resp || a.nome).localeCompare(String(b.resp || b.nome)) || a.nome.localeCompare(b.nome);              // a ordem das listas: pelo responsável e, dentro dele, pela criança
-const numero = t => { t = String(t == null ? '' : t).trim().replace(/[^\d.,]/g, ''); if (t === '') return NaN; return t.includes(',') ? +t.replace(/\./g, '').replace(',', '.') : +t; };   // "30", "30,50", "1.250,00"
+const numero = t => { t = String(t == null ? '' : t).trim().replace(/[^\d.,]/g, ''); if (t === '') return NaN; return t.includes(',') ? +t.replace(/\./g, '').replace(',', '.') : /^[1-9]\d{0,2}(\.\d{3})+$/.test(t) ? +t.replace(/\./g, '') : +t; };   // "30", "30,50", "1.250,00", "1.500" (1.31: o ponto com três números depois é de milhar)
 const semHoras = c => !(c.pacote > 0);   // cadastrada, mas ainda não comprou nenhuma hora
 const dur = min => { min = Math.max(0, Math.round(min)); return Math.floor(min / 60) + 'h' + (min % 60 ? p2(min % 60) : ''); };   // o tempo de recreação sempre em horas: 0h30, 1h, 1h30 (a loja vende meia hora e hora)
 const porExt = min => min === 30 ? 'meia hora' : min === 60 ? '1 hora' : dur(min);   // nas frases: "a cada meia hora"
@@ -3226,7 +3226,7 @@ function desenharPag(refaz = true) {
   if (P.onde === 'saida') { botaoSaida(); botaoGrupo(); }   // na saída, o botão diz a forma escolhida (ou pede a forma)
   if (P.onde === 'devolucao') botaoDevolver();   // 1.00: na devolução também
   if (P.onde === 'receber') botaoReceber();   // 1.02: e no "Receber" da ficha
-  { const fp = $('#fe-parc'); if (fp) { const np = festaCfg().parcelas || 4, vc = (r.partes.find(x => x.f === 'credito') || {}).v || (P.formas.length ? 0 : P.total); fp.textContent = vc > 0 ? `No crédito, em até ${np}x sem juros: ${np}x de ${brl2(centavos(vc / np))}.` : `No crédito, em até ${np}x sem juros.`; } }   // 1.12: a festa
+  { const fp = $('#fe-parc'); if (fp) { const np = festaCfg().parcelas || 4, vc = (r.partes.find(x => x.f === 'credito') || {}).v || (P.formas.length ? 0 : P.total); fp.textContent = vc > 0 ? `No crédito, em até ${np}x sem juros: ${parcelasTxt(vc, np)}.` : `No crédito, em até ${np}x sem juros.`; } }   // 1.12: a festa
   if (P.onde === 'venda') { const ok = $('#p-ok'), zero = !(P.total > 0), dep = !zero && P.modo === 'depois', ag = $('#pg-agora'), fica = $('#pg-fica'), md = $('.pg-modo'); if (ag) ag.hidden = dep || zero; if (fica) fica.hidden = !dep; if (md) md.hidden = zero;   // 1.03: paga agora (as formas de pagamento) ou paga na saída; 1.04: com desconto total não há o que receber
     $$('.pg-modo [data-m]').forEach(b => b.setAttribute('aria-checked', (b.dataset.m === 'depois') === dep));
     if (ok) { ok.disabled = !dep && !zero && !!r.erro; ok.innerHTML = zero ? `${ic(IC.check)} Registrar com desconto total${P.entrar ? ' e dar entrada' : ''}` : dep ? `${ic(IC.horas)} ${P.rotDepois} · registrar${P.entrar ? ' e dar entrada' : ''}` : `${ic(IC.check)} ${r.erro ? (n ? r.erro : 'Escolha a forma de pagamento') : `Recebi ${brl(P.total)}${r.partes.length === 1 ? ' ' + naForma(r.partes[0].f) : ''} · registrar${P.entrar ? ' e dar entrada' : ''}`}`; } }
@@ -4595,25 +4595,31 @@ const linhaFimAlug = (x, varias) => { const c = crianca(x.crianca), u = varias &
 // total e a soma da recreação, do que foi pacote, do que foi festa". O caixa é o que foi RECEBIDO hoje, na unidade deste aparelho.
 const GRUPOS_CX = [['recreacao', 'Recreação avulsa', 'o tempo de quem não usa pacote'], ['pacotes', 'Pacotes de horas', ''], ['festa', 'Festas', 'festa, upgrade e adicional'], ['produtos', 'Produtos da loja', ''], ['outros', 'Outros', '']];
 function grupoCxPrevia(v) { const n = String(v.servico || '').trim().toUpperCase(), st = servicoTempo();
-  if (v.prod) return 'produtos'; if (v.alug || (S.cfg.servicos || []).some(s => s.volta && String(s.n || '').trim().toUpperCase() === n)) return 'carrinhos'; if (n.includes('FESTA')) return 'festa';
-  if (minDe(v) > 0 && !v.auto && !v.voucher && (!n || /^PACOTE(?![0-9A-Z_])/.test(n))) return 'pacotes';
+  if (v.prod) return 'produtos'; if (v.alug || (S.cfg.servicos || []).some(s => s.volta && String(s.n || '').trim().toUpperCase() === n)) return 'carrinhos'; if (minDe(v) > 0 && !v.auto && !v.voucher && (!n || /^PACOTE(?![0-9A-Z_])/.test(n))) return 'pacotes';   // 1.31: antes da festa (como no painel)
+  if (n.includes('FESTA')) return 'festa';
   if (minDe(v) > 0 || (st && n === String(st.n || '').trim().toUpperCase())) return 'recreacao'; return 'outros'; }
 function caixaUnidades() { // [{ uni, grupos: { recreacao: { formas, total, vendas, itens } ... } }]: o servidor manda; na prévia, a mesma conta
   if (MODO === 'servidor') return (S.caixa && S.caixa.unidades) || [];
-  const d0 = new Date(agora); d0.setHours(0, 0, 0, 0); const o = {};
+  const d0 = new Date(agora); d0.setHours(0, 0, 0, 0); const o = {}, primeira = (unidades()[0] || {}).id || 0;   // (a mesma unidade do painel: o que não tem unidade fica na primeira)
   for (const p of S.pagamentos || []) { if (!(+new Date(p.quando) >= +d0)) continue; const v = (S.compras || []).find(x => x.id === p.venda); if (!v) continue;
-    const u = +v.uni || 0, g = grupoCxPrevia(v), x = ((o[u] = o[u] || { uni: u, grupos: {} }).grupos[g] = o[u].grupos[g] || { formas: {}, total: 0, vendas: new Set(), itens: {} });
+    const u = +(p.uni || v.uni || (crianca(v.crianca) || {}).uni || primeira), g = grupoCxPrevia(v), x = ((o[u] = o[u] || { uni: u, grupos: {} }).grupos[g] = o[u].grupos[g] || { formas: {}, total: 0, vendas: new Set(), itens: {} });
     x.formas[p.f] = centavos((x.formas[p.f] || 0) + (+p.v || 0)); x.total = centavos(x.total + (+p.v || 0)); x.vendas.add(v.id);
     if (g === 'carrinhos') { const nm = String(v.servico || 'CARRINHO').toUpperCase(); x.itens[nm] = centavos((x.itens[nm] || 0) + (+p.v || 0)); } }
-  return Object.values(o).map(x => ({ uni: x.uni, grupos: Object.fromEntries(Object.entries(x.grupos).map(([k, g]) => [k, { ...g, vendas: g.vendas.size }])) })); }
+  for (const e of S.estornos || []) { if (!(+new Date(e.quando) >= +d0)) continue; const u = +(e.uni || primeira), x = o[u] = o[u] || { uni: u, grupos: {} }, d = x.dev = x.dev || { total: 0, formas: {}, grupos: {}, itens: {}, n: 0, vs: new Set() };   // 1.31: a venda de outro dia devolvida hoje
+    d.total = centavos(d.total + e.v); d.formas[e.f] = centavos((d.formas[e.f] || 0) + e.v); d.grupos[e.g] = centavos((d.grupos[e.g] || 0) + e.v); if (e.item) d.itens[e.item] = centavos((d.itens[e.item] || 0) + e.v); d.vs.add(e.venda); d.n = d.vs.size; }
+  return Object.values(o).map(x => ({ uni: x.uni, grupos: Object.fromEntries(Object.entries(x.grupos).map(([k, g]) => [k, { ...g, vendas: g.vendas.size }])), ...(x.dev ? { devolvido: (({ vs, ...d }) => d)(x.dev) } : {}) })); }
 const cxUni = () => { const U = unidades(); if (!U.length) return 0; return gestor() && S.cxUni != null ? S.cxUni : minhaUni() || 0; };   // 0 = todas
 function contaCaixa(uni) { // o caixa de uma unidade (0 = todas): o total, por forma, por grupo e os carrinhos
-  const L = caixaUnidades().filter(x => !uni || x.uni === uni), soma = {}, G = {};
+  const L = caixaUnidades().filter(x => !uni || x.uni === uni), soma = {}, G = {}, dev = { total: 0, formas: {}, grupos: {}, itens: {}, n: 0 };
   for (const x of L) for (const [k, g] of Object.entries(x.grupos)) { const y = G[k] = G[k] || { formas: {}, total: 0, vendas: 0, itens: {} }; y.total = centavos(y.total + g.total); y.vendas += g.vendas || 0;
     for (const [f, v] of Object.entries(g.formas || {})) { y.formas[f] = centavos((y.formas[f] || 0) + v); soma[f] = centavos((soma[f] || 0) + v); }
     for (const [n, v] of Object.entries(g.itens || {})) y.itens[n] = centavos((y.itens[n] || 0) + v); }
-  const total = centavos(Object.values(soma).reduce((t, v) => t + v, 0)), carr = G.carrinhos ? G.carrinhos.total : 0;
-  return { total, soma, G, carr, semCarr: centavos(total - carr) }; }
+  for (const x of L) if (x.devolvido) { const d = x.devolvido; dev.total = centavos(dev.total + (+d.total || 0)); dev.n += +d.n || 0;   // 1.31: o devolvido hoje sai das formas e do total; o dos carrinhos, dos carrinhos
+    for (const [f, v] of Object.entries(d.formas || {})) { dev.formas[f] = centavos((dev.formas[f] || 0) + v); soma[f] = centavos((soma[f] || 0) - v); }
+    for (const [k, v] of Object.entries(d.grupos || {})) dev.grupos[k] = centavos((dev.grupos[k] || 0) + v);
+    for (const [n, v] of Object.entries(d.itens || {})) dev.itens[n] = centavos((dev.itens[n] || 0) + v); }
+  const total = centavos(Object.values(soma).reduce((t, v) => t + v, 0)), carr = centavos((G.carrinhos ? G.carrinhos.total : 0) - (dev.grupos.carrinhos || 0));
+  return { total, soma, G, carr, dev, semCarr: centavos(total - carr) }; }
 const formasCx = F => FORMAS.filter(([f]) => (F || {})[f] > 0).map(([f, n]) => `${n} ${brl2(F[f])}`).join(' · ');
 function htmlCaixaDia() {
   const u = cxUni(), K = contaCaixa(u), U = unidades(), onde = u ? nomeUni(u) : U.length > 1 ? 'todas as unidades' : (U[0] || {}).nome || '';
@@ -4625,8 +4631,9 @@ function htmlCaixaDia() {
     ${gestor() && U.length > 1 ? `<div class="seg cx-uni">${[...U.map(x => [x.id, x.nome]), [0, 'TODAS']].map(([id, n]) => `<button type="button" data-act="cx-uni" data-v="${id}" aria-pressed="${u === id}">${esc(n)}</button>`).join('')}</div>` : ''}
     <div class="cx-formas">${FORMAS.map(([f, n]) => `<div><small>${n}</small><b class="num">${brl2(K.soma[f] || 0)}</b></div>`).join('')}</div>
     <div class="cx-grupos">${grupos}
+      ${K.dev.total > 0 ? `<div class="cx-g dev"><div class="cx-l"><b>Devolvido hoje</b><span class="num">− ${brl2(K.dev.total)}</span></div><small>venda de outro dia cancelada hoje · ${esc(formasCx(K.dev.formas))} · ${K.dev.n} ${K.dev.n === 1 ? 'devolução' : 'devoluções'}${K.dev.grupos.carrinhos ? ` · ${brl2(K.dev.grupos.carrinhos)} de carrinho` : ''}</small></div>` : ''}
       <div class="cx-sub"><span>Total sem os carrinhos</span><b class="num">${brl2(K.semCarr)}</b></div>
-      ${linha('Carrinhos', 'nada recebido hoje', gc, ' carr')}${itensC ? `<small class="cx-carr">${itensC}</small>` : ''}
+      ${linha('Carrinhos', 'nada recebido hoje', gc ? { ...gc, total: K.carr } : gc, ' carr')}${itensC ? `<small class="cx-carr">${itensC}${K.dev.grupos.carrinhos ? ` · devolvido ${brl2(K.dev.grupos.carrinhos)}` : ''}</small>` : ''}
       <div class="cx-tot"><span>Total do dia</span><b class="num">${brl2(K.total)}</b></div></div>
   </section>`;
 }
@@ -4636,6 +4643,7 @@ function papelCaixa() { const u = cxUni(), K = contaCaixa(u), L = lojaPapel(), l
     <p class="c-cab"><span>Por forma de pagamento</span><span>Valor</span></p>${FORMAS.map(([f, n]) => lin(n, brl2(K.soma[f] || 0))).join('')}
     <p class="c-div"></p><p class="c-cab"><span>Pelo que foi pago</span><span>Valor</span></p>
     ${GRUPOS_CX.filter(([k]) => ['recreacao', 'pacotes', 'festa'].includes(k) || (K.G[k] && K.G[k].total > 0)).map(([k, n]) => lin(n, brl2(K.G[k] ? K.G[k].total : 0))).join('')}
+    ${K.dev.total > 0 ? lin('Devolvido hoje', '− ' + brl2(K.dev.total)) + `<p class="c-sub">venda de outro dia cancelada · ${esc(formasCx(K.dev.formas))}</p>` : ''}
     ${lin('Sem os carrinhos', brl2(K.semCarr), ' c-total')}
     ${lin('Carrinhos', brl2(K.carr))}${K.G.carrinhos ? Object.entries(K.G.carrinhos.itens).map(([n, v]) => `<p class="c-sub">${esc(n)}: ${brl2(v)}</p>`).join('') : ''}
     <p class="c-div"></p>${lin('TOTAL DO DIA', brl2(K.total), ' c-total')}
@@ -4797,7 +4805,8 @@ function painelDia() {
   const primeira = (unidades()[0] || {}).id || 0, uniDe = v => v ? v.uni || (crianca(v.crianca) || {}).uni || primeira : primeira;   // (prévia) os exemplos sem unidade ficam na primeira
   for (const v of S.compras || []) if (!v.imp && v.quando >= d0) { const x = um(uniDe(v)); x.faturado = centavos(x.faturado + v.v); x.vendas++; x.desc = centavos(x.desc + (v.desc || 0));
     if (v.v > 0) { const n = servDaVenda(v), s = x.sv.get(n) || { n, q: 0, v: 0 }; s.q++; s.v = centavos(s.v + v.v); x.sv.set(n, s); } }
-  for (const p of S.pagamentos || []) if (p.quando >= d0) { const x = um(uniDe(S.compras.find(v => v.id === p.venda) || { crianca: p.crianca })); x.formas[p.f] = centavos((x.formas[p.f] || 0) + p.v); x.recebido = centavos(x.recebido + p.v); }
+  for (const p of S.pagamentos || []) if (p.quando >= d0) { const x = um(p.uni || uniDe(S.compras.find(v => v.id === p.venda) || { crianca: p.crianca })); x.formas[p.f] = centavos((x.formas[p.f] || 0) + p.v); x.recebido = centavos(x.recebido + p.v); }
+  for (const e of S.estornos || []) if (e.quando >= d0) { const x = um(e.uni || primeira); x.formas[e.f] = centavos((x.formas[e.f] || 0) - e.v); x.recebido = centavos(x.recebido - e.v); }   // 1.31: a venda de outro dia devolvida hoje
   for (const k of S.cancelamentos || []) if (k.quando >= d0 && cancTipo(k) !== 'desfeita') { const x = um(k.uni || primeira); x.cancelados++; x.cancelado = centavos(x.cancelado + (k.valor || 0)); }
   return [...o.values()].map(({ sv, ...x }) => ({ ...x, servicos: [...sv.values()] }));
 }
@@ -4849,6 +4858,12 @@ function grHorasSvg(W, horas, de, ate) {
   return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="group" aria-label="Entradas por hora, hoje">${g}</svg>`;
 }
 // as barras deitadas: o nome, a barra e o valor em cada linha (todas na mesma régua). L: [{ n, v, txt, dica }]
+// 1.31: as porcentagens de um todo, inteiras e somando 100 (o arredondamento comum dá 99% ou 101%): as sobras vão para as maiores frações
+// 1.31: as parcelas iguais em centavos; o que sobra da divisão vai na 1ª parcela (a soma é sempre o valor): "4x de R$ 1.079,75" ou "4x: 1x de R$ 877,29 + 3x de R$ 877,27"
+function parcelasTxt(valor, n) { const c = Math.round((+valor || 0) * 100), b = Math.floor(c / n), r = c - b * n; return !r ? `${n}x de ${brl2(b / 100)}` : `${n}x: 1x de ${brl2((b + r) / 100)} + ${n - 1}x de ${brl2(b / 100)}`; }
+function pctsInteiros(vals, total) { const t = +total || 0; if (!(t > 0)) return vals.map(() => 0); const ex = vals.map(v => Math.max(0, +v || 0) * 100 / t), base = ex.map(Math.floor);
+  let falta = Math.round(ex.reduce((s, x) => s + x, 0)) - base.reduce((s, x) => s + x, 0); const ordem = ex.map((x, i) => [x - base[i], i]).sort((a, b) => b[0] - a[0] || a[1] - b[1]);
+  for (let k = 0; falta > 0 && k < ordem.length; k++, falta--) base[ordem[k][1]]++; return base; }
 const grLinhas = (L, cor) => { const max = Math.max(0, ...L.map(x => x.v)); return `<div class="gr-linhas">${L.map(x => `<div class="gr-l${x.v > 0 ? '' : ' zero'}" tabindex="0" data-dica="${esc(x.dica)}"><span class="gr-n">${esc(x.n)}</span><span class="gr-t"><i style="width:${max > 0 && x.v > 0 ? Math.max(1.5, x.v / max * 100).toFixed(1) : 0}%;background:var(${cor})"></i></span><b class="num">${x.txt}</b></div>`).join('')}</div>`; };
 let PN_R = null, GR_T = 0, GR_DICA = null;
 function graficosPainel() { const el = $('#gr-horas'); if (!el || S.tela !== 'painel') return; const r = PN_R || painelResumo(pnUni()), [de, ate] = grFaixaHoras(r.horas); el.innerHTML = grHorasSvg(Math.max(260, Math.floor(el.clientWidth) || 600), r.horas, de, ate); }
@@ -4893,9 +4908,9 @@ function telaPainel() {
   const comp = !id && varias ? `<div class="card pn-g pn-comp"><div class="pn-g-cab"><h3>Cada unidade hoje</h3><small>toque no nome para ver só ela</small></div><table><thead><tr><th>Unidade</th><th>No espaço</th><th>Entradas</th><th>Faturado</th><th>Caixa</th></tr></thead><tbody>${ops.filter(q => q).map(q => { const x = painelResumo(q, B); return `<tr><th><button type="button" class="link tap" data-act="pn-uni" data-id="${q}">${esc(nomeDe(q))}</button></th><td class="num" data-rot="No espaço">${x.dentro}</td><td class="num" data-rot="Entradas">${x.entradas}</td><td class="num" data-rot="Faturado">${brl(x.faturado)}</td><td class="num" data-rot="Caixa">${brl(x.recebido)}</td></tr>`; }).join('')}</tbody></table></div>` : '';
   const [de, ate] = grFaixaHoras(r.horas), pico = Math.max(0, ...r.horas), hPico = pico ? r.horas.indexOf(pico) : -1;
   const tabHoras = `<details class="gr-tab"><summary>Ver em tabela</summary><table><thead><tr><th>Hora</th><th>Entradas</th></tr></thead><tbody>${Array.from({ length: ate - de + 1 }, (_, i) => `<tr><td>${de + i}h</td><td class="num">${r.horas[de + i]}</td></tr>`).join('')}</tbody></table></details>`;
-  const caixa = grLinhas(FORMAS.map(([f, nf]) => ({ n: nf, v: r.formas[f] || 0, txt: brl(r.formas[f] || 0), dica: `${brl(r.formas[f] || 0)}|${nf}${r.recebido > 0 ? ' · ' + Math.round((r.formas[f] || 0) / r.recebido * 100) + '% do recebido' : ''}` })), '--gr-2');
+  const pF = pctsInteiros(FORMAS.map(([f]) => r.formas[f] || 0), r.recebido), caixa = grLinhas(FORMAS.map(([f, nf], i) => ({ n: nf, v: r.formas[f] || 0, txt: brl(r.formas[f] || 0), dica: `${brl(r.formas[f] || 0)}|${nf}${r.recebido > 0 ? ' · ' + pF[i] + '% do recebido' : ''}` })), '--gr-2');
   const SV = r.servicos.slice(0, 5), resto = r.servicos.slice(5); if (resto.length) SV.push({ n: resto.length === 1 ? resto[0].n : 'OUTROS', q: resto.reduce((t, s) => t + s.q, 0), v: centavos(resto.reduce((t, s) => t + s.v, 0)) });
-  const serv = SV.length ? grLinhas(SV.map(s => ({ n: s.n, v: s.v, txt: brl(s.v), dica: `${brl(s.v)}|${s.n} · ${s.q} ${s.q === 1 ? 'venda' : 'vendas'}${r.faturado > 0 ? ' · ' + Math.round(s.v / r.faturado * 100) + '% do faturado' : ''}` })), '--gr-2') : '<p class="pn-nada">Nenhuma venda com valor hoje.</p>';
+  const pS = pctsInteiros(SV.map(s => s.v), r.faturado), serv = SV.length ? grLinhas(SV.map((s, i) => ({ n: s.n, v: s.v, txt: brl(s.v), dica: `${brl(s.v)}|${s.n} · ${s.q} ${s.q === 1 ? 'venda' : 'vendas'}${r.faturado > 0 ? ' · ' + pS[i] + '% do faturado' : ''}` })), '--gr-2') : '<p class="pn-nada">Nenhuma venda com valor hoje.</p>';
   const ondeDe = u => !id && varias && nomeUni(uniNoPainel(u)) ? ' · ' + esc(nomeUni(uniNoPainel(u))) : '';
   const canc = r.canc.length ? r.canc.slice(0, 5).map(x => `<button type="button" class="pn-li tap" data-act="cancelamentos"><time>${hora(x.quando)}</time><span class="pn-li-t"><b>${cancOQue(x)}</b><span>${esc(quemCancelou(x))}${x.resp || x.nome ? ' · ' + esc(x.resp ? x.resp + (x.nome ? ' · ' + x.nome : '') : x.nome) : ''}${x.motivo ? ' · Motivo: ' + esc(x.motivo) : ''}${ondeDe(x.uni)}</span></span></button>`).join('') : '<p class="pn-nada">Nenhum cancelamento hoje.</p>';
   const mov = r.mov.length ? r.mov.slice(0, 8).map(m => `<button type="button" class="pn-li tap" data-act="historico" data-id="${m.crianca}"><time>${hora(m.t)}</time><span class="pn-li-t"><b><i class="pn-mv ${m.e ? 'ent' : 'sai'}">${m.e ? 'entrou' : 'saiu'}</i> ${esc(m.resp || m.nome)}</b><span>${esc(m.nome)}${ondeDe(m.uni)}</span></span></button>`).join('') : '<p class="pn-nada">Ninguém entrou nem saiu hoje ainda.</p>';
@@ -5425,7 +5440,7 @@ async function confirmarCancelar(el) {
   }
   const prazo = noPrazoCancelar(c), min = Math.floor(segDentro(c) / 60), entrouEm = c.entrou, valor = sel.reduce((a, v) => a + v.v, 0), tempo = sel.reduce((a, v) => a + v.m, 0), sap = c.sapateira || 0, itens = sel.map(v => ({ n: v.n, m: v.m, v: v.v }));
   for (const v of sel) { const compra = S.compras.find(x => x.id === v.id); if (compra && compra.reg) compra.reg.txt += ' · cancelada'; if (compra && compra.prod) { const p = produto(compra.prod); if (p && p.est != null) p.est += compra.qtd; } }   // (prévia) produto que deixa de ser cobrado volta para o estoque
-  const devPag = (S.pagamentos || []).filter(p => sel.some(v => v.id === p.venda)), devPor = {}; for (const p of devPag) devPor[p.f] = centavos((devPor[p.f] || 0) + p.v);   // (prévia) o que já tinha sido pago por essas vendas volta para o cliente
+  estornarPrevia(sel.map(v => S.compras.find(x => x.id === v.id)).filter(Boolean)); const devPag = (S.pagamentos || []).filter(p => sel.some(v => v.id === p.venda)), devPor = {}; for (const p of devPag) devPor[p.f] = centavos((devPor[p.f] || 0) + p.v);   // (prévia) o que já tinha sido pago por essas vendas volta para o cliente
   const dev = Object.entries(devPor).map(([f, v]) => `${nomeForma(f)} ${brl(v)}`).join(' + '); S.pagamentos = (S.pagamentos || []).filter(p => !devPag.includes(p));
   S.compras = S.compras.filter(x => !sel.some(v => v.id === x.id));
   if (c.festa) { const fe = c.festa; S.festaPres = (S.festaPres || []).filter(p => !(p.festa === fe && p.crianca === c.id && +p.quando >= +entrouEm - 2000)); c.festa = null; c.festaPapel = null; }   // 1.29: a entrada na festa cancelada não conta
@@ -5749,10 +5764,13 @@ async function confirmarCancelarVenda(el) {
   const compra = S.compras.find(x => x.id === k.id); if (!compra) { fim(''); return; }   // (prévia) a mesma conta do servidor
   const r = cancelarVendaPrevia(compra, c, MAI(motivo), EU, atd); if (r.erro) { toast(r.erro); return; } fim(r.devolver);
 }
+// 1.31 (prévia): o que destas vendas foi pago em OUTRO DIA vira devolução de hoje (sai do caixa de hoje); o que foi pago hoje sai com o pagamento
+function estornarPrevia(vendas) { const d0 = new Date(agora); d0.setHours(0, 0, 0, 0); S.estornos = S.estornos || [];
+  for (const v of vendas) for (const p of (S.pagamentos || []).filter(x => x.venda === v.id && +new Date(x.quando) < +d0)) { const g = grupoCxPrevia(v); S.estornos.push({ quando: new Date(), venda: v.id, uni: minhaUni() || v.uni || (crianca(v.crianca) || {}).uni || 0, f: p.f, v: centavos(+p.v || 0), g, item: g === 'carrinhos' ? String(v.servico || 'CARRINHO').toUpperCase() : '' }); } }
 function cancelarVendaPrevia(compra, c, M, quem, atd = '', ped = '') {   // ped: o login de quem pediu (o pedido liberado) // (prévia) a mesma conta do servidor; quem = quem cancelou (quem estorna, ou quem liberou o pedido); atd (1.25) = o nome da atendente (quem cancelou, ou quem pediu)
   const m = minDe(compra); if (m > 0 && saldoMin(c) < m) return { erro: `As horas desta venda já foram usadas${saldoMin(c) > 0 ? ' em parte: sobram ' + hm(saldoMin(c)) + ' de ' + hm(m) : ''}. Não dá para cancelar a venda inteira.` };
   const dev = devDaCompra(compra), nfE = (S.pedidos || []).find(p => p.tipo === 'nf' && p.venda === compra.id && p.status === 'usado'), nome = nomeVendaTxt(compra), q = compra.quando;
-  S.pagamentos = (S.pagamentos || []).filter(p => p.venda !== compra.id); S.compras = S.compras.filter(x => x !== compra); if (compra.reg) compra.reg.txt += ' · cancelada';
+  estornarPrevia([compra]); S.pagamentos = (S.pagamentos || []).filter(p => p.venda !== compra.id); S.compras = S.compras.filter(x => x !== compra); if (compra.reg) compra.reg.txt += ' · cancelada';
   if (compra.prod) { const p = produto(compra.prod); if (p && p.est != null) p.est += compra.qtd; }
   if (m > 0) { c.pacote = Math.max(0, c.pacote - m / 60); const u = S.compras.filter(x => x.crianca === c.id && minDe(x) > 0).sort((a, b) => b.quando - a.quando)[0]; c.venda = u ? { h: minDe(u) / 60, m: minDe(u), v: u.v, servico: u.servico, com: u.itens, quando: u.quando } : null;
     if (c.entrou) acertarDemo(c, true); else if (!temPeriodo(c) && S.cfg.bloqueioAuto === 'sim') c.liberado = false; }   // sem as horas, quem está no espaço passa a dever a recreação avulsa

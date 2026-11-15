@@ -351,6 +351,13 @@ function db(): PDO {
     } catch (Throwable $e) { }
     $pdo->exec('PRAGMA user_version = 32');
   }
+  if ($v < 33) { // 1.31: o caixa. O pagamento guarda a unidade em que foi recebido; a devolução de um pagamento de outro dia (a venda cancelada
+    // hoje) fica anotada em estornos, para sair do caixa do dia em que o dinheiro voltou ao cliente
+    try { $pdo->exec('ALTER TABLE pagamentos ADD COLUMN unidade_id INTEGER'); } catch (Throwable $e) { }
+    $pdo->exec("CREATE TABLE IF NOT EXISTS estornos (id INTEGER PRIMARY KEY, quando TEXT NOT NULL, unidade_id INTEGER, forma TEXT NOT NULL, valor REAL NOT NULL, grupo TEXT NOT NULL DEFAULT 'outros', item TEXT NOT NULL DEFAULT '', pago_em TEXT, venda_id INTEGER, crianca_id INTEGER)");
+    $pdo->exec('CREATE INDEX IF NOT EXISTS estornos_quando ON estornos (quando)');
+    $pdo->exec('PRAGMA user_version = 33');
+  }
   return $pdo;
 }
 /* ---------- 1.06: unidades ---------- */
@@ -448,7 +455,7 @@ function periodosDe(float $minutos): int { return max(1, (int)ceil(($minutos - m
 function cobrar(float $minutos): int { return periodosDe($minutos) * periodo(); }
 // o preço da recreação avulsa para esta criança: a criança PCD paga com o desconto (50% de fábrica)
 function pcdDesc(): int { return max(0, min(100, (int)(regra()['pcdDesc'] ?? 50))); }
-function precoPcd(array $c, float $v): float { return !empty($c['pcd']) ? round($v * (100 - pcdDesc()) / 100, 2) : $v; }
+function precoPcd(array $c, float $v): float { return !empty($c['pcd']) ? intdiv((int)round($v * 100) * (100 - pcdDesc()) + 50, 100) / 100 : $v; }   // 1.31: em centavos inteiros, a mesma conta da tela
 // quantos minutos a visita conta até $fim: no máximo até a hora em que a loja fecha (no dia da entrada) e nunca mais de 12 h.
 // Assim uma saída esquecida não vira cobrança a noite toda (a supervisão corrige a hora da saída depois).
 function minutosDaVisita(array $c, int $fim): float {
@@ -997,12 +1004,12 @@ function pagoPorForma(array $vendaIds): array {
 function gravarPagamento(array $vendaIds, array $formas, int $criancaId, ?int $por, ?string $quando = null): array {
   $db = db(); $quando = $quando ?: agora(); $gravado = [];
   $q = $db->prepare('SELECT v.valor - COALESCE((SELECT SUM(p.valor) FROM pagamentos p WHERE p.venda_id = v.id), 0) FROM vendas v WHERE v.id = ?');
-  $ins = $db->prepare('INSERT INTO pagamentos (venda_id, crianca_id, forma, valor, quando, por) VALUES (?, ?, ?, ?, ?, ?)');
+  $ins = $db->prepare('INSERT INTO pagamentos (venda_id, crianca_id, forma, valor, quando, por, unidade_id) VALUES (?, ?, ?, ?, ?, ?, ?)'); $uni = unidadeDoPedido();   // 1.31: a unidade em que o dinheiro entrou
   foreach ($vendaIds as $vid) {
     $q->execute([(int)$vid]); $falta = $q->fetchColumn(); if ($falta === false) continue; $falta = round((float)$falta, 2);
     foreach ($formas as $f => $resta) {
       if ($falta < 0.005) break; if ($resta < 0.005) continue; $x = round(min($falta, $resta), 2);
-      $ins->execute([(int)$vid, $criancaId, $f, $x, $quando, $por]); $formas[$f] = round($resta - $x, 2); $falta = round($falta - $x, 2); $gravado[$f] = round(($gravado[$f] ?? 0) + $x, 2);
+      $ins->execute([(int)$vid, $criancaId, $f, $x, $quando, $por, $uni]); $formas[$f] = round($resta - $x, 2); $falta = round($falta - $x, 2); $gravado[$f] = round(($gravado[$f] ?? 0) + $x, 2);
     }
   }
   return $gravado;
@@ -1062,6 +1069,24 @@ function pendentesDaVisita(array $c): array {
 // [criança => [['n' => o que foi vendido, 'v' => quanto falta receber], ...]] das vendas de hoje (desde a última saída ou entrada cancelada
 // de cada uma), sem as cobranças por atraso. É a mesma conta de vendasDaVisita(), para todas as crianças de uma vez.
 // 1.03: item por item, na ordem em que foram vendidos, para a tela da saída listar o que ainda não foi pago
+// 1.31: a saída pelo rosto (iDFace) fecha a visita sem passar pelo pagamento: as cobranças que a visita somou sozinha (a recreação avulsa,
+// o tempo além do pacote) e ficaram sem pagar continuam a receber, pela ficha (Receber). Só da última visita, de quem já saiu. $c = uma
+// criança (ou null: todas, desde $piso)
+function autosSemPagarDaSaida(?array $c, string $piso = ''): array {
+  $sql = "SELECT v.id, v.crianca_id, v.servico, v.minutos, v.itens, v.valor, v.auto, v.voucher, v.produto_id, v.qtd, v.alug FROM vendas v JOIN criancas k ON k.id = v.crianca_id AND k.entrou IS NULL
+    JOIN visitas x ON x.id = (SELECT MAX(y.id) FROM visitas y WHERE y.crianca_id = v.crianca_id)
+    WHERE v.auto = 1 AND v.valor > 0 AND v.quando >= x.entrou AND v.quando <= x.saiu AND NOT EXISTS (SELECT 1 FROM pagamentos p WHERE p.venda_id = v.id)";
+  if ($c) { $q = db()->prepare($sql . ' AND v.crianca_id = ? ORDER BY v.id'); $q->execute([(int)$c['id']]); }
+  else { $q = db()->prepare($sql . ' AND v.quando >= ? ORDER BY v.id'); $q->execute([$piso !== '' ? $piso : date('Y-m-d') . ' 00:00:00']); }
+  return $q->fetchAll();
+}
+// 1.31: o Desfazer de um recebimento tira só os pagamentos daquela operação: os que vieram logo depois do marcador, no mesmo instante e
+// pela mesma pessoa (um pagamento de outro aparelho, no meio, fica). Devolve quantos saíram
+function apagarPagamentosDaOperacao(int $criancaId, int $pagDe, string $desde): int {
+  $db = db(); $q = $db->prepare('SELECT quando, COALESCE(por, -1) por FROM pagamentos WHERE crianca_id = ? AND id > ? AND quando >= ? ORDER BY id LIMIT 1'); $q->execute([$criancaId, $pagDe, $desde]); $p = $q->fetch(); $q->closeCursor();
+  if (!$p) return 0;
+  $d = $db->prepare('DELETE FROM pagamentos WHERE crianca_id = ? AND id > ? AND quando = ? AND COALESCE(por, -1) = CAST(? AS INTEGER)'); $d->execute([$criancaId, $pagDe, (string)$p['quando'], (int)$p['por']]); return $d->rowCount();
+}
 function pendItensDeTodos(): array {
   $db = db(); $hoje = date('Y-m-d') . ' 00:00:00';
   // o piso: nenhuma venda de antes de hoje (ou do dia em que entrou quem está há mais tempo no espaço) pode ser "desta visita".
@@ -1075,6 +1100,7 @@ function pendItensDeTodos(): array {
     AND $falta > 0.004 ORDER BY v.id");   // 1.21: só a saída fecha a conta do que há para receber (a entrada cancelada, não)
   $q->execute([$piso, SERV_IMPORTADO, $hoje, $hoje]); $o = [];
   foreach ($q->fetchAll() as $l) $o[(int)$l['c']][] = ['n' => nomeDaVenda($l), 'v' => round((float)$l['f'], 2), 'id' => (int)$l['id']];   // 1.25: id = a venda   // juntar por criança fica aqui: agrupar no SQL faria a consulta andar pelo índice da criança
+  foreach (autosSemPagarDaSaida(null, $piso) as $l) $o[(int)$l['crianca_id']][] = ['n' => nomeDaVenda($l), 'v' => round((float)$l['valor'], 2), 'id' => (int)$l['id']];   // 1.31: a saída pelo rosto que não recebeu
   return $o;
 }
 // o que entrou por cada forma desde $desde (a tela mostra em Hoje na recepção)
@@ -1090,11 +1116,12 @@ function pagamentosDesde(string $desde): array {
 // entrada); o pagamento vai com a venda dele. Sem unidade (o iDFace, os exemplos, o que é de antes da 1.06) vai à parte (uni 0).
 function painelDoDia(): array {
   $db = db(); $hoje = date('Y-m-d') . ' 00:00:00'; $o = [];
-  $um = function (int $u) use (&$o) { if (!isset($o[$u])) $o[$u] = ['uni' => $u, 'faturado' => 0.0, 'vendas' => 0, 'desc' => 0.0, 'recebido' => 0.0, 'formas' => array_fill_keys(array_keys(FORMAS_PAGAMENTO), 0.0), 'cancelados' => 0, 'cancelado' => 0.0, 'servicos' => []]; };
+  $um = function (int $u) use (&$o) { if (!isset($o[$u])) $o[$u] = ['uni' => $u, 'faturado' => 0.0, 'vendas' => 0, 'desc' => 0.0, 'recebido' => 0.0, 'devolvido' => 0.0, 'formas' => array_fill_keys(array_keys(FORMAS_PAGAMENTO), 0.0), 'cancelados' => 0, 'cancelado' => 0.0, 'servicos' => []]; };
   $q = $db->prepare('SELECT COALESCE(unidade_id, 0) u, COUNT(*) n, COALESCE(SUM(valor), 0) v, COALESCE(SUM(desc_valor), 0) d FROM vendas WHERE quando >= ? AND servico != ? GROUP BY u'); $q->execute([$hoje, SERV_IMPORTADO]);
   foreach ($q->fetchAll() as $l) { $u = (int)$l['u']; $um($u); $o[$u]['faturado'] = round((float)$l['v'], 2); $o[$u]['vendas'] = (int)$l['n']; $o[$u]['desc'] = round((float)$l['d'], 2); }
-  $q = $db->prepare('SELECT COALESCE(v.unidade_id, 0) u, p.forma f, COALESCE(SUM(p.valor), 0) t FROM pagamentos p JOIN vendas v ON v.id = p.venda_id WHERE p.quando >= ? GROUP BY u, p.forma'); $q->execute([$hoje]);
+  $q = $db->prepare('SELECT COALESCE(p.unidade_id, v.unidade_id, 0) u, p.forma f, COALESCE(SUM(p.valor), 0) t FROM pagamentos p JOIN vendas v ON v.id = p.venda_id WHERE p.quando >= ? GROUP BY u, p.forma'); $q->execute([$hoje]);   // 1.31: a unidade em que o dinheiro entrou
   foreach ($q->fetchAll() as $l) { $u = (int)$l['u']; $um($u); $f = (string)$l['f']; $o[$u]['formas'][$f] = round(($o[$u]['formas'][$f] ?? 0) + (float)$l['t'], 2); $o[$u]['recebido'] = round($o[$u]['recebido'] + (float)$l['t'], 2); }
+  foreach (devolvidoHoje() as $u => $d) { $um($u); $o[$u]['devolvido'] = $d['total']; $o[$u]['recebido'] = round($o[$u]['recebido'] - $d['total'], 2); foreach ($d['formas'] as $f => $v) $o[$u]['formas'][$f] = round(($o[$u]['formas'][$f] ?? 0) - $v, 2); }   // 1.31: a venda de outro dia devolvida hoje
   $q = $db->prepare("SELECT COALESCE(unidade_id, 0) u, COUNT(*) n, COALESCE(SUM(valor), 0) v FROM cancelamentos WHERE quando >= ? AND tipo != 'desfeita' GROUP BY u"); $q->execute([$hoje]);
   foreach ($q->fetchAll() as $l) { $u = (int)$l['u']; $um($u); $o[$u]['cancelados'] = (int)$l['n']; $o[$u]['cancelado'] = round((float)$l['v'], 2); }
   // 1.27: o faturado de hoje por serviço (o gráfico do painel). Os produtos da loja num grupo, as festas em outro, o serviço pelo nome (a
@@ -1116,13 +1143,32 @@ function grupoDoCaixa(array $l): string {
   if (!empty($l['pr'])) return 'produtos';
   if ((string)$l['a'] !== '') return 'carrinhos';
   foreach ((array)regra()['servicos'] as $s) if (!empty($s['volta']) && mb_strtoupper(trim((string)($s['n'] ?? ''))) === $n) return 'carrinhos';   // (a venda antiga do carrinho, sem o "sai e volta")
+  if ((int)$l['m'] > 0 && empty($l['au']) && (string)$l['vo'] === '' && ($n === '' || preg_match('/^PACOTE\b/u', $n))) return 'pacotes';   // 1.31: antes da festa (o pacote "FESTA DO PIJAMA" é pacote, como no painel)
   if (mb_strpos($n, 'FESTA') !== false) return 'festa';
-  if ((int)$l['m'] > 0 && empty($l['au']) && (string)$l['vo'] === '' && ($n === '' || preg_match('/^PACOTE\b/u', $n))) return 'pacotes';
   $st = servicoTempo(); if ((int)$l['m'] > 0 || ($st && $n === mb_strtoupper(trim((string)$st['n'])))) return 'recreacao';
   return 'outros';
 }
+// 1.31: antes de apagar vendas canceladas, o que delas foi pago em OUTRO DIA vira uma devolução de hoje (o dinheiro sai do caixa de hoje,
+// na unidade que devolveu, pela forma em que tinha entrado). O que foi pago hoje sai do caixa sozinho, com o pagamento apagado.
+function estornarPagosAntes(array $vendas): void {
+  $por = []; foreach ($vendas as $v) if (!empty($v['id'])) $por[(int)$v['id']] = $v; if (!$por) return;
+  $db = db(); $q = $db->prepare('SELECT venda_id, forma, valor, quando, unidade_id FROM pagamentos WHERE quando < ? AND venda_id IN (' . implode(',', array_keys($por)) . ') ORDER BY id'); $q->execute([date('Y-m-d') . ' 00:00:00']);
+  $ins = $db->prepare('INSERT INTO estornos (quando, unidade_id, forma, valor, grupo, item, pago_em, venda_id, crianca_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'); $aqui = unidadeDoPedido();
+  foreach ($q->fetchAll() as $p) { $v = $por[(int)$p['venda_id']]; $valor = round((float)$p['valor'], 2); if ($valor <= 0) continue;
+    $g = grupoDoCaixa(['s' => (string)($v['servico'] ?? ''), 'pr' => (int)($v['produto_id'] ?? 0) > 0, 'a' => (string)($v['alug'] ?? ''), 'm' => (int)($v['minutos'] ?? 0), 'au' => (int)($v['auto'] ?? 0), 'vo' => (string)($v['voucher'] ?? '')]);
+    $u = $aqui ?? (($p['unidade_id'] ?? null) !== null ? (int)$p['unidade_id'] : (($v['unidade_id'] ?? null) !== null ? (int)$v['unidade_id'] : null));
+    $ins->execute([agora(), $u, (string)$p['forma'], $valor, $g, $g === 'carrinhos' ? (mb_strtoupper(trim((string)($v['servico'] ?? ''))) ?: 'CARRINHO') : '', (string)$p['quando'], (int)$v['id'], (int)$v['crianca_id']]); }
+}
+// o devolvido hoje, por unidade: [uni => ['total', 'formas', 'grupos', 'itens', 'n']]
+function devolvidoHoje(): array {
+  $q = db()->prepare('SELECT COALESCE(unidade_id, 0) u, forma, valor, grupo, item, venda_id FROM estornos WHERE quando >= ? ORDER BY id'); $q->execute([date('Y-m-d') . ' 00:00:00']); $o = [];
+  foreach ($q->fetchAll() as $l) { $u = (int)$l['u']; $v = round((float)$l['valor'], 2); if (!isset($o[$u])) $o[$u] = ['total' => 0.0, 'formas' => [], 'grupos' => [], 'itens' => [], 'n' => 0, 'vendas' => []];
+    $o[$u]['total'] = round($o[$u]['total'] + $v, 2); $o[$u]['formas'][$l['forma']] = round(($o[$u]['formas'][$l['forma']] ?? 0) + $v, 2); $o[$u]['grupos'][$l['grupo']] = round(($o[$u]['grupos'][$l['grupo']] ?? 0) + $v, 2); $o[$u]['vendas'][(int)$l['venda_id']] = 1; $o[$u]['n'] = count($o[$u]['vendas']);   // n: quantas vendas devolvidas
+    if ((string)$l['item'] !== '') $o[$u]['itens'][$l['item']] = round(($o[$u]['itens'][$l['item']] ?? 0) + $v, 2); }
+  foreach ($o as &$x) unset($x['vendas']); unset($x); return $o;
+}
 function caixaDoDia(): array {
-  $q = db()->prepare("SELECT COALESCE(v.unidade_id, 0) u, p.forma f, p.valor val, p.venda_id vid, v.servico s, (COALESCE(v.produto_id, 0) > 0) pr, v.alug a, v.minutos m, v.auto au, v.voucher vo FROM pagamentos p JOIN vendas v ON v.id = p.venda_id WHERE p.quando >= ? ORDER BY p.id");
+  $q = db()->prepare("SELECT COALESCE(p.unidade_id, v.unidade_id, 0) u, p.forma f, p.valor val, p.venda_id vid, v.servico s, (COALESCE(v.produto_id, 0) > 0) pr, v.alug a, v.minutos m, v.auto au, v.voucher vo FROM pagamentos p JOIN vendas v ON v.id = p.venda_id WHERE p.quando >= ? ORDER BY p.id");   // 1.31: a unidade em que o dinheiro entrou
   $q->execute([date('Y-m-d') . ' 00:00:00']); $o = [];
   foreach ($q->fetchAll() as $l) { $u = (int)$l['u']; $g = grupoDoCaixa($l); $f = (string)$l['f']; $v = round((float)$l['val'], 2);
     if (!isset($o[$u])) $o[$u] = ['uni' => $u, 'grupos' => []];
@@ -1131,7 +1177,8 @@ function caixaDoDia(): array {
     if ($g === 'carrinhos') { $nm = mb_strtoupper(trim((string)$l['s'])) ?: 'CARRINHO'; $x['itens'][$nm] = round(($x['itens'][$nm] ?? 0) + $v, 2); }
     unset($x); }
   foreach ($o as &$x) foreach ($x['grupos'] as &$g) $g['vendas'] = count($g['vendas']); unset($x, $g);
-  return ['desde' => date('Y-m-d') . ' 00:00:00', 'unidades' => array_values($o)];
+  foreach (devolvidoHoje() as $u => $d) { if (!isset($o[$u])) $o[$u] = ['uni' => $u, 'grupos' => []]; $o[$u]['devolvido'] = $d; }   // 1.31
+  ksort($o); return ['desde' => date('Y-m-d') . ' 00:00:00', 'unidades' => array_values($o)];
 }
 // as saídas de hoje (cada visita, com o que ela vendeu) e o que voltou para a loja hoje: o filtro "Finalizados do dia" da lista
 function finalizadosDoDia(): array {
@@ -1680,7 +1727,7 @@ function cancelarEntrada(array $c, array $u, string $motivo, ?array $vendaIds, b
   $devolver = pagoPorForma(array_map(fn($v) => (int)$v['id'], $alvo));   // o que o cliente já pagou por essas vendas: é o que a loja devolve
   $db->beginTransaction();
   try {
-    $itens = []; $valor = 0.0; $tempo = 0;
+    $itens = []; $valor = 0.0; $tempo = 0; estornarPagosAntes($alvo);   // 1.31: o que foi pago em outro dia e volta ao cliente hoje
     foreach ($alvo as $v) {
       $db->prepare('UPDATE criancas SET pacote_min = MAX(0, pacote_min - ?) WHERE id = ?')->execute([(int)$v['minutos'], $c['id']]);
       $db->prepare('DELETE FROM vendas WHERE id = ?')->execute([$v['id']]); devolverEstoque($v);   // venda de produto que deixa de ser cobrada: o produto volta para o estoque
@@ -1758,6 +1805,7 @@ function cancelarVenda(int $vendaId, array $u, string $motivo, ?string $quem = n
     // antes disso, fica marcado por quê, e se havia nota já emitida (ela continua guardada, com o aviso de cancelar a nota também)
     $qn = $db->prepare("SELECT numero FROM pedidos WHERE venda_id = ? AND tipo = 'nf' AND status = 'usado' ORDER BY id DESC LIMIT 1"); $qn->execute([(int)$v['id']]); $nf = $qn->fetchColumn(); $qn->closeCursor();
     $db->prepare("UPDATE pedidos SET resultado = 'A VENDA FOI CANCELADA' WHERE venda_id = ? AND status IN ('pendente', 'liberado', 'usado')")->execute([(int)$v['id']]);
+    estornarPagosAntes([$v]);   // 1.31: paga em outro dia: o dinheiro devolvido hoje sai do caixa de hoje
     $d = $db->prepare('DELETE FROM vendas WHERE id = ?'); $d->execute([(int)$v['id']]);   // o pagamento dela sai junto (o gatilho da tabela)
     if (!$d->rowCount()) { $db->rollBack(); falha('Esta venda não existe mais: já foi desfeita ou cancelada.', 404); }   // outro aparelho cancelou no mesmo instante
     if ($min > 0) $db->prepare('UPDATE criancas SET pacote_min = MAX(0, pacote_min - ?) WHERE id = ?')->execute([$min, (int)$c['id']]);

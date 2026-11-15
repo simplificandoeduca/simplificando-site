@@ -476,7 +476,7 @@ switch ($acao) {
     $db->prepare('DELETE FROM visitas WHERE id = ?')->execute([$v['id']]);
     if (!$estorna) { /* 1.21: nada a tirar (esta saída não recebeu) */ }
     elseif (isset($in['pag_de'])) { // 1.02: tudo o que foi recebido nessa saída (o que ficou a pagar e as cobranças por atraso)
-      $db->prepare('DELETE FROM pagamentos WHERE crianca_id = ? AND id > ? AND quando >= ?')->execute([$c['id'], (int)$in['pag_de'], $v['saiu']]);
+      apagarPagamentosDaOperacao((int)$c['id'], (int)$in['pag_de'], (string)$v['saiu']);   // 1.31: só os desta saída
       if (!empty($in['pag_registro'])) $db->prepare("DELETE FROM registros WHERE id = ? AND crianca_id = ? AND tipo = 'pag'")->execute([(int)$in['pag_registro'], $c['id']]);
     } else $db->prepare('DELETE FROM pagamentos WHERE crianca_id = ? AND quando >= ? AND venda_id IN (SELECT id FROM vendas WHERE crianca_id = ? AND auto = 1 AND quando >= ?)')->execute([$c['id'], $v['saiu'], $c['id'], $v['entrou']]);   // o que foi recebido nessa saída
     if (!empty($in['registro'])) $db->prepare('DELETE FROM registros WHERE id = ? AND crianca_id = ?' . ($estorna ? '' : " AND tipo = 'sai'"))->execute([(int)$in['registro'], $c['id']]);   // (1.21: quem não estorna só tira a linha da própria saída)
@@ -640,7 +640,7 @@ switch ($acao) {
       $extra = (int)($in['extra'] ?? 0); $tirou = false;   // 1.00: o tempo a mais que foi cobrado na devolução sai junto (a venda, o pagamento dela e as linhas do dia)
       if ($extra) { $q = $db->prepare("SELECT id, registro FROM vendas WHERE id = ? AND crianca_id = ? AND itens LIKE 'tempo a mais%' AND quando >= ?"); $q->execute([$extra, (int)$c['id'], date('Y-m-d H:i:s', time() - 660)]);
         if ($v = $q->fetch()) { $db->prepare('DELETE FROM vendas WHERE id = ?')->execute([(int)$v['id']]); $tirou = true; } }
-      if (isset($in['pag_de'])) { $db->prepare('DELETE FROM pagamentos WHERE crianca_id = ? AND id > ? AND quando >= ?')->execute([(int)$c['id'], (int)$in['pag_de'], date('Y-m-d H:i:s', time() - 660)]); $tirou = true; }   // 1.02: e o que foi recebido do próprio carrinho
+      if (isset($in['pag_de'])) { apagarPagamentosDaOperacao((int)$c['id'], (int)$in['pag_de'], date('Y-m-d H:i:s', time() - 660)); $tirou = true; }   /* 1.31: só os desta devolução */   // 1.02: e o que foi recebido do próprio carrinho
       // 1.20: a saída em aberto volta a ficar sem valor (a conta fecha de novo na próxima devolução). 1.22: cada carrinho que tinha voltado
       $abs = is_array($in['aberto'] ?? null) ? array_values(array_unique(array_filter(array_map('intval', array_merge((array)($in['aberto']['vendas'] ?? []), [(int)($in['aberto']['venda'] ?? 0)]))))) : [];
       foreach ($abs as $ab) if (in_array($ab, $ids, true)) { $q = $db->prepare("SELECT alug FROM vendas WHERE id = ? AND crianca_id = ? AND alug != '' AND alug_min = 0 AND voltou IS NULL"); $q->execute([$ab, (int)$c['id']]); $al = $q->fetchColumn();
@@ -655,6 +655,7 @@ switch ($acao) {
   case 'receber_previa': { // 1.02: o que há para receber desta criança agora: o que ficou a pagar e as cobranças por atraso
     exigir(); $c = crianca((int)($in['id'] ?? 0)); if (!$c || !$c['ativo']) falha('Criança não encontrada.', 404);
     $p = pendentesDaVisita($c); $at = $c['entrou'] ? atrasoDaVisita((int)$c['id'], (string)$c['entrou']) : ['n' => 0, 'valor' => 0.0];
+    if (!$c['entrou']) foreach (autosSemPagarDaSaida($c) as $v) $p[] = $v + ['falta' => round((float)$v['valor'], 2)];   // 1.31: a saída pelo rosto que não recebeu
     responder(['itens' => array_map(fn($v) => ['n' => nomeDaVenda($v), 'v' => (float)$v['falta']], $p), 'atraso' => $at, 'total' => round(array_sum(array_map(fn($v) => (float)$v['falta'], $p)) + (float)$at['valor'], 2)]);
   }
   case 'receber': { // 1.02: recebe agora o que ficou a pagar (sem esperar a saída). voltar = o Desfazer do aviso
@@ -662,12 +663,12 @@ switch ($acao) {
     if (!empty($in['voltar'])) { exigirDesfazer($u);
       if (!podeEstornar($u)) falha('Pagamento recebido: só ' . quemEstorna() . ' desfaz.', 403);   // 1.21
       if (!isset($in['pag_de'])) falha('Nada para desfazer.');
-      $q = $db->prepare('DELETE FROM pagamentos WHERE crianca_id = ? AND id > ? AND quando >= ?'); $q->execute([(int)$c['id'], (int)$in['pag_de'], date('Y-m-d H:i:s', time() - 180)]);
-      if (!$q->rowCount()) falha('Não dá mais para desfazer.');
+      if (!apagarPagamentosDaOperacao((int)$c['id'], (int)$in['pag_de'], date('Y-m-d H:i:s', time() - 180))) falha('Não dá mais para desfazer.');   // 1.31: só os deste recebimento
       $db->prepare("DELETE FROM registros WHERE id = ? AND crianca_id = ? AND tipo = 'pag'")->execute([(int)($in['registro'] ?? 0), (int)$c['id']]);
       responder();
     }
-    $p = pendentesDaVisita($c); $ids = array_map(fn($v) => (int)$v['id'], $p); $total = array_sum(array_map(fn($v) => (float)$v['falta'], $p));
+    $p = pendentesDaVisita($c); if (!$c['entrou']) foreach (autosSemPagarDaSaida($c) as $v) $p[] = $v + ['falta' => round((float)$v['valor'], 2)];   // 1.31: a saída pelo rosto que não recebeu
+    $ids = array_map(fn($v) => (int)$v['id'], $p); $total = array_sum(array_map(fn($v) => (float)$v['falta'], $p));
     if ($c['entrou']) { // as cobranças por atraso que ainda não foram pagas entram junto
       $q = $db->prepare('SELECT id, valor FROM vendas WHERE crianca_id = ? AND auto = 1 AND quando >= ? AND NOT EXISTS (SELECT 1 FROM pagamentos p WHERE p.venda_id = vendas.id) ORDER BY id'); $q->execute([(int)$c['id'], (string)$c['entrou']]);
       foreach ($q->fetchAll() as $l) { $ids[] = (int)$l['id']; $total += (float)$l['valor']; }
