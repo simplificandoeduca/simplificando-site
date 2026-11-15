@@ -2,7 +2,7 @@
    - A página: tenta a internet primeiro (pega a versão nova); se a internet falhar ou demorar, abre a cópia guardada.
    - Arquivos fixos (Firebase, ícones, fontes): usa a cópia guardada e atualiza por trás.
    - Banco de dados, login e e-mails não passam por aqui: o próprio Firebase cuida de reenviar quando o sinal volta. */
-const VERSAO = '15 nov · 127'; // muda a cada versão (o build grava): assim o celular sempre percebe que tem sw.js novo
+const VERSAO = '15 nov · 128'; // muda a cada versão (o build grava): assim o celular sempre percebe que tem sw.js novo
 const CACHE = 'simp-treino-v4';
 let ATUALIZANDO = false; // true quando já tinha uma versão instalada (atualização, não primeira vez)
 const CORE = ['./', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-180.png', './firebase-config.js',
@@ -57,9 +57,12 @@ self.addEventListener('fetch', e => {
 });
 
 /* avisos com o app fechado: o servidor (push.php) só "cutuca"; a mensagem é montada aqui.
-   Fim do descanso (o app guarda os dados em simp-estado quando o descanso começa): "Bora, Joana! 💪"; senão, o lembrete de água. */
+   Fim do descanso (o app guarda os dados em simp-estado quando o descanso começa): "Bora, Joana! 💪";
+   treino aberto há quase 3h (uma vez por treino): "Seu treino ainda está aberto"; senão, o lembrete de água. */
 const FRASES = ['Hora de beber água 💧', 'Um copo agora? 💧', 'Sua garrafinha está te chamando 💧', 'Pausa rápida para a água 💧'];
 const DESC = BASE + '__descanso';
+const TREINO = BASE + '__treino';
+const durTxt = ms => { const m = Math.round(ms / 60000), h = Math.floor(m / 60), r = m % 60; return h ? h + 'h' + (r ? String(r).padStart(2, '0') : '') : r + ' min'; };
 const agua = () => self.registration.showNotification(FRASES[Math.floor(Math.random() * FRASES.length)], { body: 'Toque para registrar o copo no Simplificando.', icon: 'icon-192.png', badge: 'icon-192.png', tag: 'agua', renotify: true, data: { url: BASE + '#agua', abrir: 'agua' } });
 const json = o => new Response(JSON.stringify(o), { headers: { 'Content-Type': 'application/json' } });
 self.addEventListener('push', e => {
@@ -71,7 +74,13 @@ self.addEventListener('push', e => {
         { body: 'Seu descanso acabou.' + (d.ex ? ' Próxima: ' + d.ex + ', série ' + d.s + ' de ' + d.n + '.' : ' Bora para a próxima série.'), icon: 'icon-192.png', badge: 'icon-192.png', tag: 'descanso', renotify: true, vibrate: [120, 60, 120],
           actions: [{ action: 'abrir', title: 'Abrir treino' }, { action: 'mais', title: '+15 s' }], data: { url: BASE + '#treino', abrir: 'treino' } }));
     }
-    return agua();
+    return c.match(TREINO).then(r => r ? r.json() : null).catch(() => null).then(tr => {
+      if (tr && tr.ini && !tr.av && ag - tr.ini >= 3 * 3600e3 - 20 * 60e3) {
+        tr.av = 1;
+        return c.put(TREINO, json(tr)).then(() => self.registration.showNotification('Seu treino ainda está aberto ⏱️', { body: 'Treino ' + tr.t + (tr.nome ? ' · ' + tr.nome : '') + ': ' + durTxt(ag - tr.ini) + ' de treino. Esqueceu de finalizar? Toque para salvar e ajustar o tempo.', icon: 'icon-192.png', badge: 'icon-192.png', tag: 'treino', renotify: true, requireInteraction: true, data: { url: BASE + '#treino-aberto', abrir: 'treino' } }));
+      }
+      return agua();
+    });
   })).catch(agua));
 });
 self.addEventListener('notificationclick', e => {

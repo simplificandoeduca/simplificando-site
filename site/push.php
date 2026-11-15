@@ -4,6 +4,7 @@
 // e manda o aviso para quem já passou do intervalo desde o último copo, dentro do horário e sem a meta batida.
 // Fim do descanso: o app avisa a hora em que o descanso termina; este pedido responde na hora e espera até lá para avisar
 // (se a pessoa continuou no app, o próprio app cancela antes).
+// Treino esquecido aberto: avisa uma vez quem está com o treino aberto há 3 horas, a qualquer hora.
 // O aviso vai sem conteúdo (o próprio app monta a mensagem), então não precisa de criptografia de conteúdo,
 // só da assinatura VAPID. As chaves e as inscrições ficam fora do site, na pasta de cima.
 header('Content-Type: application/json; charset=utf-8');
@@ -62,7 +63,7 @@ $acao = $CLI ? ($argv[1] ?? 'cron') : ($_GET['acao'] ?? '');
 
 if ($acao === 'chave') { $ch = chaves(); sai(['ok' => true, 'pub' => $ch['pub']]); }
 
-if (in_array($acao, ['assinar', 'copo', 'sair', 'descanso'], true)) {
+if (in_array($acao, ['assinar', 'copo', 'sair', 'descanso', 'treino'], true)) {
   if ($_SERVER['REQUEST_METHOD'] !== 'POST') sai(['ok' => false], 405);
   $j = json_decode((string)file_get_contents('php://input', false, null, 0, 8000), true);
   $id = is_array($j) && isset($j['id']) && preg_match('/^[a-z0-9]{12,40}$/', $j['id']) ? $j['id'] : '';
@@ -86,13 +87,18 @@ if (in_array($acao, ['assinar', 'copo', 'sair', 'descanso'], true)) {
     $v = le_in(); if (isset($v[$id])) { if ($st == 404 || $st == 410) unset($v[$id]); elseif (($v[$id]['ds'] ?? '') === $marca) $v[$id]['ds'] = ''; grava_in($v); }
     exit;
   }
+  if ($acao === 'treino') { // início do treino aberto (ms) ou 0 quando finaliza/cancela
+    if (isset($v[$id])) { $ini = (int)floor(((float)($j['ini'] ?? 0)) / 1000); $ini = $ini > 0 ? min(time(), $ini) : 0;
+      if ((int)($v[$id]['tr'] ?? 0) !== $ini) { $v[$id]['tr'] = $ini; $v[$id]['trav'] = 0; grava_in($v); } }
+    sai(['ok' => true]);
+  }
   if ($acao === 'copo') { if (isset($v[$id])) { $v[$id]['copo'] = time(); if (!empty($j['meta'])) $v[$id]['meta'] = (string)$j['meta']; grava_in($v); } sai(['ok' => true]); }
   $e = $j['sub']['endpoint'] ?? '';
   if (!endpoint_ok($e)) sai(['ok' => false, 'erro' => 'Serviço de aviso desconhecido.'], 400);
   if (!isset($v[$id]) && count($v) >= 2000) sai(['ok' => false, 'erro' => 'Limite de inscrições.'], 429);
   $antes = $v[$id] ?? [];
   $v[$id] = ['e' => $e, 'ini' => $hm($j['ini'] ?? '', 480), 'fim' => $hm($j['fim'] ?? '', 1320), 'cada' => max(30, min(240, (int)($j['cada'] ?? 90))),
-    'tz' => max(-840, min(840, (int)($j['tz'] ?? 180))), 'meta' => (string)($j['meta'] ?? ($antes['meta'] ?? '')), 'copo' => (int)($antes['copo'] ?? 0), 'ultimo' => (int)($antes['ultimo'] ?? 0), 'ag' => isset($j['ag']) ? (int)!empty($j['ag']) : 1, 'ds' => (string)($antes['ds'] ?? ''), 'em' => time()];
+    'tz' => max(-840, min(840, (int)($j['tz'] ?? 180))), 'meta' => (string)($j['meta'] ?? ($antes['meta'] ?? '')), 'copo' => (int)($antes['copo'] ?? 0), 'ultimo' => (int)($antes['ultimo'] ?? 0), 'ag' => isset($j['ag']) ? (int)!empty($j['ag']) : 1, 'ds' => (string)($antes['ds'] ?? ''), 'tr' => (int)($antes['tr'] ?? 0), 'trav' => (int)($antes['trav'] ?? 0), 'em' => time()];
   grava_in($v); sai(['ok' => true]);
 }
 
@@ -104,6 +110,14 @@ if ($acao === 'cron') {
   }
   $ch = chaves(); $v = le_in(); $agora = time(); $env = 0; $tirou = 0;
   foreach ($v as $id => $s) {
+    // treino aberto há 3h (até 14h): um aviso só, a qualquer hora (mesmo com o lembrete de água desligado)
+    $tr = (int)($s['tr'] ?? 0);
+    if ($tr && empty($s['trav']) && $agora - $tr >= 3 * 3600 && $agora - $tr < 14 * 3600) {
+      $st = envia($s['e'], $ch);
+      if ($st == 404 || $st == 410) { unset($v[$id]); $tirou++; continue; }
+      if ($st >= 200 && $st < 300) { $v[$id]['trav'] = $agora; $v[$id]['ultimo'] = $agora; $env++; }
+      continue;
+    }
     $local = $agora - $s['tz'] * 60; $min = (int)gmdate('G', $local) * 60 + (int)gmdate('i', $local); $dia = gmdate('Y-m-d', $local);
     if (isset($s['ag']) && !$s['ag']) continue; // só os avisos do descanso (lembrete de água desligado)
     if ($min < $s['ini'] || $min > $s['fim']) continue;
