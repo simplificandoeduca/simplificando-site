@@ -1586,6 +1586,14 @@ body.has-dock .toast,body.has-dock .utoast{bottom:calc(176px + env(safe-area-ins
 .mt-in{width:100%;min-width:0;height:40px;border:0;border-radius:12px;background:var(--card);color:var(--fg);font:inherit;font-size:15px;font-weight:900;text-align:center;outline:none;box-shadow:inset 0 0 0 1.5px transparent}
 .mt-in:focus{box-shadow:inset 0 0 0 2px var(--fg)}
 .mt-none{margin:0}
+.nt-ic{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;flex:none;color:#fff;background:var(--c)}.nt-ic .i{width:19px;height:19px}
+.nt-ban{display:flex;gap:10px;align-items:center;border-radius:16px;padding:10px 12px;background:color-mix(in srgb,#1E9E4A 14%,var(--card));font-size:13.5px;line-height:1.35}.nt-ban .i{width:20px;height:20px;color:#1E9E4A;flex:none}.nt-ban b{font-weight:800}
+.nt-ban.off{background:color-mix(in srgb,#E8A10A 16%,var(--card))}.nt-ban.off .i{color:#B87A00}
+.nta .btn.rm-push{background:#1A73E8;color:#fff;margin-top:-4px}.nta .btn.rm-push .i{color:#fff}
+.nta .nt-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--sep)}.nta .nt-ban+.nt-row,.nta .btn+.nt-row,.nta .nt-sub+.nt-row{border-top:0}
+.nta .nt-row>div{flex:1;min-width:0}.nta .nt-row b{display:block;font-size:15.5px;font-weight:800}.nta .nt-row span.s{display:block;font-size:13px;color:var(--muted);margin-top:1px}
+.nta .nt-sub{margin:10px 0 0;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-top:1px solid var(--sep);padding-top:12px}
+.nta .switch .knob{background:#CFCEC6}:root[data-theme="dark"] .nta .switch .knob{background:#3A413C}.nta .switch input:checked+.knob{background:var(--brand)}
 .mt-aq{background:var(--card);border-radius:16px;padding:10px 12px;display:flex;flex-direction:column;gap:10px}
 .mt-aqh{display:flex;align-items:center;gap:10px}.mt-aqh>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}.mt-aqh b{font-size:14.5px;font-weight:800}.mt-aqh>div>span{font-size:12.5px;color:var(--muted);line-height:1.3}
 .mt-aqi{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;flex:none;background:color-mix(in srgb,#FF7A1A 16%,transparent);color:#E8650A}.mt-aqi .i{width:17px;height:17px}
@@ -1747,7 +1755,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '15 nov · 129'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '15 nov · 130'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -4911,6 +4919,26 @@ function sugEnviar(b){
   });
 }
 document.addEventListener('input', e => { if(e.target && e.target.id==='sug-txt') ui.sugD = e.target.value; });
+/* ---------- Notificações (perfil): tudo o que o app avisa, cada um com uma chave; e o compartilhar com o Simplificando ---------- */
+const swN = (k,on,l) => `<label class="switch"><input type="checkbox" data-sw="${k}"${on?' checked':''}><span class="knob"></span><span class="sr">${l}</span></label>`;
+const cadaTxt = m => +m===30 ? '30 min' : +m===60 ? '1 hora' : '1h30';
+function ntfBanner(){
+  if(pushLigado()) return `<div class="nt-ban">${ic('bell')}<span><b>Avisos no celular ligados.</b> Chegam mesmo com o app fechado.</span></div>`;
+  if(pushPode()) return `<div class="nt-ban off">${ic('bell')}<span><b>Avisos no celular desligados.</b> Sem isso, os avisos só aparecem com o app aberto.</span></div><button type="button" class="btn block rm-push" data-a="ntf-push">${ic('bell')}Ligar avisos no celular</button>`;
+  if(IOS && !STANDALONE) return `<div class="nt-ban off">${ic('bell')}<span><b>No iPhone, coloque o app na Tela de Início</b> e abra pelo ícone para receber avisos com o app fechado.</span></div>`;
+  return `<div class="nt-ban off">${ic('bell')}<span>Este navegador não manda avisos com o app fechado. Eles aparecem com o app aberto.</span></div>`;
+}
+function ntfBloco(pers){
+  const L = [
+    ['remind', S.remind.on, '#1A73E8', ic('drop'), 'Lembrete de água', S.remind.on ? 'A cada '+cadaTxt(S.remind.every)+', das '+hmTxt(RINI())+' às '+hmTxt(RFIM()) : 'Desligado'],
+    ['avdesc', PREF.avDesc!==false, '#E8650A', ic('timer'), 'Fim do descanso', 'Quando você sai do app no descanso'],
+    ['avtreino', PREF.avTreino!==false, '#E5484D', ic('flag'), 'Treino esquecido aberto', 'Um aviso com 3 horas de treino'],
+  ];
+  const row = ([k,on,c,icn,t,sub]) => `<div class="nt-row"><span class="nt-ic" style="--c:${c}">${icn}</span><div><b>${t}</b><span class="s">${sub}</span></div>${swN(k,on,t)}</div>`;
+  return `<div class="prefs nta"><div class="pref-h"><b>Notificações</b><span>O que o app pode te avisar. Toque para ligar ou desligar.</span></div>${ntfBanner()}
+    ${L.map(row).join('')}
+    ${!pers && acompPode() ? `<p class="nt-sub">Privacidade</p>${row(['acomp', acompOn(), '#1E9E4A', CM_USERS, 'Compartilhar meus treinos com o Simplificando', 'Treinos, cargas, cardio, água e check-in'])}` : ''}</div>`;
+}
 function vProfile(){
   const nome = isPersonal() ? ACCT.nome : (S.nome || 'Você'), pers = isPersonal();
   let pay = '';
@@ -4928,6 +4956,7 @@ function vProfile(){
   return `<div class="sheet-wrap" data-a="closebg"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t" tabindex="-1">${sheetTop('Seu perfil', esc(firstName(nome))+'<span class="dot" aria-hidden="true"></span>')}
     <div class="prof-id"><span class="avatar" aria-hidden="true">${avatarIn()}</span><div><b>${esc(nome)}</b><span>${pers?'Com seu personal':'Treinando sem personal'} · ${S.history.length} treino${S.history.length===1?'':'s'} salvo${S.history.length===1?'':'s'}</span>${pay}<span class="ver-pill">${ic('check')}App na versão ${APPV}</span><button type="button" class="btn small ver-btn${NOVAV?' nova':''}" data-a="ver-checar">${ic('refresh')}${NOVAV ? 'Atualizar para a '+esc(NOVAV) : 'Procurar atualização'}</button><span hidden></span></div></div>
     <div class="foto-row"><input type="file" id="prof-foto" accept="image/*" class="sr-file"><label for="prof-foto" class="btn small">${ic('camera')}${FOTO?'Trocar foto':'Adicionar foto'}</label>${FOTO?`<button type="button" class="btn small ghost" data-a="foto-del">${ui.arm==='foto-del'?'Toque de novo para remover':'Remover foto'}</button>`:''}</div>
+    ${ntfBloco(pers)}
     ${pers ? '' : `<div class="field"><label class="flabel" for="prof-nome">Seu nome</label><div class="inp-wrap"><input class="inp" id="prof-nome" autocomplete="given-name" placeholder="Como você quer ser chamado" value="${esc(S.nome||'')}" data-prof="nome"></div></div>`}
     ${planRO}${selfEdit}
     <div class="field"><span class="flabel">Personalizar cor</span><div class="dots" role="group" aria-label="Cor do app">${Object.keys(ACC).map(k => `<button type="button" class="cdot${ACC[k][1]==='n'?' neutral':''}${PREF.accent===k?' on':''}" style="--c:${ACC[k][1]==='n'?'#FFFFFF':ACC[k][1]}" data-a="accent" data-v="${k}" aria-label="${ACC[k][0]}" aria-pressed="${PREF.accent===k}">${PREF.accent===k?ic('check'):''}</button>`).join('')}</div><p class="foot0">Cor dos destaques, da faixa e dos botões. O branco neutro vira preto no modo claro. Água fica sempre azul e cardio sempre verde.</p></div>
@@ -4942,7 +4971,6 @@ function vProfile(){
       : `<div class="prefs"><div class="pref-h"><b id="bn-t">Seu boneco</b><span>Quem aparece correndo, pedalando e subindo escada.</span></div>
     <div class="iseg" role="group" aria-labelledby="bn-t">${[['F','Feminino'],['M','Masculino']].map(([v,l]) => `<button type="button" class="${sexOf()===v?'on':''}" aria-pressed="${sexOf()===v}" data-a="boneco" data-v="${v}">${l}</button>`).join('')}</div></div>`}
     <button type="button" class="btn block ${ui.arm==='wipe'?'armed':'ghost danger'}" data-a="wipe">${ui.arm==='wipe'?'Toque de novo para apagar tudo':'Apagar meus registros'}</button>
-    ${!pers && acompPode() ? `<div class="prefs"><div class="sw-row"><div><b>Acompanhamento</b><span>Compartilhar com o Simplificando os seus treinos, cargas, cardio, água e check-in.</span></div><label class="switch"><input type="checkbox" data-sw="acomp"${acompOn()?' checked':''}><span class="knob"></span><span class="sr">Acompanhamento</span></label></div></div>` : ''}
     <div class="prefs"><div class="pref-h"><b>Sua conta</b><span>${S.aceite ? 'Termos aceitos em '+dm(S.aceite.em.slice(0,10))+'.' : 'Termos ainda não aceitos.'}</span></div>
     <button type="button" class="btn block pf-mt" data-a="doc-open" data-v="termos">${ic('lock')}Termos de uso e privacidade</button>
     <button type="button" class="btn block pf-mt danger-t" data-a="acc-open">${ic('trash')}${pers ? 'Excluir meus dados' : 'Excluir minha conta'}</button></div>
@@ -5923,7 +5951,8 @@ function onClick(ev){
   const armed = ui.arm; ui.arm = null;
   if(a.slice(0,4)==='esq-'){ if(a==='esq-x' && b.classList.contains('sheet-wrap') && ev.target!==b) return; if(a==='esq-del') ui.arm = armed; esqClick(a,d); return; }
   if(mtClick(a,d,b,armed)){ save(); render(); return; }
-  if(a==='ds-sim' || a==='ds-no'){ if(b.classList.contains('sheet-wrap') && ev.target!==b) return; closeSheet(); if(a==='ds-sim') pushEnable(true); return; }
+  if(a==='ds-sim' || a==='ds-no'){ if(b.classList.contains('sheet-wrap') && ev.target!==b) return; closeSheet(); if(a==='ds-sim'){ PREF.avDesc = true; savePref(); pushEnable(true); } return; }
+  if(a==='ntf-push'){ pushEnable(true).then(() => { if(ui.sheet && ui.sheet.k==='prof') renderSheet(); }); return; }
   if(a==='doc-open'){ ui.sheet = {k:'doc', d:d.v}; renderSheet(true); return; }
   if(a==='doc-tab'){ ui.sheet.d = d.v; renderSheet(); return; }
   if(a==='acc-open'){ ui.sheet = {k:'excluir'}; renderSheet(true); return; }
@@ -6171,6 +6200,8 @@ function onChange(ev){
     return;
   }
   if(el.dataset.sw==='acomp'){ acompSet(el.checked); toast(el.checked ? 'Acompanhamento ligado.' : 'Acompanhamento desligado. Seus treinos não aparecem mais para ninguém.'); }
+  if(el.dataset.sw==='avdesc'){ PREF.avDesc = el.checked; savePref(); restPush(); if(el.checked && !pushLigado() && pushPode()) pushEnable(true); else toast(el.checked ? 'Aviso do fim do descanso ligado.' : 'Aviso do fim do descanso desligado.'); renderSheet(); }
+  if(el.dataset.sw==='avtreino'){ PREF.avTreino = el.checked; PREF.trIni = null; savePref(); treinoAviso(); if(el.checked && !pushLigado() && pushPode()) pushEnable(true); else toast(el.checked ? 'Aviso de treino esquecido ligado.' : 'Aviso de treino esquecido desligado.'); renderSheet(); }
   if(el.dataset.sw==='glass'){ PREF.glass = el.checked; savePref(); applyGlass(); toast(el.checked ? 'Liquid Glass ligado.' : 'Visual sólido de volta.'); }
   if(el.dataset.sw==='remind'){ S.remind.on = el.checked; ui.remindFired = null; save(); if(PREF.pushOn) pushSave(); render(); toast(el.checked ? 'Lembretes ligados.' : 'Lembretes desligados.'); }
 }
@@ -6254,7 +6285,7 @@ window.addEventListener('unhandledrejection', ev => { const r = ev && ev.reason,
 const RPS = { fim:0, k:'', cx:0 };
 function restPush(){
   if(!PREF.pushId || !pushLigado()) return;
-  const r = ui.rest, fim = r && !r.done ? r.end : 0;
+  const r = ui.rest, fim = r && !r.done && PREF.avDesc!==false ? r.end : 0;
   if(fim===RPS.fim || (fim && fim===RPS.cx)) return;
   RPS.fim = fim; RPS.k = fim ? Math.random().toString(36).slice(2,10) : '';
   let ex = '', se = 0, n = 0; const nx = r && r.next, f = nx && findEx(nx.id); if(f){ ex = f.e.nome; se = nx.i+1; n = exN(f.e); }
@@ -6310,7 +6341,7 @@ function esqClick(a, d){
 }
 /* o celular guarda o início do treino aberto (o service worker lê no aviso) e avisa o push.php para mandar a notificação com 3h */
 function treinoAviso(){
-  const s = S && S.session, ini = s ? sesIni(s) : 0, url = new URL('__treino', location.href).href;
+  const s = S && S.session, ini = s && PREF.avTreino!==false ? sesIni(s) : 0, url = new URL('__treino', location.href).href;
   try { if(window.caches) caches.open('simp-estado').then(c => c.match(url).then(r => r ? r.json() : null).catch(() => null).then(o => ini ? c.put(url, new Response(JSON.stringify({ ini, t:s.t, nome:(PLAN[s.t]||{}).nome||'', av:o && o.ini===ini ? o.av||0 : 0 }), {headers:{'Content-Type':'application/json'}})) : c.delete(url))).catch(() => {}); } catch(e){ /* sem cache */ }
   if(pushLigado() && PREF.pushId && PREF.trIni!==ini){ PREF.trIni = ini; savePref(); pushPost('treino', {ini}); }
 }
