@@ -529,7 +529,8 @@ switch ($acao) {
       } else $p = $r['pacotes'][(int)$i] ?? null;   // a tela antiga mandava a posição na lista
       if ($p) { $lv = ['servico' => servicoDoPacote($p), 'min' => (int)$p['h'] * 60, 'valor' => (float)$p['v'], 'itens' => itensDoPacote($p)];
         if (is_array($i) && !empty($i['alt'])) { $aid = (int)$i['alt']; if (isset($altUsadas[$aid])) falha('A mesma alteração de valor só vale para um item.'); $altUsadas[$aid] = 1;   // 1.33: o valor alterado (aprovado)
-          $a = autorizacaoDeValor($aid, $u, $c, itemDoPacote($p)); $lv['valor'] = $a['para']; $lv['alt'] = $a; }
+          $a = autorizacaoDeValor($aid, $u, $c, itemDoPacote($p)); $lv['valor'] = $a['para']; $lv['alt'] = $a;
+          if (!empty($a['horas'])) { $lv['min'] = (int)$a['horas'] * 60; if ($lv['servico'] !== '') $lv['servico'] = 'PACOTE ' . (int)$a['horas'] . 'H'; } }   // 1.36: o pacote com as horas novas
         $linhas[] = $lv; }
     }
     // produtos: a tela manda o produto, a quantidade e o valor que mostrou. Se o valor mudou no meio do atendimento, avisa em vez de cobrar outro

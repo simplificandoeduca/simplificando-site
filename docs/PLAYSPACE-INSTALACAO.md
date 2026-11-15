@@ -1097,6 +1097,12 @@ Pedido do dono: o voucher é apresentado na entrada, obrigatoriamente; na saída
 - Para a criança que já está no espaço, o voucher não aparece (se ela já usou um nesta visita, continua a linha "Voucher · já usado nesta visita").
 - O servidor confere de novo: voucher para quem já está no espaço é recusado ("O voucher só vale na entrada"), e voucher sem a entrada junto também ("marque Dar entrada agora").
 
+## 6zp. Alterar valor: o pacote que não existe na tabela (1.36)
+
+Pedido do dono: às vezes a equipe quer lançar um pacote que não existe (sem cadastrar um pacote novo). No bloco **Alterar valor** (embaixo do Desconto, na tela de pagamento), o pacote ganhou o campo **Horas do pacote**, ao lado do **Valor novo (R$)**: escolha o pacote mais perto, mude as horas e o valor, escreva o motivo e toque em **Pedir aprovação**. O gestor (ou a supervisora) autoriza, como no desconto (um toque nas Aprovações, ou a senha ali mesmo).
+
+Aprovado, a venda sai como "PACOTE 4H" (as horas novas), com o valor novo; o saldo do cliente recebe as horas novas; a tabela do pagamento diz "Alterado · na tabela, 3h por R$ 225"; as horas desta compra e o cupom acompanham; a linha do dia fica "Valor alterado · PACOTE 03 HORAS 360 (3h): R$ 225 → 4h por R$ 300 · Motivo: … · por … · aprovado por …". Para o produto continua só o valor.
+
 ## 7. Atualizar
 
 Botão **Atualizar** ao lado da versão. Ele baixa a versão nova do GitHub (ramo principal ou de trabalho, a mais nova), confere a versão dentro do arquivo e troca os arquivos de forma atômica. Não mexe em `~/playspace-dados/`. Se o GitHub demorar a refletir (cache de ~5 min), espere e toque de novo.

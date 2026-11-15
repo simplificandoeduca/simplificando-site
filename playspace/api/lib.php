@@ -594,10 +594,11 @@ function pedidoCriar(array $u, array $in): array {
     $c = crianca((int)($in['crianca'] ?? 0)); if (!$c) falha('Cliente não encontrado.', 404);
     $it = itemDoValor((array)($in['item'] ?? [])); $para = round((float)($in['para'] ?? 0), 2);
     if ($para <= 0) falha('Escreva o valor novo.'); if ($para > 99999) falha('Confira o valor novo: ' . dinheiro($para) . '.');
-    if (abs($para - $it['de']) < 0.005) falha('O valor novo é igual ao de agora (' . dinheiro($it['de']) . ').');
+    $horas = null; if ($it['k'] === 'pac' && isset($in['horas'])) { $hh = (int)$in['horas']; if ($hh < 1 || $hh > 200) falha('As horas do pacote vão de 1 a 200.'); if ($hh !== (int)$it['h']) $horas = $hh; }   // 1.36: o pacote que não existe na tabela (as horas também mudam)
+    if (abs($para - $it['de']) < 0.005 && $horas === null) falha('O valor novo é igual ao de agora (' . dinheiro($it['de']) . ').');
     $motivo = mb_substr($motivo, 0, 120); if (mb_strlen($motivo) < 3) falha('Escreva o motivo: o que muda no valor.');
-    $valor = $para; $dados = ['item' => $it, 'de' => $it['de'], 'para' => $para];
-    $texto = 'Alterar o valor: ' . $it['n'] . ' de ' . dinheiro($it['de']) . ' para ' . dinheiro($para);
+    $valor = $para; $dados = ['item' => $it, 'de' => $it['de'], 'para' => $para, 'horas' => $horas];
+    $texto = $horas ? 'Alterar o valor: ' . $it['n'] . ' (' . (int)$it['h'] . 'h, ' . dinheiro($it['de']) . ') para ' . $horas . 'h por ' . dinheiro($para) : 'Alterar o valor: ' . $it['n'] . ' de ' . dinheiro($it['de']) . ' para ' . dinheiro($para);
     // uma alteração por vez para o mesmo cliente: a anterior (sem resposta, ou aprovada e não usada) deixa de valer
     $db->prepare("UPDATE pedidos SET status = 'cancelado', resultado = 'TROCADO POR OUTRO PEDIDO' WHERE tipo = 'valor' AND pedido_por = ? AND crianca_id = ? AND status IN ('pendente', 'liberado')")->execute([(int)$u['id'], (int)$c['id']]);
   } else {
@@ -683,14 +684,15 @@ function autorizacaoDeValor(int $id, array $u, array $c, array $it): array {
   $mesmo = ($pi['k'] ?? '') === $it['k'] && ($it['k'] === 'pac' ? (int)($pi['h'] ?? 0) === $it['h'] && ($pi['tipo'] ?? '') === $it['tipo'] && mb_strtolower(trim((string)($pi['nome'] ?? ''))) === mb_strtolower(trim($it['nome']))
     : (int)($pi['p'] ?? 0) === $it['p'] && (int)($pi['q'] ?? 0) === $it['q']) && abs((float)($d['de'] ?? -1) - $it['de']) < 0.005;
   if (!$mesmo) falha('A alteração aprovada é de outro item (' . ($pi['n'] ?? '') . '), ou o valor da tabela mudou. Peça de novo.', 409);
-  return ['id' => (int)$p['id'], 'para' => round((float)($d['para'] ?? 0), 2), 'de' => $it['de'], 'n' => $it['n'], 'motivo' => (string)$p['motivo'], 'por' => (string)$p['pedido_nome'], 'dec' => (string)$p['decidido_nome']];
+  $hh = $it['k'] === 'pac' && !empty($d['horas']) ? (int)$d['horas'] : null;   // 1.36
+  return ['id' => (int)$p['id'], 'para' => round((float)($d['para'] ?? 0), 2), 'de' => $it['de'], 'n' => $it['n'], 'motivo' => (string)$p['motivo'], 'por' => (string)$p['pedido_nome'], 'dec' => (string)$p['decidido_nome'], 'horas' => $hh, 'h' => $it['k'] === 'pac' ? (int)$it['h'] : null];
 }
 // a venda saiu com o valor alterado: o pedido fica usado (com a venda) e o dia ganha a linha "Valor alterado"
 function usarAlteracao(array $a, int $vendaId, array $c, array $u): int {
   db()->prepare("UPDATE pedidos SET status = 'usado', usado = ?, venda_id = ?, feito_por = ?, feito_nome = ?, feito_em = ?, resultado = 'VALOR ALTERADO NA VENDA' WHERE id = ? AND status = 'liberado'")
     ->execute([$a['para'], $vendaId, (int)$u['id'], (string)$u['nome'], agora(), $a['id']]);
   $por = primeiroNome($a['por']); $dec = primeiroNome($a['dec']);
-  return registrar('alt', (int)$c['id'], $c['nome'], 'Valor alterado · ' . $a['n'] . ': ' . dinheiro($a['de']) . ' → ' . dinheiro($a['para']) . ' · Motivo: ' . $a['motivo'] . ' · por ' . $por . ($dec !== '' && mb_strtoupper($dec) !== mb_strtoupper($por) ? ' · aprovado por ' . $dec : ''));
+  return registrar('alt', (int)$c['id'], $c['nome'], 'Valor alterado · ' . $a['n'] . (!empty($a['horas']) ? ' (' . $a['h'] . 'h): ' . dinheiro($a['de']) . ' → ' . $a['horas'] . 'h por ' : ': ' . dinheiro($a['de']) . ' → ') . dinheiro($a['para']) . ' · Motivo: ' . $a['motivo'] . ' · por ' . $por . ($dec !== '' && mb_strtoupper($dec) !== mb_strtoupper($por) ? ' · aprovado por ' . $dec : ''));
 }
 // o desconto de quem não é gestor: o pedido tem de ser dele, estar liberado, dentro do prazo, ser do mesmo cliente e caber no valor liberado
 function autorizacaoDeDesconto(int $id, array $u, ?array $c, float $v): array {
