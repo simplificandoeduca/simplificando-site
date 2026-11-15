@@ -1088,6 +1088,15 @@ Fica registrado: a linha do dia "Valor alterado · PACOTE …: R$ 225 → R$ 260
 
 Pedido do dono: o menu aberto da 1.28 (grupos com tudo escrito, os filtros da lista dentro do menu, o cartão do usuário) ficou poluído, com muita informação. Volta o menu simples de antes: no computador, o trilho de ícones à esquerda (Painel, Aprovações, Espaço, Banco, Agenda, Ajustes), os filtros da lista em botões em cima dela (Todas, Recreação, Carrinho fusquinha, Carrinho de bebê, Saíram há pouco, Finalizados do dia) e as Atividades da semana na coluna da direita; no celular, a barra de baixo, como sempre. Nada mais muda: as telas, os filtros e os botões são os mesmos.
 
+## 6zo. O voucher só na entrada (1.35)
+
+Pedido do dono: o voucher é apresentado na entrada, obrigatoriamente; na saída ele nunca é dado.
+
+- **Na saída** não aparece mais o "Tem voucher? Usar agora".
+- **No atendimento**, o **Voucher** só aparece para quem está entrando (a criança fora do espaço). Marcado o voucher, a entrada vai junto: a caixa **Dar entrada agora** fica marcada e travada ("O voucher é dado na entrada").
+- Para a criança que já está no espaço, o voucher não aparece (se ela já usou um nesta visita, continua a linha "Voucher · já usado nesta visita").
+- O servidor confere de novo: voucher para quem já está no espaço é recusado ("O voucher só vale na entrada"), e voucher sem a entrada junto também ("marque Dar entrada agora").
+
 ## 7. Atualizar
 
 Botão **Atualizar** ao lado da versão. Ele baixa a versão nova do GitHub (ramo principal ou de trabalho, a mais nova), confere a versão dentro do arquivo e troca os arquivos de forma atômica. Não mexe em `~/playspace-dados/`. Se o GitHub demorar a refletir (cache de ~5 min), espere e toque de novo.

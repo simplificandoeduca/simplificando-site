@@ -1652,7 +1652,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.34';
+const VERSAO = '1.35';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -2476,6 +2476,7 @@ const estado = c => !c.entrou && emAberto(c) ? ['Falta finalizar', 'p-aviso'] : 
 const atrasoHoje = () => S.atrasoHoje || (L => ({ n: L.length, valor: L.reduce((a, v) => a + v.v, 0) }))((S.compras || []).filter(v => v.auto && !/^avulsa/.test(v.itens || '') && agora - v.quando < 86400000));   // 1.15: o tempo além do pacote nas últimas 24 h (a recreação avulsa é venda comum)
 const textoCobranca = (x, c) => `As horas do pacote acabaram · ${x.n} +${dur(periodo())} · ${brl(precoDe(c, x.v))}${c && c.pcd ? ' · ' + rotPcd() : ''} a receber na saída`;
 // o voucher do shopping: 30 min de recreação grátis, um por visita, sem código. temVoucher: a criança já tem um de hoje sem saída depois dele (o da visita, ou um guardado)
+const voucherNaEntrada = () => S.cfg.voucherEntrada !== false;   // 1.35: o voucher só na entrada (o dono: "na saída, nunca")
 const temVoucher = c => !!c && (MODO === 'servidor' ? !!c.vouch : (S.compras || []).some(v => v.crianca === c.id && v.voucher && doDia(v.quando) && !c.visitas.some(x => new Date(x.dia) > v.quando)));
 const umaCobranca = c => c && c.atraso && c.atraso.n ? c.atraso.valor / c.atraso.n : precoDe(c, (servicoTempo() || { v: 0 }).v);   // quanto vale um período a receber desta criança
 // o aviso depois de registrar um voucher: o que ele cobriu e, se for o caso, que é o segundo do dia
@@ -3535,6 +3536,7 @@ async function registrarAtendimento(id, mesmoAssim, pag, depois) { // mesmoAssim
   if (L.some(l => l.outro) && !(numero(val('v-valor')) >= 0)) { toast('Qual é o valor do outro item?'); $('#v-valor').focus(); return; }
   const vou = L.find(l => l.vou);
   const en = $('#v-entrar-campo'), entrar = !!en && !en.hidden && !!($('#v-entrar') || {}).checked;   // sem iDFace: pagou e já entra
+  if (vou && voucherNaEntrada() && (c.entrou || (semIdface() && !entrar))) { toast(c.entrou ? `O voucher só vale na entrada: ${c.nome} já está no espaço.` : 'O voucher é dado na entrada: marque "Dar entrada agora".'); return; }   // 1.35
   const festa = !!(CARRINHO && CARRINHO.festa && L.some(l => l.festa));   // 1.12: a venda é a de uma festa
   const rasc = festa ? null : RASC[id] || null;   // se a venda for desfeita, o que estava escolhido volta (a festa não mexe no atendimento que estava guardado)
   const volta = VOLTA_SAIDA === c.id;   // 1.00: a venda veio da folha da saída
@@ -4100,7 +4102,7 @@ const htmlContaGrupo = g => { const p = periodo(), st = servicoTempo(), A = g.A 
     ${antes > 0 || minhas > 0 || depois > 0 ? pgHoras(hm(antes), dur(minhas) + (v > 0 ? '<i class="pg-mais">+</i>' + brl(v) : ''), hm(depois)) : ''}
     ${g.L.filter(x => !x.k.n && x.k.desfeitas).map(x => `<div class="marca">${ic(IC.check, 18, 2.6)}<span>O que o cliente comprou cobre a visita${g.L.length > 1 ? ' de ' + esc(x.c.nome) : ''}: <b>${dur(x.k.desfeitas * p)} de recreação a menos na conta</b>.</span></div>`).join('')}
     ${g.L.map(x => temVoucher(x.c) ? `<div class="marca">${ic(IC.presente, 18)}<span><b>Voucher usado${g.L.length > 1 ? ' (' + esc(x.c.nome) + ')' : ''}:</b> ${porExt(p)} desta visita ficou por conta dele.</span></div>`
-      : x.k.n ? `<button type="button" class="marca tap vou-saida" data-act="saida-voucher" data-id="${x.c.id}">${ic(IC.presente, 18)}<span><b>Tem voucher${g.L.length > 1 ? ' para ' + esc(x.c.nome) : ''}?</b> Usar agora: ${brl(umaCobranca(x.c))} a menos.</span>${ic(IC.vai, 18)}</button>` : '').join('')}`; };
+      : x.k.n && !voucherNaEntrada() ? `<button type="button" class="marca tap vou-saida" data-act="saida-voucher" data-id="${x.c.id}">${ic(IC.presente, 18)}<span><b>Tem voucher${g.L.length > 1 ? ' para ' + esc(x.c.nome) : ''}?</b> Usar agora: ${brl(umaCobranca(x.c))} a menos.</span>${ic(IC.vai, 18)}</button>` : '').join('')}`; };
 function folhaSaidaGrupo(G, carros = []) {   // 1.25: carros = o que saiu da loja com este responsável (o tocado vem primeiro)
   const b0 = G.length ? G[0].id : carros.length ? carros[0].crianca : 0, volta = SAI_VOLTA && SAI_VOLTA.base === b0 ? SAI_VOLTA : null; SAI_VOLTA = null;
   const fora = volta ? new Set([...volta.fora].filter(i => G.some(c => c.id === i))) : new Set(), foraA = volta && volta.foraA ? new Set([...volta.foraA].filter(i => carros.some(a => String(a.id) === i))) : new Set();
@@ -4205,7 +4207,7 @@ const htmlContaSaida = (c, k, hh) => { const p = periodo(), minhas = horasPropri
     ${antes > 0 || minhas > 0 || depois > 0 ? pgHoras(hm(antes), dur(minhas) + (v > 0 ? '<i class="pg-mais">+</i>' + brl(v) : ''), hm(depois)) : ''}
     ${k.n ? '' : (k.desfeitas ? `<div class="marca">${ic(IC.check, 18, 2.6)}<span>${hh ? 'Com essa hora' : 'O que o cliente comprou cobre a visita'}: <b>${dur(k.desfeitas * p)} de recreação a menos na conta</b>.</span></div>` : '')}
     ${temVoucher(c) ? `<div class="marca">${ic(IC.presente, 18)}<span><b>Voucher usado:</b> ${porExt(p)} desta visita ficou por conta dele.</span></div>`
-      : k.n && !hh ? `<button type="button" class="marca tap vou-saida" data-act="saida-voucher" data-id="${c.id}">${ic(IC.presente, 18)}<span><b>Tem voucher?</b> Usar agora: ${brl(umaCobranca(c))} a menos.</span>${ic(IC.vai, 18)}</button>` : ''}`; };
+      : k.n && !hh && !voucherNaEntrada() ? `<button type="button" class="marca tap vou-saida" data-act="saida-voucher" data-id="${c.id}">${ic(IC.presente, 18)}<span><b>Tem voucher?</b> Usar agora: ${brl(umaCobranca(c))} a menos.</span>${ic(IC.vai, 18)}</button>` : ''}`; };
 function atualizarSaida() { // refaz a conta da folha da saída que está aberta (depois de usar o voucher)
   const bt = $('#s-ok'), alvo = $('#s-conta'); if (!bt || !alvo) return; const c = crianca(bt.dataset.id); if (!c || !c.entrou) return;
   if (val('s-hora')) { previaSaida(); return; } const k = contaSaida(c); alvo.innerHTML = htmlContaSaida(c, k); bt.innerHTML = rotuloSaida(k); pagSaida(k);
@@ -5218,7 +5220,7 @@ function carrinhoDe(c, r) {
   const q = {}; for (const x of S.cfg.servicos || []) if (r.q && r.q[x.id] > 0) q[x.id] = alugAbertoServ(x) ? 1 : Math.min(48, +r.q[x.id]);
   const pac = [...new Set((r.pac || []).map(p => (S.cfg.pacotes || []).findIndex(y => y.h === p.h && y.v === p.v && (!p.tipo || tipoPac(y) === p.tipo) && (p.nome == null || (y.nome || '') === p.nome))).filter(i => i >= 0))];
   const pr = {}; for (const x of r.pr || []) { const p = produto(x.id); if (p && p.v === x.v && x.q > 0) pr[p.id] = Math.min(99, +x.q); }   // o produto continua na lista, com o mesmo valor
-  return { id: c.id, q, pac, pr, vq: servicoTempo() && !temVoucher(c) && +r.vq > 0 ? 1 : 0, entrar: r.entrar == null ? null : !!r.entrar };
+  return { id: c.id, q, pac, pr, vq: servicoTempo() && !temVoucher(c) && !(voucherNaEntrada() && c.entrou) && +r.vq > 0 ? 1 : 0, entrar: r.entrar == null ? null : !!r.entrar };
 }
 const linhasDoRascunho = (c, r) => linhasDoCarrinho(carrinhoDe(c, r), r.item || '', r.valor || '');
 // reg = a última linha do dia que este aparelho conhecia ao guardar; uv = a última venda da criança (vem do servidor).
@@ -5360,7 +5362,7 @@ function linhasServico(parte) { // parte: 'tempo', 'outros' ou nada (todos). Sem
       <div class="qtd"><button type="button" class="tap" data-act="serv-menos" data-s="${esc(x.id)}" aria-label="Tirar ${per ? dur(x.min || 30) + ' de ' : 'um '}${esc(x.n)}" ${q ? '' : 'disabled'}>−</button><b class="num">${per ? (q ? dur(q * (x.min || 30)) : '0h') : q}</b><button type="button" class="tap" data-act="serv-mais" data-s="${esc(x.id)}" aria-label="Pôr ${per ? dur(x.min || 30) + ' de ' : 'um '}${esc(x.n)}" ${q >= maxServ(x) ? 'disabled' : ''}>+</button></div>
       <b class="valor num">${q ? brl(q * un) : ''}${conta && q > 1 ? `<i class="vezes">${q} × ${brl(un)}</i>` : ''}</b></div>`; }).join('')
     // o voucher do shopping: 30 min de recreação grátis, um por visita, sem código. É só marcar; quem já usou nesta visita não ganha outro
-    + (!st || parte === 'outros' ? '' : temVoucher(c) ? `<div class="serv voucher usado"><span class="txt"><b>Voucher</b><span>${c.entrou ? 'já usado nesta visita' : 'já tem um de hoje, ainda sem usar'} · é um por visita</span></span><span class="vou-ch on">${ic(IC.check, 16, 3)}</span><b class="valor num"></b></div>`
+    + (!st || parte === 'outros' ? '' : !temVoucher(c) && voucherNaEntrada() && c && c.entrou ? '' : temVoucher(c) ? `<div class="serv voucher usado"><span class="txt"><b>Voucher</b><span>${c.entrou ? 'já usado nesta visita' : 'já tem um de hoje, ainda sem usar'} · é um por visita</span></span><span class="vou-ch on">${ic(IC.check, 16, 3)}</span><b class="valor num"></b></div>`
       : `<button type="button" class="serv voucher tap ${vq ? 'on' : ''}" data-act="vou-marca" aria-pressed="${!!vq}"><span class="txt"><b>Voucher</b><span>${c && c.entrou && c.atraso && c.atraso.n ? `cobre ${porExt(st.min || 30)} desta visita (${brl(umaCobranca(c))} a menos na saída)` : `${porExt(st.min || 30)} de ${esc(st.n)} grátis · um por visita`}</span></span><span class="vou-ch">${vq ? ic(IC.check, 16, 3) : ''}</span><b class="valor num">${vq ? 'Grátis' : ''}</b></button>`);
 }
 function atualizarCarrinho() { // redesenha as linhas dos serviços e o total a pagar
@@ -5375,7 +5377,8 @@ function atualizarCarrinho() { // redesenha as linhas dos serviços e o total a 
   if (t) t.textContent = brl(total); if (ok) { ok.disabled = !L.length; ok.innerHTML = !L.length ? `${ic(IC.check)} Escolha o serviço` : total > 0 ? `${VOLTA_SAIDA ? 'Somar na saída' : 'Pagamento'} · ${brl(total)} ${ic(IC.vai, 18, 2.6)}` : L.some(l => l.aberto) ? `${ic(IC.check)} Registrar a saída${qtdAbertos(L) > 1 ? ' de ' + qtdAbertos(L) + ' carrinhos' : ''} · ${ITENS_ABERTO}` : `${ic(IC.check)} Registrar · ${brl(total)}`; }
   const m = $('#v-tempo'), vc = L.find(l => l.cobre); if (m) { m.hidden = !min && !vc; m.textContent = (min ? `Entra ${dur(min)} de recreação no saldo: fica com ${hm(saldoAgora(crianca(CARRINHO.id)) + min)}. ` : '') + (vc ? `O voucher cobre ${porExt(periodo())} desta visita: ${brl(umaCobranca(crianca(CARRINHO.id)))} a menos na saída.` : ''); }
   const en = $('#v-entrar-campo'), cb = $('#v-entrar'), cr = crianca(CARRINHO.id); if (en) en.hidden = !(L.length && cr);   // 1.15: a entrada pode ir junto com qualquer venda (sem horas, a criança entra na recreação avulsa)
-  if (cb && CARRINHO.entrar == null) cb.checked = min > 0;   // vem marcada quando a venda tem recreação (pacote, voucher); a venda só de carrinho ou de produto não dá a entrada sozinha (o carrinho é usado fora da loja): quem quiser, marca. Se a pessoa mexer, vale a escolha dela
+  if (cb && CARRINHO.entrar == null) cb.checked = min > 0;
+  if (cb) { const vou = !!CARRINHO.vq && voucherNaEntrada() && L.some(l => l.vou); if (vou) cb.checked = true; cb.disabled = vou; const nv = $('#v-entrar-vou'); if (nv) nv.hidden = !vou; }   // 1.35: o voucher é dado na entrada   // vem marcada quando a venda tem recreação (pacote, voucher); a venda só de carrinho ou de produto não dá a entrada sozinha (o carrinho é usado fora da loja): quem quiser, marca. Se a pessoa mexer, vale a escolha dela
   { const tx = $('#v-entrar-txt'); if (tx && cr) tx.textContent = saldoMin(cr) + min >= periodo() ? 'O tempo de recreação começa a contar ao registrar a venda.' : `Recreação avulsa: ${precoTempo(cr)}, acerta na saída.`; }
   guardarRascunho();   // o que está escolhido fica guardado: se fechar sem registrar, continua daqui
 }
@@ -5404,7 +5407,7 @@ function folhaVender(id, primeira, pre, voltaSaida) { // primeira: acabou de sai
     ${outrosServicos().length ? `<div class="campo"><label>Outros serviços</label><div class="servicos" id="v-servicos2">${linhasServico('outros')}</div></div>` : ''}
     ${produtosNoAtendimento()}
     <details class="outro"${r && r.item ? ' open' : ''}><summary>Outro item</summary><div class="outro-item"><input id="v-item" value="${esc(r ? r.item || '' : '')}" placeholder="O que foi" autocomplete="off" maxlength="40" aria-label="O que foi vendido"><input id="v-valor" value="${esc(r ? r.valor || '' : '')}" inputmode="decimal" placeholder="R$" autocomplete="off" aria-label="Valor em reais"></div></details>
-    <div class="pe-f"><span class="explica" id="v-tempo" hidden></span>${semIdface() && !c.entrou ? `<label class="marca" id="v-entrar-campo" hidden><input type="checkbox" id="v-entrar" checked><span><b>Dar entrada agora.</b> <span id="v-entrar-txt">O tempo de recreação começa a contar ao registrar a venda.</span></span></label>` : ''}<div class="total"><span>Total a pagar</span><b class="num" id="v-total">R$ 0</b></div><button class="bt forte largo tap" id="v-ok" data-act="atender-ok" data-id="${c.id}" disabled>${ic(IC.check)} Escolha o serviço</button></div>
+    <div class="pe-f"><span class="explica" id="v-tempo" hidden></span>${semIdface() && !c.entrou ? `<label class="marca" id="v-entrar-campo" hidden><input type="checkbox" id="v-entrar" checked><span><b>Dar entrada agora.</b> <span id="v-entrar-vou" hidden>O voucher é dado na entrada. </span><span id="v-entrar-txt">O tempo de recreação começa a contar ao registrar a venda.</span></span></label>` : ''}<div class="total"><span>Total a pagar</span><b class="num" id="v-total">R$ 0</b></div><button class="bt forte largo tap" id="v-ok" data-act="atender-ok" data-id="${c.id}" disabled>${ic(IC.check)} Escolha o serviço</button></div>
     </div><div id="v-pag" hidden></div>`);
   ETAPA_FEITA = false;   // daqui em diante, fechar sem registrar guarda o que foi escolhido
   if (r) { const cb = $('#v-entrar'); if (cb && CARRINHO.entrar != null) cb.checked = CARRINHO.entrar; }
@@ -6827,7 +6830,7 @@ const ACOES = {
   'serv-mais': el => { if (!CARRINHO) return; const x = (S.cfg.servicos || []).find(y => y.id === el.dataset.s); if (!x) return; CARRINHO.q[x.id] = Math.min(maxServ(x), (CARRINHO.q[x.id] || 0) + 1); atualizarCarrinho(); },   // 1.22: carrinho de bebê e fusquinha, até 4
   'vou-marca': () => { if (!CARRINHO) return; CARRINHO.vq = CARRINHO.vq ? 0 : 1; atualizarCarrinho(); },
   'saida-voucher': async el => { // na saída, o responsável mostrou o voucher: ele cobre um período da cobrança por atraso
-    const c = crianca(el.dataset.id); if (!c || !c.entrou || temVoucher(c)) return; el.disabled = true;
+    const c = crianca(el.dataset.id); if (!c || !c.entrou || temVoucher(c) || voucherNaEntrada()) return; el.disabled = true;   // (1.35: o voucher só na entrada)
     if (MODO === 'servidor') {
       try { const r = await api('atender', { id: c.id, voucher: true }); await carregar(); desenhar(true); atualizarSaida(); atualizarGrupo();
         deuCertoOu(atencaoVoucher(r.voucher, c.nome), avisoVoucher(r.voucher, c.nome) || 'Voucher usado', async () => { try { await api('desfazer_venda', { vendas: r.vendas, registros: r.registros }); await carregar(); } catch (e) { toast(e.message); } desenhar(); }); }

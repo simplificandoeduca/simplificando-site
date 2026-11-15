@@ -548,7 +548,10 @@ switch ($acao) {
     // voucher do shopping: 30 min de recreação grátis, um por visita, sem código. A tela só marca (voucher: true); a tela antiga mandava { q, codigo } e vale como um voucher.
     // Confere antes de vender qualquer coisa, para não ficar uma venda pela metade
     $vo = $in['voucher'] ?? null; $comVoucher = is_array($vo) ? (int)($vo['q'] ?? 0) > 0 : !empty($vo);
-    if ($comVoucher) { if (!servicoTempo()) falha('Não há serviço de tempo de recreação para usar o voucher.'); if (voucherAberto($c)) falha(voucherJaTem($c)); }
+    if ($comVoucher) { if (!servicoTempo()) falha('Não há serviço de tempo de recreação para usar o voucher.'); if (voucherAberto($c)) falha(voucherJaTem($c));
+      if ((regra()['voucherEntrada'] ?? true) !== false) { // 1.35: o voucher só na entrada (na saída, nunca)
+        if ($c['entrou']) falha('O voucher só vale na entrada: ' . $c['nome'] . ' já está no espaço.');
+        if (modoManual() && empty($in['entrar'])) falha('O voucher é dado na entrada: marque "Dar entrada agora".'); } }
     $o = (array)($in['outro'] ?? []); $on = mb_substr(maiusculo((string)($o['n'] ?? '')), 0, 60); if ($on !== '') $linhas[] = ['servico' => $on, 'min' => 0, 'valor' => max(0, (float)($o['v'] ?? 0)), 'itens' => ''];
     if (!$linhas && !$comVoucher) falha('Escolha o serviço.');
     // a criança já teve uma venda registrada (em outro aparelho) depois que esta tela abriu o atendimento: avisa antes de cobrar de novo. "mesmo_assim" confirma
