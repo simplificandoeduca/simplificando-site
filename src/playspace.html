@@ -1636,7 +1636,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.33';
+const VERSAO = '1.34';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -4234,7 +4234,7 @@ const naoLidas = () => S.conversas.filter(x => !x.lidas).length;
 // disso continua o trilho de ícones (tablet) e a barra de baixo (celular). Com o histórico do cliente aberto ao lado, o menu só fica
 // aberto de MN_LARG_LADO px para cima (antes disso a lista ficaria espremida entre os dois).
 const MN_LARG = 1280, MN_LARG_LADO = 1560;
-const menuAberto = () => innerWidth >= MN_LARG && (innerWidth >= MN_LARG_LADO || !document.body.classList.contains('com-lado'));
+const menuAberto = () => lido('ps-menu', 'simples') === 'aberto' && innerWidth >= MN_LARG && (innerWidth >= MN_LARG_LADO || !document.body.classList.contains('com-lado'));   // 1.34: a pedido do dono, volta o menu simples de antes (o aberto fica desligado)
 const mnLigado = () => document.body.classList.contains('mn');
 function acertaMenu() { if (NAV_CACHE && !document.body.classList.contains('so') && menuAberto() !== mnLigado()) { if (S.tela === 'horas') desenhar(true); else nav(); } }   // a largura (ou o histórico ao lado) trocou o menu: redesenha
 const mnFechados = () => { const v = lido('ps-menu-fechados', []); return Array.isArray(v) ? v : []; };   // os grupos que a pessoa fechou (só isto fica guardado no aparelho)

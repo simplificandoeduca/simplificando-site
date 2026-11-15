@@ -1084,6 +1084,10 @@ Fica registrado: a linha do dia "Valor alterado · PACOTE …: R$ 225 → R$ 260
 
 **No cupom**, discreta, embaixo do total, a resposta do que foi pedido naquela conta (só quando alguém pediu): "Desconto: aprovado por …", "Desconto: não aprovado" ou "Desconto: pendente de aprovação" (a conta foi fechada antes da resposta, com o valor sem desconto). O mesmo para a alteração de valor.
 
+## 6zn. O menu simples de volta (1.34)
+
+Pedido do dono: o menu aberto da 1.28 (grupos com tudo escrito, os filtros da lista dentro do menu, o cartão do usuário) ficou poluído, com muita informação. Volta o menu simples de antes: no computador, o trilho de ícones à esquerda (Painel, Aprovações, Espaço, Banco, Agenda, Ajustes), os filtros da lista em botões em cima dela (Todas, Recreação, Carrinho fusquinha, Carrinho de bebê, Saíram há pouco, Finalizados do dia) e as Atividades da semana na coluna da direita; no celular, a barra de baixo, como sempre. Nada mais muda: as telas, os filtros e os botões são os mesmos.
+
 ## 7. Atualizar
 
 Botão **Atualizar** ao lado da versão. Ele baixa a versão nova do GitHub (ramo principal ou de trabalho, a mais nova), confere a versão dentro do arquivo e troca os arquivos de forma atômica. Não mexe em `~/playspace-dados/`. Se o GitHub demorar a refletir (cache de ~5 min), espere e toque de novo.
