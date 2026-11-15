@@ -735,6 +735,8 @@ switch ($acao) {
     $g = array_key_exists('senha', $in) && !podeDecidir($u, $tipo) ? autorizadorPelaSenha($tipo, (string)$in['senha'], $u) : null;   // a senha é conferida antes: errada, nada é criado
     $r = pedidoCriar($u, $in);
     if ($g && $r['pedido']['status'] === 'pendente') $r = pedidoDecidir((int)$r['pedido']['id'], $g, true, 'senha');
+    if (empty($r['ja']) && ($r['pedido']['status'] ?? '') === 'pendente') { $pid = (int)$r['pedido']['id'];   // 1.32: o aviso no celular de quem decide, depois de responder
+      require_once __DIR__ . '/push-lib.php'; pushDepois(function () use ($pid) { $p = pedido($pid); if ($p && $p['status'] === 'pendente') pushPedido($p); }); }
     $r['pedidos'] = pedidosDaTela($u); responder($r);
   }
   case 'pedido_decidir': { // liberar ou negar: um toque de quem autoriza (ou a senha dele, no aparelho de quem pediu)
@@ -1032,6 +1034,35 @@ switch ($acao) {
     if ($c['entrou'] && !podeEstornar($u)) falha('Só ' . quemEstorna() . ' simula a saída pelo rosto (ela não passa pelo pagamento).', 403);   // 1.21
     if ($c['entrou']) responder(['resultado' => 'saída'] + fazerSaida($c, 'simulação'));
     responder(['resultado' => 'entrada'] + fazerEntrada($c, 'simulação'));
+  }
+  // 1.32: os avisos no celular. A chave pública da loja (para o navegador fazer a inscrição) e se este aparelho já está ligado
+  case 'push_chave': {
+    $u = exigir(); require_once __DIR__ . '/push-lib.php'; $ep = (string)($in['endpoint'] ?? '');
+    if (!pushServidorPronto()) falha('O servidor da loja ainda não consegue mandar avisos: a hospedagem precisa do PHP 7.3 ou mais novo, com openssl e curl. Peça para atualizar o PHP no painel da hospedagem.');
+    $q = $db->prepare('SELECT usuario_id FROM push_inscricoes WHERE endpoint = ?'); $q->execute([$ep]); $dono = $q->fetchColumn();
+    $n = $db->prepare('SELECT COUNT(*) FROM push_inscricoes WHERE usuario_id = ?'); $n->execute([(int)$u['id']]);
+    responder(['chave' => pushChaves()['pub'], 'ligado' => $dono !== false && (int)$dono === (int)$u['id'], 'aparelhos' => (int)$n->fetchColumn()]);
+  }
+  case 'push_inscrever': { // o aparelho ligou os avisos: a inscrição fica com quem está logado nele (outro login no mesmo aparelho passa a ser o dono)
+    $u = exigir(); require_once __DIR__ . '/push-lib.php';
+    $ep = trim((string)($in['endpoint'] ?? '')); $pk = trim((string)($in['p256dh'] ?? '')); $au = trim((string)($in['auth'] ?? ''));
+    if ($ep === '' || strlen($ep) > 900 || !pushHostPermitido($ep)) falha('Este navegador não mandou um endereço de avisos que o sistema aceite.');
+    $a = pushDeB64u($pk); if (strlen($a) !== 65 || $a[0] !== "\x04" || strlen(pushDeB64u($au)) !== 16) falha('A inscrição do aparelho veio incompleta. Tente ligar de novo.');
+    $ap = mb_substr(trim((string)($in['aparelho'] ?? '')), 0, 80);
+    $db->prepare('INSERT INTO push_inscricoes (usuario_id, endpoint, p256dh, auth, aparelho, criado_em, falhas) VALUES (?, ?, ?, ?, ?, ?, 0) ON CONFLICT(endpoint) DO UPDATE SET usuario_id = excluded.usuario_id, p256dh = excluded.p256dh, auth = excluded.auth, aparelho = excluded.aparelho, falhas = 0')
+      ->execute([(int)$u['id'], $ep, $pk, $au, $ap, agora()]);
+    responder(['ligado' => true]);
+  }
+  case 'push_sair': { // desligar os avisos deste aparelho
+    $u = exigir(); $db->prepare('DELETE FROM push_inscricoes WHERE endpoint = ? AND usuario_id = ?')->execute([(string)($in['endpoint'] ?? ''), (int)$u['id']]); responder();
+  }
+  case 'push_testar': { // um aviso de teste para os aparelhos de quem está logado (ou só para este)
+    $u = exigir(); require_once __DIR__ . '/push-lib.php'; $ep = (string)($in['endpoint'] ?? '');
+    $q = $db->prepare('SELECT * FROM push_inscricoes WHERE usuario_id = ?' . ($ep !== '' ? ' AND endpoint = ?' : '') . ' ORDER BY id'); $q->execute($ep !== '' ? [(int)$u['id'], $ep] : [(int)$u['id']]); $L = $q->fetchAll();
+    if (!$L) falha('Os avisos ainda não estão ligados neste aparelho.', 409);
+    $r = pushMandar($L, fn($i) => ['t' => 'Play Space', 'b' => 'Aviso de teste: os pedidos de autorização vão chegar assim, mesmo com o Play Space fechado.', 'tag' => 'ps-teste', 'url' => $u['papel'] === 'gestor' ? './#aprovar' : './']);
+    if (!$r['ok']) falha($r['saiu'] ? 'O serviço de avisos do navegador desligou este aparelho. Toque em "Ativar avisos" de novo.' : 'O aviso não saiu agora (o serviço de avisos do navegador não respondeu). Tente de novo em instantes.', 502);
+    responder(['enviados' => $r['ok'], 'falhas' => $r['erro']]);
   }
   default: falha('Ação desconhecida: ' . $acao, 404);
 }

@@ -744,6 +744,14 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .ap-vazio { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 46px 22px; text-align: center; background: var(--card); border: 1px solid var(--borda); border-radius: 26px; }
 .ap-vazio i { width: 76px; height: 76px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--ok-bg); color: var(--ok); margin-bottom: 4px; } .ap-vazio b { font: 800 23px/1.2 var(--display); } .ap-vazio span { max-width: 430px; color: var(--tinta-2); font-size: 14.5px; line-height: 1.45; }
 .ap-pe { display: flex; gap: 10px; flex-wrap: wrap; } .ap-pe .bt { flex: 1 1 170px; justify-content: center; min-height: 48px; height: auto; white-space: normal; text-align: center; }
+/* 1.32: os avisos no celular (a caixinha das Aprovações) */
+.push-c { display: flex; gap: 14px; align-items: center; padding: 16px; border-radius: 22px; background: var(--card); border: 1.5px dashed var(--borda-2); }
+.push-c .push-ic { flex: none; width: 46px; height: 46px; border-radius: 15px; display: flex; align-items: center; justify-content: center; background: var(--menta); color: var(--tinta); }
+.push-c .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; } .push-c .txt b { font: 800 16px/1.25 var(--display); } .push-c .txt span { font-size: 13px; color: var(--tinta-2); line-height: 1.4; }
+.push-c .push-b { display: flex; gap: 8px; flex-wrap: wrap; flex: none; } .push-c .bt { min-height: 46px; }
+.push-c.on { border-style: solid; border-color: var(--borda); padding: 10px 14px; } .push-c.on .push-ic { width: 36px; height: 36px; border-radius: 12px; background: var(--ok-bg); color: var(--ok); } .push-c.on .txt b { font-size: 14.5px; }
+.push-c.aviso .push-ic { background: var(--mostarda-2); }
+@media (max-width: 560px) { .push-c { flex-wrap: wrap; } .push-c .push-b { width: 100%; } .push-c .push-b .bt { flex: 1 1 auto; } }
 /* 1.25: os finalizados do dia */
 .esp-fora.fim .fim-it .quem { flex: 1; min-width: 0; } .fim-v { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; flex: none; text-align: right; font-size: 14px; }
 .fim-v small { font-size: 11.5px; font-weight: 800; } .fim-v small.pas { color: var(--erro); }
@@ -1619,7 +1627,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.31';
+const VERSAO = '1.32';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -4944,10 +4952,63 @@ function htmlAprovarTelaSem() {
   return (P.length ? `<div class="ap-tit"><h2>Pedidos <span class="pill p-erro">${P.length}</span></h2></div>${P.map(htmlPedido).join('')}` : '')
     + (A.length ? `<div class="ap-tit"><h2>Cancelamentos para ver <span class="pill p-neutro">${A.length}</span></h2>${A.length > 1 ? `<button type="button" class="link tap" data-act="av-vistos">Marcar ${A.length === 2 ? 'os dois' : 'os ' + A.length} como vistos</button>` : ''}</div>${A.map(htmlAviso).join('')}` : '');
 }
+// ---------- 1.32: os avisos no celular (Web Push) ----------
+// O aparelho liga os avisos com um toque: o navegador pergunta, o serviço de avisos do navegador devolve a inscrição, o servidor guarda.
+// Estados: 'ligado', 'desligado', 'negado' (bloqueado no navegador), 'ios' (iPhone fora da Tela de Início), 'sem' (navegador sem avisos), 'previa'
+const PUSH = { estado: null, ocupado: false, sincronizado: false };
+const pushPode = () => typeof navigator !== 'undefined' && 'serviceWorker' in navigator && typeof window !== 'undefined' && 'PushManager' in window && 'Notification' in window;
+const pushIphone = () => /iPhone|iPad|iPod/.test(navigator.userAgent || '') && !(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+const pushBytes = s => { const b = atob(String(s).replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((String(s).length + 3) % 4)); return Uint8Array.from(b, ch => ch.charCodeAt(0)); };
+const pushAparelho = () => { const u = navigator.userAgent || ''; return (/iPhone/.test(u) ? 'iPhone' : /iPad/.test(u) ? 'iPad' : /Android/.test(u) ? 'Android' : /Windows/.test(u) ? 'Windows' : /Mac/.test(u) ? 'Mac' : 'Aparelho') + (/Edg\//.test(u) ? ' · Edge' : /Chrome\//.test(u) ? ' · Chrome' : /Firefox\//.test(u) ? ' · Firefox' : /Safari\//.test(u) ? ' · Safari' : ''); };
+async function pushInscricao() { if (!pushPode()) return null; const reg = await navigator.serviceWorker.getRegistration(); return reg ? reg.pushManager.getSubscription() : null; }
+async function pushVerEstado() {
+  let e;
+  if (MODO !== 'servidor') e = 'previa';
+  else if (!pushPode()) e = pushIphone() ? 'ios' : 'sem';
+  else if (Notification.permission === 'denied') e = 'negado';
+  else { try { const s = Notification.permission === 'granted' ? await pushInscricao() : null; e = s ? 'ligado' : 'desligado';
+      if (s && !PUSH.sincronizado) { PUSH.sincronizado = true; const j = s.toJSON(); api('push_inscrever', { endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth, aparelho: pushAparelho() }).catch(() => { }); }   // (o dono da inscrição é quem está logado agora)
+    } catch (x) { e = 'desligado'; } }
+  PUSH.estado = e; const c = $('#push-c'); if (c) c.outerHTML = htmlPush(); return e;
+}
+function htmlPush() {
+  const e = PUSH.estado, cx = (cls, ico, t, s, b = '') => `<div class="push-c ${cls}" id="push-c"><span class="push-ic">${ic(ico, cls === 'on' ? 18 : 22)}</span><div class="txt"><b>${t}</b><span>${s}</span></div>${b ? `<div class="push-b">${b}</div>` : ''}</div>`;
+  if (e == null) { setTimeout(pushVerEstado, 0); return `<div class="push-c" id="push-c" hidden></div>`; }   // (o estado deste aparelho chega logo depois)
+  if (e === 'ligado') return cx('on', IC.check, 'Avisos ligados neste aparelho', 'Cada pedido de autorização chega como notificação, mesmo com o Play Space fechado.', `<button type="button" class="bt tap" data-act="push-testar">Testar</button><button type="button" class="bt tap" data-act="push-desligar">Desligar</button>`);
+  if (e === 'previa') return cx('aviso', IC.sino, 'Avisos no celular', 'Na prévia os avisos não funcionam: ligue no sistema da loja, no celular da gestora (Aprovações → Ativar avisos neste celular).');
+  if (e === 'ios') return cx('aviso', IC.sino, 'Avisos no iPhone: falta um passo', 'No iPhone, os avisos só funcionam com o Play Space na Tela de Início: toque em Compartilhar → "Adicionar à Tela de Início", abra pelo ícone e toque aqui de novo.');
+  if (e === 'sem') return cx('aviso', IC.sino, 'Este navegador não recebe avisos', 'Use o Chrome (Android ou computador), o Edge, o Firefox, ou o Safari do iPhone com o Play Space na Tela de Início.');
+  if (e === 'negado') return cx('aviso', IC.sino, 'Os avisos estão bloqueados neste aparelho', 'Libere nas configurações do navegador: toque no cadeado ao lado do endereço (ou em Ajustes do celular → Notificações) e permita as notificações do Play Space. Depois toque aqui.', `<button type="button" class="bt tap" data-act="push-ver">Já liberei</button>`);
+  return cx('', IC.sino, 'Receber os pedidos como notificação', 'Ligue uma vez neste celular: cada pedido de desconto, de cancelamento de venda ou de nota fiscal chega como aviso, mesmo com o Play Space fechado. O navegador vai perguntar se pode avisar: toque em Permitir.', `<button type="button" class="bt forte tap" data-act="push-ligar"${PUSH.ocupado ? ' disabled' : ''}>${ic(IC.sino, 18)} Ativar avisos neste celular</button>`);
+}
+async function pushLigar() {
+  if (PUSH.ocupado || !pushPode()) return; PUSH.ocupado = true;
+  const perm = Notification.requestPermission();   // (direto do toque: o navegador só pergunta assim)
+  try {
+    if (await perm !== 'granted') { toast('Sem a permissão, os avisos não chegam. Para ligar depois, libere as notificações do Play Space nas configurações do navegador.'); return; }
+    const reg = await navigator.serviceWorker.register('sw.js'); await navigator.serviceWorker.ready;
+    const { chave } = await api('push_chave'); let s = await reg.pushManager.getSubscription();
+    if (s && s.options && s.options.applicationServerKey && btoa(String.fromCharCode(...new Uint8Array(s.options.applicationServerKey))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '') !== chave) { await s.unsubscribe(); s = null; }   // (a chave da loja mudou)
+    if (!s) s = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: pushBytes(chave) });
+    const j = s.toJSON(); await api('push_inscrever', { endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth, aparelho: pushAparelho() }); PUSH.sincronizado = true;
+    deuCerto('Avisos ligados neste aparelho: os pedidos de autorização vão chegar como notificação');
+  } catch (e) { toast(e && e.message && !/^(AbortError|NotAllowedError)/.test(e.name || '') ? 'Não deu para ligar os avisos: ' + e.message : 'Não deu para ligar os avisos neste navegador agora. Tente de novo; no iPhone, abra o Play Space pela Tela de Início.'); }
+  finally { PUSH.ocupado = false; pushVerEstado(); }
+}
+async function pushDesligar() {
+  try { const s = await pushInscricao(); if (s) { const ep = s.endpoint; await s.unsubscribe(); await api('push_sair', { endpoint: ep }); } deuCerto('Avisos desligados neste aparelho'); } catch (e) { toast(e.message || 'Não deu para desligar agora'); }
+  pushVerEstado();
+}
+async function pushTestar() {
+  try { const s = await pushInscricao(); await api('push_testar', { endpoint: s ? s.endpoint : '' }); deuCerto('Aviso de teste enviado: ele chega em alguns segundos'); } catch (e) { toast(e.message); }
+}
+if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.ps === 'aviso') { if (gestor()) trocarTela('aprovar'); else desenhar(); } });   // o toque no aviso com o Play Space aberto
 function telaAprovar() {
   return faixa('Aprovações', aprovarSub(), chipAvisos()) + `
   <section class="aprovar">
+    ${PUSH.estado !== 'ligado' ? htmlPush() : ''}
     <div class="ap-lista" id="ap-lista">${htmlAprovarTela()}</div>
+    ${PUSH.estado === 'ligado' ? htmlPush() : ''}
     <div class="ap-pe"><button type="button" class="bt tap" data-ir="painel">${ic(IC.painel, 18)} Painel</button><button type="button" class="bt tap" data-act="autorizacoes">Autorizações já respondidas</button><button type="button" class="bt tap" data-act="cancelamentos">Todos os cancelamentos</button></div>
   </section>`;
 }
@@ -6726,6 +6787,7 @@ const ACOES = {
   cancelar: el => folhaCancelar(+el.dataset.id), 'canc-ok': el => confirmarCancelar(el), cancelamentos: () => folhaCancelamentos(),
   'pn-uni': el => { const id = +el.dataset.id || 0, noSel = !!el.closest('.pn-sel'); guardar('ps-painel-uni', id); desenhar(true); if (noSel) { const b = $('.pn-sel [data-id="' + id + '"]'); if (b) b.focus({ preventScroll: true }); } },   // (o foco volta para o botão escolhido)
   'av-visto': el => marcarVisto(+el.dataset.id),   // 1.25: o aviso da gestora
+  'push-ligar': () => pushLigar(), 'push-desligar': () => pushDesligar(), 'push-testar': () => pushTestar(), 'push-ver': () => pushVerEstado(),   /* 1.32 */
   'av-vistos': () => marcarVisto(avisosParaMim().map(x => x.id)),   // (só os que estão no painel)
   'canc-motivo': el => { const alvo = el.dataset.alvo || 'x-motivo', t = $('#' + alvo); if (!t) return; t.value = el.dataset.t; const cp = $('#' + alvo + '-campo'); if (cp) cp.classList.remove('falta'); t.focus(); t.setSelectionRange(t.value.length, t.value.length); },   // (1.20: o motivo do cancelamento da saída do carrinho usa o mesmo atalho, em outro campo)
   'canc-visto': el => marcarVisto(+el.dataset.id), 'canc-vistos': () => marcarVisto(0),

@@ -1052,6 +1052,21 @@ Pedido da dona: conferir todas as contas, somas e porcentagens do caixa ("é din
 
 Uma segunda leitura do código, independente, conferiu também: a divisão do desconto entre as vendas (fecha sempre os centavos e nunca passa do que cada venda deve), o desconto em % (vale o valor em reais mostrado na tela), o PCD de 50%, os valores da festa (upgrade = a diferença da tabela, adicional = crianças × valor), os totais dos cupons e o recebido por forma.
 
+## 6zl. Os pedidos de autorização como notificação no celular (1.32)
+
+Pedido da dona: os pedidos que esperam a aprovação do gestor subirem como notificação no celular, com uma caixinha para ele só ativar.
+
+**Ligar (uma vez em cada aparelho).** Em **Aprovações**, a caixinha **Receber os pedidos como notificação** tem o botão **Ativar avisos neste celular**. Um toque: o navegador pergunta se o Play Space pode mandar notificações; toque em **Permitir**. Pronto: a caixinha vira "Avisos ligados neste aparelho", com **Testar** (manda um aviso de teste na hora) e **Desligar**.
+
+**Como funciona.** A cada pedido novo (desconto, cancelar uma venda, nota fiscal), o servidor manda o aviso para o celular de quem decide aquele pedido (o gestor; o cancelamento de venda também para quem estorna), menos para quem pediu. O aviso diz o pedido, quem pediu e a unidade ("Pedido de desconto · JOÃO · ANÁLIA FRANCO: …"). Chega mesmo com o Play Space fechado; tocar abre as Aprovações. A tela de quem pediu não espera o aviso sair.
+
+**Cada celular.**
+- **Android (Chrome)** e **computador (Chrome, Edge, Firefox)**: liga direto, pelo navegador ou pelo app instalado.
+- **iPhone**: só com o Play Space na **Tela de Início** (Safari → Compartilhar → "Adicionar à Tela de Início"), aberto pelo ícone, com iOS 16.4 ou mais novo. Fora da Tela de Início, a caixinha explica esse passo.
+- Se a permissão foi negada, a caixinha mostra como liberar (o cadeado ao lado do endereço, ou Ajustes do celular → Notificações) e o botão **Já liberei**.
+
+**Por dentro.** É o aviso padrão dos navegadores (Web Push): a chave da loja é criada sozinha no servidor na primeira vez e fica guardada nele; cada aviso vai cifrado só para aquele aparelho. O servidor só manda avisos para os serviços dos navegadores (Google, Apple, Mozilla, Microsoft). O aparelho que o serviço diz que não existe mais sai da lista sozinho. O arquivo `sw.js` (na pasta do Play Space) é o que recebe o aviso no aparelho; ele não guarda nada e não mexe no carregamento da tela.
+
 ## 7. Atualizar
 
 Botão **Atualizar** ao lado da versão. Ele baixa a versão nova do GitHub (ramo principal ou de trabalho, a mais nova), confere a versão dentro do arquivo e troca os arquivos de forma atômica. Não mexe em `~/playspace-dados/`. Se o GitHub demorar a refletir (cache de ~5 min), espere e toque de novo.
@@ -1065,4 +1080,5 @@ Botão **Atualizar** ao lado da versão. Ele baixa a versão nova do GitHub (ram
 - **iDFace "Sem contato"**: aparelho desligado, sem internet, ou o endereço push ficou errado no aparelho. Rode o conector de novo.
 - **Mensagem do responsável não aparece**: o telefone no cadastro não bate com o número de onde veio (precisa dos últimos 8 dígitos iguais). Ajuste o telefone na ficha.
 - **Os bonequinhos estão parados num computador**: as animações do sistema estão desligadas nele. Toque em **Animar os bonequinhos** na dica, ou escolha **Animados** em Ajustes → Aparência (seção 6d).
+- **Avisos no celular: "O servidor da loja ainda não consegue mandar avisos"** (seção 6zl): a hospedagem precisa do PHP 7.3 ou mais novo, com openssl e curl (cPanel → *Selecionar versão do PHP*), e o site em `https://`. Se o aviso de teste não chega, toque em **Desligar** e em **Ativar avisos neste celular** de novo.
 - Erros do servidor vão para o log de erros do PHP (cPanel → *Erros*) com o prefixo `[playspace]`.

@@ -358,6 +358,10 @@ function db(): PDO {
     $pdo->exec('CREATE INDEX IF NOT EXISTS estornos_quando ON estornos (quando)');
     $pdo->exec('PRAGMA user_version = 33');
   }
+  if ($v < 34) { // 1.32: os avisos no celular (Web Push): cada aparelho com os avisos ligados, de quem é, e as chaves dele (a chave da loja fica em config)
+    $pdo->exec("CREATE TABLE IF NOT EXISTS push_inscricoes (id INTEGER PRIMARY KEY, usuario_id INTEGER NOT NULL, endpoint TEXT NOT NULL UNIQUE, p256dh TEXT NOT NULL, auth TEXT NOT NULL, aparelho TEXT NOT NULL DEFAULT '', criado_em TEXT NOT NULL, ultimo_ok TEXT, falhas INTEGER NOT NULL DEFAULT 0)");
+    $pdo->exec('PRAGMA user_version = 34');
+  }
   return $pdo;
 }
 /* ---------- 1.06: unidades ---------- */
