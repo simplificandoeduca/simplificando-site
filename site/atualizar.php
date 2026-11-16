@@ -2,10 +2,13 @@
 // Atualiza o site com a versão mais nova do GitHub (simplificandoeduca/simplificando-site, pasta site/).
 // É chamado pelo botão "Atualizar o site" em Ajustes, no painel (só com o login do dono). Só baixa deste repositório fixo
 // e só grava dentro desta pasta; no máximo uma atualização por minuto.
+// Só instala versão APROVADA pelo robô de testes: o GitHub (Actions › Robô de testes) testa cada mudança da main e,
+// se tudo passar, move o ramo "aprovado" para ela. Versão que falhou no robô nunca chega ao site.
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 const REPO = 'simplificandoeduca/simplificando-site';
-const BRANCH = 'main';
+const BRANCH = 'aprovado';   // o que o robô aprovou
+const MAIN = 'main';        // a mais nova (pode ainda estar sendo testada)
 function sai($a, $code = 200) { http_response_code($code); echo json_encode($a, JSON_UNESCAPED_UNICODE); exit; }
 function baixa($url) {
   if (function_exists('curl_init')) {
@@ -22,7 +25,9 @@ $aqui = __DIR__;
 $acao = isset($_GET['acao']) ? $_GET['acao'] : 'ver';
 if ($acao === 'ver') {
   $rem = baixa('https://raw.githubusercontent.com/' . REPO . '/' . BRANCH . '/site/personal/index.html?t=' . time());
-  sai(['ok' => true, 'atual' => versao(@file_get_contents($aqui . '/personal/index.html')), 'nova' => versao($rem)]);
+  $ult = baixa('https://raw.githubusercontent.com/' . REPO . '/' . MAIN . '/site/personal/index.html?t=' . time());
+  // "testando": a versão mais nova da main ainda não foi aprovada pelo robô (está rodando ou falhou)
+  sai(['ok' => true, 'atual' => versao(@file_get_contents($aqui . '/personal/index.html')), 'nova' => versao($rem), 'testando' => versao($ult) !== versao($rem) ? versao($ult) : '']);
 }
 if ($acao !== 'atualizar' || $_SERVER['REQUEST_METHOD'] !== 'POST') sai(['ok' => false, 'erro' => 'Pedido inválido.'], 400);
 // só o dono do painel (logado) pode atualizar o site
@@ -35,8 +40,10 @@ $trava = dirname($aqui) . '/.simplificando-atualizacao';
 if (is_file($trava) && time() - filemtime($trava) < 60) sai(['ok' => false, 'erro' => 'Acabou de atualizar. Espere um minuto e tente de novo.'], 429);
 @touch($trava);
 if (!class_exists('ZipArchive')) sai(['ok' => false, 'erro' => 'O servidor não abre arquivos .zip. Fale com o suporte da HostGator.'], 500);
-$dados = baixa('https://codeload.github.com/' . REPO . '/zip/refs/heads/' . BRANCH);
-if (!$dados) sai(['ok' => false, 'erro' => 'Não deu para baixar a versão nova do GitHub. Tente de novo em instantes.'], 502);
+// plano B (só com a chave guardada no servidor e ?forcar=1): instala a main mesmo sem aprovação do robô
+$ramo = ($okChave && !empty($_REQUEST['forcar'])) ? MAIN : BRANCH;
+$dados = baixa('https://codeload.github.com/' . REPO . '/zip/refs/heads/' . $ramo);
+if (!$dados) sai(['ok' => false, 'erro' => 'Não deu para baixar a versão aprovada do GitHub. Se o robô de testes ainda não aprovou nenhuma versão, espere ele terminar e tente de novo.'], 502);
 $tmp = tempnam(sys_get_temp_dir(), 'simp');
 file_put_contents($tmp, $dados);
 $z = new ZipArchive();

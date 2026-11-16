@@ -1,0 +1,59 @@
+# Robô de testes do Simplificando: roda a cada mudança enviada ao GitHub.
+# Se tudo passar na main, move o ramo "aprovado" para esta versão; o "Atualizar agora" do painel só instala o que está em "aprovado".
+# Se algo falhar, a versão não é aprovada (não chega ao site) e o relatório com as fotos fica em Actions › esta rodada › Artifacts.
+name: Robô de testes
+on:
+  push:
+    branches-ignore: [aprovado]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: robo-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  robo:
+    name: Robô de testes
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: testes/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: O site gerado bate com o código (src/ → site/)
+        run: |
+          python3 tools/build_site.py
+          python3 tools/build_painel_teste.py
+          git diff --exit-code -- site produto src VERSAO.txt || (echo "::error::O site não foi gerado de novo depois de mudar src/ (rode tools/build_site.py)"; exit 1)
+      - name: Instala o robô
+        working-directory: testes
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/firebase/emulators
+          key: emulador-firebase-15.34.2
+      - name: Roda o robô (app do aluno, painel, regras do Firebase, servidor de avisos e fotos das telas)
+        working-directory: testes
+        run: php -v && npm test
+      - name: Guarda o relatório e as fotos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorio-do-robo
+          path: |
+            testes/relatorio
+            testes/resultados
+          retention-days: 14
+      - name: Aprova esta versão (o site só instala versão aprovada)
+        if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: git push --force origin HEAD:refs/heads/aprovado

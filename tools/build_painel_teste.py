@@ -208,7 +208,7 @@ rep("tipoTxt(x.tipo)+' · '+plural(x.n,'vez','vezes')", "plural(x.n,'vez','vezes
 rep("esc(x.nome||'Sem nome')+' · '+tipoTxt(x.tipo)+' · '", "esc(x.nome||'Sem nome')+' · '")
 rep(" Vale para alunos com e sem personal.</p></section>';", " Conta só os seus alunos.</p></section>';")
 rep("Fica no fim do Perfil, no app, para quem treina com e sem personal.", "Fica no fim do Perfil, no app dos seus alunos.")
-i = s.index("  // próximas datas especiais"); j = s.index("  // sugestões", i)
+i = s.index("  // próximas datas especiais"); j = s.index("  // avaliação do app", i)
 s = s[:i] + s[j:]
 
 # o aviso de "modelo pouco usado" é para quem cria os designs, não para o personal
@@ -242,6 +242,9 @@ web = s.replace('<meta name="theme-color" content="#0F1712">', '''<meta name="th
 <link rel="icon" type="image/png" sizes="192x192" href="../icon-p-tab-192.png">
 <link rel="apple-touch-icon" href="../icon-p-180.png">
 <script>try { if(!localStorage.getItem('simp-teste-ok') && !sessionStorage.getItem('simp-teste-ok')) location.replace('../'); } catch(e){ location.replace('../'); }</script>''', 1)
+# o PDF do treino usa a biblioteca da pasta do painel (um nível acima de /personal/teste/)
+assert web.count("sc.src = 'fb/jspdf.umd.min.js'") == 1
+web = web.replace("sc.src = 'fb/jspdf.umd.min.js'", "sc.src = '../fb/jspdf.umd.min.js'")
 os.makedirs(R+'site/personal/teste', exist_ok=True)
 open(R+'site/personal/teste/index.html', 'w').write(web)
 print('ok site/personal/teste/index.html')

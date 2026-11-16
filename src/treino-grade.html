@@ -1757,7 +1757,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '16 nov · 134'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '16 nov · 135'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -5741,6 +5741,12 @@ function runTweens(root){
     requestAnimationFrame(() => { el.style.transition = ''; el.style.strokeDashoffset = c*(1-to); });
   });
 }
+/* ---------- robô de testes (pasta testes/): acesso ao estado do app, só no computador de teste (127.0.0.1, localhost ou arquivo); no site não existe ---------- */
+if(TESTE_LOCAL) window.__simp = {
+  get S(){ return S; }, set S(v){ S = v; }, get ui(){ return ui; }, get PREF(){ return PREF; }, get PLAN(){ return PLAN; }, get ACCT(){ return ACCT; }, get LETTERS(){ return LETTERS; },
+  render, renderSheet, closeSheet, save, tidy, applyAccount, startSession, finish, getLog, logOf, exN, confirmSet, markAll, esqAsk, mtOpen, lbHoras, lbSubTxt, lbAPartir, today, daysAgo, addDays, nextTreino,
+  lbSync: () => { LBC = ''; lbSync(); }, setLay: (t, c) => { PREF.treinoLayout = t; if(c!==undefined) PREF.cardioLayout = c; else if(!PREF.cardioLayout) PREF.cardioLayout = 'toque'; savePref(); }
+};
 function render(){
   $app.innerHTML = ({hoje:vHoje,treino:vTreino,cardio:vCardio,agua:vAgua,evo:vEvo})[ui.tab]();
   // 1ª vez na aba Treino (ou Cardio): escolher o visual do treino e do cardio
@@ -6418,8 +6424,9 @@ function treinoAviso(){
 }
 /* lembrete de água com o app fechado: o celular se inscreve no push.php e o servidor avisa no horário */
 const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent), STANDALONE = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone===true;
-const pushPode = () => !!(FB && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window);
-const pushLigado = () => pushPode() && PREF.pushOn && Notification.permission==='granted';
+const simPush = () => TESTE_LOCAL && !!window.__simpPush; // robô de testes: finge que os avisos do celular estão ligados (só no computador de teste)
+const pushPode = () => simPush() || !!(FB && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window);
+const pushLigado = () => simPush() ? !!PREF.pushOn : pushPode() && PREF.pushOn && Notification.permission==='granted';
 const b64u8 = s => { const b = atob((s+'='.repeat((4-s.length%4)%4)).replace(/-/g,'+').replace(/_/g,'/')); return Uint8Array.from(b, c => c.charCodeAt(0)); };
 const pushPost = (acao, dados) => fetch('/push.php?acao='+acao, {method:'POST', body:JSON.stringify(Object.assign({id:PREF.pushId}, dados||{})), keepalive:true}).then(r => r.json()).catch(() => ({ok:false}));
 function pushDados(sub){ const meta = (S.water[today()]||0)>=S.waterGoal ? today() : ''; return Object.assign(sub ? {sub} : {}, {ini:hhmm(RINI()), fim:hhmm(RFIM()), cada:S.remind.every, tz:new Date().getTimezoneOffset(), meta, ag:S.remind.on ? 1 : 0}); }

@@ -54,6 +54,8 @@ function vapid($endpoint, $ch) {
 function le_arq($a, $padrao) { $v = json_decode((string)@file_get_contents($a), true); return is_array($v) ? $v : $padrao; }
 function grava_arq($a, $v) { @file_put_contents($a, json_encode($v, JSON_UNESCAPED_UNICODE), LOCK_EX); @chmod($a, 0600); }
 function envia($endpoint, $ch, $urg = 'normal') {
+  // robô de testes: com SIMP_TESTE_PUSH (só no computador de teste), anota o envio num arquivo em vez de mandar
+  if ($f = getenv('SIMP_TESTE_PUSH')) { @file_put_contents($f, json_encode(['e' => $endpoint, 'urg' => $urg, 't' => time()]) . "\n", FILE_APPEND | LOCK_EX); return 201; }
   $c = curl_init($endpoint);
   curl_setopt_array($c, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => '', CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 15,
     CURLOPT_HTTPHEADER => ['Authorization: vapid t=' . vapid($endpoint, $ch) . ', k=' . $ch['pub'], 'TTL: ' . ($urg === 'high' ? 120 : 3600), 'Urgency: ' . $urg, 'Content-Length: 0']]);

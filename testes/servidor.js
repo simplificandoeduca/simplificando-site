@@ -1,0 +1,49 @@
+// Servidor do robô de testes: serve a pasta site/ como o site de verdade, com duas diferenças importantes:
+//  · NUNCA usa o Firebase real: a configuração do Firebase é trocada aqui.
+//      porta 4501 → modo local (sem Firebase: o app funciona só no aparelho)
+//      porta 4502 → Firebase de mentira (emulador em 127.0.0.1, projeto demo-simplificando)
+//  · os arquivos .php do servidor (avisos, erros, login com senha) respondem de mentira,
+//    para o app e o painel funcionarem sem a hospedagem. O push.php de verdade é testado à parte (servidor.spec.js).
+const http = require('http'), fs = require('fs'), path = require('path');
+const SITE = path.join(__dirname, '..', 'site');
+const FS = 'http://127.0.0.1:8080/v1/projects/demo-simplificando/databases/(default)/documents', DONO = { Authorization: 'Bearer owner' };
+const CFG = {
+  4501: 'window.SIMPLIFICANDO_FIREBASE = null; // robô de testes: modo local, sem Firebase',
+  4502: 'window.SIMPLIFICANDO_FIREBASE = { apiKey: "demo-key", authDomain: "demo-simplificando.firebaseapp.com", projectId: "demo-simplificando", appId: "1:1:web:1", emulador: "127.0.0.1" };',
+};
+const TIPOS = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.otf': 'font/otf', '.woff2': 'font/woff2' };
+const b64 = o => Buffer.from(JSON.stringify(o)).toString('base64url');
+const json = (r, o, st = 200) => { r.statusCode = st; r.setHeader('Content-Type', 'application/json'); r.end(JSON.stringify(o)); };
+
+// login do aluno com personal só com a senha: procura o código no emulador e devolve um passe sem assinatura (o emulador aceita)
+async function loginFalso(q, r) {
+  let body = ''; for await (const c of q) body += c;
+  const code = (body.match(/name="codigo"\r\n\r\n(\d{6})/) || [])[1];
+  try {
+    const L = await (await fetch(FS + '/alunos?pageSize=300', { headers: DONO })).json();
+    const d = (L.documents || []).find(x => { const a = x.fields.acesso; return a && a.mapValue.fields.codigo && a.mapValue.fields.codigo.stringValue === code; });
+    const uid = d && d.fields.uid && d.fields.uid.stringValue;
+    if (!uid) return json(r, { ok: false, erro: 'Senha não encontrada.' });
+    const now = Math.floor(Date.now() / 1000);
+    const tok = b64({ alg: 'none', typ: 'JWT' }) + '.' + b64({ iss: 'robo@demo', sub: 'robo@demo', aud: 'https://identitytoolkit.googleapis.com/google.identity.identitytoolkit.v1.IdentityToolkit', iat: now, exp: now + 3600, uid }) + '.';
+    return json(r, { ok: true, token: tok });
+  } catch (e) { return json(r, { ok: false, semServidor: true }, 503); }
+}
+
+function servidor(porta) {
+  http.createServer(async (q, r) => {
+    const url = new URL(q.url, 'http://x'), p = decodeURIComponent(url.pathname);
+    if (p.endsWith('/firebase-config.js')) { r.setHeader('Content-Type', 'text/javascript'); return r.end(CFG[porta]); }
+    if (p === '/login.php' && q.method === 'POST') return loginFalso(q, r);
+    if (p === '/push.php') return json(r, url.searchParams.get('acao') === 'chave' ? { ok: true, pub: 'BOr-robo-chave-publica-de-teste' } : { ok: true, k: 'robo'.repeat(8), novos: [] });
+    if (p.endsWith('.php')) return json(r, { ok: true, atual: '', nova: '', erros: [] });
+    if (p.startsWith('/__fontes/')) { const ff = path.join(__dirname, 'fontes', path.basename(p)); if (fs.existsSync(ff)) { r.setHeader('Content-Type', 'font/woff2'); r.setHeader('Access-Control-Allow-Origin', '*'); return fs.createReadStream(ff).pipe(r); } }
+    let f = path.join(SITE, p);
+    if (fs.existsSync(f) && fs.statSync(f).isDirectory()) f = path.join(f, 'index.html');
+    if (!f.startsWith(SITE) || !fs.existsSync(f)) { r.statusCode = 404; return r.end('404'); }
+    r.setHeader('Content-Type', TIPOS[path.extname(f)] || 'application/octet-stream');
+    r.setHeader('Cache-Control', 'no-store');
+    fs.createReadStream(f).pipe(r);
+  }).listen(porta, '127.0.0.1', () => console.log('robô: site de teste em http://127.0.0.1:' + porta));
+}
+servidor(4501); servidor(4502);

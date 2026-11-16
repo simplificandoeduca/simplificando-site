@@ -3231,12 +3231,12 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '16 nov · 134'; // Versão do painel: 16 nov · 134
+const PAINELV = '16 nov · 135'; // Versão do painel: 16 nov · 135
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
   fetch('/treino/?v='+Date.now(), { cache:'no-store' }).then(r => r.ok ? r.text() : '').then(t => { const m = t.match(/const\s+APPV = '([^']+)'/); ATU.app = m ? m[1] : ''; if(ui.view==='ajustes') render(); }).catch(() => {});
-  fetch('/atualizar.php?acao=ver', { cache:'no-store' }).then(r => r.ok ? r.json() : Promise.reject()).then(j => { ATU.st = 'ok'; ATU.nova = (j && j.nova) || ''; if(ui.view==='ajustes') render(); })
+  fetch('/atualizar.php?acao=ver', { cache:'no-store' }).then(r => r.ok ? r.json() : Promise.reject()).then(j => { ATU.st = 'ok'; ATU.nova = (j && j.nova) || ''; ATU.testando = (j && j.testando) || ''; if(ui.view==='ajustes') render(); })
     .catch(() => { ATU.st = 'sem'; if(ui.view==='ajustes') render(); });
 }
 function atuCard(){
@@ -3247,7 +3247,8 @@ function atuCard(){
     '<p class="muted">Painel no ar: <b>'+esc(PAINELV)+'</b>'+(ATU.app ? ' · app do aluno no ar: <b>'+esc(ATU.app)+'</b>' : '')+'</p>'+(ATU.st==='vendo' ? '<p class="muted">Procurando versão nova…</p>' : nova ? '<p class="muted"><b>Versão nova pronta: '+esc(ATU.nova)+'</b></p>' : ATU.nova ? '<p class="muted">Já é a mais nova.</p>' : '')+
     '<div class="btn-row"><button type="button" class="btn'+(nova ? ' ink' : '')+'" data-a="atuGo"'+(indo ? ' disabled' : '')+'>'+ic('refresh')+(indo ? 'Atualizando…' : 'Atualizar agora')+'</button></div>'+
     (ATU.msg ? '<p class="err" role="alert">'+esc(ATU.msg)+'</p>' : '')+
-    '<p class="foot">Baixa do GitHub a versão mais nova do app e do painel e coloca no ar. Leva uns segundos e a página recarrega sozinha.</p></section>';
+    (ATU.testando ? '<p class="muted">'+ic('refresh')+' A versão <b>'+esc(ATU.testando)+'</b> está passando pelo robô de testes. Ela só fica disponível aqui se tudo funcionar.</p>' : '')+
+    '<p class="foot">Baixa do GitHub a versão mais nova <b>aprovada pelo robô de testes</b> e coloca no ar. Leva uns segundos e a página recarrega sozinha.</p></section>';
 }
 /* ---------- avisos no celular do dono: conta nova no Simplificando (push.php + personal/sw.js) ---------- */
 const NV = { st:'' };
@@ -3853,6 +3854,8 @@ function navHtml(){
     VIEWS.map(([k,l,icn]) => '<button type="button" class="nav'+(ui.view===k?' on':'')+'" data-a="go" data-v="'+k+'" aria-current="'+(ui.view===k?'page':'false')+'">'+ic(icn)+l+(cnt[k]!=null && Store.loaded?'<span class="cnt">'+cnt[k]+'</span>':'')+'</button>').join('')+
     '<div class="side-foot">'+savePill()+'<p class="foot">'+esc(cfg().nomePersonal||'Defina seu nome em Ajustes')+'</p><button type="button" class="btn small ghost block" data-a="trocaPerfil">'+ic('users')+'Trocar de perfil</button></div>';
 }
+/* ---------- robô de testes (pasta testes/): acesso ao estado do painel, só no computador de teste; no site não existe ---------- */
+if(location.protocol==='file:' || /^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__painel = { get ui(){ return ui; }, get C(){ return C; }, get PREF(){ return PREF; }, get Store(){ return Store; }, render, closeSheet };
 function render(){
   const k = captureFocus(), sy = window.scrollY, ts0 = document.querySelector('.dtabs-in'), tsl = ts0 ? ts0.scrollLeft : null;
   applyLook();
