@@ -2307,6 +2307,15 @@ IC.flask = '<path d="M9 3h6M10 3v6L4.5 19a1.5 1.5 0 0 0 1.3 2h12.4a1.5 1.5 0 0 0
 IC.globe = '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 3.8 5.5 3.8 9s-1.3 6.5-3.8 9c-2.5-2.5-3.8-5.5-3.8-9S9.5 5.5 12 3z"/>';
 IC.star = '<path d="M12 3.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8-5.3-2.8-5.3 2.8 1-5.8-4.2-4.1 5.9-.9z"/>';
 IC.trend = '<path d="M4 16l5-5 4 4 7-7M15 8h5v5"/>';
+/* logo do hub: "H." preto no fundo branco, com o mesmo anel de 4 cores do logo */
+const H_PATH = 'M3.1 0H23V-29.4H49.3V0H69.2V-73.2H49.3V-45.4H23V-73.2H3.1Z', HDOT_PATH = 'M84.5 1.2C90.2 1.2 94.6 -3.1 94.6 -8.8C94.6 -14.5 90.2 -18.8 84.5 -18.8C78.7 -18.8 74.4 -14.5 74.4 -8.8C74.4 -3.1 78.7 1.2 84.5 1.2Z';
+function hubLogo(){
+  const arc = (d,c) => '<path d="'+d+'" fill="none" stroke="'+c+'" stroke-width="3.8"/>';
+  return '<svg class="logo" viewBox="-50 -50 100 100" role="img" aria-label="Hub"><circle r="50" fill="#FFFFFF"/>'+
+    arc('M0 -44.3A44.3 44.3 0 0 1 44.3 0.31','#B794FF')+arc('M44.3 0A44.3 44.3 0 0 1 -0.31 44.3','#C8F542')+
+    arc('M0 44.3A44.3 44.3 0 0 1 -44.3 -0.31','#FF9A2E')+arc('M-44.3 0A44.3 44.3 0 0 1 0.31 -44.3','#FF4646')+
+    '<g transform="translate(-1 0) scale(0.537) translate(-48.85 36)"><path d="'+H_PATH+'" fill="#0F1712"/><path d="'+HDOT_PATH+'" fill="#0F1712"/></g></svg>';
+}
 function hubNums(){
   const all = alunos(), act = all.filter(a => P(a).status!=='inativo'), ativos = all.filter(a => (P(a).status||'ativo')==='ativo');
   const t0 = today(), mes = t0.slice(0,7), on = pfOnline(), sem7 = Date.now()-7*864e5;
@@ -2321,14 +2330,16 @@ function hubNums(){
     cad:cad ? cad.filter(p => isoD(new Date(+p.criadoEm)).slice(0,7)===mes).length : null, cad7:cad ? cad.filter(p => +p.criadoEm>=sem7).length : null,
     sug:on && ST.sug ? ST.sug.filter(x => !x.lida).length : null };
 }
+// o painel de teste só abre no navegador liberado (como ao entrar com teste/123456): o botão do hub libera antes de abrir a aba
+document.addEventListener('click', e => { const a = e.target && e.target.closest && e.target.closest('a[data-teste]'); if(a) try { localStorage.setItem('simp-teste-ok', '1'); } catch(_){ /* sem armazenamento */ } }, true);
 function vHub(){
   if(pfOnline()){ loadProg(); loadEst(); loadPerfis(); }
   const ok = Store.loaded, n = hubNums(), on = pfOnline(), v = x => x==null ? (on ? '…' : '—') : x;
   const st = (b, l, sub) => '<div class="hb-st"><b>'+b+'</b><span>'+l+'</span>'+(sub ? '<em>'+sub+'</em>' : '')+'</div>';
   const bl = (cor, href, eb, t, d, num, nl, novo) => '<a class="hb-bl '+cor+'" href="'+href+'"'+(novo ? ' target="_blank" rel="noopener"' : '')+'><p class="hb-eb">'+eb+'</p><h2>'+t+'.</h2><p class="hb-d">'+d+'</p><span class="hb-go">'+ic('arrow')+'</span><span class="hb-num"><b>'+num+'</b><span>'+nl+'</span></span></a>';
-  const ms = (href, icn, t) => '<a class="hb-ms" href="'+href+'" target="_blank" rel="noopener"><span>'+ic(icn)+'</span>'+t+'</a>';
+  const ms = (href, icn, t, teste) => '<a class="hb-ms" href="'+href+'" target="_blank" rel="noopener"'+(teste ? ' data-teste="1"' : '')+'><span>'+ic(icn)+'</span>'+t+'</a>';
   return '<div class="hub">'+
-    '<header class="hb-top"><div><p class="hb-eb hb-dt">'+esc(hojeTxt())+'</p><h1>Hub<i>.</i></h1></div><span class="hb-av" aria-hidden="true">'+logo()+'</span></header>'+
+    '<header class="hb-top"><div><p class="hb-eb hb-dt">'+esc(hojeTxt())+'</p><h1>Hub<i>.</i></h1></div><span class="hb-av" aria-hidden="true">'+hubLogo()+'</span></header>'+
     '<section class="hb-stats" aria-label="Números de hoje">'+
       st(ok ? n.ativos : '…', 'alunos ativos', ok ? (n.novosAl ? ic('trend')+'+'+n.novosAl+' no mês' : 'de '+n.todos+' cadastrados') : '')+
       st(n.nota!=null ? fmtN(n.nota,1) : n.notas===0 ? '—' : v(null), 'nota do app', n.notas!=null ? ic('star')+(n.notas ? plural(n.notas,'nota')+' em 30 dias' : 'sem notas em 30 dias') : '')+
@@ -2340,7 +2351,7 @@ function vHub(){
       bl('lime', '/personal/#painel', 'Onde você trabalha', 'Painel', 'Alunos, treinos, mensagens e financeiro.', ok ? n.atencao : '…', n.atencao===1 ? 'pede atenção' : 'pedem atenção', true)+
       bl('blue', '/personal/#estatisticas', 'Como está indo', 'Números', 'Avaliações, sugestões, stories e comprovantes.', v(n.sug), n.sug===1 ? 'sugestão nova' : 'sugestões novas', true)+
     '</div>'+
-    '<div class="hb-mais">'+ms('/financas/', 'wallet', 'Finanças')+ms('/personal/teste/', 'flask', 'Painel de teste')+ms('/', 'globe', 'Site')+'</div>'+
+    '<div class="hb-mais">'+ms('/financas/', 'wallet', 'Finanças')+ms('/personal/teste/', 'flask', 'Painel de teste', true)+ms('/', 'globe', 'Site')+'</div>'+
   '</div>';
 }
 /* ---------- Estatísticas: o que os alunos usam e sugerem, para decidir as próximas mudanças ---------- */
@@ -3285,7 +3296,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '16 nov · 138'; // Versão do painel: 16 nov · 138
+const PAINELV = '16 nov · 139'; // Versão do painel: 16 nov · 139
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';

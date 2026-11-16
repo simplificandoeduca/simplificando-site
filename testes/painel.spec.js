@@ -119,6 +119,13 @@ test('Hub (/hub): números reais e um bloco para cada espaço; Números saiu das
   // cada bloco abre em outra aba: o app de teste, o painel e Números
   expect(await page.locator('.hb-bl').evaluateAll(L => L.map(a => [a.getAttribute('href'), a.getAttribute('target')]))).toEqual([['/app-teste/', '_blank'], ['/personal/#painel', '_blank'], ['/personal/#estatisticas', '_blank']]);
   expect(await page.locator('.hb-ms').evaluateAll(L => L.map(a => a.getAttribute('href')))).toEqual(['/financas/', '/personal/teste/', '/']);
+  // logo do hub: "H." preto no fundo branco
+  await expect(page.locator('.hb-av svg')).toHaveAttribute('aria-label', 'Hub');
+  // Painel de teste abre a versão de teste (e não volta para o painel normal)
+  const [tp] = await Promise.all([page.context().waitForEvent('page'), page.click('.hb-ms[data-teste]')]);
+  await tp.waitForFunction(() => window.__painel && window.__painel.Store.loaded, null, { timeout: 20000 });
+  await expect(tp).toHaveURL(/\/personal\/teste\/(#.*)?$/);
+  await tp.close();
   // Números abre fora das abas, com o botão de voltar ao hub
   const [nt] = await Promise.all([page.context().waitForEvent('page'), page.click('.hb-bl.blue')]);
   await expect(nt).toHaveURL(/\/personal\/#estatisticas$/);
