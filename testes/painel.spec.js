@@ -20,6 +20,10 @@ const vai = (page, h) => page.evaluate(h => { location.hash = h; }, h);
 test('o personal entra no painel (1º acesso cria o dono)', async ({ page }) => {
   await entraPainel(page);
   await expect(page.locator('main').first()).toContainText('Painel');
+  // no 1º acesso a biblioteca pronta é salva no Firebase: espera terminar antes de fechar a página
+  const n = await page.evaluate(() => Object.keys(window.__painel.C.exercicios).length);
+  expect(n).toBeGreaterThan(100);
+  await expect.poll(async () => (await fsLista('exercicios')).length, { timeout: 30000 }).toBe(n);
 });
 
 test('versão de teste: usuário "teste" e senha 123456 abre o painel de demonstração', async ({ page }) => {

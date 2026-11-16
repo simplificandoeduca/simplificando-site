@@ -5,7 +5,7 @@ Site do Simplificando: app do aluno (`/treino`), painel do personal (`/personal`
 Na mesma hospedagem, mas independente: `/financas` (controle pessoal de finanças, com login, dados e atualização próprios; veja `LEIA-ME-FINANCAS.txt`).
 
 - `site/` — o que vai para o `public_html` da HostGator (é só isso que é publicado).
-- `src/` — código do app (`treino-grade.html`) e do painel (`admin.html`).
+- `src/` — código do app (`treino-grade.html` é a casca; as partes ficam em `src/app/`, veja `src/app/LEIAME.md`) e do painel (`admin.html`).
 - `tools/build_site.py` — monta `site/treino` e `site/personal` a partir de `src/`.
 - `REGRAS-FIRESTORE.txt` — regras de segurança para colar no Firebase (Firestore → Regras).
 - `.cpanel.yml` — diz ao cPanel para copiar `site/` para o `public_html`.
