@@ -1159,6 +1159,14 @@ Pedido do dono: um botão de **Cortesia** na tela de pagamento da saída, com o 
 - Fica registrado como a entrada cancelada no prazo, com o motivo **CORTESIA** e o nome de quem fez: a gestora vê, como todo cancelamento.
 - Passou do prazo, o botão fica apagado ("só até 9 min da entrada"). Com compra para pagar na saída (pacote, produto), o botão não aparece.
 
+## 6zw. Cupom de entrada em duas vias (1.43)
+
+Pedido do dono: na entrada, duas cópias do comprovante, uma para a loja e uma para o cliente (para ele ter a hora em que deixou a criança). Na saída, uma via só, que o cliente assina.
+
+- Na **entrada** saem duas vias, cada uma cortada: a **VIA DE ENTRADA** (da loja, completa, com a linha da assinatura) e a **VIA DO CLIENTE** (a hora da entrada, o que foi pago e a tolerância; sem os documentos e sem a assinatura).
+- A tela do cupom avisa: "Saem duas vias: a da loja (o responsável assina) e a do cliente". O botão diz **Imprimir o cupom · 2 vias**.
+- **Saída**, devolução, festa, carrinho e comprovante de pagamento: uma via só, como já era. Se o cliente pedir, **Reimprimir cupom** na ficha (sai uma via).
+
 ## 7. Atualizar
 
 Botão **Atualizar** ao lado da versão. Ele baixa a versão nova do GitHub (ramo principal ou de trabalho, a mais nova), confere a versão dentro do arquivo e troca os arquivos de forma atômica. Não mexe em `~/playspace-dados/`. Se o GitHub demorar a refletir (cache de ~5 min), espere e toque de novo.

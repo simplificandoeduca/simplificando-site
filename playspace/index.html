@@ -157,6 +157,7 @@ body.mn .trilho .fab > svg { width: 15px; height: 15px; flex: none; stroke-width
 #off .link { color: inherit; font-weight: 800; text-decoration: underline; white-space: nowrap; }
 .off-lst { display: flex; flex-direction: column; gap: 8px; } .off-it { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--borda); border-radius: 14px; background: var(--card); }
 .off-it > span { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; } .off-it small { color: var(--tinta-2); font-size: 12.5px; } .off-it .off-err { color: var(--erro); }
+#tk-duas { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; } #tk-duas svg { flex: none; color: var(--coral); }   /* 1.43 */
 /* 1.42: a cortesia na saída (nos primeiros minutos, sai sem cobrar nada) */
 .bt.cortesia { width: 100%; height: auto; min-height: 58px; white-space: normal; justify-content: flex-start; gap: 12px; margin: 10px 0 2px; padding: 9px 16px; border: 2px solid var(--verde, #3f8f5a); background: var(--card); color: var(--tinta); text-align: left; }
 .bt.cortesia > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; } .bt.cortesia b { font-size: 14.5px; } .bt.cortesia small { font-size: 12.5px; font-weight: 600; color: var(--tinta-2); font-variant-numeric: tabular-nums; }
@@ -1668,7 +1669,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.42';
+const VERSAO = '1.43';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -3962,9 +3963,11 @@ function htmlPapel(spec, via = 'loja') {
   const soFora = !festa && !vendeu && !quem.length ? fora.map(a => `<p class="c-bt"><b>${esc(alugNome(a))}</b></p><p>Saída ${alugHoje(a) ? hora(a.ini) : dataHora(a.ini)}${a.min > 0 && alugHoje(a) ? ' · devolver até ' + ate(a.ini, a.min) : ''}${alugAberto(a) ? naDev(servicoDe(a.s), a.q) : ''}</p>`).join('') : '';
   const blocoAberto = emAberto.map(i => { const a = (S.alugueis || []).find(a => a.crianca === c.id && a.s === i.s), ini = a && a.ini ? a.ini : new Date(); return `<p class="c-bt"><b>${i.q > 1 ? i.q + ' × ' : ''}${esc(i.n)}</b></p><p>Saída ${hora(ini)}${naDev(servicoDe(i.s), i.q)}</p>`; }).join('');
   const entrou = quem.some(x => x.entrou), sai = itens.some(i => i.t === 'aluguel') || !!soFora || !!blocoAberto, pagou = (spec.formas || []).length > 0;
-  return `<div class="papel ${loja ? 'loja' : 'cliente'}">${cab.replace('{{VIA}}', entrou ? 'VIA DE ENTRADA' : festa ? 'VIA DA FESTA' : sai ? 'VIA DE SAÍDA DO CARRINHO' : 'VIA DE PAGAMENTO')}${quem.length ? div + quem.map(bloco).join('') : ''}${soFora ? div + soFora : ''}${blocoAberto ? div + blocoAberto : ''}${pago(itens, spec.formas, { desc: spec.desc, titulo: pagou && !entrou && !sai ? 'COMPROVANTE DE PAGAMENTO' : '' })}${pe(entrou ? L.aviso + (L.aviso && tol ? ' ' : '') + (tol ? `TOLERÂNCIA DE ${tol} MINUTOS.` : '') : '', entrou || sai || festa)}</div>`;
+  return `<div class="papel ${loja ? 'loja' : 'cliente'}">${cab.replace('{{VIA}}', entrou ? (loja ? 'VIA DE ENTRADA' : 'VIA DO CLIENTE') : festa ? 'VIA DA FESTA' : sai ? 'VIA DE SAÍDA DO CARRINHO' : 'VIA DE PAGAMENTO')}${quem.length ? div + quem.map(bloco).join('') : ''}${soFora ? div + soFora : ''}${blocoAberto ? div + blocoAberto : ''}${pago(itens, spec.formas, { desc: spec.desc, titulo: pagou && !entrou && !sai ? 'COMPROVANTE DE PAGAMENTO' : '' })}${pe(entrou ? L.aviso + (L.aviso && tol ? ' ' : '') + (tol ? `TOLERÂNCIA DE ${tol} MINUTOS.` : '') : '', entrou || sai || festa)}</div>`;
 }
-function viasPapel(spec) { return [htmlPapel(spec, 'loja')].filter(Boolean); }   // 1.30: só a via da loja (o responsável assina); a via do cliente saiu
+// 1.30: só a via da loja (o responsável assina). 1.43: na entrada, duas vias: a da loja e a do cliente (ele fica com a hora em que
+// deixou a criança); saída, devolução, festa, carrinho e pagamento continuam com uma via só
+function viasPapel(spec) { const l = htmlPapel(spec, 'loja'); if (!l) return []; return /<p class="c-via"><span>VIA DE ENTRADA</.test(l) ? [l, htmlPapel(spec, 'cliente')].filter(Boolean) : [l]; }
 // Manda as vias para a impressora, uma impressão para cada via: assim a impressora corta no fim de cada uma e saem dois cupons separados.
 // Cada via vai para uma área só de impressão, numa página do tamanho dela (para o papel cortar logo depois do texto).
 let IMPRIMINDO = false;
@@ -4026,9 +4029,10 @@ const segPapel = () => `<div class="seg" id="tk-modo">${MODOS_PAPEL.map(([v, n])
 function folhaPapel(spec) {
   const vias = viasPapel(spec); if (!vias.length) return; PAPEL = { spec, vias };
   abrirFolha(tituloPapel(spec), `
+    ${vias.length > 1 ? `<p class="explica" id="tk-duas">${ic(IC.cupom, 16)}<span>Saem <b>duas vias</b>: a da <b>loja</b> (o responsável assina) e a do <b>cliente</b> (fica com ele, com a hora da entrada).</span></p>` : ''}
     <div class="papel-previa" id="tk-previa">${vias.map(v => `<div class="papel-fx">${v}</div>`).join('')}</div>
     <details class="outro" id="tk-aparelho"><summary>Neste aparelho: <span id="tk-modo-rot">${rotModoPapel()}</span> · mudar</summary><div class="campo" style="margin-top:8px">${segPapel()}</div></details>
-    <div class="pe-f"><button type="button" class="bt forte largo tap" id="tk-ok" data-act="papel-imprimir">${ic(IC.cupom)} Imprimir o cupom</button>${!impDireta() && (MODO !== 'servidor' || supervisorOuMais()) ? `<button type="button" class="link tap imp-dica" id="tk-direta-ir" data-act="papel-ajustes">A janela de impressão aparece? Veja como imprimir direto</button>` : ''}</div>`);
+    <div class="pe-f"><button type="button" class="bt forte largo tap" id="tk-ok" data-act="papel-imprimir">${ic(IC.cupom)} Imprimir o cupom${vias.length > 1 ? ' · 2 vias' : ''}</button>${!impDireta() && (MODO !== 'servidor' || supervisorOuMais()) ? `<button type="button" class="link tap imp-dica" id="tk-direta-ir" data-act="papel-ajustes">A janela de impressão aparece? Veja como imprimir direto</button>` : ''}</div>`);
   if (window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches) setTimeout(() => { const b = $('#tk-ok'); if (b) b.focus(); }, 380);   // no computador, Enter imprime
 }
 /* ---------- 1.14: reimprimir o cupom ---------- */
@@ -6893,7 +6897,7 @@ function telaAjustes() {
       </div>
       <div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.cupom, 20)} Cupom impresso</h2><span class="pill ${modoPapel() === 'nao' ? 'p-neutro' : 'p-ok'}">${modoPapel() === 'auto' ? 'Imprime sozinho aqui' : modoPapel() === 'nao' ? 'Este aparelho não imprime' : 'Mostra o cupom aqui'}</span></div>
         <button class="grupo tap" data-act="papel-ajustes" style="width:100%"><div class="it"><div class="txt"><b>${esc(lojaPapel().nome)}${lojaPapel().tel ? ' · ' + esc(lojaPapel().tel) : ''}</b><span>Toque para mudar o nome, o telefone e o aviso do cupom, escolher o que este aparelho faz, ou imprimir um teste</span></div><span class="vai">${ic(IC.vai, 18)}</span></div></button>
-        <p class="explica">O cupom sai depois de cada atendimento, de cada entrada, de <b>cada saída</b> e de <b>cada devolução</b> (com ou sem pagamento), com a logo, só na <b>via da loja</b> (1.30: a via do cliente saiu): a <b>via de entrada</b> e a <b>via de saída</b>, completas, para o responsável assinar. Imprime na impressora térmica do balcão (Bematech MP-4200 TH, papel de 80 mm).</p>
+        <p class="explica">O cupom sai depois de cada atendimento, de cada entrada, de <b>cada saída</b> e de <b>cada devolução</b> (com ou sem pagamento), com a logo. Na <b>entrada</b> saem <b>duas vias</b>: a da loja, completa, para o responsável assinar, e a do cliente, com a hora da entrada. A <b>saída</b>, a devolução e os outros cupons saem só com a via da loja. Imprime na impressora térmica do balcão (Bematech MP-4200 TH, papel de 80 mm).</p>
       </div>
       <div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.sapato, 20)} Sapateiras</h2></div>
         <button class="grupo tap" data-act="sap-mapa" style="width:100%"><div class="it"><div class="txt"><b>${nSap()} sapateiras · ${S.criancas.filter(c => c.sapateira).length} em uso agora</b><span>Toque para ver o mapa, liberar uma esquecida ou mudar a quantidade</span></div><span class="vai">${ic(IC.vai, 18)}</span></div></button>
