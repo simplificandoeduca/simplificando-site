@@ -1827,6 +1827,7 @@ const IC = {
   flag:'<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',
   pin:'<path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>',
   alert:'<path d="M12 3.5l9.5 16.5h-19z"/><path d="M12 10v4.5M12 17.2v.3"/>',
+  bell:'<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
   cake:'<path d="M4.5 20.5v-8h15v8zM4.5 15.5c2.5 1.5 5 1.5 7.5 0s5-1.5 7.5 0M12 12.5v-3M12 6.5c-1-1-1-2.2 0-3.5 1 1.3 1 2.5 0 3.5z"/>',
   wallet:'<rect x="3.5" y="6" width="17" height="13.5" rx="3"/><path d="M3.5 10h17M15.5 14.5h2"/>',
   key:'<circle cx="8" cy="15" r="4"/><path d="M11 12l8.5-8.5M16.5 6.5l2.5 2.5M14 9l2 2"/>',
@@ -3332,7 +3333,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '16 nov · 133'; // Versão do painel: 16 nov · 133
+const PAINELV = '16 nov · 134'; // Versão do painel: 16 nov · 134
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -3349,6 +3350,42 @@ function atuCard(){
     '<div class="btn-row"><button type="button" class="btn'+(nova ? ' ink' : '')+'" data-a="atuGo"'+(indo ? ' disabled' : '')+'>'+ic('refresh')+(indo ? 'Atualizando…' : 'Atualizar agora')+'</button></div>'+
     (ATU.msg ? '<p class="err" role="alert">'+esc(ATU.msg)+'</p>' : '')+
     '<p class="foot">Baixa do GitHub a versão mais nova do app e do painel e coloca no ar. Leva uns segundos e a página recarrega sozinha.</p></section>';
+}
+/* ---------- avisos no celular do dono: conta nova no Simplificando (push.php + personal/sw.js) ---------- */
+const NV = { st:'' };
+const NV_IOS = /iPhone|iPad|iPod/.test(navigator.userAgent), NV_APP = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone===true;
+const nvPode = () => typeof SITE_TESTE==='undefined' && location.protocol!=='file:' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+const nvLigado = () => !!(PREF.nvOn && window.Notification && Notification.permission==='granted');
+const nvB64 = s => { const b = atob((s+'='.repeat((4-s.length%4)%4)).replace(/-/g,'+').replace(/_/g,'/')); return Uint8Array.from(b, c => c.charCodeAt(0)); };
+function nvReg(){ return navigator.serviceWorker.register('sw.js').then(() => navigator.serviceWorker.ready); }
+async function nvLigar(){
+  if(!nvPode()){ toast(NV_IOS && !NV_APP ? 'No iPhone, coloque o painel na Tela de Início e abra pelo ícone para ligar.' : 'Este navegador não manda avisos.'); return; }
+  NV.st = 'ligando'; render();
+  try {
+    if(await Notification.requestPermission()!=='granted') throw new Error('perm');
+    const reg = await nvReg(), k = await fetch('/push.php?acao=chave', {cache:'no-store'}).then(r => r.json());
+    let sub = await reg.pushManager.getSubscription(); if(!sub) sub = await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:nvB64(k.pub)});
+    if(!PREF.nvId) PREF.nvId = Array.from(crypto.getRandomValues(new Uint8Array(12)), b => (b%36).toString(36)).join('')+Date.now().toString(36);
+    const t = await donoToken();
+    const r = await fetch('/push.php?acao=dono-assinar', {method:'POST', cache:'no-store', headers:t ? {Authorization:'Bearer '+t} : {}, body:JSON.stringify({id:PREF.nvId, sub:sub.toJSON()})}).then(x => x.json());
+    if(!r || !r.ok || !r.k) throw new Error(r && r.erro ? 'dono' : 'rede');
+    const c = await caches.open('simp-dono'); await c.put(new URL('__dono', location.href).href, new Response(JSON.stringify({k:r.k, ult:Math.floor(Date.now()/1000)}), {headers:{'Content-Type':'application/json'}}));
+    PREF.nvOn = true; savePref(); toast('Pronto. Quando alguém criar conta, chega um aviso neste celular.');
+  } catch(e){ toast(e.message==='perm' ? 'Avisos bloqueados. Libere as notificações do painel nos ajustes do celular.' : e.message==='dono' ? 'Só a conta dona do painel liga este aviso.' : 'Não deu para ligar agora. Confira a internet e tente de novo.'); }
+  NV.st = ''; render();
+}
+async function nvDesligar(){
+  NV.st = 'ligando'; render();
+  try { const t = await donoToken(); await fetch('/push.php?acao=dono-sair', {method:'POST', cache:'no-store', headers:t ? {Authorization:'Bearer '+t} : {}, body:JSON.stringify({id:PREF.nvId||''})}); } catch(e){ /* sem internet: o servidor tira sozinho quando o aviso falhar */ }
+  try { const reg = await navigator.serviceWorker.getRegistration('sw.js'); const sub = reg && await reg.pushManager.getSubscription(); if(sub) await sub.unsubscribe(); } catch(e){ /* nada a desfazer */ }
+  PREF.nvOn = false; savePref(); NV.st = ''; toast('Avisos de conta nova desligados neste celular.'); render();
+}
+function nvCard(){
+  if(typeof SITE_TESTE!=='undefined') return '';
+  const on = nvLigado(), b = NV.st ? 'Um instante…' : on ? 'Desligar avisos neste celular' : 'Avisar quando alguém criar conta';
+  return '<section class="card"><span class="label">'+ic('bell')+'Avisos no celular</span><p class="muted">'+(on ? '<b>Ligado neste aparelho.</b> Quando alguém criar conta no app, chega um aviso com o nome, o objetivo e a hora. Tocando nele, abre a tela Perfis.' : 'Receba um aviso no celular sempre que alguém criar conta no app: nome, objetivo e hora.')+'</p>'+
+    (NV_IOS && !NV_APP && !on ? '<p class="foot">No iPhone, coloque o painel na Tela de Início (Compartilhar → Adicionar à Tela de Início) e abra pelo ícone para ligar.</p>' : '')+
+    '<button type="button" class="btn '+(on ? 'ghost' : 'primary')+' block" data-a="'+(on ? 'nvOff' : 'nvOn')+'"'+(NV.st ? ' disabled' : '')+'>'+ic('bell')+b+'</button></section>';
 }
 /* ---------- erros do app do aluno (erros.php guarda; só o dono lê) ---------- */
 const ERR = { st:'', list:[], at:0, msg:'', arm:false };
@@ -3728,7 +3765,7 @@ function vAjustes(){
     '<section class="card"><span class="label">'+ic('archive')+'Dados</span><p class="muted">'+(Store.mode==='db' ? 'Seus dados ficam salvos no painel e aparecem em qualquer aparelho em que você abrir esta página.' : 'Modo local: os dados ficam só neste navegador. Ao abrir o painel publicado, eles passam a ficar salvos no painel.')+'</p>'+
       '<div class="soon-rows"><div><b>'+Object.keys(C.alunos).length+'</b><span>alunos</span></div><div><b>'+Object.keys(C.exercicios).length+'</b><span>exercícios</span></div><div><b>'+Object.keys(C.modelos).length+'</b><span>modelos</span></div><div><b>'+nEx+'</b><span>itens de exemplo</span></div></div>'+
       (nEx ? armBtn('wipeEx','x','Apagar dados de exemplo ('+nEx+')','Toque de novo: apaga '+plural(nEx,'item','itens')+' marcados como exemplo','block','trash') : '<p class="foot">Não há dados de exemplo.</p>')+'</section>'+
-    atuCard()+errCard()+
+    nvCard()+atuCard()+errCard()+
     '<section class="card"><span class="label">'+ic('users')+'Importar alunos</span><p class="muted">Para alunos que já tinham treino em planilha: escolha o arquivo de importação (.json). Cada aluno entra com o treino, a carga da última semana, as metas e o histórico nas anotações. Quem já está no painel, com o mesmo nome ou e-mail, não é duplicado.</p><div class="btn-row"><button type="button" class="btn" data-a="impFile">'+ic('plus')+'Escolher arquivo</button><input type="file" id="imp-file" class="sr" accept=".json,application/json"></div></section>'+
     '<section class="card"><span class="label">'+ic('user')+'Acesso ao painel</span><p class="muted">Conectado como <b>'+esc(Gate.user()||'você')+'</b> neste aparelho.</p><button type="button" class="btn ghost block gate-out" data-gate-out="1">Sair do painel</button><p class="hint" style="text-align:center;margin:4px 0 0">Versão do painel: '+PAINELV+'</p></section>'+
     '<section class="card"><span class="label">'+ic('note')+'Termos e privacidade</span><p class="muted" style="margin:0">Termos de uso e política de privacidade, versão 1. Os alunos aceitam no app: no cadastro de quem treina sem personal e no primeiro acesso de quem entra com a senha do personal. O aceite de cada um aparece na aba Perfis.</p><button type="button" class="btn block" data-a="termos">'+ic('note')+'Ler os termos</button></section>');
@@ -4638,6 +4675,8 @@ function act(a,d,btn){
     case 'receita': openSheet({k:'receita'}); return false;
     case 'recOpen': closeSheet(); ui.view = 'alunos'; if(ui.aluno!==d.id){ ui.draft.av = {}; ui.draft.pay = {}; ui.draft.nota = ''; } ui.aluno = d.id; ui.tab = 'financeiro'; window.scrollTo(0,0); break;
     case 'evCargaTg': PREF.evCargaMin = !PREF.evCargaMin; savePref(); break;
+    case 'nvOn': nvLigar(); return false;
+    case 'nvOff': nvDesligar(); return false;
     case 'ajMin': { const L = (PREF.ajMin||[]).slice(), i = L.indexOf(d.k); if(i<0) L.push(d.k); else L.splice(i,1); PREF.ajMin = L; savePref(); break; }
     case 'ajAll': { if(d.v==='abrir') PREF.ajMin = []; else PREF.ajMin = Array.from(document.querySelectorAll('.aj-h')).map(b => b.dataset.k); savePref(); break; }
     case 'pfBack': PF.open = null; ui.pfTab = null; window.scrollTo(0,0); break;
@@ -4712,6 +4751,8 @@ document.addEventListener('keydown', e => {
   if((e.key==='ArrowRight'||e.key==='ArrowLeft') && e.target.classList && e.target.classList.contains('dtab')){ const i = DTABS.findIndex(t => t[0]===ui.tab), j = (i+(e.key==='ArrowRight'?1:-1)+DTABS.length)%DTABS.length; ui.tab = DTABS[j][0]; render(); const t = document.querySelector('.dtab.on'); if(t){ t.focus(); t.scrollIntoView({block:'nearest',inline:'center'}); } }
 });
 window.addEventListener('hashchange', () => { readHash(); render(); });
+// avisos de conta nova: mantém o service worker do painel e abre Perfis quando o dono toca no aviso
+try { if(nvPode() && PREF.nvOn) nvReg().catch(() => {}); navigator.serviceWorker && navigator.serviceWorker.addEventListener('message', ev => { if(ev.data && ev.data.abrir==='perfis'){ ui.view = 'perfis'; ui.aluno = null; render(); } }); } catch(e){ /* sem service worker */ }
 document.addEventListener('visibilitychange', () => { if(document.visibilityState==='hidden') Store.flushAll(); });
 window.addEventListener('pagehide', () => Store.flushAll());
 try { matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => { if(!PREF.theme) render(); }); } catch(e){ /* navegador antigo */ }

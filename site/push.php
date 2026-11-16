@@ -5,6 +5,8 @@
 // Fim do descanso: o app avisa a hora em que o descanso termina; este pedido responde na hora e espera até lá para avisar
 // (se a pessoa continuou no app, o próprio app cancela antes).
 // Treino esquecido aberto: avisa uma vez quem está com o treino aberto há 3 horas, a qualquer hora.
+// Conta nova: o app avisa quando alguém termina o cadastro e o servidor manda uma notificação para os celulares do dono
+// (ligados no painel do personal; só o dono consegue ligar). Limite por internet e por hora contra abuso.
 // Lembrete do treino do dia: a partir da 2ª semana de uso, nos dias de treino, no horário em que a pessoa costuma treinar
 // (o app estuda e manda um horário por dia da semana), uma vez no dia (não avisa se já treinou).
 // O aviso vai sem conteúdo (o próprio app monta a mensagem), então não precisa de criptografia de conteúdo,
@@ -16,6 +18,8 @@ function sai($a, $code = 200) { global $CLI; if (!$CLI) http_response_code($code
 $base = dirname(__DIR__);
 $ARQ_CH = $base . '/.simplificando-vapid.json';
 $ARQ_IN = $base . '/.simplificando-push.json';
+$ARQ_DONO = $base . '/.simplificando-dono-push.json';   // celulares do dono que recebem o aviso de conta nova
+$ARQ_NOVOS = $base . '/.simplificando-novos.json';     // últimas contas novas (o aviso busca daqui o nome)
 
 function b64u($s) { return rtrim(strtr(base64_encode($s), '+/', '-_'), '='); }
 function chaves() {
@@ -47,6 +51,8 @@ function vapid($endpoint, $ch) {
   openssl_sign("$h.$c", $sig, $ch['pem'], OPENSSL_ALGO_SHA256);
   return "$h.$c." . b64u(der2raw($sig));
 }
+function le_arq($a, $padrao) { $v = json_decode((string)@file_get_contents($a), true); return is_array($v) ? $v : $padrao; }
+function grava_arq($a, $v) { @file_put_contents($a, json_encode($v, JSON_UNESCAPED_UNICODE), LOCK_EX); @chmod($a, 0600); }
 function envia($endpoint, $ch, $urg = 'normal') {
   $c = curl_init($endpoint);
   curl_setopt_array($c, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => '', CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 15,
@@ -64,6 +70,51 @@ $hm = function ($s, $padrao) { return preg_match('/^(\d{1,2}):(\d{2})$/', (strin
 $acao = $CLI ? ($argv[1] ?? 'cron') : ($_GET['acao'] ?? '');
 
 if ($acao === 'chave') { $ch = chaves(); sai(['ok' => true, 'pub' => $ch['pub']]); }
+
+// ---------- conta nova: avisa o dono ----------
+if ($acao === 'novo') {
+  if ($_SERVER['REQUEST_METHOD'] !== 'POST') sai(['ok' => false], 405);
+  $j = json_decode((string)file_get_contents('php://input', false, null, 0, 2000), true); if (!is_array($j)) sai(['ok' => false], 400);
+  $corta = function ($x, $n) { $x = trim(preg_replace('/[\x00-\x1F\x7F<>]+/u', ' ', (string)$x)); return function_exists('mb_substr') ? mb_substr($x, 0, $n) : substr($x, 0, $n); };
+  $nome = $corta($j['nome'] ?? '', 40); if ($nome === '') sai(['ok' => false], 400);
+  $N = le_arq($ARQ_NOVOS, ['novos' => [], 'ip' => []]); $agora = time();
+  // no máximo 3 cadastros a cada 10 min por internet e 40 por hora no total
+  $ip = hash('sha256', ($_SERVER['REMOTE_ADDR'] ?? '') . 'simp-novo');
+  $N['ip'] = array_values(array_filter($N['ip'] ?? [], function ($x) use ($agora) { return $agora - $x[1] < 3600; }));
+  $doIp = count(array_filter($N['ip'], function ($x) use ($ip, $agora) { return $x[0] === $ip && $agora - $x[1] < 600; }));
+  if ($doIp >= 3 || count($N['ip']) >= 40) sai(['ok' => true]);
+  $N['ip'][] = [$ip, $agora];
+  $N['novos'][] = ['nome' => $nome, 'ed' => $corta($j['ed'] ?? '', 20), 'plano' => $corta($j['plano'] ?? '', 10), 'em' => $agora];
+  $N['novos'] = array_slice($N['novos'], -30); grava_arq($ARQ_NOVOS, $N);
+  $D = le_arq($ARQ_DONO, []); if (!$D) sai(['ok' => true]);
+  $ch = chaves(); $mudou = false;
+  foreach ($D as $id => $d) { $st = envia($d['e'], $ch, 'high'); if ($st == 404 || $st == 410) { unset($D[$id]); $mudou = true; } }
+  if ($mudou) grava_arq($ARQ_DONO, $D);
+  sai(['ok' => true]);
+}
+// o aviso no celular do dono busca o nome de quem entrou (só com a chave que o painel recebeu ao ligar)
+if ($acao === 'novos') {
+  $k = (string)($_GET['k'] ?? ''); $D = le_arq($ARQ_DONO, []); $ok = false;
+  foreach ($D as $d) if (strlen($k) >= 20 && hash_equals((string)($d['k'] ?? ''), $k)) $ok = true;
+  if (!$ok) sai(['ok' => false], 403);
+  $desde = (int)($_GET['desde'] ?? 0); $N = le_arq($ARQ_NOVOS, ['novos' => []]);
+  sai(['ok' => true, 'novos' => array_values(array_filter($N['novos'], function ($x) use ($desde) { return $x['em'] > $desde && time() - $x['em'] < 86400; }))]);
+}
+if (in_array($acao, ['dono-assinar', 'dono-sair'], true)) {
+  if ($_SERVER['REQUEST_METHOD'] !== 'POST') sai(['ok' => false], 405);
+  require __DIR__ . '/dono.inc.php';
+  if (!dono_uid()) sai(['ok' => false, 'erro' => 'Só o dono do painel liga este aviso.'], 403);
+  $j = json_decode((string)file_get_contents('php://input', false, null, 0, 8000), true);
+  $id = is_array($j) && isset($j['id']) && preg_match('/^[a-z0-9]{12,40}$/', $j['id']) ? $j['id'] : '';
+  if (!$id) sai(['ok' => false, 'erro' => 'Pedido inválido.'], 400);
+  $D = le_arq($ARQ_DONO, []);
+  if ($acao === 'dono-sair') { unset($D[$id]); grava_arq($ARQ_DONO, $D); sai(['ok' => true]); }
+  $e = $j['sub']['endpoint'] ?? ''; if (!endpoint_ok($e)) sai(['ok' => false, 'erro' => 'Serviço de aviso desconhecido.'], 400);
+  if (!isset($D[$id]) && count($D) >= 10) sai(['ok' => false, 'erro' => 'Limite de aparelhos.'], 429);
+  $k = $D[$id]['k'] ?? bin2hex(random_bytes(16));
+  $D[$id] = ['e' => $e, 'k' => $k, 'em' => time()]; grava_arq($ARQ_DONO, $D);
+  sai(['ok' => true, 'k' => $k]);
+}
 
 if (in_array($acao, ['assinar', 'copo', 'sair', 'descanso', 'treino', 'lembrete'], true)) {
   if ($_SERVER['REQUEST_METHOD'] !== 'POST') sai(['ok' => false], 405);

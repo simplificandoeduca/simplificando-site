@@ -1757,7 +1757,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '16 nov · 133'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '16 nov · 134'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -3123,6 +3123,8 @@ async function suConta(){
   LG.uid = r.uid; LG.uidMail = email; LG.serr = ''; LG.step = 2; renderLogin(); suTop();
   if(FB) FB.perfil({ tipo:'autonomo', nome:cleanName(f.nome), email, plano:'', treinos:0, criadoEm:Date.now(), ultimoAcesso:Date.now(), ver:APPV });
 }
+/* conta nova: avisa o celular do dono (push.php manda a notificação; nada sai daqui além do nome, objetivo e tipo de treino) */
+function novoAviso(nome, ed, plano){ if(TESTE_LOCAL) return; try { fetch('/push.php?acao=novo', {method:'POST', keepalive:true, body:JSON.stringify({nome:String(nome||'').slice(0,40), ed:ed||'', plano:plano||''})}).catch(() => {}); } catch(e){ /* sem internet: segue */ } }
 /* perfil antigo, salvo só no aparelho (de antes de existir conta): vira uma conta com todo o histórico */
 function suMigra(uid, email){
   const s = legacySelf(); if(!s) return;
@@ -3131,6 +3133,7 @@ function suMigra(uid, email){
   try { localStorage.setItem(autoKey(uid), JSON.stringify(s)); localStorage.setItem(KEY+':self:migrado', localStorage.getItem(KEY+':self')||''); localStorage.removeItem(KEY+':self'); } catch(e){ /* sem armazenamento */ }
   if(FB){ FB.autoSave(uid, s, true); FB.perfil({ tipo:'autonomo', nome, email, sexo:(s.conta||{}).sexo||'F', objetivo:s.ed, plano:(s.conta||{}).plan||'', criadoEm:Date.now(), ultimoAcesso:Date.now(), ver:APPV }); }
   writeSess({mode:'self', uid}); LG.view = 'login'; LG.step = 1; LG.f = LGF0(); LG.uid = null; LG.uidMail = '';
+  novoAviso(nome, s.ed, (s.conta||{}).plan==='meu' || (s.conta||{}).plan==='ia' ? s.conta.plan : '');
   welcome(firstName(nome), (s.conta||{}).sexo, 'Seus treinos deste aparelho vieram junto.');
 }
 async function suEntrar(){
@@ -3185,6 +3188,7 @@ function suFinish(mode){
   try { localStorage.setItem(autoKey(uid), JSON.stringify(s)); } catch(e){ /* sem armazenamento */ }
   if(FB){ FB.autoSave(uid, s, true); FB.perfil({ tipo:'autonomo', nome, email:LG.uidMail||'', sexo, objetivo:f.ed, plano:mode, treinos:mode==='ia' && f.plan ? Object.keys(f.plan).length : 0, criadoEm:Date.now(), ultimoAcesso:Date.now(), aceite:{ v:s.aceite.v, em:s.aceite.em }, ver:APPV }); }
   writeSess({mode:'self', uid}); LG.view = 'login'; LG.step = 1; LG.f = LGF0(); LG.uid = null; LG.uidMail = '';
+  novoAviso(nome, f.ed, mode);
   if(mode==='meu') AFTER = 'meus';
   welcome(firstName(nome), sexo, mode==='meu' ? 'Agora é só montar seu treino.' : 'Seu treino está pronto.');
 }
