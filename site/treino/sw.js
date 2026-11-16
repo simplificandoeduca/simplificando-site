@@ -2,7 +2,7 @@
    - A página: tenta a internet primeiro (pega a versão nova); se a internet falhar ou demorar, abre a cópia guardada.
    - Arquivos fixos (Firebase, ícones, fontes): usa a cópia guardada e atualiza por trás.
    - Banco de dados, login e e-mails não passam por aqui: o próprio Firebase cuida de reenviar quando o sinal volta. */
-const VERSAO = '15 nov · 131'; // muda a cada versão (o build grava): assim o celular sempre percebe que tem sw.js novo
+const VERSAO = '16 nov · 132'; // muda a cada versão (o build grava): assim o celular sempre percebe que tem sw.js novo
 const CACHE = 'simp-treino-v4';
 let ATUALIZANDO = false; // true quando já tinha uma versão instalada (atualização, não primeira vez)
 const CORE = ['./', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-180.png', './firebase-config.js',
@@ -59,7 +59,7 @@ self.addEventListener('fetch', e => {
 /* avisos com o app fechado: o servidor (push.php) só "cutuca"; a mensagem é montada aqui.
    Fim do descanso (o app guarda os dados em simp-estado quando o descanso começa): "Bora, Joana! 💪";
    treino aberto há quase 3h (uma vez por treino): "Seu treino ainda está aberto";
-   dia de treino, depois do horário escolhido (uma vez no dia, se ainda não treinou): "Bora treinar, Joana? 💪"; senão, o lembrete de água. */
+   dia de treino a partir da 2ª semana, no horário daquele dia (uma vez no dia, se ainda não treinou): "Bora treinar, Joana? 💪"; senão, o lembrete de água. */
 const FRASES = ['Hora de beber água 💧', 'Um copo agora? 💧', 'Sua garrafinha está te chamando 💧', 'Pausa rápida para a água 💧'];
 const DESC = BASE + '__descanso';
 const TREINO = BASE + '__treino';
@@ -84,7 +84,8 @@ self.addEventListener('push', e => {
       }
       return c.match(LEMB).then(r => r ? r.json() : null).catch(() => null).then(lb => {
         const d = new Date(), dia = hojeTxt(d), min = d.getHours() * 60 + d.getMinutes();
-        if (lb && lb.on && (lb.dias || []).includes(d.getDay()) && min >= lb.h - 5 && min - lb.h < 180 && lb.av !== dia && lb.feito !== dia && !(lb.pausa && lb.pausa >= dia)) {
+        const lh = lb ? +((lb.hs || {})[d.getDay()] ?? lb.h) : 0;
+        if (lb && lb.on && !(lb.desde && dia < lb.desde) && (lb.dias || []).includes(d.getDay()) && min >= lh - 5 && min - lh < 180 && lb.av !== dia && lb.feito !== dia && !(lb.pausa && lb.pausa >= dia)) {
           lb.av = dia;
           return c.put(LEMB, json(lb)).then(() => self.registration.showNotification('Bora treinar' + (lb.nome ? ', ' + lb.nome : '') + '? 💪', { body: 'Hoje é dia do Treino ' + lb.t + (lb.tn ? ' · ' + lb.tn : '') + '. Toque para começar.', icon: 'icon-192.png', badge: 'icon-192.png', tag: 'lembrete', renotify: true, data: { url: BASE + '#treino', abrir: 'treino' } }));
         }

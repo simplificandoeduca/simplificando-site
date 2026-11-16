@@ -5,7 +5,8 @@
 // Fim do descanso: o app avisa a hora em que o descanso termina; este pedido responde na hora e espera até lá para avisar
 // (se a pessoa continuou no app, o próprio app cancela antes).
 // Treino esquecido aberto: avisa uma vez quem está com o treino aberto há 3 horas, a qualquer hora.
-// Lembrete do treino do dia: nos dias de treino, no horário escolhido, uma vez no dia (não avisa se já treinou).
+// Lembrete do treino do dia: a partir da 2ª semana de uso, nos dias de treino, no horário em que a pessoa costuma treinar
+// (o app estuda e manda um horário por dia da semana), uma vez no dia (não avisa se já treinou).
 // O aviso vai sem conteúdo (o próprio app monta a mensagem), então não precisa de criptografia de conteúdo,
 // só da assinatura VAPID. As chaves e as inscrições ficam fora do site, na pasta de cima.
 header('Content-Type: application/json; charset=utf-8');
@@ -93,11 +94,12 @@ if (in_array($acao, ['assinar', 'copo', 'sair', 'descanso', 'treino', 'lembrete'
       if ((int)($v[$id]['tr'] ?? 0) !== $ini) { $v[$id]['tr'] = $ini; $v[$id]['trav'] = 0; grava_in($v); } }
     sai(['ok' => true]);
   }
-  if ($acao === 'lembrete') { // {on, h: minutos do dia, dias: [0=domingo..6], feito: dia em que já treinou, pausa: até que dia não avisar}
+  if ($acao === 'lembrete') { // {on, h: minutos do dia, hs: {dia da semana: minutos}, dias: [0=domingo..6], feito, pausa, desde: a partir de que dia avisar}
     if (isset($v[$id])) {
       $dt = function ($x) { return preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)$x) ? (string)$x : ''; };
       $dias = array_values(array_unique(array_filter(array_map('intval', is_array($j['dias'] ?? null) ? $j['dias'] : []), function ($d) { return $d >= 0 && $d <= 6; })));
-      $v[$id]['lb'] = ['on' => empty($j['on']) ? 0 : 1, 'h' => max(0, min(1439, (int)($j['h'] ?? 1080))), 'dias' => $dias, 'feito' => $dt($j['feito'] ?? ''), 'pausa' => $dt($j['pausa'] ?? '')];
+      $hs = []; foreach ((is_array($j['hs'] ?? null) ? $j['hs'] : []) as $w => $m) { $w = (int)$w; if ($w >= 0 && $w <= 6) $hs[(string)$w] = max(0, min(1439, (int)$m)); }
+      $v[$id]['lb'] = ['on' => empty($j['on']) ? 0 : 1, 'h' => max(0, min(1439, (int)($j['h'] ?? 1080))), 'hs' => $hs, 'dias' => $dias, 'feito' => $dt($j['feito'] ?? ''), 'pausa' => $dt($j['pausa'] ?? ''), 'desde' => $dt($j['desde'] ?? '')];
       grava_in($v);
     }
     sai(['ok' => true]);
@@ -129,9 +131,9 @@ if ($acao === 'cron') {
       continue;
     }
     $local = $agora - $s['tz'] * 60; $min = (int)gmdate('G', $local) * 60 + (int)gmdate('i', $local); $dia = gmdate('Y-m-d', $local);
-    // lembrete do treino do dia: do horário escolhido até 2h depois, uma vez no dia
-    $lb = $s['lb'] ?? null;
-    if (is_array($lb) && !empty($lb['on']) && in_array((int)gmdate('w', $local), $lb['dias'] ?? [], true) && $min >= $lb['h'] && $min - $lb['h'] < 120
+    // lembrete do treino do dia: do horário daquele dia da semana até 2h depois, uma vez no dia, só depois da 1ª semana
+    $lb = $s['lb'] ?? null; $wd = (int)gmdate('w', $local); $lh = is_array($lb) ? (int)($lb['hs'][(string)$wd] ?? $lb['h'] ?? 1080) : 0;
+    if (is_array($lb) && !empty($lb['on']) && (empty($lb['desde']) || $dia >= $lb['desde']) && in_array($wd, $lb['dias'] ?? [], true) && $min >= $lh && $min - $lh < 120
         && ($s['lbav'] ?? '') !== $dia && ($lb['feito'] ?? '') !== $dia && !(($lb['pausa'] ?? '') && $lb['pausa'] >= $dia)) {
       $st = envia($s['e'], $ch);
       if ($st == 404 || $st == 410) { unset($v[$id]); $tirou++; continue; }
