@@ -1234,6 +1234,29 @@ Em **Ajustes → Cupom impresso → Ícone na área de trabalho · Mac e Windows
   - O app é uma pasta "Play Space.app" com o script que abre o Chrome numa janela só dele, com a impressão direta (`--kiosk-printing`) e um perfil só dele, a ficha do app e a logo (`img/playspace.icns`, baixada do próprio site). O comando de antes (que deixava um "Play Space.command" na Mesa, abrindo o Terminal junto) é trocado pelo app.
 - Nos dois: deixe a impressora do cupom como **impressora padrão** do computador, e abra o sistema **sempre pelo ícone**. O cupom de teste tem que sair sem perguntar nada.
 
+## 6zzc. Play Space Finanças: playspace2.com.br/financas (1.48)
+
+Pedido do dono: um **/financas** com login próprio (como no Notas) e a mesma cara do Notas, com o que é crítico e delicado do negócio.
+
+**Chega pelo Atualizar** (a pasta `playspace/financas` vai junto do Play Space). Não precisa de banco novo: os números saem do próprio banco do Play Space, **só lendo** (nada nas Finanças muda uma venda, um pagamento ou um cadastro).
+
+**O acesso:**
+
+- É só das Finanças: a equipe do Play Space **não entra** com o login de lá.
+- **Primeira vez:** "Criar o acesso". Para provar que é o dono, entra-se uma vez com um usuário de **gestor do Play Space**; depois cria-se o login das Finanças (nome, login, senha). Ex.: José → login **jose**, senha 123456. Só dá para criar o primeiro acesso uma vez.
+- **Entrar:** login ("José" e "jose" são o mesmo) e senha. 8 tentativas erradas em 15 min bloqueiam um pouco.
+- **Esqueci a senha:** com o usuário de gestor do Play Space, escolhe-se a senha nova.
+- **Conta → Quem vê as Finanças** (só a conta principal): criar acesso, nova senha, tirar acesso (quem estiver com a tela aberta sai na hora).
+
+**O que mostra** (escolhe-se o período: hoje, ontem, 7 dias, 30 dias, este mês, mês passado, este ano ou as datas; e a unidade: todas, Anália Franco, Morumbi):
+
+- **Visão geral:** faturado (já com os descontos; o ticket médio), recebido (os pagamentos, já sem o devolvido), em aberto (vendido e ainda não pago), crianças (visitas, crianças diferentes, no espaço agora), cancelamentos, descontos, pacotes vendidos e festas; **cada unidade** lado a lado; o faturado por dia (ou por mês, em períodos longos) com as unidades; o que foi vendido por tipo; as formas de pagamento.
+- **Vendas e pacotes:** cada pacote vendido (quantos em cada unidade) e as vendas por atendente.
+- **Cancelamentos:** quantos, quanto deixou de ser cobrado, os fora do prazo; **por atendente** (o nome que a atendente escreveu; sem ele, quem estava no aparelho); cada cancelamento com a hora, a unidade, a criança, o que foi cancelado e o motivo. Baixa em planilha.
+- **Descontos:** os descontos do gestor (cada um, mesmo repartido em mais de uma venda), o valor e a % da conta, quem liberou e a atendente; o desconto PCD e os vouchers à parte. Baixa em planilha.
+
+Os números de "hoje" batem com o painel da gestora no Play Space (o faturado, o recebido e os cancelados de cada unidade). A unidade é a do aparelho em que a coisa aconteceu. A cobrança da recreação de quem está no espaço nasce no Play Space (no pulso das telas abertas): as Finanças mostram o que já nasceu.
+
 ## 7. Atualizar
 
 Botão **Atualizar** ao lado da versão. Ele baixa a versão nova do GitHub (ramo principal ou de trabalho, a mais nova), confere a versão dentro do arquivo e troca os arquivos de forma atômica. Não mexe em `~/playspace-dados/`. Se o GitHub demorar a refletir (cache de ~5 min), espere e toque de novo.
