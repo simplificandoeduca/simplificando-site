@@ -28,3 +28,27 @@ for folder, src, title in [('treino','treino-grade.html','Simplificando · Seu t
     app = junta(src); app = app[app.index(tag):]
     open(idx,'w').write(pre + app.rstrip('\n') + '\n</body>\n</html>\n')
     print(folder, 'ok')
+
+# ---------- app de teste (/app-teste): o mesmo app do aluno, sem servidor, entrando direto com o aluno de exemplo (Lucas) ----------
+# Recebe toda atualização junto com o app de verdade. Os dados ficam só no aparelho, separados dos do app de verdade.
+import shutil
+t = open(R+'site/treino/index.html').read()
+def rep(a, b, n=1):
+    global t
+    assert t.count(a) == n, ('app-teste', t.count(a), a[:80])
+    t = t.replace(a, b)
+for s in ['<script src="fb/firebase-app-compat.js"></script>\n', '<script src="fb/firebase-auth-compat.js"></script>\n', '<script src="fb/firebase-firestore-compat.js"></script>\n',
+          '<script src="firebase-config.js"></script>\n', '<link rel="manifest" href="manifest.webmanifest">\n']:
+    rep(s, '')
+rep('<meta name="apple-mobile-web-app-title" content="Simplificando">', '<meta name="apple-mobile-web-app-title" content="App de teste">\n<meta name="robots" content="noindex">\n<script>window.SIMPLIFICANDO_FIREBASE = null;</script>')
+rep('<title>Simplificando · Seu treino</title>', '<title>Simplificando · App de teste</title>')
+rep("const TESTE_LOCAL = location.protocol==='file:' || /^(localhost|127\\.0\\.0\\.1)$/.test(location.hostname);", "const TESTE_LOCAL = true;")
+t = re.sub(r"'simplificando-(conta|contas|pro-foto|pro-grade|pro-ui|pro-v2|reset|senhas|sessao)'", r"'simpteste-aluno-\1'", t)
+rep("'simp-app-v'", "'simpteste-aluno-v'", 2)
+rep("'simp-estado'", "'simpteste-aluno-estado'", 3)
+rep("function boot(){\n", "function boot(){\n  if(!readSess()) writeSess({mode:'personal', code:'482913'}); // app de teste: entra direto com o aluno de exemplo, sem senha\n")
+rep("  if(needAceite()){ LG.view = 'aceite';", "  if(needAceite() && ACCT.mode==='personal'){ S.aceite = aceiteNovo(false); save(); } // app de teste: termos já aceitos\n  if(needAceite()){ LG.view = 'aceite';")
+os.makedirs(R+'site/app-teste', exist_ok=True)
+open(R+'site/app-teste/index.html', 'w').write(t)
+for f in ['icon-180.png', 'icon-192.png', 'icon-512.png']: shutil.copyfile(R+'site/treino/'+f, R+'site/app-teste/'+f)
+print('app-teste ok')

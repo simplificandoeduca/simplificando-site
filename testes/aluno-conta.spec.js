@@ -1,5 +1,5 @@
 // 🧑 Aluno sem personal: conta e primeiro acesso
-const { test, expect, simp, abreApp, criaConta, semJanelas, aba } = require('./apoio');
+const { test, expect, LOCAL, simp, abreApp, criaConta, semJanelas, aba } = require('./apoio');
 
 test('cria conta e a IA monta o treino', async ({ page }) => {
   await criaConta(page, { nome: 'Joana Lima', objetivo: 'emagrecer' });
@@ -76,4 +76,21 @@ test('primeiro acesso: uma janela por vez, na ordem certa (Firebase de teste)', 
   await expect(page.locator('#pick')).toHaveCount(0);
   const p = await simp(page, () => [window.__simp.PREF.treinoLayout, window.__simp.PREF.cardioLayout, window.__simp.S.acomp]);
   expect(p[0]).toBeTruthy(); expect(p[1]).toBeTruthy(); expect(p[2]).toBeTruthy();
+});
+
+test('app de teste (/app-teste): entra direto com o aluno de exemplo, sem senha e sem o Firebase, com os dados separados do app de verdade', async ({ page }) => {
+  const reqs = []; page.on('request', r => reqs.push(r.url()));
+  await page.goto(LOCAL + '/app-teste/');
+  await page.waitForFunction(() => window.__simp && window.__simp.ACCT && window.__simp.ACCT.code === '482913', null, { timeout: 15000 });
+  await expect(page.locator('#login')).toHaveCount(0);
+  await expect(page.locator('#app')).toBeVisible();
+  const ks = await page.evaluate(() => Object.keys(localStorage));
+  expect(ks.some(k => k.startsWith('simpteste-aluno-'))).toBe(true);
+  expect(ks.filter(k => /^simplificando-|^simp-app-v$/.test(k))).toEqual([]);
+  expect(await page.evaluate(() => window.SIMPLIFICANDO_FIREBASE)).toBeNull();
+  expect(reqs.filter(u => /firebase|\.php/.test(u))).toEqual([]);
+  // sem sessão guardada (ex.: depois de sair), abrir de novo entra direto outra vez
+  await page.evaluate(() => { localStorage.removeItem('simpteste-aluno-sessao'); });
+  await page.reload();
+  await page.waitForFunction(() => window.__simp && window.__simp.ACCT && window.__simp.ACCT.code === '482913', null, { timeout: 15000 });
 });

@@ -116,17 +116,18 @@ test('Hub (/hub): números reais e um bloco para cada espaço; Números saiu das
   await expect(page.locator('.hb-st').nth(0).locator('b')).toHaveText(num);                        // alunos ativos (a Ana)
   await expect(page.locator('.hb-st').nth(2).locator('b')).toHaveText(num, { timeout: 20000 });    // cadastros no mês (a Bruna)
   await expect(page.locator('.hb-bl.red .hb-num b')).toHaveText(num, { timeout: 20000 });          // a Ana treinou hoje
-  await expect(page.locator('.hb-bl.red')).toHaveAttribute('href', '/treino/');
+  // cada bloco abre em outra aba: o app de teste, o painel e Números
+  expect(await page.locator('.hb-bl').evaluateAll(L => L.map(a => [a.getAttribute('href'), a.getAttribute('target')]))).toEqual([['/app-teste/', '_blank'], ['/personal/#painel', '_blank'], ['/personal/#estatisticas', '_blank']]);
   expect(await page.locator('.hb-ms').evaluateAll(L => L.map(a => a.getAttribute('href')))).toEqual(['/financas/', '/personal/teste/', '/']);
   // Números abre fora das abas, com o botão de voltar ao hub
-  await page.click('.hb-bl.blue');
-  await expect(page).toHaveURL(/#estatisticas$/);
-  await expect(page.locator('main').first()).toContainText('Avaliação do app', { timeout: 20000 });
-  await page.click('a[href="#hub"]');
-  await expect(page.locator('.hub')).toBeVisible();
-  // Painel volta com as abas
-  await page.click('.hb-bl.lime');
-  await expect(page).toHaveURL(/#painel$/);
-  await expect(page.locator('#tabs')).toBeVisible();
-  await expect(page.locator('.hub')).toHaveCount(0);
+  const [nt] = await Promise.all([page.context().waitForEvent('page'), page.click('.hb-bl.blue')]);
+  await expect(nt).toHaveURL(/\/personal\/#estatisticas$/);
+  await expect(nt.locator('main').first()).toContainText('Avaliação do app', { timeout: 20000 });
+  await nt.click('a[href="#hub"]');
+  await expect(nt.locator('.hub')).toBeVisible();
+  // Painel abre com as abas
+  const [pn] = await Promise.all([page.context().waitForEvent('page'), page.click('.hb-bl.lime')]);
+  await expect(pn).toHaveURL(/\/personal\/#painel$/);
+  await expect(pn.locator('#tabs')).toBeVisible();
+  await expect(pn.locator('.hub')).toHaveCount(0);
 });
