@@ -2,6 +2,8 @@
 // Se uma tela mudar sem querer, o robô avisa (e mostra a diferença no relatório). Mudou de propósito? Rode: npm run fotos
 const { test, expect, LOCAL, UA, simp, entraComSenha, semJanelas } = require('./apoio');
 
+// as fotos guardadas são tiradas no GitHub (mesmo computador da comparação). Fora dele, só compara se pedir: FOTOS=1 npx playwright test visual
+test.skip(!process.env.CI && !process.env.FOTOS, 'as fotos são comparadas no GitHub');
 const DIA = new Date('2026-11-16T10:00:00-03:00'); // sempre o mesmo dia e hora nas fotos
 const APARELHOS = [['android', UA.android], ['iphone', UA.iphone]];
 const TEMAS = ['light', 'dark'];
