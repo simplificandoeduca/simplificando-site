@@ -1586,6 +1586,8 @@ body.has-dock .toast,body.has-dock .utoast{bottom:calc(176px + env(safe-area-ins
 .mt-in{width:100%;min-width:0;height:40px;border:0;border-radius:12px;background:var(--card);color:var(--fg);font:inherit;font-size:15px;font-weight:900;text-align:center;outline:none;box-shadow:inset 0 0 0 1.5px transparent}
 .mt-in:focus{box-shadow:inset 0 0 0 2px var(--fg)}
 .mt-none{margin:0}
+.lg-leg{display:flex;gap:9px;align-items:flex-start;border-radius:14px;padding:10px 12px;background:color-mix(in srgb,#1E9E4A 12%,var(--card));font-size:13.5px;line-height:1.4;margin:6px 0}.lg-leg .i{width:18px;height:18px;flex:none;color:#1E9E4A;margin-top:1px}
+.lg-leg.warn{background:color-mix(in srgb,#E8A10A 16%,var(--card))}.lg-leg.warn .i{color:#B87A00}
 .nt-ic{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;flex:none;color:#fff;background:var(--c)}.nt-ic .i{width:19px;height:19px}
 .nt-ban{display:flex;gap:10px;align-items:center;border-radius:16px;padding:10px 12px;background:color-mix(in srgb,#1E9E4A 14%,var(--card));font-size:13.5px;line-height:1.35}.nt-ban .i{width:20px;height:20px;color:#1E9E4A;flex:none}.nt-ban b{font-weight:800}
 .nt-ban.off{background:color-mix(in srgb,#E8A10A 16%,var(--card))}.nt-ban.off .i{color:#B87A00}
@@ -2161,6 +2163,8 @@ function startApp(){
     if(!a){ writeSess(null); renderLogin(); return; }
     ACCT = {mode:'personal', code:sess.code, aluno:a}; UKEY = KEY+':'+sess.code;
   } else {
+    if(!sess.uid && !TESTE_LOCAL){ // usava sem conta: agora o app só funciona com conta (os treinos do aparelho vão junto)
+      writeSess(null); LG.view = 'setup'; LG.step = 1; LG.serr = ''; LG.semConta = true; renderLogin('#su-nome'); return; }
     if(sess.uid && !autoLocal(sess.uid)){ writeSess(null); LG.view = 'entrar'; LG.en = {email:'', senha:'', show:false, msg:'Entre de novo para carregar seus treinos.'}; renderLogin('#en-email'); return; }
     ACCT = {mode:'self', uid:sess.uid||null, syncOk:!FB, dirty:false}; UKEY = sess.uid ? autoKey(sess.uid) : KEY+':self';
   }
@@ -2173,8 +2177,9 @@ function startApp(){
   if(!LOCAIS.includes(ui.cf.local)) ui.cf.local = LOCAIS[0];
   const lg = document.getElementById('login'); if(lg) lg.remove();
   document.body.classList.remove('locked');
-  applyLook(); window.scrollTo(0,0); render(); renderPick();
-  fbRefresh(); acompAsk(); instAsk(); siteAsk(); avalAsk();
+  applyLook(); window.scrollTo(0,0); render();
+  if(AFTER==='meus' && ACCT.mode==='self' && !(S.inst==='novo' && instMobile())){ AFTER = null; setTimeout(mtOpen, 400); }
+  fbRefresh(); instAsk(); acompAsk(); siteAsk(); avalAsk();
   try { const vv = localStorage.getItem('simp-app-v'); if(vv && vv!==APPV) setTimeout(() => toast('App atualizado: versão '+APPV), 900); localStorage.setItem('simp-app-v', APPV); } catch(e){ /* sem armazenamento */ }
 }
 function logout(){
@@ -2591,7 +2596,7 @@ function instAsk(){
   let n = 0;
   instT = setInterval(() => { // espera as outras perguntas do começo (layout e acompanhamento) saírem da tela
     if(++n > 60 || !S || S.inst!=='novo'){ clearInterval(instT); return; }
-    const livre = ACCT && !ui.sheet && !document.getElementById('login') && !document.getElementById('pick') && !document.querySelector('.wel') && (S.acomp || !acompPode());
+    const livre = ACCT && !ui.sheet && !document.getElementById('login') && !document.getElementById('pick') && !document.querySelector('.wel');
     if(livre){ clearInterval(instT); SITE_FEITO = true; ui.sheet = {k:'baixar', st:'ini'}; renderSheet(true); }
   }, 1500);
 }
@@ -2697,7 +2702,7 @@ function avalEnviar(b){
     else { const g = S.aval || {}; delete g.ult; delete g.env; save(); toast('Não deu para enviar agora. Vamos pedir de novo na próxima vez.'); if(ok==='permission-denied') errSend('Regras do Firebase desatualizadas: a avaliação do app foi bloqueada. Cole o REGRAS-FIRESTORE.txt novo no Firebase.', 'avaliacoes', 0, 0, ''); }
   });
 }
-function acompAsk(){ if(!acompPode() || S.acomp || S.example) return; setTimeout(() => { if(ACCT && !ui.sheet && !S.acomp && !document.getElementById('login')){ ui.sheet = {k:'acomp'}; renderSheet(true); } }, 1600); }
+function acompAsk(){ if(!acompPode() || S.acomp || S.example || noPlan() || (S.inst==='novo' && instMobile())) return; setTimeout(() => { if(ACCT && !ui.sheet && !S.acomp && !document.getElementById('login') && !document.getElementById('pick') && !document.querySelector('.wel')){ ui.sheet = {k:'acomp'}; renderSheet(true); } }, 1600); }
 const CM_USERS = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 5.2a3.2 3.2 0 0 1 0 5.6M18 14.4c1.8.8 3 2.6 3 4.6"/></svg>';
 function vAcomp(){
   return `<div class="sheet-wrap cm-w" data-a="acomp-no"><div class="sheet cm" role="dialog" aria-modal="true" aria-labelledby="cm-t" tabindex="-1">
@@ -3040,6 +3045,7 @@ const genView = () => `<div class="iq-gen" role="status" aria-live="polite"><spa
 /* cadastro: 1 conta · 2 perfil · 3 como montar · 4–6 perguntas da IA · 7 resultado */
 const LGF0 = () => ({ nome:'', email:'', senha:'', show:false, sexo:'F', ed:'hipertrofia', peso:'', plan:null, ck:{t:false, s:false, p:false} });
 let AFTER = null; // abre "Meus treinos" assim que o app carregar
+const TESTE_LOCAL = location.protocol==='file:' || /^(localhost|127\.0\.0\.1)$/.test(location.hostname); // só no computador de teste o app funciona sem o servidor
 function selfStart(){ LG.view = 'setup'; LG.step = 1; LG.serr = ''; LG.gen = false; renderLogin('#su-nome'); }
 const waterSug = () => { const p = num(LG.f.peso); return p>=30 && p<=250 ? Math.round(p*35/100)*100 : 3000; };
 const suWaterTxt = () => num(LG.f.peso)>=30 ? 'Meta de água: '+fmtL(waterSug())+' por dia (35 ml por kg).' : 'Sem o peso, a meta de água fica em 3,0 L por dia.';
@@ -3052,8 +3058,8 @@ function vSetup(){
   const top = `<div class="lg-top"><button type="button" class="linkbtn pk-back" data-a="su-back">${ic('chevL')}${st===1?'Entrar com senha':st===7?'Mudar respostas':'Voltar'}</button><span class="lg-stp">${cnt}</span></div><div class="tprog" aria-hidden="true"><i style="width:${Math.round(pct*100)}%"></i></div>`;
   let body;
   if(st===1){ const leg = legacySelf();
-    body = `<p class="eyebrow">Treinar sem personal</p><h1 class="lg-h">Crie sua conta<span class="dot" aria-hidden="true"></span></h1>
-    <p class="muted">${FB ? 'Seu treino e seu histórico ficam salvos na conta. Dá para entrar de qualquer celular.' : 'Modo de teste: a conta fica salva só neste aparelho.'} Já tem conta? <button type="button" class="linkbtn in" data-a="su-entrar">Entrar</button></p>
+    body = `<p class="eyebrow">Treinar sem personal</p><h1 class="lg-h">Crie sua conta<span class="dot" aria-hidden="true"></span></h1>${LG.semConta ? '<p class="lg-leg warn">'+ic('lock')+'<span>Agora o Simplificando funciona com conta. Crie a sua em 1 minuto: seus treinos ficam salvos e dá para entrar de qualquer celular.</span></p>' : ''}
+    <p class="muted">${FB || !TESTE_LOCAL ? 'Seu treino e seu histórico ficam salvos na conta. Dá para entrar de qualquer celular.' : 'Modo de teste: a conta fica salva só neste aparelho.'} Já tem conta? <button type="button" class="linkbtn in" data-a="su-entrar">Entrar</button></p>
     <form class="lg-form su-form" data-lg="conta" novalidate>
       <label class="flabel" for="su-nome">Como você quer ser chamado?</label><div class="inp-wrap"><input class="inp" id="su-nome" autocomplete="given-name" maxlength="40" placeholder="Seu nome" value="${esc(f.nome)}" data-su="nome"></div>
       <label class="flabel" for="su-email">E-mail</label><div class="inp-wrap"><input class="inp" id="su-email" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" maxlength="80" placeholder="voce@email.com" value="${esc(f.email)}" data-su="email"></div>
@@ -3062,7 +3068,7 @@ function vSetup(){
       <p class="lg-err" id="su-err" role="alert">${esc(LG.serr||'')}</p>
       <button type="submit" class="btn primary block lg-go su-go"${suOk1()?'':' disabled'}>Criar conta${ic('chev')}</button>
     </form>
-    ${leg ? `<button type="button" class="linkbtn su-leg" data-a="su-legacy">Continuar com o perfil salvo neste aparelho (${esc(firstName(leg.nome)||'sem nome')})</button>` : ''}`;
+    ${leg ? `<p class="lg-leg">${ic('check')}<span>Achamos treinos salvos neste aparelho${leg.nome ? ' ('+esc(firstName(leg.nome))+')' : ''}. Eles vão junto para a sua conta nova.</span></p>` : ''}`;
   }
   else if(st===2) body = `<h1 class="lg-h">Seu perfil<span class="dot" aria-hidden="true"></span></h1><p class="muted">Rapidinho. Dá para mudar tudo depois.</p>
     <div class="field"><span class="flabel" id="su-bn">Seu boneco</span><div class="iseg" role="group" aria-labelledby="su-bn">${[['F','Feminino'],['M','Masculino']].map(([v,l]) => `<button type="button" class="${f.sexo===v?'on':''}" aria-pressed="${f.sexo===v}" data-a="su-sexo" data-v="${v}">${l}</button>`).join('')}</div><p class="foot0">É quem aparece nas animações de cardio.</p></div>
@@ -3108,15 +3114,28 @@ async function suConta(){
   if(!/^\d{6}$/.test(f.senha)) return suErr('A senha tem que ter 6 números.');
   if(!ckOk(f.ck, true)) return suErr('Para criar a conta, marque as três caixas de aceite.');
   if(LG.uid && LG.uidMail===email){ LG.step = 2; renderLogin(); suTop(); return; }
+  if(!FB && !TESTE_LOCAL) return suErr('Sem conexão com o servidor agora. Confira a internet e tente de novo.');
   suBusy(true);
   const r = FB ? await FB.signUp(email, f.senha, cleanName(f.nome)) : localSignUp(email, f.senha);
   suBusy(false);
   if(r.err) return suErr(r.err);
+  if(legacySelf()) return suMigra(r.uid, email); // quem usava sem conta: os treinos do aparelho vão para a conta nova
   LG.uid = r.uid; LG.uidMail = email; LG.serr = ''; LG.step = 2; renderLogin(); suTop();
   if(FB) FB.perfil({ tipo:'autonomo', nome:cleanName(f.nome), email, plano:'', treinos:0, criadoEm:Date.now(), ultimoAcesso:Date.now(), ver:APPV });
 }
+/* perfil antigo, salvo só no aparelho (de antes de existir conta): vira uma conta com todo o histórico */
+function suMigra(uid, email){
+  const s = legacySelf(); if(!s) return;
+  const nome = cleanName(LG.f.nome) || s.nome || 'Você';
+  s.nome = nome; s.conta = Object.assign({}, s.conta, { email }); s.aceite = aceiteNovo(true); s._em = Date.now();
+  try { localStorage.setItem(autoKey(uid), JSON.stringify(s)); localStorage.setItem(KEY+':self:migrado', localStorage.getItem(KEY+':self')||''); localStorage.removeItem(KEY+':self'); } catch(e){ /* sem armazenamento */ }
+  if(FB){ FB.autoSave(uid, s, true); FB.perfil({ tipo:'autonomo', nome, email, sexo:(s.conta||{}).sexo||'F', objetivo:s.ed, plano:(s.conta||{}).plan||'', criadoEm:Date.now(), ultimoAcesso:Date.now(), ver:APPV }); }
+  writeSess({mode:'self', uid}); LG.view = 'login'; LG.step = 1; LG.f = LGF0(); LG.uid = null; LG.uidMail = '';
+  welcome(firstName(nome), (s.conta||{}).sexo, 'Seus treinos deste aparelho vieram junto.');
+}
 async function suEntrar(){
   const e = LG.en, email = e.email.trim().toLowerCase();
+  if(!FB && !TESTE_LOCAL) return suErr('Sem conexão com o servidor agora. Confira a internet e tente de novo.', 'en-err');
   if(!mailOk(email)) return suErr('Confira o e-mail. Ex.: voce@email.com', 'en-err');
   if(!e.senha) return suErr('Digite sua senha.', 'en-err');
   suBusy(true);
@@ -3391,7 +3410,6 @@ function lgClick(a,d,b){
     case 'su-entrar': LG.view = 'entrar'; LG.serr = ''; LG.en = {email:LG.f.email||'', senha:'', show:false, msg:''}; renderLogin('#en-email'); return true;
     case 'su-criar': LG.view = 'setup'; LG.step = 1; LG.serr = ''; renderLogin('#su-nome'); return true;
     case 'su-esq': suForgot(); return true;
-    case 'su-legacy': { const v = legacySelf(); writeSess({mode:'self'}); LG.view = 'login'; welcome(firstName(v && v.nome)||'de volta', v && v.conta && v.conta.sexo); return true; }
     case 'su-sexo': LG.f.sexo = d.v==='M' ? 'M' : 'F'; renderLogin(`[data-a="su-sexo"][data-v="${d.v}"]`); return true;
     case 'su-ed': LG.f.ed = d.v; renderLogin(`[data-a="su-ed"][data-v="${d.v}"]`); return true;
     case 'su-mode': if(d.v==='ia'){ IQ = IQ0(); LG.step = 4; renderLogin(); suTop(); } else suFinish('meu'); return true;
@@ -4381,21 +4399,21 @@ function initLayAnim(){
 document.addEventListener('visibilitychange', () => document.querySelectorAll('.lay-anim').forEach(el => setPlay(el, !!el._vis && document.visibilityState!=='hidden' && !RM())));
 function renderPick(){
   const el = document.getElementById('pick');
-  if(ui.pstep==null) ui.pstep = !PREF.cardioLayout ? 1 : !PREF.treinoLayout ? 2 : 0;
+  if(ui.pstep==null) ui.pstep = !PREF.treinoLayout ? 1 : !PREF.cardioLayout ? 2 : 0;
   const st = ui.pstep;
   if(!st){ if(el){ el.remove(); document.body.classList.toggle('locked', !!ui.sheet); } if(AFTER==='meus' && ACCT){ AFTER = null; if(ACCT.mode==='self') mtOpen(); } return; }
-  const steps = `<div class="pk-steps" aria-label="Passo ${st} de 2"><span class="${st===1?'on':'ok'}"><b>${st===1?'1':ic('check')}</b>Cardio</span><i aria-hidden="true"></i><span class="${st===2?'on':''}"><b>2</b>Treino</span></div>`;
+  const steps = `<div class="pk-steps" aria-label="Passo ${st} de 2"><span class="${st===1?'on':'ok'}"><b>${st===1?'1':ic('check')}</b>Treino</span><i aria-hidden="true"></i><span class="${st===2?'on':''}"><b>2</b>Cardio</span></div>`;
   const top = `<div class="pk-top"><span class="pk-logo" aria-hidden="true">${logo()}</span>${st===2 && ui.pback ? `<button type="button" class="linkbtn pk-back" data-a="pk-back">${ic('chevL')}Voltar</button>` : ''}</div>`;
   let html;
-  if(st===1){ const sel = ui.pick || PREF.cardioLayout;
-    html = top+steps+`<p class="eyebrow">Antes de começar</p><h1 id="pk-t">Como você prefere registrar o cardio?</h1><p class="muted">Escolha um jeito. Dá para trocar quando quiser no seu perfil.</p>
+  if(st===2){ const sel = ui.pick || PREF.cardioLayout;
+    html = top+steps+`<p class="eyebrow">Quase lá</p><h1 id="pk-t">Como você prefere registrar o cardio?</h1><p class="muted">Escolha um jeito. Dá para trocar quando quiser no seu perfil.</p>
       <div class="pk-list" role="radiogroup" aria-labelledby="pk-t">${LAYS.map(o => layCard(o, sel===o.id, 'clay')).join('')}</div>
-      <button type="button" class="btn primary block" data-a="clay-go"${sel?'':' disabled'}>Continuar${ic('chev')}</button>`; }
+      <button type="button" class="btn primary block" data-a="clay-go"${sel?'':' disabled'}>Começar${ic('chev')}</button>`; }
   else { const sel = ui.tpick;
-    const sg = tlSuggest(), opts = sg.ids.map(id => TLAYS.find(o => o.id===id));
-    html = top+steps+`<p class="eyebrow">Quase lá</p><h1 id="pk-t">Como você prefere registrar o treino?</h1><p class="muted">${sg.why} Os outros modelos ficam no seu perfil.</p>
+    const sg = tlSuggest(), opts = sg.ids.map(id => TLAYS.find(o => o.id===id)).concat(TLAYS.filter(o => !sg.ids.includes(o.id))); // os 4 visuais, o sugerido primeiro
+    html = top+steps+`<p class="eyebrow">Antes de começar</p><h1 id="pk-t">Como você prefere registrar o treino?</h1><p class="muted">Escolha um jeito. Dá para trocar quando quiser no seu perfil.</p>
       <div class="pk-list t4" role="radiogroup" aria-labelledby="pk-t">${opts.map((o,i) => layCard(o, sel===o.id, 'tlay', i===0?'Sugerido':'', tlThumb)).join('')}</div>
-      <button type="button" class="btn primary block" data-a="tlay-go"${sel?'':' disabled'}>Começar${ic('chev')}</button>`; }
+      <button type="button" class="btn primary block" data-a="tlay-go"${sel?'':' disabled'}>Continuar${ic('chev')}</button>`; }
   let w = el;
   if(!w){ w = document.createElement('div'); w.id = 'pick'; w.setAttribute('role','dialog'); w.setAttribute('aria-modal','true'); w.setAttribute('aria-labelledby','pk-t'); document.body.appendChild(w); }
   w.className = 'pick st'+st; w.innerHTML = `<div class="pk-in">${html}</div>`; w.scrollTop = 0; document.body.classList.add('locked');
@@ -5721,6 +5739,8 @@ function runTweens(root){
 }
 function render(){
   $app.innerHTML = ({hoje:vHoje,treino:vTreino,cardio:vCardio,agua:vAgua,evo:vEvo})[ui.tab]();
+  // 1ª vez na aba Treino (ou Cardio): escolher o visual do treino e do cardio
+  if(ACCT && (ui.tab==='treino' || ui.tab==='cardio') && (!PREF.treinoLayout || !PREF.cardioLayout) && !ui.sheet && !document.getElementById('pick') && !document.getElementById('login')){ ui.pstep = null; setTimeout(renderPick, 0); }
   $app.dataset.tab = ui.tab;
   $app.classList.remove('enter');
   if(ui.enter){ void $app.offsetWidth; $app.classList.add('enter'); ui.enter = false; }
@@ -5746,6 +5766,7 @@ function renderSheet(freshOpen){
 function closeSheet(){
   const wrap = $sheet.querySelector('.sheet-wrap');
   if(ui.sheet && ui.sheet.k==='meus' && S && S.conta && mtLetras()) mtFix();
+  if(ui.sheet && ui.sheet.k==='meus' && S && !S.acomp) setTimeout(acompAsk, 300);
   ui.sheet = null;
   document.body.classList.remove('locked');
   if(!wrap || RM()) $sheet.innerHTML = '';
@@ -5999,7 +6020,9 @@ function onClick(ev){
   if(a==='doc-open'){ ui.sheet = {k:'doc', d:d.v}; renderSheet(true); return; }
   if(a==='doc-tab'){ ui.sheet.d = d.v; renderSheet(); return; }
   if(a==='acc-open'){ ui.sheet = {k:'excluir'}; renderSheet(true); return; }
-  if(a==='bx-x' || a==='bx-ok'){ if(b.classList.contains('sheet-wrap') && ev.target!==b) return; if(S && S.inst==='novo'){ S.inst = 'visto'; save(); } closeSheet(); if(a==='bx-ok') toast(IOS ? 'Boa! A partir de agora, abra pelo ícone.' : 'Boa! Abra o Simplificando pelo ícone na sua tela.'); return; }
+  if(a==='bx-x' || a==='bx-ok'){ if(b.classList.contains('sheet-wrap') && ev.target!==b) return; const novo = S && S.inst==='novo'; if(novo){ S.inst = 'visto'; save(); } closeSheet();
+    // conta recém-criada: depois do "Baixe nosso app" vem montar o treino (quem escolheu montar) ou o "Quer compartilhar" (se ficou no site)
+    if(novo && AFTER==='meus' && ACCT && ACCT.mode==='self'){ AFTER = null; setTimeout(mtOpen, 400); } else if(novo && a==='bx-x') acompAsk(); if(a==='bx-ok') toast(IOS ? 'Boa! A partir de agora, abra pelo ícone.' : 'Boa! Abra o Simplificando pelo ícone na sua tela.'); return; }
   if(a==='bx-go'){ const s2 = ui.sheet; if(!s2) return; const evI = INST_EV;
     if(!evI){ s2.st = 'menu'; renderSheet(); return; }
     INST_EV = null; s2.st = 'quase'; renderSheet();
@@ -6091,7 +6114,7 @@ function onClick(ev){
       const go = document.querySelector('#pick [data-a="clay-go"]'); if(go) go.disabled = false;
       re = false; break;
     }
-    case 'clay-go': { const v = ui.pick || PREF.cardioLayout; if(v){ PREF.cardioLayout = v; savePref(); if(ui.tpick && !tlSuggest().ids.includes(ui.tpick)) ui.tpick = null; ui.pstep = PREF.treinoLayout && !ui.pback ? 0 : 2; ui.pback = true; renderPick(); if(!ui.pstep) toast('Pronto. Dá para trocar no seu perfil.'); } break; }
+    case 'clay-go': { const v = ui.pick || PREF.cardioLayout; if(v){ PREF.cardioLayout = v; savePref(); ui.pstep = 0; renderPick(); toast('Pronto. Dá para trocar no seu perfil.'); } break; }
     case 'prof-to': {
       ui.sheet = {k:'prof'}; renderSheet(true);
       const sh = $sheet.querySelector('.sheet'), h = document.getElementById(d.v), box = h && h.closest('.prefs');
@@ -6105,7 +6128,7 @@ function onClick(ev){
       const go = document.querySelector('#pick [data-a="tlay-go"]'); if(go) go.disabled = false;
       re = false; break;
     }
-    case 'tlay-go': if(ui.tpick){ PREF.treinoLayout = ui.tpick; savePref(); ui.pstep = 0; renderPick(); toast('Pronto. Dá para trocar no seu perfil.'); } break;
+    case 'tlay-go': if(ui.tpick){ PREF.treinoLayout = ui.tpick; savePref(); ui.pstep = PREF.cardioLayout && !ui.pback ? 0 : 2; ui.pback = true; renderPick(); if(!ui.pstep) toast('Pronto. Dá para trocar no seu perfil.'); } break;
     case 'set-tlay': PREF.treinoLayout = d.v; savePref(); ui.tsel = null; ui.pop = null; renderSheet(); renderRest(); toast('Treino no jeito '+TLAYS.find(o => o.id===d.v).n+'.'); break;
     case 'tsel': ui.tsel = {id:d.ex, i:+d.i}; ui.lopen = d.ex; break;
     case 'lopen': ui.lopen = ui.lopen===d.ex ? null : d.ex; ui.tsel = null; break;
