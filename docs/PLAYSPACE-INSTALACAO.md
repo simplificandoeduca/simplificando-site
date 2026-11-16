@@ -1203,6 +1203,14 @@ O que foi corrigido:
 
 Fica como está (regra da loja, para o dono confirmar): o valor do produto no "Alterar pacote" entra em Pacotes de horas; o faturado conta na unidade da venda e o recebido na unidade do aparelho que recebeu; um resto de saldo menor que um período (ex.: 10 min de uma importação) não é usado sozinho; duas vendas iguais feitas sem internet em dois computadores valem as duas (o dinheiro foi recebido nos dois).
 
+## 6zz. A coluna Tempo sem o "até" (1.46)
+
+Pedido do dono: na tela inicial, a coluna **Tempo** não mostra mais o "até 13:46" (a hora em que acaba o tempo comprado). O cliente se perde no tempo, e quanto cobrar aparece na saída.
+
+- Fica o relógio de quanto tempo a criança está dentro e, embaixo, o **"passou X min"** de quem passou do tempo comprado (é o que vai ser cobrado).
+- Vale também para o carrinho com tempo comprado.
+- A ficha do cliente e a tela da saída continuam mostrando o tempo do pacote, para quem precisar conferir.
+
 ## 7. Atualizar
 
 Botão **Atualizar** ao lado da versão. Ele baixa a versão nova do GitHub (ramo principal ou de trabalho, a mais nova), confere a versão dentro do arquivo e troca os arquivos de forma atômica. Não mexe em `~/playspace-dados/`. Se o GitHub demorar a refletir (cache de ~5 min), espere e toque de novo.

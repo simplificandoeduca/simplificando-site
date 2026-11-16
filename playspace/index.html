@@ -1669,7 +1669,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.45';
+const VERSAO = '1.46';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -4661,10 +4661,10 @@ const alugSeg = a => Math.max(0, (agora - a.ini) / 1000);
 const alugSobra = a => !alugHoje(a) ? -1e9 : a.min > 0 ? a.min * 60 - alugSeg(a) : Infinity;   // segundos que faltam do tempo comprado (negativo: passou; de outro dia: vem primeiro)
 const alugSit = a => !alugHoje(a) ? 'passou' : a.min > 0 ? (alugSobra(a) < 0 ? 'passou' : alugSobra(a) <= S.cfg.aviso * 60 ? 'acabando' : 'ok') : 'livre';
 const alugPassou = a => { const m = Math.max(1, Math.floor(-alugSobra(a) / 60)); return m < 60 ? m + ' min' : dur(m); };   // quanto passou do tempo comprado
-const alugSub = a => !alugHoje(a) ? 'saiu em ' + diaCurto(a.ini) + ' às ' + hora(a.ini) : a.min > 0 ? (alugSobra(a) < 0 ? 'passou ' + hms(-alugSobra(a)) : 'até ' + hora(new Date(+a.ini + a.min * 60000))) : 'saiu às ' + hora(a.ini) + (alugAberto(a) ? ' · ' + alugAteAgora(a) + ' · ' + ITENS_ABERTO : '');
+const alugSub = a => !alugHoje(a) ? 'saiu em ' + diaCurto(a.ini) + ' às ' + hora(a.ini) : a.min > 0 ? (alugSobra(a) < 0 ? 'passou ' + hms(-alugSobra(a)) : '') : 'saiu às ' + hora(a.ini) + (alugAberto(a) ? ' · ' + alugAteAgora(a) + ' · ' + ITENS_ABERTO : '');
 const alugTempo = a => alugHoje(a) ? hms(alugSeg(a)) : diaCurto(a.ini);   // de outro dia: em vez do relógio, o dia em que saiu
 const alugNome = a => (a.q > 1 ? a.q + ' × ' : '') + a.n;
-const alugSubCurto = a => !alugHoje(a) ? 'de outro dia' : a.min > 0 ? (alugSobra(a) < 0 ? 'passou ' + alugPassou(a) : 'até ' + hora(new Date(+a.ini + a.min * 60000))) : alugAberto(a) ? alugAteAgora(a) : '';   // embaixo do relógio. 1.24: sem o "saiu às" (a hora da saída já está na coluna Entrou; o relógio de outro dia mostra a data)
+const alugSubCurto = a => !alugHoje(a) ? 'de outro dia' : a.min > 0 ? (alugSobra(a) < 0 ? 'passou ' + alugPassou(a) : '') : alugAberto(a) ? alugAteAgora(a) : '';   // embaixo do relógio. 1.24: sem o "saiu às" (a hora da saída já está na coluna Entrou; o relógio de outro dia mostra a data)
 // 1.20: o que sai da loja e é cobrado por período (o fusquinha) não é vendido por tempo. A equipe só registra a saída (a venda nasce sem valor)
 // e a conta fecha na devolução, pelo tempo que ficou fora: períodos inteiros, o primeiro conta sempre e o seguinte só depois da tolerância
 // (a mesma da recreação), e o relógio para na hora em que a loja fecha. É "em aberto" o que saiu assim e ainda não voltou. O carrinho de
@@ -4730,9 +4730,9 @@ function itensEspaco(semBusca) {   // semBusca: os números do menu fora da list
   return L.sort((x, y) => (x.sobra - y.sobra) || x.c.nome.localeCompare(y.c.nome) || (!!x.a - !!y.a));
 }
 function noEspaco() { return itensEspaco().filter(x => !x.a).map(x => x.c); }   // só as crianças, na ordem da lista
-const subEspaco = c => c.festa ? 'na festa' + (festaPorId(c.festa) ? ' de ' + festaPorId(c.festa).nome : '') + ' · sem cobrança' : aberta(c) ? 'recreação avulsa · acerta na saída' : passouSeg(c) > 0 ? 'passou ' + hms(passouSeg(c)) : 'até ' + hora(fimVisita(c));
+const subEspaco = c => c.festa ? 'na festa' + (festaPorId(c.festa) ? ' de ' + festaPorId(c.festa).nome : '') + ' · sem cobrança' : aberta(c) ? 'recreação avulsa · acerta na saída' : passouSeg(c) > 0 ? 'passou ' + hms(passouSeg(c)) : '';   /* 1.46: sem o "até" (o cliente se perde no tempo) */
 const minPassou = seg => { const m = Math.max(1, Math.floor(seg / 60)); return m < 60 ? m + ' min' : dur(m); };
-const subCurto = c => aberta(c) ? '' : passouSeg(c) > 0 ? 'passou ' + minPassou(passouSeg(c)) : 'até ' + hora(fimVisita(c));   // a linha pequena embaixo do relógio: "até 13:46" ou "passou 7 min"
+const subCurto = c => aberta(c) ? '' : passouSeg(c) > 0 ? 'passou ' + minPassou(passouSeg(c)) : '';   // a linha pequena embaixo do relógio: só o "passou 7 min". 1.46: sem o "até 13:46" (pedido do dono: o cliente se perde no tempo; quanto cobrar aparece na saída)
 const pctEspaco = c => cobertoMin(c) ? Math.min(100, segDentro(c) / (cobertoMin(c) * 60) * 100) : 100;
 // o saldo: o que fica guardado se a criança sair agora (a visita em curso já descontada, em períodos inteiros)
 const saldoAgora = c => Math.max(0, pacMin(c) - usadoAgora(c));
