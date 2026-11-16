@@ -787,6 +787,47 @@ h3.sec{font-size:22px;margin:14px 2px -2px}
 @media (min-width:960px){.main>.btn-row:has(>.savest:only-child){display:none}.dtabs-in{flex-wrap:wrap;border-radius:22px}}
 .callout.inl>div{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}.callout.inl p{margin:0}.callout.inl .btn{background:#fff;box-shadow:inset 0 0 0 1px rgba(107,74,0,.25);color:#6B4A00}
 .card .list{box-shadow:inset 0 0 0 1px var(--card-line)}
+/* ---------- Hub (/hub): entrada do dono, sempre escura, com blocos de cor cheia (igual ao app do aluno) ---------- */
+body.hub-on{background:#0F1712}
+.hub-on .side,.hub-on .tabbar{display:none}
+.hub-on .shell{grid-template-columns:minmax(0,1fr)}
+.hub-on .main{max-width:1120px;padding-bottom:calc(40px + env(safe-area-inset-bottom,0px))}
+.hub{color:#F6F5EF;padding-bottom:10px}
+.hub a{color:inherit;text-decoration:none}
+.hub .i{flex:none}
+.hb-eb{margin:0;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.hb-top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding-top:24px}
+.hb-dt{color:#FF4646}
+.hub h1{margin:4px 0 0;color:#F6F5EF;font-size:clamp(46px,13vw,64px);font-weight:900;letter-spacing:-.05em;line-height:1}
+.hub h1 i{font-style:normal;color:#FF4646}
+.hb-av{display:block;width:50px;height:50px;flex:none}
+.hb-av .logo{width:100%;height:100%;display:block}
+.hb-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:22px}
+.hb-st{background:#172019;border-radius:22px;padding:14px 14px 13px;min-width:0}
+.hb-st b{display:block;font-size:30px;font-weight:900;letter-spacing:-.04em;line-height:1}
+.hb-st span{display:block;margin-top:6px;font-size:12.5px;color:#A9B0AA;line-height:1.25}
+.hb-st em{display:flex;align-items:center;gap:3px;margin-top:8px;font-style:normal;font-size:11.5px;font-weight:700;color:#C8F542;line-height:1.2}
+.hb-st em .i{width:13px;height:13px;stroke-width:2.4}
+.hb-lbl{margin:26px 4px 10px;color:#A9B0AA}
+.hb-blocos{display:grid;gap:12px}
+.hb-bl{position:relative;display:block;border-radius:30px;padding:22px 22px 20px;color:#0F1712!important;overflow:hidden;min-height:178px;transition:transform .2s cubic-bezier(.3,1.5,.5,1)}
+.hb-bl:active{transform:scale(.98)}
+.hb-bl .hb-eb{color:rgba(15,23,18,.62)}
+.hb-bl h2{margin:6px 0 0;font-size:34px;font-weight:900;letter-spacing:-.045em;line-height:1;color:#0F1712}
+.hb-d{margin:8px 0 0;font-size:14.5px;line-height:1.35;max-width:24ch;color:rgba(15,23,18,.78)}
+.hb-go{position:absolute;right:16px;top:16px;width:46px;height:46px;border-radius:50%;background:#0F1712;color:#F6F5EF;display:grid;place-items:center}
+.hb-go .i{width:20px;height:20px;stroke-width:2.2}
+.hb-num{position:absolute;right:20px;bottom:16px;text-align:right}
+.hb-num b{display:block;font-size:44px;font-weight:900;letter-spacing:-.05em;line-height:1}
+.hb-num span{font-size:12px;font-weight:700}
+.hb-bl.red{background:#FF4646}.hb-bl.lime{background:#C8F542}.hb-bl.blue{background:#5AB8FF}
+.hb-mais{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
+.hb-ms{display:flex;flex-direction:column;align-items:flex-start;gap:12px;background:#F6F5EF;color:#0F1712!important;border-radius:22px;padding:14px;font-weight:800;font-size:14px}
+.hb-ms span{width:34px;height:34px;border-radius:12px;background:#E7E5DC;display:grid;place-items:center}
+.hb-ms .i{width:18px;height:18px}
+.hub :focus-visible{outline:3px solid #F6F5EF;outline-offset:3px}
+@media (min-width:900px){.hb-stats{grid-template-columns:repeat(3,minmax(0,220px))}.hb-blocos{grid-template-columns:repeat(3,minmax(0,1fr))}.hb-bl{min-height:260px}
+  .hb-mais{grid-template-columns:repeat(3,minmax(0,220px))}.hb-ms{flex-direction:row;align-items:center}}
 
 /* versão de teste: agenda e atendimento */
 .demo-c .btn-row{margin-top:2px}
@@ -2134,6 +2175,7 @@ function newAluno(d){
 
 /* ---------- estado da interface ---------- */
 const VIEWS = [['painel','Painel','grid'],['alunos','Alunos','users'],['biblioteca','Biblioteca','book'],['estatisticas','Estatísticas','chart']];
+const ROTAS_EXTRA = []; // abrem pelo hub (/hub), fora das abas do painel
 const TAB_COR = { perfil:'#5E6B65', saude:'#D63B3B', treino:'#FF4646', evolucao:'#2C9446', metas:'#2F78C9', avaliacoes:'#7E57C9', financeiro:'#13917F', acesso:'#E57A1E', notas:'#8A6A45' };
 const DTABS = [['perfil','Perfil','user'],['saude','Saúde','heart'],['treino','Treino','dumbbell'],['metas','Metas','drop'],['acesso','Mensagens','msg'],['evolucao','Evolução','pulse'],['financeiro','Financeiro','wallet'],['notas','Anotações','note'],['avaliacoes','Avaliações','scale']];
 const ui = { view:'painel', aluno:null, tab:'perfil', modelo:null, tl:{}, q:'', f:{origem:'',status:'',objetivo:'',pag:''}, libQ:'', libG:'', libE:'', pickQ:'', pickG:'', sheet:null, arm:null, saveSt:'saved', draft:{ novo:{}, av:{}, pay:{}, nota:'', ex:{}, tpl:{} } };
@@ -2144,7 +2186,7 @@ function readHash(){
   const m = h.match(/^aluno--(.+?)(?:--([a-z]+))?$/), mm = h.match(/^modelo--(.+)$/);
   if(m){ ui.view = 'alunos'; ui.aluno = m[1]; if(m[2] && DTABS.some(t => t[0]===m[2])) ui.tab = m[2]; }
   else if(mm){ ui.view = 'modelos'; ui.modelo = mm[1]; }
-  else if(VIEWS.some(v => v[0]===h)){ ui.view = h; if(h==='alunos') ui.aluno = null; if(h==='modelos') ui.modelo = null; }
+  else if(VIEWS.some(v => v[0]===h) || ROTAS_EXTRA.includes(h)){ ui.view = h; if(h==='alunos') ui.aluno = null; if(h==='modelos') ui.modelo = null; }
 }
 function writeHash(){
   const h = ui.view==='alunos' && ui.aluno ? 'aluno--'+ui.aluno+'--'+ui.tab : ui.view==='modelos' && ui.modelo ? 'modelo--'+ui.modelo : ui.view;
@@ -2408,6 +2450,48 @@ function lembreteDatas(){
       '<p class="muted">Hora de preparar os designs novos dos stories para '+esc(x.nome)+'. Esse aviso aparece só aqui no seu painel.</p>'+
       '<div class="btn-row"><button type="button" class="btn ink" data-a="datOk" data-k="'+esc(x.key)+'">'+ic('check')+'Já preparei</button></div></section>'; }).join('');
 }
+/* ---------- Hub (/hub): a entrada do dono, com os números do dia e um bloco para cada espaço ---------- */
+IC.arrow = '<path d="M7 17L17 7M9 7h8v8"/>';
+IC.flask = '<path d="M9 3h6M10 3v6L4.5 19a1.5 1.5 0 0 0 1.3 2h12.4a1.5 1.5 0 0 0 1.3-2L14 9V3"/><path d="M7 15h10"/>';
+IC.globe = '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 3.8 5.5 3.8 9s-1.3 6.5-3.8 9c-2.5-2.5-3.8-5.5-3.8-9S9.5 5.5 12 3z"/>';
+IC.star = '<path d="M12 3.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8-5.3-2.8-5.3 2.8 1-5.8-4.2-4.1 5.9-.9z"/>';
+IC.trend = '<path d="M4 16l5-5 4 4 7-7M15 8h5v5"/>';
+function hubNums(){
+  const all = alunos(), act = all.filter(a => P(a).status!=='inativo'), ativos = all.filter(a => (P(a).status||'ativo')==='ativo');
+  const t0 = today(), mes = t0.slice(0,7), on = pfOnline(), sem7 = Date.now()-7*864e5;
+  const novosAl = ativos.filter(a => String(a.criadoEm||'').slice(0,7)===mes).length;
+  const atencao = act.filter(a => { const p = payInfo(a).k, pl = planInfo(a).k; return p==='late' || pl==='expired' || pl==='soon'; }).length;
+  const hoje = on && PG.by ? act.filter(a => { const pg = progDe(a), d = pg && pg.d; return !!d && ((d.h||[]).some(h => h.d===t0) || !!(d.ses && d.ses.d===t0)); }).length : null;
+  const av = on && ST.av ? ST.av.filter(x => x && x.notas && (x.em||0)>=Date.now()-30*864e5) : null;
+  const nv = av ? [].concat(...av.map(x => Object.values(x.notas).map(Number).filter(v => v>=1 && v<=5))) : [];
+  const cad = on && PF.list ? PF.list.filter(p => p.tipo==='autonomo' && +p.criadoEm>0) : null;
+  return { ativos:ativos.length, todos:all.length, novosAl, atencao, hoje,
+    nota:nv.length ? nv.reduce((s,x) => s+x, 0)/nv.length : null, notas:av ? av.length : null,
+    cad:cad ? cad.filter(p => isoD(new Date(+p.criadoEm)).slice(0,7)===mes).length : null, cad7:cad ? cad.filter(p => +p.criadoEm>=sem7).length : null,
+    sug:on && ST.sug ? ST.sug.filter(x => !x.lida).length : null };
+}
+function vHub(){
+  if(pfOnline()){ loadProg(); loadEst(); loadPerfis(); }
+  const ok = Store.loaded, n = hubNums(), on = pfOnline(), v = x => x==null ? (on ? '…' : '—') : x;
+  const st = (b, l, sub) => '<div class="hb-st"><b>'+b+'</b><span>'+l+'</span>'+(sub ? '<em>'+sub+'</em>' : '')+'</div>';
+  const bl = (cor, href, eb, t, d, num, nl, novo) => '<a class="hb-bl '+cor+'" href="'+href+'"'+(novo ? ' target="_blank" rel="noopener"' : '')+'><p class="hb-eb">'+eb+'</p><h2>'+t+'.</h2><p class="hb-d">'+d+'</p><span class="hb-go">'+ic('arrow')+'</span><span class="hb-num"><b>'+num+'</b><span>'+nl+'</span></span></a>';
+  const ms = (href, icn, t) => '<a class="hb-ms" href="'+href+'" target="_blank" rel="noopener"><span>'+ic(icn)+'</span>'+t+'</a>';
+  return '<div class="hub">'+
+    '<header class="hb-top"><div><p class="hb-eb hb-dt">'+esc(hojeTxt())+'</p><h1>Hub<i>.</i></h1></div><span class="hb-av" aria-hidden="true">'+logo()+'</span></header>'+
+    '<section class="hb-stats" aria-label="Números de hoje">'+
+      st(ok ? n.ativos : '…', 'alunos ativos', ok ? (n.novosAl ? ic('trend')+'+'+n.novosAl+' no mês' : 'de '+n.todos+' cadastrados') : '')+
+      st(n.nota!=null ? fmtN(n.nota,1) : n.notas===0 ? '—' : v(null), 'nota do app', n.notas!=null ? ic('star')+(n.notas ? plural(n.notas,'nota')+' em 30 dias' : 'sem notas em 30 dias') : '')+
+      st(v(n.cad), 'cadastros no mês', n.cad7!=null ? (n.cad7 ? ic('trend')+'+'+n.cad7+' em 7 dias' : 'nenhum em 7 dias') : '')+
+    '</section>'+
+    '<p class="hb-eb hb-lbl">Seus espaços</p>'+
+    '<div class="hb-blocos">'+
+      bl('red', '/treino/', 'O que o aluno vê', 'App do aluno', 'Treino, cardio, água e evolução.', v(n.hoje), n.hoje===1 ? 'treinou hoje' : 'treinaram hoje', true)+
+      bl('lime', '#painel', 'Onde você trabalha', 'Painel', 'Alunos, treinos, mensagens e financeiro.', ok ? n.atencao : '…', n.atencao===1 ? 'pede atenção' : 'pedem atenção')+
+      bl('blue', '#estatisticas', 'Como está indo', 'Números', 'Avaliações, sugestões, stories e comprovantes.', v(n.sug), n.sug===1 ? 'sugestão nova' : 'sugestões novas')+
+    '</div>'+
+    '<div class="hb-mais">'+ms('/financas/', 'wallet', 'Finanças')+ms('/personal/teste/', 'flask', 'Painel de teste')+ms('/', 'globe', 'Site')+'</div>'+
+  '</div>';
+}
 /* ---------- Estatísticas: o que os alunos usam e sugerem, para decidir as próximas mudanças ---------- */
 const ST = { sug:null, sto:null, err:'', at:0, loading:false };
 const ST_MODC = [['cbon','Boneco','O boneco do app em movimento (foto ou vídeo)'],['cbil','Bilhete','Passe de cardio: do sofá para a meta'],['csem','Semana','Os minutos de cardio da semana'],['cpul','Pulso','Batimento, tempo e pace']];
@@ -2420,7 +2504,7 @@ async function loadEst(force){
   catch(e){ ST.err = e && e.code==='permission-denied' ? 'regras' : 'rede'; }
   // avaliações a cada 15 dias: separado, para as regras antigas não esconderem o resto da aba
   try { const meus2 = new Set(Object.values(C.alunos).map(x => x.uid).filter(Boolean)); ST.av = DEMO.list('av').filter(x => meus2.has(x.uid)); ST.avErr = ''; } catch(e){ ST.av = []; ST.avErr = e && e.code==='permission-denied' ? 'regras' : 'rede'; }
-  ST.at = Date.now(); ST.loading = false; if(ui.view==='estatisticas') render();
+  ST.at = Date.now(); ST.loading = false; if(ui.view==='estatisticas' || ui.view==='hub') render();
 }
 const tipoTxt = t => t==='autonomo' ? 'sem personal' : 'com personal';
 function vEstat(){
@@ -2963,7 +3047,7 @@ async function loadProg(force){
   PG.loading = true; PG.err = '';
   try { const L = DEMO.listProgresso(), by = {}; L.forEach(x => { if(x.aid && x.d && (!by[x.aid] || x.em>by[x.aid].em)) by[x.aid] = x; }); PG.by = by; PG.at = Date.now(); }
   catch(e){ PG.err = e && e.code==='permission-denied' ? 'regras' : 'rede'; PG.at = Date.now(); }
-  PG.loading = false; if(ui.view==='painel' || (ui.view==='alunos' && ui.aluno && (ui.tab==='evolucao' || ui.tab==='acesso'))) render();
+  PG.loading = false; if(ui.view==='painel' || ui.view==='hub' || (ui.view==='alunos' && ui.aluno && (ui.tab==='evolucao' || ui.tab==='acesso'))) render();
   clearTimeout(PG.tm); if(!PG.err && PG.by) PG.tm = setTimeout(() => { if(ui.view==='painel') loadProg(true); }, 90e3);
 }
 /* treino gravado no dia errado (ex.: começou na segunda e finalizou na terça): o personal muda o dia no painel */
@@ -3345,7 +3429,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '16 nov · 136'; // Versão do painel: 16 nov · 136
+const PAINELV = '16 nov · 137'; // Versão do painel: 16 nov · 137
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -3445,7 +3529,7 @@ async function loadPerfis(force){
   PF.loading = true; PF.err = '';
   try { PF.list = await FBP.listPerfis(); PF.at = Date.now(); }
   catch(e){ PF.err = e && e.code==='permission-denied' ? 'regras' : 'rede'; }
-  PF.loading = false; if(ui.view==='perfis') render();
+  PF.loading = false; if(ui.view==='perfis' || ui.view==='hub') render();
 }
 const DIA = 864e5, pfUsando = r => !!r.last && Date.now()-r.last < 7*DIA;
 function pfQuando(ms){
@@ -3975,7 +4059,8 @@ if(location.protocol==='file:' || /^(localhost|127\.0\.0\.1)$/.test(location.hos
 function render(){
   const k = captureFocus(), sy = window.scrollY, ts0 = document.querySelector('.dtabs-in'), tsl = ts0 ? ts0.scrollLeft : null;
   applyLook();
-  $main.innerHTML = ({painel:vPainel,alunos:vAlunos,perfis:vPerfis,biblioteca:vBiblioteca,modelos:vModelos,ajustes:vAjustes,estatisticas:vEstat})[ui.view]();
+  $main.innerHTML = ({painel:vPainel,alunos:vAlunos,perfis:vPerfis,biblioteca:vBiblioteca,modelos:vModelos,ajustes:vAjustes,estatisticas:vEstat,hub:vHub})[ui.view]();
+  document.body.classList.toggle('hub-on', ui.view==='hub');
   $side.innerHTML = navHtml();
   $tabs.innerHTML = VIEWS.map(([v,l,icn]) => '<button type="button" class="tab'+(ui.view===v?' on':'')+'" data-a="go" data-v="'+v+'" aria-current="'+(ui.view===v?'page':'false')+'" aria-label="'+l+'">'+ic(icn)+'<span>'+(v==='estatisticas' ? 'Números' : l)+'</span></button>').join('');
   if(ui.sheet) renderSheet();

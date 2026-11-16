@@ -102,3 +102,31 @@ test('Perfis mostra quem criou conta sem personal; Ajustes tem "Avisos no celula
   await expect(p2.locator('main').first()).toContainText('Atualizar');
   await p2.close();
 });
+
+test('Hub (/hub): números reais e um bloco para cada espaço; Números saiu das abas do painel', async ({ page }) => {
+  await entraPainel(page);
+  await expect(page.locator('#tabs')).not.toContainText('Números');
+  await expect(page.locator('#tabs')).toContainText('Painel');
+  await page.goto(EMU + '/hub/');
+  await page.waitForURL(/\/personal\/#hub$/);
+  await page.waitForFunction(() => window.__painel && window.__painel.Store.loaded, null, { timeout: 20000 });
+  await expect(page.locator('.hub h1')).toHaveText('Hub.');
+  await expect(page.locator('#tabs')).toBeHidden();
+  const num = /^[1-9]\d*$/;
+  await expect(page.locator('.hb-st').nth(0).locator('b')).toHaveText(num);                        // alunos ativos (a Ana)
+  await expect(page.locator('.hb-st').nth(2).locator('b')).toHaveText(num, { timeout: 20000 });    // cadastros no mês (a Bruna)
+  await expect(page.locator('.hb-bl.red .hb-num b')).toHaveText(num, { timeout: 20000 });          // a Ana treinou hoje
+  await expect(page.locator('.hb-bl.red')).toHaveAttribute('href', '/treino/');
+  expect(await page.locator('.hb-ms').evaluateAll(L => L.map(a => a.getAttribute('href')))).toEqual(['/financas/', '/personal/teste/', '/']);
+  // Números abre fora das abas, com o botão de voltar ao hub
+  await page.click('.hb-bl.blue');
+  await expect(page).toHaveURL(/#estatisticas$/);
+  await expect(page.locator('main').first()).toContainText('Avaliação do app', { timeout: 20000 });
+  await page.click('a[href="#hub"]');
+  await expect(page.locator('.hub')).toBeVisible();
+  // Painel volta com as abas
+  await page.click('.hb-bl.lime');
+  await expect(page).toHaveURL(/#painel$/);
+  await expect(page.locator('#tabs')).toBeVisible();
+  await expect(page.locator('.hub')).toHaveCount(0);
+});

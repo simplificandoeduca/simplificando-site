@@ -28,8 +28,11 @@ rep("try { ST.av = await FBP.listCol('avaliacoes'); ST.avErr = ''; }", "try { co
 rep("FBP.dropDoc('sugestoes', d.k).catch(", "DEMO.dropDoc('sug', d.k).catch(")
 
 # ---------- abas: Painel, Alunos, Biblioteca, Estatísticas ----------
-rep("const VIEWS = [['painel','Painel','grid'],['alunos','Alunos','users'],['perfis','Perfis','eye'],['biblioteca','Biblioteca','book'],['estatisticas','Estatísticas','chart'],['ajustes','Ajustes','gear']];",
-    "const VIEWS = [['painel','Painel','grid'],['alunos','Alunos','users'],['biblioteca','Biblioteca','book'],['estatisticas','Estatísticas','chart']];")
+rep("const VIEWS = [['painel','Painel','grid'],['alunos','Alunos','users'],['perfis','Perfis','eye'],['biblioteca','Biblioteca','book'],['ajustes','Ajustes','gear']];\nconst ROTAS_EXTRA = ['hub','estatisticas'];",
+    "const VIEWS = [['painel','Painel','grid'],['alunos','Alunos','users'],['biblioteca','Biblioteca','book'],['estatisticas','Estatísticas','chart']];\nconst ROTAS_EXTRA = [];")
+# o hub (/hub) é só do seu painel: na versão de teste, Estatísticas continua sendo uma aba, com o nome e sem o botão do hub
+rep("let h = header('Números', 'Para decidir as próximas mudanças', '<a class=\"btn hb\" href=\"#hub\" aria-label=\"Voltar ao hub\">'+ic('chevL')+'<span class=\"lbl\">Hub</span></a>');",
+    "let h = header('Estatísticas', 'Para decidir as próximas mudanças', '');")
 rep("esc(cfg().nomePersonal||'Defina seu nome em Ajustes')", "esc(cfg().nomePersonal||'Versão de teste')")
 rep("+'Modo local: os dados ficam só neste navegador</span>'", "+'Versão de teste: os dados ficam só neste aparelho</span>'")
 

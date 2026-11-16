@@ -57,6 +57,7 @@ test('baixar o treino em PDF', async ({ page }) => {
 test('Números: avaliações, sugestões e stories dos alunos', async ({ page }) => {
   await abreDemo(page);
   await vai(page, '#estatisticas'); await page.waitForTimeout(800);
+  await expect(page.locator('#side')).toContainText('Estatísticas'); // na versão de teste, continua sendo uma aba (lá não tem hub)
   await expect(main(page)).toContainText('Avalia');
   await expect(main(page)).toContainText('Sugest');
 });
