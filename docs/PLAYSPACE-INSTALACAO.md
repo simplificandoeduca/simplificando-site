@@ -1257,6 +1257,25 @@ Pedido do dono: um **/financas** com login próprio (como no Notas) e a mesma ca
 
 Os números de "hoje" batem com o painel da gestora no Play Space (o faturado, o recebido e os cancelados de cada unidade). A unidade é a do aparelho em que a coisa aconteceu. A cobrança da recreação de quem está no espaço nasce no Play Space (no pulso das telas abertas): as Finanças mostram o que já nasceu.
 
+## 6zzd. A versão final: auditoria de segurança e das Finanças (1.49)
+
+Pedido do dono: "audite tudo, veja se não tem nenhum erro; o banco de informação está seguro?"; o operador com o básico; só o gestor agenda.
+
+**Segurança do Play Space** (verificado numa cópia, corrigido):
+
+- Um link de outro site (aberto pela gestora logada) fazia ações com a sessão dela, até desfazer a importação do banco de horas: agora **todo pedido** precisa do cabeçalho do app.
+- A hora "sem internet" deixava dar saída com a hora que se quisesse: se o aparelho estava falando com o servidor naquela hora, vale a hora de agora (o gestor, que já corrige horas, fica de fora). Entrar de novo não escapa: para a hora de antes de entrar, a conferência é pelo usuário (o servidor guarda, de 30 em 30 s e por 2 dias, quem estava falando com ele). Toda saída feita sem internet fica marcada no histórico ("feito sem internet, chegou às ..."), e a hora recusada também ("mandado como feito sem internet às ..., mas o aparelho estava com internet").
+- Site novo e vazio: o primeiro gestor só nasce nas 2 primeiras horas (depois, com o arquivo `liberar-primeiro-acesso` na pasta de dados).
+- O **Atualizar** só funciona com alguém logado; o registro das atualizações fica na pasta de dados (trancada); `api/.htaccess` tranca os registros de erro do PHP.
+- A chave da ponte do iDFace só vai para o gestor. A trava do login é por login + aparelho (ninguém de fora trava a gestora).
+- **A agenda:** marcar, mudar ou apagar é só do gestor (todos veem e marcam "feito"); a festa continua sendo marcada no atendimento.
+
+**O banco de dados:** fica na pasta de dados (`api/dados`, ou fora do site), trancada para o navegador (`.htaccess` + `index.html`), com nome sorteado e permissão só do servidor; as sessões ficam lá dentro; nenhuma ação baixa o banco.
+
+**Regras da loja que ficam como estão (para o dono confirmar):** o operador marca PCD no cadastro novo (50% na recreação) e dá o voucher do shopping na entrada sem pedir liberação; as Finanças mostram os dois à parte (Descontos → PCD e vouchers).
+
+**Finanças** (corrigido): a venda paga num dia e cancelada em outro não sai duas vezes do Recebido; cada desconto dado conta uma vez (mesmo repartido); a entrada desfeita na hora não conta como cancelamento (como no painel); os resumos por atendente e por quem liberou são feitos com todos os registros; datas impossíveis recusadas; a planilha não leva fórmulas; o "Esqueci a senha" das Finanças só vale com o mesmo usuário de gestor que criou o acesso (a gestora não troca a senha do dono).
+
 ## 7. Atualizar
 
 Botão **Atualizar** ao lado da versão. Ele baixa a versão nova do GitHub (ramo principal ou de trabalho, a mais nova), confere a versão dentro do arquivo e troca os arquivos de forma atômica. Não mexe em `~/playspace-dados/`. Se o GitHub demorar a refletir (cache de ~5 min), espere e toque de novo.

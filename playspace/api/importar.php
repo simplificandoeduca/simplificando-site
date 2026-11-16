@@ -13,6 +13,7 @@
    se ainda não foram usadas.
    ===================================================================== */
 declare(strict_types=1);
+if (!function_exists('db')) { http_response_code(404); exit; }   // 1.49: aberto direto pelo navegador, não faz nada (antes dava erro)
 
 const IMPORTA_LOTE = 400;          // linhas por pedido (a tela manda em lotes)
 const IMPORTA_MIN_MAX = 60000;     // mil horas: acima disso é coluna errada, não saldo (a linha entra sem horas)

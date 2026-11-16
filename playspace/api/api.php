@@ -15,10 +15,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
   if (strlen($bruto) > 6000000) falha('Envio grande demais.', 413);
   $in = json_decode($bruto, true); if (!is_array($in)) $in = $_POST;
 }
-$acao = (string)($in['acao'] ?? $_GET['acao'] ?? '');
+$acao = (string)($in['acao'] ?? '');
+if ($acao === '' && ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') $acao = (string)($_GET['acao'] ?? '');
 $GLOBALS['_gz'] = !empty($in['gz']) && stripos((string)($_SERVER['HTTP_ACCEPT_ENCODING'] ?? ''), 'gzip') !== false;   // 1.01: a tela pediu a resposta comprimida (ver responder())
 // a tela manda o cabeçalho X-Play: um formulário de outro site não consegue (proteção contra CSRF)
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_SERVER['HTTP_X_PLAY'] ?? '') !== '1') falha('Pedido sem o cabeçalho do app.', 403);
+// 1.49 (auditoria): TODO pedido precisa do cabeçalho (antes, só o POST: um link de outro site, aberto pela gestora, fazia a ação com a sessão
+// dela). Sem ele, só o "estado" (só leitura)
+if (($_SERVER['HTTP_X_PLAY'] ?? '') !== '1' && $acao !== 'estado') falha('Pedido sem o cabeçalho do app.', 403);
 iniciarSessao();
 $db = db();
 // 1.45 (auditoria): o que muda os dados é feito um pedido de cada vez. Dois aparelhos que tocam juntos (a mesma saída em dois computadores,
@@ -27,6 +30,13 @@ $db = db();
 travarEscrita($acao);
 $ip = (string)($_SERVER['REMOTE_ADDR'] ?? '');
 $val = fn(string $k, string $p = '') => trim((string)($in[$k] ?? $p));
+// 1.49 (auditoria): de quando em quando este aparelho falou com o servidor (de 30 em 30 s, nos últimos dias): é o que diz se ele estava
+// mesmo sem internet numa hora mandada como "feito sem internet"
+if (!empty($_SESSION['uid']) && empty($_SESSION['desde'])) $_SESSION['desde'] = time();   // desde quando esta sessão existe (com alguém dentro)
+if (!is_array($in['offline'] ?? null) || !isset($in['offline']['em'])) { $sl = intdiv(time(), 30); if (empty($_SESSION['vistos'][$sl])) { $_SESSION['vistos'][$sl] = 1;
+  if (count($_SESSION['vistos']) > 6000) $_SESSION['vistos'] = array_filter($_SESSION['vistos'], fn($k) => $k > $sl - OFFLINE_DIAS * 2880, ARRAY_FILTER_USE_KEY);
+  if (!empty($_SESSION['uid'])) { try { $db->prepare('INSERT OR IGNORE INTO usuarios_vistos (uid, slot) VALUES (?, ?)')->execute([(int)$_SESSION['uid'], $sl]);
+    if ($sl % 240 === 0) $db->prepare('DELETE FROM usuarios_vistos WHERE slot < ?')->execute([$sl - OFFLINE_DIAS * 2880 - 240]); } catch (Throwable $e) { } } } }
 // 1.40: o que foi feito sem internet chega depois, na ordem, com a hora em que foi feito ("offline": { uid, em }): o pedido inteiro corre
 // naquela hora (ver agoraTs). Cada envio tem uma marca única: o mesmo envio de novo (a internet caiu antes de a resposta chegar) não é feito
 // duas vezes, volta a mesma resposta. Com internet a tela já manda a marca (sem a hora), para o caso de a resposta se perder no caminho
@@ -42,8 +52,17 @@ if (is_array($in['offline'] ?? null)) {
   if (isset($off['em'])) { $ts = (int)$off['em'];
     if ($ts > time() + 300) falha('A hora deste envio está no futuro: confira o relógio do computador.', 409);
     if ($ts < time() - OFFLINE_DIAS * 86400) falha('Este envio é de mais de ' . OFFLINE_DIAS . ' dias atrás: não entra sozinho. Confira com o gestor.', 409);
-    $GLOBALS['PS_AGORA'] = min($ts, time()); $em = date('Y-m-d H:i:s', $GLOBALS['PS_AGORA']); $in['mesmo_assim'] = true; }   // (a venda repetida é conferida pela marca)
-  $GLOBALS['PS_OFF'] = ['uid' => $uid, 'acao' => $acao, 'em' => $em];
+    // 1.49 (auditoria): o aparelho falou com o servidor antes E depois dessa hora (2 min para cada lado)? Então estava com internet: a hora
+    // mandada não vale (seria uma saída com a hora que se quisesse) e vale a de agora. O gestor, que já corrige horas, fica de fora
+    $vs = $_SESSION['vistos'] ?? []; $s0 = intdiv($ts, 30); $antes = false; $depois = false;
+    for ($k = 1; $k <= 4; $k++) { if (!empty($vs[$s0 - $k])) $antes = true; if (!empty($vs[$s0 + $k])) $depois = true; }
+    // a hora mandada é de antes de esta sessão existir (entrou de novo depois)? Confere pelo usuário, em qualquer aparelho
+    if (!($antes && $depois) && !empty($_SESSION['uid']) && $ts < (int)($_SESSION['desde'] ?? 0) - 60) { try {
+      $qv = $db->prepare('SELECT COALESCE(SUM(slot < ?), 0) a, COALESCE(SUM(slot > ?), 0) d FROM usuarios_vistos WHERE uid = ? AND slot BETWEEN ? AND ?');
+      $qv->execute([$s0, $s0, (int)$_SESSION['uid'], $s0 - 4, $s0 + 4]); $rv = $qv->fetch(); $antes = (int)$rv['a'] > 0; $depois = (int)$rv['d'] > 0; } catch (Throwable $e) { } }
+    $trocou = false; if ($antes && $depois && $ts < time() - 120) { $eu0 = eu(); if ($eu0 && $eu0['papel'] !== 'gestor') { $ts = time(); $trocou = true; } }
+    $GLOBALS['PS_AGORA'] = min($ts, time()); $em = $trocou ? null : date('Y-m-d H:i:s', $GLOBALS['PS_AGORA']); $in['mesmo_assim'] = true; }   // (a venda repetida é conferida pela marca)
+  $GLOBALS['PS_OFF'] = ['uid' => $uid, 'acao' => $acao, 'em' => $em, 'negada' => (!empty($trocou) ? date('H:i', (int)$off['em']) : null)];
 }
 
 /* ---------- o que a tela carrega de uma vez ---------- */
@@ -104,7 +123,7 @@ function dados(array $eu): array {
   $pend = array_values(array_filter(array_map(fn($p) => ['id' => (int)$p['id'], 'em' => $p['criado_em']], $q->fetchAll()), fn($p) => !isset($fora[$p['id']])));
   return ['criancas' => array_values($criancas), 'registros' => $registros, 'conversas' => array_values($conversas), 'compromissos' => $compromissos, 'festas' => festasDaTela(), 'regra' => regra(), 'cancelamentos' => $canc, 'pendentes' => $pend, 'produtos' => produtos(), 'unidades' => unidades(), 'alugueis' => alugueis(), 'pagamentos_hoje' => pagamentosDesde($hojeMenos), 'cupons' => cuponsDaTela(),
     'vendas_hoje' => ['n' => (int)$vh['n'], 'min' => (int)$vh['m'], 'horas' => round((int)$vh['m'] / 60, 2), 'valor' => (float)$vh['v']], 'atraso_hoje' => $atrasoHoje, 'descontos_hoje' => $descontosHoje, 'equipe' => $equipe, 'eu' => $eu, 'versao' => PLAY_VERSAO,
-    'idface' => idfaceEstado(), 'whats' => whatsResumo(), 'agora' => agora(), 'exemplo' => ($ex = cfg('exemplo', null)) && is_array($ex) ? count($ex['criancas'] ?? []) : 0,
+    'idface' => (function (array $x) use ($eu) { if ($eu['papel'] !== 'gestor') unset($x['chave'], $x['push_url'], $x['url_ponte']); return $x; })(idfaceEstado()),   /* 1.49: a chave da ponte só para o gestor */ 'whats' => whatsResumo(), 'agora' => agora(), 'exemplo' => ($ex = cfg('exemplo', null)) && is_array($ex) ? count($ex['criancas'] ?? []) : 0,
     'limpeza' => $eu['papel'] === 'gestor' ? ['oferta' => cfg('limpeza_oferta', null) !== null, 'ultima' => limpezaPublica()] : null,
     'importacao' => $eu['papel'] === 'gestor' ? importacaoLeve() : null,
     'avisos' => avisosDaGestora($eu), 'painel' => $eu['papel'] === 'gestor' ? painelDoDia() : null, 'caixa' => caixaDoDia(), 'finalizados' => finalizadosDoDia(),   // 1.25: o que a gestora ainda não viu, o dia de cada unidade, e os finalizados do dia
@@ -159,10 +178,16 @@ switch ($acao) {
   /* ---------- entrar e sair ---------- */
   case 'estado': {
     $n = (int)$db->query('SELECT COUNT(*) FROM usuarios')->fetchColumn();
+    if ($n === 0) $db->prepare("INSERT OR IGNORE INTO config (chave, valor) VALUES ('instalado_em', ?)")->execute([(string)time()]);   // 1.49: a hora em que o site novo foi aberto pela primeira vez
     responder(['primeiro_acesso' => $n === 0, 'usuario' => eu(), 'versao' => PLAY_VERSAO]);
   }
   case 'criar_gestor': { // só quando ainda não existe ninguém
     if ((int)$db->query('SELECT COUNT(*) FROM usuarios')->fetchColumn() > 0) falha('O primeiro gestor já foi criado. Entre com o login dele.', 409);
+    // 1.49 (auditoria): o primeiro gestor só nasce nas 2 primeiras horas depois que o site novo foi aberto (quem instala cria logo em seguida);
+    // depois disso, só com o arquivo "liberar-primeiro-acesso" posto na pasta de dados pelo cPanel
+    $db->prepare("INSERT OR IGNORE INTO config (chave, valor) VALUES ('instalado_em', ?)")->execute([(string)time()]);
+    $q0 = $db->query("SELECT valor FROM config WHERE chave = 'instalado_em'"); $inst = (int)$q0->fetchColumn(); $q0->closeCursor();
+    if (time() - $inst > 7200 && !is_file(pastaDados() . '/liberar-primeiro-acesso')) falha('A instalação está aberta há mais de 2 horas sem gestor. Por segurança, ponha um arquivo chamado liberar-primeiro-acesso na pasta de dados (cPanel) e tente de novo.', 403);
     $nome = maiusculo($val('nome')); $login = mb_strtolower($val('login')); $senha = (string)($in['senha'] ?? '');
     if ($nome === '' || $login === '' || strlen($senha) < 6) falha('Preencha nome, login e uma senha com pelo menos 6 caracteres.');
     $db->prepare("INSERT INTO usuarios (nome, login, senha, papel, criado_em) VALUES (?, ?, ?, 'gestor', ?)")->execute([$nome, $login, password_hash($senha, PASSWORD_DEFAULT), agora()]);
@@ -172,8 +197,9 @@ switch ($acao) {
   case 'entrar': {
     $login = mb_strtolower($val('login')); $senha = (string)($in['senha'] ?? '');
     $db->prepare('DELETE FROM tentativas WHERE quando < ?')->execute([time() - 900]);
-    $q = $db->prepare('SELECT COUNT(*) FROM tentativas WHERE (login = ? OR ip = ?) AND quando > ?'); $q->execute([$login, $ip, time() - 900]);
-    if ((int)$q->fetchColumn() >= 8) falha('Muitas tentativas. Espere 15 minutos e tente de novo.', 429);
+    // 1.49 (auditoria): 8 erros deste login neste aparelho, ou 30 erros deste aparelho (qualquer login), em 15 min (antes, 8 erros de qualquer lugar travavam a gestora)
+    $q = $db->prepare('SELECT COALESCE(SUM(login = ?), 0) l, COUNT(*) t FROM tentativas WHERE ip = ? AND quando > ?'); $q->execute([$login, $ip, time() - 900]); $tq = $q->fetch();
+    if ((int)$tq['l'] >= 8 || (int)$tq['t'] >= 30) falha('Muitas tentativas. Espere 15 minutos e tente de novo.', 429);
     $q = $db->prepare('SELECT * FROM usuarios WHERE login = ? AND ativo = 1'); $q->execute([$login]); $u = $q->fetch();
     if (!$u || !password_verify($senha, $u['senha'])) { $db->prepare('INSERT INTO tentativas (login, ip, quando) VALUES (?, ?, ?)')->execute([$login, $ip, time()]); usleep(400000); falha('Login ou senha errados.', 401); }
     session_regenerate_id(true); $_SESSION['uid'] = (int)$u['id'];
@@ -886,8 +912,8 @@ switch ($acao) {
 
   /* ---------- agenda ---------- */
   case 'comp_feito': { exigir(); $db->prepare('UPDATE compromissos SET feito = ? WHERE id = ?')->execute([empty($in['feito']) ? 0 : 1, (int)($in['id'] ?? 0)]); responder(); }
-  case 'comp_salvar': {
-    exigir(); $id = (int)($in['id'] ?? 0); $titulo = mb_substr(emMaiusculas($val('titulo')), 0, 120); if ($titulo === '') falha('Falta dizer o quê.');
+  case 'comp_salvar': {   // 1.49: só o gestor marca (e muda) na agenda; a festa é marcada no atendimento
+    exigir(['gestor']); $id = (int)($in['id'] ?? 0); $titulo = mb_substr(emMaiusculas($val('titulo')), 0, 120); if ($titulo === '') falha('Falta dizer o quê.');
     $dia = $val('dia'); if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dia)) falha('Dia inválido.');
     $hora = $val('hora', '15:00'); if (!preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $hora)) $hora = '15:00';
     $tipo = in_array($val('tipo'), ['oficina', 'festa', 'compromisso', 'postagem'], true) ? $val('tipo') : 'oficina';
@@ -896,7 +922,7 @@ switch ($acao) {
     else { $db->prepare('INSERT INTO compromissos (dia, hora, titulo, tipo, sub, obs, criado_em) VALUES (?, ?, ?, ?, ?, ?, ?)')->execute([$dia, $hora, $titulo, $tipo, $subs[$tipo], mb_substr(emMaiusculas($val('obs')), 0, 500), agora()]); $id = (int)$db->lastInsertId(); }
     responder(['id' => $id]);
   }
-  case 'comp_apagar': { exigir(); $db->prepare('DELETE FROM compromissos WHERE id = ?')->execute([(int)($in['id'] ?? 0)]); responder(); }
+  case 'comp_apagar': { exigir(['gestor']); $db->prepare('DELETE FROM compromissos WHERE id = ?')->execute([(int)($in['id'] ?? 0)]); responder(); }
 
   /* ---------- ajustes: a regra das horas e os pacotes ---------- */
   case 'regra_salvar': {

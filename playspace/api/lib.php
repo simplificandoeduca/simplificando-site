@@ -377,6 +377,14 @@ function db(): PDO {
     $pdo->exec("CREATE TABLE IF NOT EXISTS push_inscricoes (id INTEGER PRIMARY KEY, usuario_id INTEGER NOT NULL, endpoint TEXT NOT NULL UNIQUE, p256dh TEXT NOT NULL, auth TEXT NOT NULL, aparelho TEXT NOT NULL DEFAULT '', criado_em TEXT NOT NULL, ultimo_ok TEXT, falhas INTEGER NOT NULL DEFAULT 0)");
     $pdo->exec('PRAGMA user_version = 34');
   }
+  if ($v < 35) { // 1.49: o desconto guarda de qual linha do dia ele é (cada desconto dado conta uma vez nas Finanças)
+    try { $pdo->exec('ALTER TABLE vendas ADD COLUMN desc_reg INTEGER'); } catch (Throwable $e) { }
+    $pdo->exec('PRAGMA user_version = 35');
+  }
+  if ($v < 36) { // 1.49: de 30 em 30 s, quem falou com o servidor (a conferência da hora "sem internet"; guarda só 2 dias)
+    $pdo->exec('CREATE TABLE IF NOT EXISTS usuarios_vistos (uid INTEGER NOT NULL, slot INTEGER NOT NULL, PRIMARY KEY (uid, slot)) WITHOUT ROWID');
+    $pdo->exec('PRAGMA user_version = 36');
+  }
   return $pdo;
 }
 /* ---------- 1.06: unidades ---------- */
@@ -787,6 +795,7 @@ function fecharPedidosDeDesconto(?array $u, array $c, string $onde): void { // $
 /* ---------- registros (o painel "Hoje na recepção") e as mensagens ---------- */
 function registrar(string $tipo, ?int $criancaId, string $nome, string $texto, ?string $quando = null, $unidade = false): int {   // 1.06: $unidade = false usa a do aparelho que fez o pedido
   if (!empty($GLOBALS['PS_OFF']['em'])) $texto .= ' · feito sem internet (chegou às ' . date('H:i') . ')';   // 1.40
+  elseif (!empty($GLOBALS['PS_OFF']['negada'])) $texto .= ' · mandado como feito sem internet às ' . $GLOBALS['PS_OFF']['negada'] . ', mas o aparelho estava com internet: vale a hora de chegada';   // 1.49
   db()->prepare('INSERT INTO registros (quando, tipo, crianca_id, nome, texto, unidade_id) VALUES (?, ?, ?, ?, ?, ?)')->execute([$quando ?: agora(), $tipo, $criancaId, $nome, $texto, $unidade === false ? unidadeDoPedido() : ($unidade ? (int)$unidade : null)]);
   return (int)db()->lastInsertId();
 }
@@ -1178,14 +1187,15 @@ function aplicarDesconto(array $d, array $faltas, array $c, array $u): array {
   foreach ($rep as $vid => $x) $q->execute([$x, $x, $d['motivo'], $d['motivo'], $deQuem, (int)$vid]);
   $total = round(array_sum($rep), 2); $pct = $d['pct'] > 0 ? ' (' . rtrim(rtrim(number_format((float)$d['pct'], 2, ',', ''), '0'), ',') . '%)' : '';
   $reg = registrar('desc', (int)$c['id'], $c['nome'], 'Desconto · ' . dinheiro($total) . $pct . ' · Motivo: ' . $d['motivo'] . ' · por ' . primeiroNome((string)$u['nome']) . (!empty($d['aut_nome']) ? ' · autorizado por ' . primeiroNome((string)$d['aut_nome']) : ''));
+  db()->prepare('UPDATE vendas SET desc_reg = ? WHERE id IN (' . implode(',', array_map('intval', array_keys($rep))) . ')')->execute([$reg]);   // 1.49
   return ['valor' => $total, 'vendas' => $rep, 'registro' => $reg, 'motivo' => $d['motivo']];
 }
 // o Desfazer: devolve às vendas o desconto que tinha sido dado ([venda => desconto]), tira o motivo dele e apaga a linha do dia
 function tirarDesconto(int $criancaId, array $rep, int $registro, string $motivo = ''): void {
   $db = db(); $fim = ' + ' . $motivo; $q = $db->prepare("UPDATE vendas SET valor = ROUND(valor + ?, 2), desc_valor = ROUND(desc_valor - ?, 2),
     desc_motivo = CASE WHEN desc_valor - ? < 0.005 THEN '' WHEN ? != '' AND substr(desc_motivo, -length(?)) = ? THEN substr(desc_motivo, 1, length(desc_motivo) - length(?)) ELSE desc_motivo END,
-    desc_por = CASE WHEN desc_valor - ? < 0.005 THEN NULL ELSE desc_por END WHERE id = ? AND crianca_id = ? AND desc_valor >= ? - 0.005");
-  foreach ($rep as $vid => $x) { $x = round((float)$x, 2); if ($x > 0) $q->execute([$x, $x, $x, $motivo, $fim, $fim, $fim, $x, (int)$vid, $criancaId, $x]); }
+    desc_por = CASE WHEN desc_valor - ? < 0.005 THEN NULL ELSE desc_por END, desc_reg = CASE WHEN desc_valor - ? < 0.005 THEN NULL ELSE desc_reg END WHERE id = ? AND crianca_id = ? AND desc_valor >= ? - 0.005");
+  foreach ($rep as $vid => $x) { $x = round((float)$x, 2); if ($x > 0) $q->execute([$x, $x, $x, $motivo, $fim, $fim, $fim, $x, $x, (int)$vid, $criancaId, $x]); }
   if ($registro) $db->prepare("DELETE FROM registros WHERE id = ? AND crianca_id = ? AND tipo = 'desc'")->execute([$registro, $criancaId]);
 }
 /* ---------- 1.02: pago ou não pago ---------- */

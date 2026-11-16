@@ -38,6 +38,11 @@ $site = isset($_SERVER['HTTP_SEC_FETCH_SITE']) ? $_SERVER['HTTP_SEC_FETCH_SITE']
 $origem = isset($_SERVER['HTTP_ORIGIN']) ? parse_url($_SERVER['HTTP_ORIGIN'], PHP_URL_HOST) : (isset($_SERVER['HTTP_REFERER']) ? parse_url($_SERVER['HTTP_REFERER'], PHP_URL_HOST) : '');
 $meuHost = isset($_SERVER['HTTP_HOST']) ? preg_replace('/:\d+$/', '', $_SERVER['HTTP_HOST']) : '';
 if (($site !== '' && $site !== 'same-origin') || ($origem !== '' && $origem !== $meuHost) || !isset($_SERVER['HTTP_X_PEDIDO'])) sai(['ok' => false, 'erro' => 'A atualização só pode ser pedida de dentro do próprio Play Space.'], 403);
+// 1.49 (auditoria): só quem está logado no Play Space atualiza (antes, qualquer um de fora disparava). Se a biblioteca do servidor estiver
+// quebrada (uma atualização que deu errado), a atualização segue liberada: é ela que conserta
+$logado = null; $pastaReg = $aqui;
+try { require_once $aqui . '/api/lib.php'; iniciarSessao(); $logado = eu(); session_write_close(); $pastaReg = pastaDados(); } catch (Throwable $e) { $logado = ['papel' => 'sem-biblioteca']; }
+if (!$logado) sai(['ok' => false, 'erro' => 'Entre no Play Space para atualizar.'], 401);
 if (!$melhor) sai(['ok' => false, 'erro' => 'Não consegui ler a versão nova no GitHub. Tente de novo em instantes.'], 502);
 if (!version_compare($melhor['versao'], $atual, '>')) sai(['ok' => false, 'erro' => 'Você já está na versão mais nova (v' . $atual . ').'], 409);
 $trava = $aqui . '/.atualizando';
@@ -75,5 +80,5 @@ foreach ($arquivos as $rel => $conteudo) {
 }
 if (!$n) sai(['ok' => false, 'erro' => 'Nenhum arquivo foi copiado. ' . implode(', ', $falhas)], 500);
 if (isset($arquivos['versao.json'])) { @file_put_contents($aqui . '/versao.json.novo', $arquivos['versao.json']); @rename($aqui . '/versao.json.novo', $aqui . '/versao.json'); }
-@file_put_contents($aqui . '/atualizacoes.log', date('Y-m-d H:i') . " · v$atual → v$versaoNova ({$melhor['ramo']}) · $n arquivos" . ($falhas ? ' · falhou: ' . implode(', ', $falhas) : '') . "\n", FILE_APPEND);
+@file_put_contents($pastaReg . '/atualizacoes.log', date('Y-m-d H:i') . " · v$atual → v$versaoNova ({$melhor['ramo']}) · $n arquivos" . ($falhas ? ' · falhou: ' . implode(', ', $falhas) : '') . "\n", FILE_APPEND);
 sai(['ok' => true, 'versao' => $versaoNova, 'arquivos' => $n, 'falhas' => $falhas]);

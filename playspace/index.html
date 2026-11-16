@@ -1669,7 +1669,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.48';
+const VERSAO = '1.49';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -6845,11 +6845,11 @@ function telaAgenda() {
   const sel = new Date(S.diaSel + 'T12:00'), doDia = S.compromissos.filter(x => x.dia === S.diaSel).sort((a, b) => a.hora.localeCompare(b.hora));
   const semana = (() => { const d0 = new Date(sel); d0.setDate(d0.getDate() - d0.getDay()); const d6 = new Date(d0); d6.setDate(d0.getDate() + 6); return S.compromissos.filter(x => x.dia >= isoDia(d0) && x.dia <= isoDia(d6) && x.dia !== S.diaSel).sort((a, b) => (a.dia + a.hora).localeCompare(b.dia + b.hora)); })();
   const item = x => itemComp(x, S.diaSel);
-  return faixa('Agenda', 'Oficinas, festas e compromissos', `<button class="chip tap" data-ir="festas" title="As festas vendidas das unidades, com o tema">${ic(IC.festa, 16)} Festas</button><button class="chip tap" data-act="novo-comp">${ic(IC.mais, 16, 2.6)} Novo</button>`) + `
+  return faixa('Agenda', 'Oficinas, festas e compromissos', `<button class="chip tap" data-ir="festas" title="As festas vendidas das unidades, com o tema">${ic(IC.festa, 16)} Festas</button>${gestor() ? `<button class="chip tap" data-act="novo-comp">${ic(IC.mais, 16, 2.6)} Novo</button>` : ''}`) + `
   <div class="cards" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
     <div class="card"><div class="cal-cab"><h2>${MESES[m]} ${y}</h2><div class="nav"><button class="tap" data-act="mes" data-n="-1" aria-label="Mês anterior">${ic(IC.volta, 18)}</button><button class="tap" data-act="mes" data-n="0" aria-label="Hoje" style="width:auto;padding:0 10px;font-weight:800;font-size:13px">Hoje</button><button class="tap" data-act="mes" data-n="1" aria-label="Próximo mês">${ic(IC.vai, 18)}</button></div></div><div class="cal">${cel}</div>
       <div class="acoes" style="gap:12px;font-size:12.5px;color:var(--tinta-2);font-weight:700">${Object.entries(TIPOS).map(([k, [n, cor]]) => `<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:9px;height:9px;border-radius:50%;background:${cor};display:inline-block"></i>${n}</span>`).join('')}</div></div>
-    <div class="sec sobe" id="agenda-dia"><div class="sec-cab"><h2><i></i>${S.diaSel === hojeStr ? 'Hoje' : SEMANA[sel.getDay()]}, ${sel.getDate()} de ${MESES[sel.getMonth()]}</h2><button class="link tap" data-act="novo-comp">Marcar neste dia</button></div>
+    <div class="sec sobe" id="agenda-dia"><div class="sec-cab"><h2><i></i>${S.diaSel === hojeStr ? 'Hoje' : SEMANA[sel.getDay()]}, ${sel.getDate()} de ${MESES[sel.getMonth()]}</h2>${gestor() ? '<button class="link tap" data-act="novo-comp">Marcar neste dia</button>' : ''}</div>
       ${doDia.length ? doDia.map(item).join('') : `<div class="card vazio">${ic(IC.agenda, 26)}<b>Dia livre</b><span>Toque em "Marcar neste dia" para criar uma oficina, festa ou compromisso.</span></div>`}
       ${semana.length ? `<div class="sec-cab" style="margin-top:8px"><h2 style="font-size:16px"><i style="background:var(--mostarda)"></i>Também nesta semana</h2></div>${semana.map(item).join('')}` : ''}
     </div>
@@ -6859,7 +6859,7 @@ function folhaComp(id) {
   const x = S.compromissos.find(c => c.id === +id); if (!x) return; const d = new Date(x.dia + 'T12:00');
   abrirFolha(esc(x.titulo), `<div class="marca"><i style="width:12px;height:12px;border-radius:50%;background:${TIPOS[x.tipo][1]};flex:none"></i><span><b>${TIPOS[x.tipo][0]}</b> · ${SEMANA[d.getDay()]}, ${d.getDate()} de ${MESES[d.getMonth()]} às ${x.hora}</span></div>
     ${x.obs ? `<p class="explica">${esc(x.obs)}</p>` : ''}
-    <div class="acoes"><button class="bt ${x.feito ? '' : 'forte'} tap" data-act="comp-feito-folha" data-id="${x.id}">${ic(IC.check)} ${x.feito ? 'Desmarcar feito' : 'Marcar como feito'}</button><button class="bt tap" data-act="comp-editar" data-id="${x.id}">${ic(IC.lapis)} Editar</button>${COM_WHATS ? `<button class="bt tap" data-act="comp-zap" data-id="${x.id}">${ic(IC.zap)} Divulgar no WhatsApp</button>` : ''}<button class="bt claro tap" data-act="comp-apagar" data-id="${x.id}" style="color:var(--erro)">Apagar</button></div>`);
+    <div class="acoes"><button class="bt ${x.feito ? '' : 'forte'} tap" data-act="comp-feito-folha" data-id="${x.id}">${ic(IC.check)} ${x.feito ? 'Desmarcar feito' : 'Marcar como feito'}</button>${gestor() ? `<button class="bt tap" data-act="comp-editar" data-id="${x.id}">${ic(IC.lapis)} Editar</button>` : ''}${COM_WHATS ? `<button class="bt tap" data-act="comp-zap" data-id="${x.id}">${ic(IC.zap)} Divulgar no WhatsApp</button>` : ''}${gestor() ? `<button class="bt claro tap" data-act="comp-apagar" data-id="${x.id}" style="color:var(--erro)">Apagar</button>` : ''}</div>`);
 }
 function folhaNovoComp(x) {
   abrirFolha(x ? 'Editar' : 'Novo compromisso', `
@@ -7276,7 +7276,7 @@ const ACOES = {
   enviar: () => { const t = $('#zap-texto'); const v = t.value; t.value = ''; enviar(v); if (MODO !== 'servidor') deuCerto('Enviado no WhatsApp'); },
   'dia-sel': el => { S.diaSel = el.dataset.dia; desenhar(); },
   mes: el => { const n = +el.dataset.n; if (n === 0) { S.mes = { y: agora.getFullYear(), m: agora.getMonth() }; S.diaSel = isoDia(agora); } else { const d = new Date(S.mes.y, S.mes.m + n, 1); S.mes = { y: d.getFullYear(), m: d.getMonth() }; S.diaSel = isoDia(d); } desenhar(); $('.cal').animate([{ opacity: .3, transform: `translateX(${n * 18}px)` }, { opacity: 1, transform: 'none' }], { duration: 340, easing: 'cubic-bezier(.32,.72,0,1)' }); },
-  comp: el => folhaComp(el.dataset.id), 'novo-comp': () => folhaNovoComp(null),
+  comp: el => folhaComp(el.dataset.id), 'novo-comp': () => { if (!gestor()) { toast('Só o gestor marca na agenda. A festa é marcada no atendimento.'); return; } folhaNovoComp(null); },   /* 1.49 */
   'comp-feito-folha': el => { fecharFolha(); ACOES['comp-feito'](el); },
   'comp-feito': el => { const x = S.compromissos.find(c => c.id === +el.dataset.id); if (!x) return; x.feito = !x.feito; if (MODO === 'servidor') api('comp_feito', { id: x.id, feito: x.feito }).catch(e => toast(e.message)); desenhar(); { const sl = $('#semana-lista'); if (sl) sl.innerHTML = blocosSemana(); } deuCerto(x.feito ? `${x.titulo}: feito ✓` : `${x.titulo}: voltou para a lista`, () => { x.feito = !x.feito; if (MODO === 'servidor') api('comp_feito', { id: x.id, feito: x.feito }).catch(() => {}); desenhar(); }); },
   'comp-editar': el => { const x = S.compromissos.find(c => c.id === +el.dataset.id); fecharFolha(); setTimeout(() => folhaNovoComp(x), 200); },

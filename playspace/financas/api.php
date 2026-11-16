@@ -10,7 +10,7 @@
 declare(strict_types=1);
 require __DIR__ . '/../api/lib.php';
 set_exception_handler(function (Throwable $e) { registrarErro('[financas] ' . $e->getMessage() . ' @' . basename($e->getFile()) . ':' . $e->getLine()); falha('Algo deu errado. Tente de novo em instantes.', 500); });
-const FIN_VERSAO = '1.0';
+const FIN_VERSAO = '1.1';
 
 $in = [];
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
@@ -59,8 +59,10 @@ function finErrou(string $ip): void { db()->prepare("INSERT INTO tentativas (log
 function finGestorConfere(array $in, string $ip): array {
   $l = trim((string)($in['gestor_login'] ?? '')); $s = (string)($in['gestor_senha'] ?? '');
   if ($l === '' || $s === '') falha('Digite o usuário e a senha de gestor do Play Space.');
+  $lm = mb_strtolower($l); $q = db()->prepare('SELECT COUNT(*) FROM tentativas WHERE login = ? AND quando > ?'); $q->execute([$lm, time() - 900]);   // (a mesma trava do login do Play Space)
+  if ((int)$q->fetchColumn() >= 8) falha('Muitas tentativas com esse usuário. Espere 15 minutos e tente de novo.', 429);
   $q = db()->prepare("SELECT * FROM usuarios WHERE login = ? AND ativo = 1"); $q->execute([$l]); $g = $q->fetch();
-  if (!$g || !password_verify($s, (string)$g['senha'])) { finErrou($ip); falha('Usuário ou senha do Play Space incorretos.', 401); }
+  if (!$g || !password_verify($s, (string)$g['senha'])) { db()->prepare('INSERT INTO tentativas (login, ip, quando) VALUES (?, ?, ?)')->execute([$lm, $ip, time()]); finErrou($ip); falha('Usuário ou senha do Play Space incorretos.', 401); }
   if ((string)$g['papel'] !== 'gestor') { finErrou($ip); falha('Só um usuário de gestor do Play Space pode fazer isso.', 403); }
   return $g;
 }
@@ -78,11 +80,12 @@ if ($acao === 'estado') {
 if ($acao === 'criar_conta') {
   finBloqueado($ip);
   if (finPrincipal()) falha('O acesso às Finanças já foi criado. Entre com o seu login e a senha.', 409);
-  finGestorConfere($in, $ip);
+  $gDono = finGestorConfere($in, $ip);
   $nome = finNome($in['nome'] ?? ''); if ($nome === '') falha('Escreva o seu nome.');
   $login = finLogin($in['login'] ?? '') ?: finLogin(explode(' ', $nome)[0] ?? ''); if (strlen($login) < 3) falha('O login precisa ter pelo menos 3 letras (ex.: jose).');
   $senha = (string)($in['senha'] ?? ''); if (strlen($senha) < 6) falha('A senha precisa ter pelo menos 6 caracteres.');
   $db->prepare('INSERT INTO fin_usuarios (nome, login, senha, criado_em) VALUES (?, ?, ?, ?)')->execute([$nome, $login, password_hash($senha, PASSWORD_DEFAULT), agora()]);
+  $db->prepare("INSERT OR REPLACE INTO config (chave, valor) VALUES ('fin_dono', ?)")->execute([(string)(int)$gDono['id']]);   // 1.49: o gestor que criou: só ele recupera a senha
   $q = $db->prepare('SELECT * FROM fin_usuarios WHERE login = ?'); $q->execute([$login]); $u = $q->fetch();
   finEntrou($u); responder(['usuario' => finOut($u)]);
 }
@@ -96,7 +99,12 @@ if ($acao === 'entrar') {
 }
 if ($acao === 'redefinir') { // esqueceu a senha: o dono prova quem é com o usuário de gestor do Play Space e escolhe a senha nova
   finBloqueado($ip); $p = finPrincipal(); if (!$p) falha('O acesso às Finanças ainda não foi criado.', 404);
-  finGestorConfere($in, $ip);
+  $g = finGestorConfere($in, $ip);
+  // 1.49 (auditoria): só o mesmo usuário de gestor que criou o acesso às Finanças troca a senha por aqui (outro gestor, como a gestora da
+  // loja, não entra nas Finanças trocando a senha do dono)
+  $qd = $db->query("SELECT valor FROM config WHERE chave = 'fin_dono'"); $dono = (int)$qd->fetchColumn(); $qd->closeCursor();
+  if ($dono && $dono !== (int)$g['id']) { finErrou($ip); falha('Só o usuário de gestor que criou o acesso às Finanças troca a senha por aqui.', 403); }
+  if (!$dono) $db->prepare("INSERT OR REPLACE INTO config (chave, valor) VALUES ('fin_dono', ?)")->execute([(string)(int)$g['id']]);
   $senha = (string)($in['senha'] ?? ''); if (strlen($senha) < 6) falha('A senha nova precisa ter pelo menos 6 caracteres.');
   $alvo = $p; $lg = finLogin($in['login'] ?? '');
   if ($lg !== '') { $q = $db->prepare('SELECT * FROM fin_usuarios WHERE login = ?'); $q->execute([$lg]); $alvo = $q->fetch(); if (!$alvo) falha('Não existe acesso com esse login.', 404); }
@@ -144,20 +152,21 @@ if ($acao === 'usuario_remover') {
 // não foi pago (a recreação de quem está no espaço, o que ficou para a saída ou para a devolução do carrinho).
 if ($acao === 'resumo') {
   $de = (string)($in['de'] ?? ''); $ate = (string)($in['ate'] ?? '');
-  if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $de) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $ate) || !strtotime($de) || !strtotime($ate)) falha('Escolha o período.');
+  $dataOk = fn(string $x) => (bool)preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $x, $m) && checkdate((int)$m[2], (int)$m[3], (int)$m[1]);   // 1.49: 30/02 não existe
+  if (!$dataOk($de) || !$dataOk($ate)) falha('Escolha o período (datas que existem).');
   if ($ate < $de) [$de, $ate] = [$ate, $de];
-  $dias = (int)round((strtotime($ate) - strtotime($de)) / 86400) + 1; if ($dias > 800) falha('Escolha um período de até 2 anos.');
+  $dias = (int)round((strtotime($ate) - strtotime($de)) / 86400) + 1; if ($dias > 800) falha('Escolha um período de até 800 dias.');
   $ini = $de . ' 00:00:00'; $fim = date('Y-m-d', strtotime($ate . ' +1 day')) . ' 00:00:00';
   $uni = []; $U = function (int $u) use (&$uni) { if (!isset($uni[$u])) $uni[$u] = ['faturado' => 0.0, 'vendas' => 0, 'recebido' => 0.0, 'devolvido' => 0.0, 'aberto' => 0.0, 'visitas' => 0, 'criancas' => 0, 'festaVisitas' => 0, 'agora' => 0,
-    'cancN' => 0, 'cancV' => 0.0, 'descN' => 0, 'descV' => 0.0, 'pcdN' => 0, 'pcdV' => 0.0, 'voucherN' => 0, 'pacN' => 0, 'pacV' => 0.0, 'festas' => 0]; };
+    'cancN' => 0, 'cancV' => 0.0, 'desfN' => 0, 'foraN' => 0, 'descN' => 0, 'descV' => 0.0, 'descPct' => 0.0, 'pcdN' => 0, 'pcdV' => 0.0, 'voucherN' => 0, 'pacN' => 0, 'pacV' => 0.0, 'festas' => 0]; };
   $nomeUsu = []; foreach ($db->query('SELECT id, nome FROM usuarios')->fetchAll() as $x) $nomeUsu[(int)$x['id']] = (string)$x['nome'];
   // vendas: o faturado, os grupos (recreação, pacotes, festa, produtos, carrinhos), os pacotes por nome, por dia e por atendente
   $grupos = []; $pacotes = []; $porDia = []; $atend = [];
-  $q = $db->prepare("SELECT COALESCE(unidade_id, 0) u, servico s, (COALESCE(produto_id, 0) > 0) pr, alug a, minutos m, auto au, voucher vo, COUNT(*) n, SUM(valor > 0.004) nv, COALESCE(SUM(valor), 0) v
+  $q = $db->prepare("SELECT COALESCE(unidade_id, 0) u, servico s, (COALESCE(produto_id, 0) > 0) pr, alug a, minutos m, auto au, voucher vo, COUNT(*) n, SUM(valor > 0.004) nv, SUM(valor > 0.004 AND auto = 0) nr, COALESCE(SUM(valor), 0) v
     FROM vendas WHERE quando >= ? AND quando < ? AND servico != ? GROUP BY u, s, pr, a, (minutos > 0), auto, (voucher != ''), (CASE WHEN minutos > 0 THEN minutos ELSE 0 END)");
   $q->execute([$ini, $fim, SERV_IMPORTADO]);
   foreach ($q->fetchAll() as $l) { $u = (int)$l['u']; $U($u); $v = round((float)$l['v'], 2); $nv = (int)$l['nv'];
-    $uni[$u]['faturado'] = round($uni[$u]['faturado'] + $v, 2); $uni[$u]['vendas'] += $nv; if ((string)$l['vo'] !== '') $uni[$u]['voucherN'] += (int)$l['n'];
+    $uni[$u]['faturado'] = round($uni[$u]['faturado'] + $v, 2); $uni[$u]['vendas'] += (int)$l['nr']; if ((string)$l['vo'] !== '') $uni[$u]['voucherN'] += (int)$l['n'];
     if ($nv < 1 && $v <= 0.004) continue;
     $g = grupoDoCaixa(['s' => (string)$l['s'], 'pr' => (int)$l['pr'], 'a' => (string)$l['a'], 'm' => (int)$l['m'], 'au' => (int)$l['au'], 'vo' => (string)$l['vo']]);
     $k = $u . '|' . $g; if (!isset($grupos[$k])) $grupos[$k] = ['u' => $u, 'g' => $g, 'n' => 0, 'v' => 0.0]; $grupos[$k]['n'] += $nv; $grupos[$k]['v'] = round($grupos[$k]['v'] + $v, 2);
@@ -175,6 +184,11 @@ if ($acao === 'resumo') {
   $q = $db->prepare('SELECT COALESCE(unidade_id, 0) u, forma f, COALESCE(SUM(valor), 0) t FROM estornos WHERE quando >= ? AND quando < ? GROUP BY u, f');
   $q->execute([$ini, $fim]); foreach ($q->fetchAll() as $l) { $u = (int)$l['u']; $U($u); $t = round((float)$l['t'], 2); $uni[$u]['devolvido'] = round($uni[$u]['devolvido'] + $t, 2); $uni[$u]['recebido'] = round($uni[$u]['recebido'] - $t, 2);
     $formas[$u . '|' . $l['f']] = ['u' => $u, 'f' => (string)$l['f'], 'v' => round(($formas[$u . '|' . $l['f']]['v'] ?? 0) - $t, 2)]; }
+  // 1.49 (auditoria): a venda cancelada em outro dia leva junto o pagamento dela (que é apagado) e deixa o estorno com o dia em que tinha sido
+  // paga: esse dinheiro volta ao Recebido daquele dia (senão sairia duas vezes: o pagamento apagado e o estorno)
+  $q = $db->prepare('SELECT COALESCE(unidade_id, 0) u, forma f, COALESCE(SUM(valor), 0) t FROM estornos WHERE pago_em >= ? AND pago_em < ? GROUP BY u, f');
+  $q->execute([$ini, $fim]); foreach ($q->fetchAll() as $l) { $u = (int)$l['u']; $U($u); $t = round((float)$l['t'], 2); $uni[$u]['recebido'] = round($uni[$u]['recebido'] + $t, 2);
+    $formas[$u . '|' . $l['f']] = ['u' => $u, 'f' => (string)$l['f'], 'v' => round(($formas[$u . '|' . $l['f']]['v'] ?? 0) + $t, 2)]; }
   // em aberto: o vendido no período que ainda não foi pago
   $q = $db->prepare('SELECT COALESCE(v.unidade_id, 0) u, COALESCE(SUM(v.valor - COALESCE((SELECT SUM(p.valor) FROM pagamentos p WHERE p.venda_id = v.id), 0)), 0) f FROM vendas v
     WHERE v.quando >= ? AND v.quando < ? AND v.servico != ? AND v.valor - COALESCE((SELECT SUM(p.valor) FROM pagamentos p WHERE p.venda_id = v.id), 0) > 0.004 GROUP BY u');
@@ -188,25 +202,39 @@ if ($acao === 'resumo') {
   foreach ($q->fetchAll() as $l) { $u = (int)$l['u']; $U($u); $uni[$u]['festas'] = (int)$l['n']; }
   // os cancelamentos: quantos, quanto deixou de ser cobrado, de quem (o nome da atendente que a pessoa escreveu; sem ele, quem estava no aparelho)
   $tipos = ['' => 'Entrada cancelada', 'desfeita' => 'Entrada desfeita na hora', 'venda' => 'Venda cancelada', 'atendimento' => 'Atendimento cancelado', 'aluguel' => 'Saída do carrinho cancelada'];
-  $canc = []; $cancTotal = 0;
+  $canc = []; $cancTotal = 0; $cancAt = []; $cancTipo = [];
   $q = $db->prepare('SELECT id, quando, COALESCE(unidade_id, 0) u, nome, resp, valor, minutos, itens, motivo, por_nome, papel, atendente, tipo, fora, visto_por FROM cancelamentos WHERE quando >= ? AND quando < ? ORDER BY quando DESC, id DESC');
   $q->execute([$ini, $fim]);
-  foreach ($q->fetchAll() as $l) { $u = (int)$l['u']; $U($u); $uni[$u]['cancN']++; $uni[$u]['cancV'] = round($uni[$u]['cancV'] + (float)$l['valor'], 2); $cancTotal++;
+  foreach ($q->fetchAll() as $l) { $u = (int)$l['u']; $U($u); $conta = (string)$l['tipo'] !== 'desfeita'; $cancTotal++;   // 1.49: a entrada desfeita na hora não conta (como no painel)
+    $at = trim((string)$l['atendente']) !== '' ? mb_strtoupper(trim((string)$l['atendente'])) : mb_strtoupper(primeiroNome((string)$l['por_nome'])); $tp = $tipos[(string)$l['tipo']] ?? 'Cancelamento';
+    if ($conta) { $uni[$u]['cancN']++; $uni[$u]['cancV'] = round($uni[$u]['cancV'] + (float)$l['valor'], 2); if ((int)$l['fora'] === 1) $uni[$u]['foraN']++;
+      $k = $u . '|' . $at; if (!isset($cancAt[$k])) $cancAt[$k] = ['u' => $u, 'nome' => $at, 'n' => 0, 'v' => 0.0, 'fora' => 0]; $cancAt[$k]['n']++; $cancAt[$k]['v'] = round($cancAt[$k]['v'] + (float)$l['valor'], 2); if ((int)$l['fora'] === 1) $cancAt[$k]['fora']++;
+      $k = $u . '|' . $tp; if (!isset($cancTipo[$k])) $cancTipo[$k] = ['u' => $u, 'tipo' => $tp, 'n' => 0]; $cancTipo[$k]['n']++; }
+    else $uni[$u]['desfN']++;
     if (count($canc) >= 1500) continue;
     $it = json_decode((string)$l['itens'], true); $cont = [];   // os itens iguais juntos ("3 × RECREAÇÃO · 30 MIN"), para a linha não ficar enorme
     if (is_array($it)) foreach ($it as $x) { $n = is_array($x) ? trim((string)($x['n'] ?? '')) : ''; if ($n !== '') $cont[$n] = ($cont[$n] ?? 0) + 1; }
     $itens = implode(', ', array_map(fn($n, $q) => ($q > 1 ? $q . ' × ' : '') . $n, array_keys($cont), $cont)); if (mb_strlen($itens) > 160) $itens = mb_substr($itens, 0, 157) . '…';
     $canc[] = ['id' => (int)$l['id'], 'quando' => (string)$l['quando'], 'u' => $u, 'tipo' => $tipos[(string)$l['tipo']] ?? 'Cancelamento', 'crianca' => (string)$l['nome'], 'resp' => (string)$l['resp'], 'valor' => round((float)$l['valor'], 2), 'min' => (int)$l['minutos'],
-      'itens' => $itens, 'motivo' => (string)$l['motivo'], 'atendente' => trim((string)$l['atendente']) !== '' ? mb_strtoupper(trim((string)$l['atendente'])) : mb_strtoupper(primeiroNome((string)$l['por_nome'])), 'usuario' => (string)$l['por_nome'],
+      'itens' => $itens, 'motivo' => (string)$l['motivo'], 'atendente' => $at, 'usuario' => (string)$l['por_nome'], 'conta' => $conta, 'entrada' => in_array((string)$l['tipo'], ['', 'desfeita'], true),
       'papel' => PAPEIS[(string)$l['papel']] ?? (string)$l['papel'], 'fora' => (int)$l['fora'] === 1, 'visto' => (string)$l['visto_por']]; }
   // os descontos: cada desconto dado (o do gestor, em R$ ou %) é uma linha, mesmo que tenha sido repartido em mais de uma venda;
   // o desconto PCD (o da tabela, automático) e os vouchers do shopping vão à parte
-  $desc = [];
+  $desc = []; $descQuem = []; $descTotal = 0;
+  // 1.49 (auditoria): cada desconto dado é uma linha só, na data em que foi dado (o desconto guarda a linha do dia dele: desc_reg), mesmo
+  // repartido em vendas de outro dia; dois descontos diferentes nunca se juntam. Os de antes da 1.49 (sem desc_reg) ficam agrupados como antes
+  $tem = (bool)$db->query("SELECT 1 FROM pragma_table_info('vendas') WHERE name = 'desc_reg'")->fetchColumn();
+  $L = [];
+  if ($tem) { $q = $db->prepare("SELECT * FROM (SELECT COALESCE(MAX(rg.quando), MAX(v.quando)) quando, COALESCE(MAX(rg.unidade_id), MAX(v.unidade_id), 0) u, MAX(v.desc_por) desc_por, MAX(v.desc_motivo) desc_motivo, MIN(v.por) por,
+        GROUP_CONCAT(v.servico, ' + ') itens, COALESCE(SUM(v.valor), 0) valor, COALESCE(SUM(v.desc_valor), 0) d, MAX(c.nome) nome, MAX(c.resp) resp FROM vendas v LEFT JOIN registros rg ON rg.id = v.desc_reg LEFT JOIN criancas c ON c.id = v.crianca_id
+      WHERE v.desc_reg IS NOT NULL AND v.desc_valor > 0.004 GROUP BY v.desc_reg) WHERE quando >= ? AND quando < ?"); $q->execute([$ini, $fim]); $L = $q->fetchAll(); }
   $q = $db->prepare("SELECT COALESCE(v.unidade_id, 0) u, v.crianca_id, v.desc_por, v.desc_motivo, substr(v.quando, 1, 10) dia, MAX(v.quando) quando, MIN(v.por) por, GROUP_CONCAT(v.servico, ' + ') itens,
       COALESCE(SUM(v.valor), 0) valor, COALESCE(SUM(v.desc_valor), 0) d, c.nome, c.resp FROM vendas v LEFT JOIN criancas c ON c.id = v.crianca_id
-    WHERE v.quando >= ? AND v.quando < ? AND v.desc_valor > 0.004 GROUP BY u, v.crianca_id, v.desc_por, v.desc_motivo, dia ORDER BY quando DESC");
-  $q->execute([$ini, $fim]);
-  foreach ($q->fetchAll() as $l) { $u = (int)$l['u']; $U($u); $d = round((float)$l['d'], 2); $uni[$u]['descN']++; $uni[$u]['descV'] = round($uni[$u]['descV'] + $d, 2);
+    WHERE v.quando >= ? AND v.quando < ? AND v.desc_valor > 0.004" . ($tem ? ' AND v.desc_reg IS NULL' : '') . " GROUP BY u, v.crianca_id, v.desc_por, v.desc_motivo, dia");
+  $q->execute([$ini, $fim]); $L = array_merge($L, $q->fetchAll()); usort($L, fn($x, $y) => strcmp((string)$y['quando'], (string)$x['quando']));
+  foreach ($L as $l) { $u = (int)$l['u']; $U($u); $d = round((float)$l['d'], 2); $uni[$u]['descN']++; $uni[$u]['descV'] = round($uni[$u]['descV'] + $d, 2); $descTotal++;
+    $cheio0 = round((float)$l['valor'] + $d, 2); $uni[$u]['descPct'] = round($uni[$u]['descPct'] + ($cheio0 > 0 ? $d / $cheio0 * 100 : 0), 2);
+    $qn = $nomeUsu[(int)$l['desc_por']] ?? 'Sem nome'; $k = $u . '|' . $qn; if (!isset($descQuem[$k])) $descQuem[$k] = ['u' => $u, 'nome' => $qn, 'n' => 0, 'v' => 0.0]; $descQuem[$k]['n']++; $descQuem[$k]['v'] = round($descQuem[$k]['v'] + $d, 2);
     if (count($desc) >= 1500) continue; $cheio = round((float)$l['valor'] + $d, 2);
     $desc[] = ['quando' => (string)$l['quando'], 'u' => $u, 'crianca' => (string)$l['nome'], 'resp' => (string)$l['resp'], 'itens' => (string)$l['itens'], 'cheio' => $cheio, 'desconto' => $d, 'pct' => $cheio > 0 ? round($d / $cheio * 100, 1) : 0,
       'motivo' => (string)$l['desc_motivo'], 'liberou' => $nomeUsu[(int)$l['desc_por']] ?? '', 'atendente' => $nomeUsu[(int)$l['por']] ?? '']; }
@@ -215,6 +243,6 @@ if ($acao === 'resumo') {
   ksort($uni); $out = []; foreach ($uni as $u => $x) $out[] = ['u' => $u] + $x;
   responder(['de' => $de, 'ate' => $ate, 'dias' => $dias, 'gerado' => agora(), 'hoje' => date('Y-m-d'), 'unidades' => unidades(), 'porUnidade' => $out, 'criancasTotal' => $criancasTotal,
     'grupos' => array_values($grupos), 'pacotes' => array_values($pacotes), 'porDia' => $porDia, 'atendentes' => $atend, 'formas' => array_values($formas),
-    'cancelamentos' => ['total' => $cancTotal, 'lista' => $canc], 'descontos' => ['lista' => $desc]]);
+    'cancelamentos' => ['total' => $cancTotal, 'lista' => $canc, 'atendentes' => array_values($cancAt), 'tipos' => array_values($cancTipo)], 'descontos' => ['total' => $descTotal, 'lista' => $desc, 'quem' => array_values($descQuem)]]);
 }
 falha('Ação desconhecida.', 404);
