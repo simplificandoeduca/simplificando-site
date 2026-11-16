@@ -1,6 +1,7 @@
 <?php
 // Atualiza o site com a versão mais nova do GitHub (simplificandoeduca/simplificando-site, pasta site/).
-// É chamado pelo botão "Atualizar o site" em Ajustes, no painel (só com o login do dono). Só baixa deste repositório fixo
+// É chamado pelo botão "Atualizar o site" em Ajustes, no painel (só com o login do dono), e pelo GitHub depois que o
+// robô aprova uma versão (com a chave da atualização automática). Só baixa deste repositório fixo
 // e só grava dentro desta pasta; no máximo uma atualização por minuto.
 // Só instala versão APROVADA pelo robô de testes: o GitHub (Actions › Robô de testes) testa cada mudança da main e,
 // se tudo passar, move o ramo "aprovado" para ela. Versão que falhou no robô nunca chega ao site.
@@ -27,7 +28,19 @@ if ($acao === 'ver') {
   $rem = baixa('https://raw.githubusercontent.com/' . REPO . '/' . BRANCH . '/site/personal/index.html?t=' . time());
   $ult = baixa('https://raw.githubusercontent.com/' . REPO . '/' . MAIN . '/site/personal/index.html?t=' . time());
   // "testando": a versão mais nova da main ainda não foi aprovada pelo robô (está rodando ou falhou)
-  sai(['ok' => true, 'atual' => versao(@file_get_contents($aqui . '/personal/index.html')), 'nova' => versao($rem), 'testando' => versao($ult) !== versao($rem) ? versao($ult) : '']);
+  sai(['ok' => true, 'atual' => versao(@file_get_contents($aqui . '/personal/index.html')), 'nova' => versao($rem), 'testando' => versao($ult) !== versao($rem) ? versao($ult) : '', 'auto' => strlen(trim((string)@file_get_contents(dirname($aqui) . '/simplificando-atualizar-chave.txt'))) >= 12]);
+}
+// atualização automática: o painel (só o dono) gera a chave que o GitHub usa para chamar este arquivo depois que o robô aprova.
+// Ela fica fora do site (~/simplificando-atualizar-chave.txt) e aparece uma vez só no painel, para colar nos Secrets do GitHub.
+if ($acao === 'chave') {
+  if ($_SERVER['REQUEST_METHOD'] !== 'POST') sai(['ok' => false, 'erro' => 'Pedido inválido.'], 400);
+  require __DIR__ . '/dono.inc.php';
+  if (!dono_uid()) sai(['ok' => false, 'erro' => 'Só o dono do painel pode gerar a chave. Saia e entre de novo no painel e tente outra vez.'], 403);
+  $nova = bin2hex(random_bytes(24));
+  $arq = dirname($aqui) . '/simplificando-atualizar-chave.txt';
+  if (@file_put_contents($arq, $nova) === false) sai(['ok' => false, 'erro' => 'Não deu para guardar a chave no servidor. Fale com o suporte da HostGator.'], 500);
+  @chmod($arq, 0600);
+  sai(['ok' => true, 'chave' => $nova]);
 }
 if ($acao !== 'atualizar' || $_SERVER['REQUEST_METHOD'] !== 'POST') sai(['ok' => false, 'erro' => 'Pedido inválido.'], 400);
 // só o dono do painel (logado) pode atualizar o site

@@ -21,7 +21,7 @@ const diaMais = n => new Date(Date.now() - 180 * 60e3 + n * 864e5).toISOString()
 
 test.beforeAll(async () => {
   fs.mkdirSync(path.join(SITE, 'treino'), { recursive: true });
-  for (const f of ['push.php', 'dono.inc.php', 'erros.php']) fs.copyFileSync(path.join(__dirname, '..', 'site', f), path.join(SITE, f));
+  for (const f of ['push.php', 'dono.inc.php', 'erros.php', 'atualizar.php']) fs.copyFileSync(path.join(__dirname, '..', 'site', f), path.join(SITE, f));
   fs.writeFileSync(path.join(SITE, 'treino', 'firebase-config.js'), 'window.SIMPLIFICANDO_FIREBASE = { apiKey: "demo-key", projectId: "demo-simplificando" };');
   srv = spawn('php', ['-S', '127.0.0.1:' + PORTA, '-t', SITE], { env: ENV, stdio: 'ignore' });
   for (let i = 0; i < 50; i++) { try { await fetch(URL0 + 'push.php?acao=chave'); break; } catch (e) { await new Promise(r => setTimeout(r, 100)); } }
@@ -98,4 +98,18 @@ test('erros do app: qualquer celular registra; só o dono vê', async () => {
   const r = await fetch(URL0 + 'erros.php?acao=registrar', { method: 'POST', body: JSON.stringify({ msg: 'teste do robô', src: 'app', line: 1 }) });
   expect((await r.json()).ok).toBe(true);
   expect((await fetch(URL0 + 'erros.php?acao=ver')).status).toBe(403);
+});
+
+test('atualização automática: só o dono gera a chave; chave errada não atualiza o site', async () => {
+  const CH = path.join(DIR, 'simplificando-atualizar-chave.txt');
+  const r1 = await fetch(URL0 + 'atualizar.php?acao=chave', { method: 'POST' });
+  expect(r1.status).toBe(403);
+  expect(fs.existsSync(CH)).toBe(false);
+  expect((await fetch(URL0 + 'atualizar.php?acao=chave')).status).toBe(400);
+  fs.writeFileSync(CH, 'chave-certa-do-robo-123456');
+  const f = new URLSearchParams({ chave: 'chave-errada-123456789' });
+  const r2 = await fetch(URL0 + 'atualizar.php?acao=atualizar', { method: 'POST', body: f });
+  expect(r2.status).toBe(403);
+  expect(fs.existsSync(path.join(DIR, '.simplificando-atualizacao'))).toBe(false);
+  fs.unlinkSync(CH);
 });

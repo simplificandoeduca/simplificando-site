@@ -777,6 +777,10 @@ h3.sec{font-size:22px;margin:14px 2px -2px}
 @media (min-width:960px){.main>.btn-row:has(>.savest:only-child){display:none}.dtabs-in{flex-wrap:wrap;border-radius:22px}}
 .callout.inl>div{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}.callout.inl p{margin:0}.callout.inl .btn{background:#fff;box-shadow:inset 0 0 0 1px rgba(107,74,0,.25);color:#6B4A00}
 .card .list{box-shadow:inset 0 0 0 1px var(--card-line)}
+.atu-auto{margin-top:14px;padding-top:14px;border-top:1px solid var(--sep)}
+.atu-auto .btn-row{margin-top:10px}
+.atu-ch{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:8px}
+.atu-ch code{flex:1 1 220px;min-width:0;overflow-wrap:anywhere;font-family:ui-monospace,Menlo,monospace;font-size:13px;padding:10px 12px;border-radius:12px;background:var(--ctl);user-select:all}
 /* ---------- Hub (/hub): entrada do dono, sempre escura, com blocos de cor cheia (igual ao app do aluno) ---------- */
 body.hub-on{background:#0F1712}
 .hub-on .side,.hub-on .tabbar{display:none}
@@ -3296,12 +3300,12 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '16 nov · 139'; // Versão do painel: 16 nov · 139
+const PAINELV = '16 nov · 140'; // Versão do painel: 16 nov · 140
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
   fetch('/treino/?v='+Date.now(), { cache:'no-store' }).then(r => r.ok ? r.text() : '').then(t => { const m = t.match(/const\s+APPV = '([^']+)'/); ATU.app = m ? m[1] : ''; if(ui.view==='ajustes') render(); }).catch(() => {});
-  fetch('/atualizar.php?acao=ver', { cache:'no-store' }).then(r => r.ok ? r.json() : Promise.reject()).then(j => { ATU.st = 'ok'; ATU.nova = (j && j.nova) || ''; ATU.testando = (j && j.testando) || ''; if(ui.view==='ajustes') render(); })
+  fetch('/atualizar.php?acao=ver', { cache:'no-store' }).then(r => r.ok ? r.json() : Promise.reject()).then(j => { ATU.st = 'ok'; ATU.nova = (j && j.nova) || ''; ATU.testando = (j && j.testando) || ''; ATU.auto = !!(j && j.auto); if(ui.view==='ajustes') render(); })
     .catch(() => { ATU.st = 'sem'; if(ui.view==='ajustes') render(); });
 }
 function atuCard(){
@@ -3313,7 +3317,27 @@ function atuCard(){
     '<div class="btn-row"><button type="button" class="btn'+(nova ? ' ink' : '')+'" data-a="atuGo"'+(indo ? ' disabled' : '')+'>'+ic('refresh')+(indo ? 'Atualizando…' : 'Atualizar agora')+'</button></div>'+
     (ATU.msg ? '<p class="err" role="alert">'+esc(ATU.msg)+'</p>' : '')+
     (ATU.testando ? '<p class="muted">'+ic('refresh')+' A versão <b>'+esc(ATU.testando)+'</b> está passando pelo robô de testes. Ela só fica disponível aqui se tudo funcionar.</p>' : '')+
-    '<p class="foot">Baixa do GitHub a versão mais nova <b>aprovada pelo robô de testes</b> e coloca no ar. Leva uns segundos e a página recarrega sozinha.</p></section>';
+    '<p class="foot">Baixa do GitHub a versão mais nova <b>aprovada pelo robô de testes</b> e coloca no ar. Leva uns segundos e a página recarrega sozinha.</p>'+atuAuto()+'</section>';
+}
+/* atualização automática: a chave fica no servidor (fora do site) e a mesma vai nos Secrets do GitHub (ATUALIZAR_CHAVE).
+   Com as duas, o GitHub chama o atualizar.php sozinho assim que o robô aprova uma versão. A chave aparece só na hora de gerar. */
+function atuAuto(){
+  const ch = ATU.chave;
+  return '<div class="atu-auto"><span class="label">'+ic('bolt')+'Atualização automática</span>'+
+    (ch ? '<p class="muted"><b>Chave nova criada.</b> Copie e cole no GitHub, como mostra o passo a passo. Ela aparece só agora: se sair desta tela sem copiar, é só gerar outra.</p>'+
+      '<div class="atu-ch"><code id="atu-ch">'+esc(ch)+'</code><button type="button" class="btn small ink" data-a="atuCopia">'+ic('copy')+'Copiar</button></div>'
+    : ATU.auto ? '<p class="muted"><b>Chave criada no servidor.</b> Com a mesma chave salva no GitHub, o site se atualiza sozinho assim que o robô de testes aprova uma versão nova. O botão acima continua valendo.</p>'
+    : '<p class="muted"><b>Desligada.</b> Gere a chave e cole no GitHub (passo a passo no PDF). Depois disso, o site se atualiza sozinho sempre que o robô aprovar uma versão nova.</p>')+
+    (ch ? '' : '<div class="btn-row">'+(ATU.auto ? armBtn('atuChaveNova','','Gerar chave nova','Toque de novo: a chave antiga para de valer','small','key') : '<button type="button" class="btn small" data-a="atuChave"'+(ATU.gerando ? ' disabled' : '')+'>'+ic('key')+(ATU.gerando ? 'Gerando…' : 'Gerar chave')+'</button>')+'</div>')+
+    (ATU.chMsg ? '<p class="err" role="alert">'+esc(ATU.chMsg)+'</p>' : '')+'</div>';
+}
+function atuChave(){
+  ATU.gerando = true; ATU.chMsg = ''; render();
+  donoToken().then(t => { const f = new FormData(); f.append('token', t||''); return fetch('/atualizar.php?acao=chave', { method:'POST', cache:'no-store', body:f, headers:t ? { Authorization:'Bearer '+t } : {} }); }).then(r => r.json()).then(j => {
+    ATU.gerando = false;
+    if(j && j.ok && j.chave){ ATU.chave = j.chave; ATU.auto = true; } else ATU.chMsg = (j && j.erro) || 'Não deu certo. Tente de novo.';
+    render();
+  }).catch(() => { ATU.gerando = false; ATU.chMsg = 'Sem conexão com o servidor. Confira a internet e tente de novo.'; render(); });
 }
 /* ---------- avisos no celular do dono: conta nova no Simplificando (push.php + personal/sw.js) ---------- */
 const NV = { st:'' };
@@ -4451,11 +4475,11 @@ async function copyText(txt,selEl){
   if(selEl){ try { selEl.focus(); selEl.select(); } catch(e){} }
   toast('Selecione o texto e copie');
 }
-const ARMED = new Set(['rirAll','copyFrom','dropLocal','archive','delAluno','delLesao','delTreino','delEx','delAv','delPay','delNota','genCode','delEx2','delTpl','applyTpl','applyToAluno','wipeEx']);
+const ARMED = new Set(['atuChaveNova','rirAll','copyFrom','dropLocal','archive','delAluno','delLesao','delTreino','delEx','delAv','delPay','delNota','genCode','delEx2','delTpl','applyTpl','applyToAluno','wipeEx']);
 function act(a,d,btn){
   const A = curAluno();
   switch(a){
-    case 'go': ui.view = d.v; if(d.v==='alunos' && ui.view==='alunos' && btn.classList.contains('on')) ui.aluno = null; if(d.v==='modelos') ui.modelo = null; window.scrollTo(0,0); break;
+    case 'go': ATU.chave = ''; ui.view = d.v; if(d.v==='alunos' && ui.view==='alunos' && btn.classList.contains('on')) ui.aluno = null; if(d.v==='modelos') ui.modelo = null; window.scrollTo(0,0); break;
     case 'theme': PREF.theme = curTheme()==='dark' ? 'light' : 'dark'; savePref(); break;
     case 'themeSet': PREF.theme = d.v==='auto' ? undefined : d.v; savePref(); break;
     case 'accent': { if(!C.config.geral) C.config.geral = clone(DEF_CFG); C.config.geral.cor = d.v; C.config.geral.exemplo = false; PREF.accent = d.v; savePref(); Store.save('config','geral',150); break; }
@@ -4616,6 +4640,8 @@ function act(a,d,btn){
     case 'domVoltar': { const st = domLer(); if(st){ st.pulados = []; domGravar(st); } break; }
     case 'domFim': { const st = domLer(); if(st){ st.fim = true; domGravar(st); } toast('Relatórios da semana encerrados.'); break; }
     case 'atuGo': atuGo(); return false;
+    case 'atuChave': case 'atuChaveNova': atuChave(); return false;
+    case 'atuCopia': copyText(ATU.chave||'', null); return false;
     case 'impFile': { const f = document.getElementById('imp-file'); if(f) f.click(); return false; }
     case 'rkSort': ui.rkSort = !ui.rkSort; if(ui.sheet && ui.sheet.k==='pick'){ renderSheet(); return false; } break;
     case 'pfRefresh': loadPerfis(true); toast('Atualizando a lista'); break;
