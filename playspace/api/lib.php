@@ -79,6 +79,13 @@ function textosEmMaiusculas(PDO $pdo): void {
   } catch (Throwable $e) { }
 }
 
+/* ---------- 1.45: um pedido de cada vez para o que muda os dados ---------- */
+function travarEscrita(string $acao): void {
+  if (in_array($acao, ['estado', 'gz_teste'], true) || isset($GLOBALS['_trava'])) return;   // (só estes não mudam nada)
+  $f = @fopen(pastaDados() . '/escrita.trava', 'c'); if (!$f) return;
+  if (@flock($f, LOCK_EX)) $GLOBALS['_trava'] = $f;   // fica aberta até o fim do pedido (o PHP solta a trava sozinho)
+}
+
 /* ---------- onde os dados ficam ---------- */
 function pastaDados(): string {
   static $pasta = null;
@@ -465,6 +472,8 @@ function servicoTempo(): ?array { foreach ((array)regra()['servicos'] as $s) if 
 function periodo(): int { $s = servicoTempo(); return max(5, (int)($s['min'] ?? 30)); }
 function periodosDe(float $minutos): int { return max(1, (int)ceil(($minutos - max(0, (int)regra()['tolerancia'])) / periodo())); }
 function cobrar(float $minutos): int { return periodosDe($minutos) * periodo(); }
+// 1.45 (auditoria): o "ficou" que se lê: os minutos inteiros; perto do limite (de 39:01 a 39:59), o minuto que começou, para não ler 0h39 com dois períodos cobrados
+function ficouMin(float $m): int { $f = (int)floor($m); return periodosDe($f) === periodosDe($m) ? $f : (int)ceil($m); }
 // o preço da recreação avulsa para esta criança: a criança PCD paga com o desconto (50% de fábrica)
 function pcdDesc(): int { return max(0, min(100, (int)(regra()['pcdDesc'] ?? 50))); }
 function precoPcd(array $c, float $v): float { return !empty($c['pcd']) ? intdiv((int)round($v * 100) * (100 - pcdDesc()) + 50, 100) / 100 : $v; }   // 1.31: em centavos inteiros, a mesma conta da tela
@@ -663,6 +672,7 @@ function pedidoDecidir(int $id, array $g, bool $ok, string $como = 'toque'): arr
   $db = db(); $p = pedido($id); if (!$p) falha('Pedido não encontrado.', 404);
   $tipo = (string)$p['tipo']; if (!podeDecidir($g, $tipo)) falha('Só ' . quemDecide($tipo) . ' responde a este pedido.', 403);
   if ($p['status'] !== 'pendente') falha($p['status'] === 'cancelado' ? 'Este pedido não vale mais: foi cancelado.' : 'Este pedido já foi respondido' . ($p['decidido_nome'] !== '' ? ' por ' . primeiroNome((string)$p['decidido_nome']) : '') . '.', 409);
+  if ($ok && in_array($tipo, ['desconto', 'valor'], true) && time() - strtotime((string)$p['pedido_em']) > 43200) { $db->prepare("UPDATE pedidos SET status = 'cancelado', resultado = 'PEDIDO DE MAIS DE 12 H' WHERE id = ? AND status = 'pendente'")->execute([$id]); falha('Este pedido é de mais de 12 horas atrás e não vale mais. Peça de novo.', 409); }   // 1.45 (auditoria)
   $agora = agora(); $extra = []; $status = $ok ? 'liberado' : 'negado'; $resultado = '';
   if ($ok && $tipo === 'cancelar_venda') { // liberar o cancelamento É cancelar a venda (no nome de quem liberou, com o motivo de quem pediu)
     $q = $db->prepare('SELECT 1 FROM vendas WHERE id = ?'); $q->execute([(int)$p['venda_id']]); $existe = $p['venda_id'] !== null && (bool)$q->fetchColumn(); $q->closeCursor();
@@ -769,7 +779,9 @@ function usarAutorizacao(?array $desc, float $valor): void { // o desconto autor
 function fecharPedidosDeDesconto(?array $u, array $c, string $onde): void { // $onde: 'venda' (o atendimento) ou 'saida'
   if (!$u) return;
   db()->prepare("UPDATE pedidos SET status = 'cancelado', resultado = 'A CONTA FOI FECHADA SEM ESPERAR A RESPOSTA' WHERE tipo = 'desconto' AND status = 'pendente' AND pedido_por = ? AND crianca_id = ? AND dados LIKE ?")->execute([(int)$u['id'], (int)$c['id'], '%"onde":"' . ($onde === 'saida' ? 'saida' : 'venda') . '"%']);
+  if ($onde === 'venda' && ($k = crianca((int)$c['id'])) && !$k['entrou']) db()->prepare("UPDATE pedidos SET status = 'cancelado', resultado = 'A CONTA FOI FECHADA NO ATENDIMENTO' WHERE tipo = 'desconto' AND status = 'pendente' AND crianca_id = ? AND dados LIKE ?")->execute([(int)$c['id'], '%"onde":"saida"%']);   // 1.45 (auditoria): sem a criança no espaço, não há saída para esperar o desconto
   db()->prepare("UPDATE pedidos SET status = 'cancelado', resultado = 'A CONTA FOI FECHADA SEM ESPERAR A RESPOSTA' WHERE tipo = 'valor' AND status = 'pendente' AND pedido_por = ? AND crianca_id = ? AND venda_id IS " . ($onde === 'saida' ? 'NOT NULL' : 'NULL'))->execute([(int)$u['id'], (int)$c['id']]);   // 1.33 (1.39: o da saída fecha com a saída)
+  if ($onde === 'saida') db()->prepare("UPDATE pedidos SET status = 'cancelado', resultado = 'A CRIANÇA SAIU SEM ESPERAR A RESPOSTA' WHERE tipo IN ('desconto', 'valor') AND status = 'pendente' AND crianca_id = ? AND (dados LIKE ? OR venda_id IS NOT NULL)")->execute([(int)$c['id'], '%"onde":"saida"%']);   // 1.45 (auditoria): a saída fechou a conta, dê quem der a saída
 }
 
 /* ---------- registros (o painel "Hoje na recepção") e as mensagens ---------- */
@@ -835,6 +847,12 @@ function textoAutos(array $atraso, string $plano): string {
   return $plano === 'pacote' ? ITENS_ALEM . ' ' . dur((int)$atraso['n'] * periodo()) . ': ' . dinheiro((float)$atraso['valor']) : 'recreação avulsa ' . dur((int)$atraso['n'] * periodo()) . ': ' . dinheiro((float)$atraso['valor']);
 }
 // as cobranças que nasceram sozinhas nesta visita e ainda não foram pagas saem (a entrada foi desfeita): devolve quantas e quanto
+// 1.45 (auditoria): o voucher desta visita (o tempo dado na entrada, sem valor) que não foi usado: sai junto quando a entrada é cancelada
+// (ou na cortesia) e quando a visita passa para a festa. Antes ficava como 30 min guardados
+function vouchersDaVisita(array $c): array {
+  if (empty($c['entrou'])) return [];
+  return array_values(array_filter(vendasDaVisita($c), fn($v) => (string)($v['voucher'] ?? '') !== '' && (float)$v['valor'] <= 0.004 && (int)$v['minutos'] > 0 && !pagoPorForma([(int)$v['id']])));
+}
 function tirarAutosDaVisita(array $c): array {
   $o = ['n' => 0, 'valor' => 0.0, 'minutos' => 0]; if (!$c['entrou']) return $o; $db = db();
   $q = $db->prepare('SELECT * FROM vendas WHERE crianca_id = ? AND auto = 1 AND quando >= ? AND NOT EXISTS (SELECT 1 FROM pagamentos p WHERE p.venda_id = vendas.id)'); $q->execute([(int)$c['id'], (string)$c['entrou']]);
@@ -920,7 +938,7 @@ function fazerSaida(array $c, string $origem = 'iDFace', ?string $quando = null,
   if ($r < periodo() && regra()['bloqueioAuto'] === 'sim') bloquearAcesso($c, false);   // não sobra um período inteiro: o iDFace passa a recusar até venderem tempo
   // 1.18: na recreação avulsa nada é "debitado" (o cliente não comprou período): a linha diz a recreação que a visita somou e, se houver, o tempo que saiu do que ele já tinha (voucher)
   $proprias = max(0, $deb - (int)$atraso['n'] * periodo());
-  $reg = registrar('sai', (int)$c['id'], $c['nome'], 'Ficou ' . dur((int)floor($min)) . ($plano === 'pacote' ? ' · ' . dur($deb) . ' debitados' : ($proprias > 0 ? ' · ' . dur($proprias) . ' do tempo que já tinha' : '')) . ($r > 0 ? ' · restam ' . hm($r) : '') . ($atraso['n'] ? ' · ' . textoAutos($atraso, $plano) . ' a receber' : '') . ($sap ? ' · sapato na sapateira ' . $sap : '') . ($origem === 'iDFace' || modoManual() ? '' : ' · saída à mão'), $quando);
+  $reg = registrar('sai', (int)$c['id'], $c['nome'], 'Ficou ' . dur(ficouMin((float)$min)) . ($plano === 'pacote' ? ' · ' . dur($deb) . ' debitados' : ($proprias > 0 ? ' · ' . dur($proprias) . ' do tempo que já tinha' : '')) . ($r > 0 ? ' · restam ' . hm($r) : '') . ($atraso['n'] ? ' · ' . textoAutos($atraso, $plano) . ' a receber' : '') . ($sap ? ' · sapato na sapateira ' . $sap : '') . ($origem === 'iDFace' || modoManual() ? '' : ' · saída à mão'), $quando);
   $msg = null;
   if (regra()['autoMsg'] === 'ambos') {
     $texto = nomeMsg($c['nome']) . ' saiu às ' . date('H:i', strtotime($quando)) . '. Até a próxima! 🧸';
@@ -971,8 +989,10 @@ function corrigirSaida(int $visitaId, string $novaSaida, array $u, string $motiv
   $p = periodo(); $deb0 = (int)$v['debitado_min']; $deb1 = min($deb0, cobrar(($sai1 - $ent) / 60)); $dif = $deb0 - $deb1;
   $q = $db->prepare('SELECT * FROM vendas WHERE crianca_id = ? AND auto = 1 AND quando >= ? AND quando <= ? ORDER BY id DESC'); $q->execute([$c['id'], $v['entrou'], date('Y-m-d H:i:s', $sai0 + 5)]);
   $autos = $q->fetchAll(); $tirar = array_slice($autos, 0, min(count($autos), intdiv($dif, $p))); $valor = 0.0; $nova = date('Y-m-d H:i:s', $sai1);
+  $devolver = pagoPorForma(array_map(fn($x) => (int)$x['id'], $tirar));   // 1.45 (auditoria): o que o cliente já tinha pago por essas cobranças volta para ele
   $db->beginTransaction();
   try {
+    estornarPagosAntes($tirar);   // (o que foi pago em outro dia entra hoje em "Devolvido hoje" no caixa)
     $db->prepare('UPDATE visitas SET saiu = ?, debitado_min = ? WHERE id = ?')->execute([$nova, $deb1, $v['id']]);
     $db->prepare("UPDATE registros SET texto = texto || ' · corrigida' WHERE crianca_id = ? AND tipo = 'sai' AND quando = ? AND texto NOT LIKE '% · corrigida'")->execute([$c['id'], $v['saiu']]);   // a linha da saída antiga fica marcada
     $db->prepare('UPDATE criancas SET usado_min = MAX(0, usado_min - ?) WHERE id = ?')->execute([$dif, $c['id']]);
@@ -982,12 +1002,12 @@ function corrigirSaida(int $visitaId, string $novaSaida, array $u, string $motiv
       if (!empty($x['registro'])) $db->prepare("UPDATE registros SET texto = texto || ' · desfeita' WHERE id = ? AND crianca_id = ? AND texto NOT LIKE '% · desfeita'")->execute([(int)$x['registro'], $c['id']]);
     }
     $reg = registrar('corr', (int)$c['id'], $c['nome'], 'Saída corrigida de ' . substr((string)$v['saiu'], 11, 5) . ' para ' . substr($nova, 11, 5) . ' · ' . dur($deb1) . ' debitados' . ($dif > 0 ? ' (eram ' . dur($deb0) . ')' : '')
-      . ($tirar ? ' · ' . (count($tirar) > 1 ? count($tirar) . ' cobranças de recreação desfeitas' : 'cobrança de recreação desfeita') . ': ' . dinheiro($valor) : '') . ' · Motivo: ' . $motivo . ' · por ' . primeiroNome($u['nome']));
+      . ($tirar ? ' · ' . (count($tirar) > 1 ? count($tirar) . ' cobranças de recreação desfeitas' : 'cobrança de recreação desfeita') . ': ' . dinheiro($valor) : '') . ($devolver ? ' · devolver ao cliente: ' . textoPagamento($devolver, true) : '') . ' · Motivo: ' . $motivo . ' · por ' . primeiroNome($u['nome']));
     $db->commit();
   } catch (Throwable $e) { $db->rollBack(); throw $e; }
   $c = crianca((int)$c['id']);
   if (!$c['entrou'] && restante($c) >= $p && isset($c['liberado']) && !(int)$c['liberado'] && regra()['bloqueioAuto'] === 'sim') bloquearAcesso($c, true);   // voltou a ter um período guardado
-  return ['registro' => $reg, 'debitado' => $deb1, 'antes' => $deb0, 'desfeitas' => count($tirar), 'valor' => $valor, 'saiu' => $nova];
+  return ['registro' => $reg, 'debitado' => $deb1, 'antes' => $deb0, 'desfeitas' => count($tirar), 'valor' => $valor, 'saiu' => $nova, 'devolver' => $devolver ? textoPagamento($devolver, true) : ''];
 }
 // a chavinha "acesso no iDFace": liberada, o aparelho autoriza o rosto e as horas correm; bloqueada, ele recusa
 function donoSapateira(int $n, int $menosId = 0): ?array { $q = db()->prepare('SELECT id, nome FROM criancas WHERE ativo = 1 AND sapateira = ? AND id != ?'); $q->execute([$n, $menosId]); return $q->fetch() ?: null; }
@@ -1128,13 +1148,17 @@ function gravarPagamento(array $vendaIds, array $formas, int $criancaId, ?int $p
 // Só o gestor dá desconto: a tela manda o valor em reais (e o percentual, quando foi digitado em %) e o motivo. O desconto sai do valor das
 // vendas, em proporção ao que falta receber de cada uma, e fica guardado nelas (desc_valor, desc_motivo, desc_por), com uma linha no dia.
 // O pagamento fecha com o total já descontado.
-function lerDesconto($d, array $u, ?array $c = null): ?array { // ['valor' => em reais, 'pct' => o percentual digitado (ou 0), 'motivo'], ou null se não há desconto
+function lerDesconto($d, array $u, ?array $c = null, ?float $conta = null): ?array { // ['valor' => em reais, 'pct' => o percentual digitado (ou 0), 'motivo'], ou null se não há desconto
   if (!is_array($d)) return null; $v = round((float)($d['valor'] ?? 0), 2); if ($v <= 0) return null;
   if (($u['papel'] ?? '') !== 'gestor') { // 1.23: quem não é gestor manda a autorização (o pedido que o gestor liberou): vale o motivo que ele viu, até o valor liberado
     $p = autorizacaoDeDesconto((int)($d['autorizacao'] ?? 0), $u, $c, $v); $dd = json_decode((string)$p['dados'], true);
+    // 1.45 (auditoria): liberado em %, vale a % da conta de agora: se a conta mudou depois do pedido (trocou o item), nunca passa daquela %
+    $pl = round((float)(is_array($dd) ? ($dd['pct'] ?? 0) : 0), 2);
+    if ($pl > 0 && $conta !== null && $conta > 0) { $teto = round($conta * $pl / 100, 2); if ($v > $teto + 0.015) falha('O desconto liberado foi de ' . rtrim(rtrim(number_format($pl, 2, ',', ''), '0'), ',') . '%: nesta conta (' . dinheiro($conta) . ') dá ' . dinheiro($teto) . '. Confira e confirme de novo.', 409); }
     return ['valor' => $v, 'pct' => round((float)(is_array($dd) ? ($dd['pct'] ?? 0) : 0), 2), 'motivo' => (string)$p['motivo'], 'aut' => (int)$p['id'], 'aut_por' => (int)$p['decidido_por'], 'aut_nome' => (string)$p['decidido_nome']];
   }
   $pct = round((float)($d['pct'] ?? 0), 2); if ($pct < 0 || $pct > 100) falha('O desconto não passa de 100%.');
+  if ($pct > 0 && $conta !== null && $conta > 0 && abs($v - round($conta * $pct / 100, 2)) > 0.02) $pct = 0.0;   // 1.45 (auditoria): a % que não bate com o valor não vai para a linha do dia (vale o valor)
   $motivo = mb_substr(maiusculo((string)($d['motivo'] ?? '')), 0, 120); if (mb_strlen($motivo) < 3) falha('Escreva o motivo do desconto.');
   return ['valor' => $v, 'pct' => $pct, 'motivo' => $motivo];
 }
@@ -1787,7 +1811,10 @@ function festaEntrada(array $f, array $c, string $papel, array $u): array {
     $db->exec('COMMIT');
   } catch (Throwable $e) { try { $db->exec('ROLLBACK'); } catch (Throwable $e2) { } throw $e; }
   $passou = (bool)$c['entrou'];   // já estava no espaço (entrou hoje como recreação: pelo rosto, ou por engano): a visita passa a ser da festa
-  try { if ($passou) { $t = tirarAutosDaVisita($c); $db->prepare('UPDATE criancas SET festa_id = ? WHERE id = ?')->execute([(int)$f['id'], (int)$c['id']]); $e = ['registro' => registrar('ent', (int)$c['id'], $c['nome'], '', null), 'mensagem' => null, 'tirou' => $t]; }
+  try { if ($passou) { $t = tirarAutosDaVisita($c);
+      foreach (vouchersDaVisita($c) as $v) { $db->prepare('UPDATE criancas SET pacote_min = MAX(0, pacote_min - ?) WHERE id = ?')->execute([(int)$v['minutos'], (int)$c['id']]); $db->prepare('DELETE FROM vendas WHERE id = ?')->execute([(int)$v['id']]);   // 1.45 (auditoria): a festa não usa horas: o voucher desta visita sai
+        if (!empty($v['registro'])) $db->prepare("UPDATE registros SET texto = texto || ' · cancelada' WHERE id = ? AND crianca_id = ? AND texto NOT LIKE '% · cancelada'")->execute([(int)$v['registro'], (int)$c['id']]); }
+      $db->prepare('UPDATE criancas SET festa_id = ? WHERE id = ?')->execute([(int)$f['id'], (int)$c['id']]); $e = ['registro' => registrar('ent', (int)$c['id'], $c['nome'], '', null), 'mensagem' => null, 'tirou' => $t]; }
     else $e = fazerEntrada($c, 'mão', $agora, (int)$f['id']); }
   catch (Throwable $x) { if ($nova) $db->prepare('DELETE FROM festa_presencas WHERE festa_id = ? AND crianca_id = ?')->execute([(int)$f['id'], (int)$c['id']]); throw $x; }
   $nome = (string)(crianca((int)$f['crianca_id'])['nome'] ?? '');
@@ -1851,6 +1878,7 @@ function cancelarEntrada(array $c, array $u, string $motivo, ?array $vendaIds, b
     if ($presas && $vendaIds !== null && !$desfeita) falha('Só ' . quemEstorna() . ' tira a cobrança de uma venda (' . implode(', ', array_map('nomeDaVenda', array_slice($presas, 0, 3))) . '). Cancele só a entrada, ou chame ' . quemEstorna() . '.', 403);
     $alvo = array_values(array_filter($alvo, fn($v) => !vendaPresaNoCancelamento($v)));
   }
+  $jaV = array_map(fn($x) => (int)$x['id'], $alvo); foreach (vouchersDaVisita($c) as $v) if (!in_array((int)$v['id'], $jaV, true)) $alvo[] = $v;   // 1.45 (auditoria): o voucher desta visita sai junto
   // 1.21: o que continua cobrado e ainda não foi pago fica a receber (não sai da conta com a visita): a linha do dia diz, e a tela abre o recebimento.
   // O que saiu da loja (o carrinho) não entra aqui: é recebido na devolução
   $saem = array_flip(array_map(fn($v) => (int)$v['id'], $alvo)); $ficou = $desfeita ? [] : array_values(array_filter(pendentesDaVisita($c), fn($v) => !isset($saem[(int)$v['id']]) && !((string)($v['alug'] ?? '') !== '' && $v['voltou'] === null)));

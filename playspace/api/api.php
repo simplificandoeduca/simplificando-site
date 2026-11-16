@@ -21,6 +21,10 @@ $GLOBALS['_gz'] = !empty($in['gz']) && stripos((string)($_SERVER['HTTP_ACCEPT_EN
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_SERVER['HTTP_X_PLAY'] ?? '') !== '1') falha('Pedido sem o cabeçalho do app.', 403);
 iniciarSessao();
 $db = db();
+// 1.45 (auditoria): o que muda os dados é feito um pedido de cada vez. Dois aparelhos que tocam juntos (a mesma saída em dois computadores,
+// o mesmo "Liberar" no celular da gestora e no da supervisora, o mesmo desconto, a cobrança do período que nasce no pulso de várias telas)
+// não passam os dois pela conferência: o segundo espera o primeiro terminar e já vê o que ele fez. A trava cai sozinha no fim do pedido
+travarEscrita($acao);
 $ip = (string)($_SERVER['REMOTE_ADDR'] ?? '');
 $val = fn(string $k, string $p = '') => trim((string)($in[$k] ?? $p));
 // 1.40: o que foi feito sem internet chega depois, na ordem, com a hora em que foi feito ("offline": { uid, em }): o pedido inteiro corre
@@ -51,7 +55,7 @@ function criancaPublica(array $c): array {
     'obs_antes' => (string)($c['obs_antes'] ?? ''), 'obs_em' => $c['obs_em'] ?? null, 'obs_por' => (string)($c['obs_por'] ?? ''), 'nasc' => (string)($c['nascimento'] ?? ''), 'festa' => !empty($c['festa_id']) && $c['entrou'] ? (int)$c['festa_id'] : null];   // festa (1.29): a festa em que a criança está agora   // nasc (1.11): a data de nascimento, AAAA-MM-DD ou ''   // a observação anterior, e quem mudou a de agora e quando   // pmin: o tempo comprado em minutos exatos   // doc: o campo cpf guarda o CPF ou o RNE (estrangeiro)
 }
 function dados(array $eu): array {
-  $db = db(); $hojeMenos = date('Y-m-d H:i:s', time() - 86400);
+  $db = db(); $hojeMenos = date('Y-m-d') . ' 00:00:00';   // 1.45 (auditoria): "hoje" é o dia, desde a meia-noite (era as últimas 24 h), como o Caixa do dia e o painel
   acertarTodas();   // quem passou do tempo comprado mais a tolerância já aparece com a nova cobrança
   acertarCupons();   // 0.93: venda desfeita ou cancelada: o cupom fiscal dela acompanha
   $criancas = array_map('criancaPublica', $db->query('SELECT * FROM criancas WHERE ativo = 1 ORDER BY nome')->fetchAll());
@@ -83,9 +87,9 @@ function dados(array $eu): array {
     if ($m['de'] === 'ela' && empty($m['lida'])) $conversas[$cid]['lidas'] = false;
   }
   $compromissos = array_map(fn($x) => ['id' => (int)$x['id'], 'dia' => $x['dia'], 'hora' => $x['hora'], 'titulo' => $x['titulo'], 'tipo' => $x['tipo'], 'sub' => $x['sub'], 'obs' => $x['obs'], 'feito' => !empty($x['feito'])], $db->query('SELECT * FROM compromissos ORDER BY dia, hora')->fetchAll());
-  $vendasHoje = $db->prepare('SELECT COUNT(*) n, COALESCE(SUM(minutos),0) m, COALESCE(SUM(valor),0) v FROM vendas WHERE quando > ? AND servico != ?'); $vendasHoje->execute([$hojeMenos, SERV_IMPORTADO]); $vh = $vendasHoje->fetch();   // tudo o que foi vendido nas últimas 24 h; m = minutos de brincar
+  $vendasHoje = $db->prepare('SELECT COUNT(*) n, COALESCE(SUM(minutos),0) m, COALESCE(SUM(valor),0) v FROM vendas WHERE quando >= ? AND servico != ?'); $vendasHoje->execute([$hojeMenos, SERV_IMPORTADO]); $vh = $vendasHoje->fetch();   // tudo o que foi vendido nas últimas 24 h; m = minutos de brincar
   $equipe = $eu['papel'] === 'atendente' ? [] : array_map(fn($u) => ['id' => (int)$u['id'], 'nome' => $u['nome'], 'login' => $u['login'], 'papel' => $u['papel']], $db->query('SELECT id, nome, login, papel FROM usuarios WHERE ativo = 1 ORDER BY nome')->fetchAll());
-  $q = $db->prepare("SELECT COUNT(*) n, COALESCE(SUM(valor), 0) v FROM vendas WHERE auto = 1 AND quando > ? AND itens NOT LIKE 'avulsa%'"); $q->execute([$hojeMenos]); $ah = $q->fetch(); $atrasoHoje = ['n' => (int)$ah['n'], 'valor' => (float)$ah['v']];   // 1.15: o tempo além do pacote nas últimas 24 h (a recreação avulsa é venda comum, acertada na saída)
+  $q = $db->prepare("SELECT COUNT(*) n, COALESCE(SUM(valor), 0) v FROM vendas WHERE auto = 1 AND quando >= ? AND itens NOT LIKE 'avulsa%'"); $q->execute([$hojeMenos]); $ah = $q->fetch(); $atrasoHoje = ['n' => (int)$ah['n'], 'valor' => (float)$ah['v']];   // 1.15: o tempo além do pacote nas últimas 24 h (a recreação avulsa é venda comum, acertada na saída)
   $q = $db->prepare("SELECT COALESCE(SUM(voucher != ''), 0) nv, COALESCE(SUM(CASE WHEN voucher != '' THEN cheio ELSE 0 END), 0) vv, COALESCE(SUM(pcd = 1), 0) np, COALESCE(SUM(CASE WHEN pcd = 1 THEN cheio - valor - desc_valor ELSE 0 END), 0) vp, COALESCE(SUM(desc_valor), 0) vd FROM vendas WHERE quando > ?"); $q->execute([$hojeMenos]); $dh = $q->fetch();
   $q = $db->prepare("SELECT COUNT(*) FROM registros WHERE tipo = 'desc' AND quando > ?"); $q->execute([$hojeMenos]); $nd = $q->fetchColumn();   // 1.04: quantos descontos o gestor deu nas últimas 24 h
   $descontosHoje = ['vouchers' => (int)$dh['nv'], 'voucher_valor' => (float)$dh['vv'], 'pcd' => (int)$dh['np'], 'pcd_valor' => (float)$dh['vp'], 'desc' => (int)$nd, 'desc_valor' => round((float)$dh['vd'], 2)];   // 1.04: e o desconto dado pelo gestor   // o que saiu por voucher e com desconto PCD nas últimas 24 h
@@ -224,7 +228,7 @@ switch ($acao) {
     }
     $d = textoCriancaBasico($in); conferirCadastro($d);
     if ($d['tel'] === '' && $d['tel2'] !== '') { $d['tel'] = $d['tel2']; $d['tel2'] = ''; }   // só um telefone: ele é o principal (é para onde vão os avisos)
-    $pac = (array)($in['pacote'] ?? []); $horas = max(0, (int)($pac['h'] ?? 0)); $valor = (float)($pac['v'] ?? 0);
+    $horas = 0;   // 1.45 (auditoria): o cadastro não vende mais horas (o caminho antigo, de antes da 0.98, aceitava qualquer valor, até negativo)
     $foto = (string)($in['foto'] ?? ''); if ($foto !== '' && !preg_match('#^data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$#', $foto)) $foto = '';
     if (strlen($foto) > 1500000) falha('A foto ficou grande demais. Tire outra.');
     $sap = max(0, (int)($in['sapateira'] ?? 0));   // (até a 1.15 a sapateira era escolhida no cadastro; desde a 1.16 a tela pergunta a cada entrada e não manda mais nada aqui)
@@ -235,7 +239,6 @@ switch ($acao) {
     $db->prepare('INSERT INTO criancas (nome, idade, resp, rel, tel, tel2, doc_tipo, cpf, obs, pacote_min, usado_min, foto, foto_origem, rosto, liberado, criado_em, pcd, nascimento) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?)')->execute([$d['nome'], $d['idade'], $d['resp'], $d['rel'], $d['tel'], $d['tel2'], $d['doc'], $d['cpf'], $d['obs'], $foto, $foto !== '' ? 'celular' : '', $foto !== '' ? 1 : 0, $liberado, agora(), $d['pcd'], $d['nascimento'] !== '' ? $d['nascimento'] : null]);
     $id = (int)$db->lastInsertId(); if ($d['obs'] !== '') $db->prepare('UPDATE criancas SET obs_em = ?, obs_por = ? WHERE id = ?')->execute([agora(), primeiroNome((string)$u['nome']), $id]);
     if ($d['pcd']) registrar('cad', $id, $d['nome'], 'Cadastrada como criança PCD: ' . pcdDesc() . '% de desconto na recreação · por ' . primeiroNome($u['nome'])); if ($sap) $db->prepare('UPDATE criancas SET sapateira = ? WHERE id = ?')->execute([$sap, $id]); $c = crianca($id);
-    if ($horas > 0) fazerVenda($c, $horas * 60, $valor, (int)$u['id']);
     gravarCfg('mandar_' . $id, $id); // vai para o iDFace (nome agora, foto quando o aparelho confirmar o cadastro)
     responder(['id' => $id]);
   }
@@ -364,6 +367,9 @@ switch ($acao) {
   case 'saida': {
     $us = modoManual() ? exigir() : exigir(['gestor', 'supervisor']); $c = crianca((int)($in['id'] ?? 0)); if (!$c) falha('Criança não encontrada.', 404);
     if (!$c['entrou']) falha($c['nome'] . ' não está no espaço.');
+    if (!empty($GLOBALS['PS_OFF']['em'])) { $te = strtotime((string)$c['entrou']); $to = strtotime((string)$GLOBALS['PS_OFF']['em']);   // 1.45 (auditoria): a saída feita sem internet de antes da entrada de agora não entra (sem deixar cobrança para trás)
+      if ($to < $te - 60) falha('Esta saída, feita sem internet às ' . substr((string)$GLOBALS['PS_OFF']['em'], 11, 5) . ', é de antes da entrada de agora (' . substr((string)$c['entrou'], 11, 5) . '): não entra sozinha. Confira com o gestor.', 409);
+      if ($to < $te) $GLOBALS['PS_AGORA'] = $te; }   // (o relógio do computador um pouco atrás: vale a hora da entrada)
     if (!empty($c['festa_id'])) unset($in['avulso']);   // 1.29: a visita da festa não gasta horas: não há o que pagar avulso
     // gestor e supervisor podem dizer a hora em que a criança saiu de verdade (saída esquecida), com o motivo
     $hh = trim((string)($in['quando'] ?? '')); $corrige = null;
@@ -383,7 +389,7 @@ switch ($acao) {
       $t0 = agora(); if (acertarCobrancas($c, $t0)) $c = crianca((int)$c['id']);
       if (desfazerCobrancasSobrando($c, $t0)['n']) $c = crianca((int)$c['id']);
       $bruto = array_sum(array_map(fn($v) => (float)$v['falta'], pendentesDaVisita($c))) + (float)atrasoDaVisita((int)$c['id'], (string)$c['entrou'])['valor'] + (!empty($in['avulso']) ? (float)contaVisitaAvulsa($c, $t0)['valor'] : 0.0);
-      $dv = lerDesconto($in['desconto'] ?? null, eu() ?: [], $c); $devido = round(max(0, $bruto - ($dv ? (float)$dv['valor'] : 0)), 2); $pgv = lerPagamento($in['pagamento'] ?? null);
+      $dv = lerDesconto($in['desconto'] ?? null, eu() ?: [], $c, (float)$bruto); $devido = round(max(0, $bruto - ($dv ? (float)$dv['valor'] : 0)), 2); $pgv = lerPagamento($in['pagamento'] ?? null);
       if (abs($devido - round((float)$in['total'], 2)) >= 0.01 || abs($devido - round((float)array_sum($pgv), 2)) >= 0.01)
         falha($devido > 0 ? 'O valor a receber mudou para ' . dinheiro($devido) . '. Confira e confirme de novo.' : 'Não há mais nada a receber nesta saída. Confira e confirme de novo.', 409);
     }
@@ -522,6 +528,7 @@ switch ($acao) {
     $linhas = [];
     foreach ((array)($in['linhas'] ?? []) as $l) {
       $s = $porId[(string)($l['s'] ?? '')] ?? null; $q = min(48, (int)($l['q'] ?? 0)); if (!$s || $q < 1) continue;
+      if (isset($l['vt']) && abs((float)$l['vt'] - (float)$s['v']) >= 0.005) falha('O valor de ' . $s['n'] . ' mudou para ' . dinheiro((float)$s['v']) . '. Feche e abra o atendimento de novo.');   // 1.45 (auditoria): como o pacote e o produto
       if (!empty($s['volta']) && ($s['modo'] ?? 'fixo') !== 'periodo') $q = min(ALUG_MAX, $q);   // 1.22: o que sai da loja com valor único (o carrinho de bebê): até 4 de uma vez
       if (alugEmAberto($s)) { // 1.20: o que sai da loja e é cobrado por período (o fusquinha) só "sai": não há tempo a escolher nem valor agora; a conta fecha na devolução
         if ($ja = alugueis((int)$c['id'], (string)$s['id'])) falha($s['n'] . ' de ' . $c['nome'] . ' já está fora da loja desde as ' . substr((string)$ja[0]['ini'], 11, 5) . '. Marque a devolução antes de registrar outra saída.');
@@ -581,7 +588,7 @@ switch ($acao) {
     }
     // 0.90: a forma de pagamento (até três). Confere antes de vender: tem de fechar com o total que o servidor calculou, não com o que a tela mostrou
     $pg = lerPagamento($in['pagamento'] ?? null); $aPagar = round(array_sum(array_map(fn($l) => (float)$l['valor'], $linhas)), 2);
-    $desc = lerDesconto($in['desconto'] ?? null, $u, $c); $cheio = $aPagar;   // 1.04: o desconto do gestor: o pagamento fecha com o total já descontado
+    $desc = lerDesconto($in['desconto'] ?? null, $u, $c, (float)$aPagar); $cheio = $aPagar;   // 1.04: o desconto do gestor: o pagamento fecha com o total já descontado
     if ($desc) { if ($desc['valor'] > $cheio + 0.004) falha('O desconto (' . dinheiro($desc['valor']) . ') passa do total, que é ' . dinheiro($cheio) . '.'); $aPagar = round($cheio - $desc['valor'], 2); }
     if ($pg && abs(array_sum($pg) - $aPagar) >= 0.01) falha('O pagamento (' . dinheiro((float)array_sum($pg)) . ') não fecha com o total, que é ' . dinheiro($aPagar) . '. Feche e abra o atendimento de novo.');
     if ($festa && !$pg && $aPagar > 0) falha('Escolha a forma de pagamento da festa.');   // 1.12: a festa não fica a receber
@@ -722,6 +729,7 @@ switch ($acao) {
     foreach ($qp->fetchAll() as $l) $pagas[(int)$l['venda_id']][(string)$l['forma']] = round((float)$l['t'], 2);
     // 1.02: o que ainda não foi pago desta visita (o que ficou para a saída e as cobranças por atraso a receber): o histórico marca e não soma em "Pagou ao todo"
     $np = []; foreach ($ids as $cid) { $k = crianca($cid); if (!$k) continue; foreach (pendentesDaVisita($k) as $v) $np[(int)$v['id']] = (float)$v['falta'];
+      if (!$k['entrou']) foreach (autosSemPagarDaSaida($k) as $v) $np[(int)$v['id']] = round((float)$v['valor'], 2);   // 1.45 (auditoria): a saída pelo rosto que não recebeu não conta como paga
       if ($k['entrou']) { $qa = $db->prepare('SELECT id, valor FROM vendas WHERE crianca_id = ? AND auto = 1 AND quando >= ? AND NOT EXISTS (SELECT 1 FROM pagamentos p WHERE p.venda_id = vendas.id)'); $qa->execute([$cid, (string)$k['entrou']]); foreach ($qa->fetchAll() as $l) $np[(int)$l['id']] = (float)$l['valor']; } }
     $nfs = []; $cvs = []; $qx = $db->prepare("SELECT * FROM pedidos WHERE crianca_id IN ($marcas) AND venda_id IS NOT NULL AND ((tipo = 'nf' AND status IN ('pendente', 'liberado', 'usado', 'negado')) OR (tipo = 'cancelar_venda' AND status = 'pendente')) ORDER BY id"); $qx->execute($ids);
     foreach ($qx->fetchAll() as $p) { if ($p['tipo'] === 'nf') $nfs[(int)$p['venda_id']] = pedidoPublico($p); else $cvs[(int)$p['venda_id']] = pedidoPublico($p); }   // 1.23: a nota fiscal de cada compra (a mais nova) e o pedido de cancelamento que espera

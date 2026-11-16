@@ -1176,6 +1176,33 @@ O Play Space de verdade fica no domínio da loja (**playspace2.com.br**); a inst
 - As instalações de antes (sem a pasta `api/dados`) continuam usando a `~/playspace-dados`, como sempre.
 - O **Atualizar** nunca apaga a pasta `api/dados` (ele só troca os arquivos do sistema).
 
+## 6zy. Auditoria das contas (1.45)
+
+Pedido do dono: auditar todas as somas e valores (caixa, liberações, porcentagens, horas de pacote e avulso); as contas têm de bater, e trocar de opção ou de tela não pode dar valor diferente.
+
+Três auditorias, cada uma num servidor de teste isolado, com testes que se podem repetir:
+
+- **Tempo e horas:** a conta dos períodos, da tolerância, do PCD, do voucher, do pacote ("descontar do pacote" ou "pagar avulso"), da saída em conjunto e do horário de fechar bateu **até o segundo** entre a tela da saída, o servidor, o cupom e o saldo (ficha, Banco de horas, histórico, relatório), inclusive com a folha aberta virando o período e com o computador em outro fuso.
+- **Dinheiro e caixa:** em **1.250 operações sorteadas** (vendas, pagamentos em até três formas, descontos em R$ e em %, PCD, produtos, carrinhos, festas, cancelamentos, devoluções, desfazer) nas duas unidades, o dinheiro gravado bateu **centavo a centavo** com um livro-caixa feito à parte; o Caixa do dia (por unidade e TODAS), o painel e o extrato do cliente também.
+- **Liberações e integridade:** quem libera o quê, a senha, o pedido usado uma vez só, e o servidor recusando valores adulterados (total menor, desconto maior, outro item, outra criança).
+
+O que foi corrigido:
+
+- **Dois aparelhos ao mesmo tempo** (a mesma saída em dois computadores, o mesmo "Liberar" no celular da gestora e no da supervisora, o mesmo desconto, a cobrança do período que nasce no pulso de várias telas): o servidor faz o que muda os dados **um pedido de cada vez** — nunca cobra, soma horas ou usa um desconto duas vezes.
+- O **cadastro** não vende mais horas (um caminho antigo, mandado à mão, vendia horas com qualquer valor).
+- O **desconto liberado em %** vale a % da conta de agora (se a conta mudou depois do pedido, nunca passa daquela %); o pedido de desconto da saída que ninguém respondeu fecha quando a criança sai; pedido de mais de 12 h não é mais liberado; a % do gestor que não bate com o valor não vai para a linha do dia.
+- O **serviço com o preço mudado** no meio do atendimento avisa (como o pacote e o produto).
+- A **saída feita sem internet** com a hora de antes da entrada de agora não entra (e não deixa cobrança para trás).
+- A **cortesia**, o **cancelar a entrada** e o **passar para a festa** tiram o voucher da visita (antes ficava como 30 min guardados).
+- **Corrigir a hora da saída** de uma visita paga: a linha do dia diz "devolver ao cliente: …" e o que foi pago em outro dia entra em "Devolvido hoje".
+- O **"ficou"** perto do limite do período (de 39:01 a 39:59) mostra o minuto que começou (0h40), nunca 0h39 com dois períodos cobrados; o relatório do cliente mostra o mesmo "ficou" da saída.
+- **Caixa do dia:** a linha "Devolvido hoje" não leva mais o carrinho devolvido (ele sai da linha Carrinhos; as linhas somam o total, na tela e no papel); o dinheiro recebido num aparelho sem unidade aparece no botão **SEM UNIDADE**; o valor negativo se lê "− R$ 60,00".
+- **"Hoje na recepção":** os números são do dia (desde a meia-noite), e o recebido é o mesmo do Caixa do dia.
+- **Ficha e relatório do cliente:** a cobrança da saída pelo rosto ainda não recebida não conta como paga.
+- **Painel:** "x% do recebido" nunca passa de 100%.
+
+Fica como está (regra da loja, para o dono confirmar): o valor do produto no "Alterar pacote" entra em Pacotes de horas; o faturado conta na unidade da venda e o recebido na unidade do aparelho que recebeu; um resto de saldo menor que um período (ex.: 10 min de uma importação) não é usado sozinho; duas vendas iguais feitas sem internet em dois computadores valem as duas (o dinheiro foi recebido nos dois).
+
 ## 7. Atualizar
 
 Botão **Atualizar** ao lado da versão. Ele baixa a versão nova do GitHub (ramo principal ou de trabalho, a mais nova), confere a versão dentro do arquivo e troca os arquivos de forma atômica. Não mexe em `~/playspace-dados/`. Se o GitHub demorar a refletir (cache de ~5 min), espere e toque de novo.
