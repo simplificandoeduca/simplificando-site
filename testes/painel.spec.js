@@ -1,6 +1,6 @@
 // 📋 Painel do personal + 👩‍🏫 aluno com personal, de ponta a ponta no Firebase de teste:
 // o personal cria o acesso, cadastra a aluna e monta o treino; a aluna entra com a senha, treina; o painel vê a evolução.
-const { test, expect, EMU, simp, entraComSenha, criaConta, semJanelas, fsLista } = require('./apoio');
+const { test, expect, EMU, simp, entraComSenha, criaConta, semJanelas, fsLista, arrasta } = require('./apoio');
 test.describe.configure({ mode: 'serial' }); // um passo depende do anterior (mesmo personal e mesma aluna)
 
 const DONO = { email: 'dono@teste.com', senha: 'segredo123' };
@@ -137,4 +137,75 @@ test('Hub (/hub): números reais e um bloco para cada espaço; Números saiu das
   await expect(pn).toHaveURL(/\/personal\/#painel$/);
   await expect(pn.locator('#tabs')).toBeVisible();
   await expect(pn.locator('.hub')).toHaveCount(0);
+});
+
+test('sem internet: a internet cai no meio do treino e a aluna registra carga, marca a série e finaliza', async ({ page }) => {
+  const erros = []; page.on('pageerror', e => erros.push(String(e)));
+  await entraComSenha(page, { codigo, emu: true });
+  await simp(page, () => { const T = window.__simp; T.setLay('lista'); const t = T.LETTERS[0]; T.ui.t = t; T.startSession(t); T.ui.sheet = null; T.renderSheet(); T.ui.tab = 'treino'; T.render(); });
+  await semJanelas(page);
+  const antes = await simp(page, () => window.__simp.S.history.length);
+  await page.context().setOffline(true);
+  const id = await simp(page, () => { const T = window.__simp; return T.PLAN[T.ui.t].ex[0].id; });
+  const kg = page.locator('.tpanel .tsteps input').first();
+  await kg.fill('42'); await kg.press('Tab');
+  await page.evaluate(() => { const r = document.querySelector('.tpanel .slide[data-kind="tset"]').getBoundingClientRect(); window.scrollBy(0, r.top - innerHeight / 2); }); // o botão fica no meio da tela, longe da barra de abas
+  await arrasta(page, '.tpanel .slide[data-kind="tset"] .slide-knob');
+  expect((await simp(page, id => window.__simp.logOf(id).map(x => (x.ok ? '✓' : '·') + x.kg), id))[0]).toBe('✓42');
+  await page.click('[data-a="finish"]'); await page.click('[data-a="finish"]');
+  await expect.poll(() => simp(page, () => window.__simp.S.history.length)).toBe(antes + 1);
+  expect(await simp(page, () => window.__simp.S.session)).toBeNull();
+  expect(erros).toEqual([]);
+  await page.context().setOffline(false);
+});
+
+test('sem internet desde a abertura: o app instalado abre do celular, registra a série e finaliza', async ({ browser }) => {
+  const ctx = await browser.newContext({ serviceWorkers: 'allow', viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'pt-BR', timezoneId: 'America/Sao_Paulo' });
+  const page = await ctx.newPage(); const erros = []; page.on('pageerror', e => erros.push(String(e)));
+  await entraComSenha(page, { codigo, emu: true });
+  await page.evaluate(() => navigator.serviceWorker.ready.then(() => true));
+  await page.reload(); await page.waitForFunction(() => window.__simp && window.__simp.ACCT && navigator.serviceWorker.controller, null, { timeout: 20000 });
+  await ctx.setOffline(true);
+  await page.reload();
+  await page.waitForFunction(() => window.__simp && window.__simp.ACCT, null, { timeout: 20000 });
+  await page.waitForTimeout(4000); // tempo do app tentar falar com o servidor e desistir
+  await simp(page, () => { const T = window.__simp; T.setLay('lista'); const t = T.LETTERS[0]; T.ui.t = t; T.startSession(t); T.ui.sheet = null; T.renderSheet(); T.ui.tab = 'treino'; T.render(); });
+  await semJanelas(page);
+  const antes = await simp(page, () => window.__simp.S.history.length);
+  const id = await simp(page, () => { const T = window.__simp; return T.PLAN[T.ui.t].ex[0].id; });
+  const kg = page.locator('.tpanel .tsteps input').first();
+  await kg.fill('43'); await kg.press('Tab');
+  await page.evaluate(() => { const r = document.querySelector('.tpanel .slide[data-kind="tset"]').getBoundingClientRect(); window.scrollBy(0, r.top - innerHeight / 2); }); // o botão fica no meio da tela, longe da barra de abas
+  await arrasta(page, '.tpanel .slide[data-kind="tset"] .slide-knob');
+  expect((await simp(page, id => window.__simp.logOf(id).map(x => (x.ok ? '✓' : '·') + x.kg), id))[0]).toBe('✓43');
+  await page.click('[data-a="finish"]'); await page.click('[data-a="finish"]');
+  await expect.poll(() => simp(page, () => window.__simp.S.history.length)).toBe(antes + 1);
+  expect(erros).toEqual([]);
+  await ctx.close();
+});
+
+test('sinal fraco (conectado, mas nada carrega): o app abre do celular, registra a série e finaliza', async ({ browser }) => {
+  const ctx = await browser.newContext({ serviceWorkers: 'allow', viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'pt-BR', timezoneId: 'America/Sao_Paulo' });
+  const page = await ctx.newPage(); const erros = []; page.on('pageerror', e => erros.push(String(e)));
+  await entraComSenha(page, { codigo, emu: true });
+  await page.evaluate(() => navigator.serviceWorker.ready.then(() => true));
+  await page.reload(); await page.waitForFunction(() => window.__simp && window.__simp.ACCT && navigator.serviceWorker.controller, null, { timeout: 20000 });
+  await ctx.route('**/*', () => { /* sinal fraco: nenhum pedido responde */ });
+  page.reload().catch(() => {});
+  await page.waitForTimeout(6000);
+  await page.waitForFunction(() => window.__simp && window.__simp.ACCT, null, { timeout: 20000 });
+  await page.waitForTimeout(4000); // tempo do app tentar falar com o servidor e desistir
+  await simp(page, () => { const T = window.__simp; T.setLay('lista'); const t = T.LETTERS[0]; T.ui.t = t; T.startSession(t); T.ui.sheet = null; T.renderSheet(); T.ui.tab = 'treino'; T.render(); });
+  await semJanelas(page);
+  const antes = await simp(page, () => window.__simp.S.history.length);
+  const id = await simp(page, () => { const T = window.__simp; return T.PLAN[T.ui.t].ex[0].id; });
+  const kg = page.locator('.tpanel .tsteps input').first();
+  await kg.fill('44'); await kg.press('Tab');
+  await page.evaluate(() => { const r = document.querySelector('.tpanel .slide[data-kind="tset"]').getBoundingClientRect(); window.scrollBy(0, r.top - innerHeight / 2); }); // o botão fica no meio da tela, longe da barra de abas
+  await arrasta(page, '.tpanel .slide[data-kind="tset"] .slide-knob');
+  expect((await simp(page, id => window.__simp.logOf(id).map(x => (x.ok ? '✓' : '·') + x.kg), id))[0]).toBe('✓44');
+  await page.click('[data-a="finish"]'); await page.click('[data-a="finish"]');
+  await expect.poll(() => simp(page, () => window.__simp.S.history.length)).toBe(antes + 1);
+  expect(erros).toEqual([]);
+  await ctx.close();
 });

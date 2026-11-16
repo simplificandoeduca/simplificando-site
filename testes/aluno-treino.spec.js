@@ -106,9 +106,12 @@ test('treino esquecido aberto (3 h): janela ao abrir, ajusta o tempo e salva', a
   expect(h).toEqual([80, false]);
 });
 
-test('Finalizar com 3 h ou mais pede para conferir o tempo', async ({ page }) => {
-  await comeca(page);
-  await simp(page, () => { const S = window.__simp.S; S.session.ini = Date.now() - 200 * 60e3; S.session.start = S.session.ini; S.session.esqOk = Date.now(); });
+test('Finalizar com 1h30 ou mais pede para conferir o tempo; com menos, finaliza direto', async ({ page }) => {
+  const { id } = await comeca(page);
+  await simp(page, id => { const T = window.__simp, S = T.S; T.getLog(id)[0].ok = true; T.getLog(id)[0].kg = '30'; S.session.ini = Date.now() - 60 * 60e3; S.session.start = S.session.ini; T.save(); T.render(); }, id);
+  await page.click('[data-a="finish"]');
+  await expect(page.locator('#sheet .esq')).toHaveCount(0); // 1 h: só o "toque de novo para finalizar"
+  await simp(page, () => { const S = window.__simp.S; S.session.ini = Date.now() - 100 * 60e3; S.session.start = S.session.ini; S.session.esqOk = Date.now(); window.__simp.ui.arm = null; window.__simp.render(); });
   await page.click('[data-a="finish"]');
   await expect(page.locator('#sheet')).toContainText('Confira o tempo do treino');
   await page.click('#sheet .esq [data-a="esq-x"]');

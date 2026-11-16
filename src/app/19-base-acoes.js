@@ -208,7 +208,7 @@ function onClick(ev){
     case 't': ui.t = d.v; break;
     case 'start': ui.t = d.t; startSession(d.t); break;
     case 'pause': { const s = S.session; if(s.run){ s.acc += Date.now()-s.start; s.run = false; } else { s.start = Date.now(); s.run = true; } break; }
-    case 'finish': if(esqLongo() && !S.session.fix){ esqAbre(true); re = false; break; } if(armed==='finish') finish(); else ui.arm = 'finish'; break;
+    case 'finish': if(esqFim() && !S.session.fix){ esqAbre(true); re = false; break; } if(armed==='finish') finish(); else ui.arm = 'finish'; break;
     case 'ses-cancel': clearTimeout(sesCancelT); if(armed==='cancel') cancelSession(); else { ui.arm = 'cancel'; sesCancelT = setTimeout(() => { if(ui.arm==='cancel'){ ui.arm = null; render(); } }, 6000); } break;
     case 'open': {
       const was = ui.sheet && ui.sheet.k==='ex';

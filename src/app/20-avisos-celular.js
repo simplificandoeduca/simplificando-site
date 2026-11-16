@@ -30,6 +30,9 @@ function vDsAsk(){
 const ESQ_MS = 3*3600e3;
 const sesIni = s => s ? (s.ini || (s.run ? s.start-s.acc : Date.now()-s.acc)) : 0;
 const esqLongo = () => !!S.session && Date.now()-sesIni(S.session) >= ESQ_MS;
+/* ao finalizar, o tempo já pede conferência com 1h30 aberto (ex.: ficou sem internet e só conseguiu finalizar depois) */
+const ESQ_FIM_MS = 90*60e3;
+const esqFim = () => !!S.session && Date.now()-sesIni(S.session) >= ESQ_FIM_MS;
 function sesUlt(){ const s = S && S.session; if(!s) return; const L = S.logs[s.d||today()] || {}; let n = 0; Object.keys(L).forEach(id => (L[id]||[]).forEach(x => { if(x && x.ok) n++; })); if(n>(s.nOk||0)) s.ult = Date.now(); s.nOk = n; }
 const durTxt = m => { m = Math.max(0, Math.round(m)); const h = Math.floor(m/60), r = m%60; return h ? h+'h'+(r ? String(r).padStart(2,'0') : '') : r+' min'; };
 /* sugestão: até a última série feita + 5 min; sem série, o tempo do cronômetro */

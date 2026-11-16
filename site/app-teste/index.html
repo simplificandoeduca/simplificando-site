@@ -1784,7 +1784,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simpteste-aluno-pro-v2';
-const APPV = '16 nov · 140'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '16 nov · 141'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -6088,7 +6088,7 @@ function onClick(ev){
     case 't': ui.t = d.v; break;
     case 'start': ui.t = d.t; startSession(d.t); break;
     case 'pause': { const s = S.session; if(s.run){ s.acc += Date.now()-s.start; s.run = false; } else { s.start = Date.now(); s.run = true; } break; }
-    case 'finish': if(esqLongo() && !S.session.fix){ esqAbre(true); re = false; break; } if(armed==='finish') finish(); else ui.arm = 'finish'; break;
+    case 'finish': if(esqFim() && !S.session.fix){ esqAbre(true); re = false; break; } if(armed==='finish') finish(); else ui.arm = 'finish'; break;
     case 'ses-cancel': clearTimeout(sesCancelT); if(armed==='cancel') cancelSession(); else { ui.arm = 'cancel'; sesCancelT = setTimeout(() => { if(ui.arm==='cancel'){ ui.arm = null; render(); } }, 6000); } break;
     case 'open': {
       const was = ui.sheet && ui.sheet.k==='ex';
@@ -6417,6 +6417,9 @@ function vDsAsk(){
 const ESQ_MS = 3*3600e3;
 const sesIni = s => s ? (s.ini || (s.run ? s.start-s.acc : Date.now()-s.acc)) : 0;
 const esqLongo = () => !!S.session && Date.now()-sesIni(S.session) >= ESQ_MS;
+/* ao finalizar, o tempo já pede conferência com 1h30 aberto (ex.: ficou sem internet e só conseguiu finalizar depois) */
+const ESQ_FIM_MS = 90*60e3;
+const esqFim = () => !!S.session && Date.now()-sesIni(S.session) >= ESQ_FIM_MS;
 function sesUlt(){ const s = S && S.session; if(!s) return; const L = S.logs[s.d||today()] || {}; let n = 0; Object.keys(L).forEach(id => (L[id]||[]).forEach(x => { if(x && x.ok) n++; })); if(n>(s.nOk||0)) s.ult = Date.now(); s.nOk = n; }
 const durTxt = m => { m = Math.max(0, Math.round(m)); const h = Math.floor(m/60), r = m%60; return h ? h+'h'+(r ? String(r).padStart(2,'0') : '') : r+' min'; };
 /* sugestão: até a última série feita + 5 min; sem série, o tempo do cronômetro */
