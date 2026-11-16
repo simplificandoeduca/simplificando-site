@@ -1167,6 +1167,15 @@ Pedido do dono: na entrada, duas cópias do comprovante, uma para a loja e uma p
 - A tela do cupom avisa: "Saem duas vias: a da loja (o responsável assina) e a do cliente". O botão diz **Imprimir o cupom · 2 vias**.
 - **Saída**, devolução, festa, carrinho e comprovante de pagamento: uma via só, como já era. Se o cliente pedir, **Reimprimir cupom** na ficha (sai uma via).
 
+## 6zx. O Play Space da loja num domínio próprio, separado do teste (1.44)
+
+O Play Space de verdade fica no domínio da loja (**playspace2.com.br**); a instalação na hospedagem da Gama era só de teste.
+
+- O pacote do domínio da loja (o .zip para extrair na pasta do domínio) já vem com a pasta `api/dados`. Desde a 1.44, a instalação que tem essa pasta guarda **os dados só ali** (o banco, as sessões, as cópias de segurança), e nunca na `~/playspace-dados`, que a instalação de teste na mesma hospedagem pode estar usando. Assim o Play Space de verdade nasce **zerado** ("Bem-vinda ao Play Space") e nunca se mistura com o teste.
+- A pasta `api/dados` é fechada para a internet (`.htaccess` que nega tudo) e o banco tem nome sorteado. Para o backup, copie essa pasta.
+- As instalações de antes (sem a pasta `api/dados`) continuam usando a `~/playspace-dados`, como sempre.
+- O **Atualizar** nunca apaga a pasta `api/dados` (ele só troca os arquivos do sistema).
+
 ## 7. Atualizar
 
 Botão **Atualizar** ao lado da versão. Ele baixa a versão nova do GitHub (ramo principal ou de trabalho, a mais nova), confere a versão dentro do arquivo e troca os arquivos de forma atômica. Não mexe em `~/playspace-dados/`. Se o GitHub demorar a refletir (cache de ~5 min), espere e toque de novo.

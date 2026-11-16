@@ -84,7 +84,10 @@ function pastaDados(): string {
   static $pasta = null;
   if ($pasta) return $pasta;
   $raiz = realpath($_SERVER['DOCUMENT_ROOT'] ?? '') ?: dirname(__DIR__, 2);
-  foreach ([dirname($raiz) . '/playspace-dados', __DIR__ . '/dados'] as $dir) {
+  // 1.44: a instalação que já traz a pasta api/dados (o pacote do domínio da loja) guarda os dados só ali, e nunca na ~/playspace-dados,
+  // que outra instalação na mesma hospedagem (a de teste) pode estar usando: os dados de verdade não se misturam com os do teste
+  $lugares = is_dir(__DIR__ . '/dados') ? [__DIR__ . '/dados'] : [dirname($raiz) . '/playspace-dados', __DIR__ . '/dados'];
+  foreach ($lugares as $dir) {
     if (!is_dir($dir)) @mkdir($dir, 0700, true);
     if (is_dir($dir) && is_writable($dir)) {
       if (!file_exists($dir . '/.htaccess')) @file_put_contents($dir . '/.htaccess', "<IfModule mod_authz_core.c>\n  Require all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\n  Order allow,deny\n  Deny from all\n</IfModule>\n");
