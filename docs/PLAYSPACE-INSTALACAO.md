@@ -1211,6 +1211,29 @@ Pedido do dono: na tela inicial, a coluna **Tempo** não mostra mais o "até 13:
 - Vale também para o carrinho com tempo comprado.
 - A ficha do cliente e a tela da saída continuam mostrando o tempo do pacote, para quem precisar conferir.
 
+## 6zza. O carrinho sempre cobrado na devolução (1.47)
+
+Pedido do dono: tirar o "já pago" do carrinho e deixar sempre para cobrar na saída (ou na devolução). Não existe a opção de marcar o carrinho como pago na hora.
+
+- O carrinho sozinho, ou com a criança entrando ou já no espaço, já era **Cobrar na devolução** / **Cobrar na saída** (desde a 1.37).
+- Faltava um caso: o carrinho vendido **junto com o que é pago na hora** (um pacote, um produto), sem a criança no espaço. Antes, tudo era pago na hora e, na devolução, o carrinho aparecia "já pago". Agora o pagamento de agora é **só do resto**; na tabela o carrinho diz "na devolução", o aviso embaixo diz quanto fica a receber, e o cupom também ("R$ 30,00 a receber na devolução"). O desconto do gestor, nesse caso, vale só para o que é pago agora.
+- Na devolução, o carrinho é cobrado normalmente. A conta da devolução não diz mais "já pago".
+- Se o cliente já tinha pago, quem decide é o gestor (ex.: desconto ou cortesia na devolução).
+
+Junto: o serviço do aparelho (o que guarda o Play Space para abrir sem internet) só cuida do que é do Play Space. O **/notas** (o emissor de notas, no mesmo site) ficava debaixo dele: a versão nova do Notas demorava a aparecer e, sem internet, o Play Space podia abrir a tela do Notas. O guardado de antes é apagado sozinho na atualização.
+
+## 6zzb. O ícone na área de trabalho, no Mac e no Windows (1.47)
+
+Pedido do dono: um botão nos Ajustes para criar o ícone do Play Space na área de trabalho, no Mac e no Windows, para o **Imprimir** já mandar o cupom para a impressora (no site, o navegador sempre mostra a janela de impressão).
+
+Em **Ajustes → Cupom impresso → Ícone na área de trabalho · Mac e Windows**:
+
+- **Windows: Baixar o instalador (Windows).** Dois cliques no arquivo baixado: ele cria o ícone **Play Space** (com a logo) na área de trabalho e abre o sistema.
+- **Mac: Copiar o comando (Mac).** Abra o **Terminal** (Command + espaço, escreva Terminal), cole (Command + V) e aperte Enter: aparece na Mesa o app **Play Space**, com a logo, e o sistema abre. Precisa do Google Chrome.
+  - Por que um comando: nenhum site consegue pôr um arquivo na Mesa do Mac, e um programa baixado da internet a Apple barra ("desenvolvedor não identificado"). Feito pelo Terminal, no próprio Mac, o app abre sem aviso.
+  - O app é uma pasta "Play Space.app" com o script que abre o Chrome numa janela só dele, com a impressão direta (`--kiosk-printing`) e um perfil só dele, a ficha do app e a logo (`img/playspace.icns`, baixada do próprio site). O comando de antes (que deixava um "Play Space.command" na Mesa, abrindo o Terminal junto) é trocado pelo app.
+- Nos dois: deixe a impressora do cupom como **impressora padrão** do computador, e abra o sistema **sempre pelo ícone**. O cupom de teste tem que sair sem perguntar nada.
+
 ## 7. Atualizar
 
 Botão **Atualizar** ao lado da versão. Ele baixa a versão nova do GitHub (ramo principal ou de trabalho, a mais nova), confere a versão dentro do arquivo e troca os arquivos de forma atômica. Não mexe em `~/playspace-dados/`. Se o GitHub demorar a refletir (cache de ~5 min), espere e toque de novo.

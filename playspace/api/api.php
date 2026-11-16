@@ -588,6 +588,10 @@ switch ($acao) {
     }
     // 0.90: a forma de pagamento (até três). Confere antes de vender: tem de fechar com o total que o servidor calculou, não com o que a tela mostrou
     $pg = lerPagamento($in['pagamento'] ?? null); $aPagar = round(array_sum(array_map(fn($l) => (float)$l['valor'], $linhas)), 2);
+    // 1.47 (o dono: "deixa sempre para cobrar na saída"): o que sai da loja e volta (o carrinho de bebê) nunca é pago na venda. Vendido junto com o que é
+    // pago agora (um pacote, um produto), sem a criança no espaço, ele fica a receber na devolução: o pagamento de agora (e o desconto) é só do resto
+    $devIdx = []; if (!empty($in['carrinho_depois']) && !$festa) foreach ($linhas as $i => $l) if (!empty($l['mais']['alug']) && (float)$l['valor'] > 0.004) $devIdx[$i] = 1;
+    $devV = round(array_sum(array_map(fn($i) => (float)$linhas[$i]['valor'], array_keys($devIdx))), 2); $aPagar = round($aPagar - $devV, 2);
     $desc = lerDesconto($in['desconto'] ?? null, $u, $c, (float)$aPagar); $cheio = $aPagar;   // 1.04: o desconto do gestor: o pagamento fecha com o total já descontado
     if ($desc) { if ($desc['valor'] > $cheio + 0.004) falha('O desconto (' . dinheiro($desc['valor']) . ') passa do total, que é ' . dinheiro($cheio) . '.'); $aPagar = round($cheio - $desc['valor'], 2); }
     if ($pg && abs(array_sum($pg) - $aPagar) >= 0.01) falha('O pagamento (' . dinheiro((float)array_sum($pg)) . ') não fecha com o total, que é ' . dinheiro($aPagar) . '. Feche e abra o atendimento de novo.');
@@ -603,18 +607,19 @@ switch ($acao) {
     foreach ($linhas as $i => $l) if (!empty($l['alt'])) $regs[] = usarAlteracao($l['alt'], (int)$vendas[$i], $c, $u);   // 1.33: o valor alterado fica registrado (o pedido, usado, com a venda)
     $festaId = $festa ? gravarFesta($linhas, $vendas, $u) : 0;   // 1.29: a festa nova nasce; o upgrade e o adicional ficam com a festa deles
     $ad = [];   // 1.04: o desconto sai das vendas desta venda, em proporção ao valor de cada uma
-    if ($desc && $cheio > 0) { $faltas = []; foreach ($linhas as $i => $l) $faltas[$vendas[$i]] = (float)$l['valor']; $ad = aplicarDesconto($desc, $faltas, $c, $u); if ($ad) { $regs[] = $ad['registro']; $total = round($total - $ad['valor'], 2); usarAutorizacao($desc, (float)$ad['valor']); } }
+    if ($desc && $cheio > 0) { $faltas = []; foreach ($linhas as $i => $l) if (!isset($devIdx[$i])) $faltas[$vendas[$i]] = (float)$l['valor'];   /* 1.47: o desconto não mexe no carrinho que fica para a devolução */ $ad = aplicarDesconto($desc, $faltas, $c, $u); if ($ad) { $regs[] = $ad['registro']; $total = round($total - $ad['valor'], 2); usarAutorizacao($desc, (float)$ad['valor']); } }
     $vinfo = null;   // o voucher entra por último: com cobrança por atraso a receber, ele cobre essa cobrança em vez de somar tempo
     if ($comVoucher) { $v = usarVoucher($c, $u); $vendas[] = $v['venda']; $regs[] = $v['registro']; $min += $v['minutos']; $c = crianca((int)$c['id']); $vinfo = ['n' => $v['n'], 'cobriu' => $v['cobriu']]; }
     if ($pg && $aPagar > 0) { // fica anotado em cada venda e numa linha do dia ("Pagamento · R$ 680 · Pix R$ 200 + Dinheiro R$ 480")
       $antesPg = (int)$db->query('SELECT COALESCE(MAX(id), 0) FROM pagamentos')->fetchColumn();
-      $pago = gravarPagamento($vendas, $pg, (int)$c['id'], (int)$u['id']);
+      $pago = gravarPagamento($devIdx ? array_values(array_filter($vendas, fn($v, $i) => !isset($devIdx[$i]), ARRAY_FILTER_USE_BOTH)) : $vendas, $pg, (int)$c['id'], (int)$u['id']);   // 1.47: sem o carrinho, que fica para a devolução
       $regs[] = registrar('pag', (int)$c['id'], $c['nome'], 'Pagamento · ' . dinheiro($aPagar) . ' · ' . textoPagamento($pago ?: $pg));
       $cupomId = criarCupom($c, 'venda', $antesPg, $u);   // 0.93: o cupom fiscal deste pagamento, a emitir (0 = módulo desligado)
     }
     $depois = !$pg && $aPagar > 0 && !empty($in['depois']);   // 1.02: o cliente vai pagar na saída (ou na devolução): a venda fica a receber
     if ($depois) $regs[] = registrar('pag', (int)$c['id'], $c['nome'], 'A receber na ' . (!empty($in['entrar']) || $c['entrou'] ? 'saída' : 'devolução') . ' · ' . dinheiro($aPagar));
-    $resp = ['vendas' => $vendas, 'registros' => $regs, 'total' => $total, 'minutos' => $min, 'festa' => $festaId, 'voucher' => $vinfo, 'pagamento' => $pg ? textoPagamento($pg) : '', 'cupom' => $cupomId ?? 0, 'a_receber' => $depois ? $aPagar : 0, 'desconto' => $ad['valor'] ?? 0];
+    if ($devIdx && $devV > 0) $regs[] = registrar('pag', (int)$c['id'], $c['nome'], 'A receber na devolução · ' . dinheiro($devV));   // 1.47: o carrinho
+    $resp = ['vendas' => $vendas, 'registros' => $regs, 'total' => $total, 'minutos' => $min, 'festa' => $festaId, 'voucher' => $vinfo, 'pagamento' => $pg ? textoPagamento($pg) : '', 'cupom' => $cupomId ?? 0, 'a_receber' => $depois ? $aPagar : ($devIdx ? $devV : 0), 'desconto' => $ad['valor'] ?? 0];
     if ($min > 0 && $c['entrou']) { $des = desfazerCobrancasSobrando($c); if ($des['n']) { $resp['desfeitas'] = $des; $c = crianca((int)$c['id']); } }   // 1.00: comprou tempo com a criança no espaço: o que sobrou de cobrança por atraso sai
     if (!empty($in['entrar']) && modoManual() && !$c['entrou']) { // sem iDFace: registrou e já entra, o tempo começa a contar (1.15: com ou sem tempo comprado)
       $e = fazerEntrada($c, 'mão'); $resp['entrada'] = ['registro' => $e['registro'], 'mensagem' => is_array($e['mensagem']) ? (int)($e['mensagem']['id'] ?? 0) : 0];
