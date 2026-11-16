@@ -795,6 +795,7 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .pe-f.dois-bt { display: flex; gap: 8px; } .pe-f.dois-bt .bt { flex: 1; justify-content: center; height: 48px; }
 .it.aut-l { align-items: flex-start; } .it.aut-l .pill { margin-top: 2px; } .it.aut-l .it-ac .bt { height: 36px; } .it.aut-l .it-ac .bt.forte { background: var(--ok); }
 @media (max-width: 520px) { .nf-dados { grid-template-columns: 1fr; } }
+.nf-bts { display: flex; flex-wrap: wrap; gap: 8px; } .nf-dica { margin: -4px 0 0; font-size: 12.5px; color: var(--tinta-3); }
 /* 0.74: cancelar a entrada sem cobrar (o prazo corre no anel e na ficha; a supervisão confere na lista) */
 .anel .canc-link { display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 10px; border-radius: 999px; margin-top: 4px; background: var(--card); border: 1px solid var(--erro-bg); font-size: 11.5px; font-weight: 800; color: var(--erro); white-space: nowrap; }
 .anel .canc-link:hover { background: var(--erro-bg); }
@@ -1669,7 +1670,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.49';
+const VERSAO = '1.50';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -6043,7 +6044,7 @@ const acoesDaCompra = v => { const pede = podePedirCancelamento(v), cv = pede ? 
   return nf || canc ? `<span class="it-ac">${nf}${canc}</span>` : ''; };
 function folhaNF(id) {
   const v = LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === +id), c = v && crianca(v.crianca); if (!v || !c || !temNF(v)) return;
-  NF = { id: v.id, cid: c.id }; abrirFolha('Nota fiscal', `<div id="nf-corpo" style="display:flex;flex-direction:column;gap:12px">${htmlNF(v, c)}</div>`);
+  NF = { id: v.id, cid: c.id }; abrirFolha('Nota fiscal', `<div id="nf-corpo" style="display:flex;flex-direction:column;gap:12px">${htmlNF(v, c)}</div>`); lerVoltaNF();
 }
 function redesenharNF() { const a = $('#nf-corpo'), v = NF && LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === NF.id), c = v && crianca(v.crianca); if (!a) return; if (v && c) a.innerHTML = htmlNF(v, c); else fecharFolha(); }
 function htmlNF(v, c) {
@@ -6054,8 +6055,9 @@ function htmlNF(v, c) {
   if (e === 'usado') return cab + `<div class="marca nf-ok">${ic(IC.check, 18, 2.6)}<span><b>Nota fiscal${p.numero ? ' nº ' + esc(p.numero) : ''} emitida.</b> Marcada por ${esc(primeiro(p.feito_por))}${p.feito_em ? ', ' + dataPedido(p.feito_em) : ''} · autorizada por ${esc(primeiro(p.dec))}.</span></div>${dadosNF}
     ${gestor() ? `<div class="campo"><label for="nf-num">Corrigir o número da nota</label><input id="nf-num" value="${esc(p.numero)}" maxlength="40" autocomplete="off"></div><div class="pe-f dois-bt"><button type="button" class="bt tap" data-act="nf-voltar">Desfazer a marcação</button><button type="button" class="bt forte tap" data-act="nf-emitida">Salvar o número</button></div>` : ''}`;
   if (e === 'liberado') return cab + `<div class="marca nf-ok">${ic(IC.check, 18, 2.6)}<span><b>Nota autorizada</b> por ${esc(primeiro(p.dec))}${p.dec_em ? ', ' + dataPedido(p.dec_em) : ''}${p.como === 'senha' ? ' (com a senha)' : ''}. Falta emitir.</span></div>${dadosNF}
-    <button type="button" class="bt tap" data-act="nf-copiar" style="align-self:flex-start">${ic(IC.copia, 16)} Copiar os dados</button>
-    <div class="campo" id="nf-num-campo"><label for="nf-num">Número da nota emitida<span class="obg" aria-hidden="true">*</span></label><input id="nf-num" maxlength="40" autocomplete="off" placeholder="Depois de emitir, escreva o número aqui"></div>
+    <div class="nf-bts"><button type="button" class="bt forte tap" data-act="nf-notas">${ic(IC.cupom, 16)} Emitir no Play Space Notas</button><button type="button" class="bt tap" data-act="nf-copiar">${ic(IC.copia, 16)} Copiar os dados</button></div>
+    <p class="explica nf-dica">O Notas abre em outra aba com a nota já preenchida. Emitida, o número aparece aqui sozinho.</p>
+    <div class="campo" id="nf-num-campo"><label for="nf-num">Número da nota emitida<span class="obg" aria-hidden="true">*</span></label><input id="nf-num" maxlength="40" autocomplete="off" placeholder="Depois de emitir, escreva o número aqui" value="${esc(NF_VOLTA[v.id] || '')}"></div>
     <div class="pe-f">${gestor() ? `<button type="button" class="link tap" data-act="nf-largar" style="display:block;margin:0 auto 10px">Tirar a autorização</button>` : ''}<button type="button" class="bt forte largo tap" data-act="nf-emitida">${ic(IC.check)} Marcar como emitida</button></div>`;
   if (e === 'pendente') return cab + `<div class="marca nf-esp">${ic(IC.sino, 18)}<span><b>Nota pedida</b> por ${esc(primeiro(p.por))}, ${dataPedido(p.em)}. Esperando o gestor.</span></div>${dadosNF}
     ${gestor() ? `<div class="pe-f dois-bt"><button type="button" class="bt tap" data-act="ped-nao" data-id="${p.id}">Negar</button><button type="button" class="bt forte tap" data-act="ped-ok" data-id="${p.id}">${ic(IC.check)} Autorizar a nota</button></div>`
@@ -6085,6 +6087,38 @@ async function pedirNF(el) { // pedir a nota desta compra (sendo o gestor, já a
   } catch (e) { toast(e.message); el.disabled = false; senhaErrada('nf-senha', e); }
 }
 async function depoisDaNF() { if (LADO) await buscarHistorico(); redesenharNF(); }
+/* ---------- 1.50: o Play Space Notas (/notas, o mesmo site) ----------
+   "Emitir no Play Space Notas" guarda os dados da nota neste navegador e abre /notas/#nota-pedido em outra aba: o Notas
+   abre a nota já preenchida. Emitida de verdade (produção), o Notas devolve o número (PONTE_VOLTA) e ele entra no campo
+   "Número da nota emitida" desta compra; falta só tocar em "Marcar como emitida". */
+const PONTE_NF = 'ps-ponte-nfse', PONTE_VOLTA = 'ps-ponte-nfse-volta', NF_VOLTA = {};
+function abrirNotasNF() {
+  const v = NF && LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === NF.id), p = v && nfDaVenda(v), c = v && crianca(v.crianca); if (!p || !c) return;
+  if (MODO !== 'servidor') { toast('No sistema de verdade, abre o Play Space Notas com esta nota já preenchida'); return; }
+  const d = p.dados || {}, festa = /FESTA/i.test(v.servico || ''), compra = nomeCompraTxt(v), m = minDe(v);
+  /* a descrição que sai na nota: "Recreação infantil: pacote de 3 horas", "Festa infantil: ...", ou o nome da compra */
+  const hs = m ? (m % 60 ? dur(m) : (m / 60) + (m === 60 ? ' hora' : ' horas')) : '';
+  const pac = ehPacoteVenda(v), descricao = festa ? 'Festa infantil: ' + compra : pac ? 'Recreação infantil: pacote de ' + hs : m ? 'Recreação infantil: ' + compra : compra;
+  const dados = { quando: Date.now(), venda: v.id, nome: d.nome || c.resp || c.nome, doc: d.doc || '', email: d.email || '', servico: festa ? 'festa' : pac ? 'pacotehoras' : 'recreacao',
+    servicoNome: v.servico || '', descricao, valor: Math.round(v.v * 100) / 100 };
+  try { localStorage.setItem(PONTE_NF, JSON.stringify(dados)); } catch (e) { toast('Não consegui passar os dados para o Notas: use "Copiar os dados"'); return; }
+  const w = window.open('/notas/#nota-pedido', '_blank');
+  if (w) { try { w.opener = null; } catch (e) { } } else toast('O navegador não abriu a aba do Notas: libere as janelas novas deste site e toque de novo');
+}
+function notaVoltou(r) {
+  if (!r || !r.venda) return;
+  if (r.ambiente !== 'producao') { toast(r.ambiente === 'teste' ? 'Nota de TESTE emitida no Notas (sem valor fiscal): o número não foi anotado' : 'Nota simulada no Notas: o número não foi anotado'); return; }
+  if (!r.numero) return; NF_VOLTA[r.venda] = String(r.numero);
+  const i = $('#nf-num');
+  if (NF && NF.id === +r.venda && i) { if (!i.value.trim()) i.value = String(r.numero); const cp = $('#nf-num-campo'); if (cp) cp.classList.remove('falta'); deuCerto('Nota nº ' + r.numero + ' emitida no Notas: toque em "Marcar como emitida"'); }
+  else toast('Nota nº ' + r.numero + ' emitida no Notas: abra a NF da compra para marcar como emitida');
+}
+function lerVoltaNF() {
+  let r = null; try { r = JSON.parse(localStorage.getItem(PONTE_VOLTA) || 'null'); if (r) localStorage.removeItem(PONTE_VOLTA); } catch (e) { r = null; }
+  if (r && Date.now() - (Number(r.quando) || 0) < 6 * 3600000) notaVoltou(r);
+}
+window.addEventListener('storage', ev => { if (ev.key === PONTE_VOLTA && ev.newValue) lerVoltaNF(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) lerVoltaNF(); });
 const nfAEmitir = () => MODO === 'servidor' ? S.nfEmitir || 0 : supervisorOuMais() ? (S.pedidos || []).filter(p => p.tipo === 'nf' && p.status === 'liberado' && S.compras.some(v => v.id === p.venda)).length : 0;   // as notas autorizadas que esperam o número (quem confere)
 async function acaoNF(oque, el) { // com a senha (o pedido que esperava), marcar como emitida, desfazer a marcação, tirar o pedido ou a autorização, copiar os dados
   const v = NF && LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === NF.id), p = v && nfDaVenda(v); if (!p) return;
@@ -7228,7 +7262,7 @@ const ACOES = {
   'off-ver': () => folhaOffProb(), 'off-ok': el => { OFF.prob.splice(+el.dataset.i, 1); filaGuardar(); offFaixa(); if (OFF.prob.length) folhaOffProb(); else fecharFolha(); },   /* 1.40 */
   'salt-item': el => { if (!ALTS || ALTS.espera) return; const i = altSaidaItens().find(x => x.id === +el.dataset.k); if (!i) return; ALTS.k = i.id; ALTS.v = valTxt(i.v); ALTS.hh = String(Math.round(i.h)); ALTS.vp = ''; ALTS.aberto = true; altSaidaRedesenha(true); const v = $('#sa-alt-v'); if (v) { v.focus(); v.select(); } },   /* 1.39 */
   'salt-pedir': el => altSaidaPedir(el), 'salt-largar': () => altSaidaLargar(),
-  nf: el => folhaNF(el.dataset.id), 'nf-pedir': el => pedirNF(el), 'nf-senha': el => acaoNF('senha', el), 'nf-emitida': el => acaoNF('emitida', el), 'nf-voltar': el => acaoNF('voltar', el), 'nf-largar': el => acaoNF('largar', el), 'nf-copiar': el => acaoNF('copiar', el),
+  nf: el => folhaNF(el.dataset.id), 'nf-notas': () => abrirNotasNF(), 'nf-pedir': el => pedirNF(el), 'nf-senha': el => acaoNF('senha', el), 'nf-emitida': el => acaoNF('emitida', el), 'nf-voltar': el => acaoNF('voltar', el), 'nf-largar': el => acaoNF('largar', el), 'nf-copiar': el => acaoNF('copiar', el),
   'venda-cancelar': el => folhaCancelarVenda(el.dataset.id), 'venda-cancelar-ok': el => confirmarCancelarVenda(el),   // 1.21: quem estorna cancela uma venda, com o motivo
   'ver-como': el => { // (prévia) ver a tela como gestor, supervisor ou operador
     if (MODO === 'servidor') return; const u = S.equipe.find(x => x.papel === el.dataset.v); if (!u) return;

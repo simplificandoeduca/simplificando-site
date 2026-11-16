@@ -1276,6 +1276,17 @@ Pedido do dono: "audite tudo, veja se não tem nenhum erro; o banco de informaç
 
 **Finanças** (corrigido): a venda paga num dia e cancelada em outro não sai duas vezes do Recebido; cada desconto dado conta uma vez (mesmo repartido); a entrada desfeita na hora não conta como cancelamento (como no painel); os resumos por atendente e por quem liberou são feitos com todos os registros; datas impossíveis recusadas; a planilha não leva fórmulas; o "Esqueci a senha" das Finanças só vale com o mesmo usuário de gestor que criou o acesso (a gestora não troca a senha do dono).
 
+## 6zze. Nota fiscal pelo Play Space Notas (1.50)
+
+Pedido do dono: o botão NF com a mesma pegada da Gama, abrindo o Notas já preenchido, e o Notas pré-configurado como a nota que a Play Space já emite no site do governo (DANFSe nº 29).
+
+- Na compra, **NF** → pedir ou autorizar (como antes). Com a nota autorizada aparece **Emitir no Play Space Notas**: o `/notas` abre em outra aba com o cliente, o CPF/CNPJ, o e-mail, o serviço, a descrição ("Recreação infantil: pacote de 3 horas", por exemplo) e o valor. Os dados vão pelo próprio navegador (o Play Space e o Notas ficam no mesmo site); nada vai no endereço.
+- Emitida em **produção**, o número volta sozinho para o campo **Número da nota emitida** da compra; é só tocar em **Marcar como emitida**. Em Teste ou Simulação o número não é anotado.
+- O Notas (arquivo separado, não fica neste repositório) já vem com: CNPJ 02.687.087/0001-42, inscrição municipal 2.717.568-0, São Paulo/SP, Simples Nacional (ME/EPP, tributos pelo Simples), serviço **12.17.01 / 001** (recreação e animação), ISS não retido, tributos aproximados da Lei 12.741 como na nota (13,45% federais, 0% estaduais, 4,29% municipais). O que já estiver preenchido em Conta não muda.
+- A série da DPS do app é a 1 (a 70000 é a do emissor do site do governo); o número da NFS-e continua na sequência (quem numera é o governo).
+- A nota nº 29 tem **R$ 4,29 de contribuição previdenciária retida** de uma pessoa física (o valor líquido ficou R$ 685,61): parece engano (é o mesmo número do % municipal). O app não retém nada; confirmar com o contador.
+- Emitir de verdade só depois de anexar o certificado A1 no Notas (Emissor Nacional → Teste → Produção).
+
 ## 7. Atualizar
 
 Botão **Atualizar** ao lado da versão. Ele baixa a versão nova do GitHub (ramo principal ou de trabalho, a mais nova), confere a versão dentro do arquivo e troca os arquivos de forma atômica. Não mexe em `~/playspace-dados/`. Se o GitHub demorar a refletir (cache de ~5 min), espere e toque de novo.
