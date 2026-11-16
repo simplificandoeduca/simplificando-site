@@ -8,7 +8,7 @@ module.exports = defineConfig({
   testMatch: '*.spec.js',
   outputDir: 'resultados',
   timeout: 60000,
-  expect: { timeout: 10000, toHaveScreenshot: { maxDiffPixelRatio: 0.02, animations: 'disabled', caret: 'hide' } },
+  expect: { timeout: 10000, toHaveScreenshot: { maxDiffPixelRatio: 0.003, animations: 'disabled', caret: 'hide' } },
   fullyParallel: true,
   workers: CI ? 3 : 4,
   retries: CI ? 1 : 0,

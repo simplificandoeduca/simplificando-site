@@ -8,7 +8,7 @@ const TEMAS = ['light', 'dark'];
 // as partes que se mexem (animações, relógios) ficam cobertas; as mensagens rápidas (toasts) ficam escondidas
 async function tira(page, nome) {
   await page.addStyleTag({ content: '.toast,.utoast,#fx{display:none!important}' });
-  await expect(page).toHaveScreenshot(nome + '.png', { mask: [page.locator('canvas, .lay-anim, .anim, [data-tick]')], maskColor: '#888888' });
+  await expect(page).toHaveScreenshot(nome + '.png', { mask: [page.locator('canvas, .lay-anim, .anim, [data-tick], .ver-pill, .app-ver')], maskColor: '#888888' });
 }
 
 for (const [ap, ua] of APARELHOS) for (const tema of TEMAS) {
