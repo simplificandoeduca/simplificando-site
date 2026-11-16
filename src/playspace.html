@@ -1610,6 +1610,7 @@ const IC = {
   cupom: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9.5 8h5M9.5 12h5"/>',
   copia: '<rect x="9" y="9" width="11" height="11" rx="2.2"/><path d="M5.5 15V6.2A2.2 2.2 0 0 1 7.7 4H15"/>',
   subir: '<path d="M12 15.5V4.5M7.5 9 12 4.5 16.5 9"/><path d="M5 14.5v3.3A2.2 2.2 0 0 0 7.2 20h9.6a2.2 2.2 0 0 0 2.2-2.2v-3.3"/>',
+  baixar: '<path d="M12 4.5v11M7.5 11 12 15.5 16.5 11"/><path d="M5 14.5v3.3A2.2 2.2 0 0 0 7.2 20h9.6a2.2 2.2 0 0 0 2.2-2.2v-3.3"/>',
   lixo: '<path d="M4 7h16M9 7V4.5h6V7M6.5 7l.9 12a2 2 0 0 0 2 1.8h5.2a2 2 0 0 0 2-1.8l.9-12M10 11v6M14 11v6"/>',
   zap: '<path d="M21 12a8.5 8.5 0 0 1-12.6 7.4L3 21l1.6-5.1A8.5 8.5 0 1 1 21 12z"/>',
   banco: '<path d="M6 3h12M6 21h12M7 3v3.5a5 5 0 0 0 10 0V3M7 21v-3.5a5 5 0 0 1 10 0V21"/>',
@@ -1654,7 +1655,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.50';
+const VERSAO = '1.51';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -2000,6 +2001,7 @@ function aplicarDados(d) { // 1.40: o que veio do servidor (ou o que ficou guard
     S.vendasHoje = d.vendas_hoje; S.atrasoHoje = d.atraso_hoje || null; S.descontosHoje = d.descontos_hoje || null; S.whats = d.whats; S.eu = d.eu; S.exemplo = d.exemplo || 0;
     S.limpeza = d.limpeza ? { oferta: !!d.limpeza.oferta, ultima: d.limpeza.ultima ? { ...d.limpeza.ultima, em: dataDe(d.limpeza.ultima.em) } : null } : null;   // 0.98: só o gestor recebe
     S.importacao = d.importacao ? { ...d.importacao, em: dataDe(d.importacao.em) } : null;   // 1.01: a última importação (só o gestor recebe)
+    S.copia = d.copia || null;   /* 1.51: a cópia de segurança da semana (só o gestor recebe) */
     S.cancelamentos = (d.cancelamentos || []).map(x => ({ ...x, entrou: dataDe(x.entrou), quando: dataDe(x.quando), visto_em: x.visto_em ? dataDe(x.visto_em) : null }));
     S.pend = {}; for (const p of d.pendentes || []) S.pend[p.id] = dataDe(p.em);
     S.nfEmitir = d.nf_emitir || 0; pedidosChegaram(d.pedidos || []); avisosChegaram(d.avisos || []);   // 1.23: os pedidos de autorização desta tela   // cadastro feito hoje e ainda sem atendimento (para "Falta finalizar")
@@ -2491,6 +2493,31 @@ const cartaoImportar = () => { const u = S.importacao;
           : 'O cadastro de quem já está aqui não muda; se a planilha trouxer horas para ele, só as horas entram. Só o gestor importa, e dá para desfazer enquanto o que veio não tiver movimento.'}</p>
       </div>`; };
 let IM_T = 0;   // a espera depois de colar ou escrever no quadro da planilha
+/* ---------- 1.51: a cópia de segurança da semana (Ajustes, só o gestor) ---------- */
+const dataHoraCopia = s => { const d = dataDe(s); return d ? `${p2(d.getDate())}/${p2(d.getMonth() + 1)}/${d.getFullYear()} às ${hora(d)}` : ''; };
+const cartaoCopia = () => { const c = S.copia || { lista: [], dias: 7, guarda: 8 }, L = c.lista || [];
+  return `<div class="card" id="aj-copia"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.baixar, 20)} Cópia de segurança</h2>${MODO === 'servidor' ? '<button class="link tap" data-act="copia-fazer">Fazer uma cópia agora</button>' : ''}</div>
+    <p class="explica">A cada ${c.dias || 7} dias o sistema faz sozinho uma cópia de tudo (clientes, horas, vendas). As ${c.guarda || 8} mais novas ficam aqui. <b>Baixe a mais nova toda semana e guarde fora do site</b> (Google Drive ou o seu computador): se o site sumir, é ela que traz tudo de volta.</p>
+    ${L.length ? `<div class="grupo">${L.map((x, i) => `<div class="it"><div class="txt"><b>Cópia de ${dataHoraCopia(x.em)}</b><span>${String(x.mb).replace('.', ',')} MB${i === 0 && c.pendente ? ' · <b class="np">ainda não baixada</b>' : ''}</span></div><button type="button" class="bt tap" data-act="copia-baixar" data-nome="${esc(x.nome)}">${ic(IC.baixar, 16)} Baixar</button></div>`).join('')}</div>`
+      : `<p class="explica">${MODO === 'servidor' ? 'A primeira cópia sai sozinha em instantes (ou toque em "Fazer uma cópia agora").' : 'No sistema de verdade, as cópias aparecem aqui.'}</p>`}
+    <p class="explica">${c.baixada ? `Última baixada: ${dataHoraCopia(c.baixada.em)}, por ${esc(primeiro(c.baixada.por || ''))}.` : 'Nenhuma cópia baixada ainda.'}${c.proxima ? ` Próxima cópia automática: ${diaCurto(dataDe(c.proxima + ' 12:00:00'))}.` : ''}</p>
+  </div>`; };
+async function baixarCopia(nome, el) {
+  if (MODO !== 'servidor') { toast('No sistema de verdade, baixa a cópia de segurança do banco'); return; }
+  if (el) el.disabled = true;
+  try {
+    const r = await fetch(API, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-Play': '1' }, body: JSON.stringify({ acao: 'copia_baixar', nome: nome || '' }) });
+    if (!r.ok || !/octet-stream/.test(r.headers.get('Content-Type') || '')) { let m = 'Não consegui baixar a cópia. Tente de novo.'; try { m = (await r.json()).erro || m; } catch (e) { } throw new Error(m); }
+    const arq = (/filename="([^"]+)"/.exec(r.headers.get('Content-Disposition') || '') || [])[1] || 'playspace-copia.sqlite', blob = await r.blob();
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = arq; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+    deuCerto('Cópia baixada: guarde o arquivo fora do site (Google Drive ou o computador)'); await carregar(); desenhar(true);
+  } catch (e) { toast(e.message); } finally { if (el && el.isConnected) el.disabled = false; }
+}
+async function fazerCopia(el) {
+  if (MODO !== 'servidor') { toast('No sistema de verdade, faz uma cópia de segurança agora'); return; }
+  if (el) el.disabled = true;
+  try { const r = await api('copia_fazer'); S.copia = r.copia || S.copia; deuCerto('Cópia de segurança feita'); desenhar(true); } catch (e) { toast(e.message); } finally { if (el && el.isConnected) el.disabled = false; }
+}
 async function iniciar() {
   if (ATU.podeAqui) {
     offRegistrarSW(); await offLerFila();   // 1.40
@@ -6690,6 +6717,8 @@ function dicas() {
   if (pend.length) { const x = pend[0];
     const t = cancTipo(x), oque = t === 'venda' ? `cancelou uma venda de ${esc(x.nome)}${x.valor ? ' (' + brl(x.valor) + ')' : ''}` : t === 'desfeita' ? `desfez na hora a entrada de ${esc(x.nome)}` : t === 'aluguel' ? `cancelou a saída do ${esc(cancAlug(x).n)} de ${esc(x.nome)}` : t === 'atendimento' ? `cancelou o atendimento de ${esc(x.resp || x.nome)}` : `cancelou a entrada de ${esc(x.nome)}${x.valor ? ', ' + brl(x.valor) + ' não cobrado' : ''}`;   // 1.21: o aviso diz o que foi
     add('canc-' + x.id, 'alerta', 'x', pend.length === 1 ? `<b>${esc(quemCancelou(x))} ${oque}.</b> Motivo: “${esc(x.motivo)}”` : `<b>${pend.length} cancelamentos para conferir.</b> O último: ${esc(quemCancelou(x))} ${oque}: “${esc(x.motivo)}”`, 'Conferir', 'cancelamentos'); }
+  // 0d. 1.51: a cópia de segurança da semana está pronta e ninguém baixou
+  if (serv && gestor() && S.copia && S.copia.pendente && S.copia.lista && S.copia.lista[0]) add('copia-' + S.copia.lista[0].nome, 'aviso', 'dica', `<b>A cópia de segurança da semana está pronta.</b> Baixe e guarde fora do site (Google Drive ou o seu computador): se o site sumir, é ela que traz tudo de volta.`, 'Baixar a cópia', 'copia-baixar');
   // 1. o que impede o sistema de trabalhar sozinho
   if (serv && S.cfg.idface.ligado && !S.cfg.idface.ativo) add('idface', 'alerta', 'rosto', `<b>O iDFace está sem contato com o site.</b> Enquanto isso, as entradas e saídas não são lidas. Confira se ele está ligado e no cabo de rede.`, supervisorOuMais() ? 'Ver o aparelho' : '', 'idface');
   if (COM_WHATS && serv && S.whats && !S.whats.conectado) add('whats', 'alerta', 'zap', `<b>O WhatsApp da loja não está conectado.</b> Os avisos de chegada e saída não estão saindo para as famílias.`, supervisorOuMais() ? 'Conectar' : '', 'whats');
@@ -6957,6 +6986,7 @@ function telaAjustes() {
         <button class="grupo tap" data-act="cadastros" style="width:100%"><div class="it"><div class="txt"><b>Editar ou remover um cadastro</b><span>Nome, responsável, telefone, CPF e criança PCD. Só o gestor mexe aqui.</span></div><span class="vai">${ic(IC.vai, 18)}</span></div></button>
         <p class="explica">Na ficha da criança a equipe só atende: vende, dá entrada e saída. Mudar ou remover um cadastro é por aqui.</p>
       </div>` : ''}
+      ${gestor() ? cartaoCopia() : ''}
       ${gestor() ? cartaoImportar() : ''}
       ${gestor() ? cartaoLimpeza() : ''}
       <div class="card"><div class="sec-cab"><h2 style="font-size:18px">Aparência</h2></div>${seg('tema', [['sistema', 'Como o celular'], ['claro', 'Claro'], ['escuro', 'Escuro']], cfg.tema)}
@@ -7246,7 +7276,7 @@ const ACOES = {
   'off-ver': () => folhaOffProb(), 'off-ok': el => { OFF.prob.splice(+el.dataset.i, 1); filaGuardar(); offFaixa(); if (OFF.prob.length) folhaOffProb(); else fecharFolha(); },   /* 1.40 */
   'salt-item': el => { if (!ALTS || ALTS.espera) return; const i = altSaidaItens().find(x => x.id === +el.dataset.k); if (!i) return; ALTS.k = i.id; ALTS.v = valTxt(i.v); ALTS.hh = String(Math.round(i.h)); ALTS.vp = ''; ALTS.aberto = true; altSaidaRedesenha(true); const v = $('#sa-alt-v'); if (v) { v.focus(); v.select(); } },   /* 1.39 */
   'salt-pedir': el => altSaidaPedir(el), 'salt-largar': () => altSaidaLargar(),
-  nf: el => folhaNF(el.dataset.id), 'nf-notas': () => abrirNotasNF(), 'nf-pedir': el => pedirNF(el), 'nf-senha': el => acaoNF('senha', el), 'nf-emitida': el => acaoNF('emitida', el), 'nf-voltar': el => acaoNF('voltar', el), 'nf-largar': el => acaoNF('largar', el), 'nf-copiar': el => acaoNF('copiar', el),
+  nf: el => folhaNF(el.dataset.id), 'nf-notas': () => abrirNotasNF(), 'copia-baixar': el => baixarCopia(el.dataset.nome || '', el), 'copia-fazer': el => fazerCopia(el), 'nf-pedir': el => pedirNF(el), 'nf-senha': el => acaoNF('senha', el), 'nf-emitida': el => acaoNF('emitida', el), 'nf-voltar': el => acaoNF('voltar', el), 'nf-largar': el => acaoNF('largar', el), 'nf-copiar': el => acaoNF('copiar', el),
   'venda-cancelar': el => folhaCancelarVenda(el.dataset.id), 'venda-cancelar-ok': el => confirmarCancelarVenda(el),   // 1.21: quem estorna cancela uma venda, com o motivo
   'ver-como': el => { // (prévia) ver a tela como gestor, supervisor ou operador
     if (MODO === 'servidor') return; const u = S.equipe.find(x => x.papel === el.dataset.v); if (!u) return;

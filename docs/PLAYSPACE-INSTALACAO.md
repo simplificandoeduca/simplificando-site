@@ -1287,6 +1287,16 @@ Pedido do dono: o botão NF com a mesma pegada da Gama, abrindo o Notas já pree
 - A nota nº 29 tem **R$ 4,29 de contribuição previdenciária retida** de uma pessoa física (o valor líquido ficou R$ 685,61): parece engano (é o mesmo número do % municipal). O app não retém nada; confirmar com o contador.
 - Emitir de verdade só depois de anexar o certificado A1 no Notas (Emissor Nacional → Teste → Produção).
 
+## 6zzf. Cópia de segurança da semana (1.51)
+
+Pedido do dono: a cópia automática, a cada 7 dias.
+
+- A cada 7 dias o sistema faz sozinho uma cópia inteira do banco (clientes, horas, vendas, tudo). Quem dispara é a primeira tela aberta depois do prazo; leva 1 ou 2 segundos e ninguém percebe. Ficam as **8 mais novas** (uns 2 meses) na pasta de cópias, dentro da pasta de dados, trancada para o navegador. As cópias que a importação e a limpeza usam para desfazer continuam à parte.
+- **Ajustes → Cópia de segurança** (só o gestor): a lista, **Baixar** cada uma e **Fazer uma cópia agora**. Fica guardado quem baixou e quando.
+- Enquanto a cópia nova não for baixada, o gestor vê a dica **"A cópia de segurança da semana está pronta"** com o botão **Baixar a cópia**.
+- **Guarde o arquivo baixado fora do site** (Google Drive, o computador). A cópia no servidor protege de um erro no sistema; só a de fora protege se o site ou a conta da hospedagem sumir. O arquivo tem os dados dos clientes: guarde em lugar com senha.
+- **Para voltar uma cópia** (só em último caso): no cPanel, Gerenciador de Arquivos, pasta de dados (`api/dados` ou `playspace-dados`). Renomeie o banco atual (`playspace-….sqlite`) para guardar, apague os arquivos `-wal` e `-shm` dele, e suba a cópia com **o mesmo nome** do banco. Abra o Play Space e confira.
+
 ## 7. Atualizar
 
 Botão **Atualizar** ao lado da versão. Ele baixa a versão nova do GitHub (ramo principal ou de trabalho, a mais nova), confere a versão dentro do arquivo e troca os arquivos de forma atômica. Não mexe em `~/playspace-dados/`. Se o GitHub demorar a refletir (cache de ~5 min), espere e toque de novo.

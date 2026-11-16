@@ -126,6 +126,7 @@ function dados(array $eu): array {
     'idface' => (function (array $x) use ($eu) { if ($eu['papel'] !== 'gestor') unset($x['chave'], $x['push_url'], $x['url_ponte']); return $x; })(idfaceEstado()),   /* 1.49: a chave da ponte só para o gestor */ 'whats' => whatsResumo(), 'agora' => agora(), 'exemplo' => ($ex = cfg('exemplo', null)) && is_array($ex) ? count($ex['criancas'] ?? []) : 0,
     'limpeza' => $eu['papel'] === 'gestor' ? ['oferta' => cfg('limpeza_oferta', null) !== null, 'ultima' => limpezaPublica()] : null,
     'importacao' => $eu['papel'] === 'gestor' ? importacaoLeve() : null,
+    'copia' => $eu['papel'] === 'gestor' ? copiaInfo() : null,   // 1.51: a cópia de segurança da semana
     'avisos' => avisosDaGestora($eu), 'painel' => $eu['papel'] === 'gestor' ? painelDoDia() : null, 'caixa' => caixaDoDia(), 'finalizados' => finalizadosDoDia(),   // 1.25: o que a gestora ainda não viu, o dia de cada unidade, e os finalizados do dia
     'pedidos' => pedidosDaTela($eu), 'nf_emitir' => $eu['papel'] === 'atendente' ? 0 : (int)$db->query("SELECT COUNT(*) FROM pedidos WHERE tipo = 'nf' AND status = 'liberado'")->fetchColumn()];   // 1.23: os pedidos de autorização desta tela, e quantas notas autorizadas esperam o número   // 0.98: só o gestor recebe (é ele quem limpa e quem desfaz)
 }
@@ -218,8 +219,21 @@ switch ($acao) {
   /* ---------- tudo que a tela mostra ---------- */
   case 'dados': { $u = exigir(); session_write_close(); responder(dados($u)); }
   case 'gz_teste': { exigir(); responder(['eco' => str_repeat('Play Space · ', 900)]); }   // 1.01: a tela confere, uma vez, se lê a resposta comprimida deste servidor
+  case 'copia_fazer': { exigir(['gestor']); $n = copiaSemanal(true); if (!$n) falha('Uma cópia já está sendo feita agora. Espere um instante e confira a lista.', 409); responder(['copia' => copiaInfo()]); }   // 1.51
+  case 'copia_baixar': {   // 1.51: o gestor baixa uma cópia da semana (a mais nova, se não disser qual). O arquivo vai inteiro, sem passar pelo JSON
+    $u = exigir(['gestor']); $L = copiasDaSemana(); if (!$L) falha('Ainda não há cópia. Toque em "Fazer uma cópia agora".', 404);
+    $nome = trim((string)($in['nome'] ?? '')); $arq = $nome === '' ? $L[0] : pastaDados() . '/copias/' . basename($nome);
+    if (!preg_match('/^semana-\d{8}-\d{6}-[0-9a-f]+\.sqlite$/', basename($arq)) || !in_array($arq, $L, true)) falha('Cópia não encontrada.', 404);
+    gravarCfg('copia_baixada', ['nome' => basename($arq), 'em' => date('Y-m-d H:i:s'), 'por' => (string)$u['nome']]); session_write_close();
+    $m = []; preg_match('/^semana-(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})/', basename($arq), $m);
+    while (ob_get_level()) ob_end_clean();
+    header('Content-Type: application/octet-stream'); header('Content-Length: ' . filesize($arq)); header('Cache-Control: no-store');
+    header('Content-Disposition: attachment; filename="playspace-copia-' . $m[1] . '-' . $m[2] . '-' . $m[3] . '-' . $m[4] . 'h' . $m[5] . '.sqlite"');
+    readfile($arq); exit;
+  }
   case 'pulso': { // barato: muda quando qualquer coisa que a tela mostra mudou; a tela pergunta a cada 2 s e só recarrega se mudou
     $u = exigir(); session_write_close();
+    try { copiaSemanal(); } catch (Throwable $e) { registrarErro('cópia da semana: ' . $e->getMessage()); }   // 1.51: a cada 7 dias, a cópia de segurança (antes de qualquer consulta; nunca derruba o pulso)
     acertarTodas();   // a cada pulso de qualquer tela aberta: passou da tolerância, nasce a nova cobrança (e o pulso muda, então todas as telas mostram)
     $a = $db->query("SELECT COALESCE(MAX(id), 0) || ':' || COUNT(*) FROM registros")->fetchColumn();
     $b = $db->query("SELECT COALESCE(MAX(id), 0) || ':' || COUNT(*) || ':' || COALESCE(SUM(lida), 0) FROM mensagens")->fetchColumn();

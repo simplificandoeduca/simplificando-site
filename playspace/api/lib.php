@@ -2061,6 +2061,54 @@ function pastaCopias(string $nada = 'Nada foi apagado.'): string {
   if (!file_exists($d . '/index.html')) @file_put_contents($d . '/index.html', '');
   return $d;
 }
+/* ---------- 1.51: a cópia de segurança da semana ----------
+   A cada COPIA_DIAS dias, a primeira tela que perguntar ao servidor (o pulso) faz uma cópia inteira do banco (semana-AAAAMMDD-HHMMSS-xxxx.sqlite,
+   na pasta das cópias, trancada para o navegador). Ficam as COPIA_GUARDA mais novas. Nunca derruba o pedido: se der errado, fica para o próximo
+   pulso (e o erro vai para o registro de erros). O gestor baixa a cópia em Ajustes e guarda fora do site. */
+const COPIA_DIAS = 7, COPIA_GUARDA = 8;
+function pastaCopiasSemana(): ?string {
+  $d = pastaDados() . '/copias'; if (!is_dir($d)) @mkdir($d, 0700, true); if (!is_dir($d) || !is_writable($d)) return null;
+  if (!file_exists($d . '/.htaccess')) @file_put_contents($d . '/.htaccess', "<IfModule mod_authz_core.c>\n  Require all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\n  Order allow,deny\n  Deny from all\n</IfModule>\n");
+  if (!file_exists($d . '/index.html')) @file_put_contents($d . '/index.html', '');
+  return $d;
+}
+function copiasDaSemana(): array {   // as cópias da semana, a mais nova primeiro (o nome começa pela data e hora)
+  $d = pastaDados() . '/copias'; $L = array_values(array_filter(glob($d . '/semana-*.sqlite') ?: [], 'is_file')); rsort($L); return $L;
+}
+function copiaSemanal(bool $agora = false): ?string {   // faz a cópia se já passou o prazo (ou se o gestor pediu agora). Devolve o nome do arquivo novo
+  $ult = (int)cfg('copia_semana_em', 0);
+  if (!$agora && $ult && time() - $ult < COPIA_DIAS * 86400) return null;
+  $d = pastaCopiasSemana(); if (!$d) { if (!$agora) return null; falha('Não consegui criar a pasta das cópias de segurança. Confira a permissão da pasta de dados no cPanel.', 500); }
+  $tr = @fopen($d . '/.semana.trava', 'c'); if (!$tr) return null;
+  if (!flock($tr, LOCK_EX | LOCK_NB)) { fclose($tr); return null; }   // outra tela já está fazendo a cópia
+  try {
+    $ult = (int)cfg('copia_semana_em', 0); if (!$agora && $ult && time() - $ult < COPIA_DIAS * 86400) return null;
+    $db = db(); $nome = 'semana-' . date('Ymd-His') . '-' . bin2hex(random_bytes(4)) . '.sqlite'; $arq = $d . '/' . $nome;
+    try { $db->exec('VACUUM INTO ' . $db->quote($arq)); }
+    catch (Throwable $e) {   // SQLite antigo (sem o VACUUM INTO): a cópia tabela por tabela, numa leitura só (como a da importação)
+      @unlink($arq);
+      try {
+        $db->exec('ATTACH DATABASE ' . $db->quote($arq) . ' AS copia'); $db->beginTransaction();
+        foreach ($db->query("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")->fetchAll(PDO::FETCH_COLUMN) as $t) $db->exec('CREATE TABLE copia."' . $t . '" AS SELECT * FROM main."' . $t . '"');
+        $db->exec('PRAGMA copia.user_version = ' . (int)$db->query('PRAGMA user_version')->fetchColumn()); $db->commit(); $db->exec('DETACH DATABASE copia');
+      } catch (Throwable $e2) {
+        if ($db->inTransaction()) $db->rollBack(); try { $db->exec('DETACH DATABASE copia'); } catch (Throwable $x) { }
+        @unlink($arq); registrarErro('cópia da semana: ' . $e->getMessage() . ' / ' . $e2->getMessage()); if ($agora) falha('Não consegui fazer a cópia de segurança.', 500); return null;
+      }
+    }
+    if (!is_file($arq) || filesize($arq) < 1024) { @unlink($arq); registrarErro('cópia da semana: o arquivo não ficou inteiro'); if ($agora) falha('A cópia de segurança não ficou inteira. Tente de novo.', 500); return null; }
+    @chmod($arq, 0600); gravarCfg('copia_semana_em', time());
+    foreach (array_slice(copiasDaSemana(), COPIA_GUARDA) as $velha) @unlink($velha);   // ficam as COPIA_GUARDA mais novas
+    return $nome;
+  } finally { flock($tr, LOCK_UN); fclose($tr); }
+}
+function copiaInfo(): array {   // o que o cartão de Ajustes e a dica mostram (só o gestor recebe)
+  $quando = function (string $f): string { $m = []; return preg_match('/^semana-(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})/', basename($f), $m) ? "$m[1]-$m[2]-$m[3] $m[4]:$m[5]:$m[6]" : date('Y-m-d H:i:s', (int)@filemtime($f)); };   // a hora está no nome
+  $L = array_map(fn($f) => ['nome' => basename($f), 'em' => $quando($f), 'mb' => round(((int)@filesize($f)) / 1048576, 1)], copiasDaSemana());
+  $b = cfg('copia_baixada', null); $ult = (int)cfg('copia_semana_em', 0);
+  return ['lista' => $L, 'baixada' => is_array($b) ? $b : null, 'pendente' => $L && !(is_array($b) && ($b['nome'] ?? '') === $L[0]['nome']),   // a mais nova ainda não foi baixada
+    'proxima' => $ult ? date('Y-m-d', $ult + COPIA_DIAS * 86400) : null, 'dias' => COPIA_DIAS, 'guarda' => COPIA_GUARDA];
+}
 // uma cópia inteira do banco, feita pelo próprio SQLite (sai coerente mesmo com outra tela gravando). Devolve o nome do arquivo.
 // O nome não começa por "playspace-" (é por esse começo que o sistema acha o banco de verdade) e leva um pedaço sorteado
 function copiarBanco(string $nada = 'Nada foi apagado.'): string {   // $nada: o fim da mensagem de erro (o que deixou de ser feito por falta da cópia)
