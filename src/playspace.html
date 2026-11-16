@@ -143,6 +143,10 @@ body.mn .trilho .fab > svg { width: 15px; height: 15px; flex: none; stroke-width
 #off .link { color: inherit; font-weight: 800; text-decoration: underline; white-space: nowrap; }
 .off-lst { display: flex; flex-direction: column; gap: 8px; } .off-it { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--borda); border-radius: 14px; background: var(--card); }
 .off-it > span { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; } .off-it small { color: var(--tinta-2); font-size: 12.5px; } .off-it .off-err { color: var(--erro); }
+/* 1.42: a cortesia na saída (nos primeiros minutos, sai sem cobrar nada) */
+.bt.cortesia { width: 100%; height: auto; min-height: 58px; white-space: normal; justify-content: flex-start; gap: 12px; margin: 10px 0 2px; padding: 9px 16px; border: 2px solid var(--verde, #3f8f5a); background: var(--card); color: var(--tinta); text-align: left; }
+.bt.cortesia > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; } .bt.cortesia b { font-size: 14.5px; } .bt.cortesia small { font-size: 12.5px; font-weight: 600; color: var(--tinta-2); font-variant-numeric: tabular-nums; }
+.bt.cortesia:disabled { border-color: var(--borda); opacity: .6; }
 .toast { position: fixed; z-index: 60; left: 50%; bottom: calc(100px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 20px); background: var(--tinta); color: var(--creme); padding: 11px 18px; border-radius: 999px; font-weight: 700; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .3s, transform .45s var(--spring); max-width: calc(100% - 32px); text-align: center; display: flex; align-items: center; gap: 14px; }
 .toast.ve { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
 .toast button { color: var(--mostarda); font-weight: 800; white-space: nowrap; padding: 4px 2px; }
@@ -1648,7 +1652,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.41';
+const VERSAO = '1.42';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -4389,6 +4393,27 @@ function contaDaFolhaSaida() { const bt = $('#s-ok'), c = bt && crianca(bt.datas
   const hh = val('s-hora'), em = hh ? horaNoDia(c.entrou, hh) : null, ini = new Date(c.entrou); ini.setSeconds(0, 0); const vale = !!em && em >= ini && em <= agora;
   return { c, k: contaSaida(c, vale ? (em < c.entrou ? c.entrou : em) : undefined), hh: vale ? hh : '' }; }
 function botaoSaida() { const x = contaDaFolhaSaida(), bt = $('#s-ok'); if (x && bt) bt.innerHTML = rotuloSaida(x.k, x.hh); }
+// 1.42: a cortesia. Nos primeiros minutos (a regra de cancelar a entrada sem cobrar: 9 min de fábrica), a criança sai sem cobrar nada: a
+// recreação da visita não é cobrada e o tempo não é descontado. Fica registrado como a entrada cancelada no prazo, com o motivo "CORTESIA"
+// (a gestora vê, como todo cancelamento). Passou do prazo, o botão fica apagado; com compra para pagar na saída, ele não aparece
+const cortesiaTxt = c => noPrazoCancelar(c) ? `ficou ${minCurto(Math.floor(segDentro(c) / 60))} · vale até ${ateCancelar(c)} · faltam ${mss(faltaCancelar(c))}` : `só até ${cancelaLim()} min da entrada`;
+const botaoCortesia = (c, k, hh) => { if (!c || !c.entrou || c.festa || hh || !(cancelaLim() > 0) || (k.pend || 0) > 0.004) return '';
+  return `<button type="button" class="bt cortesia tap" data-act="saida-cortesia" data-id="${c.id}"${noPrazoCancelar(c) ? '' : ' disabled'}>${ic(IC.presente, 20)}<span><b>Cortesia · sai sem cobrar nada</b><small data-cortesia="${c.id}">${cortesiaTxt(c)}</small></span></button>`; };
+async function cortesiaSaida(id) {
+  const c = crianca(id); if (!c || !c.entrou) return;
+  if (!noPrazoCancelar(c)) { toast(`A cortesia vale só até ${cancelaLim()} min da entrada`); atualizarSaida(); return; }
+  const nome = c.nome, cid = c.id, min = Math.floor(segDentro(c) / 60), motivo = `CORTESIA · SAIU AOS ${min} MIN`, atd = ATD_NOME || MAI(primeiro((EU && EU.nome) || '')) || '';
+  const fim = sap => { fecharFolha(); desenhar(); toast(`${nome} saiu · cortesia (ficou ${minCurto(min)}) · nada cobrado${sap ? ' · sapateira ' + sap + ' livre' : ''}`, () => abrirHistorico(cid), 'Histórico'); };
+  if (MODO === 'servidor') { const b = $('[data-act="saida-cortesia"]'); if (b) b.disabled = true;
+    try { const r = await api('cancelar_entrada', { id: cid, motivo, vendas: [], atendente: atd }); await carregar(); fim(r.sapateira); } catch (e) { toast(e.message); if (b) b.disabled = false; }
+    return; }
+  // (prévia) a recreação que a visita somou e ainda não foi paga deixa de ser cobrada; a criança sai sem debitar nada
+  const autos = S.compras.filter(v => v.crianca === cid && v.auto && +v.quando >= +c.entrou && !(S.pagamentos || []).some(p => p.venda === v.id)), valor = centavos(autos.reduce((t, v) => t + v.v, 0)), entrouEm = c.entrou, sap = c.sapateira || 0;
+  for (const v of autos) if (v.reg) v.reg.txt += ' · cancelada'; S.compras = S.compras.filter(v => !autos.includes(v));
+  const itens = autos.map(v => ({ n: nomeVendaTxt(v), m: minDe(v), v: v.v })); c.pacote = Math.max(0, c.pacote - itens.reduce((t, i) => t + i.m, 0) / 60); c.entrou = null; c.sapateira = null; c.atraso = null;
+  S.cancelamentos.unshift({ id: novoId(), crianca: cid, nome, resp: c.resp, entrou: entrouEm, quando: new Date(), min, valor, itens, motivo, por: EU.nomeCompleto || EU.nome, papel: EU.papel, fora: false, visto_por: '', visto_em: null, tipo: '', atendente: atd, uni: minhaUni() || null });
+  registrar('canc', nome, textoCancelado(entrouEm, min, itens, motivo, porQuemTxt(atd), false)); fim(sap);
+}
 // 1.03: a conta da saída na ordem da tela anterior: os itens (a visita, o que ainda não foi pago, o atraso) com o total, Adicionar serviços,
 // e as horas em três linhas (disponíveis, necessárias, saldo após a confirmação)
 const htmlContaSaida = (c, k, hh) => { const p = periodo(), minhas = horasProprias(k), antes = saldoAntesSaida(c), depois = saldoDepois(c, k), v = receberSaida(k), st = servicoTempo();
@@ -4396,6 +4421,7 @@ const htmlContaSaida = (c, k, hh) => { const p = periodo(), minhas = horasPropri
   { const dv = centavos(brutoSaida(k) - v); if (dv > 0) L.push(linhaDesc(dv, descErro(brutoSaida(k), 'saida', c.id))); }   // 1.04: o desconto do gestor
   return `${pgSec('Itens selecionados')}
     ${pgTabela([['Criança', ''], ['Sapateira', 'sapateira '], ['Entrada', 'entrada ']], L, brl(v), { rot: 'Total a receber', cls: v > 0 ? 'a-receber' : '' })}
+    ${botaoCortesia(c, k, hh)}
     ${hh ? '' : `<button type="button" class="link tap pg-add pac-saida" data-act="saida-pacote" data-id="${c.id}">${ic(IC.mais, 14, 2.8)} Adicionar serviços <small>· pacote ou produto</small></button>`}
     ${pgSec('Pagamento')}
     ${hh ? '' : segAvulso(k.pac > 0, !!k.av)}
@@ -7164,6 +7190,7 @@ const ACOES = {
   'desc-pedir': el => pedirDesconto(el), 'desc-largar': () => largarDesconto(),
   'alt-item': el => { if (!ALT || ALT.espera || ALT.lib) return; const l = linhasDoCarrinho().find(x => altChave(x) === el.dataset.k); if (!l) return; ALT.k = el.dataset.k; ALT.v = valTxt(l.v); ALT.hh = l.pac != null ? String(l.ph) : ''; ALT.vp = ''; ALT.aberto = true; altRedesenha(); const i = $('#pg-alt-v'); if (i) { i.focus(); i.select(); } },   /* 1.33 */
   'alt-pedir': el => pedirAlteracao(el), 'alt-largar': () => largarAlteracao(),
+  'saida-cortesia': el => cortesiaSaida(+el.dataset.id),   /* 1.42 */
   'off-ver': () => folhaOffProb(), 'off-ok': el => { OFF.prob.splice(+el.dataset.i, 1); filaGuardar(); offFaixa(); if (OFF.prob.length) folhaOffProb(); else fecharFolha(); },   /* 1.40 */
   'salt-item': el => { if (!ALTS || ALTS.espera) return; const i = altSaidaItens().find(x => x.id === +el.dataset.k); if (!i) return; ALTS.k = i.id; ALTS.v = valTxt(i.v); ALTS.hh = String(Math.round(i.h)); ALTS.vp = ''; ALTS.aberto = true; altSaidaRedesenha(true); const v = $('#sa-alt-v'); if (v) { v.focus(); v.select(); } },   /* 1.39 */
   'salt-pedir': el => altSaidaPedir(el), 'salt-largar': () => altSaidaLargar(),
@@ -7440,6 +7467,7 @@ setInterval(() => {
   $$('[data-cron]').forEach(el => { const c = crianca(el.dataset.cron); if (c && c.entrou) el.innerHTML = cronometro(c); });
   $$('[data-cron-txt]').forEach(el => { const c = crianca(el.dataset.cronTxt); if (c && c.entrou) el.textContent = hms(segDentro(c)); });
   // o prazo para cancelar sem cobrar: o tempo que falta corre; quando acaba, o atalho some do anel e a ficha muda sozinha
+  $$('[data-cortesia]').forEach(el => { const c = crianca(el.dataset.cortesia), t = c && c.entrou ? cortesiaTxt(c) : ''; if (el.textContent !== t) el.textContent = t; const b = el.closest('button'); if (b && c && !noPrazoCancelar(c) && !b.disabled) b.disabled = true; });   // 1.42: a contagem da cortesia; acabou o prazo, o botão apaga
   $$('[data-cancela]').forEach(el => { const c = crianca(el.dataset.cancela); if (c && noPrazoCancelar(c)) { el.textContent = mss(faltaCancelar(c)); return; } const b = el.closest('.canc-link'); if (b) b.remove(); });
   $$('[data-ficha-cancela]').forEach(el => { const c = crianca(el.dataset.fichaCancela), e = estadoCancelar(c); if (e !== el.dataset.estado) { el.dataset.estado = e; el.innerHTML = c ? blocoCancelar(c) : ''; } });
   $$('[data-canc-prazo]').forEach(el => { const c = crianca(el.dataset.cancPrazo); if (c && c.entrou) el.innerHTML = prazoCancelarTxt(c); });

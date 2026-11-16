@@ -1150,6 +1150,15 @@ Pedido do dono: o **Alterar pacote** é para quando a loja quer um pacote de hor
 - O gestor vê a conta: "PACOTE 03 HORAS 360 (3h, R$ 225) para 4h: pacote R$ 300 + produto R$ 60 = R$ 360". A linha do dia também.
 - **No cupom sai um valor só**: o pacote com as horas novas e o total (R$ 360), sem separar o pacote e o produto.
 
+## 6zv. Cortesia na saída (1.42)
+
+Pedido do dono: um botão de **Cortesia** na tela de pagamento da saída, com o tempo, que deixa a saída sem cobrar nada, e que só vale dentro da regra dos 9 minutos.
+
+- Na tela de pagamento da saída (de uma criança), embaixo da conta: **Cortesia · sai sem cobrar nada**, com quanto a criança ficou, até que horas vale e o tempo que falta (a mesma regra de **cancelar a entrada sem cobrar**, em Ajustes: 9 min de fábrica).
+- Um toque: a criança sai e nada é cobrado (a recreação da visita não é cobrada e o tempo não é descontado do pacote); a sapateira fica livre.
+- Fica registrado como a entrada cancelada no prazo, com o motivo **CORTESIA** e o nome de quem fez: a gestora vê, como todo cancelamento.
+- Passou do prazo, o botão fica apagado ("só até 9 min da entrada"). Com compra para pagar na saída (pacote, produto), o botão não aparece.
+
 ## 7. Atualizar
 
 Botão **Atualizar** ao lado da versão. Ele baixa a versão nova do GitHub (ramo principal ou de trabalho, a mais nova), confere a versão dentro do arquivo e troca os arquivos de forma atômica. Não mexe em `~/playspace-dados/`. Se o GitHub demorar a refletir (cache de ~5 min), espere e toque de novo.
