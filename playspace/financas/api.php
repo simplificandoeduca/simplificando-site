@@ -10,7 +10,7 @@
 declare(strict_types=1);
 require __DIR__ . '/../api/lib.php';
 set_exception_handler(function (Throwable $e) { registrarErro('[financas] ' . $e->getMessage() . ' @' . basename($e->getFile()) . ':' . $e->getLine()); falha('Algo deu errado. Tente de novo em instantes.', 500); });
-const FIN_VERSAO = '1.1';
+const FIN_VERSAO = '1.2';
 
 $in = [];
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
@@ -157,6 +157,17 @@ if ($acao === 'resumo') {
   if ($ate < $de) [$de, $ate] = [$ate, $de];
   $dias = (int)round((strtotime($ate) - strtotime($de)) / 86400) + 1; if ($dias > 800) falha('Escolha um período de até 800 dias.');
   $ini = $de . ' 00:00:00'; $fim = date('Y-m-d', strtotime($ate . ' +1 day')) . ' 00:00:00';
+  // 1.53: o filtro de produto ('' = tudo · g:<tipo> · i:<tipo>|<NOME>)
+  $prod = trim((string)($in['prod'] ?? ''));
+  if ($prod !== '' && !preg_match('/^(g:(recreacao|pacotes|festa|produtos|carrinhos|outros)|i:(recreacao|pacotes|festa|produtos|carrinhos|outros)\|.{1,160})$/su', $prod)) $prod = '';
+  // o tipo (grupo) e o nome de cada venda, como no Caixa do dia: o pacote pelo nome, o produto da loja pelo nome, a festa, o carrinho, a recreação
+  $cls = function (array $r): array {
+    $g = grupoDoCaixa(['s' => (string)($r['s'] ?? ''), 'pr' => (int)($r['pr'] ?? 0) > 0 ? 1 : 0, 'a' => (string)($r['a'] ?? ''), 'm' => (int)($r['m'] ?? 0), 'au' => (int)($r['au'] ?? 0), 'vo' => (string)($r['vo'] ?? '')]);
+    $n = mb_strtoupper(trim((string)preg_replace('/\s+/u', ' ', (string)($r['s'] ?? ''))));
+    if ($n === '') $n = $g === 'pacotes' ? 'PACOTE ' . str_pad((string)intdiv((int)($r['m'] ?? 0), 60), 2, '0', STR_PAD_LEFT) . ' HORAS' : ['recreacao' => 'RECREAÇÃO', 'produtos' => 'PRODUTO', 'carrinhos' => 'CARRINHO', 'festa' => 'FESTA'][$g] ?? 'OUTROS';
+    return [$g, $n];
+  };
+  $passa = function (string $g, string $n) use ($prod): bool { if ($prod === '') return true; if (strpos($prod, 'g:') === 0) return substr($prod, 2) === $g; return substr($prod, 2) === $g . '|' . $n; };
   $uni = []; $U = function (int $u) use (&$uni) { if (!isset($uni[$u])) $uni[$u] = ['faturado' => 0.0, 'vendas' => 0, 'recebido' => 0.0, 'devolvido' => 0.0, 'aberto' => 0.0, 'visitas' => 0, 'criancas' => 0, 'festaVisitas' => 0, 'agora' => 0,
     'cancN' => 0, 'cancV' => 0.0, 'desfN' => 0, 'foraN' => 0, 'descN' => 0, 'descV' => 0.0, 'descPct' => 0.0, 'pcdN' => 0, 'pcdV' => 0.0, 'voucherN' => 0, 'pacN' => 0, 'pacV' => 0.0, 'festas' => 0]; };
   $nomeUsu = []; foreach ($db->query('SELECT id, nome FROM usuarios')->fetchAll() as $x) $nomeUsu[(int)$x['id']] = (string)$x['nome'];
@@ -200,6 +211,43 @@ if ($acao === 'resumo') {
   foreach ($db->query('SELECT COALESCE(unidade_id, 0) u, COUNT(*) n FROM criancas WHERE entrou IS NOT NULL AND ativo = 1 GROUP BY u')->fetchAll() as $l) { $u = (int)$l['u']; $U($u); $uni[$u]['agora'] = (int)$l['n']; }
   $q = $db->prepare('SELECT COALESCE(unidade_id, 0) u, COUNT(*) n FROM festas WHERE data >= ? AND data <= ? GROUP BY u'); $q->execute([$de, $ate]);
   foreach ($q->fetchAll() as $l) { $u = (int)$l['u']; $U($u); $uni[$u]['festas'] = (int)$l['n']; }
+  // 1.53: cada venda do período, uma a uma: o "produto a produto" (sempre de tudo) e, com o filtro de produto, os números só daquilo
+  $porItem = []; $VQ = $db->prepare('SELECT COALESCE(unidade_id, 0) u, substr(quando, 1, 10) d, servico s, COALESCE(produto_id, 0) pr, alug a, minutos m, auto au, voucher vo, valor v, COALESCE(qtd, 1) qtd, por FROM vendas WHERE quando >= ? AND quando < ? AND servico != ?');
+  $VQ->execute([$ini, $fim, SERV_IMPORTADO]); $VL = $VQ->fetchAll();
+  foreach ($VL as $r) { [$g, $n] = $cls($r); $v = (float)$r['v']; if ($v <= 0.004) continue; $k = (int)$r['u'] . '|' . $g . '|' . $n;
+    if (!isset($porItem[$k])) $porItem[$k] = ['u' => (int)$r['u'], 'g' => $g, 'n' => $n, 'q' => 0, 'v' => 0.0]; $porItem[$k]['q'] += $g === 'produtos' ? max(1, (int)$r['qtd']) : 1; $porItem[$k]['v'] = round($porItem[$k]['v'] + $v, 2); }
+  if ($prod !== '') {
+    foreach ($uni as $u => $x) { foreach (['faturado', 'recebido', 'devolvido', 'aberto', 'pacV'] as $c) $uni[$u][$c] = 0.0; foreach (['vendas', 'pacN'] as $c) $uni[$u][$c] = 0; }
+    $grupos = []; $pacotes = []; $porDia = []; $atend = []; $formas = []; $pdP = []; $atP = [];
+    foreach ($VL as $r) { [$g, $n] = $cls($r); if (!$passa($g, $n)) continue; $u = (int)$r['u']; $U($u); $v = round((float)$r['v'], 2); $valeu = $v > 0.004;
+      $uni[$u]['faturado'] = round($uni[$u]['faturado'] + $v, 2); if ($valeu && !(int)$r['au']) $uni[$u]['vendas']++;
+      $pdP[$u . '|' . $r['d']] = ['u' => $u, 'd' => (string)$r['d'], 'v' => round(($pdP[$u . '|' . $r['d']]['v'] ?? 0) + $v, 2)];
+      if (!$valeu) continue;
+      $k = $u . '|' . $g; if (!isset($grupos[$k])) $grupos[$k] = ['u' => $u, 'g' => $g, 'n' => 0, 'v' => 0.0]; $grupos[$k]['n']++; $grupos[$k]['v'] = round($grupos[$k]['v'] + $v, 2);
+      if (!(int)$r['au']) { $k = $u . '|' . (int)$r['por']; if (!isset($atP[$k])) $atP[$k] = ['u' => $u, 'nome' => $nomeUsu[(int)$r['por']] ?? 'Sem nome', 'n' => 0, 'v' => 0.0]; $atP[$k]['n']++; $atP[$k]['v'] = round($atP[$k]['v'] + $v, 2); }
+      if ($g === 'pacotes') { $uni[$u]['pacN']++; $uni[$u]['pacV'] = round($uni[$u]['pacV'] + $v, 2);
+        $k = $u . '|' . $n; if (!isset($pacotes[$k])) $pacotes[$k] = ['u' => $u, 'n' => $n, 'h' => round((int)$r['m'] / 60, 1), 'q' => 0, 'v' => 0.0]; $pacotes[$k]['q']++; $pacotes[$k]['v'] = round($pacotes[$k]['v'] + $v, 2); } }
+    ksort($pdP); $porDia = array_values($pdP); $atend = array_values($atP);
+    $soma = function (int $u, string $f, float $t) use (&$uni, &$formas, $U) { $U($u); $uni[$u]['recebido'] = round($uni[$u]['recebido'] + $t, 2); $formas[$u . '|' . $f] = ['u' => $u, 'f' => $f, 'v' => round(($formas[$u . '|' . $f]['v'] ?? 0) + $t, 2)]; };
+    $q = $db->prepare('SELECT COALESCE(p.unidade_id, v.unidade_id, 0) u, p.forma f, p.valor t, v.servico s, COALESCE(v.produto_id, 0) pr, v.alug a, v.minutos m, v.auto au, v.voucher vo FROM pagamentos p JOIN vendas v ON v.id = p.venda_id WHERE p.quando >= ? AND p.quando < ?');
+    $q->execute([$ini, $fim]); foreach ($q->fetchAll() as $l) { [$g, $n] = $cls($l); if ($passa($g, $n)) $soma((int)$l['u'], (string)$l['f'], round((float)$l['t'], 2)); }
+    // o devolvido: a venda pode já ter sido apagada (cancelada): vale o tipo guardado na devolução
+    $eq = 'SELECT COALESCE(e.unidade_id, 0) u, e.forma f, e.valor t, e.grupo eg, e.item it, v.id vid, v.servico s, COALESCE(v.produto_id, 0) pr, v.alug a, v.minutos m, v.auto au, v.voucher vo FROM estornos e LEFT JOIN vendas v ON v.id = e.venda_id WHERE e.';
+    $clsE = fn(array $l): array => $l['vid'] ? $cls($l) : [(string)$l['eg'], mb_strtoupper(trim((string)$l['it']))];
+    $q = $db->prepare($eq . 'quando >= ? AND e.quando < ?'); $q->execute([$ini, $fim]);
+    foreach ($q->fetchAll() as $l) { [$g, $n] = $clsE($l); if (!$passa($g, $n)) continue; $t = round((float)$l['t'], 2); $u = (int)$l['u']; $U($u); $uni[$u]['devolvido'] = round($uni[$u]['devolvido'] + $t, 2); $soma($u, (string)$l['f'], -$t); }
+    $q = $db->prepare($eq . 'pago_em >= ? AND e.pago_em < ?'); $q->execute([$ini, $fim]);
+    foreach ($q->fetchAll() as $l) { [$g, $n] = $clsE($l); if ($passa($g, $n)) $soma((int)$l['u'], (string)$l['f'], round((float)$l['t'], 2)); }
+    $q = $db->prepare('SELECT COALESCE(v.unidade_id, 0) u, v.servico s, COALESCE(v.produto_id, 0) pr, v.alug a, v.minutos m, v.auto au, v.voucher vo, v.valor - COALESCE((SELECT SUM(p.valor) FROM pagamentos p WHERE p.venda_id = v.id), 0) f FROM vendas v
+      WHERE v.quando >= ? AND v.quando < ? AND v.servico != ? AND v.valor - COALESCE((SELECT SUM(p.valor) FROM pagamentos p WHERE p.venda_id = v.id), 0) > 0.004');
+    $q->execute([$ini, $fim, SERV_IMPORTADO]); foreach ($q->fetchAll() as $l) { [$g, $n] = $cls($l); if (!$passa($g, $n)) continue; $u = (int)$l['u']; $U($u); $uni[$u]['aberto'] = round($uni[$u]['aberto'] + (float)$l['f'], 2); }
+  }
+  // 1.53: o catálogo (para o filtro e o produto a produto trazerem todos, mesmo o que não vendeu): os produtos da loja, os pacotes, os serviços e as festas
+  $catalogo = []; $poe = function (string $g, string $n) use (&$catalogo) { $n = mb_strtoupper(trim((string)preg_replace('/\s+/u', ' ', $n))); if ($n !== '') $catalogo[$g . '|' . $n] = ['g' => $g, 'n' => $n]; };
+  foreach ($db->query('SELECT nome FROM produtos WHERE ativo = 1')->fetchAll(PDO::FETCH_COLUMN) as $n) $poe('produtos', (string)$n);
+  foreach ((array)(regra()['pacotes'] ?? []) as $p) if (is_array($p)) $poe('pacotes', servicoDoPacote($p) !== '' ? servicoDoPacote($p) : 'PACOTE ' . str_pad((string)(int)($p['h'] ?? 0), 2, '0', STR_PAD_LEFT) . ' HORAS');
+  foreach ((array)(regra()['servicos'] ?? []) as $s) if (is_array($s) && trim((string)($s['n'] ?? '')) !== '') { [$g, $n] = $cls(['s' => (string)$s['n'], 'pr' => 0, 'a' => !empty($s['volta']) ? 'x' : '', 'm' => 0, 'au' => 0, 'vo' => '']); $poe($g, $n); }
+  foreach (array_merge(array_values(FESTA_SERVICO), ['UPGRADE DE FESTA', 'ADICIONAL DE FESTA']) as $n) $poe('festa', $n);
   // os cancelamentos: quantos, quanto deixou de ser cobrado, de quem (o nome da atendente que a pessoa escreveu; sem ele, quem estava no aparelho)
   $tipos = ['' => 'Entrada cancelada', 'desfeita' => 'Entrada desfeita na hora', 'venda' => 'Venda cancelada', 'atendimento' => 'Atendimento cancelado', 'aluguel' => 'Saída do carrinho cancelada'];
   $canc = []; $cancTotal = 0; $cancAt = []; $cancTipo = [];
@@ -243,6 +291,7 @@ if ($acao === 'resumo') {
   ksort($uni); $out = []; foreach ($uni as $u => $x) $out[] = ['u' => $u] + $x;
   responder(['de' => $de, 'ate' => $ate, 'dias' => $dias, 'gerado' => agora(), 'hoje' => date('Y-m-d'), 'unidades' => unidades(), 'porUnidade' => $out, 'criancasTotal' => $criancasTotal,
     'grupos' => array_values($grupos), 'pacotes' => array_values($pacotes), 'porDia' => $porDia, 'atendentes' => $atend, 'formas' => array_values($formas),
+    'prod' => $prod, 'itens' => array_values($porItem), 'catalogo' => array_values($catalogo),
     'cancelamentos' => ['total' => $cancTotal, 'lista' => $canc, 'atendentes' => array_values($cancAt), 'tipos' => array_values($cancTipo)], 'descontos' => ['total' => $descTotal, 'lista' => $desc, 'quem' => array_values($descQuem)]]);
 }
 falha('Ação desconhecida.', 404);

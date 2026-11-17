@@ -1301,6 +1301,14 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzh. Finanças: filtro por produto e o produto a produto (1.53)
+
+Pedido do dono: no financeiro, filtro por data, por unidade e por produto (todos, festa, só pacote, só recreação avulsa, só produto), tudo destrinchado e já na tela.
+
+- Em cima, três linhas de filtro: o **período** (hoje, ontem, 7 e 30 dias, este mês, mês passado, este ano, ou escolher as datas), a **unidade** e, agora, o **produto**: Todos os produtos · Pacotes · Recreação avulsa · Festas · Produtos da loja · Carrinhos, ou **um produto só** (a lista traz todos: os da loja, os pacotes, os serviços e as festas, mesmo os que não venderam no período).
+- Com o filtro de produto, faturado, recebido (já sem o devolvido), em aberto, vendas, pacotes, o gráfico, as formas de pagamento e as vendas por atendente são só daquilo. Crianças, cancelamentos, descontos e festas marcadas continuam de tudo (um aviso diz isso).
+- Na Visão geral, sempre aberta: **Produto a produto**, com cada coisa vendida (quantidade, valor e % do total), por tipo, e os que não venderam em zero. Tocar num produto ou no tipo filtra por ele. **Baixar planilha** leva a tabela para o Excel.
+
 ## 7. Atualizar
 
 Botão **Atualizar** ao lado da versão. Ele baixa a versão nova do GitHub (ramo principal ou de trabalho, a mais nova), confere a versão dentro do arquivo e troca os arquivos de forma atômica. Não mexe em `~/playspace-dados/`. Se o GitHub demorar a refletir (cache de ~5 min), espere e toque de novo.

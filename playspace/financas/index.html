@@ -99,6 +99,13 @@ td.v, th.v { text-align: right; white-space: nowrap; font-variant-numeric: tabul
 td small { display: block; color: var(--ink-3); font-size: 12.5px; }
 td.q { white-space: nowrap; } td.q small { white-space: normal; }
 tfoot td { font-weight: 800; border-top: 1px solid var(--line); border-bottom: 0; }
+/* 1.53: o filtro de produto e o produto a produto */
+select.chip { appearance: none; -webkit-appearance: none; padding-right: 30px; background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%); background-position: calc(100% - 16px) 15px, calc(100% - 11px) 15px; background-size: 5px 5px; background-repeat: no-repeat; max-width: 280px; cursor: pointer; font-family: inherit; }
+select.chip.on { background-color: var(--ink); color: #fff; }
+.aviso-prod { margin: 0 0 14px; padding: 10px 14px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); color: var(--ink-2); font-size: 14px; } .aviso-prod .link { display: inline; padding: 0; margin-left: 4px; }
+table.pap tr.tipo td { font-weight: 800; background: rgba(226, 91, 63, .06); } table.pap tr.tipo .link { font-weight: 800; color: var(--ink); padding: 0; }
+table.pap .link.item { color: var(--ink); font-weight: 600; padding: 0; text-align: left; } table.pap .link.item:hover { color: var(--brand); text-decoration: underline; }
+table.pap tr.zero td { color: var(--ink-3); } table.pap td:first-child { padding-left: 14px; text-align: left; } table.pap .link { margin: 0; text-align: left; } table.pap tr.tipo td:first-child { padding-left: 8px; }
 .barra { height: 8px; border-radius: 999px; background: var(--soft); overflow: hidden; min-width: 60px; margin-top: 6px; }
 .barra i { display: block; height: 100%; border-radius: 999px; background: var(--brand); }
 .selo { display: inline-block; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 2px 9px; white-space: nowrap; }
@@ -281,8 +288,8 @@ const IC = {
 const ABAS = [['geral', 'Visão geral', IC.geral], ['vendas', 'Vendas e pacotes', IC.vendas], ['canc', 'Cancelamentos', IC.canc], ['desc', 'Descontos', IC.desc], ['conta', 'Conta', IC.conta]];
 const GRUPOS = { recreacao: 'Recreação avulsa', pacotes: 'Pacotes de horas', festa: 'Festas', produtos: 'Produtos da loja', carrinhos: 'Carrinhos', outros: 'Outros' };
 const FORMAS = { pix: 'Pix', dinheiro: 'Dinheiro', credito: 'Crédito', debito: 'Débito' };
-let EU = null, UNIS = [], D = null, ABA = 'geral', UNI = 'todas', PER = { k: 'mes' }, CARREGANDO = 0;
-try { const g = JSON.parse(localStorage.getItem('psfin-filtro') || 'null'); if (g && g.per) { PER = g.per; UNI = g.uni || 'todas'; } } catch (e) { /* sem memória */ }
+let EU = null, UNIS = [], D = null, ABA = 'geral', UNI = 'todas', PER = { k: 'mes' }, PROD = '', CARREGANDO = 0;   /* PROD: '' · g:<tipo> · i:<tipo>|<NOME> (1.53) */
+try { const g = JSON.parse(localStorage.getItem('psfin-filtro') || 'null'); if (g && g.per) { PER = g.per; UNI = g.uni || 'todas'; PROD = typeof g.prod === 'string' ? g.prod : ''; } } catch (e) { /* sem memória */ }
 
 async function api(acao, dados) {
   let r;
@@ -362,7 +369,16 @@ function periodo() {
   if (PER.k === 'ano') return [iso(new Date(h.getFullYear(), 0, 1)), iso(h), 'Este ano'];
   return [PER.de || iso(h), PER.ate || iso(h), 'Período escolhido'];
 }
-const guardarFiltro = () => { try { localStorage.setItem('psfin-filtro', JSON.stringify({ per: PER, uni: UNI })); } catch (e) { /* sem memória */ } };
+const guardarFiltro = () => { try { localStorage.setItem('psfin-filtro', JSON.stringify({ per: PER, uni: UNI, prod: PROD })); } catch (e) { /* sem memória */ } };
+/* 1.53: o filtro de produto */
+const TIPOS_PROD = [['', 'Todos os produtos'], ['g:pacotes', 'Pacotes'], ['g:recreacao', 'Recreação avulsa'], ['g:festa', 'Festas'], ['g:produtos', 'Produtos da loja'], ['g:carrinhos', 'Carrinhos']];
+const ORDEM_G = ['pacotes', 'recreacao', 'festa', 'produtos', 'carrinhos', 'outros'];
+const nomeProd = p => !p ? 'todos os produtos' : p.startsWith('g:') ? (GRUPOS[p.slice(2)] || p.slice(2)) : p.slice(p.indexOf('|') + 1);
+function produtosConhecidos() {   /* tudo o que pode ser filtrado: o que vendeu no período e o catálogo, por tipo */
+  const M = new Map(); for (const x of (D ? (D.catalogo || []).concat(D.itens || []) : [])) M.set(x.g + '|' + x.n, { g: x.g, n: x.n });
+  if (PROD.startsWith('i:') && !M.has(PROD.slice(2))) { const [g, ...n] = PROD.slice(2).split('|'); M.set(PROD.slice(2), { g, n: n.join('|') }); }
+  return [...M.values()].sort((a, b) => ORDEM_G.indexOf(a.g) - ORDEM_G.indexOf(b.g) || a.n.localeCompare(b.n, 'pt-BR'));
+}
 const corUni = u => { if (+u === 0) return 'var(--s0)'; const i = UNIS.findIndex(x => x.id === +u); return ['var(--s1)', 'var(--s2)', 'var(--s3)'][i] || 'var(--s0)'; };
 const nomeUni = u => +u === 0 ? 'Sem unidade' : ((UNIS.find(x => x.id === +u) || {}).nome || 'Unidade ' + u);
 const naUni = x => UNI === 'todas' || +x.u === +UNI;
@@ -392,7 +408,7 @@ async function iniciar() {
 }
 async function carregar() {
   const [de, ate] = periodo(), n = ++CARREGANDO; const t = $('#tela'); if (t) t.classList.add('carregando');
-  try { const r = await api('resumo', { de, ate }); if (n !== CARREGANDO) return; D = r; UNIS = r.unidades || UNIS; }
+  try { const r = await api('resumo', { de, ate, prod: PROD }); if (n !== CARREGANDO) return; D = r; UNIS = r.unidades || UNIS; }
   catch (e) { if (n === CARREGANDO) aviso(e.message); }
   if (n === CARREGANDO) { const t2 = $('#tela'); if (t2) t2.classList.remove('carregando'); desenhar(); }
 }
@@ -401,11 +417,16 @@ function filtrosHtml() {
   const us = D ? unisComDados() : UNIS.filter(x => x.ativo).map(x => x.id);
   return `<div class="filtros"><div class="chips" role="group" aria-label="Período">${P.map(([k, n]) => `<button class="chip ${PER.k === k ? 'on' : ''}" data-per="${k}">${n}</button>`).join('')}
       ${PER.k === 'esc' ? `<span class="datas"><input type="date" id="per-de" value="${esc(de)}" aria-label="De"> até <input type="date" id="per-ate" value="${esc(ate)}" aria-label="Até"></span>` : ''}</div>
-    <div class="chips" role="group" aria-label="Unidade"><button class="chip ${UNI === 'todas' ? 'on' : ''}" data-uni="todas">Todas as unidades</button>${us.map(u => `<button class="chip ${String(UNI) === String(u) ? 'on' : ''}" data-uni="${u}"><i style="background:${corUni(u)}"></i>${esc(nomeUni(u))}</button>`).join('')}</div></div>`;
+    <div class="chips" role="group" aria-label="Unidade"><button class="chip ${UNI === 'todas' ? 'on' : ''}" data-uni="todas">Todas as unidades</button>${us.map(u => `<button class="chip ${String(UNI) === String(u) ? 'on' : ''}" data-uni="${u}"><i style="background:${corUni(u)}"></i>${esc(nomeUni(u))}</button>`).join('')}</div>
+    <div class="chips" role="group" aria-label="Produto">${TIPOS_PROD.map(([k, n]) => `<button class="chip ${PROD === k ? 'on' : ''}" data-prod="${esc(k)}">${n}</button>`).join('')}
+      <select id="prod-um" class="chip ${PROD.startsWith('i:') ? 'on' : ''}" aria-label="Um produto"><option value="">Um produto…</option>${ORDEM_G.map(g => { const L = produtosConhecidos().filter(x => x.g === g); return L.length ? `<optgroup label="${esc(GRUPOS[g] || g)}">${L.map(x => `<option value="${esc('i:' + x.g + '|' + x.n)}" ${PROD === 'i:' + x.g + '|' + x.n ? 'selected' : ''}>${esc(x.n)}</option>`).join('')}</optgroup>` : ''; }).join('')}</select></div></div>`;
 }
 function ligarFiltros() {
   $$('[data-per]').forEach(b => b.onclick = () => { PER = b.dataset.per === 'esc' ? { k: 'esc', de: periodo()[0], ate: periodo()[1] } : { k: b.dataset.per }; guardarFiltro(); desenhar(); carregar(); });
   $$('[data-uni]').forEach(b => b.onclick = () => { UNI = b.dataset.uni === 'todas' ? 'todas' : +b.dataset.uni; guardarFiltro(); desenhar(); });
+  const filtraProd = p => { PROD = p; guardarFiltro(); desenhar(); carregar(); };   /* 1.53 */
+  $$('[data-prod]').forEach(b => b.onclick = () => filtraProd(b.dataset.prod)); const um = $('#prod-um'); if (um) um.onchange = () => filtraProd(um.value);
+  $$('[data-filtra]').forEach(b => b.onclick = () => { filtraProd(b.dataset.filtra); window.scrollTo(0, 0); });
   const a = $('#per-de'), b = $('#per-ate');
   if (a && b) { const muda = () => { if (!a.value || !b.value) return; PER = { k: 'esc', de: a.value, ate: b.value }; guardarFiltro(); carregar(); }; a.onchange = muda; b.onchange = muda; }
 }
@@ -414,7 +435,7 @@ function desenhar() {
   const cc = $('[data-cont-canc]'); if (cc) { const n = D ? somaUni().cancN || 0 : 0; cc.hidden = !n; cc.textContent = n; }
   const t = $('#tela'); if (!t) return;
   const [de, ate, nomeP] = periodo(), titulo = (ABAS.find(a => a[0] === ABA) || [])[1];
-  const sub = `${nomeP} · ${de === ate ? dataBR(de) : dataBR(de) + ' a ' + dataBR(ate)}${UNI === 'todas' ? ' · todas as unidades' : ' · ' + nomeUni(UNI)}`;
+  const sub = `${nomeP} · ${de === ate ? dataBR(de) : dataBR(de) + ' a ' + dataBR(ate)}${UNI === 'todas' ? ' · todas as unidades' : ' · ' + nomeUni(UNI)} · ${nomeProd(PROD)}`;
   t.innerHTML = `<div class="topo"><div><h1>${titulo}</h1><div class="sub">${ABA === 'conta' ? 'Seu acesso e quem mais vê as Finanças' : esc(sub)}</div></div>${ABA !== 'conta' && D ? `<div class="sub">Atualizado às ${esc(String(D.gerado).slice(11, 16))} · <button class="link" style="display:inline;padding:0" id="recarregar">atualizar</button></div>` : ''}</div>
     ${ABA === 'conta' ? '' : filtrosHtml()}<div id="corpo">${!D && ABA !== 'conta' ? '<div class="vazio">Carregando os números…</div>' : ABA === 'geral' ? telaGeral() : ABA === 'vendas' ? telaVendas() : ABA === 'canc' ? telaCanc() : ABA === 'desc' ? telaDesc() : telaConta()}</div>`;
   ligarFiltros(); const rc = $('#recarregar'); if (rc) rc.onclick = () => carregar();
@@ -428,7 +449,7 @@ function desenhar() {
 function kpi(rot, val, det, cls) { return `<div class="kpi ${cls || ''}"><div class="rot">${rot}</div><div class="val num">${val}</div>${det ? `<div class="det">${det}</div>` : ''}</div>`; }
 function telaGeral() {
   const s = somaUni(), cancAlerta = (s.cancN || 0) > 0, us = unisComDados(), hoje = D.hoje >= D.de && D.hoje <= D.ate;
-  let h = `<div class="grade">
+  let h = (PROD ? `<div class="aviso-prod">Só <b>${esc(nomeProd(PROD))}</b>: faturado, recebido, em aberto, vendas, pacotes, o gráfico e as formas de pagamento. Crianças, cancelamentos, descontos e festas marcadas continuam de tudo. <button class="link" data-filtra="">Ver todos os produtos</button></div>` : '') + `<div class="grade">
     ${kpi('Faturado', brl(s.faturado), `${int(s.vendas)} ${s.vendas === 1 ? 'venda registrada' : 'vendas registradas'}${s.visitas ? ` · ${brl(s.faturado / s.visitas)} por visita` : ''}`)}
     ${kpi('Recebido', brl(s.recebido), s.devolvido ? `já sem ${brl(s.devolvido)} devolvido ao cliente` : 'pagamentos do período')}
     ${kpi('Em aberto', brl(s.aberto), 'vendido e ainda não pago (fica para a saída ou a devolução)')}
@@ -459,7 +480,24 @@ function telaGeral() {
     <div class="cartao"><h2>Formas de pagamento</h2><p class="expl">O que entrou no caixa no período (já sem o devolvido).</p>${fL.length ? `<div class="rolar"><table><thead><tr><th>Forma</th><th class="v">Valor</th><th class="v">%</th></tr></thead><tbody>
       ${fL.map(([f, v]) => `<tr><td>${esc(FORMAS[f] || f)}<div class="barra"><i style="width:${fT ? Math.max(2, v / fT * 100) : 0}%"></i></div></td><td class="v">${brl(v)}</td><td class="v">${pct(fT ? v / fT * 100 : 0)}</td></tr>`).join('')}
       </tbody><tfoot><tr><td>Total</td><td class="v">${brl(fT)}</td><td></td></tr></tfoot></table></div>` : '<div class="vazio">Nenhum pagamento no período.</div>'}</div></div>`;
-  return h;
+  return h + produtoAProduto();
+}
+/* 1.53: o produto a produto: cada coisa vendida no período (e o que não vendeu, em zero), por tipo; tocar filtra */
+function linhasProduto() {
+  const M = new Map(), entra = (g, n) => !PROD || (PROD.startsWith('g:') ? PROD.slice(2) === g : PROD.slice(2) === g + '|' + n);
+  for (const x of (D.catalogo || [])) if (entra(x.g, x.n)) M.set(x.g + '|' + x.n, { g: x.g, n: x.n, q: 0, v: 0 });
+  for (const x of (D.itens || []).filter(naUni)) { if (!entra(x.g, x.n)) continue; const k = x.g + '|' + x.n, o = M.get(k) || { g: x.g, n: x.n, q: 0, v: 0 }; o.q += x.q; o.v += x.v; M.set(k, o); }
+  return [...M.values()].sort((a, b) => ORDEM_G.indexOf(a.g) - ORDEM_G.indexOf(b.g) || b.v - a.v || a.n.localeCompare(b.n, 'pt-BR'));
+}
+function produtoAProduto() {
+  const L = linhasProduto(), T = L.reduce((t, x) => t + x.v, 0), gs = ORDEM_G.filter(g => L.some(x => x.g === g));
+  if (!L.length) return `<div class="cartao"><h2>Produto a produto</h2><div class="vazio">Nada para mostrar com esse filtro.</div></div>`;
+  return `<div class="cartao"><div class="cab-cartao"><div><h2>Produto a produto</h2><p class="expl">Tudo o que foi vendido no período${UNI === 'todas' ? '' : ' em ' + esc(nomeUni(UNI))}, por tipo. Os que não venderam aparecem em zero. Toque num produto (ou no tipo) para ver só ele nos números de cima.</p></div><button class="bt" data-csv="produtos">Baixar planilha</button></div>
+    <div class="rolar"><table class="pap"><thead><tr><th>Produto</th><th class="v">Qtd</th><th class="v">Valor</th><th class="v">% do total</th></tr></thead><tbody>
+    ${gs.map(g => { const G = L.filter(x => x.g === g), gv = G.reduce((t, x) => t + x.v, 0), gq = G.reduce((t, x) => t + x.q, 0);
+      return `<tr class="tipo"><td><button class="link" data-filtra="g:${g}">${esc(GRUPOS[g] || g)}</button></td><td class="v">${int(gq)}</td><td class="v">${brl(gv)}</td><td class="v">${gv > 0.004 && T ? pct(gv / T * 100) : '–'}</td></tr>`
+        + G.map(x => `<tr class="${x.v > 0 ? '' : 'zero'}"><td><button class="link item" data-filtra="${esc('i:' + x.g + '|' + x.n)}">${esc(x.n)}</button>${T && x.v > 0 ? `<div class="barra"><i style="width:${Math.max(2, x.v / T * 100)}%"></i></div>` : ''}</td><td class="v">${int(x.q)}</td><td class="v">${brl(x.v)}</td><td class="v">${x.v > 0 ? pct(T ? x.v / T * 100 : 0) : '–'}</td></tr>`).join(''); }).join('')}
+    </tbody><tfoot><tr><td>Total</td><td class="v">${int(L.reduce((t, x) => t + x.q, 0))}</td><td class="v">${brl(T)}</td><td></td></tr></tfoot></table></div></div>`;
 }
 /* o gráfico: barras empilhadas por unidade (cores fixas por unidade), com a dica ao passar o mouse e a tabela logo abaixo */
 function serieGrafico() {
@@ -542,6 +580,12 @@ function telaDesc() {
 
 /* a planilha (CSV, abre no Excel) dos cancelamentos ou dos descontos do filtro de agora */
 function baixarCsv(qual) {
+  if (qual === 'produtos') {   /* 1.53 */
+    const q = v => { let t = String(v == null ? '' : v); if (/^[=+@\t\r]|^-(?!\d)/.test(t)) t = "'" + t; return '"' + t.replace(/"/g, '""') + '"'; }, n = v => String(Math.round((+v || 0) * 100) / 100).replace('.', ',');
+    const L = linhasProduto(), [de, ate] = periodo(), csv = '\uFEFF' + [['Tipo', 'Produto', 'Qtd', 'Valor'], ...L.map(x => [GRUPOS[x.g] || x.g, x.n, x.q, n(x.v)])].map(l => l.map(q).join(';')).join('\r\n');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = `play-space-produto-a-produto-${de}-a-${ate}.csv`;
+    document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 800); return;
+  }
   const L = (qual === 'canc' ? D.cancelamentos.lista : D.descontos.lista).filter(naUni), q = v => { let t = String(v == null ? '' : v); if (/^[=+@\t\r]|^-(?!\d)/.test(t)) t = "'" + t; return '"' + t.replace(/"/g, '""') + '"'; }   /* 1.49: um texto começando com = + - @ não vira fórmula no Excel */, n = v => String(Math.round((+v || 0) * 100) / 100).replace('.', ',');
   const cab = qual === 'canc' ? ['Quando', 'Unidade', 'Tipo', 'Criança', 'Responsável', 'Itens', 'Minutos dentro', 'Motivo', 'Atendente', 'Usuário', 'Fora do prazo', 'Valor'] : ['Quando', 'Unidade', 'Criança', 'Responsável', 'Itens', 'Motivo', 'Liberou', 'Atendente', 'Conta', 'Desconto', '%'];
   const linhas = L.map(x => qual === 'canc' ? [x.quando, nomeUni(x.u), x.tipo, x.crianca, x.resp, x.itens, x.entrada ? x.min : '', x.motivo, x.atendente, x.usuario, x.fora ? 'sim' : 'não', n(x.valor)] : [x.quando, nomeUni(x.u), x.crianca, x.resp, x.itens, x.motivo, x.liberou, x.atendente, n(x.cheio), n(x.desconto), n(x.pct)]);
