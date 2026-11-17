@@ -90,6 +90,40 @@ test('a aluna treina e o painel vê na Evolução (com o quadro do cardio obriga
   await ctx.close();
 });
 
+test('treino marcado 2 vezes: o personal altera o tempo de um e exclui o outro; o app da aluna fica igual', async ({ page, browser }) => {
+  // a aluna marca de novo o mesmo treino no mesmo dia (2 min, só 1 série)
+  await entraComSenha(page, { codigo, emu: true });
+  const t = await simp(page, () => { const T = window.__simp, t = T.LETTERS[0], e = T.PLAN[t].ex[0]; T.startSession(t); T.ui.sheet = null; T.renderSheet(); const L = T.getLog(e.id); L.forEach(x => { x.ok = false; }); L[0].ok = true; L[0].kg = '20'; L[0].reps = '10'; T.save(); T.finish(); T.ui.sheet = null; T.renderSheet(); T.save(); return t; });
+  const hoje = await simp(page, () => window.__simp.today());
+  await expect.poll(async () => { const p = (await fsLista('progresso')).find(x => x.f.aid && x.f.aid.stringValue === aid); return p ? JSON.parse(p.f.s.stringValue).h.filter(h => h.d === hoje && h.t === t).length : 0; }, { timeout: 30000 }).toBe(2);
+  // o personal vê os dois na Evolução
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } }); const p2 = await ctx.newPage();
+  await entraPainel(p2); await vai(p2, '#aluno--' + aid + '--evolucao');
+  const det = p2.locator('details.ev3-h'); await expect.poll(() => det.count(), { timeout: 20000 }).toBeGreaterThanOrEqual(2);
+  // check-in sempre de segunda a domingo (o dia de hoje aparece como "hoje")
+  const dias = await p2.locator('.ev2-ck thead th').evaluateAll(L => L.slice(1).map(th => th.childNodes[0].textContent));
+  const wd = await p2.evaluate(() => (new Date().getDay() + 6) % 7);
+  expect(dias).toEqual(['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'].map((d, i) => i === wd ? 'hoje' : d));
+  const n0 = await det.count();
+  await det.nth(1).locator('summary').click();
+  // alterar o tempo do 1º
+  await det.nth(0).locator('[data-a="evTempo"]').click();
+  await p2.fill('#tp-min', '45'); await p2.locator('#tp-min').dispatchEvent('change');
+  await p2.click('[data-a="evTempoOk"]');
+  await expect(det.nth(0)).toContainText('45 min');
+  await expect(det.nth(0)).toContainText('Tempo mudado por você');
+  // excluir o 2º (pede dois toques)
+  await det.nth(1).locator('[data-a="evExcluir"]').click(); await det.nth(1).locator('[data-a="evExcluir"]').click();
+  await expect.poll(() => det.count()).toBe(n0 - 1);
+  await expect.poll(async () => { const a = (await fsLista('appAlunos')).find(x => x.f.aid && x.f.aid.stringValue === aid); return a ? JSON.stringify(a.f.ajustes || {}) : ''; }, { timeout: 20000 }).toContain('del');
+  await ctx.close();
+  // a aluna abre o app: fica um treino só de hoje, com 45 min; e não volta da nuvem
+  const ctx2 = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }); const p3 = await ctx2.newPage();
+  await entraComSenha(p3, { codigo, emu: true });
+  await expect.poll(() => simp(p3, t => { const T = window.__simp, d = T.today(); return T.S.history.filter(h => h.date === d && h.t === t).map(h => h.min); }, t), { timeout: 15000 }).toEqual([45]);
+  await ctx2.close();
+});
+
 test('Perfis mostra quem criou conta sem personal; Ajustes tem "Avisos no celular" (o "Atualizar" foi para o hub)', async ({ page, browser }) => {
   await criaConta(page, { nome: 'Bruna Perfis', emu: true });
   const p2 = await browser.newPage({ viewport: { width: 1280, height: 900 } });

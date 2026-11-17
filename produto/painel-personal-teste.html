@@ -783,6 +783,9 @@ h3.sec{font-size:22px;margin:14px 2px -2px}
 @media (min-width:960px){.main>.btn-row:has(>.savest:only-child){display:none}.dtabs-in{flex-wrap:wrap;border-radius:22px}}
 .callout.inl>div{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}.callout.inl p{margin:0}.callout.inl .btn{background:#fff;box-shadow:inset 0 0 0 1px rgba(107,74,0,.25);color:#6B4A00}
 .card .list{box-shadow:inset 0 0 0 1px var(--card-line)}
+.ev-tp{display:flex;align-items:flex-end;gap:10px;margin-top:12px}.ev-tp .fld{flex:1;margin:0}.ev-tp .inp{text-align:center;font-size:20px;font-weight:800}
+.ev2-ck th small{display:block;font-size:10.5px;font-weight:600;opacity:.7}.ev2-ck .fut{opacity:.45}
+.ev3-mv{gap:8px}
 /* ---------- Hub (/hub): entrada do dono, sempre escura, com blocos de cor cheia (igual ao app do aluno) ---------- */
 body.hub-on{background:#0F1712}
 .hub-on .side,.hub-on .tabbar{display:none}
@@ -1967,7 +1970,7 @@ const FBP = (() => {
     pl.treinos = pl.treinos || {};
     Object.keys(pl.treinos).forEach(L => { const t = pl.treinos[L] || {}; t.nome = String(t.nome||'').trim() || String(t.foco||'').trim() || 'Treino '+L; t.ex = (t.ex||[]).map(e => { const x = Object.assign({}, e); x.cues = (x.cues||[]).filter(c => c && String(c).trim()); x.erro = x.erro || ''; delete x.sup; delete x.tec; delete x.cad; return x; }); });
     return { aid:id, ativo:!!(a.acesso && a.acesso.ativo), perfil:{ nome:p.nome||'', sexo:p.sexo||'', objetivo:p.objetivo||'', dias:p.dias||[] },
-      metas:a.metas||{}, plano:pl, financeiro:{ pagoAte:(a.financeiro||{}).pagoAte||null }, ajustes:(a.ajustes||[]).filter(x => x && x.de && x.t && x.para), atualizadoEm:new Date().toISOString() };
+      metas:a.metas||{}, plano:pl, financeiro:{ pagoAte:(a.financeiro||{}).pagoAte||null }, ajustes:(a.ajustes||[]).filter(x => x && x.de && x.t && (x.para || x.del || +x.min>0)), atualizadoEm:new Date().toISOString() };
   }
   async function publish(id, a){ if(a && a.uid) await db.collection('appAlunos').doc(a.uid).set(projection(id, a)); }
   async function unpublish(uid){ if(uid) try { await db.collection('appAlunos').doc(uid).delete(); } catch(e){ /* já apagado */ } }
@@ -3091,12 +3094,27 @@ async function loadProg(force){
   PG.loading = false; if(ui.view==='painel' || ui.view==='hub' || (ui.view==='alunos' && ui.aluno && (ui.tab==='evolucao' || ui.tab==='acesso'))) render();
   clearTimeout(PG.tm); if(!PG.err && PG.by) PG.tm = setTimeout(() => { if(ui.view==='painel') loadProg(true); }, 90e3);
 }
-/* treino gravado no dia errado (ex.: começou na segunda e finalizou na terça): o personal muda o dia no painel */
+/* treinos abertos na Evolução continuam abertos quando a tela se redesenha (ex.: no "toque de novo para excluir") */
+const EV_ABERTO = new Set(), EV_FECHADO = new Set();
+document.addEventListener('toggle', e => { const el = e.target; if(!el || !el.matches || !el.matches('details.ev3-h')) return; const k = el.dataset.dk; if(el.open){ EV_ABERTO.add(k); EV_FECHADO.delete(k); } else { EV_ABERTO.delete(k); EV_FECHADO.add(k); } }, true);
+/* ajustes do personal nos treinos do aluno: mudar o dia (começou na segunda e finalizou na terça), excluir (marcado 2 vezes) e alterar o tempo.
+   Valem na hora aqui e no app do aluno quando ele abrir. Excluir e tempo acham o treino certo mesmo com dois iguais no mesmo dia. */
+const ajParaP = (aj, d, t) => { const x = aj.find(j => j.para && j.de===d && j.t===t); return x ? x.para : d; };
+const ajBateP = (aj, j, h) => (h.d===j.de || h.d===ajParaP(aj, j.de, j.t)) && h.t===j.t && (!j.hi || j.hi===(h.hi||'')) && (!j.hr || j.hr===(h.hr||'')) && (j.m0==null || j.m0===(h.m0!=null ? h.m0 : (h.min||0))) && (j.s0==null || j.s0===(h.sets||0));
 function ajAplica(H, aj){
   if(!(aj||[]).length) return H;
-  const out = H.map(h => { const x = aj.find(j => j.de===h.d && j.t===h.t); return x ? Object.assign({}, h, { d:x.para, _de:h.d }) : h; });
+  const usado = new Set(), mid = [];
+  H.forEach(h => {
+    const j = aj.find(j => (j.del || +j.min>0) && !usado.has(j.id) && ajBateP(aj, j, h));
+    if(j) usado.add(j.id);
+    if(j && j.del) return;
+    mid.push(j ? Object.assign({}, h, { min:Math.round(+j.min), m0:h.m0!=null ? h.m0 : (h.min||0), _ajT:j.id }) : h);
+  });
+  const out = mid.map(h => { const x = aj.find(j => j.para && j.de===h.d && j.t===h.t); return x ? Object.assign({}, h, { d:x.para, _de:h.d }) : h; });
   return out.sort((x,y) => x.d<y.d ? -1 : x.d>y.d ? 1 : 0);
 }
+// a "impressão digital" do treino, para o ajuste achar o mesmo treino aqui e no app do aluno
+function ajDigital(x){ const o = { de:x._de||x.d, t:x.t, m0:x.m0!=null ? x.m0 : (x.min||0), s0:x.sets||0 }; if(x.hi) o.hi = x.hi; if(x.hr) o.hr = x.hr; return o; }
 const progDe = a => { const pg = a._pg || (PG.by && PG.by[a._id]) || null; if(!pg || !pg.d || a._pg || !(a.ajustes||[]).length) return pg; return Object.assign({}, pg, { d:Object.assign({}, pg.d, { h:ajAplica(pg.d.h||[], a.ajustes) }) }); };
 const semIni = k => addDays(k, -((parse(k).getDay()+6)%7)); // segunda-feira
 const DSEM = ['dom','seg','ter','qua','qui','sex','sáb'], dSem = k => DSEM[parse(k).getDay()];
@@ -3132,13 +3150,17 @@ function evHist(a, H){
     falt.forEach(pe => { ped += +pe.s||0; if(pe.aq) aqP += (pe.aqW||[]).length || AQ_PAD.length; });
     const pc = ped ? Math.round(fez/ped*100) : 0;
     const info = [x.gym ? esc(x.gym) : '', x.min ? x.min+' min' : '', x.rpe ? 'esforço '+x.rpe+'/10' : ''].filter(Boolean).join(' · ');
-    return '<details class="ev3-h"'+(ix===0 ? ' open' : '')+'><summary><span class="lt">'+esc(x.t)+'</span><span class="mt"><b>'+dSem(x.d)+', '+fmtDm(x.d)+(x.nm ? ' · '+esc(x.nm) : '')+'</b><small>'+(info || 'Treino '+esc(x.t))+'</small></span>'+
+    const dk = [x._de||x.d, x.t, x.hi||'', x.hr||'', x.m0!=null ? x.m0 : (x.min||0), x.sets||0].join('|'), ab = EV_ABERTO.has(dk) || (ix===0 && !EV_FECHADO.has(dk));
+    return '<details class="ev3-h" data-dk="'+esc(dk)+'"'+(ab ? ' open' : '')+'><summary><span class="lt">'+esc(x.t)+'</span><span class="mt"><b>'+dSem(x.d)+', '+fmtDm(x.d)+(x.nm ? ' · '+esc(x.nm) : '')+'</b><small>'+(info || 'Treino '+esc(x.t))+'</small></span>'+
       (ped ? '<span class="ev3-pc'+(fez>=ped?' ok':'')+'" title="Séries feitas de quantas o plano pede"><b>'+fez+'/'+ped+'</b>séries</span>' : x.sets ? '<span class="ev3-pc"><b>'+x.sets+'</b>séries</span>' : '')+(x.note ? ic('msg') : '')+ic('chev','chev')+'</summary>'+
       (ped ? '<div class="ev3-bar"><i style="width:'+pc+'%"></i></div>' : '')+
       ((aqP && !aqSem) ? '<p class="ev3-sum">'+ic('flame')+'<span>Aquecimento: <b>'+aqF+' de '+aqP+'</b> séries feitas</span></p>' : '')+
       (x.note ? '<p class="evo-msg">'+ic('msg')+'<span><b>Mensagem</b>'+esc(x.note)+'</span></p>' : '')+
       (EX.length ? '<div class="ev3-ex">'+rows.join('')+falt.map(pe => '<div class="ev3-r skip" style="--g:'+(GRUPO_COR[pe.alvo]||'var(--sep)')+'"><div class="ev3-n"><b>'+grpSq(pe.alvo)+esc(pe.nome)+'</b><small>0 de '+(+pe.s||0)+' séries</small></div><div class="ev3-cs"><span class="ev3-c miss">Não fez este exercício</span></div></div>').join('')+'</div>' : '<p class="foot">Só o resumo deste treino.</p>')+
-      (a._pg ? '' : '<div class="btn-row ev3-mv">'+(x._de ? '<span class="foot">'+ic('cal')+'Dia mudado por você (era '+dSem(x._de)+', '+fmtDm(x._de)+')</span>' : '')+'<button type="button" class="btn small ghost" data-a="evMover" data-d="'+esc(x._de||x.d)+'" data-v="'+esc(x.d)+'" data-k="'+esc(x.t)+'">'+ic('cal')+'Mudar o dia</button></div>')+'</details>'; }).join('')+'</div>';
+      (a._pg ? '' : '<div class="btn-row ev3-mv">'+(x._de ? '<span class="foot">'+ic('cal')+'Dia mudado por você (era '+dSem(x._de)+', '+fmtDm(x._de)+')</span>' : '')+'<button type="button" class="btn small ghost" data-a="evMover" data-d="'+esc(x._de||x.d)+'" data-v="'+esc(x.d)+'" data-k="'+esc(x.t)+'">'+ic('cal')+'Mudar o dia</button>'+
+        (x._ajT ? '<span class="foot">'+ic('timer')+'Tempo mudado por você (era '+(x.m0||0)+' min)</span>' : '')+
+        '<button type="button" class="btn small ghost" data-a="evTempo" data-k="'+esc(JSON.stringify(ajDigital(x)))+'" data-v="'+(x.min||0)+'" data-n="'+esc(x._ajT||'')+'">'+ic('timer')+'Alterar o tempo</button>'+
+        armBtn('evExcluir', JSON.stringify(ajDigital(x)), 'Excluir treino', 'Toque de novo para excluir', 'small', 'trash')+'</div>')+'</details>'; }).join('')+'</div>';
 }
 const evoSets = x => (x.s||[]).length ? x.s.map(z => fmtN(z[0])+' kg × '+z[1]).join(' · ') : 'Sem séries marcadas';
 function evoSessao(h){
@@ -3260,13 +3282,13 @@ function tEvol(a){
       return '<div class="ev2-tr"><span><b>'+esc(e.n)+'</b>'+(e.rec ? '<i class="ev2-rec">recorde</i>' : '')+'<small>'+plural(e.s.length,'treino')+' · último '+fmtDm(e.l.d)+'</small></span><span>'+fmtN(e.f.kg)+' kg</span><span><b>'+fmtN(e.l.kg)+' kg</b>'+(e.l.reps ? '<small>× '+e.l.reps+'</small>' : '')+'</span><span class="'+(e.dif>0?'up':e.dif<0?'dn':'eq')+'">'+(e.s.length<2 ? '<small>1º registro</small>' : (e.dif>0?'▲ +':e.dif<0?'▼ ':'= ')+fmtN(Math.abs(e.dif))+' kg'+(e.dif ? '<small>'+(pc>0?'+':'')+pc+'%</small>' : ''))+'</span><span class="hide-s">'+ev2Spark(e.s.slice(-8).map(z => z.kg))+'</span></div>'; }).join('')+
     '<p class="foot">Maior carga de cada treino. “Início” é o primeiro registro no app.</p></section>';
 
-  // 6. check-in dos últimos 7 dias
-  const ck7 = Array.from({length:7},(_,i) => addDays(t0, i-6));
-  if(ck7.some(k => K[k])){
+  // 6. check-in da semana: sempre de segunda a domingo, nos mesmos dias dos quadros acima
+  const ck7 = Array.from({length:7},(_,i) => addDays(ini, i));
+  {
     // verde = bom, amarelo = atenção, vermelho = ruim
     const nv = (f,v) => f==='sono' ? (v>=7 ? 'ok' : v>=6 ? 'mid' : 'bad') : f==='energia' ? (v>=4 ? 'ok' : v>=3 ? 'mid' : 'bad') : (v<=0 ? 'ok' : v===1 ? 'mid' : 'bad');
-    const cel = (k,f) => { const c = K[k]; if(!c || c[f]==null) return '<td class="n'+(k===t0?' hj':'')+'">·</td>'; const v = +c[f]; return '<td class="'+nv(f,v)+(k===t0?' hj':'')+'">'+(f==='sono' ? v+'h' : f==='dor' ? ['nenhuma','leve','média','forte'][v]||v : v+'/5')+'</td>'; };
-    h += '<h3 class="sec">Check-in (sono, energia e dor)</h3><section class="card"><div class="ev2-ckw"><table class="ev2-ck"><thead><tr><th></th>'+ck7.map(k => '<th'+(k===t0?' class="hj"':'')+'>'+(k===t0?'hoje':dSem(k))+'</th>').join('')+'</tr></thead><tbody>'+
+    const cel = (k,f) => { const c = K[k]; if(!c || c[f]==null) return '<td class="n'+(k===t0?' hj':'')+(k>t0?' fut':'')+'">'+(k>t0 ? '' : '·')+'</td>'; const v = +c[f]; return '<td class="'+nv(f,v)+(k===t0?' hj':'')+'">'+(f==='sono' ? v+'h' : f==='dor' ? ['nenhuma','leve','média','forte'][v]||v : v+'/5')+'</td>'; };
+    h += '<h3 class="sec">Check-in (sono, energia e dor)</h3><section class="card"><div class="ev2-ckw"><table class="ev2-ck"><thead><tr><th></th>'+ck7.map(k => '<th'+(k===t0?' class="hj"':k>t0?' class="fut"':'')+'>'+(k===t0?'hoje':dSem(k))+'<small>'+fmtDm(k).slice(0,2)+'</small></th>').join('')+'</tr></thead><tbody>'+
       [['sono','Sono','moon','#7E57C9'],['energia','Energia','bolt','#E57A1E'],['dor','Dor','heart','#D63B3B']].map(([f,l,icn,cor]) => '<tr><th><span class="ck-l"><i style="background:'+cor+'">'+ic(icn)+'</i>'+l+'</span></th>'+ck7.map(k => cel(k,f)).join('')+'</tr>').join('')+'</tbody></table></div><p class="ev2-ckleg"><span><i class="ok"></i>Bom</span><span><i class="mid"></i>Atenção</span><span><i class="bad"></i>Ruim</span></p><p class="foot">Sono: 7h ou mais é bom, 6h atenção, 5h ou menos ruim. Energia: 4 ou 5 bom, 3 atenção, 1 ou 2 ruim. Dor: nenhuma, leve ou média/forte.</p></section>';
   }
 
@@ -3470,7 +3492,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '17 nov · 146'; // Versão do painel: 17 nov · 146
+const PAINELV = '17 nov · 147'; // Versão do painel: 17 nov · 147
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -4036,6 +4058,14 @@ function vSheet(){
       op('abrirTeste','flag','Abrir o painel de teste','O painel que você mostra para outros personais. Seus alunos não aparecem lá.')+
       op('sairConta','x','Sair da conta','Volta para a tela de login neste aparelho.', ' data-gate-out="1"');
   }
+  if(s.k==='evTempo'){
+    const g = s.dg || {}, m = Math.max(1, Math.round(+s.min||1));
+    return sheetTop('Alterar o tempo do treino', 'Treino '+esc(g.t||'')+' · '+dSem(g.de)+', '+fmtDm(g.de))+
+      '<p class="muted">Use quando o tempo ficou errado (ex.: esqueceu o treino aberto ou marcou duas vezes). O tempo muda aqui e no app do aluno (na próxima vez que ele abrir).</p>'+
+      '<div class="stepper ev-tp"><button type="button" class="btn round" data-a="evTempoM" data-d="-5" aria-label="Menos 5 minutos">'+ic('down')+'</button><div class="fld"><label for="tp-min">Minutos</label><div class="inp-wrap"><input class="inp" id="tp-min" type="number" inputmode="numeric" min="1" max="600" value="'+m+'"></div></div><button type="button" class="btn round" data-a="evTempoM" data-d="5" aria-label="Mais 5 minutos">'+ic('up')+'</button></div>'+
+      '<p class="foot">Gravado pelo app: '+(g.m0||0)+' min.</p>'+
+      '<div class="btn-row" style="margin-top:14px"><button type="button" class="btn primary" data-a="evTempoOk">'+ic('check')+'Salvar '+m+' min</button>'+(s.aj ? '<button type="button" class="btn ghost" data-a="evTempoDesfaz">Voltar ao tempo do app ('+(g.m0||0)+' min)</button>' : '')+'</div>';
+  }
   if(s.k==='evMover'){
     const t0 = today(), dias = [-3,-2,-1,1].map(n => addDays(s.atual, n)).filter(k => k<=t0), sel = s.para || s.atual;
     return sheetTop('Mudar o dia do treino', 'Treino '+s.t+' · '+dSem(s.atual)+', '+fmtDm(s.atual))+
@@ -4259,6 +4289,7 @@ document.addEventListener('input', e => {
 });
 document.addEventListener('change', e => {
   const el = e.target;
+  if(el.id==='tp-min'){ if(ui.sheet && ui.sheet.k==='evTempo' && +el.value>=1){ ui.sheet.min = Math.round(+el.value); const b = document.querySelector('[data-a="evTempoOk"]'); if(b) b.innerHTML = ic('check')+'Salvar '+ui.sheet.min+' min'; } return; }
   if(el.id==='mv-dia'){ if(ui.sheet && ui.sheet.k==='evMover' && isDate(el.value)){ ui.sheet.para = el.value; renderSheet(); } return; }
   if(el.id==='imp-file'){ const f = el.files && el.files[0]; if(f){ const r = new FileReader(); r.onload = () => importaAlunos(String(r.result||'')); r.readAsText(f); } el.value = ''; return; }
   if(el.dataset.filter){ const k = el.dataset.filter, v = el.value;
@@ -4616,7 +4647,7 @@ async function copyText(txt,selEl){
   if(selEl){ try { selEl.focus(); selEl.select(); } catch(e){} }
   toast('Selecione o texto e copie');
 }
-const ARMED = new Set(['rirAll','copyFrom','dropLocal','archive','delAluno','delLesao','delTreino','delEx','delAv','delPay','delNota','genCode','delEx2','delTpl','applyTpl','applyToAluno','wipeEx','demoWipe']);
+const ARMED = new Set(['evExcluir','rirAll','copyFrom','dropLocal','archive','delAluno','delLesao','delTreino','delEx','delAv','delPay','delNota','genCode','delEx2','delTpl','applyTpl','applyToAluno','wipeEx','demoWipe']);
 function act(a,d,btn){
   const A = curAluno();
   switch(a){
@@ -4794,6 +4825,17 @@ function act(a,d,btn){
     case 'pfOpen': if(d.k==='com'){ ui.view = 'alunos'; ui.aluno = d.id; ui.tab = 'acesso'; window.scrollTo(0,0); break; } { const pp = (PF.list||[]).find(x => x.uid===d.id); if(pp && pp.acomp){ PF.open = d.id; window.scrollTo(0,0); break; } } openSheet({k:'pf', id:d.id}); return false;
     case 'evCardio': openSheet({k:'evCardio', ini:EVC ? EVC.ini : null, dia:d.v||''}); return false;
     case 'evCardioSem': if(ui.sheet && ui.sheet.k==='evCardio'){ ui.sheet.ini = d.v; ui.sheet.dia = ''; renderSheet(); } return false;
+    case 'evTempo': { let g = null; try { g = JSON.parse(d.k||''); } catch(e){ g = null; } if(!g) return false; openSheet({k:'evTempo', dg:g, min:+d.v||g.m0||30, aj:d.n||''}); return false; }
+    case 'evTempoM': if(ui.sheet && ui.sheet.k==='evTempo'){ const el = document.getElementById('tp-min'), v = el ? +el.value : ui.sheet.min; ui.sheet.min = Math.max(1, Math.min(600, (v||ui.sheet.min)+ +d.d)); renderSheet(); } return false;
+    case 'evTempoOk': case 'evTempoDesfaz': { const sh = ui.sheet, A0 = ui.aluno && C.alunos[ui.aluno]; if(!sh || sh.k!=='evTempo' || !A0) return false;
+      const el = document.getElementById('tp-min'), m = Math.round(+(el && el.value) || sh.min); if(a==='evTempoOk' && !(m>=1 && m<=600)){ toast('Coloque um tempo entre 1 e 600 minutos.'); return false; }
+      A0.ajustes = (A0.ajustes||[]).filter(x => x.id!==sh.aj);
+      if(a==='evTempoOk' && m!==sh.dg.m0) A0.ajustes.push(Object.assign({ id:uid('aj') }, sh.dg, { min:m, em:new Date().toISOString() }));
+      Store.save('alunos', ui.aluno, 0); closeSheet(); toast(a==='evTempoOk' ? 'Treino '+sh.dg.t+' agora com '+m+' min.' : 'Tempo do treino '+sh.dg.t+' voltou ao do app.'); break; }
+    case 'evExcluir': { const A0 = ui.aluno && C.alunos[ui.aluno]; let g = null; try { g = JSON.parse(d.k||''); } catch(e){ g = null; } if(!A0 || !g) return false;
+      A0.ajustes = (A0.ajustes||[]).filter(x => !(x.min && x.de===g.de && x.t===g.t && x.hi===g.hi && x.hr===g.hr && x.m0===g.m0 && x.s0===g.s0));
+      A0.ajustes.push(Object.assign({ id:uid('aj') }, g, { del:true, em:new Date().toISOString() }));
+      Store.save('alunos', ui.aluno, 0); toast('Treino '+g.t+' de '+fmtDm(g.de)+' excluído. Some também do app do aluno quando ele abrir.'); break; }
     case 'evMover': openSheet({k:'evMover', de:d.d, atual:d.v, t:d.k, para:addDays(d.v,-1)}); return false;
     case 'evMoverDia': if(ui.sheet && ui.sheet.k==='evMover'){ ui.sheet.para = d.v; renderSheet(); } return false;
     case 'evMoverOk': case 'evMoverDesfaz': { const sh = ui.sheet, A0 = ui.aluno && C.alunos[ui.aluno]; if(!sh || sh.k!=='evMover' || !A0) return false;

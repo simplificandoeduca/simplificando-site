@@ -1823,7 +1823,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simpteste-aluno-pro-v2';
-const APPV = '17 nov · 146'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '17 nov · 147'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -1902,7 +1902,7 @@ function save(){
 /* o que o aluno com personal fez vai para o painel: treinos (academia, séries, comentários, esforço e mensagem), cardio, água e check-in */
 let PROGTXT = '', progT = null, progBusy = false;
 function progPayload(){
-  const H = (S.history||[]).slice(-80).map(h => ({ d:h.date, t:h.t, nm:(PLAN[h.t]||{}).nome||'', min:h.min||0, sets:h.sets||0, vol:h.vol||0, rpe:h.rpe||0, note:h.note||'', gym:h.gym||'', ex:h.ex||null }));
+  const H = (S.history||[]).slice(-80).map(h => ({ d:h.date, t:h.t, nm:(PLAN[h.t]||{}).nome||'', min:h.min||0, m0:h.m0, hi:h.hi||'', hr:h.hr||'', sets:h.sets||0, vol:h.vol||0, rpe:h.rpe||0, note:h.note||'', gym:h.gym||'', ex:h.ex||null }));
   const w = {}, k = {}; for(let i=0; i<28; i++){ const dd = daysAgo(i); if(S.water && S.water[dd]) w[dd] = S.water[dd]; if(S.checkin && S.checkin[dd]) k[dd] = S.checkin[dd]; }
   const t0 = tDia(), X0 = (S.exc||{})[t0] || {}, fin = (S.history||[]).some(h => h.date===t0 && h.ex);
   const xc = fin ? [] : Object.keys(X0).map(id => { const c = X0[id], e = Object.values(PLAN).flatMap(p => p.ex||[]).find(x => x.id===id); return c && ((c.q||[]).length || c.n) ? { id, n:e ? e.nome : '', q:(c.q||[]).slice(), c:c.n||'' } : null; }).filter(Boolean);
@@ -2126,8 +2126,11 @@ function progRestore(){
     if(d.lay && (!PREF.cardioLayout || !PREF.treinoLayout)){ const c0 = PREF.cardioLayout, t0 = PREF.treinoLayout; PREF.cardioLayout = c0 || d.lay.c || undefined; PREF.treinoLayout = t0 || d.lay.t || undefined; if(PREF.cardioLayout!==c0 || PREF.treinoLayout!==t0){ S.lay = { c:PREF.cardioLayout||null, t:PREF.treinoLayout||null }; savePref(); ui.pstep = null; renderPick(); render(); } }
     let n = 0;
     const tem = new Set(S.history.map(h => h.date+'|'+h.t));
-    (d.h||[]).forEach(h0 => { if(!h0 || !h0.d) return; const h = Object.assign({}, h0, { d:ajPara(h0.d, h0.t) }); if(tem.has(h.d+'|'+h.t)) return; tem.add(h.d+'|'+h.t); n++;
-      S.history.push({ date:h.d, t:h.t, min:h.min||0, vol:h.vol||0, sets:h.sets||0, prs:[], rpe:h.rpe||0, note:h.note||'', gym:h.gym||'', ex:h.ex||null, nuvem:true });
+    (d.h||[]).forEach(h0 => { if(!h0 || !h0.d) return; const h = Object.assign({}, h0, { d:ajPara(h0.d, h0.t) }); if(tem.has(h.d+'|'+h.t)) return;
+      const hx = { date:h0.d, t:h0.t, hi:h0.hi||'', hr:h0.hr||'', m0:h0.m0, min:h0.min||0, sets:h0.sets||0 }, aj = AJ().find(j => (j.del || +j.min>0) && ajBate(j, hx));
+      if(aj && aj.del) return; // o personal excluiu este treino: não volta da nuvem
+      tem.add(h.d+'|'+h.t); n++;
+      S.history.push({ date:h.d, t:h.t, min:aj ? Math.round(+aj.min) : h.min||0, m0:aj ? (h0.m0!=null ? h0.m0 : h0.min||0) : h0.m0, hi:h0.hi||'', hr:h0.hr||'', vol:h.vol||0, sets:h.sets||0, prs:[], rpe:h.rpe||0, note:h.note||'', gym:h.gym||'', ex:h.ex||null, nuvem:true });
       (h.ex||[]).forEach(e => { if(!e || !e.id || !(e.s||[]).length) return; const mk = Math.max(...e.s.map(z => +z[0]||0)); if(!mk) return;
         const top = e.s.filter(z => +z[0]===mk), old = S.last[e.id];
         if(!old || !old.d || old.d<h.d) S.last[e.id] = { kg:mk, lastKg:+e.s[e.s.length-1][0]||mk, reps:top.map(z => +z[1]||0), rir:top.map(() => 1), d:h.d, g:h.gym||'' };
@@ -2179,13 +2182,20 @@ const sexOf = () => ACCT && ACCT.sexo==='M' ? 'M' : 'F';
 const DEF_DESC = 'Ritmo em que dá para conversar, mas não para cantar.';
 const firstName = n => String(n||'').trim().split(/\s+/)[0] || '';
 const welcomeWord = s => s==='M' ? 'Bem-vindo' : 'Bem-vinda';
-/* o personal mudou o dia de um treino no painel (ex.: começou na segunda e finalizou na terça) */
-const AJ = () => (isPersonal() && ACCT.aluno && Array.isArray(ACCT.aluno.ajustes)) ? ACCT.aluno.ajustes.filter(x => x && x.de && x.t && x.para) : [];
-const ajPara = (d, t) => { const x = AJ().find(j => j.de===d && j.t===t); return x ? x.para : d; };
+/* ajustes do personal no painel: mudar o dia (começou num dia e finalizou no outro), excluir o treino (ex.: marcado 2 vezes) e alterar o tempo */
+const AJ = () => (isPersonal() && ACCT.aluno && Array.isArray(ACCT.aluno.ajustes)) ? ACCT.aluno.ajustes.filter(x => x && x.de && x.t && (x.para || x.del || +x.min>0)) : [];
+const ajPara = (d, t) => { const x = AJ().find(j => j.para && j.de===d && j.t===t); return x ? x.para : d; };
+// o treino certo (mesmo com dois iguais no mesmo dia): dia, letra, hora de início e de fim, tempo original e séries
+const ajBate = (j, h) => (h.date===j.de || h.date===ajPara(j.de, j.t)) && h.t===j.t && (!j.hi || j.hi===(h.hi||'')) && (!j.hr || j.hr===(h.hr||'')) && (j.m0==null || j.m0===(h.m0!=null ? h.m0 : (h.min||0))) && (j.s0==null || j.s0===(h.sets||0));
 function ajustaDias(){
   const L = AJ(); if(!L.length || !S || !S.history) return;
-  let n = 0; const fora = new Set();
-  S.history.forEach(h => { const x = L.find(j => j.de===h.date && j.t===h.t); if(!x) return; n++;
+  const ok = S.ajOk || (S.ajOk = []); let mud = 0;
+  L.filter(j => (j.del || +j.min>0) && !ok.includes(j.id)).forEach(j => { const i = S.history.findIndex(h => ajBate(j, h)); if(i<0) return;
+    if(j.del) S.history.splice(i, 1); else { const h = S.history[i]; if(h.m0==null) h.m0 = h.min||0; h.min = Math.round(+j.min); h.sec = h.min*60; }
+    ok.push(j.id); mud++; });
+  if(ok.length>60) ok.splice(0, ok.length-60);
+  let n = mud; const fora = new Set();
+  S.history.forEach(h => { const x = L.find(j => j.para && j.de===h.date && j.t===h.t); if(!x) return; n++;
     if(S.history.some(o => o!==h && o.date===x.para && o.t===h.t)) fora.add(h); else h.date = x.para; }); // já veio da nuvem no dia certo: tira a cópia
   if(fora.size) S.history = S.history.filter(h => !fora.has(h));
   if(n) S.history.sort((x,y) => x.date<y.date ? -1 : x.date>y.date ? 1 : 0);
