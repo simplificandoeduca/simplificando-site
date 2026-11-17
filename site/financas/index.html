@@ -543,7 +543,7 @@ function logo(){
 $('#logo').innerHTML = logo(); document.querySelector('.top .mic').innerHTML = I.mic;
 
 /* ========== estado ========== */
-const FINV = '13 nov · 46'; // Versão do Finanças: 13 nov · 46
+const FINV = '17 nov · 47'; // Versão do Finanças: 17 nov · 47
 const DONO = { nome:'Eduardo Matias', iniciais:'EM' }; // perfil único desta página
 const LS = 'simplificando-financas', LST = 'simplificando-financas-tema';
 const CATS = ['Mercado', 'Comida', 'Transporte', 'Casa', 'Lazer', 'Saúde', 'Roupas', 'Assinaturas', 'Outros'];
@@ -574,7 +574,9 @@ const theme = ls.get(LST); if (theme === 'light' || theme === 'dark') document.d
 
 const UI = { ajSec:null, verMov:false, tab:'resumo', mes:nowKey(), fCart:'', fQuem:'', cartao:'', xQuem:'' };
 const cartao = id => S.cartoes.find(c => c.id === id) || { id, nome:'(cartão apagado)', cor:7, tipo:'credito' };
-const fonte = id => S.fontes.find(f => f.id === id) || { id, nome:'(fonte apagada)' };
+const fonte = id => S.fontes.find(f => f.id === id) || { id, nome:'Avulsa' };
+const ehAvulsa = r => !S.fontes.some(f => f.id === r.fonte);
+const nomeRec = r => ehAvulsa(r) ? (r.obs || 'Receita avulsa') : fonte(r.fonte).nome + (r.obs ? ' · ' + r.obs : '');
 const swOf = c => 'var(--c' + ((c.cor ?? 7) % 8) + ')';
 const inMes = x => (x.data || '').slice(0, 7) === UI.mes;
 const gastosMes = () => S.gastos.filter(inMes);
@@ -648,7 +650,7 @@ function saldoAtual(){
   const last = S.saldos[S.saldos.length - 1], dia = last.data || isoDe(last.cr);
   const depois = x => (x.cr || 0) > last.cr && (x.data || '') >= dia;
   const itens = [];
-  for (const r of S.receitas.filter(depois)) itens.push({ t:'rec', sinal:1, valor:r.valor, data:r.data, nome:fonte(r.fonte).nome + (r.obs ? ' · ' + r.obs : ''), a:'ed-receita', id:r.id });
+  for (const r of S.receitas.filter(depois)) itens.push({ t:'rec', sinal:1, valor:r.valor, data:r.data, nome:nomeRec(r), a:'ed-receita', id:r.id });
   for (const p of S.pagamentos.filter(depois)) itens.push({ t:'pag', sinal:1, valor:p.valor, data:p.data, nome:S.irmao.nome + ' pagou', a:'ed-pag', id:p.id });
   for (const g of S.gastos.filter(g => depois(g) && cartao(g.cartao).tipo === 'conta')) itens.push({ t:'gas', sinal:-1, valor:g.valor, data:g.data, nome:g.desc || g.cat || 'Pix', a:'ed-gasto', id:g.id });
   for (const x of S.guardados.filter(depois)) itens.push({ t:'gua', sinal:-1, valor:x.valor, data:x.data, nome:'Cofrinho' + (x.obs ? ' · ' + x.obs : ''), a:'ed-guardado', id:x.id });
@@ -729,7 +731,7 @@ function diasRestantes(){ // dias que faltam no mês escolhido, contando hoje (m
 function metaGuardar(prevista){ const m = S.meta || {}; return m.tipo === 'pct' ? Math.round(prevista * (m.pct || 0) / 100) : (m.valor || 0); }
 function orcamento(){
   const rm = S.receitas.filter(inMes), recebido = sum(rm, r => r.valor), prevConf = sum(S.fontes, f => f.prev || 0);
-  const prevista = Math.max(prevConf, recebido);
+  const avulsas = sum(rm.filter(ehAvulsa), r => r.valor), prevista = Math.max(prevConf, recebido - avulsas) + avulsas;
   // faturas dos cartões de crédito: só a minha parte, já descontando o que paguei
   let faturas = 0; const cartoesF = [];
   for (const c of S.cartoes) { if (c.tipo === 'conta') continue; const f = faturaDe(c), pf = pagosFatura(c, f); const gm = gastosMes().filter(g => g.cartao === c.id); const tot = f ? f.total : sum(gm, g => g.valor), ir = f ? f.irmao : sum(gm.filter(g => g.quem === 'irmao'), g => g.valor); const minha = Math.max(0, tot - ir - pf.total); faturas += minha; cartoesF.push({ c, minha }); }
@@ -830,9 +832,9 @@ function rResumo(){
   h += `<div class="card" id="sec-rec"><div class="hd"><h2>Recebido no mês</h2><button type="button" class="btn sm primary" data-a="nova-receita">${I.plus}Receita</button></div><div class="bars">`;
   const maxF = Math.max(1, ...S.fontes.map(f => sum(rm.filter(r => r.fonte === f.id), r => r.valor)));
   for (const f of S.fontes) { const v = sum(rm.filter(r => r.fonte === f.id), r => r.valor); h += `<div class="bar" style="--sw:var(--ok)"><div class="l"><b>${esc(f.nome)}</b><span class="v">${esc(fmt(v))}</span></div><div class="t"><i style="width:${Math.round(v / maxF * 100)}%"></i></div></div>`; }
-  const outras = rm.filter(r => !S.fontes.some(f => f.id === r.fonte)); if (outras.length) h += `<p class="n sub">Outras: ${esc(fmt(sum(outras, r => r.valor)))}</p>`;
+  const outras = rm.filter(ehAvulsa); if (outras.length) { const v = sum(outras, r => r.valor); h += `<div class="bar" style="--sw:#5AB8FF"><div class="l"><b>Avulsas <span style="font-weight:500;color:var(--muted)">(só este mês)</span></b><span class="v">${esc(fmt(v))}</span></div><div class="t"><i style="width:${Math.min(100, Math.round(v / maxF * 100))}%"></i></div></div>`; }
   h += `</div>`;
-  if (rm.length) { h += `<div class="list" style="margin:0 -6px">`; for (const r of rm.slice().sort((a, b) => b.data.localeCompare(a.data))) h += `<button type="button" class="row" data-a="ed-receita" data-k="${r.id}"><span class="tx"><b>${esc(fonte(r.fonte).nome)}${r.obs ? ' · ' + esc(r.obs) : ''}</b><span>${esc(dayLabel(r.data))}</span></span><span class="val in">+${esc(fmt(r.valor))}</span></button>`; h += `</div>`; }
+  if (rm.length) { h += `<div class="list" style="margin:0 -6px">`; for (const r of rm.slice().sort((a, b) => b.data.localeCompare(a.data))) h += `<button type="button" class="row" data-a="ed-receita" data-k="${r.id}"><span class="tx"><b>${esc(nomeRec(r))}</b><span>${esc(dayLabel(r.data))}${ehAvulsa(r) ? ' · avulsa' : ' · fixa'}</span></span><span class="val in">+${esc(fmt(r.valor))}</span></button>`; h += `</div>`; }
   else h += `<p class="sub">Nenhum recebimento lançado em ${esc(monthLabel(UI.mes))}.</p>`;
   h += `</div>`;
   // cartões: lista com miniatura (toque abre o extrato)
@@ -924,7 +926,7 @@ function rAjustes(){
   h += `<div class="card"><div class="hd"><h2>Renda</h2><button type="button" class="btn sm" data-a="add-fonte">${I.plus}Fonte</button></div><p class="sub">Seus empregos ou de onde vem o dinheiro.</p>`;
   for (const f of S.fontes) h += `<div class="set-item"><div class="inline"><label class="field"><span class="sr">Nome</span><input id="in-f-${f.id}" data-f="fonte" data-k="${f.id}" value="${esc(f.nome)}" placeholder="Nome do emprego"></label><button type="button" class="mic sm ghost" data-voz="in-f-${f.id}" aria-label="Falar o nome">${I.mic}</button><button type="button" class="x-sm" data-a="del-fonte" data-k="${f.id}" aria-label="Apagar">${I.trash}</button></div>
     <label class="field" style="font-weight:600;color:var(--muted)">Entra por mês (previsão)<input inputmode="decimal" data-f="prev" data-k="${f.id}" value="${f.prev ? esc((f.prev / 100).toFixed(2).replace('.', ',')) : ''}" placeholder="Ex.: 3500,00"></label></div>`;
-  h += `<p class="sub">A previsão é o que o "Posso gastar" usa antes de o salário cair. Quando o valor recebido for maior, ele passa a valer.</p>`;
+  h += `<p class="sub">Aqui só entra renda fixa, a que se repete todo mês (seus trabalhos). A previsão é o que o "Posso gastar" usa antes de o salário cair. Dinheiro de uma vez só (pai, racha do bar, venda) você lança em Resumo > Receita > "Avulsa (só agora)". Se alguma fonte daqui não for fixa, apague: as receitas dela continuam, como avulsas.</p>`;
   h += `</div>`;
   h += `<div class="card"><div class="hd"><h2>Cartões e conta</h2><button type="button" class="btn sm" data-a="add-cartao">${I.plus}Cartão</button></div><p class="sub">Cada cartão com sua cor. Marque um como "conta" para o saldo acompanhar o débito e o Pix. O dia de fechamento mostra a fatura atual no Resumo.</p>`;
   for (const c of S.cartoes) {
@@ -1065,11 +1067,16 @@ function sheetGasto(g){
 }
 function sheetReceita(r){
   const edit = !!(r && r.id); r = Object.assign({ data:todayISO(), fonte:S.fontes[0].id, valor:0, obs:'' }, r || {});
-  const st = { kind:'receita', id:r.id, dig:r.valor ? String(r.valor) : '', fonte:r.fonte };
+  const avulsa = r.avulsa === true || (edit && ehAvulsa(r));
+  const st = { kind:'receita', id:r.id, dig:r.valor ? String(r.valor) : '', fonte:avulsa ? '' : r.fonte, tipoRec:avulsa ? 'avulsa' : 'fixa' };
+  if (!avulsa && !S.fontes.some(f => f.id === st.fonte)) st.fonte = S.fontes[0].id;
   Sheet.open(`<div class="hd"><h2>${edit ? 'Editar receita' : 'Recebi'}</h2><button type="button" class="mic" data-s="voz-sheet" aria-label="Falar a receita">${I.mic}</button><button type="button" class="x" data-s="fechar" aria-label="Fechar">${I.x}</button></div>
     ${amtHTML(r.valor)}${padHTML()}
-    <div class="sec"><p class="lbl">De onde</p>${chipsHTML('fonte', S.fontes, r.fonte)}</div>
-    <div class="grid2"><label class="field">Data<input type="date" id="s-data" value="${esc(r.data)}"></label><label class="field">Observação<input id="s-obs" value="${esc(r.obs || '')}" placeholder="Ex.: salário, extra"></label></div>
+    <div class="sec"><p class="lbl">Que tipo de receita</p><div class="seg"><button type="button" class="${avulsa ? '' : 'on'}" data-c="tipoRec" data-k="fixa">Fixa (meu trabalho)</button><button type="button" class="${avulsa ? 'on' : ''}" data-c="tipoRec" data-k="avulsa">Avulsa (só agora)</button></div></div>
+    ${avulsa ? `<div class="sec"><label class="field">De quem ou do quê<span class="inline"><input id="s-obs" value="${esc(r.obs || '')}" placeholder="Ex.: pai, racha do bar, venda" autocomplete="off"><button type="button" class="mic sm ghost" data-voz="s-obs" aria-label="Falar">${I.mic}</button></span></label><p class="sub">Entra só neste mês. Não vira previsão para os próximos.</p></div>
+    <label class="field">Data<input type="date" id="s-data" value="${esc(r.data)}"></label>`
+    : `<div class="sec"><p class="lbl">De onde</p>${chipsHTML('fonte', S.fontes, st.fonte)}</div>
+    <div class="grid2"><label class="field">Data<input type="date" id="s-data" value="${esc(r.data)}"></label><label class="field">Observação<input id="s-obs" value="${esc(r.obs || '')}" placeholder="Ex.: salário, extra"></label></div>`}
     <div class="btns"><button type="button" class="btn primary wide" data-s="salvar-receita" style="flex:1 1 100%">Salvar</button>${edit ? `<button type="button" class="btn danger" data-s="apagar-receita">${I.trash}Apagar</button>` : ''}</div>`, st);
 }
 function sheetSaldo(pre){
@@ -1155,7 +1162,7 @@ function dinheiro(str){ // texto de número -> centavos
 function entender(texto, tipoForcado){
   // o ditado às vezes escreve o valor como horário ("9:45", "9h45") ou junta "R$9": normaliza antes de ler
   let t = ' ' + numerosPorExtenso(semAcento(texto).replace(/\b(\d{1,4}):(\d{2})\b/g, '$1,$2').replace(/\b(\d{1,4})h(\d{2})\b/g, '$1,$2').replace(/\b(\d{1,4}) ?h\b(?! ?\d)/g, '$1').replace(/r\$/g, ' r$ ').replace(/[?!.;]+$/g, '').replace(/\s+/g, ' ').trim()) + ' ';
-  const r = { texto, tipo:'gasto', valor:0, desc:'', cartao:S.ult.cartao, quem:'eu', cat:'', fonte:S.fontes[0].id, data:todayISO(), dia:null };
+  const r = { texto, tipo:'gasto', valor:0, desc:'', cartao:S.ult.cartao, quem:'eu', cat:'', fonte:'', data:todayISO(), dia:null };
   // tipo
   if (/\bsaldo\b/.test(t)) r.tipo = 'saldo';
   else if (/\b(me pagou|pagou|devolveu|transferiu pra mim|transferiu para mim)\b/.test(t)) r.tipo = 'pag';
@@ -1209,7 +1216,7 @@ function resumoEntendido(p){
   const n = esc(S.irmao.nome);
   if (p.tipo === 'saldo') return `<p class="det">Saldo na conta agora: <b>${esc(fmt(p.valor))}</b></p>`;
   if (p.tipo === 'pag') return `<p class="det"><b>${n}</b> te pagou <b>${esc(fmt(p.valor))}</b>${p.desc ? ' · ' + esc(p.desc) : ''} · ${esc(dayLabel(p.data))}</p>`;
-  if (p.tipo === 'receita') return `<p class="det">Recebido de <b>${esc(fonte(p.fonte).nome)}</b>${p.desc ? ' · ' + esc(p.desc) : ''} · ${esc(dayLabel(p.data))}</p>`;
+  if (p.tipo === 'receita') return p.fonte ? `<p class="det">Recebido de <b>${esc(fonte(p.fonte).nome)}</b> (fixa)${p.desc ? ' · ' + esc(p.desc) : ''} · ${esc(dayLabel(p.data))}</p>` : `<p class="det">Receita <b>avulsa</b>, só este mês: <b>${esc(p.desc || 'sem nome')}</b> · ${esc(dayLabel(p.data))}</p>`;
   if (p.tipo === 'guardar') return `<p class="det">Guardado no cofrinho: <b>${esc(fmt(p.valor))}</b>${p.desc ? ' · ' + esc(p.desc) : ''} · ${esc(dayLabel(p.data))}</p>`;
   if (p.tipo === 'fixo' && p.forma === 'boleto') return `<p class="det"><b>${esc(p.desc || 'Conta')}</b> no boleto ou Pix, vence todo dia <b>${p.dia || 1}</b>${p.cat ? ' · ' + esc(p.cat) : ''}. Você confirma com "Paguei" a cada mês.</p>`;
   if (p.tipo === 'fixo') return `<p class="det"><b>${esc(p.desc || 'Gasto fixo')}</b> todo dia <b>${p.dia || 1}</b> no <b>${esc(cartao(p.cartao).nome)}</b>${p.quem === 'irmao' ? ' · ' + n : ''}${p.cat ? ' · ' + esc(p.cat) : ''}</p>`;
@@ -1247,7 +1254,7 @@ function vozAjustar(p){
   Sheet.close();
   if (p.tipo === 'saldo') return sheetSaldo({ valor:p.valor });
   if (p.tipo === 'pag') return sheetPag({ valor:p.valor, data:p.data, obs:p.desc });
-  if (p.tipo === 'receita') return sheetReceita({ valor:p.valor, data:p.data, fonte:p.fonte, obs:p.desc });
+  if (p.tipo === 'receita') return sheetReceita({ valor:p.valor, data:p.data, fonte:p.fonte || S.fontes[0].id, obs:p.desc, avulsa:!p.fonte });
   if (p.tipo === 'guardar') return sheetGuardar({ valor:p.valor, data:p.data, obs:p.desc });
   if (p.tipo === 'fixo') return sheetFixo({ valor:p.valor, nome:p.desc, cartao:p.cartao, dia:p.dia || 1, quem:p.quem, cat:p.cat, forma:p.forma || 'cartao' });
   return sheetGasto({ valor:p.valor, data:p.data, cartao:p.cartao, quem:p.quem, desc:p.desc, cat:p.cat });
@@ -1257,7 +1264,7 @@ function vozSalvar(p){
   const cr = Date.now();
   if (p.tipo === 'saldo') { S.saldos.push({ valor:p.valor, cr, data:todayISO() }); if (S.saldos.length > 60) S.saldos = S.saldos.slice(-60); }
   else if (p.tipo === 'pag') S.pagamentos.push({ id:uid(), cr, valor:Math.abs(p.valor), data:p.data, obs:p.desc });
-  else if (p.tipo === 'receita') S.receitas.push({ id:uid(), cr, fonte:p.fonte, valor:Math.abs(p.valor), data:p.data, obs:p.desc });
+  else if (p.tipo === 'receita') S.receitas.push({ id:uid(), cr, fonte:p.fonte || '', valor:Math.abs(p.valor), data:p.data, obs:p.desc || (p.fonte ? '' : 'Receita avulsa') });
   else if (p.tipo === 'guardar') S.guardados.push({ id:uid(), cr, valor:Math.abs(p.valor), data:p.data, obs:p.desc });
   else if (p.tipo === 'fixo') { const ct = p.forma === 'boleto' ? contaId() : p.cartao; S.fixos.push({ id:uid(), nome:p.desc || 'Conta fixa', valor:Math.abs(p.valor), cartao:ct, dia:p.dia || 1, quem:p.quem, cat:p.cat, ativo:true, forma:p.forma || 'cartao' }); }
   else { S.gastos.push({ id:uid(), cr, valor:Math.abs(p.valor), data:p.data, cartao:p.cartao, quem:p.quem, desc:p.desc, cat:p.cat }); S.ult.cartao = p.cartao; }
@@ -1272,7 +1279,7 @@ function vozNaFolha(){ // microfone dentro de uma folha: ouve e reabre a folha j
     const p = entender(final, tipo); const cur = Sheet.st; if (!cur || cur.kind !== st.kind) return;
     const base = { id:cur.id }; if (p.valor) base.valor = Math.abs(p.valor) * (p.tipo === 'saldo' && p.valor < 0 ? -1 : 1);
     if (tipo === 'gasto') sheetGasto(Object.assign(base, { data:p.data, cartao:p.cartao, quem:p.quem, desc:p.desc || val('s-desc'), cat:p.cat || cur.cat }));
-    else if (tipo === 'receita') sheetReceita(Object.assign(base, { data:p.data, fonte:p.fonte, obs:p.desc || val('s-obs') }));
+    else if (tipo === 'receita') sheetReceita(Object.assign(base, { data:p.data, fonte:p.fonte || cur.fonte || S.fontes[0].id, obs:p.desc || val('s-obs'), avulsa:p.fonte ? false : cur.tipoRec === 'avulsa' }));
     else if (tipo === 'saldo') sheetSaldo({ valor:p.valor });
     else if (tipo === 'guardar') sheetGuardar(Object.assign(base, { data:p.data, obs:p.desc || val('s-obs') }));
     else if (tipo === 'pag') sheetPag(Object.assign(base, { data:p.data, obs:p.desc || val('s-obs') }));
@@ -1478,6 +1485,7 @@ Sheet.box.addEventListener('click', ev => {
   if (c) {
     const name = c.dataset.c, k = c.dataset.k;
     if (name === 'vtipo') { s.p = entender(s.texto, k); mostrarEntendido(); return; }
+    if (name === 'tipoRec' && s.kind === 'receita') { sheetReceita({ id:s.id, valor:cents(), data:val('s-data') || todayISO(), obs:val('s-obs'), fonte:s.fonte || S.fontes[0].id, avulsa:k === 'avulsa' }); if (s.id) Sheet.st.id = s.id; return; }
     if (name === 'forma' && s.kind === 'fixo') { const v = cents(); sheetFixo({ id:s.id, valor:v, nome:val('s-nome'), cartao:s.cartao, dia:+val('s-dia') || 1, quem:s.quem, cat:s.cat, ativo:val('s-ativo') !== '0', forma:k }); return; }
     if (name === 'sinal') { s.neg = k === 'neg'; refreshAmt(); }
     else if (name === 'sug') { $('#s-desc').value = k; if (c.dataset.cat) { s.cat = c.dataset.cat; } }
@@ -1512,7 +1520,7 @@ Sheet.box.addEventListener('click', ev => {
     const cr = Date.now(); let k = 0; const cont = { gasto:0, conta:0, guardar:0, receita:0, pag:0 };
     for (const x of sel) {
       const t = x.tipo || 'gasto', base = { id:uid(), cr:cr + (k++), valor:x.valor, data:x.data, fitid:x.fitid || undefined };
-      if (t === 'receita') S.receitas.push(Object.assign(base, { fonte:S.fontes[0].id, obs:x.desc }));
+      if (t === 'receita') { const fx = S.fontes.find(f => semAcento(x.desc).includes(semAcento(f.nome))); S.receitas.push(Object.assign(base, { fonte:fx ? fx.id : '', obs:x.desc })); }
       else if (t === 'pag') S.pagamentos.push(Object.assign(base, { obs:x.desc }));
       else if (t === 'guardar') S.guardados.push(Object.assign(base, { obs:x.desc }));
       else if (t === 'conta') { const f = S.fixos.find(y => y.id === x.fixo); S.gastos.push(Object.assign(base, { cartao:contaId(), quem:f && f.quem === 'irmao' ? 'irmao' : 'eu', desc:f ? f.nome : x.desc, cat:f ? f.cat || '' : '', fixo:x.fixo, boleto:true })); if (f) S.fixosFeitos[f.id + '|' + x.data.slice(0, 7)] = true; }
@@ -1562,7 +1570,8 @@ Sheet.box.addEventListener('click', ev => {
   if (a === 'apagar-gasto') { if (!confirm('Apagar este gasto?')) return; S.gastos = S.gastos.filter(x => x.id !== s.id); save(); Sheet.close(); render(); toast('Gasto apagado.'); }
   if (a === 'salvar-receita') {
     const v = cents(), data = val('s-data'); if (v <= 0) return toast('Digite o valor recebido.'); if (!okData(data)) return toast('Confira a data.');
-    const o = { fonte:s.fonte, valor:v, data, obs:val('s-obs').trim() };
+    const o = { fonte:s.tipoRec === 'avulsa' ? '' : s.fonte, valor:v, data, obs:val('s-obs').trim() };
+    if (s.tipoRec === 'avulsa' && !o.obs) return toast('Escreva de quem ou do quê é essa receita.');
     if (s.id) { const r = S.receitas.find(x => x.id === s.id); if (r) Object.assign(r, o); } else S.receitas.push(Object.assign({ id:uid(), cr:Date.now() }, o));
     save(); Sheet.close(); render(); { const oo = orcamento(); toast((oo.meta > oo.guardado ? 'Receita salva. Agora guarde ' + fmt(oo.meta - oo.guardado) + ' antes de gastar!' : 'Receita salva: ' + fmt(v) + '.') + notaSaldo(data)); }
   }
@@ -1628,7 +1637,7 @@ document.addEventListener('click', ev => {
   if (a === 'scroll') { const el = $('#sec-rec'); if (el) el.scrollIntoView({ behavior:'smooth', block:'start' }); }
   // ajustes
   if (a === 'add-fonte') { S.fontes.push({ id:uid(), nome:'Nova fonte' }); save(); render(); }
-  if (a === 'del-fonte') { if (S.fontes.length <= 1) return toast('Deixe pelo menos uma fonte.'); const used = S.receitas.some(r => r.fonte === k); if (used && !confirm('Há receitas lançadas nessa fonte. Apagar mesmo assim? (as receitas continuam, sem nome)')) return; S.fontes = S.fontes.filter(f => f.id !== k); save(); render(); }
+  if (a === 'del-fonte') { if (S.fontes.length <= 1) return toast('Deixe pelo menos uma fonte.'); const used = S.receitas.some(r => r.fonte === k), fz = S.fontes.find(f => f.id === k); if (used && !confirm('Tirar "' + fz.nome + '" da renda fixa? As receitas já lançadas continuam, como avulsas.')) return; for (const r of S.receitas) if (r.fonte === k) { r.obs = r.obs ? fz.nome + ' · ' + r.obs : fz.nome; r.fonte = ''; } S.fontes = S.fontes.filter(f => f.id !== k); save(); render(); }
   if (a === 'add-cartao') { S.cartoes.push({ id:uid(), nome:'Novo cartão', cor:S.cartoes.length % 8, tipo:'credito', fecha:null }); save(); render(); }
   if (a === 'del-cartao') { if (S.cartoes.length <= 1) return toast('Deixe pelo menos um cartão.'); const used = S.gastos.some(g => g.cartao === k); if (used && !confirm('Há gastos lançados nesse cartão. Apagar mesmo assim? (os gastos continuam, sem nome)')) return; S.cartoes = S.cartoes.filter(c => c.id !== k); if (S.ult.cartao === k) S.ult.cartao = S.cartoes[0].id; save(); render(); }
   if (a === 'tipo-cartao') { const c = cartao(k); c.tipo = b.dataset.v; if (c.tipo === 'conta') c.fecha = null; save(); render(); }
