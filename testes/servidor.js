@@ -49,12 +49,42 @@ async function hubFalso(q, r, acao) {
   return json(r, { ok: true, token: b64({ alg: 'none', typ: 'JWT' }) + '.' + b64({ iss: 'robo@demo', sub: 'robo@demo', aud: 'https://identitytoolkit.googleapis.com/google.identity.identitytoolkit.v1.IdentityToolkit', iat: now, exp: now + 3600, uid }) + '.' });
 }
 
+// Conteúdo do hub (conteudo.php de mentira): a semana de hoje com posts de exemplo (imagens do site e um vídeo curto do robô)
+const CD_FEITO = {};
+const dk = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+const CD_ARQ = { vid1: [path.join(__dirname, 'midia', 'reel.mp4'), 'video/mp4', 'Reel-Mito-abdominal-queima-gordura.mp4'] };
+for (let i = 1; i <= 7; i++) CD_ARQ['img' + i] = [path.join(SITE, 'img', 'post', 'cardio-jejum-' + i + '.jpg'), 'image/jpeg', 'Carrossel-' + i + '.jpg'];
+const cdF = id => ({ id, nome: CD_ARQ[id][2], mime: CD_ARQ[id][1], tam: fs.statSync(CD_ARQ[id][0]).size });
+async function cdFalso(q, r, url) {
+  if (!/^Bearer \S{100,}/.test(q.headers.authorization || '')) return json(r, { ok: false, erro: 'Só o dono do painel.' }, 403);
+  const acao = url.searchParams.get('acao');
+  if (acao === 'feito') {
+    let body = ''; for await (const c of q) body += c;
+    const k = campo(body, 'k'); if (campo(body, 'on')) CD_FEITO[k] = Date.now(); else delete CD_FEITO[k];
+    return json(r, { ok: true });
+  }
+  if (acao === 'arquivo') {
+    const a = CD_ARQ[url.searchParams.get('id')]; if (!a) return json(r, { ok: false }, 404);
+    r.setHeader('Content-Type', a[1]); r.setHeader('Content-Length', fs.statSync(a[0]).size); return fs.createReadStream(a[0]).pipe(r);
+  }
+  const ini = url.searchParams.get('ini'), hoje = dk(new Date()), amanha = dk(new Date(Date.now() + 864e5)), dias = {};
+  for (let i = 0; i < 7; i++) { const d = new Date(ini + 'T12:00:00'); d.setDate(d.getDate() + i); dias[dk(d)] = []; }
+  const leg = 'Cardio em jejum emagrece mais? 🤔\n\nSpoiler: o que manda é o total do dia, não a hora. Arrasta pro lado que eu te explico em 7 telas 👉\n\nSalva pra lembrar e manda pra quem vive dizendo que só faz cardio em jejum.\n\n#simplificando #cardio #emagrecimento #treino';
+  if (dias[hoje]) dias[hoje] = [
+    { plat: 'instagram', tema: 'Cardio em jejum emagrece mais?', tipo: 'carrossel', capa: cdF('img1'), midia: [1, 2, 3, 4, 5, 6, 7].map(i => cdF('img' + i)), legenda: leg, pasta: 'p1' },
+    { plat: 'tiktok', tema: 'Mito abdominal queima gordura', tipo: 'reels', capa: cdF('img3'), midia: [cdF('vid1')], legenda: 'Abdominal não queima a gordura da barriga 🔥\n\n#simplificando #mitos', pasta: 'p2' }];
+  if (dias[amanha]) dias[amanha] = [{ plat: 'instagram', tema: '', tipo: 'vazio', capa: null, midia: [], legenda: '', pasta: 'p3' }];
+  const feito = {}; Object.keys(CD_FEITO).forEach(k => { if (dias[k.split('|')[0]]) feito[k] = CD_FEITO[k]; });
+  return json(r, { ok: true, ini, dias, feito });
+}
+
 function servidor(porta) {
   http.createServer(async (q, r) => {
     const url = new URL(q.url, 'http://x'), p = decodeURIComponent(url.pathname);
     if (p.endsWith('/firebase-config.js')) { r.setHeader('Content-Type', 'text/javascript'); return r.end(CFG[porta]); }
     if (p === '/login.php' && q.method === 'POST') return loginFalso(q, r);
     if (p === '/hub-login.php') return hubFalso(q, r, url.searchParams.get('acao'));
+    if (p === '/conteudo.php') return cdFalso(q, r, url);
     if (p === '/push.php') return json(r, url.searchParams.get('acao') === 'chave' ? { ok: true, pub: 'BOr-robo-chave-publica-de-teste' } : { ok: true, k: 'robo'.repeat(8), novos: [] });
     if (p.endsWith('.php')) return json(r, { ok: true, atual: '', nova: '', erros: [] });
     if (p.startsWith('/__fontes/')) { const ff = path.join(__dirname, 'fontes', path.basename(p)); if (fs.existsSync(ff)) { r.setHeader('Content-Type', 'font/woff2'); r.setHeader('Access-Control-Allow-Origin', '*'); return fs.createReadStream(ff).pipe(r); } }

@@ -190,7 +190,7 @@ test('Hub (/hub): números reais e um bloco para cada espaço; Números saiu das
   await expect(page.locator('#tabs')).toBeHidden();
   // cores do anel do logo: App do aluno vermelho, Painel laranja, Números lilás; a hora anda depois da data
   // (espera: o hub se redesenha quando os números chegam)
-  await expect.poll(() => page.locator('.hb-bl').evaluateAll(L => L.map(x => getComputedStyle(x).backgroundColor))).toEqual(['rgb(255, 70, 70)', 'rgb(255, 154, 46)', 'rgb(183, 148, 255)']);
+  await expect.poll(() => page.locator('.hb-bl').evaluateAll(L => L.map(x => getComputedStyle(x).backgroundColor))).toEqual(['rgb(255, 70, 70)', 'rgb(255, 154, 46)', 'rgb(183, 148, 255)', 'rgb(200, 245, 66)']);
   await expect(page.locator('#hb-hora')).toHaveText(/^\d\d:\d\d:\d\d$/);
   const h1 = await page.locator('#hb-hora').textContent();
   await expect.poll(() => page.locator('#hb-hora').textContent(), { timeout: 5000 }).not.toBe(h1); // o relógio anda
@@ -204,8 +204,8 @@ test('Hub (/hub): números reais e um bloco para cada espaço; Números saiu das
   const velho = await page.context().newPage(); await velho.goto(EMU + '/personal/#hub');
   await velho.waitForFunction(() => window.__painel && window.__painel.Store.loaded, null, { timeout: 20000 });
   await expect(velho.locator('.hub')).toHaveCount(0); await expect(velho).toHaveURL(/#painel$/); await velho.close();
-  // cada bloco abre em outra aba: o app de teste, o painel e Números
-  expect(await page.locator('.hb-bl').evaluateAll(L => L.map(a => [a.getAttribute('href'), a.getAttribute('target')]))).toEqual([['/app-teste/', '_blank'], ['/personal/#painel', '_blank'], ['/personal/#estatisticas', '_blank']]);
+  // cada bloco abre em outra aba: o app de teste, o painel e Números (o Conteúdo abre no próprio hub)
+  expect(await page.locator('.hb-bl').evaluateAll(L => L.map(a => [a.getAttribute('href'), a.getAttribute('target')]))).toEqual([['/app-teste/', '_blank'], ['/personal/#painel', '_blank'], ['/personal/#estatisticas', '_blank'], ['#conteudo', null]]);
   expect(await page.locator('a.hb-ms').evaluateAll(L => L.map(a => a.getAttribute('href')))).toEqual(['/financas/', '/personal/teste/', '/']);
   // Atualizar o site fica no hub, ao lado de Site
   await expect(page.locator('.hb-mais .hb-atu')).toContainText('Atualizar');
@@ -234,6 +234,66 @@ test('Hub (/hub): números reais e um bloco para cada espaço; Números saiu das
   await expect(pn).toHaveURL(/\/personal\/#painel$/);
   await expect(pn.locator('#tabs')).toBeVisible();
   await expect(pn.locator('.hub')).toHaveCount(0);
+});
+
+test('Hub › Conteúdo: o post do dia vindo do Drive, com Postar, Copiar legenda e Marcar como feito', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  // o compartilhar do celular (no robô: anota os arquivos que iriam para o Instagram/TikTok)
+  await page.addInitScript(() => { navigator.canShare = () => true; navigator.share = async d => { window.__compart = (window.__compart || []).concat([d.files.map(f => [f.name, f.type, f.size])]); }; });
+  await entraPainel(page);
+  await page.goto(EMU + '/hub/');
+  await page.waitForFunction(() => window.__painel && window.__painel.Store.loaded, null, { timeout: 20000 });
+  const bl = page.locator('.hb-bl.verde');
+  await expect(bl).toContainText('Hoje no Instagram e TikTok');
+  await expect(bl).toContainText('Instagram: Cardio em jejum emagrece mais?');
+  await expect(bl.locator('.hb-num b')).toHaveText('2');
+  await expect(bl.locator('.hb-th.ok')).toHaveCount(2); // as capas do dia
+  await bl.click();
+  await expect(page).toHaveURL(/\/hub\/#conteudo$/);
+  await expect(page.locator('.hub.cd h1')).toHaveText('Conteúdo.');
+  await expect(page.locator('.cd-d.on.hj')).toHaveCount(1); // hoje selecionado na semana
+  await expect(page.locator('.cd-d')).toHaveCount(7);
+  const ig = page.locator('.cd-card').nth(0), tk = page.locator('.cd-card').nth(1);
+  await expect(ig.locator('.cd-chip.instagram')).toHaveText('Instagram');
+  await expect(ig.locator('.cd-chip.fm')).toHaveText('Carrossel · 7 imagens');
+  await expect(ig.locator('.cd-im.ok')).toHaveCount(7);
+  await expect(tk.locator('.cd-chip.tiktok')).toHaveText('TikTok');
+  await expect(tk.locator('h3')).toHaveText('Mito abdominal queima gordura');
+  // copiar a legenda
+  await ig.locator('[data-a="cdCopiar"]').click();
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain('Cardio em jejum emagrece mais?');
+  // Postar o carrossel: as 7 imagens vão juntas para o compartilhar, e a legenda fica copiada
+  await page.evaluate(() => navigator.clipboard.writeText(''));
+  await ig.locator('[data-a="cdPostar"]').click();
+  await expect.poll(() => page.evaluate(() => window.__compart && window.__compart[0].length)).toBe(7);
+  expect(await page.evaluate(() => window.__compart[0][0][1])).toBe('image/jpeg');
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain('#simplificando');
+  // reels: primeiro baixa o vídeo, depois "Postar agora" abre o compartilhar com o vídeo
+  await tk.locator('[data-a="cdPostar"]').click();
+  await expect(tk.locator('[data-a="cdPostar"]')).toContainText('Postar agora');
+  await tk.locator('[data-a="cdPostar"]').click();
+  await expect.poll(() => page.evaluate(() => window.__compart.length)).toBe(2);
+  expect(await page.evaluate(() => window.__compart[1])).toEqual([['Reel-Mito-abdominal-queima-gordura.mp4', 'video/mp4', expect.any(Number)]]);
+  // ver o vídeo por cima da tela
+  await tk.locator('.cd-reel').click();
+  await expect(page.locator('.cd-ver video')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.cd-ver')).toHaveCount(0);
+  // marcar como feito: fica salvo no servidor (volta igual depois de recarregar)
+  await ig.locator('[data-a="cdFeito"]').click();
+  await expect(ig.locator('.cd-chip.ok')).toHaveText('Postado');
+  await page.reload();
+  await page.waitForFunction(() => window.__painel && window.__painel.Store.loaded, null, { timeout: 20000 });
+  await expect(page.locator('.cd-card').nth(0).locator('.cd-fe')).toHaveText('Postado');
+  // semana que vem: nada no Drive ainda
+  await page.click('[data-a="cdSem"][data-v="1"]');
+  await expect(page.locator('.cd-vz')).toContainText('Nada no Drive');
+  await page.click('[data-a="cdSem"][data-v="-1"]');
+  await expect(page.locator('.cd-d.on.hj')).toHaveCount(1);
+  // volta ao hub: agora falta 1 para postar
+  await page.click('.cd-volta');
+  await expect(page.locator('.hub h1')).toHaveText('Hub.');
+  await expect(page.locator('.hb-bl.verde .hb-num b')).toHaveText('1');
 });
 
 test('Hub: entrada com cara de hub, só com a senha do hub (criada pelo dono no próprio hub)', async ({ browser }) => {
