@@ -1297,6 +1297,10 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 - **Guarde o arquivo baixado fora do site** (Google Drive, o computador). A cópia no servidor protege de um erro no sistema; só a de fora protege se o site ou a conta da hospedagem sumir. O arquivo tem os dados dos clientes: guarde em lugar com senha.
 - **Para voltar uma cópia** (só em último caso): no cPanel, Gerenciador de Arquivos, pasta de dados (`api/dados` ou `playspace-dados`). Renomeie o banco atual (`playspace-….sqlite`) para guardar, apague os arquivos `-wal` e `-shm` dele, e suba a cópia com **o mesmo nome** do banco. Abra o Play Space e confira.
 
+## 6zzg. A lista sem o "até agora R$" (1.52)
+
+Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
+
 ## 7. Atualizar
 
 Botão **Atualizar** ao lado da versão. Ele baixa a versão nova do GitHub (ramo principal ou de trabalho, a mais nova), confere a versão dentro do arquivo e troca os arquivos de forma atômica. Não mexe em `~/playspace-dados/`. Se o GitHub demorar a refletir (cache de ~5 min), espere e toque de novo.
