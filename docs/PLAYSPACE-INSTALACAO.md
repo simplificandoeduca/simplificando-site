@@ -1301,6 +1301,27 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzj. O cupom só sai com a autorização; o motivo no alterar pacote; a festa pelo gestor (1.54)
+
+Pedido do dono: sem a permissão do gestor, a atendente não segue; o motivo no desconto e no alterar pacote; o gestor cancela a festa e muda a data.
+
+- **Pediu desconto** (ou escreveu o desconto e ainda não pediu), ou **pediu para alterar o pacote**: o botão de registrar (o que imprime o cupom) fica **riscado e não clica**, com o porquê escrito nele, até quem autoriza responder. Vale na venda e na saída (sozinha ou em conjunto).
+- **Negado**: o botão continua travado. A atendente pede de novo, ou toca em **Cobrar sem o desconto** (ou **Cobrar sem alterar**) e segue com o valor de antes.
+- **Alterar pacote** tem o campo **Motivo** (obrigatório), como o desconto. Quem aprova vê o motivo em destaque nas Aprovações e no aviso do celular.
+- **Festa** (abrir a festa na agenda ou em Festas), só para o gestor:
+  - **Cancelar a festa** (com o motivo): a venda da festa, o upgrade e o adicional são cancelados (mesmo vendidos há mais de 7 dias), a festa sai da agenda e aparece o que devolver ao cliente. Festa que já começou (criança já entrou) não cancela.
+  - **Mudar o dia** para qualquer dia: se passar de semana para final de semana (ou o contrário), o tipo da festa muda junto; o valor da venda não muda (acerte a diferença à parte, se tiver).
+  - **Editar o cadastro do cliente**, direto da festa.
+
+## 6zzi. Resumo do dia em PDF e por e-mail (1.54)
+
+Pedido do dono: um resumo do dia em PDF para os gestores, com o "exportar PDF do dia" lá em cima, e o e-mail cadastrado para receber o faturamento do dia.
+
+- **Finanças → Exportar PDF do dia** (no alto, ao lado do "atualizar"): o PDF do dia escolhido (ou do período), da unidade escolhida e de todos os produtos: faturado, recebido, em aberto, crianças, pacotes, descontos, cancelamentos, festas, cada unidade, as formas de pagamento, o que foi vendido por tipo, o produto a produto, cada desconto (com o motivo e quem liberou) e cada cancelamento.
+- **Finanças → Conta → Resumo do dia por e-mail**: os e-mails (até 10) e o **Mandar sozinho todo dia, quando a loja fecha** (sai meia hora depois da hora de fechar dos Ajustes, das duas lojas, com o PDF anexado). **Mandar agora o de hoje** e **Mandar o de ontem** mandam na hora. Se nenhuma tela estiver aberta na hora de fechar, o e-mail sai na manhã seguinte, com o resumo do dia anterior.
+- O e-mail sai do próprio servidor da loja (remetente nao-responda@ o endereço da loja). Se a hospedagem não deixar o PHP mandar e-mail, a tela avisa.
+- **Play Space → Caixa do dia → PDF do dia**: o gestor baixa o mesmo PDF pelo Play Space.
+
 ## 6zzh. Finanças: filtro por produto e o produto a produto (1.53)
 
 Pedido do dono: no financeiro, filtro por data, por unidade e por produto (todos, festa, só pacote, só recreação avulsa, só produto), tudo destrinchado e já na tela.

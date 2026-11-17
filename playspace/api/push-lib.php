@@ -92,7 +92,7 @@ function pushPedido(array $p): array {
   if (!$L) return ['ok' => 0, 'erro' => 0, 'saiu' => 0];
   $titulo = ['desconto' => 'Pedido de desconto', 'cancelar_venda' => 'Pedido para cancelar uma venda', 'nf' => 'Pedido de nota fiscal', 'valor' => 'Pedido para alterar um valor'][(string)$p['tipo']] ?? 'Pedido de autorização';
   $uni = ''; if (($p['unidade_id'] ?? null) !== null) foreach (unidades() as $x) if ((int)$x['id'] === (int)$p['unidade_id']) $uni = (string)$x['nome'];
-  $quem = trim((string)$p['pedido_nome']); $corpo = mb_substr(($quem !== '' ? $quem . ($uni !== '' ? ' · ' . $uni : '') . ': ' : ($uni !== '' ? $uni . ': ' : '')) . trim((string)$p['texto']), 0, 180);
+  $quem = trim((string)$p['pedido_nome']); $corpo = mb_substr(($quem !== '' ? $quem . ($uni !== '' ? ' · ' . $uni : '') . ': ' : ($uni !== '' ? $uni . ': ' : '')) . trim((string)$p['texto']) . (trim((string)($p['motivo'] ?? '')) !== '' ? ' · Motivo: ' . trim((string)$p['motivo']) : ''), 0, 200);   // 1.54: o motivo vai junto
   return pushMandar($L, fn($i) => ['t' => $titulo, 'b' => $corpo, 'tag' => 'pedido-' . (int)$p['id'], 'url' => in_array((string)$i['papel'], ['gestor', 'supervisor'], true) ? './#aprovar' : './']);   // 1.33: a supervisora também tem as Aprovações
 }
 // depois de responder à tela: quem pediu não espera os avisos saírem (o PHP fecha a conexão e continua). A sessão é solta antes

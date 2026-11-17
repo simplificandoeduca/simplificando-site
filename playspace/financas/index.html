@@ -70,6 +70,10 @@ button { cursor: pointer; }
 .topo { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
 .topo h1 { margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -.02em; }
 .topo .sub { color: var(--ink-3); font-size: 13px; }
+.topo-d { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; } .btn-pdf { display: inline-flex; align-items: center; gap: 6px; } .btn-pdf svg { width: 16px; height: 16px; }
+.chk { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-weight: 600; cursor: pointer; } .chk input { width: 18px; height: 18px; accent-color: var(--brand); }
+textarea.inp { resize: vertical; min-height: 64px; font-family: inherit; }
+@media (max-width: 640px) { .topo-d { align-items: flex-start; } }
 .filtros { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
 .chips { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .chip { height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); font-weight: 600; font-size: 14px; color: var(--ink-2); display: inline-flex; align-items: center; gap: 8px; }
@@ -279,6 +283,7 @@ const quandoBR = q => { const s = String(q); return `${s.slice(8, 10)}/${s.slice
 const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const loginSugerido = nome => String(nome || '').trim().split(/\s+/)[0].normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9._-]/g, '');
 const IC = {
+  pdf: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5v11M7.5 11 12 15.5 16.5 11"/><path d="M5 14.5v3.3A2.2 2.2 0 0 0 7.2 20h9.6a2.2 2.2 0 0 0 2.2-2.2v-3.3"/></svg>',
   geral: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h4v8H3zM10 9h4v12h-4zM17 4h4v17h-4z"/></svg>',
   vendas: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V8H6a2 2 0 0 1 0-4h12v4"/><path d="M4 6v12a2 2 0 0 0 2 2h14v-4"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></svg>',
   canc: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg>',
@@ -436,9 +441,9 @@ function desenhar() {
   const t = $('#tela'); if (!t) return;
   const [de, ate, nomeP] = periodo(), titulo = (ABAS.find(a => a[0] === ABA) || [])[1];
   const sub = `${nomeP} · ${de === ate ? dataBR(de) : dataBR(de) + ' a ' + dataBR(ate)}${UNI === 'todas' ? ' · todas as unidades' : ' · ' + nomeUni(UNI)} · ${nomeProd(PROD)}`;
-  t.innerHTML = `<div class="topo"><div><h1>${titulo}</h1><div class="sub">${ABA === 'conta' ? 'Seu acesso e quem mais vê as Finanças' : esc(sub)}</div></div>${ABA !== 'conta' && D ? `<div class="sub">Atualizado às ${esc(String(D.gerado).slice(11, 16))} · <button class="link" style="display:inline;padding:0" id="recarregar">atualizar</button></div>` : ''}</div>
+  t.innerHTML = `<div class="topo"><div><h1>${titulo}</h1><div class="sub">${ABA === 'conta' ? 'Seu acesso e quem mais vê as Finanças' : esc(sub)}</div></div>${ABA !== 'conta' && D ? `<div class="topo-d"><button class="btn btn-ghost btn-pdf" id="pdf-dia" title="O resumo ${de === ate ? 'do dia' : 'do período'}, em PDF (todos os produtos)">${IC.pdf} Exportar PDF ${de === ate ? 'do dia' : 'do período'}</button><div class="sub">Atualizado às ${esc(String(D.gerado).slice(11, 16))} · <button class="link" style="display:inline;padding:0" id="recarregar">atualizar</button></div></div>` : ''}</div>
     ${ABA === 'conta' ? '' : filtrosHtml()}<div id="corpo">${!D && ABA !== 'conta' ? '<div class="vazio">Carregando os números…</div>' : ABA === 'geral' ? telaGeral() : ABA === 'vendas' ? telaVendas() : ABA === 'canc' ? telaCanc() : ABA === 'desc' ? telaDesc() : telaConta()}</div>`;
-  ligarFiltros(); const rc = $('#recarregar'); if (rc) rc.onclick = () => carregar();
+  ligarFiltros(); const rc = $('#recarregar'); if (rc) rc.onclick = () => carregar(); const pd = $('#pdf-dia'); if (pd) pd.onclick = () => baixarPdf();
   if (ABA === 'geral' && D) ligarGrafico();
   if (ABA === 'conta') ligarConta();
   $$('[data-csv]').forEach(b => b.onclick = () => baixarCsv(b.dataset.csv));
@@ -595,15 +600,37 @@ function baixarCsv(qual) {
 }
 
 /* ---------- Conta ---------- */
+/* 1.54: o resumo do dia (ou do período) em PDF: o servidor monta, a tela baixa (a unidade escolhida; todos os produtos) */
+async function baixarPdf() {
+  const [de, ate] = periodo(), b = $('#pdf-dia'); if (b) b.disabled = true;
+  try {
+    let r; try { r = await fetch('api.php', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-Fin': '1' }, body: JSON.stringify({ acao: 'pdf', de, ate, uni: UNI }) }); } catch (e) { throw new Error('Sem conexão com o servidor. Confira a internet e tente de novo.'); }
+    if (!r.ok || !/pdf/.test(r.headers.get('Content-Type') || '')) { let j = {}; try { j = await r.json(); } catch (e) { /* sem JSON */ } throw new Error(j.erro || 'Não deu para gerar o PDF.'); }
+    const bl = await r.blob(), a = document.createElement('a'); a.href = URL.createObjectURL(bl); a.download = `play-space-resumo-${de === ate ? de : de + '-a-' + ate}.pdf`; document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); aviso('PDF baixado ✓');
+  } catch (e) { aviso(e.message); } finally { if (b) b.disabled = false; }
+}
+const isoDe = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+function emailStatus(E) {
+  const q = E.quando ? `${E.quando.slice(8, 10)}/${E.quando.slice(5, 7)} às ${E.quando.slice(11, 16)}` : '';
+  return !E.para.length ? 'Nenhum e-mail cadastrado ainda.' : (E.auto ? `Sai sozinho todo dia ${E.hora ? 'às ' + E.hora + ' (meia hora depois de a loja fechar)' : 'de manhã, com o resumo do dia anterior'}. ` : 'Só sai quando você manda. ')
+    + (q ? `Último envio: ${q} · ${E.res === 'ok' ? 'mandado ✓' : E.res === 'mandando' ? 'mandando…' : esc(E.res)}.` : '');
+}
 function telaConta() {
   return `<div class="cartao"><h2>Sua conta</h2><div class="rolar"><table><tbody><tr><td>Nome</td><td class="v">${esc(EU.nome)}</td></tr><tr><td>Seu login</td><td class="v">${esc(EU.login)}</td></tr><tr><td>Acesso</td><td class="v">${EU.principal ? '<span class="selo bom">conta principal</span>' : 'acesso comum'}</td></tr></tbody></table></div>
     <div class="lista-acoes" style="margin-top:14px"><button class="btn btn-ghost" id="c-senha">Trocar a senha</button><button class="btn btn-ghost" id="c-sair">Sair</button></div></div>
+  <div class="cartao" id="c-email"><div class="cab-cartao"><div><h2>Resumo do dia por e-mail</h2><p class="expl">O PDF do dia (faturado, recebido, formas de pagamento, produto a produto, descontos e cancelamentos), das duas lojas, vai anexado para estes e-mails.</p></div></div>
+    <label class="lbl" for="em-para">E-mails (um por linha, até 10)</label><textarea class="inp" id="em-para" rows="3" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="dono@exemplo.com.br"></textarea>
+    <label class="chk"><input type="checkbox" id="em-auto"> <span>Mandar sozinho todo dia, quando a loja fecha</span></label>
+    <div class="lista-acoes" style="margin-top:12px"><button class="btn btn-brand" id="em-salvar">Salvar</button><button class="btn btn-ghost" id="em-hoje">Mandar agora o de hoje</button><button class="btn btn-ghost" id="em-ontem">Mandar o de ontem</button></div>
+    <p class="dica" id="em-status">Carregando…</p></div>
   ${EU.principal ? `<div class="cartao"><div class="cab-cartao"><div><h2>Quem vê as Finanças</h2><p class="expl">Só quem tem um acesso aqui entra. A equipe do Play Space não entra com o login de lá.</p></div><button class="btn btn-ghost" id="c-novo">+ Criar acesso</button></div><div id="c-lista"><div class="vazio">Carregando…</div></div></div>` : ''}`;
 }
 async function ligarConta() {
   $('#c-sair').onclick = async () => { try { await api('sair'); } catch (e) { /* já saiu */ } EU = null; D = null; telaEntrar('entrar'); };
   $('#c-senha').onclick = () => folha('Trocar a senha', `<label class="lbl" for="s-atual">Senha atual</label><input class="inp" id="s-atual" type="password" autocomplete="current-password"><label class="lbl" for="s-nova">Senha nova (mínimo 6 caracteres)</label><input class="inp" id="s-nova" type="password" autocomplete="new-password">`, 'Salvar',
     async () => { await api('trocar_senha', { atual: $('#s-atual').value, senha: $('#s-nova').value }); aviso('Senha trocada ✓'); });
+  ligarEmail();
   if (!EU.principal) return;
   const lista = async () => { const box = $('#c-lista'); if (!box) return; let r; try { r = await api('usuarios'); } catch (e) { box.innerHTML = `<div class="vazio">${esc(e.message)}</div>`; return; }
     box.innerHTML = `<div class="rolar"><table><thead><tr><th>Nome</th><th>Login</th><th></th></tr></thead><tbody>${r.usuarios.map(u => `<tr><td>${esc(u.nome)}${u.principal ? ' <span class="selo bom">principal</span>' : ''}<small>${u.ultimoLogin ? 'entrou por último em ' + esc(quandoBR(u.ultimoLogin)) : 'ainda não entrou'}</small></td><td>${esc(u.login)}</td>
@@ -616,6 +643,18 @@ async function ligarConta() {
     async () => { const r = await api('usuario_criar', { nome: $('#n-nome').value, login: $('#n-login').value, senha: $('#n-senha').value }); aviso('Acesso criado ✓ login: ' + r.login); lista(); });
     let mexeu = false; $('#n-login').oninput = () => { mexeu = true; }; $('#n-nome').oninput = () => { if (!mexeu) $('#n-login').value = loginSugerido($('#n-nome').value); }; };
   lista();
+}
+/* 1.54: o resumo do dia por e-mail (em Conta) */
+async function ligarEmail() {
+  const st = $('#em-status'), ta = $('#em-para'), cx = $('#em-auto'); if (!st || !ta || !cx) return;
+  const mostra = E => { ta.value = (E.para || []).join('\n'); cx.checked = !!E.auto; st.innerHTML = emailStatus(E); };
+  try { mostra((await api('email_ver')).email); } catch (e) { st.textContent = e.message; }
+  const trava = on => ['em-salvar', 'em-hoje', 'em-ontem'].forEach(id => { const b = $('#' + id); if (b) b.disabled = on; });
+  $('#em-salvar').onclick = async () => { trava(true); try { const r = await api('email_salvar', { para: ta.value, auto: cx.checked }); mostra(r.email); aviso('Salvo ✓'); } catch (e) { aviso(e.message); } trava(false); };
+  const manda = async ontem => { trava(true); st.textContent = 'Mandando…'; const d = new Date(); if (ontem) d.setDate(d.getDate() - 1);
+    try { const s = await api('email_salvar', { para: ta.value, auto: cx.checked }); mostra(s.email); const r = await api('email_enviar', { dia: isoDe(d) }); mostra(r.email); aviso('Mandado para ' + r.enviado.para.join(', ') + ' ✓'); }
+    catch (e) { aviso(e.message); try { mostra((await api('email_ver')).email); } catch (x) { /* fica a mensagem */ } } trava(false); };
+  $('#em-hoje').onclick = () => manda(false); $('#em-ontem').onclick = () => manda(true);
 }
 function folha(titulo, corpo, rotOk, fazer) {
   const f = document.createElement('div'); f.className = 'fundo';

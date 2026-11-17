@@ -624,7 +624,7 @@ function pedidoCriar(array $u, array $in): array {
     if ($para <= 0) falha('Escreva o valor novo.'); if ($para > 99999) falha('Confira o valor novo: ' . dinheiro($para) . '.');
     $horas = null; if ($k === 'pac' && isset($in['horas'])) { $hh = (int)$in['horas']; if ($hh < 1 || $hh > 200) falha('As horas do pacote vão de 1 a 200.'); if ($hh * 60 !== $min) $horas = $hh; }
     if (abs($para - $de) < 0.005 && $horas === null) falha('O valor novo é igual ao de agora (' . dinheiro($de) . ').');
-    $motivo = mb_substr($motivo, 0, 120); if (!$pp && mb_strlen($motivo) < 3) falha('Escreva o motivo: o que muda no valor.');
+    $motivo = mb_substr($motivo, 0, 120); if (mb_strlen($motivo) < 3) falha('Escreva o motivo: por que o pacote (ou o valor) muda.');
     $valor = $para; $dados = ($pp ? ['pac' => $pp['pac'], 'prod' => $pp['prod']] : []) + ['venda' => $vendaId, 'item' => ['k' => 'venda', 'tipo' => $k, 'n' => $nm, 'h' => $k === 'pac' ? intdiv($min, 60) : null, 'min' => $min, 'de' => $de], 'de' => $de, 'para' => $para, 'horas' => $horas, 'onde' => 'saida'];
     $texto = ($pp ? 'Alterar o pacote: ' . altTextoPac($nm, intdiv($min, 60), $de, $horas ?: intdiv($min, 60), $pp['pac'], $pp['prod'], $para) : ($horas ? 'Alterar o pacote: ' . $nm . ' (' . dur($min) . ', ' . dinheiro($de) . ') para ' . $horas . 'h por ' . dinheiro($para) : 'Alterar o valor: ' . $nm . ' de ' . dinheiro($de) . ' para ' . dinheiro($para))) . ' · na saída';
     $db->prepare("UPDATE pedidos SET status = 'cancelado', resultado = 'TROCADO POR OUTRO PEDIDO' WHERE tipo = 'valor' AND pedido_por = ? AND venda_id = ? AND status IN ('pendente', 'liberado')")->execute([(int)$u['id'], $vendaId]);   // um pedido por venda
@@ -634,7 +634,7 @@ function pedidoCriar(array $u, array $in): array {
     if ($para <= 0) falha('Escreva o valor novo.'); if ($para > 99999) falha('Confira o valor novo: ' . dinheiro($para) . '.');
     $horas = null; if ($it['k'] === 'pac' && isset($in['horas'])) { $hh = (int)$in['horas']; if ($hh < 1 || $hh > 200) falha('As horas do pacote vão de 1 a 200.'); if ($hh !== (int)$it['h']) $horas = $hh; }   // 1.36: o pacote que não existe na tabela (as horas também mudam)
     if (abs($para - $it['de']) < 0.005 && $horas === null) falha('O valor novo é igual ao de agora (' . dinheiro($it['de']) . ').');
-    $motivo = mb_substr($motivo, 0, 120); if (!$pp && mb_strlen($motivo) < 3) falha('Escreva o motivo: o que muda no valor.');   // (1.41: com os três campos, o motivo é opcional)
+    $motivo = mb_substr($motivo, 0, 120); if (mb_strlen($motivo) < 3) falha('Escreva o motivo: por que o pacote (ou o valor) muda.');   // (1.41: com os três campos, o motivo é opcional)
     $valor = $para; $dados = ['item' => $it, 'de' => $it['de'], 'para' => $para, 'horas' => $horas] + ($pp ? ['pac' => $pp['pac'], 'prod' => $pp['prod']] : []);
     $texto = $pp ? 'Alterar o pacote: ' . altTextoPac($it['n'], (int)$it['h'], (float)$it['de'], $horas ?: (int)$it['h'], $pp['pac'], $pp['prod'], $para) : ($horas ? 'Alterar o valor: ' . $it['n'] . ' (' . (int)$it['h'] . 'h, ' . dinheiro($it['de']) . ') para ' . $horas . 'h por ' . dinheiro($para) : 'Alterar o valor: ' . $it['n'] . ' de ' . dinheiro($it['de']) . ' para ' . dinheiro($para));
     // uma alteração por vez para o mesmo cliente: a anterior (sem resposta, ou aprovada e não usada) deixa de valer
@@ -1960,13 +1960,13 @@ function tirarCancelamentoAtendimento(int $id, int $registro, array $u): void { 
 // Vale para o que a equipe vendeu nos últimos dias; o que a visita somou sozinha (a recreação avulsa) é acertado na saída, não por aqui.
 const VENDA_CANCELA_DIAS = 7;
 function vendaCancelavel(array $v): bool { return empty($v['auto']) && (string)($v['servico'] ?? '') !== SERV_IMPORTADO && time() - strtotime((string)$v['quando']) <= VENDA_CANCELA_DIAS * 86400; }
-function cancelarVenda(int $vendaId, array $u, string $motivo, ?string $quem = null, string $ped = ''): array {   // $ped: o login de quem pediu   // $quem (1.25): o pedido liberado pelo gestor fica no nome da atendente que pediu
+function cancelarVenda(int $vendaId, array $u, string $motivo, ?string $quem = null, string $ped = '', bool $semPrazo = false): array {   // 1.54: $semPrazo = a festa cancelada pelo gestor (a venda pode ser de semanas antes)   // $ped: o login de quem pediu   // $quem (1.25): o pedido liberado pelo gestor fica no nome da atendente que pediu
   $db = db(); $q = $db->prepare('SELECT * FROM vendas WHERE id = ?'); $q->execute([$vendaId]); $v = $q->fetch();
   if (!$v) falha('Esta venda não existe mais: já foi desfeita ou cancelada.', 404);
   $c = crianca((int)$v['crianca_id']); if (!$c) falha('Cliente não encontrado.', 404);
   if (!empty($v['auto'])) falha('A recreação que a visita somou sozinha não é cancelada por aqui: ela é acertada na saída.');
   if ((string)($v['servico'] ?? '') === SERV_IMPORTADO) falha('As horas que vieram do sistema anterior não são uma venda: não dá para cancelar por aqui.');
-  if (time() - strtotime((string)$v['quando']) > VENDA_CANCELA_DIAS * 86400) falha('Só dá para cancelar vendas dos últimos ' . VENDA_CANCELA_DIAS . ' dias.');
+  if (!$semPrazo && time() - strtotime((string)$v['quando']) > VENDA_CANCELA_DIAS * 86400) falha('Só dá para cancelar vendas dos últimos ' . VENDA_CANCELA_DIAS . ' dias.');
   if (mb_strlen($motivo) < 5) falha('Escreva o motivo do cancelamento.');
   $min = (int)$v['minutos']; $resta = restante($c);
   if ($min > 0 && $resta < $min) falha('As horas desta venda já foram usadas' . ($resta > 0 ? ' em parte: sobram ' . hm($resta) . ' de ' . hm($min) : '') . '. Não dá para cancelar a venda inteira.');

@@ -231,9 +231,14 @@ switch ($acao) {
     header('Content-Disposition: attachment; filename="playspace-copia-' . $m[1] . '-' . $m[2] . '-' . $m[3] . '-' . $m[4] . 'h' . $m[5] . '.sqlite"');
     readfile($arq); exit;
   }
+  case 'resumo_pdf': { // 1.54: o resumo do dia em PDF (o mesmo das Finanças), para o gestor
+    $u = exigir(); if (($u['papel'] ?? '') !== 'gestor') falha('Só o gestor baixa o resumo do dia.', 403); session_write_close();
+    require_once __DIR__ . '/../financas/resumo.php'; finPdfSaida(['de' => (string)($in['de'] ?? date('Y-m-d')), 'ate' => (string)($in['ate'] ?? ($in['de'] ?? date('Y-m-d'))), 'uni' => 'todas']);
+  }
   case 'pulso': { // barato: muda quando qualquer coisa que a tela mostra mudou; a tela pergunta a cada 2 s e só recarrega se mudou
     $u = exigir(); session_write_close();
-    try { copiaSemanal(); } catch (Throwable $e) { registrarErro('cópia da semana: ' . $e->getMessage()); }   // 1.51: a cada 7 dias, a cópia de segurança (antes de qualquer consulta; nunca derruba o pulso)
+    try { copiaSemanal(); } catch (Throwable $e) { registrarErro('cópia da semana: ' . $e->getMessage()); }
+    try { require_once __DIR__ . '/../financas/resumo.php'; if (finEmailDevido()) { require_once __DIR__ . '/push-lib.php'; pushDepois(function () { finEmailAuto(); }); } } catch (Throwable $e) { registrarErro('e-mail do resumo do dia: ' . $e->getMessage()); }   // 1.54: o resumo do dia por e-mail, uma vez por dia, quando a loja fecha   // 1.51: a cada 7 dias, a cópia de segurança (antes de qualquer consulta; nunca derruba o pulso)
     acertarTodas();   // a cada pulso de qualquer tela aberta: passou da tolerância, nasce a nova cobrança (e o pulso muda, então todas as telas mostram)
     $a = $db->query("SELECT COALESCE(MAX(id), 0) || ':' || COUNT(*) FROM registros")->fetchColumn();
     $b = $db->query("SELECT COALESCE(MAX(id), 0) || ':' || COUNT(*) || ':' || COALESCE(SUM(lida), 0) FROM mensagens")->fetchColumn();
@@ -385,20 +390,33 @@ switch ($acao) {
     $nomeF = (string)(crianca((int)$f['crianca_id'])['nome'] ?? ''); $mud = [];
     $tema = array_key_exists('tema', $in) ? mb_substr(maiusculo((string)$in['tema']), 0, 60) : (string)$f['tema']; if ($tema !== $f['tema']) $mud[] = 'tema ' . ($f['tema'] !== '' ? $f['tema'] . ' → ' : '') . ($tema !== '' ? $tema : 'sem tema');
     $hora = array_key_exists('hora', $in) ? horaDaFesta($in['hora'], (string)$f['dia']) : (string)$f['hora']; if ($hora !== $f['hora']) $mud[] = 'horário ' . ($hora !== '' ? $hora : 'sem horário');
-    $data = (string)$f['data'];
+    $data = (string)$f['data']; $novoTipo = null;   // 1.54: o gestor muda para qualquer dia (o tipo da festa acompanha)
     if (array_key_exists('data', $in) && (string)$in['data'] !== $f['data']) {
       $d = trim((string)$in['data']); if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $d, $m) || !checkdate((int)$m[2], (int)$m[3], (int)$m[1])) falha('Confira a data da festa.');
       if ($d < date('Y-m-d')) falha('A data nova já passou.');
       if ((int)$f['conv'] + (int)$f['aniv'] > 0) falha('A festa já começou (já tem criança que entrou nela): o dia não muda.');
-      $fds = (int)date('N', strtotime($d)) >= 6; if ($fds !== ($f['dia'] === 'fds')) falha($f['dia'] === 'fds' ? 'Esta é uma festa de final de semana: o dia novo precisa ser sábado ou domingo (ou fale com o gestor para refazer a venda).' : 'Esta é uma festa de semana: num sábado ou domingo ela vira festa de final de semana. Fale com o gestor para refazer a venda.');
-      $data = $d; $mud[] = 'dia ' . substr($f['data'], 8, 2) . '/' . substr($f['data'], 5, 2) . ' → ' . substr($d, 8, 2) . '/' . substr($d, 5, 2);
+      $fds = (int)date('N', strtotime($d)) >= 6; if ($fds !== ($f['dia'] === 'fds') && ($u['papel'] ?? '') === 'gestor') $novoTipo = $fds ? 'fds' : 'semana'; elseif ($fds !== ($f['dia'] === 'fds')) falha($f['dia'] === 'fds' ? 'Esta é uma festa de final de semana: o dia novo precisa ser sábado ou domingo (ou fale com o gestor para refazer a venda).' : 'Esta é uma festa de semana: num sábado ou domingo ela vira festa de final de semana. Fale com o gestor para refazer a venda.');
+      $data = $d; $mud[] = 'dia ' . substr($f['data'], 8, 2) . '/' . substr($f['data'], 5, 2) . ' → ' . substr($d, 8, 2) . '/' . substr($d, 5, 2) . ($novoTipo ? ' (vira festa de ' . ($novoTipo === 'fds' ? 'final de semana' : 'semana') . '; o valor da venda não muda)' : '');
+      if ($novoTipo === 'fds') $hora = '';   // (o final de semana tem o horário fixo)
     }
     $uni = $f['unidade_id'] === null ? null : (int)$f['unidade_id'];
     if (array_key_exists('uni', $in) && (int)$in['uni'] !== (int)$uni) { $nu = ''; foreach (unidades() as $x) if ($x['id'] === (int)$in['uni'] && $x['ativo']) $nu = $x['nome']; if ($nu === '') falha('Escolha a unidade da festa.'); $uni = (int)$in['uni']; $mud[] = 'unidade ' . $nu; }
     if (!$mud) responder(['festa' => festaPublica($f)]);
-    $db->prepare('UPDATE festas SET tema = ?, hora = ?, data = ?, unidade_id = ?, mudou_em = ? WHERE id = ?')->execute([$tema, $hora, $data, $uni, agora(), (int)$f['id']]);
+    $db->prepare('UPDATE festas SET tema = ?, hora = ?, data = ?, unidade_id = ?, dia = ?, mudou_em = ? WHERE id = ?')->execute([$tema, $hora, $data, $uni, $novoTipo ?: (string)$f['dia'], agora(), (int)$f['id']]);
     registrar('festa', (int)$f['crianca_id'], $nomeF, 'Festa de ' . $nomeF . ': ' . implode(' · ', $mud) . ' · por ' . porQuem($u));
     responder(['festa' => festaPublica(festaComConta((int)$f['id']))]);
+  }
+  case 'festa_cancelar': { // 1.54: o gestor cancela a festa: a venda dela, o upgrade e o adicional (sem o prazo de 7 dias), com o que foi pago para devolver
+    $u = exigir(); if (($u['papel'] ?? '') !== 'gestor') falha('Só o gestor cancela a festa.', 403);
+    $f = festaComConta((int)($in['id'] ?? 0)); if (!$f) falha('A festa não está mais marcada.', 404);
+    if ((int)$f['conv'] + (int)$f['aniv'] > 0) falha('A festa já começou (já tem criança que entrou nela): não dá para cancelar.');
+    $motivo = mb_substr(maiusculo(trim((string)($in['motivo'] ?? ''))), 0, 200); if (mb_strlen($motivo) < 5) falha('Escreva o motivo do cancelamento da festa.');
+    $q = $db->prepare('SELECT id FROM vendas WHERE festa_id = ? ORDER BY festa_n > 0, id DESC'); $q->execute([(int)$f['id']]); $ids = array_map('intval', $q->fetchAll(PDO::FETCH_COLUMN)); $q->closeCursor();
+    $nomeF = (string)(crianca((int)$f['crianca_id'])['nome'] ?? ''); $dev = []; $n = 0;
+    foreach ($ids as $vid) { $r = cancelarVenda($vid, $u, 'FESTA CANCELADA: ' . $motivo, null, '', true); $n++; if ($r['devolver'] !== '') $dev[] = $r['devolver']; }
+    $db->prepare('UPDATE festas SET mudou_em = ? WHERE id = ?')->execute([agora(), (int)$f['id']]);
+    registrar('festa', (int)$f['crianca_id'], $nomeF, 'Festa de ' . $nomeF . ' (' . substr((string)$f['data'], 8, 2) . '/' . substr((string)$f['data'], 5, 2) . ') cancelada · ' . $motivo . ' · por ' . porQuem($u) . ($dev ? ' · devolver ao cliente: ' . implode(' + ', $dev) : ''));
+    responder(['cancelada' => $n, 'devolver' => implode(' + ', $dev)]);
   }
   case 'festa_relatorio': { // 1.29: quem veio na festa, com o responsável e os telefones (para mandar ao responsável do aniversariante)
     exigir(); $f = festaComConta((int)($in['id'] ?? 0)); if (!$f) falha('A festa não está mais marcada.', 404);
