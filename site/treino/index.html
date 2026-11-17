@@ -1703,6 +1703,43 @@ body.has-dock .toast,body.has-dock .utoast{bottom:calc(176px + env(safe-area-ins
 .pk-bar.on i,.pk-bar:hover i{opacity:.9}
 .pk-bar[hidden]{display:none}
 .pk-count{margin:0;font-size:13px;font-weight:700;color:var(--muted)}
+/* ---------- Seu perfil: 4 blocos de cor e uma lista curta; cada bloco abre a sua tela ---------- */
+.sheet.pf{gap:14px;min-height:min(88%,720px)}
+.pf-id{display:flex;align-items:center;gap:14px}
+.pf-id .avatar{width:76px;height:76px;flex:none}
+.pf-id b{display:block;font-size:21px;font-weight:900;letter-spacing:-.03em;line-height:1.1}
+.pf-st{display:block;font-size:13px;color:var(--muted);margin-top:2px}
+.pf-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.pf-chip{display:inline-flex;align-items:center;gap:5px;border:0;font:inherit;font-size:12px;font-weight:700;color:var(--fg);background:var(--ctl);border-radius:999px;padding:6px 11px;cursor:pointer}
+.pf-chip .i{width:14px;height:14px}
+.pf-chip.bad{background:#FFE1DE;color:#B42318;cursor:default}.pf-chip.ok{background:#E3F7D3;color:#2B6A12;cursor:default}
+.sr-file:focus-visible+.pf-chip{outline:3px solid var(--focus);outline-offset:2px}
+.pf-tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pf-tile{position:relative;display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-start;gap:3px;min-height:132px;border:0;border-radius:26px;padding:16px;text-align:left;font:inherit;color:#0F1712;cursor:pointer;transition:transform .2s var(--spring)}
+.pf-tile:active{transform:scale(.97)}
+.pf-tile>.i{position:absolute;top:15px;left:15px;width:26px;height:26px}
+.pf-tile b{font-size:21px;font-weight:900;letter-spacing:-.035em;line-height:1.05}
+.pf-tile span{font-size:12.5px;font-weight:600;color:rgba(15,23,18,.74);line-height:1.25}
+.pf-tile.t-red{background:#FF4646}.pf-tile.t-blue{background:#5AB8FF}.pf-tile.t-lime{background:#C8F542}.pf-tile.t-orange{background:#FF9A2E}
+.pf-list{display:block;width:100%;background:var(--ctl);border-radius:22px;overflow:hidden;border:0;padding:0;font:inherit;text-align:left}
+.pf-row{display:flex;align-items:center;gap:12px;width:100%;min-height:58px;padding:12px 14px;border:0;background:none;font:inherit;color:var(--fg);text-align:left;cursor:pointer}
+.pf-row+.pf-row{border-top:1px solid var(--sep)}
+.pf-row b{flex:1;font-size:15.5px;font-weight:800;letter-spacing:-.01em}
+.pf-ic{width:34px;height:34px;flex:none;border-radius:11px;background:#5B625D;color:#fff;display:grid;place-items:center}.pf-ic.red{background:#C8302F}
+.pf-ic .i{width:18px;height:18px}
+.pf-row .pf-ch{width:18px;height:18px;color:var(--muted)}
+.pf-out{min-height:54px;padding:0 16px;color:#C8302F;font-size:15.5px;font-weight:800;cursor:pointer}
+.pf-out.armed{background:#C8302F;color:#fff}
+.pf-ver{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:2px 4px 4px;font-size:12.5px;color:var(--muted)}
+.pf-ver .ver-pill{display:inline-flex;align-items:center;gap:5px;background:none;padding:0;margin:0;font-size:12.5px;color:var(--muted)}
+.pf-ver .i{width:14px;height:14px}
+.pf-link{display:inline-flex;align-items:center;gap:5px;border:0;background:none;padding:6px 0;font:inherit;font-size:12.5px;font-weight:800;color:var(--fg);cursor:pointer}
+.pf-link.nova{color:#C8302F}
+.pf-back{display:inline-flex;align-items:center;gap:4px;border:0;background:none;padding:8px 6px 8px 0;font:inherit;font-size:15px;font-weight:700;color:var(--fg);cursor:pointer}
+.pf-back .i{width:20px;height:20px}
+.pf-h{margin:-6px 0 0;font-size:40px;font-weight:900;letter-spacing:-.05em;line-height:1}
+.pf-sub .nta{background:var(--ctl)}
+.pf-ver .ver-btn{margin-top:0;width:auto}.pf-ver .ver-btn.nova{background:none;color:#C8302F}
 </style>
 
 <div class="app" id="app"></div>
@@ -1787,7 +1824,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '16 nov · 141'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '17 nov · 142'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -5033,49 +5070,81 @@ function ntfBloco(pers){
     ${L.map(row).join('')}
     ${!pers && acompPode() ? `<p class="nt-sub">Privacidade</p>${row(['acomp', acompOn(), '#1E9E4A', CM_USERS, 'Compartilhar meus treinos com o Simplificando', 'Treinos, cargas, cardio, água e check-in'])}` : ''}</div>`;
 }
+/* ---------- Seu perfil: 4 blocos (plano, avisos, visual, sugestão) e o resto numa lista curta; cada bloco abre a sua tela ---------- */
+const PF_PAGS = { plano:1, avisos:1, visual:1, sug:1, conta:1 };
+function pfVolta(t){ return `<div class="sheet-top" data-drag><div class="grabber" aria-hidden="true"></div><div class="sheet-h"><button type="button" class="pf-back" data-a="pf-go" data-v="">${ic('chevL')}Perfil</button><button type="button" class="btn round" data-a="close" aria-label="Fechar">${ic('x')}</button></div></div><h2 class="pf-h" id="sh-t">${t}<span class="dot" aria-hidden="true"></span></h2>`; }
 function vProfile(){
-  const nome = isPersonal() ? ACCT.nome : (S.nome || 'Você'), pers = isPersonal();
-  let pay = '';
-  if(pers && ACCT.pagoAte){ const late = ACCT.pagoAte < today(); pay = `<span class="pay${late?' late':''}">${ic(late?'bell':'check')}${late?'Mensalidade em aberto desde '+dm(ACCT.pagoAte):'Mensalidade em dia até '+dm(ACCT.pagoAte)}</span>`; }
-  const dias = diasLivres() ? 'Qualquer dia · '+SEMANA_TREINOS+'x' : tDays().map(i => TDAYS_L[i]).join(', ');
-  const planRO = pers ? `<div class="prefs"><div class="pref-h"><b>Seu plano</b><span>${esc(ACCT.plano||'')}</span></div>
+  const pg = ui.sheet && PF_PAGS[ui.sheet.p] ? ui.sheet.p : '';
+  const body = pg==='plano' ? pfPlano() : pg==='avisos' ? pfAvisos() : pg==='visual' ? pfVisual() : pg==='sug' ? pfSug() : pg==='conta' ? pfConta() : pfHome();
+  return `<div class="sheet-wrap" data-a="closebg"><div class="sheet pf${pg?' pf-sub':''}" role="dialog" aria-modal="true" aria-labelledby="sh-t" tabindex="-1">${body}</div></div>`;
+}
+function pfHome(){
+  const pers = isPersonal(), nome = pers ? ACCT.nome : (S.nome || 'Você'), n = S.history.length;
+  const late = pers && ACCT.pagoAte && ACCT.pagoAte < today();
+  const pay = pers && ACCT.pagoAte ? `<span class="pf-chip ${late?'bad':'ok'}">${ic(late?'bell':'check')}${late ? 'Mensalidade em aberto desde '+dm(ACCT.pagoAte) : 'Mensalidade em dia até '+dm(ACCT.pagoAte)}</span>` : '';
+  const nOn = [PREF.avDia!==false && !noPlan(), S.remind.on, PREF.avDesc!==false, PREF.avTreino!==false].filter(Boolean).length;
+  const dias = noPlan() ? 'Nenhum treino montado' : diasLivres() ? 'qualquer dia' : tDays().length+'x por semana';
+  const obj = ED[S.ed] ? ED[S.ed].nome : '';
+  const tl = TLAYS.find(o => o.id===tLay()).n, cl = LAYS.find(o => o.id===layOf()).n, cor = (ACC[PREF.accent] || ACC.vermelho)[0];
+  const tile = (pg, cls, icn, t, sub) => `<button type="button" class="pf-tile ${cls}" data-a="pf-go" data-v="${pg}">${ic(icn)}<b>${t}</b><span>${sub}</span></button>`;
+  const row = (pg, icn, cls, t) => `<button type="button" class="pf-row" data-a="pf-go" data-v="${pg}"><span class="pf-ic ${cls}">${ic(icn)}</span><b>${t}</b>${ic('chev','pf-ch')}</button>`;
+  return `${sheetTop('Seu perfil', 'Perfil<span class="dot" aria-hidden="true"></span>')}
+    <div class="pf-id"><span class="avatar" aria-hidden="true">${avatarIn()}</span><div><b>${esc(nome)}</b><span class="pf-st">${pers?'Com seu personal':'Treinando sem personal'} · ${n} treino${n===1?'':'s'} salvo${n===1?'':'s'}</span>
+      <div class="pf-chips">${pay}<input type="file" id="prof-foto" accept="image/*" class="sr-file"><label for="prof-foto" class="pf-chip">${ic('camera')}${FOTO?'Trocar foto':'Adicionar foto'}</label>${FOTO?`<button type="button" class="pf-chip" data-a="foto-del">${ui.arm==='foto-del'?'Toque de novo para remover':'Remover foto'}</button>`:''}</div></div></div>
+    <div class="pf-tiles">
+      ${tile('plano', 't-red', 'dumbbell', pers ? 'Meu plano' : 'Meus treinos', [obj, dias].filter(Boolean).join(' · '))}
+      ${tile('avisos', 't-blue', 'bell', 'Avisos', nOn+' de 4 ligados')}
+      ${tile('visual', 't-lime', 'layers', 'Visual', tl+' · '+cl+' · '+cor)}
+      ${tile('sug', 't-orange', 'msg', 'Sugestão', 'Fale com a gente')}
+    </div>
+    <div class="pf-list">${row('conta', 'lock', '', 'Termos de uso e privacidade')}${row('conta', 'trash', 'red', pers ? 'Apagar registros ou excluir dados' : 'Apagar registros ou excluir a conta')}</div>
+    <button type="button" class="pf-list pf-out${ui.arm==='logout'?' armed':''}" data-a="logout">${ui.arm==='logout'?'Toque de novo para sair':'Sair'}</button>
+    <div class="pf-ver"><span class="ver-pill">${ic('check')}App na versão ${APPV}</span><button type="button" class="pf-link ver-btn${NOVAV?' nova':''}" data-a="ver-checar">${ic('refresh')}${NOVAV ? 'Atualizar para a '+esc(NOVAV) : 'Procurar atualização'}</button><span hidden></span></div>`;
+}
+function pfPlano(){
+  const pers = isPersonal();
+  if(pers){
+    const dias = diasLivres() ? 'Qualquer dia · '+SEMANA_TREINOS+'x' : tDays().map(i => TDAYS_L[i]).join(', ');
+    return pfVolta('Meu plano')+`<div class="prefs"><div class="pref-h"><b>Seu plano</b><span>${esc(ACCT.plano||'')}</span></div>
     <div class="plan-ro"><div><b>${ED[S.ed]?ED[S.ed].nome:'—'}</b><span>objetivo</span></div><div><b>${dias}</b><span>dias de treino</span></div><div><b>${fmtL(S.waterGoal)}</b><span>água por dia</span></div><div><b>${S.cardioGoal} min</b><span>cardio na semana · ${CARDIO.zona}</span></div></div>
-    <p class="lock-note">${ic('lock')}Definido pelo seu personal.</p></div>` : '';
-  const selfEdit = pers ? '' : `<div class="field"><span class="flabel">Seu foco</span>${seg('ed',SELF_ED,S.ed,SELF_ED.map(k => ED[k].nome),'Seu foco')}</div>
+    <p class="lock-note">${ic('lock')}Definido pelo seu personal.</p></div>`;
+  }
+  return pfVolta('Meus treinos')+`<div class="field"><label class="flabel" for="prof-nome">Seu nome</label><div class="inp-wrap"><input class="inp" id="prof-nome" autocomplete="given-name" placeholder="Como você quer ser chamado" value="${esc(S.nome||'')}" data-prof="nome"></div></div>
+    <div class="field"><span class="flabel">Seu foco</span>${seg('ed',SELF_ED,S.ed,SELF_ED.map(k => ED[k].nome),'Seu foco')}</div>
     <div class="prefs"><div class="pref-h"><b>Seus treinos</b><span>${noPlan() ? 'Nenhum treino montado ainda.' : LETTERS.length+' treino'+(LETTERS.length===1?'':'s')+' · '+esc(ACCT.plano||'')+' · '+(tDays().length===7 && ownPlan() ? 'qualquer dia' : joinPt(tDays().map(i => TDAYS_L[i])))}</span></div>
     <button type="button" class="btn block pf-mt" data-a="mt-open-sheet">${ic('edit')}Editar meus treinos</button><button type="button" class="btn block pf-mt" data-a="ia-open">${ic('spark')}Refazer com a IA</button></div>
     <div class="prefs"><div class="pref-h"><b>Suas metas</b><span>Água por dia e cardio por semana.</span></div>
     <div class="stepper"><button type="button" class="btn round" data-a="goal" data-d="-250" aria-label="Diminuir meta de água">${ic('minus')}</button><output>${fmtL(S.waterGoal)}<small> água</small></output><button type="button" class="btn round" data-a="goal" data-d="250" aria-label="Aumentar meta de água">${ic('plus')}</button></div>
     <div class="stepper"><button type="button" class="btn round" data-a="cgoal" data-d="-30" aria-label="Diminuir meta de cardio">${ic('minus')}</button><output>${S.cardioGoal}<small> min cardio</small></output><button type="button" class="btn round" data-a="cgoal" data-d="30" aria-label="Aumentar meta de cardio">${ic('plus')}</button></div></div>`;
-  return `<div class="sheet-wrap" data-a="closebg"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t" tabindex="-1">${sheetTop('Seu perfil', esc(firstName(nome))+'<span class="dot" aria-hidden="true"></span>')}
-    <div class="prof-id"><span class="avatar" aria-hidden="true">${avatarIn()}</span><div><b>${esc(nome)}</b><span>${pers?'Com seu personal':'Treinando sem personal'} · ${S.history.length} treino${S.history.length===1?'':'s'} salvo${S.history.length===1?'':'s'}</span>${pay}<span class="ver-pill">${ic('check')}App na versão ${APPV}</span><button type="button" class="btn small ver-btn${NOVAV?' nova':''}" data-a="ver-checar">${ic('refresh')}${NOVAV ? 'Atualizar para a '+esc(NOVAV) : 'Procurar atualização'}</button><span hidden></span></div></div>
-    <div class="foto-row"><input type="file" id="prof-foto" accept="image/*" class="sr-file"><label for="prof-foto" class="btn small">${ic('camera')}${FOTO?'Trocar foto':'Adicionar foto'}</label>${FOTO?`<button type="button" class="btn small ghost" data-a="foto-del">${ui.arm==='foto-del'?'Toque de novo para remover':'Remover foto'}</button>`:''}</div>
-    ${ntfBloco(pers)}
-    ${pers ? '' : `<div class="field"><label class="flabel" for="prof-nome">Seu nome</label><div class="inp-wrap"><input class="inp" id="prof-nome" autocomplete="given-name" placeholder="Como você quer ser chamado" value="${esc(S.nome||'')}" data-prof="nome"></div></div>`}
-    ${planRO}${selfEdit}
-    <div class="field"><span class="flabel">Personalizar cor</span><div class="dots" role="group" aria-label="Cor do app">${Object.keys(ACC).map(k => `<button type="button" class="cdot${ACC[k][1]==='n'?' neutral':''}${PREF.accent===k?' on':''}" style="--c:${ACC[k][1]==='n'?'#FFFFFF':ACC[k][1]}" data-a="accent" data-v="${k}" aria-label="${ACC[k][0]}" aria-pressed="${PREF.accent===k}">${PREF.accent===k?ic('check'):''}</button>`).join('')}</div><p class="foot0">Cor dos destaques, da faixa e dos botões. O branco neutro vira preto no modo claro. Água fica sempre azul e cardio sempre verde.</p></div>
-    <h3>Personalizar</h3>
-    <div class="prefs"><div class="sw-row"><div><b>Ícones em Liquid Glass</b><span>Barra de abas, botões redondos e selos ficam de vidro.</span></div><label class="switch"><input type="checkbox" data-sw="glass"${PREF.glass?' checked':''}><span class="knob"></span><span class="sr">Ícones em Liquid Glass</span></label></div>
+}
+function pfAvisos(){ return pfVolta('Avisos')+ntfBloco(isPersonal()); }
+function pfVisual(){
+  const pers = isPersonal();
+  return pfVolta('Visual')+`<div class="prefs"><div class="pref-h"><b>Cor do app</b><span>Destaques, faixa e botões. O branco neutro vira preto no modo claro. Água fica sempre azul e cardio sempre verde.</span></div>
+    <div class="dots" role="group" aria-label="Cor do app">${Object.keys(ACC).map(k => `<button type="button" class="cdot${ACC[k][1]==='n'?' neutral':''}${PREF.accent===k?' on':''}" style="--c:${ACC[k][1]==='n'?'#FFFFFF':ACC[k][1]}" data-a="accent" data-v="${k}" aria-label="${ACC[k][0]}" aria-pressed="${PREF.accent===k}">${PREF.accent===k?ic('check'):''}</button>`).join('')}</div>
+    <div class="sw-row"><div><b>Ícones em Liquid Glass</b><span>Barra de abas, botões redondos e selos ficam de vidro.</span></div><label class="switch"><input type="checkbox" data-sw="glass"${PREF.glass?' checked':''}><span class="knob"></span><span class="sr">Ícones em Liquid Glass</span></label></div>
     <div class="glass-demo" aria-hidden="true"><span class="num">${ic('dumbbell')}</span><span class="num">${ic('drop')}</span><span class="num">${ic('pulse')}</span><span class="num">${ic('trophy')}</span></div></div>
-    <div class="prefs"><div class="pref-h"><b id="cc-t">Customizar cardio</b><span>Agora: ${LAYS.find(o => o.id===layOf()).n}. Toque em outro para trocar.</span></div>
-    <div class="lay-list" role="radiogroup" aria-labelledby="cc-t">${LAYS.map(o => layCard(o, o.id===layOf(), 'set-clay', o.id===layOf()?'Atual':'')).join('')}</div></div>
-    <div class="prefs"><div class="pref-h"><b id="ct-t">Customizar treino</b><span>Agora: ${TLAYS.find(o => o.id===tLay()).n}. Toque em outro para trocar.</span></div>
+    <div class="prefs"><div class="pref-h"><b id="ct-t">Treino</b><span>Agora: ${TLAYS.find(o => o.id===tLay()).n}. Toque em outro para trocar.</span></div>
     <div class="lay-list t4" role="radiogroup" aria-labelledby="ct-t">${TLAYS.map(o => layCard(o, o.id===tLay(), 'set-tlay', o.id===tLay()?'Atual':'', tlThumb)).join('')}</div></div>
+    <div class="prefs"><div class="pref-h"><b id="cc-t">Cardio</b><span>Agora: ${LAYS.find(o => o.id===layOf()).n}. Toque em outro para trocar.</span></div>
+    <div class="lay-list" role="radiogroup" aria-labelledby="cc-t">${LAYS.map(o => layCard(o, o.id===layOf(), 'set-clay', o.id===layOf()?'Atual':'')).join('')}</div></div>
     ${pers ? `<div class="prefs"><div class="pref-h"><b>Seu boneco</b><span>${sexOf()==='M'?'Masculino':'Feminino'}</span></div><p class="lock-note">${ic('lock')}Definido no seu cadastro.</p></div>`
       : `<div class="prefs"><div class="pref-h"><b id="bn-t">Seu boneco</b><span>Quem aparece correndo, pedalando e subindo escada.</span></div>
-    <div class="iseg" role="group" aria-labelledby="bn-t">${[['F','Feminino'],['M','Masculino']].map(([v,l]) => `<button type="button" class="${sexOf()===v?'on':''}" aria-pressed="${sexOf()===v}" data-a="boneco" data-v="${v}">${l}</button>`).join('')}</div></div>`}
-    <button type="button" class="btn block ${ui.arm==='wipe'?'armed':'ghost danger'}" data-a="wipe">${ui.arm==='wipe'?'Toque de novo para apagar tudo':'Apagar meus registros'}</button>
-    <div class="prefs"><div class="pref-h"><b>Sua conta</b><span>${S.aceite ? 'Termos aceitos em '+dm(S.aceite.em.slice(0,10))+'.' : 'Termos ainda não aceitos.'}</span></div>
-    <button type="button" class="btn block pf-mt" data-a="doc-open" data-v="termos">${ic('lock')}Termos de uso e privacidade</button>
-    <button type="button" class="btn block pf-mt danger-t" data-a="acc-open">${ic('trash')}${pers ? 'Excluir meus dados' : 'Excluir minha conta'}</button></div>
-    <div class="prefs sug-box"><div class="pref-h"><b>Sugestões para o app</b><span>Tem uma ideia, sentiu falta de algo ou algo não funcionou? Escreve aqui: vai direto para a equipe do Simplificando.</span></div>
-    <label class="sr" for="sug-txt">Sua sugestão</label><textarea id="sug-txt" class="sug-t" rows="3" maxlength="1000" placeholder="Ex.: queria ver o gráfico do meu peso no app">${esc(ui.sugD||'')}</textarea>
-    <button type="button" class="btn block" data-a="sug-send">${ic('msg')}Enviar sugestão</button></div>
-    <button type="button" class="btn block ${ui.arm==='logout'?'armed':'ghost danger'}" data-a="logout">${ui.arm==='logout'?'Toque de novo para sair':'Sair'}</button>
-    <button type="button" class="btn primary block" data-a="close">${ic('check')}Pronto</button>
-    <p class="foot0 app-ver">Versão do app: ${APPV}</p></div></div>`;
+    <div class="iseg" role="group" aria-labelledby="bn-t">${[['F','Feminino'],['M','Masculino']].map(([v,l]) => `<button type="button" class="${sexOf()===v?'on':''}" aria-pressed="${sexOf()===v}" data-a="boneco" data-v="${v}">${l}</button>`).join('')}</div></div>`}`;
 }
-
+function pfSug(){
+  return pfVolta('Sugestão')+`<div class="prefs sug-box"><div class="pref-h"><b>Sugestões para o app</b><span>Tem uma ideia, sentiu falta de algo ou algo não funcionou? Escreve aqui: vai direto para a equipe do Simplificando.</span></div>
+    <label class="sr" for="sug-txt">Sua sugestão</label><textarea id="sug-txt" class="sug-t" rows="4" maxlength="1000" placeholder="Ex.: queria ver o gráfico do meu peso no app">${esc(ui.sugD||'')}</textarea>
+    <button type="button" class="btn block" data-a="sug-send">${ic('msg')}Enviar sugestão</button></div>`;
+}
+function pfConta(){
+  const pers = isPersonal();
+  return pfVolta('Conta')+`<div class="prefs"><div class="pref-h"><b>Sua conta</b><span>${S.aceite ? 'Termos aceitos em '+dm(S.aceite.em.slice(0,10))+'.' : 'Termos ainda não aceitos.'}</span></div>
+    <button type="button" class="btn block pf-mt" data-a="doc-open" data-v="termos">${ic('lock')}Termos de uso e privacidade</button></div>
+    <div class="prefs"><div class="pref-h"><b>Seus dados</b><span>Apagar os registros deixa o app como novo neste celular. Excluir ${pers?'os dados':'a conta'} apaga tudo de vez.</span></div>
+    <button type="button" class="btn block ${ui.arm==='wipe'?'armed':'ghost danger'}" data-a="wipe">${ui.arm==='wipe'?'Toque de novo para apagar tudo':'Apagar meus registros'}</button>
+    <button type="button" class="btn block pf-mt danger-t" data-a="acc-open">${ic('trash')}${pers ? 'Excluir meus dados' : 'Excluir minha conta'}</button></div>`;
+}
 /* ---------- Evolução ---------- */
 function niceTicks(mn,mx){
   if(mn===mx){ mn -= 5; mx += 5; }
@@ -6156,7 +6225,7 @@ function onClick(ev){
     }
     case 'clay-go': { const v = ui.pick || PREF.cardioLayout; if(v){ PREF.cardioLayout = v; savePref(); ui.pstep = 0; renderPick(); toast('Pronto. Dá para trocar no seu perfil.'); } break; }
     case 'prof-to': {
-      ui.sheet = {k:'prof'}; renderSheet(true);
+      ui.sheet = {k:'prof', p:'visual'}; renderSheet(true);
       const sh = $sheet.querySelector('.sheet'), h = document.getElementById(d.v), box = h && h.closest('.prefs');
       if(sh && box){ sh.scrollTop += box.getBoundingClientRect().top - sh.getBoundingClientRect().top - 72; const on = box.querySelector('.lay.on'); try { (on||box).focus({preventScroll:true}); } catch(e){ /* foco opcional */ } }
       re = false; break;
@@ -6203,6 +6272,7 @@ function onClick(ev){
     case 'ed': if(isPersonal()) break; S.ed = d.v; if(ui.sheet && ui.sheet.k==='prof') renderSheet(); break;
     case 'foto-del': if(armed==='foto-del'){ saveFoto(''); toast('Foto removida.'); } else ui.arm = 'foto-del'; renderSheet(); break;
     case 'profile': ui.sheet = {k:'prof'}; renderSheet(true); re = false; break;
+    case 'pf-go': { ui.sheet = {k:'prof', p:d.v||''}; ui.arm = null; renderSheet(); const sh = $sheet.querySelector('.sheet'); if(sh){ sh.scrollTop = 0; try { sh.focus({preventScroll:true}); } catch(e){ /* foco opcional */ } } re = false; break; }
     case 'theme': PREF.theme = curTheme()==='dark' ? 'light' : 'dark'; savePref(); applyLook(); toast(PREF.theme==='light' ? 'Modo claro.' : 'Modo escuro.'); break;
     case 'accent': PREF.accent = ACC[d.v] ? d.v : 'vermelho'; savePref(); applyLook(); renderSheet(); break;
     case 'month': ui.month = Math.min(0, Math.max(-11, ui.month+ +d.d)); break;

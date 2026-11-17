@@ -274,7 +274,7 @@ function onClick(ev){
     }
     case 'clay-go': { const v = ui.pick || PREF.cardioLayout; if(v){ PREF.cardioLayout = v; savePref(); ui.pstep = 0; renderPick(); toast('Pronto. Dá para trocar no seu perfil.'); } break; }
     case 'prof-to': {
-      ui.sheet = {k:'prof'}; renderSheet(true);
+      ui.sheet = {k:'prof', p:'visual'}; renderSheet(true);
       const sh = $sheet.querySelector('.sheet'), h = document.getElementById(d.v), box = h && h.closest('.prefs');
       if(sh && box){ sh.scrollTop += box.getBoundingClientRect().top - sh.getBoundingClientRect().top - 72; const on = box.querySelector('.lay.on'); try { (on||box).focus({preventScroll:true}); } catch(e){ /* foco opcional */ } }
       re = false; break;
@@ -321,6 +321,7 @@ function onClick(ev){
     case 'ed': if(isPersonal()) break; S.ed = d.v; if(ui.sheet && ui.sheet.k==='prof') renderSheet(); break;
     case 'foto-del': if(armed==='foto-del'){ saveFoto(''); toast('Foto removida.'); } else ui.arm = 'foto-del'; renderSheet(); break;
     case 'profile': ui.sheet = {k:'prof'}; renderSheet(true); re = false; break;
+    case 'pf-go': { ui.sheet = {k:'prof', p:d.v||''}; ui.arm = null; renderSheet(); const sh = $sheet.querySelector('.sheet'); if(sh){ sh.scrollTop = 0; try { sh.focus({preventScroll:true}); } catch(e){ /* foco opcional */ } } re = false; break; }
     case 'theme': PREF.theme = curTheme()==='dark' ? 'light' : 'dark'; savePref(); applyLook(); toast(PREF.theme==='light' ? 'Modo claro.' : 'Modo escuro.'); break;
     case 'accent': PREF.accent = ACC[d.v] ? d.v : 'vermelho'; savePref(); applyLook(); renderSheet(); break;
     case 'month': ui.month = Math.min(0, Math.max(-11, ui.month+ +d.d)); break;

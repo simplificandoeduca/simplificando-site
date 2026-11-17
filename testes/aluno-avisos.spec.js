@@ -1,7 +1,8 @@
 // ⚙️ Perfil e avisos no celular (descanso, treino esquecido, lembrete do dia, água) e o que vai para o Firebase de teste
 const { test, expect, simp, entraComSenha, criaConta, semJanelas, capturaAvisos, ligaAvisos, fsLista, aba } = require('./apoio');
 
-const abrePerfil = page => simp(page, () => { const T = window.__simp; T.ui.sheet = { k: 'prof' }; T.renderSheet(); });
+const abrePerfil = page => simp(page, () => { const T = window.__simp; T.ui.sheet = { k: 'prof', p: 'avisos' }; T.renderSheet(); }); // Perfil › Avisos
+const vaiPerfil = (page, p) => simp(page, p => { const T = window.__simp; T.ui.sheet = { k: 'prof', p }; T.renderSheet(); }, p);
 const chave = (page, k, on) => page.locator(`#sheet [data-sw="${k}"]`).first().evaluate((el, on) => { el.checked = on; el.dispatchEvent(new Event('change', { bubbles: true })); }, on);
 
 test.describe('com personal (exemplo)', () => {
@@ -72,14 +73,16 @@ test.describe('com personal (exemplo)', () => {
 
 test.describe('sem personal', () => {
   test('perfil: cor, Liquid Glass, boneco e meta de água', async ({ page }) => {
-    await criaConta(page); await semJanelas(page); await abrePerfil(page);
+    await criaConta(page); await semJanelas(page); await vaiPerfil(page, 'visual');
     const cor = await page.locator('#sheet [data-a="accent"]').nth(1).getAttribute('data-v');
     await page.locator('#sheet [data-a="accent"]').nth(1).click();
     expect(await simp(page, () => window.__simp.PREF.accent)).toBe(cor);
     await chave(page, 'glass', true); expect(await simp(page, () => window.__simp.PREF.glass)).toBe(true);
     await page.click('#sheet [data-a="boneco"][data-v="M"]'); expect(await simp(page, () => window.__simp.S.conta.sexo)).toBe('M');
+    await vaiPerfil(page, 'plano');
     const g = await simp(page, () => window.__simp.S.waterGoal);
     await page.click('#sheet [data-a="goal"][data-d="250"]'); expect(await simp(page, () => window.__simp.S.waterGoal)).toBe(g + 250);
+    await vaiPerfil(page, 'conta');
     await page.click('#sheet [data-a="doc-open"][data-v="termos"]');
     await expect(page.locator('#sheet')).toContainText('Termos');
   });
@@ -91,6 +94,7 @@ test.describe('sem personal', () => {
     await abrePerfil(page); await chave(page, 'acomp', true);
     await expect.poll(async () => { const p = (await fsLista('perfis')).find(x => x.id === uid); return p && p.f.acomp && p.f.acomp.booleanValue; }, { timeout: 10000 }).toBe(true);
     // sugestão
+    await vaiPerfil(page, 'sug');
     await page.fill('#sug-txt', 'Robô: queria ver o gráfico do peso.'); await page.click('#sheet [data-a="sug-send"]');
     await expect.poll(async () => (await fsLista('sugestoes')).some(x => x.f.uid && x.f.uid.stringValue === uid), { timeout: 10000 }).toBe(true);
     // avaliação (estrelas)

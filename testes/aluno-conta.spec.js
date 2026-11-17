@@ -94,3 +94,26 @@ test('app de teste (/app-teste): entra direto com o aluno de exemplo, sem senha 
   await page.reload();
   await page.waitForFunction(() => window.__simp && window.__simp.ACCT && window.__simp.ACCT.code === '482913', null, { timeout: 15000 });
 });
+
+test('Seu perfil: 4 blocos abrem as telas de dentro e voltam; sem personal, "Meus treinos" edita nome, foco e metas', async ({ page }) => {
+  await criaConta(page, { nome: 'Paula Perfil' });
+  await semJanelas(page);
+  await simp(page, () => { const T = window.__simp; T.ui.sheet = { k: 'prof' }; T.renderSheet(); });
+  await expect(page.locator('#sheet .pf-tile')).toHaveCount(4);
+  await expect(page.locator('#sheet .pf-id')).toContainText('Paula');
+  for (const [v, t] of [['plano', 'Meus treinos'], ['avisos', 'Avisos'], ['visual', 'Visual'], ['sug', 'Sugestão'], ['conta', 'Conta']]) {
+    await page.click(`#sheet [data-a="pf-go"][data-v="${v}"]`);
+    await expect(page.locator('#sheet .pf-h')).toHaveText(t);
+    if (v === 'plano') {
+      await expect(page.locator('#sheet #prof-nome')).toHaveValue('Paula Perfil');
+      const antes = await simp(page, () => window.__simp.S.waterGoal);
+      await page.click('#sheet [data-a="goal"][data-d="250"]');
+      expect(await simp(page, () => window.__simp.S.waterGoal)).toBe(antes + 250);
+      await expect(page.locator('#sheet .pf-h')).toHaveText('Meus treinos'); // continua na mesma tela
+    }
+    if (v === 'visual') { await page.click('#sheet [data-a="set-tlay"][data-v="foco"]'); expect(await simp(page, () => window.__simp.PREF.treinoLayout)).toBe('foco'); await expect(page.locator('#sheet .pf-h')).toHaveText('Visual'); }
+    if (v === 'conta') { await page.click('#sheet [data-a="wipe"]'); await expect(page.locator('#sheet [data-a="wipe"]')).toContainText('Toque de novo'); }
+    await page.click('#sheet .pf-back');
+    await expect(page.locator('#sheet .pf-tile')).toHaveCount(4);
+  }
+});
