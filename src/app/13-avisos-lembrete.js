@@ -5,7 +5,7 @@
    Não avisa se já treinou (ou está treinando) hoje; sem dia fixo, para quando bate a meta da semana. */
 const hmMin = t => { const m = /^(\d{1,2}):(\d{2})/.exec(String(t||'')); return m ? +m[1]*60 + +m[2] : null; };
 const hIni = h => { const a = hmMin(h.hi); if(a!=null) return a; const f = hmMin(h.hr); return f==null ? null : f - (+h.min||0); }; // hora em que o treino começou
-function usoIni(){ const D = [S.aceite && S.aceite.em ? String(S.aceite.em).slice(0,10) : '', avalUsoIni()].filter(Boolean).sort(); return D[0] || today(); }
+function usoIni(){ const D = [S.aceite && S.aceite.em ? diaLocal(S.aceite.em) : '', avalUsoIni()].filter(Boolean).sort(); return D[0] || today(); }
 const lbAPartir = () => addDays(usoIni(), 7);
 const lbArred = m => Math.max(5*60, Math.min(22*60, Math.round((m-30)/15)*15)); // 30 min antes, de 15 em 15 min
 const mediana = L => { const o = L.slice().sort((x,y) => x-y), k = Math.floor(o.length/2); return o.length%2 ? o[k] : (o[k-1]+o[k])/2; };

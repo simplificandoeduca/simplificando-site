@@ -1796,6 +1796,8 @@ let LETTERS = ['A','B','C'];
 /* ---------- datas e formatos ---------- */
 const pad = n => String(n).padStart(2,'0');
 const dk = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+/* dia (no fuso do celular) de uma data guardada em ISO/UTC: o aceite das 21h às 24h é do mesmo dia, não do seguinte */
+function diaLocal(s){ const d = new Date(s); return isNaN(d) ? String(s||'').slice(0,10) : dk(d); }
 const today = () => dk(new Date());
 const parse = k => { const p = k.split('-').map(Number); return new Date(p[0],p[1]-1,p[2]); };
 const addDays = (k,n) => { const d = parse(k); d.setDate(d.getDate()+n); return dk(d); };
@@ -1824,7 +1826,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '17 nov · 142'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '17 nov · 143'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -2608,7 +2610,7 @@ function vDocSheet(){
   const k = ui.sheet.d==='privacidade' ? 'privacidade' : 'termos', ac = S.aceite;
   return `<div class="sheet-wrap" data-a="closebg"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t" tabindex="-1">${sheetTop('Simplificando', 'Termos e privacidade<span class="dot" aria-hidden="true"></span>')}
     ${seg('doc-tab',['termos','privacidade'],k,['Termos de uso','Privacidade'],'Escolher documento')}
-    ${ac ? `<p class="foot0">${ic('check')} Você aceitou a versão ${ac.v} em ${dm(ac.em.slice(0,10))}.</p>` : ''}
+    ${ac ? `<p class="foot0">${ic('check')} Você aceitou a versão ${ac.v} em ${dm(diaLocal(ac.em))}.</p>` : ''}
     ${DOC_HTML[k]}
     <button type="button" class="btn primary block" data-a="close">${ic('check')}Fechar</button></div></div>`;
 }
@@ -5015,7 +5017,7 @@ document.addEventListener('input', e => { if(e.target && e.target.id==='sug-txt'
    Não avisa se já treinou (ou está treinando) hoje; sem dia fixo, para quando bate a meta da semana. */
 const hmMin = t => { const m = /^(\d{1,2}):(\d{2})/.exec(String(t||'')); return m ? +m[1]*60 + +m[2] : null; };
 const hIni = h => { const a = hmMin(h.hi); if(a!=null) return a; const f = hmMin(h.hr); return f==null ? null : f - (+h.min||0); }; // hora em que o treino começou
-function usoIni(){ const D = [S.aceite && S.aceite.em ? String(S.aceite.em).slice(0,10) : '', avalUsoIni()].filter(Boolean).sort(); return D[0] || today(); }
+function usoIni(){ const D = [S.aceite && S.aceite.em ? diaLocal(S.aceite.em) : '', avalUsoIni()].filter(Boolean).sort(); return D[0] || today(); }
 const lbAPartir = () => addDays(usoIni(), 7);
 const lbArred = m => Math.max(5*60, Math.min(22*60, Math.round((m-30)/15)*15)); // 30 min antes, de 15 em 15 min
 const mediana = L => { const o = L.slice().sort((x,y) => x-y), k = Math.floor(o.length/2); return o.length%2 ? o[k] : (o[k-1]+o[k])/2; };
@@ -5139,7 +5141,7 @@ function pfSug(){
 }
 function pfConta(){
   const pers = isPersonal();
-  return pfVolta('Conta')+`<div class="prefs"><div class="pref-h"><b>Sua conta</b><span>${S.aceite ? 'Termos aceitos em '+dm(S.aceite.em.slice(0,10))+'.' : 'Termos ainda não aceitos.'}</span></div>
+  return pfVolta('Conta')+`<div class="prefs"><div class="pref-h"><b>Sua conta</b><span>${S.aceite ? 'Termos aceitos em '+dm(diaLocal(S.aceite.em))+'.' : 'Termos ainda não aceitos.'}</span></div>
     <button type="button" class="btn block pf-mt" data-a="doc-open" data-v="termos">${ic('lock')}Termos de uso e privacidade</button></div>
     <div class="prefs"><div class="pref-h"><b>Seus dados</b><span>Apagar os registros deixa o app como novo neste celular. Excluir ${pers?'os dados':'a conta'} apaga tudo de vez.</span></div>
     <button type="button" class="btn block ${ui.arm==='wipe'?'armed':'ghost danger'}" data-a="wipe">${ui.arm==='wipe'?'Toque de novo para apagar tudo':'Apagar meus registros'}</button>

@@ -88,7 +88,7 @@ function pfSug(){
 }
 function pfConta(){
   const pers = isPersonal();
-  return pfVolta('Conta')+`<div class="prefs"><div class="pref-h"><b>Sua conta</b><span>${S.aceite ? 'Termos aceitos em '+dm(S.aceite.em.slice(0,10))+'.' : 'Termos ainda não aceitos.'}</span></div>
+  return pfVolta('Conta')+`<div class="prefs"><div class="pref-h"><b>Sua conta</b><span>${S.aceite ? 'Termos aceitos em '+dm(diaLocal(S.aceite.em))+'.' : 'Termos ainda não aceitos.'}</span></div>
     <button type="button" class="btn block pf-mt" data-a="doc-open" data-v="termos">${ic('lock')}Termos de uso e privacidade</button></div>
     <div class="prefs"><div class="pref-h"><b>Seus dados</b><span>Apagar os registros deixa o app como novo neste celular. Excluir ${pers?'os dados':'a conta'} apaga tudo de vez.</span></div>
     <button type="button" class="btn block ${ui.arm==='wipe'?'armed':'ghost danger'}" data-a="wipe">${ui.arm==='wipe'?'Toque de novo para apagar tudo':'Apagar meus registros'}</button>

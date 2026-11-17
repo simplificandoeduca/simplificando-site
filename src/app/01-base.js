@@ -44,6 +44,8 @@ let LETTERS = ['A','B','C'];
 /* ---------- datas e formatos ---------- */
 const pad = n => String(n).padStart(2,'0');
 const dk = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+/* dia (no fuso do celular) de uma data guardada em ISO/UTC: o aceite das 21h às 24h é do mesmo dia, não do seguinte */
+function diaLocal(s){ const d = new Date(s); return isNaN(d) ? String(s||'').slice(0,10) : dk(d); }
 const today = () => dk(new Date());
 const parse = k => { const p = k.split('-').map(Number); return new Date(p[0],p[1]-1,p[2]); };
 const addDays = (k,n) => { const d = parse(k); d.setDate(d.getDate()+n); return dk(d); };
@@ -72,7 +74,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '17 nov · 142'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '17 nov · 143'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };

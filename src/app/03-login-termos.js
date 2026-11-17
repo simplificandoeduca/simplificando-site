@@ -137,7 +137,7 @@ function vDocSheet(){
   const k = ui.sheet.d==='privacidade' ? 'privacidade' : 'termos', ac = S.aceite;
   return `<div class="sheet-wrap" data-a="closebg"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t" tabindex="-1">${sheetTop('Simplificando', 'Termos e privacidade<span class="dot" aria-hidden="true"></span>')}
     ${seg('doc-tab',['termos','privacidade'],k,['Termos de uso','Privacidade'],'Escolher documento')}
-    ${ac ? `<p class="foot0">${ic('check')} Você aceitou a versão ${ac.v} em ${dm(ac.em.slice(0,10))}.</p>` : ''}
+    ${ac ? `<p class="foot0">${ic('check')} Você aceitou a versão ${ac.v} em ${dm(diaLocal(ac.em))}.</p>` : ''}
     ${DOC_HTML[k]}
     <button type="button" class="btn primary block" data-a="close">${ic('check')}Fechar</button></div></div>`;
 }

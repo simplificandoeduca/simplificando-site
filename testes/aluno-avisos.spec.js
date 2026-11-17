@@ -104,3 +104,10 @@ test.describe('sem personal', () => {
     expect(c.email).toContain('@teste.com');
   });
 });
+
+test('lembrete do treino: quem aceita os termos à noite (22h30) começa 7 dias depois do mesmo dia, não do seguinte', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-11-16T22:30:00-03:00') }); // já é dia 17 no horário UTC
+  await entraComSenha(page);
+  const r = await simp(page, () => { const T = window.__simp; T.S.history = []; T.S.aceite.em = new Date().toISOString(); return [T.today(), T.lbAPartir()]; });
+  expect(r).toEqual(['2026-11-16', '2026-11-23']);
+});
