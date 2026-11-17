@@ -30,11 +30,31 @@ async function loginFalso(q, r) {
   } catch (e) { return json(r, { ok: false, semServidor: true }, 503); }
 }
 
+// senha do hub (hub-login.php de mentira): guarda a senha na memória; para entrar, devolve o passe da conta dona do painel (sistema/dono)
+let HUB_SENHA = null;
+const campo = (body, n) => (body.match(new RegExp('name="' + n + '"\\r\\n\\r\\n([^\\r]*)')) || [])[1];
+async function hubFalso(q, r, acao) {
+  if (acao === 'ver') return json(r, { ok: true, tem: !!HUB_SENHA });
+  let body = ''; for await (const c of q) body += c;
+  const senha = campo(body, 'senha') || '';
+  if (acao === 'definir') {
+    if (!/^Bearer \S{100,}/.test(q.headers.authorization || '')) return json(r, { ok: false, erro: 'Só o dono do painel pode criar a senha do hub.' }, 403);
+    if (senha.length < 6) return json(r, { ok: false, erro: 'A senha precisa ter de 6 a 64 caracteres.' }, 400);
+    HUB_SENHA = senha; return json(r, { ok: true });
+  }
+  if (!HUB_SENHA) return json(r, { ok: false, semSenha: true, erro: 'A senha do hub ainda não foi criada. Entre uma vez com o e-mail do painel e crie a senha no hub.' }, 409);
+  if (senha !== HUB_SENHA) return json(r, { ok: false, erro: 'Senha incorreta.' }, 401);
+  const d = await (await fetch(FS + '/sistema/dono', { headers: DONO })).json();
+  const uid = d.fields && d.fields.uid && d.fields.uid.stringValue; const now = Math.floor(Date.now() / 1000);
+  return json(r, { ok: true, token: b64({ alg: 'none', typ: 'JWT' }) + '.' + b64({ iss: 'robo@demo', sub: 'robo@demo', aud: 'https://identitytoolkit.googleapis.com/google.identity.identitytoolkit.v1.IdentityToolkit', iat: now, exp: now + 3600, uid }) + '.' });
+}
+
 function servidor(porta) {
   http.createServer(async (q, r) => {
     const url = new URL(q.url, 'http://x'), p = decodeURIComponent(url.pathname);
     if (p.endsWith('/firebase-config.js')) { r.setHeader('Content-Type', 'text/javascript'); return r.end(CFG[porta]); }
     if (p === '/login.php' && q.method === 'POST') return loginFalso(q, r);
+    if (p === '/hub-login.php') return hubFalso(q, r, url.searchParams.get('acao'));
     if (p === '/push.php') return json(r, url.searchParams.get('acao') === 'chave' ? { ok: true, pub: 'BOr-robo-chave-publica-de-teste' } : { ok: true, k: 'robo'.repeat(8), novos: [] });
     if (p.endsWith('.php')) return json(r, { ok: true, atual: '', nova: '', erros: [] });
     if (p.startsWith('/__fontes/')) { const ff = path.join(__dirname, 'fontes', path.basename(p)); if (fs.existsSync(ff)) { r.setHeader('Content-Type', 'font/woff2'); r.setHeader('Access-Control-Allow-Origin', '*'); return fs.createReadStream(ff).pipe(r); } }

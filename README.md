@@ -2,7 +2,7 @@
 
 Site do Simplificando: app do aluno (`/treino`), painel do personal (`/personal`) e termos (`/termos`).
 
-Hub do dono (`/hub`): a entrada com os números do dia, um bloco para cada espaço (app de teste, painel, Números) e Finanças, Painel de teste, Site e **Atualizar** (instala a versão aprovada pelo robô). É a mesma página do painel (mesmo login), gerada pelo `tools/build_site.py` em `site/hub/`, com modo claro/escuro próprio. A página Números (`/personal/#estatisticas`) abre pelo hub, fora das abas do painel.
+Hub do dono (`/hub`): a entrada com os números do dia, um bloco para cada espaço (app de teste, painel, Números) e Finanças, Painel de teste, Site e **Atualizar** (instala a versão aprovada pelo robô). É a mesma página do painel (mesmo login), gerada pelo `tools/build_site.py` em `site/hub/`, com modo claro/escuro próprio. A entrada do hub pede só a senha do hub: `site/hub-login.php` confere a senha (guardada embaralhada fora do site, em `~/simplificando-hub-senha.txt`; o dono cria ou troca no próprio hub) e dá a entrada da conta dona do painel com a chave `~/simplificando-chave.json`. A página Números (`/personal/#estatisticas`) abre pelo hub, fora das abas do painel.
 
 App de teste (`/app-teste`): o mesmo app do aluno, gerado pelo `tools/build_site.py`, que entra direto com o aluno de exemplo (Lucas), sem senha e sem o Firebase. Os dados ficam só no aparelho, separados do app de verdade.
 

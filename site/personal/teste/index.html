@@ -476,6 +476,14 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeri
 .gate-reset button{height:48px;border:0;border-radius:999px;background:var(--ctl);color:var(--fg);font:inherit;font-weight:800}
 .gate-reset button.armed{background:var(--brand);color:#0F1712}
 .gate-out{width:100%}
+/* entrada do hub (simplificandoeduca.com/hub): a cara do hub, só a senha */
+.gate.gate-hub{background:#0F1712;color:#F6F5EF;--brand:#FF4646;--fg:#F6F5EF;--muted:#A9B0AA;--card:#172019;--sep:#2E3931;--ctl:#253028}
+.gate.gate-hub.hub-cl{background:#FFFFFF;color:#0F1712;--fg:#0F1712;--muted:#5B625D;--card:#F4F4F1;--sep:#E0E0DA;--ctl:#E8E8E3}
+.gate-hub .gate-in{justify-content:center;gap:16px}
+.gate-hub .gate-logo{width:84px;height:84px}
+.gate-hub h1{font-size:clamp(56px,16vw,76px)}
+.gate-hub .gate-f input{letter-spacing:.12em;font-size:20px}
+.gate-hub .gate-link{align-self:center;color:var(--muted)}
 
 /* aba Perfis e termos */
 .pf-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
@@ -830,7 +838,16 @@ body.hub-on{background:#0F1712}
 .hb-ms>i{font-style:normal;display:block;line-height:1.2}.hb-ms em{display:block;font-style:normal;font-size:11.5px;font-weight:600;color:#5B625D;margin-top:2px}
 .hb-atu.nova{background:#C8F542}.hb-atu.nova em{color:#0F1712}.hb-atu:disabled{opacity:.7;cursor:default}
 .hb-err{margin:10px 4px 0;color:#FF7A72;font-size:13.5px;font-weight:600}
-.hb-pe{display:flex;justify-content:center;margin-top:26px}
+.hb-pe{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:26px}
+.hb-senha{margin-top:20px;background:#C8F542;color:#0F1712;border-radius:26px;padding:18px}
+.hb-senha .hb-eb{color:rgba(15,23,18,.62)}.hb-senha h2{margin:6px 0 0;font-size:26px;font-weight:900;letter-spacing:-.04em;line-height:1.05;color:#0F1712}
+.hb-senha>p{margin:6px 0 0;font-size:14px;line-height:1.4;color:rgba(15,23,18,.78)}
+.hb-sf{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.hb-sf input{min-width:0;height:52px;border:0;border-radius:16px;background:#FFFFFF;color:#0F1712;padding:0 14px;font:inherit;font-size:17px;font-weight:700;letter-spacing:.1em}
+.hb-sb{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.hb-sgo{height:48px;border:0;border-radius:999px;background:#0F1712;color:#F6F5EF;padding:0 20px;font:inherit;font-size:15px;font-weight:800;cursor:pointer}.hb-sgo:disabled{opacity:.6}
+.hb-senha .hb-err{color:#B42318;margin:10px 0 0}.hb-senha .hb-tema{border-color:rgba(15,23,18,.25);color:#0F1712}
+@media (max-width:420px){.hb-sf{grid-template-columns:1fr}}
 .hb-tema{display:inline-flex;align-items:center;gap:8px;border:1.5px solid #2E3931;background:none;color:#F6F5EF;border-radius:999px;height:44px;padding:0 18px;font:inherit;font-size:14px;font-weight:700;cursor:pointer}.hb-tema .i{width:18px;height:18px}
 /* hub no modo claro (botão no fim do hub; vale só para o hub) */
 body.hub-on.hub-claro{background:#FFFFFF}
@@ -2510,6 +2527,35 @@ function hubAtu(){
   const sub = indo ? 'baixando…' : ATU.st==='vendo' ? 'procurando…' : nova ? 'versão '+ATU.nova.replace(/^.*·\s*/,'')+' pronta' : ATU.testando ? 'testando a '+ATU.testando.replace(/^.*·\s*/,'') : 'em dia · '+PAINELV.replace(/^.*·\s*/,'');
   return '<button type="button" class="hb-ms hb-atu'+(nova ? ' nova' : '')+'" data-a="atuGo"'+(indo ? ' disabled' : '')+'><span>'+ic('refresh')+'</span><i>'+(indo ? 'Atualizando' : 'Atualizar')+'<em>'+esc(sub)+'</em></i></button>';
 }
+/* senha do hub: guardada embaralhada no servidor (hub-login.php), nunca no código. O dono cria aqui, já logado */
+const HUBS = { tem:null, vendo:false, aberto:false, v1:'', v2:'', msg:'', indo:false };
+function hubSenhaVer(){
+  if(HUBS.vendo || HUBS.tem!==null) return; HUBS.vendo = true;
+  fetch('/hub-login.php?acao=ver', { cache:'no-store' }).then(r => r.ok ? r.json() : Promise.reject()).then(j => { HUBS.tem = !!(j && j.tem); if(ui.view==='hub') render(); }).catch(() => { HUBS.tem = 'sem'; });
+}
+function hubSenhaCard(){
+  hubSenhaVer();
+  if(!(HUBS.tem===false || HUBS.aberto)) return '';
+  const novo = HUBS.tem===false;
+  return '<section class="hb-senha"><p class="hb-eb">'+(novo ? 'Falta um passo' : 'Senha do hub')+'</p><h2>'+(novo ? 'Crie a senha do hub' : 'Trocar a senha do hub')+'.</h2>'+
+    '<p>'+(novo ? 'Depois disso, o hub pede só esta senha para entrar.' : 'A senha nova passa a valer na próxima entrada.')+' Ela fica guardada embaralhada no servidor.</p>'+
+    '<div class="hb-sf"><input type="password" id="hb-s1" inputmode="numeric" autocomplete="new-password" placeholder="Senha (mínimo 6)" value="'+esc(HUBS.v1)+'"><input type="password" id="hb-s2" inputmode="numeric" autocomplete="new-password" placeholder="Repita a senha" value="'+esc(HUBS.v2)+'"></div>'+
+    (HUBS.msg ? '<p class="hb-err" role="alert">'+esc(HUBS.msg)+'</p>' : '')+
+    '<div class="hb-sb"><button type="button" class="hb-sgo" data-a="hubSenhaOk"'+(HUBS.indo ? ' disabled' : '')+'>'+(HUBS.indo ? 'Salvando…' : 'Salvar senha')+'</button>'+(novo ? '' : '<button type="button" class="hb-tema" data-a="hubSenha">Cancelar</button>')+'</div></section>';
+}
+function hubSenhaOk(){
+  const a = HUBS.v1, b = HUBS.v2;
+  if(a.length<6){ HUBS.msg = 'A senha precisa ter pelo menos 6 caracteres.'; render(); return; }
+  if(a!==b){ HUBS.msg = 'As duas senhas não são iguais.'; render(); return; }
+  HUBS.indo = true; HUBS.msg = ''; render();
+  donoToken().then(t => { const f = new FormData(); f.append('senha', a); f.append('token', t||''); return fetch('/hub-login.php?acao=definir', { method:'POST', cache:'no-store', body:f, headers:t ? { Authorization:'Bearer '+t } : {} }); }).then(r => r.json()).then(j => {
+    HUBS.indo = false;
+    if(j && j.ok){ HUBS.tem = true; HUBS.aberto = false; HUBS.v1 = HUBS.v2 = ''; toast('Senha do hub salva. Da próxima vez, o hub pede só ela.'); }
+    else HUBS.msg = (j && j.erro) || 'Não deu certo. Tente de novo.';
+    render();
+  }).catch(() => { HUBS.indo = false; HUBS.msg = 'Sem conexão com o servidor. Confira a internet e tente de novo.'; render(); });
+}
+document.addEventListener('input', e => { const el = e.target; if(el && el.id==='hb-s1') HUBS.v1 = el.value; if(el && el.id==='hb-s2') HUBS.v2 = el.value; });
 const horaTxt = () => new Date().toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
 let hubTick = 0; // relógio do hub: troca só o texto da hora a cada segundo (sem redesenhar a tela)
 function hubRelogio(){
@@ -2524,6 +2570,7 @@ function vHub(){
   const ms = (href, icn, t, teste) => '<a class="hb-ms" href="'+href+'" target="_blank" rel="noopener"'+(teste ? ' data-teste="1"' : '')+'><span>'+ic(icn)+'</span><i>'+t+'</i></a>';
   return '<div class="hub">'+
     '<header class="hb-top"><div><p class="hb-eb hb-dt">'+esc(hojeTxt())+' · <span id="hb-hora" class="hb-hora">'+horaTxt()+'</span></p><h1>Hub<i>.</i></h1></div><span class="hb-av" aria-hidden="true">'+hubLogo()+'</span></header>'+
+    hubSenhaCard()+
     '<section class="hb-stats" aria-label="Números de hoje">'+
       st(ok ? n.ativos : '…', 'alunos ativos', ok ? (n.novosAl ? ic('trend')+'+'+n.novosAl+' no mês' : 'de '+n.todos+' cadastrados') : '')+
       st(n.nota!=null ? fmtN(n.nota,1) : n.notas===0 ? '—' : v(null), 'nota do app', n.notas!=null ? ic('star')+(n.notas ? plural(n.notas,'nota')+' em 30 dias' : 'sem notas em 30 dias') : '')+
@@ -2537,7 +2584,7 @@ function vHub(){
     '</div>'+
     '<div class="hb-mais">'+ms('/financas/', 'wallet', 'Finanças')+ms('/personal/teste/', 'flask', 'Painel de teste', true)+ms('/', 'globe', 'Site')+hubAtu()+'</div>'+
     (ATU.msg ? '<p class="hb-err" role="alert">'+esc(ATU.msg)+'</p>' : '')+
-    '<div class="hb-pe"><button type="button" class="hb-tema" data-a="hubTema" aria-pressed="'+!!PREF.hubClaro+'">'+ic(PREF.hubClaro ? 'moon' : 'sun')+(PREF.hubClaro ? 'Modo escuro' : 'Modo claro')+'</button></div>'+
+    '<div class="hb-pe"><button type="button" class="hb-tema" data-a="hubTema" aria-pressed="'+!!PREF.hubClaro+'">'+ic(PREF.hubClaro ? 'moon' : 'sun')+(PREF.hubClaro ? 'Modo escuro' : 'Modo claro')+'</button>'+(HUBS.tem===true && !HUBS.aberto ? '<button type="button" class="hb-tema" data-a="hubSenha">'+ic('key')+'Senha do hub</button>' : '')+'</div>'+
   '</div>';
 }
 /* ---------- Estatísticas: o que os alunos usam e sugerem, para decidir as próximas mudanças ---------- */
@@ -3496,7 +3543,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '17 nov · 148'; // Versão do painel: 17 nov · 148
+const PAINELV = '17 nov · 149'; // Versão do painel: 17 nov · 149
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -4823,6 +4870,8 @@ function act(a,d,btn){
     case 'domFim': { const st = domLer(); if(st){ st.fim = true; domGravar(st); } toast('Relatórios da semana encerrados.'); break; }
     case 'atuGo': atuGo(); return false;
     case 'hubTema': PREF.hubClaro = !PREF.hubClaro; savePref(); break;
+    case 'hubSenha': HUBS.aberto = !HUBS.aberto; HUBS.msg = ''; HUBS.v1 = HUBS.v2 = ''; if(HUBS.aberto) window.scrollTo(0,0); break;
+    case 'hubSenhaOk': hubSenhaOk(); return false;
     case 'impFile': { const f = document.getElementById('imp-file'); if(f) f.click(); return false; }
     case 'rkSort': ui.rkSort = !ui.rkSort; if(ui.sheet && ui.sheet.k==='pick'){ renderSheet(); return false; } break;
     case 'pfRefresh': loadPerfis(true); toast('Atualizando a lista'); break;
@@ -4940,7 +4989,7 @@ try { matchMedia('(prefers-color-scheme: light)').addEventListener('change', () 
    A primeira conta que entra vira a dona do painel; outras contas não veem nada. */
 function gateFirebase(){
   const g = document.getElementById('gate'), A = FBP.auth, P_ = FBP.fb.auth.Auth.Persistence;
-  const st = { show:false, first:false, busy:false, msg:'', ok:false };
+  const st = { show:false, first:false, busy:false, msg:'', ok:false, hub:HUB_PAGINA };
   const eye = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg>';
   const pw = (id,ph,ac) => `<div class="gate-f"><input id="${id}" type="${st.show?'text':'password'}" autocomplete="${ac}" placeholder="${ph}" required><button type="button" class="gate-eye" data-gate="eye" aria-label="${st.show?'Esconder senha':'Mostrar senha'}">${eye}</button></div>`;
   const okMail = v => /^\S+@\S+\.\S+$/.test(String(v||'').trim());
@@ -4959,6 +5008,21 @@ function gateFirebase(){
   }
   function view(){
     const first = st.first;
+    g.classList.toggle('gate-hub', !!(st.hub && !first)); g.classList.toggle('hub-cl', !!(st.hub && !first && PREF.hubClaro));
+    if(st.hub && !first){ // simplificandoeduca.com/hub: só a senha do hub
+      g.innerHTML = `<div class="gate-in"><span class="gate-logo">${hubLogo()}</span>
+        <p class="gate-eb">${esc(hojeTxt())}</p>
+        <h1>Hub<span class="dot" aria-hidden="true"></span></h1>
+        <p class="gate-sub">Digite a senha do hub.</p>
+        <form data-gate="form" novalidate>
+          <label for="g-hp">Senha${pw('g-hp', 'Senha do hub', 'current-password')}</label>
+          <label class="gate-chk"><input type="checkbox" id="g-keep" checked>Continuar conectado neste aparelho</label>
+          <p class="gate-err${st.ok?' ok':''}" id="g-err" aria-live="polite">${esc(st.msg)}</p>
+          <button type="submit" class="gate-go">Entrar</button>
+        </form>
+        <button type="button" class="gate-link" data-gate="hubMail">Entrar com o e-mail do painel</button></div>`;
+      return;
+    }
     if(st.teste && !first){ // login da versão de teste (para outros personais conhecerem o painel)
       g.innerHTML = `<div class="gate-in"><span class="gate-logo">${logo()}</span>
         <p class="gate-eb">Versão de teste</p>
@@ -4992,9 +5056,9 @@ function gateFirebase(){
       <p class="gate-note">Seus alunos e treinos ficam salvos online. Entre com este e-mail em qualquer celular ou computador.</p></div>`;
   }
   function say(msg, ok){ st.msg = msg; st.ok = !!ok; const e = document.getElementById('g-err'); if(e){ e.textContent = msg; e.classList.toggle('ok', !!ok); } }
-  function open(){ g.hidden = false; document.body.style.overflow = 'hidden'; view(); setTimeout(() => { const u = document.getElementById('g-u'); if(u && matchMedia('(pointer:fine)').matches) u.focus(); }, 50); }
-  function close(){ g.hidden = true; document.body.style.overflow = ''; g.innerHTML = ''; try { fitWave(); } catch(e){} }
-  function loading(){ g.hidden = false; document.body.style.overflow = 'hidden'; g.innerHTML = `<div class="gate-in"><span class="gate-logo">${logo()}</span><p class="gate-sub" role="status">Conectando ao banco online…</p></div>`; }
+  function open(){ g.hidden = false; document.body.style.overflow = 'hidden'; view(); setTimeout(() => { const u = document.getElementById('g-u') || document.getElementById('g-hp'); if(u && matchMedia('(pointer:fine)').matches) u.focus(); }, 50); }
+  function close(){ g.hidden = true; document.body.style.overflow = ''; g.innerHTML = ''; g.classList.remove('gate-hub'); try { fitWave(); } catch(e){} }
+  function loading(){ g.hidden = false; document.body.style.overflow = 'hidden'; g.classList.toggle('gate-hub', HUB_PAGINA); g.innerHTML = `<div class="gate-in"><span class="gate-logo">${HUB_PAGINA ? hubLogo() : logo()}</span><p class="gate-sub" role="status">Conectando ao banco online…</p></div>`; }
   async function enter(user, fresh){ // confere se a conta é a dona do painel e abre
     let owner = null;
     try { owner = await within(FBP.ownerUid(), 12000); if(!owner){ await within(FBP.claim(user.uid), 12000); owner = user.uid; seedLib = true; } }
@@ -5006,7 +5070,8 @@ function gateFirebase(){
   g.addEventListener('click', async ev => {
     const b = ev.target.closest('[data-gate]'); if(!b) return;
     const k = b.getAttribute('data-gate');
-    if(k==='eye'){ st.show = !st.show; g.querySelectorAll('#g-p,#g-p2').forEach(i => { i.type = st.show ? 'text' : 'password'; }); g.querySelectorAll('.gate-eye').forEach(e => e.setAttribute('aria-label', st.show ? 'Esconder senha' : 'Mostrar senha')); }
+    if(k==='hubMail'){ st.hub = false; st.msg = ''; view(); setTimeout(() => { const u = document.getElementById('g-u'); if(u) u.focus(); }, 50); return; }
+    if(k==='eye'){ st.show = !st.show; g.querySelectorAll('#g-p,#g-p2,#g-hp').forEach(i => { i.type = st.show ? 'text' : 'password'; }); g.querySelectorAll('.gate-eye').forEach(e => e.setAttribute('aria-label', st.show ? 'Esconder senha' : 'Mostrar senha')); }
     if(k==='teste'){ st.teste = !st.teste; st.msg = ''; view(); setTimeout(() => { const u = document.getElementById('g-u'); if(u) u.focus(); }, 50); return; }
     if(k==='forgot'){
       const u = (document.getElementById('g-u')||{}).value || '';
@@ -5017,6 +5082,21 @@ function gateFirebase(){
   });
   g.addEventListener('submit', async ev => {
     ev.preventDefault(); if(st.busy) return;
+    if(st.hub && !st.first){ // senha do hub: o servidor confere e devolve a entrada da conta dona do painel
+      const p = document.getElementById('g-hp').value, keep = document.getElementById('g-keep').checked;
+      if(!p){ say('Digite a senha do hub.'); return; }
+      st.busy = true; const go = g.querySelector('.gate-go'); go.disabled = true; say('Entrando…', true);
+      try {
+        const f = new FormData(); f.append('senha', p);
+        const j = await within(fetch('/hub-login.php?acao=entrar', { method:'POST', body:f, cache:'no-store' }).then(r => r.json()), 20000);
+        if(!j || !j.ok || !j.token){ say((j && j.erro) || 'Não deu para entrar agora. Tente de novo.'); const i = document.getElementById('g-hp'); if(i) i.select(); return; }
+        await A.setPersistence(keep ? P_.LOCAL : P_.SESSION);
+        const cred = await A.signInWithCustomToken(j.token);
+        await enter(cred.user, true);
+      } catch(e){ say(e && e.code ? msgOf(e) : 'Sem conexão com o servidor. Confira a internet e tente de novo.'); }
+      finally { st.busy = false; if(go.isConnected) go.disabled = false; }
+      return;
+    }
     const u = document.getElementById('g-u').value.trim(), p = document.getElementById('g-p').value, keep = document.getElementById('g-keep').checked;
     if(st.teste || u.toLowerCase()==='teste'){ // versão de teste: abre o painel de demonstração (outra página, sem o banco online)
       if(u.toLowerCase()==='teste' && p==='123456'){ try { (keep ? localStorage : sessionStorage).setItem('simp-teste-ok', '1'); } catch(e){} location.href = 'teste/'; return; }

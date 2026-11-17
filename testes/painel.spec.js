@@ -197,6 +197,43 @@ test('Hub (/hub): números reais e um bloco para cada espaço; Números saiu das
   await expect(pn.locator('.hub')).toHaveCount(0);
 });
 
+test('Hub: entrada com cara de hub, só com a senha do hub (criada pelo dono no próprio hub)', async ({ browser }) => {
+  const SENHA = 'robo135790'; // senha só do robô (a senha de verdade nunca fica no código)
+  const nova = async () => { const c = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }); return [c, await c.newPage()]; };
+  // 1) sem a senha criada: o hub avisa e oferece o e-mail do painel
+  let [ctx, page] = await nova();
+  await page.goto(EMU + '/hub/'); await page.waitForSelector('#gate.gate-hub #g-hp', { timeout: 20000 });
+  await expect(page.locator('#gate #g-u')).toHaveCount(0);
+  await expect(page.locator('#gate h1')).toHaveText('Hub');
+  await page.fill('#g-hp', SENHA); await page.click('.gate-go');
+  await expect(page.locator('#g-err')).toContainText('ainda não foi criada');
+  // 2) entra uma vez com o e-mail do painel e cria a senha no hub
+  await page.click('[data-gate="hubMail"]'); await page.fill('#g-u', DONO.email); await page.fill('#g-p', DONO.senha); await page.click('.gate-go');
+  await page.waitForFunction(() => document.getElementById('gate').hidden === true, null, { timeout: 20000 });
+  await expect(page.locator('.hb-senha')).toContainText('Crie a senha do hub');
+  await page.fill('#hb-s1', SENHA); await page.fill('#hb-s2', SENHA + 'x'); await page.click('[data-a="hubSenhaOk"]');
+  await expect(page.locator('.hb-senha')).toContainText('não são iguais');
+  await page.fill('#hb-s2', SENHA); await page.click('[data-a="hubSenhaOk"]');
+  await expect(page.locator('.hb-senha')).toHaveCount(0);
+  await expect(page.locator('[data-a="hubSenha"]')).toContainText('Senha do hub');
+  await ctx.close();
+  // 3) outro aparelho: só a senha do hub (errada não entra)
+  [ctx, page] = await nova();
+  await page.goto(EMU + '/hub/'); await page.waitForSelector('#g-hp', { timeout: 20000 });
+  await page.fill('#g-hp', '000000'); await page.click('.gate-go'); await expect(page.locator('#g-err')).toContainText('Senha incorreta');
+  await page.fill('#g-hp', SENHA); await page.click('.gate-go');
+  await page.waitForFunction(() => document.getElementById('gate').hidden === true, null, { timeout: 20000 });
+  await expect(page.locator('.hub h1')).toHaveText('Hub.');
+  await page.waitForFunction(() => window.__painel && window.__painel.Store.loaded, null, { timeout: 20000 });
+  await expect(page.locator('.hb-st').nth(0).locator('b')).toHaveText(/^[1-9]\d*$/); // vê os dados do painel (é a conta dona)
+  await ctx.close();
+  // 4) o painel continua com o login dele (e-mail e senha)
+  [ctx, page] = await nova();
+  await page.goto(EMU + '/personal/'); await page.waitForSelector('#gate #g-u', { timeout: 20000 });
+  await expect(page.locator('#gate')).not.toHaveClass(/gate-hub/);
+  await ctx.close();
+});
+
 test('sem internet: a internet cai no meio do treino e a aluna registra carga, marca a série e finaliza', async ({ page }) => {
   const erros = []; page.on('pageerror', e => erros.push(String(e)));
   await entraComSenha(page, { codigo, emu: true });

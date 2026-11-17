@@ -21,7 +21,7 @@ const diaMais = n => new Date(Date.now() - 180 * 60e3 + n * 864e5).toISOString()
 
 test.beforeAll(async () => {
   fs.mkdirSync(path.join(SITE, 'treino'), { recursive: true });
-  for (const f of ['push.php', 'dono.inc.php', 'erros.php']) fs.copyFileSync(path.join(__dirname, '..', 'site', f), path.join(SITE, f));
+  for (const f of ['push.php', 'dono.inc.php', 'erros.php', 'hub-login.php']) fs.copyFileSync(path.join(__dirname, '..', 'site', f), path.join(SITE, f));
   fs.writeFileSync(path.join(SITE, 'treino', 'firebase-config.js'), 'window.SIMPLIFICANDO_FIREBASE = { apiKey: "demo-key", projectId: "demo-simplificando" };');
   srv = spawn('php', ['-S', '127.0.0.1:' + PORTA, '-t', SITE], { env: ENV, stdio: 'ignore' });
   for (let i = 0; i < 50; i++) { try { await fetch(URL0 + 'push.php?acao=chave'); break; } catch (e) { await new Promise(r => setTimeout(r, 100)); } }
@@ -98,4 +98,22 @@ test('erros do app: qualquer celular registra; só o dono vê', async () => {
   const r = await fetch(URL0 + 'erros.php?acao=registrar', { method: 'POST', body: JSON.stringify({ msg: 'teste do robô', src: 'app', line: 1 }) });
   expect((await r.json()).ok).toBe(true);
   expect((await fetch(URL0 + 'erros.php?acao=ver')).status).toBe(403);
+});
+
+test('senha do hub (hub-login.php): só o dono cria; senha errada não entra; muitas tentativas bloqueiam', async () => {
+  const CH = path.join(DIR, 'simplificando-hub-senha.txt'), TT = path.join(DIR, '.simplificando-hub-tentativas.json');
+  const hub = (acao, campos = {}) => { const f = new FormData(); Object.entries(campos).forEach(([k, v]) => f.append(k, v)); return fetch(URL0 + 'hub-login.php?acao=' + acao, { method: 'POST', body: f }).then(r => r.json().then(j => ({ st: r.status, j }))); };
+  expect((await (await fetch(URL0 + 'hub-login.php?acao=ver')).json()).tem).toBe(false);
+  expect((await hub('entrar', { senha: 'robo-abc123' })).j.semSenha).toBe(true);
+  expect((await hub('definir', { senha: 'robo-abc123' })).st).toBe(403); // sem o login do dono
+  expect(fs.existsSync(CH)).toBe(false);
+  // a senha fica só embaralhada (password_hash), fora do site
+  fs.writeFileSync(CH, execFileSync('php', ['-r', 'echo password_hash("robo-abc123", PASSWORD_DEFAULT);']).toString());
+  expect(fs.readFileSync(CH, 'utf8')).not.toContain('robo-abc123');
+  expect((await (await fetch(URL0 + 'hub-login.php?acao=ver')).json()).tem).toBe(true);
+  // senha certa passa da conferência (aqui para na chave do Firebase, que o robô não tem)
+  expect((await hub('entrar', { senha: 'robo-abc123' })).j.semServidor).toBe(true);
+  for (let i = 0; i < 6; i++) expect((await hub('entrar', { senha: 'errada' + i })).st).toBe(401);
+  expect((await hub('entrar', { senha: 'robo-abc123' })).st).toBe(429); // 6 erros na hora: bloqueia até a certa
+  fs.unlinkSync(CH); fs.unlinkSync(TT);
 });
