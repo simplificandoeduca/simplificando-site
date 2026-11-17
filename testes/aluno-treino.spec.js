@@ -134,3 +134,18 @@ test('"Como foi?" guarda o comentário do exercício', async ({ page }) => {
   await page.click('#sheet [data-a="exq-done"]');
   await expect(page.locator(`.tpanel [data-a="exq-open"][data-ex="${id}"]`)).toContainText('Comentado');
 });
+
+test('evolução: o gráfico, a carga da última vez e o recorde seguem o exercício quando ele ganha um código novo (ciclo novo)', async ({ page }) => {
+  const r = await simp(page, () => {
+    const T = window.__simp, S = T.S, t = T.LETTERS[0], e = T.PLAN[t].ex[0], velho = 'zz-velho-qq11';
+    delete S.loadHist[e.id]; delete S.last[e.id]; delete S.pr[e.id];
+    S.loadHist[velho] = [{ d: '2026-10-01', kg: 20 }, { d: '2026-10-08', kg: 25 }];
+    S.last[velho] = { kg: 25, lastKg: 25, reps: [10], rir: [1], d: '2026-10-08' };
+    S.pr[velho] = { e1: 33, kg: 25, reps: 10, d: '2026-10-08' };
+    S.history.push({ date: '2026-10-08', t, min: 50, sets: 3, vol: 750, prs: [], ex: [{ id: velho, n: e.nome, s: [[25, 10]] }] });
+    T.applyAccount();
+    T.ui.tab = 'evo'; T.render();
+    return [S.loadHist[e.id] && S.loadHist[e.id].length, S.last[e.id] && S.last[e.id].kg, S.pr[e.id] && S.pr[e.id].kg, !!document.querySelector('.lchart')];
+  });
+  expect(r).toEqual([2, 25, 25, true]);
+});

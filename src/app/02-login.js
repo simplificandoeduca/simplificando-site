@@ -105,7 +105,8 @@ const FB = (() => {
   }
   // registro avulso (caixinha de sugestões, modelo de story usado): cada um grava só com o próprio uid; só o dono do painel lê
   async function evento(col, d){ const u = auth.currentUser || await ready(); if(!u) return 'sem-login'; try { await db.collection(col).add(Object.assign({}, d, { uid:u.uid })); return true; } catch(e){ return (e && e.code) || 'erro'; } }
-  return { login, fetchMe, logout, toAluno, cached, signUp, signIn, resetMail, resetCheck, resetSave, setCodigo, autoLoad, autoSave, autoFlush, perfil, progresso, progLoad, deleteSelf, evento, account:aid => { const c = cached(); return c && c.aid===aid ? toAluno(c) : null; } };
+  async function idToken(){ try { const u = auth.currentUser || await ready(); return u ? await u.getIdToken() : ''; } catch(e){ return ''; } }
+  return { idToken, login, fetchMe, logout, toAluno, cached, signUp, signIn, resetMail, resetCheck, resetSave, setCodigo, autoLoad, autoSave, autoFlush, perfil, progresso, progLoad, deleteSelf, evento, account:aid => { const c = cached(); return c && c.aid===aid ? toAluno(c) : null; } };
 })();
 // abriu com a conta guardada (ou voltou para o app): confere online se o personal mudou o treino ou bloqueou o acesso
 document.addEventListener('visibilitychange', () => { if(document.visibilityState==='visible') fbRefresh(); else if(FB) FB.autoFlush(); });
@@ -196,6 +197,26 @@ function ajustaDias(){
   if(fora.size) S.history = S.history.filter(h => !fora.has(h));
   if(n) S.history.sort((x,y) => x.date<y.date ? -1 : x.date>y.date ? 1 : 0);
 }
+/* o mesmo exercício pode ganhar um código novo (ciclo novo, modelo aplicado, treino copiado ou montado com a IA):
+   o gráfico de evolução, a carga da última vez e os recordes passam para o código novo (mesmo exercício da biblioteca ou mesmo nome) */
+const exBase = id => String(id||'').replace(/-[a-z0-9]{4}$/, '');
+const exNome = n => String(n||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim();
+function ligaHist(){
+  if(!S || !PLAN) return;
+  const nomes = {}; // código antigo -> nome, pelos treinos salvos
+  (S.history||[]).forEach(h => (h.ex||[]).forEach(e => { if(e && e.id && e.n) nomes[e.id] = exNome(e.n); }));
+  const ids = new Set([...Object.keys(S.loadHist||{}), ...Object.keys(S.last||{}), ...Object.keys(S.pr||{})]);
+  Object.values(PLAN).forEach(t => (t.ex||[]).forEach(e => {
+    if(!e || !e.id || (S.loadHist[e.id]||[]).length || S.last[e.id] || S.pr[e.id]) return;
+    const b = exBase(e.id), nm = exNome(e.nome), generico = /^(novo|voz|ex)$/.test(b);
+    const velhos = [...ids].filter(c => c!==e.id && ((!generico && exBase(c)===b) || (nm && nomes[c]===nm))); if(!velhos.length) return;
+    const porDia = {}; velhos.forEach(c => (S.loadHist[c]||[]).forEach(x => { if(x && x.d && (!porDia[x.d] || x.kg>porDia[x.d])) porDia[x.d] = x.kg; }));
+    const LH = Object.keys(porDia).sort().map(d => ({ d, kg:porDia[d] })).slice(-16); if(LH.length) S.loadHist[e.id] = LH;
+    const ult = velhos.map(c => S.last[c]).filter(Boolean).sort((x,y) => String(y.d||'').localeCompare(String(x.d||'')))[0]; if(ult) S.last[e.id] = Object.assign({}, ult);
+    const pr = velhos.map(c => S.pr[c]).filter(Boolean).sort((x,y) => (y.e1||0)-(x.e1||0))[0]; if(pr) S.pr[e.id] = Object.assign({}, pr);
+    Object.values(S.gymLast||{}).forEach(m => { const g = velhos.map(c => m[c]).filter(Boolean).sort((x,y) => String(y.d||'').localeCompare(String(x.d||'')))[0]; if(g && !m[e.id]) m[e.id] = Object.assign({}, g); });
+  }));
+}
 function applyAccount(){
   if(isPersonal()){
     const a = ACCT.aluno, mc = a.metas.cardio || {};
@@ -226,6 +247,7 @@ function applyAccount(){
   Object.keys(PLAN).forEach(l => { const t = PLAN[l]; t.nome = String(t.nome||'').trim() || String(t.foco||'').trim() || 'Treino '+l; (t.ex||[]).forEach(x => { delete x.sup; delete x.tec; }); }); // sem técnicas especiais
   LETTERS = Object.keys(PLAN).sort();
   if(S.session && !PLAN[S.session.t]) S.session = null;
+  ligaHist();
 }
 function startApp(){
   const sess = readSess();

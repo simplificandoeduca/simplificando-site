@@ -21,7 +21,7 @@ const diaMais = n => new Date(Date.now() - 180 * 60e3 + n * 864e5).toISOString()
 
 test.beforeAll(async () => {
   fs.mkdirSync(path.join(SITE, 'treino'), { recursive: true });
-  for (const f of ['push.php', 'dono.inc.php', 'erros.php', 'hub-login.php']) fs.copyFileSync(path.join(__dirname, '..', 'site', f), path.join(SITE, f));
+  for (const f of ['push.php', 'dono.inc.php', 'erros.php', 'hub-login.php', 'lembretes.php', 'email.inc.php']) fs.copyFileSync(path.join(__dirname, '..', 'site', f), path.join(SITE, f));
   fs.writeFileSync(path.join(SITE, 'treino', 'firebase-config.js'), 'window.SIMPLIFICANDO_FIREBASE = { apiKey: "demo-key", projectId: "demo-simplificando" };');
   srv = spawn('php', ['-S', '127.0.0.1:' + PORTA, '-t', SITE], { env: ENV, stdio: 'ignore' });
   for (let i = 0; i < 50; i++) { try { await fetch(URL0 + 'push.php?acao=chave'); break; } catch (e) { await new Promise(r => setTimeout(r, 100)); } }
@@ -116,4 +116,54 @@ test('senha do hub (hub-login.php): só o dono cria; senha errada não entra; mu
   for (let i = 0; i < 6; i++) expect((await hub('entrar', { senha: 'errada' + i })).st).toBe(401);
   expect((await hub('entrar', { senha: 'robo-abc123' })).st).toBe(429); // 6 erros na hora: bloqueia até a certa
   fs.unlinkSync(CH); fs.unlinkSync(TT);
+});
+
+test('lembrete para voltar (celular): 1 dia sem o 1º treino, 4 e 10 dias sem treinar; uma vez por etapa, a partir das 18h30', async () => {
+  const cronEm = ep => execFileSync('php', ['push.php', 'cron'], { cwd: SITE, env: { ...ENV, SIMP_AGORA: String(ep) } });
+  const d0 = new Date(Date.now() - 180 * 60e3), Y = d0.getUTCFullYear(), M = d0.getUTCMonth(), D = d0.getUTCDate();
+  const em = (h, m) => Math.floor(Date.UTC(Y, M, D, h + 3, m) / 1000); // hora local de quem tem fuso UTC-3
+  const dia = n => new Date(Date.UTC(Y, M, D + n)).toISOString().slice(0, 10);
+  expect((await post('assinar', { id: 'celular00000003', sub: { endpoint: EP(3) }, ini: '08:00', fim: '22:00', cada: 30, tz: 180, ag: 0 })).j.ok).toBe(true);
+  const vt = x => post('lembrete', { id: 'celular00000003', on: 0, h: 1080, hs: {}, dias: [], feito: '', pausa: '', desde: '', vt: x });
+  const conta = () => enviados().filter(x => x.e === EP(3)).length;
+  limpaLog();
+  await vt({ on: 1, cad: dia(-1), ult: '' });
+  cronEm(em(17, 0)); expect(conta()).toBe(0);                  // antes das 18h30
+  cronEm(em(18, 40)); cronEm(em(18, 50)); expect(conta()).toBe(1); // 1 dia sem o 1º treino: um aviso só
+  await vt({ on: 1, cad: dia(-30), ult: dia(-5) }); cronEm(em(19, 0)); cronEm(em(19, 10)); expect(conta()).toBe(2);  // 4+ dias sem treinar
+  await vt({ on: 1, cad: dia(-30), ult: dia(-11) }); cronEm(em(19, 20)); expect(conta()).toBe(3);                   // 10+ dias
+  await vt({ on: 1, cad: dia(-30), ult: dia(-1) }); cronEm(em(19, 30)); expect(conta()).toBe(3);                    // treinou ontem: nada
+  await vt({ on: 0, cad: dia(-30), ult: dia(-20) }); cronEm(em(19, 40)); expect(conta()).toBe(3);                   // desligado
+  cronEm(em(22, 0)); expect(conta()).toBe(3);
+});
+
+test('lembretes por e-mail: 1 dia sem o 1º treino, 4 e 10 dias sem treinar; uma vez por etapa; quem desligou, conta interna e o dono não recebem', async () => {
+  const LOGE = path.join(DIR, 'emails.log'), FX = path.join(DIR, 'contas.json');
+  const agora = Math.floor(Date.now() / 1000), dia = n => new Date((agora - 3 * 3600 + n * 86400) * 1000).toISOString().slice(0, 10);
+  const c = (uid, nome, email, cad, treinos) => ({ uid, nome, email, cad, treinos, plano: { A: 'Inferiores', B: 'Empurrar', C: 'Puxar' } });
+  fs.writeFileSync(FX, JSON.stringify({ dono: 'donoUid1', contas: [
+    c('novaUid01', 'Joana Lima', 'joana@teste.com', dia(-1), []),
+    c('quatroUid1', 'Bia', 'bia@teste.com', dia(-30), [{ d: dia(-5), t: 'C', min: 48 }]),
+    c('dezUid0001', 'Caio', 'caio@teste.com', dia(-40), [{ d: dia(-12), t: 'A', min: 50 }]),
+    c('ontemUid01', 'Davi', 'davi@teste.com', dia(-40), [{ d: dia(-1), t: 'A', min: 50 }]),
+    c('internaUid', 'Eva', 'a123456@alunos.demo.firebaseapp.com', dia(-3), []),
+    c('donoUid1', 'Dono', 'dono@teste.com', dia(-3), []),
+    c('sairUid001', 'Fia', 'fia@teste.com', dia(-2), []) ] }));
+  const roda = () => JSON.parse(execFileSync('php', ['lembretes.php', 'cron'], { cwd: SITE, env: { ...ENV, SIMP_TESTE_PUSH: LOGE, SIMP_TESTE_LEMB: FX, SIMP_AGORA: String(agora) } }).toString().trim());
+  const lidos = () => fs.existsSync(LOGE) ? fs.readFileSync(LOGE, 'utf8').trim().split('\n').filter(Boolean).map(l => JSON.parse(l)) : [];
+  // quem desligou pelo link do e-mail (link certo; o errado não desliga)
+  roda(); fs.unlinkSync(LOGE); fs.unlinkSync(path.join(DIR, '.simplificando-lembretes.json'));
+  const seg = fs.readFileSync(path.join(DIR, '.simplificando-lembretes-segredo'), 'utf8').trim();
+  const tk = require('crypto').createHmac('sha256', seg).update('sair:sairUid001').digest('hex').slice(0, 32);
+  expect(await (await fetch(URL0 + 'lembretes.php?acao=sair&u=sairUid001&t=errado')).text()).toContain('Link inválido');
+  expect(await (await fetch(URL0 + 'lembretes.php?acao=sair&u=sairUid001&t=' + tk)).text()).toContain('lembretes desligados');
+  expect((await fetch(URL0 + 'lembretes.php?acao=pref', { method: 'POST' })).status).toBe(403); // a chave do app: só com o login da pessoa
+  const r = roda();
+  expect(r.enviados).toBe(3);
+  const L = lidos(), por = Object.fromEntries(L.map(x => [x.email, x]));
+  expect(Object.keys(por).sort()).toEqual(['bia@teste.com', 'caio@teste.com', 'joana@teste.com']);
+  expect(por['joana@teste.com']).toMatchObject({ etapa: 'n1', assunto: 'Joana, seu treino já está pronto 💪' });
+  expect(por['bia@teste.com']).toMatchObject({ etapa: 't4', assunto: 'Bia, bora voltar? 👀' });
+  expect(por['caio@teste.com']).toMatchObject({ etapa: 't10', assunto: 'Caio, vamos recomeçar? 🔥' });
+  expect(roda().enviados).toBe(0); // uma vez por etapa
 });

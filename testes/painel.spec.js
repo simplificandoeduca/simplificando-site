@@ -138,6 +138,25 @@ test('Perfis mostra quem criou conta sem personal; Ajustes tem "Avisos no celula
   await p2.close();
 });
 
+test('Alunos e Perfis: marquinha laranja "+3 dias sem acessar" e vermelha "+10 dias sem acessar"', async ({ page }) => {
+  const FSB = 'http://127.0.0.1:8080/v1/projects/demo-simplificando/databases/(default)/documents/perfis/';
+  const muda = (uid, dias) => fetch(FSB + uid + '?updateMask.fieldPaths=ultimoAcesso', { method: 'PATCH', headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: { ultimoAcesso: { integerValue: String(Date.now() - dias * 864e5) } } }) });
+  const P = await fsLista('perfis');
+  const ana = P.find(x => x.f.aid && x.f.aid.stringValue === aid), bruna = P.find(x => x.f.nome && x.f.nome.stringValue === 'Bruna Perfis');
+  expect(ana && bruna).toBeTruthy();
+  await muda(ana.id, 5); await muda(bruna.id, 12);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await entraPainel(page);
+  await vai(page, '#alunos');
+  const linhaAna = page.locator('#alunos-list .row', { hasText: 'Ana' }).first();
+  await expect(linhaAna.locator('.ina-tag')).toHaveText('+3 dias sem acessar', { timeout: 20000 });
+  expect(await linhaAna.locator('.ina-tag').evaluate(el => [getComputedStyle(el).backgroundColor, getComputedStyle(el).color])).toEqual(['rgb(255, 154, 46)', 'rgb(255, 255, 255)']);
+  await vai(page, '#perfis');
+  const linhaBruna = page.locator('#pf-list .row', { hasText: 'Bruna Perfis' }).first();
+  await expect(linhaBruna.locator('.ina-tag')).toHaveText('+10 dias sem acessar', { timeout: 20000 });
+  expect(await linhaBruna.locator('.ina-tag').evaluate(el => getComputedStyle(el).backgroundColor)).toBe('rgb(255, 70, 70)');
+});
+
 test('Hub (/hub): números reais e um bloco para cada espaço; Números saiu das abas do painel', async ({ page }) => {
   await entraPainel(page);
   await expect(page.locator('#tabs')).not.toContainText('Números');

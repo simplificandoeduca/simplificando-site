@@ -2,7 +2,7 @@
    - A página: tenta a internet primeiro (pega a versão nova); se a internet falhar ou demorar, abre a cópia guardada.
    - Arquivos fixos (Firebase, ícones, fontes): usa a cópia guardada e atualiza por trás.
    - Banco de dados, login e e-mails não passam por aqui: o próprio Firebase cuida de reenviar quando o sinal volta. */
-const VERSAO = '17 nov · 149'; // muda a cada versão (o build grava): assim o celular sempre percebe que tem sw.js novo
+const VERSAO = '17 nov · 150'; // muda a cada versão (o build grava): assim o celular sempre percebe que tem sw.js novo
 const CACHE = 'simp-treino-v4';
 let ATUALIZANDO = false; // true quando já tinha uma versão instalada (atualização, não primeira vez)
 const CORE = ['./', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-180.png', './firebase-config.js',
@@ -85,6 +85,16 @@ self.addEventListener('push', e => {
       return c.match(LEMB).then(r => r ? r.json() : null).catch(() => null).then(lb => {
         const d = new Date(), dia = hojeTxt(d), min = d.getHours() * 60 + d.getMinutes();
         const lh = lb ? +((lb.hs || {})[d.getDay()] ?? lb.h) : 0;
+        // lembrete para voltar (o servidor manda a partir das 18h30, uma vez por etapa): 1 dia sem o 1º treino; 4 e 10 dias sem treinar
+        const vt = lb && lb.vt, ref = vt && (vt.ult || vt.cad), dd = ref ? Math.floor((Date.parse(dia + 'T12:00:00Z') - Date.parse(ref + 'T12:00:00Z')) / 864e5) : 0;
+        const et = !vt || !vt.on || !ref ? '' : vt.ult ? (dd >= 10 ? 't10' : dd >= 4 ? 't4' : '') : (dd >= 10 ? 'n10' : dd >= 4 ? 'n4' : dd >= 1 ? 'n1' : ''), vk = et && et + '|' + ref;
+        if (et && min >= 18 * 60 + 25 && lb.vtav !== vk) {
+          lb.vtav = vk; const nm = lb.nome || '';
+          const [tt, bd] = et[0] === 'n' ? ['Seu treino já está pronto 💪', 'Oi' + (nm ? ', ' + nm : '') + '! Tudo bem? Estamos esperando você para o primeiro treino. Abra o app e arraste “Começar treino”.']
+            : et === 't4' ? ['Sentimos sua falta 👀', (nm ? nm + ', f' : 'F') + 'az ' + dd + ' dias do seu último treino. Bora voltar hoje?' + (lb.t ? ' O treino ' + lb.t + ' está te esperando.' : '')]
+            : ['Ainda dá tempo de retomar 🔥', (nm ? nm + ', s' : 'S') + 'ão ' + dd + ' dias sem treinar. Recomece leve hoje: o app ajusta as cargas para você.'];
+          return c.put(LEMB, json(lb)).then(() => self.registration.showNotification(tt, { body: bd, icon: 'icon-192.png', badge: 'icon-192.png', tag: 'volta', renotify: true, data: { url: BASE + '#treino', abrir: 'treino' } }));
+        }
         if (lb && lb.on && !(lb.desde && dia < lb.desde) && (lb.dias || []).includes(d.getDay()) && min >= lh - 5 && min - lh < 180 && lb.av !== dia && lb.feito !== dia && !(lb.pausa && lb.pausa >= dia)) {
           lb.av = dia;
           return c.put(LEMB, json(lb)).then(() => self.registration.showNotification('Bora treinar' + (lb.nome ? ', ' + lb.nome : '') + '? 💪', { body: 'Hoje é dia do Treino ' + lb.t + (lb.tn ? ' · ' + lb.tn : '') + '. Toque para começar.', icon: 'icon-192.png', badge: 'icon-192.png', tag: 'lembrete', renotify: true, data: { url: BASE + '#treino', abrir: 'treino' } }));

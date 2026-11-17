@@ -818,6 +818,8 @@ h3.sec{font-size:22px;margin:14px 2px -2px}
 .ev-tp{display:flex;align-items:flex-end;gap:10px;margin-top:12px}.ev-tp .fld{flex:1;margin:0}.ev-tp .inp{text-align:center;font-size:20px;font-weight:800}
 .ev2-ck th small{display:block;font-size:10.5px;font-weight:600;opacity:.7}.ev2-ck .fut{opacity:.45}
 .ev3-mv{gap:8px}
+.ina-tag{display:inline-block;vertical-align:2px;margin-left:8px;padding:3px 7px;border-radius:6px;background:#FF9A2E;color:#FFFFFF;font-size:11px;font-weight:800;letter-spacing:.01em;line-height:1.2;white-space:nowrap}.ina-tag.d10{background:#FF4646}
+@media (max-width:760px){.ev2-tdc{grid-column:1/-1;margin-top:-4px}.ev2-tdc .ev2-sp{width:100%;height:38px}}
 /* ---------- Hub (/hub): entrada do dono, sempre escura, com blocos de cor cheia (igual ao app do aluno) ---------- */
 body.hub-on{background:#0F1712}
 .hub-on .side,.hub-on .tabbar{display:none}
@@ -2550,17 +2552,22 @@ function filtered(){
     return true;
   });
 }
+/* marquinha de quem está sem acessar o app: laranja com mais de 3 dias, vermelha com 10 ou mais (último acesso no app) */
+function semAcesso(ms){ if(!ms) return ''; const d = Math.floor((Date.now()-ms)/864e5); return d>=10 ? '<span class="ina-tag d10">+10 dias sem acessar</span>' : d>3 ? '<span class="ina-tag d3">+3 dias sem acessar</span>' : ''; }
+const ultAcessoAl = () => { const m = {}; (PF.list||[]).forEach(p => { if(p.tipo==='personal' && p.aid && (p.ultimoAcesso||0) > (m[p.aid]||0)) m[p.aid] = p.ultimoAcesso; }); return m; };
 function alunoRows(){
   const L = filtered();
   if(!L.length) return '<div class="row"><span class="main-t"><b>Nenhum aluno encontrado</b><span>'+(alunos().length ? 'Mude a busca ou os filtros. Inativos aparecem no filtro de status.' : 'Cadastre o primeiro aluno no botão acima.')+'</span></span></div>';
+  const UA = ultAcessoAl();
   return L.map(a => { const p = P(a), pi = payInfo(a), r = restr(a), pl = planInfo(a);
-    return '<button type="button" class="row'+(ui.aluno===a._id?' on':'')+'" data-a="open" data-id="'+esc(a._id)+'" aria-current="'+(ui.aluno===a._id)+'"><span class="ini" style="--c:var(--ed-'+(p.objetivo||'hipertrofia')+')">'+esc(initials(p.nome))+'</span><span class="main-t"><b>'+esc(nomeDe(a))+'</b><span>'+esc(ED[p.objetivo]||'')+' · '+esc(ORIGEM[p.origem]||'')+(p.status&&p.status!=='ativo'?' · '+STATUS[p.status]:'')+(pl.k==='soon'||pl.k==='expired'?' · treino '+(pl.k==='expired'?'vencido':'vence '+fmtDm(pl.fim)):'')+'</span></span><span class="end">'+(r.any?'<span class="flag" title="Tem restrição de saúde">'+ic('heart')+'<span class="sr">Restrição de saúde</span></span>':'')+(pi.k!=='none'?'<span class="pill '+PAYCLS[pi.k]+'">'+pi.short+'</span>':'')+'</span></button>'; }).join('');
+    return '<button type="button" class="row'+(ui.aluno===a._id?' on':'')+'" data-a="open" data-id="'+esc(a._id)+'" aria-current="'+(ui.aluno===a._id)+'"><span class="ini" style="--c:var(--ed-'+(p.objetivo||'hipertrofia')+')">'+esc(initials(p.nome))+'</span><span class="main-t"><b>'+esc(nomeDe(a))+((p.status||'ativo')!=='inativo' ? semAcesso(UA[a._id]) : '')+'</b><span>'+esc(ED[p.objetivo]||'')+' · '+esc(ORIGEM[p.origem]||'')+(p.status&&p.status!=='ativo'?' · '+STATUS[p.status]:'')+(pl.k==='soon'||pl.k==='expired'?' · treino '+(pl.k==='expired'?'vencido':'vence '+fmtDm(pl.fim)):'')+'</span></span><span class="end">'+(r.any?'<span class="flag" title="Tem restrição de saúde">'+ic('heart')+'<span class="sr">Restrição de saúde</span></span>':'')+(pi.k!=='none'?'<span class="pill '+PAYCLS[pi.k]+'">'+pi.short+'</span>':'')+'</span></button>'; }).join('');
 }
 function vAlunos(){
   const all = alunos(), a = ui.aluno && C.alunos[ui.aluno] ? Object.assign({_id:ui.aluno}, C.alunos[ui.aluno]) : null;
   if(ui.aluno && !a && Store.loaded) ui.aluno = null;
   let h = header('Alunos', plural(all.filter(x => P(x).status!=='inativo').length,'aluno ativo','alunos ativos')+' e pausados', '<button type="button" class="btn hb" data-a="ctOpen" aria-label="Mensagem do primeiro contato">'+ic('msg')+'<span class="lbl">Primeiro contato</span></button><button type="button" class="btn primary hb" data-a="novo" aria-label="Novo aluno">'+ic('plus')+'<span class="lbl">Novo aluno</span></button>');
   if(!Store.loaded) return h+loadingCard();
+  if(pfOnline()) loadPerfis();
   const f = ui.f;
   const fs = (k,label,map) => '<div class="inp-wrap sel-wrap"><label class="sr" for="flt-'+k+'">'+label+'</label><select class="inp" id="flt-'+k+'" data-filter="'+k+'"><option value="">'+label+': todos</option>'+Object.keys(map).map(v => '<option value="'+v+'"'+(f[k]===v?' selected':'')+'>'+esc(map[v])+'</option>').join('')+'</select></div>';
   const list = '<div class="lpane"><div class="search">'+ic('search')+'<label class="sr" for="q-alunos">Buscar aluno</label><input id="q-alunos" type="search" placeholder="Buscar por nome, WhatsApp ou e-mail" value="'+esc(ui.q)+'" data-filter="q" autocomplete="off"></div>'+
@@ -3216,7 +3223,7 @@ function tEvol(a){
   if(ex.length && PREF.evCargaMin) h += '<h3 class="sec sec-tg">Evolução de carga<button type="button" class="btn small ghost" data-a="evCargaTg" aria-expanded="false">'+ic('down')+'Abrir ('+plural(ex.length,'exercício','exercícios')+')</button></h3>';
   else if(ex.length) h += '<h3 class="sec sec-tg">Evolução de carga<button type="button" class="btn small ghost" data-a="evCargaTg" aria-expanded="true">'+ic('up')+'Minimizar</button></h3><section class="card ev2-tb"><div class="ev2-tr ev2-th"><span>Exercício</span><span>Início</span><span>Agora</span><span>Mudança</span><span class="hide-s">Tendência</span></div>'+
     ex.map(e => { const pc = e.f.kg ? Math.round(e.dif/e.f.kg*100) : 0;
-      return '<div class="ev2-tr"><span><b>'+esc(e.n)+'</b>'+(e.rec ? '<i class="ev2-rec">recorde</i>' : '')+'<small>'+plural(e.s.length,'treino')+' · último '+fmtDm(e.l.d)+'</small></span><span>'+fmtN(e.f.kg)+' kg</span><span><b>'+fmtN(e.l.kg)+' kg</b>'+(e.l.reps ? '<small>× '+e.l.reps+'</small>' : '')+'</span><span class="'+(e.dif>0?'up':e.dif<0?'dn':'eq')+'">'+(e.s.length<2 ? '<small>1º registro</small>' : (e.dif>0?'▲ +':e.dif<0?'▼ ':'= ')+fmtN(Math.abs(e.dif))+' kg'+(e.dif ? '<small>'+(pc>0?'+':'')+pc+'%</small>' : ''))+'</span><span class="hide-s">'+ev2Spark(e.s.slice(-8).map(z => z.kg))+'</span></div>'; }).join('')+
+      return '<div class="ev2-tr"><span><b>'+esc(e.n)+'</b>'+(e.rec ? '<i class="ev2-rec">recorde</i>' : '')+'<small>'+plural(e.s.length,'treino')+' · último '+fmtDm(e.l.d)+'</small></span><span>'+fmtN(e.f.kg)+' kg</span><span><b>'+fmtN(e.l.kg)+' kg</b>'+(e.l.reps ? '<small>× '+e.l.reps+'</small>' : '')+'</span><span class="'+(e.dif>0?'up':e.dif<0?'dn':'eq')+'">'+(e.s.length<2 ? '<small>1º registro</small>' : (e.dif>0?'▲ +':e.dif<0?'▼ ':'= ')+fmtN(Math.abs(e.dif))+' kg'+(e.dif ? '<small>'+(pc>0?'+':'')+pc+'%</small>' : ''))+'</span><span class="ev2-tdc">'+ev2Spark(e.s.slice(-8).map(z => z.kg))+'</span></div>'; }).join('')+
     '<p class="foot">Maior carga de cada treino. “Início” é o primeiro registro no app.</p></section>';
 
   // 6. check-in da semana: sempre de segunda a domingo, nos mesmos dias dos quadros acima
@@ -3429,7 +3436,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '17 nov · 149'; // Versão do painel: 17 nov · 149
+const PAINELV = '17 nov · 150'; // Versão do painel: 17 nov · 150
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -3514,11 +3521,11 @@ const nomeDono = () => cfg().nomePersonal || DONO_NOME;
 const PF = { list:null, loading:false, err:'', at:0, f:'todos', a:'todos', q:'' };
 const pfOnline = () => !!FBP && Store.kind==='firebase';
 async function loadPerfis(force){
-  if(!pfOnline() || PF.loading || (PF.list && !force && Date.now()-PF.at < 60e3)) return;
+  if(!FBP || !pfOnline() || PF.loading || ((PF.list || PF.err) && !force && Date.now()-PF.at < 60e3)) return; // com erro, espera 1 min para tentar de novo (senão a tela tenta sem parar)
   PF.loading = true; PF.err = '';
   try { PF.list = await FBP.listPerfis(); PF.at = Date.now(); }
-  catch(e){ PF.err = e && e.code==='permission-denied' ? 'regras' : 'rede'; }
-  PF.loading = false; if(ui.view==='perfis' || ui.view==='hub') render();
+  catch(e){ PF.err = e && e.code==='permission-denied' ? 'regras' : 'rede'; PF.at = Date.now(); }
+  PF.loading = false; if(ui.view==='perfis' || ui.view==='hub' || ui.view==='alunos') render();
 }
 const DIA = 864e5, pfUsando = r => !!r.last && Date.now()-r.last < 7*DIA;
 function pfQuando(ms){
@@ -3547,7 +3554,7 @@ function pfList(){
     const uso = r.last ? (pfUsando(r) ? 'Usando o app' : 'Parado')+' · último acesso '+pfQuando(r.last)
       : r.k==='com' ? (r.conta ? 'Ainda não entrou no app' : 'Acesso ao app ainda não liberado') : 'Sem registro de acesso';
     const extra = r.k==='com' ? (r.conta && !r.liberado ? ' · acesso bloqueado' : '')+(r.status!=='ativo' ? ' · '+esc(STATUS[r.status]||r.status) : '')+(r.exemplo ? ' · exemplo' : '') : (r.email ? ' · '+esc(r.email) : '');
-    return '<button type="button" class="row pf-row" data-a="pfOpen" data-k="'+r.k+'" data-id="'+esc(r.id)+'"><span class="pf-av'+(pfUsando(r)?' on':'')+'" aria-hidden="true">'+esc(pfIni(r.nome))+'</span><span class="main-t"><b>'+esc(r.nome)+'</b>'+tag+'<span>'+uso+extra+'</span></span>'+ic('chev','chev')+'</button>';
+    return '<button type="button" class="row pf-row" data-a="pfOpen" data-k="'+r.k+'" data-id="'+esc(r.id)+'"><span class="pf-av'+(pfUsando(r)?' on':'')+'" aria-hidden="true">'+esc(pfIni(r.nome))+'</span><span class="main-t"><b>'+esc(r.nome)+semAcesso(r.last)+'</b>'+tag+'<span>'+uso+extra+'</span></span>'+ic('chev','chev')+'</button>';
   }).join('');
 }
 function vPerfis(){
@@ -3718,6 +3725,7 @@ const DOC_HTML = `<section class="doc" id="doc-termos">
 <li>mostrar a sua evolução e salvar o seu histórico na sua conta;</li>
 <li>permitir que o seu personal acompanhe você (só para alunos com personal);</li>
 <li>gerenciar as contas do app: o administrador vê o nome, o e-mail, o tipo de conta (com ou sem personal), as datas de criação e de último acesso e se os termos foram aceitos. De quem treina sem personal, ele não vê os dados de saúde nem o histórico de treinos, a não ser que a própria pessoa permita o acompanhamento no app (Perfil › Acompanhamento). Com a permissão, ele vê o treino montado, os treinos feitos, cargas, cardio, água, check-in e mensagens, só para acompanhar e ajudar. A permissão pode ser desligada a qualquer momento;</li>
+<li>mandar lembretes para você voltar a treinar, por e-mail e, se os avisos estiverem ligados, no celular: 1 dia depois do cadastro sem o primeiro treino e depois de 4 e de 10 dias sem treinar. Para isso, o servidor confere só a data do seu último treino. Dá para desligar em Perfil › Avisos ou pelo link no próprio e-mail;</li>
 <li>segurança, prevenção de fraudes e suporte.</li>
 </ul>
 <p>Não vendemos os seus dados e não usamos os seus dados para propaganda.</p>

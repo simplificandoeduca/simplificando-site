@@ -4,6 +4,8 @@ Site do Simplificando: app do aluno (`/treino`), painel do personal (`/personal`
 
 Hub do dono (`/hub`): a entrada com os números do dia, um bloco para cada espaço (app de teste, painel, Números) e Finanças, Painel de teste, Site e **Atualizar** (instala a versão aprovada pelo robô). É a mesma página do painel (mesmo login), gerada pelo `tools/build_site.py` em `site/hub/`, com modo claro/escuro próprio. A entrada do hub pede só a senha do hub: `site/hub-login.php` confere a senha (guardada embaralhada fora do site, em `~/simplificando-hub-senha.txt`; o dono cria ou troca no próprio hub) e dá a entrada da conta dona do painel com a chave `~/simplificando-chave.json`. A página Números (`/personal/#estatisticas`) abre pelo hub, fora das abas do painel.
 
+Lembretes para voltar a treinar: 1 dia depois do cadastro sem o 1º treino (de novo com 4 e 10 dias) e 4 e 10 dias sem treinar, uma vez por etapa. E-mail: `site/lembretes.php` (o `push.php` chama uma vez por dia, às 18h30 de Brasília; lê as contas com a chave do Firebase; envio por `site/email.inc.php`, o mesmo caminho do "esqueci a senha"; imagens em `site/img/email/`). Celular: `push.php` + `treino/sw.js`. Desligar: link no e-mail ou Perfil › Avisos.
+
 App de teste (`/app-teste`): o mesmo app do aluno, gerado pelo `tools/build_site.py`, que entra direto com o aluno de exemplo (Lucas), sem senha e sem o Firebase. Os dados ficam só no aparelho, separados do app de verdade.
 
 Na mesma hospedagem, mas independente: `/financas` (controle pessoal de finanças, com login, dados e atualização próprios; veja `LEIA-ME-FINANCAS.txt`).

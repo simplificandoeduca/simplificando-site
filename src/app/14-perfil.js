@@ -12,6 +12,7 @@ function ntfBloco(pers){
     ['avdia', PREF.avDia!==false && !noPlan(), '#7E57C9', ic('dumbbell'), 'Lembrete do treino', lbSubTxt()],
     ['remind', S.remind.on, '#1A73E8', ic('drop'), 'Lembrete de água', S.remind.on ? 'A cada '+cadaTxt(S.remind.every)+', das '+hmTxt(RINI())+' às '+hmTxt(RFIM()) : 'Desligado'],
     ['avdesc', PREF.avDesc!==false, '#E8650A', ic('timer'), 'Fim do descanso', 'Quando você sai do app no descanso'],
+    ['avvolta', PREF.avVolta!==false, '#7E57C9', ic('bell'), 'Lembretes para voltar', 'Por e-mail e no celular, se você ficar dias sem treinar'],
     ['avtreino', PREF.avTreino!==false, '#E5484D', ic('flag'), 'Treino esquecido aberto', 'Um aviso com 3 horas de treino'],
   ];
   const row = ([k,on,c,icn,t,sub]) => `<div class="nt-row"><span class="nt-ic" style="--c:${c}">${icn}</span><div><b>${t}</b><span class="s">${sub}</span></div>${swN(k,on,t)}</div>`;
@@ -31,7 +32,7 @@ function pfHome(){
   const pers = isPersonal(), nome = pers ? ACCT.nome : (S.nome || 'Você'), n = S.history.length;
   const late = pers && ACCT.pagoAte && ACCT.pagoAte < today();
   const pay = pers && ACCT.pagoAte ? `<span class="pf-chip ${late?'bad':'ok'}">${ic(late?'bell':'check')}${late ? 'Mensalidade em aberto desde '+dm(ACCT.pagoAte) : 'Mensalidade em dia até '+dm(ACCT.pagoAte)}</span>` : '';
-  const nOn = [PREF.avDia!==false && !noPlan(), S.remind.on, PREF.avDesc!==false, PREF.avTreino!==false].filter(Boolean).length;
+  const nOn = [PREF.avDia!==false && !noPlan(), S.remind.on, PREF.avDesc!==false, PREF.avTreino!==false, PREF.avVolta!==false].filter(Boolean).length;
   const dias = noPlan() ? 'Nenhum treino montado' : diasLivres() ? 'qualquer dia' : tDays().length+'x por semana';
   const obj = ED[S.ed] ? ED[S.ed].nome : '';
   const tl = TLAYS.find(o => o.id===tLay()).n, cl = LAYS.find(o => o.id===layOf()).n, cor = (ACC[PREF.accent] || ACC.vermelho)[0];
@@ -42,7 +43,7 @@ function pfHome(){
       <div class="pf-chips">${pay}<input type="file" id="prof-foto" accept="image/*" class="sr-file"><label for="prof-foto" class="pf-chip">${ic('camera')}${FOTO?'Trocar foto':'Adicionar foto'}</label>${FOTO?`<button type="button" class="pf-chip" data-a="foto-del">${ui.arm==='foto-del'?'Toque de novo para remover':'Remover foto'}</button>`:''}</div></div></div>
     <div class="pf-tiles">
       ${tile('plano', 't-red', 'dumbbell', pers ? 'Meu plano' : 'Meus treinos', [obj, dias].filter(Boolean).join(' · '))}
-      ${tile('avisos', 't-blue', 'bell', 'Avisos', nOn+' de 4 ligados')}
+      ${tile('avisos', 't-blue', 'bell', 'Avisos', nOn+' de 5 ligados')}
       ${tile('visual', 't-lime', 'layers', 'Visual', tl+' · '+cl+' · '+cor)}
       ${tile('sug', 't-orange', 'msg', 'Sugestão', 'Fale com a gente')}
     </div>

@@ -41,6 +41,17 @@ test.describe('com personal (exemplo)', () => {
     await expect.poll(() => L.filter(x => x.acao === 'treino' && x.corpo.ini === 0).length).toBe(1);
   });
 
+  test('lembretes para voltar: o celular recebe a data do cadastro e do último treino; a chave do perfil desliga', async ({ page }) => {
+    const L = await capturaAvisos(page); await ligaAvisos(page);
+    const ult = () => (L.filter(x => x.acao === 'lembrete').pop() || { corpo: {} }).corpo.vt;
+    await simp(page, () => window.__simp.lbSync());
+    await expect.poll(ult).toMatchObject({ on: 1, cad: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) });
+    await semJanelas(page); await abrePerfil(page);
+    await expect(page.locator('#sheet .nta')).toContainText('Lembretes para voltar');
+    await chave(page, 'avvolta', false);
+    await expect.poll(() => (ult() || {}).on).toBe(0);
+  });
+
   test('lembrete do treino: só depois da 1ª semana, no horário aprendido de cada dia (30 min antes)', async ({ page }) => {
     const L = await capturaAvisos(page); await ligaAvisos(page);
     // conta nova: começa só daqui a 7 dias

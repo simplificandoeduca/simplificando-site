@@ -63,3 +63,19 @@ test('painel do personal: aviso de conta nova com nome, objetivo e hora; várias
   [n] = await c.push(); expect(n.t).toBe('2 contas novas no Simplificando 🎉'); expect(n.b).toBe('Ana, Bruno.');
   c.setResposta(null); [n] = await c.push(); expect(n.b).toBe('Toque para ver no painel.');
 });
+
+test('lembrete para voltar: "Seu treino já está pronto", "Sentimos sua falta" e "Ainda dá tempo de retomar", uma vez por etapa', async () => {
+  const Real = Date, n = new Real(), FIX = new Real(n.getFullYear(), n.getMonth(), n.getDate(), 18, 40).getTime();
+  global.Date = class extends Real { constructor(...a) { if (a.length) super(...a); else super(FIX); } static now() { return FIX; } };
+  try {
+    const dia = k => { const d = new Real(FIX + k * 864e5); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+    const c = celular('treino/sw.js', 'https://simplificandoeduca.com/treino/sw.js');
+    const lb = vt => c.store.set('/treino/__lembrete', JSON.stringify({ on: 0, h: 1080, hs: {}, dias: [], feito: '', pausa: '', desde: '', nome: 'Joana', t: 'B', tn: 'Empurrar', av: '', vt }));
+    lb({ on: 1, cad: dia(-1), ult: '' });
+    let [x] = await c.push(); expect(x.t).toBe('Seu treino já está pronto 💪'); expect(x.b).toContain('Oi, Joana!'); expect(x.url).toBe('/treino/#treino');
+    expect((await c.push())[0].t).not.toContain('pronto'); // uma vez só
+    lb({ on: 1, cad: dia(-30), ult: dia(-4) }); [x] = await c.push(); expect(x.t).toBe('Sentimos sua falta 👀'); expect(x.b).toBe('Joana, faz 4 dias do seu último treino. Bora voltar hoje? O treino B está te esperando.');
+    lb({ on: 1, cad: dia(-30), ult: dia(-10) }); [x] = await c.push(); expect(x.t).toBe('Ainda dá tempo de retomar 🔥'); expect(x.b).toBe('Joana, são 10 dias sem treinar. Recomece leve hoje: o app ajusta as cargas para você.');
+    lb({ on: 0, cad: dia(-30), ult: dia(-20) }); [x] = await c.push(); expect(x.t).toMatch(/água|garrafinha|copo/i);
+  } finally { global.Date = Real; }
+});

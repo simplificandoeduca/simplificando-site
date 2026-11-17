@@ -9,6 +9,8 @@
 // (ligados no painel do personal; só o dono consegue ligar). Limite por internet e por hora contra abuso.
 // Lembrete do treino do dia: a partir da 2ª semana de uso, nos dias de treino, no horário em que a pessoa costuma treinar
 // (o app estuda e manda um horário por dia da semana), uma vez no dia (não avisa se já treinou).
+// Lembretes para voltar: 1 dia depois do cadastro sem o 1º treino (de novo com 4 e 10 dias) e 4 e 10 dias sem treinar;
+// um aviso por etapa, a partir das 18h30 do horário da pessoa (o app manda a data do cadastro e a do último treino).
 // O aviso vai sem conteúdo (o próprio app monta a mensagem), então não precisa de criptografia de conteúdo,
 // só da assinatura VAPID. As chaves e as inscrições ficam fora do site, na pasta de cima.
 header('Content-Type: application/json; charset=utf-8');
@@ -66,6 +68,14 @@ function envia($endpoint, $ch, $urg = 'normal') {
 function endpoint_ok($e) {
   $h = parse_url((string)$e, PHP_URL_HOST); if (!$h || parse_url($e, PHP_URL_SCHEME) !== 'https') return false;
   return (bool)preg_match('/(^|\.)(fcm\.googleapis\.com|android\.googleapis\.com|push\.apple\.com|push\.services\.mozilla\.com|notify\.windows\.com)$/', $h);
+}
+// etapa do lembrete de volta: n1/n4/n10 (sem o 1º treino, contando do cadastro) ou t4/t10 (sem treinar, contando do último treino)
+function volta_etapa($vt, $dia) {
+  if (!is_array($vt) || empty($vt['on'])) return ['', ''];
+  $ult = (string)($vt['ult'] ?? ''); $ref = $ult ?: (string)($vt['cad'] ?? ''); if (!$ref) return ['', ''];
+  $d = (int)floor((strtotime($dia . ' 12:00:00 UTC') - strtotime($ref . ' 12:00:00 UTC')) / 86400);
+  $e = $ult ? ($d >= 10 ? 't10' : ($d >= 4 ? 't4' : '')) : ($d >= 10 ? 'n10' : ($d >= 4 ? 'n4' : ($d >= 1 ? 'n1' : '')));
+  return [$e, $e ? $e . '|' . $ref : ''];
 }
 $hm = function ($s, $padrao) { return preg_match('/^(\d{1,2}):(\d{2})$/', (string)$s, $m) ? min(1439, $m[1] * 60 + $m[2]) : $padrao; };
 
@@ -152,7 +162,8 @@ if (in_array($acao, ['assinar', 'copo', 'sair', 'descanso', 'treino', 'lembrete'
       $dt = function ($x) { return preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)$x) ? (string)$x : ''; };
       $dias = array_values(array_unique(array_filter(array_map('intval', is_array($j['dias'] ?? null) ? $j['dias'] : []), function ($d) { return $d >= 0 && $d <= 6; })));
       $hs = []; foreach ((is_array($j['hs'] ?? null) ? $j['hs'] : []) as $w => $m) { $w = (int)$w; if ($w >= 0 && $w <= 6) $hs[(string)$w] = max(0, min(1439, (int)$m)); }
-      $v[$id]['lb'] = ['on' => empty($j['on']) ? 0 : 1, 'h' => max(0, min(1439, (int)($j['h'] ?? 1080))), 'hs' => $hs, 'dias' => $dias, 'feito' => $dt($j['feito'] ?? ''), 'pausa' => $dt($j['pausa'] ?? ''), 'desde' => $dt($j['desde'] ?? '')];
+      $v[$id]['lb'] = ['on' => empty($j['on']) ? 0 : 1, 'h' => max(0, min(1439, (int)($j['h'] ?? 1080))), 'hs' => $hs, 'dias' => $dias, 'feito' => $dt($j['feito'] ?? ''), 'pausa' => $dt($j['pausa'] ?? ''), 'desde' => $dt($j['desde'] ?? ''),
+        'vt' => ['on' => empty($j['vt']['on']) ? 0 : 1, 'cad' => $dt($j['vt']['cad'] ?? ''), 'ult' => $dt($j['vt']['ult'] ?? '')]];
       grava_in($v);
     }
     sai(['ok' => true]);
@@ -173,7 +184,7 @@ if ($acao === 'cron') {
     $ka = $base . '/simplificando-atualizar-chave.txt'; $k = is_file($ka) ? trim((string)@file_get_contents($ka)) : '';
     if (strlen($k) < 12 || !hash_equals($k, (string)($_GET['chave'] ?? ''))) sai(['ok' => false, 'erro' => 'Só pelo agendamento do servidor.'], 403);
   }
-  $ch = chaves(); $v = le_in(); $agora = time(); $env = 0; $tirou = 0;
+  $ch = chaves(); $v = le_in(); $agora = ($CLI && getenv('SIMP_AGORA')) ? (int)getenv('SIMP_AGORA') : time(); $env = 0; $tirou = 0; // SIMP_AGORA: só o robô de testes
   foreach ($v as $id => $s) {
     // treino aberto há 3h (até 14h): um aviso só, a qualquer hora (mesmo com o lembrete de água desligado)
     $tr = (int)($s['tr'] ?? 0);
@@ -193,6 +204,14 @@ if ($acao === 'cron') {
       if ($st >= 200 && $st < 300) { $v[$id]['lbav'] = $dia; $v[$id]['ultimo'] = $agora; $env++; }
       continue;
     }
+    // lembrete para voltar (1 dia sem o 1º treino; 4 e 10 dias sem treinar): uma vez por etapa, das 18h30 às 21h
+    [$et, $vk] = volta_etapa($lb['vt'] ?? null, $dia);
+    if ($et && $min >= 18 * 60 + 30 && $min < 21 * 60 && ($s['vtav'] ?? '') !== $vk) {
+      $st = envia($s['e'], $ch);
+      if ($st == 404 || $st == 410) { unset($v[$id]); $tirou++; continue; }
+      if ($st >= 200 && $st < 300) { $v[$id]['vtav'] = $vk; $v[$id]['ultimo'] = $agora; $env++; }
+      continue;
+    }
     if (isset($s['ag']) && !$s['ag']) continue; // só os avisos do descanso (lembrete de água desligado)
     if ($min < $s['ini'] || $min > $s['fim']) continue;
     if ($s['meta'] === $dia) continue;
@@ -203,6 +222,12 @@ if ($acao === 'cron') {
     if ($st == 404 || $st == 410) { unset($v[$id]); $tirou++; continue; }
     if ($st >= 200 && $st < 300) { $v[$id]['ultimo'] = $agora; $env++; }
   }
-  grava_in($v); sai(['ok' => true, 'enviados' => $env, 'removidos' => $tirou, 'inscritos' => count($v)]);
+  grava_in($v);
+  // lembretes por e-mail (lembretes.php): uma vez por dia, a partir das 18h30 de Brasília
+  $sp = $agora - 3 * 3600; $msp = (int)gmdate('G', $sp) * 60 + (int)gmdate('i', $sp); $lbD = $base . '/.simplificando-lembretes-dia'; $lemb = null;
+  if ($msp >= 18 * 60 + 30 && !getenv('SIMP_TESTE_PUSH') && trim((string)@file_get_contents($lbD)) !== gmdate('Y-m-d', $sp)) {
+    @file_put_contents($lbD, gmdate('Y-m-d', $sp)); define('LEMB_INCLUIDO', 1); require_once __DIR__ . '/lembretes.php'; $lemb = lb_rodar();
+  }
+  sai(['ok' => true, 'enviados' => $env, 'removidos' => $tirou, 'inscritos' => count($v), 'emails' => $lemb]);
 }
 sai(['ok' => false, 'erro' => 'Pedido inválido.'], 400);

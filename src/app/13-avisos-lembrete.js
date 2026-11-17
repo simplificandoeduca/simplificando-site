@@ -26,14 +26,21 @@ function lbSubTxt(){
   return 'No seu horário de cada dia: '+dias.slice(0,3).map(w => TDAYS_L[(w+6)%7]+' '+hmTxt(x.hs[w])).join(', ')+(dias.length>3 ? '…' : '');
 }
 let LBC = '';
+/* lembretes por e-mail (servidor, lembretes.php): o app só avisa quando a pessoa desliga ou liga de novo */
+function voltaEmail(){
+  if(!FB || !FB.idToken || !ACCT) return; const on = PREF.avVolta!==false ? 1 : 0; if(PREF.vtSrv===on) return;
+  FB.idToken().then(tk => { if(!tk) return; const f = new FormData(); f.append('token', tk); f.append('on', on);
+    return fetch('/lembretes.php?acao=pref', { method:'POST', body:f, headers:{ Authorization:'Bearer '+tk } }).then(r => r.json()).then(j => { if(j && j.ok){ PREF.vtSrv = on; savePref(); } }); }).catch(() => {});
+}
 function lbSync(){
   if(!S || !ACCT) return;
   const hj = today(), wk = weekDays(0), on = PREF.avDia!==false && !noPlan();
   const feito = (S.history||[]).some(h => h.date===hj) || (S.session && (S.session.d||hj)===hj) ? hj : '';
   const pausa = diasLivres() && (S.history||[]).filter(h => wk.includes(h.date)).length >= SEMANA_TREINOS ? wk[6] : '';
-  const t = nextTreino(), x = lbHoras(), dado = { on:on?1:0, h:x.h, hs:x.hs, dias:lbDias(), feito, pausa, desde:lbAPartir() };
+  const ult = (S.history||[]).reduce((m,h) => h.date>m ? h.date : m, ''), vt = { on:PREF.avVolta!==false && !noPlan() ? 1 : 0, cad:usoIni(), ult }; // lembretes de volta: 1 dia sem o 1º treino, 4 e 10 dias sem treinar
+  const t = nextTreino(), x = lbHoras(), dado = { on:on?1:0, h:x.h, hs:x.hs, dias:lbDias(), feito, pausa, desde:lbAPartir(), vt };
   const txt = { nome:firstName(S.nome||''), t:t||'', tn:(PLAN[t]||{}).nome||'' }, k = JSON.stringify([dado, txt]);
-  if(k===LBC) return; LBC = k;
+  if(k===LBC) return; LBC = k; voltaEmail();
   const url = new URL('__lembrete', location.href).href;
   try { if(window.caches) caches.open('simp-estado').then(c => c.match(url).then(r => r ? r.json() : null).catch(() => null).then(o => c.put(url, new Response(JSON.stringify(Object.assign({}, dado, txt, { av:o && o.av || '' })), {headers:{'Content-Type':'application/json'}})))).catch(() => {}); } catch(e){ /* sem cache */ }
   const ks = JSON.stringify(dado);

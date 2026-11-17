@@ -1823,7 +1823,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simpteste-aluno-pro-v2';
-const APPV = '17 nov · 149'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '17 nov · 150'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -2109,7 +2109,8 @@ const FB = (() => {
   }
   // registro avulso (caixinha de sugestões, modelo de story usado): cada um grava só com o próprio uid; só o dono do painel lê
   async function evento(col, d){ const u = auth.currentUser || await ready(); if(!u) return 'sem-login'; try { await db.collection(col).add(Object.assign({}, d, { uid:u.uid })); return true; } catch(e){ return (e && e.code) || 'erro'; } }
-  return { login, fetchMe, logout, toAluno, cached, signUp, signIn, resetMail, resetCheck, resetSave, setCodigo, autoLoad, autoSave, autoFlush, perfil, progresso, progLoad, deleteSelf, evento, account:aid => { const c = cached(); return c && c.aid===aid ? toAluno(c) : null; } };
+  async function idToken(){ try { const u = auth.currentUser || await ready(); return u ? await u.getIdToken() : ''; } catch(e){ return ''; } }
+  return { idToken, login, fetchMe, logout, toAluno, cached, signUp, signIn, resetMail, resetCheck, resetSave, setCodigo, autoLoad, autoSave, autoFlush, perfil, progresso, progLoad, deleteSelf, evento, account:aid => { const c = cached(); return c && c.aid===aid ? toAluno(c) : null; } };
 })();
 // abriu com a conta guardada (ou voltou para o app): confere online se o personal mudou o treino ou bloqueou o acesso
 document.addEventListener('visibilitychange', () => { if(document.visibilityState==='visible') fbRefresh(); else if(FB) FB.autoFlush(); });
@@ -2200,6 +2201,26 @@ function ajustaDias(){
   if(fora.size) S.history = S.history.filter(h => !fora.has(h));
   if(n) S.history.sort((x,y) => x.date<y.date ? -1 : x.date>y.date ? 1 : 0);
 }
+/* o mesmo exercício pode ganhar um código novo (ciclo novo, modelo aplicado, treino copiado ou montado com a IA):
+   o gráfico de evolução, a carga da última vez e os recordes passam para o código novo (mesmo exercício da biblioteca ou mesmo nome) */
+const exBase = id => String(id||'').replace(/-[a-z0-9]{4}$/, '');
+const exNome = n => String(n||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim();
+function ligaHist(){
+  if(!S || !PLAN) return;
+  const nomes = {}; // código antigo -> nome, pelos treinos salvos
+  (S.history||[]).forEach(h => (h.ex||[]).forEach(e => { if(e && e.id && e.n) nomes[e.id] = exNome(e.n); }));
+  const ids = new Set([...Object.keys(S.loadHist||{}), ...Object.keys(S.last||{}), ...Object.keys(S.pr||{})]);
+  Object.values(PLAN).forEach(t => (t.ex||[]).forEach(e => {
+    if(!e || !e.id || (S.loadHist[e.id]||[]).length || S.last[e.id] || S.pr[e.id]) return;
+    const b = exBase(e.id), nm = exNome(e.nome), generico = /^(novo|voz|ex)$/.test(b);
+    const velhos = [...ids].filter(c => c!==e.id && ((!generico && exBase(c)===b) || (nm && nomes[c]===nm))); if(!velhos.length) return;
+    const porDia = {}; velhos.forEach(c => (S.loadHist[c]||[]).forEach(x => { if(x && x.d && (!porDia[x.d] || x.kg>porDia[x.d])) porDia[x.d] = x.kg; }));
+    const LH = Object.keys(porDia).sort().map(d => ({ d, kg:porDia[d] })).slice(-16); if(LH.length) S.loadHist[e.id] = LH;
+    const ult = velhos.map(c => S.last[c]).filter(Boolean).sort((x,y) => String(y.d||'').localeCompare(String(x.d||'')))[0]; if(ult) S.last[e.id] = Object.assign({}, ult);
+    const pr = velhos.map(c => S.pr[c]).filter(Boolean).sort((x,y) => (y.e1||0)-(x.e1||0))[0]; if(pr) S.pr[e.id] = Object.assign({}, pr);
+    Object.values(S.gymLast||{}).forEach(m => { const g = velhos.map(c => m[c]).filter(Boolean).sort((x,y) => String(y.d||'').localeCompare(String(x.d||'')))[0]; if(g && !m[e.id]) m[e.id] = Object.assign({}, g); });
+  }));
+}
 function applyAccount(){
   if(isPersonal()){
     const a = ACCT.aluno, mc = a.metas.cardio || {};
@@ -2230,6 +2251,7 @@ function applyAccount(){
   Object.keys(PLAN).forEach(l => { const t = PLAN[l]; t.nome = String(t.nome||'').trim() || String(t.foco||'').trim() || 'Treino '+l; (t.ex||[]).forEach(x => { delete x.sup; delete x.tec; }); }); // sem técnicas especiais
   LETTERS = Object.keys(PLAN).sort();
   if(S.session && !PLAN[S.session.t]) S.session = null;
+  ligaHist();
 }
 function startApp(){
   const sess = readSess();
@@ -2562,6 +2584,7 @@ const DOC_HTML = { termos:`<section class="doc" id="doc-termos">
 <li>mostrar a sua evolução e salvar o seu histórico na sua conta;</li>
 <li>permitir que o seu personal acompanhe você (só para alunos com personal);</li>
 <li>gerenciar as contas do app: o administrador vê o nome, o e-mail, o tipo de conta (com ou sem personal), as datas de criação e de último acesso e se os termos foram aceitos. De quem treina sem personal, ele não vê os dados de saúde nem o histórico de treinos, a não ser que a própria pessoa permita o acompanhamento no app (Perfil › Acompanhamento). Com a permissão, ele vê o treino montado, os treinos feitos, cargas, cardio, água, check-in e mensagens, só para acompanhar e ajudar. A permissão pode ser desligada a qualquer momento;</li>
+<li>mandar lembretes para você voltar a treinar, por e-mail e, se os avisos estiverem ligados, no celular: 1 dia depois do cadastro sem o primeiro treino e depois de 4 e de 10 dias sem treinar. Para isso, o servidor confere só a data do seu último treino. Dá para desligar em Perfil › Avisos ou pelo link no próprio e-mail;</li>
 <li>segurança, prevenção de fraudes e suporte.</li>
 </ul>
 <p>Não vendemos os seus dados e não usamos os seus dados para propaganda.</p>
@@ -5046,14 +5069,21 @@ function lbSubTxt(){
   return 'No seu horário de cada dia: '+dias.slice(0,3).map(w => TDAYS_L[(w+6)%7]+' '+hmTxt(x.hs[w])).join(', ')+(dias.length>3 ? '…' : '');
 }
 let LBC = '';
+/* lembretes por e-mail (servidor, lembretes.php): o app só avisa quando a pessoa desliga ou liga de novo */
+function voltaEmail(){
+  if(!FB || !FB.idToken || !ACCT) return; const on = PREF.avVolta!==false ? 1 : 0; if(PREF.vtSrv===on) return;
+  FB.idToken().then(tk => { if(!tk) return; const f = new FormData(); f.append('token', tk); f.append('on', on);
+    return fetch('/lembretes.php?acao=pref', { method:'POST', body:f, headers:{ Authorization:'Bearer '+tk } }).then(r => r.json()).then(j => { if(j && j.ok){ PREF.vtSrv = on; savePref(); } }); }).catch(() => {});
+}
 function lbSync(){
   if(!S || !ACCT) return;
   const hj = today(), wk = weekDays(0), on = PREF.avDia!==false && !noPlan();
   const feito = (S.history||[]).some(h => h.date===hj) || (S.session && (S.session.d||hj)===hj) ? hj : '';
   const pausa = diasLivres() && (S.history||[]).filter(h => wk.includes(h.date)).length >= SEMANA_TREINOS ? wk[6] : '';
-  const t = nextTreino(), x = lbHoras(), dado = { on:on?1:0, h:x.h, hs:x.hs, dias:lbDias(), feito, pausa, desde:lbAPartir() };
+  const ult = (S.history||[]).reduce((m,h) => h.date>m ? h.date : m, ''), vt = { on:PREF.avVolta!==false && !noPlan() ? 1 : 0, cad:usoIni(), ult }; // lembretes de volta: 1 dia sem o 1º treino, 4 e 10 dias sem treinar
+  const t = nextTreino(), x = lbHoras(), dado = { on:on?1:0, h:x.h, hs:x.hs, dias:lbDias(), feito, pausa, desde:lbAPartir(), vt };
   const txt = { nome:firstName(S.nome||''), t:t||'', tn:(PLAN[t]||{}).nome||'' }, k = JSON.stringify([dado, txt]);
-  if(k===LBC) return; LBC = k;
+  if(k===LBC) return; LBC = k; voltaEmail();
   const url = new URL('__lembrete', location.href).href;
   try { if(window.caches) caches.open('simpteste-aluno-estado').then(c => c.match(url).then(r => r ? r.json() : null).catch(() => null).then(o => c.put(url, new Response(JSON.stringify(Object.assign({}, dado, txt, { av:o && o.av || '' })), {headers:{'Content-Type':'application/json'}})))).catch(() => {}); } catch(e){ /* sem cache */ }
   const ks = JSON.stringify(dado);
@@ -5073,6 +5103,7 @@ function ntfBloco(pers){
     ['avdia', PREF.avDia!==false && !noPlan(), '#7E57C9', ic('dumbbell'), 'Lembrete do treino', lbSubTxt()],
     ['remind', S.remind.on, '#1A73E8', ic('drop'), 'Lembrete de água', S.remind.on ? 'A cada '+cadaTxt(S.remind.every)+', das '+hmTxt(RINI())+' às '+hmTxt(RFIM()) : 'Desligado'],
     ['avdesc', PREF.avDesc!==false, '#E8650A', ic('timer'), 'Fim do descanso', 'Quando você sai do app no descanso'],
+    ['avvolta', PREF.avVolta!==false, '#7E57C9', ic('bell'), 'Lembretes para voltar', 'Por e-mail e no celular, se você ficar dias sem treinar'],
     ['avtreino', PREF.avTreino!==false, '#E5484D', ic('flag'), 'Treino esquecido aberto', 'Um aviso com 3 horas de treino'],
   ];
   const row = ([k,on,c,icn,t,sub]) => `<div class="nt-row"><span class="nt-ic" style="--c:${c}">${icn}</span><div><b>${t}</b><span class="s">${sub}</span></div>${swN(k,on,t)}</div>`;
@@ -5092,7 +5123,7 @@ function pfHome(){
   const pers = isPersonal(), nome = pers ? ACCT.nome : (S.nome || 'Você'), n = S.history.length;
   const late = pers && ACCT.pagoAte && ACCT.pagoAte < today();
   const pay = pers && ACCT.pagoAte ? `<span class="pf-chip ${late?'bad':'ok'}">${ic(late?'bell':'check')}${late ? 'Mensalidade em aberto desde '+dm(ACCT.pagoAte) : 'Mensalidade em dia até '+dm(ACCT.pagoAte)}</span>` : '';
-  const nOn = [PREF.avDia!==false && !noPlan(), S.remind.on, PREF.avDesc!==false, PREF.avTreino!==false].filter(Boolean).length;
+  const nOn = [PREF.avDia!==false && !noPlan(), S.remind.on, PREF.avDesc!==false, PREF.avTreino!==false, PREF.avVolta!==false].filter(Boolean).length;
   const dias = noPlan() ? 'Nenhum treino montado' : diasLivres() ? 'qualquer dia' : tDays().length+'x por semana';
   const obj = ED[S.ed] ? ED[S.ed].nome : '';
   const tl = TLAYS.find(o => o.id===tLay()).n, cl = LAYS.find(o => o.id===layOf()).n, cor = (ACC[PREF.accent] || ACC.vermelho)[0];
@@ -5103,7 +5134,7 @@ function pfHome(){
       <div class="pf-chips">${pay}<input type="file" id="prof-foto" accept="image/*" class="sr-file"><label for="prof-foto" class="pf-chip">${ic('camera')}${FOTO?'Trocar foto':'Adicionar foto'}</label>${FOTO?`<button type="button" class="pf-chip" data-a="foto-del">${ui.arm==='foto-del'?'Toque de novo para remover':'Remover foto'}</button>`:''}</div></div></div>
     <div class="pf-tiles">
       ${tile('plano', 't-red', 'dumbbell', pers ? 'Meu plano' : 'Meus treinos', [obj, dias].filter(Boolean).join(' · '))}
-      ${tile('avisos', 't-blue', 'bell', 'Avisos', nOn+' de 4 ligados')}
+      ${tile('avisos', 't-blue', 'bell', 'Avisos', nOn+' de 5 ligados')}
       ${tile('visual', 't-lime', 'layers', 'Visual', tl+' · '+cl+' · '+cor)}
       ${tile('sug', 't-orange', 'msg', 'Sugestão', 'Fale com a gente')}
     </div>
@@ -6388,6 +6419,7 @@ function onChange(ev){
   if(el.dataset.sw==='acomp'){ acompSet(el.checked); toast(el.checked ? 'Acompanhamento ligado.' : 'Acompanhamento desligado. Seus treinos não aparecem mais para ninguém.'); }
   if(el.dataset.sw==='avdia'){ PREF.avDia = el.checked; savePref(); lbSync(); if(el.checked && !pushLigado() && pushPode()) pushEnable(true); else toast(el.checked ? 'Lembrete do treino ligado.' : 'Lembrete do treino desligado.'); renderSheet(); }
   if(el.dataset.sw==='avdesc'){ PREF.avDesc = el.checked; savePref(); restPush(); if(el.checked && !pushLigado() && pushPode()) pushEnable(true); else toast(el.checked ? 'Aviso do fim do descanso ligado.' : 'Aviso do fim do descanso desligado.'); renderSheet(); }
+  if(el.dataset.sw==='avvolta'){ PREF.avVolta = el.checked; savePref(); LBC = ''; lbSync(); toast(el.checked ? 'Lembretes para voltar ligados.' : 'Lembretes para voltar desligados (e-mail e celular).'); renderSheet(); return; }
   if(el.dataset.sw==='avtreino'){ PREF.avTreino = el.checked; PREF.trIni = null; savePref(); treinoAviso(); if(el.checked && !pushLigado() && pushPode()) pushEnable(true); else toast(el.checked ? 'Aviso de treino esquecido ligado.' : 'Aviso de treino esquecido desligado.'); renderSheet(); }
   if(el.dataset.sw==='glass'){ PREF.glass = el.checked; savePref(); applyGlass(); toast(el.checked ? 'Liquid Glass ligado.' : 'Visual sólido de volta.'); }
   if(el.dataset.sw==='remind'){ S.remind.on = el.checked; ui.remindFired = null; save(); if(PREF.pushOn) pushSave(); render(); toast(el.checked ? 'Lembretes ligados.' : 'Lembretes desligados.'); }
