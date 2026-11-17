@@ -382,10 +382,16 @@ function finEmailAuto() {
   try { $r = finEmailMandar($alvo, $c['para']); $n['res'] = $r['ok'] ? 'ok' : $r['erro']; } catch (Throwable $e) { $n['res'] = $e->getMessage(); }
   finEmailGuarda($n);
 }
-function finEmailPublico() { $c = finEmailCfg(); return ['para' => $c['para'], 'auto' => !empty($c['auto']), 'ultimo' => (string)$c['ultimo'], 'res' => (string)$c['res'], 'quando' => (string)$c['quando'], 'hora' => finEmailHora(), 'fecha' => (int)(regra()['fecha'] ?? 22)]; }
+function finEmailPublico() { $c = finEmailCfg(); $cs = is_array($c['campos'] ?? null) ? array_values($c['campos']) : array_slice((array)$c['para'], 0, 4); while (count($cs) < 4) $cs[] = ''; return ['campos' => array_slice($cs, 0, 4), 'para' => $c['para'], 'auto' => !empty($c['auto']), 'ultimo' => (string)$c['ultimo'], 'res' => (string)$c['res'], 'quando' => (string)$c['quando'], 'hora' => finEmailHora(), 'fecha' => (int)(regra()['fecha'] ?? 22)]; }
 // salvar: a lista e o "mandar sozinho". Ligado agora, o primeiro envio sozinho é o de hoje (no fim do dia), nunca o de ontem
 function finEmailSalvar(array $in) {
-  $c = finEmailCfg(); $c['para'] = finEmailLista($in['para'] ?? ''); $auto = !empty($in['auto']);
+  $c = finEmailCfg();
+  if (isset($in['campos']) && is_array($in['campos'])) {   // 1.56: os 4 e-mails dos Ajustes (gestor, financeiro, outro, outro), cada um no seu lugar
+    $cs = array_map(fn($x) => mb_strtolower(trim((string)$x)), array_slice(array_values($in['campos']), 0, 4)); while (count($cs) < 4) $cs[] = '';
+    foreach ($cs as $e) if ($e !== '') finEmailLista($e);   // (confere cada um)
+    $c['campos'] = $cs; $c['para'] = finEmailLista(implode("\n", $cs));
+  } else { $c['para'] = finEmailLista($in['para'] ?? ''); unset($c['campos']); }
+  $auto = !empty($in['auto']);
   if ($auto && !$c['para']) falha('Para mandar sozinho, cadastre pelo menos um e-mail.');
   if ($auto && empty($c['auto'])) $c['ultimo'] = max((string)$c['ultimo'], date('Y-m-d', strtotime(date('Y-m-d') . ' 12:00:00 -1 day')));   // (o de ontem não sai; o de hoje sai no fim do dia)
   $c['auto'] = $auto; $d = finDominio($c); if ($d !== '') $c['dominio'] = $d; finEmailGuarda($c); return finEmailPublico();

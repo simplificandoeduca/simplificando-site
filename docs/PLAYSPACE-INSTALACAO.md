@@ -1301,6 +1301,14 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzl. Telefone na notinha, reimpressão, cancelar fora da tolerância, cortesia, alterar as horas pelo número e o e-mail do dia (1.56)
+
+- **Notinha (cupom):** o telefone do cliente sai nas **duas vias** (da loja e do cliente), para ligar para ele pela notinha. Na reimpressão, sai **REIMPRESSÃO** com a data e a hora em cima (e embaixo).
+- **Cancelar a entrada fora da tolerância:** passou dos 9 min, **só o gestor** cancela. A ficha mostra "Cancelar entrada · fora da tolerância" e a folha avisa; fica anotado como cancelamento fora do prazo.
+- **Cortesia:** no pagamento da saída, o botão **Cortesia** com o relógio correndo (o tempo que a criança está no espaço, até 9:00). Também na saída em conjunto (irmãos), um botão para cada criança que entrou há pouco. Passou dos 9 min, o botão apaga para a equipe; o gestor ainda dá, com o aviso e um segundo toque para confirmar.
+- **Alterar as horas pelo número (gestor):** no **Banco de horas**, toque no saldo do cliente; no **histórico**, toque em "Horas compradas". Abre a correção das horas (com uma compra só, direto; com mais, escolha qual). A alteração aparece no **Relatório do cliente (extrato)** como "Horas alteradas pelo gestor", com o motivo e quem mudou.
+- **Ajustes → Relatório do dia por e-mail (gestor):** até 4 e-mails (do gestor, do financeiro e mais dois) e "Mandar sozinho todo dia" (sai meia hora depois de fechar, com o PDF). "Mandar agora o de hoje" para testar. É o mesmo de Finanças → Conta.
+
 ## 6zzk. Notas fiscais do dia, a nota sem esperar o gestor e a correção das horas (1.55)
 
 Pedido do dono: o relatório das notas emitidas no dia na tela do gestor e no financeiro (faturamento em notas e em caixa); todos emitem a nota, só o gestor cancela; o gestor corrige as horas do pacote quando a equipe lança errado.

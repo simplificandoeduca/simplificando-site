@@ -231,6 +231,14 @@ switch ($acao) {
     header('Content-Disposition: attachment; filename="playspace-copia-' . $m[1] . '-' . $m[2] . '-' . $m[3] . '-' . $m[4] . 'h' . $m[5] . '.sqlite"');
     readfile($arq); exit;
   }
+  case 'email_resumo': { // 1.56: o relatório do dia por e-mail, nos Ajustes (o mesmo das Finanças → Conta): ver, salvar, mandar agora. Só o gestor
+    exigir(['gestor']); require_once __DIR__ . '/../financas/resumo.php'; $op = (string)($in['op'] ?? 'ver');
+    if ($op === 'salvar') responder(['email' => finEmailSalvar($in)]);
+    if ($op === 'enviar') { $c = finEmailCfg(); if (!$c['para']) falha('Cadastre pelo menos um e-mail e salve.');
+      $r = finEmailMandar(date('Y-m-d'), $c['para']); $c['res'] = $r['ok'] ? 'ok' : $r['erro']; $c['quando'] = date('Y-m-d H:i:s'); $d = finDominio($c); if ($d !== '') $c['dominio'] = $d; finEmailGuarda($c);
+      if (!$r['ok']) falha($r['erro'], 502); responder(['email' => finEmailPublico(), 'enviado' => $r]); }
+    responder(['email' => finEmailPublico()]);
+  }
   case 'resumo_pdf': { // 1.54: o resumo do dia em PDF (o mesmo das Finanças), para o gestor
     $u = exigir(); if (($u['papel'] ?? '') !== 'gestor') falha('Só o gestor baixa o resumo do dia.', 403); session_write_close();
     require_once __DIR__ . '/../financas/resumo.php'; finPdfSaida(['de' => (string)($in['de'] ?? date('Y-m-d')), 'ate' => (string)($in['ate'] ?? ($in['de'] ?? date('Y-m-d'))), 'uni' => 'todas']);
@@ -518,7 +526,7 @@ switch ($acao) {
     if (mb_strlen($motivo) < 5) falha('Escreva o motivo do cancelamento: a supervisão vai conferir.');
     [$lim, , $noPrazo] = prazoCancelar($c);
     // 1.00: passou do prazo, ninguém cancela (nem gestor, nem supervisor), qualquer que seja o motivo: o período é cobrado
-    if (!$noPrazo) falha($lim > 0 ? 'Já passou de ' . $lim . ' min da entrada de ' . $c['nome'] . ': a entrada não pode mais ser cancelada. O período é cobrado.' : 'A loja não cancela entradas: o período é cobrado.', 403);
+    if (!$noPrazo && $u['papel'] !== 'gestor') falha($lim > 0 ? 'Já passou de ' . $lim . ' min da entrada de ' . $c['nome'] . ': agora só o gestor cancela (fica anotado como fora da tolerância).' : 'Só o gestor cancela a entrada.', 403);   // 1.56: o gestor cancela fora da tolerância (fica anotado: fora do prazo)
     lerAtendente($in, $u);   // 1.25
     $r = cancelarEntrada($c, $u, $motivo, isset($in['vendas']) && is_array($in['vendas']) ? array_map('intval', $in['vendas']) : null);
     $r['mensagem'] = is_array($r['mensagem']) ? ['id' => (int)$r['mensagem']['id'], 'erro' => (string)$r['mensagem']['erro']] : null;
