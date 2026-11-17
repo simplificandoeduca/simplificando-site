@@ -161,6 +161,10 @@ test('Hub (/hub): números reais e um bloco para cada espaço; Números saiu das
   await expect(page.locator('.hb-st').nth(0).locator('b')).toHaveText(num);                        // alunos ativos (a Ana)
   await expect(page.locator('.hb-st').nth(2).locator('b')).toHaveText(num, { timeout: 20000 });    // cadastros no mês (a Bruna)
   await expect(page.locator('.hb-bl.red .hb-num b')).toHaveText(num, { timeout: 20000 });          // a Ana treinou hoje
+  // o link antigo (/personal/#hub) foi desativado: abre o Painel normal, sem o hub
+  const velho = await page.context().newPage(); await velho.goto(EMU + '/personal/#hub');
+  await velho.waitForFunction(() => window.__painel && window.__painel.Store.loaded, null, { timeout: 20000 });
+  await expect(velho.locator('.hub')).toHaveCount(0); await expect(velho).toHaveURL(/#painel$/); await velho.close();
   // cada bloco abre em outra aba: o app de teste, o painel e Números
   expect(await page.locator('.hb-bl').evaluateAll(L => L.map(a => [a.getAttribute('href'), a.getAttribute('target')]))).toEqual([['/app-teste/', '_blank'], ['/personal/#painel', '_blank'], ['/personal/#estatisticas', '_blank']]);
   expect(await page.locator('a.hb-ms').evaluateAll(L => L.map(a => a.getAttribute('href')))).toEqual(['/financas/', '/personal/teste/', '/']);
