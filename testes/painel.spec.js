@@ -124,6 +124,26 @@ test('treino marcado 2 vezes: o personal altera o tempo de um e exclui o outro; 
   await ctx2.close();
 });
 
+test('Evolução: tocar em "Treinos" mostra os treinos da semana (fechados) e em "Água" o horário de cada copo', async ({ page, browser }) => {
+  await entraComSenha(page, { codigo, emu: true });
+  const hoje = await simp(page, () => { const T = window.__simp, S = T.S, t = T.today(); S.wlog[t] = [{ m: 550, ml: 300 }, { m: 615, ml: 500 }, { m: 700, ml: -250 }, { m: 720, ml: 400 }]; S.water[t] = 950; T.save(); return t; });
+  await expect.poll(async () => { const p = (await fsLista('progresso')).find(x => x.f.aid && x.f.aid.stringValue === aid); const s = p ? JSON.parse(p.f.s.stringValue) : {}; return s.wl && s.wl[hoje] ? s.wl[hoje].length : 0; }, { timeout: 30000 }).toBe(4);
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } }); const p2 = await ctx.newPage();
+  await entraPainel(p2); await vai(p2, '#aluno--' + aid + '--evolucao');
+  await p2.locator('[data-a="evAgua"]').click({ timeout: 20000 });
+  const sh = p2.locator('#sheet');
+  await expect(sh).toContainText('Água de cada dia');
+  for (const x of ['09:10', '+300 ml', '10:15', '+500 ml', '−250 ml', '12:00']) await expect(sh).toContainText(x);
+  await p2.click('#sheet [data-a="close"]');
+  await p2.locator('[data-a="evTreinos"]').click();
+  await expect(sh).toContainText('Treinos da semana');
+  const tr = sh.locator('details.evt-h'); await expect.poll(() => tr.count()).toBeGreaterThan(0);
+  expect(await tr.first().evaluate(el => el.open)).toBe(false); // fechados
+  await tr.first().locator('summary').click();
+  await expect(tr.first().locator('.evt-r').first()).toBeVisible();
+  await ctx.close();
+});
+
 test('Perfis mostra quem criou conta sem personal; Ajustes tem "Avisos no celular" (o "Atualizar" foi para o hub)', async ({ page, browser }) => {
   await criaConta(page, { nome: 'Bruna Perfis', emu: true });
   const p2 = await browser.newPage({ viewport: { width: 1280, height: 900 } });

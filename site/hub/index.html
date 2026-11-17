@@ -821,6 +821,17 @@ h3.sec{font-size:22px;margin:14px 2px -2px}
 .ev3-mv{gap:8px}
 .ina-tag{display:inline-block;vertical-align:2px;margin-left:8px;padding:3px 7px;border-radius:6px;background:#FF9A2E;color:#FFFFFF;font-size:11px;font-weight:800;letter-spacing:.01em;line-height:1.2;white-space:nowrap}.ina-tag.d10{background:#FF4646}
 @media (max-width:760px){.ev2-tdc{grid-column:1/-1;margin-top:-4px}.ev2-tdc .ev2-sp{width:100%;height:38px}}
+.evt-list{display:flex;flex-direction:column;gap:8px}
+.evt-h{background:var(--ctl);border-radius:16px;overflow:hidden}.evt-h>summary{display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer;list-style:none}.evt-h>summary::-webkit-details-marker{display:none}
+.evt-h .lt{width:34px;height:34px;flex:none;border-radius:11px;background:#FF4646;color:#0F1712;display:grid;place-items:center;font-weight:900}
+.evt-h .mt{flex:1;min-width:0}.evt-h .mt b{display:block;font-size:14.5px}.evt-h .mt small{color:var(--muted);font-size:12.5px}
+.evt-h .chev{transition:transform .2s}.evt-h[open] .chev{transform:rotate(90deg)}
+.evt-ex{padding:0 14px 12px}.evt-r{padding:8px 0;border-top:1px solid var(--sep);display:flex;flex-direction:column;gap:2px}.evt-r b{font-size:14px}.evt-r span{font-size:13px;color:var(--muted)}
+.eva-ds{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-bottom:12px}
+.eva-d{border:0;border-radius:12px;background:var(--ctl);color:var(--fg);padding:8px 2px;font:inherit;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
+.eva-d span{font-size:11px;color:var(--muted);font-weight:700}.eva-d b{font-size:14px}.eva-d.ok{background:rgba(90,184,255,.28)}.eva-d.on{box-shadow:inset 0 0 0 2px var(--fg)}.eva-d.fut{opacity:.4;cursor:default}
+.eva-list{display:flex;flex-direction:column}.eva-r{display:grid;grid-template-columns:62px 1fr auto;gap:10px;align-items:center;padding:10px 2px;border-top:1px solid var(--sep);font-size:14px}
+.eva-r .h{font-weight:800;font-variant-numeric:tabular-nums}.eva-r b{color:#1E73E0}.eva-r.neg b{color:var(--muted)}.eva-r .t{color:var(--muted);font-size:13px}
 /* ---------- Hub (/hub): entrada do dono, sempre escura, com blocos de cor cheia (igual ao app do aluno) ---------- */
 body.hub-on{background:#0F1712}
 .hub-on .side,.hub-on .tabbar{display:none}
@@ -3127,7 +3138,37 @@ function ev2Spark(pts){
   return '<svg class="ev2-sp" viewBox="0 0 '+W+' '+H+'" aria-hidden="true"><polyline points="'+xy.map(p => p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ')+'" fill="none" stroke="'+(up?'#1E9E4A':'#E5533A')+'" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="'+xy[xy.length-1][0].toFixed(1)+'" cy="'+xy[xy.length-1][1].toFixed(1)+'" r="3.5" fill="'+(up?'#1E9E4A':'#E5533A')+'"/></svg>';
 }
 /* cardio da semana em uma janelinha: aparelho, minutos e intensidade de cada um */
-let EVC = null;
+let EVC = null, EVT = null, EVA = null;
+/* treinos da semana em uma janelinha: cada treino fechado (toca e abre com os exercícios e as séries) */
+function vEvTreinos(s){
+  const E = EVT; if(!E) return sheetTop('Treinos','')+'<p class="muted">Abra a Evolução do aluno de novo.</p>';
+  const ini = s.ini || E.ini, fim = addDays(ini, 6), L = E.H.filter(x => x.d>=ini && x.d<=fim).sort((x,y) => x.d.localeCompare(y.d));
+  const nav = '<div class="btn-row" style="justify-content:space-between;margin:0 0 10px"><button type="button" class="btn small ghost" data-a="evTreinosSem" data-v="'+addDays(ini,-7)+'">'+ic('chevL')+'Semana anterior</button>'+(ini<E.ini ? '<button type="button" class="btn small ghost" data-a="evTreinosSem" data-v="'+addDays(ini,7)+'">Próxima'+ic('chev')+'</button>' : '')+'</div>';
+  const tr = x => { const nm = x.nm || ((E.plano[x.t]||{}).nome) || '', series = (x.ex||[]).reduce((t,e) => t+((e.s||[]).length), 0) || x.sets || 0;
+    return '<details class="evt-h"><summary><span class="lt">'+esc(x.t)+'</span><span class="mt"><b>'+dSem(x.d)+', '+fmtDm(x.d)+(nm ? ' · '+esc(nm) : '')+'</b><small>'+[x.min ? x.min+' min' : '', series ? plural(series,'série') : '', x.gym ? esc(x.gym) : ''].filter(Boolean).join(' · ')+'</small></span>'+ic('chev','chev')+'</summary>'+
+      (x.note ? '<p class="evo-msg">'+ic('msg')+'<span><b>Mensagem</b>'+esc(x.note)+'</span></p>' : '')+
+      ((x.ex||[]).length ? '<div class="evt-ex">'+x.ex.map(e => '<div class="evt-r"><b>'+esc(e.n||'Exercício')+'</b><span>'+((e.s||[]).length ? e.s.map(z => fmtN(z[0])+' kg × '+z[1]).join(' · ') : 'Sem séries marcadas')+'</span></div>').join('')+'</div>' : '<p class="foot">Só o resumo deste treino.</p>')+'</details>'; };
+  return sheetTop('Treinos da semana', E.nome+' · '+fmtDm(ini)+' a '+fmtDm(fim))+nav+
+    '<div class="evc-tot"><b>'+L.length+'<small>'+(E.meta && ini===E.ini ? '/'+E.meta : '')+' treinos</small></b><span>'+(L.length ? plural(L.reduce((t,x) => t+(+x.min||0),0),'minuto')+' treinando' : 'Nenhum treino nesta semana')+'</span></div>'+
+    (L.length ? '<div class="evt-list">'+L.map(tr).join('')+'</div>' : '<p class="muted">Nenhum treino registrado nesta semana.</p>')+
+    '<p class="foot">Toque em um treino para ver os exercícios e as séries.</p>';
+}
+/* água de cada dia: total e o horário de cada registro (o app manda os horários dos últimos 14 dias) */
+function vEvAgua(s){
+  const E = EVA; if(!E) return sheetTop('Água','')+'<p class="muted">Abra a Evolução do aluno de novo.</p>';
+  const ini = s.ini || E.ini, dias = Array.from({length:7}, (_,i) => addDays(ini, i)), t0 = today();
+  const dia = s.dia || (dias.includes(t0) ? t0 : dias[6]);
+  const L = (E.WL[dia]||[]).map(x => ({ m:+x[0]||0, ml:+x[1]||0 })).sort((x,y) => x.m-y.m), tot = +E.W[dia]||0;
+  const nav = '<div class="btn-row" style="justify-content:space-between;margin:0 0 10px"><button type="button" class="btn small ghost" data-a="evAguaSem" data-v="'+addDays(ini,-7)+'">'+ic('chevL')+'Semana anterior</button>'+(ini<E.ini ? '<button type="button" class="btn small ghost" data-a="evAguaSem" data-v="'+addDays(ini,7)+'">Próxima'+ic('chev')+'</button>' : '')+'</div>';
+  const chip = k => { const v = +E.W[k]||0, ok = E.wg && v>=E.wg; return '<button type="button" class="eva-d'+(k===dia?' on':'')+(ok?' ok':'')+(k>t0?' fut':'')+'" data-a="evAguaDia" data-v="'+k+'"'+(k>t0?' disabled':'')+' aria-pressed="'+(k===dia)+'"><span>'+(k===t0 ? 'hoje' : dSem(k))+'</span><b>'+(v ? fmtN(v/1000,1) : '–')+'</b></button>'; };
+  let acc = 0;
+  const linhas = L.map(x => { acc += x.ml; return '<div class="eva-r'+(x.ml<0?' neg':'')+'"><span class="h">'+String(Math.floor(x.m/60)).padStart(2,'0')+':'+String(x.m%60).padStart(2,'0')+'</span><b>'+(x.ml<0 ? '−'+(-x.ml) : '+'+x.ml)+' ml</b><span class="t">'+fmtN(Math.max(0,acc)/1000,1)+' L'+(E.wg && acc>=E.wg && acc-x.ml<E.wg ? ' · bateu a meta' : '')+'</span></div>'; }).join('');
+  return sheetTop('Água de cada dia', E.nome+' · '+fmtDm(ini)+' a '+fmtDm(addDays(ini,6)))+nav+
+    '<div class="eva-ds">'+dias.map(chip).join('')+'</div>'+
+    '<div class="evc-tot"><b>'+fmtN(tot/1000,1)+'<small>'+(E.wg ? '/'+fmtN(E.wg/1000,1) : '')+' L</small></b><span>'+dSem(dia)+', '+fmtDm(dia)+(L.length ? ' · '+plural(L.filter(x => x.ml>0).length,'registro') : '')+'</span></div>'+
+    (L.length ? '<div class="eva-list">'+linhas+'</div>' : '<p class="muted">'+(tot ? 'Neste dia só chegou o total. O horário de cada copo aparece a partir da versão nova do app, quando o aluno abrir.' : 'Nenhum registro de água neste dia.')+'</p>')+
+    '<p class="foot">Horário em que o aluno registrou cada copo no app.</p>';
+}
 const INT_TXT = i => /forte|alta/i.test(i||'') ? ['Forte','bad'] : /leve|baixa/i.test(i||'') ? ['Leve','ok'] : i ? ['Média','warn'] : ['—','line'];
 function vEvCardio(s){
   const E = EVC; if(!E) return sheetTop('Cardio','')+'<p class="muted">Abra a Evolução do aluno de novo.</p>';
@@ -3178,12 +3219,14 @@ function tEvol(a){
   // 2. metas da semana com barras
   const kp = (icn, t, v, max, unid, cls, sub) => '<div class="ev2-k '+cls+'">'+ic(icn)+'<span class="t">'+t+'</span><b>'+v+(max ? '<small>/'+max+unid+'</small>' : '<small>'+unid+'</small>')+'</b>'+(max ? ev2Bar(+String(v).replace(',','.'), max) : '')+'<span class="s">'+sub+'</span></div>';
   h += '<h3 class="sec">Esta semana <small class="ev2-dt">'+fmtDm(ini)+' a '+fmtDm(fim)+'</small></h3><div class="ev2-ks">'+
-    kp('dumbbell','Treinos', sw.H.length, meta, '', 'k-tr'+(meta && sw.H.length>=meta ? ' ok' : ''), meta ? (sw.H.length>=meta ? 'Meta batida' : 'Faltam '+(meta-sw.H.length)) : 'Sem meta definida')+
+    kp('dumbbell','Treinos', sw.H.length, meta, '', 'k-tr'+(meta && sw.H.length>=meta ? ' ok' : ''), (meta ? (sw.H.length>=meta ? 'Meta batida' : 'Faltam '+(meta-sw.H.length)) : 'Sem meta definida')+'<span class="ev2-ver">Ver os treinos'+ic('chev')+'</span>').replace('<div class="ev2-k k-tr', '<div role="button" tabindex="0" data-a="evTreinos" aria-label="Ver os treinos da semana" class="ev2-k ev2-tap k-tr')+
     kp('pulse','Cardio', sw.cardio, cg, ' min', 'k-ca'+(cg && sw.cardio>=cg ? ' ok' : ''), (cg ? (sw.cardio>=cg ? 'Meta batida' : 'Faltam '+(cg-sw.cardio)+' min') : 'Sem meta definida')+'<span class="ev2-ver">Ver cada cardio'+ic('chev')+'</span>').replace('<div class="ev2-k k-ca', '<div role="button" tabindex="0" data-a="evCardio" aria-label="Ver cada cardio da semana" class="ev2-k ev2-tap k-ca')+
-    kp('drop','Dias na meta de água', aguaDias, wg ? diasSemana : 0, '', 'k-ag'+(wg && aguaDias>=diasSemana ? ' ok' : ''), wg ? 'Meta: '+fmtN(wg/1000,1)+' L por dia' : 'Sem meta definida')+
+    kp('drop','Dias na meta de água', aguaDias, wg ? diasSemana : 0, '', 'k-ag'+(wg && aguaDias>=diasSemana ? ' ok' : ''), (wg ? 'Meta: '+fmtN(wg/1000,1)+' L por dia' : 'Sem meta definida')+'<span class="ev2-ver">Ver a água de cada dia'+ic('chev')+'</span>').replace('<div class="ev2-k k-ag', '<div role="button" tabindex="0" data-a="evAgua" aria-label="Ver a água de cada dia" class="ev2-k ev2-tap k-ag')+
     kp('scale','Volume levantado', fmtN(sw.H.reduce((t,x) => t+(+x.vol||0),0)/1000,1), 0, ' t', 'k-vo', plural(sw.H.reduce((t,x) => t+(+x.sets||0),0),'série')+' feitas')+'</div>';
 
   EVC = { nome:curto(a), ini, fim, cg, L:Cd.filter(c => c.d>=addDays(ini,-21) && c.d<=fim) };
+  EVT = { nome:curto(a), ini, meta, H:H.filter(x => x.d>=addDays(ini,-28)), plano:(a.plano && a.plano.treinos) || {} };
+  EVA = { nome:curto(a), ini, wg, W:Wt, WL:d.wl || {} };
   // 2b. cardio obrigatório: dia a dia, se fez o aparelho com o tempo pedido
   const OBs = ((m.cardio||{}).obrig||[]).filter(o => o && o.local && +o.min>0);
   if(OBs.length){
@@ -3437,7 +3480,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '17 nov · 150'; // Versão do painel: 17 nov · 150
+const PAINELV = '17 nov · 151'; // Versão do painel: 17 nov · 151
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -3981,6 +4024,8 @@ function vSheet(){
   if(s.k==='pf') return pfSheet(s.id);
   if(s.k==='termos') return sheetTop('Simplificando','Termos e privacidade')+'<div class="docs">'+DOC_HTML+'</div>';
   if(s.k==='evCardio') return vEvCardio(s);
+  if(s.k==='evTreinos') return vEvTreinos(s);
+  if(s.k==='evAgua') return vEvAgua(s);
   if(s.k==='receita'){ // mensalidade de cada aluno ativo (a mesma conta da caixinha do Painel)
     const L = alunos().filter(a => (P(a).status||'ativo')==='ativo'), com = L.filter(a => a.financeiro && a.financeiro.plano), sem = L.filter(a => !(a.financeiro && a.financeiro.plano));
     const tot = com.reduce((t,a) => t+(+a.financeiro.valor||0), 0), ordem = {late:0, soon:1, ok:2};
@@ -4764,6 +4809,11 @@ function act(a,d,btn){
     case 'pfRefresh': loadPerfis(true); toast('Atualizando a lista'); break;
     case 'pfOpen': if(d.k==='com'){ ui.view = 'alunos'; ui.aluno = d.id; ui.tab = 'acesso'; window.scrollTo(0,0); break; } { const pp = (PF.list||[]).find(x => x.uid===d.id); if(pp && pp.acomp){ PF.open = d.id; window.scrollTo(0,0); break; } } openSheet({k:'pf', id:d.id}); return false;
     case 'evCardio': openSheet({k:'evCardio', ini:EVC ? EVC.ini : null, dia:d.v||''}); return false;
+    case 'evTreinos': openSheet({k:'evTreinos', ini:EVT ? EVT.ini : null}); return false;
+    case 'evTreinosSem': if(ui.sheet && ui.sheet.k==='evTreinos'){ ui.sheet.ini = d.v; renderSheet(); } return false;
+    case 'evAgua': openSheet({k:'evAgua', ini:EVA ? EVA.ini : null, dia:''}); return false;
+    case 'evAguaSem': if(ui.sheet && ui.sheet.k==='evAgua'){ ui.sheet.ini = d.v; ui.sheet.dia = ''; renderSheet(); } return false;
+    case 'evAguaDia': if(ui.sheet && ui.sheet.k==='evAgua'){ ui.sheet.dia = d.v; renderSheet(); } return false;
     case 'evCardioSem': if(ui.sheet && ui.sheet.k==='evCardio'){ ui.sheet.ini = d.v; ui.sheet.dia = ''; renderSheet(); } return false;
     case 'evTempo': { let g = null; try { g = JSON.parse(d.k||''); } catch(e){ g = null; } if(!g) return false; openSheet({k:'evTempo', dg:g, min:+d.v||g.m0||30, aj:d.n||''}); return false; }
     case 'evTempoM': if(ui.sheet && ui.sheet.k==='evTempo'){ const el = document.getElementById('tp-min'), v = el ? +el.value : ui.sheet.min; ui.sheet.min = Math.max(1, Math.min(600, (v||ui.sheet.min)+ +d.d)); renderSheet(); } return false;
@@ -5082,6 +5132,26 @@ const Gate = FBP ? gateFirebase() : (() => {
 /* ---------- partida ---------- */
 readHash();
 render();
+/* arrastar o dedo para o lado troca de aba (como no iPhone): com um aluno aberto, as abas dele (Perfil, Saúde, Treino…);
+   senão, as abas do painel. Não no hub, nem onde o arrasto já tem outro uso (listas que rolam para o lado, campos, janelas). */
+(function wireTabSwipe(){
+  const livre = el => { for(let e = el; e && e!==document.body; e = e.parentElement){
+    if(e.matches && e.matches('input,textarea,select') && (e===document.activeElement || e.type==='range')) return false; // campo sendo digitado
+    if(e.matches && e.matches('.tabbar,#sheet,#gate,[data-drag]')) return false;
+    if(e.scrollWidth > e.clientWidth + 4 && /(auto|scroll)/.test(getComputedStyle(e).overflowX)) return false; } return true; };
+  let t0 = null;
+  document.addEventListener('touchstart', ev => { t0 = null; const p = ev.touches[0];
+    if(ev.touches.length!==1 || HUB_PAGINA || ui.view==='hub' || ui.sheet || !p || p.clientX < 24 || p.clientX > innerWidth - 24 || !livre(ev.target)) return;
+    t0 = { x:p.clientX, y:p.clientY, t:Date.now() }; }, { passive:true });
+  document.addEventListener('touchcancel', () => { t0 = null; }, { passive:true });
+  document.addEventListener('touchend', ev => {
+    const s = t0; t0 = null; const p = ev.changedTouches && ev.changedTouches[0]; if(!s || !p || ui.sheet) return;
+    const dx = p.clientX - s.x, dy = p.clientY - s.y; if(Date.now()-s.t > 700 || Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy)*1.8) return;
+    const sub = [...document.querySelectorAll('#main .dtabs-in .dtab')], tabs = [...document.querySelectorAll('#tabs .tab')];
+    const L = sub.length ? sub : tabs, i = L.findIndex(b => b.classList.contains('on')), j = i + (dx<0 ? 1 : -1);
+    if(i<0 || j<0 || j>=L.length) return; L[j].click();
+  }, { passive:true });
+})();
 Store.init();
 Gate.start();
 })();

@@ -80,7 +80,8 @@ function avalUsoIni(){ // primeiro dia em que a pessoa usou o app (treino, cardi
 }
 function avalPode(){ const t = today(); if(!S || S.example || t < AVAL_INI) return false;
   if(!S.aval){ const ini = avalUsoIni(); if(!ini || diffDays(t, ini) < 7){ S.aval = { ult:t, novo:1 }; save(); return false; } } // conta nova: a 1ª avaliação vem depois de 15 dias de uso
-  const g = S.aval || {}; return !g.ult || diffDays(t, g.ult) >= AVAL_DIAS; }
+  const g = S.aval || {}; if(g.ign===t) return false; // ignorou hoje: pede de novo amanhã (até avaliar)
+  return !g.ult || diffDays(t, g.ult) >= AVAL_DIAS; }
 function avalAsk(){
   clearInterval(avalT); if(AVAL_FEITO || !avalPode()) return;
   let n = 0;
@@ -101,7 +102,7 @@ function vAval(){
     <button type="button" class="btn primary block" data-a="av-go"${Object.keys(n).length ? '' : ' disabled'}>Enviar notas</button>
     <button type="button" class="btn ghost block" data-a="av-x">Agora não</button></div></div>`;
 }
-function avalFim(enviou){ const g = S.aval || (S.aval = {}); g.ult = today(); if(enviou) g.env = today(); save(); }
+function avalFim(enviou){ const g = S.aval || (S.aval = {}); if(enviou){ g.ult = today(); g.env = today(); delete g.ign; } else g.ign = today(); save(); } // "Agora não": volta amanhã; avaliou: só daqui a 15 dias
 function avalEnviar(b){
   const s2 = ui.sheet; if(!s2 || s2.k!=='aval') return;
   const notas = Object.assign({}, s2.notas || {}); if(!Object.keys(notas).length){ toast('Toque nas estrelas de pelo menos uma área.'); return; }

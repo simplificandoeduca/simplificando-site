@@ -35,7 +35,7 @@ function runTweens(root){
 /* ---------- robô de testes (pasta testes/): acesso ao estado do app, só no computador de teste (127.0.0.1, localhost ou arquivo); no site não existe ---------- */
 if(TESTE_LOCAL) window.__simp = {
   get S(){ return S; }, set S(v){ S = v; }, get ui(){ return ui; }, get PREF(){ return PREF; }, get PLAN(){ return PLAN; }, get ACCT(){ return ACCT; }, get LETTERS(){ return LETTERS; },
-  render, renderSheet, closeSheet, save, tidy, applyAccount, startSession, finish, getLog, logOf, exN, confirmSet, markAll, esqAsk, mtOpen, lbHoras, lbSubTxt, lbAPartir, today, daysAgo, addDays, nextTreino,
+  render, renderSheet, closeSheet, save, tidy, avalPode, avalFim, applyAccount, startSession, finish, getLog, logOf, exN, confirmSet, markAll, esqAsk, mtOpen, lbHoras, lbSubTxt, lbAPartir, today, daysAgo, addDays, nextTreino,
   lbSync: () => { LBC = ''; lbSync(); }, setLay: (t, c) => { PREF.treinoLayout = t; if(c!==undefined) PREF.cardioLayout = c; else if(!PREF.cardioLayout) PREF.cardioLayout = 'toque'; savePref(); }
 };
 function render(){

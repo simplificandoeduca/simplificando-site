@@ -74,7 +74,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '17 nov · 150'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '17 nov · 151'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -154,10 +154,10 @@ function save(){
 let PROGTXT = '', progT = null, progBusy = false;
 function progPayload(){
   const H = (S.history||[]).slice(-80).map(h => ({ d:h.date, t:h.t, nm:(PLAN[h.t]||{}).nome||'', min:h.min||0, m0:h.m0, hi:h.hi||'', hr:h.hr||'', sets:h.sets||0, vol:h.vol||0, rpe:h.rpe||0, note:h.note||'', gym:h.gym||'', ex:h.ex||null }));
-  const w = {}, k = {}; for(let i=0; i<28; i++){ const dd = daysAgo(i); if(S.water && S.water[dd]) w[dd] = S.water[dd]; if(S.checkin && S.checkin[dd]) k[dd] = S.checkin[dd]; }
+  const w = {}, k = {}, wl = {}; for(let i=0; i<28; i++){ const dd = daysAgo(i); if(S.water && S.water[dd]) w[dd] = S.water[dd]; if(S.checkin && S.checkin[dd]) k[dd] = S.checkin[dd]; if(i<14 && S.wlog && (S.wlog[dd]||[]).length) wl[dd] = S.wlog[dd].map(x => [x.m, x.ml]); }
   const t0 = tDia(), X0 = (S.exc||{})[t0] || {}, fin = (S.history||[]).some(h => h.date===t0 && h.ex);
   const xc = fin ? [] : Object.keys(X0).map(id => { const c = X0[id], e = Object.values(PLAN).flatMap(p => p.ex||[]).find(x => x.id===id); return c && ((c.q||[]).length || c.n) ? { id, n:e ? e.nome : '', q:(c.q||[]).slice(), c:c.n||'' } : null; }).filter(Boolean);
-  return JSON.stringify({ v:1, lay:S.lay||null, xc:xc.length ? { d:t0, ex:xc } : null, h:H, c:(S.cardio||[]).slice(-60).map(c => ({d:c.date, l:c.local, min:c.min, i:c.int})), w, wg:S.waterGoal||0, k, ses:S.session ? {t:S.session.t, gym:S.session.gym||'', d:S.session.d||today()} : null });
+  return JSON.stringify({ v:1, lay:S.lay||null, xc:xc.length ? { d:t0, ex:xc } : null, h:H, c:(S.cardio||[]).slice(-60).map(c => ({d:c.date, l:c.local, min:c.min, i:c.int})), w, wl, wg:S.waterGoal||0, k, ses:S.session ? {t:S.session.t, gym:S.session.gym||'', d:S.session.d||today()} : null });
 }
 function progSync(now){
   if(!ACCT || !isPersonal() || !FB || !ACCT.code || !S || !PROG_OK) return;
@@ -218,7 +218,7 @@ function tidy(){
   Object.keys(S.logs).forEach(k => { if(k!==t && k!==td) delete S.logs[k]; });
   Object.keys(S.warm).forEach(k => { if(k!==t && k!==td) delete S.warm[k]; });
   if(S.exc) Object.keys(S.exc).forEach(k => { if(k!==t && k!==td) delete S.exc[k]; });
-  Object.keys(S.wlog).forEach(k => { if(diffDays(t,k)>2) delete S.wlog[k]; });
+  Object.keys(S.wlog).forEach(k => { if(diffDays(t,k)>28) delete S.wlog[k]; }); // o painel do personal vê os horários de cada copo
 }
 tidy();
 

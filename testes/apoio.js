@@ -110,4 +110,13 @@ async function fsLista(colecao) {
   return (r.documents || []).map(d => ({ id: d.name.split('/').pop(), f: d.fields || {} }));
 }
 const aba = (page, v) => page.click(`.tabbar [data-v="${v}"]`);
-module.exports = { fsLista, arrasta, aba, test, expect, LOCAL, EMU, UA, simp, abreApp, semJanelas, entraComSenha, criaConta, capturaAvisos, ligaAvisos };
+// dedo arrastando na tela (toque de verdade: touchstart/touchend), de (x0,y0) até (x1,y1)
+async function desliza(page, x0, y0, x1, y1) {
+  await page.evaluate(([x0, y0, x1, y1]) => {
+    const el = document.elementFromPoint(x0, y0) || document.body, t = (x, y) => new Touch({ identifier: 1, target: el, clientX: x, clientY: y });
+    el.dispatchEvent(new TouchEvent('touchstart', { bubbles: true, touches: [t(x0, y0)], changedTouches: [t(x0, y0)] }));
+    el.dispatchEvent(new TouchEvent('touchend', { bubbles: true, touches: [], changedTouches: [t(x1, y1)] }));
+  }, [x0, y0, x1, y1]);
+  await page.waitForTimeout(250);
+}
+module.exports = { desliza, fsLista, arrasta, aba, test, expect, LOCAL, EMU, UA, simp, abreApp, semJanelas, entraComSenha, criaConta, capturaAvisos, ligaAvisos };

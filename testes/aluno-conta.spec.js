@@ -117,3 +117,20 @@ test('Seu perfil: 4 blocos abrem as telas de dentro e voltam; sem personal, "Meu
     await expect(page.locator('#sheet .pf-tile')).toHaveCount(4);
   }
 });
+
+test('avaliação do app: "Agora não" pede de novo no dia seguinte (até avaliar); depois de avaliar, só daqui a 15 dias', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-11-17T10:00:00-03:00') });
+  await criaConta(page, { nome: 'Lia Aval' }); await semJanelas(page);
+  await simp(page, () => { const T = window.__simp; T.S.aval = { ult: T.daysAgo(20) }; T.save(); });
+  expect(await simp(page, () => window.__simp.avalPode())).toBe(true);
+  await simp(page, () => { const T = window.__simp; T.ui.sheet = { k: 'aval', notas: {} }; T.renderSheet(); });
+  await page.click('#sheet button[data-a="av-x"]');                   // "Agora não"
+  expect(await simp(page, () => window.__simp.avalPode())).toBe(false); // hoje, não pede mais
+  await page.clock.fastForward(24 * 3600e3);
+  expect(await simp(page, () => window.__simp.avalPode())).toBe(true);  // amanhã, pede de novo
+  await simp(page, () => window.__simp.avalFim(true));                  // avaliou
+  await page.clock.fastForward(24 * 3600e3);
+  expect(await simp(page, () => window.__simp.avalPode())).toBe(false);
+  await page.clock.fastForward(14 * 24 * 3600e3);                          // +14 dias (15 desde a avaliação)
+  expect(await simp(page, () => window.__simp.avalPode())).toBe(true);
+});

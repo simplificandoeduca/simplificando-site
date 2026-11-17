@@ -453,6 +453,30 @@ function tick(){
   if(n>0 && nowMin()>=n && ui.remindFired!==n){ ui.remindFired = n; toast('Hora da água. Que tal 300 ml agora?'); vibrate(80); }
   if(ui.day!==today()){ ui.day = today(); tidy(); render(); }
 }
+/* arrastar o dedo para o lado troca de aba (Hoje, Treino, Cardio, Água, Evolução), como no iPhone.
+   Não vale onde o arrasto já tem outro uso: "Série feita", linha de exercício, visual Foco, listas que rolam para o lado, campos, janelas e o canto da tela. */
+function arrastoLivre(el){
+  for(let e = el; e && e!==document.body; e = e.parentElement){
+    if(e.matches && e.matches('input,textarea,select') && (e===document.activeElement || e.type==='range')) return false; // campo sendo digitado
+    if(e.matches && e.matches('.slide,.lrow[data-swipe],[data-fswipe],.tabbar,#sheet,#rest,#login,#pick,.wel,.stp')) return false;
+    if(e.scrollWidth > e.clientWidth + 4 && /(auto|scroll)/.test(getComputedStyle(e).overflowX)) return false;
+  }
+  return true;
+}
+function wireTabSwipe(){
+  let t0 = null;
+  document.addEventListener('touchstart', ev => { t0 = null; const p = ev.touches[0];
+    if(ev.touches.length!==1 || !ACCT || ui.sheet || !p || p.clientX < 24 || p.clientX > innerWidth - 24 || !arrastoLivre(ev.target)) return;
+    t0 = { x:p.clientX, y:p.clientY, t:Date.now() }; }, { passive:true });
+  document.addEventListener('touchcancel', () => { t0 = null; }, { passive:true });
+  document.addEventListener('touchend', ev => {
+    const s = t0; t0 = null; const p = ev.changedTouches && ev.changedTouches[0]; if(!s || !p) return;
+    const dx = p.clientX - s.x, dy = p.clientY - s.y;
+    if(Date.now()-s.t > 700 || Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy)*1.8 || ui.sheet || ui.rest) return;
+    const L = TABS.map(x => x[0]), i = L.indexOf(ui.tab), j = i + (dx<0 ? 1 : -1); if(i<0 || j<0 || j>=L.length) return;
+    const b = document.querySelector('#tabs [data-v="'+L[j]+'"]'); if(b) b.click();
+  }, { passive:true });
+}
 function boot(){
   $app = document.getElementById('app'); $sheet = document.getElementById('sheet'); $rest = document.getElementById('rest');
   $toast = document.getElementById('toast'); $tabs = document.getElementById('tabs'); $fx = document.getElementById('fx');
@@ -460,7 +484,7 @@ function boot(){
   try { matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => { if(!PREF.theme){ applyLook(); render(); } }); } catch(e){ /* sem preferência do sistema */ }
   $tabs.innerHTML = '<span class="tab-ind" aria-hidden="true"></span>'+TABS.map(t => `<button type="button" class="tab" data-a="tab" data-v="${t[0]}">${ic(t[2])}<span>${t[1]}</span></button>`).join('');
   document.addEventListener('click', onClick);
-  wireSlide(); wireTSwipe();
+  wireSlide(); wireTSwipe(); wireTabSwipe();
   document.addEventListener('change', ev => { if(ev.target && ev.target.id==='prof-foto'){ loadFoto(ev.target.files && ev.target.files[0]); ev.target.value = ''; } });
   document.addEventListener('input', onInput);
   document.addEventListener('keydown', ev => { if(ev.key==='Enter' && ev.target && ev.target.id==='gym-in'){ ev.preventDefault(); const b = document.querySelector('[data-a="gym-ok"]'); if(b) b.click(); } });

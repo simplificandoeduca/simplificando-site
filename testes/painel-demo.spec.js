@@ -1,5 +1,5 @@
 // 📋 Painel do personal (versão de demonstração, com alunos fictícios): telas, receita, agenda, abas do aluno, PDF e Números
-const { test, expect, LOCAL } = require('./apoio');
+const { test, expect, LOCAL, desliza } = require('./apoio');
 test.use({ viewport: { width: 1280, height: 900 }, isMobile: false, hasTouch: false, userAgent: undefined });
 
 async function abreDemo(page) {
@@ -66,4 +66,20 @@ test('trocar de perfil (sair da versão de teste)', async ({ page }) => {
   await abreDemo(page);
   await page.evaluate(() => { const P = window.__painel; P.ui.sheet = { k: 'trocaPerfil' }; P.render(); });
   await expect(page.locator('#sheet')).toContainText('Trocar de perfil');
+});
+
+test.describe('no celular', () => {
+  test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  test('arrastar o dedo para o lado troca as abas do aluno e as do painel', async ({ page }) => {
+    await abreDemo(page);
+    const id = await page.evaluate(() => Object.keys(window.__painel.C.alunos)[0]);
+    await vai(page, `#aluno--${id}--perfil`); await page.waitForTimeout(500);
+    await desliza(page, 320, 600, 80, 610);
+    expect(await page.evaluate(() => window.__painel.ui.tab)).toBe('saude');
+    await desliza(page, 80, 600, 320, 605);
+    expect(await page.evaluate(() => window.__painel.ui.tab)).toBe('perfil');
+    await vai(page, '#painel'); await page.waitForTimeout(400);
+    await desliza(page, 320, 500, 80, 505);
+    expect(await page.evaluate(() => window.__painel.ui.view)).toBe('alunos');
+  });
 });

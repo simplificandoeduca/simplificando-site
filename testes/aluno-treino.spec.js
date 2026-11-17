@@ -1,5 +1,5 @@
 // 🏋️ Treino (aluno com personal de exemplo, senha 482913)
-const { test, expect, simp, entraComSenha, semJanelas, arrasta, aba } = require('./apoio');
+const { test, expect, simp, entraComSenha, semJanelas, arrasta, aba, desliza } = require('./apoio');
 
 // começa o treino A pelo código (sem a janela da academia) e abre a aba Treino no visual pedido
 async function comeca(page, layout = 'lista') {
@@ -148,4 +148,17 @@ test('evolução: o gráfico, a carga da última vez e o recorde seguem o exerc�
     return [S.loadHist[e.id] && S.loadHist[e.id].length, S.last[e.id] && S.last[e.id].kg, S.pr[e.id] && S.pr[e.id].kg, !!document.querySelector('.lchart')];
   });
   expect(r).toEqual([2, 25, 25, true]);
+});
+
+test('arrastar o dedo para o lado troca de aba (Hoje → Treino → Hoje); começando na barra de abas, não troca', async ({ page }) => {
+  await simp(page, () => { const T = window.__simp; T.ui.tab = 'hoje'; T.render(); window.scrollTo(0, 0); });
+  await desliza(page, 300, 420, 90, 430);
+  expect(await simp(page, () => window.__simp.ui.tab)).toBe('treino');
+  await desliza(page, 90, 420, 300, 425);
+  expect(await simp(page, () => window.__simp.ui.tab)).toBe('hoje');
+  const bar = await page.locator('#tabs').boundingBox();
+  await desliza(page, 300, bar.y + bar.height / 2, 90, bar.y + bar.height / 2);
+  expect(await simp(page, () => window.__simp.ui.tab)).toBe('hoje');
+  await desliza(page, 300, 420, 260, 600); // mais para baixo do que para o lado: é rolagem
+  expect(await simp(page, () => window.__simp.ui.tab)).toBe('hoje');
 });
