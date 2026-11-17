@@ -71,19 +71,3 @@ jobs:
       - name: Aprova esta versão (o site só instala versão aprovada)
         if: success() && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         run: git push --force origin HEAD:refs/heads/aprovado
-      # Atualização automática: com a chave salva nos Secrets do GitHub (ATUALIZAR_CHAVE, a mesma que o painel gerou em
-      # Ajustes), o GitHub chama o atualizar.php e o site instala sozinho a versão que acabou de ser aprovada.
-      # Sem a chave, não faz nada (o site espera o botão "Atualizar agora"). Se o site não responder, só avisa: o robô continua verde.
-      - name: Atualiza o site sozinho (atualização automática)
-        if: success() && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-        env:
-          CHAVE: ${{ secrets.ATUALIZAR_CHAVE }}
-        run: |
-          if [ -z "$CHAVE" ]; then echo "Sem a chave ATUALIZAR_CHAVE nos Secrets do GitHub: o site espera o botão Atualizar agora."; exit 0; fi
-          sleep 20
-          for i in 1 2 3; do
-            R=$(curl -sS -m 150 -X POST --data-urlencode "chave=$CHAVE" "https://simplificandoeduca.com/atualizar.php?acao=atualizar" || true)
-            if echo "$R" | grep -q '"ok":true'; then echo "Site atualizado: $R"; exit 0; fi
-            echo "Tentativa $i: $R"; sleep 70
-          done
-          echo "::warning::Não deu para atualizar o site sozinho. Use o botão Atualizar agora no painel (Ajustes)."

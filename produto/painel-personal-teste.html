@@ -783,10 +783,6 @@ h3.sec{font-size:22px;margin:14px 2px -2px}
 @media (min-width:960px){.main>.btn-row:has(>.savest:only-child){display:none}.dtabs-in{flex-wrap:wrap;border-radius:22px}}
 .callout.inl>div{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}.callout.inl p{margin:0}.callout.inl .btn{background:#fff;box-shadow:inset 0 0 0 1px rgba(107,74,0,.25);color:#6B4A00}
 .card .list{box-shadow:inset 0 0 0 1px var(--card-line)}
-.atu-auto{margin-top:14px;padding-top:14px;border-top:1px solid var(--sep)}
-.atu-auto .btn-row{margin-top:10px}
-.atu-ch{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:8px}
-.atu-ch code{flex:1 1 220px;min-width:0;overflow-wrap:anywhere;font-family:ui-monospace,Menlo,monospace;font-size:13px;padding:10px 12px;border-radius:12px;background:var(--ctl);user-select:all}
 /* ---------- Hub (/hub): entrada do dono, sempre escura, com blocos de cor cheia (igual ao app do aluno) ---------- */
 body.hub-on{background:#0F1712}
 .hub-on .side,.hub-on .tabbar{display:none}
@@ -821,13 +817,27 @@ body.hub-on{background:#0F1712}
 .hb-num b{display:block;font-size:44px;font-weight:900;letter-spacing:-.05em;line-height:1}
 .hb-num span{font-size:12px;font-weight:700}
 .hb-bl.red{background:#FF4646}.hb-bl.lime{background:#C8F542}.hb-bl.blue{background:#5AB8FF}
-.hb-mais{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
-.hb-ms{display:flex;flex-direction:column;align-items:flex-start;gap:12px;background:#F6F5EF;color:#0F1712!important;border-radius:22px;padding:14px;font-weight:800;font-size:14px}
+.hb-mais{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
+.hb-ms{display:flex;flex-direction:column;align-items:flex-start;gap:12px;background:#F6F5EF;color:#0F1712!important;border:0;border-radius:22px;padding:14px;font:inherit;font-weight:800;font-size:14px;text-align:left;cursor:pointer}
+.hb-ms>i{font-style:normal;display:block;line-height:1.2}.hb-ms em{display:block;font-style:normal;font-size:11.5px;font-weight:600;color:#5B625D;margin-top:2px}
+.hb-atu.nova{background:#C8F542}.hb-atu.nova em{color:#0F1712}.hb-atu:disabled{opacity:.7;cursor:default}
+.hb-err{margin:10px 4px 0;color:#FF7A72;font-size:13.5px;font-weight:600}
+.hb-pe{display:flex;justify-content:center;margin-top:26px}
+.hb-tema{display:inline-flex;align-items:center;gap:8px;border:1.5px solid #2E3931;background:none;color:#F6F5EF;border-radius:999px;height:44px;padding:0 18px;font:inherit;font-size:14px;font-weight:700;cursor:pointer}.hb-tema .i{width:18px;height:18px}
+/* hub no modo claro (botão no fim do hub; vale só para o hub) */
+body.hub-on.hub-claro{background:#FFFFFF}
+.hub-claro .hub{color:#0F1712}.hub-claro .hub h1{color:#0F1712}
+.hub-claro .hb-st{background:#F4F4F1}.hub-claro .hb-st span{color:#5B625D}.hub-claro .hb-st em{color:#3E7A00}
+.hub-claro .hb-lbl{color:#5B625D}.hub-claro .hb-dt{color:#C8302F}
+.hub-claro .hb-ms{background:#F4F4F1}.hub-claro .hb-ms span{background:#FFFFFF}.hub-claro .hb-atu.nova{background:#C8F542}
+.hub-claro .hb-tema{border-color:#E0E0DA;color:#0F1712}.hub-claro .hb-err{color:#C8302F}
+.hub-claro .hb-av .logo{filter:drop-shadow(0 0 0 #0000) drop-shadow(0 1px 3px rgba(15,23,18,.18));border-radius:50%}
+.hub-claro :focus-visible{outline-color:#0F1712}
 .hb-ms span{width:34px;height:34px;border-radius:12px;background:#E7E5DC;display:grid;place-items:center}
 .hb-ms .i{width:18px;height:18px}
 .hub :focus-visible{outline:3px solid #F6F5EF;outline-offset:3px}
 @media (min-width:900px){.hb-stats{grid-template-columns:repeat(3,minmax(0,220px))}.hb-blocos{grid-template-columns:repeat(3,minmax(0,1fr))}.hb-bl{min-height:260px}
-  .hb-mais{grid-template-columns:repeat(3,minmax(0,220px))}.hb-ms{flex-direction:row;align-items:center}}
+  .hb-mais{grid-template-columns:repeat(4,minmax(0,220px))}.hb-ms{flex-direction:row;align-items:center}}
 
 /* versão de teste: agenda e atendimento */
 .demo-c .btn-row{margin-top:2px}
@@ -2176,12 +2186,14 @@ function newAluno(d){
 /* ---------- estado da interface ---------- */
 const VIEWS = [['painel','Painel','grid'],['alunos','Alunos','users'],['biblioteca','Biblioteca','book'],['estatisticas','Estatísticas','chart']];
 const ROTAS_EXTRA = []; // abrem pelo hub (/hub), fora das abas do painel
+const HUB_PAGINA = /^\/hub\/?(index\.html)?$/.test(location.pathname); // simplificandoeduca.com/hub: a mesma página do painel, só com o hub
 const TAB_COR = { perfil:'#5E6B65', saude:'#D63B3B', treino:'#FF4646', evolucao:'#2C9446', metas:'#2F78C9', avaliacoes:'#7E57C9', financeiro:'#13917F', acesso:'#E57A1E', notas:'#8A6A45' };
 const DTABS = [['perfil','Perfil','user'],['saude','Saúde','heart'],['treino','Treino','dumbbell'],['metas','Metas','drop'],['acesso','Mensagens','msg'],['evolucao','Evolução','pulse'],['financeiro','Financeiro','wallet'],['notas','Anotações','note'],['avaliacoes','Avaliações','scale']];
 const ui = { view:'painel', aluno:null, tab:'perfil', modelo:null, tl:{}, q:'', f:{origem:'',status:'',objetivo:'',pag:''}, libQ:'', libG:'', libE:'', pickQ:'', pickG:'', sheet:null, arm:null, saveSt:'saved', draft:{ novo:{}, av:{}, pay:{}, nota:'', ex:{}, tpl:{} } };
 let armTimer = 0, needRender = false;
 
 function readHash(){
+  if(HUB_PAGINA){ ui.view = 'hub'; return; }
   let h = ''; try { h = decodeURIComponent((location.hash||'').slice(1)); } catch(e){ h = ''; }
   const m = h.match(/^aluno--(.+?)(?:--([a-z]+))?$/), mm = h.match(/^modelo--(.+)$/);
   if(m){ ui.view = 'alunos'; ui.aluno = m[1]; if(m[2] && DTABS.some(t => t[0]===m[2])) ui.tab = m[2]; }
@@ -2189,6 +2201,7 @@ function readHash(){
   else if(VIEWS.some(v => v[0]===h) || ROTAS_EXTRA.includes(h)){ ui.view = h; if(h==='alunos') ui.aluno = null; if(h==='modelos') ui.modelo = null; }
 }
 function writeHash(){
+  if(HUB_PAGINA) return;
   const h = ui.view==='alunos' && ui.aluno ? 'aluno--'+ui.aluno+'--'+ui.tab : ui.view==='modelos' && ui.modelo ? 'modelo--'+ui.modelo : ui.view;
   try { if(location.hash.slice(1)!==h) history.replaceState(null,'','#'+h); } catch(e){ /* sem histórico */ }
 }
@@ -2481,12 +2494,20 @@ function hubNums(){
 }
 // o painel de teste só abre no navegador liberado (como ao entrar com teste/123456): o botão do hub libera antes de abrir a aba
 document.addEventListener('click', e => { const a = e.target && e.target.closest && e.target.closest('a[data-teste]'); if(a) try { localStorage.setItem('simp-teste-ok', '1'); } catch(_){ /* sem armazenamento */ } }, true);
+/* Atualizar o site (antes ficava em Ajustes): mostra se tem versão nova aprovada pelo robô de testes */
+function hubAtu(){
+  atuCheck();
+  if(ATU.st==='sem') return ''; // fora do site (prévia ou teste): o botão não aparece
+  const vnum = v => +((String(v||'').match(/·\s*(\d+)/)||[])[1]||0), nova = ATU.nova && vnum(ATU.nova) > vnum(PAINELV), indo = ATU.st==='indo';
+  const sub = indo ? 'baixando…' : ATU.st==='vendo' ? 'procurando…' : nova ? 'versão '+ATU.nova.replace(/^.*·\s*/,'')+' pronta' : ATU.testando ? 'testando a '+ATU.testando.replace(/^.*·\s*/,'') : 'em dia · '+PAINELV.replace(/^.*·\s*/,'');
+  return '<button type="button" class="hb-ms hb-atu'+(nova ? ' nova' : '')+'" data-a="atuGo"'+(indo ? ' disabled' : '')+'><span>'+ic('refresh')+'</span><i>'+(indo ? 'Atualizando' : 'Atualizar')+'<em>'+esc(sub)+'</em></i></button>';
+}
 function vHub(){
   if(pfOnline()){ loadProg(); loadEst(); loadPerfis(); }
   const ok = Store.loaded, n = hubNums(), on = pfOnline(), v = x => x==null ? (on ? '…' : '—') : x;
   const st = (b, l, sub) => '<div class="hb-st"><b>'+b+'</b><span>'+l+'</span>'+(sub ? '<em>'+sub+'</em>' : '')+'</div>';
   const bl = (cor, href, eb, t, d, num, nl, novo) => '<a class="hb-bl '+cor+'" href="'+href+'"'+(novo ? ' target="_blank" rel="noopener"' : '')+'><p class="hb-eb">'+eb+'</p><h2>'+t+'.</h2><p class="hb-d">'+d+'</p><span class="hb-go">'+ic('arrow')+'</span><span class="hb-num"><b>'+num+'</b><span>'+nl+'</span></span></a>';
-  const ms = (href, icn, t, teste) => '<a class="hb-ms" href="'+href+'" target="_blank" rel="noopener"'+(teste ? ' data-teste="1"' : '')+'><span>'+ic(icn)+'</span>'+t+'</a>';
+  const ms = (href, icn, t, teste) => '<a class="hb-ms" href="'+href+'" target="_blank" rel="noopener"'+(teste ? ' data-teste="1"' : '')+'><span>'+ic(icn)+'</span><i>'+t+'</i></a>';
   return '<div class="hub">'+
     '<header class="hb-top"><div><p class="hb-eb hb-dt">'+esc(hojeTxt())+'</p><h1>Hub<i>.</i></h1></div><span class="hb-av" aria-hidden="true">'+hubLogo()+'</span></header>'+
     '<section class="hb-stats" aria-label="Números de hoje">'+
@@ -2500,7 +2521,9 @@ function vHub(){
       bl('lime', '/personal/#painel', 'Onde você trabalha', 'Painel', 'Alunos, treinos, mensagens e financeiro.', ok ? n.atencao : '…', n.atencao===1 ? 'pede atenção' : 'pedem atenção', true)+
       bl('blue', '/personal/#estatisticas', 'Como está indo', 'Números', 'Avaliações, sugestões, stories e comprovantes.', v(n.sug), n.sug===1 ? 'sugestão nova' : 'sugestões novas', true)+
     '</div>'+
-    '<div class="hb-mais">'+ms('/financas/', 'wallet', 'Finanças')+ms('/personal/teste/', 'flask', 'Painel de teste', true)+ms('/', 'globe', 'Site')+'</div>'+
+    '<div class="hb-mais">'+ms('/financas/', 'wallet', 'Finanças')+ms('/personal/teste/', 'flask', 'Painel de teste', true)+ms('/', 'globe', 'Site')+hubAtu()+'</div>'+
+    (ATU.msg ? '<p class="hb-err" role="alert">'+esc(ATU.msg)+'</p>' : '')+
+    '<div class="hb-pe"><button type="button" class="hb-tema" data-a="hubTema" aria-pressed="'+!!PREF.hubClaro+'">'+ic(PREF.hubClaro ? 'moon' : 'sun')+(PREF.hubClaro ? 'Modo escuro' : 'Modo claro')+'</button></div>'+
   '</div>';
 }
 /* ---------- Estatísticas: o que os alunos usam e sugerem, para decidir as próximas mudanças ---------- */
@@ -3440,44 +3463,13 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '17 nov · 143'; // Versão do painel: 17 nov · 143
+const PAINELV = '17 nov · 144'; // Versão do painel: 17 nov · 144
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
-  fetch('/treino/?v='+Date.now(), { cache:'no-store' }).then(r => r.ok ? r.text() : '').then(t => { const m = t.match(/const\s+APPV = '([^']+)'/); ATU.app = m ? m[1] : ''; if(ui.view==='ajustes') render(); }).catch(() => {});
-  fetch('/atualizar.php?acao=ver', { cache:'no-store' }).then(r => r.ok ? r.json() : Promise.reject()).then(j => { ATU.st = 'ok'; ATU.nova = (j && j.nova) || ''; ATU.testando = (j && j.testando) || ''; ATU.auto = !!(j && j.auto); if(ui.view==='ajustes') render(); })
-    .catch(() => { ATU.st = 'sem'; if(ui.view==='ajustes') render(); });
-}
-function atuCard(){
-  atuCheck();
-  if(ATU.st==='sem') return ''; // fora do site (prévia ou teste): o botão não aparece
-  const vnum = v => +((String(v||'').match(/·\s*(\d+)/)||[])[1]||0), nova = ATU.nova && vnum(ATU.nova) > vnum(PAINELV), indo = ATU.st==='indo';
-  return '<section class="card'+(nova ? ' blk-brand' : '')+'"><span class="label">'+ic('refresh')+'Atualizar o site</span>'+
-    '<p class="muted">Painel no ar: <b>'+esc(PAINELV)+'</b>'+(ATU.app ? ' · app do aluno no ar: <b>'+esc(ATU.app)+'</b>' : '')+'</p>'+(ATU.st==='vendo' ? '<p class="muted">Procurando versão nova…</p>' : nova ? '<p class="muted"><b>Versão nova pronta: '+esc(ATU.nova)+'</b></p>' : ATU.nova ? '<p class="muted">Já é a mais nova.</p>' : '')+
-    '<div class="btn-row"><button type="button" class="btn'+(nova ? ' ink' : '')+'" data-a="atuGo"'+(indo ? ' disabled' : '')+'>'+ic('refresh')+(indo ? 'Atualizando…' : 'Atualizar agora')+'</button></div>'+
-    (ATU.msg ? '<p class="err" role="alert">'+esc(ATU.msg)+'</p>' : '')+
-    (ATU.testando ? '<p class="muted">'+ic('refresh')+' A versão <b>'+esc(ATU.testando)+'</b> está passando pelo robô de testes. Ela só fica disponível aqui se tudo funcionar.</p>' : '')+
-    '<p class="foot">Baixa do GitHub a versão mais nova <b>aprovada pelo robô de testes</b> e coloca no ar. Leva uns segundos e a página recarrega sozinha.</p>'+atuAuto()+'</section>';
-}
-/* atualização automática: a chave fica no servidor (fora do site) e a mesma vai nos Secrets do GitHub (ATUALIZAR_CHAVE).
-   Com as duas, o GitHub chama o atualizar.php sozinho assim que o robô aprova uma versão. A chave aparece só na hora de gerar. */
-function atuAuto(){
-  const ch = ATU.chave;
-  return '<div class="atu-auto"><span class="label">'+ic('bolt')+'Atualização automática</span>'+
-    (ch ? '<p class="muted"><b>Chave nova criada.</b> Copie e cole no GitHub, como mostra o passo a passo. Ela aparece só agora: se sair desta tela sem copiar, é só gerar outra.</p>'+
-      '<div class="atu-ch"><code id="atu-ch">'+esc(ch)+'</code><button type="button" class="btn small ink" data-a="atuCopia">'+ic('copy')+'Copiar</button></div>'
-    : ATU.auto ? '<p class="muted"><b>Chave criada no servidor.</b> Com a mesma chave salva no GitHub, o site se atualiza sozinho assim que o robô de testes aprova uma versão nova. O botão acima continua valendo.</p>'
-    : '<p class="muted"><b>Desligada.</b> Gere a chave e cole no GitHub (passo a passo no PDF). Depois disso, o site se atualiza sozinho sempre que o robô aprovar uma versão nova.</p>')+
-    (ch ? '' : '<div class="btn-row">'+(ATU.auto ? armBtn('atuChaveNova','','Gerar chave nova','Toque de novo: a chave antiga para de valer','small','key') : '<button type="button" class="btn small" data-a="atuChave"'+(ATU.gerando ? ' disabled' : '')+'>'+ic('key')+(ATU.gerando ? 'Gerando…' : 'Gerar chave')+'</button>')+'</div>')+
-    (ATU.chMsg ? '<p class="err" role="alert">'+esc(ATU.chMsg)+'</p>' : '')+'</div>';
-}
-function atuChave(){
-  ATU.gerando = true; ATU.chMsg = ''; render();
-  donoToken().then(t => { const f = new FormData(); f.append('token', t||''); return fetch('/atualizar.php?acao=chave', { method:'POST', cache:'no-store', body:f, headers:t ? { Authorization:'Bearer '+t } : {} }); }).then(r => r.json()).then(j => {
-    ATU.gerando = false;
-    if(j && j.ok && j.chave){ ATU.chave = j.chave; ATU.auto = true; } else ATU.chMsg = (j && j.erro) || 'Não deu certo. Tente de novo.';
-    render();
-  }).catch(() => { ATU.gerando = false; ATU.chMsg = 'Sem conexão com o servidor. Confira a internet e tente de novo.'; render(); });
+  fetch('/treino/?v='+Date.now(), { cache:'no-store' }).then(r => r.ok ? r.text() : '').then(t => { const m = t.match(/const\s+APPV = '([^']+)'/); ATU.app = m ? m[1] : ''; if(ui.view==='hub') render(); }).catch(() => {});
+  fetch('/atualizar.php?acao=ver', { cache:'no-store' }).then(r => r.ok ? r.json() : Promise.reject()).then(j => { ATU.st = 'ok'; ATU.nova = (j && j.nova) || ''; ATU.testando = (j && j.testando) || ''; if(ui.view==='hub') render(); })
+    .catch(() => { ATU.st = 'sem'; if(ui.view==='hub') render(); });
 }
 /* ---------- avisos no celular do dono: conta nova no Simplificando (push.php + personal/sw.js) ---------- */
 const NV = { st:'' };
@@ -3485,7 +3477,7 @@ const NV_IOS = /iPhone|iPad|iPod/.test(navigator.userAgent), NV_APP = (window.ma
 const nvPode = () => typeof SITE_TESTE==='undefined' && location.protocol!=='file:' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 const nvLigado = () => !!(PREF.nvOn && window.Notification && Notification.permission==='granted');
 const nvB64 = s => { const b = atob((s+'='.repeat((4-s.length%4)%4)).replace(/-/g,'+').replace(/_/g,'/')); return Uint8Array.from(b, c => c.charCodeAt(0)); };
-function nvReg(){ return navigator.serviceWorker.register('sw.js').then(() => navigator.serviceWorker.ready); }
+function nvReg(){ if(HUB_PAGINA) return Promise.reject(new Error('hub')); return navigator.serviceWorker.register('sw.js').then(() => navigator.serviceWorker.ready); }
 async function nvLigar(){
   if(!nvPode()){ toast(NV_IOS && !NV_APP ? 'No iPhone, coloque o painel na Tela de Início e abra pelo ícone para ligar.' : 'Este navegador não manda avisos.'); return; }
   NV.st = 'ligando'; render();
@@ -3893,7 +3885,7 @@ function vAjustes(){
     '<section class="card"><span class="label">'+ic('archive')+'Dados</span><p class="muted">'+(Store.mode==='db' ? 'Seus dados ficam salvos no painel e aparecem em qualquer aparelho em que você abrir esta página.' : 'Modo local: os dados ficam só neste navegador. Ao abrir o painel publicado, eles passam a ficar salvos no painel.')+'</p>'+
       '<div class="soon-rows"><div><b>'+Object.keys(C.alunos).length+'</b><span>alunos</span></div><div><b>'+Object.keys(C.exercicios).length+'</b><span>exercícios</span></div><div><b>'+Object.keys(C.modelos).length+'</b><span>modelos</span></div><div><b>'+nEx+'</b><span>itens de exemplo</span></div></div>'+
       (nEx ? armBtn('wipeEx','x','Apagar dados de exemplo ('+nEx+')','Toque de novo: apaga '+plural(nEx,'item','itens')+' marcados como exemplo','block','trash') : '<p class="foot">Não há dados de exemplo.</p>')+'</section>'+
-    nvCard()+atuCard()+errCard()+
+    nvCard()+errCard()+
     '<section class="card"><span class="label">'+ic('users')+'Importar alunos</span><p class="muted">Para alunos que já tinham treino em planilha: escolha o arquivo de importação (.json). Cada aluno entra com o treino, a carga da última semana, as metas e o histórico nas anotações. Quem já está no painel, com o mesmo nome ou e-mail, não é duplicado.</p><div class="btn-row"><button type="button" class="btn" data-a="impFile">'+ic('plus')+'Escolher arquivo</button><input type="file" id="imp-file" class="sr" accept=".json,application/json"></div></section>'+
     '<section class="card"><span class="label">'+ic('user')+'Acesso ao painel</span><p class="muted">Conectado como <b>'+esc(Gate.user()||'você')+'</b> neste aparelho.</p><button type="button" class="btn ghost block gate-out" data-gate-out="1">Sair do painel</button><p class="hint" style="text-align:center;margin:4px 0 0">Versão do painel: '+PAINELV+'</p></section>'+
     '<section class="card"><span class="label">'+ic('note')+'Termos e privacidade</span><p class="muted" style="margin:0">Termos de uso e política de privacidade, versão 1. Os alunos aceitam no app: no cadastro de quem treina sem personal e no primeiro acesso de quem entra com a senha do personal. O aceite de cada um aparece na aba Perfis.</p><button type="button" class="btn block" data-a="termos">'+ic('note')+'Ler os termos</button></section>');
@@ -4091,7 +4083,7 @@ function render(){
   const k = captureFocus(), sy = window.scrollY, ts0 = document.querySelector('.dtabs-in'), tsl = ts0 ? ts0.scrollLeft : null;
   applyLook();
   $main.innerHTML = ({painel:vPainel,alunos:vAlunos,perfis:vPerfis,biblioteca:vBiblioteca,modelos:vModelos,ajustes:vAjustes,estatisticas:vEstat,hub:vHub})[ui.view]();
-  document.body.classList.toggle('hub-on', ui.view==='hub');
+  document.body.classList.toggle('hub-on', ui.view==='hub'); document.body.classList.toggle('hub-claro', ui.view==='hub' && !!PREF.hubClaro);
   $side.innerHTML = navHtml();
   $tabs.innerHTML = VIEWS.map(([v,l,icn]) => '<button type="button" class="tab'+(ui.view===v?' on':'')+'" data-a="go" data-v="'+v+'" aria-current="'+(ui.view===v?'page':'false')+'" aria-label="'+l+'">'+ic(icn)+'<span>'+(v==='estatisticas' ? 'Números' : l)+'</span></button>').join('');
   if(ui.sheet) renderSheet();
@@ -4617,11 +4609,11 @@ async function copyText(txt,selEl){
   if(selEl){ try { selEl.focus(); selEl.select(); } catch(e){} }
   toast('Selecione o texto e copie');
 }
-const ARMED = new Set(['atuChaveNova','rirAll','copyFrom','dropLocal','archive','delAluno','delLesao','delTreino','delEx','delAv','delPay','delNota','genCode','delEx2','delTpl','applyTpl','applyToAluno','wipeEx','demoWipe']);
+const ARMED = new Set(['rirAll','copyFrom','dropLocal','archive','delAluno','delLesao','delTreino','delEx','delAv','delPay','delNota','genCode','delEx2','delTpl','applyTpl','applyToAluno','wipeEx','demoWipe']);
 function act(a,d,btn){
   const A = curAluno();
   switch(a){
-    case 'go': ATU.chave = ''; ui.view = d.v; if(d.v==='alunos' && ui.view==='alunos' && btn.classList.contains('on')) ui.aluno = null; if(d.v==='modelos') ui.modelo = null; window.scrollTo(0,0); break;
+    case 'go': ui.view = d.v; if(d.v==='alunos' && ui.view==='alunos' && btn.classList.contains('on')) ui.aluno = null; if(d.v==='modelos') ui.modelo = null; window.scrollTo(0,0); break;
     case 'theme': PREF.theme = curTheme()==='dark' ? 'light' : 'dark'; savePref(); break;
     case 'themeSet': PREF.theme = d.v==='auto' ? undefined : d.v; savePref(); break;
     case 'accent': { if(!C.config.geral) C.config.geral = clone(DEF_CFG); C.config.geral.cor = d.v; C.config.geral.exemplo = false; PREF.accent = d.v; savePref(); Store.save('config','geral',150); break; }
@@ -4788,8 +4780,7 @@ function act(a,d,btn){
     case 'domVoltar': { const st = domLer(); if(st){ st.pulados = []; domGravar(st); } break; }
     case 'domFim': { const st = domLer(); if(st){ st.fim = true; domGravar(st); } toast('Relatórios da semana encerrados.'); break; }
     case 'atuGo': atuGo(); return false;
-    case 'atuChave': case 'atuChaveNova': atuChave(); return false;
-    case 'atuCopia': copyText(ATU.chave||'', null); return false;
+    case 'hubTema': PREF.hubClaro = !PREF.hubClaro; savePref(); break;
     case 'impFile': { const f = document.getElementById('imp-file'); if(f) f.click(); return false; }
     case 'rkSort': ui.rkSort = !ui.rkSort; if(ui.sheet && ui.sheet.k==='pick'){ renderSheet(); return false; } break;
     case 'pfRefresh': loadPerfis(true); toast('Atualizando a lista'); break;

@@ -90,7 +90,7 @@ test('a aluna treina e o painel vê na Evolução (com o quadro do cardio obriga
   await ctx.close();
 });
 
-test('Perfis mostra quem criou conta sem personal; Ajustes tem "Avisos no celular" e "Atualizar o site"', async ({ page, browser }) => {
+test('Perfis mostra quem criou conta sem personal; Ajustes tem "Avisos no celular" (o "Atualizar" foi para o hub)', async ({ page, browser }) => {
   await criaConta(page, { nome: 'Bruna Perfis', emu: true });
   const p2 = await browser.newPage({ viewport: { width: 1280, height: 900 } });
   await entraPainel(p2);
@@ -99,7 +99,8 @@ test('Perfis mostra quem criou conta sem personal; Ajustes tem "Avisos no celula
   await vai(p2, '#ajustes');
   await expect(p2.locator('main').first()).toContainText('Avisos no celular');
   await expect(p2.locator('[data-a="nvOn"]')).toBeVisible();
-  await expect(p2.locator('main').first()).toContainText('Atualizar');
+  await expect(p2.locator('main').first()).not.toContainText('Atualização automática');
+  await expect(p2.locator('[data-a="atuGo"]')).toHaveCount(0);
   await p2.close();
 });
 
@@ -108,7 +109,9 @@ test('Hub (/hub): números reais e um bloco para cada espaço; Números saiu das
   await expect(page.locator('#tabs')).not.toContainText('Números');
   await expect(page.locator('#tabs')).toContainText('Painel');
   await page.goto(EMU + '/hub/');
-  await page.waitForURL(/\/personal\/#hub$/);
+  await expect(page).toHaveURL(/\/hub\/$/); // o endereço fica simplificandoeduca.com/hub
+  await expect(page).toHaveTitle('Hub · Simplificando');
+  expect(await page.locator('link[rel="icon"]').getAttribute('href')).toBe('icon-hub-192.png');
   await page.waitForFunction(() => window.__painel && window.__painel.Store.loaded, null, { timeout: 20000 });
   await expect(page.locator('.hub h1')).toHaveText('Hub.');
   await expect(page.locator('#tabs')).toBeHidden();
@@ -118,7 +121,17 @@ test('Hub (/hub): números reais e um bloco para cada espaço; Números saiu das
   await expect(page.locator('.hb-bl.red .hb-num b')).toHaveText(num, { timeout: 20000 });          // a Ana treinou hoje
   // cada bloco abre em outra aba: o app de teste, o painel e Números
   expect(await page.locator('.hb-bl').evaluateAll(L => L.map(a => [a.getAttribute('href'), a.getAttribute('target')]))).toEqual([['/app-teste/', '_blank'], ['/personal/#painel', '_blank'], ['/personal/#estatisticas', '_blank']]);
-  expect(await page.locator('.hb-ms').evaluateAll(L => L.map(a => a.getAttribute('href')))).toEqual(['/financas/', '/personal/teste/', '/']);
+  expect(await page.locator('a.hb-ms').evaluateAll(L => L.map(a => a.getAttribute('href')))).toEqual(['/financas/', '/personal/teste/', '/']);
+  // Atualizar o site fica no hub, ao lado de Site
+  await expect(page.locator('.hb-mais .hb-atu')).toContainText('Atualizar');
+  expect(await page.locator('.hb-mais > *').evaluateAll(L => L.map(x => x.getAttribute('href') || x.dataset.a))).toEqual(['/financas/', '/personal/teste/', '/', 'atuGo']); // Atualizar ao lado de Site
+  // modo claro e escuro (só do hub)
+  await expect(page.locator('body')).not.toHaveClass(/hub-claro/);
+  await page.click('[data-a="hubTema"]');
+  await expect(page.locator('body')).toHaveClass(/hub-claro/);
+  await expect(page.locator('[data-a="hubTema"]')).toContainText('Modo escuro');
+  await page.click('[data-a="hubTema"]');
+  await expect(page.locator('body')).not.toHaveClass(/hub-claro/);
   // logo do hub: "H." preto no fundo branco
   await expect(page.locator('.hb-av svg')).toHaveAttribute('aria-label', 'Hub');
   // Painel de teste abre a versão de teste (e não volta para o painel normal)
@@ -130,8 +143,7 @@ test('Hub (/hub): números reais e um bloco para cada espaço; Números saiu das
   const [nt] = await Promise.all([page.context().waitForEvent('page'), page.click('.hb-bl.blue')]);
   await expect(nt).toHaveURL(/\/personal\/#estatisticas$/);
   await expect(nt.locator('main').first()).toContainText('Avaliação do app', { timeout: 20000 });
-  await nt.click('a[href="#hub"]');
-  await expect(nt.locator('.hub')).toBeVisible();
+  expect(await nt.locator('a[aria-label="Voltar ao hub"]').getAttribute('href')).toBe('/hub/');
   // Painel abre com as abas
   const [pn] = await Promise.all([page.context().waitForEvent('page'), page.click('.hb-bl.lime')]);
   await expect(pn).toHaveURL(/\/personal\/#painel$/);

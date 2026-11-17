@@ -29,6 +29,24 @@ for folder, src, title in [('treino','treino-grade.html','Simplificando · Seu t
     open(idx,'w').write(pre + app.rstrip('\n') + '\n</body>\n</html>\n')
     print(folder, 'ok')
 
+# ---------- hub do dono (/hub): a mesma página do painel, que abre direto no hub (endereço simplificandoeduca.com/hub) ----------
+# Usa o login e os arquivos do painel (pasta personal); só o nome, o ícone "H." e o manifesto são do hub.
+h = open(R+'site/personal/index.html').read()
+def troca(a, b):
+    global h
+    assert h.count(a) == 1, ('hub', h.count(a), a[:80])
+    h = h.replace(a, b)
+for s in ['fb/firebase-app-compat.js', 'fb/firebase-auth-compat.js', 'fb/firebase-firestore-compat.js', 'firebase-config.js']:
+    troca('<script src="'+s+'"></script>', '<script src="../personal/'+s+'"></script>')
+troca('<link rel="icon" type="image/png" sizes="192x192" href="icon-p-tab-192.png">', '<link rel="icon" type="image/png" sizes="192x192" href="icon-hub-192.png">')
+troca('<link rel="apple-touch-icon" href="icon-p-180.png">', '<link rel="apple-touch-icon" href="icon-hub-180.png">')
+troca('<meta name="apple-mobile-web-app-title" content="Personal">', '<meta name="apple-mobile-web-app-title" content="Hub">\n<meta name="robots" content="noindex">')
+troca('<title>Simplificando · Painel do personal</title>', '<title>Hub · Simplificando</title>')
+troca('<meta property="og:url" content="https://simplificandoeduca.com/personal/">', '<meta property="og:url" content="https://simplificandoeduca.com/hub/">')
+os.makedirs(R+'site/hub', exist_ok=True)
+open(R+'site/hub/index.html', 'w').write(h)
+print('hub ok')
+
 # ---------- app de teste (/app-teste): o mesmo app do aluno, sem servidor, entrando direto com o aluno de exemplo (Lucas) ----------
 # Recebe toda atualização junto com o app de verdade. Os dados ficam só no aparelho, separados dos do app de verdade.
 import shutil
