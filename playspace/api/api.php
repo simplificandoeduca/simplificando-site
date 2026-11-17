@@ -825,6 +825,9 @@ switch ($acao) {
     if (!$l) falha('Este cupom não está mais guardado.', 404);
     responder(papelPublico($l) + ['vias' => papelVias($l)]);
   }
+  case 'venda_horas': { // 1.55: o gestor corrige as horas de um pacote (lançado errado), com o motivo
+    $u = exigir(['gestor']); responder(alterarHorasVenda((int)($in['venda'] ?? 0), (int)($in['minutos'] ?? -1), mb_substr(maiusculo(trim((string)($in['motivo'] ?? ''))), 0, 200), $u));
+  }
   case 'venda_cancelar': { // 1.21: quem estorna cancela uma venda registrada, com o motivo (pelo histórico do cliente)
     $u = exigir(); if (!podeEstornar($u)) falha('Só ' . quemEstorna() . ' cancela uma venda.', 403);
     if (mb_strlen(maiusculo((string)($in['motivo'] ?? ''))) >= 5) lerAtendente($in, $u);   // 1.25 (sem o motivo, o erro é o do motivo)
@@ -853,7 +856,15 @@ switch ($acao) {
     responder(['pedido' => pedidoPublico(pedido((int)$p['id'])), 'pedidos' => pedidosDaTela($u)]);
   }
   case 'nf_emitida': { // a nota autorizada foi emitida: quem emitiu marca o número. O gestor corrige o número, ou desfaz a marcação (voltar)
-    $u = exigir(); $p = pedido((int)($in['id'] ?? 0)); if (!$p || $p['tipo'] !== 'nf') falha('Nota não encontrada.', 404);
+    $u = exigir();
+    if (empty($in['id']) && !empty($in['venda'])) { // 1.55: o número que voltou do Play Space Notas marca a nota da compra sozinho
+      $q = $db->prepare("SELECT * FROM pedidos WHERE tipo = 'nf' AND venda_id = ? AND status IN ('pendente', 'liberado', 'usado') ORDER BY id DESC LIMIT 1"); $q->execute([(int)$in['venda']]); $p = $q->fetch(); $q->closeCursor();
+      if (!$p) falha('Esta compra não tem nota aberta no Play Space.', 404);
+      if ($p['status'] === 'usado' && (string)$p['numero'] === mb_substr(maiusculo((string)($in['numero'] ?? '')), 0, 40)) responder(['pedido' => pedidoPublico($p), 'pedidos' => pedidosDaTela($u)]);   // (já marcada com este número)
+      if ($p['status'] === 'pendente') pedidoDecidir((int)$p['id'], $u, true, 'proprio', true);
+      $in['id'] = (int)$p['id'];
+    }
+    $p = pedido((int)($in['id'] ?? 0)); if (!$p || $p['tipo'] !== 'nf') falha('Nota não encontrada.', 404);
     if (!empty($in['voltar'])) {
       if ($u['papel'] !== 'gestor') falha('Só o gestor desfaz a marcação da nota.', 403); if ($p['status'] !== 'usado') falha('Esta nota não está marcada como emitida.', 409);
       $db->prepare("UPDATE pedidos SET status = 'liberado', numero = '', feito_por = NULL, feito_nome = '', feito_em = NULL WHERE id = ?")->execute([(int)$p['id']]); responder(['pedido' => pedidoPublico(pedido((int)$p['id']))]);
@@ -862,7 +873,18 @@ switch ($acao) {
     if ($p['status'] === 'usado' && $u['papel'] !== 'gestor') falha('Esta nota já está marcada como emitida. Só o gestor corrige o número.', 403);
     if (!in_array($p['status'], ['liberado', 'usado'], true)) falha($p['status'] === 'pendente' ? 'O gestor ainda não autorizou esta nota.' : 'Esta nota não está autorizada.', 409);
     $db->prepare("UPDATE pedidos SET status = 'usado', numero = ?, feito_por = ?, feito_nome = ?, feito_em = ? WHERE id = ?")->execute([$num, (int)$u['id'], (string)$u['nome'], agora(), (int)$p['id']]);
-    responder(['pedido' => pedidoPublico(pedido((int)$p['id']))]);
+    responder(['pedido' => pedidoPublico(pedido((int)$p['id'])), 'pedidos' => pedidosDaTela($u)]);
+  }
+  case 'nf_cancelar': { // 1.55: a nota foi cancelada (só o gestor): sai do faturamento em notas e fica no relatório do dia como cancelada
+    $u = exigir(['gestor']); $p = pedido((int)($in['id'] ?? 0)); if (!$p || $p['tipo'] !== 'nf') falha('Nota não encontrada.', 404);
+    if ($p['status'] !== 'usado') falha('Esta nota não está marcada como emitida.', 409);
+    $m = mb_substr(maiusculo(trim((string)($in['motivo'] ?? ''))), 0, 200); if (mb_strlen($m) < 5) falha('Escreva o motivo do cancelamento da nota.');
+    $d = json_decode((string)$p['dados'], true); $d = is_array($d) ? $d : []; $d['canc'] = ['em' => agora(), 'por' => (string)$u['nome'], 'motivo' => $m];
+    $st = $db->prepare("UPDATE pedidos SET status = 'cancelado', resultado = ?, dados = ? WHERE id = ? AND status = 'usado'");
+    $st->execute(['NOTA CANCELADA: ' . $m . ' · POR ' . maiusculo(primeiroNome((string)$u['nome'])), json_encode($d, JSON_UNESCAPED_UNICODE), (int)$p['id']]);
+    if (!$st->rowCount()) falha('Esta nota mudou agora mesmo em outro aparelho. Abra de novo.', 409);
+    if ($p['crianca_id'] !== null) registrar('alt', (int)$p['crianca_id'], (string)$p['nome'], 'Nota fiscal nº ' . $p['numero'] . ' cancelada (' . dinheiro((float)$p['valor']) . ') · Motivo: ' . $m . ' · por ' . maiusculo(primeiroNome((string)$u['nome'])));
+    responder(['pedido' => pedidoPublico(pedido((int)$p['id'])), 'pedidos' => pedidosDaTela($u)]);
   }
   case 'pedidos_lista': { // a conferência das autorizações: gestor e supervisor veem todas; o operador, as que ele pediu
     $u = exigir(); session_write_close();

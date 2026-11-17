@@ -1555,6 +1555,20 @@ body.quieto .a-card, body.quieto .conv, body.quieto .oficina, body.quieto .tiles
 .simul button { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 8px; border-radius: 16px; background: var(--card); border: 1px solid var(--borda); font-weight: 800; font-size: 13px; }
 .simul button span { font-size: 11.5px; color: var(--tinta-2); font-weight: 700; }
 @media (prefers-reduced-motion: reduce) { :root:not([data-anim="cheia"]) *, :root:not([data-anim="cheia"]) *::before, :root:not([data-anim="cheia"]) *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
+/* 1.55: as notas fiscais do dia no painel e a correção das horas */
+.pn-nf-k { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.pn-nf-k > div { border: 1px solid var(--borda); border-radius: 16px; padding: 10px 13px; display: flex; flex-direction: column; gap: 2px; min-width: 0; container-type: inline-size; }
+.pn-nf-k small { font-size: 12.5px; font-weight: 800; color: var(--tinta-2); }
+.pn-nf-k b { font: 800 22px/1.15 var(--display); font-size: min(22px, 13cqi); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pn-nf-b { height: 10px; border-radius: 6px; background: var(--borda); overflow: hidden; }
+.pn-nf-b i { display: block; height: 100%; border-radius: 6px; background: var(--gr-2, var(--ok)); }
+.pn-nf-p { margin: -4px 0 0; font-size: 13px; color: var(--tinta-2); font-weight: 700; }
+.pn-nf-x { font-style: normal; font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--erro); background: var(--erro-bg); border-radius: 6px; padding: 1px 6px; }
+.pn-nf .pn-li s { opacity: .7; }
+.vh-saldo { margin: 0; padding: 12px 0 0; font: 800 20px/1.2 var(--display); }
+.vh-saldo.falta { color: var(--erro); font-size: 15px; }
+.it-ac .link.vh-l { margin-top: 0; display: inline-flex; align-items: center; gap: 4px; }
+@media (max-width: 560px) { .pn-nf-k { grid-template-columns: minmax(0, 1fr); } }
 </style>
 
 </head>
@@ -1675,7 +1689,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.54';
+const VERSAO = '1.55';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -5272,7 +5286,17 @@ function painelDia() {
   for (const p of S.pagamentos || []) if (p.quando >= d0) { const x = um(p.uni || uniDe(S.compras.find(v => v.id === p.venda) || { crianca: p.crianca })); x.formas[p.f] = centavos((x.formas[p.f] || 0) + p.v); x.recebido = centavos(x.recebido + p.v); }
   for (const e of S.estornos || []) if (e.quando >= d0) { const x = um(e.uni || primeira); x.formas[e.f] = centavos((x.formas[e.f] || 0) - e.v); x.recebido = centavos(x.recebido - e.v); }   // 1.31: a venda de outro dia devolvida hoje
   for (const k of S.cancelamentos || []) if (k.quando >= d0 && cancTipo(k) !== 'desfeita') { const x = um(k.uni || primeira); x.cancelados++; x.cancelado = centavos(x.cancelado + (k.valor || 0)); }
+  for (const n of notasDoDia()) if (n.st === 'emitida') { const x = um(n.uni || primeira); x.notas = (x.notas || 0) + 1; x.notas_v = centavos((x.notas_v || 0) + n.valor); }   // 1.55
   return [...o.values()].map(({ sv, ...x }) => ({ ...x, servicos: [...sv.values()] }));
+}
+// 1.55: as notas fiscais emitidas hoje (as canceladas também, à parte): o servidor manda prontas; a prévia tira dos pedidos
+function notasDoDia() {
+  if (MODO === 'servidor') return ((S.painel && S.painel.notas) || []).map(n => ({ ...n, quando: dataDe(n.quando) }));
+  const d0 = new Date(agora); d0.setHours(0, 0, 0, 0);
+  return (S.pedidos || []).filter(p => p.tipo === 'nf' && p.numero && p.feito_em && new Date(p.feito_em) >= d0 && (p.status === 'usado' || p.status === 'cancelado'))
+    .map(p => { const d = p.dados || {}; return { id: p.id, numero: p.numero, quando: new Date(p.feito_em), uni: p.uni || 0, crianca: p.crianca, nome: d.nome || '', cliente: p.resp || p.nome, item: d.item || '', valor: +p.valor || 0, por: p.feito_por || '',
+      st: p.status === 'usado' ? 'emitida' : 'cancelada', canc: (d.canc || {}).motivo || '', vc: p.status === 'usado' && !(S.compras || []).some(v => v.id === p.venda) }; })
+    .sort((a, b) => b.quando - a.quando);
 }
 // a unidade de cada coisa, para o painel: a que está anotada, se ainda é conhecida (na prévia, o que não tem unidade fica na primeira)
 const uniNoPainel = u => (u && unidadeDe(u) ? +u : 0) || (MODO !== 'servidor' ? ((unidades()[0] || {}).id || 0) : 0);
@@ -5281,7 +5305,7 @@ function unidadesDoPainel(L = painelDia()) { const U = [...unidades()]; for (con
 // a unidade que o painel mostra: o número dela; 0 = todas; -1 = o que não tem unidade. Fica guardada no aparelho e começa na unidade dele
 function pnUni(U = unidadesDoPainel()) { if (U.length < 2) return 0; const g = lido('ps-painel-uni', null), id = g == null ? minhaUni() : +g; return id === -1 || U.some(u => u.id === id) ? id : 0; }
 // tudo o que o painel mostra de uma unidade (id; 0 = todas; -1 = sem unidade). B: o que é igual para todas (lido uma vez por desenho)
-function painelBase() { const d0 = new Date(agora); d0.setHours(0, 0, 0, 0); return { d0, L: painelDia(), F: finalizadosHoje(), A: alugNaLista() }; }
+function painelBase() { const d0 = new Date(agora); d0.setHours(0, 0, 0, 0); return { d0, L: painelDia(), F: finalizadosHoje(), A: alugNaLista(), N: notasDoDia() }; }
 function painelResumo(id, B = painelBase()) {
   const da = u => !id || (id === -1 ? !uniNoPainel(u) : uniNoPainel(u) === id), L = B.L.filter(x => da(x.uni)), soma = k => centavos(L.reduce((t, x) => t + (+x[k] || 0), 0)), conta = k => L.reduce((t, x) => t + (+x[k] || 0), 0);
   const formas = Object.fromEntries(FORMAS.map(([f]) => [f, centavos(L.reduce((t, x) => t + (+(x.formas || {})[f] || 0), 0))])), sv = new Map();
@@ -5293,10 +5317,11 @@ function painelResumo(id, B = painelBase()) {
   const horas = Array(24).fill(0); for (const m of mov) if (m.e) horas[m.t.getHours()]++;
   const canc = (S.cancelamentos || []).filter(x => x.quando >= B.d0 && cancTipo(x) !== 'desfeita' && da(x.uni)).sort((a, b) => b.quando - a.quando);
   return { id, dentro: dentro.length, passou: dentro.filter(c => situacaoTempo(c) === 'passou').length, carrinhos: B.A.filter(a => da(a.uni)).reduce((t, a) => t + (a.q || 1), 0), entradas: mov.filter(m => m.e).length, saidas: mov.filter(m => !m.e).length, horas, mov, canc,
+    notas: conta('notas'), notasV: soma('notas_v'), nfL: (B.N || []).filter(n => da(n.uni)),   /* 1.55 */
     faturado: soma('faturado'), vendas: conta('vendas'), desc: soma('desc'), recebido: soma('recebido'), formas, cancelados: conta('cancelados'), cancelado: soma('cancelado'),
     servicos: [...sv.values()].sort((a, b) => b.v - a.v || b.q - a.q || a.n.localeCompare(b.n)) };
 }
-const painelTemAlgo = r => r.dentro + r.carrinhos + r.entradas + r.saidas + r.vendas + r.cancelados > 0 || r.faturado > 0 || r.recebido > 0 || r.desc > 0;
+const painelTemAlgo = r => r.dentro + r.carrinhos + r.entradas + r.saidas + r.vendas + r.cancelados + (r.notas || 0) > 0 || r.faturado > 0 || r.recebido > 0 || r.desc > 0;
 /* os gráficos: as colunas em SVG, desenhadas na largura de verdade do cartão (o texto não estica nem encolhe); as barras deitadas em HTML.
    Uma série só em cada um (uma cor): quem diz o que é é o título. Os valores que não cabem no desenho estão na dica (passar o mouse,
    tocar ou chegar com o Tab) e na tabela. */
@@ -5354,7 +5379,7 @@ function htmlAprovar() { // o que espera a resposta da gestora: os pedidos (Libe
 }
 function htmlAprovarSem() {
   const P = pedidosParaMim(), A = avisosParaMim(); if (!P.length && !A.length && festasParaCobrar().length) return '';
-  if (!P.length && !A.length) return `<div class="pn-vazio">${ic(IC.check, 20, 2.6)}<span><b>Nada esperando a sua resposta.</b> Quando alguém pedir um desconto, o cancelamento de uma venda ou uma nota fiscal, ou cancelar alguma coisa, aparece aqui na hora.</span></div>`;
+  if (!P.length && !A.length) return `<div class="pn-vazio">${ic(IC.check, 20, 2.6)}<span><b>Nada esperando a sua resposta.</b> Quando alguém pedir um desconto ou o cancelamento de uma venda, ou cancelar alguma coisa, aparece aqui na hora.</span></div>`;
   return `${P.map(htmlPedido).join('')}${A.length ? `<div class="pn-sub"><b>Cancelamentos para ver</b>${A.length > 1 ? `<button type="button" class="link tap" data-act="av-vistos">Marcar ${A.length === 2 ? 'os dois' : 'os ' + A.length} como vistos</button>` : ''}</div>${A.map(htmlAviso).join('')}` : ''}`;
 }
 function telaPainel() {
@@ -5369,7 +5394,7 @@ function telaPainel() {
     + tile('', 'Faturado hoje', brl(r.faturado), r.vendas ? `${r.vendas} ${r.vendas === 1 ? 'venda' : 'vendas'}` : 'nenhuma venda')
     + tile('', 'Caixa do dia', brl(r.recebido), 'recebido desde a meia-noite')
     + tile('', 'Descontos hoje', brl(r.desc), r.cancelados ? `${r.cancelados} ${r.cancelados === 1 ? 'cancelamento' : 'cancelamentos'}${r.cancelado > 0 ? ' · ' + brl(r.cancelado) + ' não cobrados' : ''}` : 'nenhum cancelamento');
-  const comp = !id && varias ? `<div class="card pn-g pn-comp"><div class="pn-g-cab"><h3>Cada unidade hoje</h3><small>toque no nome para ver só ela</small></div><table><thead><tr><th>Unidade</th><th>No espaço</th><th>Entradas</th><th>Faturado</th><th>Caixa</th></tr></thead><tbody>${ops.filter(q => q).map(q => { const x = painelResumo(q, B); return `<tr><th><button type="button" class="link tap" data-act="pn-uni" data-id="${q}">${esc(nomeDe(q))}</button></th><td class="num" data-rot="No espaço">${x.dentro}</td><td class="num" data-rot="Entradas">${x.entradas}</td><td class="num" data-rot="Faturado">${brl(x.faturado)}</td><td class="num" data-rot="Caixa">${brl(x.recebido)}</td></tr>`; }).join('')}</tbody></table></div>` : '';
+  const comp = !id && varias ? `<div class="card pn-g pn-comp"><div class="pn-g-cab"><h3>Cada unidade hoje</h3><small>toque no nome para ver só ela</small></div><table><thead><tr><th>Unidade</th><th>No espaço</th><th>Entradas</th><th>Faturado</th><th>Caixa</th><th>Em notas</th></tr></thead><tbody>${ops.filter(q => q).map(q => { const x = painelResumo(q, B); return `<tr><th><button type="button" class="link tap" data-act="pn-uni" data-id="${q}">${esc(nomeDe(q))}</button></th><td class="num" data-rot="No espaço">${x.dentro}</td><td class="num" data-rot="Entradas">${x.entradas}</td><td class="num" data-rot="Faturado">${brl(x.faturado)}</td><td class="num" data-rot="Caixa">${brl(x.recebido)}</td><td class="num" data-rot="Em notas">${brl(x.notasV)}</td></tr>`; }).join('')}</tbody></table></div>` : '';
   const [de, ate] = grFaixaHoras(r.horas), pico = Math.max(0, ...r.horas), hPico = pico ? r.horas.indexOf(pico) : -1;
   const tabHoras = `<details class="gr-tab"><summary>Ver em tabela</summary><table><thead><tr><th>Hora</th><th>Entradas</th></tr></thead><tbody>${Array.from({ length: ate - de + 1 }, (_, i) => `<tr><td>${de + i}h</td><td class="num">${r.horas[de + i]}</td></tr>`).join('')}</tbody></table></details>`;
   const pF = pctsInteiros(FORMAS.map(([f]) => r.formas[f] || 0), r.recebido), caixa = grLinhas(FORMAS.map(([f, nf], i) => ({ n: nf, v: r.formas[f] || 0, txt: brl(r.formas[f] || 0), dica: `${brl(r.formas[f] || 0)}|${nf}${r.recebido > 0 ? ' · ' + pF[i] + '% do recebido' : ''}` })), '--gr-2');
@@ -5379,6 +5404,14 @@ function telaPainel() {
   const canc = r.canc.length ? r.canc.slice(0, 5).map(x => `<button type="button" class="pn-li tap" data-act="cancelamentos"><time>${hora(x.quando)}</time><span class="pn-li-t"><b>${cancOQue(x)}</b><span>${esc(quemCancelou(x))}${x.resp || x.nome ? ' · ' + esc(x.resp ? x.resp + (x.nome ? ' · ' + x.nome : '') : x.nome) : ''}${x.motivo ? ' · Motivo: ' + esc(x.motivo) : ''}${ondeDe(x.uni)}</span></span></button>`).join('') : '<p class="pn-nada">Nenhum cancelamento hoje.</p>';
   const mov = r.mov.length ? r.mov.slice(0, 8).map(m => `<button type="button" class="pn-li tap" data-act="historico" data-id="${m.crianca}"><time>${hora(m.t)}</time><span class="pn-li-t"><b><i class="pn-mv ${m.e ? 'ent' : 'sai'}">${m.e ? 'entrou' : 'saiu'}</i> ${esc(m.resp || m.nome)}</b><span>${esc(m.nome)}${ondeDe(m.uni)}</span></span></button>`).join('') : '<p class="pn-nada">Ninguém entrou nem saiu hoje ainda.</p>';
   const onde = id ? nomeDe(id) : varias ? 'todas as unidades' : U[0] ? U[0].nome : '';
+  // 1.55: as notas fiscais de hoje: o faturamento em notas ao lado do caixa, e cada nota (a cancelada riscada; a da venda cancelada, com o aviso)
+  const nfDif = centavos(r.recebido - r.notasV), nfPct = r.recebido > 0 ? Math.min(100, Math.round(r.notasV / r.recebido * 100)) : 0;
+  const nfLi = n => { const t = `<time>${hora(n.quando)}</time><span class="pn-li-t"><b>${n.st === 'cancelada' ? '<s>' : ''}NF nº ${esc(n.numero)} · ${brl(n.valor)}${n.st === 'cancelada' ? '</s> <i class="pn-nf-x">cancelada</i>' : ''}</b><span>${esc(n.nome || n.cliente)}${n.item ? ' · ' + esc(n.item) : ''}${n.por ? ' · por ' + esc(primeiro(n.por)) : ''}${ondeDe(n.uni)}${n.canc ? ' · Motivo: ' + esc(n.canc) : ''}${n.vc ? ' · <b class="np">A VENDA FOI CANCELADA: CANCELE A NOTA</b>' : ''}</span></span>`;
+    return n.crianca ? `<button type="button" class="pn-li tap" data-act="historico" data-id="${n.crianca}">${t}</button>` : `<div class="pn-li">${t}</div>`; };
+  const nfCard = `<div class="card pn-g larga pn-nf"><div class="pn-g-cab"><h3>Notas fiscais hoje</h3><small>${r.notas ? `${r.notas} ${r.notas === 1 ? 'nota emitida' : 'notas emitidas'}` : 'nenhuma nota emitida'}${onde ? ' · ' + esc(onde) : ''}</small></div>
+    <div class="pn-nf-k"><div><small>Em notas</small><b class="num">${brl(r.notasV)}</b></div><div><small>No caixa</small><b class="num">${brl(r.recebido)}</b></div><div><small>${nfDif >= 0 ? 'Sem nota' : 'Notas acima do caixa'}</small><b class="num">${brl(Math.abs(nfDif))}</b></div></div>
+    <div class="pn-nf-b" role="img" aria-label="${nfPct}% do caixa com nota fiscal"><i style="width:${nfPct}%"></i></div><p class="pn-nf-p">${r.recebido > 0 ? `<b>${nfPct}%</b> do caixa com nota fiscal` : 'Nada no caixa ainda.'}</p>
+    <div class="pn-lista" id="pn-nf">${r.nfL.length ? r.nfL.slice(0, 8).map(nfLi).join('') + (r.nfL.length > 8 ? `<p class="pn-nada">E mais ${r.nfL.length - 8}: todas em Finanças → Notas fiscais.</p>` : '') : '<p class="pn-nada">Nenhuma nota fiscal emitida hoje.</p>'}</div></div>`;
   return faixa('Painel', `${h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite'}, ${primeiro(EU.nome)} · ${dataTxt()}`, chipAvisos()) + `
   <section class="painel" data-uni="${id}">
     <div class="card pn-aprov-c${nP ? ' tem' : ''}"><div class="sec-cab"><h2>Para aprovar <span class="pill p-erro" id="pn-n">${nP || ''}</span></h2><span class="pn-links"><button type="button" class="link tap" data-ir="aprovar">Abrir Aprovações</button><button type="button" class="link tap" data-act="autorizacoes">Autorizações</button><button type="button" class="link tap" data-act="cancelamentos">Cancelamentos</button></span></div><div class="pn-aprov" id="pn-aprov">${htmlAprovar()}</div><button type="button" class="bt forte tap pn-aprov-ir" data-ir="aprovar">${ic(IC.aprovar, 18)} Abrir Aprovações <span id="pn-n2">${nP ? '(' + nP + ')' : ''}</span></button></div>
@@ -5389,6 +5422,7 @@ function telaPainel() {
       <div class="card pn-g larga"><div class="pn-g-cab"><h3>Entradas por hora</h3><small>${r.entradas ? `${r.entradas} hoje${hPico >= 0 ? ` · mais movimento às ${hPico}h` : ''}` : 'hoje'}${onde ? ' · ' + esc(onde) : ''}</small></div><div class="gr" id="gr-horas"></div>${tabHoras}</div>
       <div class="card pn-g"><div class="pn-g-cab"><h3>Caixa do dia</h3><small>recebido: <b class="num">${brl(r.recebido)}</b></small></div>${caixa}</div>
       <div class="card pn-g"><div class="pn-g-cab"><h3>Faturado por serviço</h3><small>vendido: <b class="num">${brl(r.faturado)}</b></small></div>${serv}</div>
+      ${nfCard}
       <div class="card pn-g"><div class="pn-g-cab"><h3>Últimas entradas e saídas</h3><button type="button" class="link tap" data-act="dia">Hoje na recepção</button></div><div class="pn-lista" id="pn-mov">${mov}</div></div>
       <div class="card pn-g"><div class="pn-g-cab"><h3>Últimos cancelamentos</h3><button type="button" class="link tap" data-act="cancelamentos">Ver todos</button></div><div class="pn-lista" id="pn-canc">${canc}</div></div>
     </div>
@@ -5404,7 +5438,7 @@ function htmlAprovarTela() {
 }
 function htmlAprovarTelaSem() {
   const P = pedidosParaMim(), A = avisosParaMim();
-  if (!P.length && !A.length) return `<div class="ap-vazio"><i aria-hidden="true">${ic(IC.check, 34, 2.6)}</i><b>Tudo em dia</b><span>Nada esperando a sua resposta. Quando alguém pedir um desconto, uma alteração de valor, o cancelamento de uma venda ou uma nota fiscal, ou cancelar alguma coisa, aparece aqui na hora, com o aviso sonoro.</span></div>`;
+  if (!P.length && !A.length) return `<div class="ap-vazio"><i aria-hidden="true">${ic(IC.check, 34, 2.6)}</i><b>Tudo em dia</b><span>Nada esperando a sua resposta. Quando alguém pedir um desconto, uma alteração de valor ou o cancelamento de uma venda, ou cancelar alguma coisa, aparece aqui na hora, com o aviso sonoro.</span></div>`;
   return (P.length ? `<div class="ap-tit"><h2>Pedidos <span class="pill p-erro">${P.length}</span></h2></div>${P.map(htmlPedido).join('')}` : '')
     + (A.length ? `<div class="ap-tit"><h2>Cancelamentos para ver <span class="pill p-neutro">${A.length}</span></h2>${A.length > 1 ? `<button type="button" class="link tap" data-act="av-vistos">Marcar ${A.length === 2 ? 'os dois' : 'os ' + A.length} como vistos</button>` : ''}</div>${A.map(htmlAviso).join('')}` : '');
 }
@@ -6109,13 +6143,65 @@ const cvDaVenda = v => MODO === 'servidor' ? v.cv || null : (S.pedidos || []).fi
 const temNF = v => !!v && !v.auto && !v.imp && v.v > 0.004;   // a nota é da compra com valor (a recreação que a visita soma sozinha não entra aqui)
 const podePedirCancelamento = v => !podeEstornar() && !!v && !v.auto && (MODO === 'servidor' ? !!v.canc : !v.imp && agora - v.quando <= VENDA_CANCELA_DIAS * 86400000);
 const chipNF = v => { if (!temNF(v)) return ''; const p = nfDaVenda(v), e = p ? p.status : '';
-  const [cls, txt] = e === 'usado' ? ['ok', 'NF ' + (p.numero ? 'nº ' + esc(p.numero) : 'emitida')] : e === 'liberado' ? ['lib', 'NF autorizada'] : e === 'pendente' ? ['esp', 'NF pedida'] : e === 'negado' ? ['nao', 'NF negada'] : ['', 'NF'];
+  const [cls, txt] = e === 'usado' ? ['ok', 'NF ' + (p.numero ? 'nº ' + esc(p.numero) : 'emitida')] : e === 'liberado' ? ['lib', 'NF a emitir'] : e === 'pendente' ? ['esp', 'NF pedida'] : e === 'negado' ? ['nao', 'NF negada'] : ['', 'NF'];
   return `<button type="button" class="nf-ch tap ${cls}" data-act="nf" data-id="${v.id}" title="Nota fiscal desta compra" aria-label="Nota fiscal desta compra: ${txt === 'NF' ? 'pedir' : txt}">${ic(IC.cupom, 13)}${txt}</button>`; };
 const acoesDaCompra = v => { const pede = podePedirCancelamento(v), cv = pede ? cvDaVenda(v) : null, nf = chipNF(v);
   const canc = podeCancelarVenda(v) ? `<button type="button" class="link tap canc-v" data-act="venda-cancelar" data-id="${v.id}">Cancelar esta venda</button>`
     : cv ? `<span class="canc-dica">Cancelamento pedido às ${hora(cv.em)} · esperando ${quemEstorna()}. <button type="button" class="link tap" data-act="ped-desistir" data-id="${cv.id}">Cancelar o pedido</button></span>`
     : pede ? `<button type="button" class="link tap canc-v" data-act="venda-cancelar" data-id="${v.id}">Pedir o cancelamento</button>` : '';
-  return nf || canc ? `<span class="it-ac">${nf}${canc}</span>` : ''; };
+  const hs = podeAlterarHoras(v) ? `<button type="button" class="link tap vh-l" data-act="venda-horas" data-id="${v.id}">${ic(IC.lapis, 13)} Alterar as horas</button>` : '';   /* 1.55: só o gestor */
+  return nf || canc || hs ? `<span class="it-ac">${nf}${hs}${canc}</span>` : ''; };
+/* ---------- 1.55: o gestor corrige as horas de um pacote (a equipe lançou errado) ----------
+   Muda só as horas desta compra (o valor continua o mesmo) e o saldo do cliente acompanha a diferença. Não tira horas que já foram
+   usadas. Vale também para as horas que vieram do sistema anterior. Fica registrado, com o motivo e o nome do gestor. */
+let VH = null;   // a folha aberta: { id (a venda), cid }
+const ehImpV = v => !!v && (!!v.imp || v.servico === SERV_IMP);
+const podeAlterarHoras = v => gestor() && !!v && !v.auto && !v.prod && !v.fora && (minDe(v) > 0 || ehImpV(v));
+const horasCampo = m => Math.floor(m / 60) + (m % 60 ? 'h' + p2(m % 60) : '');
+function lerHorasTxt(t) {   // "5", "5h", "11h30", "11:30", "11,5", "45min" → minutos (null: não entendeu)
+  const s = String(t || '').trim().toLowerCase().replace(',', '.').replace(/\s+/g, ''); if (!s) return null; let m;
+  if ((m = s.match(/^(\d{1,3})(?:h|:)(\d{1,2})(?:min|m)?$/))) return +m[2] < 60 ? +m[1] * 60 + +m[2] : null;
+  if ((m = s.match(/^(\d{1,3})(?:\.(\d{1,2}))?(?:h|hs|hora|horas)?$/))) return Math.round(parseFloat(m[1] + '.' + (m[2] || '0')) * 60);
+  if ((m = s.match(/^(\d{1,4})(?:min|m)$/))) return +m[1];
+  return null;
+}
+function folhaHoras(id) {
+  const v = LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === +id), c = v && crianca(v.crianca); if (!v || !c) return;
+  if (!podeAlterarHoras(v)) { toast('Só o gestor altera as horas do pacote'); return; }
+  VH = { id: v.id, cid: c.id }; const m0 = minDe(v), sal = saldoMin(c);
+  abrirFolha('Alterar as horas do pacote', `<div id="vh-corpo" style="display:flex;flex-direction:column;gap:12px">
+    <div class="linha">${avatar(c)}<div class="txt"><b>${nomeResp(c)}</b><span>${c.resp ? esc(c.nome) + ' · ' : ''}saldo de agora: <b>${dur(sal)}</b></span></div></div>
+    <div class="grupo"><div class="it"><div class="txt"><b>${nomeCompra(v)}</b><span>compra de ${quandoFoi(v.quando)}${v.por ? ' · por ' + esc(primeiro(v.por)) : ''}</span></div><b class="num">${dur(m0)}</b></div></div>
+    <p class="explica">Para quando a equipe lançou as horas erradas. Muda só as horas desta compra (o valor continua o mesmo) e o saldo acompanha a diferença. Fica registrado, com o motivo e o seu nome.</p>
+    <div class="dois"><div class="campo"><label for="vh-h">Horas certas<span class="obg" aria-hidden="true">*</span></label><input id="vh-h" inputmode="decimal" maxlength="8" autocomplete="off" placeholder="ex.: 5 ou 11h30" value="${esc(horasCampo(m0))}"></div>
+      <div class="campo"><label>O saldo fica</label><p class="vh-saldo" id="vh-saldo" aria-live="polite">${dur(sal)}</p></div></div>
+    <div class="campo"><label for="vh-m">Motivo<span class="obg" aria-hidden="true">*</span></label><input id="vh-m" maxlength="200" autocomplete="off" placeholder="Por que as horas mudam"></div>
+    <div class="pe-f"><button type="button" class="bt forte largo tap" data-act="venda-horas-ok">${ic(IC.check)} Salvar as horas</button></div></div>`);
+  const i = $('#vh-h'); if (i) { i.addEventListener('input', vhConta); i.focus(); i.select(); } vhConta();
+}
+function vhConta() {   // o saldo que fica, enquanto o gestor digita
+  const v = VH && LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === VH.id), c = v && crianca(v.crianca), o = $('#vh-saldo'); if (!v || !c || !o) return;
+  const m1 = lerHorasTxt(val('vh-h')), sal = saldoMin(c), m0 = minDe(v); o.classList.remove('falta');
+  if (m1 == null) { o.textContent = 'escreva as horas (ex.: 5 ou 11h30)'; return; }
+  const novo = sal + m1 - m0; if (novo < 0) { o.classList.add('falta'); o.textContent = `não dá: ${dur(m0 - m1 - sal)} já foram usadas`; return; }
+  o.textContent = m1 === m0 ? dur(sal) + ' (igual)' : `${dur(novo)} (${m1 > m0 ? '+' : '−'}${dur(Math.abs(m1 - m0))})`;
+}
+async function salvarHoras(el) {
+  const v = VH && LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === VH.id), c = v && crianca(v.crianca); if (!v || !c) return;
+  if (!gestor()) { toast('Só o gestor altera as horas do pacote'); return; }
+  const m1 = lerHorasTxt(val('vh-h')), m0 = minDe(v), mot = MAI(val('vh-m')), foco = id => { const i = $('#' + id); if (i) i.focus(); };
+  if (m1 == null || m1 > 999 * 60) { toast('Escreva as horas certas (ex.: 5 ou 11h30)'); foco('vh-h'); return; }
+  if (m1 === m0) { toast('As horas são as mesmas de agora'); foco('vh-h'); return; }
+  if (m1 < m0 && saldoMin(c) < m0 - m1) { toast(`Essas horas já foram usadas: dá para tirar no máximo ${dur(saldoMin(c))}`); foco('vh-h'); return; }
+  if (mot.length < 5) { toast('Escreva o motivo da correção'); foco('vh-m'); return; }
+  el.disabled = true;
+  try {
+    if (MODO === 'servidor') { await api('venda_horas', { venda: v.id, minutos: m1, motivo: mot }); await carregar(); }
+    else { const dif = m1 - m0, q = v.quando instanceof Date ? v.quando : new Date(v.quando), nm = nomeCompraTxt(v); if (c.pmin != null) c.pmin += dif; c.pacote = (+c.pacote || 0) + dif / 60; v.m = m1; v.h = m1 / 60;
+      registrar('alt', c.nome, `Horas do pacote corrigidas pelo gestor · ${nm} de ${p2(q.getDate())}/${p2(q.getMonth() + 1)}: ${dur(m0)} → ${dur(m1)} (${dif > 0 ? '+' : '−'}${dur(Math.abs(dif))} no saldo) · Motivo: ${mot} · por ${MAI(primeiro(EU.nome))}`); }
+    VH = null; fecharFolha(); if (LADO) await buscarHistorico(); desenhar(true); toast(`Horas corrigidas: ${dur(m0)} → ${dur(m1)}`);
+  } catch (e) { toast(e.message); el.disabled = false; }
+}
 function folhaNF(id) {
   const v = LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === +id), c = v && crianca(v.crianca); if (!v || !c || !temNF(v)) return;
   NF = { id: v.id, cid: c.id }; abrirFolha('Nota fiscal', `<div id="nf-corpo" style="display:flex;flex-direction:column;gap:12px">${htmlNF(v, c)}</div>`); lerVoltaNF();
@@ -6126,39 +6212,40 @@ function htmlNF(v, c) {
   const cab = `<div class="linha">${avatar(c)}<div class="txt"><b>${nomeResp(c)}</b><span>${c.resp ? esc(c.nome) + ' · ' : ''}compra de ${quandoFoi(v.quando)}${v.por ? ' · por ' + esc(primeiro(v.por)) : ''}</span></div></div>
     <div class="grupo"><div class="it"><div class="txt"><b>${nomeCompra(v)}</b><span>${pago ? 'pago: ' + esc(pago) : '<b class="np">AINDA NÃO FOI PAGA</b>'}</span></div><b class="num">${brl(v.v)}</b></div></div>`;
   const dadosNF = `<div class="nf-dados" id="nf-dados"><span>Em nome de<b>${esc(d.nome || '')}</b></span><span>${soDig(d.doc || '').length === 14 ? 'CNPJ' : 'CPF'}<b>${esc(d.doc || 'não informado')}</b></span>${d.email ? `<span>E-mail<b class="sem-mai">${esc(d.email)}</b></span>` : ''}<span>Serviço<b>${nomeCompra(v)}</b></span><span>Valor<b>${brl2(v.v)}</b></span><span>Data da compra<b>${p2(v.quando.getDate())}/${p2(v.quando.getMonth() + 1)}/${v.quando.getFullYear()}</b></span></div>`;
-  if (e === 'usado') return cab + `<div class="marca nf-ok">${ic(IC.check, 18, 2.6)}<span><b>Nota fiscal${p.numero ? ' nº ' + esc(p.numero) : ''} emitida.</b> Marcada por ${esc(primeiro(p.feito_por))}${p.feito_em ? ', ' + dataPedido(p.feito_em) : ''} · autorizada por ${esc(primeiro(p.dec))}.</span></div>${dadosNF}
-    ${gestor() ? `<div class="campo"><label for="nf-num">Corrigir o número da nota</label><input id="nf-num" value="${esc(p.numero)}" maxlength="40" autocomplete="off"></div><div class="pe-f dois-bt"><button type="button" class="bt tap" data-act="nf-voltar">Desfazer a marcação</button><button type="button" class="bt forte tap" data-act="nf-emitida">Salvar o número</button></div>` : ''}`;
-  if (e === 'liberado') return cab + `<div class="marca nf-ok">${ic(IC.check, 18, 2.6)}<span><b>Nota autorizada</b> por ${esc(primeiro(p.dec))}${p.dec_em ? ', ' + dataPedido(p.dec_em) : ''}${p.como === 'senha' ? ' (com a senha)' : ''}. Falta emitir.</span></div>${dadosNF}
-    <div class="nf-bts"><button type="button" class="bt forte tap" data-act="nf-notas">${ic(IC.cupom, 16)} Emitir no Play Space Notas</button><button type="button" class="bt tap" data-act="nf-copiar">${ic(IC.copia, 16)} Copiar os dados</button></div>
-    <p class="explica nf-dica">O Notas abre em outra aba com a nota já preenchida. Emitida, o número aparece aqui sozinho.</p>
-    <div class="campo" id="nf-num-campo"><label for="nf-num">Número da nota emitida<span class="obg" aria-hidden="true">*</span></label><input id="nf-num" maxlength="40" autocomplete="off" placeholder="Depois de emitir, escreva o número aqui" value="${esc(NF_VOLTA[v.id] || '')}"></div>
-    <div class="pe-f">${gestor() ? `<button type="button" class="link tap" data-act="nf-largar" style="display:block;margin:0 auto 10px">Tirar a autorização</button>` : ''}<button type="button" class="bt forte largo tap" data-act="nf-emitida">${ic(IC.check)} Marcar como emitida</button></div>`;
-  if (e === 'pendente') return cab + `<div class="marca nf-esp">${ic(IC.sino, 18)}<span><b>Nota pedida</b> por ${esc(primeiro(p.por))}, ${dataPedido(p.em)}. Esperando o gestor.</span></div>${dadosNF}
-    ${gestor() ? `<div class="pe-f dois-bt"><button type="button" class="bt tap" data-act="ped-nao" data-id="${p.id}">Negar</button><button type="button" class="bt forte tap" data-act="ped-ok" data-id="${p.id}">${ic(IC.check)} Autorizar a nota</button></div>`
-      : `<div class="aut-senha">${campoSenha('nf-senha')}<button type="button" class="bt forte tap" data-act="nf-senha">Autorizar com a senha</button></div>${pedMeu(p) ? `<div class="pe-f"><button type="button" class="link tap" data-act="nf-largar" style="display:block;margin:0 auto">Cancelar o pedido</button></div>` : ''}`}`;
-  // ainda não tem nota (ou a última foi negada): em nome de quem ela sai, e a autorização
-  return cab + `${e === 'negado' ? `<div class="marca canc">${ic(IC.x, 18, 2.4)}<span><b>${esc(primeiro(p.dec))} não autorizou a nota desta compra</b>${p.dec_em ? ', ' + dataPedido(p.dec_em) : ''}. Dá para pedir de novo.</span></div>` : ''}
+  const dica = `<p class="explica nf-dica">O Play Space Notas abre em outra aba com a nota já preenchida. Emitida, o número volta para cá e a nota fica marcada sozinha.</p>`;
+  if (e === 'usado') return cab + `<div class="marca nf-ok">${ic(IC.check, 18, 2.6)}<span><b>Nota fiscal${p.numero ? ' nº ' + esc(p.numero) : ''} emitida.</b> Marcada por ${esc(primeiro(p.feito_por))}${p.feito_em ? ', ' + dataPedido(p.feito_em) : ''}.</span></div>${dadosNF}
+    ${gestor() ? `<div class="campo"><label for="nf-num">Corrigir o número da nota</label><input id="nf-num" value="${esc(p.numero)}" maxlength="40" autocomplete="off"></div><div class="pe-f dois-bt"><button type="button" class="bt tap" data-act="nf-voltar">Desfazer a marcação</button><button type="button" class="bt forte tap" data-act="nf-emitida">Salvar o número</button></div>
+      <details class="outro nf-canc"><summary>Cancelar a nota</summary><div class="fv-form"><p class="explica">Quando a nota foi cancelada no Play Space Notas (lá também só o gestor cancela). Ela sai do faturamento em notas e aparece no relatório do dia como cancelada. Depois, dá para emitir outra nota para esta compra.</p>
+        <div class="campo"><label for="nf-canc-m">Motivo<span class="obg" aria-hidden="true">*</span></label><input id="nf-canc-m" maxlength="200" autocomplete="off" placeholder="Por que a nota foi cancelada"></div><button type="button" class="bt canc-bt largo tap" data-act="nf-cancelar">${ic(IC.x, 16)} Cancelar a nota</button></div></details>`
+      : `<p class="explica">Só o gestor corrige o número, desfaz a marcação ou cancela a nota.</p>`}`;
+  if (e === 'liberado') return cab + `<div class="marca nf-ok">${ic(IC.cupom, 18)}<span><b>Nota aberta</b> por ${esc(primeiro(p.dec || p.por))}${p.dec_em ? ', ' + dataPedido(p.dec_em) : ''}. Falta emitir.</span></div>${dadosNF}
+    <div class="nf-bts"><button type="button" class="bt forte tap" data-act="nf-notas">${ic(IC.cupom, 16)} Emitir no Play Space Notas</button><button type="button" class="bt tap" data-act="nf-copiar">${ic(IC.copia, 16)} Copiar os dados</button></div>${dica}
+    <div class="campo" id="nf-num-campo"><label for="nf-num">Número da nota emitida</label><input id="nf-num" maxlength="40" autocomplete="off" placeholder="Se não voltar sozinho, escreva o número aqui" value="${esc(NF_VOLTA[v.id] || '')}"></div>
+    <div class="pe-f">${gestor() ? `<button type="button" class="link tap" data-act="nf-largar" style="display:block;margin:0 auto 10px">Tirar a nota (não vai ser emitida)</button>` : ''}<button type="button" class="bt forte largo tap" data-act="nf-emitida">${ic(IC.check)} Marcar como emitida</button></div>`;
+  if (e === 'pendente') return cab + `<div class="marca nf-esp">${ic(IC.sino, 18)}<span><b>Nota pedida</b> por ${esc(primeiro(p.por))}, ${dataPedido(p.em)}. Agora não precisa mais esperar o gestor: dá para emitir.</span></div>${dadosNF}
+    <div class="pe-f"><button type="button" class="bt forte largo tap" data-act="nf-pedir" data-ja="1">${ic(IC.cupom, 16)} Emitir no Play Space Notas</button></div>${dica}`;
+  // ainda não tem nota (ou a última foi negada ou cancelada): em nome de quem ela sai, e o Notas
+  return cab + `${e === 'negado' ? `<div class="marca canc">${ic(IC.x, 18, 2.4)}<span><b>${esc(primeiro(p.dec))} não autorizou a nota desta compra</b>${p.dec_em ? ', ' + dataPedido(p.dec_em) : ''}. Dá para emitir de novo.</span></div>` : ''}
     <div class="bloco-f"><small class="rot">A nota sai em nome de</small>
       <div class="campo"><label for="nf-nome">Nome ou razão social</label><input id="nf-nome" value="${esc(c.resp || c.nome)}" maxlength="120" autocomplete="off"></div>
       <div class="dois"><div class="campo"><label for="nf-doc">CPF ou CNPJ</label><input id="nf-doc" inputmode="numeric" value="${esc(c.doc === 'rne' ? '' : c.cpf || '')}" maxlength="18" autocomplete="off"></div><div class="campo"><label for="nf-email">E-mail (opcional)</label><input id="nf-email" class="sem-mai" type="email" inputmode="email" maxlength="120" autocomplete="off" autocapitalize="none"></div></div></div>
-    ${gestor() ? `<div class="pe-f"><button type="button" class="bt forte largo tap" data-act="nf-pedir">${ic(IC.check)} Autorizar a nota</button></div>`
-      : `<div class="marca">${ic(IC.sino, 18)}<span><b>Só o gestor autoriza a nota fiscal.</b> Ele digita a senha aqui, ou libera pela tela dele.</span></div>
-    <div class="aut-senha">${campoSenha('nf-senha')}<button type="button" class="bt forte tap" data-act="nf-pedir" data-senha="1">Autorizar com a senha</button></div>
-    <div class="pe-f"><button type="button" class="bt largo tap" data-act="nf-pedir">${ic(IC.sino, 16)} Pedir ao gestor · aparece na tela dele</button></div>`}`;
+    <div class="pe-f"><button type="button" class="bt forte largo tap" data-act="nf-pedir">${ic(IC.cupom, 16)} Emitir no Play Space Notas</button></div>${dica}`;
 }
-async function pedirNF(el) { // pedir a nota desta compra (sendo o gestor, já autoriza); com a senha do gestor digitada aqui, vale na hora
-  if (!NF) return; const comSenha = !!el.dataset.senha, senha = comSenha ? senhaDe('nf-senha') : '', foco = id => { const i = $('#' + id); if (i) i.focus(); };
-  if (comSenha && !senha) { toast('Digite a senha do gestor'); foco('nf-senha'); return; }
-  const nome = val('nf-nome'), doc = val('nf-doc'), email = ($('#nf-email') || { value: '' }).value.trim(), dg = soDig(doc);
-  if (!nome) { toast('Escreva em nome de quem a nota sai'); foco('nf-nome'); return; }
+// 1.55: toda a equipe emite a nota (sem esperar o gestor): fica guardado em nome de quem ela sai e o Play Space Notas abre já preenchido.
+// A aba do Notas abre já no toque (antes da resposta do servidor), para o navegador não barrar a janela nova
+async function pedirNF(el) {
+  if (!NF) return; const ja = !!el.dataset.ja, foco = id => { const i = $('#' + id); if (i) i.focus(); };
+  const nome = ja ? '' : val('nf-nome'), doc = ja ? '' : val('nf-doc'), email = ja ? '' : ($('#nf-email') || { value: '' }).value.trim(), dg = soDig(doc);
+  if (!ja && !nome) { toast('Escreva em nome de quem a nota sai'); foco('nf-nome'); return; }
   if (dg && dg.length !== 11 && dg.length !== 14) { toast('Confira o CPF ou o CNPJ da nota: o CPF tem 11 números e o CNPJ, 14'); foco('nf-doc'); return; }
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast('Confira o e-mail para onde a nota vai'); foco('nf-email'); return; }
+  let aba = null; if (MODO === 'servidor') { try { aba = window.open('', '_blank'); } catch (e) { aba = null; } }
   el.disabled = true;
   try {
-    if (MODO === 'servidor') pedidosChegaram((await api('pedido_criar', { tipo: 'nf', venda: NF.id, nf_nome: nome, nf_doc: doc, nf_email: email, ...(comSenha ? { senha } : {}) })).pedidos, true);
-    else { const r = criarPedidoPrevia({ tipo: 'nf', venda: NF.id, nf_nome: nome, nf_doc: doc, nf_email: email }, comSenha ? senha : null); if (r.erro) throw new Error(r.erro); pedidosMudaramPrevia(true); }
-    await depoisDaNF();
-  } catch (e) { toast(e.message); el.disabled = false; senhaErrada('nf-senha', e); }
+    if (MODO === 'servidor') pedidosChegaram((await api('pedido_criar', { tipo: 'nf', venda: NF.id, ...(ja ? {} : { nf_nome: nome, nf_doc: doc, nf_email: email }) })).pedidos, true);
+    else { const r = criarPedidoPrevia({ tipo: 'nf', venda: NF.id, nf_nome: nome, nf_doc: doc, nf_email: email }, null); if (r.erro) throw new Error(r.erro); pedidosMudaramPrevia(true); }
+    await depoisDaNF(); abrirNotasNF(aba);
+  } catch (e) { if (aba) { try { aba.close(); } catch (x) { } } toast(e.message); el.disabled = false; }
 }
 async function depoisDaNF() { if (LADO) await buscarHistorico(); redesenharNF(); }
 /* ---------- 1.50: o Play Space Notas (/notas, o mesmo site) ----------
@@ -6166,8 +6253,9 @@ async function depoisDaNF() { if (LADO) await buscarHistorico(); redesenharNF();
    abre a nota já preenchida. Emitida de verdade (produção), o Notas devolve o número (PONTE_VOLTA) e ele entra no campo
    "Número da nota emitida" desta compra; falta só tocar em "Marcar como emitida". */
 const PONTE_NF = 'ps-ponte-nfse', PONTE_VOLTA = 'ps-ponte-nfse-volta', NF_VOLTA = {};
-function abrirNotasNF() {
-  const v = NF && LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === NF.id), p = v && nfDaVenda(v), c = v && crianca(v.crianca); if (!p || !c) return;
+function abrirNotasNF(aba) {   // 1.55: aba = a aba que já abriu no toque (o pedirNF)
+  const fecha = () => { if (aba) { try { aba.close(); } catch (e) { } } };
+  const v = NF && LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === NF.id), p = v && nfDaVenda(v), c = v && crianca(v.crianca); if (!p || !c) { fecha(); return; }
   if (MODO !== 'servidor') { toast('No sistema de verdade, abre o Play Space Notas com esta nota já preenchida'); return; }
   const d = p.dados || {}, festa = /FESTA/i.test(v.servico || ''), compra = nomeCompraTxt(v), m = minDe(v);
   /* a descrição que sai na nota: "Recreação infantil: pacote de 3 horas", "Festa infantil: ...", ou o nome da compra */
@@ -6175,14 +6263,17 @@ function abrirNotasNF() {
   const pac = ehPacoteVenda(v), descricao = festa ? 'Festa infantil: ' + compra : pac ? 'Recreação infantil: pacote de ' + hs : m ? 'Recreação infantil: ' + compra : compra;
   const dados = { quando: Date.now(), venda: v.id, nome: d.nome || c.resp || c.nome, doc: d.doc || '', email: d.email || '', servico: festa ? 'festa' : pac ? 'pacotehoras' : 'recreacao',
     servicoNome: v.servico || '', descricao, valor: Math.round(v.v * 100) / 100 };
-  try { localStorage.setItem(PONTE_NF, JSON.stringify(dados)); } catch (e) { toast('Não consegui passar os dados para o Notas: use "Copiar os dados"'); return; }
-  const w = window.open('/notas/#nota-pedido', '_blank');
+  try { localStorage.setItem(PONTE_NF, JSON.stringify(dados)); } catch (e) { fecha(); toast('Não consegui passar os dados para o Notas: use "Copiar os dados"'); return; }
+  let w = aba || null; if (w) { try { w.location.href = '/notas/#nota-pedido'; } catch (e) { w = null; } } if (!w) w = window.open('/notas/#nota-pedido', '_blank');
   if (w) { try { w.opener = null; } catch (e) { } } else toast('O navegador não abriu a aba do Notas: libere as janelas novas deste site e toque de novo');
 }
 function notaVoltou(r) {
   if (!r || !r.venda) return;
   if (r.ambiente !== 'producao') { toast(r.ambiente === 'teste' ? 'Nota de TESTE emitida no Notas (sem valor fiscal): o número não foi anotado' : 'Nota simulada no Notas: o número não foi anotado'); return; }
   if (!r.numero) return; NF_VOLTA[r.venda] = String(r.numero);
+  if (MODO === 'servidor' && !r.semMarcar) {   // 1.55: o número que voltou marca a nota sozinho (sem a atendente tocar em nada)
+    api('nf_emitida', { venda: +r.venda, numero: String(r.numero) }).then(async x => { if (x && x.pedidos) pedidosChegaram(x.pedidos, true); toast('Nota nº ' + r.numero + ' emitida e marcada na compra'); if (LADO) await buscarHistorico(); if (NF) redesenharNF(); }).catch(() => notaVoltou({ ...r, semMarcar: true }));
+    return; }
   const i = $('#nf-num');
   if (NF && NF.id === +r.venda && i) { if (!i.value.trim()) i.value = String(r.numero); const cp = $('#nf-num-campo'); if (cp) cp.classList.remove('falta'); deuCerto('Nota nº ' + r.numero + ' emitida no Notas: toque em "Marcar como emitida"'); }
   else toast('Nota nº ' + r.numero + ' emitida no Notas: abra a NF da compra para marcar como emitida');
@@ -6197,14 +6288,16 @@ const nfAEmitir = () => MODO === 'servidor' ? S.nfEmitir || 0 : supervisorOuMais
 async function acaoNF(oque, el) { // com a senha (o pedido que esperava), marcar como emitida, desfazer a marcação, tirar o pedido ou a autorização, copiar os dados
   const v = NF && LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === NF.id), p = v && nfDaVenda(v); if (!p) return;
   if (oque === 'copiar') { const t = [...$$('#nf-dados span')].map(s => s.firstChild.textContent + ': ' + s.querySelector('b').textContent).join('\n'); try { await navigator.clipboard.writeText(t); deuCerto('Dados da nota copiados'); el.lastChild.textContent = ' Copiado'; } catch (e) { toast('Não consegui copiar: selecione e copie os dados da tela'); } return; }
-  let senha = '', numero = '';
+  let senha = '', numero = '', motivo = '';
+  if (oque === 'cancelar') { if (!gestor()) { toast('Só o gestor cancela a nota'); return; } motivo = MAI(val('nf-canc-m')); if (motivo.length < 5) { toast('Escreva o motivo do cancelamento da nota'); const i = $('#nf-canc-m'); if (i) i.focus(); return; } }   /* 1.55 */
   if (oque === 'senha') { senha = senhaDe('nf-senha'); if (!senha) { toast('Digite a senha do gestor'); const i = $('#nf-senha'); if (i) i.focus(); return; } }
   if (oque === 'emitida') { numero = val('nf-num'); if (!numero) { const cp = $('#nf-num-campo'); if (cp) cp.classList.add('falta'); toast('Escreva o número da nota'); const i = $('#nf-num'); if (i) i.focus(); return; } }
   el.disabled = true;
   try {
-    if (MODO === 'servidor') { const r = oque === 'senha' ? await api('pedido_decidir', { id: p.id, senha }) : oque === 'largar' ? await api('pedido_cancelar', { id: p.id }) : await api('nf_emitida', oque === 'voltar' ? { id: p.id, voltar: true } : { id: p.id, numero }); if (r.pedidos) pedidosChegaram(r.pedidos, true); }
-    else { const r = oque === 'senha' ? decidirPedidoPrevia(p, true, 'senha', null, senha) : oque === 'largar' ? cancelarPedidoPrevia(p, pedMeu(p)) : nfEmitidaPrevia(p, oque === 'voltar' ? null : numero); if (r && r.erro) throw new Error(r.erro); pedidosMudaramPrevia(true); }
+    if (MODO === 'servidor') { const r = oque === 'senha' ? await api('pedido_decidir', { id: p.id, senha }) : oque === 'largar' ? await api('pedido_cancelar', { id: p.id }) : oque === 'cancelar' ? await api('nf_cancelar', { id: p.id, motivo }) : await api('nf_emitida', oque === 'voltar' ? { id: p.id, voltar: true } : { id: p.id, numero }); if (r.pedidos) pedidosChegaram(r.pedidos, true); }
+    else { const r = oque === 'senha' ? decidirPedidoPrevia(p, true, 'senha', null, senha) : oque === 'largar' ? cancelarPedidoPrevia(p, pedMeu(p)) : oque === 'cancelar' ? nfCancelarPrevia(p, motivo) : nfEmitidaPrevia(p, oque === 'voltar' ? null : numero); if (r && r.erro) throw new Error(r.erro); pedidosMudaramPrevia(true); }
     await depoisDaNF();
+    if (oque === 'cancelar') toast('Nota cancelada aqui. Se ainda não cancelou no Play Space Notas, cancele lá também');
   } catch (e) { toast(e.message); el.disabled = false; senhaErrada('nf-senha', e); }
 }
 async function desistirPedido(id, el) { // (no histórico) quem pediu o cancelamento da venda desiste
@@ -6261,12 +6354,12 @@ function criarPedidoPrevia(d, senha) {
     if (tipo === 'cancelar_venda') { if (motivo.length < 5) return { erro: 'Escreva o motivo do cancelamento.' }; const m = minDe(v); if (m > 0 && saldoMin(c) < m) return { erro: `As horas desta venda já foram usadas${saldoMin(c) > 0 ? ' em parte: sobram ' + hm(saldoMin(c)) + ' de ' + hm(m) : ''}. Não dá para cancelar a venda inteira.` };
       const ja = S.pedidos.find(p => p.tipo === 'cancelar_venda' && p.venda === v.id && p.status === 'pendente'); if (ja) return g ? decidirPedidoPrevia(ja, true, 'senha', g) : { pedido: ja, ja: true };
       dados = { item: nomeVendaTxt(v), pago, atendente: MAI(d.atendente || '') }; texto = 'Cancelar a venda: ' + oque; }   // 1.25: quem pediu (o nome da atendente)
-    else { if (!(v.v > 0.004)) return { erro: 'Esta compra não tem valor: não há nota para tirar.' }; const ja = S.pedidos.filter(p => p.tipo === 'nf' && p.venda === v.id && ['pendente', 'liberado', 'usado'].includes(p.status)).sort((a, b) => b.id - a.id)[0]; if (ja) return g && ja.status === 'pendente' ? decidirPedidoPrevia(ja, true, 'senha', g) : { pedido: ja, ja: true };
+    else { if (!(v.v > 0.004)) return { erro: 'Esta compra não tem valor: não há nota para tirar.' }; const ja = S.pedidos.filter(p => p.tipo === 'nf' && p.venda === v.id && ['pendente', 'liberado', 'usado'].includes(p.status)).sort((a, b) => b.id - a.id)[0]; if (ja) return ja.status === 'pendente' ? decidirPedidoPrevia(ja, true, g ? 'senha' : 'proprio', g || EU) : { pedido: ja, ja: true };   /* 1.55: a pedida antes sai agora */
       const dg = soDig(d.nf_doc || ''), doc = dg.length === 11 ? cpfFmt(dg) : dg.length === 14 ? dg.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') : '', nome = MAI(d.nf_nome || '') || c.resp || c.nome;
       dados = { nome, doc, email: String(d.nf_email || '').toLowerCase(), item: nomeVendaTxt(v), pago }; texto = `Nota fiscal: ${oque} · em nome de ${nome}${doc ? ' · ' + (dg.length === 14 ? 'CNPJ ' : 'CPF ') + doc : ''}`; motivo = ''; } }
   const p = { id: novoId(), tipo, status: 'pendente', crianca: c.id, venda, nome: c.nome, resp: c.resp || '', texto, motivo, valor, usado: 0, dados, por: EU.nomeCompleto || EU.nome, por_id: euId(), em: new Date(), dec: '', dec_em: null, como: '', feito_por: '', feito_em: null, numero: '', resultado: '', uni: minhaUni() || null };
   S.pedidos.unshift(p);
-  if (podeDecidirTipo(tipo)) return decidirPedidoPrevia(p, true, 'proprio', EU);
+  if (podeDecidirTipo(tipo) || tipo === 'nf') return decidirPedidoPrevia(p, true, 'proprio', EU);   // 1.55: a nota fiscal, toda a equipe emite
   return g ? decidirPedidoPrevia(p, true, 'senha', g) : { pedido: p };
 }
 function decidirPedidoPrevia(p, ok, como, quem, senha) { // quem = quem decide; com a senha, é o dono dela
@@ -6298,6 +6391,11 @@ function nfEmitidaPrevia(p, numero) {
   if (numero == null) { if (!gestor()) return { erro: 'Só o gestor desfaz a marcação da nota.' }; p.status = 'liberado'; p.numero = ''; p.feito_por = ''; p.feito_em = null; return {}; }
   if (p.status === 'usado' && !gestor()) return { erro: 'Esta nota já está marcada como emitida. Só o gestor corrige o número.' }; if (p.status !== 'liberado' && p.status !== 'usado') return { erro: 'Esta nota não está autorizada.' };
   p.status = 'usado'; p.numero = MAI(numero).slice(0, 40); p.feito_por = EU.nomeCompleto || EU.nome; p.feito_em = new Date(); return {};
+}
+function nfCancelarPrevia(p, motivo) {   // 1.55 (prévia): a nota cancelada (só o gestor) sai do faturamento em notas e fica no relatório
+  if (!gestor()) return { erro: 'Só o gestor cancela a nota.' }; if (!p || p.status !== 'usado') return { erro: 'Esta nota não está marcada como emitida.' };
+  p.status = 'cancelado'; p.dados = { ...(p.dados || {}), canc: { em: new Date(), por: EU.nomeCompleto || EU.nome, motivo } }; p.resultado = 'NOTA CANCELADA: ' + motivo + ' · POR ' + MAI(primeiro(EU.nome));
+  const c = crianca(p.crianca); registrar('alt', c ? c.nome : p.nome, `Nota fiscal nº ${p.numero} cancelada (${brl(p.valor)}) · Motivo: ${motivo} · por ${MAI(primeiro(EU.nome))}`); return {};
 }
 function usarAutPrevia(dsc, valor) { const p = dsc && dsc.autorizacao ? pedidoPorId(dsc.autorizacao) : null; if (!p || !(valor > 0)) return; p.usado = centavos((p.usado || 0) + valor); p.feito_em = new Date(); p.status = 'usado'; }   // vale uma vez
 // 1.33 (prévia): o item da alteração de valor, pela tabela (como no servidor), e o pedido usado na venda, com a linha do dia
@@ -7344,6 +7442,7 @@ const ACOES = {
   'salt-item': el => { if (!ALTS || ALTS.espera) return; const i = altSaidaItens().find(x => x.id === +el.dataset.k); if (!i) return; ALTS.k = i.id; ALTS.v = valTxt(i.v); ALTS.hh = String(Math.round(i.h)); ALTS.vp = ''; ALTS.aberto = true; altSaidaRedesenha(true); const v = $('#sa-alt-v'); if (v) { v.focus(); v.select(); } },   /* 1.39 */
   'salt-pedir': el => altSaidaPedir(el), 'salt-largar': () => altSaidaLargar(),
   nf: el => folhaNF(el.dataset.id), 'nf-notas': () => abrirNotasNF(), 'copia-baixar': el => baixarCopia(el.dataset.nome || '', el), 'copia-fazer': el => fazerCopia(el), 'nf-pedir': el => pedirNF(el), 'nf-senha': el => acaoNF('senha', el), 'nf-emitida': el => acaoNF('emitida', el), 'nf-voltar': el => acaoNF('voltar', el), 'nf-largar': el => acaoNF('largar', el), 'nf-copiar': el => acaoNF('copiar', el),
+  'venda-horas': el => folhaHoras(el.dataset.id), 'venda-horas-ok': el => salvarHoras(el), 'nf-cancelar': el => acaoNF('cancelar', el),   // 1.55
   'venda-cancelar': el => folhaCancelarVenda(el.dataset.id), 'venda-cancelar-ok': el => confirmarCancelarVenda(el),   // 1.21: quem estorna cancela uma venda, com o motivo
   'ver-como': el => { // (prévia) ver a tela como gestor, supervisor ou operador
     if (MODO === 'servidor') return; const u = S.equipe.find(x => x.papel === el.dataset.v); if (!u) return;

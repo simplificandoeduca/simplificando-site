@@ -265,6 +265,14 @@ table.pap tr.zero td { color: var(--ink-3); } table.pap td:first-child { padding
   .tabbar button.ativa { color: var(--brand); }
   .tabbar svg { width: 22px; height: 22px; }
 }
+.nf-tres { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+.nf-tres > div { border: 1px solid var(--borda, #ECE2D5); border-radius: 14px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.nf-tres span { font-size: 12px; font-weight: 800; opacity: .75; }
+.nf-tres b { font-size: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nf-tres small { font-size: 12px; opacity: .75; }
+.barra.nf-b { margin-top: 10px; height: 8px; }
+tr.nf-canc td:nth-child(2), tr.nf-canc td:last-child { text-decoration: line-through; opacity: .7; }
+@media (max-width: 640px) { .nf-tres { grid-template-columns: minmax(0, 1fr); } }
 </style>
 </head>
 <body>
@@ -288,9 +296,10 @@ const IC = {
   vendas: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V8H6a2 2 0 0 1 0-4h12v4"/><path d="M4 6v12a2 2 0 0 0 2 2h14v-4"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></svg>',
   canc: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg>',
   desc: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5L5 19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>',
+  nota: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 12h7M9 16h5"/></svg>',
   conta: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>'
 };
-const ABAS = [['geral', 'Visão geral', IC.geral], ['vendas', 'Vendas e pacotes', IC.vendas], ['canc', 'Cancelamentos', IC.canc], ['desc', 'Descontos', IC.desc], ['conta', 'Conta', IC.conta]];
+const ABAS = [['geral', 'Visão geral', IC.geral], ['vendas', 'Vendas e pacotes', IC.vendas], ['canc', 'Cancelamentos', IC.canc], ['desc', 'Descontos', IC.desc], ['notas', 'Notas fiscais', IC.nota], ['conta', 'Conta', IC.conta]];
 const GRUPOS = { recreacao: 'Recreação avulsa', pacotes: 'Pacotes de horas', festa: 'Festas', produtos: 'Produtos da loja', carrinhos: 'Carrinhos', outros: 'Outros' };
 const FORMAS = { pix: 'Pix', dinheiro: 'Dinheiro', credito: 'Crédito', debito: 'Débito' };
 let EU = null, UNIS = [], D = null, ABA = 'geral', UNI = 'todas', PER = { k: 'mes' }, PROD = '', CARREGANDO = 0;   /* PROD: '' · g:<tipo> · i:<tipo>|<NOME> (1.53) */
@@ -393,7 +402,7 @@ function unisComDados() {   /* as unidades ativas, e as outras (sem unidade, ina
 }
 function somaUni() {
   const L = (D ? D.porUnidade : []).filter(naUni), s = {}; for (const x of L) for (const [k, v] of Object.entries(x)) if (k !== 'u') s[k] = (s[k] || 0) + v;
-  for (const k of ['faturado', 'recebido', 'devolvido', 'aberto', 'cancV', 'descV', 'pcdV', 'pacV']) s[k] = Math.round((s[k] || 0) * 100) / 100;
+  for (const k of ['faturado', 'recebido', 'devolvido', 'aberto', 'cancV', 'descV', 'pcdV', 'pacV', 'nfV', 'nfCV']) s[k] = Math.round((s[k] || 0) * 100) / 100;
   return s;
 }
 
@@ -407,7 +416,7 @@ async function iniciar() {
     ${ABAS.map(([k, n, ic]) => `<button class="aba" data-aba="${k}">${ic}<span>${n}</span>${k === 'canc' ? '<span class="cont" data-cont-canc hidden></span>' : ''}</button>`).join('')}
     <div class="quem"><b>${esc(EU.nome)}</b>login: ${esc(EU.login)}</div></nav>
     <main class="principal" id="tela"></main></div>
-    <nav class="tabbar" aria-label="Menu">${ABAS.map(([k, n, ic]) => `<button data-aba="${k}">${ic}<span>${{ geral: 'Visão', vendas: 'Vendas', canc: 'Cancelados', desc: 'Descontos', conta: 'Conta' }[k] || n}</span></button>`).join('')}</nav>`;
+    <nav class="tabbar" aria-label="Menu">${ABAS.map(([k, n, ic]) => `<button data-aba="${k}">${ic}<span>${{ geral: 'Visão', vendas: 'Vendas', canc: 'Cancelados', desc: 'Descontos', notas: 'Notas', conta: 'Conta' }[k] || n}</span></button>`).join('')}</nav>`;
   $$('[data-aba]').forEach(b => b.onclick = () => { ABA = b.dataset.aba; desenhar(); window.scrollTo(0, 0); });
   desenhar(); carregar();
 }
@@ -442,7 +451,7 @@ function desenhar() {
   const [de, ate, nomeP] = periodo(), titulo = (ABAS.find(a => a[0] === ABA) || [])[1];
   const sub = `${nomeP} · ${de === ate ? dataBR(de) : dataBR(de) + ' a ' + dataBR(ate)}${UNI === 'todas' ? ' · todas as unidades' : ' · ' + nomeUni(UNI)} · ${nomeProd(PROD)}`;
   t.innerHTML = `<div class="topo"><div><h1>${titulo}</h1><div class="sub">${ABA === 'conta' ? 'Seu acesso e quem mais vê as Finanças' : esc(sub)}</div></div>${ABA !== 'conta' && D ? `<div class="topo-d"><button class="btn btn-ghost btn-pdf" id="pdf-dia" title="O resumo ${de === ate ? 'do dia' : 'do período'}, em PDF (todos os produtos)">${IC.pdf} Exportar PDF ${de === ate ? 'do dia' : 'do período'}</button><div class="sub">Atualizado às ${esc(String(D.gerado).slice(11, 16))} · <button class="link" style="display:inline;padding:0" id="recarregar">atualizar</button></div></div>` : ''}</div>
-    ${ABA === 'conta' ? '' : filtrosHtml()}<div id="corpo">${!D && ABA !== 'conta' ? '<div class="vazio">Carregando os números…</div>' : ABA === 'geral' ? telaGeral() : ABA === 'vendas' ? telaVendas() : ABA === 'canc' ? telaCanc() : ABA === 'desc' ? telaDesc() : telaConta()}</div>`;
+    ${ABA === 'conta' ? '' : filtrosHtml()}<div id="corpo">${!D && ABA !== 'conta' ? '<div class="vazio">Carregando os números…</div>' : ABA === 'geral' ? telaGeral() : ABA === 'vendas' ? telaVendas() : ABA === 'canc' ? telaCanc() : ABA === 'desc' ? telaDesc() : ABA === 'notas' ? telaNotas() : telaConta()}</div>`;
   ligarFiltros(); const rc = $('#recarregar'); if (rc) rc.onclick = () => carregar(); const pd = $('#pdf-dia'); if (pd) pd.onclick = () => baixarPdf();
   if (ABA === 'geral' && D) ligarGrafico();
   if (ABA === 'conta') ligarConta();
@@ -464,6 +473,10 @@ function telaGeral() {
     ${kpi('Pacotes vendidos', int(s.pacN), `${brl(s.pacV)} · <button class="link" style="display:inline;padding:0" data-ir="vendas">por pacote</button>`)}
     ${kpi('Festas', int(s.festas), `marcadas para o período${s.festaVisitas ? ` · ${int(s.festaVisitas)} crianças vieram em festas` : ''}`)}
   </div>`;
+  /* 1.55: as notas fiscais do período ao lado do caixa */
+  { const N = notasResumo(); h += `<div class="cartao nf-resumo"><div class="cab-cartao"><div><h2>Notas fiscais</h2><p class="expl">O faturamento em notas do período ao lado do caixa (o recebido, de todos os produtos).</p></div><button class="btn btn-ghost" data-ir="notas">Ver as notas</button></div>
+    <div class="nf-tres"><div><span>Em notas</span><b class="num">${brl(N.nf)}</b><small>${int(N.n)} ${N.n === 1 ? 'nota' : 'notas'}${N.cx > 0 ? ' · ' + pct(N.nf / N.cx * 100) + ' do caixa' : ''}</small></div><div><span>No caixa</span><b class="num">${brl(N.cx)}</b><small>recebido no período</small></div><div><span>${N.cx - N.nf >= 0 ? 'Sem nota' : 'Notas acima do caixa'}</span><b class="num">${brl(Math.abs(N.cx - N.nf))}</b><small>${N.cn ? int(N.cn) + (N.cn === 1 ? ' cancelada' : ' canceladas') + ' (não contam)' : 'nenhuma cancelada'}</small></div></div>
+    <div class="barra nf-b"><i style="width:${N.cx > 0 ? Math.min(100, N.nf / N.cx * 100) : 0}%"></i></div></div>`; }
   /* cada unidade lado a lado */
   if (UNI === 'todas' && us.length > 1) {
     const L = us.map(u => D.porUnidade.find(x => x.u === u) || { u }), linha = (rot, f, fmt) => `<tr><td>${rot}</td>${L.map(x => `<td class="v">${fmt(f(x) || 0)}</td>`).join('')}</tr>`;
@@ -471,7 +484,7 @@ function telaGeral() {
       <thead><tr><th></th>${L.map(x => `<th class="v"><span class="uni-dot" style="background:${corUni(x.u)}"></span>${esc(nomeUni(x.u))}</th>`).join('')}</tr></thead><tbody>
       ${linha('Faturado', x => x.faturado, brl)}${linha('Recebido', x => x.recebido, brl)}${linha('Em aberto', x => x.aberto, brl)}${linha('Vendas', x => x.vendas, int)}
       ${linha('Visitas (crianças)', x => x.visitas, int)}${linha('Crianças diferentes', x => x.criancas, int)}${hoje ? linha('No espaço agora', x => x.agora, int) : ''}
-      ${linha('Pacotes vendidos', x => x.pacN, int)}${linha('Cancelamentos', x => x.cancN, int)}${linha('Não cobrado (cancelado)', x => x.cancV, brl)}${linha('Descontos', x => x.descN, int)}${linha('Valor dos descontos', x => x.descV, brl)}${linha('Festas marcadas', x => x.festas, int)}
+      ${linha('Pacotes vendidos', x => x.pacN, int)}${linha('Em notas fiscais', x => x.nfV, brl)}${linha('Notas emitidas', x => x.nfN, int)}${linha('Cancelamentos', x => x.cancN, int)}${linha('Não cobrado (cancelado)', x => x.cancV, brl)}${linha('Descontos', x => x.descN, int)}${linha('Valor dos descontos', x => x.descV, brl)}${linha('Festas marcadas', x => x.festas, int)}
       </tbody></table></div></div>`;
   }
   h += `<div class="cartao"><div class="cab-cartao"><div><h2>Faturado por ${D.dias > 62 ? 'mês' : 'dia'}</h2><p class="expl">Passe o mouse (ou toque) numa barra para ver os valores.</p></div></div><div id="graf"></div></div>`;
@@ -497,7 +510,7 @@ function linhasProduto() {
 function produtoAProduto() {
   const L = linhasProduto(), T = L.reduce((t, x) => t + x.v, 0), gs = ORDEM_G.filter(g => L.some(x => x.g === g));
   if (!L.length) return `<div class="cartao"><h2>Produto a produto</h2><div class="vazio">Nada para mostrar com esse filtro.</div></div>`;
-  return `<div class="cartao"><div class="cab-cartao"><div><h2>Produto a produto</h2><p class="expl">Tudo o que foi vendido no período${UNI === 'todas' ? '' : ' em ' + esc(nomeUni(UNI))}, por tipo. Os que não venderam aparecem em zero. Toque num produto (ou no tipo) para ver só ele nos números de cima.</p></div><button class="bt" data-csv="produtos">Baixar planilha</button></div>
+  return `<div class="cartao"><div class="cab-cartao"><div><h2>Produto a produto</h2><p class="expl">Tudo o que foi vendido no período${UNI === 'todas' ? '' : ' em ' + esc(nomeUni(UNI))}, por tipo. Os que não venderam aparecem em zero. Toque num produto (ou no tipo) para ver só ele nos números de cima.</p></div><button class="btn btn-ghost" data-csv="produtos">Baixar planilha</button></div>
     <div class="rolar"><table class="pap"><thead><tr><th>Produto</th><th class="v">Qtd</th><th class="v">Valor</th><th class="v">% do total</th></tr></thead><tbody>
     ${gs.map(g => { const G = L.filter(x => x.g === g), gv = G.reduce((t, x) => t + x.v, 0), gq = G.reduce((t, x) => t + x.q, 0);
       return `<tr class="tipo"><td><button class="link" data-filtra="g:${g}">${esc(GRUPOS[g] || g)}</button></td><td class="v">${int(gq)}</td><td class="v">${brl(gv)}</td><td class="v">${gv > 0.004 && T ? pct(gv / T * 100) : '–'}</td></tr>`
@@ -569,6 +582,32 @@ function telaCanc() {
     </tbody></table></div>` : ''}</div>`;
 }
 
+/* ---------- 1.55: Notas fiscais (o faturamento em notas x o caixa) ---------- */
+function notasResumo() { const D2 = ((D.notas || {}).dia || []).filter(naUni), L = ((D.notas || {}).lista || []).filter(x => UNI === 'todas' || +x.uni === +UNI);
+  const nf = Math.round(D2.reduce((t, x) => t + x.nf, 0) * 100) / 100, cx = Math.round(D2.reduce((t, x) => t + x.cx, 0) * 100) / 100, C = L.filter(x => x.st === 'cancelada');
+  return { nf, cx, n: D2.reduce((t, x) => t + x.n, 0), cn: C.length, cv: Math.round(C.reduce((t, x) => t + x.valor, 0) * 100) / 100, L, D2 }; }
+function telaNotas() {
+  const N = notasResumo(), us = unisComDados(), dif = Math.round((N.cx - N.nf) * 100) / 100, M = new Map();
+  for (const x of N.D2) { const o = M.get(x.d) || { d: x.d, nf: 0, n: 0, cx: 0 }; o.nf += x.nf; o.n += x.n; o.cx += x.cx; M.set(x.d, o); }
+  const dias = [...M.values()].filter(x => x.n || Math.abs(x.cx) > 0.004).sort((a, b) => b.d.localeCompare(a.d)), vc = N.L.filter(x => x.vc);
+  let h = `<div class="grade">${kpi('Em notas fiscais', brl(N.nf), `${int(N.n)} ${N.n === 1 ? 'nota emitida' : 'notas emitidas'}${N.cx > 0 ? ' · ' + pct(N.nf / N.cx * 100) + ' do caixa' : ''}`)}
+    ${kpi('No caixa', brl(N.cx), 'o recebido no período (já sem o devolvido)')}
+    ${kpi(dif >= 0 ? 'Sem nota' : 'Notas acima do caixa', brl(Math.abs(dif)), dif >= 0 ? 'o que entrou no caixa e não tem nota' : 'notas de vendas pagas em outro dia, por exemplo')}
+    ${kpi('Canceladas', int(N.cn), N.cn ? `${brl(N.cv)} · não contam no faturamento em notas` : 'nenhuma nota cancelada', N.cn ? 'alerta' : '')}</div>`;
+  if (vc.length) h += `<div class="aviso-prod" style="margin-top:12px"><b>${vc.length === 1 ? 'Uma nota continua valendo' : vc.length + ' notas continuam valendo'} com a venda cancelada.</b> Cancele a nota no Play Space Notas e marque como cancelada no Play Space (só o gestor).</div>`;
+  if (UNI === 'todas' && us.length > 1) { const L = us.map(u => D.porUnidade.find(x => x.u === u) || { u }), cxU = u => N.D2.filter(x => x.u === u).reduce((t, x) => t + x.cx, 0);
+    h += `<div class="cartao"><h2>Cada unidade</h2><p class="expl">A unidade é a do aparelho em que a nota foi aberta.</p><div class="rolar"><table><thead><tr><th>Unidade</th><th class="v">Notas</th><th class="v">Em notas</th><th class="v">No caixa</th><th class="v">Sem nota</th><th class="v">% com nota</th></tr></thead><tbody>
+      ${L.map(x => { const c = cxU(x.u), v = x.nfV || 0; return `<tr><td><span class="uni-dot" style="background:${corUni(x.u)}"></span>${esc(nomeUni(x.u))}</td><td class="v">${int(x.nfN || 0)}</td><td class="v">${brl(v)}</td><td class="v">${brl(c)}</td><td class="v">${brl(c - v)}</td><td class="v">${c > 0 ? pct(v / c * 100) : '–'}</td></tr>`; }).join('')}</tbody></table></div></div>`; }
+  if (D.dias > 1) h += `<div class="cartao"><h2>Dia a dia</h2><p class="expl">Em notas: as notas emitidas no dia. No caixa: o que entrou no dia.</p>${dias.length ? `<div class="rolar"><table><thead><tr><th>Dia</th><th class="v">Notas</th><th class="v">Em notas</th><th class="v">No caixa</th><th class="v">Sem nota</th><th class="v">% com nota</th></tr></thead><tbody>
+      ${dias.map(x => `<tr><td class="num">${dataBR(x.d)}</td><td class="v">${int(x.n)}</td><td class="v">${brl(x.nf)}</td><td class="v">${brl(x.cx)}</td><td class="v">${brl(x.cx - x.nf)}</td><td class="v">${x.cx > 0 ? pct(x.nf / x.cx * 100) : '–'}</td></tr>`).join('')}
+      </tbody><tfoot><tr><td>Total</td><td class="v">${int(N.n)}</td><td class="v">${brl(N.nf)}</td><td class="v">${brl(N.cx)}</td><td class="v">${brl(dif)}</td><td class="v">${N.cx > 0 ? pct(N.nf / N.cx * 100) : '–'}</td></tr></tfoot></table></div>` : '<div class="vazio">Nada no período.</div>'}</div>`;
+  h += `<div class="cartao"><div class="cab-cartao"><div><h2>Cada nota</h2><p class="expl">${N.L.length ? `${int(N.L.length)} na lista, da mais nova para a mais antiga. As canceladas aparecem riscadas e não contam.` : ''}</p></div>${N.L.length ? '<button class="btn btn-ghost" data-csv="notas">Baixar planilha</button>' : ''}</div>
+    ${N.L.length ? `<div class="rolar"><table><thead><tr><th>Quando</th><th>Nº</th><th>Em nome de</th><th>Compra</th><th>Emitida por</th><th class="v">Valor</th></tr></thead><tbody>
+    ${N.L.map(x => `<tr class="${x.st === 'cancelada' ? 'nf-canc' : ''}"><td class="num q">${quandoBR(x.quando)}<small><span class="uni-dot" style="background:${corUni(x.uni)}"></span>${esc(nomeUni(x.uni))}</small></td><td class="num">${esc(x.numero)}</td><td>${esc(x.nome || x.cliente)}<small>${esc(x.doc || '')}${x.nome && x.cliente && x.nome !== x.cliente ? (x.doc ? ' · ' : '') + esc(x.cliente) : ''}</small></td><td>${esc(x.item)}${x.st === 'cancelada' ? ` <span class="selo aviso">cancelada</span><small>${esc(x.canc)}${x.canc_por ? ' · por ' + esc(x.canc_por) : ''}</small>` : x.vc ? ' <span class="selo aviso">venda cancelada: cancele a nota</span>' : ''}</td><td>${esc(x.por)}</td><td class="v">${brl(x.valor)}</td></tr>`).join('')}
+    </tbody></table></div>` : '<div class="vazio">Nenhuma nota fiscal emitida no período.</div>'}</div>`;
+  return h;
+}
+
 /* ---------- Descontos ---------- */
 function telaDesc() {
   const L = D.descontos.lista.filter(naUni), s = somaUni(), Q = {};   /* 1.49: o resumo vem do servidor, com todos os registros */
@@ -585,6 +624,13 @@ function telaDesc() {
 
 /* a planilha (CSV, abre no Excel) dos cancelamentos ou dos descontos do filtro de agora */
 function baixarCsv(qual) {
+  if (qual === 'notas') {   /* 1.55 */
+    const q = v => { let t = String(v == null ? '' : v); if (/^[=+@\t\r]|^-(?!\d)/.test(t)) t = "'" + t; return '"' + t.replace(/"/g, '""') + '"'; }, n = v => String(Math.round((+v || 0) * 100) / 100).replace('.', ',');
+    const L = notasResumo().L, [de, ate] = periodo(), csv = '\uFEFF' + [['Quando', 'Unidade', 'Número', 'Em nome de', 'CPF ou CNPJ', 'Cliente', 'Compra', 'Emitida por', 'Situação', 'Motivo do cancelamento', 'Valor'],
+      ...L.map(x => [x.quando, nomeUni(x.uni), x.numero, x.nome, x.doc, x.cliente, x.item, x.por, x.st === 'cancelada' ? 'cancelada' : x.vc ? 'emitida (a venda foi cancelada)' : 'emitida', x.canc, n(x.valor)])].map(l => l.map(q).join(';')).join('\r\n');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = `play-space-notas-fiscais-${de}-a-${ate}.csv`;
+    document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 800); return;
+  }
   if (qual === 'produtos') {   /* 1.53 */
     const q = v => { let t = String(v == null ? '' : v); if (/^[=+@\t\r]|^-(?!\d)/.test(t)) t = "'" + t; return '"' + t.replace(/"/g, '""') + '"'; }, n = v => String(Math.round((+v || 0) * 100) / 100).replace('.', ',');
     const L = linhasProduto(), [de, ate] = periodo(), csv = '\uFEFF' + [['Tipo', 'Produto', 'Qtd', 'Valor'], ...L.map(x => [GRUPOS[x.g] || x.g, x.n, x.q, n(x.v)])].map(l => l.map(q).join(';')).join('\r\n');

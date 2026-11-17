@@ -22,7 +22,7 @@ function finResumo(array $in): array {
   };
   $passa = function (string $g, string $n) use ($prod): bool { if ($prod === '') return true; if (strpos($prod, 'g:') === 0) return substr($prod, 2) === $g; return substr($prod, 2) === $g . '|' . $n; };
   $uni = []; $U = function (int $u) use (&$uni) { if (!isset($uni[$u])) $uni[$u] = ['faturado' => 0.0, 'vendas' => 0, 'recebido' => 0.0, 'devolvido' => 0.0, 'aberto' => 0.0, 'visitas' => 0, 'criancas' => 0, 'festaVisitas' => 0, 'agora' => 0,
-    'cancN' => 0, 'cancV' => 0.0, 'desfN' => 0, 'foraN' => 0, 'descN' => 0, 'descV' => 0.0, 'descPct' => 0.0, 'pcdN' => 0, 'pcdV' => 0.0, 'voucherN' => 0, 'pacN' => 0, 'pacV' => 0.0, 'festas' => 0]; };
+    'cancN' => 0, 'cancV' => 0.0, 'desfN' => 0, 'foraN' => 0, 'nfN' => 0, 'nfV' => 0.0, 'nfCN' => 0, 'nfCV' => 0.0, 'descN' => 0, 'descV' => 0.0, 'descPct' => 0.0, 'pcdN' => 0, 'pcdV' => 0.0, 'voucherN' => 0, 'pacN' => 0, 'pacV' => 0.0, 'festas' => 0]; };
   $nomeUsu = []; foreach ($db->query('SELECT id, nome FROM usuarios')->fetchAll() as $x) $nomeUsu[(int)$x['id']] = (string)$x['nome'];
   // vendas: o faturado, os grupos (recreação, pacotes, festa, produtos, carrinhos), os pacotes por nome, por dia e por atendente
   $grupos = []; $pacotes = []; $porDia = []; $atend = [];
@@ -141,11 +141,25 @@ function finResumo(array $in): array {
       'motivo' => (string)$l['desc_motivo'], 'liberou' => $nomeUsu[(int)$l['desc_por']] ?? '', 'atendente' => $nomeUsu[(int)$l['por']] ?? '']; }
   $q = $db->prepare('SELECT COALESCE(unidade_id, 0) u, COUNT(*) n, COALESCE(SUM(cheio - valor - desc_valor), 0) v FROM vendas WHERE quando >= ? AND quando < ? AND pcd = 1 AND cheio IS NOT NULL AND cheio - valor - desc_valor > 0.004 GROUP BY u');
   $q->execute([$ini, $fim]); foreach ($q->fetchAll() as $l) { $u = (int)$l['u']; $U($u); $uni[$u]['pcdN'] = (int)$l['n']; $uni[$u]['pcdV'] = round((float)$l['v'], 2); }
+  // 1.55: as notas fiscais do período (pelo dia em que foram emitidas; as canceladas à parte) e o caixa de cada dia, para comparar:
+  // o caixa é o recebido (os pagamentos menos o devolvido), sempre de todos os produtos
+  $nfL = []; $nfDia = [];
+  $q = $db->prepare("SELECT * FROM pedidos WHERE tipo = 'nf' AND numero != '' AND feito_em >= ? AND feito_em < ? AND status IN ('usado', 'cancelado') ORDER BY feito_em DESC, id DESC"); $q->execute([$ini, $fim]);
+  foreach ($q->fetchAll() as $p) { $n = notaPublica($p); $u = $n['uni']; $U($u); $d = substr($n['quando'], 0, 10); $k = $u . '|' . $d; if (!isset($nfDia[$k])) $nfDia[$k] = ['u' => $u, 'd' => $d, 'nf' => 0.0, 'n' => 0, 'cx' => 0.0];
+    if ($n['st'] === 'emitida') { $uni[$u]['nfN']++; $uni[$u]['nfV'] = round($uni[$u]['nfV'] + $n['valor'], 2); $nfDia[$k]['n']++; $nfDia[$k]['nf'] = round($nfDia[$k]['nf'] + $n['valor'], 2); }
+    else { $uni[$u]['nfCN']++; $uni[$u]['nfCV'] = round($uni[$u]['nfCV'] + $n['valor'], 2); }
+    if (count($nfL) < 3000) $nfL[] = $n; }
+  $cx = function (string $sql) use ($db, $ini, $fim, &$nfDia, $U) { $q = $db->prepare($sql); $q->execute([$ini, $fim]); return $q->fetchAll(); };
+  $somaCx = function (array $L, int $sinal) use (&$nfDia, $U) { foreach ($L as $l) { $u = (int)$l['u']; $U($u); $k = $u . '|' . $l['d']; if (!isset($nfDia[$k])) $nfDia[$k] = ['u' => $u, 'd' => (string)$l['d'], 'nf' => 0.0, 'n' => 0, 'cx' => 0.0]; $nfDia[$k]['cx'] = round($nfDia[$k]['cx'] + $sinal * (float)$l['t'], 2); } };
+  $somaCx($cx('SELECT COALESCE(p.unidade_id, v.unidade_id, 0) u, substr(p.quando, 1, 10) d, COALESCE(SUM(p.valor), 0) t FROM pagamentos p JOIN vendas v ON v.id = p.venda_id WHERE p.quando >= ? AND p.quando < ? GROUP BY u, d'), 1);
+  $somaCx($cx('SELECT COALESCE(unidade_id, 0) u, substr(quando, 1, 10) d, COALESCE(SUM(valor), 0) t FROM estornos WHERE quando >= ? AND quando < ? GROUP BY u, d'), -1);
+  $somaCx($cx('SELECT COALESCE(unidade_id, 0) u, substr(pago_em, 1, 10) d, COALESCE(SUM(valor), 0) t FROM estornos WHERE pago_em >= ? AND pago_em < ? GROUP BY u, d'), 1);
+  ksort($nfDia);
   ksort($uni); $out = []; foreach ($uni as $u => $x) $out[] = ['u' => $u] + $x;
   return ['de' => $de, 'ate' => $ate, 'dias' => $dias, 'gerado' => agora(), 'hoje' => date('Y-m-d'), 'unidades' => unidades(), 'porUnidade' => $out, 'criancasTotal' => $criancasTotal,
     'grupos' => array_values($grupos), 'pacotes' => array_values($pacotes), 'porDia' => $porDia, 'atendentes' => $atend, 'formas' => array_values($formas),
     'prod' => $prod, 'itens' => array_values($porItem), 'catalogo' => array_values($catalogo),
-    'cancelamentos' => ['total' => $cancTotal, 'lista' => $canc, 'atendentes' => array_values($cancAt), 'tipos' => array_values($cancTipo)], 'descontos' => ['total' => $descTotal, 'lista' => $desc, 'quem' => array_values($descQuem)]];
+    'cancelamentos' => ['total' => $cancTotal, 'lista' => $canc, 'atendentes' => array_values($cancAt), 'tipos' => array_values($cancTipo)], 'descontos' => ['total' => $descTotal, 'lista' => $desc, 'quem' => array_values($descQuem)], 'notas' => ['lista' => $nfL, 'dia' => array_values($nfDia)]];
 }
 
 /* ---------- 1.54: o PDF (A4 em pé, Helvetica), feito aqui mesmo, sem biblioteca ---------- */
@@ -219,7 +233,7 @@ function finDataBR($d) { return substr((string)$d, 8, 2) . '/' . substr((string)
 // os números do resumo para uma unidade (ou todas): os totais, as formas, os tipos, os itens, os cancelamentos e os descontos
 function finResumoUni(array $R, $uni) {
   $na = function ($x) use ($uni) { return $uni === 'todas' || (int)($x['u'] ?? 0) === (int)$uni; };
-  $t = ['faturado' => 0.0, 'recebido' => 0.0, 'devolvido' => 0.0, 'aberto' => 0.0, 'vendas' => 0, 'visitas' => 0, 'criancas' => 0, 'pacN' => 0, 'pacV' => 0.0, 'festas' => 0, 'cancN' => 0, 'cancV' => 0.0, 'descN' => 0, 'descV' => 0.0, 'agora' => 0];
+  $t = ['faturado' => 0.0, 'recebido' => 0.0, 'devolvido' => 0.0, 'aberto' => 0.0, 'vendas' => 0, 'visitas' => 0, 'criancas' => 0, 'pacN' => 0, 'pacV' => 0.0, 'festas' => 0, 'cancN' => 0, 'cancV' => 0.0, 'descN' => 0, 'descV' => 0.0, 'agora' => 0, 'nfN' => 0, 'nfV' => 0.0, 'nfCN' => 0, 'nfCV' => 0.0];
   $U = array_values(array_filter((array)$R['porUnidade'], $na));
   foreach ($U as $x) foreach ($t as $k => $v) $t[$k] = is_float($v) ? round($v + (float)($x[$k] ?? 0), 2) : $v + (int)($x[$k] ?? 0);
   if ($uni === 'todas' && isset($R['criancasTotal'])) $t['criancas'] = (int)$R['criancasTotal'];
@@ -229,7 +243,8 @@ function finResumoUni(array $R, $uni) {
   $ordem = array_flip(array_keys(FIN_GRUPOS)); usort($I, function ($a, $b) use ($ordem) { return (($ordem[$a['g']] ?? 9) <=> ($ordem[$b['g']] ?? 9)) ?: ($b['v'] <=> $a['v']) ?: strcmp($a['n'], $b['n']); });
   $C = array_values(array_filter((array)($R['cancelamentos']['lista'] ?? []), function ($x) use ($na) { return $na($x) && !empty($x['conta']); }));
   $D = array_values(array_filter((array)($R['descontos']['lista'] ?? []), $na));
-  return ['t' => $t, 'U' => $U, 'F' => $F, 'G' => $G, 'I' => array_values($I), 'C' => $C, 'D' => $D];
+  $N = array_values(array_filter((array)($R['notas']['lista'] ?? []), function ($x) use ($uni) { return $uni === 'todas' || (int)($x['uni'] ?? 0) === (int)$uni; }));   // 1.55
+  return ['t' => $t, 'U' => $U, 'F' => $F, 'G' => $G, 'I' => array_values($I), 'C' => $C, 'D' => $D, 'N' => $N];
 }
 function finNomeUni($id, array $R) { foreach ((array)$R['unidades'] as $u) if ((int)$u['id'] === (int)$id) return (string)$u['nome']; return (int)$id ? 'Unidade ' . (int)$id : 'Sem unidade'; }
 function finPdf(array $R, $uni = 'todas') {
@@ -281,6 +296,12 @@ function finPdf(array $R, $uni = 'todas') {
   foreach ($Z['F'] as $f => $v) if (!isset(FIN_FORMAS[$f]) && abs($v) > 0.004) $L[] = [ucfirst($f), finBrl($v), $rec > 0.004 ? number_format($v / $rec * 100, 1, ',', '') . '%' : ''];
   if (!$L) $L[] = ['Nenhum pagamento', '', ''];
   $tabela([['Forma', $W - 220, 'E'], ['Valor', 130, 'D'], ['%', 90, 'D']], $L, ['Total recebido', finBrl($rec), '']);
+  // 1.55: as notas fiscais: o faturamento em notas ao lado do caixa, e cada nota
+  $secao('Notas fiscais'); $sem = round($rec - $t['nfV'], 2);
+  $tabela([['', $W - 220, 'E'], ['Valor', 130, 'D'], ['%', 90, 'D']], [['Em notas fiscais (' . finInt($t['nfN']) . ($t['nfN'] === 1 ? ' nota' : ' notas') . ')', finBrl($t['nfV']), $rec > 0.004 ? number_format($t['nfV'] / $rec * 100, 1, ',', '') . '% do caixa' : ''],
+    ['No caixa (recebido)', finBrl($rec), ''], [$sem >= 0 ? 'Sem nota' : 'Notas acima do caixa', finBrl(abs($sem)), ''], ['Canceladas (' . finInt($t['nfCN']) . ')', finBrl($t['nfCV']), 'não contam']]);
+  if ($Z['N']) { $L = []; foreach ($Z['N'] as $x) $L[] = [($um ? '' : substr((string)$x['quando'], 8, 2) . '/' . substr((string)$x['quando'], 5, 2) . ' ') . substr((string)$x['quando'], 11, 5), (string)$x['numero'], (string)($x['nome'] !== '' ? $x['nome'] : $x['cliente']), (string)$x['item'], finBrl($x['valor']), $x['st'] === 'cancelada' ? 'CANCELADA' : ($x['vc'] ? 'venda cancelada' : (string)$x['por'])];
+    $tabela([['Hora', $um ? 42 : 70, 'E'], ['Nº', 56, 'E'], ['Em nome de', 140, 'E'], ['Compra', $W - ($um ? 42 : 70) - 56 - 140 - 78 - 96, 'E'], ['Valor', 78, 'D'], ['Emitida por', 96, 'E']], $L); }
   // o que foi vendido, por tipo
   $secao('O que foi vendido'); $L = []; $fat = $t['faturado'];
   foreach (FIN_GRUPOS as $g => $nm) if (isset($Z['G'][$g]) && ($Z['G'][$g]['n'] || abs($Z['G'][$g]['v']) > 0.004)) $L[] = [$nm, finInt($Z['G'][$g]['n']), finBrl($Z['G'][$g]['v']), $fat > 0.004 ? number_format($Z['G'][$g]['v'] / $fat * 100, 1, ',', '') . '%' : ''];
@@ -335,10 +356,10 @@ function finEmailHtml(array $R) {
   return '<!doctype html><html><body style="margin:0;background:#FAF3E9;font-family:Arial,Helvetica,sans-serif"><div style="max-width:520px;margin:0 auto;padding:24px 18px">'
     . '<div style="font-size:12px;font-weight:700;color:#E25B3F;letter-spacing:.05em">PLAY SPACE · FINANÇAS</div><h1 style="margin:6px 0 2px;font-size:24px;color:#3B3B3B">Resumo do dia</h1><div style="color:#6b655e;font-size:14px">' . $e(ucfirst(finDiaLongo($R['de']))) . '</div>'
     . '<table style="width:100%;margin-top:16px;border-collapse:collapse;font-size:15px">' . $l('Faturado', finBrl($t['faturado'])) . $l('Recebido', finBrl($t['recebido'])) . $l('Em aberto', finBrl($t['aberto'])) . $l('Crianças (visitas)', finInt($t['visitas']))
-    . $l('Pacotes vendidos', finInt($t['pacN']) . ' · ' . finBrl($t['pacV'])) . $l('Descontos', finInt($t['descN']) . ' · ' . finBrl($t['descV'])) . $l('Cancelamentos', finInt($t['cancN'])) . '</table>'
+    . $l('Pacotes vendidos', finInt($t['pacN']) . ' · ' . finBrl($t['pacV'])) . $l('Descontos', finInt($t['descN']) . ' · ' . finBrl($t['descV'])) . $l('Cancelamentos', finInt($t['cancN'])) . $l('Notas fiscais', finInt($t['nfN']) . ' · ' . finBrl($t['nfV']) . ($t['recebido'] - $t['nfV'] > 0.004 ? ' · sem nota ' . finBrl($t['recebido'] - $t['nfV']) : '')) . '</table>'
     . ($f ? '<h2 style="font-size:15px;color:#3B3B3B;margin:18px 0 0">Formas de pagamento</h2><table style="width:100%;border-collapse:collapse;font-size:14px">' . $f . '</table>' : '')
     . ($u ? '<h2 style="font-size:15px;color:#3B3B3B;margin:18px 0 0">Cada unidade</h2><table style="width:100%;border-collapse:collapse;font-size:14px">' . $u . '</table>' : '')
-    . '<p style="color:#6b655e;font-size:13px;margin-top:18px">O resumo completo (produto a produto, descontos e cancelamentos) vai no PDF anexado.</p></div></body></html>';
+    . '<p style="color:#6b655e;font-size:13px;margin-top:18px">O resumo completo (notas fiscais, produto a produto, descontos e cancelamentos) vai no PDF anexado.</p></div></body></html>';
 }
 // manda o resumo de um dia para a lista; devolve { ok, para, erro }
 function finEmailMandar($dia, array $para) {

@@ -658,7 +658,7 @@ function pedidoCriar(array $u, array $in): array {
     } else { // a nota fiscal de uma compra
       if ($valor <= 0.004) falha('Esta compra não tem valor: não há nota para tirar.');
       $q = $db->prepare("SELECT * FROM pedidos WHERE tipo = 'nf' AND venda_id = ? AND status IN ('pendente', 'liberado', 'usado') ORDER BY id DESC LIMIT 1"); $q->execute([$vendaId]); $ja = $q->fetch();
-      if ($ja) return ['pedido' => pedidoPublico($ja), 'ja' => true];   // uma nota por compra
+      if ($ja) return $ja['status'] === 'pendente' ? pedidoDecidir((int)$ja['id'], $u, true, 'proprio', true) : ['pedido' => pedidoPublico($ja), 'ja' => true];   // uma nota por compra (1.55: a pedida antes, que esperava o gestor, sai agora)
       $nfNome = mb_substr(maiusculo((string)($in['nf_nome'] ?? '')), 0, 120); if ($nfNome === '') $nfNome = (string)($c['resp'] ?: $c['nome']);
       $bruto = array_key_exists('nf_doc', $in) ? (string)$in['nf_doc'] : (($c['doc_tipo'] ?? 'cpf') === 'cpf' ? (string)$c['cpf'] : ''); $dig = (string)preg_replace('/\D/', '', $bruto);
       if ($dig !== '' && strlen($dig) !== 11 && strlen($dig) !== 14) falha('Confira o CPF ou o CNPJ da nota: o CPF tem 11 números e o CNPJ, 14.');
@@ -672,13 +672,13 @@ function pedidoCriar(array $u, array $in): array {
   $db->prepare('INSERT INTO pedidos (tipo, status, crianca_id, venda_id, nome, resp, texto, motivo, valor, dados, pedido_por, pedido_nome, pedido_em, unidade_id) VALUES (?, \'pendente\', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
     ->execute([$tipo, (int)$c['id'], $vendaId, (string)$c['nome'], (string)$c['resp'], $texto, $motivo, $valor, json_encode($dados, JSON_UNESCAPED_UNICODE), (int)$u['id'], (string)$u['nome'], $agora, unidadeDoPedido()]);
   $id = (int)$db->lastInsertId();
-  if (podeDecidir($u, $tipo)) return pedidoDecidir($id, $u, true, 'proprio');   // quem pede já autoriza (o gestor): vale na hora
+  if (podeDecidir($u, $tipo) || $tipo === 'nf') return pedidoDecidir($id, $u, true, 'proprio', $tipo === 'nf');   // quem pede já autoriza (o gestor): vale na hora. 1.55: a nota fiscal, toda a equipe emite
   return ['pedido' => pedidoPublico(pedido($id))];
 }
 // liberar ou negar. $g = quem decide (quem está logado, ou o dono da senha digitada); $como = 'toque' | 'senha' | 'proprio'
-function pedidoDecidir(int $id, array $g, bool $ok, string $como = 'toque'): array {
+function pedidoDecidir(int $id, array $g, bool $ok, string $como = 'toque', bool $livre = false): array {   // 1.55: $livre = a nota fiscal (toda a equipe emite)
   $db = db(); $p = pedido($id); if (!$p) falha('Pedido não encontrado.', 404);
-  $tipo = (string)$p['tipo']; if (!podeDecidir($g, $tipo)) falha('Só ' . quemDecide($tipo) . ' responde a este pedido.', 403);
+  $tipo = (string)$p['tipo']; if (!$livre && !podeDecidir($g, $tipo)) falha('Só ' . quemDecide($tipo) . ' responde a este pedido.', 403);
   if ($p['status'] !== 'pendente') falha($p['status'] === 'cancelado' ? 'Este pedido não vale mais: foi cancelado.' : 'Este pedido já foi respondido' . ($p['decidido_nome'] !== '' ? ' por ' . primeiroNome((string)$p['decidido_nome']) : '') . '.', 409);
   if ($ok && in_array($tipo, ['desconto', 'valor'], true) && time() - strtotime((string)$p['pedido_em']) > 43200) { $db->prepare("UPDATE pedidos SET status = 'cancelado', resultado = 'PEDIDO DE MAIS DE 12 H' WHERE id = ? AND status = 'pendente'")->execute([$id]); falha('Este pedido é de mais de 12 horas atrás e não vale mais. Peça de novo.', 409); }   // 1.45 (auditoria)
   $agora = agora(); $extra = []; $status = $ok ? 'liberado' : 'negado'; $resultado = '';
@@ -695,6 +695,44 @@ function pedidoDecidir(int $id, array $g, bool $ok, string $como = 'toque'): arr
   if (!$q->rowCount()) falha('Este pedido já foi respondido em outro aparelho.', 409);
   if ($status === 'usado' && $tipo === 'valor') $db->prepare('UPDATE pedidos SET usado = valor WHERE id = ?')->execute([$id]);   // 1.39
   return ['pedido' => pedidoPublico(pedido($id))] + $extra;
+}
+// 1.55: o gestor corrige as horas de uma compra de horas (o pacote, ou as horas que vieram do sistema anterior): só as horas mudam (o valor
+// fica), o saldo acompanha a diferença e não tira o que já foi usado. Fica o registro, com o motivo e quem mudou
+function alterarHorasVenda(int $vendaId, int $min1, string $motivo, array $u): array {
+  $db = db(); $q = $db->prepare('SELECT * FROM vendas WHERE id = ?'); $q->execute([$vendaId]); $v = $q->fetch(); $q->closeCursor();
+  if (!$v) falha('Esta compra não existe mais: foi desfeita ou cancelada.', 404);
+  $c = crianca((int)$v['crianca_id']); if (!$c) falha('Cliente não encontrado.', 404);
+  $min0 = (int)$v['minutos']; $imp = (string)($v['servico'] ?? '') === SERV_IMPORTADO;
+  if (!empty($v['auto']) || (string)($v['alug'] ?? '') !== '' || (int)($v['produto_id'] ?? 0) > 0 || ($min0 <= 0 && !$imp)) falha('Esta compra não é de horas: não dá para alterar as horas dela.');
+  if ($min1 < 0 || $min1 > 999 * 60) falha('Escreva as horas certas do pacote (de 0 a 999 horas).');
+  if ($min1 === $min0) falha('As horas são as mesmas de agora (' . hm($min0) . ').');
+  if (mb_strlen($motivo) < 5) falha('Escreva o motivo da correção (por que as horas mudam).');
+  $dif = $min1 - $min0; $agora = agora();
+  $db->beginTransaction();
+  try {
+    $c = crianca((int)$c['id']);
+    if ($dif < 0 && restante($c) < -$dif) { $db->rollBack(); $r = restante($c); falha('Essas horas já foram usadas: ' . ($r > 0 ? 'dá para tirar no máximo ' . hm($r) . ' (o saldo de agora).' : 'o saldo de agora é zero.'), 409); }
+    $up = $db->prepare('UPDATE vendas SET minutos = ?, horas = ? WHERE id = ? AND minutos = ?'); $up->execute([$min1, round($min1 / 60, 2), $vendaId, $min0]);
+    if (!$up->rowCount()) { $db->rollBack(); falha('Esta compra mudou agora mesmo em outro aparelho. Abra de novo.', 409); }
+    $db->prepare('UPDATE criancas SET pacote_min = MAX(0, pacote_min + ?) WHERE id = ?')->execute([$dif, (int)$c['id']]);
+    $reg = registrar('alt', (int)$c['id'], $c['nome'], 'Horas do pacote corrigidas pelo gestor · ' . nomeDaVenda($v) . ' de ' . date('d/m', strtotime((string)$v['quando'])) . ': ' . hm($min0) . ' → ' . hm($min1)
+      . ' (' . ($dif > 0 ? '+' : '−') . hm(abs($dif)) . ' no saldo) · Motivo: ' . $motivo . ' · por ' . maiusculo(primeiroNome((string)$u['nome'])));
+    $db->commit();
+  } catch (Throwable $e) { if ($db->inTransaction()) $db->rollBack(); throw $e; }
+  $c = crianca((int)$c['id']);
+  if ($c['entrou']) acertarCobrancas($c);   // está no espaço: a conta da visita acompanha o saldo novo
+  elseif ($dif < 0 && restante($c) < periodo() && regra()['bloqueioAuto'] === 'sim' && (!isset($c['liberado']) || (int)$c['liberado'])) bloquearAcesso($c, false);
+  elseif ($dif > 0 && restante($c) >= periodo() && isset($c['liberado']) && !(int)$c['liberado'] && regra()['bloqueioAuto'] === 'sim') bloquearAcesso($c, true);
+  return ['venda' => $vendaId, 'de' => $min0, 'para' => $min1, 'saldo' => restante($c), 'registro' => $reg];
+}
+// 1.55: uma nota fiscal emitida (ou cancelada depois), como o painel do gestor e as Finanças mostram. vc: a venda foi cancelada e a nota
+// continua valendo (o gestor cancela a nota também)
+function notaPublica(array $p): array {
+  $d = json_decode((string)$p['dados'], true); $d = is_array($d) ? $d : []; $k = is_array($d['canc'] ?? null) ? $d['canc'] : [];
+  return ['id' => (int)$p['id'], 'numero' => (string)$p['numero'], 'quando' => (string)$p['feito_em'], 'uni' => (int)($p['unidade_id'] ?? 0), 'crianca' => $p['crianca_id'] === null ? null : (int)$p['crianca_id'],
+    'nome' => (string)($d['nome'] ?? ''), 'doc' => (string)($d['doc'] ?? ''), 'cliente' => (string)($p['resp'] !== '' ? $p['resp'] : $p['nome']), 'item' => (string)($d['item'] ?? ''), 'valor' => round((float)$p['valor'], 2),
+    'por' => (string)$p['feito_nome'], 'st' => $p['status'] === 'usado' ? 'emitida' : 'cancelada', 'canc' => (string)($k['motivo'] ?? ''), 'canc_por' => (string)($k['por'] ?? ''), 'canc_em' => (string)($k['em'] ?? ''),
+    'vc' => $p['status'] === 'usado' && $p['venda_id'] === null];
 }
 // 1.41: a conta do pacote alterado com os três campos: "PACOTE 03 HORAS 360 (3h, R$ 225) para 4h: pacote R$ 300 + produto R$ 60 = R$ 360"
 function altTextoPac(string $n, int $h0, float $de, int $h1, float $pac, float $prod, float $para): string {
@@ -1269,7 +1307,7 @@ function pagamentosDesde(string $desde): array {
 // entrada); o pagamento vai com a venda dele. Sem unidade (o iDFace, os exemplos, o que é de antes da 1.06) vai à parte (uni 0).
 function painelDoDia(): array {
   $db = db(); $hoje = date('Y-m-d') . ' 00:00:00'; $o = [];
-  $um = function (int $u) use (&$o) { if (!isset($o[$u])) $o[$u] = ['uni' => $u, 'faturado' => 0.0, 'vendas' => 0, 'desc' => 0.0, 'recebido' => 0.0, 'devolvido' => 0.0, 'formas' => array_fill_keys(array_keys(FORMAS_PAGAMENTO), 0.0), 'cancelados' => 0, 'cancelado' => 0.0, 'servicos' => []]; };
+  $um = function (int $u) use (&$o) { if (!isset($o[$u])) $o[$u] = ['uni' => $u, 'faturado' => 0.0, 'vendas' => 0, 'desc' => 0.0, 'recebido' => 0.0, 'devolvido' => 0.0, 'formas' => array_fill_keys(array_keys(FORMAS_PAGAMENTO), 0.0), 'cancelados' => 0, 'cancelado' => 0.0, 'servicos' => [], 'notas' => 0, 'notas_v' => 0.0]; };
   $q = $db->prepare('SELECT COALESCE(unidade_id, 0) u, COUNT(*) n, COALESCE(SUM(valor), 0) v, COALESCE(SUM(desc_valor), 0) d FROM vendas WHERE quando >= ? AND servico != ? GROUP BY u'); $q->execute([$hoje, SERV_IMPORTADO]);
   foreach ($q->fetchAll() as $l) { $u = (int)$l['u']; $um($u); $o[$u]['faturado'] = round((float)$l['v'], 2); $o[$u]['vendas'] = (int)$l['n']; $o[$u]['desc'] = round((float)$l['d'], 2); }
   $q = $db->prepare('SELECT COALESCE(p.unidade_id, v.unidade_id, 0) u, p.forma f, COALESCE(SUM(p.valor), 0) t FROM pagamentos p JOIN vendas v ON v.id = p.venda_id WHERE p.quando >= ? GROUP BY u, p.forma'); $q->execute([$hoje]);   // 1.31: a unidade em que o dinheiro entrou
@@ -1285,7 +1323,11 @@ function painelDoDia(): array {
     $g = $l['p'] ? 'PRODUTOS' : (!$l['a'] && $l['m'] && ($n === '' || preg_match('/^PACOTE\b/u', $n)) ? 'PACOTES DE HORAS' : (mb_strpos($n, 'FESTA') !== false ? 'FESTA' : ($n !== '' ? $n : 'OUTROS')));   // (o pacote é a venda de horas sem nome de serviço ou com o nome começando por PACOTE; o resto fica com o nome que tinha na hora da venda)
     if (!isset($sv[$u][$g])) $sv[$u][$g] = ['n' => $g, 'q' => 0, 'v' => 0.0]; $sv[$u][$g]['q'] += (int)$l['n']; $sv[$u][$g]['v'] = round($sv[$u][$g]['v'] + (float)$l['v'], 2); }
   foreach ($sv as $u => $L) { $um($u); $L = array_values($L); usort($L, fn($a, $b) => [$b['v'], $b['q'], $a['n']] <=> [$a['v'], $a['q'], $b['n']]); $o[$u]['servicos'] = $L; }
-  ksort($o); return ['desde' => $hoje, 'unidades' => array_values($o)];
+  // 1.55: as notas fiscais emitidas hoje (na unidade do aparelho em que foram abertas): o faturamento em notas, ao lado do caixa. As
+  // canceladas vêm na lista, sem contar
+  $nf = []; $q = $db->prepare("SELECT * FROM pedidos WHERE tipo = 'nf' AND numero != '' AND feito_em >= ? AND status IN ('usado', 'cancelado') ORDER BY feito_em DESC, id DESC LIMIT 400"); $q->execute([$hoje]);
+  foreach ($q->fetchAll() as $p) { $n = notaPublica($p); if ($n['st'] === 'emitida') { $um($n['uni']); $o[$n['uni']]['notas']++; $o[$n['uni']]['notas_v'] = round($o[$n['uni']]['notas_v'] + $n['valor'], 2); } $nf[] = $n; }
+  ksort($o); return ['desde' => $hoje, 'unidades' => array_values($o), 'notas' => $nf];
 }
 // 1.30: o caixa do dia da recepção. O que foi RECEBIDO hoje (desde a meia-noite), por unidade (a da venda), por forma de pagamento e pelo que
 // foi pago: a recreação avulsa (o tempo que não é pacote: os períodos, o tempo além do pacote, o avulso da saída), os pacotes de horas, a

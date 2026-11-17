@@ -1301,6 +1301,16 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzk. Notas fiscais do dia, a nota sem esperar o gestor e a correção das horas (1.55)
+
+Pedido do dono: o relatório das notas emitidas no dia na tela do gestor e no financeiro (faturamento em notas e em caixa); todos emitem a nota, só o gestor cancela; o gestor corrige as horas do pacote quando a equipe lança errado.
+
+- **Nota fiscal** (botão **NF** na compra, no histórico do cliente): qualquer pessoa da equipe preenche em nome de quem a nota sai e toca em **Emitir no Play Space Notas**. Não precisa mais da autorização do gestor. Emitida (produção), o número volta sozinho e a nota fica marcada na compra.
+- **Só o gestor** desfaz a marcação, corrige o número, tira uma nota aberta que não vai sair e **cancela a nota** (com o motivo). A nota cancelada sai do faturamento em notas e fica no relatório como cancelada. No **Play Space Notas**, só quem é gestor cancela: a conta principal e quem ela marcar em Conta → Usuários.
+- **Painel do gestor → Notas fiscais hoje**: em notas, no caixa, sem nota, a porcentagem do caixa com nota e cada nota (número, em nome de, compra, valor, quem emitiu). A nota de uma venda que foi cancelada aparece com o aviso para cancelar a nota também. Em **Cada unidade hoje**, a coluna **Em notas**.
+- **Finanças → Notas fiscais**: o mesmo para qualquer período e unidade, dia a dia, cada unidade, cada nota e a planilha. Também na Visão geral, no PDF do dia e no e-mail.
+- **Alterar as horas** (gestor, no histórico do cliente, em cada compra de horas e nas horas que vieram do sistema anterior): escreva as horas certas (ex.: 5 ou 11h30) e o motivo. Muda só as horas daquela compra (o valor fica), o saldo acompanha a diferença e não dá para tirar horas que já foram usadas. Fica no registro do cliente, com o motivo e o nome do gestor.
+
 ## 6zzj. O cupom só sai com a autorização; o motivo no alterar pacote; a festa pelo gestor (1.54)
 
 Pedido do dono: sem a permissão do gestor, a atendente não segue; o motivo no desconto e no alterar pacote; o gestor cancela a festa e muda a data.
