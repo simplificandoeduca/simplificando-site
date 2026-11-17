@@ -2511,7 +2511,7 @@ const horaTxt = () => new Date().toLocaleTimeString('pt-BR', { hour:'2-digit', m
 let hubTick = 0; // relógio do hub: troca só o texto da hora a cada segundo (sem redesenhar a tela)
 function hubRelogio(){
   if(ui.view!=='hub' || hubTick) return;
-  hubTick = setInterval(() => { const el = document.getElementById('hb-hora'); if(!el || ui.view!=='hub'){ clearInterval(hubTick); hubTick = 0; return; } el.textContent = horaTxt(); }, 1000);
+  hubTick = setInterval(() => { if(ui.view!=='hub'){ clearInterval(hubTick); hubTick = 0; return; } const el = document.getElementById('hb-hora'); if(el) el.textContent = horaTxt(); }, 1000); // só para quando sai do hub
 }
 function vHub(){
   if(pfOnline()){ loadProg(); loadEst(); loadPerfis(); }
@@ -3474,7 +3474,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '17 nov · 145'; // Versão do painel: 17 nov · 145
+const PAINELV = '17 nov · 146'; // Versão do painel: 17 nov · 146
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';

@@ -116,10 +116,11 @@ test('Hub (/hub): números reais e um bloco para cada espaço; Números saiu das
   await expect(page.locator('.hub h1')).toHaveText('Hub.');
   await expect(page.locator('#tabs')).toBeHidden();
   // cores do anel do logo: App do aluno vermelho, Painel laranja, Números lilás; a hora anda depois da data
-  expect(await page.locator('.hb-bl').evaluateAll(L => L.map(x => getComputedStyle(x).backgroundColor))).toEqual(['rgb(255, 70, 70)', 'rgb(255, 154, 46)', 'rgb(183, 148, 255)']);
+  // (espera: o hub se redesenha quando os números chegam)
+  await expect.poll(() => page.locator('.hb-bl').evaluateAll(L => L.map(x => getComputedStyle(x).backgroundColor))).toEqual(['rgb(255, 70, 70)', 'rgb(255, 154, 46)', 'rgb(183, 148, 255)']);
   await expect(page.locator('#hb-hora')).toHaveText(/^\d\d:\d\d:\d\d$/);
-  const h1 = await page.locator('#hb-hora').textContent(); await page.waitForTimeout(1200);
-  expect(await page.locator('#hb-hora').textContent()).not.toBe(h1);
+  const h1 = await page.locator('#hb-hora').textContent();
+  await expect.poll(() => page.locator('#hb-hora').textContent(), { timeout: 5000 }).not.toBe(h1); // o relógio anda
   // sem versão nova, o Atualizar fica branco
   await expect(page.locator('.hb-atu')).not.toHaveClass(/nova/);
   const num = /^[1-9]\d*$/;
