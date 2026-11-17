@@ -788,6 +788,7 @@ body.hub-on{background:#0F1712}
 .hb-eb{margin:0;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
 .hb-top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding-top:24px}
 .hb-dt{color:#FF4646}
+.hb-hora{font-variant-numeric:tabular-nums}
 .hub h1{margin:4px 0 0;color:#F6F5EF;font-size:clamp(46px,13vw,64px);font-weight:900;letter-spacing:-.05em;line-height:1}
 .hub h1 i{font-style:normal;color:#FF4646}
 .hb-av{display:block;width:50px;height:50px;flex:none}
@@ -810,7 +811,7 @@ body.hub-on{background:#0F1712}
 .hb-num{position:absolute;right:20px;bottom:16px;text-align:right}
 .hb-num b{display:block;font-size:44px;font-weight:900;letter-spacing:-.05em;line-height:1}
 .hb-num span{font-size:12px;font-weight:700}
-.hb-bl.red{background:#FF4646}.hb-bl.lime{background:#C8F542}.hb-bl.blue{background:#5AB8FF}
+.hb-bl.red{background:#FF4646}.hb-bl.orange{background:#FF9A2E}.hb-bl.lilas{background:#B794FF} /* as cores do anel do logo */
 .hb-mais{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
 .hb-ms{display:flex;flex-direction:column;align-items:flex-start;gap:12px;background:#F6F5EF;color:#0F1712!important;border:0;border-radius:22px;padding:14px;font:inherit;font-weight:800;font-size:14px;text-align:left;cursor:pointer}
 .hb-ms>i{font-style:normal;display:block;line-height:1.2}.hb-ms em{display:block;font-style:normal;font-size:11.5px;font-weight:600;color:#5B625D;margin-top:2px}
@@ -2357,6 +2358,12 @@ function hubAtu(){
   const sub = indo ? 'baixando…' : ATU.st==='vendo' ? 'procurando…' : nova ? 'versão '+ATU.nova.replace(/^.*·\s*/,'')+' pronta' : ATU.testando ? 'testando a '+ATU.testando.replace(/^.*·\s*/,'') : 'em dia · '+PAINELV.replace(/^.*·\s*/,'');
   return '<button type="button" class="hb-ms hb-atu'+(nova ? ' nova' : '')+'" data-a="atuGo"'+(indo ? ' disabled' : '')+'><span>'+ic('refresh')+'</span><i>'+(indo ? 'Atualizando' : 'Atualizar')+'<em>'+esc(sub)+'</em></i></button>';
 }
+const horaTxt = () => new Date().toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+let hubTick = 0; // relógio do hub: troca só o texto da hora a cada segundo (sem redesenhar a tela)
+function hubRelogio(){
+  if(ui.view!=='hub' || hubTick) return;
+  hubTick = setInterval(() => { const el = document.getElementById('hb-hora'); if(!el || ui.view!=='hub'){ clearInterval(hubTick); hubTick = 0; return; } el.textContent = horaTxt(); }, 1000);
+}
 function vHub(){
   if(pfOnline()){ loadProg(); loadEst(); loadPerfis(); }
   const ok = Store.loaded, n = hubNums(), on = pfOnline(), v = x => x==null ? (on ? '…' : '—') : x;
@@ -2364,7 +2371,7 @@ function vHub(){
   const bl = (cor, href, eb, t, d, num, nl, novo) => '<a class="hb-bl '+cor+'" href="'+href+'"'+(novo ? ' target="_blank" rel="noopener"' : '')+'><p class="hb-eb">'+eb+'</p><h2>'+t+'.</h2><p class="hb-d">'+d+'</p><span class="hb-go">'+ic('arrow')+'</span><span class="hb-num"><b>'+num+'</b><span>'+nl+'</span></span></a>';
   const ms = (href, icn, t, teste) => '<a class="hb-ms" href="'+href+'" target="_blank" rel="noopener"'+(teste ? ' data-teste="1"' : '')+'><span>'+ic(icn)+'</span><i>'+t+'</i></a>';
   return '<div class="hub">'+
-    '<header class="hb-top"><div><p class="hb-eb hb-dt">'+esc(hojeTxt())+'</p><h1>Hub<i>.</i></h1></div><span class="hb-av" aria-hidden="true">'+hubLogo()+'</span></header>'+
+    '<header class="hb-top"><div><p class="hb-eb hb-dt">'+esc(hojeTxt())+' · <span id="hb-hora" class="hb-hora">'+horaTxt()+'</span></p><h1>Hub<i>.</i></h1></div><span class="hb-av" aria-hidden="true">'+hubLogo()+'</span></header>'+
     '<section class="hb-stats" aria-label="Números de hoje">'+
       st(ok ? n.ativos : '…', 'alunos ativos', ok ? (n.novosAl ? ic('trend')+'+'+n.novosAl+' no mês' : 'de '+n.todos+' cadastrados') : '')+
       st(n.nota!=null ? fmtN(n.nota,1) : n.notas===0 ? '—' : v(null), 'nota do app', n.notas!=null ? ic('star')+(n.notas ? plural(n.notas,'nota')+' em 30 dias' : 'sem notas em 30 dias') : '')+
@@ -2373,8 +2380,8 @@ function vHub(){
     '<p class="hb-eb hb-lbl">Seus espaços</p>'+
     '<div class="hb-blocos">'+
       bl('red', '/app-teste/', 'Versão de teste', 'App do aluno', 'Já entra com um aluno de teste, sempre com as novidades.', v(n.hoje), n.hoje===1 ? 'treinou hoje' : 'treinaram hoje', true)+
-      bl('lime', '/personal/#painel', 'Onde você trabalha', 'Painel', 'Alunos, treinos, mensagens e financeiro.', ok ? n.atencao : '…', n.atencao===1 ? 'pede atenção' : 'pedem atenção', true)+
-      bl('blue', '/personal/#estatisticas', 'Como está indo', 'Números', 'Avaliações, sugestões, stories e comprovantes.', v(n.sug), n.sug===1 ? 'sugestão nova' : 'sugestões novas', true)+
+      bl('orange', '/personal/#painel', 'Onde você trabalha', 'Painel', 'Alunos, treinos, mensagens e financeiro.', ok ? n.atencao : '…', n.atencao===1 ? 'pede atenção' : 'pedem atenção', true)+
+      bl('lilas', '/personal/#estatisticas', 'Como está indo', 'Números', 'Avaliações, sugestões, stories e comprovantes.', v(n.sug), n.sug===1 ? 'sugestão nova' : 'sugestões novas', true)+
     '</div>'+
     '<div class="hb-mais">'+ms('/financas/', 'wallet', 'Finanças')+ms('/personal/teste/', 'flask', 'Painel de teste', true)+ms('/', 'globe', 'Site')+hubAtu()+'</div>'+
     (ATU.msg ? '<p class="hb-err" role="alert">'+esc(ATU.msg)+'</p>' : '')+
@@ -3323,7 +3330,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '17 nov · 144'; // Versão do painel: 17 nov · 144
+const PAINELV = '17 nov · 145'; // Versão do painel: 17 nov · 145
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -3941,7 +3948,7 @@ function render(){
   const k = captureFocus(), sy = window.scrollY, ts0 = document.querySelector('.dtabs-in'), tsl = ts0 ? ts0.scrollLeft : null;
   applyLook();
   $main.innerHTML = ({painel:vPainel,alunos:vAlunos,perfis:vPerfis,biblioteca:vBiblioteca,modelos:vModelos,ajustes:vAjustes,estatisticas:vEstat,hub:vHub})[ui.view]();
-  document.body.classList.toggle('hub-on', ui.view==='hub'); document.body.classList.toggle('hub-claro', ui.view==='hub' && !!PREF.hubClaro);
+  hubRelogio(); document.body.classList.toggle('hub-on', ui.view==='hub'); document.body.classList.toggle('hub-claro', ui.view==='hub' && !!PREF.hubClaro);
   $side.innerHTML = navHtml();
   $tabs.innerHTML = VIEWS.map(([v,l,icn]) => '<button type="button" class="tab'+(ui.view===v?' on':'')+'" data-a="go" data-v="'+v+'" aria-current="'+(ui.view===v?'page':'false')+'" aria-label="'+l+'">'+ic(icn)+'<span>'+(v==='estatisticas' ? 'Números' : l)+'</span></button>').join('');
   if(ui.sheet) renderSheet();

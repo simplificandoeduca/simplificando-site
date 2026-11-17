@@ -115,6 +115,13 @@ test('Hub (/hub): números reais e um bloco para cada espaço; Números saiu das
   await page.waitForFunction(() => window.__painel && window.__painel.Store.loaded, null, { timeout: 20000 });
   await expect(page.locator('.hub h1')).toHaveText('Hub.');
   await expect(page.locator('#tabs')).toBeHidden();
+  // cores do anel do logo: App do aluno vermelho, Painel laranja, Números lilás; a hora anda depois da data
+  expect(await page.locator('.hb-bl').evaluateAll(L => L.map(x => getComputedStyle(x).backgroundColor))).toEqual(['rgb(255, 70, 70)', 'rgb(255, 154, 46)', 'rgb(183, 148, 255)']);
+  await expect(page.locator('#hb-hora')).toHaveText(/^\d\d:\d\d:\d\d$/);
+  const h1 = await page.locator('#hb-hora').textContent(); await page.waitForTimeout(1200);
+  expect(await page.locator('#hb-hora').textContent()).not.toBe(h1);
+  // sem versão nova, o Atualizar fica branco
+  await expect(page.locator('.hb-atu')).not.toHaveClass(/nova/);
   const num = /^[1-9]\d*$/;
   await expect(page.locator('.hb-st').nth(0).locator('b')).toHaveText(num);                        // alunos ativos (a Ana)
   await expect(page.locator('.hb-st').nth(2).locator('b')).toHaveText(num, { timeout: 20000 });    // cadastros no mês (a Bruna)
@@ -140,12 +147,12 @@ test('Hub (/hub): números reais e um bloco para cada espaço; Números saiu das
   await expect(tp).toHaveURL(/\/personal\/teste\/(#.*)?$/);
   await tp.close();
   // Números abre fora das abas, com o botão de voltar ao hub
-  const [nt] = await Promise.all([page.context().waitForEvent('page'), page.click('.hb-bl.blue')]);
+  const [nt] = await Promise.all([page.context().waitForEvent('page'), page.click('.hb-bl.lilas')]);
   await expect(nt).toHaveURL(/\/personal\/#estatisticas$/);
   await expect(nt.locator('main').first()).toContainText('Avaliação do app', { timeout: 20000 });
   expect(await nt.locator('a[aria-label="Voltar ao hub"]').getAttribute('href')).toBe('/hub/');
   // Painel abre com as abas
-  const [pn] = await Promise.all([page.context().waitForEvent('page'), page.click('.hb-bl.lime')]);
+  const [pn] = await Promise.all([page.context().waitForEvent('page'), page.click('.hb-bl.orange')]);
   await expect(pn).toHaveURL(/\/personal\/#painel$/);
   await expect(pn.locator('#tabs')).toBeVisible();
   await expect(pn.locator('.hub')).toHaveCount(0);
