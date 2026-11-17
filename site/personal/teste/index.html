@@ -873,7 +873,7 @@ body.hub-on{background:#0F1712}
 .cd-cp{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.cd-pl{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:64px;height:64px;border-radius:50%;background:rgba(15,23,18,.6);display:grid;place-items:center;color:#FFFFFF}.cd-pl .i{width:26px;height:26px;fill:currentColor}
 .cd-n{margin:8px 0 0;font-size:12.5px;color:#A9B0AA}
 .cd-bt{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}.cd-b{flex:1 1 140px;height:52px;border:0;border-radius:999px;display:flex;align-items:center;justify-content:center;gap:8px;font:inherit;font-weight:900;font-size:15px;cursor:pointer}
-.cd-b .i{width:18px;height:18px;stroke-width:2.4}.cd-b1{background:#FF4646;color:#0F1712}.cd-b2{background:#F6F5EF;color:#0F1712}.cd-b:disabled{opacity:.75;cursor:default}
+.cd-b .i{width:18px;height:18px;stroke-width:2.4}.cd-b1{background:#FF4646;color:#0F1712}.cd-b3{background:#FF9A2E;color:#0F1712}.cd-b2{background:#F6F5EF;color:#0F1712}.cd-b:disabled{opacity:.75;cursor:default}
 .cd-leg{background:#0F1712;border-radius:16px;padding:12px 14px;margin-top:12px;font-size:13.5px;line-height:1.5;color:#C9CDC6;overflow-wrap:anywhere;position:relative}
 .cd-leg.corta{max-height:132px;overflow:hidden}.cd-leg.corta:after{content:"";position:absolute;left:0;right:0;bottom:0;height:34px;background:linear-gradient(transparent,#0F1712)}
 .cd-mais{border:0;background:none;color:#C8F542;font:inherit;font-size:13px;font-weight:800;padding:8px 2px 0;cursor:pointer}
@@ -2699,6 +2699,17 @@ function cdPostar(key){
   if(pode) navigator.share({ files }).then(() => { toast('Agora é só colar a legenda e publicar.'); }).catch(e => { if(e && e.name!=='AbortError') { cdBaixar(key); } });
   else cdBaixar(key);
 }
+// capa do reels: vai para a galeria do celular, para escolher como capa no Instagram/TikTok ("Adicionar da galeria")
+function cdCapa(key){
+  const p = cdPost(key), f = p && p.capa; if(!f) return;
+  const b = CTB[f.id];
+  if(!b || b.st!=='ok'){ if(b && b.st==='erro') delete CTB[f.id]; cdArq(f, () => { if(CTB[f.id].st==='ok') toast('Capa pronta. Toque de novo em Salvar capa.'); else toast('Não deu para baixar a capa. Tente de novo.'); }); toast('Baixando a capa…'); return; }
+  const files = [new File([b.blob], f.nome, { type:f.mime })];
+  let pode = false; try { pode = !!(navigator.canShare && navigator.canShare({ files })); } catch(e){ pode = false; }
+  const baixa = () => { const a = document.createElement('a'); a.href = b.url; a.download = f.nome; document.body.appendChild(a); a.click(); a.remove(); toast('Capa baixada.'); };
+  if(pode) navigator.share({ files }).then(() => toast('Capa salva. No Instagram, escolha "Adicionar da galeria" na capa do reels.')).catch(e => { if(e && e.name!=='AbortError') baixa(); });
+  else baixa();
+}
 function cdBaixar(key){
   const p = cdPost(key); if(!p) return;
   p.midia.forEach((f, i) => { const b = CTB[f.id]; if(!b || b.st!=='ok') return; setTimeout(() => { const a = document.createElement('a'); a.href = b.url; a.download = f.nome; document.body.appendChild(a); a.click(); a.remove(); }, i*350); });
@@ -2785,7 +2796,7 @@ function cdCard(k, p){
     '<div class="cd-ch"><span class="cd-chip '+p.plat+'">'+CD_PLAT[p.plat]+'</span><span class="cd-chip fm">'+cdTipo(p)+'</span>'+(feito ? '<span class="cd-chip ok">'+ic('check')+'Postado</span>' : '')+'</div>'+
     '<h3>'+esc(cdTema(p))+'</h3>'+midia+
     (vazio ? '<p class="cd-n">A pasta deste dia ainda não tem vídeo nem imagens.</p>' : '')+
-    '<div class="cd-bt">'+bPost+(leg ? '<button type="button" class="cd-b cd-b2" data-a="cdCopiar" data-k="'+esc(key)+'">'+ic('copy')+'Copiar legenda</button>' : '')+'</div>'+
+    '<div class="cd-bt">'+bPost+(p.tipo==='reels' && p.capa ? '<button type="button" class="cd-b cd-b3" data-a="cdCapa" data-k="'+esc(key)+'">'+ic('down')+'Salvar capa</button>' : '')+(leg ? '<button type="button" class="cd-b cd-b2" data-a="cdCopiar" data-k="'+esc(key)+'">'+ic('copy')+'Copiar legenda</button>' : '')+'</div>'+
     (leg ? '<div class="cd-leg'+(longa ? ' corta' : '')+'">'+esc(leg).replace(/\n/g, '<br>')+'</div>'+(leg.length > 260 ? '<button type="button" class="cd-mais" data-a="cdAbre" data-k="'+esc(key)+'">'+(CT.abre[key] ? 'Mostrar menos' : 'Ver a legenda toda')+'</button>' : '')
       : '<p class="cd-n">Sem legenda: falta o arquivo .txt na pasta.</p>')+
     '<div class="cd-ft"><span>'+(leg ? (tags ? plural(tags, 'hashtag') : 'Sem hashtags') : '')+'</span><button type="button" class="cd-fe'+(feito ? ' on' : '')+'" data-a="cdFeito" data-k="'+esc(key)+'" aria-pressed="'+feito+'">'+ic('check')+(feito ? 'Postado' : 'Marcar como feito')+'</button></div>'+
@@ -3784,7 +3795,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '17 nov · 152'; // Versão do painel: 17 nov · 152
+const PAINELV = '17 nov · 153'; // Versão do painel: 17 nov · 153
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -5121,6 +5132,7 @@ function act(a,d,btn){
     case 'cdRecarregar': cdCarregar(semIni(CT.sel || today()), true); toast('Buscando no Drive'); break;
     case 'cdPostar': cdPostar(d.k); return false;
     case 'cdVer': cdVer(d.k); return false;
+    case 'cdCapa': cdCapa(d.k); return false;
     case 'cdCopiar': { const p = cdPost(d.k); if(p) copyText(p.legenda); return false; }
     case 'cdAbre': CT.abre[d.k] = !CT.abre[d.k]; break;
     case 'cdFeito': cdFeitoTroca(d.k); break;

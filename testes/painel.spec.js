@@ -274,6 +274,11 @@ test('Hub › Conteúdo: o post do dia vindo do Drive, com Postar, Copiar legend
   await tk.locator('[data-a="cdPostar"]').click();
   await expect.poll(() => page.evaluate(() => window.__compart.length)).toBe(2);
   expect(await page.evaluate(() => window.__compart[1])).toEqual([['Reel-Mito-abdominal-queima-gordura.mp4', 'video/mp4', expect.any(Number)]]);
+  // a capa do reels vai separada (para escolher como capa no Instagram/TikTok)
+  await tk.locator('[data-a="cdCapa"]').click();
+  await expect.poll(() => page.evaluate(() => window.__compart.length)).toBe(3);
+  expect(await page.evaluate(() => window.__compart[2])).toEqual([['Carrossel-3.jpg', 'image/jpeg', expect.any(Number)]]);
+  await expect(ig.locator('[data-a="cdCapa"]')).toHaveCount(0); // carrossel não tem
   // ver o vídeo por cima da tela
   await tk.locator('.cd-reel').click();
   await expect(page.locator('.cd-ver video')).toBeVisible();
