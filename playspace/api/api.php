@@ -239,6 +239,9 @@ switch ($acao) {
       if (!$r['ok']) falha($r['erro'], 502); responder(['email' => finEmailPublico(), 'enviado' => $r]); }
     responder(['email' => finEmailPublico()]);
   }
+  case 'pagamento_trocar': { // 1.57: trocar a forma de pagamento (a equipe, nos 2 min depois de pagar; o gestor, sempre)
+    $u = exigir(); responder(trocarPagamento($in, $u));
+  }
   case 'resumo_pdf': { // 1.54: o resumo do dia em PDF (o mesmo das Finanças), para o gestor
     $u = exigir(); if (($u['papel'] ?? '') !== 'gestor') falha('Só o gestor baixa o resumo do dia.', 403); session_write_close();
     require_once __DIR__ . '/../financas/resumo.php'; finPdfSaida(['de' => (string)($in['de'] ?? date('Y-m-d')), 'ate' => (string)($in['ate'] ?? ($in['de'] ?? date('Y-m-d'))), 'uni' => 'todas']);
@@ -545,6 +548,9 @@ switch ($acao) {
   }
   case 'cancelamento_visto': { // a supervisão conferiu: fica marcado quem viu e quando
     $u = exigir(['gestor', 'supervisor']);
+    { $neg = array_values(array_filter(array_map('intval', array_merge((array)($in['ids'] ?? []), [(int)($in['id'] ?? 0)])), fn($x) => $x < 0));   // 1.57: o aviso da troca de pagamento (id negativo)
+      if (!empty($in['todos'])) $db->prepare('UPDATE trocas_pag SET visto_por = ?, visto_em = ? WHERE visto_em IS NULL')->execute([$u['nome'], agora()]);
+      elseif ($neg) $db->prepare('UPDATE trocas_pag SET visto_por = ?, visto_em = ? WHERE visto_em IS NULL AND id IN (' . implode(',', array_map(fn($x) => -$x, $neg)) . ')')->execute([$u['nome'], agora()]); }
     if (!empty($in['todos'])) $db->prepare("UPDATE cancelamentos SET visto_por = ?, visto_em = ? WHERE visto_em IS NULL")->execute([$u['nome'], agora()]);
     elseif (!empty($in['ids']) && is_array($in['ids'])) { $ids = array_slice(array_values(array_filter(array_map('intval', $in['ids']))), 0, 100); if ($ids) $db->prepare('UPDATE cancelamentos SET visto_por = ?, visto_em = ? WHERE visto_em IS NULL AND id IN (' . implode(',', $ids) . ')')->execute([$u['nome'], agora()]); }   // 1.25: os avisos que estão no painel
     else $db->prepare("UPDATE cancelamentos SET visto_por = ?, visto_em = ? WHERE id = ? AND visto_em IS NULL")->execute([$u['nome'], agora(), (int)($in['id'] ?? 0)]);
@@ -798,13 +804,14 @@ switch ($acao) {
     $q = $db->prepare("SELECT v.*, u.nome AS por_nome FROM vendas v LEFT JOIN usuarios u ON u.id = v.por WHERE v.crianca_id IN ($marcas) ORDER BY v.quando DESC, v.id DESC LIMIT $limV"); $q->execute($ids);
     $pagas = []; $qp = $db->prepare("SELECT venda_id, forma, SUM(valor) t FROM pagamentos WHERE crianca_id IN ($marcas) GROUP BY venda_id, forma ORDER BY MIN(id)"); $qp->execute($ids);
     foreach ($qp->fetchAll() as $l) $pagas[(int)$l['venda_id']][(string)$l['forma']] = round((float)$l['t'], 2);
+    $pgEm = []; $qp = $db->prepare("SELECT venda_id, MAX(quando) q FROM pagamentos WHERE crianca_id IN ($marcas) GROUP BY venda_id"); $qp->execute($ids); foreach ($qp->fetchAll() as $l) $pgEm[(int)$l['venda_id']] = (string)$l['q'];   // 1.57
     // 1.02: o que ainda não foi pago desta visita (o que ficou para a saída e as cobranças por atraso a receber): o histórico marca e não soma em "Pagou ao todo"
     $np = []; foreach ($ids as $cid) { $k = crianca($cid); if (!$k) continue; foreach (pendentesDaVisita($k) as $v) $np[(int)$v['id']] = (float)$v['falta'];
       if (!$k['entrou']) foreach (autosSemPagarDaSaida($k) as $v) $np[(int)$v['id']] = round((float)$v['valor'], 2);   // 1.45 (auditoria): a saída pelo rosto que não recebeu não conta como paga
       if ($k['entrou']) { $qa = $db->prepare('SELECT id, valor FROM vendas WHERE crianca_id = ? AND auto = 1 AND quando >= ? AND NOT EXISTS (SELECT 1 FROM pagamentos p WHERE p.venda_id = vendas.id)'); $qa->execute([$cid, (string)$k['entrou']]); foreach ($qa->fetchAll() as $l) $np[(int)$l['id']] = (float)$l['valor']; } }
     $nfs = []; $cvs = []; $qx = $db->prepare("SELECT * FROM pedidos WHERE crianca_id IN ($marcas) AND venda_id IS NOT NULL AND ((tipo = 'nf' AND status IN ('pendente', 'liberado', 'usado', 'negado')) OR (tipo = 'cancelar_venda' AND status = 'pendente')) ORDER BY id"); $qx->execute($ids);
     foreach ($qx->fetchAll() as $p) { if ($p['tipo'] === 'nf') $nfs[(int)$p['venda_id']] = pedidoPublico($p); else $cvs[(int)$p['venda_id']] = pedidoPublico($p); }   // 1.23: a nota fiscal de cada compra (a mais nova) e o pedido de cancelamento que espera
-    $vendas = array_map(fn($v) => ['np' => $np[(int)$v['id']] ?? 0, 'pago' => isset($pagas[(int)$v['id']]) ? textoPagamento($pagas[(int)$v['id']]) : '', 'pg' => $pagas[(int)$v['id']] ?? null, 'id' => (int)$v['id'], 'crianca' => (int)$v['crianca_id'], 'h' => round((int)$v['minutos'] / 60, 2), 'm' => (int)$v['minutos'], 'v' => (float)$v['valor'], 'itens' => (string)($v['itens'] ?? ''), 'servico' => (string)($v['servico'] ?? ''), 'quando' => $v['quando'], 'por' => (string)($v['por_nome'] ?? ''), 'auto' => !empty($v['auto']), 'voucher' => (string)($v['voucher'] ?? ''), 'pcd' => !empty($v['pcd']), 'desc' => round((float)($v['desc_valor'] ?? 0), 2), 'desc_motivo' => (string)($v['desc_motivo'] ?? ''), 'un' => $uni($v), 'canc' => vendaCancelavel($v), 'prod' => (int)($v['produto_id'] ?? 0) > 0, 'fora' => (string)($v['alug'] ?? '') !== '' && $v['voltou'] === null, 'nf' => $nfs[(int)$v['id']] ?? null, 'cv' => $cvs[(int)$v['id']] ?? null], $q->fetchAll());
+    $vendas = array_map(fn($v) => ['np' => $np[(int)$v['id']] ?? 0, 'pago' => isset($pagas[(int)$v['id']]) ? textoPagamento($pagas[(int)$v['id']]) : '', 'pg' => $pagas[(int)$v['id']] ?? null, 'pg_em' => $pgEm[(int)$v['id']] ?? null, 'id' => (int)$v['id'], 'crianca' => (int)$v['crianca_id'], 'h' => round((int)$v['minutos'] / 60, 2), 'm' => (int)$v['minutos'], 'v' => (float)$v['valor'], 'itens' => (string)($v['itens'] ?? ''), 'servico' => (string)($v['servico'] ?? ''), 'quando' => $v['quando'], 'por' => (string)($v['por_nome'] ?? ''), 'auto' => !empty($v['auto']), 'voucher' => (string)($v['voucher'] ?? ''), 'pcd' => !empty($v['pcd']), 'desc' => round((float)($v['desc_valor'] ?? 0), 2), 'desc_motivo' => (string)($v['desc_motivo'] ?? ''), 'un' => $uni($v), 'canc' => vendaCancelavel($v), 'prod' => (int)($v['produto_id'] ?? 0) > 0, 'fora' => (string)($v['alug'] ?? '') !== '' && $v['voltou'] === null, 'nf' => $nfs[(int)$v['id']] ?? null, 'cv' => $cvs[(int)$v['id']] ?? null], $q->fetchAll());
     $q = $db->prepare("SELECT * FROM visitas WHERE crianca_id IN ($marcas) ORDER BY saiu DESC, id DESC LIMIT $limS"); $q->execute($ids);
     $visitas = array_map(fn($v) => ['id' => (int)$v['id'], 'crianca' => (int)$v['crianca_id'], 'dia' => $v['saiu'], 'entrou' => substr($v['entrou'], 11, 5), 'saiu' => substr($v['saiu'], 11, 5), 'deb' => (int)$v['debitado_min'], 'e' => $v['entrou'], 'un' => $uni($v)], $q->fetchAll());
     // as ocorrências que explicam um acerto: saída corrigida, visita reaberta, entrada cancelada, desconto e cadastro corrigido (só quando a tela pede tudo)
@@ -817,6 +824,9 @@ switch ($acao) {
   case 'papel_guardar': { // a tela guarda as duas vias de cada cupom que sai, para reimprimir depois
     $u = exigir(); $c = crianca((int)($in['crianca'] ?? 0)); if (!$c) falha('Criança não encontrada.', 404);
     $tipo = in_array($in['tipo'] ?? '', ['entrada', 'saida', 'devolucao', 'festa', 'venda'], true) ? (string)$in['tipo'] : 'entrada';
+    if (!empty($in['troca'])) { // 1.57: o cupom refeito depois da troca da forma de pagamento entra no lugar do anterior (o dos últimos 10 min)
+      $q = $db->prepare('SELECT id FROM papeis WHERE crianca_id = ? AND tipo = ? AND quando >= ? ORDER BY id DESC LIMIT 1'); $q->execute([(int)$c['id'], $tipo, date('Y-m-d H:i:s', time() - 600)]);
+      $ant = (int)$q->fetchColumn(); $q->closeCursor(); if ($ant) $db->prepare('DELETE FROM papeis WHERE id = ?')->execute([$ant]); }
     responder(['id' => papelGuardar($c, $tipo, mb_substr(trim(strip_tags((string)($in['titulo'] ?? ''))), 0, 60), mb_substr(trim(strip_tags((string)($in['resumo'] ?? ''))), 0, 140), (array)($in['vias'] ?? []), $u)]);
   }
   case 'papel_lista': { // os últimos cupons de um cliente (as crianças do mesmo responsável), do mais novo para o mais velho
@@ -828,9 +838,10 @@ switch ($acao) {
     responder(['papeis' => array_map('papelPublico', $q->fetchAll()), 'dias' => PAPEL_DIAS]);
   }
   case 'papel_ver': { // as vias de um cupom guardado
-    exigir(); session_write_close();
+    $u = exigir(); session_write_close();
     $q = $db->prepare('SELECT p.*, u.nome AS por_nome FROM papeis p LEFT JOIN usuarios u ON u.id = p.por WHERE p.id = ?'); $q->execute([(int)($in['id'] ?? 0)]); $l = $q->fetch();
     if (!$l) falha('Este cupom não está mais guardado.', 404);
+    if (($u['papel'] ?? '') !== 'gestor' && time() - strtotime((string)$l['quando']) > TROCA_PAG_SEG + 10) falha('Passou de 2 min: só o gestor reimprime este cupom.', 403);   // 1.57
     responder(papelPublico($l) + ['vias' => papelVias($l)]);
   }
   case 'venda_horas': { // 1.55: o gestor corrige as horas de um pacote (lançado errado), com o motivo
@@ -989,7 +1000,7 @@ switch ($acao) {
   /* ---------- ajustes: a regra das horas e os pacotes ---------- */
   case 'regra_salvar': {
     $u = exigir(); podeAjustar($u); $r = regra();
-    foreach (['tolerancia' => [0, 5, 9, 10, 15], 'fecha' => [20, 21, 22, 23, 24], 'aviso' => [5, 10, 15, 30, 60, 120], 'cancelaMin' => [0, 5, 9, 10, 15], 'reabreMin' => [0, 15, 30, 60], 'tolCupom' => [0, 5, 9, 10, 15]] as $k => $ops) if (isset($in[$k]) && in_array((int)$in[$k], $ops, true)) $r[$k] = (int)$in[$k];
+    foreach (['tolerancia' => [0, 5, 9, 10, 15], 'fecha' => [20, 21, 22, 23, 24], 'aviso' => [5, 10, 15, 30, 60, 120], 'cancelaMin' => [0, 5, 9, 10, 15], 'reabreMin' => [0, 10, 15, 30, 60], 'tolCupom' => [0, 5, 9, 10, 15]] as $k => $ops) if (isset($in[$k]) && in_array((int)$in[$k], $ops, true)) $r[$k] = (int)$in[$k];
     if (isset($in['autoMsg']) && in_array($in['autoMsg'], ['ambos', 'entrada', 'nao'], true)) $r['autoMsg'] = $in['autoMsg'];
     if (isset($in['bloqueioAuto']) && in_array($in['bloqueioAuto'], ['sim', 'nao'], true)) $r['bloqueioAuto'] = $in['bloqueioAuto'];
     if (isset($in['estorno']) && in_array($in['estorno'], ['gestor', 'supervisor', 'todos'], true)) $r['estorno'] = $in['estorno'];   // 1.21: quem desfaz ou cancela o que já tem valor

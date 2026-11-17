@@ -1587,6 +1587,15 @@ button.bl-saldo.bl-alt svg { opacity: .55; }
 .vh-lista .it { width: 100%; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
 .em-campos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 12px; }
 @media (max-width: 640px) { .em-campos { grid-template-columns: minmax(0, 1fr); } }
+/* 1.57: as festas na Agenda; a troca da forma de pagamento; o reabrir do gestor */
+.oficina.fe-ag .fe-ic { display: grid; place-items: center; color: var(--coral); background: var(--pessego-bg, rgba(0,0,0,.04)); border-radius: 50%; }
+.tp-linha { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 0; border-top: 1px solid var(--borda); }
+.tp-de { display: flex; align-items: baseline; gap: 8px; min-width: 190px; } .tp-de small { color: var(--tinta-2); font-weight: 700; }
+.tp-bts { display: flex; flex-wrap: wrap; gap: 8px; } .tp-bts .bt { height: 40px; padding: 0 16px; }
+.tp-papel summary { font-weight: 800; } .tp-papel summary b.num { color: var(--coral); }
+.tp-fim { color: var(--tinta-2); }
+.rp-trava { opacity: .5; }
+.marca.reab.fora { background: var(--erro-bg); color: var(--erro); }
 </style>
 
 </head>
@@ -1707,7 +1716,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.56';
+const VERSAO = '1.57';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -4179,14 +4188,66 @@ function papelDepois(spec) { if (!spec) return; const vias = viasPapel(spec); gu
 let PAPEL = null;   // o cupom que está na folha: { spec, vias }
 const segPapel = () => `<div class="seg" id="tk-modo">${MODOS_PAPEL.map(([v, n]) => `<button type="button" data-act="papel-modo" data-v="${v}" aria-pressed="${v === modoPapel()}">${n}</button>`).join('')}</div><span class="explica" id="tk-modo-txt">${textoModoPapel()}</span>`;
 function folhaPapel(spec) {
-  const vias = viasPapel(spec); if (!vias.length) return; PAPEL = { spec, vias };
+  const vias = viasPapel(spec); if (!vias.length) return; PAPEL = { spec, vias, ate: Date.now() + TROCA_MS };   // 1.57: ate = até quando a equipe troca a forma de pagamento
   abrirFolha(tituloPapel(spec), `
     ${vias.length > 1 ? `<p class="explica" id="tk-duas">${ic(IC.cupom, 16)}<span>Saem <b>duas vias</b>: a da <b>loja</b> (o responsável assina) e a do <b>cliente</b> (fica com ele, com a hora da entrada).</span></p>` : ''}
     <div class="papel-previa" id="tk-previa">${vias.map(v => `<div class="papel-fx">${v}</div>`).join('')}</div>
+    <div id="tk-troca">${trocaPapelHtml()}</div>
     <details class="outro" id="tk-aparelho"><summary>Neste aparelho: <span id="tk-modo-rot">${rotModoPapel()}</span> · mudar</summary><div class="campo" style="margin-top:8px">${segPapel()}</div></details>
     <div class="pe-f"><button type="button" class="bt forte largo tap" id="tk-ok" data-act="papel-imprimir">${ic(IC.cupom)} Imprimir o cupom${vias.length > 1 ? ' · 2 vias' : ''}</button>${!impDireta() && (MODO !== 'servidor' || supervisorOuMais()) ? `<button type="button" class="link tap imp-dica" id="tk-direta-ir" data-act="papel-ajustes">A janela de impressão aparece? Veja como imprimir direto</button>` : ''}</div>`);
   if (window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches) setTimeout(() => { const b = $('#tk-ok'); if (b) b.focus(); }, 380);   // no computador, Enter imprime
 }
+/* ---------- 1.57: trocar a forma de pagamento: na folha do cupom (a equipe, nos 2 min depois de pagar; o gestor, sempre) e no histórico ---------- */
+const TROCA_MS = 120000;
+const juntaFormas = F => { const o = new Map(); for (const x of F || []) if (x && x.f && x.v > 0.004) o.set(x.f, centavos((o.get(x.f) || 0) + x.v)); return [...o.entries()]; };
+const htmlTrocaPag = (F, alvo) => `<p class="explica">Toque na forma certa. A troca vale para todo o pagamento e o caixa acompanha.${gestor() ? '' : ' O gestor recebe o aviso da troca.'}</p>`
+  + F.map(([f, val]) => `<div class="tp-linha"><div class="tp-de"><b>${nomeForma(f)}</b><span class="num">${brl(val)}</span><small>trocar para</small></div><div class="tp-bts">${FORMAS.filter(([k]) => k !== f).map(([k, n]) => `<button type="button" class="bt tap" data-act="pag-trocar" data-de="${f}" data-para="${k}"${alvo.venda ? ` data-venda="${alvo.venda}"` : ` data-crianca="${alvo.crianca}"`}${alvo.cupom ? ` data-cupom="${alvo.cupom}"` : ''}>${n}</button>`).join('')}</div></div>`).join('');
+const trocaPapelHtml = () => { const P = PAPEL; if (!P || !P.spec || !P.ate || !juntaFormas(P.spec.formas).length) return ''; const resta = Math.max(0, P.ate - Date.now());
+  if (!gestor() && resta <= 0) return `<p class="explica tp-fim">Passou de 2 min: agora só o gestor troca a forma de pagamento (no histórico do cliente).</p>`;
+  return `<details class="outro tp-papel"><summary>Trocar a forma de pagamento${gestor() ? '' : ` · <b class="num" data-troca-ate="${P.ate}">${mss(resta / 1000)}</b>`}</summary><div class="tp-corpo">${htmlTrocaPag(juntaFormas(P.spec.formas), { crianca: P.spec.id || (P.spec.c || {}).id })}</div></details>`; };
+// a troca na folha do cupom fiscal (o módulo ligado): enquanto o cupom está a emitir; a equipe, nos 2 min do pagamento
+const trocaCupomHtml = k => { if (!k || k.status !== 'pendente' || !juntaFormas(k.formas).length) return ''; const ate = +dataDe(k.quando) + TROCA_MS, resta = Math.max(0, ate - Date.now());
+  if (!gestor() && resta <= 0) return '';
+  return `<details class="outro tp-papel"><summary>Trocar a forma de pagamento${gestor() ? '' : ` · <b class="num" data-troca-ate="${ate}">${mss(resta / 1000)}</b>`}</summary><div class="tp-corpo">${htmlTrocaPag(juntaFormas(k.formas), { crianca: k.crianca, cupom: k.id })}</div></details>`; };
+const pgEmDe = v => MODO === 'servidor' ? (v.pg_em ? dataDe(v.pg_em) : null) : (S.pagamentos || []).filter(p => p.venda === v.id).reduce((m, p) => !m || +new Date(p.quando) > +m ? new Date(p.quando) : m, null);
+const podeTrocarPag = v => !!v && Object.keys(formasDaCompra(v) || {}).length > 0 && (gestor() || (!!pgEmDe(v) && Date.now() - +pgEmDe(v) <= TROCA_MS));
+function folhaTrocaPag(vid) {
+  const v = LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === +vid), c = v && crianca(v.crianca); if (!v || !c) return;
+  if (!podeTrocarPag(v)) { toast('Passou de 2 min do pagamento: agora só o gestor troca a forma de pagamento'); return; }
+  const F = Object.entries(formasDaCompra(v)).filter(([, x]) => x > 0.004), em = pgEmDe(v);
+  abrirFolha('Trocar a forma de pagamento', `<div class="linha">${avatar(c)}<div class="txt"><b>${nomeResp(c)}</b><span>${esc(nomeCompraTxt(v))}${em ? ' · pago ' + quandoFoi(em) : ''}</span></div></div><div id="tp-corpo">${htmlTrocaPag(F, { venda: v.id })}</div>`);
+}
+async function trocarPag(el) {
+  const de = el.dataset.de, para = el.dataset.para, venda = +el.dataset.venda || 0, cid = +el.dataset.crianca || 0; $$('[data-act="pag-trocar"]').forEach(b => { b.disabled = true; });
+  try {
+    let r; if (MODO === 'servidor') { r = await api('pagamento_trocar', venda ? { venda, de, para } : { crianca: cid, de, para }); await carregar(); }
+    else { r = trocarPagPrevia({ venda, crianca: cid, de, para }); if (r.erro) throw new Error(r.erro); }
+    toast(`Forma trocada: ${nomeForma(de)} ${brl(r.valor)} → ${nomeForma(para)}${gestor() ? '' : ' · o gestor foi avisado'}`);
+    if (el.dataset.cupom) folhaCupom(+el.dataset.cupom, true);   // a folha do cupom fiscal: com a forma nova
+    else if (!venda && PAPEL && PAPEL.spec && $('#tk-previa')) {   // na folha do cupom: o cupom sai com a forma nova
+      PAPEL.spec.formas = juntaFormas((PAPEL.spec.formas || []).map(x => x.f === de ? { ...x, f: para } : x)).map(([f, v]) => ({ f, v }));
+      const vias = viasPapel(PAPEL.spec); PAPEL.vias = vias; $('#tk-previa').innerHTML = vias.map(v => `<div class="papel-fx">${v}</div>`).join(''); guardarPapel(PAPEL.spec, vias, true);
+      const t = $('#tk-troca'); if (t) t.innerHTML = trocaPapelHtml();
+    } else { fecharFolha(); if (LADO) await buscarHistorico(); }
+    desenhar(true);
+  } catch (e) { toast(e.message); $$('[data-act="pag-trocar"]').forEach(b => { b.disabled = false; }); }
+}
+function trocarPagPrevia({ venda, crianca: cid, de, para }) {   // (prévia) o mesmo que o servidor faz
+  if (de === para) return { erro: 'A forma nova é a mesma de agora.' }; const mais = (a, b) => +new Date(b.quando) - +new Date(a.quando);
+  let p = null; if (venda) p = (S.pagamentos || []).filter(x => x.venda === venda && x.f === de).sort(mais)[0];
+  else { const c0 = crianca(cid), ids0 = c0 ? familia(c0).map(x => x.id) : [cid]; p = (S.pagamentos || []).filter(x => ids0.includes(x.crianca) && x.f === de).sort(mais)[0]; }
+  if (!p) return { erro: `Não achei esse pagamento em ${nomeForma(de)}.` }; const q = +new Date(p.quando);
+  const c0 = crianca(p.crianca), ids0 = c0 ? familia(c0).map(x => x.id) : [p.crianca], pq = (S.papeis || []).filter(x => ids0.includes(x.crianca) && +dataDe(x.quando) >= q - 1000 && +dataDe(x.quando) <= q + 600000).reduce((m, x) => Math.max(m, +dataDe(x.quando)), 0);
+  if (!gestor() && Date.now() - Math.max(q, pq) > TROCA_MS + 10000) return { erro: 'Já passou de 2 min do pagamento: agora só o gestor troca a forma de pagamento.' };
+  const c = crianca(p.crianca), ids = c ? familia(c).map(x => x.id) : [p.crianca], L = S.pagamentos.filter(x => ids.includes(x.crianca) && x.f === de && Math.abs(+new Date(x.quando) - q) < 1500);
+  const valor = centavos(L.reduce((t, x) => t + x.v, 0)); for (const x of L) x.f = para;
+  for (const kid of new Set(L.map(x => x.cupom).filter(Boolean))) { const k = cupomDe(kid); if (k) refazerCupomPrevia(k); }   // o cupom fiscal acompanha
+  registrar('alt', c ? c.nome : '', `Troca de pagamento: ${nomeForma(de)} ${brl(valor)} → ${nomeForma(para)} (pago às ${hora(new Date(q))}) · por ${MAI(primeiro(EU.nome))}`);
+  if (!gestor()) { S.trocas = S.trocas || []; S.trocas.unshift({ id: -novoId(), troca: true, quando: new Date(), crianca: p.crianca, nome: c ? c.nome : '', resp: c ? c.resp : '', de, para, valor, por: EU.nomeCompleto || EU.nome, papel: EU.papel, uni: minhaUni() || null, visto_em: null, motivo: '', atendente: '' }); }
+  return { valor, de, para };
+}
+// 1.57: reimprimir: a equipe só nos 2 min depois do cupom; o gestor, sempre
+const reimpTrava = x => !gestor() && Date.now() - +dataDe(x.quando) > TROCA_MS + 5000;
 /* ---------- 1.14: reimprimir o cupom ---------- */
 // Cada cupom que sai (entrada, saída, devolução, comprovante) fica guardado com as duas vias, do jeito que foi impresso: no servidor,
 // por 60 dias; na prévia, na memória. A ficha do cliente tem o botão "Reimprimir cupom": a lista dos últimos cupons dele e, com um
@@ -4196,10 +4257,10 @@ const tituloPapel = spec => spec.tipo === 'saida' ? ((spec.alug || []).length ? 
 function resumoPapel(spec) { const c = spec.c || crianca(spec.id), F = (spec.formas || []).filter(p => p && p.f), tot = centavos(F.reduce((t, p) => t + (+p.v || 0), 0));
   const quem = spec.tipo === 'devolucao' ? spec.item || '' : spec.festa ? '' : spec.tipo === 'saida' && (spec.alug || []).length ? juntar([...(spec.grupo || []).map(x => (crianca(x.id) || c || {}).nome), ...spec.alug.map(y => y.item)].filter(Boolean)) : spec.tipo === 'saida' && spec.grupo && spec.grupo.length > 1 ? juntar(spec.grupo.map(x => (crianca(x.id) || c || {}).nome).filter(Boolean)) : c ? c.nome : '';
   return [quem, tot > 0 ? brl(tot) + (F.length === 1 ? ' ' + naForma(F[0].f) : '') : ''].filter(Boolean).join(' · '); }
-function guardarPapel(spec, vias) {
+function guardarPapel(spec, vias, troca) {   // troca (1.57): o cupom refeito depois da troca da forma de pagamento entra no lugar do anterior
   try { const c = spec && (spec.c || crianca(spec.id)); if (!c || !vias || !vias.length) return;
-    const reg = { crianca: c.id, tipo: spec.festa ? 'festa' : spec.tipo || 'entrada', titulo: spec.tipo === 'entrada' && !spec.festa && /COMPROVANTE DE PAGAMENTO/.test(vias[0]) ? 'Comprovante de pagamento' : tituloPapel(spec), resumo: resumoPapel(spec), vias: vias.map(v => v.replace(LOGO, '{LOGO}').replace(LOGO_PB, '{LOGO_PB}')) };
-    if (MODO === 'servidor') apiOff('papel_guardar', reg).catch(() => { }); else S.papeis = [{ ...reg, id: novoId(), quando: new Date(), por: EU.nome }, ...(S.papeis || [])].slice(0, 60);
+    const reg = { ...(troca ? { troca: 1 } : {}), crianca: c.id, tipo: spec.festa ? 'festa' : spec.tipo || 'entrada', titulo: spec.tipo === 'entrada' && !spec.festa && /COMPROVANTE DE PAGAMENTO/.test(vias[0]) ? 'Comprovante de pagamento' : tituloPapel(spec), resumo: resumoPapel(spec), vias: vias.map(v => v.replace(LOGO, '{LOGO}').replace(LOGO_PB, '{LOGO_PB}')) };
+    if (MODO === 'servidor') apiOff('papel_guardar', reg).catch(() => { }); else { const ant = troca ? (S.papeis || []).find(y => y.crianca === reg.crianca && y.tipo === reg.tipo) : null; S.papeis = [{ ...reg, id: novoId(), quando: new Date(), por: EU.nome }, ...(S.papeis || []).filter(y => y !== ant)].slice(0, 60); }
   } catch (e) { }   // guardar o cupom nunca atrapalha a venda nem a saída
 }
 // o texto guardado volta para a tela só com as marcações simples do cupom (o resto é tirado), e com a logo de novo
@@ -4214,14 +4275,15 @@ async function folhaReimprimir(id) {
   // 1.19: o cadastro foi corrigido depois de o cupom sair: o guardado é a cópia do que foi impresso (com o nome antigo), então o de entrada volta a ser oferecido "como está agora"
   const corrigido = (S.registros || []).reduce((m, r) => r.tipo === 'cad' && /^Cadastro corrigido/.test(r.txt || '') && (r.crianca != null ? ids.includes(r.crianca) : fam.some(x => x.nome === r.nome)) ? Math.max(m, +r.h) : m, 0);
   const dentro = fam.filter(x => x.entrou && !L.some(k => k.tipo === 'entrada' && k.crianca === x.id && k.quando >= x.entrou && +k.quando > corrigido));   // quem está no espaço e não tem o cupom de entrada guardado (entrou antes de os cupons serem guardados, ou o cadastro foi corrigido depois): o cupom de agora
-  abrirFolha('Reimprimir o cupom', `<p class="explica" id="rp-rot">Os últimos cupons de <b>${esc(c.resp)}</b>. Toque no cupom para ver e imprimir de novo.</p>
-    ${L.length || dentro.length ? `<div class="grupo" id="rp-lista">${dentro.map(x => `<button type="button" class="it tap" data-act="papel-ficha" data-id="${x.id}"><div class="txt"><b>Cupom de entrada</b><span>hoje, ${hora(x.entrou)} · ${esc(x.nome)} · como está agora</span></div><span class="vai">${ic(IC.vai, 18)}</span></button>`).join('')}${L.map(x => `<button type="button" class="it tap" data-act="papel-guardado" data-id="${x.id}"><div class="txt"><b>${esc(x.titulo)}</b><span>${quandoPapel(x.quando)}${x.resumo ? ' · ' + esc(x.resumo) : ''}</span></div><span class="vai">${ic(IC.vai, 18)}</span></button>`).join('')}</div>`
+  abrirFolha('Reimprimir o cupom', `<p class="explica" id="rp-rot">Os últimos cupons de <b>${esc(c.resp)}</b>. Toque no cupom para ver e imprimir de novo.${gestor() ? '' : ' A equipe reimprime só nos 2 minutos depois do cupom; depois disso, só o gestor.'}</p>
+    ${L.length || dentro.length ? `<div class="grupo" id="rp-lista">${dentro.map(x => `<button type="button" class="it tap${!gestor() && agora - x.entrou > TROCA_MS ? ' rp-trava' : ''}" data-act="papel-ficha" data-id="${x.id}"${!gestor() && agora - x.entrou > TROCA_MS ? ' disabled' : ''}><div class="txt"><b>Cupom de entrada</b><span>hoje, ${hora(x.entrou)} · ${esc(x.nome)} · como está agora</span></div><span class="vai">${ic(IC.vai, 18)}</span></button>`).join('')}${L.map(x => `<button type="button" class="it tap${reimpTrava(x) ? ' rp-trava' : ''}" data-act="papel-guardado" data-id="${x.id}"${reimpTrava(x) ? ' disabled title="Passou de 2 min: só o gestor reimprime"' : ''}><div class="txt"><b>${esc(x.titulo)}</b><span>${quandoPapel(x.quando)}${x.resumo ? ' · ' + esc(x.resumo) : ''}</span></div><span class="vai">${ic(IC.vai, 18)}</span></button>`).join('')}</div>`
       : `<p class="explica" id="rp-vazio">Nenhum cupom guardado para este cliente. Os cupons ficam guardados por ${dias} dias, a partir da versão 1.14.</p>`}`);
 }
 function viasGuardadas(vias) { return vias.slice(0, 1); }   // 1.30: na reimpressão, só a via da loja (os cupons guardados antes têm as duas)
 async function abrirPapelGuardado(id) {
   let x = null; if (MODO === 'servidor') { try { x = await api('papel_ver', { id }); } catch (e) { toast(e.message); return; } } else x = (S.papeis || []).find(k => k.id === id);
   if (!x || !x.vias || !x.vias.length) { toast('Este cupom não está mais guardado'); return; }
+  if (reimpTrava(x)) { toast('Passou de 2 min: só o gestor reimprime este cupom'); return; }   // 1.57
   const marca = `<p class="c-rod c-reimp">Reimpressão · ${dataCurta(new Date())}</p>`, topo = `<p class="c-reimp-t">REIMPRESSÃO · ${dataCurta(new Date())}</p>`;   // 1.56: em cima, em destaque, e embaixo
   const vias = viasGuardadas(x.vias).map(v => { let h = limparPapel(v); const k = h.indexOf('<p class="c-via">'); if (k >= 0) h = h.slice(0, k) + topo + h.slice(k); const i = h.lastIndexOf('</div>'); return i < 0 ? h + marca : h.slice(0, i) + marca + h.slice(i); });
   PAPEL = { spec: null, vias, guardado: x.id };
@@ -4295,6 +4357,7 @@ function folhaCupom(id, novo) {
     <ul class="pg-itens" aria-label="O que vai no cupom">${k.itens.map(i => `<li><span>${esc(i.n)}</span><b class="num">${brl(i.v)}</b></li>`).join('')}</ul>
     <div class="total pg-total"><span>Total do cupom</span><b class="num">${brl(k.valor)}</b></div>
     <div class="cp-dados"><span>${k.origem === 'saida' ? 'Recebido na saída' : 'Pago na venda'} das ${hora(k.quando)}: <b>${esc(textoPag(k.formas))}</b></span>${doc ? `<span>${doc[0]}: <b class="num">${esc(doc[1])}</b></span>` : ''}</div>
+    <div id="cp-troca" data-id="${k.id}">${trocaCupomHtml(k)}</div>
     ${corpo}`);
   if (k.status !== 'emitido' && k.status !== 'sem' && k.status !== 'cancelado' && window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches) setTimeout(() => { const b = $('#cp-ok'); if (b) b.focus(); }, 380);   // no computador, Enter confirma
 }
@@ -4932,6 +4995,10 @@ const ultVis = c => (c.visitas || []).reduce((m, v) => !m || +new Date(v.dia) > 
 const iniVisita = v => { if (v.ini) return new Date(v.ini); const d = horaNoDia(v.dia, v.entrou) || new Date(v.dia); if (d > new Date(v.dia)) d.setDate(d.getDate() - 1); return d; };   // a hora da entrada daquela visita
 const podeReabrir = c => { if (!c || c.entrou || !reabreLim() || !podeManual()) return false; const v = ultVis(c); if (!v) return false; const sai = +new Date(v.dia), ha = agora - sai;
   return ha <= reabreLim() * 60000 && ha > -300000 && !(S.cancelamentos || []).some(x => x.crianca === c.id && cancFechaVisita(x) && +x.entrou >= sai); };   // depois dessa saída houve uma entrada cancelada: aí é entrada nova
+// 1.57: depois do prazo, o gestor ainda reabre (a saída de hoje, sem entrada nova depois), deixando claro que é fora do prazo
+const podeReabrirGestor = c => { if (!gestor() || !c || c.entrou || !reabreLim() || !podeManual()) return false; const v = ultVis(c); if (!v) return false; const sai = new Date(v.dia);
+  return isoDia(sai) === isoDia(agora) && agora - sai > reabreLim() * 60000 && !(S.cancelamentos || []).some(x => x.crianca === c.id && cancFechaVisita(x) && +x.entrou >= +sai); };
+const podeReabrirJa = c => podeReabrir(c) || podeReabrirGestor(c);
 const saiuHaPouco = () => S.criancas.filter(podeReabrir).sort((a, b) => +new Date(ultVis(b).dia) - +new Date(ultVis(a).dia));
 const haMin = d => { const m = Math.floor((agora - d) / 60000); return m < 1 ? 'agora há pouco' : 'há ' + m + ' min'; };
 let N_SAIRAM = 0;   // quantos estavam em "Saíram há pouco" na última conta (quando muda, a lista é refeita)
@@ -5116,9 +5183,9 @@ function finalizadosHoje() {
     D.push(...G.values()); }
   return { V: V.sort((a, b) => b.saiu - a.saiu), D: D.sort((a, b) => b.voltou - a.voltou) };
 }
-const linhaFim = (x, varias) => { const c = crianca(x.crianca), u = varias && x.uni && nomeUni(x.uni) ? ' · ' + esc(nomeUni(x.uni)) : '', ult = c ? ultVis(c) : null, reabre = !!c && podeReabrir(c) && !!ult && (MODO === 'servidor' ? ult.id === x.id : +new Date(ult.dia) === +x.saiu);
+const linhaFim = (x, varias) => { const c = crianca(x.crianca), u = varias && x.uni && nomeUni(x.uni) ? ' · ' + esc(nomeUni(x.uni)) : '', ult = c ? ultVis(c) : null, reabre = !!c && podeReabrirJa(c) && !!ult && (MODO === 'servidor' ? ult.id === x.id : +new Date(ult.dia) === +x.saiu);
   const quem = `<span class="txt"><b>${esc(x.resp || x.nome)}</b><span>${x.resp ? esc(x.nome) + ' · ' : ''}entrou ${hora(x.entrou)} · saiu ${hora(x.saiu)} · ficou ${dur(Math.max(0, Math.floor((x.saiu - x.entrou) / 60000)))}${x.itens && x.itens.length ? ' · ' + esc(x.itens.join(', ')) : ''}${u}</span></span>`;
-  return `<div class="it fim-it">${c ? `<button class="quem tap" data-act="ficha-ver" data-id="${c.id}">${avatar(c)}${quem}</button>` : `<div class="quem"><span class="av">${esc(String(x.nome || '?').slice(0, 1))}</span>${quem}</div>`}<span class="fim-v"><b class="num">${x.valor > 0 ? brl(x.valor) : 'sem valor'}</b>${x.falta > 0.004 ? `<small class="pas">a receber ${brl(x.falta)}</small>` : ''}</span>${reabre ? `<button class="bt tap" data-act="reabrir" data-id="${c.id}" title="Desfaz a saída: o tempo continua contando desde a entrada">${ic(IC.renova, 14)} Reabrir</button>` : ''}</div>`; };
+  return `<div class="it fim-it">${c ? `<button class="quem tap" data-act="ficha-ver" data-id="${c.id}">${avatar(c)}${quem}</button>` : `<div class="quem"><span class="av">${esc(String(x.nome || '?').slice(0, 1))}</span>${quem}</div>`}<span class="fim-v"><b class="num">${x.valor > 0 ? brl(x.valor) : 'sem valor'}</b>${x.falta > 0.004 ? `<small class="pas">a receber ${brl(x.falta)}</small>` : ''}</span>${reabre ? `<button class="bt tap${podeReabrir(c) ? '' : ' canc-bt'}" data-act="reabrir" data-id="${c.id}" title="${podeReabrir(c) ? 'Desfaz a saída: o tempo continua contando desde a entrada' : 'Passou do prazo: só o gestor reabre, e fica anotado'}">${ic(IC.renova, 14)} ${podeReabrir(c) ? 'Reabrir' : 'Reabrir · gestor'}</button>` : ''}</div>`; };
 const linhaFimAlug = (x, varias) => { const c = crianca(x.crianca), u = varias && x.uni && nomeUni(x.uni) ? ' · ' + esc(nomeUni(x.uni)) : '';
   const quem = `<span class="txt"><b>${esc(x.resp || x.nome)}</b><span>${x.q > 1 ? x.q + ' × ' : ''}${esc(x.n)}${x.nome ? ' de ' + esc(x.nome) : ''} · saiu ${isoDia(x.saiu) === isoDia(x.voltou) ? hora(x.saiu) : diaCurto(x.saiu)} · voltou ${hora(x.voltou)}${u}</span></span>`;
   return `<div class="it fim-it">${c ? `<button class="quem tap" data-act="ficha-ver" data-id="${c.id}"><span class="av carr">${ic(IC.carrinho, 18)}</span>${quem}</button>` : `<div class="quem"><span class="av carr">${ic(IC.carrinho, 18)}</span>${quem}</div>`}<span class="fim-v"><b class="num">${x.valor > 0 ? brl(x.valor) : 'sem valor'}</b></span></div>`; };
@@ -5253,8 +5320,8 @@ function corpoEspaco() {
 // a folha que confirma: quem é, quando entrou e saiu, e como fica a conta se reabrir agora (o tempo fora também conta)
 function folhaReabrir(id) {
   const c = crianca(id); if (!c) return;
-  if (!podeReabrir(c)) { toast(c.entrou ? `${c.nome} já está no espaço` : `Já passou de ${reabreLim()} min da saída de ${c.nome}: agora é uma entrada nova`); return; }
-  const v = ultVis(c), saiu = new Date(v.dia), ini = iniVisita(v), p = periodo(), x = servicoTempo();
+  if (!podeReabrirJa(c)) { toast(c.entrou ? `${c.nome} já está no espaço` : `Já passou de ${reabreLim()} min da saída de ${c.nome}: agora é uma entrada nova${gestor() ? '' : '. Depois do prazo, só o gestor reabre'}`); return; }
+  const v = ultVis(c), saiu = new Date(v.dia), ini = iniVisita(v), p = periodo(), x = servicoTempo(), foraP = !podeReabrir(c);   // 1.57: foraP = o gestor reabrindo depois do prazo
   const saldo = Math.max(0, pacMin(c) - Math.max(0, c.usado - v.deb)), cob = Math.floor(saldo / p) * p, dentro = Math.max(0, (agora - ini) / 60000), fim = new Date(+ini + cob * 60000);   // com o que foi debitado de volta
   const n = Math.max(0, Math.ceil((cobrar(dentro) - saldo) / p)), valor = n * (x ? precoDe(c, x.v) : 0);   // as cobranças por atraso que nascem ao reabrir
   const conta = n ? `<div class="marca canc">${ic(IC.sino, 18)}<span><b>Já são ${dur(Math.floor(dentro))} desde a entrada.</b> Ao reabrir, a conta continua de onde parou: mais ${dur(n * p)} de recreação (${brl(valor)}), a receber na saída.</span></div>`
@@ -5262,18 +5329,19 @@ function folhaReabrir(id) {
     : `<div class="marca">${ic(IC.horas, 18)}<span>O tempo comprado vai até <b>${hora(fim)}</b>: ${cob - dentro < 1 ? 'falta menos de 1 min' : 'ainda ' + (cob - dentro < 2 ? 'falta 1 min' : 'faltam ' + minCurto(Math.floor(cob - dentro)))}.</span></div>`;
   abrirFolha('Reabrir a visita', `
     <div class="linha">${avatar(c)}<div class="txt"><b style="white-space:normal">${nomeResp(c)}</b>${c.resp ? `<span style="white-space:normal">${esc(c.nome)}</span>` : ''}<span style="white-space:normal">entrou às ${hora(ini)} · saiu às ${hora(saiu)}, ${haMin(saiu)} · tempo contado ${dur(v.deb)}</span></div></div>
+    ${foraP ? `<div class="marca canc reab-fora">${ic(IC.sino, 18)}<span><b>Você está REABRINDO a visita de ${esc(c.nome)} fora do prazo.</b> A saída foi às ${hora(saiu)}, há ${minCurto(Math.floor((agora - saiu) / 60000))} (o prazo é de ${reabreLim()} min). Só o gestor reabre agora, e fica anotado. O tempo fora entra na conta.</span></div>` : ''}
     <p class="explica"><b>Reabrir desfaz a saída.</b> O tempo continua contando desde a entrada das ${hora(ini)}, como se a criança não tivesse saído: o que foi debitado volta para o saldo e a conta é refeita na próxima saída.</p>
     ${conta}
-    <div class="pe-f"><span class="explica">Dá para reabrir até ${hora(new Date(+saiu + reabreLim() * 60000))} (${reabreLim()} min depois da saída). Fica anotado em Hoje na recepção, com quem reabriu.</span><button class="bt forte largo tap" id="rb-ok" data-act="reabrir-ok" data-id="${c.id}">${ic(IC.renova)} Reabrir a visita</button></div>`);
+    <div class="pe-f"><span class="explica">${foraP ? `Passou do prazo de ${reabreLim()} min: a reabertura fica anotada como fora do prazo, com o seu nome.` : `Dá para reabrir até ${hora(new Date(+saiu + reabreLim() * 60000))} (${reabreLim()} min depois da saída). Fica anotado em Hoje na recepção, com quem reabriu.`}</span><button class="bt ${foraP ? 'canc-bt' : 'forte'} largo tap" id="rb-ok" data-act="reabrir-ok" data-id="${c.id}">${ic(IC.renova)} ${foraP ? 'Reabrir fora do prazo (gestor)' : 'Reabrir a visita'}</button></div>`);
 }
 function reabrirPrevia(c) { // (prévia) o mesmo que o servidor faz
-  if (!podeReabrir(c)) return null; const v = ultVis(c), saiu = new Date(v.dia), ini = iniVisita(v), fora = Math.floor((agora - saiu) / 60000);
+  if (!podeReabrirJa(c)) return null; const foraP = !podeReabrir(c), v = ultVis(c), saiu = new Date(v.dia), ini = iniVisita(v), fora = Math.floor((agora - saiu) / 60000);
   c.visitas = c.visitas.filter(x => x !== v); c.usado = Math.max(0, c.usado - v.deb); c.entrou = ini;
   if (v.festa) { c.festa = v.festa; c.festaPapel = ((S.festaPres || []).find(p => p.festa === v.festa && p.crianca === c.id) || { papel: 'convidado' }).papel; }   // 1.29: a visita da festa volta a ser da festa
   const at = S.compras.filter(x => x.crianca === c.id && x.auto && x.quando >= ini && faltaCompra(x) > 0.004); c.atraso = at.length ? { n: at.length, valor: at.reduce((a, x) => a + x.v, 0) } : null;
   const sap = v.sap && v.sap <= nSap() && !donoSap(v.sap) ? v.sap : 0; c.sapateira = sap || null; if (temPeriodo(c)) c.liberado = true;   // a sapateira volta, se ainda estiver livre
   const linha = S.registros.find(r => r.tipo === 'sai' && r.nome === c.nome && Math.abs(r.h - saiu) < 60000); if (linha) linha.txt += ' · visita reaberta às ' + hora(new Date());
-  registrar('reab', c.nome, `Visita reaberta: a saída das ${hora(saiu)} foi desfeita (${fora < 1 ? 'menos de 1 min' : fora + ' min'} fora) · o tempo continua desde a entrada das ${hora(ini)} · por ${EU.nome}`);
+  registrar('reab', c.nome, `Visita reaberta: a saída das ${hora(saiu)} foi desfeita (${fora < 1 ? 'menos de 1 min' : fora + ' min'} fora) · o tempo continua desde a entrada das ${hora(ini)} · por ${EU.nome}${foraP ? ` · REABERTA FORA DO PRAZO (${reabreLim()} MIN), PELO GESTOR` : ''}`);
   const ja = c.atraso ? c.atraso.n : 0; acertarDemo(c, true); return { ini, sap, cobr: (c.atraso ? c.atraso.n : 0) - ja };
 }
 // (prévia) o teste do rodapé: 10 crianças no espaço, com nomes e horários diferentes, e o mesmo botão para tirar
@@ -5614,7 +5682,8 @@ function folhaFicha(id) { // 1.02: mais limpa. O que importa numa olhada: quem �
     ${c.obs ? obsAlerta(c) : ''}
     ${alugFicha(c)}
     ${emAberto(c) ? `<div class="marca retoma-f">${ic(IC.historico, 18)}<span><b>Atendimento em aberto:</b> ${esc(textoPend(c))}.</span><button class="bt forte tap" data-act="vender" data-id="${c.id}">Continuar</button></div>` : ''}
-    ${podeReabrir(c) ? (d => `<div class="marca reab">${ic(IC.renova, 18)}<span><b>Saiu às ${hora(d)}</b> · dá para reabrir a visita até ${hora(new Date(+d + reabreLim() * 60000))}.</span><button class="bt tap" data-act="reabrir" data-id="${c.id}">Reabrir</button></div>`)(new Date(ultVis(c).dia)) : ''}
+    ${podeReabrir(c) ? (d => `<div class="marca reab">${ic(IC.renova, 18)}<span><b>Saiu às ${hora(d)}</b> · dá para reabrir a visita até ${hora(new Date(+d + reabreLim() * 60000))}.</span><button class="bt tap" data-act="reabrir" data-id="${c.id}">Reabrir</button></div>`)(new Date(ultVis(c).dia))
+      : podeReabrirGestor(c) ? (d => `<div class="marca reab fora">${ic(IC.renova, 18)}<span><b>Saiu às ${hora(d)}</b> · passou do prazo de reabrir (${reabreLim()} min). Só o gestor reabre, e fica anotado.</span><button class="bt canc-bt tap" data-act="reabrir" data-id="${c.id}">Reabrir · gestor</button></div>`)(new Date(ultVis(c).dia)) : ''}   
     ${semIdface() ? '' : `<div class="marca libera-ficha">${ic(IC.rosto, 18)}<span>${textoAcesso(c)}</span>${chave(c)}</div>`}
     ${temVoucher(c) ? `<div class="marca">${ic(IC.presente, 18)}<span><b>${c.entrou ? 'Voucher usado nesta visita' : 'Voucher de hoje guardado'}</b> · ${porExt(periodo())} grátis.</span></div>` : ''}
     ${blocos(c, false)}
@@ -6078,9 +6147,12 @@ let PED_SINAL = '', AUT_MIN = false, BIPE = null; const AUT_VISTOS = new Set();
 let AV_SINAL = null, AV_JA = null;
 const avisoDe = x => ({ ...x, nome: MAI(x.nome), resp: MAI(x.resp), motivo: MAIT(x.motivo), atendente: MAI(x.atendente || ''), entrou: dataDe(x.entrou), quando: dataDe(x.quando), visto_em: x.visto_em ? dataDe(x.visto_em) : null });
 function avisosChegaram(lista) { if (!Array.isArray(lista)) return; const sinal = lista.map(x => x.id).join(','); if (sinal === AV_SINAL) return; const primeira = AV_SINAL === null; AV_SINAL = sinal; S.avisos = lista.map(avisoDe); if (primeira && AV_JA === null) AV_JA = new Set(S.avisos.map(x => x.id)); desenharPedidos(); }
-const avisosParaMim = () => !gestor() ? [] : MODO === 'servidor' ? (S.avisos || []).filter(x => !x.visto_em) : (S.cancelamentos || []).filter(x => !x.visto_em && x.papel !== 'gestor' && agora - x.quando < 86400000).sort((a, b) => b.quando - a.quando);
+const avisosParaMim = () => !gestor() ? [] : MODO === 'servidor' ? (S.avisos || []).filter(x => !x.visto_em) : [...(S.cancelamentos || []).filter(x => !x.visto_em && x.papel !== 'gestor' && agora - x.quando < 86400000), ...(S.trocas || []).filter(x => !x.visto_em)].sort((a, b) => b.quando - a.quando);   /* 1.57: e as trocas de pagamento */
 const avisosNovos = () => { const L = avisosParaMim(); if (AV_JA === null) { if (MODO === 'servidor') return []; AV_JA = new Set(L.map(x => x.id)); } return L.filter(x => !AV_JA.has(x.id)); };
-const htmlAviso = x => `<div class="aut-it aviso" data-av="${x.id}"><div class="aut-t"><small>${esc(quemCancelou(x))} · ${hora(x.quando)}${x.uni && S.unidades.length > 1 && nomeUni(x.uni) ? ' · ' + esc(nomeUni(x.uni)) : ''}</small><b>${cancOQue(x)}</b><span>${esc(x.resp ? x.resp + (x.nome ? ' · ' + x.nome : '') : x.nome)}${x.motivo ? ' · Motivo: ' + esc(x.motivo) : ''}</span></div>
+const htmlAvisoCanc = x => `<div class="aut-it aviso" data-av="${x.id}"><div class="aut-t"><small>${esc(quemCancelou(x))} · ${hora(x.quando)}${x.uni && S.unidades.length > 1 && nomeUni(x.uni) ? ' · ' + esc(nomeUni(x.uni)) : ''}</small><b>${cancOQue(x)}</b><span>${esc(x.resp ? x.resp + (x.nome ? ' · ' + x.nome : '') : x.nome)}${x.motivo ? ' · Motivo: ' + esc(x.motivo) : ''}</span></div>
+  <div class="aut-b"><button type="button" class="bt forte tap" data-act="av-visto" data-id="${x.id}">${ic(IC.check, 18, 2.6)} Visto</button>${x.crianca && crianca(x.crianca) ? `<button type="button" class="bt nao tap" data-act="historico" data-id="${x.crianca}">Histórico</button>` : ''}</div></div>`;
+// 1.57: o aviso da troca da forma de pagamento (id negativo), na mesma lista dos avisos do gestor
+const htmlAviso = x => !x.troca ? htmlAvisoCanc(x) : `<div class="aut-it aviso troca" data-av="${x.id}"><div class="aut-t"><small>${esc(primeiro(x.por || ''))} · ${hora(x.quando)}${x.uni && S.unidades.length > 1 && nomeUni(x.uni) ? ' · ' + esc(nomeUni(x.uni)) : ''}</small><b>Troca de pagamento: ${nomeForma(x.de)} ${brl(x.valor)} → ${nomeForma(x.para)}</b><span>${esc(x.resp ? x.resp + (x.nome ? ' · ' + x.nome : '') : x.nome)}</span></div>
   <div class="aut-b"><button type="button" class="bt forte tap" data-act="av-visto" data-id="${x.id}">${ic(IC.check, 18, 2.6)} Visto</button>${x.crianca && crianca(x.crianca) ? `<button type="button" class="bt nao tap" data-act="historico" data-id="${x.crianca}">Histórico</button>` : ''}</div></div>`;
 const euId = () => EU.id || (S.equipe.find(x => x.login === EU.login) || {}).id || 1;
 const podeDecidirTipo = t => t === 'cancelar_venda' ? podeEstornar() : t === 'valor' ? supervisorOuMais() : gestor();   // 1.33: a alteração de valor, a supervisora ou o gestor
@@ -6129,7 +6201,7 @@ function desenharPedidos() { // o cartão fica por cima de tudo (folha aberta, h
   const ap = $('#ap-lista'); if (ap) { ap.innerHTML = htmlAprovarTela(); const s = $('#miolo .faixa .tit small'); if (s) s.textContent = aprovarSub(); }   // 1.25: o painel da gestora mostra os mesmos, na própria tela
   if (typeof nav === 'function' && $('#nav-lado')) nav();   // (o número na aba do painel)
   if ((!L.length && !A.length) || ((S.tela === 'painel' || S.tela === 'aprovar') && !$('#folha .folha-fundo:not(.saindo)') && !LADO)) { a.hidden = true; a.innerHTML = ''; return; }   // (no painel à vista, o cartão não aparece: está tudo ali)
-  a.hidden = false; const tit = [L.length ? (L.length === 1 ? '1 pedido de autorização' : L.length + ' pedidos de autorização') : '', A.length ? (A.length === 1 ? '1 cancelamento' : A.length + ' cancelamentos') : ''].filter(Boolean).join(' · ');
+  a.hidden = false; const tit = [L.length ? (L.length === 1 ? '1 pedido de autorização' : L.length + ' pedidos de autorização') : '', A.filter(x => !x.troca).length ? (A.filter(x => !x.troca).length === 1 ? '1 cancelamento' : A.filter(x => !x.troca).length + ' cancelamentos') : '', A.filter(x => x.troca).length ? (A.filter(x => x.troca).length === 1 ? '1 troca de pagamento' : A.filter(x => x.troca).length + ' trocas de pagamento') : ''].filter(Boolean).join(' · ');
   a.innerHTML = `<div class="aut-cx${novos.length ? ' chegou' : ''}" role="region" aria-label="${A.length && !L.length ? 'Cancelamentos' : 'Pedidos de autorização'}" aria-live="polite"><button type="button" class="aut-cab tap" data-act="aut-min" aria-expanded="${!AUT_MIN}">${ic(IC.sino, 18)}<b>${tit}</b><span>${AUT_MIN ? 'Abrir' : 'Recolher'}</span></button>${AUT_MIN ? '' : `<div class="aut-lst">${L.map(htmlPedido).join('')}${A.map(htmlAviso).join('')}</div>`}</div>`;
 }
 async function decidirPedido(id, ok, el) { // liberar ou negar, com um toque
@@ -6212,7 +6284,8 @@ const acoesDaCompra = v => { const pede = podePedirCancelamento(v), cv = pede ? 
     : cv ? `<span class="canc-dica">Cancelamento pedido às ${hora(cv.em)} · esperando ${quemEstorna()}. <button type="button" class="link tap" data-act="ped-desistir" data-id="${cv.id}">Cancelar o pedido</button></span>`
     : pede ? `<button type="button" class="link tap canc-v" data-act="venda-cancelar" data-id="${v.id}">Pedir o cancelamento</button>` : '';
   const hs = podeAlterarHoras(v) ? `<button type="button" class="link tap vh-l" data-act="venda-horas" data-id="${v.id}">${ic(IC.lapis, 13)} Alterar as horas</button>` : '';   /* 1.55: só o gestor */
-  return nf || canc || hs ? `<span class="it-ac">${nf}${hs}${canc}</span>` : ''; };
+  const tp = podeTrocarPag(v) ? `<button type="button" class="link tap vh-l" data-act="pag-trocar-v" data-id="${v.id}">${ic(IC.desconto, 13)} Trocar pagamento</button>` : '';   /* 1.57 */
+  return nf || canc || hs || tp ? `<span class="it-ac">${nf}${hs}${tp}${canc}</span>` : ''; };
 /* ---------- 1.55: o gestor corrige as horas de um pacote (a equipe lançou errado) ----------
    Muda só as horas desta compra (o valor continua o mesmo) e o saldo do cliente acompanha a diferença. Não tira horas que já foram
    usadas. Vale também para as horas que vieram do sistema anterior. Fica registrado, com o motivo e o nome do gestor. */
@@ -6571,9 +6644,9 @@ function htmlCancelamentos() {
 function folhaCancelamentos() { if (!supervisorOuMais()) return; abrirFolha('Cancelamentos', `<div id="canc-corpo" style="display:flex;flex-direction:column;gap:12px">${htmlCancelamentos()}</div>`); }
 async function marcarVisto(id) { // id = 0: todos os que estão para conferir. 1.25: uma lista de ids (os avisos do painel)
   const vale = x => !x.visto_em && (Array.isArray(id) ? id.includes(x.id) : !id || x.id === id);
-  const L = (S.cancelamentos || []).filter(vale), noAviso = (S.avisos || []).some(vale); if (!L.length && !noAviso) return;
+  const L = (S.cancelamentos || []).filter(vale), noAviso = (S.avisos || []).some(vale) || (S.trocas || []).some(vale); if (!L.length && !noAviso) return;
   if (MODO === 'servidor') { try { const r = await api('cancelamento_visto', Array.isArray(id) ? { ids: id } : id ? { id } : { todos: true }); if (r && Array.isArray(r.avisos)) avisosChegaram(r.avisos); } catch (e) { toast(e.message); return; } }
-  for (const x of [...L, ...(S.avisos || []).filter(vale)]) { x.visto_por = EU.nomeCompleto || EU.nome; x.visto_em = new Date(); }   // 1.25: e o aviso da gestora
+  for (const x of [...L, ...(S.avisos || []).filter(vale), ...(S.trocas || []).filter(vale)]) { x.visto_por = EU.nomeCompleto || EU.nome; x.visto_em = new Date(); }   // 1.25: e o aviso da gestora
   const a = $('#canc-corpo'); if (a) a.innerHTML = htmlCancelamentos(); desenhar(true); desenharPedidos(); deuCerto(L.length > 1 ? `${L.length} cancelamentos marcados como vistos` : 'Marcado como visto');
 }
 /* ---------- histórico do cliente: uma aba à direita com tudo do responsável e das crianças dele ---------- */
@@ -6710,7 +6783,7 @@ function extratoDe(fam, d) {
       pag: av > 0 ? (np > 0.004 ? 'a receber' : formasTxt(o)) : '', extra: am ? (avulsa ? 'recreação avulsa ' : 'além do pacote ') + dur(am) : '', valor: av, np, efeito: -Math.max(0, (x.deb || 0) - am), un: uni(x) }); }
   for (const c of fam) { if (!c.entrou) continue; const A = abertos.get(c.id) || [], am = A.reduce((t, v) => t + minDe(v), 0), av = centavos(A.reduce((t, v) => t + v.v, 0));
     E.push({ q: new Date(agora), tipo: 'agora', crianca: c.id, titulo: 'No espaço agora', quem: varias ? c.nome : '', info: 'entrou às ' + hora(c.entrou), pag: av > 0 ? 'acerta na saída' : '', extra: am ? `recreação ${planoDe(c) === 'pacote' ? 'além do pacote' : 'avulsa'} até agora ${dur(am)}` : '', valor: av, np: av, efeito: 0, un: nomeUni(c.uni) || '' }); }
-  for (const g of d.ocorr || []) E.push({ q: g.q, tipo: 'ocorr', crianca: g.crianca || 0, titulo: g.tipo === 'canc' && /^Saída d/.test(g.texto || '') ? 'Saída cancelada' : g.tipo === 'alt' && /^Horas do pacote corrigidas/.test(g.texto || '') ? 'Horas alteradas pelo gestor' : g.tipo === 'alt' && /^Nota fiscal nº/.test(g.texto || '') ? 'Nota fiscal cancelada' : OCORR_REL[g.tipo] || 'Ocorrência',   /* 1.56 */ quem: varias && g.crianca ? nomeDe(g.crianca) : '', info: g.texto || '', pag: '', extra: '', valor: 0, np: 0, efeito: 0, un: '' });
+  for (const g of d.ocorr || []) E.push({ q: g.q, tipo: 'ocorr', crianca: g.crianca || 0, titulo: g.tipo === 'canc' && /^Saída d/.test(g.texto || '') ? 'Saída cancelada' : g.tipo === 'alt' && /^Horas do pacote corrigidas/.test(g.texto || '') ? 'Horas alteradas pelo gestor' : g.tipo === 'alt' && /^Nota fiscal nº/.test(g.texto || '') ? 'Nota fiscal cancelada' : g.tipo === 'alt' && /^Troca de pagamento/.test(g.texto || '') ? 'Troca de pagamento' : OCORR_REL[g.tipo] || 'Ocorrência',   /* 1.56 */ quem: varias && g.crianca ? nomeDe(g.crianca) : '', info: g.texto || '', pag: '', extra: '', valor: 0, np: 0, efeito: 0, un: '' });
   const ordem = { compra: 0, visita: 1, ocorr: 2, agora: 3 }; E.sort((a, b) => a.q - b.q || ordem[a.tipo] - ordem[b.tipo] || (a.n || 0) - (b.n || 0));   // na mesma hora: a compra antes da visita, e o que foi lançado primeiro antes
   // o saldo de cada linha. O saldo de hoje é o do sistema (sem o que a visita que está correndo ainda vai acertar). Quando os movimentos
   // guardados não explicam esse saldo (cadastro antigo, horas que vieram de antes), a diferença para mais é o saldo no início do histórico;
@@ -7121,22 +7194,29 @@ async function enviar(txt) {
 }
 
 /* ---------- Agenda ---------- */
+// 1.57: as festas vendidas também na Agenda (o pontinho no dia; no dia e na semana, com o horário). Tocar abre a festa
+const festasAg = () => festasVivas().filter(f => f && f.data);   /* as mesmas da tela de Festas (no servidor e na prévia) */
+const horaFestaAg = f => f.hora ? f.hora.replace(':', 'h') : f.dia === 'fds' ? '10h30' : 'a combinar';
+const itemFestaAg = (f, diaRef) => `<div class="oficina fe-ag"><span class="check fe-ic" aria-hidden="true">${ic(IC.festa, 14)}</span><button class="corpo tap" data-act="festa-ver" data-id="${f.id}"><i style="background:${TIPOS.festa[1]}"></i><div class="txt"><small>Festa vendida${f.tema ? ' · ' + esc(f.tema) : ''}${unidades().length > 1 && nomeUni(f.uni) ? ' · ' + esc(nomeUni(f.uni)) : ''}</small><b>Festa de ${esc(f.nome)}</b></div><span class="q">${f.data === diaRef ? horaFestaAg(f) : SEMANA[new Date(f.data + 'T12:00').getDay()].slice(0, 3) + ' ' + +f.data.slice(8) + ' · ' + horaFestaAg(f)}</span></button></div>`;
 function telaAgenda() {
   const { y, m } = S.mes, prim = new Date(y, m, 1).getDay(), dias = new Date(y, m + 1, 0).getDate(), hojeStr = isoDia(agora);
-  const doMes = S.compromissos.filter(x => x.dia.startsWith(`${y}-${p2(m + 1)}`));
+  const doMes = S.compromissos.filter(x => x.dia.startsWith(`${y}-${p2(m + 1)}`)), fesMes = festasAg().filter(f => f.data.startsWith(`${y}-${p2(m + 1)}`));
   let cel = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map(s => `<div class="sem">${s}</div>`).join('');
   for (let i = 0; i < prim; i++) cel += '<div class="d fora"></div>';
-  for (let d = 1; d <= dias; d++) { const dia = `${y}-${p2(m + 1)}-${p2(d)}`, its = doMes.filter(x => x.dia === dia); cel += `<button class="d tap ${dia === hojeStr ? 'hoje-d' : ''} ${dia === S.diaSel ? 'sel' : ''}" data-act="dia-sel" data-dia="${dia}" aria-label="${d} de ${MESES[m]}, ${its.length} itens">${d}<div class="pts">${its.slice(0, 3).map(x => `<em style="background:${TIPOS[x.tipo][1]}"></em>`).join('')}</div></button>`; }
+  for (let d = 1; d <= dias; d++) { const dia = `${y}-${p2(m + 1)}-${p2(d)}`, its = doMes.filter(x => x.dia === dia), fes = fesMes.filter(f => f.data === dia); cel += `<button class="d tap ${dia === hojeStr ? 'hoje-d' : ''} ${dia === S.diaSel ? 'sel' : ''}" data-act="dia-sel" data-dia="${dia}" aria-label="${d} de ${MESES[m]}, ${its.length + fes.length} itens">${d}<div class="pts">${[...its.map(x => TIPOS[x.tipo][1]), ...fes.map(() => TIPOS.festa[1])].slice(0, 3).map(cor => `<em style="background:${cor}"></em>`).join('')}</div></button>`; }
   const sel = new Date(S.diaSel + 'T12:00'), doDia = S.compromissos.filter(x => x.dia === S.diaSel).sort((a, b) => a.hora.localeCompare(b.hora));
   const semana = (() => { const d0 = new Date(sel); d0.setDate(d0.getDate() - d0.getDay()); const d6 = new Date(d0); d6.setDate(d0.getDate() + 6); return S.compromissos.filter(x => x.dia >= isoDia(d0) && x.dia <= isoDia(d6) && x.dia !== S.diaSel).sort((a, b) => (a.dia + a.hora).localeCompare(b.dia + b.hora)); })();
-  const item = x => itemComp(x, S.diaSel);
+  const item = x => itemComp(x, S.diaSel), hF = f => f.hora || (f.dia === 'fds' ? '10:30' : '23:59');   // 1.57: as festas vendidas entram no dia e na semana
+  const dDia = [...doDia.map(x => ({ k: x.hora, h: item(x) })), ...festasAg().filter(f => f.data === S.diaSel).map(f => ({ k: hF(f), h: itemFestaAg(f, S.diaSel) }))].sort((a, b) => a.k.localeCompare(b.k));
+  const dSem = (() => { const d0 = new Date(sel); d0.setDate(d0.getDate() - d0.getDay()); const d6 = new Date(d0); d6.setDate(d0.getDate() + 6); const a = isoDia(d0), z = isoDia(d6);
+    return [...semana.map(x => ({ k: x.dia + x.hora, h: item(x) })), ...festasAg().filter(f => f.data >= a && f.data <= z && f.data !== S.diaSel).map(f => ({ k: f.data + hF(f), h: itemFestaAg(f, S.diaSel) }))].sort((p, q) => p.k.localeCompare(q.k)); })();
   return faixa('Agenda', 'Oficinas, festas e compromissos', `<button class="chip tap" data-ir="festas" title="As festas vendidas das unidades, com o tema">${ic(IC.festa, 16)} Festas</button>${gestor() ? `<button class="chip tap" data-act="novo-comp">${ic(IC.mais, 16, 2.6)} Novo</button>` : ''}`) + `
   <div class="cards" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
     <div class="card"><div class="cal-cab"><h2>${MESES[m]} ${y}</h2><div class="nav"><button class="tap" data-act="mes" data-n="-1" aria-label="Mês anterior">${ic(IC.volta, 18)}</button><button class="tap" data-act="mes" data-n="0" aria-label="Hoje" style="width:auto;padding:0 10px;font-weight:800;font-size:13px">Hoje</button><button class="tap" data-act="mes" data-n="1" aria-label="Próximo mês">${ic(IC.vai, 18)}</button></div></div><div class="cal">${cel}</div>
       <div class="acoes" style="gap:12px;font-size:12.5px;color:var(--tinta-2);font-weight:700">${Object.entries(TIPOS).map(([k, [n, cor]]) => `<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:9px;height:9px;border-radius:50%;background:${cor};display:inline-block"></i>${n}</span>`).join('')}</div></div>
     <div class="sec sobe" id="agenda-dia"><div class="sec-cab"><h2><i></i>${S.diaSel === hojeStr ? 'Hoje' : SEMANA[sel.getDay()]}, ${sel.getDate()} de ${MESES[sel.getMonth()]}</h2>${gestor() ? '<button class="link tap" data-act="novo-comp">Marcar neste dia</button>' : ''}</div>
-      ${doDia.length ? doDia.map(item).join('') : `<div class="card vazio">${ic(IC.agenda, 26)}<b>Dia livre</b><span>Toque em "Marcar neste dia" para criar uma oficina, festa ou compromisso.</span></div>`}
-      ${semana.length ? `<div class="sec-cab" style="margin-top:8px"><h2 style="font-size:16px"><i style="background:var(--mostarda)"></i>Também nesta semana</h2></div>${semana.map(item).join('')}` : ''}
+      ${dDia.length ? dDia.map(x => x.h).join('') : `<div class="card vazio">${ic(IC.agenda, 26)}<b>Dia livre</b><span>Toque em "Marcar neste dia" para criar uma oficina, festa ou compromisso.</span></div>`}
+      ${dSem.length ? `<div class="sec-cab" style="margin-top:8px"><h2 style="font-size:16px"><i style="background:var(--mostarda)"></i>Também nesta semana</h2></div>${dSem.map(x => x.h).join('')}` : ''}
     </div>
   </div>`;
 }
@@ -7168,7 +7248,7 @@ function telaAjustes() {
       <div class="campo"><label>No cupom, o cliente lê tolerância de</label>${seg('tolCupom', [[0, 'Não mostrar'], [5, '5 min'], [9, '9 min'], [10, '10 min'], [15, '15 min']], tolCupom())}<span class="explica">É só o que sai escrito no cupom impresso. A conta do sistema continua com a tolerância de cima: a diferença é a folga da loja para os dias de fila.</span></div>
       <div class="campo"><label>Cancelar a entrada sem cobrar</label>${seg('cancelaMin', [[0, 'Não cancela'], [5, 'Até 5 min'], [9, 'Até 9 min'], [10, 'Até 10 min'], [15, 'Até 15 min']], cancelaLim())}<span class="explica">Nesse prazo, contado da entrada, o próprio operador cancela e nada é cobrado, mas precisa escrever o motivo. Passou do prazo, a opção some e ninguém cancela mais (nem o gestor): o período é cobrado. ${supervisorOuMais() ? `<button class="link tap" data-act="cancelamentos">Ver os cancelamentos${aConferir().length ? ' (' + aConferir().length + ' para conferir)' : ''}</button>` : ''}</span></div>
       <div class="campo" id="aj-estorno"><label>Quem desfaz ou cancela o que já tem valor</label>${seg('estorno', [['gestor', 'Só o gestor'], ['supervisor', 'Gestor e supervisor'], ['todos', 'Toda a equipe']], quemEstornaCfg())}<span class="explica">Vale para a venda registrada, o pagamento recebido e a saída ou a devolução que receberam: quem não está aqui, se errou, chama ${quemEstorna()}, que cancela a venda no histórico do cliente, com o motivo (a tela diz o que devolver). <b>O botão Desfazer é só do gestor</b>: o operador e o supervisor não têm o Desfazer em nada. ${cancelaLim() > 0 ? `A entrada errada eles ainda cancelam nos primeiros ${cancelaLim()} min, pela ficha, com o motivo e o nome da atendente.` : 'Com o cancelamento da entrada desligado (acima), a entrada errada eles resolvem com o gestor.'}${reabreLim() > 0 ? ' A saída dada por engano volta pelo Reabrir, no prazo de baixo.' : ''}</span></div>
-      <div class="campo"><label>Reabrir a visita depois da saída</label>${seg('reabreMin', [[0, 'Não reabre'], [15, 'Até 15 min'], [30, 'Até 30 min'], [60, 'Até 1 hora']], reabreLim())}<span class="explica">Para quando a criança sai e volta logo em seguida (chorou e o responsável deixou ficar mais). Nesse prazo, quem saiu aparece em <b>Saíram há pouco</b>, na tela inicial, com o botão <b>Reabrir</b>: a saída é desfeita e o tempo continua contando desde a entrada, como se não tivesse saído. Fica anotado em Hoje na recepção, com quem reabriu. Passou do prazo, é uma entrada nova.</span></div>
+      <div class="campo"><label>Reabrir a visita depois da saída</label>${seg('reabreMin', [[0, 'Não reabre'], [10, 'Até 10 min'], [15, 'Até 15 min'], [30, 'Até 30 min'], [60, 'Até 1 hora']], reabreLim())}<span class="explica">Para quando a criança sai e volta logo em seguida (chorou e o responsável deixou ficar mais). Nesse prazo, quem saiu aparece em <b>Saíram há pouco</b>, na tela inicial, com o botão <b>Reabrir</b>: a saída é desfeita e o tempo continua contando desde a entrada, como se não tivesse saído. Fica anotado em Hoje na recepção, com quem reabriu. Passou do prazo, é uma entrada nova.</span></div>
       <div class="campo"><label>A loja fecha às</label>${seg('fecha', [[20, '20h'], [21, '21h'], [22, '22h'], [23, '23h'], [24, 'Meia-noite']], +cfg.fecha || 22)}<span class="explica">Depois dessa hora o tempo para de contar. Assim uma saída esquecida não vira cobrança a noite toda (o gestor corrige a hora da visita depois, na ficha da criança).</span></div>
       <div class="campo"><label>Marcar "acabando" quando faltar</label>${seg('aviso', [[5, '5 min'], [10, '10 min'], [15, '15 min'], [30, '30 min'], [60, '1 hora']], cfg.aviso)}<span class="explica">Vale para quem entrou com pacote: a criança fica em amarelo na lista do espaço quando as horas dele estão no fim, só para a equipe ver. Na recreação avulsa não há prazo. Nada é enviado ao responsável.</span></div>
       <div class="campo"><label>Quando o pacote zerar</label>${seg('bloqueioAuto', [['sim', 'Bloquear o acesso sozinho'], ['nao', 'Deixar autorizado']], cfg.bloqueioAuto || 'sim')}<span class="explica">Bloqueando sozinho, o iDFace passa a recusar o rosto da criança até alguém vender horas (a venda libera de novo). Quem acabou de ser cadastrado e ainda não comprou horas também começa bloqueado. Assim o controle fica com o aparelho, não com o funcionário.</span></div>
@@ -7344,7 +7424,7 @@ const ACOES = {
   'cpf-escolher': el => { const i = $('#f-cpf'); if (!i) return; i.value = cpfFmt(el.dataset.cpf); i.dispatchEvent(new Event('input', { bubbles: true })); const n = $('#f-nome'); if (n && !n.value) n.focus(); },   /* escolheu o cliente pelo começo do CPF: o cadastro traz o resto */
   'papel-imprimir': () => { if (!PAPEL) return; imprimirPapel(PAPEL.vias); fecharFolha(); },
   'papel-reimprimir': el => folhaReimprimir(+el.dataset.id), 'papel-guardado': el => abrirPapelGuardado(+el.dataset.id), 'papel-imprimir-cliente': () => { if (!PAPEL || !PAPEL.vias[1]) return; imprimirPapel([PAPEL.vias[1]]); fecharFolha(); },   /* 1.14: reimprimir o cupom */
-  'papel-ficha': el => folhaPapel({ tipo: 'entrada', id: +el.dataset.id }), 'papel-ajustes': el => folhaPapelAjustes(!!el && (el.id === 'tk-direta-ir' || el.id === 'tk-icone-ir')), 'papel-atalho': () => baixarAtalhoImp(), 'papel-mac': el => { if (MODO !== 'servidor') { toast('O comando do Mac é copiado no site da loja: lá ele já vem com o endereço do sistema.'); return; } copiarTexto(comandoMac(), 'Comando do Mac', el); const d = $('#tk-mac'); if (d) d.open = true; },   /* 1.47 */ 'papel-teste': () => imprimirPapel(papelTeste()),
+  'papel-ficha': el => { const c = crianca(+el.dataset.id); if (!gestor() && c && c.entrou && agora - c.entrou > TROCA_MS) { toast('Passou de 2 min: só o gestor reimprime este cupom'); return; } folhaPapel({ tipo: 'entrada', id: +el.dataset.id }); }, 'papel-ajustes': el => folhaPapelAjustes(!!el && (el.id === 'tk-direta-ir' || el.id === 'tk-icone-ir')), 'papel-atalho': () => baixarAtalhoImp(), 'papel-mac': el => { if (MODO !== 'servidor') { toast('O comando do Mac é copiado no site da loja: lá ele já vem com o endereço do sistema.'); return; } copiarTexto(comandoMac(), 'Comando do Mac', el); const d = $('#tk-mac'); if (d) d.open = true; },   /* 1.47 */ 'papel-teste': () => imprimirPapel(papelTeste()),
   'papel-modo': el => { guardar('ps-cupom', el.dataset.v); $$('#tk-modo [data-v]').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === modoPapel())); const t = $('#tk-modo-txt'); if (t) t.textContent = textoModoPapel(); const r = $('#tk-modo-rot'); if (r) r.textContent = rotModoPapel(); if (S.tela === 'ajustes') desenhar(true); },
   'papel-salvar': () => { const nome = MAI(val('tk-loja')), tel = val('tk-tel'), aviso = MAI(val('tk-aviso')); if (!nome) { toast('Escreva o nome da loja que sai no cupom'); const i = $('#tk-loja'); if (i) i.focus(); return; }
     const ok = () => { fecharFolha(); desenhar(); deuCerto('Cupom salvo'); };
@@ -7392,7 +7472,7 @@ const ACOES = {
     const c = crianca(el.dataset.id); if (!c) return; const nome = c.nome, id = c.id; el.disabled = true;
     const feito = (ini, sap, cobr) => { if (S.espFiltro === 'sairam') S.espFiltro = 'todas'; fecharFolha(); desenhar(); const txt = `Visita de ${nome} reaberta · o tempo conta desde ${hora(ini)}${cobr ? ' · mais recreação na conta da saída' : ''}`; if (sap) deuCerto(txt + ' · sapateira ' + sap); else deuCerto(txt); };
     if (MODO === 'servidor') { try { const r = await api('reabrir_visita', { id }); await carregar(); feito(dataDe(r.entrou), r.sapateira, r.cobrancas); } catch (e) { el.disabled = false; toast(e.message); } return; }
-    const r = reabrirPrevia(c); if (r) feito(r.ini, r.sap, r.cobr); else { el.disabled = false; toast(`Já passou de ${reabreLim()} min da saída de ${nome}`); }
+    const r = reabrirPrevia(c); if (r) feito(r.ini, r.sap, r.cobr); else { el.disabled = false; toast(`Já passou de ${reabreLim()} min da saída de ${nome}${gestor() ? '' : ': depois do prazo, só o gestor reabre'}`); }
   },
   'entrada-rapida': el => { entrada(crianca(el.dataset.id), 'mão'); desenhar(); },
   liberar: el => { // a chavinha: muda na hora, avisa o servidor, e o aviso tem Desfazer
@@ -7522,6 +7602,7 @@ const ACOES = {
   nf: el => folhaNF(el.dataset.id), 'nf-notas': () => abrirNotasNF(), 'copia-baixar': el => baixarCopia(el.dataset.nome || '', el), 'copia-fazer': el => fazerCopia(el), 'nf-pedir': el => pedirNF(el), 'nf-senha': el => acaoNF('senha', el), 'nf-emitida': el => acaoNF('emitida', el), 'nf-voltar': el => acaoNF('voltar', el), 'nf-largar': el => acaoNF('largar', el), 'nf-copiar': el => acaoNF('copiar', el),
   'em-salvar': el => emailAcao('salvar', el), 'em-agora': el => emailAcao('agora', el),   // 1.56
   'banco-horas': el => horasDoCliente(+el.dataset.id), 'venda-horas': el => folhaHoras(el.dataset.id), 'venda-horas-ok': el => salvarHoras(el), 'nf-cancelar': el => acaoNF('cancelar', el),   // 1.55
+  'pag-trocar': el => trocarPag(el), 'pag-trocar-v': el => folhaTrocaPag(el.dataset.id),   // 1.57
   'venda-cancelar': el => folhaCancelarVenda(el.dataset.id), 'venda-cancelar-ok': el => confirmarCancelarVenda(el),   // 1.21: quem estorna cancela uma venda, com o motivo
   'ver-como': el => { // (prévia) ver a tela como gestor, supervisor ou operador
     if (MODO === 'servidor') return; const u = S.equipe.find(x => x.papel === el.dataset.v); if (!u) return;
@@ -7796,6 +7877,7 @@ setInterval(() => {
   $$('[data-cron-txt]').forEach(el => { const c = crianca(el.dataset.cronTxt); if (c && c.entrou) el.textContent = hms(segDentro(c)); });
   // o prazo para cancelar sem cobrar: o tempo que falta corre; quando acaba, o atalho some do anel e a ficha muda sozinha
   $$('[data-cortesia]').forEach(el => { const c = crianca(el.dataset.cortesia), t = c && c.entrou ? cortesiaTxt(c) : ''; if (el.textContent !== t) el.textContent = t; const b = el.closest('button'); if (b && c && !noPrazoCancelar(c)) { if (gestor()) b.classList.add('fora'); else if (!b.disabled) b.disabled = true; } });   // 1.42: a contagem da cortesia; acabou o prazo, o botão apaga (1.56: para o gestor, fica com o aviso)
+  $$('[data-troca-ate]').forEach(el => { const r = +el.dataset.trocaAte - Date.now(); if (r > 0) { el.textContent = mss(r / 1000); return; } const t = $('#tk-troca'); if (t && !gestor()) t.innerHTML = trocaPapelHtml(); const q = $('#cp-troca'); if (q && !gestor()) q.innerHTML = trocaCupomHtml(cupomDe(q.dataset.id)); });   // 1.57
   $$('[data-cort-rel]').forEach(el => { const c = crianca(el.dataset.cortRel); if (!c || !c.entrou) return; const t = relCortesia(c), n = el.firstChild; if (n && n.nodeType === 3 && n.nodeValue !== t) n.nodeValue = t; });   // 1.56: o relógio da cortesia
   $$('[data-cancela]').forEach(el => { const c = crianca(el.dataset.cancela); if (c && noPrazoCancelar(c)) { el.textContent = mss(faltaCancelar(c)); return; } const b = el.closest('.canc-link'); if (b) b.remove(); });
   $$('[data-ficha-cancela]').forEach(el => { const c = crianca(el.dataset.fichaCancela), e = estadoCancelar(c); if (e !== el.dataset.estado) { el.dataset.estado = e; el.innerHTML = c ? blocoCancelar(c) : ''; } });

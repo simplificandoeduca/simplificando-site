@@ -1301,6 +1301,16 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzm. Festas na Agenda, trocar a forma de pagamento e reabrir fora do prazo (1.57)
+
+- **Agenda:** as festas vendidas aparecem no calendário (o pontinho no dia), no dia escolhido e na semana, com o horário e o tema. Tocar abre a festa.
+- **Trocar a forma de pagamento** ("o cliente disse crédito e pagou no Pix"):
+  - **na folha do cupom**, logo depois de pagar: "Trocar a forma de pagamento", com o relógio de 2 minutos. Toque na forma certa e o cupom sai com ela (com o cupom fiscal ligado, fica na folha do cupom fiscal, enquanto ele está a emitir);
+  - **no histórico do cliente**, em cada compra: "Trocar pagamento". A equipe só nos 2 minutos depois de pagar; o **gestor, sempre**.
+  - A troca vale para o pagamento inteiro; o caixa, as Finanças e o cupom fiscal acompanham. Fica o registro (e no extrato). A troca feita pela equipe **avisa o gestor** na tela (com o "Visto") e no celular.
+- **Reimprimir o cupom:** a equipe só nos 2 minutos depois do cupom; depois, só o gestor.
+- **Reabrir a visita:** dentro do prazo (Ajustes → Reabrir a visita: agora também "Até 10 min"), qualquer um reabre. Depois do prazo, **só o gestor**, no mesmo dia: o botão diz "Reabrir · gestor" e a folha avisa em vermelho que ele está reabrindo fora do prazo; fica anotado.
+
 ## 6zzl. Telefone na notinha, reimpressão, cancelar fora da tolerância, cortesia, alterar as horas pelo número e o e-mail do dia (1.56)
 
 - **Notinha (cupom):** o telefone do cliente sai nas **duas vias** (da loja e do cliente), para ligar para ele pela notinha. Na reimpressão, sai **REIMPRESSÃO** com a data e a hora em cima (e embaixo).

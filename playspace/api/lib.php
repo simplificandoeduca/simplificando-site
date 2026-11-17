@@ -385,6 +385,11 @@ function db(): PDO {
     $pdo->exec('CREATE TABLE IF NOT EXISTS usuarios_vistos (uid INTEGER NOT NULL, slot INTEGER NOT NULL, PRIMARY KEY (uid, slot)) WITHOUT ROWID');
     $pdo->exec('PRAGMA user_version = 36');
   }
+  if ($v < 37) { // 1.57: as trocas da forma de pagamento (o gestor vê o aviso de cada troca feita pela equipe)
+    $pdo->exec("CREATE TABLE IF NOT EXISTS trocas_pag (id INTEGER PRIMARY KEY, quando TEXT NOT NULL, crianca_id INTEGER, nome TEXT NOT NULL DEFAULT '', resp TEXT NOT NULL DEFAULT '', de TEXT NOT NULL, para TEXT NOT NULL, valor REAL NOT NULL DEFAULT 0,
+      pago_em TEXT, por INTEGER, por_nome TEXT NOT NULL DEFAULT '', papel TEXT NOT NULL DEFAULT '', unidade_id INTEGER, visto_em TEXT, visto_por TEXT NOT NULL DEFAULT '')");
+    $pdo->exec('PRAGMA user_version = 37');
+  }
   return $pdo;
 }
 /* ---------- 1.06: unidades ---------- */
@@ -552,7 +557,10 @@ const AVISO_HORAS = 24;
 function avisosDaGestora(array $u): array {
   if (($u['papel'] ?? '') !== 'gestor') return [];
   $q = db()->prepare("SELECT * FROM cancelamentos WHERE visto_em IS NULL AND papel != 'gestor' AND quando >= ? ORDER BY id DESC LIMIT 40"); $q->execute([date('Y-m-d H:i:s', time() - AVISO_HORAS * 3600)]);
-  return array_map('cancelamentoPublico', $q->fetchAll());
+  $L = array_map('cancelamentoPublico', $q->fetchAll());
+  $q = db()->prepare("SELECT * FROM trocas_pag WHERE visto_em IS NULL AND papel != 'gestor' AND quando >= ? ORDER BY id DESC LIMIT 40"); $q->execute([date('Y-m-d H:i:s', time() - AVISO_HORAS * 3600)]);   // 1.57: e as trocas da forma de pagamento (id negativo)
+  foreach ($q->fetchAll() as $t) $L[] = trocaPublica($t);
+  return $L;
 }
 
 /* ---------- 1.23: os pedidos de autorização ---------- */
@@ -1004,7 +1012,8 @@ function reabrirVisita(array $c, array $u): array {
   if ($lim <= 0) falha('Reabrir a visita está desligado em Ajustes.');
   $v = ultimaVisita((int)$c['id']); if (!$v) falha($c['nome'] . ' ainda não tem visita para reabrir.');
   $fora = max(0, agoraTs() - strtotime((string)$v['saiu']));
-  if ($fora > $lim * 60 + 10) falha('Já passou de ' . $lim . ' min da saída de ' . $c['nome'] . ' (saiu às ' . substr((string)$v['saiu'], 11, 5) . '). Agora é uma entrada nova.');   // 10 s de folga para o pedido que já estava a caminho
+  $foraPrazo = $fora > $lim * 60 + 10; $gestor = ($u['papel'] ?? '') === 'gestor';   // 1.57: depois do prazo, só o gestor reabre (no mesmo dia), e fica anotado
+  if ($foraPrazo && (!$gestor || substr((string)$v['saiu'], 0, 10) !== date('Y-m-d'))) falha('Já passou de ' . $lim . ' min da saída de ' . $c['nome'] . ' (saiu às ' . substr((string)$v['saiu'], 11, 5) . '). Agora é uma entrada nova' . ($gestor ? ' (a saída foi em outro dia).' : '. Depois do prazo, só o gestor reabre.'));   // 10 s de folga para o pedido que já estava a caminho
   $q = $db->prepare("SELECT 1 FROM cancelamentos WHERE crianca_id = ? AND entrou >= ? AND tipo = ''"); $q->execute([$c['id'], $v['saiu']]);   // uma entrada feita depois dessa saída e cancelada
   if ($q->fetchColumn()) falha('Depois dessa saída houve uma entrada cancelada. Faça uma entrada nova.');
   // a sapateira que a criança tinha na saída volta para ela, se ainda estiver livre
@@ -1017,7 +1026,7 @@ function reabrirVisita(array $c, array $u): array {
     $db->prepare('UPDATE criancas SET entrou = ?, usado_min = MAX(0, usado_min - ?), sapateira = ?, festa_id = ? WHERE id = ?')->execute([$v['entrou'], (int)$v['debitado_min'], $sap ?: null, $v['festa_id'] ?? null, $c['id']]);   // 1.29: a visita da festa volta a ser da festa
     $db->prepare('DELETE FROM visitas WHERE id = ?')->execute([$v['id']]);
     if ($linha) $db->prepare('UPDATE registros SET texto = texto || ? WHERE id = ?')->execute([' · visita reaberta às ' . substr($agora, 11, 5), $linha['id']]);
-    $reg = registrar('reab', (int)$c['id'], $c['nome'], 'Visita reaberta: a saída das ' . substr((string)$v['saiu'], 11, 5) . ' foi desfeita (' . ($min < 1 ? 'menos de 1 min' : $min . ' min') . ' fora) · o tempo continua desde a entrada das ' . substr((string)$v['entrou'], 11, 5) . ' · por ' . primeiroNome($u['nome']), $agora);
+    $reg = registrar('reab', (int)$c['id'], $c['nome'], 'Visita reaberta: a saída das ' . substr((string)$v['saiu'], 11, 5) . ' foi desfeita (' . ($min < 1 ? 'menos de 1 min' : $min . ' min') . ' fora) · o tempo continua desde a entrada das ' . substr((string)$v['entrou'], 11, 5) . ' · por ' . primeiroNome($u['nome']) . ($foraPrazo ? ' · REABERTA FORA DO PRAZO (' . $lim . ' MIN), PELO GESTOR' : ''), $agora);
     $db->commit();
   } catch (Throwable $e) { $db->rollBack(); throw $e; }
   $c = crianca((int)$c['id']);
@@ -1190,6 +1199,43 @@ function gravarPagamento(array $vendaIds, array $formas, int $criancaId, ?int $p
     }
   }
   return $gravado;
+}
+/* ---------- 1.57: trocar a forma de pagamento ("o cliente disse crédito e pagou no Pix") ----------
+   A equipe troca só nos 2 minutos depois de pagar (na hora do cupom); o gestor, sempre. A troca vale para o pagamento inteiro (todas as
+   linhas daquela forma, gravadas no mesmo instante, das crianças do responsável): o caixa, as Finanças e o cupom fiscal acompanham. Fica
+   o registro; a troca feita pela equipe vira um aviso para o gestor (na tela e no celular). */
+const TROCA_PAG_SEG = 120;
+function trocarPagamento(array $in, array $u): array {
+  $db = db(); $de = (string)($in['de'] ?? ''); $para = (string)($in['para'] ?? '');
+  if (!isset(FORMAS_PAGAMENTO[$de]) || !isset(FORMAS_PAGAMENTO[$para])) falha('Escolha a forma de pagamento.');
+  if ($de === $para) falha('A forma nova é a mesma de agora.');
+  if (!empty($in['venda'])) { $q = $db->prepare('SELECT * FROM pagamentos WHERE venda_id = ? AND forma = ? ORDER BY id DESC LIMIT 1'); $q->execute([(int)$in['venda'], $de]); }
+  else { $c0 = crianca((int)($in['crianca'] ?? 0)); if (!$c0) falha('Cliente não encontrado.', 404); $f0 = array_merge([(int)$c0['id']], array_map(fn($x) => (int)$x['id'], irmaosDe($c0)));
+    $q = $db->prepare('SELECT * FROM pagamentos WHERE crianca_id IN (' . implode(',', $f0) . ') AND forma = ? ORDER BY id DESC LIMIT 1'); $q->execute([$de]); }
+  $p = $q->fetch(); $q->closeCursor(); if (!$p) falha('Não achei esse pagamento em ' . FORMAS_PAGAMENTO[$de] . '.', 404);
+  $c = crianca((int)$p['crianca_id']); $fam = $c ? array_merge([(int)$c['id']], array_map(fn($x) => (int)$x['id'], irmaosDe($c))) : [(int)$p['crianca_id']];
+  $ha = time() - strtotime((string)$p['quando']); $gestor = ($u['papel'] ?? '') === 'gestor';
+  if (!$gestor && $ha > TROCA_PAG_SEG + 10) { // a equipe: 2 min do pagamento ou do cupom impresso dele (o guardado nos 10 min depois do pagamento)
+    $q = $db->prepare('SELECT MAX(quando) FROM papeis WHERE crianca_id IN (' . implode(',', $fam) . ') AND quando >= ? AND quando <= ?'); $q->execute([(string)$p['quando'], date('Y-m-d H:i:s', strtotime((string)$p['quando']) + 600)]);
+    $pq = (string)$q->fetchColumn(); $q->closeCursor(); if ($pq === '' || time() - strtotime($pq) > TROCA_PAG_SEG + 10) falha('Já passou de 2 min do pagamento: agora só o gestor troca a forma de pagamento.', 403); }
+  $q = $db->prepare('SELECT id, valor, cupom_id FROM pagamentos WHERE crianca_id IN (' . implode(',', $fam) . ') AND quando = ? AND forma = ?'); $q->execute([(string)$p['quando'], $de]); $L = $q->fetchAll();
+  $valor = round(array_sum(array_map(fn($x) => (float)$x['valor'], $L)), 2); $nomeC = (string)($c['nome'] ?? '');
+  $db->beginTransaction();
+  try {
+    $db->prepare('UPDATE pagamentos SET forma = ? WHERE id IN (' . implode(',', array_map(fn($x) => (int)$x['id'], $L)) . ')')->execute([$para]);
+    foreach (array_unique(array_filter(array_map(fn($x) => (int)($x['cupom_id'] ?? 0), $L))) as $k) refazerCupom((int)$k);   // o cupom fiscal acompanha
+    $reg = registrar('alt', (int)$p['crianca_id'], $nomeC, 'Troca de pagamento: ' . FORMAS_PAGAMENTO[$de] . ' ' . dinheiro($valor) . ' → ' . FORMAS_PAGAMENTO[$para] . ' (pago às ' . substr((string)$p['quando'], 11, 5) . ') · por ' . maiusculo(primeiroNome((string)$u['nome'])));
+    $db->prepare('INSERT INTO trocas_pag (quando, crianca_id, nome, resp, de, para, valor, pago_em, por, por_nome, papel, unidade_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      ->execute([agora(), (int)$p['crianca_id'], $nomeC, (string)($c['resp'] ?? ''), $de, $para, $valor, (string)$p['quando'], (int)$u['id'], (string)$u['nome'], (string)$u['papel'], unidadeDoPedido()]);
+    $tid = (int)$db->lastInsertId(); $db->commit();
+  } catch (Throwable $e) { if ($db->inTransaction()) $db->rollBack(); throw $e; }
+  if (!$gestor) { require_once __DIR__ . '/push-lib.php'; pushDepois(function () use ($tid) { pushTroca($tid); }); }
+  return ['valor' => $valor, 'de' => $de, 'para' => $para, 'registro' => $reg, 'pago_em' => (string)$p['quando']];
+}
+function trocaPublica(array $t): array {
+  return ['id' => -(int)$t['id'], 'troca' => true, 'quando' => (string)$t['quando'], 'crianca' => $t['crianca_id'] === null ? null : (int)$t['crianca_id'], 'nome' => (string)$t['nome'], 'resp' => (string)$t['resp'],
+    'de' => (string)$t['de'], 'para' => (string)$t['para'], 'valor' => round((float)$t['valor'], 2), 'por' => (string)$t['por_nome'], 'papel' => (string)$t['papel'], 'uni' => $t['unidade_id'] === null ? null : (int)$t['unidade_id'],
+    'motivo' => '', 'atendente' => '', 'entrou' => null, 'itens' => [], 'tipo' => 'troca', 'visto_em' => $t['visto_em'], 'visto_por' => (string)$t['visto_por']];
 }
 /* ---------- 1.04: desconto do gestor na tela de pagamento ---------- */
 // Só o gestor dá desconto: a tela manda o valor em reais (e o percentual, quando foi digitado em %) e o motivo. O desconto sai do valor das

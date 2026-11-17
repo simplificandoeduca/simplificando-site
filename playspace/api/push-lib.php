@@ -95,6 +95,14 @@ function pushPedido(array $p): array {
   $quem = trim((string)$p['pedido_nome']); $corpo = mb_substr(($quem !== '' ? $quem . ($uni !== '' ? ' · ' . $uni : '') . ': ' : ($uni !== '' ? $uni . ': ' : '')) . trim((string)$p['texto']) . (trim((string)($p['motivo'] ?? '')) !== '' ? ' · Motivo: ' . trim((string)$p['motivo']) : ''), 0, 200);   // 1.54: o motivo vai junto
   return pushMandar($L, fn($i) => ['t' => $titulo, 'b' => $corpo, 'tag' => 'pedido-' . (int)$p['id'], 'url' => in_array((string)$i['papel'], ['gestor', 'supervisor'], true) ? './#aprovar' : './']);   // 1.33: a supervisora também tem as Aprovações
 }
+// 1.57: o aviso da troca da forma de pagamento feita pela equipe: no celular do gestor
+function pushTroca(int $id): array {
+  $q = db()->prepare('SELECT * FROM trocas_pag WHERE id = ?'); $q->execute([$id]); $t = $q->fetch(); if (!$t) return ['ok' => 0, 'erro' => 0, 'saiu' => 0];
+  $L = array_values(array_filter(db()->query('SELECT i.*, u.papel FROM push_inscricoes i JOIN usuarios u ON u.id = i.usuario_id AND u.ativo = 1 ORDER BY i.id')->fetchAll(), fn($i) => (string)$i['papel'] === 'gestor' && (int)$i['usuario_id'] !== (int)$t['por']));
+  if (!$L) return ['ok' => 0, 'erro' => 0, 'saiu' => 0];
+  $corpo = mb_substr(trim((string)$t['por_nome']) . ': ' . trim((string)($t['resp'] !== '' ? $t['resp'] : $t['nome'])) . ' · ' . (FORMAS_PAGAMENTO[$t['de']] ?? $t['de']) . ' ' . dinheiro((float)$t['valor']) . ' → ' . (FORMAS_PAGAMENTO[$t['para']] ?? $t['para']), 0, 200);
+  return pushMandar($L, fn($i) => ['t' => 'Troca de pagamento', 'b' => $corpo, 'tag' => 'troca-' . $id, 'url' => './#aprovar']);
+}
 // depois de responder à tela: quem pediu não espera os avisos saírem (o PHP fecha a conexão e continua). A sessão é solta antes
 function pushDepois(callable $f): void {
   register_shutdown_function(function () use ($f) {
