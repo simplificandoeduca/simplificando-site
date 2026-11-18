@@ -1737,6 +1737,9 @@ body.has-dock .toast,body.has-dock .utoast{bottom:calc(176px + env(safe-area-ins
 .pf-h{margin:-6px 0 0;font-size:40px;font-weight:900;letter-spacing:-.05em;line-height:1}
 .pf-sub .nta{background:var(--ctl)}
 .pf-ver .ver-btn{margin-top:0;width:auto}.pf-ver .ver-btn.nova{background:none;color:#C8302F}
+/* trocar exercício (quem treina sem personal) */
+.tr-btn{margin:2px 0 12px;width:100%}
+.tr-txt{margin:0 0 12px}
 </style>
 
 <div class="app" id="app"></div>
@@ -3531,6 +3534,52 @@ function lgClick(a,d,b){
 }
 
 
+/* ---------- trocar o exercício (só quem treina sem personal): no lugar de um exercício, um parecido.
+   Ex.: sem halter para a elevação lateral → elevação lateral na polia, na máquina, desenvolvimento… A troca fica no treino;
+   o exercício de antes aparece no topo para voltar quando quiser. ---------- */
+const trocaPode = () => !!ACCT && ACCT.mode==='self';
+const trGrupo = e => { const k = catOf(e.id); if(k) return k.g; const g = GRUPOS.find(x => normTx(x[1])===normTx(e.alvo)); return g ? g[0] : ''; };
+const trPal = s => normTx(s).replace(/\b(com|na|no|de|do|da|em|e|a|o)\b/g,' ').split(/\s+/).filter(w => w.length>2);
+function trocaLista(e, t){
+  const k = catOf(e.id), g = trGrupo(e), pal = trPal(e.nome).slice(0,2), noTreino = new Set(((S.conta && S.conta.treinos && S.conta.treinos[t] || {}).ex || PLAN[t].ex).map(x => x.id));
+  const nota = x => { let n = 0; if(x.g===g) n += 4; else if(x.g2===g || (k && k.g2===x.g)) n += 1;
+    if(k){ if(x.t===k.t) n += 2; if(k.anim && (x.anim===k.anim || x.id===k.anim)) n += 3; if(x.anim && x.anim===k.id) n += 3; }
+    const xp = trPal(x.nome); n += pal.filter(w => xp.includes(w)).length*2; return n; };
+  return CAT.filter(x => x.id!==e.id && !noTreino.has(x.id) && (x.g===g || x.g2===g)).map(x => ({x, n:nota(x)})).sort((a,b) => b.n-a.n || a.x.nome.localeCompare(b.x.nome,'pt-BR'));
+}
+function vTroca(id){
+  const f = findEx(id); if(!f) return '';
+  const e = f.e, L = trocaLista(e, f.t), k = catOf(e.id);
+  // os 4 mais parecidos + os 2 melhores do outro tipo (ex.: elevação lateral → desenvolvimento), para quem não tem o aparelho
+  const top = L.filter(o => o.n>=6).slice(0,4); L.filter(o => !top.includes(o) && k && o.x.t!==k.t && o.x.g===k.g).slice(0,2).forEach(o => top.push(o));
+  const resto = L.filter(o => !top.includes(o));
+  const row = (x, i, extra) => `<button type="button" class="row mt-prow" data-a="troca" data-v="${x.id}">${exThumb(x,'tr'+i)}<span class="main"><b>${esc(x.nome)}</b><span>${extra || (GNOME[x.g]+' · '+eqTxt(x.eq))}</span></span><span class="mt-plus" aria-hidden="true">${ic('chev')}</span></button>`;
+  const orig = e.orig && catOf(e.orig);
+  return shWrap(`${sheetTop('Treino '+f.t+' · no lugar de '+esc(e.nome), 'Trocar exercício<span class="dot" aria-hidden="true"></span>')}
+    <p class="muted tr-txt">Escolha um parecido. Ele entra no lugar de <b>${esc(e.nome)}</b> no treino ${f.t}, com as mesmas séries.</p>
+    ${orig ? `<div class="list mt-list">${row(orig, 'o', 'Voltar para o exercício de antes')}</div>` : ''}
+    ${top.length ? `<h3>Mais parecidos</h3><div class="list mt-list">${top.map((o,i) => row(o.x, i)).join('')}</div>` : ''}
+    ${resto.length ? `<h3>${top.length ? 'Outros de ' : ''}${GNOME[trGrupo(e)] || 'Outros'}</h3><div class="list mt-list">${resto.map((o,i) => row(o.x, 'r'+i)).join('')}</div>` : ''}
+    ${!L.length && !orig ? '<p class="muted">Não achei outro exercício para esse grupo. Dá para montar o seu em Perfil › Meus treinos.</p>' : ''}
+    <button type="button" class="btn block" data-a="open" data-ex="${e.id}">${ic('chevL')}Voltar ao exercício</button>`);
+}
+function trocaFaz(oldId, newId){
+  if(!trocaPode()) return;
+  const f = findEx(oldId), x = catOf(newId); if(!f || !x) return;
+  if(doneSets(oldId)){ toast('Você já fez séries desse exercício hoje. Troque no próximo treino.'); return; }
+  toOwn(); const T = S.conta.treinos[f.t], ex = T && T.ex, i = ex ? ex.findIndex(e => e.id===oldId) : -1; if(i<0) return;
+  if(ex.some(e => e.id===newId)){ toast(x.nome+' já está no treino '+f.t+'.'); return; }
+  const v = ex[i], ia = S.conta.ia || {}, n = exFromCat(x, S.ed, ia.nivel||'int');
+  n.s = v.s || n.s;
+  if(v.aq && x.t==='c'){ n.aq = true; if(v.aqW) n.aqW = JSON.parse(JSON.stringify(v.aqW)); }
+  if(v.sup) n.sup = v.sup;
+  const orig = v.orig || v.id; if(orig!==newId && catOf(orig)) n.orig = orig;
+  ex[i] = n; ex.forEach(e => { if(e.sup===oldId) e.sup = newId; });
+  if(!T.g.includes(x.g)) T.g.push(x.g);
+  const lg = S.logs[tDia()]; if(lg) delete lg[oldId];
+  mtFix(); ui.sheet = {k:'ex', id:newId}; renderSheet(true); render();
+  toast(newId===orig ? 'Voltou para '+x.nome+'.' : 'Trocado por '+x.nome+'.');
+}
 /* ---------- regras ---------- */
 function findEx(id){ for(const t of LETTERS){ const e = PLAN[t].ex.find(x => x.id===id); if(e) return {e,t}; } return null; }
 function nextTreino(){ const t = nextTreino0(); return PLAN[t] ? t : LETTERS[0]; }
@@ -3672,6 +3721,7 @@ const IC = {
   lock:'<rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/>',
   camera:'<path d="M4 8h3l1.6-2.5h6.8L17 8h3v11H4z"/><circle cx="12" cy="13.2" r="3.6"/>',
   gear:'<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
+  swap:'<path d="M7 4.5L3.5 8 7 11.5M3.5 8h13M17 12.5l3.5 3.5-3.5 3.5M20.5 16h-13"/>',
   moon:'<path d="M19.5 14.5A8 8 0 1 1 9.5 4.5a6.5 6.5 0 0 0 10 10z"/>',
   bolt:'<path d="M13 2.5L5 13.5h6l-1 8 8-11h-6z"/>',
   flame:'<path d="M12 21.5a6.5 6.5 0 0 0 6.5-6.5c0-4.5-4-6.5-4.5-11-2.5 2-5 5-5 8a3 3 0 0 1-1.5-2.5C6.2 11 5.5 12.8 5.5 15a6.5 6.5 0 0 0 6.5 6.5z"/>',
@@ -5336,6 +5386,7 @@ function vSheet(id){
   }
   return `<div class="sheet-wrap" data-a="closebg"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t" tabindex="-1">${sheetTop('Treino '+f.t+' · '+e.alvo, e.nome)}
     <div class="presc"><div><b>${e.s}</b><span>séries</span></div><div><b>${e.r}</b><span>repetições</span></div><div><b>${e.d}s</b><span>descanso</span></div></div>
+    ${trocaPode() && !doneSets(id) ? `<button type="button" class="btn small tr-btn" data-a="troca-open" data-ex="${e.id}">${ic('swap')}Trocar exercício</button>` : ''}
     ${seg('pane',['series','exec','hist'],pane,['Séries','Execução','Histórico'],'Seções do exercício')}<div class="pane">${body}</div></div></div>`;
 }
 function vSummary(i){
@@ -5906,7 +5957,7 @@ function render(){
 function renderSheet(freshOpen){
   if(!ui.sheet){ $sheet.innerHTML = ''; document.body.classList.remove('locked'); return; }
   const oldWrap = $sheet.querySelector('.sheet-wrap:not(.closing)'), old = oldWrap && oldWrap.querySelector('.sheet'), st = old && !freshOpen ? old.scrollTop : 0;
-  $sheet.innerHTML = ui.sheet.k==='aval' ? vAval() : ui.sheet.k==='dsask' ? vDsAsk() : ui.sheet.k==='esq' ? vEsq() : (ui.sheet.k==='site' || ui.sheet.k==='inst' || ui.sheet.k==='baixar') ? vBaixar() : ui.sheet.k==='acomp' ? vAcomp() : ui.sheet.k==='doc' ? vDocSheet() : ui.sheet.k==='excluir' ? vExcluir() : ui.sheet.k==='meus' ? vMeus() : ui.sheet.k==='ia' ? vIA() : ui.sheet.k==='ex' ? vSheet(ui.sheet.id) : ui.sheet.k==='prof' ? vProfile() : ui.sheet.k==='cs' || ui.sheet.k==='cman' ? vCardioSheet() : ui.sheet.k==='gym' ? vGym() : ui.sheet.k==='exq' ? vExq(ui.sheet.id) : ui.sheet.k==='story' ? vStory() : ui.sheet.k==='stpick' ? vStPick() : ui.sheet.k==='cstory' ? vCStory() : ui.sheet.k==='cstpick' ? vCStPick() : vSummary(ui.sheet.i);
+  $sheet.innerHTML = ui.sheet.k==='aval' ? vAval() : ui.sheet.k==='dsask' ? vDsAsk() : ui.sheet.k==='esq' ? vEsq() : (ui.sheet.k==='site' || ui.sheet.k==='inst' || ui.sheet.k==='baixar') ? vBaixar() : ui.sheet.k==='acomp' ? vAcomp() : ui.sheet.k==='doc' ? vDocSheet() : ui.sheet.k==='excluir' ? vExcluir() : ui.sheet.k==='meus' ? vMeus() : ui.sheet.k==='troca' ? vTroca(ui.sheet.id) : ui.sheet.k==='ia' ? vIA() : ui.sheet.k==='ex' ? vSheet(ui.sheet.id) : ui.sheet.k==='prof' ? vProfile() : ui.sheet.k==='cs' || ui.sheet.k==='cman' ? vCardioSheet() : ui.sheet.k==='gym' ? vGym() : ui.sheet.k==='exq' ? vExq(ui.sheet.id) : ui.sheet.k==='story' ? vStory() : ui.sheet.k==='stpick' ? vStPick() : ui.sheet.k==='cstory' ? vCStory() : ui.sheet.k==='cstpick' ? vCStPick() : vSummary(ui.sheet.i);
   const sh = $sheet.querySelector('.sheet');
   const nw = $sheet.querySelector('.sheet-wrap');
   if(old && nw && sh){ nw.classList.add('still'); sh.scrollTop = st; }
@@ -6211,6 +6262,8 @@ function onClick(ev){
       renderSheet(true); re = false; break;
     }
     case 'close': case 'closebg': closeSheet(); re = false; break;
+    case 'troca-open': if(trocaPode()){ ui.sheet = {k:'troca', id:d.ex}; renderSheet(true); } re = false; break;
+    case 'troca': trocaFaz(ui.sheet.id, d.v); re = false; break;
     case 'pane': ui.pane = d.v; renderSheet(); re = false; break;
     case 'setok': toggleSet(ui.sheet.id, +d.i); re = false; break;
     case 'rir': getLog(ui.sheet.id)[+d.i].rir = +d.v; save(); renderSheet(); re = false; break;

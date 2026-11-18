@@ -217,6 +217,8 @@ function onClick(ev){
       renderSheet(true); re = false; break;
     }
     case 'close': case 'closebg': closeSheet(); re = false; break;
+    case 'troca-open': if(trocaPode()){ ui.sheet = {k:'troca', id:d.ex}; renderSheet(true); } re = false; break;
+    case 'troca': trocaFaz(ui.sheet.id, d.v); re = false; break;
     case 'pane': ui.pane = d.v; renderSheet(); re = false; break;
     case 'setok': toggleSet(ui.sheet.id, +d.i); re = false; break;
     case 'rir': getLog(ui.sheet.id)[+d.i].rir = +d.v; save(); renderSheet(); re = false; break;

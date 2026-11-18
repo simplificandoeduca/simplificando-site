@@ -233,3 +233,49 @@ function lgClick(a,d,b){
 }
 
 
+/* ---------- trocar o exercício (só quem treina sem personal): no lugar de um exercício, um parecido.
+   Ex.: sem halter para a elevação lateral → elevação lateral na polia, na máquina, desenvolvimento… A troca fica no treino;
+   o exercício de antes aparece no topo para voltar quando quiser. ---------- */
+const trocaPode = () => !!ACCT && ACCT.mode==='self';
+const trGrupo = e => { const k = catOf(e.id); if(k) return k.g; const g = GRUPOS.find(x => normTx(x[1])===normTx(e.alvo)); return g ? g[0] : ''; };
+const trPal = s => normTx(s).replace(/\b(com|na|no|de|do|da|em|e|a|o)\b/g,' ').split(/\s+/).filter(w => w.length>2);
+function trocaLista(e, t){
+  const k = catOf(e.id), g = trGrupo(e), pal = trPal(e.nome).slice(0,2), noTreino = new Set(((S.conta && S.conta.treinos && S.conta.treinos[t] || {}).ex || PLAN[t].ex).map(x => x.id));
+  const nota = x => { let n = 0; if(x.g===g) n += 4; else if(x.g2===g || (k && k.g2===x.g)) n += 1;
+    if(k){ if(x.t===k.t) n += 2; if(k.anim && (x.anim===k.anim || x.id===k.anim)) n += 3; if(x.anim && x.anim===k.id) n += 3; }
+    const xp = trPal(x.nome); n += pal.filter(w => xp.includes(w)).length*2; return n; };
+  return CAT.filter(x => x.id!==e.id && !noTreino.has(x.id) && (x.g===g || x.g2===g)).map(x => ({x, n:nota(x)})).sort((a,b) => b.n-a.n || a.x.nome.localeCompare(b.x.nome,'pt-BR'));
+}
+function vTroca(id){
+  const f = findEx(id); if(!f) return '';
+  const e = f.e, L = trocaLista(e, f.t), k = catOf(e.id);
+  // os 4 mais parecidos + os 2 melhores do outro tipo (ex.: elevação lateral → desenvolvimento), para quem não tem o aparelho
+  const top = L.filter(o => o.n>=6).slice(0,4); L.filter(o => !top.includes(o) && k && o.x.t!==k.t && o.x.g===k.g).slice(0,2).forEach(o => top.push(o));
+  const resto = L.filter(o => !top.includes(o));
+  const row = (x, i, extra) => `<button type="button" class="row mt-prow" data-a="troca" data-v="${x.id}">${exThumb(x,'tr'+i)}<span class="main"><b>${esc(x.nome)}</b><span>${extra || (GNOME[x.g]+' · '+eqTxt(x.eq))}</span></span><span class="mt-plus" aria-hidden="true">${ic('chev')}</span></button>`;
+  const orig = e.orig && catOf(e.orig);
+  return shWrap(`${sheetTop('Treino '+f.t+' · no lugar de '+esc(e.nome), 'Trocar exercício<span class="dot" aria-hidden="true"></span>')}
+    <p class="muted tr-txt">Escolha um parecido. Ele entra no lugar de <b>${esc(e.nome)}</b> no treino ${f.t}, com as mesmas séries.</p>
+    ${orig ? `<div class="list mt-list">${row(orig, 'o', 'Voltar para o exercício de antes')}</div>` : ''}
+    ${top.length ? `<h3>Mais parecidos</h3><div class="list mt-list">${top.map((o,i) => row(o.x, i)).join('')}</div>` : ''}
+    ${resto.length ? `<h3>${top.length ? 'Outros de ' : ''}${GNOME[trGrupo(e)] || 'Outros'}</h3><div class="list mt-list">${resto.map((o,i) => row(o.x, 'r'+i)).join('')}</div>` : ''}
+    ${!L.length && !orig ? '<p class="muted">Não achei outro exercício para esse grupo. Dá para montar o seu em Perfil › Meus treinos.</p>' : ''}
+    <button type="button" class="btn block" data-a="open" data-ex="${e.id}">${ic('chevL')}Voltar ao exercício</button>`);
+}
+function trocaFaz(oldId, newId){
+  if(!trocaPode()) return;
+  const f = findEx(oldId), x = catOf(newId); if(!f || !x) return;
+  if(doneSets(oldId)){ toast('Você já fez séries desse exercício hoje. Troque no próximo treino.'); return; }
+  toOwn(); const T = S.conta.treinos[f.t], ex = T && T.ex, i = ex ? ex.findIndex(e => e.id===oldId) : -1; if(i<0) return;
+  if(ex.some(e => e.id===newId)){ toast(x.nome+' já está no treino '+f.t+'.'); return; }
+  const v = ex[i], ia = S.conta.ia || {}, n = exFromCat(x, S.ed, ia.nivel||'int');
+  n.s = v.s || n.s;
+  if(v.aq && x.t==='c'){ n.aq = true; if(v.aqW) n.aqW = JSON.parse(JSON.stringify(v.aqW)); }
+  if(v.sup) n.sup = v.sup;
+  const orig = v.orig || v.id; if(orig!==newId && catOf(orig)) n.orig = orig;
+  ex[i] = n; ex.forEach(e => { if(e.sup===oldId) e.sup = newId; });
+  if(!T.g.includes(x.g)) T.g.push(x.g);
+  const lg = S.logs[tDia()]; if(lg) delete lg[oldId];
+  mtFix(); ui.sheet = {k:'ex', id:newId}; renderSheet(true); render();
+  toast(newId===orig ? 'Voltou para '+x.nome+'.' : 'Trocado por '+x.nome+'.');
+}

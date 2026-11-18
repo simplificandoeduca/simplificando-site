@@ -44,6 +44,7 @@ function vSheet(id){
   }
   return `<div class="sheet-wrap" data-a="closebg"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t" tabindex="-1">${sheetTop('Treino '+f.t+' · '+e.alvo, e.nome)}
     <div class="presc"><div><b>${e.s}</b><span>séries</span></div><div><b>${e.r}</b><span>repetições</span></div><div><b>${e.d}s</b><span>descanso</span></div></div>
+    ${trocaPode() && !doneSets(id) ? `<button type="button" class="btn small tr-btn" data-a="troca-open" data-ex="${e.id}">${ic('swap')}Trocar exercício</button>` : ''}
     ${seg('pane',['series','exec','hist'],pane,['Séries','Execução','Histórico'],'Seções do exercício')}<div class="pane">${body}</div></div></div>`;
 }
 function vSummary(i){
