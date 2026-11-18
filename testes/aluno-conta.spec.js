@@ -8,11 +8,16 @@ test('cria conta e a IA monta o treino', async ({ page }) => {
   expect(r.nome).toBe('Joana Lima'); expect(r.aceite).toBe(true);
 });
 
-test('conta nova não pode ter cadastro sem os 3 aceites', async ({ page }) => {
+test('conta nova: um aceite só (termos, privacidade, dados de saúde e treino automático); sem ele não cadastra', async ({ page }) => {
   await abreApp(page);
   await page.click('[data-a="lg-self"]');
   await page.fill('#su-nome', 'Ana'); await page.fill('#su-email', 'ana@teste.com'); await page.fill('#su-senha', '135790');
-  await page.click('[data-a="su-ck"][data-v="t"]');
+  await expect(page.locator('[data-a="su-ck"]')).toHaveCount(1);
+  await expect(page.locator('[data-a="su-ck"]')).toContainText('dados de saúde');
+  await expect(page.locator('.su-go')).toBeDisabled();
+  await page.click('[data-a="su-ck"][data-v="all"]');
+  await expect(page.locator('.su-go')).toBeEnabled();
+  await page.click('[data-a="su-ck"][data-v="all"]');
   await expect(page.locator('.su-go')).toBeDisabled();
 });
 
@@ -47,7 +52,7 @@ test('quem usava sem conta: o perfil do aparelho vira conta com os treinos', asy
   await page.click('[data-a="lg-self"]');
   await expect(page.locator('.lg-leg')).toContainText('vão junto');
   await page.fill('#su-nome', 'Carla Souza'); await page.fill('#su-email', 'carla' + Date.now() + '@teste.com'); await page.fill('#su-senha', '135790');
-  for (const v of ['t', 's', 'p']) await page.click(`[data-a="su-ck"][data-v="${v}"]`);
+  await page.click('[data-a="su-ck"][data-v="all"]');
   await page.click('.su-go');
   await page.waitForFunction(() => window.__simp.ACCT && window.__simp.ACCT.uid && !document.getElementById('login'), null, { timeout: 15000 });
   const r = await simp(page, () => ({ treinos: window.__simp.S.history.length, nome: window.__simp.S.nome, antigo: !!localStorage.getItem('simplificando-pro-v2:self') }));

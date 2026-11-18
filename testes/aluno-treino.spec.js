@@ -73,8 +73,12 @@ test('finalizar salva o treino e abre a tela de treino concluído', async ({ pag
   const antes = await simp(page, () => window.__simp.S.history.length);
   await simp(page, id => window.__simp.markAll(id), id);
   await page.click('[data-a="finish"]'); await page.click('[data-a="finish"]');
-  await page.waitForFunction(() => window.__simp.ui.sheet && window.__simp.ui.sheet.k === 'stpick');
+  // primeiro o resumo (minutos, volume, séries e recordes); o story fica no botão
+  await page.waitForFunction(() => window.__simp.ui.sheet && window.__simp.ui.sheet.k === 'sum');
   await expect(page.locator('#sheet')).toContainText('Treino concluído');
+  await expect(page.locator('#sheet')).toContainText('de volume');
+  await page.click('#sheet [data-a="st-open"]');
+  await page.waitForFunction(() => window.__simp.ui.sheet && window.__simp.ui.sheet.k === 'stpick');
   const h = await simp(page, () => { const H = window.__simp.S.history; return { n: H.length, ult: H[H.length - 1] }; });
   expect(h.n).toBe(antes + 1); expect(h.ult.sets).toBeGreaterThan(0); expect(h.ult.hi).toMatch(/^\d\d:\d\d$/);
 });

@@ -113,12 +113,13 @@ const DOC_HTML = { termos:`<section class="doc" id="doc-termos">
 const needAceite = () => !S.aceite || (S.aceite.v||0) < TERMOS_V || !S.aceite.saude || (ACCT && ACCT.mode==='self' && !S.aceite.semPersonal);
 const ckOk = (c, self) => !!(c.t && c.s && (!self || c.p));
 function aceiteBoxes(c, self, act){
-  const box = (k, txt, cls) => `<button type="button" role="checkbox" aria-checked="${!!c[k]}" class="ck${c[k]?' on':''}${cls?' '+cls:''}" data-a="${act}" data-v="${k}"><span class="ck-box" aria-hidden="true">${ic('check')}</span><span>${txt}</span></button>`;
-  return `<div class="ck-list">${box('t','Li e aceito os <b>Termos de Uso</b> e a <b>Política de Privacidade</b>.')}
-    <div class="ck-links"><button type="button" class="linkbtn" data-a="lg-doc" data-v="termos">Ler os termos de uso</button><button type="button" class="linkbtn" data-a="lg-doc" data-v="privacidade">Ler a política de privacidade</button></div>
-    ${box('s','Autorizo o uso dos meus <b>dados de saúde</b> (peso, dores e limitações, sono e cansaço) só para montar e ajustar meus treinos.')}
-    ${self ? box('p','Entendo que, <b>treinando sem personal, meu treino não é montado nem acompanhado por um profissional</b>: ele é gerado automaticamente por inteligência artificial ou montado por mim. Treino por minha conta e risco, declaro estar apto(a) para atividade física e sei que o Simplificando e seu responsável não se responsabilizam por danos ou lesões relacionados ao treino.','alert') : ''}</div>`;
+  // um aceite só (termos, privacidade, dados de saúde e, sem personal, o treino automático), com os textos a um toque
+  const on = ckOk(c, self);
+  return `<div class="ck-list"><button type="button" role="checkbox" aria-checked="${on}" class="ck${on?' on':''}" data-a="${act}" data-v="all"><span class="ck-box" aria-hidden="true">${ic('check')}</span>
+    <span>Li e aceito os <b>Termos de Uso</b> e a <b>Política de Privacidade</b>, autorizo o uso dos meus <b>dados de saúde</b> (peso, dores e limitações, sono e cansaço) só para montar e ajustar meus treinos${self ? ' e entendo que, <b>sem personal, meu treino é automático</b> (feito pela IA ou por mim) e por minha conta e risco' : ''}.</span></button>
+    <div class="ck-links"><button type="button" class="linkbtn" data-a="lg-doc" data-v="termos">Ler os termos de uso</button><button type="button" class="linkbtn" data-a="lg-doc" data-v="privacidade">Ler a política de privacidade</button></div></div>`;
 }
+
 const aceiteNovo = self => ({ v:TERMOS_V, em:new Date().toISOString(), saude:true, semPersonal:self ? true : undefined });
 function vAceite(){
   const self = !!ACCT && ACCT.mode==='self', c = LG.ac;

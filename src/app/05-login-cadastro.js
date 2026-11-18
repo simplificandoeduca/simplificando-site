@@ -181,6 +181,8 @@ function presc(x, ed, nivel){
   if(ed==='emagrecer'){ s = 3; r = comp ? '12' : '15'; d = comp ? 60 : 45; }
   else if(ed==='corrida'){ s = ini ? 2 : 3; r = '10–12'; d = 60; }
   else { s = ini || !comp ? 3 : 4; r = ini || !comp ? '10–12' : '8–10'; d = comp ? (ini ? 75 : 90) : 60; }
+  // iniciante: sempre 3 séries de 10–12 (só mantém o que é por tempo ou por lado, ex.: prancha, "cada perna")
+  if(ini){ const rr = x.r || '', lado = (rr.match(/cada \S+/)||[])[0]; return { s:3, r:/\d\s*s\b|seg|min/i.test(rr) ? rr : '10–12'+(lado ? ' '+lado : ''), d }; }
   return { s, r:x.r || r, d };
 }
 function exFromCat(x, ed, nivel){
@@ -251,9 +253,11 @@ function iaPlan(q, ed){
       let c = CAT.filter(x => x.g===g && ok(x)); if(!c.length) c = CAT.filter(x => x.g2===g && ok(x)); if(!c.length) return null;
       c.sort((a,b) => ((a.anim==='none'?1:0)-(b.anim==='none'?1:0)) || ((a.t==='i'?0:1)-(b.t==='i'?0:1)) || ((used[a.id]||0)-(used[b.id]||0)) || (CAT.indexOf(a)-CAT.indexOf(b))); return c[0]; };
     const extra = gs.slice(N).concat(pri, gs);
-    for(let k=0; k<extra.length && ex.length<8 && (estMin(ex)<q.tempo-9 || ex.length<4); k++){ const x = pick(extra[k]); if(!x) continue; used[x.id] = (used[x.id]||0)+1; ex.push(exFromCat(x, ed, q.nivel)); slots.push(extra[k]); }
+    const maxEx = q.nivel==='ini' ? 7 : 8; // iniciante: no máximo 7 exercícios por treino
+    for(let k=0; k<extra.length && ex.length<maxEx && (estMin(ex)<q.tempo-9 || ex.length<4); k++){ const x = pick(extra[k]); if(!x) continue; used[x.id] = (used[x.id]||0)+1; ex.push(exFromCat(x, ed, q.nivel)); slots.push(extra[k]); }
     for(let k=0; k<ex.length && estMin(ex)<q.tempo-7; k++){ const c = catOf(ex[k].id); if(c && c.t==='c' && ex[k].s<(q.nivel==='ini'?3:5)) ex[k].s++; }
     // cabe no tempo escolhido: tira séries dos acessórios, depois o último exercício
+    while(q.nivel==='ini' && ex.length>7) ex.pop();
     const lim = q.tempo + 8;
     for(let guard=0; estMin(ex)>lim && guard<60; guard++){
       const k = ex.findIndex((e,i) => i>0 && e.s>3);

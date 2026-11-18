@@ -61,7 +61,7 @@ async function criaConta(page, { nome = 'Joana Lima', email, senha = '135790', o
   await abreApp(page, { emu });
   await page.click('[data-a="lg-self"]');
   await page.fill('#su-nome', nome); await page.fill('#su-email', email); await page.fill('#su-senha', senha);
-  for (const v of ['t', 's', 'p']) await page.click(`[data-a="su-ck"][data-v="${v}"]`);
+  await page.click('[data-a="su-ck"][data-v="all"]'); // um aceite só
   await page.click('.su-go');
   await page.waitForSelector('[data-a="su-sexo"]', { timeout: 15000 });
   await page.click(`[data-a="su-ed"][data-v="${objetivo}"]`);

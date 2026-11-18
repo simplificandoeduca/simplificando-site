@@ -221,8 +221,7 @@ function lgClick(a,d,b){
     case 'su-ed': LG.f.ed = d.v; renderLogin(`[data-a="su-ed"][data-v="${d.v}"]`); return true;
     case 'su-mode': if(d.v==='ia'){ IQ = IQ0(); LG.step = 4; renderLogin(); suTop(); } else suFinish('meu'); return true;
     case 'su-done': suFinish('ia'); return true;
-    case 'su-ck': { const c = LG.f.ck; c[d.v] = !c[d.v]; renderLogin(`[data-a="su-ck"][data-v="${d.v}"]`); return true; }
-    case 'lg-ck': { const c = LG.ac; c[d.v] = !c[d.v]; renderLogin(`[data-a="lg-ck"][data-v="${d.v}"]`); return true; }
+    case 'su-ck': case 'lg-ck': { const c = a==='su-ck' ? LG.f.ck : LG.ac, v = !ckOk(c, a==='su-ck' || (!!ACCT && ACCT.mode==='self')); if(d.v==='all'){ c.t = c.s = c.p = v; } else c[d.v] = !c[d.v]; renderLogin(`[data-a="${a}"][data-v="${d.v}"]`); return true; }
     case 'lg-doc': if(LG.view!=='doc') LG.back = LG.view; LG.view = 'doc'; LG.doc = d.v; renderLogin(); suTop(); return true;
     case 'lg-doc-back': LG.view = LG.back || 'login'; renderLogin(); suTop(); return true;
     case 'lg-ac-sair': LG.view = 'login'; logout(); return true;

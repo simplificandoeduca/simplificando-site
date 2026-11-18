@@ -2636,12 +2636,13 @@ const DOC_HTML = { termos:`<section class="doc" id="doc-termos">
 const needAceite = () => !S.aceite || (S.aceite.v||0) < TERMOS_V || !S.aceite.saude || (ACCT && ACCT.mode==='self' && !S.aceite.semPersonal);
 const ckOk = (c, self) => !!(c.t && c.s && (!self || c.p));
 function aceiteBoxes(c, self, act){
-  const box = (k, txt, cls) => `<button type="button" role="checkbox" aria-checked="${!!c[k]}" class="ck${c[k]?' on':''}${cls?' '+cls:''}" data-a="${act}" data-v="${k}"><span class="ck-box" aria-hidden="true">${ic('check')}</span><span>${txt}</span></button>`;
-  return `<div class="ck-list">${box('t','Li e aceito os <b>Termos de Uso</b> e a <b>Política de Privacidade</b>.')}
-    <div class="ck-links"><button type="button" class="linkbtn" data-a="lg-doc" data-v="termos">Ler os termos de uso</button><button type="button" class="linkbtn" data-a="lg-doc" data-v="privacidade">Ler a política de privacidade</button></div>
-    ${box('s','Autorizo o uso dos meus <b>dados de saúde</b> (peso, dores e limitações, sono e cansaço) só para montar e ajustar meus treinos.')}
-    ${self ? box('p','Entendo que, <b>treinando sem personal, meu treino não é montado nem acompanhado por um profissional</b>: ele é gerado automaticamente por inteligência artificial ou montado por mim. Treino por minha conta e risco, declaro estar apto(a) para atividade física e sei que o Simplificando e seu responsável não se responsabilizam por danos ou lesões relacionados ao treino.','alert') : ''}</div>`;
+  // um aceite só (termos, privacidade, dados de saúde e, sem personal, o treino automático), com os textos a um toque
+  const on = ckOk(c, self);
+  return `<div class="ck-list"><button type="button" role="checkbox" aria-checked="${on}" class="ck${on?' on':''}" data-a="${act}" data-v="all"><span class="ck-box" aria-hidden="true">${ic('check')}</span>
+    <span>Li e aceito os <b>Termos de Uso</b> e a <b>Política de Privacidade</b>, autorizo o uso dos meus <b>dados de saúde</b> (peso, dores e limitações, sono e cansaço) só para montar e ajustar meus treinos${self ? ' e entendo que, <b>sem personal, meu treino é automático</b> (feito pela IA ou por mim) e por minha conta e risco' : ''}.</span></button>
+    <div class="ck-links"><button type="button" class="linkbtn" data-a="lg-doc" data-v="termos">Ler os termos de uso</button><button type="button" class="linkbtn" data-a="lg-doc" data-v="privacidade">Ler a política de privacidade</button></div></div>`;
 }
+
 const aceiteNovo = self => ({ v:TERMOS_V, em:new Date().toISOString(), saude:true, semPersonal:self ? true : undefined });
 function vAceite(){
   const self = !!ACCT && ACCT.mode==='self', c = LG.ac;
@@ -3025,6 +3026,8 @@ function presc(x, ed, nivel){
   if(ed==='emagrecer'){ s = 3; r = comp ? '12' : '15'; d = comp ? 60 : 45; }
   else if(ed==='corrida'){ s = ini ? 2 : 3; r = '10–12'; d = 60; }
   else { s = ini || !comp ? 3 : 4; r = ini || !comp ? '10–12' : '8–10'; d = comp ? (ini ? 75 : 90) : 60; }
+  // iniciante: sempre 3 séries de 10–12 (só mantém o que é por tempo ou por lado, ex.: prancha, "cada perna")
+  if(ini){ const rr = x.r || '', lado = (rr.match(/cada \S+/)||[])[0]; return { s:3, r:/\d\s*s\b|seg|min/i.test(rr) ? rr : '10–12'+(lado ? ' '+lado : ''), d }; }
   return { s, r:x.r || r, d };
 }
 function exFromCat(x, ed, nivel){
@@ -3095,9 +3098,11 @@ function iaPlan(q, ed){
       let c = CAT.filter(x => x.g===g && ok(x)); if(!c.length) c = CAT.filter(x => x.g2===g && ok(x)); if(!c.length) return null;
       c.sort((a,b) => ((a.anim==='none'?1:0)-(b.anim==='none'?1:0)) || ((a.t==='i'?0:1)-(b.t==='i'?0:1)) || ((used[a.id]||0)-(used[b.id]||0)) || (CAT.indexOf(a)-CAT.indexOf(b))); return c[0]; };
     const extra = gs.slice(N).concat(pri, gs);
-    for(let k=0; k<extra.length && ex.length<8 && (estMin(ex)<q.tempo-9 || ex.length<4); k++){ const x = pick(extra[k]); if(!x) continue; used[x.id] = (used[x.id]||0)+1; ex.push(exFromCat(x, ed, q.nivel)); slots.push(extra[k]); }
+    const maxEx = q.nivel==='ini' ? 7 : 8; // iniciante: no máximo 7 exercícios por treino
+    for(let k=0; k<extra.length && ex.length<maxEx && (estMin(ex)<q.tempo-9 || ex.length<4); k++){ const x = pick(extra[k]); if(!x) continue; used[x.id] = (used[x.id]||0)+1; ex.push(exFromCat(x, ed, q.nivel)); slots.push(extra[k]); }
     for(let k=0; k<ex.length && estMin(ex)<q.tempo-7; k++){ const c = catOf(ex[k].id); if(c && c.t==='c' && ex[k].s<(q.nivel==='ini'?3:5)) ex[k].s++; }
     // cabe no tempo escolhido: tira séries dos acessórios, depois o último exercício
+    while(q.nivel==='ini' && ex.length>7) ex.pop();
     const lim = q.tempo + 8;
     for(let guard=0; estMin(ex)>lim && guard<60; guard++){
       const k = ex.findIndex((e,i) => i>0 && e.s>3);
@@ -3539,8 +3544,7 @@ function lgClick(a,d,b){
     case 'su-ed': LG.f.ed = d.v; renderLogin(`[data-a="su-ed"][data-v="${d.v}"]`); return true;
     case 'su-mode': if(d.v==='ia'){ IQ = IQ0(); LG.step = 4; renderLogin(); suTop(); } else suFinish('meu'); return true;
     case 'su-done': suFinish('ia'); return true;
-    case 'su-ck': { const c = LG.f.ck; c[d.v] = !c[d.v]; renderLogin(`[data-a="su-ck"][data-v="${d.v}"]`); return true; }
-    case 'lg-ck': { const c = LG.ac; c[d.v] = !c[d.v]; renderLogin(`[data-a="lg-ck"][data-v="${d.v}"]`); return true; }
+    case 'su-ck': case 'lg-ck': { const c = a==='su-ck' ? LG.f.ck : LG.ac, v = !ckOk(c, a==='su-ck' || (!!ACCT && ACCT.mode==='self')); if(d.v==='all'){ c.t = c.s = c.p = v; } else c[d.v] = !c[d.v]; renderLogin(`[data-a="${a}"][data-v="${d.v}"]`); return true; }
     case 'lg-doc': if(LG.view!=='doc') LG.back = LG.view; LG.view = 'doc'; LG.doc = d.v; renderLogin(); suTop(); return true;
     case 'lg-doc-back': LG.view = LG.back || 'login'; renderLogin(); suTop(); return true;
     case 'lg-ac-sair': LG.view = 'login'; logout(); return true;
@@ -3848,7 +3852,16 @@ function treinoCard(){
     if(nd && wk>=nd) return weekDoneCard(wk,nd);
     if(!isTrainDay()) return restCard();
   }
+  if(done && !S.session && !ui.forceTrain) return doneCard();
   return workoutCard();
+}
+/* treino do dia já feito: mostra o que foi feito e o resumo (e não o botão de começar de novo) */
+function doneCard(){
+  const t0 = today(), i = S.history.map(h => h.date).lastIndexOf(t0), h = S.history[i], p = PLAN[h.t] || {nome:'Treino '+h.t}, prs = (h.prs||[]).length;
+  return `<section class="card wcard wkc wk-${['A','B','C','D','E'].includes(h.t)?h.t:'A'}" aria-label="Treino de hoje feito: ${p.nome}">${WK_ART}<div class="card-h"><span class="label">${ic('dumbbell')}Treino de hoje</span><span class="pill">${ic('check')}Feito</span></div>
+    <div><h2 class="big">Treino feito<span class="dot" aria-hidden="true"></span></h2><p class="muted">${p.nome} · ${h.min} min · ${h.sets} série${h.sets===1?'':'s'} · ${fmtN(h.vol)} kg${prs?' · '+prs+' recorde'+(prs>1?'s':''):''}</p></div>
+    <button type="button" class="btn primary block" data-a="hist" data-i="${i}">${ic('chart')}Ver resumo</button>
+    <button type="button" class="linkbtn" data-a="force-train">Treinar de novo mesmo assim</button></section>`;
 }
 function restCard(){
   return `<section class="card wcard restc" aria-label="Hoje é dia de descanso">${WK_ART2}<div class="card-h"><span class="label">${ic('dumbbell')}Hoje</span><span class="pill">Sem treino</span></div>
@@ -6224,7 +6237,7 @@ function finish(){
   const hiD = new Date(sesIni(ses)), hi = String(hiD.getHours()).padStart(2,'0')+':'+String(hiD.getMinutes()).padStart(2,'0');
   const novo = {date:t0, t:ses.t, min, sec, hr, hi, vol:Math.round(vol), sets, prs:prd.map(x => x.id), prd, rpe:0, note:'', gym:ses.gym||'', ex:det}; S.history.push(novo); if(t0!==hoje) S.history.sort((x,y) => x.date<y.date ? -1 : x.date>y.date ? 1 : 0);
   S.session = null; ui.rest = null; renderRest(); treinoAviso();
-  stPick(S.history.indexOf(novo));
+  ui.sheet = {k:'sum', i:S.history.indexOf(novo)}; renderSheet(true); // primeiro o resumo; o story fica no botão "Compartilhar no story"
 }
 
 function onClick(ev){
