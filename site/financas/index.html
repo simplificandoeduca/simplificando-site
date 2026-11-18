@@ -110,7 +110,7 @@ main{max-width:720px;margin:0 auto;padding:4px max(16px,env(safe-area-inset-righ
 .btn{min-height:44px;padding:0 18px;border:0;border-radius:999px;background:var(--ctl);color:var(--ctl-fg);display:inline-flex;align-items:center;justify-content:center;gap:8px;font-size:15px;font-weight:700;letter-spacing:-.01em;transition:transform .2s var(--spring),background .2s,opacity .2s;user-select:none;-webkit-user-select:none;text-decoration:none;white-space:nowrap}
 .btn:active{transform:scale(.96)}
 .btn.primary{background:var(--accent);color:var(--on-accent)}
-.btn.danger{background:transparent;color:var(--danger);box-shadow:inset 0 0 0 1.5px var(--danger)}
+.btn.danger{background:#E5484D;color:#fff;box-shadow:none}
 .btn.sm{min-height:36px;padding:0 14px;font-size:13.5px}
 .btn.wide{width:100%}
 .btn:disabled{opacity:.5;pointer-events:none}
@@ -193,7 +193,10 @@ button.row:active{background:var(--ctl)}
 .sheet .x{border:0;background:var(--ctl);color:var(--ctl-fg);width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center}
 @keyframes fade{from{opacity:0}}
 @keyframes up{from{transform:translateY(40px);opacity:0}}
-.amt{text-align:center;padding:0}
+.amt{text-align:center;padding:0;position:relative}
+.amt .v{display:inline-block;padding:2px 10px;border-radius:12px;cursor:text}
+.amt.foco .v{box-shadow:inset 0 0 0 2px var(--accent)}
+.amt input{position:absolute;inset:0;width:100%;height:100%;opacity:0;font-size:16px;border:0;padding:0;caret-color:transparent;cursor:text}
 .amt .v{font-size:38px;font-weight:900;letter-spacing:-.05em;line-height:1;font-variant-numeric:tabular-nums}
 .amt .v.zero{color:var(--muted)}
 .amt .v.neg{color:var(--danger)}
@@ -598,7 +601,7 @@ function logo(){
 $('#logo').innerHTML = logo(); document.querySelector('.top .mic').innerHTML = I.mic;
 
 /* ========== estado ========== */
-const FINV = '18 nov · 51'; // Versão do Finanças: 18 nov · 51
+const FINV = '18 nov · 52'; // Versão do Finanças: 18 nov · 52
 const DONO = { nome:'Eduardo Matias', iniciais:'EM' }; // perfil único desta página
 const LS = 'simplificando-financas', LST = 'simplificando-financas-tema';
 const CATS = ['Mercado', 'Comida', 'Transporte', 'Casa', 'Lazer', 'Saúde', 'Roupas', 'Assinaturas', 'Outros'];
@@ -1153,8 +1156,8 @@ const Sheet = (() => {
   return { open, close, box, get st(){ return st; } };
 })();
 const padHTML = () => `<div class="pad">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => `<button type="button" data-p="${n}">${n}</button>`).join('')}<button type="button" class="soft" data-p="00">00</button><button type="button" data-p="0">0</button><button type="button" class="soft" data-p="bk" aria-label="Apagar">⌫</button></div>`;
-function amtHTML(cents, hint){ const z = !cents; return `<div class="amt"><div class="v ${z ? 'zero' : ''} ${cents < 0 ? 'neg' : ''}" id="amt">${esc(fmt(cents))}</div><div class="h">${esc(hint || 'Digite o valor: 1 2 5 0 vira R$ 12,50')}</div></div>`; }
-function refreshAmt(){ const s = Sheet.st; const v = (s.neg ? -1 : 1) * (parseInt(s.dig || '0', 10) || 0); const el = $('#amt'); if (!el) return; el.textContent = fmt(v); el.classList.toggle('zero', !v); el.classList.toggle('neg', v < 0); }
+function amtHTML(cents, hint){ const z = !cents; return `<div class="amt"><div class="v ${z ? 'zero' : ''} ${cents < 0 ? 'neg' : ''}" id="amt">${esc(fmt(cents))}</div><div class="h">${esc(hint || 'Toque no valor para digitar, ou use as teclas: 1 2 5 0 vira R$ 12,50')}</div><input id="amt-in" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" aria-label="Valor" value="${cents ? Math.abs(cents) : ''}"></div>`; }
+function refreshAmt(){ const s = Sheet.st; const ai = $('#amt-in'); if (ai && document.activeElement !== ai) ai.value = s.dig || ''; const v = (s.neg ? -1 : 1) * (parseInt(s.dig || '0', 10) || 0); const el = $('#amt'); if (!el) return; el.textContent = fmt(v); el.classList.toggle('zero', !v); el.classList.toggle('neg', v < 0); }
 const chipsHTML = (name, items, cur, sw) => `<div class="chips">${items.map(it => `<button type="button" class="opt ${it.id === cur ? 'on' : ''}" data-c="${name}" data-k="${esc(it.id)}" ${sw ? `style="--sw:${sw(it)}"` : ''}>${sw ? '<span class="sw"></span>' : ''}${esc(it.nome)}</button>`).join('')}</div>`;
 function sugestoes(){ return S.favs.slice(0, 20); } // só os que você salvou com "Adicionar"
 
@@ -1588,6 +1591,9 @@ function cents(){ const s = Sheet.st; return (s.neg ? -1 : 1) * (parseInt(s.dig 
 function val(id){ const el = document.getElementById(id); return el ? el.value : ''; }
 function okData(d){ return /^\d{4}-\d{2}-\d{2}$/.test(d); }
 
+Sheet.box.addEventListener('input', ev => { if (ev.target.id !== 'amt-in' || !Sheet.st) return; const d = ev.target.value.replace(/\D/g, '').replace(/^0+(?=\d)/, '').slice(0, 10); ev.target.value = d; Sheet.st.dig = d; refreshAmt(); });
+Sheet.box.addEventListener('focusin', ev => { if (ev.target.id === 'amt-in') ev.target.closest('.amt').classList.add('foco'); });
+Sheet.box.addEventListener('focusout', ev => { if (ev.target.id === 'amt-in') ev.target.closest('.amt').classList.remove('foco'); });
 Sheet.box.addEventListener('change', ev => { const sb = ev.target.closest('[data-imp-saldo]'); if (sb && Sheet.st) { Sheet.st.usarSaldo = sb.checked; mostrarImp(); return; } const cb = ev.target.closest('[data-imp]'); const s = Sheet.st; if (!cb || !s || s.kind !== 'importar') return; s.itens[+cb.dataset.imp].on = cb.checked; mostrarImp(); });
 Sheet.box.addEventListener('click', ev => {
   const s = Sheet.st; if (!s) return;
