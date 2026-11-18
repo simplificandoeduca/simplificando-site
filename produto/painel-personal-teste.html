@@ -847,6 +847,7 @@ body.hub-on{background:#0F1712}
 .hb-ms>i{font-style:normal;display:block;line-height:1.2}.hb-ms em{display:block;font-style:normal;font-size:11.5px;font-weight:600;color:#5B625D;margin-top:2px}
 .hb-atu.nova{background:#C8F542}.hb-atu.nova em{color:#0F1712}.hb-atu:disabled{opacity:.7;cursor:default}
 .hb-err{margin:10px 4px 0;color:#FF7A72;font-size:13.5px;font-weight:600}
+.pf-del{margin-top:18px;padding-top:14px;border-top:1px solid var(--sep)}.pf-del .label{color:#C8302F}.pf-del .muted{margin:6px 0 10px}.pf-del .err{color:#C8302F;font-weight:600;margin:0 0 10px}
 .hb-pe{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:26px}
 .hb-bl.verde{background:#C8F542}
 .hb-ths{display:flex;gap:6px;margin-top:12px;max-width:calc(100% - 110px)}.hb-th{width:52px;height:66px;object-fit:cover;border-radius:10px;background:rgba(15,23,18,.12);flex:none}.hb-th:not(.ok){visibility:hidden}
@@ -3994,7 +3995,25 @@ function pfSheet(id){
     ['Objetivo', ED[p.objetivo]||'—'], ['Conta criada', dt(p.criadoEm)], ['Último acesso', p.ultimoAcesso ? pfQuando(p.ultimoAcesso)+' ('+dt(p.ultimoAcesso)+')' : '—'],
     ['Termos aceitos', p.aceite ? 'Versão '+p.aceite.v+' em '+new Date(p.aceite.em).toLocaleDateString('pt-BR') : 'Ainda não'], ['Versão do app', p.ver||'—']];
   return sheetTop('Treina sem personal', p.nome||'Sem nome')+'<div class="pf-kv">'+kv.map(([k,v]) => '<div><span>'+k+'</span><b>'+esc(v)+'</b></div>').join('')+'</div>'+
-    '<p class="foot">O treino, a evolução e a água aparecem aqui quando a pessoa permitir o acompanhamento. O app pergunta uma vez, e ela pode ligar depois em Perfil › Acompanhamento. A própria pessoa pode excluir a conta em Perfil › Excluir minha conta.</p>';
+    '<p class="foot">O treino, a evolução e a água aparecem aqui quando a pessoa permitir o acompanhamento. O app pergunta uma vez, e ela pode ligar depois em Perfil › Acompanhamento. A própria pessoa pode excluir a conta em Perfil › Excluir minha conta.</p>'+pfDanger(p);
+}
+/* excluir a conta (conta duplicada, teste…): só o dono do painel; o servidor apaga o perfil, o treino, o progresso e o login */
+const PFX = { indo:'', msg:'' };
+function pfDanger(p){
+  const indo = PFX.indo===p.uid;
+  return '<section class="pf-del"><span class="label">'+ic('trash')+'Excluir conta</span><p class="muted">Apaga o perfil, o treino, o progresso e o login de '+esc(p.nome||p.email||'quem criou esta conta')+'. Use para contas duplicadas ou de teste. Não tem como desfazer.</p>'+
+    (PFX.msg ? '<p class="err" role="alert">'+esc(PFX.msg)+'</p>' : '')+
+    (indo ? '<button type="button" class="btn block ghost" disabled>Excluindo…</button>' : armBtn('pfExcluir', p.uid, 'Excluir esta conta', 'Toque de novo para excluir', 'block', 'trash'))+'</section>';
+}
+function pfExcluir(uid){
+  const p = (PF.list||[]).find(x => x.uid===uid); if(!p || PFX.indo) return;
+  PFX.indo = uid; PFX.msg = ''; renderSheet();
+  donoToken().then(t => { const f = new FormData(); f.append('uid', uid); f.append('token', t||''); return fetch('/conta-excluir.php', { method:'POST', cache:'no-store', body:f, headers:t ? { Authorization:'Bearer '+t } : {} }); })
+    .then(r => r.json()).then(j => {
+      PFX.indo = '';
+      if(j && j.ok){ PF.list = (PF.list||[]).filter(x => x.uid!==uid); closeSheet(); toast((p.nome || p.email || 'Conta')+' excluída'); render(); }
+      else { PFX.msg = (j && j.erro) || 'Não deu para excluir. Tente de novo.'; renderSheet(); }
+    }).catch(() => { PFX.indo = ''; PFX.msg = 'Sem conexão com o servidor. Confira a internet e tente de novo.'; renderSheet(); });
 }
 /* termos de uso e política de privacidade (os mesmos do app do aluno) */
 const DOC_HTML = `<section class="doc" id="doc-termos">
@@ -4949,7 +4968,7 @@ async function copyText(txt,selEl){
   if(selEl){ try { selEl.focus(); selEl.select(); } catch(e){} }
   toast('Selecione o texto e copie');
 }
-const ARMED = new Set(['evExcluir','rirAll','copyFrom','dropLocal','archive','delAluno','delLesao','delTreino','delEx','delAv','delPay','delNota','genCode','delEx2','delTpl','applyTpl','applyToAluno','wipeEx','demoWipe']);
+const ARMED = new Set(['pfExcluir','evExcluir','rirAll','copyFrom','dropLocal','archive','delAluno','delLesao','delTreino','delEx','delAv','delPay','delNota','genCode','delEx2','delTpl','applyTpl','applyToAluno','wipeEx','demoWipe']);
 function act(a,d,btn){
   const A = curAluno();
   switch(a){
@@ -5123,6 +5142,7 @@ function act(a,d,btn){
     case 'hubTema': PREF.hubClaro = !PREF.hubClaro; savePref(); break;
     case 'hubSenha': HUBS.aberto = !HUBS.aberto; HUBS.msg = ''; HUBS.v1 = HUBS.v2 = ''; if(HUBS.aberto) window.scrollTo(0,0); break;
     case 'hubSenhaOk': hubSenhaOk(); return false;
+    case 'pfExcluir': pfExcluir(d.k); return false;
     case 'cdDia': CT.sel = d.v; break;
     case 'cdSem': CT.sel = addDays(semIni(CT.sel || today()), 7*(+d.v)); if(semIni(today())===semIni(CT.sel)) CT.sel = today(); break;
     case 'cdRecarregar': cdCarregar(semIni(CT.sel || today()), true); toast('Buscando no Drive'); break;
@@ -5136,7 +5156,7 @@ function act(a,d,btn){
     case 'impFile': { const f = document.getElementById('imp-file'); if(f) f.click(); return false; }
     case 'rkSort': ui.rkSort = !ui.rkSort; if(ui.sheet && ui.sheet.k==='pick'){ renderSheet(); return false; } break;
     case 'pfRefresh': loadPerfis(true); toast('Atualizando a lista'); break;
-    case 'pfOpen': if(d.k==='com'){ ui.view = 'alunos'; ui.aluno = d.id; ui.tab = 'acesso'; window.scrollTo(0,0); break; } { const pp = (PF.list||[]).find(x => x.uid===d.id); if(pp && pp.acomp){ PF.open = d.id; window.scrollTo(0,0); break; } } openSheet({k:'pf', id:d.id}); return false;
+    case 'pfOpen': if(d.k==='com'){ ui.view = 'alunos'; ui.aluno = d.id; ui.tab = 'acesso'; window.scrollTo(0,0); break; } { const pp = (PF.list||[]).find(x => x.uid===d.id); if(pp && pp.acomp){ PF.open = d.id; window.scrollTo(0,0); break; } } PFX.msg = ''; openSheet({k:'pf', id:d.id}); return false;
     case 'evCardio': openSheet({k:'evCardio', ini:EVC ? EVC.ini : null, dia:d.v||''}); return false;
     case 'evTreinos': openSheet({k:'evTreinos', ini:EVT ? EVT.ini : null}); return false;
     case 'evTreinosSem': if(ui.sheet && ui.sheet.k==='evTreinos'){ ui.sheet.ini = d.v; renderSheet(); } return false;

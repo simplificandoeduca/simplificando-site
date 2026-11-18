@@ -22,7 +22,7 @@ const diaMais = n => new Date(Date.now() - 180 * 60e3 + n * 864e5).toISOString()
 
 test.beforeAll(async () => {
   fs.mkdirSync(path.join(SITE, 'treino'), { recursive: true });
-  for (const f of ['push.php', 'dono.inc.php', 'erros.php', 'hub-login.php', 'lembretes.php', 'email.inc.php', 'conteudo.php']) fs.copyFileSync(path.join(__dirname, '..', 'site', f), path.join(SITE, f));
+  for (const f of ['push.php', 'dono.inc.php', 'erros.php', 'hub-login.php', 'lembretes.php', 'email.inc.php', 'conteudo.php', 'conta-excluir.php']) fs.copyFileSync(path.join(__dirname, '..', 'site', f), path.join(SITE, f));
   fs.writeFileSync(path.join(SITE, 'treino', 'firebase-config.js'), 'window.SIMPLIFICANDO_FIREBASE = { apiKey: "demo-key", projectId: "demo-simplificando" };');
   fs.writeFileSync(DRIVE, '{}');
   srv = spawn('php', ['-S', '127.0.0.1:' + PORTA, '-t', SITE], { env: ENV, stdio: 'ignore' });
@@ -217,4 +217,17 @@ test('Conteúdo do hub (conteudo.php): lê as pastas do Drive por dia, só para 
   expect((await sem()).j).toMatchObject({ ok: false, erro: 'semPastas', email: 'robo@teste' });
   // nada do conteúdo fica dentro da pasta do site
   expect(fs.readdirSync(SITE).filter(f => f.startsWith('.simplificando'))).toEqual([]);
+});
+
+test('excluir conta (conta-excluir.php): só o dono; a conta dona do painel não pode ser excluída', async () => {
+  const ex = (uid, h = { Authorization: 'Bearer ' + DONO_TK }) => { const f = new FormData(); f.append('uid', uid); return fetch(URL0 + 'conta-excluir.php', { method: 'POST', body: f, headers: h }).then(r => r.json().then(j => ({ st: r.status, j }))); };
+  limpaLog();
+  expect((await ex('contaDuplicada01', {})).st).toBe(403);                                     // sem login
+  expect((await ex('contaDuplicada01', { Authorization: 'Bearer ' + 'z'.repeat(60) })).st).toBe(403); // login de outra pessoa
+  expect((await ex('../perfis')).st).toBe(400);                                                // conta inválida
+  expect((await ex('donoTeste01')).j.erro).toContain('conta dona do painel');                  // o dono não se exclui
+  expect((await fetch(URL0 + 'conta-excluir.php')).status).toBe(405);
+  const r = await ex('contaDuplicada01');
+  expect(r.j.ok).toBe(true);
+  expect(enviados()).toEqual([{ excluir: 'contaDuplicada01' }]);
 });

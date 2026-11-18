@@ -158,6 +158,28 @@ test('Perfis mostra quem criou conta sem personal; Ajustes tem "Avisos no celula
   await p2.close();
 });
 
+test('Perfis: o dono exclui uma conta duplicada (perfil, treino e login) com dois toques', async ({ page, browser }) => {
+  await criaConta(page, { nome: 'Conta Duplicada', emu: true });
+  const p2 = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  await entraPainel(p2);
+  await vai(p2, '#perfis');
+  const linha = p2.locator('[data-a="pfOpen"]', { hasText: 'Conta Duplicada' }).first();
+  await expect(linha).toBeVisible({ timeout: 20000 });
+  const uid = await linha.getAttribute('data-id');
+  expect((await fsLista('perfis')).some(d => d.id === uid)).toBe(true);
+  await linha.click();
+  const bt = p2.locator('[data-a="pfExcluir"]');
+  await expect(bt).toHaveText('Excluir esta conta');
+  await bt.click();
+  await expect(bt).toHaveText('Toque de novo para excluir'); // o 1º toque só arma
+  expect((await fsLista('perfis')).some(d => d.id === uid)).toBe(true);
+  await bt.click();
+  await expect(p2.locator('#toast')).toContainText('Conta Duplicada excluída');
+  await expect(p2.locator('main').first()).not.toContainText('Conta Duplicada');
+  await expect.poll(async () => (await fsLista('perfis')).some(d => d.id === uid)).toBe(false);
+  await p2.close();
+});
+
 test('Alunos e Perfis: marquinha laranja "+3 dias sem acessar" e vermelha "+10 dias sem acessar"', async ({ page }) => {
   const FSB = 'http://127.0.0.1:8080/v1/projects/demo-simplificando/databases/(default)/documents/perfis/';
   const muda = (uid, dias) => fetch(FSB + uid + '?updateMask.fieldPaths=ultimoAcesso', { method: 'PATCH', headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: { ultimoAcesso: { integerValue: String(Date.now() - dias * 864e5) } } }) });

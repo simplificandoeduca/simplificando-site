@@ -78,12 +78,23 @@ async function cdFalso(q, r, url) {
   return json(r, { ok: true, ini, dias, feito });
 }
 
+// excluir conta de quem treina sem personal (conta-excluir.php de mentira): só o dono; apaga o perfil e o treino no emulador
+async function excluirFalso(q, r) {
+  if (!/^Bearer \S{100,}/.test(q.headers.authorization || '')) return json(r, { ok: false, erro: 'Só o dono do painel.' }, 403);
+  let body = ''; for await (const c of q) body += c;
+  const uid = campo(body, 'uid') || '';
+  if (!/^[A-Za-z0-9_-]{6,128}$/.test(uid)) return json(r, { ok: false, erro: 'Conta inválida.' }, 400);
+  for (const col of ['perfis', 'autonomos', 'progresso']) await fetch(FS + '/' + col + '/' + uid, { method: 'DELETE', headers: DONO });
+  return json(r, { ok: true });
+}
+
 function servidor(porta) {
   http.createServer(async (q, r) => {
     const url = new URL(q.url, 'http://x'), p = decodeURIComponent(url.pathname);
     if (p.endsWith('/firebase-config.js')) { r.setHeader('Content-Type', 'text/javascript'); return r.end(CFG[porta]); }
     if (p === '/login.php' && q.method === 'POST') return loginFalso(q, r);
     if (p === '/hub-login.php') return hubFalso(q, r, url.searchParams.get('acao'));
+    if (p === '/conta-excluir.php' && q.method === 'POST') return excluirFalso(q, r);
     if (p === '/conteudo.php') return cdFalso(q, r, url);
     if (p === '/push.php') return json(r, url.searchParams.get('acao') === 'chave' ? { ok: true, pub: 'BOr-robo-chave-publica-de-teste' } : { ok: true, k: 'robo'.repeat(8), novos: [] });
     if (p.endsWith('.php')) return json(r, { ok: true, atual: '', nova: '', erros: [] });
