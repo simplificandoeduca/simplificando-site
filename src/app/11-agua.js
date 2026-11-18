@@ -34,10 +34,7 @@ function vAgua(){
   const hit7 = Array.from({length:7},(_,i) => daysAgo(6-i)).filter(k => (S.water[k]||0)>=g).length;
   const rt = remindTxt();
   return header('Água','Meta de '+fmtL(g)+' por dia')+exampleNote()+waterHero()+
-    `<section class="card rm-card${S.remind.on?' on':''}"><div class="sw-row"><span class="rm-ic">${ic('bell')}</span><div><b>Lembretes de água</b><span>${S.remind.on ? 'Das '+hmTxt(RINI())+' às '+hmTxt(RFIM())+', contando do último copo.' : 'Toque no botão azul para o app te lembrar de beber água.'}</span></div><label class="switch"><input type="checkbox" data-sw="remind"${S.remind.on?' checked':''}><span class="knob"></span><span class="sr">Lembretes de água</span></label></div>
-      ${S.remind.on?`<div class="field"><span class="flabel">Horário dos lembretes</span><div class="rm-h"><label><span>Começa às</span><input type="time" class="inp" data-remind="ini" value="${hhmm(RINI())}" step="900"></label><label><span>Termina às</span><input type="time" class="inp" data-remind="fim" value="${hhmm(RFIM())}" step="900"></label></div></div>
-      <div class="field"><span class="flabel">Lembrar a cada</span>${seg('remind-ev',[30,60,90],[30,60,90].includes(S.remind.every)?S.remind.every:90,['30 min','1 hora','1h30'],'Intervalo dos lembretes')}</div><p class="zone">${ic('bell')}<span><b>${rt}</b></span></p>`:''}
-      ${S.remind.on ? pushCard() : ''}</section>`+
+    `<section class="card rm-line${S.remind.on?' on':''}"><span class="rm-ic">${ic('bell')}</span><span class="rm-tx"><b>Lembretes de água</b><span>${S.remind.on ? 'A cada '+cadaTxt(S.remind.every)+', das '+hmTxt(RINI())+' às '+hmTxt(RFIM()) : 'Desligados'}</span></span><button type="button" class="btn small" data-a="avisos-open">${S.remind.on ? 'Ajustar' : 'Ligar'}</button></section>`+
     `<section class="card"><div class="card-h"><span class="label">${ic('timer')}Ao longo do dia</span><span class="pill">${L.length} copo${L.length===1?'':'s'}</span></div>${waterTimeline()}
       <div class="leg"><span><i></i>você</span><span><i class="dash"></i>ritmo ideal até 21h</span></div>
       ${L.length?`<div class="drinks">${L.map(e => `<span class="chip">${hm(e.m)} · ${e.ml} ml</span>`).join('')}</div>`:''}</section>`+
@@ -67,7 +64,7 @@ function waterHero(){
   const t0 = today(), ml = S.water[t0]||0, g = S.waterGoal, hit = ml>=g, wp = waterPace(ml), L = S.wlog[t0]||[], last = L[L.length-1], pct = Math.round(ml/g*100), rt = remindTxt();
   const status = hit ? 'Meta batida. Garrafinha cheia.' : 'Faltam '+fmtN(g-ml)+' ml. '+(wp.ok ? 'Você está no ritmo.' : 'Até agora o ideal era '+fmtL(wp.exp)+'.');
   return `<section class="card"><div class="card-h"><span class="label">${ic('drop')}Sua garrafinha</span>${hit?`<span class="pill ok">${ic('check')}Meta batida</span>`:`<span class="pill">${wp.ok?'No ritmo':'Atrás do ritmo'}</span>`}</div>
-    <div class="wh-body">${bottle(ml,g)}<div class="wh-txt">${tw('w-pct',pct,'pct',pct+'%').replace('<b ','<b class="wh-pct" ')}<span>da meta de hoje</span>${tw('w-ml',ml,'ml',fmtN(ml)+' ml').replace('<b ','<b class="wh-ml" ')}<span>de ${fmtN(g)} ml</span><p class="muted sm" style="margin-top:10px">${status}${rt?' '+rt+'.':''}</p></div></div>
+    <div class="wh-body">${bottle(ml,g)}<div class="wh-txt">${tw('w-pct',pct,'pct',pct+'%').replace('<b ','<b class="wh-pct" ')}<span>da meta de hoje</span>${tw('w-ml',ml,'ml',fmtN(ml)+' ml').replace('<b ','<b class="wh-ml" ')}<span>de ${fmtN(g)} ml</span></div></div>
     <div class="wh-btns">${[200,300,500].map(v => `<button type="button" class="btn primary" data-a="water" data-ml="${v}" aria-label="Adicionar ${v} ml">+${v} ml</button>`).join('')}<button type="button" class="btn minus" data-a="water-minus" aria-label="Tirar 250 ml"${ml?'':' disabled'}>−250 ml</button></div>
     ${last?`<button type="button" class="btn ghost small self-start" data-a="undo-water">${ic('undo')}${last.ml<0?'Desfazer −'+(-last.ml)+' ml':'Desfazer '+last.ml+' ml'}</button>`:''}</section>`;
 }

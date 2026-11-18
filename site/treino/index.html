@@ -1748,6 +1748,16 @@ body.has-dock .toast,body.has-dock .utoast{bottom:calc(176px + env(safe-area-ins
 .ci-line .ci-ok{flex:none;width:36px;height:36px;border-radius:50%;background:var(--accent,#FF4646);color:#FFFFFF;display:grid;place-items:center}.ci-line .ci-ok .i{width:18px;height:18px;stroke-width:2.6}
 .ci-line .ci-tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.ci-line .ci-tx b{font-size:15px}
 .ci-line .ci-tx span{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:4px;flex-wrap:wrap}.ci-line .ci-tx .i{width:14px;height:14px}
+/* Água: lembretes numa linha (a configuração fica em Perfil › Avisos) */
+.card.rm-line{flex-direction:row;align-items:center;gap:12px;padding:14px 16px}
+.rm-line .rm-tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.rm-line .rm-tx b{font-size:15px}.rm-line .rm-tx span{font-size:13px;color:var(--muted)}
+.nt-cfg{padding:4px 0 12px;display:flex;flex-direction:column;gap:10px}.nt-cfg .rm-h .inp{background:var(--bg)}
+.rm-line{--rm:#1769E0}:root[data-theme="dark"] .rm-line{--rm:#4A90FF}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .rm-line{--rm:#4A90FF}}
+/* Evolução: os números desta semana */
+.ev-semg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.ev-semg>div{background:var(--ctl);border-radius:14px;padding:10px 8px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.ev-semg b{font-size:22px;font-weight:900;letter-spacing:-.03em;line-height:1}.ev-semg b small{font-size:12px;font-weight:700;color:var(--muted)}
+.ev-semg span{font-size:11.5px;color:var(--muted);line-height:1.2}.ev-semg .ok b{color:var(--accent,#FF4646)}
 </style>
 
 <div class="app" id="app"></div>
@@ -4612,10 +4622,7 @@ function vAgua(){
   const hit7 = Array.from({length:7},(_,i) => daysAgo(6-i)).filter(k => (S.water[k]||0)>=g).length;
   const rt = remindTxt();
   return header('Água','Meta de '+fmtL(g)+' por dia')+exampleNote()+waterHero()+
-    `<section class="card rm-card${S.remind.on?' on':''}"><div class="sw-row"><span class="rm-ic">${ic('bell')}</span><div><b>Lembretes de água</b><span>${S.remind.on ? 'Das '+hmTxt(RINI())+' às '+hmTxt(RFIM())+', contando do último copo.' : 'Toque no botão azul para o app te lembrar de beber água.'}</span></div><label class="switch"><input type="checkbox" data-sw="remind"${S.remind.on?' checked':''}><span class="knob"></span><span class="sr">Lembretes de água</span></label></div>
-      ${S.remind.on?`<div class="field"><span class="flabel">Horário dos lembretes</span><div class="rm-h"><label><span>Começa às</span><input type="time" class="inp" data-remind="ini" value="${hhmm(RINI())}" step="900"></label><label><span>Termina às</span><input type="time" class="inp" data-remind="fim" value="${hhmm(RFIM())}" step="900"></label></div></div>
-      <div class="field"><span class="flabel">Lembrar a cada</span>${seg('remind-ev',[30,60,90],[30,60,90].includes(S.remind.every)?S.remind.every:90,['30 min','1 hora','1h30'],'Intervalo dos lembretes')}</div><p class="zone">${ic('bell')}<span><b>${rt}</b></span></p>`:''}
-      ${S.remind.on ? pushCard() : ''}</section>`+
+    `<section class="card rm-line${S.remind.on?' on':''}"><span class="rm-ic">${ic('bell')}</span><span class="rm-tx"><b>Lembretes de água</b><span>${S.remind.on ? 'A cada '+cadaTxt(S.remind.every)+', das '+hmTxt(RINI())+' às '+hmTxt(RFIM()) : 'Desligados'}</span></span><button type="button" class="btn small" data-a="avisos-open">${S.remind.on ? 'Ajustar' : 'Ligar'}</button></section>`+
     `<section class="card"><div class="card-h"><span class="label">${ic('timer')}Ao longo do dia</span><span class="pill">${L.length} copo${L.length===1?'':'s'}</span></div>${waterTimeline()}
       <div class="leg"><span><i></i>você</span><span><i class="dash"></i>ritmo ideal até 21h</span></div>
       ${L.length?`<div class="drinks">${L.map(e => `<span class="chip">${hm(e.m)} · ${e.ml} ml</span>`).join('')}</div>`:''}</section>`+
@@ -4645,7 +4652,7 @@ function waterHero(){
   const t0 = today(), ml = S.water[t0]||0, g = S.waterGoal, hit = ml>=g, wp = waterPace(ml), L = S.wlog[t0]||[], last = L[L.length-1], pct = Math.round(ml/g*100), rt = remindTxt();
   const status = hit ? 'Meta batida. Garrafinha cheia.' : 'Faltam '+fmtN(g-ml)+' ml. '+(wp.ok ? 'Você está no ritmo.' : 'Até agora o ideal era '+fmtL(wp.exp)+'.');
   return `<section class="card"><div class="card-h"><span class="label">${ic('drop')}Sua garrafinha</span>${hit?`<span class="pill ok">${ic('check')}Meta batida</span>`:`<span class="pill">${wp.ok?'No ritmo':'Atrás do ritmo'}</span>`}</div>
-    <div class="wh-body">${bottle(ml,g)}<div class="wh-txt">${tw('w-pct',pct,'pct',pct+'%').replace('<b ','<b class="wh-pct" ')}<span>da meta de hoje</span>${tw('w-ml',ml,'ml',fmtN(ml)+' ml').replace('<b ','<b class="wh-ml" ')}<span>de ${fmtN(g)} ml</span><p class="muted sm" style="margin-top:10px">${status}${rt?' '+rt+'.':''}</p></div></div>
+    <div class="wh-body">${bottle(ml,g)}<div class="wh-txt">${tw('w-pct',pct,'pct',pct+'%').replace('<b ','<b class="wh-pct" ')}<span>da meta de hoje</span>${tw('w-ml',ml,'ml',fmtN(ml)+' ml').replace('<b ','<b class="wh-ml" ')}<span>de ${fmtN(g)} ml</span></div></div>
     <div class="wh-btns">${[200,300,500].map(v => `<button type="button" class="btn primary" data-a="water" data-ml="${v}" aria-label="Adicionar ${v} ml">+${v} ml</button>`).join('')}<button type="button" class="btn minus" data-a="water-minus" aria-label="Tirar 250 ml"${ml?'':' disabled'}>−250 ml</button></div>
     ${last?`<button type="button" class="btn ghost small self-start" data-a="undo-water">${ic('undo')}${last.ml<0?'Desfazer −'+(-last.ml)+' ml':'Desfazer '+last.ml+' ml'}</button>`:''}</section>`;
 }
@@ -5160,8 +5167,13 @@ function ntfBloco(pers){
   ];
   const row = ([k,on,c,icn,t,sub]) => `<div class="nt-row"><span class="nt-ic" style="--c:${c}">${icn}</span><div><b>${t}</b><span class="s">${sub}</span></div>${swN(k,on,t)}</div>`;
   return `<div class="prefs nta"><div class="pref-h"><b>Notificações</b><span>O que o app pode te avisar. Toque para ligar ou desligar.</span></div>${ntfBanner()}
-    ${L.map(row).join('')}
+    ${L.map(r => row(r)+(r[0]==='remind' && S.remind.on ? remindCfg() : '')).join('')}
     ${!pers && acompPode() ? `<p class="nt-sub">Privacidade</p>${row(['acomp', acompOn(), '#1E9E4A', CM_USERS, 'Compartilhar meus treinos com o Simplificando', 'Treinos, cargas, cardio, água e check-in'])}` : ''}</div>`;
+}
+/* horário e intervalo do lembrete de água (antes ficavam na aba Água) */
+function remindCfg(){
+  return `<div class="nt-cfg"><div class="field"><span class="flabel">Horário dos lembretes</span><div class="rm-h"><label><span>Começa às</span><input type="time" class="inp" data-remind="ini" value="${hhmm(RINI())}" step="900"></label><label><span>Termina às</span><input type="time" class="inp" data-remind="fim" value="${hhmm(RFIM())}" step="900"></label></div></div>
+    <div class="field"><span class="flabel">Lembrar a cada</span>${seg('remind-ev',[30,60,90],[30,60,90].includes(S.remind.every)?S.remind.every:90,['30 min','1 hora','1h30'],'Intervalo dos lembretes')}</div>${pushCard()}</div>`;
 }
 /* ---------- Seu perfil: 4 blocos (plano, avisos, visual, sugestão) e o resto numa lista curta; cada bloco abre a sua tela ---------- */
 const PF_PAGS = { plano:1, avisos:1, visual:1, sug:1, conta:1 };
@@ -5325,18 +5337,28 @@ function vEvo(){
     `<button type="button" class="row" data-a="hist" data-i="${i}"><span class="num">${h.t}</span><span class="main"><b>Treino ${h.t} · ${(PLAN[h.t]||{nome:'Treino'}).nome}</b><span>${h.min} min · ${h.sets} séries · ${fmtN(h.vol)} kg${h.rpe?' · PSE '+h.rpe:''}${(h.prs||[]).length?' · '+h.prs.length+' recorde'+(h.prs.length>1?'s':''):''}</span>${h.note?`<span>${ic('msg')} ${esc(h.note.length>46?h.note.slice(0,46)+'...':h.note)}</span>`:''}</span><span class="when">${dayLabel(h.date)}</span></button>`
   ).join('') || empBox('hist','Seu histórico está vazio','Seus treinos ficam guardados aqui, dia por dia.',true);
   const mesNome = new Date().toLocaleDateString('pt-BR',{month:'long'});
+  // os números desta semana (antes ficavam no Hoje)
+  const ds = weekDays(0), di = ds.indexOf(t0), wTr = S.history.filter(h => ds.includes(h.date)), wCa = ds.reduce((a,k) => a+cardioOn(k),0);
+  const wAg = ds.slice(0,di+1).filter(k => (S.water[k]||0)>=S.waterGoal).length, wPr = wTr.reduce((a,h) => a+((h.prs||[]).length),0);
+  const semana = `<section class="card ev-sem"><div class="card-h"><span class="label">${ic('cal')}Esta semana</span></div><div class="ev-semg">
+    <div class="${wTr.length>=SEMANA_TREINOS?'ok':''}"><b>${wTr.length}<small>/${SEMANA_TREINOS}</small></b><span>treinos</span></div>
+    <div class="${S.cardioGoal && wCa>=S.cardioGoal?'ok':''}"><b>${wCa}<small>/${S.cardioGoal}</small></b><span>min de cardio</span></div>
+    <div class="${wAg>=7?'ok':''}"><b>${wAg}<small>/7</small></b><span>dias de água</span></div>
+    <div class="${wPr?'ok':''}"><b>${wPr}</b><span>recorde${wPr===1?'':'s'}</span></div></div></section>`;
+  const vazio = !S.history.length; // sem nenhum treino: um aviso só, no lugar de carga, recordes e histórico vazios
   return header('Evolução','Seu progresso')+exampleNote()+
     `<section class="card blk-cream stk-card"><div class="card-h"><span class="label">${ic('flame')}Sequência</span><span class="pill">${streakMin()}+ treinos por semana</span></div>
       <div class="st-big">${tw('st',st,'i',String(st))}<span>semana${st===1?'':'s'} seguida${st===1?'':'s'}<br>na meta de treinos</span></div>
-      <div class="wk8" aria-label="Treinos por semana nas últimas 8 semanas">${wk8}</div></section>`+
+      <div class="wk8" aria-label="Treinos por semana nas últimas 8 semanas">${wk8}</div></section>`+semana+
     `<div class="tiles"><div class="tile blk-brand">${ic('dumbbell')}${tw('m-tr',mTr.length,'i',String(mTr.length))}<span>treino${mTr.length===1?'':'s'} em ${mesNome}</span></div>
       <div class="tile blk-cardio">${ic('pulse')}${tw('m-ca',mCa,'i',String(mCa))}<span>min de cardio no mês</span></div>
       <div class="tile t-orange">${ic('trophy')}${tw('m-pr',mPr,'i',String(mPr))}<span>recorde${mPr===1?'':'s'} no mês</span></div></div>`+
     calendar()+
+    (vazio ? `<section class="card blk-cream">${empBox('carga','Sua evolução começa no 1º treino','Depois dos treinos, aqui aparecem o gráfico das cargas, os recordes e o histórico de cada dia.',true)}</section>` :
     `<h3 class="sec">Evolução de carga<span class="dot" aria-hidden="true"></span></h3><section class="card blk-cream">${loadSec}</section>`+
-    `<h3 class="sec">Recordes<span class="dot" aria-hidden="true"></span></h3><div class="list">${prs}</div>`+
+    `<h3 class="sec">Recordes<span class="dot" aria-hidden="true"></span></h3><div class="list">${prs}</div>`)+
     `<h3 class="sec">Check-ins<span class="dot" aria-hidden="true"></span></h3><section class="card">${ciT}<p class="foot0">Em destaque: sono de 5h ou menos, energia 2 ou menos, dor 3 (forte). Dor vai de 0 (nenhuma) a 3.</p></section>`+
-    `<h3 class="sec">Histórico<span class="dot" aria-hidden="true"></span></h3><div class="list">${hist}</div>`+
+    (vazio ? '' : `<h3 class="sec">Histórico<span class="dot" aria-hidden="true"></span></h3><div class="list">${hist}</div>`)+
     `<p class="foot">Os registros ficam salvos neste aparelho. Ajustes e preferências ficam no seu perfil (toque na engrenagem).</p>`;
 }
 
@@ -6360,7 +6382,8 @@ function onClick(ev){
       break;
     }
     case 'ci-edit': ui.ciEdit = true; ui.ci = Object.assign({}, S.checkin[today()]); break;
-    case 'remind-ev': S.remind.every = +d.v; ui.remindFired = null; pushSave(); break;
+    case 'remind-ev': S.remind.every = +d.v; ui.remindFired = null; pushSave(); if(ui.sheet) renderSheet(); break;
+    case 'avisos-open': ui.sheet = {k:'prof', p:'avisos'}; renderSheet(true); re = false; break;
     case 'push-on': pushEnable(); re = false; break;
     case 'push-off': pushDisable(false); re = false; break;
     case 'goal': if(isPersonal()) break; S.waterGoal = Math.min(6000, Math.max(1000, S.waterGoal+ +d.d)); if(ui.sheet && ui.sheet.k==='prof') renderSheet(); break;
@@ -6454,7 +6477,7 @@ function onChange(ev){
     const v = Math.min(23*60+45, +m[1]*60 + +m[2]), k = el.dataset.remind;
     if(k==='ini'){ S.remind.ini = v; if(RFIM()<v+60) S.remind.fim = Math.min(23*60+45, v+60); }
     else { S.remind.fim = v; if(v<RINI()+60) S.remind.ini = Math.max(0, v-60); }
-    ui.remindFired = null; save(); pushSave(); render(); toast('Lembretes das '+hmTxt(RINI())+' às '+hmTxt(RFIM())+'.'); return;
+    ui.remindFired = null; save(); pushSave(); render(); if(ui.sheet) renderSheet(); toast('Lembretes das '+hmTxt(RINI())+' às '+hmTxt(RFIM())+'.'); return;
   }
   if(el.dataset.mx && ui.sheet && ui.sheet.k==='meus'){ const t = S.conta.treinos[ui.sheet.ed], e = t && t.ex[+el.dataset.i]; if(e){ e.r = String(el.value).replace(/[<>&"]/g,'').trim().slice(0,14); if(!/\d/.test(e.r)) e.r = '10–12'; el.value = e.r; save(); render(); } return; }
   if(el.dataset.fix && el.dataset.set){
@@ -6477,7 +6500,7 @@ function onChange(ev){
   if(el.dataset.sw==='avvolta'){ PREF.avVolta = el.checked; savePref(); LBC = ''; lbSync(); toast(el.checked ? 'Lembretes para voltar ligados.' : 'Lembretes para voltar desligados (e-mail e celular).'); renderSheet(); return; }
   if(el.dataset.sw==='avtreino'){ PREF.avTreino = el.checked; PREF.trIni = null; savePref(); treinoAviso(); if(el.checked && !pushLigado() && pushPode()) pushEnable(true); else toast(el.checked ? 'Aviso de treino esquecido ligado.' : 'Aviso de treino esquecido desligado.'); renderSheet(); }
   if(el.dataset.sw==='glass'){ PREF.glass = el.checked; savePref(); applyGlass(); toast(el.checked ? 'Liquid Glass ligado.' : 'Visual sólido de volta.'); }
-  if(el.dataset.sw==='remind'){ S.remind.on = el.checked; ui.remindFired = null; save(); if(PREF.pushOn) pushSave(); render(); toast(el.checked ? 'Lembretes ligados.' : 'Lembretes desligados.'); }
+  if(el.dataset.sw==='remind'){ S.remind.on = el.checked; ui.remindFired = null; save(); if(PREF.pushOn) pushSave(); render(); if(ui.sheet && ui.sheet.k==='prof') renderSheet(); toast(el.checked ? 'Lembretes ligados.' : 'Lembretes desligados.'); }
 }
 function tick(){
   if(!ACCT) return;

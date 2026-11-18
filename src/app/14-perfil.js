@@ -17,8 +17,13 @@ function ntfBloco(pers){
   ];
   const row = ([k,on,c,icn,t,sub]) => `<div class="nt-row"><span class="nt-ic" style="--c:${c}">${icn}</span><div><b>${t}</b><span class="s">${sub}</span></div>${swN(k,on,t)}</div>`;
   return `<div class="prefs nta"><div class="pref-h"><b>Notificações</b><span>O que o app pode te avisar. Toque para ligar ou desligar.</span></div>${ntfBanner()}
-    ${L.map(row).join('')}
+    ${L.map(r => row(r)+(r[0]==='remind' && S.remind.on ? remindCfg() : '')).join('')}
     ${!pers && acompPode() ? `<p class="nt-sub">Privacidade</p>${row(['acomp', acompOn(), '#1E9E4A', CM_USERS, 'Compartilhar meus treinos com o Simplificando', 'Treinos, cargas, cardio, água e check-in'])}` : ''}</div>`;
+}
+/* horário e intervalo do lembrete de água (antes ficavam na aba Água) */
+function remindCfg(){
+  return `<div class="nt-cfg"><div class="field"><span class="flabel">Horário dos lembretes</span><div class="rm-h"><label><span>Começa às</span><input type="time" class="inp" data-remind="ini" value="${hhmm(RINI())}" step="900"></label><label><span>Termina às</span><input type="time" class="inp" data-remind="fim" value="${hhmm(RFIM())}" step="900"></label></div></div>
+    <div class="field"><span class="flabel">Lembrar a cada</span>${seg('remind-ev',[30,60,90],[30,60,90].includes(S.remind.every)?S.remind.every:90,['30 min','1 hora','1h30'],'Intervalo dos lembretes')}</div>${pushCard()}</div>`;
 }
 /* ---------- Seu perfil: 4 blocos (plano, avisos, visual, sugestão) e o resto numa lista curta; cada bloco abre a sua tela ---------- */
 const PF_PAGS = { plano:1, avisos:1, visual:1, sug:1, conta:1 };

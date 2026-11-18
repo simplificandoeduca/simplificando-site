@@ -85,18 +85,28 @@ function vEvo(){
     `<button type="button" class="row" data-a="hist" data-i="${i}"><span class="num">${h.t}</span><span class="main"><b>Treino ${h.t} · ${(PLAN[h.t]||{nome:'Treino'}).nome}</b><span>${h.min} min · ${h.sets} séries · ${fmtN(h.vol)} kg${h.rpe?' · PSE '+h.rpe:''}${(h.prs||[]).length?' · '+h.prs.length+' recorde'+(h.prs.length>1?'s':''):''}</span>${h.note?`<span>${ic('msg')} ${esc(h.note.length>46?h.note.slice(0,46)+'...':h.note)}</span>`:''}</span><span class="when">${dayLabel(h.date)}</span></button>`
   ).join('') || empBox('hist','Seu histórico está vazio','Seus treinos ficam guardados aqui, dia por dia.',true);
   const mesNome = new Date().toLocaleDateString('pt-BR',{month:'long'});
+  // os números desta semana (antes ficavam no Hoje)
+  const ds = weekDays(0), di = ds.indexOf(t0), wTr = S.history.filter(h => ds.includes(h.date)), wCa = ds.reduce((a,k) => a+cardioOn(k),0);
+  const wAg = ds.slice(0,di+1).filter(k => (S.water[k]||0)>=S.waterGoal).length, wPr = wTr.reduce((a,h) => a+((h.prs||[]).length),0);
+  const semana = `<section class="card ev-sem"><div class="card-h"><span class="label">${ic('cal')}Esta semana</span></div><div class="ev-semg">
+    <div class="${wTr.length>=SEMANA_TREINOS?'ok':''}"><b>${wTr.length}<small>/${SEMANA_TREINOS}</small></b><span>treinos</span></div>
+    <div class="${S.cardioGoal && wCa>=S.cardioGoal?'ok':''}"><b>${wCa}<small>/${S.cardioGoal}</small></b><span>min de cardio</span></div>
+    <div class="${wAg>=7?'ok':''}"><b>${wAg}<small>/7</small></b><span>dias de água</span></div>
+    <div class="${wPr?'ok':''}"><b>${wPr}</b><span>recorde${wPr===1?'':'s'}</span></div></div></section>`;
+  const vazio = !S.history.length; // sem nenhum treino: um aviso só, no lugar de carga, recordes e histórico vazios
   return header('Evolução','Seu progresso')+exampleNote()+
     `<section class="card blk-cream stk-card"><div class="card-h"><span class="label">${ic('flame')}Sequência</span><span class="pill">${streakMin()}+ treinos por semana</span></div>
       <div class="st-big">${tw('st',st,'i',String(st))}<span>semana${st===1?'':'s'} seguida${st===1?'':'s'}<br>na meta de treinos</span></div>
-      <div class="wk8" aria-label="Treinos por semana nas últimas 8 semanas">${wk8}</div></section>`+
+      <div class="wk8" aria-label="Treinos por semana nas últimas 8 semanas">${wk8}</div></section>`+semana+
     `<div class="tiles"><div class="tile blk-brand">${ic('dumbbell')}${tw('m-tr',mTr.length,'i',String(mTr.length))}<span>treino${mTr.length===1?'':'s'} em ${mesNome}</span></div>
       <div class="tile blk-cardio">${ic('pulse')}${tw('m-ca',mCa,'i',String(mCa))}<span>min de cardio no mês</span></div>
       <div class="tile t-orange">${ic('trophy')}${tw('m-pr',mPr,'i',String(mPr))}<span>recorde${mPr===1?'':'s'} no mês</span></div></div>`+
     calendar()+
+    (vazio ? `<section class="card blk-cream">${empBox('carga','Sua evolução começa no 1º treino','Depois dos treinos, aqui aparecem o gráfico das cargas, os recordes e o histórico de cada dia.',true)}</section>` :
     `<h3 class="sec">Evolução de carga<span class="dot" aria-hidden="true"></span></h3><section class="card blk-cream">${loadSec}</section>`+
-    `<h3 class="sec">Recordes<span class="dot" aria-hidden="true"></span></h3><div class="list">${prs}</div>`+
+    `<h3 class="sec">Recordes<span class="dot" aria-hidden="true"></span></h3><div class="list">${prs}</div>`)+
     `<h3 class="sec">Check-ins<span class="dot" aria-hidden="true"></span></h3><section class="card">${ciT}<p class="foot0">Em destaque: sono de 5h ou menos, energia 2 ou menos, dor 3 (forte). Dor vai de 0 (nenhuma) a 3.</p></section>`+
-    `<h3 class="sec">Histórico<span class="dot" aria-hidden="true"></span></h3><div class="list">${hist}</div>`+
+    (vazio ? '' : `<h3 class="sec">Histórico<span class="dot" aria-hidden="true"></span></h3><div class="list">${hist}</div>`)+
     `<p class="foot">Os registros ficam salvos neste aparelho. Ajustes e preferências ficam no seu perfil (toque na engrenagem).</p>`;
 }
 

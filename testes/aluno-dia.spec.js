@@ -38,15 +38,20 @@ test.describe('com personal (exemplo)', () => {
     expect(await simp(page, d => window.__simp.S.water[d] >= window.__simp.S.waterGoal, hj)).toBe(true);
   });
 
-  test('água: lembrete liga/desliga, horário e intervalo', async ({ page }) => {
+  test('água: lembrete liga/desliga, horário e intervalo (na aba Água fica uma linha; a configuração abre em Perfil › Avisos)', async ({ page }) => {
     await aba(page, 'agua');
     await simp(page, () => { window.__simp.S.remind.on = false; window.__simp.render(); });
-    await page.locator('[data-sw="remind"]').first().evaluate(el => { el.checked = true; el.dispatchEvent(new Event('change', { bubbles: true })); });
+    await expect(page.locator('.rm-line')).toContainText('Desligados');
+    await page.click('[data-a="avisos-open"]');
+    await expect(page.locator('.sheet')).toContainText('Avisos');
+    await page.locator('.sheet [data-sw="remind"]').first().evaluate(el => { el.checked = true; el.dispatchEvent(new Event('change', { bubbles: true })); });
     expect(await simp(page, () => window.__simp.S.remind.on)).toBe(true);
     await page.click('[data-a="remind-ev"][data-v="60"]');
     expect(await simp(page, () => window.__simp.S.remind.every)).toBe(60);
     await page.locator('[data-remind="ini"]').evaluate(el => { el.value = '09:30'; el.dispatchEvent(new Event('change', { bubbles: true })); });
     expect(await simp(page, () => window.__simp.S.remind.ini)).toBe(570);
+    await page.click('[data-a="close"]');
+    await expect(page.locator('.rm-line')).toContainText('A cada 1 hora, das 9h30');
   });
 
   test('check-in do dia: sono, energia e dor', async ({ page }) => {

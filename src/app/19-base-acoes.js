@@ -315,7 +315,8 @@ function onClick(ev){
       break;
     }
     case 'ci-edit': ui.ciEdit = true; ui.ci = Object.assign({}, S.checkin[today()]); break;
-    case 'remind-ev': S.remind.every = +d.v; ui.remindFired = null; pushSave(); break;
+    case 'remind-ev': S.remind.every = +d.v; ui.remindFired = null; pushSave(); if(ui.sheet) renderSheet(); break;
+    case 'avisos-open': ui.sheet = {k:'prof', p:'avisos'}; renderSheet(true); re = false; break;
     case 'push-on': pushEnable(); re = false; break;
     case 'push-off': pushDisable(false); re = false; break;
     case 'goal': if(isPersonal()) break; S.waterGoal = Math.min(6000, Math.max(1000, S.waterGoal+ +d.d)); if(ui.sheet && ui.sheet.k==='prof') renderSheet(); break;
@@ -409,7 +410,7 @@ function onChange(ev){
     const v = Math.min(23*60+45, +m[1]*60 + +m[2]), k = el.dataset.remind;
     if(k==='ini'){ S.remind.ini = v; if(RFIM()<v+60) S.remind.fim = Math.min(23*60+45, v+60); }
     else { S.remind.fim = v; if(v<RINI()+60) S.remind.ini = Math.max(0, v-60); }
-    ui.remindFired = null; save(); pushSave(); render(); toast('Lembretes das '+hmTxt(RINI())+' às '+hmTxt(RFIM())+'.'); return;
+    ui.remindFired = null; save(); pushSave(); render(); if(ui.sheet) renderSheet(); toast('Lembretes das '+hmTxt(RINI())+' às '+hmTxt(RFIM())+'.'); return;
   }
   if(el.dataset.mx && ui.sheet && ui.sheet.k==='meus'){ const t = S.conta.treinos[ui.sheet.ed], e = t && t.ex[+el.dataset.i]; if(e){ e.r = String(el.value).replace(/[<>&"]/g,'').trim().slice(0,14); if(!/\d/.test(e.r)) e.r = '10–12'; el.value = e.r; save(); render(); } return; }
   if(el.dataset.fix && el.dataset.set){
@@ -432,7 +433,7 @@ function onChange(ev){
   if(el.dataset.sw==='avvolta'){ PREF.avVolta = el.checked; savePref(); LBC = ''; lbSync(); toast(el.checked ? 'Lembretes para voltar ligados.' : 'Lembretes para voltar desligados (e-mail e celular).'); renderSheet(); return; }
   if(el.dataset.sw==='avtreino'){ PREF.avTreino = el.checked; PREF.trIni = null; savePref(); treinoAviso(); if(el.checked && !pushLigado() && pushPode()) pushEnable(true); else toast(el.checked ? 'Aviso de treino esquecido ligado.' : 'Aviso de treino esquecido desligado.'); renderSheet(); }
   if(el.dataset.sw==='glass'){ PREF.glass = el.checked; savePref(); applyGlass(); toast(el.checked ? 'Liquid Glass ligado.' : 'Visual sólido de volta.'); }
-  if(el.dataset.sw==='remind'){ S.remind.on = el.checked; ui.remindFired = null; save(); if(PREF.pushOn) pushSave(); render(); toast(el.checked ? 'Lembretes ligados.' : 'Lembretes desligados.'); }
+  if(el.dataset.sw==='remind'){ S.remind.on = el.checked; ui.remindFired = null; save(); if(PREF.pushOn) pushSave(); render(); if(ui.sheet && ui.sheet.k==='prof') renderSheet(); toast(el.checked ? 'Lembretes ligados.' : 'Lembretes desligados.'); }
 }
 function tick(){
   if(!ACCT) return;
