@@ -10,8 +10,9 @@
 declare(strict_types=1);
 require __DIR__ . '/../api/lib.php';
 require __DIR__ . '/resumo.php';   // 1.54: os números, o PDF e o e-mail do resumo
+require __DIR__ . '/gestao.php';   // 2.0: os lançamentos do financeiro (receitas, despesas, recebimentos), o relatório e o PDF dele
 set_exception_handler(function (Throwable $e) { registrarErro('[financas] ' . $e->getMessage() . ' @' . basename($e->getFile()) . ':' . $e->getLine()); falha('Algo deu errado. Tente de novo em instantes.', 500); });
-const FIN_VERSAO = '1.5';
+const FIN_VERSAO = '2.0';
 
 $in = [];
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
@@ -163,5 +164,17 @@ if ($acao === 'email_enviar') {
   $r = finEmailMandar($dia, $c['para']); $c['res'] = $r['ok'] ? 'ok' : $r['erro']; $c['quando'] = date('Y-m-d H:i:s'); $d = finDominio($c); if ($d !== '') $c['dominio'] = $d; finEmailGuarda($c);
   if (!$r['ok']) falha($r['erro'], 502); responder(['email' => finEmailPublico(), 'enviado' => $r]);
 }
+
+/* ---------- 2.0: a gestão financeira: os lançamentos do financeiro (no lugar da planilha), o relatório e o PDF dele ---------- */
+if ($acao === 'fl_listas') responder(['listas' => flListas(), 'importacoes' => flImportacoes()]);
+if ($acao === 'fl_listas_salvar') responder(['listas' => flListasSalvar($in)]);
+if ($acao === 'fl_listar') responder(flListar($in));
+if ($acao === 'fl_salvar') responder(flSalvar($in, $eu));
+if ($acao === 'fl_remover') responder(flRemover($in, $eu));
+if ($acao === 'fl_exportar') responder(flExportar($in));
+if ($acao === 'fl_importar') responder(flImportar($in, $eu));
+if ($acao === 'fl_importar_fim') responder(flImportarFim($in));
+if ($acao === 'fl_rel') responder(flRel($in));
+if ($acao === 'fl_pdf') flPdfSaida($in);
 
 falha('Ação desconhecida.', 404);

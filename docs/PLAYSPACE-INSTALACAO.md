@@ -1301,6 +1301,22 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzo. Finanças 2.0: o financeiro dentro do sistema, no lugar da planilha (1.59)
+
+No **/financas**, duas abas novas:
+
+- **Lançamentos:** o que o financeiro preenchia na planilha, com os mesmos campos:
+  - **Receitas** (o faturamento): data, sub item, filial, segmento, quantidade de vendas, de crianças, valor bruto e observações;
+  - **Despesas:** data, descrição, filial, segmento, grupo (Custo Fixo, Custo variável, Investimento), centro de custo, valor e obs;
+  - **Recebimentos** (o líquido): data, forma (Pix, dinheiro, crédito, débito, link), local (filial e segmento), valor, obs e a data após o fechamento;
+  - **Rede** (a maquininha): o que a Rede pagou no dia, por unidade. Fica à parte (não soma no líquido).
+  - Escolha o mês nas setas e filtre por filial, segmento ou busca. Toque numa linha para corrigir ou tirar (fica quem lançou, quem corrigiu e quem tirou). "Lançar e mais um" guarda e já abre o próximo, com a mesma data, filial e segmento.
+  - As listas (filiais, segmentos, sub itens, centros de custo) vêm da planilha; um nome novo entra na lista sozinho.
+- **Importar a planilha:** escolha o arquivo .xlsx do financeiro. O sistema lê as abas Faturamento (Receita), Despesas, Recebimentos LÍQUIDOS e Rede, mostra quantas linhas e a soma de cada uma e importa. Importar de novo troca o que veio da planilha antes; o que foi lançado no sistema continua.
+- **Relatório financeiro:** o ano mês a mês (ou um mês): receita bruta, receita líquida, despesas, investimento, resultado e margem; o gráfico de receitas x despesas; cada local (Play e Casa Tom de cada unidade, eventos, bolos); o que mais vendeu; os centros de custo; custo fixo e variável de cada local; a semana a semana (dias 1–7, 8–15, 16–fim); os recebimentos por forma.
+  - As contas, como na planilha: **Despesas** = custo fixo + variável; o **Investimento** fica à parte (grupo, filial ou segmento "Investimento"). **Resultado** = receita bruta − despesas. **Líquido** = a soma dos recebimentos.
+- **Exportar:** **Excel** (.xlsx: o resumo mês a mês, cada local e as abas de lançamentos) e **PDF** (com a logo, os números grandes, os gráficos e as tabelas, para o dono).
+
 ## 6zzn. Caixinha que não fecha sozinha, abrir rápido e reabrir (1.58)
 
 - **Caixinhas (folhas):** arrastar o mouse para selecionar um texto e soltar fora da caixinha não fecha mais. Ela fecha no X, no Esc ou num clique simples no fundo escuro. O mesmo nas Finanças.

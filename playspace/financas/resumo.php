@@ -168,7 +168,20 @@ final class PdfSimples {
   const W = 595.28; const H = 841.89;
   const LW = [278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,1015,667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,667,778,722,667,611,722,667,944,667,667,611,278,278,278,469,556,333,556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,334,260,334,584,761,556,0,222,556,333,1000,556,556,333,1000,667,333,1000,0,611,0,0,222,222,333,333,350,556,1000,333,1000,500,333,944,0,500,667,278,333,556,556,556,556,260,556,333,737,370,556,584,333,737,333,400,584,333,333,333,556,537,278,333,333,365,556,834,834,834,611,667,667,667,667,667,667,1000,722,667,667,667,667,278,278,278,278,722,722,778,778,778,778,778,584,778,722,722,722,722,667,667,611,556,556,556,556,556,556,889,500,556,556,556,556,278,278,278,278,556,556,556,556,556,556,556,584,611,556,556,556,556,500,556,500];
   const BW = [278,333,474,556,556,889,722,238,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,333,333,584,584,584,611,975,722,722,722,722,667,611,778,722,278,556,722,611,833,722,778,667,778,722,667,611,722,667,944,667,667,611,333,278,333,584,556,333,556,611,556,611,556,333,611,611,278,278,556,278,889,611,611,611,611,389,556,333,611,556,778,556,556,500,389,280,389,584,761,556,0,278,556,500,1000,556,556,333,1000,667,333,1000,0,611,0,0,278,278,500,500,350,556,1000,333,1000,556,333,944,0,500,667,278,333,556,556,556,556,280,556,333,737,370,556,584,333,737,333,400,584,333,333,333,611,556,278,333,333,365,556,834,834,834,611,722,722,722,722,722,722,1000,722,667,667,667,667,278,278,278,278,722,722,778,778,778,778,778,584,778,722,722,722,722,667,667,611,556,556,556,556,556,556,889,556,556,556,556,556,278,278,278,278,611,611,611,611,611,611,611,584,611,611,611,611,611,556,611,556];
-  private $pags = []; private $s = '';
+  private $pags = []; private $s = ''; private $imgs = [];   // 2.0: as imagens (JPEG), uma vez cada no arquivo
+  // 2.0: uma imagem JPEG (a logo) na posição e no tamanho pedidos (y de cima para baixo, como o resto)
+  function imagem($jpg, $x, $y, $w, $h) {
+    $k = md5((string)$jpg);
+    if (!isset($this->imgs[$k])) { [$iw, $ih, $cp] = self::jpegTam((string)$jpg); if (!$iw) return; $this->imgs[$k] = ['n' => 'Im' . (count($this->imgs) + 1), 'w' => $iw, 'h' => $ih, 'c' => $cp, 'b' => (string)$jpg]; }
+    $this->s .= 'q ' . self::n($w) . ' 0 0 ' . self::n($h) . ' ' . self::n($x) . ' ' . self::n(self::H - $y - $h) . ' cm /' . $this->imgs[$k]['n'] . " Do Q\n";
+  }
+  static function jpegTam($b) {
+    $n = strlen($b); if ($n < 12 || substr($b, 0, 2) !== "\xFF\xD8") return [0, 0, 0]; $i = 2;
+    while ($i + 9 < $n) { if (ord($b[$i]) !== 0xFF) { $i++; continue; } $m = ord($b[$i + 1]); if ($m === 0xFF) { $i++; continue; } $len = unpack('n', substr($b, $i + 2, 2))[1];
+      if (in_array($m, [0xC0, 0xC1, 0xC2], true)) return [unpack('n', substr($b, $i + 7, 2))[1], unpack('n', substr($b, $i + 5, 2))[1], ord($b[$i + 9])];
+      $i += 2 + $len; }
+    return [0, 0, 0];
+  }
   function pagina() { if ($this->s !== '') $this->pags[] = $this->s; $this->s = ''; }
   function paginas() { return count($this->pags) + ($this->s !== '' ? 1 : 0); }
   static function win($t) {
@@ -209,9 +222,12 @@ final class PdfSimples {
     $obj[3] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
     $obj[4] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
     $obj[5] = '<< /Title (' . str_replace(['\\', '(', ')'], ['\\\\', '\\(', '\\)'], self::win($titulo)) . ') /Producer (Play Space) /CreationDate (D:' . date('YmdHis') . ') >>';
+    $xo = ''; $base = 6 + 2 * $n; $im = 0;   // 2.0: as imagens depois das páginas
+    foreach ($this->imgs as $g) { $id = $base + $im++; $xo .= ' /' . $g['n'] . " $id 0 R";
+      $obj[$id] = '<< /Type /XObject /Subtype /Image /Width ' . $g['w'] . ' /Height ' . $g['h'] . ' /ColorSpace /' . ($g['c'] === 1 ? 'DeviceGray' : ($g['c'] === 4 ? 'DeviceCMYK' : 'DeviceRGB')) . ' /BitsPerComponent 8 /Filter /DCTDecode /Length ' . strlen($g['b']) . " >>\nstream\n" . $g['b'] . "\nendstream"; }
     foreach ($this->pags as $i => $c) { $pg = 6 + 2 * $i; $ct = $pg + 1; $kids[] = "$pg 0 R";
       $z = function_exists('gzcompress') ? gzcompress($c, 6) : false;
-      $obj[$pg] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' . self::n(self::W) . ' ' . self::n(self::H) . '] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ' . $ct . ' 0 R >>';
+      $obj[$pg] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' . self::n(self::W) . ' ' . self::n(self::H) . '] /Resources << /Font << /F1 3 0 R /F2 4 0 R >>' . ($xo !== '' ? ' /XObject <<' . $xo . ' >>' : '') . ' >> /Contents ' . $ct . ' 0 R >>';
       $obj[$ct] = $z !== false ? '<< /Length ' . strlen($z) . " /Filter /FlateDecode >>\nstream\n" . $z . "\nendstream" : '<< /Length ' . strlen($c) . " >>\nstream\n" . $c . "\nendstream"; }
     $obj[2] = '<< /Type /Pages /Kids [' . implode(' ', $kids) . '] /Count ' . $n . ' >>';
     ksort($obj); $out = "%PDF-1.4\n%\xE2\xE3\xCF\xD3\n"; $off = [];

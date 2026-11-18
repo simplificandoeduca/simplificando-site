@@ -131,6 +131,21 @@ table.pap tr.zero td { color: var(--ink-3); } table.pap td:first-child { padding
 .dica-g { position: absolute; pointer-events: none; background: var(--ink); color: #fff; border-radius: 12px; padding: 10px 12px; font-size: 13px; line-height: 1.5; min-width: 150px; box-shadow: 0 10px 30px rgba(0, 0, 0, .18); transform: translate(-50%, calc(-100% - 10px)); white-space: nowrap; z-index: 5; }
 .dica-g b { display: block; margin-bottom: 2px; }
 .dica-g i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; }
+/* 2.0: a gestão financeira (os lançamentos do financeiro e o relatório) */
+.btn.g-novo { width: auto; margin: 0; height: 40px; }
+.g-mes { font-family: var(--display); font-size: 15px; min-width: 150px; text-align: center; }
+input.chip.g-busca { width: 190px; padding: 0 14px; outline: none; } input.chip.g-busca:focus { border-color: var(--brand); }
+table.g-lanc tr[data-gl] { cursor: pointer; } table.g-lanc tr[data-gl]:hover td, table.g-lanc tr[data-gl]:focus td { background: var(--soft); } table.g-lanc tr[data-gl]:focus { outline: none; }
+table.g-lanc td:nth-child(2) { max-width: 260px; } table.g-lanc td small { font-size: 11px; }
+.g-folha { max-width: 620px; } .g-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; } .g-c.g-larg { grid-column: 1 / -1; } .g-c .lbl { margin-top: 12px; } .g-c .lbl small { font-weight: 600; color: var(--ink-3); }
+.g-folha .acoes { flex-wrap: wrap; align-items: center; } .g-folha .acoes .btn { height: 46px; margin: 0; white-space: nowrap; padding: 0 16px; } .g-tirar { color: var(--bad); margin-top: 14px; }
+.g-imp table { font-size: 13.5px; } .g-arq { height: auto; padding: 12px; }
+.g-barras { display: flex; flex-direction: column; gap: 8px; } .g-b { display: grid; grid-template-columns: minmax(0, 190px) minmax(0, 1fr) auto; gap: 10px; align-items: center; font-size: 13.5px; }
+.g-bn { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); } .g-bt { height: 10px; border-radius: 999px; background: var(--soft); overflow: hidden; } .g-bt i { display: block; height: 100%; border-radius: 999px; }
+.g-bv { white-space: nowrap; font-weight: 700; } .g-bv small { color: var(--ink-3); font-weight: 600; margin-left: 4px; }
+tr.g-dest td { background: rgba(226, 91, 63, .07); font-weight: 700; } td.g-neg { color: var(--bad); }
+#g-graf svg { height: 260px; }
+@media (max-width: 640px) { .g-grid { grid-template-columns: minmax(0, 1fr); } .g-b { grid-template-columns: minmax(0, 1fr) auto; } .g-b .g-bt { grid-column: 1 / -1; grid-row: 2; } input.chip.g-busca { width: 100%; } }
 /* folhas (criar acesso, nova senha) */
 .fundo { position: fixed; inset: 0; background: rgba(20, 20, 35, .38); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 30; }
 .folha { background: var(--card); border-radius: 26px; padding: 24px; width: 100%; max-width: 460px; max-height: calc(100vh - 32px); overflow: auto; box-shadow: 0 30px 80px rgba(0, 0, 0, .25); }
@@ -261,7 +276,8 @@ table.pap tr.zero td { color: var(--ink-3); } table.pap td:first-child { padding
   .topo h1 { font-size: 24px; } .kpi .val { font-size: clamp(17px, 5.4vw, 23px); white-space: nowrap; } .kpi { padding: 14px; }
   .grade { gap: 10px; }
   .tabbar { display: flex; position: fixed; left: 0; right: 0; bottom: 0; background: rgba(255, 251, 244, .96); backdrop-filter: blur(10px); border-top: 1px solid var(--line); padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); z-index: 20; }
-  .tabbar button { flex: 1; border: 0; background: none; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; font-weight: 600; color: var(--ink-3); padding: 6px 0; }
+  .tabbar { overflow-x: auto; scrollbar-width: none; } .tabbar::-webkit-scrollbar { display: none; }   /* 2.0: oito abas: a barra rola para o lado */
+  .tabbar button { flex: 1 0 60px; min-width: 60px; border: 0; background: none; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; font-weight: 600; color: var(--ink-3); padding: 6px 0; }
   .tabbar button.ativa { color: var(--brand); }
   .tabbar svg { width: 22px; height: 22px; }
 }
@@ -277,6 +293,7 @@ tr.nf-canc td:nth-child(2), tr.nf-canc td:last-child { text-decoration: line-thr
 </head>
 <body>
 <div id="raiz"></div>
+<script src="gestao.js?v=2.0"></script>
 <script>
 /* Play Space Finanças 1.0: o que é crítico e delicado do negócio, com login próprio. Os números vêm do Play Space (só leitura). */
 'use strict';
@@ -297,9 +314,11 @@ const IC = {
   canc: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg>',
   desc: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5L5 19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>',
   nota: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 12h7M9 16h5"/></svg>',
+  lanc: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M4 9h16M9 9v11M12 13h5M12 16.5h5"/></svg>',
+  relat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/><path d="M4 10l6-4 6 5 5-4"/></svg>',
   conta: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>'
 };
-const ABAS = [['geral', 'Visão geral', IC.geral], ['vendas', 'Vendas e pacotes', IC.vendas], ['canc', 'Cancelamentos', IC.canc], ['desc', 'Descontos', IC.desc], ['notas', 'Notas fiscais', IC.nota], ['conta', 'Conta', IC.conta]];
+const ABAS = [['geral', 'Visão geral', IC.geral], ['lanc', 'Lançamentos', IC.lanc], ['relat', 'Relatório financeiro', IC.relat], ['vendas', 'Vendas e pacotes', IC.vendas], ['canc', 'Cancelamentos', IC.canc], ['desc', 'Descontos', IC.desc], ['notas', 'Notas fiscais', IC.nota], ['conta', 'Conta', IC.conta]];
 const GRUPOS = { recreacao: 'Recreação avulsa', pacotes: 'Pacotes de horas', festa: 'Festas', produtos: 'Produtos da loja', carrinhos: 'Carrinhos', outros: 'Outros' };
 const FORMAS = { pix: 'Pix', dinheiro: 'Dinheiro', credito: 'Crédito', debito: 'Débito' };
 let EU = null, UNIS = [], D = null, ABA = 'geral', UNI = 'todas', PER = { k: 'mes' }, PROD = '', CARREGANDO = 0;   /* PROD: '' · g:<tipo> · i:<tipo>|<NOME> (1.53) */
@@ -416,7 +435,7 @@ async function iniciar() {
     ${ABAS.map(([k, n, ic]) => `<button class="aba" data-aba="${k}">${ic}<span>${n}</span>${k === 'canc' ? '<span class="cont" data-cont-canc hidden></span>' : ''}</button>`).join('')}
     <div class="quem"><b>${esc(EU.nome)}</b>login: ${esc(EU.login)}</div></nav>
     <main class="principal" id="tela"></main></div>
-    <nav class="tabbar" aria-label="Menu">${ABAS.map(([k, n, ic]) => `<button data-aba="${k}">${ic}<span>${{ geral: 'Visão', vendas: 'Vendas', canc: 'Cancelados', desc: 'Descontos', notas: 'Notas', conta: 'Conta' }[k] || n}</span></button>`).join('')}</nav>`;
+    <nav class="tabbar" aria-label="Menu">${ABAS.map(([k, n, ic]) => `<button data-aba="${k}">${ic}<span>${{ geral: 'Visão', lanc: 'Lançar', relat: 'Relatório', vendas: 'Vendas', canc: 'Cancelados', desc: 'Descontos', notas: 'Notas', conta: 'Conta' }[k] || n}</span></button>`).join('')}</nav>`;
   $$('[data-aba]').forEach(b => b.onclick = () => { ABA = b.dataset.aba; desenhar(); window.scrollTo(0, 0); });
   desenhar(); carregar();
 }
@@ -447,6 +466,7 @@ function ligarFiltros() {
 function desenhar() {
   $$('[data-aba]').forEach(b => { b.classList.toggle('ativa', b.dataset.aba === ABA); b.setAttribute('aria-current', b.dataset.aba === ABA ? 'page' : 'false'); });
   const cc = $('[data-cont-canc]'); if (cc) { const n = D ? somaUni().cancN || 0 : 0; cc.hidden = !n; cc.textContent = n; }
+  if (ABA === 'lanc' || ABA === 'relat') { gestaoDesenhar(ABA); return; }   /* 2.0: a gestão financeira (gestao.js) */
   const t = $('#tela'); if (!t) return;
   const [de, ate, nomeP] = periodo(), titulo = (ABAS.find(a => a[0] === ABA) || [])[1];
   const sub = `${nomeP} · ${de === ate ? dataBR(de) : dataBR(de) + ' a ' + dataBR(ate)}${UNI === 'todas' ? ' · todas as unidades' : ' · ' + nomeUni(UNI)} · ${nomeProd(PROD)}`;
