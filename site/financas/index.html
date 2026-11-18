@@ -601,7 +601,7 @@ function logo(){
 $('#logo').innerHTML = logo(); document.querySelector('.top .mic').innerHTML = I.mic;
 
 /* ========== estado ========== */
-const FINV = '18 nov · 52'; // Versão do Finanças: 18 nov · 52
+const FINV = '18 nov · 53'; // Versão do Finanças: 18 nov · 53
 const DONO = { nome:'Eduardo Matias', iniciais:'EM' }; // perfil único desta página
 const LS = 'simplificando-financas', LST = 'simplificando-financas-tema';
 const CATS = ['Mercado', 'Comida', 'Transporte', 'Casa', 'Lazer', 'Saúde', 'Roupas', 'Assinaturas', 'Outros'];
@@ -743,6 +743,19 @@ function irmaoPendente(){
   const gasto = sum(S.gastos.filter(g => g.quem === 'irmao'), g => g.valor);
   const pago = sum(S.pagamentos, p => p.valor);
   return { gasto, pago, deve:gasto - pago };
+}
+function podeAntecipar(c){
+  if (!c || c.tipo === 'conta') return false;
+  if (typeof c.antecipa === 'boolean') return c.antecipa;
+  return /^nu/.test(c.visual || '') || /\bnu(bank)?\b/i.test(c.nome || '');
+}
+function sheetAntecipar(){ // escolher qual cartão antecipar (só os que aceitam)
+  const cs = S.cartoes.filter(podeAntecipar);
+  if (cs.length === 1) return sheetPagFatura(null, cs[0].id);
+  Sheet.open(`<div class="hd"><h2>Antecipar fatura</h2><button type="button" class="x" data-s="fechar" aria-label="Fechar">${I.x}</button></div>
+    <p class="sub">Escolha o cartão. Só aparecem os que aceitam pagar a fatura antes de fechar (ex.: Nubank).</p>
+    <div class="list">${cs.map(c => { const f = faturaDe(c), pf = pagosFatura(c, f), tot = f ? f.total : sum(gastosMes().filter(g => g.cartao === c.id), g => g.valor), falta = Math.max(0, tot - pf.total);
+      return `<button type="button" class="row" data-a="pagar-fatura" data-k="${c.id}">${ccHTML(c, '', 'mini')}<span class="tx"><b>${esc(c.nome)}</b><span>Fatura ${esc(fmt(tot))}${pf.total ? ' · já pago ' + esc(fmt(pf.total)) : ''}</span></span><span class="val">falta ${esc(fmt(falta))}</span></button>`; }).join('')}</div>`, { kind:'antecipar' });
 }
 function faturaDe(c){ // a fatura ABERTA na data de referência: hoje (no mês atual) ou o dia 15 do mês escolhido.
   // Regra do Nubank: compra feita no dia do fechamento já entra na fatura seguinte.
@@ -1002,6 +1015,16 @@ function rGastos(){
     <p class="big">${fmtBig(tot)}</p>
     <div class="ctiles">${S.cartoes.map(c => `<button type="button" class="ctl ${UI.fCart === c.id ? 'on' : ''}" data-a="f-cart" data-k="${UI.fCart === c.id ? '' : c.id}" aria-label="${esc(c.tipo === 'conta' ? 'Pix' : c.nome)}">${ccHTML(c)}<b>${esc(fmt(sum(base.filter(g => g.cartao === c.id), g => g.valor)).replace(/,00$/, ''))}</b></button>`).join('')}</div></div>`;
   h += `<div class="inline"><div class="seg" style="flex:1"><button type="button" class="${!UI.fQuem ? 'on' : ''}" data-a="f-quem" data-k="">Todos</button><button type="button" class="${UI.fQuem === 'eu' ? 'on' : ''}" data-a="f-quem" data-k="eu">Meus</button><button type="button" class="${UI.fQuem === 'irmao' ? 'on' : ''}" data-a="f-quem" data-k="irmao">${esc(S.irmao.nome)}</button></div><button type="button" class="btn sm" data-a="importar" data-k="${UI.fCart || ''}" title="Importar lista da fatura ou do extrato">${I.copy}Importar</button></div>`;
+  const fc = UI.fCart ? cartao(UI.fCart) : null;
+  if (fc && fc.tipo !== 'conta') {
+    const f = faturaDe(fc), pf = pagosFatura(fc, f), ft = f ? f.total : sum(doMes.filter(g => g.cartao === fc.id), g => g.valor), falta = Math.max(0, ft - pf.total);
+    h += podeAntecipar(fc)
+      ? `<div class="card antec"><div class="hd"><div><p class="eyebrow">Fatura atual${f ? ' · fecha ' + esc(dayLabel(addDays(f.fim, 1))) : ''}</p><p class="big" style="font-size:24px">${fmtBig(falta)}</p><p class="sub" style="margin:0">${pf.total ? 'Fatura ' + esc(fmt(ft)) + ' · já antecipei ' + esc(fmt(pf.total)) : 'Falta pagar desta fatura'}</p></div><button type="button" class="btn primary" data-a="pagar-fatura" data-k="${fc.id}">Antecipar</button></div>
+        ${pf.itens.length ? `<div class="list">${pf.itens.map(x => `<button type="button" class="row" data-a="ed-pagfat" data-k="${x.id}"><span class="tx"><b>Pago antes</b><span>${esc(dayLabel(x.data))}${x.obs ? ' · ' + esc(x.obs) : ''}</span></span><span class="val" style="color:var(--accent)">${esc(fmt(x.valor))}</span></button>`).join('')}</div>` : ''}</div>`
+      : `<p class="sub" style="text-align:center">${esc(fc.nome)} não aceita pagar a fatura antes. Se aceitar, ligue em Ajustes > Cartões e conta.</p>`;
+  } else if (!fc && S.cartoes.some(podeAntecipar)) {
+    h += `<button type="button" class="btn wide antec-b" data-a="antecipar">Antecipar fatura</button>`;
+  }
   if (!its.length) h += `<div class="list"><div class="empty"><b>Nada por aqui</b><span>${doMes.length ? 'Nenhum gasto com esse filtro.' : 'Nenhum gasto lançado em ' + esc(monthLabel(UI.mes)) + '.'}</span><button type="button" class="btn primary" data-a="novo-gasto">${I.plus}Lançar gasto</button></div></div>`;
   else {
     h += `<div class="tline">`; let dia = '';
@@ -1048,6 +1071,7 @@ function rAjustes(){
     h += `<div class="set-item"><div class="inline"><label class="field"><span class="sr">Nome</span><input id="in-c-${c.id}" data-f="cartao" data-k="${c.id}" value="${esc(c.nome)}" placeholder="Nome do cartão"></label><button type="button" class="mic sm ghost" data-voz="in-c-${c.id}" aria-label="Falar o nome">${I.mic}</button><button type="button" class="x-sm" data-a="del-cartao" data-k="${c.id}" aria-label="Apagar">${I.trash}</button></div>
       <div class="inline"><div class="seg" style="flex:1"><button type="button" class="${c.tipo !== 'conta' ? 'on' : ''}" data-a="tipo-cartao" data-k="${c.id}" data-v="credito">Crédito</button><button type="button" class="${c.tipo === 'conta' ? 'on' : ''}" data-a="tipo-cartao" data-k="${c.id}" data-v="conta">Conta</button></div>
       ${c.tipo !== 'conta' ? `<label class="field" style="width:120px"><span class="sr">Fecha dia</span><input type="number" min="1" max="31" inputmode="numeric" data-f="fecha" data-k="${c.id}" value="${c.fecha || ''}" placeholder="Fecha dia"></label>` : ''}</div>
+      ${c.tipo !== 'conta' ? `<label class="gate-keep" style="display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;margin:6px 0"><input type="checkbox" data-antecipa="${c.id}" ${podeAntecipar(c) ? 'checked' : ''} style="width:20px;height:20px;accent-color:var(--accent)">Aceita pagar a fatura antes (antecipar)</label>` : ''}
       <div class="vis">${Object.keys(VISUAIS).map(k => `<button type="button" class="${(c.visual || 'liso') === k ? 'on' : ''}" data-a="visual-cartao" data-k="${c.id}" data-v="${k}">${ccHTML(Object.assign({}, c, { visual:k }))}${esc(VISUAIS[k])}</button>`).join('')}</div>
       <div class="sw-pick" ${(c.visual || 'liso') !== 'liso' ? 'hidden' : ''}>${[0, 1, 2, 3, 4, 5, 6, 7].map(i => `<button type="button" class="${(c.cor ?? 7) === i ? 'on' : ''}" style="--sw:var(--c${i})" data-a="cor-cartao" data-k="${c.id}" data-v="${i}" aria-label="Cor ${i + 1}"></button>`).join('')}</div></div>`;
   }
@@ -1749,6 +1773,7 @@ document.addEventListener('click', ev => {
   if (a === 'novo-pag') sheetPag();
   if (a === 'ed-pag') { const x = S.pagamentos.find(y => y.id === k); if (x) sheetPag(x); }
   if (a === 'pagar-fatura') sheetPagFatura(null, k);
+  if (a === 'antecipar') sheetAntecipar();
   if (a === 'ed-pagfat') { const x = S.pagFatura.find(y => y.id === k); if (x) sheetPagFatura(x, x.cartao); }
   if (a === 'cobranca') sheetCobranca();
   if (a === 'zap') window.open(zapURL(textoCobranca()), '_blank', 'noopener');
@@ -1792,6 +1817,7 @@ document.addEventListener('input', ev => {
   clearTimeout(typing); typing = setTimeout(save, 500);
 });
 document.addEventListener('change', ev => {
+  const ant = ev.target.closest('[data-antecipa]'); if (ant) { const c = S.cartoes.find(y => y.id === ant.dataset.antecipa); if (c) { c.antecipa = ant.checked; save(); toast(ant.checked ? 'Esse cartão aceita antecipar.' : 'Esse cartão não aceita antecipar.'); } return; }
   const el = ev.target.closest('[data-f="importar"]'); if (!el || !el.files[0]) return;
   const fr = new FileReader();
   fr.onload = () => { try { const o = normalize(JSON.parse(fr.result)); if (!confirm('Substituir tudo pela cópia (' + o.gastos.length + ' gastos, ' + o.receitas.length + ' receitas)?')) return; S = o; save(); render(); toast('Cópia restaurada.'); } catch(e){ toast('Esse arquivo não é uma cópia válida.'); } el.value = ''; };
