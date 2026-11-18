@@ -451,15 +451,16 @@ button.rc:active{background:var(--ctl)}
 .float3 .prog i{background:var(--accent)}
 .link{border:0;background:none;color:var(--muted);font:inherit;font-size:12.5px;font-weight:700;text-decoration:underline;text-underline-offset:3px;padding:2px 0;align-self:flex-start}
 /* para onde foi */
-.donut-row{display:flex;align-items:center;gap:16px}
+.donut-row{display:flex;flex-direction:column;align-items:center;gap:14px}
 .ring{position:relative;display:flex;align-items:center;justify-content:center;flex:none}
-.ring b{position:absolute;font-size:15px;font-weight:900;letter-spacing:-.03em;pointer-events:none;text-align:center;line-height:1.1}
+.ring b{position:absolute;font-size:20px;font-weight:900;letter-spacing:-.03em;pointer-events:none;text-align:center;line-height:1.1}
 .ring b small{display:block;font-size:10px;font-weight:700;color:var(--muted);letter-spacing:0}
-.ring circle{cursor:pointer;transition:stroke-width .15s}.ring circle:hover{stroke-width:24}
-.leg{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.ring svg{overflow:visible}.ring circle{cursor:pointer;transition:stroke-width .15s,opacity .15s}.ring svg:hover circle{opacity:.45}.ring svg:hover circle:hover{opacity:1;stroke-width:calc(var(--sw0) + 8px)}
+.leg{display:grid;grid-template-columns:1fr 1fr;gap:2px 8px;width:100%}
 .leg button{border:0;background:none;color:var(--fg);font:inherit;display:flex;align-items:center;gap:7px;font-size:13px;padding:5px 4px;border-radius:10px;text-align:left;min-width:0}
 .leg button:active{background:var(--ctl)}
-.leg i{width:10px;height:10px;border-radius:3px;flex:none}.leg span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.leg b{font-variant-numeric:tabular-nums;font-weight:800;white-space:nowrap}
+.leg i{width:10px;height:10px;border-radius:3px;flex:none}.leg button{flex-wrap:wrap;row-gap:0}.leg span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}.leg b{font-variant-numeric:tabular-nums;font-weight:800;white-space:nowrap;margin-left:auto}
+.leg button{display:grid !important;grid-template-columns:10px 1fr;column-gap:7px}.leg button b{grid-column:2;margin:0;font-size:13px}.leg button span{font-size:12.5px;color:var(--muted)}
 /* semana e calendário */
 .week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;align-items:end;height:112px}
 .week button{border:0;background:none;color:var(--muted);font:inherit;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;height:100%;font-size:10.5px;font-weight:800;min-width:0}
@@ -575,7 +576,7 @@ function logo(){
 $('#logo').innerHTML = logo(); document.querySelector('.top .mic').innerHTML = I.mic;
 
 /* ========== estado ========== */
-const FINV = '18 nov · 48'; // Versão do Finanças: 18 nov · 48
+const FINV = '18 nov · 49'; // Versão do Finanças: 18 nov · 49
 const DONO = { nome:'Eduardo Matias', iniciais:'EM' }; // perfil único desta página
 const LS = 'simplificando-financas', LST = 'simplificando-financas-tema';
 const CATS = ['Mercado', 'Comida', 'Transporte', 'Casa', 'Lazer', 'Saúde', 'Roupas', 'Assinaturas', 'Outros'];
@@ -604,7 +605,7 @@ const ls = { get(k){ try { return localStorage.getItem(k); } catch(e){ return nu
 try { S = normalize(JSON.parse(ls.get(LS) || 'null')); } catch(e){ S = fresh(); }
 const theme = ls.get(LST); if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
 
-const UI = { verOrc:false, ajSec:null, verMov:false, tab:'resumo', mes:nowKey(), fCart:'', fQuem:'', cartao:'', xQuem:'' };
+const UI = { verRec:false, verOrc:false, ajSec:null, verMov:false, tab:'resumo', mes:nowKey(), fCart:'', fQuem:'', cartao:'', xQuem:'' };
 const cartao = id => S.cartoes.find(c => c.id === id) || { id, nome:'(cartão apagado)', cor:7, tipo:'credito' };
 const fonte = id => S.fontes.find(f => f.id === id) || { id, nome:'Avulsa' };
 const ehAvulsa = r => !S.fontes.some(f => f.id === r.fonte);
@@ -796,9 +797,9 @@ function catsMes(){ // meus gastos do mês por categoria (a cor segue a categori
   return Object.values(m).sort((a, b) => b.v - a.v);
 }
 function donutHTML(cats, total, size, stroke){
-  const r = (size - stroke) / 2, c = 2 * Math.PI * r; let off = 0, seg = '';
+  const pad = 6, r = (size - stroke) / 2 - pad, c = 2 * Math.PI * r; let off = 0, seg = '';
   for (const x of cats) { const len = x.v / total * c; seg += `<circle data-a="cat" data-k="${esc(x.nome)}" cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="${corCat(x.nome)}" stroke-width="${stroke}" stroke-dasharray="${Math.max(0.5, len - 2)} ${c - Math.max(0.5, len - 2)}" stroke-dashoffset="${-off}" transform="rotate(-90 ${size / 2} ${size / 2})"><title>${esc(x.nome)}: ${esc(fmt(x.v))}</title></circle>`; off += len; }
-  return `<div class="ring" style="width:${size}px;height:${size}px"><svg width="${size}" height="${size}" role="img" aria-label="Gastos por categoria">${seg}</svg><b>${esc(fmt(total).replace(/,\d\d$/, ''))}<small>no mês</small></b></div>`;
+  return `<div class="ring" style="width:${size}px;height:${size}px;--sw0:${stroke}px"><svg width="${size}" height="${size}" role="img" aria-label="Gastos por categoria">${seg}</svg><b>${esc(fmt(total).replace(/,\d\d$/, ''))}<small>no mês</small></b></div>`;
 }
 function semanaDe(){ // segunda a domingo da semana de hoje (ou a última semana do mês escolhido)
   const hoje = todayISO(); let ref = hoje;
@@ -901,7 +902,7 @@ function rResumo(){
     const cs = catsMes(), tot = sum(cs, c => c.v);
     h += `<div class="card"><div class="hd"><h2>Para onde foi</h2></div>`;
     if (!tot) h += `<p class="sub">Nenhum gasto seu em ${esc(monthLabel(UI.mes))} ainda.</p>`;
-    else h += `<div class="donut-row">${donutHTML(cs, tot, 112, 18)}<div class="leg">${cs.map(c => `<button type="button" data-a="cat" data-k="${esc(c.nome)}"><i style="background:${corCat(c.nome)}"></i><span>${esc(c.nome)}</span><b>${esc(fmt(c.v))}</b></button>`).join('')}</div></div><p class="sub">Toque numa cor para ver os gastos dela.</p>`;
+    else h += `<div class="donut-row">${donutHTML(cs, tot, 200, 28)}<div class="leg">${cs.map(c => `<button type="button" data-a="cat" data-k="${esc(c.nome)}"><i style="background:${corCat(c.nome)}"></i><span>${esc(c.nome)}</span><b>${esc(fmt(c.v))}</b></button>`).join('')}</div></div><p class="sub">Toque numa cor para ver os gastos dela.</p>`;
     h += `</div>`;
   }
   // semana
@@ -925,8 +926,9 @@ function rResumo(){
   for (const f of S.fontes) { const v = sum(rm.filter(r => r.fonte === f.id), r => r.valor); h += `<div class="bar" style="--sw:var(--ok)"><div class="l"><b>${esc(f.nome)}</b><span class="v">${esc(fmt(v))}</span></div><div class="t"><i style="width:${Math.round(v / maxF * 100)}%"></i></div></div>`; }
   const outras = rm.filter(ehAvulsa); if (outras.length) { const v = sum(outras, r => r.valor); h += `<div class="bar" style="--sw:#5AB8FF"><div class="l"><b>Avulsas <span style="font-weight:500;color:var(--muted)">(só este mês)</span></b><span class="v">${esc(fmt(v))}</span></div><div class="t"><i style="width:${Math.min(100, Math.round(v / maxF * 100))}%"></i></div></div>`; }
   h += `</div>`;
-  if (rm.length) { h += `<div class="list" style="margin:0 -6px">`; for (const r of rm.slice().sort((a, b) => b.data.localeCompare(a.data))) h += `<button type="button" class="row" data-a="ed-receita" data-k="${r.id}"><span class="tx"><b>${esc(nomeRec(r))}</b><span>${esc(dayLabel(r.data))}${ehAvulsa(r) ? ' · avulsa' : ' · fixa'}</span></span><span class="val in">+${esc(fmt(r.valor))}</span></button>`; h += `</div>`; }
-  else h += `<p class="sub">Nenhum recebimento lançado em ${esc(monthLabel(UI.mes))}.</p>`;
+  if (rm.length) h += `<button type="button" class="link" data-a="ver-rec">${UI.verRec ? 'Esconder os lançamentos' : 'Ver os lançamentos (' + rm.length + ')'}</button>`;
+  if (rm.length && UI.verRec) { h += `<div class="list" style="margin:0 -6px">`; for (const r of rm.slice().sort((a, b) => b.data.localeCompare(a.data))) h += `<button type="button" class="row" data-a="ed-receita" data-k="${r.id}"><span class="tx"><b>${esc(nomeRec(r))}</b><span>${esc(dayLabel(r.data))}${ehAvulsa(r) ? ' · avulsa' : ' · fixa'}</span></span><span class="val in">+${esc(fmt(r.valor))}</span></button>`; h += `</div>`; }
+  if (!rm.length) h += `<p class="sub">Nenhum recebimento lançado em ${esc(monthLabel(UI.mes))}.</p>`;
   h += `</div>`;
   $('#v-resumo').innerHTML = h;
 }
@@ -1694,6 +1696,7 @@ document.addEventListener('click', ev => {
   if (a === 'dia') { sheetDia(k); return; }
   if (a === 'cal-mes') { sheetCalendario(); return; }
   if (a === 'novo-gasto-dia') { sheetGasto({ data:k }); return; }
+  if (a === 'ver-rec') { UI.verRec = !UI.verRec; render(); return; }
   if (a === 'ver-orc') { UI.verOrc = !UI.verOrc; render(); return; }
   if (a === 'ver-mov') { UI.verMov = !UI.verMov; render(); }
   if (a === 'cofre-min') { ls.set('simplificando-financas-cofre-' + UI.mes, k); render(); }
