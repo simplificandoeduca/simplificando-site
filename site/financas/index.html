@@ -229,11 +229,14 @@ button.row:active{background:var(--ctl)}
 #splash{position:fixed;inset:0;z-index:400;background:var(--bg);display:flex;align-items:center;justify-content:center;transition:opacity .4s ease,visibility .4s}
 #splash.sai{opacity:0;visibility:hidden}
 #splash .sp-logo{width:92px;height:92px;animation:sp-in .5s cubic-bezier(.2,.9,.3,1.2) both}
-#splash .sp-logo svg{filter:drop-shadow(0 10px 24px rgba(11,59,46,.18))}
-#splash .anel{transform-origin:0 0;animation:sp-gira 2.8s linear infinite}
-@keyframes sp-gira{to{transform:rotate(360deg)}}
+#splash .sp-logo{perspective:700px;filter:drop-shadow(0 14px 22px rgba(80,55,5,.25))}
+#splash .m3d{position:relative;width:100%;height:100%;transform-style:preserve-3d;animation:sp-gira 3.4s linear infinite}
+#splash .m3d>*{position:absolute;inset:0;border-radius:50%;display:block}
+#splash .m3d .ed{background:#A87A16}#splash .m3d .ed:nth-child(odd){background:#94680F}
+#splash .m3d .fr{transform:translateZ(6px)}#splash .m3d .bk{transform:rotateY(180deg) translateZ(6px)}
+@keyframes sp-gira{from{transform:rotateX(10deg) rotateY(0)}to{transform:rotateX(10deg) rotateY(360deg)}}
 @keyframes sp-in{from{opacity:0;transform:scale(.85)}}
-@media (prefers-reduced-motion: reduce){#splash .anel{animation-duration:8s}}
+@media (prefers-reduced-motion: reduce){#splash .m3d{animation-duration:9s}}
 .gate{position:fixed;inset:0;z-index:200;background:var(--bg);color:var(--fg);overflow-y:auto;overscroll-behavior:contain}
 .gate-in{max-width:440px;margin:0 auto;min-height:100%;min-height:100dvh;display:flex;flex-direction:column;gap:14px;padding:calc(32px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(32px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
 .gate-logo{width:72px;height:72px}.gate-logo svg{width:100%;height:100%}
@@ -619,20 +622,30 @@ const I = {
   mic:'<svg class="i" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6"/></svg>',
   refresh:'<svg class="i" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7L20 8"/><path d="M20 3v5h-5"/></svg>'
 };
-function logo(){
-  const arc = (d, c) => '<path d="' + d + '" fill="none" stroke="' + c + '" stroke-width="3.8"/>';
-  return '<svg viewBox="-50 -50 100 100" role="img" aria-label="Simplificando" width="100%" height="100%"><circle r="50" fill="#0F1712"/><g class="anel">' +
-    arc('M0 -44.3A44.3 44.3 0 0 1 44.3 0.31', '#B794FF') + arc('M44.3 0A44.3 44.3 0 0 1 -0.31 44.3', '#C8F542') +
-    arc('M0 44.3A44.3 44.3 0 0 1 -44.3 -0.31', '#5AB8FF') + arc('M-44.3 0A44.3 44.3 0 0 1 0.31 -44.3', '#FF4646') + '</g>' +
-    '<text x="0" y="12" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-weight="900" font-size="34" fill="#F6F5EF">R$</text></svg>';
+let LOGO_N = 0;
+const SERRILHA = Array.from({ length:64 }, (_, i) => { const a = i / 64 * Math.PI * 2, c = Math.cos(a), si = Math.sin(a); return 'M' + (c * 43.4).toFixed(2) + ' ' + (si * 43.4).toFixed(2) + 'L' + (c * 47.6).toFixed(2) + ' ' + (si * 47.6).toFixed(2); }).join('');
+function logo(){ // moeda de ouro do Finanças
+  const id = 'lg' + (LOGO_N++);
+  return '<svg viewBox="-50 -50 100 100" role="img" aria-label="Finanças" width="100%" height="100%"><defs>' +
+    '<radialGradient id="' + id + 'f" cx="35%" cy="30%" r="80%"><stop offset="0" stop-color="#FFF1B8"/><stop offset=".45" stop-color="#F2C94C"/><stop offset="1" stop-color="#B7861A"/></radialGradient>' +
+    '<linearGradient id="' + id + 'r" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E7B53A"/><stop offset="1" stop-color="#9C6F10"/></linearGradient></defs>' +
+    '<circle r="50" fill="#8A6210"/><circle r="48" fill="url(#' + id + 'r)"/><path d="' + SERRILHA + '" stroke="rgba(90,60,5,.55)" stroke-width="1.4" stroke-linecap="round"/>' +
+    '<circle r="42.5" fill="url(#' + id + 'f)"/><circle r="38.5" fill="none" stroke="rgba(120,85,10,.45)" stroke-width="1.3"/>' +
+    '<text x="0" y="16.2" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-weight="900" font-size="43" letter-spacing="-1.5" fill="rgba(255,240,190,.85)">R$</text>' +
+    '<text x="0" y="14.5" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-weight="900" font-size="43" letter-spacing="-1.5" fill="#3B2A06">R$</text>' +
+    '<path d="M-31 -21a40 40 0 0 1 28-16" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="3" stroke-linecap="round"/></svg>';
 }
-$('#logo').innerHTML = logo(); $('#splash .sp-logo').innerHTML = logo();
+function moeda3d(){ // moeda grossa (como a de R$ 1) para girar na abertura
+  const camadas = Array.from({ length:15 }, (_, i) => `<i class="ed" style="transform:translateZ(${(-5.6 + i * 0.8).toFixed(1)}px)"></i>`).join('');
+  return `<div class="m3d">${camadas}<span class="fc fr">${logo()}</span><span class="fc bk">${logo()}</span></div>`;
+}
+$('#logo').innerHTML = logo(); $('#splash .sp-logo').innerHTML = moeda3d();
 const SPLASH_T0 = Date.now();
 function tirarSplash(){ const sp = $('#splash'); if (!sp || sp.dataset.saindo) return; sp.dataset.saindo = '1'; setTimeout(() => { sp.classList.add('sai'); setTimeout(() => sp.remove(), 450); }, Math.max(0, 1100 - (Date.now() - SPLASH_T0))); }
 setTimeout(tirarSplash, 9000); document.querySelector('.top .mic').innerHTML = I.mic;
 
 /* ========== estado ========== */
-const FINV = '18 nov · 57'; // Versão do Finanças: 18 nov · 57
+const FINV = '18 nov · 58'; // Versão do Finanças: 18 nov · 58
 const DONO = { nome:'Eduardo Matias', iniciais:'EM' }; // perfil único desta página
 const LS = 'simplificando-financas', LST = 'simplificando-financas-tema';
 const CATS = ['Mercado', 'Comida', 'Transporte', 'Casa', 'Lazer', 'Saúde', 'Roupas', 'Assinaturas', 'Outros'];
