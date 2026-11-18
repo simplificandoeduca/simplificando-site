@@ -54,7 +54,7 @@ function treinoCard(){
 /* treino do dia já feito: mostra o que foi feito e o resumo (e não o botão de começar de novo) */
 function doneCard(){
   const t0 = today(), i = S.history.map(h => h.date).lastIndexOf(t0), h = S.history[i], p = PLAN[h.t] || {nome:'Treino '+h.t}, prs = (h.prs||[]).length;
-  return `<section class="card wcard wkc wk-${['A','B','C','D','E'].includes(h.t)?h.t:'A'}" aria-label="Treino de hoje feito: ${p.nome}">${WK_ART}<div class="card-h"><span class="label">${ic('dumbbell')}Treino de hoje</span><span class="pill">${ic('check')}Feito</span></div>
+  return `<section class="card wcard wkc wk-done wk-${['A','B','C','D','E'].includes(h.t)?h.t:'A'}" aria-label="Treino de hoje feito: ${p.nome}"><div class="card-h"><span class="label">${ic('dumbbell')}Treino de hoje</span><span class="pill">${ic('check')}Feito</span></div>
     <div><h2 class="big">Treino feito<span class="dot" aria-hidden="true"></span></h2><p class="muted">${p.nome} · ${h.min} min · ${h.sets} série${h.sets===1?'':'s'} · ${fmtN(h.vol)} kg${prs?' · '+prs+' recorde'+(prs>1?'s':''):''}</p></div>
     <button type="button" class="btn primary block" data-a="hist" data-i="${i}">${ic('chart')}Ver resumo</button>
     <button type="button" class="linkbtn" data-a="force-train">Treinar de novo mesmo assim</button></section>`;

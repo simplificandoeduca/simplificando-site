@@ -315,12 +315,13 @@ function iqClick(a,d,b){
 }
 function iaResult(P, ed, q){
   const ls = Object.keys(P), mins = ls.length ? Math.round(ls.reduce((a,l) => a+P[l].min, 0)/ls.length) : 0, notes = iaNotes(q, ed);
-  return `<p class="warn ia-aviso">${ic('spark')}<span><b>Gerado por IA</b>Este treino foi montado automaticamente e não foi feito nem revisado por um personal. Siga as dicas de execução e pare se sentir dor.</span></p>
-    <div class="iq-sum"><div><b>${ls.length}</b><span>treino${ls.length===1?'':'s'}</span></div><div><b>${iqN(q)}</b><span>treino${iqN(q)===1?'':'s'} por semana</span></div><div><b>~${mins}</b><span>min cada</span></div></div>
-    ${notes.length ? `<p class="warn">${ic('spark')}<span>${notes.map(esc).join('<br>')}</span></p>` : ''}
-    ${ls.map(l => { const t = P[l]; return `<section class="iq-t"><div class="iq-th"><span class="iq-l">${l}</span><div><b>${esc(t.nome)}</b><span>${t.dias.length ? joinPt(t.dias.map(i => TDAYS_L[i]))+' · ' : ''}cerca de ${t.min} min</span></div></div>
-      <ol>${t.ex.map(e => `<li><span>${esc(e.nome)}</span><em>${e.s} × ${esc(e.r)}</em></li>`).join('')}</ol></section>`; }).join('')}`;
+  return `<div class="iq-hero"><div><b>${ls.length}</b><span>treino${ls.length===1?'':'s'}</span></div><div><b>${iqN(q)}x</b><span>por semana</span></div><div><b>~${mins}</b><span>min cada</span></div></div>
+    ${notes.length ? `<p class="iq-dica">${ic('spark')}<span>${notes.map(esc).join('<br>')}</span></p>` : ''}
+    ${ls.map(l => { const t = P[l]; return `<section class="iq-t wk-${['A','B','C','D','E'].includes(l)?l:'A'}"><div class="iq-th"><span class="iq-l">${l}</span><div><b>${esc(t.nome)}</b><span>${t.ex.length} exercícios · ${t.dias.length ? joinPt(t.dias.map(i => TDAYS_L[i]))+' · ' : ''}cerca de ${t.min} min</span></div></div>
+      <ol>${t.ex.map(e => `<li><span>${esc(e.nome)}</span><em>${e.s} × ${esc(e.r)}</em></li>`).join('')}</ol></section>`; }).join('')}
+    <p class="iq-aviso">${ic('spark')}<span><b>Gerado por IA.</b> Montado automaticamente, sem revisão de um personal. Siga as dicas de execução e pare se sentir dor.</span></p>`;
 }
+
 const genView = () => `<div class="iq-gen" role="status" aria-live="polite"><span class="iq-orb" aria-hidden="true">${ic('spark')}</span><h1 class="lg-h">Montando seu treino<span class="dot" aria-hidden="true"></span></h1><ul><li>Lendo suas respostas</li><li>Escolhendo os exercícios</li><li>Ajustando séries, repetições e descanso</li></ul></div>`;
 
 /* cadastro: 1 conta · 2 perfil · 3 como montar · 4–6 perguntas da IA · 7 resultado */

@@ -1755,6 +1755,26 @@ body.has-dock .toast,body.has-dock .utoast{bottom:calc(176px + env(safe-area-ins
 .ev-semg>div{background:var(--ctl);border-radius:14px;padding:10px 8px;display:flex;flex-direction:column;gap:2px;min-width:0}
 .ev-semg b{font-size:22px;font-weight:900;letter-spacing:-.03em;line-height:1}.ev-semg b small{font-size:12px;font-weight:700;color:var(--muted)}
 .ev-semg span{font-size:11.5px;color:var(--muted);line-height:1.2}.ev-semg .ok b{color:var(--accent,#FF4646)}
+/* treino pronto (IA): resumo em destaque, dica verde e um cartão colorido por treino */
+.iq-hero{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));background:#FF4646;color:#FFFFFF;border-radius:24px;padding:18px 8px}
+.iq-hero>div{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0}.iq-hero>div+div{border-left:1px solid rgba(255,255,255,.35)}
+.iq-hero b{font-size:34px;font-weight:900;letter-spacing:-.045em;line-height:1}.iq-hero span{font-size:12.5px;font-weight:700;opacity:.9}
+.iq-dica{display:flex;gap:10px;align-items:flex-start;margin:0;background:#C8F542;color:#0F1712;border-radius:18px;padding:12px 14px;font-size:14px;line-height:1.4;font-weight:600}.iq-dica .i{flex:none;width:18px;height:18px;margin-top:1px}
+.iq-t.wk-A,.iq-t.wk-B,.iq-t.wk-C,.iq-t.wk-D,.iq-t.wk-E{background:var(--wk-bg);box-shadow:none;color:#0F1712;padding:16px}
+.iq-t[class*="wk-"] .iq-th div span{color:rgba(15,23,18,.72)}.iq-t[class*="wk-"] .iq-th b{font-size:20px;color:#0F1712}
+.iq-t[class*="wk-"] .iq-l{background:#0F1712;color:#FFFFFF;width:42px;height:42px;font-size:18px}
+.iq-t[class*="wk-"] ol{background:#FFFFFF;border-radius:16px;padding:4px 12px}
+.iq-t[class*="wk-"] li{border-top:1px solid #ECECE6;color:#0F1712}.iq-t[class*="wk-"] li:first-child{border-top:0}
+.iq-t[class*="wk-"] li em{background:#0F1712;color:#FFFFFF;border-radius:999px;padding:3px 9px;font-size:12.5px}
+.iq-t.wk-E{color:#FFFFFF}.iq-t.wk-E .iq-th b{color:#FFFFFF}.iq-t.wk-E .iq-th div span{color:rgba(255,255,255,.75)}.iq-t.wk-E .iq-l{background:#FF4646}
+.iq-aviso{display:flex;gap:8px;align-items:flex-start;margin:0;font-size:12.5px;line-height:1.4;color:var(--muted)}.iq-aviso .i{flex:none;width:15px;height:15px;margin-top:1px}
+/* treino concluído: cada número na sua cor */
+.sum-grid.sg4>div{box-shadow:none}
+.sum-grid.sg4 .sg-min{background:#FF4646}.sum-grid.sg4 .sg-min b,.sum-grid.sg4 .sg-min span{color:#FFFFFF}
+.sum-grid.sg4 .sg-vol{background:#FF9A2E}.sum-grid.sg4 .sg-sets{background:#B794FF}.sum-grid.sg4 .sg-pr{background:#C8F542}
+.sum-grid.sg4 .sg-vol b,.sum-grid.sg4 .sg-sets b,.sum-grid.sg4 .sg-pr b{color:#0F1712}.sum-grid.sg4 .sg-vol span,.sum-grid.sg4 .sg-sets span,.sum-grid.sg4 .sg-pr span{color:rgba(15,23,18,.75)}
+/* treino de hoje feito: card compacto */
+.wkc.wk-done{gap:10px;min-height:0}.wkc.wk-done .big{margin:0}.wkc.wk-done .linkbtn{margin-top:-2px}
 </style>
 
 <div class="app" id="app"></div>
@@ -3158,12 +3178,13 @@ function iqClick(a,d,b){
 }
 function iaResult(P, ed, q){
   const ls = Object.keys(P), mins = ls.length ? Math.round(ls.reduce((a,l) => a+P[l].min, 0)/ls.length) : 0, notes = iaNotes(q, ed);
-  return `<p class="warn ia-aviso">${ic('spark')}<span><b>Gerado por IA</b>Este treino foi montado automaticamente e não foi feito nem revisado por um personal. Siga as dicas de execução e pare se sentir dor.</span></p>
-    <div class="iq-sum"><div><b>${ls.length}</b><span>treino${ls.length===1?'':'s'}</span></div><div><b>${iqN(q)}</b><span>treino${iqN(q)===1?'':'s'} por semana</span></div><div><b>~${mins}</b><span>min cada</span></div></div>
-    ${notes.length ? `<p class="warn">${ic('spark')}<span>${notes.map(esc).join('<br>')}</span></p>` : ''}
-    ${ls.map(l => { const t = P[l]; return `<section class="iq-t"><div class="iq-th"><span class="iq-l">${l}</span><div><b>${esc(t.nome)}</b><span>${t.dias.length ? joinPt(t.dias.map(i => TDAYS_L[i]))+' · ' : ''}cerca de ${t.min} min</span></div></div>
-      <ol>${t.ex.map(e => `<li><span>${esc(e.nome)}</span><em>${e.s} × ${esc(e.r)}</em></li>`).join('')}</ol></section>`; }).join('')}`;
+  return `<div class="iq-hero"><div><b>${ls.length}</b><span>treino${ls.length===1?'':'s'}</span></div><div><b>${iqN(q)}x</b><span>por semana</span></div><div><b>~${mins}</b><span>min cada</span></div></div>
+    ${notes.length ? `<p class="iq-dica">${ic('spark')}<span>${notes.map(esc).join('<br>')}</span></p>` : ''}
+    ${ls.map(l => { const t = P[l]; return `<section class="iq-t wk-${['A','B','C','D','E'].includes(l)?l:'A'}"><div class="iq-th"><span class="iq-l">${l}</span><div><b>${esc(t.nome)}</b><span>${t.ex.length} exercícios · ${t.dias.length ? joinPt(t.dias.map(i => TDAYS_L[i]))+' · ' : ''}cerca de ${t.min} min</span></div></div>
+      <ol>${t.ex.map(e => `<li><span>${esc(e.nome)}</span><em>${e.s} × ${esc(e.r)}</em></li>`).join('')}</ol></section>`; }).join('')}
+    <p class="iq-aviso">${ic('spark')}<span><b>Gerado por IA.</b> Montado automaticamente, sem revisão de um personal. Siga as dicas de execução e pare se sentir dor.</span></p>`;
 }
+
 const genView = () => `<div class="iq-gen" role="status" aria-live="polite"><span class="iq-orb" aria-hidden="true">${ic('spark')}</span><h1 class="lg-h">Montando seu treino<span class="dot" aria-hidden="true"></span></h1><ul><li>Lendo suas respostas</li><li>Escolhendo os exercícios</li><li>Ajustando séries, repetições e descanso</li></ul></div>`;
 
 /* cadastro: 1 conta · 2 perfil · 3 como montar · 4–6 perguntas da IA · 7 resultado */
@@ -3856,7 +3877,7 @@ function treinoCard(){
 /* treino do dia já feito: mostra o que foi feito e o resumo (e não o botão de começar de novo) */
 function doneCard(){
   const t0 = today(), i = S.history.map(h => h.date).lastIndexOf(t0), h = S.history[i], p = PLAN[h.t] || {nome:'Treino '+h.t}, prs = (h.prs||[]).length;
-  return `<section class="card wcard wkc wk-${['A','B','C','D','E'].includes(h.t)?h.t:'A'}" aria-label="Treino de hoje feito: ${p.nome}">${WK_ART}<div class="card-h"><span class="label">${ic('dumbbell')}Treino de hoje</span><span class="pill">${ic('check')}Feito</span></div>
+  return `<section class="card wcard wkc wk-done wk-${['A','B','C','D','E'].includes(h.t)?h.t:'A'}" aria-label="Treino de hoje feito: ${p.nome}"><div class="card-h"><span class="label">${ic('dumbbell')}Treino de hoje</span><span class="pill">${ic('check')}Feito</span></div>
     <div><h2 class="big">Treino feito<span class="dot" aria-hidden="true"></span></h2><p class="muted">${p.nome} · ${h.min} min · ${h.sets} série${h.sets===1?'':'s'} · ${fmtN(h.vol)} kg${prs?' · '+prs+' recorde'+(prs>1?'s':''):''}</p></div>
     <button type="button" class="btn primary block" data-a="hist" data-i="${i}">${ic('chart')}Ver resumo</button>
     <button type="button" class="linkbtn" data-a="force-train">Treinar de novo mesmo assim</button></section>`;
@@ -5431,10 +5452,10 @@ function vSummary(i){
   const prRows = prd.map(r => { const f = findEx(r.id); if(!f) return '';
     return `<div class="row"><span class="num pr">${ic('trophy')}</span><span class="main"><b>${f.e.nome}</b><span>${r.kg!=null?`${fmtKg(r.kg)} kg × ${r.reps} · 1RM estimado ${fmtKg(Math.round(r.e1))} kg, antes ${fmtKg(Math.round(r.prev))} kg`:'Recorde de carga neste dia'}</span></span></div>`; }).join('');
   return `<div class="sheet-wrap" data-a="closebg"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t" tabindex="-1">${sheetTop('Treino '+h.t+' · '+p.nome+' · '+dayLabel(h.date)+(h.gym?' · '+esc(h.gym):''), (isNew?'Treino concluído':'Resumo do treino')+'<span class="dot" aria-hidden="true"></span>')}
-    <div class="sum-grid"><div class="blk-brand">${tw('s-min',h.min,'i',String(h.min))}<span>minuto${h.min===1?'':'s'} de treino</span></div>
-    <div>${tw('s-vol',h.vol,'i',fmtN(h.vol))}<span>kg de volume${dv!=null?` · ${dv>=0?'+':''}${dv}% sobre o último ${h.t}`:''}</span></div>
-    <div>${tw('s-sets',h.sets,'i',String(h.sets))}<span>série${h.sets===1?'':'s'} feita${h.sets===1?'':'s'}</span></div>
-    <div class="${prd.length?'blk-lime':''}">${tw('s-pr',prd.length,'i',String(prd.length))}<span>recorde${prd.length===1?'':'s'} pessoa${prd.length===1?'l':'is'}</span></div></div>
+    <div class="sum-grid sg4"><div class="sg-min">${tw('s-min',h.min,'i',String(h.min))}<span>minuto${h.min===1?'':'s'} de treino</span></div>
+    <div class="sg-vol">${tw('s-vol',h.vol,'i',fmtN(h.vol))}<span>kg de volume${dv!=null?` · ${dv>=0?'+':''}${dv}% sobre o último ${h.t}`:''}</span></div>
+    <div class="sg-sets">${tw('s-sets',h.sets,'i',String(h.sets))}<span>série${h.sets===1?'':'s'} feita${h.sets===1?'':'s'}</span></div>
+    <div class="sg-pr">${tw('s-pr',prd.length,'i',String(prd.length))}<span>recorde${prd.length===1?'':'s'} pessoa${prd.length===1?'l':'is'}</span></div></div>
     <button type="button" class="btn block st-open" data-a="st-open" data-i="${i}">${ic('share')}Compartilhar no story</button>
     ${prRows?`<h3>Recordes</h3><div class="list">${prRows}</div>`:''}
     ${h.date===today() && (h.ex||[]).length ? `<h3>Como foi cada exercício</h3><div class="list">${h.ex.filter(x => findEx(x.id)).map(x => `<button type="button" class="row" data-a="exq-open" data-ex="${x.id}" data-back="${i}"><span class="num">${ic(((x.q||[]).length || x.c) ? 'check' : 'msg')}</span><span class="main"><b>${esc(x.n)}</b><span>${((x.q||[]).length || x.c) ? esc([...(x.q||[]), x.c].filter(Boolean).join(' · ')) : 'Toque para contar como foi'}</span></span>${ic('chev','chev')}</button>`).join('')}</div>` : ''}
