@@ -97,6 +97,6 @@ function vEvo(){
     `<h3 class="sec">Recordes<span class="dot" aria-hidden="true"></span></h3><div class="list">${prs}</div>`+
     `<h3 class="sec">Check-ins<span class="dot" aria-hidden="true"></span></h3><section class="card">${ciT}<p class="foot0">Em destaque: sono de 5h ou menos, energia 2 ou menos, dor 3 (forte). Dor vai de 0 (nenhuma) a 3.</p></section>`+
     `<h3 class="sec">Histórico<span class="dot" aria-hidden="true"></span></h3><div class="list">${hist}</div>`+
-    `<p class="foot">Os registros ficam salvos neste aparelho. Ajustes e preferências ficam no seu perfil (toque na sua foto).</p>`;
+    `<p class="foot">Os registros ficam salvos neste aparelho. Ajustes e preferências ficam no seu perfil (toque na engrenagem).</p>`;
 }
 
