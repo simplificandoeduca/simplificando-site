@@ -26,8 +26,8 @@ function waterCard(compact){
   const rt = remindTxt();
   return `<section class="card blk-water wcard hc">${HC_ART}<div class="card-h"><span class="label">${ic('drop')}Água</span>${pill}</div>
     <div class="water-body">${ring(k,ml/g,tw(k,ml,'L',fmtL(ml)),'de '+fmtL(g))}
-    <div class="wbtns${compact?' wb2':''}">${(compact?[300,500]:[200,300,500]).map(v => `<button type="button" class="btn" data-a="water" data-ml="${v}" aria-label="Adicionar ${v} ml">+${v} ml</button>`).join('')}
-    ${compact?'':`<button type="button" class="btn minus" data-a="water-minus" aria-label="Tirar 250 ml"${ml?'':' disabled'}>−250 ml</button>`}</div></div>
+    <div class="wbtns">${[200,300,500].map(v => `<button type="button" class="btn" data-a="water" data-ml="${v}" aria-label="Adicionar ${v} ml">+${v} ml</button>`).join('')}
+    <button type="button" class="btn minus" data-a="water-minus" aria-label="Tirar 250 ml"${ml?'':' disabled'}>−250 ml</button></div></div>
     ${compact?'':`<p class="muted sm">${status}${rt?' '+rt+'.':''}</p>
     <button type="button" class="btn block" data-a="water" data-ml="500">${ic('plus')}Adicionar 500 ml</button>`}
     ${compact?`<button type="button" class="btn small ghost self-start" data-a="tab" data-v="agua">Ver a linha do dia${ic('chev')}</button>`:''}</section>`;
@@ -99,7 +99,7 @@ function cardioCard(){
   const pill = ok ? `<span class="pill ok">${ic('check')}Meta batida</span>` : `<span class="pill">Faltam ${CARDIO.min-cMin} min</span>`;
   return `<section class="card blk-cardio wcard hc">${HC_ART}<div class="card-h"><span class="label">${ic('pulse')}Cardio</span>${pill}</div>
     <div class="water-body">${ring('ch',cMin/CARDIO.min,tw('ch',cMin,'m',cMin+' min'),'de '+CARDIO.min+' min')}
-    <div><h2 class="big" style="font-size:26px">${CARDIO.min} min · ${CARDIO.zona}</h2></div></div>
+    <div><h2 class="big" style="font-size:34px">${CARDIO.min} min · ${CARDIO.zona}</h2><p class="muted sm" style="margin-top:6px">${CARDIO.desc}</p></div></div>
     <button type="button" class="btn block" data-a="tab" data-v="cardio">${S.cardioLive ? ic('timer')+'Cardio ao vivo · <span data-tick="cardio">'+fmtDur(cardioElapsed())+'</span>' : ic('plus')+'Registrar cardio'}</button></section>`;
 }
 function weekCard(){
