@@ -706,7 +706,8 @@ function folha(titulo, corpo, rotOk, fazer) {
   const f = document.createElement('div'); f.className = 'fundo';
   f.innerHTML = `<form class="folha" novalidate role="dialog" aria-modal="true" aria-label="${esc(titulo)}"><h3>${esc(titulo)}</h3>${corpo}<p class="erro" hidden></p><div class="acoes"><button type="button" class="btn btn-ghost" data-fechar>Cancelar</button><button class="btn btn-brand" type="submit">${esc(rotOk)}</button></div></form>`;
   document.body.appendChild(f); const fecha = () => f.remove(), er = $('.erro', f);
-  f.addEventListener('click', e => { if (e.target === f || e.target.hasAttribute('data-fechar')) fecha(); });
+  let ini = null; f.addEventListener('pointerdown', e => { ini = e.target; });   // 1.5: arrastar para selecionar um texto e soltar no fundo não fecha
+  f.addEventListener('click', e => { if ((e.target === f && ini === f && !String(getSelection() || '').trim()) || e.target.hasAttribute('data-fechar')) fecha(); });
   document.addEventListener('keydown', function k(e) { if (e.key === 'Escape') { fecha(); document.removeEventListener('keydown', k); } });
   $('form', f).onsubmit = async e => { e.preventDefault(); const b = $('[type="submit"]', f); b.disabled = true; er.hidden = true; try { await fazer(); fecha(); } catch (x) { er.textContent = x.message; er.hidden = false; b.disabled = false; } };
   setTimeout(() => { const i = $('input', f); if (i) i.focus(); }, 50);

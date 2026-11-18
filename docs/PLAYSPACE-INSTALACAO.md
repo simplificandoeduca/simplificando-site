@@ -1301,6 +1301,13 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzn. Caixinha que não fecha sozinha, abrir rápido e reabrir (1.58)
+
+- **Caixinhas (folhas):** arrastar o mouse para selecionar um texto e soltar fora da caixinha não fecha mais. Ela fecha no X, no Esc ou num clique simples no fundo escuro. O mesmo nas Finanças.
+- **Abrir rápido:** o aplicativo abre com a tela guardada no aparelho e mostra na hora a lista da última vez; a lista de agora chega em seguida (uma faixa fina no alto mostra que está buscando; até ela chegar, os botões esperam). Quando sai uma versão nova, a tela recarrega sozinha com ela, logo na abertura.
+- **Reabrir:** o tempo nunca zera nem para: continua contando da entrada (o tempo que a criança ficou fora entra na conta). Vale para o reabrir no prazo e para o do gestor, fora do prazo.
+- **Impressão direta:** a janelinha que pisca ao imprimir é do próprio Chrome (é o jeito dele de imprimir direto); o site não consegue esconder.
+
 ## 6zzm. Festas na Agenda, trocar a forma de pagamento e reabrir fora do prazo (1.57)
 
 - **Agenda:** as festas vendidas aparecem no calendário (o pontinho no dia), no dia escolhido e na semana, com o horário e o tema. Tocar abre a festa.

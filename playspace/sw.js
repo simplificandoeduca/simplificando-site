@@ -4,6 +4,8 @@
 //     internet demora, vem a guardada); as imagens e as letras vêm do que está guardado. A API e a atualização nunca passam por aqui.
 // (3) 1.47: só o que é do Play Space passa por aqui (a tela, o manifesto, as imagens e as letras). Outra pasta do mesmo site (o /notas,
 //     o emissor de notas) vai direto para a internet: antes, os arquivos dele ficavam guardados e a tela dele tomava o lugar da do Play Space.
+// (4) 1.58: abrir rápido: a tela vem do que está guardado (na hora) e a da internet fica guardada para a próxima vez. Logo depois de
+//     atualizar (o endereço chega com ?v=), a tela vem da internet. A tela confere a versão do servidor e recarrega se a guardada ficou velha.
 const CACHE = 'ps-app-2';
 self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./', 'manifest.json', 'img/icone-192.png', 'img/icone-512.png']).catch(() => { })).then(() => self.skipWaiting())));
 self.addEventListener('activate', e => e.waitUntil(caches.keys().then(K => Promise.all(K.filter(k => k.startsWith('ps-app-') && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())));
@@ -16,7 +18,11 @@ self.addEventListener('fetch', e => {
   if (!letras && !(rel === '' || rel === 'index.html' || rel === 'manifest.json' || rel.startsWith('img/'))) return;   // outra pasta do site (o /notas): direto para a internet
   e.respondWith((async () => {
     const c = await caches.open(CACHE);
-    if (r.mode === 'navigate') { try { const x = await comPrazo(fetch(r), 7000); if (x && x.ok) c.put('./', x.clone()); return x; } catch (er) { return (await c.match('./')) || (await c.match(r)) || Response.error(); } }
+    if (r.mode === 'navigate') {
+      const rede = comPrazo(fetch(r), 7000).then(x => { if (x && x.ok) c.put('./', x.clone()); return x; });
+      if (!u.searchParams.has('v')) { const g = await c.match('./'); if (g) { e.waitUntil(rede.catch(() => { })); return g; } }
+      try { return await rede; } catch (er) { return (await c.match('./')) || (await c.match(r)) || Response.error(); }
+    }
     const g = await c.match(r), rede = fetch(r).then(x => { if (x && (x.ok || x.type === 'opaque')) c.put(r, x.clone()); return x; }).catch(() => null);
     return g || (await rede) || Response.error();
   })());

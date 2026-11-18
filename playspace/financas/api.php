@@ -11,7 +11,7 @@ declare(strict_types=1);
 require __DIR__ . '/../api/lib.php';
 require __DIR__ . '/resumo.php';   // 1.54: os números, o PDF e o e-mail do resumo
 set_exception_handler(function (Throwable $e) { registrarErro('[financas] ' . $e->getMessage() . ' @' . basename($e->getFile()) . ':' . $e->getLine()); falha('Algo deu errado. Tente de novo em instantes.', 500); });
-const FIN_VERSAO = '1.4';
+const FIN_VERSAO = '1.5';
 
 $in = [];
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {

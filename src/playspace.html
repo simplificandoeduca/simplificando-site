@@ -1582,6 +1582,9 @@ button.bl-saldo.bl-alt svg { opacity: .55; }
 .tp-fim { color: var(--tinta-2); }
 .rp-trava { opacity: .5; }
 .marca.reab.fora { background: var(--erro-bg); color: var(--erro); }
+/* 1.58: abrindo com a lista guardada: uma faixa fina no alto até a lista de agora chegar */
+body.abrindo::after { content: ''; position: fixed; z-index: 90; top: 0; left: 0; height: 3px; width: 40%; background: var(--coral); border-radius: 0 3px 3px 0; animation: abrindo 1.1s ease-in-out infinite; }
+@keyframes abrindo { 0% { left: -40%; } 100% { left: 100%; } }
 </style>
 
 <div class="app">
@@ -1700,7 +1703,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.57';
+const VERSAO = '1.58';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -1919,7 +1922,8 @@ function saidasDesfeitasPrevia(c, novas) {
 const semIdface = () => !S.cfg.idface.ligado;   // a leitura do iDFace está desligada em Ajustes: a equipe marca entrada e saída na tela
 const podeManual = () => MODO !== 'servidor' || semIdface() || supervisorOuMais();   // com o iDFace ligado, à mão é só para gestor e supervisor corrigirem
 let GZ = false;   // 1.01: o servidor manda a lista de cadastros comprimida e este aparelho lê (conferido uma vez, depois de entrar)
-async function conferirGz() { try { const r = await api('gz_teste', { gz: 1 }); GZ = !!r && typeof r.eco === 'string' && r.eco.length > 8000; } catch (e) { GZ = false; } }
+async function conferirGz() { try { const r = await api('gz_teste', { gz: 1 }); GZ = !!r && typeof r.eco === 'string' && r.eco.length > 8000; } catch (e) { GZ = false; } guardar('ps-gz', GZ ? 1 : 0); }
+const gzRapido = async () => { const j = lido('ps-gz', null); if (j === null) { await conferirGz(); return; } GZ = !!j; conferirGz(); };   // 1.58: o que já se sabe vale na hora; a conferência vai junto
 async function api(acao, dados = {}) {
   let r;
   const ab = typeof AbortController === 'function' ? new AbortController() : null, prazo = setTimeout(() => { if (ab) ab.abort(); }, acao === 'pulso' ? 9000 : 120000);   // 1.40: a internet que não responde também conta como sem internet
@@ -2139,7 +2143,7 @@ function telaCriarGestor() {
     <button class="bt forte largo tap" data-act="criar-gestor">${ic(IC.check)} Criar e entrar</button>`);
 }
 // 1.25: o gestor começa no painel (a não ser que a página tenha sido aberta numa aba, como #horas)
-async function depoisDeEntrar(doLogin = false) { lerEtapas(); await conferirGz(); if (OFF.fila.length) await offEnviar(); await carregar(); if (gestor() && (doLogin || !HASH_INICIO)) S.tela = inicioGestor(); desenhar(); conferirAtualizacao(false); oferecerLimpeza(); }
+async function depoisDeEntrar(doLogin = false) { lerEtapas(); await gzRapido(); if (OFF.fila.length) await offEnviar(); await carregar(); if (gestor() && (doLogin || !HASH_INICIO)) S.tela = inicioGestor(); desenhar(); conferirAtualizacao(false); oferecerLimpeza(); }
 /* ---------- 0.98: limpar os cadastros (começar do zero) ---------- */
 // Para quando os testes acabam e a loja vai começar de verdade. Saem todos os cadastros (crianças e responsáveis, com as fotos) e o que
 // nasceu deles: horas, vendas, pagamentos, visitas e o movimento do dia. Ficam a equipe, a regra, os serviços, os pacotes, os produtos
@@ -2604,15 +2608,35 @@ async function fazerCopia(el) {
   if (el) el.disabled = true;
   try { const r = await api('copia_fazer'); S.copia = r.copia || S.copia; deuCerto('Cópia de segurança feita'); desenhar(true); } catch (e) { toast(e.message); } finally { if (el && el.isConnected) el.disabled = false; }
 }
+// 1.58: abrir rápido. A lista da última vez (guardada neste aparelho) aparece na hora; a de agora chega em seguida. Enquanto ela não
+// chega, os botões esperam (nada é feito em cima da lista velha)
+let ABRINDO = false;
+async function abrirRapido() {
+  const g = await IDB.ler('dados'); if (!g || !g.d || !g.d.eu || !Array.isArray(g.d.criancas) || Date.now() - (+g.em || 0) > 7 * 86400000) return false;
+  try {
+    MODO = 'servidor'; ABRINDO = true; document.body.classList.add('abrindo'); lerEtapas(); aplicarDados({ ...g.d, pedidos: [], avisos: [] });
+    PED_SINAL = ''; AV_SINAL = null; AV_JA = null; ULTIMA_CARGA = '';   // a carga de agora conta como a primeira (os avisos e os pedidos chegam com ela)
+    ABAS = abasDoPapel(); if (gestor() && !HASH_INICIO) S.tela = inicioGestor(); desenhar(); return true;
+  } catch (e) { fimRapido(); return false; }
+}
+function fimRapido() { if (!ABRINDO) return; ABRINDO = false; document.body.classList.remove('abrindo'); }
+// a tela veio da guardada no aparelho e o servidor já tem uma versão mais nova (alguém atualizou): recarrega com a nova, logo na abertura
+async function conferirVersaoLocal() {
+  try { const j = await (await fetch('versao.json?t=' + Date.now(), { cache: 'no-store' })).json(), v = String((j && j.versao) || '');
+    if (!v || !versaoMaior(v, VERSAO) || $('#folha .folha-fundo')) return; let ja = ''; try { ja = sessionStorage.getItem('ps-recarregou') || ''; } catch (e) { }
+    if (ja === v) return; try { sessionStorage.setItem('ps-recarregou', v); } catch (e) { } location.replace(location.pathname + '?v=' + encodeURIComponent(v) + location.hash);
+  } catch (e) { /* sem internet ou sem o arquivo: segue com esta */ }
+}
 async function iniciar() {
   if (ATU.podeAqui) {
     offRegistrarSW(); await offLerFila();   // 1.40
+    await abrirRapido();   // 1.58
     try {
-      const e = await api('estado'); MODO = 'servidor';
-      if (e.primeiro_acesso) return telaCriarGestor();
-      if (!e.usuario) return telaEntrar();
-      await depoisDeEntrar(); ligarSincronia(); return;
-    } catch (err) { if (!err.rede) { toast(err.message); return; } if (await offAbrirGuardado()) return; }   // 1.40: sem internet, com o que ficou guardado neste aparelho
+      const e = await api('estado'); MODO = 'servidor'; conferirVersaoLocal();
+      if (e.primeiro_acesso) { fimRapido(); return telaCriarGestor(); }
+      if (!e.usuario) { fimRapido(); IDB.tirar('dados'); return telaEntrar(); }
+      await depoisDeEntrar(); fimRapido(); ligarSincronia(); return;
+    } catch (err) { fimRapido(); if (!err.rede) { toast(err.message); return; } if (await offAbrirGuardado()) return; }   // 1.40: sem internet, com o que ficou guardado neste aparelho
   }
   semearCuponsPrevia(); ABAS = abasDoPapel(); if (gestor() && !HASH_INICIO) S.tela = inicioGestor(); desenhar(); conferirAtualizacao(false);
 }
@@ -5314,7 +5338,7 @@ function folhaReabrir(id) {
   abrirFolha('Reabrir a visita', `
     <div class="linha">${avatar(c)}<div class="txt"><b style="white-space:normal">${nomeResp(c)}</b>${c.resp ? `<span style="white-space:normal">${esc(c.nome)}</span>` : ''}<span style="white-space:normal">entrou às ${hora(ini)} · saiu às ${hora(saiu)}, ${haMin(saiu)} · tempo contado ${dur(v.deb)}</span></div></div>
     ${foraP ? `<div class="marca canc reab-fora">${ic(IC.sino, 18)}<span><b>Você está REABRINDO a visita de ${esc(c.nome)} fora do prazo.</b> A saída foi às ${hora(saiu)}, há ${minCurto(Math.floor((agora - saiu) / 60000))} (o prazo é de ${reabreLim()} min). Só o gestor reabre agora, e fica anotado. O tempo fora entra na conta.</span></div>` : ''}
-    <p class="explica"><b>Reabrir desfaz a saída.</b> O tempo continua contando desde a entrada das ${hora(ini)}, como se a criança não tivesse saído: o que foi debitado volta para o saldo e a conta é refeita na próxima saída.</p>
+    <p class="explica"><b>Reabrir desfaz a saída.</b> <b class="reab-ent">O tempo nunca zera: continua contando da entrada das ${hora(ini)}.</b> O tempo continua contando desde a entrada das ${hora(ini)}, como se a criança não tivesse saído: o que foi debitado volta para o saldo e a conta é refeita na próxima saída.</p>
     ${conta}
     <div class="pe-f"><span class="explica">${foraP ? `Passou do prazo de ${reabreLim()} min: a reabertura fica anotada como fora do prazo, com o seu nome.` : `Dá para reabrir até ${hora(new Date(+saiu + reabreLim() * 60000))} (${reabreLim()} min depois da saída). Fica anotado em Hoje na recepção, com quem reabriu.`}</span><button class="bt ${foraP ? 'canc-bt' : 'forte'} largo tap" id="rb-ok" data-act="reabrir-ok" data-id="${c.id}">${ic(IC.renova)} ${foraP ? 'Reabrir fora do prazo (gestor)' : 'Reabrir a visita'}</button></div>`);
 }
@@ -7779,12 +7803,16 @@ const ACOES = {
   'whats-conectar': () => conectarWhats(),
   'whats-desconectar': async () => { try { await api('whats_desconectar'); await carregar(); fecharFolha(); desenhar(); deuCerto('WhatsApp desconectado'); } catch (e) { toast(e.message); } },
 };
+// 1.58: onde o clique começou. Arrastar o mouse para selecionar um texto da folha e soltar no fundo escuro não fecha a folha
+let TOQUE_INI = null;
+document.addEventListener('pointerdown', e => { TOQUE_INI = e.target; }, true);
+const temSelecao = () => { try { return !!String(window.getSelection ? window.getSelection() : '').trim(); } catch (e) { return false; } };
 document.addEventListener('click', e => {
   const ir = e.target.closest('[data-ir]'); if (ir) { if (ir.dataset.ir !== S.tela) trocarTela(ir.dataset.ir); return; }
   const seg = e.target.closest('.seg[data-cfg] button'); if (seg) { const k = seg.closest('.seg').dataset.cfg, v = seg.dataset.v; if (k !== 'tema' && k !== 'anim' && k !== 'inicio' && k !== 'inicioGestor' && MODO === 'servidor' && !gestor()) { toast('Só o gestor muda a regra'); return; } S.cfg[k] = isNaN(+v) ? v : +v; if (k === 'tema') { guardar('ps-tema', v); aplicarTema(); } else if (k === 'anim') { escolherAnim(v); } else if (k === 'inicio') { guardar('ps-inicio', v); S.espServ = ''; } else if (k === 'inicioGestor') { guardar('ps-inicio-gestor', v); delete S.cfg.inicioGestor; } else if (MODO === 'servidor') api('regra_salvar', { [k]: S.cfg[k] }).then(() => deuCerto('Regra salva')).catch(e => toast(e.message)); desenhar(); return; }
   const segLocal = e.target.closest('[data-seg]'); if (segLocal && !segLocal.dataset.act) { const pai = segLocal.parentElement; $$('[data-seg]', pai).forEach(b => { b.setAttribute('aria-pressed', b === segLocal); b.style.borderColor = ''; b.style.background = ''; }); if (pai.id === 'p-brq') { segLocal.style.borderColor = 'var(--coral)'; segLocal.style.background = 'var(--coral-2)'; } return; }
-  const act = e.target.closest('[data-act]'); if (act && ACOES[act.dataset.act]) { ACOES[act.dataset.act](act); return; }
-  const f = e.target.closest('[data-fecha]'); if (f && (f.tagName === 'BUTTON' || e.target === f)) fecharFolha();
+  const act = e.target.closest('[data-act]'); if (act && ACOES[act.dataset.act]) { if (ABRINDO && !['fechar', 'nada', 'atualizar', 'atualizar-agora'].includes(act.dataset.act)) { toast('Só um instante: buscando a lista de agora…'); return; } ACOES[act.dataset.act](act); return; }   /* 1.58 */
+  const f = e.target.closest('[data-fecha]'); if (f && (f.tagName === 'BUTTON' || (e.target === f && TOQUE_INI === f && !temSelecao()))) fecharFolha();
 });
 document.addEventListener('change', e => {
   const t = e.target; if (t.id === 'pc-parc') { contaPacote(); return; }
