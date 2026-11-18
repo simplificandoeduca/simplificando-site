@@ -1740,6 +1740,12 @@ body.has-dock .toast,body.has-dock .utoast{bottom:calc(176px + env(safe-area-ins
 /* trocar exercício (quem treina sem personal) */
 .tr-btn{margin:2px 0 12px;width:100%}
 .tr-txt{margin:0 0 12px}
+/* Hoje enxuto: check-in respondido numa linha; água com 2 botões */
+.card.ci-line{flex-direction:row;align-items:center;gap:12px;padding:14px 16px;text-align:left}
+.ci-line .ci-ok{flex:none;width:36px;height:36px;border-radius:50%;background:var(--accent,#FF4646);color:#FFFFFF;display:grid;place-items:center}.ci-line .ci-ok .i{width:18px;height:18px;stroke-width:2.6}
+.ci-line .ci-tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.ci-line .ci-tx b{font-size:15px}
+.ci-line .ci-tx span{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:4px;flex-wrap:wrap}.ci-line .ci-tx .i{width:14px;height:14px}
+.wbtns.wb2{grid-template-columns:1fr}
 </style>
 
 <div class="app" id="app"></div>
@@ -3789,9 +3795,7 @@ function vHoje(){
 function checkinCard(){
   const ci = S.checkin[today()];
   if(ci && !ui.ciEdit){
-    return `<section class="card"><div class="card-h"><span class="label">${ic('check')}Check-in de hoje</span><button type="button" class="btn small ghost" data-a="ci-edit">${ic('edit')}Editar</button></div>
-      <div class="chips"><span class="chip">${ic('moon')}Sono ${sonoTxt(ci.sono)}</span><span class="chip">${ic('bolt')}Energia ${ci.energia} de 5</span><span class="chip">${ic('body')}Dor ${DOR[ci.dor].toLowerCase()}</span></div>
-      <p class="foot0">${lowReady(ci)?'Dia mais leve: as cargas sugeridas repetem a última vez.':(isPersonal()?'Seu personal já pode ver suas respostas.':'Respostas salvas. Elas ajustam as cargas sugeridas de hoje.')}</p></section>`;
+    return `<section class="card ci-line"><span class="ci-ok" aria-hidden="true">${ic('check')}</span><span class="ci-tx"><b>Check-in feito</b><span>${ic('moon')}${sonoTxt(ci.sono)} · ${ic('bolt')}energia ${ci.energia} · ${ic('body')}dor ${DOR[ci.dor].toLowerCase()}</span></span><button type="button" class="btn round small" data-a="ci-edit" aria-label="Editar o check-in">${ic('edit')}</button></section>`;
   }
   const d = ui.ci || (ui.ci = ci ? Object.assign({},ci) : {sono:null,energia:null,dor:null});
   const ready = d.sono!=null && d.energia!=null && d.dor!=null;
@@ -3811,10 +3815,10 @@ function waterCard(compact){
   const rt = remindTxt();
   return `<section class="card blk-water wcard hc">${HC_ART}<div class="card-h"><span class="label">${ic('drop')}Água</span>${pill}</div>
     <div class="water-body">${ring(k,ml/g,tw(k,ml,'L',fmtL(ml)),'de '+fmtL(g))}
-    <div class="wbtns">${[200,300,500].map(v => `<button type="button" class="btn" data-a="water" data-ml="${v}" aria-label="Adicionar ${v} ml">+${v} ml</button>`).join('')}
-    <button type="button" class="btn minus" data-a="water-minus" aria-label="Tirar 250 ml"${ml?'':' disabled'}>−250 ml</button></div></div>
-    <p class="muted sm">${status}${rt?' '+rt+'.':''}</p>
-    <button type="button" class="btn block" data-a="water" data-ml="500">${ic('plus')}Adicionar 500 ml</button>
+    <div class="wbtns${compact?' wb2':''}">${(compact?[300,500]:[200,300,500]).map(v => `<button type="button" class="btn" data-a="water" data-ml="${v}" aria-label="Adicionar ${v} ml">+${v} ml</button>`).join('')}
+    ${compact?'':`<button type="button" class="btn minus" data-a="water-minus" aria-label="Tirar 250 ml"${ml?'':' disabled'}>−250 ml</button>`}</div></div>
+    ${compact?'':`<p class="muted sm">${status}${rt?' '+rt+'.':''}</p>
+    <button type="button" class="btn block" data-a="water" data-ml="500">${ic('plus')}Adicionar 500 ml</button>`}
     ${compact?`<button type="button" class="btn small ghost self-start" data-a="tab" data-v="agua">Ver a linha do dia${ic('chev')}</button>`:''}</section>`;
 }
 const WK_ART = '<span class="w-art" aria-hidden="true"><svg viewBox="0 0 372 330" preserveAspectRatio="none"><path d="M-20 236 C 70 186 150 300 240 240 S 340 176 400 214"/></svg></span>';
@@ -3884,8 +3888,7 @@ function cardioCard(){
   const pill = ok ? `<span class="pill ok">${ic('check')}Meta batida</span>` : `<span class="pill">Faltam ${CARDIO.min-cMin} min</span>`;
   return `<section class="card blk-cardio wcard hc">${HC_ART}<div class="card-h"><span class="label">${ic('pulse')}Cardio</span>${pill}</div>
     <div class="water-body">${ring('ch',cMin/CARDIO.min,tw('ch',cMin,'m',cMin+' min'),'de '+CARDIO.min+' min')}
-    <div><h2 class="big" style="font-size:26px">${CARDIO.min} min · ${CARDIO.zona}</h2><p class="muted sm" style="margin-top:6px">${CARDIO.desc}</p></div></div>
-    <p class="muted sm">${ok ? 'Cardio de hoje cumprido.' : 'Faltam '+(CARDIO.min-cMin)+' min hoje.'} Na semana: ${wk} de ${S.cardioGoal} min.</p>
+    <div><h2 class="big" style="font-size:26px">${CARDIO.min} min · ${CARDIO.zona}</h2></div></div>
     <button type="button" class="btn block" data-a="tab" data-v="cardio">${S.cardioLive ? ic('timer')+'Cardio ao vivo · <span data-tick="cardio">'+fmtDur(cardioElapsed())+'</span>' : ic('plus')+'Registrar cardio'}</button></section>`;
 }
 function weekCard(){
@@ -3899,12 +3902,8 @@ function weekCard(){
     return `<div class="day${h?' t':''}${k===t0?' now':''}${i>idx?' fut':''}"><span>${WD[i]}</span><div class="d">${h?h.t:''}</div><div class="marks"><span class="m m-w${w?' on':''}">${ic('drop')}</span><span class="m m-c${c?' on':''}">${ic('pulse')}</span></div></div>`;
   }).join('');
   return `<section class="card"><div class="card-h"><span class="label">${ic('cal')}Sua semana</span><span class="pill ok">${ic('flame')}${st} semana${st===1?'':'s'} na meta</span></div>
-    <div class="stats"><div class="${tr.length>=SEMANA_TREINOS?'st-red':''}"><b>${tr.length}<small>/${SEMANA_TREINOS}</small></b><span>treinos</span></div>
-    ${(n => `<div class="${n>0?'st-pr':''}"><b>${n}</b><span>recorde${n===1?'':'s'} na semana</span></div>`)(tr.reduce((a,h) => a+((h.prs||[]).length), 0))}
-    <div class="${S.cardioGoal && cm>=S.cardioGoal?'st-green':''}"><b>${cm}<small>/${S.cardioGoal}</small></b><span>min de cardio</span></div>
-    <div class="${wd>=7?'st-blue':''}"><b>${wd}<small>/7</small></b><span>dias na meta de água</span></div></div>
     <div class="week-row">${days}</div>
-    <p class="foot0">Na meta = ${streakMin()} treinos ou mais na semana.</p></section>`;
+    <button type="button" class="btn small ghost self-start" data-a="tab" data-v="evo">Ver os números na Evolução${ic('chev')}</button></section>`;
 }
 
 /* ---------- Treino: grade (uma bolha por série) ---------- */
