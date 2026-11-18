@@ -484,15 +484,15 @@ button.rc:active{background:var(--ctl)}
 .btn.add{background:var(--fg);color:var(--bg)}
 /* aba Gastos: topo degradê + cartões em ícone + linha do tempo */
 .ctiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:4px}
-.ctl{border:0;font:inherit;color:#0B3B2E;background:rgba(255,255,255,.6);border-radius:16px;padding:10px 6px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;transition:transform .2s var(--spring)}
+.ctl{border:0;font:inherit;color:#0B3B2E;background:rgba(255,255,255,.6);border-radius:18px;padding:14px 8px 12px;min-height:112px;justify-content:center;display:flex;flex-direction:column;align-items:center;gap:10px;min-width:0;transition:transform .2s var(--spring)}
 .ctl:active{transform:scale(.95)}
 .ctl.on{background:#fff;box-shadow:0 0 0 2px #0B3B2E}
-.ctl b{font-size:12.5px;font-weight:900;letter-spacing:-.02em;font-variant-numeric:tabular-nums;white-space:nowrap}
-.ctl .cc{width:52px;aspect-ratio:1.586;border-radius:6px;box-shadow:0 3px 8px rgba(0,0,0,.18)}
+.ctl b{font-size:13.5px;font-weight:900;letter-spacing:-.02em;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ctl .cc{width:100%;max-width:92px;aspect-ratio:1.586;border-radius:8px;box-shadow:0 3px 8px rgba(0,0,0,.18)}
 .ctl .cc .nm,.ctl .cc .nfc,.ctl .cc .biz,.ctl .cc .lg,.ctl .cc .no{display:none}
 .ctl .cc .chip{width:15%}.ctl .cc .x{width:26%}.ctl .cc::after{display:none}
 .ctl .cc.v-nu{background:linear-gradient(160deg,#FFFFFF,#ECECEC)}.ctl .cc.v-nuroxo{background:linear-gradient(160deg,#9A2FE8,#7A0BC7)}.ctl .cc.v-caixa{background:linear-gradient(#DCDDDB,#D2D4D1)}.ctl .cc.v-pix{background:#fff}
-.ctl .cc .logo{font-size:12px}
+.ctl .cc .logo{font-size:17px}
 .stack3{height:8px;border-radius:999px;overflow:hidden;display:flex;gap:2px;background:rgba(11,59,46,.1)}.stack3 i{display:block;height:100%}
 .tline{position:relative;padding-left:26px}
 .tline::before{content:"";position:absolute;left:8px;top:8px;bottom:8px;width:2px;background:var(--sep)}
@@ -598,7 +598,7 @@ function logo(){
 $('#logo').innerHTML = logo(); document.querySelector('.top .mic').innerHTML = I.mic;
 
 /* ========== estado ========== */
-const FINV = '18 nov · 50'; // Versão do Finanças: 18 nov · 50
+const FINV = '18 nov · 51'; // Versão do Finanças: 18 nov · 51
 const DONO = { nome:'Eduardo Matias', iniciais:'EM' }; // perfil único desta página
 const LS = 'simplificando-financas', LST = 'simplificando-financas-tema';
 const CATS = ['Mercado', 'Comida', 'Transporte', 'Casa', 'Lazer', 'Saúde', 'Roupas', 'Assinaturas', 'Outros'];
@@ -943,7 +943,7 @@ function rResumo(){
     h += `<button type="button" class="rc" data-a="ver-cartao" data-k="${c.id}" style="--ga:var(--g${(c.cor ?? 7) % 8});--gb:${corVis(c)}">${ccHTML(c, '', 'mini')}<span class="tx"><b>${esc(c.nome)}</b><span>${sub}</span><span class="bar2"><i style="width:${Math.round((v - vi) / totCart * 100)}%"></i>${vi ? `<i class="ir" style="width:${Math.round(vi / totCart * 100)}%"></i>` : ''}</span></span><span class="v">${esc(fmt(pf && pf.total ? Math.max(0, (f ? f.total : v) - pf.total) : (f ? f.total : v)))}<small>${f ? 'fatura atual' : 'no mês'}</small></span><span class="chev">${I.chev}</span></button>`;
   }
   h += `<button type="button" class="rc novo" data-a="add-cartao-resumo">${I.plus}Novo cartão</button></div>`;
-  h += `<p class="sub" style="text-align:center">${gm.length ? 'Toque num cartão para ver o extrato. A barra mostra quanto cada um pesa no mês' + (doIrmao ? '; a parte clara é do ' + n : '') + '.' : 'Nenhum gasto em ' + esc(monthLabel(UI.mes)) + '. Toque no <b>+</b> para lançar.'}</p>`;
+  if (!gm.length) h += `<p class="sub" style="text-align:center">Nenhum gasto em ${esc(monthLabel(UI.mes))}. Toque no <b>+</b> para lançar.</p>`;
   // receitas
   h += `<div class="card" id="sec-rec"><div class="hd"><h2>Recebido no mês</h2><button type="button" class="btn sm primary" data-a="nova-receita">${I.plus}Receita</button></div><div class="bars">`;
   const maxF = Math.max(1, ...S.fontes.map(f => sum(rm.filter(r => r.fonte === f.id), r => r.valor)));
@@ -996,7 +996,7 @@ function rGastos(){
   const cats = {}; for (const g of (UI.fCart ? its : base)) { const n = catDe(g); cats[n] = (cats[n] || 0) + g.valor; }
   const cl = Object.entries(cats).sort((x, y) => y[1] - x[1]);
   let h = `<div class="hero3"><div class="hd"><p class="eyebrow">Gastos em ${esc(monthLabel(UI.mes).split(' ')[0].toLowerCase())}${UI.fCart ? ' · ' + esc(cartao(UI.fCart).tipo === 'conta' ? 'Pix' : cartao(UI.fCart).nome) : ''}</p>${UI.fCart ? `<button type="button" class="btn sm" data-a="f-cart" data-k="">Ver todos</button>` : ''}</div>
-    <p class="big">${fmtBig(tot)}</p>${tot ? `<div class="stack3">${cl.map(([n, v]) => `<i style="width:${v / tot * 100}%;background:${corCat(n)}" title="${esc(n)}: ${esc(fmt(v))}"></i>`).join('')}</div>` : ''}
+    <p class="big">${fmtBig(tot)}</p>
     <div class="ctiles">${S.cartoes.map(c => `<button type="button" class="ctl ${UI.fCart === c.id ? 'on' : ''}" data-a="f-cart" data-k="${UI.fCart === c.id ? '' : c.id}" aria-label="${esc(c.tipo === 'conta' ? 'Pix' : c.nome)}">${ccHTML(c)}<b>${esc(fmt(sum(base.filter(g => g.cartao === c.id), g => g.valor)).replace(/,00$/, ''))}</b></button>`).join('')}</div></div>`;
   h += `<div class="inline"><div class="seg" style="flex:1"><button type="button" class="${!UI.fQuem ? 'on' : ''}" data-a="f-quem" data-k="">Todos</button><button type="button" class="${UI.fQuem === 'eu' ? 'on' : ''}" data-a="f-quem" data-k="eu">Meus</button><button type="button" class="${UI.fQuem === 'irmao' ? 'on' : ''}" data-a="f-quem" data-k="irmao">${esc(S.irmao.nome)}</button></div><button type="button" class="btn sm" data-a="importar" data-k="${UI.fCart || ''}" title="Importar lista da fatura ou do extrato">${I.copy}Importar</button></div>`;
   if (!its.length) h += `<div class="list"><div class="empty"><b>Nada por aqui</b><span>${doMes.length ? 'Nenhum gasto com esse filtro.' : 'Nenhum gasto lançado em ' + esc(monthLabel(UI.mes)) + '.'}</span><button type="button" class="btn primary" data-a="novo-gasto">${I.plus}Lançar gasto</button></div></div>`;
