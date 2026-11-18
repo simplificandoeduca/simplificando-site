@@ -211,7 +211,8 @@ button.row:active{background:var(--ctl)}
 /* porta de entrada */
 #trava{position:fixed;inset:0;z-index:350;background:var(--bg);color:var(--fg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:calc(24px + env(safe-area-inset-top,0px)) 16px calc(24px + env(safe-area-inset-bottom,0px))}
 #trava[hidden]{display:none}
-#trava .tv-logo{width:64px;height:64px}
+#trava .tv-logo{width:76px;height:76px;perspective:700px;filter:drop-shadow(0 12px 18px rgba(80,55,5,.22));margin-bottom:4px}
+#trava .tv-corpo{display:flex;flex-direction:column;align-items:center;gap:14px}
 #trava h2{margin:4px 0 0;font-size:22px;font-weight:900;letter-spacing:-.03em;text-align:center}
 #trava .tv-sub{margin:0;color:var(--muted);font-size:14px;text-align:center;min-height:20px;max-width:300px}
 #trava .tv-sub.err{color:#E5484D;font-weight:700}
@@ -230,13 +231,13 @@ button.row:active{background:var(--ctl)}
 #splash.sai{opacity:0;visibility:hidden}
 #splash .sp-logo{width:92px;height:92px;animation:sp-in .5s cubic-bezier(.2,.9,.3,1.2) both}
 #splash .sp-logo{perspective:700px;filter:drop-shadow(0 14px 22px rgba(80,55,5,.25))}
-#splash .m3d{position:relative;width:100%;height:100%;transform-style:preserve-3d;animation:sp-gira 3.4s linear infinite}
-#splash .m3d>*{position:absolute;inset:0;border-radius:50%;display:block}
-#splash .m3d .ed{background:#A87A16}#splash .m3d .ed:nth-child(odd){background:#94680F}
-#splash .m3d .fr{transform:translateZ(6px)}#splash .m3d .bk{transform:rotateY(180deg) translateZ(6px)}
+.m3d{position:relative;width:100%;height:100%;transform-style:preserve-3d;animation:sp-gira 3.4s linear infinite}
+.m3d>*{position:absolute;inset:0;border-radius:50%;display:block}
+.m3d .ed{background:#A87A16}.m3d .ed:nth-child(odd){background:#94680F}
+.m3d .fr{transform:translateZ(6px)}.m3d .bk{transform:rotateY(180deg) translateZ(6px)}
 @keyframes sp-gira{from{transform:rotateX(10deg) rotateY(0)}to{transform:rotateX(10deg) rotateY(360deg)}}
 @keyframes sp-in{from{opacity:0;transform:scale(.85)}}
-@media (prefers-reduced-motion: reduce){#splash .m3d{animation-duration:9s}}
+@media (prefers-reduced-motion: reduce){.m3d{animation-duration:9s}}
 .gate{position:fixed;inset:0;z-index:200;background:var(--bg);color:var(--fg);overflow-y:auto;overscroll-behavior:contain}
 .gate-in{max-width:440px;margin:0 auto;min-height:100%;min-height:100dvh;display:flex;flex-direction:column;gap:14px;padding:calc(32px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(32px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
 .gate-logo{width:72px;height:72px}.gate-logo svg{width:100%;height:100%}
@@ -647,7 +648,7 @@ function tirarSplash(){ const sp = $('#splash'); if (!sp || sp.dataset.saindo) r
 setTimeout(tirarSplash, 9000); document.querySelector('.top .mic').innerHTML = I.mic;
 
 /* ========== estado ========== */
-const FINV = '18 nov · 59'; // Versão do Finanças: 18 nov · 59
+const FINV = '18 nov · 60'; // Versão do Finanças: 18 nov · 60
 const DONO = { nome:'Eduardo Matias', iniciais:'EM' }; // perfil único desta página
 const LS = 'simplificando-financas', LST = 'simplificando-financas-tema';
 const CATS = ['Mercado', 'Comida', 'Transporte', 'Casa', 'Lazer', 'Saúde', 'Roupas', 'Assinaturas', 'Outros'];
@@ -2018,7 +2019,8 @@ const Trava = (() => {
   }
   const titulo = () => ({ entrar:'Digite seu código', criar:'Crie seu código de acesso', repetir:'Repita o código', atual:'Digite o código atual' })[st.modo];
   function pintar(msg, err){
-    el.innerHTML = `<span class="tv-logo">${logo()}</span><h2>${titulo()}</h2><p class="tv-sub ${err ? 'err' : ''}">${esc(msg || (st.modo === 'criar' ? PIN_N + ' números. Ele será pedido sempre que abrir o Finanças neste aparelho.' : st.modo === 'entrar' ? 'Finanças de ' + DONO.nome.split(' ')[0] : ''))}</p>
+    if (!el.querySelector('.tv-logo')) el.innerHTML = `<span class="tv-logo">${moeda3d()}</span><div class="tv-corpo"></div>`; // a moeda continua girando enquanto digita
+    el.querySelector('.tv-corpo').innerHTML = `<h2>${titulo()}</h2><p class="tv-sub ${err ? 'err' : ''}">${esc(msg || (st.modo === 'criar' ? PIN_N + ' números. Ele será pedido sempre que abrir o Finanças neste aparelho.' : st.modo === 'entrar' ? 'Finanças de ' + DONO.nome.split(' ')[0] : ''))}</p>
       <div class="tv-dots">${Array.from({ length:PIN_N }, (_, i) => `<i class="${i < st.dig.length ? 'on' : ''}"></i>`).join('')}</div>
       <div class="tv-pad">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => `<button type="button" data-tv="${n}">${n}</button>`).join('')}
       <button type="button" class="lt" data-tv="esqueci">${st.modo === 'entrar' ? 'Esqueci' : st.cancelar ? 'Cancelar' : ''}</button><button type="button" data-tv="0">0</button><button type="button" class="lt" data-tv="apagar" aria-label="Apagar">${I.back || '⌫'}</button></div>`;
