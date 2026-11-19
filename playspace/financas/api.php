@@ -17,8 +17,9 @@ require __DIR__ . '/festas.php';   /* 2.3: as festas, com o lucro real de cada u
 require __DIR__ . '/pdfbonito.php';   /* 2.6: a moldura dos relatórios bonitos (a logo, o ursinho, os gráficos) */
 require __DIR__ . '/freelas.php';   /* 2.6: os freelancers */
 require __DIR__ . '/relatorios.php';   /* 2.6: os relatórios do caixa e das festas */
+require __DIR__ . '/comissoes.php';   /* 2.8: as comissões das vendedoras */
 set_exception_handler(function (Throwable $e) { registrarErro('[financas] ' . $e->getMessage() . ' @' . basename($e->getFile()) . ':' . $e->getLine()); falha('Algo deu errado. Tente de novo em instantes.', 500); });
-const FIN_VERSAO = '2.7';
+const FIN_VERSAO = '2.8';
 
 $in = [];
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
@@ -205,6 +206,11 @@ if ($acao === 'fz_dia_tirar') responder(fzDiaTirar($in, $eu));
 if ($acao === 'fz_pdf') pbSaida(fzPdf($in), 'play-space-freelancers-' . fzMes($in['mes'] ?? '') . '.pdf');
 if ($acao === 'fs_pdf') pbSaida(fsPdf($in), 'play-space-festas-' . fsMes($in['mes'] ?? '') . '.pdf');
 if ($acao === 'cx_rel_pdf') { $de_ = cxDiaOk($in['de'] ?? ''); $ate_ = cxDiaOk($in['ate'] ?? $de_); pbSaida(cxRelPdf($in), 'play-space-caixa-' . ($de_ === $ate_ ? $de_ : $de_ . '-a-' . $ate_) . '.pdf'); }
+/* ---------- 2.8: as comissões (o bônus das vendedoras: quem vendeu cada pacote e cada produto, pelas regras que o financeiro edita) ---------- */
+if ($acao === 'cm_listar') responder(cmListar($in));
+if ($acao === 'cm_regras_salvar') responder(cmRegrasSalvar($in, $eu));
+if ($acao === 'cm_vendedoras_salvar') responder(cmVendedorasSalvar($in, $eu));
+if ($acao === 'cm_pdf') { $P_ = cmPeriodo($in['per'] ?? ''); pbSaida(cmPdf($in), 'play-space-comissoes-' . $P_['per'] . '.pdf'); }
 /* ---------- 2.1: fornecedores, contas a pagar, o painel financeiro e as planilhas ---------- */
 if ($acao === 'fn_listar') responder(fnListar($in));
 if ($acao === 'fn_nomes') { flPreparar(); responder(['fornecedores' => fnNomes()]); }

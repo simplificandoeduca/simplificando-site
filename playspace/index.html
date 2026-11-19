@@ -884,6 +884,16 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .fe-vezes button[aria-pressed="true"] { border-color: var(--coral); background: var(--coral-2); color: var(--coral); }
 /* 1.65: mais vezes no crédito (5x a 12x, com a liberação do gestor) e o Upgrade/Adicional na festa */
 .pac-nota { margin: 0 0 8px; padding: 8px 12px; border-radius: 12px; background: var(--menta, #DBE8DA); }   /* 1.66 */
+/* 1.67: quem está vendendo (os nomes grandes, à vista, a cada venda de pacote ou de produto) */
+.vend { margin: 0 0 10px; padding: 10px 12px 12px; border: 2px solid var(--coral); border-radius: 18px; background: var(--coral-2); }
+.vend.ok { border-color: var(--verde-agua); background: var(--verde-agua-2); }
+.vend-t { margin: 0 0 8px; font-family: var(--display); font-weight: 800; font-size: 15px; color: var(--tinta); }
+.vend-t .leve { font-family: inherit; font-weight: 600; font-size: 13px; }
+.vend-b { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.vend-b button { min-height: 52px; padding: 6px 8px; border: 2px solid var(--borda-2); border-radius: 14px; background: var(--card); font-family: var(--display); font-weight: 800; font-size: 15px; line-height: 1.15; color: var(--tinta); }
+.vend-b button[aria-checked="true"] { border-color: var(--tinta); background: var(--tinta); color: var(--card); }
+.vend-pag { margin: 6px 0 0; font-size: 14px; color: var(--tinta-2); }
+@media (max-width: 560px) { .vend-b { grid-template-columns: 1fr 1fr; } }
 .fe-mais { margin-top: 8px; } .fe-mais-l { font-size: 14px; padding: 4px 0; }
 .fe-mais-c { border: 1.5px dashed var(--borda); border-radius: 16px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; } .fe-mais-c > span { font-weight: 800; font-size: 14px; }
 .fe-mais-b { display: flex; flex-wrap: wrap; gap: 8px; } .fe-mais-b button { min-width: 52px; height: 42px; border: 2px solid var(--borda); border-radius: 14px; background: var(--card); font: 800 15px/1 var(--fonte, inherit); cursor: pointer; }
@@ -1731,7 +1741,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.66';
+const VERSAO = '1.67';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -3951,6 +3961,7 @@ function abrirPagamento(id) {
     const fe = CARRINHO.festa; if (fe.modo === 'nova' && fe.n && !x.iso) { toast('Escolha a data da festa no calendário'); abrirCalFesta(); return; }   // 1.29: a festa nova sempre tem o dia (é o que o calendário das unidades mostra)
     if (fe.modo === 'nova' && fe.n && fe.dia === 'semana' && fe.hora && !/^([01]?\d|2[0-3])[:h][0-5]\d$/.test(fe.hora)) { toast('Escreva o horário da festa assim: 15:00'); const h = $('#fe-hora'); if (h) h.focus(); return; } }
   if (L.some(l => l.outro) && !(numero(val('v-valor')) >= 0)) { toast('Qual é o valor do outro item?'); $('#v-valor').focus(); return; }
+  if (precisaVend(L) && !CARRINHO.vend) { toast('Escolha quem está vendendo'); const vb = $('#v-vend'); if (vb) { vb.hidden = false; vb.scrollIntoView({ block: 'center', behavior: 'smooth' }); } return; }   /* 1.67 */
   const total = centavos(L.reduce((t, l) => t + l.v, 0)); if (!(total > 0)) { registrarAtendimento(id); return; }   // nada a pagar (só o voucher): registra direto
   if (VOLTA_SAIDA === c.id) { registrarAtendimento(id, false, null, true); return; }   // 1.03: veio de "Adicionar serviços" da saída: o que foi escolhido entra no pagamento da saída, que abre de novo em seguida
   const en = $('#v-entrar-campo'), entrar = !!en && !en.hidden && !!($('#v-entrar') || {}).checked, mesmo = PAG && PAG.onde === 'venda' && PAG.id === id && (PAG.soma != null ? PAG.soma : PAG.cheio != null ? PAG.cheio : PAG.total) === total;
@@ -3970,7 +3981,7 @@ function abrirPagamento(id) {
   PAG.linhas = linhas;
   a.innerHTML = `${pgDetalhes(c, !festa)}
     ${pgSec('Itens selecionados')}
-    <div id="pg-itens-v">${htmlItensVenda()}</div>
+    <div id="pg-itens-v">${htmlItensVenda()}</div>${precisaVend(L) && CARRINHO.vend ? `<p class="vend-pag" id="pg-vend">Vendido por <b>${esc(CARRINHO.vend)}</b></p>` : ''}
     <button type="button" class="link tap pg-add pg-volta" data-act="pag-voltar">${festa ? ic(IC.volta, 14, 2.8) + ' Trocar o que foi escolhido' : ic(IC.mais, 14, 2.8) + ' Adicionar ou trocar serviços'}</button>
     ${pgSec('Pagamento')}
     <div id="pg-horas-v">${horasPagHtml(c, L)}</div>
@@ -3989,6 +4000,7 @@ async function registrarAtendimento(id, mesmoAssim, pag, depois) { // mesmoAssim
   const c = crianca(id), L = altLinhas(linhasDoCarrinho(), id); if (!c) return; if (!L.length) { toast('Escolha o serviço'); return; }   // 1.33: com o valor alterado (aprovado)
   if (L.some(l => l.outro) && !(numero(val('v-valor')) >= 0)) { toast('Qual é o valor do outro item?'); $('#v-valor').focus(); return; }
   const vou = L.find(l => l.vou);
+  if (precisaVend(L) && !CARRINHO.vend) { toast('Escolha quem está vendendo'); voltarDaEscolha(); atualizarCarrinho(); return; }   /* 1.67 */
   const en = $('#v-entrar-campo'), entrar = !!en && !en.hidden && !!($('#v-entrar') || {}).checked;   // sem iDFace: pagou e já entra
   if (vou && voucherNaEntrada() && (c.entrou || (semIdface() && !entrar))) { toast(c.entrou ? `O voucher só vale na entrada: ${c.nome} já está no espaço.` : 'O voucher é dado na entrada: marque "Dar entrada agora".'); return; }   // 1.35
   const festa = !!(CARRINHO && CARRINHO.festa && L.some(l => l.festa));   // 1.12: a venda é a de uma festa
@@ -4003,7 +4015,7 @@ async function registrarAtendimento(id, mesmoAssim, pag, depois) { // mesmoAssim
   const min = L.reduce((a, l) => a + l.min, 0), nome = c.nome, aviso = soAberto ? `${juntar(abertos.map(nomeQ))} de ${nome}: ${qtdAbertos(L) > 1 ? 'saíram' : 'saiu'} da loja · ${ITENS_ABERTO}` : `Venda registrada para ${nome} · ${brl(total)}${dsc ? ' (desconto de ' + brl(dsc.valor) + ')' : ''}${pag && pag.length ? (pag.length === 1 ? ' ' + naForma(pag[0].f) : ' em ' + pag.length + ' formas') : depois && total > 0 ? ' a receber' : ''}${min ? ' · +' + dur(min) + ' de recreação' : ''}${abertos.length ? ' · ' + juntar(abertos.map(nomeQ)) + ': ' + ITENS_ABERTO : ''}`;
   if (MODO === 'servidor') {
     const bt = $('#v-ok'), bp = $('#p-ok'), bd = $('#p-depois'); if (bt) bt.disabled = true; if (bp) bp.disabled = true; if (bd) bd.disabled = true;
-    try { const o = L.find(l => l.outro), r = await apiOff('atender', { id, ...(festa && PAG && PAG.onde === 'venda' && PAG.id === id && PAG.parc && (pag || []).some(p => p.f === 'credito') ? { parcelas: PAG.parc, ...(PAG.parcLib ? { parc_ped: PAG.parcLib.id } : {}) } : {}), linhas: L.filter(l => l.s).map(l => ({ s: l.s, q: l.q, vt: l.vt })), pacotes: L.filter(l => l.pac != null).map(l => ({ h: l.ph, tipo: l.ptipo, v: l.vTab != null ? l.vTab : l.v, nome: l.pnome, ...(l.alt ? { alt: l.alt } : {}) })), produtos: L.filter(l => l.prod).map(l => ({ p: l.prod, q: l.q, v: l.pv, ...(l.alt ? { alt: l.alt } : {}) })), outro: o ? { n: o.servico, v: o.v } : null, voucher: vou ? true : null, entrar, visto: (CARRINHO && CARRINHO.visto) || 0, mesmo_assim: !!mesmoAssim, pagamento: pag && pag.length ? pag : null, depois: !!depois && !(pag && pag.length), ...(devL.length ? { carrinho_depois: true } : {}), ...(dsc ? { desconto: dsc } : {}), ...(festa ? { festa: festaEnvio(CARRINHO.festa) } : {}) }, { L: L.map(l => ({ n: nomeLinha(l), v: l.v || 0, min: l.min || 0, tempo: !!l.s && (x => !!x && ehTempo(x))(servicoDe(l.s)) })) });   // 1.40: sem internet, fica na fila
+    try { const o = L.find(l => l.outro), r = await apiOff('atender', { id, ...(precisaVend(L) && CARRINHO.vend ? { vendedora: CARRINHO.vend } : {}), ...(festa && PAG && PAG.onde === 'venda' && PAG.id === id && PAG.parc && (pag || []).some(p => p.f === 'credito') ? { parcelas: PAG.parc, ...(PAG.parcLib ? { parc_ped: PAG.parcLib.id } : {}) } : {}), linhas: L.filter(l => l.s).map(l => ({ s: l.s, q: l.q, vt: l.vt })), pacotes: L.filter(l => l.pac != null).map(l => ({ h: l.ph, tipo: l.ptipo, v: l.vTab != null ? l.vTab : l.v, nome: l.pnome, ...(l.alt ? { alt: l.alt } : {}) })), produtos: L.filter(l => l.prod).map(l => ({ p: l.prod, q: l.q, v: l.pv, ...(l.alt ? { alt: l.alt } : {}) })), outro: o ? { n: o.servico, v: o.v } : null, voucher: vou ? true : null, entrar, visto: (CARRINHO && CARRINHO.visto) || 0, mesmo_assim: !!mesmoAssim, pagamento: pag && pag.length ? pag : null, depois: !!depois && !(pag && pag.length), ...(devL.length ? { carrinho_depois: true } : {}), ...(dsc ? { desconto: dsc } : {}), ...(festa ? { festa: festaEnvio(CARRINHO.festa) } : {}) }, { L: L.map(l => ({ n: nomeLinha(l), v: l.v || 0, min: l.min || 0, tempo: !!l.s && (x => !!x && ehTempo(x))(servicoDe(l.s)) })) });   // 1.40: sem internet, fica na fila
       await carregar(); if (festa) ETAPA_FEITA = true; else atendimentoFeito(id); fecharFolha(); desenhar(); const k = crianca(id); deuCertoOu(atencaoVoucher(r.voucher, nome), avisoVoucher(r.voucher, nome) + aviso + (r.entrada ? ' · entrou' + (k && k.entrou ? ', ' + entrouTxt(k) : '') : ''), (cheio > 0 && !podeEstornar()) || r.offline ? null : marcaAtd(async () => { voltarRascunho(id, rasc); largarSapEntrada(id); try { if (r.entrada) await api('desfazer_entrada', { id, registro: r.entrada.registro, mensagem: r.entrada.mensagem, atendente: ATD_NOME }); await api('desfazer_venda', { vendas: r.vendas, registros: r.registros, atendente: ATD_NOME }); await carregar(); } catch (e) { DESFAZ_ERRO = e.message; toast(e.message); } desenhar(); }, !podeEstornar() && (!!r.entrada || abertos.length > 0), r.entrada ? `Desfazer a entrada de ${nome}` : `Desfazer a saída de ${juntar(abertos.map(nomeQ))}`)); VOLTA_SAIDA = 0;
       const specV = volta && depois && !(pag && pag.length) ? null : { tipo: 'entrada', id, itens: L.map(l => devL.includes(l) ? { ...linhaPapel(l), aberto: true, dev: l.v } : linhaPapel(l)), formas: pag || [], depois: !!depois && !(pag && pag.length), desc: dsc ? dsc.valor : 0, venda: (r.vendas || [])[0] || 0, festa, ped: pedP }, cupomV = q => cupomDaVenda(id, r.cupom, specV, volta, q);
       if (r.entrada) pedirSapateira(id, cupomV); else cupomV(false); }   /* 1.16: entrou junto com a venda: primeiro a sapateira, depois o cupom */   // 0.94: registrou, o cupom sai para o responsável assinar
@@ -5966,6 +5978,14 @@ function linhasServico(parte) { // parte: 'tempo', 'outros' ou nada (todos). Sem
     + (!st || parte === 'outros' ? '' : !temVoucher(c) && voucherNaEntrada() && c && c.entrou ? '' : temVoucher(c) ? `<div class="serv voucher usado"><span class="txt"><b>Voucher</b><span>${c.entrou ? 'já usado nesta visita' : 'já tem um de hoje, ainda sem usar'} · é um por visita</span></span><span class="vou-ch on">${ic(IC.check, 16, 3)}</span><b class="valor num"></b></div>`
       : `<button type="button" class="serv voucher tap ${vq ? 'on' : ''}" data-act="vou-marca" aria-pressed="${!!vq}"><span class="txt"><b>Voucher</b><span>${c && c.entrou && c.atraso && c.atraso.n ? `cobre ${porExt(st.min || 30)} desta visita (${brl(umaCobranca(c))} a menos na saída)` : `${porExt(st.min || 30)} de ${esc(st.n)} grátis · um por visita`}</span></span><span class="vou-ch">${vq ? ic(IC.check, 16, 3) : ''}</span><b class="valor num">${vq ? 'Grátis' : ''}</b></button>`);
 }
+/* 1.67: quem está vendendo. Pedido do dono: "toda vez que forem vender um pacote, selecionar o nome de quem está vendendo; a cada pacote, limpa,
+   para que precisem marcar de novo". Vale para o pacote e para o produto (a comissão das Finanças conta os dois); a festa não pede.
+   Fica só no atendimento aberto (não vai para o que fica guardado): todo atendimento começa sem ninguém escolhido */
+const VENDEDORAS_PADRAO = ['ALINE', 'EDJANE', 'KAROL', 'MARIA VITÓRIA'];
+const vendedorasLista = () => (Array.isArray(S.cfg.vendedoras) && S.cfg.vendedoras.length ? S.cfg.vendedoras : VENDEDORAS_PADRAO);
+const precisaVend = L => !(CARRINHO && CARRINHO.festa) && L.some(l => l.pac != null || !!l.prod);
+const htmlVend = () => `<div class="vend" id="v-vend" role="radiogroup" aria-label="Quem está vendendo" hidden><p class="vend-t">Quem está vendendo?<span class="leve"> · toque no seu nome (a cada venda)</span></p><div class="vend-b">${vendedorasLista().map(n => `<button type="button" class="tap" role="radio" aria-checked="false" data-act="vend" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`;
+function vendAtualiza(L) { const b = $('#v-vend'); if (!b || !CARRINHO) return; b.hidden = !precisaVend(L); b.classList.toggle('ok', !!CARRINHO.vend); $$('#v-vend [data-n]').forEach(x => x.setAttribute('aria-checked', String(x.dataset.n === CARRINHO.vend))); }
 function atualizarCarrinho() { // redesenha as linhas dos serviços e o total a pagar
   if (CARRINHO && CARRINHO.festa) { atualizarFesta(); return; }   // 1.12: a folha aberta é a da Festa
   const a = $('#v-servicos'); if (a) a.innerHTML = linhasServico('tempo'); { const a2 = $('#v-servicos2'); if (a2) a2.innerHTML = linhasServico('outros'); }
@@ -5976,6 +5996,7 @@ function atualizarCarrinho() { // redesenha as linhas dos serviços e o total a 
   { const es = $('#v-entrar-saldo'); if (es) es.hidden = !!linhasDoCarrinho().length; }   // com algo escolhido, a entrada vai junto com a venda (a caixa "Dar entrada agora")
   const L = linhasDoCarrinho(), total = L.reduce((t, l) => t + l.v, 0), min = L.reduce((t, l) => t + l.min, 0), t = $('#v-total'), ok = $('#v-ok');
   if (t) t.textContent = brl(total); if (ok) { ok.disabled = !L.length; ok.innerHTML = !L.length ? `${ic(IC.check)} Escolha o serviço` : total > 0 ? `${VOLTA_SAIDA ? 'Somar na saída' : 'Pagamento'} · ${brl(total)} ${ic(IC.vai, 18, 2.6)}` : L.some(l => l.aberto) ? `${ic(IC.check)} Registrar a saída${qtdAbertos(L) > 1 ? ' de ' + qtdAbertos(L) + ' carrinhos' : ''} · ${ITENS_ABERTO}` : `${ic(IC.check)} Registrar · ${brl(total)}`; }
+  vendAtualiza(L); if (ok && L.length && precisaVend(L) && !CARRINHO.vend) { ok.disabled = true; ok.innerHTML = `${ic(IC.check)} Escolha quem está vendendo`; }   /* 1.67 */
   const m = $('#v-tempo'), vc = L.find(l => l.cobre); if (m) { m.hidden = !min && !vc; m.textContent = (min ? `Entra ${dur(min)} de recreação no saldo: fica com ${hm(saldoAgora(crianca(CARRINHO.id)) + min)}. ` : '') + (vc ? `O voucher cobre ${porExt(periodo())} desta visita: ${brl(umaCobranca(crianca(CARRINHO.id)))} a menos na saída.` : ''); }
   const en = $('#v-entrar-campo'), cb = $('#v-entrar'), cr = crianca(CARRINHO.id); if (en) en.hidden = !(L.length && cr);   // 1.15: a entrada pode ir junto com qualquer venda (sem horas, a criança entra na recreação avulsa)
   if (cb && CARRINHO.entrar == null) cb.checked = min > 0;
@@ -6008,7 +6029,7 @@ function folhaVender(id, primeira, pre, voltaSaida) { // primeira: acabou de sai
     ${outrosServicos().length ? `<div class="campo"><label>Outros serviços</label><div class="servicos" id="v-servicos2">${linhasServico('outros')}</div></div>` : ''}
     ${produtosNoAtendimento()}
     <details class="outro"${r && r.item ? ' open' : ''}><summary>Outro item</summary><div class="outro-item"><input id="v-item" value="${esc(r ? r.item || '' : '')}" placeholder="O que foi" autocomplete="off" maxlength="40" aria-label="O que foi vendido"><input id="v-valor" value="${esc(r ? r.valor || '' : '')}" inputmode="decimal" placeholder="R$" autocomplete="off" aria-label="Valor em reais"></div></details>
-    <div class="pe-f"><span class="explica" id="v-tempo" hidden></span>${semIdface() && !c.entrou ? `<label class="marca" id="v-entrar-campo" hidden><input type="checkbox" id="v-entrar" checked><span><b>Dar entrada agora.</b> <span id="v-entrar-vou" hidden>O voucher é dado na entrada. </span><span id="v-entrar-txt">O tempo de recreação começa a contar ao registrar a venda.</span></span></label>` : ''}<div class="total"><span>Total a pagar</span><b class="num" id="v-total">R$ 0</b></div><button class="bt forte largo tap" id="v-ok" data-act="atender-ok" data-id="${c.id}" disabled>${ic(IC.check)} Escolha o serviço</button></div>
+    <div class="pe-f">${htmlVend()}<span class="explica" id="v-tempo" hidden></span>${semIdface() && !c.entrou ? `<label class="marca" id="v-entrar-campo" hidden><input type="checkbox" id="v-entrar" checked><span><b>Dar entrada agora.</b> <span id="v-entrar-vou" hidden>O voucher é dado na entrada. </span><span id="v-entrar-txt">O tempo de recreação começa a contar ao registrar a venda.</span></span></label>` : ''}<div class="total"><span>Total a pagar</span><b class="num" id="v-total">R$ 0</b></div><button class="bt forte largo tap" id="v-ok" data-act="atender-ok" data-id="${c.id}" disabled>${ic(IC.check)} Escolha o serviço</button></div>
     </div><div id="v-pag" hidden></div>`);
   ETAPA_FEITA = false;   // daqui em diante, fechar sem registrar guarda o que foi escolhido
   if (r) { const cb = $('#v-entrar'); if (cb && CARRINHO.entrar != null) cb.checked = CARRINHO.entrar; }
@@ -7607,6 +7628,7 @@ const ACOES = {
     const d = el.closest('details'); if (d && CARRINHO.pac.includes(i)) d.open = false; },   /* escolheu: a lista fecha e o pacote escolhido fica à vista */
   'atender-ok': el => abrirPagamento(+el.dataset.id),   /* com valor a pagar, abre a tela de pagamento; sem valor (só voucher), registra direto */
   'pag-voltar': () => voltarDaEscolha(),
+  'vend': el => { if (!CARRINHO || CARRINHO.festa) return; CARRINHO.vend = el.dataset.n || ''; atualizarCarrinho(); },   /* 1.67: quem está vendendo */
   'fe-vezes': el => { if (!PAG) return; const n = +el.dataset.n; PAG.parc = PAG.parc === n ? 0 : n; if (PAG.parcQ) { if (PAG.parcEsp) largarParcelas(true); PAG.parcQ = 0; PAG.parcNeg = null; } desenharPag(false); },
   'fe-mais': () => { if (!PAG) return; PAG.parcAberto = !PAG.parcAberto; desenharPag(false); },   /* 1.65: mais vezes no crédito (5x a 12x) */
   'fe-vezes-mais': el => escolherMaisVezes(+el.dataset.n),

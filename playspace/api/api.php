@@ -624,7 +624,7 @@ switch ($acao) {
         if (!$p && $outro) falha('O valor do pacote de ' . $h . ' h mudou para ' . dinheiro((float)$outro['v']) . '. Feche e abra o atendimento de novo.');
         if (!$p) falha('O pacote de ' . $h . ' h não está mais na tabela. Feche e abra o atendimento de novo.');
       } else $p = $r['pacotes'][(int)$i] ?? null;   // a tela antiga mandava a posição na lista
-      if ($p) { $lv = ['servico' => servicoDoPacote($p), 'min' => (int)$p['h'] * 60, 'valor' => (float)$p['v'], 'itens' => itensDoPacote($p)];
+      if ($p) { $lv = ['servico' => servicoDoPacote($p), 'min' => (int)$p['h'] * 60, 'valor' => (float)$p['v'], 'itens' => itensDoPacote($p), 'ck' => tipoPacote($p) === 'produto' ? 'pacote_prod' : 'pacote'];
         if (is_array($i) && !empty($i['alt'])) { $aid = (int)$i['alt']; if (isset($altUsadas[$aid])) falha('A mesma alteração de valor só vale para um item.'); $altUsadas[$aid] = 1;   // 1.33: o valor alterado (aprovado)
           $a = autorizacaoDeValor($aid, $u, $c, itemDoPacote($p)); $lv['valor'] = $a['para']; $lv['alt'] = $a;
           if (!empty($a['horas'])) { $lv['min'] = (int)$a['horas'] * 60; if ($lv['servico'] !== '') $lv['servico'] = 'PACOTE ' . (int)$a['horas'] . 'H'; } }   // 1.36: o pacote com as horas novas
@@ -635,7 +635,7 @@ switch ($acao) {
       if (!is_array($l)) continue; $q = min(99, (int)($l['q'] ?? 0)); if ($q < 1) continue;
       $p = produto((int)($l['p'] ?? 0)); if (!$p || !$p['ativo']) falha('Um dos produtos saiu da lista. Feche e abra o atendimento de novo.');
       if (isset($l['v']) && abs((float)$l['v'] - (float)$p['valor']) >= 0.005) falha('O valor de ' . $p['nome'] . ' mudou para ' . dinheiro((float)$p['valor']) . '. Feche e abra o atendimento de novo.');
-      $lv = ['servico' => (string)$p['nome'], 'min' => 0, 'valor' => round($q * (float)$p['valor'], 2), 'itens' => $q > 1 ? $q . ' unidades' : '', 'mais' => ['produto' => (int)$p['id'], 'qtd' => $q]];
+      $lv = ['servico' => (string)$p['nome'], 'min' => 0, 'valor' => round($q * (float)$p['valor'], 2), 'itens' => $q > 1 ? $q . ' unidades' : '', 'mais' => ['produto' => (int)$p['id'], 'qtd' => $q], 'ck' => 'produto'];
       if (!empty($l['alt'])) { $aid = (int)$l['alt']; if (isset($altUsadas[$aid])) falha('A mesma alteração de valor só vale para um item.'); $altUsadas[$aid] = 1;   // 1.33
         $a = autorizacaoDeValor($aid, $u, $c, itemDoProduto($p, $q)); $lv['valor'] = $a['para']; $lv['alt'] = $a; }
       $linhas[] = $lv;
@@ -652,6 +652,7 @@ switch ($acao) {
         if (modoManual() && empty($in['entrar'])) falha('O voucher é dado na entrada: marque "Dar entrada agora".'); } }
     $o = (array)($in['outro'] ?? []); $on = mb_substr(maiusculo((string)($o['n'] ?? '')), 0, 60); if ($on !== '') $linhas[] = ['servico' => $on, 'min' => 0, 'valor' => max(0, (float)($o['v'] ?? 0)), 'itens' => ''];
     if (!$linhas && !$comVoucher) falha('Escolha o serviço.');
+    $vend = $festa ? '' : vendedoraDoPedido($in['vendedora'] ?? '');   /* 1.67: quem está vendendo (a tela pede em toda venda de pacote e de produto) */
     // a criança já teve uma venda registrada (em outro aparelho) depois que esta tela abriu o atendimento: avisa antes de cobrar de novo. "mesmo_assim" confirma
     $visto = (int)($in['visto'] ?? 0);
     if ($visto > 0 && empty($in['mesmo_assim'])) {
@@ -680,6 +681,9 @@ switch ($acao) {
     foreach ($linhas as $l) { $mais = $l['mais'] ?? []; if (!empty($mais['mesmaLinha']) && $regs) $mais['registro'] = (int)end($regs);   // 1.22: o 2º fusquinha da mesma saída fica na linha do dia do primeiro
       $x = fazerVenda($c, $l['min'], $l['valor'], (int)$u['id'], $l['itens'], $l['servico'], false, '', $mais); $vendas[] = $x['venda']; $regs[] = $x['registro']; $total += $l['valor']; $min += $l['min']; $c = crianca((int)$c['id']); }
     foreach ($linhas as $i => $l) if (!empty($l['alt'])) $regs[] = usarAlteracao($l['alt'], (int)$vendas[$i], $c, $u);   // 1.33: o valor alterado fica registrado (o pedido, usado, com a venda)
+    /* 1.67: para a comissão: o que cada linha é (pacote, pacote com produto, produto), quem vendeu e o atendimento (a primeira venda dele) */
+    $qk = $db->prepare('UPDATE vendas SET vend_k = ?, vendedora = ?, vend_g = ? WHERE id = ?');
+    foreach ($linhas as $i => $l) if (!empty($l['ck']) || $vend !== '') $qk->execute([(string)($l['ck'] ?? ''), $vend, (int)$vendas[0], (int)$vendas[$i]]);
     $festaId = $festa ? gravarFesta($linhas, $vendas, $u) : 0;   // 1.29: a festa nova nasce; o upgrade e o adicional ficam com a festa deles
     /* 1.62: em quantas vezes a festa foi no crédito (as Finanças mostram) */
     if ($festa && $pg && isset($pg['credito']) && $parc >= 1 && $parc <= 12) { $db->prepare('UPDATE vendas SET parcelas = ? WHERE id IN (' . implode(',', array_map('intval', $vendas)) . ')')->execute([$parc]); if ($parcAut) usarParcelas($parcAut, (int)$vendas[0], $parc, $u); }
@@ -1042,7 +1046,7 @@ switch ($acao) {
       $es = []; foreach ($in['extras'] as $e) { $n = mb_substr(trim((string)($e['n'] ?? '')), 0, 40); $v = (float)($e['v'] ?? 0); if ($n !== '' && $v >= 0 && count($es) < 30) $es[] = ['n' => $n, 'v' => $v]; }
       $r['extras'] = $es;
     }
-    $g = $r; unset($g['festa']); gravarCfg('regra', $g); responder(['regra' => $r]);   // 1.12: a tabela da festa é a de fábrica: vai para a tela, mas não fica gravada
+    $g = $r; unset($g['festa'], $g['vendedoras']); gravarCfg('regra', $g); responder(['regra' => $r]);   // 1.12: a tabela da festa é a de fábrica: vai para a tela, mas não fica gravada
   }
 
   /* ---------- produtos da loja ---------- */

@@ -394,6 +394,10 @@ function db(): PDO {
     try { $pdo->exec('ALTER TABLE vendas ADD COLUMN parcelas INTEGER NOT NULL DEFAULT 0'); } catch (Throwable $e) { }
     $pdo->exec('PRAGMA user_version = 38');
   }
+  if ($v < 39) { /* 1.67: quem vendeu (a vendedora escolhida no atendimento), o que conta para a comissão (pacote, pacote com produto, produto) e o atendimento de que a venda fez parte */
+    foreach (["ALTER TABLE vendas ADD COLUMN vendedora TEXT NOT NULL DEFAULT ''", "ALTER TABLE vendas ADD COLUMN vend_k TEXT NOT NULL DEFAULT ''", 'ALTER TABLE vendas ADD COLUMN vend_g INTEGER'] as $sql) { try { $pdo->exec($sql); } catch (Throwable $e) { } }
+    $pdo->exec('PRAGMA user_version = 39');
+  }
   return $pdo;
 }
 /* ---------- 1.06: unidades ---------- */
@@ -479,7 +483,23 @@ function regraDoBanco(): array {
   foreach ($r['servicos'] as $k => $x) if (is_array($x) && !array_key_exists('volta', $x)) $r['servicos'][$k]['volta'] = empty($x['banco']) && in_array((string)($x['id'] ?? ''), SERVICOS_QUE_VOLTAM, true);
   if (!MODULO_WHATS) $r['autoMsg'] = 'nao';   // com o módulo desligado, nenhum aviso automático sai
   $r['festa'] = FESTA_DE_FABRICA;   // 1.12: a tabela da festa vai com a regra para a tela (a de fábrica: não fica gravada)
+  $r['vendedoras'] = vendedoras();   /* 1.67: os nomes de quem vende (o financeiro muda nas Finanças → Comissões) */
   return $r;
+}
+/* 1.67: as vendedoras (pedido do dono: "toda venda de pacote, selecionar o nome de quem está vendendo: Aline, Edjane, Karol e Maria Vitória").
+   Ficam à parte da regra (config "vendedoras"): quem muda é o financeiro, nas Finanças. Em maiúsculas, como tudo o que é digitado no sistema */
+const VENDEDORAS_PADRAO = ['ALINE', 'EDJANE', 'KAROL', 'MARIA VITÓRIA'];
+const VENDEDORAS_MAX = 12;
+function vendedorasLimpas($lista): array {
+  $r = []; foreach ((array)$lista as $n) { $n = mb_substr(trim(preg_replace('/\s+/u', ' ', maiusculo((string)$n))), 0, 30); if ($n !== '' && !in_array($n, $r, true)) $r[] = $n; }
+  return array_slice($r, 0, VENDEDORAS_MAX);
+}
+function vendedoras(): array { $v = cfg('vendedoras', null); return is_array($v) ? vendedorasLimpas($v) : VENDEDORAS_PADRAO; }
+/* o nome que a tela mandou, conferido com a lista (vazio = a tela não mandou) */
+function vendedoraDoPedido($n): string {
+  $n = trim(preg_replace('/\s+/u', ' ', maiusculo((string)$n))); if ($n === '') return '';
+  foreach (vendedoras() as $x) if ($x === $n) return $x;
+  falha('A vendedora ' . $n . ' não está mais na lista. Escolha de novo quem está vendendo.');
 }
 function dur(int $min): string { $min = max(0, $min); return intdiv($min, 60) . 'h' . ($min % 60 ? str_pad((string)($min % 60), 2, '0', STR_PAD_LEFT) : ''); }   // sempre em horas: 0h30, 1h, 1h30 (a loja vende meia hora e hora)
 // O tempo é sempre debitado em períodos inteiros (não existe período quebrado): quem ficou 11 min debita 30.

@@ -1301,6 +1301,21 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzw. Quem está vendendo e as Comissões (1.67 · Finanças 2.8)
+
+Pedido do dono: "toda vez que forem vender um pacote, selecionar o nome de quem está vendendo (Aline, Edjane, Karol e Maria Vitória), de forma destacada; a cada pacote, limpa, para marcar de novo; nas comissões vai constar o nome; as regras pré-configuradas e uma opção para o financeiro editar, caso mude e passe a ser 5%, 1%".
+
+- **Quem está vendendo? (no atendimento do Play Space):** quando a venda tem um **pacote** ou um **produto**, aparece em destaque, logo acima do total, o quadro **"Quem está vendendo?"** com os nomes grandes. Enquanto ninguém toca no nome, o botão fica travado ("Escolha quem está vendendo"). Tocou no nome, ele fica marcado e a venda segue; no pagamento aparece "Vendido por …". **Cada venda começa sem ninguém marcado:** a próxima venda pede o nome de novo. A festa não pede (ela tem a tela dela).
+- **Comissões (Finanças → Comissões, logo abaixo dos Freelancers):** o **trimestre** (ou o mês), com o bônus de cada vendedora (cartões com o total e o bônus de cada mês), a lista das vendas (dia, vendedora, o que foi, cliente, valor de tabela, pago, a regra que valeu e o bônus) e o **PDF das comissões**. Tocar no cartão de uma vendedora mostra só as vendas dela. A venda cancelada não aparece. A venda de pacote ou de produto sem o nome (as de antes da 1.67) aparece à parte ("Sem vendedora") e não entra no bônus.
+- **As regras (pré-configuradas, a partir de 15/05/2026):** produto de R$ 190,00 → 7%; produto de R$ 350,00 → R$ 30,00 fixo; pacote de 5 h de R$ 400,00 → 2,5%; pacote de 10 h de R$ 800,00 → 2,5%; pacote sem produto de R$ 450,00 a R$ 580,00 → 3%.
+  - Cada linha da venda (o pacote, o produto) passa pelas regras na ordem: **a primeira que serve é a que conta** (a seta ↑ muda a ordem).
+  - O valor que a regra olha é o **de tabela** (antes do desconto). O bônus em **%** é sobre o que foi **pago** (já com o desconto); o bônus **fixo** é por unidade do produto.
+  - **Pacote sem produto:** o pacote vendido sem nenhum produto no mesmo atendimento.
+  - **Editar:** mude o número (por exemplo, 7 para 5), o valor, as horas, o % ou R$ fixo e toque em **Salvar as regras**; vale na hora para a conta. **+ Nova regra** cria outra.
+  - **Regra não se apaga:** para parar de valer, escreva a data **"até"** (ou toque em **Encerrar**, que põe a data de hoje). Para mudar o % a partir de um dia, encerre a regra antiga no dia anterior e crie a nova "Vale de" a partir do dia.
+  - Cada mudança fica guardada em **Mudanças** (quem mudou e quando).
+- **Os nomes das vendedoras:** em Comissões → **Vendedoras** (Pôr na lista, × para tirar, **Salvar os nomes**). Os nomes aparecem no atendimento do Play Space na hora. Tirar um nome não mexe nas vendas que ela já fez.
+
 ## 6zzv. Cancelados com os clientes, nome e motivo sempre, o pacote na saída, o Casa Tom e o cupom só com o pacote (1.66 · Finanças 2.7)
 
 Pedido do dono: "no Cancelados, clicar no 1 e ver quem foi o cliente cancelado; obrigatoriamente o nome da atendente e o motivo do cancelamento; na saída, quando seleciono o pacote, a forma de pagamento é o pacote; o Casa Tom (Anália e Morumbi), que só vende produto; e de forma alguma no comprovante pode sair valor de produto: para o cliente é só pacote de horas".
