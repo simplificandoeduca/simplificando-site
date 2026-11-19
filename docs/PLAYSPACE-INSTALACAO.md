@@ -1301,6 +1301,18 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzt. Finanças 2.5: a página das Finanças se renova sozinha (1.64)
+
+Pedido do dono: "ele não subiu a alteração para o gestão". O servidor da loja já estava na 1.63 (o Atualizar trocou os arquivos), mas a página das Finanças que estava aberta no aparelho (a aba aberta, o app do celular ou o cache do navegador) continuava a antiga.
+
+- Agora a página das Finanças sabe de que versão ela é e pergunta ao servidor qual está instalada. Se o servidor já tem uma mais nova:
+  - **ao abrir** as Finanças, ela recarrega sozinha antes de desenhar a tela;
+  - **ao voltar para a aba ou para o app** (com a página já aberta), ela recarrega sozinha;
+  - se houver um **lançamento no meio** (uma caixinha aberta ou alguém digitando), ela não recarrega: aparece embaixo "Chegou a versão … do sistema" com o botão **Recarregar**, para ninguém perder o que digitou.
+- Recarrega uma vez só para cada versão (nunca fica num laço).
+- Para quem ainda está com a página antiga aberta (de antes da 1.64): recarregar as Finanças uma vez à mão (no computador, F5; no celular, puxar a tela para baixo ou fechar e abrir de novo). Daí em diante é sozinho.
+- Técnico: o `estado` das Finanças devolve `ps` (a versão do `versao.json`); a página tem `PS_PAGINA`, que o `tools/build_playspace.py` carimba com a versão do Play Space a cada build.
+
 ## 6zzs. Finanças 2.4: o PDF da Rede, Consertar caixa e o Caixa líquido (1.63)
 
 Pedido do dono: "ela não vai mais lançar a Rede à mão: anexa o PDF e o sistema destrincha e preenche (cada bandeira tem uma taxa, e só a Rede sabe que cartão foi passado); uma opção Consertar caixa, com valor positivo ou negativo e uma observação do porquê; e o Pix cai no mesmo dia, o débito em um dia útil e o crédito em dois: isso fica no caixa líquido".

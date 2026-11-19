@@ -15,7 +15,7 @@ require __DIR__ . '/gestao2.php';   /* 2.1: fornecedores, contas a pagar, o pain
 require __DIR__ . '/caixa.php';   /* 2.2: o controle de caixa (o caixa do dia conferido com a Rede) */
 require __DIR__ . '/festas.php';   /* 2.3: as festas, com o lucro real de cada uma */
 set_exception_handler(function (Throwable $e) { registrarErro('[financas] ' . $e->getMessage() . ' @' . basename($e->getFile()) . ':' . $e->getLine()); falha('Algo deu errado. Tente de novo em instantes.', 500); });
-const FIN_VERSAO = '2.4';
+const FIN_VERSAO = '2.5';
 
 $in = [];
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
@@ -81,7 +81,8 @@ function finEntrou(array $u): void {
 /* ---------- sem login ---------- */
 if ($acao === 'estado') {
   $eu = finEu();
-  responder(['versao' => FIN_VERSAO, 'temConta' => (bool)finPrincipal(), 'usuario' => $eu ? finOut($eu) : null, 'unidades' => $eu ? unidades() : []]);
+  $psv = json_decode((string)@file_get_contents(__DIR__ . '/../versao.json'), true);   /* 2.5: a versão instalada, para a página velha se renovar */
+  responder(['versao' => FIN_VERSAO, 'ps' => is_array($psv) ? (string)($psv['versao'] ?? '') : '', 'temConta' => (bool)finPrincipal(), 'usuario' => $eu ? finOut($eu) : null, 'unidades' => $eu ? unidades() : []]);
 }
 if ($acao === 'criar_conta') {
   finBloqueado($ip);

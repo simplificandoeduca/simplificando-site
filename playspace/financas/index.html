@@ -385,6 +385,10 @@ tr.nf-canc td:nth-child(2), tr.nf-canc td:last-child { text-decoration: line-thr
   .cx-total { padding: 12px; } .cx-total .cx-rede { text-align: left; padding-right: 0; }
   .cx-geral { white-space: normal; }
 }
+/* 2.5: o aviso de versão nova (quando há um lançamento no meio) */
+.fin-nova { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 80; display: flex; align-items: center; gap: 12px; max-width: calc(100% - 32px); padding: 10px 10px 10px 16px; border-radius: 16px; background: var(--ink, #3b3b3b); color: #fff; font-size: 14px; box-shadow: 0 10px 30px rgba(0, 0, 0, .18); }
+.fin-nova .btn { height: 36px; width: auto; margin: 0; padding: 0 14px; flex: none; }
+@media (max-width: 760px) { .fin-nova { bottom: 84px; } }
 /* 2.4: o PDF da Rede, o conserto do caixa e o caixa líquido */
 .cx-modo { margin: -6px 0 6px; }
 .cx-direita { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
@@ -589,8 +593,37 @@ function somaUni() {
 }
 
 /* ---------- o app ---------- */
+/* 2.5 (1.64): a página das Finanças que ficou guardada no aparelho (a aba aberta, o app do celular ou o cache do navegador) se renova
+   sozinha quando o servidor já tem outra versão. PS_PAGINA é carimbada pelo tools/build_playspace.py com a versão do Play Space. */
+const PS_PAGINA = '1.64';
+const psMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
+function renovarSeVelha(v, naTela) {
+  if (!v || !psMaior(v, PS_PAGINA)) return false;
+  let ja = ''; try { ja = sessionStorage.getItem('psfin-recarregou') || ''; } catch (e) { /* sem memória */ }
+  if (ja === v) return false;   /* já recarregou uma vez para esta versão: não fica num laço */
+  const digitando = document.querySelector('.fundo') || /^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement || {}).tagName || '');
+  if (naTela && digitando) { avisoVersao(v); return false; }   /* no meio de um lançamento: só avisa, ninguém perde o que digitou */
+  try { sessionStorage.setItem('psfin-recarregou', v); } catch (e) { /* sem memória */ }
+  location.replace(location.pathname + '?v=' + encodeURIComponent(v) + location.hash); return true;
+}
+function avisoVersao(v) {
+  if (document.querySelector('.fin-nova')) return;
+  const a = document.createElement('div'); a.className = 'fin-nova'; a.setAttribute('role', 'status');
+  a.innerHTML = `<span>Chegou a versão <b>${esc(v)}</b> do sistema.</span><button type="button" class="btn btn-brand">Recarregar</button>`;
+  a.querySelector('button').onclick = () => { try { sessionStorage.setItem('psfin-recarregou', v); } catch (e) { /* sem memória */ } location.replace(location.pathname + '?v=' + encodeURIComponent(v) + location.hash); };
+  document.body.appendChild(a);
+}
+let VER_T = 0;
+async function conferirVersao() {
+  if (document.hidden || Date.now() - VER_T < 60000) return; VER_T = Date.now();
+  try { const e = await api('estado'); renovarSeVelha(e.ps, true); } catch (er) { /* sem internet: confere da próxima vez */ }
+}
+document.addEventListener('visibilitychange', conferirVersao);   /* voltou para a aba ou para o app */
+window.addEventListener('pageshow', ev => { if (ev.persisted) { VER_T = 0; conferirVersao(); } });   /* a página voltou da memória do navegador */
 async function iniciar() {
   let e; try { e = await api('estado'); } catch (er) { $('#raiz').innerHTML = `<div class="ps-login"><div class="entrada-pagina"><div class="card entrada-card" style="max-width:420px"><h1>Sem conexão</h1><p class="explica">${esc(er.message)}</p><button class="bt forte largo tap" onclick="location.reload()">Tentar de novo</button></div></div></div>`; return; }
+  if (renovarSeVelha(e.ps, false)) return;
+  if (/[?&]v=/.test(location.search)) { try { history.replaceState(null, '', location.pathname + location.hash); } catch (er) { /* fica o ?v= */ } }
   if (!e.temConta) return telaEntrar('criar');
   if (!e.usuario) return telaEntrar('entrar');
   EU = e.usuario; UNIS = e.unidades || [];

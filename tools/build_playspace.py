@@ -22,6 +22,11 @@ html = ('<!doctype html>\n<html lang="pt-BR">\n<head>\n<meta charset="utf-8">\n<
         '<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}[hidden]{display:none!important}</style>\n'
         + head + '</head>\n<body>\n' + body.rstrip('\n') + '\n</body>\n</html>\n')
 open(R + 'playspace/index.html', 'w', encoding='utf-8').write(html)
+# 1.64: a página das Finanças sabe de que versão ela é (se a do servidor for mais nova, ela se renova sozinha)
+fp = R + 'playspace/financas/index.html'; fs_ = open(fp, encoding='utf-8').read()
+fs2 = re.sub(r"const PS_PAGINA = '[0-9.]+';", "const PS_PAGINA = '" + versao + "';", fs_)
+assert fs2.count("const PS_PAGINA = '" + versao + "';") == 1, 'PS_PAGINA nas Finanças'
+if fs2 != fs_: open(fp, 'w', encoding='utf-8').write(fs2)
 json.dump({
     'name': 'Play Space Horas', 'short_name': 'Play Space', 'description': 'Controle de horas, WhatsApp, agenda e esteira da Play Space',
     'lang': 'pt-BR', 'start_url': './', 'scope': './', 'display': 'standalone', 'background_color': '#FAF3E9', 'theme_color': '#DBE8DA',
