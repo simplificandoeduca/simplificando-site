@@ -1666,6 +1666,9 @@ body.has-dock .toast,body.has-dock .utoast{bottom:calc(176px + env(safe-area-ins
 @keyframes novav-in{from{opacity:0;transform:translate(-50%,-20px)}}
 .stp-cards.c4{grid-template-columns:repeat(4,1fr);gap:8px}.stp-cards.c4 .stp-c b{font-size:13.5px}.stp-cards.c4 .stp-c small{font-size:10.5px}
 .stm.c4{grid-template-columns:repeat(4,1fr);gap:8px}
+.stm.c5{grid-template-columns:repeat(5,1fr);gap:6px}.stm.c5 .stm-c{padding:7px 4px 9px}.stm.c5 .stm-c .stp-th{width:46px}.stm.c5 .stm-c b{font-size:11px}
+.stp-cards.c5{grid-template-columns:repeat(5,1fr);gap:6px}.stp-cards.c5 .stp-c b{font-size:12.5px}.stp-cards.c5 .stp-c small{font-size:10px}
+.sum-th.fv{width:var(--w);transform:translateX(var(--tx)) translateY(var(--ty)) rotate(var(--r))}.sum-th.fv:active{transform:translateX(var(--tx)) translateY(calc(var(--ty) - 6px)) rotate(var(--r)) scale(.97)}
 .cst-tipo{margin:2px 0}
 .cs-st{flex:none;width:40px;height:40px;margin:-6px -6px -6px 4px;border:0;border-radius:50%;background:var(--ctl);color:var(--fg);display:grid;place-items:center;cursor:pointer}.cs-st .i{width:18px;height:18px}
 .ver-btn{margin-top:8px;align-self:flex-start;width:max-content}.ver-btn.nova{background:#C6F04A;color:#0F1712}
@@ -1898,7 +1901,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '19 nov · 162'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '19 nov · 163'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -5512,7 +5515,7 @@ function vSummary(i){
   const prRows = prd.map(r => { const f = findEx(r.id); if(!f) return '';
     return `<div class="row"><span class="num pr">${ic('trophy')}</span><span class="main"><b>${f.e.nome}</b><span>${r.kg!=null?`${fmtKg(r.kg)} kg × ${r.reps} · 1RM estimado ${fmtKg(Math.round(r.e1))} kg, antes ${fmtKg(Math.round(r.prev))} kg`:'Recorde de carga neste dia'}</span></span></div>`; }).join('');
   return `<div class="sheet-wrap" data-a="closebg"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t" tabindex="-1">${sheetTop('Treino '+h.t+' · '+p.nome+' · '+dayLabel(h.date)+(h.gym?' · '+esc(h.gym):''), (isNew?'Treino concluído':'Resumo do treino')+'<span class="dot" aria-hidden="true"></span>')}
-    <div class="sum-st"><div class="sum-fan">${ST_MODS.map(([m,n],j) => `<button type="button" class="sum-th t${j}" data-a="sum-st" data-v="${m}" aria-label="Story ${n}"><canvas data-st-th="${m}" width="270" height="480" aria-hidden="true"></canvas>${m==='foto'?`<i>${ic('camera')}</i>`:''}</button>`).join('')}</div>
+    <div class="sum-st"><div class="sum-fan">${stMods(i).map(([m,n],j,L) => `<button type="button"${stLeque(j,L.length)} data-a="sum-st" data-v="${m}" aria-label="Story ${n}"><canvas data-st-th="${m}" width="270" height="480" aria-hidden="true"></canvas>${m==='foto'?`<i>${ic('camera')}</i>`:''}</button>`).join('')}</div>
     <button type="button" class="btn block sum-share" data-a="st-open" data-i="${i}">${ic('share')}<span>Compartilhar no story</span></button></div>
     <div class="sum-grid sg4"><div class="sg-min">${h.min>=60 ? `<b>${fmtMin(h.min)}</b>` : tw('s-min',h.min,'i',String(h.min))}<span>${h.min>=60 ? 'de treino' : 'minuto'+(h.min===1?'':'s')+' de treino'}</span></div>
     <div class="sg-vol">${tw('s-vol',h.vol,'i',fmtN(h.vol))}<span>kg de volume${dv!=null?` · ${dv>=0?'+':''}${dv}% sobre o último ${h.t}`:''}</span></div>
@@ -5550,8 +5553,11 @@ function stDados(h){
   const p = PLAN[h.t] || {nome:'Treino'}, d = parse(h.date), sec = h.sec!=null ? h.sec : h.min*60;
   const prs = new Set((h.prd||[]).map(x => x.id).concat(h.prs||[]));
   const cargas = (h.ex||[]).map(x => ({n:x.n, kg:Math.max(0, ...(x.s||[]).map(s => s[0])), pr:prs.has(x.id)})).filter(x => x.kg>0).sort((a,b) => b.kg-a.kg).slice(0,7);
+  // para os stories novos: cada exercício com séries × repetições da série mais pesada (recordes primeiro) e os grupos treinados
+  const ex = (h.ex||[]).filter(x => (x.s||[]).length).map(x => { const b = x.s.reduce((a,s) => s[0]>a[0] ? s : a, x.s[0]); return {nome:x.n, n:x.s.length, kg:b[0]||0, reps:b[1]||0, pr:prs.has(x.id)}; })
+    .filter(x => x.kg>0).sort((a,b) => (b.pr-a.pr) || (b.kg-a.kg));
   return {t:h.t, nome:p.nome||'Treino', sec, min:h.min, sets:h.sets, vol:h.vol||0, prs:prs.size, dia:d.getDate(), mes:d.getMonth(), d,
-    hr:h.hr||'', gym:h.gym||'', cargas};
+    hr:h.hr||'', gym:h.gym||'', cargas, ex, grupos:ST_NOVO ? stGrupos(h) : []};
 }
 function stLs(c,v){ if('letterSpacing' in c) c.letterSpacing = v+'px'; }
 function stTxt(c,s,x,y,font,cor,al,ls){ c.font = font; c.fillStyle = cor; c.textAlign = al||'left'; stLs(c, ls||0); c.fillText(s,x,y); stLs(c,0); }
@@ -5696,7 +5702,7 @@ function stDraw(s){
   const h = S.history[s.i]; if(!h) return;
   const c = cv.getContext('2d'), D = stDados(h);
   c.setTransform(1,0,0,1,0,0); c.clearRect(0,0,1080,1920);
-  if(s.m==='cupom') stCupom(c,D,s.cor); else if(s.m==='foto') stFoto(c,D,s); else stCrono(c,D,ST_TEMA[s.cor]);
+  stPinta(c,D,s.m,s.cor,s);
   cv.classList.add('on');
 }
 function stBind(s){
@@ -5756,11 +5762,11 @@ async function stShare(s){
 }
 function vStory(){
   const s = ui.sheet, h = S.history[s.i]; if(!h) return '';
-  const foto = s.m==='foto';
+  const foto = s.m==='foto', mods = stMods(s.i), nc = mods.length>3 ? ' c'+mods.length : '';
   return `<div class="sheet-wrap" data-a="st-closebg"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t" tabindex="-1">${sheetTop('Treino '+h.t+' · '+dayLabel(h.date), 'Compartilhar no story<span class="dot" aria-hidden="true"></span>').replace('data-a="close"','data-a="st-close"')}
-    <div class="stm" role="group" aria-label="Modelo da imagem">${ST_MODS.map(([m,n]) => `<button type="button" class="stm-c${s.m===m?' on':''}" aria-pressed="${s.m===m}" data-a="st-m" data-v="${m}"><span class="stp-th"><canvas data-st-th="${m}" width="135" height="240" aria-hidden="true"></canvas></span><b>${n}</b></button>`).join('')}</div>
+    <div class="stm${nc}" role="group" aria-label="Modelo da imagem">${mods.map(([m,n]) => `<button type="button" class="stm-c${s.m===m?' on':''}" aria-pressed="${s.m===m}" data-a="st-m" data-v="${m}"><span class="stp-th"><canvas data-st-th="${m}" width="135" height="240" aria-hidden="true"></canvas></span><b>${n}</b></button>`).join('')}</div>
     ${foto ? `<div class="row-btns st-foto"><label class="btn">${ic('camera')}Tirar foto<input type="file" accept="image/*" capture="user" data-st-file hidden></label><label class="btn">${ic('layers')}Galeria<input type="file" accept="image/*" data-st-file hidden></label></div>` : ''}
-    <div class="st-cores" role="group" aria-label="${foto?'Cor da figurinha':'Cor do fundo'}">${ST_CORES.map(([k,n,c]) => `<button type="button" class="${s.cor===k?'on':''}" style="--c:${c}" aria-pressed="${s.cor===k}" aria-label="${n}" title="${n}" data-a="st-cor" data-v="${k}"></button>`).join('')}</div>
+    ${ST_NOVOS.includes(s.m) ? '' : `<div class="st-cores" role="group" aria-label="${foto?'Cor da figurinha':'Cor do fundo'}">${ST_CORES.map(([k,n,c]) => `<button type="button" class="${s.cor===k?'on':''}" style="--c:${c}" aria-pressed="${s.cor===k}" aria-label="${n}" title="${n}" data-a="st-cor" data-v="${k}"></button>`).join('')}</div>`}
     <div class="st-prev"><canvas id="st-cv" width="1080" height="1920" role="img" aria-label="Prévia da imagem do treino para o story"${foto?' style="touch-action:none;cursor:grab"':''}></canvas></div>
     ${foto ? `<p class="foot0 st-tip"${s.ph?'':' hidden'}>Arraste a figurinha para mudar de lugar. Arraste a foto para ajustar o enquadramento. A foto fica só no seu celular.</p>` : ''}
     <button type="button" class="btn primary block" data-a="st-share" data-st-go disabled>${ic('share')}Compartilhar no Instagram ou WhatsApp</button>
@@ -5768,12 +5774,163 @@ function vStory(){
     ${igTag()}<p class="foot0">No celular, escolha Instagram (story) ou WhatsApp na lista que abrir.</p></div></div>`;
 }
 const ST_MODS = [['crono','Cronômetro','Seu tempo de treino'],['cupom','Cupom','Suas cargas do dia'],['foto','Foto','Sua foto com figurinhas']];
+/* ---------- stories novos: Corpo (no lugar do Cronômetro), Recordes (só com recorde) e Sequência (só com 3+ semanas na meta) ----------
+   Por enquanto só no app de teste e no robô (TESTE_LOCAL). Para liberar para todo mundo: ST_NOVO = true. */
+const ST_NOVO = TESTE_LOCAL;
+// contorno dos músculos: react-body-highlighter (licença MIT, github.com/GV79/react-body-highlighter), frente (f) e costas (c)
+const ST_CORPO = {"f":[["CHEST",["51.8 41.6 51 55.1 58 58 67.8 55.5 70.6 47.3 62 41.6","29.8 46.5 31.4 55.5 40.8 58 48.2 55.1 47.8 42 37.6 42"]],["OBLIQUES",["68.6 63.3 67.3 57.1 58.8 59.6 60 64.1 60.4 83.3 65.7 78.8 66.5 69.8","33.9 78.4 33.1 71.8 31 63.3 32.2 57.1 40.8 59.2 39.2 63.3 39.2 83.7"]],["ABS",["56.3 59.2 58 64.1 58.4 78 58.4 92.7 56.3 98.4 55.1 104.1 51.4 107.8 51 84.5 50.6 67.3 51 57.1","43.7 58.8 48.6 57.1 49 67.3 48.6 84.5 48.2 107.3 44.5 103.7 40.8 91.4 40.8 78.4 41.2 64.5"]],["BICEPS",["16.7 68.2 18 71.4 22.9 66.1 29 53.9 27.8 49.4 20.4 55.9","71.4 49.4 70.2 54.7 76.3 66.1 81.6 71.8 82.9 69 78.8 55.5"]],["TRICEPS",["69.4 55.5 69.4 61.6 75.9 72.7 77.6 70.2 75.5 67.3","22.4 69.4 29.8 55.5 29.8 60.8 22.9 73.1"]],["NECK",["55.5 23.7 50.6 33.5 50.6 39.2 61.6 40 70.6 44.9 69.4 36.7 63.3 35.1 58.4 30.6","29 44.9 30.2 37.1 36.3 35.1 41.2 30.2 44.5 24.5 49 33.9 48.6 39.2 38 39.6"]],["FRONT_DELTOIDS",["78.4 53.1 79.6 47.8 79.2 41.2 75.9 38 71 36.3 72.2 42.9 71.4 47.3","28.2 47.3 21.2 53.1 20 47.8 20.4 40.8 24.5 37.1 28.6 37.1 26.9 43.3"]],["HEAD",["42.4 2.9 40 11.8 42 19.6 46.1 23.3 49.8 25.3 54.7 22.4 57.6 19.2 59.2 10.2 57.1 2.4 49.8 0"]],["ABDUCTORS",["52.7 110.2 54.3 124.9 60 110.2 62 100 64.9 94.3 60 92.7 56.7 104.5","47.8 110.6 44.9 125.3 42 115.9 40.4 113.1 39.6 107.3 38 102.4 34.7 93.9 39.6 92.2 41.6 99.2 43.7 105.3"]],["QUADRICEPS",["34.7 98.8 37.1 108.2 37.1 127.8 34.3 137.1 31 132.7 29.4 120 28.2 111.4 29.4 100.8 32.2 94.7","63.3 105.7 64.5 100 66.9 94.7 70.2 101.2 71 111.8 68.2 133.1 65.3 137.6 62.4 128.6 62 111.4","38.8 129.4 38.4 112.2 41.2 118.4 44.5 129.4 42.9 135.1 40 146.1 36.3 146.5 35.5 140","59.6 145.7 55.5 129 60.8 113.9 61.2 130.2 64.1 139.6 62.9 146.5","32.7 138.4 26.5 145.7 25.7 136.7 25.7 127.3 26.9 114.3 29.4 133.5","71.8 113.1 73.9 124.1 73.9 140.4 72.7 145.7 66.5 138.4 70.2 133.5"]],["KNEES",["33.9 140 34.7 143.3 35.5 147.3 36.3 151 35.1 156.7 29.8 156.7 27.3 152.7 27.3 147.3 30.2 144.1","65.7 140 72.2 147.8 72.2 152.2 69.8 157.1 64.9 156.7 62.9 151"]],["CALVES",["71.4 160.4 73.5 153.5 76.7 161.2 79.6 167.8 78.4 187.8 79.6 195.5 74.7 195.5","24.9 194.7 27.8 164.9 28.2 160.4 26.1 154.3 24.9 157.6 22.4 161.6 20.8 167.8 22 188.2 20.8 195.5","72.7 195.1 69.8 159.2 65.3 158.4 64.1 162.4 64.1 165.3 65.7 177.1","35.5 158.4 35.9 162.4 35.9 166.9 35.1 172.2 35.1 176.7 32.2 182 30.6 187.3 26.9 194.7 27.3 187.8 28.2 180.4 28.6 175.5 29 169.8 29.8 164.1 30.2 158.8"]],["FOREARM",["6.1 88.6 10.2 75.1 14.7 70.2 16.3 74.3 19.2 73.5 4.5 97.6 0 100","84.5 69.8 83.3 73.5 80 73.1 95.1 98.4 100 100.4 93.5 89.4 89.8 76.3","77.6 72.2 77.6 77.6 80.4 84.1 85.3 89.8 92.2 101.2 94.7 99.6","6.9 101.2 13.5 90.6 18.8 84.1 21.6 77.1 21.2 71.8 4.9 98.8"]]],"c":[["HEAD",["50.6 0 46 0.9 40.9 5.5 40.4 12.8 45.1 20 55.7 20 59.1 13.6 59.6 4.7 55.7 1.3"]],["TRAPEZIUS",["44.7 21.7 47.7 21.7 47.2 38.3 47.7 64.7 38.3 53.2 35.3 40.9 31.1 36.6 39.1 33.2 43.8 27.2","52.3 21.7 55.7 21.7 56.6 27.2 60.9 32.8 68.9 36.6 64.7 40.4 61.7 53.2 52.3 64.7 53.2 38.3"]],["BACK_DELTOIDS",["29.4 37 23 39.1 17.4 44.3 18.3 53.6 24.3 49.4 27.2 46.4","71.1 37 78.3 39.6 82.6 44.7 81.7 53.6 74.9 48.9 72.3 45.1"]],["UPPER_BACK",["31.1 38.7 28.1 48.9 28.5 55.3 34 75.3 47.2 71.1 47.2 66.4 36.6 54 33.6 41.3","68.9 38.7 71.9 49.4 71.5 56.2 66 75.3 52.8 71.1 52.8 66.4 63.4 54.5 66.4 41.7"]],["TRICEPS",["26.8 49.8 17.9 55.7 14.5 72.3 16.6 81.7 21.7 63.8 26.8 55.7","73.6 50.2 82.1 55.7 86 73.2 83.4 82.1 77.9 63 73.2 55.7","26.8 58.3 26.8 68.5 23 75.3 19.1 77.4 22.6 65.5","72.8 58.3 77 64.7 80.4 77.4 76.6 75.3 72.8 68.9"]],["LOWER_BACK",["47.7 72.8 34.5 77 35.3 83.4 49.4 102.1 46.8 83","52.3 72.8 65.5 77 64.7 83.4 50.6 102.1 53.2 83.8"]],["FOREARM",["86.4 75.7 91.1 83.4 93.2 94 100 106.4 96.2 104.3 88.1 89.4 84.3 83.8","13.6 75.7 8.9 83.8 6.8 93.6 0 106.4 3.8 104.3 12.3 88.5 15.7 83","81.3 79.6 77.4 77.9 79.1 84.7 91.1 103.8 93.2 108.9 94.5 104.7","18.7 79.6 22.1 77.9 20.9 84.3 9.4 103 6.8 108.5 5.1 104.7"]],["GLUTEAL",["44.7 99.6 30.2 108.5 29.8 118.7 31.5 126 47.2 121.3 49.4 114.9","55.3 99.1 51.1 114.5 52.3 120.9 68.1 126 69.8 119.1 69.4 108.5"]],["ABDUCTOR",["48.1 123 44.7 123 41.3 125.5 45.1 144.3 48.5 135.7 48.9 129.4","51.9 122.6 55.7 123.4 59.1 126 54.9 144.3 51.9 136.2 51.1 129.4"]],["HAMSTRING",["28.9 122.1 31.1 129.4 36.6 126 35.3 135.3 34.5 150.2 29.4 158.3 28.9 146.8 27.7 141.3 27.2 131.5","71.5 121.7 69.4 128.9 63.8 126 65.5 136.6 66.4 150.2 71.1 158.3 71.5 147.7 72.8 142.1 73.6 131.9","38.7 125.5 44.3 146 40.4 166.8 36.2 152.8 37 135.3","61.7 125.5 63.4 136.2 64.3 153.2 60 166.8 56.2 146.4"]],["KNEES",["34.5 153.2 31.1 159.1 33.6 166.4 37.4 162.6","66.4 153.6 63 163 66.8 166.4 69.4 159.1"]],["CALVES",["29.4 160.4 28.5 167.2 24.7 179.6 23.8 192.8 25.5 197 28.5 193.2 29.8 180 31.9 171.1 31.9 166.8","37.4 165.1 35.3 167.7 33.2 171.9 31.1 180.4 30.2 191.9 34 200 38.7 190.6 39.1 168.9","63 165.1 61.3 168.5 61.7 190.6 66.4 199.6 70.6 191.9 68.9 179.6 66.8 170.2","70.6 160.4 72.3 168.5 75.7 179.1 76.6 192.8 74.5 196.6 72.3 193.6 70.6 179.6 68.1 168.1"]],["LEFT_SOLEUS",["28.5 195.7 30.2 195.7 33.6 201.7 30.6 220 28.5 213.6 26.8 198.3"]],["RIGHT_SOLEUS",["69.8 195.7 71.9 195.7 73.6 198.3 71.9 213.2 70.2 219.6 67.2 202.1"]]]};
+const ST_GM = {peito:['CHEST'], costas:['UPPER_BACK','LOWER_BACK','TRAPEZIUS','OBLIQUES'], ombro:['FRONT_DELTOIDS','BACK_DELTOIDS'], bic:['BICEPS'], tri:['TRICEPS'], abd:['ABS'],
+  quad:['QUADRICEPS'], post:['HAMSTRING'], glut:['GLUTEAL'], adut:['ABDUCTORS','ABDUCTOR'], pant:['CALVES','LEFT_SOLEUS','RIGHT_SOLEUS']};
+const ST_GN = {peito:'Peito', costas:'Costas', ombro:'Ombro', bic:'Bíceps', tri:'Tríceps', abd:'Abdômen', quad:'Quadríceps', post:'Posterior', glut:'Glúteo', adut:'Adutor', pant:'Panturrilha'};
+const ST_GR = [[/adut/,'adut'],[/tr[ií]ceps|testa|franc[eê]s|mergulho/,'tri'],[/panturr|g[eê]meos|s[oó]leo/,'pant'],[/gl[uú]t|p[eé]lvic|coice|abdu/,'glut'],[/stiff|flexora|posterior|romeno|good morning/,'post'],
+  [/agach|leg press|extensora|afundo|b[uú]lgaro|passada|hack|quadr|sissy/,'quad'],[/desenvolv|eleva[cç][aã]o (lateral|frontal)|ombro|deltoid|face pull|invertido/,'ombro'],
+  [/supino|peito|crucifixo|peck|voador|flex[aã]o de bra|crossover|fly/,'peito'],[/remada|puxada|pulldown|barra fixa|costas|dorsal|serrote|pullover|lombar|hiperext/,'costas'],[/rosca|b[ií]ceps/,'bic'],[/abdom|prancha|crunch|obl[ií]q/,'abd']];
+function stGrupo(id, nome){
+  const f = findEx(id), t = ((nome||'')+' '+(f && f.e.alvo || '')).toLowerCase();
+  if(/adut/.test(t)) return 'adut';
+  const k = catOf(id); if(k && ST_GM[k.g]) return k.g;
+  for(const [r,g] of ST_GR) if(r.test(t)) return g;
+  return '';
+}
+function stGrupos(h){ const s = new Set(); (h.ex||[]).forEach(x => { if((x.s||[]).length){ const g = stGrupo(x.id, x.n); if(g) s.add(g); } }); return Object.keys(ST_GN).filter(g => s.has(g)); }
+function stFrase(gs){
+  const legs = ['quad','post','glut','adut','pant'].filter(g => gs.includes(g)), up = ['peito','costas','ombro','bic','tri','abd'].filter(g => gs.includes(g));
+  if(legs.length>=2 && up.filter(g => ['peito','costas','ombro'].includes(g)).length>=2 && gs.length>=6) return 'o corpo todo';
+  const n = []; up.forEach(g => { if(g==='tri' && up.includes('bic')) return; n.push(g==='bic' && up.includes('tri') ? 'braços' : g==='ombro' ? 'ombros' : ST_GN[g].toLowerCase()); });
+  if(legs.length>=2) n.push('pernas'); else legs.forEach(g => n.push(ST_GN[g].toLowerCase()));
+  if(!n.length) return 'dia de treino';
+  return n.length===1 ? n[0] : n.slice(0,-1).join(', ')+' e '+n[n.length-1];
+}
+function stQuebra(c, s, maxW){ const L = []; let a = ''; s.split(' ').forEach(w => { const t = a ? a+' '+w : w; if(a && c.measureText(t).width>maxW){ L.push(a); a = w; } else a = t; }); if(a) L.push(a); return L; }
+// título grande que quebra em linhas (diminui a letra se passar de maxL linhas); devolve onde acabou
+function stTitulo(c, s, x, y, size, maxL, cor, dot, maxW){
+  let z = size, L; for(;;){ c.font = '900 '+z+'px '+ST_SANS; stLs(c,-z*.05); L = stQuebra(c, s, maxW); stLs(c,0); if(L.length<=maxL || z<=60) break; z -= 8; }
+  const lh = Math.round(z*.97);
+  L.forEach((l,i) => { const yy = y+i*lh; stTxt(c,l,x,yy,'900 '+z+'px '+ST_SANS,cor,'left',-z*.05);
+    if(i===L.length-1){ c.font = '900 '+z+'px '+ST_SANS; stLs(c,-z*.05); const w = c.measureText(l).width; stLs(c,0); stTxt(c,'.',x+w,yy,'900 '+z+'px '+ST_SANS,dot); } });
+  return y+(L.length-1)*lh;
+}
+function stMarca(c, cor){ stLogoDraw(c,80,1772,68); stTxt(c,'simplificando',166,1820,'900 40px '+ST_SANS,cor,'left',-1); }
+const stEyebrow = D => ('Treino '+D.t+' · '+D.dia+' '+ST_MES[D.mes].slice(0,3)).toUpperCase();
+// pílulas que quebram em linhas; com y0 = null só mede (devolve as linhas)
+function stPilulas(c, itens, x, y0, maxW, bg, fg){
+  c.font = '800 38px '+ST_SANS; const L = [[]]; let w = 0;
+  itens.forEach(t => { const pw = c.measureText(t).width+48; if(w && w+pw>maxW){ L.push([]); w = 0; } L[L.length-1].push([t,pw]); w += pw+14; });
+  if(y0!=null) L.forEach((ln,i) => { let xx = x; ln.forEach(([t,pw]) => { c.fillStyle = bg; stRR(c,xx,y0+i*90,pw,76,38); c.fill(); stTxt(c,t,xx+24,y0+i*90+51,'800 38px '+ST_SANS,fg); xx += pw+14; }); });
+  return L.length;
+}
+const ST_VERDE = '#8EE85F';
+function stMapa(c, D){
+  const W = 1080, H = 1920, gs = D.grupos, cor = ST_VERDE;
+  const g = c.createRadialGradient(540,1050,60,540,1050,1150); g.addColorStop(0,'#1E2A23'); g.addColorStop(.75,STC.dk); c.fillStyle = g; c.fillRect(0,0,W,H);
+  stTxt(c,stEyebrow(D),80,160,'800 38px '+ST_SANS,cor,'left',4.5);
+  const fim = stTitulo(c,'Hoje foi '+stFrase(gs),80,290,118,4,STC.cr,cor,920);
+  const chips = gs.map(k => ST_GN[k]), nl = chips.length ? stPilulas(c,chips,80,null,920) : 0, cy = 1740-nl*90+14;
+  if(nl) stPilulas(c,chips,80,cy,920,cor,STC.dk);
+  // corpo: frente e costas (desenho 208×205)
+  const t1 = fim+80, bot = (nl ? cy : 1740)-50, k = Math.min(1000/208, (bot-t1)/222), top = t1+Math.max(0, (bot-t1-222*k)/2), ox = 540-104*k, mus = new Set(gs.flatMap(x => ST_GM[x]));
+  c.save(); c.translate(ox,top); c.scale(k,k); c.translate(4,2); c.lineJoin = 'round'; c.lineWidth = .35; c.strokeStyle = STC.dk;
+  [['f',0],['c',104]].forEach(([lado,dx]) => ST_CORPO[lado].forEach(([m,ps]) => {
+    c.fillStyle = mus.has(m) ? cor : ['HEAD','NECK','KNEES'].includes(m) ? '#5B6B60' : '#2B3830';
+    ps.forEach(p => { const n = p.split(' ').map(Number); c.beginPath(); for(let i=0;i<n.length;i+=2) i ? c.lineTo(n[i]+dx,n[i+1]) : c.moveTo(n[i]+dx,n[i+1]); c.closePath(); c.fill(); c.stroke(); });
+  }));
+  c.restore();
+  stMarca(c,STC.cr);
+  stTxt(c,fmtMin(D.min)+' · '+D.sets+' série'+(D.sets===1?'':'s'),1000,1820,'800 36px '+ST_SANS,'#9AA29B','right');
+}
+function stMedalha(c, x, y, r){ c.fillStyle = '#FF4646'; c.beginPath(); c.moveTo(x-r*.7,y-r*2.1); c.lineTo(x-r*.15,y-r*.6); c.lineTo(x+r*.15,y-r*.6); c.lineTo(x+r*.7,y-r*2.1); c.closePath(); c.fill();
+  c.fillStyle = '#FFC93C'; c.beginPath(); c.arc(x,y,r,0,Math.PI*2); c.fill(); c.fillStyle = '#E8A500'; c.beginPath(); c.arc(x,y,r*.6,0,Math.PI*2); c.fill(); }
+function stTrofeu(c, x, y){ // taça dourada simples (x,y = canto de cima à esquerda, 96×96)
+  c.save(); c.translate(x,y); c.strokeStyle = '#E8A500'; c.lineWidth = 7; c.beginPath(); c.arc(18,30,13,Math.PI*.5,Math.PI*1.5); c.stroke(); c.beginPath(); c.arc(78,30,13,-Math.PI*.5,Math.PI*.5); c.stroke();
+  c.fillStyle = '#FFC93C'; c.beginPath(); c.moveTo(18,8); c.lineTo(78,8); c.quadraticCurveTo(78,56,48,62); c.quadraticCurveTo(18,56,18,8); c.fill();
+  c.fillStyle = '#E8A500'; c.fillRect(42,60,12,16); stRR(c,26,76,44,14,5); c.fill(); c.restore(); }
+function stRecorde(c, D){
+  const W = 1080, H = 1920; c.fillStyle = STC.dk; c.fillRect(0,0,W,H);
+  stTxt(c,stEyebrow(D),80,160,'800 38px '+ST_SANS,STC.lm,'left',4.5);
+  const fim = stTitulo(c,D.nome,80,290,120,2,STC.cr,STC.rd,920), by = fim+70;
+  [[fmtMin(D.min).replace(' min',''), D.min>=60 ? 'de treino' : 'min', ST_VERDE],[String(D.sets),'série'+(D.sets===1?'':'s'),STC.rd]].forEach(([v,l,bg],i) => {
+    const x = 80+i*470; c.fillStyle = bg; stRR(c,x,by,450,190,36); c.fill();
+    stTxt(c,v,x+34,by+110,'900 84px '+ST_SANS,'#FFFFFF','left',-3); stTxt(c,l,x+34,by+160,'700 34px '+ST_SANS,'#FFFFFF'); });
+  const boxY = 1440, ry = by+250, n = Math.max(1, Math.min(D.ex.length, Math.floor((boxY-40-ry)/94)));
+  D.ex.slice(0,n).forEach((x,i) => { const y = ry+i*94;
+    c.fillStyle = '#26332B'; c.fillRect(80,y,920,2);
+    const kg = fmtKg(x.kg)+' kg', sr = x.n+'×'+x.reps+' ';
+    c.font = '800 42px '+ST_MONO; const wk = c.measureText(kg).width, ws = c.measureText(sr).width, md = x.pr ? 56 : 0;
+    stTxt(c,kg,1000-md,y+62,'800 42px '+ST_MONO,x.pr ? STC.or : '#9AA29B','right');
+    stTxt(c,sr,1000-md-wk-ws,y+62,'800 42px '+ST_MONO,STC.cr);
+    if(x.pr) stMedalha(c,978,y+50,16);
+    c.font = '700 42px '+ST_SANS; stTxt(c,stCorte(c,x.nome,920-md-wk-ws-30),80,y+62,'700 42px '+ST_SANS,STC.cr); });
+  const g = c.createLinearGradient(80,0,1000,0); g.addColorStop(0,'rgba(255,154,60,.22)'); g.addColorStop(1,'rgba(255,154,60,.06)');
+  c.fillStyle = g; stRR(c,80,boxY,920,170,36); c.fill(); c.strokeStyle = 'rgba(255,154,60,.5)'; c.lineWidth = 3; stRR(c,81.5,boxY+1.5,917,167,35); c.stroke();
+  stTrofeu(c,114,boxY+38);
+  stTxt(c,D.prs+' recorde'+(D.prs===1?'':'s')+' hoje',236,boxY+76,'900 46px '+ST_SANS,STC.or);
+  c.font = '700 34px '+ST_SANS; stTxt(c,stCorte(c,D.ex.filter(x => x.pr).map(x => x.nome+' '+fmtKg(x.kg)+' kg').join(' · '),730),236,boxY+126,'700 34px '+ST_SANS,'#C9CDC6');
+  stMarca(c,STC.cr);
+}
+function stSeqDados(){
+  const t0 = today(), d0 = parse(t0), y = d0.getFullYear(), m = d0.getMonth(), nd = new Date(y,m+1,0).getDate(), lead = (new Date(y,m,1).getDay()+6)%7, um = dk(new Date(y,m,1));
+  const tr = new Set(S.history.map(h => h.date)), meta = streakMin(), wg = S.waterGoal||0;
+  const dias = Array.from({length:nd},(_,i) => { const k = dk(new Date(y,m,i+1)); return {d:i+1, k, tr:tr.has(k), ca:cardioOn(k)>0, wa:wg>0 && (S.water[k]||0)>=wg, fut:k>t0, hoje:k===t0}; });
+  const rows = Math.ceil((lead+nd)/7), ok = Array.from({length:rows},(_,r) => { const seg = addDays(um,-lead+7*r); if(seg>t0) return false; const ds = Array.from({length:7},(_,i) => addDays(seg,i)); return S.history.filter(h => ds.includes(h.date)).length>=meta; });
+  const mk = t0.slice(0,7), ntr = S.history.filter(h => h.date.slice(0,7)===mk).length, sem = weekTrainCount(0);
+  return {mes:ST_MES[m], dias, lead, rows, ok, st:streak(), meta, ntr, sem};
+}
+function stSequencia(c){
+  const W = 1080, H = 1920, Q = stSeqDados();
+  const g = c.createLinearGradient(0,0,W*.6,H); g.addColorStop(0,'#FF6A3D'); g.addColorStop(.55,'#FF4646'); g.addColorStop(1,'#D92626'); c.fillStyle = g; c.fillRect(0,0,W,H);
+  [[140,.35],[230,.25],[320,.18],[410,.12],[500,.08]].forEach(([r,o]) => { c.strokeStyle = 'rgba(255,255,255,'+o+')'; c.lineWidth = 3; c.beginPath(); c.arc(900,380,r,0,Math.PI*2); c.stroke(); });
+  stTxt(c,'MINHA SEQUÊNCIA',80,172,'800 38px '+ST_SANS,'#FFFFFF','left',4.5);
+  const num = String(Q.st), nz = num.length>1 ? 380 : 460; c.font = '900 '+nz+'px '+ST_SANS; stLs(c,-nz*.08); const nw = c.measureText(num).width; stLs(c,0);
+  stTxt(c,num,60,560,'900 '+nz+'px '+ST_SANS,'#FFFFFF','left',-nz*.08);
+  const tx = 60+nw+40; ['semanas','seguidas','na meta'].forEach((l,i) => stTxt(c,l,tx,402+i*87,'900 92px '+ST_SANS,'#FFFFFF','left',-3.7));
+  c.font = '900 92px '+ST_SANS; stLs(c,-3.7); const lw = c.measureText('na meta').width; stLs(c,0); stTxt(c,'.',tx+lw,576,'900 92px '+ST_SANS,STC.dk);
+  // cartão branco com o calendário do mês
+  const cw = 112, ch = 92, gp = 12, x0 = 124, top = 680, ry = top+190, ch0 = 190+Q.rows*(ch+14)-14+110;
+  c.save(); c.shadowColor = 'rgba(0,0,0,.18)'; c.shadowBlur = 60; c.shadowOffsetY = 30; c.fillStyle = '#FFFFFF'; stRR(c,50,top,980,ch0,48); c.fill(); c.restore();
+  stTxt(c,Q.mes.charAt(0).toUpperCase()+Q.mes.slice(1),x0-24,top+92,'900 52px '+ST_SANS,STC.dk,'left',-1.5);
+  stTxt(c,'meta: '+Q.meta+' treino'+(Q.meta===1?'':'s')+'/semana',1000,top+90,'800 30px '+ST_SANS,'#5B625D','right');
+  'STQQSSD'.split('').forEach((l,i) => stTxt(c,l,x0+i*(cw+gp)+cw/2,top+160,'800 30px '+ST_SANS,'#9AA29B','center'));
+  Q.ok.forEach((ok,r) => { if(!ok) return; c.fillStyle = STC.li; stRR(c,x0-24,ry+r*(ch+14)-7,10,ch+14,5); c.fill(); });
+  Q.dias.forEach(x => { const p = Q.lead+x.d-1, cx = x0+(p%7)*(cw+gp), cy = ry+Math.floor(p/7)*(ch+14);
+    if(x.hoje){ c.strokeStyle = STC.dk; c.lineWidth = 5; stRR(c,cx-6.5,cy-6.5,cw+13,ch+13,28); c.stroke(); }
+    if(!x.fut){ c.fillStyle = x.tr ? STC.rd : '#F1EFEA'; stRR(c,cx,cy,cw,ch,22); c.fill(); }
+    if(x.ca && !x.fut){ c.strokeStyle = ST_VERDE; c.lineWidth = 7; stRR(c,cx+3.5,cy+3.5,cw-7,ch-7,19); c.stroke(); }
+    stTxt(c,String(x.d),cx+cw/2,cy+(x.wa && !x.fut ? 52 : 59),'900 38px '+ST_SANS,x.fut ? '#C9CDC6' : x.tr ? '#FFFFFF' : '#5B625D','center');
+    if(x.wa && !x.fut){ c.fillStyle = '#FFFFFF'; c.beginPath(); c.arc(cx+cw/2,cy+ch-17,10,0,Math.PI*2); c.fill(); c.fillStyle = '#5AB8FF'; c.beginPath(); c.arc(cx+cw/2,cy+ch-17,7,0,Math.PI*2); c.fill(); } });
+  // legenda
+  let lx = x0-24; const ly = top+ch0-52;
+  [['tr','Treino'],['ca','Cardio'],['wa','Água na meta'],['sm','Semana na meta']].forEach(([k,t]) => {
+    if(k==='tr'){ c.fillStyle = STC.rd; stRR(c,lx,ly-24,30,30,8); c.fill(); }
+    else if(k==='ca'){ c.strokeStyle = ST_VERDE; c.lineWidth = 6; stRR(c,lx+3,ly-21,24,24,7); c.stroke(); }
+    else if(k==='wa'){ c.fillStyle = '#5AB8FF'; c.beginPath(); c.arc(lx+15,ly-9,9,0,Math.PI*2); c.fill(); }
+    else { c.fillStyle = STC.li; stRR(c,lx+10,ly-30,10,42,5); c.fill(); }
+    stTxt(c,t,lx+42,ly,'700 28px '+ST_SANS,'#5B625D'); c.font = '700 28px '+ST_SANS; lx += 42+c.measureText(t).width+34; });
+  const fy = top+ch0+76;
+  stTxt(c,Q.ntr+' treino'+(Q.ntr===1?'':'s')+' no mês',80,fy,'800 40px '+ST_SANS,'#FFFFFF');
+  stTxt(c,Q.sem>=Q.meta ? '✓ meta da semana batida' : 'faltam '+(Q.meta-Q.sem)+' esta semana',1000,fy,'800 40px '+ST_SANS,Q.sem>=Q.meta ? STC.lm : '#FFFFFF','right');
+  stMarca(c,'#FFFFFF');
+}
+const ST_NOVOS = ['mapa','recorde','seq'];
+function stMods(i){
+  if(!ST_NOVO) return ST_MODS;
+  const h = S.history[i], L = [['mapa','Corpo','Os músculos do dia']];
+  if(h && stDados(h).prs>0) L.push(['recorde','Recordes','Seus recordes do dia']);
+  if(streak()>=3) L.push(['seq','Sequência','Suas semanas na meta']);
+  return L.concat(ST_MODS.slice(1));
+}
+function stPinta(c, D, m, cor, s){
+  if(m==='mapa') stMapa(c,D); else if(m==='recorde') stRecorde(c,D); else if(m==='seq') stSequencia(c);
+  else if(m==='cupom') stCupom(c,D,cor); else if(m==='foto') stFoto(c,D,s); else stCrono(c,D,ST_TEMA[cor]);
+}
+// leque de miniaturas com 4 ou 5 stories (com 3 fica o leque de sempre)
+function stLeque(j, n){ if(n===3) return ' class="sum-th t'+j+'"'; const c = (n-1)/2, o = j-c, st = n===4 ? 70 : 58;
+  return ` class="sum-th fv" style="--w:${n===4?96:88}px;--tx:${(-50+o*st).toFixed(0)}%;--ty:${(-22+16*Math.abs(o)/c).toFixed(0)}px;--r:${(o*12/c).toFixed(1)}deg;z-index:${10-Math.round(Math.abs(o)*2)}"`; }
 function stThumbs(i, cor){
   const h = S.history[i]; if(!h) return;
   const run = () => { const D = stDados(h);
     $sheet.querySelectorAll('canvas[data-st-th]').forEach(cv => { const c = cv.getContext('2d'), m = cv.dataset.stTh, k = cv.width/1080;
       c.setTransform(k,0,0,k,0,0); c.clearRect(0,0,1080,1920);
-      if(m==='cupom') stCupom(c,D,cor); else if(m==='foto') stFoto(c,D,{cor, sx:70, sy:1280, px:0, py:0}); else stCrono(c,D,ST_TEMA[cor]);
+      stPinta(c,D,m,cor,{cor, sx:70, sy:1280, px:0, py:0});
       cv.classList.add('on'); }); };
   if(stOk) run(); else stFontes().then(() => { stOk = true; run(); });
 }
@@ -5792,11 +5949,11 @@ const igTag = () => `<div class="ig-tag">${IG_SVG}<span>Marque <b>@${IG_USER}</b
 function igSome(msg){ document.querySelectorAll('.ig-c').forEach(el => el.remove()); if(msg) toast(msg); }
 function vStPick(){
   const s = ui.sheet, h = S.history[s.i]; if(!h) return '';
-  const p = PLAN[h.t] || {nome:'Treino'};
+  const p = PLAN[h.t] || {nome:'Treino'}, mods = stMods(s.i);
   return `<div class="stp" role="dialog" aria-modal="true" aria-labelledby="stp-t" tabindex="-1">
     <button type="button" class="btn round stp-x${s.xOn?' on':''}" data-a="stp-x" aria-label="Agora não"${s.xOn?'':' tabindex="-1" aria-hidden="true"'}>${ic('x')}</button>
     <div class="stp-h"><p class="eyebrow">Treino ${h.t} · ${esc(p.nome)} · ${fmtMin(h.min)}</p><h2 id="stp-t">Treino concluído<span class="dot" aria-hidden="true"></span></h2><p>Agora mostra pra todo mundo. Escolha como quer postar no seu story:</p></div>
-    <div class="stp-cards">${ST_MODS.map(([m,n,d],j) => `<button type="button" class="stp-c" data-a="stp-go" data-v="${m}" style="--d:${j*90}ms"><span class="stp-th"><canvas data-st-th="${m}" width="270" height="480" aria-hidden="true"></canvas>${m==='foto'?`<i>${ic('camera')}</i>`:''}</span><b>${n}</b><small>${d}</small></button>`).join('')}</div>
+    <div class="stp-cards${mods.length>3?' c'+mods.length:''}">${mods.map(([m,n,d],j) => `<button type="button" class="stp-c" data-a="stp-go" data-v="${m}" style="--d:${j*90}ms"><span class="stp-th"><canvas data-st-th="${m}" width="270" height="480" aria-hidden="true"></canvas>${m==='foto'?`<i>${ic('camera')}</i>`:''}</span><b>${n}</b><small>${d}</small></button>`).join('')}</div>
     <p class="stp-f">${ic('share')}Depois é só tocar em Instagram ou WhatsApp.</p>${igCard((h.prs||[]).length>0)}</div>`;
 }
 let stpT = 0;
@@ -5808,7 +5965,8 @@ function stPick(i){
 }
 function stOpen(i,m){
   const old = ui.sheet && ui.sheet.k==='story' ? ui.sheet : null;
-  ui.sheet = {k:'story', i, m:m||PREF.stM||'crono', cor:PREF.stCor||'vermelho', sx:70, sy:1280, px:0, py:0, back:old ? old.back : i};
+  const mods = stMods(i).map(x => x[0]), m0 = [m, PREF.stM].find(x => mods.includes(x)) || mods[0];
+  ui.sheet = {k:'story', i, m:m0, cor:PREF.stCor||'vermelho', sx:70, sy:1280, px:0, py:0, back:old ? old.back : i};
   renderSheet(true); stRender();
 }
 function stSet(k,v){ const s = ui.sheet; s[k] = v; s.blob = null; PREF[k==='m'?'stM':'stCor'] = v; savePref(); renderSheet(); stRender(); }
