@@ -1301,6 +1301,19 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzq. Finanças 2.2: o Controle de caixa (1.61)
+
+Pedido do dono: "uma tela de controle de caixa diário: escolher a data e ver o que passou no caixa naquele dia, no crédito, no débito e no Pix; um campo em branco onde eu lanço os valores da Rede; ele compara e dá um positivo ou um negativo (não quero ninguém olhando se bateu 1.225); um filtro para o caixa de hoje, o de ontem ou a data que eu escolher; e que seja o ícone inicial do financeiro".
+
+- **É a primeira tela das Finanças:** o primeiro ícone do menu (no celular, **Caixa**). As Finanças abrem nela, no dia de hoje.
+- **O dia:** **Hoje**, **Ontem**, **Escolher a data** (o calendário) e as setas ‹ › para ir um dia para trás ou para a frente.
+- **Cada unidade num cartão** (cada loja tem a sua maquininha da Rede). Em cada um: **Crédito**, **Débito** e **Pix**, com o que passou no caixa do sistema e, ao lado, o campo **Na Rede** para digitar o valor da Rede (aceita 1225, 1.225,50, 1225,5…).
+- **A conferência sai na hora, enquanto se digita:** ✓ verde **Bateu** (ao centavo) ou ✗ vermelho **Não bateu**, com a diferença ("Rede R$ 10,00 a menos" ou "a mais"). Sem valor da Rede: **Falta lançar**; sem nada no dia: **Sem movimento**. A linha **Total** soma tudo, e o selo do cartão diz o resultado da unidade (**Tudo bateu**, **1 forma não bateu**, **Falta lançar a Rede**).
+- **O valor fica salvo** ao sair do campo (ou com Enter, que já vai para o próximo campo), com quem lançou e quando. Apagar o campo tira o valor. Toda mudança fica guardada no histórico.
+- **O dinheiro** aparece embaixo, à parte (não passa pela Rede).
+- **Os números do sistema** são os mesmos do "Recebido" da Visão geral: os pagamentos do dia, menos o que foi devolvido no dia; a venda cancelada em outro dia continua no dia em que foi paga (como na Rede).
+- **Últimos 14 dias:** um quadradinho por dia com ✓ (bateu), ✗ (não bateu), ! (falta lançar) ou – (sem movimento). Tocar num dia abre o caixa dele.
+
 ## 6zzp. Finanças 2.1: mais clareza, fornecedores, contas a pagar e planilhas (1.60)
 
 Pedido do dono: "dar mais usabilidade ao financeiro, as informações mais claras, como num sistema de gestão financeira; registrar fornecedor; e uma aba de planilhas: importo uma planilha modelo, o sistema lê, copia o que foi escrito e as próximas linhas são lançadas direto no sistema, no mesmo visual".
