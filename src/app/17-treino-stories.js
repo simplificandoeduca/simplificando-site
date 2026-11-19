@@ -206,7 +206,7 @@ async function stRender(){
   const s = ui.sheet; if(!s || s.k!=='story') return;
   if(!S.history[s.i]) return;
   if(!stOk){ await stFontes(); stOk = true; if(ui.sheet!==s) return; }
-  stDraw(s); stBind(s); stBlob(s); stThumbs(s.i, s.cor);
+  stDraw(s); stBind(s); stBlob(s); stThumbs(s.i, s.cor, s.tom);
 }
 const quem = () => isPersonal() ? { nome:ACCT.nome||'', tipo:'personal' } : { nome:S.nome||'', tipo:'autonomo' };
 /* datas especiais: o story ganha um visual da data (a programação fica na aba Estatísticas do painel) */
@@ -236,7 +236,7 @@ function vStory(){
   return `<div class="sheet-wrap" data-a="st-closebg"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t" tabindex="-1">${sheetTop('Treino '+h.t+' · '+dayLabel(h.date), 'Compartilhar no story<span class="dot" aria-hidden="true"></span>').replace('data-a="close"','data-a="st-close"')}
     <div class="stm${nc}" role="group" aria-label="Modelo da imagem">${mods.map(([m,n]) => `<button type="button" class="stm-c${s.m===m?' on':''}" aria-pressed="${s.m===m}" data-a="st-m" data-v="${m}"><span class="stp-th"><canvas data-st-th="${m}" width="135" height="240" aria-hidden="true"></canvas></span><b>${n}</b></button>`).join('')}</div>
     ${foto ? `<div class="row-btns st-foto"><label class="btn">${ic('camera')}Tirar foto<input type="file" accept="image/*" capture="user" data-st-file hidden></label><label class="btn">${ic('layers')}Galeria<input type="file" accept="image/*" data-st-file hidden></label></div>` : ''}
-    ${ST_NOVOS.includes(s.m) ? '' : `<div class="st-cores" role="group" aria-label="${foto?'Cor da figurinha':'Cor do fundo'}">${ST_CORES.map(([k,n,c]) => `<button type="button" class="${s.cor===k?'on':''}" style="--c:${c}" aria-pressed="${s.cor===k}" aria-label="${n}" title="${n}" data-a="st-cor" data-v="${k}"></button>`).join('')}</div>`}
+    ${s.m==='recorde' ? `<div class="st-cores st-tom" role="group" aria-label="Fundo">${ST_CORES.filter(x => x[0]==='preto' || x[0]==='branco').map(([k,n,c]) => `<button type="button" class="${(s.tom||'preto')===k?'on':''}" style="--c:${c}" aria-pressed="${(s.tom||'preto')===k}" aria-label="${n}" title="${n}" data-a="st-tom" data-v="${k}"></button>`).join('')}</div>` : ST_NOVOS.includes(s.m) ? '' : `<div class="st-cores" role="group" aria-label="${foto?'Cor da figurinha':'Cor do fundo'}">${ST_CORES.map(([k,n,c]) => `<button type="button" class="${s.cor===k?'on':''}" style="--c:${c}" aria-pressed="${s.cor===k}" aria-label="${n}" title="${n}" data-a="st-cor" data-v="${k}"></button>`).join('')}</div>`}
     <div class="st-prev"><canvas id="st-cv" width="1080" height="1920" role="img" aria-label="Prévia da imagem do treino para o story"${foto?' style="touch-action:none;cursor:grab"':''}></canvas></div>
     ${foto ? `<p class="foot0 st-tip"${s.ph?'':' hidden'}>Arraste a figurinha para mudar de lugar. Arraste a foto para ajustar o enquadramento. A foto fica só no seu celular.</p>` : ''}
     <button type="button" class="btn primary block" data-a="st-share" data-st-go disabled>${ic('share')}Compartilhar no Instagram ou WhatsApp</button>
@@ -290,23 +290,25 @@ function stPilulas(c, itens, x, y0, maxW, bg, fg){
   return L.length;
 }
 const ST_VERDE = '#8EE85F';
-function stMapa(c, D){
-  const W = 1080, H = 1920, gs = D.grupos, cor = ST_VERDE;
-  const g = c.createRadialGradient(540,1050,60,540,1050,1150); g.addColorStop(0,'#1E2A23'); g.addColorStop(.75,STC.dk); c.fillStyle = g; c.fillRect(0,0,W,H);
-  stTxt(c,stEyebrow(D),80,160,'800 38px '+ST_SANS,cor,'left',4.5);
-  const fim = stTitulo(c,'Hoje foi '+stFrase(gs),80,290,118,4,STC.cr,cor,920);
+// claro = versão branca (fundo creme, texto escuro)
+function stMapa(c, D, claro){
+  const W = 1080, H = 1920, gs = D.grupos, cor = ST_VERDE, tx = claro ? STC.dk : STC.cr;
+  if(claro){ c.fillStyle = STC.cr; c.fillRect(0,0,W,H); }
+  else { const g = c.createRadialGradient(540,1050,60,540,1050,1150); g.addColorStop(0,'#1E2A23'); g.addColorStop(.75,STC.dk); c.fillStyle = g; c.fillRect(0,0,W,H); }
+  stTxt(c,stEyebrow(D),80,160,'800 38px '+ST_SANS,claro ? '#3F8F1F' : cor,'left',4.5);
+  const fim = stTitulo(c,'Hoje foi '+stFrase(gs),80,290,118,4,tx,claro ? '#3F8F1F' : cor,920);
   const chips = gs.map(k => ST_GN[k]), nl = chips.length ? stPilulas(c,chips,80,null,920) : 0, cy = 1740-nl*90+14;
   if(nl) stPilulas(c,chips,80,cy,920,cor,STC.dk);
   // corpo: frente e costas (desenho 208×205)
   const t1 = fim+80, bot = (nl ? cy : 1740)-50, k = Math.min(1000/208, (bot-t1)/222), top = t1+Math.max(0, (bot-t1-222*k)/2), ox = 540-104*k, mus = new Set(gs.flatMap(x => ST_GM[x]));
-  c.save(); c.translate(ox,top); c.scale(k,k); c.translate(4,2); c.lineJoin = 'round'; c.lineWidth = .35; c.strokeStyle = STC.dk;
+  c.save(); c.translate(ox,top); c.scale(k,k); c.translate(4,2); c.lineJoin = 'round'; c.lineWidth = claro ? .5 : .35; c.strokeStyle = claro ? STC.cr : STC.dk;
   [['f',0],['c',104]].forEach(([lado,dx]) => ST_CORPO[lado].forEach(([m,ps]) => {
-    c.fillStyle = mus.has(m) ? cor : ['HEAD','NECK','KNEES'].includes(m) ? '#5B6B60' : '#2B3830';
+    c.fillStyle = mus.has(m) ? cor : ['HEAD','NECK','KNEES'].includes(m) ? (claro ? '#C2C6BE' : '#5B6B60') : (claro ? '#DCDED6' : '#2B3830');
     ps.forEach(p => { const n = p.split(' ').map(Number); c.beginPath(); for(let i=0;i<n.length;i+=2) i ? c.lineTo(n[i]+dx,n[i+1]) : c.moveTo(n[i]+dx,n[i+1]); c.closePath(); c.fill(); c.stroke(); });
   }));
   c.restore();
-  stMarca(c,STC.cr);
-  stTxt(c,fmtMin(D.min)+' · '+D.sets+' série'+(D.sets===1?'':'s'),1000,1820,'800 36px '+ST_SANS,'#9AA29B','right');
+  stMarca(c,tx);
+  stTxt(c,fmtMin(D.min)+' · '+D.sets+' série'+(D.sets===1?'':'s'),1000,1820,'800 36px '+ST_SANS,claro ? '#6E776F' : '#9AA29B','right');
 }
 function stMedalha(c, x, y, r){ c.fillStyle = '#FF4646'; c.beginPath(); c.moveTo(x-r*.7,y-r*2.1); c.lineTo(x-r*.15,y-r*.6); c.lineTo(x+r*.15,y-r*.6); c.lineTo(x+r*.7,y-r*2.1); c.closePath(); c.fill();
   c.fillStyle = '#FFC93C'; c.beginPath(); c.arc(x,y,r,0,Math.PI*2); c.fill(); c.fillStyle = '#E8A500'; c.beginPath(); c.arc(x,y,r*.6,0,Math.PI*2); c.fill(); }
@@ -314,28 +316,29 @@ function stTrofeu(c, x, y){ // taça dourada simples (x,y = canto de cima à esq
   c.save(); c.translate(x,y); c.strokeStyle = '#E8A500'; c.lineWidth = 7; c.beginPath(); c.arc(18,30,13,Math.PI*.5,Math.PI*1.5); c.stroke(); c.beginPath(); c.arc(78,30,13,-Math.PI*.5,Math.PI*.5); c.stroke();
   c.fillStyle = '#FFC93C'; c.beginPath(); c.moveTo(18,8); c.lineTo(78,8); c.quadraticCurveTo(78,56,48,62); c.quadraticCurveTo(18,56,18,8); c.fill();
   c.fillStyle = '#E8A500'; c.fillRect(42,60,12,16); stRR(c,26,76,44,14,5); c.fill(); c.restore(); }
-function stRecorde(c, D){
-  const W = 1080, H = 1920; c.fillStyle = STC.dk; c.fillRect(0,0,W,H);
-  stTxt(c,stEyebrow(D),80,160,'800 38px '+ST_SANS,STC.lm,'left',4.5);
-  const fim = stTitulo(c,D.nome,80,290,120,2,STC.cr,STC.rd,920), by = fim+70;
+function stRecorde(c, D, claro){
+  const W = 1080, H = 1920, tx = claro ? STC.dk : STC.cr, sub = claro ? '#8A918B' : '#9AA29B', laranja = claro ? '#E8770F' : STC.or;
+  c.fillStyle = claro ? STC.cr : STC.dk; c.fillRect(0,0,W,H);
+  stTxt(c,stEyebrow(D),80,160,'800 38px '+ST_SANS,claro ? '#3F8F1F' : STC.lm,'left',4.5);
+  const fim = stTitulo(c,D.nome,80,290,120,2,tx,STC.rd,920), by = fim+70;
   [[fmtMin(D.min).replace(' min',''), D.min>=60 ? 'de treino' : 'min', ST_VERDE],[String(D.sets),'série'+(D.sets===1?'':'s'),STC.rd]].forEach(([v,l,bg],i) => {
     const x = 80+i*470; c.fillStyle = bg; stRR(c,x,by,450,190,36); c.fill();
     stTxt(c,v,x+34,by+110,'900 84px '+ST_SANS,'#FFFFFF','left',-3); stTxt(c,l,x+34,by+160,'700 34px '+ST_SANS,'#FFFFFF'); });
   const boxY = 1440, ry = by+250, n = Math.max(1, Math.min(D.ex.length, Math.floor((boxY-40-ry)/94)));
   D.ex.slice(0,n).forEach((x,i) => { const y = ry+i*94;
-    c.fillStyle = '#26332B'; c.fillRect(80,y,920,2);
+    c.fillStyle = claro ? '#E2E3DC' : '#26332B'; c.fillRect(80,y,920,2);
     const kg = fmtKg(x.kg)+' kg', sr = x.n+'×'+x.reps+' ';
     c.font = '800 42px '+ST_MONO; const wk = c.measureText(kg).width, ws = c.measureText(sr).width, md = x.pr ? 56 : 0;
-    stTxt(c,kg,1000-md,y+62,'800 42px '+ST_MONO,x.pr ? STC.or : '#9AA29B','right');
-    stTxt(c,sr,1000-md-wk-ws,y+62,'800 42px '+ST_MONO,STC.cr);
+    stTxt(c,kg,1000-md,y+62,'800 42px '+ST_MONO,x.pr ? laranja : sub,'right');
+    stTxt(c,sr,1000-md-wk-ws,y+62,'800 42px '+ST_MONO,tx);
     if(x.pr) stMedalha(c,978,y+50,16);
-    c.font = '700 42px '+ST_SANS; stTxt(c,stCorte(c,x.nome,920-md-wk-ws-30),80,y+62,'700 42px '+ST_SANS,STC.cr); });
-  const g = c.createLinearGradient(80,0,1000,0); g.addColorStop(0,'rgba(255,154,60,.22)'); g.addColorStop(1,'rgba(255,154,60,.06)');
+    c.font = '700 42px '+ST_SANS; stTxt(c,stCorte(c,x.nome,920-md-wk-ws-30),80,y+62,'700 42px '+ST_SANS,tx); });
+  const g = c.createLinearGradient(80,0,1000,0); g.addColorStop(0,'rgba(255,154,60,'+(claro?.18:.22)+')'); g.addColorStop(1,'rgba(255,154,60,'+(claro?.05:.06)+')');
   c.fillStyle = g; stRR(c,80,boxY,920,170,36); c.fill(); c.strokeStyle = 'rgba(255,154,60,.5)'; c.lineWidth = 3; stRR(c,81.5,boxY+1.5,917,167,35); c.stroke();
   stTrofeu(c,114,boxY+38);
-  stTxt(c,D.prs+' recorde'+(D.prs===1?'':'s')+' hoje',236,boxY+76,'900 46px '+ST_SANS,STC.or);
-  c.font = '700 34px '+ST_SANS; stTxt(c,stCorte(c,D.ex.filter(x => x.pr).map(x => x.nome+' '+fmtKg(x.kg)+' kg').join(' · '),730),236,boxY+126,'700 34px '+ST_SANS,'#C9CDC6');
-  stMarca(c,STC.cr);
+  stTxt(c,D.prs+' recorde'+(D.prs===1?'':'s')+' hoje',236,boxY+76,'900 46px '+ST_SANS,laranja);
+  c.font = '700 34px '+ST_SANS; stTxt(c,stCorte(c,D.ex.filter(x => x.pr).map(x => x.nome+' '+fmtKg(x.kg)+' kg').join(' · '),730),236,boxY+126,'700 34px '+ST_SANS,claro ? '#5B625D' : '#C9CDC6');
+  stMarca(c,tx);
 }
 function stSeqDados(){
   const t0 = today(), d0 = parse(t0), y = d0.getFullYear(), m = d0.getMonth(), nd = new Date(y,m+1,0).getDate(), lead = (new Date(y,m,1).getDay()+6)%7, um = dk(new Date(y,m,1));
@@ -389,18 +392,19 @@ function stMods(i){
   return L.concat(ST_MODS.slice(1));
 }
 function stPinta(c, D, m, cor, s){
-  if(m==='mapa') stMapa(c,D); else if(m==='recorde') stRecorde(c,D); else if(m==='seq') stSequencia(c);
+  const claro = (s && s.tom || PREF.stTom)==='branco';
+  if(m==='mapa') stMapa(c,D,false); else if(m==='recorde') stRecorde(c,D,claro); else if(m==='seq') stSequencia(c);
   else if(m==='cupom') stCupom(c,D,cor); else if(m==='foto') stFoto(c,D,s); else stCrono(c,D,ST_TEMA[cor]);
 }
 // leque de miniaturas com 4 ou 5 stories (com 3 fica o leque de sempre)
 function stLeque(j, n){ if(n===3) return ' class="sum-th t'+j+'"'; const c = (n-1)/2, o = j-c, st = n===4 ? 70 : 58;
   return ` class="sum-th fv" style="--w:${n===4?96:88}px;--tx:${(-50+o*st).toFixed(0)}%;--ty:${(-22+16*Math.abs(o)/c).toFixed(0)}px;--r:${(o*12/c).toFixed(1)}deg;z-index:${10-Math.round(Math.abs(o)*2)}"`; }
-function stThumbs(i, cor){
+function stThumbs(i, cor, tom){
   const h = S.history[i]; if(!h) return;
   const run = () => { const D = stDados(h);
     $sheet.querySelectorAll('canvas[data-st-th]').forEach(cv => { const c = cv.getContext('2d'), m = cv.dataset.stTh, k = cv.width/1080;
       c.setTransform(k,0,0,k,0,0); c.clearRect(0,0,1080,1920);
-      stPinta(c,D,m,cor,{cor, sx:70, sy:1280, px:0, py:0});
+      stPinta(c,D,m,cor,{cor, tom, sx:70, sy:1280, px:0, py:0});
       cv.classList.add('on'); }); };
   if(stOk) run(); else stFontes().then(() => { stOk = true; run(); });
 }
@@ -436,10 +440,10 @@ function stPick(i){
 function stOpen(i,m){
   const old = ui.sheet && ui.sheet.k==='story' ? ui.sheet : null;
   const mods = stMods(i).map(x => x[0]), m0 = [m, PREF.stM].find(x => mods.includes(x)) || mods[0];
-  ui.sheet = {k:'story', i, m:m0, cor:PREF.stCor||'vermelho', sx:70, sy:1280, px:0, py:0, back:old ? old.back : i};
+  ui.sheet = {k:'story', i, m:m0, tom:PREF.stTom||'preto', cor:PREF.stCor||'vermelho', sx:70, sy:1280, px:0, py:0, back:old ? old.back : i};
   renderSheet(true); stRender();
 }
-function stSet(k,v){ const s = ui.sheet; s[k] = v; s.blob = null; PREF[k==='m'?'stM':'stCor'] = v; savePref(); renderSheet(); stRender(); }
+function stSet(k,v){ const s = ui.sheet; s[k] = v; s.blob = null; PREF[k==='m'?'stM':k==='tom'?'stTom':'stCor'] = v; savePref(); renderSheet(); stRender(); }
 
 /* ---------- story do cardio: Boneco (foto ou vídeo), Bilhete, Semana e Pulso, em canvas 1080×1920 ---------- */
 const CST_MODS = [['cbon','Boneco','O boneco em movimento'],['cbil','Bilhete','Do sofá para a meta'],['csem','Semana','Seus minutos da semana'],['cpul','Pulso','Batimento e tempo']];

@@ -27,7 +27,16 @@ test('com recorde e 3+ semanas na meta: Corpo, Recordes, Sequência, Cupom e Fot
     await page.click(`[data-a="sum-st"][data-v="${m}"]`);
     await expect(page.locator('#st-cv.on')).toBeVisible();
     await expect(page.locator(`.stm-c.on[data-v="${m}"]`)).toBeVisible();
-    await expect(page.locator('.st-cores')).toHaveCount(0); // os novos têm cor fixa
+    // Recordes: só Preto ou Branco; Corpo (sempre preto) e Sequência têm cor fixa
+    await expect(page.locator('[data-a="st-tom"]')).toHaveCount(m === 'recorde' ? 2 : 0);
+    await expect(page.locator('[data-a="st-cor"]')).toHaveCount(0);
+  }
+  for (const m of ['recorde']) {
+    await simp(page, () => { const T = window.__simp; T.ui.sheet = { k: 'sum', i: T.S.history.length - 1 }; T.renderSheet(true); });
+    await page.click(`[data-a="sum-st"][data-v="${m}"]`);
+    await page.click('[data-a="st-tom"][data-v="branco"]');
+    await expect(page.locator('[data-a="st-tom"][data-v="branco"]')).toHaveAttribute('aria-pressed', 'true');
+    expect(await simp(page, () => window.__simp.PREF.stTom)).toBe('branco');
   }
   expect(erros).toEqual([]);
 });

@@ -358,6 +358,7 @@ function onClick(ev){
     case 'st-close': { const s = ui.sheet; ui.sheet = {k:'sum', i:s.i}; renderSheet(true); re = false; break; }
     case 'st-m': if(ui.sheet && ui.sheet.k==='story' && ui.sheet.m!==d.v) stSet('m', d.v); re = false; break;
     case 'st-cor': if(ui.sheet && ui.sheet.k==='story' && ui.sheet.cor!==d.v) stSet('cor', d.v); re = false; break;
+    case 'st-tom': if(ui.sheet && ui.sheet.k==='story' && ui.sheet.tom!==d.v) stSet('tom', d.v); re = false; break;
     case 'st-share': if(ui.sheet && ui.sheet.k==='story'){ stLog(ui.sheet, 'share'); stShare(ui.sheet); } re = false; break;
     case 'ig-abrir': { const g = S.ig || (S.ig = {}); g.abriu = today(); save(); try { window.open(IG_URL, '_blank', 'noopener'); } catch(e){ /* sem pop-up */ } igSome(); re = false; break; }
     case 'ig-sigo': { const g = S.ig || (S.ig = {}); g.sigo = true; save(); igSome('Valeu por seguir! 💪'); re = false; break; }
