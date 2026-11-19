@@ -175,6 +175,7 @@ function cxResumoPdf(u, P) {
     return `<div class="cx-pdf-dia"><h4>${esc(cxNomeDia(x.dia))}</h4><ul>${parte('credito', 'Crédito')}${parte('debito', 'Débito')}${parte('pix', 'Pix')}${parte('voucher', 'Voucher')}</ul>${x.cancelado > 0.004 ? `<p class="sub">Cancelamentos e estornos na Rede: ${brl(x.cancelado)}</p>` : ''}</div>`; }).join('');
   folha('PDF da Rede lido ✓', `<p class="dica">${esc(nomeUni(u))}: preenchi ${P.dias.length === 1 ? 'o dia' : 'os ' + P.dias.length + ' dias'} com o que está no PDF da Rede.${P.ecs.length ? ` Estabelecimento${P.ecs.length > 1 ? 's' : ''}: ${esc(P.ecs.join(', '))}.` : ''}</p>
     ${dias}${P.avisos.length ? `<div class="cx-pdf-av">${P.avisos.map(a => `<p>${esc(a)}</p>`).join('')}</div>` : ''}`, 'Entendi', async () => {});
+  const sem = [...document.querySelectorAll('body > .fundo')].pop(); if (sem) { const c = sem.querySelector('[data-fechar]'); if (c) c.remove(); }   /* só informa: sem o Cancelar, que parecia desfazer a leitura */
 }
 async function cxVerPdf(id) {
   try {
