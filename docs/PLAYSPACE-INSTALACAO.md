@@ -1301,6 +1301,22 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzs. Finanças 2.4: o PDF da Rede, Consertar caixa e o Caixa líquido (1.63)
+
+Pedido do dono: "ela não vai mais lançar a Rede à mão: anexa o PDF e o sistema destrincha e preenche (cada bandeira tem uma taxa, e só a Rede sabe que cartão foi passado); uma opção Consertar caixa, com valor positivo ou negativo e uma observação do porquê; e o Pix cai no mesmo dia, o débito em um dia útil e o crédito em dois: isso fica no caixa líquido".
+
+- **Anexar PDF da Rede** (em cada unidade, no Controle de caixa): escolha o PDF do **Relatório de vendas** da Rede, **consolidado por modalidade** (o que a Rede gera em "Vendas"). O sistema lê e preenche, em cada dia do relatório, o crédito, o débito e o Pix: o **bruto** (vai para "Na Rede"), a **taxa** da Rede, o **líquido** e a **quantidade de vendas**. Aparece um resumo do que foi lido.
+  - O PDF da Rede não tem texto (as letras são desenhadas). O sistema reconhece cada letra pela forma; quando não tem certeza de uma, não chuta: não preenche aquele valor e avisa.
+  - As contas do relatório são conferidas: bruto − taxa = líquido; a soma das modalidades = o total do dia; a quantidade de vendas. Se algo não fechar, aparece o aviso.
+  - **Estabelecimentos:** se o PDF juntar mais de um estabelecimento da Rede, o sistema avisa. Para a conferência bater, tire na Rede o relatório **só do estabelecimento daquela loja**. Ele também avisa quando os estabelecimentos são outros que os do PDF anterior da mesma unidade.
+  - O PDF fica guardado (na pasta de dados, fora do site): **baixar o PDF** no cartão da unidade.
+  - Ainda dá para digitar o valor da Rede à mão (por exemplo, se o PDF não estiver à mão); a taxa que veio do PDF continua.
+- **Consertar caixa** (em cada unidade): a forma (crédito, débito ou Pix), **+ Somar ao sistema** ou **− Tirar do sistema**, o valor e a **observação obrigatória** (o porquê). A forma que não bate já vem escolhida, e **Usar a diferença** põe o valor que falta. O conserto entra na conta do sistema ("sistema R$ 70,00 − conserto R$ 10,00") e a conferência muda na hora. Embaixo do cartão, **Consertos do dia** (com o porquê, quem e quando); **tirar** desfaz (fica guardado quem tirou).
+- **Caixa líquido · o que cai na conta** (a outra aba do Controle de caixa): o que cai na conta no dia escolhido, por unidade:
+  - **Pix no mesmo dia**, **débito em 1 dia útil**, **crédito em 2 dias úteis** (sábado, domingo e feriados nacionais não contam: Ano-Novo, Carnaval, Sexta-feira Santa, Tiradentes, Dia do Trabalho, Corpus Christi, Independência, Nossa Senhora Aparecida, Finados, Proclamação da República, Consciência Negra e Natal).
+  - Cada linha: a forma, o dia da venda, o bruto, a **taxa da Rede** e o **líquido**. Com o PDF da Rede do dia da venda, o líquido é o da Rede; sem ele, aparece **sem a taxa** (o valor do sistema).
+  - **Os próximos dias:** o que ainda vai cair na conta, dia a dia, pelas vendas que já aconteceram (o fim de semana e o feriado aparecem como "não é útil"). Tocar num dia mostra de onde vem.
+
 ## 6zzr. Finanças 2.3: as Festas, com o lucro real (1.62)
 
 Pedido do dono: "embaixo do caixa, um Festas: do sistema, a data, quem fez a venda, o valor bruto da festa, a data da festa, a forma de pagamento e em quantas vezes foi. E os campos que eu lanço à mão (as meninas não lançam): buffet (varia com a quantidade de crianças), salgados e papelaria; o adiantamento da festa (R$ 500, para balão e outras despesas) e o valor retornado (nem sempre gastam tudo). No fim, o lucro real. Tudo para digitar, tipo um Excel, mas com a cara do sistema".
