@@ -280,7 +280,7 @@ final class PdfSimples {
 }
 
 /* ---------- 1.54: o resumo do dia (ou do período) em PDF ---------- */
-const FIN_GRUPOS = ['pacotes' => 'Pacotes de horas', 'recreacao' => 'Recreação avulsa', 'festa' => 'Festas', 'produtos' => 'Produtos da loja', 'carrinhos' => 'Carrinhos', 'outros' => 'Outros'];
+const FIN_GRUPOS = ['pacotes' => 'Pacotes de horas', 'recreacao' => 'Recreação avulsa', 'festa' => 'Festas', 'produtos' => 'Casa Tom (produtos)', 'carrinhos' => 'Carrinhos', 'outros' => 'Outros'];
 const FIN_FORMAS = ['pix' => 'Pix', 'dinheiro' => 'Dinheiro', 'credito' => 'Crédito', 'debito' => 'Débito'];
 function finBrl($v) { $v = round((float)$v, 2); return ($v < 0 ? '- ' : '') . 'R$ ' . number_format(abs($v), 2, ',', '.'); }
 function finInt($v) { return number_format((int)$v, 0, ',', '.'); }

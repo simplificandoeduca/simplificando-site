@@ -385,6 +385,10 @@ tr.nf-canc td:nth-child(2), tr.nf-canc td:last-child { text-decoration: line-thr
   .cx-total { padding: 12px; } .cx-total .cx-rede { text-align: left; padding-right: 0; }
   .cx-geral { white-space: normal; }
 }
+/* 2.7: os cancelados (tocar no número) e o Casa Tom */
+.canc-at { cursor: pointer; } .canc-n { font-weight: 800; padding: 0; text-decoration: underline; }
+.canc-ver { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; } .canc-ver-i { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; background: var(--soft); border-radius: 12px; }
+.canc-ver-i small { display: block; color: var(--ink-2); font-size: 12.5px; margin-top: 2px; } .canc-ver-i .canc-mot { color: var(--ink); }
 /* 2.6: os freelancers (um cartão por freelancer, os dias como numa planilha) e os botões de PDF */
 .lista-acoes .btn svg { width: 16px; height: 16px; vertical-align: -3px; margin-right: 4px; }
 .fz-cartao { padding: 18px 18px 8px; }
@@ -526,7 +530,7 @@ const ABAS = [['caixa', 'Controle de caixa', IC.caixa, 'caixa'], ['festas', 'Fes
   ['conta', 'Conta', IC.conta, 'conta']];
 const GRUPOS_MENU = { loja: 'Loja · caixa do sistema', fin: 'Financeiro' };
 const ABAS_GESTAO = ['fin', 'lanc', 'pagar', 'forn', 'plan', 'relat'];
-const GRUPOS = { recreacao: 'Recreação avulsa', pacotes: 'Pacotes de horas', festa: 'Festas', produtos: 'Produtos da loja', carrinhos: 'Carrinhos', outros: 'Outros' };
+const GRUPOS = { recreacao: 'Recreação avulsa', pacotes: 'Pacotes de horas', festa: 'Festas', produtos: 'Casa Tom (produtos)', carrinhos: 'Carrinhos', outros: 'Outros' };
 const FORMAS = { pix: 'Pix', dinheiro: 'Dinheiro', credito: 'Crédito', debito: 'Débito' };
 let EU = null, UNIS = [], D = null, ABA = 'caixa', UNI = 'todas', PER = { k: 'mes' }, PROD = '', CARREGANDO = 0;   /* PROD: '' · g:<tipo> · i:<tipo>|<NOME> (1.53) */
 try { const g = JSON.parse(localStorage.getItem('psfin-filtro') || 'null'); if (g && g.per) { PER = g.per; UNI = g.uni || 'todas'; PROD = typeof g.prod === 'string' ? g.prod : ''; } } catch (e) { /* sem memória */ }
@@ -635,7 +639,7 @@ function somaUni() {
 /* ---------- o app ---------- */
 /* 2.5 (1.64): a página das Finanças que ficou guardada no aparelho (a aba aberta, o app do celular ou o cache do navegador) se renova
    sozinha quando o servidor já tem outra versão. PS_PAGINA é carimbada pelo tools/build_playspace.py com a versão do Play Space. */
-const PS_PAGINA = '1.65';
+const PS_PAGINA = '1.66';
 const psMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
 function renovarSeVelha(v, naTela) {
   if (!v || !psMaior(v, PS_PAGINA)) return false;
@@ -720,7 +724,17 @@ function desenhar() {
 
 /* ---------- Visão geral ---------- */
 function kpi(rot, val, det, cls) { return `<div class="kpi ${cls || ''}"><div class="rot">${rot}</div><div class="val num">${val}</div>${det ? `<div class="det">${det}</div>` : ''}</div>`; }
-function telaGeral() {
+/* 2.7: o centro de custo: em cada unidade, o Play (horas, recreação, festas, carrinhos) e o Casa Tom (os produtos que ela vende) */
+function cartaoCasaTom() { if (!D || !D.grupos) return ''; const U = {};
+  for (const x of D.grupos.filter(naUni)) { const u = +x.u; U[u] = U[u] || { play: 0, casa: 0 }; if (x.g === 'produtos') U[u].casa += x.v; else U[u].play += x.v; }
+  const us = Object.keys(U).map(Number).sort((a, b) => a - b); if (!us.length) return '';
+  const tp = us.reduce((t, u) => t + U[u].play, 0), tc = us.reduce((t, u) => t + U[u].casa, 0);
+  return `<div class="cartao"><h2>Play e Casa Tom</h2><p class="expl">O centro de custo de cada unidade: o <b>Play</b> (horas, recreação, festas, carrinhos) e o <b>Casa Tom</b> (os produtos que a unidade vende).</p>
+    <div class="rolar"><table><thead><tr><th>Unidade</th><th class="v">Play</th><th class="v">Casa Tom</th><th class="v">Total</th></tr></thead><tbody>
+    ${us.map(u => `<tr><td><span class="uni-dot" style="background:${corUni(u)}"></span>${esc(nomeUni(u))}</td><td class="v">${brl(U[u].play)}</td><td class="v">${U[u].casa > 0.004 || u ? brl(U[u].casa) : '—'}${u ? `<small>Casa Tom ${esc(nomeUni(u))}</small>` : ''}</td><td class="v">${brl(U[u].play + U[u].casa)}</td></tr>`).join('')}
+    </tbody><tfoot><tr><td>Total</td><td class="v">${brl(tp)}</td><td class="v">${brl(tc)}</td><td class="v">${brl(tp + tc)}</td></tr></tfoot></table></div></div>`; }
+function telaGeral() { return telaGeral0() + cartaoCasaTom(); }
+function telaGeral0() {
   const s = somaUni(), cancAlerta = (s.cancN || 0) > 0, us = unisComDados(), hoje = D.hoje >= D.de && D.hoje <= D.ate;
   let h = (PROD ? `<div class="aviso-prod">Só <b>${esc(nomeProd(PROD))}</b>: faturado, recebido, em aberto, vendas, pacotes, o gráfico e as formas de pagamento. Crianças, cancelamentos, descontos e festas marcadas continuam de tudo. <button class="link" data-filtra="">Ver todos os produtos</button></div>` : '') + `<div class="grade">
     ${kpi('Faturado', brl(s.faturado), `${int(s.vendas)} ${s.vendas === 1 ? 'venda registrada' : 'vendas registradas'}${s.visitas ? ` · ${brl(s.faturado / s.visitas)} por visita` : ''}`)}
@@ -827,14 +841,22 @@ function telaVendas() {
 }
 
 /* ---------- Cancelamentos ---------- */
+/* 1.66: tocar no número (ou na linha) da atendente mostra os cancelamentos dela: o cliente, quando, o que, o motivo e o valor */
+function cancVer(nome) {
+  const L = D.cancelamentos.lista.filter(naUni).filter(x => x.atendente === nome && x.conta !== false); if (!L.length) { aviso('Nenhum cancelamento na lista.'); return; }
+  folha(`Cancelamentos de ${nome || 'sem nome'}`, `<p class="dica">${int(L.length)} ${L.length === 1 ? 'cancelamento' : 'cancelamentos'} no período · ${brl(L.reduce((t, x) => t + x.valor, 0))} que deixou de ser cobrado.</p>
+    <div class="canc-ver">${L.map(x => `<div class="canc-ver-i"><div><b>${esc(x.crianca || 'Sem nome')}</b>${x.resp ? `<small>${esc(x.resp)}</small>` : ''}<small>${quandoBR(x.quando)} · ${esc(nomeUni(x.u))} · ${esc(x.tipo)}${x.itens ? ' · ' + esc(x.itens) : ''}</small><small class="canc-mot">Motivo: <b>${esc(x.motivo || '—')}</b></small></div><b class="num">${brl(x.valor)}</b></div>`).join('')}</div>`, 'Fechar', async () => {});
+  const f = [...document.querySelectorAll('body > .fundo')].pop(); if (f) { const c = f.querySelector('[data-fechar]'); if (c) c.remove(); }
+}
+document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-cancat]'); if (b && ABA === 'canc') cancVer(b.dataset.cancat); });
 function telaCanc() {
   const L = D.cancelamentos.lista.filter(naUni), s = somaUni(), A = {}, T = {};   /* 1.49: os resumos vêm do servidor, com todos os registros (a lista mostra os 1.500 mais novos) */
   for (const x of (D.cancelamentos.atendentes || []).filter(naUni)) { if (!A[x.nome]) A[x.nome] = { n: 0, v: 0, fora: 0 }; A[x.nome].n += x.n; A[x.nome].v += x.v; A[x.nome].fora += x.fora; }
   for (const x of (D.cancelamentos.tipos || []).filter(naUni)) T[x.tipo] = (T[x.tipo] || 0) + x.n;
   const aL = Object.entries(A).sort((a, b) => b[1].n - a[1].n || b[1].v - a[1].v), fora = s.foraN || 0;
   return `<div class="grade">${kpi('Cancelamentos', int(s.cancN), (Object.entries(T).map(([t, n]) => `${esc(t)}: ${int(n)}`).join(' · ') || 'nenhum no período') + (s.desfN ? ` · ${int(s.desfN)} ${s.desfN === 1 ? 'entrada desfeita' : 'entradas desfeitas'} na hora (não contam)` : ''), s.cancN ? 'alerta' : '')}${kpi('Deixou de ser cobrado', brl(s.cancV), 'o valor do que foi cancelado')}${kpi('Fora do prazo', int(fora), 'cancelados depois dos minutos do operador (por quem estorna)')}${kpi('Atendentes', int(aL.length), 'que cancelaram algo no período')}</div>
-  <div class="cartao"><h2>Por atendente</h2><p class="expl">O nome que a atendente escreveu no cancelamento (sem ele, quem estava no aparelho).</p>${aL.length ? `<div class="rolar"><table><thead><tr><th>Atendente</th><th class="v">Cancelamentos</th><th class="v">Fora do prazo</th><th class="v">Não cobrado</th></tr></thead><tbody>
-    ${aL.map(([n, x]) => `<tr><td>${esc(n || 'Sem nome')}</td><td class="v">${int(x.n)}</td><td class="v">${int(x.fora)}</td><td class="v">${brl(x.v)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="vazio">Nenhum cancelamento no período. 🎉</div>'}</div>
+  <div class="cartao"><h2>Por atendente</h2><p class="expl">O nome que a atendente escreveu no cancelamento (sem ele, quem estava no aparelho). <b>Toque no número</b> para ver os clientes.</p>${aL.length ? `<div class="rolar"><table><thead><tr><th>Atendente</th><th class="v">Cancelamentos</th><th class="v">Fora do prazo</th><th class="v">Não cobrado</th></tr></thead><tbody>
+    ${aL.map(([n, x]) => `<tr class="canc-at" data-cancat="${esc(n)}" title="Toque para ver os clientes"><td>${esc(n || 'Sem nome')}</td><td class="v"><button type="button" class="link canc-n" data-cancat="${esc(n)}">${int(x.n)}</button></td><td class="v">${int(x.fora)}</td><td class="v">${brl(x.v)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="vazio">Nenhum cancelamento no período. 🎉</div>'}</div>
   <div class="cartao"><div class="cab-cartao"><div><h2>Cada cancelamento</h2><p class="expl">${L.length ? `${int(L.length)} na lista${D.cancelamentos.total > D.cancelamentos.lista.length ? ' (os 1.500 mais novos)' : ''}. A entrada desfeita na hora aparece aqui, mas não conta.` : ''}</p></div>${L.length ? '<button class="btn btn-ghost" data-csv="canc">Baixar planilha</button>' : ''}</div>
     ${L.length ? `<div class="rolar"><table><thead><tr><th>Quando</th><th>Criança · responsável</th><th>O que</th><th>Motivo</th><th>Atendente</th><th class="v">Valor</th></tr></thead><tbody>
     ${L.map(x => `<tr><td class="num q">${quandoBR(x.quando)}<small><span class="uni-dot" style="background:${corUni(x.u)}"></span>${esc(nomeUni(x.u))}</small></td><td>${esc(x.crianca)}<small>${esc(x.resp)}</small></td><td>${esc(x.tipo)}${x.fora ? ' <span class="selo aviso">fora do prazo</span>' : ''}<small>${esc(x.itens)}${x.min && x.entrada ? ` · ${x.min} min dentro` : ''}</small></td><td>${esc(x.motivo)}</td><td>${esc(x.atendente)}<small>${esc(x.usuario)}${x.papel ? ' · ' + esc(x.papel) : ''}</small></td><td class="v">${brl(x.valor)}</td></tr>`).join('')}

@@ -18,7 +18,7 @@ require __DIR__ . '/pdfbonito.php';   /* 2.6: a moldura dos relatórios bonitos 
 require __DIR__ . '/freelas.php';   /* 2.6: os freelancers */
 require __DIR__ . '/relatorios.php';   /* 2.6: os relatórios do caixa e das festas */
 set_exception_handler(function (Throwable $e) { registrarErro('[financas] ' . $e->getMessage() . ' @' . basename($e->getFile()) . ':' . $e->getLine()); falha('Algo deu errado. Tente de novo em instantes.', 500); });
-const FIN_VERSAO = '2.6';
+const FIN_VERSAO = '2.7';
 
 $in = [];
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {

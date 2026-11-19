@@ -20,7 +20,7 @@ const FL_FORMAS = ['pix' => 'Pix', 'dinheiro' => 'Dinheiro', 'credito' => 'Créd
 const FL_INVEST = 'Investimento';
 // as listas de fábrica (as da planilha); o que for lançado ou importado com um nome novo entra na lista sozinho
 const FL_LISTAS = [
-  'filial' => ['Morumbi', 'Anália Franco', 'Escritório', 'Eventos Proprietário', 'Evento Externo', 'Bolo', 'Play Lab', 'Investimento'],
+  'filial' => ['Morumbi', 'Anália Franco', 'Casa Tom Anália', 'Casa Tom Morumbi', 'Escritório', 'Eventos Proprietário', 'Evento Externo', 'Bolo', 'Play Lab', 'Investimento'],
   'segmento' => ['Play', 'Casa Tom', 'Festas', 'Eventos', 'Eventos Proprietário', 'Evento Externo', 'Bolo', 'Escritório', 'Play Lab', 'Investimento'],
   'grupo' => ['Custo Fixo', 'Custo variável', 'Investimento'],
   'centro' => ['RH', 'Aluguel', 'Água', 'Luz', 'Telefone', 'Internet', 'Impostos', 'Contabilidade', 'Advogado', 'Marketing', 'Limpeza', 'Manutenção', 'Sistema', 'TI', 'Licença', 'Seguro', 'Frete', 'Festa', 'Recreação', 'Galpão', 'Despesas caixa', 'Extra'],
@@ -56,6 +56,7 @@ function flChave(string $s): string { $s = mb_strtolower(flTxt($s)); return strt
 function flListas(): array {
   $q = db()->query("SELECT valor FROM config WHERE chave = 'fin_listas'"); $v = $q->fetchColumn(); $q->closeCursor(); $g = $v ? json_decode((string)$v, true) : null;
   $L = FL_LISTAS; if (is_array($g)) foreach (['filial', 'segmento', 'grupo', 'centro'] as $k) if (isset($g[$k]) && is_array($g[$k])) $L[$k] = array_values(array_filter(array_map('flTxt', $g[$k]), 'strlen'));
+  $pos = min(2, count($L['filial'])); foreach (['Casa Tom Anália', 'Casa Tom Morumbi'] as $ct) { $i = array_search($ct, $L['filial'], true); if ($i === false) { array_splice($L['filial'], $pos, 0, [$ct]); $i = $pos; } $pos = $i + 1; }   /* 2.7: o Casa Tom de cada unidade (só no financeiro), logo depois das unidades */
   if (is_array($g) && isset($g['subitem']) && is_array($g['subitem'])) { $S = []; foreach ($g['subitem'] as $seg => $xs) if (is_array($xs)) $S[flTxt($seg)] = array_values(array_filter(array_map('flTxt', $xs), 'strlen')); $L['subitem'] = $S; }
   return $L;
 }

@@ -883,6 +883,7 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .fe-vezes button { min-width: 52px; height: 42px; border: 2px solid var(--borda); border-radius: 14px; background: var(--card); font: 800 15px/1 var(--display); }
 .fe-vezes button[aria-pressed="true"] { border-color: var(--coral); background: var(--coral-2); color: var(--coral); }
 /* 1.65: mais vezes no crédito (5x a 12x, com a liberação do gestor) e o Upgrade/Adicional na festa */
+.pac-nota { margin: 0 0 8px; padding: 8px 12px; border-radius: 12px; background: var(--menta, #DBE8DA); }   /* 1.66 */
 .fe-mais { margin-top: 8px; } .fe-mais-l { font-size: 14px; padding: 4px 0; }
 .fe-mais-c { border: 1.5px dashed var(--borda); border-radius: 16px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; } .fe-mais-c > span { font-weight: 800; font-size: 14px; }
 .fe-mais-b { display: flex; flex-wrap: wrap; gap: 8px; } .fe-mais-b button { min-width: 52px; height: 42px; border: 2px solid var(--borda); border-radius: 14px; background: var(--card); font: 800 15px/1 var(--fonte, inherit); cursor: pointer; }
@@ -1730,7 +1731,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.65';
+const VERSAO = '1.66';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -1907,7 +1908,7 @@ let ATD_NOME = '', ATD_FAZ = null, ATD_VOLTA = null, DESFAZ_ERRO = '';   // ATD_
 const ATD_MAX = 6;
 const atdLista = () => { const L = lido('ps-atendentes', []); return Array.isArray(L) ? L.filter(x => typeof x === 'string' && x.trim()).map(MAI).slice(0, ATD_MAX) : []; };
 const atdGuardar = n => { if (n) guardar('ps-atendentes', [n, ...atdLista().filter(x => x !== n)].slice(0, ATD_MAX)); };
-const pedeAtendente = () => !gestor();
+const pedeAtendente = () => true;   // 1.66: todo cancelamento pede o nome da atendente (no login do gestor também: às vezes é a atendente usando o login dele)
 const porQuemTxt = (n = ATD_NOME) => n && n !== MAI(primeiro(EU.nome || '')) ? `${n} (login ${primeiro(EU.nome)})` : EU.nome;   // "MARIA (login JOÃO)", como o servidor escreve
 const pedidoDe1 = x => x && x.itens && x.itens[0] && x.itens[0].ped ? x.itens[0].ped : '';   // o cancelamento veio de um pedido liberado: o login de quem pediu
 const quemCancelou = x => !x ? '' : pedidoDe1(x) ? `${primeiro(x.por)}, a pedido de ${x.atendente || pedidoDe1(x)}${x.atendente && MAI(x.atendente) !== MAI(pedidoDe1(x)) ? ' (login ' + pedidoDe1(x) + ')' : ''}` : x.atendente ? x.atendente + (x.por && MAI(primeiro(x.por)) !== MAI(x.atendente) && x.papel !== 'gestor' ? ' (login ' + primeiro(x.por) + ')' : '') : primeiro(x.por);
@@ -1923,7 +1924,7 @@ const marcaAtd = (f, sim, txt) => { if (f && sim) f.atd = txt; return f; };   //
 function folhaAtendente(o) {
   ATD_FAZ = o.fazer; ATD_VOLTA = o.desistiu || null;
   abrirFolha(o.titulo, `${o.topo || ''}<p class="explica">${o.texto}</p>${htmlAtendente('atd')}
-    ${o.motivos ? `<div class="campo" id="atd-motivo-campo"><label for="atd-motivo">Motivo <span class="leve">· se quiser</span></label><input id="atd-motivo" maxlength="120" autocomplete="off" placeholder="O que aconteceu"><div class="atalhos">${o.motivos.map(t => `<button type="button" class="tap" data-act="canc-motivo" data-alvo="atd-motivo" data-t="${esc(t)}">${t}</button>`).join('')}</div></div>` : ''}
+    ${o.motivos ? `<div class="campo" id="atd-motivo-campo"><label for="atd-motivo">Motivo<span class="obg" aria-hidden="true">*</span> <span class="leve">· a gestora vê</span></label><input id="atd-motivo" maxlength="120" autocomplete="off" placeholder="O que aconteceu"><div class="atalhos">${o.motivos.map(t => `<button type="button" class="tap" data-act="canc-motivo" data-alvo="atd-motivo" data-t="${esc(t)}">${t}</button>`).join('')}</div></div>` : ''}
     <div class="pe-f"><button class="bt forte largo tap" id="atd-ok" data-act="atd-ok">${o.botao}</button></div>`);
   if (window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches) setTimeout(() => { const i = $('#atd'); if (i && !i.value) i.focus(); }, 380);
 }
@@ -4201,17 +4202,22 @@ function htmlPapel(spec, via = 'loja') {
   let disse = false;
   const itens = it.map(i => { const sub = [];
     if (i.t === 'aluguel') { const x = servicoDe(i.s), a = (S.alugueis || []).find(a => a.crianca === c.id && a.s === i.s), ini = a && a.ini ? a.ini : new Date(), min = a ? +a.min || 0 : x && x.modo === 'periodo' ? (i.per || 1) * (x.min || 30) : 0; sub.push(`${x && x.modo === 'periodo' ? dur((i.per || 1) * (x.min || 30)) + ' · saída ' : 'Saída '}${hora(ini)}${min > 0 ? ' · devolver até ' + ate(ini, min) : i.obs ? ' · ' + i.obs : ''}`); }
-    if (i.t === 'pacote' && i.min > 0) sub.push(`${dur(i.min)} de recreação${i.com ? ' · ' + i.com : ''}`);
+    if (i.t === 'pacote' && i.min > 0) sub.push(`${dur(i.min)} de recreação`);   /* 1.66: sem o produto que vem com o pacote (para o cliente é só pacote de horas) */
     if ((i.t === 'tempo' || i.t === 'pacote' || i.t === 'voucher') && !quem.length && !disse) { disse = true; sub.push(`Para ${c.nome} · horas guardadas: ${hm(saldoMin(c))}`); }
     return sub.length ? { ...i, sub } : i; });
   const naDev = (sv, q = 1) => sv ? ` · ${brl2(sv.v)} a cada ${sv.min || 30} min${q > 1 ? ', cada um' : ''}, na devolução` : '';   // 1.20: o que acerta na devolução diz o preço de cada período
   const soFora = !festa && !vendeu && !quem.length ? fora.map(a => `<p class="c-bt"><b>${esc(alugNome(a))}</b></p><p>Saída ${alugHoje(a) ? hora(a.ini) : dataHora(a.ini)}${a.min > 0 && alugHoje(a) ? ' · devolver até ' + ate(a.ini, a.min) : ''}${alugAberto(a) ? naDev(servicoDe(a.s), a.q) : ''}</p>`).join('') : '';
   const blocoAberto = emAberto.map(i => { const a = (S.alugueis || []).find(a => a.crianca === c.id && a.s === i.s), ini = a && a.ini ? a.ini : new Date(); return `<p class="c-bt"><b>${i.q > 1 ? i.q + ' × ' : ''}${esc(i.n)}</b></p><p>Saída ${hora(ini)}${i.dev ? ' · ' + brl2(i.dev) + ' a receber na devolução' : naDev(servicoDe(i.s), i.q)}</p>`; }).join('');   /* 1.47: i.dev */
   const entrou = quem.some(x => x.entrou), sai = itens.some(i => i.t === 'aluguel') || !!soFora || !!blocoAberto, pagou = (spec.formas || []).length > 0;
-  return `<div class="papel ${loja ? 'loja' : 'cliente'}">${cab.replace('{{VIA}}', entrou ? (loja ? 'VIA DE ENTRADA' : 'VIA DO CLIENTE') : festa ? 'VIA DA FESTA' : sai ? 'VIA DE SAÍDA DO CARRINHO' : 'VIA DE PAGAMENTO')}${quem.length ? div + quem.map(bloco).join('') : ''}${soFora ? div + soFora : ''}${blocoAberto ? div + blocoAberto : ''}${pago(itens, spec.formas, { desc: spec.desc, titulo: pagou && !entrou && !sai ? 'COMPROVANTE DE PAGAMENTO' : '' })}${pe(entrou ? L.aviso + (L.aviso && tol ? ' ' : '') + (tol ? `TOLERÂNCIA DE ${tol} MINUTOS.` : '') : '', entrou || sai || festa)}</div>`;
+  return `<div class="papel ${loja ? 'loja' : 'cliente'}">${cab.replace('{{VIA}}', entrou ? (loja ? 'VIA DE ENTRADA' : 'VIA DO CLIENTE') : festa ? 'VIA DA FESTA' : sai ? 'VIA DE SAÍDA DO CARRINHO' : 'VIA DE PAGAMENTO')}${quem.length ? div + quem.map(bloco).join('') : ''}${soFora ? div + soFora : ''}${blocoAberto ? div + blocoAberto : ''}${pago(soPacoteNoCupom(itens), spec.formas, { desc: spec.desc, titulo: pagou && !entrou && !sai ? 'COMPROVANTE DE PAGAMENTO' : '' })}${pe(entrou ? L.aviso + (L.aviso && tol ? ' ' : '') + (tol ? `TOLERÂNCIA DE ${tol} MINUTOS.` : '') : '', entrou || sai || festa)}</div>`;
 }
 // 1.30: só a via da loja (o responsável assina). 1.43: na entrada, duas vias: a da loja e a do cliente (ele fica com a hora em que
 // deixou a criança); saída, devolução, festa, carrinho e pagamento continuam com uma via só
+// 1.66: "de forma alguma no comprovante pode sair valor de produto: para o cliente é só pacote de horas". Com um pacote na venda, o produto
+// vendido junto não sai em linha própria: o valor dele vai para a linha do pacote (o total do cupom não muda)
+function soPacoteNoCupom(L) { if (!Array.isArray(L) || !L.some(i => i.t === 'pacote') || !L.some(i => i.t === 'produto')) return L;
+  const soma = centavos(L.filter(i => i.t === 'produto').reduce((t, i) => t + (+i.v || 0), 0)); let ja = false;
+  return L.filter(i => i.t !== 'produto').map(i => i.t === 'pacote' && !ja ? (ja = true, { ...i, v: centavos((+i.v || 0) + soma) }) : i); }
 function viasPapel(spec) { const l = htmlPapel(spec, 'loja'); if (!l) return []; return /<p class="c-via"><span>VIA DE ENTRADA</.test(l) ? [l, htmlPapel(spec, 'cliente')].filter(Boolean) : [l]; }
 // Manda as vias para a impressora, uma impressão para cada via: assim a impressora corta no fim de cada uma e saem dois cupons separados.
 // Cada via vai para uma área só de impressão, numa página do tamanho dela (para o papel cortar logo depois do texto).
@@ -4638,7 +4644,7 @@ function folhaSaidaGrupo(G, carros = []) {   // 1.25: carros = o que saiu da loj
     <div id="s-desc"${g.bruto > 0 ? '' : ' hidden'}>${htmlDesc()}</div>
     <div id="sa-box" data-k="${esc(altSaidaSig())}">${htmlAltSaida()}</div>
     <div class="pe-f"><button class="bt forte largo tap" id="sg-ok" data-act="saida-grupo-ok"></button></div>`);
-  PAG = { onde: 'saida', id: b0, total: g.receber, formas: [], v: {} }; desenharPag(); botaoGrupo();
+  PAG = { onde: 'saida', id: b0, total: g.receber, formas: [], v: {} }; desenharPag(); botaoGrupo(); rotPagPacote(g.receber, SAI.ids);   /* 1.66 */
   if (window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches) setTimeout(() => { const b = $('#sg-ok'); if (b) b.focus(); }, 380);   // no computador, Enter confirma
 }
 // o botão diz quem sai: "Usar 2h das horas · dar saída de SOFIA e HELENA", ou "Recebi R$ 80 no Pix · dar saída de SOFIA e HELENA".
@@ -4648,11 +4654,18 @@ function rotuloGrupo(g) { const h = g.L.reduce((t, x) => t + horasProprias(x.k),
   if (!(v > 0)) return so ? `${ic(IC.sair)} ${h ? `Usar ${dur(h)} das horas · dar saída` : 'Dar saída'}${quem}` : `${ic(IC.sair)} ${h ? `Usar ${dur(h)} das horas · ${acao}` : Acao}`;
   const P = PAG && PAG.onde === 'saida' ? PAG : null, x = P ? pagPartes({ ...P, total: v }) : { erro: '-', partes: [] }, fp = x.partes && x.partes.length === 1 ? ' ' + naForma(x.partes[0].f) : '';
   return x.erro ? `${ic(IC.check)} ${P && P.formas.length ? x.erro : 'Escolha a forma de pagamento'}` : so ? `${ic(IC.sair)} Recebi ${brl(v)}${fp} · dar saída${quem}` : `${ic(IC.sair)} Recebi ${brl(v)}${fp}\u00a0· ${acao}`; }
+// 1.66: "quando eu seleciono o pacote, a forma de pagamento é o pacote": com o pacote, as horas não pedem Pix, crédito nem débito. Se a conta tem
+// mais alguma coisa (o carrinho, um produto, as horas além do pacote), a forma de pagamento aparece só para esse resto, e a tela diz isso
+function rotPagPacote(v, ids) { const cx = $('#s-pag'); if (!cx) return; const lb = cx.querySelector('label'); if (!lb) return;
+  const usa = (ids || []).some(id => { const c = crianca(id); return !!c && !(typeof AV !== 'undefined' && AV && AV.has && AV.has(id)) && saldoAgora(c) > 0; });
+  lb.innerHTML = usa && v > 0 ? `Forma de pagamento do que o pacote não cobre <span class="leve">· ${brl(v)}</span>` : 'Forma de pagamento <span class="leve">· pode dividir em até três formas</span>';
+  let n = $('#s-pac-nota'); if (usa && v > 0) { if (!n) { n = document.createElement('p'); n.id = 's-pac-nota'; n.className = 'explica pac-nota'; lb.insertAdjacentElement('afterend', n); }
+    n.innerHTML = '<b>As horas saem do pacote</b>: a forma de pagamento delas é o pacote. Pix, crédito ou débito só para o resto (carrinho, produto ou horas além do pacote).'; } else if (n) n.remove(); }
 function botaoGrupo(g) { const bt = $('#sg-ok'); if (!bt || !SAI) return; g = g || contaGrupo(); if (g.L.length || g.A.length) bt.innerHTML = rotuloGrupo(g); travarBotao(bt, travaAut('saida', SAI.base)); }   /* 1.54 */
 function atualizarGrupo() { // refaz a conta em conjunto que está aberta (tirou ou pôs um item, o tempo passou, usou o voucher, mexeu no desconto)
   const a = $('#sg-conta'), bt = $('#sg-ok'); if (!a || !bt || !SAI) return; const g = contaGrupo(); if (!g.L.length && !g.A.length) { fecharFolha(); return; }
   a.innerHTML = htmlContaGrupo(g); a.dataset.k = chaveGrupo(g);
-  const cx = $('#s-pag'), dx = $('#s-desc'); if (cx) cx.hidden = !(g.receber > 0); if (dx) dx.hidden = !(g.bruto > 0);
+  const cx = $('#s-pag'), dx = $('#s-desc'); if (cx) cx.hidden = !(g.receber > 0); if (dx) dx.hidden = !(g.bruto > 0); rotPagPacote(g.receber, SAI.ids);
   if (PAG && PAG.onde === 'saida' && PAG.total !== g.receber) { PAG.total = g.receber; desenharPag(false); } else botaoGrupo(g);
 }
 function saiTirar(id) { if (!SAI || !$('#sg-ok') || saiItens() <= 1) return; SAI.fora.add(+id); atualizarGrupo(); }   // (fica pelo menos um item na conta)
@@ -4699,7 +4712,7 @@ async function confirmarGrupo(el) {
   const cup = R.map(x => x.cupomId).filter(Boolean); if (cup.length === 1) folhaCupom(cup[0], true); else if (cup.length) folhaCupons(); else papelDepois(papel);
 }
 // a folha da saída mostra as formas de pagamento só quando há o que receber; se o valor muda (o tempo passou, usou o voucher, corrigiu a hora), a conta acompanha
-function pagSaida(k) { const cx = $('#s-pag'); if (!cx) return; const v = receberSaida(k), dx = $('#s-desc'); cx.hidden = !(v > 0); if (dx) dx.hidden = !(brutoSaida(k) > 0); if (PAG && PAG.onde === 'saida' && PAG.total !== v) { PAG.total = v; desenharPag(false); } }
+function pagSaida(k) { const cx = $('#s-pag'); if (!cx) return; const v = receberSaida(k), dx = $('#s-desc'); cx.hidden = !(v > 0); rotPagPacote(v, [k && k.cid]); if (dx) dx.hidden = !(brutoSaida(k) > 0); if (PAG && PAG.onde === 'saida' && PAG.total !== v) { PAG.total = v; desenharPag(false); } }
 // 0.92: a saída É a tela de pagamento da visita, para ninguém esquecer de receber. Ela diz sempre como a visita é paga:
 // com as horas que o cliente já tem (que não expiram) e, se a criança ficou além do tempo comprado, com o que é recebido agora
 // (Pix, dinheiro, crédito ou débito, em até três formas). Sem escolher a forma, a saída não é dada.
@@ -7512,7 +7525,9 @@ const ACOES = {
         fazer: async n => { ATD_NOME = n; DESFAZ_ERRO = ''; try { await f(); } catch (e) { DESFAZ_ERRO = e.message; toast(e.message); } finally { ATD_NOME = ''; } desenhar(); if (!DESFAZ_ERRO) setTimeout(() => deuCerto('Desfeito'), 50); if (seguinte) setTimeout(seguinte, 0); } }); return; }
     if (DESFAZ) { DESFAZ(); DESFAZ = null; } $('#toast').classList.remove('ve'); fecharFolha(); desenhar(); setTimeout(() => deuCerto('Desfeito'), 50); },
   'atd-escolhe': el => { const i = $('#' + el.dataset.alvo); if (!i) return; i.value = el.dataset.t; const cp = $('#' + el.dataset.alvo + '-campo'); if (cp) cp.classList.remove('falta'); },   // 1.25: um dos nomes já usados neste aparelho
-  'atd-ok': el => { const n = lerAtd('atd'); if (n == null) return; const f = ATD_FAZ; ATD_FAZ = null; ATD_VOLTA = null; const m = MAI(val('atd-motivo')); el.disabled = true; fecharFolha(); if (f) f(n, m); },
+  'atd-ok': el => { const n = lerAtd('atd'); if (n == null) return; const m = MAI(val('atd-motivo'));
+    if ($('#atd-motivo') && m.length < 3) { const cp = $('#atd-motivo-campo'); if (cp) cp.classList.add('falta'); toast('Escreva o motivo: todo cancelamento vai para a gestora com o motivo'); const i = $('#atd-motivo'); if (i) i.focus(); return; }   /* 1.66 */
+    const f = ATD_FAZ; ATD_FAZ = null; ATD_VOLTA = null; el.disabled = true; fecharFolha(); if (f) f(n, m); },
   copiar: el => copiarTexto(el.dataset.alvo ? val(el.dataset.alvo) : el.dataset.t, el.dataset.rot || (el.dataset.alvo && docTipo() === 'rne' ? 'RNE' : 'CPF'), el),
   'cpf-escolher': el => { const i = $('#f-cpf'); if (!i) return; i.value = cpfFmt(el.dataset.cpf); i.dispatchEvent(new Event('input', { bubbles: true })); const n = $('#f-nome'); if (n && !n.value) n.focus(); },   /* escolheu o cliente pelo começo do CPF: o cadastro traz o resto */
   'papel-imprimir': () => { if (!PAPEL) return; imprimirPapel(PAPEL.vias); fecharFolha(); },

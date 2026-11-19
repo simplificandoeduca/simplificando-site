@@ -1301,6 +1301,16 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzv. Cancelados com os clientes, nome e motivo sempre, o pacote na saída, o Casa Tom e o cupom só com o pacote (1.66 · Finanças 2.7)
+
+Pedido do dono: "no Cancelados, clicar no 1 e ver quem foi o cliente cancelado; obrigatoriamente o nome da atendente e o motivo do cancelamento; na saída, quando seleciono o pacote, a forma de pagamento é o pacote; o Casa Tom (Anália e Morumbi), que só vende produto; e de forma alguma no comprovante pode sair valor de produto: para o cliente é só pacote de horas".
+
+- **Cancelados (Finanças → Cancelamentos):** em "Por atendente", **toque no número** (ou na linha) da atendente: abre a lista dos cancelamentos dela, com o **cliente** (criança e responsável), quando, o que foi cancelado, o **motivo** e o valor.
+- **Nome da atendente e motivo, sempre:** todo cancelamento pede o nome da atendente, **também no login do gestor** (às vezes é a atendente usando o login dele). No "Não vai fazer agora", o **motivo** passou a ser obrigatório (antes era "se quiser"). Cancelar a entrada, a venda e a saída do carrinho já pediam o motivo.
+- **A saída com o pacote:** com "Descontar do pacote", as horas saem do pacote: a forma de pagamento delas é o pacote. Quando a conta tem mais alguma coisa (o carrinho, um produto ou horas além do pacote), a tela diz **"Forma de pagamento do que o pacote não cobre · R$ X"** e explica que Pix, crédito ou débito são só para esse resto. Sem nada além das horas, não pede forma nenhuma.
+- **Casa Tom:** nas Finanças, os produtos que cada unidade vende são do **Casa Tom** daquela unidade: "Casa Tom (produtos)" e, na Visão geral, o cartão **Play e Casa Tom** (em cada unidade, o Play e o Casa Tom). Nos lançamentos, as filiais **Casa Tom Anália** e **Casa Tom Morumbi**. Isso é só no financeiro: o sistema da Play Space continua igual.
+- **O cupom impresso:** para o cliente é só **pacote de horas**. O produto vendido junto com um pacote não sai em linha própria: o valor dele entra na linha do pacote (o total do cupom é o mesmo), e o nome do produto que vem com o pacote não aparece. Produto vendido sozinho (sem pacote) continua saindo como produto.
+
 ## 6zzu. Freelancers, relatórios bonitos em PDF, crédito em mais vezes com o gestor e Upgrade/Adicional na festa (1.65 · Finanças 2.6)
 
 Pedido do dono: "um campo para os freelancers: a data que trabalhou, se eu paguei ou não, o valor que paguei, o valor que combinei, se paguei o vale-transporte, o nome e o pagamento total (às vezes trabalha o mês inteiro). As meninas conseguirem fazer o upgrade e o adicional de festa. O crédito é até 4 vezes; pode ir até 12, só com a liberação do gestor. E um PDF bonito da festa, do freelancer e do caixa, com dashboards, informações do crédito, na estética da Play Space, com o urso e a logo".
