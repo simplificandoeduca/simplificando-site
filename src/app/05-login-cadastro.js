@@ -335,8 +335,8 @@ const suOk1 = () => !!(LG.f.nome.trim() && mailOk(LG.f.email) && /^\d{6}$/.test(
 function suTop(){ const w = document.getElementById('login'); if(w) w.scrollTop = 0; }
 function vSetup(){
   const f = LG.f, st = LG.step;
-  const cnt = st<=3 ? 'Passo '+st+' de 3' : st<=6 ? 'Pergunta '+(st-3)+' de 3' : '';
-  const pct = st<=3 ? st/3 : st<=6 ? (st-3)/3 : 1;
+  const cnt = st<=3 ? 'Passo '+st+' de 4' : st===8 ? 'Passo 4 de 4' : st<=6 ? 'Pergunta '+(st-3)+' de 3' : '';
+  const pct = st<=3 ? st/4 : st===8 ? 1 : st<=6 ? (st-3)/3 : 1;
   const top = `<div class="lg-top"><button type="button" class="linkbtn pk-back" data-a="su-back">${ic('chevL')}${st===1?'Entrar com senha':st===7?'Mudar respostas':'Voltar'}</button><span class="lg-stp">${cnt}</span></div><div class="tprog" aria-hidden="true"><i style="width:${Math.round(pct*100)}%"></i></div>`;
   let body;
   if(st===1){ const leg = legacySelf();
@@ -364,6 +364,7 @@ function vSetup(){
     </div><p class="foot0">Sem personal, o treino não tem acompanhamento profissional: ele é gerado automaticamente pela IA ou montado por você. Dá para trocar depois no perfil.</p>`;
   else if(st<=6) body = `<p class="eyebrow">IA · ${ED[f.ed].nome}</p><h1 class="lg-h">${['Sua experiência','Seus dias','Seu foco'][st-4]}<span class="dot" aria-hidden="true"></span></h1>${iqQ(st-3)}
     <button type="button" class="btn primary block" data-a="su-next">${st===6 ? ic('spark')+'Montar meu treino' : 'Continuar'+ic('chev')}</button>`;
+  else if(st===8) body = suInstView();
   else if(LG.gen || !f.plan) body = genView();
   else body = `<p class="eyebrow">Feito pela IA</p><h1 class="lg-h">Seu treino está pronto<span class="dot" aria-hidden="true"></span></h1>${iaResult(f.plan, f.ed, IQ)}
     <p class="foot0">Dá para trocar exercícios, dias e nomes quando quiser em Perfil › Meus treinos.</p>
@@ -461,14 +462,33 @@ function suNext(){
   }
   LG.step = Math.min(6, st+1); renderLogin(); suTop();
 }
+/* passo 4 de 4: instalar o app (no lugar das janelas depois do cadastro). Quem quiser segue pelo navegador. */
+function suInst(mode){ LG.f.mode = mode; LG.step = 8; renderLogin(); suTop(); }
+function suInstView(){
+  const f = LG.f, mob = instMobile(), p = (n, t) => `<li><span class="si-n">${n}</span><span>${t}</span></li>`;
+  let passos, go;
+  if(!mob){ passos = p(1, 'No celular, abra <b>simplificandoeduca.com/treino</b>')+p(2, 'Entre com o seu <b>e-mail e senha</b>')+p(3, 'Coloque o app na tela do celular e comece o treino'); go = `<button type="button" class="btn primary block lg-go" data-a="su-inst-x">Começar${ic('chev')}</button>`; }
+  else if(ANDROID && INST_EV){ passos = p(1, 'Toque em <b>Instalar o app</b> aqui embaixo')+p(2, 'Confirme em <b>Instalar</b>')+p(3, 'Abra o <b>Simplificando</b> pelo ícone e comece o treino'); go = `<button type="button" class="btn primary block lg-go" data-a="su-inst">${ic('dl')}Instalar o app</button>`; }
+  else if(ANDROID){ passos = p(1, 'Toque nos <b>três pontinhos ⋮</b>, no canto de cima do Chrome')+p(2, 'Toque em <b>Instalar app</b> (ou <b>Adicionar à tela inicial</b>)')+p(3, 'Abra o <b>Simplificando</b> pelo ícone e comece o treino'); go = `<button type="button" class="btn primary block lg-go" data-a="su-inst-ok">Pronto, já instalei</button>`; }
+  else { passos = p(1, 'Toque em <b>Compartilhar</b>, o quadrado com a seta, lá embaixo no Safari')+p(2, 'Toque em <b>Adicionar à Tela de Início</b>')+p(3, 'Abra o <b>Simplificando</b> pelo ícone e comece o treino'); go = `<button type="button" class="btn primary block lg-go" data-a="su-inst-ok">Pronto, já coloquei</button>`; }
+  return `<p class="eyebrow">Último passo</p><h1 class="lg-h">${mob ? 'Instale o app' : 'Use no celular'}<span class="dot" aria-hidden="true"></span></h1>
+    <p class="muted">${mob ? 'Fica na tela do celular, abre em 1 toque e avisa a hora do treino e da água. É grátis.' : 'O Simplificando foi feito para usar na academia, pelo celular.'}</p>
+    ${mob && IOS && !iosSafari() ? `<p class="lg-leg warn">${ic('flag')}<span>Abra este link no <b>Safari</b> para conseguir colocar o app na tela de início.</span></p>` : ''}
+    <div class="si-box"><p class="si-h">${!mob ? 'Como fazer' : ANDROID ? 'No Android (Chrome)' : 'No iPhone (Safari)'}</p><ol class="si-st">${passos}</ol></div>
+    ${acompPodeSu() ? `<div class="sw-row si-ac"><div><b>Compartilhar meus treinos com o Simplificando</b><span>Opcional. Ajuda a melhorar o app. Dá para mudar no Perfil.</span></div><label class="switch"><input type="checkbox" data-su-acomp${f.acomp?' checked':''}><span class="knob"></span><span class="sr">Compartilhar meus treinos com o Simplificando</span></label></div>` : ''}
+    ${go}${mob ? `<button type="button" class="linkbtn si-x" data-a="su-inst-x">Continuar no navegador</button>` : ''}`;
+}
+const acompPodeSu = () => !!FB && !!LG.uid;
 function suFinish(mode){
   const f = LG.f, nome = cleanName(f.nome) || 'Você', uid = LG.uid, sexo = f.sexo==='M' ? 'M' : 'F';
   if(!uid){ LG.step = 1; renderLogin(); return; }
   const s = fresh(false); s.nome = nome; s.ed = f.ed; s.waterGoal = waterSug(); s.cardioGoal = f.ed==='emagrecer' ? 150 : 120;
   s.conta = { sexo, peso:num(f.peso)||null, email:LG.uidMail||'', plan:mode, treinos: mode==='ia' && f.plan ? f.plan : {}, ia: mode==='ia' ? JSON.parse(JSON.stringify(IQ)) : null, semana: mode==='ia' ? iqN(IQ) : 0, dias:[] };
-  s.aceite = aceiteNovo(true); s._em = Date.now(); s.inst = 'novo';
+  s.aceite = aceiteNovo(true); s._em = Date.now(); s.inst = LG.step===8 ? 'feito' : 'novo'; // passou pelo "Instale o app": não pergunta de novo agora
+  if(LG.step===8 && acompPodeSu()) s.acomp = { on:!!f.acomp, em:Date.now() };
+  if(LG.step===8) SITE_FEITO = true; // já viu o "Instale o app": nada de "Baixe nosso app" nesta visita
   try { localStorage.setItem(autoKey(uid), JSON.stringify(s)); } catch(e){ /* sem armazenamento */ }
-  if(FB){ FB.autoSave(uid, s, true); FB.perfil({ tipo:'autonomo', nome, email:LG.uidMail||'', sexo, objetivo:f.ed, plano:mode, treinos:mode==='ia' && f.plan ? Object.keys(f.plan).length : 0, criadoEm:Date.now(), ultimoAcesso:Date.now(), aceite:{ v:s.aceite.v, em:s.aceite.em }, ver:APPV }); }
+  if(FB){ FB.autoSave(uid, s, true); FB.perfil({ tipo:'autonomo', nome, email:LG.uidMail||'', sexo, objetivo:f.ed, plano:mode, treinos:mode==='ia' && f.plan ? Object.keys(f.plan).length : 0, criadoEm:Date.now(), ultimoAcesso:Date.now(), aceite:{ v:s.aceite.v, em:s.aceite.em }, acomp:!!(s.acomp && s.acomp.on), ver:APPV }); }
   writeSess({mode:'self', uid}); LG.view = 'login'; LG.step = 1; LG.f = LGF0(); LG.uid = null; LG.uidMail = '';
   novoAviso(nome, f.ed, mode);
   if(mode==='meu') AFTER = 'meus';

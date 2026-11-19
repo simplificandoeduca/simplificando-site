@@ -103,7 +103,8 @@ function stHoje(html){
   const card = `<button type="button" class="stj" data-a="st-open" data-i="${i}"><span class="stj-i">${ic('share')}</span><span><b>Poste o treino de hoje</b><small>Treino ${h.t} · ${h.min} min · ${h.sets} séries</small></span>${ic('chev','chev')}</button>`;
   const k = html.indexOf('</div>', html.indexOf('wave-strip')); return k>=0 ? html.slice(0,k+6)+card+html.slice(k+6) : card+html;
 }
-function vTreino(){ if(noPlan()) return header('Treino','Seu treino')+noPlanCard(); const L = tLay(), h0 = L==='lista' ? vTreinoLista() : L==='foco' ? vTreinoFoco() : L==='folha' ? vTreinoFolha() : vTreinoGrade(); const h = stHoje(h0); return ACCT && ACCT.mode==='self' ? h+`<button type="button" class="btn ghost block mt-link" data-a="mt-open-sheet">${ic('edit')}Editar meus treinos</button>` : h; }
+const layDica = () => PREF.layDica && !S.history.length ? `<p class="lay-dica">Visual: <b>${TLAYS.find(o => o.id===tLay()).n}</b> · <button type="button" class="linkbtn" data-a="lay-dica">trocar no Perfil</button></p>` : '';
+function vTreino(){ if(noPlan()) return header('Treino','Seu treino')+noPlanCard(); const L = tLay(), h0 = L==='lista' ? vTreinoLista() : L==='foco' ? vTreinoFoco() : L==='folha' ? vTreinoFolha() : vTreinoGrade(); const h = stHoje(h0)+layDica(); return ACCT && ACCT.mode==='self' ? h+`<button type="button" class="btn ghost block mt-link" data-a="mt-open-sheet">${ic('edit')}Editar meus treinos</button>` : h; }
 function tCtx(){ const t = ui.t || nextTreino(), p = PLAN[t], ses = S.session, g = gTot(t); return { t, p, ses, active:!!(ses && ses.t===t), tot:g.tot, dn:g.dn }; }
 const exDone = e => isSkip(e.id) || doneSets(e.id)>=exN(e);
 function exSummary(e){ const L = logOf(e.id).filter(x => x.ok), mk = L.reduce((a,x) => Math.max(a,num(x.kg)),0); return `${L.length} de ${exN(e)}${mk?' · até '+fmtKg(mk)+' kg':''}`; }

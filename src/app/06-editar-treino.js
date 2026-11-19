@@ -210,7 +210,7 @@ function lgClick(a,d,b){
     case 'lg-copy': lgCopy(); return true;
     case 'lg-self': selfStart(); return true;
     case 'lg-inst': LG.inst = !LG.inst; renderLogin(); return true;
-    case 'su-back': if(LG.gen) return true; if(LG.step>1){ LG.step--; LG.serr = ''; renderLogin(); suTop(); } else { LG.view = 'login'; LG.serr = ''; renderLogin('#lg-pw'); } return true;
+    case 'su-back': if(LG.gen) return true; if(LG.step===8){ LG.step = LG.f.mode==='meu' ? 3 : 7; renderLogin(); suTop(); return true; } if(LG.step>1){ LG.step--; LG.serr = ''; renderLogin(); suTop(); } else { LG.view = 'login'; LG.serr = ''; renderLogin('#lg-pw'); } return true;
     case 'su-next': suNext(); return true;
     case 'su-eye': LG.f.show = !LG.f.show; renderLogin('#su-senha'); return true;
     case 'su-eye2': LG.en.show = !LG.en.show; renderLogin('#en-senha'); return true;
@@ -219,8 +219,10 @@ function lgClick(a,d,b){
     case 'su-esq': suForgot(); return true;
     case 'su-sexo': LG.f.sexo = d.v==='M' ? 'M' : 'F'; renderLogin(`[data-a="su-sexo"][data-v="${d.v}"]`); return true;
     case 'su-ed': LG.f.ed = d.v; renderLogin(`[data-a="su-ed"][data-v="${d.v}"]`); return true;
-    case 'su-mode': if(d.v==='ia'){ IQ = IQ0(); LG.step = 4; renderLogin(); suTop(); } else suFinish('meu'); return true;
-    case 'su-done': suFinish('ia'); return true;
+    case 'su-mode': if(d.v==='ia'){ IQ = IQ0(); LG.step = 4; renderLogin(); suTop(); } else suInst('meu'); return true;
+    case 'su-done': suInst('ia'); return true;
+    case 'su-inst': if(INST_EV){ const ev = INST_EV; ev.prompt(); (ev.userChoice || Promise.resolve({})).then(c => { INST_EV = null; if(c && c.outcome==='accepted' && LG.step===8) suFinish(LG.f.mode); else renderLogin(); }); } else suFinish(LG.f.mode); return true;
+    case 'su-inst-ok': case 'su-inst-x': suFinish(LG.f.mode); return true;
     case 'su-ck': case 'lg-ck': { const c = a==='su-ck' ? LG.f.ck : LG.ac, v = !ckOk(c, a==='su-ck' || (!!ACCT && ACCT.mode==='self')); if(d.v==='all'){ c.t = c.s = c.p = v; } else c[d.v] = !c[d.v]; renderLogin(`[data-a="${a}"][data-v="${d.v}"]`); return true; }
     case 'lg-doc': if(LG.view!=='doc') LG.back = LG.view; LG.view = 'doc'; LG.doc = d.v; renderLogin(); suTop(); return true;
     case 'lg-doc-back': LG.view = LG.back || 'login'; renderLogin(); suTop(); return true;

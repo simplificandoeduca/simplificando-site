@@ -70,12 +70,15 @@ test.describe('com personal (exemplo)', () => {
     await expect.poll(() => (L.filter(x => x.acao === 'lembrete').pop() || {}).corpo.feito).toBe(r1.hj);
   });
 
-  test('convite no 1º treino: "Quer ser avisado quando o descanso acabar?"', async ({ page }) => {
+  test('convite a partir do 2º treino (no 1º não interrompe): "Quer ser avisado quando o descanso acabar?"', async ({ page }) => {
     // celular que ainda não respondeu se aceita notificações (o navegador de teste vem sempre como "bloqueado")
     await simp(page, () => { try { Object.defineProperty(Notification, 'permission', { get: () => 'default', configurable: true }); } catch (e) {} });
-    await simp(page, () => { window.__simpPush = true; const T = window.__simp; T.PREF.pushOn = false; delete T.PREF.dsAsk; T.startSession(T.LETTERS[0]); });
-    await page.waitForFunction(() => window.__simp.ui.sheet && window.__simp.ui.sheet.k === 'gym');
-    await simp(page, () => window.__simp.closeSheet());
+    // 1º treino: não pergunta
+    await simp(page, () => { window.__simpPush = true; const T = window.__simp; T.PREF.pushOn = false; delete T.PREF.dsAsk; T.S.history = []; T.closeSheet(); T.startSession(T.LETTERS[0]); });
+    await page.waitForTimeout(3000);
+    expect(await simp(page, () => window.__simp.ui.sheet && window.__simp.ui.sheet.k)).not.toBe('dsask');
+    // 2º treino: pergunta
+    await simp(page, () => { const T = window.__simp; T.S.session = null; T.S.history = [{ date: T.daysAgo(2), t: T.LETTERS[0], min: 40, sets: 10, vol: 1000, prs: [], ex: [] }]; T.closeSheet(); T.startSession(T.LETTERS[0]); });
     await page.waitForFunction(() => window.__simp.ui.sheet && window.__simp.ui.sheet.k === 'dsask', null, { timeout: 8000 });
     await page.click('#sheet button[data-a="ds-no"]');
     expect(await simp(page, () => [window.__simp.ui.sheet, window.__simp.PREF.dsAsk])).toEqual([null, 1]);

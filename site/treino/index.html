@@ -1777,6 +1777,14 @@ body.has-dock .toast,body.has-dock .utoast{bottom:calc(176px + env(safe-area-ins
 .sum-grid.sg4>div b,.sum-grid.sg4>div span{color:#FFFFFF}.sum-grid.sg4>div span{opacity:.92}
 /* treino de hoje feito: card compacto */
 .wkc.wk-done{gap:10px;min-height:0}.wkc.wk-done .big{margin:0}.wkc.wk-done .linkbtn{margin-top:-2px}
+/* cadastro, passo 4 de 4: instalar o app */
+.si-box{background:#0F1712;color:#F6F5EF;border-radius:24px;padding:18px;margin:14px 0}
+.si-h{margin:0 0 12px;font-size:12.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#C8F542}
+.si-st{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px}.si-st li{display:flex;gap:12px;align-items:center;font-size:15px;line-height:1.35}
+.si-n{flex:none;width:30px;height:30px;border-radius:50%;background:#FF4646;color:#FFFFFF;display:grid;place-items:center;font-weight:900}
+.si-ac{background:var(--card);box-shadow:inset 0 0 0 1px var(--card-line);border-radius:20px;padding:14px 16px;margin-bottom:16px}
+.si-x{display:block;margin:14px auto 0}
+.lay-dica{margin:6px 0 0;text-align:center;font-size:13px;color:var(--muted)}.lay-dica .linkbtn{font-size:13px}
 </style>
 
 <div class="app" id="app"></div>
@@ -1865,7 +1873,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '19 nov · 159'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '19 nov · 160'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -2730,7 +2738,7 @@ function acompSet(on){ S.acomp = { on:!!on, em:Date.now() }; save(); perfilSync(
 /* depois de criar a conta (sem personal): mostrar como colocar o app na tela do celular (uma vez) */
 let INST_EV = null, instT = 0;
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); INST_EV = e; if(ui.sheet && ui.sheet.k==='inst') renderSheet(); });
-window.addEventListener('appinstalled', () => { INST_EV = null; if(S && S.inst){ S.inst = 'feito'; save(); } if(ui.sheet && (ui.sheet.k==='inst' || ui.sheet.k==='baixar' || ui.sheet.k==='site')){ closeSheet(); toast('App instalado. Abra pelo ícone na tela do celular.'); } });
+window.addEventListener('appinstalled', () => { INST_EV = null; if(typeof LG!=='undefined' && LG.view==='setup' && LG.step===8){ suFinish(LG.f.mode); return; } if(S && S.inst){ S.inst = 'feito'; save(); } if(ui.sheet && (ui.sheet.k==='inst' || ui.sheet.k==='baixar' || ui.sheet.k==='site')){ closeSheet(); toast('App instalado. Abra pelo ícone na tela do celular.'); } });
 const ANDROID = /Android/i.test(navigator.userAgent), iosSafari = () => IOS && !/CriOS|FxiOS|EdgiOS|OPiOS|GSA\//.test(navigator.userAgent);
 function instAsk(){
   clearInterval(instT); if(!S || S.inst!=='novo' || S.example) return;
@@ -3201,8 +3209,8 @@ const suOk1 = () => !!(LG.f.nome.trim() && mailOk(LG.f.email) && /^\d{6}$/.test(
 function suTop(){ const w = document.getElementById('login'); if(w) w.scrollTop = 0; }
 function vSetup(){
   const f = LG.f, st = LG.step;
-  const cnt = st<=3 ? 'Passo '+st+' de 3' : st<=6 ? 'Pergunta '+(st-3)+' de 3' : '';
-  const pct = st<=3 ? st/3 : st<=6 ? (st-3)/3 : 1;
+  const cnt = st<=3 ? 'Passo '+st+' de 4' : st===8 ? 'Passo 4 de 4' : st<=6 ? 'Pergunta '+(st-3)+' de 3' : '';
+  const pct = st<=3 ? st/4 : st===8 ? 1 : st<=6 ? (st-3)/3 : 1;
   const top = `<div class="lg-top"><button type="button" class="linkbtn pk-back" data-a="su-back">${ic('chevL')}${st===1?'Entrar com senha':st===7?'Mudar respostas':'Voltar'}</button><span class="lg-stp">${cnt}</span></div><div class="tprog" aria-hidden="true"><i style="width:${Math.round(pct*100)}%"></i></div>`;
   let body;
   if(st===1){ const leg = legacySelf();
@@ -3230,6 +3238,7 @@ function vSetup(){
     </div><p class="foot0">Sem personal, o treino não tem acompanhamento profissional: ele é gerado automaticamente pela IA ou montado por você. Dá para trocar depois no perfil.</p>`;
   else if(st<=6) body = `<p class="eyebrow">IA · ${ED[f.ed].nome}</p><h1 class="lg-h">${['Sua experiência','Seus dias','Seu foco'][st-4]}<span class="dot" aria-hidden="true"></span></h1>${iqQ(st-3)}
     <button type="button" class="btn primary block" data-a="su-next">${st===6 ? ic('spark')+'Montar meu treino' : 'Continuar'+ic('chev')}</button>`;
+  else if(st===8) body = suInstView();
   else if(LG.gen || !f.plan) body = genView();
   else body = `<p class="eyebrow">Feito pela IA</p><h1 class="lg-h">Seu treino está pronto<span class="dot" aria-hidden="true"></span></h1>${iaResult(f.plan, f.ed, IQ)}
     <p class="foot0">Dá para trocar exercícios, dias e nomes quando quiser em Perfil › Meus treinos.</p>
@@ -3327,14 +3336,33 @@ function suNext(){
   }
   LG.step = Math.min(6, st+1); renderLogin(); suTop();
 }
+/* passo 4 de 4: instalar o app (no lugar das janelas depois do cadastro). Quem quiser segue pelo navegador. */
+function suInst(mode){ LG.f.mode = mode; LG.step = 8; renderLogin(); suTop(); }
+function suInstView(){
+  const f = LG.f, mob = instMobile(), p = (n, t) => `<li><span class="si-n">${n}</span><span>${t}</span></li>`;
+  let passos, go;
+  if(!mob){ passos = p(1, 'No celular, abra <b>simplificandoeduca.com/treino</b>')+p(2, 'Entre com o seu <b>e-mail e senha</b>')+p(3, 'Coloque o app na tela do celular e comece o treino'); go = `<button type="button" class="btn primary block lg-go" data-a="su-inst-x">Começar${ic('chev')}</button>`; }
+  else if(ANDROID && INST_EV){ passos = p(1, 'Toque em <b>Instalar o app</b> aqui embaixo')+p(2, 'Confirme em <b>Instalar</b>')+p(3, 'Abra o <b>Simplificando</b> pelo ícone e comece o treino'); go = `<button type="button" class="btn primary block lg-go" data-a="su-inst">${ic('dl')}Instalar o app</button>`; }
+  else if(ANDROID){ passos = p(1, 'Toque nos <b>três pontinhos ⋮</b>, no canto de cima do Chrome')+p(2, 'Toque em <b>Instalar app</b> (ou <b>Adicionar à tela inicial</b>)')+p(3, 'Abra o <b>Simplificando</b> pelo ícone e comece o treino'); go = `<button type="button" class="btn primary block lg-go" data-a="su-inst-ok">Pronto, já instalei</button>`; }
+  else { passos = p(1, 'Toque em <b>Compartilhar</b>, o quadrado com a seta, lá embaixo no Safari')+p(2, 'Toque em <b>Adicionar à Tela de Início</b>')+p(3, 'Abra o <b>Simplificando</b> pelo ícone e comece o treino'); go = `<button type="button" class="btn primary block lg-go" data-a="su-inst-ok">Pronto, já coloquei</button>`; }
+  return `<p class="eyebrow">Último passo</p><h1 class="lg-h">${mob ? 'Instale o app' : 'Use no celular'}<span class="dot" aria-hidden="true"></span></h1>
+    <p class="muted">${mob ? 'Fica na tela do celular, abre em 1 toque e avisa a hora do treino e da água. É grátis.' : 'O Simplificando foi feito para usar na academia, pelo celular.'}</p>
+    ${mob && IOS && !iosSafari() ? `<p class="lg-leg warn">${ic('flag')}<span>Abra este link no <b>Safari</b> para conseguir colocar o app na tela de início.</span></p>` : ''}
+    <div class="si-box"><p class="si-h">${!mob ? 'Como fazer' : ANDROID ? 'No Android (Chrome)' : 'No iPhone (Safari)'}</p><ol class="si-st">${passos}</ol></div>
+    ${acompPodeSu() ? `<div class="sw-row si-ac"><div><b>Compartilhar meus treinos com o Simplificando</b><span>Opcional. Ajuda a melhorar o app. Dá para mudar no Perfil.</span></div><label class="switch"><input type="checkbox" data-su-acomp${f.acomp?' checked':''}><span class="knob"></span><span class="sr">Compartilhar meus treinos com o Simplificando</span></label></div>` : ''}
+    ${go}${mob ? `<button type="button" class="linkbtn si-x" data-a="su-inst-x">Continuar no navegador</button>` : ''}`;
+}
+const acompPodeSu = () => !!FB && !!LG.uid;
 function suFinish(mode){
   const f = LG.f, nome = cleanName(f.nome) || 'Você', uid = LG.uid, sexo = f.sexo==='M' ? 'M' : 'F';
   if(!uid){ LG.step = 1; renderLogin(); return; }
   const s = fresh(false); s.nome = nome; s.ed = f.ed; s.waterGoal = waterSug(); s.cardioGoal = f.ed==='emagrecer' ? 150 : 120;
   s.conta = { sexo, peso:num(f.peso)||null, email:LG.uidMail||'', plan:mode, treinos: mode==='ia' && f.plan ? f.plan : {}, ia: mode==='ia' ? JSON.parse(JSON.stringify(IQ)) : null, semana: mode==='ia' ? iqN(IQ) : 0, dias:[] };
-  s.aceite = aceiteNovo(true); s._em = Date.now(); s.inst = 'novo';
+  s.aceite = aceiteNovo(true); s._em = Date.now(); s.inst = LG.step===8 ? 'feito' : 'novo'; // passou pelo "Instale o app": não pergunta de novo agora
+  if(LG.step===8 && acompPodeSu()) s.acomp = { on:!!f.acomp, em:Date.now() };
+  if(LG.step===8) SITE_FEITO = true; // já viu o "Instale o app": nada de "Baixe nosso app" nesta visita
   try { localStorage.setItem(autoKey(uid), JSON.stringify(s)); } catch(e){ /* sem armazenamento */ }
-  if(FB){ FB.autoSave(uid, s, true); FB.perfil({ tipo:'autonomo', nome, email:LG.uidMail||'', sexo, objetivo:f.ed, plano:mode, treinos:mode==='ia' && f.plan ? Object.keys(f.plan).length : 0, criadoEm:Date.now(), ultimoAcesso:Date.now(), aceite:{ v:s.aceite.v, em:s.aceite.em }, ver:APPV }); }
+  if(FB){ FB.autoSave(uid, s, true); FB.perfil({ tipo:'autonomo', nome, email:LG.uidMail||'', sexo, objetivo:f.ed, plano:mode, treinos:mode==='ia' && f.plan ? Object.keys(f.plan).length : 0, criadoEm:Date.now(), ultimoAcesso:Date.now(), aceite:{ v:s.aceite.v, em:s.aceite.em }, acomp:!!(s.acomp && s.acomp.on), ver:APPV }); }
   writeSess({mode:'self', uid}); LG.view = 'login'; LG.step = 1; LG.f = LGF0(); LG.uid = null; LG.uidMail = '';
   novoAviso(nome, f.ed, mode);
   if(mode==='meu') AFTER = 'meus';
@@ -3555,7 +3583,7 @@ function lgClick(a,d,b){
     case 'lg-copy': lgCopy(); return true;
     case 'lg-self': selfStart(); return true;
     case 'lg-inst': LG.inst = !LG.inst; renderLogin(); return true;
-    case 'su-back': if(LG.gen) return true; if(LG.step>1){ LG.step--; LG.serr = ''; renderLogin(); suTop(); } else { LG.view = 'login'; LG.serr = ''; renderLogin('#lg-pw'); } return true;
+    case 'su-back': if(LG.gen) return true; if(LG.step===8){ LG.step = LG.f.mode==='meu' ? 3 : 7; renderLogin(); suTop(); return true; } if(LG.step>1){ LG.step--; LG.serr = ''; renderLogin(); suTop(); } else { LG.view = 'login'; LG.serr = ''; renderLogin('#lg-pw'); } return true;
     case 'su-next': suNext(); return true;
     case 'su-eye': LG.f.show = !LG.f.show; renderLogin('#su-senha'); return true;
     case 'su-eye2': LG.en.show = !LG.en.show; renderLogin('#en-senha'); return true;
@@ -3564,8 +3592,10 @@ function lgClick(a,d,b){
     case 'su-esq': suForgot(); return true;
     case 'su-sexo': LG.f.sexo = d.v==='M' ? 'M' : 'F'; renderLogin(`[data-a="su-sexo"][data-v="${d.v}"]`); return true;
     case 'su-ed': LG.f.ed = d.v; renderLogin(`[data-a="su-ed"][data-v="${d.v}"]`); return true;
-    case 'su-mode': if(d.v==='ia'){ IQ = IQ0(); LG.step = 4; renderLogin(); suTop(); } else suFinish('meu'); return true;
-    case 'su-done': suFinish('ia'); return true;
+    case 'su-mode': if(d.v==='ia'){ IQ = IQ0(); LG.step = 4; renderLogin(); suTop(); } else suInst('meu'); return true;
+    case 'su-done': suInst('ia'); return true;
+    case 'su-inst': if(INST_EV){ const ev = INST_EV; ev.prompt(); (ev.userChoice || Promise.resolve({})).then(c => { INST_EV = null; if(c && c.outcome==='accepted' && LG.step===8) suFinish(LG.f.mode); else renderLogin(); }); } else suFinish(LG.f.mode); return true;
+    case 'su-inst-ok': case 'su-inst-x': suFinish(LG.f.mode); return true;
     case 'su-ck': case 'lg-ck': { const c = a==='su-ck' ? LG.f.ck : LG.ac, v = !ckOk(c, a==='su-ck' || (!!ACCT && ACCT.mode==='self')); if(d.v==='all'){ c.t = c.s = c.p = v; } else c[d.v] = !c[d.v]; renderLogin(`[data-a="${a}"][data-v="${d.v}"]`); return true; }
     case 'lg-doc': if(LG.view!=='doc') LG.back = LG.view; LG.view = 'doc'; LG.doc = d.v; renderLogin(); suTop(); return true;
     case 'lg-doc-back': LG.view = LG.back || 'login'; renderLogin(); suTop(); return true;
@@ -4057,7 +4087,8 @@ function stHoje(html){
   const card = `<button type="button" class="stj" data-a="st-open" data-i="${i}"><span class="stj-i">${ic('share')}</span><span><b>Poste o treino de hoje</b><small>Treino ${h.t} · ${h.min} min · ${h.sets} séries</small></span>${ic('chev','chev')}</button>`;
   const k = html.indexOf('</div>', html.indexOf('wave-strip')); return k>=0 ? html.slice(0,k+6)+card+html.slice(k+6) : card+html;
 }
-function vTreino(){ if(noPlan()) return header('Treino','Seu treino')+noPlanCard(); const L = tLay(), h0 = L==='lista' ? vTreinoLista() : L==='foco' ? vTreinoFoco() : L==='folha' ? vTreinoFolha() : vTreinoGrade(); const h = stHoje(h0); return ACCT && ACCT.mode==='self' ? h+`<button type="button" class="btn ghost block mt-link" data-a="mt-open-sheet">${ic('edit')}Editar meus treinos</button>` : h; }
+const layDica = () => PREF.layDica && !S.history.length ? `<p class="lay-dica">Visual: <b>${TLAYS.find(o => o.id===tLay()).n}</b> · <button type="button" class="linkbtn" data-a="lay-dica">trocar no Perfil</button></p>` : '';
+function vTreino(){ if(noPlan()) return header('Treino','Seu treino')+noPlanCard(); const L = tLay(), h0 = L==='lista' ? vTreinoLista() : L==='foco' ? vTreinoFoco() : L==='folha' ? vTreinoFolha() : vTreinoGrade(); const h = stHoje(h0)+layDica(); return ACCT && ACCT.mode==='self' ? h+`<button type="button" class="btn ghost block mt-link" data-a="mt-open-sheet">${ic('edit')}Editar meus treinos</button>` : h; }
 function tCtx(){ const t = ui.t || nextTreino(), p = PLAN[t], ses = S.session, g = gTot(t); return { t, p, ses, active:!!(ses && ses.t===t), tot:g.tot, dn:g.dn }; }
 const exDone = e => isSkip(e.id) || doneSets(e.id)>=exN(e);
 function exSummary(e){ const L = logOf(e.id).filter(x => x.ok), mk = L.reduce((a,x) => Math.max(a,num(x.kg)),0); return `${L.length} de ${exN(e)}${mk?' · até '+fmtKg(mk)+' kg':''}`; }
@@ -6000,7 +6031,8 @@ if(TESTE_LOCAL) window.__simp = {
 function render(){
   $app.innerHTML = ({hoje:vHoje,treino:vTreino,cardio:vCardio,agua:vAgua,evo:vEvo})[ui.tab]();
   // 1ª vez na aba Treino (ou Cardio): escolher o visual do treino e do cardio
-  if(ACCT && (ui.tab==='treino' || ui.tab==='cardio') && (!PREF.treinoLayout || !PREF.cardioLayout) && !ui.sheet && !document.getElementById('pick') && !document.getElementById('login')){ ui.pstep = null; setTimeout(renderPick, 0); }
+  // 1ª vez no Treino ou no Cardio: o visual já vem escolhido (sem janela no caminho); dá para trocar no Perfil › Visual
+  if(ACCT && (!PREF.treinoLayout || !PREF.cardioLayout)){ if(!PREF.treinoLayout){ PREF.treinoLayout = 'lista'; PREF.layDica = true; } if(!PREF.cardioLayout) PREF.cardioLayout = 'toque'; savePref(); }
   $app.dataset.tab = ui.tab;
   $app.classList.remove('enter');
   if(ui.enter){ void $app.offsetWidth; $app.classList.add('enter'); ui.enter = false; }
@@ -6142,7 +6174,7 @@ function wireSlide(){
     if(k && (ev.key==='Enter' || ev.key===' ' || ev.key==='ArrowRight')){ ev.preventDefault(); done(k.closest('.slide')); }
   });
 }
-function startSession(t){ if(!S.session){ S.session = {t, start:Date.now(), acc:0, run:true, gym:'', d:today(), ini:Date.now()}; setTimeout(treinoAviso, 0); dsAsk(); toast('Cronômetro do treino '+t+' ligado. Bom treino.'); ui.sheet = {k:'gym'}; setTimeout(() => { if(ui.sheet && ui.sheet.k==='gym') renderSheet(true); }, 0); } }
+function startSession(t){ if(!S.session){ S.session = {t, start:Date.now(), acc:0, run:true, gym:'', d:today(), ini:Date.now()}; setTimeout(treinoAviso, 0); dsAsk(); toast('Cronômetro do treino '+t+' ligado. Bom treino.'); } }
 /* ---------- academia do dia: o aluno escreve o nome uma vez; nos próximos treinos é só tocar ---------- */
 const gymKey = v => String(v||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
 const gymNome = v => String(v||'').replace(/\s+/g,' ').trim().slice(0,40);
@@ -6418,6 +6450,7 @@ function onClick(ev){
     }
     case 'ci-edit': ui.ciEdit = true; ui.ci = Object.assign({}, S.checkin[today()]); break;
     case 'remind-ev': S.remind.every = +d.v; ui.remindFired = null; pushSave(); if(ui.sheet) renderSheet(); break;
+    case 'lay-dica': ui.sheet = {k:'prof', p:'visual'}; renderSheet(true); re = false; break;
     case 'avisos-open': ui.sheet = {k:'prof', p:'avisos'}; renderSheet(true); re = false; break;
     case 'push-on': pushEnable(); re = false; break;
     case 'push-off': pushDisable(false); re = false; break;
@@ -6507,6 +6540,7 @@ function onInput(ev){
 }
 function onChange(ev){
   const el = ev.target;
+  if(el.hasAttribute && el.hasAttribute('data-su-acomp')){ LG.f.acomp = el.checked; return; }
   if(el.dataset.remind){
     const m = /^(\d{1,2}):(\d{2})/.exec(el.value||''); if(!m){ render(); return; }
     const v = Math.min(23*60+45, +m[1]*60 + +m[2]), k = el.dataset.remind;
@@ -6555,7 +6589,8 @@ function tick(){
     renderRest();
   }
   const n = nextRemind();
-  if(n>0 && nowMin()>=n && ui.remindFired!==n){ ui.remindFired = n; toast('Hora da água. Que tal 300 ml agora?'); vibrate(80); }
+  const novato = !S.history.length && S._em && dk(new Date(S._em))===today(); // conta criada hoje e ainda sem treino: sem aviso de água
+  if(n>0 && nowMin()>=n && ui.remindFired!==n && !novato){ ui.remindFired = n; toast('Hora da água. Que tal 300 ml agora?'); vibrate(80); }
   if(ui.day!==today()){ ui.day = today(); tidy(); render(); }
 }
 /* arrastar o dedo para o lado troca de aba (Hoje, Treino, Cardio, Água, Evolução), como no iPhone.
@@ -6652,7 +6687,7 @@ function restPush(){
 function restPerto(){ const r = ui.rest; if(!r || r.done || !RPS.fim || RPS.fim!==r.end || document.visibilityState!=='visible') return; if(r.end-Date.now()<=2000){ RPS.cx = r.end; RPS.fim = 0; pushPost('descanso', {fim:0, k:''}); } }
 /* convite (uma vez, no começo de um treino) para quem ainda não ligou os avisos no celular */
 function dsAsk(){
-  if(PREF.dsAsk || !pushPode() || pushLigado() || (window.Notification && Notification.permission==='denied')) return;
+  if(PREF.dsAsk || !S.history.length || !pushPode() || pushLigado() || (window.Notification && Notification.permission==='denied')) return;
   const tenta = () => { if(!S.session || PREF.dsAsk) return; if(ui.sheet || document.getElementById('pick')){ setTimeout(tenta, 1500); return; } PREF.dsAsk = 1; savePref(); ui.sheet = {k:'dsask'}; renderSheet(true); };
   setTimeout(tenta, 1500);
 }

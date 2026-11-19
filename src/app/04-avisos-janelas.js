@@ -1,5 +1,5 @@
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); INST_EV = e; if(ui.sheet && ui.sheet.k==='inst') renderSheet(); });
-window.addEventListener('appinstalled', () => { INST_EV = null; if(S && S.inst){ S.inst = 'feito'; save(); } if(ui.sheet && (ui.sheet.k==='inst' || ui.sheet.k==='baixar' || ui.sheet.k==='site')){ closeSheet(); toast('App instalado. Abra pelo ícone na tela do celular.'); } });
+window.addEventListener('appinstalled', () => { INST_EV = null; if(typeof LG!=='undefined' && LG.view==='setup' && LG.step===8){ suFinish(LG.f.mode); return; } if(S && S.inst){ S.inst = 'feito'; save(); } if(ui.sheet && (ui.sheet.k==='inst' || ui.sheet.k==='baixar' || ui.sheet.k==='site')){ closeSheet(); toast('App instalado. Abra pelo ícone na tela do celular.'); } });
 const ANDROID = /Android/i.test(navigator.userAgent), iosSafari = () => IOS && !/CriOS|FxiOS|EdgiOS|OPiOS|GSA\//.test(navigator.userAgent);
 function instAsk(){
   clearInterval(instT); if(!S || S.inst!=='novo' || S.example) return;

@@ -15,6 +15,8 @@ test('começar treino arrastando, escolher a academia e cancelar sem registrar',
   await aba(page, 'treino');
   const antes = await simp(page, () => window.__simp.S.history.length);
   await arrasta(page, '.slide:not([data-kind]) .slide-knob');
+  await simp(page, () => { if (window.__simp.ui.sheet) window.__simp.closeSheet(); });
+  await page.click('.gym-chip'); // a academia fica na linha do topo do treino (sem janela ao começar)
   await page.waitForSelector('#gym-in');
   await page.fill('#gym-in', 'Academia Robô'); await page.click('[data-a="gym-ok"]');
   const s = await simp(page, () => window.__simp.S.session);

@@ -68,6 +68,7 @@ async function criaConta(page, { nome = 'Joana Lima', email, senha = '135790', o
   if (peso) await page.fill('#su-peso', peso);
   await page.click('[data-a="su-next"]');
   await page.click(`[data-a="su-mode"][data-v="${modo}"]`);
+  const passo4 = async () => { await page.waitForSelector('[data-a="su-inst-x"]', { timeout: 15000 }); await page.click('[data-a="su-inst-x"]'); }; // passo 4 de 4 (Instale o app): segue no navegador
   if (modo === 'ia') {
     for (let i = 0; i < 10; i++) {
       if (await page.$('[data-a="su-done"]')) break;
@@ -78,6 +79,7 @@ async function criaConta(page, { nome = 'Joana Lima', email, senha = '135790', o
     await page.waitForSelector('[data-a="su-done"]', { timeout: 15000 });
     await page.click('[data-a="su-done"]');
   }
+  await passo4();
   await page.waitForFunction(() => window.__simp.ACCT && !document.getElementById('login'), null, { timeout: 20000 });
   return { email, senha };
 }

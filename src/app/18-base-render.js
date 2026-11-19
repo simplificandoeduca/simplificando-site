@@ -41,7 +41,8 @@ if(TESTE_LOCAL) window.__simp = {
 function render(){
   $app.innerHTML = ({hoje:vHoje,treino:vTreino,cardio:vCardio,agua:vAgua,evo:vEvo})[ui.tab]();
   // 1ª vez na aba Treino (ou Cardio): escolher o visual do treino e do cardio
-  if(ACCT && (ui.tab==='treino' || ui.tab==='cardio') && (!PREF.treinoLayout || !PREF.cardioLayout) && !ui.sheet && !document.getElementById('pick') && !document.getElementById('login')){ ui.pstep = null; setTimeout(renderPick, 0); }
+  // 1ª vez no Treino ou no Cardio: o visual já vem escolhido (sem janela no caminho); dá para trocar no Perfil › Visual
+  if(ACCT && (!PREF.treinoLayout || !PREF.cardioLayout)){ if(!PREF.treinoLayout){ PREF.treinoLayout = 'lista'; PREF.layDica = true; } if(!PREF.cardioLayout) PREF.cardioLayout = 'toque'; savePref(); }
   $app.dataset.tab = ui.tab;
   $app.classList.remove('enter');
   if(ui.enter){ void $app.offsetWidth; $app.classList.add('enter'); ui.enter = false; }

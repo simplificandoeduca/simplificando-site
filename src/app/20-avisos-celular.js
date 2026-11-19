@@ -15,7 +15,7 @@ function restPush(){
 function restPerto(){ const r = ui.rest; if(!r || r.done || !RPS.fim || RPS.fim!==r.end || document.visibilityState!=='visible') return; if(r.end-Date.now()<=2000){ RPS.cx = r.end; RPS.fim = 0; pushPost('descanso', {fim:0, k:''}); } }
 /* convite (uma vez, no começo de um treino) para quem ainda não ligou os avisos no celular */
 function dsAsk(){
-  if(PREF.dsAsk || !pushPode() || pushLigado() || (window.Notification && Notification.permission==='denied')) return;
+  if(PREF.dsAsk || !S.history.length || !pushPode() || pushLigado() || (window.Notification && Notification.permission==='denied')) return;
   const tenta = () => { if(!S.session || PREF.dsAsk) return; if(ui.sheet || document.getElementById('pick')){ setTimeout(tenta, 1500); return; } PREF.dsAsk = 1; savePref(); ui.sheet = {k:'dsask'}; renderSheet(true); };
   setTimeout(tenta, 1500);
 }

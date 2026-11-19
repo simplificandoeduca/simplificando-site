@@ -40,7 +40,7 @@ function wireSlide(){
     if(k && (ev.key==='Enter' || ev.key===' ' || ev.key==='ArrowRight')){ ev.preventDefault(); done(k.closest('.slide')); }
   });
 }
-function startSession(t){ if(!S.session){ S.session = {t, start:Date.now(), acc:0, run:true, gym:'', d:today(), ini:Date.now()}; setTimeout(treinoAviso, 0); dsAsk(); toast('Cronômetro do treino '+t+' ligado. Bom treino.'); ui.sheet = {k:'gym'}; setTimeout(() => { if(ui.sheet && ui.sheet.k==='gym') renderSheet(true); }, 0); } }
+function startSession(t){ if(!S.session){ S.session = {t, start:Date.now(), acc:0, run:true, gym:'', d:today(), ini:Date.now()}; setTimeout(treinoAviso, 0); dsAsk(); toast('Cronômetro do treino '+t+' ligado. Bom treino.'); } }
 /* ---------- academia do dia: o aluno escreve o nome uma vez; nos próximos treinos é só tocar ---------- */
 const gymKey = v => String(v||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
 const gymNome = v => String(v||'').replace(/\s+/g,' ').trim().slice(0,40);
@@ -316,6 +316,7 @@ function onClick(ev){
     }
     case 'ci-edit': ui.ciEdit = true; ui.ci = Object.assign({}, S.checkin[today()]); break;
     case 'remind-ev': S.remind.every = +d.v; ui.remindFired = null; pushSave(); if(ui.sheet) renderSheet(); break;
+    case 'lay-dica': ui.sheet = {k:'prof', p:'visual'}; renderSheet(true); re = false; break;
     case 'avisos-open': ui.sheet = {k:'prof', p:'avisos'}; renderSheet(true); re = false; break;
     case 'push-on': pushEnable(); re = false; break;
     case 'push-off': pushDisable(false); re = false; break;
@@ -405,6 +406,7 @@ function onInput(ev){
 }
 function onChange(ev){
   const el = ev.target;
+  if(el.hasAttribute && el.hasAttribute('data-su-acomp')){ LG.f.acomp = el.checked; return; }
   if(el.dataset.remind){
     const m = /^(\d{1,2}):(\d{2})/.exec(el.value||''); if(!m){ render(); return; }
     const v = Math.min(23*60+45, +m[1]*60 + +m[2]), k = el.dataset.remind;
@@ -453,7 +455,8 @@ function tick(){
     renderRest();
   }
   const n = nextRemind();
-  if(n>0 && nowMin()>=n && ui.remindFired!==n){ ui.remindFired = n; toast('Hora da água. Que tal 300 ml agora?'); vibrate(80); }
+  const novato = !S.history.length && S._em && dk(new Date(S._em))===today(); // conta criada hoje e ainda sem treino: sem aviso de água
+  if(n>0 && nowMin()>=n && ui.remindFired!==n && !novato){ ui.remindFired = n; toast('Hora da água. Que tal 300 ml agora?'); vibrate(80); }
   if(ui.day!==today()){ ui.day = today(); tidy(); render(); }
 }
 /* arrastar o dedo para o lado troca de aba (Hoje, Treino, Cardio, Água, Evolução), como no iPhone.

@@ -16,6 +16,7 @@ test('IA para iniciante: 3 séries de 10–12 e no máximo 7 exercícios, mesmo 
   await page.click('[data-a="su-next"]');
   await page.waitForSelector('[data-a="su-done"]');
   await page.click('[data-a="su-done"]');
+  await page.click('[data-a="su-inst-x"]'); // passo 4 (Instale o app): segue no navegador
   await page.waitForFunction(() => window.__simp.ACCT && !document.getElementById('login'), null, { timeout: 20000 });
   const P = await simp(page, () => { const T = window.__simp; return T.LETTERS.map(t => T.PLAN[t].ex.map(e => [e.s, e.r])); });
   expect(P.length).toBe(3);

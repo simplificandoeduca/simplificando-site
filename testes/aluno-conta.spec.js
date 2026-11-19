@@ -21,10 +21,8 @@ test('conta nova: um aceite só (termos, privacidade, dados de saúde e treino a
   await expect(page.locator('.su-go')).toBeDisabled();
 });
 
-test('"Montar o meu treino": depois do Baixe nosso app, abre o editor de treinos', async ({ page }) => {
+test('"Montar o meu treino": depois do passo "Instale o app", abre o editor de treinos', async ({ page }) => {
   await criaConta(page, { modo: 'meu' });
-  await page.waitForFunction(() => window.__simp.ui.sheet && window.__simp.ui.sheet.k === 'baixar', null, { timeout: 15000 });
-  await page.click('#sheet [data-a="bx-x"] >> text=Agora não');
   await page.waitForFunction(() => window.__simp.ui.sheet && window.__simp.ui.sheet.k === 'meus', null, { timeout: 10000 });
 });
 
@@ -59,28 +57,40 @@ test('quem usava sem conta: o perfil do aparelho vira conta com os treinos', asy
   expect(r).toEqual({ treinos: 6, nome: 'Carla Souza', antigo: false });
 });
 
-test('primeiro acesso: uma janela por vez, na ordem certa (Firebase de teste)', async ({ page }) => {
-  await criaConta(page, { emu: true });
-  // 1º: Baixe nosso app (nada de compartilhar nem de escolher visual ainda)
-  await page.waitForFunction(() => window.__simp.ui.sheet && window.__simp.ui.sheet.k === 'baixar', null, { timeout: 15000 });
-  expect(await page.locator('#pick').count()).toBe(0);
-  await page.click('#sheet [data-a="bx-x"] >> text=Agora não');
-  // 2º: Quer compartilhar? (o treino já está montado pela IA)
-  await page.waitForFunction(() => window.__simp.ui.sheet && window.__simp.ui.sheet.k === 'acomp', null, { timeout: 10000 });
-  await page.click('#sheet [data-a="acomp-sim"]');
-  await page.waitForTimeout(800);
+test('primeiro acesso sem interrupções: "Instale o app" é o passo 4 do cadastro; depois, nenhuma janela até a 1ª série (Firebase de teste)', async ({ page }) => {
+  // cadastro até o passo 4
+  await abreApp(page, { emu: true });
+  await page.click('[data-a="lg-self"]');
+  await page.fill('#su-nome', 'Nina Nova'); await page.fill('#su-email', 'nina' + Date.now() + '@teste.com'); await page.fill('#su-senha', '135790');
+  await page.click('[data-a="su-ck"][data-v="all"]'); await page.click('.su-go');
+  await page.waitForSelector('[data-a="su-sexo"]'); await page.click('[data-a="su-next"]');
+  await page.click('[data-a="su-mode"][data-v="ia"]');
+  for (let i = 0; i < 3; i++) await page.click('[data-a="su-next"]');
+  await page.waitForSelector('[data-a="su-done"]'); await page.click('[data-a="su-done"]');
+  await expect(page.locator('#login')).toContainText('Passo 4 de 4');
+  await expect(page.locator('#login h1')).toContainText('Instale o app');
+  await expect(page.locator('#login')).toContainText('No Android (Chrome)');
+  // a chave "Compartilhar meus treinos" fica no mesmo passo, desligada; liga e continua no navegador
+  const ch = page.locator('#login [data-su-acomp]');
+  await expect(ch).not.toBeChecked();
+  await ch.evaluate(el => { el.checked = true; el.dispatchEvent(new Event('change', { bubbles: true })); });
+  await page.click('[data-a="su-inst-x"]');
+  await page.waitForFunction(() => window.__simp.ACCT && !document.getElementById('login'), null, { timeout: 20000 });
+  // depois: nenhuma janela (nem "Baixe nosso app", nem "Quer compartilhar?")
+  await page.waitForTimeout(5000);
   expect(await simp(page, () => window.__simp.ui.sheet)).toBeNull();
-  // 3º: na 1ª vez na aba Treino, escolhe o visual do treino (4 modelos) e depois o do cardio (3 modelos)
+  expect(await simp(page, () => window.__simp.S.acomp && window.__simp.S.acomp.on)).toBe(true);
+  // aba Treino: sem escolher visual (já vem no sugerido, com a linha para trocar no Perfil)
   await aba(page, 'treino');
-  await page.waitForSelector('#pick [data-a="tlay"]');
-  expect(await page.locator('#pick [data-a="tlay"]').count()).toBe(4);
-  await page.locator('#pick [data-a="tlay"]').first().click(); await page.click('[data-a="tlay-go"]');
-  await page.waitForSelector('#pick [data-a="clay"]');
-  expect(await page.locator('#pick [data-a="clay"]').count()).toBe(3);
-  await page.locator('#pick [data-a="clay"]').first().click(); await page.click('[data-a="clay-go"]');
+  await page.waitForTimeout(800);
   await expect(page.locator('#pick')).toHaveCount(0);
-  const p = await simp(page, () => [window.__simp.PREF.treinoLayout, window.__simp.PREF.cardioLayout, window.__simp.S.acomp]);
-  expect(p[0]).toBeTruthy(); expect(p[1]).toBeTruthy(); expect(p[2]).toBeTruthy();
+  expect(await simp(page, () => [window.__simp.PREF.treinoLayout, window.__simp.PREF.cardioLayout])).toEqual(['lista', 'toque']);
+  await expect(page.locator('.lay-dica')).toContainText('Lista viva');
+  // começa o treino: sem a janela da academia (fica a linha no topo do treino)
+  await simp(page, () => { const T = window.__simp; T.startSession(T.LETTERS[0]); T.render(); });
+  await page.waitForTimeout(2500);
+  expect(await simp(page, () => window.__simp.ui.sheet)).toBeNull();
+  await expect(page.locator('.gym-chip')).toContainText('Em qual academia você está?');
 });
 
 test('app de teste (/app-teste): entra direto com o aluno de exemplo, sem senha e sem o Firebase, com os dados separados do app de verdade', async ({ page }) => {
