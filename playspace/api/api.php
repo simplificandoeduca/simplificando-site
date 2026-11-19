@@ -673,13 +673,16 @@ switch ($acao) {
       foreach ($linhas as $l) if ((float)$l['valor'] > 0.004 && empty($l['mais']['alug'])) { $soVolta = false; break; }
       if (!$naSaida && !$soVolta) falha('Escolha a forma de pagamento. Sem a criança no espaço, só ' . quemEstorna() . ' deixa uma venda a receber.', 403);
     }
+    /* 1.65: o crédito da festa até 4x é livre; de 5x a 12x, só o gestor (ou com a liberação dele, pedida antes) */
+    $parc = (int)($in['parcelas'] ?? 0); $parcAut = null;
+    if ($festa && $pg && isset($pg['credito']) && $parc > parcLivre() && $parc <= 12 && ($u['papel'] ?? '') !== 'gestor') $parcAut = autorizacaoDeParcelas((int)($in['parc_ped'] ?? 0), $u, $c, $parc);
     $vendas = []; $regs = []; $total = 0; $min = 0;
     foreach ($linhas as $l) { $mais = $l['mais'] ?? []; if (!empty($mais['mesmaLinha']) && $regs) $mais['registro'] = (int)end($regs);   // 1.22: o 2º fusquinha da mesma saída fica na linha do dia do primeiro
       $x = fazerVenda($c, $l['min'], $l['valor'], (int)$u['id'], $l['itens'], $l['servico'], false, '', $mais); $vendas[] = $x['venda']; $regs[] = $x['registro']; $total += $l['valor']; $min += $l['min']; $c = crianca((int)$c['id']); }
     foreach ($linhas as $i => $l) if (!empty($l['alt'])) $regs[] = usarAlteracao($l['alt'], (int)$vendas[$i], $c, $u);   // 1.33: o valor alterado fica registrado (o pedido, usado, com a venda)
     $festaId = $festa ? gravarFesta($linhas, $vendas, $u) : 0;   // 1.29: a festa nova nasce; o upgrade e o adicional ficam com a festa deles
-    $parc = (int)($in['parcelas'] ?? 0);   /* 1.62: em quantas vezes a festa foi no crédito (as Finanças mostram) */
-    if ($festa && $pg && isset($pg['credito']) && $parc >= 1 && $parc <= 12) $db->prepare('UPDATE vendas SET parcelas = ? WHERE id IN (' . implode(',', array_map('intval', $vendas)) . ')')->execute([$parc]);
+    /* 1.62: em quantas vezes a festa foi no crédito (as Finanças mostram) */
+    if ($festa && $pg && isset($pg['credito']) && $parc >= 1 && $parc <= 12) { $db->prepare('UPDATE vendas SET parcelas = ? WHERE id IN (' . implode(',', array_map('intval', $vendas)) . ')')->execute([$parc]); if ($parcAut) usarParcelas($parcAut, (int)$vendas[0], $parc, $u); }
     $ad = [];   // 1.04: o desconto sai das vendas desta venda, em proporção ao valor de cada uma
     if ($desc && $cheio > 0) { $faltas = []; foreach ($linhas as $i => $l) if (!isset($devIdx[$i])) $faltas[$vendas[$i]] = (float)$l['valor'];   /* 1.47: o desconto não mexe no carrinho que fica para a devolução */ $ad = aplicarDesconto($desc, $faltas, $c, $u); if ($ad) { $regs[] = $ad['registro']; $total = round($total - $ad['valor'], 2); usarAutorizacao($desc, (float)$ad['valor']); } }
     $vinfo = null;   // o voucher entra por último: com cobrança por atraso a receber, ele cobre essa cobrança em vez de somar tempo

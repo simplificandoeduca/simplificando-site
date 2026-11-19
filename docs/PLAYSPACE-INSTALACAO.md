@@ -1301,6 +1301,31 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzu. Freelancers, relatórios bonitos em PDF, crédito em mais vezes com o gestor e Upgrade/Adicional na festa (1.65 · Finanças 2.6)
+
+Pedido do dono: "um campo para os freelancers: a data que trabalhou, se eu paguei ou não, o valor que paguei, o valor que combinei, se paguei o vale-transporte, o nome e o pagamento total (às vezes trabalha o mês inteiro). As meninas conseguirem fazer o upgrade e o adicional de festa. O crédito é até 4 vezes; pode ir até 12, só com a liberação do gestor. E um PDF bonito da festa, do freelancer e do caixa, com dashboards, informações do crédito, na estética da Play Space, com o urso e a logo".
+
+**Freelancers** (Finanças, logo abaixo de Festas):
+- **+ Freelancer**: o nome, o telefone, a chave Pix, a função, a **diária combinada** e o **vale-transporte por dia** (vêm preenchidos ao lançar os dias).
+- **Lançar dias**: escolha o freelancer e **toque nos dias** no calendário do mês (atalhos: seg a sex, sáb e dom, todos). A unidade, o combinado e o VT valem para os dias tocados. O dia que já está lançado não entra de novo.
+- Cada freelancer tem um cartão com os dias do mês. Em cada dia: o combinado e o VT (dá para mudar), **Diária paga** (toque quando pagar) e o **valor pago** (se pagou diferente do combinado, escreva: aparece "R$ 30,00 a menos"), **VT pago**, o **total pago** e o que **falta**.
+- **Pagar o que falta**: paga o mês de uma vez (as diárias pelo combinado e, se quiser, o VT), com a data do pagamento.
+- Tirar um dia lançado por engano (o ×) não apaga: fica guardado quem tirou. Toda mudança fica no histórico.
+- Em cima: o total do mês, o pago, o que falta pagar e quantos freelancers trabalharam. **Exportar Excel** (resumo e os dias) e **PDF do mês**.
+
+**Os relatórios bonitos em PDF** (com a logo, o ursinho da Play Space e gráficos):
+- **Controle de caixa**: **PDF do dia** e **PDF do mês**. O total do caixa, cada forma (crédito, débito, Pix, dinheiro) num gráfico de rosca, o dia a dia em barras, cada unidade, **o crédito em detalhe** (a taxa da Rede, a taxa média, o líquido, as vendas, o ticket médio e em quantas vezes as festas foram parceladas), o sistema x a Rede forma a forma, a conferência de cada dia (bateu, não bateu, falta a Rede), os consertos e o que cai na conta nos próximos dias.
+- **Festas**: **PDF do mês**. O valor bruto, os custos e o lucro real, para onde vai o dinheiro (buffet, salgados, papelaria, adiantamento, lucro), o lucro de cada festa, como foram pagas (e em quantas vezes no crédito) e cada festa numa linha.
+- **Freelancers**: **PDF do mês**. O total, o pago e o que falta, quanto custou cada dia, cada freelancer e os dias dele.
+- O ursinho dá o recado mais importante no balãozinho (ex.: "Falta pagar R$ 460,00 a 2 freelancers").
+
+**O crédito da festa em mais vezes** (Play Space, no pagamento da festa):
+- Até **4x** (a regra da festa, a mesma do "em até 4x sem juros"): como sempre, qualquer um escolhe.
+- **Mais vezes no crédito (5x a 12x)**: o **gestor** escolhe direto. A atendente escolhe as vezes e pede a **liberação do gestor**: **Pedir ao gestor** (aparece nas Aprovações e no celular dele) ou **Liberar com a senha** do gestor, ali mesmo. Enquanto espera, o botão de registrar fica travado. Negado, ou mudou de ideia: escolher até 4x desiste do pedido.
+- O servidor confere: sem a liberação, a venda em 5x a 12x não passa. A liberação vale 30 minutos, para aquele cliente, para até as vezes liberadas, e uma vez só.
+
+**Upgrade e Adicional na festa**: na folha da festa marcada (Festas → a festa), toda a equipe tem os botões **Upgrade de festa** (antes do dia da festa) e **Adicional de festa**. Eles abrem a venda já com a festa escolhida, sem chamar o gestor.
+
 ## 6zzt. Finanças 2.5: a página das Finanças se renova sozinha (1.64)
 
 Pedido do dono: "ele não subiu a alteração para o gestão". O servidor da loja já estava na 1.63 (o Atualizar trocou os arquivos), mas a página das Finanças que estava aberta no aparelho (a aba aberta, o app do celular ou o cache do navegador) continuava a antiga.

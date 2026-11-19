@@ -212,6 +212,47 @@ final class PdfSimples {
       : self::n($X) . ' ' . self::n($Y) . ' ' . self::n($w) . ' ' . self::n($h) . ' re';
     $this->s .= ($cor ? self::cor($cor) . ' rg ' : '') . ($borda ? self::cor($borda) . ' RG 0.7 w ' : '') . $p . ' ' . ($cor && $borda ? 'B' : ($cor ? 'f' : 'S')) . "\n";
   }
+  /* 2.6 (1.65): a elipse (e o círculo), a fatia da rosca e o traço grosso, para os relatórios com gráficos e o ursinho. y de cima para baixo */
+  function elipse($cx, $cy, $rx, $ry, $cor, $borda = null, $esp = 0.7) {
+    $X = $cx; $Y = self::H - $cy; $kx = 0.5523 * $rx; $ky = 0.5523 * $ry; $n = fn($v) => self::n($v);
+    $p = $n($X + $rx) . ' ' . $n($Y) . ' m '
+      . $n($X + $rx) . ' ' . $n($Y + $ky) . ' ' . $n($X + $kx) . ' ' . $n($Y + $ry) . ' ' . $n($X) . ' ' . $n($Y + $ry) . ' c '
+      . $n($X - $kx) . ' ' . $n($Y + $ry) . ' ' . $n($X - $rx) . ' ' . $n($Y + $ky) . ' ' . $n($X - $rx) . ' ' . $n($Y) . ' c '
+      . $n($X - $rx) . ' ' . $n($Y - $ky) . ' ' . $n($X - $kx) . ' ' . $n($Y - $ry) . ' ' . $n($X) . ' ' . $n($Y - $ry) . ' c '
+      . $n($X + $kx) . ' ' . $n($Y - $ry) . ' ' . $n($X + $rx) . ' ' . $n($Y - $ky) . ' ' . $n($X + $rx) . ' ' . $n($Y) . ' c h';
+    $this->s .= ($cor ? self::cor($cor) . ' rg ' : '') . ($borda ? self::cor($borda) . ' RG ' . self::n($esp) . ' w ' : '') . $p . ' ' . ($cor && $borda ? 'B' : ($cor ? 'f' : 'S')) . "\n";
+  }
+  function circulo($cx, $cy, $r, $cor, $borda = null, $esp = 0.7) { $this->elipse($cx, $cy, $r, $r, $cor, $borda, $esp); }
+  /* o arco em curvas (até 90 graus cada): ângulos em graus, no sentido do relógio, a partir do meio-dia */
+  private static function arco($cx, $cy, $r, $a0, $a1, bool $comeca) {
+    $pt = fn($a) => [$cx + $r * sin(deg2rad($a)), self::H - ($cy - $r * cos(deg2rad($a)))];
+    $o = ''; $passo = $a1 >= $a0 ? 1 : -1; $n = max(1, (int)ceil(abs($a1 - $a0) / 90)); $d = ($a1 - $a0) / $n;
+    if ($comeca) { [$x, $y] = $pt($a0); $o .= self::n($x) . ' ' . self::n($y) . ' m '; } else { [$x, $y] = $pt($a0); $o .= self::n($x) . ' ' . self::n($y) . ' l '; }
+    for ($i = 0; $i < $n; $i++) {
+      $a = $a0 + $i * $d; $b = $a + $d; $k = 4 / 3 * tan(deg2rad($b - $a) / 4) * $r;
+      [$x0, $y0] = $pt($a); [$x3, $y3] = $pt($b);
+      $x1 = $x0 + $k * cos(deg2rad($a)); $y1 = $y0 - $k * sin(deg2rad($a)); $x2 = $x3 - $k * cos(deg2rad($b)); $y2 = $y3 + $k * sin(deg2rad($b));
+      $o .= self::n($x1) . ' ' . self::n($y1) . ' ' . self::n($x2) . ' ' . self::n($y2) . ' ' . self::n($x3) . ' ' . self::n($y3) . ' c ';
+    }
+    return $o;
+  }
+  /* a fatia da rosca: do raio de dentro (r2) ao de fora (r), de a0 a a1 graus */
+  function fatia($cx, $cy, $r, $r2, $a0, $a1, $cor) {
+    if ($a1 - $a0 >= 359.99) { $this->elipse($cx, $cy, $r, $r, $cor); if ($r2 > 0) $this->elipse($cx, $cy, $r2, $r2, 'FFFFFF'); return; }
+    $p = self::arco($cx, $cy, $r, $a0, $a1, true) . ($r2 > 0 ? self::arco($cx, $cy, $r2, $a1, $a0, false) : self::n($cx) . ' ' . self::n(self::H - $cy) . ' l ') . 'h';
+    $this->s .= self::cor($cor) . ' rg ' . $p . " f\n";
+  }
+  /* o traço grosso com as pontas redondas (a linha do gráfico, a boca do ursinho): [[x, y], ...] */
+  function traco(array $pts, $cor, $esp = 1.5) {
+    if (count($pts) < 2) return; $o = '';
+    foreach ($pts as $i => [$x, $y]) $o .= self::n($x) . ' ' . self::n(self::H - $y) . ($i ? ' l ' : ' m ');
+    $this->s .= 'q 1 J 1 j ' . self::cor($cor) . ' RG ' . self::n($esp) . ' w ' . $o . "S Q\n";
+  }
+  /* a curva simples (de p0 a p2, puxada por p1): o sorriso */
+  function curva($x0, $y0, $x1, $y1, $x2, $y2, $cor, $esp = 1.5) {
+    $c1x = $x0 + 2 / 3 * ($x1 - $x0); $c1y = $y0 + 2 / 3 * ($y1 - $y0); $c2x = $x2 + 2 / 3 * ($x1 - $x2); $c2y = $y2 + 2 / 3 * ($y1 - $y2);
+    $this->s .= 'q 1 J ' . self::cor($cor) . ' RG ' . self::n($esp) . ' w ' . self::n($x0) . ' ' . self::n(self::H - $y0) . ' m ' . self::n($c1x) . ' ' . self::n(self::H - $c1y) . ' ' . self::n($c2x) . ' ' . self::n(self::H - $c2y) . ' ' . self::n($x2) . ' ' . self::n(self::H - $y2) . " c S Q\n";
+  }
   function linha($x1, $y1, $x2, $y2, $cor = 'E8DFD3', $esp = 0.7) { $this->s .= self::cor($cor) . ' RG ' . self::n($esp) . ' w ' . self::n($x1) . ' ' . self::n(self::H - $y1) . ' m ' . self::n($x2) . ' ' . self::n(self::H - $y2) . " l S\n"; }
   // o rodapé de cada página (precisa saber quantas páginas são): chamado no fim, para cada uma
   function rodape(callable $f) { $this->pagina(); foreach ($this->pags as $i => $s) { $this->s = ''; $f($this, $i + 1, count($this->pags)); $this->pags[$i] = $s . $this->s; } $this->s = ''; }

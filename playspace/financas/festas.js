@@ -28,7 +28,7 @@ function festasDesenhar() {
   const t = $('#tela'); if (!t) return;
   const unis = UNIS.filter(x => x.ativo).map(x => x.id);
   t.innerHTML = `<div class="fs-tela"><div class="topo"><div><h1>Festas</h1><div class="sub">O lucro real de cada festa: o que veio do sistema e o que você lança</div></div>
-      <div class="lista-acoes"><button class="btn btn-ghost" id="fs-excel">Exportar Excel</button></div></div>
+      <div class="lista-acoes"><button class="btn btn-ghost" id="fs-pdf">${PDF_IC} PDF do mês</button><button class="btn btn-ghost" id="fs-excel">Exportar Excel</button></div></div>
     <div class="filtros"><div class="chips"><button class="chip" data-fsmes="-1" aria-label="Mês anterior">‹</button><b class="g-mes">${esc(fsMesNome(FS.mes))}</b><button class="chip" data-fsmes="1" aria-label="Mês seguinte">›</button>
       ${unis.length > 1 ? `<button class="chip ${FS.u === 'todas' ? 'on' : ''}" data-fsu="todas">Todas as unidades</button>${unis.map(u => `<button class="chip ${String(FS.u) === String(u) ? 'on' : ''}" data-fsu="${u}"><i style="background:${corUni(u)}"></i>${esc(nomeUni(u))}</button>`).join('')}` : ''}
       <input class="chip g-busca" id="fs-busca" type="search" placeholder="Buscar aniversariante…" value="${esc(FS.busca)}" aria-label="Buscar festa"></div></div>
@@ -37,6 +37,7 @@ function festasDesenhar() {
   $$('[data-fsu]').forEach(b => b.onclick = () => { FS.u = b.dataset.fsu === 'todas' ? 'todas' : +b.dataset.fsu; fsGuarda(); festasDesenhar(); });
   const bu = $('#fs-busca'); bu.oninput = () => { FS.busca = bu.value; const c = $('#fs-corpo'); if (c && FS.d) { c.innerHTML = fsCorpo(); fsLigar(); } };
   $('#fs-excel').onclick = fsExcel;
+  $('#fs-pdf').onclick = e => pdfBaixar(e.currentTarget, { acao: 'fs_pdf', mes: FS.mes, u: FS.u }, `play-space-festas-${FS.mes}.pdf`);   /* 2.6: o PDF bonito do mês */
   if (FS.d && FS.d.mes === FS.mes) fsLigar(); else fsCarregar();
 }
 async function fsCarregar() {

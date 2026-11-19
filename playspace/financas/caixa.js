@@ -29,13 +29,14 @@ const cxFmt = v => v == null ? '' : (+v).toLocaleString('pt-BR', { minimumFracti
 function cxSit(sis, rede) { if (rede == null || Number.isNaN(rede)) return Math.abs(sis) > 0.004 ? 'falta' : ''; return Math.abs(Math.round((sis - rede) * 100)) < 1 ? 'ok' : 'dif'; }
 const CX_ORDEM = { '': 0, ok: 1, falta: 2, dif: 3 };
 
+const cxFimMes = d => { const [a, m] = d.split('-').map(Number); return `${a}-${String(m).padStart(2, '0')}-${String(new Date(a, m, 0).getDate()).padStart(2, '0')}`; };
 /* ---------- a tela ---------- */
 function caixaDesenhar() {
   const t = $('#tela'); if (!t) return;
   if (!CX.dia) CX.dia = cxHoje();
   const hoje = cxHoje(), ontem = cxMais(hoje, -1), d = CX.dia, rot = cxRotulo(d);
   t.innerHTML = `<div class="cx-tela"><div class="topo"><div><h1>Controle de caixa</h1><div class="sub">O que passou no caixa no dia, conferido com a Rede</div></div>
-      <div class="topo-d"><div class="sub" id="cx-gerado">${CX.gerado ? `Atualizado às ${esc(CX.gerado)} · ` : ''}<button class="link" style="display:inline;padding:0" id="cx-atualizar">atualizar</button></div></div></div>
+      <div class="topo-d"><div class="lista-acoes cx-pdfs"><button class="btn btn-ghost" id="cx-pdf-dia">${PDF_IC} PDF do dia</button><button class="btn btn-ghost" id="cx-pdf-mes">${PDF_IC} PDF do mês</button></div><div class="sub" id="cx-gerado">${CX.gerado ? `Atualizado às ${esc(CX.gerado)} · ` : ''}<button class="link" style="display:inline;padding:0" id="cx-atualizar">atualizar</button></div></div></div>
     <div class="filtros"><div class="chips" role="group" aria-label="Dia do caixa">
       <button class="chip ${d === hoje ? 'on' : ''}" data-cxdia="${hoje}">Hoje</button><button class="chip ${d === ontem ? 'on' : ''}" data-cxdia="${ontem}">Ontem</button>
       <span class="cx-data"><button class="chip cx-passo" data-cxpasso="-1" aria-label="Dia anterior" title="Dia anterior">‹</button>
@@ -46,6 +47,9 @@ function caixaDesenhar() {
     <div id="cx-corpo">${CX.d && CX.d.dia === d ? (CX.modo === 'liq' ? cxLiquidoHtml() : cxCorpo()) : '<div class="vazio">Carregando o caixa…</div>'}</div></div>`;
   $$('[data-cxmodo]').forEach(b => b.onclick = () => { CX.modo = b.dataset.cxmodo; CX.liqSel = null; try { localStorage.setItem('psfin-cx-modo', CX.modo); } catch (e) { /* sem memória */ } caixaDesenhar(); });
   $$('[data-cxdia]').forEach(b => b.onclick = () => cxIr(b.dataset.cxdia));
+  /* 2.6: o PDF bonito do dia escolhido, ou do mês dele (do dia 1 até o dia escolhido) */
+  $('#cx-pdf-dia').onclick = e => pdfBaixar(e.currentTarget, { acao: 'cx_rel_pdf', de: d, ate: d }, `play-space-caixa-${d}.pdf`);
+  $('#cx-pdf-mes').onclick = e => { const de = d.slice(0, 8) + '01', ate = d.slice(0, 7) === hoje.slice(0, 7) ? hoje : cxFimMes(d); pdfBaixar(e.currentTarget, { acao: 'cx_rel_pdf', de, ate }, `play-space-caixa-${d.slice(0, 7)}.pdf`); };
   $$('[data-cxpasso]').forEach(b => b.onclick = () => { const x = cxMais(CX.dia, +b.dataset.cxpasso); if (x <= cxHoje()) cxIr(x); });
   const dt = $('#cx-data'); if (dt) dt.onchange = () => { if (/^\d{4}-\d{2}-\d{2}$/.test(dt.value)) cxIr(dt.value > cxHoje() ? cxHoje() : dt.value); };
   $('#cx-atualizar').onclick = () => cxCarregar();

@@ -14,8 +14,11 @@ require __DIR__ . '/gestao.php';   // 2.0: os lançamentos do financeiro (receit
 require __DIR__ . '/gestao2.php';   /* 2.1: fornecedores, contas a pagar, o painel financeiro e as planilhas */
 require __DIR__ . '/caixa.php';   /* 2.2: o controle de caixa (o caixa do dia conferido com a Rede) */
 require __DIR__ . '/festas.php';   /* 2.3: as festas, com o lucro real de cada uma */
+require __DIR__ . '/pdfbonito.php';   /* 2.6: a moldura dos relatórios bonitos (a logo, o ursinho, os gráficos) */
+require __DIR__ . '/freelas.php';   /* 2.6: os freelancers */
+require __DIR__ . '/relatorios.php';   /* 2.6: os relatórios do caixa e das festas */
 set_exception_handler(function (Throwable $e) { registrarErro('[financas] ' . $e->getMessage() . ' @' . basename($e->getFile()) . ':' . $e->getLine()); falha('Algo deu errado. Tente de novo em instantes.', 500); });
-const FIN_VERSAO = '2.5';
+const FIN_VERSAO = '2.6';
 
 $in = [];
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
@@ -192,6 +195,16 @@ if ($acao === 'cx_ajuste_tirar') responder(cxAjusteTirar($in, $eu));
 /* ---------- 2.3: as festas: o que vem do sistema e o que o dono lança (buffet, salgados, papelaria, adiantamento, retornado) → o lucro real ---------- */
 if ($acao === 'fs_listar') responder(fsListar($in));
 if ($acao === 'fs_salvar') responder(fsSalvar($in, $eu));
+/* ---------- 2.6: os freelancers (os dias trabalhados, o combinado, o VT, o que foi pago) e os relatórios bonitos em PDF ---------- */
+if ($acao === 'fz_listar') responder(fzListar($in));
+if ($acao === 'fz_freela_salvar') responder(fzFreelaSalvar($in, $eu));
+if ($acao === 'fz_lancar') responder(fzLancar($in, $eu));
+if ($acao === 'fz_dia_salvar') responder(fzDiaSalvar($in, $eu));
+if ($acao === 'fz_pagar') responder(fzPagar($in, $eu));
+if ($acao === 'fz_dia_tirar') responder(fzDiaTirar($in, $eu));
+if ($acao === 'fz_pdf') pbSaida(fzPdf($in), 'play-space-freelancers-' . fzMes($in['mes'] ?? '') . '.pdf');
+if ($acao === 'fs_pdf') pbSaida(fsPdf($in), 'play-space-festas-' . fsMes($in['mes'] ?? '') . '.pdf');
+if ($acao === 'cx_rel_pdf') { $de_ = cxDiaOk($in['de'] ?? ''); $ate_ = cxDiaOk($in['ate'] ?? $de_); pbSaida(cxRelPdf($in), 'play-space-caixa-' . ($de_ === $ate_ ? $de_ : $de_ . '-a-' . $ate_) . '.pdf'); }
 /* ---------- 2.1: fornecedores, contas a pagar, o painel financeiro e as planilhas ---------- */
 if ($acao === 'fn_listar') responder(fnListar($in));
 if ($acao === 'fn_nomes') { flPreparar(); responder(['fornecedores' => fnNomes()]); }
