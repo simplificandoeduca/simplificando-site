@@ -15,7 +15,8 @@ const GFORMAS = { pix: 'Pix', dinheiro: 'Dinheiro', credito: 'Crédito', debito:
 const GMESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 const GCOR = { bruto: '#2a78d6', liquido: '#1baf7a', desp: '#eb6834', res: '#1baf7a', inv: '#A39B91' };
 const GHOJE = new Date(), GS = { tipo: 'receita', mes: `${GHOJE.getFullYear()}-${String(GHOJE.getMonth() + 1).padStart(2, '0')}`, filial: '', segmento: '', busca: '', dados: null, pag: 0, listas: null, imps: [],
-  relAno: GHOJE.getFullYear(), relMes: 0, rel: null, n: 0, ult: {} };
+  relAno: GHOJE.getFullYear(), relMes: 0, rel: null, n: 0, ult: {}, forn: [], apagar: null, painel: null, pagar: null, pagarVer: 'abertas', fornL: null, fornBusca: '' };
+const GFPAG = { pix: 'Pix', boleto: 'Boleto', transferencia: 'Transferência', dinheiro: 'Dinheiro', cartao: 'Cartão de crédito', debito_auto: 'Débito automático' };   /* 2.1: como a despesa foi paga */
 try { const g = JSON.parse(localStorage.getItem('psfin-gestao') || 'null'); if (g) { if (GT[g.tipo]) GS.tipo = g.tipo; if (/^\d{4}-\d{2}$/.test(g.mes || '')) GS.mes = g.mes; if (g.relAno) GS.relAno = +g.relAno; GS.relMes = +g.relMes || 0; GS.ult = g.ult || {}; } } catch (e) { /* sem o guardado */ }
 const gGuarda = () => { try { localStorage.setItem('psfin-gestao', JSON.stringify({ tipo: GS.tipo, mes: GS.mes, relAno: GS.relAno, relMes: GS.relMes, ult: GS.ult })); } catch (e) { /* sem espaço */ } };
 const gNorm = s => String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
@@ -27,17 +28,25 @@ const gPct = (a, b) => b > 0.004 ? (a / b * 100).toLocaleString('pt-BR', { maxim
 /* ---------- a tela (as duas abas novas: Lançamentos e Relatório financeiro) ---------- */
 async function gestaoDesenhar(aba) {
   const t = $('#tela'); if (!t) return;
-  if (!GS.listas) { t.innerHTML = '<div class="vazio">Carregando…</div>'; try { const r = await api('fl_listas'); GS.listas = r.listas; GS.imps = r.importacoes || []; } catch (e) { t.innerHTML = `<div class="vazio">${esc(e.message)}</div>`; return; } if (ABA !== aba) return; }
+  if (!GS.listas) { t.innerHTML = '<div class="vazio">Carregando…</div>'; try { gPoeListas(await api('fl_listas')); } catch (e) { t.innerHTML = `<div class="vazio">${esc(e.message)}</div>`; return; } if (ABA !== aba) return; }
   if (aba === 'lanc') { t.innerHTML = telaLanc(); ligarLanc(); if (!GS.dados) carregarLanc(); }
-  else { t.innerHTML = telaRel(); ligarRel(); if (!GS.rel || GS.rel.ano !== GS.relAno) carregarRel(); }
+  else if (aba === 'relat') { t.innerHTML = telaRel(); ligarRel(); if (!GS.rel || GS.rel.ano !== GS.relAno) carregarRel(); }
+  else if (aba === 'fin') { t.innerHTML = telaPainel(); ligarPainel(); if (!GS.painel || GS.painel.mes !== GS.mes) carregarPainel(); }   /* 2.1 (gestao2.js) */
+  else if (aba === 'pagar') { t.innerHTML = telaPagar(); ligarPagar(); if (!GS.pagar) carregarPagar(); }
+  else if (aba === 'forn') { t.innerHTML = telaForn(); ligarForn(); if (!GS.fornL) carregarForn(); }
+  else if (aba === 'plan') planDesenhar();   /* 2.1 (planilhas.js) */
 }
+/* 2.1: as listas, os fornecedores e as somas do a pagar (o número vermelho no menu); depois de lançar, tudo é recarregado */
+function gPoeListas(r) { GS.listas = r.listas; GS.imps = r.importacoes || []; GS.forn = r.fornecedores || []; GS.apagar = r.apagar || null; gContaPagar(); }
+function gContaPagar() { const b = $('[data-cont-pagar]'); if (!b) return; const S = GS.apagar, n = S ? S.vencidas.n + S.vencemHoje.n : 0; b.hidden = !n; b.textContent = n; b.title = S ? `${S.vencidas.n} vencidas · ${S.vencemHoje.n} vencem hoje` : ''; }
+async function gSujou() { GS.dados = null; GS.rel = null; GS.painel = null; GS.pagar = null; GS.fornL = null; try { gPoeListas(await api('fl_listas')); } catch (e) { /* fica a lista de antes */ } }
 const gOpcoes = (lista, sel, vazio) => (vazio != null ? `<option value="">${esc(vazio)}</option>` : '') + (lista || []).map(v => `<option${v === sel ? ' selected' : ''}>${esc(v)}</option>`).join('');
 function telaLanc() {
   const T = GT[GS.tipo], D2 = GS.dados, L = GS.listas, de = GS.mes + '-01', ate = gUltimoDia(GS.mes);
-  const cols = { receita: ['Data', 'Sub item', 'Local', 'Vendas', 'Crianças', 'Valor', 'Obs.'], despesa: ['Data', 'Descrição', 'Local', 'Grupo', 'Centro de custo', 'Valor', 'Obs.'], recebimento: ['Data', 'Forma', 'Local', 'Valor', 'Obs.', 'Após o fechamento'], rede: ['Data', 'Filial', 'Valor', 'Obs.'] }[GS.tipo];
-  const v = new Set(['Valor', 'Vendas', 'Crianças']);
+  const cols = { receita: ['Data', 'Sub item', 'Local', 'Vendas', 'Crianças', 'Valor', 'Obs.'], despesa: ['Data', 'Fornecedor · descrição', 'Local', 'Grupo · centro de custo', 'Valor', 'Devido', 'Pago?'], recebimento: ['Data', 'Forma', 'Local', 'Valor', 'Obs.', 'Após o fechamento'], rede: ['Data', 'Filial', 'Valor', 'Obs.'] }[GS.tipo];
+  const v = new Set(['Valor', 'Vendas', 'Crianças', 'Devido']);
   const linha = l => ({ receita: [dataBR(l.data), esc(l.descricao || '—'), esc(gLocal(l.filial, l.segmento)), int(l.qtd_vendas), int(l.qtd_criancas), brl(l.valor), esc(l.obs)],
-    despesa: [dataBR(l.data), esc(l.descricao), esc(gLocal(l.filial, l.segmento)), esc(l.grupo), esc(l.centro || '—'), brl(l.valor), esc(l.obs)],
+    despesa: [dataBR(l.data), `${l.fornecedor ? `<b>${esc(l.fornecedor)}</b><br>` : ''}${esc(l.descricao)}${gRec(l)}${l.obs ? `<small class="g-obs">${esc(l.obs)}</small>` : ''}`, l.filial || l.segmento ? esc(gLocal(l.filial, l.segmento)) : '—', `${esc(l.grupo)}${l.centro ? `<br><span class="sub">${esc(l.centro)}</span>` : ''}`, brl(l.valor), gDevido(l), gTog(l) + gSituacao(l)],
     recebimento: [dataBR(l.data), esc(GFORMAS[l.forma] || l.forma), esc(gLocal(l.filial, l.segmento)), brl(l.valor), esc(l.obs), l.data_fech ? dataBR(l.data_fech) : ''],
     rede: [dataBR(l.data), esc(l.filial), brl(l.valor), esc(l.obs)] }[GS.tipo]);
   const resumo = D2 ? `<b>${int(D2.n)}</b> ${D2.n === 1 ? 'lançamento' : 'lançamentos'} · soma <b class="num">${brl(D2.soma)}</b>${GS.tipo === 'receita' ? ` · ${int(D2.qv)} vendas · ${int(D2.qc)} crianças` : ''}` : 'Carregando…';
@@ -48,9 +57,10 @@ function telaLanc() {
         <select class="chip ${GS.filial ? 'on' : ''}" id="g-f-filial" aria-label="Filial">${gOpcoes(L.filial, GS.filial, 'Todas as filiais')}</select>
         ${GS.tipo !== 'rede' ? `<select class="chip ${GS.segmento ? 'on' : ''}" id="g-f-seg" aria-label="Segmento">${gOpcoes(L.segmento, GS.segmento, 'Todos os segmentos')}</select>` : ''}
         <input class="chip g-busca" id="g-f-busca" type="search" placeholder="Buscar…" value="${esc(GS.busca)}" aria-label="Buscar"></div></div>
+    ${GS.tipo === 'despesa' && D2 ? `<div class="grade g-cards">${kpi('Despesas do mês', brl(D2.soma), `${int(D2.n)} ${D2.n === 1 ? 'lançamento' : 'lançamentos'}`)}${kpi('Pagas', brl(D2.soma - D2.aberto), `${int(D2.n - D2.nAberto)} no mês`)}${kpi('Ainda devido', brl(D2.aberto), D2.nAberto ? `${int(D2.nAberto)} ${D2.nAberto === 1 ? 'conta' : 'contas'} a pagar · <a href="#" data-g="pagar">ver contas a pagar</a>` : 'nada a pagar', D2.aberto > 0.004 ? 'devido' : '')}${kpi('Em atraso', brl(D2.atraso || 0), D2.nAtraso ? `${int(D2.nAtraso)} ${D2.nAtraso === 1 ? 'conta vencida' : 'contas vencidas'}` : 'nada vencido', D2.nAtraso ? 'alerta' : '')}</div>` : ''}
     <div class="cartao"><div class="cab-cartao"><div><h2>${T.nome}</h2><p class="expl">${T.expl} Toque numa linha para corrigir.</p></div><div class="sub g-resumo">${resumo}</div></div>
       ${!D2 ? '<div class="vazio">Carregando…</div>' : !D2.linhas.length ? `<div class="vazio">Nada lançado em ${esc(gMesNome(GS.mes).toLowerCase())}${GS.filial || GS.segmento || GS.busca ? ' com este filtro' : ''}.<br><button class="btn btn-ghost" style="margin-top:12px" data-g="novo">+ ${esc(T.novo)}</button></div>`
-        : `<div class="rolar"><table class="g-lanc"><thead><tr>${cols.map(c => `<th${v.has(c) ? ' class="v"' : ''}>${c}</th>`).join('')}</tr></thead><tbody>${D2.linhas.map(l => `<tr data-gl="${l.id}" tabindex="0" title="Corrigir">${linha(l).map((x, i) => `<td${v.has(cols[i]) ? ' class="v"' : ''}>${x}${i === 0 && l.origem === 'planilha' ? '<small>da planilha</small>' : ''}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+        : `<div class="rolar"><table class="g-lanc"><thead><tr>${cols.map(c => `<th${v.has(c) ? ' class="v"' : ''}>${c}</th>`).join('')}</tr></thead><tbody>${gPorDia(D2.linhas, cols.length, l => `<tr data-gl="${l.id}" tabindex="0" title="Corrigir">${linha(l).map((x, i) => `<td${v.has(cols[i]) ? ' class="v"' : ''}>${x}${i === 0 && l.origem === 'planilha' ? '<small>da planilha</small>' : ''}</td>`).join('')}</tr>`)}</tbody></table></div>
           ${D2.mais ? `<button class="btn btn-ghost" style="margin-top:12px" data-g="mais">Mostrar mais</button>` : ''}`}</div>
     <p class="sub" style="margin-top:14px">Período: ${dataBR(de)} a ${dataBR(ate)}. ${GS.imps.length ? `Última importação da planilha: ${esc(quandoBR(GS.imps[0].em))}, por ${esc(GS.imps[0].por)} (${int(GS.imps[0].n)} linhas).` : 'A planilha ainda não foi importada.'}</p>`;
 }
@@ -60,8 +70,9 @@ function ligarLanc() {
   const f = $('#g-f-filial'), s = $('#g-f-seg'), bu = $('#g-f-busca');
   if (f) f.onchange = () => { GS.filial = f.value; carregarLanc(); }; if (s) s.onchange = () => { GS.segmento = s.value; carregarLanc(); };
   if (bu) { let t0 = 0; bu.oninput = () => { clearTimeout(t0); t0 = setTimeout(() => { GS.busca = bu.value.trim(); carregarLanc(true); }, 350); }; }
-  $$('[data-g]').forEach(b => b.onclick = () => ({ novo: () => formLanc(GS.tipo), importar: () => folhaImportar(), excel: () => exportarExcel(+GS.mes.slice(0, 4)), mais: () => carregarLanc(false, true) })[b.dataset.g]());
+  $$('[data-g]').forEach(b => b.onclick = e => { e.preventDefault(); ({ novo: () => formLanc(GS.tipo), importar: () => folhaImportar(), excel: () => exportarExcel(+GS.mes.slice(0, 4)), mais: () => carregarLanc(false, true), pagar: () => { ABA = 'pagar'; desenhar(); } })[b.dataset.g](); });
   $$('tr[data-gl]').forEach(tr => { const abre = () => { const l = GS.dados.linhas.find(x => x.id === +tr.dataset.gl); if (l) formLanc(l.tipo, l); }; tr.onclick = abre; tr.onkeydown = e => { if (e.key === 'Enter') abre(); }; });
+  gLigaTog(id => GS.dados.linhas.find(x => x.id === id));
 }
 async function carregarLanc(manterFoco, mais) {
   const n = ++GS.n, pag = mais ? GS.pag + 1 : 0;
@@ -70,6 +81,30 @@ async function carregarLanc(manterFoco, mais) {
   catch (e) { if (n === GS.n) aviso(e.message); return; }
   if (ABA !== 'lanc') return; const foco = manterFoco && document.activeElement && document.activeElement.id === 'g-f-busca'; const pos = foco ? document.activeElement.selectionStart : 0;
   gestaoDesenhar('lanc'); if (foco) { const b = $('#g-f-busca'); if (b) { b.focus(); b.setSelectionRange(pos, pos); } }
+}
+
+/* 2.1: a situação da despesa (paga, a pagar, vencida) e as linhas separadas por dia, com a soma do dia */
+const GSEM = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+function gHoje() { return iso(new Date()); }
+/* 2.1: o que ainda é devido (o valor, se está a pagar; zero, se já foi paga) e a chave "Pago?" que dá baixa na própria linha */
+function gDevido(l) { if (l.situacao !== 'aberto') return '<span class="g-devido zero">R$ 0,00</span>'; return `<span class="g-devido${l.vencimento < gHoje() ? ' atraso' : ''}">${brl(l.valor)}</span>`; }
+function gTog(l) { const p = l.situacao !== 'aberto'; return `<button type="button" class="g-tog${p ? ' on' : ''}" data-gtog="${l.id}" role="switch" aria-checked="${p}" title="${p ? 'Paga · toque para desfazer o pagamento' : 'A pagar · toque para dar baixa (pagar)'}"><i></i></button>`; }
+function gLigaTog(acha) {
+  $$('[data-gtog]').forEach(b => b.onclick = async e => { e.stopPropagation(); const l = acha(+b.dataset.gtog); if (!l) return;
+    if (l.situacao === 'aberto') { folhaPagar(l); return; }
+    if (!b.dataset.certeza) { b.dataset.certeza = '1'; b.classList.add('pergunta'); aviso('Toque de novo para desfazer o pagamento (a conta volta a ser devida)'); setTimeout(() => { delete b.dataset.certeza; b.classList.remove('pergunta'); }, 4000); return; }
+    try { await api('ap_reabrir', { id: l.id }); aviso('Pagamento desfeito ✓ (a conta voltou a ser devida)'); gDepois(); } catch (x) { aviso(x.message); } });
+}
+function gSituacao(l) {
+  if (l.situacao !== 'aberto') return `<span class="selo bom">Paga${l.pago_em && l.pago_em !== l.data ? ` em ${dataBR(l.pago_em).slice(0, 5)}` : ''}</span>${l.forma && GFPAG[l.forma] ? `<br><span class="sub">${esc(GFPAG[l.forma])}</span>` : ''}`;
+  const h = gHoje(); return l.vencimento < h ? `<span class="selo ruim">Vencida · ${dataBR(l.vencimento).slice(0, 5)}</span>` : l.vencimento === h ? '<span class="selo aviso">Vence hoje</span>' : `<span class="selo aviso">A pagar · ${dataBR(l.vencimento).slice(0, 5)}</span>`;
+}
+function gPorDia(L, ncols, linha) {
+  let o = '', dia = ''; const soma = {}, qtd = {}; L.forEach(l => { soma[l.data] = (soma[l.data] || 0) + l.valor; qtd[l.data] = (qtd[l.data] || 0) + 1; });
+  for (const l of L) { if (l.data !== dia) { dia = l.data; const d = new Date(dia + 'T12:00:00'), n = qtd[dia];
+      o += `<tr class="g-dia"><td colspan="${ncols}"><b>${GSEM[d.getDay()].replace(/^./, c => c.toUpperCase())}, ${dataBR(dia)}</b><span>${int(n)} ${n === 1 ? 'lançamento' : 'lançamentos'} · ${brl(soma[dia])}</span></td></tr>`; }
+    o += linha(l); }
+  return o;
 }
 
 /* ---------- lançar e corrigir: os campos de cada tipo (os nomes da planilha) ---------- */
@@ -94,6 +129,7 @@ const gInp = (id, val, extra) => `<input class="inp" id="${id}" value="${esc(val
 const gDl = (id, lista) => `<datalist id="${id}">${(lista || []).map(v => `<option value="${esc(v)}">`).join('')}</datalist>`;
 const gValor = v => v == null || v === '' ? '' : (+v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 function formLanc(tipo, l) {
+  if (tipo === 'despesa') return formDespesa(l);   /* 2.1: a despesa tem o formulário dela (gestao2.js) */
   const L = GS.listas, u = GS.ult[tipo] || {}, x = l || { data: u.data || (GS.mes === iso(new Date()).slice(0, 7) ? iso(new Date()) : GS.mes + '-01'), filial: u.filial || '', segmento: u.segmento || '', grupo: u.grupo || '', forma: u.forma || '' };
   const subs = s => (L.subitem || {})[s] || [];
   let c = gCampo('g-data', 'Data', gInp('g-data', x.data, 'type="date" required')) + gCampo('g-valor', 'Valor (R$)', gInp('g-valor', gValor(x.valor), 'inputmode="decimal" placeholder="0,00" required data-limpa'));
@@ -116,8 +152,8 @@ function formLanc(tipo, l) {
       if (!dados.valor.trim()) throw new Error('Digite o valor.');
       const r = await api('fl_salvar', { id: l ? l.id : 0, tipo, lanc: dados }); GS.listas = r.listas || GS.listas;
       if (!l) { GS.ult[tipo] = { data: dados.data, filial: r.lanc.filial, segmento: r.lanc.segmento, grupo: r.lanc.grupo, forma: r.lanc.forma }; gGuarda(); }
-      if (r.lanc.data.slice(0, 7) !== GS.mes && !l) aviso(`Lançado em ${dataBR(r.lanc.data)} (outro mês)`); GS.dados = null; GS.rel = null; carregarLanc(); },
-    aoRemover: async () => { await api('fl_remover', { id: l.id }); aviso('Lançamento tirado ✓'); GS.dados = null; GS.rel = null; carregarLanc(); } });
+      if (r.lanc.data.slice(0, 7) !== GS.mes && !l) aviso(`Lançado em ${dataBR(r.lanc.data)} (outro mês)`); gDepois(); },
+    aoRemover: async () => { await api('fl_remover', { id: l.id }); aviso('Lançamento tirado ✓'); gDepois(); } });
   const sg = $('#g-seg', f); if (sg) sg.addEventListener('input', () => { const d = $('#g-dl-sub', f); if (d) d.innerHTML = subs(sg.value.trim()).map(v => `<option value="${esc(v)}">`).join(''); });
 }
 
@@ -197,7 +233,7 @@ function folhaImportar() {
       const lote = 'pl-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8), res = $('#g-imp-res', F); let foi = 0, erros = 0, ex = [];
       for (const tipo of Object.keys(lido.O)) for (let i = 0; i < lido.O[tipo].length; i += 500) { const r = await api('fl_importar', { lote, tipo, linhas: lido.O[tipo].slice(i, i + 500) }); foi += r.entrou; erros += r.erros; ex = ex.concat((r.exemplos || []).map(x => ({ ...x, tipo })));
         res.innerHTML = `<div class="barra"><i style="width:${Math.round((foi + erros) / tot * 100)}%"></i></div><p class="sub">Enviando… ${int(foi + erros)} de ${int(tot)}</p>`; }
-      const fim = await api('fl_importar_fim', { lote }); const r2 = await api('fl_listas'); GS.listas = r2.listas; GS.imps = r2.importacoes || []; GS.dados = null; GS.rel = null;
+      const fim = await api('fl_importar_fim', { lote }); await gSujou();
       aviso(`Planilha importada ✓ ${int(foi)} linhas${erros ? ` · ${int(erros)} não entraram` : ''}`); if (erros) setTimeout(() => alert(`${int(erros)} linhas não entraram. Exemplos:\n` + ex.slice(0, 8).map(x => `${GT[x.tipo].nome}, linha ${x.linha}: ${x.erro}`).join('\n')), 300);
       if (ABA === 'lanc') carregarLanc(); else gestaoDesenhar(ABA); } });
   $('#g-arq', f).onchange = async e => { const a = e.target.files[0], res = $('#g-imp-res', f); lido = null; if (!a) return; res.innerHTML = '<p class="sub">Lendo a planilha…</p>';
@@ -314,10 +350,10 @@ function gXlsx(abas) { /* abas: [{ nome, cols: [[título, largura, tipo('txt'|'d
   const xe = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
   const letra = c => { let s = ''; c++; while (c) { const r = (c - 1) % 26; s = String.fromCharCode(65 + r) + s; c = Math.floor((c - 1) / 26); } return s; };
   const serial = d => (Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10)) - Date.UTC(1899, 11, 30)) / 86400000;
-  const EST = { txt: 0, data: 1, brl: 2, int: 4, pct: 5 }, NEG = { txt: 6, data: 1, brl: 7, int: 8, pct: 9 };
+  const EST = { txt: 0, data: 1, brl: 2, int: 4, pct: 5, num: 0 }, NEG = { txt: 6, data: 1, brl: 7, int: 8, pct: 9, num: 6 };
   const cel = (v, tipo, ref, neg) => { if (v == null || v === '') return '';
     if (tipo === 'data' && /^\d{4}-\d{2}-\d{2}$/.test(v)) return `<c r="${ref}" s="1"><v>${serial(v)}</v></c>`;
-    if (tipo !== 'txt' && typeof v === 'number' && isFinite(v)) return `<c r="${ref}" s="${neg ? NEG[tipo] : EST[tipo]}"><v>${Math.round(v * 100) / 100}</v></c>`;
+    if (tipo !== 'txt' && typeof v === 'number' && isFinite(v)) return `<c r="${ref}" s="${neg ? NEG[tipo] : EST[tipo]}"><v>${tipo === 'num' ? v : Math.round(v * 100) / 100}</v></c>`;
     return `<c r="${ref}" t="inlineStr"${neg ? ' s="6"' : ''}><is><t xml:space="preserve">${xe(v)}</t></is></c>`; };
   const folha = a => { const n = a.linhas.length; let x = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols>`;
     a.cols.forEach((c, i) => { x += `<col min="${i + 1}" max="${i + 1}" width="${c[1]}" customWidth="1"/>`; }); x += '</cols><sheetData><row r="1">';
@@ -344,12 +380,12 @@ async function exportarExcel(ano) {
       { nome: 'Cada local', cols: [['Local', 26, 'txt'], ['Receita bruta', 16, 'brl'], ['Receita líquida', 16, 'brl'], ['Despesas', 16, 'brl'], ['Resultado', 16, 'brl']], linhas: C.loc.map(x => [x.local, x.bruto, x.liquido, x.desp, x.res]) },
       { nome: 'Receitas', cols: [['Data', 12, 'data'], ['Qtde de crianças', 10, 'int'], ['Qtde de vendas', 10, 'int'], ['Sub item', 26, 'txt'], ['Filial', 18, 'txt'], ['Segmento', 18, 'txt'], ['Valor bruto', 15, 'brl'], ['Observações', 30, 'txt'], ['Lançado por', 18, 'txt']],
         linhas: L.receita.map(l => [l.data, l.qtd_criancas, l.qtd_vendas, l.descricao, l.filial, l.segmento, l.valor, l.obs, l.origem === 'planilha' ? 'planilha' : l.criado_por]), total: ['Total', L.receita.reduce((t, l) => t + l.qtd_criancas, 0), L.receita.reduce((t, l) => t + l.qtd_vendas, 0), '', '', '', L.receita.reduce((t, l) => t + l.valor, 0), '', ''] },
-      { nome: 'Despesas', cols: [['Data', 12, 'data'], ['Descrição', 34, 'txt'], ['Filial', 18, 'txt'], ['Grupo de despesa', 16, 'txt'], ['Segmento', 18, 'txt'], ['Valor', 15, 'brl'], ['Obs', 26, 'txt'], ['Centro de custo', 20, 'txt'], ['Lançado por', 18, 'txt']],
-        linhas: L.despesa.map(l => [l.data, l.descricao, l.filial, l.grupo, l.segmento, l.valor, l.obs, l.centro, l.origem === 'planilha' ? 'planilha' : l.criado_por]), total: ['Total', '', '', '', '', L.despesa.reduce((t, l) => t + l.valor, 0), '', '', ''] },
+      { nome: 'Despesas', cols: [['Data', 12, 'data'], ['Descrição', 34, 'txt'], ['Filial', 18, 'txt'], ['Grupo de despesa', 16, 'txt'], ['Segmento', 18, 'txt'], ['Valor', 15, 'brl'], ['Obs', 26, 'txt'], ['Centro de custo', 20, 'txt'], ['Fornecedor', 24, 'txt'], ['Situação', 11, 'txt'], ['Vencimento', 12, 'data'], ['Pago em', 12, 'data'], ['Forma', 16, 'txt'], ['Lançado por', 18, 'txt']],
+        linhas: L.despesa.map(l => [l.data, l.descricao, l.filial, l.grupo, l.segmento, l.valor, l.obs, l.centro, l.fornecedor, l.situacao === 'aberto' ? 'A pagar' : 'Paga', l.vencimento, l.pago_em, GFPAG[l.forma] || '', l.origem === 'planilha' ? 'planilha' : l.criado_por]), total: ['Total', '', '', '', '', L.despesa.reduce((t, l) => t + l.valor, 0), '', '', '', '', '', '', '', ''] },
       { nome: 'Recebimentos', cols: [['Data', 12, 'data'], ['Forma', 18, 'txt'], ['Filial', 18, 'txt'], ['Segmento', 18, 'txt'], ['Valor', 15, 'brl'], ['Obs', 26, 'txt'], ['Data após o fechamento', 14, 'data'], ['Lançado por', 18, 'txt']],
         linhas: L.recebimento.map(l => [l.data, GFORMAS[l.forma] || l.forma, l.filial, l.segmento, l.valor, l.obs, l.data_fech, l.origem === 'planilha' ? 'planilha' : l.criado_por]), total: ['Total', '', '', '', L.recebimento.reduce((t, l) => t + l.valor, 0), '', '', ''] },
       { nome: 'Rede', cols: [['Data', 12, 'data'], ['Filial', 18, 'txt'], ['Valor', 15, 'brl'], ['Obs', 26, 'txt'], ['Lançado por', 18, 'txt']], linhas: L.rede.map(l => [l.data, l.filial, l.valor, l.obs, l.origem === 'planilha' ? 'planilha' : l.criado_por]), total: ['Total', '', L.rede.reduce((t, l) => t + l.valor, 0), '', ''] }];
     gBaixa(gXlsx(abas), `play-space-financeiro-${ano}.xlsx`); aviso('Planilha baixada ✓'); }
   catch (e) { aviso(e.message); }
 }
-window.addEventListener('resize', () => { if (typeof ABA !== 'undefined' && ABA === 'relat' && GS.rel) desenharGrafRel(); });
+window.addEventListener('resize', () => { if (typeof ABA === 'undefined') return; if (ABA === 'relat' && GS.rel) desenharGrafRel(); if (ABA === 'fin' && GS.painel) gGrafDias(); });

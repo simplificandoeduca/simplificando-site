@@ -11,8 +11,9 @@ declare(strict_types=1);
 require __DIR__ . '/../api/lib.php';
 require __DIR__ . '/resumo.php';   // 1.54: os números, o PDF e o e-mail do resumo
 require __DIR__ . '/gestao.php';   // 2.0: os lançamentos do financeiro (receitas, despesas, recebimentos), o relatório e o PDF dele
+require __DIR__ . '/gestao2.php';   /* 2.1: fornecedores, contas a pagar, o painel financeiro e as planilhas */
 set_exception_handler(function (Throwable $e) { registrarErro('[financas] ' . $e->getMessage() . ' @' . basename($e->getFile()) . ':' . $e->getLine()); falha('Algo deu errado. Tente de novo em instantes.', 500); });
-const FIN_VERSAO = '2.0';
+const FIN_VERSAO = '2.1';
 
 $in = [];
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
@@ -166,7 +167,7 @@ if ($acao === 'email_enviar') {
 }
 
 /* ---------- 2.0: a gestão financeira: os lançamentos do financeiro (no lugar da planilha), o relatório e o PDF dele ---------- */
-if ($acao === 'fl_listas') responder(['listas' => flListas(), 'importacoes' => flImportacoes()]);
+if ($acao === 'fl_listas') { flPreparar(); responder(['listas' => flListas(), 'importacoes' => flImportacoes(), 'fornecedores' => fnNomes(), 'apagar' => apSomas()]); }
 if ($acao === 'fl_listas_salvar') responder(['listas' => flListasSalvar($in)]);
 if ($acao === 'fl_listar') responder(flListar($in));
 if ($acao === 'fl_salvar') responder(flSalvar($in, $eu));
@@ -176,5 +177,23 @@ if ($acao === 'fl_importar') responder(flImportar($in, $eu));
 if ($acao === 'fl_importar_fim') responder(flImportarFim($in));
 if ($acao === 'fl_rel') responder(flRel($in));
 if ($acao === 'fl_pdf') flPdfSaida($in);
+/* ---------- 2.1: fornecedores, contas a pagar, o painel financeiro e as planilhas ---------- */
+if ($acao === 'fn_listar') responder(fnListar($in));
+if ($acao === 'fn_nomes') { flPreparar(); responder(['fornecedores' => fnNomes()]); }
+if ($acao === 'fn_ver') responder(fnVer($in));
+if ($acao === 'fn_salvar') responder(fnSalvar($in, $eu));
+if ($acao === 'fn_remover') responder(fnRemover($in, $eu));
+if ($acao === 'ap_listar') responder(apListar($in));
+if ($acao === 'ap_pagar') responder(apPagar($in, $eu));
+if ($acao === 'ap_reabrir') responder(apReabrir($in, $eu));
+if ($acao === 'fl_painel') responder(flPainel($in));
+if ($acao === 'pl_listar') responder(plListar());
+if ($acao === 'pl_criar') responder(plCriar($in, $eu));
+if ($acao === 'pl_linhas_add') responder(plLinhasAdd($in, $eu));
+if ($acao === 'pl_ver') responder(plVer($in));
+if ($acao === 'pl_linha_salvar') responder(plLinhaSalvar($in, $eu));
+if ($acao === 'pl_linha_remover') responder(plLinhaRemover($in, $eu));
+if ($acao === 'pl_salvar') responder(plSalvar($in, $eu));
+if ($acao === 'pl_remover') responder(plRemover($in, $eu));
 
 falha('Ação desconhecida.', 404);

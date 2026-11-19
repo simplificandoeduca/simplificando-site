@@ -41,6 +41,14 @@ function flPreparar(): void {
     removido_por TEXT NOT NULL DEFAULT '', removido_em TEXT)");
   $db->exec('CREATE INDEX IF NOT EXISTS fin_lanc_td ON fin_lanc (tipo, data)');
   $db->exec('CREATE INDEX IF NOT EXISTS fin_lanc_lote ON fin_lanc (origem, lote)');
+  /* 2.1: a despesa ganha o fornecedor, a situação (pago ou a pagar), o vencimento e o dia em que foi paga */
+  $tem = array_column($db->query('PRAGMA table_info(fin_lanc)')->fetchAll(), 'name');
+  /* e a recorrência (o "1/12 · recorrente mensal"): a série, qual é esta e quantas são */
+  foreach (['fornecedor_id' => 'INTEGER', 'situacao' => "TEXT NOT NULL DEFAULT 'pago'", 'vencimento' => "TEXT NOT NULL DEFAULT ''", 'pago_em' => "TEXT NOT NULL DEFAULT ''",
+    'serie' => "TEXT NOT NULL DEFAULT ''", 'serie_n' => 'INTEGER NOT NULL DEFAULT 0', 'serie_tot' => 'INTEGER NOT NULL DEFAULT 0'] as $c => $tp)
+    if (!in_array($c, $tem, true)) $db->exec("ALTER TABLE fin_lanc ADD COLUMN $c $tp");
+  $db->exec('CREATE INDEX IF NOT EXISTS fin_lanc_ab ON fin_lanc (tipo, situacao, vencimento)');
+  fl21Preparar($db);
 }
 // o texto limpo (sem espaço sobrando) e a comparação sem acento nem maiúscula ("casa tom anália Franco" = "Casa Tom Anália Franco")
 function flTxt($v, int $max = 120): string { $s = trim((string)preg_replace('/\s+/u', ' ', (string)$v)); return mb_substr($s, 0, $max); }
@@ -87,7 +95,8 @@ function flLinha(array $x, string $tipo, array $L): array {
   $d = flData($x['data'] ?? ''); if ($d === '') return ['erro' => 'Data inválida.'];
   $v = flNum($x['valor'] ?? null); if ($v === null || abs($v) < 0.005) return ['erro' => 'Valor em branco.']; if (abs($v) > 99999999) return ['erro' => 'Valor alto demais.'];
   $r = ['tipo' => $tipo, 'data' => $d, 'valor' => round($v, 2), 'filial' => flCanon((string)($x['filial'] ?? ''), $L['filial']), 'segmento' => flCanon((string)($x['segmento'] ?? ''), $L['segmento']),
-    'descricao' => '', 'grupo' => '', 'centro' => '', 'forma' => '', 'qtd_criancas' => 0, 'qtd_vendas' => 0, 'obs' => flTxt($x['obs'] ?? '', 300), 'data_fech' => ''];
+    'descricao' => '', 'grupo' => '', 'centro' => '', 'forma' => '', 'qtd_criancas' => 0, 'qtd_vendas' => 0, 'obs' => flTxt($x['obs'] ?? '', 300), 'data_fech' => '',
+    'fornecedor_id' => null, 'situacao' => 'pago', 'vencimento' => '', 'pago_em' => $d];
   if ($tipo === 'receita') {
     $r['descricao'] = flCanon((string)($x['descricao'] ?? ''), $L['subitem'][$r['segmento']] ?? []); $r['descricao'] = $r['descricao'] === '' ? '' : mb_substr($r['descricao'], 0, 120);
     $r['qtd_criancas'] = max(0, min(100000, (int)round(flNum($x['qtd_criancas'] ?? 0) ?? 0))); $r['qtd_vendas'] = max(0, min(100000, (int)round(flNum($x['qtd_vendas'] ?? 0) ?? 0)));
@@ -95,6 +104,12 @@ function flLinha(array $x, string $tipo, array $L): array {
   } elseif ($tipo === 'despesa') {
     $r['descricao'] = flTxt($x['descricao'] ?? '', 160); $r['grupo'] = flCanon((string)($x['grupo'] ?? ''), $L['grupo']); $r['centro'] = flCanon((string)($x['centro'] ?? ''), $L['centro']);
     if ($r['descricao'] === '') return ['erro' => 'Escreva a descrição.']; if ($r['grupo'] === '') return ['erro' => 'Escolha o grupo da despesa.'];
+    /* 2.1: a conta a pagar (a data é o vencimento) ou a despesa paga (a data é o dia do pagamento) */
+    $fo = (string)($x['forma'] ?? ''); $r['forma'] = isset(FL_FORMAS_PAG[$fo]) ? $fo : '';
+    $fid = (int)($x['fornecedor_id'] ?? 0); $r['fornecedor_id'] = $fid > 0 ? $fid : null;
+    /* a data de referência (a do mês no relatório): o vencimento, se houver; senão, o dia do pagamento */
+    if (($x['situacao'] ?? 'pago') === 'aberto') { $vc = flData($x['vencimento'] ?? '') ?: $d; $r['situacao'] = 'aberto'; $r['vencimento'] = $vc; $r['pago_em'] = ''; $r['data'] = $vc; }
+    else { $pe = flData($x['pago_em'] ?? '') ?: $d; $vc = flData($x['vencimento'] ?? ''); $r['vencimento'] = $vc; $r['pago_em'] = $pe; $r['data'] = $vc ?: $pe; }
   } elseif ($tipo === 'recebimento') {
     $f = (string)($x['forma'] ?? ''); if (!isset(FL_FORMAS[$f]) || $f === 'rede') return ['erro' => 'Escolha a forma de pagamento.']; $r['forma'] = $f;
     $df = (string)($x['data_fech'] ?? ''); $r['data_fech'] = $df === '' ? '' : flData($df);
@@ -106,45 +121,69 @@ function flPublico(array $l): array {
   return ['id' => (int)$l['id'], 'tipo' => (string)$l['tipo'], 'data' => (string)$l['data'], 'descricao' => (string)$l['descricao'], 'filial' => (string)$l['filial'], 'segmento' => (string)$l['segmento'],
     'grupo' => (string)$l['grupo'], 'centro' => (string)$l['centro'], 'forma' => (string)$l['forma'], 'qtd_criancas' => (int)$l['qtd_criancas'], 'qtd_vendas' => (int)$l['qtd_vendas'],
     'valor' => round((float)$l['valor'], 2), 'obs' => (string)$l['obs'], 'data_fech' => (string)$l['data_fech'], 'origem' => (string)$l['origem'],
-    'criado_por' => (string)$l['criado_por'], 'criado_em' => (string)$l['criado_em'], 'alterado_por' => (string)$l['alterado_por'], 'alterado_em' => (string)$l['alterado_em']];
+    'criado_por' => (string)$l['criado_por'], 'criado_em' => (string)$l['criado_em'], 'alterado_por' => (string)$l['alterado_por'], 'alterado_em' => (string)$l['alterado_em'],
+    'fornecedor_id' => (int)($l['fornecedor_id'] ?? 0), 'fornecedor' => (string)($l['fornecedor'] ?? ''), 'situacao' => (string)($l['situacao'] ?? 'pago') ?: 'pago', 'vencimento' => (string)($l['vencimento'] ?? ''),
+    'pago_em' => (string)($l['pago_em'] ?? '') ?: ((string)($l['situacao'] ?? 'pago') === 'aberto' ? '' : (string)$l['data']),
+    'serie' => (string)($l['serie'] ?? ''), 'serie_n' => (int)($l['serie_n'] ?? 0), 'serie_tot' => (int)($l['serie_tot'] ?? 0)];
 }
-const FL_CAMPOS = ['tipo', 'data', 'descricao', 'filial', 'segmento', 'grupo', 'centro', 'forma', 'qtd_criancas', 'qtd_vendas', 'valor', 'obs', 'data_fech'];
+const FL_CAMPOS = ['tipo', 'data', 'descricao', 'filial', 'segmento', 'grupo', 'centro', 'forma', 'qtd_criancas', 'qtd_vendas', 'valor', 'obs', 'data_fech', 'fornecedor_id', 'situacao', 'vencimento', 'pago_em'];
+/* 2.1: como a despesa foi (ou vai ser) paga */
+const FL_FORMAS_PAG = ['pix' => 'Pix', 'boleto' => 'Boleto', 'transferencia' => 'Transferência', 'dinheiro' => 'Dinheiro', 'cartao' => 'Cartão de crédito', 'debito_auto' => 'Débito automático'];
+const FL_SEL = "SELECT l.*, (SELECT nome FROM fin_fornecedores WHERE id = l.fornecedor_id) fornecedor FROM fin_lanc l";
 function flSalvar(array $in, array $eu): array {
   flPreparar(); $db = db(); $id = (int)($in['id'] ?? 0); $tipo = (string)($in['tipo'] ?? '');
   if ($id) { $q = $db->prepare('SELECT * FROM fin_lanc WHERE id = ? AND removido_em IS NULL'); $q->execute([$id]); $a = $q->fetch(); if (!$a) falha('Lançamento não encontrado.', 404); $tipo = (string)$a['tipo']; }
-  $r = flLinha((array)($in['lanc'] ?? []), $tipo, flListas()); if (isset($r['erro'])) falha($r['erro']);
+  $x = (array)($in['lanc'] ?? []); if ($tipo === 'despesa') $x['fornecedor_id'] = fnResolve($x, $eu);
+  $r = flLinha($x, $tipo, flListas()); if (isset($r['erro'])) falha($r['erro']);
+  $rep = $id || $tipo !== 'despesa' ? 1 : max(1, min(60, (int)($in['repetir'] ?? 1)));
   if ($id) {
     $sets = implode(', ', array_map(fn($c) => "$c = ?", array_slice(FL_CAMPOS, 1)));
     $db->prepare("UPDATE fin_lanc SET $sets, alterado_por = ?, alterado_em = ? WHERE id = ?")->execute(array_merge(array_map(fn($c) => $r[$c], array_slice(FL_CAMPOS, 1)), [(string)$eu['nome'], agora(), $id]));
+    /* 2.1: "mudar também as próximas" da recorrência (o aluguel subiu): as que ainda estão a pagar, com o mesmo dia de cada uma */
+    if (!empty($in['proximas']) && (string)$a['serie'] !== '') { $C = ['descricao', 'filial', 'segmento', 'grupo', 'centro', 'forma', 'valor', 'obs', 'fornecedor_id'];
+      $q = $db->prepare('UPDATE fin_lanc SET ' . implode(', ', array_map(fn($c) => "$c = ?", $C)) . ", alterado_por = ?, alterado_em = ? WHERE serie = ? AND serie_n > ? AND situacao = 'aberto' AND removido_em IS NULL");
+      $q->execute(array_merge(array_map(fn($c) => $r[$c], $C), [(string)$eu['nome'], agora(), (string)$a['serie'], (int)$a['serie_n']])); $prox = $q->rowCount(); }
   } else {
-    $db->prepare('INSERT INTO fin_lanc (' . implode(', ', FL_CAMPOS) . ', origem, criado_por, criado_em) VALUES (' . implode(', ', array_fill(0, count(FL_CAMPOS), '?')) . ", 'manual', ?, ?)")
-      ->execute(array_merge(array_map(fn($c) => $r[$c], FL_CAMPOS), [(string)$eu['nome'], agora()])); $id = (int)$db->lastInsertId();
+    $serie = $rep > 1 ? 'r' . bin2hex(random_bytes(6)) : '';
+    $ins = $db->prepare('INSERT INTO fin_lanc (' . implode(', ', FL_CAMPOS) . ', serie, serie_n, serie_tot, origem, criado_por, criado_em) VALUES (' . implode(', ', array_fill(0, count(FL_CAMPOS) + 3, '?')) . ", 'manual', ?, ?)");
+    $ins->execute(array_merge(array_map(fn($c) => $r[$c], FL_CAMPOS), [$serie, $rep > 1 ? 1 : 0, $rep > 1 ? $rep : 0, (string)$eu['nome'], agora()])); $id = (int)$db->lastInsertId();
+    /* 2.1: recorrente todo mês (o aluguel, o salário): as próximas entram como contas a pagar, no mesmo dia de cada mês (ou no último, se o mês for curto) */
+    $base = $r['vencimento'] !== '' ? $r['vencimento'] : $r['data'];
+    for ($k = 1; $k < $rep; $k++) { $r2 = $r; $r2['data'] = $r2['vencimento'] = flMaisMeses($base, $k); $r2['situacao'] = 'aberto'; $r2['pago_em'] = '';
+      $ins->execute(array_merge(array_map(fn($c) => $r2[$c], FL_CAMPOS), [$serie, $k + 1, $rep, (string)$eu['nome'], agora()])); }
   }
-  flAprende([$r]); $q = $db->prepare('SELECT * FROM fin_lanc WHERE id = ?'); $q->execute([$id]); return ['lanc' => flPublico($q->fetch()), 'listas' => flListas()];
+  flAprende([$r]); $q = db()->prepare(FL_SEL . ' WHERE l.id = ?'); $q->execute([$id]); return ['lanc' => flPublico($q->fetch()), 'listas' => flListas(), 'repetidas' => $rep, 'proximas' => $prox ?? 0];
 }
 function flRemover(array $in, array $eu): array {
-  flPreparar(); $q = db()->prepare('UPDATE fin_lanc SET removido_por = ?, removido_em = ? WHERE id = ? AND removido_em IS NULL'); $q->execute([(string)$eu['nome'], agora(), (int)($in['id'] ?? 0)]);
-  if (!$q->rowCount()) falha('Lançamento não encontrado.', 404); return [];
+  flPreparar(); $id = (int)($in['id'] ?? 0); $s = db()->prepare('SELECT serie, serie_n FROM fin_lanc WHERE id = ?'); $s->execute([$id]); $a = $s->fetch();
+  $q = db()->prepare('UPDATE fin_lanc SET removido_por = ?, removido_em = ? WHERE id = ? AND removido_em IS NULL'); $q->execute([(string)$eu['nome'], agora(), $id]);
+  if (!$q->rowCount()) falha('Lançamento não encontrado.', 404); $prox = 0;
+  if (!empty($in['proximas']) && $a && (string)$a['serie'] !== '') { $q = db()->prepare("UPDATE fin_lanc SET removido_por = ?, removido_em = ? WHERE serie = ? AND serie_n > ? AND situacao = 'aberto' AND removido_em IS NULL");
+    $q->execute([(string)$eu['nome'], agora(), (string)$a['serie'], (int)$a['serie_n']]); $prox = $q->rowCount(); }
+  return ['proximas' => $prox];
 }
 // o filtro da lista: o tipo, as datas, a filial, o segmento e a busca (descrição, sub item, centro de custo, obs)
 function flOnde(array $in, array &$p): string {
   $tipo = (string)($in['tipo'] ?? ''); if (!in_array($tipo, FL_TIPOS, true)) falha('Escolha o que listar.');
   $de = flData($in['de'] ?? '') ?: date('Y-m-01'); $ate = flData($in['ate'] ?? '') ?: date('Y-m-t'); if ($ate < $de) [$de, $ate] = [$ate, $de];
   $w = 'removido_em IS NULL AND tipo = ? AND data >= ? AND data <= ?'; $p = [$tipo, $de, $ate];
-  foreach (['filial', 'segmento', 'grupo', 'forma', 'centro'] as $k) { $v = flTxt($in[$k] ?? '', 80); if ($v !== '') { $w .= " AND $k = ?"; $p[] = $v; } }
-  $b = flTxt($in['busca'] ?? '', 60); if ($b !== '') { $w .= " AND (descricao LIKE ? OR obs LIKE ? OR centro LIKE ? OR filial LIKE ? OR segmento LIKE ?)"; $t = '%' . str_replace(['%', '_'], ['', ''], $b) . '%'; array_push($p, $t, $t, $t, $t, $t); }
+  foreach (['filial', 'segmento', 'grupo', 'forma', 'centro', 'situacao'] as $k) { $v = flTxt($in[$k] ?? '', 80); if ($v !== '') { $w .= " AND $k = ?"; $p[] = $v; } }
+  $fid = (int)($in['fornecedor_id'] ?? 0); if ($fid) { $w .= ' AND fornecedor_id = ?'; $p[] = $fid; }
+  $b = flTxt($in['busca'] ?? '', 60); if ($b !== '') { $w .= " AND (descricao LIKE ? OR obs LIKE ? OR centro LIKE ? OR filial LIKE ? OR segmento LIKE ? OR fornecedor_id IN (SELECT id FROM fin_fornecedores WHERE nome LIKE ?))"; $t = '%' . str_replace(['%', '_'], ['', ''], $b) . '%'; array_push($p, $t, $t, $t, $t, $t, $t); }
   return $w;
 }
 function flListar(array $in): array {
   flPreparar(); $db = db(); $p = []; $w = flOnde($in, $p); $pag = max(0, (int)($in['pagina'] ?? 0)); $lim = 200;
-  $q = $db->prepare("SELECT * FROM fin_lanc WHERE $w ORDER BY data DESC, id DESC LIMIT " . ($lim + 1) . ' OFFSET ' . ($pag * $lim)); $q->execute($p); $L = $q->fetchAll();
-  $t = $db->prepare("SELECT COUNT(*) n, COALESCE(SUM(valor), 0) v, COALESCE(SUM(qtd_vendas), 0) qv, COALESCE(SUM(qtd_criancas), 0) qc FROM fin_lanc WHERE $w"); $t->execute($p); $T = $t->fetch();
-  return ['linhas' => array_map('flPublico', array_slice($L, 0, $lim)), 'mais' => count($L) > $lim, 'n' => (int)$T['n'], 'soma' => round((float)$T['v'], 2), 'qv' => (int)$T['qv'], 'qc' => (int)$T['qc'], 'pagina' => $pag];
+  $q = $db->prepare(FL_SEL . " WHERE $w ORDER BY data DESC, id DESC LIMIT " . ($lim + 1) . ' OFFSET ' . ($pag * $lim)); $q->execute($p); $L = $q->fetchAll();
+  $t = $db->prepare("SELECT COUNT(*) n, COALESCE(SUM(valor), 0) v, COALESCE(SUM(qtd_vendas), 0) qv, COALESCE(SUM(qtd_criancas), 0) qc, COALESCE(SUM(CASE WHEN situacao = 'aberto' THEN valor END), 0) ab, SUM(situacao = 'aberto') nab,
+      COALESCE(SUM(CASE WHEN situacao = 'aberto' AND vencimento < ? THEN valor END), 0) atr, SUM(situacao = 'aberto' AND vencimento < ?) natr FROM fin_lanc WHERE $w"); $h = date('Y-m-d', agoraTs()); $t->execute(array_merge([$h, $h], $p)); $T = $t->fetch();
+  return ['linhas' => array_map('flPublico', array_slice($L, 0, $lim)), 'mais' => count($L) > $lim, 'n' => (int)$T['n'], 'soma' => round((float)$T['v'], 2), 'qv' => (int)$T['qv'], 'qc' => (int)$T['qc'], 'pagina' => $pag,
+    'aberto' => round((float)$T['ab'], 2), 'nAberto' => (int)$T['nab'], 'atraso' => round((float)$T['atr'], 2), 'nAtraso' => (int)$T['natr']];
 }
 // tudo de um período (para o Excel)
 function flExportar(array $in): array {
   flPreparar(); $de = flData($in['de'] ?? '') ?: date('Y-01-01'); $ate = flData($in['ate'] ?? '') ?: date('Y-12-31'); if ($ate < $de) [$de, $ate] = [$ate, $de];
-  $q = db()->prepare('SELECT * FROM fin_lanc WHERE removido_em IS NULL AND data >= ? AND data <= ? ORDER BY tipo, data, id'); $q->execute([$de, $ate]);
+  $q = db()->prepare(FL_SEL . ' WHERE l.removido_em IS NULL AND l.data >= ? AND l.data <= ? ORDER BY l.tipo, l.data, l.id'); $q->execute([$de, $ate]);
   $O = ['receita' => [], 'despesa' => [], 'recebimento' => [], 'rede' => []]; foreach ($q->fetchAll() as $l) $O[(string)$l['tipo']][] = flPublico($l);
   return ['de' => $de, 'ate' => $ate, 'lanc' => $O];
 }
