@@ -40,7 +40,7 @@ function wireSlide(){
     if(k && (ev.key==='Enter' || ev.key===' ' || ev.key==='ArrowRight')){ ev.preventDefault(); done(k.closest('.slide')); }
   });
 }
-function startSession(t){ if(!S.session){ S.session = {t, start:Date.now(), acc:0, run:true, gym:'', d:today(), ini:Date.now()}; setTimeout(treinoAviso, 0); dsAsk(); toast('Cronômetro do treino '+t+' ligado. Bom treino.'); } }
+function startSession(t){ if(!S.session){ S.session = {t, start:Date.now(), acc:0, run:true, gym:'', d:today(), ini:Date.now()}; setTimeout(treinoAviso, 0); dsAsk(); toast('Cronômetro do treino '+t+' ligado. Bom treino.'); ui.sheet = {k:'gym'}; setTimeout(() => { if(ui.sheet && ui.sheet.k==='gym') renderSheet(true); }, 0); } }
 /* ---------- academia do dia: o aluno escreve o nome uma vez; nos próximos treinos é só tocar ---------- */
 const gymKey = v => String(v||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
 const gymNome = v => String(v||'').replace(/\s+/g,' ').trim().slice(0,40);
@@ -340,6 +340,7 @@ function onClick(ev){
     case 'exq-done': { const bk = ui.sheet && ui.sheet.back; if(bk){ ui.sheet = bk; renderSheet(true); } else closeSheet(); toast(isPersonal() ? 'Comentário salvo. Vai para o seu personal.' : 'Comentário salvo.'); re = false; break; }
     case 'exq': { const x = excOf(d.ex, true), v = d.v, k = x.q.indexOf(v); if(k>=0) x.q.splice(k,1); else { if(EXQ3.includes(v)) x.q = x.q.filter(q => !EXQ3.includes(q)); x.q.push(v); } excHist(d.ex); renderSheet(); re = false; break; }
     case 'st-open': stPick(+d.i); re = false; break;
+    case 'sum-st': { const s = ui.sheet; if(s && s.k==='sum'){ PREF.stM = d.v; savePref(); stOpen(s.i, d.v); } re = false; break; }
     case 'cst-open': cPick(+d.j); re = false; break;
     case 'cstp-go': { const s = ui.sheet; if(s && s.k==='cstpick'){ clearTimeout(stpT); PREF.cstM = d.v; savePref(); cOpen(s.j, d.v); } re = false; break; }
     case 'cstp-x': { const s = ui.sheet; if(s && s.k==='cstpick' && s.xOn){ closeSheet(); toast('Quando quiser, poste pelo botão de compartilhar em Cardio › Recentes.'); } re = false; break; }

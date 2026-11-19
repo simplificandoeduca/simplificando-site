@@ -86,11 +86,9 @@ test('primeiro acesso sem interrupções: "Instale o app" é o passo 4 do cadast
   await expect(page.locator('#pick')).toHaveCount(0);
   expect(await simp(page, () => [window.__simp.PREF.treinoLayout, window.__simp.PREF.cardioLayout])).toEqual(['lista', 'toque']);
   await expect(page.locator('.lay-dica')).toContainText('Lista viva');
-  // começa o treino: sem a janela da academia (fica a linha no topo do treino)
+  // começa o treino: pergunta a academia (como antes)
   await simp(page, () => { const T = window.__simp; T.startSession(T.LETTERS[0]); T.render(); });
-  await page.waitForTimeout(2500);
-  expect(await simp(page, () => window.__simp.ui.sheet)).toBeNull();
-  await expect(page.locator('.gym-chip')).toContainText('Em qual academia você está?');
+  await page.waitForFunction(() => window.__simp.ui.sheet && window.__simp.ui.sheet.k === 'gym');
 });
 
 test('app de teste (/app-teste): entra direto com o aluno de exemplo, sem senha e sem o Firebase, com os dados separados do app de verdade', async ({ page }) => {
