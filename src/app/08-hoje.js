@@ -79,7 +79,7 @@ function workoutCard(){
   const tot = totalSets(t), dn = doneSetsPlan(t), prs = livePRs(t).length, low = lowReady(S.checkin[t0]);
   const prog = ses
     ? `<div>${bar(dn/tot)}<p class="muted sm" style="margin-top:8px">${dn} de ${tot} séries feitas${prs?' · '+prs+' recorde'+(prs>1?'s':'')+' hoje':''}</p></div>`
-    : `<div class="chips">${p.ex.slice(0,2).map(e => `<span class="chip">${e.nome}</span>`).join('')}${p.ex.length>2?`<span class="chip">+${p.ex.length-2}</span>`:''}</div>`;
+    : ''; // os nomes dos exercícios saíram do card (o treino mostra tudo)
   const pill = done ? `<span class="pill">${ic('check')}Feito</span>` : ses ? '<span class="pill">Em andamento</span>' : '';
   return `<section class="card wcard wkc wk-${['A','B','C','D','E'].includes(t)?t:'A'}" aria-label="Treino de hoje: ${p.nome}">${WK_ART}<div class="card-h"><span class="label">${ic('dumbbell')}Treino de hoje</span>${pill}</div>
     <div><h2 class="big">${p.nome}<span class="dot" aria-hidden="true"></span></h2><p class="muted">${p.foco} · ${p.ex.length} exercícios · cerca de ${p.min} min</p></div>${prog}

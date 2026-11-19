@@ -67,7 +67,8 @@ async function cdFalso(q, r, url) {
     const a = CD_ARQ[url.searchParams.get('id')]; if (!a) return json(r, { ok: false }, 404);
     r.setHeader('Content-Type', a[1]); r.setHeader('Content-Length', fs.statSync(a[0]).size); return fs.createReadStream(a[0]).pipe(r);
   }
-  const ini = url.searchParams.get('ini'), hoje = dk(new Date()), amanha = dk(new Date(Date.now() + 864e5)), dias = {};
+  const sp = d => d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }); // o mesmo fuso do navegador do robô
+  const ini = url.searchParams.get('ini'), hoje = sp(new Date()), amanha = sp(new Date(Date.now() + 864e5)), dias = {};
   for (let i = 0; i < 7; i++) { const d = new Date(ini + 'T12:00:00'); d.setDate(d.getDate() + i); dias[dk(d)] = []; }
   const leg = 'Cardio em jejum emagrece mais? 🤔\n\nSpoiler: o que manda é o total do dia, não a hora. Arrasta pro lado que eu te explico em 7 telas 👉\n\nSalva pra lembrar e manda pra quem vive dizendo que só faz cardio em jejum.\n\n#simplificando #cardio #emagrecimento #treino';
   if (dias[hoje]) dias[hoje] = [
