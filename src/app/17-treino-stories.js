@@ -55,10 +55,10 @@ function stCrono(c,D,T){
   c.lineCap = 'butt';
   stTxt(c,'● TEMPO DE TREINO',cx,cy-90,'800 34px '+ST_SANS,STC.lm,'center',6);
   c.fillStyle = '#1C2620'; stRR(c,cx-250,cy-50,500,170,30); c.fill();
-  const mm = Math.floor(D.sec/60), ss = D.sec%60, tt = String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0');
+  const hh = Math.floor(D.sec/3600), mm = Math.floor(D.sec%3600/60), ss = D.sec%60, tt = (hh ? hh+':'+String(mm).padStart(2,'0') : String(mm).padStart(2,'0'))+':'+String(ss).padStart(2,'0');
   c.font = '800 128px '+ST_MONO; stLs(c,-4); const tz = Math.min(128, Math.floor(128*460/Math.max(1,c.measureText(tt).width))); stLs(c,0);
   stTxt(c,tt,cx,cy+74,'800 '+tz+'px '+ST_MONO,STC.cr,'center',-4);
-  stTxt(c,'min : seg',cx,cy+190,'700 36px '+ST_SANS,'#9AA29B','center');
+  stTxt(c,hh ? 'h : min : seg' : 'min : seg',cx,cy+190,'700 36px '+ST_SANS,'#9AA29B','center');
   c.restore();
   // título
   const tit = D.nome+' em dia', z = stFit(c,tit+'.',ST_SANS,110,900,900);
@@ -115,7 +115,7 @@ function stCupom(c,D,cor){
   const tot = fmtN(D.vol)+' kg'; c.font = '900 110px '+ST_MONO; stLs(c,-5); const tz = Math.min(110, Math.floor(110*560/Math.max(1,c.measureText(tot).width))); stLs(c,0);
   stTxt(c,tot,X+PW-P,y+92,'900 '+tz+'px '+ST_MONO,STC.dk,'right',-5);
   y += 120;
-  row('Tempo de treino', D.min+' min'); row('Recordes batidos', D.prs+(D.prs?' ★':''), D.prs>0);
+  row('Tempo de treino', fmtMin(D.min)); row('Recordes batidos', D.prs+(D.prs?' ★':''), D.prs>0);
   y = ys+Z+44; c.fillStyle = STC.dk;
   for(let x=0;x<PW-2*P;x+=40) [[0,6],[12,16],[26,34]].forEach(([a,b]) => { const w = Math.min(b, PW-2*P-x) - a; if(w>0) c.fillRect(X+P+x+a,y,w,110); });
   y += 110+26;
@@ -268,7 +268,7 @@ function vStPick(){
   const p = PLAN[h.t] || {nome:'Treino'};
   return `<div class="stp" role="dialog" aria-modal="true" aria-labelledby="stp-t" tabindex="-1">
     <button type="button" class="btn round stp-x${s.xOn?' on':''}" data-a="stp-x" aria-label="Agora não"${s.xOn?'':' tabindex="-1" aria-hidden="true"'}>${ic('x')}</button>
-    <div class="stp-h"><p class="eyebrow">Treino ${h.t} · ${esc(p.nome)} · ${h.min} min</p><h2 id="stp-t">Treino concluído<span class="dot" aria-hidden="true"></span></h2><p>Agora mostra pra todo mundo. Escolha como quer postar no seu story:</p></div>
+    <div class="stp-h"><p class="eyebrow">Treino ${h.t} · ${esc(p.nome)} · ${fmtMin(h.min)}</p><h2 id="stp-t">Treino concluído<span class="dot" aria-hidden="true"></span></h2><p>Agora mostra pra todo mundo. Escolha como quer postar no seu story:</p></div>
     <div class="stp-cards">${ST_MODS.map(([m,n,d],j) => `<button type="button" class="stp-c" data-a="stp-go" data-v="${m}" style="--d:${j*90}ms"><span class="stp-th"><canvas data-st-th="${m}" width="270" height="480" aria-hidden="true"></canvas>${m==='foto'?`<i>${ic('camera')}</i>`:''}</span><b>${n}</b><small>${d}</small></button>`).join('')}</div>
     <p class="stp-f">${ic('share')}Depois é só tocar em Instagram ou WhatsApp.</p>${igCard((h.prs||[]).length>0)}</div>`;
 }
@@ -347,7 +347,7 @@ function cDraw(c, D, m, cor, o){
     c.fillStyle = P.paper; stRR(c,60,640,960,640,64); c.fill();
     if(!(o && o.sem)){ cLinhas(c,P,null); cBoneco(c,90,690,900,583,D,o && o.phase,o && o.dt); }
     cTitulo(c,cFrase(D),1420,96,P.tx,P.dot);
-    const pills = (D.km ? [D.kmT+' km','pace '+D.pace+'/km'] : [D.intT,D.min+' min']).concat([D.zona]);
+    const pills = (D.km ? [D.kmT+' km','pace '+D.pace+'/km'] : [D.intT,fmtMin(D.min)]).concat([D.zona]);
     c.font = '800 40px '+ST_SANS; const ws = pills.map(t => c.measureText(t).width+72), tot = ws.reduce((a,b) => a+b,0)+2*20; let x = 540-tot/2;
     const pc = [[P.pan,P.panTx],[P.paper,STC.dk],[cor==='verde'?STC.dk:STC.lm, cor==='verde'?STC.lm:STC.dk]];
     pills.forEach((t,i) => { c.fillStyle = pc[i][0]; stRR(c,x,1510,ws[i],96,48); c.fill(); stTxt(c,t,x+ws[i]/2,1572,'800 40px '+ST_SANS,pc[i][1],'center'); x += ws[i]+20; });
@@ -364,7 +364,7 @@ function cDraw(c, D, m, cor, o){
     stTxt(c,'SOFÁ',X+60,Y+380,'900 104px '+ST_SANS,STC.dk,'left',-5); stTxt(c,'META',X+PW-60,Y+380,'900 104px '+ST_SANS,STC.dk,'right',-5);
     c.strokeStyle = STC.rd; c.lineWidth = 8; c.setLineDash([2,18]); c.lineCap = 'round'; c.beginPath(); c.moveTo(X+350,Y+340); c.lineTo(X+PW-420,Y+340); c.stroke(); c.setLineDash([]);
     c.fillStyle = STC.rd; c.beginPath(); c.moveTo(X+PW-385,Y+340); c.lineTo(X+PW-420,Y+318); c.lineTo(X+PW-420,Y+362); c.closePath(); c.fill();
-    const F = [['APARELHO',D.local],['TEMPO',D.min+' min']].concat(D.km ? [['DISTÂNCIA',D.kmT+' km']] : []).concat([['INTENSIDADE',D.intT]]).concat(D.km ? [['PACE',D.pace+'/km']] : []).concat([['ASSENTO',D.zona]]);
+    const F = [['APARELHO',D.local],['TEMPO',fmtMin(D.min)]].concat(D.km ? [['DISTÂNCIA',D.kmT+' km']] : []).concat([['INTENSIDADE',D.intT]]).concat(D.km ? [['PACE',D.pace+'/km']] : []).concat([['ASSENTO',D.zona]]);
     F.forEach(([l,v],i) => { const x = X+60+(i%3)*270, y = Y+520+Math.floor(i/3)*190; stTxt(c,l,x,y,'800 26px '+ST_SANS,'#7A817C','left',3); c.font = '900 54px '+ST_SANS; stTxt(c,stCorte(c,v,250),x,y+66,'900 54px '+ST_SANS,STC.dk,'left',-2); });
     stTxt(c,'SEMANA',X+60,Y+930,'800 26px '+ST_SANS,'#7A817C','left',3); c.fillStyle = '#E2E3DC'; stRR(c,X+250,Y+905,PW-310,28,14); c.fill();
     c.fillStyle = STC.rd; stRR(c,X+250,Y+905,Math.max(28,(PW-310)*Math.min(1,D.semana/D.meta)),28,14); c.fill();
@@ -375,7 +375,7 @@ function cDraw(c, D, m, cor, o){
   } else if(m==='csem'){
     cMarca(c,P.tx,P.dot);
     stTxt(c,'MINHA SEMANA DE CARDIO',90,330,'800 34px '+ST_SANS,P.tx,'left',6);
-    const big = '+'+D.min+' min'; stTxt(c,big,90,500,'900 150px '+ST_SANS,P.tx,'left',-7); c.font = '900 150px '+ST_SANS; stLs(c,-7); const w = c.measureText(big).width; stLs(c,0); stTxt(c,'.',90+w,500,'900 150px '+ST_SANS,P.dot);
+    const big = '+'+fmtMin(D.min); stTxt(c,big,90,500,'900 150px '+ST_SANS,P.tx,'left',-7); c.font = '900 150px '+ST_SANS; stLs(c,-7); const w = c.measureText(big).width; stLs(c,0); stTxt(c,'.',90+w,500,'900 150px '+ST_SANS,P.dot);
     stTxt(c,[(CST_DE[D.local]||'de cardio')+hoje].concat(D.km ? [D.kmT+' km'] : []).concat([D.intT.toLowerCase()]).join(' · '),90,570,'700 40px '+ST_SANS,P.sub);
     const top = 700, base = 1250, bw = 100, gap = (900-7*bw)/6, mx = Math.max(45, CARDIO.min*1.6, ...D.dias), dl = ['SEG','TER','QUA','QUI','SEX','SÁB','DOM'];
     const yg = base-(base-top)*CARDIO.min/mx; c.setLineDash([14,12]); c.strokeStyle = P.sub; c.globalAlpha = .55; c.lineWidth = 4; c.beginPath(); c.moveTo(90,yg); c.lineTo(990,yg); c.stroke(); c.setLineDash([]); c.globalAlpha = 1;
@@ -416,7 +416,7 @@ function vCStPick(){
   const s = ui.sheet, D = cDados(s.j); if(!D) return '';
   return `<div class="stp" role="dialog" aria-modal="true" aria-labelledby="stp-t" tabindex="-1">
     <button type="button" class="btn round stp-x${s.xOn?' on':''}" data-a="cstp-x" aria-label="Agora não"${s.xOn?'':' tabindex="-1" aria-hidden="true"'}>${ic('x')}</button>
-    <div class="stp-h"><p class="eyebrow">${esc(D.local)} · ${D.min} min · ${esc(D.intT.toLowerCase())}</p><h2 id="stp-t">Cardio feito<span class="dot" aria-hidden="true"></span></h2><p>Agora mostra pra todo mundo. Escolha como quer postar no seu story:</p></div>
+    <div class="stp-h"><p class="eyebrow">${esc(D.local)} · ${fmtMin(D.min)} · ${esc(D.intT.toLowerCase())}</p><h2 id="stp-t">Cardio feito<span class="dot" aria-hidden="true"></span></h2><p>Agora mostra pra todo mundo. Escolha como quer postar no seu story:</p></div>
     <div class="stp-cards c4">${CST_MODS.map(([m,n,d],j) => `<button type="button" class="stp-c" data-a="cstp-go" data-v="${m}" style="--d:${j*80}ms"><span class="stp-th"><canvas data-cst-th="${m}" width="270" height="480" aria-hidden="true"></canvas>${m==='cbon'?`<i>${ic('play')}</i>`:''}</span><b>${n}</b><small>${d}</small></button>`).join('')}</div>
     <p class="stp-f">${ic('share')}Depois é só tocar em Instagram ou WhatsApp.</p>${igCard(false)}</div>`;
 }

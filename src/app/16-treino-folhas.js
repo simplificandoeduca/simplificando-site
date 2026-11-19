@@ -56,7 +56,7 @@ function vSummary(i){
   const prRows = prd.map(r => { const f = findEx(r.id); if(!f) return '';
     return `<div class="row"><span class="num pr">${ic('trophy')}</span><span class="main"><b>${f.e.nome}</b><span>${r.kg!=null?`${fmtKg(r.kg)} kg × ${r.reps} · 1RM estimado ${fmtKg(Math.round(r.e1))} kg, antes ${fmtKg(Math.round(r.prev))} kg`:'Recorde de carga neste dia'}</span></span></div>`; }).join('');
   return `<div class="sheet-wrap" data-a="closebg"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t" tabindex="-1">${sheetTop('Treino '+h.t+' · '+p.nome+' · '+dayLabel(h.date)+(h.gym?' · '+esc(h.gym):''), (isNew?'Treino concluído':'Resumo do treino')+'<span class="dot" aria-hidden="true"></span>')}
-    <div class="sum-grid sg4"><div class="sg-min">${tw('s-min',h.min,'i',String(h.min))}<span>minuto${h.min===1?'':'s'} de treino</span></div>
+    <div class="sum-grid sg4"><div class="sg-min">${h.min>=60 ? `<b>${fmtMin(h.min)}</b>` : tw('s-min',h.min,'i',String(h.min))}<span>${h.min>=60 ? 'de treino' : 'minuto'+(h.min===1?'':'s')+' de treino'}</span></div>
     <div class="sg-vol">${tw('s-vol',h.vol,'i',fmtN(h.vol))}<span>kg de volume${dv!=null?` · ${dv>=0?'+':''}${dv}% sobre o último ${h.t}`:''}</span></div>
     <div class="sg-sets">${tw('s-sets',h.sets,'i',String(h.sets))}<span>série${h.sets===1?'':'s'} feita${h.sets===1?'':'s'}</span></div>
     <div class="sg-pr">${tw('s-pr',prd.length,'i',String(prd.length))}<span>recorde${prd.length===1?'':'s'} pessoa${prd.length===1?'l':'is'}</span></div></div>

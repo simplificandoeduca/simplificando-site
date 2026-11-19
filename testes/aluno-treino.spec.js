@@ -166,3 +166,12 @@ test('arrastar o dedo para o lado troca de aba (Hoje → Treino → Hoje); come�
   await desliza(page, 300, 420, 260, 600); // mais para baixo do que para o lado: é rolagem
   expect(await simp(page, () => window.__simp.ui.tab)).toBe('hoje');
 });
+
+test('tempo do treino: até 59 min fica em minutos; de 60 para cima vira horas (81 min → 1h21)', async ({ page }) => {
+  const { id } = await comeca(page);
+  await simp(page, id => { const T = window.__simp, S = T.S; S.session.ini = Date.now() - 81 * 60e3; S.session.start = S.session.ini; T.getLog(id).forEach(x => { x.ok = true; x.kg = '50'; x.reps = '10'; }); T.save(); }, id);
+  await page.click('[data-a="finish"]'); await page.click('[data-a="finish"]');
+  await page.waitForFunction(() => window.__simp.ui.sheet && window.__simp.ui.sheet.k === 'sum');
+  await expect(page.locator('#sheet .sg-min')).toContainText('1h21');
+  await expect(page.locator('#sheet .sg-min')).toContainText('de treino');
+});

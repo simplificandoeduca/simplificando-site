@@ -82,7 +82,7 @@ function vEvo(){
     <tr><th scope="row">Energia</th>${cds.map(k => cell(S.checkin[k],'energia')).join('')}</tr>
     <tr><th scope="row">Dor</th>${cds.map(k => cell(S.checkin[k],'dor')).join('')}</tr></tbody></table>`;
   const hist = S.history.map((h,i) => [h,i]).reverse().slice(0,8).map(([h,i]) =>
-    `<button type="button" class="row" data-a="hist" data-i="${i}"><span class="num">${h.t}</span><span class="main"><b>Treino ${h.t} · ${(PLAN[h.t]||{nome:'Treino'}).nome}</b><span>${h.min} min · ${h.sets} séries · ${fmtN(h.vol)} kg${h.rpe?' · PSE '+h.rpe:''}${(h.prs||[]).length?' · '+h.prs.length+' recorde'+(h.prs.length>1?'s':''):''}</span>${h.note?`<span>${ic('msg')} ${esc(h.note.length>46?h.note.slice(0,46)+'...':h.note)}</span>`:''}</span><span class="when">${dayLabel(h.date)}</span></button>`
+    `<button type="button" class="row" data-a="hist" data-i="${i}"><span class="num">${h.t}</span><span class="main"><b>Treino ${h.t} · ${(PLAN[h.t]||{nome:'Treino'}).nome}</b><span>${fmtMin(h.min)} · ${h.sets} séries · ${fmtN(h.vol)} kg${h.rpe?' · PSE '+h.rpe:''}${(h.prs||[]).length?' · '+h.prs.length+' recorde'+(h.prs.length>1?'s':''):''}</span>${h.note?`<span>${ic('msg')} ${esc(h.note.length>46?h.note.slice(0,46)+'...':h.note)}</span>`:''}</span><span class="when">${dayLabel(h.date)}</span></button>`
   ).join('') || empBox('hist','Seu histórico está vazio','Seus treinos ficam guardados aqui, dia por dia.',true);
   const mesNome = new Date().toLocaleDateString('pt-BR',{month:'long'});
   // os números desta semana (antes ficavam no Hoje)

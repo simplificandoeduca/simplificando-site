@@ -62,6 +62,8 @@ const num = s => { const v = parseFloat(String(s==null?'':s).replace(',','.')); 
 const int = s => parseInt(s,10) || 0;
 function fmtDur(ms){ const s = Math.max(0,Math.floor(ms/1000)), h = Math.floor(s/3600), m = Math.floor(s%3600/60); return (h ? h+':'+pad(m) : pad(m))+':'+pad(s%60); }
 const hm = m => pad(Math.floor(m/60))+':'+pad(Math.floor(m%60));
+// tempo em minutos para mostrar: até 59 → "45 min"; de 60 para cima → "1h10" (ou "1h")
+const fmtMin = m => { m = Math.round(+m||0); return m<60 ? m+' min' : Math.floor(m/60)+'h'+(m%60 ? pad(m%60) : ''); };
 const nowMin = () => { const d = new Date(); return d.getHours()*60+d.getMinutes(); };
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const range = r => { const m = String(r).match(/\d+/g) || ['10']; const lo = +m[0]; return [lo, m[1] ? +m[1] : lo]; };
