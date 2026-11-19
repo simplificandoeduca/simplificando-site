@@ -13,8 +13,9 @@ require __DIR__ . '/resumo.php';   // 1.54: os números, o PDF e o e-mail do res
 require __DIR__ . '/gestao.php';   // 2.0: os lançamentos do financeiro (receitas, despesas, recebimentos), o relatório e o PDF dele
 require __DIR__ . '/gestao2.php';   /* 2.1: fornecedores, contas a pagar, o painel financeiro e as planilhas */
 require __DIR__ . '/caixa.php';   /* 2.2: o controle de caixa (o caixa do dia conferido com a Rede) */
+require __DIR__ . '/festas.php';   /* 2.3: as festas, com o lucro real de cada uma */
 set_exception_handler(function (Throwable $e) { registrarErro('[financas] ' . $e->getMessage() . ' @' . basename($e->getFile()) . ':' . $e->getLine()); falha('Algo deu errado. Tente de novo em instantes.', 500); });
-const FIN_VERSAO = '2.2';
+const FIN_VERSAO = '2.3';
 
 $in = [];
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
@@ -181,6 +182,9 @@ if ($acao === 'fl_pdf') flPdfSaida($in);
 /* ---------- 2.2: o controle de caixa: o que passou no caixa no dia (crédito, débito, Pix) e o valor da Rede, conferidos ---------- */
 if ($acao === 'cx_dia') responder(cxDia($in));
 if ($acao === 'cx_salvar') responder(cxSalvar($in, $eu));
+/* ---------- 2.3: as festas: o que vem do sistema e o que o dono lança (buffet, salgados, papelaria, adiantamento, retornado) → o lucro real ---------- */
+if ($acao === 'fs_listar') responder(fsListar($in));
+if ($acao === 'fs_salvar') responder(fsSalvar($in, $eu));
 /* ---------- 2.1: fornecedores, contas a pagar, o painel financeiro e as planilhas ---------- */
 if ($acao === 'fn_listar') responder(fnListar($in));
 if ($acao === 'fn_nomes') { flPreparar(); responder(['fornecedores' => fnNomes()]); }

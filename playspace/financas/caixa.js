@@ -120,7 +120,7 @@ function cxLigar() {
     cxPinta(card);
     $$('input[data-cxinp]', card).forEach(inp => {
       inp.addEventListener('input', () => cxPinta(card));
-      inp.addEventListener('focus', () => { setTimeout(() => { try { inp.select(); } catch (e) { /* sem seleção */ } }, 0); });
+      fsSeleciona(inp);   /* 1.62 (festas.js): seleciona na hora; a seleção de depois apagava a 1ª tecla de quem digita rápido */
       inp.addEventListener('keydown', e => { if (e.key !== 'Enter') return; e.preventDefault(); const L = $$('input[data-cxinp]'), i = L.indexOf(inp); if (L[i + 1]) L[i + 1].focus(); else inp.blur(); });
       inp.addEventListener('change', () => cxGuardar(card, inp));
     });

@@ -390,6 +390,10 @@ function db(): PDO {
       pago_em TEXT, por INTEGER, por_nome TEXT NOT NULL DEFAULT '', papel TEXT NOT NULL DEFAULT '', unidade_id INTEGER, visto_em TEXT, visto_por TEXT NOT NULL DEFAULT '')");
     $pdo->exec('PRAGMA user_version = 37');
   }
+  if ($v < 38) { // 1.62: em quantas vezes a festa foi no crédito (0 = a venda não disse). As Finanças mostram na tela das Festas
+    try { $pdo->exec('ALTER TABLE vendas ADD COLUMN parcelas INTEGER NOT NULL DEFAULT 0'); } catch (Throwable $e) { }
+    $pdo->exec('PRAGMA user_version = 38');
+  }
   return $pdo;
 }
 /* ---------- 1.06: unidades ---------- */

@@ -1301,6 +1301,22 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzr. Finanças 2.3: as Festas, com o lucro real (1.62)
+
+Pedido do dono: "embaixo do caixa, um Festas: do sistema, a data, quem fez a venda, o valor bruto da festa, a data da festa, a forma de pagamento e em quantas vezes foi. E os campos que eu lanço à mão (as meninas não lançam): buffet (varia com a quantidade de crianças), salgados e papelaria; o adiantamento da festa (R$ 500, para balão e outras despesas) e o valor retornado (nem sempre gastam tudo). No fim, o lucro real. Tudo para digitar, tipo um Excel, mas com a cara do sistema".
+
+- **Festas** fica logo abaixo do **Controle de caixa** no menu (no celular, **Festas** na barra de baixo).
+- **O mês** (‹ ›, pela data da festa), a **unidade** e a **busca** pelo aniversariante, pelo tema ou por quem vendeu.
+- **Cada festa é uma linha**, como numa planilha:
+  - **Do sistema:** a festa (aniversariante, dia, horário, unidade e tema), a **venda** (o dia e quem vendeu), as **crianças** (as do pacote, os adicionais e quantas vieram), o **valor bruto** (a festa, o upgrade e o adicional) e o **pagamento** (cada forma com o valor; no crédito, em quantas vezes).
+  - **Você lança:** **Buffet** (embaixo aparece quanto deu por criança), **Salgados**, **Papelaria**, **Adiantamento** e **Retornado**. Enter desce para a festa de baixo, na mesma coluna; Tab vai para o lado. O valor fica salvo ao sair do campo, e cada mudança fica no histórico.
+  - **Resultado:** o **gasto do adiantamento** (adiantamento − retornado) e o **lucro real** = valor bruto − buffet − salgados − papelaria − gasto do adiantamento. Lucro negativo fica em vermelho.
+- **O retornado nunca passa do adiantamento** (o sistema avisa e não deixa).
+- **Em cima:** quantas festas tem no mês (e quantas ainda sem os custos, com o selo **falta lançar**), o valor bruto, os custos e o **lucro real** do mês, com a margem. **Embaixo:** a linha do total.
+- **Exportar Excel:** a planilha das festas do mês, com tudo e o total.
+- **Em quantas vezes no crédito:** na venda da festa (no Play Space da loja), quando o crédito está no pagamento, aparece **"Em quantas vezes no crédito?"** (1x a 4x). A atendente toca na que o cliente escolheu na maquininha, e isso aparece nas Festas. Nas vendas de antes (ou se ninguém tocou), você escolhe as vezes na própria linha.
+- A festa cancelada (sem venda) não aparece.
+
 ## 6zzq. Finanças 2.2: o Controle de caixa (1.61)
 
 Pedido do dono: "uma tela de controle de caixa diário: escolher a data e ver o que passou no caixa naquele dia, no crédito, no débito e no Pix; um campo em branco onde eu lanço os valores da Rede; ele compara e dá um positivo ou um negativo (não quero ninguém olhando se bateu 1.225); um filtro para o caixa de hoje, o de ontem ou a data que eu escolher; e que seja o ícone inicial do financeiro".
