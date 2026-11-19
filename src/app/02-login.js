@@ -307,6 +307,7 @@ function instLogin(){
     (LG.inst ? `<div class="in-login">${instCorpo()}</div>` : '');
 }
 function renderLogin(focusSel){
+  const bt = document.querySelector('.boot'); if(bt) bt.remove(); // a abertura (logo girando) sai quando o login aparece
   const w = lgShell();
   if(LG.view==='setup'){ w.innerHTML = vSetup(); }
   else if(LG.view==='entrar'){ w.innerHTML = vEntrar(); }

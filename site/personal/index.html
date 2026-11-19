@@ -471,7 +471,21 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeri
 .gate{position:fixed;inset:0;z-index:200;background:var(--bg);color:var(--fg);overflow-y:auto;overscroll-behavior:contain}
 .gate[hidden]{display:none}
 .gate-in{max-width:440px;margin:0 auto;min-height:100%;min-height:100dvh;display:flex;flex-direction:column;gap:14px;padding:calc(32px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(32px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));isolation:isolate}
-.gate-logo{width:72px;height:72px}.gate-logo svg{width:100%;height:100%}
+.gate-logo{width:72px;height:72px}.gate-logo svg{width:100%;height:100%}/* carregando (painel e hub): o logo em 3D girando */
+.gate-load{justify-content:center;align-items:center}.coin-wrap{display:flex;flex-direction:column;align-items:center;gap:22px;perspective:900px;margin-bottom:6px}.coin-wrap.hub .coin3d>i{background:#D9D9D2;box-shadow:inset 0 0 0 3px #C9C9C1}
+.coin3d{position:relative;width:132px;height:132px;transform-style:preserve-3d;animation:coinGira 3.2s cubic-bezier(.6,.05,.4,.95) infinite}
+.coin3d>i{position:absolute;inset:0;border-radius:50%;background:#2B3A31;box-shadow:inset 0 0 0 3px #3C4C42}
+.coin3d .cf{position:absolute;inset:0;border-radius:50%;overflow:hidden;backface-visibility:hidden;transform:translateZ(9px)}.coin3d .cf.cb{transform:rotateY(180deg) translateZ(9px)}
+.coin3d .cf svg{width:100%;height:100%;display:block}
+.coin3d .cf::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.28) 48%,transparent 60%);animation:coinBrilho 3.2s linear infinite}
+.coin-sh{width:110px;height:16px;border-radius:50%;background:rgba(0,0,0,.55);filter:blur(7px);margin-top:-8px;animation:coinSombra 3.2s cubic-bezier(.6,.05,.4,.95) infinite}
+.boot-d i{display:inline-block;width:6px;height:6px;border-radius:50%;margin:0 3px;background:#F6F5EF;animation:coinPisca 1.2s infinite}.boot-d i:nth-child(2){animation-delay:.2s}.boot-d i:nth-child(3){animation-delay:.4s}
+@keyframes coinGira{from{transform:rotateX(14deg) rotateY(0)}to{transform:rotateX(14deg) rotateY(360deg)}}
+@keyframes coinBrilho{from{transform:translateX(-120%)}to{transform:translateX(120%)}}
+@keyframes coinSombra{0%,50%,100%{transform:scaleX(1)}25%,75%{transform:scaleX(.35)}}
+@keyframes coinPisca{0%,100%{opacity:.25}50%{opacity:1}}
+@media (prefers-reduced-motion:reduce){.coin3d,.coin-sh,.coin3d .cf::after{animation:none}}
+
 .gate-eb{margin:8px 0 0;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--brand)}
 .gate h1{margin:0;font-size:40px;font-weight:900;letter-spacing:-.05em;line-height:1}
 .gate h1 .dot{display:inline-block;width:.2em;height:.2em;border-radius:50%;background:var(--brand);margin-left:.04em}
@@ -2431,6 +2445,8 @@ IC.star = '<path d="M12 3.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8-5.3-2.8-5.3 2.8 1-5.8-4.
 IC.trend = '<path d="M4 16l5-5 4 4 7-7M15 8h5v5"/>';
 /* logo do hub: "H." preto no fundo branco, com o mesmo anel de 4 cores do logo */
 const H_PATH = 'M3.1 0H23V-29.4H49.3V0H69.2V-73.2H49.3V-45.4H23V-73.2H3.1Z', HDOT_PATH = 'M84.5 1.2C90.2 1.2 94.6 -3.1 94.6 -8.8C94.6 -14.5 90.2 -18.8 84.5 -18.8C78.7 -18.8 74.4 -14.5 74.4 -8.8C74.4 -3.1 78.7 1.2 84.5 1.2Z';
+/* logo em 3D girando (moeda grossa) nas telas de carregamento do painel e do hub */
+function coin3d(svg, hub){ let ed = ''; for(let z=-8; z<=8; z+=2) ed += '<i style="transform:translateZ('+z+'px)"></i>'; return '<div class="coin-wrap'+(hub?' hub':'')+'" aria-hidden="true"><div class="coin3d">'+ed+'<span class="cf">'+svg+'</span><span class="cf cb">'+svg+'</span></div><span class="coin-sh"></span></div>'; }
 function hubLogo(){
   const arc = (d,c) => '<path d="'+d+'" fill="none" stroke="'+c+'" stroke-width="3.8"/>';
   return '<svg class="logo" viewBox="-50 -50 100 100" role="img" aria-label="Hub"><circle r="50" fill="#FFFFFF"/>'+
@@ -3682,7 +3698,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '19 nov · 160'; // Versão do painel: 19 nov · 160
+const PAINELV = '19 nov · 161'; // Versão do painel: 19 nov · 161
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -5226,7 +5242,7 @@ function gateFirebase(){
   function say(msg, ok){ st.msg = msg; st.ok = !!ok; const e = document.getElementById('g-err'); if(e){ e.textContent = msg; e.classList.toggle('ok', !!ok); } }
   function open(){ g.hidden = false; document.body.style.overflow = 'hidden'; view(); setTimeout(() => { const u = document.getElementById('g-u') || document.getElementById('g-hp'); if(u && matchMedia('(pointer:fine)').matches) u.focus(); }, 50); }
   function close(){ g.hidden = true; document.body.style.overflow = ''; g.innerHTML = ''; g.classList.remove('gate-hub'); try { fitWave(); } catch(e){} }
-  function loading(){ g.hidden = false; document.body.style.overflow = 'hidden'; g.classList.toggle('gate-hub', HUB_PAGINA); g.innerHTML = `<div class="gate-in"><span class="gate-logo">${HUB_PAGINA ? hubLogo() : logo()}</span><p class="gate-sub" role="status">Conectando ao banco online…</p></div>`; }
+  function loading(){ g.hidden = false; document.body.style.overflow = 'hidden'; g.classList.toggle('gate-hub', HUB_PAGINA); g.innerHTML = `<div class="gate-in gate-load">${coin3d(HUB_PAGINA ? hubLogo() : logo(), HUB_PAGINA)}<p class="gate-sub" role="status">Conectando ao banco online…</p></div>`; }
   async function enter(user, fresh){ // confere se a conta é a dona do painel e abre
     let owner = null;
     try { owner = await within(FBP.ownerUid(), 12000); if(!owner){ await within(FBP.claim(user.uid), 12000); owner = user.uid; seedLib = true; } }
