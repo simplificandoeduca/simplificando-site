@@ -402,6 +402,10 @@ function db(): PDO {
     foreach (["ALTER TABLE criancas ADD COLUMN vend_abriu TEXT NOT NULL DEFAULT ''", "ALTER TABLE visitas ADD COLUMN vendedora TEXT NOT NULL DEFAULT ''"] as $sql) { try { $pdo->exec($sql); } catch (Throwable $e) { } }
     $pdo->exec('PRAGMA user_version = 40');
   }
+  if ($v < 41) { /* 1.71: a forma de pagamento dividida em duas ou mais ("o cliente desmembrou"): as partes da troca, para o aviso do gestor */
+    try { $pdo->exec("ALTER TABLE trocas_pag ADD COLUMN partes TEXT NOT NULL DEFAULT ''"); } catch (Throwable $e) { }
+    $pdo->exec('PRAGMA user_version = 41');
+  }
   return $pdo;
 }
 /* ---------- 1.06: unidades ---------- */
@@ -1276,40 +1280,56 @@ function gravarPagamento(array $vendaIds, array $formas, int $criancaId, ?int $p
   return $gravado;
 }
 /* ---------- 1.57: trocar a forma de pagamento ("o cliente disse crédito e pagou no Pix") ----------
-   A equipe troca só nos 2 minutos depois de pagar (na hora do cupom); o gestor, sempre. A troca vale para o pagamento inteiro (todas as
+   1.71: "as meninas podem trocar a forma de pagamento; depois, se precisarem, elas editam a forma de pagamento para bater o caixa": a equipe
+   troca a qualquer hora, como o gestor (antes, só nos 2 minutos depois de pagar). A troca vale para o pagamento inteiro (todas as
    linhas daquela forma, gravadas no mesmo instante, das crianças do responsável): o caixa, as Finanças e o cupom fiscal acompanham. Fica
    o registro; a troca feita pela equipe vira um aviso para o gestor (na tela e no celular). */
-const TROCA_PAG_SEG = 120;
+const TROCA_PAG_SEG = 120;   // 1.71: só a reimpressão pela equipe continua com os 2 minutos
 function trocarPagamento(array $in, array $u): array {
-  $db = db(); $de = (string)($in['de'] ?? ''); $para = (string)($in['para'] ?? '');
-  if (!isset(FORMAS_PAGAMENTO[$de]) || !isset(FORMAS_PAGAMENTO[$para])) falha('Escolha a forma de pagamento.');
-  if ($de === $para) falha('A forma nova é a mesma de agora.');
+  /* 1.71: "às vezes o cliente desmembrou": em vez de uma forma nova (para), as partes ([{f, v}], duas ou mais formas com o valor de cada
+     uma; a soma é o valor pago naquela forma). As linhas do pagamento são repartidas entre as partes (e divididas quando precisa) */
+  $db = db(); $de = (string)($in['de'] ?? ''); $para = (string)($in['para'] ?? ''); $partes = isset($in['partes']) && is_array($in['partes']) ? $in['partes'] : null;
+  if (!isset(FORMAS_PAGAMENTO[$de]) || ($partes === null && !isset(FORMAS_PAGAMENTO[$para]))) falha('Escolha a forma de pagamento.');
+  if ($partes === null && $de === $para) falha('A forma nova é a mesma de agora.');
   if (!empty($in['venda'])) { $q = $db->prepare('SELECT * FROM pagamentos WHERE venda_id = ? AND forma = ? ORDER BY id DESC LIMIT 1'); $q->execute([(int)$in['venda'], $de]); }
   else { $c0 = crianca((int)($in['crianca'] ?? 0)); if (!$c0) falha('Cliente não encontrado.', 404); $f0 = array_merge([(int)$c0['id']], array_map(fn($x) => (int)$x['id'], irmaosDe($c0)));
     $q = $db->prepare('SELECT * FROM pagamentos WHERE crianca_id IN (' . implode(',', $f0) . ') AND forma = ? ORDER BY id DESC LIMIT 1'); $q->execute([$de]); }
   $p = $q->fetch(); $q->closeCursor(); if (!$p) falha('Não achei esse pagamento em ' . FORMAS_PAGAMENTO[$de] . '.', 404);
   $c = crianca((int)$p['crianca_id']); $fam = $c ? array_merge([(int)$c['id']], array_map(fn($x) => (int)$x['id'], irmaosDe($c))) : [(int)$p['crianca_id']];
-  $ha = time() - strtotime((string)$p['quando']); $gestor = ($u['papel'] ?? '') === 'gestor';
-  if (!$gestor && $ha > TROCA_PAG_SEG + 10) { // a equipe: 2 min do pagamento ou do cupom impresso dele (o guardado nos 10 min depois do pagamento)
-    $q = $db->prepare('SELECT MAX(quando) FROM papeis WHERE crianca_id IN (' . implode(',', $fam) . ') AND quando >= ? AND quando <= ?'); $q->execute([(string)$p['quando'], date('Y-m-d H:i:s', strtotime((string)$p['quando']) + 600)]);
-    $pq = (string)$q->fetchColumn(); $q->closeCursor(); if ($pq === '' || time() - strtotime($pq) > TROCA_PAG_SEG + 10) falha('Já passou de 2 min do pagamento: agora só o gestor troca a forma de pagamento.', 403); }
-  $q = $db->prepare('SELECT id, valor, cupom_id FROM pagamentos WHERE crianca_id IN (' . implode(',', $fam) . ') AND quando = ? AND forma = ?'); $q->execute([(string)$p['quando'], $de]); $L = $q->fetchAll();
-  $valor = round(array_sum(array_map(fn($x) => (float)$x['valor'], $L)), 2); $nomeC = (string)($c['nome'] ?? '');
+  $gestor = ($u['papel'] ?? '') === 'gestor';
+  $q = $db->prepare('SELECT * FROM pagamentos WHERE crianca_id IN (' . implode(',', $fam) . ') AND quando = ? AND forma = ? ORDER BY id'); $q->execute([(string)$p['quando'], $de]); $L = $q->fetchAll();
+  $valor = round(array_sum(array_map(fn($x) => (float)$x['valor'], $L)), 2); $nomeC = (string)($c['nome'] ?? ''); $vc = (int)round($valor * 100);
+  $pc = [];   // as partes, em centavos: [forma => valor]
+  if ($partes === null) $pc[$para] = $vc;
+  else { foreach ($partes as $x) { if (!is_array($x)) continue; $f = (string)($x['f'] ?? ''); $v = (int)round((float)str_replace(',', '.', (string)($x['v'] ?? 0)) * 100); if ($v <= 0) continue;
+      if (!isset(FORMAS_PAGAMENTO[$f])) falha('Escolha a forma de pagamento.'); $pc[$f] = ($pc[$f] ?? 0) + $v; }
+    if (!$pc) falha('Escreva o valor de cada forma.');
+    if (array_sum($pc) !== $vc) falha('A soma das formas (' . dinheiro(array_sum($pc) / 100) . ') tem que dar ' . dinheiro($valor) . ', o que foi pago em ' . FORMAS_PAGAMENTO[$de] . '.');
+    if (count($pc) === 1 && isset($pc[$de])) falha('A forma nova é a mesma de agora.'); }
+  $novas = array_diff_key($pc, [$de => 1]); $para = (string)array_key_first($novas ?: $pc);   // a forma nova (a primeira diferente da antiga), para o aviso
+  $txtPara = count($pc) > 1 ? implode(' + ', array_map(fn($f, $v) => FORMAS_PAGAMENTO[$f] . ' ' . dinheiro($v / 100), array_keys($pc), $pc)) : FORMAS_PAGAMENTO[$para];
+  $fila = []; foreach ($pc as $f => $v) $fila[] = [$f, $v]; usort($fila, fn($a, $b) => ($b[0] === $de) <=> ($a[0] === $de));   // a parte que fica na forma antiga primeiro
   $db->beginTransaction();
   try {
-    $db->prepare('UPDATE pagamentos SET forma = ? WHERE id IN (' . implode(',', array_map(fn($x) => (int)$x['id'], $L)) . ')')->execute([$para]);
+    $up = $db->prepare('UPDATE pagamentos SET forma = ?, valor = ? WHERE id = ?'); $ins = $db->prepare('INSERT INTO pagamentos (venda_id, crianca_id, forma, valor, quando, por, cupom_id, unidade_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'); $k = 0;
+    foreach ($L as $x) { $resta = (int)round((float)$x['valor'] * 100); $prim = true;
+      while ($resta > 0 && $k < count($fila)) { $usa = min($resta, $fila[$k][1]);
+        if ($prim) { $up->execute([$fila[$k][0], $usa / 100, (int)$x['id']]); $prim = false; }
+        else $ins->execute([(int)$x['venda_id'], (int)$x['crianca_id'], $fila[$k][0], $usa / 100, (string)$x['quando'], $x['por'], $x['cupom_id'], $x['unidade_id'] ?? null]);
+        $resta -= $usa; $fila[$k][1] -= $usa; if ($fila[$k][1] <= 0) $k++; } }
     foreach (array_unique(array_filter(array_map(fn($x) => (int)($x['cupom_id'] ?? 0), $L))) as $k) refazerCupom((int)$k);   // o cupom fiscal acompanha
-    $reg = registrar('alt', (int)$p['crianca_id'], $nomeC, 'Troca de pagamento: ' . FORMAS_PAGAMENTO[$de] . ' ' . dinheiro($valor) . ' → ' . FORMAS_PAGAMENTO[$para] . ' (pago às ' . substr((string)$p['quando'], 11, 5) . ') · por ' . maiusculo(primeiroNome((string)$u['nome'])));
-    $db->prepare('INSERT INTO trocas_pag (quando, crianca_id, nome, resp, de, para, valor, pago_em, por, por_nome, papel, unidade_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-      ->execute([agora(), (int)$p['crianca_id'], $nomeC, (string)($c['resp'] ?? ''), $de, $para, $valor, (string)$p['quando'], (int)$u['id'], (string)$u['nome'], (string)$u['papel'], unidadeDoPedido()]);
+    $reg = registrar('alt', (int)$p['crianca_id'], $nomeC, 'Troca de pagamento: ' . FORMAS_PAGAMENTO[$de] . ' ' . dinheiro($valor) . ' → ' . $txtPara . ' (pago às ' . substr((string)$p['quando'], 11, 5) . ') · por ' . maiusculo(primeiroNome((string)$u['nome'])));
+    $lp = array_map(fn($f, $v) => ['f' => $f, 'v' => round($v / 100, 2)], array_keys($pc), $pc);
+    $db->prepare('INSERT INTO trocas_pag (quando, crianca_id, nome, resp, de, para, valor, pago_em, por, por_nome, papel, unidade_id, partes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      ->execute([agora(), (int)$p['crianca_id'], $nomeC, (string)($c['resp'] ?? ''), $de, $para, $valor, (string)$p['quando'], (int)$u['id'], (string)$u['nome'], (string)$u['papel'], unidadeDoPedido(), count($pc) > 1 ? json_encode($lp) : '']);
     $tid = (int)$db->lastInsertId(); $db->commit();
   } catch (Throwable $e) { if ($db->inTransaction()) $db->rollBack(); throw $e; }
   if (!$gestor) { require_once __DIR__ . '/push-lib.php'; pushDepois(function () use ($tid) { pushTroca($tid); }); }
-  return ['valor' => $valor, 'de' => $de, 'para' => $para, 'registro' => $reg, 'pago_em' => (string)$p['quando']];
+  return ['valor' => $valor, 'de' => $de, 'para' => $para, 'partes' => $lp, 'registro' => $reg, 'pago_em' => (string)$p['quando']];
 }
 function trocaPublica(array $t): array {
   return ['id' => -(int)$t['id'], 'troca' => true, 'quando' => (string)$t['quando'], 'crianca' => $t['crianca_id'] === null ? null : (int)$t['crianca_id'], 'nome' => (string)$t['nome'], 'resp' => (string)$t['resp'],
-    'de' => (string)$t['de'], 'para' => (string)$t['para'], 'valor' => round((float)$t['valor'], 2), 'por' => (string)$t['por_nome'], 'papel' => (string)$t['papel'], 'uni' => $t['unidade_id'] === null ? null : (int)$t['unidade_id'],
+    'de' => (string)$t['de'], 'para' => (string)$t['para'], 'partes' => json_decode((string)($t['partes'] ?? ''), true) ?: [], 'valor' => round((float)$t['valor'], 2), 'por' => (string)$t['por_nome'], 'papel' => (string)$t['papel'], 'uni' => $t['unidade_id'] === null ? null : (int)$t['unidade_id'],
     'motivo' => '', 'atendente' => '', 'entrou' => null, 'itens' => [], 'tipo' => 'troca', 'visto_em' => $t['visto_em'], 'visto_por' => (string)$t['visto_por']];
 }
 /* ---------- 1.04: desconto do gestor na tela de pagamento ---------- */

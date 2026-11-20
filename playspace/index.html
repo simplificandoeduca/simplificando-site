@@ -1634,6 +1634,14 @@ button.bl-saldo.bl-alt svg { opacity: .55; }
 .tp-linha { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 0; border-top: 1px solid var(--borda); }
 .tp-de { display: flex; align-items: baseline; gap: 8px; min-width: 190px; } .tp-de small { color: var(--tinta-2); font-weight: 700; }
 .tp-bts { display: flex; flex-wrap: wrap; gap: 8px; } .tp-bts .bt { height: 40px; padding: 0 16px; }
+/* 1.71: dividir o pagamento em mais de uma forma */
+.tp-div { flex-basis: 100%; } .tp-div > summary { cursor: pointer; font-weight: 800; font-size: 14px; color: var(--coral); padding: 2px 0; }
+.tp-div-c { display: grid; gap: 10px; margin-top: 8px; } .tp-div-c .explica { margin: 0; }
+.tp-div-g { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 8px; }
+.tp-div-l { display: grid; gap: 4px; min-width: 0; font-weight: 800; font-size: 13px; color: var(--tinta-2); }
+.tp-div-l .inp { box-sizing: border-box; width: 100%; min-width: 0; height: 44px; border-radius: 13px; border: 1px solid var(--borda-2); background: var(--card); color: var(--tinta); padding: 0 12px; font: inherit; font-weight: 700; font-variant-numeric: tabular-nums; }
+.tp-div-l .inp:focus { outline: 2px solid var(--coral); outline-offset: 1px; }
+.tp-div-s { margin: 0; font-weight: 800; } .tp-div-s.ok { color: var(--ok); } .tp-div-s.falta { color: var(--erro); }
 .tp-papel summary { font-weight: 800; } .tp-papel summary b.num { color: var(--coral); }
 .tp-fim { color: var(--tinta-2); }
 .rp-trava { opacity: .5; }
@@ -1761,7 +1769,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.70';
+const VERSAO = '1.71';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -4329,54 +4337,85 @@ function folhaPapel(spec) {
     <div class="pe-f"><button type="button" class="bt forte largo tap" id="tk-ok" data-act="papel-imprimir">${ic(IC.cupom)} Imprimir o cupom${vias.length > 1 ? ' · 2 vias' : ''}</button>${!impDireta() && (MODO !== 'servidor' || supervisorOuMais()) ? `<button type="button" class="link tap imp-dica" id="tk-direta-ir" data-act="papel-ajustes">A janela de impressão aparece? Veja como imprimir direto</button>` : ''}</div>`);
   if (window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches) setTimeout(() => { const b = $('#tk-ok'); if (b) b.focus(); }, 380);   // no computador, Enter imprime
 }
-/* ---------- 1.57: trocar a forma de pagamento: na folha do cupom (a equipe, nos 2 min depois de pagar; o gestor, sempre) e no histórico ---------- */
+/* ---------- 1.57: trocar a forma de pagamento: na folha do cupom e no histórico ----------
+   1.71: "as meninas podem trocar a forma de pagamento; não precisa deixar os 2 minutos: depois, se precisarem, elas editam a forma de
+   pagamento para bater o caixa". A equipe troca a qualquer hora (no histórico do cliente: "Trocar pagamento"), e o gestor continua
+   recebendo o aviso de cada troca. A reimpressão pela equipe continua só nos 2 minutos. */
 const TROCA_MS = 120000;
 const juntaFormas = F => { const o = new Map(); for (const x of F || []) if (x && x.f && x.v > 0.004) o.set(x.f, centavos((o.get(x.f) || 0) + x.v)); return [...o.entries()]; };
 const htmlTrocaPag = (F, alvo) => `<p class="explica">Toque na forma certa. A troca vale para todo o pagamento e o caixa acompanha.${gestor() ? '' : ' O gestor recebe o aviso da troca.'}</p>`
-  + F.map(([f, val]) => `<div class="tp-linha"><div class="tp-de"><b>${nomeForma(f)}</b><span class="num">${brl(val)}</span><small>trocar para</small></div><div class="tp-bts">${FORMAS.filter(([k]) => k !== f).map(([k, n]) => `<button type="button" class="bt tap" data-act="pag-trocar" data-de="${f}" data-para="${k}"${alvo.venda ? ` data-venda="${alvo.venda}"` : ` data-crianca="${alvo.crianca}"`}${alvo.cupom ? ` data-cupom="${alvo.cupom}"` : ''}>${n}</button>`).join('')}</div></div>`).join('');
-const trocaPapelHtml = () => { const P = PAPEL; if (!P || !P.spec || !P.ate || !juntaFormas(P.spec.formas).length) return ''; const resta = Math.max(0, P.ate - Date.now());
-  if (!gestor() && resta <= 0) return `<p class="explica tp-fim">Passou de 2 min: agora só o gestor troca a forma de pagamento (no histórico do cliente).</p>`;
-  return `<details class="outro tp-papel"><summary>Trocar a forma de pagamento${gestor() ? '' : ` · <b class="num" data-troca-ate="${P.ate}">${mss(resta / 1000)}</b>`}</summary><div class="tp-corpo">${htmlTrocaPag(juntaFormas(P.spec.formas), { crianca: P.spec.id || (P.spec.c || {}).id })}</div></details>`; };
-// a troca na folha do cupom fiscal (o módulo ligado): enquanto o cupom está a emitir; a equipe, nos 2 min do pagamento
-const trocaCupomHtml = k => { if (!k || k.status !== 'pendente' || !juntaFormas(k.formas).length) return ''; const ate = +dataDe(k.quando) + TROCA_MS, resta = Math.max(0, ate - Date.now());
-  if (!gestor() && resta <= 0) return '';
-  return `<details class="outro tp-papel"><summary>Trocar a forma de pagamento${gestor() ? '' : ` · <b class="num" data-troca-ate="${ate}">${mss(resta / 1000)}</b>`}</summary><div class="tp-corpo">${htmlTrocaPag(juntaFormas(k.formas), { crianca: k.crianca, cupom: k.id })}</div></details>`; };
+  + F.map(([f, val]) => `<div class="tp-linha"><div class="tp-de"><b>${nomeForma(f)}</b><span class="num">${brl(val)}</span><small>trocar para</small></div><div class="tp-bts">${FORMAS.filter(([k]) => k !== f).map(([k, n]) => `<button type="button" class="bt tap" data-act="pag-trocar" data-de="${f}" data-para="${k}"${alvo.venda ? ` data-venda="${alvo.venda}"` : ` data-crianca="${alvo.crianca}"`}${alvo.cupom ? ` data-cupom="${alvo.cupom}"` : ''}>${n}</button>`).join('')}</div>${htmlDividirPag(f, val, alvo)}</div>`).join('');
+/* 1.71: "às vezes o cliente desmembrou": o que foi pago numa forma vira duas ou mais (a soma tem que dar o mesmo valor) */
+const alvoPagAttr = alvo => `${alvo.venda ? ` data-venda="${alvo.venda}"` : ` data-crianca="${alvo.crianca}"`}${alvo.cupom ? ` data-cupom="${alvo.cupom}"` : ''}`;
+const vInp = v => centavos(v).toFixed(2).replace('.', ',');
+const txtPartes = P => P.length === 1 ? nomeForma(P[0].f) : P.map(x => `${nomeForma(x.f)} ${brl(x.v)}`).join(' + ');
+const partesDiv = c => juntaFormas([...c.querySelectorAll('input[data-f]')].map(i => ({ f: i.dataset.f, v: centavos(numero(i.value) || 0) }))).map(([f, v]) => ({ f, v }));
+function somaDiv(c) { const tot = centavos(+c.dataset.total), s = centavos(partesDiv(c).reduce((t, x) => t + x.v, 0)), d = centavos(tot - s), el = $('.tp-div-s', c); if (!el) return;
+  el.textContent = Math.abs(d) < 0.005 ? 'A soma bate ✓' : d > 0 ? `Falta ${brl(d)}` : `Passou ${brl(-d)}`; el.className = 'tp-div-s ' + (Math.abs(d) < 0.005 ? 'ok' : 'falta'); }
+const htmlDividirPag = (f, val, alvo) => `<details class="tp-div"><summary>Dividir em mais de uma forma</summary><div class="tp-div-c" data-de="${f}" data-total="${centavos(val)}"${alvoPagAttr(alvo)}>
+  <p class="explica">Escreva quanto foi em cada forma. A soma tem que dar <b>${brl(val)}</b>.</p>
+  <div class="tp-div-g">${FORMAS.map(([k, n]) => `<label class="tp-div-l"><span>${n}</span><input class="inp" inputmode="decimal" autocomplete="off" data-f="${k}" value="${k === f ? vInp(val) : ''}" placeholder="0,00" aria-label="Valor em ${n}"></label>`).join('')}</div>
+  <p class="tp-div-s ok" aria-live="polite">A soma bate ✓</p><button type="button" class="bt forte tap" data-act="pag-dividir">Salvar a divisão</button></div></details>`;
+document.addEventListener('input', e => { const c = e.target && e.target.closest ? e.target.closest('.tp-div-c') : null; if (c) somaDiv(c); });
+const trocaPapelHtml = () => { const P = PAPEL; if (!P || !P.spec || !juntaFormas(P.spec.formas).length) return '';
+  return `<details class="outro tp-papel"><summary>Trocar a forma de pagamento</summary><div class="tp-corpo">${htmlTrocaPag(juntaFormas(P.spec.formas), { crianca: P.spec.id || (P.spec.c || {}).id })}</div></details>`; };
+// a troca na folha do cupom fiscal (o módulo ligado): enquanto o cupom está a emitir
+const trocaCupomHtml = k => { if (!k || k.status !== 'pendente' || !juntaFormas(k.formas).length) return '';
+  return `<details class="outro tp-papel"><summary>Trocar a forma de pagamento</summary><div class="tp-corpo">${htmlTrocaPag(juntaFormas(k.formas), { crianca: k.crianca, cupom: k.id })}</div></details>`; };
 const pgEmDe = v => MODO === 'servidor' ? (v.pg_em ? dataDe(v.pg_em) : null) : (S.pagamentos || []).filter(p => p.venda === v.id).reduce((m, p) => !m || +new Date(p.quando) > +m ? new Date(p.quando) : m, null);
-const podeTrocarPag = v => !!v && Object.keys(formasDaCompra(v) || {}).length > 0 && (gestor() || (!!pgEmDe(v) && Date.now() - +pgEmDe(v) <= TROCA_MS));
+const totalPagamento = (v, f) => { if (MODO === 'servidor') { const L = (LADO && LADO.dados ? LADO.dados.vendas : []).filter(x => x.pg && x.pg_em && x.pg_em === v.pg_em && x.pg[f] > 0); return L.length ? centavos(L.reduce((t, x) => t + (+x.pg[f] || 0), 0)) : centavos(formasDaCompra(v)[f] || 0); }
+  const P = (S.pagamentos || []).filter(p => p.venda === v.id && p.f === f); if (!P.length) return 0; const q = Math.max(...P.map(p => +new Date(p.quando))), c = crianca(v.crianca), ids = c ? familia(c).map(x => x.id) : [v.crianca];
+  return centavos((S.pagamentos || []).filter(p => ids.includes(p.crianca) && p.f === f && Math.abs(+new Date(p.quando) - q) < 1500).reduce((t, p) => t + p.v, 0)); };   /* 1.71 */
+const podeTrocarPag = v => !!v && Object.keys(formasDaCompra(v) || {}).length > 0;   /* 1.71: a equipe também, a qualquer hora */
 function folhaTrocaPag(vid) {
   const v = LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === +vid), c = v && crianca(v.crianca); if (!v || !c) return;
-  if (!podeTrocarPag(v)) { toast('Passou de 2 min do pagamento: agora só o gestor troca a forma de pagamento'); return; }
-  const F = Object.entries(formasDaCompra(v)).filter(([, x]) => x > 0.004), em = pgEmDe(v);
+  if (!podeTrocarPag(v)) { toast('Esta compra não tem pagamento para trocar'); return; }
+  const F = Object.entries(formasDaCompra(v)).filter(([, x]) => x > 0.004).map(([f]) => [f, totalPagamento(v, f)]), em = pgEmDe(v);   /* 1.71: o pagamento inteiro */
   abrirFolha('Trocar a forma de pagamento', `<div class="linha">${avatar(c)}<div class="txt"><b>${nomeResp(c)}</b><span>${esc(nomeCompraTxt(v))}${em ? ' · pago ' + quandoFoi(em) : ''}</span></div></div><div id="tp-corpo">${htmlTrocaPag(F, { venda: v.id })}</div>`);
 }
-async function trocarPag(el) {
-  const de = el.dataset.de, para = el.dataset.para, venda = +el.dataset.venda || 0, cid = +el.dataset.crianca || 0; $$('[data-act="pag-trocar"]').forEach(b => { b.disabled = true; });
+const trocarPag = el => trocarPagEm(el, el.dataset.de, null, el.dataset.para);
+function dividirPag(el) {   /* 1.71 */
+  const c = el.closest('.tp-div-c'); if (!c) return; const de = c.dataset.de, tot = centavos(+c.dataset.total), P = partesDiv(c), s = centavos(P.reduce((t, x) => t + x.v, 0));
+  if (!P.length) { toast('Escreva quanto foi em cada forma'); return; }
+  if (Math.abs(s - tot) >= 0.005) { toast(`A soma (${brl(s)}) tem que dar ${brl(tot)}`); return; }
+  if (P.length === 1 && P[0].f === de) { toast('É a mesma forma de agora'); return; }
+  return trocarPagEm(c, de, P, null);
+}
+async function trocarPagEm(el, de, partes, para) {
+  const venda = +el.dataset.venda || 0, cid = +el.dataset.crianca || 0, bts = '[data-act="pag-trocar"], [data-act="pag-dividir"]', q = partes ? { de, partes } : { de, para }; $$(bts).forEach(b => { b.disabled = true; });
   try {
-    let r; if (MODO === 'servidor') { r = await api('pagamento_trocar', venda ? { venda, de, para } : { crianca: cid, de, para }); await carregar(); }
-    else { r = trocarPagPrevia({ venda, crianca: cid, de, para }); if (r.erro) throw new Error(r.erro); }
-    toast(`Forma trocada: ${nomeForma(de)} ${brl(r.valor)} → ${nomeForma(para)}${gestor() ? '' : ' · o gestor foi avisado'}`);
+    let r; if (MODO === 'servidor') { r = await api('pagamento_trocar', venda ? { venda, ...q } : { crianca: cid, ...q }); await carregar(); }
+    else { r = trocarPagPrevia({ venda, crianca: cid, ...q }); if (r.erro) throw new Error(r.erro); }
+    const P = r.partes && r.partes.length ? r.partes : [{ f: r.para || para, v: r.valor }];
+    toast(`Forma trocada: ${nomeForma(de)} ${brl(r.valor)} → ${txtPartes(P)}${gestor() ? '' : ' · o gestor foi avisado'}`);
     if (el.dataset.cupom) folhaCupom(+el.dataset.cupom, true);   // a folha do cupom fiscal: com a forma nova
     else if (!venda && PAPEL && PAPEL.spec && $('#tk-previa')) {   // na folha do cupom: o cupom sai com a forma nova
-      PAPEL.spec.formas = juntaFormas((PAPEL.spec.formas || []).map(x => x.f === de ? { ...x, f: para } : x)).map(([f, v]) => ({ f, v }));
+      PAPEL.spec.formas = juntaFormas([...(PAPEL.spec.formas || []).filter(x => x.f !== de), ...P]).map(([f, v]) => ({ f, v }));
       const vias = viasPapel(PAPEL.spec); PAPEL.vias = vias; $('#tk-previa').innerHTML = vias.map(v => `<div class="papel-fx">${v}</div>`).join(''); guardarPapel(PAPEL.spec, vias, true);
       const t = $('#tk-troca'); if (t) t.innerHTML = trocaPapelHtml();
     } else { fecharFolha(); if (LADO) await buscarHistorico(); }
     desenhar(true);
-  } catch (e) { toast(e.message); $$('[data-act="pag-trocar"]').forEach(b => { b.disabled = false; }); }
+  } catch (e) { toast(e.message); $$(bts).forEach(b => { b.disabled = false; }); }
 }
-function trocarPagPrevia({ venda, crianca: cid, de, para }) {   // (prévia) o mesmo que o servidor faz
-  if (de === para) return { erro: 'A forma nova é a mesma de agora.' }; const mais = (a, b) => +new Date(b.quando) - +new Date(a.quando);
+function trocarPagPrevia({ venda, crianca: cid, de, para, partes }) {   // (prévia) o mesmo que o servidor faz; 1.71: partes = a forma dividida
+  if (!partes && de === para) return { erro: 'A forma nova é a mesma de agora.' }; const mais = (a, b) => +new Date(b.quando) - +new Date(a.quando);
   let p = null; if (venda) p = (S.pagamentos || []).filter(x => x.venda === venda && x.f === de).sort(mais)[0];
   else { const c0 = crianca(cid), ids0 = c0 ? familia(c0).map(x => x.id) : [cid]; p = (S.pagamentos || []).filter(x => ids0.includes(x.crianca) && x.f === de).sort(mais)[0]; }
   if (!p) return { erro: `Não achei esse pagamento em ${nomeForma(de)}.` }; const q = +new Date(p.quando);
-  const c0 = crianca(p.crianca), ids0 = c0 ? familia(c0).map(x => x.id) : [p.crianca], pq = (S.papeis || []).filter(x => ids0.includes(x.crianca) && +dataDe(x.quando) >= q - 1000 && +dataDe(x.quando) <= q + 600000).reduce((m, x) => Math.max(m, +dataDe(x.quando)), 0);
-  if (!gestor() && Date.now() - Math.max(q, pq) > TROCA_MS + 10000) return { erro: 'Já passou de 2 min do pagamento: agora só o gestor troca a forma de pagamento.' };
   const c = crianca(p.crianca), ids = c ? familia(c).map(x => x.id) : [p.crianca], L = S.pagamentos.filter(x => ids.includes(x.crianca) && x.f === de && Math.abs(+new Date(x.quando) - q) < 1500);
-  const valor = centavos(L.reduce((t, x) => t + x.v, 0)); for (const x of L) x.f = para;
+  const valor = centavos(L.reduce((t, x) => t + x.v, 0)), P = partes ? juntaFormas(partes).map(([f, v]) => ({ f, v })) : [{ f: para, v: valor }];
+  if (partes) { const s = centavos(P.reduce((t, x) => t + x.v, 0)); if (!P.length) return { erro: 'Escreva o valor de cada forma.' };
+    if (Math.abs(s - valor) >= 0.005) return { erro: `A soma das formas (${brl(s)}) tem que dar ${brl(valor)}, o que foi pago em ${nomeForma(de)}.` };
+    if (P.length === 1 && P[0].f === de) return { erro: 'A forma nova é a mesma de agora.' }; }
+  para = (P.find(x => x.f !== de) || P[0]).f;
+  const fila = P.map(x => ({ ...x })).sort((a, b) => (b.f === de) - (a.f === de)); let k = 0;   // a parte que fica na forma antiga primeiro
+  for (const x of L) { let resta = centavos(x.v), prim = true;
+    while (resta > 0.004 && k < fila.length) { const usa = centavos(Math.min(resta, fila[k].v)); if (prim) { x.f = fila[k].f; x.v = usa; prim = false; } else S.pagamentos.push({ ...x, f: fila[k].f, v: usa });
+      resta = centavos(resta - usa); fila[k].v = centavos(fila[k].v - usa); if (fila[k].v <= 0.004) k++; } }
   for (const kid of new Set(L.map(x => x.cupom).filter(Boolean))) { const k = cupomDe(kid); if (k) refazerCupomPrevia(k); }   // o cupom fiscal acompanha
-  registrar('alt', c ? c.nome : '', `Troca de pagamento: ${nomeForma(de)} ${brl(valor)} → ${nomeForma(para)} (pago às ${hora(new Date(q))}) · por ${MAI(primeiro(EU.nome))}`);
-  if (!gestor()) { S.trocas = S.trocas || []; S.trocas.unshift({ id: -novoId(), troca: true, quando: new Date(), crianca: p.crianca, nome: c ? c.nome : '', resp: c ? c.resp : '', de, para, valor, por: EU.nomeCompleto || EU.nome, papel: EU.papel, uni: minhaUni() || null, visto_em: null, motivo: '', atendente: '' }); }
-  return { valor, de, para };
+  registrar('alt', c ? c.nome : '', `Troca de pagamento: ${nomeForma(de)} ${brl(valor)} → ${txtPartes(P)} (pago às ${hora(new Date(q))}) · por ${MAI(primeiro(EU.nome))}`);
+  if (!gestor()) { S.trocas = S.trocas || []; S.trocas.unshift({ id: -novoId(), troca: true, quando: new Date(), crianca: p.crianca, nome: c ? c.nome : '', resp: c ? c.resp : '', de, para, partes: P.length > 1 ? P : [], valor, por: EU.nomeCompleto || EU.nome, papel: EU.papel, uni: minhaUni() || null, visto_em: null, motivo: '', atendente: '' }); }
+  return { valor, de, para, partes: P };
 }
 // 1.57: reimprimir: a equipe só nos 2 min depois do cupom; o gestor, sempre
 const reimpTrava = x => !gestor() && Date.now() - +dataDe(x.quando) > TROCA_MS + 5000;
@@ -6325,7 +6364,7 @@ const avisosNovos = () => { const L = avisosParaMim(); if (AV_JA === null) { if 
 const htmlAvisoCanc = x => `<div class="aut-it aviso" data-av="${x.id}"><div class="aut-t"><small>${esc(quemCancelou(x))} · ${hora(x.quando)}${x.uni && S.unidades.length > 1 && nomeUni(x.uni) ? ' · ' + esc(nomeUni(x.uni)) : ''}</small><b>${cancOQue(x)}</b><span>${esc(x.resp ? x.resp + (x.nome ? ' · ' + x.nome : '') : x.nome)}${x.motivo ? ' · Motivo: ' + esc(x.motivo) : ''}</span></div>
   <div class="aut-b"><button type="button" class="bt forte tap" data-act="av-visto" data-id="${x.id}">${ic(IC.check, 18, 2.6)} Visto</button>${x.crianca && crianca(x.crianca) ? `<button type="button" class="bt nao tap" data-act="historico" data-id="${x.crianca}">Histórico</button>` : ''}</div></div>`;
 // 1.57: o aviso da troca da forma de pagamento (id negativo), na mesma lista dos avisos do gestor
-const htmlAviso = x => !x.troca ? htmlAvisoCanc(x) : `<div class="aut-it aviso troca" data-av="${x.id}"><div class="aut-t"><small>${esc(primeiro(x.por || ''))} · ${hora(x.quando)}${x.uni && S.unidades.length > 1 && nomeUni(x.uni) ? ' · ' + esc(nomeUni(x.uni)) : ''}</small><b>Troca de pagamento: ${nomeForma(x.de)} ${brl(x.valor)} → ${nomeForma(x.para)}</b><span>${esc(x.resp ? x.resp + (x.nome ? ' · ' + x.nome : '') : x.nome)}</span></div>
+const htmlAviso = x => !x.troca ? htmlAvisoCanc(x) : `<div class="aut-it aviso troca" data-av="${x.id}"><div class="aut-t"><small>${esc(primeiro(x.por || ''))} · ${hora(x.quando)}${x.uni && S.unidades.length > 1 && nomeUni(x.uni) ? ' · ' + esc(nomeUni(x.uni)) : ''}</small><b>Troca de pagamento: ${nomeForma(x.de)} ${brl(x.valor)} → ${x.partes && x.partes.length > 1 ? txtPartes(x.partes) : nomeForma(x.para)}</b><span>${esc(x.resp ? x.resp + (x.nome ? ' · ' + x.nome : '') : x.nome)}</span></div>
   <div class="aut-b"><button type="button" class="bt forte tap" data-act="av-visto" data-id="${x.id}">${ic(IC.check, 18, 2.6)} Visto</button>${x.crianca && crianca(x.crianca) ? `<button type="button" class="bt nao tap" data-act="historico" data-id="${x.crianca}">Histórico</button>` : ''}</div></div>`;
 const euId = () => EU.id || (S.equipe.find(x => x.login === EU.login) || {}).id || 1;
 const podeDecidirTipo = t => t === 'cancelar_venda' ? podeEstornar() : t === 'valor' ? supervisorOuMais() : gestor();   // 1.33: a alteração de valor, a supervisora ou o gestor
@@ -7834,7 +7873,7 @@ const ACOES = {
   nf: el => folhaNF(el.dataset.id), 'nf-notas': () => abrirNotasNF(), 'copia-baixar': el => baixarCopia(el.dataset.nome || '', el), 'copia-fazer': el => fazerCopia(el), 'nf-pedir': el => pedirNF(el), 'nf-senha': el => acaoNF('senha', el), 'nf-emitida': el => acaoNF('emitida', el), 'nf-voltar': el => acaoNF('voltar', el), 'nf-largar': el => acaoNF('largar', el), 'nf-copiar': el => acaoNF('copiar', el),
   'em-salvar': el => emailAcao('salvar', el), 'em-agora': el => emailAcao('agora', el),   // 1.56
   'banco-horas': el => horasDoCliente(+el.dataset.id), 'venda-horas': el => folhaHoras(el.dataset.id), 'venda-horas-ok': el => salvarHoras(el), 'nf-cancelar': el => acaoNF('cancelar', el),   // 1.55
-  'pag-trocar': el => trocarPag(el), 'pag-trocar-v': el => folhaTrocaPag(el.dataset.id),   // 1.57
+  'pag-trocar': el => trocarPag(el), 'pag-trocar-v': el => folhaTrocaPag(el.dataset.id), 'pag-dividir': el => dividirPag(el),   // 1.57; 1.71: dividir
   'venda-cancelar': el => folhaCancelarVenda(el.dataset.id), 'venda-cancelar-ok': el => confirmarCancelarVenda(el),   // 1.21: quem estorna cancela uma venda, com o motivo
   'ver-como': el => { // (prévia) ver a tela como gestor, supervisor ou operador
     if (MODO === 'servidor') return; const u = S.equipe.find(x => x.papel === el.dataset.v); if (!u) return;

@@ -239,7 +239,7 @@ switch ($acao) {
       if (!$r['ok']) falha($r['erro'], 502); responder(['email' => finEmailPublico(), 'enviado' => $r]); }
     responder(['email' => finEmailPublico()]);
   }
-  case 'pagamento_trocar': { // 1.57: trocar a forma de pagamento (a equipe, nos 2 min depois de pagar; o gestor, sempre)
+  case 'pagamento_trocar': { // 1.57: trocar a forma de pagamento; 1.71: a equipe também a qualquer hora, e a forma pode ser dividida (partes)
     $u = exigir(); responder(trocarPagamento($in, $u));
   }
   case 'resumo_pdf': { // 1.54: o resumo do dia em PDF (o mesmo das Finanças), para o gestor

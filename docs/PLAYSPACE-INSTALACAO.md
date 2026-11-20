@@ -1301,6 +1301,15 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzz. A atendente troca (e divide) a forma de pagamento a qualquer hora (1.71)
+
+Pedido do dono: "as meninas podem trocar a forma de pagamento; não precisa deixar os 2 minutos. Depois, se elas precisarem, elas conseguem editar a forma de pagamento para bater o caixa"; "e às vezes até escolher duas formas de pagamento: desmembrar, quando o cliente desmembrou".
+
+- **Na folha do cupom:** "Trocar a forma de pagamento" fica sempre, sem o relógio de 2 minutos.
+- **Depois, para bater o caixa:** no histórico do cliente, cada compra paga tem **"Trocar pagamento"**, para a atendente também, a qualquer hora. Toque na forma certa: o pagamento inteiro muda de forma, e o caixa do dia, as Finanças e o cupom fiscal acompanham.
+- **Dividir em mais de uma forma** (quando o cliente pagou parte numa forma e parte em outra): embaixo de cada forma, "Dividir em mais de uma forma" abre um campo para cada forma (Pix, Dinheiro, Crédito, Débito). Escreva quanto foi em cada uma; a tela mostra "Falta R$ …" até a soma bater com o valor pago. "Salvar a divisão" reparte o pagamento (o caixa, as Finanças e o cupom fiscal acompanham). O valor mostrado é o do pagamento inteiro: as compras pagas juntas (o pacote e o produto, por exemplo) entram juntas.
+- **Continua igual:** cada troca fica registrada (quem trocou, de qual forma para qual, o valor) e o gestor recebe o aviso da troca feita pela atendente. A reimpressão do cupom pela atendente continua só nos 2 minutos (depois, só o gestor).
+
 ## 6zzz. No comprovante do cliente, só o pacote (1.70)
 
 Pedido do dono: "por mais que eu discrimine, montando um pacote, o valor do produto e o valor do pacote, no comprovante do cliente só pode sair o valor do pacote. As meninas dão o brinde: é como um presente, incluso dentro do pacote. O cliente só pode saber que tem o pacote".
