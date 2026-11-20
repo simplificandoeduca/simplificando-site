@@ -18,14 +18,16 @@ require __DIR__ . '/pdfbonito.php';   /* 2.6: a moldura dos relatórios bonitos 
 require __DIR__ . '/freelas.php';   /* 2.6: os freelancers */
 require __DIR__ . '/relatorios.php';   /* 2.6: os relatórios do caixa e das festas */
 require __DIR__ . '/comissoes.php';   /* 2.8: as comissões das vendedoras */
+require __DIR__ . '/clientes.php';   /* 3.0: o relatório por cliente */
+require __DIR__ . '/comprovantes.php';   /* 3.0: o comprovante das despesas */
 set_exception_handler(function (Throwable $e) { registrarErro('[financas] ' . $e->getMessage() . ' @' . basename($e->getFile()) . ':' . $e->getLine()); falha('Algo deu errado. Tente de novo em instantes.', 500); });
-const FIN_VERSAO = '2.9';
+const FIN_VERSAO = '3.0';
 
 $in = [];
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
   $bruto = file_get_contents('php://input') ?: '';
   /* 2.4: o PDF da Rede (anexado no Controle de caixa) pode passar disso: até 12 MB, só para ele */
-  if (strlen($bruto) > (preg_match('/^\{\s*"acao"\s*:\s*"cx_pdf"/', $bruto) ? 12 * 1024 * 1024 : 200000)) falha('Envio grande demais.', 413);
+  if (strlen($bruto) > (preg_match('/^\{\s*"acao"\s*:\s*"(cx_pdf|cp_anexar)"/', $bruto) ? 12 * 1024 * 1024 : 200000)) falha('Envio grande demais.', 413);   /* 3.0: e o comprovante da despesa */
   $in = json_decode($bruto, true); if (!is_array($in)) $in = [];
 } else falha('Use a tela das Finanças.', 405);
 $acao = (string)($in['acao'] ?? '');
@@ -177,7 +179,7 @@ if ($acao === 'email_enviar') {
 /* ---------- 2.0: a gestão financeira: os lançamentos do financeiro (no lugar da planilha), o relatório e o PDF dele ---------- */
 if ($acao === 'fl_listas') { flPreparar(); responder(['listas' => flListas(), 'importacoes' => flImportacoes(), 'fornecedores' => fnNomes(), 'apagar' => apSomas()]); }
 if ($acao === 'fl_listas_salvar') responder(['listas' => flListasSalvar($in)]);
-if ($acao === 'fl_listar') responder(flListar($in));
+if ($acao === 'fl_listar') { $r_ = flListar($in); if (($in['tipo'] ?? '') === 'despesa') { $cp_ = cpDeVarios(array_column($r_['linhas'], 'id')); foreach ($r_['linhas'] as &$x_) $x_['comp'] = $cp_[$x_['id']] ?? null; unset($x_); } responder($r_); }
 if ($acao === 'fl_salvar') responder(flSalvar($in, $eu));
 if ($acao === 'fl_remover') responder(flRemover($in, $eu));
 if ($acao === 'fl_exportar') responder(flExportar($in));
@@ -203,6 +205,10 @@ if ($acao === 'fz_lancar') responder(fzLancar($in, $eu));
 if ($acao === 'fz_dia_salvar') responder(fzDiaSalvar($in, $eu));
 if ($acao === 'fz_pagar') responder(fzPagar($in, $eu));
 if ($acao === 'fz_dia_tirar') responder(fzDiaTirar($in, $eu));
+/* 3.0: o relatório por cliente (o nome do cliente, o pacote e o produto, discriminados) */
+if ($acao === 'vc_listar') responder(vcListar($in));
+if ($acao === 'vc_pdf') { $de_ = vcDia($in['de'] ?? '', date('Y-m-d')); $ate_ = vcDia($in['ate'] ?? '', $de_); pbSaida(vcPdf($in), 'play-space-vendas-por-cliente-' . $de_ . ($ate_ !== $de_ ? '-a-' . $ate_ : '') . '.pdf'); }
+if ($acao === 'fz_valores_salvar') responder(fzValoresSalvar($in, $eu));   /* 3.0: a diária de semana e a de fim de semana */
 if ($acao === 'ff_salvar') responder(ffSalvar($in, $eu));   /* 2.9: o fluxo de caixa dos freelancers */
 if ($acao === 'ff_devolver') responder(ffDevolver($in, $eu));
 if ($acao === 'ff_tirar') responder(ffTirar($in, $eu));
@@ -220,7 +226,12 @@ if ($acao === 'fn_nomes') { flPreparar(); responder(['fornecedores' => fnNomes()
 if ($acao === 'fn_ver') responder(fnVer($in));
 if ($acao === 'fn_salvar') responder(fnSalvar($in, $eu));
 if ($acao === 'fn_remover') responder(fnRemover($in, $eu));
-if ($acao === 'ap_listar') responder(apListar($in));
+if ($acao === 'ap_listar') { $r_ = apListar($in); $cp_ = cpDeVarios(array_column($r_['linhas'], 'id')); foreach ($r_['linhas'] as &$x_) $x_['comp'] = $cp_[$x_['id']] ?? null; unset($x_); responder($r_); }
+/* 3.0: o comprovante das despesas (anexar, conferir o valor, ver, baixar) */
+if ($acao === 'cp_anexar') responder(cpAnexar($in, $eu));
+if ($acao === 'cp_conferir') responder(cpConferir($in, $eu));
+if ($acao === 'cp_ver') responder(cpVer($in));
+if ($acao === 'cp_baixar') cpBaixar($in);
 if ($acao === 'ap_pagar') responder(apPagar($in, $eu));
 if ($acao === 'ap_reabrir') responder(apReabrir($in, $eu));
 if ($acao === 'fl_painel') responder(flPainel($in));

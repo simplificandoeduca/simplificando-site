@@ -11,6 +11,18 @@
    - A conta do dia: devido = combinado + VT; pago = (diária paga ? valor pago : 0) + (VT pago ? VT : 0); falta = o que ainda não foi pago.
    ===================================================================== */
 const FZ_CAMPOS = ['combinado', 'vt', 'pago', 'pago_valor', 'vt_pago', 'u', 'obs'];
+/* 3.0 (Play Space 1.69): a diária do freelancer pelo dia (o dono: "no fim de semana o freelancer é 120, durante a semana é 90; já deixa isso
+   e uma opção de trocar"). Sábado e domingo usam a de fim de semana. O freelancer com diária fixa no cadastro continua com a dele */
+const FZ_VALORES_PADRAO = ['semana' => 90.0, 'fds' => 120.0];
+function fzValores(): array { $v = cfg('fin_freela_valores', null); return is_array($v) && isset($v['semana'], $v['fds']) ? ['semana' => round((float)$v['semana'], 2), 'fds' => round((float)$v['fds'], 2)] : FZ_VALORES_PADRAO; }
+function fzValoresSalvar(array $in, array $eu): array {
+  fzPreparar(); $s = cxValor($in['semana'] ?? null); $f = cxValor($in['fds'] ?? null);
+  if ($s === null || $s <= 0 || $f === null || $f <= 0) falha('Escreva a diária de semana e a de fim de semana (ex.: 90,00 e 120,00).');
+  $antes = fzValores(); $novo = ['semana' => round($s, 2), 'fds' => round($f, 2)];
+  if ($novo != $antes) { gravarCfg('fin_freela_valores', $novo); fzHist(0, null, 'valores', json_encode($antes), json_encode($novo), $eu); }
+  return fzListar(['mes' => $in['mes'] ?? date('Y-m', agoraTs()), 'u' => $in['u_filtro'] ?? 'todas']);
+}
+function fzFimDeSemana(string $dia): bool { $w = (int)date('w', strtotime($dia . ' 12:00:00')); return $w === 0 || $w === 6; }
 
 function fzPreparar(): void {
   static $ok = false; if ($ok) return; $ok = true;
@@ -72,7 +84,7 @@ function fzListar(array $in): array {
     $L[] = fzFreelaPub($f) + ['dias' => $dias, 'tot' => $t];
   }
   $F = ffListar($mes, $uni);   /* 2.9: o fluxo de caixa (o dinheiro entregue ao gerente) */
-  return ['mes' => $mes, 'freelas' => $L, 'total' => $T, 'nomes' => unidades(), 'hoje' => date('Y-m-d', agoraTs()), 'fluxos' => $F, 'fluxoTot' => ffResumo($F)];
+  return ['mes' => $mes, 'freelas' => $L, 'total' => $T, 'nomes' => unidades(), 'hoje' => date('Y-m-d', agoraTs()), 'fluxos' => $F, 'fluxoTot' => ffResumo($F), 'valores' => fzValores()];
 }
 
 /* o cadastro: novo (sem id) ou a mudança de um */
@@ -100,12 +112,16 @@ function fzLancar(array $in, array $eu): array {
   $datas = array_values(array_unique(array_map('fzDiaOk', (array)($in['datas'] ?? [])))); sort($datas);
   if (!$datas) falha('Toque nos dias que ele trabalhou.'); if (count($datas) > 62) falha('No máximo 62 dias de uma vez.');
   $u = fzUni($in['u'] ?? null);
-  $comb = array_key_exists('combinado', $in) ? cxValor($in['combinado']) : ($f['diaria'] === null ? null : (float)$f['diaria']); if ($comb === null) falha('Escreva o valor combinado da diária.');
+  /* 3.0: a diária de cada dia: a de semana ou a de fim de semana (a tela manda as duas); "combinado" (a tela antiga) vale para todos os dias */
+  $V = fzValores(); $vs = array_key_exists('semana', $in) ? cxValor($in['semana']) : null; $vf = array_key_exists('fds', $in) ? cxValor($in['fds']) : null;
+  if (array_key_exists('semana', $in) || array_key_exists('fds', $in)) { if ($vs === null || $vf === null) falha('Escreva a diária de semana e a de fim de semana.'); $comb = null; }
+  else { $comb = array_key_exists('combinado', $in) ? cxValor($in['combinado']) : ($f['diaria'] === null ? null : (float)$f['diaria']); if ($comb === null) { $vs = $V['semana']; $vf = $V['fds']; } }
+  $combDe = fn(string $d) => $comb !== null ? (float)$comb : (fzFimDeSemana($d) ? (float)$vf : (float)$vs);
   $vt = array_key_exists('vt', $in) ? (cxValor($in['vt']) ?? 0.0) : (float)($f['vt'] ?? 0);
   $ja = $db->prepare('SELECT 1 FROM fin_freela_dias WHERE freela_id = ? AND dia = ? AND removido_em IS NULL');
   $ins = $db->prepare('INSERT INTO fin_freela_dias (freela_id, dia, unidade_id, combinado, vt, por, em) VALUES (?, ?, ?, ?, ?, ?, ?)');
   $n = 0; $pulou = [];
-  foreach ($datas as $d) { $ja->execute([$fid, $d]); if ($ja->fetchColumn()) { $pulou[] = $d; continue; } $ins->execute([$fid, $d, $u, $comb, $vt, (string)$eu['nome'], agora()]); fzHist($fid, (int)$db->lastInsertId(), 'lancado', null, $d, $eu); $n++; }
+  foreach ($datas as $d) { $ja->execute([$fid, $d]); if ($ja->fetchColumn()) { $pulou[] = $d; continue; } $ins->execute([$fid, $d, $u, $combDe($d), $vt, (string)$eu['nome'], agora()]); fzHist($fid, (int)$db->lastInsertId(), 'lancado', null, $d, $eu); $n++; }
   $mes = substr($datas[0], 0, 7);
   return fzListar(['mes' => $in['mes'] ?? $mes, 'u' => $in['u_filtro'] ?? 'todas']) + ['lancados' => $n, 'pulados' => $pulou];
 }

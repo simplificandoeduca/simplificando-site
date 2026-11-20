@@ -1301,6 +1301,24 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzy. O pedido ao gestor no alto, a tela sem barra de rolagem, o relatório por cliente, a diária 90/120 e o comprovante das despesas (1.69 · Finanças 3.0)
+
+Pedido do dono: "quando um pedido ficar aguardando a aprovação do gestor, elas podem fechar, porém ele fica destacado lá em cima: o nome do cliente, vermelhinho, aguardando a aprovação do gestor; quando o gestor aprovar, fica verdinho, e só sai de lá quando elas clicarem e finalizarem"; "o sistema se adapta à tela, sem aquela barra de rolagem (com uma segunda tela aberta, eram duas barras)"; "no financeiro, um relatório com o nome do cliente, o pacote e o produto, tudo discriminado"; "o freelancer é 120 no fim de semana e 90 durante a semana, com a opção de trocar na tela de finanças"; "anexar o comprovante no controle de despesas: o financeiro adiciona, e o valor do comprovante tem que bater com o que está escrito".
+
+- **O pedido ao gestor no alto (tela da atendente):** cada pedido que ela mandou (desconto, alterar valor ou pacote, parcelas, cancelamento, NF…) fica numa faixa no alto da tela, com o nome do cliente:
+  - **vermelho, "Aguardando a aprovação do gestor"** (com uma bolinha piscando), mesmo com o atendimento fechado;
+  - **verde, "Aprovado por … · toque para finalizar"** quando o gestor libera. Tocar abre o atendimento (ou a saída, ou as parcelas) para terminar. Fechar sem terminar: o pedido continua no alto. **Sai quando a venda é finalizada** (o desconto, o valor ou as parcelas usados);
+  - **"Não aprovado por … · toque para ver"** quando o gestor nega; o cancelamento feito e a nota autorizada também aparecem. Esses saem com um toque;
+  - fica só na tela de quem pediu, na unidade dela, e some sozinho depois de 12 horas.
+- **A tela sem a barra de rolagem:** a página não mostra mais a barra do lado (a roda do mouse e o dedo continuam rolando). As caixinhas (atendimento, cadastro, aprovações) rolam por dentro, com uma barra fina, sem arrastar a tela de trás: com a caixinha aberta, fica só uma rolagem. Vale também nas Finanças.
+- **Relatório por cliente (Finanças → Vendas e pacotes, no alto):** cada venda de pacote ou de produto no período e na unidade escolhidos, as mais recentes primeiro: quando, o cliente (responsável, criança e telefone), cada pacote (com as horas), cada produto (com a quantidade), o total (e o desconto), como foi pago (e o que falta receber) e quem vendeu. Em cima, os totais (vendido, pacotes, produtos, descontos). Tem a busca (cliente, pacote ou produto), o **PDF** e o **Excel** (uma linha por item, para filtrar).
+- **A diária do freelancer (Finanças → Freelancers):** já vem **R$ 90 de segunda a sexta e R$ 120 no sábado e no domingo**. A barra "Diária do freelancer: semana … · fim de semana …" tem o **Mudar** (fica guardado quem mudou). No **Lançar dias** vêm os dois valores (semana e fim de semana), que dá para trocar só naquele lançamento; o freelancer com **diária fixa** no cadastro usa a dele.
+- **O comprovante da despesa (Finanças → Lançamentos → Despesas, e Contas a pagar):** na despesa, **📎 Anexar o comprovante** (foto ou PDF, até 8 MB; na despesa nova vai junto quando lançar).
+  - Escreva o **valor que está no comprovante** e toque **Conferir**: ✓ **confere** (o mesmo valor da despesa) ou ✗ **não bate** (mostra a diferença). O PDF que tem o texto (o comprovante do Pix do banco) é lido sozinho e confere na hora.
+  - Na lista, cada despesa mostra: sem comprovante, falta conferir, ✓ confere ou ✗ não bate. Se o valor da despesa mudar, a conferência é refeita.
+  - **Baixar** e **Trocar** (o comprovante antigo fica guardado). Os arquivos ficam na pasta de dados, fechada para a internet.
+- **A janela de impressão que pisca:** o Chrome (e o aplicativo instalado) não tem um jeito de esconder de vez essa janelinha. Só um programa de impressão instalado no computador do balcão (que recebe o cupom e manda direto para a impressora) tira ela. Fica para uma próxima versão, se o dono quiser.
+
 ## 6zzx. A comissão de quem abre o pedido, o Fluxo de caixa dos freelancers e o freelancer à parte (1.68 · Finanças 2.9)
 
 Pedido do dono: "a comissão sempre é de quem dá início no pedido do cliente, não de quem dá saída: ela oferta o pacote no início; às vezes o cliente fecha no final, mas a comissão é de quem abre o pedido"; "na aba Freelancers, um fluxo de caixa: o valor que ela passa para o gerente; conforme os freelancers são colocados como pagos, o valor vai sendo debitado, e fica o que ela precisa receber de Pix de volta"; "o freelancer fica à parte: não entra no resto".

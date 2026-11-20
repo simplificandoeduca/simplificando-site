@@ -55,6 +55,25 @@ svg { display: block; }
 .trilho { display: none; }
 .conteudo { flex: 1; min-width: 0; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 14px 120px; }
 .miolo { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+/* 1.69 (o dono: "o sistema tem que se adaptar à tela que eu abri, sem aquela tela de rolagem; quando eu abro uma segunda tela, ele me dá duas
+   telas de rolagem"): a página não mostra a barra de rolagem (rola com a roda do mouse, o dedo ou o teclado); as caixinhas e o painel ao lado
+   rolam por dentro, com uma barra fina e discreta, e a tela de trás não rola junto */
+html { scrollbar-width: none; } html::-webkit-scrollbar { width: 0; height: 0; }
+.folha, .lado, #aut .aut-lst { overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--borda-2) transparent; }
+.folha::-webkit-scrollbar, .lado::-webkit-scrollbar, #aut .aut-lst::-webkit-scrollbar { width: 6px; height: 6px; }
+.folha::-webkit-scrollbar-thumb, .lado::-webkit-scrollbar-thumb, #aut .aut-lst::-webkit-scrollbar-thumb { background: var(--borda-2); border-radius: 3px; }
+.folha::-webkit-scrollbar-track, .lado::-webkit-scrollbar-track, #aut .aut-lst::-webkit-scrollbar-track { background: transparent; }
+@media (max-width: 1100px) { body.com-lado { overflow: hidden; } }
+/* 1.69: os pedidos da atendente que esperam o gestor (vermelho), aprovados (verde, até finalizar) ou negados, no alto da tela */
+.meus-ped { position: sticky; top: 8px; z-index: 30; max-width: 1120px; margin: 0 auto 14px; display: flex; flex-direction: column; gap: 6px; }
+.mp-it { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; width: 100%; text-align: left; padding: 10px 14px; border-radius: 16px; border: 2px solid; font: inherit; cursor: pointer; box-shadow: var(--sombra); }
+.mp-it b { font-family: var(--display); font-size: 15px; } .mp-it .mp-o { flex: 1 1 200px; color: var(--tinta-2); font-size: 13.5px; min-width: 0; } .mp-it .mp-st { font-weight: 800; font-size: 13.5px; }
+.mp-it i { flex: none; width: 12px; height: 12px; border-radius: 50%; }
+.mp-esp { background: #FBE1DA; border-color: var(--coral); color: #A63A22; } .mp-esp i { background: var(--coral); animation: mp-pisca 1.4s ease-in-out infinite; } .mp-esp .mp-st { color: #A63A22; }
+.mp-ok { background: var(--verde-agua-2); border-color: #3F8F5E; color: #26623E; } .mp-ok i { background: #3F8F5E; } .mp-ok .mp-st { color: #26623E; }
+.mp-neg, .mp-venc { background: var(--card); border-color: var(--borda-2); color: var(--tinta); } .mp-neg i, .mp-venc i { background: var(--apagado); }
+@keyframes mp-pisca { 50% { opacity: .35; } }
+body.quieto .mp-esp i { animation: none; }
 .hoje { display: none; }
 @media (min-width: 820px) {
   .trilho { display: block; position: sticky; top: 0; height: 100vh; flex: none; padding: 18px 0 18px max(18px, env(safe-area-inset-left, 0px)); }
@@ -1612,7 +1631,7 @@ body.abrindo::after { content: ''; position: fixed; z-index: 90; top: 0; left: 0
 
 <div class="app">
   <aside class="trilho"><nav id="nav-lado"></nav></aside>
-  <main class="conteudo"><div class="miolo" id="miolo"></div><div class="fab-ancora" id="fab-ancora"><button type="button" class="fab tap" id="fab" data-act="nova" aria-label="Cadastrar criança" title="Cadastrar criança"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button></div><p class="rodape rodape-global" id="rodape-global"></p></main>
+  <main class="conteudo"><div class="meus-ped" id="meus-ped" role="region" aria-label="Pedidos esperando o gestor" aria-live="polite" hidden></div><div class="miolo" id="miolo"></div><div class="fab-ancora" id="fab-ancora"><button type="button" class="fab tap" id="fab" data-act="nova" aria-label="Cadastrar criança" title="Cadastrar criança"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button></div><p class="rodape rodape-global" id="rodape-global"></p></main>
   <aside class="hoje"><div id="hoje"></div></aside>
 </div>
 <nav class="barra" id="nav-baixo" aria-label="Menu"></nav>
@@ -1726,7 +1745,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.68';
+const VERSAO = '1.69';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -6292,6 +6311,41 @@ const podeDecidirTipo = t => t === 'cancelar_venda' ? podeEstornar() : t === 'va
 const semVendaTipo = t => t === 'desconto' || t === 'valor' || t === 'parcelas';   // 1.33: os pedidos que nascem antes da venda
 const pedidoDe = p => ({ ...p, em: dataDe(p.em), dec_em: p.dec_em ? dataDe(p.dec_em) : null, feito_em: p.feito_em ? dataDe(p.feito_em) : null, vale: p.vale ? dataDe(p.vale) : null, dados: p.dados || {} });
 const pedidoPorId = id => (S.pedidos || []).find(p => p.id === +id) || null;
+/* 1.69 (o dono: "quando um pedido ficar aguardando a aprovação do gestor, elas podem fechar esse pedido, porém ele vai ficar destacado lá em
+   cima: o nome do cliente, vermelhinho, aguardando a aprovação do gestor; quando o gestor aprovar, fica verdinho; e só sai de lá quando elas
+   clicarem e finalizarem"). O desconto, o valor alterado e o crédito em mais vezes saem quando a venda é finalizada (o pedido usado);
+   o negado, o que venceu, a nota e o cancelamento de venda decididos saem com um toque (este aparelho guarda que já viu) */
+const PED_FINALIZA = ['desconto', 'valor', 'parcelas'];
+const pedVistos = () => new Set((lido('ps-ped-vistos', []) || []).map(Number));
+function pedVisto(id) { const s = pedVistos(); s.add(+id); guardar('ps-ped-vistos', [...s].slice(-120)); }
+function mpEstado(p) {
+  const quem = primeiro(p.dec || '') || (p.tipo === 'valor' ? 'a supervisora' : 'o gestor');
+  if (p.status === 'pendente') return { cls: 'esp', txt: p.tipo === 'valor' ? 'Aguardando a aprovação da supervisora ou do gestor' : 'Aguardando a aprovação do gestor', sai: false };
+  if (p.status === 'negado') return { cls: 'neg', txt: `Não aprovado por ${quem} · toque para ver`, sai: true };
+  if (PED_FINALIZA.includes(p.tipo)) return p.vale && agora >= p.vale ? { cls: 'venc', txt: 'A aprovação venceu · toque para ver', sai: true } : { cls: 'ok', txt: `Aprovado por ${quem} · toque para finalizar`, sai: false };
+  return { cls: 'ok', txt: p.tipo === 'cancelar_venda' ? `Cancelamento feito por ${quem} · toque para fechar` : `Nota autorizada por ${quem} · toque para fechar`, sai: true };
+}
+function meusPedidosAbertos() {
+  const v = pedVistos(), u = typeof minhaUni === 'function' ? minhaUni() : null;
+  return (S.pedidos || []).filter(p => pedMeu(p) && !v.has(p.id) && (!u || !p.uni || p.uni === u) && agora - p.em < 12 * 3600000 && p.status !== 'cancelado'
+    && (p.status === 'pendente' || (PED_FINALIZA.includes(p.tipo) ? p.status === 'liberado' || p.status === 'negado' : true))).sort((a, b) => a.id - b.id);
+}
+function desenharMeusPed() {
+  const a = $('#meus-ped'); if (!a) return; const L = document.body.classList.contains('so') ? [] : meusPedidosAbertos();
+  const html = L.map(p => { const e = mpEstado(p); return `<button type="button" class="mp-it mp-${e.cls} tap" data-act="ped-meu" data-id="${p.id}"><i aria-hidden="true"></i><b>${esc(p.resp || p.nome || 'Cliente')}</b><span class="mp-o">${esc(p.texto || '')}</span><span class="mp-st">${esc(e.txt)}</span></button>`; }).join('');
+  if (a.innerHTML !== html) a.innerHTML = html; a.hidden = !L.length;
+}
+function abrirMeuPedido(id) {
+  const p = pedidoPorId(id); if (!p) { desenharMeusPed(); return; }
+  if (mpEstado(p).sai) pedVisto(p.id);
+  desenharMeusPed(); const c = p.crianca ? crianca(p.crianca) : null;
+  if (!c) { pedVisto(p.id); desenharMeusPed(); toast('O cliente deste pedido não está mais na lista.'); return; }
+  if (p.status === 'negado' && PED_FINALIZA.includes(p.tipo)) avisar(`${primeiro(p.dec || '') || 'O gestor'} não aprovou: ${p.texto} (${p.resp || p.nome}).`);
+  if (p.tipo === 'parcelas') { folhaFesta(c.id); return; }
+  if (p.tipo === 'nf' || p.tipo === 'cancelar_venda') { ACOES.historico({ dataset: { id: c.id } }); return; }
+  if ((p.dados || {}).onde === 'saida' && c.entrou) { SAI_VOLTA = null; AV_VOLTA = null; pedirSaida(c.id); return; }
+  atender(c.id);
+}
 const pedMeu = p => MODO === 'servidor' ? !!p.meu : p.por_id === euId();
 const pedDecide = p => p.status === 'pendente' && (MODO === 'servidor' ? !!p.decide : podeDecidirTipo(p.tipo) && !(!semVendaTipo(p.tipo) && !S.compras.some(v => v.id === p.venda)));
 const pedidosParaMim = () => (S.pedidos || []).filter(pedDecide).sort((a, b) => a.id - b.id);   // os que esperam a minha resposta, o mais antigo primeiro
@@ -6328,6 +6382,7 @@ const quemPede = p => { const a = MAI((p.dados || {}).atendente || ''), l = prim
 const htmlPedido = p => `<div class="aut-it" data-ped="${p.id}"><div class="aut-t"><small>${esc(quemPede(p))} pede · ${hora(p.em)}${p.uni && S.unidades.length > 1 && nomeUni(p.uni) ? ' · ' + esc(nomeUni(p.uni)) : ''}</small><b>${esc(p.texto)}</b><span>${esc(p.resp ? p.resp + ' · ' + p.nome : p.nome)}</span>${p.motivo ? `<span class="aut-mot">Motivo: <b>${esc(p.motivo)}</b></span>` : ''}</div>
   <div class="aut-b"><button type="button" class="bt forte tap" data-act="ped-ok" data-id="${p.id}">${ic(IC.check, 18, 2.6)} ${p.tipo === 'nf' ? 'Autorizar a nota' : p.tipo === 'cancelar_venda' ? 'Liberar o cancelamento' : p.tipo === 'valor' ? 'Aprovar o valor' : 'Liberar'}</button><button type="button" class="bt nao tap" data-act="ped-nao" data-id="${p.id}">Negar</button></div></div>`;
 function desenharPedidos() { // o cartão fica por cima de tudo (folha aberta, histórico): quem autoriza vê na hora, onde estiver
+  desenharMeusPed();   /* 1.69: os pedidos de quem pediu, no alto da tela */
   const a = $('#aut'); if (!a) return; const so = document.body.classList.contains('so'), L = so ? [] : pedidosParaMim(), A = so ? [] : avisosNovos();   // 1.25: e os cancelamentos novos (só a gestora)
   document.title = (L.length + A.length ? `(${L.length + A.length}) ` : '') + TITULO_ABA;
   const novos = [...L.filter(p => !AUT_VISTOS.has(p.id)), ...A.filter(x => !AUT_VISTOS.has('av' + x.id))]; for (const p of L) AUT_VISTOS.add(p.id); for (const x of A) AUT_VISTOS.add('av' + x.id);
@@ -7658,6 +7713,7 @@ const ACOES = {
   entrada: el => { const c = crianca(el.dataset.id); comQuemAbre(c, v => { entrada(c, 'mão', v); fecharFolha(); desenhar(); }); },   /* 1.68: quem abre o pedido */
   'quem-abre': el => { const q = QUEM_ABRE; QUEM_ABRE = null; fecharFolha(); const c = q && crianca(q.id); if (c && !c.entrou) { q.fazer(el.dataset.n || ''); desenhar(); } },
   saida: el => { SAI_VOLTA = null; AV_VOLTA = null; pedirSaida(+el.dataset.id); },
+  'ped-meu': el => abrirMeuPedido(+el.dataset.id),   /* 1.69 */
   avisar: el => { const c = crianca(el.dataset.id); let conv = S.conversas.find(x => x.crianca === c.id); if (!conv) { conv = { id: novoId(), crianca: c.id, lidas: true, msgs: [] }; S.conversas.push(conv); } S.zapAberta = conv.id; S.zapModo = 'papo'; S.zapDia = isoDia(agora); fecharFolha(); trocarTela('zap'); const t = $('#zap-texto'); if (t) { t.value = `Oi, ${nomeMsg(primeiro(c.resp))}! `; t.focus(); t.setSelectionRange(t.value.length, t.value.length); } },
   rosto: el => { const c = crianca(el.dataset.id); if (MODO === 'servidor') { api('idface_mandar', { id: c.id }).then(() => deuCerto(`${c.nome} mandada de novo para o iDFace`)).catch(e => toast(e.message)); fecharFolha(); return; } c.rosto = true; deuCerto(`${c.nome} mandada para o iDFace. Agora é só olhar para a câmera.`, () => { c.rosto = false; }); fecharFolha(); desenhar(); },
   'rosto-cam': el => folhaRosto(+el.dataset.id),
@@ -8023,6 +8079,7 @@ window.addEventListener('hashchange', () => { const h = location.hash.slice(1); 
 setInterval(() => {
   agora.setTime(Date.now() + DESVIO);
   $$('[data-relogio]').forEach(el => { el.innerHTML = relogioTxt(); });
+  if (agora.getSeconds() % 30 === 0) desenharMeusPed();   /* 1.69: a aprovação que venceu muda de cor */
   if (agora.getSeconds() % 30 === 0 && S.tela === 'horas' && !$('#folha .folha-fundo')) { document.body.classList.add('quieto'); redesenharDicas(); } if (agora.getSeconds() === 0) $$('[data-data]').forEach(el => { el.textContent = dataTxt(); });
   $$('[data-cron]').forEach(el => { const c = crianca(el.dataset.cron); if (c && c.entrou) el.innerHTML = cronometro(c); });
   $$('[data-cron-txt]').forEach(el => { const c = crianca(el.dataset.cronTxt); if (c && c.entrou) el.textContent = hms(segDentro(c)); });

@@ -195,6 +195,10 @@ td .g-tog + .selo { display: block; width: max-content; margin-top: 4px; } td.g-
 /* folhas (criar acesso, nova senha) */
 .fundo { position: fixed; inset: 0; background: rgba(20, 20, 35, .38); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 30; }
 .folha { background: var(--card); border-radius: 26px; padding: 24px; width: 100%; max-width: 460px; max-height: calc(100vh - 32px); overflow: auto; box-shadow: 0 30px 80px rgba(0, 0, 0, .25); }
+/* 3.0 (Play Space 1.69): a tela se adapta à janela: a página sem a barra de rolagem (rola com a roda do mouse, o dedo ou o teclado); as caixinhas rolam por dentro, com uma barra fina, sem arrastar a tela de trás */
+html { scrollbar-width: none; } html::-webkit-scrollbar { width: 0; height: 0; }
+.folha, .rolar { overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgba(59, 59, 59, .2) transparent; }
+.folha::-webkit-scrollbar, .rolar::-webkit-scrollbar { width: 6px; height: 6px; } .folha::-webkit-scrollbar-thumb, .rolar::-webkit-scrollbar-thumb { background: rgba(59, 59, 59, .2); border-radius: 3px; } .folha::-webkit-scrollbar-track, .rolar::-webkit-scrollbar-track { background: transparent; }
 .folha h3 { margin: 0 0 4px; font-size: 22px; font-weight: 800; }
 .folha .acoes { display: flex; gap: 10px; margin-top: 20px; }
 .folha .acoes .btn { flex: 1; margin: 0; }
@@ -413,6 +417,17 @@ tr.nf-canc td:nth-child(2), tr.nf-canc td:last-child { text-decoration: line-thr
 .fz-tg { height: 30px; border-radius: 999px; border: 1.5px solid rgba(194, 65, 42, .35); background: #FFF4F0; color: var(--bad); font: 700 12.5px/1 inherit; padding: 0 12px; cursor: pointer; }
 .fz-tg.sim { border-color: rgba(63, 143, 94, .4); background: var(--ok-bg, #DDEFE3); color: var(--ok); }
 /* 2.9: o fluxo de caixa dos freelancers */
+.cp-box { border: 1px dashed rgba(59, 59, 59, .2); border-radius: 14px; padding: 12px 14px; background: var(--soft); }   /* 3.0: o comprovante */
+.cp-linha { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; margin-top: 6px; } .cp-linha .link { margin: 0; padding: 0 4px; display: inline; } .cp-atual small { color: var(--ink-3); }
+.cp-anexar { width: auto; height: 40px; margin: 0; cursor: pointer; } .cp-v { flex: 1 1 200px; } .cp-v .lbl { margin-top: 4px; } #cp-conferir { width: auto; height: 50px; margin: 0; }
+.cp-sit { margin: 10px 0 0; font-size: 13.5px; padding: 8px 10px; border-radius: 10px; } .cp-sit.cp-ok { background: var(--ok-bg, #DDEFE3); color: var(--ok); } .cp-sit.cp-nb { background: var(--bad-bg, #FBE1DA); color: var(--bad); } .cp-sit.cp-conf { background: #FFF4E5; color: #8A5A10; }
+.cp-chip { display: inline-block; margin-top: 4px; font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; } .cp-chip.cp-ok { background: var(--ok-bg, #DDEFE3); color: var(--ok); } .cp-chip.cp-nb { background: var(--bad-bg, #FBE1DA); color: var(--bad); }
+.cp-chip.cp-conf { background: #FFF4E5; color: #8A5A10; } .cp-chip.cp-falta { color: var(--ink-3); font-weight: 600; padding-left: 0; }
+#cp-corpo.carregando { opacity: .55; pointer-events: none; }
+.vc-cab { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: flex-start; } .vc-cab .lista-acoes .btn { width: auto; height: 40px; margin: 0; padding: 0 16px; }   /* 3.0: o relatório por cliente */
+.vc-filtro { margin: 14px 0 10px; } .vc-tab { min-width: 980px; font-size: 13.5px; } .vc-tab td { vertical-align: top; } .vc-tab td small { display: block; color: var(--ink-3); font-size: 12px; }
+.vc-i { display: block; padding: 2px 0; } .vc-i small { display: inline; margin-left: 6px; } .vc-i em { font-style: normal; font-weight: 700; margin-left: 6px; } .vc-f { color: var(--ink-2) !important; } .vc-ar { color: var(--bad) !important; font-weight: 700; }
+.fz-regra { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 14px; font-size: 14px; color: var(--ink-2); } .fz-regra .link { margin: 0; padding: 0; display: inline; }   /* 3.0 */
 .fz-vistas { margin: -6px 0 16px; } .chip .ff-n { display: inline-grid; place-items: center; min-width: 20px; height: 20px; border-radius: 999px; background: var(--brand); color: #fff; font-size: 12px; font-weight: 800; margin-left: 6px; padding: 0 6px; line-height: 1; }
 .ff-cartao .fz-acoes .link { margin: 0; padding: 0 8px; display: inline-block; } .ff-cartao .fz-acoes .link:last-child { margin-left: auto; color: var(--ink-3); }
 .chip.on .ff-n { background: #fff; color: var(--ink); }
@@ -511,13 +526,15 @@ tr.nf-canc td:nth-child(2), tr.nf-canc td:last-child { text-decoration: line-thr
 </head>
 <body>
 <div id="raiz"></div>
-<script src="gestao.js?v=2.1"></script>
-<script src="gestao2.js?v=2.1"></script>
+<script src="gestao.js?v=3.0"></script>
+<script src="gestao2.js?v=3.0"></script>
 <script src="planilhas.js?v=2.1"></script>
 <script src="caixa.js?v=2.6"></script>
 <script src="festas.js?v=2.6"></script>
-<script src="freelas.js?v=2.9"></script>
+<script src="freelas.js?v=3.0"></script>
 <script src="comissoes.js?v=2.8"></script>
+<script src="clientes.js?v=3.0"></script>
+<script src="comprovantes.js?v=3.0"></script>
 <script>
 /* Play Space Finanças 1.0: o que é crítico e delicado do negócio, com login próprio. Os números vêm do Play Space (só leitura). */
 'use strict';
@@ -665,7 +682,7 @@ function somaUni() {
 /* ---------- o app ---------- */
 /* 2.5 (1.64): a página das Finanças que ficou guardada no aparelho (a aba aberta, o app do celular ou o cache do navegador) se renova
    sozinha quando o servidor já tem outra versão. PS_PAGINA é carimbada pelo tools/build_playspace.py com a versão do Play Space. */
-const PS_PAGINA = '1.68';
+const PS_PAGINA = '1.69';
 const psMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
 function renovarSeVelha(v, naTela) {
   if (!v || !psMaior(v, PS_PAGINA)) return false;
@@ -860,7 +877,7 @@ function telaVendas() {
   const pL = Object.values(P).sort((a, b) => b.v - a.v || a.h - b.h), pq = pL.reduce((t, x) => t + x.q, 0), pv = pL.reduce((t, x) => t + x.v, 0), us = UNI === 'todas' ? unisComDados() : [];
   const A = {}; for (const x of D.atendentes.filter(naUni)) { if (!A[x.nome]) A[x.nome] = { n: 0, v: 0 }; A[x.nome].n += x.n; A[x.nome].v += x.v; }
   const aL = Object.entries(A).sort((a, b) => b[1].v - a[1].v), aT = aL.reduce((t, [, x]) => t + x.v, 0);
-  return `<div class="cartao"><h2>Pacotes vendidos</h2><p class="expl">Cada pacote de horas vendido no período${us.length > 1 ? ', e quantos em cada unidade' : ''}.</p>${pL.length ? `<div class="rolar"><table><thead><tr><th>Pacote</th>${us.length > 1 ? us.map(u => `<th class="v"><span class="uni-dot" style="background:${corUni(u)}"></span>${esc(nomeUni(u))}</th>`).join('') : ''}<th class="v">Qtd</th><th class="v">Valor</th></tr></thead><tbody>
+  return `${vcCartao()}<div class="cartao"><h2>Pacotes vendidos</h2><p class="expl">Cada pacote de horas vendido no período${us.length > 1 ? ', e quantos em cada unidade' : ''}.</p>${pL.length ? `<div class="rolar"><table><thead><tr><th>Pacote</th>${us.length > 1 ? us.map(u => `<th class="v"><span class="uni-dot" style="background:${corUni(u)}"></span>${esc(nomeUni(u))}</th>`).join('') : ''}<th class="v">Qtd</th><th class="v">Valor</th></tr></thead><tbody>
     ${pL.map(x => `<tr><td>${esc(x.n)}<small>${String(x.h).replace('.', ',')} h</small></td>${us.length > 1 ? us.map(u => `<td class="v">${int(x.por[u] || 0)}</td>`).join('') : ''}<td class="v">${int(x.q)}</td><td class="v">${brl(x.v)}</td></tr>`).join('')}
     </tbody><tfoot><tr><td>Total</td>${us.length > 1 ? us.map(u => `<td class="v">${int(pL.reduce((t, x) => t + (x.por[u] || 0), 0))}</td>`).join('') : ''}<td class="v">${int(pq)}</td><td class="v">${brl(pv)}</td></tr></tfoot></table></div>` : '<div class="vazio">Nenhum pacote vendido no período.</div>'}</div>
   <div class="cartao"><h2>Vendas por atendente</h2><p class="expl">Quem registrou as vendas (a cobrança da recreação que nasce sozinha no relógio não entra aqui).</p>${aL.length ? `<div class="rolar"><table><thead><tr><th>Atendente</th><th class="v">Vendas</th><th class="v">Valor</th><th class="v">%</th></tr></thead><tbody>

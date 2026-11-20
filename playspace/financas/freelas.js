@@ -60,11 +60,20 @@ function fzKpis() {
     ${kpi('Falta pagar', brl(T.falta), T.falta > 0.004 ? 'diárias e VT em aberto' : 'nada em aberto', T.falta > 0.004 ? 'alerta' : '')}
     ${kpi('Freelancers', int(T.freelas), T.freelas ? 'trabalharam no mês' : 'ninguém lançado ainda')}`;
 }
+function fzRegra() { const V = FZ.d.valores || { semana: 90, fds: 120 }; return `<div class="fz-regra"><span>Diária do freelancer: <b>semana ${brl(V.semana)}</b> · <b>fim de semana ${brl(V.fds)}</b></span><button class="link" id="fz-valores">Mudar</button></div>`; }
+function fzValoresFolha() {
+  const V = FZ.d.valores || { semana: 90, fds: 120 };
+  folha('Diária do freelancer', `<div class="fz-form"><p class="dica">A diária que vem preenchida quando você lança os dias: de segunda a sexta, a de semana; sábado e domingo, a de fim de semana. Os dias já lançados não mudam. O freelancer com diária fixa no cadastro continua com a dele.</p>
+    <div class="fz-2"><label class="fz-c"><span class="lbl">Semana · seg a sex (R$)</span><input class="inp" id="fzv-s" inputmode="decimal" autocomplete="off" value="${esc(cxFmt(V.semana))}"></label><label class="fz-c"><span class="lbl">Fim de semana · sáb e dom (R$)</span><input class="inp" id="fzv-f" inputmode="decimal" autocomplete="off" value="${esc(cxFmt(V.fds))}"></label></div></div>`, 'Salvar', async () => {
+    const s = cxNum($('#fzv-s').value), f = cxNum($('#fzv-f').value); if (Number.isNaN(s) || !(s > 0) || Number.isNaN(f) || !(f > 0)) throw new Error('Escreva as duas diárias (ex.: 90,00 e 120,00).');
+    FZ.d = await api('fz_valores_salvar', { semana: s, fds: f, mes: FZ.mes, u_filtro: FZ.u }); fzRedesenha(); aviso('Diárias salvas ✓');
+  });
+}
 function fzCorpo() {
   if (FZ.vista === 'fluxo') return ffCorpo();   /* 2.9: o fluxo de caixa */
   const { com, sem } = fzLinhas();
   const vazio = !com.length ? `<div class="cartao"><div class="vazio">${FZ.d.freelas.length ? `Nenhum dia de freelancer em ${esc(fsMesNome(FZ.mes).toLowerCase())}${FZ.busca ? ' com essa busca' : ''}. Toque em <b>Lançar dias</b>.` : 'Nenhum freelancer cadastrado. Toque em <b>+ Freelancer</b> e depois em <b>Lançar dias</b>.'}</div></div>` : '';
-  return `${ffAviso()}<div class="grade fs-kpis" id="fz-kpis">${fzKpis()}</div>${vazio}${com.map(fzCartao).join('')}
+  return `${ffAviso()}${fzRegra()}<div class="grade fs-kpis" id="fz-kpis">${fzKpis()}</div>${vazio}${com.map(fzCartao).join('')}
     ${sem.length ? `<section class="cartao fz-sem"><h3>Sem dias em ${esc(fsMesNome(FZ.mes).toLowerCase())}</h3><div class="fz-sem-l">${sem.map(f => `<span class="fz-sem-i"><b>${esc(f.nome)}</b>${f.funcao ? `<small>${esc(f.funcao)}</small>` : ''}<button class="link" data-fzlanca="${f.id}">Lançar dias</button><button class="link" data-fzedit="${f.id}">Editar</button></span>`).join('')}</div></section>` : ''}
     <p class="fs-expl"><b>Total pago</b> = a diária paga + o VT pago. <b>Falta</b> = o que ainda não foi pago (a diária e o VT). Escreva o valor pago se foi diferente do combinado; o valor fica salvo ao sair do campo.</p>`;
 }
@@ -99,7 +108,7 @@ function fzCartao(f) {
 }
 function fzLigar() {
   $$('[data-fzvista]').forEach(b => b.onclick = () => { FZ.vista = b.dataset.fzvista === 'fluxo' ? 'fluxo' : 'freelas'; fzGuarda(); freelasDesenhar(); window.scrollTo(0, 0); });
-  ffLigar();
+  ffLigar(); { const b = $('#fz-valores'); if (b) b.onclick = fzValoresFolha; }   /* 3.0 */
   $$('[data-fzlanca]').forEach(b => b.onclick = () => fzLancarFolha(+b.dataset.fzlanca));
   $$('[data-fzedit]').forEach(b => b.onclick = () => fzFreelaFolha(FZ.d.freelas.find(f => f.id === +b.dataset.fzedit)));
   $$('[data-fzpaga]').forEach(b => b.onclick = () => fzPagarFolha(FZ.d.freelas.find(f => f.id === +b.dataset.fzpaga)));
@@ -145,11 +154,11 @@ function fzFreelaFolha(f) {
       <div class="fz-2"><label class="fz-c"><span class="lbl">Telefone</span><input class="inp" id="fzf-tel" inputmode="tel" autocomplete="off" maxlength="40" value="${esc(v.tel)}" placeholder="(11) 9 ..."></label>
         <label class="fz-c"><span class="lbl">Função</span><input class="inp" id="fzf-funcao" autocomplete="off" maxlength="60" value="${esc(v.funcao)}" placeholder="ex.: recreadora, garçom"></label></div>
       <label class="fz-c"><span class="lbl">Chave Pix</span><input class="inp" id="fzf-pix" autocomplete="off" maxlength="120" value="${esc(v.pix)}" placeholder="para pagar"></label>
-      <div class="fz-2"><label class="fz-c"><span class="lbl">Diária combinada (R$)</span><input class="inp" id="fzf-diaria" inputmode="decimal" autocomplete="off" value="${v.diaria != null ? esc(cxFmt(v.diaria)) : ''}" placeholder="ex.: 150,00"></label>
+      <div class="fz-2"><label class="fz-c"><span class="lbl">Diária fixa (R$) · opcional</span><input class="inp" id="fzf-diaria" inputmode="decimal" autocomplete="off" value="${v.diaria != null ? esc(cxFmt(v.diaria)) : ''}" placeholder="vazio: semana ${esc(cxFmt(((FZ.d && FZ.d.valores) || { semana: 90 }).semana))} · fds ${esc(cxFmt(((FZ.d && FZ.d.valores) || { fds: 120 }).fds))}"></label>
         <label class="fz-c"><span class="lbl">Vale-transporte por dia (R$)</span><input class="inp" id="fzf-vt" inputmode="decimal" autocomplete="off" value="${v.vt != null ? esc(cxFmt(v.vt)) : ''}" placeholder="ex.: 20,00"></label></div>
       <label class="fz-c"><span class="lbl">Observação</span><input class="inp" id="fzf-obs" autocomplete="off" maxlength="300" value="${esc(v.obs)}" placeholder="opcional"></label>
       ${f ? `<label class="fz-chk"><input type="checkbox" id="fzf-ativo" ${v.ativo ? 'checked' : ''}> Ativo (aparece para lançar os dias)</label>` : ''}
-      <p class="dica">A diária e o VT combinados vêm preenchidos quando você lança os dias (e dá para mudar em cada dia).</p></div>`, f ? 'Salvar' : 'Cadastrar', async () => {
+      <p class="dica">Sem diária fixa, o freelancer usa a regra: <b>semana ${brl(((FZ.d && FZ.d.valores) || { semana: 90 }).semana)}</b> e <b>fim de semana ${brl(((FZ.d && FZ.d.valores) || { fds: 120 }).fds)}</b>. A diária e o VT vêm preenchidos quando você lança os dias (e dá para mudar em cada dia).</p></div>`, f ? 'Salvar' : 'Cadastrar', async () => {
     const num = id => { const n = cxNum($(id).value); if (Number.isNaN(n)) throw new Error('Confira o valor em reais (ex.: 150,00).'); return n; };
     const r = await api('fz_freela_salvar', { id: f ? f.id : 0, nome: $('#fzf-nome').value, tel: $('#fzf-tel').value, funcao: $('#fzf-funcao').value, pix: $('#fzf-pix').value, diaria: num('#fzf-diaria'), vt: num('#fzf-vt'), obs: $('#fzf-obs').value, ...(f ? { ativo: $('#fzf-ativo').checked } : {}), mes: FZ.mes, u: FZ.u });
     FZ.d = r; fzRedesenha(); aviso(f ? 'Freelancer salvo ✓' : 'Freelancer cadastrado ✓');
@@ -167,27 +176,31 @@ function fzLancarFolha(fid) {
     for (let d = 1; d <= ult; d++) { const iso = `${FZ.mes}-${String(d).padStart(2, '0')}`, dow = new Date(a, m - 1, d).getDay();
       h += `<button type="button" class="fz-cd ${sel.has(iso) ? 'on' : ''} ${J.has(iso) ? 'ja' : ''} ${dow % 6 === 0 ? 'fds' : ''}" data-fzcd="${iso}" ${J.has(iso) ? 'disabled title="Já lançado"' : ''} aria-pressed="${sel.has(iso)}">${d}</button>`; }
     return h; };
-  const conta = () => { const c = cxNum($('#fzl-comb').value), v = cxNum($('#fzl-vt').value) || 0, n = sel.size; return n && !Number.isNaN(c) ? `<b>${n} ${n === 1 ? 'dia' : 'dias'}</b> · ${brl(n * c)} de diárias${v ? ' + ' + brl(n * v) + ' de VT' : ''} = <b>${brl(n * (c + v))}</b>` : n ? `<b>${n} ${n === 1 ? 'dia' : 'dias'}</b>` : 'Toque nos dias que ele trabalhou.'; };
+  const V = (FZ.d && FZ.d.valores) || { semana: 90, fds: 120 }, fdsDe = iso => { const w = new Date(iso + 'T12:00:00').getDay(); return w === 0 || w === 6; };
+  const diaria = (fx, k) => fx && fx.diaria != null ? fx.diaria : V[k];   /* 3.0: a diária fixa do freelancer, ou a de semana / fim de semana */
+  const conta = () => { const cs = cxNum($('#fzl-comb').value), cf = cxNum($('#fzl-fds').value), v = cxNum($('#fzl-vt').value) || 0, n = sel.size, nf = [...sel].filter(fdsDe).length, c = (n - nf) * cs + nf * cf;
+    return n && !Number.isNaN(cs) && !Number.isNaN(cf) ? `<b>${n} ${n === 1 ? 'dia' : 'dias'}</b>${nf ? ` (${nf} de fim de semana)` : ''} · ${brl(c)} de diárias${v ? ' + ' + brl(n * v) + ' de VT' : ''} = <b>${brl(c + n * v)}</b>` : n ? `<b>${n} ${n === 1 ? 'dia' : 'dias'}}</b>` : 'Toque nos dias que ele trabalhou.'; };
   folha('Lançar os dias trabalhados', `<div class="fz-form">
       <label class="fz-c"><span class="lbl">Freelancer</span><select class="inp" id="fzl-f">${f ? '' : '<option value="">Escolha…</option>'}${ativos.map(x => `<option value="${x.id}" ${f && f.id === x.id ? 'selected' : ''}>${esc(x.nome)}</option>`).join('')}</select></label>
       <div class="fz-cal-c"><div class="fz-cal-t"><b>${esc(fsMesNome(FZ.mes))}</b><span class="fz-atalhos"><button type="button" class="link" data-fzat="uteis">Seg a sex</button><button type="button" class="link" data-fzat="fds">Sáb e dom</button><button type="button" class="link" data-fzat="todos">Todos</button><button type="button" class="link" data-fzat="limpa">Limpar</button></span></div>
         <div class="fz-cal" id="fzl-cal">${cal()}</div></div>
       ${unis.length > 1 ? `<label class="fz-c"><span class="lbl">Unidade</span><select class="inp" id="fzl-u">${unis.map(u => `<option value="${u.id}" ${String(FZ.u) === String(u.id) ? 'selected' : ''}>${esc(u.nome)}</option>`).join('')}</select></label>` : ''}
-      <div class="fz-2"><label class="fz-c"><span class="lbl">Combinado por dia (R$)</span><input class="inp" id="fzl-comb" inputmode="decimal" autocomplete="off" value="${f && f.diaria != null ? esc(cxFmt(f.diaria)) : ''}" placeholder="ex.: 150,00"></label>
-        <label class="fz-c"><span class="lbl">Vale-transporte por dia (R$)</span><input class="inp" id="fzl-vt" inputmode="decimal" autocomplete="off" value="${f && f.vt != null ? esc(cxFmt(f.vt)) : ''}" placeholder="—"></label></div>
+      <div class="fz-2"><label class="fz-c"><span class="lbl">Diária de semana · seg a sex (R$)</span><input class="inp" id="fzl-comb" inputmode="decimal" autocomplete="off" value="${esc(cxFmt(diaria(f, 'semana')))}" placeholder="ex.: 90,00"></label>
+        <label class="fz-c"><span class="lbl">Diária de fim de semana · sáb e dom (R$)</span><input class="inp" id="fzl-fds" inputmode="decimal" autocomplete="off" value="${esc(cxFmt(diaria(f, 'fds')))}" placeholder="ex.: 120,00"></label></div>
+      <div class="fz-2"><label class="fz-c"><span class="lbl">Vale-transporte por dia (R$)</span><input class="inp" id="fzl-vt" inputmode="decimal" autocomplete="off" value="${f && f.vt != null ? esc(cxFmt(f.vt)) : ''}" placeholder="—"></label></div>
       <p class="fz-conta" id="fzl-conta">${'Toque nos dias que ele trabalhou.'}</p></div>`, 'Lançar', async () => {
     if (!f) throw new Error('Escolha o freelancer.'); if (!sel.size) throw new Error('Toque nos dias que ele trabalhou.');
-    const c = cxNum($('#fzl-comb').value), v = cxNum($('#fzl-vt').value); if (Number.isNaN(c) || c === null) throw new Error('Escreva o valor combinado por dia.'); if (Number.isNaN(v)) throw new Error('Confira o valor do vale-transporte.');
+    const c = cxNum($('#fzl-comb').value), cf = cxNum($('#fzl-fds').value), v = cxNum($('#fzl-vt').value); if (Number.isNaN(c) || c === null || Number.isNaN(cf) || cf === null) throw new Error('Escreva a diária de semana e a de fim de semana.'); if (Number.isNaN(v)) throw new Error('Confira o valor do vale-transporte.');
     const u = $('#fzl-u') ? $('#fzl-u').value : (unis[0] ? unis[0].id : '');
-    const r = await api('fz_lancar', { freela: f.id, datas: [...sel].sort(), u, combinado: c, vt: v || 0, mes: FZ.mes, u_filtro: FZ.u });
+    const r = await api('fz_lancar', { freela: f.id, datas: [...sel].sort(), u, semana: c, fds: cf, vt: v || 0, mes: FZ.mes, u_filtro: FZ.u });
     FZ.d = r; fzRedesenha(); aviso(`${r.lancados} ${r.lancados === 1 ? 'dia lançado' : 'dias lançados'} ✓${r.pulados && r.pulados.length ? ` · ${r.pulados.length} já estava${r.pulados.length === 1 ? '' : 'm'} lançado${r.pulados.length === 1 ? '' : 's'}` : ''}`);
   });
   const pinta = () => { $('#fzl-cal').innerHTML = cal(); ligaCal(); $('#fzl-conta').innerHTML = conta(); };
   const ligaCal = () => $$('[data-fzcd]').forEach(b => b.onclick = () => { const d = b.dataset.fzcd; if (sel.has(d)) sel.delete(d); else sel.add(d); pinta(); });
   ligaCal();
   $$('[data-fzat]').forEach(b => b.onclick = () => { const J = ja(), k = b.dataset.fzat; if (k === 'limpa') sel.clear(); else for (let d = 1; d <= ult; d++) { const iso = `${FZ.mes}-${String(d).padStart(2, '0')}`, dow = new Date(a, m - 1, d).getDay(); if (J.has(iso)) continue; if (k === 'todos' || (k === 'uteis' && dow % 6 !== 0) || (k === 'fds' && dow % 6 === 0)) sel.add(iso); } pinta(); });
-  $('#fzl-f').onchange = e => { f = ativos.find(x => x.id === +e.target.value) || null; sel.clear(); if (f) { $('#fzl-comb').value = f.diaria != null ? cxFmt(f.diaria) : ''; $('#fzl-vt').value = f.vt != null ? cxFmt(f.vt) : ''; } pinta(); };
-  ['#fzl-comb', '#fzl-vt'].forEach(s => { const i = $(s); fsSeleciona(i); i.oninput = () => { $('#fzl-conta').innerHTML = conta(); }; });
+  $('#fzl-f').onchange = e => { f = ativos.find(x => x.id === +e.target.value) || null; sel.clear(); if (f) { $('#fzl-comb').value = cxFmt(diaria(f, 'semana')); $('#fzl-fds').value = cxFmt(diaria(f, 'fds')); $('#fzl-vt').value = f.vt != null ? cxFmt(f.vt) : ''; } pinta(); };
+  ['#fzl-comb', '#fzl-fds', '#fzl-vt'].forEach(s => { const i = $(s); fsSeleciona(i); i.oninput = () => { $('#fzl-conta').innerHTML = conta(); }; });
 }
 /* pagar o que falta do mês: a data do pagamento e se o VT vai junto */
 function fzPagarFolha(f) {
