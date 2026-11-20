@@ -1301,6 +1301,19 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzz. No comprovante do cliente, só o pacote (1.70)
+
+Pedido do dono: "por mais que eu discrimine, montando um pacote, o valor do produto e o valor do pacote, no comprovante do cliente só pode sair o valor do pacote. As meninas dão o brinde: é como um presente, incluso dentro do pacote. O cliente só pode saber que tem o pacote".
+
+A 1.66 já fazia isso no cupom da venda paga na hora. Agora vale em todo papel que o cliente recebe:
+
+- **O cupom da saída:** o pacote (e o produto) vendido durante a visita e pago só na saída sai numa linha só: o pacote, com o valor do produto somado. O nome e o valor do produto não aparecem. O total é o mesmo.
+- **O nome do pacote no papel:** sem o produto que vem com ele ("PACOTE 05 HORAS 400 · 5h", e não "… com BONECA"). O pacote sem nome sai como "Pacote de 5h".
+- **A reimpressão:** os cupons guardados a partir desta versão já saem assim.
+- **O cupom fiscal** (quando o módulo está ligado em Ajustes): a lista do que emitir na máquina traz o pacote com o valor do produto dentro, numa linha só.
+- **O Relatório do cliente** (na tela, no papel e na planilha): o produto vendido no mesmo atendimento do pacote entra na linha do pacote.
+- **O que continua discriminado:** o que é só da loja. O Histórico do cliente na tela, as Finanças (o relatório por cliente, o produto a produto, as comissões) e o estoque continuam separando o pacote do produto. O produto vendido sozinho (sem pacote) continua saindo como produto.
+
 ## 6zzy. O pedido ao gestor no alto, a tela sem barra de rolagem, o relatório por cliente, a diária 90/120 e o comprovante das despesas (1.69 · Finanças 3.0)
 
 Pedido do dono: "quando um pedido ficar aguardando a aprovação do gestor, elas podem fechar, porém ele fica destacado lá em cima: o nome do cliente, vermelhinho, aguardando a aprovação do gestor; quando o gestor aprovar, fica verdinho, e só sai de lá quando elas clicarem e finalizarem"; "o sistema se adapta à tela, sem aquela barra de rolagem (com uma segunda tela aberta, eram duas barras)"; "no financeiro, um relatório com o nome do cliente, o pacote e o produto, tudo discriminado"; "o freelancer é 120 no fim de semana e 90 durante a semana, com a opção de trocar na tela de finanças"; "anexar o comprovante no controle de despesas: o financeiro adiciona, e o valor do comprovante tem que bater com o que está escrito".

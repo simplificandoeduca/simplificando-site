@@ -1192,6 +1192,23 @@ function usarVoucher(array $c, array $u): array {
   } catch (Throwable $e) { try { $db->exec('ROLLBACK'); } catch (Throwable $e2) { } throw $e; }
   return ['venda' => $x['venda'], 'registro' => $x['registro'], 'minutos' => $auto ? 0 : $p, 'cobriu' => $cobriu, 'n' => $n];
 }
+/* 1.70: "no comprovante do cliente só sai o pacote: o produto é como um brinde que vem dentro do pacote". O tipo de cada venda no papel
+   (o cupom da saída e o cupom fiscal), o nome dela sem o produto que vem com o pacote, e o produto vendido com um pacote dentro da linha dele */
+function tipoNoPapel(array $v): string {
+  if ((int)($v['produto_id'] ?? 0) > 0) return 'produto';
+  return (int)($v['minutos'] ?? 0) > 0 && empty($v['auto']) && (string)($v['alug'] ?? '') === '' && (string)($v['voucher'] ?? '') === '' && empty($v['festa_id']) ? 'pacote' : '';
+}
+function nomeNoPapel(array $v): string {
+  if (tipoNoPapel($v) !== 'pacote') return nomeDaVenda($v);
+  $s = trim((string)($v['servico'] ?? '')); $min = (int)$v['minutos'];
+  return $s !== '' ? $s . ' · ' . dur($min) : nomePacoteVenda($min, '');
+}
+function soPacoteNoPapel(array $itens): array {
+  $pac = null; $soma = 0.0; foreach ($itens as $i => $x) { if (($x['t'] ?? '') === 'pacote' && $pac === null) $pac = $i; if (($x['t'] ?? '') === 'produto') $soma += (float)$x['v']; }
+  if ($pac === null || $soma <= 0.004) return $itens;
+  $o = []; foreach ($itens as $i => $x) { if (($x['t'] ?? '') === 'produto') continue; if ($i === $pac) $x['v'] = round((float)$x['v'] + $soma, 2); $o[] = $x; }
+  return $o;
+}
 function nomeDaVenda(array $v): string { // "Recreação · 30 min", "Carrinho de bebê · das 10h às 22h", "Pacote de 5h"
   $min = (int)($v['minutos'] ?? 0); $s = trim((string)($v['servico'] ?? '')); $it = trim((string)($v['itens'] ?? ''));
   if ($s !== '') return $s . ($min > 0 ? ' · ' . dur($min) : '') . ($it !== '' ? ' · ' . $it : '');
@@ -1394,7 +1411,7 @@ function pendItensDeTodos(): array {
     AND v.quando >= COALESCE((SELECT MAX(x.saiu) FROM visitas x WHERE x.crianca_id = v.crianca_id), '')
     AND $falta > 0.004 ORDER BY v.id");   // 1.21: só a saída fecha a conta do que há para receber (a entrada cancelada, não)
   $q->execute([$piso, SERV_IMPORTADO, $hoje, $hoje]); $o = [];
-  foreach ($q->fetchAll() as $l) $o[(int)$l['c']][] = ['n' => nomeDaVenda($l), 'v' => round((float)$l['f'], 2), 'id' => (int)$l['id'], 'alt' => (float)$l['f'] >= (float)$l['valor'] - 0.004 ? altDaVenda($l) : '', 'h' => round((int)$l['minutos'] / 60, 2)];   // 1.39: alt = o "Alterar pacote" da saída vale para ela ('pac' ou 'prod')   // 1.25: id = a venda   // juntar por criança fica aqui: agrupar no SQL faria a consulta andar pelo índice da criança
+  foreach ($q->fetchAll() as $l) $o[(int)$l['c']][] = ['n' => nomeDaVenda($l), 'v' => round((float)$l['f'], 2), 'id' => (int)$l['id'], 'alt' => (float)$l['f'] >= (float)$l['valor'] - 0.004 ? altDaVenda($l) : '', 'h' => round((int)$l['minutos'] / 60, 2), 't' => tipoNoPapel($l), 'pn' => nomeNoPapel($l)];   // 1.39: alt = o "Alterar pacote" da saída vale para ela ('pac' ou 'prod')   // 1.25: id = a venda   // juntar por criança fica aqui: agrupar no SQL faria a consulta andar pelo índice da criança
   foreach (autosSemPagarDaSaida(null, $piso) as $l) $o[(int)$l['crianca_id']][] = ['n' => nomeDaVenda($l), 'v' => round((float)$l['valor'], 2), 'id' => (int)$l['id']];   // 1.31: a saída pelo rosto que não recebeu
   return $o;
 }
@@ -1517,8 +1534,9 @@ function cupom(int $id): ?array { $q = db()->prepare('SELECT * FROM cupons WHERE
 // O conteúdo do cupom sai dos pagamentos ligados a ele: os itens (cada venda, com o que foi pago dela), o total e as formas. Devolve o total
 function refazerCupom(int $id): float {
   $db = db(); $itens = []; $total = 0.0; $formas = [];
-  $q = $db->prepare('SELECT v.id, v.servico, v.itens, v.minutos, SUM(p.valor) AS pago FROM pagamentos p JOIN vendas v ON v.id = p.venda_id WHERE p.cupom_id = ? GROUP BY v.id ORDER BY v.id'); $q->execute([$id]);
-  foreach ($q->fetchAll() as $v) { $itens[] = ['n' => nomeDaVenda($v), 'v' => round((float)$v['pago'], 2), 'venda' => (int)$v['id']]; $total += (float)$v['pago']; }
+  $q = $db->prepare('SELECT v.id, v.servico, v.itens, v.minutos, v.produto_id, v.auto, v.alug, v.voucher, v.festa_id, SUM(p.valor) AS pago FROM pagamentos p JOIN vendas v ON v.id = p.venda_id WHERE p.cupom_id = ? GROUP BY v.id ORDER BY v.id'); $q->execute([$id]);
+  foreach ($q->fetchAll() as $v) { $itens[] = ['n' => nomeNoPapel($v), 'v' => round((float)$v['pago'], 2), 'venda' => (int)$v['id'], 't' => tipoNoPapel($v)]; $total += (float)$v['pago']; }
+  $itens = array_map(function ($x) { unset($x['t']); return $x; }, soPacoteNoPapel($itens));   /* 1.70: o produto vendido com o pacote vai dentro da linha do pacote (o total é o mesmo) */
   $q = $db->prepare('SELECT forma, SUM(valor) AS t FROM pagamentos WHERE cupom_id = ? GROUP BY forma ORDER BY MIN(id)'); $q->execute([$id]);
   foreach ($q->fetchAll() as $l) $formas[] = ['f' => (string)$l['forma'], 'v' => round((float)$l['t'], 2)];
   $db->prepare('UPDATE cupons SET valor = ?, itens = ?, formas = ? WHERE id = ?')->execute([round($total, 2), json_encode($itens, JSON_UNESCAPED_UNICODE), json_encode($formas, JSON_UNESCAPED_UNICODE), $id]);

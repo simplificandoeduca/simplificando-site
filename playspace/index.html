@@ -1761,7 +1761,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.69';
+const VERSAO = '1.70';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -2051,7 +2051,7 @@ function offEfeito(it) {
   const c = crianca(d.id); if (!c) return {};
   if (it.acao === 'entrada' || (it.acao === 'atender' && d.entrar && !c.entrou)) Object.assign(c, { entrou: em, uni: minhaUni() || null, atraso: null, tvis: 0, sapateira: null });
   if (it.acao === 'atender') {
-    for (const l of L.L || []) { if (l.tempo) continue; if (l.min > 0) { c.pmin = pacMin(c) + l.min; c.pacote = c.pmin / 60; } if (l.v > 0 && !(d.pagamento && d.pagamento.length)) { c.pend = centavos((+c.pend || 0) + l.v); c.pendi = [...(c.pendi || []), { n: l.n, v: l.v, id: 0, alt: '' }]; } }
+    for (const l of L.L || []) { if (l.tempo) continue; if (l.min > 0) { c.pmin = pacMin(c) + l.min; c.pacote = c.pmin / 60; } if (l.v > 0 && !(d.pagamento && d.pagamento.length)) { c.pend = centavos((+c.pend || 0) + l.v); c.pendi = [...(c.pendi || []), { n: l.n, v: l.v, id: 0, alt: '', t: l.pac != null ? 'pacote' : l.prod ? 'produto' : '', pn: l.pac != null ? l.servico || nomePacVenda(l.min, '') : '' }]; } }
     if (c.entrou) c.plano = (L.L || []).some(l => l.min > 0) || saldoMin(c) > 0 ? 'pacote' : c.plano || 'avulso';
     return { entrada: d.entrar ? { registro: 0, mensagem: 0 } : null, vendas: [], registros: [] }; }
   if (it.acao === 'entrada') { c.plano = saldoMin(c) > 0 ? 'pacote' : 'avulso'; return { registro: 0 }; }
@@ -3763,8 +3763,8 @@ function pgTabela(cols, linhas, total, o = {}) {
 // as três linhas das horas, como na tela anterior: o que o cliente tem, o que esta conta usa (ou soma) e como fica depois de confirmar
 const pgHoras = (disp, meio, depois, rot = 'Horas necessárias') => `<dl class="pg-h3" aria-label="Horas do cliente"><div><dt>Horas disponíveis</dt><dd class="num">${disp}</dd></div><div><dt>${rot}</dt><dd class="num">${meio}</dd></div><div class="tem"><dt>Saldo após confirmação</dt><dd class="num">${depois}</dd></div></dl>`;
 // o que ficou para pagar desta visita, item por item (o servidor manda em c.pendi; se o servidor ainda for o anterior, fica uma linha com o total)
-const pendItens = c => MODO === 'servidor' ? (Array.isArray(c.pendi) && c.pendi.length ? c.pendi.map(i => ({ n: String(i.n || ''), v: +i.v || 0, id: +i.id || 0, alt: String(i.alt || ''), h: +i.h || 0 })) : pendDe(c) > 0.004 ? [{ n: 'Compras desta visita', v: pendDe(c) }] : [])
-  : pendentesPrevia(c).map(v => ({ n: nomeVendaTxt(v), v: faltaCompra(v), id: v.id, alt: altDaCompraPrevia(v), h: minDe(v) / 60 }));   // 1.39: alt = dá para alterar na saída   // 1.25: id = a venda (a conta do responsável não cobra duas vezes o carrinho)
+const pendItens = c => MODO === 'servidor' ? (Array.isArray(c.pendi) && c.pendi.length ? c.pendi.map(i => ({ n: String(i.n || ''), v: +i.v || 0, id: +i.id || 0, alt: String(i.alt || ''), h: +i.h || 0, t: String(i.t || ''), pn: String(i.pn || '') })) : pendDe(c) > 0.004 ? [{ n: 'Compras desta visita', v: pendDe(c) }] : [])
+  : pendentesPrevia(c).map(v => ({ n: nomeVendaTxt(v), v: faltaCompra(v), id: v.id, alt: altDaCompraPrevia(v), h: minDe(v) / 60, t: tipoPapelCompra(v), pn: nomePapelCompra(v) }));   // 1.39: alt = dá para alterar na saída   // 1.25: id = a venda (a conta do responsável não cobra duas vezes o carrinho)
 /* ---------- 1.39: "Alterar pacote" também na saída (embaixo do Desconto) ---------- */
 // Desde a 1.37 a cobrança é na saída. Na tela de pagamento da saída, o pacote ou o produto desta visita que ficou para pagar na saída muda
 // de horas e de valor com a aprovação da supervisora ou do gestor (um toque no celular dela, ou a senha dela aqui). Aprovado, a venda muda
@@ -4174,7 +4174,7 @@ const dataCurta = d => `${p2(d.getDate())}/${p2(d.getMonth() + 1)}/${d.getFullYe
 // horas que ele dá (min) e o produto que vem junto (com) descem para a linha de baixo, como o tempo do carrinho.
 const linhaPapel = l => { if (l.festa) return { n: l.pn || l.servico, v: l.v, t: 'festa', s: '', q: l.q || 1, per: 0, sub: l.papel || [] };   /* 1.12: a festa, com o que vai embaixo do item */
   const x = l.s ? servicoDe(l.s) : null, t = l.pac != null ? 'pacote' : l.vou ? 'voucher' : l.prod ? 'produto' : x && ehTempo(x) ? 'tempo' : x && x.volta ? 'aluguel' : 'outro', un = t === 'produto' || (!!x && x.modo !== 'periodo');
-  return { n: t === 'pacote' ? l.servico || nomePacVenda(l.min, l.itens) : un || t === 'aluguel' ? l.servico : nomeLinha(l), v: l.v, t, s: l.s || '', q: un ? l.q || 1 : 1, per: !un && x ? l.q || 1 : 0, ...(t === 'pacote' ? { min: l.min, com: l.servico ? l.itens || '' : '' } : {}), ...(un && x && x.obs ? { obs: x.obs } : {}), ...(l.aberto ? { aberto: true, per: 0, q: l.q || 1 } : {}) }; };   // 1.20: aberto = só saiu da loja; a conta fecha na devolução (1.22: quantos saíram)
+  return { n: t === 'pacote' ? l.servico || nomePacVenda(l.min, '') : un || t === 'aluguel' ? l.servico : nomeLinha(l), v: l.v, t, s: l.s || '', q: un ? l.q || 1 : 1, per: !un && x ? l.q || 1 : 0, ...(t === 'pacote' ? { min: l.min, com: l.servico ? l.itens || '' : '' } : {}), ...(un && x && x.obs ? { obs: x.obs } : {}), ...(l.aberto ? { aberto: true, per: 0, q: l.q || 1 } : {}) }; };   // 1.20: aberto = só saiu da loja; a conta fecha na devolução (1.22: quantos saíram)
 function htmlPapel(spec, via = 'loja') {
   const c = spec.c || crianca(spec.id); if (!c) return ''; const L = lojaPapel(), st = servicoTempo(), p = periodo(), tol = tolCupom(), loja = via !== 'cliente', uniP = nomeUni(spec.uni) || nomeUni(c.uni) || nomeUni(minhaUni());   // 1.06: a unidade da visita (ou a deste aparelho)
   const div = '<p class="c-div"></p>', anos = x => loja && idadeTxt(x) ? ` (${idadeTxt(x)})` : '';
@@ -4206,7 +4206,7 @@ function htmlPapel(spec, via = 'loja') {
     const bloco = (x, i) => { const k = quem(x); return `${i ? '<p class="c-esp"></p>' : ''}<p class="c-bt"><b>SAÍDA · ${esc(k.nome)}</b>${anos(k)}${loja ? ' · cadastro ' + k.id : ''}</p>
       <p>Entrada ${hora(x.entrou)} · saída ${hora(x.saiu)} · ficou ${dur(ficouMin(x.min))}</p>
       <p>${x.plano === 'festa' ? 'Festa · sem desconto de horas' : (x.plano === 'pacote' && !x.n && !x.av && x.deb > 0 ? 'Tempo descontado: ' : 'Tempo contado: ') + dur(x.deb)}</p>`; };   // 1.30: sem o saldo de horas do cliente, só o tempo descontado
-    const itens = G.flatMap(x => { const de = varias ? ' · ' + quem(x).nome : ''; return [...(x.pendi && x.pendi.length ? x.pendi.map(i => ({ n: i.n + de, v: i.v })) : [x.pend > 0 ? { n: 'O que ficou para pagar na saída' + de, v: x.pend } : null]), x.n ? { n: `${x.plano === 'pacote' ? 'Além do pacote' : (st ? st.n : 'RECREAÇÃO') + ' avulsa'} · ${dur(x.n * p)}${de}`, v: centavos(x.valor - (x.pend || 0) - (x.av ? x.av.valor : 0)) } : null, x.av ? { n: `${st ? st.n : 'RECREAÇÃO'} avulsa · ${dur(x.av.min)}${de}`, v: x.av.valor } : null]; }).filter(Boolean);   // 1.10: o desconto sai na linha dele, embaixo do subtotal
+    const itens = G.flatMap(x => { const de = varias ? ' · ' + quem(x).nome : ''; return [...(x.pendi && x.pendi.length ? soPacoteNoCupom(x.pendi.map(i => ({ n: (i.t === 'pacote' && i.pn ? i.pn : i.n) + de, v: i.v, t: i.t || '' }))) : [x.pend > 0 ? { n: 'O que ficou para pagar na saída' + de, v: x.pend } : null]), x.n ? { n: `${x.plano === 'pacote' ? 'Além do pacote' : (st ? st.n : 'RECREAÇÃO') + ' avulsa'} · ${dur(x.n * p)}${de}`, v: centavos(x.valor - (x.pend || 0) - (x.av ? x.av.valor : 0)) } : null, x.av ? { n: `${st ? st.n : 'RECREAÇÃO'} avulsa · ${dur(x.av.min)}${de}`, v: x.av.valor } : null]; }).filter(Boolean);   // 1.10: o desconto sai na linha dele, embaixo do subtotal
     const deA = y => nomes && crianca(y.id) ? ' · ' + crianca(y.id).nome : '';
     const blocoA = (y, i) => `${i || G.length ? '<p class="c-esp"></p>' : ''}<p class="c-bt c-bd"><b>DEVOLUÇÃO · ${esc(y.item)}</b>${esc(deA(y))}</p><p>Saiu ${y.outroDia ? dataHora(y.saiu) : hora(y.saiu)} · voltou ${hora(y.voltou)} · ficou ${dur(y.ficou)}</p>${y.comprou ? `<p>Tempo comprado: ${dur(y.comprou)}</p>` : ''}`;
     const itensA = A.flatMap(y => { const xa = y.extra && y.extra.aberto && y.extra.valor > 0 ? y.extra : null, de = deA(y);
@@ -4248,6 +4248,11 @@ function htmlPapel(spec, via = 'loja') {
 // deixou a criança); saída, devolução, festa, carrinho e pagamento continuam com uma via só
 // 1.66: "de forma alguma no comprovante pode sair valor de produto: para o cliente é só pacote de horas". Com um pacote na venda, o produto
 // vendido junto não sai em linha própria: o valor dele vai para a linha do pacote (o total do cupom não muda)
+/* 1.70: "por mais que eu discrimine o valor do produto e o do pacote, no comprovante do cliente só pode sair o pacote: o produto é um brinde
+   que vem dentro dele". O mesmo vale para o cupom da saída (o que ficou para pagar na saída), o cupom fiscal e o relatório do cliente:
+   o pacote sai com o nome dele (sem o produto que vem junto) e com o valor do produto somado. */
+const tipoPapelCompra = v => v.prod ? 'produto' : ehPacoteVenda(v) ? 'pacote' : '';
+const nomePapelCompra = v => { if (!ehPacoteVenda(v)) return ''; const m = minDe(v); return v.servico ? v.servico + ' · ' + dur(m) : nomePacVenda(m, ''); };
 function soPacoteNoCupom(L) { if (!Array.isArray(L) || !L.some(i => i.t === 'pacote') || !L.some(i => i.t === 'produto')) return L;
   const soma = centavos(L.filter(i => i.t === 'produto').reduce((t, i) => t + (+i.v || 0), 0)); let ja = false;
   return L.filter(i => i.t !== 'produto').map(i => i.t === 'pacote' && !ja ? (ja = true, { ...i, v: centavos((+i.v || 0) + soma) }) : i); }
@@ -4509,7 +4514,7 @@ async function marcarCupom(id, oque, dados = {}, naLista = false) {
 const nomeItemCupom = x => nomeLinha({ servico: x.servico, min: x.m != null ? x.m : Math.round((x.h || 0) * 60), itens: x.itens });
 function refazerCupomPrevia(k) { const P = (S.pagamentos || []).filter(p => p.cupom === k.id), porVenda = new Map(), formas = [];
   for (const p of P) { porVenda.set(p.venda, centavos((porVenda.get(p.venda) || 0) + p.v)); const f = formas.find(x => x.f === p.f); if (f) f.v = centavos(f.v + p.v); else formas.push({ f: p.f, v: p.v }); }
-  k.itens = [...porVenda].map(([vid, v]) => { const x = (S.compras || []).find(y => y.id === vid); return { n: x ? nomeItemCupom(x) : 'Venda', v, venda: vid }; }); k.formas = formas; k.valor = centavos(P.reduce((t, p) => t + p.v, 0)); return k.valor; }
+  k.itens = soPacoteNoCupom([...porVenda].map(([vid, v]) => { const x = (S.compras || []).find(y => y.id === vid); return { n: x ? nomePapelCompra(x) || nomeItemCupom(x) : 'Venda', v, venda: vid, t: x ? tipoPapelCompra(x) : '' }; })).map(({ t, ...i }) => i);   /* 1.70 */ k.formas = formas; k.valor = centavos(P.reduce((t, p) => t + p.v, 0)); return k.valor; }
 function criarCupomPrevia(c, origem, pagos) { if (!comCupom() || !c || !pagos || !pagos.length) return 0; const id = novoId(); for (const p of pagos) p.cupom = id;
   const k = { id, crianca: c.id, nome: c.nome, resp: c.resp, cpf: c.cpf || '', quando: new Date(), origem, status: 'pendente', numero: '', motivo: '', por: EU.nome, em: null, quem: '' };
   refazerCupomPrevia(k); S.cupons = [k].concat(S.cupons || []); return id; }
@@ -6977,6 +6982,13 @@ const minutosEntre = (a, b, senao) => { const m = t => { const k = /^(\d{1,2}):(
 const hmS = (min, menos = '−') => (min < 0 ? menos : '') + hm(Math.abs(min));   // o saldo com sinal (um histórico que não fecha pode passar abaixo de zero)
 const nomeCompraTxt = v => { const m = minDe(v); return v.servico ? v.servico + (m ? ' · ' + dur(m) : '') + (v.itens ? ' · ' + v.itens : '') : m ? nomePacVenda(m, v.itens) : (v.itens || 'Produto'); };
 const formasTxt = o => { const L = Object.entries(o || {}).map(([f, v]) => ({ f, v })); return L.length ? textoPag(L) : ''; };
+/* 1.70: no relatório do cliente, cada produto vendido no mesmo atendimento de um pacote (o mesmo g, ou, nas vendas de antes da 1.67,
+   a mesma criança no mesmo minuto) vai para dentro desse pacote */
+function juntaNoPacote(V) { const de = new Map(), dentro = new Set(), pacs = (V || []).filter(v => !v.auto && tipoPapelCompra(v) === 'pacote');
+  for (const v of V || []) { if (tipoPapelCompra(v) !== 'produto') continue;
+    const p = pacs.find(x => x.crianca === v.crianca && (v.g ? x.g === v.g : !x.g && Math.abs(+dataDe(x.quando) - +dataDe(v.quando)) <= 60000)); if (!p) continue;
+    dentro.add(v); if (!de.has(p)) de.set(p, []); de.get(p).push(v); }
+  return { de, dentro }; }
 function extratoDe(fam, d) {
   const E = [], varias = fam.length > 1, nomeDe = id => (crianca(id) || { nome: '' }).nome, uni = x => nomeUni(x.un != null ? x.un : x.uni) || '';
   // os lançamentos automáticos (recreação avulsa, tempo além do pacote) pertencem a uma visita: a que está correndo, ou uma que já fechou
@@ -6984,8 +6996,10 @@ function extratoDe(fam, d) {
   for (const v of d.vendas) { if (!tipoAuto(v)) continue; const c = crianca(v.crianca), q = +v.quando;
     if (c && c.entrou && q >= +c.entrou - 60000) { poe(abertos, c.id, v); continue; }
     const x = d.visitas.find(x => x.crianca === v.crianca && q <= +x.dia + 60000 && q >= +iniVisita(x) - 60000); if (x) poe(daVisita, x, v); else soltos.add(v); }
-  for (const v of d.vendas) { if (tipoAuto(v) && !soltos.has(v)) continue; const m = minDe(v), np = naoPagoDe(v);
-    E.push({ q: v.quando, n: v.id || 0, tipo: 'compra', crianca: v.crianca, titulo: nomeCompraTxt(v), quem: varias ? nomeDe(v.crianca) : '', info: '', pag: np > 0.004 ? 'a receber' : formasTxt(formasDaCompra(v)), extra: '', fim: pontos(v.desc > 0 ? 'desconto de ' + brl(v.desc) : '', v.por ? 'por ' + primeiro(v.por) : ''), valor: v.v || 0, np, efeito: m > 0 ? m : 0, un: uni(v) }); }
+  const junto = juntaNoPacote(d.vendas);   /* 1.70: o produto vendido com o pacote vai dentro do pacote (para o cliente é só o pacote) */
+  for (const v of d.vendas) { if ((tipoAuto(v) && !soltos.has(v)) || junto.dentro.has(v)) continue; const m = minDe(v), J = junto.de.get(v) || [], np = centavos(naoPagoDe(v) + J.reduce((t, x) => t + naoPagoDe(x), 0)), ds = centavos((v.desc || 0) + J.reduce((t, x) => t + (x.desc || 0), 0));
+    const fo = { ...formasDaCompra(v) }; for (const x of J) for (const [f, q] of Object.entries(formasDaCompra(x))) fo[f] = centavos((fo[f] || 0) + q);
+    E.push({ q: v.quando, n: v.id || 0, tipo: 'compra', crianca: v.crianca, titulo: nomePapelCompra(v) || nomeCompraTxt(v), quem: varias ? nomeDe(v.crianca) : '', info: '', pag: np > 0.004 ? 'a receber' : formasTxt(fo), extra: '', fim: pontos(ds > 0 ? 'desconto de ' + brl(ds) : '', v.por ? 'por ' + primeiro(v.por) : ''), valor: centavos((v.v || 0) + J.reduce((t, x) => t + (x.v || 0), 0)), np, efeito: m > 0 ? m : 0, un: uni(v) }); }
   for (const x of d.visitas) { const A = daVisita.get(x) || [], am = A.reduce((t, v) => t + minDe(v), 0), av = centavos(A.reduce((t, v) => t + v.v, 0)), np = A.reduce((t, v) => t + naoPagoDe(v), 0), ini = iniVisita(x), entrouH = x.entrou || hora(ini), saiuH = x.saiu || hora(x.dia), ficou = x.ini && ini instanceof Date && !isNaN(+ini) && x.dia && !isNaN(+x.dia) ? ficouMin(minConta({ entrou: ini, teste: !!(crianca(x.crianca) || {}).teste }, x.dia)) : minutosEntre(entrouH, saiuH, Math.round((+x.dia - +ini) / 60000));   /* 1.45: a mesma conta da saída (com a hora de fechar) */
     const avulsa = A.some(v => tipoAuto(v) === 'avulsa'), o = {}; for (const v of A) for (const [f, q] of Object.entries(formasDaCompra(v))) o[f] = centavos((o[f] || 0) + q);
     E.push({ q: x.dia, n: x.id || 0, tipo: 'visita', crianca: x.crianca, titulo: 'RECREAÇÃO' + (avulsa ? ' avulsa' : ''), quem: varias ? nomeDe(x.crianca) : '', info: `entrou ${entrouH} · saiu ${saiuH} · ficou ${dur(ficou)}`, hr: saiuH,
