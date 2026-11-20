@@ -893,6 +893,7 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .vend-b button { min-height: 52px; padding: 6px 8px; border: 2px solid var(--borda-2); border-radius: 14px; background: var(--card); font-family: var(--display); font-weight: 800; font-size: 15px; line-height: 1.15; color: var(--tinta); }
 .vend-b button[aria-checked="true"] { border-color: var(--tinta); background: var(--tinta); color: var(--card); }
 .vend-pag { margin: 6px 0 0; font-size: 14px; color: var(--tinta-2); }
+.vend.travada .vend-b { display: none; } .vend-abriu { margin: 0; font-size: 14px; color: var(--tinta); } .vend.travada .vend-t { margin-bottom: 2px; }   /* 1.68 */
 @media (max-width: 560px) { .vend-b { grid-template-columns: 1fr 1fr; } }
 .fe-mais { margin-top: 8px; } .fe-mais-l { font-size: 14px; padding: 4px 0; }
 .fe-mais-c { border: 1.5px dashed var(--borda); border-radius: 16px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; } .fe-mais-c > span { font-weight: 800; font-size: 14px; }
@@ -1741,7 +1742,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.67';
+const VERSAO = '1.68';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -2991,8 +2992,8 @@ function mensagemAuto(c, txt, comFoto) {
   let conv = S.conversas.find(x => x.crianca === c.id); if (!conv) { conv = { id: novoId(), crianca: c.id, lidas: true, msgs: [] }; S.conversas.push(conv); }
   const m = { de: 'nos', txt, h: new Date(), auto: true, por: 'automática', foto: comFoto ? (c.foto || 'idface') : '' }; conv.msgs.push(m); return () => { conv.msgs = conv.msgs.filter(x => x !== m); };
 }
-async function entradaServidor(c) {
-  try { const r = await apiOff('entrada', { id: c.id }); await carregar(); desenhar(); const k = crianca(c.id);   // 1.40: sem internet, fica na fila
+async function entradaServidor(c, vend = '') {
+  try { const r = await apiOff('entrada', { id: c.id, ...(vend ? { vendedora: vend } : {}) }); await carregar(); desenhar(); const k = crianca(c.id);   // 1.40: sem internet, fica na fila
     deuCerto(`${c.nome} entrou${k && k.entrou ? ' · ' + entrouTxt(k, true) : ''}`, r.offline ? null : marcaAtd(async () => { largarSapEntrada(c.id); try { await api('desfazer_entrada', { id: c.id, registro: r.registro, mensagem: r.mensagem ? r.mensagem.id : 0, atendente: ATD_NOME }); await carregar(); } catch (e) { DESFAZ_ERRO = e.message; toast(e.message); } desenhar(); }, !podeEstornar(), `Desfazer a entrada de ${c.nome}`));   // 1.25: quem não estorna diz o nome (fica registrado)
     if (k && k.entrou) setTimeout(() => pedirSapateira(c.id, q => papelDaEntrada(c.id, q)), 420); } catch (e) { toast(e.message); }   // 0.94: entrou, o cupom de entrada sai (depois de a folha que estava aberta fechar)
 }
@@ -3961,7 +3962,7 @@ function abrirPagamento(id) {
     const fe = CARRINHO.festa; if (fe.modo === 'nova' && fe.n && !x.iso) { toast('Escolha a data da festa no calendário'); abrirCalFesta(); return; }   // 1.29: a festa nova sempre tem o dia (é o que o calendário das unidades mostra)
     if (fe.modo === 'nova' && fe.n && fe.dia === 'semana' && fe.hora && !/^([01]?\d|2[0-3])[:h][0-5]\d$/.test(fe.hora)) { toast('Escreva o horário da festa assim: 15:00'); const h = $('#fe-hora'); if (h) h.focus(); return; } }
   if (L.some(l => l.outro) && !(numero(val('v-valor')) >= 0)) { toast('Qual é o valor do outro item?'); $('#v-valor').focus(); return; }
-  if (precisaVend(L) && !CARRINHO.vend) { toast('Escolha quem está vendendo'); const vb = $('#v-vend'); if (vb) { vb.hidden = false; vb.scrollIntoView({ block: 'center', behavior: 'smooth' }); } return; }   /* 1.67 */
+  if (precisaVend(L) && !CARRINHO.vend) { toast(abreAgora(L) ? 'Escolha quem está atendendo' : 'Escolha quem está vendendo'); const vb = $('#v-vend'); if (vb) { vb.hidden = false; vb.scrollIntoView({ block: 'center', behavior: 'smooth' }); } return; }   /* 1.67 */
   const total = centavos(L.reduce((t, l) => t + l.v, 0)); if (!(total > 0)) { registrarAtendimento(id); return; }   // nada a pagar (só o voucher): registra direto
   if (VOLTA_SAIDA === c.id) { registrarAtendimento(id, false, null, true); return; }   // 1.03: veio de "Adicionar serviços" da saída: o que foi escolhido entra no pagamento da saída, que abre de novo em seguida
   const en = $('#v-entrar-campo'), entrar = !!en && !en.hidden && !!($('#v-entrar') || {}).checked, mesmo = PAG && PAG.onde === 'venda' && PAG.id === id && (PAG.soma != null ? PAG.soma : PAG.cheio != null ? PAG.cheio : PAG.total) === total;
@@ -4061,9 +4062,10 @@ function cupomDaVenda(id, cupomId, spec, volta, quieto) {
   if (m === 'auto') { imprimirPapel(viasPapel(spec)); abre(); return; }
   folhaPapel(spec); if (PAPEL && (volta || CAD_FILA.length)) PAPEL.depois = abre;
 }
-function entrada(c, origem = 'iDFace') {
+function entrada(c, origem = 'iDFace', vend = '') {   /* vend (1.68): quem abriu o pedido */
   if (!c || c.entrou) return;   // 1.15: quem não tem horas entra na recreação avulsa (não precisa mais comprar um período antes)
-  if (MODO === 'servidor') return entradaServidor(c);
+  if (MODO === 'servidor') return entradaServidor(c, vend);
+  c.vabriu = vend || '';
   const eraE = { pacote: c.pacote, atraso: c.atraso, venda: c.venda };
   c.entrou = new Date(); c.uni = minhaUni() || null; c.atraso = null; c.festa = null; c.festaPapel = null; registrar('ent', c.nome, origem === 'iDFace' ? 'Rosto reconhecido na entrada' : (semIdface() ? 'Entrada registrada' : 'Entrada registrada à mão'));
   const reg = S.registros[0], primeiroNome = nomeMsg(c.resp.split(' ')[0]); acertarDemo(c, true);   // (prévia) o primeiro período da recreação avulsa nasce na entrada, como no servidor
@@ -5983,9 +5985,34 @@ function linhasServico(parte) { // parte: 'tempo', 'outros' ou nada (todos). Sem
    Fica só no atendimento aberto (não vai para o que fica guardado): todo atendimento começa sem ninguém escolhido */
 const VENDEDORAS_PADRAO = ['ALINE', 'EDJANE', 'KAROL', 'MARIA VITÓRIA'];
 const vendedorasLista = () => (Array.isArray(S.cfg.vendedoras) && S.cfg.vendedoras.length ? S.cfg.vendedoras : VENDEDORAS_PADRAO);
-const precisaVend = L => !(CARRINHO && CARRINHO.festa) && L.some(l => l.pac != null || !!l.prod);
-const htmlVend = () => `<div class="vend" id="v-vend" role="radiogroup" aria-label="Quem está vendendo" hidden><p class="vend-t">Quem está vendendo?<span class="leve"> · toque no seu nome (a cada venda)</span></p><div class="vend-b">${vendedorasLista().map(n => `<button type="button" class="tap" role="radio" aria-checked="false" data-act="vend" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`;
-function vendAtualiza(L) { const b = $('#v-vend'); if (!b || !CARRINHO) return; b.hidden = !precisaVend(L); b.classList.toggle('ok', !!CARRINHO.vend); $$('#v-vend [data-n]').forEach(x => x.setAttribute('aria-checked', String(x.dataset.n === CARRINHO.vend))); }
+/* 1.68 (o dono: "a comissão sempre é de quem dá início no pedido do cliente, não de quem dá saída: ela oferta o pacote no início; às vezes
+   o cliente fecha no final, mas a comissão é de quem abre o pedido"): a entrada pede "Quem está atendendo?" e a visita guarda o nome
+   (c.vabriu). Com a criança no espaço, a venda (também a da saída) é de quem abriu: o quadro mostra o nome, sem escolher de novo.
+   Sem quem abriu (a entrada pelo iDFace, a de antes da 1.68), pede o nome como na 1.67 */
+const abriuDe = c => c && c.entrou && !c.festa && c.vabriu ? c.vabriu : '';
+const abreAgora = L => { const cr = CARRINHO && crianca(CARRINHO.id), en = $('#v-entrar-campo'), cb = $('#v-entrar'); return !!cr && !cr.entrou && L.length > 0 && !!en && !en.hidden && !!cb && cb.checked; };
+const precisaVend = L => !(CARRINHO && CARRINHO.festa) && (L.some(l => l.pac != null || !!l.prod) || abreAgora(L));
+const htmlVend = () => `<div class="vend" id="v-vend" role="radiogroup" aria-label="Quem está atendendo" hidden><p class="vend-t"><span id="v-vend-t">Quem está vendendo?</span><span class="leve" id="v-vend-l"> · toque no seu nome (a cada venda)</span></p><p class="vend-abriu" id="v-vend-abriu" hidden></p><div class="vend-b">${vendedorasLista().map(n => `<button type="button" class="tap" role="radio" aria-checked="false" data-act="vend" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`;
+function vendAtualiza(L) {
+  const b = $('#v-vend'); if (!b || !CARRINHO) return; const cr = crianca(CARRINHO.id), ab = abriuDe(cr);
+  if (ab) CARRINHO.vend = ab;   /* a criança está no espaço e a visita tem quem abriu o pedido: a venda é dela */
+  b.hidden = !precisaVend(L); b.classList.toggle('ok', !!CARRINHO.vend); b.classList.toggle('travada', !!ab);
+  const t = $('#v-vend-t'), l = $('#v-vend-l'), a = $('#v-vend-abriu');
+  if (t) t.textContent = ab ? `Comissão de ${ab}` : cr && !cr.entrou ? 'Quem está atendendo?' : 'Quem está vendendo?';
+  if (l) l.textContent = ab ? '' : cr && !cr.entrou ? ' · toque no seu nome: a comissão é de quem abre o pedido' : ' · toque no seu nome (a cada venda)';
+  if (a) { a.hidden = !ab; a.textContent = ab ? `${ab} abriu o pedido na entrada${cr && cr.entrou ? ', às ' + hora(cr.entrou) : ''}: o que o cliente comprar nesta visita é dela.` : ''; }
+  $$('#v-vend [data-n]').forEach(x => x.setAttribute('aria-checked', String(x.dataset.n === CARRINHO.vend)));
+}
+/* a entrada sem venda (o botão "Dar entrada", a entrada rápida da lista): antes, quem está atendendo (abre o pedido) */
+let QUEM_ABRE = null;
+function comQuemAbre(c, fazer) {
+  if (!c || c.entrou) return fazer('');
+  if (CARRINHO && CARRINHO.id === c.id && CARRINHO.vend) return fazer(CARRINHO.vend);
+  QUEM_ABRE = { id: c.id, fazer };
+  abrirFolha('Quem está atendendo?', `<div class="linha">${avatar(c)}<div class="txt"><b style="white-space:normal">${nomeResp(c)}</b><span style="white-space:normal">${nomeCri(c, true)}</span></div></div>
+    <p class="explica">A entrada abre o pedido do cliente. <b>A comissão do pacote ou do produto que ele comprar nesta visita (até na saída) é de quem abre o pedido.</b></p>
+    <div class="vend" id="qa-vend"><p class="vend-t">Toque no seu nome</p><div class="vend-b">${vendedorasLista().map(n => `<button type="button" class="tap" data-act="quem-abre" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`);
+}
 function atualizarCarrinho() { // redesenha as linhas dos serviços e o total a pagar
   if (CARRINHO && CARRINHO.festa) { atualizarFesta(); return; }   // 1.12: a folha aberta é a da Festa
   const a = $('#v-servicos'); if (a) a.innerHTML = linhasServico('tempo'); { const a2 = $('#v-servicos2'); if (a2) a2.innerHTML = linhasServico('outros'); }
@@ -5996,12 +6023,12 @@ function atualizarCarrinho() { // redesenha as linhas dos serviços e o total a 
   { const es = $('#v-entrar-saldo'); if (es) es.hidden = !!linhasDoCarrinho().length; }   // com algo escolhido, a entrada vai junto com a venda (a caixa "Dar entrada agora")
   const L = linhasDoCarrinho(), total = L.reduce((t, l) => t + l.v, 0), min = L.reduce((t, l) => t + l.min, 0), t = $('#v-total'), ok = $('#v-ok');
   if (t) t.textContent = brl(total); if (ok) { ok.disabled = !L.length; ok.innerHTML = !L.length ? `${ic(IC.check)} Escolha o serviço` : total > 0 ? `${VOLTA_SAIDA ? 'Somar na saída' : 'Pagamento'} · ${brl(total)} ${ic(IC.vai, 18, 2.6)}` : L.some(l => l.aberto) ? `${ic(IC.check)} Registrar a saída${qtdAbertos(L) > 1 ? ' de ' + qtdAbertos(L) + ' carrinhos' : ''} · ${ITENS_ABERTO}` : `${ic(IC.check)} Registrar · ${brl(total)}`; }
-  vendAtualiza(L); if (ok && L.length && precisaVend(L) && !CARRINHO.vend) { ok.disabled = true; ok.innerHTML = `${ic(IC.check)} Escolha quem está vendendo`; }   /* 1.67 */
   const m = $('#v-tempo'), vc = L.find(l => l.cobre); if (m) { m.hidden = !min && !vc; m.textContent = (min ? `Entra ${dur(min)} de recreação no saldo: fica com ${hm(saldoAgora(crianca(CARRINHO.id)) + min)}. ` : '') + (vc ? `O voucher cobre ${porExt(periodo())} desta visita: ${brl(umaCobranca(crianca(CARRINHO.id)))} a menos na saída.` : ''); }
   const en = $('#v-entrar-campo'), cb = $('#v-entrar'), cr = crianca(CARRINHO.id); if (en) en.hidden = !(L.length && cr);   // 1.15: a entrada pode ir junto com qualquer venda (sem horas, a criança entra na recreação avulsa)
   if (cb && CARRINHO.entrar == null) cb.checked = min > 0;
   if (cb) { const vou = !!CARRINHO.vq && voucherNaEntrada() && L.some(l => l.vou); if (vou) cb.checked = true; cb.disabled = vou; const nv = $('#v-entrar-vou'); if (nv) nv.hidden = !vou; }   // 1.35: o voucher é dado na entrada   // vem marcada quando a venda tem recreação (pacote, voucher); a venda só de carrinho ou de produto não dá a entrada sozinha (o carrinho é usado fora da loja): quem quiser, marca. Se a pessoa mexer, vale a escolha dela
   { const tx = $('#v-entrar-txt'); if (tx && cr) tx.textContent = saldoMin(cr) + min >= periodo() ? 'O tempo de recreação começa a contar ao registrar a venda.' : `Recreação avulsa: ${precoTempo(cr)}, acerta na saída.`; }
+  vendAtualiza(L); if (ok && L.length && precisaVend(L) && !CARRINHO.vend) { ok.disabled = true; ok.innerHTML = `${ic(IC.check)} Escolha quem está ${abreAgora(L) ? 'atendendo' : 'vendendo'}`; }   /* 1.67 · 1.68 */
   guardarRascunho();   // o que está escolhido fica guardado: se fechar sem registrar, continua daqui
 }
 // o atendimento: quem é a criança, qual serviço ela quer e quanto dá. O valor a pagar aparece na hora
@@ -7603,7 +7630,7 @@ const ACOES = {
     if (MODO === 'servidor') { try { const r = await api('reabrir_visita', { id }); await carregar(); feito(dataDe(r.entrou), r.sapateira, r.cobrancas); } catch (e) { el.disabled = false; toast(e.message); } return; }
     const r = reabrirPrevia(c); if (r) feito(r.ini, r.sap, r.cobr); else { el.disabled = false; toast(`Já passou de ${reabreLim()} min da saída de ${nome}${gestor() ? '' : ': depois do prazo, só o gestor reabre'}`); }
   },
-  'entrada-rapida': el => { entrada(crianca(el.dataset.id), 'mão'); desenhar(); },
+  'entrada-rapida': el => { const c = crianca(el.dataset.id); comQuemAbre(c, v => { entrada(c, 'mão', v); desenhar(); }); },   /* 1.68: quem abre o pedido */
   liberar: el => { // a chavinha: muda na hora, avisa o servidor, e o aviso tem Desfazer
     const c = crianca(el.dataset.id); if (!c) return; const antes = liberada(c), depois = !antes;
     const aplicar = v => { c.liberado = v; if (MODO === 'servidor') api('crianca_liberar', { id: c.id, liberado: v }).catch(e => toast(e.message)); const f = $('.folha'); desenhar(true); if (f) { const ch = $(`.folha .chave[data-id="${c.id}"]`); if (ch) { ch.classList.toggle('on', v); ch.setAttribute('aria-checked', v); const m = ch.closest('.marca'); if (m) m.querySelector('span').innerHTML = textoAcesso(c); } } };
@@ -7644,7 +7671,8 @@ const ACOES = {
   'desc-tipo': el => { if (!DESC) return; DESC.tipo = el.dataset.t === 'pct' ? 'pct' : 'valor'; $$('.pg-desc-t [data-t]').forEach(b => b.setAttribute('aria-checked', b.dataset.t === DESC.tipo)); const i = $('#pg-desc-v'); if (i) { i.placeholder = DESC.tipo === 'pct' ? '%' : 'R$'; i.focus(); } descMudou(); },   /* 1.04 */
   'pag-modo': el => { if (!PAG || PAG.onde !== 'venda') return; PAG.modo = el.dataset.m === 'depois' ? 'depois' : 'agora'; desenharPag(false); },   /* 1.03: a escolha fica à vista: paga agora ou paga na saída */
   receber: el => folhaReceber(+el.dataset.id), 'receber-ok': el => receberJa(el),
-  entrada: el => { entrada(crianca(el.dataset.id), 'mão'); fecharFolha(); desenhar(); },
+  entrada: el => { const c = crianca(el.dataset.id); comQuemAbre(c, v => { entrada(c, 'mão', v); fecharFolha(); desenhar(); }); },   /* 1.68: quem abre o pedido */
+  'quem-abre': el => { const q = QUEM_ABRE; QUEM_ABRE = null; fecharFolha(); const c = q && crianca(q.id); if (c && !c.entrou) { q.fazer(el.dataset.n || ''); desenhar(); } },
   saida: el => { SAI_VOLTA = null; AV_VOLTA = null; pedirSaida(+el.dataset.id); },
   avisar: el => { const c = crianca(el.dataset.id); let conv = S.conversas.find(x => x.crianca === c.id); if (!conv) { conv = { id: novoId(), crianca: c.id, lidas: true, msgs: [] }; S.conversas.push(conv); } S.zapAberta = conv.id; S.zapModo = 'papo'; S.zapDia = isoDia(agora); fecharFolha(); trocarTela('zap'); const t = $('#zap-texto'); if (t) { t.value = `Oi, ${nomeMsg(primeiro(c.resp))}! `; t.focus(); t.setSelectionRange(t.value.length, t.value.length); } },
   rosto: el => { const c = crianca(el.dataset.id); if (MODO === 'servidor') { api('idface_mandar', { id: c.id }).then(() => deuCerto(`${c.nome} mandada de novo para o iDFace`)).catch(e => toast(e.message)); fecharFolha(); return; } c.rosto = true; deuCerto(`${c.nome} mandada para o iDFace. Agora é só olhar para a câmera.`, () => { c.rosto = false; }); fecharFolha(); desenhar(); },
@@ -7945,7 +7973,7 @@ document.addEventListener('change', e => {
   const t = e.target; if (t.id === 'pc-parc') { contaPacote(); return; }
   if (t.id === 'sv-banco' || t.id === 'sv-volta') { svContaVer(); return; }   /* 1.20: a escolha de quando a conta fecha aparece ou some com as marcas do serviço */
   if ((t.id === 'rel-de' || t.id === 'rel-ate') && REL) { REL.per = 'datas'; REL.de = ($('#rel-de') || {}).value || ''; REL.ate = ($('#rel-ate') || {}).value || ''; desenharRelatorio(); return; }   /* 1.19: as datas do relatório do cliente */
-  if (t.id === 'v-entrar' && CARRINHO) { CARRINHO.entrar = t.checked; guardarRascunho(); return; }
+  if (t.id === 'v-entrar' && CARRINHO) { CARRINHO.entrar = t.checked; atualizarCarrinho(); return; }   /* 1.68: com a entrada, o pedido abre agora (pede quem está atendendo) */
   if (t.dataset && t.dataset.cancVenda && CANCELA) { const id = +t.dataset.cancVenda; if (t.checked) CANCELA.fica.delete(id); else CANCELA.fica.add(id); resumoCancelar(); return; }
   if (t.dataset && t.dataset.imCol && IM) { const k = t.dataset.imCol, v = +t.value; for (const o in IM.col) if (o !== k && v >= 0 && IM.col[o] === v) IM.col[o] = -1; IM.col[k] = v; lerLinhas(); pintarImportar(); return; }   /* 1.01: a coluna de um campo da importação (a mesma coluna não fica em dois campos) */
   if (t.type !== 'file' || !t.files || !t.files[0]) return;

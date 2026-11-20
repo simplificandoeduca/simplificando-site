@@ -71,7 +71,8 @@ function fzListar(array $in): array {
     if ($dias) $T['freelas']++;
     $L[] = fzFreelaPub($f) + ['dias' => $dias, 'tot' => $t];
   }
-  return ['mes' => $mes, 'freelas' => $L, 'total' => $T, 'nomes' => unidades(), 'hoje' => date('Y-m-d', agoraTs())];
+  $F = ffListar($mes, $uni);   /* 2.9: o fluxo de caixa (o dinheiro entregue ao gerente) */
+  return ['mes' => $mes, 'freelas' => $L, 'total' => $T, 'nomes' => unidades(), 'hoje' => date('Y-m-d', agoraTs()), 'fluxos' => $F, 'fluxoTot' => ffResumo($F)];
 }
 
 /* o cadastro: novo (sem id) ou a mudança de um */
@@ -158,6 +159,86 @@ function fzDiaTirar(array $in, array $eu): array {
   return fzListar(['mes' => substr((string)$d['dia'], 0, 7), 'u' => $in['u_filtro'] ?? 'todas']);
 }
 
+/* ---------- 2.9 (Play Space 1.68): o Fluxo de caixa dos freelancers ----------
+   Pedido do dono: "ela faz um lançamento de um valor para ser usado no final de semana: o valor que ela passa para o gerente. Conforme
+   ela for colocando os funcionários e os valores, e colocando como pago, esse valor vai sendo debitado do valor que ela emprestou (deu de
+   adiantamento de fluxo de caixa para o gerente), e fica o valor final que ela precisa receber de Pix de volta".
+   - Cada fluxo: o valor entregue, para quem (o gerente), os dias (de/até) e a unidade (ou todas).
+   - O que vai sendo debitado: o que foi marcado como pago (a diária paga e o VT pago) dos dias trabalhados dentro do período, na unidade.
+   - Falta devolver = entregue − pago. "Recebi o Pix" guarda quanto voltou e quando (dá para desfazer). Tirar um fluxo não apaga: fica
+     guardado quem tirou. Dois fluxos da mesma unidade não podem ter dias em comum (cada pagamento é debitado de um só).
+   - O freelancer fica à parte: nada disto entra no Painel, nos Lançamentos, no Relatório financeiro, no Controle de caixa nem no resumo. */
+function ffPreparar(): void {
+  static $ok = false; if ($ok) return; $ok = true;
+  db()->exec("CREATE TABLE IF NOT EXISTS fin_freela_fluxo (id INTEGER PRIMARY KEY, de TEXT NOT NULL, ate TEXT NOT NULL, unidade_id INTEGER, valor REAL NOT NULL DEFAULT 0,
+    gerente TEXT NOT NULL DEFAULT '', obs TEXT NOT NULL DEFAULT '', por TEXT NOT NULL DEFAULT '', em TEXT NOT NULL DEFAULT '',
+    dev_valor REAL, dev_em TEXT, dev_por TEXT NOT NULL DEFAULT '', removido_em TEXT, removido_por TEXT NOT NULL DEFAULT '')");
+}
+function ffConta(array $f): array {
+  $db = db(); $u = $f['unidade_id'] === null ? null : (int)$f['unidade_id'];
+  $q = $db->prepare('SELECT d.*, f.nome FROM fin_freela_dias d JOIN fin_freelas f ON f.id = d.freela_id WHERE d.removido_em IS NULL AND d.dia >= ? AND d.dia <= ? AND (d.pago = 1 OR d.vt_pago = 1)' . ($u !== null ? ' AND d.unidade_id = ' . $u : '') . ' ORDER BY d.dia, f.nome COLLATE NOCASE, d.id');
+  $q->execute([(string)$f['de'], (string)$f['ate']]); $L = []; $pd = 0.0; $pv = 0.0;
+  foreach ($q->fetchAll() as $d) {
+    $dia = !empty($d['pago']) ? round((float)($d['pago_valor'] ?? $d['combinado']), 2) : 0.0; $vt = !empty($d['vt_pago']) ? round((float)$d['vt'], 2) : 0.0;
+    if ($dia + $vt <= 0.004) continue;
+    $L[] = ['id' => (int)$d['id'], 'dia' => (string)$d['dia'], 'nome' => (string)$d['nome'], 'diaria' => $dia, 'vt' => $vt, 'total' => round($dia + $vt, 2), 'u' => $d['unidade_id'] === null ? null : (int)$d['unidade_id']];
+    $pd += $dia; $pv += $vt;
+  }
+  $usado = round($pd + $pv, 2); $valor = round((float)$f['valor'], 2); $saldo = round($valor - $usado, 2);
+  $dev = $f['dev_valor'] === null ? null : round((float)$f['dev_valor'], 2);
+  return ['id' => (int)$f['id'], 'de' => (string)$f['de'], 'ate' => (string)$f['ate'], 'u' => $u, 'valor' => $valor, 'gerente' => (string)$f['gerente'], 'obs' => (string)$f['obs'], 'por' => (string)$f['por'], 'em' => (string)$f['em'],
+    'pagos' => $L, 'pagoDiarias' => round($pd, 2), 'pagoVt' => round($pv, 2), 'usado' => $usado, 'saldo' => $saldo,
+    'devolvido' => $dev, 'dev_em' => (string)($f['dev_em'] ?? ''), 'dev_por' => (string)$f['dev_por'], 'acertado' => $dev !== null, 'dif' => $dev !== null ? round($dev - $saldo, 2) : 0.0];
+}
+/* os fluxos que têm dias no mês (na unidade escolhida: os dela e os de todas as unidades) */
+function ffListar(string $mes, ?int $uni): array {
+  ffPreparar(); $de = $mes . '-01'; $ate = date('Y-m-t', strtotime($de . ' 12:00:00'));
+  $q = db()->prepare('SELECT * FROM fin_freela_fluxo WHERE removido_em IS NULL AND de <= ? AND ate >= ?' . ($uni !== null ? ' AND (unidade_id IS NULL OR unidade_id = ' . $uni . ')' : '') . ' ORDER BY de, id');
+  $q->execute([$ate, $de]); return array_map('ffConta', $q->fetchAll());
+}
+function ffResumo(array $F): array {
+  $T = ['n' => count($F), 'valor' => 0.0, 'usado' => 0.0, 'aDevolver' => 0.0, 'devolvido' => 0.0, 'abertos' => 0, 'aMais' => 0.0];
+  foreach ($F as $f) { $T['valor'] += $f['valor']; $T['usado'] += $f['usado'];
+    if ($f['acertado']) $T['devolvido'] += $f['devolvido']; else { $T['abertos']++; if ($f['saldo'] > 0) $T['aDevolver'] += $f['saldo']; else $T['aMais'] += -$f['saldo']; } }
+  foreach ($T as $k => $v) if (is_float($v)) $T[$k] = round($v, 2);
+  return $T;
+}
+function ffHist(int $id, string $campo, $antes, $depois, array $eu): void { fzHist(0, $id, 'fluxo:' . $campo, is_array($antes) ? json_encode($antes, JSON_UNESCAPED_UNICODE) : $antes, is_array($depois) ? json_encode($depois, JSON_UNESCAPED_UNICODE) : $depois, $eu); }
+function ffPegar(int $id): array { ffPreparar(); $q = db()->prepare('SELECT * FROM fin_freela_fluxo WHERE id = ? AND removido_em IS NULL'); $q->execute([$id]); $f = $q->fetch(); if (!$f) falha('Este fluxo de caixa não está mais lançado.', 404); return $f; }
+/* lançar (sem id) ou mudar um fluxo: o valor entregue ao gerente, para quem, os dias e a unidade */
+function ffSalvar(array $in, array $eu): array {
+  fzPreparar(); ffPreparar(); $db = db(); $id = (int)($in['id'] ?? 0);
+  $valor = cxValor($in['valor'] ?? null); if ($valor === null || $valor <= 0) falha('Escreva o valor entregue ao gerente (ex.: 1.000,00).');
+  $de = fzDiaOk($in['de'] ?? ''); $ate = trim((string)($in['ate'] ?? '')) === '' ? $de : fzDiaOk($in['ate']);
+  if ($ate < $de) falha('O último dia é antes do primeiro.');
+  if ((strtotime($ate . ' 12:00:00') - strtotime($de . ' 12:00:00')) / 86400 > 31) falha('O fluxo de caixa vale para até 31 dias.');
+  $u = fzUni($in['u'] ?? null); $ger = maiusculo(fzTxt($in['gerente'] ?? '', 60)); if (mb_strlen($ger) < 2) falha('Escreva para quem foi entregue o dinheiro (o gerente).');
+  $obs = fzTxt($in['obs'] ?? '', 200);
+  /* dois fluxos da mesma unidade (ou um de todas) com dias em comum: cada pagamento só pode ser debitado de um */
+  $q = $db->prepare('SELECT * FROM fin_freela_fluxo WHERE removido_em IS NULL AND id != ? AND de <= ? AND ate >= ?' . ($u !== null ? ' AND (unidade_id IS NULL OR unidade_id = ' . $u . ')' : ''));
+  $q->execute([$id, $ate, $de]);
+  if ($x = $q->fetch()) falha('Já há um fluxo de caixa com dias em comum (' . finDataBR($x['de']) . ($x['ate'] !== $x['de'] ? ' a ' . finDataBR($x['ate']) : '') . ', ' . (string)$x['gerente'] . '). Mude os dias ou a unidade.');
+  $novo = ['de' => $de, 'ate' => $ate, 'unidade_id' => $u, 'valor' => $valor, 'gerente' => $ger, 'obs' => $obs];
+  if ($id) { $f = ffPegar($id); $antes = array_intersect_key($f, $novo);
+    $db->prepare('UPDATE fin_freela_fluxo SET de = ?, ate = ?, unidade_id = ?, valor = ?, gerente = ?, obs = ? WHERE id = ?')->execute([$de, $ate, $u, $valor, $ger, $obs, $id]); ffHist($id, 'editado', $antes, $novo, $eu); }
+  else { $db->prepare('INSERT INTO fin_freela_fluxo (de, ate, unidade_id, valor, gerente, obs, por, em) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')->execute([$de, $ate, $u, $valor, $ger, $obs, (string)$eu['nome'], agora()]); $id = (int)$db->lastInsertId(); ffHist($id, 'lancado', null, $novo, $eu); }
+  return fzListar(['mes' => $in['mes'] ?? substr($de, 0, 7), 'u' => $in['u_filtro'] ?? 'todas']) + ['fluxo' => $id];
+}
+/* "Recebi o Pix": quanto o gerente devolveu e quando (sem valor: desfaz) */
+function ffDevolver(array $in, array $eu): array {
+  $f = ffPegar((int)($in['id'] ?? 0)); $db = db();
+  if (!empty($in['desfazer'])) { $db->prepare("UPDATE fin_freela_fluxo SET dev_valor = NULL, dev_em = NULL, dev_por = '' WHERE id = ?")->execute([(int)$f['id']]); ffHist((int)$f['id'], 'devolvido', $f['dev_valor'], null, $eu); }
+  else { $v = cxValor($in['valor'] ?? null); if ($v === null || $v < 0) falha('Escreva quanto o gerente devolveu (pode ser 0,00).'); $quando = fzDiaOk($in['data'] ?? date('Y-m-d', agoraTs()));
+    $db->prepare('UPDATE fin_freela_fluxo SET dev_valor = ?, dev_em = ?, dev_por = ? WHERE id = ?')->execute([$v, $quando, (string)$eu['nome'], (int)$f['id']]); ffHist((int)$f['id'], 'devolvido', $f['dev_valor'], $v, $eu); }
+  return fzListar(['mes' => $in['mes'] ?? substr((string)$f['de'], 0, 7), 'u' => $in['u_filtro'] ?? 'todas']);
+}
+/* tirar um fluxo lançado por engano (fica guardado quem tirou) */
+function ffTirar(array $in, array $eu): array {
+  $f = ffPegar((int)($in['id'] ?? 0));
+  db()->prepare('UPDATE fin_freela_fluxo SET removido_em = ?, removido_por = ? WHERE id = ?')->execute([agora(), (string)$eu['nome'], (int)$f['id']]); ffHist((int)$f['id'], 'tirado', (float)$f['valor'], null, $eu);
+  return fzListar(['mes' => $in['mes'] ?? substr((string)$f['de'], 0, 7), 'u' => $in['u_filtro'] ?? 'todas']);
+}
+
 /* ---------- o PDF do mês: os números, os gráficos e cada freelancer com os dias ---------- */
 function fzPdf(array $in): string {
   $R = fzListar($in); $T = $R['total']; $mesNome = finMesNome($R['mes']); $uni = isset($in['u']) && $in['u'] !== '' && $in['u'] !== 'todas' ? (int)$in['u'] : null;
@@ -171,6 +252,15 @@ function fzPdf(array $in): string {
     ['Diárias combinadas', finBrl($T['combinado']), $T['dias'] ? 'média ' . finBrl($T['combinado'] / $T['dias']) . ' por dia' : '', PdfBonito::CORAL], ['Diárias pagas', $T['diasPagos'] . ' de ' . $T['dias'], finBrl($T['pagoDiarias']) . ' pagos', PdfBonito::VERDE],
     ['Vale-transporte', finBrl($T['vt']), $T['comVt'] . ' dias com VT', PdfBonito::MOSTARDA], ['VT pago', $T['vtPagos'] . ' de ' . $T['comVt'], finBrl($T['pagoVt']) . ' pagos', PdfBonito::PIX]]);
   if ($T['dif'] < -0.004 || $T['dif'] > 0.004) $d->aviso('Nas diárias pagas, foi pago ' . finBrl(abs($T['dif'])) . ($T['dif'] < 0 ? ' a menos' : ' a mais') . ' do que o combinado (o detalhe está em cada freelancer).');
+  /* 2.9: o fluxo de caixa (o dinheiro entregue ao gerente): o que foi pago com ele e o que falta voltar por Pix */
+  if ($R['fluxos']) {
+    $FT = $R['fluxoTot'];
+    $d->secao('Fluxo de caixa', 'O dinheiro entregue ao gerente para pagar os freelancers: o que foi pago com ele e o que falta voltar por Pix.', 60 + 18 * count($R['fluxos']));
+    $d->tabela([['Dias', .2, 'E'], ['Unidade', .16, 'E'], ['Gerente', .16, 'E'], ['Entregue', .12, 'D'], ['Pago', .12, 'D'], ['Situação', .24, 'D']],
+      array_map(fn($f) => [finDataBR($f['de']) . ($f['ate'] !== $f['de'] ? ' a ' . substr(finDataBR($f['ate']), 0, 5) : ''), $f['u'] ? ($nomeU[$f['u']] ?? '') : 'todas', $f['gerente'], finBrl($f['valor']), finBrl($f['usado']),
+        $f['acertado'] ? ['t' => 'voltou ' . finBrl($f['devolvido']) . ' (Pix)', 'cor' => PdfBonito::VERDE, 'b' => true] : ($f['saldo'] >= 0 ? ['t' => 'falta voltar ' . finBrl($f['saldo']), 'cor' => PdfBonito::VERM, 'b' => true] : ['t' => 'gerente pagou ' . finBrl(-$f['saldo']) . ' a mais', 'cor' => PdfBonito::VERM, 'b' => true])], $R['fluxos']),
+      ['Total', '', '', finBrl($FT['valor']), finBrl($FT['usado']), $FT['aDevolver'] > 0.004 ? 'falta voltar ' . finBrl($FT['aDevolver']) : ($FT['abertos'] ? '' : 'tudo acertado')]);
+  }
   if ($T['dias']) {
     $d->secao('Pago e a pagar', 'O total do mês (diárias e vale-transporte), separado entre o que já foi pago e o que falta.');
     $y = $d->y; $h = $d->rosca($d->M, $y, 56, [['Diárias pagas', $T['pagoDiarias'], PdfBonito::VERDE], ['VT pago', $T['pagoVt'], PdfBonito::PIX], ['Falta pagar', $T['falta'], PdfBonito::CORAL]], PdfBonito::curto($T['devido']), 'no mês', 210);

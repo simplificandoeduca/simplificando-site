@@ -71,7 +71,7 @@ function criancaPublica(array $c): array {
     'pacote' => round((int)$c['pacote_min'] / 60, 2), 'usado' => (int)$c['usado_min'], 'entrou' => $c['entrou'], 'idface_id' => $c['idface_id'] === null ? null : (int)$c['idface_id'],
     'rosto' => !empty($c['rosto']) || $c['idface_id'] !== null, 'foto' => (string)$c['foto'], 'ativo' => (bool)$c['ativo'], 'liberado' => !isset($c['liberado']) || (bool)$c['liberado'], 'sapateira' => isset($c['sapateira']) && $c['sapateira'] !== null ? (int)$c['sapateira'] : null,
     'doc' => ($c['doc_tipo'] ?? 'cpf') === 'rne' ? 'rne' : 'cpf', 'tel2' => (string)($c['tel2'] ?? ''), 'pmin' => (int)$c['pacote_min'], 'pcd' => !empty($c['pcd']), 'imp' => (string)($c['lote'] ?? '') !== '', 'uni' => isset($c['unidade_id']) && $c['unidade_id'] !== null ? (int)$c['unidade_id'] : null,
-    'obs_antes' => (string)($c['obs_antes'] ?? ''), 'obs_em' => $c['obs_em'] ?? null, 'obs_por' => (string)($c['obs_por'] ?? ''), 'nasc' => (string)($c['nascimento'] ?? ''), 'festa' => !empty($c['festa_id']) && $c['entrou'] ? (int)$c['festa_id'] : null];   // festa (1.29): a festa em que a criança está agora   // nasc (1.11): a data de nascimento, AAAA-MM-DD ou ''   // a observação anterior, e quem mudou a de agora e quando   // pmin: o tempo comprado em minutos exatos   // doc: o campo cpf guarda o CPF ou o RNE (estrangeiro)
+    'obs_antes' => (string)($c['obs_antes'] ?? ''), 'obs_em' => $c['obs_em'] ?? null, 'obs_por' => (string)($c['obs_por'] ?? ''), 'nasc' => (string)($c['nascimento'] ?? ''), 'festa' => !empty($c['festa_id']) && $c['entrou'] ? (int)$c['festa_id'] : null, 'vabriu' => quemAbriu($c)];   /* vabriu (1.68): quem abriu o pedido da visita de agora */   // festa (1.29): a festa em que a criança está agora   // nasc (1.11): a data de nascimento, AAAA-MM-DD ou ''   // a observação anterior, e quem mudou a de agora e quando   // pmin: o tempo comprado em minutos exatos   // doc: o campo cpf guarda o CPF ou o RNE (estrangeiro)
 }
 function dados(array $eu): array {
   $db = db(); $hojeMenos = date('Y-m-d') . ' 00:00:00';   // 1.45 (auditoria): "hoje" é o dia, desde a meia-noite (era as últimas 24 h), como o Caixa do dia e o painel
@@ -383,7 +383,7 @@ switch ($acao) {
     $manual = modoManual(); if ($manual) exigir(); else exigir(['gestor', 'supervisor']);
     $c = crianca((int)($in['id'] ?? 0)); if (!$c || !$c['ativo']) falha('Criança não encontrada.', 404);
     if ($c['entrou']) falha($c['nome'] . ' já está no espaço.');
-    responder(fazerEntrada($c, 'mão'));
+    responder(fazerEntrada($c, 'mão', null, null, vendedoraDoPedido($in['vendedora'] ?? '')));   /* 1.68: quem abriu o pedido */
   }
   case 'festa_entrada': { // 1.29: a criança entra na festa de hoje, como aniversariante ou convidado: sem cobrar e sem gastar horas
     $u = exigir();   // (toda a equipe, também com o iDFace ligado: o aparelho não sabe que a criança veio para a festa)
@@ -652,7 +652,8 @@ switch ($acao) {
         if (modoManual() && empty($in['entrar'])) falha('O voucher é dado na entrada: marque "Dar entrada agora".'); } }
     $o = (array)($in['outro'] ?? []); $on = mb_substr(maiusculo((string)($o['n'] ?? '')), 0, 60); if ($on !== '') $linhas[] = ['servico' => $on, 'min' => 0, 'valor' => max(0, (float)($o['v'] ?? 0)), 'itens' => ''];
     if (!$linhas && !$comVoucher) falha('Escolha o serviço.');
-    $vend = $festa ? '' : vendedoraDoPedido($in['vendedora'] ?? '');   /* 1.67: quem está vendendo (a tela pede em toda venda de pacote e de produto) */
+    $vendTela = $festa ? '' : vendedoraDoPedido($in['vendedora'] ?? '');   /* 1.67: quem está vendendo (a tela pede em toda venda de pacote e de produto) */
+    $vend = $festa ? '' : (quemAbriu($c) ?: $vendTela);   /* 1.68: com a criança no espaço, a venda é de quem abriu o pedido na entrada */
     // a criança já teve uma venda registrada (em outro aparelho) depois que esta tela abriu o atendimento: avisa antes de cobrar de novo. "mesmo_assim" confirma
     $visto = (int)($in['visto'] ?? 0);
     if ($visto > 0 && empty($in['mesmo_assim'])) {
@@ -703,7 +704,7 @@ switch ($acao) {
     $resp = ['vendas' => $vendas, 'registros' => $regs, 'total' => $total, 'minutos' => $min, 'festa' => $festaId, 'voucher' => $vinfo, 'pagamento' => $pg ? textoPagamento($pg) : '', 'cupom' => $cupomId ?? 0, 'a_receber' => $depois ? $aPagar : ($devIdx ? $devV : 0), 'desconto' => $ad['valor'] ?? 0];
     if ($min > 0 && $c['entrou']) { $des = desfazerCobrancasSobrando($c); if ($des['n']) { $resp['desfeitas'] = $des; $c = crianca((int)$c['id']); } }   // 1.00: comprou tempo com a criança no espaço: o que sobrou de cobrança por atraso sai
     if (!empty($in['entrar']) && modoManual() && !$c['entrou']) { // sem iDFace: registrou e já entra, o tempo começa a contar (1.15: com ou sem tempo comprado)
-      $e = fazerEntrada($c, 'mão'); $resp['entrada'] = ['registro' => $e['registro'], 'mensagem' => is_array($e['mensagem']) ? (int)($e['mensagem']['id'] ?? 0) : 0];
+      $e = fazerEntrada($c, 'mão', null, null, $vendTela); $resp['entrada'] = ['registro' => $e['registro'], 'mensagem' => is_array($e['mensagem']) ? (int)($e['mensagem']['id'] ?? 0) : 0];
     }
     fecharPedidosDeDesconto($u, $c, 'venda');   // 1.23: o pedido de desconto que esperava a resposta não fica para depois
     responder($resp);

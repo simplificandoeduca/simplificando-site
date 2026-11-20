@@ -398,6 +398,10 @@ function db(): PDO {
     foreach (["ALTER TABLE vendas ADD COLUMN vendedora TEXT NOT NULL DEFAULT ''", "ALTER TABLE vendas ADD COLUMN vend_k TEXT NOT NULL DEFAULT ''", 'ALTER TABLE vendas ADD COLUMN vend_g INTEGER'] as $sql) { try { $pdo->exec($sql); } catch (Throwable $e) { } }
     $pdo->exec('PRAGMA user_version = 39');
   }
+  if ($v < 40) { /* 1.68: quem abriu o pedido (a vendedora que atendeu na entrada): a comissão do que for vendido na visita, até na saída, é dela */
+    foreach (["ALTER TABLE criancas ADD COLUMN vend_abriu TEXT NOT NULL DEFAULT ''", "ALTER TABLE visitas ADD COLUMN vendedora TEXT NOT NULL DEFAULT ''"] as $sql) { try { $pdo->exec($sql); } catch (Throwable $e) { } }
+    $pdo->exec('PRAGMA user_version = 40');
+  }
   return $pdo;
 }
 /* ---------- 1.06: unidades ---------- */
@@ -495,6 +499,9 @@ function vendedorasLimpas($lista): array {
   return array_slice($r, 0, VENDEDORAS_MAX);
 }
 function vendedoras(): array { $v = cfg('vendedoras', null); return is_array($v) ? vendedorasLimpas($v) : VENDEDORAS_PADRAO; }
+/* 1.68 (o dono: "a comissão sempre é de quem dá início no pedido do cliente, não de quem dá saída: ela oferta o pacote no início; às vezes o
+   cliente fecha no final, mas a comissão é de quem abre o pedido"): com a criança no espaço, a venda é de quem abriu o pedido na entrada */
+function quemAbriu(array $c): string { return !empty($c['entrou']) && empty($c['festa_id']) ? trim((string)($c['vend_abriu'] ?? '')) : ''; }
 /* o nome que a tela mandou, conferido com a lista (vazio = a tela não mandou) */
 function vendedoraDoPedido($n): string {
   $n = trim(preg_replace('/\s+/u', ' ', maiusculo((string)$n))); if ($n === '') return '';
@@ -920,10 +927,10 @@ function crianca(int $id): ?array { $q = db()->prepare('SELECT * FROM criancas W
 /* ---------- entrada, saída e venda: a mesma lógica para o iDFace e para o toque na tela ---------- */
 // sem o iDFace (leitura desligada em Ajustes), a equipe marca a entrada e a saída na tela
 function modoManual(): bool { $c = cfg('idface', null); return is_array($c) && array_key_exists('ligado', $c) && !$c['ligado']; }
-function fazerEntrada(array $c, string $origem = 'iDFace', ?string $quando = null, ?int $festa = null): array {   // $festa (1.29): a festa em que a criança entra (a visita não cobra nem gasta horas)
+function fazerEntrada(array $c, string $origem = 'iDFace', ?string $quando = null, ?int $festa = null, string $vend = ''): array {   /* $vend (1.68): quem abriu o pedido (vazio = não se sabe: o iDFace, a festa) */   // $festa (1.29): a festa em que a criança entra (a visita não cobra nem gasta horas)
   $db = db(); $quando = $quando ?: agora();
-  $db->prepare('UPDATE criancas SET entrou = ?, unidade_id = ?, festa_id = ? WHERE id = ?')->execute([$quando, unidadeDoPedido(), $festa ?: null, $c['id']]);   // 1.06: a unidade do aparelho em que a entrada foi dada (o iDFace não diz: fica sem)
-  $c['entrou'] = $quando; $c['unidade_id'] = unidadeDoPedido(); $c['festa_id'] = $festa ?: null;
+  $db->prepare('UPDATE criancas SET entrou = ?, unidade_id = ?, festa_id = ?, vend_abriu = ? WHERE id = ?')->execute([$quando, unidadeDoPedido(), $festa ?: null, $vend, $c['id']]);   // 1.06: a unidade do aparelho em que a entrada foi dada (o iDFace não diz: fica sem)
+  $c['entrou'] = $quando; $c['unidade_id'] = unidadeDoPedido(); $c['festa_id'] = $festa ?: null; $c['vend_abriu'] = $vend;
   $reg = registrar('ent', (int)$c['id'], $c['nome'], $origem === 'iDFace' ? 'Rosto reconhecido na entrada' : (modoManual() ? 'Entrada registrada' : 'Entrada registrada à mão'), $quando);
   $msg = null;
   if (regra()['autoMsg'] !== 'nao') {
@@ -1035,7 +1042,7 @@ function fazerSaida(array $c, string $origem = 'iDFace', ?string $quando = null,
   if (acertarCobrancas($c, $quando)) $c = crianca((int)$c['id']);   // o que a visita precisa até a hora da saída e ainda não tinha sido lançado nasce agora
   if (!$avulso && desfazerCobrancasSobrando($c, $quando)['n']) $c = crianca((int)$c['id']);   // 1.00: o que o cliente comprou durante a visita cobre o tempo: a cobrança por atraso que sobrou é desfeita
   $min = minutosDaVisita($c, strtotime($quando)); $deb = min(cobrar($min), restante($c)); $atraso = atrasoDaVisita((int)$c['id'], (string)$c['entrou']);   // nunca debita mais do que há (a cobrança por atraso já cobriu o que faltava)
-  $db->prepare('INSERT INTO visitas (crianca_id, entrou, saiu, debitado_min, origem, unidade_id) VALUES (?, ?, ?, ?, ?, ?)')->execute([$c['id'], $c['entrou'], $quando, $deb, $origem, $c['unidade_id'] ?? null]);   // 1.06: a visita fica com a unidade em que a criança entrou
+  $db->prepare('INSERT INTO visitas (crianca_id, entrou, saiu, debitado_min, origem, unidade_id, vendedora) VALUES (?, ?, ?, ?, ?, ?, ?)')->execute([$c['id'], $c['entrou'], $quando, $deb, $origem, $c['unidade_id'] ?? null, (string)($c['vend_abriu'] ?? '')]);   // 1.06: a visita fica com a unidade em que a criança entrou
   $visita = (int)$db->lastInsertId();
   $sap = isset($c['sapateira']) && $c['sapateira'] !== null ? (int)$c['sapateira'] : 0;   // a sapateira fica livre na saída
   $db->prepare('UPDATE criancas SET entrou = NULL, usado_min = usado_min + ?, sapateira = NULL WHERE id = ?')->execute([$deb, $c['id']]);

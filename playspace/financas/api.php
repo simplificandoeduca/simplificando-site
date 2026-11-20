@@ -19,7 +19,7 @@ require __DIR__ . '/freelas.php';   /* 2.6: os freelancers */
 require __DIR__ . '/relatorios.php';   /* 2.6: os relatórios do caixa e das festas */
 require __DIR__ . '/comissoes.php';   /* 2.8: as comissões das vendedoras */
 set_exception_handler(function (Throwable $e) { registrarErro('[financas] ' . $e->getMessage() . ' @' . basename($e->getFile()) . ':' . $e->getLine()); falha('Algo deu errado. Tente de novo em instantes.', 500); });
-const FIN_VERSAO = '2.8';
+const FIN_VERSAO = '2.9';
 
 $in = [];
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
@@ -203,6 +203,9 @@ if ($acao === 'fz_lancar') responder(fzLancar($in, $eu));
 if ($acao === 'fz_dia_salvar') responder(fzDiaSalvar($in, $eu));
 if ($acao === 'fz_pagar') responder(fzPagar($in, $eu));
 if ($acao === 'fz_dia_tirar') responder(fzDiaTirar($in, $eu));
+if ($acao === 'ff_salvar') responder(ffSalvar($in, $eu));   /* 2.9: o fluxo de caixa dos freelancers */
+if ($acao === 'ff_devolver') responder(ffDevolver($in, $eu));
+if ($acao === 'ff_tirar') responder(ffTirar($in, $eu));
 if ($acao === 'fz_pdf') pbSaida(fzPdf($in), 'play-space-freelancers-' . fzMes($in['mes'] ?? '') . '.pdf');
 if ($acao === 'fs_pdf') pbSaida(fsPdf($in), 'play-space-festas-' . fsMes($in['mes'] ?? '') . '.pdf');
 if ($acao === 'cx_rel_pdf') { $de_ = cxDiaOk($in['de'] ?? ''); $ate_ = cxDiaOk($in['ate'] ?? $de_); pbSaida(cxRelPdf($in), 'play-space-caixa-' . ($de_ === $ate_ ? $de_ : $de_ . '-a-' . $ate_) . '.pdf'); }

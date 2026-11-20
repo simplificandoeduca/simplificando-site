@@ -4,10 +4,10 @@
    "Pagar o que falta" paga o mês de uma vez. Digita como numa planilha (o valor fica salvo ao sair do campo). E o PDF bonito do mês.
    Também aqui: pdfBaixar (o download dos PDFs bonitos, usado pelo caixa e pelas festas). */
 'use strict';
-const FZ = { mes: '', u: 'todas', busca: '', d: null, n: 0 };
-try { const g = JSON.parse(localStorage.getItem('psfin-freelas') || 'null'); if (g && /^\d{4}-\d{2}$/.test(g.mes || '')) FZ.mes = g.mes; if (g && g.u) FZ.u = g.u; } catch (e) { /* sem o guardado */ }
+const FZ = { mes: '', u: 'todas', busca: '', d: null, n: 0, vista: 'freelas' };   /* vista (2.9): 'freelas' ou 'fluxo' (o fluxo de caixa) */
+try { const g = JSON.parse(localStorage.getItem('psfin-freelas') || 'null'); if (g && /^\d{4}-\d{2}$/.test(g.mes || '')) FZ.mes = g.mes; if (g && g.u) FZ.u = g.u; if (g && g.vista === 'fluxo') FZ.vista = 'fluxo'; } catch (e) { /* sem o guardado */ }
 if (!FZ.mes) { const h = new Date(); FZ.mes = `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}`; }
-const fzGuarda = () => { try { localStorage.setItem('psfin-freelas', JSON.stringify({ mes: FZ.mes, u: FZ.u })); } catch (e) { /* sem espaço */ } };
+const fzGuarda = () => { try { localStorage.setItem('psfin-freelas', JSON.stringify({ mes: FZ.mes, u: FZ.u, vista: FZ.vista })); } catch (e) { /* sem espaço */ } };
 const FZ_SEM = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
 const fzIniciais = n => String(n || '?').trim().split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase();
 const fzHoje = () => { const h = new Date(); return `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}-${String(h.getDate()).padStart(2, '0')}`; };
@@ -32,7 +32,8 @@ function freelasDesenhar() {
   const t = $('#tela'); if (!t) return;
   const unis = UNIS.filter(x => x.ativo).map(x => x.id);
   t.innerHTML = `<div class="fz-tela"><div class="topo"><div><h1>Freelancers</h1><div class="sub">Os dias trabalhados, o combinado, o vale-transporte e o que já foi pago</div></div>
-      <div class="lista-acoes"><button class="btn btn-ghost" id="fz-pdf">${PDF_IC} PDF do mês</button><button class="btn btn-ghost" id="fz-excel">Exportar Excel</button><button class="btn btn-ghost" id="fz-novo">+ Freelancer</button><button class="btn btn-brand" id="fz-lancar">Lançar dias</button></div></div>
+      <div class="lista-acoes"><button class="btn btn-ghost" id="fz-pdf">${PDF_IC} PDF do mês</button>${FZ.vista === 'fluxo' ? '<button class="btn btn-brand" id="ff-novo">+ Fluxo de caixa</button>' : '<button class="btn btn-ghost" id="fz-excel">Exportar Excel</button><button class="btn btn-ghost" id="fz-novo">+ Freelancer</button><button class="btn btn-brand" id="fz-lancar">Lançar dias</button>'}</div></div>
+    <div class="chips fz-vistas" role="tablist" aria-label="Freelancers"><button class="chip ${FZ.vista !== 'fluxo' ? 'on' : ''}" role="tab" aria-selected="${FZ.vista !== 'fluxo'}" data-fzvista="freelas">Freelancers</button><button class="chip ${FZ.vista === 'fluxo' ? 'on' : ''}" role="tab" aria-selected="${FZ.vista === 'fluxo'}" data-fzvista="fluxo">Fluxo de caixa${FZ.d && FZ.d.fluxoTot && FZ.d.fluxoTot.abertos ? ` <b class="ff-n">${FZ.d.fluxoTot.abertos}</b>` : ''}</button></div>
     <div class="filtros"><div class="chips"><button class="chip" data-fzmes="-1" aria-label="Mês anterior">‹</button><b class="g-mes">${esc(fsMesNome(FZ.mes))}</b><button class="chip" data-fzmes="1" aria-label="Mês seguinte">›</button>
       ${unis.length > 1 ? `<button class="chip ${FZ.u === 'todas' ? 'on' : ''}" data-fzu="todas">Todas as unidades</button>${unis.map(u => `<button class="chip ${String(FZ.u) === String(u) ? 'on' : ''}" data-fzu="${u}"><i style="background:${corUni(u)}"></i>${esc(nomeUni(u))}</button>`).join('')}` : ''}
       <input class="chip g-busca" id="fz-busca" type="search" placeholder="Buscar freelancer…" value="${esc(FZ.busca)}" aria-label="Buscar freelancer"></div></div>
@@ -40,9 +41,8 @@ function freelasDesenhar() {
   $$('[data-fzmes]').forEach(b => b.onclick = () => { const [a, m] = FZ.mes.split('-').map(Number), d = new Date(a, m - 1 + +b.dataset.fzmes, 1); FZ.mes = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; fzGuarda(); freelasDesenhar(); });
   $$('[data-fzu]').forEach(b => b.onclick = () => { FZ.u = b.dataset.fzu === 'todas' ? 'todas' : +b.dataset.fzu; fzGuarda(); FZ.d = null; freelasDesenhar(); });
   const bu = $('#fz-busca'); bu.oninput = () => { FZ.busca = bu.value; fzRedesenha(); };
-  $('#fz-novo').onclick = () => fzFreelaFolha(null);
-  $('#fz-lancar').onclick = () => fzLancarFolha(null);
-  $('#fz-excel').onclick = fzExcel;
+  const on = (id, fn) => { const b = $(id); if (b) b.onclick = fn; };
+  on('#fz-novo', () => fzFreelaFolha(null)); on('#fz-lancar', () => fzLancarFolha(null)); on('#fz-excel', fzExcel); on('#ff-novo', () => ffFolha(null));
   $('#fz-pdf').onclick = e => pdfBaixar(e.currentTarget, { acao: 'fz_pdf', mes: FZ.mes, u: FZ.u }, `play-space-freelancers-${FZ.mes}.pdf`);
   if (FZ.d && FZ.d.mes === FZ.mes) fzLigar(); else fzCarregar();
 }
@@ -61,9 +61,10 @@ function fzKpis() {
     ${kpi('Freelancers', int(T.freelas), T.freelas ? 'trabalharam no mês' : 'ninguém lançado ainda')}`;
 }
 function fzCorpo() {
+  if (FZ.vista === 'fluxo') return ffCorpo();   /* 2.9: o fluxo de caixa */
   const { com, sem } = fzLinhas();
   const vazio = !com.length ? `<div class="cartao"><div class="vazio">${FZ.d.freelas.length ? `Nenhum dia de freelancer em ${esc(fsMesNome(FZ.mes).toLowerCase())}${FZ.busca ? ' com essa busca' : ''}. Toque em <b>Lançar dias</b>.` : 'Nenhum freelancer cadastrado. Toque em <b>+ Freelancer</b> e depois em <b>Lançar dias</b>.'}</div></div>` : '';
-  return `<div class="grade fs-kpis" id="fz-kpis">${fzKpis()}</div>${vazio}${com.map(fzCartao).join('')}
+  return `${ffAviso()}<div class="grade fs-kpis" id="fz-kpis">${fzKpis()}</div>${vazio}${com.map(fzCartao).join('')}
     ${sem.length ? `<section class="cartao fz-sem"><h3>Sem dias em ${esc(fsMesNome(FZ.mes).toLowerCase())}</h3><div class="fz-sem-l">${sem.map(f => `<span class="fz-sem-i"><b>${esc(f.nome)}</b>${f.funcao ? `<small>${esc(f.funcao)}</small>` : ''}<button class="link" data-fzlanca="${f.id}">Lançar dias</button><button class="link" data-fzedit="${f.id}">Editar</button></span>`).join('')}</div></section>` : ''}
     <p class="fs-expl"><b>Total pago</b> = a diária paga + o VT pago. <b>Falta</b> = o que ainda não foi pago (a diária e o VT). Escreva o valor pago se foi diferente do combinado; o valor fica salvo ao sair do campo.</p>`;
 }
@@ -97,6 +98,8 @@ function fzCartao(f) {
       <tfoot><tr data-fztot><td>Total · ${int(t.dias)} ${t.dias === 1 ? 'dia' : 'dias'}</td><td></td><td class="v">${brl(t.combinado)}</td><td class="v">${brl(t.vt)}</td><td>${int(t.diasPagos)} de ${int(t.dias)} pagas</td><td>${t.comVt ? `${int(t.vtPagos)} de ${int(t.comVt)}` : ''}</td><td class="v">${brl(t.totalPago)}</td><td class="v fz-falta">${t.falta > 0.004 ? brl(t.falta) : '—'}</td><td></td></tr></tfoot></table></div></section>`;
 }
 function fzLigar() {
+  $$('[data-fzvista]').forEach(b => b.onclick = () => { FZ.vista = b.dataset.fzvista === 'fluxo' ? 'fluxo' : 'freelas'; fzGuarda(); freelasDesenhar(); window.scrollTo(0, 0); });
+  ffLigar();
   $$('[data-fzlanca]').forEach(b => b.onclick = () => fzLancarFolha(+b.dataset.fzlanca));
   $$('[data-fzedit]').forEach(b => b.onclick = () => fzFreelaFolha(FZ.d.freelas.find(f => f.id === +b.dataset.fzedit)));
   $$('[data-fzpaga]').forEach(b => b.onclick = () => fzPagarFolha(FZ.d.freelas.find(f => f.id === +b.dataset.fzpaga)));
@@ -213,4 +216,72 @@ function fzExcel() {
     { nome: 'Dias', cols: [['Freelancer', 26, 'txt'], ['Função', 16, 'txt'], ['Dia', 12, 'data'], ['Unidade', 16, 'txt'], ['Combinado', 12, 'brl'], ['VT', 10, 'brl'], ['Diária paga', 11, 'txt'], ['Valor pago', 12, 'brl'], ['Pago em', 12, 'data'], ['VT pago', 9, 'txt'], ['Total pago', 12, 'brl'], ['Falta', 11, 'brl']], linhas: dias,
       total: ['Total', '', '', '', soma(dias, 4), soma(dias, 5), '', soma(dias, 7), '', '', soma(dias, 10), soma(dias, 11)] }]), `play-space-freelancers-${FZ.mes}.xlsx`);
   aviso('Planilha baixada ✓');
+}
+
+/* ---------- 2.9 (Play Space 1.68): o Fluxo de caixa (o dinheiro entregue ao gerente para pagar os freelancers) ----------
+   Pedido do dono: o valor que ela passa ao gerente para o fim de semana; conforme os freelancers são marcados como pagos, o valor vai
+   sendo debitado; fica o que o gerente precisa devolver por Pix. Fica só aqui, nos Freelancers (não entra no resto das Finanças). */
+const ffDias = f => { const a = new Date(f.de + 'T12:00:00'), b = new Date(f.ate + 'T12:00:00'); return f.de === f.ate ? `${FZ_SEM[a.getDay()]} ${dataBR(f.de).slice(0, 5)}` : `${FZ_SEM[a.getDay()]} ${dataBR(f.de).slice(0, 5)} a ${FZ_SEM[b.getDay()]} ${dataBR(f.ate).slice(0, 5)}`; };
+const ffSituacao = f => f.acertado ? { cls: 'ok', rot: 'Voltou por Pix', v: brl(f.devolvido) } : f.saldo >= 0 ? { cls: 'falta', rot: 'Falta voltar (Pix)', v: brl(f.saldo) } : { cls: 'falta', rot: 'O gerente pagou a mais', v: brl(-f.saldo) };
+function ffAviso() {
+  const F = (FZ.d && FZ.d.fluxos || []).filter(f => !f.acertado); if (!F.length) return '';
+  return `<button class="ff-aviso" data-fzvista="fluxo">${F.map(f => { const s = ffSituacao(f); return `<span><b>Fluxo de caixa</b> · ${esc(f.gerente)} · ${esc(ffDias(f))}: entregue ${brl(f.valor)}, pago ${brl(f.usado)} · <b>${esc(s.rot.toLowerCase())} ${s.v}</b></span>`; }).join('')}<em>Ver ›</em></button>`;
+}
+function ffCorpo() {
+  const F = FZ.d.fluxos || [], T = FZ.d.fluxoTot || { valor: 0, usado: 0, aDevolver: 0, devolvido: 0, aMais: 0, abertos: 0 };
+  const kpis = `${kpi('Entregue ao gerente', brl(T.valor), F.length ? `${int(F.length)} ${F.length === 1 ? 'fluxo' : 'fluxos'} no mês` : 'nada lançado no mês')}
+    ${kpi('Pago aos freelancers', brl(T.usado), 'o que foi marcado como pago nesses dias')}
+    ${kpi('Falta voltar (Pix)', brl(T.aDevolver), T.aMais > 0.004 ? `e ${brl(T.aMais)} que o gerente pagou a mais` : T.aDevolver > 0.004 ? 'o gerente devolve por Pix' : 'nada a voltar', T.aDevolver > 0.004 || T.aMais > 0.004 ? 'alerta' : '')}
+    ${kpi('Voltou por Pix', brl(T.devolvido), 'os fluxos já acertados', 'lucro')}`;
+  return `<div class="grade fs-kpis">${kpis}</div>${F.length ? F.map(ffCartao).join('') : `<div class="cartao"><div class="vazio">Nenhum fluxo de caixa em ${esc(fsMesNome(FZ.mes).toLowerCase())}. Toque em <b>+ Fluxo de caixa</b> para lançar o valor entregue ao gerente.</div></div>`}
+    <p class="fs-expl"><b>Como funciona:</b> lance o valor entregue ao gerente e os dias. Na aba <b>Freelancers</b>, cada diária ou VT marcado como <b>pago</b> nesses dias (na unidade do fluxo) sai do valor entregue. O que sobra é o que o gerente devolve por Pix. O fluxo de caixa e os freelancers ficam só aqui: não entram no resto das Finanças.</p>`;
+}
+function ffCartao(f) {
+  const s = ffSituacao(f), pct = f.valor > 0 ? Math.min(100, Math.round(f.usado / f.valor * 100)) : 0;
+  const linhas = f.pagos.map(p => `<tr><td class="fz-dia"><b>${FZ_SEM[new Date(p.dia + 'T12:00:00').getDay()]} ${esc(dataBR(p.dia).slice(0, 5))}</b></td><td>${esc(p.nome)}</td><td class="v">${p.diaria > 0.004 ? brl(p.diaria) : '—'}</td><td class="v">${p.vt > 0.004 ? brl(p.vt) : '—'}</td><td class="v"><b>${brl(p.total)}</b></td></tr>`).join('');
+  return `<section class="cartao fz-cartao ff-cartao" data-ffid="${f.id}">
+    <div class="fz-cab"><span class="fz-av ff-av">R$</span><div class="fz-quem"><b>Entregue a ${esc(f.gerente)}</b><small>${esc(ffDias(f))} · ${f.u ? esc(nomeUni(f.u)) : 'todas as unidades'}${f.obs ? ' · ' + esc(f.obs) : ''}</small><small>Lançado por ${esc(f.por)}</small></div>
+      <div class="fz-res"><span class="fz-n"><small>Entregue</small><b>${brl(f.valor)}</b></span><span class="fz-n"><small>Pago aos freelancers</small><b>${brl(f.usado)}</b></span><span class="fz-n ${s.cls}"><small>${s.rot}</small><b>${s.v}</b></span></div></div>
+    <div class="ff-barra" role="img" aria-label="Usado ${pct}% do valor entregue"><i style="width:${pct}%"></i></div><div class="ff-barra-t">${pct}% do valor entregue já foi pago aos freelancers</div>
+    <div class="fz-acoes">${f.acertado ? `<span class="ff-ok">✓ Voltou ${brl(f.devolvido)} por Pix em ${esc(dataBR(f.dev_em))}${f.dev_por ? ' · ' + esc(f.dev_por) : ''}${Math.abs(f.dif) > 0.004 ? ` · <b class="ff-dif">${f.dif < 0 ? brl(-f.dif) + ' a menos' : brl(f.dif) + ' a mais'} do que faltava</b>` : ''}</span><button class="link" data-ffdesfaz="${f.id}">Desfazer</button>`
+      : `<button class="btn btn-brand" data-ffpix="${f.id}">Recebi o Pix${f.saldo > 0.004 ? ' · ' + brl(f.saldo) : ''}</button>`}<button class="link" data-ffedit="${f.id}">Editar</button><button class="link" data-fftira="${f.id}">Tirar</button></div>
+    ${f.pagos.length ? `<div class="rolar"><table class="fz-tab ff-tab"><thead><tr><th>Dia</th><th>Freelancer</th><th class="v">Diária paga</th><th class="v">VT pago</th><th class="v">Total</th></tr></thead><tbody>${linhas}</tbody>
+      <tfoot><tr><td>Pago · ${int(f.pagos.length)} ${f.pagos.length === 1 ? 'pagamento' : 'pagamentos'}</td><td></td><td class="v">${brl(f.pagoDiarias)}</td><td class="v">${brl(f.pagoVt)}</td><td class="v">${brl(f.usado)}</td></tr></tfoot></table></div>`
+      : '<p class="fs-expl">Nenhum pagamento marcado nestes dias ainda. Na aba <b>Freelancers</b>, marque a diária (ou o VT) como paga: o valor sai daqui.</p>'}</section>`;
+}
+function ffFimDeSemana() {
+  const h = new Date(), d = h.getDay(), sab = new Date(h); if (d !== 0 && d !== 6) sab.setDate(h.getDate() + (6 - d));
+  const dom = new Date(sab); if (sab.getDay() === 6) dom.setDate(sab.getDate() + 1);
+  const iso = x => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`; return [iso(sab), iso(dom)];
+}
+function ffFolha(f) {
+  const [s1, s2] = ffFimDeSemana(), v = f || { valor: null, gerente: '', de: s1, ate: s2, u: FZ.u === 'todas' ? null : +FZ.u, obs: '' };
+  const unis = UNIS.filter(x => x.ativo || x.id === v.u);
+  folha(f ? 'Editar o fluxo de caixa' : 'Fluxo de caixa', `<div class="fz-form">
+      <p class="dica">O dinheiro entregue ao gerente para pagar os freelancers nesses dias. Cada diária ou VT marcado como pago nesses dias sai deste valor; o que sobrar, o gerente devolve por Pix.</p>
+      <div class="fz-2"><label class="fz-c"><span class="lbl">Valor entregue (R$)</span><input class="inp" id="ff-valor" inputmode="decimal" autocomplete="off" value="${v.valor != null ? esc(cxFmt(v.valor)) : ''}" placeholder="ex.: 1.000,00"></label>
+        <label class="fz-c"><span class="lbl">Para quem (o gerente)</span><input class="inp" id="ff-ger" autocomplete="off" maxlength="60" value="${esc(v.gerente)}" placeholder="Nome"></label></div>
+      <div class="fz-2"><label class="fz-c"><span class="lbl">Do dia</span><input class="inp" type="date" id="ff-de" value="${esc(v.de)}"></label><label class="fz-c"><span class="lbl">Até o dia</span><input class="inp" type="date" id="ff-ate" value="${esc(v.ate)}"></label></div>
+      ${unis.length > 1 ? `<label class="fz-c"><span class="lbl">Unidade</span><select class="inp" id="ff-u"><option value="">Todas as unidades</option>${unis.map(u => `<option value="${u.id}" ${v.u === u.id ? 'selected' : ''}>${esc(u.nome)}</option>`).join('')}</select></label>` : ''}
+      <label class="fz-c"><span class="lbl">Observação</span><input class="inp" id="ff-obs" autocomplete="off" maxlength="200" value="${esc(v.obs)}" placeholder="opcional"></label></div>`, f ? 'Salvar' : 'Lançar o fluxo de caixa', async () => {
+    const n = cxNum($('#ff-valor').value); if (Number.isNaN(n) || !(n > 0)) throw new Error('Escreva o valor entregue ao gerente (ex.: 1.000,00).');
+    const u = $('#ff-u'); const r = await api('ff_salvar', { id: f ? f.id : 0, valor: n, gerente: $('#ff-ger').value, de: $('#ff-de').value, ate: $('#ff-ate').value, u: u ? u.value : '', obs: $('#ff-obs').value, mes: FZ.mes, u_filtro: FZ.u });
+    FZ.d = r; FZ.vista = 'fluxo'; fzGuarda(); freelasDesenhar(); aviso(f ? 'Fluxo de caixa salvo ✓' : 'Fluxo de caixa lançado ✓');
+  });
+}
+function ffPixFolha(f) {
+  folha('Recebi o Pix', `<div class="fz-form"><p class="dica">Entregue a <b>${esc(f.gerente)}</b>: ${brl(f.valor)} · pago aos freelancers: ${brl(f.usado)} · ${f.saldo >= 0 ? `faltava voltar <b>${brl(f.saldo)}</b>` : `o gerente pagou <b>${brl(-f.saldo)}</b> a mais`}.</p>
+      <div class="fz-2"><label class="fz-c"><span class="lbl">Quanto voltou (R$)</span><input class="inp" id="ff-dv" inputmode="decimal" autocomplete="off" value="${esc(cxFmt(Math.max(0, f.saldo)))}"></label>
+        <label class="fz-c"><span class="lbl">Quando</span><input class="inp" type="date" id="ff-dd" value="${esc(fzHoje())}"></label></div></div>`, 'Recebi', async () => {
+    const n = cxNum($('#ff-dv').value); if (Number.isNaN(n) || n < 0) throw new Error('Escreva quanto voltou (pode ser 0,00).');
+    FZ.d = await api('ff_devolver', { id: f.id, valor: n, data: $('#ff-dd').value, mes: FZ.mes, u_filtro: FZ.u }); fzRedesenha(); aviso('Acertado ✓');
+  });
+}
+function ffLigar() {
+  const acha = id => (FZ.d.fluxos || []).find(f => f.id === +id);
+  $$('[data-ffpix]').forEach(b => b.onclick = () => ffPixFolha(acha(b.dataset.ffpix)));
+  $$('[data-ffedit]').forEach(b => b.onclick = () => ffFolha(acha(b.dataset.ffedit)));
+  $$('[data-ffdesfaz]').forEach(b => b.onclick = async () => { try { FZ.d = await api('ff_devolver', { id: +b.dataset.ffdesfaz, desfazer: 1, mes: FZ.mes, u_filtro: FZ.u }); fzRedesenha(); aviso('Desfeito ✓'); } catch (e) { aviso(e.message); } });
+  $$('[data-fftira]').forEach(b => b.onclick = () => { const f = acha(b.dataset.fftira); folha('Tirar o fluxo de caixa', `<p class="dica">Tirar o fluxo de <b>${brl(f.valor)}</b> entregue a <b>${esc(f.gerente)}</b> (${esc(ffDias(f))})? Use se foi lançado por engano: os pagamentos dos freelancers continuam como estão.</p>`, 'Tirar',
+    async () => { FZ.d = await api('ff_tirar', { id: f.id, mes: FZ.mes, u_filtro: FZ.u }); fzRedesenha(); aviso('Fluxo de caixa tirado ✓'); }); });
 }

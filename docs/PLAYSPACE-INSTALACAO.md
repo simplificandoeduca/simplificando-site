@@ -1301,6 +1301,24 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzx. A comissão de quem abre o pedido, o Fluxo de caixa dos freelancers e o freelancer à parte (1.68 · Finanças 2.9)
+
+Pedido do dono: "a comissão sempre é de quem dá início no pedido do cliente, não de quem dá saída: ela oferta o pacote no início; às vezes o cliente fecha no final, mas a comissão é de quem abre o pedido"; "na aba Freelancers, um fluxo de caixa: o valor que ela passa para o gerente; conforme os freelancers são colocados como pagos, o valor vai sendo debitado, e fica o que ela precisa receber de Pix de volta"; "o freelancer fica à parte: não entra no resto".
+
+- **Quem abre o pedido:** dar a entrada é abrir o pedido do cliente.
+  - O **"Dar entrada"** (no atendimento, com o saldo ou na recreação avulsa) e a entrada rápida da lista perguntam antes **"Quem está atendendo?"**, com os nomes grandes: um toque no nome e a criança entra.
+  - A venda com **"Dar entrada agora"** marcado também pede quem está atendendo (o mesmo quadro da 1.67).
+- **A venda durante a visita e na saída:** com a criança no espaço, o pacote ou o produto vendido (também o comprado na saída) é de **quem abriu o pedido**. O quadro mostra **"Comissão de …"** (quem abriu e a hora da entrada) e não pede o nome de novo. O servidor confere: mesmo que a tela mande outro nome, vale quem abriu.
+  - Sem quem abriu (a entrada pelo iDFace, a da festa ou as de antes da 1.68), a venda pede o nome como na 1.67.
+  - A visita guarda quem abriu o pedido (também depois da saída).
+- **Fluxo de caixa (Finanças → Freelancers → Fluxo de caixa):**
+  - **+ Fluxo de caixa:** o valor entregue ao gerente, para quem, os dias (do dia / até o dia; vem com o próximo fim de semana) e a unidade (ou todas).
+  - Na aba **Freelancers**, cada diária ou VT marcado como **pago** nesses dias (na unidade do fluxo) **sai do valor entregue**. O cartão do fluxo mostra o entregue, o pago aos freelancers (com a lista de quem foi pago), a barra do quanto já foi usado e **o que falta voltar por Pix**. Se o gerente pagou mais do que recebeu, mostra quanto ele pagou a mais.
+  - **Recebi o Pix:** quanto voltou e quando (vem com o valor que falta). O fluxo fica acertado; dá para desfazer.
+  - **Editar** e **Tirar** (o tirado fica guardado, com quem tirou). Dois fluxos da mesma unidade (ou um de todas) não podem ter dias em comum: cada pagamento sai de um só.
+  - Na aba Freelancers aparece o aviso do fluxo aberto ("falta voltar …"); o PDF do mês dos freelancers traz o fluxo de caixa.
+- **O freelancer à parte:** os freelancers e o fluxo de caixa ficam só na aba Freelancers. Não entram no faturamento e no resumo do dia, no Painel financeiro, nos Lançamentos, no Relatório financeiro nem no Controle de caixa (o teste confere que esses números não mudam).
+
 ## 6zzw. Quem está vendendo e as Comissões (1.67 · Finanças 2.8)
 
 Pedido do dono: "toda vez que forem vender um pacote, selecionar o nome de quem está vendendo (Aline, Edjane, Karol e Maria Vitória), de forma destacada; a cada pacote, limpa, para marcar de novo; nas comissões vai constar o nome; as regras pré-configuradas e uma opção para o financeiro editar, caso mude e passe a ser 5%, 1%".
