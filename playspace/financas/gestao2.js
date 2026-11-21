@@ -169,7 +169,7 @@ async function carregarForn() {
 function telaForn() {
   const R = GS.fornL;
   const cab = `<div class="topo"><div><h1>Fornecedores</h1><div class="sub">Quem recebe as despesas: o cadastro, quanto foi pago e o que está a pagar</div></div>
-      <div class="lista-acoes"><button class="btn btn-brand g-novo" data-gf="novo">+ Novo fornecedor</button></div></div>
+      <div class="lista-acoes"><button class="btn btn-ghost" data-gfn title="Cadastrar os fornecedores das notas fiscais recebidas (sistema de notas)">Trazer das notas fiscais</button><button class="btn btn-brand g-novo" data-gf="novo">+ Novo fornecedor</button></div></div>
     <div class="filtros"><div class="chips"><input class="chip g-busca" id="g-fn-busca" type="search" placeholder="Buscar fornecedor, CNPJ, contato…" value="${esc(GS.fornBusca)}" aria-label="Buscar"></div></div>`;
   if (!R) return cab + '<div class="vazio">Carregando…</div>';
   if (!R.fornecedores.length) return cab + `<div class="cartao"><div class="vazio">${GS.fornBusca ? 'Nenhum fornecedor com esta busca.' : 'Nenhum fornecedor ainda. Cadastre aqui, ou escreva o nome do fornecedor ao lançar uma despesa: ele entra na lista sozinho.'}<br><button class="btn btn-ghost" style="margin-top:12px" data-gf="novo">+ Novo fornecedor</button></div></div>`;
@@ -178,6 +178,7 @@ function telaForn() {
 }
 function ligarForn() {
   $$('[data-gf]').forEach(b => b.onclick = () => formFornecedor());
+  $$('[data-gfn]').forEach(b => b.onclick = () => fornDasNotas(b));   /* 3.7 */
   const bu = $('#g-fn-busca'); if (bu) { let t0 = 0; bu.oninput = () => { clearTimeout(t0); t0 = setTimeout(() => { GS.fornBusca = bu.value.trim(); carregarForn(); }, 300); }; }
   $$('tr[data-gfv]').forEach(tr => { const abre = () => fichaFornecedor(+tr.dataset.gfv); tr.onclick = abre; tr.onkeydown = e => { if (e.key === 'Enter') abre(); }; });
 }
@@ -194,6 +195,35 @@ function formFornecedor(fo) {
     fazer: async F => { const v = id => $('#' + id, F).value; const r = await api('fn_salvar', { id: fo ? fo.id : 0, fornecedor: { nome: v('g-fnome'), documento: v('g-fdoc'), contato: v('g-fcont'), telefone: v('g-ftel'), email: v('g-femail'), pix: v('g-fpix'), banco: v('g-fbanco'), centro: v('g-fcentro'), grupo: v('g-fgrupo'), obs: v('g-fobs') } });
       aviso(fo ? 'Fornecedor salvo ✓' : 'Fornecedor cadastrado ✓'); GS.listas = r.listas || GS.listas; gDepois(); },
     aoRemover: async () => { await api('fn_remover', { id: fo.id }); aviso('Fornecedor tirado ✓ (as despesas continuam com o nome)'); gDepois(); } });
+}
+/* 3.7 (1.84): trazer os fornecedores das notas fiscais. Pergunta ao sistema de notas (no mesmo navegador, com o login do Notas: o de
+   Emitir nota) os fornecedores das notas recebidas (as que o "Trazer o histórico" trouxe do Emissor Nacional), mostra a lista com tudo
+   marcado e cadastra os marcados de uma vez. Quem já está no cadastro só ganha o que faltava. */
+async function fornDasNotas(b) {
+  if (b) b.disabled = true; let R = null, erro = '';
+  try { const x = await fetch('../notas/api/api.php?acao=fornecedores', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    let j = {}; try { j = await x.json(); } catch (e) { /* resposta vazia */ }
+    if (x.status === 401) erro = 'Entre no sistema de notas (no menu: Emitir nota) e toque aqui de novo.';
+    else if (x.status === 404) erro = 'Não achei o sistema de notas neste site.';
+    else if (!x.ok || j.ok === false) erro = j.erro || 'O sistema de notas não respondeu (erro ' + x.status + ').';
+    else R = j; }
+  catch (e) { erro = 'Não deu para falar com o sistema de notas. Confira a internet.'; }
+  if (b) b.disabled = false;
+  if (erro) { aviso(erro); return; }
+  const L = R.fornecedores || [];
+  if (!L.length) { gFolha('Fornecedores das notas fiscais', '<p class="sub" style="margin:0">Ainda não há nenhuma nota de fornecedor no sistema de notas. Para trazer as notas que a Play Space recebeu: <b>Emitir nota → Conferir no governo → Trazer o histórico</b>. Depois volte aqui.</p>', { ok: 'Entendi', fazer: async () => {} }); return; }
+  const dig = s => String(s || '').replace(/\D/g, ''), fdoc = d => { const n = dig(d); return n.length === 14 ? n.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') : n.length === 11 ? n.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4') : n; };
+  const mes = d => { const [a, m] = String(d || '').split('-'); return a && m ? ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'][+m - 1] + '/' + a : ''; };
+  const obsDe = x => [x.fantasia && gNorm(x.fantasia) !== gNorm(x.nome) ? 'Nome fantasia: ' + x.fantasia + '.' : '', `Das notas fiscais (sistema de notas): ${x.n} ${x.n === 1 ? 'nota' : 'notas'}${x.primeira ? ', de ' + mes(x.primeira) + ' a ' + mes(x.ultima) : ''}, ${brl(x.total)}.`, x.cidade ? x.cidade + (x.uf ? '/' + x.uf : '') + '.' : ''].filter(Boolean).join(' ');
+  const cad = ((GS.fornL || {}).fornecedores || []).concat(GS.forn || []), ja = x => cad.some(f => (dig(x.documento) && dig(f.documento) === dig(x.documento)) || gNorm(f.nome) === gNorm(x.nome));
+  const nJa = L.filter(ja).length;
+  gFolha('Fornecedores das notas fiscais', `<p class="sub" style="margin:0 0 10px">Achei <b>${int(L.length)} ${L.length === 1 ? 'fornecedor' : 'fornecedores'}</b> nas notas que a Play Space recebeu${nJa ? ` (${int(nJa)} já no cadastro)` : ''}. Os marcados entram no cadastro com o nome, o CNPJ, o telefone e o e-mail (quando a nota tem); quem já está só ganha o que faltava.</p>
+    <div class="g-fni-l">${L.map((x, i) => `<label class="g-fni"><input type="checkbox" data-fni="${i}" checked><span><b>${esc(x.nome || fdoc(x.documento))}</b><small>${[fdoc(x.documento), `${int(x.n)} ${x.n === 1 ? 'nota' : 'notas'}`, brl(x.total), x.ultima ? 'última ' + dataBR(x.ultima) : ''].filter(Boolean).join(' · ')}${ja(x) ? ' · <em>já no cadastro</em>' : ''}</small></span></label>`).join('')}</div>`, {
+    ok: 'Cadastrar os marcados',
+    fazer: async F => { const M = $$('[data-fni]', F).filter(c => c.checked).map(c => L[+c.dataset.fni]); if (!M.length) throw new Error('Marque pelo menos um fornecedor.');
+      const r = await api('fn_importar', { lista: M.map(x => ({ nome: x.nome || fdoc(x.documento), documento: x.documento, telefone: x.telefone, email: x.email, obs: obsDe(x) })) });
+      aviso([r.novos ? `${int(r.novos)} ${r.novos === 1 ? 'fornecedor cadastrado' : 'fornecedores cadastrados'} ✓` : '', r.completos ? `${int(r.completos)} ${r.completos === 1 ? 'completado' : 'completados'}` : '', !r.novos && !r.completos ? 'Todos já estavam no cadastro' : ''].filter(Boolean).join(' · '));
+      gDepois(); } });
 }
 async function fichaFornecedor(id) {
   let R; try { R = await api('fn_ver', { id }); } catch (e) { aviso(e.message); return; }

@@ -21,7 +21,7 @@ require __DIR__ . '/comissoes.php';   /* 2.8: as comissões das vendedoras */
 require __DIR__ . '/clientes.php';   /* 3.0: o relatório por cliente */
 require __DIR__ . '/comprovantes.php';   /* 3.0: o comprovante das despesas */
 set_exception_handler(function (Throwable $e) { registrarErro('[financas] ' . $e->getMessage() . ' @' . basename($e->getFile()) . ':' . $e->getLine()); falha('Algo deu errado. Tente de novo em instantes.', 500); });
-const FIN_VERSAO = '3.6';
+const FIN_VERSAO = '3.7';
 
 $in = [];
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
@@ -226,6 +226,7 @@ if ($acao === 'fn_listar') responder(fnListar($in));
 if ($acao === 'fn_nomes') { flPreparar(); responder(['fornecedores' => fnNomes()]); }
 if ($acao === 'fn_ver') responder(fnVer($in));
 if ($acao === 'fn_salvar') responder(fnSalvar($in, $eu));
+if ($acao === 'fn_importar') responder(fnImportar($in, $eu));   /* 3.7: os fornecedores das notas fiscais */
 if ($acao === 'fn_remover') responder(fnRemover($in, $eu));
 if ($acao === 'ap_listar') { $r_ = apListar($in); $cp_ = cpDeVarios(array_column($r_['linhas'], 'id')); foreach ($r_['linhas'] as &$x_) $x_['comp'] = $cp_[$x_['id']] ?? null; unset($x_); responder($r_); }
 /* 3.0: o comprovante das despesas (anexar, conferir o valor, ver, baixar) */

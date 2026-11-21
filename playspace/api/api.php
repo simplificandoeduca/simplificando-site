@@ -258,7 +258,7 @@ switch ($acao) {
     $u = exigir(); if (($u['papel'] ?? '') !== 'gestor') falha('Só o gestor baixa o resumo do dia.', 403); session_write_close();
     require_once __DIR__ . '/../financas/resumo.php'; finPdfSaida(['de' => (string)($in['de'] ?? date('Y-m-d')), 'ate' => (string)($in['ate'] ?? ($in['de'] ?? date('Y-m-d'))), 'uni' => 'todas']);
   }
-  case 'pulso': { // barato: muda quando qualquer coisa que a tela mostra mudou; a tela pergunta a cada 2 s e só recarrega se mudou
+  case 'pulso': { // barato: muda quando qualquer coisa que a tela mostra mudou; a tela pergunta a cada 1 s (1.83; eram 2 s) e só recarrega se mudou
     $u = exigir(); session_write_close();
     try { copiaSemanal(); } catch (Throwable $e) { registrarErro('cópia da semana: ' . $e->getMessage()); }
     try { require_once __DIR__ . '/../financas/resumo.php'; if (finEmailDevido()) { require_once __DIR__ . '/push-lib.php'; pushDepois(function () { finEmailAuto(); }); } } catch (Throwable $e) { registrarErro('e-mail do resumo do dia: ' . $e->getMessage()); }   // 1.54: o resumo do dia por e-mail, uma vez por dia, quando a loja fecha   // 1.51: a cada 7 dias, a cópia de segurança (antes de qualquer consulta; nunca derruba o pulso)

@@ -94,6 +94,35 @@ function fnRemover(array $in, array $eu): array {
   flPreparar(); $q = db()->prepare('UPDATE fin_fornecedores SET removido_por = ?, removido_em = ? WHERE id = ? AND removido_em IS NULL'); $q->execute([(string)$eu['nome'], agora(), (int)($in['id'] ?? 0)]);
   if (!$q->rowCount()) falha('Fornecedor não encontrado.', 404); return [];
 }
+/* 3.7 (1.84): os fornecedores das notas fiscais (as notas de fornecedores que o sistema de notas trouxe do Emissor Nacional). Quem ainda não
+   está no cadastro entra (o nome, o CNPJ, o telefone, o e-mail e, nas observações, de onde veio); quem já está (pelo CNPJ ou pelo nome) só
+   ganha o que faltava (nada do que já estava escrito muda). */
+function fnTelImp(string $t): string {
+  $n = preg_replace('/\D/', '', $t); if (strlen($n) > 11 && strpos($n, '55') === 0) $n = substr($n, 2);
+  if (strlen($n) === 11) return '(' . substr($n, 0, 2) . ') ' . substr($n, 2, 1) . ' ' . substr($n, 3, 4) . '-' . substr($n, 7);
+  if (strlen($n) === 10) return '(' . substr($n, 0, 2) . ') ' . substr($n, 2, 4) . '-' . substr($n, 6);
+  return flTxt($t, 40);
+}
+function fnImportar(array $in, array $eu): array {
+  flPreparar(); $db = db(); $L = array_slice(is_array($in['lista'] ?? null) ? $in['lista'] : [], 0, 500); $c = ['novos' => 0, 'completos' => 0, 'iguais' => 0];
+  $todos = $db->query('SELECT * FROM fin_fornecedores WHERE removido_em IS NULL')->fetchAll();
+  foreach ($L as $x) {
+    if (!is_array($x)) continue; $nome = flTxt($x['nome'] ?? '', 120); if ($nome === '') continue;
+    $dig = preg_replace('/\D/', '', (string)($x['documento'] ?? '')); $doc = strlen($dig) === 14 || strlen($dig) === 11 ? fnDoc($dig) : '';
+    $tel = fnTelImp((string)($x['telefone'] ?? '')); $em = mb_strtolower(flTxt($x['email'] ?? '', 120)); if ($em !== '' && !filter_var($em, FILTER_VALIDATE_EMAIL)) $em = '';
+    $obs = flTxt($x['obs'] ?? '', 500); $ja = null;
+    foreach ($todos as $f) { $fd = preg_replace('/\D/', '', (string)$f['documento']); if (($dig !== '' && $fd === $dig) || flChave((string)$f['nome']) === flChave($nome)) { $ja = $f; break; } }
+    if ($ja) {
+      $up = []; foreach (['documento' => $doc, 'telefone' => $tel, 'email' => $em, 'obs' => $obs] as $k => $v) if ((string)$ja[$k] === '' && $v !== '') $up[$k] = $v;
+      if ($up) { $db->prepare('UPDATE fin_fornecedores SET ' . implode(', ', array_map(fn($k) => "$k = ?", array_keys($up))) . ', alterado_por = ?, alterado_em = ? WHERE id = ?')->execute(array_merge(array_values($up), [(string)$eu['nome'], agora(), (int)$ja['id']])); $c['completos']++; }
+      else $c['iguais']++;
+      continue;
+    }
+    $db->prepare('INSERT INTO fin_fornecedores (nome, documento, telefone, email, obs, criado_por, criado_em) VALUES (?, ?, ?, ?, ?, ?, ?)')->execute([$nome, $doc, $tel, $em, $obs, (string)$eu['nome'], agora()]);
+    $todos[] = ['id' => (int)$db->lastInsertId(), 'nome' => $nome, 'documento' => $doc, 'telefone' => $tel, 'email' => $em, 'obs' => $obs]; $c['novos']++;
+  }
+  return $c + fnListar([]);
+}
 /* a lista curta (para escolher na despesa): o nome e o costume (centro de custo e grupo) */
 function fnNomes(): array {
   return array_map(fn($f) => ['id' => (int)$f['id'], 'nome' => (string)$f['nome'], 'centro' => (string)$f['centro'], 'grupo' => (string)$f['grupo']],

@@ -1301,6 +1301,27 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzz. Os fornecedores das notas fiscais, cadastrados de uma vez (1.84 · Finanças 3.7)
+
+Pedido do dono: "consegue ler as notas que já tem da Play Space e já deixar cadastrados todos os fornecedores que tem lá?".
+
+- **Onde:** Finanças → **Fornecedores** → **Trazer das notas fiscais**.
+- O botão pergunta ao **sistema de notas** (no mesmo navegador, com o login do Notas: o do menu **Emitir nota**) quais fornecedores mandaram nota para a Play Space. São as **notas de fornecedores** que o Notas traz do governo com **Conferir no governo → Trazer o histórico**.
+- Aparece a lista: cada fornecedor com o CNPJ, quantas notas, o total e a última nota; quem já está no cadastro aparece como "já no cadastro". Todos vêm marcados; **Cadastrar os marcados** cadastra de uma vez.
+- Cada fornecedor novo entra com o **nome, o CNPJ, o telefone e o e-mail** (quando a nota tem) e, nas observações, o nome fantasia, as notas (quantas, de quando a quando, o total) e a cidade. Quem já estava no cadastro (pelo CNPJ ou pelo nome) **não duplica**: só ganha o que faltava; nada do que já estava escrito muda.
+- Precisa do pacote do Notas **playspace-notas-184.zip** (ou mais novo) no site.
+- Vêm só as **notas de serviço** (NFS-e) do Emissor Nacional. Notas de produto (NF-e, por exemplo de mercadoria) não passam por esse sistema e não aparecem.
+
+## 6zzzzzzzzzzzzzzzz. As telas se acertam a cada 1 segundo (1.83)
+
+Pedido do dono: "quero que o site e o aplicativo atualizem a cada um segundo, o mínimo possível: tudo que aparecer num computador tem que aparecer imediatamente em todos os outros".
+
+- Cada tela aberta pergunta ao servidor **uma vez por segundo** se algo mudou (eram 2 segundos). Quando muda, puxa tudo de novo: o que um computador faz aparece nos outros em **1 a 2 segundos** (no teste, em média 0,4 s).
+- A pergunta é leve (uns 6 milésimos de segundo no servidor), então vários computadores ao mesmo tempo não pesam para a hospedagem.
+- Quem está **no meio de uma venda, de um pagamento ou digitando** só vê a novidade quando fecha a janela, para a tela não mudar debaixo da mão. Os **pedidos de autorização** chegam na hora mesmo assim.
+- Tela **escondida** (outra aba na frente, celular bloqueado) não fica perguntando; ao voltar, se acerta no mesmo segundo. A tela do gestor continua olhando os pedidos de autorização.
+- As **Finanças** continuam se atualizando ao trocar de tela.
+
 ## 6zzzzzzzzzzzzzzz. O Notas sempre na versão nova, nas Finanças e no botão do sistema (1.82 · Finanças 3.6)
 
 O dono atualizou o Notas no site, mas dentro das Finanças (Emitir nota) continuava o antigo: o navegador do computador tinha guardado a página do Notas e abria a cópia velha (o Ctrl+F5, ou Cmd+Shift+R no Mac, nem sempre limpa a página de dentro da moldura).
