@@ -1301,6 +1301,19 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzz. As animações das Finanças também no sistema da Play Space (1.74)
+
+Pedido do dono: "gostei muito das animações que você colocou no financeiro: coloque no sistema da Play Space".
+
+- **Ao trocar de tela** (ou o filtro da lista do espaço), os blocos da tela entram um depois do outro, desfocados e ficando nítidos.
+- **Os números correm até o valor**: os quadros do painel da gestora (no espaço, entradas, carrinhos, faturado, caixa, descontos) e os valores do Caixa do dia (Finalizados do dia). Ao abrir a tela, do zero; depois, só quando o número muda.
+- **O gráfico "Entradas por hora"** cresce de baixo para cima (ao abrir o painel e quando chega entrada nova); as barrinhas das linhas enchem.
+- **No menu de ícones** (no computador), o quadrado escuro do item aberto desliza até o item novo.
+- **Ao passar o mouse**, o quadro do número sobe um pouco.
+- A atualização automática (de cada minuto e a sincronia) **não mexe em nada**: a tela não pisca e os números não voltam do zero.
+- Com **Ajustes → Animações: leves**, ou "reduzir movimento" no aparelho, nada disso acontece: os números já aparecem prontos e o menu fica como antes.
+- No celular, a barra de baixo continua igual (só a tela e os números se mexem).
+
 ## 6zzzzzz. O menu da barra escura nas Finanças e o Casa Tom no Caixa do dia (1.73 · Finanças 3.2)
 
 Pedido do dono: "esse menu" (o menu do vídeo de painel que o dono mandou) e "o Casa Tom Anália, o Casa Tom Morumbi: no Casa Tom só se vende produto; o centro de custo Casa Tom lá no sistema de atendimento também, só naquela aba de financeiro".

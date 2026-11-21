@@ -1578,6 +1578,31 @@ body.quieto .a-card, body.quieto .conv, body.quieto .oficina, body.quieto .tiles
 .seg button:active { transform: scale(.96); }
 .explica { font-size: 13px; color: var(--tinta-2); line-height: 1.45; }
 .sobe { animation: sobe .4s var(--ios); }
+/* 1.74: as animações das Finanças também no sistema (FX, no fim do script): a tela nova entra desfocada e fica nítida, um bloco depois do
+   outro; as barras do gráfico crescem; as barrinhas das linhas enchem; o quadrado do item aberto desliza no trilho; o quadro do número sobe
+   ao passar o mouse. Com "Animações: leves" (ou "reduzir movimento" no aparelho), nada disso */
+@keyframes fx-sobe { from { opacity: 0; transform: translateY(14px) scale(.985); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes fx-barra { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes fx-cresce { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+.fx-entra { animation: fx-sobe .5s cubic-bezier(.2, .8, .2, 1) both !important; animation-delay: calc(var(--fx-i, 0) * 55ms) !important; }
+.fx-entra .gr-t > i { transform-origin: left center; animation: fx-barra .8s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--fx-i, 0) * 55ms + 220ms); }
+svg.fx-cresce .gr-b { transform-box: fill-box; transform-origin: 50% 100%; animation: fx-cresce .7s cubic-bezier(.2, .8, .2, 1) both; animation-delay: var(--fx-d, 0ms); }
+@media (hover: hover) {
+  .pn-k, .cx-formas > div { transition: transform .25s cubic-bezier(.2, .8, .2, 1), box-shadow .25s ease; }
+  .pn-k:hover, .cx-formas > div:hover { transform: translateY(-4px); box-shadow: 0 1px 2px rgba(59, 59, 59, .05), 0 18px 40px rgba(120, 80, 50, .14); }
+}
+@keyframes fx-cor { from { color: var(--tinta-2); } to { color: var(--creme); } }
+.fx-trilho { display: none; }
+@media (min-width: 820px) {
+  .trilho nav { position: relative; }
+  .fx-trilho { display: block; position: absolute; left: 0; top: 0; width: var(--w, 56px); height: var(--h, 56px); border-radius: 18px; background: var(--tinta); transform: translate(var(--x, 0px), var(--y, 0px)); pointer-events: none; z-index: 0; }
+  .fx-trilho.anda { transition: transform .5s cubic-bezier(.3, 1.3, .5, 1); }
+  .trilho nav.fx-tem .ab[aria-current]:not(.alerta) { background: transparent; }
+  .trilho nav.fx-anda .ab[aria-current]:not(.alerta) { animation: fx-cor .45s ease both; }
+  .trilho .logo { position: relative; z-index: 1; } .trilho .ab { z-index: 1; }
+}
+:root[data-anim="leve"] .fx-entra, :root[data-anim="leve"] .fx-entra *, :root[data-anim="leve"] svg.fx-cresce * { animation: none !important; }
+:root[data-anim="leve"] .pn-k:hover, :root[data-anim="leve"] .cx-formas > div:hover { transform: none; }
 @keyframes sobe { from { opacity: 0; transform: translateY(10px); } }
 .rodape { text-align: center; font-size: 12px; color: var(--apagado); padding-top: 10px; }
 .rodape b { color: var(--tinta-2); }
@@ -1759,7 +1784,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.73';
+const VERSAO = '1.74';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -8190,4 +8215,63 @@ setInterval(() => {
   if (MODO !== 'servidor') { let novas = 0; for (const c of S.criancas) if (c.entrou) novas += acertarDemo(c); if (novas) desenhar(true); }
 }, 1000);
 iniciar();
+/* ---------- 1.74: as animações das Finanças também no sistema ("gostei muito das animações que você colocou no financeiro: coloque no
+   sistema da Play Space") ----------
+   - ao trocar de tela (ou o filtro da lista do espaço), os blocos da tela entram um depois do outro, desfocados e ficando nítidos;
+   - os números do painel da gestora e do Caixa do dia correm até o valor: ao abrir a tela, do zero; depois, só quando o número muda (o
+     redesenho de cada minuto, com o mesmo número, não mexe em nada);
+   - as barras do gráfico "Entradas por hora" crescem (ao abrir o painel e quando chega entrada nova);
+   - no trilho de ícones, o quadrado escuro do item aberto desliza até o item novo.
+   Com "Animações: leves" em Ajustes, ou "reduzir movimento" no aparelho (o data-anim="leve"), nada disso acontece. */
+const FX = (() => {
+  const parado = () => document.documentElement.dataset.anim === 'leve';
+  const VISTO = new Map(), GRAF = new Map(), CORRENDO = new WeakSet();
+  let chaveVista = null, pend = false, ultTrilho = null;
+  const FMT = /^(\D*?)([-−]?)(\d{1,3}(?:\.\d{3})+|\d+)(,\d+)?(\s*%?)$/;
+  const ler = t => { const m = FMT.exec(String(t).trim()); if (!m) return null; const dec = m[4] ? m[4].length - 1 : 0, n = +(m[3].replace(/\./g, '') + (m[4] ? '.' + m[4].slice(1) : '')); return isFinite(n) ? { pre: m[1], neg: m[2], n: m[2] ? -n : n, dec, suf: m[5] } : null; };
+  const escrever = (f, v) => f.pre + (v < 0 ? (f.neg || '-') : '') + Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: f.dec, maximumFractionDigits: f.dec }) + f.suf;
+  const suave = k => 1 - Math.pow(1 - k, 3);
+  function contar(el, chave) {
+    if (CORRENDO.has(el) || el.childNodes.length !== 1 || el.firstChild.nodeType !== 3) return;
+    const fim = el.firstChild.nodeValue, antes = VISTO.get(chave); VISTO.set(chave, fim); if (antes === fim) return;
+    const f = ler(fim); if (!f) return; const a = antes != null ? ler(antes) : null, de = a && a.pre === f.pre && a.suf === f.suf ? a.n : 0; if (de === f.n) return;
+    const t0 = performance.now(), no = el.firstChild; CORRENDO.add(el);
+    const passo = t => { if (!el.isConnected || no.parentNode !== el) { CORRENDO.delete(el); return; } const k = Math.min(1, (t - t0) / 800); no.nodeValue = k < 1 ? escrever(f, de + (f.n - de) * suave(k)) : fim; if (k < 1) requestAnimationFrame(passo); else CORRENDO.delete(el); };
+    no.nodeValue = escrever(f, de); requestAnimationFrame(passo);
+  }
+  function blocos(m) {
+    const L = []; for (const top of m.children) { if (top.classList.contains('faixa')) continue;
+      if (/^(SECTION)$/.test(top.tagName) || top.classList.contains('cards')) { for (const e of top.children) { if (e.matches('.pn-kpis, .pn-grade')) L.push(...e.children); else L.push(e); } } else L.push(top); }
+    return L.filter(e => e.getClientRects().length).slice(0, 24);
+  }
+  function entrar(L) { L.forEach((c, i) => { c.style.setProperty('--fx-i', Math.min(i, 10)); c.classList.add('fx-entra'); const tira = e => { if (e.target !== c) return; c.classList.remove('fx-entra'); c.removeEventListener('animationend', tira); }; c.addEventListener('animationend', tira); }); }
+  function graficos(m, tela, entrada) {
+    m.querySelectorAll('#gr-horas svg').forEach(svg => { const gs = [...svg.querySelectorAll('g.gr-col')]; if (!gs.length) return; const sig = gs.map(g => g.getAttribute('aria-label')).join('|');
+      if (!entrada && GRAF.get(tela) === sig) return; GRAF.set(tela, sig); const p = Math.max(12, Math.min(40, 480 / gs.length));
+      gs.forEach((g, i) => g.style.setProperty('--fx-d', Math.round(150 + i * p) + 'ms')); svg.classList.add('fx-cresce'); setTimeout(() => svg.classList.remove('fx-cresce'), 1800); });
+  }
+  function passar() {
+    pend = false; const m = $('#miolo'); if (!m || parado()) return;
+    const tela = S.tela, chave = tela + '|' + (tela === 'horas' ? espFiltro() : ''), L = blocos(m), entrada = L.length > 0 && chave !== chaveVista && !document.body.classList.contains('quieto');
+    if (L.length) chaveVista = chave;
+    if (entrada) { entrar(L); for (const k of [...VISTO.keys()]) if (k.startsWith(tela + '|')) VISTO.delete(k); }
+    m.querySelectorAll('.pn-k > b.num, .cx b.num').forEach((el, i) => contar(el, tela + '|' + i + '|' + el.parentElement.classList[0]));   /* (a primeira classe: a fx-entra não muda a chave) */
+    graficos(m, tela, entrada);
+  }
+  function trilho() {
+    const nav = $('#nav-lado'); if (!nav) return; let mk = nav.querySelector('.fx-trilho'); const a = nav.querySelector('.ab[aria-current]');
+    if (parado() || document.body.classList.contains('mn') || !a || !a.offsetWidth) { if (mk) mk.remove(); nav.classList.remove('fx-tem'); ultTrilho = null; return; }
+    const pos = { x: a.offsetLeft, y: a.offsetTop, w: a.offsetWidth, h: a.offsetHeight }, novo = !mk;
+    if (novo) { mk = document.createElement('span'); mk.className = 'fx-trilho'; mk.setAttribute('aria-hidden', 'true'); nav.prepend(mk); }
+    const poe = p => { mk.style.setProperty('--x', p.x + 'px'); mk.style.setProperty('--y', p.y + 'px'); mk.style.setProperty('--w', p.w + 'px'); mk.style.setProperty('--h', p.h + 'px'); };
+    if (novo && ultTrilho && (ultTrilho.x !== pos.x || ultTrilho.y !== pos.y)) { mk.classList.remove('anda'); poe(ultTrilho); void mk.offsetWidth; mk.classList.add('anda');
+      nav.classList.add('fx-anda'); clearTimeout(trilho.t); trilho.t = setTimeout(() => nav.classList.remove('fx-anda'), 520); }   /* (o ícone escurece até o quadrado chegar) */
+    else if (novo) mk.classList.remove('anda');
+    poe(pos); nav.classList.add('fx-tem'); ultTrilho = pos;
+  }
+  const olhar = () => { if (!pend) { pend = true; requestAnimationFrame(passar); } };
+  const comecar = () => { const m = $('#miolo'), nav = $('#nav-lado'); if (m) new MutationObserver(olhar).observe(m, { childList: true }); if (nav) new MutationObserver(() => requestAnimationFrame(trilho)).observe(nav, { childList: true }); addEventListener('resize', () => requestAnimationFrame(trilho)); requestAnimationFrame(trilho); };
+  return { comecar, trilho };
+})();
+FX.comecar();
 </script>
