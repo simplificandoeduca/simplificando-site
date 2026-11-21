@@ -1848,7 +1848,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.81';
+const VERSAO = '1.82';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -6763,7 +6763,8 @@ function abrirNotasNF(aba) {   // 1.55: aba = a aba que já abriu no toque (o pe
   const dados = { quando: Date.now(), venda: v.id, nome: d.nome || c.resp || c.nome, doc: d.doc || '', email: d.email || '', servico: festa ? 'festa' : pac ? 'pacotehoras' : 'recreacao',
     servicoNome: v.servico || '', descricao, valor: Math.round(v.v * 100) / 100 };
   try { localStorage.setItem(PONTE_NF, JSON.stringify(dados)); } catch (e) { fecha(); toast('Não consegui passar os dados para o Notas: use "Copiar os dados"'); return; }
-  let w = aba || null; if (w) { try { w.location.href = '/notas/#nota-pedido'; } catch (e) { w = null; } } if (!w) w = window.open('/notas/#nota-pedido', '_blank');
+  const ende = '/notas/?a=' + Date.now().toString(36) + '#nota-pedido';   /* 1.82: um endereço novo a cada vez: o navegador não usa a cópia velha do Notas */
+  let w = aba || null; if (w) { try { w.location.href = ende; } catch (e) { w = null; } } if (!w) w = window.open(ende, '_blank');
   if (w) { try { w.opener = null; } catch (e) { } } else toast('O navegador não abriu a aba do Notas: libere as janelas novas deste site e toque de novo');
 }
 function notaVoltou(r) {

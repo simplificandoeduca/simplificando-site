@@ -1301,6 +1301,14 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzz. O Notas sempre na versão nova, nas Finanças e no botão do sistema (1.82 · Finanças 3.6)
+
+O dono atualizou o Notas no site, mas dentro das Finanças (Emitir nota) continuava o antigo: o navegador do computador tinha guardado a página do Notas e abria a cópia velha (o Ctrl+F5, ou Cmd+Shift+R no Mac, nem sempre limpa a página de dentro da moldura).
+
+- A moldura **Emitir nota** das Finanças, o **Abrir em outra aba** e o botão do sistema que abre o Notas (**Emitir no Play Space Notas**) agora pedem a página do Notas com um endereço novo a cada vez (`/notas/?a=…`). Não existe cópia guardada para esse endereço, então o navegador sempre traz a versão que está no site.
+- Para o computador que ainda mostra o Notas antigo: atualizar o sistema (versão no rodapé → Atualizar agora) já resolve. Se a página das Finanças ainda estiver aberta de antes, recarregue-a uma vez.
+- O pacote do Notas (playspace-notas-183.zip) traz também um `.htaccess` na pasta **notas** que pede ao navegador para sempre conferir a página com o servidor (para quem abre o /notas direto pelo endereço).
+
 ## 6zzzzzzzzzzzzzz. Os dois alertas da meta ("Falta pouco para a meta!") e a meta batida no celular dos gestores (1.81 · Finanças 3.5)
 
 Pedidos do dono: "coloque também a opção lá na configuração de eu colocar um alerta, tipo, falta tanto para minha meta. 2 alertas" e "também mandar uma notificação no telefone dos gestores, meta batida".

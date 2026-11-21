@@ -757,7 +757,7 @@ function somaUni() {
 /* ---------- o app ---------- */
 /* 2.5 (1.64): a página das Finanças que ficou guardada no aparelho (a aba aberta, o app do celular ou o cache do navegador) se renova
    sozinha quando o servidor já tem outra versão. PS_PAGINA é carimbada pelo tools/build_playspace.py com a versão do Play Space. */
-const PS_PAGINA = '1.81';
+const PS_PAGINA = '1.82';
 const psMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
 function renovarSeVelha(v, naTela) {
   if (!v || !psMaior(v, PS_PAGINA)) return false;
@@ -989,12 +989,14 @@ function notasResumo() { const D2 = ((D.notas || {}).dia || []).filter(naUni), L
   return { nf, cx, n: D2.reduce((t, x) => t + x.n, 0), cn: C.length, cv: Math.round(C.reduce((t, x) => t + x.valor, 0) * 100) / 100, L, D2 }; }
 /* 3.3 (Play Space 1.78): o Play Space Notas dentro das Finanças ("que o sistema de notas vá para dentro das Finanças: só clicar e ele já
    abre"). É o mesmo Notas de /notas, numa moldura que ocupa a tela (sem abrir outra aba). O login é o do Notas e fica guardado no navegador
-   (entra uma vez só). "Abrir em outra aba" continua para quem preferir. Quando a aba volta, o Notas abre de novo (rápido: fica guardado). */
+   (entra uma vez só). "Abrir em outra aba" continua para quem preferir. Quando a aba volta, o Notas abre de novo (rápido: fica guardado).
+   3.6 (1.82): o endereço do Notas leva um número novo a cada vez (/notas/?a=…): o navegador nunca mostra uma cópia velha da página dele
+   (depois de atualizar o Notas no site, a moldura já abre a versão nova). */
 function notasEmbutidas() {
-  const t = $('#tela'); if (!t) return;
+  const t = $('#tela'); if (!t) return; const ende = '../notas/?a=' + Date.now().toString(36);
   t.innerHTML = `<div class="nfe-tela"><div class="topo nfe-topo"><div><h1>Emitir nota</h1><div class="sub">O Play Space Notas, aqui dentro das Finanças: emita, consulte e confira as notas sem abrir outra aba</div></div>
-      <div class="topo-d"><a class="btn btn-ghost" href="../notas/" target="_blank" rel="noopener" title="O mesmo sistema de notas, numa aba só dele">${IC.fora} Abrir em outra aba</a></div></div>
-    <div class="nfe-caixa"><div class="nfe-carregando">Abrindo o sistema de notas…</div><iframe class="nfe-frame" src="../notas/" title="Play Space Notas" allow="clipboard-write"></iframe></div></div>`;
+      <div class="topo-d"><a class="btn btn-ghost" href="${ende}" target="_blank" rel="noopener" title="O mesmo sistema de notas, numa aba só dele">${IC.fora} Abrir em outra aba</a></div></div>
+    <div class="nfe-caixa"><div class="nfe-carregando">Abrindo o sistema de notas…</div><iframe class="nfe-frame" src="${ende}" title="Play Space Notas" allow="clipboard-write"></iframe></div></div>`;
   const f = $('.nfe-frame', t); if (f) f.addEventListener('load', () => { const c = f.closest('.nfe-caixa'); if (c) c.classList.add('pronta'); });
 }
 document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-ir-aba]'); if (!b) return; ABA = b.dataset.irAba; desenhar(); window.scrollTo(0, 0); });
