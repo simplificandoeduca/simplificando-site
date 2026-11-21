@@ -413,7 +413,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeri
 .cdot.neutral .i{background:#FFFFFF;border-radius:50%;padding:2px;width:22px;height:22px}
 
 /* barra de abas (celular) */
-.tabbar{position:fixed;z-index:30;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px));width:min(460px,calc(100% - 2 * max(16px,env(safe-area-inset-left,0px))));display:grid;grid-template-columns:repeat(6,1fr);padding:6px;border-radius:999px;background:var(--tab-bg);box-shadow:var(--tab-shadow)}
+.tabbar{position:fixed;z-index:30;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px));width:min(460px,calc(100% - 2 * max(16px,env(safe-area-inset-left,0px))));display:grid;grid-template-columns:repeat(var(--nt,5),1fr);padding:6px;border-radius:999px;background:var(--tab-bg);box-shadow:var(--tab-shadow)}
 .tab{position:relative;border:0;background:transparent;color:var(--tab-fg);display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 0 6px;min-height:52px;border-radius:999px;font-size:11px;font-weight:700;min-width:0;transition:transform .2s var(--spring)}
 .tab:active{transform:scale(.92)}
 .tab .i{width:22px;height:22px}
@@ -820,7 +820,7 @@ h3.sec{font-size:22px;margin:14px 2px -2px}
 .est-sug{display:flex;flex-direction:column;gap:10px}
 .est-s{border-radius:16px;padding:14px;background:var(--ctl);display:flex;flex-direction:column;gap:6px}.est-s.lida{background:transparent;box-shadow:inset 0 0 0 1px var(--line2)}
 .est-s p{margin:0;font-size:15px;line-height:1.45;white-space:pre-wrap}.est-sm{font-size:12.5px;color:var(--muted)}
-.tabbar{grid-template-columns:repeat(6,1fr)}.tab span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px}
+.tabbar{grid-template-columns:repeat(var(--nt,5),1fr)}.tab span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px}
 
 .dh-act{flex-wrap:nowrap}
 @media (max-width:600px){.dh-act .btn.primary{flex:1}.dh-act .ico-s{width:44px;padding:0;flex:none}.dh-act .ico-s .lbl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}}
@@ -3699,7 +3699,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '21 nov · 166'; // Versão do painel: 21 nov · 166
+const PAINELV = '21 nov · 167'; // Versão do painel: 21 nov · 167
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -4350,6 +4350,7 @@ function render(){
   $main.innerHTML = ({painel:vPainel,alunos:vAlunos,perfis:vPerfis,biblioteca:vBiblioteca,modelos:vModelos,ajustes:vAjustes,estatisticas:vEstat,hub:vHub,conteudo:vConteudo})[ui.view]();
   hubRelogio(); const hubV = ui.view==='hub' || ui.view==='conteudo'; document.body.classList.toggle('hub-on', hubV); document.body.classList.toggle('hub-claro', hubV && !!PREF.hubClaro);
   $side.innerHTML = navHtml();
+  $tabs.style.setProperty('--nt', VIEWS.length); // uma coluna por aba: sem espaço sobrando no fim da barra
   $tabs.innerHTML = VIEWS.map(([v,l,icn]) => '<button type="button" class="tab'+(ui.view===v?' on':'')+'" data-a="go" data-v="'+v+'" aria-current="'+(ui.view===v?'page':'false')+'" aria-label="'+l+'">'+ic(icn)+'<span>'+(v==='estatisticas' ? 'Números' : l)+'</span></button>').join('');
   if(ui.sheet) renderSheet();
   restoreFocus(k);
