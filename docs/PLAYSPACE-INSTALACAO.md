@@ -1301,6 +1301,17 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzz. Os dois alertas da meta ("Falta pouco para a meta!") e a meta batida no celular dos gestores (1.81 · Finanças 3.5)
+
+Pedidos do dono: "coloque também a opção lá na configuração de eu colocar um alerta, tipo, falta tanto para minha meta. 2 alertas" e "também mandar uma notificação no telefone dos gestores, meta batida".
+
+- **Onde:** Ajustes → **Meta do dia**, ao lado do valor da meta: **1º alerta: quando faltar** e **2º alerta: quando faltar** (por exemplo R$ 500 e R$ 200). Deixe vazio o que não quiser. **Salvar** guarda a meta e os alertas juntos.
+- O alerta tem que ser **menor que a meta** (é quanto falta para chegar nela); se não for, o sistema não salva e diz por quê.
+- **Quando o dia chega a um alerta**, todas as telas ligadas (a recepção, o gestor e as Finanças) mostram no alto **"Falta pouco para a meta!"** e quanto falta naquela hora (por exemplo "Faltam R$ 450 para a meta do dia"), com uns confetes, por uns 6 segundos. **Uma vez por dia em cada tela**, cada alerta. Espera o cupom fechar e não trava nada (um toque ou o Esc fecha).
+- Se uma venda grande passa dos dois alertas de uma vez, aparece um aviso só; se já bateu a meta, aparece só a comemoração.
+- O cartão mostra cada alerta com a hora em que chegou (**✓ 15:10**). **Ver o alerta** mostra como fica, só naquela tela. **Desligar a meta** tira a meta e os alertas.
+- **No celular dos gestores:** quando a meta é batida, chega a notificação **"Meta do dia batida! 🎉"** ("Meta de R$ 3.000 batida às 15:42 · faturado hoje R$ 3.120. Parabéns, equipe!"); tocar nela abre o Painel. Chega em cada celular de gestor que ligou os **avisos no celular** (os mesmos dos pedidos), **uma vez por meta**, mesmo com o app fechado. Os alertas de "falta pouco" não vão para o celular, só para as telas.
+
 ## 6zzzzzzzzzzzzz. A meta do dia: "Meta do dia batida!" com fogos (1.80 · Finanças 3.4)
 
 Pedido do dono: "na conta do gestor, numa configuração, ele coloca a meta do dia; quando bater a meta, todos os computadores que estiverem com o sistema ligado, inclusive o financeiro: meta do dia batida e vários foguinhos. Um campo para eu colocar o valor".

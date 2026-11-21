@@ -242,7 +242,13 @@ switch ($acao) {
   case 'meta_salvar': { /* 1.80: a meta do dia (só o gestor). Vazio ou 0 desliga */
     $u = exigir(['gestor']); $v = $in['valor'] ?? 0; $v = is_numeric($v) ? round((float)$v, 2) : -1;
     if ($v < 0 || $v >= 10000000) falha('Escreva o valor da meta, por exemplo 3.000,00.');
-    if ($v > 0) gravarCfg('meta_dia', $v); else apagarCfg('meta_dia');
+    $al = []; if ($v > 0) foreach (array_slice(is_array($in['alertas'] ?? null) ? $in['alertas'] : [], 0, 2) as $a) {   /* 1.81: os dois alertas (quanto falta) */
+      if ($a === null || $a === '' || (is_numeric($a) && (float)$a == 0)) continue;
+      if (!is_numeric($a) || (float)$a < 0) falha('Escreva o alerta em reais, por exemplo 500,00.');
+      if ((float)$a >= $v - 0.004) falha('O alerta tem que ser menor que a meta: é quanto falta para chegar nela.');
+      $al[] = round((float)$a, 2); }
+    $al = array_values(array_unique($al, SORT_REGULAR)); rsort($al);
+    if ($v > 0) { gravarCfg('meta_dia', $v); if (array_key_exists('alertas', $in)) { if ($al) gravarCfg('meta_alertas', $al); else apagarCfg('meta_alertas'); } } else { apagarCfg('meta_dia'); apagarCfg('meta_alertas'); }
     responder(['meta' => metaDoDia($u)]);
   }
   case 'pagamento_trocar': { // 1.57: trocar a forma de pagamento; 1.71: a equipe também a qualquer hora, e a forma pode ser dividida (partes)
@@ -256,6 +262,7 @@ switch ($acao) {
     $u = exigir(); session_write_close();
     try { copiaSemanal(); } catch (Throwable $e) { registrarErro('cópia da semana: ' . $e->getMessage()); }
     try { require_once __DIR__ . '/../financas/resumo.php'; if (finEmailDevido()) { require_once __DIR__ . '/push-lib.php'; pushDepois(function () { finEmailAuto(); }); } } catch (Throwable $e) { registrarErro('e-mail do resumo do dia: ' . $e->getMessage()); }   // 1.54: o resumo do dia por e-mail, uma vez por dia, quando a loja fecha   // 1.51: a cada 7 dias, a cópia de segurança (antes de qualquer consulta; nunca derruba o pulso)
+    try { if (metaValor() > 0) metaDoDia(null); } catch (Throwable $e) { registrarErro('meta do dia: ' . $e->getMessage()); }   /* 1.81: a meta (e o aviso no celular) também sem esperar uma tela recarregar */
     acertarTodas();   // a cada pulso de qualquer tela aberta: passou da tolerância, nasce a nova cobrança (e o pulso muda, então todas as telas mostram)
     $a = $db->query("SELECT COALESCE(MAX(id), 0) || ':' || COUNT(*) FROM registros")->fetchColumn();
     $b = $db->query("SELECT COALESCE(MAX(id), 0) || ':' || COUNT(*) || ':' || COALESCE(SUM(lida), 0) FROM mensagens")->fetchColumn();
@@ -270,7 +277,7 @@ switch ($acao) {
     $d .= '|' . $db->query("SELECT COALESCE(SUM(status = 'liberado'), 0) || ':' || COALESCE(SUM(status = 'usado'), 0) FROM pedidos WHERE tipo = 'nf'")->fetchColumn();   // 1.23: nota fiscal autorizada ou emitida
     $d .= '|' . festasPulso();   // 1.29: festa marcada, tema ou dia que mudou, criança que entrou na festa
     acertarCupons(); $d .= '|' . pulsoCupons();   // 0.93: o cupom fiscal de cada pagamento (nasceu, foi marcado, ou a venda foi desfeita)
-    responder(['p' => md5("$a|$b|$c|$d|$ap|$lig|" . json_encode(whatsResumo()) . '|' . json_encode(regra()) . '|' . (cfg('exemplo') ? 1 : 0) . '|' . json_encode(pendFora()) . '|' . json_encode(cfg('meta_dia')) . json_encode(cfg('meta_batida')) . '|' . date('Y-m-d')), 'ped' => pedidosDaTela($u), 'av' => avisosDaGestora($u)]);   // 1.25: av = os cancelamentos que a gestora ainda não viu   // 1.23: ped = os pedidos de autorização desta tela (chegam mesmo com uma folha aberta)   // quem saiu de "Falta finalizar" e a virada do dia também mudam a tela
+    responder(['p' => md5("$a|$b|$c|$d|$ap|$lig|" . json_encode(whatsResumo()) . '|' . json_encode(regra()) . '|' . (cfg('exemplo') ? 1 : 0) . '|' . json_encode(pendFora()) . '|' . json_encode(cfg('meta_dia')) . json_encode(cfg('meta_batida')) . json_encode(cfg('meta_alertas')) . json_encode(cfg('meta_avisos')) . '|' . date('Y-m-d')), 'ped' => pedidosDaTela($u), 'av' => avisosDaGestora($u)]);   // 1.25: av = os cancelamentos que a gestora ainda não viu   // 1.23: ped = os pedidos de autorização desta tela (chegam mesmo com uma folha aberta)   // quem saiu de "Falta finalizar" e a virada do dia também mudam a tela
   }
 
   /* ---------- crianças ---------- */

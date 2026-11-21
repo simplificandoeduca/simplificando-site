@@ -1452,18 +1452,45 @@ function pagamentosDesde(string $desde): array {
    comemoram, cada uma uma vez. Quem não é gestor recebe só se foi batida e a que horas (sem o valor e sem o faturado). Mudar o valor da meta
    no meio do dia vale como meta nova. */
 function metaValor(): float { $v = cfg('meta_dia', 0); return is_numeric($v) && (float)$v > 0 ? round((float)$v, 2) : 0.0; }
+/* 1.81: os dois alertas da meta ("quando faltar R$ 500", "quando faltar R$ 200"; config meta_alertas). Cada um vale quando o faturado do dia
+   chega a meta − alerta; a hora (a da venda que chegou lá) fica guardada em meta_avisos, e as telas mostram "Falta pouco para a meta!". Só
+   os alertas menores que a meta valem. */
+function metaAlertas(float $m): array {
+  $a = cfg('meta_alertas', []); $o = [];
+  foreach (is_array($a) ? $a : [] as $x) if (is_numeric($x) && (float)$x > 0 && (float)$x < $m - 0.004) $o[] = round((float)$x, 2);
+  $o = array_values(array_unique($o, SORT_REGULAR)); rsort($o); return array_slice($o, 0, 2);
+}
+function metaHoraQuePassou(string $d0, float $alvo): string {   /* a hora da venda que fez o faturado do dia chegar a $alvo */
+  $t = 0.0; $q = db()->prepare('SELECT valor, quando FROM vendas WHERE quando >= ? AND servico != ? ORDER BY quando, id'); $q->execute([$d0, SERV_IMPORTADO]);
+  foreach ($q->fetchAll() as $l) { $t = round($t + (float)$l['valor'], 2); if ($t >= $alvo - 0.004) return (string)$l['quando']; }
+  return agora();
+}
+/* 1.81: a meta batida também no celular de cada gestor (os avisos do celular, os mesmos dos pedidos). Uma vez por meta: quem marca primeiro
+   (config meta_push, trocada só se ainda não era esta) manda; os outros pedidos que chegarem juntos não mandam de novo */
+function metaAvisarCelular(array $b, float $f): void {
+  try {
+    $k = json_encode($b['dia'] . '|' . number_format((float)$b['valor'], 2, '.', '')); $db = db();
+    $db->prepare("INSERT OR IGNORE INTO config (chave, valor) VALUES ('meta_push', ?)")->execute([json_encode('')]);
+    $q = $db->prepare("UPDATE config SET valor = ? WHERE chave = 'meta_push' AND valor != ?"); $q->execute([$k, $k]); if ($q->rowCount() !== 1) return;
+    require_once __DIR__ . '/push-lib.php'; $b['faturado'] = $f; pushDepois(function () use ($b) { pushMeta($b); });
+  } catch (Throwable $e) { registrarErro('aviso da meta no celular: ' . $e->getMessage()); }
+}
 function metaDoDia(?array $eu): ?array {
   $m = metaValor(); if ($m <= 0) return null;
   $db = db(); $hoje = date('Y-m-d'); $d0 = $hoje . ' 00:00:00';
   $q = $db->prepare('SELECT COALESCE(SUM(valor), 0) FROM vendas WHERE quando >= ? AND servico != ?'); $q->execute([$d0, SERV_IMPORTADO]); $f = round((float)$q->fetchColumn(), 2);
   $b = cfg('meta_batida', null); $ja = is_array($b) && ($b['dia'] ?? '') === $hoje && abs((float)($b['valor'] ?? 0) - $m) < 0.005 ? $b : null;
-  if (!$ja && $f >= $m - 0.004) {
-    $em = agora(); $t = 0.0; $q = $db->prepare('SELECT valor, quando FROM vendas WHERE quando >= ? AND servico != ? ORDER BY quando, id'); $q->execute([$d0, SERV_IMPORTADO]);
-    foreach ($q->fetchAll() as $l) { $t = round($t + (float)$l['valor'], 2); if ($t >= $m - 0.004) { $em = (string)$l['quando']; break; } }   /* a hora da venda que passou da meta */
-    $ja = ['dia' => $hoje, 'em' => $em, 'valor' => $m]; gravarCfg('meta_batida', $ja);
-  }
-  $o = ['dia' => $hoje, 'batida' => (bool)$ja, 'em' => $ja ? (string)$ja['em'] : null];
-  if ($eu === null || ($eu['papel'] ?? '') === 'gestor') $o += ['valor' => $m, 'faturado' => $f];   /* (null: as Finanças) */
+  if (!$ja && $f >= $m - 0.004) { $ja = ['dia' => $hoje, 'em' => metaHoraQuePassou($d0, $m), 'valor' => $m]; gravarCfg('meta_batida', $ja); metaAvisarCelular($ja, $f); }
+  $al = metaAlertas($m); $av = cfg('meta_avisos', null);
+  if (!is_array($av) || ($av['dia'] ?? '') !== $hoje || abs((float)($av['valor'] ?? 0) - $m) >= 0.005 || !is_array($av['a'] ?? null)) $av = ['dia' => $hoje, 'valor' => $m, 'a' => []];
+  $mudou = false; $avisos = [];
+  foreach ($al as $a) { $k = number_format($a, 2, '.', '');
+    if (!isset($av['a'][$k]) && $f >= $m - $a - 0.004) { $av['a'][$k] = metaHoraQuePassou($d0, $m - $a); $mudou = true; }
+    if (isset($av['a'][$k])) $avisos[] = ['falta' => $a, 'em' => (string)$av['a'][$k]]; }
+  if ($mudou) gravarCfg('meta_avisos', $av);
+  $o = ['dia' => $hoje, 'batida' => (bool)$ja, 'em' => $ja ? (string)$ja['em'] : null, 'avisos' => $avisos];
+  if ($avisos && !$ja) $o['resta'] = round($m - $f, 2);   /* quanto falta agora (para o aviso) */
+  if ($eu === null || ($eu['papel'] ?? '') === 'gestor') $o += ['valor' => $m, 'faturado' => $f, 'alertas' => $al];   /* (null: as Finanças) */
   return $o;
 }
 function painelDoDia(): array {

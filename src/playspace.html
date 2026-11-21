@@ -1696,7 +1696,8 @@ svg.fx-cresce .gr-b { transform-box: fill-box; transform-origin: 50% 100%; anima
 .bt.cortesia.fora { background: var(--erro-bg); color: var(--erro); border-color: var(--erro); }
 .em-bts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 4px; } .em-bts .bt { justify-content: center; height: 46px; }
 /* 1.80: a meta do dia (o cartão de Ajustes e o "da meta" no painel) */
-.meta-l { display: flex; align-items: flex-end; gap: 10px; } .meta-l .campo { flex: 1; margin: 0; } .meta-l .bt { height: 46px; flex: none; }
+.meta-g { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; } .meta-g .campo { margin: 0; }   /* 1.81: a meta e os dois alertas */
+.meta-al { margin: 10px 0 0; } .meta-al b { color: #2F8A57; }
 .meta-barra { height: 10px; border-radius: 5px; background: var(--creme-2); overflow: hidden; margin: 14px 0 2px; } .meta-barra > i { display: block; height: 100%; border-radius: 5px; background: linear-gradient(90deg, #F2B33D, var(--coral)); transition: width .6s cubic-bezier(.2, .8, .2, 1); }
 .meta-ok { color: #2F8A57; } .pn-meta { font-style: normal; font-weight: 800; color: var(--coral); } .pn-meta.ok { color: #2F8A57; }
 @media (max-width: 560px) { .em-bts { grid-template-columns: minmax(0, 1fr); } }
@@ -1847,7 +1848,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.80';
+const VERSAO = '1.81';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -7971,8 +7972,11 @@ const ACOES = {
   'salt-item': el => { if (!ALTS || ALTS.espera) return; const i = altSaidaItens().find(x => x.id === +el.dataset.k); if (!i) return; ALTS.k = i.id; ALTS.v = valTxt(i.v); ALTS.hh = String(Math.round(i.h)); ALTS.vp = ''; ALTS.aberto = true; altSaidaRedesenha(true); const v = $('#sa-alt-v'); if (v) { v.focus(); v.select(); } },   /* 1.39 */
   'salt-pedir': el => altSaidaPedir(el), 'salt-largar': () => altSaidaLargar(),
   nf: el => folhaNF(el.dataset.id), 'nf-notas': () => abrirNotasNF(), 'copia-baixar': el => baixarCopia(el.dataset.nome || '', el), 'copia-fazer': el => fazerCopia(el), 'nf-pedir': el => pedirNF(el), 'nf-senha': el => acaoNF('senha', el), 'nf-emitida': el => acaoNF('emitida', el), 'nf-voltar': el => acaoNF('voltar', el), 'nf-largar': el => acaoNF('largar', el), 'nf-copiar': el => acaoNF('copiar', el),
-  'meta-salvar': el => { const i = $('#meta-v'), t = i ? i.value.trim() : '', v = t === '' ? 0 : numero(t); if (!(v >= 0 && v < 10000000)) { toast('Escreva o valor da meta, por exemplo 3.000,00.'); if (i) i.focus(); return; } metaGravar(centavos(v), el); },   /* 1.80 */
-  'meta-tirar': el => metaGravar(0, el), 'meta-ver': () => festaMeta({ valor: metaValorTela(), em: metaHora(), leve: document.documentElement.dataset.anim === 'leve' }),
+  'meta-salvar': el => { const ler = id => { const i = $('#' + id), t = i ? i.value.trim() : ''; return t === '' ? 0 : numero(t); }, v = ler('meta-v'), a = [ler('meta-a1'), ler('meta-a2')];   /* 1.80; 1.81: e os dois alertas */
+    if (!(v >= 0 && v < 10000000)) { toast('Escreva o valor da meta, por exemplo 3.000,00.'); const i = $('#meta-v'); if (i) i.focus(); return; }
+    const k = a.findIndex(x => !(x >= 0) || (x > 0 && x >= v - 0.004)); if (v > 0 && k >= 0) { toast(!(a[k] >= 0) ? 'Escreva o alerta em reais, por exemplo 500,00.' : 'O alerta tem que ser menor que a meta: é quanto falta para chegar nela.'); const i = $('#meta-a' + (k + 1)); if (i) i.focus(); return; }
+    metaGravar(centavos(v), el, a.map(centavos)); },
+  'meta-tirar': el => metaGravar(0, el, []), 'meta-aviso-ver': () => { const al = metaAlertasTela(), m = metaAgora(); avisoMeta({ falta: al.length ? al[al.length - 1] : m && !m.batida ? centavos(m.valor - m.faturado) : 0, leve: document.documentElement.dataset.anim === 'leve' }); }, 'meta-ver': () => festaMeta({ valor: metaValorTela(), em: metaHora(), leve: document.documentElement.dataset.anim === 'leve' }),
   'em-salvar': el => emailAcao('salvar', el), 'em-agora': el => emailAcao('agora', el),   // 1.56
   'banco-horas': el => horasDoCliente(+el.dataset.id), 'venda-horas': el => folhaHoras(el.dataset.id), 'venda-horas-ok': el => salvarHoras(el), 'nf-cancelar': el => acaoNF('cancelar', el),   // 1.55
   'pag-trocar': el => trocarPag(el), 'pag-trocar-v': el => folhaTrocaPag(el.dataset.id), 'pag-dividir': el => dividirPag(el),   // 1.57; 1.71: dividir
@@ -8241,7 +8245,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.id === 'cp-num') { e.preventDefault(); const ok = $('#cp-ok'); if (ok && !ok.disabled) ok.click(); return; }
   if (e.key === 'Enter' && e.target.classList && e.target.classList.contains('pg-valor')) { e.preventDefault(); const ok = $('#p-ok') || $('#s-ok') || $('#sg-ok') || $('#d-ok'); if (ok && !ok.disabled) ok.click(); }
   if (e.key === 'Enter' && e.target.classList && e.target.classList.contains('senha-aut')) { e.preventDefault(); const b = e.target.parentElement && e.target.parentElement.querySelector('.bt'); if (b && !b.disabled) b.click(); return; }   // 1.23: a senha de quem autoriza, com o Enter
-  if (e.key === 'Enter' && e.target.id === 'meta-v') { e.preventDefault(); const b = $('[data-act="meta-salvar"]'); if (b && !b.disabled) b.click(); return; }   /* 1.80 */
+  if (e.key === 'Enter' && /^meta-(v|a1|a2)$/.test(e.target.id)) { e.preventDefault(); const b = $('[data-act="meta-salvar"]'); if (b && !b.disabled) b.click(); return; }   /* 1.80 */
   if (e.key === 'Enter' && e.target.id === 'nf-num') { e.preventDefault(); const b = $('#nf-corpo [data-act="nf-emitida"]'); if (b && !b.disabled) b.click(); return; }
   if (e.key === 'Enter' && ['l-login', 'l-senha'].includes(e.target.id)) { e.preventDefault(); e.target.id === 'l-login' ? $('#l-senha').focus() : ACOES.entrar(); }
   if (e.key === 'Enter' && ['g-nome', 'g-login', 'g-senha'].includes(e.target.id)) { e.preventDefault(); const prox = { 'g-nome': '#g-login', 'g-login': '#g-senha' }[e.target.id]; prox ? $(prox).focus() : ACOES['criar-gestor'](); }
@@ -8516,7 +8520,53 @@ function festaMeta(o) {
   addEventListener('resize', tam, { once: true });
   return box;
 }
+/* Os alertas da meta (1.81): "quando faltar R$ 500" e "quando faltar R$ 200". Quando o dia chega a um alerta, cada tela mostra no alto o
+   aviso "Falta pouco para a meta!" com quanto falta, por uns 6 segundos, com uns confetes. Também não trava nada (um toque ou o Esc fecha).
+   metaDecidir diz o que uma tela ainda não mostrou: a meta batida (que já cobre os alertas) ou o alerta mais novo. */
+var MA_ALVO = '<svg viewBox="0 0 48 48" width="46" height="46"><circle cx="22" cy="26" r="19" fill="#FFFBF4" stroke="#3B3B3B" stroke-width="2"/><circle cx="22" cy="26" r="12.5" fill="#E25B3F" stroke="#3B3B3B" stroke-width="2"/><circle cx="22" cy="26" r="6.5" fill="#FFFBF4" stroke="#3B3B3B" stroke-width="2"/><circle cx="22" cy="26" r="2.4" fill="#3B3B3B"/><path d="M22 26L40 8" stroke="#3B3B3B" stroke-width="2.4" stroke-linecap="round"/><path d="M37 4l7 0-3 3 3 3-7 0z" fill="#F2B33D" stroke="#3B3B3B" stroke-width="1.5" stroke-linejoin="round"/></svg>';
+var MA_CSS = '.ma{position:fixed;left:50%;top:16px;z-index:2147482999;pointer-events:none;width:max-content;max-width:calc(100vw - 32px);transform:translate(-50%,-150%);opacity:0;transition:transform .6s cubic-bezier(.2,1.4,.4,1),opacity .35s ease}'
+  + '.ma.on{transform:translate(-50%,0);opacity:1}.ma.sai{transform:translate(-50%,-150%);opacity:0;transition:transform .5s ease-in,opacity .5s ease}'
+  + '.ma-card{position:relative;display:flex;align-items:center;gap:14px;padding:14px 24px 14px 16px;border-radius:22px;background:#FFFBF4;color:#3B3B3B;box-shadow:0 18px 50px rgba(0,0,0,.28),0 0 0 3px #F2B33D}'
+  + '.ma-card b{display:block;font-family:Poppins,Nunito,system-ui,sans-serif;font-weight:800;font-size:22px;line-height:1.15;color:#E25B3F}'
+  + '.ma-card span{display:block;margin-top:3px;font-size:15px;font-weight:700}'
+  + '.ma-ic{flex:none;width:46px;height:46px;animation:ma-mexe 1.2s ease-in-out .5s infinite}'
+  + '.ma-p{position:absolute;left:50%;top:55%;width:8px;height:12px;border-radius:2px;opacity:0;animation:ma-cai 1.7s cubic-bezier(.2,.6,.4,1) forwards}'
+  + '@keyframes ma-mexe{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}'
+  + '@keyframes ma-cai{0%{opacity:1;transform:translate(0,0) rotate(0)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) rotate(var(--rr))}}'
+  + '@media (prefers-reduced-motion:reduce){.ma-ic{animation:none}.ma-p{display:none}}';
+function mfReal(n) { n = +n || 0; return 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }); }
+function avisoMeta(o) {
+  o = o || {}; document.querySelectorAll('.ma').forEach(function (x) { x.remove(); });
+  if (!document.getElementById('ma-css')) { var st = document.createElement('style'); st.id = 'ma-css'; st.textContent = MA_CSS; document.head.appendChild(st); }
+  var leve = !!o.leve || !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches), f = +o.falta || 0;
+  var box = document.createElement('div'); box.className = 'ma'; box.setAttribute('role', 'status'); box.setAttribute('aria-live', 'polite');
+  box.innerHTML = '<div class="ma-card"><div class="ma-ic" aria-hidden="true">' + MA_ALVO + '</div><div><b>Falta pouco para a meta!</b><span>' + (f > 0 ? 'Faltam ' + mfReal(f) + ' para a meta do dia' : 'A meta do dia está quase lá') + '</span></div></div>';
+  document.body.appendChild(box);
+  if (!leve) { var card = box.querySelector('.ma-card'), CORES = ['#E25B3F', '#F2B33D', '#6FC3B2', '#B9A6F0', '#FF8FB1', '#5FB8F0'];
+    for (var i = 0; i < 18; i++) { var p = document.createElement('i'); p.className = 'ma-p'; p.setAttribute('aria-hidden', 'true');
+      p.style.cssText = 'background:' + CORES[i % CORES.length] + ';--dx:' + Math.round((Math.random() - 0.5) * 360) + 'px;--dy:' + Math.round(40 + Math.random() * 130) + 'px;--rr:' + Math.round((Math.random() - 0.5) * 720) + 'deg;animation-delay:' + Math.round(350 + Math.random() * 300) + 'ms';
+      card.appendChild(p); } }
+  var fim = 0, acabou = false;
+  function fechar() { if (acabou) return; acabou = true; clearTimeout(fim); document.removeEventListener('pointerdown', fechar, true); document.removeEventListener('keydown', tecla, true); box.classList.add('sai'); setTimeout(function () { box.remove(); }, 550); }
+  function tecla(e) { if (e.key === 'Escape') fechar(); }
+  setTimeout(function () { document.addEventListener('pointerdown', fechar, true); document.addEventListener('keydown', tecla, true); }, 0);
+  requestAnimationFrame(function () { requestAnimationFrame(function () { box.classList.add('on'); }); });
+  fim = setTimeout(fechar, 6500);
+  return box;
+}
+function metaDecidir(m, hoje, vista, vistos) {   /* m: a meta do dia que a tela recebeu; vista: a meta batida que esta tela já mostrou; vistos: os alertas que já mostrou */
+  if (!m || (hoje && m.dia !== hoje)) return null;
+  var ch = function (a) { return [m.dia, m.valor || '', a.falta, a.em].join('|'); };
+  var novos = (m.avisos || []).filter(function (a) { return a.em && (vistos || []).indexOf(ch(a)) < 0; }).map(ch);
+  if (m.batida && m.em) { var k = [m.dia, m.em, m.valor || ''].join('|'); return vista === k ? null : { tipo: 'meta', k: k, avisos: novos }; }
+  if (!novos.length) return null;
+  return { tipo: 'aviso', avisos: novos, falta: m.resta != null ? +m.resta : Math.min.apply(null, (m.avisos || []).map(function (a) { return +a.falta; })) };
+}
 var META_T = 0;
+function metaAlertasTela() {   /* 1.81: os alertas (quanto falta), do maior para o menor; só os menores que a meta */
+  const v = metaValorTela(), L = MODO === 'servidor' ? ((S.meta || {}).alertas || []) : (S.cfg.metaAlertas || []);
+  return [...new Set(L.map(Number).filter(a => a > 0 && a < v - 0.004))].sort((a, b) => b - a).slice(0, 2);
+}
 function metaValorTela() { return MODO === 'servidor' ? +((S.meta || {}).valor || 0) : +(S.cfg.metaDia || 0); }
 function metaHora() { return isoDia(new Date(agora)) + ' ' + p2(agora.getHours()) + ':' + p2(agora.getMinutes()) + ':' + p2(agora.getSeconds()); }
 function metaAgora() {   /* { dia, batida, em, valor?, faturado? } ou null (sem meta) */
@@ -8525,34 +8575,41 @@ function metaAgora() {   /* { dia, batida, em, valor?, faturado? } ou null (sem 
   const dia = isoDia(new Date(agora)), f = centavos(painelDia().reduce((t, x) => t + (+x.faturado || 0), 0));
   let b = S.cfg.metaBatida; if (b && (b.dia !== dia || Math.abs(b.valor - v) > 0.004)) b = null;
   if (!b && f >= v - 0.004) b = S.cfg.metaBatida = { dia, valor: v, em: metaHora() };
-  return { dia, batida: !!b, em: b ? b.em : null, valor: v, faturado: f };
+  const al = metaAlertasTela(); let av = S.cfg.metaAvisos; if (!av || av.dia !== dia || Math.abs(av.valor - v) > 0.004) av = S.cfg.metaAvisos = { dia, valor: v, a: {} };   /* 1.81 */
+  for (const a of al) if (!av.a[a.toFixed(2)] && f >= v - a - 0.004) av.a[a.toFixed(2)] = metaHora();
+  const avisos = al.filter(a => av.a[a.toFixed(2)]).map(a => ({ falta: a, em: av.a[a.toFixed(2)] }));
+  return { dia, batida: !!b, em: b ? b.em : null, valor: v, faturado: f, alertas: al, avisos, ...(avisos.length && !b ? { resta: centavos(v - f) } : {}) };
 }
-function metaOlhar() {
+function metaOlhar() {   /* 1.81: a meta batida ou o alerta mais novo, o que esta tela ainda não mostrou (depois que o cupom fecha) */
   if (META_T || document.body.classList.contains('so') || (MODO === 'servidor' && !EU)) return;
-  const m = metaAgora(); if (!m || !m.batida || !m.em || m.dia !== isoDia(new Date(agora))) return;
-  const k = [m.dia, m.em, m.valor || ''].join('|'); if (lido('ps-meta-vista', '') === k) return;
-  META_T = setInterval(() => { if ($('#folha .folha-fundo:not(.saindo)') || $('#foco')) return; clearInterval(META_T); META_T = 0;   /* depois que o cupom (ou outra folha) fecha */
-    if (lido('ps-meta-vista', '') === k) return; guardar('ps-meta-vista', k); festaMeta({ valor: m.valor, em: m.em, leve: document.documentElement.dataset.anim === 'leve' }); }, 400);
+  const hoje = isoDia(new Date(agora)), olha = () => metaDecidir(metaAgora(), hoje, lido('ps-meta-vista', ''), lido('ps-meta-avisos', []));
+  if (!olha()) return;
+  META_T = setInterval(() => { if ($('#folha .folha-fundo:not(.saindo)') || $('#foco')) return; clearInterval(META_T); META_T = 0;
+    const x = olha(); if (!x) return; const m = metaAgora() || {}, leve = document.documentElement.dataset.anim === 'leve';
+    if (x.avisos.length) guardar('ps-meta-avisos', lido('ps-meta-avisos', []).concat(x.avisos).slice(-30));
+    if (x.tipo === 'meta') { guardar('ps-meta-vista', x.k); festaMeta({ valor: m.valor, em: m.em, leve }); } else avisoMeta({ falta: x.falta, leve }); }, 400);
 }
 function metaSub(id, r) {   /* o "Faturado hoje" do painel (todas as unidades): quanto da meta já foi */
   const v = id ? 0 : metaValorTela(); if (!(v > 0)) return '';
   const m = metaAgora() || {}; return m.batida ? ' · <i class="pn-meta ok">meta batida ✓</i>' : ` · <i class="pn-meta">${Math.min(99, Math.floor(r.faturado / v * 100))}% da meta</i>`;
 }
 function cartaoMeta() {
-  const m = metaAgora(), v = metaValorTela(), f = m ? +m.faturado || 0 : 0, pct = v > 0 ? Math.min(100, Math.floor(f / v * 100)) : 0, bat = !!(m && m.batida);
+  const m = metaAgora(), v = metaValorTela(), f = m ? +m.faturado || 0 : 0, pct = v > 0 ? Math.min(100, Math.floor(f / v * 100)) : 0, bat = !!(m && m.batida), al = metaAlertasTela();
   const st = !(v > 0) ? 'Sem meta por enquanto: escreva o valor e salve.' : bat ? `<b class="meta-ok">Batida hoje às ${esc(String(m.em || '').slice(11, 16))} ✓</b> · faturado ${brl(f)} de ${brl(v)}` : `Hoje: <b>${brl(f)}</b> de ${brl(v)} (${pct}%) · faltam <b>${brl(centavos(v - f))}</b>`;
+  const avs = (m && m.avisos) || [], stA = v > 0 && al.length ? 'Alertas: ' + al.map(a => { const x = avs.find(y => Math.abs(y.falta - a) < 0.005); return `quando faltar ${brl(a)}${x ? ` <b>✓ ${esc(String(x.em || '').slice(11, 16))}</b>` : ''}`; }).join(' · ') : '';
+  const campo = (id, rot, val, ph) => `<div class="campo"><label for="${id}">${rot}</label><input id="${id}" inputmode="decimal" autocomplete="off" maxlength="14" placeholder="${ph}" value="${val > 0 ? vInp(val) : ''}"></div>`;
   return `<div class="card" id="aj-meta"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.festa, 20)} Meta do dia</h2>${v > 0 ? `<span class="pill ${bat ? 'p-ok' : 'p-neutro'}">${bat ? 'Batida ✓' : brl(v)}</span>` : ''}</div>
-    <p class="explica">Quando o <b>faturado do dia</b> (as unidades juntas) chegar a este valor, <b>todas as telas ligadas</b>, inclusive as Finanças, comemoram: <b>"Meta do dia batida!"</b>, com fogos. Uma vez por dia em cada tela.</p>
-    <div class="meta-l"><div class="campo"><label for="meta-v">Valor da meta</label><input id="meta-v" inputmode="decimal" autocomplete="off" maxlength="14" placeholder="R$ 0,00" value="${v > 0 ? vInp(v) : ''}"></div><button type="button" class="bt forte tap" data-act="meta-salvar">${ic(IC.check)} Salvar</button></div>
+    <p class="explica">Quando o <b>faturado do dia</b> (as unidades juntas) chegar a este valor, <b>todas as telas ligadas</b>, inclusive as Finanças, comemoram: <b>"Meta do dia batida!"</b>, com fogos. Os <b>alertas</b> avisam antes, quando faltar o valor que você escolher: <b>"Falta pouco para a meta!"</b>. Uma vez por dia em cada tela.</p>
+    <div class="meta-g">${campo('meta-v', 'Valor da meta', v, 'R$ 0,00')}${campo('meta-a1', '1º alerta: quando faltar', al[0], 'R$ 500,00')}${campo('meta-a2', '2º alerta: quando faltar', al[1], 'R$ 200,00')}</div>
     ${v > 0 ? `<div class="meta-barra" aria-hidden="true"><i style="width:${bat ? 100 : pct}%"></i></div>` : ''}
-    <p class="explica" id="meta-st">${st}</p>
-    <div class="acoes">${v > 0 ? '<button type="button" class="bt claro tap" data-act="meta-tirar">Desligar a meta</button>' : ''}<button type="button" class="bt claro tap" data-act="meta-ver">${ic(IC.festa, 16)} Ver a comemoração</button></div>
+    <p class="explica" id="meta-st">${st}</p>${stA ? `<p class="explica meta-al" id="meta-al">${stA}</p>` : ''}
+    <div class="acoes"><button type="button" class="bt forte tap" data-act="meta-salvar">${ic(IC.check)} Salvar</button><button type="button" class="bt claro tap" data-act="meta-ver">${ic(IC.festa, 16)} Ver a comemoração</button><button type="button" class="bt claro tap" data-act="meta-aviso-ver">Ver o alerta</button>${v > 0 ? '<button type="button" class="bt claro tap" data-act="meta-tirar">Desligar a meta</button>' : ''}</div>
   </div>`;
 }
-async function metaGravar(v, el) {
+async function metaGravar(v, el, al) {   /* al (1.81): os dois alertas (0 = sem) */
   if (!gestor()) { toast('Só o gestor muda a meta do dia.'); return; }
-  if (el) el.disabled = true;
-  try { if (MODO === 'servidor') { const r = await api('meta_salvar', { valor: v }); S.meta = r.meta || null; } else { S.cfg.metaDia = v > 0 ? v : 0; } }
+  if (el) el.disabled = true; al = (al || []).filter(a => a > 0);
+  try { if (MODO === 'servidor') { const r = await api('meta_salvar', { valor: v, alertas: al }); S.meta = r.meta || null; } else { S.cfg.metaDia = v > 0 ? v : 0; S.cfg.metaAlertas = v > 0 ? al : []; } }
   catch (e) { toast(e.message); }
   finally { if (el) el.disabled = false; const a = $('#aj-meta'); if (a) a.outerHTML = cartaoMeta(); }
 }

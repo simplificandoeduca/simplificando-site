@@ -2,7 +2,7 @@
    Pedido do dono: quando a loja bater a meta do dia (o valor que o gestor coloca em Ajustes, no sistema), "todos os computadores que estiverem
    com o sistema ligado, inclusive o financeiro: meta do dia batida e vários foguinhos". Com as Finanças abertas (e com alguém dentro), a
    página pergunta ao servidor a cada 20 segundos; na primeira vez do dia em que a meta aparece batida, comemora (uma vez por dia neste
-   aparelho). A comemoração é a mesma do sistema. */
+   aparelho). A comemoração é a mesma do sistema. 3.5 (1.81): e os dois alertas ("Falta pouco para a meta!"), uma vez cada. */
 'use strict';
 /* A comemoração da meta do dia (a mesma no sistema e nas Finanças). Por cima de tudo, SEM travar a tela: os toques passam para o que está
    embaixo, e um toque em qualquer lugar (ou o Esc) fecha. A tela escurece um pouco, os foguetes sobem e estouram em fogos por uns 7
@@ -73,15 +73,58 @@ function festaMeta(o) {
   addEventListener('resize', tam, { once: true });
   return box;
 }
+/* Os alertas da meta (1.81): "quando faltar R$ 500" e "quando faltar R$ 200". Quando o dia chega a um alerta, cada tela mostra no alto o
+   aviso "Falta pouco para a meta!" com quanto falta, por uns 6 segundos, com uns confetes. Também não trava nada (um toque ou o Esc fecha).
+   metaDecidir diz o que uma tela ainda não mostrou: a meta batida (que já cobre os alertas) ou o alerta mais novo. */
+var MA_ALVO = '<svg viewBox="0 0 48 48" width="46" height="46"><circle cx="22" cy="26" r="19" fill="#FFFBF4" stroke="#3B3B3B" stroke-width="2"/><circle cx="22" cy="26" r="12.5" fill="#E25B3F" stroke="#3B3B3B" stroke-width="2"/><circle cx="22" cy="26" r="6.5" fill="#FFFBF4" stroke="#3B3B3B" stroke-width="2"/><circle cx="22" cy="26" r="2.4" fill="#3B3B3B"/><path d="M22 26L40 8" stroke="#3B3B3B" stroke-width="2.4" stroke-linecap="round"/><path d="M37 4l7 0-3 3 3 3-7 0z" fill="#F2B33D" stroke="#3B3B3B" stroke-width="1.5" stroke-linejoin="round"/></svg>';
+var MA_CSS = '.ma{position:fixed;left:50%;top:16px;z-index:2147482999;pointer-events:none;width:max-content;max-width:calc(100vw - 32px);transform:translate(-50%,-150%);opacity:0;transition:transform .6s cubic-bezier(.2,1.4,.4,1),opacity .35s ease}'
+  + '.ma.on{transform:translate(-50%,0);opacity:1}.ma.sai{transform:translate(-50%,-150%);opacity:0;transition:transform .5s ease-in,opacity .5s ease}'
+  + '.ma-card{position:relative;display:flex;align-items:center;gap:14px;padding:14px 24px 14px 16px;border-radius:22px;background:#FFFBF4;color:#3B3B3B;box-shadow:0 18px 50px rgba(0,0,0,.28),0 0 0 3px #F2B33D}'
+  + '.ma-card b{display:block;font-family:Poppins,Nunito,system-ui,sans-serif;font-weight:800;font-size:22px;line-height:1.15;color:#E25B3F}'
+  + '.ma-card span{display:block;margin-top:3px;font-size:15px;font-weight:700}'
+  + '.ma-ic{flex:none;width:46px;height:46px;animation:ma-mexe 1.2s ease-in-out .5s infinite}'
+  + '.ma-p{position:absolute;left:50%;top:55%;width:8px;height:12px;border-radius:2px;opacity:0;animation:ma-cai 1.7s cubic-bezier(.2,.6,.4,1) forwards}'
+  + '@keyframes ma-mexe{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}'
+  + '@keyframes ma-cai{0%{opacity:1;transform:translate(0,0) rotate(0)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) rotate(var(--rr))}}'
+  + '@media (prefers-reduced-motion:reduce){.ma-ic{animation:none}.ma-p{display:none}}';
+function mfReal(n) { n = +n || 0; return 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }); }
+function avisoMeta(o) {
+  o = o || {}; document.querySelectorAll('.ma').forEach(function (x) { x.remove(); });
+  if (!document.getElementById('ma-css')) { var st = document.createElement('style'); st.id = 'ma-css'; st.textContent = MA_CSS; document.head.appendChild(st); }
+  var leve = !!o.leve || !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches), f = +o.falta || 0;
+  var box = document.createElement('div'); box.className = 'ma'; box.setAttribute('role', 'status'); box.setAttribute('aria-live', 'polite');
+  box.innerHTML = '<div class="ma-card"><div class="ma-ic" aria-hidden="true">' + MA_ALVO + '</div><div><b>Falta pouco para a meta!</b><span>' + (f > 0 ? 'Faltam ' + mfReal(f) + ' para a meta do dia' : 'A meta do dia está quase lá') + '</span></div></div>';
+  document.body.appendChild(box);
+  if (!leve) { var card = box.querySelector('.ma-card'), CORES = ['#E25B3F', '#F2B33D', '#6FC3B2', '#B9A6F0', '#FF8FB1', '#5FB8F0'];
+    for (var i = 0; i < 18; i++) { var p = document.createElement('i'); p.className = 'ma-p'; p.setAttribute('aria-hidden', 'true');
+      p.style.cssText = 'background:' + CORES[i % CORES.length] + ';--dx:' + Math.round((Math.random() - 0.5) * 360) + 'px;--dy:' + Math.round(40 + Math.random() * 130) + 'px;--rr:' + Math.round((Math.random() - 0.5) * 720) + 'deg;animation-delay:' + Math.round(350 + Math.random() * 300) + 'ms';
+      card.appendChild(p); } }
+  var fim = 0, acabou = false;
+  function fechar() { if (acabou) return; acabou = true; clearTimeout(fim); document.removeEventListener('pointerdown', fechar, true); document.removeEventListener('keydown', tecla, true); box.classList.add('sai'); setTimeout(function () { box.remove(); }, 550); }
+  function tecla(e) { if (e.key === 'Escape') fechar(); }
+  setTimeout(function () { document.addEventListener('pointerdown', fechar, true); document.addEventListener('keydown', tecla, true); }, 0);
+  requestAnimationFrame(function () { requestAnimationFrame(function () { box.classList.add('on'); }); });
+  fim = setTimeout(fechar, 6500);
+  return box;
+}
+function metaDecidir(m, hoje, vista, vistos) {   /* m: a meta do dia que a tela recebeu; vista: a meta batida que esta tela já mostrou; vistos: os alertas que já mostrou */
+  if (!m || (hoje && m.dia !== hoje)) return null;
+  var ch = function (a) { return [m.dia, m.valor || '', a.falta, a.em].join('|'); };
+  var novos = (m.avisos || []).filter(function (a) { return a.em && (vistos || []).indexOf(ch(a)) < 0; }).map(ch);
+  if (m.batida && m.em) { var k = [m.dia, m.em, m.valor || ''].join('|'); return vista === k ? null : { tipo: 'meta', k: k, avisos: novos }; }
+  if (!novos.length) return null;
+  return { tipo: 'aviso', avisos: novos, falta: m.resta != null ? +m.resta : Math.min.apply(null, (m.avisos || []).map(function (a) { return +a.falta; })) };
+}
 (() => {
   let ocupado = false;
   const dentro = () => { try { return !!EU; } catch (e) { return false; } };
   async function olhar() {
     if (document.hidden || ocupado || !dentro()) return; ocupado = true;
-    try { const m = (await api('meta')).meta; if (!m || !m.batida || !m.em) return;
-      const k = [m.dia, m.em, m.valor || ''].join('|'); let ja = ''; try { ja = localStorage.getItem('psfin-meta-vista') || ''; } catch (e) { /* sem memória */ }
-      if (ja === k) return; try { localStorage.setItem('psfin-meta-vista', k); } catch (e) { /* sem memória */ }
-      festaMeta({ valor: m.valor, em: m.em }); }
+    try { const m = (await api('meta')).meta; let vista = '', vistos = [];
+      try { vista = localStorage.getItem('psfin-meta-vista') || ''; vistos = JSON.parse(localStorage.getItem('psfin-meta-avisos') || '[]'); } catch (e) { /* sem memória */ }
+      const x = metaDecidir(m, '', vista, Array.isArray(vistos) ? vistos : []); if (!x) return;
+      try { if (x.avisos.length) localStorage.setItem('psfin-meta-avisos', JSON.stringify(vistos.concat(x.avisos).slice(-30))); if (x.tipo === 'meta') localStorage.setItem('psfin-meta-vista', x.k); } catch (e) { /* sem memória */ }
+      if (x.tipo === 'meta') festaMeta({ valor: m.valor, em: m.em }); else avisoMeta({ falta: x.falta }); }
     catch (e) { /* sem internet ou fora: tenta de novo depois */ } finally { ocupado = false; }
   }
   setInterval(olhar, 20000); setTimeout(olhar, 3000);
