@@ -21,7 +21,7 @@ require __DIR__ . '/comissoes.php';   /* 2.8: as comissões das vendedoras */
 require __DIR__ . '/clientes.php';   /* 3.0: o relatório por cliente */
 require __DIR__ . '/comprovantes.php';   /* 3.0: o comprovante das despesas */
 set_exception_handler(function (Throwable $e) { registrarErro('[financas] ' . $e->getMessage() . ' @' . basename($e->getFile()) . ':' . $e->getLine()); falha('Algo deu errado. Tente de novo em instantes.', 500); });
-const FIN_VERSAO = '3.7';
+const FIN_VERSAO = '3.9';
 
 $in = [];
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
@@ -164,6 +164,20 @@ if ($acao === 'usuario_remover') {
 // Faturado = o que foi vendido no período, já com o desconto (as horas trazidas do sistema anterior não entram: não são venda).
 // Recebido = os pagamentos do período, por forma, menos o que foi devolvido no período. Em aberto = o que foi vendido no período e ainda
 // não foi pago (a recreação de quem está no espaço, o que ficou para a saída ou para a devolução do carrinho).
+/* 3.8 (1.85): o pulso das Finanças. Muda quando muda algo que as Finanças mostram: o movimento do sistema (vendas, pagamentos, cancelamentos,
+   notas, trocas de pagamento, festas, visitas, o registro do dia) e tudo das Finanças (as tabelas fin_: lançamentos, fornecedores, caixa,
+   festas, freelancers, comissões, planilhas). Leve: a quantidade, o último número e a última mudança de cada tabela. */
+function finPulso(): string {
+  $db = db(); $s = [];
+  $T = $db->query("SELECT name FROM sqlite_master WHERE type = 'table' AND (name IN ('registros', 'vendas', 'pagamentos', 'cancelamentos', 'pedidos', 'trocas_pag', 'festas', 'festa_presencas', 'visitas') OR (name LIKE 'fin\_%' ESCAPE '\\' AND name <> 'fin_usuarios')) ORDER BY name")->fetchAll(PDO::FETCH_COLUMN);
+  foreach ($T as $t) {
+    $c = array_column($db->query('PRAGMA table_info("' . str_replace('"', '', $t) . '")')->fetchAll(), 'name');
+    $x = ['COUNT(*)', 'COALESCE(MAX(rowid), 0)']; foreach (['alterado_em', 'removido_em', 'em', 'feito_em', 'visto_em'] as $k) if (in_array($k, $c, true)) $x[] = "COALESCE(MAX($k), '')";
+    $s[] = $t . ':' . implode(':', $db->query('SELECT ' . implode(" || ':' || ", $x) . ' FROM "' . str_replace('"', '', $t) . '"')->fetch(PDO::FETCH_NUM));
+  }
+  return md5(implode('|', $s));
+}
+if ($acao === 'pulso') { session_write_close(); responder(['p' => finPulso()]); }
 if ($acao === 'meta') responder(['meta' => metaDoDia(null)]);   /* 3.4 (1.80): a meta do dia, para a comemoração */
 if ($acao === 'resumo') responder(finResumo($in));
 // 1.54: o resumo do dia (ou do período) em PDF, e o resumo do dia por e-mail

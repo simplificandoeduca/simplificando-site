@@ -1301,6 +1301,22 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzz. Os ícones novos do celular (1.86 · Finanças 3.9)
+
+O dono escolheu, entre 3 sugestões para cada app: o **Play Space** com o castelo creme sobre o **coral** e as **Finanças** com o cartão do gráfico (barras e a seta subindo) sobre o **amarelo**.
+
+- Play Space: o desenho novo nos mesmos arquivos de sempre (`img/icone-180.png`, `icone-192.png`, `icone-512.png`, `icone-maskable-512.png`, o `playspace.ico` do Windows e o `playspace.icns` do Mac). Vale para o ícone do celular, o do computador e o dos avisos.
+- Finanças: antes usava o ícone do Play Space; agora tem o seu (`img/financas-*.png`) e o manifesto próprio (`financas/manifest.json`). No celular, "Adicionar à tela de início" nas Finanças cria um app à parte, chamado **Finanças**.
+- Quem já tem o ícone na tela do celular: no **iPhone**, apague o ícone e adicione de novo (o iPhone não troca o ícone sozinho). No **Android**, ele se troca sozinho em até um dia (ou apague e adicione de novo). No computador, o atalho da área de trabalho muda ao tocar de novo em **Ajustes → Ícone na área de trabalho**.
+
+## 6zzzzzzzzzzzzzzzzzz. As Finanças ao vivo: a tela aberta se acerta sozinha (1.85 · Finanças 3.8)
+
+Pedido do dono: "o sistema também está comunicando com o sistema de finanças rapidamente, né? Tudo atualizando automaticamente, rapidamente".
+
+- As Finanças sempre leram o mesmo banco do sistema (os dados são os mesmos na hora). Agora a **tela aberta** também se acerta sozinha: a cada **3 segundos** ela pergunta ao servidor se mudou alguma coisa (uma venda, um pagamento, um cancelamento, uma nota, um lançamento, o caixa, uma festa, um freelancer…). Mudou, a aba aberta busca os números de novo e se redesenha no lugar: sem recarregar a página, sem voltar para o alto e sem repetir a animação de entrada; os números que mudaram correm até o valor novo. No teste, a venda feita no sistema apareceu nas Finanças em ~3 segundos.
+- **Não mexe** enquanto alguém está escrevendo num campo da tela, com uma janela aberta (um lançamento, uma ficha), com regras de comissão ainda não salvas, nas páginas a mais da lista de lançamentos, nem nas abas **Emitir nota**, **Planilhas** e **Conta**. Fechou a janela, se acerta.
+- Página escondida (outra aba na frente) não fica perguntando. De minuto em minuto, a tela busca de novo de qualquer jeito.
+
 ## 6zzzzzzzzzzzzzzzzz. Os fornecedores das notas fiscais, cadastrados de uma vez (1.84 · Finanças 3.7)
 
 Pedido do dono: "consegue ler as notas que já tem da Play Space e já deixar cadastrados todos os fornecedores que tem lá?".

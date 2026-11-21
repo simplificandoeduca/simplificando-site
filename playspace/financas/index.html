@@ -6,7 +6,14 @@
 <meta name="robots" content="noindex,nofollow">
 <meta name="theme-color" content="#FAF3E9">
 <title>Play Space Finanças</title>
-<link rel="icon" href="../img/icone-192.png">
+<!-- 3.9 (1.86): o ícone das Finanças (o cartão do gráfico sobre o amarelo) e o manifesto próprio: no celular, as Finanças são um app à parte -->
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="../img/financas-192.png">
+<link rel="apple-touch-icon" href="../img/financas-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Finanças">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;800&family=Nunito:wght@400;600;700;800&display=swap">
 <style>
@@ -596,6 +603,8 @@ svg.fx-cresce > circle { transform-box: fill-box; transform-origin: center; anim
 .g-fni-l { max-height: min(52vh, 460px); overflow: auto; border: 1px solid rgba(59, 59, 59, .12); border-radius: 14px; padding: 4px; }
 .g-fni { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 10px; cursor: pointer; } .g-fni:hover { background: rgba(226, 91, 63, .06); }
 .g-fni input { margin-top: 3px; width: 18px; height: 18px; flex: none; accent-color: #E25B3F; } .g-fni b { display: block; } .g-fni small { display: block; opacity: .72; margin-top: 2px; } .g-fni em { font-style: normal; color: #2F8A57; font-weight: 700; }
+/* 3.8 (1.85): enquanto as Finanças se acertam sozinhas, a tela não fica apagada (o "carregando") */
+body.fin-quieto .carregando { opacity: 1 !important; pointer-events: auto !important; }
 </style>
 </head>
 <body>
@@ -612,6 +621,7 @@ svg.fx-cresce > circle { transform-box: fill-box; transform-origin: center; anim
 <script src="animacoes.js?v=3.2"></script>
 <script src="menu.js?v=3.2"></script>
 <script src="meta.js?v=3.5"></script>
+<script src="vivo.js?v=3.8"></script>
 <script>
 /* Play Space Finanças 1.0: o que é crítico e delicado do negócio, com login próprio. Os números vêm do Play Space (só leitura). */
 'use strict';
@@ -761,7 +771,7 @@ function somaUni() {
 /* ---------- o app ---------- */
 /* 2.5 (1.64): a página das Finanças que ficou guardada no aparelho (a aba aberta, o app do celular ou o cache do navegador) se renova
    sozinha quando o servidor já tem outra versão. PS_PAGINA é carimbada pelo tools/build_playspace.py com a versão do Play Space. */
-const PS_PAGINA = '1.84';
+const PS_PAGINA = '1.86';
 const psMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
 function renovarSeVelha(v, naTela) {
   if (!v || !psMaior(v, PS_PAGINA)) return false;
@@ -793,7 +803,7 @@ async function iniciar() {
   if (!e.temConta) return telaEntrar('criar');
   if (!e.usuario) return telaEntrar('entrar');
   EU = e.usuario; UNIS = e.unidades || [];
-  $('#raiz').innerHTML = `<div class="app"><nav class="lateral" aria-label="Menu"><div class="marca" data-dica="Play Space · Finanças v${esc(e.versao)}"><img src="../img/icone-192.png" alt=""><div><b>Play Space</b><small><span class="tag-g">Gestão</span> Finanças · v${esc(e.versao)}</small></div></div>
+  $('#raiz').innerHTML = `<div class="app"><nav class="lateral" aria-label="Menu"><div class="marca" data-dica="Play Space · Finanças v${esc(e.versao)}"><img src="../img/financas-192.png" alt=""><div><b>Play Space</b><small><span class="tag-g">Gestão</span> Finanças · v${esc(e.versao)}</small></div></div>
     <div class="rail-lista"><span class="rail-ativo" aria-hidden="true"></span>${ABAS.map(([k, n, ic, g], i) => `${g !== (ABAS[i - 1] || [])[3] && GRUPOS_MENU[g] ? `<div class="grupo-menu">${GRUPOS_MENU[g]}</div>` : ''}<button class="aba" data-aba="${k}" data-dica="${esc(n)}">${ic}<span>${n}</span>${k === 'canc' ? '<span class="cont" data-cont-canc hidden></span>' : k === 'pagar' ? '<span class="cont" data-cont-pagar hidden></span>' : ''}</button>`).join('')}
     </div><div class="quem" data-dica="${esc(EU.nome)} · login ${esc(EU.login)}"><span class="rail-av" aria-hidden="true">${esc(String(EU.nome || '').trim().split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase())}</span><b>${esc(EU.nome)}</b>login: ${esc(EU.login)}</div></nav>
     <main class="principal" id="tela"></main></div>
