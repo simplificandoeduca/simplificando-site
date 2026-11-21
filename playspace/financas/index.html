@@ -580,6 +580,18 @@ svg.fx-cresce > circle { transform-box: fill-box; transform-origin: center; anim
   .lateral { --tam: 36px; } .lateral .aba svg { width: 18px; height: 18px; } .lateral .grupo-menu { margin: 4px 0; } .lateral .marca img { width: 34px; height: 34px; } .rail-av { width: 30px; height: 30px; font-size: 11px; } .lateral .quem { margin-top: 6px; padding-top: 8px; }
 }
 @media (prefers-reduced-motion: reduce) { .lateral.rail-entra, .lateral.rail-entra * { animation: none !important; } .rail-ativo.pronto, .rail-dica { transition: none; } }
+/* 3.3: o Play Space Notas dentro das Finanças: a moldura ocupa a altura da janela (sem a segunda barra de rolagem) */
+.principal:has(.nfe-tela) { padding-bottom: 22px; }
+.nfe-tela { display: flex; flex-direction: column; height: calc(100dvh - 48px); min-height: 480px; }
+.nfe-topo { flex: none; margin-bottom: 14px; }
+.nfe-topo .btn svg { width: 18px; height: 18px; }
+.nfe-caixa { position: relative; flex: 1; min-height: 0; border-radius: 22px; overflow: hidden; background: var(--card); box-shadow: var(--sombra); border: 1px solid var(--line); }
+.nfe-frame { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; opacity: 0; transition: opacity .3s; background: var(--card); }
+.nfe-caixa.pronta .nfe-frame { opacity: 1; }
+.nfe-carregando { position: absolute; inset: 0; display: grid; place-items: center; color: var(--ink-2); font-weight: 700; }
+.nfe-caixa.pronta .nfe-carregando { display: none; }
+.nfe-atalho { margin: 0 0 14px; } .nfe-atalho .btn svg { width: 18px; height: 18px; }
+@media (max-width: 820px) { .principal:has(.nfe-tela) { padding-bottom: 92px; } .nfe-tela { height: calc(100dvh - 110px); min-height: 420px; } .nfe-caixa { border-radius: 18px; } }
 </style>
 </head>
 <body>
@@ -615,6 +627,8 @@ const IC = {
   canc: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg>',
   desc: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5L5 19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg>',
   nota: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 12h7M9 16h5"/></svg>',
+  emitir: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M12.5 11v7M9 14.5h7"/></svg>',
+  fora: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></svg>',
   lanc: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M4 9h16M9 9v11M12 13h5M12 16.5h5"/></svg>',
   relat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/><path d="M4 10l6-4 6 5 5-4"/></svg>',
   conta: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>',
@@ -628,7 +642,7 @@ const IC = {
   plan: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>'
 };
 /* 2.1: o menu em dois grupos: a loja (os números do caixa do Play Space) e o financeiro (o que o financeiro lança e controla) */
-const ABAS = [['caixa', 'Controle de caixa', IC.caixa, 'caixa'], ['festas', 'Festas', IC.festas, 'caixa'], ['freelas', 'Freelancers', IC.freelas, 'caixa'], ['comis', 'Comissões', IC.comis, 'caixa'], ['geral', 'Visão geral', IC.geral, 'loja'], ['vendas', 'Vendas e pacotes', IC.vendas, 'loja'], ['canc', 'Cancelamentos', IC.canc, 'loja'], ['desc', 'Descontos', IC.desc, 'loja'], ['notas', 'Notas fiscais', IC.nota, 'loja'],
+const ABAS = [['caixa', 'Controle de caixa', IC.caixa, 'caixa'], ['festas', 'Festas', IC.festas, 'caixa'], ['freelas', 'Freelancers', IC.freelas, 'caixa'], ['comis', 'Comissões', IC.comis, 'caixa'], ['geral', 'Visão geral', IC.geral, 'loja'], ['vendas', 'Vendas e pacotes', IC.vendas, 'loja'], ['canc', 'Cancelamentos', IC.canc, 'loja'], ['desc', 'Descontos', IC.desc, 'loja'], ['notas', 'Notas fiscais', IC.nota, 'loja'], ['emitir', 'Emitir nota', IC.emitir, 'loja'],
   ['fin', 'Painel financeiro', IC.painel, 'fin'], ['lanc', 'Lançamentos', IC.lanc, 'fin'], ['pagar', 'Contas a pagar', IC.pagar, 'fin'], ['forn', 'Fornecedores', IC.forn, 'fin'], ['plan', 'Planilhas', IC.plan, 'fin'], ['relat', 'Relatório financeiro', IC.relat, 'fin'],
   ['conta', 'Conta', IC.conta, 'conta']];
 const GRUPOS_MENU = { loja: 'Loja · caixa do sistema', fin: 'Financeiro' };
@@ -742,7 +756,7 @@ function somaUni() {
 /* ---------- o app ---------- */
 /* 2.5 (1.64): a página das Finanças que ficou guardada no aparelho (a aba aberta, o app do celular ou o cache do navegador) se renova
    sozinha quando o servidor já tem outra versão. PS_PAGINA é carimbada pelo tools/build_playspace.py com a versão do Play Space. */
-const PS_PAGINA = '1.74';
+const PS_PAGINA = '1.79';
 const psMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
 function renovarSeVelha(v, naTela) {
   if (!v || !psMaior(v, PS_PAGINA)) return false;
@@ -778,7 +792,7 @@ async function iniciar() {
     <div class="rail-lista"><span class="rail-ativo" aria-hidden="true"></span>${ABAS.map(([k, n, ic, g], i) => `${g !== (ABAS[i - 1] || [])[3] && GRUPOS_MENU[g] ? `<div class="grupo-menu">${GRUPOS_MENU[g]}</div>` : ''}<button class="aba" data-aba="${k}" data-dica="${esc(n)}">${ic}<span>${n}</span>${k === 'canc' ? '<span class="cont" data-cont-canc hidden></span>' : k === 'pagar' ? '<span class="cont" data-cont-pagar hidden></span>' : ''}</button>`).join('')}
     </div><div class="quem" data-dica="${esc(EU.nome)} · login ${esc(EU.login)}"><span class="rail-av" aria-hidden="true">${esc(String(EU.nome || '').trim().split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase())}</span><b>${esc(EU.nome)}</b>login: ${esc(EU.login)}</div></nav>
     <main class="principal" id="tela"></main></div>
-    <nav class="tabbar" aria-label="Menu">${ABAS.map(([k, n, ic]) => `<button data-aba="${k}">${ic}<span>${{ caixa: 'Caixa', festas: 'Festas', freelas: 'Freelas', comis: 'Comissões', geral: 'Visão', lanc: 'Lançar', relat: 'Relatório', vendas: 'Vendas', canc: 'Cancelados', desc: 'Descontos', notas: 'Notas', conta: 'Conta', fin: 'Painel', pagar: 'A pagar', forn: 'Fornec.', plan: 'Planilhas' }[k] || n}</span></button>`).join('')}</nav>`;
+    <nav class="tabbar" aria-label="Menu">${ABAS.map(([k, n, ic]) => `<button data-aba="${k}">${ic}<span>${{ caixa: 'Caixa', festas: 'Festas', freelas: 'Freelas', comis: 'Comissões', geral: 'Visão', lanc: 'Lançar', relat: 'Relatório', vendas: 'Vendas', canc: 'Cancelados', desc: 'Descontos', emitir: 'Emitir NF', notas: 'Notas', conta: 'Conta', fin: 'Painel', pagar: 'A pagar', forn: 'Fornec.', plan: 'Planilhas' }[k] || n}</span></button>`).join('')}</nav>`;
   $$('[data-aba]').forEach(b => b.onclick = () => { ABA = b.dataset.aba; desenhar(); window.scrollTo(0, 0); });
   desenhar(); carregar();
 }
@@ -813,6 +827,7 @@ function desenhar() {
   if (ABA === 'freelas') { if (!$('#tela .fz-tela')) freelasDesenhar(); return; }   /* 2.6: os freelancers (freelas.js) */
   if (ABA === 'comis') { if (!$('#tela .cm-tela')) comissoesDesenhar(); return; }   /* 2.8: as comissões (comissoes.js) */
   if (ABA === 'festas') { if (!$('#tela .fs-tela')) festasDesenhar(); return; }   /* 2.3: as festas (festas.js): também não redesenha por cima do que está sendo digitado */   /* 2.2: o controle de caixa (caixa.js): não redesenha por cima do que está sendo digitado */
+  if (ABA === 'emitir') { if (!$('#tela .nfe-tela')) notasEmbutidas(); return; }   /* 3.3: o Play Space Notas aqui dentro */
   if (ABAS_GESTAO.includes(ABA)) { gestaoDesenhar(ABA); return; }   /* 2.0/2.1: a gestão financeira (gestao.js, gestao2.js, planilhas.js) */
   const t = $('#tela'); if (!t) return;
   const [de, ate, nomeP] = periodo(), titulo = (ABAS.find(a => a[0] === ABA) || [])[1];
@@ -971,11 +986,22 @@ function telaCanc() {
 function notasResumo() { const D2 = ((D.notas || {}).dia || []).filter(naUni), L = ((D.notas || {}).lista || []).filter(x => UNI === 'todas' || +x.uni === +UNI);
   const nf = Math.round(D2.reduce((t, x) => t + x.nf, 0) * 100) / 100, cx = Math.round(D2.reduce((t, x) => t + x.cx, 0) * 100) / 100, C = L.filter(x => x.st === 'cancelada');
   return { nf, cx, n: D2.reduce((t, x) => t + x.n, 0), cn: C.length, cv: Math.round(C.reduce((t, x) => t + x.valor, 0) * 100) / 100, L, D2 }; }
+/* 3.3 (Play Space 1.78): o Play Space Notas dentro das Finanças ("que o sistema de notas vá para dentro das Finanças: só clicar e ele já
+   abre"). É o mesmo Notas de /notas, numa moldura que ocupa a tela (sem abrir outra aba). O login é o do Notas e fica guardado no navegador
+   (entra uma vez só). "Abrir em outra aba" continua para quem preferir. Quando a aba volta, o Notas abre de novo (rápido: fica guardado). */
+function notasEmbutidas() {
+  const t = $('#tela'); if (!t) return;
+  t.innerHTML = `<div class="nfe-tela"><div class="topo nfe-topo"><div><h1>Emitir nota</h1><div class="sub">O Play Space Notas, aqui dentro das Finanças: emita, consulte e confira as notas sem abrir outra aba</div></div>
+      <div class="topo-d"><a class="btn btn-ghost" href="../notas/" target="_blank" rel="noopener" title="O mesmo sistema de notas, numa aba só dele">${IC.fora} Abrir em outra aba</a></div></div>
+    <div class="nfe-caixa"><div class="nfe-carregando">Abrindo o sistema de notas…</div><iframe class="nfe-frame" src="../notas/" title="Play Space Notas" allow="clipboard-write"></iframe></div></div>`;
+  const f = $('.nfe-frame', t); if (f) f.addEventListener('load', () => { const c = f.closest('.nfe-caixa'); if (c) c.classList.add('pronta'); });
+}
+document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-ir-aba]'); if (!b) return; ABA = b.dataset.irAba; desenhar(); window.scrollTo(0, 0); });
 function telaNotas() {
   const N = notasResumo(), us = unisComDados(), dif = Math.round((N.cx - N.nf) * 100) / 100, M = new Map();
   for (const x of N.D2) { const o = M.get(x.d) || { d: x.d, nf: 0, n: 0, cx: 0 }; o.nf += x.nf; o.n += x.n; o.cx += x.cx; M.set(x.d, o); }
   const dias = [...M.values()].filter(x => x.n || Math.abs(x.cx) > 0.004).sort((a, b) => b.d.localeCompare(a.d)), vc = N.L.filter(x => x.vc);
-  let h = `<div class="grade">${kpi('Em notas fiscais', brl(N.nf), `${int(N.n)} ${N.n === 1 ? 'nota emitida' : 'notas emitidas'}${N.cx > 0 ? ' · ' + pct(N.nf / N.cx * 100) + ' do caixa' : ''}`)}
+  let h = `<div class="nfe-atalho"><button type="button" class="btn" data-ir-aba="emitir">${IC.emitir} Emitir nota (o sistema de notas, aqui dentro)</button></div><div class="grade">${kpi('Em notas fiscais', brl(N.nf), `${int(N.n)} ${N.n === 1 ? 'nota emitida' : 'notas emitidas'}${N.cx > 0 ? ' · ' + pct(N.nf / N.cx * 100) + ' do caixa' : ''}`)}
     ${kpi('No caixa', brl(N.cx), 'o recebido no período (já sem o devolvido)')}
     ${kpi(dif >= 0 ? 'Sem nota' : 'Notas acima do caixa', brl(Math.abs(dif)), dif >= 0 ? 'o que entrou no caixa e não tem nota' : 'notas de vendas pagas em outro dia, por exemplo')}
     ${kpi('Canceladas', int(N.cn), N.cn ? `${brl(N.cv)} · não contam no faturamento em notas` : 'nenhuma nota cancelada', N.cn ? 'alerta' : '')}</div>`;

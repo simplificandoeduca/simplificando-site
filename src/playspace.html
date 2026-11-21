@@ -100,12 +100,24 @@ body.quieto .mp-esp i { animation: none; }
   .hoje .painel.recepcao { flex: 1; }
   .hoje .painel .oficina { padding: 8px 12px; }
 }
-.barra { position: fixed; z-index: 20; left: 0; right: 0; bottom: 0; padding: 8px max(8px, env(safe-area-inset-right, 0px)) max(10px, env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px)); background: var(--vidro); border-top: 1px solid var(--vidro-borda); backdrop-filter: blur(20px); display: flex; justify-content: space-around; }
-.barra button { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10.5px; font-weight: 700; color: var(--tinta-2); padding: 6px 4px; border-radius: 14px; position: relative; flex: 1; max-width: 86px; }
-.barra button[aria-current] { color: var(--tinta); background: var(--menta); }
+/* 1.75: no celular, a barra de baixo como a do Instagram ("os ícones igual do Instagram, lá de baixo"): uma cápsula de vidro que flutua
+   acima da borda, só com os ícones (o nome fica escondido, para o leitor de tela), o item aberto numa pílula clara que desliza (FX, no fim do
+   script) e o número numa bolinha vermelha em cima do ícone */
+.barra { --pilula: rgba(59, 59, 59, .08); position: fixed; z-index: 20; left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px)); bottom: max(12px, env(safe-area-inset-bottom, 0px)); max-width: 520px; margin: 0 auto; height: 62px; padding: 6px; border-radius: 31px; background: var(--vidro); border: 1px solid var(--vidro-borda); box-shadow: 0 14px 34px rgba(59, 59, 59, .16), 0 2px 6px rgba(59, 59, 59, .06), inset 0 1px 0 rgba(255, 255, 255, .55); backdrop-filter: blur(22px) saturate(1.7); -webkit-backdrop-filter: blur(22px) saturate(1.7); display: flex; justify-content: space-between; gap: 2px; }
+.barra button { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; height: 100%; border-radius: 25px; color: var(--tinta); position: relative; z-index: 1; -webkit-tap-highlight-color: transparent; }
+.barra button svg { width: 26px; height: 26px; stroke-width: 1.9; transition: transform .2s var(--spring); }
+.barra button:active svg { transform: scale(.86); }
+.barra button[aria-current] { background: var(--pilula); }
+.barra button[aria-current] svg { stroke-width: 2.6; }
 .barra button.alerta { color: var(--coral); }
+.barra .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
 @keyframes pulsa-ab { 0% { box-shadow: 0 0 0 0 rgba(226, 91, 63, .5); } 70%, 100% { box-shadow: 0 0 0 12px rgba(226, 91, 63, 0); } }
-.barra button b { position: absolute; top: 1px; right: calc(50% - 22px); min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--coral); color: #fff; font-size: 10px; display: flex; align-items: center; justify-content: center; }
+.barra button b { position: absolute; top: 2px; left: calc(50% + 3px); min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: var(--coral); color: #fff; font-size: 11px; font-weight: 800; font-family: var(--display); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px var(--card); }
+.barra .fx-pilula { position: absolute; left: 0; top: 0; width: var(--w, 50px); height: var(--h, 50px); border-radius: 25px; background: var(--pilula); transform: translate(var(--x, 0px), var(--y, 0px)); pointer-events: none; z-index: 0; }
+.barra .fx-pilula.anda { transition: transform .45s cubic-bezier(.3, 1.25, .5, 1), width .45s ease; }
+.barra.fx-tem button[aria-current] { background: transparent; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .barra { --pilula: rgba(255, 255, 255, .12); box-shadow: 0 14px 34px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .08); } }
+:root[data-theme="dark"] .barra { --pilula: rgba(255, 255, 255, .12); box-shadow: 0 14px 34px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .08); }
 .fab { position: fixed; z-index: 21; right: max(18px, env(safe-area-inset-right, 0px)); bottom: calc(88px + env(safe-area-inset-bottom, 0px)); width: 58px; height: 58px; border-radius: 20px; background: var(--coral); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 12px 28px rgba(226, 91, 63, .35); }
 .fab-ancora { display: contents; }
 @media (min-width: 820px) {
@@ -425,6 +437,7 @@ span.av.g { font-size: 22px; } .simul span.av { font-size: 15px; }
 .oficina .corpo { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; text-align: left; padding: 2px 0; }
 .oficina .check { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--borda-2); color: transparent; display: flex; align-items: center; justify-content: center; flex: none; transition: background .25s, border-color .25s, color .25s, transform .35s var(--spring); }
 .oficina .check:hover { border-color: var(--ok); }
+.oficina span.check:hover { border-color: var(--borda-2); } .oficina.feita span.check:hover { border-color: var(--ok); }   /* 1.76: quem não é gestor só vê */
 .oficina.feita .check { background: var(--ok); border-color: var(--ok); color: #fff; animation: pop-check .45s var(--spring); }
 .oficina.feita { opacity: .7; }
 .oficina.feita .txt b { text-decoration: line-through; text-decoration-thickness: 2px; text-decoration-color: var(--ok); color: var(--tinta-2); }
@@ -1577,6 +1590,52 @@ body.quieto .a-card, body.quieto .conv, body.quieto .oficina, body.quieto .tiles
 .seg button[aria-pressed="true"] { background: var(--card); color: var(--tinta); box-shadow: 0 2px 8px rgba(0, 0, 0, .08); }
 .seg button:active { transform: scale(.96); }
 .explica { font-size: 13px; color: var(--tinta-2); line-height: 1.45; }
+/* 1.77: os foguetes da venda de pacote grande (pacote de 10 horas ou mais) e o lembrete de pedir a avaliação no fim do atendimento */
+.fog { position: fixed; inset: 0; z-index: 90; pointer-events: none; overflow: hidden; transition: opacity .5s; }
+.fog.sai { opacity: 0; }
+.fog-r { position: absolute; z-index: 1; bottom: -80px; width: 34px; animation: fog-sobe 1.1s cubic-bezier(.35, .1, .45, 1) both; }
+.fog-r::after { content: ''; position: absolute; left: 50%; top: 92%; width: 5px; height: 90px; transform: translateX(-50%); border-radius: 3px; background: linear-gradient(rgba(255, 181, 71, .75), rgba(255, 181, 71, 0)); }
+.fog-r svg { display: block; width: 34px; height: 61px; }
+@keyframes fog-sobe { 0% { transform: translate(-50%, 0) scale(.85); opacity: 0; } 8% { opacity: 1; } 90% { opacity: 1; } 100% { transform: translate(-50%, calc(-1 * var(--alto))) scale(1); opacity: 0; } }
+.fog-chama { transform-box: fill-box; transform-origin: 50% 0; animation: fog-chama .11s ease-in-out infinite alternate; }
+@keyframes fog-chama { from { transform: scaleY(.75); } to { transform: scaleY(1.2); } }
+.fog-f { position: absolute; width: 8px; height: 8px; margin: -4px; border-radius: 50%; animation: fog-estoura .95s cubic-bezier(.2, .7, .3, 1) forwards; }
+.fog-f.tira { width: 4px; height: 12px; margin: -6px -2px; border-radius: 2px; }
+@keyframes fog-estoura { 0% { transform: translate(0, 0) scale(1.3); opacity: 1; } 70% { opacity: 1; } 100% { transform: translate(var(--dx), calc(var(--dy) + 36px)) scale(.4) rotate(160deg); opacity: 0; } }
+.fog-msg { position: absolute; z-index: 2; left: 50%; top: 36%; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 14px; padding: 16px 26px 16px 18px; border-radius: 26px; background: var(--card); color: var(--tinta); box-shadow: 0 24px 60px rgba(59, 59, 59, .28); animation: fog-msg .6s var(--spring) both; white-space: nowrap; }
+.fog-msg svg { width: 30px; height: 54px; transform: rotate(28deg); flex: none; }
+.fog-msg b { display: block; font-family: var(--display); font-size: 24px; line-height: 1.15; } .fog-msg small { display: block; color: var(--tinta-2); font-weight: 700; font-size: 14px; margin-top: 2px; }
+@keyframes fog-msg { from { opacity: 0; transform: translate(-50%, -38%) scale(.75); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+:root[data-anim="leve"] .fog-msg { animation: none; }
+.aval { position: fixed; inset: 0; z-index: 85; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(34, 30, 27, 0); transition: background .3s; pointer-events: none; }   /* não trava a tela: só o cartão pega o toque */
+.aval.on { background: rgba(34, 30, 27, .18); } .aval.sai { background: rgba(34, 30, 27, 0); }
+.aval-card { pointer-events: auto; width: min(420px, 100%); padding: 26px 26px 22px; border-radius: 30px; background: var(--card); color: var(--tinta); text-align: center; box-shadow: 0 30px 70px rgba(59, 59, 59, .3); transform: translateY(16px) scale(.94); opacity: 0; transition: transform .45s var(--spring), opacity .3s; }
+.aval.on .aval-card { transform: none; opacity: 1; } .aval.sai .aval-card { transform: translateY(10px) scale(.96); opacity: 0; }
+.aval-est { font-size: 30px; letter-spacing: 6px; color: #F2B33D; } .aval-est i { font-style: normal; display: inline-block; animation: aval-est .5s var(--spring) both; }
+@keyframes aval-est { from { transform: scale(0) rotate(-40deg); opacity: 0; } to { transform: none; opacity: 1; } }
+:root[data-anim="leve"] .aval-est i { animation: none; }
+.aval-card b { display: block; font-family: var(--display); font-size: 24px; margin: 6px 0 8px; } .aval-card p { margin: 0 0 18px; color: var(--tinta-2); line-height: 1.45; }
+.aval-card .bt { min-width: 160px; justify-content: center; }
+/* 1.79: o pedido em foco (o gestor abre pelo aviso do celular: o pedido é a primeira coisa, com o X vermelho e o ✓ verde) */
+.foco { position: fixed; inset: 0; z-index: 88; display: flex; align-items: center; justify-content: center; padding: max(16px, env(safe-area-inset-top, 0px)) 16px max(16px, env(safe-area-inset-bottom, 0px)); background: rgba(34, 30, 27, .55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); animation: foco-fundo .25s ease both; }
+@keyframes foco-fundo { from { opacity: 0; } to { opacity: 1; } }
+.foco-card { width: min(440px, 100%); max-height: 100%; overflow: auto; padding: 22px 22px 18px; border-radius: 32px; background: var(--card); color: var(--tinta); box-shadow: 0 30px 80px rgba(0, 0, 0, .35); text-align: center; animation: foco-card .45s var(--spring) both; }
+@keyframes foco-card { from { opacity: 0; transform: translateY(24px) scale(.94); } to { opacity: 1; transform: none; } }
+.foco-cab { display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--coral); font-weight: 800; font-size: 14px; text-transform: uppercase; letter-spacing: .04em; }
+.foco-n { margin-left: 4px; padding: 2px 9px; border-radius: 99px; background: var(--coral-2); color: var(--coral); font-size: 12px; }
+.foco-quem { display: block; margin: 14px 0 6px; color: var(--tinta-2); font-weight: 700; font-size: 14px; }
+.foco-o { margin: 0; font-family: var(--display); font-size: 26px; line-height: 1.2; }
+.foco-cli { margin: 8px 0 0; font-weight: 700; font-size: 16px; }
+.foco-mot { margin: 10px 0 0; padding: 10px 12px; border-radius: 14px; background: var(--creme-2); color: var(--tinta-2); font-size: 15px; }
+.foco-mot b { color: var(--tinta); }
+.foco-bts { display: flex; justify-content: center; gap: 44px; margin: 26px 0 6px; }
+.foco-b { width: 92px; height: 92px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; box-shadow: 0 14px 30px rgba(0, 0, 0, .22); transition: transform .15s var(--spring); }
+.foco-b:active { transform: scale(.9); } .foco-b:disabled { opacity: .55; }
+.foco-b.nao { background: #E5484D; } .foco-b.sim { background: #2FA36B; }
+.foco-b svg { width: 46px; height: 46px; }
+.foco-rot { display: flex; justify-content: center; gap: 44px; color: var(--tinta-2); font-weight: 700; font-size: 13px; } .foco-rot span { width: 92px; }
+.foco-depois { margin-top: 16px; color: var(--tinta-2); font-weight: 700; text-decoration: underline; }
+:root[data-anim="leve"] .foco, :root[data-anim="leve"] .foco-card { animation: none; }
 .sobe { animation: sobe .4s var(--ios); }
 /* 1.74: as animações das Finanças também no sistema (FX, no fim do script): a tela nova entra desfocada e fica nítida, um bloco depois do
    outro; as barras do gráfico crescem; as barrinhas das linhas enchem; o quadrado do item aberto desliza no trilho; o quadro do número sobe
@@ -1784,7 +1843,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.74';
+const VERSAO = '1.79';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -3047,6 +3106,7 @@ async function saidaServidor(c, corr, pag, papel, dsc, av) {
     const txt = `${c.nome} saiu${corr ? ' às ' + corr.quando : ''} · ${tempoSaidaTxt(+r.debitado || 0, r.atraso, r.plano)}${pd > 0 ? ' · ' + (r.pago ? 'recebido ' + brl(centavos(pd + at - dz)) + ' (' + r.pago + ')' : brl(centavos(pd + at - dz)) + ' a receber') : at ? ' · ' + brl(centavos(at - dz)) + (r.pago ? ' recebido (' + r.pago + ')' : ' a receber') : ''}${dz > 0 ? ' · desconto de ' + brl(dz) : ''}${r.sapateira ? ' · sapato na sapateira ' + r.sapateira : ''}`;
     if (corr || r.offline || (r.pag_de != null && !podeEstornar())) deuCerto(txt); else deuCerto(txt, async () => { try { await api('desfazer_saida', { id: c.id, visita: r.visita, registro: r.registro, mensagem: r.mensagem ? r.mensagem.id : 0, sapateira: r.sapateira || 0, ...(r.pag_de != null ? { pag_de: r.pag_de, pag_registro: r.pag_registro || 0 } : {}), ...(r.desc ? { desc: r.desc } : {}), ...(r.avulso ? { avulso: r.avulso } : {}) }); await carregar(); } catch (e) { toast(e.message); } desenhar(); });
     if (r.avulso && r.avulso.venda && papel) papel.venda = r.avulso.venda;
+    if (!c.festa && !corr) fimCliente(c);   /* 1.77: o lembrete de pedir a avaliação */
     if (r.cupom) folhaCupom(r.cupom, true); else papelDepois(papel); }   // 1.06: o cupom da saída sai sempre, para o responsável assinar
   catch (e) { toast(e.message); if (e.status === 409) { try { await carregar(); } catch (e2) { } desenhar(true); atualizarSaida(); }   // 1.15: o valor mudou (nasceu mais um período): a folha mostra a conta nova, e é só confirmar de novo
     const b = $('#s-ok'); if (b) b.disabled = false; }
@@ -3498,7 +3558,8 @@ function desenharFestaVer() {
     ${!L ? `<p class="explica${FV.erro ? ' erro' : ''}">${FV.erro ? esc(FV.erro) : 'Carregando…'}</p>` : !L.length ? `<p class="explica">${f.data > hj ? 'A festa ainda não chegou.' : 'Ninguém entrou nesta festa.'} No dia, cada criança entra pelo atendimento: <b>Entrar na festa</b>.</p>`
       : `<div class="fv-lista">${L.map((x, i) => `<div class="fv-it${x.a_mais ? ' amais' : ''}"><span class="n num">${x.papel === 'aniversariante' ? '★' : i + 1 - nAniv}</span><span class="txt"><b>${esc(x.nome)}${x.idade ? ', ' + anosTxt(x.idade) : ''}${x.papel === 'aniversariante' ? ' <em class="tag-an">aniversariante</em>' : ''}${x.a_mais ? ' <em class="tag-am">a mais</em>' : ''}</b><span>${esc(x.resp || '—')}${fonesDe(x) ? ' · ' + esc(fonesDe(x)) : ''}</span></span><span class="q num">${x.quando ? hora(x.quando) : ''}${x.dentro ? '<small>no espaço</small>' : ''}</span></div>`).join('')}</div>
         <p class="explica fv-priv">A lista tem o nome e o telefone de outras famílias: mande só para o responsável do aniversariante.</p>`}
-    <details class="outro fv-mudar"><summary>Mudar o tema, o horário${pode ? ', o dia' : ''}${dois ? ' ou a unidade' : ''}</summary>
+    ${gestor() ? '' : `<p class="explica fv-so-gestor">Para mudar o tema, o horário, o dia ou a unidade desta festa, fale com o gestor.</p>`}
+    <details class="outro fv-mudar"${gestor() ? '' : ' hidden'}><summary>Mudar o tema, o horário${pode ? ', o dia' : ''}${dois ? ' ou a unidade' : ''}</summary>
       <div class="fv-form"><div class="dois"><div class="campo"><label for="fv-tema">Tema</label><input id="fv-tema" value="${esc(f.tema)}" maxlength="60" autocomplete="off" placeholder="Sem tema"></div>${f.dia === 'semana' ? `<div class="campo"><label for="fv-hora">Começa às</label><input id="fv-hora" inputmode="numeric" maxlength="5" value="${esc(f.hora)}" placeholder="15:00" autocomplete="off"></div>` : `<div class="campo"><label>Horário</label><p class="explica">${FESTA_HORA_FDS} (festa de final de semana)</p></div>`}</div>
         ${pode ? `<div class="campo"><label for="fv-data">Dia</label><input id="fv-data" inputmode="numeric" maxlength="10" value="${esc(nascBR(f.data))}" placeholder="dd/mm/aaaa" autocomplete="off"><span class="explica">${gestor() ? 'Você é o gestor: muda para qualquer dia. Se passar de semana para final de semana (ou o contrário), o tipo da festa muda junto e o valor da venda não muda.' : f.dia === 'fds' ? 'Festa de final de semana: só para sábado ou domingo.' : 'Festa de semana: só para outro dia de semana.'}</span></div>` : ''}
         ${dois ? `<div class="campo"><label>Unidade</label><div class="seg" id="fv-uni">${unidades().map(u => `<button type="button" data-act="fv-uni" data-v="${u.id}" aria-pressed="${+f.uni === u.id}">${esc(u.nome)}</button>`).join('')}</div></div>` : ''}
@@ -3508,7 +3569,7 @@ function desenharFestaVer() {
       <div class="campo"><label for="fv-canc-m">Motivo</label><input id="fv-canc-m" maxlength="120" autocomplete="off" placeholder="Por que a festa foi cancelada"></div>
       <button type="button" class="bt canc-bt largo tap" data-act="fv-cancelar" data-id="${f.id}">${ic(IC.x)} Cancelar a festa</button></div></details>` : ''}`;
 }
-async function salvarFestaVer() { const f = FV && festaPorId(FV.id); if (!f) return; const ti = $('#fv-tema'), ho = $('#fv-hora'), dt = $('#fv-data'), ub = $('#fv-uni [aria-pressed="true"]');
+async function salvarFestaVer() { const f = FV && festaPorId(FV.id); if (!f) return; if (!gestor()) { toast('Só o gestor muda a festa marcada.'); return; }   /* 1.76 */ const ti = $('#fv-tema'), ho = $('#fv-hora'), dt = $('#fv-data'), ub = $('#fv-uni [aria-pressed="true"]');
   const novo = { tema: ti ? MAI(ti.value) : f.tema, hora: ho ? ho.value.trim() : f.hora, uni: ub ? +ub.dataset.v : f.uni }; let data = f.data;
   if (dt && dt.value.trim() !== nascBR(f.data)) { const x = festaDataDoCampo(dt.value); if (x.erro || !x.iso) { toast(x.erro || 'Escreva o dia da festa'); dt.focus(); return; } data = x.iso; }
   if (f.dia === 'semana' && novo.hora && !/^([01]?\d|2[0-3])[:h][0-5]\d$/.test(novo.hora)) { toast('Escreva o horário da festa assim: 15:00'); ho.focus(); return; }
@@ -4059,7 +4120,7 @@ async function registrarAtendimento(id, mesmoAssim, pag, depois) { // mesmoAssim
   if (MODO === 'servidor') {
     const bt = $('#v-ok'), bp = $('#p-ok'), bd = $('#p-depois'); if (bt) bt.disabled = true; if (bp) bp.disabled = true; if (bd) bd.disabled = true;
     try { const o = L.find(l => l.outro), r = await apiOff('atender', { id, ...(precisaVend(L) && CARRINHO.vend ? { vendedora: CARRINHO.vend } : {}), ...(festa && PAG && PAG.onde === 'venda' && PAG.id === id && PAG.parc && (pag || []).some(p => p.f === 'credito') ? { parcelas: PAG.parc, ...(PAG.parcLib ? { parc_ped: PAG.parcLib.id } : {}) } : {}), linhas: L.filter(l => l.s).map(l => ({ s: l.s, q: l.q, vt: l.vt })), pacotes: L.filter(l => l.pac != null).map(l => ({ h: l.ph, tipo: l.ptipo, v: l.vTab != null ? l.vTab : l.v, nome: l.pnome, ...(l.alt ? { alt: l.alt } : {}) })), produtos: L.filter(l => l.prod).map(l => ({ p: l.prod, q: l.q, v: l.pv, ...(l.alt ? { alt: l.alt } : {}) })), outro: o ? { n: o.servico, v: o.v } : null, voucher: vou ? true : null, entrar, visto: (CARRINHO && CARRINHO.visto) || 0, mesmo_assim: !!mesmoAssim, pagamento: pag && pag.length ? pag : null, depois: !!depois && !(pag && pag.length), ...(devL.length ? { carrinho_depois: true } : {}), ...(dsc ? { desconto: dsc } : {}), ...(festa ? { festa: festaEnvio(CARRINHO.festa) } : {}) }, { L: L.map(l => ({ n: nomeLinha(l), v: l.v || 0, min: l.min || 0, tempo: !!l.s && (x => !!x && ehTempo(x))(servicoDe(l.s)) })) });   // 1.40: sem internet, fica na fila
-      await carregar(); if (festa) ETAPA_FEITA = true; else atendimentoFeito(id); fecharFolha(); desenhar(); const k = crianca(id); deuCertoOu(atencaoVoucher(r.voucher, nome), avisoVoucher(r.voucher, nome) + aviso + (r.entrada ? ' · entrou' + (k && k.entrou ? ', ' + entrouTxt(k) : '') : ''), (cheio > 0 && !podeEstornar()) || r.offline ? null : marcaAtd(async () => { voltarRascunho(id, rasc); largarSapEntrada(id); try { if (r.entrada) await api('desfazer_entrada', { id, registro: r.entrada.registro, mensagem: r.entrada.mensagem, atendente: ATD_NOME }); await api('desfazer_venda', { vendas: r.vendas, registros: r.registros, atendente: ATD_NOME }); await carregar(); } catch (e) { DESFAZ_ERRO = e.message; toast(e.message); } desenhar(); }, !podeEstornar() && (!!r.entrada || abertos.length > 0), r.entrada ? `Desfazer a entrada de ${nome}` : `Desfazer a saída de ${juntar(abertos.map(nomeQ))}`)); VOLTA_SAIDA = 0;
+      await carregar(); if (festa) ETAPA_FEITA = true; else atendimentoFeito(id); fecharFolha(); desenhar(); celebrarPacote(L, c); const k = crianca(id); deuCertoOu(atencaoVoucher(r.voucher, nome), avisoVoucher(r.voucher, nome) + aviso + (r.entrada ? ' · entrou' + (k && k.entrou ? ', ' + entrouTxt(k) : '') : ''), (cheio > 0 && !podeEstornar()) || r.offline ? null : marcaAtd(async () => { voltarRascunho(id, rasc); largarSapEntrada(id); try { if (r.entrada) await api('desfazer_entrada', { id, registro: r.entrada.registro, mensagem: r.entrada.mensagem, atendente: ATD_NOME }); await api('desfazer_venda', { vendas: r.vendas, registros: r.registros, atendente: ATD_NOME }); await carregar(); } catch (e) { DESFAZ_ERRO = e.message; toast(e.message); } desenhar(); }, !podeEstornar() && (!!r.entrada || abertos.length > 0), r.entrada ? `Desfazer a entrada de ${nome}` : `Desfazer a saída de ${juntar(abertos.map(nomeQ))}`)); VOLTA_SAIDA = 0;
       const specV = volta && depois && !(pag && pag.length) ? null : { tipo: 'entrada', id, itens: L.map(l => devL.includes(l) ? { ...linhaPapel(l), aberto: true, dev: l.v } : linhaPapel(l)), formas: pag || [], depois: !!depois && !(pag && pag.length), desc: dsc ? dsc.valor : 0, venda: (r.vendas || [])[0] || 0, festa, ped: pedP }, cupomV = q => cupomDaVenda(id, r.cupom, specV, volta, q);
       if (r.entrada) pedirSapateira(id, cupomV); else cupomV(false); }   /* 1.16: entrou junto com a venda: primeiro a sapateira, depois o cupom */   // 0.94: registrou, o cupom sai para o responsável assinar
     catch (e) { if (bt) bt.disabled = false; if (bp) bp.disabled = false; if (bd) bd.disabled = false; if (e.status === 409) toast(e.message, () => registrarAtendimento(id, true, pag, depois), 'Registrar mesmo assim'); else toast(e.message); }   // 409: outro aparelho já registrou uma venda para esta criança
@@ -4088,7 +4149,7 @@ async function registrarAtendimento(id, mesmoAssim, pag, depois) { // mesmoAssim
   let desfazEntrada = null;
   if (entrar && !c.entrou) { c.entrou = new Date(); c.uni = minhaUni() || null; c.atraso = null; registrar('ent', c.nome, 'Entrada registrada'); const regE = S.registros[0], pacE = c.pacote, vendaE = c.venda; acertarDemo(c, true);   // 1.15: entra com ou sem tempo comprado; sem ele, o primeiro período da recreação avulsa nasce aqui
     desfazEntrada = () => { const ini = c.entrou, autos = S.compras.filter(v => v.crianca === c.id && v.auto && ini && v.quando >= ini); largarSapEntrada(c.id); S.compras = S.compras.filter(v => !autos.includes(v)); c.entrou = null; c.sapateira = null; c.atraso = null; c.pacote = pacE; c.venda = vendaE; if (podeEstornar()) S.registros = S.registros.filter(x => x !== regE); else desfeitaPrevia(c, ini, autos); }; }
-  if (festa) ETAPA_FEITA = true; else atendimentoFeito(id); fecharFolha(); desenhar();
+  if (festa) ETAPA_FEITA = true; else atendimentoFeito(id); fecharFolha(); desenhar(); celebrarPacote(L, c);   /* 1.77 */
   deuCertoOu(atencaoVoucher(vou ? { n: nV, cobriu: coberta ? { valor: coberta.v } : null } : null, nome), avisoVoucher(vou ? { n: nV, cobriu: coberta ? { valor: coberta.v } : null } : null, nome) + aviso + (desfazEntrada ? ' · entrou, ' + entrouTxt(c) : ''), cheio > 0 && !podeEstornar() ? null : marcaAtd(() => { voltarRascunho(id, rasc); if (desfazEntrada) desfazEntrada(); Object.assign(c, era); const ficam = podeEstornar() ? [] : saidasDesfeitasPrevia(c, novas); if (coberta) { S.compras.push(coberta); if (coberta.reg) coberta.reg.txt = coberta.reg.txt.replace(' · coberta pelo voucher', ''); c.atraso = eraAtraso; } for (const x of novas) if (x.prod) { const p = produto(x.prod); if (p && p.est != null) p.est += x.qtd; } S.compras = S.compras.filter(x => !novas.includes(x)); S.registros = S.registros.filter(x => !regs.includes(x) || ficam.includes(x)); S.pagamentos = (S.pagamentos || []).filter(x => !pagos.includes(x)); }, !podeEstornar() && (!!desfazEntrada || abertos.length > 0), desfazEntrada ? `Desfazer a entrada de ${nome}` : `Desfazer a saída de ${juntar(abertos.map(nomeQ))}`));
   VOLTA_SAIDA = 0;   // 0.94: registrou, o cupom sai para o responsável assinar (1.16: se entrou junto, primeiro a sapateira)
   const specV = volta && depois && !(pag && pag.length) ? null : { tipo: 'entrada', id, itens: L.map(l => devL.includes(l) ? { ...linhaPapel(l), aberto: true, dev: l.v } : linhaPapel(l)), formas: pag || [], depois: !!depois && !(pag && pag.length), desc: dsc ? dsc.valor : 0, venda: novas.length ? novas[0].id : 0, festa, ped: pedP }, cupomV = q => cupomDaVenda(id, cupomId, specV, volta, q);
@@ -4159,6 +4220,7 @@ function saida(c, origem = 'iDFace', corr = null, pag = null, papel = null, dsc 
   let quietoR = null; const avisa = quieto ? (t, f) => { quietoR = { txt: t, desfaz: f }; } : deuCerto;
   avisa(`${c.nome} saiu${naFesta ? ' da festa' : ''}${corr ? ' às ' + hora(fim) : ''} · ${naFesta ? 'ficou ' + dur(Math.floor(min)) : tempoSaidaTxt(deb, atraso, plano)}${pend > 0 ? ' · ' + (pago ? 'recebido ' + brl(recebido) + ' (' + pago + ')' : brl(recebido) + ' a receber') : atraso.n ? ' · ' + brl(centavos(atraso.valor - dz)) + (pago ? ' recebido (' + pago + ')' : ' a receber') : ''}${dz > 0 ? ' · desconto de ' + brl(dz) : ''}${sap ? ' · sapato na sapateira ' + sap : ''}`,
     pago && !podeEstornar() ? null : () => { for (const [v, vv, d, m] of descs) { v.v = vv; v.desc = d; v.descMotivo = m; } S.pagamentos = era.pags; Object.assign(c, { pacote: era.pacote, usado: era.usado, liberado: era.liberado, atraso: era.atraso, venda: era.venda, visitas: era.visitas, entrou: entrouEm, sapateira: sap && !donoSap(sap) ? sap : null, festa: era.festa || null, festaPapel: era.festaPapel || null }); S.compras = era.compras; S.registros = era.regs; });
+  if (!quieto && !naFesta && !corr) fimCliente(c);   /* 1.77 */
   return quieto ? { cupomId, deb, a: atraso, plano, venda: vAv, ...quietoR } : cupomId;
 }
 /* ---------- 0.94: o cupom impresso (Bematech MP-4200 TH, papel de 80 mm) ---------- */
@@ -4788,7 +4850,7 @@ async function confirmarGrupo(el) {
       if (!feitas.length && !devs.length) { toast(e.message); desenhar(true); atualizarGrupo(); const b = $('#sg-ok'); if (b) b.disabled = false; return; }
       const faltam = [...P.slice(feitas.length).map(x => 'a saída de ' + x.c.nome), ...Q.slice(devs.length).map(y => 'a devolução de ' + alugNome(y.a))], falta = faltam.length === 1 && feitas.length < P.length ? `A saída de ${P[feitas.length].c.nome} não foi dada` : `Não foi feito: ${juntar(faltam)}`;
       fecharFolha(); desenhar(); toast(`${[feitas.length ? `${juntar(feitas.map(f => f.x.c.nome))} ${feitas.length === 1 ? 'saiu' : 'saíram'}` : '', devTxt(devs.map(d => d.y))].filter(Boolean).join(' · ')}. ${falta}: ${e.message}`); papelDepois(papelDe(feitas.map(f => f.x), devs.map(d => d.y))); return; }
-    await carregar(); fecharFolha(); desenhar();
+    await carregar(); fecharFolha(); desenhar(); if (!P.some(x => x.c.festa)) fimCliente((P[0] || Q[0] || {}).c);   /* 1.77 */
     const saps = feitas.map(f => f.r.sapateira).filter(Boolean), trava = !podeEstornar() && (feitas.some(f => f.r.pag_de != null) || devs.some(d => d.r.pag_de != null || d.r.extra || d.r.aberto));
     deuCerto(`${[P.length ? `${juntar(nomes)} ${verbo} · ${tempoSaidaGrupo(feitas.map(f => ({ deb: +f.r.debitado || 0, a: f.r.atraso, plano: f.r.plano })))}` : '', devTxt(Q)].filter(Boolean).join(' · ')}${recebeu}${desconto}${saps.length ? ' · ' + (saps.length === 1 ? 'sapato na sapateira ' : 'sapatos nas sapateiras ') + juntar(saps.map(String)) : ''}`,
       trava || feitas.some(f => f.r.offline) ? null : async () => { try { for (const d of devs.slice().reverse()) await api('devolver', { crianca: d.y.a.crianca, voltar: true, vendas: d.r.vendas, registro: d.r.registro, extra: d.r.extra || 0, registros: d.r.registros || [], ...(d.r.pag_de != null ? { pag_de: d.r.pag_de } : {}), ...(d.r.aberto ? { aberto: d.r.aberto } : {}) });   // primeiro as devoluções (o pagamento delas é o mais novo)
@@ -4798,7 +4860,7 @@ async function confirmarGrupo(el) {
     return; }
   const saps = P.map(x => x.c.sapateira).filter(Boolean), R = P.map(x => saida(x.c, 'mão', null, x.pag.length ? x.pag : null, null, x.dsc, true, !!x.k.av)).filter(Boolean);   // (prévia) cada criança sai, sem o aviso de cada uma
   const RD = Q.map(y => devolverQuieto(y.c, y.a, y, y.pag));   // 1.25 (prévia): e cada carrinho volta
-  fecharFolha(); desenhar(); { const va = R.find(x => x.venda); if (va) papel.venda = va.venda; }
+  fecharFolha(); desenhar(); { const va = R.find(x => x.venda); if (va) papel.venda = va.venda; } if (!P.some(x => x.c.festa)) fimCliente((P[0] || Q[0] || {}).c);   /* 1.77 */
   deuCerto(`${[P.length ? `${juntar(nomes)} ${verbo} · ${tempoSaidaGrupo(R.map(x => ({ deb: x.deb || 0, a: x.a, plano: x.plano })))}` : '', devTxt(Q)].filter(Boolean).join(' · ')}${recebeu}${desconto}${saps.length ? ' · ' + (saps.length === 1 ? 'sapato na sapateira ' : 'sapatos nas sapateiras ') + juntar(saps.map(String)) : ''}`,
     R.some(x => !x.desfaz) || RD.some(d => !d.desfaz) ? null : () => { for (const d of RD.slice().reverse()) d.desfaz(); for (const x of R.slice().reverse()) x.desfaz(); });   // primeiro as devoluções
   const cup = R.map(x => x.cupomId).filter(Boolean); if (cup.length === 1) folhaCupom(cup[0], true); else if (cup.length) folhaCupons(); else papelDepois(papel);
@@ -4945,7 +5007,7 @@ function nav() {
   if (ladoHtml !== NAV_CACHE || (!lado.firstChild && !document.body.classList.contains('so'))) {   // só mexe no trilho quando algo nele mudou (ou quando ele foi esvaziado na tela de entrada); o foco do teclado e a rolagem do menu ficam onde estavam
     const ae = document.activeElement, q = ae && lado.contains(ae) ? ['act', 'ir', 's', 'f', 'g'].map(a => ae.dataset[a] === undefined ? '' : `[data-${a}="${CSS.escape(ae.dataset[a])}"]`).join('') : '', rola = lado.scrollTop;
     lado.innerHTML = ladoHtml; NAV_CACHE = ladoHtml; lado.scrollTop = rola; if (q) { const n = lado.querySelector(q); if (n) n.focus({ preventScroll: true }); } }
-  $('#nav-baixo').innerHTML = ABAS.map(([k, t, i]) => `<button class="${alerta(k)}" data-ir="${k}" ${S.tela === k ? 'aria-current="page"' : ''}>${ic(IC[i], 21)}${t}${badge(k)}</button>`).join('') + (ABAS.some(a => a[0] === 'ajustes') ? '' : `<button data-act="conta">${ic(IC.rosto, 21)}Conta</button>`);
+  $('#nav-baixo').innerHTML = ABAS.map(([k, t, i]) => `<button class="${alerta(k)}" data-ir="${k}" ${S.tela === k ? 'aria-current="page"' : ''}>${ic(IC[i], 26)}<span class="vh">${t}</span>${badge(k)}</button>`).join('') + (ABAS.some(a => a[0] === 'ajustes') ? '' : `<button data-act="conta">${ic(IC.rosto, 26)}<span class="vh">Conta</span></button>`);   /* 1.75: só os ícones (o nome escondido, para o leitor de tela) */
 }
 let toastT, DESFAZ = null, NAV_CACHE = '';
 let TOAST_ACAO = null;
@@ -5304,7 +5366,7 @@ async function devolverJa(c, a, pag) {
   const pago = pag && pag.length ? ` · recebido ${brl(pag.reduce((s, p) => s + p.v, 0))} ${pag.length === 1 ? naForma(pag[0].f) : 'em ' + pag.length + ' formas'}` : '';
   const txt = `${nomeDev} de ${c.nome}: devolvido${alugHoje(a) ? ' · ficou ' + dur(ficou) : ''}${pago || (passou && alugHoje(a) ? ' · passou ' + alugPassou(a) + ' do tempo comprado' : '')}`;
   if (MODO === 'servidor') {
-    try { const r = await api('devolver', { crianca: c.id, s: sv, pagamento: pag && pag.length ? pag : null, ...(kv ? { quantos: kv } : {}) }); await carregar(); refaz();
+    try { const r = await api('devolver', { crianca: c.id, s: sv, pagamento: pag && pag.length ? pag : null, ...(kv ? { quantos: kv } : {}) }); await carregar(); refaz(); fimCliente(c);   /* 1.77 */
       deuCerto(txt, (r.pag_de != null || r.extra || r.aberto) && !podeEstornar() ? null : async () => { try { await api('devolver', { crianca: c.id, voltar: true, vendas: r.vendas, registro: r.registro, extra: r.extra || 0, registros: r.registros || [], ...(r.pag_de != null ? { pag_de: r.pag_de } : {}), ...(r.aberto ? { aberto: r.aberto } : {}) }); await carregar(); } catch (e) { toast(e.message); } desenhar(true); }); papelDepois(papel); }
     catch (e) { try { await carregar(); } catch (e2) { } const ainda = (S.alugueis || []).some(x => x.crianca === c.id && x.s === sv), mudou = e.status === 409 && !!pag && ainda;
       toast(mudou ? 'A conta mudou com a folha aberta. Confira o valor novo e confirme de novo.' : e.message);
@@ -5320,7 +5382,7 @@ async function devolverJa(c, a, pag) {
     if (!xa && DEV.x.valor > 0) { const compra = { id: novoId(), crianca: c.id, h: 0, m: 0, v: DEV.x.valor, servico: a.n, itens: 'tempo a mais · ' + dur(DEV.x.min), quando: new Date(), por: EU.nome };
       S.compras.unshift(compra); novos.push(compra); registrar('venda', c.nome, `${a.n} · tempo a mais · ${dur(DEV.x.min)} · ${brl(DEV.x.valor)}`); regs.push(S.registros[0]); compra.reg = S.registros[0]; }
     pagos = pagarPrevia([...vendas, ...novos], pag); registrar('pag', c.nome, `Pagamento · ${brl(centavos(DEV.x.valor + (DEV.pend || 0)))} · ${textoPag(pag)}`); regs.push(S.registros[0]); }
-  DEV = null; refaz(); deuCerto(txt, (pagos.length || xa) && !podeEstornar() ? null : () => { for (const v of vendas) delete v.voltou; for (const [v, valor, itens] of eram) { v.v = valor; v.itens = itens; } S.compras = S.compras.filter(x => !novos.includes(x)); S.pagamentos = (S.pagamentos || []).filter(x => !pagos.includes(x)); S.registros = S.registros.filter(x => !regs.includes(x)); });
+  DEV = null; refaz(); fimCliente(c); deuCerto(txt, (pagos.length || xa) && !podeEstornar() ? null : () => { for (const v of vendas) delete v.voltou; for (const [v, valor, itens] of eram) { v.v = valor; v.itens = itens; } S.compras = S.compras.filter(x => !novos.includes(x)); S.pagamentos = (S.pagamentos || []).filter(x => !pagos.includes(x)); S.registros = S.registros.filter(x => !regs.includes(x)); });
   papelDepois(papel);
 }
 // 1.25 (prévia): a devolução de um carrinho na conta do responsável: a mesma conta de devolverJa, sem a folha (y = contaCarrinho, pag = a parte dele)
@@ -5830,7 +5892,7 @@ async function pushDesligar() {
 async function pushTestar() {
   try { const s = await pushInscricao(); await api('push_testar', { endpoint: s ? s.endpoint : '' }); deuCerto('Aviso de teste enviado: ele chega em alguns segundos'); } catch (e) { toast(e.message); }
 }
-if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.ps === 'aviso') { if (supervisorOuMais()) trocarTela('aprovar'); else desenhar(); } });   // o toque no aviso com o Play Space aberto
+if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.ps === 'aviso') { if (supervisorOuMais()) trocarTela('aprovar'); else desenhar(); focoPedidos(true); } });   /* 1.79: e o pedido em foco */   // o toque no aviso com o Play Space aberto
 function telaAprovar() {
   return faixa('Aprovações', aprovarSub(), chipAvisos()) + `
   <section class="aprovar">
@@ -5856,7 +5918,7 @@ function telaHoras() {
   <p class="explica pe-inicio"><button class="link tap" data-act="todas">Banco de horas</button><span>quem não está no espaço</span><i></i><button class="link tap" data-act="dia">Hoje na recepção</button><span>entradas, saídas e vendas do dia</span></p>
   `;
 }
-const itemComp = (x, diaRef) => `<div class="oficina ${x.feito ? 'feita' : ''}"><button class="check tap" data-act="comp-feito" data-id="${x.id}" aria-label="${x.feito ? 'Desmarcar' : 'Marcar como feito'}" aria-pressed="${!!x.feito}" title="${x.feito ? 'Feito · toque para desmarcar' : 'Marcar como feito'}">${ic(IC.check, 14, 3)}</button><button class="corpo tap" data-act="comp" data-id="${x.id}"><i style="background:${TIPOS[x.tipo][1]}"></i><div class="txt"><small>${esc(x.sub || TIPOS[x.tipo][0])}</small><b>${esc(x.titulo)}</b></div><span class="q">${x.dia === diaRef ? x.hora : SEMANA[new Date(x.dia + 'T12:00').getDay()].slice(0, 3) + ' ' + +x.dia.slice(8) + ' · ' + x.hora}</span></button></div>`;
+const itemComp = (x, diaRef) => `<div class="oficina ${x.feito ? 'feita' : ''}">${gestor() ? `<button class="check tap" data-act="comp-feito" data-id="${x.id}" aria-label="${x.feito ? 'Desmarcar' : 'Marcar como feito'}" aria-pressed="${!!x.feito}" title="${x.feito ? 'Feito · toque para desmarcar' : 'Marcar como feito'}">${ic(IC.check, 14, 3)}</button>` : `<span class="check" role="img" aria-label="${x.feito ? 'Feito' : 'A fazer'}" title="${x.feito ? 'Feito' : 'A fazer'} · só o gestor marca na agenda">${ic(IC.check, 14, 3)}</span>`}<button class="corpo tap" data-act="comp" data-id="${x.id}"><i style="background:${TIPOS[x.tipo][1]}"></i><div class="txt"><small>${esc(x.sub || TIPOS[x.tipo][0])}</small><b>${esc(x.titulo)}</b></div><span class="q">${x.dia === diaRef ? x.hora : SEMANA[new Date(x.dia + 'T12:00').getDay()].slice(0, 3) + ' ' + +x.dia.slice(8) + ' · ' + x.hora}</span></button></div>`;
 // as atividades da semana (de hoje até daqui a 6 dias), por dia: ficam à vista para a equipe saber o que vem. "Hoje na recepção" continua
 // a um toque: abre pelos cartões do pé da tela inicial (Horas vendidas hoje, Horas usadas hoje, Cobranças por atraso)
 const diasSemana = () => [...Array(7)].map((_, k) => { const d = new Date(agora); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + k); return d; });
@@ -6477,6 +6539,8 @@ function desenharPedidos() { // o cartão fica por cima de tudo (folha aberta, h
   document.title = (L.length + A.length ? `(${L.length + A.length}) ` : '') + TITULO_ABA;
   const novos = [...L.filter(p => !AUT_VISTOS.has(p.id)), ...A.filter(x => !AUT_VISTOS.has('av' + x.id))]; for (const p of L) AUT_VISTOS.add(p.id); for (const x of A) AUT_VISTOS.add('av' + x.id);
   if (novos.length) { AUT_MIN = false; bipe(); }
+  if (L.length && (!foco().ini || (novos.length && innerWidth < 820))) { const forca = !foco().ini && HASH_INICIO === 'aprovar'; foco().ini = true; setTimeout(() => focoPedidos(forca), 350); }   /* 1.79: o pedido em foco */
+  else if (foco().id && !L.some(p => p.id === foco().id)) setTimeout(() => focoPedidos(false), 0);   /* (outro aparelho respondeu) */
   const pn = $('#pn-aprov'); if (pn) { const n = nParaAprovar(), q = $('#pn-n'), q2 = $('#pn-n2'), cx = pn.closest('.pn-aprov-c'); pn.innerHTML = htmlAprovar(); if (q) q.textContent = n || ''; if (q2) q2.textContent = n ? '(' + n + ')' : ''; if (cx) cx.classList.toggle('tem', n > 0); }
   const ap = $('#ap-lista'); if (ap) { ap.innerHTML = htmlAprovarTela(); const s = $('#miolo .faixa .tit small'); if (s) s.textContent = aprovarSub(); }   // 1.25: o painel da gestora mostra os mesmos, na própria tela
   if (typeof nav === 'function' && $('#nav-lado')) nav();   // (o número na aba do painel)
@@ -7507,7 +7571,7 @@ function telaAgenda() {
     <div class="card"><div class="cal-cab"><h2>${MESES[m]} ${y}</h2><div class="nav"><button class="tap" data-act="mes" data-n="-1" aria-label="Mês anterior">${ic(IC.volta, 18)}</button><button class="tap" data-act="mes" data-n="0" aria-label="Hoje" style="width:auto;padding:0 10px;font-weight:800;font-size:13px">Hoje</button><button class="tap" data-act="mes" data-n="1" aria-label="Próximo mês">${ic(IC.vai, 18)}</button></div></div><div class="cal">${cel}</div>
       <div class="acoes" style="gap:12px;font-size:12.5px;color:var(--tinta-2);font-weight:700">${Object.entries(TIPOS).map(([k, [n, cor]]) => `<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:9px;height:9px;border-radius:50%;background:${cor};display:inline-block"></i>${n}</span>`).join('')}</div></div>
     <div class="sec sobe" id="agenda-dia"><div class="sec-cab"><h2><i></i>${S.diaSel === hojeStr ? 'Hoje' : SEMANA[sel.getDay()]}, ${sel.getDate()} de ${MESES[sel.getMonth()]}</h2>${gestor() ? '<button class="link tap" data-act="novo-comp">Marcar neste dia</button>' : ''}</div>
-      ${dDia.length ? dDia.map(x => x.h).join('') : `<div class="card vazio">${ic(IC.agenda, 26)}<b>Dia livre</b><span>Toque em "Marcar neste dia" para criar uma oficina, festa ou compromisso.</span></div>`}
+      ${dDia.length ? dDia.map(x => x.h).join('') : `<div class="card vazio">${ic(IC.agenda, 26)}<b>Dia livre</b><span>${gestor() ? 'Toque em "Marcar neste dia" para criar uma oficina, festa ou compromisso.' : 'Nada marcado. Só o gestor marca compromissos na agenda; a festa do cliente se agenda na venda (Vender festa).'}</span></div>`}
       ${dSem.length ? `<div class="sec-cab" style="margin-top:8px"><h2 style="font-size:16px"><i style="background:var(--mostarda)"></i>Também nesta semana</h2></div>${dSem.map(x => x.h).join('')}` : ''}
     </div>
   </div>`;
@@ -7516,7 +7580,7 @@ function folhaComp(id) {
   const x = S.compromissos.find(c => c.id === +id); if (!x) return; const d = new Date(x.dia + 'T12:00');
   abrirFolha(esc(x.titulo), `<div class="marca"><i style="width:12px;height:12px;border-radius:50%;background:${TIPOS[x.tipo][1]};flex:none"></i><span><b>${TIPOS[x.tipo][0]}</b> · ${SEMANA[d.getDay()]}, ${d.getDate()} de ${MESES[d.getMonth()]} às ${x.hora}</span></div>
     ${x.obs ? `<p class="explica">${esc(x.obs)}</p>` : ''}
-    <div class="acoes"><button class="bt ${x.feito ? '' : 'forte'} tap" data-act="comp-feito-folha" data-id="${x.id}">${ic(IC.check)} ${x.feito ? 'Desmarcar feito' : 'Marcar como feito'}</button>${gestor() ? `<button class="bt tap" data-act="comp-editar" data-id="${x.id}">${ic(IC.lapis)} Editar</button>` : ''}${COM_WHATS ? `<button class="bt tap" data-act="comp-zap" data-id="${x.id}">${ic(IC.zap)} Divulgar no WhatsApp</button>` : ''}${gestor() ? `<button class="bt claro tap" data-act="comp-apagar" data-id="${x.id}" style="color:var(--erro)">Apagar</button>` : ''}</div>`);
+    <div class="acoes">${gestor() ? `<button class="bt ${x.feito ? '' : 'forte'} tap" data-act="comp-feito-folha" data-id="${x.id}">${ic(IC.check)} ${x.feito ? 'Desmarcar feito' : 'Marcar como feito'}</button>` : `<span class="explica">${x.feito ? 'Feito.' : 'A fazer.'} Só o gestor marca e muda o que está na agenda.</span>`}${gestor() ? `<button class="bt tap" data-act="comp-editar" data-id="${x.id}">${ic(IC.lapis)} Editar</button>` : ''}${COM_WHATS ? `<button class="bt tap" data-act="comp-zap" data-id="${x.id}">${ic(IC.zap)} Divulgar no WhatsApp</button>` : ''}${gestor() ? `<button class="bt claro tap" data-act="comp-apagar" data-id="${x.id}" style="color:var(--erro)">Apagar</button>` : ''}</div>`);
 }
 function folhaNovoComp(x) {
   abrirFolha(x ? 'Editar' : 'Novo compromisso', `
@@ -7953,7 +8017,7 @@ const ACOES = {
   mes: el => { const n = +el.dataset.n; if (n === 0) { S.mes = { y: agora.getFullYear(), m: agora.getMonth() }; S.diaSel = isoDia(agora); } else { const d = new Date(S.mes.y, S.mes.m + n, 1); S.mes = { y: d.getFullYear(), m: d.getMonth() }; S.diaSel = isoDia(d); } desenhar(); $('.cal').animate([{ opacity: .3, transform: `translateX(${n * 18}px)` }, { opacity: 1, transform: 'none' }], { duration: 340, easing: 'cubic-bezier(.32,.72,0,1)' }); },
   comp: el => folhaComp(el.dataset.id), 'novo-comp': () => { if (!gestor()) { toast('Só o gestor marca na agenda. A festa é marcada no atendimento.'); return; } folhaNovoComp(null); },   /* 1.49 */
   'comp-feito-folha': el => { fecharFolha(); ACOES['comp-feito'](el); },
-  'comp-feito': el => { const x = S.compromissos.find(c => c.id === +el.dataset.id); if (!x) return; x.feito = !x.feito; if (MODO === 'servidor') api('comp_feito', { id: x.id, feito: x.feito }).catch(e => toast(e.message)); desenhar(); { const sl = $('#semana-lista'); if (sl) sl.innerHTML = blocosSemana(); } deuCerto(x.feito ? `${x.titulo}: feito ✓` : `${x.titulo}: voltou para a lista`, () => { x.feito = !x.feito; if (MODO === 'servidor') api('comp_feito', { id: x.id, feito: x.feito }).catch(() => {}); desenhar(); }); },
+  'comp-feito': el => { if (!gestor()) { toast('Só o gestor mexe na agenda.'); return; } const x = S.compromissos.find(c => c.id === +el.dataset.id); if (!x) return; x.feito = !x.feito; if (MODO === 'servidor') api('comp_feito', { id: x.id, feito: x.feito }).catch(e => toast(e.message)); desenhar(); { const sl = $('#semana-lista'); if (sl) sl.innerHTML = blocosSemana(); } deuCerto(x.feito ? `${x.titulo}: feito ✓` : `${x.titulo}: voltou para a lista`, () => { x.feito = !x.feito; if (MODO === 'servidor') api('comp_feito', { id: x.id, feito: x.feito }).catch(() => {}); desenhar(); }); },
   'comp-editar': el => { const x = S.compromissos.find(c => c.id === +el.dataset.id); fecharFolha(); setTimeout(() => folhaNovoComp(x), 200); },
   'comp-apagar': el => { if (MODO === 'servidor') { api('comp_apagar', { id: +el.dataset.id }).then(async () => { await carregar(); deuCerto('Apagado'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } S.compromissos = S.compromissos.filter(c => c.id !== +el.dataset.id); deuCerto('Apagado'); fecharFolha(); desenhar(); },
   'comp-zap': el => { const x = S.compromissos.find(c => c.id === +el.dataset.id); toast(`"${x.titulo}" pronto para mandar aos responsáveis`); fecharFolha(); },
@@ -8226,7 +8290,8 @@ iniciar();
 const FX = (() => {
   const parado = () => document.documentElement.dataset.anim === 'leve';
   const VISTO = new Map(), GRAF = new Map(), CORRENDO = new WeakSet();
-  let chaveVista = null, pend = false, ultTrilho = null;
+  let chaveVista = null, pend = false;
+  const ULT = {};   /* a última posição do marcador de cada menu (o trilho e a barra de baixo) */
   const FMT = /^(\D*?)([-−]?)(\d{1,3}(?:\.\d{3})+|\d+)(,\d+)?(\s*%?)$/;
   const ler = t => { const m = FMT.exec(String(t).trim()); if (!m) return null; const dec = m[4] ? m[4].length - 1 : 0, n = +(m[3].replace(/\./g, '') + (m[4] ? '.' + m[4].slice(1) : '')); return isFinite(n) ? { pre: m[1], neg: m[2], n: m[2] ? -n : n, dec, suf: m[5] } : null; };
   const escrever = (f, v) => f.pre + (v < 0 ? (f.neg || '-') : '') + Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: f.dec, maximumFractionDigits: f.dec }) + f.suf;
@@ -8258,20 +8323,109 @@ const FX = (() => {
     m.querySelectorAll('.pn-k > b.num, .cx b.num').forEach((el, i) => contar(el, tela + '|' + i + '|' + el.parentElement.classList[0]));   /* (a primeira classe: a fx-entra não muda a chave) */
     graficos(m, tela, entrada);
   }
-  function trilho() {
-    const nav = $('#nav-lado'); if (!nav) return; let mk = nav.querySelector('.fx-trilho'); const a = nav.querySelector('.ab[aria-current]');
-    if (parado() || document.body.classList.contains('mn') || !a || !a.offsetWidth) { if (mk) mk.remove(); nav.classList.remove('fx-tem'); ultTrilho = null; return; }
-    const pos = { x: a.offsetLeft, y: a.offsetTop, w: a.offsetWidth, h: a.offsetHeight }, novo = !mk;
-    if (novo) { mk = document.createElement('span'); mk.className = 'fx-trilho'; mk.setAttribute('aria-hidden', 'true'); nav.prepend(mk); }
+  /* o marcador do item aberto (o quadrado escuro do trilho; 1.75: a pílula clara da barra de baixo do celular): os menus são redesenhados
+     a cada troca, então o marcador nasce de novo na posição de antes e desliza até o item novo */
+  function marcar(nav, a, cls, corIcone) {
+    let mk = nav.querySelector('.' + cls);
+    if (!a || !a.offsetWidth) { if (mk) mk.remove(); nav.classList.remove('fx-tem'); delete ULT[nav.id]; return; }
+    const pos = { x: a.offsetLeft, y: a.offsetTop, w: a.offsetWidth, h: a.offsetHeight }, novo = !mk, ult = ULT[nav.id];
+    if (novo) { mk = document.createElement('span'); mk.className = cls; mk.setAttribute('aria-hidden', 'true'); nav.prepend(mk); }
     const poe = p => { mk.style.setProperty('--x', p.x + 'px'); mk.style.setProperty('--y', p.y + 'px'); mk.style.setProperty('--w', p.w + 'px'); mk.style.setProperty('--h', p.h + 'px'); };
-    if (novo && ultTrilho && (ultTrilho.x !== pos.x || ultTrilho.y !== pos.y)) { mk.classList.remove('anda'); poe(ultTrilho); void mk.offsetWidth; mk.classList.add('anda');
-      nav.classList.add('fx-anda'); clearTimeout(trilho.t); trilho.t = setTimeout(() => nav.classList.remove('fx-anda'), 520); }   /* (o ícone escurece até o quadrado chegar) */
+    if (novo && ult && (ult.x !== pos.x || ult.y !== pos.y)) { mk.classList.remove('anda'); poe(ult); void mk.offsetWidth; mk.classList.add('anda');
+      if (corIcone) { nav.classList.add('fx-anda'); clearTimeout(marcar[nav.id]); marcar[nav.id] = setTimeout(() => nav.classList.remove('fx-anda'), 520); } }   /* (o ícone escurece até o quadrado chegar) */
     else if (novo) mk.classList.remove('anda');
-    poe(pos); nav.classList.add('fx-tem'); ultTrilho = pos;
+    poe(pos); nav.classList.add('fx-tem'); ULT[nav.id] = pos;
   }
+  function trilho() { const nav = $('#nav-lado'); if (nav) marcar(nav, parado() || document.body.classList.contains('mn') ? null : nav.querySelector('.ab[aria-current]'), 'fx-trilho', true); }
+  function pilula() { const nav = $('#nav-baixo'); if (nav) marcar(nav, parado() ? null : nav.querySelector('button[aria-current]'), 'fx-pilula', false); }
   const olhar = () => { if (!pend) { pend = true; requestAnimationFrame(passar); } };
-  const comecar = () => { const m = $('#miolo'), nav = $('#nav-lado'); if (m) new MutationObserver(olhar).observe(m, { childList: true }); if (nav) new MutationObserver(() => requestAnimationFrame(trilho)).observe(nav, { childList: true }); addEventListener('resize', () => requestAnimationFrame(trilho)); requestAnimationFrame(trilho); };
-  return { comecar, trilho };
+  const comecar = () => { const m = $('#miolo'), nav = $('#nav-lado'); if (m) new MutationObserver(olhar).observe(m, { childList: true }); if (nav) new MutationObserver(() => requestAnimationFrame(trilho)).observe(nav, { childList: true });
+    const nb = $('#nav-baixo'); if (nb) new MutationObserver(recs => { if (recs.some(r => [...r.addedNodes].some(n => n.nodeType === 1 && !n.classList.contains('fx-pilula')))) pilula(); }).observe(nb, { childList: true });   /* (na hora, antes de a tela aparecer: a barra é redesenhada a cada troca) */
+    addEventListener('resize', () => requestAnimationFrame(() => { trilho(); pilula(); })); requestAnimationFrame(() => { trilho(); pilula(); }); };
+  return { comecar, trilho, pilula };
 })();
 FX.comecar();
+/* ---------- 1.77: os foguetes da venda de pacote grande e o lembrete de pedir a avaliação ----------
+   Pedido do dono: "quando lançar um pacote com mais de 10 horas, lançar uns foguetinhos, como a animação de quando se emite a nota, mais
+   animada" e "no final de tudo do cliente, uma mensagem na tela para lembrar de pedir a avaliação".
+   - a venda com pacote de 10 horas ou mais (somando os pacotes da venda) solta foguetes que sobem e estouram em fogos, com o recado
+     "Pacote de 20 horas vendido!". Não segura nada: a tela continua (o cupom e a sapateira seguem por baixo). Com "Animações: leves", só o recado;
+   - no fim de tudo do cliente (a saída da última criança da família e nenhum carrinho fora, ou a devolução do último carrinho), depois que
+     a folha do cupom fecha, a mensagem "Peça a avaliação!" com o nome do responsável. Não trava a tela: some no "Pedi", num toque fora
+     (que segue para o que foi tocado) ou em 25 segundos. */
+const FOGUETE_H = 10;
+const horasPacote = L => (L || []).filter(l => l.pac != null && l.min > 0).reduce((t, l) => t + l.min, 0) / 60;
+const horasTxt = h => (Math.round(h * 10) / 10).toLocaleString('pt-BR') + (h === 1 ? ' hora' : ' horas');
+function celebrarPacote(L, c) { const h = horasPacote(L); if (h >= FOGUETE_H) foguetes(h, c); }
+const FOG_SVG = '<svg viewBox="0 0 40 72" aria-hidden="true"><g class="fog-chama"><path d="M13 51 Q20 75 27 51 Z" fill="#FFB547"/><path d="M16 51 Q20 66 24 51 Z" fill="#FF6B3D"/></g><path d="M10 37 L2 52 L10 48 Z M30 37 L38 52 L30 48 Z" fill="#F2B33D" stroke="#3B3B3B" stroke-width="1.4" stroke-linejoin="round"/><path d="M20 2 C31 12 32 30 30 50 L10 50 C8 30 9 12 20 2 Z" fill="#FFF8EF" stroke="#3B3B3B" stroke-width="1.6"/><path d="M20 2 C25 7 28 13 29.4 20 L10.6 20 C12 13 15 7 20 2 Z" fill="#E25B3F" stroke="#3B3B3B" stroke-width="1.6" stroke-linejoin="round"/><circle cx="20" cy="31" r="5.2" fill="#6FC3B2" stroke="#3B3B3B" stroke-width="1.6"/></svg>';
+function foguetes(h, c) {
+  document.querySelectorAll('.fog').forEach(x => x.remove());
+  const leve = document.documentElement.dataset.anim === 'leve', box = document.createElement('div'), quem = c ? MAI(primeiro(c.resp || c.nome)) : '';
+  box.className = 'fog'; box.setAttribute('role', 'status');
+  box.innerHTML = `<div class="fog-msg">${FOG_SVG}<span><b>Pacote de ${horasTxt(h)} vendido!</b>${quem ? `<small>${esc(quem)}</small>` : ''}</span></div>`;
+  document.body.appendChild(box);
+  if (!leve) { const W = innerWidth, H = innerHeight, N = W < 600 ? 5 : 8;
+    for (let i = 0; i < N; i++) { const x = Math.round(W * (0.07 + 0.86 * (i + 0.2 + Math.random() * 0.6) / N)), alto = Math.round(H * (0.5 + Math.random() * 0.28)), d = Math.round(i * 90 + Math.random() * 450);
+      const r = document.createElement('div'); r.className = 'fog-r'; r.style.cssText = `left:${x}px;--alto:${alto}px;animation-delay:${d}ms`; r.innerHTML = FOG_SVG; box.appendChild(r);
+      setTimeout(() => estouro(box, x, H + 80 - alto - 50), d + 1000); } }
+  setTimeout(() => box.classList.add('sai'), leve ? 2600 : 3600); setTimeout(() => box.remove(), leve ? 3100 : 4200);
+}
+function estouro(box, x, y) {
+  if (!box.isConnected) return; const cores = ['#E25B3F', '#F2B33D', '#6FC3B2', '#B9A6F0', '#FF8FB1', '#5FB8F0'];
+  for (let k = 0; k < 18; k++) { const s = document.createElement('i'), a = (k * 20 + Math.random() * 12) * Math.PI / 180, dist = 55 + Math.random() * 60;
+    s.className = 'fog-f' + (k % 3 === 0 ? ' tira' : ''); s.style.cssText = `left:${x}px;top:${y}px;background:${cores[k % cores.length]};--dx:${Math.round(Math.cos(a) * dist)}px;--dy:${Math.round(Math.sin(a) * dist)}px`; box.appendChild(s); }
+}
+let AVAL_T = 0;
+function fimCliente(c) {
+  if (!c) return; const k = crianca(c.id) || c, fam = familia(k);
+  if ((fam.length ? fam : [k]).some(x => x.entrou) || (S.alugueis || []).some(a => (fam.length ? fam : [k]).some(x => x.id === a.crianca))) return;   /* ainda tem alguém (ou um carrinho) da família */
+  const quem = MAI(primeiro(k.resp || '')), ate = Date.now() + 180000; clearInterval(AVAL_T);
+  AVAL_T = setInterval(() => { if (Date.now() > ate) { clearInterval(AVAL_T); return; } if ($('#folha .folha-fundo:not(.saindo)')) return; clearInterval(AVAL_T); mostrarAvaliacao(quem); }, 400);   /* depois que a folha do cupom fecha */
+}
+function mostrarAvaliacao(quem) {
+  document.querySelectorAll('.aval').forEach(x => x.remove());
+  const d = document.createElement('div'); d.className = 'aval'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-label', 'Peça a avaliação');
+  d.innerHTML = `<div class="aval-card"><div class="aval-est" aria-hidden="true">${[0, 1, 2, 3, 4].map(i => `<i style="animation-delay:${150 + i * 90}ms">★</i>`).join('')}</div><b>Peça a avaliação!</b><p>Antes de ${quem ? esc(quem) : 'o cliente'} ir embora, pergunte como foi o dia e peça para avaliar a Play Space no Google.</p><button type="button" class="bt forte tap" data-aval-ok>${ic(IC.check)} Pedi</button></div>`;
+  document.body.appendChild(d); let t = 0;
+  const fora = e => { if (!d.querySelector('.aval-card').contains(e.target)) fecha(); };   /* um toque fora fecha (e o toque segue para o que foi tocado) */
+  const fecha = () => { clearTimeout(t); document.removeEventListener('pointerdown', fora, true); d.classList.add('sai'); setTimeout(() => d.remove(), 380); };
+  d.addEventListener('click', e => { if (e.target.closest('[data-aval-ok]')) fecha(); }); setTimeout(() => document.addEventListener('pointerdown', fora, true), 0);
+  t = setTimeout(fecha, 25000); requestAnimationFrame(() => requestAnimationFrame(() => d.classList.add('on')));
+  const b = d.querySelector('[data-aval-ok]'); if (b) b.focus({ preventScroll: true });
+}
+/* ---------- 1.79: o pedido em foco ----------
+   Pedido do dono: "quando o gestor tocar na notificação do pedido e abrir o aplicativo, o pedido tem que ser a primeira coisa: aprovar ou
+   negar, dois botões, um vermelho e um verde, só um certo e um X; ele não tem que procurar".
+   - Abrindo pelo aviso do celular (o app fechado ou já aberto), e ao abrir o app (ou voltar para ele) com pedido esperando, o pedido mais
+     antigo aparece sozinho, por cima de tudo: quem pede, o que é, o cliente e o motivo; e dois botões grandes: o X vermelho (negar) e o ✓
+     verde (autorizar). Respondido, vem o próximo; sem mais nenhum, fecha.
+   - "Ver depois" fecha: os pedidos de agora não voltam sozinhos (voltam no próximo aviso tocado ou quando chegar um pedido novo).
+   - No celular, o pedido novo que chega com o app aberto também aparece assim. */
+var FOCO_;   /* (sem valor inicial: a tela pode usar antes desta linha rodar; foco() cria na primeira vez) */
+function foco() { return FOCO_ || (FOCO_ = { fora: new Set(), ini: false, id: 0, escondido: 0 }); }
+function focoPedidos(forcar) {
+  const L = typeof pedidosParaMim === 'function' && EU && !document.body.classList.contains('so') ? pedidosParaMim().filter(p => forcar || !foco().fora.has(p.id)) : [];
+  if (!L.length) { fecharFoco(); return; }
+  if (forcar) for (const p of L) foco().fora.delete(p.id);
+  desenharFoco(L);
+}
+function fecharFoco() { const f = document.getElementById('foco'); if (f) f.remove(); foco().id = 0; }
+function desenharFoco(L) {
+  const p = L[0]; let f = document.getElementById('foco'); if (f && foco().id === p.id) { const n = f.querySelector('.foco-n'); if (n) n.textContent = '1 de ' + L.length; return; }
+  if (!f) { f = document.createElement('div'); f.id = 'foco'; f.className = 'foco'; f.setAttribute('role', 'dialog'); f.setAttribute('aria-modal', 'true'); f.setAttribute('aria-label', 'Pedido de autorização'); document.body.appendChild(f);
+    f.addEventListener('click', async e => { const b = e.target.closest('[data-foco]'); if (!b) return; const id = +b.dataset.id;
+      if (b.dataset.foco === 'depois') { for (const x of pedidosParaMim()) foco().fora.add(x.id); fecharFoco(); return; }
+      f.querySelectorAll('[data-foco]').forEach(x => { x.disabled = true; }); await decidirPedido(id, b.dataset.foco === 'sim');
+      const ainda = pedidosParaMim().some(x => x.id === id); if (ainda) { f.querySelectorAll('[data-foco]').forEach(x => { x.disabled = false; }); return; }   /* não foi (sem internet, já respondido): fica */
+      toast(b.dataset.foco === 'sim' ? 'Autorizado ✓' : 'Negado'); foco().id = 0; focoPedidos(false); }); }
+  foco().id = p.id; const cli = p.resp ? p.resp + ' · ' + p.nome : (p.nome || ''), uni = p.uni && S.unidades.length > 1 && nomeUni(p.uni) ? ' · ' + nomeUni(p.uni) : '';
+  const sim = p.tipo === 'nf' ? 'Autorizar a nota' : p.tipo === 'cancelar_venda' ? 'Liberar o cancelamento' : p.tipo === 'valor' ? 'Aprovar o valor' : 'Autorizar';
+  f.innerHTML = `<div class="foco-card"><div class="foco-cab">${ic(IC.sino, 18)}<span>Pedido de autorização</span>${L.length > 1 ? `<span class="foco-n">1 de ${L.length}</span>` : ''}</div>
+    <small class="foco-quem">${esc(quemPede(p))} pede · ${hora(p.em)}${esc(uni)}</small>
+    <h2 class="foco-o">${esc(p.texto)}</h2>${cli ? `<p class="foco-cli">${esc(cli)}</p>` : ''}${p.motivo ? `<p class="foco-mot">Motivo: <b>${esc(p.motivo)}</b></p>` : ''}
+    <div class="foco-bts"><button type="button" class="foco-b nao tap" data-foco="nao" data-id="${p.id}" aria-label="Negar" title="Negar">${ic(IC.x, 46, 3.2)}</button><button type="button" class="foco-b sim tap" data-foco="sim" data-id="${p.id}" aria-label="${sim}" title="${sim}">${ic(IC.check, 46, 3.2)}</button></div>
+    <div class="foco-rot" aria-hidden="true"><span>Negar</span><span>${p.tipo === 'valor' ? 'Aprovar' : 'Autorizar'}</span></div>
+    <button type="button" class="foco-depois tap" data-foco="depois" data-id="${p.id}">Ver depois</button></div>`;
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden) { foco().escondido = Date.now(); return; } if (foco().escondido && Date.now() - foco().escondido > 20000) focoPedidos(false); });   /* voltou para o app */
 </script>

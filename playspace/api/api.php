@@ -397,7 +397,7 @@ switch ($acao) {
     responder(festaEntrada($f, $c, ($in['papel'] ?? '') === 'aniversariante' ? 'aniversariante' : 'convidado', $u));
   }
   case 'festa_salvar': { // 1.29: o tema, o horário, o dia (do mesmo tipo de festa) e a unidade da festa marcada. Fica na linha do dia, com quem mudou
-    $u = exigir(); $f = festaComConta((int)($in['id'] ?? 0)); if (!$f) falha('A festa não está mais marcada.', 404);
+    $u = exigir(['gestor']); $f = festaComConta((int)($in['id'] ?? 0)); if (!$f) falha('A festa não está mais marcada.', 404);   // 1.76: só o gestor muda a festa marcada (o operador agenda pela venda)
     $nomeF = (string)(crianca((int)$f['crianca_id'])['nome'] ?? ''); $mud = [];
     $tema = array_key_exists('tema', $in) ? mb_substr(maiusculo((string)$in['tema']), 0, 60) : (string)$f['tema']; if ($tema !== $f['tema']) $mud[] = 'tema ' . ($f['tema'] !== '' ? $f['tema'] . ' → ' : '') . ($tema !== '' ? $tema : 'sem tema');
     $hora = array_key_exists('hora', $in) ? horaDaFesta($in['hora'], (string)$f['dia']) : (string)$f['hora']; if ($hora !== $f['hora']) $mud[] = 'horário ' . ($hora !== '' ? $hora : 'sem horário');
@@ -994,7 +994,7 @@ switch ($acao) {
   }
 
   /* ---------- agenda ---------- */
-  case 'comp_feito': { exigir(); $db->prepare('UPDATE compromissos SET feito = ? WHERE id = ?')->execute([empty($in['feito']) ? 0 : 1, (int)($in['id'] ?? 0)]); responder(); }
+  case 'comp_feito': { exigir(['gestor']); $db->prepare('UPDATE compromissos SET feito = ? WHERE id = ?')->execute([empty($in['feito']) ? 0 : 1, (int)($in['id'] ?? 0)]); responder(); }
   case 'comp_salvar': {   // 1.49: só o gestor marca (e muda) na agenda; a festa é marcada no atendimento
     exigir(['gestor']); $id = (int)($in['id'] ?? 0); $titulo = mb_substr(emMaiusculas($val('titulo')), 0, 120); if ($titulo === '') falha('Falta dizer o quê.');
     $dia = $val('dia'); if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dia)) falha('Dia inválido.');

@@ -1301,6 +1301,54 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzz. O pedido de autorização em foco: o X vermelho e o ✓ verde (1.79)
+
+Pedido do dono: "quando o gestor tocar na notificação do pedido e abrir o aplicativo, o pedido tem que ser a primeira coisa: aprovar ou negar, dois botões, um vermelho e um verde, só um certo e um X; ele não tem que procurar".
+
+- Tocou no aviso do celular (com o app fechado ou aberto), o pedido **aparece sozinho, por cima de tudo**: quem pede, o que é (desconto, alterar valor, nota, cancelamento, parcelas), o cliente e o motivo.
+- Dois botões grandes: o **X vermelho** (negar) e o **✓ verde** (autorizar). Respondeu, vem o próximo ("1 de 3"); sem mais nenhum, fecha.
+- Também aparece ao **abrir o app** (ou voltar para ele) com pedido esperando, e, no celular, quando chega um pedido novo com o app aberto.
+- **Ver depois** fecha: os pedidos de agora não voltam sozinhos (voltam no próximo aviso tocado ou quando chega outro pedido).
+- Quem pede (a atendente) não vê esse cartão: continua vendo o pedido no alto da tela dela, vermelho esperando e verde quando é aprovado.
+
+## 6zzzzzzzzzzz. O sistema de notas dentro das Finanças (1.78 · Finanças 3.3)
+
+Pedido do dono: "no sistema de finanças, integre o sistema de notas: que ele vá para dentro das Finanças, para eu não ter que abrir outra aba; só clicar e ele já abre".
+
+- No menu das Finanças, logo abaixo de "Notas fiscais", o item **Emitir nota** (no celular, **Emitir NF** na barra de baixo). Ele abre o **Play Space Notas aqui dentro**, numa moldura que ocupa a tela: emitir, consultar, conferir no governo, tudo sem abrir outra aba.
+- É o mesmo sistema de **/notas** (as mesmas notas e o mesmo certificado). O login é o do Notas: entra uma vez e ele fica guardado no navegador.
+- **Abrir em outra aba** continua, no alto, para quem preferir.
+- Na aba **Notas fiscais** (o relatório notas x caixa), o botão **Emitir nota** leva direto para o sistema de notas aqui dentro.
+
+## 6zzzzzzzzzz. Os foguetes do pacote grande e o lembrete de pedir a avaliação (1.77)
+
+Pedido do dono: "quando lançar um pacote com mais de 10 horas, lançar uns foguetinhos" e "no final de tudo do cliente, uma mensagem na tela para lembrar de pedir a avaliação".
+
+- **Foguetes:** a venda com pacote de **10 horas ou mais** (somando os pacotes da venda) solta foguetes que sobem e estouram em fogos coloridos, com o recado "Pacote de 20 horas vendido!" e o nome do responsável. Não segura nada: o cupom e o resto seguem por baixo, e tudo some sozinho em uns 4 segundos. Com "Animações: leves", aparece só o recado.
+- **Lembrete da avaliação:** no fim de tudo do cliente (quando sai a última criança da família e não tem carrinho fora, ou quando volta o último carrinho), depois que a folha do cupom fecha, aparece o cartão **"Peça a avaliação!"**: "Antes de MARIANA ir embora, pergunte como foi o dia e peça para avaliar a Play Space no Google". Não trava a tela: some no **Pedi**, num toque fora ou em 25 segundos.
+- Não aparece na saída da festa, na saída corrigida pela supervisão nem na cortesia.
+
+## 6zzzzzzzzz. Só o gestor mexe no calendário (1.76)
+
+Pedido do dono: "o operador não pode mexer no calendário, tipo marcar festa ou alguma coisa assim; ele só pode agendar; quem pode colocar compromissos é só o gestor".
+
+- **O operador agenda a festa do cliente pela venda** (Vender festa → escolhe o dia no calendário → recebe), como antes. Também continua com o upgrade, o adicional e a entrada na festa.
+- **Mudar a festa marcada** (o tema, o horário, o dia ou a unidade) agora é **só do gestor**. Para o operador, a folha da festa diz "fale com o gestor".
+- **Compromissos da Agenda** (oficina, reunião, postagem, festa marcada à mão): criar, mudar, apagar e **marcar como feito** são só do gestor. O operador vê a agenda e o que está feito, mas não mexe.
+- O servidor também recusa (não adianta tentar por fora da tela).
+
+## 6zzzzzzzz. A barra de baixo do celular como a do Instagram (1.75)
+
+Pedido do dono: "quando o sistema da Play Space for aberto no telefone, os ícones iguais aos do Instagram, lá de baixo".
+
+- No celular, a barra de baixo virou uma **cápsula de vidro que flutua** um pouco acima da borda da tela, com os cantos bem redondos.
+- **Só os ícones**, maiores e sem os nomes embaixo (o nome continua no botão para o leitor de tela).
+- O item aberto fica numa **pílula clara**, com o ícone mais forte; ao tocar em outro item, a pílula desliza até ele.
+- O número dos pedidos para aprovar aparece numa **bolinha vermelha** em cima do ícone.
+- O botão **+** (cadastrar criança) fica logo acima da barra, sem encostar.
+- No tema escuro a cápsula fica escura. Com "Animações: leves" ou "reduzir movimento", a pílula pula direto para o item, sem deslizar.
+- No computador nada muda (o trilho de ícones do lado).
+
 ## 6zzzzzzz. As animações das Finanças também no sistema da Play Space (1.74)
 
 Pedido do dono: "gostei muito das animações que você colocou no financeiro: coloque no sistema da Play Space".

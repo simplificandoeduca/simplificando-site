@@ -21,7 +21,7 @@ require __DIR__ . '/comissoes.php';   /* 2.8: as comissões das vendedoras */
 require __DIR__ . '/clientes.php';   /* 3.0: o relatório por cliente */
 require __DIR__ . '/comprovantes.php';   /* 3.0: o comprovante das despesas */
 set_exception_handler(function (Throwable $e) { registrarErro('[financas] ' . $e->getMessage() . ' @' . basename($e->getFile()) . ':' . $e->getLine()); falha('Algo deu errado. Tente de novo em instantes.', 500); });
-const FIN_VERSAO = '3.2';
+const FIN_VERSAO = '3.3';
 
 $in = [];
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
