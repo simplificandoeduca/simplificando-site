@@ -47,6 +47,55 @@ function vSheet(id){
     ${trocaPode() && !doneSets(id) ? `<button type="button" class="btn small tr-btn" data-a="troca-open" data-ex="${e.id}">${ic('swap')}Trocar exercício</button>` : ''}
     ${seg('pane',['series','exec','hist'],pane,['Séries','Execução','Histórico'],'Seções do exercício')}<div class="pane">${body}</div></div></div>`;
 }
+/* ---------- editar as séries de um treino já salvo (ex.: o celular desligou e ficaram exercícios sem registro) ---------- */
+// exercícios do treino daquele dia: os do plano (na ordem) e os que estão salvos e saíram do plano
+function hedLista(h){ const p = PLAN[h.t], L = p ? p.ex.map(e => ({id:e.id, n:e.nome, s:e.s, r:e.r})) : [];
+  (h.ex||[]).forEach(x => { if(!L.some(y => y.id===x.id)) L.push({id:x.id, n:x.n, s:(x.s||[]).length||3, r:''}); }); return L; }
+const hedFaltam = h => hedLista(h).filter(e => !((h.ex||[]).find(x => x.id===e.id)||{s:[]}).s.length).length;
+function hedOpen(i){
+  const h = S.history[i]; if(!h) return; const ed = {};
+  hedLista(h).forEach(e => { const x = (h.ex||[]).find(y => y.id===e.id), s = x && x.s && x.s.length ? x.s.map(v => [v[0]==null ? '' : fmtKg(v[0]), v[1]==null ? '' : String(v[1])]) : [];
+    while(s.length < (x && x.s && x.s.length ? 0 : e.s||3)) s.push(['','']); ed[e.id] = s; });
+  ui.sheet = {k:'hedit', i, ed}; renderSheet(true);
+}
+function vHEdit(){
+  const sh = ui.sheet, h = S.history[sh.i]; if(!h) return '';
+  const p = PLAN[h.t] || {nome:'Treino'};
+  const cards = hedLista(h).map(e => { const L = sh.ed[e.id] || [], tem = ((h.ex||[]).find(x => x.id===e.id)||{s:[]}).s.length, last = S.last[e.id];
+    return `<section class="card hed-c${tem ? '' : ' falta'}"><div class="card-h"><b>${esc(e.n)}</b>${tem ? `<span class="muted sm">${e.s} × ${esc(e.r||'')}</span>` : '<span class="pill warn">sem registro</span>'}</div>
+      <div class="sets"><div class="set set-head hed" aria-hidden="true"><span>#</span><span>Carga (kg)</span><span>Reps</span><span></span></div>
+      ${L.map((v,j) => `<div class="set hed"><span class="n">${j+1}</span>
+        <input inputmode="decimal" autocomplete="off" aria-label="${esc(e.n)}: carga da série ${j+1} em kg" placeholder="${last ? fmtKg(last.kg) : 'kg'}" value="${esc(v[0])}" data-hed="0" data-ex="${e.id}" data-j="${j}">
+        <input inputmode="numeric" autocomplete="off" aria-label="${esc(e.n)}: repetições da série ${j+1}" placeholder="${esc(String(e.r||'reps').split(/[–-]/)[0])}" value="${esc(v[1])}" data-hed="1" data-ex="${e.id}" data-j="${j}">
+        <button type="button" class="hed-x" data-a="hed-del" data-ex="${e.id}" data-j="${j}" aria-label="Tirar a série ${j+1}">${ic('x')}</button></div>`).join('')}</div>
+      <button type="button" class="btn small hed-add" data-a="hed-add" data-ex="${e.id}">${ic('plus')}Série</button></section>`; }).join('');
+  return `<div class="sheet-wrap" data-a="closebg"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t" tabindex="-1">${sheetTop('Treino '+h.t+' · '+esc(p.nome)+' · '+dayLabel(h.date), 'Editar séries<span class="dot" aria-hidden="true"></span>')}
+    <p class="muted">Complete ou corrija a carga e as repetições de cada série. Séries vazias não contam. Ao salvar, o volume, os recordes e a evolução das cargas são refeitos${isPersonal() ? ' e o seu personal vê o treino corrigido' : ''}.</p>
+    ${cards}
+    <button type="button" class="btn primary block" data-a="hed-save">${ic('check')}Salvar alterações</button>
+    <button type="button" class="btn ghost block" data-a="hed-back">Voltar ao resumo</button></div></div>`;
+}
+function hedSalvar(){
+  const sh = ui.sheet, h = S.history[sh.i]; if(!h) return;
+  const lista = hedLista(h), velho = {}; (h.ex||[]).forEach(x => velho[x.id] = x);
+  let sets = 0, vol = 0; const det = [], prd = (h.prd||[]).slice();
+  lista.forEach(e => {
+    const s = (sh.ed[e.id]||[]).map(v => [num(v[0]), int(v[1])]).filter(v => v[1]>0 && v[0]>=0), o = velho[e.id];
+    if(!s.length){ if(o && ((o.q||[]).length || o.c || o.w)) det.push(Object.assign({}, o, {s:[]})); return; }
+    det.push(Object.assign({id:e.id, n:e.n, q:[], c:''}, o||{}, {s}));
+    let mk = 0; s.forEach(v => { sets++; vol += v[0]*v[1]; mk = Math.max(mk, v[0]); });
+    // evolução das cargas: o dia deste treino passa a ter a maior carga corrigida
+    const H = (S.loadHist[e.id]||[]).filter(x => x.d!==h.date); H.push({d:h.date, kg:mk}); H.sort((x,y) => x.d<y.d ? -1 : x.d>y.d ? 1 : 0); while(H.length>16) H.shift(); S.loadHist[e.id] = H;
+    const l0 = S.last[e.id]; if(!l0 || l0.d<=h.date){ const top = s.filter(v => v[0]===mk); S.last[e.id] = {kg:mk, lastKg:s[s.length-1][0], reps:top.map(v => v[1]), rir:top.map(() => 1), d:h.date, g:h.gym||''}; }
+    // recorde: a melhor série corrigida passa o recorde de antes
+    let bv = 0, bi = -1; s.forEach((v,j) => { const w = e1(v[0], v[1]); if(w>bv){ bv = w; bi = j; } });
+    const old = S.pr[e.id];
+    if(bi>=0 && (!old || bv>old.e1+0.05)){ const rec = {e1:bv, kg:s[bi][0], reps:s[bi][1], d:h.date}; if(old && old.d!==h.date && !prd.some(x => x.id===e.id)) prd.push({id:e.id, kg:rec.kg, reps:rec.reps, e1:bv, prev:old.e1}); S.pr[e.id] = rec; }
+  });
+  if(!sets){ toast('Deixe pelo menos uma série com repetições.'); return; }
+  h.ex = det; h.sets = sets; h.vol = Math.round(vol); h.prd = prd; h.prs = prd.map(x => x.id); h.edit = Date.now();
+  save(); ui.sheet = {k:'sum', i:sh.i}; renderSheet(true); render(); toast('Treino corrigido.');
+}
 function vSummary(i){
   const h = S.history[i]; if(!h) return '';
   const p = PLAN[h.t] || {nome:'Treino'}, prev = S.history.slice(0,i).reverse().find(x => x.t===h.t);
@@ -62,6 +111,7 @@ function vSummary(i){
     <div class="sg-vol">${tw('s-vol',h.vol,'i',fmtN(h.vol))}<span>kg de volume${dv!=null?` · ${dv>=0?'+':''}${dv}% sobre o último ${h.t}`:''}</span></div>
     <div class="sg-sets">${tw('s-sets',h.sets,'i',String(h.sets))}<span>série${h.sets===1?'':'s'} feita${h.sets===1?'':'s'}</span></div>
     <div class="sg-pr">${tw('s-pr',prd.length,'i',String(prd.length))}<span>recorde${prd.length===1?'':'s'} pessoa${prd.length===1?'l':'is'}</span></div></div>
+    <button type="button" class="btn block sum-edit" data-a="hed-open" data-i="${i}">${ic('edit')}Editar séries${(() => { const n = hedFaltam(h); return n ? `<span class="pill warn">${n===1 ? '1 exercício sem registro' : n+' exercícios sem registro'}</span>` : ''; })()}</button>
     ${prRows?`<h3>Recordes</h3><div class="list">${prRows}</div>`:''}
     <div class="field"><span class="flabel">${ic('bolt')}Esforço do treino, de 1 a 10</span><div class="rpe" role="group" aria-label="Esforço do treino">${Array.from({length:10},(_,j) => j+1).map(n => `<button type="button" class="${h.rpe===n?'on':''}" aria-pressed="${h.rpe===n}" data-a="rpe" data-v="${n}">${n}</button>`).join('')}</div><div class="scale"><span>muito leve</span><span>máximo</span></div></div>
     <div class="field"><label class="flabel" for="sum-note">${ic('msg')}${isPersonal()?'Mensagem pro personal':'Anotação do treino'}</label><textarea id="sum-note" rows="3" data-note="${i}" placeholder="Ex.: senti o joelho no afundo">${esc(h.note||'')}</textarea></div>

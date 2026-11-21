@@ -369,6 +369,11 @@ function onClick(ev){
     case 'sug-send': sugEnviar(b); re = false; break;
     case 'ver-checar': if(NOVAV) versaoAtualiza(); else versaoPerfil(b); re = false; break;
     case 'cdel': { const c = S.cardio[+d.i]; if(!c) break; S.cardio.splice(+d.i, 1); S.cDel = (S.cDel||[]).filter(k => k!==c.date+'|'+c.local+'|'+c.min).concat([c.date+'|'+c.local+'|'+c.min]).slice(-80); save(); toast('Cardio excluído: '+c.local+' · '+c.min+' min'); break; }
+    case 'hed-open': hedOpen(+d.i); re = false; break;
+    case 'hed-add': { const L = ui.sheet.ed[d.ex] || (ui.sheet.ed[d.ex] = []), u = L[L.length-1]; L.push(u ? [u[0], u[1]] : ['','']); renderSheet(); re = false; break; }
+    case 'hed-del': { const L = ui.sheet.ed[d.ex]; if(L) L.splice(+d.j, 1); renderSheet(); re = false; break; }
+    case 'hed-save': hedSalvar(); re = false; break;
+    case 'hed-back': ui.sheet = {k:'sum', i:ui.sheet.i}; renderSheet(true); re = false; break;
     case 'sum-save': closeSheet(); toast(isPersonal()?'Salvo. Seu personal vai ver.':'Salvo no seu histórico.'); re = false; break;
     case 'wipe':
       if(armed==='wipe'){ const ed = S.ed, g = S.waterGoal, cg = S.cardioGoal, nm = S.nome, conta = S.conta; S = fresh(false); S.ed = ed; S.waterGoal = g; S.cardioGoal = cg; S.nome = nm; if(conta) S.conta = conta; applyAccount(); ui.rest = null; ui.t = null; ui.tw = {}; renderRest(); toast('Registros apagados.'); }
@@ -400,6 +405,7 @@ function onInput(ev){
     return;
   }
   if(el.dataset.mx && ui.sheet && ui.sheet.k==='meus'){ const t = S.conta.treinos[ui.sheet.ed], e = t && t.ex[+el.dataset.i]; if(e){ e.r = String(el.value).replace(/[<>&"]/g,'').slice(0,14); save(); } return; }
+  if(el.dataset.hed && ui.sheet && ui.sheet.k==='hedit'){ const L = ui.sheet.ed[el.dataset.ex], v = L && L[+el.dataset.j]; if(v) v[+el.dataset.hed] = el.value.trim(); return; }
   if(el.dataset.set){ const y = getLog(el.dataset.ex)[+el.dataset.i]; if(!y) return; y[el.dataset.set] = el.value.trim(); if(el.dataset.set==='kg' && !y.ok) y.man = true; if(el.dataset.fix) el.dataset.len = el.value.trim().length; save(); }
   if(el.dataset.prof){ S.nome = el.value.trim().slice(0,40); save(); }
   if(el.dataset.note!=null){ const h = S.history[+el.dataset.note]; if(h){ h.note = el.value; save(); } }
