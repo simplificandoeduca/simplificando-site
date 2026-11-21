@@ -1301,6 +1301,16 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzz. As Finanças com animações (1.72 · Finanças 3.1)
+
+Pedido do dono: "quero o financeiro com essas animações" (um vídeo de painel moderno: os cartões que aparecem um a um, os números que correm, os gráficos que crescem).
+
+- **Ao abrir uma aba**, os cartões (os números de cima e os quadros) sobem e aparecem um depois do outro.
+- **Os números dos cartões correm** do zero até o valor (e, quando o período ou a unidade muda, do valor de antes até o novo). Quando a tela só se atualiza sozinha com o mesmo número, nada se mexe.
+- **Os gráficos:** as barras crescem de baixo para cima; no Relatório financeiro, a linha do resultado se desenha e as bolinhas aparecem. As barrinhas das listas (por forma de pagamento, por produto) enchem da esquerda para a direita.
+- **Ao passar o mouse** em cima de um cartão de número, ele sobe um pouco.
+- As cores, os textos e os números continuam os mesmos (a cara da Play Space). Quem ligou "reduzir movimento" no computador ou no celular vê tudo parado, já pronto.
+
 ## 6zzzz. A atendente troca (e divide) a forma de pagamento a qualquer hora (1.71)
 
 Pedido do dono: "as meninas podem trocar a forma de pagamento; não precisa deixar os 2 minutos. Depois, se elas precisarem, elas conseguem editar a forma de pagamento para bater o caixa"; "e às vezes até escolher duas formas de pagamento: desmembrar, quando o cliente desmembrou".

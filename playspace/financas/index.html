@@ -522,6 +522,22 @@ tr.nf-canc td:nth-child(2), tr.nf-canc td:last-child { text-decoration: line-thr
 .fs-canc td { color: var(--ink-3); }
 .fs-expl { margin: 12px 20px 2px; color: var(--ink-3); font-size: 12.5px; }
 @media (max-width: 760px) { .fs-fixa { min-width: 150px; max-width: 160px; } .fs-tab { min-width: 1380px; } }
+/* 3.1 (Play Space 1.72): as animações (animacoes.js): os cartões entram um a um, as barras crescem, a linha se desenha, o cartão do número sobe ao passar o mouse */
+@keyframes fx-sobe { from { opacity: 0; transform: translateY(16px) scale(.985); } to { opacity: 1; transform: none; } }
+@keyframes fx-barra { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes fx-cresce { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes fx-traco { to { stroke-dashoffset: 0; } }
+@keyframes fx-ponto { from { opacity: 0; transform: scale(0); } to { opacity: 1; transform: scale(1); } }
+.fx-entra { animation: fx-sobe .6s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--fx-i, 0) * 70ms); }
+.fx-entra .barra > i { transform-origin: left center; animation: fx-barra .9s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--fx-i, 0) * 70ms + 250ms); }
+svg.fx-cresce g[data-g] > * { transform-box: fill-box; transform-origin: 50% 100%; animation: fx-cresce .75s cubic-bezier(.2, .8, .2, 1) both; animation-delay: var(--fx-d, 0ms); }
+svg.fx-cresce polyline { stroke-dasharray: var(--fx-l, 3000); stroke-dashoffset: var(--fx-l, 3000); animation: fx-traco 1.1s .35s cubic-bezier(.4, 0, .2, 1) forwards; }
+svg.fx-cresce > circle { transform-box: fill-box; transform-origin: center; animation: fx-ponto .45s cubic-bezier(.3, 1.5, .5, 1) both; animation-delay: var(--fx-d, 500ms); }
+@media (hover: hover) {
+  .kpi { transition: transform .25s cubic-bezier(.2, .8, .2, 1), box-shadow .25s ease; }
+  .kpi:hover { transform: translateY(-5px); box-shadow: 0 1px 2px rgba(59, 59, 59, .05), 0 22px 48px rgba(120, 80, 50, .15); }
+}
+@media (prefers-reduced-motion: reduce) { .fx-entra, .fx-entra .barra > i, svg.fx-cresce * { animation: none !important; } .kpi, .kpi:hover { transition: none; transform: none; } }
 </style>
 </head>
 <body>
@@ -535,6 +551,7 @@ tr.nf-canc td:nth-child(2), tr.nf-canc td:last-child { text-decoration: line-thr
 <script src="comissoes.js?v=2.8"></script>
 <script src="clientes.js?v=3.0"></script>
 <script src="comprovantes.js?v=3.0"></script>
+<script src="animacoes.js?v=3.1"></script>
 <script>
 /* Play Space Finanças 1.0: o que é crítico e delicado do negócio, com login próprio. Os números vêm do Play Space (só leitura). */
 'use strict';
@@ -682,7 +699,7 @@ function somaUni() {
 /* ---------- o app ---------- */
 /* 2.5 (1.64): a página das Finanças que ficou guardada no aparelho (a aba aberta, o app do celular ou o cache do navegador) se renova
    sozinha quando o servidor já tem outra versão. PS_PAGINA é carimbada pelo tools/build_playspace.py com a versão do Play Space. */
-const PS_PAGINA = '1.71';
+const PS_PAGINA = '1.72';
 const psMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
 function renovarSeVelha(v, naTela) {
   if (!v || !psMaior(v, PS_PAGINA)) return false;
