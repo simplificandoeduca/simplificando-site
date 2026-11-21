@@ -3812,7 +3812,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '19 nov · 164'; // Versão do painel: 19 nov · 164
+const PAINELV = '21 nov · 165'; // Versão do painel: 21 nov · 165
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -4255,6 +4255,7 @@ function vAjustes(){
       (nEx ? armBtn('wipeEx','x','Apagar dados de exemplo ('+nEx+')','Toque de novo: apaga '+plural(nEx,'item','itens')+' marcados como exemplo','block','trash') : '<p class="foot">Não há dados de exemplo.</p>')+'</section>'+
     nvCard()+errCard()+
     '<section class="card"><span class="label">'+ic('users')+'Importar alunos</span><p class="muted">Para alunos que já tinham treino em planilha: escolha o arquivo de importação (.json). Cada aluno entra com o treino, a carga da última semana, as metas e o histórico nas anotações. Quem já está no painel, com o mesmo nome ou e-mail, não é duplicado.</p><div class="btn-row"><button type="button" class="btn" data-a="impFile">'+ic('plus')+'Escolher arquivo</button><input type="file" id="imp-file" class="sr" accept=".json,application/json"></div></section>'+
+    '<section class="card"><span class="label">'+ic('note')+'Treino em PDF para um aluno</span><p class="muted">Escolha um PDF de treino feito pelo painel (Baixar PDF ou Enviar com PDF). O painel lê os treinos do arquivo e você escolhe para qual aluno passar. Serve, por exemplo, para um treino montado num perfil que já foi apagado.</p><div class="btn-row"><button type="button" class="btn" data-a="pdfImpFile">'+ic('plus')+'Escolher PDF</button><input type="file" id="pdf-imp-file" class="sr" accept=".pdf,application/pdf"></div></section>'+
     '<section class="card"><span class="label">'+ic('user')+'Acesso ao painel</span><p class="muted">Conectado como <b>'+esc(Gate.user()||'você')+'</b> neste aparelho.</p><button type="button" class="btn ghost block gate-out" data-gate-out="1">Sair do painel</button><p class="hint" style="text-align:center;margin:4px 0 0">Versão do painel: '+PAINELV+'</p></section>'+
     '<section class="card"><span class="label">'+ic('note')+'Termos e privacidade</span><p class="muted" style="margin:0">Termos de uso e política de privacidade, versão 1. Os alunos aceitam no app: no cadastro de quem treina sem personal e no primeiro acesso de quem entra com a senha do personal. O aceite de cada um aparece na aba Perfis.</p><button type="button" class="btn block" data-a="termos">'+ic('note')+'Ler os termos</button></section>');
 }
@@ -4366,6 +4367,7 @@ function vSheet(){
       '<div class="btn-row"><button type="button" class="btn primary" data-a="ctCopy">'+ic('copy')+'Copiar mensagem</button><a class="btn ghost" href="https://wa.me/?text='+encodeURIComponent(t)+'" target="_blank" rel="noopener">'+ic('msg')+'Abrir no WhatsApp</a></div>'+
       '<details class="more ct-why"><summary>'+ic('chev')+'Por que cada pergunta</summary><div class="ct-r">'+CT_Q.map(([k,t,q,e,w],i) => '<div><span>'+CT_NUM(i+1)+' '+esc(t)+'</span><p>'+esc(w||'')+'</p></div>').join('')+'</div></details>';
   }
+  if(s.k==='pdfImp') return pdfImpSheet();
   if(s.k==='tplSave'){
     return sheetTop('Treino','Salvar como modelo')+'<div class="form">'+inp({d:'tpl.nome',label:'Nome do modelo',val:ui.draft.tpl.nome,req:true,v:'req',id:'tpl-nome',cls:'wide'})+txa({d:'tpl.descricao',label:'Para quem é',val:ui.draft.tpl.descricao,cls:'wide',rows:2})+'</div><p class="err" id="tpl-err" aria-live="polite"></p><button type="button" class="btn primary block" data-a="createTpl">'+ic('save')+'Salvar modelo</button>';
   }
@@ -4456,7 +4458,7 @@ function navHtml(){
     '<div class="side-foot">'+savePill()+'<p class="foot">'+esc(cfg().nomePersonal||'Versão de teste')+'</p><button type="button" class="btn small ghost block" data-a="trocaPerfil">'+ic('users')+'Trocar de perfil</button></div>';
 }
 /* ---------- robô de testes (pasta testes/): acesso ao estado do painel, só no computador de teste; no site não existe ---------- */
-if(location.protocol==='file:' || /^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__painel = { get ui(){ return ui; }, get C(){ return C; }, get PREF(){ return PREF; }, get Store(){ return Store; }, render, closeSheet };
+if(location.protocol==='file:' || /^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__painel = { get ui(){ return ui; }, get C(){ return C; }, get PREF(){ return PREF; }, get Store(){ return Store; }, render, closeSheet, pdfArquivo };
 function render(){
   const k = captureFocus(), sy = window.scrollY, ts0 = document.querySelector('.dtabs-in'), tsl = ts0 ? ts0.scrollLeft : null;
   applyLook();
@@ -4632,6 +4634,8 @@ document.addEventListener('change', e => {
   const el = e.target;
   if(el.id==='tp-min'){ if(ui.sheet && ui.sheet.k==='evTempo' && +el.value>=1){ ui.sheet.min = Math.round(+el.value); const b = document.querySelector('[data-a="evTempoOk"]'); if(b) b.innerHTML = ic('check')+'Salvar '+ui.sheet.min+' min'; } return; }
   if(el.id==='mv-dia'){ if(ui.sheet && ui.sheet.k==='evMover' && isDate(el.value)){ ui.sheet.para = el.value; renderSheet(); } return; }
+  if(el.id==='pdf-imp-file'){ const f = el.files && el.files[0]; if(f) pdfImpArquivo(f); el.value = ''; return; }
+  if(el.id==='pdfi-aluno'){ if(ui.draft.pdfi){ ui.draft.pdfi.aid = el.value; ui.arm = null; renderSheet(); } return; }
   if(el.id==='imp-file'){ const f = el.files && el.files[0]; if(f){ const r = new FileReader(); r.onload = () => importaAlunos(String(r.result||'')); r.readAsText(f); } el.value = ''; return; }
   if(el.dataset.filter){ const k = el.dataset.filter, v = el.value;
     if(['origem','status','objetivo','pag'].includes(k)){ ui.f[k] = v; const L = document.getElementById('alunos-list'); if(L) L.innerHTML = alunoRows(); }
@@ -4873,6 +4877,90 @@ function vozSheet(){
       (!sem && tem && !q.arm ? '<p class="foot">Os treinos '+Ls.join('')+' falados substituem os de mesma letra. Os outros continuam.</p>' : '')+
       '<button type="button" class="btn ghost block" data-a="vozClear">'+ic('trash')+'Apagar e falar de novo</button>' : '');
 }
+/* treino em PDF de volta para o painel (Ajustes › Treino em PDF): lê um PDF feito pelo próprio painel (Baixar PDF ou Enviar com PDF)
+   e monta os treinos de novo para passar a qualquer aluno. O texto do arquivo vem na ordem e com a fonte de cada linha:
+   negrito 14 = "Treino A · nome", negrito 12 = "1. exercício", normal 9,5 = foco do treino ou "grupo · séries × reps · descanso · RIR",
+   normal 9 = dicas (•), itálico 9 = observação. */
+function pdfLeTexto(buf){
+  // bytes do PDF como Latin-1, com os sinais do Windows-1252 que o jsPDF usa (•, –, —, …, aspas)
+  const W = { 0x85:'…', 0x91:'‘', 0x92:'’', 0x93:'“', 0x94:'”', 0x95:'•', 0x96:'–', 0x97:'—' }, u = new Uint8Array(buf); let s = '';
+  for(let i=0; i<u.length; i+=8192) s += String.fromCharCode.apply(null, Array.from(u.subarray(i, i+8192), c => c>=0x80 && c<=0x9F && W[c] ? W[c].charCodeAt(0) : c));
+  const out = [];
+  const re = /\/(F\d+)\s+([\d.]+)\s+Tf|\(((?:\\[\s\S]|[^\\)])*)\)\s*Tj/g; let m, fonte = '', tam = 0;
+  while((m = re.exec(s))){
+    if(m[1]){ fonte = m[1]; tam = +m[2]; continue; }
+    const tx = m[3].replace(/\\([0-7]{1,3}|[\s\S])/g, (x, c) => /^[0-7]+$/.test(c) ? String.fromCharCode(parseInt(c, 8)) : c==='n' ? ' ' : c==='r' || c==='t' ? ' ' : c).trim();
+    if(tx) out.push({ t:tx, f:fonte, z:tam });
+  }
+  return out;
+}
+function pdfLeTreino(L){
+  const tr = {}, info = { plano:'', fim:'', aluno:'' }; let t = null, e = null, cue = -1;
+  const t0 = L.find(x => /^Treino de /.test(x.t)); if(t0) info.aluno = t0.t.slice(10).trim();
+  const cab = L.find(x => /^Simplificando( · |$)/.test(x.t));
+  if(cab){ const p = cab.t.split(' · ').slice(1), v = p.find(x => /^v[aá]lido at[eé] \d\d\/\d\d\/\d{4}$/.test(x)), np = semAc(cfg().nomePersonal||'');
+    if(v){ const [d, mo, y] = v.slice(-10).split('/'); info.fim = y+'-'+mo+'-'+d; }
+    info.plano = p.filter(x => x!==v && semAc(x)!==np).join(' · '); }
+  const negrito = x => x.f==='F2' || x.f==='F4', italico = x => x.f==='F3';
+  L.forEach(x => {
+    const s = x.t; let m;
+    if(negrito(x) && x.z>=13 && (m = s.match(/^Treino ([A-Z])(?: · (.*))?$/))){ t = tr[m[1]] = { nome:(m[2]||'').trim(), foco:'', min:0, ex:[] }; e = null; return; }
+    if(!t) return;
+    if(negrito(x) && x.z>=11 && (m = s.match(/^\d{1,2}\. (.+)$/))){ e = { nome:m[1].trim(), alvo:'', s:3, r:'10–12', d:60, rir:'', cues:[], obs:'', meta:false }; t.ex.push(e); cue = -1; return; }
+    if(negrito(x)) return; // "Tem na sua academia?"
+    if(!e){ if(!t.foco) t.foco = s; return; }
+    if(!e.meta && !italico(x) && x.z>9.2){ e.meta = true;
+      s.split(' · ').forEach((p, i) => { let k;
+        if((k = p.match(/^(\d+) s[eé]ries? × (.+)$/))){ e.s = +k[1]; e.r = k[2].trim(); }
+        else if((k = p.match(/^descanso (\d+) s$/))) e.d = +k[1];
+        else if((k = p.match(/^RIR (.+)$/))) e.rir = k[1].replace(/[–—]/g,'-').trim();
+        else if(i===0) e.alvo = p.trim(); });
+      return; }
+    if(italico(x)){ e.obs = (e.obs ? e.obs+' ' : '')+s; return; }
+    if(/^[•·]\s*/.test(s)){ e.cues.push(s.replace(/^[•·]\s*/,'')); cue = e.cues.length-1; return; }
+    if(cue>=0) e.cues[cue] += ' '+s;
+  });
+  Object.keys(tr).forEach(l => { if(!tr[l].ex.length) delete tr[l]; });
+  return { tr, info };
+}
+// cada exercício do PDF: o da biblioteca com o mesmo nome (desenho, vídeo, erro comum) ou um novo, com o que veio no arquivo
+function pdfMontaTreinos(tr){
+  const porNome = {}; Object.keys(C.exercicios).forEach(id => { const x = C.exercicios[id]; if(x && x.nome) porNome[semAc(x.nome).trim()] = id; });
+  const o = {};
+  Object.keys(tr).sort().forEach(l => { const t = tr[l];
+    o[l] = { nome:t.nome, foco:t.foco, min:0, ex:t.ex.map(v => { const lid = porNome[semAc(v.nome).trim()];
+      const base = lid ? exFromLib(lid) : { id:newExId('pdf'), exId:null, nome:v.nome, alvo:'', s:3, r:'10–12', kg:null, d:60, rir:'0-1', aq:false, obs:'', video:'', cues:['','',''], erro:'' };
+      return Object.assign(base, { s:v.s, r:v.r, d:v.d }, v.alvo ? { alvo:v.alvo } : {}, v.rir ? { rir:v.rir } : {}, v.cues.length ? { cues:v.cues.slice(0,3) } : {}, v.obs ? { obs:v.obs } : {}, { daBib:!!lid }); }) }; });
+  return o;
+}
+function pdfImpArquivo(f){
+  const r = new FileReader();
+  r.onload = () => { let res = null; try { res = pdfLeTreino(pdfLeTexto(r.result)); } catch(e){ res = null; }
+    const n = res ? Object.keys(res.tr).length : 0;
+    if(!n){ toast('Não achei treinos neste PDF. Use um PDF feito pelo painel (Baixar PDF ou Enviar com PDF).'); return; }
+    const fim = res.info.fim, t0 = today(), sem = isDate(fim) && fim>t0 ? Math.max(1, Math.min(52, Math.round(diffDays(fim, t0)/7))) : 8;
+    ui.draft.pdfi = { arq:f.name||'treino.pdf', tr:pdfMontaTreinos(res.tr), info:res.info, aid:'', inicio:t0, sem };
+    openSheet({ k:'pdfImp' }); };
+  r.onerror = () => toast('Não deu para abrir este arquivo.');
+  r.readAsArrayBuffer(f);
+}
+function pdfImpSheet(){
+  const q = ui.draft.pdfi; if(!q) return '';
+  const Ls = letters({ treinos:q.tr }), nEx = Ls.reduce((a,l) => a+q.tr[l].ex.length, 0), al = q.aid && C.alunos[q.aid];
+  const lista = alunos().slice().sort((x,y) => String(nomeDe(x)).localeCompare(String(nomeDe(y)),'pt-BR'));
+  const on = al && armed('pdfImpOk:'+q.aid);
+  return sheetTop('Treino em PDF', 'Passar para um aluno')+
+    '<p class="muted"><b>'+esc(q.arq)+'</b>: '+plural(Ls.length,'treino','treinos')+' ('+Ls.join(', ')+') e '+plural(nEx,'exercício','exercícios')+(q.info.aluno ? ', feito para '+esc(q.info.aluno) : '')+'. Confira e escolha o aluno.</p>'+
+    Ls.map(l => { const t = q.tr[l]; return '<section class="card ia-tr"><div class="card-h"><span class="label">'+ic('dumbbell')+'Treino '+l+(t.nome ? ' · '+esc(t.nome) : '')+'</span><span class="pill line">'+plural(t.ex.length,'exercício','exercícios')+'</span></div>'+(t.foco ? '<p class="foot" style="margin:0 0 6px">'+esc(t.foco)+'</p>' : '')+'<div class="list">'+
+      t.ex.map((e,i) => '<div class="row"><span class="num">'+(i+1)+'</span><span class="main-t"><b>'+esc(e.nome)+'</b><span>'+esc(e.alvo||'')+(e.alvo ? ' · ' : '')+e.s+' × '+esc(e.r)+' · descanso '+e.d+' s'+(e.rir ? ' · RIR '+esc(String(e.rir).replace('-','–')) : '')+(e.daBib ? '' : ' · <i>não está na biblioteca</i>')+'</span></span></div>').join('')+'</div></section>'; }).join('')+
+    '<div class="form">'+
+      '<div class="fld wide"><label for="pdfi-aluno">Aluno que vai receber</label><div class="inp-wrap sel-wrap"><select class="inp" id="pdfi-aluno"><option value="">Escolha o aluno</option>'+lista.map(a => '<option value="'+esc(a._id)+'"'+(a._id===q.aid?' selected':'')+'>'+esc(nomeDe(a))+(P(a).apelido ? ' ('+esc(P(a).apelido)+')' : '')+'</option>').join('')+'</select></div></div>'+
+      inp({d:'pdfi.inicio',label:'Início do treino',val:q.inicio,type:'date',v:'date'})+
+      inp({d:'pdfi.sem',label:'Validade',val:q.sem,t:'i',unit:'semanas',v:'range',min:1,max:52})+'</div>'+
+    (al ? '<button type="button" class="btn '+(on?'armed':'primary')+' block" data-a="pdfImpOk" data-k="'+esc(q.aid)+'">'+ic('check')+(on ? 'Toque de novo para trocar o treino de '+esc(curto(al)) : 'Passar este treino para '+esc(curto(al)))+'</button>'+
+      '<p class="foot">'+(letters(al.plano).length ? 'Substitui os treinos atuais de '+esc(curto(al))+' ('+letters(al.plano).join(', ')+'). ' : '')+'O app recebe o treino novo na próxima vez que abrir.</p>'
+      : '<p class="foot">Escolha o aluno para passar o treino.</p>');
+}
 /* treino em PDF: abre uma página com cada exercício (nome, desenho do movimento, séries) para o aluno conferir na academia */
 /* mensagem para mandar junto com o PDF do treino */
 /* o WhatsApp corta a legenda de arquivo em 1024 caracteres: a mensagem vai em duas partes */
@@ -4988,7 +5076,7 @@ async function copyText(txt,selEl){
   if(selEl){ try { selEl.focus(); selEl.select(); } catch(e){} }
   toast('Selecione o texto e copie');
 }
-const ARMED = new Set(['pfExcluir','evExcluir','rirAll','copyFrom','dropLocal','archive','delAluno','delLesao','delTreino','delEx','delAv','delPay','delNota','genCode','delEx2','delTpl','applyTpl','applyToAluno','wipeEx','demoWipe']);
+const ARMED = new Set(['pfExcluir','evExcluir','rirAll','copyFrom','dropLocal','archive','delAluno','delLesao','delTreino','delEx','delAv','delPay','delNota','genCode','delEx2','delTpl','applyTpl','applyToAluno','wipeEx','pdfImpOk','demoWipe']);
 function act(a,d,btn){
   const A = curAluno();
   switch(a){
@@ -5173,6 +5261,14 @@ function act(a,d,btn){
     case 'cdAbre': CT.abre[d.k] = !CT.abre[d.k]; break;
     case 'cdFeito': cdFeitoTroca(d.k); break;
     case 'cdMail': copyText(d.v); return false;
+    case 'pdfImpFile': { const f = document.getElementById('pdf-imp-file'); if(f) f.click(); return false; }
+    case 'pdfImpOk': { const q = ui.draft.pdfi, al = q && C.alunos[q.aid]; if(!al) return false;
+      al.plano = al.plano || {}; al.plano.treinos = cloneTreinos(q.tr); Object.values(al.plano.treinos).forEach(t => (t.ex||[]).forEach(e => { delete e.daBib; }));
+      al.plano.inicio = isDate(q.inicio) ? q.inicio : today(); al.plano.semanas = Math.max(1, Math.min(52, Math.round(+q.sem) || 8)); al.plano.frequencia = letters(al.plano).length; al.plano.deload = false;
+      if(q.info.plano) al.plano.nome = q.info.plano;
+      normPlan(al.plano); Store.save('alunos', q.aid, 0); ui.draft.pdfi = null; closeSheet();
+      ui.view = 'alunos'; ui.aluno = q.aid; ui.tab = 'treino'; ui.tl['alunos'+q.aid] = 'A'; window.scrollTo(0,0);
+      toast('Treino passado para '+curto(al)); break; }
     case 'impFile': { const f = document.getElementById('imp-file'); if(f) f.click(); return false; }
     case 'rkSort': ui.rkSort = !ui.rkSort; if(ui.sheet && ui.sheet.k==='pick'){ renderSheet(); return false; } break;
     case 'pfRefresh': loadPerfis(true); toast('Atualizando a lista'); break;

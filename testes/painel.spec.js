@@ -66,6 +66,27 @@ test('cadastra a aluna e monta o treino com aquecimento e cardio obrigatório', 
   }, { timeout: 30000 }).toBe(true);
 });
 
+test('Ajustes › Treino em PDF: o PDF do treino feito pelo painel volta a ser treino e passa para a aluna', async ({ page }) => {
+  await entraPainel(page);
+  // o treino de agora da aluna (letras, exercícios, séries, repetições e descanso) e o PDF dele, gerado pelo próprio painel
+  const resumo = () => page.evaluate(aid => { const pl = window.__painel.C.alunos[aid].plano; return Object.keys(pl.treinos).sort().map(l => l + ':' + pl.treinos[l].ex.map(e => [e.nome, e.s, e.r, e.d].join('/')).join('|')); }, aid);
+  const antes = await resumo(), orig = await page.evaluate(aid => JSON.stringify(window.__painel.C.alunos[aid].plano), aid);
+  expect(antes.length).toBeGreaterThan(0);
+  const b64 = await page.evaluate(async aid => { const f = await window.__painel.pdfArquivo(window.__painel.C.alunos[aid]); const u = new Uint8Array(await f.arrayBuffer()); let s = ''; u.forEach(c => s += String.fromCharCode(c)); return btoa(s); }, aid);
+  // apaga o treino (como se o perfil de origem tivesse sumido) e passa de volta pelo PDF
+  await page.evaluate(aid => { const P = window.__painel; P.C.alunos[aid].plano.treinos = {}; P.Store.save('alunos', aid, 0); }, aid);
+  await vai(page, '#ajustes'); await page.waitForTimeout(400);
+  await page.setInputFiles('#pdf-imp-file', { name: 'Treino-teste.pdf', mimeType: 'application/pdf', buffer: Buffer.from(b64, 'base64') });
+  await expect(page.locator('#sh-t')).toHaveText('Passar para um aluno');
+  await page.selectOption('#pdfi-aluno', aid);
+  await page.click('[data-a="pdfImpOk"]'); await page.click('[data-a="pdfImpOk"]'); // dois toques: troca o treino
+  await expect(page.locator('#toast')).toContainText('Treino passado para');
+  expect(await resumo()).toEqual(antes);
+  // volta o treino original (com o aquecimento, que não vai no PDF) para os próximos passos
+  await page.evaluate(([aid, o]) => { const P = window.__painel; P.C.alunos[aid].plano = JSON.parse(o); P.Store.save('alunos', aid, 0); }, [aid, orig]);
+  await page.waitForTimeout(1500);
+});
+
 test('a aluna entra com a senha de 6 números e vê o treino e o cardio obrigatório', async ({ page }) => {
   expect(codigo).toMatch(/^\d{6}$/);
   await entraComSenha(page, { codigo, emu: true });
