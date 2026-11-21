@@ -39,8 +39,11 @@ const durTxt = m => { m = Math.max(0, Math.round(m)); const h = Math.floor(m/60)
 function esqSug(){ const s = S.session; if(!s) return 60; const ini = sesIni(s), m = s.ult && s.ult>ini ? (s.ult-ini)/60000+5 : elapsed()/60000; return Math.max(5, Math.min(300, Math.round(m/5)*5)); }
 function esqAbre(fim){ if(!S.session) return; ui.arm = null; ui.sheet = { k:'esq', min:esqSug(), fim:!!fim }; renderSheet(true); }
 function esqAsk(){ const s = S.session; if(!ACCT || !s || ui.sheet || !esqLongo()) return; if(s.esqOk && Date.now()-s.esqOk < 2*3600e3) return; esqAbre(false); }
+// exercícios do treino aberto sem nenhuma série marcada (no dia em que começou ou hoje)
+function esqFaltam(){ const s = S.session; if(!s || !PLAN[s.t]) return []; const L0 = S.logs[s.d||today()] || {}, L1 = S.logs[today()] || {};
+  return PLAN[s.t].ex.filter(e => !(L0[e.id]||[]).some(x => x && x.ok) && !(L1[e.id]||[]).some(x => x && x.ok)); }
 function vEsq(){
-  const s = S.session, sh = ui.sheet, p = PLAN[s.t] || {}, ini = new Date(sesIni(s)), hj = today(), dd = s.d && s.d!==hj ? (s.d===daysAgo(1) ? 'ontem' : 'em '+s.d.slice(8,10)+'/'+s.d.slice(5,7)) : 'hoje';
+  const s = S.session, sh = ui.sheet, fal = esqFaltam(), p = PLAN[s.t] || {}, ini = new Date(sesIni(s)), hj = today(), dd = s.d && s.d!==hj ? (s.d===daysAgo(1) ? 'ontem' : 'em '+s.d.slice(8,10)+'/'+s.d.slice(5,7)) : 'hoje';
   const hr = String(ini.getHours()).padStart(2,'0')+':'+String(ini.getMinutes()).padStart(2,'0'), aberto = durTxt((Date.now()-sesIni(s))/60000), sug = esqSug(), ok = (s.nOk||0);
   return `<div class="sheet-wrap cm-w"${sh.fim ? ' data-a="esq-x"' : ''}><div class="sheet cm esq" role="dialog" aria-modal="true" aria-labelledby="cm-t" tabindex="-1">
     <span class="cm-ic">${ic('timer')}</span><h2 id="cm-t">${sh.fim ? 'Confira o tempo do treino' : 'Seu treino ainda está aberto'}<span class="dot">${sh.fim ? '.' : '?'}</span></h2>
@@ -48,7 +51,9 @@ function vEsq(){
     <p class="esq-l">Quanto tempo você treinou de verdade?</p>
     <div class="esq-st"><button type="button" class="btn round" data-a="esq-m" data-d="-5" aria-label="Menos 5 minutos">${ic('minus')}</button><b aria-live="polite">${durTxt(sh.min)}</b><button type="button" class="btn round" data-a="esq-m" data-d="5" aria-label="Mais 5 minutos">${ic('plus')}</button></div>
     <p class="cm-g">${s.ult ? 'Pela sua última série, sugerimos '+durTxt(sug)+'.' : 'Ajuste de 5 em 5 minutos.'}</p>
-    <button type="button" class="btn primary block cm-b" data-a="esq-ok">${ic('check')}Salvar treino com ${durTxt(sh.min)}</button>
+    ${fal.length ? `<div class="esq-falta">${ic('flag')}<div><b>${fal.length===1 ? 'Falta 1 exercício sem registro' : 'Faltam '+fal.length+' exercícios sem registro'}</b><span>${esc(fal.map(e => e.nome).join(', '))}</span></div></div>
+    <button type="button" class="btn primary block cm-b" data-a="esq-falta">${ic('edit')}Registrar o que faltou</button>
+    <button type="button" class="btn block cm-b2" data-a="esq-ok">${ic('check')}Salvar assim, com ${durTxt(sh.min)}</button>` : `<button type="button" class="btn primary block cm-b" data-a="esq-ok">${ic('check')}Salvar treino com ${durTxt(sh.min)}</button>`}
     ${sh.fim ? `<button type="button" class="btn block cm-b2" data-a="esq-x">Voltar ao treino</button>` : `<button type="button" class="btn block cm-b2" data-a="esq-cont">Ainda estou treinando</button>`}
     ${ok ? '' : (ui.arm==='esq-del' ? `<button type="button" class="btn ghost block esq-del on" data-a="esq-del">Toque de novo para descartar</button>` : `<button type="button" class="btn ghost block esq-del" data-a="esq-del">Descartar este treino</button>`)}</div></div>`;
 }
@@ -56,6 +61,10 @@ function esqClick(a, d){
   const sh = ui.sheet; if(!sh || sh.k!=='esq' || !S.session) return false;
   if(a==='esq-m'){ sh.min = Math.max(5, Math.min(600, sh.min + +d.d)); renderSheet(); refocus(`[data-a="esq-m"][data-d="${d.d}"]`); return true; }
   if(a==='esq-ok'){ S.session.fix = sh.min*60000; ui.sheet = null; renderSheet(); finish(); if(S.session) S.session.fix = 0; save(); render(); return true; }
+  // registrar o que faltou: guarda o tempo escolhido e abre o 1º exercício sem registro; ao finalizar, o treino fica com esse tempo
+  if(a==='esq-falta'){ const fal = esqFaltam(); S.session.fix = sh.min*60000; S.session.esqOk = Date.now(); save(); ui.tab = 'treino'; render();
+    if(fal.length){ ui.pane = 'series'; ui.sheet = {k:'ex', id:fal[0].id}; renderSheet(true); } else { ui.sheet = null; renderSheet(); }
+    toast('Marque as séries que faltaram e toque em Finalizar. O tempo fica '+durTxt(sh.min)+'.'); return true; }
   if(a==='esq-cont'){ S.session.esqOk = Date.now(); ui.sheet = null; save(); renderSheet(); toast('Beleza. Bom treino!'); return true; }
   if(a==='esq-x'){ ui.sheet = null; renderSheet(); return true; }
   if(a==='esq-del'){ if(ui.arm==='esq-del'){ ui.arm = null; ui.sheet = null; renderSheet(); cancelSession(); render(); } else { ui.arm = 'esq-del'; renderSheet(); refocus('[data-a="esq-del"]'); } return true; }
