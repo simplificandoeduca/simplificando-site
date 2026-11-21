@@ -986,6 +986,12 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .cx-g { padding: 9px 12px; display: flex; flex-direction: column; gap: 1px; } .cx-g + .cx-g, .cx-sub + .cx-g { border-top: 1px solid var(--borda); }
 .cx-l { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; } .cx-l b { font-size: 14.5px; } .cx-l span { font-weight: 800; font-size: 15px; white-space: nowrap; } .cx-g small { font-size: 12px; color: var(--tinta-2); }
 .cx-g.carr { background: var(--mostarda-2); } .cx-g.dev .cx-l span { color: var(--erro); } .cx-carr { display: block; padding: 0 12px 9px; font-size: 12px; color: var(--tinta-2); background: var(--mostarda-2); }
+/* 1.73: o centro de custo do caixa: o Play e o Casa Tom de cada unidade */
+.cx-cc { display: flex; flex-direction: column; gap: 3px; padding: 10px 12px 12px; border-top: 1px solid var(--borda-2); }
+.cx-cc > small { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--tinta-2); margin-bottom: 2px; }
+.cx-cc-l { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; font-size: 14px; font-weight: 800; }
+.cx-cc-l span { min-width: 0; } .cx-cc-l i { font-style: normal; font-size: 11.5px; font-weight: 600; color: var(--tinta-2); margin-left: 2px; }
+.cx-cc-l.casa span { color: var(--coral); }
 .cx-sub, .cx-tot { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; padding: 9px 12px; border-top: 1px solid var(--borda-2); font-weight: 800; } .cx-sub { background: var(--menta-risco); font-size: 14px; } .cx-tot { background: var(--tinta); color: var(--creme); font-size: 15px; } .cx-tot b { font-size: 18px; }
 .cx-uni { align-self: flex-start; max-width: 100%; } .seg.cx-uni button { flex: 0 0 auto; padding: 0 14px; white-space: nowrap; }
 .fim-chip > svg { flex: none; color: var(--ok); } #esp-filtros.mn-itens .fim-chip > svg { margin-left: -2px; }
@@ -1769,7 +1775,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.72';
+const VERSAO = '1.73';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -5371,7 +5377,7 @@ const linhaFimAlug = (x, varias) => { const c = crianca(x.crianca), u = varias &
 // Pedido da dona: "no finalizados do dia, um ícone de caixa, que vai ser das meninas do atendimento: o que foi pago no dia, as formas de
 // pagamento, tudo bem destrinchado, e os carrinhos à parte, porque eles não entram no faturamento da recreação: a soma dos carrinhos, a soma
 // total e a soma da recreação, do que foi pacote, do que foi festa". O caixa é o que foi RECEBIDO hoje, na unidade deste aparelho.
-const GRUPOS_CX = [['recreacao', 'Recreação avulsa', 'o tempo de quem não usa pacote'], ['pacotes', 'Pacotes de horas', ''], ['festa', 'Festas', 'festa, upgrade e adicional'], ['produtos', 'Produtos da loja', ''], ['outros', 'Outros', '']];
+const GRUPOS_CX = [['recreacao', 'Recreação avulsa', 'o tempo de quem não usa pacote'], ['pacotes', 'Pacotes de horas', ''], ['festa', 'Festas', 'festa, upgrade e adicional'], ['produtos', 'Casa Tom (produtos)', ''], ['outros', 'Outros', '']];
 function grupoCxPrevia(v) { const n = String(v.servico || '').trim().toUpperCase(), st = servicoTempo();
   if (v.prod) return 'produtos'; if (v.alug || (S.cfg.servicos || []).some(s => s.volta && String(s.n || '').trim().toUpperCase() === n)) return 'carrinhos'; if (minDe(v) > 0 && !v.auto && !v.voucher && (!n || /^PACOTE(?![0-9A-Z_])/.test(n))) return 'pacotes';   // 1.31: antes da festa (como no painel)
   if (n.includes('FESTA')) return 'festa';
@@ -5403,6 +5409,15 @@ function contaCaixa(uni) { // o caixa de uma unidade (0 = todas): o total, por f
     for (const [n, v] of Object.entries(d.itens || {})) dev.itens[n] = centavos((dev.itens[n] || 0) + v); }
   const total = centavos(Object.values(soma).reduce((t, v) => t + v, 0)), carr = centavos((G.carrinhos ? G.carrinhos.total : 0) - (dev.grupos.carrinhos || 0));
   return { total, soma, G, carr, dev, devSem: centavos(dev.total - (dev.grupos.carrinhos || 0)), semCarr: centavos(total - carr) }; }   /* 1.45: devSem = o devolvido fora o dos carrinhos (o dos carrinhos já sai da linha Carrinhos) */
+/* 1.73: o centro de custo do caixa, como nas Finanças: o Play de cada unidade (horas, recreação, festas, carrinhos) e o Casa Tom ("no Casa
+   Tom só se vende produto"): o Casa Tom Anália e o Casa Tom Morumbi. O devolvido hoje sai do centro de custo dele */
+const curtoUni = n => /an[aá]lia/i.test(n || '') ? 'Anália' : /morumbi/i.test(n || '') ? 'Morumbi' : String(n || '').toLowerCase().replace(/(^|\s)\S/g, c => c.toUpperCase());
+function centrosCusto(u) {   // [[nome, valor, é o Casa Tom]]
+  const U = unidades(), semUni = caixaUnidades().some(x => !x.uni && Object.values(x.grupos || {}).some(g => Math.abs(+g.total || 0) > 0.004));
+  const ids = u ? [u] : U.length ? [...U.map(x => x.id), ...(semUni ? [-1] : [])] : [0], L = [];
+  for (const id of ids) { const K = contaCaixa(id), casa = centavos((K.G.produtos ? K.G.produtos.total : 0) - (K.dev.grupos.produtos || 0)), nm = id > 0 ? ' ' + curtoUni(nomeUni(id)) : id === -1 ? ' · sem unidade' : '';
+    L.push(['Play' + nm, centavos(K.total - casa), false], ['Casa Tom' + nm, casa, true]); }
+  return L; }
 const formasCx = F => FORMAS.filter(([f]) => (F || {})[f] > 0).map(([f, n]) => `${n} ${brl2(F[f])}`).join(' · ');
 function htmlCaixaDia() {
   const u = cxUni(), K = contaCaixa(u), U = unidades(), onde = u === -1 ? 'sem unidade' : u ? nomeUni(u) : U.length > 1 ? 'todas as unidades' : (U[0] || {}).nome || '';
@@ -5419,7 +5434,8 @@ function htmlCaixaDia() {
       ${K.devSem > 0 ? `<div class="cx-g dev"><div class="cx-l"><b>Devolvido hoje</b><span class="num">− ${brl2(K.devSem)}</span></div><small>venda de outro dia cancelada hoje · ${esc(formasCx(K.dev.formas))} · ${K.dev.n} ${K.dev.n === 1 ? 'devolução' : 'devoluções'}${K.dev.grupos.carrinhos ? ` · o carrinho devolvido (${brl2(K.dev.grupos.carrinhos)}) sai da linha Carrinhos` : ''}</small></div>` : ''}
       <div class="cx-sub"><span>Total sem os carrinhos</span><b class="num">${brl2(K.semCarr)}</b></div>
       ${linha('Carrinhos', K.dev.grupos.carrinhos ? 'carrinho de outro dia devolvido hoje' : 'nada recebido hoje', gc || K.dev.grupos.carrinhos ? { ...(gc || { formas: {}, vendas: 0, itens: {} }), total: K.carr } : gc, ' carr')}${itensC || K.dev.grupos.carrinhos ? `<small class="cx-carr">${[itensC, K.dev.grupos.carrinhos ? 'devolvido ' + brl2(K.dev.grupos.carrinhos) : ''].filter(Boolean).join(' · ')}</small>` : ''}
-      <div class="cx-tot"><span>Total do dia</span><b class="num">${brl2(K.total)}</b></div></div>
+      <div class="cx-tot"><span>Total do dia</span><b class="num">${brl2(K.total)}</b></div>
+      <div class="cx-cc" aria-label="Centro de custo"><small>Centro de custo</small>${centrosCusto(u).map(([n, v, casa]) => `<div class="cx-cc-l${casa ? ' casa' : ''}"><span>${esc(n)} ${casa ? '<i>só produtos</i>' : '<i>horas, recreação, festas, carrinhos</i>'}</span><b class="num">${brl2(v)}</b></div>`).join('')}</div></div>
   </section>`;
 }
 function papelCaixa() { const u = cxUni(), K = contaCaixa(u), L = lojaPapel(), lin = (r, v, cls = '') => `<p class="c-linha c-pt${cls}"><span>${r}</span><i></i><span>${v}</span></p>`;
@@ -5432,6 +5448,7 @@ function papelCaixa() { const u = cxUni(), K = contaCaixa(u), L = lojaPapel(), l
     ${lin('Sem os carrinhos', brl2(K.semCarr), ' c-total')}
     ${lin('Carrinhos', brl2(K.carr))}${K.G.carrinhos ? Object.entries(K.G.carrinhos.itens).map(([n, v]) => `<p class="c-sub">${esc(n)}: ${brl2(v)}</p>`).join('') : ''}${K.dev.grupos.carrinhos ? `<p class="c-sub">devolvido: − ${brl2(K.dev.grupos.carrinhos)}</p>` : ''}
     <p class="c-div"></p>${lin('TOTAL DO DIA', brl2(K.total), ' c-total')}
+    <p class="c-div"></p><p class="c-cab"><span>Centro de custo</span><span>Valor</span></p>${centrosCusto(u).map(([n, v]) => lin(esc(n), brl2(v))).join('')}
     <p class="c-rod">emitido por ${esc(MAI(primeiro(EU.nome || 'equipe')))}</p></div>`; }
 function corpoFinalizados(q) {
   const F = finalizadosHoje(), achou = x => !q || (x.nome + ' ' + x.resp).toLowerCase().includes(q) || (crianca(x.crianca) && casaBusca(crianca(x.crianca), q)) || (x.n && x.n.toLowerCase().includes(q));
@@ -5663,8 +5680,12 @@ function pctsInteiros(vals, total) { const t = Math.max(+total || 0, vals.reduce
   for (let k = 0; falta > 0 && k < ordem.length; k++, falta--) base[ordem[k][1]]++; return base; }
 const grLinhas = (L, cor) => { const max = Math.max(0, ...L.map(x => x.v)); return `<div class="gr-linhas">${L.map(x => `<div class="gr-l${x.v > 0 ? '' : ' zero'}" tabindex="0" data-dica="${esc(x.dica)}"><span class="gr-n">${esc(x.n)}</span><span class="gr-t"><i style="width:${max > 0 && x.v > 0 ? Math.max(1.5, x.v / max * 100).toFixed(1) : 0}%;background:var(${cor})"></i></span><b class="num">${x.txt}</b></div>`).join('')}</div>`; };
 let PN_R = null, GR_T = 0, GR_DICA = null;
-function graficosPainel() { const el = $('#gr-horas'); if (!el || S.tela !== 'painel') return; const r = PN_R || painelResumo(pnUni()), [de, ate] = grFaixaHoras(r.horas); el.innerHTML = grHorasSvg(Math.max(260, Math.floor(el.clientWidth) || 600), r.horas, de, ate); }
+function graficosPainel() { const el = $('#gr-horas'); if (!el || S.tela !== 'painel') return; el.dataset.w = Math.floor(el.clientWidth); if (GR_RO && !el.dataset.ro) { el.dataset.ro = '1'; GR_RO.observe(el); } const r = PN_R || painelResumo(pnUni()), [de, ate] = grFaixaHoras(r.horas); el.innerHTML = grHorasSvg(Math.max(260, Math.floor(el.clientWidth) || 600), r.horas, de, ate); }
 addEventListener('resize', () => { clearTimeout(GR_T); GR_T = setTimeout(graficosPainel, 140); });
+/* 1.73: o gráfico refeito sempre que a largura do quadro muda (o histórico abre ou fecha, o menu muda): antes ele era refeito na hora em que o
+   histórico abria, e ficava na largura antiga quando o aparelho pede menos movimento ("reduzir movimento") */
+const GR_RO = window.ResizeObserver ? new ResizeObserver(es => { for (const e of es) { if (!e.target.isConnected) { GR_RO.unobserve(e.target); continue; }
+  const w = Math.floor(e.contentRect.width); if (w > 0 && w !== +e.target.dataset.w) { clearTimeout(GR_T); GR_T = setTimeout(graficosPainel, 60); } } }) : null;
 addEventListener('resize', () => acertaMenu());   // 1.28: a janela passou de 1280 px (para um lado ou para o outro): o menu aberto e o trilho trocam de lugar
 // a dica dos gráficos: uma só, com o valor em destaque e o que ele é embaixo (o texto entra como texto, nunca como HTML)
 function grDica(alvo, x, y) {

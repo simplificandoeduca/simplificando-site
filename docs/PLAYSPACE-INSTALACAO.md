@@ -1301,6 +1301,26 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzz. O menu da barra escura nas Finanças e o Casa Tom no Caixa do dia (1.73 · Finanças 3.2)
+
+Pedido do dono: "esse menu" (o menu do vídeo de painel que o dono mandou) e "o Casa Tom Anália, o Casa Tom Morumbi: no Casa Tom só se vende produto; o centro de custo Casa Tom lá no sistema de atendimento também, só naquela aba de financeiro".
+
+**O menu das Finanças (no computador):**
+- Uma barra escura e arredondada do lado esquerdo, só com os ícones: o logo em cima, as iniciais de quem entrou embaixo. Os grupos (a loja e o financeiro) ficam separados por um traço.
+- Ao abrir as Finanças, a barra cresce e os ícones aparecem um depois do outro.
+- O item aberto fica num círculo claro, que desliza até o item novo quando a aba muda. A tela nova entra desfocada e fica nítida.
+- Ao passar o mouse (ou com o Tab do teclado), o nome aparece numa etiqueta escura ao lado do ícone. O número dos cancelamentos fica numa bolinha no ícone.
+- Em telas mais baixas (o notebook), os ícones ficam menores para o menu inteiro caber; se ainda assim não couber, a ponta da barra esmaece e dá para rolar.
+- No celular continua a barra de baixo. Com "reduzir movimento" no aparelho, a barra já aparece pronta e nada desliza.
+
+**O Casa Tom no sistema de atendimento (o Caixa do dia, em Finalizados do dia):**
+- A linha dos produtos agora se chama **Casa Tom (produtos)**.
+- No fim do Caixa do dia, o **Centro de custo**: o **Play** de cada unidade (horas, recreação, festas, carrinhos) e o **Casa Tom** de cada unidade (só os produtos): Play Anália, Casa Tom Anália, Play Morumbi, Casa Tom Morumbi. Escolhendo uma unidade, só as duas linhas dela. O devolvido hoje sai do centro de custo dele.
+- O caixa impresso também traz o centro de custo.
+- Nas Finanças o Casa Tom já estava: os produtos são o "Casa Tom (produtos)", a Visão geral tem o quadro "Play e Casa Tom" de cada unidade e os lançamentos têm as filiais Casa Tom Anália e Casa Tom Morumbi.
+
+**Um acerto:** no painel da gestora, o gráfico "Entradas por hora" se refaz sempre que a largura do quadro muda (o histórico abre ou fecha). Com "reduzir movimento" no aparelho, ele ficava na largura antiga.
+
 ## 6zzzzz. As Finanças com animações (1.72 · Finanças 3.1)
 
 Pedido do dono: "quero o financeiro com essas animações" (um vídeo de painel moderno: os cartões que aparecem um a um, os números que correm, os gráficos que crescem).

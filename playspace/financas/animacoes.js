@@ -64,7 +64,7 @@
   function passar() {
     pend = false; if (calmo()) return;
     const tela = document.getElementById('tela'); if (!tela) return;
-    const aba = abaAgora(), cards = [...tela.querySelectorAll('.kpi, .cartao')];
+    const aba = abaAgora(), cards = [...tela.querySelectorAll('.topo, .kpi, .cartao')];   /* 3.2: o título também entra (desfocado e fica nítido) */
     const entrada = cards.length > 0 && aba !== abaVista; if (cards.length) abaVista = aba;   /* a entrada só quando a aba muda */
     if (entrada) { entrar(cards); for (const k of [...VISTO.keys()]) if (k.startsWith(aba + '|')) VISTO.delete(k); }   /* ao abrir a aba, os números correm do zero */
     tela.querySelectorAll('.kpi .val').forEach(v => contar(v, aba));

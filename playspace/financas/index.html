@@ -523,7 +523,7 @@ tr.nf-canc td:nth-child(2), tr.nf-canc td:last-child { text-decoration: line-thr
 .fs-expl { margin: 12px 20px 2px; color: var(--ink-3); font-size: 12.5px; }
 @media (max-width: 760px) { .fs-fixa { min-width: 150px; max-width: 160px; } .fs-tab { min-width: 1380px; } }
 /* 3.1 (Play Space 1.72): as animações (animacoes.js): os cartões entram um a um, as barras crescem, a linha se desenha, o cartão do número sobe ao passar o mouse */
-@keyframes fx-sobe { from { opacity: 0; transform: translateY(16px) scale(.985); } to { opacity: 1; transform: none; } }
+@keyframes fx-sobe { from { opacity: 0; transform: translateY(16px) scale(.985); filter: blur(7px); } to { opacity: 1; transform: none; filter: none; } }   /* 3.2: entra desfocada e fica nítida */
 @keyframes fx-barra { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes fx-cresce { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 @keyframes fx-traco { to { stroke-dashoffset: 0; } }
@@ -538,6 +538,48 @@ svg.fx-cresce > circle { transform-box: fill-box; transform-origin: center; anim
   .kpi:hover { transform: translateY(-5px); box-shadow: 0 1px 2px rgba(59, 59, 59, .05), 0 22px 48px rgba(120, 80, 50, .15); }
 }
 @media (prefers-reduced-motion: reduce) { .fx-entra, .fx-entra .barra > i, svg.fx-cresce * { animation: none !important; } .kpi, .kpi:hover { transition: none; transform: none; } }
+/* 3.2 (Play Space 1.73): o menu da barra escura (menu.js). Só no computador: no celular fica a barra de baixo de sempre */
+@keyframes rail-cresce { from { clip-path: inset(0 0 calc(100% - 76px) 0 round 38px); } to { clip-path: inset(0 0 0 0 round 38px); } }
+@keyframes rail-item { from { opacity: 0; transform: translateY(8px) scale(.9); } to { opacity: 1; transform: none; } }
+@media (min-width: 821px) {
+  .app { grid-template-columns: 108px minmax(0, 1fr); }
+  .lateral { --tam: 44px; position: sticky; top: 14px; width: 76px; height: calc(100vh - 28px); margin: 14px 0 14px 18px; padding: 16px 0 14px; display: flex; flex-direction: column; align-items: center; gap: 0;
+    background: #2B2724; border: 0; border-radius: 38px; box-shadow: 0 1px 2px rgba(40, 25, 15, .2), 0 20px 44px rgba(60, 35, 20, .22); overflow: visible; }
+  .lateral .marca { padding: 0 0 12px; flex: none; } .lateral .marca img { width: 44px; height: 44px; border-radius: 14px; display: block; }
+  .lateral .marca > div, .lateral .aba > span:not(.cont), .lateral .quem b { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .rail-lista { position: relative; flex: 1; min-height: 0; width: 100%; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 0; }
+  .rail-lista::-webkit-scrollbar { display: none; }
+  .lateral .aba { position: relative; z-index: 1; flex: none; width: var(--tam); height: var(--tam); padding: 0; gap: 0; justify-content: center; border: 0; border-radius: 50%; background: none; box-shadow: none; color: rgba(255, 251, 244, .62); transition: color .25s ease, background-color .2s ease; }
+  .lateral .aba svg { width: 21px; height: 21px; }
+  .lateral .aba:hover { color: #FFFBF4; background: rgba(255, 251, 244, .09); }
+  .lateral .aba.ativa, .lateral .aba.ativa:hover { color: var(--ink); background: none; border: 0; box-shadow: none; }
+  .lateral .aba:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+  .lateral .aba .cont { position: absolute; top: 2px; right: 0; margin: 0; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--brand); color: #fff; font: 800 10px/18px var(--texto); text-align: center; box-shadow: 0 0 0 2px #2B2724; }
+  .rail-ativo { position: absolute; left: 50%; top: 0; width: var(--tam); height: var(--tam); margin-left: calc(var(--tam) / -2); border-radius: 50%; background: var(--card); box-shadow: 0 6px 18px rgba(0, 0, 0, .28); transform: translateY(var(--y, 0px)); opacity: 0; pointer-events: none; z-index: 0; }
+  .rail-ativo.on { opacity: 1; }
+  .rail-ativo.pronto { transition: transform .55s cubic-bezier(.3, 1.35, .5, 1), opacity .2s ease; }
+  .lateral .grupo-menu { flex: none; width: 26px; height: 1px; margin: 9px 0; padding: 0; background: rgba(255, 251, 244, .16); font-size: 0; line-height: 0; color: transparent; overflow: hidden; }
+  .lateral .quem { flex: none; margin: 8px 0 0; padding: 10px 0 0; width: 46px; display: flex; justify-content: center; border-top: 1px solid rgba(255, 251, 244, .13); font-size: 0; color: transparent; }
+  .rail-av { display: inline-grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: var(--brand); color: #fff; font: 800 13px/1 var(--display); letter-spacing: .02em; }
+  .lateral.rail-entra { animation: rail-cresce .75s cubic-bezier(.2, .8, .2, 1) both; }
+  .lateral.rail-entra .marca, .lateral.rail-entra .rail-lista > *:not(.rail-ativo), .lateral.rail-entra .quem { animation: rail-item .45s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(280ms + var(--k, 0) * 32ms); }
+  /* a lista que não cabe inteira: a ponta esmaece (dá para rolar) */
+  .rail-lista.tem-baixo { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 34px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 34px), transparent); }
+  .rail-lista.tem-cima { -webkit-mask-image: linear-gradient(to bottom, transparent, #000 34px); mask-image: linear-gradient(to bottom, transparent, #000 34px); }
+  .rail-lista.tem-cima.tem-baixo { -webkit-mask-image: linear-gradient(to bottom, transparent, #000 34px, #000 calc(100% - 34px), transparent); mask-image: linear-gradient(to bottom, transparent, #000 34px, #000 calc(100% - 34px), transparent); }
+  .rail-dica { position: fixed; z-index: 60; left: 0; top: 0; padding: 7px 11px; border-radius: 10px; background: #2B2724; color: #FFFBF4; font: 700 12.5px/1.2 var(--texto); white-space: nowrap; box-shadow: 0 10px 24px rgba(40, 25, 15, .22);
+    opacity: 0; transform: translate(-6px, -50%); transition: opacity .16s ease, transform .22s cubic-bezier(.2, .8, .2, 1); pointer-events: none; }
+  .rail-dica::before { content: ""; position: absolute; left: -4px; top: 50%; width: 9px; height: 9px; margin-top: -4.5px; background: #2B2724; transform: rotate(45deg); border-radius: 2px; }
+  .rail-dica.on { opacity: 1; transform: translate(0, -50%); }
+}
+@media (min-width: 821px) and (max-height: 980px) {   /* a tela mais baixa: os ícones um pouco menores, para caber o menu inteiro */
+  .lateral { --tam: 40px; padding: 12px 0 10px; } .rail-lista { gap: 1px; } .lateral .grupo-menu { margin: 6px 0; }
+  .lateral .marca { padding-bottom: 8px; } .lateral .marca img { width: 38px; height: 38px; border-radius: 12px; } .rail-av { width: 34px; height: 34px; font-size: 12px; } .lateral .aba svg { width: 20px; height: 20px; }
+}
+@media (min-width: 821px) and (max-height: 820px) {   /* o notebook: menores ainda; o que não couber rola, com a ponta esmaecida */
+  .lateral { --tam: 36px; } .lateral .aba svg { width: 18px; height: 18px; } .lateral .grupo-menu { margin: 4px 0; } .lateral .marca img { width: 34px; height: 34px; } .rail-av { width: 30px; height: 30px; font-size: 11px; } .lateral .quem { margin-top: 6px; padding-top: 8px; }
+}
+@media (prefers-reduced-motion: reduce) { .lateral.rail-entra, .lateral.rail-entra * { animation: none !important; } .rail-ativo.pronto, .rail-dica { transition: none; } }
 </style>
 </head>
 <body>
@@ -551,7 +593,8 @@ svg.fx-cresce > circle { transform-box: fill-box; transform-origin: center; anim
 <script src="comissoes.js?v=2.8"></script>
 <script src="clientes.js?v=3.0"></script>
 <script src="comprovantes.js?v=3.0"></script>
-<script src="animacoes.js?v=3.1"></script>
+<script src="animacoes.js?v=3.2"></script>
+<script src="menu.js?v=3.2"></script>
 <script>
 /* Play Space Finanças 1.0: o que é crítico e delicado do negócio, com login próprio. Os números vêm do Play Space (só leitura). */
 'use strict';
@@ -699,7 +742,7 @@ function somaUni() {
 /* ---------- o app ---------- */
 /* 2.5 (1.64): a página das Finanças que ficou guardada no aparelho (a aba aberta, o app do celular ou o cache do navegador) se renova
    sozinha quando o servidor já tem outra versão. PS_PAGINA é carimbada pelo tools/build_playspace.py com a versão do Play Space. */
-const PS_PAGINA = '1.72';
+const PS_PAGINA = '1.73';
 const psMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
 function renovarSeVelha(v, naTela) {
   if (!v || !psMaior(v, PS_PAGINA)) return false;
@@ -731,9 +774,9 @@ async function iniciar() {
   if (!e.temConta) return telaEntrar('criar');
   if (!e.usuario) return telaEntrar('entrar');
   EU = e.usuario; UNIS = e.unidades || [];
-  $('#raiz').innerHTML = `<div class="app"><nav class="lateral" aria-label="Menu"><div class="marca"><img src="../img/icone-192.png" alt=""><div><b>Play Space</b><small><span class="tag-g">Gestão</span> Finanças · v${esc(e.versao)}</small></div></div>
-    ${ABAS.map(([k, n, ic, g], i) => `${g !== (ABAS[i - 1] || [])[3] && GRUPOS_MENU[g] ? `<div class="grupo-menu">${GRUPOS_MENU[g]}</div>` : ''}<button class="aba" data-aba="${k}">${ic}<span>${n}</span>${k === 'canc' ? '<span class="cont" data-cont-canc hidden></span>' : k === 'pagar' ? '<span class="cont" data-cont-pagar hidden></span>' : ''}</button>`).join('')}
-    <div class="quem"><b>${esc(EU.nome)}</b>login: ${esc(EU.login)}</div></nav>
+  $('#raiz').innerHTML = `<div class="app"><nav class="lateral" aria-label="Menu"><div class="marca" data-dica="Play Space · Finanças v${esc(e.versao)}"><img src="../img/icone-192.png" alt=""><div><b>Play Space</b><small><span class="tag-g">Gestão</span> Finanças · v${esc(e.versao)}</small></div></div>
+    <div class="rail-lista"><span class="rail-ativo" aria-hidden="true"></span>${ABAS.map(([k, n, ic, g], i) => `${g !== (ABAS[i - 1] || [])[3] && GRUPOS_MENU[g] ? `<div class="grupo-menu">${GRUPOS_MENU[g]}</div>` : ''}<button class="aba" data-aba="${k}" data-dica="${esc(n)}">${ic}<span>${n}</span>${k === 'canc' ? '<span class="cont" data-cont-canc hidden></span>' : k === 'pagar' ? '<span class="cont" data-cont-pagar hidden></span>' : ''}</button>`).join('')}
+    </div><div class="quem" data-dica="${esc(EU.nome)} · login ${esc(EU.login)}"><span class="rail-av" aria-hidden="true">${esc(String(EU.nome || '').trim().split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase())}</span><b>${esc(EU.nome)}</b>login: ${esc(EU.login)}</div></nav>
     <main class="principal" id="tela"></main></div>
     <nav class="tabbar" aria-label="Menu">${ABAS.map(([k, n, ic]) => `<button data-aba="${k}">${ic}<span>${{ caixa: 'Caixa', festas: 'Festas', freelas: 'Freelas', comis: 'Comissões', geral: 'Visão', lanc: 'Lançar', relat: 'Relatório', vendas: 'Vendas', canc: 'Cancelados', desc: 'Descontos', notas: 'Notas', conta: 'Conta', fin: 'Painel', pagar: 'A pagar', forn: 'Fornec.', plan: 'Planilhas' }[k] || n}</span></button>`).join('')}</nav>`;
   $$('[data-aba]').forEach(b => b.onclick = () => { ABA = b.dataset.aba; desenhar(); window.scrollTo(0, 0); });
