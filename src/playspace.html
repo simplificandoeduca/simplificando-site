@@ -1695,6 +1695,10 @@ svg.fx-cresce .gr-b { transform-box: fill-box; transform-origin: 50% 100%; anima
 .bt.cortesia:disabled .cort-rel { opacity: .55; }
 .bt.cortesia.fora { background: var(--erro-bg); color: var(--erro); border-color: var(--erro); }
 .em-bts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 4px; } .em-bts .bt { justify-content: center; height: 46px; }
+/* 1.80: a meta do dia (o cartão de Ajustes e o "da meta" no painel) */
+.meta-l { display: flex; align-items: flex-end; gap: 10px; } .meta-l .campo { flex: 1; margin: 0; } .meta-l .bt { height: 46px; flex: none; }
+.meta-barra { height: 10px; border-radius: 5px; background: var(--creme-2); overflow: hidden; margin: 14px 0 2px; } .meta-barra > i { display: block; height: 100%; border-radius: 5px; background: linear-gradient(90deg, #F2B33D, var(--coral)); transition: width .6s cubic-bezier(.2, .8, .2, 1); }
+.meta-ok { color: #2F8A57; } .pn-meta { font-style: normal; font-weight: 800; color: var(--coral); } .pn-meta.ok { color: #2F8A57; }
 @media (max-width: 560px) { .em-bts { grid-template-columns: minmax(0, 1fr); } }
 .cort-grupo { display: flex; flex-direction: column; gap: 8px; margin: 2px 0 6px; }
 button.bl-saldo.bl-alt { border: 0; background: none; font: inherit; color: inherit; cursor: pointer; text-align: inherit; padding: 4px 6px; margin: -4px -6px; border-radius: 10px; display: flex; align-items: center; gap: 6px; }
@@ -1843,7 +1847,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.79';
+const VERSAO = '1.80';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -2207,6 +2211,7 @@ function aplicarDados(d) { // 1.40: o que veio do servidor (ou o que ficou guard
     EU = { nome: d.eu.nome.split(' ')[0], nomeCompleto: d.eu.nome, papel: d.eu.papel, login: d.eu.login, id: d.eu.id };
     ABAS = abasDoPapel();
     if (!ABAS.some(a => a[0] === S.tela) && S.tela !== 'festas') S.tela = 'horas';   // (1.29: a tela Festas é de todos)
+    S.meta = d.meta || null;   /* 1.80: a meta do dia */
     S.painel = d.painel || null; S.finalizados = d.finalizados || null; S.caixa = d.caixa || null;   // 1.30: o caixa do dia   // 1.25: o dia de cada unidade (só o gestor recebe) e os finalizados do dia
     ULT_REG = S.registros.reduce((m, r) => Math.max(m, r.id || 0), 0);
     return mudou;
@@ -5791,7 +5796,7 @@ function telaPainel() {
   const kpis = tile('heroi', 'No espaço agora', r.dentro, r.passou ? `${r.passou} ${r.passou === 1 ? 'passou' : 'passaram'} do tempo` : r.dentro ? (r.dentro === 1 ? 'criança' : 'crianças') : 'ninguém por enquanto', r.passou ? 'pas' : '')
     + tile('', 'Entradas hoje', r.entradas, r.saidas ? `${r.saidas} ${r.saidas === 1 ? 'já saiu' : 'já saíram'}` : 'nenhuma saída ainda')
     + tile('', 'Carrinhos fora da loja', r.carrinhos, r.carrinhos ? (r.carrinhos === 1 ? 'ainda não voltou' : 'ainda não voltaram') : 'todos na loja')
-    + tile('', 'Faturado hoje', brl(r.faturado), r.vendas ? `${r.vendas} ${r.vendas === 1 ? 'venda' : 'vendas'}` : 'nenhuma venda')
+    + tile('', 'Faturado hoje', brl(r.faturado), (r.vendas ? `${r.vendas} ${r.vendas === 1 ? 'venda' : 'vendas'}` : 'nenhuma venda') + metaSub(id, r))
     + tile('', 'Caixa do dia', brl(r.recebido), 'recebido desde a meia-noite')
     + tile('', 'Descontos hoje', brl(r.desc), r.cancelados ? `${r.cancelados} ${r.cancelados === 1 ? 'cancelamento' : 'cancelamentos'}${r.cancelado > 0 ? ' · ' + brl(r.cancelado) + ' não cobrados' : ''}` : 'nenhum cancelamento');
   const comp = !id && varias ? `<div class="card pn-g pn-comp"><div class="pn-g-cab"><h3>Cada unidade hoje</h3><small>toque no nome para ver só ela</small></div><table><thead><tr><th>Unidade</th><th>No espaço</th><th>Entradas</th><th>Faturado</th><th>Caixa</th><th>Em notas</th></tr></thead><tbody>${ops.filter(q => q).map(q => { const x = painelResumo(q, B); return `<tr><th><button type="button" class="link tap" data-act="pn-uni" data-id="${q}">${esc(nomeDe(q))}</button></th><td class="num" data-rot="No espaço">${x.dentro}</td><td class="num" data-rot="Entradas">${x.entradas}</td><td class="num" data-rot="Faturado">${brl(x.faturado)}</td><td class="num" data-rot="Caixa">${brl(x.recebido)}</td><td class="num" data-rot="Em notas">${brl(x.notasV)}</td></tr>`; }).join('')}</tbody></table></div>` : '';
@@ -7660,6 +7665,7 @@ function telaAjustes() {
         <button class="grupo tap" data-act="cadastros" style="width:100%"><div class="it"><div class="txt"><b>Editar ou remover um cadastro</b><span>Nome, responsável, telefone, CPF e criança PCD. Só o gestor mexe aqui.</span></div><span class="vai">${ic(IC.vai, 18)}</span></div></button>
         <p class="explica">Na ficha da criança a equipe só atende: vende, dá entrada e saída. Mudar ou remover um cadastro é por aqui.</p>
       </div>` : ''}
+      ${gestor() ? cartaoMeta() : ''}
       ${gestor() ? cartaoEmail() : ''}
       ${gestor() ? cartaoCopia() : ''}
       ${gestor() ? cartaoImportar() : ''}
@@ -7965,6 +7971,8 @@ const ACOES = {
   'salt-item': el => { if (!ALTS || ALTS.espera) return; const i = altSaidaItens().find(x => x.id === +el.dataset.k); if (!i) return; ALTS.k = i.id; ALTS.v = valTxt(i.v); ALTS.hh = String(Math.round(i.h)); ALTS.vp = ''; ALTS.aberto = true; altSaidaRedesenha(true); const v = $('#sa-alt-v'); if (v) { v.focus(); v.select(); } },   /* 1.39 */
   'salt-pedir': el => altSaidaPedir(el), 'salt-largar': () => altSaidaLargar(),
   nf: el => folhaNF(el.dataset.id), 'nf-notas': () => abrirNotasNF(), 'copia-baixar': el => baixarCopia(el.dataset.nome || '', el), 'copia-fazer': el => fazerCopia(el), 'nf-pedir': el => pedirNF(el), 'nf-senha': el => acaoNF('senha', el), 'nf-emitida': el => acaoNF('emitida', el), 'nf-voltar': el => acaoNF('voltar', el), 'nf-largar': el => acaoNF('largar', el), 'nf-copiar': el => acaoNF('copiar', el),
+  'meta-salvar': el => { const i = $('#meta-v'), t = i ? i.value.trim() : '', v = t === '' ? 0 : numero(t); if (!(v >= 0 && v < 10000000)) { toast('Escreva o valor da meta, por exemplo 3.000,00.'); if (i) i.focus(); return; } metaGravar(centavos(v), el); },   /* 1.80 */
+  'meta-tirar': el => metaGravar(0, el), 'meta-ver': () => festaMeta({ valor: metaValorTela(), em: metaHora(), leve: document.documentElement.dataset.anim === 'leve' }),
   'em-salvar': el => emailAcao('salvar', el), 'em-agora': el => emailAcao('agora', el),   // 1.56
   'banco-horas': el => horasDoCliente(+el.dataset.id), 'venda-horas': el => folhaHoras(el.dataset.id), 'venda-horas-ok': el => salvarHoras(el), 'nf-cancelar': el => acaoNF('cancelar', el),   // 1.55
   'pag-trocar': el => trocarPag(el), 'pag-trocar-v': el => folhaTrocaPag(el.dataset.id), 'pag-dividir': el => dividirPag(el),   // 1.57; 1.71: dividir
@@ -8233,6 +8241,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.id === 'cp-num') { e.preventDefault(); const ok = $('#cp-ok'); if (ok && !ok.disabled) ok.click(); return; }
   if (e.key === 'Enter' && e.target.classList && e.target.classList.contains('pg-valor')) { e.preventDefault(); const ok = $('#p-ok') || $('#s-ok') || $('#sg-ok') || $('#d-ok'); if (ok && !ok.disabled) ok.click(); }
   if (e.key === 'Enter' && e.target.classList && e.target.classList.contains('senha-aut')) { e.preventDefault(); const b = e.target.parentElement && e.target.parentElement.querySelector('.bt'); if (b && !b.disabled) b.click(); return; }   // 1.23: a senha de quem autoriza, com o Enter
+  if (e.key === 'Enter' && e.target.id === 'meta-v') { e.preventDefault(); const b = $('[data-act="meta-salvar"]'); if (b && !b.disabled) b.click(); return; }   /* 1.80 */
   if (e.key === 'Enter' && e.target.id === 'nf-num') { e.preventDefault(); const b = $('#nf-corpo [data-act="nf-emitida"]'); if (b && !b.disabled) b.click(); return; }
   if (e.key === 'Enter' && ['l-login', 'l-senha'].includes(e.target.id)) { e.preventDefault(); e.target.id === 'l-login' ? $('#l-senha').focus() : ACOES.entrar(); }
   if (e.key === 'Enter' && ['g-nome', 'g-login', 'g-senha'].includes(e.target.id)) { e.preventDefault(); const prox = { 'g-nome': '#g-login', 'g-login': '#g-senha' }[e.target.id]; prox ? $(prox).focus() : ACOES['criar-gestor'](); }
@@ -8241,6 +8250,7 @@ window.addEventListener('storage', e => { if (e.key === 'ps-etapas' && MODO === 
 window.addEventListener('hashchange', () => { const h = location.hash.slice(1); if (ABAS.some(a => a[0] === h) && h !== S.tela) trocarTela(h); });
 setInterval(() => {
   agora.setTime(Date.now() + DESVIO);
+  if (agora.getSeconds() % 2 === 0) metaOlhar();   /* 1.80: a meta do dia batida: a comemoração */
   $$('[data-relogio]').forEach(el => { el.innerHTML = relogioTxt(); });
   if (agora.getSeconds() % 30 === 0) desenharMeusPed();   /* 1.69: a aprovação que venceu muda de cor */
   if (agora.getSeconds() % 30 === 0 && S.tela === 'horas' && !$('#folha .folha-fundo')) { document.body.classList.add('quieto'); redesenharDicas(); } if (agora.getSeconds() === 0) $$('[data-data]').forEach(el => { el.textContent = dataTxt(); });
@@ -8428,4 +8438,122 @@ function desenharFoco(L) {
     <button type="button" class="foco-depois tap" data-foco="depois" data-id="${p.id}">Ver depois</button></div>`;
 }
 document.addEventListener('visibilitychange', () => { if (document.hidden) { foco().escondido = Date.now(); return; } if (foco().escondido && Date.now() - foco().escondido > 20000) focoPedidos(false); });   /* voltou para o app */
+/* ---------- 1.80: a meta do dia ----------
+   Pedido do dono: "na conta do gestor, numa configuração, ele coloca a meta do dia; quando bater a meta, todos os computadores que estiverem
+   com o sistema ligado, inclusive o financeiro: meta do dia batida e vários foguinhos".
+   - Ajustes → Meta do dia (só o gestor): o valor, quanto já foi feito hoje e quanto falta, "Desligar a meta" e "Ver a comemoração".
+   - A meta é batida quando o faturado do dia (o "Faturado hoje" do painel, as unidades juntas) chega a ela. O servidor guarda a hora da
+     venda que passou da meta; cada tela ligada (a recepção, o gestor, as Finanças) comemora uma vez: "Meta do dia batida!" e fogos. Não
+     trava nada: um toque em qualquer lugar fecha (e segue para o que foi tocado). Espera o cupom (ou outra folha) fechar para aparecer.
+   - No painel do gestor, o "Faturado hoje" diz quanto da meta já foi feito (ou "meta batida ✓").
+   Na prévia a meta fica só na memória e a conta sai das vendas da prévia. */
+/* A comemoração da meta do dia (a mesma no sistema e nas Finanças). Por cima de tudo, SEM travar a tela: os toques passam para o que está
+   embaixo, e um toque em qualquer lugar (ou o Esc) fecha. A tela escurece um pouco, os foguetes sobem e estouram em fogos por uns 7
+   segundos, e no meio o recado "Meta do dia batida!", com a meta e a hora. Com "reduzir movimento" (ou "Animações: leves"), só o recado. */
+var MF_TROFEU = '<svg viewBox="0 0 64 64" width="76" height="76"><path d="M20 8h24v14a12 12 0 0 1-24 0z" fill="#F2B33D" stroke="#3B3B3B" stroke-width="2.2" stroke-linejoin="round"/><path d="M20 12h-7a7 7 0 0 0 9 11M44 12h7a7 7 0 0 1-9 11" fill="none" stroke="#3B3B3B" stroke-width="2.2" stroke-linecap="round"/><path d="M28 34h8v8h-8z" fill="#F2B33D" stroke="#3B3B3B" stroke-width="2.2" stroke-linejoin="round"/><rect x="19" y="42" width="26" height="10" rx="3" fill="#E25B3F" stroke="#3B3B3B" stroke-width="2.2"/><path d="M32 12.5l2.3 4.6 5 .7-3.6 3.5.9 5-4.6-2.4-4.6 2.4.9-5-3.6-3.5 5-.7z" fill="#FFF8EF"/></svg>';
+var MF_CSS = '.mf{position:fixed;inset:0;z-index:2147483000;pointer-events:none;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 40%,rgba(28,22,20,.58),rgba(16,12,11,.8));opacity:0;transition:opacity .45s ease}'
+  + '.mf.on{opacity:1}.mf.sai{opacity:0;transition:opacity .6s ease}'
+  + '.mf-c{position:absolute;inset:0;width:100%;height:100%}'
+  + '.mf-card{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;max-width:calc(100vw - 32px);padding:26px 40px 24px;border-radius:30px;background:#FFFBF4;color:#3B3B3B;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,.35),0 0 0 6px rgba(255,251,244,.35);transform:scale(.6) translateY(24px);opacity:0;transition:transform .7s cubic-bezier(.2,1.5,.4,1),opacity .35s ease}'
+  + '.mf.on .mf-card{transform:none;opacity:1}'
+  + '.mf-ic{width:76px;height:76px;animation:mf-pula 1.3s ease-in-out .5s infinite}'
+  + '.mf-card b{font-family:Poppins,Nunito,system-ui,sans-serif;font-weight:800;font-size:clamp(26px,5.2vw,40px);line-height:1.1;color:#E25B3F;letter-spacing:-.01em}'
+  + '.mf-card span{font-size:17px;font-weight:700}.mf-card small{font-size:14px;opacity:.7}'
+  + '@keyframes mf-pula{0%,100%{transform:rotate(0) scale(1)}25%{transform:rotate(-8deg) scale(1.06)}50%{transform:rotate(0) scale(1)}75%{transform:rotate(8deg) scale(1.06)}}'
+  + '@media (prefers-reduced-motion:reduce){.mf-ic{animation:none}.mf-card{transition:opacity .3s ease}}';
+function festaMeta(o) {
+  o = o || {}; document.querySelectorAll('.mf').forEach(function (x) { x.remove(); });
+  if (!document.getElementById('mf-css')) { var st = document.createElement('style'); st.id = 'mf-css'; st.textContent = MF_CSS; document.head.appendChild(st); }
+  var leve = !!o.leve || !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  var v = +o.valor || 0, real = function (n) { return 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }); };
+  var h = String(o.em || '').slice(11, 16).replace(/[^\d:]/g, ''), linha = [v > 0 ? 'Meta de ' + real(v) : '', h ? 'batida às ' + h : ''].filter(Boolean).join(' · ');
+  var box = document.createElement('div'); box.className = 'mf'; box.setAttribute('role', 'status'); box.setAttribute('aria-live', 'polite');
+  box.innerHTML = '<canvas class="mf-c" aria-hidden="true"></canvas><div class="mf-card"><div class="mf-ic" aria-hidden="true">' + MF_TROFEU + '</div><b>Meta do dia batida!</b>' + (linha ? '<span>' + linha + '</span>' : '') + '<small>Parabéns, equipe!</small></div>';
+  document.body.appendChild(box);
+  var raf = 0, fim = 0, acabou = false;
+  function fechar(rapido) {
+    if (acabou) return; acabou = true; clearTimeout(fim); document.removeEventListener('pointerdown', toque, true); document.removeEventListener('keydown', tecla, true);
+    box.classList.add('sai'); setTimeout(function () { cancelAnimationFrame(raf); box.remove(); }, rapido ? 450 : 650);
+  }
+  function toque() { fechar(true); }
+  function tecla(e) { if (e.key === 'Escape') fechar(true); }
+  setTimeout(function () { document.addEventListener('pointerdown', toque, true); document.addEventListener('keydown', tecla, true); }, 0);
+  requestAnimationFrame(function () { requestAnimationFrame(function () { box.classList.add('on'); }); });
+  fim = setTimeout(function () { fechar(false); }, leve ? 4500 : 7600);
+  var cv = box.querySelector('canvas'), ctx = !leve && cv.getContext ? cv.getContext('2d') : null;
+  if (!ctx) { cv.remove(); return box; }
+  var W = 0, H = 0;
+  function tam() { var d = Math.min(2, window.devicePixelRatio || 1); W = innerWidth; H = innerHeight; cv.width = Math.round(W * d); cv.height = Math.round(H * d); ctx.setTransform(d, 0, 0, d, 0, 0); }
+  tam();
+  var CORES = ['#E25B3F', '#F2B33D', '#6FC3B2', '#B9A6F0', '#FF8FB1', '#5FB8F0', '#FFE27A'], G = Math.max(380, H * 0.62);
+  var subindo = [], fagulhas = [], n = 0, total = W < 600 ? 18 : 28, proximo = 0, ult = performance.now(), t0 = ult;
+  function lancar() {
+    var x = W * (0.1 + Math.random() * 0.8), alvo = H * (0.1 + Math.random() * 0.34);
+    subindo.push({ x: x, y: H + 8, vx: (W / 2 - x) * 0.05 * Math.random(), vy: -Math.sqrt(2 * G * (H + 8 - alvo)), cor: CORES[n % CORES.length] }); n++;
+  }
+  function estourar(f) {
+    var q = 90 + Math.floor(Math.random() * 40), vel = Math.min(W, H) * (0.46 + Math.random() * 0.2), outra = CORES[(CORES.indexOf(f.cor) + 3) % CORES.length];
+    for (var i = 0; i < q; i++) { var a = Math.PI * 2 * i / q + Math.random() * 0.2, s = vel * (0.35 + Math.random() * 0.65);
+      fagulhas.push({ x: f.x, y: f.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, vida: 1, dura: 1.3 + Math.random() * 0.9, cor: i % 4 === 0 ? outra : f.cor, r: 2 + Math.random() * 2 }); }
+  }
+  function passo(t) {
+    var dt = Math.min(0.05, (t - ult) / 1000); ult = t; var e = t - t0;
+    if (n < total && e >= proximo) { lancar(); if (n < 3 || Math.random() < 0.3) { lancar(); } proximo = e + 150 + Math.random() * 230; }
+    ctx.globalCompositeOperation = 'destination-out'; ctx.fillStyle = 'rgba(0,0,0,' + Math.min(1, dt * 7) + ')'; ctx.fillRect(0, 0, W, H); ctx.globalCompositeOperation = 'source-over';
+    for (var i = subindo.length - 1; i >= 0; i--) { var f = subindo[i]; f.vy += G * dt; f.x += f.vx * dt; f.y += f.vy * dt;
+      ctx.fillStyle = '#FFF3D6'; ctx.beginPath(); ctx.arc(f.x, f.y, 2.6, 0, 7); ctx.fill();
+      ctx.fillStyle = f.cor; ctx.globalAlpha = 0.6; ctx.beginPath(); ctx.arc(f.x - f.vx * 0.02, f.y + 7, 2, 0, 7); ctx.fill(); ctx.globalAlpha = 1;
+      if (f.vy >= -20) { subindo.splice(i, 1); estourar(f); } }
+    var arr = Math.pow(0.18, dt);
+    for (var j = fagulhas.length - 1; j >= 0; j--) { var p = fagulhas[j]; p.vx *= arr; p.vy = p.vy * arr + G * 0.32 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vida -= dt / p.dura;
+      if (p.vida <= 0) { fagulhas.splice(j, 1); continue; }
+      ctx.globalAlpha = Math.min(1, p.vida * 1.6); ctx.fillStyle = p.cor; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7); ctx.fill();
+      if (p.vida > 0.82) { ctx.fillStyle = '#FFF6E0'; ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 0.4, 0, 7); ctx.fill(); } }
+    ctx.globalAlpha = 1;
+    if (!acabou || subindo.length || fagulhas.length) raf = requestAnimationFrame(passo);
+  }
+  raf = requestAnimationFrame(passo);
+  addEventListener('resize', tam, { once: true });
+  return box;
+}
+var META_T = 0;
+function metaValorTela() { return MODO === 'servidor' ? +((S.meta || {}).valor || 0) : +(S.cfg.metaDia || 0); }
+function metaHora() { return isoDia(new Date(agora)) + ' ' + p2(agora.getHours()) + ':' + p2(agora.getMinutes()) + ':' + p2(agora.getSeconds()); }
+function metaAgora() {   /* { dia, batida, em, valor?, faturado? } ou null (sem meta) */
+  if (MODO === 'servidor') return S.meta || null;
+  const v = +(S.cfg.metaDia || 0); if (!(v > 0)) return null;
+  const dia = isoDia(new Date(agora)), f = centavos(painelDia().reduce((t, x) => t + (+x.faturado || 0), 0));
+  let b = S.cfg.metaBatida; if (b && (b.dia !== dia || Math.abs(b.valor - v) > 0.004)) b = null;
+  if (!b && f >= v - 0.004) b = S.cfg.metaBatida = { dia, valor: v, em: metaHora() };
+  return { dia, batida: !!b, em: b ? b.em : null, valor: v, faturado: f };
+}
+function metaOlhar() {
+  if (META_T || document.body.classList.contains('so') || (MODO === 'servidor' && !EU)) return;
+  const m = metaAgora(); if (!m || !m.batida || !m.em || m.dia !== isoDia(new Date(agora))) return;
+  const k = [m.dia, m.em, m.valor || ''].join('|'); if (lido('ps-meta-vista', '') === k) return;
+  META_T = setInterval(() => { if ($('#folha .folha-fundo:not(.saindo)') || $('#foco')) return; clearInterval(META_T); META_T = 0;   /* depois que o cupom (ou outra folha) fecha */
+    if (lido('ps-meta-vista', '') === k) return; guardar('ps-meta-vista', k); festaMeta({ valor: m.valor, em: m.em, leve: document.documentElement.dataset.anim === 'leve' }); }, 400);
+}
+function metaSub(id, r) {   /* o "Faturado hoje" do painel (todas as unidades): quanto da meta já foi */
+  const v = id ? 0 : metaValorTela(); if (!(v > 0)) return '';
+  const m = metaAgora() || {}; return m.batida ? ' · <i class="pn-meta ok">meta batida ✓</i>' : ` · <i class="pn-meta">${Math.min(99, Math.floor(r.faturado / v * 100))}% da meta</i>`;
+}
+function cartaoMeta() {
+  const m = metaAgora(), v = metaValorTela(), f = m ? +m.faturado || 0 : 0, pct = v > 0 ? Math.min(100, Math.floor(f / v * 100)) : 0, bat = !!(m && m.batida);
+  const st = !(v > 0) ? 'Sem meta por enquanto: escreva o valor e salve.' : bat ? `<b class="meta-ok">Batida hoje às ${esc(String(m.em || '').slice(11, 16))} ✓</b> · faturado ${brl(f)} de ${brl(v)}` : `Hoje: <b>${brl(f)}</b> de ${brl(v)} (${pct}%) · faltam <b>${brl(centavos(v - f))}</b>`;
+  return `<div class="card" id="aj-meta"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.festa, 20)} Meta do dia</h2>${v > 0 ? `<span class="pill ${bat ? 'p-ok' : 'p-neutro'}">${bat ? 'Batida ✓' : brl(v)}</span>` : ''}</div>
+    <p class="explica">Quando o <b>faturado do dia</b> (as unidades juntas) chegar a este valor, <b>todas as telas ligadas</b>, inclusive as Finanças, comemoram: <b>"Meta do dia batida!"</b>, com fogos. Uma vez por dia em cada tela.</p>
+    <div class="meta-l"><div class="campo"><label for="meta-v">Valor da meta</label><input id="meta-v" inputmode="decimal" autocomplete="off" maxlength="14" placeholder="R$ 0,00" value="${v > 0 ? vInp(v) : ''}"></div><button type="button" class="bt forte tap" data-act="meta-salvar">${ic(IC.check)} Salvar</button></div>
+    ${v > 0 ? `<div class="meta-barra" aria-hidden="true"><i style="width:${bat ? 100 : pct}%"></i></div>` : ''}
+    <p class="explica" id="meta-st">${st}</p>
+    <div class="acoes">${v > 0 ? '<button type="button" class="bt claro tap" data-act="meta-tirar">Desligar a meta</button>' : ''}<button type="button" class="bt claro tap" data-act="meta-ver">${ic(IC.festa, 16)} Ver a comemoração</button></div>
+  </div>`;
+}
+async function metaGravar(v, el) {
+  if (!gestor()) { toast('Só o gestor muda a meta do dia.'); return; }
+  if (el) el.disabled = true;
+  try { if (MODO === 'servidor') { const r = await api('meta_salvar', { valor: v }); S.meta = r.meta || null; } else { S.cfg.metaDia = v > 0 ? v : 0; } }
+  catch (e) { toast(e.message); }
+  finally { if (el) el.disabled = false; const a = $('#aj-meta'); if (a) a.outerHTML = cartaoMeta(); }
+}
 </script>

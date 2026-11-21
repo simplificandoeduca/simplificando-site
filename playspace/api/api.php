@@ -127,7 +127,7 @@ function dados(array $eu): array {
     'limpeza' => $eu['papel'] === 'gestor' ? ['oferta' => cfg('limpeza_oferta', null) !== null, 'ultima' => limpezaPublica()] : null,
     'importacao' => $eu['papel'] === 'gestor' ? importacaoLeve() : null,
     'copia' => $eu['papel'] === 'gestor' ? copiaInfo() : null,   // 1.51: a cópia de segurança da semana
-    'avisos' => avisosDaGestora($eu), 'painel' => $eu['papel'] === 'gestor' ? painelDoDia() : null, 'caixa' => caixaDoDia(), 'finalizados' => finalizadosDoDia(),   // 1.25: o que a gestora ainda não viu, o dia de cada unidade, e os finalizados do dia
+    'meta' => metaDoDia($eu), 'avisos' => avisosDaGestora($eu), 'painel' => $eu['papel'] === 'gestor' ? painelDoDia() : null, 'caixa' => caixaDoDia(), 'finalizados' => finalizadosDoDia(),   // 1.25: o que a gestora ainda não viu, o dia de cada unidade, e os finalizados do dia
     'pedidos' => pedidosDaTela($eu), 'nf_emitir' => $eu['papel'] === 'atendente' ? 0 : (int)$db->query("SELECT COUNT(*) FROM pedidos WHERE tipo = 'nf' AND status = 'liberado'")->fetchColumn()];   // 1.23: os pedidos de autorização desta tela, e quantas notas autorizadas esperam o número   // 0.98: só o gestor recebe (é ele quem limpa e quem desfaz)
 }
 // quem a equipe tirou de "Falta finalizar" hoje: [id da criança => dia]. O que é de outro dia não conta mais
@@ -239,6 +239,12 @@ switch ($acao) {
       if (!$r['ok']) falha($r['erro'], 502); responder(['email' => finEmailPublico(), 'enviado' => $r]); }
     responder(['email' => finEmailPublico()]);
   }
+  case 'meta_salvar': { /* 1.80: a meta do dia (só o gestor). Vazio ou 0 desliga */
+    $u = exigir(['gestor']); $v = $in['valor'] ?? 0; $v = is_numeric($v) ? round((float)$v, 2) : -1;
+    if ($v < 0 || $v >= 10000000) falha('Escreva o valor da meta, por exemplo 3.000,00.');
+    if ($v > 0) gravarCfg('meta_dia', $v); else apagarCfg('meta_dia');
+    responder(['meta' => metaDoDia($u)]);
+  }
   case 'pagamento_trocar': { // 1.57: trocar a forma de pagamento; 1.71: a equipe também a qualquer hora, e a forma pode ser dividida (partes)
     $u = exigir(); responder(trocarPagamento($in, $u));
   }
@@ -264,7 +270,7 @@ switch ($acao) {
     $d .= '|' . $db->query("SELECT COALESCE(SUM(status = 'liberado'), 0) || ':' || COALESCE(SUM(status = 'usado'), 0) FROM pedidos WHERE tipo = 'nf'")->fetchColumn();   // 1.23: nota fiscal autorizada ou emitida
     $d .= '|' . festasPulso();   // 1.29: festa marcada, tema ou dia que mudou, criança que entrou na festa
     acertarCupons(); $d .= '|' . pulsoCupons();   // 0.93: o cupom fiscal de cada pagamento (nasceu, foi marcado, ou a venda foi desfeita)
-    responder(['p' => md5("$a|$b|$c|$d|$ap|$lig|" . json_encode(whatsResumo()) . '|' . json_encode(regra()) . '|' . (cfg('exemplo') ? 1 : 0) . '|' . json_encode(pendFora()) . '|' . date('Y-m-d')), 'ped' => pedidosDaTela($u), 'av' => avisosDaGestora($u)]);   // 1.25: av = os cancelamentos que a gestora ainda não viu   // 1.23: ped = os pedidos de autorização desta tela (chegam mesmo com uma folha aberta)   // quem saiu de "Falta finalizar" e a virada do dia também mudam a tela
+    responder(['p' => md5("$a|$b|$c|$d|$ap|$lig|" . json_encode(whatsResumo()) . '|' . json_encode(regra()) . '|' . (cfg('exemplo') ? 1 : 0) . '|' . json_encode(pendFora()) . '|' . json_encode(cfg('meta_dia')) . json_encode(cfg('meta_batida')) . '|' . date('Y-m-d')), 'ped' => pedidosDaTela($u), 'av' => avisosDaGestora($u)]);   // 1.25: av = os cancelamentos que a gestora ainda não viu   // 1.23: ped = os pedidos de autorização desta tela (chegam mesmo com uma folha aberta)   // quem saiu de "Falta finalizar" e a virada do dia também mudam a tela
   }
 
   /* ---------- crianças ---------- */

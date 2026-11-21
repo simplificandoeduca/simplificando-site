@@ -1301,6 +1301,18 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzz. A meta do dia: "Meta do dia batida!" com fogos (1.80 · Finanças 3.4)
+
+Pedido do dono: "na conta do gestor, numa configuração, ele coloca a meta do dia; quando bater a meta, todos os computadores que estiverem com o sistema ligado, inclusive o financeiro: meta do dia batida e vários foguinhos. Um campo para eu colocar o valor".
+
+- **Onde:** Ajustes → **Meta do dia** (só o gestor vê). Escreva o valor (por exemplo 3.000,00) e toque em **Salvar** (ou Enter). O cartão mostra quanto já foi feito hoje e quanto falta, com uma barrinha. **Desligar a meta** tira; **Ver a comemoração** mostra como fica, só naquela tela.
+- **Quando conta como batida:** quando o **faturado do dia** (o mesmo "Faturado hoje" do painel: o vendido desde a meia-noite, já com o desconto, as unidades juntas) chega ao valor da meta.
+- **O que acontece:** cada tela ligada (a recepção, o computador e o celular do gestor, e as **Finanças** abertas) mostra **"Meta do dia batida!"**, com a meta e a hora, e os fogos por uns 7 segundos. **Uma vez por dia em cada tela.** Se o cupom (ou outra janela) estiver aberto, espera fechar.
+- **Não trava nada:** dá para continuar trabalhando por cima; um toque em qualquer lugar (ou o Esc) fecha. Com "Animações: leves" (ou "reduzir movimento" no aparelho), aparece só o recado, sem os fogos.
+- **No painel do gestor** (todas as unidades), o "Faturado hoje" diz quanto da meta já foi (por exemplo "72% da meta") ou "meta batida ✓".
+- A equipe vê a comemoração, mas **não vê o valor** da meta nem o faturado, e não muda a meta (o servidor recusa).
+- Mudar o valor da meta no meio do dia vale como meta nova: se o dia ainda não chegou nela, volta a contar.
+
 ## 6zzzzzzzzzzzz. O pedido de autorização em foco: o X vermelho e o ✓ verde (1.79)
 
 Pedido do dono: "quando o gestor tocar na notificação do pedido e abrir o aplicativo, o pedido tem que ser a primeira coisa: aprovar ou negar, dois botões, um vermelho e um verde, só um certo e um X; ele não tem que procurar".

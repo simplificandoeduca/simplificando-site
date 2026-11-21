@@ -21,7 +21,7 @@ require __DIR__ . '/comissoes.php';   /* 2.8: as comissões das vendedoras */
 require __DIR__ . '/clientes.php';   /* 3.0: o relatório por cliente */
 require __DIR__ . '/comprovantes.php';   /* 3.0: o comprovante das despesas */
 set_exception_handler(function (Throwable $e) { registrarErro('[financas] ' . $e->getMessage() . ' @' . basename($e->getFile()) . ':' . $e->getLine()); falha('Algo deu errado. Tente de novo em instantes.', 500); });
-const FIN_VERSAO = '3.3';
+const FIN_VERSAO = '3.4';
 
 $in = [];
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
@@ -164,6 +164,7 @@ if ($acao === 'usuario_remover') {
 // Faturado = o que foi vendido no período, já com o desconto (as horas trazidas do sistema anterior não entram: não são venda).
 // Recebido = os pagamentos do período, por forma, menos o que foi devolvido no período. Em aberto = o que foi vendido no período e ainda
 // não foi pago (a recreação de quem está no espaço, o que ficou para a saída ou para a devolução do carrinho).
+if ($acao === 'meta') responder(['meta' => metaDoDia(null)]);   /* 3.4 (1.80): a meta do dia, para a comemoração */
 if ($acao === 'resumo') responder(finResumo($in));
 // 1.54: o resumo do dia (ou do período) em PDF, e o resumo do dia por e-mail
 if ($acao === 'pdf') finPdfSaida($in);

@@ -1446,6 +1446,26 @@ function pagamentosDesde(string $desde): array {
 // O dia é o de calendário (desde a meia-noite), e não as últimas 24 h de "Hoje na recepção". Faturado = o que foi vendido hoje (já com o
 // desconto); recebido = os pagamentos de hoje, por forma. A unidade é a da venda (o aparelho que vendeu; a recreação avulsa fica com a da
 // entrada); o pagamento vai com a venda dele. Sem unidade (o iDFace, os exemplos, o que é de antes da 1.06) vai à parte (uni 0).
+/* 1.80: a meta do dia. O gestor coloca o valor em Ajustes (config meta_dia; sem valor, desligada). A meta é batida quando o faturado do dia
+   (o mesmo "Faturado hoje" do painel: o vendido desde a meia-noite, já com o desconto, as unidades juntas) chega a ela. A primeira vez que
+   isso é visto no dia fica guardada (config meta_batida: o dia, o valor da meta e a hora da venda que passou dela), e todas as telas
+   comemoram, cada uma uma vez. Quem não é gestor recebe só se foi batida e a que horas (sem o valor e sem o faturado). Mudar o valor da meta
+   no meio do dia vale como meta nova. */
+function metaValor(): float { $v = cfg('meta_dia', 0); return is_numeric($v) && (float)$v > 0 ? round((float)$v, 2) : 0.0; }
+function metaDoDia(?array $eu): ?array {
+  $m = metaValor(); if ($m <= 0) return null;
+  $db = db(); $hoje = date('Y-m-d'); $d0 = $hoje . ' 00:00:00';
+  $q = $db->prepare('SELECT COALESCE(SUM(valor), 0) FROM vendas WHERE quando >= ? AND servico != ?'); $q->execute([$d0, SERV_IMPORTADO]); $f = round((float)$q->fetchColumn(), 2);
+  $b = cfg('meta_batida', null); $ja = is_array($b) && ($b['dia'] ?? '') === $hoje && abs((float)($b['valor'] ?? 0) - $m) < 0.005 ? $b : null;
+  if (!$ja && $f >= $m - 0.004) {
+    $em = agora(); $t = 0.0; $q = $db->prepare('SELECT valor, quando FROM vendas WHERE quando >= ? AND servico != ? ORDER BY quando, id'); $q->execute([$d0, SERV_IMPORTADO]);
+    foreach ($q->fetchAll() as $l) { $t = round($t + (float)$l['valor'], 2); if ($t >= $m - 0.004) { $em = (string)$l['quando']; break; } }   /* a hora da venda que passou da meta */
+    $ja = ['dia' => $hoje, 'em' => $em, 'valor' => $m]; gravarCfg('meta_batida', $ja);
+  }
+  $o = ['dia' => $hoje, 'batida' => (bool)$ja, 'em' => $ja ? (string)$ja['em'] : null];
+  if ($eu === null || ($eu['papel'] ?? '') === 'gestor') $o += ['valor' => $m, 'faturado' => $f];   /* (null: as Finanças) */
+  return $o;
+}
 function painelDoDia(): array {
   $db = db(); $hoje = date('Y-m-d') . ' 00:00:00'; $o = [];
   $um = function (int $u) use (&$o) { if (!isset($o[$u])) $o[$u] = ['uni' => $u, 'faturado' => 0.0, 'vendas' => 0, 'desc' => 0.0, 'recebido' => 0.0, 'devolvido' => 0.0, 'formas' => array_fill_keys(array_keys(FORMAS_PAGAMENTO), 0.0), 'cancelados' => 0, 'cancelado' => 0.0, 'servicos' => [], 'notas' => 0, 'notas_v' => 0.0]; };
