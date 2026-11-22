@@ -37,7 +37,8 @@ function fzPreparar(): void {
     por TEXT NOT NULL DEFAULT '', em TEXT NOT NULL DEFAULT '')");
 }
 function fzMes($m): string { $m = (string)$m; if (!preg_match('/^(\d{4})-(\d{2})$/', $m, $x) || (int)$x[2] < 1 || (int)$x[2] > 12) falha('Escolha o mês.'); return $m; }
-function fzDiaOk($d): string { $d = (string)$d; if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $d, $m) || !checkdate((int)$m[2], (int)$m[3], (int)$m[1])) falha('Confira a data.'); return $d; }
+function fzDiaOk($d): string { $d = (string)$d; if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $d, $m) || !checkdate((int)$m[2], (int)$m[3], (int)$m[1])) falha('Confira a data.');
+  if ($d < '2000-01-01' || $d > date('Y-m-d', strtotime('+1 year', agoraTs()))) falha('Confira a data (de 2000 até um ano para frente).'); return $d; }   /* 1.91 (auditoria) */
 function fzTxt($v, int $max = 120): string { return mb_substr(trim((string)preg_replace('/\s+/u', ' ', (string)$v)), 0, $max); }
 function fzUni($v): ?int { if ($v === null || $v === '' || $v === 'todas' || (int)$v <= 0) return null; $u = (int)$v; $q = db()->prepare('SELECT id FROM unidades WHERE id = ?'); $q->execute([$u]); if (!$q->fetchColumn()) falha('Unidade não encontrada.'); return $u; }
 function fzHist(int $f, ?int $d, string $campo, $antes, $depois, array $eu): void {

@@ -406,6 +406,14 @@ function db(): PDO {
     try { $pdo->exec("ALTER TABLE trocas_pag ADD COLUMN partes TEXT NOT NULL DEFAULT ''"); } catch (Throwable $e) { }
     $pdo->exec('PRAGMA user_version = 41');
   }
+  if ($v < 42) { /* 1.91 (auditoria): o estorno guarda a unidade em que o dinheiro tinha entrado; a unidade, o dia em que virou Casa Tom;
+       e de quando em quando cada unidade falou com o servidor (para a hora do "feito sem internet") */
+    foreach (['ALTER TABLE estornos ADD COLUMN pago_uni INTEGER', 'ALTER TABLE unidades ADD COLUMN ct_desde TEXT'] as $sql) { try { $pdo->exec($sql); } catch (Throwable $e) { } }
+    try { foreach ($pdo->query('SELECT id, nome, criado_em FROM unidades')->fetchAll() as $u) if (preg_match('/CASA\s*TO[MN]\b/u', mb_strtoupper((string)$u['nome']))) {
+      $cr = substr((string)($u['criado_em'] ?? ''), 0, 10); $pdo->prepare('UPDATE unidades SET ct_desde = ? WHERE id = ?')->execute([preg_match('/^\d{4}-\d{2}-\d{2}$/', $cr) ? date('Y-m-d', strtotime($cr . ' +1 day')) : '2000-01-01', (int)$u['id']]); } } catch (Throwable $e) { }
+    $pdo->exec('CREATE TABLE IF NOT EXISTS unidades_vistas (u INTEGER NOT NULL, slot INTEGER NOT NULL, PRIMARY KEY (u, slot)) WITHOUT ROWID');
+    $pdo->exec('PRAGMA user_version = 42');
+  }
   return $pdo;
 }
 /* ---------- 1.06: unidades ---------- */
@@ -424,11 +432,16 @@ function uniNorm(string $n): string { return strtoupper(strtr(mb_strtoupper(trim
 function uniEhCasaTom(string $nome): bool { return (bool)preg_match('/CASA\s*TO[MN]\b/', uniNorm($nome)); }
 function uniLocal(string $nome): string { $n = trim((string)preg_replace('/CASA\s*TO[MN]\b/', '', uniNorm($nome))); $p = preg_split('/\s+/', $n); return (string)($p[0] ?? ''); }
 /* os pares: [unidade do Play => ['ct' => a Casa Tom do lugar, 'desde' => o primeiro dia da regra nova]] (só os lugares que têm as duas) */
-function uniCasaTomPares(): array {
-  $L = array_filter(db()->query('SELECT id, nome, criado_em FROM unidades WHERE ativo = 1 ORDER BY id')->fetchAll(), fn($u) => uniLocal((string)$u['nome']) !== ''); $o = [];
+function uniMesmoLugar(int $a, int $b): bool {   // 1.91: duas unidades do mesmo lugar (MORUMBI e CASA TOM MORUMBI)
+  if ($a === $b) return true; $q = db()->prepare('SELECT id, nome FROM unidades WHERE id IN (?, ?)'); $q->execute([$a, $b]); $n = []; foreach ($q->fetchAll() as $u) $n[(int)$u['id']] = uniLocal((string)$u['nome']);
+  return isset($n[$a], $n[$b]) && $n[$a] !== '' && $n[$a] === $n[$b];
+}
+function uniCasaTomPares(): array {   /* 1.91 (auditoria): com as unidades apagadas também (o passado não muda) e o dia em que virou Casa Tom (ct_desde) */
+  $L = array_filter(db()->query('SELECT id, nome, criado_em, ct_desde FROM unidades ORDER BY ativo DESC, id')->fetchAll(), fn($u) => uniLocal((string)$u['nome']) !== ''); $o = [];
   foreach ($L as $p) { if (uniEhCasaTom((string)$p['nome'])) continue;
     foreach ($L as $c) if (uniEhCasaTom((string)$c['nome']) && uniLocal((string)$c['nome']) === uniLocal((string)$p['nome'])) {
-      $cr = substr((string)($c['criado_em'] ?? ''), 0, 10); $o[(int)$p['id']] = ['ct' => (int)$c['id'], 'desde' => preg_match('/^\d{4}-\d{2}-\d{2}$/', $cr) ? date('Y-m-d', strtotime($cr . ' +1 day')) : '2000-01-01']; break; } }
+      if (isset($o[(int)$p['id']])) break; $cd = (string)($c['ct_desde'] ?? ''); $cr = substr((string)($c['criado_em'] ?? ''), 0, 10);
+      $o[(int)$p['id']] = ['ct' => (int)$c['id'], 'desde' => preg_match('/^\d{4}-\d{2}-\d{2}$/', $cd) ? $cd : (preg_match('/^\d{4}-\d{2}-\d{2}$/', $cr) ? date('Y-m-d', strtotime($cr . ' +1 day')) : '2000-01-01')]; break; } }
   return $o;
 }
 
@@ -437,6 +450,11 @@ function unidadeDoPedido(): ?int {
   if (!array_key_exists('_unidade', $GLOBALS)) {
     $id = (int)($_SERVER['HTTP_X_PLAY_UNIDADE'] ?? 0); $GLOBALS['_unidade'] = null;
     if ($id > 0) { $q = db()->prepare('SELECT id FROM unidades WHERE id = ? AND ativo = 1'); $q->execute([$id]); if ($q->fetchColumn()) $GLOBALS['_unidade'] = $id; }
+    /* 1.91 (auditoria): a atendente fica na unidade em que entrou e na Casa Tom do mesmo lugar (a tela já não deixava trocar; o servidor
+       também não deixa mais): outra unidade no cabeçalho vale como a de quando entrou */
+    $u0 = (int)($_SESSION['uni0'] ?? 0); $eu = $u0 > 0 && $GLOBALS['_unidade'] !== null && $GLOBALS['_unidade'] !== $u0 ? eu() : null;
+    if ($eu && !in_array($eu['papel'], ['gestor', 'supervisor'], true) && !uniMesmoLugar($u0, (int)$GLOBALS['_unidade'])) {
+      $q = db()->prepare('SELECT id FROM unidades WHERE id = ? AND ativo = 1'); $q->execute([$u0]); $GLOBALS['_unidade'] = $q->fetchColumn() ? $u0 : null; }
   }
   return $GLOBALS['_unidade'];
 }
@@ -1486,18 +1504,21 @@ function altDaVenda(array $v): string {
   $s = mb_strtoupper(trim((string)($v['servico'] ?? ''))); if ($s !== '') foreach ((array)(regra()['servicos'] ?? []) as $x) if (mb_strtoupper(trim((string)($x['n'] ?? ''))) === $s) return '';
   return 'pac';
 }
+/* 1.91 (auditoria): o que ficou a receber (a venda "paga na saída" de uma entrada cancelada, por exemplo) não some à meia-noite: vale desde
+   a última saída da criança. O piso de 60 dias só deixa a conta rápida (com anos de vendas no banco) */
+const DIAS_A_RECEBER = 60;
+function pisoAReceber(): string { return date('Y-m-d', strtotime('-' . DIAS_A_RECEBER . ' days')) . ' 00:00:00'; }
 function pendItensDeTodos(): array {
   $db = db(); $hoje = date('Y-m-d') . ' 00:00:00';
   // o piso: nenhuma venda de antes de hoje (ou do dia em que entrou quem está há mais tempo no espaço) pode ser "desta visita".
   // Com ele a consulta anda só pelas vendas recentes, sem buscar criança por criança (com anos de vendas no banco, de 290 ms para 10 ms)
   $min = (string)$db->query('SELECT MIN(entrou) FROM criancas WHERE entrou IS NOT NULL')->fetchColumn();
   $piso = $min !== '' && substr($min, 0, 10) . ' 00:00:00' < $hoje ? substr($min, 0, 10) . ' 00:00:00' : $hoje;
-  $falta = 'v.valor - COALESCE((SELECT SUM(p.valor) FROM pagamentos p WHERE p.venda_id = v.id), 0)';
-  $q = $db->prepare("SELECT v.id, v.crianca_id c, v.servico, v.minutos, v.itens, v.valor, v.auto, v.produto_id, v.alug, v.festa_id, v.voucher, v.desc_valor, $falta f FROM vendas v CROSS JOIN criancas k0 ON k0.id = v.crianca_id WHERE v.quando >= ? AND v.auto = 0 AND v.valor > 0 AND v.servico != ?
-    AND v.quando >= CASE WHEN k0.entrou IS NOT NULL AND substr(k0.entrou, 1, 10) < substr(?, 1, 10) THEN substr(k0.entrou, 1, 10) || ' 00:00:00' ELSE ? END
-    AND v.quando >= COALESCE((SELECT MAX(x.saiu) FROM visitas x WHERE x.crianca_id = v.crianca_id), '')
-    AND $falta > 0.004 ORDER BY v.id");   // 1.21: só a saída fecha a conta do que há para receber (a entrada cancelada, não)
-  $q->execute([$piso, SERV_IMPORTADO, $hoje, $hoje]); $o = [];
+  // 1.91: primeiro as vendas sem pagar inteiro (uma soma por venda), depois só delas a última saída (de 345 para 11 ms com 60 dias cheios)
+  $q = $db->prepare("SELECT a.* FROM (SELECT v.id, v.crianca_id c, v.quando, v.servico, v.minutos, v.itens, v.valor, v.auto, v.produto_id, v.alug, v.festa_id, v.voucher, v.desc_valor, v.valor - COALESCE(SUM(p.valor), 0) f
+      FROM vendas v JOIN criancas k0 ON k0.id = v.crianca_id LEFT JOIN pagamentos p ON p.venda_id = v.id WHERE v.quando >= ? AND v.auto = 0 AND v.valor > 0 AND v.servico != ? GROUP BY v.id) a
+    WHERE a.f > 0.004 AND a.quando >= COALESCE((SELECT MAX(x.saiu) FROM visitas x WHERE x.crianca_id = a.c), '') ORDER BY a.id");   // 1.21: só a saída fecha a conta do que há para receber (a entrada cancelada, não)
+  $q->execute([min($piso, pisoAReceber()), SERV_IMPORTADO]); $o = [];
   foreach ($q->fetchAll() as $l) $o[(int)$l['c']][] = ['n' => nomeDaVenda($l), 'v' => round((float)$l['f'], 2), 'id' => (int)$l['id'], 'alt' => (float)$l['f'] >= (float)$l['valor'] - 0.004 ? altDaVenda($l) : '', 'h' => round((int)$l['minutos'] / 60, 2), 't' => tipoNoPapel($l), 'pn' => nomeNoPapel($l)];   // 1.39: alt = o "Alterar pacote" da saída vale para ela ('pac' ou 'prod')   // 1.25: id = a venda   // juntar por criança fica aqui: agrupar no SQL faria a consulta andar pelo índice da criança
   foreach (autosSemPagarDaSaida(null, $piso) as $l) $o[(int)$l['crianca_id']][] = ['n' => nomeDaVenda($l), 'v' => round((float)$l['valor'], 2), 'id' => (int)$l['id']];   // 1.31: a saída pelo rosto que não recebeu
   return $o;
@@ -1687,11 +1708,12 @@ function grupoDoCaixa(array $l): string {
 function estornarPagosAntes(array $vendas): void {
   $por = []; foreach ($vendas as $v) if (!empty($v['id'])) $por[(int)$v['id']] = $v; if (!$por) return;
   $db = db(); $q = $db->prepare('SELECT venda_id, forma, valor, quando, unidade_id FROM pagamentos WHERE quando < ? AND venda_id IN (' . implode(',', array_keys($por)) . ') ORDER BY id'); $q->execute([date('Y-m-d') . ' 00:00:00']);
-  $ins = $db->prepare('INSERT INTO estornos (quando, unidade_id, forma, valor, grupo, item, pago_em, venda_id, crianca_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'); $aqui = unidadeDoPedido();
+  $ins = $db->prepare('INSERT INTO estornos (quando, unidade_id, forma, valor, grupo, item, pago_em, venda_id, crianca_id, pago_uni) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'); $aqui = unidadeDoPedido();   // 1.91: pago_uni
   foreach ($q->fetchAll() as $p) { $v = $por[(int)$p['venda_id']]; $valor = round((float)$p['valor'], 2); if ($valor <= 0) continue;
     $g = grupoDoCaixa(['s' => (string)($v['servico'] ?? ''), 'pr' => (int)($v['produto_id'] ?? 0) > 0, 'a' => (string)($v['alug'] ?? ''), 'm' => (int)($v['minutos'] ?? 0), 'au' => (int)($v['auto'] ?? 0), 'vo' => (string)($v['voucher'] ?? '')]);
     $u = $aqui ?? (($p['unidade_id'] ?? null) !== null ? (int)$p['unidade_id'] : (($v['unidade_id'] ?? null) !== null ? (int)$v['unidade_id'] : null));
-    $ins->execute([agora(), $u, (string)$p['forma'], $valor, $g, $g === 'carrinhos' ? (mb_strtoupper(trim((string)($v['servico'] ?? ''))) ?: 'CARRINHO') : '', (string)$p['quando'], (int)$v['id'], (int)$v['crianca_id']]); }
+    $pu = ($p['unidade_id'] ?? null) !== null ? (int)$p['unidade_id'] : (($v['unidade_id'] ?? null) !== null ? (int)$v['unidade_id'] : $u);   // (a unidade em que o dinheiro entrou)
+    $ins->execute([agora(), $u, (string)$p['forma'], $valor, $g, $g === 'carrinhos' ? (mb_strtoupper(trim((string)($v['servico'] ?? ''))) ?: 'CARRINHO') : '', (string)$p['quando'], (int)$v['id'], (int)$v['crianca_id'], $pu]); }
 }
 // o devolvido hoje, por unidade: [uni => ['total', 'formas', 'grupos', 'itens', 'n']]
 function devolvidoHoje(): array {
@@ -2249,7 +2271,8 @@ function prazoCancelar(array $c): array { // [limite em minutos, segundos desde 
 // $paraReceber (1.21): a conta do que há para receber só fecha na saída: a entrada cancelada não tira da conta o que continuou cobrado e não foi pago
 function vendasDaVisita(array $c, bool $paraReceber = false): array {
   $db = db(); $corte = date('Y-m-d') . ' 00:00:00';
-  if (!empty($c['entrou']) && substr((string)$c['entrou'], 0, 10) < date('Y-m-d')) $corte = substr((string)$c['entrou'], 0, 10) . ' 00:00:00';   // 1.02: entrou ontem e ainda está no espaço (saída esquecida): a visita vale desde o dia da entrada
+  if (!empty($c['entrou']) && substr((string)$c['entrou'], 0, 10) < date('Y-m-d')) $corte = substr((string)$c['entrou'], 0, 10) . ' 00:00:00';
+  if ($paraReceber) $corte = min($corte, pisoAReceber());   // 1.91 (auditoria): o que há para receber não some à meia-noite: vale desde a última saída   // 1.02: entrou ontem e ainda está no espaço (saída esquecida): a visita vale desde o dia da entrada
   foreach (array_merge(['SELECT MAX(saiu) FROM visitas WHERE crianca_id = ?'], $paraReceber ? [] : ["SELECT MAX(quando) FROM cancelamentos WHERE crianca_id = ? AND tipo = ''"]) as $sql) { $q = $db->prepare($sql); $q->execute([$c['id']]); $s = (string)$q->fetchColumn(); if ($s > $corte) $corte = $s; }
   $q = $db->prepare('SELECT * FROM vendas WHERE crianca_id = ? AND quando >= ? AND servico != ? ORDER BY id'); $q->execute([$c['id'], $corte, SERV_IMPORTADO]);   // 1.01: o pacote que veio na importação não é desta visita
   return $q->fetchAll();
@@ -2424,7 +2447,13 @@ function processarRosto(int $idfaceUser, string $quando, string $origem = 'iDFac
 // para o estoque: a venda deixou de existir), a agenda, as sapateiras e os outros ajustes.
 // Antes de apagar, o banco inteiro é copiado para a pasta de dados (ficam as 3 últimas cópias); pela tela dá para desfazer
 // enquanto não houver cadastro novo.
-const TABELAS_CADASTRO = ['cupons', 'pagamentos', 'visitas', 'vendas', 'registros', 'mensagens', 'batidas', 'cancelamentos', 'criancas', 'pedidos', 'festas', 'festa_presencas'];   // 1.29: as festas marcadas e quem veio nelas também   // 1.23: os pedidos de autorização são dos cadastros
+const TABELAS_CADASTRO = ['cupons', 'pagamentos', 'visitas', 'vendas', 'registros', 'mensagens', 'batidas', 'cancelamentos', 'criancas', 'pedidos', 'festas', 'festa_presencas', 'estornos', 'trocas_pag'];   // 1.91: os estornos e as trocas de forma de pagamento também (ficavam soltos)
+/* 1.91: o movimento das Finanças (o dono: "pode zerar todo o sistema, menos o Notas"). Ficam as regras e os cadastros: fin_usuarios,
+   fin_fornecedores, fin_freelas, fin_com_hist (as regras das comissões) e o que está em config (metas, valores, e-mails) */
+const TABELAS_FIN_MOV = ['fin_lanc', 'fin_comprovantes', 'fin_caixa', 'fin_caixa_ajustes', 'fin_caixa_hist', 'fin_caixa_rel', 'fin_festas', 'fin_festas_hist', 'fin_freela_dias', 'fin_freela_fluxo', 'fin_freela_hist', 'fin_planilhas', 'fin_planilha_linhas', 'fin_adiant'];
+const CHAVES_MARCAS = '/^(meta_bat|meta_av|meta_mes|baixa):/';   // as metas batidas (para comemorar de novo) e a baixa automática
+function tabelaExiste(string $t, string $banco = 'main'): bool { $q = db()->prepare("SELECT 1 FROM $banco.sqlite_master WHERE type = 'table' AND name = ?"); $q->execute([$t]); return (bool)$q->fetchColumn(); }
+function finMovimento(): int { $n = 0; foreach (TABELAS_FIN_MOV as $t) if (tabelaExiste($t)) $n += (int)db()->query("SELECT COUNT(*) FROM $t")->fetchColumn(); return $n; }   // 1.29: as festas marcadas e quem veio nelas também   // 1.23: os pedidos de autorização são dos cadastros
 const CHAVES_CADASTRO = '/^(mandar|foto|renomear|regra|regra_ok|desregra|falhas_regra|rosto_erro|rosto_ok|rosto_em|pedirosto|baixarfoto)_\d+$/';   // o que o sistema guarda por criança (regra_id e as outras chaves da loja não entram)
 function senhaConfere(array $u, string $senha): bool { // a senha de quem está logado (para confirmar o que não tem volta fácil)
   $q = db()->prepare('SELECT senha FROM usuarios WHERE id = ?'); $q->execute([$u['id']]); $h = (string)$q->fetchColumn(); $q->closeCursor();
@@ -2434,7 +2463,7 @@ function limpezaResumo(): array { // o que há para apagar agora
   $db = db(); $n = fn(string $sql) => (int)$db->query($sql)->fetchColumn();
   return ['cadastros' => $n('SELECT COUNT(*) FROM criancas'), 'removidos' => $n('SELECT COUNT(*) FROM criancas WHERE ativo = 0'), 'dentro' => $n('SELECT COUNT(*) FROM criancas WHERE ativo = 1 AND entrou IS NOT NULL'),
     'responsaveis' => $n("SELECT COUNT(DISTINCT CASE WHEN cpf != '' THEN cpf ELSE 'sem' || id END) FROM criancas"), 'fotos' => $n("SELECT COUNT(*) FROM criancas WHERE foto != ''"),
-    'vendas' => $n("SELECT COUNT(*) FROM vendas WHERE servico != '" . SERV_IMPORTADO . "'"), 'valor' => round((float)$db->query('SELECT COALESCE(SUM(valor), 0) FROM pagamentos')->fetchColumn(), 2), 'visitas' => $n('SELECT COUNT(*) FROM visitas'), 'registros' => $n('SELECT COUNT(*) FROM registros')];
+    'financas' => finMovimento(), 'vendas' => $n("SELECT COUNT(*) FROM vendas WHERE servico != '" . SERV_IMPORTADO . "'"), 'valor' => round((float)$db->query('SELECT COALESCE(SUM(valor), 0) FROM pagamentos')->fetchColumn(), 2), 'visitas' => $n('SELECT COUNT(*) FROM visitas'), 'registros' => $n('SELECT COUNT(*) FROM registros')];
 }
 function pastaCopias(string $nada = 'Nada foi apagado.'): string {
   $d = pastaDados() . '/copias'; if (!is_dir($d)) @mkdir($d, 0700, true);
@@ -2493,6 +2522,15 @@ function copiaInfo(): array {   // o que o cartão de Ajustes e a dica mostram (
 }
 // uma cópia inteira do banco, feita pelo próprio SQLite (sai coerente mesmo com outra tela gravando). Devolve o nome do arquivo.
 // O nome não começa por "playspace-" (é por esse começo que o sistema acha o banco de verdade) e leva um pedaço sorteado
+/* 1.91 (auditoria): a cópia que um gestor (que não é o dono das Finanças) baixa vai sem as tabelas das Finanças nem os ajustes delas */
+function copiaSemFinancas(string $arq): string {
+  $tmp = dirname($arq) . '/.baixar-' . bin2hex(random_bytes(6)) . '.sqlite'; if (!@copy($arq, $tmp)) falha('Não consegui preparar a cópia. Tente de novo.', 500);
+  try { $c = new PDO('sqlite:' . $tmp); $c->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    foreach ($c->query("SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE 'fin\_%' ESCAPE '\'")->fetchAll(PDO::FETCH_COLUMN) as $t) $c->exec('DROP TABLE "' . str_replace('"', '', (string)$t) . '"');
+    $c->exec("DELETE FROM config WHERE chave LIKE 'fin\_%' ESCAPE '\'"); $c->exec('VACUUM'); $c = null; }
+  catch (Throwable $e) { @unlink($tmp); falha('Não consegui preparar a cópia. Tente de novo.', 500); }
+  return $tmp;
+}
 function copiarBanco(string $nada = 'Nada foi apagado.'): string {   // $nada: o fim da mensagem de erro (o que deixou de ser feito por falta da cópia)
   $db = db(); $dir = pastaCopias($nada); $nome = 'copia-' . date('Ymd-His') . '-' . bin2hex(random_bytes(6)) . '.sqlite'; $arq = $dir . '/' . $nome;
   try { $db->exec('VACUUM INTO ' . $db->quote($arq)); }   // o banco inteiro, igual ao de verdade (tabelas, índices e gatilhos)
@@ -2532,7 +2570,7 @@ function cadastrosNaCopia(string $arq): int { // abre a cópia e conta: só apag
 }
 function limparCadastros(array $u): array {
   $db = db(); $antes = limpezaResumo(); $quem = primeiroNome((string)$u['nome']);
-  if (!$antes['cadastros'] && !$antes['vendas'] && !$antes['visitas']) falha('Não há cadastro para apagar: o sistema já está limpo.', 409);
+  if (!$antes['cadastros'] && !$antes['vendas'] && !$antes['visitas'] && !$antes['financas']) falha('Não há nada para apagar: o sistema já está limpo.', 409);
   $copia = copiarBanco();
   if (cadastrosNaCopia(pastaCopias() . '/' . $copia) !== $antes['cadastros']) falha('A cópia de segurança não confere com o banco. Nada foi apagado.', 500);
   $ex = cfg('exemplo', null); $comp = is_array($ex) ? array_values(array_map('intval', (array)($ex['compromissos'] ?? []))) : [];   // a agenda fica; só saem os compromissos que vieram com o teste
@@ -2541,9 +2579,10 @@ function limparCadastros(array $u): array {
     foreach ($db->query('SELECT produto_id, qtd FROM vendas WHERE produto_id IS NOT NULL')->fetchAll() as $v) devolverEstoque($v);   // o produto vendido volta para o estoque
     $fila = []; foreach ($db->query('SELECT idface_id FROM criancas WHERE idface_id IS NOT NULL')->fetchAll() as $c) { $fila[] = (int)$c['idface_id']; gravarCfg('apagar_' . (int)$c['idface_id'], (int)$c['idface_id']); }   // quem está no iDFace sai de lá na próxima conversa com o aparelho
     foreach (TABELAS_CADASTRO as $t) $db->exec("DELETE FROM $t");
+    foreach (TABELAS_FIN_MOV as $t) if (tabelaExiste($t)) $db->exec("DELETE FROM $t");   // 1.91: o movimento das Finanças
     $db->exec('DELETE FROM papeis');   // 1.14: os cupons guardados para reimprimir saem junto (o Desfazer da limpeza não traz de volta)
     try { $db->exec("DELETE FROM sqlite_sequence WHERE name = 'cupons'"); } catch (Throwable $e) { }
-    foreach ($db->query('SELECT chave FROM config')->fetchAll(PDO::FETCH_COLUMN) as $k) if (preg_match(CHAVES_CADASTRO, (string)$k)) apagarCfg((string)$k);
+    foreach ($db->query('SELECT chave FROM config')->fetchAll(PDO::FETCH_COLUMN) as $k) if (preg_match(CHAVES_CADASTRO, (string)$k) || preg_match(CHAVES_MARCAS, (string)$k)) apagarCfg((string)$k);
     apagarCfg('exemplo'); apagarCfg('pend_fora'); apagarCfg('limpeza_oferta'); apagarCfg('importacao'); apagarCfg('importando');   // 1.01: os cadastros importados saíram junto
     if ($comp) $db->prepare('DELETE FROM compromissos WHERE id IN (' . implode(',', array_fill(0, count($comp), '?')) . ')')->execute($comp);
     gravarCfg('limpeza', ['em' => agora(), 'por' => $quem, 'copia' => $copia, 'n' => $antes, 'fila' => $fila, 'comp' => $comp, 'banco' => (int)$db->query('PRAGMA user_version')->fetchColumn()]);
@@ -2559,6 +2598,7 @@ function limpezaVolta(array $l): string {
   if (empty($l['copia']) || !is_file($arq)) return 'A cópia de segurança dessa limpeza não está mais guardada.';
   if ((int)($l['banco'] ?? 0) !== (int)$db->query('PRAGMA user_version')->fetchColumn()) return 'O sistema foi atualizado depois da limpeza: a cópia é de uma versão anterior.';
   if ((int)$db->query('SELECT COUNT(*) FROM criancas')->fetchColumn() > 0 || (int)$db->query('SELECT COUNT(*) FROM vendas')->fetchColumn() > 0) return 'Já há cadastro novo depois da limpeza: desfazer agora misturaria os dois.';
+  if (finMovimento() > 0) return 'Já há lançamento novo nas Finanças depois da limpeza: desfazer agora misturaria os dois.';   // 1.91
   return '';
 }
 function limpezaPublica(): ?array { // a última limpeza, para a tela mostrar e oferecer o Desfazer enquanto der
@@ -2571,11 +2611,12 @@ function limpezaDesfazer(array $u): array {
   $db->exec('ATTACH DATABASE ' . $db->quote(pastaDados() . '/copias/' . basename((string)$l['copia'])) . ' AS copia');
   try {
     $db->beginTransaction();
-    foreach (TABELAS_CADASTRO as $t) { $db->exec("DELETE FROM $t"); $db->exec("INSERT INTO $t SELECT * FROM copia.$t"); }
+    foreach (TABELAS_CADASTRO as $t) { if (!tabelaExiste($t, 'copia')) continue; $db->exec("DELETE FROM $t"); $db->exec("INSERT INTO $t SELECT * FROM copia.$t"); }   // (1.91: a cópia de antes das tabelas novas)
+    foreach (TABELAS_FIN_MOV as $t) if (tabelaExiste($t) && tabelaExiste($t, 'copia')) { $db->exec("DELETE FROM $t"); $db->exec("INSERT INTO $t SELECT * FROM copia.$t"); }   // 1.91: as Finanças também voltam
     try { $db->exec("DELETE FROM sqlite_sequence WHERE name = 'cupons'"); $db->exec("INSERT INTO sqlite_sequence (name, seq) SELECT name, seq FROM copia.sqlite_sequence WHERE name = 'cupons'"); } catch (Throwable $e) { }
     foreach ($db->query('SELECT produto_id, qtd FROM vendas WHERE produto_id IS NOT NULL')->fetchAll() as $v) mexerEstoque((int)$v['produto_id'], (int)$v['qtd'], -1);   // as vendas voltaram: o estoque baixa de novo
     $por = $db->prepare('INSERT OR REPLACE INTO config (chave, valor) VALUES (?, ?)');
-    foreach ($db->query('SELECT chave, valor FROM copia.config')->fetchAll() as $r) if (preg_match(CHAVES_CADASTRO, (string)$r['chave']) || in_array($r['chave'], ['exemplo', 'pend_fora', 'importacao'], true)) $por->execute([$r['chave'], $r['valor']]);
+    foreach ($db->query('SELECT chave, valor FROM copia.config')->fetchAll() as $r) if (preg_match(CHAVES_CADASTRO, (string)$r['chave']) || preg_match(CHAVES_MARCAS, (string)$r['chave']) || in_array($r['chave'], ['exemplo', 'pend_fora', 'importacao'], true)) $por->execute([$r['chave'], $r['valor']]);
     foreach ((array)($l['fila'] ?? []) as $id) apagarCfg('apagar_' . (int)$id);   // quem ia sair do iDFace não sai mais
     $comp = array_values(array_filter(array_map('intval', (array)($l['comp'] ?? []))));
     if ($comp) $db->exec('INSERT OR IGNORE INTO compromissos SELECT * FROM copia.compromissos WHERE id IN (' . implode(',', $comp) . ')');

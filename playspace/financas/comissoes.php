@@ -120,7 +120,7 @@ function cmRegraDa(array $l, array $regras, bool $grupoComProduto): ?array {
   }
   return null;
 }
-function cmBonus(array $r, array $l): float { return round($r['modo'] === 'fixo' ? $r['bonus'] * ($l['vend_k'] === 'produto' ? max(1, (int)$l['qtd']) : 1) : (float)$l['valor'] * $r['bonus'] / 100, 2); }
+function cmBonus(array $r, array $l): float { if ((float)$l['valor'] <= 0.004) return 0.0; return round(   /* 1.91 (auditoria): a venda de valor zero (desconto de 100%) não paga bônus */$r['modo'] === 'fixo' ? $r['bonus'] * ($l['vend_k'] === 'produto' ? max(1, (int)$l['qtd']) : 1) : (float)$l['valor'] * $r['bonus'] / 100, 2); }
 function cmListar(array $in): array {
   $db = db(); $P = cmPeriodo($in['per'] ?? ''); $regras = cmRegras();
   $uni = isset($in['u']) && $in['u'] !== '' && $in['u'] !== 'todas' ? (int)$in['u'] : null;

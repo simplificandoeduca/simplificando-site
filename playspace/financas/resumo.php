@@ -50,7 +50,7 @@ function finResumo(array $in): array {
     $formas[$u . '|' . $l['f']] = ['u' => $u, 'f' => (string)$l['f'], 'v' => round(($formas[$u . '|' . $l['f']]['v'] ?? 0) - $t, 2)]; }
   // 1.49 (auditoria): a venda cancelada em outro dia leva junto o pagamento dela (que é apagado) e deixa o estorno com o dia em que tinha sido
   // paga: esse dinheiro volta ao Recebido daquele dia (senão sairia duas vezes: o pagamento apagado e o estorno)
-  $q = $db->prepare('SELECT COALESCE(unidade_id, 0) u, forma f, COALESCE(SUM(valor), 0) t FROM estornos WHERE pago_em >= ? AND pago_em < ? GROUP BY u, f');
+  $q = $db->prepare('SELECT COALESCE(pago_uni, unidade_id, 0) u, forma f, COALESCE(SUM(valor), 0) t FROM estornos WHERE pago_em >= ? AND pago_em < ? GROUP BY u, f');   // 1.91: na unidade em que tinha entrado
   $q->execute([$ini, $fim]); foreach ($q->fetchAll() as $l) { $u = (int)$l['u']; $U($u); $t = round((float)$l['t'], 2); $uni[$u]['recebido'] = round($uni[$u]['recebido'] + $t, 2);
     $formas[$u . '|' . $l['f']] = ['u' => $u, 'f' => (string)$l['f'], 'v' => round(($formas[$u . '|' . $l['f']]['v'] ?? 0) + $t, 2)]; }
   // em aberto: o vendido no período que ainda não foi pago
@@ -153,7 +153,7 @@ function finResumo(array $in): array {
   $somaCx = function (array $L, int $sinal) use (&$nfDia, $U) { foreach ($L as $l) { $u = (int)$l['u']; $U($u); $k = $u . '|' . $l['d']; if (!isset($nfDia[$k])) $nfDia[$k] = ['u' => $u, 'd' => (string)$l['d'], 'nf' => 0.0, 'n' => 0, 'cx' => 0.0]; $nfDia[$k]['cx'] = round($nfDia[$k]['cx'] + $sinal * (float)$l['t'], 2); } };
   $somaCx($cx('SELECT COALESCE(p.unidade_id, v.unidade_id, 0) u, substr(p.quando, 1, 10) d, COALESCE(SUM(p.valor), 0) t FROM pagamentos p JOIN vendas v ON v.id = p.venda_id WHERE p.quando >= ? AND p.quando < ? GROUP BY u, d'), 1);
   $somaCx($cx('SELECT COALESCE(unidade_id, 0) u, substr(quando, 1, 10) d, COALESCE(SUM(valor), 0) t FROM estornos WHERE quando >= ? AND quando < ? GROUP BY u, d'), -1);
-  $somaCx($cx('SELECT COALESCE(unidade_id, 0) u, substr(pago_em, 1, 10) d, COALESCE(SUM(valor), 0) t FROM estornos WHERE pago_em >= ? AND pago_em < ? GROUP BY u, d'), 1);
+  $somaCx($cx('SELECT COALESCE(pago_uni, unidade_id, 0) u, substr(pago_em, 1, 10) d, COALESCE(SUM(valor), 0) t FROM estornos WHERE pago_em >= ? AND pago_em < ? GROUP BY u, d'), 1);
   // 1.88: a Casa Tom de cada lugar (unidade): o produto vendido no Play antes do primeiro dia da regra nova continua da Casa Tom (o de antes não muda)
   $casaTom = [];
   foreach (uniCasaTomPares() as $pu => $pa) {

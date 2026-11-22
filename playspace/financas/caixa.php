@@ -51,7 +51,7 @@ function cxSistema(string $de, string $ate): array {
   /* o devolvido no dia sai do dia; a venda cancelada em outro dia (o pagamento dela é apagado) volta ao dia em que foi paga */
   $q = $db->prepare('SELECT substr(quando, 1, 10) d, COALESCE(unidade_id, 0) u, forma f, COALESCE(SUM(valor), 0) t FROM estornos WHERE quando >= ? AND quando < ? GROUP BY d, u, f');
   $q->execute([$ini, $fim]); foreach ($q->fetchAll() as $l) $soma((string)$l['d'], (int)$l['u'], (string)$l['f'], -(float)$l['t']);
-  $q = $db->prepare('SELECT substr(pago_em, 1, 10) d, COALESCE(unidade_id, 0) u, forma f, COALESCE(SUM(valor), 0) t FROM estornos WHERE pago_em >= ? AND pago_em < ? GROUP BY d, u, f');
+  $q = $db->prepare('SELECT substr(pago_em, 1, 10) d, COALESCE(pago_uni, unidade_id, 0) u, forma f, COALESCE(SUM(valor), 0) t FROM estornos WHERE pago_em >= ? AND pago_em < ? GROUP BY d, u, f');   // 1.91: na unidade em que tinha entrado
   $q->execute([$ini, $fim]); foreach ($q->fetchAll() as $l) $soma((string)$l['d'], (int)$l['u'], (string)$l['f'], (float)$l['t']);
   return $S;
 }

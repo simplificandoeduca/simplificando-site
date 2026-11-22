@@ -1676,6 +1676,22 @@ svg.fx-cresce .gr-b { transform-box: fill-box; transform-origin: 50% 100%; anima
 }
 :root[data-anim="leve"] .fx-entra, :root[data-anim="leve"] .fx-entra *, :root[data-anim="leve"] svg.fx-cresce * { animation: none !important; }
 :root[data-anim="leve"] .pn-k:hover, :root[data-anim="leve"] .cx-formas > div:hover { transform: none; }
+/* 1.91: a abertura (como o vídeo do dono): o login escorrega e some, desfocando; o menu, o cabeçalho e a coluna da direita se montam.
+   Usa translate/scale (as propriedades soltas), para não brigar com o transform que esses elementos já têm */
+@keyframes ab-sai { to { opacity: 0; translate: -56px 0; scale: .98; filter: blur(10px); } }
+@keyframes ab-lado { from { opacity: 0; translate: -30px 0; } }
+@keyframes ab-item { from { opacity: 0; translate: -12px 0; scale: .86; } }
+@keyframes ab-cima { from { opacity: 0; translate: 0 -14px; filter: blur(4px); } }
+@keyframes ab-dir { from { opacity: 0; translate: 26px 0; } }
+@keyframes ab-baixo { from { opacity: 0; translate: 0 26px; } }
+.entrada-pagina.sai { animation: ab-sai .3s cubic-bezier(.4, 0, .7, 1) forwards; pointer-events: none; }
+body.abre:not(.quieto) .trilho { animation: ab-lado .42s cubic-bezier(.2, .8, .2, 1) both; }
+body.abre:not(.quieto) #nav-lado > :not(.fx-trilho) { animation: ab-item .38s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(120ms + var(--ab-k, 0) * 24ms); }
+body.abre:not(.quieto) #miolo > .faixa { animation: ab-cima .4s cubic-bezier(.2, .8, .2, 1) both; animation-delay: 70ms; }
+body.abre:not(.quieto) .hoje { animation: ab-dir .45s cubic-bezier(.2, .8, .2, 1) both; animation-delay: 150ms; }
+body.abre:not(.quieto) #nav-baixo { animation: ab-baixo .42s cubic-bezier(.2, .8, .2, 1) both; animation-delay: 100ms; }
+:root[data-anim="leve"] .entrada-pagina.sai { animation: none; opacity: 0; }
+:root[data-anim="leve"] body.abre .trilho, :root[data-anim="leve"] body.abre #nav-lado > *, :root[data-anim="leve"] body.abre #miolo > .faixa, :root[data-anim="leve"] body.abre .hoje, :root[data-anim="leve"] body.abre #nav-baixo { animation: none !important; }
 @keyframes sobe { from { opacity: 0; transform: translateY(10px); } }
 .rodape { text-align: center; font-size: 12px; color: var(--apagado); padding-top: 10px; }
 .rodape b { color: var(--tinta-2); }
@@ -1895,7 +1911,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.90';
+const VERSAO = '1.91';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -2314,6 +2330,16 @@ function olharPara(inp, foco = false) { // o ursinho acompanha o cursor; o passa
 }
 function ursoReage(como) { const card = $('.palco'); if (!card) return; card.classList.remove('nao', 'feliz'); void card.offsetWidth; card.classList.add(como); if (como === 'nao') setTimeout(() => card.classList.remove('nao'), 800); }
 const espera = ms => new Promise(r => setTimeout(r, ms));
+/* 1.91: a abertura: uma vez por página aberta, na primeira tela do sistema (depois de entrar, ou ao abrir já logado) */
+let ABRIU = false;
+function abertura() {
+  if (ABRIU || document.body.classList.contains('so')) return; ABRIU = true;
+  if (document.documentElement.dataset.anim === 'leve') return;
+  [...$('#nav-lado').children].forEach((e, i) => e.style.setProperty('--ab-k', Math.min(i, 14)));
+  document.body.classList.add('abre'); setTimeout(() => document.body.classList.remove('abre'), 1100);
+}
+// o cartão do login escorrega para o lado e some (o tempo dele, para quem chama esperar)
+function sairDoLogin() { const e = $('.entrada-pagina'); if (!e || document.documentElement.dataset.anim === 'leve') return 0; e.classList.add('sai'); return 280; }
 function telaSo(html) { // telas sem o menu (entrar, primeiro acesso)
   document.body.classList.add('so'); $('#nav-lado').innerHTML = ''; $('#nav-baixo').innerHTML = ''; $('#hoje').innerHTML = ''; $('#fab-ancora').hidden = true;
   $('#miolo').innerHTML = `<div class="entrada-pagina"><div class="palco" data-olha="">${BICHOS_ENTRADA}<div class="card entrada-card sobe"><span class="logo-entrada">${LOGO_OBRA}</span>${html}</div></div></div>`;
@@ -2352,21 +2378,21 @@ const contasPrevia = () => ({ cadastros: S.criancas.length, removidos: 0, dentro
   vendas: S.compras.length, valor: centavos((S.pagamentos || []).reduce((a, p) => a + (+p.v || 0), 0)), visitas: S.criancas.reduce((a, c) => a + (c.visitas || []).length, 0), registros: S.registros.length });
 const numerosLimpeza = q => [['cadastros', 'cadastro', 'cadastros'], ['fotos', 'foto', 'fotos'], ['vendas', 'venda', 'vendas'], ['visitas', 'visita', 'visitas']].map(([k, um, mais]) => `<div><b class="num">${q ? q[k] : '…'}</b><span>${q && q[k] === 1 ? um : mais}</span></div>`).join('');
 function pintarLimpeza() {
-  const a = $('#lz-n'), ok = $('#lz-ok'); if (!a || !LZ || !LZ.n) return; const q = LZ.n, nada = !q.cadastros && !q.vendas && !q.visitas;
+  const a = $('#lz-n'), ok = $('#lz-ok'); if (!a || !LZ || !LZ.n) return; const q = LZ.n, nada = !q.cadastros && !q.vendas && !q.visitas && !q.financas;   /* 1.91: as Finanças também */
   a.innerHTML = numerosLimpeza(q);
   const m = $('#lz-mais'); if (m) m.innerHTML = nada ? '<b>O sistema já está limpo:</b> não há cadastro para apagar.'
-    : [q.responsaveis ? `${q.responsaveis} ${q.responsaveis === 1 ? 'responsável' : 'responsáveis'}` : '', q.valor ? `${brl(q.valor)} em pagamentos` : '', q.removidos ? `${q.removidos} ${q.removidos === 1 ? 'cadastro que já estava removido' : 'cadastros que já estavam removidos'}` : '',
+    : [q.financas ? `${q.financas} ${q.financas === 1 ? 'lançamento' : 'lançamentos'} nas Finanças` : '', q.responsaveis ? `${q.responsaveis} ${q.responsaveis === 1 ? 'responsável' : 'responsáveis'}` : '', q.valor ? `${brl(q.valor)} em pagamentos` : '', q.removidos ? `${q.removidos} ${q.removidos === 1 ? 'cadastro que já estava removido' : 'cadastros que já estavam removidos'}` : '',
        q.dentro ? `<b style="color:var(--erro)">${q.dentro} ${q.dentro === 1 ? 'criança está' : 'crianças estão'} no espaço agora e ${q.dentro === 1 ? 'sai' : 'saem'} também</b>` : ''].filter(Boolean).join(' · ');
   if (ok) ok.disabled = nada || (MODO === 'servidor' && !($('#lz-senha') || { value: '' }).value);
 }
 async function folhaLimpeza(oferta) {
   const serv = MODO === 'servidor'; LZ = { n: null, oferta: !!oferta };
-  abrirFolha('Limpar os cadastros', `
+  abrirFolha('Começar do zero', `
     ${oferta ? `<p class="retoma" id="lz-oferta">${ic(IC.sino, 16)}<span><b>Esta versão traz a limpeza que a loja pediu:</b> apagar os cadastros feitos nos testes, para começar de verdade. Nada foi apagado ainda.</span></p>` : ''}
     <div class="lz-n" id="lz-n">${numerosLimpeza(null)}</div>
     <p class="explica" id="lz-mais">Contando o que há no sistema…</p>
-    <div class="marca lz-sai">${ic(IC.lixo, 18)}<span><b>Sai:</b> todos os cadastros (crianças e responsáveis, com as fotos), as horas compradas, as vendas e os pagamentos, as entradas e saídas e o movimento do dia.</span></div>
-    <div class="marca">${ic(IC.check, 18, 2.6)}<span><b>Fica:</b> a equipe e as senhas, a regra das horas, os serviços e preços, os pacotes, os produtos (o que foi vendido volta para o estoque), a agenda e os ajustes.</span></div>
+    <div class="marca lz-sai">${ic(IC.lixo, 18)}<span><b>Sai:</b> todos os cadastros (crianças e responsáveis, com as fotos), as horas compradas, as vendas e os pagamentos, as entradas e saídas, o movimento do dia e o <b>movimento das Finanças</b> (lançamentos, controle de caixa, custos das festas, dias dos freelancers, adiantamento).</span></div>
+    <div class="marca">${ic(IC.check, 18, 2.6)}<span><b>Fica:</b> a equipe e as senhas, a regra das horas, os serviços e preços, os pacotes, os produtos (o que foi vendido volta para o estoque), as unidades, a agenda e os ajustes; nas Finanças, os logins, os fornecedores, os freelancers (o cadastro), as regras das comissões e as metas. O <b>Notas</b> não é tocado.</span></div>
     ${serv ? `<div class="campo"><label for="lz-senha">Sua senha, para confirmar</label><input id="lz-senha" type="password" autocomplete="current-password" placeholder="A senha de ${esc(EU.login || EU.nome)}"></div>` : ''}
     <p class="explica">${serv ? 'Antes de apagar, o sistema guarda uma cópia de segurança. ' : ''}Dá para desfazer enquanto não houver cadastro novo.</p>
     <div class="pe-f lz-pe"><button type="button" class="bt perigo largo tap" id="lz-ok" data-act="limpeza-ok" disabled>${ic(IC.lixo)} Apagar todos os cadastros</button>${oferta ? `<button type="button" class="bt claro largo tap" data-act="limpeza-depois">Agora não</button>` : ''}</div>`);
@@ -3829,7 +3855,7 @@ const pagHoje = () => { if (MODO === 'servidor' && S.pagHoje) return S.pagHoje; 
 // na devolução do carrinho ou antes, pela ficha ("Receber"). 1.06: os selos PAGO / NÃO PAGO saíram da tela (o dono decide depois como mostrar).
 // A cobrança por atraso continua com a conta dela: aparece na ficha e entra no que a saída recebe.
 const faltaCompra = v => Math.max(0, centavos(v.v - (S.pagamentos || []).filter(p => p.venda === v.id).reduce((t, p) => t + p.v, 0)));   // (prévia) quanto falta receber de uma compra
-const corteVisita = (c, paraReceber) => { const d0 = new Date(c.entrou && c.entrou < agora ? c.entrou : agora); d0.setHours(0, 0, 0, 0); let corte = +d0;   // de quando valem as compras "desta visita": hoje (ou o dia em que entrou, se ainda está no espaço), depois da última saída ou entrada cancelada
+const corteVisita = (c, paraReceber) => { const d0 = new Date(c.entrou && c.entrou < agora ? c.entrou : agora); d0.setHours(0, 0, 0, 0); let corte = +d0; if (paraReceber) corte -= 60 * 864e5;   /* 1.91 (auditoria): o que há para receber não some à meia-noite (vale desde a última saída) */   // de quando valem as compras "desta visita": hoje (ou o dia em que entrou, se ainda está no espaço), depois da última saída ou entrada cancelada
   for (const v of c.visitas || []) corte = Math.max(corte, +new Date(v.dia)); if (!paraReceber) for (const x of S.cancelamentos || []) if (x.crianca === c.id && cancFechaVisita(x)) corte = Math.max(corte, +x.quando); return corte; };   // 1.21: a conta do que há para receber (paraReceber) só fecha na saída
 function pendentesPrevia(c) { // (prévia) as compras desta visita, feitas pela equipe, que ainda têm valor a receber: a mesma conta do servidor
   const corte = corteVisita(c, true);
@@ -4824,7 +4850,7 @@ function contaGrupo() { const L = saiDentro().map(c => ({ c, k: contaSaida(c) })
 const chaveGrupo = g => g.L.map(x => [x.c.id, x.k.n, x.k.deb, Math.floor(x.k.min), x.k.pend || 0, centavos(x.k.valor || 0), x.k.pac, x.k.av ? x.k.av.min : 0].join(':')).join('|') + '#' + [...SAI.fora].join(',') + '|' + (g.A || []).map(y => [y.a.id, y.x.n, y.x.valor, y.pend, y.sob].join(':')).join('|') + '#' + [...(SAI.foraA || [])].join(',');
 // reparte um valor (o desconto) pelas bases (o que cada criança tem a receber), em proporção e fechando os centavos
 function repartirValor(total, bases) { const soma = centavos(bases.reduce((s, b) => s + b, 0)), alvo = centavos(Math.min(total, soma)), o = bases.map(() => 0); let resta = alvo; if (!(alvo > 0)) return o;
-  bases.forEach((b, i) => { const x = centavos(Math.min(b, resta, Math.floor(alvo * b / soma * 100) / 100)); o[i] = x; resta = centavos(resta - x); });
+  bases.forEach((b, i) => { const x = centavos(Math.min(b, resta, Math.floor(alvo * b / soma * 100 + 1e-6) / 100));   /* 1.91 (auditoria): 8,00 não vira 7,99 */ o[i] = x; resta = centavos(resta - x); });
   bases.forEach((b, i) => { if (resta < 0.005) return; const x = centavos(Math.min(resta, b - o[i])); if (x > 0) { o[i] = centavos(o[i] + x); resta = centavos(resta - x); } });
   return o; }
 // o que cada criança leva da conta: [{ c, k, bruto, dsc: { valor, pct, motivo } | null, deve, pag: [{ f, v }] }]
@@ -6429,6 +6455,7 @@ function folhaCrianca(c, d, extra) { // d: um cadastro novo que ficou pela metad
       <div class="dois"><div class="campo"><label for="f-nome">Nome da criança<span class="obg" aria-hidden="true">*</span></label><input id="f-nome" value="${esc(v.nome)}" autocomplete="off"></div>
         ${campoNasc(v.nasc)}</div>
       <label class="marca" id="f-pcd-campo"><input type="checkbox" id="f-pcd"${v.pcd ? ' checked' : ''}><span><b>Criança PCD.</b> Paga ${100 - pcdDesc()}% do valor na recreação avulsa. Pacote e carrinhos não têm desconto.</span></label>
+      ${MODO === 'servidor' && !supervisorOuMais() ? `<div class="campo" id="f-pcd-aut"${v.pcd ? '' : ' hidden'}><label for="f-pcd-s">Senha do gestor <span class="leve">· o desconto PCD precisa da liberação dele</span></label><input id="f-pcd-s" type="password" autocomplete="off"></div>` : ''}
       ${campoObs(v.obs)}
       <button type="button" class="bt tap" id="f-outra" data-act="salvar-outra" data-outra="1" style="align-self:flex-start">${ic(IC.mais, 16)} Salvar e cadastrar outra criança</button>
     </div>
@@ -7838,6 +7865,7 @@ function desenhar(quieto = false) { // quieto: redesenho da sincronia, sem as an
   if (LADO) { if (MODO !== 'servidor' || LADO.reg !== ULT_REG) { LADO.reg = ULT_REG; buscarHistorico(); } else desenharLado(); }   // a aba do histórico acompanha o que mudou
   if (S.tela === 'zap') { const m = $('#msgs'); if (m && m.lastElementChild) m.lastElementChild.scrollIntoView({ block: 'nearest' }); }
   desenharPedidos();   // 1.23: o cartão de quem autoriza
+  if (!quieto) abertura();   /* 1.91 */
 }
 /* ---------- 0.89: tudo o que é digitado fica em maiúsculas, sem a opção de sair em minúsculas ---------- */
 // Vale para todos os campos de texto, menos: o login e a senha, os números, as datas e os campos técnicos (endereço do iDFace, chave do WhatsApp).
@@ -8000,6 +8028,8 @@ const ACOES = {
     if (!id) { const ja = clientePorDoc(doc, cpf).find(x => x.nome.trim().toLowerCase() === nome.toLowerCase()); if (ja) { toast(`${ja.nome} já tem cadastro com este ${doc === 'rne' ? 'RNE' : 'CPF'}`, () => abrirHistorico(ja.id), 'Ver o histórico'); return; } }
     if (MODO === 'servidor') {
       const dados = id ? { id: +id, nome, idade: +val('f-idade') || 0, nasc: nasc.iso, resp, tel, tel2, doc, cpf, obs, pcd } : { nome, nasc: nasc.iso, resp, tel, tel2, doc, cpf, obs, pcd };
+      if (!id && pcd && !supervisorOuMais()) { const s = ($('#f-pcd-s') || { value: '' }).value; if (!s) { const a = $('#f-pcd-aut'); if (a) a.hidden = false; const i = $('#f-pcd-s'); if (i) i.focus(); toast('Criança PCD: digite a senha do gestor (ou desmarque o PCD)'); return; }   /* 1.91 (auditoria) */
+        if (OFF.on) { toast('Sem internet: o PCD precisa da senha do gestor conferida agora. Cadastre sem o PCD e peça ao gestor para marcar.'); return; } dados.pcd_senha = s; }
       apiOff('crianca_salvar', dados).then(async r => { await carregar(); if (id) renomearRascunho(+id, nome); else cadastroFeito(); fecharFolha(); desenhar();
         if (id) { deuCerto('Cadastro salvo'); return; }
         depoisDoCadastro(r.id, nome, outra, pre, { doc, cpf, resp, tel, tel2 }); }).catch(e => toast(e.message));
@@ -8255,8 +8285,8 @@ const ACOES = {
   'equipe-novo': () => folhaEquipe(null), 'equipe-editar': el => folhaEquipe(S.equipe.find(u => u.id === +el.dataset.id)),
   'equipe-salvar': el => { const nome = val('e-nome'); if (!nome) { toast('Falta o nome'); return; } const d = { nome, login: val('e-login') || nome.split(' ')[0].toLowerCase(), papel: val('e-papel'), senha: ($('#e-senha') || { value: '' }).value }; if (MODO === 'servidor') { api('usuario_salvar', { id: el.dataset.id ? +el.dataset.id : 0, ...d }).then(async () => { await carregar(); deuCerto('Equipe atualizada'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } delete d.senha; if (el.dataset.id) Object.assign(S.equipe.find(u => u.id === +el.dataset.id), d); else S.equipe.push({ id: novoId(), ...d }); deuCerto('Equipe atualizada'); fecharFolha(); desenhar(); },
   'equipe-apagar': el => { if (MODO === 'servidor') { api('usuario_apagar', { id: +el.dataset.id }).then(async () => { await carregar(); deuCerto('Removida da equipe'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } S.equipe = S.equipe.filter(u => u.id !== +el.dataset.id); deuCerto('Removida da equipe'); fecharFolha(); desenhar(); },
-  entrar: async () => { try { await api('entrar', { login: val('l-login'), senha: ($('#l-senha') || { value: '' }).value }); ursoReage('feliz'); await espera(700); await depoisDeEntrar(true); ligarSincronia(); } catch (e) { ursoReage('nao'); toast(e.message); } },
-  'criar-gestor': async () => { try { await api('criar_gestor', { nome: val('g-nome'), login: val('g-login'), senha: ($('#g-senha') || { value: '' }).value }); ursoReage('feliz'); await espera(700); await depoisDeEntrar(); ligarSincronia(); } catch (e) { ursoReage('nao'); toast(e.message); } },
+  entrar: async () => { try { await api('entrar', { login: val('l-login'), senha: ($('#l-senha') || { value: '' }).value }); ursoReage('feliz'); await espera(260); await espera(sairDoLogin()); await depoisDeEntrar(true); ligarSincronia(); }   /* 1.91: o login escorrega e some (era 0,7 s parado) */ catch (e) { ursoReage('nao'); toast(e.message); } },
+  'criar-gestor': async () => { try { await api('criar_gestor', { nome: val('g-nome'), login: val('g-login'), senha: ($('#g-senha') || { value: '' }).value }); ursoReage('feliz'); await espera(260); await espera(sairDoLogin()); await depoisDeEntrar(); ligarSincronia(); } catch (e) { ursoReage('nao'); toast(e.message); } },
   sair: async () => { if (MODO === 'servidor') { if (OFF.fila.length) { toast(`Ainda ${OFF.fila.length === 1 ? 'há 1 registro feito' : 'há ' + OFF.fila.length + ' registros feitos'} sem internet esperando para ir ao servidor. Espere a internet voltar para sair.`); return; } clearInterval(SYNC_T); IDB.tirar('dados'); try { await api('sair'); } catch (e) {}   /* 1.40 */ ETAPA_FEITA = true; RASC_CAD = []; salvarEtapas(); /* ao sair, os cadastros pela metade (dados do responsável) não ficam no aparelho */ fecharFolha(); telaEntrar(); return; } toast('Na prévia não há login'); },
   'trocar-senha': () => abrirFolha('Trocar a minha senha', `<div class="campo"><label for="s-atual">Senha atual</label><input id="s-atual" type="password" autocomplete="current-password"></div><div class="campo"><label for="s-nova">Senha nova (pelo menos 6)</label><input id="s-nova" type="password" autocomplete="new-password"></div><button class="bt forte largo tap" data-act="trocar-senha-ok">${ic(IC.check)} Trocar</button>`),
   'trocar-senha-ok': async () => { try { await api('trocar_senha', { atual: ($('#s-atual') || { value: '' }).value, nova: ($('#s-nova') || { value: '' }).value }); fecharFolha(); deuCerto('Senha trocada'); } catch (e) { toast(e.message); } },
@@ -8280,6 +8310,7 @@ document.addEventListener('change', e => {
   const t = e.target; if (t.id === 'pc-parc') { contaPacote(); return; }
   if (t.id === 'sv-banco' || t.id === 'sv-volta') { svContaVer(); return; }   /* 1.20: a escolha de quando a conta fecha aparece ou some com as marcas do serviço */
   if ((t.id === 'rel-de' || t.id === 'rel-ate') && REL) { REL.per = 'datas'; REL.de = ($('#rel-de') || {}).value || ''; REL.ate = ($('#rel-ate') || {}).value || ''; desenharRelatorio(); return; }   /* 1.19: as datas do relatório do cliente */
+  if (t.id === 'f-pcd') { const a = $('#f-pcd-aut'); if (a) { a.hidden = !t.checked; if (t.checked) { const i = $('#f-pcd-s'); if (i) i.focus(); } } return; }   /* 1.91: o PCD pede a senha do gestor */
   if (t.id === 'v-entrar' && CARRINHO) { CARRINHO.entrar = t.checked; atualizarCarrinho(); return; }   /* 1.68: com a entrada, o pedido abre agora (pede quem está atendendo) */
   if (t.dataset && t.dataset.cancVenda && CANCELA) { const id = +t.dataset.cancVenda; if (t.checked) CANCELA.fica.delete(id); else CANCELA.fica.add(id); resumoCancelar(); return; }
   if (t.dataset && t.dataset.imCol && IM) { const k = t.dataset.imCol, v = +t.value; for (const o in IM.col) if (o !== k && v >= 0 && IM.col[o] === v) IM.col[o] = -1; IM.col[k] = v; lerLinhas(); pintarImportar(); return; }   /* 1.01: a coluna de um campo da importação (a mesma coluna não fica em dois campos) */

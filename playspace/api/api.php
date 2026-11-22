@@ -35,6 +35,7 @@ $val = fn(string $k, string $p = '') => trim((string)($in[$k] ?? $p));
 if (!empty($_SESSION['uid']) && empty($_SESSION['desde'])) $_SESSION['desde'] = time();   // desde quando esta sessão existe (com alguém dentro)
 if (!is_array($in['offline'] ?? null) || !isset($in['offline']['em'])) { $sl = intdiv(time(), 30); if (empty($_SESSION['vistos'][$sl])) { $_SESSION['vistos'][$sl] = 1;
   if (count($_SESSION['vistos']) > 6000) $_SESSION['vistos'] = array_filter($_SESSION['vistos'], fn($k) => $k > $sl - OFFLINE_DIAS * 2880, ARRAY_FILTER_USE_KEY);
+  if (!empty($_SESSION['uid']) && (int)($_SERVER['HTTP_X_PLAY_UNIDADE'] ?? 0) > 0) { try { $db->prepare('INSERT OR IGNORE INTO unidades_vistas (u, slot) VALUES (?, ?)')->execute([(int)$_SERVER['HTTP_X_PLAY_UNIDADE'], $sl]); if ($sl % 240 === 0) $db->prepare('DELETE FROM unidades_vistas WHERE slot < ?')->execute([$sl - OFFLINE_DIAS * 2880 - 240]); } catch (Throwable $e) { } }   /* 1.91: a unidade também */
   if (!empty($_SESSION['uid'])) { try { $db->prepare('INSERT OR IGNORE INTO usuarios_vistos (uid, slot) VALUES (?, ?)')->execute([(int)$_SESSION['uid'], $sl]);
     if ($sl % 240 === 0) $db->prepare('DELETE FROM usuarios_vistos WHERE slot < ?')->execute([$sl - OFFLINE_DIAS * 2880 - 240]); } catch (Throwable $e) { } } } }
 // 1.40: o que foi feito sem internet chega depois, na ordem, com a hora em que foi feito ("offline": { uid, em }): o pedido inteiro corre
@@ -60,6 +61,10 @@ if (is_array($in['offline'] ?? null)) {
     if (!($antes && $depois) && !empty($_SESSION['uid']) && $ts < (int)($_SESSION['desde'] ?? 0) - 60) { try {
       $qv = $db->prepare('SELECT COALESCE(SUM(slot < ?), 0) a, COALESCE(SUM(slot > ?), 0) d FROM usuarios_vistos WHERE uid = ? AND slot BETWEEN ? AND ?');
       $qv->execute([$s0, $s0, (int)$_SESSION['uid'], $s0 - 4, $s0 + 4]); $rv = $qv->fetch(); $antes = (int)$rv['a'] > 0; $depois = (int)$rv['d'] > 0; } catch (Throwable $e) { } }
+    /* 1.91 (auditoria): com outro login (ou o relógio do computador mudado), a hora passava: vale também a unidade, qualquer aparelho dela */
+    if (!($antes && $depois) && (int)($_SERVER['HTTP_X_PLAY_UNIDADE'] ?? 0) > 0) { try {
+      $qv = $db->prepare('SELECT COALESCE(SUM(slot < ?), 0) a, COALESCE(SUM(slot > ?), 0) d FROM unidades_vistas WHERE u = ? AND slot BETWEEN ? AND ?');
+      $qv->execute([$s0, $s0, (int)$_SERVER['HTTP_X_PLAY_UNIDADE'], $s0 - 4, $s0 + 4]); $rv = $qv->fetch(); if ((int)$rv['a'] > 0 && (int)$rv['d'] > 0) { $antes = true; $depois = true; } } catch (Throwable $e) { } }
     $trocou = false; if ($antes && $depois && $ts < time() - 120) { $eu0 = eu(); if ($eu0 && $eu0['papel'] !== 'gestor') { $ts = time(); $trocou = true; } }
     $GLOBALS['PS_AGORA'] = min($ts, time()); $em = $trocou ? null : date('Y-m-d H:i:s', $GLOBALS['PS_AGORA']); $in['mesmo_assim'] = true; }   // (a venda repetida é conferida pela marca)
   $GLOBALS['PS_OFF'] = ['uid' => $uid, 'acao' => $acao, 'em' => $em, 'negada' => (!empty($trocou) ? date('H:i', (int)$off['em']) : null)];
@@ -204,7 +209,7 @@ switch ($acao) {
     if ((int)$tq['l'] >= 8 || (int)$tq['t'] >= 30) falha('Muitas tentativas. Espere 15 minutos e tente de novo.', 429);
     $q = $db->prepare('SELECT * FROM usuarios WHERE login = ? AND ativo = 1'); $q->execute([$login]); $u = $q->fetch();
     if (!$u || !password_verify($senha, $u['senha'])) { $db->prepare('INSERT INTO tentativas (login, ip, quando) VALUES (?, ?, ?)')->execute([$login, $ip, time()]); usleep(400000); falha('Login ou senha errados.', 401); }
-    session_regenerate_id(true); $_SESSION['uid'] = (int)$u['id'];
+    session_regenerate_id(true); $_SESSION['uid'] = (int)$u['id']; $_SESSION['uni0'] = max(0, (int)($_SERVER['HTTP_X_PLAY_UNIDADE'] ?? 0));   // 1.91: a unidade em que entrou
     responder(['usuario' => eu()]);
   }
   case 'sair': { $_SESSION = []; session_destroy(); responder(); }
@@ -225,12 +230,13 @@ switch ($acao) {
     $u = exigir(['gestor']); $L = copiasDaSemana(); if (!$L) falha('Ainda não há cópia. Toque em "Fazer uma cópia agora".', 404);
     $nome = trim((string)($in['nome'] ?? '')); $arq = $nome === '' ? $L[0] : pastaDados() . '/copias/' . basename($nome);
     if (!preg_match('/^semana-\d{8}-\d{6}-[0-9a-f]+\.sqlite$/', basename($arq)) || !in_array($arq, $L, true)) falha('Cópia não encontrada.', 404);
+    $tmp = (int)cfg('fin_dono', 0) === (int)$u['id'] ? null : copiaSemFinancas($arq); $serve = $tmp ?: $arq;   /* 1.91 (auditoria): sem as Finanças, a não ser para o dono delas */
     gravarCfg('copia_baixada', ['nome' => basename($arq), 'em' => date('Y-m-d H:i:s'), 'por' => (string)$u['nome']]); session_write_close();
     $m = []; preg_match('/^semana-(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})/', basename($arq), $m);
     while (ob_get_level()) ob_end_clean();
-    header('Content-Type: application/octet-stream'); header('Content-Length: ' . filesize($arq)); header('Cache-Control: no-store');
+    header('Content-Type: application/octet-stream'); header('Content-Length: ' . filesize($serve)); header('Cache-Control: no-store');
     header('Content-Disposition: attachment; filename="playspace-copia-' . $m[1] . '-' . $m[2] . '-' . $m[3] . '-' . $m[4] . 'h' . $m[5] . '.sqlite"');
-    readfile($arq); exit;
+    readfile($serve); if ($tmp) @unlink($tmp); exit;
   }
   case 'email_resumo': { // 1.56: o relatório do dia por e-mail, nos Ajustes (o mesmo das Finanças → Conta): ver, salvar, mandar agora. Só o gestor
     exigir(['gestor']); require_once __DIR__ . '/../financas/resumo.php'; $op = (string)($in['op'] ?? 'ver');
@@ -258,6 +264,7 @@ switch ($acao) {
       $fixos[$dia] = round((float)$fv, 2);
     }
     ksort($fixos);
+    if ($v > 0 && array_sum($fixos) > $v + 0.004) falha('Os dias fixados somam ' . dinheiro(array_sum($fixos)) . ', mais que a meta do mês (' . dinheiro($v) . '). Diminua algum dia ou aumente a meta.');   /* 1.91 (auditoria) */
     if (array_key_exists('alertas', $in)) {   /* 1.81: os dois alertas (quanto falta para a meta do dia) */
       $al = []; foreach (array_slice(is_array($in['alertas']) ? $in['alertas'] : [], 0, 2) as $a) {
         if ($a === null || $a === '' || (is_numeric($a) && (float)$a == 0)) continue;
@@ -323,6 +330,10 @@ switch ($acao) {
       responder(['id' => $id]);
     }
     $d = textoCriancaBasico($in); conferirCadastro($d);
+    $pcdPor = '';   /* 1.91 (auditoria): a criança PCD paga a metade da recreação: quem não é gestor nem supervisor marca com a senha do gestor */
+    if ($d['pcd'] && !in_array($u['papel'] ?? '', ['gestor', 'supervisor'], true)) { $ps = (string)($in['pcd_senha'] ?? '');
+      if ($ps === '') falha('A criança PCD paga ' . (100 - pcdDesc()) . '% da recreação: marcar o PCD precisa da senha do gestor (ou cadastre sem o PCD e peça ao gestor).', 403);
+      $pcdPor = primeiroNome((string)autorizadorPelaSenha('desconto', $ps, $u)['nome']); }
     if ($d['tel'] === '' && $d['tel2'] !== '') { $d['tel'] = $d['tel2']; $d['tel2'] = ''; }   // só um telefone: ele é o principal (é para onde vão os avisos)
     $horas = 0;   // 1.45 (auditoria): o cadastro não vende mais horas (o caminho antigo, de antes da 0.98, aceitava qualquer valor, até negativo)
     $foto = (string)($in['foto'] ?? ''); if ($foto !== '' && !preg_match('#^data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$#', $foto)) $foto = '';
@@ -334,7 +345,7 @@ switch ($acao) {
     $liberado = ($horas > 0 || regra()['bloqueioAuto'] !== 'sim') ? 1 : 0;
     $db->prepare('INSERT INTO criancas (nome, idade, resp, rel, tel, tel2, doc_tipo, cpf, obs, pacote_min, usado_min, foto, foto_origem, rosto, liberado, criado_em, pcd, nascimento) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?)')->execute([$d['nome'], $d['idade'], $d['resp'], $d['rel'], $d['tel'], $d['tel2'], $d['doc'], $d['cpf'], $d['obs'], $foto, $foto !== '' ? 'celular' : '', $foto !== '' ? 1 : 0, $liberado, agora(), $d['pcd'], $d['nascimento'] !== '' ? $d['nascimento'] : null]);
     $id = (int)$db->lastInsertId(); if ($d['obs'] !== '') $db->prepare('UPDATE criancas SET obs_em = ?, obs_por = ? WHERE id = ?')->execute([agora(), primeiroNome((string)$u['nome']), $id]);
-    if ($d['pcd']) registrar('cad', $id, $d['nome'], 'Cadastrada como criança PCD: ' . pcdDesc() . '% de desconto na recreação · por ' . primeiroNome($u['nome'])); if ($sap) $db->prepare('UPDATE criancas SET sapateira = ? WHERE id = ?')->execute([$sap, $id]); $c = crianca($id);
+    if ($d['pcd']) registrar('cad', $id, $d['nome'], 'Cadastrada como criança PCD: ' . pcdDesc() . '% de desconto na recreação · por ' . primeiroNome($u['nome']) . ($pcdPor !== '' ? ' · liberado por ' . $pcdPor . ' com a senha' : '')); if ($sap) $db->prepare('UPDATE criancas SET sapateira = ? WHERE id = ?')->execute([$sap, $id]); $c = crianca($id);
     gravarCfg('mandar_' . $id, $id); // vai para o iDFace (nome agora, foto quando o aparelho confirmar o cadastro)
     responder(['id' => $id]);
   }
@@ -632,7 +643,7 @@ switch ($acao) {
   }
   case 'vender': { // (das primeiras versões: a tela não usa mais. 1.21: minutos e valor livres, só o gestor)
     $u = exigir(['gestor']); $c = crianca((int)($in['id'] ?? 0)); if (!$c) falha('Criança não encontrada.', 404);
-    $min = isset($in['minutos']) ? max(0, (int)$in['minutos']) : max(0, (int)round((float)($in['horas'] ?? 0) * 60)); $valor = max(0, (float)($in['valor'] ?? 0)); $itens = mb_substr(trim((string)($in['itens'] ?? '')), 0, 80);
+    $min = isset($in['minutos']) ? max(0, (int)$in['minutos']) : max(0, (int)round((float)($in['horas'] ?? 0) * 60)); $valor = round(max(0, (float)($in['valor'] ?? 0)), 2); $itens = mb_substr(trim((string)($in['itens'] ?? '')), 0, 80);
     if ($min <= 0 && $itens === '') falha('O que foi vendido?');
     responder(fazerVenda($c, $min, $valor, (int)$u['id'], $itens));
   }
@@ -692,7 +703,7 @@ switch ($acao) {
       if ((regra()['voucherEntrada'] ?? true) !== false) { // 1.35: o voucher só na entrada (na saída, nunca)
         if ($c['entrou']) falha('O voucher só vale na entrada: ' . $c['nome'] . ' já está no espaço.');
         if (modoManual() && empty($in['entrar'])) falha('O voucher é dado na entrada: marque "Dar entrada agora".'); } }
-    $o = (array)($in['outro'] ?? []); $on = mb_substr(maiusculo((string)($o['n'] ?? '')), 0, 60); if ($on !== '') $linhas[] = ['servico' => $on, 'min' => 0, 'valor' => max(0, (float)($o['v'] ?? 0)), 'itens' => ''];
+    $o = (array)($in['outro'] ?? []); $on = mb_substr(maiusculo((string)($o['n'] ?? '')), 0, 60); if ($on !== '') $linhas[] = ['servico' => $on, 'min' => 0, 'valor' => round(max(0, (float)($o['v'] ?? 0)), 2), 'itens' => ''];   /* 1.91 (auditoria): 2 casas */
     if (!$linhas && !$comVoucher) falha('Escolha o serviço.');
     $vendTela = $festa ? '' : vendedoraDoPedido($in['vendedora'] ?? '');   /* 1.67: quem está vendendo (a tela pede em toda venda de pacote e de produto) */
     $vend = $festa ? '' : (quemAbriu($c) ?: $vendTela);   /* 1.68: com a criança no espaço, a venda é de quem abriu o pedido na entrada */
@@ -1065,7 +1076,7 @@ switch ($acao) {
     if (isset($in['sapateiras'])) { $n = (int)$in['sapateiras']; if ($n < 1 || $n > 200) falha('Quantas sapateiras existem? De 1 a 200.'); $r['sapateiras'] = $n; }
     if (isset($in['pacotes']) && is_array($in['pacotes'])) {
       // um pacote: horas, valor, tipo (com produto, o brinde já no valor; ou seco, só as horas), nome opcional e em até quantas vezes parcela. Pode haver vários do mesmo tempo
-      $ps = []; foreach ($in['pacotes'] as $p) { $h = (int)($p['h'] ?? 0); $v = (float)($p['v'] ?? 0); if ($h <= 0 || $h > 500 || $v < 0) continue;
+      $ps = []; foreach ($in['pacotes'] as $p) { $h = (int)($p['h'] ?? 0); $v = round((float)($p['v'] ?? 0), 2); if ($h <= 0 || $h > 500 || $v < 0) continue;
         $com = mb_substr(maiusculo((string)($p['com'] ?? '')), 0, 60); $x = ['h' => $h, 'v' => $v, 'tipo' => tipoPacote(['tipo' => $p['tipo'] ?? null, 'com' => $com])];
         $nome = mb_substr(maiusculo((string)($p['nome'] ?? '')), 0, 40); if ($nome !== '') $x['nome'] = $nome;   // o nome é opcional: serve para separar pacotes do mesmo tempo
         if ($x['tipo'] === 'produto' && $com !== '') $x['com'] = $com; $parc = (int)($p['parc'] ?? 0); if ($parc > 1 && $parc <= 12) $x['parc'] = $parc;
@@ -1078,7 +1089,7 @@ switch ($acao) {
         $n = mb_substr(maiusculo((string)($s['n'] ?? '')), 0, 40); if ($n === '' || count($ss) >= 30) continue;
         $id = preg_replace('/[^a-z0-9_]/', '', (string)($s['id'] ?? '')); if ($id === '' || isset($ids[$id])) $id = 's' . dechex(crc32($n . '|' . $k . '|' . microtime())); $ids[$id] = 1;
         $modo = ($s['modo'] ?? 'fixo') === 'periodo' ? 'periodo' : 'fixo';
-        $ss[] = ['id' => $id, 'n' => $n, 'v' => max(0, (float)($s['v'] ?? 0)), 'modo' => $modo, 'min' => $modo === 'periodo' ? max(5, min(240, (int)($s['min'] ?? 30))) : 0, 'banco' => $modo === 'periodo' && !empty($s['banco']), 'obs' => mb_substr(maiusculo((string)($s['obs'] ?? '')), 0, 60),
+        $ss[] = ['id' => $id, 'n' => $n, 'v' => round(max(0, (float)($s['v'] ?? 0)), 2), 'modo' => $modo, 'min' => $modo === 'periodo' ? max(5, min(240, (int)($s['min'] ?? 30))) : 0, 'banco' => $modo === 'periodo' && !empty($s['banco']), 'obs' => mb_substr(maiusculo((string)($s['obs'] ?? '')), 0, 60),
           // volta: sai da loja e volta (fica na lista até "Devolveu"). O tempo de brincar nunca; uma tela antiga, que não manda a marca, deixa como estava
           'volta' => !($modo === 'periodo' && !empty($s['banco'])) && (array_key_exists('volta', (array)$s) ? !empty($s['volta']) : ($eraVolta[$id] ?? in_array($id, SERVICOS_QUE_VOLTAM, true))),
           // 1.20: porTempo = o que sai da loja e é cobrado a cada período é vendido por tempo comprado (como até a 1.19), em vez de fechar a conta na devolução. A tela que não manda a marca deixa como estava
@@ -1134,10 +1145,11 @@ switch ($acao) {
     if ($id) {
       $q = $db->prepare('SELECT * FROM unidades WHERE id = ?'); $q->execute([$id]); $antes = $q->fetch(); if (!$antes) falha('Unidade não encontrada.', 404);
       $db->prepare('UPDATE unidades SET nome = ?, ativo = 1, mudou_em = ? WHERE id = ?')->execute([$nome, agora(), $id]);
+      if (uniEhCasaTom($nome) && !uniEhCasaTom((string)$antes['nome'])) $db->prepare('UPDATE unidades SET ct_desde = ? WHERE id = ?')->execute([date('Y-m-d', strtotime('+1 day', agoraTs())), $id]);   /* 1.91: virou Casa Tom agora: vale de amanhã em diante */
       if ($antes['nome'] !== $nome) registrar('cad', null, 'UNIDADES', 'Unidade ' . $antes['nome'] . ' agora é ' . $nome . ' · por ' . primeiroNome((string)$u['nome']));
     } else {
       if ((int)$db->query('SELECT COUNT(*) FROM unidades WHERE ativo = 1')->fetchColumn() >= UNIDADES_MAX) falha('São no máximo ' . UNIDADES_MAX . ' unidades.');
-      $db->prepare('INSERT INTO unidades (nome, criado_em, mudou_em) VALUES (?, ?, ?)')->execute([$nome, agora(), agora()]); $id = (int)$db->lastInsertId();
+      $db->prepare('INSERT INTO unidades (nome, criado_em, mudou_em, ct_desde) VALUES (?, ?, ?, ?)')->execute([$nome, agora(), agora(), uniEhCasaTom($nome) ? date('Y-m-d', strtotime('+1 day', agoraTs())) : null]); $id = (int)$db->lastInsertId();
       registrar('cad', null, 'UNIDADES', 'Nova unidade: ' . $nome . ' · por ' . primeiroNome((string)$u['nome']));
     }
     responder(['id' => $id, 'unidades' => unidades()]);

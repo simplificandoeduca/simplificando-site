@@ -1301,6 +1301,31 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzz. A abertura animada, o "Começar do zero" com as Finanças e a auditoria (1.91)
+
+**A abertura animada.** Pedido do dono (com um vídeo de exemplo): "a abertura com uma animação assim, mas sem demorar para abrir a tela". Ao tocar em Entrar (o servidor confirma a senha), o cartão do login escorrega e some desfocando; o sistema se monta em sequência: o trilho e os ícones da esquerda, o cabeçalho, os blocos do meio e a coluna da direita (no celular, a barra de baixo sobe). A tela principal aparece em menos de 1 s depois do toque; tudo fica pronto em menos de 1,5 s. Acontece uma vez por abertura (trocar de tela não repete). Com "reduzir movimento" no aparelho, ou no modo leve, entra direto, sem animação.
+
+**"Começar do zero" (Ajustes, só o gestor, com a senha).** Pedido do dono: "tirando o sistema de nota, pode zerar todo o sistema"; escolha dele: as Finanças também (o movimento), ficando as regras e os cadastros.
+
+- **Sai:** os cadastros (crianças e responsáveis, com as fotos), as horas compradas, as vendas e os pagamentos, as entradas e saídas, o movimento do dia, os estornos e as trocas de forma de pagamento, e o **movimento das Finanças**: os lançamentos, o controle de caixa (e os relatórios da Rede), os custos das festas, os dias dos freelancers e o fluxo de caixa deles, as planilhas importadas, os comprovantes e o Adiantamento. As marcas das metas batidas também saem (para comemorar de novo).
+- **Fica:** a equipe e as senhas, a regra das horas, os serviços e preços, os pacotes, os produtos, as unidades, a agenda e os ajustes; nas Finanças, os logins, os fornecedores, os freelancers (o cadastro), as regras das comissões e as metas. O **Notas** não é tocado (é outro banco).
+- A prévia mostra quantos lançamentos das Finanças vão sair. O **Desfazer** traz tudo de volta (também as Finanças) enquanto não houver cadastro novo nem lançamento novo nas Finanças.
+- Como fazer no sistema da loja: entrar como gestor → Ajustes → **Começar do zero** → conferir o que sai e o que fica → senha do gestor.
+
+**A auditoria (1.91).** Pedido do dono: "faça uma auditoria completa de todos os processos de pedidos, procura dos bugs e falhas que o operador possa explorar; auditoria em todas as contas feitas pelo sistema, descontos etc". Três revisões separadas (o que a atendente consegue fazer, as contas da venda e as Finanças); cada falha foi reproduzida numa cópia antes de corrigir. Corrigido:
+
+- **O "a receber" não some à meia-noite.** A venda "paga na saída" de uma visita cuja entrada foi cancelada (um produto, por exemplo) ficava a receber só até a meia-noite: no dia seguinte sumia da ficha e da saída. Agora continua a receber desde a última saída da criança (olhando os últimos 60 dias), até ser recebida.
+- **PCD no cadastro novo:** a atendente marcava "Criança PCD" (50% na recreação) sozinha. Agora aparece o campo "Senha do gestor"; sem a senha (ou sem internet) não cadastra como PCD. O gestor e o supervisor marcam direto. A linha do dia diz quem liberou.
+- **A saída "feita sem internet" com a hora inventada:** a hora mandada só vale se nenhum aparelho da mesma unidade falou com o servidor naquela hora (antes valia só o próprio login; com outro login, ou o relógio do computador mudado, passava).
+- **A unidade da venda:** a atendente fica na unidade em que entrou (e na Casa Tom do mesmo lugar), também no servidor. O gestor e o supervisor trocam.
+- **A cópia de segurança:** quem baixa a cópia da semana e não é o dono das Finanças recebe a cópia sem os dados das Finanças.
+- **O estorno de outra unidade:** a venda de outro dia cancelada no aparelho de outra unidade tirava o dinheiro do dia da unidade errada. O estorno guarda a unidade em que o dinheiro entrou.
+- **Casa Tom:** a unidade guarda o dia em que virou Casa Tom; apagar ou renomear não muda mais o passado.
+- **Comissão:** a venda de valor zero (desconto de 100%) não paga mais o bônus fixo.
+- **Contas:** a divisão do desconto da conta do responsável entre as crianças errava 1 centavo em contas exatas (18,42 + 18,39 + 18,39 em vez de 18,40 para cada); os valores digitados (o "outro" da venda, os preços dos pacotes e dos serviços) ficam com 2 casas; na meta do mês, os dias fixados não passam da meta; as datas do Adiantamento e dos freelancers vão de 2000 até um ano para frente.
+
+Conferido e **mantido como está** (era a escolha feita antes): a supervisora libera o "Alterar valor" que ela mesma pediu (1.33); todos veem o mês de cada unidade nas metas (1.87); a diária do freelancer paga a menos conta como paga, com a diferença anotada (1.65); mudar uma regra de comissão vale na hora, para corrigir (para mudar a partir de um dia, a regra tem o "desde" e o "até"). Ficaram de fora, com o motivo: as falhas do leitor de rosto (iDFace), que não está em uso; o convidado de festa que entra fora do horário da festa (anotado para uma próxima versão); o dia só com estorno nas Finanças contra a Rede (raro, conferido à mão).
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzz. A baixa automática e o Adiantamento por unidade (1.90 · Finanças 4.3)
 
 **A baixa automática ("o relógio interno").** Pedido do dono: uma criança ficou marcada no espaço de um dia para o outro (ninguém deu a saída) e a tela mostrava 48 h. A conta da visita já parava na hora em que a loja fecha (Ajustes → "A loja fecha às", no dia da entrada; nunca mais de 12 h), mas o relógio da lista, o "passou" e o saldo de horas da tela continuavam contando.
