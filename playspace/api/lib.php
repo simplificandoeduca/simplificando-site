@@ -414,7 +414,24 @@ function db(): PDO {
 // Unidade removida não some dos registros antigos: fica inativa (some só das escolhas).
 const UNIDADES_DE_FABRICA = ['ANÁLIA FRANCO', 'MORUMBI'];
 const UNIDADES_MAX = 30;
-function unidadePublica(array $u): array { return ['id' => (int)$u['id'], 'nome' => (string)$u['nome'], 'ativo' => !empty($u['ativo'])]; }
+function unidadePublica(array $u): array { return ['id' => (int)$u['id'], 'nome' => (string)$u['nome'], 'ativo' => !empty($u['ativo']), 'criado' => substr((string)($u['criado_em'] ?? ''), 0, 10)]; }   // 1.88: o dia em que foi criada (a Casa Tom: a regra nova vale do dia seguinte)
+/* 1.88: a Casa Tom de cada lugar como unidade (CASA TOM ANÁLIA, CASA TOM MORUMBI). Pedido do dono: "quem está no Morumbi troca entre a
+   unidade Morumbi e a Casa Tom Morumbi; quem está na Anália, entre a Anália e a Casa Tom Anália". Escolhas dele: o que é vendido com o
+   aparelho na Casa Tom é da Casa Tom; com o aparelho no Play, é do Play (até produto); o gestor e o supervisor trocam para qualquer uma.
+   O lugar de uma unidade: o nome sem o "Casa Tom", a primeira palavra (ANÁLIA FRANCO e CASA TOM ANÁLIA são da Anália). A regra nova vale
+   a partir do dia seguinte ao que a Casa Tom do lugar foi criada; antes, o produto vendido no Play era da Casa Tom (como era). */
+function uniNorm(string $n): string { return strtoupper(strtr(mb_strtoupper(trim($n), 'UTF-8'), ['Á' => 'A', 'À' => 'A', 'Â' => 'A', 'Ã' => 'A', 'É' => 'E', 'Ê' => 'E', 'Í' => 'I', 'Ó' => 'O', 'Ô' => 'O', 'Õ' => 'O', 'Ú' => 'U', 'Ç' => 'C'])); }
+function uniEhCasaTom(string $nome): bool { return (bool)preg_match('/CASA\s*TO[MN]\b/', uniNorm($nome)); }
+function uniLocal(string $nome): string { $n = trim((string)preg_replace('/CASA\s*TO[MN]\b/', '', uniNorm($nome))); $p = preg_split('/\s+/', $n); return (string)($p[0] ?? ''); }
+/* os pares: [unidade do Play => ['ct' => a Casa Tom do lugar, 'desde' => o primeiro dia da regra nova]] (só os lugares que têm as duas) */
+function uniCasaTomPares(): array {
+  $L = array_filter(db()->query('SELECT id, nome, criado_em FROM unidades WHERE ativo = 1 ORDER BY id')->fetchAll(), fn($u) => uniLocal((string)$u['nome']) !== ''); $o = [];
+  foreach ($L as $p) { if (uniEhCasaTom((string)$p['nome'])) continue;
+    foreach ($L as $c) if (uniEhCasaTom((string)$c['nome']) && uniLocal((string)$c['nome']) === uniLocal((string)$p['nome'])) {
+      $cr = substr((string)($c['criado_em'] ?? ''), 0, 10); $o[(int)$p['id']] = ['ct' => (int)$c['id'], 'desde' => preg_match('/^\d{4}-\d{2}-\d{2}$/', $cr) ? date('Y-m-d', strtotime($cr . ' +1 day')) : '2000-01-01']; break; } }
+  return $o;
+}
+
 function unidades(): array { return array_map('unidadePublica', db()->query('SELECT * FROM unidades ORDER BY ativo DESC, id')->fetchAll()); }   // as ativas primeiro; as inativas vão junto, para a tela saber o nome das antigas
 function unidadeDoPedido(): ?int {
   if (!array_key_exists('_unidade', $GLOBALS)) {
@@ -1446,52 +1463,136 @@ function pagamentosDesde(string $desde): array {
 // O dia é o de calendário (desde a meia-noite), e não as últimas 24 h de "Hoje na recepção". Faturado = o que foi vendido hoje (já com o
 // desconto); recebido = os pagamentos de hoje, por forma. A unidade é a da venda (o aparelho que vendeu; a recreação avulsa fica com a da
 // entrada); o pagamento vai com a venda dele. Sem unidade (o iDFace, os exemplos, o que é de antes da 1.06) vai à parte (uni 0).
-/* 1.80: a meta do dia. O gestor coloca o valor em Ajustes (config meta_dia; sem valor, desligada). A meta é batida quando o faturado do dia
-   (o mesmo "Faturado hoje" do painel: o vendido desde a meia-noite, já com o desconto, as unidades juntas) chega a ela. A primeira vez que
-   isso é visto no dia fica guardada (config meta_batida: o dia, o valor da meta e a hora da venda que passou dela), e todas as telas
-   comemoram, cada uma uma vez. Quem não é gestor recebe só se foi batida e a que horas (sem o valor e sem o faturado). Mudar o valor da meta
-   no meio do dia vale como meta nova. */
-function metaValor(): float { $v = cfg('meta_dia', 0); return is_numeric($v) && (float)$v > 0 ? round((float)$v, 2) : 0.0; }
-/* 1.81: os dois alertas da meta ("quando faltar R$ 500", "quando faltar R$ 200"; config meta_alertas). Cada um vale quando o faturado do dia
-   chega a meta − alerta; a hora (a da venda que chegou lá) fica guardada em meta_avisos, e as telas mostram "Falta pouco para a meta!". Só
-   os alertas menores que a meta valem. */
-function metaAlertas(float $m): array {
+/* 1.87: as metas do mês, por unidade. Pedido do dono: "pego o faturamento do mês do ano passado, jogo 15, 20, 30%, e dá a meta do mês (por
+   exemplo, Anália Franco 410 mil). Divido pelos dias: no fim de semana o movimento é maior, então a meta é mais alta; durante a semana eu
+   equilibro. Se num dia não bateram, o que passou no outro dia cobre: o que importa é entregar o mês cheio."
+   - O gestor coloca, em Ajustes, a meta do mês de cada unidade (direto, ou o mesmo mês do ano passado + a %). O sistema divide pelos dias:
+     sábado, domingo e feriado valem mais (o peso, 2× um dia de semana se ninguém mudar); o gestor pode fixar o valor de qualquer dia e os
+     outros dias se ajustam sozinhos para a soma continuar sendo a do mês (config metas: { u: { unidade: { 'AAAA-MM': plano } } }).
+   - A meta do dia de cada unidade é batida quando o faturado do dia dela (o vendido desde a meia-noite, já com o desconto, só a unidade)
+     chega à meta daquele dia; a do mês, quando o faturado do mês chega à do mês. Cada uma fica guardada uma vez (uma linha da config por
+     unidade, dia e valor, gravada só por quem chegou primeiro: é também quem manda o aviso para o celular dos gestores).
+   - O saldo do mês: o que a unidade fez até ontem menos as metas dos dias até ontem (na frente ou atrás). O que faltou num dia, o que passou
+     no outro cobre.
+   - Os dois alertas ("quando faltar R$ 500", config meta_alertas) valem para a meta do dia de cada unidade. */
+const META_FERIADOS = ['01-01' => 'Ano-novo', '01-25' => 'Aniversário de SP', '04-21' => 'Tiradentes', '05-01' => 'Dia do Trabalho', '07-09' => 'Revolução de 32',
+  '09-07' => 'Independência', '10-12' => 'N. Sra. Aparecida', '11-02' => 'Finados', '11-15' => 'República', '11-20' => 'Consciência Negra', '12-25' => 'Natal'];
+const META_MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+function metaPascoa(int $a): array {   /* o domingo de Páscoa (o cálculo de Meeus/Jones/Butcher): [mês, dia] */
+  $b = $a % 19; $c = intdiv($a, 100); $d = $a % 100; $e = intdiv($c, 4); $f = $c % 4; $g = intdiv($c + 8, 25); $h = intdiv($c - $g + 1, 3);
+  $i = (19 * $b + $c - $e - $h + 15) % 30; $k = intdiv($d, 4); $l = $d % 4; $m = (32 + 2 * $f + 2 * $k - $i - $l) % 7; $n = intdiv($b + 11 * $i + 22 * $m, 451);
+  return [intdiv($i + $m - 7 * $n + 114, 31), (($i + $m - 7 * $n + 114) % 31) + 1];
+}
+function metaFeriadoNome(string $dia): string {   /* os feriados (nacionais e os de São Paulo): valem como fim de semana */
+  $md = substr($dia, 5, 5); if (isset(META_FERIADOS[$md])) return META_FERIADOS[$md];
+  $a = (int)substr($dia, 0, 4); [$pm, $pd] = metaPascoa($a);
+  foreach ([-48 => 'Carnaval', -47 => 'Carnaval', -2 => 'Sexta-feira Santa', 60 => 'Corpus Christi'] as $o => $nome) if (date('Y-m-d', mktime(12, 0, 0, $pm, $pd + $o, $a)) === $dia) return $nome;
+  return '';
+}
+/* A meta de cada dia do mês. Os dias fixados pelo gestor ficam como estão; o resto da meta do mês (o que os fixos não cobrem) vai para os
+   outros dias pelo peso (dia de semana 1; sábado, domingo e feriado, o peso do fim de semana), em valores redondos de R$ 10 (os restos vão
+   para os dias de fração maior; os centavos, se houver, para o dia de peso maior). A tela faz a mesma conta (metaPlanoDias). */
+function metaPlanoDias(array $p, string $mes): array {
+  $a = (int)substr($mes, 0, 4); $m = (int)substr($mes, 5, 2); $n = (int)date('t', mktime(12, 0, 0, $m, 1, $a));
+  $fds = (int)round(min(5, max(1, (float)($p['fds'] ?? 2))) * 10); $fixos = is_array($p['fixos'] ?? null) ? $p['fixos'] : []; $D = []; $somaF = 0; $W = 0;
+  for ($i = 1; $i <= $n; $i++) {
+    $dia = sprintf('%s-%02d', $mes, $i); $sd = (int)date('w', mktime(12, 0, 0, $m, $i, $a)); $fer = metaFeriadoNome($dia);
+    $f = array_key_exists($dia, $fixos) && is_numeric($fixos[$dia]) && (float)$fixos[$dia] >= 0;
+    $x = ['dia' => $dia, 'sem' => $sd, 'fer' => $fer, 'fixo' => $f, 'w' => ($sd === 0 || $sd === 6 || $fer !== '') ? $fds : 10, 'c' => $f ? (int)round((float)$fixos[$dia] * 100) : 0, 'u' => 0, 'r' => 0];
+    if ($f) $somaF += $x['c']; else $W += $x['w'];
+    $D[] = $x;
+  }
+  $resto = max(0, (int)round((float)($p['valor'] ?? 0) * 100) - $somaF); $U = intdiv($resto, 1000);
+  $auto = array_keys(array_filter($D, fn($x) => !$x['fixo']));
+  if ($auto) {
+    $dist = 0; foreach ($auto as $k) { $D[$k]['u'] = intdiv($U * $D[$k]['w'], $W); $D[$k]['r'] = ($U * $D[$k]['w']) % $W; $dist += $D[$k]['u']; }
+    $ord = $auto; usort($ord, fn($x1, $x2) => ($D[$x2]['r'] <=> $D[$x1]['r']) ?: strcmp($D[$x1]['dia'], $D[$x2]['dia']));
+    foreach (array_slice($ord, 0, $U - $dist) as $k) $D[$k]['u']++;
+    foreach ($auto as $k) $D[$k]['c'] = $D[$k]['u'] * 1000;
+    $sobra = $resto - $U * 1000;
+    if ($sobra) { $mk = $auto[0]; foreach ($auto as $k) if ($D[$k]['w'] > $D[$mk]['w']) $mk = $k; $D[$mk]['c'] += $sobra; }
+  }
+  return array_map(fn($x) => ['dia' => $x['dia'], 'sem' => $x['sem'], 'fer' => $x['fer'], 'fixo' => $x['fixo'], 'v' => round($x['c'] / 100, 2)], $D);
+}
+function metaPlanos(): array { $c = cfg('metas', []); $u = is_array($c) && is_array($c['u'] ?? null) ? $c['u'] : []; ksort($u); return $u; }
+function metaPlano(int $uni, string $mes): ?array { $p = metaPlanos()[$uni][$mes] ?? null; return is_array($p) && (float)($p['valor'] ?? 0) > 0 ? $p : null; }
+function metaAlertasLista(): array {
   $a = cfg('meta_alertas', []); $o = [];
-  foreach (is_array($a) ? $a : [] as $x) if (is_numeric($x) && (float)$x > 0 && (float)$x < $m - 0.004) $o[] = round((float)$x, 2);
+  foreach (is_array($a) ? $a : [] as $x) if (is_numeric($x) && (float)$x > 0) $o[] = round((float)$x, 2);
   $o = array_values(array_unique($o, SORT_REGULAR)); rsort($o); return array_slice($o, 0, 2);
 }
-function metaHoraQuePassou(string $d0, float $alvo): string {   /* a hora da venda que fez o faturado do dia chegar a $alvo */
-  $t = 0.0; $q = db()->prepare('SELECT valor, quando FROM vendas WHERE quando >= ? AND servico != ? ORDER BY quando, id'); $q->execute([$d0, SERV_IMPORTADO]);
+function metaAlertas(float $m): array { return array_values(array_filter(metaAlertasLista(), fn($a) => $a < $m - 0.004)); }   /* os que valem para uma meta (só os menores que ela) */
+function metaMesSeguinte(string $mes): string { return date('Y-m', mktime(12, 0, 0, (int)substr($mes, 5, 2) + 1, 1, (int)substr($mes, 0, 4))); }
+function metaFatMes(string $mes): array {   /* o faturado de cada unidade em cada dia do mês: [unidade][dia] */
+  $q = db()->prepare('SELECT COALESCE(unidade_id, 0) u, substr(quando, 1, 10) d, COALESCE(SUM(valor), 0) v FROM vendas WHERE quando >= ? AND quando < ? AND servico != ? GROUP BY u, d');
+  $q->execute([$mes . '-01 00:00:00', metaMesSeguinte($mes) . '-01 00:00:00', SERV_IMPORTADO]); $o = [];
+  foreach ($q->fetchAll() as $l) $o[(int)$l['u']][(string)$l['d']] = round((float)$l['v'], 2);
+  return $o;
+}
+function metaHoraQuePassou(string $d0, float $alvo, int $uni): string {   /* a hora da venda da unidade que fez o faturado (desde $d0) chegar a $alvo */
+  $t = 0.0; $q = db()->prepare('SELECT valor, quando FROM vendas WHERE quando >= ? AND unidade_id = ? AND servico != ? ORDER BY quando, id'); $q->execute([$d0, $uni, SERV_IMPORTADO]);
   foreach ($q->fetchAll() as $l) { $t = round($t + (float)$l['valor'], 2); if ($t >= $alvo - 0.004) return (string)$l['quando']; }
   return agora();
 }
-/* 1.81: a meta batida também no celular de cada gestor (os avisos do celular, os mesmos dos pedidos). Uma vez por meta: quem marca primeiro
-   (config meta_push, trocada só se ainda não era esta) manda; os outros pedidos que chegarem juntos não mandam de novo */
-function metaAvisarCelular(array $b, float $f): void {
-  try {
-    $k = json_encode($b['dia'] . '|' . number_format((float)$b['valor'], 2, '.', '')); $db = db();
-    $db->prepare("INSERT OR IGNORE INTO config (chave, valor) VALUES ('meta_push', ?)")->execute([json_encode('')]);
-    $q = $db->prepare("UPDATE config SET valor = ? WHERE chave = 'meta_push' AND valor != ?"); $q->execute([$k, $k]); if ($q->rowCount() !== 1) return;
-    require_once __DIR__ . '/push-lib.php'; $b['faturado'] = $f; pushDepois(function () use ($b) { pushMeta($b); });
-  } catch (Throwable $e) { registrarErro('aviso da meta no celular: ' . $e->getMessage()); }
+function metaMarca(string $k, $v): bool { $q = db()->prepare('INSERT OR IGNORE INTO config (chave, valor) VALUES (?, ?)'); $q->execute([$k, json_encode($v, JSON_UNESCAPED_UNICODE)]); return $q->rowCount() === 1; }
+function metaN(float $v): string { return number_format($v, 2, '.', ''); }
+/* a meta batida também no celular de cada gestor (os avisos do celular, os mesmos dos pedidos): só quem marcou primeiro manda */
+function metaAvisarCelular(array $b): void {
+  try { require_once __DIR__ . '/push-lib.php'; pushDepois(function () use ($b) { pushMeta($b); }); } catch (Throwable $e) { registrarErro('aviso da meta no celular: ' . $e->getMessage()); }
+}
+function metaLimpar(string $hoje): void {   /* uma vez por dia: as marcas velhas (mais de 40 dias) e as chaves da meta de antes da 1.87 */
+  if (cfg('meta_limpo') === $hoje) return; gravarCfg('meta_limpo', $hoje); $lim = date('Y-m-d', strtotime($hoje . ' -40 days'));
+  $db = db(); $db->prepare("DELETE FROM config WHERE (chave LIKE 'meta!_bat:%' ESCAPE '!' AND substr(chave, 10, 10) < ?) OR (chave LIKE 'meta!_av:%' ESCAPE '!' AND substr(chave, 9, 10) < ?)")->execute([$lim, $lim]);
+  $db->exec("DELETE FROM config WHERE chave IN ('meta_dia', 'meta_batida', 'meta_avisos', 'meta_push')");
 }
 function metaDoDia(?array $eu): ?array {
-  $m = metaValor(); if ($m <= 0) return null;
-  $db = db(); $hoje = date('Y-m-d'); $d0 = $hoje . ' 00:00:00';
-  $q = $db->prepare('SELECT COALESCE(SUM(valor), 0) FROM vendas WHERE quando >= ? AND servico != ?'); $q->execute([$d0, SERV_IMPORTADO]); $f = round((float)$q->fetchColumn(), 2);
-  $b = cfg('meta_batida', null); $ja = is_array($b) && ($b['dia'] ?? '') === $hoje && abs((float)($b['valor'] ?? 0) - $m) < 0.005 ? $b : null;
-  if (!$ja && $f >= $m - 0.004) { $ja = ['dia' => $hoje, 'em' => metaHoraQuePassou($d0, $m), 'valor' => $m]; gravarCfg('meta_batida', $ja); metaAvisarCelular($ja, $f); }
-  $al = metaAlertas($m); $av = cfg('meta_avisos', null);
-  if (!is_array($av) || ($av['dia'] ?? '') !== $hoje || abs((float)($av['valor'] ?? 0) - $m) >= 0.005 || !is_array($av['a'] ?? null)) $av = ['dia' => $hoje, 'valor' => $m, 'a' => []];
-  $mudou = false; $avisos = [];
-  foreach ($al as $a) { $k = number_format($a, 2, '.', '');
-    if (!isset($av['a'][$k]) && $f >= $m - $a - 0.004) { $av['a'][$k] = metaHoraQuePassou($d0, $m - $a); $mudou = true; }
-    if (isset($av['a'][$k])) $avisos[] = ['falta' => $a, 'em' => (string)$av['a'][$k]]; }
-  if ($mudou) gravarCfg('meta_avisos', $av);
-  $o = ['dia' => $hoje, 'batida' => (bool)$ja, 'em' => $ja ? (string)$ja['em'] : null, 'avisos' => $avisos];
-  if ($avisos && !$ja) $o['resta'] = round($m - $f, 2);   /* quanto falta agora (para o aviso) */
-  if ($eu === null || ($eu['papel'] ?? '') === 'gestor') $o += ['valor' => $m, 'faturado' => $f, 'alertas' => $al];   /* (null: as Finanças) */
+  $hoje = date('Y-m-d'); $mes = substr($hoje, 0, 7); $U = [];
+  foreach (metaPlanos() as $uni => $planos) { $p = is_array($planos) ? ($planos[$mes] ?? null) : null; if (is_array($p) && (float)($p['valor'] ?? 0) > 0) $U[(int)$uni] = $p; }
+  if (!$U) return null;
+  try { metaLimpar($hoje); } catch (Throwable $e) { registrarErro('limpeza da meta: ' . $e->getMessage()); }
+  $F = metaFatMes($mes); $nomes = []; foreach (db()->query('SELECT id, nome FROM unidades')->fetchAll() as $l) $nomes[(int)$l['id']] = (string)$l['nome'];
+  $o = ['dia' => $hoje, 'mes' => $mes, 'unis' => [], 'alertas' => metaAlertasLista()];
+  foreach ($U as $uni => $p) {
+    $meta = 0.0; $ateOntem = 0.0; $fatOntem = 0.0; $restam = 0;
+    foreach (metaPlanoDias($p, $mes) as $d) {
+      if ($d['dia'] < $hoje) { $ateOntem += $d['v']; $fatOntem += $F[$uni][$d['dia']] ?? 0; } else { if ($d['dia'] === $hoje) $meta = (float)$d['v']; $restam++; }
+    }
+    $f = round((float)($F[$uni][$hoje] ?? 0), 2); $fm = round(array_sum($F[$uni] ?? []), 2); $nome = $nomes[$uni] ?? '';
+    $x = ['uni' => $uni, 'nome' => $nome, 'valor' => round($meta, 2), 'faturado' => $f, 'batida' => false, 'em' => null, 'avisos' => []];
+    if ($meta > 0) {
+      $kb = "meta_bat:$hoje:$uni:" . metaN($meta); $b = cfg($kb);
+      if (!is_array($b) && $f >= $meta - 0.004) {
+        $b = ['em' => metaHoraQuePassou($hoje . ' 00:00:00', $meta, $uni), 'valor' => $meta];
+        if (metaMarca($kb, $b)) metaAvisarCelular(['tipo' => 'dia', 'dia' => $hoje, 'uni' => $uni, 'nome' => $nome, 'valor' => $meta, 'em' => $b['em'], 'faturado' => $f]); else $b = cfg($kb);
+      }
+      if (is_array($b)) { $x['batida'] = true; $x['em'] = (string)$b['em']; }
+      foreach (metaAlertas($meta) as $a) {
+        $ka = "meta_av:$hoje:$uni:" . metaN($meta) . ':' . metaN($a); $em = cfg($ka);
+        if ($em === null && $f >= $meta - $a - 0.004) { $em = metaHoraQuePassou($hoje . ' 00:00:00', $meta - $a, $uni); if (!metaMarca($ka, $em)) $em = cfg($ka); }
+        if ($em !== null) $x['avisos'][] = ['falta' => $a, 'em' => (string)$em];
+      }
+      if ($x['avisos'] && !$x['batida']) $x['resta'] = round($meta - $f, 2);   /* quanto falta agora (para o aviso) */
+    }
+    $vm = round((float)$p['valor'], 2); $km = "meta_mes:$mes:$uni:" . metaN($vm); $bm = cfg($km);
+    if (!is_array($bm) && $fm >= $vm - 0.004) {
+      $bm = ['em' => metaHoraQuePassou($mes . '-01 00:00:00', $vm, $uni), 'valor' => $vm];
+      if (metaMarca($km, $bm)) metaAvisarCelular(['tipo' => 'mes', 'mes' => $mes, 'dia' => $hoje, 'uni' => $uni, 'nome' => $nome, 'valor' => $vm, 'em' => $bm['em'], 'faturado' => $fm]); else $bm = cfg($km);
+    }
+    $x['mes'] = ['mes' => $mes, 'valor' => $vm, 'faturado' => $fm, 'meta_ate_ontem' => round($ateOntem, 2), 'fat_ate_ontem' => round($fatOntem, 2), 'saldo' => round($fatOntem - $ateOntem, 2),
+      'batida' => is_array($bm), 'em' => is_array($bm) ? (string)$bm['em'] : null, 'dias_restantes' => $restam];
+    $o['unis'][] = $x;
+  }
   return $o;
+}
+/* o mês de uma unidade (Ajustes e a folha da meta): o plano salvo, a meta e o faturado de cada dia (até hoje) e os alertas */
+function metaMesVer(int $uni, string $mes): array {
+  $p = metaPlano($uni, $mes); $F = metaFatMes($mes)[$uni] ?? []; $hoje = date('Y-m-d');
+  $dias = metaPlanoDias($p ?: ['valor' => 0, 'fds' => 2, 'fixos' => []], $mes);
+  foreach ($dias as &$d) $d['fat'] = $d['dia'] <= $hoje ? round((float)($F[$d['dia']] ?? 0), 2) : null; unset($d);
+  return ['uni' => $uni, 'mes' => $mes, 'plano' => $p, 'dias' => $dias, 'alertas' => metaAlertasLista()];
+}
+function metaPulso(): string {
+  return (string)db()->query("SELECT COALESCE(group_concat(chave || '=' || valor, ';'), '') FROM (SELECT chave, valor FROM config WHERE chave IN ('metas', 'meta_alertas') OR chave LIKE 'meta!_bat:%' ESCAPE '!' OR chave LIKE 'meta!_av:%' ESCAPE '!' OR chave LIKE 'meta!_mes:%' ESCAPE '!' ORDER BY chave)")->fetchColumn();
 }
 function painelDoDia(): array {
   $db = db(); $hoje = date('Y-m-d') . ' 00:00:00'; $o = [];

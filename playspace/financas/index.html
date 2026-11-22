@@ -620,7 +620,7 @@ body.fin-quieto .carregando { opacity: 1 !important; pointer-events: auto !impor
 <script src="comprovantes.js?v=3.0"></script>
 <script src="animacoes.js?v=3.2"></script>
 <script src="menu.js?v=3.2"></script>
-<script src="meta.js?v=3.5"></script>
+<script src="meta.js?v=4.0"></script>
 <script src="vivo.js?v=3.8"></script>
 <script>
 /* Play Space Finanças 1.0: o que é crítico e delicado do negócio, com login próprio. Os números vêm do Play Space (só leitura). */
@@ -771,7 +771,7 @@ function somaUni() {
 /* ---------- o app ---------- */
 /* 2.5 (1.64): a página das Finanças que ficou guardada no aparelho (a aba aberta, o app do celular ou o cache do navegador) se renova
    sozinha quando o servidor já tem outra versão. PS_PAGINA é carimbada pelo tools/build_playspace.py com a versão do Play Space. */
-const PS_PAGINA = '1.86';
+const PS_PAGINA = '1.88';
 const psMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
 function renovarSeVelha(v, naTela) {
   if (!v || !psMaior(v, PS_PAGINA)) return false;
@@ -858,14 +858,28 @@ function desenhar() {
 
 /* ---------- Visão geral ---------- */
 function kpi(rot, val, det, cls) { return `<div class="kpi ${cls || ''}"><div class="rot">${rot}</div><div class="val num">${val}</div>${det ? `<div class="det">${det}</div>` : ''}</div>`; }
-/* 2.7: o centro de custo: em cada unidade, o Play (horas, recreação, festas, carrinhos) e o Casa Tom (os produtos que ela vende) */
-function cartaoCasaTom() { if (!D || !D.grupos) return ''; const U = {};
-  for (const x of D.grupos.filter(naUni)) { const u = +x.u; U[u] = U[u] || { play: 0, casa: 0 }; if (x.g === 'produtos') U[u].casa += x.v; else U[u].play += x.v; }
+/* 2.7: o centro de custo: em cada unidade, o Play (horas, recreação, festas, carrinhos) e o Casa Tom (os produtos que ela vende).
+   4.1 (1.88): com a unidade Casa Tom do lugar (CASA TOM ANÁLIA, CASA TOM MORUMBI), vale a unidade: o que foi vendido na Casa Tom é da Casa
+   Tom; no Play, do Play (até produto). Antes do dia da regra nova (o dia seguinte ao que a Casa Tom foi criada), o produto vendido no Play
+   continua da Casa Tom, como era. Uma linha por lugar. */
+const ctNorm = n => String(n || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
+const ehCasaTomN = u => /CASA\s*TO[MN]\b/.test(ctNorm(nomeUni(u)));
+function cartaoCasaTom() { if (!D || !D.grupos) return ''; const U = {}, P = {}, ctDe = {};
+  for (const x of D.casaTom || []) { P[+x.u] = x; ctDe[+x.ct] = +x.u; }
+  const lugar = u => ctDe[u] != null ? ctDe[u] : u, linha = u => (U[u] = U[u] || { play: 0, casa: 0, so: false });
+  const na = x => UNI === 'todas' || lugar(+x.u) === lugar(+UNI);
+  for (const x of D.grupos.filter(na)) { const u = +x.u;
+    if (ctDe[u] != null) linha(ctDe[u]).casa += x.v;
+    else if (P[u]) linha(u).play += x.v;
+    else if (u && ehCasaTomN(u)) { const l = linha(u); l.casa += x.v; l.so = true; }
+    else if (x.g === 'produtos') linha(u).casa += x.v; else linha(u).play += x.v; }
+  for (const u of Object.keys(P).map(Number)) { const l = U[u], a = l ? Math.min(+P[u].antes || 0, l.play) : 0; if (a > 0.004) { l.play -= a; l.casa += a; } }
   const us = Object.keys(U).map(Number).sort((a, b) => a - b); if (!us.length) return '';
   const tp = us.reduce((t, u) => t + U[u].play, 0), tc = us.reduce((t, u) => t + U[u].casa, 0);
-  return `<div class="cartao"><h2>Play e Casa Tom</h2><p class="expl">O centro de custo de cada unidade: o <b>Play</b> (horas, recreação, festas, carrinhos) e o <b>Casa Tom</b> (os produtos que a unidade vende).</p>
+  const nomeCasa = u => P[u] ? nomeUni(P[u].ct) : U[u].so ? nomeUni(u) : 'Casa Tom ' + nomeUni(u);
+  return `<div class="cartao"><h2>Play e Casa Tom</h2><p class="expl">O centro de custo de cada lugar: o <b>Play</b> e a <b>Casa Tom</b>. Com a unidade Casa Tom do lugar, vale a unidade em que foi vendido (o que foi vendido na Casa Tom é da Casa Tom; no Play, do Play); sem ela, a Casa Tom são os produtos que a unidade vende.</p>
     <div class="rolar"><table><thead><tr><th>Unidade</th><th class="v">Play</th><th class="v">Casa Tom</th><th class="v">Total</th></tr></thead><tbody>
-    ${us.map(u => `<tr><td><span class="uni-dot" style="background:${corUni(u)}"></span>${esc(nomeUni(u))}</td><td class="v">${brl(U[u].play)}</td><td class="v">${U[u].casa > 0.004 || u ? brl(U[u].casa) : '—'}${u ? `<small>Casa Tom ${esc(nomeUni(u))}</small>` : ''}</td><td class="v">${brl(U[u].play + U[u].casa)}</td></tr>`).join('')}
+    ${us.map(u => `<tr><td><span class="uni-dot" style="background:${corUni(u)}"></span>${esc(U[u].so ? nomeUni(u) : nomeUni(u))}</td><td class="v">${U[u].so ? '—' : brl(U[u].play)}</td><td class="v">${U[u].casa > 0.004 || u ? brl(U[u].casa) : '—'}${u ? `<small>${esc(nomeCasa(u))}</small>` : ''}</td><td class="v">${brl(U[u].play + U[u].casa)}</td></tr>`).join('')}
     </tbody><tfoot><tr><td>Total</td><td class="v">${brl(tp)}</td><td class="v">${brl(tc)}</td><td class="v">${brl(tp + tc)}</td></tr></tfoot></table></div></div>`; }
 function telaGeral() { return telaGeral0() + cartaoCasaTom(); }
 function telaGeral0() {

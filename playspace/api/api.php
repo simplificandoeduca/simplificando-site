@@ -239,17 +239,42 @@ switch ($acao) {
       if (!$r['ok']) falha($r['erro'], 502); responder(['email' => finEmailPublico(), 'enviado' => $r]); }
     responder(['email' => finEmailPublico()]);
   }
-  case 'meta_salvar': { /* 1.80: a meta do dia (só o gestor). Vazio ou 0 desliga */
-    $u = exigir(['gestor']); $v = $in['valor'] ?? 0; $v = is_numeric($v) ? round((float)$v, 2) : -1;
-    if ($v < 0 || $v >= 10000000) falha('Escreva o valor da meta, por exemplo 3.000,00.');
-    $al = []; if ($v > 0) foreach (array_slice(is_array($in['alertas'] ?? null) ? $in['alertas'] : [], 0, 2) as $a) {   /* 1.81: os dois alertas (quanto falta) */
-      if ($a === null || $a === '' || (is_numeric($a) && (float)$a == 0)) continue;
-      if (!is_numeric($a) || (float)$a < 0) falha('Escreva o alerta em reais, por exemplo 500,00.');
-      if ((float)$a >= $v - 0.004) falha('O alerta tem que ser menor que a meta: é quanto falta para chegar nela.');
-      $al[] = round((float)$a, 2); }
-    $al = array_values(array_unique($al, SORT_REGULAR)); rsort($al);
-    if ($v > 0) { gravarCfg('meta_dia', $v); if (array_key_exists('alertas', $in)) { if ($al) gravarCfg('meta_alertas', $al); else apagarCfg('meta_alertas'); } } else { apagarCfg('meta_dia'); apagarCfg('meta_alertas'); }
-    responder(['meta' => metaDoDia($u)]);
+  case 'meta_plano': { /* 1.87: a meta do mês de uma unidade (só o gestor): o valor do mês (0 tira), o mesmo mês do ano passado e a % (só para
+       lembrar a conta), o peso do fim de semana e os dias fixados; e os dois alertas (valem para todas as unidades) */
+    $u = exigir(['gestor']); $uni = (int)($in['uni'] ?? 0); $mes = (string)($in['mes'] ?? '');
+    $q = db()->prepare('SELECT id FROM unidades WHERE id = ? AND ativo = 1'); $q->execute([$uni]); if (!$q->fetchColumn()) falha('Escolha a unidade.');
+    if (!preg_match('/^(20\d\d)-(0[1-9]|1[0-2])$/', $mes)) falha('Escolha o mês.');
+    $num = fn($k, $max) => ($in[$k] ?? null) === null || ($in[$k] ?? '') === '' ? null : (is_numeric($in[$k]) && (float)$in[$k] >= 0 && (float)$in[$k] < $max ? round((float)$in[$k], 2) : false);
+    $v = $num('valor', 100000000); if ($v === false) falha('Escreva a meta do mês, por exemplo 410.000,00.'); $v = (float)$v;
+    $base = $num('base', 100000000); if ($base === false) falha('Escreva o faturamento do ano passado em reais.');
+    $pct = $in['pct'] ?? null; $pct = $pct === null || $pct === '' ? null : (is_numeric($pct) && (float)$pct > -100 && (float)$pct <= 1000 ? round((float)$pct, 2) : false); if ($pct === false) falha('Escreva a porcentagem, por exemplo 15.');
+    $fds = $in['fds'] ?? 2; if (!is_numeric($fds) || (float)$fds < 1 || (float)$fds > 5) falha('O peso do fim de semana vai de 1 a 5 (2 = vale o dobro de um dia de semana).'); $fds = round((float)$fds, 1);
+    $fixos = [];
+    foreach (is_array($in['fixos'] ?? null) ? $in['fixos'] : [] as $dia => $fv) {
+      $dia = (string)$dia; if ($fv === null || $fv === '') continue;
+      if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dia) || substr($dia, 0, 7) !== $mes || !checkdate((int)substr($dia, 5, 2), (int)substr($dia, 8, 2), (int)substr($dia, 0, 4))) falha('Um dia fixado não é deste mês.');
+      if (!is_numeric($fv) || (float)$fv < 0 || (float)$fv >= 10000000) falha('A meta de ' . substr($dia, 8, 2) . '/' . substr($dia, 5, 2) . ' tem que ser um valor em reais.');
+      $fixos[$dia] = round((float)$fv, 2);
+    }
+    ksort($fixos);
+    if (array_key_exists('alertas', $in)) {   /* 1.81: os dois alertas (quanto falta para a meta do dia) */
+      $al = []; foreach (array_slice(is_array($in['alertas']) ? $in['alertas'] : [], 0, 2) as $a) {
+        if ($a === null || $a === '' || (is_numeric($a) && (float)$a == 0)) continue;
+        if (!is_numeric($a) || (float)$a < 0 || (float)$a >= 10000000) falha('Escreva o alerta em reais, por exemplo 500,00.');
+        $al[] = round((float)$a, 2); }
+      $al = array_values(array_unique($al, SORT_REGULAR)); rsort($al); if ($al) gravarCfg('meta_alertas', $al); else apagarCfg('meta_alertas');
+    }
+    $c = cfg('metas', []); if (!is_array($c)) $c = []; if (!is_array($c['u'] ?? null)) $c['u'] = [];
+    if ($v > 0) $c['u'][$uni][$mes] = ['valor' => $v, 'base' => $base, 'pct' => $pct, 'fds' => $fds, 'fixos' => (object)$fixos, 'por' => (string)($u['nome'] ?? ''), 'em' => agora()];
+    else { unset($c['u'][$uni][$mes]); if (empty($c['u'][$uni])) unset($c['u'][$uni]); }
+    if (empty($c['u'])) $c['u'] = (object)[];
+    gravarCfg('metas', $c);
+    responder(['meta' => metaDoDia($u), 'mes' => metaMesVer($uni, $mes)]);
+  }
+  case 'meta_mes': { /* 1.87: o mês de uma unidade (o calendário da meta): todos veem; só o gestor muda */
+    exigir(); $uni = (int)($in['uni'] ?? 0); $mes = (string)($in['mes'] ?? '');
+    if (!preg_match('/^(20\d\d)-(0[1-9]|1[0-2])$/', $mes)) falha('Escolha o mês.');
+    session_write_close(); responder(['mes' => metaMesVer($uni, $mes)]);
   }
   case 'pagamento_trocar': { // 1.57: trocar a forma de pagamento; 1.71: a equipe também a qualquer hora, e a forma pode ser dividida (partes)
     $u = exigir(); responder(trocarPagamento($in, $u));
@@ -262,7 +287,7 @@ switch ($acao) {
     $u = exigir(); session_write_close();
     try { copiaSemanal(); } catch (Throwable $e) { registrarErro('cópia da semana: ' . $e->getMessage()); }
     try { require_once __DIR__ . '/../financas/resumo.php'; if (finEmailDevido()) { require_once __DIR__ . '/push-lib.php'; pushDepois(function () { finEmailAuto(); }); } } catch (Throwable $e) { registrarErro('e-mail do resumo do dia: ' . $e->getMessage()); }   // 1.54: o resumo do dia por e-mail, uma vez por dia, quando a loja fecha   // 1.51: a cada 7 dias, a cópia de segurança (antes de qualquer consulta; nunca derruba o pulso)
-    try { if (metaValor() > 0) metaDoDia(null); } catch (Throwable $e) { registrarErro('meta do dia: ' . $e->getMessage()); }   /* 1.81: a meta (e o aviso no celular) também sem esperar uma tela recarregar */
+    try { metaDoDia(null); } catch (Throwable $e) { registrarErro('meta do dia: ' . $e->getMessage()); }   /* 1.81: a meta (e o aviso no celular) também sem esperar uma tela recarregar; 1.87: as metas do mês de cada unidade */
     acertarTodas();   // a cada pulso de qualquer tela aberta: passou da tolerância, nasce a nova cobrança (e o pulso muda, então todas as telas mostram)
     $a = $db->query("SELECT COALESCE(MAX(id), 0) || ':' || COUNT(*) FROM registros")->fetchColumn();
     $b = $db->query("SELECT COALESCE(MAX(id), 0) || ':' || COUNT(*) || ':' || COALESCE(SUM(lida), 0) FROM mensagens")->fetchColumn();
@@ -277,7 +302,7 @@ switch ($acao) {
     $d .= '|' . $db->query("SELECT COALESCE(SUM(status = 'liberado'), 0) || ':' || COALESCE(SUM(status = 'usado'), 0) FROM pedidos WHERE tipo = 'nf'")->fetchColumn();   // 1.23: nota fiscal autorizada ou emitida
     $d .= '|' . festasPulso();   // 1.29: festa marcada, tema ou dia que mudou, criança que entrou na festa
     acertarCupons(); $d .= '|' . pulsoCupons();   // 0.93: o cupom fiscal de cada pagamento (nasceu, foi marcado, ou a venda foi desfeita)
-    responder(['p' => md5("$a|$b|$c|$d|$ap|$lig|" . json_encode(whatsResumo()) . '|' . json_encode(regra()) . '|' . (cfg('exemplo') ? 1 : 0) . '|' . json_encode(pendFora()) . '|' . json_encode(cfg('meta_dia')) . json_encode(cfg('meta_batida')) . json_encode(cfg('meta_alertas')) . json_encode(cfg('meta_avisos')) . '|' . date('Y-m-d')), 'ped' => pedidosDaTela($u), 'av' => avisosDaGestora($u)]);   // 1.25: av = os cancelamentos que a gestora ainda não viu   // 1.23: ped = os pedidos de autorização desta tela (chegam mesmo com uma folha aberta)   // quem saiu de "Falta finalizar" e a virada do dia também mudam a tela
+    responder(['p' => md5("$a|$b|$c|$d|$ap|$lig|" . json_encode(whatsResumo()) . '|' . json_encode(regra()) . '|' . (cfg('exemplo') ? 1 : 0) . '|' . json_encode(pendFora()) . '|' . md5(metaPulso()) . '|' . date('Y-m-d')), 'ped' => pedidosDaTela($u), 'av' => avisosDaGestora($u)]);   // 1.25: av = os cancelamentos que a gestora ainda não viu   // 1.23: ped = os pedidos de autorização desta tela (chegam mesmo com uma folha aberta)   // quem saiu de "Falta finalizar" e a virada do dia também mudam a tela
   }
 
   /* ---------- crianças ---------- */

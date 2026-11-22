@@ -104,11 +104,19 @@ function pushTroca(int $id): array {
   return pushMandar($L, fn($i) => ['t' => 'Troca de pagamento', 'b' => $corpo, 'tag' => 'troca-' . $id, 'url' => './#aprovar']);
 }
 /* 1.81: a meta do dia batida, no celular de cada gestor */
-function pushMeta(array $b): array {
+function pushMeta(array $b): array {   /* 1.81; 1.87: a meta do dia ou a do mês de uma unidade, para cada gestor */
   $L = array_values(array_filter(db()->query('SELECT i.*, u.papel FROM push_inscricoes i JOIN usuarios u ON u.id = i.usuario_id AND u.ativo = 1 ORDER BY i.id')->fetchAll(), fn($i) => (string)$i['papel'] === 'gestor'));
   if (!$L) return ['ok' => 0, 'erro' => 0, 'saiu' => 0];
-  $corpo = 'Meta de ' . dinheiro((float)$b['valor']) . ' batida às ' . substr((string)$b['em'], 11, 5) . ' · faturado hoje ' . dinheiro((float)($b['faturado'] ?? 0)) . '. Parabéns, equipe!';
-  return pushMandar($L, fn($i) => ['t' => 'Meta do dia batida! 🎉', 'b' => $corpo, 'tag' => 'meta-' . (string)$b['dia'], 'url' => './#painel']);
+  $onde = trim((string)($b['nome'] ?? '')); $pre = $onde !== '' ? $onde . ': ' : ''; $em = (string)$b['em'];
+  if (($b['tipo'] ?? 'dia') === 'mes') {
+    $mn = META_MESES[(int)substr((string)$b['mes'], 5, 2) - 1] ?? '';
+    $t = 'Meta do mês batida! 🏆'; $tag = 'meta-mes-' . (string)$b['mes'] . '-' . (int)($b['uni'] ?? 0);
+    $corpo = $pre . 'meta de ' . $mn . ' (' . dinheiro((float)$b['valor']) . ') batida em ' . substr($em, 8, 2) . '/' . substr($em, 5, 2) . ' às ' . substr($em, 11, 5) . ' · faturado no mês ' . dinheiro((float)($b['faturado'] ?? 0)) . '. Parabéns, equipe!';
+  } else {
+    $t = 'Meta do dia batida! 🎉'; $tag = 'meta-' . (string)$b['dia'] . '-' . (int)($b['uni'] ?? 0);
+    $corpo = $pre . 'meta de ' . dinheiro((float)$b['valor']) . ' batida às ' . substr($em, 11, 5) . ' · faturado hoje ' . dinheiro((float)($b['faturado'] ?? 0)) . '. Parabéns, equipe!';
+  }
+  return pushMandar($L, fn($i) => ['t' => $t, 'b' => $corpo, 'tag' => $tag, 'url' => './#painel']);
 }
 // depois de responder à tela: quem pediu não espera os avisos saírem (o PHP fecha a conexão e continua). A sessão é solta antes
 function pushDepois(callable $f): void {

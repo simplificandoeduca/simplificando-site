@@ -1301,6 +1301,26 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzz. A Casa Tom de cada lugar como unidade (1.88 · Finanças 4.1)
+
+Pedido do dono: "quem está no Morumbi pode trocar entre a unidade Morumbi e a Casa Tom Morumbi; quem está na Anália, entre a Anália e a Casa Tom Anália". Escolhas dele: vale a unidade do aparelho (o que é vendido com o aparelho na Casa Tom é da Casa Tom; no Play, do Play, até produto); o gestor e o supervisor trocam para qualquer unidade.
+
+- **Ajustes → Unidades → "Criar CASA TOM ANÁLIA e CASA TOM MORUMBI"** (só o gestor; o botão aparece enquanto faltar a Casa Tom de algum lugar). O lugar de uma unidade é o nome sem o "Casa Tom" (ANÁLIA FRANCO e CASA TOM ANÁLIA são da Anália).
+- **Trocar a unidade do aparelho** (o botão com o nome da unidade, no alto da tela inicial): a atendente troca só entre o Play e a Casa Tom do lugar do aparelho (MORUMBI ↔ CASA TOM MORUMBI); as outras ficam apagadas. O gestor e o supervisor trocam para qualquer uma.
+- **O que é da Casa Tom**: o que for vendido com o aparelho na unidade Casa Tom. Com o aparelho no Play, tudo é do Play, até produto. Isso vale **a partir do dia seguinte** ao que a Casa Tom do lugar foi criada; antes (e nos lugares sem a unidade Casa Tom), a Casa Tom continua sendo os produtos que o Play vende, como era, para o que já passou não mudar.
+- O **Caixa do dia** mostra o centro de custo por lugar ("Play Morumbi · vendido no Play", "Casa Tom Morumbi · vendido na Casa Tom"); as **Finanças → Visão geral → Play e Casa Tom**, uma linha por lugar.
+- **Metas**: cada Casa Tom tem a sua meta do mês em Ajustes → Metas (como as outras unidades). A equipe de um lugar comemora as metas das duas unidades dele (o Play e a Casa Tom).
+
+## 6zzzzzzzzzzzzzzzzzzzz. As metas do mês, por unidade (1.87 · Finanças 4.0)
+
+Pedido do dono: "pego o faturamento do mês do ano passado, jogo 15, 20, 30%, e dá a meta do mês (por exemplo, Anália Franco 410 mil). Divido pelos dias: no fim de semana o movimento é maior, então a meta é mais alta; durante a semana eu equilibro. Se num dia não bateram, o que fizeram a mais no outro dia cobre: o que importa é entregar o mês cheio." Escolhas dele: cada unidade com a sua meta; o sistema sugere a meta de cada dia e ele ajusta; a tela mostra a meta do dia e o saldo do mês, com fogos maiores ao bater a do mês.
+
+- **Ajustes → Metas** (só o gestor): escolha a unidade e o mês (as setas ‹ ›). Escreva o **mesmo mês do ano passado** e a **% a mais** (a meta do mês sai sozinha) ou a **meta do mês** direto. **Sábado, domingo e feriado valem** 2× um dia de semana (dá para mudar, de 1 a 5). O calendário mostra a meta de cada dia, em valores redondos, somando a do mês. Para **fixar** um dia (um feriado forte, um dia fraco), mude o valor dele: os outros dias se ajustam sozinhos; apague o valor e o dia volta a ser automático. Os feriados nacionais e os de São Paulo já vêm marcados (Carnaval, Sexta-feira Santa e Corpus Christi também). Os dois **alertas** ("quando faltar R$ X") valem para a meta do dia de cada unidade. **Salvar**.
+- **No alto de toda tela**, ao lado do relógio: a meta de hoje da unidade daquele aparelho (quanto já foi, em %), e o **saldo do mês** até ontem: "na frente R$ X" ou "atrás R$ X". Um toque abre o mês: hoje, o mês, quanto falta em quantos dias, o que precisa hoje para ficar em dia, e o calendário (verde: bateu a meta do dia; vermelho: não bateu). O aparelho sem unidade escolhida mostra a meta se só uma unidade tiver.
+- **Comemoração**: quando a unidade bate a meta do dia, comemoram as telas dela, as do gestor e as Finanças ("Meta do dia batida!", com o nome da unidade); o aviso vai para o celular dos gestores ("ANÁLIA FRANCO: meta de R$ 16.000 batida às 17:42…"). Quando bate a **meta do mês**, a festa é maior ("Meta do mês batida!") e vai outro aviso para o celular ("Meta do mês batida! 🏆"). Cada tela comemora uma vez.
+- As vendas contam para a unidade em que foram feitas (a do aparelho). O painel do gestor mostra no "Faturado hoje" quanto da meta já foi (a unidade escolhida, ou todas as que têm meta).
+- A meta do dia de antes (um valor só, somando as unidades) saiu: no lugar dela, a meta do mês de cada unidade.
+
 ## 6zzzzzzzzzzzzzzzzzzz. Os ícones novos do celular (1.86 · Finanças 3.9)
 
 O dono escolheu, entre 3 sugestões para cada app: o **Play Space** com o castelo creme sobre o **coral** e as **Finanças** com o cartão do gráfico (barras e a seta subindo) sobre o **amarelo**.

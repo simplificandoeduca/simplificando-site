@@ -154,11 +154,22 @@ function finResumo(array $in): array {
   $somaCx($cx('SELECT COALESCE(p.unidade_id, v.unidade_id, 0) u, substr(p.quando, 1, 10) d, COALESCE(SUM(p.valor), 0) t FROM pagamentos p JOIN vendas v ON v.id = p.venda_id WHERE p.quando >= ? AND p.quando < ? GROUP BY u, d'), 1);
   $somaCx($cx('SELECT COALESCE(unidade_id, 0) u, substr(quando, 1, 10) d, COALESCE(SUM(valor), 0) t FROM estornos WHERE quando >= ? AND quando < ? GROUP BY u, d'), -1);
   $somaCx($cx('SELECT COALESCE(unidade_id, 0) u, substr(pago_em, 1, 10) d, COALESCE(SUM(valor), 0) t FROM estornos WHERE pago_em >= ? AND pago_em < ? GROUP BY u, d'), 1);
+  // 1.88: a Casa Tom de cada lugar (unidade): o produto vendido no Play antes do primeiro dia da regra nova continua da Casa Tom (o de antes não muda)
+  $casaTom = [];
+  foreach (uniCasaTomPares() as $pu => $pa) {
+    $x = ['u' => $pu, 'ct' => $pa['ct'], 'desde' => $pa['desde'], 'antes' => 0.0];
+    if ($ini < $pa['desde'] . ' 00:00:00') {
+      $q = $db->prepare('SELECT servico s, 1 pr, alug a, minutos m, auto au, voucher vo, valor v FROM vendas WHERE quando >= ? AND quando < ? AND unidade_id = ? AND COALESCE(produto_id, 0) > 0 AND servico != ?');
+      $q->execute([$ini, min($fim, $pa['desde'] . ' 00:00:00'), $pu, SERV_IMPORTADO]);
+      foreach ($q->fetchAll() as $r) { [$g, $n] = $cls($r); if ($g !== 'produtos' || !$passa($g, $n) || (float)$r['v'] <= 0.004) continue; $x['antes'] = round($x['antes'] + (float)$r['v'], 2); }
+    }
+    $casaTom[] = $x;
+  }
   ksort($nfDia);
   ksort($uni); $out = []; foreach ($uni as $u => $x) $out[] = ['u' => $u] + $x;
   return ['de' => $de, 'ate' => $ate, 'dias' => $dias, 'gerado' => agora(), 'hoje' => date('Y-m-d'), 'unidades' => unidades(), 'porUnidade' => $out, 'criancasTotal' => $criancasTotal,
     'grupos' => array_values($grupos), 'pacotes' => array_values($pacotes), 'porDia' => $porDia, 'atendentes' => $atend, 'formas' => array_values($formas),
-    'prod' => $prod, 'itens' => array_values($porItem), 'catalogo' => array_values($catalogo),
+    'prod' => $prod, 'itens' => array_values($porItem), 'catalogo' => array_values($catalogo), 'casaTom' => $casaTom,
     'cancelamentos' => ['total' => $cancTotal, 'lista' => $canc, 'atendentes' => array_values($cancAt), 'tipos' => array_values($cancTipo)], 'descontos' => ['total' => $descTotal, 'lista' => $desc, 'quem' => array_values($descQuem)], 'notas' => ['lista' => $nfL, 'dia' => array_values($nfDia)]];
 }
 
