@@ -330,10 +330,6 @@ switch ($acao) {
       responder(['id' => $id]);
     }
     $d = textoCriancaBasico($in); conferirCadastro($d);
-    $pcdPor = '';   /* 1.91 (auditoria): a criança PCD paga a metade da recreação: quem não é gestor nem supervisor marca com a senha do gestor */
-    if ($d['pcd'] && !in_array($u['papel'] ?? '', ['gestor', 'supervisor'], true)) { $ps = (string)($in['pcd_senha'] ?? '');
-      if ($ps === '') falha('A criança PCD paga ' . (100 - pcdDesc()) . '% da recreação: marcar o PCD precisa da senha do gestor (ou cadastre sem o PCD e peça ao gestor).', 403);
-      $pcdPor = primeiroNome((string)autorizadorPelaSenha('desconto', $ps, $u)['nome']); }
     if ($d['tel'] === '' && $d['tel2'] !== '') { $d['tel'] = $d['tel2']; $d['tel2'] = ''; }   // só um telefone: ele é o principal (é para onde vão os avisos)
     $horas = 0;   // 1.45 (auditoria): o cadastro não vende mais horas (o caminho antigo, de antes da 0.98, aceitava qualquer valor, até negativo)
     $foto = (string)($in['foto'] ?? ''); if ($foto !== '' && !preg_match('#^data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$#', $foto)) $foto = '';
@@ -345,7 +341,7 @@ switch ($acao) {
     $liberado = ($horas > 0 || regra()['bloqueioAuto'] !== 'sim') ? 1 : 0;
     $db->prepare('INSERT INTO criancas (nome, idade, resp, rel, tel, tel2, doc_tipo, cpf, obs, pacote_min, usado_min, foto, foto_origem, rosto, liberado, criado_em, pcd, nascimento) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?)')->execute([$d['nome'], $d['idade'], $d['resp'], $d['rel'], $d['tel'], $d['tel2'], $d['doc'], $d['cpf'], $d['obs'], $foto, $foto !== '' ? 'celular' : '', $foto !== '' ? 1 : 0, $liberado, agora(), $d['pcd'], $d['nascimento'] !== '' ? $d['nascimento'] : null]);
     $id = (int)$db->lastInsertId(); if ($d['obs'] !== '') $db->prepare('UPDATE criancas SET obs_em = ?, obs_por = ? WHERE id = ?')->execute([agora(), primeiroNome((string)$u['nome']), $id]);
-    if ($d['pcd']) registrar('cad', $id, $d['nome'], 'Cadastrada como criança PCD: ' . pcdDesc() . '% de desconto na recreação · por ' . primeiroNome($u['nome']) . ($pcdPor !== '' ? ' · liberado por ' . $pcdPor . ' com a senha' : '')); if ($sap) $db->prepare('UPDATE criancas SET sapateira = ? WHERE id = ?')->execute([$sap, $id]); $c = crianca($id);
+    if ($d['pcd']) registrar('cad', $id, $d['nome'], 'Cadastrada como criança PCD: ' . pcdDesc() . '% de desconto na recreação · por ' . primeiroNome($u['nome'])); if ($sap) $db->prepare('UPDATE criancas SET sapateira = ? WHERE id = ?')->execute([$sap, $id]); $c = crianca($id);
     gravarCfg('mandar_' . $id, $id); // vai para o iDFace (nome agora, foto quando o aparelho confirmar o cadastro)
     responder(['id' => $id]);
   }

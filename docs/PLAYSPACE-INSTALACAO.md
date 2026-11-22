@@ -1301,6 +1301,12 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzz. O PCD volta para a atendente (1.92)
+
+Pedido do dono, sobre a 1.91: "pode deixar para a atendente, para o operador mudar para PCD, não tem problema". A senha do gestor que a 1.91 passou a pedir para marcar "Criança PCD" no cadastro novo saiu: a atendente marca direto, como antes. A linha do dia continua dizendo quem marcou ("Cadastrada como criança PCD · por ...").
+
+As horas de pacote, como sempre: o pacote vendido entra no faturamento no dia da venda (com o pagamento); quando a criança usa as horas, o sistema desconta do saldo dela, sem cobrar de novo. Nada disso mudou na 1.91.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzz. A abertura animada, o "Começar do zero" com as Finanças e a auditoria (1.91)
 
 **A abertura animada.** Pedido do dono (com um vídeo de exemplo): "a abertura com uma animação assim, mas sem demorar para abrir a tela". Ao tocar em Entrar (o servidor confirma a senha), o cartão do login escorrega e some desfocando; o sistema se monta em sequência: o trilho e os ícones da esquerda, o cabeçalho, os blocos do meio e a coluna da direita (no celular, a barra de baixo sobe). A tela principal aparece em menos de 1 s depois do toque; tudo fica pronto em menos de 1,5 s. Acontece uma vez por abertura (trocar de tela não repete). Com "reduzir movimento" no aparelho, ou no modo leve, entra direto, sem animação.

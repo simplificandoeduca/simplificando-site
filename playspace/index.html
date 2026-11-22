@@ -1911,7 +1911,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.91';
+const VERSAO = '1.92';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -6455,7 +6455,6 @@ function folhaCrianca(c, d, extra) { // d: um cadastro novo que ficou pela metad
       <div class="dois"><div class="campo"><label for="f-nome">Nome da criança<span class="obg" aria-hidden="true">*</span></label><input id="f-nome" value="${esc(v.nome)}" autocomplete="off"></div>
         ${campoNasc(v.nasc)}</div>
       <label class="marca" id="f-pcd-campo"><input type="checkbox" id="f-pcd"${v.pcd ? ' checked' : ''}><span><b>Criança PCD.</b> Paga ${100 - pcdDesc()}% do valor na recreação avulsa. Pacote e carrinhos não têm desconto.</span></label>
-      ${MODO === 'servidor' && !supervisorOuMais() ? `<div class="campo" id="f-pcd-aut"${v.pcd ? '' : ' hidden'}><label for="f-pcd-s">Senha do gestor <span class="leve">· o desconto PCD precisa da liberação dele</span></label><input id="f-pcd-s" type="password" autocomplete="off"></div>` : ''}
       ${campoObs(v.obs)}
       <button type="button" class="bt tap" id="f-outra" data-act="salvar-outra" data-outra="1" style="align-self:flex-start">${ic(IC.mais, 16)} Salvar e cadastrar outra criança</button>
     </div>
@@ -8028,8 +8027,6 @@ const ACOES = {
     if (!id) { const ja = clientePorDoc(doc, cpf).find(x => x.nome.trim().toLowerCase() === nome.toLowerCase()); if (ja) { toast(`${ja.nome} já tem cadastro com este ${doc === 'rne' ? 'RNE' : 'CPF'}`, () => abrirHistorico(ja.id), 'Ver o histórico'); return; } }
     if (MODO === 'servidor') {
       const dados = id ? { id: +id, nome, idade: +val('f-idade') || 0, nasc: nasc.iso, resp, tel, tel2, doc, cpf, obs, pcd } : { nome, nasc: nasc.iso, resp, tel, tel2, doc, cpf, obs, pcd };
-      if (!id && pcd && !supervisorOuMais()) { const s = ($('#f-pcd-s') || { value: '' }).value; if (!s) { const a = $('#f-pcd-aut'); if (a) a.hidden = false; const i = $('#f-pcd-s'); if (i) i.focus(); toast('Criança PCD: digite a senha do gestor (ou desmarque o PCD)'); return; }   /* 1.91 (auditoria) */
-        if (OFF.on) { toast('Sem internet: o PCD precisa da senha do gestor conferida agora. Cadastre sem o PCD e peça ao gestor para marcar.'); return; } dados.pcd_senha = s; }
       apiOff('crianca_salvar', dados).then(async r => { await carregar(); if (id) renomearRascunho(+id, nome); else cadastroFeito(); fecharFolha(); desenhar();
         if (id) { deuCerto('Cadastro salvo'); return; }
         depoisDoCadastro(r.id, nome, outra, pre, { doc, cpf, resp, tel, tel2 }); }).catch(e => toast(e.message));
@@ -8310,7 +8307,6 @@ document.addEventListener('change', e => {
   const t = e.target; if (t.id === 'pc-parc') { contaPacote(); return; }
   if (t.id === 'sv-banco' || t.id === 'sv-volta') { svContaVer(); return; }   /* 1.20: a escolha de quando a conta fecha aparece ou some com as marcas do serviço */
   if ((t.id === 'rel-de' || t.id === 'rel-ate') && REL) { REL.per = 'datas'; REL.de = ($('#rel-de') || {}).value || ''; REL.ate = ($('#rel-ate') || {}).value || ''; desenharRelatorio(); return; }   /* 1.19: as datas do relatório do cliente */
-  if (t.id === 'f-pcd') { const a = $('#f-pcd-aut'); if (a) { a.hidden = !t.checked; if (t.checked) { const i = $('#f-pcd-s'); if (i) i.focus(); } } return; }   /* 1.91: o PCD pede a senha do gestor */
   if (t.id === 'v-entrar' && CARRINHO) { CARRINHO.entrar = t.checked; atualizarCarrinho(); return; }   /* 1.68: com a entrada, o pedido abre agora (pede quem está atendendo) */
   if (t.dataset && t.dataset.cancVenda && CANCELA) { const id = +t.dataset.cancVenda; if (t.checked) CANCELA.fica.delete(id); else CANCELA.fica.add(id); resumoCancelar(); return; }
   if (t.dataset && t.dataset.imCol && IM) { const k = t.dataset.imCol, v = +t.value; for (const o in IM.col) if (o !== k && v >= 0 && IM.col[o] === v) IM.col[o] = -1; IM.col[k] = v; lerLinhas(); pintarImportar(); return; }   /* 1.01: a coluna de um campo da importação (a mesma coluna não fica em dois campos) */
