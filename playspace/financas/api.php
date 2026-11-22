@@ -20,8 +20,9 @@ require __DIR__ . '/relatorios.php';   /* 2.6: os relatórios do caixa e das fes
 require __DIR__ . '/comissoes.php';   /* 2.8: as comissões das vendedoras */
 require __DIR__ . '/clientes.php';   /* 3.0: o relatório por cliente */
 require __DIR__ . '/comprovantes.php';   /* 3.0: o comprovante das despesas */
+require __DIR__ . '/adiant.php';   /* 4.3: o adiantamento por unidade */
 set_exception_handler(function (Throwable $e) { registrarErro('[financas] ' . $e->getMessage() . ' @' . basename($e->getFile()) . ':' . $e->getLine()); falha('Algo deu errado. Tente de novo em instantes.', 500); });
-const FIN_VERSAO = '4.1';
+const FIN_VERSAO = '4.3';
 
 $in = [];
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
@@ -224,6 +225,9 @@ if ($acao === 'fz_dia_tirar') responder(fzDiaTirar($in, $eu));
 if ($acao === 'vc_listar') responder(vcListar($in));
 if ($acao === 'vc_pdf') { $de_ = vcDia($in['de'] ?? '', date('Y-m-d')); $ate_ = vcDia($in['ate'] ?? '', $de_); pbSaida(vcPdf($in), 'play-space-vendas-por-cliente-' . $de_ . ($ate_ !== $de_ ? '-a-' . $ate_ : '') . '.pdf'); }
 if ($acao === 'fz_valores_salvar') responder(fzValoresSalvar($in, $eu));   /* 3.0: a diária de semana e a de fim de semana */
+if ($acao === 'ad_listar') responder(adListar($in));   /* 4.3: o adiantamento por unidade */
+if ($acao === 'ad_salvar') responder(adSalvar($in, $eu));
+if ($acao === 'ad_tirar') responder(adTirar($in, $eu));
 if ($acao === 'ff_salvar') responder(ffSalvar($in, $eu));   /* 2.9: o fluxo de caixa dos freelancers */
 if ($acao === 'ff_devolver') responder(ffDevolver($in, $eu));
 if ($acao === 'ff_tirar') responder(ffTirar($in, $eu));

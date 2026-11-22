@@ -1301,6 +1301,38 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzz. A baixa automática e o Adiantamento por unidade (1.90 · Finanças 4.3)
+
+**A baixa automática ("o relógio interno").** Pedido do dono: uma criança ficou marcada no espaço de um dia para o outro (ninguém deu a saída) e a tela mostrava 48 h. A conta da visita já parava na hora em que a loja fecha (Ajustes → "A loja fecha às", no dia da entrada; nunca mais de 12 h), mas o relógio da lista, o "passou" e o saldo de horas da tela continuavam contando.
+
+- O relógio, o "passou" e o saldo da tela param na mesma hora da conta. A linha diz "sem saída · contou até 22:00 de 20/11"; a folha da saída explica que nada além disso é cobrado.
+- Virado o dia (e passada a hora em que a loja fecha), a visita **sai sozinha**, contada só até lá, quando não há nada a receber (o pacote cobre o tempo e nada vendido ficou para a saída). Fica na linha do dia: "saída automática: ninguém deu a saída; o tempo contou até 22:00 de 20/11".
+- Com algo a receber (recreação avulsa, tempo além do pacote, produto para pagar na saída), a criança **continua na lista** com o relógio parado, para a equipe dar a saída e receber. A conta é a mesma: só até a loja fechar. O gestor pode corrigir a hora da saída, como antes.
+- Dois aparelhos ao mesmo tempo não dão a baixa duas vezes.
+
+**Finanças → Adiantamento** (logo abaixo de Freelancers). Pedido do dono: "uma aba adiantamento por unidade. No Anália eu coloco 700 e no Morumbi 1500; vou discriminando do que foram esses valores e ele me dá o quanto sobrou".
+
+- Um cartão por unidade: **Sobrou** (grande; em vermelho, "Gastou a mais"), o que veio do mês anterior, o colocado e o gasto no mês.
+- **Colocar valor** (o dinheiro deixado na unidade) e **Lançar gasto** (no que foi usado: a descrição é obrigatória). O que sobra continua para o mês seguinte.
+- Tocar num lançamento muda (fica "mudado", com quem e o que era); "Tirar" é para o lançado por engano (fica guardado quem tirou).
+- Fica à parte: não entra no Painel, nos Lançamentos, no Relatório financeiro nem no Controle de caixa.
+
+## 6zzzzzzzzzzzzzzzzzzzzzzz. O crédito em quantas vezes em todo pagamento (1.89)
+
+Pedido do dono: "quando clica no crédito, tem que aparecer a opção de 1 a 4 vezes; as outras, até 12, só com o gestor liberando; de 1 a 4, liberado por operador". Até a 1.88 isso era só na venda da festa.
+
+- **Onde**: em toda tela de pagamento: a venda (pacote, produto, recreação), a saída (e a saída em conjunto do responsável), a devolução do carrinho e o "Receber" da ficha. Ao tocar em **Crédito**, aparece "Em quantas vezes no crédito?" com **1x a 4x** (qualquer um escolhe) e o "**Mais vezes no crédito (5x a 12x)**".
+- **5x a 12x**: o gestor escolhe direto. A atendente toca em "Pedir ao gestor" (aparece na tela dele, como os outros pedidos) ou "Liberar com a senha" do gestor ali mesmo; o botão de confirmar fica travado ("Peça ao gestor o crédito em 8x") até liberar. A liberação vale uma vez, para aquele cliente (na saída em conjunto, para os irmãos da mesma conta). O pedido diz de onde é ("· venda", "· saída", "· devolução", "· a receber", "· festa").
+- Escolher as vezes não é obrigatório (sem escolher, fica como antes). O limite livre é o mesmo do "em até 4x" da festa.
+- O servidor confere antes de registrar (na saída, antes de dar a saída) e guarda as vezes nas vendas pagas no crédito; o PDF do caixa das Finanças ("em quantas vezes no crédito") passa a contar todas as vendas, não só as festas.
+
+## 6zzzzzzzzzzzzzzzzzzzzzz. As Festas das Finanças arrumadas (1.89 · Finanças 4.2)
+
+Pedido do dono (com a foto da tela): "achando meio jogado as informações; alinhar mais, deixar mais intuitivo, aproveitar mais o espaço".
+
+- A tabela das **Finanças → Festas** passou de 12 para 9 colunas e cabe na tela (antes a última ficava cortada): **Festa** (o nome, o dia e a hora, o selo "falta lançar", a unidade e o tema), **Venda** (quando e quem vendeu, as crianças, a forma de pagamento, sem repetir o valor), **Valor bruto**, os 5 campos de **Você lança** (Buffet, Salgados, Papelaria, Adiantamento, Retornado; todos do mesmo tamanho, num bloco com fundo próprio) e **Lucro real** (com a margem e o gasto do adiantamento embaixo).
+- O "por criança" do buffet fica embaixo do campo sem empurrar a linha. Tudo continua igual no uso: Enter desce para a festa de baixo, o valor é salvo ao sair do campo. No celular, a tabela rola dentro do cartão.
+
 ## 6zzzzzzzzzzzzzzzzzzzzz. A Casa Tom de cada lugar como unidade (1.88 · Finanças 4.1)
 
 Pedido do dono: "quem está no Morumbi pode trocar entre a unidade Morumbi e a Casa Tom Morumbi; quem está na Anália, entre a Anália e a Casa Tom Anália". Escolhas dele: vale a unidade do aparelho (o que é vendido com o aparelho na Casa Tom é da Casa Tom; no Play, do Play, até produto); o gestor e o supervisor trocam para qualquer unidade.

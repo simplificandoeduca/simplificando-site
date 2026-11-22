@@ -75,6 +75,7 @@ function criancaPublica(array $c): array {
 }
 function dados(array $eu): array {
   $db = db(); $hojeMenos = date('Y-m-d') . ' 00:00:00';   // 1.45 (auditoria): "hoje" é o dia, desde a meia-noite (era as últimas 24 h), como o Caixa do dia e o painel
+  try { baixaAutomatica(); } catch (Throwable $e) { registrarErro('baixa automática: ' . $e->getMessage()); }   // 1.90: quem ficou sem saída de um dia para o outro
   acertarTodas();   // quem passou do tempo comprado mais a tolerância já aparece com a nova cobrança
   acertarCupons();   // 0.93: venda desfeita ou cancelada: o cupom fiscal dela acompanha
   $criancas = array_map('criancaPublica', $db->query('SELECT * FROM criancas WHERE ativo = 1 ORDER BY nome')->fetchAll());
@@ -288,6 +289,7 @@ switch ($acao) {
     try { copiaSemanal(); } catch (Throwable $e) { registrarErro('cópia da semana: ' . $e->getMessage()); }
     try { require_once __DIR__ . '/../financas/resumo.php'; if (finEmailDevido()) { require_once __DIR__ . '/push-lib.php'; pushDepois(function () { finEmailAuto(); }); } } catch (Throwable $e) { registrarErro('e-mail do resumo do dia: ' . $e->getMessage()); }   // 1.54: o resumo do dia por e-mail, uma vez por dia, quando a loja fecha   // 1.51: a cada 7 dias, a cópia de segurança (antes de qualquer consulta; nunca derruba o pulso)
     try { metaDoDia(null); } catch (Throwable $e) { registrarErro('meta do dia: ' . $e->getMessage()); }   /* 1.81: a meta (e o aviso no celular) também sem esperar uma tela recarregar; 1.87: as metas do mês de cada unidade */
+    try { baixaAutomatica(); } catch (Throwable $e) { registrarErro('baixa automática: ' . $e->getMessage()); }   // 1.90
     acertarTodas();   // a cada pulso de qualquer tela aberta: passou da tolerância, nasce a nova cobrança (e o pulso muda, então todas as telas mostram)
     $a = $db->query("SELECT COALESCE(MAX(id), 0) || ':' || COUNT(*) FROM registros")->fetchColumn();
     $b = $db->query("SELECT COALESCE(MAX(id), 0) || ':' || COUNT(*) || ':' || COALESCE(SUM(lida), 0) FROM mensagens")->fetchColumn();
@@ -505,6 +507,7 @@ switch ($acao) {
     $av = null; if (!empty($in['avulso']) && $corrige === null) { $av = venderVisitaAvulsa($c, eu() ?: null); if ($av) $c = crianca((int)$c['id']); }
     $pendentes = pendentesDaVisita($c);   // 1.02: o que ficou para pagar na saída (visto antes de dar a saída: depois dela a visita já fechou)
     $ud = eu(); $desc = lerDesconto($in['desconto'] ?? null, $ud ?: [], $c);   // 1.04: o desconto do gestor (conferido antes de dar a saída)
+    $pgS = lerPagamento($in['pagamento'] ?? null); $parcS = $pgS ? lerParcelas($in, $pgS, $us, $c) : PARC_NADA;   // 1.89: em quantas vezes no crédito (conferido antes de dar a saída)
     $r = fazerSaida($c, 'mão', null, $av !== null); $r['pend'] = round(array_sum(array_map(fn($v) => (float)$v['falta'], $pendentes)), 2); if ($av) $r['avulso'] = $av;
     if ($corrige !== null) { $k = corrigirSaida((int)$r['visita'], $corrige, $u, $motivo); $r['corrigida'] = $k; $r['debitado'] = $k['debitado']; $r['atraso'] = atrasoDaVisita((int)$c['id'], (string)$c['entrou'], date('Y-m-d H:i:s', time() + 5)); }
     // 0.90: a forma em que as cobranças por atraso desta visita foram recebidas. Vale só para as que ainda não estavam pagas, até o valor de cada uma
@@ -516,6 +519,7 @@ switch ($acao) {
     if ($pg) {
       $eu2 = eu(); $antesPg = (int)$db->query('SELECT COALESCE(MAX(id), 0) FROM pagamentos')->fetchColumn();
       $pago = gravarPagamento(array_merge(array_map(fn($v) => (int)$v['id'], $pendentes), array_map(fn($l) => (int)$l['id'], $autos)), $pg, (int)$c['id'], $eu2 ? (int)$eu2['id'] : null);   // primeiro o que ficou a pagar, depois as cobranças por atraso
+      anotarParcelas($antesPg, $parcS, $eu2 ?: $us, (int)$c['id']);   // 1.89
       if ($pago) { $r['pag_de'] = $antesPg; $db->prepare('UPDATE visitas SET pag_de = ? WHERE id = ?')->execute([$antesPg, (int)$r['visita']]);   // (para o Desfazer da saída tirar o que foi recebido nela; 1.21: a visita guarda, para o servidor saber que esta saída recebeu)
         if ($r['pend'] > 0) $r['pag_registro'] = registrar('pag', (int)$c['id'], $c['nome'], 'Pagamento na saída · ' . dinheiro((float)array_sum($pago)) . ' · ' . textoPagamento($pago)); }
       if ($pago) $r['cupom'] = criarCupom($c, 'saida', $antesPg, $eu2);   // 0.93: o cupom fiscal do que foi recebido na saída
@@ -713,9 +717,8 @@ switch ($acao) {
       foreach ($linhas as $l) if ((float)$l['valor'] > 0.004 && empty($l['mais']['alug'])) { $soVolta = false; break; }
       if (!$naSaida && !$soVolta) falha('Escolha a forma de pagamento. Sem a criança no espaço, só ' . quemEstorna() . ' deixa uma venda a receber.', 403);
     }
-    /* 1.65: o crédito da festa até 4x é livre; de 5x a 12x, só o gestor (ou com a liberação dele, pedida antes) */
-    $parc = (int)($in['parcelas'] ?? 0); $parcAut = null;
-    if ($festa && $pg && isset($pg['credito']) && $parc > parcLivre() && $parc <= 12 && ($u['papel'] ?? '') !== 'gestor') $parcAut = autorizacaoDeParcelas((int)($in['parc_ped'] ?? 0), $u, $c, $parc);
+    /* 1.65: o crédito até 4x é livre; de 5x a 12x, só o gestor (ou com a liberação dele, pedida antes). 1.89: em toda venda, não só na festa */
+    $parc = $pg ? lerParcelas($in, $pg, $u, $c) : PARC_NADA;
     $vendas = []; $regs = []; $total = 0; $min = 0;
     foreach ($linhas as $l) { $mais = $l['mais'] ?? []; if (!empty($mais['mesmaLinha']) && $regs) $mais['registro'] = (int)end($regs);   // 1.22: o 2º fusquinha da mesma saída fica na linha do dia do primeiro
       $x = fazerVenda($c, $l['min'], $l['valor'], (int)$u['id'], $l['itens'], $l['servico'], false, '', $mais); $vendas[] = $x['venda']; $regs[] = $x['registro']; $total += $l['valor']; $min += $l['min']; $c = crianca((int)$c['id']); }
@@ -725,7 +728,7 @@ switch ($acao) {
     foreach ($linhas as $i => $l) if (!empty($l['ck']) || $vend !== '') $qk->execute([(string)($l['ck'] ?? ''), $vend, (int)$vendas[0], (int)$vendas[$i]]);
     $festaId = $festa ? gravarFesta($linhas, $vendas, $u) : 0;   // 1.29: a festa nova nasce; o upgrade e o adicional ficam com a festa deles
     /* 1.62: em quantas vezes a festa foi no crédito (as Finanças mostram) */
-    if ($festa && $pg && isset($pg['credito']) && $parc >= 1 && $parc <= 12) { $db->prepare('UPDATE vendas SET parcelas = ? WHERE id IN (' . implode(',', array_map('intval', $vendas)) . ')')->execute([$parc]); if ($parcAut) usarParcelas($parcAut, (int)$vendas[0], $parc, $u); }
+    if ($festa && $parc['n']) $db->prepare('UPDATE vendas SET parcelas = ? WHERE id IN (' . implode(',', array_map('intval', $vendas)) . ')')->execute([$parc['n']]);   // (a festa toda: as Finanças mostram por festa)
     $ad = [];   // 1.04: o desconto sai das vendas desta venda, em proporção ao valor de cada uma
     if ($desc && $cheio > 0) { $faltas = []; foreach ($linhas as $i => $l) if (!isset($devIdx[$i])) $faltas[$vendas[$i]] = (float)$l['valor'];   /* 1.47: o desconto não mexe no carrinho que fica para a devolução */ $ad = aplicarDesconto($desc, $faltas, $c, $u); if ($ad) { $regs[] = $ad['registro']; $total = round($total - $ad['valor'], 2); usarAutorizacao($desc, (float)$ad['valor']); } }
     $vinfo = null;   // o voucher entra por último: com cobrança por atraso a receber, ele cobre essa cobrança em vez de somar tempo
@@ -733,6 +736,7 @@ switch ($acao) {
     if ($pg && $aPagar > 0) { // fica anotado em cada venda e numa linha do dia ("Pagamento · R$ 680 · Pix R$ 200 + Dinheiro R$ 480")
       $antesPg = (int)$db->query('SELECT COALESCE(MAX(id), 0) FROM pagamentos')->fetchColumn();
       $pago = gravarPagamento($devIdx ? array_values(array_filter($vendas, fn($v, $i) => !isset($devIdx[$i]), ARRAY_FILTER_USE_BOTH)) : $vendas, $pg, (int)$c['id'], (int)$u['id']);   // 1.47: sem o carrinho, que fica para a devolução
+      anotarParcelas($antesPg, $parc, $u, (int)$c['id']);   // 1.89
       $regs[] = registrar('pag', (int)$c['id'], $c['nome'], 'Pagamento · ' . dinheiro($aPagar) . ' · ' . textoPagamento($pago ?: $pg));
       $cupomId = criarCupom($c, 'venda', $antesPg, $u);   // 0.93: o cupom fiscal deste pagamento, a emitir (0 = módulo desligado)
     }
@@ -812,7 +816,8 @@ switch ($acao) {
       responder();
     }
     if (!empty($in['cancelar'])) { lerAtendente($in, $u); responder(cancelarAluguel($c, (string)($in['s'] ?? ''), $u, mb_substr(maiusculo((string)($in['motivo'] ?? '')), 0, 300))); }   // 1.25: com o nome da atendente   // 1.20: saiu por engano, ou o cliente desistiu: sem cobrar, no prazo, com o motivo
-    responder(devolverAluguel($c, (string)($in['s'] ?? ''), $u, lerPagamento($in['pagamento'] ?? null), isset($in['quantos']) ? (int)$in['quantos'] : null));   // 1.22: quantos voltaram agora (dos que saíram juntos)
+    $pgD = lerPagamento($in['pagamento'] ?? null); $parcD = $pgD ? lerParcelas($in, $pgD, $u, $c) : PARC_NADA; $antesD = (int)$db->query('SELECT COALESCE(MAX(id), 0) FROM pagamentos')->fetchColumn();   // 1.89
+    $rD = devolverAluguel($c, (string)($in['s'] ?? ''), $u, $pgD, isset($in['quantos']) ? (int)$in['quantos'] : null); anotarParcelas($antesD, $parcD, $u, (int)$c['id']); responder($rD);   // 1.22: quantos voltaram agora (dos que saíram juntos)
   }
   case 'receber_previa': { // 1.02: o que há para receber desta criança agora: o que ficou a pagar e as cobranças por atraso
     exigir(); $c = crianca((int)($in['id'] ?? 0)); if (!$c || !$c['ativo']) falha('Criança não encontrada.', 404);
@@ -836,10 +841,10 @@ switch ($acao) {
       foreach ($q->fetchAll() as $l) { $ids[] = (int)$l['id']; $total += (float)$l['valor']; }
     }
     $total = round($total, 2); if ($total <= 0) falha('Não há nada a receber de ' . $c['nome'] . ' agora.', 409);
-    $pg = lerPagamento($in['pagamento'] ?? null); if (!$pg) falha('Escolha a forma de pagamento.');
+    $pg = lerPagamento($in['pagamento'] ?? null); if (!$pg) falha('Escolha a forma de pagamento.'); $parcR = lerParcelas($in, $pg, $u, $c);   // 1.89
     if (abs(array_sum($pg) - $total) >= 0.01) falha('O valor a receber mudou para ' . dinheiro($total) . '. Feche e abra de novo.', 409);
     $antesPg = (int)$db->query('SELECT COALESCE(MAX(id), 0) FROM pagamentos')->fetchColumn();
-    $pago = gravarPagamento($ids, $pg, (int)$c['id'], (int)$u['id']);
+    $pago = gravarPagamento($ids, $pg, (int)$c['id'], (int)$u['id']); anotarParcelas($antesPg, $parcR, $u, (int)$c['id']);   // 1.89
     $reg = registrar('pag', (int)$c['id'], $c['nome'], 'Pagamento · ' . dinheiro($total) . ' · ' . textoPagamento($pago ?: $pg));
     responder(['valor' => $total, 'pago' => textoPagamento($pago ?: $pg), 'registro' => $reg, 'pag_de' => $antesPg, 'cupom' => criarCupom($c, 'venda', $antesPg, $u)]);
   }

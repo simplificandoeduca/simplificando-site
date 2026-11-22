@@ -54,36 +54,43 @@ function fsKpis(L) {
     ${kpi('Custos', brl(custos), 'buffet, salgados, papelaria e o gasto do adiantamento')}
     ${kpi('Lucro real', brl(lucro), bruto > 0.004 ? `margem de ${(lucro / bruto * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%` : '', lucro < -0.004 ? 'alerta' : 'lucro')}`;
 }
+/* 4.2 (1.89): a tabela arrumada: 9 colunas que cabem na tela (antes eram 12 e a última ficava cortada). A festa (nome, dia e hora, unidade
+   e tema), a venda (a data, quem vendeu, as crianças e a forma de pagamento, sem repetir o valor), o valor bruto, os 5 campos que o dono
+   lança (um bloco com fundo próprio, todos iguais) e o lucro real (com a margem e o gasto do adiantamento embaixo). */
+const fsMargem = (lucro, bruto) => bruto > 0.004 ? 'margem de ' + (lucro / bruto * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '%' : '';
 function fsCorpo() {
   const L = fsLinhas();
   if (!FS.d.festas.length) return `<div class="grade fs-kpis" id="fs-kpis">${fsKpis([])}</div><div class="cartao"><div class="vazio">Nenhuma festa em ${esc(fsMesNome(FS.mes).toLowerCase())}.</div></div>`;
-  const mao = (f, k, ph) => `<input class="fs-in num" data-fsc="${k}" inputmode="decimal" autocomplete="off" placeholder="${ph || '—'}" value="${esc(cxFmt(f[k]))}" aria-label="${esc(FS_MAO.find(x => x[0] === k)[1])} · festa de ${esc(f.aniv)}">`;
+  const mao = (f, k, ph) => `<input class="fs-in num" data-fsc="${k}" inputmode="decimal" autocomplete="off" placeholder="${ph || '0,00'}" value="${esc(cxFmt(f[k]))}" aria-label="${esc(FS_MAO.find(x => x[0] === k)[1])} · festa de ${esc(f.aniv)}">`;
+  const varias = UNIS.filter(u => u.ativo).length > 1;
   const linha = f => { const x = new Date(f.data + 'T12:00:00'), kids = f.contratadas + f.extra, c = fsConta(f);
     const credito = f.formas.some(p => p.f === 'credito');
     const vezes = credito ? (f.parcSis ? `<span class="fs-vezes">${f.parcSis}x</span>` : `<select class="fs-vz" data-fsc="parcelas" aria-label="Em quantas vezes no crédito · festa de ${esc(f.aniv)}" title="Em quantas vezes foi no crédito (a venda não disse)"><option value="">?x</option>${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(n => `<option value="${n}" ${f.parcelas === n ? 'selected' : ''}>${n}x</option>`).join('')}</select>`) : '';
+    const pag = f.formas.length ? f.formas.map(p => `<span class="fs-forma">${esc(p.nome)}${p.f === 'credito' ? ' ' + vezes : ''}${f.formas.length > 1 ? ` <span class="num">${brl(p.v)}</span>` : ''}</span>`).join('') : '<span class="fs-forma vazia">sem pagamento</span>';
     return `<tr data-fs="${f.id}" class="${f.cancelada ? 'fs-canc' : ''}">
-      <td class="fs-fixa"><b>${esc(f.aniv || 'Festa')}</b><small>${FS_SEM[x.getDay()]} ${dataBR(f.data).slice(0, 5)}${f.hora ? ' · ' + esc(f.hora) : ''}${UNIS.filter(u => u.ativo).length > 1 ? ` · <i class="uni-dot" style="background:${corUni(f.u)}"></i>${esc(nomeUni(f.u))}` : ''}</small>${f.tema ? `<small>${esc(f.tema)}</small>` : ''}${f.cancelada ? '<span class="selo ruim">venda cancelada</span>' : f.falta ? '<span class="selo aviso">falta lançar</span>' : ''}</td>
-      <td class="q">${f.venda ? `${dataBR(f.venda).slice(0, 5)} <span class="sub">${esc(f.vendaHora)}</span><small>por ${esc(f.vendedora)}</small>` : '—'}</td>
-      <td class="v">${kids ? `${int(kids)}${f.extra ? `<small>${int(f.contratadas)} + ${int(f.extra)} ${f.extra === 1 ? 'adicional' : 'adicionais'}</small>` : ''}<small>vieram ${int(f.vieram)}</small>` : '—'}</td>
+      <td class="fs-fixa"><div class="fs-nome"><b>${esc(f.aniv || 'Festa')}</b></div>
+        <small class="fs-dia">${FS_SEM[x.getDay()]} ${dataBR(f.data).slice(0, 5)}${f.hora ? ' · ' + esc(f.hora) : ''}${f.cancelada ? ' <span class="selo ruim">venda cancelada</span>' : f.falta ? ' <span class="selo aviso">falta lançar</span>' : ''}</small>
+        <small>${varias ? `<i class="uni-dot" style="background:${corUni(f.u)}"></i>${esc(nomeUni(f.u))}` : ''}${f.tema ? `${varias ? ' · ' : ''}<em>${esc(f.tema)}</em>` : ''}</small></td>
+      <td class="fs-venda">${f.venda ? `<small>vendida ${dataBR(f.venda).slice(0, 5)} por <b>${esc(f.vendedora)}</b></small>` : '<small>—</small>'}
+        <small>${kids ? `${int(kids)} ${kids === 1 ? 'criança' : 'crianças'}${f.extra ? ` (${int(f.contratadas)} + ${int(f.extra)})` : ''} · vieram ${int(f.vieram)}` : 'sem crianças'}</small><div class="fs-pags">${pag}</div></td>
       <td class="v fs-bruto"><b>${brl(f.bruto)}</b>${f.bruto - f.pago > 0.004 ? `<small class="fs-aberto">a receber ${brl(f.bruto - f.pago)}</small>` : ''}</td>
-      <td class="fs-pag">${f.formas.length ? f.formas.map(p => `<span class="fs-forma"><b>${esc(p.nome)}</b>${p.f === 'credito' ? vezes : ''}<span class="num">${brl(p.v)}</span></span>`).join('') : '<span class="sub">—</span>'}</td>
-      <td class="fs-m">${mao(f, 'buffet')}<small class="fs-porc" data-fsporc>${kids && +f.buffet > 0 ? brl(f.buffet / kids) + ' por criança' : ''}</small></td>
+      <td class="fs-m">${mao(f, 'buffet')}<small class="fs-porc" data-fsporc>${kids && +f.buffet > 0 ? brl(f.buffet / kids) + '/criança' : ''}</small></td>
       <td class="fs-m">${mao(f, 'salgados')}</td><td class="fs-m">${mao(f, 'papelaria')}</td>
-      <td class="fs-m">${mao(f, 'adiant', 'ex.: 500')}</td><td class="fs-m">${mao(f, 'retornado')}</td>
-      <td class="v fs-gasto" data-fsgasto>${brl(c.gasto)}</td>
-      <td class="v fs-lucro ${c.lucro < -0.004 ? 'neg' : ''}" data-fslucro><b>${brl(c.lucro)}</b></td></tr>`; };
+      <td class="fs-m">${mao(f, 'adiant', 'ex.: 500')}</td><td class="fs-m fs-m-fim">${mao(f, 'retornado')}</td>
+      <td class="v fs-lucro ${c.lucro < -0.004 ? 'neg' : ''}"><b data-fslucro class="${c.lucro < -0.004 ? 'neg' : ''}">${brl(c.lucro)}</b><small data-fsmarg>${fsMargem(c.lucro, +f.bruto || 0)}</small><small class="fs-gasto">gasto do adiant. <span data-fsgasto>${brl(c.gasto)}</span></small></td></tr>`; };
   return `<div class="grade fs-kpis" id="fs-kpis">${fsKpis(L)}</div>
     <section class="cartao fs-cartao"><div class="rolar fs-rolar"><table class="fs-tab">
-      <thead><tr class="fs-grupos"><th class="fs-fixa"></th><th colspan="4" class="fs-g-sis">Do sistema</th><th colspan="5" class="fs-g-mao">Você lança</th><th colspan="2" class="fs-g-res">Resultado</th></tr>
-        <tr><th class="fs-fixa">Festa</th><th>Venda</th><th class="v">Crianças</th><th class="v">Valor bruto</th><th>Pagamento</th>${FS_MAO.map(([, n]) => `<th class="v fs-m-th">${n}</th>`).join('')}<th class="v">Gasto do adiant.</th><th class="v">Lucro real</th></tr></thead>
-      <tbody>${L.length ? L.map(linha).join('') : '<tr><td colspan="12"><div class="vazio">Nenhuma festa com essa busca.</div></td></tr>'}</tbody>
+      <colgroup><col class="fs-c-festa"><col class="fs-c-venda"><col class="fs-c-bruto">${FS_MAO.map(() => '<col class="fs-c-m">').join('')}<col class="fs-c-lucro"></colgroup>
+      <thead><tr class="fs-grupos"><th class="fs-fixa"></th><th colspan="2" class="fs-g-sis">Do sistema</th><th colspan="5" class="fs-g-mao">Você lança</th><th class="fs-g-res">Resultado</th></tr>
+        <tr><th class="fs-fixa">Festa</th><th>Venda</th><th class="v">Valor bruto</th>${FS_MAO.map(([, n], k) => `<th class="v fs-m-th${k === FS_MAO.length - 1 ? ' fs-m-fim' : ''}">${n}</th>`).join('')}<th class="v fs-lucro-th">Lucro real</th></tr></thead>
+      <tbody>${L.length ? L.map(linha).join('') : '<tr><td colspan="9"><div class="vazio">Nenhuma festa com essa busca.</div></td></tr>'}</tbody>
       <tfoot id="fs-tot">${fsTotal(L)}</tfoot></table></div>
       <p class="fs-expl"><b>Lucro real</b> = valor bruto − buffet − salgados − papelaria − gasto do adiantamento (adiantamento − retornado). Enter desce para a festa de baixo; o valor fica salvo ao sair do campo.</p></section>`;
 }
 function fsTotal(L) {
-  const s = k => Math.round(L.reduce((t, f) => t + (k === 'gasto' || k === 'lucro' ? fsConta(f)[k] : +f[k] || 0), 0) * 100) / 100;
-  return `<tr><td class="fs-fixa">Total · ${int(L.length)} ${L.length === 1 ? 'festa' : 'festas'}</td><td></td><td class="v">${int(L.reduce((t, f) => t + f.contratadas + f.extra, 0))}</td><td class="v">${brl(s('bruto'))}</td><td></td>
-    ${FS_MAO.map(([k]) => `<td class="v">${brl(s(k))}</td>`).join('')}<td class="v">${brl(s('gasto'))}</td><td class="v fs-lucro ${s('lucro') < -0.004 ? 'neg' : ''}">${brl(s('lucro'))}</td></tr>`;
+  const s = k => Math.round(L.reduce((t, f) => t + (k === 'gasto' || k === 'lucro' ? fsConta(f)[k] : +f[k] || 0), 0) * 100) / 100, kids = L.reduce((t, f) => t + f.contratadas + f.extra, 0);
+  return `<tr><td class="fs-fixa">Total · ${int(L.length)} ${L.length === 1 ? 'festa' : 'festas'}</td><td><small>${int(kids)} ${kids === 1 ? 'criança' : 'crianças'}</small></td><td class="v">${brl(s('bruto'))}</td>
+    ${FS_MAO.map(([k], i) => `<td class="v fs-m${i === FS_MAO.length - 1 ? ' fs-m-fim' : ''}">${brl(s(k))}</td>`).join('')}<td class="v fs-lucro ${s('lucro') < -0.004 ? 'neg' : ''}"><b>${brl(s('lucro'))}</b><small>${fsMargem(s('lucro'), s('bruto'))}</small></td></tr>`;
 }
 /* a linha, o total e os números de cima, com o que está digitado */
 function fsPinta(tr) {
@@ -93,8 +100,9 @@ function fsPinta(tr) {
   const x = { ...f, ...v }, c = fsConta(x), kids = f.contratadas + f.extra;
   const re = $('input[data-fsc="retornado"]', tr); if (re && (+x.retornado || 0) > (+x.adiant || 0) + 0.004) { re.classList.add('cx-ruim'); re.title = 'O retornado passa do adiantamento'; } else if (re) re.title = '';
   $('[data-fsgasto]', tr).textContent = brl(c.gasto);
-  const lc = $('[data-fslucro]', tr); lc.innerHTML = `<b>${brl(c.lucro)}</b>`; lc.classList.toggle('neg', c.lucro < -0.004);
-  const pc = $('[data-fsporc]', tr); if (pc) pc.textContent = kids && +x.buffet > 0 ? brl(x.buffet / kids) + ' por criança' : '';
+  const lc = $('[data-fslucro]', tr), neg = c.lucro < -0.004; lc.textContent = brl(c.lucro); lc.classList.toggle('neg', neg); lc.closest('td').classList.toggle('neg', neg);
+  const mg = $('[data-fsmarg]', tr); if (mg) mg.textContent = fsMargem(c.lucro, +x.bruto || 0);
+  const pc = $('[data-fsporc]', tr); if (pc) pc.textContent = kids && +x.buffet > 0 ? brl(x.buffet / kids) + '/criança' : '';
   const L = fsLinhas().map(y => y.id === f.id ? x : y);
   $('#fs-tot').innerHTML = fsTotal(L); $('#fs-kpis').innerHTML = fsKpis(L);
   return ruim;
@@ -131,7 +139,7 @@ async function fsGuardar(tr, el) {
     const r = await api('fs_salvar', { id, campo, valor });
     const novo = r.festa; if (novo) { const i = FS.d.festas.findIndex(x => x.id === id); if (i >= 0) FS.d.festas[i] = novo; }
     fsPinta(tr);
-    const sel = $('.fs-fixa .selo.aviso', tr); if (sel && novo && !novo.falta) sel.remove();
+    const sel = $('.fs-fixa .selo.aviso', tr); if (sel && novo && !novo.falta) sel.remove();   /* (4.2: o selo fica ao lado do nome) */
     tr.classList.remove('fs-salvando'); tr.classList.add('fs-salvo'); setTimeout(() => tr.classList.remove('fs-salvo'), 900);
   } catch (e) {
     tr.classList.remove('fs-salvando'); aviso(e.message);

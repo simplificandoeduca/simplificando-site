@@ -544,11 +544,14 @@ function pcdDesc(): int { return max(0, min(100, (int)(regra()['pcdDesc'] ?? 50)
 function precoPcd(array $c, float $v): float { return !empty($c['pcd']) ? intdiv((int)round($v * 100) * (100 - pcdDesc()) + 50, 100) / 100 : $v; }   // 1.31: em centavos inteiros, a mesma conta da tela
 // quantos minutos a visita conta até $fim: no máximo até a hora em que a loja fecha (no dia da entrada) e nunca mais de 12 h.
 // Assim uma saída esquecida não vira cobrança a noite toda (a supervisão corrige a hora da saída depois).
-function minutosDaVisita(array $c, int $fim): float {
+function tetoDaVisita(array $c): int {   // 1.90: a hora em que a conta da visita para (o "relógio interno")
   $ent = strtotime((string)$c['entrou']); $f = (int)(regra()['fecha'] ?? 22); $teto = $ent + 43200;
   $fecha = strtotime(date('Y-m-d', $ent) . ($f >= 24 ? ' 23:59:59' : sprintf(' %02d:00:00', max(0, $f))));
   if ($fecha > $ent && !ehExemplo((int)$c['id'])) $teto = min($teto, $fecha);   // entrou depois da hora de fechar, ou é criança do teste do rodapé (que precisa funcionar a qualquer hora): vale só o limite de 12 h
-  return max(0, (min($fim, $teto) - $ent) / 60);
+  return $teto;
+}
+function minutosDaVisita(array $c, int $fim): float {
+  $ent = strtotime((string)$c['entrou']); return max(0, (min($fim, tetoDaVisita($c)) - $ent) / 60);
 }
 function hm(int $min): string { $min = max(0, $min); return intdiv($min, 60) . 'h' . ($min % 60 ? str_pad((string)($min % 60), 2, '0', STR_PAD_LEFT) : ''); }
 function restante(array $c): int { return max(0, (int)$c['pacote_min'] - (int)$c['usado_min']); }
@@ -629,6 +632,7 @@ const PEDIDO_ESPERA_H = 12;   // o pedido de desconto ou de cancelamento sem res
 const PEDIDO_JUNTO_SEG = 120;   // o desconto já usado em parte só completa a mesma conta (a saída em conjunto dos irmãos) dentro deste tempo
 function podeDecidir(array $u, string $tipo): bool { return $tipo === 'cancelar_venda' ? podeEstornar($u) : ($tipo === 'valor' ? in_array($u['papel'] ?? '', ['gestor', 'supervisor'], true) : ($u['papel'] ?? '') === 'gestor'); }   // 1.33: a alteração de valor, a supervisora ou o gestor
 function quemDecide(string $tipo): string { return $tipo === 'cancelar_venda' ? quemEstorna() : ($tipo === 'valor' ? 'o supervisor ou o gestor' : 'o gestor'); }
+const PARC_ONDE = ['festa' => 'festa', 'venda' => 'venda', 'saida' => 'saída', 'devolucao' => 'devolução', 'receber' => 'a receber'];   // 1.89: de onde é o pedido do crédito em mais vezes
 const PEDIDO_SEM_VENDA = ['desconto', 'valor', 'parcelas'];   // 1.33: os pedidos que nascem antes da venda (os outros são de uma venda que já existe)
 function pedido(int $id): ?array { $q = db()->prepare('SELECT * FROM pedidos WHERE id = ?'); $q->execute([$id]); return $q->fetch() ?: null; }
 function pedidoPublico(array $p): array {
@@ -677,11 +681,12 @@ function pedidoCriar(array $u, array $in): array {
     $texto = 'Desconto de ' . dinheiro($valor) . ($pct > 0 ? ' (' . rtrim(rtrim(number_format($pct, 2, ',', ''), '0'), ',') . '%)' : '') . ($base > 0 ? ' em ' . dinheiro($base) : '') . ($dados['onde'] === 'saida' ? ' · na saída' : '');
     // um pedido de desconto por vez para o mesmo cliente: o anterior (sem resposta, ou liberado e não usado) deixa de valer
     $db->prepare("UPDATE pedidos SET status = 'cancelado', resultado = 'TROCADO POR OUTRO PEDIDO' WHERE tipo = 'desconto' AND pedido_por = ? AND crianca_id = ? AND status IN ('pendente', 'liberado')")->execute([(int)$u['id'], (int)$c['id']]);
-  } elseif ($tipo === 'parcelas') { // 1.65: o crédito da festa em 5x a 12x (até 4x é livre): o gestor libera, na tela dele ou com a senha aqui
+  } elseif ($tipo === 'parcelas') { // 1.65: o crédito em 5x a 12x (até 4x é livre): o gestor libera, na tela dele ou com a senha aqui. 1.89: em todo pagamento, não só na festa
     $c = crianca((int)($in['crianca'] ?? 0)); if (!$c) falha('Cliente não encontrado.', 404);
     $n = (int)($in['n'] ?? 0); if ($n <= parcLivre() || $n > 12) falha('A liberação é para o crédito de ' . (parcLivre() + 1) . 'x a 12x (até ' . parcLivre() . 'x não precisa).');
-    $valor = round(max(0, (float)($in['valor'] ?? 0)), 2); $motivo = mb_substr($motivo, 0, 120); $dados = ['n' => $n];
-    $texto = 'Crédito em ' . $n . 'x' . ($valor > 0 ? ': ' . dinheiro($valor) . ' (' . $n . 'x de ' . dinheiro(floor($valor * 100 / $n) / 100) . ')' : '') . ' · festa';
+    $onde = (string)($in['onde'] ?? 'festa'); if (!isset(PARC_ONDE[$onde])) $onde = 'festa';
+    $valor = round(max(0, (float)($in['valor'] ?? 0)), 2); $motivo = mb_substr($motivo, 0, 120); $dados = ['n' => $n, 'onde' => $onde];
+    $texto = 'Crédito em ' . $n . 'x' . ($valor > 0 ? ': ' . dinheiro($valor) . ' (' . $n . 'x de ' . dinheiro(floor($valor * 100 / $n) / 100) . ')' : '') . ' · ' . PARC_ONDE[$onde];
     $db->prepare("UPDATE pedidos SET status = 'cancelado', resultado = 'TROCADO POR OUTRO PEDIDO' WHERE tipo = 'parcelas' AND pedido_por = ? AND crianca_id = ? AND status IN ('pendente', 'liberado')")->execute([(int)$u['id'], (int)$c['id']]);
   } elseif ($tipo === 'valor' && (int)($in['venda'] ?? 0) > 0) { // 1.39: na saída, o pacote ou o produto desta visita que ficou para pagar na saída
     $q = $db->prepare('SELECT * FROM vendas WHERE id = ?'); $q->execute([(int)$in['venda']]); $v = $q->fetch(); $q->closeCursor(); if (!$v) falha('Esta venda não existe mais: já foi desfeita ou cancelada.', 404);
@@ -891,10 +896,13 @@ function autorizacaoDeParcelas(int $id, array $u, array $c, int $n): array {
   $msg = 'No crédito em ' . $n . 'x, só com a liberação do gestor (até ' . parcLivre() . 'x não precisa).';
   if ($id <= 0) falha($msg, 403);
   $p = pedido($id); if (!$p || $p['tipo'] !== 'parcelas' || (int)$p['pedido_por'] !== (int)$u['id']) falha($msg, 403);
+  $junto = $p['status'] === 'usado' && (int)($p['feito_por'] ?? 0) === (int)$u['id'] && time() - strtotime((string)$p['feito_em']) <= 180;   // 1.89: a saída em conjunto (cada criança e cada carrinho da mesma conta)
+  if (!$junto) {
   if ($p['status'] === 'pendente') falha('O gestor ainda não respondeu ao pedido do crédito em ' . $n . 'x.', 409);
   if ($p['status'] === 'negado') falha('O gestor não liberou o crédito em ' . $n . 'x.', 409);
   if ($p['status'] !== 'liberado') falha($p['status'] === 'usado' ? 'Esta liberação já foi usada.' : 'O pedido do crédito em ' . $n . 'x não vale mais. Peça de novo.', 409);
   if (time() - strtotime((string)$p['decidido_em']) > PEDIDO_VALE_MIN * 60) falha('A liberação do crédito em ' . $n . 'x venceu (vale por ' . PEDIDO_VALE_MIN . ' min). Peça de novo.', 409);
+  }
   $pc = (int)$p['crianca_id']; if ((int)$c['id'] !== $pc && !in_array($pc, array_map(fn($x) => (int)$x['id'], irmaosDe($c)), true)) falha('A liberação do crédito foi para outro cliente.', 409);
   $d = json_decode((string)$p['dados'], true); if ((int)($d['n'] ?? 0) < $n) falha('O gestor liberou até ' . (int)($d['n'] ?? 0) . 'x, não ' . $n . 'x.', 409);
   return $p;
@@ -902,6 +910,22 @@ function autorizacaoDeParcelas(int $id, array $u, array $c, int $n): array {
 function usarParcelas(array $p, int $vendaId, int $n, array $u): void {
   db()->prepare("UPDATE pedidos SET status = 'usado', venda_id = ?, feito_por = ?, feito_nome = ?, feito_em = ?, resultado = ? WHERE id = ? AND status = 'liberado'")
     ->execute([$vendaId, (int)$u['id'], (string)$u['nome'], agora(), 'CRÉDITO EM ' . $n . 'X NA VENDA', (int)$p['id']]);
+}
+/* 1.89: em quantas vezes no crédito, em todo pagamento (a venda, a saída, a devolução, o Receber): até 4x qualquer um escolhe; de 5x a 12x,
+   só o gestor (ou com a liberação dele, pedida antes). Sem o crédito no pagamento (ou sem escolher as vezes): 0 */
+const PARC_NADA = ['n' => 0, 'aut' => null];
+function lerParcelas(array $in, array $pg, ?array $u, array $c): array {
+  $n = (int)($in['parcelas'] ?? 0); if (!isset($pg['credito']) || $n < 1 || $n > 12) return PARC_NADA;   // (fora de 1 a 12, como na festa antes: a venda passa e as vezes não ficam)
+  $aut = $n > parcLivre() && ($u['papel'] ?? '') !== 'gestor' ? autorizacaoDeParcelas((int)($in['parc_ped'] ?? 0), $u ?: ['id' => 0], $c, $n) : null;
+  return ['n' => $n, 'aut' => $aut];
+}
+// depois de gravar o pagamento: as vendas que receberam no crédito agora ficam com as vezes; a liberação do gestor fica usada
+function anotarParcelas(int $antesPg, array $parc, ?array $u, int $criancaId): void {
+  if (!$parc['n']) return;
+  $q = db()->prepare("SELECT DISTINCT venda_id FROM pagamentos WHERE id > ? AND crianca_id = ? AND forma = 'credito' ORDER BY venda_id"); $q->execute([$antesPg, $criancaId]);
+  $ids = array_values(array_filter(array_map('intval', $q->fetchAll(PDO::FETCH_COLUMN)))); if (!$ids) return;
+  db()->prepare('UPDATE vendas SET parcelas = ? WHERE id IN (' . implode(',', $ids) . ')')->execute([$parc['n']]);
+  if ($parc['aut'] && $u) usarParcelas($parc['aut'], $ids[0], $parc['n'], $u);
 }
 function usarAutorizacao(?array $desc, float $valor): void { // o desconto autorizado foi aplicado: fica marcado quanto dele já foi usado
   if (!$desc || empty($desc['aut']) || $valor <= 0) return;
@@ -912,7 +936,7 @@ function fecharPedidosDeDesconto(?array $u, array $c, string $onde): void { // $
   if (!$u) return;
   db()->prepare("UPDATE pedidos SET status = 'cancelado', resultado = 'A CONTA FOI FECHADA SEM ESPERAR A RESPOSTA' WHERE tipo = 'desconto' AND status = 'pendente' AND pedido_por = ? AND crianca_id = ? AND dados LIKE ?")->execute([(int)$u['id'], (int)$c['id'], '%"onde":"' . ($onde === 'saida' ? 'saida' : 'venda') . '"%']);
   if ($onde === 'venda' && ($k = crianca((int)$c['id'])) && !$k['entrou']) db()->prepare("UPDATE pedidos SET status = 'cancelado', resultado = 'A CONTA FOI FECHADA NO ATENDIMENTO' WHERE tipo = 'desconto' AND status = 'pendente' AND crianca_id = ? AND dados LIKE ?")->execute([(int)$c['id'], '%"onde":"saida"%']);   // 1.45 (auditoria): sem a criança no espaço, não há saída para esperar o desconto
-  if ($onde === 'venda') db()->prepare("UPDATE pedidos SET status = 'cancelado', resultado = 'A CONTA FOI FECHADA SEM ESPERAR A RESPOSTA' WHERE tipo = 'parcelas' AND status = 'pendente' AND pedido_por = ? AND crianca_id = ?")->execute([(int)$u['id'], (int)$c['id']]);   // 1.65
+  db()->prepare("UPDATE pedidos SET status = 'cancelado', resultado = 'A CONTA FOI FECHADA SEM ESPERAR A RESPOSTA' WHERE tipo = 'parcelas' AND status = 'pendente' AND pedido_por = ? AND crianca_id = ?")->execute([(int)$u['id'], (int)$c['id']]);   // 1.65
   db()->prepare("UPDATE pedidos SET status = 'cancelado', resultado = 'A CONTA FOI FECHADA SEM ESPERAR A RESPOSTA' WHERE tipo = 'valor' AND status = 'pendente' AND pedido_por = ? AND crianca_id = ? AND venda_id IS " . ($onde === 'saida' ? 'NOT NULL' : 'NULL'))->execute([(int)$u['id'], (int)$c['id']]);   // 1.33 (1.39: o da saída fecha com a saída)
   if ($onde === 'saida') db()->prepare("UPDATE pedidos SET status = 'cancelado', resultado = 'A CRIANÇA SAIU SEM ESPERAR A RESPOSTA' WHERE tipo IN ('desconto', 'valor') AND status = 'pendente' AND crianca_id = ? AND (dados LIKE ? OR venda_id IS NOT NULL)")->execute([(int)$c['id'], '%"onde":"saida"%']);   // 1.45 (auditoria): a saída fechou a conta, dê quem der a saída
 }
@@ -1074,12 +1098,38 @@ function fazerSaida(array $c, string $origem = 'iDFace', ?string $quando = null,
   $proprias = max(0, $deb - (int)$atraso['n'] * periodo());
   $reg = registrar('sai', (int)$c['id'], $c['nome'], 'Ficou ' . dur(ficouMin((float)$min)) . ($plano === 'pacote' ? ' · ' . dur($deb) . ' debitados' : ($proprias > 0 ? ' · ' . dur($proprias) . ' do tempo que já tinha' : '')) . ($r > 0 ? ' · restam ' . hm($r) : '') . ($atraso['n'] ? ' · ' . textoAutos($atraso, $plano) . ' a receber' : '') . ($sap ? ' · sapato na sapateira ' . $sap : '') . ($origem === 'iDFace' || modoManual() ? '' : ' · saída à mão'), $quando);
   $msg = null;
-  if (regra()['autoMsg'] === 'ambos') {
+  if (regra()['autoMsg'] === 'ambos' && $origem !== 'automática') {   // (1.90: a saída automática não manda mensagem)
     $texto = nomeMsg($c['nome']) . ' saiu às ' . date('H:i', strtotime($quando)) . '. Até a próxima! 🧸';
     $msg = mandarMensagem($c, $texto, true);
   }
   return ['registro' => $reg, 'visita' => $visita, 'debitado' => $deb, 'minutos' => (int)floor($min), 'atraso' => $atraso, 'plano' => $plano, 'mensagem' => $msg, 'sapateira' => $sap ?: null];
 }
+/* ---------- 1.90: a baixa automática ("o relógio interno") ----------
+   Pedido do dono: uma criança ficou marcada no espaço de um dia para o outro e a tela mostrava 48 h. A conta da visita já parava na hora em
+   que a loja fecha (no dia da entrada, nunca mais de 12 h); agora, virado o dia e passada essa hora, a visita sai sozinha, contada até lá,
+   quando não há nada a receber (o pacote cobre o tempo e nada vendido ficou para a saída). Com algo a receber, a criança continua na lista
+   com o relógio parado (a tela diz "sem saída"), para a equipe dar a saída e receber: a conta é a mesma, só até a loja fechar. */
+function baixaAutomatica(): int {
+  $db = db(); $n = 0;
+  $q = $db->prepare('SELECT * FROM criancas WHERE entrou IS NOT NULL AND ativo = 1 AND entrou < ?'); $q->execute([date('Y-m-d') . ' 00:00:00']);
+  foreach ($q->fetchAll() as $c) {
+    if (ehExemplo((int)$c['id'])) continue; $teto = tetoDaVisita($c); if (agoraTs() <= $teto) continue;
+    if (empty($c['festa_id'])) {   // (a visita da festa não cobra: sai sempre)
+      if (pendentesDaVisita($c)) continue;   // vendido para pagar na saída
+      $u = $db->prepare('SELECT COUNT(*) FROM vendas WHERE crianca_id = ? AND auto = 1 AND quando >= ? AND NOT EXISTS (SELECT 1 FROM pagamentos p WHERE p.venda_id = vendas.id)'); $u->execute([(int)$c['id'], (string)$c['entrou']]);
+      if ((int)$u->fetchColumn() > 0) continue;   // a cobrança do tempo (recreação avulsa, além do pacote) a receber
+      $cobra = servicoTempo() && (string)$c['entrou'] >= (string)cfg('cobranca_desde', '');
+      if ($cobra && (int)$c['usado_min'] + cobrar(minutosDaVisita($c, $teto)) > (int)$c['pacote_min']) continue;   // o pacote não cobre o tempo até a loja fechar
+    }
+    if (!metaMarca('baixa:' . (int)$c['id'] . ':' . (string)$c['entrou'], date('Y-m-d H:i:s'))) continue;   // (um aparelho por vez: o primeiro que chega dá a baixa)
+    $c = crianca((int)$c['id']); if (!$c || !$c['entrou']) continue;
+    $quando = date('Y-m-d H:i:s', $teto); $r = fazerSaida($c, 'automática', $quando);
+    if (!empty($r['registro'])) $db->prepare('UPDATE registros SET texto = texto || ? WHERE id = ?')->execute([' · saída automática: ninguém deu a saída; o tempo contou até ' . date('H:i', $teto) . ' de ' . date('d/m', $teto) . ' (a loja fecha)', (int)$r['registro']]);
+    $n++;
+  }
+  return $n;
+}
+
 /* ---------- reabrir a visita: a criança saiu e voltou logo em seguida ---------- */
 // Até regra.reabreMin minutos depois da saída, a equipe reabre: a saída é desfeita e o tempo continua contando desde a entrada,
 // como se a criança não tivesse saído (o que foi debitado volta para o saldo e a conta é refeita na próxima saída).
