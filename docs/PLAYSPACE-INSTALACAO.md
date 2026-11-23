@@ -1301,6 +1301,14 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A Agenda abre uma vez só (1.95)
+
+Pedido do dono: "na aba Agenda, quando abre, está dando um pequeno bug e abrindo 2 vezes".
+
+- A parte do dia da Agenda ("Hoje, 23 de novembro" e "Também nesta semana") tinha a sua animação de subir e, desde a 1.74, também a entrada das telas. Quando a entrada terminava, a animação antiga começava de novo: a parte do dia subia duas vezes.
+- Agora ela sobe uma vez só ao abrir a Agenda (no computador e no celular, para todos). Ao tocar em outro dia do calendário, a parte do dia continua subindo uma vez, como antes.
+- As outras telas do Play Space e das Finanças foram conferidas: nenhuma tinha o mesmo problema.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzz. O ✓ da senha do gestor e o menu do lado de vidro (1.94 · Finanças 4.5)
 
 Pedido do dono, com dois vídeos de modelo ("Glassy OTP" e "Glassy Sidebar"): "coloque essas 2 animações". O primeiro vai na senha do gestor; o segundo, no menu do lado do Play Space e das Finanças, no computador.
