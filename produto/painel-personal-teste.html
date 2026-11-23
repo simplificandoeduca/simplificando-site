@@ -863,7 +863,8 @@ body.hub-on{background:#0F1712}
 .hb-err{margin:10px 4px 0;color:#FF7A72;font-size:13.5px;font-weight:600}
 .pf-del{margin-top:18px;padding-top:14px;border-top:1px solid var(--sep)}.pf-del .label{color:#C8302F}.pf-del .muted{margin:6px 0 10px}.pf-del .err{color:#C8302F;font-weight:600;margin:0 0 10px}
 .hb-pe{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:26px}
-.hb-bl.verde{background:#C8F542}
+.hb-bl.verde{background:#C8F542}.hb-bl.azul{background:#5AB8FF}.hb-bl.amarelo{background:#FFD23F}.hb-bl.creme{background:#F6F5EF}
+button.hb-bl{width:100%;border:0;font:inherit;text-align:left;cursor:pointer;display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch}button.hb-bl .hb-eb{margin:0}.hb-bl.creme.nova{background:#C8F542}.hb-bl.creme:disabled{opacity:.8}
 .hb-ths{display:flex;gap:6px;margin-top:12px;max-width:calc(100% - 110px)}.hb-th{width:52px;height:66px;object-fit:cover;border-radius:10px;background:rgba(15,23,18,.12);flex:none}.hb-th:not(.ok){visibility:hidden}
 .cd-volta{display:inline-flex;align-items:center;gap:4px;margin-top:18px;font-weight:700;font-size:15px;color:#A9B0AA!important}.cd-volta .i{width:18px;height:18px}
 .cd-top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding-top:10px}.hub.cd h1{font-size:clamp(40px,11vw,56px)}
@@ -918,7 +919,7 @@ body.hub-on.hub-claro{background:#FFFFFF}
 .hub-claro .hub{color:#0F1712}.hub-claro .hub h1{color:#0F1712}
 .hub-claro .hb-st{background:#F4F4F1}.hub-claro .hb-st span{color:#5B625D}.hub-claro .hb-st em{color:#3E7A00}
 .hub-claro .hb-lbl{color:#5B625D}.hub-claro .hb-dt{color:#C8302F}
-.hub-claro .hb-ms{background:#F4F4F1}.hub-claro .hb-ms span{background:#FFFFFF}.hub-claro .hb-atu.nova{background:#C8F542}
+.hub-claro .hb-bl.creme{background:#FFFFFF;box-shadow:inset 0 0 0 1.5px #E2E3DC}.hub-claro .hb-bl.creme.nova{background:#C8F542}.hub-claro .hb-ms{background:#F4F4F1}.hub-claro .hb-ms span{background:#FFFFFF}.hub-claro .hb-atu.nova{background:#C8F542}
 .hub-claro .hb-tema{border-color:#E0E0DA;color:#0F1712}.hub-claro .hb-err{color:#C8302F}
 .hub-claro .hb-av .logo{filter:drop-shadow(0 0 0 #0000) drop-shadow(0 1px 3px rgba(15,23,18,.18));border-radius:50%}
 .hub-claro :focus-visible{outline-color:#0F1712}
@@ -2606,7 +2607,7 @@ function hubAtu(){
   if(ATU.st==='sem') return ''; // fora do site (prévia ou teste): o botão não aparece
   const vnum = v => +((String(v||'').match(/·\s*(\d+)/)||[])[1]||0), nova = ATU.nova && vnum(ATU.nova) > vnum(PAINELV), indo = ATU.st==='indo';
   const sub = indo ? 'baixando…' : ATU.st==='vendo' ? 'procurando…' : nova ? 'versão '+ATU.nova.replace(/^.*·\s*/,'')+' pronta' : ATU.testando ? 'testando a '+ATU.testando.replace(/^.*·\s*/,'') : 'em dia · '+PAINELV.replace(/^.*·\s*/,'');
-  return '<button type="button" class="hb-ms hb-atu'+(nova ? ' nova' : '')+'" data-a="atuGo"'+(indo ? ' disabled' : '')+'><span>'+ic('refresh')+'</span><i>'+(indo ? 'Atualizando' : 'Atualizar')+'<em>'+esc(sub)+'</em></i></button>';
+  return '<button type="button" class="hb-bl creme hb-atu'+(nova ? ' nova' : '')+'" data-a="atuGo"'+(indo ? ' disabled' : '')+'><p class="hb-eb">'+(nova ? 'Versão nova pronta' : 'Site, app e painel')+'</p><h2>'+(indo ? 'Atualizando' : 'Atualizar')+'.</h2><p class="hb-d">'+esc(sub.charAt(0).toUpperCase()+sub.slice(1))+'</p><span class="hb-go">'+ic('refresh')+'</span><span class="hb-num"><b>'+vnum(PAINELV)+'</b><span>versão atual</span></span></button>';
 }
 /* senha do hub: guardada embaralhada no servidor (hub-login.php), nunca no código. O dono cria aqui, já logado */
 const HUBS = { tem:null, vendo:false, aberto:false, v1:'', v2:'', msg:'', indo:false };
@@ -2647,7 +2648,7 @@ function vHub(){
   if(pfOnline()){ loadProg(); loadEst(); loadPerfis(); }
   const ok = Store.loaded, n = hubNums(), on = pfOnline(), v = x => x==null ? (on ? '…' : '—') : x;
   const st = (b, l, sub) => '<div class="hb-st"><b>'+b+'</b><span>'+l+'</span>'+(sub ? '<em>'+sub+'</em>' : '')+'</div>';
-  const bl = (cor, href, eb, t, d, num, nl, novo) => '<a class="hb-bl '+cor+'" href="'+href+'"'+(novo ? ' target="_blank" rel="noopener"' : '')+'><p class="hb-eb">'+eb+'</p><h2>'+t+'.</h2><p class="hb-d">'+d+'</p><span class="hb-go">'+ic('arrow')+'</span><span class="hb-num"><b>'+num+'</b><span>'+nl+'</span></span></a>';
+  const bl = (cor, href, eb, t, d, num, nl, novo, extra) => '<a class="hb-bl '+cor+'" href="'+href+'"'+(novo ? ' target="_blank" rel="noopener"' : '')+(extra||'')+'><p class="hb-eb">'+eb+'</p><h2>'+t+'.</h2><p class="hb-d">'+d+'</p><span class="hb-go">'+ic('arrow')+'</span>'+(num!=='' ? '<span class="hb-num"><b>'+num+'</b><span>'+nl+'</span></span>' : '')+'</a>';
   const ms = (href, icn, t, teste) => '<a class="hb-ms" href="'+href+'" target="_blank" rel="noopener"'+(teste ? ' data-teste="1"' : '')+'><span>'+ic(icn)+'</span><i>'+t+'</i></a>';
   return '<div class="hub">'+
     '<header class="hb-top"><div><p class="hb-eb hb-dt">'+esc(hojeTxt())+' · <span id="hb-hora" class="hb-hora">'+horaTxt()+'</span></p><h1>Hub<i>.</i></h1></div><span class="hb-av" aria-hidden="true">'+hubLogo()+'</span></header>'+
@@ -2663,8 +2664,11 @@ function vHub(){
       bl('orange', '/personal/#painel', 'Onde você trabalha', 'Painel', 'Alunos, treinos, mensagens e financeiro.', ok ? n.atencao : '…', n.atencao===1 ? 'pede atenção' : 'pedem atenção', true)+
       bl('lilas', '/personal/#estatisticas', 'Como está indo', 'Números', 'Avaliações, sugestões, stories e comprovantes.', v(n.sug), n.sug===1 ? 'sugestão nova' : 'sugestões novas', true)+
       hubConteudo()+
+      hubAtu()+
+      bl('azul', '/personal/teste/', 'Para outros personais', 'Painel de teste', 'O painel com clientes fictícios, para mostrar como funciona.', '', '', true, ' data-teste="1"')+
+      bl('amarelo', '/financas/', 'Controle pessoal', 'Finanças', 'Suas contas, gastos e metas do mês.', '', '', true)+
     '</div>'+
-    '<div class="hb-mais">'+ms('/financas/', 'wallet', 'Finanças')+ms('/personal/teste/', 'flask', 'Painel de teste', true)+ms('/', 'globe', 'Site')+hubAtu()+'</div>'+
+    '<div class="hb-mais">'+ms('/', 'globe', 'Site')+'</div>'+
     (ATU.msg ? '<p class="hb-err" role="alert">'+esc(ATU.msg)+'</p>' : '')+
     '<div class="hb-pe"><button type="button" class="hb-tema" data-a="hubTema" aria-pressed="'+!!PREF.hubClaro+'">'+ic(PREF.hubClaro ? 'moon' : 'sun')+(PREF.hubClaro ? 'Modo escuro' : 'Modo claro')+'</button>'+(HUBS.tem===true && !HUBS.aberto ? '<button type="button" class="hb-tema" data-a="hubSenha">'+ic('key')+'Senha do hub</button>' : '')+'</div>'+
   '</div>';
@@ -3838,7 +3842,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '23 nov · 171'; // Versão do painel: 23 nov · 171
+const PAINELV = '23 nov · 172'; // Versão do painel: 23 nov · 172
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
