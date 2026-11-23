@@ -177,7 +177,7 @@ rep("    case 'estLida':", """    case 'agD': ui.agD = d.v; break;
     case 'demoSair': try { localStorage.removeItem('simp-teste-ok'); sessionStorage.removeItem('simp-teste-ok'); } catch(e){} location.href = '../'; return false;
     case 'estLida':""")
 # o botão "apagar" de duas etapas (armBtn) precisa do primeiro toque
-rep("'applyToAluno','wipeEx','pdfImpOk','recApagar']);", "'applyToAluno','wipeEx','pdfImpOk','recApagar','demoWipe']);")
+rep("'applyToAluno','wipeEx','pdfImpOk']);", "'applyToAluno','wipeEx','pdfImpOk','demoWipe']);")
 
 # planos de cobrança genéricos (sem a assinatura do Instagram, que é do Simplificando)
 rep("const PLANOS = { instagram:'Assinatura Instagram', presencial:'Particular presencial', online:'Particular online', consultoria:'Consultoria' };",

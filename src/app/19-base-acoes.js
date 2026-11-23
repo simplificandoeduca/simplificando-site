@@ -374,7 +374,7 @@ function onClick(ev){
     case 'ig-copiar': { const v = '@'+IG_USER, ok = () => toast('Copiado. No story, toque em Aa ou em Mencionar e cole.'), fb = () => toast('Marque @'+IG_USER+' no story.');
       try { if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(v).then(ok, fb); else fb(); } catch(e){ fb(); } re = false; break; }
     case 'st-down': if(ui.sheet && ui.sheet.k==='story'){ stLog(ui.sheet, 'baixar'); stBaixar(ui.sheet); } re = false; break;
-    case 'rec-ok': recadoFim(); ui.sheet = null; renderSheet(); toast('Que bom! Qualquer coisa, a caixinha fica em Perfil › Sugestão.'); re = false; break;
+    case 'rec-ok': recadoFim(); ui.sheet = null; renderSheet(); toast('Obrigado! Se o erro voltar, é só mandar em Perfil › Sugestão.'); re = false; break;
     case 'rec-sug': recadoFim(); ui.sheet = {k:'prof', p:'sug'}; renderSheet(true); re = false; break;
     case 'sug-foto': { const f = document.getElementById('sug-file'); if(f) f.click(); re = false; break; }
     case 'sug-foto-x': ui.sugFoto = ''; renderSheet(); re = false; break;

@@ -79,6 +79,7 @@ test('recado no app: só o dono escreve; a pessoa lê o seu e só marca como lid
   expect(await le(OUTRO, 'recados/' + AUT)).toBe(nao);
   expect(await grava(AUT, 'recados/' + AUT, { ...R, lido: 2000 })).toBe(ok);
   expect(await grava(AUT, 'recados/' + AUT, { ...R, texto: 'mudei', lido: 2000 })).toBe(nao);
+  expect(await grava(AUT, 'recados/' + AUT + 'x', R)).toBe(nao);
   expect(await grava(AUT, 'sugestoes/sf-' + id, { uid: AUT, nome: 'A', tipo: 'autonomo', texto: '', em: 1, ver: 'x', foto: 'data:image/jpeg;base64,AAAA' })).toBe(ok);
   expect(await grava(AUT, 'sugestoes/sf2-' + id, { uid: AUT, nome: 'A', tipo: 'autonomo', texto: '', em: 1, ver: 'x' })).toBe(nao);
   expect(await grava(AUT, 'sugestoes/sf3-' + id, { uid: AUT, nome: 'A', tipo: 'autonomo', texto: 'x', em: 1, ver: 'x', foto: 'a'.repeat(820000) })).toBe(nao);

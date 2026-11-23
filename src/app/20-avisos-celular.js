@@ -31,10 +31,11 @@ function recadoFim(){ if(REC){ PREF.recVisto = +REC.em||Date.now(); savePref(); 
 function vRecado(){
   const r = REC || {};
   return `<div class="sheet-wrap cm-w"><div class="sheet cm rec" role="dialog" aria-modal="true" aria-labelledby="cm-t" tabindex="-1">
-    <span class="cm-ic">${ic('msg')}</span><h2 id="cm-t">Recado do Simplificando<span class="dot">.</span></h2>
+    <span class="cm-ic rec-ok">${ic('check')}</span><h2 id="cm-t">Sua sugestão foi respondida<span class="dot">.</span></h2>
+    ${r.pergunta ? `<p class="rec-q">Você escreveu: “${esc(r.pergunta)}”</p>` : ''}
     <p class="rec-t">${esc(r.texto||'')}</p>
-    ${r.sug ? `<button type="button" class="btn primary block cm-b" data-a="rec-sug">${ic('camera')}Mandar foto na caixinha</button><button type="button" class="btn block cm-b2" data-a="rec-ok">Está tudo certo</button>`
-      : `<button type="button" class="btn primary block cm-b" data-a="rec-ok">${ic('check')}Entendi</button>`}</div></div>`;
+    <button type="button" class="btn primary block cm-b" data-a="rec-ok">${ic('check')}Ok, vou testar</button>
+    ${r.sug ? `<button type="button" class="btn block cm-b2" data-a="rec-sug">${ic('camera')}Ainda com erro: mandar print</button>` : ''}</div></div>`;
 }
 function vDsAsk(){
   return `<div class="sheet-wrap cm-w" data-a="ds-no"><div class="sheet cm" role="dialog" aria-modal="true" aria-labelledby="cm-t" tabindex="-1">

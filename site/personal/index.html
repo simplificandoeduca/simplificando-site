@@ -818,7 +818,7 @@ h3.sec{font-size:22px;margin:14px 2px -2px}
 .est-who b{font-size:14.5px}.est-who span{font-size:12.5px;color:var(--muted)}
 .est-sug{display:flex;flex-direction:column;gap:10px}
 .est-s{border-radius:16px;padding:14px;background:var(--ctl);display:flex;flex-direction:column;gap:6px}.est-s.lida{background:transparent;box-shadow:inset 0 0 0 1px var(--line2)}
-.est-s p{margin:0;font-size:15px;line-height:1.45;white-space:pre-wrap}.est-foto img{display:block;max-width:220px;max-height:260px;border-radius:12px;box-shadow:0 0 0 1px var(--sep)}.rec-st{display:flex;align-items:center;gap:6px;font-size:13.5px;color:var(--muted);margin:0 0 8px}.rec-st .i{width:16px;height:16px}.est-sm{font-size:12.5px;color:var(--muted)}
+.est-s p{margin:0;font-size:15px;line-height:1.45;white-space:pre-wrap}.est-foto img{display:block;max-width:220px;max-height:260px;border-radius:12px;box-shadow:0 0 0 1px var(--sep)}.est-resp{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#1F9D57}.est-resp .i{width:15px;height:15px}.resp-q{font-style:italic;color:var(--muted);background:var(--ctl);border-radius:14px;padding:10px 14px;margin:0 0 12px;white-space:pre-wrap}.est-sm{font-size:12.5px;color:var(--muted)}
 .tabbar{grid-template-columns:repeat(var(--nt,5),1fr)}.tab span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px}
 
 .dh-act{flex-wrap:nowrap}
@@ -2079,9 +2079,10 @@ const FBP = (() => {
   async function getRecado(uid){ const d = await db.collection('recados').doc(uid).get(); return d.exists ? d.data() : null; }
   async function setRecado(uid, d){ await db.collection('recados').doc(uid).set(d); }
   async function dropRecado(uid){ await db.collection('recados').doc(uid).delete(); }
+  async function setResp(id, em){ await db.collection('sugestoes').doc(id).update({ resp:em, lida:true }); }
   async function setLida(id, v){ await db.collection('sugestoes').doc(id).update({ lida:!!v }); }
   async function dropDoc(col, id){ await db.collection(col).doc(id).delete(); }
-  return { getRecado, setRecado, dropRecado, auth, db, fb, ownerUid, claim, account, rePass, dropAccount, listCodigos, dropCodigo, moveProg, okMail, publish, unpublish, listPerfis, dropPerfil, getAutonomo, listProgresso, dropProgresso, listCol, setLida, dropDoc };
+  return { getRecado, setRecado, dropRecado, setResp, auth, db, fb, ownerUid, claim, account, rePass, dropAccount, listCodigos, dropCodigo, moveProg, okMail, publish, unpublish, listPerfis, dropPerfil, getAutonomo, listProgresso, dropProgresso, listCol, setLida, dropDoc };
 })();
 
 const Store = (() => {
@@ -2774,7 +2775,8 @@ function vEstat(){
   h += '<h3 class="sec">Sugestões<span class="dot" aria-hidden="true"></span></h3><section class="card"><div class="card-h"><span class="label">'+ic('msg')+'Caixinha de sugestões do app</span>'+(novas ? '<span class="pill bad">'+plural(novas,'nova','novas')+'</span>' : '<span class="pill line">Nenhuma nova</span>')+'</div>'+
     '<div class="seg est-seg" role="group" aria-label="Mostrar">'+[['novas','Não lidas'],['todas','Todas']].map(([v,l]) => '<button type="button" class="'+(fil===v?'on':'')+'" aria-pressed="'+(fil===v)+'" data-a="estS" data-v="'+v+'">'+l+' ('+(v==='novas'?novas:ST.sug.length)+')</button>').join('')+'</div>'+
     (S2.length ? '<div class="est-sug">'+S2.map(x => '<div class="est-s'+(x.lida?' lida':'')+'">'+(x.texto ? '<p>'+esc(x.texto)+'</p>' : '')+(x.foto && /^data:image\/(jpeg|png|webp);base64,/.test(x.foto) ? '<a class="est-foto" href="'+x.foto+'" target="_blank" rel="noopener" aria-label="Abrir a foto"><img src="'+x.foto+'" alt="Foto enviada com a sugestão"></a>' : '')+'<span class="est-sm">'+esc(x.nome||'Sem nome')+' · '+tipoTxt(x.tipo)+' · '+new Date(x.em||0).toLocaleDateString('pt-BR')+(x.ver ? ' · app '+esc(x.ver) : '')+'</span>'+
-      '<div class="btn-row"><button type="button" class="btn small'+(x.lida?' ghost':'')+'" data-a="estLida" data-k="'+esc(x.id)+'" data-v="'+(x.lida?'':'1')+'">'+ic('check')+(x.lida ? 'Marcar como não lida' : 'Marcar como lida')+'</button>'+armIco('estDel', x.id, 'Apagar sugestão', 'Toque de novo para apagar')+'</div></div>').join('')+'</div>'
+      (x.resp ? '<span class="est-resp">'+ic('check')+'Respondida em '+new Date(x.resp).toLocaleDateString('pt-BR')+'</span>' : '')+
+      '<div class="btn-row">'+(x.uid && FBP ? '<button type="button" class="btn small'+(x.resp?' ghost':' primary')+'" data-a="respOpen" data-k="'+esc(x.id)+'">'+ic('msg')+(x.resp ? 'Responder de novo' : 'Responder')+'</button>' : '')+'<button type="button" class="btn small'+(x.lida?' ghost':'')+'" data-a="estLida" data-k="'+esc(x.id)+'" data-v="'+(x.lida?'':'1')+'">'+ic('check')+(x.lida ? 'Marcar como não lida' : 'Marcar como lida')+'</button>'+armIco('estDel', x.id, 'Apagar sugestão', 'Toque de novo para apagar')+'</div></div>').join('')+'</div>'
       : '<p class="muted">'+(ST.sug.length ? 'Nenhuma sugestão nova. Veja as antigas em Todas.' : 'Ainda não chegou nenhuma sugestão. Fica no fim do Perfil, no app, para quem treina com e sem personal.')+'</p>')+'</section>';
   return h;
 }
@@ -3907,7 +3909,7 @@ function vPerfilAuto(id){
   let h = '<div class="dhead">'+back+'<p class="eyebrow">'+esc(ED[p.objetivo]||'Objetivo')+' · Treina sem personal</p><h2>'+esc(nome)+'<span class="dot" aria-hidden="true"></span></h2>'+
     '<div class="chips"><span class="pill acc">'+(p.plano==='ia' ? 'Treino da IA' : p.plano==='meu' ? 'Monta o próprio treino' : 'Treino padrão do app')+'</span><span class="pill line">'+ic('eye')+'Acompanhamento permitido</span>'+(p.ultimoAcesso ? '<span class="pill line">Último acesso '+esc(pfQuando(p.ultimoAcesso))+'</span>' : '')+'</div></div>'+
     '<div class="dtabs"><div class="dtabs-in" role="tablist" aria-label="Seções do perfil">'+tabs+'</div></div>';
-  const dados = '<section class="card"><div class="pf-kv">'+[['E-mail', p.email||'—'], ['Objetivo', ED[p.objetivo]||'—'], ['Último acesso', p.ultimoAcesso ? pfQuando(p.ultimoAcesso) : '—'], ['Acompanhamento', 'Permitido pela pessoa']].map(([k,v]) => '<div><span>'+k+'</span><b>'+esc(v)+'</b></div>').join('')+'</div></section>'+recCard(Object.assign({ uid:id }, p));
+  const dados = '<section class="card"><div class="pf-kv">'+[['E-mail', p.email||'—'], ['Objetivo', ED[p.objetivo]||'—'], ['Último acesso', p.ultimoAcesso ? pfQuando(p.ultimoAcesso) : '—'], ['Acompanhamento', 'Permitido pela pessoa']].map(([k,v]) => '<div><span>'+k+'</span><b>'+esc(v)+'</b></div>').join('')+'</div></section>';
   if(tab==='dados') return h+'<div class="tabpane" role="tabpanel">'+dados+'</div>';
   if(!c.v){
     const msg = c.st==='regras' ? 'O Firebase bloqueou a leitura. Falta colar as regras novas (arquivo REGRAS-FIRESTORE.txt) no Firebase → Firestore → Regras e tocar em Publicar.'
@@ -3929,27 +3931,27 @@ function pfSheet(id){
     ['Objetivo', ED[p.objetivo]||'—'], ['Conta criada', dt(p.criadoEm)], ['Último acesso', p.ultimoAcesso ? pfQuando(p.ultimoAcesso)+' ('+dt(p.ultimoAcesso)+')' : '—'],
     ['Termos aceitos', p.aceite ? 'Versão '+p.aceite.v+' em '+new Date(p.aceite.em).toLocaleDateString('pt-BR') : 'Ainda não'], ['Versão do app', p.ver||'—']];
   return sheetTop('Treina sem personal', p.nome||'Sem nome')+'<div class="pf-kv">'+kv.map(([k,v]) => '<div><span>'+k+'</span><b>'+esc(v)+'</b></div>').join('')+'</div>'+
-    '<p class="foot">O treino, a evolução e a água aparecem aqui quando a pessoa permitir o acompanhamento. O app pergunta uma vez, e ela pode ligar depois em Perfil › Acompanhamento. A própria pessoa pode excluir a conta em Perfil › Excluir minha conta.</p>'+recCard(p)+pfDanger(p);
+    '<p class="foot">O treino, a evolução e a água aparecem aqui quando a pessoa permitir o acompanhamento. O app pergunta uma vez, e ela pode ligar depois em Perfil › Acompanhamento. A própria pessoa pode excluir a conta em Perfil › Excluir minha conta.</p>'+pfDanger(p);
 }
-/* recado no app: o dono escreve para uma conta; aparece uma vez quando a pessoa abre o app, com o botão para mandar foto na caixinha de sugestões */
-const RCD = { by:{}, txt:{}, indo:'' };
-const recPadrao = p => 'Oi, '+(String(p.nome||'').trim().split(/\s+/)[0] || 'tudo bem')+'! O app foi atualizado e corrigimos o problema dos treinos que sumiam de um dia para o outro. Abra o app e confira os seus treinos.\n\nSe ainda estiver faltando alguma coisa, toque em "Mandar foto na caixinha" e envie um print, que a gente resolve.';
-function recCard(p){
-  const uid = p.uid, r = RCD.by[uid], dt = ms => new Date(ms).toLocaleDateString('pt-BR')+' às '+new Date(ms).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-  if(r===undefined && pfOnline()){ RCD.by[uid] = null; FBP.getRecado(uid).then(x => { RCD.by[uid] = x || false; ui.sheet ? renderSheet() : render(); }).catch(() => { RCD.by[uid] = false; }); }
-  const txt = RCD.txt[uid]!=null ? RCD.txt[uid] : recPadrao(p);
-  return '<section class="card rec-c"><span class="label">'+ic('msg')+'Recado no app</span><p class="muted">Aparece uma vez, quando a pessoa abrir o app, com o botão "Mandar foto na caixinha" (sugestão com foto, que chega em Números).</p>'+
-    (r ? '<p class="rec-st">'+ic(r.lido ? 'check' : 'timer')+'Enviado em '+dt(r.em)+(r.lido ? ' · <b>lido em '+dt(r.lido)+'</b>' : ' · ainda não abriu')+'</p>' : '')+
-    '<div class="fld wide"><label for="rec-'+esc(uid)+'">Mensagem</label><textarea id="rec-'+esc(uid)+'" class="inp" rows="6" maxlength="800" data-rec="'+esc(uid)+'">'+esc(txt)+'</textarea></div>'+
-    '<div class="btn-row"><button type="button" class="btn primary" data-a="recEnviar" data-k="'+esc(uid)+'"'+(RCD.indo===uid ? ' disabled' : '')+'>'+ic('msg')+(RCD.indo===uid ? 'Enviando…' : r ? 'Enviar de novo' : 'Enviar recado')+'</button>'+(r ? armBtn('recApagar', uid, 'Apagar recado', 'Toque de novo para apagar', 'small', 'trash') : '')+'</div></section>';
+/* responder uma sugestão (Números › Sugestões): a resposta aparece no app da pessoa, uma vez, ao abrir ("Sua sugestão foi respondida") */
+const RCD = { indo:'' };
+const respPadrao = x => 'Oi, '+(String(x.nome||'').trim().split(/\s+/)[0] || 'tudo bem')+', tudo bem? Vimos sua sugestão e resolvemos o problema. Peço que teste novamente.\n\nCaso o erro persista, entre em Sugestões, coloque um print do erro e descreva um pouco mais sobre ele.';
+function respSheet(id){
+  const x = (ST.sug||[]).find(y => y.id===id); if(!x) return sheetTop('Sugestão','Não encontrada')+'<p class="muted">Atualize a página de Números.</p>';
+  return sheetTop('Responder sugestão', esc(x.nome||'Sem nome'))+
+    (x.texto ? '<p class="resp-q">“'+esc(x.texto)+'”</p>' : '')+
+    '<div class="fld wide"><label for="resp-txt">Resposta (aparece no app quando a pessoa abrir)</label><textarea id="resp-txt" class="inp" rows="7" maxlength="800">'+esc(respPadrao(x))+'</textarea></div>'+
+    '<button type="button" class="btn primary block" data-a="respEnviar" data-k="'+esc(id)+'"'+(RCD.indo ? ' disabled' : '')+'>'+ic('check')+(RCD.indo ? 'Enviando…' : 'Enviar resposta')+'</button>'+
+    '<p class="foot">Aparece uma vez, no meio da tela: "Sua sugestão foi respondida", com a sua resposta e o botão para mandar um print nas Sugestões.</p>';
 }
-function recEnviar(uid){
-  const el = document.getElementById('rec-'+uid), txt = String(el ? el.value : RCD.txt[uid]||'').trim().slice(0,800); if(!txt){ toast('Escreva o recado.'); return; }
-  RCD.indo = uid; ui.sheet ? renderSheet() : render();
-  const d = { texto:txt, em:Date.now(), sug:true };
-  FBP.setRecado(uid, d).then(() => { RCD.by[uid] = d; RCD.indo = ''; toast('Recado enviado. Aparece quando a pessoa abrir o app.'); })
-    .catch(e => { RCD.indo = ''; toast(e && e.code==='permission-denied' ? 'Falta colar as regras novas no Firebase (REGRAS-FIRESTORE.txt).' : 'Não deu para enviar agora. Tente de novo.'); })
-    .then(() => { ui.sheet ? renderSheet() : render(); });
+function respEnviar(id){
+  const x = (ST.sug||[]).find(y => y.id===id), el = document.getElementById('resp-txt'), txt = String(el ? el.value : '').trim().slice(0,800);
+  if(!x || !x.uid) return; if(!txt){ toast('Escreva a resposta.'); return; }
+  RCD.indo = id; renderSheet();
+  const em = Date.now();
+  FBP.setRecado(x.uid, { texto:txt, em, sug:true, de:id, pergunta:String(x.texto||'').slice(0,300) }).then(() => FBP.setResp(id, em)).then(() => {
+      RCD.indo = ''; x.resp = em; x.lida = true; closeSheet(); toast('Resposta enviada. Aparece quando '+(String(x.nome||'').split(' ')[0] || 'a pessoa')+' abrir o app.'); render(); })
+    .catch(e => { RCD.indo = ''; renderSheet(); toast(e && e.code==='permission-denied' ? 'Falta colar as regras novas no Firebase (REGRAS-FIRESTORE.txt).' : 'Não deu para enviar agora. Tente de novo.'); });
 }
 /* excluir a conta (conta duplicada, teste…): só o dono do painel; o servidor apaga o perfil, o treino, o progresso e o login */
 const PFX = { indo:'', msg:'' };
@@ -4308,6 +4310,7 @@ function vSheet(){
     return sheetTop('Modelo','Aplicar a um aluno')+'<p class="muted">Substitui os treinos atuais do aluno escolhido por “'+esc(m?m.nome:'')+'”.</p>'+(L.length?'<div class="list">'+L.map(a => '<div class="row"><span class="ini" style="--c:var(--ed-'+(P(a).objetivo||'hipertrofia')+')">'+esc(initials(P(a).nome))+'</span><span class="main-t"><b>'+esc(nomeDe(a))+'</b><span>'+(letters(a.plano).length?'Tem treino '+letters(a.plano).join(''):'Sem treino')+'</span></span>'+armBtn('applyToAluno',a._id,'Aplicar','Substituir','small')+'</div>').join('')+'</div>':'<p class="muted">Nenhum aluno ativo.</p>');
   }
   if(s.k==='pf') return pfSheet(s.id);
+  if(s.k==='resp') return respSheet(s.id);
   if(s.k==='termos') return sheetTop('Simplificando','Termos e privacidade')+'<div class="docs">'+DOC_HTML+'</div>';
   if(s.k==='evCardio') return vEvCardio(s);
   if(s.k==='evTreinos') return vEvTreinos(s);
@@ -4558,7 +4561,6 @@ document.addEventListener('input', e => {
   if(el.type==='checkbox' || el.tagName==='SELECT') return;
   if(!el.dataset.b && !el.dataset.d) return;
   const ok = el.dataset.v ? validate(el) : true;
-  if(el.dataset.rec){ RCD.txt[el.dataset.rec] = el.value; return; }
   if(el.dataset.d){ setP(ui.draft, el.dataset.d, coerce(el)); if(/^av\./.test(el.dataset.d)) refreshCalcs(); return; }
   if(!ok && (el.dataset.v==='req' || el.dataset.v==='range' || el.dataset.v==='date')) return;
   writeField(el.dataset.b, coerce(el), 600, el);
@@ -5015,7 +5017,7 @@ async function copyText(txt,selEl){
   if(selEl){ try { selEl.focus(); selEl.select(); } catch(e){} }
   toast('Selecione o texto e copie');
 }
-const ARMED = new Set(['pfExcluir','evExcluir','rirAll','copyFrom','dropLocal','archive','delAluno','delLesao','delTreino','delEx','delAv','delPay','delNota','genCode','delEx2','delTpl','applyTpl','applyToAluno','wipeEx','pdfImpOk','recApagar']);
+const ARMED = new Set(['pfExcluir','evExcluir','rirAll','copyFrom','dropLocal','archive','delAluno','delLesao','delTreino','delEx','delAv','delPay','delNota','genCode','delEx2','delTpl','applyTpl','applyToAluno','wipeEx','pdfImpOk']);
 function act(a,d,btn){
   const A = curAluno();
   switch(a){
@@ -5189,8 +5191,8 @@ function act(a,d,btn){
     case 'hubSenha': HUBS.aberto = !HUBS.aberto; HUBS.msg = ''; HUBS.v1 = HUBS.v2 = ''; if(HUBS.aberto) window.scrollTo(0,0); break;
     case 'hubSenhaOk': hubSenhaOk(); return false;
     case 'pfExcluir': pfExcluir(d.k); return false;
-    case 'recEnviar': recEnviar(d.k); return false;
-    case 'recApagar': FBP.dropRecado(d.k).then(() => { RCD.by[d.k] = false; toast('Recado apagado.'); ui.sheet ? renderSheet() : render(); }).catch(() => toast('Não deu para apagar agora.')); return false;
+    case 'respOpen': openSheet({k:'resp', id:d.k}); return false;
+    case 'respEnviar': respEnviar(d.k); return false;
     case 'cdDia': CT.sel = d.v; break;
     case 'cdSem': CT.sel = addDays(semIni(CT.sel || today()), 7*(+d.v)); if(semIni(today())===semIni(CT.sel)) CT.sel = today(); break;
     case 'cdRecarregar': cdCarregar(semIni(CT.sel || today()), true); toast('Buscando no Drive'); break;
