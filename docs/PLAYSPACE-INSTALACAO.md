@@ -1301,6 +1301,24 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzz. O ✓ da senha do gestor e o menu do lado de vidro (1.94 · Finanças 4.5)
+
+Pedido do dono, com dois vídeos de modelo ("Glassy OTP" e "Glassy Sidebar"): "coloque essas 2 animações". O primeiro vai na senha do gestor; o segundo, no menu do lado do Play Space e das Finanças, no computador.
+
+**O ✓ da senha do gestor**
+
+- Quando a senha do gestor libera um pedido na hora (desconto, crédito em mais vezes, alterar valor, alterar pacote, nota fiscal) e quando o gestor toca em **Liberar** (no pedido em destaque ou na lista de Aprovações), aparece no meio da tela um cartão de vidro: quatro quadradinhos ligados por linhas se juntam no meio e viram um quadrado verde com o ✓ e "Liberado por" o nome de quem liberou.
+- Leva uns 2 segundos, some sozinho e não segura nada: o atendimento continua por baixo, os toques passam.
+- Senha errada, só pedir (sem a senha) e **Negar** não mostram o ✓.
+- Com "reduzir movimento" (no aparelho ou em Ajustes), o ✓ aparece parado, sem os quadradinhos.
+
+**O menu do lado de vidro (computador)**
+
+- Play Space: tocar na **logo** do alto do trilho abre o trilho num painel de vidro, por cima da tela (a tela não anda), com o nome de cada item entrando um depois do outro. Uma luz clara desliza atrás do item que está sob o mouse.
+- Finanças: tocar na **logo** (o ícone amarelo do alto) abre a barra escura do mesmo jeito, com os nomes, os grupos e o nome de quem entrou; o círculo do item aberto vira uma pílula.
+- Escolher uma tela, tocar fora, apertar **Esc** ou tocar na logo de novo fecha. Numa janela estreita (celular, tablet em pé) nada muda.
+- O trilho de ícones continua como era: o menu aberto fixo segue desligado, como o dono pediu na 1.34.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzz. A barra de baixo das Finanças no celular com o + no meio (1.93 · Finanças 4.4)
 
 Pedido do dono (com a foto de um modelo "Center FAB"): "no Finanças, no telefone, eu quero assim". Antes, a barra de baixo tinha as vinte telas numa fila que rolava para o lado.

@@ -18,7 +18,7 @@
     const t = a.offsetTop, b = t + a.offsetHeight; if (t < L.scrollTop || b > L.scrollTop + L.clientHeight) L.scrollTo({ top: Math.max(0, t - L.clientHeight / 2), behavior: calmo() ? 'auto' : 'smooth' });
   }
   function mostra(el) {
-    const t = el && el.getAttribute('data-dica'); if (!t || !nav || getComputedStyle(nav).display === 'none') return;
+    const t = el && el.getAttribute('data-dica'); if (!t || !nav || getComputedStyle(nav).display === 'none' || nav.classList.contains('aberta')) return;   /* 4.5: aberto, o nome já está à vista */
     if (!dica) { dica = document.createElement('div'); dica.className = 'rail-dica'; dica.setAttribute('role', 'tooltip'); dica.setAttribute('aria-hidden', 'true'); document.body.appendChild(dica); }
     const r = el.getBoundingClientRect(), rn = nav.getBoundingClientRect(); dica.textContent = t;
     dica.style.left = Math.round(rn.right + 12) + 'px'; dica.style.top = Math.round(r.top + r.height / 2) + 'px'; dica.classList.add('on');
@@ -34,10 +34,39 @@
     nav.addEventListener('click', some); const L = nav.querySelector('.rail-lista'); if (L) L.addEventListener('scroll', () => { some(); pontas(); }, { passive: true });
     obs = new MutationObserver(recs => { if (recs.some(r => r.target.classList && r.target.classList.contains('aba'))) poeAtivo(false); });   /* só a troca de aba (não as classes do próprio círculo) */
     obs.observe(nav, { attributes: true, attributeFilter: ['class'], subtree: true });
-    requestAnimationFrame(() => { poeAtivo(true); pontas(); });
+    requestAnimationFrame(() => { poeAtivo(true); pontas(); }); ligarAbre();   /* 4.5 */
   }
+
+  /* 4.5 (1.94): o menu do lado como o vídeo "Glassy Sidebar" do dono: a logo abre a barra num painel (por cima da tela), com os nomes; a luz
+     clara desliza atrás do item sob o mouse; escolher uma tela, tocar fora ou Esc fecha. Aberto, a etiqueta do nome não aparece */
+  const aberta = () => !!(nav && nav.classList.contains('aberta'));
+  function fecha() {
+    const f = document.getElementById('rail-fundo'); if (f) f.remove(); document.querySelectorAll('nav.lateral.aberta').forEach(x => { if (x !== nav) x.classList.remove('aberta'); });
+    if (!aberta()) return; nav.classList.remove('aberta');
+    const m = nav.querySelector('.marca'); if (m) { m.setAttribute('aria-expanded', 'false'); m.setAttribute('data-dica', m.dataset.dica0 || m.getAttribute('data-dica') || ''); }
+    const luz = nav.querySelector('.rail-luz'); if (luz) luz.classList.remove('on'); poeAtivo(true); pontas();
+  }
+  function abre() {
+    if (!nav || aberta() || innerWidth <= 820) return; some(); nav.classList.add('aberta');
+    const f = document.createElement('div'); f.id = 'rail-fundo'; f.className = 'rail-fundo'; f.setAttribute('aria-hidden', 'true'); f.addEventListener('click', fecha); document.body.appendChild(f);
+    const m = nav.querySelector('.marca'); if (m) m.setAttribute('aria-expanded', 'true'); poeAtivo(true); pontas();
+  }
+  function ligarAbre() {
+    const f0 = document.getElementById('rail-fundo'); if (f0 && !aberta()) f0.remove();   /* a barra foi trocada por uma nova (fechada): o fundo da antiga sai */
+    const m = nav.querySelector('.marca'); if (!m || m.dataset.abre) return; m.dataset.abre = '1'; m.dataset.dica0 = m.getAttribute('data-dica') || '';
+    m.setAttribute('role', 'button'); m.setAttribute('tabindex', '0'); m.setAttribute('aria-expanded', 'false'); m.setAttribute('aria-label', 'Abrir ou fechar o menu');
+    m.addEventListener('click', () => { if (aberta()) fecha(); else abre(); });
+    m.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (aberta()) fecha(); else abre(); } });
+    nav.addEventListener('click', e => { if (aberta() && e.target.closest('.rail-lista [data-aba], .quem')) setTimeout(fecha, 0); });
+    const L = nav.querySelector('.rail-lista');
+    if (L) L.addEventListener('mouseover', e => { if (!aberta()) return; const a = e.target.closest('.aba'); let luz = L.querySelector('.rail-luz');
+      if (!luz) { luz = document.createElement('span'); luz.className = 'rail-luz'; luz.setAttribute('aria-hidden', 'true'); L.prepend(luz); }
+      if (!a) return; luz.style.setProperty('--y', a.offsetTop + 'px'); luz.style.setProperty('--h', a.offsetHeight + 'px'); luz.classList.add('on'); });
+    if (L) L.addEventListener('mouseleave', () => { const luz = L.querySelector('.rail-luz'); if (luz) luz.classList.remove('on'); });
+  }
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && aberta()) fecha(); });
   const procura = () => { const n = document.querySelector('nav.lateral'); if (n && n !== nav && n.querySelector('.rail-lista')) ligar(n); };
-  window.addEventListener('resize', () => { some(); poeAtivo(true); pontas(); });
+  window.addEventListener('resize', () => { some(); if (innerWidth <= 820) fecha(); poeAtivo(true); pontas(); });
   const comecar = () => { new MutationObserver(procura).observe(document.body, { childList: true, subtree: true }); procura(); };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', comecar); else comecar();
 })();

@@ -325,6 +325,32 @@ html { scrollbar-width: none; } html::-webkit-scrollbar { width: 0; height: 0; }
 .palco.feliz .passarinho-login { animation: passaro-festa .5s var(--spring) 2; }
 @keyframes passaro-festa { 0%, 100% { transform: translate(0, 0) scaleX(-1); } 50% { transform: translate(0, -16px) scaleX(-1) rotate(-12deg); } }
 
+/* 4.5 (1.94): o menu do lado como o vídeo "Glassy Sidebar" do dono: tocar na logo abre a barra escura num painel por cima da tela, com os
+   nomes e os grupos entrando um depois do outro; o círculo claro do item aberto vira uma pílula e uma luz desliza atrás do item sob o mouse */
+@keyframes rail-larga { from { width: 76px; } }
+@keyframes rail-nome { from { opacity: 0; transform: translateX(-8px); filter: blur(4px); } }
+@keyframes rail-fundo { from { opacity: 0; } }
+@media (min-width: 821px) {
+  .lateral .marca { cursor: pointer; border-radius: 16px; }
+  .lateral .marca:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; }
+  .lateral.aberta { z-index: 45; width: 260px; align-items: stretch; padding-left: 12px; padding-right: 12px; animation: rail-larga .34s cubic-bezier(.32, .72, 0, 1) both; }
+  .lateral.aberta .marca { display: flex; align-items: center; gap: 10px; padding: 0 6px 12px; }
+  .lateral.aberta .marca > div { position: static; width: auto; height: auto; overflow: hidden; clip: auto; min-width: 0; color: #FFFBF4; white-space: nowrap; animation: rail-nome .32s cubic-bezier(.2, .8, .2, 1) .06s both; }
+  .lateral.aberta .marca > div b { display: block; font-size: 15px; } .lateral.aberta .marca > div small { color: rgba(255, 251, 244, .6); font-size: 11.5px; }
+  .lateral.aberta .rail-lista { align-items: stretch; }
+  .lateral.aberta .aba { width: 100%; justify-content: flex-start; gap: 12px; padding: 0 14px; border-radius: 14px; }
+  .lateral.aberta .aba > span:not(.cont) { position: static; width: auto; height: auto; clip: auto; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; text-align: left; font-size: 14px; font-weight: 700; animation: rail-nome .32s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(60ms + var(--k, 0) * 16ms); }
+  .lateral.aberta .aba .cont { position: static; margin-left: auto; }
+  .lateral.aberta .grupo-menu { width: auto; height: auto; margin: 10px 0 2px; padding: 0 14px; background: none; font-size: 10.5px; line-height: 1.4; color: rgba(255, 251, 244, .45); overflow: visible; animation: rail-nome .32s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(60ms + var(--k, 0) * 16ms); }
+  .lateral.aberta .rail-ativo { left: 0; width: 100%; margin-left: 0; border-radius: 14px; }
+  .lateral.aberta .quem { width: 100%; justify-content: flex-start; gap: 10px; padding: 10px 6px 0; font-size: 13px; color: rgba(255, 251, 244, .6); }
+  .lateral.aberta .quem b { position: static; width: auto; height: auto; clip: auto; overflow: hidden; text-overflow: ellipsis; color: #FFFBF4; }
+  .rail-luz { position: absolute; left: 0; top: 0; width: 100%; height: var(--h, 40px); border-radius: 14px; background: rgba(255, 251, 244, .10); transform: translateY(var(--y, 0px)); opacity: 0; pointer-events: none; z-index: 0; transition: transform .38s cubic-bezier(.3, 1.25, .5, 1), height .3s ease, opacity .2s ease; }
+  .rail-luz.on { opacity: 1; }
+  .lateral:not(.aberta) .rail-luz { display: none; }
+  .rail-fundo { position: fixed; inset: 0; z-index: 44; background: rgba(40, 30, 20, .12); animation: rail-fundo .2s ease both; }
+}
+@media (prefers-reduced-motion: reduce) { .lateral.aberta, .lateral.aberta .marca > div, .lateral.aberta .aba > span, .lateral.aberta .grupo-menu, .rail-fundo { animation: none; } .rail-luz { transition: none; } }
 @media (max-width: 1100px) { .grade { grid-template-columns: repeat(2, minmax(0, 1fr)); } .dois { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 820px) {
   .auth { grid-template-columns: minmax(0, 1fr); } .auth-marca { padding: 36px 16px 26px; } .auth-marca img { width: 84px; height: 84px; border-radius: 20px; } .auth-marca b { font-size: 32px; }
@@ -653,7 +679,7 @@ body.fin-quieto .carregando { opacity: 1 !important; pointer-events: auto !impor
 <script src="clientes.js?v=3.0"></script>
 <script src="comprovantes.js?v=3.0"></script>
 <script src="animacoes.js?v=3.2"></script>
-<script src="menu.js?v=3.2"></script>
+<script src="menu.js?v=4.5"></script>
 <script src="meta.js?v=4.0"></script>
 <script src="vivo.js?v=3.8"></script>
 <script>
@@ -806,7 +832,7 @@ function somaUni() {
 /* ---------- o app ---------- */
 /* 2.5 (1.64): a página das Finanças que ficou guardada no aparelho (a aba aberta, o app do celular ou o cache do navegador) se renova
    sozinha quando o servidor já tem outra versão. PS_PAGINA é carimbada pelo tools/build_playspace.py com a versão do Play Space. */
-const PS_PAGINA = '1.93';
+const PS_PAGINA = '1.94';
 const psMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
 function renovarSeVelha(v, naTela) {
   if (!v || !psMaior(v, PS_PAGINA)) return false;

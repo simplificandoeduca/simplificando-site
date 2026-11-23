@@ -1674,6 +1674,61 @@ svg.fx-cresce .gr-b { transform-box: fill-box; transform-origin: 50% 100%; anima
   .trilho nav.fx-anda .ab[aria-current]:not(.alerta) { animation: fx-cor .45s ease both; }
   .trilho .logo { position: relative; z-index: 1; } .trilho .ab { z-index: 1; }
 }
+/* 1.94: o menu do lado de vidro (o vídeo "Glassy Sidebar" do dono): tocar na logo abre o trilho num painel por cima da tela, com os nomes
+   entrando um depois do outro e uma luz clara que desliza atrás do item sob o mouse; escolher, tocar fora ou Esc fecha */
+.trilho .ab-n { display: none; }
+@keyframes rail-abre { from { width: 92px; } }
+@keyframes rail-nome { from { opacity: 0; transform: translateX(-8px); filter: blur(4px); } }
+@keyframes rail-fundo { from { opacity: 0; } }
+@media (min-width: 820px) {
+  .trilho button.logo { border: 0; padding: 0; background: none; cursor: pointer; border-radius: 14px; transition: transform .2s var(--spring); }
+  .trilho button.logo:hover { transform: scale(1.06); }
+  .trilho button.logo:focus-visible { outline: 3px solid var(--coral-2); outline-offset: 3px; }
+  body.rail-ab .trilho { width: var(--trilho-w, auto); z-index: 45; }
+  body.rail-ab .trilho nav { width: 252px; align-items: stretch; padding-left: 14px; padding-right: 14px; box-shadow: 0 30px 80px rgba(60, 40, 20, .26); backdrop-filter: blur(26px) saturate(1.5); animation: rail-abre .34s cubic-bezier(.32, .72, 0, 1) both; }
+  body.rail-ab .trilho .logo { align-self: flex-start; margin-left: 4px; }
+  body.rail-ab .trilho .ab { width: auto; height: 50px; justify-content: flex-start; gap: 14px; padding: 0 16px; }
+  body.rail-ab .trilho .ab b { position: static; margin-left: auto; }
+  body.rail-ab .trilho .ab-n { display: block; flex: 1; min-width: 0; font: 700 15px/1 var(--texto); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; animation: rail-nome .32s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(70ms + var(--rk, 0) * 26ms); }
+  body.rail-ab .trilho .fab { width: auto; justify-content: flex-start; gap: 12px; padding: 0 16px; }
+  body.rail-ab .trilho .fab .ab-n { color: #fff; }
+  body.rail-ab.rail-pronto .trilho nav, body.rail-ab.rail-pronto .trilho .ab-n { animation: none; }
+  body.rail-ab .trilho .av-eu { align-self: flex-start; margin-left: 6px; }
+  body.rail-ab .fx-trilho { display: none; }
+  body.rail-ab .trilho nav.fx-tem .ab[aria-current]:not(.alerta) { background: var(--tinta); color: var(--creme); }
+  .rail-luz { position: absolute; left: 0; top: 0; width: var(--w, 200px); height: var(--h, 50px); border-radius: 18px; background: rgba(255, 255, 255, .78); box-shadow: 0 6px 18px rgba(60, 40, 20, .10); transform: translate(var(--x, 0px), var(--y, 0px)); opacity: 0; pointer-events: none; z-index: 0; transition: transform .38s cubic-bezier(.3, 1.25, .5, 1), width .3s ease, height .3s ease, opacity .2s ease; }
+  .rail-luz.on { opacity: 1; }
+  body:not(.rail-ab) .rail-luz { display: none; }
+  .rail-fundo { position: fixed; inset: 0; z-index: 44; background: rgba(40, 30, 20, .10); animation: rail-fundo .2s ease both; }
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .rail-luz { background: rgba(255, 255, 255, .10); box-shadow: none; } }
+:root[data-theme="dark"] .rail-luz { background: rgba(255, 255, 255, .10); box-shadow: none; }
+@media (prefers-reduced-motion: reduce) { body.rail-ab .trilho nav, body.rail-ab .trilho .ab-n, .rail-fundo { animation: none; } .rail-luz { transition: none; } }
+:root[data-anim="leve"] body.rail-ab .trilho nav, :root[data-anim="leve"] body.rail-ab .trilho .ab-n, :root[data-anim="leve"] .rail-fundo { animation: none; } :root[data-anim="leve"] .rail-luz { transition: none; }
+/* 1.94: a senha do gestor conferida (o vídeo "Glassy OTP" do dono): os quatro quadradinhos se ligam, juntam no meio e viram o ✓ verde */
+.ok-senha { position: fixed; inset: 0; z-index: 400; display: grid; place-items: center; pointer-events: none; }
+.oks-c { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 26px 34px 20px; border-radius: 28px; background: var(--vidro); border: 1px solid var(--vidro-borda); box-shadow: 0 30px 80px rgba(40, 30, 20, .25); backdrop-filter: blur(22px) saturate(1.4); animation: oks-entra .28s cubic-bezier(.32, .72, 0, 1) both; }
+.ok-senha.sai .oks-c { animation: oks-sai .32s ease both; }
+.oks-g { position: relative; width: 116px; height: 116px; }
+.oks-g i { position: absolute; width: 44px; height: 44px; border-radius: 13px; background: rgba(63, 143, 94, .16); border: 1.5px solid rgba(63, 143, 94, .55); display: grid; place-items: center; animation: oks-junta .32s cubic-bezier(.6, 0, .4, 1) .56s both; }
+.oks-g i::after { content: ""; width: 9px; height: 9px; border-radius: 50%; background: #3F8F5E; }
+.oks-g i:nth-of-type(1) { left: 0; top: 0; --dx: 36px; --dy: 36px; } .oks-g i:nth-of-type(2) { right: 0; top: 0; --dx: -36px; --dy: 36px; }
+.oks-g i:nth-of-type(3) { left: 0; bottom: 0; --dx: 36px; --dy: -36px; } .oks-g i:nth-of-type(4) { right: 0; bottom: 0; --dx: -36px; --dy: -36px; }
+.oks-x { position: absolute; inset: 0; width: 100%; height: 100%; }
+.oks-x path { fill: none; stroke: #3F8F5E; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 110; stroke-dashoffset: 110; animation: oks-traco .3s ease .22s forwards, oks-some .2s ease .6s forwards; }
+.oks-ok { position: absolute; left: 50%; top: 50%; width: 64px; height: 64px; margin: -32px 0 0 -32px; border-radius: 18px; background: linear-gradient(160deg, #4FB177, #2F8A55); box-shadow: 0 12px 28px rgba(47, 138, 85, .45), inset 0 1px 0 rgba(255, 255, 255, .35); display: grid; place-items: center; opacity: 0; animation: oks-nasce .42s cubic-bezier(.3, 1.4, .5, 1) .78s both; }
+.oks-ok svg { width: 34px; height: 34px; fill: none; stroke: #fff; stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 30; stroke-dashoffset: 30; animation: oks-traco .3s ease 1.04s forwards; }
+.oks-c > span { font: 800 14px/1.2 var(--display); color: var(--tinta); opacity: 0; animation: oks-texto .3s ease .98s both; }
+@keyframes oks-entra { from { opacity: 0; transform: scale(.92) translateY(8px); filter: blur(6px); } }
+@keyframes oks-sai { to { opacity: 0; transform: scale(.96); filter: blur(4px); } }
+@keyframes oks-traco { to { stroke-dashoffset: 0; } }
+@keyframes oks-some { to { opacity: 0; } }
+@keyframes oks-junta { to { transform: translate(var(--dx), var(--dy)) scale(.55); opacity: 0; } }
+@keyframes oks-nasce { 0% { opacity: 0; transform: scale(.4) rotate(-18deg); } 60% { opacity: 1; transform: scale(1.08) rotate(4deg); } 100% { opacity: 1; transform: none; } }
+@keyframes oks-texto { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .oks-c, .oks-g i, .oks-x path, .oks-ok, .oks-ok svg, .oks-c > span { animation: none !important; } .oks-g i, .oks-x { display: none; } .oks-ok, .oks-c > span { opacity: 1; } .oks-ok svg { stroke-dashoffset: 0; } }
+:root[data-anim="leve"] .oks-c, :root[data-anim="leve"] .oks-g i, :root[data-anim="leve"] .oks-x path, :root[data-anim="leve"] .oks-ok, :root[data-anim="leve"] .oks-ok svg, :root[data-anim="leve"] .oks-c > span { animation: none !important; }
+:root[data-anim="leve"] .oks-g i, :root[data-anim="leve"] .oks-x { display: none; } :root[data-anim="leve"] .oks-ok, :root[data-anim="leve"] .oks-c > span { opacity: 1; } :root[data-anim="leve"] .oks-ok svg { stroke-dashoffset: 0; }
 :root[data-anim="leve"] .fx-entra, :root[data-anim="leve"] .fx-entra *, :root[data-anim="leve"] svg.fx-cresce * { animation: none !important; }
 :root[data-anim="leve"] .pn-k:hover, :root[data-anim="leve"] .cx-formas > div:hover { transform: none; }
 /* 1.91: a abertura (como o vídeo do dono): o login escorrega e some, desfocando; o menu, o cabeçalho e a coluna da direita se montam.
@@ -1911,7 +1966,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.93';
+const VERSAO = '1.94';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -3815,6 +3870,7 @@ async function pedirParcelas(el) { // pede ao gestor (aparece na tela dele) ou, 
   try { let p;
     if (MODO === 'servidor') { const r = e ? await api('pedido_decidir', { id: e.id, senha }) : await api('pedido_criar', comSenha ? { ...dados, senha } : dados); pedidosChegaram(r.pedidos, true); p = pedidoDe(r.pedido); }
     else { const r = e ? decidirPedidoPrevia(e, true, 'senha', null, senha) : criarPedidoPrevia(dados, comSenha ? senha : null); if (r.erro) throw new Error(r.erro); pedidosMudaramPrevia(true); p = r.pedido; }
+    if (comSenha || e) okSenha(p);   /* 1.94: a senha do gestor conferida */
     P.parcPed = p.id; parcAplica(p);
   } catch (err) { toast(err.message); el.disabled = false; senhaErrada('fe-parc-s', err); }
 }
@@ -3989,6 +4045,7 @@ async function altSaidaPedir(el) { // pede (aparece para quem aprova, com o avis
   try { let p;
     if (MODO === 'servidor') { const r = e ? await api('pedido_decidir', { id: e.id, senha }) : await api('pedido_criar', comSenha ? { ...d, senha } : d); pedidosChegaram(r.pedidos, true); p = pedidoDe(r.pedido); }
     else { const r = e ? decidirPedidoPrevia(e, true, 'senha', null, senha) : criarPedidoPrevia(d, comSenha ? senha : null); if (r.erro) throw new Error(r.erro); pedidosMudaramPrevia(true); p = r.pedido; }
+    if (comSenha || e) okSenha(p);   /* 1.94: a senha do gestor conferida */
     ALTS.neg = null; if (p.status === 'usado') { await altSaidaFeita(p); return; } ALTS.ped = p.id; ALTS.espera = p.status === 'pendente'; altSaidaRedesenha(true);
   } catch (err) { toast(err.message); el.disabled = false; senhaErrada('sa-alt-s', err); if (MODO === 'servidor' && err.status === 409) { try { await carregar(); } catch (e2) { } ALTS.espera = false; ALTS.ped = 0; atualizarSaida(); atualizarGrupo(); altSaidaRedesenha(true); } }
 }
@@ -4132,6 +4189,7 @@ async function pedirAlteracao(el) { // pede (aparece para quem aprova, com o avi
   try { let p;
     if (MODO === 'servidor') { const r = e ? await api('pedido_decidir', { id: e.id, senha }) : await api('pedido_criar', comSenha ? { ...d, senha } : d); pedidosChegaram(r.pedidos, true); p = pedidoDe(r.pedido); }
     else { const r = e ? decidirPedidoPrevia(e, true, 'senha', null, senha) : criarPedidoPrevia(d, comSenha ? senha : null); if (r.erro) throw new Error(r.erro); pedidosMudaramPrevia(true); p = r.pedido; }
+    if (comSenha || e) okSenha(p);   /* 1.94: a senha do gestor conferida */
     ALT.ped = p.id; ALT.lib = p.status === 'liberado' ? p : null; ALT.espera = p.status === 'pendente'; ALT.neg = null; ALT.venceu = false; altRedesenha(); altMudou();
   } catch (err) { toast(err.message); el.disabled = false; senhaErrada('pg-alt-s', err); }
 }
@@ -5099,14 +5157,51 @@ function nav() {
   const badge = k => k === 'aprovar' && nPn ? `<b>${nPn}</b>` : k === 'zap' && naoLidas() ? `<b>${naoLidas()}</b>` : (k === 'banco' && COM_WHATS && paraRenovar().length ? `<b>${paraRenovar().length}</b>` : '');
   const alerta = k => (k === 'zap' && naoLidas()) || (k === 'aprovar' && nPn) ? 'alerta' : '';   // mensagem sem resposta: a bolinha do WhatsApp fica vermelha
   const mn = menuAberto(); document.body.classList.toggle('mn', mn);   // 1.28: no computador largo, o menu aberto no lugar do trilho de ícones
-  const ladoHtml = mn ? menuHtml(nPn, badge) : `<span class="logo">${LOGO}</span>` + ABAS.map(([k, t, i]) => `<button class="ab tap ${alerta(k)}" data-ir="${k}" ${S.tela === k ? 'aria-current="page"' : ''} aria-label="${t}" title="${t}${naoLidas() && k === 'zap' ? ' · ' + naoLidas() + ' sem resposta' : ''}">${ic(IC[i])}${badge(k)}</button>`).join('') + `<span class="espaco"></span><button type="button" class="fab tap" data-act="nova" aria-label="Cadastrar criança" title="Cadastrar criança"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button><button class="av-eu tap" data-act="conta" title="${esc(EU.nomeCompleto || EU.nome)}">${esc((EU.nome || 'EU').slice(0, 2).toUpperCase())}</button>`;
+  const ladoHtml = mn ? menuHtml(nPn, badge) : `<button type="button" class="logo" aria-expanded="false" aria-label="Abrir o menu" title="Abrir o menu">${LOGO}</button>` + ABAS.map(([k, t, i]) => `<button class="ab tap ${alerta(k)}" data-ir="${k}" ${S.tela === k ? 'aria-current="page"' : ''} aria-label="${t}" title="${t}${naoLidas() && k === 'zap' ? ' · ' + naoLidas() + ' sem resposta' : ''}">${ic(IC[i])}<span class="ab-n" aria-hidden="true">${t}</span>${badge(k)}</button>`).join('') + `<span class="espaco"></span><button type="button" class="fab tap" data-act="nova" aria-label="Cadastrar criança" title="Cadastrar criança"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span class="ab-n" aria-hidden="true">Cadastrar</span></button><button class="av-eu tap" data-act="conta" title="${esc(EU.nomeCompleto || EU.nome)}">${esc((EU.nome || 'EU').slice(0, 2).toUpperCase())}</button>`;
   const lado = $('#nav-lado');
   if (ladoHtml !== NAV_CACHE || (!lado.firstChild && !document.body.classList.contains('so'))) {   // só mexe no trilho quando algo nele mudou (ou quando ele foi esvaziado na tela de entrada); o foco do teclado e a rolagem do menu ficam onde estavam
     const ae = document.activeElement, q = ae && lado.contains(ae) ? ['act', 'ir', 's', 'f', 'g'].map(a => ae.dataset[a] === undefined ? '' : `[data-${a}="${CSS.escape(ae.dataset[a])}"]`).join('') : '', rola = lado.scrollTop;
-    lado.innerHTML = ladoHtml; NAV_CACHE = ladoHtml; lado.scrollTop = rola; if (q) { const n = lado.querySelector(q); if (n) n.focus({ preventScroll: true }); } }
+    lado.innerHTML = ladoHtml; NAV_CACHE = ladoHtml; lado.scrollTop = rola; if (railAberto()) railMarca(true);   /* 1.94 */ if (q) { const n = lado.querySelector(q); if (n) n.focus({ preventScroll: true }); } }
   $('#nav-baixo').innerHTML = ABAS.map(([k, t, i]) => `<button class="${alerta(k)}" data-ir="${k}" ${S.tela === k ? 'aria-current="page"' : ''}>${ic(IC[i], 26)}<span class="vh">${t}</span>${badge(k)}</button>`).join('') + (ABAS.some(a => a[0] === 'ajustes') ? '' : `<button data-act="conta">${ic(IC.rosto, 26)}<span class="vh">Conta</span></button>`);   /* 1.75: só os ícones (o nome escondido, para o leitor de tela) */
 }
 let toastT, DESFAZ = null, NAV_CACHE = '';
+/* 1.94: a senha do gestor conferida (o vídeo "Glassy OTP" do dono): quatro quadradinhos ligados por linhas juntam no meio e viram um
+   quadrado verde com o ✓. Por cima de tudo, sem segurar nada (some sozinho em 2 s) */
+function okSenha(p, txt) {
+  if (p && p.status && !['liberado', 'usado'].includes(p.status)) return;
+  const quem = txt || (p && p.dec ? 'Liberado por ' + primeiro(p.dec) : 'Liberado');
+  const velho = document.getElementById('ok-senha'); if (velho) velho.remove();
+  const o = document.createElement('div'); o.id = 'ok-senha'; o.className = 'ok-senha'; o.setAttribute('aria-hidden', 'true');
+  o.innerHTML = `<div class="oks-c"><div class="oks-g"><svg class="oks-x" viewBox="0 0 116 116"><path d="M22 22L94 94M94 22L22 94"/></svg><i></i><i></i><i></i><i></i><b class="oks-ok"><svg viewBox="0 0 24 24"><path d="M5.5 12.5l4.2 4.2L18.5 7.8"/></svg></b></div><span>${esc(quem)}</span></div>`;
+  document.body.appendChild(o); setTimeout(() => o.classList.add('sai'), 1800); setTimeout(() => o.remove(), 2150);
+}
+/* 1.94: o menu do lado de vidro (o vídeo "Glassy Sidebar" do dono): a logo abre e fecha; escolher uma tela, tocar fora ou Esc fecha */
+const railAberto = () => document.body.classList.contains('rail-ab'); let RAIL_T = 0;
+function railMarca(ab) { const l = document.querySelector('.trilho .logo'); if (!l) return; const t = (ab ? 'Fechar' : 'Abrir') + ' o menu'; l.setAttribute('aria-expanded', ab ? 'true' : 'false'); l.setAttribute('aria-label', t); l.title = t; }
+function railFecha() {
+  clearTimeout(RAIL_T); const f = document.getElementById('rail-fundo'); if (f) f.remove();
+  if (!railAberto()) return; document.body.classList.remove('rail-ab', 'rail-pronto'); const t = document.querySelector('.trilho'); if (t) t.style.removeProperty('--trilho-w'); railMarca(false);
+}
+function railAbre() {
+  if (railAberto() || mnLigado() || innerWidth < 820) return; const t = document.querySelector('.trilho'); if (!t || !t.offsetWidth) return;
+  t.style.setProperty('--trilho-w', t.offsetWidth + 'px'); [...document.querySelectorAll('#nav-lado > *')].forEach((e, i) => e.style.setProperty('--rk', Math.min(i, 14)));
+  document.body.classList.add('rail-ab'); clearTimeout(RAIL_T); RAIL_T = setTimeout(() => { if (railAberto()) document.body.classList.add('rail-pronto'); }, 700);   /* depois de aberto, um redesenho do trilho não repete a entrada dos nomes */
+  const f = document.createElement('div'); f.id = 'rail-fundo'; f.className = 'rail-fundo'; f.setAttribute('aria-hidden', 'true'); f.addEventListener('click', railFecha); document.body.appendChild(f); railMarca(true);
+}
+document.addEventListener('click', e => {
+  const alvo = e.target && e.target.closest ? e.target : null; if (!alvo) return;
+  if (alvo.closest('.trilho .logo')) { e.preventDefault(); if (railAberto()) railFecha(); else railAbre(); return; }
+  if (railAberto() && alvo.closest('#nav-lado [data-ir], #nav-lado [data-act]')) setTimeout(railFecha, 0);
+}, true);
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && railAberto()) railFecha(); });
+window.addEventListener('resize', () => { if (railAberto() && (innerWidth < 820 || mnLigado())) railFecha(); });
+document.addEventListener('mouseover', e => {
+  if (!railAberto()) return; const nav = document.getElementById('nav-lado'); if (!nav) return;
+  const a = e.target && e.target.closest ? e.target.closest('#nav-lado .ab, #nav-lado .fab') : null; let luz = nav.querySelector('.rail-luz');
+  if (!a) { if (luz) luz.classList.remove('on'); return; }
+  if (!luz) { luz = document.createElement('span'); luz.className = 'rail-luz'; luz.setAttribute('aria-hidden', 'true'); nav.prepend(luz); }
+  luz.style.setProperty('--x', a.offsetLeft + 'px'); luz.style.setProperty('--y', a.offsetTop + 'px'); luz.style.setProperty('--w', a.offsetWidth + 'px'); luz.style.setProperty('--h', a.offsetHeight + 'px'); luz.classList.add('on');
+});
 let TOAST_ACAO = null;
 // 1.08: a faixa de baixo é só para o que precisa de atenção: um erro, o que falta para continuar, uma recusa, uma informação pedida.
 // O que deu certo não passa mais por aqui: passa por deuCerto(), logo abaixo.
@@ -6675,8 +6770,9 @@ async function decidirPedido(id, ok, el) { // liberar ou negar, com um toque
   const p = pedidoPorId(id) || (AUT_LISTA || []).find(x => x.id === +id); if (!p) { desenharPedidos(); return; }
   if (el) el.disabled = true;
   try {
-    if (MODO === 'servidor') { const r = await api('pedido_decidir', { id: p.id, ok }); pedidosChegaram(r.pedidos, true); await depoisDeDecidir(r.pedido ? pedidoDe(r.pedido) : p, ok, r.cancelada); }
-    else { const r = decidirPedidoPrevia(p, ok, 'toque', EU); if (r.erro) throw new Error(r.erro); pedidosMudaramPrevia(true); await depoisDeDecidir(p, ok, r.cancelada); }
+    if (MODO === 'servidor') { const r = await api('pedido_decidir', { id: p.id, ok }); pedidosChegaram(r.pedidos, true); if (ok) okSenha({ status: 'liberado', dec: EU.nome });   /* 1.94 */
+      await depoisDeDecidir(r.pedido ? pedidoDe(r.pedido) : p, ok, r.cancelada); }
+    else { const r = decidirPedidoPrevia(p, ok, 'toque', EU); if (r.erro) throw new Error(r.erro); pedidosMudaramPrevia(true); if (ok) okSenha({ status: 'liberado', dec: EU.nome }); await depoisDeDecidir(p, ok, r.cancelada); }
   } catch (e) { toast(e.message); if (MODO === 'servidor') { try { pedidosChegaram((await api('pulso')).ped, true); } catch (e2) { } } desenharPedidos(); if (el) el.disabled = false; if ($('#aut-corpo')) carregarAutorizacoes(); }
 }
 async function depoisDeDecidir(p, ok, canc) { // (na tela de quem decidiu) o que mudou aparece: a venda cancelada, a nota autorizada
@@ -6728,6 +6824,7 @@ async function pedirDesconto(el) { // pede ao gestor (aparece na tela dele) ou, 
   try { let p;
     if (MODO === 'servidor') { const r = e ? await api('pedido_decidir', { id: e.id, senha }) : await api('pedido_criar', comSenha ? { ...dados, senha } : dados); pedidosChegaram(r.pedidos, true); p = pedidoDe(r.pedido); }
     else { const r = e ? decidirPedidoPrevia(e, true, 'senha', null, senha) : criarPedidoPrevia(dados, comSenha ? senha : null); if (r.erro) throw new Error(r.erro); pedidosMudaramPrevia(true); p = r.pedido; }
+    if (comSenha || e) okSenha(p);   /* 1.94: a senha do gestor conferida */
     DESC.ped = p.id; DESC.lib = p.status === 'liberado' ? p : null; DESC.espera = p.status === 'pendente'; DESC.neg = null; descRedesenha(); descMudou();
   } catch (err) { toast(err.message); el.disabled = false; senhaErrada('pg-desc-s', err); }
 }
@@ -6913,6 +7010,7 @@ async function acaoNF(oque, el) { // com a senha (o pedido que esperava), marcar
   try {
     if (MODO === 'servidor') { const r = oque === 'senha' ? await api('pedido_decidir', { id: p.id, senha }) : oque === 'largar' ? await api('pedido_cancelar', { id: p.id }) : oque === 'cancelar' ? await api('nf_cancelar', { id: p.id, motivo }) : await api('nf_emitida', oque === 'voltar' ? { id: p.id, voltar: true } : { id: p.id, numero }); if (r.pedidos) pedidosChegaram(r.pedidos, true); }
     else { const r = oque === 'senha' ? decidirPedidoPrevia(p, true, 'senha', null, senha) : oque === 'largar' ? cancelarPedidoPrevia(p, pedMeu(p)) : oque === 'cancelar' ? nfCancelarPrevia(p, motivo) : nfEmitidaPrevia(p, oque === 'voltar' ? null : numero); if (r && r.erro) throw new Error(r.erro); pedidosMudaramPrevia(true); }
+    if (oque === 'senha') okSenha(pedidoPorId(p.id) || { status: 'liberado' });   /* 1.94: a nota liberada com a senha do gestor */
     await depoisDaNF();
     if (oque === 'cancelar') toast('Nota cancelada aqui. Se ainda não cancelou no Play Space Notas, cancele lá também');
   } catch (e) { toast(e.message); el.disabled = false; senhaErrada('nf-senha', e); }
