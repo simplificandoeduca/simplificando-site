@@ -1929,7 +1929,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '23 nov · 171'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '23 nov · 172'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -2228,7 +2228,7 @@ const FB = (() => {
   return { idToken, login, fetchMe, logout, toAluno, cached, signUp, signIn, resetMail, resetCheck, resetSave, setCodigo, autoLoad, autoSave, autoFlush, perfil, progresso, progLoad, deleteSelf, evento, recado, recadoLido, account:aid => { const c = cached(); return c && c.aid===aid ? toAluno(c) : null; } };
 })();
 // abriu com a conta guardada (ou voltou para o app): confere online se o personal mudou o treino ou bloqueou o acesso
-document.addEventListener('visibilitychange', () => { if(document.visibilityState==='visible') fbRefresh(); else if(FB) FB.autoFlush(); });
+document.addEventListener('visibilitychange', () => { if(document.visibilityState==='visible'){ fbRefresh(); if(ACCT) avalAsk(); } else if(FB) FB.autoFlush(); }); // o app instalado quase nunca fecha de verdade: a avaliação também é pedida ao voltar para ele
 /* aluno com personal: o iPhone separa o app da tela de início do Safari (cada um com seus dados).
    O histórico que já foi para a nuvem (treinos, cargas, cardio, água e check-in) volta para o aparelho que não tem. */
 let PROG_REST = false, PROG_OK = false; // só envia o resumo depois de ler o que já está na nuvem (senão um aparelho vazio apagaria o histórico)
@@ -2241,11 +2241,11 @@ function progRestore(){
     PROG_OK = true; if(!d){ progSync(true); return; }
     if(d.lay && (!PREF.cardioLayout || !PREF.treinoLayout)){ const c0 = PREF.cardioLayout, t0 = PREF.treinoLayout; PREF.cardioLayout = c0 || d.lay.c || undefined; PREF.treinoLayout = t0 || d.lay.t || undefined; if(PREF.cardioLayout!==c0 || PREF.treinoLayout!==t0){ S.lay = { c:PREF.cardioLayout||null, t:PREF.treinoLayout||null }; savePref(); ui.pstep = null; renderPick(); render(); } }
     let n = 0;
-    const tem = new Set(S.history.map(h => h.date+'|'+h.t));
-    (d.h||[]).forEach(h0 => { if(!h0 || !h0.d) return; const h = Object.assign({}, h0, { d:ajPara(h0.d, h0.t) }); if(tem.has(h.d+'|'+h.t)) return;
+    const tem = new Set(S.history.map(h => h.date+'|'+h.t+'|'+(h.hi||''))); // o mesmo treino feito duas vezes no dia (horários diferentes) não se perde
+    (d.h||[]).forEach(h0 => { if(!h0 || !h0.d) return; const h = Object.assign({}, h0, { d:ajPara(h0.d, h0.t) }); if(tem.has(h.d+'|'+h.t+'|'+(h0.hi||''))) return;
       const hx = { date:h0.d, t:h0.t, hi:h0.hi||'', hr:h0.hr||'', m0:h0.m0, min:h0.min||0, sets:h0.sets||0 }, aj = AJ().find(j => (j.del || +j.min>0) && ajBate(j, hx));
       if(aj && aj.del) return; // o personal excluiu este treino: não volta da nuvem
-      tem.add(h.d+'|'+h.t); n++;
+      tem.add(h.d+'|'+h.t+'|'+(h0.hi||'')); n++;
       S.history.push({ date:h.d, t:h.t, min:aj ? Math.round(+aj.min) : h.min||0, m0:aj ? (h0.m0!=null ? h0.m0 : h0.min||0) : h0.m0, hi:h0.hi||'', hr:h0.hr||'', vol:h.vol||0, sets:h.sets||0, prs:[], rpe:h.rpe||0, note:h.note||'', gym:h.gym||'', ex:h.ex||null, nuvem:true });
       (h.ex||[]).forEach(e => { if(!e || !e.id || !(e.s||[]).length) return; const mk = Math.max(...e.s.map(z => +z[0]||0)); if(!mk) return;
         const top = e.s.filter(z => +z[0]===mk), old = S.last[e.id];
@@ -2848,7 +2848,7 @@ function instAsk(){
   instT = setInterval(() => { // espera as outras perguntas do começo (layout e acompanhamento) saírem da tela
     if(++n > 60 || !S || S.inst!=='novo'){ clearInterval(instT); return; }
     const livre = ACCT && !ui.sheet && !document.getElementById('login') && !document.getElementById('pick') && !document.querySelector('.wel');
-    if(livre){ clearInterval(instT); SITE_FEITO = true; ui.sheet = {k:'baixar', st:'ini'}; renderSheet(true); }
+    if(livre){ clearInterval(instT); SITE_FEITO = true; SITE_EM = Date.now(); ui.sheet = {k:'baixar', st:'ini'}; renderSheet(true); }
   }, 1500);
 }
 const instPasso = (n, t, extra) => `<li><span class="in-n">${n}</span><span>${t}</span>${extra||''}</li>`;
@@ -2887,15 +2887,16 @@ function vInst(){
   return `<div class="sheet-wrap" data-a="inst-x"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t" tabindex="-1">${top.replace('data-a="close"','data-a="inst-x"')}${pq}${corpo}
     <button type="button" class="btn ghost block" data-a="inst-ok">${ANDROID && INST_EV ? 'Agora não' : 'Pronto, já coloquei'}</button></div></div>`;
 }
-let siteT = 0, SITE_FEITO = false;
+let siteT = 0, SITE_FEITO = false, SITE_EM = 0;
 function siteAsk(){
   clearInterval(siteT); if(SITE_FEITO || !instMobile() || !S || S.example) return;
+  if(avalPode()) return; // dia de pedir a avaliação: o "Baixe nosso app" fica para a próxima vez (senão quem usa pelo navegador nunca chega a avaliar)
   let n = 0;
   siteT = setInterval(() => {
     if(++n > 80 || SITE_FEITO || !S){ clearInterval(siteT); return; }
     if(S.inst==='novo' || S.session) return; // a conta recém-criada já recebe o "Último passo"; no meio do treino não atrapalha
     const livre = ACCT && !ui.sheet && !document.getElementById('login') && !document.getElementById('pick') && !document.querySelector('.wel') && (S.acomp || !acompPode() || isPersonal());
-    if(livre){ clearInterval(siteT); SITE_FEITO = true; ui.sheet = {k:'baixar', st:'ini'}; renderSheet(true); }
+    if(livre){ clearInterval(siteT); SITE_FEITO = true; SITE_EM = Date.now(); ui.sheet = {k:'baixar', st:'ini'}; renderSheet(true); }
   }, 1500);
 }
 function vSite(){
@@ -2913,7 +2914,7 @@ const AVAL_AREAS = [
   ['visual','Visual','#E08A00','<path d="M10.5 2.5l2 5.4 5.4 2-5.4 2-2 5.4-2-5.4-5.4-2 5.4-2z"/><path d="M18 13.5l1 2.6 2.6 1-2.6 1-1 2.6-1-2.6-2.6-1 2.6-1z"/><circle cx="5.5" cy="18.5" r="1.7"/>']
 ];
 const avIc = (svg, cor) => `<span class="av-ic" style="--c:${cor}"><svg viewBox="0 0 24 24" aria-hidden="true">${svg}</svg></span>`;
-let avalT = 0, AVAL_FEITO = false;
+let avalT = 0, AVAL_FEITO = ''; // o dia em que a janela já apareceu nesta abertura do app
 function avalUsoIni(){ // primeiro dia em que a pessoa usou o app (treino, cardio ou água)
   const D = [].concat((S.history||[]).map(h => h.date), (S.cardio||[]).map(c => c.date), Object.keys(S.water||{}).filter(k => +S.water[k]>0)).filter(Boolean).sort();
   return D[0] || '';
@@ -2923,13 +2924,13 @@ function avalPode(){ const t = today(); if(!S || S.example || t < AVAL_INI) retu
   const g = S.aval || {}; if(g.ign===t) return false; // ignorou hoje: pede de novo amanhã (até avaliar)
   return !g.ult || diffDays(t, g.ult) >= AVAL_DIAS; }
 function avalAsk(){
-  clearInterval(avalT); if(AVAL_FEITO || !avalPode()) return;
+  clearInterval(avalT); if(AVAL_FEITO===today() || !avalPode()) return;
   let n = 0;
   avalT = setInterval(() => {
-    if(++n > 120 || AVAL_FEITO || !avalPode()){ clearInterval(avalT); return; }
-    if(S.session || S.inst==='novo' || SITE_FEITO) return; // no meio do treino, logo depois de criar a conta ou na mesma abertura do "Baixe nosso app", não
+    if(++n > 120 || AVAL_FEITO===today() || !avalPode()){ clearInterval(avalT); return; }
+    if(S.session || S.inst==='novo' || Date.now()-SITE_EM < 10*60e3) return; // no meio do treino, logo depois de criar a conta ou logo depois do "Baixe nosso app", não
     const livre = ACCT && !ui.sheet && !document.getElementById('login') && !document.getElementById('pick') && !document.querySelector('.wel') && !document.querySelector('.stp') && (S.acomp || !acompPode() || isPersonal());
-    if(livre){ clearInterval(avalT); AVAL_FEITO = true; ui.sheet = {k:'aval', notas:{}}; renderSheet(true); }
+    if(livre){ clearInterval(avalT); AVAL_FEITO = today(); ui.sheet = {k:'aval', notas:{}}; renderSheet(true); }
   }, 2000);
 }
 function vAval(){
@@ -3461,7 +3462,7 @@ function suFinish(mode){
   s.conta = { sexo, peso:num(f.peso)||null, email:LG.uidMail||'', plan:mode, treinos: mode==='ia' && f.plan ? f.plan : {}, ia: mode==='ia' ? JSON.parse(JSON.stringify(IQ)) : null, semana: mode==='ia' ? iqN(IQ) : 0, dias:[] };
   s.aceite = aceiteNovo(true); s._em = Date.now(); s.inst = LG.step===8 ? 'feito' : 'novo'; // passou pelo "Instale o app": não pergunta de novo agora
   if(LG.step===8 && acompPodeSu()) s.acomp = { on:!!f.acomp, em:Date.now() };
-  if(LG.step===8) SITE_FEITO = true; // já viu o "Instale o app": nada de "Baixe nosso app" nesta visita
+  if(LG.step===8){ SITE_FEITO = true; SITE_EM = Date.now(); } // já viu o "Instale o app": nada de "Baixe nosso app" nesta visita
   try { localStorage.setItem(autoKey(uid), JSON.stringify(s)); } catch(e){ /* sem armazenamento */ }
   if(FB){ FB.autoSave(uid, s, true); FB.perfil({ tipo:'autonomo', nome, email:LG.uidMail||'', sexo, objetivo:f.ed, plano:mode, treinos:mode==='ia' && f.plan ? Object.keys(f.plan).length : 0, criadoEm:Date.now(), ultimoAcesso:Date.now(), aceite:{ v:s.aceite.v, em:s.aceite.em }, acomp:!!(s.acomp && s.acomp.on), ver:APPV }); }
   writeSess({mode:'self', uid}); LG.view = 'login'; LG.step = 1; LG.f = LGF0(); LG.uid = null; LG.uidMail = '';

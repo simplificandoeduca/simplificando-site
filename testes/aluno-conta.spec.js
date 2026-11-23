@@ -147,3 +147,20 @@ test('avaliação do app: "Agora não" pede de novo no dia seguinte (até avalia
   await page.clock.fastForward(14 * 24 * 3600e3);                          // +14 dias (15 desde a avaliação)
   expect(await simp(page, () => window.__simp.avalPode())).toBe(true);
 });
+
+test('avaliação do app: aparece também ao voltar para o app (sem fechar) e no dia seguinte, se a pessoa disse "Agora não"', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-11-23T10:00:00-03:00') });
+  await criaConta(page, { nome: 'Lia Volta' }); await semJanelas(page);
+  await simp(page, () => { const T = window.__simp; T.S.aval = { ult: T.daysAgo(20) }; T.S.acomp = { on: false, em: 1 }; T.S.inst = 'ok'; T.save(); });
+  // volta para o app mais tarde (o app instalado quase nunca fecha de verdade): a janela aparece
+  await page.clock.fastForward(11 * 60e3); // logo depois do cadastro ("Instale o app"), não
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await page.clock.fastForward(5000);
+  await expect(page.locator('#sheet [data-a="av-go"]')).toBeVisible();
+  await page.click('#sheet button[data-a="av-x"]');                   // "Agora não"
+  // no dia seguinte, sem recarregar a página, ao voltar para o app ela aparece de novo
+  await page.clock.fastForward(24 * 3600e3);
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await page.clock.fastForward(5000);
+  await expect(page.locator('#sheet [data-a="av-go"]')).toBeVisible();
+});

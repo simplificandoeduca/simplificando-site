@@ -8,7 +8,7 @@ function instAsk(){
   instT = setInterval(() => { // espera as outras perguntas do começo (layout e acompanhamento) saírem da tela
     if(++n > 60 || !S || S.inst!=='novo'){ clearInterval(instT); return; }
     const livre = ACCT && !ui.sheet && !document.getElementById('login') && !document.getElementById('pick') && !document.querySelector('.wel');
-    if(livre){ clearInterval(instT); SITE_FEITO = true; ui.sheet = {k:'baixar', st:'ini'}; renderSheet(true); }
+    if(livre){ clearInterval(instT); SITE_FEITO = true; SITE_EM = Date.now(); ui.sheet = {k:'baixar', st:'ini'}; renderSheet(true); }
   }, 1500);
 }
 const instPasso = (n, t, extra) => `<li><span class="in-n">${n}</span><span>${t}</span>${extra||''}</li>`;
@@ -47,15 +47,16 @@ function vInst(){
   return `<div class="sheet-wrap" data-a="inst-x"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t" tabindex="-1">${top.replace('data-a="close"','data-a="inst-x"')}${pq}${corpo}
     <button type="button" class="btn ghost block" data-a="inst-ok">${ANDROID && INST_EV ? 'Agora não' : 'Pronto, já coloquei'}</button></div></div>`;
 }
-let siteT = 0, SITE_FEITO = false;
+let siteT = 0, SITE_FEITO = false, SITE_EM = 0;
 function siteAsk(){
   clearInterval(siteT); if(SITE_FEITO || !instMobile() || !S || S.example) return;
+  if(avalPode()) return; // dia de pedir a avaliação: o "Baixe nosso app" fica para a próxima vez (senão quem usa pelo navegador nunca chega a avaliar)
   let n = 0;
   siteT = setInterval(() => {
     if(++n > 80 || SITE_FEITO || !S){ clearInterval(siteT); return; }
     if(S.inst==='novo' || S.session) return; // a conta recém-criada já recebe o "Último passo"; no meio do treino não atrapalha
     const livre = ACCT && !ui.sheet && !document.getElementById('login') && !document.getElementById('pick') && !document.querySelector('.wel') && (S.acomp || !acompPode() || isPersonal());
-    if(livre){ clearInterval(siteT); SITE_FEITO = true; ui.sheet = {k:'baixar', st:'ini'}; renderSheet(true); }
+    if(livre){ clearInterval(siteT); SITE_FEITO = true; SITE_EM = Date.now(); ui.sheet = {k:'baixar', st:'ini'}; renderSheet(true); }
   }, 1500);
 }
 function vSite(){
@@ -73,7 +74,7 @@ const AVAL_AREAS = [
   ['visual','Visual','#E08A00','<path d="M10.5 2.5l2 5.4 5.4 2-5.4 2-2 5.4-2-5.4-5.4-2 5.4-2z"/><path d="M18 13.5l1 2.6 2.6 1-2.6 1-1 2.6-1-2.6-2.6-1 2.6-1z"/><circle cx="5.5" cy="18.5" r="1.7"/>']
 ];
 const avIc = (svg, cor) => `<span class="av-ic" style="--c:${cor}"><svg viewBox="0 0 24 24" aria-hidden="true">${svg}</svg></span>`;
-let avalT = 0, AVAL_FEITO = false;
+let avalT = 0, AVAL_FEITO = ''; // o dia em que a janela já apareceu nesta abertura do app
 function avalUsoIni(){ // primeiro dia em que a pessoa usou o app (treino, cardio ou água)
   const D = [].concat((S.history||[]).map(h => h.date), (S.cardio||[]).map(c => c.date), Object.keys(S.water||{}).filter(k => +S.water[k]>0)).filter(Boolean).sort();
   return D[0] || '';
@@ -83,13 +84,13 @@ function avalPode(){ const t = today(); if(!S || S.example || t < AVAL_INI) retu
   const g = S.aval || {}; if(g.ign===t) return false; // ignorou hoje: pede de novo amanhã (até avaliar)
   return !g.ult || diffDays(t, g.ult) >= AVAL_DIAS; }
 function avalAsk(){
-  clearInterval(avalT); if(AVAL_FEITO || !avalPode()) return;
+  clearInterval(avalT); if(AVAL_FEITO===today() || !avalPode()) return;
   let n = 0;
   avalT = setInterval(() => {
-    if(++n > 120 || AVAL_FEITO || !avalPode()){ clearInterval(avalT); return; }
-    if(S.session || S.inst==='novo' || SITE_FEITO) return; // no meio do treino, logo depois de criar a conta ou na mesma abertura do "Baixe nosso app", não
+    if(++n > 120 || AVAL_FEITO===today() || !avalPode()){ clearInterval(avalT); return; }
+    if(S.session || S.inst==='novo' || Date.now()-SITE_EM < 10*60e3) return; // no meio do treino, logo depois de criar a conta ou logo depois do "Baixe nosso app", não
     const livre = ACCT && !ui.sheet && !document.getElementById('login') && !document.getElementById('pick') && !document.querySelector('.wel') && !document.querySelector('.stp') && (S.acomp || !acompPode() || isPersonal());
-    if(livre){ clearInterval(avalT); AVAL_FEITO = true; ui.sheet = {k:'aval', notas:{}}; renderSheet(true); }
+    if(livre){ clearInterval(avalT); AVAL_FEITO = today(); ui.sheet = {k:'aval', notas:{}}; renderSheet(true); }
   }, 2000);
 }
 function vAval(){

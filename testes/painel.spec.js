@@ -312,7 +312,8 @@ test('Hub (/hub): números reais e um bloco para cada espaço; Números saiu das
   await expect(page.locator('#tabs')).toBeHidden();
   // cores do anel do logo: App do aluno vermelho, Painel laranja, Números lilás; a hora anda depois da data
   // (espera: o hub se redesenha quando os números chegam)
-  await expect.poll(() => page.locator('.hb-bl').evaluateAll(L => L.map(x => getComputedStyle(x).backgroundColor))).toEqual(['rgb(255, 70, 70)', 'rgb(255, 154, 46)', 'rgb(183, 148, 255)', 'rgb(200, 245, 66)']);
+  // depois Painel de teste (azul), Finanças (amarelo), Site (creme) e, por último, Conteúdo (verde)
+  await expect.poll(() => page.locator('.hb-bl').evaluateAll(L => L.map(x => getComputedStyle(x).backgroundColor))).toEqual(['rgb(255, 70, 70)', 'rgb(255, 154, 46)', 'rgb(183, 148, 255)', 'rgb(90, 184, 255)', 'rgb(255, 210, 63)', 'rgb(246, 245, 239)', 'rgb(200, 245, 66)']);
   await expect(page.locator('#hb-hora')).toHaveText(/^\d\d:\d\d:\d\d$/);
   const h1 = await page.locator('#hb-hora').textContent();
   await expect.poll(() => page.locator('#hb-hora').textContent(), { timeout: 5000 }).not.toBe(h1); // o relógio anda
@@ -327,11 +328,11 @@ test('Hub (/hub): números reais e um bloco para cada espaço; Números saiu das
   await velho.waitForFunction(() => window.__painel && window.__painel.Store.loaded, null, { timeout: 20000 });
   await expect(velho.locator('.hub')).toHaveCount(0); await expect(velho).toHaveURL(/#painel$/); await velho.close();
   // cada bloco abre em outra aba: o app de teste, o painel e Números (o Conteúdo abre no próprio hub)
-  expect(await page.locator('.hb-bl').evaluateAll(L => L.map(a => [a.getAttribute('href'), a.getAttribute('target')]))).toEqual([['/app-teste/', '_blank'], ['/personal/#painel', '_blank'], ['/personal/#estatisticas', '_blank'], ['#conteudo', null]]);
-  expect(await page.locator('a.hb-ms').evaluateAll(L => L.map(a => a.getAttribute('href')))).toEqual(['/financas/', '/personal/teste/', '/']);
-  // Atualizar o site fica no hub, ao lado de Site
-  await expect(page.locator('.hb-mais .hb-atu')).toContainText('Atualizar');
-  expect(await page.locator('.hb-mais > *').evaluateAll(L => L.map(x => x.getAttribute('href') || x.dataset.a))).toEqual(['/financas/', '/personal/teste/', '/', 'atuGo']); // Atualizar ao lado de Site
+  expect(await page.locator('.hb-bl').evaluateAll(L => L.map(a => [a.getAttribute('href'), a.getAttribute('target')]))).toEqual([['/app-teste/', '_blank'], ['/personal/#painel', '_blank'], ['/personal/#estatisticas', '_blank'], ['/personal/teste/', '_blank'], ['/financas/', '_blank'], ['/', '_blank'], ['#conteudo', null]]);
+  await expect(page.locator('.hb-mais .hb-atu')).toContainText('Atualizar'); // o Atualizar fica pequeno, embaixo
+  expect(await page.locator('.hb-mais > *').count()).toBe(1);
+  const tam = await page.locator('.hb-bl').evaluateAll(L => L.map(x => Math.round(x.getBoundingClientRect().height)));
+  expect(tam.every(h => h >= 170)).toBe(true); // todos são blocos grandes (nenhum botão pequeno)
   // modo claro e escuro (só do hub)
   await expect(page.locator('body')).not.toHaveClass(/hub-claro/);
   await page.click('[data-a="hubTema"]');
@@ -342,7 +343,7 @@ test('Hub (/hub): números reais e um bloco para cada espaço; Números saiu das
   // logo do hub: "H." preto no fundo branco
   await expect(page.locator('.hb-av svg')).toHaveAttribute('aria-label', 'Hub');
   // Painel de teste abre a versão de teste (e não volta para o painel normal)
-  const [tp] = await Promise.all([page.context().waitForEvent('page'), page.click('.hb-ms[data-teste]')]);
+  const [tp] = await Promise.all([page.context().waitForEvent('page'), page.click('.hb-bl[data-teste]')]);
   await tp.waitForFunction(() => window.__painel && window.__painel.Store.loaded, null, { timeout: 20000 });
   await expect(tp).toHaveURL(/\/personal\/teste\/(#.*)?$/);
   await tp.close();

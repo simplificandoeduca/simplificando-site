@@ -118,7 +118,7 @@ const FB = (() => {
   return { idToken, login, fetchMe, logout, toAluno, cached, signUp, signIn, resetMail, resetCheck, resetSave, setCodigo, autoLoad, autoSave, autoFlush, perfil, progresso, progLoad, deleteSelf, evento, recado, recadoLido, account:aid => { const c = cached(); return c && c.aid===aid ? toAluno(c) : null; } };
 })();
 // abriu com a conta guardada (ou voltou para o app): confere online se o personal mudou o treino ou bloqueou o acesso
-document.addEventListener('visibilitychange', () => { if(document.visibilityState==='visible') fbRefresh(); else if(FB) FB.autoFlush(); });
+document.addEventListener('visibilitychange', () => { if(document.visibilityState==='visible'){ fbRefresh(); if(ACCT) avalAsk(); } else if(FB) FB.autoFlush(); }); // o app instalado quase nunca fecha de verdade: a avaliação também é pedida ao voltar para ele
 /* aluno com personal: o iPhone separa o app da tela de início do Safari (cada um com seus dados).
    O histórico que já foi para a nuvem (treinos, cargas, cardio, água e check-in) volta para o aparelho que não tem. */
 let PROG_REST = false, PROG_OK = false; // só envia o resumo depois de ler o que já está na nuvem (senão um aparelho vazio apagaria o histórico)
@@ -131,11 +131,11 @@ function progRestore(){
     PROG_OK = true; if(!d){ progSync(true); return; }
     if(d.lay && (!PREF.cardioLayout || !PREF.treinoLayout)){ const c0 = PREF.cardioLayout, t0 = PREF.treinoLayout; PREF.cardioLayout = c0 || d.lay.c || undefined; PREF.treinoLayout = t0 || d.lay.t || undefined; if(PREF.cardioLayout!==c0 || PREF.treinoLayout!==t0){ S.lay = { c:PREF.cardioLayout||null, t:PREF.treinoLayout||null }; savePref(); ui.pstep = null; renderPick(); render(); } }
     let n = 0;
-    const tem = new Set(S.history.map(h => h.date+'|'+h.t));
-    (d.h||[]).forEach(h0 => { if(!h0 || !h0.d) return; const h = Object.assign({}, h0, { d:ajPara(h0.d, h0.t) }); if(tem.has(h.d+'|'+h.t)) return;
+    const tem = new Set(S.history.map(h => h.date+'|'+h.t+'|'+(h.hi||''))); // o mesmo treino feito duas vezes no dia (horários diferentes) não se perde
+    (d.h||[]).forEach(h0 => { if(!h0 || !h0.d) return; const h = Object.assign({}, h0, { d:ajPara(h0.d, h0.t) }); if(tem.has(h.d+'|'+h.t+'|'+(h0.hi||''))) return;
       const hx = { date:h0.d, t:h0.t, hi:h0.hi||'', hr:h0.hr||'', m0:h0.m0, min:h0.min||0, sets:h0.sets||0 }, aj = AJ().find(j => (j.del || +j.min>0) && ajBate(j, hx));
       if(aj && aj.del) return; // o personal excluiu este treino: não volta da nuvem
-      tem.add(h.d+'|'+h.t); n++;
+      tem.add(h.d+'|'+h.t+'|'+(h0.hi||'')); n++;
       S.history.push({ date:h.d, t:h.t, min:aj ? Math.round(+aj.min) : h.min||0, m0:aj ? (h0.m0!=null ? h0.m0 : h0.min||0) : h0.m0, hi:h0.hi||'', hr:h0.hr||'', vol:h.vol||0, sets:h.sets||0, prs:[], rpe:h.rpe||0, note:h.note||'', gym:h.gym||'', ex:h.ex||null, nuvem:true });
       (h.ex||[]).forEach(e => { if(!e || !e.id || !(e.s||[]).length) return; const mk = Math.max(...e.s.map(z => +z[0]||0)); if(!mk) return;
         const top = e.s.filter(z => +z[0]===mk), old = S.last[e.id];
