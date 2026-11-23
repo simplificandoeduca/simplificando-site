@@ -101,6 +101,14 @@ service cloud.firestore {
       allow read, delete: if dono();
       allow update: if dono() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lida', 'resp']);
     }
+    // registro da janela de avaliação (apareceu, "Agora não" ou enviou): cada conta só cria o seu; só o dono lê
+    match /avalUso/{id} {
+      allow create: if logado() && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['uid', 'nome', 'tipo', 'acao', 'em', 'ver'])
+        && request.resource.data.acao in ['viu', 'agora-nao', 'enviou']
+        && request.resource.data.em is int;
+      allow read, delete: if dono();
+    }
     // avaliação do app a cada 15 dias (estrelas de 1 a 5 por área e um recado opcional):
     // cada conta só cria a sua; só o dono do painel lê, marca como lida ou apaga
     match /avaliacoes/{id} {

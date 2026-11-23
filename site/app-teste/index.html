@@ -1926,7 +1926,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simpteste-aluno-pro-v2';
-const APPV = '23 nov · 172'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '23 nov · 173'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -2928,7 +2928,7 @@ function avalAsk(){
     if(++n > 120 || AVAL_FEITO===today() || !avalPode()){ clearInterval(avalT); return; }
     if(S.session || S.inst==='novo' || Date.now()-SITE_EM < 10*60e3) return; // no meio do treino, logo depois de criar a conta ou logo depois do "Baixe nosso app", não
     const livre = ACCT && !ui.sheet && !document.getElementById('login') && !document.getElementById('pick') && !document.querySelector('.wel') && !document.querySelector('.stp') && (S.acomp || !acompPode() || isPersonal());
-    if(livre){ clearInterval(avalT); AVAL_FEITO = today(); ui.sheet = {k:'aval', notas:{}}; renderSheet(true); }
+    if(livre){ clearInterval(avalT); AVAL_FEITO = today(); ui.sheet = {k:'aval', notas:{}}; renderSheet(true); avalReg('viu'); }
   }, 2000);
 }
 function vAval(){
@@ -2941,7 +2941,10 @@ function vAval(){
     <button type="button" class="btn primary block" data-a="av-go"${Object.keys(n).length ? '' : ' disabled'}>Enviar notas</button>
     <button type="button" class="btn ghost block" data-a="av-x">Agora não</button></div></div>`;
 }
-function avalFim(enviou){ const g = S.aval || (S.aval = {}); if(enviou){ g.ult = today(); g.env = today(); delete g.ign; } else g.ign = today(); save(); } // "Agora não": volta amanhã; avaliou: só daqui a 15 dias
+// registro da janela (para o painel saber se apareceu e se a pessoa ignorou): uma vez por ação por dia
+function avalReg(acao){ if(!FB || !ACCT || typeof quem!=='function') return; const g = S.aval || (S.aval = {}), k = acao+'|'+today(); if((g.reg||[]).includes(k)) return; g.reg = (g.reg||[]).filter(x => x.slice(-10)===today()).concat(k); save();
+  FB.evento('avalUso', Object.assign(quem(), { acao, em:Date.now(), ver:APPV })).catch(() => {}); }
+function avalFim(enviou){ avalReg(enviou ? 'enviou' : 'agora-nao'); const g = S.aval || (S.aval = {}); if(enviou){ g.ult = today(); g.env = today(); delete g.ign; } else g.ign = today(); save(); } // "Agora não": volta amanhã; avaliou: só daqui a 15 dias
 function avalEnviar(b){
   const s2 = ui.sheet; if(!s2 || s2.k!=='aval') return;
   const notas = Object.assign({}, s2.notas || {}); if(!Object.keys(notas).length){ toast('Toque nas estrelas de pelo menos uma área.'); return; }

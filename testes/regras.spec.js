@@ -84,6 +84,13 @@ test('recado no app: só o dono escreve; a pessoa lê o seu e só marca como lid
   expect(await grava(AUT, 'sugestoes/sf2-' + id, { uid: AUT, nome: 'A', tipo: 'autonomo', texto: '', em: 1, ver: 'x' })).toBe(nao);
   expect(await grava(AUT, 'sugestoes/sf3-' + id, { uid: AUT, nome: 'A', tipo: 'autonomo', texto: 'x', em: 1, ver: 'x', foto: 'a'.repeat(820000) })).toBe(nao);
 });
+test('registro da janela de avaliação: a conta cria o seu (viu, agora-nao, enviou); só o dono lê', async () => {
+  expect(await grava(AUT, 'avalUso/u1-' + id, { uid: AUT, nome: 'A', tipo: 'autonomo', acao: 'viu', em: 1, ver: 'x' })).toBe(ok);
+  expect(await grava(AUT, 'avalUso/u2-' + id, { uid: AUT, nome: 'A', tipo: 'autonomo', acao: 'outra', em: 1, ver: 'x' })).toBe(nao);
+  expect(await grava(AUT, 'avalUso/u3-' + id, { uid: OUTRO, nome: 'A', tipo: 'autonomo', acao: 'viu', em: 1, ver: 'x' })).toBe(nao);
+  expect(await le(AUT, 'avalUso/u1-' + id)).toBe(nao);
+  expect(await le(DONO, 'avalUso/u1-' + id)).toBe(ok);
+});
 test('senha nova do aluno (6 números): só a própria e só número', async () => {
   expect(await grava(ALU, 'codigos/' + ALU, { codigo: '123456', em: 1 })).toBe(ok);
   expect(await grava(ALU, 'codigos/' + ALU, { codigo: '12ab56', em: 1 })).toBe(nao);

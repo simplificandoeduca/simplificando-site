@@ -280,6 +280,23 @@ test('Sugestão respondida: a pessoa manda uma sugestão, o dono responde em Nú
   await expect(page.locator('.est-s', { hasText: 'Ainda falta o treino de ontem' }).locator('.est-foto img')).toBeVisible({ timeout: 15000 });
 });
 
+test('Avaliação do app: o painel conta quem viu a janela e quem tocou em "Agora não"', async ({ page, browser }) => {
+  const app = await (await browser.newContext()).newPage();
+  await app.clock.install();
+  await criaConta(app, { emu: true, nome: 'Vera Aval', objetivo: 'hipertrofia' }); await semJanelas(app);
+  await app.evaluate(() => { const T = window.__simp; T.S.aval = { ult: T.daysAgo(20) }; T.S.acomp = { on: false, em: 1 }; T.S.inst = 'ok'; T.save(); });
+  // abre a janela do jeito do app (ela registra que apareceu) e a pessoa toca em "Agora não"
+  await app.clock.fastForward(11 * 60e3); // logo depois do cadastro ("Instale o app") a avaliação não aparece
+  await app.evaluate(() => document.dispatchEvent(new Event('visibilitychange'))); await app.clock.fastForward(5000);
+  await expect(app.locator('#sheet [data-a="av-go"]')).toBeVisible({ timeout: 15000 });
+  await app.click('#sheet button[data-a="av-x"]');
+  await expect.poll(async () => (await fsLista('avalUso')).filter(x => x.f.nome && x.f.nome.stringValue === 'Vera Aval').map(x => x.f.acao.stringValue).sort().join(','), { timeout: 15000 }).toBe('agora-nao,viu');
+  await entraPainel(page);
+  await page.goto(EMU + '/personal/#estatisticas'); await page.waitForTimeout(1500);
+  await expect(page.locator('.av-uso')).toContainText('viu a janela', { timeout: 15000 });
+  await expect(page.locator('.av-uso')).toContainText('tocaram em “Agora não”');
+});
+
 test('Alunos e Perfis: marquinha laranja "+3 dias sem acessar" e vermelha "+10 dias sem acessar"', async ({ page }) => {
   const FSB = 'http://127.0.0.1:8080/v1/projects/demo-simplificando/databases/(default)/documents/perfis/';
   const muda = (uid, dias) => fetch(FSB + uid + '?updateMask.fieldPaths=ultimoAcesso', { method: 'PATCH', headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: { ultimoAcesso: { integerValue: String(Date.now() - dias * 864e5) } } }) });
