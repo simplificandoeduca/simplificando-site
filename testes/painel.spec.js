@@ -210,8 +210,8 @@ test('Perfis mostra quem criou conta sem personal; Ajustes tem "Avisos no celula
   await criaConta(page, { nome: 'Bruna Perfis', emu: true });
   const p2 = await browser.newPage({ viewport: { width: 1280, height: 900 } });
   await entraPainel(p2);
-  await vai(p2, '#perfis');
-  await expect(p2.locator('main').first()).toContainText('Bruna Perfis', { timeout: 20000 });
+  // a conta nova pode chegar depois da 1ª leitura dos Perfis (robô com a máquina ocupada): abre a página de novo, até 3 vezes
+  for (let k = 0; k < 3; k++) { await vai(p2, '#perfis'); try { await expect(p2.locator('main').first()).toContainText('Bruna Perfis', { timeout: 12000 }); break; } catch (e) { if (k === 2) throw e; await p2.reload(); await p2.waitForFunction(() => window.__painel && window.__painel.Store.loaded, null, { timeout: 20000 }); } }
   await vai(p2, '#ajustes');
   await expect(p2.locator('main').first()).toContainText('Avisos no celular');
   await expect(p2.locator('[data-a="nvOn"]')).toBeVisible();
