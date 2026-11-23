@@ -2607,7 +2607,7 @@ function hubAtu(){
   if(ATU.st==='sem') return ''; // fora do site (prévia ou teste): o botão não aparece
   const vnum = v => +((String(v||'').match(/·\s*(\d+)/)||[])[1]||0), nova = ATU.nova && vnum(ATU.nova) > vnum(PAINELV), indo = ATU.st==='indo';
   const sub = indo ? 'baixando…' : ATU.st==='vendo' ? 'procurando…' : nova ? 'versão '+ATU.nova.replace(/^.*·\s*/,'')+' pronta' : ATU.testando ? 'testando a '+ATU.testando.replace(/^.*·\s*/,'') : 'em dia · '+PAINELV.replace(/^.*·\s*/,'');
-  return '<button type="button" class="hb-bl creme hb-atu'+(nova ? ' nova' : '')+'" data-a="atuGo"'+(indo ? ' disabled' : '')+'><p class="hb-eb">'+(nova ? 'Versão nova pronta' : 'Site, app e painel')+'</p><h2>'+(indo ? 'Atualizando' : 'Atualizar')+'.</h2><p class="hb-d">'+esc(sub.charAt(0).toUpperCase()+sub.slice(1))+'</p><span class="hb-go">'+ic('refresh')+'</span><span class="hb-num"><b>'+vnum(PAINELV)+'</b><span>versão atual</span></span></button>';
+  return '<button type="button" class="hb-ms hb-atu'+(nova ? ' nova' : '')+'" data-a="atuGo"'+(indo ? ' disabled' : '')+'><span>'+ic('refresh')+'</span><i>'+(indo ? 'Atualizando' : 'Atualizar')+'<em>'+esc(sub)+'</em></i></button>';
 }
 /* senha do hub: guardada embaralhada no servidor (hub-login.php), nunca no código. O dono cria aqui, já logado */
 const HUBS = { tem:null, vendo:false, aberto:false, v1:'', v2:'', msg:'', indo:false };
@@ -2663,12 +2663,12 @@ function vHub(){
       bl('red', '/app-teste/', 'Versão de teste', 'App do aluno', 'Já entra com um aluno de teste, sempre com as novidades.', v(n.hoje), n.hoje===1 ? 'treinou hoje' : 'treinaram hoje', true)+
       bl('orange', '/personal/#painel', 'Onde você trabalha', 'Painel', 'Alunos, treinos, mensagens e financeiro.', ok ? n.atencao : '…', n.atencao===1 ? 'pede atenção' : 'pedem atenção', true)+
       bl('lilas', '/personal/#estatisticas', 'Como está indo', 'Números', 'Avaliações, sugestões, stories e comprovantes.', v(n.sug), n.sug===1 ? 'sugestão nova' : 'sugestões novas', true)+
-      hubConteudo()+
-      hubAtu()+
       bl('azul', '/personal/teste/', 'Para outros personais', 'Painel de teste', 'O painel com clientes fictícios, para mostrar como funciona.', '', '', true, ' data-teste="1"')+
       bl('amarelo', '/financas/', 'Controle pessoal', 'Finanças', 'Suas contas, gastos e metas do mês.', '', '', true)+
+      bl('creme', '/', 'Página pública', 'Site', 'A página de apresentação do Simplificando.', '', '', true)+
+      hubConteudo()+
     '</div>'+
-    '<div class="hb-mais">'+ms('/', 'globe', 'Site')+'</div>'+
+    '<div class="hb-mais">'+hubAtu()+'</div>'+
     (ATU.msg ? '<p class="hb-err" role="alert">'+esc(ATU.msg)+'</p>' : '')+
     '<div class="hb-pe"><button type="button" class="hb-tema" data-a="hubTema" aria-pressed="'+!!PREF.hubClaro+'">'+ic(PREF.hubClaro ? 'moon' : 'sun')+(PREF.hubClaro ? 'Modo escuro' : 'Modo claro')+'</button>'+(HUBS.tem===true && !HUBS.aberto ? '<button type="button" class="hb-tema" data-a="hubSenha">'+ic('key')+'Senha do hub</button>' : '')+'</div>'+
   '</div>';
