@@ -85,11 +85,18 @@ service cloud.firestore {
 
     // caixinha de sugestões do app (Perfil › Sugestões para o app): qualquer conta do app envia;
     // só o dono do painel lê, marca como lida e apaga (aba Estatísticas)
+    // recado do dono do painel para uma conta: aparece no app quando a pessoa abre; ela só marca como lido
+    match /recados/{uid} {
+      allow read: if logado() && (request.auth.uid == uid || dono());
+      allow create, delete: if dono();
+      allow update: if dono() || (logado() && request.auth.uid == uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lido']));
+    }
     match /sugestoes/{id} {
       allow create: if logado() && request.resource.data.uid == request.auth.uid
-        && request.resource.data.keys().hasOnly(['uid', 'nome', 'tipo', 'texto', 'em', 'ver'])
-        && request.resource.data.texto is string
-        && request.resource.data.texto.size() > 0 && request.resource.data.texto.size() <= 1000
+        && request.resource.data.keys().hasOnly(['uid', 'nome', 'tipo', 'texto', 'em', 'ver', 'foto'])
+        && request.resource.data.texto is string && request.resource.data.texto.size() <= 1000
+        && (request.resource.data.texto.size() > 0 || 'foto' in request.resource.data)
+        && (!('foto' in request.resource.data) || (request.resource.data.foto is string && request.resource.data.foto.size() < 800000))
         && request.resource.data.em is int;
       allow read, delete: if dono();
       allow update: if dono() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lida']);

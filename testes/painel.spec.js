@@ -239,6 +239,35 @@ test('Perfis: o dono exclui uma conta duplicada (perfil, treino e login) com doi
   await p2.close();
 });
 
+test('Recado no app: o dono escreve em Perfis, a pessoa vê ao abrir o app e manda uma foto na caixinha de sugestões', async ({ page, browser }) => {
+  const app = await (await browser.newContext()).newPage();
+  await criaConta(app, { emu: true, nome: 'Caio Recado', objetivo: 'hipertrofia' }); await semJanelas(app);
+  await entraPainel(page);
+  await vai(page, '#perfis');
+  await page.locator('#pf-list .row', { hasText: 'Caio Recado' }).first().click();
+  await expect(page.locator('.rec-c textarea')).toHaveValue(/Oi, Caio! O app foi atualizado/);
+  await page.click('[data-a="recEnviar"]');
+  await expect(page.locator('.rec-st')).toContainText('ainda não abriu', { timeout: 15000 });
+  // a pessoa volta para o app: aparece o recado uma vez
+  await app.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await expect(app.locator('.cm.rec')).toContainText('O app foi atualizado', { timeout: 15000 });
+  await app.click('[data-a="rec-sug"]');
+  await expect(app.locator('#sug-txt')).toBeVisible();
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFklEQVR42mP8z8Dwn4GBgYGJgYGBgQEAD+sB/0Fq0nIAAAAASUVORK5CYII=', 'base64');
+  await app.setInputFiles('#sug-file', { name: 'print.png', mimeType: 'image/png', buffer: png });
+  await expect(app.locator('.sug-foto img')).toBeVisible();
+  await app.fill('#sug-txt', 'Ainda falta o treino de ontem');
+  await app.click('[data-a="sug-send"]');
+  await expect.poll(async () => (await fsLista('sugestoes')).some(x => x.f.foto && /^data:image\/jpeg;base64,/.test(x.f.foto.stringValue) && x.f.texto.stringValue === 'Ainda falta o treino de ontem'), { timeout: 15000 }).toBe(true);
+  // o painel mostra que leu; e o recado não aparece de novo
+  await expect.poll(async () => (await fsLista('recados')).some(x => x.f.lido), { timeout: 15000 }).toBe(true);
+  await app.evaluate(() => { window.__simp.closeSheet(); document.dispatchEvent(new Event('visibilitychange')); }); await app.waitForTimeout(3000);
+  await expect(app.locator('.cm.rec')).toHaveCount(0);
+  // a foto aparece em Números › Sugestões
+  await page.goto(EMU + '/personal/#estatisticas'); await page.waitForTimeout(1500);
+  await expect(page.locator('.est-foto img').first()).toBeVisible({ timeout: 15000 });
+});
+
 test('Alunos e Perfis: marquinha laranja "+3 dias sem acessar" e vermelha "+10 dias sem acessar"', async ({ page }) => {
   const FSB = 'http://127.0.0.1:8080/v1/projects/demo-simplificando/databases/(default)/documents/perfis/';
   const muda = (uid, dias) => fetch(FSB + uid + '?updateMask.fieldPaths=ultimoAcesso', { method: 'PATCH', headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: { ultimoAcesso: { integerValue: String(Date.now() - dias * 864e5) } } }) });

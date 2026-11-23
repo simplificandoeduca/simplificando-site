@@ -71,6 +71,18 @@ test('sugestões, avaliações e stories: qualquer conta envia o seu; só o dono
   expect(await grava(AUT, 'storiesUso/st-' + id, { uid: AUT, modelo: 'crono', em: 1 })).toBe(ok);
   expect(await grava(AUT, 'storiesUso/st2-' + id, { uid: AUT, modelo: 'inventado', em: 1 })).toBe(nao);
 });
+test('recado no app: só o dono escreve; a pessoa lê o seu e só marca como lido; foto na sugestão até o limite', async () => {
+  const R = { texto: 'Oi! O app foi atualizado.', em: 1000, sug: true };
+  expect(await grava(AUT, 'recados/' + AUT, R)).toBe(nao);
+  expect(await grava(DONO, 'recados/' + AUT, R)).toBe(ok);
+  expect(await le(AUT, 'recados/' + AUT)).toBe(ok);
+  expect(await le(OUTRO, 'recados/' + AUT)).toBe(nao);
+  expect(await grava(AUT, 'recados/' + AUT, { ...R, lido: 2000 })).toBe(ok);
+  expect(await grava(AUT, 'recados/' + AUT, { ...R, texto: 'mudei', lido: 2000 })).toBe(nao);
+  expect(await grava(AUT, 'sugestoes/sf-' + id, { uid: AUT, nome: 'A', tipo: 'autonomo', texto: '', em: 1, ver: 'x', foto: 'data:image/jpeg;base64,AAAA' })).toBe(ok);
+  expect(await grava(AUT, 'sugestoes/sf2-' + id, { uid: AUT, nome: 'A', tipo: 'autonomo', texto: '', em: 1, ver: 'x' })).toBe(nao);
+  expect(await grava(AUT, 'sugestoes/sf3-' + id, { uid: AUT, nome: 'A', tipo: 'autonomo', texto: 'x', em: 1, ver: 'x', foto: 'a'.repeat(820000) })).toBe(nao);
+});
 test('senha nova do aluno (6 números): só a própria e só número', async () => {
   expect(await grava(ALU, 'codigos/' + ALU, { codigo: '123456', em: 1 })).toBe(ok);
   expect(await grava(ALU, 'codigos/' + ALU, { codigo: '12ab56', em: 1 })).toBe(nao);
