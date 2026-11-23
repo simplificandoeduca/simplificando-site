@@ -1923,7 +1923,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '23 nov · 169'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '23 nov · 170'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -1994,7 +1994,7 @@ function save(){
   sesUlt(); try { lbSync(); } catch(e){ /* lembrete opcional */ }
   if(FB && ACCT.mode==='self' && ACCT.uid){
     const t = syncTxt(); if(t!==LASTSYNC){ LASTSYNC = t; S._em = Date.now(); ACCT.dirty = true; }
-    if(ACCT.dirty && ACCT.syncOk){ ACCT.dirty = false; FB.autoSave(ACCT.uid, S); }
+    if(ACCT.dirty && ACCT.syncOk){ ACCT.dirty = false; FB.autoSave(ACCT.uid, S, false, autoJuntaAgora); }
   }
   try { localStorage.setItem(UKEY, JSON.stringify(S)); } catch(e){ /* sem armazenamento: segue em memória */ }
   progSync();
@@ -2189,12 +2189,18 @@ const FB = (() => {
     catch(e){ return { uid:u.uid, err:true }; }
   }
   let autoT = null, autoP = null;
-  function autoFlush(){
-    clearTimeout(autoT); const p = autoP; autoP = null; if(!p) return Promise.resolve();
-    const u = auth.currentUser; if(!u || u.uid!==p.uid) return Promise.resolve();
-    return db.collection('autonomos').doc(p.uid).set({ s:p.txt, em:Date.now() }).catch(() => { if(!autoP) autoP = p; });
+  // antes de gravar, lê a nuvem e junta (outro aparelho ou o app da tela inicial podem ter gravado treinos que este não tem)
+  async function autoFlush(){
+    clearTimeout(autoT); const p = autoP; autoP = null; if(!p) return;
+    const u = auth.currentUser; if(!u || u.uid!==p.uid) return;
+    const ref = db.collection('autonomos').doc(p.uid);
+    try {
+      let txt = p.txt;
+      if(p.junta){ const d = await ref.get(); if(d.exists){ let v = null; try { v = JSON.parse(d.data().s); } catch(e){ v = null; } const m = v ? p.junta(v) : null; if(m) txt = m; } }
+      await ref.set({ s:txt, em:Date.now() });
+    } catch(e){ if(!autoP) autoP = p; }
   }
-  function autoSave(uid, st, now){ autoP = { uid, txt:JSON.stringify(st) }; clearTimeout(autoT); if(now) return autoFlush(); autoT = setTimeout(autoFlush, 1500); return Promise.resolve(); }
+  function autoSave(uid, st, now, junta){ autoP = { uid, txt:JSON.stringify(st), junta:junta||null }; clearTimeout(autoT); if(now) return autoFlush(); autoT = setTimeout(autoFlush, 1500); return Promise.resolve(); }
   // aluno com personal: o que ele fez vai para progresso/{uid}; só ele grava o seu e só o personal lê
   // null = ainda não tem nada na nuvem; undefined = não deu para ler (sem internet): tenta de novo depois
   async function progLoad(){ const u = auth.currentUser || await ready(); if(!u) return undefined; try { const d = await db.collection('progresso').doc(u.uid).get(); if(!d.exists) return null; try { return JSON.parse(d.data().s||'null'); } catch(e){ return null; } } catch(e){ return undefined; } }
@@ -2259,19 +2265,54 @@ function fbRefresh(){
     if(r.p && JSON.stringify(r.p)!==before){ ACCT.aluno = FB.toAluno(r.p); applyAccount(); tidy(); save(); render(); }
   });
 }
-/* aluno sem personal com conta online: o mais novo vence (aparelho ou nuvem) */
+/* junta duas cópias da conta sem personal (aparelho e nuvem, ou o app da tela inicial e o navegador, que guardam separado):
+   o que foi registrado numa não some por causa da outra. Treinos e cardio: os das duas, sem repetir (vale o editado por último);
+   água: o maior de cada dia; check-in, recordes, últimas cargas e evolução: o melhor ou o mais recente. Devolve quantas coisas vieram da outra. */
+function autoJunta(base, outra){
+  if(!base || !outra || outra.v!==2) return 0; let n = 0;
+  const hk = h => h.date+'|'+h.t+'|'+(h.hi||'')+'|'+(h.hr||''), H = new Map();
+  (base.history||[]).forEach(h => H.set(hk(h), h));
+  (outra.history||[]).forEach(h => { if(!h || !h.date) return; const k = hk(h), b = H.get(k); if(!b || (h.edit||0)>(b.edit||0)){ H.set(k, h); n++; } });
+  base.history = [...H.values()].sort((x,y) => x.date<y.date ? -1 : x.date>y.date ? 1 : 0);
+  const del = [...new Set((base.cDel||[]).concat(outra.cDel||[]))], ck = c => c.date+'|'+c.local+'|'+c.min, C = new Map();
+  if(del.length) base.cDel = del;
+  (base.cardio||[]).forEach(c => C.set(ck(c), c));
+  (outra.cardio||[]).forEach(c => { if(c && c.date && !C.has(ck(c)) && !del.includes(ck(c))){ C.set(ck(c), c); n++; } });
+  base.cardio = [...C.values()].filter(c => !del.includes(ck(c))).sort((x,y) => x.date<y.date ? -1 : x.date>y.date ? 1 : 0);
+  base.water = base.water || {}; Object.keys(outra.water||{}).forEach(k => { const v = +outra.water[k]||0; if(v>(+base.water[k]||0)){ base.water[k] = v; n++; } });
+  base.wlog = base.wlog || {}; Object.keys(outra.wlog||{}).forEach(k => { if((outra.wlog[k]||[]).length>(base.wlog[k]||[]).length) base.wlog[k] = outra.wlog[k]; });
+  base.checkin = base.checkin || {}; Object.keys(outra.checkin||{}).forEach(k => { if(!base.checkin[k] && outra.checkin[k]){ base.checkin[k] = outra.checkin[k]; n++; } });
+  base.pr = base.pr || {}; Object.keys(outra.pr||{}).forEach(id => { const o = outra.pr[id], b = base.pr[id]; if(o && (!b || (+o.e1||0)>(+b.e1||0))) base.pr[id] = o; });
+  base.last = base.last || {}; Object.keys(outra.last||{}).forEach(id => { const o = outra.last[id], b = base.last[id]; if(o && (!b || (o.d||'')>(b.d||''))) base.last[id] = o; });
+  base.loadHist = base.loadHist || {}; Object.keys(outra.loadHist||{}).forEach(id => { const M = {}; (base.loadHist[id]||[]).concat(outra.loadHist[id]||[]).forEach(x => { if(x && x.d) M[x.d] = Math.max(M[x.d]||0, +x.kg||0); });
+    base.loadHist[id] = Object.keys(M).sort().slice(-16).map(d => ({ d, kg:M[d] })); });
+  return n;
+}
+// na hora de gravar: junta o que a nuvem tem a mais neste aparelho e devolve o texto para gravar (null = grava como está)
+function autoJuntaAgora(v){
+  if(!ACCT || ACCT.mode!=='self' || !S || !v || v.v!==2) return null;
+  if(!autoJunta(S, v)) return null;
+  tidy(); S._em = Date.now(); LASTSYNC = syncTxt(); try { localStorage.setItem(UKEY, JSON.stringify(S)); } catch(e){ /* sem armazenamento */ }
+  setTimeout(() => { try { render(); } catch(e){ /* redesenha depois */ } }, 0);
+  return JSON.stringify(S);
+}
+/* aluno sem personal com conta online: a cópia mais nova é a base e recebe da outra tudo o que só existia nela */
 function autoSync(){
   const uid = ACCT.uid;
   FB.autoLoad().then(r => {
     if(!ACCT || ACCT.uid!==uid || r.out || r.err || r.uid!==uid) return;
     if(r.s && r.s.v===2 && r.s.conta && (r.s._em||0)>(S._em||0) && !S.session){
+      const loc = S, n = autoJunta(r.s, loc);
       S = r.s; applyAccount(); if(ACCT && ACCT.mode==='self' && S.conta && (S.conta.plan==='meu' || S.conta.plan==='ia') && mtLetras()) applyAccount(); tidy(); LASTSYNC = syncTxt();
       try { localStorage.setItem(UKEY, JSON.stringify(S)); } catch(e){ /* sem armazenamento */ }
       if(S.lay && (!PREF.cardioLayout || !PREF.treinoLayout)){ PREF.cardioLayout = PREF.cardioLayout || S.lay.c || undefined; PREF.treinoLayout = PREF.treinoLayout || S.lay.t || undefined; savePref(); ui.pstep = null; renderPick(); }
-      ACCT.syncOk = true; ACCT.dirty = false; ui.sheet = null; renderSheet(); render(); return;
+      ACCT.syncOk = true; ACCT.dirty = false; ui.sheet = null; renderSheet(); render();
+      if(n){ S._em = Date.now(); LASTSYNC = syncTxt(); try { localStorage.setItem(UKEY, JSON.stringify(S)); } catch(e){ /* sem armazenamento */ } FB.autoSave(uid, S, false, autoJuntaAgora); } // o que só estava neste aparelho volta para a nuvem
+      return;
     }
+    if(r.s && r.s.v===2 && autoJunta(S, r.s)){ tidy(); save(); render(); } // a nuvem tinha registros que este aparelho não tinha
     ACCT.syncOk = true;
-    if(ACCT.dirty || !r.s || (S._em||0)>(r.s._em||0)){ ACCT.dirty = false; FB.autoSave(uid, S); }
+    if(ACCT.dirty || !r.s || (S._em||0)>(r.s._em||0)){ ACCT.dirty = false; FB.autoSave(uid, S, false, autoJuntaAgora); }
   });
 }
 const SKEY = 'simplificando-sessao';
@@ -3356,7 +3397,7 @@ async function suEntrar(){
   if(FB){
     const rm = await FB.autoLoad();
     if(rm.err || rm.out){ suBusy(false); await FB.logout(); return suErr('Não deu para carregar seus dados agora. Confira a internet e tente de novo.', 'en-err'); }
-    if(rm.s && rm.s.v===2 && (!data || (rm.s._em||0)>=(data._em||0))) data = rm.s;
+    if(rm.s && rm.s.v===2){ if(!data || (rm.s._em||0)>=(data._em||0)){ autoJunta(rm.s, data); data = rm.s; } else autoJunta(data, rm.s); } // junta o aparelho e a nuvem
   }
   suBusy(false);
   if(data && data.conta){

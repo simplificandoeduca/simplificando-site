@@ -76,7 +76,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simplificando-pro-v2';
-const APPV = '23 nov · 169'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '23 nov · 170'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -147,7 +147,7 @@ function save(){
   sesUlt(); try { lbSync(); } catch(e){ /* lembrete opcional */ }
   if(FB && ACCT.mode==='self' && ACCT.uid){
     const t = syncTxt(); if(t!==LASTSYNC){ LASTSYNC = t; S._em = Date.now(); ACCT.dirty = true; }
-    if(ACCT.dirty && ACCT.syncOk){ ACCT.dirty = false; FB.autoSave(ACCT.uid, S); }
+    if(ACCT.dirty && ACCT.syncOk){ ACCT.dirty = false; FB.autoSave(ACCT.uid, S, false, autoJuntaAgora); }
   }
   try { localStorage.setItem(UKEY, JSON.stringify(S)); } catch(e){ /* sem armazenamento: segue em memória */ }
   progSync();

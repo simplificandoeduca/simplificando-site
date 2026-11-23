@@ -431,7 +431,7 @@ async function suEntrar(){
   if(FB){
     const rm = await FB.autoLoad();
     if(rm.err || rm.out){ suBusy(false); await FB.logout(); return suErr('Não deu para carregar seus dados agora. Confira a internet e tente de novo.', 'en-err'); }
-    if(rm.s && rm.s.v===2 && (!data || (rm.s._em||0)>=(data._em||0))) data = rm.s;
+    if(rm.s && rm.s.v===2){ if(!data || (rm.s._em||0)>=(data._em||0)){ autoJunta(rm.s, data); data = rm.s; } else autoJunta(data, rm.s); } // junta o aparelho e a nuvem
   }
   suBusy(false);
   if(data && data.conta){
