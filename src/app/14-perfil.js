@@ -90,6 +90,8 @@ function pfVisual(){
 function pfSug(){
   return pfVolta('Sugestão')+`<div class="prefs sug-box"><div class="pref-h"><b>Sugestões para o app</b><span>Tem uma ideia, sentiu falta de algo ou algo não funcionou? Escreve aqui: vai direto para a equipe do Simplificando.</span></div>
     <label class="sr" for="sug-txt">Sua sugestão</label><textarea id="sug-txt" class="sug-t" rows="4" maxlength="1000" placeholder="Ex.: queria ver o gráfico do meu peso no app">${esc(ui.sugD||'')}</textarea>
+    ${ui.sugFoto ? `<div class="sug-foto"><img src="${ui.sugFoto}" alt="Foto anexada"><button type="button" class="btn small" data-a="sug-foto-x">${ic('x')}Tirar foto</button></div>`
+      : `<button type="button" class="btn block sug-fb" data-a="sug-foto">${ic('camera')}Anexar foto ou print</button>`}<input type="file" id="sug-file" accept="image/*" hidden>
     <button type="button" class="btn block" data-a="sug-send">${ic('msg')}Enviar sugestão</button></div>`;
 }
 function pfConta(){

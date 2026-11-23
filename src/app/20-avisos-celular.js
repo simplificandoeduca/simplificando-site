@@ -19,6 +19,24 @@ function dsAsk(){
   const tenta = () => { if(!S.session || PREF.dsAsk) return; if(ui.sheet || document.getElementById('pick')){ setTimeout(tenta, 1500); return; } PREF.dsAsk = 1; savePref(); ui.sheet = {k:'dsask'}; renderSheet(true); };
   setTimeout(tenta, 1500);
 }
+/* recado do Simplificando: o dono do painel escreve para uma conta (Perfis › Recado no app) e aparece aqui uma vez, ao abrir o app */
+let REC = null;
+function recadoVe(){
+  if(!FB || !ACCT || !FB.recado) return;
+  FB.recado().then(r => { if(!r || !r.texto || (+r.em||0)<=(+PREF.recVisto||0) || r.lido) return; REC = r;
+    const tenta = (n) => { if(!ACCT || REC!==r) return; if(ui.sheet || document.getElementById('pick') || document.getElementById('login')){ if(n<20) setTimeout(() => tenta(n+1), 1500); return; } ui.sheet = {k:'recado'}; renderSheet(true); };
+    setTimeout(() => tenta(0), 1200); });
+}
+function recadoFim(){ if(REC){ PREF.recVisto = +REC.em||Date.now(); savePref(); if(FB && FB.recadoLido) FB.recadoLido(); } REC = null; }
+function vRecado(){
+  const r = REC || {};
+  return `<div class="sheet-wrap cm-w"><div class="sheet cm rec" role="dialog" aria-modal="true" aria-labelledby="cm-t" tabindex="-1">
+    <span class="cm-ic rec-ok">${ic('check')}</span><h2 id="cm-t">Sua sugestão foi respondida<span class="dot">.</span></h2>
+    ${r.pergunta ? `<p class="rec-q">Você escreveu: “${esc(r.pergunta)}”</p>` : ''}
+    <p class="rec-t">${esc(r.texto||'')}</p>
+    <button type="button" class="btn primary block cm-b" data-a="rec-ok">${ic('check')}Ok, vou testar</button>
+    ${r.sug ? `<button type="button" class="btn block cm-b2" data-a="rec-sug">${ic('camera')}Ainda com erro: mandar print</button>` : ''}</div></div>`;
+}
 function vDsAsk(){
   return `<div class="sheet-wrap cm-w" data-a="ds-no"><div class="sheet cm" role="dialog" aria-modal="true" aria-labelledby="cm-t" tabindex="-1">
     <span class="cm-ic">${ic('bell')}</span><h2 id="cm-t">Quer ser avisado quando o descanso acabar<span class="dot">?</span></h2>

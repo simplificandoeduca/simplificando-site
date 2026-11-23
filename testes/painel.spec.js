@@ -16,6 +16,8 @@ async function entraPainel(page) {
   await page.waitForFunction(() => window.__painel && window.__painel.Store.loaded, null, { timeout: 20000 });
 }
 const vai = (page, h) => page.evaluate(h => { location.hash = h; }, h);
+// Evolução da aluna no painel: se o progresso ainda não carregou (robô com a máquina ocupada), abre a página de novo, até 3 vezes
+async function evolucao(p2, sel, n) { for (let k = 0; k < 3; k++) { await vai(p2, '#aluno--' + aid + '--evolucao'); try { await expect.poll(() => p2.locator(sel).count(), { timeout: 12000 }).toBeGreaterThanOrEqual(n); return; } catch (e) { if (k === 2) throw e; await p2.reload(); await p2.waitForFunction(() => window.__painel && window.__painel.Store.loaded, null, { timeout: 20000 }); } } }
 
 test('o personal entra no painel (1º acesso cria o dono)', async ({ page }) => {
   await entraPainel(page);
@@ -102,6 +104,7 @@ test('Técnicas no painel: rest-pause nas séries escolhidas e bi-set com o de b
   const b64 = await page.evaluate(async aid => { const f = await window.__painel.pdfArquivo(window.__painel.C.alunos[aid]); const u = new Uint8Array(await f.arrayBuffer()); let s = ''; u.forEach(c => s += String.fromCharCode(c)); return btoa(s); }, aid);
   await vai(page, '#ajustes'); await page.waitForTimeout(400);
   await page.setInputFiles('#pdf-imp-file', { name: 'Treino.pdf', mimeType: 'application/pdf', buffer: Buffer.from(b64, 'base64') });
+  await expect(page.locator('#sh-t')).toHaveText('Passar para um aluno');
   const lido = await page.evaluate(() => { const A = window.__painel.ui.draft.pdfi.tr.A.ex; return { tec: A[0].tec, bi: A[1].sup === A[2].id }; });
   expect(lido.tec).toEqual(pl.tec); expect(lido.bi).toBe(true);
   await page.evaluate(([aid, o]) => { const P = window.__painel; P.closeSheet(); P.C.alunos[aid].plano = JSON.parse(o); P.Store.save('alunos', aid, 0); }, [aid, orig]);
@@ -157,8 +160,8 @@ test('treino marcado 2 vezes: o personal altera o tempo de um e exclui o outro; 
   await expect.poll(async () => { const p = (await fsLista('progresso')).find(x => x.f.aid && x.f.aid.stringValue === aid); return p ? JSON.parse(p.f.s.stringValue).h.filter(h => h.d === hoje && h.t === t).length : 0; }, { timeout: 30000 }).toBe(2);
   // o personal vê os dois na Evolução
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } }); const p2 = await ctx.newPage();
-  await entraPainel(p2); await vai(p2, '#aluno--' + aid + '--evolucao');
-  const det = p2.locator('details.ev3-h'); await expect.poll(() => det.count(), { timeout: 20000 }).toBeGreaterThanOrEqual(2);
+  await entraPainel(p2); await evolucao(p2, 'details.ev3-h', 2);
+  const det = p2.locator('details.ev3-h');
   // check-in sempre de segunda a domingo (o dia de hoje aparece como "hoje")
   const dias = await p2.locator('.ev2-ck thead th').evaluateAll(L => L.slice(1).map(th => th.childNodes[0].textContent));
   const wd = await p2.evaluate(() => (new Date().getDay() + 6) % 7);
@@ -188,7 +191,7 @@ test('Evolução: tocar em "Treinos" mostra os treinos da semana (fechados) e em
   const hoje = await simp(page, () => { const T = window.__simp, S = T.S, t = T.today(); S.wlog[t] = [{ m: 550, ml: 300 }, { m: 615, ml: 500 }, { m: 700, ml: -250 }, { m: 720, ml: 400 }]; S.water[t] = 950; T.save(); return t; });
   await expect.poll(async () => { const p = (await fsLista('progresso')).find(x => x.f.aid && x.f.aid.stringValue === aid); const s = p ? JSON.parse(p.f.s.stringValue) : {}; return s.wl && s.wl[hoje] ? s.wl[hoje].length : 0; }, { timeout: 30000 }).toBe(4);
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } }); const p2 = await ctx.newPage();
-  await entraPainel(p2); await vai(p2, '#aluno--' + aid + '--evolucao');
+  await entraPainel(p2); await evolucao(p2, '[data-a="evAgua"]', 1);
   await p2.locator('[data-a="evAgua"]').click({ timeout: 20000 });
   const sh = p2.locator('#sheet');
   await expect(sh).toContainText('Água de cada dia');
@@ -237,6 +240,44 @@ test('Perfis: o dono exclui uma conta duplicada (perfil, treino e login) com doi
   await expect(p2.locator('main').first()).not.toContainText('Conta Duplicada');
   await expect.poll(async () => (await fsLista('perfis')).some(d => d.id === uid)).toBe(false);
   await p2.close();
+});
+
+test('Sugestão respondida: a pessoa manda uma sugestão, o dono responde em Números e ela vê "Sua sugestão foi respondida" ao abrir o app; depois manda um print', async ({ page, browser }) => {
+  const app = await (await browser.newContext()).newPage();
+  await criaConta(app, { emu: true, nome: 'Caio Recado', objetivo: 'hipertrofia' }); await semJanelas(app);
+  await app.evaluate(() => { const T = window.__simp; T.ui.sheet = { k: 'prof', p: 'sug' }; T.renderSheet(true); });
+  await app.fill('#sug-txt', 'Por que o registro dos meus treinos some no outro dia?'); await app.click('[data-a="sug-send"]');
+  await expect.poll(async () => (await fsLista('sugestoes')).some(x => x.f.nome && x.f.nome.stringValue === 'Caio Recado'), { timeout: 15000 }).toBe(true);
+  await app.evaluate(() => window.__simp.closeSheet());
+  // o dono responde em Números › Sugestões (o texto já vem pronto com o nome)
+  await entraPainel(page);
+  await page.goto(EMU + '/personal/#estatisticas'); await page.waitForTimeout(1500);
+  const sug = page.locator('.est-s', { hasText: 'Por que o registro dos meus treinos' }).first();
+  await sug.locator('[data-a="respOpen"]').click();
+  await expect(page.locator('#resp-txt')).toHaveValue(/^Oi, Caio, tudo bem\? Vimos sua sugestão e resolvemos o problema\. Peço que teste novamente\./);
+  await page.click('[data-a="respEnviar"]');
+  await expect(page.locator('#toast')).toContainText('Resposta enviada', { timeout: 15000 });
+  await expect.poll(async () => (await fsLista('sugestoes')).some(x => x.f.resp && x.f.lida && x.f.lida.booleanValue), { timeout: 15000 }).toBe(true); // vai para as lidas, marcada como respondida
+  // a pessoa volta para o app: aparece a janela uma vez, com a pergunta e a resposta
+  await app.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  const jan = app.locator('.cm.rec');
+  await expect(jan).toContainText('Sua sugestão foi respondida', { timeout: 15000 });
+  await expect(jan).toContainText('Você escreveu: “Por que o registro dos meus treinos some no outro dia?”');
+  await expect(jan).toContainText('Caso o erro persista');
+  await app.click('[data-a="rec-sug"]');
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFklEQVR42mP8z8Dwn4GBgYGJgYGBgQEAD+sB/0Fq0nIAAAAASUVORK5CYII=', 'base64');
+  await app.setInputFiles('#sug-file', { name: 'print.png', mimeType: 'image/png', buffer: png });
+  await expect(app.locator('.sug-foto img')).toBeVisible();
+  await app.fill('#sug-txt', 'Ainda falta o treino de ontem');
+  await app.click('[data-a="sug-send"]');
+  await expect.poll(async () => (await fsLista('sugestoes')).some(x => x.f.foto && /^data:image\/jpeg;base64,/.test(x.f.foto.stringValue) && x.f.texto.stringValue === 'Ainda falta o treino de ontem'), { timeout: 15000 }).toBe(true);
+  await expect.poll(async () => (await fsLista('recados')).some(x => x.f.lido), { timeout: 15000 }).toBe(true);
+  // não aparece de novo
+  await app.evaluate(() => { window.__simp.closeSheet(); document.dispatchEvent(new Event('visibilitychange')); }); await app.waitForTimeout(3000);
+  await expect(app.locator('.cm.rec')).toHaveCount(0);
+  // o print aparece em Números › Sugestões (abre a página de novo para ler as sugestões novas)
+  await page.reload(); await page.waitForFunction(() => window.__painel && window.__painel.Store.loaded, null, { timeout: 20000 }); await page.waitForTimeout(1500);
+  await expect(page.locator('.est-s', { hasText: 'Ainda falta o treino de ontem' }).locator('.est-foto img')).toBeVisible({ timeout: 15000 });
 });
 
 test('Alunos e Perfis: marquinha laranja "+3 dias sem acessar" e vermelha "+10 dias sem acessar"', async ({ page }) => {

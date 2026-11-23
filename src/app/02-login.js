@@ -111,8 +111,11 @@ const FB = (() => {
   }
   // registro avulso (caixinha de sugestões, modelo de story usado): cada um grava só com o próprio uid; só o dono do painel lê
   async function evento(col, d){ const u = auth.currentUser || await ready(); if(!u) return 'sem-login'; try { await db.collection(col).add(Object.assign({}, d, { uid:u.uid })); return true; } catch(e){ return (e && e.code) || 'erro'; } }
+  // recado do dono do painel para esta conta (recados/{uid}); a pessoa só marca como lido
+  async function recado(){ const u = auth.currentUser || await ready(); if(!u) return null; try { const d = await db.collection('recados').doc(u.uid).get(); return d.exists ? d.data() : null; } catch(e){ return null; } }
+  async function recadoLido(){ const u = auth.currentUser; if(!u) return; try { await db.collection('recados').doc(u.uid).update({ lido:Date.now() }); } catch(e){ /* tenta de novo na próxima */ } }
   async function idToken(){ try { const u = auth.currentUser || await ready(); return u ? await u.getIdToken() : ''; } catch(e){ return ''; } }
-  return { idToken, login, fetchMe, logout, toAluno, cached, signUp, signIn, resetMail, resetCheck, resetSave, setCodigo, autoLoad, autoSave, autoFlush, perfil, progresso, progLoad, deleteSelf, evento, account:aid => { const c = cached(); return c && c.aid===aid ? toAluno(c) : null; } };
+  return { idToken, login, fetchMe, logout, toAluno, cached, signUp, signIn, resetMail, resetCheck, resetSave, setCodigo, autoLoad, autoSave, autoFlush, perfil, progresso, progLoad, deleteSelf, evento, recado, recadoLido, account:aid => { const c = cached(); return c && c.aid===aid ? toAluno(c) : null; } };
 })();
 // abriu com a conta guardada (ou voltou para o app): confere online se o personal mudou o treino ou bloqueou o acesso
 document.addEventListener('visibilitychange', () => { if(document.visibilityState==='visible') fbRefresh(); else if(FB) FB.autoFlush(); });
@@ -150,7 +153,7 @@ function progRestore(){
   });
 }
 function fbRefresh(){
-  perfilSync();
+  perfilSync(); recadoVe();
   if(FB && ACCT && ACCT.mode==='self' && ACCT.uid){ autoSync(); return; }
   if(!FB || !ACCT || ACCT.mode!=='personal') return;
   progRestore();

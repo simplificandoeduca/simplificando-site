@@ -334,12 +334,21 @@ function initAnim(){
 document.addEventListener('visibilitychange', kickAnim);
 function sugEnviar(b){
   const t = document.getElementById('sug-txt'), v = t ? t.value.trim() : '';
-  if(!v){ toast('Escreva a sugestão antes de enviar.'); if(t) t.focus(); return; }
+  if(!v && !ui.sugFoto){ toast('Escreva a sugestão ou anexe uma foto antes de enviar.'); if(t) t.focus(); return; }
   if(!FB){ toast('Sem conexão com o servidor agora. Tente de novo mais tarde.'); return; }
   if(b) b.disabled = true;
-  FB.evento('sugestoes', Object.assign(quem(), { texto:v.slice(0,1000), em:Date.now(), ver:APPV })).then(ok => {
+  FB.evento('sugestoes', Object.assign(quem(), { texto:v.slice(0,1000), em:Date.now(), ver:APPV }, ui.sugFoto ? { foto:ui.sugFoto } : {})).then(ok => {
     if(b) b.disabled = false;
-    if(ok===true){ ui.sugD = ''; if(t) t.value = ''; toast('Sugestão enviada. Obrigado!'); } else toast('Não deu para enviar agora. Confira a internet e tente de novo.');
+    if(ok===true){ ui.sugD = ''; ui.sugFoto = ''; if(t) t.value = ''; renderSheet(); toast('Sugestão enviada. Obrigado!'); } else toast('Não deu para enviar agora. Confira a internet e tente de novo.');
   });
 }
 document.addEventListener('input', e => { if(e.target && e.target.id==='sug-txt') ui.sugD = e.target.value; });
+// foto da caixinha: diminui para no máximo 1100 px e JPEG, para caber junto com a sugestão
+document.addEventListener('change', e => { const el = e.target; if(!el || el.id!=='sug-file') return; const f = el.files && el.files[0]; el.value = ''; if(!f) return;
+  const u = URL.createObjectURL(f), im = new Image();
+  im.onload = () => { URL.revokeObjectURL(u); let q = .72, k = Math.min(1, 1100/Math.max(im.width, im.height)), d = '';
+    for(let i=0; i<5; i++){ const cv = document.createElement('canvas'); cv.width = Math.round(im.width*k); cv.height = Math.round(im.height*k); cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height); d = cv.toDataURL('image/jpeg', q); if(d.length<700000) break; k *= .8; q = Math.max(.5, q-.06); }
+    if(d.length>=780000){ toast('A foto ficou grande demais. Tente um print da tela.'); return; }
+    ui.sugFoto = d; renderSheet(); };
+  im.onerror = () => { URL.revokeObjectURL(u); toast('Não deu para abrir essa foto. Tente outra.'); };
+  im.src = u; });
