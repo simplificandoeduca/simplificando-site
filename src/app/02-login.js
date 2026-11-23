@@ -244,7 +244,7 @@ function applyAccount(){
     ACCT.plano = own ? (c.plan==='ia' ? 'Montado pela IA' : 'Montado por você') : c.plan==='ab' ? 'Corpo todo A e B' : 'A · B · C';
     SEMANA_TREINOS = nd || +c.semana || (c.ia ? iqN(c.ia) : 0) || Object.keys(PLAN).length || 3;
   }
-  Object.keys(PLAN).forEach(l => { const t = PLAN[l]; t.nome = String(t.nome||'').trim() || String(t.foco||'').trim() || 'Treino '+l; (t.ex||[]).forEach(x => { delete x.sup; delete x.tec; }); }); // sem técnicas especiais
+  Object.keys(PLAN).forEach(l => { const t = PLAN[l]; t.nome = String(t.nome||'').trim() || String(t.foco||'').trim() || 'Treino '+l; tecNorm(t.ex); }); // técnicas: só as que existem e nas séries certas
   LETTERS = Object.keys(PLAN).sort();
   if(S.session && !PLAN[S.session.t]) S.session = null;
   ligaHist();

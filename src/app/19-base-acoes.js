@@ -90,6 +90,7 @@ function askExq(e){ if(excTem(e.id)) return;
   document.body.appendChild(el); utT = setTimeout(() => el.remove(), 6000);
 }
 const pObs = e => e.obs ? `<p class="pobs">${ic('msg')}<span><b>Do seu personal</b>${esc(e.obs)}</span></p>` : '';
+function startPausa(sec){ ui.rest = {end:Date.now()+sec*1000, total:sec, next:null, done:false}; $rest.innerHTML = ''; renderRest(); }
 function startRest(nx){ ui.rest = {end:Date.now()+REST*1000, total:REST, next:nx||null, done:false}; $rest.innerHTML = ''; renderRest(); }
 function addWater(ml){
   const t = today(), before = S.water[t]||0;
@@ -135,7 +136,7 @@ function finish(){
   p.ex.forEach(e => {
     const ok = (log[e.id]||[]).filter(x => x.ok); if(!ok.length) return;
     let mk = 0;
-    ok.forEach(x => { const kg = num(x.kg); sets++; vol += kg*int(x.reps); mk = Math.max(mk,kg); });
+    ok.forEach(x => { const kg = num(x.kg); sets++; vol += kg*int(x.reps); mk = Math.max(mk,kg); (x.xs||[]).forEach(z => { vol += num(z.kg)*int(z.reps); }); });
     const top = ok.filter(x => num(x.kg)===mk);
     S.last[e.id] = {kg:mk, lastKg:num(ok[ok.length-1].kg), reps:top.map(x => int(x.reps)), rir:top.map(x => x.rir==null ? 1 : x.rir), d:t0, g:ses.gym||''};
     if(ses.gym){ const gm = S.gymLast || (S.gymLast = {}), gk = gymKey(ses.gym); (gm[gk] = gm[gk] || {})[e.id] = S.last[e.id]; }
@@ -153,7 +154,10 @@ function finish(){
   const WM = Object.assign({}, S.warm[hoje]||{}, S.warm[t0]||{});
   const det = p.ex.map(e => { const ok = (log[e.id]||[]).filter(x => x.ok), c = excOf(e.id), wt = e.aq ? aqSeries(e).length : 0, w = wt ? (WM[e.id]||[]).slice(0,wt).filter(Boolean).length : 0;
     if(!ok.length && !w && !(c && (c.q.length || c.n))) return null;
-    const o = {id:e.id, n:e.nome, s:ok.map(x => [num(x.kg), int(x.reps)]), q:c ? c.q.slice() : [], c:c ? c.n : ''}; if(wt){ o.w = w; o.wt = wt; } return o; }).filter(Boolean);
+    const o = {id:e.id, n:e.nome, s:ok.map(x => [num(x.kg), int(x.reps)]), q:c ? c.q.slice() : [], c:c ? c.n : ''}; if(wt){ o.w = w; o.wt = wt; }
+    // técnica: as repetições extras de cada série (pausas, mini-séries ou quedas), na mesma ordem das séries
+    if(e.tec && ok.some(x => (x.xs||[]).some(z => int(z.reps)>0))){ o.tk = e.tec.k; o.xs = ok.map(x => (x.xs||[]).filter(z => int(z.reps)>0).map(z => [num(z.kg), int(z.reps)])); }
+    return o; }).filter(Boolean);
   const hiD = new Date(sesIni(ses)), hi = String(hiD.getHours()).padStart(2,'0')+':'+String(hiD.getMinutes()).padStart(2,'0');
   const novo = {date:t0, t:ses.t, min, sec, hr, hi, vol:Math.round(vol), sets, prs:prd.map(x => x.id), prd, rpe:0, note:'', gym:ses.gym||'', ex:det}; S.history.push(novo); if(t0!==hoje) S.history.sort((x,y) => x.date<y.date ? -1 : x.date>y.date ? 1 : 0);
   S.session = null; ui.rest = null; renderRest(); treinoAviso();
@@ -223,6 +227,10 @@ function onClick(ev){
     case 'setok': toggleSet(ui.sheet.id, +d.i); re = false; break;
     case 'rir': getLog(ui.sheet.id)[+d.i].rir = +d.v; save(); renderSheet(); re = false; break;
     case 'warm': { const t = tDia(); S.warm[t] = S.warm[t]||{}; const w = S.warm[t][ui.sheet.id] = S.warm[t][ui.sheet.id]||[]; w[+d.i] = !w[+d.i]; save(); renderSheet(); re = false; break; }
+    case 'xs-add': { const id = ui.sheet.id, e = findEx(id).e, x = getLog(id)[+d.i]; if(!x || !e.tec) break; const X = x.xs || (x.xs = []), u = X[X.length-1], k = e.tec.k;
+      X.push({ kg: k==='drop' ? fmtKg(Math.max(0, Math.round(num((u||x).kg)*0.75*2)/2)) : (u||x).kg, reps:'' }); save(); renderSheet(); if(TEC[k].p) startPausa(TEC[k].p);
+      setTimeout(() => { const n = $sheet.querySelector(`[data-xs="reps"][data-i="${d.i}"][data-k="${X.length-1}"]`); if(n) n.focus({preventScroll:true}); }, 60); re = false; break; }
+    case 'xs-del': { const x = getLog(ui.sheet.id)[+d.i]; if(x && x.xs) x.xs.splice(+d.k, 1); save(); renderSheet(); re = false; break; }
     case 'addset': { const L = getLog(ui.sheet.id), l = L[L.length-1]; L.push({kg:l?l.kg:'', reps:'', ok:false, rir:null, add:true}); save(); renderSheet(); re = false; break; }
     case 'rest': startRest(ui.sheet && ui.sheet.id ? nextSet(findEx(ui.sheet.id).t, ui.sheet.id) : null); re = false; break;
     case 'rest-add': if(ui.rest && !ui.rest.done){ ui.rest.end += 15000; ui.rest.total += 15; renderRest(); } re = false; break;
@@ -406,6 +414,7 @@ function onInput(ev){
   }
   if(el.dataset.mx && ui.sheet && ui.sheet.k==='meus'){ const t = S.conta.treinos[ui.sheet.ed], e = t && t.ex[+el.dataset.i]; if(e){ e.r = String(el.value).replace(/[<>&"]/g,'').slice(0,14); save(); } return; }
   if(el.dataset.hed && ui.sheet && ui.sheet.k==='hedit'){ const L = ui.sheet.ed[el.dataset.ex], v = L && L[+el.dataset.j]; if(v) v[+el.dataset.hed] = el.value.trim(); return; }
+  if(el.dataset.xs){ const y = getLog(el.dataset.ex)[+el.dataset.i], z = y && y.xs && y.xs[+el.dataset.k]; if(z){ z[el.dataset.xs] = el.value.trim(); save(); } return; }
   if(el.dataset.set){ const y = getLog(el.dataset.ex)[+el.dataset.i]; if(!y) return; y[el.dataset.set] = el.value.trim(); if(el.dataset.set==='kg' && !y.ok) y.man = true; if(el.dataset.fix) el.dataset.len = el.value.trim().length; save(); }
   if(el.dataset.prof){ S.nome = el.value.trim().slice(0,40); save(); }
   if(el.dataset.note!=null){ const h = S.history[+el.dataset.note]; if(h){ h.note = el.value; save(); } }

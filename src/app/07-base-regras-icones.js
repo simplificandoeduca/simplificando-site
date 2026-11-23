@@ -49,6 +49,19 @@ function startKg(id){
 }
 /* dia do treino: enquanto um treino está aberto, tudo fica no dia em que ele começou (treino que passa da meia-noite não some) */
 function tDia(){ return (typeof S!=='undefined' && S && S.session && S.session.d) || today(); }
+/* técnicas: o personal (ou quem treina sem personal) escolhe a técnica e em quais séries ela vale; bi-set junta com o exercício de baixo */
+const TEC = {
+  rp:{ n:'Rest-pause', d:'Vá até perto da falha, pause 15 s e tire mais repetições. Repita a pausa 2 vezes.', add:'Pausa de 15 s', p:15 },
+  myo:{ n:'Myo-reps', d:'Esta é a série de ativação (12–20 reps). Depois faça mini-séries de 3–5 reps com 15 s de pausa, até não sair 3.', add:'Mini-série (15 s)', p:15 },
+  drop:{ n:'Drop-set', d:'No fim da série, tire 20–30% da carga e continue sem descanso. Faça 1 ou 2 quedas.', add:'Queda de carga', p:0 },
+  bi:{ n:'Bi-set', d:'Faça junto com o exercício de baixo, sem descanso entre os dois. Descanse depois do par.' } };
+const TEC_K = ['rp','myo','drop'];
+function tecNorm(L){ (L||[]).forEach((e,k) => { if(e.sup && (!L[k+1] || L[k+1].id!==e.sup || L[k+1].sup)) delete e.sup;
+  if(e.tec && !TEC_K.includes(e.tec.k)) delete e.tec;
+  if(e.tec){ const n = Math.max(1, +e.s||1); e.tec.s = [...new Set((e.tec.s||[]).map(Number).filter(x => x>=1 && x<=n))].sort((a,b) => a-b); if(!e.tec.s.length) e.tec.s = [n]; } }); }
+const tecEm = (e, i) => !!(e && e.tec && TEC[e.tec.k] && (e.tec.s||[]).includes(i+1));
+const tecOnde = e => { const s = (e.tec && e.tec.s) || []; return s.length>=(+e.s||0) ? 'em todas as séries' : 'na '+s.map(x => x+'ª').join(', ').replace(/, ([^,]*)$/,' e $1')+' série'+(s.length>1?'s':''); };
+const tecTag = e => e && e.tec && TEC[e.tec.k] ? TEC[e.tec.k].n+' '+tecOnde(e) : '';
 function getLog(id){
   const t = tDia(); S.logs[t] = S.logs[t] || {};
   if(!S.logs[t][id]){

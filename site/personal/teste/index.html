@@ -2057,7 +2057,7 @@ const FBP = (() => {
   function projection(id, a){
     const p = a.perfil || {}, pl = JSON.parse(JSON.stringify(a.plano || {}));
     pl.treinos = pl.treinos || {};
-    Object.keys(pl.treinos).forEach(L => { const t = pl.treinos[L] || {}; t.nome = String(t.nome||'').trim() || String(t.foco||'').trim() || 'Treino '+L; t.ex = (t.ex||[]).map(e => { const x = Object.assign({}, e); x.cues = (x.cues||[]).filter(c => c && String(c).trim()); x.erro = x.erro || ''; delete x.sup; delete x.tec; delete x.cad; return x; }); });
+    Object.keys(pl.treinos).forEach(L => { const t = pl.treinos[L] || {}; t.nome = String(t.nome||'').trim() || String(t.foco||'').trim() || 'Treino '+L; t.ex = (t.ex||[]).map(e => { const x = Object.assign({}, e); x.cues = (x.cues||[]).filter(c => c && String(c).trim()); x.erro = x.erro || ''; delete x.cad; return x; }); });
     return { aid:id, ativo:!!(a.acesso && a.acesso.ativo), perfil:{ nome:p.nome||'', sexo:p.sexo||'', objetivo:p.objetivo||'', dias:p.dias||[] },
       metas:a.metas||{}, plano:pl, financeiro:{ pagoAte:(a.financeiro||{}).pagoAte||null }, ajustes:(a.ajustes||[]).filter(x => x && x.de && x.t && (x.para || x.del || +x.min>0)), atualizadoEm:new Date().toISOString() };
   }
@@ -2222,10 +2222,20 @@ function trStats(t,deload){
   });
   return { sets, min: (t.ex||[]).length ? Math.max(5, Math.round(sec/300)*5) : 0, n:(t.ex||[]).length };
 }
+/* técnicas de treino: o personal escolhe a técnica e em quais séries ela vale (o app mostra como fazer e onde anotar) */
+const TEC = {
+  rp:{ n:'Rest-pause', d:'Vai até perto da falha, pausa 15–20 s e tira mais repetições. Repete a pausa 2 vezes.' },
+  myo:{ n:'Myo-reps', d:'Série de ativação (12–20 reps), depois mini-séries de 3–5 reps com 15 s de pausa até não sair 3.' },
+  drop:{ n:'Drop-set', d:'No fim da série, tira 20–30% da carga e continua sem descanso. Faz 1 ou 2 quedas.' },
+  bi:{ n:'Bi-set', d:'Faz este e o exercício de baixo em sequência, sem descanso entre os dois. Descansa depois do par.' } };
 function normPlan(pl){
   if(!pl || !pl.treinos) return;
   Object.keys(pl.treinos).forEach(L => { const t = pl.treinos[L]; t.ex = t.ex || [];
-    t.ex.forEach(e => { delete e.sup; delete e.tec; delete e.cad; }); // sem técnicas especiais e sem cadência
+    t.ex.forEach(e => { delete e.cad; }); // sem cadência
+    // técnicas: rest-pause, myo-reps e drop-set valem nas séries escolhidas; bi-set junta com o exercício de baixo
+    t.ex.forEach((e,k) => { if(e.sup && (!t.ex[k+1] || t.ex[k+1].id!==e.sup || t.ex[k+1].sup)) delete e.sup;
+      if(e.tec && (!TEC[e.tec.k] || e.tec.k==='bi')) delete e.tec;
+      if(e.tec){ const n = Math.max(1, +e.s||1); e.tec.s = [...new Set((e.tec.s||[]).map(Number).filter(x => x>=1 && x<=n))].sort((a,b) => a-b); if(!e.tec.s.length) e.tec.s = [n]; } });
     t.min = trStats(t,false).min; });
 }
 function letters(pl){ return Object.keys((pl && pl.treinos)||{}).sort(); }
@@ -3029,18 +3039,27 @@ function aqEditor(e,b,i){
 let EXALL = (() => { try { return localStorage.getItem('simp-ex-min')==='1'; } catch(e){ return false; } })();
 const EXTOG = {};
 const exMin = e => EXALL !== !!EXTOG[e.id];
+const tecDe = e => e.sup ? 'bi' : (e.tec && TEC[e.tec.k] ? e.tec.k : '');
+const tecTxt = e => { const k = tecDe(e); if(!k) return ''; if(k==='bi') return 'Bi-set com o de baixo'; const s = e.tec.s||[]; return TEC[k].n+(s.length===(+e.s||0) ? ' em todas as séries' : ' na '+s.map(x => x+'ª').join(', ').replace(/, ([^,]*)$/,' e $1')+' série'+(s.length>1?'s':'')); };
+function tecEditor(e,i,arr){
+  const k = tecDe(e), prox = arr[i+1], n = Math.max(1, +e.s||1), S0 = (e.tec && e.tec.s) || [];
+  const op = (v,l,dis) => '<button type="button" class="opt'+(k===v?' on':'')+'" data-a="tecSet" data-i="'+i+'" data-v="'+v+'" aria-pressed="'+(k===v)+'"'+(dis?' disabled':'')+'>'+l+'</button>';
+  return '<div class="fld tec-ed"><span class="flabel">Técnica</span><div class="opts" role="group" aria-label="Técnica">'+op('','Nenhuma')+op('rp','Rest-pause')+op('myo','Myo-reps')+op('drop','Drop-set')+op('bi','Bi-set', !prox || (arr[i-1] && arr[i-1].sup===e.id))+'</div>'+
+    (k && k!=='bi' ? '<span class="flabel" style="margin-top:8px">Em quais séries</span><div class="opts" role="group" aria-label="Séries com '+TEC[k].n+'">'+Array.from({length:n},(_,j) => j+1).map(x => '<button type="button" class="opt day'+(S0.includes(x)?' on':'')+'" data-a="tecS" data-i="'+i+'" data-v="'+x+'" aria-pressed="'+S0.includes(x)+'">'+x+'ª</button>').join('')+'</div>' : '')+
+    (k ? '<p class="help">'+esc(k==='bi' && prox ? 'Junto com '+(prox.nome||'o exercício de baixo')+'. '+TEC.bi.d : TEC[k].d)+'</p>' : '')+'</div>';
+}
 function exCard(e,i,arr,b,col,id,L){
   const n = arr.length;
   const rirOpts = [['','Sem alvo'],['0-1','0–1'],['0','0'],['1','1'],['2','2'],['3','3'],['4','4'],['5','5']];
   const cues = e.cues || ['','',''];
-  const h0 = '<article class="exc'+(exMin(e)?' min':'')+'" style="--g:'+(GRUPO_COR[e.alvo]||'var(--sep)')+'" data-drag="ex" data-i="'+i+'" aria-label="Exercício '+(i+1)+'"><div class="exc-h"><span class="num">'+(i+1)+'</span><div class="nm"><label class="sr" for="'+fid(b+'nome')+'">Nome do exercício '+(i+1)+'</label><input id="'+fid(b+'nome')+'" data-b="'+esc(b+'nome')+'" data-t="s" value="'+esc(e.nome||'')+'" placeholder="Nome do exercício" autocomplete="off"><span class="exc-g">'+grpSq(e.alvo)+esc(e.alvo||'Grupo não definido')+(e.exId && C.exercicios[e.exId] ? ' · da biblioteca' : '')+rankTag(e)+repTag(e,col,id,L)+'</span>'+(exMin(e) ? '<span class="exc-s">'+esc([e.s ? e.s+' × '+(e.r||'—') : '', e.kg!=null && e.kg!=='' ? fmtN(e.kg,1)+' kg' : '', e.d ? e.d+' s' : '', e.aq ? 'aquecimento' : ''].filter(Boolean).join(' · '))+'</span>' : '')+
+  const h0 = '<article class="exc'+(exMin(e)?' min':'')+'" style="--g:'+(GRUPO_COR[e.alvo]||'var(--sep)')+'" data-drag="ex" data-i="'+i+'" aria-label="Exercício '+(i+1)+'"><div class="exc-h"><span class="num">'+(i+1)+'</span><div class="nm"><label class="sr" for="'+fid(b+'nome')+'">Nome do exercício '+(i+1)+'</label><input id="'+fid(b+'nome')+'" data-b="'+esc(b+'nome')+'" data-t="s" value="'+esc(e.nome||'')+'" placeholder="Nome do exercício" autocomplete="off"><span class="exc-g">'+grpSq(e.alvo)+esc(e.alvo||'Grupo não definido')+(e.exId && C.exercicios[e.exId] ? ' · da biblioteca' : '')+rankTag(e)+repTag(e,col,id,L)+'</span>'+(exMin(e) ? '<span class="exc-s">'+esc([e.s ? e.s+' × '+(e.r||'—') : '', e.kg!=null && e.kg!=='' ? fmtN(e.kg,1)+' kg' : '', e.d ? e.d+' s' : '', e.aq ? 'aquecimento' : '', tecDe(e) ? TEC[tecDe(e)].n.toLowerCase() : ''].filter(Boolean).join(' · '))+'</span>' : '')+
     '</div>'+
     '<div class="exc-tools">'+(exMin(e) ? '' : '<button type="button" class="ibtn" data-a="swapEx" data-i="'+i+'" aria-label="Trocar exercício" title="Trocar exercício">'+ic('refresh')+'</button><button type="button" class="ibtn" data-a="mvEx" data-i="'+i+'" data-d="-1" aria-label="Subir exercício"'+(i===0?' disabled':'')+'>'+ic('up')+'</button><button type="button" class="ibtn" data-a="mvEx" data-i="'+i+'" data-d="1" aria-label="Descer exercício"'+(i===n-1?' disabled':'')+'>'+ic('down')+'</button><button type="button" class="ibtn" data-a="dupEx" data-i="'+i+'" aria-label="Duplicar exercício">'+ic('dup')+'</button>'+armIco('delEx',i,'Remover exercício','Toque de novo para remover'))+'<button type="button" class="ibtn exc-tg'+(exMin(e)?'':' on')+'" data-a="exTg" data-k="'+esc(e.id||i)+'" aria-expanded="'+!exMin(e)+'" aria-label="'+(exMin(e)?'Abrir':'Recolher')+' exercício">'+ic('chev')+'</button></div></div>';
   if(exMin(e)) return h0+'</article>';
   return h0+
     xaRow(e,b)+
     '<div class="exg">'+inp({b:b+'s',label:'Séries',val:e.s,t:'i',v:'range',min:1,max:12})+inp({b:b+'r',label:'Reps',val:e.r,ph:'8–10',im:'text'})+inp({b:b+'kg',label:'Carga kg',val:e.kg,t:'n',v:'range',min:0,max:600,ph:'Teste'})+inp({b:b+'d',label:'Descanso s',val:e.d,t:'i',v:'range',min:0,max:600})+sel({b:b+'rir',label:'RIR alvo',val:e.rir==null?'':e.rir,opts:rirOpts})+'</div>'+
-    swB({b:b+'aq',label:'Aquecimento',val:!!e.aq})+aqEditor(e,b,i)+
+    swB({b:b+'aq',label:'Aquecimento',val:!!e.aq})+aqEditor(e,b,i)+tecEditor(e,i,arr)+
     '<details class="more"><summary>'+ic('chev')+'Observação, vídeo e dicas</summary><div class="form">'+
       txa({b:b+'obs',label:'Observação do personal',val:e.obs,ph:'Aparece para o aluno junto da execução',cls:'wide',rows:2})+
       inp({b:b+'video',label:'Link do vídeo',val:e.video,type:'url',im:'url',v:'url',ph:'https://',cls:'wide'})+
@@ -3817,7 +3836,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '23 nov · 168'; // Versão do painel: 23 nov · 168
+const PAINELV = '23 nov · 169'; // Versão do painel: 23 nov · 169
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -4923,9 +4942,13 @@ function pdfLeTreino(L){
         else if(i===0) e.alvo = p.trim(); });
       return; }
     if(italico(x)){ e.obs = (e.obs ? e.obs+' ' : '')+s; return; }
-    if(/^[•·]\s*/.test(s)){ e.cues.push(s.replace(/^[•·]\s*/,'')); cue = e.cues.length-1; return; }
+    if(/^[•·]\s*/.test(s)){ const c = s.replace(/^[•·]\s*/,''), tq = c.match(/^(Rest-pause|Myo-reps|Drop-set) (em todas as séries|na ([^:]+?) séries?):/), bi = /^Bi-set com o de baixo:/.test(c);
+      if(tq){ const k = {'Rest-pause':'rp','Myo-reps':'myo','Drop-set':'drop'}[tq[1]]; e.tec = { k, s:tq[3] ? (tq[3].match(/\d+/g)||[]).map(Number) : Array.from({length:e.s},(_,j) => j+1) }; cue = -2; return; }
+      if(bi){ e.bi = true; cue = -2; return; }
+      e.cues.push(c); cue = e.cues.length-1; return; }
     if(cue>=0) e.cues[cue] += ' '+s;
   });
+  Object.keys(tr).forEach(l => { const L = tr[l].ex; L.forEach(e => { if(e.tec && e.tec.s) e.tec.s = e.tec.s.filter(x => x>=1 && x<=e.s); }); });
   Object.keys(tr).forEach(l => { if(!tr[l].ex.length) delete tr[l]; });
   return { tr, info };
 }
@@ -4936,7 +4959,8 @@ function pdfMontaTreinos(tr){
   Object.keys(tr).sort().forEach(l => { const t = tr[l];
     o[l] = { nome:t.nome, foco:t.foco, min:0, ex:t.ex.map(v => { const lid = porNome[semAc(v.nome).trim()];
       const base = lid ? exFromLib(lid) : { id:newExId('pdf'), exId:null, nome:v.nome, alvo:'', s:3, r:'10–12', kg:null, d:60, rir:'0-1', aq:false, obs:'', video:'', cues:['','',''], erro:'' };
-      return Object.assign(base, { s:v.s, r:v.r, d:v.d }, v.alvo ? { alvo:v.alvo } : {}, v.rir ? { rir:v.rir } : {}, v.cues.length ? { cues:v.cues.slice(0,3) } : {}, v.obs ? { obs:v.obs } : {}, { daBib:!!lid }); }) }; });
+      return Object.assign(base, { s:v.s, r:v.r, d:v.d }, v.alvo ? { alvo:v.alvo } : {}, v.rir ? { rir:v.rir } : {}, v.cues.length ? { cues:v.cues.slice(0,3) } : {}, v.obs ? { obs:v.obs } : {}, v.tec && v.tec.s.length ? { tec:v.tec } : {}, { daBib:!!lid, _bi:!!v.bi }); }) };
+    o[l].ex.forEach((e,k) => { const nx = o[l].ex[k+1]; if(e._bi && nx) e.sup = nx.id; delete e._bi; }); });
   return o;
 }
 function pdfImpArquivo(f){
@@ -5006,7 +5030,7 @@ async function pdfArquivo(a){
     if(t.foco){ doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(91,98,93); doc.text(pdfTxt(t.foco), M, y+2); y += 5; }
     for(const [i,e] of (t.ex||[]).entries()){
       const f0 = await figPng(e, 0, 'q'+(n++)), f1 = await figPng(e, 1, 'q'+(n++)), fh = f0 ? FW*f0.r : 18;
-      const tx = M + (f0 ? 2*FW+6 : 0), tw = PW - M - tx, dicas = (e.cues||[]).filter(Boolean).map(d => '• '+d);
+      const tx = M + (f0 ? 2*FW+6 : 0), tw = PW - M - tx, tq = tecTxt(e), dicas = (tq ? [tq+': '+TEC[tecDe(e)].d] : []).concat((e.cues||[]).filter(Boolean)).map(d => '• '+d);
       doc.setFontSize(9); const linhas = doc.splitTextToSize(pdfTxt(dicas.join('\n')), tw), obs = e.obs ? doc.splitTextToSize(pdfTxt(e.obs), tw) : [];
       const h = Math.max(fh, 14 + linhas.length*4 + obs.length*4 + 6) + 4; novaPag(h);
       doc.setDrawColor(227,226,218); doc.setLineWidth(.2); doc.line(M, y, PW-M, y); y += 3;
@@ -5074,7 +5098,7 @@ function treinoPdf(a){
   w.document.close();
 }
 function exFromLib(lid){ const l = C.exercicios[lid]; return { id:newExId(lid), exId:lid, nome:l.nome||'', alvo:l.grupo||'', s:3, r:'10–12', kg:null, d:60, rir:'0-1', aq:false, obs:'', video:l.video||'', anim:l.anim||'', cues:(l.cues||[]).slice(0,3), erro:l.erro||'' }; }
-function cloneTreinos(tr){ const o = {}; letters({treinos:tr}).forEach((l,i) => { const t = clone(tr[l]); t.ex = (t.ex||[]).map(e => Object.assign(e,{id:newExId(e.exId||e.id)})); o[LETRAS[i]] = t; }); normPlan({treinos:o}); return o; }
+function cloneTreinos(tr){ const o = {}; letters({treinos:tr}).forEach((l,i) => { const t = clone(tr[l]), novo = {}; t.ex = (t.ex||[]).map(e => { const id = newExId(e.exId||e.id); novo[e.id] = id; return Object.assign(e,{id}); }); t.ex.forEach(e => { if(e.sup) e.sup = novo[e.sup] || ''; }); o[LETRAS[i]] = t; }); normPlan({treinos:o}); return o; }
 async function copyText(txt,selEl){
   let p = null; try { p = navigator.clipboard && navigator.clipboard.writeText(txt); } catch(e){ p = null; }
   if(p){ try { await p; toast('Copiado'); return; } catch(e){ /* cai no plano B */ } }
@@ -5132,7 +5156,12 @@ function act(a,d,btn){
       else if(a==='aqDel'){ if(W.length>1) W.splice(+d.j,1); }
       else W.splice(0, W.length, ...clone(AQ_MODELOS[+d.k][1]));
       e.aqW = W; e.aq = true; saveCtx(x); break; }
-    case 'dupEx': { const x = curCtx(), t = x.pl.treinos[curL(x)], i = +d.i, e = clone(t.ex[i]); e.id = newExId(e.exId||e.id); t.ex.splice(i+1,0,e); saveCtx(x); break; }
+    case 'tecSet': case 'tecS': { const x = curCtx(), tr = x.pl.treinos[curL(x)], i = +d.i, e = tr && tr.ex[i]; if(!e) break;
+      if(a==='tecSet'){ delete e.sup; delete e.tec; const prev = tr.ex[i-1]; if(prev && prev.sup===e.id && d.v) delete prev.sup;
+        if(d.v==='bi'){ const nx = tr.ex[i+1]; if(nx){ delete nx.sup; delete nx.tec; e.sup = nx.id; } } else if(d.v) e.tec = { k:d.v, s:[Math.max(1, +e.s||1)] }; }
+      else if(e.tec){ const v = +d.v, s = e.tec.s||[]; e.tec.s = s.includes(v) ? s.filter(z => z!==v) : s.concat(v).sort((p,q) => p-q); if(!e.tec.s.length) e.tec.s = [v]; }
+      normPlan(x.pl); saveCtx(x); break; }
+    case 'dupEx': { const x = curCtx(), t = x.pl.treinos[curL(x)], i = +d.i, e = clone(t.ex[i]); e.id = newExId(e.exId||e.id); delete e.sup; t.ex.splice(i+1,0,e); saveCtx(x); break; }
     case 'delEx': { const x = curCtx(), t = x.pl.treinos[curL(x)]; t.ex.splice(+d.k,1); saveCtx(x,0); break; }
     case 'pick': { ui.pickQ = ''; ui.pickG = ''; const x = curCtx(); openSheet({k:'pick', L:curL(x)}); return false; }
     case 'swapEx': { ui.pickQ = ''; ui.pickG = ''; const x = curCtx(), L = curL(x), e = ((x.pl.treinos[L]||{}).ex||[])[+d.i]; if(!e) break; openSheet({k:'pick', L, swap:+d.i, swapNome:e.nome||''}); return false; }

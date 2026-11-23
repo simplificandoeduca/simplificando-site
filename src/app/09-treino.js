@@ -73,7 +73,7 @@ function vTreinoGrade(){
       ${sk?'':`<button type="button" class="gib${excTem(e.id)?' on':''}" data-a="exq-open" data-ex="${e.id}" aria-label="Como foi ${e.nome}" title="Como foi">${ic('msg')}</button>`}
       ${sk?'':`<button type="button" class="gib" data-a="gedit" data-ex="${e.id}" aria-pressed="${ed}" aria-label="Editar séries de ${e.nome}" title="Editar séries">${ic('edit')}</button>`}
       ${isPersonal()?'':`<button type="button" class="gib" data-a="gskip" data-ex="${e.id}" aria-pressed="${sk}" aria-label="${sk?'Voltar a fazer':'Pular exercício'} ${e.nome}" title="${sk?'Voltar a fazer':'Pular exercício'}">${ic(sk?'undo':'skip')}</button>`}</div>
-      ${bs==='bs-a'?`<span class="tag">${ic('layers')}Bi-set com o próximo</span>`:''}
+      ${bs==='bs-a'?`<span class="tag">${ic('layers')}Bi-set com o próximo</span>`:''}${tecTag(e)?`<span class="tag tq">${ic('bolt')}${tecTag(e)}</span>`:''}
       ${sk?'':tObs(e)+tWarm(e)}<div class="gbubs" role="group" aria-label="Séries de ${e.nome}">${bubs}</div>${pop}</div>`;
   }).join('');
   return header('Treino','Treino '+t+' · '+p.foco)+exampleNote()+
@@ -108,7 +108,7 @@ function vTreino(){ if(noPlan()) return header('Treino','Seu treino')+noPlanCard
 function tCtx(){ const t = ui.t || nextTreino(), p = PLAN[t], ses = S.session, g = gTot(t); return { t, p, ses, active:!!(ses && ses.t===t), tot:g.tot, dn:g.dn }; }
 const exDone = e => isSkip(e.id) || doneSets(e.id)>=exN(e);
 function exSummary(e){ const L = logOf(e.id).filter(x => x.ok), mk = L.reduce((a,x) => Math.max(a,num(x.kg)),0); return `${L.length} de ${exN(e)}${mk?' · até '+fmtKg(mk)+' kg':''}`; }
-function exPlan(e){ const k = startKg(e.id), d = doneSets(e.id); return `${e.s} × ${e.r}${k!=null?' · '+fmtKg(k)+' kg':''}${d?' · '+d+' de '+exN(e)+' feitas':''}`; }
+function exPlan(e){ const k = startKg(e.id), d = doneSets(e.id); return `${e.s} × ${e.r}${k!=null?' · '+fmtKg(k)+' kg':''}${e.tec && TEC[e.tec.k]?' · '+TEC[e.tec.k].n:''}${e.sup?' · Bi-set com o próximo':''}${d?' · '+d+' de '+exN(e)+' feitas':''}`; }
 const tDots = e => { const n = exN(e), d = doneSets(e.id); return `<span class="tdots" aria-hidden="true">${Array.from({length:n},(_,j) => `<s class="${j<d?'f':''}"></s>`).join('')}</span>`; };
 function bsOf(p,e){ const k = p.ex.indexOf(e), prev = p.ex[k-1]; const m = e.sup ? findEx(e.sup).e : (prev && prev.sup===e.id ? prev : null); return m ? 'Bi-set com '+m.nome : ''; }
 /* série em foco: a escolhida pelo aluno, senão a próxima pendente (bi-set primeiro) */
@@ -166,7 +166,7 @@ function tPanel(c,e,k){
   const tiles = Array.from({length:n},(_,j) => { const y = L[j], o = !!(y && y.ok), kg = planKg(e.id,y), r = planReps(e.id,j,y);
     return `<button type="button" class="tset${o?' ok':''}${j===si?' now':''}" data-a="tsel" data-ex="${e.id}" data-i="${j}" aria-pressed="${j===si}" aria-label="Série ${j+1}: ${kg||'carga livre'} kg por ${r}${o?', feita':''}">S${j+1}<b>${kg||'–'}×${r}</b></button>`; }).join('');
   return `<section class="tpanel" aria-label="${e.nome}, exercício ${k+1} de ${c.p.ex.length}">
-    <div class="tp-h"><div><small>Agora · ${k+1} de ${c.p.ex.length}</small><h2>${e.nome}</h2>${bs?`<span class="tp-bs">${ic('layers')}${bs}</span>`:''}</div><button type="button" class="tp-how" data-a="howto" data-ex="${e.id}">${ic('play')}Como fazer</button></div>
+    <div class="tp-h"><div><small>Agora · ${k+1} de ${c.p.ex.length}</small><h2>${e.nome}</h2>${bs?`<span class="tp-bs">${ic('layers')}${bs}</span>`:''}${tecTag(e)?`<span class="tp-bs tq">${ic('bolt')}${tecTag(e)}</span>`:''}</div><button type="button" class="tp-how" data-a="howto" data-ex="${e.id}">${ic('play')}Como fazer</button></div>
     ${tObs(e)}${tWarm(e)}<div class="tsets" style="grid-template-columns:repeat(${Math.min(n,4)},minmax(0,1fr))">${tiles}</div>
     <div class="tsteps">${tStep(e.id,si,'kg')}${tStep(e.id,si,'reps')}</div>
     ${ok ? `<button type="button" class="btn block" data-a="tun" data-ex="${e.id}" data-i="${si}">${ic('undo')}Desmarcar série ${si+1}</button>` : slideStart(c.t,'Série '+(si+1)+' feita','tset',` data-ex="${e.id}" data-i="${si}"`)}
@@ -206,7 +206,7 @@ function vTreinoFoco(){
   const lastTxt = last ? `${fmtKg(last.kg)} kg × ${last.reps[i]!=null ? last.reps[i] : last.reps[last.reps.length-1]}` : '';
   return `<div class="fo-eb"><p class="eyebrow">Treino ${c.t} · exercício ${k+1} de ${ex.length}</p><span class="fo-nav"><button type="button" class="btn round" data-a="fnav" data-d="-1" aria-label="Exercício anterior">${ic('chevL')}</button><button type="button" class="btn round" data-a="fnav" data-d="1" aria-label="Próximo exercício">${ic('chev')}</button></span></div>`+
     exampleNote()+tSesBar(c)+tLow()+
-    `<div class="fo-main" data-fswipe="1"><div><h2 class="fo-name">${e.nome}<span class="dot" aria-hidden="true"></span></h2><p class="fo-sub">${e.alvo} · ${e.s} × ${e.r}${bs?' · '+bs:''} · <button type="button" class="linkbtn" data-a="howto" data-ex="${e.id}">Como fazer</button> · ${excBtn(e)}</p></div>
+    `<div class="fo-main" data-fswipe="1"><div><h2 class="fo-name">${e.nome}<span class="dot" aria-hidden="true"></span></h2><p class="fo-sub">${e.alvo} · ${e.s} × ${e.r}${bs?' · '+bs:''}${tecTag(e)?' · '+tecTag(e):''} · <button type="button" class="linkbtn" data-a="howto" data-ex="${e.id}">Como fazer</button> · ${excBtn(e)}</p></div>
     ${tObs(e)}${tWarm(e)}<div class="fo-pills" role="group" aria-label="Séries de ${e.nome}" style="grid-template-columns:repeat(${n},minmax(0,1fr))">${pills}</div>
     <div class="fo-nums">${nb('kg','Carga','kg')}${nb('reps','Repetições','reps')}</div>
     ${lastTxt?`<p class="fo-last">Última vez: <b>${lastTxt}</b></p>`:''}</div>
@@ -229,7 +229,7 @@ function vTreinoFolha(){
         (ed ? `<div class="fedit">${tStep(e.id,j,'kg')}${tStep(e.id,j,'reps')}</div>` : '');
     }
     return `<section class="fex"><button type="button" class="fex-h" data-a="fexp" data-ex="${e.id}" aria-expanded="true"${isCur?' disabled':''}><b>${e.nome}</b><span>${e.s} × ${e.r}</span></button>
-      ${bs?`<span class="tp-bs">${ic('layers')}${bs}</span>`:''}${tObs(e)}${tWarm(e)}${rows}<div class="fex-f"><button type="button" class="linkbtn" data-a="howto" data-ex="${e.id}">Como fazer</button>${excBtn(e)}</div></section>`;
+      ${bs?`<span class="tp-bs">${ic('layers')}${bs}</span>`:''}${tecTag(e)?`<span class="tp-bs tq">${ic('bolt')}${tecTag(e)}</span>`:''}${tObs(e)}${tWarm(e)}${rows}<div class="fex-f"><button type="button" class="linkbtn" data-a="howto" data-ex="${e.id}">Como fazer</button>${excBtn(e)}</div></section>`;
   }).join('');
   return header('Treino','Treino '+c.t+' · '+c.p.nome)+exampleNote()+tSesBar(c)+tLow()+(cur || !c.active ? '' : tAllDone(c))+`<div class="folha">${blocks}</div>`;
 }

@@ -16,15 +16,22 @@ function vSheet(id){
       warm = `<div class="warm"><span class="flabel">${ic('flame')}Aquecimento antes da primeira série</span><div class="warm-row">${warmPills(e, ws, 'warm', '')}</div>${warmNota(e)}</div>`;
     }
     const bs = partner ? `<p class="warn">${ic('layers')}<span><b>Bi-set</b>Faça junto com ${partner.nome}, sem descanso entre os dois. Descanse ${e.d}s depois do par.</span></p>` : '';
+    const tk = e.tec && TEC[e.tec.k] ? e.tec.k : '', tq = tk ? `<p class="warn tec">${ic('bolt')}<span><b>${TEC[tk].n} ${tecOnde(e)}</b>${TEC[tk].d}</span></p>` : '';
+    // linhas extras da técnica (pausas do rest-pause, mini-séries do myo-reps, quedas do drop-set) logo abaixo da série
+    const extra = (x,i) => !tecEm(e,i) ? '' : `<div class="xs-b">${(x.xs||[]).map((z,k) => `<div class="set xs"><span class="n">+</span>
+        <input inputmode="decimal" autocomplete="off" aria-label="${TEC[tk].n}: carga ${k+1} da série ${i+1} em kg" placeholder="kg" value="${esc(z.kg)}" data-xs="kg" data-ex="${id}" data-i="${i}" data-k="${k}">
+        <input inputmode="numeric" autocomplete="off" aria-label="${TEC[tk].n}: repetições ${k+1} da série ${i+1}" placeholder="reps" value="${esc(z.reps)}" data-xs="reps" data-ex="${id}" data-i="${i}" data-k="${k}">
+        <button type="button" class="xs-x" data-a="xs-del" data-i="${i}" data-k="${k}" aria-label="Tirar">${ic('x')}</button></div>`).join('')}
+      <button type="button" class="btn small xs-add" data-a="xs-add" data-i="${i}">${ic('plus')}${TEC[tk].add}</button></div>`;
     const rows = L.map((x,i) => {
       const isPR = x.ok && pr && tb.i===i && tb.v>pr.e1+0.05;
-      return `<div class="set${x.ok?' ok':''}${isPR?' pr':''}"><span class="n">${isPR?ic('trophy')+'<span class="sr">Recorde</span>':i+1}</span>
+      return `<div class="set${x.ok?' ok':''}${isPR?' pr':''}${tecEm(e,i)?' tq':''}"><span class="n">${isPR?ic('trophy')+'<span class="sr">Recorde</span>':i+1}</span>
         <input inputmode="decimal" autocomplete="off" aria-label="Carga da série ${i+1} em kg" placeholder="${sg.kg!=null?fmtKg(sg.kg):'kg'}" value="${esc(x.kg)}" data-set="kg" data-ex="${id}" data-i="${i}">
         <input inputmode="numeric" autocomplete="off" aria-label="Repetições da série ${i+1}" placeholder="${repTarget(id,i)}" value="${esc(x.reps)}" data-set="reps" data-ex="${id}" data-i="${i}">
         <button type="button" class="check" aria-label="Série ${i+1} feita" aria-pressed="${x.ok}" data-a="setok" data-i="${i}">${ic('check')}</button>
-        ${x.ok?`<div class="rir"><span>Quantas ainda sairiam?</span>${[0,1,2,3].map(n => `<button type="button" class="rb${x.rir===n?' on':''}" aria-pressed="${x.rir===n}" aria-label="Sobraram ${n===3?'3 ou mais':n} na série ${i+1}" data-a="rir" data-i="${i}" data-v="${n}">${n===3?'3+':n}</button>`).join('')}</div>`:''}</div>`;
+        ${x.ok?`<div class="rir"><span>Quantas ainda sairiam?</span>${[0,1,2,3].map(n => `<button type="button" class="rb${x.rir===n?' on':''}" aria-pressed="${x.rir===n}" aria-label="Sobraram ${n===3?'3 ou mais':n} na série ${i+1}" data-a="rir" data-i="${i}" data-v="${n}">${n===3?'3+':n}</button>`).join('')}</div>`:''}</div>${extra(x,i)}`;
     }).join('');
-    body = pObs(e)+sug+warm+bs+
+    body = pObs(e)+sug+warm+bs+tq+
       `<div class="sets-h"><h3>Suas séries</h3><span class="muted sm">${doneSets(id)} de ${L.length} feitas</span></div>
       <div class="sets"><div class="set set-head" aria-hidden="true"><span>#</span><span>Carga (kg)</span><span>Reps</span><span>Feita</span></div>${rows}</div>
       <div class="row-btns"${isPersonal()?' style="grid-template-columns:1fr"':''}>${isPersonal()?'':`<button type="button" class="btn" data-a="addset">${ic('plus')}Série extra</button>`}<button type="button" class="btn primary" data-a="rest">${ic('timer')}Descanso ${REST}s</button></div>
@@ -84,6 +91,7 @@ function hedSalvar(){
     if(!s.length){ if(o && ((o.q||[]).length || o.c || o.w)) det.push(Object.assign({}, o, {s:[]})); return; }
     det.push(Object.assign({id:e.id, n:e.n, q:[], c:''}, o||{}, {s}));
     let mk = 0; s.forEach(v => { sets++; vol += v[0]*v[1]; mk = Math.max(mk, v[0]); });
+    if(o && o.xs) o.xs.forEach(L => (L||[]).forEach(z => { vol += (+z[0]||0)*(+z[1]||0); }));
     // evolução das cargas: o dia deste treino passa a ter a maior carga corrigida
     const H = (S.loadHist[e.id]||[]).filter(x => x.d!==h.date); H.push({d:h.date, kg:mk}); H.sort((x,y) => x.d<y.d ? -1 : x.d>y.d ? 1 : 0); while(H.length>16) H.shift(); S.loadHist[e.id] = H;
     const l0 = S.last[e.id]; if(!l0 || l0.d<=h.date){ const top = s.filter(v => v[0]===mk); S.last[e.id] = {kg:mk, lastKg:s[s.length-1][0], reps:top.map(v => v[1]), rir:top.map(() => 1), d:h.date, g:h.gym||''}; }

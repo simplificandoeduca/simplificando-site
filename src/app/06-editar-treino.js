@@ -26,7 +26,7 @@ function mtLetras(){
 function mtFix(){
   const c = S.conta;
   Object.keys(c.treinos||{}).forEach(l => {
-    const t = c.treinos[l]; t.ex = t.ex||[]; t.dias = t.dias||[]; t.g = (t.g||[]).filter(x => GNOME[x]); t.min = estMin(t.ex);
+    const t = c.treinos[l]; t.ex = t.ex||[]; tecNorm(t.ex); t.dias = t.dias||[]; t.g = (t.g||[]).filter(x => GNOME[x]); t.min = estMin(t.ex);
     t.foco = t.g.length ? focoTxt(t.g.slice(0,4)) : (joinPt([...new Set(t.ex.map(e => e.alvo).filter(Boolean))].slice(0,3)) || 'Treino livre');
   });
   applyAccount(); if(ui.t && !PLAN[ui.t]) ui.t = null; ui.tsel = null; ui.pop = null; save();
@@ -48,6 +48,15 @@ const shWrap = inner => `<div class="sheet-wrap" data-a="closebg"><div class="sh
 const MT_AQ = [['Padrão',[[50,10],[75,5]]],['Leve',[[40,12]]],['Pesado',[[40,10],[60,6],[80,3]]],['Só 1 série',[[60,8]]]].map(([n,W]) => [n, W.map(w => ({p:w[0], r:w[1]}))]);
 const mtAqTxt = W => W.map(w => w.p+'% × '+w.r).join(' · ');
 const mtAqW = e => { if(!Array.isArray(e.aqW) || !e.aqW.length || e.aqW.some(w => !w || typeof w!=='object' || Array.isArray(w))) e.aqW = MT_AQ[0][1].map(w => Object.assign({}, w)); return e.aqW; };
+// técnica do exercício (quem treina sem personal escolhe a técnica e em quais séries)
+function mtTec(e,i,t){
+  const k = e.sup ? 'bi' : (e.tec && TEC[e.tec.k] ? e.tec.k : ''), nx = t.ex[i+1], pv = t.ex[i-1], S0 = (e.tec && e.tec.s) || [];
+  const op = (v,l,dis) => `<button type="button" class="mt-chip${k===v?' on':''}" aria-pressed="${k===v}" data-a="mt-tec" data-i="${i}" data-v="${v}"${dis?' disabled':''}>${l}</button>`;
+  return `<div class="mt-aq mt-tec${k?' on':''}"><div class="mt-aqh"><span class="mt-aqi">${ic('bolt')}</span><div><b>Técnica</b><span>${k==='bi' && nx ? 'Bi-set com '+esc(nx.nome) : k ? esc(tecTag(e)) : 'Opcional: rest-pause, myo-reps, drop-set ou bi-set'}</span></div></div>
+    <div class="mt-chips" role="group" aria-label="Técnica em ${esc(e.nome)}">${op('','Nenhuma')}${op('rp','Rest-pause')}${op('myo','Myo-reps')}${op('drop','Drop-set')}${op('bi','Bi-set', !nx || (pv && pv.sup===e.id))}</div>
+    ${k && k!=='bi' ? `<span class="mt-tecl">Em quais séries?</span><div class="mt-chips" role="group" aria-label="Séries com ${TEC[k].n}">${Array.from({length:Math.max(1,e.s)},(_,j) => j+1).map(x => `<button type="button" class="mt-chip${S0.includes(x)?' on':''}" aria-pressed="${S0.includes(x)}" data-a="mt-tecs" data-i="${i}" data-v="${x}">${x}ª</button>`).join('')}</div>` : ''}
+    ${k ? `<p class="foot0">${TEC[k].d}</p>` : ''}</div>`;
+}
 function mtAq(e,i){
   const on = !!e.aq, head = `<div class="mt-aqh"><span class="mt-aqi">${ic('flame')}</span><div><b>Aquecimento</b><span>${on ? 'Antes da 1ª série · '+mtAqTxt(mtAqW(e)) : 'Séries leves antes da 1ª série'}</span></div>
     <button type="button" class="mt-sw" role="switch" aria-checked="${on}" data-a="mt-aq" data-i="${i}" aria-label="Aquecimento em ${esc(e.nome)}"><span class="knob"></span></button></div>`;
@@ -87,7 +96,7 @@ function vMtEdit(sh, t, T){
         <div class="mt-f"><span>Séries</span><div class="mt-st"><button type="button" data-a="mt-s" data-i="${i}" data-d="-1" aria-label="Menos séries"${e.s>1?'':' disabled'}>${ic('minus')}</button><b>${e.s}</b><button type="button" data-a="mt-s" data-i="${i}" data-d="1" aria-label="Mais séries"${e.s<8?'':' disabled'}>${ic('plus')}</button></div></div>
         <label class="mt-f"><span>Repetições</span><input class="mt-in" data-mx="r" data-i="${i}" value="${esc(e.r)}" maxlength="14" autocomplete="off" aria-label="Repetições de ${esc(e.nome)}"></label>
         <div class="mt-f"><span>Descanso</span><div class="mt-st"><button type="button" data-a="mt-d" data-i="${i}" data-d="-15" aria-label="Menos descanso"${e.d>15?'':' disabled'}>${ic('minus')}</button><b>${e.d}s</b><button type="button" data-a="mt-d" data-i="${i}" data-d="15" aria-label="Mais descanso"${e.d<300?'':' disabled'}>${ic('plus')}</button></div></div>
-      </div>${mtAq(e,i)}</div>`).join('');
+      </div>${mtAq(e,i)}${mtTec(e,i,t)}</div>`).join('');
   const armed = ui.arm==='mt-del:'+l;
   return `${sheetTop('Treino '+l, esc(t.nome||'Treino '+l)+'<span class="dot" aria-hidden="true"></span>')}
     <button type="button" class="linkbtn pk-back mt-back" data-a="mt-back">${ic('chevL')}Meus treinos</button>
@@ -171,12 +180,15 @@ function mtClick(a, d, b, armed){
       else { const o = Object.keys(T).find(x => x!==sh.ed && (T[x].dias||[]).includes(v)); if(o){ T[o].dias = T[o].dias.filter(x => x!==v); toast(TDAYS_L[v]+' saiu do treino '+o+'.'); } t.dias.push(v); t.dias.sort((x,y) => x-y); }
       break; }
     case 'mt-g': { const k = t.g.indexOf(d.v); if(k>=0) t.g.splice(k,1); else t.g.push(d.v); break; }
-    case 'mt-s': { const e = t.ex[i]; if(e) e.s = Math.max(1, Math.min(8, e.s + +d.d)); break; }
+    case 'mt-s': { const e = t.ex[i]; if(e){ e.s = Math.max(1, Math.min(8, e.s + +d.d)); tecNorm(t.ex); } break; }
     case 'mt-aq': { const e = t.ex[i]; if(e){ e.aq = !e.aq; if(e.aq) mtAqW(e); } break; }
     case 'mt-aqp': case 'mt-aqr': { const e = t.ex[i], w = e && mtAqW(e)[+d.j]; if(!w) break; if(a==='mt-aqp') w.p = Math.max(10, Math.min(100, w.p + +d.d)); else w.r = Math.max(1, Math.min(30, w.r + +d.d)); break; }
     case 'mt-aqdel': { const e = t.ex[i], W = e && mtAqW(e); if(W && W.length>1) W.splice(+d.j,1); break; }
     case 'mt-aqadd': { const e = t.ex[i], W = e && mtAqW(e); if(W && W.length<5){ const l = W[W.length-1]; W.push({p:Math.min(100, (l ? l.p : 40)+15), r:Math.max(1, (l ? l.r : 10)-3)}); } break; }
     case 'mt-aqmod': { const e = t.ex[i], M = MT_AQ[+d.k]; if(e && M){ e.aq = true; e.aqW = M[1].map(w => Object.assign({}, w)); } break; }
+    case 'mt-tec': { const e = t.ex[i]; if(!e) break; const pv = t.ex[i-1]; delete e.sup; delete e.tec; if(pv && pv.sup===e.id && d.v) delete pv.sup;
+      if(d.v==='bi'){ const nx = t.ex[i+1]; if(nx){ delete nx.sup; delete nx.tec; e.sup = nx.id; } } else if(d.v) e.tec = { k:d.v, s:[Math.max(1, e.s)] }; tecNorm(t.ex); break; }
+    case 'mt-tecs': { const e = t.ex[i]; if(!e || !e.tec) break; const v = +d.v, s = e.tec.s||[]; e.tec.s = s.includes(v) ? s.filter(z => z!==v) : s.concat(v).sort((p,q) => p-q); if(!e.tec.s.length) e.tec.s = [v]; break; }
     case 'mt-d': { const e = t.ex[i]; if(e) e.d = Math.max(15, Math.min(300, (+e.d||60) + +d.d)); break; }
     case 'mt-mv': { const j = i + +d.d; if(j>=0 && j<t.ex.length){ const x = t.ex[i]; t.ex[i] = t.ex[j]; t.ex[j] = x; } mtFix(); renderSheet(); refocus(`[data-a="mt-mv"][data-i="${j}"][data-d="${d.d}"]`); return true; }
     case 'mt-rm': { const x = t.ex.splice(i,1)[0]; if(x) toast(x.nome+' saiu do treino.'); break; }

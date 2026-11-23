@@ -87,6 +87,27 @@ test('Ajustes › Treino em PDF: o PDF do treino feito pelo painel volta a ser t
   await page.waitForTimeout(1500);
 });
 
+test('Técnicas no painel: rest-pause nas séries escolhidas e bi-set com o de baixo; vão para o app e voltam pelo PDF', async ({ page }) => {
+  await entraPainel(page);
+  const orig = await page.evaluate(aid => JSON.stringify(window.__painel.C.alunos[aid].plano), aid);
+  await vai(page, '#aluno--' + aid + '--treino'); await page.waitForTimeout(500);
+  await page.click('[data-a="tecSet"][data-i="0"][data-v="rp"]');
+  await page.click('[data-a="tecS"][data-i="0"][data-v="1"]');
+  await page.click('[data-a="tecSet"][data-i="1"][data-v="bi"]');
+  const pl = await page.evaluate(aid => { const t = window.__painel.C.alunos[aid].plano.treinos.A; return { tec: t.ex[0].tec, s: t.ex[0].s, bi: t.ex[1].sup === t.ex[2].id }; }, aid);
+  expect(pl.tec.k).toBe('rp'); expect(pl.tec.s).toEqual([1, pl.s]); expect(pl.bi).toBe(true);
+  // o app da aluna recebe a técnica
+  await expect.poll(async () => { const a = (await fsLista('appAlunos')).find(x => x.f.aid && x.f.aid.stringValue === aid); return !!a && JSON.stringify(a.f).includes('"stringValue":"rp"'); }, { timeout: 30000 }).toBe(true);
+  // o PDF traz a técnica e, lido de volta, ela continua no treino
+  const b64 = await page.evaluate(async aid => { const f = await window.__painel.pdfArquivo(window.__painel.C.alunos[aid]); const u = new Uint8Array(await f.arrayBuffer()); let s = ''; u.forEach(c => s += String.fromCharCode(c)); return btoa(s); }, aid);
+  await vai(page, '#ajustes'); await page.waitForTimeout(400);
+  await page.setInputFiles('#pdf-imp-file', { name: 'Treino.pdf', mimeType: 'application/pdf', buffer: Buffer.from(b64, 'base64') });
+  const lido = await page.evaluate(() => { const A = window.__painel.ui.draft.pdfi.tr.A.ex; return { tec: A[0].tec, bi: A[1].sup === A[2].id }; });
+  expect(lido.tec).toEqual(pl.tec); expect(lido.bi).toBe(true);
+  await page.evaluate(([aid, o]) => { const P = window.__painel; P.closeSheet(); P.C.alunos[aid].plano = JSON.parse(o); P.Store.save('alunos', aid, 0); }, [aid, orig]);
+  await page.waitForTimeout(1500);
+});
+
 test('Relatório da semana: carga só sobe no mesmo exercício e na mesma academia (até +50%); sem registro não vira "relatório"', async ({ page }) => {
   await entraPainel(page);
   const r = await page.evaluate(() => { const P = window.__painel, ini = '2026-11-16';
