@@ -1301,6 +1301,18 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O PDF das Festas nos blocos coloridos (1.96 · Finanças 4.6)
+
+Pedido do dono (com a foto do PDF das Festas): "me dá 3 opções mais modernas esteticamente". Foram feitas três (branco e limpo; faixa escura; blocos coloridos) e o dono escolheu a 3.
+
+- A página fica creme. No alto: a logo, "Festas", o mês e a unidade, e o ursinho com o recado no balão.
+- O **lucro real do mês** num bloco coral grande, com a barra da margem, o lucro por festa e o ticket médio. Se os custos passarem o valor das festas, o bloco fica vermelho.
+- Ao lado, o **valor bruto** (amarelo) e os **custos** (verde, com quantas festas ainda estão sem os custos). Embaixo, festas, crianças e a receber em blocos brancos.
+- **Para onde vai o dinheiro das festas**: a frase ("Dos R$ X das festas, R$ Y ficam de lucro real."), uma barra colorida e as etiquetas de buffet, salgados, papelaria, gasto do adiantamento e lucro real.
+- **Cada festa** num cartão: a data num círculo colorido, o aniversariante com o tema, a unidade, as crianças e o pagamento; bruto, custos ("falta lançar" quando ainda não foram lançados) e lucro. No fim, a linha do total.
+- Na segunda página, o lucro de cada festa e como foram pagas, em cartões brancos. O texto ao lado das barras do crédito (como "liberado pelo gestor") não fica mais em cima da barra.
+- Os outros PDFs das Finanças (Freelancers, Caixa, Comissões, Vendas por cliente) continuam como estavam.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A Agenda abre uma vez só (1.95)
 
 Pedido do dono: "na aba Agenda, quando abre, está dando um pequeno bug e abrindo 2 vezes".

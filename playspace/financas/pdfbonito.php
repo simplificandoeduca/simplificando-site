@@ -48,6 +48,37 @@ final class PdfBonito {
     foreach ($L as $i => $l) $p->texto($x + 11, $y + 15.5 + $i * 11.5, $l, $tam, true, self::TINTA);
     return $x;
   }
+  /* ---------- 4.6 (1.96): os blocos coloridos (a opção 3 do dono, no PDF das Festas): a página creme, a capa com o ursinho e o balão, os
+     rótulos em maiúsculas espaçadas, o valor que diminui até caber e o cartão branco por baixo de um gráfico ---------- */
+  public $fundoPg = '';
+  function rotulo(float $x, float $y, string $t, string $cor, float $tam = 7.2, string $al = 'E') { $this->p->textoEsp($x, $y, mb_strtoupper($t), $tam, true, $cor, 1.1, $al); }
+  function valor(float $x, float $y, string $t, float $tam, float $max, string $cor, string $al = 'E') { $p = $this->p; while ($tam > 8 && $p->larg($t, $tam, true) > $max) $tam -= 0.5; $p->texto($x, $y, $t, $tam, true, $cor, $al); }
+  function capaBlocos(string $fala = '') {
+    $p = $this->p; $M = $this->M; $W = $this->W; $this->fundoPg = self::CREME; $p->ret(0, 0, PdfSimples::W, PdfSimples::H, self::CREME);
+    if ($this->logo !== '') $p->imagem($this->logo, $M, 30, 62, 50.2);
+    $x = $M + ($this->logo !== '' ? 78 : 0); $ux = $M + $W - 33; $uy = 60; $lim = $M + $W;
+    $this->urso($ux, $uy, 0.74);
+    if ($fala !== '') {   /* o balão do ursinho, à esquerda dele */
+      $tam = 8.2; $L = array_slice($p->quebra($fala, 136, $tam, true), 0, 3); $w = 0; foreach ($L as $l) $w = max($w, $p->larg($l, $tam, true)); $w += 24; $h = 13 + count($L) * 11;
+      $xd = $ux - 40; $yc = 50; $x0 = $xd - $w; $y0 = $yc - $h / 2; $lim = $x0 - 12;
+      $p->ret($x0, $y0, $w, $h, 'FFFFFF', 11, 'EFD9CB');
+      $p->traco([[$xd - 1, $yc - 4], [$xd + 6, $yc], [$xd - 1, $yc + 4]], 'EFD9CB', 0.7); $p->ret($xd - 2.2, $yc - 3.4, 2.6, 6.8, 'FFFFFF');
+      foreach ($L as $i => $l) $p->texto($x0 + 12, $y0 + 15 + $i * 11, $l, $tam, true, self::TINTA);
+    }
+    $this->rotulo($x, 46, 'Play Space · Finanças', self::MUDO, 7.5);
+    $this->valor($x, 76, $this->tit, 30, max(80, $lim - $x), self::TINTA);
+    $p->texto($x, 94, $p->corta($this->sub, max(80, $lim - $x), 9.5), 9.5, false, self::MUDO);
+    $this->y = 124;
+  }
+  /* o que $f desenhar fica num cartão branco (o fundo entra por baixo depois, quando se sabe a altura); se mudar de página no meio, sem o cartão */
+  function cartao(callable $f, float $pad = 14) {
+    $p = $this->p; $n0 = $p->paginas(); $pos = $p->marca(); $y0 = $this->y; $M = $this->M; $W = $this->W;
+    $this->M += $pad; $this->W -= 2 * $pad; $this->y += $pad;
+    try { $f(); } finally { $this->M = $M; $this->W = $W; }
+    $this->y += $pad - 6;
+    if ($p->paginas() === $n0) $p->fundoEm($pos, $M, $y0, $W, $this->y - $y0, 'FFFFFF', 16, 'EFE6DA');
+    $this->y += 10;
+  }
   /* ---------- a capa (a primeira página): a faixa creme, a logo, o título, os chips e o ursinho ---------- */
   function capa(array $chips = [], string $fala = '') {
     $p = $this->p; $M = $this->M; $W = $this->W; $H = 150;
@@ -72,7 +103,7 @@ final class PdfBonito {
     $this->urso($M + $W - 16, 34, 0.24, false);
     $this->y = 74;
   }
-  function novaPagina() { $this->p->pagina(); $this->cabPeq(); }
+  function novaPagina() { $this->p->pagina(); if ($this->fundoPg !== '') $this->p->ret(0, 0, PdfSimples::W, PdfSimples::H, $this->fundoPg); $this->cabPeq(); }   /* 4.6: a página creme dos blocos */
   function cabe(float $h) { if ($this->y + $h > PdfSimples::H - 54) $this->novaPagina(); }
   /* o título de uma parte (com a bolinha colorida) e a explicação embaixo; junto: o espaço que precisa caber junto com o título */
   function secao(string $t, string $exp = '', float $junto = 90, string $cor = self::CORAL) {
@@ -137,9 +168,10 @@ final class PdfBonito {
   /* ---------- as barras deitadas (o ranking): [nome, valor, cor, texto à direita] ---------- */
   function barrasH(array $L, float $wNome = 130) {
     $p = $this->p; $M = $this->M; $W = $this->W; $max = 0.0; foreach ($L as $it) $max = max($max, (float)$it[1]);
+    $wt = 96; foreach ($L as $it) $wt = max($wt, $p->larg($it[3] ?? self::brl($it[1]), 8.8, true) + 14);   /* 4.6: o texto da direita nunca em cima da barra */
     foreach ($L as $it) { $this->cabe(20); $y = $this->y;
       $p->texto($M, $y + 10, $p->corta($it[0], $wNome - 8, 8.8, true), 8.8, true, self::TINTA);
-      $bw = $W - $wNome - 96; $w = $max > 0 ? max(2, $bw * max(0, (float)$it[1]) / $max) : 2;
+      $bw = max(40, $W - $wNome - $wt); $w = $max > 0 ? max(2, $bw * max(0, (float)$it[1]) / $max) : 2;
       $p->ret($M + $wNome, $y + 2, $bw, 10, 'F4ECE2', 5); $p->ret($M + $wNome, $y + 2, $w, 10, $it[2] ?? self::CORAL, 5);
       $p->texto($M + $W, $y + 10, $it[3] ?? self::brl($it[1]), 8.8, true, self::TINTA, 'D'); $this->y += 18; }
     $this->y += 4;

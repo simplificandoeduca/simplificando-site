@@ -126,29 +126,97 @@ function fsPdf(array $in): string {
   ksort($parc); $n = count($L);
   $d = new PdfBonito('Festas', finMesNome($R['mes']) . ' · ' . ($uni ? $nomeU[$uni] ?? 'unidade' : 'todas as unidades'), 'Festas');
   $fala = !$n ? 'Nenhuma festa neste mês.' : ($T['faltam'] ? 'Faltam os custos de ' . $T['faltam'] . ($T['faltam'] === 1 ? ' festa' : ' festas') . ' para o lucro real ficar certinho.' : 'Lucro real do mês: ' . finBrl($T['lucro']) . ' (margem ' . PdfBonito::pct($T['lucro'], $T['bruto'], 0) . ').');
-  $d->capa([$n . ($n === 1 ? ' festa' : ' festas'), $T['kids'] . ' crianças combinadas'], $fala);
-  $d->kpis([['Valor bruto', finBrl($T['bruto']), 'o que as festas venderam', PdfBonito::CORAL], ['Custos', finBrl($T['custos']), 'buffet, salgados, papelaria e adiant.', PdfBonito::MOSTARDA],
-    ['Lucro real', finBrl($T['lucro']), $T['bruto'] > 0 ? 'margem de ' . PdfBonito::pct($T['lucro'], $T['bruto']) : '', $T['lucro'] < 0 ? PdfBonito::VERM : PdfBonito::VERDE], ['Festas', (string)$n, $T['faltam'] ? $T['faltam'] . ' sem os custos lançados' : 'todas com os custos', PdfBonito::PIX],
-    ['Ticket médio', $n ? finBrl($T['bruto'] / $n) : '–', 'por festa', PdfBonito::CORAL], ['Lucro por festa', $n ? finBrl($T['lucro'] / $n) : '–', 'em média', PdfBonito::VERDE],
-    ['Crianças', (string)$T['kids'], 'vieram ' . $T['vieram'] . ' convidados', PdfBonito::MOSTARDA], ['A receber', finBrl(max(0, $T['bruto'] - $T['pago'])), 'recebido ' . finBrl($T['pago']), max(0, $T['bruto'] - $T['pago']) > 0.004 ? PdfBonito::VERM : PdfBonito::VERDE]]);
-  if ($n) {
-    $d->secao('Para onde vai o dinheiro das festas', 'Do valor bruto: os custos (buffet, salgados, papelaria e o que foi gasto do adiantamento) e o que sobra, o lucro real.');
-    $y = $d->y; $h = $d->rosca($d->M, $y, 60, [['Buffet', $T['buffet'], PdfBonito::MOSTARDA], ['Salgados', $T['salgados'], PdfBonito::PESSEGO], ['Papelaria', $T['papelaria'], 'B9A6E0'], ['Gasto do adiantamento', $T['gasto'], PdfBonito::CINZA], ['Lucro real', max(0, $T['lucro']), PdfBonito::VERDE]], PdfBonito::curto($T['bruto']), 'valor bruto', 210);
-    $d->y = $y + $h + 14;
-    $d->secao('O lucro de cada festa', 'O valor bruto e o lucro real de cada festa do mês, pela data da festa.', 220);
-    $d->barras(150, array_map(fn($f) => substr($f['data'], 8, 2) . '/' . substr($f['data'], 5, 2), $L), [['Valor bruto', PdfBonito::PESSEGO, array_map(fn($f) => (float)$f['bruto'], $L)], ['Lucro real', PdfBonito::VERDE, array_map(fn($f) => max(0, (float)$f['lucro']), $L)]], false, 'em reais');
-    $d->secao('Como as festas foram pagas', 'As formas de pagamento das festas e, no crédito, em quantas vezes.', 150);
-    $y = $d->y; $h = $d->rosca($d->M, $y, 48, array_map(fn($f) => [PdfBonito::FORMAS[$f][0], $formas[$f] ?? 0, PdfBonito::FORMAS[$f][1]], ['credito', 'debito', 'pix', 'dinheiro']), PdfBonito::curto(array_sum($formas)), 'recebido', 200);
-    $d->y = $y + $h + 10;
-    if ($parc) $d->barrasH(array_map(fn($k, $x) => [$k ? $k . 'x no crédito' : 'Crédito (vezes?)', $x['t'], $k > 4 ? PdfBonito::VERM : PdfBonito::CORAL, finBrl($x['t']) . ' · ' . $x['q'] . ($x['q'] === 1 ? ' festa' : ' festas') . ($k > 4 ? ' · liberado pelo gestor' : '')], array_keys($parc), $parc), 120);
+  /* 4.6 (1.96): os blocos coloridos (a opção 3 que o dono escolheu) */
+  $d->capaBlocos($fala); $p = $d->p; $M = $d->M; $W = $d->W; $g = 8; $y = $d->y;
+  $FALTA = $T['faltam'] ? $T['faltam'] . ($T['faltam'] === 1 ? ' festa sem os custos lançados' : ' festas sem os custos lançados') : '';
+  $rec = max(0, $T['bruto'] - $T['pago']); $neg = $T['lucro'] < -0.004; $temB = $T['bruto'] > 0.004;
+  /* o lucro real (o bloco coral grande); ao lado, o valor bruto (amarelo) e os custos (verde) */
+  $wl = ($W - $g) / 2; $hh = 104; $hl = 2 * $hh + $g; $xr = $M + $wl + $g; $cl = 'FFE4DB';
+  $p->ret($M, $y, $wl, $hl, $neg ? PdfBonito::VERM : PdfBonito::CORAL, 16);
+  $d->rotulo($M + 15, $y + 25, 'Lucro real do mês', 'FFD9CF');
+  $d->valor($M + 15, $y + 60, finBrl($T['lucro']), 32, $wl - 30, 'FFFFFF');
+  $p->texto($M + 15, $y + 78, $p->corta($n ? 'de ' . finBrl($T['bruto']) . ' vendidos nas festas' : 'nenhuma festa neste mês', $wl - 30, 9), 9, false, $cl);
+  $bw = $wl - 30; $mg = $temB ? max(0, min(1, $T['lucro'] / $T['bruto'])) : 0;
+  $p->ret($M + 15, $y + 94, $bw, 10, 'EB8A75', 5); if ($mg > 0) $p->ret($M + 15, $y + 94, max(10, $bw * $mg), 10, 'FFFFFF', 5);
+  $p->texto($M + 15, $y + 120, $temB ? PdfBonito::pct($T['lucro'], $T['bruto']) . ' de margem' : 'sem vendas de festa', 8, false, $cl);
+  if ($temB) $p->texto($M + $wl - 15, $y + 120, 'custos ' . PdfBonito::pct($T['custos'], $T['bruto']), 8, false, $cl, 'D');
+  $p->linha($M + 15, $y + 136, $M + $wl - 15, $y + 136, 'EB8A75', 0.8);
+  $x2 = $M + 15 + $bw / 2;
+  $p->texto($M + 15, $y + 160, 'Lucro por festa', 7.8, false, $cl); $d->valor($M + 15, $y + 179, $n ? finBrl($T['lucro'] / $n) : '–', 13, $bw / 2 - 8, 'FFFFFF');
+  $p->texto($x2, $y + 160, 'Ticket médio', 7.8, false, $cl); $d->valor($x2, $y + 179, $n ? finBrl($T['bruto'] / $n) : '–', 13, $bw / 2 - 4, 'FFFFFF');
+  $p->ret($xr, $y, $wl, $hh, PdfBonito::MOSTARDA, 16);
+  $d->rotulo($xr + 15, $y + 25, 'Valor bruto', '7A5A12'); $d->valor($xr + 15, $y + 56, finBrl($T['bruto']), 21, $wl - 30, PdfBonito::TINTA);
+  $p->texto($xr + 15, $y + 74, $p->corta($n . ($n === 1 ? ' festa' : ' festas') . ' · ' . $T['kids'] . ' crianças combinadas', $wl - 30, 8.2), 8.2, false, '6B4F10');
+  $y2 = $y + $hh + $g; $p->ret($xr, $y2, $wl, $hh, 'DCE8DA', 16);
+  $d->rotulo($xr + 15, $y2 + 25, 'Custos', '2F6B47'); $d->valor($xr + 15, $y2 + 56, finBrl($T['custos']), 21, $wl - 30, PdfBonito::TINTA);
+  $p->texto($xr + 15, $y2 + 74, $p->corta('buffet, salgados, papelaria e adiantamento', $wl - 30, 8.2), 8.2, false, '2F6B47');
+  if ($FALTA !== '') $p->texto($xr + 15, $y2 + 88, $p->corta($FALTA, $wl - 30, 8.2), 8.2, true, '7A5A12');
+  /* festas, crianças e a receber */
+  $y += $hl + $g; $w3 = ($W - 2 * $g) / 3; $hs = 64;
+  foreach ([['Festas', (string)$n, $FALTA !== '' ? $FALTA : ($n ? 'todas com os custos lançados' : 'nenhuma neste mês'), PdfBonito::TINTA], ['Crianças', (string)$T['kids'], 'vieram ' . $T['vieram'] . ' convidados', PdfBonito::TINTA],
+    ['A receber', finBrl($rec), 'recebido ' . finBrl($T['pago']), $rec > 0.004 ? PdfBonito::VERM : PdfBonito::TINTA]] as $i => [$r, $v, $sb, $c]) {
+    $x = $M + $i * ($w3 + $g); $p->ret($x, $y, $w3, $hs, 'FFFFFF', 16, 'EFE6DA');
+    $d->rotulo($x + 14, $y + 21, $r, PdfBonito::MUDO); $d->valor($x + 14, $y + 42, $v, 17, $w3 - 28, $c); $p->texto($x + 14, $y + 55, $p->corta($sb, $w3 - 28, 7.8), 7.8, false, PdfBonito::MUDO);
   }
-  $d->secao('Cada festa', 'Lucro real = valor bruto − buffet − salgados − papelaria − gasto do adiantamento (adiantamento − retornado).', 110);
-  $rows = []; $fundo = [];
-  foreach ($L as $k => $f) { $pg = implode(' + ', array_map(fn($p) => $p['nome'] . ($p['f'] === 'credito' && ($f['parcSis'] || $f['parcelas']) ? ' ' . ($f['parcSis'] ?: $f['parcelas']) . 'x' : ''), $f['formas'])) ?: '—';
-    $rows[] = [substr($f['data'], 8, 2) . '/' . substr($f['data'], 5, 2), ['t' => $f['aniv'] ?: 'Festa', 'b' => true], $nomeU[(int)$f['u']] ?? '', (string)($f['contratadas'] + $f['extra']), finBrl($f['bruto']), $pg, $f['falta'] ? ['t' => 'falta lançar', 'cor' => 'A07A1C', 'b' => true] : finBrl($f['custos']), ['t' => finBrl($f['lucro']), 'b' => true, 'cor' => $f['lucro'] < 0 ? PdfBonito::VERM : PdfBonito::VERDE]];
-    if ($f['falta']) $fundo[$k] = 'FFF6E3'; }
-  if ($rows) $d->tabela([['Data', .08, 'E'], ['Aniversariante', .2, 'E'], ['Unidade', .14, 'E'], ['Crian.', .07, 'D'], ['Bruto', .12, 'D'], ['Pagamento', .15, 'E'], ['Custos', .12, 'D'], ['Lucro real', .12, 'D']], $rows,
-    ['Total', $n . ' festas', '', (string)$T['kids'], finBrl($T['bruto']), '', finBrl($T['custos']), finBrl($T['lucro'])], ['fundo' => $fundo, 'tam' => 8.2]);
+  $y += $hs + $g;
+  /* para onde vai o dinheiro: a barra colorida e as etiquetas */
+  if ($n) {
+    $itens = [['Buffet', $T['buffet'], PdfBonito::MOSTARDA], ['Salgados', $T['salgados'], PdfBonito::PESSEGO], ['Papelaria', $T['papelaria'], 'B9A6E0'], ['Gasto do adiantamento', $T['gasto'], PdfBonito::CINZA], ['Lucro real', max(0, $T['lucro']), PdfBonito::VERDE]];
+    $tot = 0.0; foreach ($itens as $it) $tot += max(0, (float)$it[1]);
+    $ix = $M + 15; $lim = $M + $W - 15; $ch = []; $cx = $ix; $cy = 0; $tc = 7.8;
+    foreach ($itens as $it) { $t2 = finBrl($it[1]); $t3 = ' · ' . PdfBonito::pct(max(0, (float)$it[1]), $tot);
+      $w = 17 + $p->larg($it[0], $tc) + 5 + $p->larg($t2, $tc, true) + $p->larg($t3, $tc) + 9; if ($cx + $w > $lim && $cx > $ix) { $cx = $ix; $cy += 21; }
+      $ch[] = [$cx, $cy, $w, $it, $t2, $t3]; $cx += $w + 6; }
+    $ht = 76 + $cy + 17 + 14; $d->y = $y; $d->cabe($ht); $y = $d->y;
+    $p->ret($M, $y, $W, $ht, 'FFFFFF', 16, 'EFE6DA');
+    $p->texto($M + 15, $y + 24, 'Para onde vai o dinheiro das festas', 12.5, true, PdfBonito::TINTA);
+    $p->texto($M + 15, $y + 39, $p->corta($neg ? 'Os custos passaram o valor das festas em ' . finBrl(-$T['lucro']) . '.' : 'Dos ' . finBrl($T['bruto']) . ' das festas, ' . finBrl($T['lucro']) . ' ficam de lucro real.', $W - 30, 8.6), 8.6, false, PdfBonito::MUDO);
+    $seg = array_values(array_filter($itens, fn($it) => (float)$it[1] > 0.004)); $by = $y + 50; $bw = $W - 30; $gp = 3;
+    if ($seg && $tot > 0.004) { $av = $bw - $gp * (count($seg) - 1); $bx = $ix;
+      foreach ($seg as $k => $it) { $w = $k === count($seg) - 1 ? $ix + $bw - $bx : max(3, $av * $it[1] / $tot); $p->ret($bx, $by, $w, 22, $it[2], 7);
+        if ($it[0] === 'Lucro real' && $w > 96) $p->texto($bx + 10, $by + 14.6, PdfBonito::pct($it[1], $tot) . ' lucro real', 8.4, true, 'FFFFFF');
+        $bx += $w + $gp; } }
+    else $p->ret($ix, $by, $bw, 22, PdfBonito::GRADE, 7);
+    foreach ($ch as [$cx, $cy, $w, $it, $t2, $t3]) { $yy = $by + 32 + $cy; $p->ret($cx, $yy, $w, 17, PdfBonito::CREME, 8.5); $p->circulo($cx + 10, $yy + 8.5, 3.2, $it[2]);
+      $p->texto($cx + 17, $yy + 11.6, $it[0], $tc, false, PdfBonito::TINTA); $xx = $cx + 17 + $p->larg($it[0], $tc) + 5; $p->texto($xx, $yy + 11.6, $t2, $tc, true, PdfBonito::TINTA);
+      $p->texto($xx + $p->larg($t2, $tc, true), $yy + 11.6, $t3, $tc, false, PdfBonito::MUDO); }
+    $y += $ht + $g;
+  }
+  /* cada festa num cartão: a data num círculo colorido, o aniversariante, a unidade, as crianças e o pagamento; bruto, custos e lucro */
+  $d->y = $y + 4; $d->cabe(36 + 57);
+  $p->texto($M + 2, $d->y + 14, 'Cada festa', 13, true, PdfBonito::TINTA);
+  $p->texto($M + 2, $d->y + 28, $p->corta('Lucro real = valor bruto − buffet − salgados − papelaria − gasto do adiantamento (adiantamento − retornado).', $W - 4, 7.8), 7.8, false, PdfBonito::MUDO);
+  $d->y += 38;
+  $MES = ['', 'JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ']; $CORES = [[PdfBonito::PESSEGO, '7A2E1C'], [PdfBonito::MOSTARDA, '6B4F10'], ['DCE8DA', '2F6B47'], ['E4DCF5', '4B3A78']];
+  $R0 = $M + $W - 14; $cols = [[$R0 - 160, 'Bruto'], [$R0 - 80, 'Custos'], [$R0, 'Lucro real']];
+  foreach ($L as $k => $f) {
+    $hc = 50; $d->cabe($hc + 7); $y = $d->y; $falta = !empty($f['falta']);
+    $p->ret($M, $y, $W, $hc, $falta ? 'FFFBF1' : 'FFFFFF', 16, $falta ? 'F3DFB0' : 'EFE6DA');
+    [$cf, $ct] = $CORES[$k % 4]; $ccx = $M + 31; $ccy = $y + 25; $p->circulo($ccx, $ccy, 19, $cf);
+    $p->texto($ccx, $ccy + 2.5, substr($f['data'], 8, 2), 13.5, true, $ct, 'C'); $p->textoEsp($ccx, $ccy + 12, $MES[(int)substr($f['data'], 5, 2)] ?? '', 6, true, $ct, 0.6, 'C');
+    $pg = implode(' + ', array_map(fn($q) => $q['nome'] . ($q['f'] === 'credito' && ($f['parcSis'] || $f['parcelas']) ? ' ' . ($f['parcSis'] ?: $f['parcelas']) . 'x' : ''), $f['formas'])) ?: 'sem pagamento';
+    $wn = $cols[0][0] - 74 - ($M + 60);
+    $p->texto($M + 60, $y + 22, $p->corta(mb_strtoupper($f['aniv'] ?: 'Festa') . ((string)($f['tema'] ?? '') !== '' ? ' · ' . $f['tema'] : ''), $wn, 10.5, true), 10.5, true, PdfBonito::TINTA);
+    $p->texto($M + 60, $y + 35, $p->corta(implode(' · ', array_filter([$nomeU[(int)$f['u']] ?? '', ($f['contratadas'] + $f['extra']) . ' crianças', $pg], fn($v) => $v !== '')), $wn, 7.6), 7.6, false, PdfBonito::MUDO);
+    foreach ($cols as [$xc, $r]) $d->rotulo($xc, $y + 20, $r === 'Lucro real' ? 'Lucro' : $r, PdfBonito::MUDO, 6.4, 'D');
+    $p->texto($cols[0][0], $y + 34, finBrl($f['bruto']), 9.6, true, PdfBonito::TINTA, 'D');
+    if ($falta) { $t = 'falta lançar'; $w = $p->larg($t, 7.4, true) + 12; $p->ret($cols[1][0] - $w, $y + 25, $w, 13, 'FFF1D2', 6.5); $p->texto($cols[1][0] - 6, $y + 34.2, $t, 7.4, true, '7A5A12', 'D'); }
+    else $p->texto($cols[1][0], $y + 34, finBrl($f['custos']), 9.6, true, PdfBonito::TINTA, 'D');
+    $p->texto($cols[2][0], $y + 34, finBrl($f['lucro']), 9.6, true, $f['lucro'] < -0.004 ? PdfBonito::VERM : PdfBonito::VERDE, 'D');
+    $d->y += $hc + 7;
+  }
+  if ($n) { $d->cabe(36); $y = $d->y; $p->ret($M, $y, $W, 30, 'F1E6D7', 15);
+    $p->texto($M + 14, $y + 19, 'Total · ' . $n . ($n === 1 ? ' festa' : ' festas') . ' · ' . $T['kids'] . ' crianças', 9, true, PdfBonito::TINTA);
+    $p->texto($cols[0][0], $y + 19, finBrl($T['bruto']), 9.6, true, PdfBonito::TINTA, 'D'); $p->texto($cols[1][0], $y + 19, finBrl($T['custos']), 9.6, true, PdfBonito::TINTA, 'D');
+    $p->texto($cols[2][0], $y + 19, finBrl($T['lucro']), 9.6, true, $neg ? PdfBonito::VERM : PdfBonito::VERDE, 'D'); $d->y += 40; }
   else $d->nota('Nenhuma festa em ' . mb_strtolower(finMesNome($R['mes'])) . '.');
+  /* o lucro de cada festa e como foram pagas, em cartões brancos */
+  if ($n) {
+    $d->secao('O lucro de cada festa', 'O valor bruto e o lucro real de cada festa do mês, pela data da festa.', 250);
+    $d->cartao(function () use ($d, $L) { $d->barras(150, array_map(fn($f) => substr($f['data'], 8, 2) . '/' . substr($f['data'], 5, 2), $L), [['Valor bruto', PdfBonito::PESSEGO, array_map(fn($f) => (float)$f['bruto'], $L)], ['Lucro real', PdfBonito::VERDE, array_map(fn($f) => max(0, (float)$f['lucro']), $L)]], false, 'em reais'); });
+    $d->secao('Como as festas foram pagas', 'As formas de pagamento das festas e, no crédito, em quantas vezes.', 190 + 18 * count($parc));
+    $d->cartao(function () use ($d, $formas, $parc) { $y = $d->y; $h = $d->rosca($d->M, $y, 48, array_map(fn($f) => [PdfBonito::FORMAS[$f][0], $formas[$f] ?? 0, PdfBonito::FORMAS[$f][1]], ['credito', 'debito', 'pix', 'dinheiro']), PdfBonito::curto(array_sum($formas)), 'recebido', 200); $d->y = $y + $h + 10;
+      if ($parc) $d->barrasH(array_map(fn($k, $x) => [$k ? $k . 'x no crédito' : 'Crédito (vezes?)', $x['t'], $k > 4 ? PdfBonito::VERM : PdfBonito::CORAL, finBrl($x['t']) . ' · ' . $x['q'] . ($x['q'] === 1 ? ' festa' : ' festas') . ($k > 4 ? ' · liberado pelo gestor' : '')], array_keys($parc), $parc), 120); });
+  }
   return $d->pdf();
 }

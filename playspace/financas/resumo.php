@@ -214,6 +214,15 @@ final class PdfSimples {
     $s = str_replace(['\\', '(', ')', "\r", "\n"], ['\\\\', '\\(', '\\)', ' ', ' '], self::win($t));
     $this->s .= 'BT /' . ($b ? 'F2' : 'F1') . ' ' . self::n($tam) . ' Tf ' . self::cor($cor) . ' rg ' . self::n($x) . ' ' . self::n(self::H - $y) . " Td ($s) Tj ET\n";
   }
+  /* 4.6 (1.96): o texto com as letras espaçadas (os rótulos em maiúsculas dos blocos) */
+  function textoEsp($x, $y, $t, $tam, $b, $cor, $esp, $al = 'E') {
+    $w = $this->larg($t, $tam, $b) + $esp * max(0, mb_strlen((string)$t) - 1); if ($al === 'D') $x -= $w; elseif ($al === 'C') $x -= $w / 2;
+    $s = str_replace(['\\', '(', ')', "\r", "\n"], ['\\\\', '\\(', '\\)', ' ', ' '], self::win($t));
+    $this->s .= 'BT /' . ($b ? 'F2' : 'F1') . ' ' . self::n($tam) . ' Tf ' . self::n($esp) . ' Tc ' . self::cor($cor) . ' rg ' . self::n($x) . ' ' . self::n(self::H - $y) . " Td ($s) Tj 0 Tc ET\n";
+  }
+  /* 4.6 (1.96): o cartão desenhado por baixo do que já está na página (o fundo entra no ponto marcado antes) */
+  function marca() { return strlen($this->s); }
+  function fundoEm($pos, $x, $y, $w, $h, $cor, $raio = 0, $borda = null) { $s = $this->s; $this->s = ''; $this->ret($x, $y, $w, $h, $cor, $raio, $borda); $r = $this->s; $this->s = substr($s, 0, $pos) . $r . substr($s, $pos); }
   function ret($x, $y, $w, $h, $cor, $raio = 0, $borda = null) {
     $X = $x; $Y = self::H - $y - $h; $r = min($raio, $w / 2, $h / 2); $k = 0.5523 * $r;
     $p = $r > 0 ? self::n($X + $r) . ' ' . self::n($Y) . ' m ' . self::n($X + $w - $r) . ' ' . self::n($Y) . ' l ' . self::n($X + $w - $r + $k) . ' ' . self::n($Y) . ' ' . self::n($X + $w) . ' ' . self::n($Y + $r - $k) . ' ' . self::n($X + $w) . ' ' . self::n($Y + $r) . ' c '
