@@ -3636,10 +3636,14 @@ function relSemana(a, ini){
   const inW = (k,x,y) => k>=x && k<=y, H = (d.h||[]).filter(h => inW(h.d,ini,fim)), H0 = (d.h||[]).filter(h => inW(h.d,ini0,ini0 && addDays(ini0,6)));
   const meta = +m.semanaTreinos || +pl.frequencia || 0, Cd = (d.c||[]).filter(c => inW(c.d,ini,fim)), cmin = Cd.reduce((t,c) => t+(+c.min||0),0), cg = +m.cardioGoal || 0;
   const top = h => { const o = {}; (h.ex||[]).forEach(e => { const k = e.n||e.id, v = Math.max(0, ...(e.s||[]).map(z => +z[0]||0)); if(k && v) o[k] = Math.max(o[k]||0, v); }); return o; };
-  const now = {}, antes = {}; H.forEach(h => Object.entries(top(h)).forEach(([k,v]) => now[k] = Math.max(now[k]||0, v)));
-  (d.h||[]).filter(h => h.d<ini).forEach(h => Object.entries(top(h)).forEach(([k,v]) => antes[k] = v)); // última carga antes desta semana
-  const sobe = Object.keys(now).filter(k => antes[k] && now[k]>antes[k]).map(k => ({ n:k, de:antes[k], para:now[k], pc:Math.round((now[k]-antes[k])/antes[k]*100) })).sort((x,y) => y.pc-x.pc);
-  const parado = Object.keys(now).filter(k => antes[k] && now[k]<=antes[k]);
+  // a carga só é comparada no mesmo exercício e na mesma academia (5 kg num aparelho pode pesar mais que 15 kg em outro)
+  const gymK = h => semAc(h.gym||'').trim(), now = {}, antes = {};
+  H.forEach(h => Object.entries(top(h)).forEach(([k,v]) => { if(!now[k] || v>now[k].v) now[k] = { v, g:gymK(h) }; }));
+  (d.h||[]).filter(h => h.d<ini).forEach(h => Object.entries(top(h)).forEach(([k,v]) => { (antes[k] = antes[k] || {})[gymK(h)] = v; antes[k]._ = v; })); // última carga antes desta semana (por academia)
+  const ref = k => { const A = antes[k]; if(!A) return 0; const g = now[k].g; return g && A[g]!=null ? A[g] : !g ? A._ : (Object.keys(A).filter(x => x!=='_').some(x => x) ? 0 : A._); };
+  // subida acima de 50% numa semana quase sempre é outro aparelho ou erro de anotação: fica fora da mensagem
+  const sobe = Object.keys(now).map(k => ({ k, de:ref(k), para:now[k].v })).filter(x => x.de && x.para>x.de && (x.para-x.de)/x.de<=0.5).map(x => ({ n:x.k, de:x.de, para:x.para, pc:Math.round((x.para-x.de)/x.de*100) })).sort((x,y) => y.pc-x.pc);
+  const parado = Object.keys(now).filter(k => ref(k) && now[k].v<=ref(k));
   const obrig = ((m.cardio||{}).obrig||[]).filter(o => o && o.local && +o.min>0).map(o => { const alvo = (o.dias||[]).length || +o.vezes || 1, dias = Array.from({length:7},(_,i) => addDays(ini,i)).filter(k => Cd.filter(c => c.d===k && c.l===o.local).reduce((t,c) => t+(+c.min||0),0)>=+o.min).length; return { txt:o.local+' '+o.min+' min', feito:dias, alvo }; });
   const wg = +m.waterGoal || +d.wg || 0, W = d.w || {}, wk = Array.from({length:7},(_,i) => addDays(ini,i)), wv = wk.map(k => +W[k]||0), wdias = wg ? wv.filter(v => v>=wg).length : 0, wreg = wv.filter(v => v>0), wmed = wreg.length ? wreg.reduce((t,v) => t+v,0)/wreg.length : 0;
   const K = d.k || {}, ck = wk.map(k => K[k]).filter(Boolean), sono = ck.filter(x => +x.sono).map(x => +x.sono), sonoMed = sono.length ? sono.reduce((t,v) => t+v,0)/sono.length : 0;
@@ -3664,8 +3668,9 @@ const fmtSono = h => { const i = Math.floor(h), m = Math.round((h-i)*60/30)*30; 
 function relTexto(a, ini){
   const r = relSemana(a, ini), nome = curto(a), fim = addDays(ini, 6), c = cfg(), ico = n => n==='ok' ? '✅' : n==='perto' ? '🟡' : '⚠️';
   const per = parse(ini).getMonth()===parse(fim).getMonth() ? parse(ini).getDate()+' a '+dataLonga(fim) : dataLonga(ini)+' a '+dataLonga(fim);
+  // sem nenhum registro: sem o título de relatório e sem "olha o seu resumo" (não tem resumo para mostrar)
+  if(!r.tem) return 'Oi, '+nome+'! Tudo bem? 👋\n\nNão vi nenhum registro seu no app nesta semana ('+per+'). 🤔\n'+'Aconteceu alguma coisa? Lembra de marcar os treinos, o cardio e a água no app: é assim que eu acompanho a sua evolução.\n\nMe conta como foi a semana! 💪'+(c.nomePersonal ? '\n\n'+c.nomePersonal : '');
   let t = '📋 *Relatório da semana · '+per+'*\nOi, '+nome+'! Olha o seu resumo:\n\n';
-  if(!r.tem) return t+'Não vi nenhum registro seu no app nesta semana. 🤔\nAconteceu alguma coisa? Lembra de marcar os treinos, o cardio e a água no app: é assim que eu acompanho a sua evolução.\n\nMe conta como foi a semana! 💪'+(c.nomePersonal ? '\n\n'+c.nomePersonal : '');
   t += '🏋️ *Treino*\n'+plural(r.H.length,'treino')+(r.meta ? ' de '+r.meta : '')+' (semana passada: '+r.H0.length+') '+(r.okT ? '✅' : '⚠️')+'\n';
   if(r.falta.length) t += 'Faltou '+(r.falta.length===1 ? 'o Treino '+r.falta[0] : 'os Treinos '+r.falta.join(' e '))+'.\n';
   if(r.sobe.length){ const b = r.sobe[0]; t += 'Maior evolução: *'+b.n+'* '+fmtN(b.de)+' → '+fmtN(b.para)+' kg (+'+b.pc+'%)\n'; if(r.sobe.length>1) t += 'Também subiu: '+r.sobe.slice(1,3).map(x => x.n+' '+fmtN(x.de)+' → '+fmtN(x.para)+' kg').join(' · ')+'\n'; }
@@ -3808,7 +3813,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '21 nov · 167'; // Versão do painel: 21 nov · 167
+const PAINELV = '23 nov · 168'; // Versão do painel: 23 nov · 168
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -4454,7 +4459,7 @@ function navHtml(){
     '<div class="side-foot">'+savePill()+'<p class="foot">'+esc(cfg().nomePersonal||'Versão de teste')+'</p><button type="button" class="btn small ghost block" data-a="trocaPerfil">'+ic('users')+'Trocar de perfil</button></div>';
 }
 /* ---------- robô de testes (pasta testes/): acesso ao estado do painel, só no computador de teste; no site não existe ---------- */
-if(location.protocol==='file:' || /^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__painel = { get ui(){ return ui; }, get C(){ return C; }, get PREF(){ return PREF; }, get Store(){ return Store; }, render, closeSheet, pdfArquivo };
+if(location.protocol==='file:' || /^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__painel = { get ui(){ return ui; }, get C(){ return C; }, get PREF(){ return PREF; }, get Store(){ return Store; }, render, closeSheet, pdfArquivo, relTexto };
 function render(){
   const k = captureFocus(), sy = window.scrollY, ts0 = document.querySelector('.dtabs-in'), tsl = ts0 ? ts0.scrollLeft : null;
   applyLook();

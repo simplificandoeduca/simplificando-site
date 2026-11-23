@@ -87,6 +87,23 @@ test('Ajustes › Treino em PDF: o PDF do treino feito pelo painel volta a ser t
   await page.waitForTimeout(1500);
 });
 
+test('Relatório da semana: carga só sobe no mesmo exercício e na mesma academia (até +50%); sem registro não vira "relatório"', async ({ page }) => {
+  await entraPainel(page);
+  const r = await page.evaluate(() => { const P = window.__painel, ini = '2026-11-16';
+    const ex = (n, kg) => ({ n, s: [[kg, 10], [kg, 10]] });
+    const a = { _id: 'a-rel', perfil: { nome: 'Rel Teste', apelido: 'Rel' }, metas: { semanaTreinos: 2 }, plano: { treinos: { A: { ex: [] }, B: { ex: [] } } },
+      _pg: { d: { h: [ { d: '2026-11-10', t: 'A', gym: 'Academia Centro', ex: [ex('Tríceps na polia', 5), ex('Puxada frente', 30)] },
+                     { d: '2026-11-17', t: 'A', gym: 'Academia do Bairro', ex: [ex('Tríceps na polia', 15)] },
+                     { d: '2026-11-18', t: 'B', gym: 'Academia Centro', ex: [ex('Puxada frente', 35)] } ], c: [], w: {}, k: {} } } };
+    const vazio = { _id: 'a-rel2', perfil: { nome: 'Sil Teste', apelido: 'Sil' }, metas: {}, plano: {}, _pg: { d: { h: [], c: [], w: {}, k: {} } } };
+    return [P.relTexto(a, ini), P.relTexto(vazio, ini)]; });
+  expect(r[0]).toContain('Maior evolução: *Puxada frente* 30 → 35 kg');
+  expect(r[0]).not.toContain('Tríceps na polia 5');
+  expect(r[1]).toMatch(/^Oi, Sil! Tudo bem\?/);
+  expect(r[1]).not.toContain('Relatório da semana');
+  expect(r[1]).not.toContain('Olha o seu resumo');
+});
+
 test('a aluna entra com a senha de 6 números e vê o treino e o cardio obrigatório', async ({ page }) => {
   expect(codigo).toMatch(/^\d{6}$/);
   await entraComSenha(page, { codigo, emu: true });
