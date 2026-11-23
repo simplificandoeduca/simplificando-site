@@ -1301,6 +1301,15 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzz. A barra de baixo das Finanças no celular com o + no meio (1.93 · Finanças 4.4)
+
+Pedido do dono (com a foto de um modelo "Center FAB"): "no Finanças, no telefone, eu quero assim". Antes, a barra de baixo tinha as vinte telas numa fila que rolava para o lado.
+
+- A barra agora tem cinco lugares: **Caixa**, **Visão**, o **+** redondo no meio, **Painel** e **Menu**. O + fica maior, acima da barra, encaixado num recorte dela. A aba aberta fica escura, com um tracinho coral em cima.
+- O **+** abre "O que você quer lançar?": **Despesa** e **Receita** abrem os lançamentos já com o formulário novo aberto; **Adiantamento** e **Freelancer** abrem as telas deles. Tocar de novo no + (que vira um ×) ou fora fecha.
+- O **Menu** abre todas as telas, nos mesmos grupos do menu do computador (Caixa e equipe; Loja · caixa do sistema; Financeiro; Conta). Quando a tela aberta não está na barra, o Menu fica aceso.
+- No computador nada muda: continua o menu escuro do lado.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzz. O PCD volta para a atendente (1.92)
 
 Pedido do dono, sobre a 1.91: "pode deixar para a atendente, para o operador mudar para PCD, não tem problema". A senha do gestor que a 1.91 passou a pedir para marcar "Criança PCD" no cadastro novo saiu: a atendente marca direto, como antes. A linha do dia continua dizendo quem marcou ("Cadastrada como criança PCD · por ...").

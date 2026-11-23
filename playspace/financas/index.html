@@ -329,14 +329,42 @@ html { scrollbar-width: none; } html::-webkit-scrollbar { width: 0; height: 0; }
 @media (max-width: 820px) {
   .auth { grid-template-columns: minmax(0, 1fr); } .auth-marca { padding: 36px 16px 26px; } .auth-marca img { width: 84px; height: 84px; border-radius: 20px; } .auth-marca b { font-size: 32px; }
   .app { grid-template-columns: minmax(0, 1fr); } .lateral { display: none; }
-  .principal { padding: 18px 16px 100px; }
+  .principal { padding: 18px 16px calc(120px + env(safe-area-inset-bottom)); }   /* 4.4: espaço para a barra e o + */
   .topo h1 { font-size: 24px; } .kpi .val { font-size: clamp(17px, 5.4vw, 23px); white-space: nowrap; } .kpi { padding: 14px; }
   .grade { gap: 10px; }
-  .tabbar { display: flex; position: fixed; left: 0; right: 0; bottom: 0; background: rgba(255, 251, 244, .96); backdrop-filter: blur(10px); border-top: 1px solid var(--line); padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); z-index: 20; }
-  .tabbar { overflow-x: auto; scrollbar-width: none; } .tabbar::-webkit-scrollbar { display: none; }   /* 2.0: oito abas: a barra rola para o lado */
-  .tabbar button { flex: 1 0 60px; min-width: 60px; border: 0; background: none; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; font-weight: 600; color: var(--ink-3); padding: 6px 0; }
-  .tabbar button.ativa { color: var(--brand); }
-  .tabbar svg { width: 22px; height: 22px; }
+  /* 4.4 (1.93): a barra de baixo como o modelo do dono ("Center FAB"): quatro abas com o nome e o + redondo no meio, num recorte da barra */
+  .tabbar { display: flex; align-items: flex-end; position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; padding: 10px max(6px, env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left)); }
+  .tb-sombra { position: absolute; inset: 0; filter: drop-shadow(0 -3px 14px rgba(59, 59, 59, .13)); pointer-events: none; }
+  .tb-fundo { position: absolute; inset: 0; background: #fff; border-radius: 24px 24px 0 0; -webkit-mask: radial-gradient(circle at 50% 2px, transparent 40px, #000 40.5px); mask: radial-gradient(circle at 50% 2px, transparent 40px, #000 40.5px); }
+  .tb-it { position: relative; flex: 1 1 0; min-width: 0; border: 0; background: none; display: flex; flex-direction: column; align-items: center; gap: 3px; font: inherit; font-size: 11px; font-weight: 700; color: var(--ink-3); padding: 4px 0 2px; -webkit-tap-highlight-color: transparent; }
+  .tb-it.ativa, .tb-it[aria-expanded="true"] { color: var(--ink); }
+  .tb-it.ativa::after { content: ""; position: absolute; top: -6px; width: 18px; height: 3px; border-radius: 3px; background: var(--brand); }
+  .tb-it svg { width: 23px; height: 23px; }
+  .tb-meio { flex: 0 0 88px; }
+  .tb-fab { position: absolute; left: 50%; top: -30px; width: 64px; height: 64px; margin-left: -32px; border-radius: 50%; border: 0; background: var(--brand); color: #fff; display: grid; place-items: center; cursor: pointer;
+    box-shadow: 0 10px 24px rgba(226, 91, 63, .40), 0 2px 6px rgba(226, 91, 63, .25); transition: transform .18s ease, box-shadow .18s ease; -webkit-tap-highlight-color: transparent; }
+  .tb-fab svg { width: 28px; height: 28px; transition: transform .25s cubic-bezier(.32, .72, 0, 1); }
+  .tb-fab:active { transform: scale(.93); }
+  .tb-fab[aria-expanded="true"] svg { transform: rotate(45deg); }
+  .tb-fab:focus-visible, .tb-it:focus-visible { outline: 3px solid var(--brand-bg); outline-offset: 2px; }
+  .tb-fundo-folha { position: fixed; inset: 0; z-index: -1; background: rgba(59, 50, 40, .34); animation: tb-aparece .2s ease both; }
+  .tb-folha { position: fixed; left: max(10px, env(safe-area-inset-left)); right: max(10px, env(safe-area-inset-right)); bottom: calc(96px + env(safe-area-inset-bottom)); background: #fff; border-radius: 26px; padding: 18px 16px 16px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .22); max-height: calc(100dvh - 150px); overflow: auto; overscroll-behavior: contain; animation: tb-sobe .3s cubic-bezier(.32, .72, 0, 1) both; }
+  .tb-folha h3 { margin: 0 4px 12px; font-size: 16px; }
+  .tb-lancar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .tb-lancar button { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; text-align: left; border: 1px solid var(--line); background: var(--bg); border-radius: 18px; padding: 14px; font: inherit; color: var(--ink); cursor: pointer; }
+  .tb-lancar button svg { width: 22px; height: 22px; padding: 8px; box-sizing: content-box; border-radius: 12px; background: var(--brand-bg); color: var(--brand); }
+  .tb-lancar b { font-size: 15px; } .tb-lancar small { font-size: 12px; color: var(--ink-2); line-height: 1.3; }
+  .tb-grupo { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); margin: 10px 4px 2px; }
+  .tb-grupo:first-of-type { margin-top: 0; }
+  .tb-menu { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2px 4px; }
+  .tb-menu button { display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 0; border: 0; background: none; border-radius: 14px; padding: 8px 2px; font: inherit; font-size: 11.5px; font-weight: 700; color: var(--ink-2); text-align: center; cursor: pointer; }
+  .tb-menu button span { overflow-wrap: anywhere; }
+  .tb-menu button svg { width: 22px; height: 22px; }
+  .tb-menu button.ativa { background: var(--brand-bg); color: var(--brand); }
+  @keyframes tb-sobe { from { transform: translateY(18px) scale(.98); opacity: 0; } }
+  @keyframes tb-aparece { from { opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .tb-folha, .tb-fundo-folha { animation: none; } .tb-fab, .tb-fab svg { transition: none; } }
 }
 .nf-tres { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
 .nf-tres > div { border: 1px solid var(--borda, #ECE2D5); border-radius: 14px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
@@ -778,7 +806,7 @@ function somaUni() {
 /* ---------- o app ---------- */
 /* 2.5 (1.64): a página das Finanças que ficou guardada no aparelho (a aba aberta, o app do celular ou o cache do navegador) se renova
    sozinha quando o servidor já tem outra versão. PS_PAGINA é carimbada pelo tools/build_playspace.py com a versão do Play Space. */
-const PS_PAGINA = '1.92';
+const PS_PAGINA = '1.93';
 const psMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
 function renovarSeVelha(v, naTela) {
   if (!v || !psMaior(v, PS_PAGINA)) return false;
@@ -814,8 +842,9 @@ async function iniciar() {
     <div class="rail-lista"><span class="rail-ativo" aria-hidden="true"></span>${ABAS.map(([k, n, ic, g], i) => `${g !== (ABAS[i - 1] || [])[3] && GRUPOS_MENU[g] ? `<div class="grupo-menu">${GRUPOS_MENU[g]}</div>` : ''}<button class="aba" data-aba="${k}" data-dica="${esc(n)}">${ic}<span>${n}</span>${k === 'canc' ? '<span class="cont" data-cont-canc hidden></span>' : k === 'pagar' ? '<span class="cont" data-cont-pagar hidden></span>' : ''}</button>`).join('')}
     </div><div class="quem" data-dica="${esc(EU.nome)} · login ${esc(EU.login)}"><span class="rail-av" aria-hidden="true">${esc(String(EU.nome || '').trim().split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase())}</span><b>${esc(EU.nome)}</b>login: ${esc(EU.login)}</div></nav>
     <main class="principal" id="tela"></main></div>
-    <nav class="tabbar" aria-label="Menu">${ABAS.map(([k, n, ic]) => `<button data-aba="${k}">${ic}<span>${{ caixa: 'Caixa', festas: 'Festas', freelas: 'Freelas', adiant: 'Adiant.', comis: 'Comissões', geral: 'Visão', lanc: 'Lançar', relat: 'Relatório', vendas: 'Vendas', canc: 'Cancelados', desc: 'Descontos', emitir: 'Emitir NF', notas: 'Notas', conta: 'Conta', fin: 'Painel', pagar: 'A pagar', forn: 'Fornec.', plan: 'Planilhas' }[k] || n}</span></button>`).join('')}</nav>`;
+    <nav class="tabbar" aria-label="Menu">${tbHtml()}</nav>`;   /* 4.4: o + no meio e o Menu com todas as telas */
   $$('[data-aba]').forEach(b => b.onclick = () => { ABA = b.dataset.aba; desenhar(); window.scrollTo(0, 0); });
+  tbLigar();   /* 4.4 */
   desenhar(); carregar();
 }
 async function carregar() {
@@ -844,6 +873,7 @@ function ligarFiltros() {
 }
 function desenhar() {
   $$('[data-aba]').forEach(b => { b.classList.toggle('ativa', b.dataset.aba === ABA); b.setAttribute('aria-current', b.dataset.aba === ABA ? 'page' : 'false'); });
+  const mb = $('nav.tabbar [data-menu]'); if (mb) mb.classList.toggle('ativa', !TB_NA_BARRA.includes(ABA));   /* 4.4: o Menu acende nas telas que não estão na barra */
   const cc = $('[data-cont-canc]'); if (cc) { const n = D ? somaUni().cancN || 0 : 0; cc.hidden = !n; cc.textContent = n; }
   if (ABA === 'caixa') { if (!$('#tela .cx-tela')) caixaDesenhar(); return; }
   if (ABA === 'adiant') { if (!$('#tela .ad-tela')) adiantDesenhar(); return; }   /* 4.3: o adiantamento por unidade (adiant.js) */
@@ -1151,6 +1181,54 @@ async function ligarEmail() {
     try { const s = await api('email_salvar', { para: ta.value, auto: cx.checked }); mostra(s.email); const r = await api('email_enviar', { dia: isoDe(d) }); mostra(r.email); aviso('Mandado para ' + r.enviado.para.join(', ') + ' ✓'); }
     catch (e) { aviso(e.message); try { mostra((await api('email_ver')).email); } catch (x) { /* fica a mensagem */ } } trava(false); };
   $('#em-hoje').onclick = () => manda(false); $('#em-ontem').onclick = () => manda(true);
+}
+/* 4.4 (1.93): a barra de baixo do celular (modelo "Center FAB" do dono): Caixa, Visão, o + no meio, Painel e Menu. O + abre "O que você quer
+   lançar?"; o Menu abre todas as telas, nos grupos do menu do computador */
+const TB_NA_BARRA = ['caixa', 'geral', 'fin'];
+const TB_ROT = { caixa: 'Caixa', festas: 'Festas', freelas: 'Freelas', adiant: 'Adiant.', comis: 'Comissões', geral: 'Visão', lanc: 'Lançar', relat: 'Relatório', vendas: 'Vendas', canc: 'Cancelados', desc: 'Descontos', emitir: 'Emitir NF', notas: 'Notas', conta: 'Conta', fin: 'Painel', pagar: 'A pagar', forn: 'Fornec.', plan: 'Planilhas' };
+const TB_IC = {
+  mais: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  menu: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h16M4 12h16M4 17.5h11"/></svg>',
+  despesa: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg>',
+  receita: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>' };
+function tbHtml() {
+  const it = (k, rot, ic) => `<button type="button" class="tb-it" data-aba="${k}">${ic}<span>${rot}</span></button>`;
+  const grupos = []; ABAS.forEach(([k, n, ic, g0]) => { const g = g0 === 'conta' ? 'fin' : g0; let x = grupos.find(y => y.g === g);   /* (a Conta vai na última linha do Financeiro: o Menu cabe sem rolar) */ if (!x) { x = { g, itens: [] }; grupos.push(x); } x.itens.push([k, n, ic]); });
+  const nomeG = { caixa: 'Caixa e equipe', loja: GRUPOS_MENU.loja, fin: GRUPOS_MENU.fin };
+  const lancar = [['despesa', 'Despesa', 'Conta, compra ou gasto', TB_IC.despesa], ['receita', 'Receita', 'Dinheiro que entrou', TB_IC.receita], ['adiant', 'Adiantamento', 'Colocar valor ou lançar gasto da unidade', IC.adiant], ['freelas', 'Freelancer', 'Lançar os dias e pagar', IC.freelas]];
+  return `<span class="tb-sombra" aria-hidden="true"><span class="tb-fundo"></span></span>
+    ${it('caixa', 'Caixa', IC.caixa)}${it('geral', 'Visão', IC.geral)}<span class="tb-meio" aria-hidden="true"></span>${it('fin', 'Painel', IC.painel)}
+    <button type="button" class="tb-it" data-menu aria-expanded="false" aria-controls="tb-menu">${TB_IC.menu}<span>Menu</span></button>
+    <button type="button" class="tb-fab" data-fab aria-label="Lançar" aria-expanded="false" aria-controls="tb-lancar">${TB_IC.mais}</button>
+    <div class="tb-fundo-folha" hidden></div>
+    <div class="tb-folha" id="tb-lancar" role="dialog" aria-label="O que você quer lançar?" hidden><h3>O que você quer lançar?</h3>
+      <div class="tb-lancar">${lancar.map(([k, n, d, ic]) => `<button type="button" data-tbl="${k}">${ic}<b>${n}</b><small>${d}</small></button>`).join('')}</div></div>
+    <div class="tb-folha" id="tb-menu" role="dialog" aria-label="Todas as telas" hidden>${grupos.map(x => `<div class="tb-grupo">${esc(nomeG[x.g] || '')}</div><div class="tb-menu">${x.itens.map(([k, n, ic]) => `<button type="button" data-aba="${k}" aria-label="${esc(n)}">${ic}<span>${TB_ROT[k] || n}</span></button>`).join('')}</div>`).join('')}</div>`;
+}
+function tbFechar() {
+  const n = $('nav.tabbar'); if (!n) return;
+  $$('.tb-folha, .tb-fundo-folha', n).forEach(x => { x.hidden = true; }); $$('[data-fab], [data-menu]', n).forEach(b => b.setAttribute('aria-expanded', 'false'));
+}
+function tbAbrir(qual) {
+  const n = $('nav.tabbar'), f = $('#tb-' + qual); if (!n || !f) return; const ja = !f.hidden; tbFechar(); if (ja) return;
+  f.hidden = false; $('.tb-fundo-folha', n).hidden = false; const b = $(qual === 'lancar' ? '[data-fab]' : '[data-menu]', n); if (b) b.setAttribute('aria-expanded', 'true');
+}
+async function tbLancar(o) {
+  tbFechar();
+  if (o === 'despesa' || o === 'receita') {   /* abre a tela dos lançamentos já no tipo certo, e o formulário do novo lançamento */
+    GS.tipo = o; GS.dados = null; GS.pag = 0; gGuarda(); ABA = 'lanc'; desenhar(); window.scrollTo(0, 0);
+    for (let i = 0; i < 80; i++) { const b = $('#tela [data-g="novo"]'); if (b && ABA === 'lanc' && GS.tipo === o) { b.click(); return; } await new Promise(r => setTimeout(r, 100)); }
+    return;
+  }
+  ABA = o; desenhar(); window.scrollTo(0, 0);
+}
+function tbLigar() {
+  const n = $('nav.tabbar'); if (!n) return;
+  $('[data-fab]', n).onclick = () => tbAbrir('lancar'); $('[data-menu]', n).onclick = () => tbAbrir('menu');
+  $('.tb-fundo-folha', n).onclick = tbFechar;
+  $$('[data-tbl]', n).forEach(b => b.onclick = () => tbLancar(b.dataset.tbl));
+  $$('#tb-menu [data-aba]', n).forEach(b => b.addEventListener('click', tbFechar));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') tbFechar(); });
 }
 function folha(titulo, corpo, rotOk, fazer) {
   const f = document.createElement('div'); f.className = 'fundo';
