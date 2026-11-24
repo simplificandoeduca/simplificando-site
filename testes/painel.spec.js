@@ -293,8 +293,14 @@ test('Avaliação do app: o painel conta quem viu a janela e quem tocou em "Agor
   await expect.poll(async () => (await fsLista('avalUso')).filter(x => x.f.nome && x.f.nome.stringValue === 'Vera Aval').map(x => x.f.acao.stringValue).sort().join(','), { timeout: 15000 }).toBe('agora-nao,viu');
   await entraPainel(page);
   await page.goto(EMU + '/personal/#estatisticas'); await page.waitForTimeout(1500);
-  await expect(page.locator('.av-uso')).toContainText('viu a janela', { timeout: 15000 });
+  await expect(page.locator('.av-uso')).toContainText(/vi(u|ram) a janela/, { timeout: 15000 });
   await expect(page.locator('.av-uso')).toContainText('tocaram em “Agora não”');
+  // uma nota que chegou de uma versão antiga do app (sem o registro) conta em "avaliaram" e em "viram"
+  await page.evaluate(() => fetch('http://127.0.0.1:8080/v1/projects/demo-simplificando/databases/(default)/documents/avaliacoes', { method: 'POST', headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: { uid: { stringValue: 'velho-1' }, nome: { stringValue: 'Bigamo' }, tipo: { stringValue: 'autonomo' }, notas: { mapValue: { fields: { treino: { integerValue: '5' } } } }, texto: { stringValue: '' }, em: { integerValue: String(Date.now()) }, ver: { stringValue: '23 nov · 172' } } }) }));
+  await page.reload(); await page.waitForFunction(() => window.__painel && window.__painel.Store.loaded, null, { timeout: 20000 }); await page.waitForTimeout(1500);
+  const nums = await page.locator('.av-uso b').allTextContents();
+  expect(+nums[2]).toBeGreaterThanOrEqual(1); expect(+nums[0]).toBeGreaterThanOrEqual(+nums[2]);
+  await expect(page.locator('.est-who')).toContainText('app 23 nov · 172');
 });
 
 test('Alunos e Perfis: marquinha laranja "+3 dias sem acessar" e vermelha "+10 dias sem acessar"', async ({ page }) => {
