@@ -1301,6 +1301,24 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A Casa Tom (2.00)
+
+O dono: "agora a gente está fazendo um sistema para a Casa Tom, lojas adjacentes ... quando eu mudar para a Casa Tom, ele tem que mudar o sistema, por dentro do sistema mesmo". Escolheu o visual mais limpo, com o menu vermelho.
+
+**O sistema da Casa Tom**
+
+- Com o aparelho numa unidade Casa Tom (CASA TOM ANÁLIA, CASA TOM MORUMBI), o sistema troca de cara: o menu vermelho com a logo T O M e as telas dela. Vender (busca, categorias, a lista da venda, quem está vendendo e o Receber), Vendas (o caixa do dia da Casa Tom) e Produtos (o cadastro). Aprovar e Ajustes continuam lá para o gestor.
+- "Ir para a Play Space" (no alto) volta para a unidade da Play Space do mesmo lugar, no sistema de sempre.
+- O Receber abre o mesmo pagamento de sempre: as formas, as parcelas, o desconto do gestor. A venda vai para o cupom ("Cupom da venda", com a logo e o nome da Casa Tom), para as comissões (quem está vendendo) e para as Finanças, pela unidade do aparelho.
+- A venda vai em nome do "cliente da loja": um cadastro só, que nasce quando um aparelho entra na Casa Tom pela primeira vez. Ele não aparece nas listas e não entra no espaço.
+
+**Os produtos por loja**
+
+- Cada produto diz em que loja é vendido: Play Space, Casa Tom ou as duas ("Vende em", no cadastro do produto), e pode ter uma categoria.
+- A Casa Tom mostra só os produtos dela; "Ver todo o cadastro" mostra todos. O atendimento da Play Space não mostra os que são só da Casa Tom.
+- Produtos → Importar planilha (só o gestor): colunas PRODUTO, PREÇO e, se tiver, CATEGORIA. Os novos entram na Casa Tom; o que já existe com o mesmo nome fica como está. Linha sem preço não entra.
+- A planilha dos produtos da Casa Tom (do Bling, sem repetidos, com o último preço cheio e as categorias) foi entregue ao dono para importar. Ela não fica no repositório.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O telefone com o tracinho e os serviços por unidade (1.99)
 
 Pedidos do dono no dia da implantação.

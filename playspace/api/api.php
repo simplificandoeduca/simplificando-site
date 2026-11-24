@@ -83,7 +83,8 @@ function dados(array $eu): array {
   try { baixaAutomatica(); } catch (Throwable $e) { registrarErro('baixa automática: ' . $e->getMessage()); }   // 1.90: quem ficou sem saída de um dia para o outro
   acertarTodas();   // quem passou do tempo comprado mais a tolerância já aparece com a nova cobrança
   acertarCupons();   // 0.93: venda desfeita ou cancelada: o cupom fiscal dela acompanha
-  $criancas = array_map('criancaPublica', $db->query('SELECT * FROM criancas WHERE ativo = 1 ORDER BY nome')->fetchAll());
+  $balcao = balcaoCT(true);   /* 2.00: o cliente da loja da Casa Tom vai à parte (fora das listas) */
+  $criancas = array_map('criancaPublica', $db->query('SELECT * FROM criancas WHERE ativo = 1' . ($balcao ? ' AND id != ' . (int)$balcao['id'] : '') . ' ORDER BY nome')->fetchAll());
   $visitas = $db->query('SELECT * FROM visitas ORDER BY id DESC LIMIT 400')->fetchAll();
   $porCrianca = []; foreach ($visitas as $v) $porCrianca[(int)$v['crianca_id']][] = ['id' => (int)$v['id'], 'dia' => $v['saiu'], 'ini' => $v['entrou'], 'entrou' => substr($v['entrou'], 11, 5), 'saiu' => substr($v['saiu'], 11, 5), 'deb' => (int)$v['debitado_min']];
   $ultimas = []; foreach ($db->query('SELECT v.crianca_id, v.minutos, v.valor, v.quando, v.itens, v.servico FROM vendas v JOIN (SELECT crianca_id, MAX(id) AS m FROM vendas WHERE minutos > 0 GROUP BY +crianca_id) u ON u.m = v.id')->fetchAll() as $v) $ultimas[(int)$v['crianca_id']] = ['h' => round((int)$v['minutos'] / 60, 2), 'm' => (int)$v['minutos'], 'v' => (float)$v['valor'], 'quando' => $v['quando'], 'com' => (string)$v['itens'], 'servico' => (string)$v['servico']];
@@ -127,7 +128,7 @@ function dados(array $eu): array {
     AND NOT EXISTS (SELECT 1 FROM visitas x WHERE x.crianca_id = c.id) AND NOT EXISTS (SELECT 1 FROM cancelamentos k WHERE k.crianca_id = c.id AND k.tipo != \'desfeita\') ORDER BY c.criado_em, c.id');
   $q->execute([date('Y-m-d') . ' 00:00:00']); $fora = pendFora();   // quem a equipe tirou da lista hoje ("não vai fazer agora") não volta
   $pend = array_values(array_filter(array_map(fn($p) => ['id' => (int)$p['id'], 'em' => $p['criado_em']], $q->fetchAll()), fn($p) => !isset($fora[$p['id']])));
-  return ['criancas' => array_values($criancas), 'registros' => $registros, 'conversas' => array_values($conversas), 'compromissos' => $compromissos, 'festas' => festasDaTela(), 'regra' => regra(), 'cancelamentos' => $canc, 'pendentes' => $pend, 'produtos' => produtos(), 'unidades' => unidades(), 'alugueis' => alugueis(), 'pagamentos_hoje' => pagamentosDesde($hojeMenos), 'cupons' => cuponsDaTela(),
+  return ['criancas' => array_values($criancas), 'registros' => $registros, 'conversas' => array_values($conversas), 'compromissos' => $compromissos, 'festas' => festasDaTela(), 'regra' => regra(), 'cancelamentos' => $canc, 'pendentes' => $pend, 'produtos' => produtos(), 'balcao' => $balcao ? criancaPublica($balcao) : null, 'unidades' => unidades(), 'alugueis' => alugueis(), 'pagamentos_hoje' => pagamentosDesde($hojeMenos), 'cupons' => cuponsDaTela(),
     'vendas_hoje' => ['n' => (int)$vh['n'], 'min' => (int)$vh['m'], 'horas' => round((int)$vh['m'] / 60, 2), 'valor' => (float)$vh['v']], 'atraso_hoje' => $atrasoHoje, 'descontos_hoje' => $descontosHoje, 'equipe' => $equipe, 'eu' => $eu, 'versao' => PLAY_VERSAO,
     'idface' => (function (array $x) use ($eu) { if ($eu['papel'] !== 'gestor') unset($x['chave'], $x['push_url'], $x['url_ponte']); return $x; })(idfaceEstado()),   /* 1.49: a chave da ponte só para o gestor */ 'whats' => whatsResumo(), 'agora' => agora(), 'exemplo' => ($ex = cfg('exemplo', null)) && is_array($ex) ? count($ex['criancas'] ?? []) : 0,
     'limpeza' => $eu['papel'] === 'gestor' ? ['oferta' => cfg('limpeza_oferta', null) !== null, 'ultima' => limpezaPublica()] : null,
@@ -429,6 +430,7 @@ switch ($acao) {
     // 1.15: não exige mais um período comprado. Quem tem horas usa as horas; quem não tem entra na recreação avulsa e acerta na saída
     $manual = modoManual(); if ($manual) exigir(); else exigir(['gestor', 'supervisor']);
     $c = crianca((int)($in['id'] ?? 0)); if (!$c || !$c['ativo']) falha('Criança não encontrada.', 404);
+    if (($c['lote'] ?? '') === 'balcao') falha('O cliente da loja da Casa Tom não entra no espaço.');   /* 2.00 */
     if ($c['entrou']) falha($c['nome'] . ' já está no espaço.');
     responder(fazerEntrada($c, 'mão', null, null, vendedoraDoPedido($in['vendedora'] ?? '')));   /* 1.68: quem abriu o pedido */
   }
@@ -1107,7 +1109,9 @@ switch ($acao) {
   /* ---------- produtos da loja ---------- */
   case 'produto_salvar': { // só a gestora: nome, valor e estoque (vazio = a loja não controla o estoque desse produto)
     $u = exigir(); podeAjustar($u); $id = (int)($in['id'] ?? 0); $p = $id ? produto($id) : null; if ($id && (!$p || !$p['ativo'])) falha('Produto não encontrado.', 404);
-    $nome = mb_substr(maiusculo((string)($in['n'] ?? '')), 0, 40); if ($nome === '') falha('Como se chama o produto?');
+    $nome = mb_substr(maiusculo((string)($in['n'] ?? '')), 0, 60); if ($nome === '') falha('Como se chama o produto?');
+    $lojas = array_key_exists('l', $in) ? lojasValidas((string)$in['l']) : (string)($p['lojas'] ?? 'play'); if ($lojas === '') falha('Marque em qual loja o produto é vendido.');   /* 2.00 */
+    $cat = array_key_exists('cat', $in) ? mb_substr(maiusculo(trim((string)$in['cat'])), 0, 30) : (string)($p['cat'] ?? '');
     $valor = isset($in['v']) && is_numeric($in['v']) ? round((float)$in['v'], 2) : -1; if ($valor < 0 || $valor > 100000) falha('Qual é o valor do produto?');
     $e = $in['est'] ?? null; $est = ($e === null || $e === '') ? null : (int)$e; if ($est !== null && ($est < -9999 || $est > 99999)) falha('Quantos há no estoque?');
     $q = $db->prepare('SELECT id FROM produtos WHERE ativo = 1 AND id != ? AND nome = ? COLLATE NOCASE AND ABS(valor - ?) < 0.005'); $q->execute([$id, $nome, $valor]);
@@ -1117,14 +1121,31 @@ switch ($acao) {
       $antes = $p['estoque'] === null ? null : (int)$p['estoque']; $novo = $est; $visto = $in['est_visto'] ?? null;
       // a tela diz o estoque que mostrava: se alguém vendeu enquanto a folha estava aberta, vale a diferença (chegaram 10 → soma 10), para a venda não se perder
       if ($est !== null && $antes !== null && $visto !== null && $visto !== '' && (int)$visto !== $antes) $novo = $antes + ($est - (int)$visto);
-      $db->prepare('UPDATE produtos SET nome = ?, valor = ?, estoque = ?, mudou_em = ? WHERE id = ?')->execute([$nome, $valor, $novo, agora(), $id]);
+      $db->prepare('UPDATE produtos SET nome = ?, valor = ?, estoque = ?, mudou_em = ?, lojas = ?, cat = ? WHERE id = ?')->execute([$nome, $valor, $novo, agora(), $lojas, $cat, $id]);
       if ($novo !== $antes) registrar('est', null, $nome, 'Estoque: ' . ($antes === null ? 'sem controle' : $antes) . ' → ' . ($novo === null ? 'sem controle' : $novo) . $quem);
       if (abs((float)$p['valor'] - $valor) >= 0.005) registrar('est', null, $nome, 'Valor: ' . dinheiro((float)$p['valor']) . ' → ' . dinheiro($valor) . $quem);
     } else {
-      $db->prepare('INSERT INTO produtos (nome, valor, estoque, ativo, criado_em, mudou_em) VALUES (?, ?, ?, 1, ?, ?)')->execute([$nome, $valor, $est, agora(), agora()]); $id = (int)$db->lastInsertId();
+      $db->prepare('INSERT INTO produtos (nome, valor, estoque, ativo, criado_em, mudou_em, lojas, cat) VALUES (?, ?, ?, 1, ?, ?, ?, ?)')->execute([$nome, $valor, $est, agora(), agora(), $lojas, $cat]); $id = (int)$db->lastInsertId();
       registrar('est', null, $nome, 'Produto novo · ' . dinheiro($valor) . ($est === null ? '' : ' · estoque ' . $est) . $quem);
     }
     responder(['produto' => produtoPublico(produto($id)), 'produtos' => produtos()]);
+  }
+  case 'ct_balcao': { exigir(); $b = balcaoCT(true); responder(['balcao' => $b ? criancaPublica($b) : null]); }   /* 2.00: o cliente da loja da Casa Tom (quando o aparelho acabou de trocar para lá) */
+  case 'produtos_importar': { /* 2.00: a planilha de produtos (a Casa Tom): o que já existe com o mesmo nome fica como está. Até 500 por pedido */
+    $u = exigir(); podeAjustar($u); $lj = lojasValidas((string)($in['l'] ?? 'ct')); if ($lj === '') $lj = 'ct';
+    $tem = []; foreach ($db->query('SELECT nome FROM produtos WHERE ativo = 1')->fetchAll(PDO::FETCH_COLUMN) as $n) $tem[mb_strtoupper(trim((string)$n))] = 1;
+    $ins = $db->prepare('INSERT INTO produtos (nome, valor, estoque, ativo, criado_em, mudou_em, lojas, cat) VALUES (?, ?, NULL, 1, ?, ?, ?, ?)'); $novos = 0; $ja = 0; $ruins = 0; $ag = agora();
+    $db->beginTransaction();
+    try {
+      foreach (array_slice((array)($in['linhas'] ?? []), 0, 500) as $l) {
+        if (!is_array($l)) { $ruins++; continue; } $n = mb_substr(maiusculo(trim((string)preg_replace('/\s+/u', ' ', (string)($l['n'] ?? '')))), 0, 60); $v = is_numeric($l['v'] ?? null) ? round((float)$l['v'], 2) : -1;
+        if ($n === '' || $v < 0 || $v > 100000) { $ruins++; continue; } $k = mb_strtoupper($n); if (isset($tem[$k])) { $ja++; continue; }
+        $ins->execute([$n, $v, $ag, $ag, $lj, mb_substr(maiusculo(trim((string)($l['cat'] ?? ''))), 0, 30)]); $tem[$k] = 1; $novos++;
+      }
+      $db->commit();
+    } catch (Throwable $e) { if ($db->inTransaction()) $db->rollBack(); registrarErro('produtos_importar: ' . $e->getMessage()); falha('Não consegui importar os produtos. Nada deste lote foi gravado.', 500); }
+    if ($novos) registrar('est', null, 'PRODUTOS', 'Produtos importados: ' . $novos . ' · por ' . primeiroNome($u['nome']));
+    responder(['novos' => $novos, 'ja' => $ja, 'ruins' => $ruins, 'produtos' => produtos()]);
   }
   case 'produto_apagar': { // sai da lista; as vendas antigas continuam no histórico. voltar = o Desfazer do aviso
     $u = exigir(); podeAjustar($u); $p = produto((int)($in['id'] ?? 0)); if (!$p) falha('Produto não encontrado.', 404);

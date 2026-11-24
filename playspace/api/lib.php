@@ -414,6 +414,10 @@ function db(): PDO {
     $pdo->exec('CREATE TABLE IF NOT EXISTS unidades_vistas (u INTEGER NOT NULL, slot INTEGER NOT NULL, PRIMARY KEY (u, slot)) WITHOUT ROWID');
     $pdo->exec('PRAGMA user_version = 42');
   }
+  if ($v < 43) { /* 2.00: em que loja o produto é vendido (play, ct ou as duas) e a categoria (a Casa Tom) */
+    foreach (["ALTER TABLE produtos ADD COLUMN lojas TEXT NOT NULL DEFAULT 'play'", "ALTER TABLE produtos ADD COLUMN cat TEXT NOT NULL DEFAULT ''"] as $sql) { try { $pdo->exec($sql); } catch (Throwable $e) { } }
+    $pdo->exec('PRAGMA user_version = 43');
+  }
   return $pdo;
 }
 /* ---------- 1.06: unidades ---------- */
@@ -1315,7 +1319,17 @@ function nomeDaVenda(array $v): string { // "Recreação · 30 min", "Carrinho d
 /* ---------- produtos da loja: nome, valor e estoque ---------- */
 // estoque NULL = a loja não controla o estoque desse produto. A venda nunca é barrada pelo estoque: ele pode ficar negativo, e a tela mostra em vermelho para a gestora acertar
 function produto(int $id): ?array { $q = db()->prepare('SELECT * FROM produtos WHERE id = ?'); $q->execute([$id]); return $q->fetch() ?: null; }
-function produtoPublico(array $p): array { return ['id' => (int)$p['id'], 'n' => (string)$p['nome'], 'v' => (float)$p['valor'], 'est' => $p['estoque'] === null ? null : (int)$p['estoque']]; }
+function produtoPublico(array $p): array { return ['id' => (int)$p['id'], 'n' => (string)$p['nome'], 'v' => (float)$p['valor'], 'est' => $p['estoque'] === null ? null : (int)$p['estoque'], 'l' => (string)($p['lojas'] ?? 'play'), 'cat' => (string)($p['cat'] ?? '')]; }   // 2.00: a loja e a categoria
+function lojasValidas(string $s): string { $o = []; foreach (preg_split('/[,\s]+/', strtolower($s)) as $l) if (in_array($l, ['play', 'ct'], true) && !in_array($l, $o, true)) $o[] = $l; sort($o); return implode(',', array_reverse($o)); }   /* 2.00: 'play', 'ct' ou 'play,ct' */
+/* 2.00: o cliente da loja da Casa Tom (o balcão): a venda de produto da Casa Tom vai em nome dele, e o pagamento, o cupom, a comissão e as
+   Finanças funcionam como sempre (pela unidade do aparelho). Não aparece nas listas. Nasce na primeira vez que um aparelho na Casa Tom fala com o servidor */
+function balcaoCT(bool $criar = false): ?array {
+  $db = db(); $id = (int)cfg('ct_balcao', 0); if ($id) { $c = crianca($id); if ($c && $c['ativo']) return $c; }
+  if (!$criar) return null; $u = unidadeDoPedido(); if ($u === null) return null;
+  $q = $db->prepare('SELECT nome FROM unidades WHERE id = ?'); $q->execute([$u]); if (!uniEhCasaTom((string)$q->fetchColumn())) return null;
+  $db->prepare("INSERT INTO criancas (nome, resp, liberado, criado_em, lote) VALUES ('CLIENTE DA LOJA', 'CASA TOM', 1, ?, 'balcao')")->execute([agora()]);
+  $id = (int)$db->lastInsertId(); gravarCfg('ct_balcao', $id); return crianca($id);
+}
 function produtos(): array { return array_map('produtoPublico', db()->query('SELECT * FROM produtos WHERE ativo = 1 ORDER BY nome COLLATE NOCASE, valor, id')->fetchAll()); }
 // $sinal -1: a venda levou as unidades; +1: a venda foi desfeita (ou deixou de ser cobrada) e elas voltam
 function mexerEstoque(int $produtoId, int $qtd, int $sinal): void {
