@@ -1966,7 +1966,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.96';
+const VERSAO = '1.97';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -2615,8 +2615,14 @@ const CAMPOS_IMP = [   // campo, nome na tela, o que o título da coluna costuma
   ['saldo', 'Saldo de horas', /\b(saldo|restante|restantes|disponivel|disponiveis|sobra|sobrando|credito|creditos)\b/],
   ['compradas', 'Horas compradas', /\b(compradas|comprado|contratadas|contratado|adquiridas|adquirido)\b|\btotal de horas\b|\bhoras totais\b/],
   ['usadas', 'Horas usadas', /\b(usadas|usado|utilizadas|utilizado|consumidas|consumido|gastas|gasto)\b/],
-  ['obs', 'Observações', /\b(obs|observacao|observacoes|restricao|restricoes|alergia|alergias|anotacao|anotacoes)\b/]];
-const IMP_ORDEM = ['cpf', 'tel2', 'tel', 'saldo', 'compradas', 'usadas', 'obs', 'nome', 'resp'];   // "telefone do responsável" é telefone; "nome do responsável" é responsável
+  ['obs', 'Observações', /\b(obs|observacao|observacoes|restricao|restricoes|alergia|alergias|anotacao|anotacoes)\b/],
+  ['nasc', 'Nascimento', /\b(nascimento|nasc|nascida|nascido|aniversario)\b/]];   /* 1.97: a data de nascimento (o perfil do cliente) */
+const IMP_ORDEM = ['cpf', 'tel2', 'tel', 'saldo', 'compradas', 'usadas', 'obs', 'nasc', 'nome', 'resp'];
+/* 1.97: a data de nascimento da planilha (dd/mm/aaaa, d/m/aa ou aaaa-mm-dd) em aaaa-mm-dd; data que não existe ou no futuro fica de fora */
+function impNasc(t) { t = String(t || '').trim(); let m = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(t), a, me, d;
+  if (m) { a = +m[1]; me = +m[2]; d = +m[3]; } else if ((m = /^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2}|\d{4})$/.exec(t))) { d = +m[1]; me = +m[2]; a = +m[3]; if (a < 100) a += a > new Date().getFullYear() % 100 ? 1900 : 2000; } else return '';
+  const x = new Date(a, me - 1, d); if (a < 1900 || x.getFullYear() !== a || x.getMonth() !== me - 1 || x.getDate() !== d || x > new Date()) return '';
+  return `${a}-${String(me).padStart(2, '0')}-${String(d).padStart(2, '0')}`; }   // "telefone do responsável" é telefone; "nome do responsável" é responsável
 const IMP_HORAS = ['saldo', 'compradas', 'usadas'];
 const tituloImp = t => impLimpo(t).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 function campoDoTitulo(t) {
@@ -2672,7 +2678,7 @@ function lerLinhas() {
     }
     const ja = vistas.get(ch[0]);
     if (ja) { n.rep++; if (IM.rep === 'somar') { ja.pac += pac; ja.usado += usado; if (ja.pac > IMP_MAX_MIN) { ja.pac = 0; ja.usado = 0; n.fora++; } } continue; }   // veio duas vezes na planilha: fica a primeira (ou as horas somam)
-    const o = { nome, resp, doc, cpf, tel, tel2, obs: MAIT(pega(l, 'obs')).slice(0, 500), pac, usado }; L.push(o); for (const k of ch) if (!vistas.has(k)) vistas.set(k, o);
+    const o = { nome, resp, doc, cpf, tel, tel2, obs: MAIT(pega(l, 'obs')).slice(0, 500), pac, usado, nasc: impNasc(pega(l, 'nasc')) }; L.push(o); for (const k of ch) if (!vistas.has(k)) vistas.set(k, o);
     if (!cpf) n.semDoc++; else if (doc === 'cpf' && !(soDig(cpf).length === 11 && cpfValido(cpf))) n.cpfRuim++;
     if (!tel) n.semTel++; if (!resp) n.semResp++;
   }
@@ -2747,7 +2753,7 @@ function importarPrevia(L, H = []) {
   for (const x of H) { const c = crianca(x.ja); if (!c || !x.pac) continue;   /* quem já estava cadastrado: só as horas entram */
     c.pacote += x.pac / 60; if (c.pmin != null) c.pmin += x.pac; c.liberado = true; c.venda = { h: x.pac / 60, m: x.pac, v: 0, servico: SERV_IMP, com: '', quando };
     S.compras.push({ id: novoId(), crianca: c.id, h: x.pac / 60, m: x.pac, v: 0, servico: SERV_IMP, itens: '', quando, por: '', imp: true, lote, soma: true }); min += x.pac; horas++; }
-  for (const x of L) { const saldo = x.pac - x.usado, c = { id: novoId(), nome: x.nome, idade: 0, resp: x.resp, rel: 'responsável', tel: x.tel, tel2: x.tel2, doc: x.doc, cpf: x.cpf, obs: x.obs, pcd: false, pacote: x.pac / 60, usado: x.usado, entrou: null, rosto: false, foto: '', visitas: [],
+  for (const x of L) { const saldo = x.pac - x.usado, c = { id: novoId(), nome: x.nome, nasc: x.nasc || '', idade: 0, resp: x.resp, rel: 'responsável', tel: x.tel, tel2: x.tel2, doc: x.doc, cpf: x.cpf, obs: x.obs, pcd: false, pacote: x.pac / 60, usado: x.usado, entrou: null, rosto: false, foto: '', visitas: [],
       venda: x.pac > 0 ? { h: x.pac / 60, m: x.pac, v: 0, servico: SERV_IMP, com: '', quando } : null, sapateira: null, liberado: saldo > 0 || S.cfg.bloqueioAuto !== 'sim', criado: quando, imp: true, lote };
     if (x.obs) { c.obs_em = quando; c.obs_por = primeiro(EU.nome); }
     S.criancas.push(c); if (x.pac > 0) S.compras.push({ id: novoId(), crianca: c.id, h: x.pac / 60, m: x.pac, v: 0, servico: SERV_IMP, itens: '', quando, por: '', imp: true, lote }); min += saldo; }
@@ -2762,7 +2768,7 @@ async function importarAgora() {
   try {
     for (const tam = im.tam || 400; im.feitas < L.length; im.feitas += tam) {
       if (ok) ok.textContent = `Importando… ${impNum(im.feitas)} de ${impNum(L.length)}`;
-      const r = await api('importar', { lote: im.lote, ja: im.ja, linhas: L.slice(im.feitas, im.feitas + tam).map(x => ({ nome: x.nome, resp: x.resp, cpf: x.cpf, tel: x.tel, tel2: x.tel2, obs: x.obs, pac: x.pac, usado: x.usado })) });
+      const r = await api('importar', { lote: im.lote, ja: im.ja, linhas: L.slice(im.feitas, im.feitas + tam).map(x => ({ nome: x.nome, resp: x.resp, cpf: x.cpf, tel: x.tel, tel2: x.tel2, obs: x.obs, pac: x.pac, usado: x.usado, nasc: x.nasc || '' })) });
       im.novos += r.novos; im.min += r.min; im.horas += r.horas || 0; im.jaEstavam += r.existentes;
     }
   } catch (e) {

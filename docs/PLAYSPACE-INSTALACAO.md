@@ -1301,6 +1301,22 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Começar as Finanças do zero e a data de nascimento na importação (1.97 · Finanças 4.7)
+
+Pedido do dono, na véspera da implantação: "zere todo o financeiro" e "importe também o perfil do cliente".
+
+**Começar as Finanças do zero** (Finanças → Conta, só a conta principal)
+
+- O cartão mostra o que há hoje nas Finanças (lançamentos, conferências do caixa, festas lançadas, dias de freelancer, planilhas, adiantamento; quantos fornecedores e freelancers cadastrados).
+- "Zerar as Finanças…" abre a folha: o que vai ser apagado, duas marcações (também os fornecedores; também os freelancers cadastrados) e a senha de quem está entrando, para confirmar. Senha errada não apaga nada.
+- Ficam os acessos, as regras das comissões, as metas, os valores e os e-mails. O Notas não é mexido. Antes de apagar, o sistema guarda uma cópia do banco (como no Começar do zero do Play Space).
+- Depois, o cartão diz quando e quem zerou por último.
+
+**A data de nascimento na importação** (Ajustes → Importar clientes e horas)
+
+- A planilha pode ter a coluna NASCIMENTO (dd/mm/aaaa, d/m/aa ou aaaa-mm-dd): a data vai para o cadastro e a idade sai dela. Data que não existe ou no futuro: o cadastro entra sem a data.
+- Os arquivos preparados do sistema antigo já trazem essa coluna (e, nas observações, o aviso "PERFIL DUPLICADO NO SISTEMA ANTIGO" de quem tinha mais de um cadastro com o mesmo CPF).
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O PDF das Festas nos blocos coloridos (1.96 · Finanças 4.6)
 
 Pedido do dono (com a foto do PDF das Festas): "me dá 3 opções mais modernas esteticamente". Foram feitas três (branco e limpo; faixa escura; blocos coloridos) e o dono escolheu a 3.

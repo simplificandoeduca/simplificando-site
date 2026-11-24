@@ -832,7 +832,7 @@ function somaUni() {
 /* ---------- o app ---------- */
 /* 2.5 (1.64): a página das Finanças que ficou guardada no aparelho (a aba aberta, o app do celular ou o cache do navegador) se renova
    sozinha quando o servidor já tem outra versão. PS_PAGINA é carimbada pelo tools/build_playspace.py com a versão do Play Space. */
-const PS_PAGINA = '1.96';
+const PS_PAGINA = '1.97';
 const psMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
 function renovarSeVelha(v, naTela) {
   if (!v || !psMaior(v, PS_PAGINA)) return false;
@@ -1176,7 +1176,8 @@ function telaConta() {
     <label class="chk"><input type="checkbox" id="em-auto"> <span>Mandar sozinho todo dia, quando a loja fecha</span></label>
     <div class="lista-acoes" style="margin-top:12px"><button class="btn btn-brand" id="em-salvar">Salvar</button><button class="btn btn-ghost" id="em-hoje">Mandar agora o de hoje</button><button class="btn btn-ghost" id="em-ontem">Mandar o de ontem</button></div>
     <p class="dica" id="em-status">Carregando…</p></div>
-  ${EU.principal ? `<div class="cartao"><div class="cab-cartao"><div><h2>Quem vê as Finanças</h2><p class="expl">Só quem tem um acesso aqui entra. A equipe do Play Space não entra com o login de lá.</p></div><button class="btn btn-ghost" id="c-novo">+ Criar acesso</button></div><div id="c-lista"><div class="vazio">Carregando…</div></div></div>` : ''}`;
+  ${EU.principal ? `<div class="cartao"><div class="cab-cartao"><div><h2>Quem vê as Finanças</h2><p class="expl">Só quem tem um acesso aqui entra. A equipe do Play Space não entra com o login de lá.</p></div><button class="btn btn-ghost" id="c-novo">+ Criar acesso</button></div><div id="c-lista"><div class="vazio">Carregando…</div></div></div>` : ''}
+  ${EU.principal ? `<div class="cartao" id="c-zerar"><div class="cab-cartao"><div><h2>Começar as Finanças do zero</h2><p class="expl">Para a implantação: apaga o movimento das Finanças (lançamentos, comprovantes, o controle de caixa, as festas lançadas, os dias e o fluxo dos freelancers, as planilhas e o adiantamento). Ficam os acessos, as regras das comissões, as metas, os valores e os e-mails. O Notas não é mexido. Antes de apagar, o sistema guarda uma cópia.</p></div><button class="btn btn-ghost" id="z-abrir" style="color:var(--bad);border-color:var(--bad-bg)">Zerar as Finanças…</button></div><p class="dica" id="z-agora">Carregando…</p></div>` : ''}`;
 }
 async function ligarConta() {
   $('#c-sair').onclick = async () => { try { await api('sair'); } catch (e) { /* já saiu */ } EU = null; D = null; telaEntrar('entrar'); };
@@ -1191,10 +1192,33 @@ async function ligarConta() {
       async () => { await api('usuario_senha', { id: +b.dataset.uSenha, senha: $('#u-s').value }); aviso('Senha nova salva ✓'); }));
     $$('[data-u-tirar]', box).forEach(b => b.onclick = () => folha('Tirar o acesso', `<p class="dica"><b>${esc(b.dataset.nome)}</b> não vai mais conseguir entrar nas Finanças (se estiver com a tela aberta, sai na hora).</p>`, 'Tirar o acesso',
       async () => { await api('usuario_remover', { id: +b.dataset.uTirar }); aviso('Acesso retirado ✓'); lista(); })); };
+  ligarZerar();   /* 4.7 */
   $('#c-novo').onclick = () => { folha('Criar acesso', `<label class="lbl" for="n-nome">Nome</label><input class="inp" id="n-nome" autocomplete="off"><label class="lbl" for="n-login">Login (é com ele que a pessoa entra)</label><input class="inp" id="n-login" autocomplete="off" autocapitalize="none" spellcheck="false"><label class="lbl" for="n-senha">Senha (mínimo 6 caracteres)</label><input class="inp" id="n-senha" type="password" autocomplete="new-password">`, 'Criar acesso',
     async () => { const r = await api('usuario_criar', { nome: $('#n-nome').value, login: $('#n-login').value, senha: $('#n-senha').value }); aviso('Acesso criado ✓ login: ' + r.login); lista(); });
     let mexeu = false; $('#n-login').oninput = () => { mexeu = true; }; $('#n-nome').oninput = () => { if (!mexeu) $('#n-login').value = loginSugerido($('#n-nome').value); }; };
   lista();
+}
+/* 4.7 (1.97): começar as Finanças do zero (Conta, só a conta principal; pede a senha de novo) */
+const zNum = (n, um, varios) => `${n.toLocaleString('pt-BR')} ${n === 1 ? um : varios}`;
+function zFrase(a) {
+  const p = [a.lancamentos && zNum(a.lancamentos, 'lançamento', 'lançamentos'), a.comprovantes && zNum(a.comprovantes, 'comprovante', 'comprovantes'), a.caixa && zNum(a.caixa, 'conferência do caixa', 'conferências do caixa'),
+    a.festas && zNum(a.festas, 'festa lançada', 'festas lançadas'), a.freela_dias && zNum(a.freela_dias, 'dia ou fluxo de freelancer', 'dias e fluxos de freelancers'), a.planilhas && zNum(a.planilhas, 'planilha', 'planilhas'), a.adiant && zNum(a.adiant, 'lançamento do adiantamento', 'lançamentos do adiantamento')].filter(Boolean);
+  return p.length ? p.join(', ') : 'nenhum movimento';
+}
+async function ligarZerar() {
+  const box = $('#z-agora'), bt = $('#z-abrir'); if (!box || !bt) return; let P = null;
+  const mostra = async () => { try { P = await api('fin_zerar_previa'); const a = P.agora, u = P.ultima;
+      box.innerHTML = `Hoje nas Finanças: <b>${esc(zFrase(a))}</b> · ${esc(zNum(a.fornecedores, 'fornecedor', 'fornecedores'))} e ${esc(zNum(a.freelas, 'freelancer cadastrado', 'freelancers cadastrados'))}.`
+        + (u ? `<br>Zerada por último em ${esc(String(u.em).slice(8, 10) + '/' + String(u.em).slice(5, 7) + '/' + String(u.em).slice(0, 4) + ' às ' + String(u.em).slice(11, 16))} por ${esc(u.por)}.` : ''); }
+    catch (e) { box.textContent = e.message; } };
+  await mostra();
+  bt.onclick = () => { if (!P) return; const a = P.agora;
+    folha('Zerar as Finanças', `<p class="dica">Vai apagar: <b>${esc(zFrase(a))}</b>. Não tem volta pela tela (o sistema guarda uma cópia antes).</p>
+      <label class="chk"><input type="checkbox" id="z-forn"> <span>Também os fornecedores (${a.fornecedores.toLocaleString('pt-BR')})</span></label>
+      <label class="chk"><input type="checkbox" id="z-frel"> <span>Também os freelancers cadastrados (${a.freelas.toLocaleString('pt-BR')})</span></label>
+      <label class="lbl" for="z-senha">Sua senha, para confirmar</label><input class="inp" id="z-senha" type="password" autocomplete="current-password">`, 'Zerar as Finanças',
+      async () => { const s = $('#z-senha').value; if (!s) throw new Error('Digite a sua senha para confirmar.');
+        const r = await api('fin_zerar', { senha: s, fornecedores: $('#z-forn').checked, freelas: $('#z-frel').checked }); D = null; aviso('Finanças zeradas ✓'); try { await carregar(); } catch (e) { /* a tela se acerta na próxima */ } mostra(); }); };
 }
 /* 1.54: o resumo do dia por e-mail (em Conta) */
 async function ligarEmail() {

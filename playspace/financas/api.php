@@ -22,7 +22,7 @@ require __DIR__ . '/clientes.php';   /* 3.0: o relatório por cliente */
 require __DIR__ . '/comprovantes.php';   /* 3.0: o comprovante das despesas */
 require __DIR__ . '/adiant.php';   /* 4.3: o adiantamento por unidade */
 set_exception_handler(function (Throwable $e) { registrarErro('[financas] ' . $e->getMessage() . ' @' . basename($e->getFile()) . ':' . $e->getLine()); falha('Algo deu errado. Tente de novo em instantes.', 500); });
-const FIN_VERSAO = '4.6';
+const FIN_VERSAO = '4.7';
 
 $in = [];
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
@@ -153,6 +153,31 @@ if ($acao === 'usuario_senha') {
   soPrincipal($ehPrincipal); $s = (string)($in['senha'] ?? ''); if (strlen($s) < 6) falha('A senha precisa ter pelo menos 6 caracteres.');
   $q = $db->prepare('UPDATE fin_usuarios SET senha = ? WHERE id = ?'); $q->execute([password_hash($s, PASSWORD_DEFAULT), (int)($in['id'] ?? 0)]);
   if (!$q->rowCount()) falha('Acesso não encontrado.', 404); responder();
+}
+/* 4.7 (1.97): começar as Finanças do zero (o dono, antes da implantação: "quero todo o financeiro limpo"). Só a conta principal, com a senha
+   dela de novo. Sai o movimento (as mesmas tabelas que o Começar do zero do Play Space apaga); com a marcação, os fornecedores e os
+   freelancers cadastrados também. Ficam os acessos, as regras das comissões e o que está nos ajustes (metas, valores, e-mails); o Notas não é
+   mexido. Antes de apagar, o banco inteiro é copiado (Ajustes do Play Space → Cópias). */
+function finZerarResumo(PDO $db): array {
+  $n = fn(string $t) => tabelaExiste($t) ? (int)$db->query("SELECT COUNT(*) FROM $t")->fetchColumn() : 0;
+  return ['lancamentos' => $n('fin_lanc'), 'comprovantes' => $n('fin_comprovantes'), 'caixa' => $n('fin_caixa') + $n('fin_caixa_ajustes') + $n('fin_caixa_rel'), 'festas' => $n('fin_festas'),
+    'freela_dias' => $n('fin_freela_dias') + $n('fin_freela_fluxo'), 'planilhas' => $n('fin_planilhas'), 'adiant' => $n('fin_adiant'), 'movimento' => finMovimento(), 'fornecedores' => $n('fin_fornecedores'), 'freelas' => $n('fin_freelas')];
+}
+if ($acao === 'fin_zerar_previa') { soPrincipal($ehPrincipal); responder(['agora' => finZerarResumo($db), 'ultima' => cfg('fin_zerado', null)]); }
+if ($acao === 'fin_zerar') {
+  soPrincipal($ehPrincipal);
+  if (!password_verify((string)($in['senha'] ?? ''), (string)$eu['senha'])) { finErrou($ip); usleep(400000); falha('A senha não confere. Nada foi apagado.', 401); }
+  $forn = !empty($in['fornecedores']); $frel = !empty($in['freelas']); $antes = finZerarResumo($db);
+  $copia = copiarBanco('Nada foi apagado.');
+  $db->beginTransaction();
+  try {
+    foreach (TABELAS_FIN_MOV as $t) if (tabelaExiste($t)) $db->exec("DELETE FROM $t");
+    if ($forn && tabelaExiste('fin_fornecedores')) $db->exec('DELETE FROM fin_fornecedores');
+    if ($frel && tabelaExiste('fin_freelas')) $db->exec('DELETE FROM fin_freelas');
+    $db->commit();
+  } catch (Throwable $e) { if ($db->inTransaction()) $db->rollBack(); throw $e; }
+  gravarCfg('fin_zerado', ['em' => agora(), 'por' => (string)$eu['nome'], 'fornecedores' => $forn, 'freelas' => $frel, 'copia' => $copia, 'antes' => $antes]);
+  responder(['agora' => finZerarResumo($db), 'antes' => $antes]);
 }
 if ($acao === 'usuario_remover') {
   soPrincipal($ehPrincipal); $id = (int)($in['id'] ?? 0); if ($id === (int)$eu['id']) falha('A conta principal não pode tirar o próprio acesso.', 409);

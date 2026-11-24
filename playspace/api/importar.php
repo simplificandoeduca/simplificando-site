@@ -77,7 +77,7 @@ function importarLinhas(array $linhas, array $u, string $lote, bool $horasParaQu
     foreach (importaChaves((string)$c['nome'], (string)$c['resp'], ($c['doc_tipo'] ?? 'cpf') === 'rne' ? 'rne' : 'cpf', (string)$c['cpf'], (string)$c['tel'], (string)($c['tel2'] ?? '')) as $k) if (!isset($tem[$k])) $tem[$k] = (int)$c['id'];
   $jaRecebeu = null;   // quem já recebeu horas de uma importação (só é lido se precisar)
   $novos = 0; $existentes = 0; $comHoras = 0; $invalidas = 0; $min = 0; $agora = agora(); $bloqueia = regra()['bloqueioAuto'] === 'sim';
-  $insC = $db->prepare("INSERT INTO criancas (nome, idade, resp, rel, tel, tel2, doc_tipo, cpf, obs, pacote_min, usado_min, foto, foto_origem, rosto, liberado, criado_em, pcd, lote) VALUES (?, 0, ?, 'responsável', ?, ?, ?, ?, ?, ?, ?, '', '', 0, ?, ?, 0, ?)");
+  $insC = $db->prepare("INSERT INTO criancas (nome, idade, resp, rel, tel, tel2, doc_tipo, cpf, obs, pacote_min, usado_min, foto, foto_origem, rosto, liberado, criado_em, pcd, lote, nascimento) VALUES (?, 0, ?, 'responsável', ?, ?, ?, ?, ?, ?, ?, '', '', 0, ?, ?, 0, ?, ?)");   // 1.97: com a data de nascimento
   $insV = $db->prepare("INSERT INTO vendas (crianca_id, horas, minutos, valor, quando, por, itens, servico, auto, voucher, pcd, cheio, produto_id, qtd, alug, alug_min, lote) VALUES (?, ?, ?, 0, ?, NULL, '', ?, 0, '', 0, NULL, NULL, 0, '', 0, ?)");
   $obsEm = $db->prepare('UPDATE criancas SET obs_em = ?, obs_por = ? WHERE id = ?');
   $somar = $db->prepare('UPDATE criancas SET pacote_min = pacote_min + ? WHERE id = ?');
@@ -105,7 +105,7 @@ function importarLinhas(array $linhas, array $u, string $lote, bool $horasParaQu
         }
         $existentes++; continue;
       }
-      $insC->execute([$nome, $resp, $tel, $tel2, $doc, $cpf, $obs, $pac, $usado, ($saldo > 0 || !$bloqueia) ? 1 : 0, $agora, $lote]);
+      $nasc = nascimentoValido((string)($l['nasc'] ?? '')); $insC->execute([$nome, $resp, $tel, $tel2, $doc, $cpf, $obs, $pac, $usado, ($saldo > 0 || !$bloqueia) ? 1 : 0, $agora, $lote, $nasc !== '' ? $nasc : null]);
       $id = (int)$db->lastInsertId(); foreach ($ch as $k) if (!isset($tem[$k])) $tem[$k] = $id;
       if ($obs !== '') $obsEm->execute([$agora, $quem, $id]);
       if ($pac > 0) { $insV->execute([$id, round($pac / 60, 2), $pac, $agora, SERV_IMPORTADO, $lote]); if ($jaRecebeu !== null) $jaRecebeu[$id] = true; }
