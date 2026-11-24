@@ -1966,7 +1966,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.98';
+const VERSAO = '1.99';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -2509,6 +2509,22 @@ function impDoc(v) {
   if (/[A-Za-z]/.test(t)) return { doc: 'rne', cpf: t.replace(/[^A-Za-z0-9.\-\/ ]/g, '').trim().toUpperCase().slice(0, 20) };
   let d = soDig(t); if (d.length >= 8 && d.length <= 10 && cpfValido(d.padStart(11, '0'))) d = d.padStart(11, '0');   // a planilha comeu os zeros da frente
   return { doc: 'cpf', cpf: d.length === 11 ? cpfFmt(d) : t.replace(/[^\d.\-]/g, '').slice(0, 20) };
+}
+/* 1.99: o telefone com o tracinho (o dono: "coloca um tracinho no telefone, tá confuso ele todo junto: separa o DDD, o 9 e o número").
+   Na tela, no cupom e ao digitar: o celular (11) 9-1234-5678; o fixo (11) 1234-5678. O internacional (com o +) e o que não é número do
+   Brasil ficam como vieram. O que está guardado não muda: a tela mostra sempre assim */
+function telTela(v) {
+  const t = String(v == null ? '' : v).trim(); if (!t || /^\+/.test(t)) return t; let d = soDig(t);
+  if ((d.length === 12 || d.length === 13) && d.startsWith('55')) d = d.slice(2);
+  if ((d.length === 11 || d.length === 12) && d[0] === '0') d = d.slice(1);
+  return d.length === 11 ? `(${d.slice(0, 2)}) ${d[2]}-${d.slice(3, 7)}-${d.slice(7)}` : d.length === 10 ? `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}` : t;
+}
+/* ao digitar: os parênteses e os tracinhos entram sozinhos (o 9 depois do DDD é celular; o resto, fixo) */
+function telDigitando(v) {
+  const d = soDig(v).slice(0, 11); if (!d) return ''; if (d.length <= 2) return '(' + d;
+  const r = d.slice(2), ddd = '(' + d.slice(0, 2) + ') ';
+  if (r[0] === '9') return ddd + r[0] + (r.length > 1 ? '-' + r.slice(1, 5) : '') + (r.length > 5 ? '-' + r.slice(5) : '');
+  return ddd + r.slice(0, 4) + (r.length > 4 ? '-' + r.slice(4, 8) : '');
 }
 function impTel(v) {
   const t = String(v == null ? '' : v).trim(); if (!t) return ''; let d = soDig(t);
@@ -3102,7 +3118,7 @@ const mesmoCliente = (a, b) => a.id === b.id || !!(docDe(a) && docDe(a) === docD
 const relSabe = c => !!c.rel && c.rel !== 'responsável';
 const relP = c => relSabe(c) ? ` (${esc(c.rel)})` : '';
 const relDe = c => relSabe(c) ? `${esc(c.rel)} de ${esc(c.nome)}` : `responsável por ${esc(c.nome)}`;
-const fones = c => [c.tel, c.tel2].filter(Boolean).join(' · ');
+const fones = c => [c.tel, c.tel2].filter(Boolean).map(telTela).join(' · ');
 const familia = c => S.criancas.filter(x => mesmoCliente(c, x)).sort((a, b) => a.nome.localeCompare(b.nome));
 const clientePorDoc = (tipo, v) => { const k = docChave(tipo, v); return k ? S.criancas.filter(x => docDe(x) === k).sort((a, b) => a.nome.localeCompare(b.nome)) : []; };
 const cpfValido = v => { const d = soDig(v); if (d.length !== 11 || /^(\d)\1{10}$/.test(d)) return false; const dv = n => { let t = 0; for (let k = 0; k < n; k++) t += +d[k] * (n + 1 - k); const r = (t * 10) % 11; return r === 10 ? 0 : r; }; return dv(9) === +d[9] && dv(10) === +d[10]; };
@@ -3685,7 +3701,7 @@ function htmlVendaFesta(V) { if (!V || !V.length) return '';
   return `<div class="sec-cab fv-cab"><h3>A venda da festa${V.length > 1 ? ` <span class="pill p-neutro">${V.length} partes</span>` : ''}</h3></div>
     <div class="fv-vendas">${corpo}<div class="fv-vd tot"><span class="txt"><b>Total da festa</b>${pago < tot - 0.004 ? `<span class="ar">a receber: ${brl(centavos(tot - pago))}</span>` : ''}</span><b class="num">${brl(tot)}</b></div></div>
     ${dias.size > 1 ? `<p class="explica">Vendida em partes, em dias diferentes: cada parte entra no caixa do dia em que foi paga.</p>` : ''}`; }
-const fonesDe = x => [x.tel, x.tel2].filter(t => soDig(t).length >= 8).join(' / ');
+const fonesDe = x => [x.tel, x.tel2].filter(t => soDig(t).length >= 8).map(telTela).join(' / ');
 const anosTxt = n => n ? n + (n === 1 ? ' ano' : ' anos') : '';
 function desenharFestaVer() {
   const a = $('#fv-corpo'), f = FV && festaPorId(FV.id); if (!a) return; if (!f) { a.innerHTML = '<p class="explica">A festa não está mais marcada (a venda dela foi cancelada).</p>'; return; }
@@ -5345,7 +5361,11 @@ const casaBusca = (c, q) => (c.nome + ' ' + c.resp + ' ' + (c.tel || '') + ' ' +
 // O serviço marcado como "sai e volta" (Ajustes → Serviços) entra na lista da tela inicial na hora da venda e sai quando alguém toca em Devolveu.
 // Uma linha por criança e serviço: mais um período do mesmo carrinho soma o tempo na mesma linha. S.alugueis = [{ id, crianca, s, n, q, min, ini, vendas }]
 const servicoDe = id => (S.cfg.servicos || []).find(x => x.id === id) || null;
-const servicosVolta = () => (S.cfg.servicos || []).filter(x => x.volta && !(x.banco && x.modo === 'periodo'));
+/* 1.99: o serviço que uma unidade não tem (o dono: "tira o carrinho de bebê da Anália e o fusquinha, não tem aqui"): x.fora = as unidades onde ele
+   não é vendido (Ajustes → o serviço → "Tem nas unidades"). Some do atendimento, dos filtros da lista e do menu dessa unidade */
+const foraDe = x => Array.isArray(x && x.fora) ? x.fora.map(Number) : [];
+const servAqui = x => !foraDe(x).includes(+minhaUni());
+const servicosVolta = () => (S.cfg.servicos || []).filter(x => x.volta && !(x.banco && x.modo === 'periodo') && servAqui(x));
 const alugNaLista = () => (S.alugueis || []).filter(a => crianca(a.crianca));
 const alugHoje = a => isoDia(a.ini) === isoDia(agora);
 const alugSeg = a => Math.max(0, (agora - a.ini) / 1000);
@@ -6342,10 +6362,10 @@ function naoVaiFazer(el) {
 let VOLTA_SAIDA = 0;   // 1.00: o atendimento foi aberto pela folha da saída (o cliente leva um pacote na saída): depois da venda, a saída dessa criança abre de novo
 let CARRINHO = null;   // o que está sendo escolhido no atendimento: { id (criança), q: { idDoServiço: quantidade }, pac: [índices dos pacotes], pr: { idDoProduto: quantidade } }
 const ehTempo = x => !!(x.banco && x.modo === 'periodo');   // serviço que é tempo de brincar (entra no saldo)
-const outrosServicos = () => servicoTempo() ? (S.cfg.servicos || []).filter(x => !ehTempo(x)) : [];
+const outrosServicos = () => servicoTempo() ? (S.cfg.servicos || []).filter(x => !ehTempo(x) && servAqui(x)) : [];
 function linhasServico(parte) { // parte: 'tempo', 'outros' ou nada (todos). Sem serviço de tempo cadastrado, tudo fica na primeira lista
   const c = crianca(CARRINHO.id), st = servicoTempo(), vq = CARRINHO.vq || 0;
-  return (S.cfg.servicos || []).filter(x => !parte || !st || (parte === 'tempo') === ehTempo(x)).filter(x => !ehTempo(x) || !semIdface() || (CARRINHO.q[x.id] || 0) > 0).map(x => { const q = CARRINHO.q[x.id] || 0, per = x.modo === 'periodo', pcd = !!(x.banco && c && c.pcd && pcdDesc() > 0), un = pcd ? precoDe(c, x.v) : x.v;
+  return (S.cfg.servicos || []).filter(servAqui).filter(x => !parte || !st || (parte === 'tempo') === ehTempo(x)).filter(x => !ehTempo(x) || !semIdface() || (CARRINHO.q[x.id] || 0) > 0).map(x => { const q = CARRINHO.q[x.id] || 0, per = x.modo === 'periodo', pcd = !!(x.banco && c && c.pcd && pcdDesc() > 0), un = pcd ? precoDe(c, x.v) : x.v;
     if (alugAbertoServ(x)) { const fora = c ? (S.alugueis || []).find(a => a.crianca === c.id && a.s === x.id) : null;   // 1.20: o fusquinha é um toque só: não se escolhe o tempo, e a conta fecha na devolução
       return fora ? `<div class="serv marcar fora" data-s="${esc(x.id)}"><span class="txt"><b>${esc(x.n)}</b><span>${fora.q > 1 ? fora.q + ' já estão' : 'já está'} fora da loja desde ${alugHoje(fora) ? 'as ' + hora(fora.ini) : diaCurto(fora.ini)} · ${ITENS_ABERTO}</span></span><span class="vou-ch on">${ic(IC.check, 16, 3)}</span><b class="valor num"></b></div>`
         : `<div class="serv ${q ? 'on' : ''}" data-s="${esc(x.id)}"><div class="txt tap" data-act="serv-marca" data-s="${esc(x.id)}" role="button" aria-pressed="${!!q}"><b>${esc(x.n)}</b><span>${precoAberto(x)}${x.obs ? ' · ' + esc(x.obs) : ''}</span></div>
@@ -6466,7 +6486,7 @@ const campoDoc = (tipo, v) => `<div class="campo"><div class="rot-linha"><label 
 const telFora = t => /^\s*\+/.test(String(t || ''));
 const telCompleto = t => soDig(t).length >= (telFora(t) ? 8 : 10);
 function marcarTelInt() { const i = $('#f-tel2'), b = $('#f-tel2-int'); if (!i || !b) return; const f = telFora(i.value); b.setAttribute('aria-pressed', f); i.placeholder = f ? '+1 305 555 0123' : '(11) 9 0000-0000'; }
-const camposTel = (t1, t2) => `<div class="dois alinha"><div class="campo"><label for="f-tel">Telefone${COM_WHATS ? ' (WhatsApp)' : ''}<span class="obg" aria-hidden="true">*</span></label><input id="f-tel" inputmode="tel" value="${esc(t1 || '')}" placeholder="(11) 9 0000-0000" autocomplete="off"></div>
+const camposTel = (t1, t2) => `<div class="dois alinha"><div class="campo"><label for="f-tel">Telefone${COM_WHATS ? ' (WhatsApp)' : ''}<span class="obg" aria-hidden="true">*</span></label><input id="f-tel" inputmode="tel" value="${esc(t1 || '')}" placeholder="(11) 9-0000-0000" autocomplete="off"></div>
         <div class="campo discreto"><div class="rot-linha"><label for="f-tel2">Outro telefone</label><div class="seg mini um"><button type="button" id="f-tel2-int" data-act="tel-int" aria-pressed="${telFora(t2)}" title="Número de fora do Brasil: com o código do país (ex.: +1 305 555 0123)">Internacional</button></div></div><input id="f-tel2" inputmode="tel" value="${esc(t2 || '')}" placeholder="${telFora(t2) ? '+1 305 555 0123' : '(11) 9 0000-0000'}" autocomplete="off"></div></div>`;
 // no cadastro, o CPF (ou RNE) de quem já é cliente traz o que está salvo: o responsável e as crianças dele.
 // Um toque na criança abre o atendimento dela, sem escrever nada de novo; para outra criança do mesmo responsável, é só escrever o nome
@@ -7274,8 +7294,8 @@ function folhaCorrigir(id, campo) {
     <p class="explica">Para acertar um nome ou um telefone digitado errado. Nada é apagado: a mudança fica anotada em Hoje na recepção, com o seu nome.</p>
     <div class="campo"><label for="cz-resp">Nome do responsável</label><input id="cz-resp" value="${esc(c.resp || '')}" maxlength="80" autocomplete="off" autocapitalize="characters"></div>
     <div class="campo"><label for="cz-nome">Nome da criança</label><input id="cz-nome" value="${esc(c.nome || '')}" maxlength="60" autocomplete="off" autocapitalize="characters"></div>
-    <div class="dois alinha"><div class="campo"><label for="cz-tel">Telefone</label><input id="cz-tel" inputmode="tel" value="${esc(c.tel || '')}" placeholder="(11) 9 0000-0000" autocomplete="off"></div>
-      <div class="campo discreto"><label for="cz-tel2">Outro telefone</label><input id="cz-tel2" inputmode="tel" value="${esc(c.tel2 || '')}" placeholder="(11) 9 0000-0000" autocomplete="off"></div></div>
+    <div class="dois alinha"><div class="campo"><label for="cz-tel">Telefone</label><input id="cz-tel" inputmode="tel" value="${esc(c.tel || '')}" placeholder="(11) 9-0000-0000" autocomplete="off"></div>
+      <div class="campo discreto"><label for="cz-tel2">Outro telefone</label><input id="cz-tel2" inputmode="tel" value="${esc(c.tel2 || '')}" placeholder="(11) 9-0000-0000" autocomplete="off"></div></div>
     ${irm.length ? `<p class="explica" id="cz-irmaos">O nome do responsável e os telefones mudam também em ${juntar(irm.map(x => esc(x.nome)))}: é o mesmo cliente.${difer.length ? ` <span id="cz-difer">O que está diferente no cadastro de ${juntar(difer.map(x => esc(x.nome)))} continua como está.</span>` : ''}</p>` : ''}
     <p class="explica">O ${c.doc === 'rne' ? 'RNE' : 'CPF'} e a data de nascimento ficam com o Gestor, em Ajustes → Cadastros.</p>
     <div class="pe-f"><button type="button" class="bt forte largo tap" id="cz-ok" data-act="corrigir-salvar" data-id="${c.id}">${ic(IC.check, 18, 2.6)} Salvar a correção</button></div>`);
@@ -7666,7 +7686,7 @@ const redesenharDicas = () => { const d = $('#dicas'); if (d) d.outerHTML = chip
 function folhaMensagem(c, texto) {
   const semZap = MODO === 'servidor' && S.whats && !S.whats.conectado;
   abrirFolha(`Mensagem para ${esc(primeiro(c.resp))}`, `
-    <div class="linha">${avatar(c)}<div class="txt"><b style="white-space:normal">${esc(c.resp)}, ${relDe(c)}</b><span>${esc(c.tel || 'sem telefone no cadastro')}</span></div></div>
+    <div class="linha">${avatar(c)}<div class="txt"><b style="white-space:normal">${esc(c.resp)}, ${relDe(c)}</b><span>${esc(telTela(c.tel) || 'sem telefone no cadastro')}</span></div></div>
     <div class="campo"><label for="m-texto">A mensagem (pode ajustar antes de enviar)</label><textarea id="m-texto" rows="5">${esc(texto)}</textarea></div>
     ${semZap ? `<p class="explica" style="color:var(--erro)">O WhatsApp da loja não está conectado: a mensagem fica guardada na conversa, mas não sai agora.</p>` : ''}
     <button class="bt forte largo tap" data-act="mensagem-enviar" data-id="${c.id}">${ic(IC.zap)} Enviar no WhatsApp</button>`);
@@ -7933,6 +7953,7 @@ function folhaServico(i) {
       <div class="campo" id="sv-min-campo" ${per ? '' : 'hidden'}><label for="sv-min">Período (minutos)</label><input id="sv-min" type="number" inputmode="numeric" min="5" max="240" step="5" value="${x && x.min ? x.min : 30}"></div></div>
     <label class="marca" id="sv-banco-campo" ${per ? '' : 'hidden'}><input type="checkbox" id="sv-banco" ${x && x.banco ? 'checked' : ''}><span><b>É tempo de brincar.</b> O tempo vendido entra no saldo da criança e vai sendo descontado enquanto ela está no espaço.</span></label>
     <label class="marca" id="sv-volta-campo"><input type="checkbox" id="sv-volta" ${x && x.volta ? 'checked' : ''}><span><b>Sai da loja e volta</b> (carrinho, fusquinha). Vendido, fica na lista da tela inicial até alguém tocar em <b>Devolveu</b>. Não vale para o tempo de brincar.</span></label>
+    ${unidades().length > 1 ? `<div class="campo" id="sv-unis"><label>Tem nas unidades</label>${unidades().map(u => `<label class="marca"><input type="checkbox" data-u="${u.id}" ${x && foraDe(x).includes(+u.id) ? '' : 'checked'}><span>${esc(u.nome)}</span></label>`).join('')}<span class="explica">Desmarcada, a unidade não vende este serviço: ele some do atendimento, da lista e do menu de lá.</span></div>` : ''}
     <div class="campo" id="sv-conta-campo" ${per && x && x.volta && !x.banco ? '' : 'hidden'}><label>Quando a conta fecha</label><div class="seg" id="sv-conta">${[['devolucao', 'Na devolução'], ['venda', 'Na venda']].map(([v, n]) => `<button type="button" data-act="sv-conta" data-v="${v}" aria-pressed="${(x && x.porTempo ? 'venda' : 'devolucao') === v}">${n}</button>`).join('')}</div>
       <span class="explica"><b>Na devolução</b> (o fusquinha): no atendimento é um toque só, sem escolher o tempo (mais toques, mais carrinhos: até 4 de uma vez); a conta fecha no Devolveu, pelo tempo que cada um ficou fora. <b>Na venda</b>: escolhe-se o tempo e paga na hora; se passar, o tempo a mais é cobrado na devolução.</span></div>
     <div class="campo"><label for="sv-obs">Observação (opcional)</label><input id="sv-obs" value="${esc(x ? x.obs || '' : '')}" placeholder="ex.: das 10h às 22h" maxlength="60" autocomplete="off"></div>
@@ -8272,6 +8293,7 @@ const ACOES = {
     if (!n) { toast('Como se chama o serviço?'); $('#sv-n').focus(); return; } if (!(v >= 0)) { toast('Qual é o valor?'); $('#sv-v').focus(); return; } if (per && !(min >= 5 && min <= 240)) { toast('O período vai de 5 a 240 minutos'); $('#sv-min').focus(); return; }
     const L = (S.cfg.servicos || []).slice(), i = el.dataset.i === '' ? -1 : +el.dataset.i; if (L.some((x, k) => k !== i && x.n.toLowerCase() === n.toLowerCase())) { toast(`Já existe ${n} na lista`); return; }
     const novo = { id: i >= 0 ? L[i].id : 's' + novoId(), n, v, modo: per ? 'periodo' : 'fixo', min: per ? min : 0, banco: per && !!($('#sv-banco') || {}).checked, obs: val('sv-obs') }; novo.volta = !novo.banco && !!($('#sv-volta') || {}).checked; novo.porTempo = per && novo.volta && ($('#sv-conta [aria-pressed="true"]') || { dataset: {} }).dataset.v === 'venda';
+    { const cx = $$('#sv-unis [data-u]'); novo.fora = cx.length ? cx.filter(k => !k.checked).map(k => +k.dataset.u) : i >= 0 ? foraDe(L[i]) : []; }   /* 1.99: as unidades onde não tem */
     if (i >= 0) L[i] = novo; else L.push(novo); S.cfg.servicos = L;
     if (MODO === 'servidor') api('regra_salvar', { servicos: L }).then(r => { S.cfg.servicos = r.regra.servicos; desenhar(true); }).catch(e => toast(e.message)); deuCerto(`${n}: ${precoServ(novo)}`); fecharFolha(); desenhar();
   },
@@ -8427,6 +8449,7 @@ document.addEventListener('input', e => {
   if (CAMPOS_OLHAR[e.target.id]) { const card = $('.palco'); if (card && card.dataset.olha !== CAMPOS_OLHAR[e.target.id]) { card.dataset.olha = CAMPOS_OLHAR[e.target.id]; olharPara(e.target, true); } else olharPara(e.target); }
   if (['l-login', 'g-login', 'e-login'].includes(e.target.id)) { const v = e.target.value.toLowerCase(); if (v !== e.target.value) e.target.value = v; }
   if (e.target.id === 'f-cpf') { const v = e.target.dataset.doc === 'rne' ? rneFmt(e.target.value) : cpfFmt(e.target.value); if (v !== e.target.value) e.target.value = v; clienteNoCadastro(); }
+  if (['f-tel', 'f-tel2', 'cz-tel', 'cz-tel2'].includes(e.target.id) && !telFora(e.target.value) && !/^delete/.test(e.inputType || '')) { const v = telDigitando(e.target.value); if (v !== e.target.value) e.target.value = v; }   /* 1.99: o telefone ganha os parênteses e os tracinhos ao digitar */
   if ((e.target.id === 'f-tel' || e.target.id === 'f-tel2') && telFora(e.target.value)) { const v = '+' + e.target.value.replace(/[^\d\s().-]/g, '').replace(/^\s+/, ''); if (v !== e.target.value) e.target.value = v; }   // 1.16: número internacional: o "+" e os números
   if (e.target.id === 'f-tel2') marcarTelInt();
   if (['f-cpf', 'f-resp', 'f-tel', 'f-tel2', 'f-nome'].includes(e.target.id)) atualizarFalta();

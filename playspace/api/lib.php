@@ -445,6 +445,7 @@ function uniCasaTomPares(): array {   /* 1.91 (auditoria): com as unidades apaga
   return $o;
 }
 
+function unidadesDaAnalia(): array { $o = []; try { foreach (db()->query('SELECT id, nome FROM unidades WHERE ativo = 1')->fetchAll() as $u) if (uniLocal((string)$u['nome']) === 'ANALIA') $o[] = (int)$u['id']; } catch (Throwable $e) { } return $o; }   /* 1.99 (a Anália e a Casa Tom Anália) */
 function unidades(): array { return array_map('unidadePublica', db()->query('SELECT * FROM unidades ORDER BY ativo DESC, id')->fetchAll()); }   // as ativas primeiro; as inativas vão junto, para a tela saber o nome das antigas
 function unidadeDoPedido(): ?int {
   if (!array_key_exists('_unidade', $GLOBALS)) {
@@ -524,6 +525,13 @@ function regraDoBanco(): array {
     foreach ((array)($r['extras'] ?? []) as $k => $e) if (trim((string)($e['n'] ?? '')) !== '') $r['servicos'][] = ['id' => 'x' . $k, 'n' => (string)$e['n'], 'v' => (float)($e['v'] ?? 0), 'modo' => 'fixo', 'min' => 0, 'banco' => false, 'obs' => ''];
   }
   foreach ($r['servicos'] as $k => $x) if (is_array($x) && !array_key_exists('volta', $x)) $r['servicos'][$k]['volta'] = empty($x['banco']) && in_array((string)($x['id'] ?? ''), SERVICOS_QUE_VOLTAM, true);
+  /* 1.99: o serviço que uma unidade não tem (o dono: "tira o carrinho de bebê da Anália e o fusquinha, não tem aqui"): fora = as unidades onde não
+     é vendido (Ajustes → o serviço → "Tem nas unidades"). Uma vez só, na primeira vez desta versão: o que sai e volta (carrinho, fusquinha) sai da Anália */
+  foreach ($r['servicos'] as $k => $x) if (is_array($x)) $r['servicos'][$k]['fora'] = array_values(array_map('intval', (array)($x['fora'] ?? [])));
+  if (cfg('servuni_feito', null) === null) { $anl = unidadesDaAnalia();
+    if ($anl) { foreach ($r['servicos'] as $k => $x) if (is_array($x) && !empty($x['volta'])) $r['servicos'][$k]['fora'] = array_values(array_unique(array_merge($r['servicos'][$k]['fora'], $anl)));
+      $g = $r; unset($g['festa'], $g['vendedoras']); gravarCfg('regra', $g); }
+    gravarCfg('servuni_feito', date('Y-m-d H:i:s')); }
   if (!MODULO_WHATS) $r['autoMsg'] = 'nao';   // com o módulo desligado, nenhum aviso automático sai
   $r['festa'] = FESTA_DE_FABRICA;   // 1.12: a tabela da festa vai com a regra para a tela (a de fábrica: não fica gravada)
   $r['vendedoras'] = vendedoras();   /* 1.67: os nomes de quem vende (o financeiro muda nas Finanças → Comissões) */

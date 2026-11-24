@@ -1301,6 +1301,20 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O telefone com o tracinho e os serviços por unidade (1.99)
+
+Pedidos do dono no dia da implantação.
+
+**O telefone com o tracinho** ("separa o DDD, o 9 e o número")
+
+- Na tela, no cupom e ao digitar no cadastro: o celular fica (11) 9-1234-5678 e o fixo (11) 1234-5678. O internacional (com o +) fica como veio.
+- O que já estava guardado não muda: a tela mostra sempre com o tracinho.
+
+**Os serviços por unidade** ("tira o carrinho de bebê da Anália e o fusquinha, não tem aqui")
+
+- Ajustes → o serviço → "Tem nas unidades": desmarcada, a unidade não vende o serviço; ele some do atendimento, dos filtros da lista e do menu de lá, e o servidor também recusa.
+- Na primeira vez desta versão, o que sai e volta (carrinho de bebê, fusquinha) já vem desmarcado na Anália (e na Casa Tom Anália). O gestor pode marcar de novo.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A planilha inteira de uma vez na importação (1.98)
 
 Pedido do dono, na implantação: "coloque tudo em um só arquivo então para colocar só uma vez".

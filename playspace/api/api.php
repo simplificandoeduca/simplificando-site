@@ -649,6 +649,7 @@ switch ($acao) {
     $linhas = [];
     foreach ((array)($in['linhas'] ?? []) as $l) {
       $s = $porId[(string)($l['s'] ?? '')] ?? null; $q = min(48, (int)($l['q'] ?? 0)); if (!$s || $q < 1) continue;
+      { $uq = unidadeDoPedido(); if ($uq !== null && in_array($uq, array_map('intval', (array)($s['fora'] ?? [])), true)) falha($s['n'] . ' não tem nesta unidade. Confira em Ajustes → Serviços.'); }   /* 1.99 */
       if (isset($l['vt']) && abs((float)$l['vt'] - (float)$s['v']) >= 0.005) falha('O valor de ' . $s['n'] . ' mudou para ' . dinheiro((float)$s['v']) . '. Feche e abra o atendimento de novo.');   // 1.45 (auditoria): como o pacote e o produto
       if (!empty($s['volta']) && ($s['modo'] ?? 'fixo') !== 'periodo') $q = min(ALUG_MAX, $q);   // 1.22: o que sai da loja com valor único (o carrinho de bebê): até 4 de uma vez
       if (alugEmAberto($s)) { // 1.20: o que sai da loja e é cobrado por período (o fusquinha) só "sai": não há tempo a escolher nem valor agora; a conta fecha na devolução
@@ -1081,6 +1082,7 @@ switch ($acao) {
     }
     if (isset($in['servicos']) && is_array($in['servicos'])) { // os serviços e produtos da loja: valor único ou a cada tantos minutos
       $ss = []; $ids = []; $eraVolta = []; $eraTempo = []; foreach ((array)$r['servicos'] as $x) { $eraVolta[(string)($x['id'] ?? '')] = !empty($x['volta']); $eraTempo[(string)($x['id'] ?? '')] = !empty($x['porTempo']); }
+      $eraFora = []; foreach ((array)$r['servicos'] as $x) $eraFora[(string)($x['id'] ?? '')] = array_values(array_map('intval', (array)($x['fora'] ?? []))); $uniOk = array_flip(array_map('intval', $db->query('SELECT id FROM unidades')->fetchAll(PDO::FETCH_COLUMN)));   /* 1.99 */
       foreach ($in['servicos'] as $k => $s) {
         $n = mb_substr(maiusculo((string)($s['n'] ?? '')), 0, 40); if ($n === '' || count($ss) >= 30) continue;
         $id = preg_replace('/[^a-z0-9_]/', '', (string)($s['id'] ?? '')); if ($id === '' || isset($ids[$id])) $id = 's' . dechex(crc32($n . '|' . $k . '|' . microtime())); $ids[$id] = 1;
@@ -1089,7 +1091,9 @@ switch ($acao) {
           // volta: sai da loja e volta (fica na lista até "Devolveu"). O tempo de brincar nunca; uma tela antiga, que não manda a marca, deixa como estava
           'volta' => !($modo === 'periodo' && !empty($s['banco'])) && (array_key_exists('volta', (array)$s) ? !empty($s['volta']) : ($eraVolta[$id] ?? in_array($id, SERVICOS_QUE_VOLTAM, true))),
           // 1.20: porTempo = o que sai da loja e é cobrado a cada período é vendido por tempo comprado (como até a 1.19), em vez de fechar a conta na devolução. A tela que não manda a marca deixa como estava
-          'porTempo' => $modo === 'periodo' && empty($s['banco']) && (array_key_exists('porTempo', (array)$s) ? !empty($s['porTempo']) : ($eraTempo[$id] ?? false))];
+          'porTempo' => $modo === 'periodo' && empty($s['banco']) && (array_key_exists('porTempo', (array)$s) ? !empty($s['porTempo']) : ($eraTempo[$id] ?? false)),
+          // 1.99: as unidades onde o serviço não tem (a tela que não manda fica como estava)
+          'fora' => array_key_exists('fora', (array)$s) ? array_values(array_unique(array_filter(array_map('intval', (array)$s['fora']), fn($x) => isset($uniOk[$x])))) : ($eraFora[$id] ?? [])];
       }
       if (!$ss) falha('Deixe pelo menos um serviço.'); $r['servicos'] = $ss; $r['extras'] = [];
     }
