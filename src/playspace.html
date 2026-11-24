@@ -1950,7 +1950,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '1.97';
+const VERSAO = '1.98';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -2479,7 +2479,8 @@ const cartaoLimpeza = () => { const u = ultimaLimpeza();
 // e só então importa. Quem já está cadastrado não muda. As horas entram como um pacote de valor zero ("PACOTE DO SISTEMA ANTERIOR"):
 // aparecem no histórico, valem como pacote na entrada e não contam como venda do dia. Dá para desfazer: saem os cadastros importados
 // que ainda não tiveram movimento.
-const SERV_IMP = 'PACOTE DO SISTEMA ANTERIOR', IMP_MAX_LINHAS = 10000, IMP_MAX_MIN = 60000;   // 60000 min = mil horas: mais que isso é coluna errada
+// 1.98: a planilha inteira de uma vez (antes, 10 mil linhas); a tela manda ao servidor em lotes de 400
+const SERV_IMP = 'PACOTE DO SISTEMA ANTERIOR', IMP_MAX_LINHAS = 60000, IMP_MAX_MIN = 60000;   // 60000 min = mil horas: mais que isso é coluna errada
 let IM = null;         // a planilha aberta na folha: { nome, M, larg, cab, col, un, rep, lote, R, ... }
 let IMP_LOTE = null;   // (prévia) a última importação, para o Desfazer
 const impLimpo = t => MAI(String(t == null ? '' : t).normalize('NFD').replace(/[\u0300-\u036f]/g, ''));   // sem acento e em maiúsculas, para comparar nomes
@@ -2679,7 +2680,7 @@ const htmlImportar1 = () => `
     <div class="marca"><b class="im-num">2</b><span>Toque no quadro abaixo e cole com <b>Ctrl+V</b>. Ou escolha o arquivo da planilha.</span></div>
     <div class="campo"><label for="im-texto">Cole a planilha aqui</label><textarea id="im-texto" rows="4" spellcheck="false" autocomplete="off" placeholder="CRIANÇA    RESPONSÁVEL    CPF    TELEFONE    SALDO DE HORAS"></textarea></div>
     <div class="im-ou"><label class="bt claro tap" for="im-arq">${ic(IC.subir, 18)} Escolher o arquivo</label><input id="im-arq" type="file" accept=".xlsx,.csv,.txt,.tsv,.xls,text/csv,text/plain" hidden><button type="button" class="link tap" data-act="importar-modelo">Baixar um modelo de planilha</button></div>
-    <p class="explica">Aceita Excel (.xlsx), CSV e texto. Uma linha por criança, com o nome dela. Responsável, CPF, telefone, observações e horas entram se a planilha tiver.</p>`;
+    <p class="explica">Aceita Excel (.xlsx), CSV e texto. Uma linha por criança, com o nome dela. Responsável, CPF, telefone, observações e horas entram se a planilha tiver. Pode ser a planilha inteira, de uma vez (até 60 mil linhas).</p>`;
 function folhaImportar() {
   if (MODO === 'servidor' && !gestor()) return; IM = null;
   abrirFolha('Importar clientes e horas', `<div class="im-corpo" id="im-corpo">${htmlImportar1()}</div>`);
@@ -2751,7 +2752,7 @@ async function importarAgora() {
   if (MODO !== 'servidor') { const r = importarPrevia(im.R.linhas, im.R.somas); IM = null; fecharFolha(); desenhar(); toast(fraseImportou(r.novos, r.min, r.horas), () => trocarTela('banco'), 'Ver no Banco de horas'); return; }
   try {
     for (const tam = im.tam || 400; im.feitas < L.length; im.feitas += tam) {
-      if (ok) ok.textContent = `Importando… ${impNum(im.feitas)} de ${impNum(L.length)}`;
+      if (ok) ok.textContent = `Importando… ${impNum(im.feitas)} de ${impNum(L.length)}` + (L.length > 2000 ? ' · não feche esta tela' : '');
       const r = await api('importar', { lote: im.lote, ja: im.ja, linhas: L.slice(im.feitas, im.feitas + tam).map(x => ({ nome: x.nome, resp: x.resp, cpf: x.cpf, tel: x.tel, tel2: x.tel2, obs: x.obs, pac: x.pac, usado: x.usado, nasc: x.nasc || '' })) });
       im.novos += r.novos; im.min += r.min; im.horas += r.horas || 0; im.jaEstavam += r.existentes;
     }

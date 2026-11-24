@@ -1301,6 +1301,15 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A planilha inteira de uma vez na importação (1.98)
+
+Pedido do dono, na implantação: "coloque tudo em um só arquivo então para colocar só uma vez".
+
+- Ajustes → Importar clientes e horas aceita a planilha inteira de uma vez: até 60 mil linhas (antes, 10 mil). Acima disso, o aviso "Importe em partes de até 60.000".
+- A tela manda ao servidor em lotes de 400 linhas; o botão mostra "Importando… X de Y · não feche esta tela". Se a internet cair no meio, o botão vira "Continuar a importação" e segue de onde parou.
+- É uma importação só: o Desfazer tira tudo de uma vez.
+- Importar o mesmo arquivo de novo não repete nada: quem já está cadastrado não muda e as horas do sistema anterior entram uma vez só (a tela mostra "Nada para importar").
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Começar as Finanças do zero e a data de nascimento na importação (1.97 · Finanças 4.7)
 
 Pedido do dono, na véspera da implantação: "zere todo o financeiro" e "importe também o perfil do cliente".
