@@ -10,6 +10,7 @@ const ST_TEMA = {
   preto:{bg:STC.dk,tx:STC.cr,eb:STC.lm,dot:STC.rd,ft:'#6E776F',cards:[[STC.rd,STC.cr,'#2A0B0B'],['#1C2620',STC.cr,'#9AA29B'],[STC.lm,STC.dk,'#2F3A12']],pc:'#2E3A33',cap:STC.lm,btn:STC.rd},
   branco:{bg:STC.cr,tx:STC.dk,eb:STC.dk,dot:STC.rd,ft:'rgba(15,23,18,.6)',cards:[[STC.rd,STC.cr,'#3A0D0D'],[STC.dk,STC.cr,'#9AA29B'],[STC.lm,STC.dk,'#2F3A12']],pc:STC.dk,cap:STC.dk,btn:STC.rd}
 };
+const IG_AT = '@simplificando.educa'; // o nosso @ do Instagram, no pé de cada story
 const ST_MES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 const ST_SANS = 'Inter, system-ui, sans-serif', ST_MONO = '"JetBrains Mono", ui-monospace, Menlo, monospace';
 let stLogo = null;
@@ -76,7 +77,7 @@ function stCrono(c,D,T){
     stTxt(c,v,x+34,1633,'900 80px '+ST_SANS,fg,'left',-4);
     c.font = '600 30px '+ST_SANS; stTxt(c,stCorte(c,l,224),x+34,1680,'600 30px '+ST_SANS,sb); });
   stTxt(c,'simplificandoeduca.com',90,1800,'700 32px '+ST_SANS,T.ft);
-  stTxt(c,'#simplificando',990,1800,'700 32px '+ST_SANS,T.ft,'right');
+  stTxt(c,IG_AT,990,1800,'800 32px '+ST_SANS,T.ft,'right');
 }
 function stCupom(c,D,cor){
   const W = 1080, H = 1920, bg = cor==='branco' ? '#FFFFFF' : ST_TEMA[cor].bg, paper = cor==='branco' ? '#F1F0EA' : STC.cr;
@@ -122,7 +123,7 @@ function stCupom(c,D,cor){
   y = ys+Z+44; c.fillStyle = STC.dk;
   for(let x=0;x<PW-2*P;x+=40) [[0,6],[12,16],[26,34]].forEach(([a,b]) => { const w = Math.min(b, PW-2*P-x) - a; if(w>0) c.fillRect(X+P+x+a,y,w,110); });
   y += 110+26;
-  stTxt(c,'simplificandoeduca.com · pago com suor',X+PW/2,y+32,'700 32px '+ST_MONO,'#5B625D','center');
+  stTxt(c,IG_AT+' · pago com suor',X+PW/2,y+32,'700 32px '+ST_MONO,'#5B625D','center');
 }
 function stFotoBox(s){ return {x:s.sx-30, y:s.sy-130, w:720, h:560}; }
 function stFoto(c,D,s){
@@ -158,8 +159,8 @@ function stFoto(c,D,s){
   c.font = '700 32px '+ST_SANS; stTxt(c,stCorte(c,D.sets+' séries · '+D.nome.toLowerCase()+' · '+String(D.dia).padStart(2,'0')+' '+ST_MES[D.mes].slice(0,3),w-84),-w/2+44,-h/2+262,'700 32px '+ST_SANS,sub);
   c.restore();
   // hashtag
-  c.save(); c.translate(x+470, y+h+40); c.rotate(-3*Math.PI/180); c.fillStyle = s.cor==='verde' ? STC.dk : STC.lm; stRR(c,-150,-38,300,76,22); c.fill();
-  stTxt(c,'#simplificando',0,12,'900 34px '+ST_SANS,s.cor==='verde'?STC.lm:STC.dk,'center'); c.restore();
+  c.save(); c.translate(x+470, y+h+40); c.rotate(-3*Math.PI/180); c.fillStyle = s.cor==='verde' ? STC.dk : STC.lm; stRR(c,-200,-38,400,76,22); c.fill();
+  stTxt(c,IG_AT,0,12,'900 34px '+ST_SANS,s.cor==='verde'?STC.lm:STC.dk,'center'); c.restore();
 }
 let stBlobT = 0, stOk = false;
 function stBlob(s){
@@ -280,7 +281,8 @@ function stTitulo(c, s, x, y, size, maxL, cor, dot, maxW){
     if(i===L.length-1){ c.font = '900 '+z+'px '+ST_SANS; stLs(c,-z*.05); const w = c.measureText(l).width; stLs(c,0); stTxt(c,'.',x+w,yy,'900 '+z+'px '+ST_SANS,dot); } });
   return y+(L.length-1)*lh;
 }
-function stMarca(c, cor){ stLogoDraw(c,80,1772,68); stTxt(c,'simplificando',166,1820,'900 40px '+ST_SANS,cor,'left',-1); }
+// marca no pé dos stories novos: o logo e o nosso @ do Instagram (ajuda a divulgar)
+function stMarca(c, cor){ stLogoDraw(c,80,1772,68); stTxt(c,IG_AT,166,1820,'900 38px '+ST_SANS,cor,'left',-1); }
 const stEyebrow = D => ('Treino '+D.t+' · '+D.dia+' '+ST_MES[D.mes].slice(0,3)).toUpperCase();
 // pílulas que quebram em linhas; com y0 = null só mede (devolve as linhas)
 function stPilulas(c, itens, x, y0, maxW, bg, fg){
@@ -407,7 +409,7 @@ function stCombo(c, D, h){
   card(1270, ST_VERDE, STC.dk, 'rgba(15,23,18,.7)', ('Cardio · '+(loc.join(' e ')||'cardio')).toUpperCase().slice(0,28), fmtMin(cmin), km ? fmtKm(km)+' km' : (CD.length>1 ? CD.length+' sessões' : (INT_L[CD[0] && CD[0].int]||'')+' intensidade'));
   const big = CD.slice().sort((a,b) => b.min-a.min)[0], cd = big ? cDados(big.j) : null;
   if(cd) try { cBoneco(c, 640, 1290, 360, 320, cd); } catch(e){ /* sem boneco */ }
-  stMarca(c,STC.cr); stTxt(c,'#simplificando',1000,1820,'700 32px '+ST_SANS,'#9AA29B','right');
+  stMarca(c,STC.cr);
 }
 const ST_NOVOS = ['mapa','recorde','seq','combo'];
 function stMods(i){
@@ -520,7 +522,7 @@ function cLinhas(c, P, t){
 }
 const cFreq = D => { const kind = ANIM_KIND[D.local] || 'rope'; return (AP[kind][Math.max(0, INTENS.indexOf(D.int))]||{}).freq || 1; };
 function cMarca(c,cor,dot){ stLogoDraw(c,90,110,110); stTxt(c,'simplificando',226,183,'900 52px '+ST_SANS,cor,'left',-2); c.font = '900 52px '+ST_SANS; stLs(c,-2); const lw = c.measureText('simplificando').width; stLs(c,0); stTxt(c,'.',226+lw,183,'900 52px '+ST_SANS,dot); }
-function cRodape(c,cor){ stTxt(c,'simplificandoeduca.com',90,1800,'700 32px '+ST_SANS,cor); stTxt(c,'#simplificando',990,1800,'700 32px '+ST_SANS,cor,'right'); }
+function cRodape(c,cor){ stTxt(c,'simplificandoeduca.com',90,1800,'700 32px '+ST_SANS,cor); stTxt(c,IG_AT,990,1800,'800 32px '+ST_SANS,cor,'right'); }
 function cTitulo(c,s,y,size,cor,dot){ const z = stFit(c,s+'.',ST_SANS,size,900,900); c.font = '900 '+z+'px '+ST_SANS; stLs(c,-4); const w = c.measureText(s).width, wd = c.measureText('.').width; stLs(c,0); const x = 540-(w+wd)/2; stTxt(c,s,x,y,'900 '+z+'px '+ST_SANS,cor,'left',-4); stTxt(c,'.',x+w,y,'900 '+z+'px '+ST_SANS,dot); }
 function cCards(c,arr,y){ arr.forEach(([v,l,bg,fg,sb],i) => { const x = 90+i*308; c.fillStyle = bg; stRR(c,x,y,284,200,36); c.fill(); c.font = '900 80px '+ST_SANS; const z = Math.min(80, Math.floor(80*220/Math.max(1,c.measureText(v).width))); stTxt(c,v,x+34,y+108,'900 '+z+'px '+ST_SANS,fg,'left',-3); c.font = '600 30px '+ST_SANS; stTxt(c,stCorte(c,l,224),x+34,y+155,'600 30px '+ST_SANS,sb); }); }
 // sem: true = o fundo do Boneco sem o boneco (o vídeo desenha o boneco por cima)
@@ -557,7 +559,7 @@ function cDraw(c, D, m, cor, o){
     c.fillStyle = STC.rd; stRR(c,X+250,Y+905,Math.max(28,(PW-310)*Math.min(1,D.semana/D.meta)),28,14); c.fill();
     stTxt(c,D.semana+'/'+D.meta+' min',X+PW-60,Y+880,'600 28px '+ST_MONO,'#5B625D','right');
     let sd = 77; const rnd = () => (sd = sd*16807 % 2147483647)/2147483647; let bx = X+60; c.fillStyle = STC.dk; while(bx < X+PW-60){ const w = 3+Math.floor(rnd()*9); c.fillRect(bx,Y+H1+60,w,150); bx += w+4+Math.floor(rnd()*7); }
-    stTxt(c,'simplificandoeduca.com · embarque confirmado',540,Y+H1+H2-50,'600 30px '+ST_MONO,'#5B625D','center');
+    stTxt(c,IG_AT+' · embarque confirmado',540,Y+H1+H2-50,'600 30px '+ST_MONO,'#5B625D','center');
     cTitulo(c,'Cardio pago',1770,96,P.tx,P.dot);
   } else if(m==='csem'){
     cMarca(c,P.tx,P.dot);
