@@ -350,6 +350,7 @@ function onClick(ev){
     case 'st-open': stPick(+d.i); re = false; break;
     case 'sum-st': { const s = ui.sheet; if(s && s.k==='sum'){ PREF.stM = d.v; savePref(); stOpen(s.i, d.v); } re = false; break; }
     case 'cst-open': cPick(+d.j); re = false; break;
+    case 'cst-combo': clearTimeout(stpT); cancelAnimationFrame(CST_RAF); stOpen(+d.i, 'combo'); re = false; break;
     case 'cstp-go': { const s = ui.sheet; if(s && s.k==='cstpick'){ clearTimeout(stpT); PREF.cstM = d.v; savePref(); cOpen(s.j, d.v); } re = false; break; }
     case 'cstp-x': { const s = ui.sheet; if(s && s.k==='cstpick' && s.xOn){ closeSheet(); toast('Quando quiser, poste pelo botão de compartilhar em Cardio › Recentes.'); } re = false; break; }
     case 'cst-closebg': if(ev.target!==b){ re = false; break; } /* falls through */

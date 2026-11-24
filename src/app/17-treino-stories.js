@@ -383,16 +383,44 @@ function stSequencia(c){
   stTxt(c,Q.sem>=Q.meta ? '✓ meta da semana batida' : 'faltam '+(Q.meta-Q.sem)+' esta semana',1000,fy,'800 40px '+ST_SANS,Q.sem>=Q.meta ? STC.lm : '#FFFFFF','right');
   stMarca(c,'#FFFFFF');
 }
-const ST_NOVOS = ['mapa','recorde','seq'];
+/* treino e cardio no mesmo dia: um story só com os dois */
+const stCardioDia = h => (S.cardio||[]).map((c,j) => Object.assign({ j }, c)).filter(c => h && c.date===h.date && +c.min>0);
+function stCombo(c, D, h){
+  const W = 1080, H = 1920, CD = stCardioDia(h), cmin = CD.reduce((t,x) => t+(+x.min||0), 0), km = CD.reduce((t,x) => t+(+x.km||0), 0), loc = [...new Set(CD.map(x => x.local))];
+  c.fillStyle = STC.dk; c.fillRect(0,0,W,H);
+  stTxt(c,('Hoje · '+D.dia+' '+ST_MES[D.mes].slice(0,3)).toUpperCase(),80,160,'800 38px '+ST_SANS,STC.lm,'left',4.5);
+  stTitulo(c,'Treino e cardio feitos',80,290,120,2,STC.cr,STC.rd,920);
+  // tempo do dia
+  const tot = (D.min||0)+cmin, tt = fmtMin(tot); c.font = '900 230px '+ST_SANS; stLs(c,-12); const tw = c.measureText(tt).width; stLs(c,0);
+  stTxt(c,tt,74,720,'900 230px '+ST_SANS,STC.cr,'left',-12); stTxt(c,'de movimento hoje',84,790,'700 40px '+ST_SANS,'#9AA29B');
+  // treino (vermelho) com o corpo e os músculos do dia
+  const card = (y, bg, tx, sub, eb, big, lin) => { c.fillStyle = bg; stRR(c,60,y,960,360,44); c.fill();
+    stTxt(c,eb,104,y+76,'800 32px '+ST_SANS,sub,'left',4); stTxt(c,big,100,y+200,'900 120px '+ST_SANS,tx,'left',-5);
+    c.font = '700 38px '+ST_SANS; stTxt(c,stCorte(c,lin,520),104,y+282,'700 38px '+ST_SANS,sub); };
+  card(880, STC.rd, '#FFFFFF', 'rgba(255,255,255,.85)', ('Treino '+D.t+' · '+D.nome).toUpperCase().slice(0,28), fmtMin(D.min), D.sets+' série'+(D.sets===1?'':'s')+(D.prs ? ' · '+D.prs+' recorde'+(D.prs===1?'':'s') : ''));
+  const gs = ST_NOVO ? D.grupos : [], mus = new Set(gs.flatMap(x => ST_GM[x]||[]));
+  c.save(); c.translate(694,904); c.scale(1.45,1.45); c.lineJoin = 'round'; c.lineWidth = .5; c.strokeStyle = STC.rd;
+  [['f',0],['c',104]].forEach(([lado,dx]) => ST_CORPO[lado].forEach(([m,ps]) => { c.fillStyle = mus.has(m) ? '#FFFFFF' : 'rgba(255,255,255,.28)';
+    ps.forEach(p => { const n = p.split(' ').map(Number); c.beginPath(); for(let i=0;i<n.length;i+=2) i ? c.lineTo(n[i]+dx,n[i+1]) : c.moveTo(n[i]+dx,n[i+1]); c.closePath(); c.fill(); c.stroke(); }); }));
+  c.restore();
+  // cardio (verde) com o boneco
+  card(1270, ST_VERDE, STC.dk, 'rgba(15,23,18,.7)', ('Cardio · '+(loc.join(' e ')||'cardio')).toUpperCase().slice(0,28), fmtMin(cmin), km ? fmtKm(km)+' km' : (CD.length>1 ? CD.length+' sessões' : (INT_L[CD[0] && CD[0].int]||'')+' intensidade'));
+  const big = CD.slice().sort((a,b) => b.min-a.min)[0], cd = big ? cDados(big.j) : null;
+  if(cd) try { cBoneco(c, 640, 1290, 360, 320, cd); } catch(e){ /* sem boneco */ }
+  stMarca(c,STC.cr); stTxt(c,'#simplificando',1000,1820,'700 32px '+ST_SANS,'#9AA29B','right');
+}
+const ST_NOVOS = ['mapa','recorde','seq','combo'];
 function stMods(i){
   if(!ST_NOVO) return ST_MODS;
   const h = S.history[i], L = [['mapa','Corpo','Os músculos do dia']];
   if(h && stDados(h).prs>0) L.push(['recorde','Recordes','Seus recordes do dia']);
   if(streak()>=3) L.push(['seq','Sequência','Suas semanas na meta']);
+  if(h && stCardioDia(h).length) L.splice(1, 0, ['combo','Treino + cardio','O dia completo']);
   return L.concat(ST_MODS.slice(1));
 }
 function stPinta(c, D, m, cor, s){
   const claro = (s && s.tom || PREF.stTom)==='branco';
+  if(m==='combo'){ stCombo(c,D,S.history[s && s.i!=null ? s.i : S.history.length-1]); return; }
   if(m==='mapa') stMapa(c,D,false); else if(m==='recorde') stRecorde(c,D,claro); else if(m==='seq') stSequencia(c);
   else if(m==='cupom') stCupom(c,D,cor); else if(m==='foto') stFoto(c,D,s); else stCrono(c,D,ST_TEMA[cor]);
 }
@@ -404,7 +432,7 @@ function stThumbs(i, cor, tom){
   const run = () => { const D = stDados(h);
     $sheet.querySelectorAll('canvas[data-st-th]').forEach(cv => { const c = cv.getContext('2d'), m = cv.dataset.stTh, k = cv.width/1080;
       c.setTransform(k,0,0,k,0,0); c.clearRect(0,0,1080,1920);
-      stPinta(c,D,m,cor,{cor, tom, sx:70, sy:1280, px:0, py:0});
+      stPinta(c,D,m,cor,{cor, tom, i, sx:70, sy:1280, px:0, py:0});
       cv.classList.add('on'); }); };
   if(stOk) run(); else stFontes().then(() => { stOk = true; run(); });
 }
@@ -577,8 +605,11 @@ function vCStPick(){
     <button type="button" class="btn round stp-x${s.xOn?' on':''}" data-a="cstp-x" aria-label="Agora não"${s.xOn?'':' tabindex="-1" aria-hidden="true"'}>${ic('x')}</button>
     <div class="stp-h"><p class="eyebrow">${esc(D.local)} · ${fmtMin(D.min)} · ${esc(D.intT.toLowerCase())}</p><h2 id="stp-t">Cardio feito<span class="dot" aria-hidden="true"></span></h2><p>Agora mostra pra todo mundo. Escolha como quer postar no seu story:</p></div>
     <div class="stp-cards c4">${CST_MODS.map(([m,n,d],j) => `<button type="button" class="stp-c" data-a="cstp-go" data-v="${m}" style="--d:${j*80}ms"><span class="stp-th"><canvas data-cst-th="${m}" width="270" height="480" aria-hidden="true"></canvas>${m==='cbon'?`<i>${ic('play')}</i>`:''}</span><b>${n}</b><small>${d}</small></button>`).join('')}</div>
-    <p class="stp-f">${ic('share')}Depois é só tocar em Instagram ou WhatsApp.</p>${igCard(false)}</div>`;
+    ${cComboBtn(D)}<p class="stp-f">${ic('share')}Depois é só tocar em Instagram ou WhatsApp.</p>${igCard(false)}</div>`;
 }
+// cardio no mesmo dia de um treino: botão para postar os dois juntos (abre o story "Treino + cardio")
+function cComboI(D){ if(!ST_NOVO || !D) return -1; for(let i=S.history.length-1;i>=0;i--) if(S.history[i].date===D.date) return i; return -1; }
+const cComboBtn = D => cComboI(D)<0 ? '' : `<button type="button" class="btn block cst-combo" data-a="cst-combo" data-i="${cComboI(D)}">${ic('layers')}Postar o treino e o cardio juntos</button>`;
 function cThumbs(s, cor){
   const D = cDados(s.j); if(!D) return;
   $sheet.querySelectorAll('canvas[data-cst-th]').forEach(cv => { const c = cv.getContext('2d'), m = cv.dataset.cstTh, k = cv.width/1080, tmp = document.createElement('canvas'); tmp.width = 1080; tmp.height = 1920;
@@ -600,7 +631,7 @@ function vCStory(){
     ${s.m==='cbon' ? `<div class="iseg cst-tipo" role="group" aria-label="Foto ou vídeo">${[['foto','Foto'],['video','Vídeo']].map(([v,l]) => `<button type="button" class="${s.tipo===v?'on':''}" aria-pressed="${s.tipo===v}" data-a="cst-tipo" data-v="${v}">${l}</button>`).join('')}</div>` : ''}
     <div class="st-cores" role="group" aria-label="Cor do fundo">${ST_CORES.map(([k,n,c]) => `<button type="button" class="${s.cor===k?'on':''}" style="--c:${c}" aria-pressed="${s.cor===k}" aria-label="${n}" title="${n}" data-a="cst-cor" data-v="${k}"></button>`).join('')}</div>
     <div class="st-prev"><canvas id="st-cv" width="1080" height="1920" role="img" aria-label="Prévia da imagem do cardio para o story"></canvas></div>
-    ${acoes}${igTag()}
+    ${acoes}${cComboBtn(D)}${igTag()}
     <p class="foot0">No celular, escolha Instagram (story) ou WhatsApp na lista que abrir.</p></div></div>`;
 }
 let CST_RAF = 0;
