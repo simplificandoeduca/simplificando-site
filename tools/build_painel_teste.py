@@ -113,7 +113,7 @@ function demoSeed(){
   const KG = { 'Quadríceps':40, 'Glúteo':30, 'Posterior':25, 'Panturrilha':30, 'Peito':16, 'Costas':35, 'Ombro':6, 'Bíceps':10, 'Tríceps':15, 'Abdômen':0 };
   const pessoas = [
     { n:'Ana Souza', ap:'Ana', sx:'F', ob:'hipertrofia', at:'presencial', hs:[[0,'07:00'],[2,'07:00'],[4,'07:00']], pl:'presencial', v:650, pago:20, nasc:'1994-03-12', alt:165, peso:62.5, nv:'intermediario', ini:-120, plIni:-28, app:{ dias:[0,2,5], f:1.15, nota:'Treino top hoje! Bati recorde no leg.' },
-      av:[[-90,64.8,27.5],[-30,62.5,24.8]], sto:[['crono','share',2],['cupom','baixar',5],['crono','share',9]], sug:'Podia ter um lembrete para tomar a creatina junto com o da água.' },
+      av:[[-90,64.8,27.5],[-30,62.5,24.8]], sto:[['mapa','share',2],['cupom','baixar',5],['recorde','share',9]], sug:'Podia ter um lembrete para tomar a creatina junto com o da água.' },
     { n:'Bruno Lima', ap:'Bruno', sx:'M', ob:'emagrecer', at:'presencial', hs:[[0,'18:30'],[2,'18:30']], pl:'presencial', v:600, pago:-6, nasc:'1988-07-30', alt:178, peso:96, nv:'iniciante', ini:-60, plIni:-21, app:{ dias:[0,5], f:.9, sono:4 },
       av:[[-60,99.4,31]], sto:[['cbil','share',3]] },
     { n:'Carla Mendes', ap:'Carla', sx:'F', ob:'corrida', at:'online', hs:[[0,'20:00',30]], pl:'consultoria', v:250, pago:3, nasc:'1991-11-02', alt:160, peso:57, nv:'intermediario', ini:-75, plIni:-35, app:{ dias:[6,1,3], f:.8, dor:true, cardio:true },
@@ -121,7 +121,7 @@ function demoSeed(){
     { n:'Diego Rocha', ap:'Diego', sx:'M', ob:'hipertrofia', at:'online', hs:[], pl:'online', v:300, pago:12, nasc:'1999-01-20', alt:182, peso:78, nv:'avancado', ini:-150, plIni:-53, app:{ dias:[0,1,3,4], f:1.4 },
       av:[[-140,74,14],[-50,78,15.5]], sto:[['foto','share',4]] },
     { n:'Fernanda Alves', ap:'Fê', sx:'F', ob:'hipertrofia', at:'presencial', hs:[[0,'09:00'],[1,'09:00'],[3,'10:00',90]], pl:'presencial', v:650, pago:15, nasc:addDays(t,3).replace(/^\d{4}/,'1996'), alt:168, peso:64, nv:'intermediario', ini:-200, plIni:-14, app:{ dias:[5,0,1,3], f:1.05, agora:true },
-      av:[[-45,65.2,26.1]], sto:[['foto','share',0],['crono','baixar',7]] },
+      av:[[-45,65.2,26.1]], sto:[['foto','share',0],['seq','baixar',7]] },
     { n:'Gabriel Costa', ap:'Gabriel', sx:'M', ob:'emagrecer', at:'presencial', hs:[[1,'06:00'],[3,'06:00']], pl:'presencial', v:600, pago:25, nasc:'2001-05-09', alt:175, peso:88, nv:'iniciante', ini:-5, plIni:-5, app:null, av:[] }
   ];
   const D = DEMO.get(); D.prog = D.prog||{}; D.sto = D.sto||[]; D.sug = D.sug||[];

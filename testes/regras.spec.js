@@ -69,6 +69,7 @@ test('sugestões, avaliações e stories: qualquer conta envia o seu; só o dono
   expect(await grava(AUT, 'avaliacoes/a-' + id, { uid: AUT, nome: 'Bia', tipo: 'autonomo', notas: { treino: 5 }, texto: '', em: 1 })).toBe(ok);
   expect(await grava(AUT, 'avaliacoes/a2-' + id, { uid: AUT, notas: { preco: 5 }, texto: '', em: 1 })).toBe(nao);
   expect(await grava(AUT, 'storiesUso/st-' + id, { uid: AUT, modelo: 'crono', em: 1 })).toBe(ok);
+  expect(await grava(AUT, 'storiesUso/st2-' + id, { uid: AUT, modelo: 'combo', em: 1 })).toBe(ok); // os stories novos também contam
   expect(await grava(AUT, 'storiesUso/st2-' + id, { uid: AUT, modelo: 'inventado', em: 1 })).toBe(nao);
 });
 test('recado no app: só o dono escreve; a pessoa lê o seu e só marca como lido; foto na sugestão até o limite', async () => {
