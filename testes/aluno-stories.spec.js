@@ -21,8 +21,8 @@ test('com recorde e 3+ semanas na meta: Corpo, Recordes, Sequência, Cupom e Fot
   const erros = []; page.on('pageerror', e => erros.push(e.message));
   await criaConta(page, { objetivo: 'hipertrofia' }); await semJanelas(page);
   await semeia(page, { recorde: true, semanas: 4 });
-  expect(await modelos(page)).toEqual(['mapa', 'recorde', 'seq', 'cupom', 'foto']);
-  for (const m of ['mapa', 'recorde', 'seq']) {
+  expect(await modelos(page)).toEqual(['mapa', 'combo', 'recorde', 'seq', 'cupom', 'foto']); // teve cardio hoje: entra o Treino + cardio
+  for (const m of ['mapa', 'combo', 'recorde', 'seq']) {
     await simp(page, () => { const T = window.__simp; T.ui.sheet = { k: 'sum', i: T.S.history.length - 1 }; T.renderSheet(true); });
     await page.click(`[data-a="sum-st"][data-v="${m}"]`);
     await expect(page.locator('#st-cv.on')).toBeVisible();
@@ -44,5 +44,8 @@ test('com recorde e 3+ semanas na meta: Corpo, Recordes, Sequência, Cupom e Fot
 test('sem recorde e sem sequência: só Corpo, Cupom e Foto', async ({ page }) => {
   await criaConta(page, { objetivo: 'hipertrofia' }); await semJanelas(page);
   await semeia(page, { recorde: false, semanas: 0 });
+  expect(await modelos(page)).toEqual(['mapa', 'combo', 'cupom', 'foto']);
+  // sem o cardio do dia, o Treino + cardio não aparece
+  await simp(page, () => { const T = window.__simp; T.S.cardio = []; T.save(); T.ui.sheet = { k: 'sum', i: T.S.history.length - 1 }; T.renderSheet(true); });
   expect(await modelos(page)).toEqual(['mapa', 'cupom', 'foto']);
 });
