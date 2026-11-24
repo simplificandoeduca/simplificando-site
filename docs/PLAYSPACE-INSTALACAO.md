@@ -1301,6 +1301,23 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A planilha do financeiro inteira, a equipe e o ícone do computador (2.01, Finanças 4.8)
+
+Pedidos do dono no dia da virada.
+
+**A planilha do financeiro** ("todas as informações que constem aí vão constar dentro do nosso sistema; fornecedor ... tudo que tiver de cadastro pode puxar")
+
+- Finanças → Lançamentos → Importar a planilha lê também o que a planilha de verdade tem de diferente: a data escrita como texto; o ano que destoa da linha de cima no mesmo mês (2024 ou 1016 no meio de 2026: vira o ano da linha de cima); a despesa com o valor e a obs trocados de coluna; a despesa do cartão sem data (entra no dia escrito na obs ou no dia da linha de cima). Os quadros e totais do fim ficam fora.
+- Tudo o que o sistema acertou na leitura aparece na prévia ("acertos na leitura"), com a aba e a linha, e fica escrito na obs do lançamento.
+- O fornecedor sai da descrição da despesa (Vivo, Enel, Contabilidade Exata, Costureira Silvana...) e entra no cadastro de Fornecedores, ligado às despesas.
+- Importar de novo a mesma planilha (atualizada) não duplica: o que já está fica como está, o que foi corrigido no sistema continua corrigido, o que foi tirado continua tirado. Vale também para o que foi importado antes desta versão (as linhas iguais são reconhecidas).
+
+**Os produtos da Casa Tom**: na planilha de produtos, o que já existe com o mesmo nome fica com o preço de lá e passa a valer também na Casa Tom (o cadastro serve as duas lojas).
+
+**A equipe**: quem sai da equipe continua guardado (com o que fez), mas solta o login. Dá para criar alguém novo com o mesmo login, inclusive de quem saiu antes desta versão.
+
+**O ícone do computador** ("está abrindo só metade"): o instalador (Ajustes → Ícone na área de trabalho) abre a janela maximizada. Aberto pelo ícone (ou instalado como app), o sistema ocupa a tela inteira na primeira vez de cada abertura. Quem já tem o ícone baixa o instalador de novo e roda uma vez: o ícone é refeito.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A Casa Tom (2.00)
 
 O dono: "agora a gente está fazendo um sistema para a Casa Tom, lojas adjacentes ... quando eu mudar para a Casa Tom, ele tem que mudar o sistema, por dentro do sistema mesmo". Escolheu o visual mais limpo, com o menu vermelho.

@@ -45,9 +45,10 @@ function flPreparar(): void {
   $tem = array_column($db->query('PRAGMA table_info(fin_lanc)')->fetchAll(), 'name');
   /* e a recorrência (o "1/12 · recorrente mensal"): a série, qual é esta e quantas são */
   foreach (['fornecedor_id' => 'INTEGER', 'situacao' => "TEXT NOT NULL DEFAULT 'pago'", 'vencimento' => "TEXT NOT NULL DEFAULT ''", 'pago_em' => "TEXT NOT NULL DEFAULT ''",
-    'serie' => "TEXT NOT NULL DEFAULT ''", 'serie_n' => 'INTEGER NOT NULL DEFAULT 0', 'serie_tot' => 'INTEGER NOT NULL DEFAULT 0'] as $c => $tp)
+    'serie' => "TEXT NOT NULL DEFAULT ''", 'serie_n' => 'INTEGER NOT NULL DEFAULT 0', 'serie_tot' => 'INTEGER NOT NULL DEFAULT 0', 'chave' => "TEXT NOT NULL DEFAULT ''"] as $c => $tp)   /* 4.8: a chave da linha da planilha */
     if (!in_array($c, $tem, true)) $db->exec("ALTER TABLE fin_lanc ADD COLUMN $c $tp");
   $db->exec('CREATE INDEX IF NOT EXISTS fin_lanc_ab ON fin_lanc (tipo, situacao, vencimento)');
+  $db->exec('CREATE INDEX IF NOT EXISTS fin_lanc_chave ON fin_lanc (chave)');
   fl21Preparar($db);
 }
 // o texto limpo (sem espaço sobrando) e a comparação sem acento nem maiúscula ("casa tom anália Franco" = "Casa Tom Anália Franco")
@@ -195,19 +196,32 @@ function flImportar(array $in, array $eu): array {
   $tipo = (string)($in['tipo'] ?? ''); if (!in_array($tipo, FL_TIPOS, true)) falha('Tipo desconhecido.');
   $linhas = (array)($in['linhas'] ?? []); if (count($linhas) > 1500) falha('Mande no máximo 1500 linhas por vez.');
   $L = flListas(); $ok = 0; $erros = []; $boas = [];
-  $ins = $db->prepare('INSERT INTO fin_lanc (' . implode(', ', FL_CAMPOS) . ', origem, lote, criado_por, criado_em) VALUES (' . implode(', ', array_fill(0, count(FL_CAMPOS), '?')) . ", 'planilha', ?, ?, ?)");
+  /* 4.8 (2.01): cada linha vem com a chave (_ch). A linha que já está no sistema (a mesma chave, ou, do que foi importado antes da chave,
+     o mesmo tipo, dia, valor, texto e lugar) fica como está: não duplica, o que foi corrigido continua corrigido e o que foi tirado continua
+     tirado. A despesa traz o fornecedor (o nome tirado da descrição): ele entra no cadastro de Fornecedores e a despesa fica ligada a ele. */
+  $ins = $db->prepare('INSERT INTO fin_lanc (' . implode(', ', FL_CAMPOS) . ', chave, origem, lote, criado_por, criado_em) VALUES (' . implode(', ', array_fill(0, count(FL_CAMPOS) + 1, '?')) . ", 'planilha', ?, ?, ?)");
+  $porChave = $db->prepare("SELECT id FROM fin_lanc WHERE chave = ? AND chave != '' LIMIT 1");
+  $antiga = $db->prepare("SELECT id FROM fin_lanc WHERE chave = '' AND origem = 'planilha' AND lote != ? AND tipo = ? AND data = ? AND ROUND(valor, 2) = ROUND(?, 2) AND descricao = ? AND forma = ? AND filial = ? AND segmento = ? LIMIT 1");
+  $fica = $db->prepare('UPDATE fin_lanc SET lote = ?, chave = CASE WHEN chave = \'\' THEN ? ELSE chave END, fornecedor_id = COALESCE(fornecedor_id, ?) WHERE id = ?'); $ja = 0;
   $db->beginTransaction();
   try {
-    foreach ($linhas as $i => $x) { $r = flLinha(is_array($x) ? $x : [], $tipo, $L); if (isset($r['erro'])) { if (count($erros) < 20) $erros[] = ['linha' => (int)(($x['_l'] ?? 0) ?: $i + 1), 'erro' => $r['erro']]; continue; }
-      $ins->execute(array_merge(array_map(fn($c) => $r[$c], FL_CAMPOS), [$lote, (string)$eu['nome'], agora()])); $ok++; $boas[] = $r; }
+    foreach ($linhas as $i => $x) { $x = is_array($x) ? $x : []; $ch = preg_match('/^[a-z0-9-]{4,60}$/', (string)($x['_ch'] ?? '')) ? (string)$x['_ch'] : '';
+      if ($tipo === 'despesa' && empty($x['fornecedor_id']) && flTxt($x['fornecedor'] ?? '', 120) !== '') $x['fornecedor_id'] = fnResolve(['fornecedor' => $x['fornecedor']], $eu);
+      $r = flLinha($x, $tipo, $L); if (isset($r['erro'])) { if (count($erros) < 20) $erros[] = ['linha' => (int)(($x['_l'] ?? 0) ?: $i + 1), 'erro' => $r['erro']]; continue; }
+      $id = 0; if ($ch !== '') { $porChave->execute([$ch]); $id = (int)$porChave->fetchColumn(); $porChave->closeCursor(); }
+      if (!$id) { $antiga->execute([$lote, $tipo, $r['data'], round($r['valor'], 2), $r['descricao'], $r['forma'], $r['filial'], $r['segmento']]); $id = (int)$antiga->fetchColumn(); $antiga->closeCursor(); }
+      if ($id) { $fica->execute([$lote, $ch, $r['fornecedor_id'], $id]); $ja++; continue; }
+      $ins->execute(array_merge(array_map(fn($c) => $r[$c], FL_CAMPOS), [$ch, $lote, (string)$eu['nome'], agora()])); $ok++; $boas[] = $r; }
     $db->commit();
   } catch (Throwable $e) { if ($db->inTransaction()) $db->rollBack(); throw $e; }
   flAprende($boas);
-  return ['entrou' => $ok, 'erros' => count($linhas) - $ok, 'exemplos' => $erros];
+  return ['entrou' => $ok, 'ja' => $ja, 'erros' => count($linhas) - $ok - $ja, 'exemplos' => $erros];
 }
 function flImportarFim(array $in): array {
   flPreparar(); $db = db(); $lote = (string)($in['lote'] ?? ''); if (!preg_match('/^[a-z0-9-]{8,40}$/', $lote)) falha('Lote inválido.');
   $q = $db->prepare("SELECT COUNT(*) FROM fin_lanc WHERE origem = 'planilha' AND lote = ?"); $q->execute([$lote]); if (!(int)$q->fetchColumn()) falha('Nada chegou desta importação.', 409);
+  /* 4.8: o que veio de uma importação antiga e não está mais na planilha sai; o que alguém corrigiu aqui fica (vira lançamento do sistema) */
+  $db->prepare("UPDATE fin_lanc SET origem = 'manual' WHERE origem = 'planilha' AND lote != ? AND alterado_em != '' AND removido_em IS NULL")->execute([$lote]);
   $d = $db->prepare("DELETE FROM fin_lanc WHERE origem = 'planilha' AND lote != ?"); $d->execute([$lote]);
   $q = $db->prepare("SELECT tipo, COUNT(*) n, ROUND(SUM(valor), 2) v FROM fin_lanc WHERE origem = 'planilha' AND lote = ? GROUP BY tipo"); $q->execute([$lote]);
   $T = []; foreach ($q->fetchAll() as $l) $T[(string)$l['tipo']] = ['n' => (int)$l['n'], 'v' => round((float)$l['v'], 2)];

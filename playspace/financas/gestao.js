@@ -196,25 +196,74 @@ function gLocalDe(txt) {
   const n = gNorm(txt), fil = n.includes('morumbi') ? 'Morumbi' : n.includes('analia') ? 'Anália Franco' : '', seg = n.includes('casa tom') ? 'Casa Tom' : n.includes('play') ? 'Play' : '';
   if (fil && seg) return { filial: fil, segmento: seg }; const nome = n.startsWith('bolo') ? 'Bolo' : gTxt(txt); return { filial: nome, segmento: nome };
 }
+/* 4.8 (2.01): a planilha de verdade do financeiro (o dono, no dia da virada: "todas as informações que constem aí vão constar dentro do nosso
+   sistema; fornecedor ... tudo que tiver de cadastro pode puxar e colocar nos seus respectivos campos"):
+   - a data escrita como texto (19/01/2026) vale; o ano que destoa da linha de cima no mesmo mês (2024 ou 1016 no meio de 2026) é acertado;
+   - a despesa com o valor e a obs trocados de coluna (valor "parc 1/3", obs 2.824,42) entra com o valor certo;
+   - a despesa sem data (as do cartão, no fim) entra no dia escrito na obs ("dia 20/11/2026") ou no dia da linha de cima;
+   - o fornecedor sai da descrição (Vivo, Enel, Contabilidade Exata...) e vai para o cadastro de Fornecedores;
+   - cada linha leva uma chave (a aba, o dia, o texto, o valor e quantas iguais vieram antes): importar de novo não duplica, não desfaz o que
+     foi corrigido nem volta o que foi tirado. O que o sistema acertou na leitura aparece na prévia, com a aba e a linha, para conferir. */
+const G_FORN = [[/limp\s*quality/i, 'Limp Quality'], [/\bclaro\b/i, 'Claro'], [/\bvivo\b/i, 'Vivo'], [/american\s*net|americanet/i, 'Americanet'], [/\bazza\b/i, 'Azza Internet'],
+  [/\benel\b/i, 'Enel'], [/sabesp/i, 'Sabesp'], [/contabilidade exata/i, 'Contabilidade Exata'], [/\bclm\b/i, 'CLM Medicina do Trabalho'], [/tecno[\s-]*ar\b/i, 'Tecno-Ar'],
+  [/cheiro bom/i, 'Cheiro Bom'], [/brastemp/i, 'Brastemp'], [/sistema brinquedoteca/i, 'Sistema Brinquedoteca'], [/\bbling\b/i, 'Bling'], [/\byou?ng\b/i, 'Young Informática'],
+  [/\bjma\b|jefferson/i, 'JMA Advocacia'], [/costureira\W+silvana/i, 'Costureira Silvana'], [/costureira\W+cris\b/i, 'Costureira Cris'], [/costureira\W+ros[aâ]ngela/i, 'Costureira Rosângela'],
+  [/\bimpa[ck]to\b/i, 'Impakto'], [/doces vaz/i, 'Doces Vaz'], [/brunner/i, 'Brunner'], [/\becad\b/i, 'Ecad'], [/cia\.?\s*norte/i, 'Cia Norte'], [/caboclo/i, 'Caboclo Distribuidora'],
+  [/hora mais/i, 'Hora Mais Distribuidora'], [/\bhg\b/i, 'HG Brinquedos'], [/dimep|kair[oó]s/i, 'Dimep'], [/porto seguro/i, 'Porto Seguro'], [/\bamil\b/i, 'Amil'], [/sem parar/i, 'Sem Parar'],
+  [/chat\s*gpt/i, 'ChatGPT'], [/king sedas/i, 'Gráfica King Sedas'], [/higuchi/i, 'Gráfica Higuchi'], [/\blk solu/i, 'LK Soluções Vidraçaria'], [/verisure/i, 'Verisure'], [/sp\s*trans/i, 'SPTrans'],
+  [/castropil/i, 'Castropil'], [/calcagnoto/i, 'Renato Calcagnoto (marcas e patentes)'], [/br rodas/i, 'BR Rodas'], [/xalingo/i, 'Xalingo'], [/\bradex\b/i, 'Radex'], [/art in donuts/i, 'Art in Donuts'],
+  [/manto produ/i, 'Manto Produções']];
+const gFornDe = d => { for (const [r, n] of G_FORN) if (r.test(d)) return n; return ''; };
+const gBr = d => d.slice(8, 10) + '/' + d.slice(5, 7) + '/' + d.slice(0, 4);
+const gDataTxt = v => { const m = typeof v === 'string' && /^\s*(\d{1,2})\/(\d{1,2})\/(\d{2,4})\s*$/.exec(v); if (!m) return ''; const a = +m[3] < 100 ? 2000 + +m[3] : +m[3]; return String(a).padStart(4, '0') + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0'); };
+const gValida = d => { if (!/^\d{4}-\d\d-\d\d$/.test(d)) return false; const [a, m, x] = d.split('-').map(Number); const t = new Date(a, m - 1, x); return a >= 2000 && a <= 2100 && t.getMonth() === m - 1 && t.getDate() === x; };
+/* o dia da linha: a data do Excel ou escrita como texto; o ano que destoa da linha de cima, no mesmo mês ou no do lado, vira o dela */
+function gDia(v, ant, aj, onde) {
+  let d = gSerial(v) || gDataTxt(v); if (!d) return { d: '' };
+  const y = +d.slice(0, 4); let nota = '';
+  if (ant) { const ya = +ant.slice(0, 4), ma = +ant.slice(5, 7), m = +d.slice(5, 7); if (y !== ya && Math.abs(m - ma) <= 1) { d = ya + d.slice(4); nota = `ano corrigido na importação: estava ${y}`; aj.push(`${onde}: o ano ${y} virou ${ya} (${gValida(d) ? gBr(d) : d})`); } }
+  return gValida(d) ? { d, nota } : { d: '' };
+}
+const gJunta = (a, b) => [a, b].filter(Boolean).join(' · ');
+/* a chave da linha: o tipo, um resumo (o dia, o texto, os lugares, o valor) e quantas iguais vieram antes na planilha */
+function gChaves(O) {
+  const hash = s => { let h1 = 0x811c9dc5, h2 = 0x9747b28c; for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i); h1 = Math.imul(h1 ^ c, 16777619); h2 = Math.imul(h2 ^ c, 2246822507); } return (h1 >>> 0).toString(36) + (h2 >>> 0).toString(36); };
+  for (const [t, L] of Object.entries(O)) { const vistos = {};
+    for (const x of L) { const base = [t, x.data, gNorm(x.descricao || ''), gNorm(x.forma || ''), gNorm(x.filial || ''), gNorm(x.segmento || ''), (+x.valor).toFixed(2)].join('|'), h = hash(base); vistos[h] = (vistos[h] || 0) + 1; x._ch = t[0] + '-' + h + '-' + vistos[h]; } }
+}
 async function lerPlanilha(arq) {
-  const X = await lerXlsx(await arq.arrayBuffer()), O = { receita: [], despesa: [], recebimento: [], rede: [] }, achou = [];
+  const X = await lerXlsx(await arq.arrayBuffer()), O = { receita: [], despesa: [], recebimento: [], rede: [] }, achou = [], aj = [];
   for (const f of X.folhas) { const n = gNorm(f.nome);
     if (!(n.startsWith('faturamento (receita') || n === 'despesas' || n.startsWith('recebimentos') || n === 'rede')) continue;
-    const rows = await X.lerFolha(f);
+    const rows = await X.lerFolha(f); let ant = '';
     if (n.startsWith('faturamento')) { const c = gCab(rows, { data: ['data'], qc: ['qtde de cr', 'qtd de cr', 'criancas'], qv: ['qtde de venda', 'qtd de venda', 'vendas'], desc: ['descricao', 'sub item'], filial: ['filial'], seg: ['segmento'], valor: ['valor bruto', 'valor'], obs: ['observ', 'obs'] }, ['data', 'filial', 'seg', 'valor']);
       if (!c) continue; achou.push(f.nome);
-      for (let r = c.r + 1; r < rows.length; r++) { const L = rows[r]; if (!L) continue; const d = gSerial(L[c.m.data]), v = gNum(L[c.m.valor]); if (!d || v == null || Math.abs(v) < 0.005) continue;
-        O.receita.push({ _l: r + 1, data: d, qtd_criancas: gNum(L[c.m.qc]) || 0, qtd_vendas: gNum(L[c.m.qv]) || 0, descricao: gTxt(L[c.m.desc]), filial: gTxt(L[c.m.filial]), segmento: gTxt(L[c.m.seg]), valor: v, obs: c.m.obs != null ? gTxt(L[c.m.obs]) : '' }); } }
+      for (let r = c.r + 1; r < rows.length; r++) { const L = rows[r]; if (!L) continue; const v = gNum(L[c.m.valor]); if (v == null || Math.abs(v) < 0.005) continue;
+        const D = gDia(L[c.m.data], ant, aj, `Faturamento, linha ${r + 1}`); if (!D.d) continue; ant = D.d;
+        O.receita.push({ _l: r + 1, data: D.d, qtd_criancas: gNum(L[c.m.qc]) || 0, qtd_vendas: gNum(L[c.m.qv]) || 0, descricao: gTxt(L[c.m.desc]), filial: gTxt(L[c.m.filial]), segmento: gTxt(L[c.m.seg]), valor: v, obs: gJunta(c.m.obs != null ? gTxt(L[c.m.obs]) : '', D.nota) }); } }
     else if (n === 'despesas') { const c = gCab(rows, { data: ['data'], desc: ['descricao'], filial: ['filial'], grupo: ['grupo'], seg: ['segmento'], valor: ['valor'], obs: ['obs'], centro: ['centro'] }, ['data', 'desc', 'grupo', 'valor']);
       if (!c) continue; achou.push(f.nome);
-      for (let r = c.r + 1; r < rows.length; r++) { const L = rows[r]; if (!L) continue; const d = gSerial(L[c.m.data]), v = gNum(L[c.m.valor]); if (!d || v == null || Math.abs(v) < 0.005) continue;
-        const centro = gTxt(L[c.m.centro]); O.despesa.push({ _l: r + 1, data: d, descricao: gTxt(L[c.m.desc]) || '(sem descrição)', filial: gTxt(L[c.m.filial]), grupo: gTxt(L[c.m.grupo]) || 'Custo variável', segmento: gTxt(L[c.m.seg]), valor: v, obs: c.m.obs != null ? gTxt(L[c.m.obs]) : '', centro: /^\*+$/.test(centro) ? '' : centro }); } }
+      for (let r = c.r + 1; r < rows.length; r++) { const L = rows[r]; if (!L) continue; const onde = `Despesas, linha ${r + 1}`, desc = gTxt(L[c.m.desc]), grupo = gTxt(L[c.m.grupo]);
+        let v = gNum(L[c.m.valor]), obs = c.m.obs != null ? gTxt(L[c.m.obs]) : '', nota = '';
+        const vo = c.m.obs != null ? gNum(L[c.m.obs]) : null, texto = typeof L[c.m.desc] === 'string' && desc !== '';
+        if ((v == null || Math.abs(v) < 0.005) && vo != null && Math.abs(vo) >= 0.005 && texto && grupo !== '') { const t = gTxt(L[c.m.valor]); v = vo; obs = /^0([.,]0+)?$/.test(t) ? '' : t; aj.push(`${onde}: o valor estava na coluna Obs (${brl(vo)})`); }
+        if (v == null || Math.abs(v) < 0.005) continue;
+        let D = gDia(L[c.m.data], ant, aj, onde);
+        if (!D.d) { const vazio = L[c.m.data] == null || gTxt(L[c.m.data]) === '';
+          if (!vazio || !texto || !grupo || !ant) continue;   /* os totais e os quadros do fim (com texto na coluna da data) ficam fora */
+          const m = /(\d{1,2}\/\d{1,2}\/\d{2,4})/.exec(obs), d2 = m ? gDataTxt(m[1]) : ''; D = { d: d2 && gValida(d2) ? d2 : ant, nota: 'sem data na planilha' };
+          aj.push(`${onde}: sem data, entrou em ${gBr(D.d)}${d2 && gValida(d2) ? ' (o dia da obs)' : ' (o dia da linha de cima)'}`); }
+        else ant = D.d;
+        nota = D.nota; const centro = gTxt(L[c.m.centro]);
+        O.despesa.push({ _l: r + 1, data: D.d, descricao: desc || '(sem descrição)', filial: gTxt(L[c.m.filial]), grupo: grupo || 'Custo variável', segmento: gTxt(L[c.m.seg]), valor: v, obs: gJunta(obs, nota), centro: /^\*+$/.test(centro) ? '' : centro, fornecedor: gFornDe(desc) }); } }
     else if (n.startsWith('recebimentos')) { const c = gCab(rows, { dia: ['dia'], pix: ['pix'], dinheiro: ['dinheiro'], credito: ['credito'], debito: ['debito'], link: ['link'], local: ['local'], obs: ['obs'], fech: ['data apos'] }, ['dia', 'local', 'pix']);
       if (!c) continue; achou.push(f.nome);
-      for (let r = c.r + 1; r < rows.length; r++) { const L = rows[r]; if (!L) continue; const d = gSerial(L[c.m.dia]), loc = L[c.m.local]; if (!d || typeof loc !== 'string' || !loc.trim()) continue;
+      for (let r = c.r + 1; r < rows.length; r++) { const L = rows[r]; if (!L) continue; const loc = L[c.m.local]; if (typeof loc !== 'string' || !loc.trim()) continue;
+        if (!['pix', 'dinheiro', 'credito', 'debito', 'link'].some(fo => c.m[fo] != null && gNum(L[c.m[fo]]) != null && Math.abs(gNum(L[c.m[fo]])) >= 0.005)) continue;
+        const D = gDia(L[c.m.dia], ant, aj, `Recebimentos, linha ${r + 1}`); if (!D.d) continue; ant = D.d;
         const lc = gLocalDe(loc), fech = c.m.fech != null ? gSerial(L[c.m.fech]) : '';
         for (const fo of ['pix', 'dinheiro', 'credito', 'debito', 'link']) { if (c.m[fo] == null) continue; const v = gNum(L[c.m[fo]]); if (v == null || Math.abs(v) < 0.005) continue;
-          O.recebimento.push({ _l: r + 1, data: d, forma: fo, filial: lc.filial, segmento: lc.segmento, valor: v, obs: c.m.obs != null ? gTxt(L[c.m.obs]) : '', data_fech: fech }); } } }
+          O.recebimento.push({ _l: r + 1, data: D.d, forma: fo, filial: lc.filial, segmento: lc.segmento, valor: v, obs: gJunta(c.m.obs != null ? gTxt(L[c.m.obs]) : '', D.nota), data_fech: fech }); } } }
     else if (n === 'rede') { let rm = -1; for (let r = 0; r < Math.min(rows.length, 20); r++) if ((rows[r] || []).filter(v => gSerial(v)).length >= 1 && rows[r + 1] && (rows[r + 1] || []).some(v => /morumbi|analia/.test(gNorm(v)))) { rm = r; break; }
       if (rm < 0) continue; achou.push(f.nome); const MS = rows[rm], US = rows[rm + 1];
       for (let r = rm + 2; r < rows.length; r++) { const L = rows[r]; if (!L || typeof L[0] !== 'number' || L[0] < 1 || L[0] > 31) continue;
@@ -222,27 +271,29 @@ async function lerPlanilha(arq) {
           const mref = gSerial(MS[c2]) || gSerial(MS[c2 - 1]); if (!mref) continue; const [a, m] = mref.split('-').map(Number); if (L[0] > new Date(a, m, 0).getDate()) continue;
           O.rede.push({ _l: r + 1, data: `${a}-${String(m).padStart(2, '0')}-${String(L[0]).padStart(2, '0')}`, filial: un.includes('morumbi') ? 'Morumbi' : 'Anália Franco', valor: v, obs: '' }); } } }
   }
-  return { O, achou };
+  gChaves(O);
+  return { O, achou, aj, forn: [...new Set(O.despesa.map(x => x.fornecedor).filter(Boolean))].sort() };
 }
 function folhaImportar() {
   let lido = null;
-  const f = gFolha('Importar a planilha', `<p class="sub" style="margin:0 0 12px">Escolha a planilha do financeiro (.xlsx). O sistema lê as abas <b>Faturamento (Receita)</b>, <b>Despesas</b>, <b>Recebimentos LÍQUIDOS</b> e <b>Rede</b>; as outras (gráficos, comparativos) o sistema faz sozinho.</p>
+  const f = gFolha('Importar a planilha', `<p class="sub" style="margin:0 0 12px">Escolha a planilha do financeiro (.xlsx). O sistema lê as abas <b>Faturamento (Receita)</b>, <b>Despesas</b>, <b>Recebimentos LÍQUIDOS</b> e <b>Rede</b>; as outras (gráficos, comparativos) o sistema faz sozinho. Os fornecedores das despesas entram no cadastro de Fornecedores.</p>
       <input class="inp g-arq" type="file" id="g-arq" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"><div id="g-imp-res" class="g-imp"></div>
-      <p class="sub" style="margin:12px 0 0">Importar de novo <b>troca</b> o que veio da planilha antes. O que foi lançado aqui no sistema continua.</p>`, {
+      <p class="sub" style="margin:12px 0 0">Pode importar de novo a mesma planilha (atualizada): o que já está no sistema não se repete, o que foi corrigido ou tirado aqui fica como está, e o lançado aqui no sistema continua.</p>`, {
     ok: 'Importar', fazer: async F => { if (!lido) throw new Error('Escolha a planilha primeiro.'); const tot = Object.values(lido.O).reduce((t, x) => t + x.length, 0); if (!tot) throw new Error('Não achei nenhuma linha para importar nesta planilha.');
-      const lote = 'pl-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8), res = $('#g-imp-res', F); let foi = 0, erros = 0, ex = [];
-      for (const tipo of Object.keys(lido.O)) for (let i = 0; i < lido.O[tipo].length; i += 500) { const r = await api('fl_importar', { lote, tipo, linhas: lido.O[tipo].slice(i, i + 500) }); foi += r.entrou; erros += r.erros; ex = ex.concat((r.exemplos || []).map(x => ({ ...x, tipo })));
-        res.innerHTML = `<div class="barra"><i style="width:${Math.round((foi + erros) / tot * 100)}%"></i></div><p class="sub">Enviando… ${int(foi + erros)} de ${int(tot)}</p>`; }
+      const lote = 'pl-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8), res = $('#g-imp-res', F); let foi = 0, ja = 0, erros = 0, ex = [];
+      for (const tipo of Object.keys(lido.O)) for (let i = 0; i < lido.O[tipo].length; i += 500) { const r = await api('fl_importar', { lote, tipo, linhas: lido.O[tipo].slice(i, i + 500) }); foi += r.entrou; ja += r.ja || 0; erros += r.erros; ex = ex.concat((r.exemplos || []).map(x => ({ ...x, tipo })));
+        res.innerHTML = `<div class="barra"><i style="width:${Math.round((foi + ja + erros) / tot * 100)}%"></i></div><p class="sub">Enviando… ${int(foi + ja + erros)} de ${int(tot)}</p>`; }
       const fim = await api('fl_importar_fim', { lote }); await gSujou();
-      aviso(`Planilha importada ✓ ${int(foi)} linhas${erros ? ` · ${int(erros)} não entraram` : ''}`); if (erros) setTimeout(() => alert(`${int(erros)} linhas não entraram. Exemplos:\n` + ex.slice(0, 8).map(x => `${GT[x.tipo].nome}, linha ${x.linha}: ${x.erro}`).join('\n')), 300);
+      aviso(`Planilha importada ✓ ${int(foi)} ${foi === 1 ? 'linha nova' : 'linhas novas'}${ja ? ` · ${int(ja)} já estavam` : ''}${erros ? ` · ${int(erros)} não entraram` : ''}`); if (erros) setTimeout(() => alert(`${int(erros)} linhas não entraram. Exemplos:\n` + ex.slice(0, 8).map(x => `${GT[x.tipo].nome}, linha ${x.linha}: ${x.erro}`).join('\n')), 300);
       if (ABA === 'lanc') carregarLanc(); else gestaoDesenhar(ABA); } });
   $('#g-arq', f).onchange = async e => { const a = e.target.files[0], res = $('#g-imp-res', f); lido = null; if (!a) return; res.innerHTML = '<p class="sub">Lendo a planilha…</p>';
     try { lido = await lerPlanilha(a); const O = lido.O, soma = L => L.reduce((t, x) => t + x.valor, 0);
       res.innerHTML = lido.achou.length ? `<table style="margin-top:12px"><thead><tr><th>Aba</th><th class="v">Linhas</th><th class="v">Soma</th></tr></thead><tbody>${Object.keys(O).map(k => `<tr><td>${GT[k].nome}</td><td class="v">${int(O[k].length)}</td><td class="v">${brl(soma(O[k]))}</td></tr>`).join('')}</tbody></table>
+        ${lido.forn.length ? `<p class="sub" style="margin-top:8px" id="g-imp-forn"><b>${int(lido.forn.length)} fornecedores</b> achados nas despesas (vão para o cadastro de Fornecedores): ${lido.forn.map(esc).join(', ')}.</p>` : ''}
+        ${lido.aj.length ? `<details class="g-imp-aj" style="margin-top:8px"><summary class="sub"><b>${int(lido.aj.length)} ${lido.aj.length === 1 ? 'acerto' : 'acertos'} na leitura</b> (toque para conferir)</summary><ul class="sub" style="margin:6px 0 0;padding-left:18px">${lido.aj.slice(0, 200).map(t => `<li>${esc(t)}</li>`).join('')}</ul></details>` : ''}
         <p class="sub" style="margin-top:8px">Abas lidas: ${lido.achou.map(esc).join(', ')}. Confira e toque em <b>Importar</b>.</p>` : '<p class="erro">Não achei as abas de Faturamento, Despesas, Recebimentos ou Rede nesta planilha.</p>'; }
     catch (x) { res.innerHTML = `<p class="erro">${esc(x.message)}</p>`; } };
 }
-
 /* ---------- o relatório: as contas (as mesmas do PDF, no servidor) ---------- */
 function gContas(R, mes) {
   const M = []; for (let m = 1; m <= 12; m++) M[m] = { bruto: 0, liquido: 0, desp: 0, inv: 0, rede: 0, qv: 0, qc: 0 };

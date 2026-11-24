@@ -1131,21 +1131,24 @@ switch ($acao) {
     responder(['produto' => produtoPublico(produto($id)), 'produtos' => produtos()]);
   }
   case 'ct_balcao': { exigir(); $b = balcaoCT(true); responder(['balcao' => $b ? criancaPublica($b) : null]); }   /* 2.00: o cliente da loja da Casa Tom (quando o aparelho acabou de trocar para lá) */
-  case 'produtos_importar': { /* 2.00: a planilha de produtos (a Casa Tom): o que já existe com o mesmo nome fica como está. Até 500 por pedido */
+  case 'produtos_importar': { /* 2.00: a planilha de produtos (a Casa Tom). O que já existe com o mesmo nome fica com o preço de lá e passa a valer
+       também nesta loja (o dono: "o cadastro de produto pode se estender para 2 lojas"). Até 500 por pedido */
     $u = exigir(); podeAjustar($u); $lj = lojasValidas((string)($in['l'] ?? 'ct')); if ($lj === '') $lj = 'ct';
-    $tem = []; foreach ($db->query('SELECT nome FROM produtos WHERE ativo = 1')->fetchAll(PDO::FETCH_COLUMN) as $n) $tem[mb_strtoupper(trim((string)$n))] = 1;
+    $tem = []; foreach ($db->query('SELECT id, nome, lojas FROM produtos WHERE ativo = 1')->fetchAll() as $x) $tem[mb_strtoupper(trim((string)$x['nome']))] = ['id' => (int)$x['id'], 'l' => (string)($x['lojas'] ?? 'play')];
+    $upd = $db->prepare('UPDATE produtos SET lojas = ?, mudou_em = ? WHERE id = ?'); $junto = 0;
     $ins = $db->prepare('INSERT INTO produtos (nome, valor, estoque, ativo, criado_em, mudou_em, lojas, cat) VALUES (?, ?, NULL, 1, ?, ?, ?, ?)'); $novos = 0; $ja = 0; $ruins = 0; $ag = agora();
     $db->beginTransaction();
     try {
       foreach (array_slice((array)($in['linhas'] ?? []), 0, 500) as $l) {
         if (!is_array($l)) { $ruins++; continue; } $n = mb_substr(maiusculo(trim((string)preg_replace('/\s+/u', ' ', (string)($l['n'] ?? '')))), 0, 60); $v = is_numeric($l['v'] ?? null) ? round((float)$l['v'], 2) : -1;
-        if ($n === '' || $v < 0 || $v > 100000) { $ruins++; continue; } $k = mb_strtoupper($n); if (isset($tem[$k])) { $ja++; continue; }
-        $ins->execute([$n, $v, $ag, $ag, $lj, mb_substr(maiusculo(trim((string)($l['cat'] ?? ''))), 0, 30)]); $tem[$k] = 1; $novos++;
+        if ($n === '' || $v < 0 || $v > 100000) { $ruins++; continue; } $k = mb_strtoupper($n);
+        if (isset($tem[$k])) { $ja++; $x = $tem[$k]; if (!in_array($lj, explode(',', $x['l']), true)) { $nl = lojasValidas($x['l'] . ',' . $lj); $upd->execute([$nl, $ag, $x['id']]); $tem[$k]['l'] = $nl; $junto++; } continue; }
+        $ins->execute([$n, $v, $ag, $ag, $lj, mb_substr(maiusculo(trim((string)($l['cat'] ?? ''))), 0, 30)]); $tem[$k] = ['id' => (int)$db->lastInsertId(), 'l' => $lj]; $novos++;
       }
       $db->commit();
     } catch (Throwable $e) { if ($db->inTransaction()) $db->rollBack(); registrarErro('produtos_importar: ' . $e->getMessage()); falha('Não consegui importar os produtos. Nada deste lote foi gravado.', 500); }
-    if ($novos) registrar('est', null, 'PRODUTOS', 'Produtos importados: ' . $novos . ' · por ' . primeiroNome($u['nome']));
-    responder(['novos' => $novos, 'ja' => $ja, 'ruins' => $ruins, 'produtos' => produtos()]);
+    if ($novos || $junto) registrar('est', null, 'PRODUTOS', 'Produtos importados: ' . $novos . ($junto ? ' · ' . $junto . ' já cadastrados passam a valer também nesta loja' : '') . ' · por ' . primeiroNome($u['nome']));
+    responder(['novos' => $novos, 'ja' => $ja, 'junto' => $junto, 'ruins' => $ruins, 'produtos' => produtos()]);
   }
   case 'produto_apagar': { // sai da lista; as vendas antigas continuam no histórico. voltar = o Desfazer do aviso
     $u = exigir(); podeAjustar($u); $p = produto((int)($in['id'] ?? 0)); if (!$p) falha('Produto não encontrado.', 404);
@@ -1190,7 +1193,11 @@ switch ($acao) {
     $u = exigir(); podeAjustar($u); $id = (int)($in['id'] ?? 0);
     $nome = mb_substr(maiusculo($val('nome')), 0, 80); $login = mb_strtolower(preg_replace('/[^a-z0-9._-]/i', '', $val('login'))); $papel = in_array($val('papel'), array_keys(PAPEIS), true) ? $val('papel') : 'atendente'; $senha = (string)($in['senha'] ?? '');
     if ($nome === '' || $login === '') falha('Preencha o nome e o login.');
-    $q = $db->prepare('SELECT id FROM usuarios WHERE login = ? AND id <> ?'); $q->execute([$login, $id]); if ($q->fetchColumn()) falha('Já existe alguém com esse login.');
+    $q = $db->prepare('SELECT id, ativo FROM usuarios WHERE login = ? AND id <> ?'); $q->execute([$login, $id]); $outro = $q->fetch();
+    if ($outro && (int)$outro['ativo']) falha('Já existe alguém com esse login.');
+    /* 2.01 (o dono: "quando eu excluí alguém da equipe, ele tem que me deixar criar novos usuários com esse nome"): quem saiu continua
+       guardado (com o que fez), mas solta o login */
+    if ($outro) $db->prepare("UPDATE usuarios SET login = login || '.saiu' || id WHERE id = ?")->execute([(int)$outro['id']]);
     if ($id) {
       if ($id === (int)$u['id'] && $papel !== 'gestor') falha('Você não pode tirar o seu próprio papel de gestor.');
       $db->prepare('UPDATE usuarios SET nome = ?, login = ?, papel = ? WHERE id = ?')->execute([$nome, $login, $papel, $id]);
@@ -1203,7 +1210,7 @@ switch ($acao) {
   }
   case 'usuario_apagar': {
     $u = exigir(); podeAjustar($u); $id = (int)($in['id'] ?? 0); if ($id === (int)$u['id']) falha('Você não pode remover a si mesmo.');
-    $db->prepare('UPDATE usuarios SET ativo = 0 WHERE id = ?')->execute([$id]); responder();
+    $db->prepare("UPDATE usuarios SET ativo = 0, login = CASE WHEN login LIKE '%.saiu%' THEN login ELSE login || '.saiu' || id END WHERE id = ?")->execute([$id]); responder();   /* 2.01: o login fica livre para alguém novo */
   }
 
   /* ---------- iDFace ---------- */

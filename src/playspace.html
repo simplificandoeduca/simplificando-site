@@ -231,6 +231,11 @@ body.mn .trilho .fab > svg { width: 15px; height: 15px; flex: none; stroke-width
 .toast button { color: var(--mostarda); font-weight: 800; white-space: nowrap; padding: 4px 2px; }
 .toast span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 @media (min-width: 820px) { .toast { bottom: 32px; } }
+/* 2.01 (o dono, com a foto do computador: "tá vendo que ele tá cortando um pouquinho lá do topo?"): no computador, o meio rolava até encostar no
+   alto da janela, enquanto o menu e o painel do lado ficam com uma margem. Agora o alto tem a mesma margem, lisa, e o que rola some nela */
+@media (min-width: 820px) { body::before { content: ''; position: fixed; z-index: 25; left: 0; right: 0; top: 0; height: 18px; background: var(--creme); pointer-events: none;
+    -webkit-mask-image: linear-gradient(#000 60%, transparent); mask-image: linear-gradient(#000 60%, transparent); }
+  .esp-cab { top: 16px; } .ct-venda { top: 22px; } }
 /* 1.08: o que deu certo não é mais anunciado embaixo. Com Desfazer, a faixa vira só o botão; o texto fica para o leitor de tela */
 .toast.so-bt { padding: 5px 6px; } .toast.so-bt button { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px 6px 12px; }
 .so-leitor { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -2000,7 +2005,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '2.00';
+const VERSAO = '2.01';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -4590,18 +4595,24 @@ function imprimirPapel(vias) {
 const impDireta = () => !!lido('ps-direto', 0);
 try { const u = new URL(location.href); if (u.searchParams.get('direto') === '1') { guardar('ps-direto', 1); u.searchParams.delete('direto'); history.replaceState(null, '', u.pathname + u.search + u.hash); } } catch (e) { }
 const ATALHO_IMP = 'Instalar Play Space (imprime direto).bat';
+/* 2.01 (o dono: "eu baixei ele no computador e ele tá abrindo só metade ... tem que abrir o sistema inteiro"): o ícone abre a janela maximizada
+   (--start-maximized); e, aberto pelo ícone ou instalado como app, o sistema pede a tela inteira uma vez a cada abertura (quem quiser a
+   janela menor ajusta depois, e ela fica como ficou) */
+function telaInteira() { try { const app = impDireta() || (window.matchMedia && matchMedia('(display-mode: standalone)').matches); if (!app || window.opener || sessionStorage.getItem('ps-inteira')) return; sessionStorage.setItem('ps-inteira', '1');
+  const W = screen.availWidth, H = screen.availHeight; if (outerWidth >= W - 8 && outerHeight >= H - 8) return; moveTo(screen.availLeft || 0, screen.availTop || 0); resizeTo(W, H); } catch (e) { } }
+telaInteira();
 const PS_ATALHO = "try { $q = [char]34; $w = New-Object -ComObject WScript.Shell; $a = $w.CreateShortcut((Join-Path ([Environment]::GetFolderPath('Desktop')) 'Play Space.lnk')); $a.TargetPath = $env:NAV; "
-  + "$a.Arguments = '--kiosk-printing --user-data-dir=' + $q + $env:PERFIL + $q + ' --no-first-run --no-default-browser-check --app=' + $q + $env:URL + $q; "
+  + "$a.Arguments = '--kiosk-printing --start-maximized --user-data-dir=' + $q + $env:PERFIL + $q + ' --no-first-run --no-default-browser-check --app=' + $q + $env:URL + $q; "
   + "if ((Test-Path -LiteralPath $env:ICO) -and ((Get-Item -LiteralPath $env:ICO).Length -gt 2000)) { $a.IconLocation = $env:ICO + ',0' }; $a.Description = 'Play Space: o cupom sai direto na impressora'; $a.Save() } catch { }";
 const noBat = t => String(t).replace(/%/g, '%%');
 const textoAtalhoImp = () => ['@echo off', 'rem Play Space: instala a impressao direta neste computador (o cupom sai sem a janela de escolher a impressora).', 'rem Cria o icone Play Space na area de trabalho e abre o sistema. Deixe a impressora do cupom como impressora padrao do Windows', 'rem e, dali em diante, abra o sistema sempre pelo icone Play Space.',
   `set "URL=${noBat(location.origin + location.pathname)}?direto=1"`, `set "ICOURL=${noBat(location.origin + location.pathname.replace(/[^/]*$/, ''))}img/playspace.ico"`, 'set "PASTA=%LOCALAPPDATA%\\PlaySpace"', 'set "PERFIL=%PASTA%\\Navegador"', 'set "ICO=%PASTA%\\playspace.ico"',
   'set "NAV=%ProgramFiles%\\Google\\Chrome\\Application\\chrome.exe"', 'if not exist "%NAV%" set "NAV=%ProgramFiles(x86)%\\Google\\Chrome\\Application\\chrome.exe"', 'if not exist "%NAV%" set "NAV=%LOCALAPPDATA%\\Google\\Chrome\\Application\\chrome.exe"',
   'if not exist "%NAV%" set "NAV=%ProgramFiles(x86)%\\Microsoft\\Edge\\Application\\msedge.exe"', 'if not exist "%NAV%" set "NAV=%ProgramFiles%\\Microsoft\\Edge\\Application\\msedge.exe"',
-  'if not exist "%NAV%" goto semnav', 'if not exist "%PASTA%" mkdir "%PASTA%"', 'echo Preparando o Play Space neste computador. So um instante...', 'if not exist "%ICO%" curl.exe -s -f -L --connect-timeout 5 -m 20 -o "%ICO%.baixando" "%ICOURL%" >nul 2>&1 && move /y "%ICO%.baixando" "%ICO%" >nul 2>&1', `powershell -NoProfile -Command "${PS_ATALHO}" >nul 2>&1`, 'start "" "%NAV%" --kiosk-printing --user-data-dir="%PERFIL%" --no-first-run --no-default-browser-check --app="%URL%"', 'exit /b 0', ':semnav', 'echo Nao achei o Chrome nem o Edge neste computador.', 'pause', ''].join('\r\n');
+  'if not exist "%NAV%" goto semnav', 'if not exist "%PASTA%" mkdir "%PASTA%"', 'echo Preparando o Play Space neste computador. So um instante...', 'if not exist "%ICO%" curl.exe -s -f -L --connect-timeout 5 -m 20 -o "%ICO%.baixando" "%ICOURL%" >nul 2>&1 && move /y "%ICO%.baixando" "%ICO%" >nul 2>&1', `powershell -NoProfile -Command "${PS_ATALHO}" >nul 2>&1`, 'start "" "%NAV%" --kiosk-printing --start-maximized --user-data-dir="%PERFIL%" --no-first-run --no-default-browser-check --app="%URL%"', 'exit /b 0', ':semnav', 'echo Nao achei o Chrome nem o Edge neste computador.', 'pause', ''].join('\r\n');
 const noMac = () => /Mac/i.test((navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || navigator.userAgent || '') && !(navigator.maxTouchPoints > 1);
 const noShell = t => String(t).replace(/[$`\\"'!]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase());   // o endereço vai entre aspas no Terminal: nada que o Terminal leia como comando
-const abreMac = () => `open -na "Google Chrome" --args --kiosk-printing --user-data-dir="$HOME/Library/Application Support/PlaySpace" --no-first-run --no-default-browser-check --app="${noShell(location.origin + location.pathname)}?direto=1"`;
+const abreMac = () => `open -na "Google Chrome" --args --kiosk-printing --start-maximized --user-data-dir="$HOME/Library/Application Support/PlaySpace" --no-first-run --no-default-browser-check --app="${noShell(location.origin + location.pathname)}?direto=1"`;
 // 1.47: o comando cria na Mesa o app "Play Space" (uma pasta Play Space.app: o script que abre o Chrome com a impressão direta, a ficha do app e a
 // logo, baixada do próprio site). Feito pelo Terminal, no próprio Mac, o app abre sem o aviso da Apple. O .command de antes sai da Mesa
 const PLIST_MAC = '<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>CFBundleName</key><string>Play Space</string><key>CFBundleDisplayName</key><string>Play Space</string><key>CFBundleExecutable</key><string>PlaySpace</string><key>CFBundleIdentifier</key><string>com.playspace.atalho</string><key>CFBundleIconFile</key><string>playspace</string><key>CFBundlePackageType</key><string>APPL</string><key>CFBundleShortVersionString</key><string>1.0</string></dict></plist>';
@@ -5271,20 +5282,22 @@ function ctiTexto(t) { const L = String(t || '').split(/\r?\n/).filter(x => x.tr
   return L.map(l => l.split(sep).map(x => x.replace(/^"|"$/g, ''))); }
 function ctiMostra(L) { CT.imp = L; const bons = L.filter(x => x.v >= 0), r = $('#cti-res'), ok = $('#cti-ok'); if (!r) return;
   const ja = new Set((S.produtos || []).map(p => semAcentoCT(p.n))), vistos = new Set(), jaN = bons.filter(x => ja.has(semAcentoCT(x.n))).length, novos = bons.filter(x => !ja.has(semAcentoCT(x.n)) && !vistos.has(semAcentoCT(x.n)) && vistos.add(semAcentoCT(x.n))), rep = bons.length - jaN - novos.length;
-  r.innerHTML = L.length ? `<p class="explica"><b>${impNum(L.length)}</b> ${L.length === 1 ? 'linha lida' : 'linhas lidas'} · <b>${impNum(novos.length)}</b> ${novos.length === 1 ? 'produto novo' : 'produtos novos'}${jaN ? ` · ${impNum(jaN)} já no cadastro (ficam como estão)` : ''}${rep ? ` · ${impNum(rep)} ${rep === 1 ? 'repetido' : 'repetidos'} na planilha (entra uma vez)` : ''}${L.length - bons.length ? ` · ${impNum(L.length - bons.length)} sem preço (não entram)` : ''}</p>` : '<p class="explica">Não achei nenhuma linha com produto.</p>';
-  if (ok) { ok.disabled = !novos.length; ok.textContent = novos.length ? `Importar ${impNum(novos.length)} ${novos.length === 1 ? 'produto' : 'produtos'} na Casa Tom` : 'Nada para importar'; } }
+  r.innerHTML = L.length ? `<p class="explica"><b>${impNum(L.length)}</b> ${L.length === 1 ? 'linha lida' : 'linhas lidas'} · <b>${impNum(novos.length)}</b> ${novos.length === 1 ? 'produto novo' : 'produtos novos'}${jaN ? ` · ${impNum(jaN)} já no cadastro (o preço fica o de lá; passam a valer também na Casa Tom)` : ''}${rep ? ` · ${impNum(rep)} ${rep === 1 ? 'repetido' : 'repetidos'} na planilha (entra uma vez)` : ''}${L.length - bons.length ? ` · ${impNum(L.length - bons.length)} sem preço (${L.length - bons.length === 1 ? 'não entra' : 'não entram'})` : ''}</p>` : '<p class="explica">Não achei nenhuma linha com produto.</p>';
+  const jun = bons.filter(x => { const p = (S.produtos || []).find(p => semAcentoCT(p.n) === semAcentoCT(x.n)); return p && !prodNaLoja(p, 'ct'); }).length;
+  if (ok) { ok.disabled = !novos.length && !jun; ok.textContent = novos.length ? `Importar ${impNum(novos.length)} ${novos.length === 1 ? 'produto' : 'produtos'} na Casa Tom` : jun ? 'Pôr na Casa Tom os já cadastrados' : 'Nada para importar'; } }
 function folhaCTImportar() { CT.imp = null;
-  abrirFolha('Importar produtos', `<p class="explica">Cole a planilha (no Excel: <b>Ctrl+A</b>, <b>Ctrl+C</b>; aqui: <b>Ctrl+V</b>) ou escolha o arquivo. Colunas: <b>PRODUTO</b>, <b>PREÇO</b> e, se tiver, <b>CATEGORIA</b>. Entram na Casa Tom; o que já existe com o mesmo nome fica como está.</p>
+  abrirFolha('Importar produtos', `<p class="explica">Cole a planilha (no Excel: <b>Ctrl+A</b>, <b>Ctrl+C</b>; aqui: <b>Ctrl+V</b>) ou escolha o arquivo. Colunas: <b>PRODUTO</b>, <b>PREÇO</b> e, se tiver, <b>CATEGORIA</b>. Entram na Casa Tom. O que já existe com o mesmo nome fica com o preço de lá e passa a valer também na Casa Tom.</p>
     <div class="campo"><label for="cti-texto">Cole a planilha aqui</label><textarea id="cti-texto" rows="4" spellcheck="false" placeholder="PRODUTO;PREÇO;CATEGORIA"></textarea></div>
     <div class="im-ou"><label class="bt claro tap" for="cti-arq">${ic(IC.subir, 18)} Escolher o arquivo</label><input id="cti-arq" type="file" accept=".xlsx,.csv,.txt,.tsv,text/csv,text/plain" hidden></div>
     <div id="cti-res"></div><div class="pe-f"><button class="bt forte largo tap" id="cti-ok" data-act="cti-ok" disabled>Importar</button></div>`); }
 async function ctiImportar(el) {
-  const ja = new Set((S.produtos || []).map(p => semAcentoCT(p.n))), vistos = new Set(), L = (CT.imp || []).filter(x => x.v >= 0 && !ja.has(semAcentoCT(x.n)) && !vistos.has(semAcentoCT(x.n)) && vistos.add(semAcentoCT(x.n))); if (!L.length) return;
-  el.disabled = true; let novos = 0;
-  if (MODO === 'servidor') { try { for (let i = 0; i < L.length; i += 300) { el.textContent = `Importando… ${impNum(i)} de ${impNum(L.length)}`; const r = await api('produtos_importar', { l: 'ct', linhas: L.slice(i, i + 300) }); novos += +r.novos || 0; if (Array.isArray(r.produtos)) S.produtos = r.produtos; } }
+  const vistos = new Set(), L = (CT.imp || []).filter(x => x.v >= 0 && !vistos.has(semAcentoCT(x.n)) && vistos.add(semAcentoCT(x.n))); if (!L.length) return;
+  el.disabled = true; let novos = 0, junto = 0;
+  if (MODO === 'servidor') { try { for (let i = 0; i < L.length; i += 300) { el.textContent = `Importando… ${impNum(i)} de ${impNum(L.length)}`; const r = await api('produtos_importar', { l: 'ct', linhas: L.slice(i, i + 300) }); novos += +r.novos || 0; junto += +r.junto || 0; if (Array.isArray(r.produtos)) S.produtos = r.produtos; } }
     catch (e) { el.disabled = false; el.textContent = 'Continuar'; toast(e.message + (novos ? ` (${novos} já entraram)` : '')); return; } }
-  else { for (const x of L) S.produtos.push({ id: novoId(), n: x.n, v: centavos(x.v), est: null, l: 'ct', cat: x.cat }); S.produtos.sort(ordProd); novos = L.length; registrar('est', 'PRODUTOS', `Produtos importados: ${novos} · por ${EU.nome}`); }
-  CT.imp = null; fecharFolha(); desenhar(); deuCerto(`${impNum(novos)} ${novos === 1 ? 'produto importado' : 'produtos importados'} na Casa Tom`);
+  else { for (const x of L) { const p = S.produtos.find(p => semAcentoCT(p.n) === semAcentoCT(x.n)); if (!p) { S.produtos.push({ id: novoId(), n: x.n, v: centavos(x.v), est: null, l: 'ct', cat: x.cat }); novos++; } else if (!prodNaLoja(p, 'ct')) { p.l = [...lojasDe(p), 'ct'].join(','); junto++; } }
+    S.produtos.sort(ordProd); registrar('est', 'PRODUTOS', `Produtos importados: ${novos}${junto ? ` · ${junto} já cadastrados passam a valer também nesta loja` : ''} · por ${EU.nome}`); }
+  CT.imp = null; fecharFolha(); desenhar(); deuCerto(`${impNum(novos)} ${novos === 1 ? 'produto importado' : 'produtos importados'} na Casa Tom${junto ? ` · ${impNum(junto)} já ${junto === 1 ? 'cadastrado passa' : 'cadastrados passam'} a valer também nela` : ''}`);
 }
 document.addEventListener('input', e => { const t = e.target; if (!t || !t.id) return;
   if (t.id === 'ct-busca') { CT.busca = t.value; const g = $('#ct-grade'); if (g) g.innerHTML = ctGrade(); }
