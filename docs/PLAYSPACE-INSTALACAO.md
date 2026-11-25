@@ -1301,6 +1301,13 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O tamanho do cupom e o ajuste da impressão do Chrome (2.09)
+
+Pedido do dono (25/11, com a foto de uma notinha de entrada): "a notinha tá saindo muito grande. Eu consigo diminuir ela ou colocar uma opção dentro do sistema para mim fazer um ajuste da notinha?"
+
+- Ajustes → Cupom impresso → "Tamanho do cupom": Normal (como sempre), Compacto (a logo pequena ao lado do nome da loja, menos espaço entre as partes, a letra um pouco menor) e Econômico (sem a logo, a letra menor, o mínimo de espaço). Só o gestor muda; vale na hora para todos os aparelhos e para todos os cupons (entrada, saída, devolução, pacote, festa, reimpressão e relatório do cliente). A folha mostra o cupom de teste do jeito que ele sai e quanto papel ele gasta (o de teste, uma entrada: uns 15,6 cm no Normal, 10,4 cm no Compacto e 9,4 cm no Econômico).
+- O que não é do cupom: a data e "Play Space Horas" em cima, o endereço do site e o "1/1" embaixo e o papel em branco (as margens) vêm da configuração de impressão do Chrome, que a impressão direta repete. Na mesma folha, "A data, o endereço do site e o papel em branco no cupom" explica e entrega o "Ajuste da impressão" (Windows: um arquivo para abrir; Mac: um comando para colar no Terminal). Ele abre o Play Space no mesmo perfil do ícone, mas sem a impressão direta, já nesta folha. Aí: "Imprimir um cupom de teste" → Mais configurações → Margens: Nenhuma, Escala: Padrão, desmarcar "Cabeçalhos e rodapés" → Imprimir. Feche e abra de novo pelo ícone Play Space: o Chrome guarda essa escolha, e a impressão direta passa a sair sem a data, sem o site e sem o papel em branco.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A Venda futura e os cadastros nas comissões (2.08, Finanças 5.2)
 
 Pedidos do dono (25/11).

@@ -111,6 +111,34 @@ button.chip.vf-bt { background: #2F9E62; border-color: #2F9E62; color: #fff; } b
 .vf-it .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; } .vf-it .txt span, .vf-it .txt small { color: var(--tinta-2); font-size: 13px; } .vf-it .bt.vf-pg { min-height: 36px; padding: 0 14px; }
 #vf-vend .vend-b, #f-cadpor .vend-b { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
 .bt.forte.vf-ok { background: #2F9E62; border-color: #2F9E62; } #f-cadpor { margin-top: 4px; }
+/* 2.09 (o dono: "a notinha tá saindo muito grande ... colocar uma opção dentro do sistema para mim fazer um ajuste da notinha"): o tamanho do
+   cupom (Ajustes → Cupom impresso). Compacto: a logo pequena ao lado do nome e menos espaço; Econômico: sem a logo, a letra menor */
+.tam-compacto .papel, .tam-economico .papel { padding: .6mm 0 1mm; line-height: 1.24; font-size: 11px; }
+.tam-compacto .papel .c-topo { flex-direction: row; align-items: center; justify-content: center; gap: 2.6mm; text-align: left; }
+.tam-compacto .papel .c-logo { width: 12.5mm; } .tam-economico .papel .c-logo { display: none; }
+.tam-compacto .papel .c-loja { font-size: 14.5px; letter-spacing: .08em; padding-left: 0; } .tam-economico .papel .c-loja { font-size: 13px; letter-spacing: .1em; }
+.tam-compacto .papel .c-uni, .tam-economico .papel .c-uni { margin-top: .2mm; font-size: 10px; letter-spacing: .12em; padding-left: 0; }
+.tam-compacto .papel .c-fone, .tam-economico .papel .c-fone { margin-top: 0; font-size: 10.5px; }
+.tam-compacto .papel .c-via, .tam-economico .papel .c-via { margin: 1.5mm 0 1.3mm; padding: .6mm 0 .5mm; font-size: 10.5px; }
+.tam-compacto .papel .c-resp b, .tam-economico .papel .c-resp b { font-size: 12px; } .tam-compacto .papel .c-doc, .tam-economico .papel .c-doc { margin-top: 0; font-size: 10.5px; }
+.tam-compacto .papel .c-div { margin: 1.4mm 0; } .tam-economico .papel .c-div { margin: 1mm 0; }
+.tam-compacto .papel .c-esp { height: 1.3mm; } .tam-economico .papel .c-esp { height: .9mm; }
+.tam-compacto .papel .c-bt b, .tam-economico .papel .c-bt b { font-size: 11.5px; }
+.tam-compacto .papel .c-titulo, .tam-economico .papel .c-titulo { margin-bottom: 1mm; font-size: 11.5px; }
+.tam-compacto .papel .c-cab, .tam-economico .papel .c-cab { padding-bottom: .5mm; margin-bottom: .7mm; font-size: 10px; }
+.tam-compacto .papel .c-item, .tam-economico .papel .c-item { margin-top: .6mm; } .tam-compacto .papel .c-sub, .tam-economico .papel .c-sub { font-size: 10.5px; }
+.tam-compacto .papel .c-linha.c-pt, .tam-economico .papel .c-linha.c-pt { margin-top: .5mm; }
+.tam-compacto .papel .c-linha.c-total, .tam-economico .papel .c-linha.c-total { margin-top: 1.2mm; padding-top: .9mm; font-size: 13px; }
+.tam-compacto .papel .c-rod, .tam-economico .papel .c-rod { margin-top: 1.4mm; font-size: 10px; }
+.tam-compacto .papel .c-assina { margin-top: 8mm; } .tam-economico .papel .c-assina { margin-top: 7mm; }
+.tam-compacto .papel .c-ass-nome, .tam-economico .papel .c-ass-nome { font-size: 10.5px; }
+.tam-compacto .papel .c-aviso { margin-top: 1.5mm; font-size: 9.5px; line-height: 1.25; } .tam-economico .papel .c-aviso { margin-top: 1.1mm; font-size: 9px; line-height: 1.2; }
+.tam-compacto .papel.cliente::after, .tam-economico .papel.cliente::after { margin-top: 1.8mm; }
+.tam-economico .papel { font-size: 10.5px; line-height: 1.2; }
+/* a amostra na folha: o cupom de teste do jeito que ele sai na impressora */
+.tk-amostra { display: flex; justify-content: center; padding: calc(14px + 3mm); border-radius: 16px; background: var(--borda); overflow-x: auto; }
+.tk-amostra .papel { flex: none; background: #fff; box-shadow: 0 0 0 3mm #fff, 0 3px 12px 3mm rgba(0, 0, 0, .12); }   /* a margem branca é sombra: o cupom fica com a largura do papel */
+#tk-tam-cm { margin: 6px 0 0; }
 /* 2.02: o aviso de que o sistema já está aberto em outra janela deste computador (tela cheia, por cima de tudo) */
 #janela-uma { position: fixed; inset: 0; z-index: 300; display: grid; place-items: center; padding: 24px; background: var(--creme); }
 #janela-uma .ju-caixa { width: min(460px, 100%); background: var(--card); border: 1px solid var(--borda); border-radius: 24px; padding: 28px 26px; display: flex; flex-direction: column; gap: 12px; text-align: center; box-shadow: 0 20px 60px rgba(60, 40, 20, .14); }
@@ -2056,7 +2084,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.08';
+const VERSAO = '2.09';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -4747,6 +4775,7 @@ const PAPEL_ALT_MIN = 82;   // 1.14: em mm. A página do cupom nunca fica mais b
 function imprimirPapel(vias) {
   const fila = (Array.isArray(vias) ? vias : [vias]).filter(Boolean); if (!fila.length || IMPRIMINDO) return; IMPRIMINDO = true;
   let a = $('#cupom-print'); if (!a) { a = document.createElement('div'); a.id = 'cupom-print'; document.body.appendChild(a); }
+  a.className = 'tam-' + tamPapel();   /* 2.09: o tamanho do cupom */
   let st = $('#cupom-pagina'); if (!st) { st = document.createElement('style'); st.id = 'cupom-pagina'; document.head.appendChild(st); }
   const fim = () => { IMPRIMINDO = false; document.body.classList.remove('imprimindo'); };
   const proxima = () => {
@@ -4804,6 +4833,36 @@ function baixarAtalhoImp() {
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([textoAtalhoImp()], { type: 'application/octet-stream' })); a.download = ATALHO_IMP;
   document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 800);
 }
+/* 2.09: o tamanho do cupom (o gestor escolhe em Ajustes → Cupom impresso; vale para todos os aparelhos) */
+const TAMS_PAPEL = [['normal', 'Normal'], ['compacto', 'Compacto'], ['economico', 'Econômico']];
+const tamPapel = () => ['compacto', 'economico'].includes(S.cfg.cupomTam) ? S.cfg.cupomTam : 'normal';
+const TXT_TAM = { normal: 'Como sempre: a logo grande em cima, com bastante espaço.', compacto: 'A logo pequena ao lado do nome da loja, menos espaço entre as partes e a letra um pouco menor.', economico: 'Sem a logo, a letra menor e o mínimo de espaço: o que gasta menos papel.' };
+function amostraTam() { const a = $('#tk-amostra'); if (!a) return; const t = tamPapel(); a.className = 'tk-amostra tam-' + t; a.innerHTML = (papelTeste() || [])[0] || '';
+  const p = a.querySelector('.papel'), cm = $('#tk-tam-cm'), x = $('#tk-tam-txt'); if (x) x.textContent = TXT_TAM[t];
+  if (p && cm) cm.innerHTML = `O cupom de teste (uma entrada) gasta uns <b>${(Math.round(p.offsetHeight * 25.4 / 96) / 10).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} cm</b> de papel${t === 'normal' ? '' : ' neste tamanho'}, fora o que o Chrome acrescenta.`; }
+const htmlTamPapel = pode => `<div class="campo" id="tk-tam-campo"><label>Tamanho do cupom</label><div class="seg" id="tk-tam">${TAMS_PAPEL.map(([v, n]) => `<button type="button" data-act="papel-tam" data-v="${v}" aria-pressed="${v === tamPapel()}"${pode ? '' : ' disabled'}>${n}</button>`).join('')}</div>
+    <span class="explica" id="tk-tam-txt">${TXT_TAM[tamPapel()]}</span>${pode ? '' : '<span class="explica">Só o gestor muda o tamanho.</span>'}<div class="tk-amostra" id="tk-amostra"></div><p class="explica" id="tk-tam-cm"></p></div>
+  <details class="outro" id="tk-chrome"><summary>A data, o endereço do site e o papel em branco no cupom</summary><p class="explica" style="margin-top:8px">A data e "Play Space Horas" em cima, o endereço do site e o "1/1" embaixo, e as margens (que encolhem o cupom e deixam papel em branco) vêm da <b>configuração de impressão do Chrome</b>, e a impressão direta repete a última usada. Para acertar uma vez, neste computador:<br>
+    1. Feche a janela do Play Space.<br>2. Abra o <b>Ajuste da impressão</b> (o botão aqui embaixo): o Play Space abre sem a impressão direta, nesta folha.<br>3. Toque em <b>Imprimir um cupom de teste</b>. Na janela do Chrome, em <b>Mais configurações</b>: <b>Margens: Nenhuma</b>, <b>Escala: Padrão</b>, e desmarque <b>Cabeçalhos e rodapés</b>. Imprima.<br>4. Feche e abra de novo pelo ícone <b>Play Space</b>. Daí em diante o cupom sai sem a data, sem o site e sem o papel em branco.</p>
+    <div class="acoes"><button type="button" class="bt tap" data-act="papel-ajuste-win">${ic(IC.baixa)} Baixar o ajuste da impressão (Windows)</button><button type="button" class="bt tap" data-act="papel-ajuste-mac">${ic(IC.copia, 16, 2.4)} Copiar o comando (Mac)</button></div></details>`;
+/* o "Ajuste da impressão": o Play Space no mesmo perfil do ícone, mas sem a impressão direta, aberto em Ajustes → Cupom impresso */
+const ATALHO_AJUSTE = 'Ajuste da impressao do Play Space.bat';
+const textoAjusteImp = () => ['@echo off', 'rem Play Space: abre o sistema SEM a impressao direta, para acertar uma vez a impressao do Chrome (margens, cabecalhos e rodapes).', 'rem Feche antes a janela do Play Space. Depois do cupom de teste, feche e abra de novo pelo icone Play Space.',
+  `set "URL=${noBat(location.origin + location.pathname)}?ajuste=1"`, 'set "PERFIL=%LOCALAPPDATA%\\PlaySpace\\Navegador"',
+  'set "NAV=%ProgramFiles%\\Google\\Chrome\\Application\\chrome.exe"', 'if not exist "%NAV%" set "NAV=%ProgramFiles(x86)%\\Google\\Chrome\\Application\\chrome.exe"', 'if not exist "%NAV%" set "NAV=%LOCALAPPDATA%\\Google\\Chrome\\Application\\chrome.exe"',
+  'if not exist "%NAV%" set "NAV=%ProgramFiles(x86)%\\Microsoft\\Edge\\Application\\msedge.exe"', 'if not exist "%NAV%" set "NAV=%ProgramFiles%\\Microsoft\\Edge\\Application\\msedge.exe"', 'if not exist "%NAV%" goto semnav',
+  'start "" "%NAV%" --start-maximized --user-data-dir="%PERFIL%" --no-first-run --no-default-browser-check --app="%URL%"', 'exit /b 0', ':semnav', 'echo Nao achei o Chrome nem o Edge neste computador.', 'pause', ''].join('\r\n');
+const comandoAjusteMac = () => `osascript -e 'quit app "Play Space"' 2>/dev/null; open -na "Google Chrome" --args --start-maximized --user-data-dir="$HOME/Library/Application Support/PlaySpace" --no-first-run --no-default-browser-check --app="${noShell(location.origin + location.pathname)}?ajuste=1"`;
+function baixarAjusteImp() {
+  if (MODO !== 'servidor') { toast('O ajuste da impressão é baixado no site da loja: lá ele já vem com o endereço do sistema.'); return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([textoAjusteImp()], { type: 'application/octet-stream' })); a.download = ATALHO_AJUSTE;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 800);
+}
+/* aberto pelo ajuste (?ajuste=1): a folha do cupom abre sozinha, depois de entrar */
+try { const u = new URL(location.href); if (u.searchParams.get('ajuste') === '1') { sessionStorage.setItem('ps-ajuste', '1'); u.searchParams.delete('ajuste'); history.replaceState(null, '', u.pathname + u.search + u.hash); } } catch (e) { }
+(function ajusteImp() { let n = 0; const tenta = () => { let f = null; try { f = sessionStorage.getItem('ps-ajuste'); } catch (e) { } if (!f || ++n > 600) return;
+  if ((MODO !== 'servidor' || (EU && EU.id)) && !document.querySelector('#l-login, #janela-uma') && !document.querySelector('#folha .folha-fundo:not(.saindo)')) { try { sessionStorage.removeItem('ps-ajuste'); } catch (e) { } folhaPapelAjustes(); const d = $('#tk-chrome'); if (d) d.open = true; return; }
+  setTimeout(tenta, 1000); }; setTimeout(tenta, 1500); })();
 // depois de um atendimento, de uma entrada, de uma saída ou de uma devolução: o que este aparelho faz com o cupom
 function papelDepois(spec) { if (!spec) return; const vias = viasPapel(spec); guardarPapel(spec, vias); const m = modoPapel(); if (m === 'nao' || !vias.length) return; if (m === 'auto') { imprimirPapel(vias); return; } folhaPapel(spec); }   // 1.14: o cupom fica guardado para reimprimir, mesmo no aparelho que não imprime
 let PAPEL = null;   // o cupom que está na folha: { spec, vias }
@@ -4954,6 +5013,7 @@ function folhaPapelAjustes(direta) {   // direta (1.11): veio do "Veja como impr
     <div class="campo"><label for="tk-tel">Telefone da loja <span class="leve">· opcional</span></label><input id="tk-tel" maxlength="30" inputmode="tel" autocomplete="off" value="${esc(L.tel)}" placeholder="(11) 0000-0000" ${pode ? '' : 'disabled'}></div>
     <div class="campo"><label for="tk-aviso">Aviso do pé do cupom</label><textarea id="tk-aviso" rows="3" maxlength="300" ${pode ? '' : 'disabled'}>${esc(L.aviso)}</textarea><span class="explica">Depois do aviso, o cupom diz sozinho a tolerância que o cliente lê${tolCupom() ? ` (hoje, ${tolCupom()} minutos)` : ''}.</span></div>
     ${pode ? `<div class="acoes"><button type="button" class="bt forte tap" data-act="papel-salvar">${ic(IC.check)} Salvar</button></div>` : '<p class="explica">Só o gestor muda o que vai escrito no cupom.</p>'}
+    ${htmlTamPapel(pode)}
     <div class="campo"><label>Neste aparelho, depois de cada atendimento</label>${segPapel()}</div>
     <div class="acoes"><button type="button" class="bt tap" data-act="papel-teste">${ic(IC.cupom)} Imprimir um cupom de teste</button></div>
     <div class="campo" id="tk-direta"><label>Ícone na área de trabalho · Imprimir direto, sem a janela de escolher a impressora</label>
@@ -4961,6 +5021,7 @@ function folhaPapelAjustes(direta) {   // direta (1.11): veio do "Veja como impr
       <div class="acoes"><button type="button" class="bt tap" data-act="papel-atalho">${ic(IC.baixa)} Baixar o instalador (Windows)</button><button type="button" class="bt tap" data-act="papel-mac">${ic(IC.copia, 16, 2.4)} Copiar o comando (Mac)</button></div>
       <details class="outro"><summary>Passo a passo no Windows</summary><p class="explica" style="margin-top:8px">1. No Windows, deixe a impressora do cupom (Bematech MP-4200 TH, papel de 80 mm) como <b>impressora padrão</b>, e desligue "Deixar o Windows gerenciar a minha impressora padrão".<br>2. Toque em <b>Baixar o instalador</b>. Se o navegador perguntar, escolha manter o arquivo.<br>3. Dê dois cliques no arquivo baixado (na primeira vez o Windows pode pedir para confirmar: "Mais informações" e "Executar assim mesmo"). Ele cria o ícone <b>Play Space</b> na área de trabalho e abre o sistema numa janela só dele: entre com o seu usuário e escolha a unidade.<br>4. Toque em <b>Imprimir um cupom de teste</b>: as duas vias têm que sair sem perguntar nada.<br>5. Dali em diante, abra o sistema <b>sempre pelo ícone Play Space</b>. Se o ícone não aparecer na área de trabalho, o próprio arquivo baixado serve de atalho: guarde na área de trabalho e abra por ele.<br>Para o cupom sair sem nem tocar em Imprimir, escolha acima <b>Imprimir sozinho</b>. Sem o ícone, a janela de impressão abre uma vez para cada via: é só confirmar as duas.</p></details>
       <details class="outro" id="tk-mac" ${noMac() ? 'open' : ''}><summary>Passo a passo no Mac</summary><p class="explica" style="margin-top:8px">1. No Mac, deixe a impressora do cupom como <b>impressora padrão</b> (Ajustes do Sistema → Impressoras e Scanners → Impressora padrão). Precisa do <b>Google Chrome</b> instalado.<br>2. Toque em <b>Copiar o comando (Mac)</b>.<br>3. Abra o <b>Terminal</b>: Command + espaço, escreva <b>Terminal</b> e aperte Enter.<br>4. Cole o comando (<b>Command + V</b>) e aperte <b>Enter</b>. Aparece na Mesa o ícone <b>Play Space</b>, com a logo, e o sistema abre numa janela só dele: entre com o seu usuário.<br>5. Toque em <b>Imprimir um cupom de teste</b>: tem que sair sem perguntar nada.<br>6. Dali em diante, abra o sistema <b>sempre pelo ícone Play Space</b> (se quiser, arraste o ícone para o Dock).</p></details></div>`);
+  amostraTam();   /* 2.09 */
   if (direta) setTimeout(() => { const d = $('#tk-direta'); if (!d) return; const p = (noMac() && $('#tk-mac')) || d.querySelector('details'); if (p) p.open = true; d.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 380);
 }
 
@@ -8492,7 +8553,12 @@ const ACOES = {
   'cpf-escolher': el => { const i = $('#f-cpf'); if (!i) return; i.value = cpfFmt(el.dataset.cpf); i.dispatchEvent(new Event('input', { bubbles: true })); const n = $('#f-nome'); if (n && !n.value) n.focus(); },   /* escolheu o cliente pelo começo do CPF: o cadastro traz o resto */
   'papel-imprimir': () => { if (!PAPEL) return; imprimirPapel(PAPEL.vias); fecharFolha(); },
   'papel-reimprimir': el => folhaReimprimir(+el.dataset.id), 'papel-guardado': el => abrirPapelGuardado(+el.dataset.id), 'papel-imprimir-cliente': () => { if (!PAPEL || !PAPEL.vias[1]) return; imprimirPapel([PAPEL.vias[1]]); fecharFolha(); },   /* 1.14: reimprimir o cupom */
-  'papel-ficha': el => { const c = crianca(+el.dataset.id); if (!gestor() && c && c.entrou && agora - c.entrou > TROCA_MS) { toast('Passou de 2 min: só o gestor reimprime este cupom'); return; } folhaPapel({ tipo: 'entrada', id: +el.dataset.id }); }, 'papel-ajustes': el => folhaPapelAjustes(!!el && (el.id === 'tk-direta-ir' || el.id === 'tk-icone-ir')), 'papel-atalho': () => baixarAtalhoImp(), 'papel-mac': el => { if (MODO !== 'servidor') { toast('O comando do Mac é copiado no site da loja: lá ele já vem com o endereço do sistema.'); return; } copiarTexto(comandoMac(), 'Comando do Mac', el); const d = $('#tk-mac'); if (d) d.open = true; },   /* 1.47 */ 'papel-teste': () => imprimirPapel(papelTeste()),
+  'papel-ficha': el => { const c = crianca(+el.dataset.id); if (!gestor() && c && c.entrou && agora - c.entrou > TROCA_MS) { toast('Passou de 2 min: só o gestor reimprime este cupom'); return; } folhaPapel({ tipo: 'entrada', id: +el.dataset.id }); }, 'papel-ajustes': el => folhaPapelAjustes(!!el && (el.id === 'tk-direta-ir' || el.id === 'tk-icone-ir')), 'papel-atalho': () => baixarAtalhoImp(), 'papel-ajuste-win': () => baixarAjusteImp(),   /* 2.09 */
+  'papel-ajuste-mac': el => { if (MODO !== 'servidor') { toast('O comando do Mac é copiado no site da loja: lá ele já vem com o endereço do sistema.'); return; } copiarTexto(comandoAjusteMac(), 'Comando do Mac', el); },
+  'papel-tam': el => { const v = el.dataset.v; if (!TAMS_PAPEL.some(x => x[0] === v) || v === tamPapel()) return; if (MODO === 'servidor' && !gestor()) { toast('Só o gestor muda o tamanho do cupom'); return; }
+    const antes = S.cfg.cupomTam; S.cfg.cupomTam = v; $$('#tk-tam [data-v]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === v))); amostraTam(); const nome = TAMS_PAPEL.find(x => x[0] === v)[1];
+    if (MODO === 'servidor') api('regra_salvar', { cupomTam: v }).then(r => { if (r.regra) S.cfg.cupomTam = r.regra.cupomTam; deuCerto('Tamanho do cupom: ' + nome); }).catch(e => { S.cfg.cupomTam = antes; amostraTam(); $$('#tk-tam [data-v]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === tamPapel()))); toast(e.message); });
+    else deuCerto('Tamanho do cupom: ' + nome); }, 'papel-mac': el => { if (MODO !== 'servidor') { toast('O comando do Mac é copiado no site da loja: lá ele já vem com o endereço do sistema.'); return; } copiarTexto(comandoMac(), 'Comando do Mac', el); const d = $('#tk-mac'); if (d) d.open = true; },   /* 1.47 */ 'papel-teste': () => imprimirPapel(papelTeste()),
   'papel-modo': el => { guardar('ps-cupom', el.dataset.v); $$('#tk-modo [data-v]').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === modoPapel())); const t = $('#tk-modo-txt'); if (t) t.textContent = textoModoPapel(); const r = $('#tk-modo-rot'); if (r) r.textContent = rotModoPapel(); if (S.tela === 'ajustes') desenhar(true); },
   'papel-salvar': () => { const nome = MAI(val('tk-loja')), tel = val('tk-tel'), aviso = MAI(val('tk-aviso')); if (!nome) { toast('Escreva o nome da loja que sai no cupom'); const i = $('#tk-loja'); if (i) i.focus(); return; }
     const ok = () => { fecharFolha(); desenhar(); deuCerto('Cupom salvo'); };
