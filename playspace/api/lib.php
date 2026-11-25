@@ -426,6 +426,16 @@ function db(): PDO {
     foreach (["ALTER TABLE criancas ADD COLUMN cad_por TEXT NOT NULL DEFAULT ''", 'ALTER TABLE criancas ADD COLUMN cad_uni INTEGER'] as $sql) { try { $pdo->exec($sql); } catch (Throwable $e) { } }
     $pdo->exec('PRAGMA user_version = 45');
   }
+  if ($v < 46) { /* 2.10: as horas da família que passaram de uma criança para a visita avulsa do irmão (o Desfazer da saída devolve) */
+    $pdo->exec('CREATE TABLE IF NOT EXISTS fam_horas (id INTEGER PRIMARY KEY, quando TEXT NOT NULL, para INTEGER NOT NULL, de INTEGER NOT NULL, minutos INTEGER NOT NULL, reg_de INTEGER, reg_para INTEGER, desfeito INTEGER NOT NULL DEFAULT 0)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS fam_horas_para ON fam_horas (para, quando)');
+    $pdo->exec('PRAGMA user_version = 46');
+  }
+  if ($v < 47) { /* 2.10: os computadores da loja (entram pela unidade, sem senha) */
+    try { $pdo->exec('ALTER TABLE usuarios ADD COLUMN loja INTEGER NOT NULL DEFAULT 0'); } catch (Throwable $e) { }
+    $pdo->exec("CREATE TABLE IF NOT EXISTS maquinas (id INTEGER PRIMARY KEY, token TEXT NOT NULL UNIQUE, nome TEXT NOT NULL DEFAULT '', criado_em TEXT NOT NULL, criado_por INTEGER, ultimo_uso TEXT, ativo INTEGER NOT NULL DEFAULT 1)");
+    $pdo->exec('PRAGMA user_version = 47');
+  }
   return $pdo;
 }
 /* ---------- 1.06: unidades ---------- */
@@ -569,7 +579,7 @@ function vendedorasPorUnidade(): array {
   if (isset($GLOBALS['_vend_uni'])) return $GLOBALS['_vend_uni'];
   $U = []; $livres = []; $nome = fn($n) => mb_substr(maiusculo((string)$n), 0, 30);
   foreach (db()->query('SELECT id FROM unidades WHERE ativo = 1 ORDER BY id')->fetchAll(PDO::FETCH_COLUMN) as $id) $U[(int)$id] = [];
-  foreach (db()->query('SELECT nome, unidade_id FROM usuarios WHERE ativo = 1')->fetchAll() as $x) { $n = $nome($x['nome']); if ($n === '') continue; $u = (int)($x['unidade_id'] ?? 0); if ($u && isset($U[$u])) $U[$u][] = $n; else $livres[] = $n; }
+  foreach (db()->query('SELECT nome, unidade_id FROM usuarios WHERE ativo = 1 AND loja = 0')->fetchAll() as $x) {   /* 2.10: a "loja" (o computador do balcão) não é vendedora */ $n = $nome($x['nome']); if ($n === '') continue; $u = (int)($x['unidade_id'] ?? 0); if ($u && isset($U[$u])) $U[$u][] = $n; else $livres[] = $n; }
   $chave = fn($s) => strtr($s, ['Á' => 'A', 'À' => 'A', 'Â' => 'A', 'Ã' => 'A', 'É' => 'E', 'Ê' => 'E', 'Í' => 'I', 'Ó' => 'O', 'Ô' => 'O', 'Õ' => 'O', 'Ú' => 'U', 'Ç' => 'C']);
   foreach ($U as $id => $L) { $L = array_values(array_unique(array_merge($L, $livres))); usort($L, fn($a, $b) => strcmp($chave($a), $chave($b))); $U[$id] = $L; }
   return $GLOBALS['_vend_uni'] = $U;
@@ -625,10 +635,30 @@ function iniciarSessao(): void {
   session_set_cookie_params(['lifetime' => 2592000, 'path' => $caminho, 'secure' => https(), 'httponly' => true, 'samesite' => 'Lax']);
   session_start();
 }
+/* 2.10: o computador da loja (entra pela unidade, sem senha). A chave fica só no computador; o banco guarda o hash dela */
+function maquinaDaChave(string $t): ?array {
+  if (!preg_match('/^[0-9a-f]{48}$/', $t)) return null;
+  $q = db()->prepare('SELECT * FROM maquinas WHERE token = ? AND ativo = 1'); $q->execute([hash('sha256', $t)]); return $q->fetch() ?: null;
+}
+function usuarioDaLoja(int $uni): ?array {   // a "loja" da unidade: um usuário só para o computador do balcão (fora da Equipe e dos vendedores)
+  $db = db(); $q = $db->prepare('SELECT * FROM unidades WHERE id = ? AND ativo = 1'); $q->execute([$uni]); $un = $q->fetch(); if (!$un) return null;
+  $nome = maiusculo(preg_replace('/^CASA\s+TO[MN]\s+/iu', 'CASATOM ', trim((string)$un['nome'])));
+  $q = $db->prepare('SELECT id, nome, ativo FROM usuarios WHERE loja = 1 AND unidade_id = ? ORDER BY id LIMIT 1'); $q->execute([$uni]); $u = $q->fetch();
+  if ($u) { if ((int)$u['ativo'] !== 1 || (string)$u['nome'] !== $nome) $db->prepare('UPDATE usuarios SET ativo = 1, nome = ? WHERE id = ?')->execute([$nome, (int)$u['id']]); return ['id' => (int)$u['id']]; }
+  $db->prepare("INSERT INTO usuarios (nome, login, senha, papel, ativo, criado_em, unidade_id, loja) VALUES (?, ?, ?, 'atendente', 1, ?, ?, 1)")->execute([$nome, '__loja_' . $uni . '_' . bin2hex(random_bytes(3)), password_hash(bin2hex(random_bytes(24)), PASSWORD_DEFAULT), agora(), $uni]);
+  return ['id' => (int)$db->lastInsertId()];
+}
+function maquinasLista(): array {
+  $d = fn($t) => $t ? substr((string)$t, 8, 2) . '/' . substr((string)$t, 5, 2) . ' ' . substr((string)$t, 11, 5) : '';
+  return array_map(fn($x) => ['id' => (int)$x['id'], 'nome' => (string)$x['nome'], 'criado' => $d($x['criado_em']), 'uso' => $d($x['ultimo_uso']), 'ativo' => (int)$x['ativo'] === 1], db()->query('SELECT * FROM maquinas ORDER BY ativo DESC, id DESC LIMIT 40')->fetchAll());
+}
+function unidadesDaLoja(): array { return array_map(fn($x) => ['id' => (int)$x['id'], 'nome' => (string)$x['nome']], db()->query('SELECT id, nome FROM unidades WHERE ativo = 1 ORDER BY id')->fetchAll()); }
 function eu(): ?array {
   $id = (int)($_SESSION['uid'] ?? 0); if (!$id) return null;
-  $q = db()->prepare('SELECT id, nome, login, papel, unidade_id FROM usuarios WHERE id = ? AND ativo = 1'); $q->execute([$id]);   // 2.02: e a unidade dela
-  return $q->fetch() ?: null;
+  $q = db()->prepare('SELECT id, nome, login, papel, unidade_id, loja FROM usuarios WHERE id = ? AND ativo = 1'); $q->execute([$id]);   // 2.02: e a unidade dela
+  $u = $q->fetch() ?: null;
+  if ($u && !empty($u['loja'])) { $q2 = db()->prepare('SELECT 1 FROM maquinas WHERE id = ? AND ativo = 1'); $q2->execute([(int)($_SESSION['maq'] ?? 0)]); if (!$q2->fetchColumn()) return null; }   /* 2.10: o computador que perdeu a liberação sai na hora */
+  return $u;
 }
 function exigir(array $papeis = []): array {
   $u = eu(); if (!$u) falha('Entre de novo para continuar.', 401);
@@ -1180,6 +1210,57 @@ function desfazerCobrancasSobrando(array $c, ?string $quando = null): array {
     $db->commit();
   } catch (Throwable $e) { $db->rollBack(); throw $e; }
   return ['n' => count($tirar), 'valor' => $valor];
+}
+/* 2.10 (o dono: "quando eu entro alguém no avulso, eu tenho que, mesmo assim, ter a opção de descontar do pacote no final ... Se a pessoa
+   tiver horas no pacote"): as horas são da família (o mesmo responsável). A criança que entrou na recreação avulsa usa, na saída, as horas
+   guardadas dos irmãos: os minutos passam do pacote do irmão para o dela, e as cobranças avulsas que sobram são desfeitas logo depois
+   (desfazerCobrancasSobrando). Passa só o que tira cobrança: o que não fecha um período inteiro continua avulso. Fica em fam_horas (o
+   Desfazer da saída devolve) e nos registros das duas crianças */
+function autosDaVisitaMin(array $c): int {
+  if (empty($c['entrou'])) return 0;
+  $q = db()->prepare('SELECT COALESCE(SUM(minutos), 0) FROM vendas WHERE crianca_id = ? AND auto = 1 AND quando >= ? AND NOT EXISTS (SELECT 1 FROM pagamentos p WHERE p.venda_id = vendas.id)');
+  $q->execute([(int)$c['id'], (string)$c['entrou']]); return (int)$q->fetchColumn();
+}
+function horasLivresDaFamilia(array $c, int $fim): array {   // [[irmão, minutos livres]]: o que tem mais primeiro (quem está no espaço guarda o que a visita dele já usou)
+  $L = [];
+  foreach (irmaosDe($c) as $x) {
+    $uso = !empty($x['entrou']) && empty($x['festa_id']) ? cobrar(minutosDaVisita($x, $fim)) : 0;
+    $tem = (int)$x['pacote_min'] - autosDaVisitaMin($x) - (int)$x['usado_min'] - $uso;
+    if ($tem > 0) $L[] = [$x, $tem];
+  }
+  usort($L, fn($a, $b) => ($b[1] <=> $a[1]) ?: ((int)$a[0]['id'] <=> (int)$b[0]['id']));
+  return $L;
+}
+function usarHorasDaFamilia(array $c, string $quando): ?array {
+  if (empty($c['entrou']) || !servicoTempo() || !empty($c['festa_id'])) return null;
+  $p = periodo(); $fim = strtotime($quando);
+  $precisa = (int)$c['usado_min'] + cobrar(minutosDaVisita($c, $fim)) - ((int)$c['pacote_min'] - autosDaVisitaMin($c)); if ($precisa <= 0) return null;
+  $L = horasLivresDaFamilia($c, $fim); $tem = array_sum(array_map(fn($y) => $y[1], $L)); if ($tem <= 0) return null;
+  $fica = $tem >= $precisa ? 0 : (int)ceil(($precisa - $tem) / $p); $t = $precisa - $fica * $p; if ($t <= 0) return null;
+  $db = db(); $de = []; $resta = $t; $db->beginTransaction();
+  try {
+    foreach ($L as [$x, $livre]) { if ($resta <= 0) break; $m = min($livre, $resta); $resta -= $m;
+      $db->prepare('UPDATE criancas SET pacote_min = MAX(0, pacote_min - ?) WHERE id = ?')->execute([$m, (int)$x['id']]);
+      $rd = registrar('alt', (int)$x['id'], (string)$x['nome'], 'Horas da família: ' . dur($m) . ' usadas na visita de ' . $c['nome']);
+      $db->prepare('INSERT INTO fam_horas (quando, para, de, minutos, reg_de) VALUES (?, ?, ?, ?, ?)')->execute([agora(), (int)$c['id'], (int)$x['id'], $m, $rd]);
+      $de[] = ['id' => (int)$db->lastInsertId(), 'crianca' => (int)$x['id'], 'nome' => (string)$x['nome'], 'min' => $m]; }
+    $db->prepare('UPDATE criancas SET pacote_min = pacote_min + ? WHERE id = ?')->execute([$t, (int)$c['id']]);
+    $rp = registrar('alt', (int)$c['id'], (string)$c['nome'], 'Horas da família: ' . dur($t) . ' do pacote de ' . implode(' e ', array_map(fn($y) => $y['nome'], $de)) . ' (descontou do pacote, em vez de pagar avulso)');
+    $db->prepare('UPDATE fam_horas SET reg_para = ? WHERE id IN (' . implode(',', array_map(fn($y) => (int)$y['id'], $de)) . ')')->execute([$rp]);
+    $db->commit();
+  } catch (Throwable $e) { $db->rollBack(); throw $e; }
+  return ['min' => $t, 'de' => $de];
+}
+function desfazerHorasDaFamilia(array $c, string $desde): int {   // o Desfazer da saída: as horas voltam para os irmãos
+  $db = db(); $q = $db->prepare('SELECT * FROM fam_horas WHERE para = ? AND quando >= ? AND desfeito = 0'); $q->execute([(int)$c['id'], $desde]); $n = 0;
+  foreach ($q->fetchAll() as $x) {
+    $db->prepare('UPDATE criancas SET pacote_min = MAX(0, pacote_min - ?) WHERE id = ?')->execute([(int)$x['minutos'], (int)$c['id']]);
+    $db->prepare('UPDATE criancas SET pacote_min = pacote_min + ? WHERE id = ?')->execute([(int)$x['minutos'], (int)$x['de']]);
+    $db->prepare('UPDATE fam_horas SET desfeito = 1 WHERE id = ?')->execute([(int)$x['id']]);
+    foreach (['reg_de', 'reg_para'] as $k) if (!empty($x[$k])) $db->prepare("DELETE FROM registros WHERE id = ? AND tipo = 'alt'")->execute([(int)$x[$k]]);
+    $n++;
+  }
+  return $n;
 }
 function fazerSaida(array $c, string $origem = 'iDFace', ?string $quando = null, bool $avulso = false): array {   // $avulso (1.11): a visita acabou de ser vendida avulsa (venderVisitaAvulsa)
   $db = db(); $quando = $quando ?: agora();

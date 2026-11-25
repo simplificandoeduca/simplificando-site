@@ -114,7 +114,7 @@ function dados(array $eu): array {
   }
   $compromissos = array_map(fn($x) => ['id' => (int)$x['id'], 'dia' => $x['dia'], 'hora' => $x['hora'], 'titulo' => $x['titulo'], 'tipo' => $x['tipo'], 'sub' => $x['sub'], 'obs' => $x['obs'], 'feito' => !empty($x['feito'])], $db->query('SELECT * FROM compromissos ORDER BY dia, hora')->fetchAll());
   $vendasHoje = $db->prepare('SELECT COUNT(*) n, COALESCE(SUM(minutos),0) m, COALESCE(SUM(valor),0) v FROM vendas WHERE quando >= ? AND servico != ?'); $vendasHoje->execute([$hojeMenos, SERV_IMPORTADO]); $vh = $vendasHoje->fetch();   // tudo o que foi vendido nas últimas 24 h; m = minutos de brincar
-  $equipe = $eu['papel'] === 'atendente' ? [] : array_map(fn($u) => ['id' => (int)$u['id'], 'nome' => $u['nome'], 'login' => $u['login'], 'papel' => $u['papel'], 'uni' => (int)($u['unidade_id'] ?? 0)], $db->query('SELECT id, nome, login, papel, unidade_id FROM usuarios WHERE ativo = 1 ORDER BY nome')->fetchAll());   // 2.02: e a unidade
+  $equipe = $eu['papel'] === 'atendente' ? [] : array_map(fn($u) => ['id' => (int)$u['id'], 'nome' => $u['nome'], 'login' => $u['login'], 'papel' => $u['papel'], 'uni' => (int)($u['unidade_id'] ?? 0)], $db->query('SELECT id, nome, login, papel, unidade_id FROM usuarios WHERE ativo = 1 AND loja = 0 ORDER BY nome')->fetchAll());   /* 2.10: sem a "loja" (o computador do balcão) */   // 2.02: e a unidade
   $q = $db->prepare("SELECT COUNT(*) n, COALESCE(SUM(valor), 0) v FROM vendas WHERE auto = 1 AND quando >= ? AND itens NOT LIKE 'avulsa%'"); $q->execute([$hojeMenos]); $ah = $q->fetch(); $atrasoHoje = ['n' => (int)$ah['n'], 'valor' => (float)$ah['v']];   // 1.15: o tempo além do pacote nas últimas 24 h (a recreação avulsa é venda comum, acertada na saída)
   $q = $db->prepare("SELECT COALESCE(SUM(voucher != ''), 0) nv, COALESCE(SUM(CASE WHEN voucher != '' THEN cheio ELSE 0 END), 0) vv, COALESCE(SUM(pcd = 1), 0) np, COALESCE(SUM(CASE WHEN pcd = 1 THEN cheio - valor - desc_valor ELSE 0 END), 0) vp, COALESCE(SUM(desc_valor), 0) vd FROM vendas WHERE quando > ?"); $q->execute([$hojeMenos]); $dh = $q->fetch();
   $q = $db->prepare("SELECT COUNT(*) FROM registros WHERE tipo = 'desc' AND quando > ?"); $q->execute([$hojeMenos]); $nd = $q->fetchColumn();   // 1.04: quantos descontos o gestor deu nas últimas 24 h
@@ -212,6 +212,34 @@ switch ($acao) {
     if (!$u || !password_verify($senha, $u['senha'])) { $db->prepare('INSERT INTO tentativas (login, ip, quando) VALUES (?, ?, ?)')->execute([$login, $ip, time()]); usleep(400000); falha('Login ou senha errados.', 401); }
     session_regenerate_id(true); $_SESSION['uid'] = (int)$u['id']; $_SESSION['uni0'] = max(0, (int)($_SERVER['HTTP_X_PLAY_UNIDADE'] ?? 0));   // 1.91: a unidade em que entrou
     responder(['usuario' => eu()]);
+  }
+  case 'loja_unidades': { /* 2.10: a tela de entrar do computador da loja (só com a chave dele) */
+    $m = maquinaDaChave((string)($in['chave'] ?? '')); if (!$m) falha('Este computador não está mais liberado. Entre com usuário e senha, ou peça ao gestor para liberar de novo.', 403);
+    responder(['unidades' => unidadesDaLoja(), 'nome' => (string)$m['nome']]);
+  }
+  case 'entrar_loja': { /* 2.10: um toque na unidade, sem senha (o computador liberado pelo gestor) */
+    $db->prepare('DELETE FROM tentativas WHERE quando < ?')->execute([time() - 900]);
+    $q = $db->prepare('SELECT COUNT(*) FROM tentativas WHERE ip = ? AND quando > ?'); $q->execute([$ip, time() - 900]); if ((int)$q->fetchColumn() >= 30) falha('Muitas tentativas. Espere 15 minutos e tente de novo.', 429);
+    $m = maquinaDaChave((string)($in['chave'] ?? ''));
+    if (!$m) { $db->prepare('INSERT INTO tentativas (login, ip, quando) VALUES (?, ?, ?)')->execute(['#loja', $ip, time()]); usleep(400000); falha('Este computador não está mais liberado. Entre com usuário e senha, ou peça ao gestor para liberar de novo.', 403); }
+    $uni = (int)($in['unidade'] ?? 0); $lu = usuarioDaLoja($uni); if (!$lu) falha('Unidade não encontrada.', 404);
+    $db->prepare('UPDATE maquinas SET ultimo_uso = ? WHERE id = ?')->execute([agora(), (int)$m['id']]);
+    session_regenerate_id(true); $_SESSION['uid'] = (int)$lu['id']; $_SESSION['uni0'] = $uni; $_SESSION['maq'] = (int)$m['id'];
+    responder(['usuario' => eu()]);
+  }
+  case 'maquina_liberar': { /* 2.10: o gestor libera este computador (a chave volta só uma vez, para ficar guardada nele) */
+    $u = exigir(['gestor']); $nome = mb_substr(maiusculo(trim((string)($in['nome'] ?? ''))), 0, 40); if ($nome === '') $nome = 'COMPUTADOR DE ' . date('d/m H:i');
+    if ((int)$db->query('SELECT COUNT(*) FROM maquinas WHERE ativo = 1')->fetchColumn() >= 30) falha('Já há 30 computadores liberados. Tire o acesso dos que não usam mais.');
+    $t = bin2hex(random_bytes(24)); $db->prepare('INSERT INTO maquinas (token, nome, criado_em, criado_por) VALUES (?, ?, ?, ?)')->execute([hash('sha256', $t), $nome, agora(), (int)$u['id']]);
+    registrar('alt', null, 'Computador da loja', 'Liberado para entrar pela unidade, sem senha: ' . $nome . ' · por ' . primeiroNome($u['nome']));
+    responder(['chave' => $t, 'nome' => $nome, 'unidades' => unidadesDaLoja(), 'maquinas' => maquinasLista()]);
+  }
+  case 'maquinas': { exigir(['gestor']); responder(['maquinas' => maquinasLista()]); }
+  case 'maquina_tirar': { /* 2.10: o computador volta a pedir usuário e senha (a sessão aberta nele cai) */
+    $u = exigir(['gestor']); $m = !empty($in['chave']) ? maquinaDaChave((string)$in['chave']) : null; $id = $m ? (int)$m['id'] : (int)($in['id'] ?? 0);
+    $q = $db->prepare('SELECT nome FROM maquinas WHERE id = ? AND ativo = 1'); $q->execute([$id]); $n = $q->fetchColumn();
+    if ($n !== false) { $db->prepare('UPDATE maquinas SET ativo = 0 WHERE id = ?')->execute([$id]); registrar('alt', null, 'Computador da loja', 'Acesso sem senha tirado: ' . $n . ' · por ' . primeiroNome($u['nome'])); }
+    responder(['maquinas' => maquinasLista()]);
   }
   case 'sair': { $_SESSION = []; session_destroy(); responder(); }
   case 'trocar_senha': {
@@ -344,7 +372,7 @@ switch ($acao) {
     $id = (int)$db->lastInsertId(); if ($d['obs'] !== '') $db->prepare('UPDATE criancas SET obs_em = ?, obs_por = ? WHERE id = ?')->execute([agora(), primeiroNome((string)$u['nome']), $id]);
     /* 2.08: quem está cadastrando (conta nas Comissões): o nome tocado na tela, se é vendedor desta unidade; sem ele, quem está logado */
     $cp = mb_substr(maiusculo((string)($in['cad_por'] ?? '')), 0, 30); $un = unidadeDoPedido(); $ok = $cp !== '' && in_array($cp, array_merge($un ? vendedorasDaUnidade((int)$un) : vendedorasTodas(), vendedoras()), true);
-    $db->prepare('UPDATE criancas SET cad_por = ?, cad_uni = ? WHERE id = ?')->execute([$ok ? $cp : mb_substr(maiusculo((string)$u['nome']), 0, 30), $un, $id]);
+    $db->prepare('UPDATE criancas SET cad_por = ?, cad_uni = ? WHERE id = ?')->execute([$ok ? $cp : (!empty($u['loja']) ? '' : mb_substr(maiusculo((string)$u['nome']), 0, 30)), $un, $id]);   /* 2.10: a "loja" não conta como quem cadastrou */
     if ($d['pcd']) registrar('cad', $id, $d['nome'], 'Cadastrada como criança PCD: ' . pcdDesc() . '% de desconto na recreação · por ' . primeiroNome($u['nome'])); if ($sap) $db->prepare('UPDATE criancas SET sapateira = ? WHERE id = ?')->execute([$sap, $id]); $c = crianca($id);
     gravarCfg('mandar_' . $id, $id); // vai para o iDFace (nome agora, foto quando o aparelho confirmar o cadastro)
     responder(['id' => $id]);
@@ -501,6 +529,7 @@ switch ($acao) {
       if (strtotime($corrige) > time()) falha('A hora corrigida não pode ser depois de agora.');
       if (strtotime($corrige) < strtotime(substr((string)$c['entrou'], 0, 16) . ':00')) falha('A hora corrigida não pode ser antes da entrada (' . substr((string)$c['entrou'], 11, 5) . ').');
     }
+    $famH = null; if (!empty($in['familia']) && empty($in['avulso']) && $corrige === null) { $famH = usarHorasDaFamilia($c, agora()); if ($famH) $c = crianca((int)$c['id']); }   /* 2.10: descontar do pacote da família (o irmão tem as horas) */
     // 1.15: a tela manda o total que mostrou (já com o desconto) e a forma de pagamento. Se a conta do servidor deu outro valor (nasceu
     // mais um período com a folha aberta, ou o relógio do aparelho anda diferente), a saída não é dada: a tela recarrega e mostra o
     // valor certo. Assim nenhuma criança sai com período sem receber. Sem "total" (tela antiga), vale como antes
@@ -520,7 +549,7 @@ switch ($acao) {
     $pendentes = pendentesDaVisita($c);   // 1.02: o que ficou para pagar na saída (visto antes de dar a saída: depois dela a visita já fechou)
     $ud = eu(); $desc = lerDesconto($in['desconto'] ?? null, $ud ?: [], $c);   // 1.04: o desconto do gestor (conferido antes de dar a saída)
     $pgS = lerPagamento($in['pagamento'] ?? null); $parcS = $pgS ? lerParcelas($in, $pgS, $us, $c) : PARC_NADA;   // 1.89: em quantas vezes no crédito (conferido antes de dar a saída)
-    $r = fazerSaida($c, 'mão', null, $av !== null); $r['pend'] = round(array_sum(array_map(fn($v) => (float)$v['falta'], $pendentes)), 2); if ($av) $r['avulso'] = $av;
+    $r = fazerSaida($c, 'mão', null, $av !== null); $r['pend'] = round(array_sum(array_map(fn($v) => (float)$v['falta'], $pendentes)), 2); if ($av) $r['avulso'] = $av; if ($famH) $r['familia'] = $famH;
     if ($corrige !== null) { $k = corrigirSaida((int)$r['visita'], $corrige, $u, $motivo); $r['corrigida'] = $k; $r['debitado'] = $k['debitado']; $r['atraso'] = atrasoDaVisita((int)$c['id'], (string)$c['entrou'], date('Y-m-d H:i:s', time() + 5)); }
     // 0.90: a forma em que as cobranças por atraso desta visita foram recebidas. Vale só para as que ainda não estavam pagas, até o valor de cada uma
     $q = $db->prepare('SELECT id, valor FROM vendas WHERE crianca_id = ? AND auto = 1 AND quando >= ? AND NOT EXISTS (SELECT 1 FROM pagamentos p WHERE p.venda_id = vendas.id) ORDER BY id'); $q->execute([(int)$c['id'], (string)$c['entrou']]); $autos = $q->fetchAll();   // as cobranças por atraso desta visita que ainda não foram pagas
@@ -624,6 +653,7 @@ switch ($acao) {
     $db->prepare('UPDATE criancas SET entrou = ?, usado_min = MAX(0, usado_min - ?), festa_id = ? WHERE id = ?')->execute([$v['entrou'], (int)$v['debitado_min'], $v['festa_id'] ?? null, $c['id']]);   // 1.29: a visita da festa volta a ser da festa
     $sap = (int)($in['sapateira'] ?? 0); if ($sap > 0 && !donoSapateira($sap, (int)$c['id'])) $db->prepare('UPDATE criancas SET sapateira = ? WHERE id = ?')->execute([$sap, $c['id']]);
     $db->prepare('DELETE FROM visitas WHERE id = ?')->execute([$v['id']]);
+    desfazerHorasDaFamilia($c, (string)$v['entrou']);   /* 2.10: as horas da família voltam para os irmãos */
     if (!$estorna) { /* 1.21: nada a tirar (esta saída não recebeu) */ }
     elseif (isset($in['pag_de'])) { // 1.02: tudo o que foi recebido nessa saída (o que ficou a pagar e as cobranças por atraso)
       apagarPagamentosDaOperacao((int)$c['id'], (int)$in['pag_de'], (string)$v['saiu']);   // 1.31: só os desta saída
@@ -1111,6 +1141,20 @@ switch ($acao) {
   }
 
   /* ---------- produtos da loja ---------- */
+  case 'produto_ct_novo': { /* 2.10 (o dono: "no Casatom eu quero um botão vermelho escrito adicionar produto, para que os próprios operadores
+       adicionem o valor e o produto"): qualquer pessoa da equipe cadastra um produto da Casa Tom na hora da venda (nome, valor, categoria) */
+    $u = exigir(); $nome = mb_substr(maiusculo(trim(preg_replace('/\s+/u', ' ', (string)($in['n'] ?? '')))), 0, 60); if (mb_strlen($nome) < 2) falha('Como se chama o produto?');
+    $valor = isset($in['v']) && is_numeric($in['v']) ? round((float)$in['v'], 2) : -1; if ($valor <= 0 || $valor > 100000) falha('Qual é o valor do produto?');
+    $cat = mb_substr(maiusculo(trim((string)($in['cat'] ?? ''))), 0, 30);
+    $q = $db->prepare('SELECT * FROM produtos WHERE ativo = 1 AND nome = ? COLLATE NOCASE ORDER BY id'); $q->execute([$nome]); $ja = $q->fetchAll();
+    foreach ($ja as $x) if (abs((float)$x['valor'] - $valor) < 0.005) {   /* o mesmo produto: passa a valer também na Casa Tom */
+      $lj = lojasValidas((string)($x['lojas'] ?? 'play') . ',ct'); if ($lj !== (string)$x['lojas']) $db->prepare('UPDATE produtos SET lojas = ?, mudou_em = ? WHERE id = ?')->execute([$lj, agora(), (int)$x['id']]);
+      responder(['produto' => produtoPublico(produto((int)$x['id'])), 'produtos' => produtos(), 'ja' => true]); }
+    if ($ja) falha('Já existe ' . $nome . ' no cadastro, por ' . dinheiro((float)$ja[0]['valor']) . '. Procure na lista (em "Ver todo o cadastro") ou peça ao gestor para mudar o valor.');
+    $db->prepare('INSERT INTO produtos (nome, valor, estoque, ativo, criado_em, mudou_em, lojas, cat) VALUES (?, ?, NULL, 1, ?, ?, ?, ?)')->execute([$nome, $valor, agora(), agora(), 'ct', $cat]); $id = (int)$db->lastInsertId();
+    registrar('est', null, $nome, 'Produto novo da Casa Tom · ' . dinheiro($valor) . ($cat !== '' ? ' · ' . $cat : '') . ' · cadastrado na venda por ' . primeiroNome($u['nome']));
+    responder(['produto' => produtoPublico(produto($id)), 'produtos' => produtos()]);
+  }
   case 'produto_salvar': { // só a gestora: nome, valor e estoque (vazio = a loja não controla o estoque desse produto)
     $u = exigir(); podeAjustar($u); $id = (int)($in['id'] ?? 0); $p = $id ? produto($id) : null; if ($id && (!$p || !$p['ativo'])) falha('Produto não encontrado.', 404);
     $nome = mb_substr(maiusculo((string)($in['n'] ?? '')), 0, 60); if ($nome === '') falha('Como se chama o produto?');

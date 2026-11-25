@@ -1301,6 +1301,30 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O computador da loja, as horas da família, várias crianças de uma vez e o produto da Casa Tom (2.10)
+
+Pedidos do dono (25/11).
+
+O computador da loja: "a tela de login eu só vou querer 4: Anália, Casa Tom Anália, Casa Tom Morumbi e Morumbi ... não precisa pedir senha ... mas deixa a parte do usuário pra gente ir cadastrando as meninas que vai aparecer lá no centro de comissão".
+
+- O gestor libera cada computador do balcão uma vez: entre com o login do gestor nesse computador → Ajustes → Computadores da loja → escreva um nome (ex.: BALCÃO ANÁLIA) → "Liberar este computador". Ao sair, a tela de entrar desse computador mostra só as unidades; a equipe toca na unidade e entra, sem senha, travada nela.
+- Quem entra é a "loja" da unidade (aparece como ANÁLIA, MORUMBI, CASATOM ANÁLIA…): não aparece na Equipe nem entre os vendedores. Quem vende, cadastra e atende continua tocando no nome (as comissões continuam por pessoa); no computador da loja, o cadastro novo só fecha com "Quem está cadastrando?" tocado.
+- Os usuários da Equipe continuam (para as comissões e para o gestor). "Entrar com usuário e senha" fica embaixo dos botões. O celular e o computador de casa (sem a liberação) continuam com usuário e senha, para ninguém de fora entrar pelo site.
+- Em Ajustes → Computadores da loja aparecem os computadores liberados, com a última entrada; "Tirar acesso" faz o computador voltar a pedir senha (a sessão aberta nele cai na hora).
+
+As horas da família: "quando eu entro alguém no avulso, eu tenho que, mesmo assim, ter a opção de descontar do pacote no final ... Se a pessoa tiver horas no pacote".
+
+- As horas são da família (o mesmo responsável). A criança sem horas no nome dela (as do sistema antigo ficaram num irmão) entra na recreação avulsa, e a saída dela mostra "Descontar do pacote" ao lado de "Pagar avulso" (vem marcado "Pagar avulso", porque ela entrou na avulsa; a folha avisa "dá para descontar Xh das horas de …"). Com um toque em "Descontar do pacote", o tempo sai das horas guardadas do irmão ("Pacote da família: desconta 1h30 das horas de …"), e a cobrança avulsa sai da conta. Passa só o que tira cobrança (o que não fecha um período continua avulso). Vale na saída sozinha e na conta em conjunto. O registro das duas crianças diz "Horas da família"; o Desfazer da saída devolve as horas.
+- O atendimento da criança sem horas já avisa: "a família tem Xh no pacote: na saída, dá para descontar".
+
+Várias crianças de uma vez: "um checkzinho nas crianças ... quando eu quiser entrar uma criança só ou 2 crianças ... Aí ela fica toda marcada, verdinha".
+
+- No atendimento do responsável com mais de uma criança fora do espaço: "Quem vai entrar?", com cada criança num botão; marcada, fica verde com o ✓ (a do atendimento já vem marcada). "Dar entrada · 2 crianças" entra todas as marcadas de uma vez (cada uma com o saldo dela ou na recreação avulsa): uma mensagem, um Desfazer, a sapateira de cada uma em seguida e um cupom de entrada só, com as duas.
+
+O produto da Casa Tom: "no Casatom eu quero um botão vermelho escrito adicionar produto, para que os próprios operadores adicionem o valor e o produto".
+
+- Casa Tom → Venda de produtos → o botão vermelho "Adicionar produto" (para toda a equipe): o nome (já vem o que foi buscado), o valor e, se quiser, a categoria; o produto entra no cadastro da Casa Tom e já vai para a venda. O registro diz quem cadastrou. Nome repetido não entra: com o mesmo valor, usa o que já existe; com outro valor, pede para procurar na lista (o preço de um produto só muda pelo gestor, em Produtos).
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O tamanho do cupom e o ajuste da impressão do Chrome (2.09)
 
 Pedido do dono (25/11, com a foto de uma notinha de entrada): "a notinha tá saindo muito grande. Eu consigo diminuir ela ou colocar uma opção dentro do sistema para mim fazer um ajuste da notinha?"
