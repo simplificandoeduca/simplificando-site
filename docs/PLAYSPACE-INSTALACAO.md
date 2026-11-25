@@ -1301,6 +1301,15 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A Casa Tom sem nada cortado no notebook (2.06)
+
+Pedido do dono, com a foto da tela Vender da Casa Tom num MacBook: "O casa tom está cortando".
+
+- O botão do quadro da venda ("Escolha os produtos", "Receber R$ ...") fica inteiro dentro do quadro (antes passava da borda direita e era cortado).
+- As categorias quebram em linhas: todas ficam à vista, nenhuma cortada no fim da linha.
+- A coluna "Atividades da semana" (da Play Space; o menu da Casa Tom não tem Agenda) não aparece nas telas da Casa Tom, e a tela da Casa Tom usa até 1400 px de largura: num MacBook os produtos ficam em 5 colunas (eram 3). Ao voltar para a Play Space, a coluna volta.
+- Em notebook de tela baixa, a logo T O M fica inteira no alto do menu vermelho (antes ficava por baixo do primeiro botão).
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O compilado novo do banco de horas: o aviso de perfil duplicado em quem já está cadastrado (2.05)
 
 Pedido do dono: "faça um compilado mais atualizado possível de todas as horas, cancele todos os CPFs duplicados, igual a gente fez, e coloque uma observação nesses que são CPF duplicados no cadastro deles, para que a gente consiga visualizar."
