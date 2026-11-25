@@ -49,35 +49,50 @@ async function hubFalso(q, r, acao) {
   return json(r, { ok: true, token: b64({ alg: 'none', typ: 'JWT' }) + '.' + b64({ iss: 'robo@demo', sub: 'robo@demo', aud: 'https://identitytoolkit.googleapis.com/google.identity.identitytoolkit.v1.IdentityToolkit', iat: now, exp: now + 3600, uid }) + '.' });
 }
 
-// Conteúdo do hub (conteudo.php de mentira): a semana de hoje com posts de exemplo (imagens do site e um vídeo curto do robô)
-const CD_FEITO = {};
-const dk = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-const CD_ARQ = { vid1: [path.join(__dirname, 'midia', 'reel.mp4'), 'video/mp4', 'Reel-Mito-abdominal-queima-gordura.mp4'] };
-for (let i = 1; i <= 7; i++) CD_ARQ['img' + i] = [path.join(SITE, 'img', 'post', 'cardio-jejum-' + i + '.jpg'), 'image/jpeg', 'Carrossel-' + i + '.jpg'];
-const cdF = id => ({ id, nome: CD_ARQ[id][2], mime: CD_ARQ[id][1], tam: fs.statSync(CD_ARQ[id][0]).size });
+// Conteúdo do hub (conteudo.php de mentira): os posts que o dono sobe pelo hub (Novo post), guardados na memória.
+// Mesmas ações do conteudo.php de verdade (semana, arquivo, feito, novo, pedaco, pronto, apagar); o PHP de verdade é testado à parte (servidor.spec.js).
+const CD = { posts: {}, feito: {} };
+const corpo = async q => { const L = []; for await (const c of q) L.push(c); return Buffer.concat(L); };
+const cdMonta = p => {
+  const arqs = p.arqs.filter(a => a.ok), vid = arqs.filter(a => a.mime.startsWith('video/')), img = arqs.filter(a => a.mime.startsWith('image/'));
+  const f = a => ({ id: p.id + '-' + a.k, nome: a.nome, mime: a.mime, tam: a.buf.length });
+  let tipo = 'vazio', midia = [], capa = null;
+  if (vid.length) { tipo = 'reels'; midia = vid.map(f); capa = img.length ? f(img[0]) : null; }
+  else if (img.length >= 2) { tipo = 'carrossel'; midia = img.map(f); capa = midia[0]; }
+  else if (img.length) { tipo = 'foto'; midia = [f(img[0])]; capa = midia[0]; }
+  return { id: p.id, plat: p.plat, tema: p.tema, tipo, capa, midia, legenda: p.legenda, em: p.em };
+};
 async function cdFalso(q, r, url) {
   if (!/^Bearer \S{100,}/.test(q.headers.authorization || '')) return json(r, { ok: false, erro: 'Só o dono do painel.' }, 403);
-  const acao = url.searchParams.get('acao');
-  if (acao === 'feito') {
-    let body = ''; for await (const c of q) body += c;
-    const k = campo(body, 'k'); if (campo(body, 'on')) CD_FEITO[k] = Date.now(); else delete CD_FEITO[k];
-    return json(r, { ok: true });
+  const acao = url.searchParams.get('acao'), form = async () => new Response(await corpo(q), { headers: { 'content-type': q.headers['content-type'] || '' } }).formData();
+  if (acao === 'feito') { const fd = await form(), k = fd.get('k'); if (fd.get('on')) CD.feito[k] = Date.now(); else delete CD.feito[k]; return json(r, { ok: true }); }
+  if (acao === 'novo') {
+    const fd = await form(), id = Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-6);
+    CD.posts[id] = { id, data: fd.get('data'), plat: fd.get('plat'), tema: fd.get('tema') || '', legenda: (fd.get('legenda') || '').replace(/\r\n/g, '\n'), arqs: [], em: Date.now(), pronto: false };
+    return json(r, { ok: true, id });
   }
+  if (acao === 'pedaco') {
+    const p = CD.posts[url.searchParams.get('id')]; if (!p) return json(r, { ok: false }, 404);
+    const k = +url.searchParams.get('k'), parte = +url.searchParams.get('parte'), buf = await corpo(q);
+    let a = p.arqs.find(x => x.k === k); if (!a || parte === 0) { p.arqs = p.arqs.filter(x => x.k !== k); a = { k, nome: url.searchParams.get('nome'), mime: url.searchParams.get('mime'), buf: Buffer.alloc(0), ok: false }; p.arqs.push(a); p.arqs.sort((x, y) => x.k - y.k); }
+    a.buf = Buffer.concat([a.buf, buf]); if (url.searchParams.get('fim')) a.ok = true;
+    return json(r, { ok: true, tam: a.buf.length });
+  }
+  if (acao === 'pronto') { const id = (await form()).get('id'), p = CD.posts[id]; if (!p) return json(r, { ok: false }, 404); p.pronto = true; return json(r, { ok: true, post: cdMonta(p) }); }
+  if (acao === 'apagar') { const id = (await form()).get('id'); if (!CD.posts[id]) return json(r, { ok: false }, 404); delete CD.posts[id]; delete CD.feito[id]; return json(r, { ok: true }); }
   if (acao === 'arquivo') {
-    const a = CD_ARQ[url.searchParams.get('id')]; if (!a) return json(r, { ok: false }, 404);
-    r.setHeader('Content-Type', a[1]); r.setHeader('Content-Length', fs.statSync(a[0]).size); return fs.createReadStream(a[0]).pipe(r);
+    const [pid, k] = String(url.searchParams.get('id')).split('-'), p = CD.posts[pid], a = p && p.arqs.find(x => x.k === +k && x.ok);
+    if (!a) return json(r, { ok: false }, 404);
+    r.setHeader('Content-Type', a.mime); r.setHeader('Content-Length', a.buf.length); return r.end(a.buf);
   }
-  const sp = d => d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }); // o mesmo fuso do navegador do robô
-  const ini = url.searchParams.get('ini'), hoje = sp(new Date()), amanha = sp(new Date(Date.now() + 864e5)), dias = {};
+  const ini = url.searchParams.get('ini'), dias = {};
   for (let i = 0; i < 7; i++) { const d = new Date(ini + 'T12:00:00'); d.setDate(d.getDate() + i); dias[dk(d)] = []; }
-  const leg = 'Cardio em jejum emagrece mais? 🤔\n\nSpoiler: o que manda é o total do dia, não a hora. Arrasta pro lado que eu te explico em 7 telas 👉\n\nSalva pra lembrar e manda pra quem vive dizendo que só faz cardio em jejum.\n\n#simplificando #cardio #emagrecimento #treino';
-  if (dias[hoje]) dias[hoje] = [
-    { plat: 'instagram', tema: 'Cardio em jejum emagrece mais?', tipo: 'carrossel', capa: cdF('img1'), midia: [1, 2, 3, 4, 5, 6, 7].map(i => cdF('img' + i)), legenda: leg, pasta: 'p1' },
-    { plat: 'tiktok', tema: 'Mito abdominal queima gordura', tipo: 'reels', capa: cdF('img3'), midia: [cdF('vid1')], legenda: 'Abdominal não queima a gordura da barriga 🔥\n\n#simplificando #mitos', pasta: 'p2' }];
-  if (dias[amanha]) dias[amanha] = [{ plat: 'instagram', tema: '', tipo: 'vazio', capa: null, midia: [], legenda: '', pasta: 'p3' }];
-  const feito = {}; Object.keys(CD_FEITO).forEach(k => { if (dias[k.split('|')[0]]) feito[k] = CD_FEITO[k]; });
+  Object.values(CD.posts).forEach(p => { if (p.pronto && dias[p.data]) dias[p.data].push(cdMonta(p)); });
+  Object.values(dias).forEach(L => L.sort((a, b) => a.plat.localeCompare(b.plat) || a.em - b.em));
+  const feito = {}; Object.values(dias).flat().forEach(p => { if (CD.feito[p.id]) feito[p.id] = CD.feito[p.id]; });
   return json(r, { ok: true, ini, dias, feito });
 }
+const dk = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 
 // excluir conta de quem treina sem personal (conta-excluir.php de mentira): só o dono; apaga o perfil e o treino no emulador
 async function excluirFalso(q, r) {

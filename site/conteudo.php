@@ -1,21 +1,24 @@
 <?php
-// Conteúdo do dia (hub › Conteúdo): lê as pastas de posts do Google Drive do dono e mostra o post de cada dia.
-// Organização no Drive: uma pasta "Instagram" e uma "TikTok"; dentro, uma pasta por dia ("17/11" ou "22/11 - Tema do post")
-// com a capa, o vídeo (reels) ou as imagens (carrossel) e a legenda num .txt.
-// Quem lê é a conta de serviço do Firebase (a mesma chave do login: ~/simplificando-chave.json). O dono compartilha as duas
-// pastas com o e-mail dela, como Leitor. Nenhum id de pasta nem chave fica no GitHub.
+// Conteúdo do hub (hub › Conteúdo): os posts do Instagram e do TikTok que o dono sobe pelo próprio hub ("Novo post").
+// Cada post tem a data, a rede, o tema, a legenda e os arquivos (vídeo, imagens do carrossel ou foto, e a capa do reels).
+// Tudo fica guardado no servidor, FORA da pasta do site (~/simplificando-conteudo): ninguém acha um post pelo endereço.
 // Só o dono do painel, logado, usa este arquivo (token do Firebase no cabeçalho Authorization).
-//   acao=semana&ini=AAAA-MM-DD  → os posts dos 7 dias a partir de ini (e o que já foi marcado como feito)
-//   acao=arquivo&id=...         → a capa, a imagem ou o vídeo (só arquivos de dentro das pastas de posts)
-//   acao=feito (POST k, on)     → marca ou desmarca "postado"
-// Robô de testes: SIMP_TESTE_DRIVE (um .json no lugar do Drive) e SIMP_TESTE_DONO (o token aceito como dono).
+//   acao=semana&ini=AAAA-MM-DD          → os posts dos 7 dias a partir de ini (e o que já foi marcado como postado)
+//   acao=arquivo&id=...                 → um arquivo de um post
+//   acao=feito   (POST k, on)           → marca ou desmarca "postado" (k = id do post)
+//   acao=novo    (POST data, plat, tema, legenda) → cria o post (sem arquivos ainda) e devolve o id
+//   acao=pedaco&id=..&k=..&parte=..&nome=..&mime=..  (corpo = um pedaço do arquivo, até 4 MB) → manda um arquivo em pedaços (vídeo grande)
+//   acao=pronto  (POST id)              → termina o envio: confere os arquivos e diz se é reels, carrossel ou foto
+//   acao=apagar  (POST id)              → apaga o post e os arquivos
+// Robô de testes: SIMP_TESTE_DONO (o token aceito como dono).
 header('Cache-Control: no-store');
 function cd_sai($a, $c = 200) { http_response_code($c); header('Content-Type: application/json; charset=utf-8'); echo json_encode($a, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); exit; }
 $casa = dirname(__DIR__);
 $agora = getenv('SIMP_AGORA') ? (int)getenv('SIMP_AGORA') : time();
 date_default_timezone_set('America/Sao_Paulo');
 const CD_PLATS = ['instagram' => 'Instagram', 'tiktok' => 'TikTok'];
-const CD_PASTA = 'application/vnd.google-apps.folder';
+const CD_MIMES = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp', 'image/heic' => 'heic', 'video/mp4' => 'mp4', 'video/quicktime' => 'mov', 'video/webm' => 'webm'];
+const CD_PEDACO = 4 * 1024 * 1024 + 1024, CD_MAX_ARQ = 700 * 1024 * 1024, CD_MAX_N = 20;
 
 // ---------- só o dono (o login confirmado fica guardado 10 minutos, para as imagens não conferirem uma a uma) ----------
 function cd_dono($casa, $agora) {
@@ -31,120 +34,34 @@ function cd_dono($casa, $agora) {
   return true;
 }
 
-// ---------- o Drive (de verdade, ou o de mentira do robô) ----------
-function cd_teste() { static $D = null; $f = getenv('SIMP_TESTE_DRIVE'); if (!$f) return null; if ($D === null) $D = json_decode((string)file_get_contents($f), true) ?: []; return $D; }
-function cd_chave($casa) { $k = is_file($casa . '/simplificando-chave.json') ? json_decode((string)file_get_contents($casa . '/simplificando-chave.json'), true) : null; return ($k && !empty($k['private_key']) && !empty($k['client_email'])) ? $k : null; }
-function cd_http($url, $tok, $corpo = null, $saida = null) {
-  $c = curl_init($url); $op = [CURLOPT_RETURNTRANSFER => $saida === null, CURLOPT_TIMEOUT => $saida === null ? 25 : 300, CURLOPT_FOLLOWLOCATION => true];
-  if ($tok) $op[CURLOPT_HTTPHEADER] = ['Authorization: Bearer ' . $tok];
-  if ($corpo !== null) { $op[CURLOPT_POST] = true; $op[CURLOPT_POSTFIELDS] = $corpo; }
-  if ($saida !== null) $op[CURLOPT_WRITEFUNCTION] = $saida;
-  curl_setopt_array($c, $op); $r = curl_exec($c); $st = curl_getinfo($c, CURLINFO_HTTP_CODE); curl_close($c);
-  return [$st, $r];
-}
-// passe da conta de serviço só para LER o Drive (guardado fora do site por 50 minutos)
-function cd_token($casa, $agora) {
-  $arq = $casa . '/.simplificando-drive-token.json'; $T = json_decode((string)@file_get_contents($arq), true);
-  if (is_array($T) && ($T['exp'] ?? 0) > $agora + 60) return $T['tok'];
-  $k = cd_chave($casa); if (!$k || !function_exists('curl_init')) return null;
-  $b = function ($x) { return rtrim(strtr(base64_encode($x), '+/', '-_'), '='); };
-  $j = $b(json_encode(['alg' => 'RS256', 'typ' => 'JWT'])) . '.' . $b(json_encode(['iss' => $k['client_email'], 'scope' => 'https://www.googleapis.com/auth/drive.readonly', 'aud' => 'https://oauth2.googleapis.com/token', 'iat' => $agora, 'exp' => $agora + 3600], JSON_UNESCAPED_SLASHES));
-  openssl_sign($j, $sg, $k['private_key'], 'sha256WithRSAEncryption');
-  [$st, $r] = cd_http('https://oauth2.googleapis.com/token', null, http_build_query(['grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer', 'assertion' => $j . '.' . $b($sg)]));
-  $d = json_decode((string)$r, true); if (empty($d['access_token'])) return null;
-  @file_put_contents($arq, json_encode(['tok' => $d['access_token'], 'exp' => $agora + (int)($d['expires_in'] ?? 3600)]), LOCK_EX); @chmod($arq, 0600);
-  return $d['access_token'];
-}
-class CdErro extends Exception {}
-// lista os itens (id, name, mimeType, size) de uma busca do Drive
-function cd_busca($casa, $agora, $q) {
-  if (($D = cd_teste()) !== null) {
-    $out = [];
-    if (preg_match("/^'([^']+)' in parents/", $q, $m)) { foreach ($D as $id => $f) if (($f['pai'] ?? '') === $m[1] && (strpos($q, "mimeType='") === false || $f['mime'] === CD_PASTA)) $out[] = ['id' => $id, 'name' => $f['nome'], 'mimeType' => $f['mime'], 'size' => strlen(base64_decode($f['dados'] ?? ''))]; }
-    else foreach ($D as $id => $f) if (($f['mime'] ?? '') === CD_PASTA && empty($f['pai'])) $out[] = ['id' => $id, 'name' => $f['nome'], 'mimeType' => CD_PASTA];
-    return $out;
-  }
-  $tok = cd_token($casa, $agora); if (!$tok) throw new CdErro(cd_chave($casa) ? 'login' : 'semChave');
-  $out = []; $pg = '';
-  do {
-    [$st, $r] = cd_http('https://www.googleapis.com/drive/v3/files?' . http_build_query(['q' => $q, 'fields' => 'nextPageToken,files(id,name,mimeType,size)', 'pageSize' => 200, 'supportsAllDrives' => 'true', 'includeItemsFromAllDrives' => 'true', 'pageToken' => $pg]), $tok);
-    $d = json_decode((string)$r, true);
-    if ($st != 200) throw new CdErro(($st == 403 && strpos((string)$r, 'accessNotConfigured') !== false) || strpos((string)$r, 'SERVICE_DISABLED') !== false ? 'semApi' : 'drive');
-    foreach ($d['files'] ?? [] as $f) $out[] = $f;
-    $pg = $d['nextPageToken'] ?? '';
-  } while ($pg);
-  return $out;
-}
-function cd_texto($casa, $agora, $f) {
-  if (($D = cd_teste()) !== null) return (string)base64_decode($D[$f['id']]['dados'] ?? '');
-  $tok = cd_token($casa, $agora); if (!$tok) return '';
-  $url = $f['mimeType'] === 'application/vnd.google-apps.document'
-    ? 'https://www.googleapis.com/drive/v3/files/' . rawurlencode($f['id']) . '/export?mimeType=text%2Fplain'
-    : 'https://www.googleapis.com/drive/v3/files/' . rawurlencode($f['id']) . '?alt=media&supportsAllDrives=true';
-  [$st, $r] = cd_http($url, $tok);
-  return $st == 200 ? (string)$r : '';
-}
-
-// ---------- as duas pastas (Instagram e TikTok), achadas pelo nome entre as pastas compartilhadas com a conta de serviço ----------
-function cd_raizes($casa, $agora) {
-  $arq = $casa . '/.simplificando-conteudo-raizes.json';
-  if (cd_teste() === null) { $R = json_decode((string)@file_get_contents($arq), true); if (is_array($R) && ($R['ate'] ?? 0) > $agora && !empty($R['r'])) return $R['r']; }
-  $L = cd_busca($casa, $agora, "mimeType='" . CD_PASTA . "' and trashed=false and (name contains 'Instagram' or name contains 'TikTok' or name contains 'Tiktok' or name contains 'instagram' or name contains 'tiktok')");
-  $r = [];
-  foreach (CD_PLATS as $k => $n) {
-    $ok = array_values(array_filter($L, fn($f) => mb_strtolower(trim($f['name'])) === $k));
-    if (!$ok) $ok = array_values(array_filter($L, fn($f) => strpos(mb_strtolower($f['name']), $k) !== false));
-    if ($ok) $r[$k] = $ok[0]['id'];
-  }
-  if ($r && cd_teste() === null) @file_put_contents($arq, json_encode(['ate' => $agora + 3600, 'r' => $r]), LOCK_EX);
-  return $r;
-}
-// "17/11", "17/11/2026" ou "22/11 - Tema" → [data AAAA-MM-DD, tema]; o ano é o mais perto de hoje
-function cd_dia($nome, $agora) {
-  if (!preg_match('#^\s*(\d{1,2})\s*[/.\-]\s*(\d{1,2})(?:\s*[/.\-]\s*(\d{2,4}))?\s*(?:[-–—:·|]\s*(.*))?$#u', $nome, $m)) return null;
-  $d = (int)$m[1]; $mm = (int)$m[2]; if ($mm < 1 || $mm > 12 || $d < 1 || $d > 31) return null;
-  $ano0 = (int)date('Y', $agora);
-  if (!empty($m[3])) $anos = [strlen($m[3]) == 2 ? 2000 + (int)$m[3] : (int)$m[3]]; else $anos = [$ano0 - 1, $ano0, $ano0 + 1];
-  $melhor = null; $dist = PHP_INT_MAX;
-  foreach ($anos as $a) { if (!checkdate($mm, $d, $a)) continue; $t = mktime(12, 0, 0, $mm, $d, $a); if (abs($t - $agora) < $dist) { $dist = abs($t - $agora); $melhor = date('Y-m-d', $t); } }
-  return $melhor ? [$melhor, trim($m[4] ?? '')] : null;
-}
-// "Reel-Mito-abdominal-queima-gordura.mp4" → "Mito abdominal queima gordura"
-function cd_tema($nome) {
-  $t = preg_replace('/\.[a-z0-9]{2,4}$/i', '', $nome);
-  $t = preg_replace('/^(capa|reels?|video|vídeo|carrossel|carousel|post|legendas?|imagem|img|foto)[\s_\-]*\d*[\s_\-]*/iu', '', $t);
-  $t = trim(preg_replace('/[\s_\-]+/', ' ', $t));
-  return $t === '' ? '' : mb_strtoupper(mb_substr($t, 0, 1)) . mb_substr($t, 1);
-}
-// um dia de uma plataforma: o que tem na pasta vira o post (reels, carrossel ou foto) com a legenda
-function cd_post($casa, $agora, $plat, $pasta, $tema) {
-  $L = cd_busca($casa, $agora, "'" . $pasta . "' in parents and trashed=false");
-  usort($L, fn($a, $b) => strnatcasecmp($a['name'], $b['name']));
-  $img = $vid = $txt = []; $capa = null;
-  foreach ($L as $f) {
-    $mt = $f['mimeType'] ?? ''; $it = ['id' => $f['id'], 'nome' => $f['name'], 'mime' => $mt, 'tam' => (int)($f['size'] ?? 0)];
-    if (strpos($mt, 'video/') === 0) $vid[] = $it;
-    elseif (strpos($mt, 'image/') === 0) { if (!$capa && preg_match('/^(capa|cover|thumb)/i', $f['name'])) $capa = $it; else $img[] = $it; }
-    elseif ($mt === 'text/plain' || $mt === 'application/vnd.google-apps.document' || preg_match('/\.txt$/i', $f['name'])) $txt[] = $f;
-  }
-  if ($vid) { $tipo = 'reels'; $midia = $vid; }
-  elseif (count($img) >= 2) { $tipo = 'carrossel'; $midia = $img; }
-  elseif ($img || $capa) { $tipo = 'foto'; $midia = $img ?: [$capa]; }
-  else { $tipo = 'vazio'; $midia = []; }
-  if (!$capa && $img) $capa = $img[0];
-  $leg = trim(implode("\n\n", array_map(fn($f) => trim(preg_replace('/^\xEF\xBB\xBF/', '', str_replace("\r\n", "\n", cd_texto($casa, $agora, $f)))), $txt)));
-  if ($tema === '') foreach (array_merge($vid, $img, $capa ? [$capa] : []) as $f) { if (($tema = cd_tema($f['nome'])) !== '') break; }
-  return ['plat' => $plat, 'tema' => $tema, 'tipo' => $tipo, 'capa' => $capa, 'midia' => $midia, 'legenda' => $leg, 'pasta' => $pasta];
+// ---------- onde os posts ficam (fora do site) ----------
+$DIR = $casa . '/simplificando-conteudo'; $ARQS = $DIR . '/arquivos'; $IDX = $DIR . '/posts.json';
+function cd_pasta($DIR, $ARQS) { foreach ([$DIR, $ARQS] as $d) if (!is_dir($d)) { @mkdir($d, 0700, true); @file_put_contents($d . '/.htaccess', "Require all denied\nDeny from all\n"); } }
+function cd_le($IDX) { $P = json_decode((string)@file_get_contents($IDX), true); return is_array($P) ? $P : []; }
+function cd_grava($IDX, $P) { $t = $IDX . '.novo'; @file_put_contents($t, json_encode($P, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), LOCK_EX); @chmod($t, 0600); @rename($t, $IDX); }
+const CD_ID = '/^[a-z0-9]{12}$/';
+// reels (tem vídeo), carrossel (2 imagens ou mais) ou foto (1 imagem); no reels, a 1ª imagem é a capa
+function cd_monta($p) {
+  $arqs = array_values(array_filter($p['arqs'] ?? [], fn($a) => !empty($a['ok'])));
+  $vid = array_values(array_filter($arqs, fn($a) => strpos($a['mime'], 'video/') === 0));
+  $img = array_values(array_filter($arqs, fn($a) => strpos($a['mime'], 'image/') === 0));
+  $f = fn($a) => ['id' => $p['id'] . '-' . $a['k'], 'nome' => $a['nome'], 'mime' => $a['mime'], 'tam' => (int)$a['tam']];
+  if ($vid) { $tipo = 'reels'; $midia = array_map($f, $vid); $capa = $img ? $f($img[0]) : null; }
+  elseif (count($img) >= 2) { $tipo = 'carrossel'; $midia = array_map($f, $img); $capa = $midia[0]; }
+  elseif ($img) { $tipo = 'foto'; $midia = [$f($img[0])]; $capa = $midia[0]; }
+  else { $tipo = 'vazio'; $midia = []; $capa = null; }
+  return ['id' => $p['id'], 'plat' => $p['plat'], 'tema' => $p['tema'], 'tipo' => $tipo, 'capa' => $capa, 'midia' => $midia, 'legenda' => $p['legenda'], 'em' => $p['em']];
 }
 
 $acao = $_GET['acao'] ?? '';
-if (!in_array($acao, ['semana', 'arquivo', 'feito'], true)) cd_sai(['ok' => false], 400);
+if (!in_array($acao, ['semana', 'arquivo', 'feito', 'novo', 'pedaco', 'pronto', 'apagar'], true)) cd_sai(['ok' => false], 400);
 if (!cd_dono($casa, $agora)) cd_sai(['ok' => false, 'erro' => 'Só o dono do painel. Saia e entre de novo no hub.'], 403);
+if ($acao !== 'semana' && $acao !== 'arquivo' && $_SERVER['REQUEST_METHOD'] !== 'POST') cd_sai(['ok' => false], 405);
+cd_pasta($DIR, $ARQS);
 $arqF = $casa . '/.simplificando-conteudo-feito.json';
-$arqC = $casa . '/.simplificando-conteudo-cache.json';
 
 if ($acao === 'feito') {
-  $k = (string)($_POST['k'] ?? ''); if (!preg_match('/^\d{4}-\d{2}-\d{2}\|(instagram|tiktok)$/', $k)) cd_sai(['ok' => false], 400);
+  $k = (string)($_POST['k'] ?? ''); if (!preg_match(CD_ID, $k)) cd_sai(['ok' => false], 400);
   $F = json_decode((string)@file_get_contents($arqF), true); if (!is_array($F)) $F = [];
   if (!empty($_POST['on'])) $F[$k] = $agora; else unset($F[$k]);
   foreach ($F as $kk => $v) if ($v < $agora - 400 * 86400) unset($F[$kk]);
@@ -152,52 +69,72 @@ if ($acao === 'feito') {
   cd_sai(['ok' => true]);
 }
 
+if ($acao === 'novo') {
+  $data = (string)($_POST['data'] ?? ''); $plat = (string)($_POST['plat'] ?? '');
+  if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $data) || !checkdate((int)substr($data, 5, 2), (int)substr($data, 8, 2), (int)substr($data, 0, 4))) cd_sai(['ok' => false, 'erro' => 'Escolha a data do post.'], 400);
+  if (!isset(CD_PLATS[$plat])) cd_sai(['ok' => false, 'erro' => 'Escolha Instagram ou TikTok.'], 400);
+  $P = cd_le($IDX); if (count($P) >= 2000) cd_sai(['ok' => false, 'erro' => 'Muitos posts guardados. Apague os antigos.'], 429);
+  $id = substr(bin2hex(random_bytes(8)), 0, 12);
+  $P[$id] = ['id' => $id, 'data' => $data, 'plat' => $plat, 'tema' => mb_substr(trim((string)($_POST['tema'] ?? '')), 0, 120),
+    'legenda' => mb_substr(str_replace("\r\n", "\n", trim((string)($_POST['legenda'] ?? ''))), 0, 2200), 'arqs' => [], 'em' => $agora, 'pronto' => false];
+  cd_grava($IDX, $P);
+  cd_sai(['ok' => true, 'id' => $id]);
+}
+
+if ($acao === 'pedaco') {
+  $id = (string)($_GET['id'] ?? ''); $k = (int)($_GET['k'] ?? -1); $parte = (int)($_GET['parte'] ?? -1); $mime = strtolower((string)($_GET['mime'] ?? ''));
+  $P = cd_le($IDX); if (!preg_match(CD_ID, $id) || !isset($P[$id])) cd_sai(['ok' => false, 'erro' => 'Post não encontrado.'], 404);
+  if ($k < 0 || $k >= CD_MAX_N || $parte < 0) cd_sai(['ok' => false], 400);
+  if (!isset(CD_MIMES[$mime])) cd_sai(['ok' => false, 'erro' => 'Tipo de arquivo não aceito. Use JPG, PNG, WEBP, HEIC, MP4, MOV ou WEBM.'], 415);
+  $corpo = file_get_contents('php://input', false, null, 0, CD_PEDACO + 1);
+  if ($corpo === false || $corpo === '' || strlen($corpo) > CD_PEDACO) cd_sai(['ok' => false, 'erro' => 'Pedaço inválido.'], 400);
+  $f = $ARQS . '/' . $id . '-' . $k . '.' . CD_MIMES[$mime];
+  if ($parte === 0) @unlink($f); elseif (!is_file($f)) cd_sai(['ok' => false, 'erro' => 'Envio fora de ordem. Tente de novo.'], 409);
+  if ((is_file($f) ? filesize($f) : 0) + strlen($corpo) > CD_MAX_ARQ) { @unlink($f); cd_sai(['ok' => false, 'erro' => 'Arquivo grande demais (até 700 MB).'], 413); }
+  if (@file_put_contents($f, $corpo, FILE_APPEND | LOCK_EX) === false) cd_sai(['ok' => false, 'erro' => 'O servidor não conseguiu gravar. Pode ser falta de espaço.'], 507);
+  @chmod($f, 0600);
+  $nome = preg_replace('/[^A-Za-z0-9._\- ]/', '_', mb_substr((string)($_GET['nome'] ?? ''), 0, 120)) ?: ('arquivo-' . ($k + 1) . '.' . CD_MIMES[$mime]);
+  $L = array_values(array_filter($P[$id]['arqs'], fn($a) => $a['k'] !== $k));
+  $L[] = ['k' => $k, 'nome' => $nome, 'mime' => $mime, 'arq' => basename($f), 'tam' => filesize($f), 'ok' => !empty($_GET['fim'])];
+  usort($L, fn($a, $b) => $a['k'] <=> $b['k']); $P[$id]['arqs'] = $L; cd_grava($IDX, $P);
+  cd_sai(['ok' => true, 'tam' => filesize($f)]);
+}
+
+if ($acao === 'pronto') {
+  $id = (string)($_POST['id'] ?? ''); $P = cd_le($IDX); if (!preg_match(CD_ID, $id) || !isset($P[$id])) cd_sai(['ok' => false], 404);
+  $P[$id]['pronto'] = true; cd_grava($IDX, $P);
+  cd_sai(['ok' => true, 'post' => cd_monta($P[$id])]);
+}
+
+if ($acao === 'apagar') {
+  $id = (string)($_POST['id'] ?? ''); $P = cd_le($IDX); if (!preg_match(CD_ID, $id) || !isset($P[$id])) cd_sai(['ok' => false], 404);
+  foreach ($P[$id]['arqs'] as $a) @unlink($ARQS . '/' . basename($a['arq']));
+  unset($P[$id]); cd_grava($IDX, $P);
+  $F = json_decode((string)@file_get_contents($arqF), true); if (is_array($F) && isset($F[$id])) { unset($F[$id]); @file_put_contents($arqF, json_encode($F), LOCK_EX); }
+  cd_sai(['ok' => true]);
+}
+
 if ($acao === 'semana') {
   $ini = (string)($_GET['ini'] ?? ''); if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $ini)) $ini = date('Y-m-d', $agora);
   $dias = []; for ($i = 0; $i < 7; $i++) $dias[] = date('Y-m-d', strtotime($ini . ' 12:00 +' . $i . ' day'));
-  $C = json_decode((string)@file_get_contents($arqC), true); if (!is_array($C)) $C = [];
-  $forca = !empty($_GET['forca']); $ck = 'sem:' . $ini;
-  try {
-    if (!$forca && cd_teste() === null && isset($C[$ck]) && $C[$ck]['ate'] > $agora) $res = $C[$ck]['d'];
-    else {
-      $R = cd_raizes($casa, $agora);
-      if (!$R) { $k = cd_chave($casa); cd_sai(['ok' => false, 'erro' => 'semPastas', 'email' => cd_teste() !== null ? 'robo@teste' : ($k['client_email'] ?? '')]); }
-      $res = array_fill_keys($dias, []);
-      foreach ($R as $plat => $raiz) {
-        foreach (cd_busca($casa, $agora, "'" . $raiz . "' in parents and trashed=false and mimeType='" . CD_PASTA . "'") as $p) {
-          $dt = cd_dia($p['name'], $agora); if (!$dt || !isset($res[$dt[0]])) continue;
-          $res[$dt[0]][] = cd_post($casa, $agora, $plat, $p['id'], $dt[1]);
-        }
-      }
-      foreach ($res as &$l) usort($l, fn($a, $b) => strcmp($a['plat'], $b['plat'])); unset($l);
-      // guarda 10 minutos, e os arquivos liberados para baixar (só os de dentro das pastas de posts)
-      foreach ($C as $kk => $v) if (($v['ate'] ?? 0) < $agora - 86400) unset($C[$kk]);
-      $ids = $C['ids'] ?? []; foreach ($res as $l) foreach ($l as $p) foreach (array_merge($p['midia'], $p['capa'] ? [$p['capa']] : []) as $f) $ids[$f['id']] = [$f['mime'], $f['tam'], $f['nome'], $agora];
-      if (count($ids) > 3000) { uasort($ids, fn($a, $b) => $b[3] <=> $a[3]); $ids = array_slice($ids, 0, 2000, true); }
-      $C['ids'] = $ids; $C[$ck] = ['ate' => $agora + 600, 'd' => $res];
-      if (cd_teste() === null) @file_put_contents($arqC, json_encode($C), LOCK_EX); else @file_put_contents($arqC, json_encode(['ids' => $ids]), LOCK_EX);
-    }
-  } catch (CdErro $e) {
-    $k = cd_chave($casa);
-    cd_sai(['ok' => false, 'erro' => $e->getMessage(), 'email' => $k['client_email'] ?? '']);
-  }
+  $res = array_fill_keys($dias, []); $P = cd_le($IDX);
+  // um envio que ficou pela metade (a pessoa fechou a página) some depois de 1 dia
+  $mudou = false; foreach ($P as $pid => $p) if (empty($p['pronto']) && $p['em'] < $agora - 86400) { foreach ($p['arqs'] as $a) @unlink($ARQS . '/' . basename($a['arq'])); unset($P[$pid]); $mudou = true; }
+  if ($mudou) cd_grava($IDX, $P);
+  foreach ($P as $p) if (!empty($p['pronto']) && isset($res[$p['data']])) $res[$p['data']][] = cd_monta($p);
+  foreach ($res as &$l) usort($l, fn($a, $b) => strcmp($a['plat'], $b['plat']) ?: ($a['em'] <=> $b['em'])); unset($l);
   $F = json_decode((string)@file_get_contents($arqF), true); if (!is_array($F)) $F = [];
-  $feito = []; foreach ($dias as $d) foreach (CD_PLATS as $p => $_) if (isset($F[$d . '|' . $p])) $feito[$d . '|' . $p] = $F[$d . '|' . $p];
+  $feito = []; foreach ($res as $l) foreach ($l as $p) if (isset($F[$p['id']])) $feito[$p['id']] = $F[$p['id']];
   cd_sai(['ok' => true, 'ini' => $ini, 'dias' => $res, 'feito' => (object)$feito]);
 }
 
-// acao=arquivo: só o que já apareceu numa semana do Conteúdo (pasta de posts)
+// acao=arquivo: só arquivos de posts guardados aqui
 $id = (string)($_GET['id'] ?? '');
-$C = json_decode((string)@file_get_contents($arqC), true); $f = $C['ids'][$id] ?? null;
-if (!preg_match('/^[A-Za-z0-9_\-]{1,200}$/', $id) || !$f) cd_sai(['ok' => false, 'erro' => 'Arquivo fora das pastas de posts.'], 404);
-[$mime, $tam, $nome] = $f;
-if (!preg_match('#^(image|video)/[a-z0-9.+\-]+$#i', $mime)) $mime = 'application/octet-stream';
-header('Content-Type: ' . $mime);
-header('Content-Disposition: inline; filename="' . preg_replace('/[^A-Za-z0-9._\- ]/', '_', $nome) . '"');
-header('X-Content-Type-Options: nosniff');
-if (($D = cd_teste()) !== null) { $b = base64_decode($D[$id]['dados'] ?? ''); header('Content-Length: ' . strlen($b)); echo $b; exit; }
-$tok = cd_token($casa, $agora); if (!$tok) cd_sai(['ok' => false], 503);
+if (!preg_match('/^([a-z0-9]{12})-(\d{1,2})$/', $id, $m)) cd_sai(['ok' => false], 404);
+$P = cd_le($IDX); $a = null; foreach (($P[$m[1]]['arqs'] ?? []) as $x) if ($x['k'] === (int)$m[2] && !empty($x['ok'])) $a = $x;
+$f = $a ? $ARQS . '/' . basename($a['arq']) : ''; if (!$a || !is_file($f)) cd_sai(['ok' => false, 'erro' => 'Arquivo não encontrado.'], 404);
+header('Content-Type: ' . (isset(CD_MIMES[$a['mime']]) ? $a['mime'] : 'application/octet-stream'));
+header('Content-Disposition: inline; filename="' . preg_replace('/[^A-Za-z0-9._\- ]/', '_', $a['nome']) . '"');
+header('X-Content-Type-Options: nosniff'); header('Content-Length: ' . filesize($f));
 @set_time_limit(600); while (ob_get_level()) ob_end_flush();
-if ($tam > 0) header('Content-Length: ' . $tam);
-[$st] = cd_http('https://www.googleapis.com/drive/v3/files/' . rawurlencode($id) . '?alt=media&supportsAllDrives=true', $tok, null, function ($c, $pedaco) { echo $pedaco; flush(); return strlen($pedaco); });
-exit;
+readfile($f);

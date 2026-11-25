@@ -1,5 +1,6 @@
 // 📋 Painel do personal + 👩‍🏫 aluno com personal, de ponta a ponta no Firebase de teste:
 // o personal cria o acesso, cadastra a aluna e monta o treino; a aluna entra com a senha, treina; o painel vê a evolução.
+const path = require('path');
 const { test, expect, EMU, simp, entraComSenha, criaConta, semJanelas, fsLista, arrasta } = require('./apoio');
 test.describe.configure({ mode: 'serial' }); // um passo depende do anterior (mesmo personal e mesma aluna)
 
@@ -382,7 +383,7 @@ test('Hub (/hub): números reais e um bloco para cada espaço; Números saiu das
   await expect(pn.locator('.hub')).toHaveCount(0);
 });
 
-test('Hub › Conteúdo: o post do dia vindo do Drive, com Postar, Copiar legenda e Marcar como feito', async ({ page, context }) => {
+test('Hub › Conteúdo: o dono sobe os posts pelo hub (Novo post) e posta pelo celular com Postar, Copiar legenda e Marcar como feito', async ({ page, context }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   // o compartilhar do celular (no robô: anota os arquivos que iriam para o Instagram/TikTok)
   await page.addInitScript(() => { navigator.canShare = () => true; navigator.share = async d => { window.__compart = (window.__compart || []).concat([d.files.map(f => [f.name, f.type, f.size])]); }; });
@@ -391,14 +392,32 @@ test('Hub › Conteúdo: o post do dia vindo do Drive, com Postar, Copiar legend
   await page.waitForFunction(() => window.__painel && window.__painel.Store.loaded, null, { timeout: 20000 });
   const bl = page.locator('.hb-bl.verde');
   await expect(bl).toContainText('Hoje no Instagram e TikTok');
-  await expect(bl).toContainText('Instagram: Cardio em jejum emagrece mais?');
-  await expect(bl.locator('.hb-num b')).toHaveText('2');
-  await expect(bl.locator('.hb-th.ok')).toHaveCount(2); // as capas do dia
+  await expect(bl).toContainText('Nenhum post para hoje');
   await bl.click();
   await expect(page).toHaveURL(/\/hub\/#conteudo$/);
   await expect(page.locator('.hub.cd h1')).toHaveText('Conteúdo.');
   await expect(page.locator('.cd-d.on.hj')).toHaveCount(1); // hoje selecionado na semana
-  await expect(page.locator('.cd-d')).toHaveCount(7);
+  await expect(page.locator('.cd-vz')).toContainText('Nenhum post para hoje');
+  // Novo post 1: carrossel do Instagram (7 imagens, na ordem do nome) com a legenda
+  const IMG = n => path.join(__dirname, '..', 'site', 'img', 'post', 'cardio-jejum-' + n + '.jpg');
+  const LEG = 'Cardio em jejum emagrece mais? 🤔\n\nSpoiler: o que manda é o total do dia.\n\n#simplificando #cardio';
+  await page.click('[data-a="cdNovo"]');
+  await page.fill('#cdn-tema', 'Cardio em jejum emagrece mais?');
+  await page.fill('#cdn-leg', LEG);
+  await page.setInputFiles('#cdn-file', [7, 2, 1, 3, 4, 5, 6].map(IMG));
+  await expect(page.locator('.cd-fl li')).toHaveCount(7);
+  await expect(page.locator('.cd-nv')).toContainText('Carrossel · 7 imagens');
+  await page.click('[data-a="cdnEnviar"]');
+  await expect(page.locator('.cd-card')).toHaveCount(1, { timeout: 20000 });
+  // Novo post 2: reels do TikTok (o vídeo e uma imagem, que vira a capa)
+  await page.click('[data-a="cdNovo"]');
+  await page.click('[data-a="cdnPlat"][data-v="tiktok"]');
+  await page.fill('#cdn-tema', 'Mito abdominal queima gordura');
+  await page.fill('#cdn-leg', 'Abdominal não queima a gordura da barriga 🔥\n\n#simplificando #mitos');
+  await page.setInputFiles('#cdn-file', [path.join(__dirname, 'midia', 'reel.mp4'), IMG(3)]);
+  await expect(page.locator('.cd-nv')).toContainText('Reels · a imagem vira a capa');
+  await page.click('[data-a="cdnEnviar"]');
+  await expect(page.locator('.cd-card')).toHaveCount(2, { timeout: 20000 });
   const ig = page.locator('.cd-card').nth(0), tk = page.locator('.cd-card').nth(1);
   await expect(ig.locator('.cd-chip.instagram')).toHaveText('Instagram');
   await expect(ig.locator('.cd-chip.fm')).toHaveText('Carrossel · 7 imagens');
@@ -407,23 +426,23 @@ test('Hub › Conteúdo: o post do dia vindo do Drive, com Postar, Copiar legend
   await expect(tk.locator('h3')).toHaveText('Mito abdominal queima gordura');
   // copiar a legenda
   await ig.locator('[data-a="cdCopiar"]').click();
-  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain('Cardio em jejum emagrece mais?');
-  // Postar o carrossel: as 7 imagens vão juntas para o compartilhar, e a legenda fica copiada
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(LEG);
+  // Postar o carrossel: as 7 imagens vão juntas para o compartilhar, na ordem, e a legenda fica copiada
   await page.evaluate(() => navigator.clipboard.writeText(''));
   await ig.locator('[data-a="cdPostar"]').click();
   await expect.poll(() => page.evaluate(() => window.__compart && window.__compart[0].length)).toBe(7);
-  expect(await page.evaluate(() => window.__compart[0][0][1])).toBe('image/jpeg');
+  expect(await page.evaluate(() => window.__compart[0].map(f => f[0]))).toEqual([1, 2, 3, 4, 5, 6, 7].map(n => 'cardio-jejum-' + n + '.jpg'));
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain('#simplificando');
   // reels: primeiro baixa o vídeo, depois "Postar agora" abre o compartilhar com o vídeo
   await tk.locator('[data-a="cdPostar"]').click();
   await expect(tk.locator('[data-a="cdPostar"]')).toContainText('Postar agora');
   await tk.locator('[data-a="cdPostar"]').click();
   await expect.poll(() => page.evaluate(() => window.__compart.length)).toBe(2);
-  expect(await page.evaluate(() => window.__compart[1])).toEqual([['Reel-Mito-abdominal-queima-gordura.mp4', 'video/mp4', expect.any(Number)]]);
+  expect(await page.evaluate(() => window.__compart[1])).toEqual([['reel.mp4', 'video/mp4', expect.any(Number)]]);
   // a capa do reels vai separada (para escolher como capa no Instagram/TikTok)
   await tk.locator('[data-a="cdCapa"]').click();
   await expect.poll(() => page.evaluate(() => window.__compart.length)).toBe(3);
-  expect(await page.evaluate(() => window.__compart[2])).toEqual([['Carrossel-3.jpg', 'image/jpeg', expect.any(Number)]]);
+  expect(await page.evaluate(() => window.__compart[2])).toEqual([['cardio-jejum-3.jpg', 'image/jpeg', expect.any(Number)]]);
   await expect(ig.locator('[data-a="cdCapa"]')).toHaveCount(0); // carrossel não tem
   // ver o vídeo por cima da tela
   await tk.locator('.cd-reel').click();
@@ -435,16 +454,22 @@ test('Hub › Conteúdo: o post do dia vindo do Drive, com Postar, Copiar legend
   await expect(ig.locator('.cd-chip.ok')).toHaveText('Postado');
   await page.reload();
   await page.waitForFunction(() => window.__painel && window.__painel.Store.loaded, null, { timeout: 20000 });
-  await expect(page.locator('.cd-card').nth(0).locator('.cd-fe')).toHaveText('Postado');
-  // semana que vem: nada no Drive ainda
+  await expect(page.locator('.cd-card').nth(0).locator('.cd-fe')).toHaveText('Postado', { timeout: 15000 });
+  // semana que vem: nenhum post ainda
   await page.click('[data-a="cdSem"][data-v="1"]');
-  await expect(page.locator('.cd-vz')).toContainText('Nada no Drive');
+  await expect(page.locator('.cd-vz')).toContainText('Nenhum post');
   await page.click('[data-a="cdSem"][data-v="-1"]');
   await expect(page.locator('.cd-d.on.hj')).toHaveCount(1);
-  // volta ao hub: agora falta 1 para postar
+  // volta ao hub: falta 1 para postar
   await page.click('.cd-volta');
   await expect(page.locator('.hub h1')).toHaveText('Hub.');
   await expect(page.locator('.hb-bl.verde .hb-num b')).toHaveText('1');
+  await expect(page.locator('.hb-bl.verde .hb-th.ok')).toHaveCount(2); // as capas do dia
+  // apagar um post (dois toques)
+  await page.locator('.hb-bl.verde').click();
+  const tk2 = page.locator('.cd-card').nth(1);
+  await tk2.locator('[data-a="cdApagar"]').click(); await tk2.locator('[data-a="cdApagar"]').click();
+  await expect(page.locator('.cd-card')).toHaveCount(1);
 });
 
 test('Hub: entrada com cara de hub, só com a senha do hub (criada pelo dono no próprio hub)', async ({ browser }) => {

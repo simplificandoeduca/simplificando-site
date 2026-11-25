@@ -8,8 +8,8 @@ test.describe.configure({ mode: 'serial' });
 const DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'simp-php-')), SITE = path.join(DIR, 'site'), LOG = path.join(DIR, 'enviados.log');
 const PORTA = 4511, URL0 = `http://127.0.0.1:${PORTA}/`;
 let srv;
-const DONO_TK = 'robo-dono-' + 'x'.repeat(40), DRIVE = path.join(DIR, 'drive.json');
-const ENV = { ...process.env, SIMP_TESTE_PUSH: LOG, PHP_CLI_SERVER_WORKERS: '4', SIMP_TESTE_DRIVE: DRIVE, SIMP_TESTE_DONO: DONO_TK };
+const DONO_TK = 'robo-dono-' + 'x'.repeat(40);
+const ENV = { ...process.env, SIMP_TESTE_PUSH: LOG, PHP_CLI_SERVER_WORKERS: '4', SIMP_TESTE_DONO: DONO_TK };
 const post = (acao, corpo, extra = {}) => fetch(URL0 + 'push.php?acao=' + acao, { method: 'POST', body: JSON.stringify(corpo), ...extra }).then(r => r.json().then(j => ({ st: r.status, j })));
 const enviados = () => fs.existsSync(LOG) ? fs.readFileSync(LOG, 'utf8').trim().split('\n').filter(Boolean).map(l => JSON.parse(l)) : [];
 const limpaLog = () => { try { fs.unlinkSync(LOG); } catch (e) {} };
@@ -24,7 +24,6 @@ test.beforeAll(async () => {
   fs.mkdirSync(path.join(SITE, 'treino'), { recursive: true });
   for (const f of ['push.php', 'dono.inc.php', 'erros.php', 'hub-login.php', 'lembretes.php', 'email.inc.php', 'conteudo.php', 'conta-excluir.php']) fs.copyFileSync(path.join(__dirname, '..', 'site', f), path.join(SITE, f));
   fs.writeFileSync(path.join(SITE, 'treino', 'firebase-config.js'), 'window.SIMPLIFICANDO_FIREBASE = { apiKey: "demo-key", projectId: "demo-simplificando" };');
-  fs.writeFileSync(DRIVE, '{}');
   srv = spawn('php', ['-S', '127.0.0.1:' + PORTA, '-t', SITE], { env: ENV, stdio: 'ignore' });
   for (let i = 0; i < 50; i++) { try { await fetch(URL0 + 'push.php?acao=chave'); break; } catch (e) { await new Promise(r => setTimeout(r, 100)); } }
 });
@@ -170,53 +169,59 @@ test('lembretes por e-mail: 1 dia sem o 1º treino, 4 e 10 dias sem treinar; uma
   expect(roda().enviados).toBe(0); // uma vez por etapa
 });
 
-test('Conteúdo do hub (conteudo.php): lê as pastas do Drive por dia, só para o dono, e só entrega arquivos das pastas de posts', async () => {
-  const b = x => Buffer.from(x).toString('base64'), F = 'application/vnd.google-apps.folder';
-  const dm = k => k.slice(8) + '/' + k.slice(5, 7), hoje = diaMais(0), amanha = diaMais(1);
+test('Conteúdo do hub (conteudo.php): o dono sobe o post (arquivos em pedaços), vê na semana, baixa, marca como postado e apaga; tudo fora da pasta do site', async () => {
+  const H = { Authorization: 'Bearer ' + DONO_TK }, hoje = diaMais(0), amanha = diaMais(1);
   const jpg = fs.readFileSync(path.join(__dirname, '..', 'site', 'img', 'post', 'cardio-jejum-1.jpg'));
-  const D = {
-    rIG: { nome: 'Instagram', mime: F }, rTK: { nome: 'TikTok', mime: F }, outra: { nome: 'Fotos da academia', mime: F },
-    dIG: { nome: dm(hoje), mime: F, pai: 'rIG' }, fix: { nome: 'Fixados', mime: F, pai: 'rIG' },
-    capa: { nome: 'Capa-Mito-abdominal-queima-gordura.jpg', mime: 'image/jpeg', pai: 'dIG', dados: jpg.toString('base64') },
-    reel: { nome: 'Reel-Mito-abdominal-queima-gordura.mp4', mime: 'video/mp4', pai: 'dIG', dados: b('video-de-teste') },
-    leg: { nome: 'Legendas-Emagrecer.txt', mime: 'text/plain', pai: 'dIG', dados: b('﻿Abdominal não queima gordura 🔥\r\n\r\n#simplificando') },
-    dTK: { nome: dm(amanha) + ' - Você na academia usando o app (15s)', mime: F, pai: 'rTK' },
-    c2: { nome: 'Carrossel-2.jpg', mime: 'image/jpeg', pai: 'dTK', dados: b('2') }, c10: { nome: 'Carrossel-10.jpg', mime: 'image/jpeg', pai: 'dTK', dados: b('10') }, c1: { nome: 'Carrossel-1.jpg', mime: 'image/jpeg', pai: 'dTK', dados: b('1') },
-    fora: { nome: 'segredo.jpg', mime: 'image/jpeg', pai: 'outra', dados: b('x') },
-  };
-  fs.writeFileSync(DRIVE, JSON.stringify(D));
-  const H = { Authorization: 'Bearer ' + DONO_TK };
+  const form = o => { const f = new FormData(); Object.entries(o).forEach(([k, v]) => f.append(k, v)); return f; };
+  const cd = (acao, corpo, h = H, q = '') => fetch(URL0 + 'conteudo.php?acao=' + acao + q, { method: 'POST', body: corpo, headers: h }).then(r => r.json().then(j => ({ st: r.status, j })));
   const sem = (h = H) => fetch(URL0 + 'conteudo.php?acao=semana&ini=' + hoje, { headers: h }).then(r => r.json().then(j => ({ st: r.status, j })));
-  expect((await sem({})).st).toBe(403);                                        // sem login
-  expect((await sem({ Authorization: 'Bearer ' + 'y'.repeat(60) })).st).toBe(403); // login de outra pessoa
+  expect((await sem({})).st).toBe(403);                                           // sem login
+  expect((await sem({ Authorization: 'Bearer ' + 'y'.repeat(60) })).st).toBe(403);  // login de outra pessoa
+  expect((await cd('novo', form({ data: hoje, plat: 'instagram' }), {})).st).toBe(403);
+  expect((await cd('novo', form({ data: 'ontem', plat: 'instagram' }))).st).toBe(400);
+  expect((await cd('novo', form({ data: hoje, plat: 'facebook' }))).st).toBe(400);
+  // reels: o vídeo em 3 pedaços e a capa
+  const { j: n1 } = await cd('novo', form({ data: hoje, plat: 'tiktok', tema: 'Mito abdominal', legenda: 'Abdominal não queima gordura 🔥\r\n\r\n#simplificando' }));
+  expect(n1.ok).toBe(true);
+  const id = n1.id, vid = Buffer.from('video-de-teste-'.repeat(10));
+  const ped = (k, parte, buf, mime, nome, fim) => cd('pedaco', buf, H, '&id=' + id + '&k=' + k + '&parte=' + parte + '&mime=' + encodeURIComponent(mime) + '&nome=' + encodeURIComponent(nome) + (fim ? '&fim=1' : ''));
+  expect((await ped(0, 0, vid.subarray(0, 50), 'video/mp4', 'reel.mp4')).j.ok).toBe(true);
+  expect((await ped(0, 1, vid.subarray(50, 100), 'video/mp4', 'reel.mp4')).j.ok).toBe(true);
+  expect((await ped(0, 2, vid.subarray(100), 'video/mp4', 'reel.mp4', true)).j.tam).toBe(vid.length);
+  expect((await ped(1, 0, jpg, 'image/jpeg', 'capa.jpg', true)).j.ok).toBe(true);
+  expect((await ped(2, 0, Buffer.from('x'), 'application/x-php', 'virus.php', true)).st).toBe(415); // só imagem e vídeo
+  expect((await ped(3, 5, Buffer.from('x'), 'image/jpeg', 'a.jpg', true)).st).toBe(409);            // pedaço fora de ordem
+  // antes do "pronto", o post não aparece
+  expect((await sem()).j.dias[hoje]).toEqual([]);
+  const { j: pr } = await cd('pronto', form({ id }));
+  expect(pr.post).toMatchObject({ plat: 'tiktok', tipo: 'reels', tema: 'Mito abdominal', legenda: 'Abdominal não queima gordura 🔥\n\n#simplificando' });
+  // carrossel de amanhã (2 imagens)
+  const { j: n2 } = await cd('novo', form({ data: amanha, plat: 'instagram', tema: 'Cardio em jejum', legenda: '' }));
+  for (const k of [0, 1]) await cd('pedaco', jpg, H, '&id=' + n2.id + '&k=' + k + '&parte=0&mime=image%2Fjpeg&nome=c' + (k + 1) + '.jpg&fim=1');
+  await cd('pronto', form({ id: n2.id }));
   const { j } = await sem();
-  expect(j.ok).toBe(true);
-  expect(Object.keys(j.dias)).toHaveLength(7);
-  const ig = j.dias[hoje][0];
-  expect(ig).toMatchObject({ plat: 'instagram', tipo: 'reels', tema: 'Mito abdominal queima gordura', legenda: 'Abdominal não queima gordura 🔥\n\n#simplificando' });
-  expect(ig.capa.id).toBe('capa'); expect(ig.midia.map(f => f.id)).toEqual(['reel']);
-  const tk = j.dias[amanha][0];
-  expect(tk).toMatchObject({ plat: 'tiktok', tipo: 'carrossel', tema: 'Você na academia usando o app (15s)', legenda: '' });
-  expect(tk.midia.map(f => f.nome)).toEqual(['Carrossel-1.jpg', 'Carrossel-2.jpg', 'Carrossel-10.jpg']); // na ordem certa
-  // arquivos: a capa e o vídeo saem; a legenda (.txt) e o que está fora das pastas de posts, não
-  const arqv = (id, h = H) => fetch(URL0 + 'conteudo.php?acao=arquivo&id=' + id, { headers: h });
-  const rc = await arqv('capa'); expect(rc.status).toBe(200); expect(rc.headers.get('content-type')).toBe('image/jpeg'); expect(Buffer.from(await rc.arrayBuffer()).equals(jpg)).toBe(true);
-  expect((await arqv('reel')).headers.get('content-type')).toBe('video/mp4');
-  expect((await arqv('leg')).status).toBe(404);
-  expect((await arqv('fora')).status).toBe(404);
-  expect((await arqv('capa', {})).status).toBe(403);
+  expect(j.ok).toBe(true); expect(Object.keys(j.dias)).toHaveLength(7);
+  const p = j.dias[hoje][0];
+  expect(p.midia.map(f => [f.nome, f.mime])).toEqual([['reel.mp4', 'video/mp4']]); expect(p.capa.nome).toBe('capa.jpg');
+  expect(j.dias[amanha][0]).toMatchObject({ tipo: 'carrossel', plat: 'instagram' });
+  // arquivos: só do dono e só os dos posts
+  const arqv = (fid, h = H) => fetch(URL0 + 'conteudo.php?acao=arquivo&id=' + fid, { headers: h });
+  const rv = await arqv(p.midia[0].id); expect(rv.status).toBe(200); expect(rv.headers.get('content-type')).toBe('video/mp4'); expect(Buffer.from(await rv.arrayBuffer()).equals(vid)).toBe(true);
+  const rc = await arqv(p.capa.id); expect(Buffer.from(await rc.arrayBuffer()).equals(jpg)).toBe(true);
+  expect((await arqv(p.capa.id, {})).status).toBe(403);
+  expect((await arqv('../posts.json')).status).toBe(404);
+  expect((await arqv(id + '-9')).status).toBe(404);
   // marcar como postado
-  const fe = (k, on) => { const f = new FormData(); f.append('k', k); if (on) f.append('on', '1'); return fetch(URL0 + 'conteudo.php?acao=feito', { method: 'POST', body: f, headers: H }); };
-  expect((await fe(hoje + '|instagram', true)).status).toBe(200);
-  expect((await fe('qualquer|coisa', true)).status).toBe(400);
-  expect((await sem()).j.feito).toEqual({ [hoje + '|instagram']: expect.any(Number) });
-  await fe(hoje + '|instagram', false);
-  expect((await sem()).j.feito).toEqual({});
-  // nenhuma pasta compartilhada ainda: avisa, com o e-mail para compartilhar
-  fs.writeFileSync(DRIVE, JSON.stringify({ outra: D.outra }));
-  expect((await sem()).j).toMatchObject({ ok: false, erro: 'semPastas', email: 'robo@teste' });
+  expect((await cd('feito', form({ k: id, on: '1' }))).st).toBe(200);
+  expect((await cd('feito', form({ k: 'qualquer|coisa', on: '1' }))).st).toBe(400);
+  expect((await sem()).j.feito).toEqual({ [id]: expect.any(Number) });
+  // apagar: some o post e os arquivos
+  expect((await cd('apagar', form({ id }))).j.ok).toBe(true);
+  expect((await sem()).j.dias[hoje]).toEqual([]);
+  expect((await arqv(p.midia[0].id)).status).toBe(404);
   // nada do conteúdo fica dentro da pasta do site
-  expect(fs.readdirSync(SITE).filter(f => f.startsWith('.simplificando'))).toEqual([]);
+  expect(fs.readdirSync(SITE).filter(f => /simplificando/.test(f))).toEqual([]);
+  expect(fs.existsSync(path.join(DIR, 'simplificando-conteudo', 'posts.json'))).toBe(true);
 });
 
 test('excluir conta (conta-excluir.php): só o dono; a conta dona do painel não pode ser excluída', async () => {
