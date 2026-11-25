@@ -6,6 +6,9 @@
    - Criança que ainda não está no sistema vira um cadastro.
    - Criança que já está cadastrada não muda de cadastro. Se a planilha traz saldo para ela, as horas entram (uma vez só:
      quem já recebeu horas de uma importação não recebe de novo), a não ser que a tela peça para não mexer.
+   2.05: o aviso de perfil duplicado ("PERFIL DUPLICADO NO SISTEMA ANTIGO") da planilha entra também na observação de quem já está
+   cadastrado; e as horas entram uma vez só por família (o CPF): se uma criança desse CPF já recebeu horas numa importação anterior,
+   a outra entra sem horas.
    As horas entram como um pacote de valor zero ("PACOTE DO SISTEMA ANTERIOR"): aparecem no histórico do cliente, valem
    como pacote na entrada e não entram no que foi vendido no dia.
    Só o gestor importa (em Ajustes). Antes da primeira linha o servidor guarda uma cópia do banco. Dá para desfazer a última
@@ -49,6 +52,11 @@ function importaTel(string $bruto): string {
   if (strlen($d) === 10) return '(' . substr($d, 0, 2) . ') ' . substr($d, 2, 4) . '-' . substr($d, 6);
   return mb_substr($t, 0, 30);
 }
+/* 2.05 (o dono: "coloque uma observação nesses que são CPF duplicados no cadastro deles, para que a gente consiga visualizar"): da
+   observação da planilha, só o aviso de perfil duplicado. É ele que chega também em quem já está cadastrado. */
+function importaAviso(string $obs): string {
+  return implode('; ', array_filter(array_map('trim', explode(';', $obs)), fn($x) => strpos($x, 'PERFIL DUPLICADO') !== false));
+}
 // As chaves de um cadastro, para saber se a criança já está no sistema. A primeira é a principal: o nome com o documento do responsável;
 // sem documento, o nome com o telefone; sem os dois, o nome com o responsável. As outras servem para a linha seguinte achar esta.
 function importaChaves(string $nome, string $resp, string $doc, string $cpf, string $tel, string $tel2): array {
@@ -70,12 +78,25 @@ function importarLinhas(array $linhas, array $u, string $lote, bool $horasParaQu
   $and = cfg('importando', null);
   if (!is_array($and) || ($and['lote'] ?? '') !== $lote) { $and = ['lote' => $lote, 'em' => agora(), 'por' => $quem, 'copia' => copiarBanco('Nada foi importado.')]; gravarCfg('importando', $and); }
   $imp = cfg('importacao', null);
-  if (!is_array($imp) || ($imp['lote'] ?? '') !== $lote) $imp = ['lote' => $lote, 'em' => $and['em'], 'por' => $quem, 'copia' => (string)$and['copia'], 'cadastros' => 0, 'horas' => 0, 'min' => 0, 'registro' => 0];
+  if (!is_array($imp) || ($imp['lote'] ?? '') !== $lote) { $sa = cfg('importacao_avisos', null); $sa = is_array($sa) && ($sa['lote'] ?? '') === $lote ? $sa : [];   /* 2.05: os avisos dos lotes anteriores desta importação */
+    $imp = ['lote' => $lote, 'em' => $and['em'], 'por' => $quem, 'copia' => (string)$and['copia'], 'cadastros' => 0, 'horas' => 0, 'min' => 0, 'registro' => (int)($sa['registro'] ?? 0), 'avisos' => (int)($sa['avisos'] ?? 0)]; }
   // quem já está cadastrado: a chave leva ao cadastro (os removidos não contam: podem voltar pela planilha)
   $tem = [];
   foreach ($db->query('SELECT id, nome, resp, tel, tel2, doc_tipo, cpf FROM criancas WHERE ativo = 1 ORDER BY id')->fetchAll() as $c)
     foreach (importaChaves((string)$c['nome'], (string)$c['resp'], ($c['doc_tipo'] ?? 'cpf') === 'rne' ? 'rne' : 'cpf', (string)$c['cpf'], (string)$c['tel'], (string)($c['tel2'] ?? '')) as $k) if (!isset($tem[$k])) $tem[$k] = (int)$c['id'];
   $jaRecebeu = null;   // quem já recebeu horas de uma importação (só é lido se precisar)
+  /* 2.05: as horas do sistema anterior são da família (o CPF do responsável). As famílias que já receberam horas numa importação anterior
+     (não nesta: irmãos com horas próprias na mesma planilha recebem cada um as suas) */
+  $famRecebeu = null; $avisos = 0; $semHorasFam = 0;
+  $daFamilia = function (string $doc, string $cpf) use (&$famRecebeu, $db, $lote): bool {
+    $d = $doc === 'cpf' ? (string)preg_replace('/\D/', '', $cpf) : ''; if (strlen($d) !== 11) return false;
+    if ($famRecebeu === null) { $famRecebeu = [];
+      $q = $db->prepare("SELECT DISTINCT c.cpf FROM vendas v JOIN criancas c ON c.id = v.crianca_id WHERE v.servico = ? AND c.ativo = 1 AND COALESCE(c.doc_tipo, 'cpf') = 'cpf' AND COALESCE(v.lote, '') != ?");
+      $q->execute([SERV_IMPORTADO, $lote]); foreach ($q->fetchAll(PDO::FETCH_COLUMN) as $x) $famRecebeu[(string)preg_replace('/\D/', '', (string)$x)] = true; }
+    return isset($famRecebeu[$d]);
+  };
+  $selObs = $db->prepare('SELECT obs FROM criancas WHERE id = ?');
+  $updObs = $db->prepare("UPDATE criancas SET obs = ?, obs_antes = CASE WHEN ? != '' THEN ? ELSE obs_antes END, obs_em = ?, obs_por = ? WHERE id = ?");
   $novos = 0; $existentes = 0; $comHoras = 0; $invalidas = 0; $min = 0; $agora = agora(); $bloqueia = regra()['bloqueioAuto'] === 'sim';
   $insC = $db->prepare("INSERT INTO criancas (nome, idade, resp, rel, tel, tel2, doc_tipo, cpf, obs, pacote_min, usado_min, foto, foto_origem, rosto, liberado, criado_em, pcd, lote, nascimento) VALUES (?, 0, ?, 'responsável', ?, ?, ?, ?, ?, ?, ?, '', '', 0, ?, ?, 0, ?, ?)");   // 1.97: com a data de nascimento
   $insV = $db->prepare("INSERT INTO vendas (crianca_id, horas, minutos, valor, quando, por, itens, servico, auto, voucher, pcd, cheio, produto_id, qtd, alug, alug_min, lote) VALUES (?, ?, ?, 0, ?, NULL, '', ?, 0, '', 0, NULL, NULL, 0, '', 0, ?)");
@@ -93,43 +114,50 @@ function importarLinhas(array $linhas, array $u, string $lote, bool $horasParaQu
       $pac = (int)($l['pac'] ?? 0); if ($pac < 0 || $pac > IMPORTA_MIN_MAX) $pac = 0;   // saldo negativo ou absurdo: entra sem horas
       $usado = max(0, min($pac, (int)($l['usado'] ?? 0))); $saldo = $pac - $usado;
       $ch = importaChaves($nome, $resp, $doc, $cpf, $tel, $tel2);
-      if (isset($tem[$ch[0]])) {   // já está no sistema (ou veio duas vezes na planilha): o cadastro não muda
-        $cid = $tem[$ch[0]];
+      if (isset($tem[$ch[0]])) {   // já está no sistema (ou veio duas vezes na planilha): o cadastro não muda (2.05: só o aviso de perfil duplicado e as horas entram)
+        $cid = $tem[$ch[0]]; $pos = false;
+        $av = importaAviso($obs);   /* 2.05: o aviso vai na frente da observação que já havia (a anterior fica guardada); uma vez só */
+        if ($av !== '') { $selObs->execute([$cid]); $velha = (string)$selObs->fetchColumn(); $selObs->closeCursor();
+          if (strpos($velha, 'PERFIL DUPLICADO') === false) { $updObs->execute([mb_substr($velha !== '' ? $av . '; ' . $velha : $av, 0, 500), $velha, $velha, $agora, $quem, $cid]); $avisos++; $pos = true; } }
         if ($horasParaQuemJaEsta && $saldo > 0) {
           if ($jaRecebeu === null) $jaRecebeu = array_flip(array_map('intval', $db->query("SELECT DISTINCT crianca_id FROM vendas WHERE servico = '" . SERV_IMPORTADO . "'")->fetchAll(PDO::FETCH_COLUMN)));
-          if (!isset($jaRecebeu[$cid])) {   // as horas do sistema anterior entram, uma vez só
+          if (!isset($jaRecebeu[$cid]) && $daFamilia($doc, $cpf)) $semHorasFam++;   /* 2.05: a família já recebeu as horas (em outra criança) */
+          elseif (!isset($jaRecebeu[$cid])) {   // as horas do sistema anterior entram, uma vez só
             $somar->execute([$saldo, $cid]); $insV->execute([$cid, round($saldo / 60, 2), $saldo, $agora, SERV_IMPORTADO, $lote]);
             $c = crianca($cid); if ($c && !(int)$c['liberado']) bloquearAcesso($c, true);   // tem tempo de novo: o acesso volta
             $jaRecebeu[$cid] = true; $comHoras++; $min += $saldo; continue;
           }
         }
-        $existentes++; continue;
+        if (!$pos) $existentes++; continue;
       }
+      if ($pac > 0 && $daFamilia($doc, $cpf)) { $pac = 0; $usado = 0; $saldo = 0; $semHorasFam++; }   /* 2.05: a família já recebeu as horas numa importação anterior: o cadastro entra sem elas */
       $nasc = nascimentoValido((string)($l['nasc'] ?? '')); $insC->execute([$nome, $resp, $tel, $tel2, $doc, $cpf, $obs, $pac, $usado, ($saldo > 0 || !$bloqueia) ? 1 : 0, $agora, $lote, $nasc !== '' ? $nasc : null]);
       $id = (int)$db->lastInsertId(); foreach ($ch as $k) if (!isset($tem[$k])) $tem[$k] = $id;
       if ($obs !== '') $obsEm->execute([$agora, $quem, $id]);
       if ($pac > 0) { $insV->execute([$id, round($pac / 60, 2), $pac, $agora, SERV_IMPORTADO, $lote]); if ($jaRecebeu !== null) $jaRecebeu[$id] = true; }
       $novos++; $min += $saldo;
     }
-    $imp['cadastros'] = (int)$imp['cadastros'] + $novos; $imp['horas'] = (int)($imp['horas'] ?? 0) + $comHoras; $imp['min'] = (int)$imp['min'] + $min;
-    if ($imp['cadastros'] > 0 || $imp['horas'] > 0) {
+    $imp['cadastros'] = (int)$imp['cadastros'] + $novos; $imp['horas'] = (int)($imp['horas'] ?? 0) + $comHoras; $imp['min'] = (int)$imp['min'] + $min; $imp['avisos'] = (int)($imp['avisos'] ?? 0) + $avisos;
+    if ($imp['cadastros'] > 0 || $imp['horas'] > 0 || $imp['avisos'] > 0) {
       // uma linha só em "Hoje na recepção" (não uma por cadastro): nasce no primeiro lote e acompanha os seguintes
-      $texto = 'Importação do sistema anterior: ' . importaFrase((int)$imp['cadastros'], (int)$imp['horas']) . ($imp['min'] > 0 ? ', com ' . dur((int)$imp['min']) . ' de saldo' : '') . ' · por ' . $imp['por'];
+      $texto = 'Importação do sistema anterior: ' . importaFrase((int)$imp['cadastros'], (int)$imp['horas'], (int)$imp['avisos']) . ($imp['min'] > 0 ? ', com ' . dur((int)$imp['min']) . ' de saldo' : '') . ' · por ' . $imp['por'];
       if (!empty($imp['registro'])) $db->prepare('UPDATE registros SET texto = ? WHERE id = ?')->execute([$texto, (int)$imp['registro']]);
       else $imp['registro'] = registrar('cad', null, 'CADASTROS', $texto);
-      unset($imp['desfeita']); gravarCfg('importacao', $imp);
+      if ($imp['cadastros'] > 0 || $imp['horas'] > 0) { unset($imp['desfeita']); gravarCfg('importacao', $imp); }
+      else gravarCfg('importacao_avisos', ['lote' => $lote, 'avisos' => (int)$imp['avisos'], 'registro' => (int)$imp['registro']]);   /* 2.05: só avisos: o Desfazer continua o da importação anterior */
     }
     $db->commit();
   } catch (Throwable $e) {
     if ($db->inTransaction()) $db->rollBack(); registrarErro('importação: ' . $e->getMessage());
     falha('Não consegui importar este lote. Nada dele foi gravado.', 500);
   }
-  return ['novos' => $novos, 'horas' => $comHoras, 'existentes' => $existentes, 'invalidas' => $invalidas, 'min' => $min, 'total' => (int)$imp['cadastros']];
+  return ['novos' => $novos, 'horas' => $comHoras, 'existentes' => $existentes, 'invalidas' => $invalidas, 'min' => $min, 'total' => (int)$imp['cadastros'], 'avisos' => $avisos, 'sem_horas_familia' => $semHorasFam];
 }
 // "12 cadastros e as horas de 3 que já estavam cadastrados"
-function importaFrase(int $cad, int $horas): string {
+function importaFrase(int $cad, int $horas, int $avisos = 0): string {
   $a = $cad ? $cad . ($cad === 1 ? ' cadastro' : ' cadastros') : ''; $b = $horas ? 'as horas de ' . $horas . ($horas === 1 ? ' que já estava cadastrado' : ' que já estavam cadastrados') : '';
-  return $a . ($a !== '' && $b !== '' ? ' e ' : '') . $b;
+  $c = $avisos ? 'o aviso de perfil duplicado em ' . $avisos . ($avisos === 1 ? ' que já estava cadastrado' : ' que já estavam cadastrados') : '';   /* 2.05 */
+  $p = array_values(array_filter([$a, $b, $c], fn($x) => $x !== '')); return count($p) > 1 ? implode(', ', array_slice($p, 0, -1)) . ' e ' . $p[count($p) - 1] : ($p[0] ?? '');
 }
 // a última importação, para o cartão de Ajustes (sem contar nada: a conta fica para a folha)
 function importacaoPublica(): ?array {

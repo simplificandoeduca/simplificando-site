@@ -2037,7 +2037,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '2.04';
+const VERSAO = '2.05';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -2744,7 +2744,10 @@ function colunasImp(M, cab) {
 function lerLinhas() {
   if (!IM) return; const M = IM.M, col = IM.col, pega = (l, k) => col[k] >= 0 ? String(l[col[k]] == null ? '' : l[col[k]]).trim() : '';
   const tem = new Map(); for (const x of S.criancas) for (const k of impChaves(x.nome, x.resp, x.doc === 'rne' ? 'rne' : 'cpf', x.cpf, x.tel, x.tel2)) if (!tem.has(k)) tem.set(k, x);
-  const n = { linhas: 0, ja: 0, jaCom: 0, semNome: 0, rep: 0, cpfRuim: 0, semDoc: 0, semTel: 0, semResp: 0, neg: 0, semHora: 0, fora: 0 }, L = [], H = [], vistas = new Map(), jaVistos = new Map(); let minJa = 0;
+  const n = { linhas: 0, ja: 0, jaCom: 0, semNome: 0, rep: 0, cpfRuim: 0, semDoc: 0, semTel: 0, semResp: 0, neg: 0, semHora: 0, fora: 0, dup: 0, fam: 0 }, L = [], H = [], A = [], vistas = new Map(), jaVistos = new Map(); let minJa = 0;
+  /* 2.05: as famílias (o CPF) que já receberam as horas numa importação anterior */
+  const comImp = MODO === 'servidor' ? null : new Set(S.compras.filter(v => v.imp).map(v => v.crianca));
+  const famImp = new Set(S.criancas.filter(c => c.doc !== 'rne' && (comImp ? comImp.has(c.id) : c.imph)).map(c => soDig(c.cpf)).filter(d => d.length === 11)), daFamImp = (doc, cpf) => doc === 'cpf' && famImp.has(soDig(cpf));
   for (let i = IM.cab + 1; i < M.length; i++) { const l = M[i]; n.linhas++;
     const nome = MAI(pega(l, 'nome')).slice(0, 60), resp = MAI(pega(l, 'resp')).slice(0, 80), { doc, cpf } = impDoc(pega(l, 'cpf'));
     let t1 = pega(l, 'tel'), t2 = pega(l, 'tel2');
@@ -2763,25 +2766,33 @@ function lerLinhas() {
     if (ex) {   // já está no sistema: o cadastro não muda. Se a planilha traz saldo, as horas entram (uma vez só: quem já recebeu de uma importação não recebe de novo)
       const saldoEx = pac - usado, antes = jaVistos.get(ex.id);
       if (antes) { n.rep++; if (IM.rep === 'somar' && antes.pac && saldoEx > 0) { antes.pac += saldoEx; minJa += saldoEx; } continue; }
-      const o = { nome, resp, doc, cpf, tel, tel2, obs: '', pac: saldoEx > 0 && !jaRecebeuImp(ex) ? saldoEx : 0, usado: 0, ja: ex.id }; jaVistos.set(ex.id, o);
+      const fam = saldoEx > 0 && !jaRecebeuImp(ex) && daFamImp(doc, cpf);   /* 2.05: a família já recebeu as horas (em outra criança) */
+      const av = avisoImp(pega(l, 'obs')), poe = !!av && !/PERFIL DUPLICADO/.test(ex.obs || '');   /* 2.05: o aviso de perfil duplicado chega também em quem já está cadastrado */
+      const o = { nome, resp, doc, cpf, tel, tel2, obs: poe ? av : '', pac: saldoEx > 0 && !jaRecebeuImp(ex) && !fam ? saldoEx : 0, usado: 0, ja: ex.id }; jaVistos.set(ex.id, o);
+      if (fam) n.fam++; if (poe) n.dup++;
       if (o.pac) { n.jaCom++; minJa += o.pac; if (IM.ja === 'horas') { H.push(o); continue; } }
+      if (poe) A.push({ ...o, pac: 0 });
       n.ja++; continue;
     }
     const ja = vistas.get(ch[0]);
-    if (ja) { n.rep++; if (IM.rep === 'somar') { ja.pac += pac; ja.usado += usado; if (ja.pac > IMP_MAX_MIN) { ja.pac = 0; ja.usado = 0; n.fora++; } } continue; }   // veio duas vezes na planilha: fica a primeira (ou as horas somam)
-    const o = { nome, resp, doc, cpf, tel, tel2, obs: MAIT(pega(l, 'obs')).slice(0, 500), pac, usado, nasc: impNasc(pega(l, 'nasc')) }; L.push(o); for (const k of ch) if (!vistas.has(k)) vistas.set(k, o);
+    if (ja) { n.rep++; if (IM.rep === 'somar' && !ja.fam) { ja.pac += pac; ja.usado += usado; if (ja.pac > IMP_MAX_MIN) { ja.pac = 0; ja.usado = 0; n.fora++; } } continue; }   // veio duas vezes na planilha: fica a primeira (ou as horas somam)
+    const o = { nome, resp, doc, cpf, tel, tel2, obs: MAIT(pega(l, 'obs')).slice(0, 500), pac, usado, nasc: impNasc(pega(l, 'nasc')) }; if (o.pac > 0 && daFamImp(doc, cpf)) { n.fam++; o.pac = 0; o.usado = 0; o.fam = true; }   /* 2.05: a família já recebeu as horas numa importação anterior: entra sem elas */
+    L.push(o); for (const k of ch) if (!vistas.has(k)) vistas.set(k, o);
     if (!cpf) n.semDoc++; else if (doc === 'cpf' && !(soDig(cpf).length === 11 && cpfValido(cpf))) n.cpfRuim++;
     if (!tel) n.semTel++; if (!resp) n.semResp++;
   }
   for (const o of H) if (o.pac > IMP_MAX_MIN) o.pac = IMP_MAX_MIN;
-  IM.R = { linhas: L, somas: H, n, minJa, min: L.reduce((a, x) => a + x.pac - x.usado, 0) + H.reduce((a, x) => a + x.pac, 0) };
+  IM.R = { linhas: L, somas: H, avisos: A, n, minJa, min: L.reduce((a, x) => a + x.pac - x.usado, 0) + H.reduce((a, x) => a + x.pac, 0) };
 }
 const jaRecebeuImp = c => MODO === 'servidor' ? !!c.imph : S.compras.some(v => v.crianca === c.id && v.imp);   // já tem horas de uma importação
+/* 2.05: da observação da planilha, só o aviso de perfil duplicado (é ele que chega também em quem já está cadastrado) */
+const avisoImp = t => MAIT(t).split(';').map(x => x.trim()).filter(x => /PERFIL DUPLICADO/.test(x)).join('; ');
+const fraseAvisoImp = k => k ? ` O aviso de perfil duplicado entrou em ${impNum(k)} que já ${k === 1 ? 'estava cadastrado' : 'estavam cadastrados'}.` : '';
 // "12 cadastros e as horas de 3 que já estavam cadastrados"
 const fraseImp = (cad, horas) => [cad ? `${impNum(cad)} ${cad === 1 ? 'cadastro' : 'cadastros'}` : '', horas ? `as horas de ${impNum(horas)} que já ${horas === 1 ? 'estava cadastrado' : 'estavam cadastrados'}` : ''].filter(Boolean).join(' e ');
 /* ----- a folha ----- */
 const htmlImportar1 = () => `
-    <p class="explica">Traga de uma vez quem já era cliente no sistema anterior, com as horas que cada criança ainda tem. O cadastro de quem já está aqui não muda (só as horas dele entram), e dá para desfazer.</p>
+    <p class="explica">Traga de uma vez quem já era cliente no sistema anterior, com as horas que cada criança ainda tem. O cadastro de quem já está aqui não muda (só entram as horas dele, uma vez só por família, e o aviso de perfil duplicado nas observações), e dá para desfazer.</p>
     <div class="marca"><b class="im-num">1</b><span>Abra a planilha de clientes (no Excel), selecione tudo com <b>Ctrl+A</b> e copie com <b>Ctrl+C</b>.</span></div>
     <div class="marca"><b class="im-num">2</b><span>Toque no quadro abaixo e cole com <b>Ctrl+V</b>. Ou escolha o arquivo da planilha.</span></div>
     <div class="campo"><label for="im-texto">Cole a planilha aqui</label><textarea id="im-texto" rows="4" spellcheck="false" autocomplete="off" placeholder="CRIANÇA    RESPONSÁVEL    CPF    TELEFONE    SALDO DE HORAS"></textarea></div>
@@ -2808,7 +2819,7 @@ async function abrirArquivoImp(f) {
   const i = $('#im-arq'); if (i) i.value = '';
 }
 function pintarImportar() {
-  const c = $('#im-corpo'); if (!c || !IM) return; const R = IM.R, n = R.n, q = R.linhas.length, h = R.somas.length, tit = IM.cab >= 0 ? IM.M[IM.cab] : [], dados = IM.M.slice(IM.cab + 1);
+  const c = $('#im-corpo'); if (!c || !IM) return; const R = IM.R, n = R.n, q = R.linhas.length, h = R.somas.length, a = (R.avisos || []).length, tit = IM.cab >= 0 ? IM.M[IM.cab] : [], dados = IM.M.slice(IM.cab + 1);
   const exs = Array.from({ length: IM.larg }, (_, i) => { const v = (dados.slice(0, 200).find(l => l[i]) || [])[i] || ''; return v.length > 22 ? v.slice(0, 21) + '…' : v; });   // um exemplo do que há em cada coluna
   const ops = k => `<option value="-1">${k === 'nome' ? 'Escolha a coluna' : 'A planilha não tem'}</option>` + exs.map((ex, i) => `<option value="${i}"${IM.col[k] === i ? ' selected' : ''}>${letraCol(i)} · ${esc(tit[i] || 'sem título')}${ex ? ' (' + esc(ex) + ')' : ''}</option>`).join('');
   const temHoras = IMP_HORAS.some(k => IM.col[k] >= 0), fora = n.semNome, av = [];
@@ -2816,8 +2827,10 @@ function pintarImportar() {
   if (IM.col.nome < 0 || altos) IM.abertas = true; const abertas = IM.abertas;   // abertas por precisão ficam abertas (não fecham no meio da escolha)
   if (altos && meioAlto) av.push(`<p class="explica erro">Os saldos estão altos: metade passa de 100 horas. Se a planilha guarda as horas em minutos, escolha <b>Minutos</b> aqui embaixo.</p>`);
   if (IM.col.nome < 0) av.push(`<p class="explica erro">Escolha qual coluna tem o <b>nome da criança</b>: sem ele não há cadastro.</p>`);
-  else if (!q && !h) av.push(`<p class="explica erro">${n.ja ? 'Todas as crianças dessa planilha já estão cadastradas: não há o que importar.' : 'Nenhuma linha com o nome da criança nessa coluna.'}</p>`);
+  else if (!q && !h && !a) av.push(`<p class="explica erro">${n.ja ? 'Todas as crianças dessa planilha já estão cadastradas: não há o que importar.' : 'Nenhuma linha com o nome da criança nessa coluna.'}</p>`);
   if (n.jaCom) av.push(`<p class="explica" id="im-ja"><b>${impNum(n.jaCom)}</b> que já ${n.jaCom === 1 ? 'está cadastrado tem' : 'estão cadastrados têm'} horas na planilha (${impHm(R.minJa)}): <span class="im-rep"><button type="button" class="link tap" data-act="importar-ja" data-v="horas" aria-pressed="${IM.ja === 'horas'}">colocar as horas</button><button type="button" class="link tap" data-act="importar-ja" data-v="nada" aria-pressed="${IM.ja !== 'horas'}">não mexer</button></span></p>`);
+  if (n.dup) av.push(`<p class="explica" id="im-dup"><b>${impNum(n.dup)}</b> que já ${n.dup === 1 ? 'está cadastrado recebe' : 'estão cadastrados recebem'} nas observações o aviso <b>PERFIL DUPLICADO</b> (o resto do cadastro não muda).</p>`);   /* 2.05 */
+  if (n.fam) av.push(`<p class="explica" id="im-fam"><b>${impNum(n.fam)}</b> de ${n.fam === 1 ? 'família que já recebeu' : 'famílias que já receberam'} as horas do sistema anterior numa importação, em outra criança: ${n.fam === 1 ? 'entra' : 'entram'} sem horas, para as horas não entrarem duas vezes.</p>`);
   if (IM.col.nome >= 0 && IM.col.resp < 0) av.push(`<p class="explica">Sem a coluna do <b>responsável</b>, os cadastros entram sem o nome dele.</p>`);
   if (n.rep) av.push(`<p class="explica"><b>${impNum(n.rep)}</b> ${n.rep === 1 ? 'linha repetida (a mesma criança, do mesmo responsável)' : 'linhas repetidas (a mesma criança, do mesmo responsável)'}: <span class="im-rep"><button type="button" class="link tap" data-act="importar-rep" data-v="primeira" aria-pressed="${IM.rep === 'primeira'}">fica a primeira</button><button type="button" class="link tap" data-act="importar-rep" data-v="somar" aria-pressed="${IM.rep === 'somar'}">somar as horas</button></span></p>`);
   if (n.fora) av.push(`<p class="explica erro"><b>${impNum(n.fora)}</b> com mais de mil horas: ${n.fora === 1 ? 'entra' : 'entram'} sem horas. Confira a coluna das horas${IM.un === 'h' ? ' e, se a planilha guarda as horas em minutos, escolha <b>Minutos</b> aqui embaixo' : ''}.</p>`);
@@ -2835,12 +2848,14 @@ function pintarImportar() {
     ${temHoras ? `<div class="campo"><label>Os números das horas estão em</label><div class="seg" id="im-un"><button type="button" data-act="importar-un" data-v="h" aria-pressed="${IM.un === 'h'}">Horas</button><button type="button" data-act="importar-un" data-v="min" aria-pressed="${IM.un === 'min'}">Minutos</button></div><span class="explica">Vale para o número sozinho (5 ou 5,5). O que já vem como 5:30 ou 5h30 é lido como está.</span></div>` : ''}
     <button type="button" class="link tap im-tit" data-act="importar-titulo">${IM.cab >= 0 ? 'A planilha não tem linha de títulos (a primeira linha já é um cliente)' : 'A primeira linha é a dos títulos das colunas'}</button>
     </div>` : `<button type="button" class="marca im-colunas tap" data-act="importar-colunas" id="im-colunas">${ic(IC.lapis, 16, 2.4)}<span><b>Colunas:</b> ${CAMPOS_IMP.filter(([k]) => IM.col[k] >= 0).map(([k, r]) => `${r} (${letraCol(IM.col[k])})`).join(' · ')}${temHoras && IM.un === 'min' ? ' · horas em minutos' : ''}</span><em>Conferir</em></button>`}
-    <div class="pe-f"><button type="button" class="bt forte largo tap" id="im-ok" data-act="importar-ok"${(q || h) && IM.col.nome >= 0 ? '' : ' disabled'}>${ic(IC.subir)} ${q || h ? 'Importar ' + fraseImp(q, h).replace(/ que já estav(a|am) cadastrados?$/, h === 1 ? ' já cadastrado' : ' já cadastrados') : 'Nada para importar'}</button></div>`;
+    <div class="pe-f"><button type="button" class="bt forte largo tap" id="im-ok" data-act="importar-ok"${(q || h || a) && IM.col.nome >= 0 ? '' : ' disabled'}>${ic(IC.subir)} ${q || h ? 'Importar ' + fraseImp(q, h).replace(/ que já estav(a|am) cadastrados?$/, h === 1 ? ' já cadastrado' : ' já cadastrados') : a ? `Pôr o aviso em ${impNum(a)} ${a === 1 ? 'cadastro' : 'cadastros'}` : 'Nada para importar'}</button></div>`;
 }
 const fraseImportou = (q, min, horas) => `Importação feita: ${fraseImp(q, horas || 0) || 'nada de novo'}${min > 0 ? ', com ' + impHm(min) + ' de saldo' : ''}.`;
 // (prévia) a mesma importação, na memória
-function importarPrevia(L, H = []) {
-  const lote = IM.lote, quando = new Date(); let min = 0, horas = 0;
+function importarPrevia(L, H = [], A = []) {
+  const lote = IM.lote, quando = new Date(); let min = 0, horas = 0, avisos = 0;
+  for (const x of [...H, ...A]) { const c = crianca(x.ja); if (!c || !x.obs || /PERFIL DUPLICADO/.test(c.obs || '')) continue;   /* 2.05: o aviso de perfil duplicado em quem já está cadastrado */
+    if (c.obs) c.obs_antes = c.obs; c.obs = (x.obs + (c.obs ? '; ' + c.obs : '')).slice(0, 500); c.obs_em = quando; c.obs_por = primeiro(EU.nome); avisos++; }
   for (const x of H) { const c = crianca(x.ja); if (!c || !x.pac) continue;   /* quem já estava cadastrado: só as horas entram */
     c.pacote += x.pac / 60; if (c.pmin != null) c.pmin += x.pac; c.liberado = true; c.venda = { h: x.pac / 60, m: x.pac, v: 0, servico: SERV_IMP, com: '', quando };
     S.compras.push({ id: novoId(), crianca: c.id, h: x.pac / 60, m: x.pac, v: 0, servico: SERV_IMP, itens: '', quando, por: '', imp: true, lote, soma: true }); min += x.pac; horas++; }
@@ -2850,25 +2865,25 @@ function importarPrevia(L, H = []) {
     S.criancas.push(c); if (x.pac > 0) S.compras.push({ id: novoId(), crianca: c.id, h: x.pac / 60, m: x.pac, v: 0, servico: SERV_IMP, itens: '', quando, por: '', imp: true, lote }); min += saldo; }
   registrar('cad', 'CADASTROS', `Importação do sistema anterior: ${fraseImp(L.length, horas)}${min > 0 ? ', com ' + dur(min) + ' de saldo' : ''} · por ${primeiro(EU.nome)}`);
   IMP_LOTE = lote; S.importacao = { em: quando, por: primeiro(EU.nome), cadastros: L.length, horas, min, desfeita: false };
-  return { novos: L.length, horas, min };
+  return { novos: L.length, horas, min, avisos };
 }
 async function importarAgora() {
-  const im = IM; if (!im || !im.R || im.indo) return; const L = [...im.R.linhas, ...im.R.somas], ok = $('#im-ok'); if (!L.length || im.col.nome < 0) return;
+  const im = IM; if (!im || !im.R || im.indo) return; const L = [...im.R.linhas, ...im.R.somas, ...(im.R.avisos || [])], ok = $('#im-ok'); if (!L.length || im.col.nome < 0) return;
   im.indo = true; if (ok) ok.disabled = true;
-  if (MODO !== 'servidor') { const r = importarPrevia(im.R.linhas, im.R.somas); IM = null; fecharFolha(); desenhar(); toast(fraseImportou(r.novos, r.min, r.horas), () => trocarTela('banco'), 'Ver no Banco de horas'); return; }
+  if (MODO !== 'servidor') { const r = importarPrevia(im.R.linhas, im.R.somas, im.R.avisos || []); IM = null; fecharFolha(); desenhar(); toast(fraseImportou(r.novos, r.min, r.horas) + fraseAvisoImp(r.avisos), () => trocarTela('banco'), 'Ver no Banco de horas'); return; }
   try {
     for (const tam = im.tam || 400; im.feitas < L.length; im.feitas += tam) {
       if (ok) ok.textContent = `Importando… ${impNum(im.feitas)} de ${impNum(L.length)}` + (L.length > 2000 ? ' · não feche esta tela' : '');
       const r = await api('importar', { lote: im.lote, ja: im.ja, linhas: L.slice(im.feitas, im.feitas + tam).map(x => ({ nome: x.nome, resp: x.resp, cpf: x.cpf, tel: x.tel, tel2: x.tel2, obs: x.obs, pac: x.pac, usado: x.usado, nasc: x.nasc || '' })) });
-      im.novos += r.novos; im.min += r.min; im.horas += r.horas || 0; im.jaEstavam += r.existentes;
+      im.novos += r.novos; im.min += r.min; im.horas += r.horas || 0; im.jaEstavam += r.existentes; im.avisos = (im.avisos || 0) + (r.avisos || 0);
     }
   } catch (e) {
     im.indo = false; if (ok && ok.isConnected) { ok.disabled = false; ok.textContent = im.feitas ? 'Continuar a importação' : 'Tentar de novo'; }
     toast(e.message + (im.feitas ? ' O que já entrou continua: toque para seguir de onde parou.' : '')); return;
   }
-  const r = { novos: im.novos, min: im.min, horas: im.horas, ja: im.jaEstavam }, aberta = IM === im && !!$('#im-corpo'); if (IM === im) IM = null;
+  const r = { novos: im.novos, min: im.min, horas: im.horas, ja: im.jaEstavam, avisos: im.avisos || 0 }, aberta = IM === im && !!$('#im-corpo'); if (IM === im) IM = null;
   try { await carregar(); } catch (e) { }
-  if (aberta) fecharFolha(); desenhar(!aberta); toast(fraseImportou(r.novos, r.min, r.horas) + (r.ja ? ` ${impNum(r.ja)} já ${r.ja === 1 ? 'estava cadastrado e não mudou' : 'estavam cadastrados e não mudaram'}.` : ''), () => trocarTela('banco'), 'Ver no Banco de horas');
+  if (aberta) fecharFolha(); desenhar(!aberta); toast(fraseImportou(r.novos, r.min, r.horas) + fraseAvisoImp(r.avisos) + (r.ja ? ` ${impNum(r.ja)} já ${r.ja === 1 ? 'estava cadastrado e não mudou' : 'estavam cadastrados e não mudaram'}.` : ''), () => trocarTela('banco'), 'Ver no Banco de horas');
 }
 // o Desfazer: saem os cadastros da última importação que ainda não tiveram movimento
 const impSemMovimento = c => !!c.imp && !c.entrou && !(c.visitas || []).length && !c.foto && !S.compras.some(v => v.crianca === c.id && !v.imp) && !(S.cancelamentos || []).some(x => x.crianca === c.id);

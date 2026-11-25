@@ -1301,6 +1301,15 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O compilado novo do banco de horas: o aviso de perfil duplicado em quem já está cadastrado (2.05)
+
+Pedido do dono: "faça um compilado mais atualizado possível de todas as horas, cancele todos os CPFs duplicados, igual a gente fez, e coloque uma observação nesses que são CPF duplicados no cadastro deles, para que a gente consiga visualizar."
+
+- O compilado (feito fora do sistema, a partir do sistema antigo, só leitura) junta os cadastros repetidos do mesmo CPF num só, com as crianças juntas e as horas somadas, e põe nas observações de cada criança desse CPF o aviso "PERFIL DUPLICADO NO SISTEMA ANTIGO (N CADASTROS JUNTADOS)". O arquivo vai direto para o dono (tem dados de clientes: nunca fica no repositório nem em página publicada).
+- Ajustes → Importar clientes e horas: até a 2.04 o aviso só entrava nos cadastros novos. Agora ele entra também em quem já está cadastrado (feito à mão ou de uma importação anterior): vai na frente da observação que já havia, e a anterior fica guardada, como em toda mudança de observação. Uma vez só: quem já tem o aviso não recebe de novo. A folha conta antes ("N que já estão cadastrados recebem nas observações o aviso PERFIL DUPLICADO") e o aviso final diz em quantos entrou.
+- As horas do sistema anterior entram uma vez só por família (o CPF do responsável). O compilado mais novo pode pôr as horas da família em outra criança (a que mais usou o pacote no último ano); se uma criança desse CPF já recebeu horas numa importação anterior, a outra entra sem horas, e a folha avisa ("N de família que já recebeu as horas ... entra sem horas"). Na mesma importação nada muda: irmãos com horas próprias na planilha recebem cada um as suas.
+- A importação que só põe avisos (nenhum cadastro, nenhuma hora) aparece em "Hoje na recepção" e não toma o lugar da anterior no Desfazer. O Desfazer tira os cadastros e as horas da importação; o aviso que entrou em quem já estava cadastrado fica.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A nota pelo CNPJ da unidade: Morumbi ou Anália Franco (2.04, com o Notas 187)
 
 Pedido do dono: "o que a gente colocou é do Morumbi. Agora eu preciso colocar o certificado do Anália ... quero um botão para trocar entre Morumbi e Anália para mim saber se eu estou emitindo nota fiscal no Morumbi ou na Anália Franco".
