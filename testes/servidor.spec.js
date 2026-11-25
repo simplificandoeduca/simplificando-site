@@ -215,6 +215,11 @@ test('Conteúdo do hub (conteudo.php): o dono sobe o post (arquivos em pedaços)
   expect((await cd('feito', form({ k: id, on: '1' }))).st).toBe(200);
   expect((await cd('feito', form({ k: 'qualquer|coisa', on: '1' }))).st).toBe(400);
   expect((await sem()).j.feito).toEqual({ [id]: expect.any(Number) });
+  // mudar o dia: o post sai de hoje e vai para amanhã
+  expect((await cd('data', form({ id, data: 'amanha' }))).st).toBe(400);
+  expect((await cd('data', form({ id, data: amanha }), {})).st).toBe(403);
+  expect((await cd('data', form({ id, data: amanha }))).j.ok).toBe(true);
+  { const { j: s } = await sem(); expect(s.dias[hoje]).toEqual([]); expect(s.dias[amanha].map(p => p.id)).toContain(id); }
   // apagar: some o post e os arquivos
   expect((await cd('apagar', form({ id }))).j.ok).toBe(true);
   expect((await sem()).j.dias[hoje]).toEqual([]);

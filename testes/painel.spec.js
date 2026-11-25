@@ -470,6 +470,15 @@ test('Hub › Conteúdo: o dono sobe os posts pelo hub (Novo post) e posta pelo 
   const tk2 = page.locator('.cd-card').nth(1);
   await tk2.locator('[data-a="cdApagar"]').click(); await tk2.locator('[data-a="cdApagar"]').click();
   await expect(page.locator('.cd-card')).toHaveCount(1);
+  // mudar o dia do post: vai para amanhã (a página abre no dia novo) e some de hoje
+  const am = await page.evaluate(() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); });
+  await expect(page.locator('.cd-card [data-a="cdDia"]')).toContainText('Mudar dia');
+  await page.locator('.cd-card input[data-cdd]').evaluate((el, v) => { el.value = v; el.dispatchEvent(new Event('change', { bubbles: true })); }, am);
+  await expect(page.locator('.cd-card [data-a="cdDia"]')).toContainText(am.slice(8) + '/' + am.slice(5, 7), { timeout: 15000 });
+  await expect(page.locator('.cd-card')).toHaveCount(1);
+  if (!(await page.locator('.cd-d.hj').count())) await page.click('[data-a="cdSem"][data-v="-1"]'); // amanhã já é a semana seguinte
+  await page.locator('.cd-d.hj').click();
+  await expect(page.locator('.cd-vz')).toContainText('Nenhum post');
 });
 
 test('Hub: entrada com cara de hub, só com a senha do hub (criada pelo dono no próprio hub)', async ({ browser }) => {

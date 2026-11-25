@@ -50,7 +50,7 @@ async function hubFalso(q, r, acao) {
 }
 
 // Conteúdo do hub (conteudo.php de mentira): os posts que o dono sobe pelo hub (Novo post), guardados na memória.
-// Mesmas ações do conteudo.php de verdade (semana, arquivo, feito, novo, pedaco, pronto, apagar); o PHP de verdade é testado à parte (servidor.spec.js).
+// Mesmas ações do conteudo.php de verdade (semana, arquivo, feito, novo, pedaco, pronto, apagar, data); o PHP de verdade é testado à parte (servidor.spec.js).
 const CD = { posts: {}, feito: {} };
 const corpo = async q => { const L = []; for await (const c of q) L.push(c); return Buffer.concat(L); };
 const cdMonta = p => {
@@ -79,6 +79,7 @@ async function cdFalso(q, r, url) {
     return json(r, { ok: true, tam: a.buf.length });
   }
   if (acao === 'pronto') { const id = (await form()).get('id'), p = CD.posts[id]; if (!p) return json(r, { ok: false }, 404); p.pronto = true; return json(r, { ok: true, post: cdMonta(p) }); }
+  if (acao === 'data') { const fd = await form(), p = CD.posts[fd.get('id')], d = fd.get('data') || ''; if (!p) return json(r, { ok: false }, 404); if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return json(r, { ok: false }, 400); p.data = d; return json(r, { ok: true }); }
   if (acao === 'apagar') { const id = (await form()).get('id'); if (!CD.posts[id]) return json(r, { ok: false }, 404); delete CD.posts[id]; delete CD.feito[id]; return json(r, { ok: true }); }
   if (acao === 'arquivo') {
     const [pid, k] = String(url.searchParams.get('id')).split('-'), p = CD.posts[pid], a = p && p.arqs.find(x => x.k === +k && x.ok);

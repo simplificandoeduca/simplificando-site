@@ -908,7 +908,7 @@ button.hb-bl{width:100%;border:0;font:inherit;text-align:left;cursor:pointer;dis
 .cd-fl li::before{content:counter(cdf);font-weight:900;color:#C8F542;min-width:16px}.cd-fl span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cd-fl em{font-style:normal;color:#A9B0AA;font-size:12px}
 .cd-erro{margin:0;color:#FF8A8A;font-weight:700;font-size:14px}
 .cd-prog{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:700;color:#A9B0AA}.cd-prog>div{height:10px;border-radius:6px;background:#0F1712;overflow:hidden}.cd-prog i{display:block;height:100%;background:#C8F542;transition:width .3s}
-.cd-ft{flex-wrap:wrap}.cd-ft>span{flex-basis:100%}.cd-ft>span:empty{display:none}.cd-ap{margin-right:auto}.cd-nv .cd-b{flex:none;width:100%}
+.cd-ft{flex-wrap:wrap}.cd-ft>span{flex-basis:100%}.cd-ft>span:empty{display:none}.cd-ap{margin-right:auto}.cd-dt{position:relative;margin-left:auto;background:none;border:1.5px solid #2E3931;color:#F6F5EF;font-family:inherit;cursor:pointer}.cd-dt input{position:absolute;inset:0;width:100%;height:100%;opacity:0;pointer-events:none;border:0;padding:0}.hub-claro .cd-dt{border-color:#D5D6CE;color:#0F1712}.cd-nv .cd-b{flex:none;width:100%}
 .hub-claro .cd-novo{border-color:#D5D6CE;color:#0F1712}.hub-claro .cd-nv{background:#F4F4F1;color:#0F1712}.hub-claro .cd-f input,.hub-claro .cd-f textarea,.hub-claro .cd-fl li,.hub-claro .cd-seg{background:#FFFFFF;color:#0F1712;border-color:#E0E0DA;color-scheme:light}.hub-claro .cd-fl li{color:#0F1712}
 .cd-vz{display:flex;flex-direction:column;gap:6px;background:#172019;border-radius:22px;padding:18px;margin-top:14px;color:#A9B0AA;font-size:14px;line-height:1.45}.cd-vz b{color:#F6F5EF;font-size:16px}.cd-vz code{color:#C8F542;font-weight:800}
 .cd-er{background:#FF9A2E;color:rgba(15,23,18,.8)}.cd-er b{color:#0F1712}
@@ -2885,6 +2885,12 @@ function cdApagar(id){
     .then(r => r.json()).then(j => { if(!j.ok) throw 0; Object.values(CT.sem).forEach(s => { if(s && s.st==='ok') Object.keys(s.d).forEach(k => { s.d[k] = s.d[k].filter(p => p.id!==id); }); }); toast('Post apagado.'); render(); })
     .catch(() => toast('Não deu para apagar. Tente de novo.'));
 }
+function cdData(id, dia){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(dia)) return;
+  donoToken().then(t => { const f = new FormData(); f.append('id', id); f.append('data', dia); return fetch('/conteudo.php?acao=data', { method:'POST', body:f, headers:t ? { Authorization:'Bearer '+t } : {}, cache:'no-store' }); })
+    .then(r => r.json()).then(j => { if(!j.ok) throw 0; CT.sel = dia; Object.keys(CT.sem).forEach(k => delete CT.sem[k]); cdCarregar(semIni(dia), true); toast('Post movido para '+dia.slice(8)+'/'+dia.slice(5,7)+'.'); render(); })
+    .catch(() => toast('Não deu para mudar o dia. Tente de novo.'));
+}
 function cdCard(k, p){
   const key = p.id, feito = cdFeito(p), prep = CT.prep[key], vazio = p.tipo==='vazio';
   const pronto = !vazio && p.midia.every(f => CTB[f.id] && CTB[f.id].st==='ok'), baixando = prep && !pronto && p.midia.some(f => CTB[f.id] && CTB[f.id].st==='ind');
@@ -2896,7 +2902,7 @@ function cdCard(k, p){
   const bPost = vazio ? '' : '<button type="button" class="cd-b cd-b1" data-a="cdPostar" data-k="'+esc(key)+'"'+(baixando ? ' disabled' : '')+'>'+ic(baixando ? 'down' : 'share')+
     (baixando ? 'Baixando <span data-cdpp="'+esc(key)+'">…</span>' : pronto && prep ? 'Postar agora' : p.tipo==='reels' ? 'Postar vídeo' : 'Postar')+'</button>';
   return '<article class="cd-card'+(feito ? ' feito' : '')+'">'+
-    '<div class="cd-ch"><span class="cd-chip '+p.plat+'">'+CD_PLAT[p.plat]+'</span><span class="cd-chip fm">'+cdTipo(p)+'</span>'+(feito ? '<span class="cd-chip ok">'+ic('check')+'Postado</span>' : '')+'</div>'+
+    '<div class="cd-ch"><span class="cd-chip '+p.plat+'">'+CD_PLAT[p.plat]+'</span><span class="cd-chip fm">'+cdTipo(p)+'</span>'+(feito ? '<span class="cd-chip ok">'+ic('check')+'Postado</span>' : '')+'<button type="button" class="cd-chip cd-dt" data-a="cdDia" data-k="'+esc(key)+'" aria-label="Mudar o dia do post">'+ic('cal')+k.slice(8)+'/'+k.slice(5,7)+' · Mudar dia<input type="date" data-cdd="'+esc(key)+'" value="'+esc(k)+'" tabindex="-1" aria-hidden="true"></button></div>'+
     '<h3>'+esc(cdTema(p))+'</h3>'+midia+
     (vazio ? '<p class="cd-n">Este post ficou sem arquivos. Apague e suba de novo.</p>' : '')+
     '<div class="cd-bt">'+bPost+(p.tipo==='reels' && p.capa ? '<button type="button" class="cd-b cd-b3" data-a="cdCapa" data-k="'+esc(key)+'">'+ic('down')+'Salvar capa</button>' : '')+(leg ? '<button type="button" class="cd-b cd-b2" data-a="cdCopiar" data-k="'+esc(key)+'">'+ic('copy')+'Copiar legenda</button>' : '')+'</div>'+
@@ -3919,7 +3925,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '25 nov · 177'; // Versão do painel: 25 nov · 177
+const PAINELV = '25 nov · 178'; // Versão do painel: 25 nov · 178
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
@@ -4764,6 +4770,7 @@ document.addEventListener('change', e => {
   const el = e.target;
   if(el.id==='tp-min'){ if(ui.sheet && ui.sheet.k==='evTempo' && +el.value>=1){ ui.sheet.min = Math.round(+el.value); const b = document.querySelector('[data-a="evTempoOk"]'); if(b) b.innerHTML = ic('check')+'Salvar '+ui.sheet.min+' min'; } return; }
   if(el.id==='mv-dia'){ if(ui.sheet && ui.sheet.k==='evMover' && isDate(el.value)){ ui.sheet.para = el.value; renderSheet(); } return; }
+  if(el.dataset && el.dataset.cdd){ if(el.value && el.value!==el.defaultValue) cdData(el.dataset.cdd, el.value); return; }
   if(el.id==='cdn-file'){ if(CT.novo && el.files) { const L = Array.from(el.files).sort((a,b) => a.name.localeCompare(b.name, 'pt-BR', { numeric:true })); CT.novo.files = CT.novo.files.concat(L).slice(0, 20); CT.novo.erro = ''; render(); } el.value = ''; return; }
   if(el.dataset.cdn && CT.novo){ CT.novo[el.dataset.cdn] = el.value; return; }
   if(el.id==='pdf-imp-file'){ const f = el.files && el.files[0]; if(f) pdfImpArquivo(f); el.value = ''; return; }
@@ -5401,6 +5408,7 @@ function act(a,d,btn){
     case 'cdNovo': cdNovoAbre(); return false;
     case 'cdnFecha': CT.novo = null; break;
     case 'cdnPlat': if(CT.novo){ CT.novo.plat = d.v; } break;
+    case 'cdDia': { const el = btn.querySelector('input[data-cdd]'); if(el){ try { el.showPicker(); } catch(e){ el.style.pointerEvents = 'auto'; el.focus(); el.click(); } } return false; }
     case 'cdnArq': { const el = document.getElementById('cdn-file'); if(el) el.click(); return false; }
     case 'cdnTira': if(CT.novo){ CT.novo.files.splice(+d.v, 1); } break;
     case 'cdnEnviar': cdNovoEnviar(); return false;

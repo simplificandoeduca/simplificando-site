@@ -10,6 +10,7 @@
 //   acao=pedaco&id=..&k=..&parte=..&nome=..&mime=..  (corpo = um pedaço do arquivo, até 4 MB) → manda um arquivo em pedaços (vídeo grande)
 //   acao=pronto  (POST id)              → termina o envio: confere os arquivos e diz se é reels, carrossel ou foto
 //   acao=apagar  (POST id)              → apaga o post e os arquivos
+//   acao=data    (POST id, data)        → muda o dia do post
 // Robô de testes: SIMP_TESTE_DONO (o token aceito como dono).
 header('Cache-Control: no-store');
 function cd_sai($a, $c = 200) { http_response_code($c); header('Content-Type: application/json; charset=utf-8'); echo json_encode($a, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); exit; }
@@ -54,7 +55,7 @@ function cd_monta($p) {
 }
 
 $acao = $_GET['acao'] ?? '';
-if (!in_array($acao, ['semana', 'arquivo', 'feito', 'novo', 'pedaco', 'pronto', 'apagar'], true)) cd_sai(['ok' => false], 400);
+if (!in_array($acao, ['semana', 'arquivo', 'feito', 'novo', 'pedaco', 'pronto', 'apagar', 'data'], true)) cd_sai(['ok' => false], 400);
 if (!cd_dono($casa, $agora)) cd_sai(['ok' => false, 'erro' => 'Só o dono do painel. Saia e entre de novo no hub.'], 403);
 if ($acao !== 'semana' && $acao !== 'arquivo' && $_SERVER['REQUEST_METHOD'] !== 'POST') cd_sai(['ok' => false], 405);
 cd_pasta($DIR, $ARQS);
@@ -106,6 +107,12 @@ if ($acao === 'pronto') {
   cd_sai(['ok' => true, 'post' => cd_monta($P[$id])]);
 }
 
+if ($acao === 'data') {
+  $id = (string)($_POST['id'] ?? ''); $data = (string)($_POST['data'] ?? ''); $P = cd_le($IDX); if (!preg_match(CD_ID, $id) || !isset($P[$id])) cd_sai(['ok' => false], 404);
+  if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $data) || !checkdate((int)substr($data, 5, 2), (int)substr($data, 8, 2), (int)substr($data, 0, 4))) cd_sai(['ok' => false, 'erro' => 'Escolha a data do post.'], 400);
+  $P[$id]['data'] = $data; cd_grava($IDX, $P);
+  cd_sai(['ok' => true]);
+}
 if ($acao === 'apagar') {
   $id = (string)($_POST['id'] ?? ''); $P = cd_le($IDX); if (!preg_match(CD_ID, $id) || !isset($P[$id])) cd_sai(['ok' => false], 404);
   foreach ($P[$id]['arqs'] as $a) @unlink($ARQS . '/' . basename($a['arq']));
