@@ -436,6 +436,14 @@ function db(): PDO {
     $pdo->exec("CREATE TABLE IF NOT EXISTS maquinas (id INTEGER PRIMARY KEY, token TEXT NOT NULL UNIQUE, nome TEXT NOT NULL DEFAULT '', criado_em TEXT NOT NULL, criado_por INTEGER, ultimo_uso TEXT, ativo INTEGER NOT NULL DEFAULT 1)");
     $pdo->exec('PRAGMA user_version = 47');
   }
+  if ($v < 48) { /* 2.11: as horas do CPF que passaram na entrada (tipo 'ent': o Desfazer da saída não mexe nelas) */
+    try { $pdo->exec("ALTER TABLE fam_horas ADD COLUMN tipo TEXT NOT NULL DEFAULT 'sai'"); } catch (Throwable $e) { }
+    $pdo->exec('PRAGMA user_version = 48');
+  }
+  if ($v < 49) { /* 2.11: a "loja" de cada unidade entra com senha (de fábrica 123456) */
+    foreach ($pdo->query('SELECT id FROM usuarios WHERE loja = 1')->fetchAll(PDO::FETCH_COLUMN) as $id) $pdo->prepare('UPDATE usuarios SET senha = ? WHERE id = ?')->execute([password_hash('123456', PASSWORD_DEFAULT), (int)$id]);
+    $pdo->exec('PRAGMA user_version = 49');
+  }
   return $pdo;
 }
 /* ---------- 1.06: unidades ---------- */
@@ -536,7 +544,7 @@ const PACOTES_DE_EXEMPLO = [['h' => 1, 'v' => 60], ['h' => 5, 'v' => 250], ['h' 
 // cupomLoja, cupomTel, cupomAviso (0.94): o nome e o telefone da loja e o aviso do pé do cupom impresso (o papel que o responsável assina na entrada)
 // estorno (1.21): quem desfaz ou cancela o que já tem valor. 'gestor' (de fábrica), 'supervisor' (o gestor e o supervisor) ou 'todos' (como era até a 1.20)
 const REGRA_PADRAO = ['tolerancia' => 9, 'fecha' => 22, 'pcdDesc' => 50, 'aviso' => 10, 'autoMsg' => 'nao', 'bloqueioAuto' => 'sim', 'pacotes' => [], 'extras' => [], 'sapateiras' => 44, 'cancelaMin' => 9, 'reabreMin' => 30, 'tolCupom' => 5, 'cupom' => 'nao', 'estorno' => 'gestor',
-  'cupomLoja' => 'PLAY SPACE', 'cupomTel' => '', 'cupomAviso' => 'ATENÇÃO: SOMENTE O RESPONSÁVEL QUE ASSINAR A ENTRADA DA CRIANÇA PODERÁ ASSINAR SUA SAÍDA.', 'cupomTam' => 'normal'];   // 2.09: o tamanho do cupom impresso (normal, compacto, economico)
+  'cupomLoja' => 'PLAY SPACE', 'cupomTel' => '', 'cupomAviso' => 'ATENÇÃO: SOMENTE O RESPONSÁVEL QUE ASSINAR A ENTRADA DA CRIANÇA PODERÁ ASSINAR SUA SAÍDA.', 'cupomTam' => 'normal', 'horasCpf' => 'sim'];   // 2.11: as horas do pacote são do CPF (todas as crianças do responsável usam)   // 2.09: o tamanho do cupom impresso (normal, compacto, economico)
 function regra(): array {
   if (isset($GLOBALS['_regra'])) return $GLOBALS['_regra'];   // lida uma vez por pedido (a conta do tempo consulta a regra muitas vezes)
   return $GLOBALS['_regra'] = regraDoBanco();
@@ -636,6 +644,7 @@ function iniciarSessao(): void {
   session_start();
 }
 /* 2.10: o computador da loja (entra pela unidade, sem senha). A chave fica só no computador; o banco guarda o hash dela */
+const SENHA_LOJA = '123456';   /* 2.11: a senha de fábrica das unidades (o dono: "essa senha pode colocar de 1 a 6 todos e depois a opção de eu trocar") */
 function maquinaDaChave(string $t): ?array {
   if (!preg_match('/^[0-9a-f]{48}$/', $t)) return null;
   $q = db()->prepare('SELECT * FROM maquinas WHERE token = ? AND ativo = 1'); $q->execute([hash('sha256', $t)]); return $q->fetch() ?: null;
@@ -645,7 +654,7 @@ function usuarioDaLoja(int $uni): ?array {   // a "loja" da unidade: um usuário
   $nome = maiusculo(preg_replace('/^CASA\s+TO[MN]\s+/iu', 'CASATOM ', trim((string)$un['nome'])));
   $q = $db->prepare('SELECT id, nome, ativo FROM usuarios WHERE loja = 1 AND unidade_id = ? ORDER BY id LIMIT 1'); $q->execute([$uni]); $u = $q->fetch();
   if ($u) { if ((int)$u['ativo'] !== 1 || (string)$u['nome'] !== $nome) $db->prepare('UPDATE usuarios SET ativo = 1, nome = ? WHERE id = ?')->execute([$nome, (int)$u['id']]); return ['id' => (int)$u['id']]; }
-  $db->prepare("INSERT INTO usuarios (nome, login, senha, papel, ativo, criado_em, unidade_id, loja) VALUES (?, ?, ?, 'atendente', 1, ?, ?, 1)")->execute([$nome, '__loja_' . $uni . '_' . bin2hex(random_bytes(3)), password_hash(bin2hex(random_bytes(24)), PASSWORD_DEFAULT), agora(), $uni]);
+  $db->prepare("INSERT INTO usuarios (nome, login, senha, papel, ativo, criado_em, unidade_id, loja) VALUES (?, ?, ?, 'atendente', 1, ?, ?, 1)")->execute([$nome, '__loja_' . $uni . '_' . bin2hex(random_bytes(3)), password_hash(SENHA_LOJA, PASSWORD_DEFAULT), agora(), $uni]);   /* 2.11: a senha da unidade (de fábrica 123456) */
   return ['id' => (int)$db->lastInsertId()];
 }
 function maquinasLista(): array {
@@ -1107,13 +1116,14 @@ function fazerEntrada(array $c, string $origem = 'iDFace', ?string $quando = nul
   $db = db(); $quando = $quando ?: agora();
   $db->prepare('UPDATE criancas SET entrou = ?, unidade_id = ?, festa_id = ?, vend_abriu = ? WHERE id = ?')->execute([$quando, unidadeDoPedido(), $festa ?: null, $vend, $c['id']]);   // 1.06: a unidade do aparelho em que a entrada foi dada (o iDFace não diz: fica sem)
   $c['entrou'] = $quando; $c['unidade_id'] = unidadeDoPedido(); $c['festa_id'] = $festa ?: null; $c['vend_abriu'] = $vend;
+  $fh = !$festa ? horasDaFamiliaNaEntrada(crianca((int)$c['id'])) : null;   /* 2.11: as horas do CPF vão com a criança */
   $reg = registrar('ent', (int)$c['id'], $c['nome'], $origem === 'iDFace' ? 'Rosto reconhecido na entrada' : (modoManual() ? 'Entrada registrada' : 'Entrada registrada à mão'), $quando);
   $msg = null;
   if (regra()['autoMsg'] !== 'nao') {
     $texto = 'Oi, ' . nomeMsg(primeiroNome($c['resp'])) . '! ' . nomeMsg($c['nome']) . ' chegou na Play Space às ' . date('H:i', strtotime($quando)) . ' 💛 Qualquer coisa a gente te chama por aqui.';   // sem falar de tempo nem de saldo
     $msg = mandarMensagem($c, $texto, true, $c['foto'] ?: '');
   }
-  return ['registro' => $reg, 'mensagem' => $msg];
+  return ['registro' => $reg, 'mensagem' => $msg] + ($fh ? ['familia' => $fh] : []);
 }
 /* ---------- 1.15: a recreação avulsa é acertada na saída ---------- */
 // O cliente sem pacote não compra períodos na entrada: a criança entra e o tempo dela é contado em períodos (30 min, com a tolerância
@@ -1126,6 +1136,7 @@ const ITENS_AVULSA = 'avulsa';
 const ITENS_ALEM = 'além do pacote';
 // de onde sai o tempo desta criança agora: 'pacote' ou 'avulso' (a mesma conta de planosDoEspaco(), para uma criança só)
 function planoDaCrianca(array $c): string {
+  $pf = planoPelasHoras($c); if ($pf !== null) return $pf;   /* 2.11 */
   $resta = (int)$c['usado_min'];
   $q = db()->prepare('SELECT minutos, servico, itens, auto, voucher FROM vendas WHERE crianca_id = ? AND minutos > 0 ORDER BY id'); $q->execute([(int)$c['id']]);
   foreach ($q->fetchAll() as $v) { $m = (int)$v['minutos']; if ($resta >= $m) { $resta -= $m; continue; } $resta = 0; if (ehVendaDePacote($v)) return 'pacote'; }
@@ -1251,8 +1262,38 @@ function usarHorasDaFamilia(array $c, string $quando): ?array {
   } catch (Throwable $e) { $db->rollBack(); throw $e; }
   return ['min' => $t, 'de' => $de];
 }
+function horasDoCpf(): bool { return (string)(regra()['horasCpf'] ?? 'sim') !== 'nao'; }   /* 2.11: as horas são do CPF */
+/* 2.11: na entrada, as horas do CPF vão com a criança que entra: tudo o que os irmãos que estão fora têm guardado; e, se mesmo assim ela não
+   tem um período, uma parte igual do que sobra aos irmãos que estão no espaço (em períodos inteiros) */
+function horasDaFamiliaNaEntrada(array $c): ?array {
+  if (!horasDoCpf() || !servicoTempo() || !empty($c['festa_id']) || empty($c['entrou'])) return null;
+  $p = periodo(); $fim = agoraTs(); $L = irmaosDe($c); if (!$L) return null; $mov = [];
+  foreach ($L as $x) if (empty($x['entrou'])) { $m = (int)$x['pacote_min'] - (int)$x['usado_min']; if ($m > 0) $mov[] = [$x, $m]; }
+  $meu = (int)$c['pacote_min'] - autosDaVisitaMin($c) - (int)$c['usado_min'] + array_sum(array_map(fn($y) => $y[1], $mov));
+  $D = array_values(array_filter($L, fn($x) => !empty($x['entrou']) && empty($x['festa_id'])));
+  if ($meu < $p && $D) foreach ($D as $x) { $sobra = (int)$x['pacote_min'] - autosDaVisitaMin($x) - (int)$x['usado_min'] - cobrar(minutosDaVisita($x, $fim)); $m = intdiv(max(0, $sobra), (count($D) + 1) * $p) * $p; if ($m > 0) $mov[] = [$x, $m]; }
+  if (!$mov) return null;
+  $db = db(); $t = 0; $de = []; $db->beginTransaction();
+  try {
+    foreach ($mov as [$x, $m]) {
+      $db->prepare('UPDATE criancas SET pacote_min = MAX(0, pacote_min - ?) WHERE id = ?')->execute([$m, (int)$x['id']]); $t += $m;
+      $rd = registrar('alt', (int)$x['id'], (string)$x['nome'], 'Horas do CPF: ' . dur($m) . ' passaram para a entrada de ' . $c['nome']);
+      $db->prepare("INSERT INTO fam_horas (quando, para, de, minutos, reg_de, tipo) VALUES (?, ?, ?, ?, ?, 'ent')")->execute([agora(), (int)$c['id'], (int)$x['id'], $m, $rd]);
+      $de[] = ['id' => (int)$db->lastInsertId(), 'crianca' => (int)$x['id'], 'nome' => (string)$x['nome'], 'min' => $m]; }
+    $db->prepare('UPDATE criancas SET pacote_min = pacote_min + ? WHERE id = ?')->execute([$t, (int)$c['id']]);
+    $rp = registrar('alt', (int)$c['id'], (string)$c['nome'], 'Horas do CPF: ' . dur($t) . ' de ' . implode(' e ', array_map(fn($y) => $y['nome'], $de)) . ' (entrada; as horas são do CPF)');
+    $db->prepare('UPDATE fam_horas SET reg_para = ? WHERE id IN (' . implode(',', array_map(fn($y) => (int)$y['id'], $de)) . ')')->execute([$rp]);
+    $db->commit();
+  } catch (Throwable $e) { $db->rollBack(); throw $e; }
+  return ['min' => $t, 'de' => $de];
+}
+/* 2.11: a criança que recebeu (ou deu) horas do CPF está no pacote enquanto tem horas guardadas (as que vieram não são uma venda dela) */
+function planoPelasHoras(array $c): ?string {
+  $q = db()->prepare('SELECT 1 FROM fam_horas WHERE desfeito = 0 AND (para = ? OR de = ?) LIMIT 1'); $q->execute([(int)$c['id'], (int)$c['id']]); if (!$q->fetchColumn()) return null;
+  return (int)$c['pacote_min'] - autosDaVisitaMin($c) - (int)$c['usado_min'] > 0 ? 'pacote' : 'avulso';
+}
 function desfazerHorasDaFamilia(array $c, string $desde): int {   // o Desfazer da saída: as horas voltam para os irmãos
-  $db = db(); $q = $db->prepare('SELECT * FROM fam_horas WHERE para = ? AND quando >= ? AND desfeito = 0'); $q->execute([(int)$c['id'], $desde]); $n = 0;
+  $db = db(); $q = $db->prepare('SELECT * FROM fam_horas WHERE para = ? AND quando >= ? AND desfeito = 0 AND tipo = \'sai\''); $q->execute([(int)$c['id'], $desde]); $n = 0;
   foreach ($q->fetchAll() as $x) {
     $db->prepare('UPDATE criancas SET pacote_min = MAX(0, pacote_min - ?) WHERE id = ?')->execute([(int)$x['minutos'], (int)$c['id']]);
     $db->prepare('UPDATE criancas SET pacote_min = pacote_min + ? WHERE id = ?')->execute([(int)$x['minutos'], (int)$x['de']]);
@@ -2146,6 +2187,8 @@ function planosDoEspaco(): array {
     if ($resta[$id] >= $m) { $resta[$id] -= $m; continue; }   // esta compra já foi usada inteira
     $resta[$id] = 0; if (ehVendaDePacote($v)) $o[$id] = 'pacote';
   }
+  foreach ($db->query('SELECT DISTINCT x FROM (SELECT para x FROM fam_horas WHERE desfeito = 0 UNION SELECT de x FROM fam_horas WHERE desfeito = 0)')->fetchAll(PDO::FETCH_COLUMN) as $id) {   /* 2.11: as horas do CPF */
+    $id = (int)$id; if (!isset($o[$id]) || $o[$id] === 'festa') continue; $k = crianca($id); if ($k) { $pf = planoPelasHoras($k); if ($pf !== null) $o[$id] = $pf; } }
   return $o;
 }
 /* ---------- 1.11: a data de nascimento ---------- */

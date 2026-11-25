@@ -223,6 +223,9 @@ switch ($acao) {
     $m = maquinaDaChave((string)($in['chave'] ?? ''));
     if (!$m) { $db->prepare('INSERT INTO tentativas (login, ip, quando) VALUES (?, ?, ?)')->execute(['#loja', $ip, time()]); usleep(400000); falha('Este computador não está mais liberado. Entre com usuário e senha, ou peça ao gestor para liberar de novo.', 403); }
     $uni = (int)($in['unidade'] ?? 0); $lu = usuarioDaLoja($uni); if (!$lu) falha('Unidade não encontrada.', 404);
+    $q = $db->prepare('SELECT COUNT(*) FROM tentativas WHERE login = ? AND ip = ? AND quando > ?'); $q->execute(['#loja' . $uni, $ip, time() - 900]); if ((int)$q->fetchColumn() >= 8) falha('Muitas tentativas. Espere 15 minutos e tente de novo.', 429);
+    $q = $db->prepare('SELECT senha FROM usuarios WHERE id = ?'); $q->execute([(int)$lu['id']]); $h = (string)$q->fetchColumn(); $q->closeCursor();   /* 2.11: a senha da unidade */
+    if (!password_verify((string)($in['senha'] ?? ''), $h)) { $db->prepare('INSERT INTO tentativas (login, ip, quando) VALUES (?, ?, ?)')->execute(['#loja' . $uni, $ip, time()]); usleep(400000); falha('Senha da unidade errada.', 401); }
     $db->prepare('UPDATE maquinas SET ultimo_uso = ? WHERE id = ?')->execute([agora(), (int)$m['id']]);
     session_regenerate_id(true); $_SESSION['uid'] = (int)$lu['id']; $_SESSION['uni0'] = $uni; $_SESSION['maq'] = (int)$m['id'];
     responder(['usuario' => eu()]);
@@ -235,6 +238,13 @@ switch ($acao) {
     responder(['chave' => $t, 'nome' => $nome, 'unidades' => unidadesDaLoja(), 'maquinas' => maquinasLista()]);
   }
   case 'maquinas': { exigir(['gestor']); responder(['maquinas' => maquinasLista()]); }
+  case 'loja_senha': { /* 2.11: o gestor troca a senha de uma unidade (a do computador da loja) */
+    $u = exigir(['gestor']); $uni = (int)($in['unidade'] ?? 0); $s = (string)($in['senha'] ?? ''); if (mb_strlen($s) < 4 || mb_strlen($s) > 40) falha('A senha precisa ter de 4 a 40 caracteres.');
+    $lu = usuarioDaLoja($uni); if (!$lu) falha('Unidade não encontrada.', 404);
+    $db->prepare('UPDATE usuarios SET senha = ? WHERE id = ?')->execute([password_hash($s, PASSWORD_DEFAULT), (int)$lu['id']]);
+    $n = ''; foreach (unidadesDaLoja() as $x) if ($x['id'] === $uni) $n = $x['nome']; registrar('alt', null, 'Computador da loja', 'Senha da unidade ' . $n . ' trocada · por ' . primeiroNome($u['nome']));
+    responder();
+  }
   case 'maquina_tirar': { /* 2.10: o computador volta a pedir usuário e senha (a sessão aberta nele cai) */
     $u = exigir(['gestor']); $m = !empty($in['chave']) ? maquinaDaChave((string)$in['chave']) : null; $id = $m ? (int)$m['id'] : (int)($in['id'] ?? 0);
     $q = $db->prepare('SELECT nome FROM maquinas WHERE id = ? AND ativo = 1'); $q->execute([$id]); $n = $q->fetchColumn();
@@ -1105,7 +1115,8 @@ switch ($acao) {
     if (isset($in['cupomLoja'])) { $n = mb_substr(maiusculo((string)$in['cupomLoja']), 0, 40); if ($n === '') falha('Escreva o nome da loja que sai no cupom.'); $r['cupomLoja'] = $n; }
     if (isset($in['cupomTel'])) $r['cupomTel'] = mb_substr(trim((string)preg_replace('/[^0-9()+\-. ]/', '', (string)$in['cupomTel'])), 0, 30);
     if (isset($in['cupomAviso'])) $r['cupomAviso'] = mb_substr(maiusculo((string)$in['cupomAviso']), 0, 300);
-    if (isset($in['cupomTam']) && in_array($in['cupomTam'], ['normal', 'compacto', 'economico'], true)) $r['cupomTam'] = $in['cupomTam'];   /* 2.09: o tamanho do cupom */
+    if (isset($in['cupomTam']) && in_array($in['cupomTam'], ['normal', 'compacto', 'economico'], true)) $r['cupomTam'] = $in['cupomTam'];
+    if (isset($in['horasCpf']) && in_array($in['horasCpf'], ['sim', 'nao'], true)) $r['horasCpf'] = $in['horasCpf'];   /* 2.11: as horas são do CPF */   /* 2.09: o tamanho do cupom */
     if (isset($in['sapateiras'])) { $n = (int)$in['sapateiras']; if ($n < 1 || $n > 200) falha('Quantas sapateiras existem? De 1 a 200.'); $r['sapateiras'] = $n; }
     if (isset($in['pacotes']) && is_array($in['pacotes'])) {
       // um pacote: horas, valor, tipo (com produto, o brinde já no valor; ou seco, só as horas), nome opcional e em até quantas vezes parcela. Pode haver vários do mesmo tempo

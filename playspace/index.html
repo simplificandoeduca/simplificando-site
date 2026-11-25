@@ -1626,7 +1626,7 @@ b.np { color: var(--erro); letter-spacing: .03em; }
 .lj-unis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 6px 0 4px; }
 .lj-uni { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 96px; padding: 12px 10px; border: 0; border-radius: 18px; background: var(--coral); color: #fff; font: 800 15px/1.2 var(--display); text-align: center; cursor: pointer; }
 .lj-uni.ct { background: #C8202A; } .lj-uni svg { width: 22px; height: 22px; } .lj-uni:disabled { opacity: .55; cursor: wait; }
-.lj-senha { display: block; margin: 10px auto 0; }
+.lj-senha { display: block; margin: 10px auto 0; } .bt.lj-gestor { margin-top: 10px; } .bt.lj-ct { background: #C8202A; border-color: #C8202A; }
 @media (max-width: 360px) { .lj-unis { grid-template-columns: 1fr; } .lj-uni { min-height: 64px; flex-direction: row; } }
 .bt.av-entrar { height: auto; min-height: 58px; padding: 9px 16px; flex-direction: column; gap: 3px; line-height: 1.2; } .bt.av-entrar > span { display: inline-flex; align-items: center; gap: 8px; } .bt.av-entrar small { font: 700 12.5px/1.2 var(--texto); opacity: .92; letter-spacing: 0; }   /* 1.15: o botão da entrada na recreação avulsa, com o valor embaixo */
 .serv .qtd b { min-width: 62px; text-align: center; font-family: var(--display); font-weight: 800; font-size: 16px; white-space: nowrap; }
@@ -2100,7 +2100,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.10';
+const VERSAO = '2.11';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -2542,13 +2542,19 @@ function telaSo(html) { // telas sem o menu (entrar, primeiro acesso)
 const MAQ_K = 'ps-maquina';
 function maqLer() { try { const m = JSON.parse(localStorage.getItem(MAQ_K) || 'null'); return m && /^[0-9a-f]{48}$/.test(m.c || '') ? m : null; } catch (e) { return null; } }
 function maqGuardar(m) { try { if (m) localStorage.setItem(MAQ_K, JSON.stringify(m)); else localStorage.removeItem(MAQ_K); } catch (e) { } }
-let ENTRAR_SENHA = false;
+let ENTRAR_SENHA = false, LJ_UNI = 0;   /* 2.11: LJ_UNI = a unidade tocada (pede a senha dela) */
 const ehCT = n => /CASA\s*TO[MN]/i.test(String(n || ''));
 function telaEntrarLoja(m) {
   const U = [...(m.u || []).filter(u => !ehCT(u.nome)), ...(m.u || []).filter(u => ehCT(u.nome))];
-  telaSo(`<h1 style="font-size:24px;font-weight:800">Play Space</h1><p class="explica">Toque na unidade para entrar.</p>
+  const uS = LJ_UNI ? U.find(u => u.id === LJ_UNI) : null; if (LJ_UNI && !uS) LJ_UNI = 0;
+  if (uS) { telaSo(`<h1 style="font-size:24px;font-weight:800">Play Space</h1><p class="explica">Operador · <b>${esc(uS.nome)}</b></p>
+    <div class="campo"><label for="lj-senha">Senha da unidade</label><input id="lj-senha" type="password" inputmode="numeric" autocomplete="off"></div>
+    <button type="button" class="bt forte largo tap${ehCT(uS.nome) ? ' lj-ct' : ''}" id="lj-ok" data-act="entrar-loja-ok" data-u="${uS.id}">${ic(IC.entrar)} Entrar</button>
+    <button type="button" class="link tap lj-senha" data-act="entrar-unidades">Voltar às unidades</button>
+    <p class="rodape">Computador da loja${m.n ? ' · ' + esc(m.n) : ''} · Play Space Horas v${VERSAO}</p>`); return; }
+  telaSo(`<h1 style="font-size:24px;font-weight:800">Play Space</h1><p class="explica">Operador: toque na unidade e escreva a senha dela.</p>
     <div class="lj-unis">${U.length ? U.map(u => `<button type="button" class="lj-uni tap${ehCT(u.nome) ? ' ct' : ''}" data-act="entrar-loja" data-u="${u.id}">${ic(IC.entrar)}<b>${esc(u.nome)}</b></button>`).join('') : '<p class="explica">Carregando as unidades…</p>'}</div>
-    <button type="button" class="link tap lj-senha" data-act="entrar-senha">Entrar com usuário e senha</button>
+    <button type="button" class="bt claro largo tap lj-gestor" data-act="entrar-senha">${ic(IC.check)} Login do gestor</button>
     <p class="rodape">Computador da loja${m.n ? ' · ' + esc(m.n) : ''} · Play Space Horas v${VERSAO}</p>`);
   api('loja_unidades', { chave: m.c }).then(r => { const n = { ...m, u: r.unidades || [], n: r.nome || m.n || '' }; maqGuardar(n); if (JSON.stringify(n.u) !== JSON.stringify(m.u) && $('.lj-unis')) telaEntrarLoja(n); })
     .catch(e => { if (e.status === 403 && $('.lj-unis')) { maqGuardar(null); telaEntrar(); toast(e.message); } });
@@ -2557,7 +2563,7 @@ function telaEntrar() {
   if (LADO) fecharLado();
   S.pedidos = []; PED_SINAL = ''; S.avisos = []; AV_SINAL = null; AV_JA = null; for (const k of [...AUT_VISTOS]) if (String(k).startsWith('av')) AUT_VISTOS.delete(k); setTimeout(desenharPedidos, 0);   // 1.23: na tela de entrar não há cartão de pedidos (1.25: nem avisos; quem entrar depois começa do zero)
   { const m = MODO === 'servidor' && !ENTRAR_SENHA ? maqLer() : null; ENTRAR_SENHA = false; if (m) { telaEntrarLoja(m); return; } }   /* 2.10: o computador da loja: as unidades */
-  telaSo(`<h1 style="font-size:24px;font-weight:800">Play Space</h1><p class="explica">Entre com o seu login da equipe.</p>
+  telaSo(`<h1 style="font-size:24px;font-weight:800">Play Space</h1><p class="explica">${maqLer() ? '<b>Login do gestor</b>: entre com o seu login e senha.' : 'Entre com o seu login da equipe.'}</p>
     <div class="campo"><label for="l-login">Login</label><input id="l-login" autocapitalize="none" autocomplete="username" spellcheck="false" style="text-transform:lowercase"></div>
     <div class="campo"><label for="l-senha">Senha</label><input id="l-senha" type="password" autocomplete="current-password"></div>
     <button class="bt forte largo tap" data-act="entrar">${ic(IC.check)} Entrar</button>${maqLer() ? '<button type="button" class="link tap lj-senha" data-act="entrar-unidades">Voltar às unidades</button>' : ''}
@@ -4603,7 +4609,7 @@ async function registrarAtendimento(id, mesmoAssim, pag, depois) { // mesmoAssim
   if (devL.length && devV > 0) { registrar('pag', c.nome, `A receber na devolução · ${brl(devV)}`); regs.push(S.registros[0]); }   /* 1.47: o carrinho */
   else if (depois && total > 0) { registrar('pag', c.nome, `A receber na ${entrar || c.entrou ? 'saída' : 'devolução'} · ${brl(total)}`); regs.push(S.registros[0]); }   /* 1.02: o cliente paga na saída */
   let desfazEntrada = null;
-  if (entrar && !c.entrou) { c.entrou = new Date(); c.uni = minhaUni() || null; c.atraso = null; registrar('ent', c.nome, 'Entrada registrada'); const regE = S.registros[0], pacE = c.pacote, vendaE = c.venda; acertarDemo(c, true);   // 1.15: entra com ou sem tempo comprado; sem ele, o primeiro período da recreação avulsa nasce aqui
+  if (entrar && !c.entrou) { famEntradaPrevia(c); c.entrou = new Date(); c.uni = minhaUni() || null; c.atraso = null; registrar('ent', c.nome, 'Entrada registrada'); const regE = S.registros[0], pacE = c.pacote, vendaE = c.venda; acertarDemo(c, true);   // 1.15: entra com ou sem tempo comprado; sem ele, o primeiro período da recreação avulsa nasce aqui
     desfazEntrada = () => { const ini = c.entrou, autos = S.compras.filter(v => v.crianca === c.id && v.auto && ini && v.quando >= ini); largarSapEntrada(c.id); S.compras = S.compras.filter(v => !autos.includes(v)); c.entrou = null; c.sapateira = null; c.atraso = null; c.pacote = pacE; c.venda = vendaE; if (podeEstornar()) S.registros = S.registros.filter(x => x !== regE); else desfeitaPrevia(c, ini, autos); }; }
   if (festa) ETAPA_FEITA = true; else atendimentoFeito(id); fecharFolha(); desenhar(); celebrarPacote(L, c);   /* 1.77 */
   deuCertoOu(atencaoVoucher(vou ? { n: nV, cobriu: coberta ? { valor: coberta.v } : null } : null, nome), avisoVoucher(vou ? { n: nV, cobriu: coberta ? { valor: coberta.v } : null } : null, nome) + aviso + (desfazEntrada ? ' · entrou, ' + entrouTxt(c) : ''), cheio > 0 && !podeEstornar() ? null : marcaAtd(() => { voltarRascunho(id, rasc); if (desfazEntrada) desfazEntrada(); Object.assign(c, era); const ficam = podeEstornar() ? [] : saidasDesfeitasPrevia(c, novas); if (coberta) { S.compras.push(coberta); if (coberta.reg) coberta.reg.txt = coberta.reg.txt.replace(' · coberta pelo voucher', ''); c.atraso = eraAtraso; } for (const x of novas) if (x.prod) { const p = produto(x.prod); if (p && p.est != null) p.est += x.qtd; } S.compras = S.compras.filter(x => !novas.includes(x)); S.registros = S.registros.filter(x => !regs.includes(x) || ficam.includes(x)); S.pagamentos = (S.pagamentos || []).filter(x => !pagos.includes(x)); }, !podeEstornar() && (!!desfazEntrada || abertos.length > 0), desfazEntrada ? `Desfazer a entrada de ${nome}` : `Desfazer a saída de ${juntar(abertos.map(nomeQ))}`));
@@ -4624,7 +4630,7 @@ function cupomDaVenda(id, cupomId, spec, volta, quieto) {
 function entrada(c, origem = 'iDFace', vend = '') {   /* vend (1.68): quem abriu o pedido */
   if (!c || c.entrou) return;   // 1.15: quem não tem horas entra na recreação avulsa (não precisa mais comprar um período antes)
   if (MODO === 'servidor') return entradaServidor(c, vend);
-  c.vabriu = vend || '';
+  c.vabriu = vend || ''; famEntradaPrevia(c);   /* 2.11: as horas do CPF */
   const eraE = { pacote: c.pacote, atraso: c.atraso, venda: c.venda };
   c.entrou = new Date(); c.uni = minhaUni() || null; c.atraso = null; c.festa = null; c.festaPapel = null; registrar('ent', c.nome, origem === 'iDFace' ? 'Rosto reconhecido na entrada' : (semIdface() ? 'Entrada registrada' : 'Entrada registrada à mão'));
   const reg = S.registros[0], primeiroNome = nomeMsg(c.resp.split(' ')[0]); acertarDemo(c, true);   // (prévia) o primeiro período da recreação avulsa nasce na entrada, como no servidor
@@ -5181,7 +5187,7 @@ function famConta(c, k, tomado) {
   const L = famLivres(c, tomado), tem = L.reduce((t, y) => t + y.tem, 0); if (tem <= 0) return;
   const fica = tem >= precisa ? 0 : Math.ceil((precisa - tem) / p), t = precisa - fica * p; if (t <= 0 || fica >= k.n) return;
   let resta = t; const de = []; for (const y of L) { if (resta <= 0) break; const m = Math.min(y.tem, resta); resta -= m; de.push({ id: y.x.id, nome: y.x.nome, min: m }); }
-  k.fam = { min: t, de, tem }; if (!FAMSIM.has(c.id)) return;   /* as horas da família só com o toque ("Descontar do pacote", ou "Usar as horas da família" para quem já usa as dele) */
+  k.fam = { min: t, de, tem }; if (horasCpf() ? FAMSIM.has(c.id) : !FAMSIM.has(c.id)) return;   /* 2.11: com as horas do CPF, usa sem tocar */   /* as horas da família só com o toque ("Descontar do pacote", ou "Usar as horas da família" para quem já usa as dele) */
   k.usaFam = true; if (tomado) for (const y of de) tomado[y.id] = (tomado[y.id] || 0) + y.min;
   k.n = fica; k.valor = Math.max(0, fica - ja) * (st ? precoDe(c, st.v) : 0) + Math.min(fica, ja) * (ja ? c.atraso.valor / ja : 0); k.desfeitas = Math.max(0, ja - fica);
 }
@@ -5192,6 +5198,20 @@ function famUsarPrevia(c) {   /* (prévia) as horas passam do irmão para a visi
   for (const y of k.fam.de) { const x = crianca(y.id); if (!x) continue; soma(x, -y.min); registrar('alt', x.nome, `Horas da família: ${dur(y.min)} usadas na visita de ${c.nome}`); }
   soma(c, k.fam.min); registrar('alt', c.nome, `Horas da família: ${dur(k.fam.min)} do pacote de ${juntar(k.fam.de.map(y => y.nome))} (descontou do pacote, em vez de pagar avulso)`);
   return k.fam.de; }
+/* 2.11 (o dono: "as horas tem que estar vinculado ao CPF. Quantas crianças ele colocar, tem que dar a opção de abater do pacote"): as horas
+   são do CPF (Ajustes → Regra das horas). saldoCpf = o que a criança tem mais o que os irmãos têm guardado (o atendimento e a entrada) */
+const horasCpf = () => S.cfg.horasCpf !== 'nao';
+const saldoCpf = c => saldoMin(c) + (horasCpf() ? famLivres(c).reduce((t, y) => t + y.tem, 0) : 0);
+function famEntradaPrevia(c) {   /* (prévia) na entrada, as horas do CPF vão com a criança, como no servidor (horasDaFamiliaNaEntrada) */
+  if (!horasCpf() || MODO === 'servidor' || !servicoTempo() || c.festa) return null;
+  const p = periodo(), soma = (x, m) => { if (x.pmin != null) x.pmin += m; else x.pacote = Math.max(0, x.pacote + m / 60); }, F = familia(c).filter(x => x.id !== c.id), mov = [];
+  for (const x of F.filter(x => !x.entrou)) { const m = Math.round(pacMin(x) - (x.usado || 0)); if (m > 0) mov.push([x, m]); }
+  const D = F.filter(x => x.entrou && !x.festa), meu = pacMin(c) - (c.usado || 0) + mov.reduce((t, y) => t + y[1], 0);
+  if (meu < p && D.length) for (const x of D) { const sobra = pacMin(x) - (x.atraso ? x.atraso.n * p : 0) - (x.usado || 0) - cobrar(minConta(x)), m = Math.floor(Math.max(0, sobra) / ((D.length + 1) * p)) * p; if (m > 0) mov.push([x, m]); }
+  if (!mov.length) return null; let t = 0;
+  for (const [x, m] of mov) { soma(x, -m); x.famMov = true; t += m; registrar('alt', x.nome, `Horas do CPF: ${dur(m)} passaram para a entrada de ${c.nome}`); }
+  soma(c, t); c.famMov = true; registrar('alt', c.nome, `Horas do CPF: ${dur(t)} de ${juntar(mov.map(y => y[0].nome))} (entrada; as horas são do CPF)`); return t;
+}
 function contaSaida(c, em, tomado) { // o que a saída debita e cobra se a criança sair agora (ou na hora corrigida `em`)
   if (c.festa) return { min: minConta(c, em), deb: 0, n: 0, valor: 0, desfeitas: 0, pend: pendDe(c), cid: c.id, pac: 0, festa: c.festa };   // 1.29: a festa não debita nem cobra (o que foi comprado e ficou para a saída continua)
   const p = periodo(), x = servicoTempo(), min = minConta(c, em), deb = cobrar(min), ja = c.atraso ? c.atraso.n : 0;
@@ -5206,7 +5226,7 @@ function folhaSaida(id, corrigir = false) {
   const c = crianca(id); if (!c || !c.entrou) return;
   const juntas = corrigir ? [] : familia(c).filter(x => x.id !== c.id && x.entrou).sort((a, b) => a.entrou - b.entrou), carros = corrigir ? [] : carrosDaFamilia(c);   // 1.25: e o que saiu da loja com este responsável
   if (juntas.length || carros.length) { folhaSaidaGrupo([c, ...juntas], carros); return; }   // 1.07: o responsável tem mais de uma criança no espaço: uma conta só, com o "Tirar" em cada linha
-  AV = !corrigir && AV_VOLTA && AV_VOLTA.base === c.id && AV_VOLTA.ids.has(c.id) ? new Set([c.id]) : new Set(); AV_VOLTA = null; FAMSIM = new Set();   // 1.11: cada saída começa descontando do pacote (a não ser que volte de "Adicionar serviços")
+  AV = !corrigir && AV_VOLTA && AV_VOLTA.base === c.id && AV_VOLTA.ids.has(c.id) ? new Set([c.id]) : new Set(); AV_VOLTA = null; FAMSIM = horasCpf() ? new Set(AV) : new Set();   // 1.11: cada saída começa descontando do pacote (a não ser que volte de "Adicionar serviços")
   SAI = null; FAMJA = c.id; const k = contaSaida(c), p = periodo(); descNovo('saida', c.id); altSaidaNovo([c.id], false);   // 1.39   // 1.04: cada saída começa sem desconto
   abrirFolha('Pagamento da saída', `
     ${pgDetalhes(c)}${avisoParou([c])}
@@ -5318,7 +5338,7 @@ function folhaSaidaGrupo(G, carros = []) {   // 1.25: carros = o que saiu da loj
   const fora = volta ? new Set([...volta.fora].filter(i => G.some(c => c.id === i))) : new Set(), foraA = volta && volta.foraA ? new Set([...volta.foraA].filter(i => carros.some(a => String(a.id) === i))) : new Set();
   if (volta && volta.alug) for (const a of carros) if (!volta.alug.includes(String(a.id))) foraA.add(String(a.id));   // o carrinho que saiu em "Adicionar serviços" (o cliente leva) fica fora da conta: não é devolvido agora
   const av = !!(AV_VOLTA && AV_VOLTA.base === b0 && AV_VOLTA.ids.size); AV_VOLTA = null;
-  SAI = { ids: G.map(c => c.id), fora, av, alug: carros.map(a => String(a.id)), foraA, base: b0 }; AV = av ? new Set(SAI.ids) : new Set(); FAMSIM = new Set(); FAMJA = 'g'; descNovo('saida', b0); altSaidaNovo([b0, ...SAI.ids.filter(i => i !== b0)], true); const g = contaGrupo();   // av (1.11): a conta inteira paga avulso
+  SAI = { ids: G.map(c => c.id), fora, av, alug: carros.map(a => String(a.id)), foraA, base: b0 }; AV = av ? new Set(SAI.ids) : new Set(); FAMSIM = horasCpf() ? new Set(AV) : new Set(); FAMJA = 'g'; descNovo('saida', b0); altSaidaNovo([b0, ...SAI.ids.filter(i => i !== b0)], true); const g = contaGrupo();   // av (1.11): a conta inteira paga avulso
   abrirFolha(tituloConta(G.length, carros.length), `
     ${pgDetalhes(G[0] || crianca(b0), false)}${avisoParou(G)}
     <div id="sg-conta" data-k="${esc(chaveGrupo(g))}">${htmlContaGrupo(g)}</div>
@@ -5886,7 +5906,7 @@ function alugPrevia() {
 const ehPacoteVenda = v => !v.auto && !v.voucher && minDe(v) > 0 && (v.servico ? /^pacote\b/i.test(String(v.servico).trim()) : !(minDe(v) === 60 && v.itens !== 'seco'));
 function planoDe(c) {
   if (c.festa) return 'festa';   // 1.29: está numa festa (não cobra, não gasta horas)
-  if (c.plano) return c.plano; let resta = c.usado || 0;
+  if (c.plano) return c.plano; if (c.famMov && MODO !== 'servidor') { const p = periodo(); return pacMin(c) - (c.entrou && c.atraso ? c.atraso.n * p : 0) - (c.usado || 0) > 0 ? 'pacote' : 'avulso'; }   /* 2.11 (prévia): recebeu ou deu horas do CPF */ let resta = c.usado || 0;
   for (const v of (S.compras || []).filter(x => x.crianca === c.id && minDe(x) > 0).sort((a, b) => a.quando - b.quando)) { const m = minDe(v); if (resta >= m) { resta -= m; continue; } resta = 0; if (ehPacoteVenda(v)) return 'pacote'; }
   return 'avulso';
 }
@@ -5942,9 +5962,14 @@ async function salvarObs(c, txt) { // guarda a observação escrita na venda ou 
   else { if (era) c.obs_antes = era; c.obs = txt; c.obs_por = EU.nome; c.obs_em = new Date(); registrar('obs', c.nome, `${!era ? 'Observação anotada' : txt ? 'Observação alterada · a anterior continua guardada' : 'Observação apagada · a anterior continua guardada'} · por ${EU.nome}`); }
   redesenharObs(id); desenhar(true); deuCerto(txt ? 'Observação guardada. Só aparece para quem tocar no OBS.' : 'Observação apagada. A anterior continua guardada.');
 }
-const comSaldoFicha = c => saldoAgora(c) > 0 || clientePacote(c);   // 1.15: a conta de horas é de quem tem horas guardadas ou é cliente de pacote; quem só usa a recreação avulsa não precisa dela
+const comSaldoFicha1 = c => saldoAgora(c) > 0 || clientePacote(c);   // 1.15: a conta de horas é de quem tem horas guardadas ou é cliente de pacote; quem só usa a recreação avulsa não precisa dela
 // a conta da comanda (a ficha da criança): quanto comprou ao todo, quanto já usou (a visita de agora já contada, em períodos inteiros) e o saldo que fica
-const saldoFicha = c => `<span>comprou<b class="num">${hm(pacMin(c))}</b></span><span>usou<b class="num">${hm(usadoAgora(c))}</b></span><span class="tem" title="${c.entrou ? 'O que fica guardado se sair agora' : 'O que está guardado para a próxima visita'}">saldo<b class="num">${hm(saldoAgora(c))}</b></span>`;
+/* 2.11: com as horas do CPF, a conta de horas do atendimento e da ficha soma as crianças do responsável */
+const famCpf = c => horasCpf() ? familia(c) : [c];
+const comSaldoFicha = c => famCpf(c).some(comSaldoFicha1);
+const saldoFicha = c => { const F = famCpf(c); if (F.length < 2) return saldoFicha1(c); const soma = f => F.reduce((t, x) => t + f(x), 0);
+  return `<span>comprou<b class="num">${hm(soma(pacMin))}</b></span><span>usou<b class="num">${hm(soma(usadoAgora))}</b></span><span class="tem" title="As horas do CPF: todas as crianças do responsável usam">saldo do CPF<b class="num">${hm(soma(saldoAgora))}</b></span>`; };
+const saldoFicha1 = c => `<span>comprou<b class="num">${hm(pacMin(c))}</b></span><span>usou<b class="num">${hm(usadoAgora(c))}</b></span><span class="tem" title="${c.entrou ? 'O que fica guardado se sair agora' : 'O que está guardado para a próxima visita'}">saldo<b class="num">${hm(saldoAgora(c))}</b></span>`;
 // o saldo que fica depois da saída: o que as novas cobranças por atraso somam (e as desfeitas tiram) também entra na conta
 const saldoDepois = (c, k) => Math.max(0, pacMin(c) + (Math.max(0, k.n - (c.atraso ? c.atraso.n : 0)) - (k.desfeitas || 0)) * periodo() - c.usado - k.deb + (k.av ? k.av.min : 0));
 /* ---------- reabrir a visita: a criança saiu e voltou logo em seguida ---------- */
@@ -6885,14 +6910,14 @@ let QUEM_ABRE = null;
    ela fica toda marcada, verdinha"): no atendimento, "Quem vai entrar?" (as crianças do responsável que estão fora do espaço), e a entrada
    de todas as marcadas de uma vez. ENT_SEL = { base: a criança do atendimento, ids: as marcadas }; ENT_LOTE: a entrada em lote correndo */
 let ENT_SEL = null, ENT_LOTE = null;
-const btEntrarUm = c => (temPeriodo(c) ? `<button type="button" class="bt forte largo tap" id="v-entrar-saldo" data-act="entrada" data-id="${c.id}" title="Não precisa vender nada: a criança entra usando as horas que já tem">${ic(IC.entrar)} Dar entrada com o saldo (${hm(saldoMin(c))})</button>`
+const btEntrarUm = c => (saldoCpf(c) >= periodo() ? `<button type="button" class="bt forte largo tap" id="v-entrar-saldo" data-act="entrada" data-id="${c.id}" title="Não precisa vender nada: a criança entra usando as horas que já tem">${ic(IC.entrar)} Dar entrada com o saldo (${hm(saldoCpf(c))}${saldoMin(c) < saldoCpf(c) - 0.5 ? ' do CPF' : ''})</button>`
       : `<button type="button" class="bt forte largo tap av-entrar" id="v-entrar-saldo" data-act="entrada" data-id="${c.id}" title="Sem pacote: a criança entra na recreação avulsa e o cliente acerta na saída, pelo tempo que ela ficar"><span>${ic(IC.entrar)} Dar entrada · Recreação avulsa</span><small>${esc(precoTempo(c))} · acerta na saída${esc(famTemTxt(c))}</small></button>`);
 function htmlEntSel(c) { const F = familia(c).filter(x => !x.entrou); if (F.length < 2 || !F.some(x => x.id === c.id)) { ENT_SEL = null; return ''; }
   if (!ENT_SEL || ENT_SEL.base !== c.id) ENT_SEL = { base: c.id, ids: new Set([c.id]) };
-  return `<div class="campo ent-sel" id="v-ent-sel"><label>Quem vai entrar? <span class="leve">· toque para marcar (pode ser mais de uma)</span></label><div class="ent-chips">${F.map(x => `<button type="button" class="ent-chip tap" data-act="ent-marca" data-id="${x.id}" aria-pressed="${ENT_SEL.ids.has(x.id)}"><i aria-hidden="true">${ic(IC.check, 14, 3)}</i><span><b>${esc(x.nome)}</b><small>${temPeriodo(x) ? 'saldo ' + hm(saldoMin(x)) : 'recreação avulsa'}</small></span></button>`).join('')}</div></div>`; }
+  return `<div class="campo ent-sel" id="v-ent-sel"><label>Quem vai entrar? <span class="leve">· toque para marcar (pode ser mais de uma)</span></label><div class="ent-chips">${F.map(x => `<button type="button" class="ent-chip tap" data-act="ent-marca" data-id="${x.id}" aria-pressed="${ENT_SEL.ids.has(x.id)}"><i aria-hidden="true">${ic(IC.check, 14, 3)}</i><span><b>${esc(x.nome)}</b><small>${saldoCpf(x) >= periodo() ? (saldoMin(x) < saldoCpf(x) - 0.5 ? 'saldo do CPF ' : 'saldo ') + hm(saldoCpf(x)) : 'recreação avulsa'}</small></span></button>`).join('')}</div></div>`; }
 const btEntrar = c => { const M = ENT_SEL && ENT_SEL.base === c.id ? [...ENT_SEL.ids].map(crianca).filter(x => x && !x.entrou) : null;
   if (!M || (M.length === 1 && M[0].id === c.id)) return btEntrarUm(c);
-  return M.length ? `<button type="button" class="bt forte largo tap av-entrar" id="v-entrar-saldo" data-act="entrada" data-id="${c.id}" title="Entram de uma vez: cada uma com o saldo dela ou na recreação avulsa"><span>${ic(IC.entrar)} Dar entrada · ${M.length === 1 ? esc(M[0].nome) : M.length + ' crianças'}</span><small>${esc(M.map(x => x.nome + (temPeriodo(x) ? ' (saldo ' + hm(saldoMin(x)) + ')' : ' (avulsa)')).join(' · '))}</small></button>`
+  return M.length ? `<button type="button" class="bt forte largo tap av-entrar" id="v-entrar-saldo" data-act="entrada" data-id="${c.id}" title="Entram de uma vez: cada uma com o saldo dela ou na recreação avulsa"><span>${ic(IC.entrar)} Dar entrada · ${M.length === 1 ? esc(M[0].nome) : M.length + ' crianças'}</span><small>${esc(M.map(x => x.nome + (saldoCpf(x) >= periodo() ? ' (saldo' + (saldoMin(x) < saldoCpf(x) - 0.5 ? ' do CPF' : ' ' + hm(saldoMin(x))) + ')' : ' (avulsa)')).join(' · '))}</small></button>`
     : `<button type="button" class="bt largo tap" id="v-entrar-saldo" data-act="entrada" data-id="${c.id}" disabled>Toque em quem vai entrar</button>`; };
 async function entrarLote(L, vend) {   // uma mensagem, um Desfazer, a sapateira de cada uma em seguida e um cupom de entrada só
   ENT_LOTE = { L: [] }; fecharFolha(); let R = [];
@@ -8466,6 +8491,9 @@ async function folhaMaquinas() {
   abrirFolha('Computadores da loja', `<p class="explica">No computador liberado, a tela de entrar mostra só as unidades: a equipe toca em <b>${esc(juntar(unidades().filter(u => u.ativo !== false).map(u => u.nome)))}</b> e entra, sem senha. Quem vende, cadastra e atende continua tocando no nome (vale para as comissões). Libere só os computadores do balcão: o celular e o computador de casa continuam com usuário e senha.</p>
     ${m ? `<div class="marca" id="mq-este">${ic(IC.check, 18, 2.6)}<span><b>Este computador está liberado</b>${m.n ? ' (' + esc(m.n) + ')' : ''}. Ao sair, a tela de entrar mostra as unidades.</span></div><div class="acoes"><button type="button" class="bt claro tap" data-act="maq-esquecer">Tirar a liberação deste computador</button></div>`
       : `<div class="campo"><label for="mq-nome">Nome deste computador <span class="leve">· para achar na lista</span></label><input id="mq-nome" maxlength="40" autocomplete="off" placeholder="ex.: BALCÃO ANÁLIA"></div><div class="acoes"><button type="button" class="bt forte tap" id="mq-ok" data-act="maq-liberar">${ic(IC.check)} Liberar este computador</button></div>`}
+    ${faltaCasaTom().length ? `<div class="marca" id="mq-ct">${ic(IC.sino, 18)}<span>Falta a unidade <b>${esc(juntar(faltaCasaTom().map(u => 'CASA TOM ' + curtoUni(u.nome).toUpperCase())))}</b>: sem ela, o botão não aparece na tela de entrar.</span><button type="button" class="bt claro tap" data-act="maq-ct">Criar agora</button></div>` : ''}
+    <p class="vend-t" style="margin-top:14px">Senha de cada unidade</p><p class="explica">Na tela de entrar, a equipe toca na unidade e escreve a senha dela. De fábrica, a senha de todas é <b>123456</b>. O gestor entra pelo botão "Login do gestor", com o login e a senha dele.</p>
+    <div class="grupo" id="mq-senhas">${unidades().filter(u => u.ativo !== false).map(u => `<div class="it"><div class="txt"><b>${esc(u.nome)}</b><span>operador</span></div><input type="password" class="mq-s" data-u="${u.id}" placeholder="Nova senha" autocomplete="new-password" style="max-width:150px"><button type="button" class="bt claro tap" data-act="loja-senha" data-u="${u.id}">Trocar</button></div>`).join('')}</div>
     <div id="mq-lista"><p class="explica">Carregando os computadores liberados…</p></div>`);
   try { const r = await api('maquinas'); pintarMaquinas(r.maquinas || []); } catch (e) { const l = $('#mq-lista'); if (l) l.innerHTML = `<p class="explica">${esc(e.message)}</p>`; }
 }
@@ -8482,6 +8510,7 @@ function telaAjustes() {
       <div class="campo"><label>Tolerância entre um período e outro</label>${seg('tolerancia', [[0, 'Nenhuma'], [5, '5 min'], [9, '9 min'], [10, '10 min'], [15, '15 min']], tolerancia())}<span class="explica">Passou disso, conta <b>mais um período</b>${st ? ` (${precoServ(st)})` : ''}. Na recreação avulsa ele entra na conta da saída; quem tem pacote usa as horas dele e, se elas acabaram, o período vira <b>cobrança além do pacote</b>, com aviso em todas as telas. Depois de cada período novo, a tolerância vale de novo.</span></div>
       <div class="campo"><label>No cupom, o cliente lê tolerância de</label>${seg('tolCupom', [[0, 'Não mostrar'], [5, '5 min'], [9, '9 min'], [10, '10 min'], [15, '15 min']], tolCupom())}<span class="explica">É só o que sai escrito no cupom impresso. A conta do sistema continua com a tolerância de cima: a diferença é a folga da loja para os dias de fila.</span></div>
       <div class="campo"><label>Cancelar a entrada sem cobrar</label>${seg('cancelaMin', [[0, 'Não cancela'], [5, 'Até 5 min'], [9, 'Até 9 min'], [10, 'Até 10 min'], [15, 'Até 15 min']], cancelaLim())}<span class="explica">Nesse prazo, contado da entrada, o próprio operador cancela e nada é cobrado, mas precisa escrever o motivo. Passou do prazo, a opção some e ninguém cancela mais (nem o gestor): o período é cobrado. ${supervisorOuMais() ? `<button class="link tap" data-act="cancelamentos">Ver os cancelamentos${aConferir().length ? ' (' + aConferir().length + ' para conferir)' : ''}</button>` : ''}</span></div>
+      <div class="campo" id="aj-cpf"><label>As horas do pacote são</label>${seg('horasCpf', [['sim', 'Do CPF (todas as crianças)'], ['nao', 'De cada criança']], horasCpf() ? 'sim' : 'nao')}<span class="explica">Do CPF: qualquer criança do responsável entra com o saldo e, na saída, o tempo sai das horas guardadas (de qualquer uma delas); "Pagar avulso" continua na saída.</span></div>
       <div class="campo" id="aj-estorno"><label>Quem desfaz ou cancela o que já tem valor</label>${seg('estorno', [['gestor', 'Só o gestor'], ['supervisor', 'Gestor e supervisor'], ['todos', 'Toda a equipe']], quemEstornaCfg())}<span class="explica">Vale para a venda registrada, o pagamento recebido e a saída ou a devolução que receberam: quem não está aqui, se errou, chama ${quemEstorna()}, que cancela a venda no histórico do cliente, com o motivo (a tela diz o que devolver). <b>O botão Desfazer é só do gestor</b>: o operador e o supervisor não têm o Desfazer em nada. ${cancelaLim() > 0 ? `A entrada errada eles ainda cancelam nos primeiros ${cancelaLim()} min, pela ficha, com o motivo e o nome da atendente.` : 'Com o cancelamento da entrada desligado (acima), a entrada errada eles resolvem com o gestor.'}${reabreLim() > 0 ? ' A saída dada por engano volta pelo Reabrir, no prazo de baixo.' : ''}</span></div>
       <div class="campo"><label>Reabrir a visita depois da saída</label>${seg('reabreMin', [[0, 'Não reabre'], [10, 'Até 10 min'], [15, 'Até 15 min'], [30, 'Até 30 min'], [60, 'Até 1 hora']], reabreLim())}<span class="explica">Para quando a criança sai e volta logo em seguida (chorou e o responsável deixou ficar mais). Nesse prazo, quem saiu aparece em <b>Saíram há pouco</b>, na tela inicial, com o botão <b>Reabrir</b>: a saída é desfeita e o tempo continua contando desde a entrada, como se não tivesse saído. Fica anotado em Hoje na recepção, com quem reabriu. Passou do prazo, é uma entrada nova.</span></div>
       <div class="campo"><label>A loja fecha às</label>${seg('fecha', [[20, '20h'], [21, '21h'], [22, '22h'], [23, '23h'], [24, 'Meia-noite']], +cfg.fecha || 22)}<span class="explica">Depois dessa hora o tempo para de contar. Assim uma saída esquecida não vira cobrança a noite toda (o gestor corrige a hora da visita depois, na ficha da criança).</span></div>
@@ -8689,8 +8718,8 @@ const ACOES = {
   'cupom-voltar': el => { if (mostraDesfazer()) marcarCupom(+el.dataset.id, 'voltar', {}); },
   'saida-pacote': el => { SAI_VOLTA = SAI && $('#sg-ok') ? { base: +el.dataset.id, fora: new Set(SAI.fora), foraA: new Set(SAI.foraA || []), alug: [...(SAI.alug || [])] } : { base: +el.dataset.id, fora: new Set(), foraA: new Set(), alug: [] };   /* 1.25: a volta é pela criança que reabre a folha; o carrinho que sair agora não entra na conta */ AV_VOLTA = { base: +el.dataset.id, ids: new Set(AV) }; atender(+el.dataset.id, false, null, true); },
   'saida-avulso': el => { const on = el.dataset.v === '1';   /* 1.11: descontar do pacote, ou pagar avulso */
-    if (SAI && $('#sg-ok')) { SAI.av = on; AV = on ? new Set(SAI.ids) : new Set(); FAMSIM = on ? new Set() : new Set(contaGrupo().L.filter(x => !(x.k.pac > 0)).map(x => x.c.id)); atualizarGrupo(); return; }   /* 2.10: e as horas da família (de quem entrou na avulsa) */
-    const b = $('#s-ok'); if (!b) return; AV = on ? new Set([+b.dataset.id]) : new Set(); FAMSIM = on || contaSaida(crianca(+b.dataset.id), undefined, {}).pac > 0 ? new Set() : new Set([+b.dataset.id]); atualizarSaida(); },
+    if (SAI && $('#sg-ok')) { SAI.av = on; AV = on ? new Set(SAI.ids) : new Set(); FAMSIM = horasCpf() ? (on ? new Set(SAI.ids) : new Set()) : (on ? new Set() : new Set(contaGrupo().L.filter(x => !(x.k.pac > 0)).map(x => x.c.id))); atualizarGrupo(); return; }   /* 2.10: e as horas da família (de quem entrou na avulsa) */
+    const b = $('#s-ok'); if (!b) return; AV = on ? new Set([+b.dataset.id]) : new Set(); FAMSIM = horasCpf() ? (on ? new Set([+b.dataset.id]) : new Set()) : (on || contaSaida(crianca(+b.dataset.id), undefined, {}).pac > 0 ? new Set() : new Set([+b.dataset.id])); atualizarSaida(); },
   'saida-fam': el => { const id = +el.dataset.id; if (FAMSIM.has(id)) FAMSIM.delete(id); else FAMSIM.add(id); if (SAI && $('#sg-ok')) atualizarGrupo(); else atualizarSaida(); },   /* 2.10: quem já usa as horas dele também usa as da família */   /* 1.00: o cliente leva um pacote na saída: o atendimento abre com a lista de pacotes e, depois do pagamento, a saída abre de novo */
   'ct-mais': el => { const p = produto(el.dataset.p); if (!p) return; CT.pr[p.id] = (CT.pr[p.id] || 0) + 1; ctVendaRedesenha(); },   /* 2.00: a Casa Tom */
   'ct-menos': el => { const id = +el.dataset.p; if (!CT.pr[id]) return; CT.pr[id]--; if (CT.pr[id] <= 0) delete CT.pr[id]; ctVendaRedesenha(); },
@@ -9076,11 +9105,15 @@ const ACOES = {
   'equipe-novo': () => folhaEquipe(null), 'equipe-editar': el => folhaEquipe(S.equipe.find(u => u.id === +el.dataset.id)),
   'equipe-salvar': el => { const nome = val('e-nome'); if (!nome) { toast('Falta o nome'); return; } const d = { nome, login: val('e-login') || nome.split(' ')[0].toLowerCase(), papel: val('e-papel'), senha: ($('#e-senha') || { value: '' }).value, ...($('#e-uni') ? { unidade: +$('#e-uni').value || 0 } : {}) };   /* 2.02: a unidade da pessoa */ if (MODO === 'servidor') { api('usuario_salvar', { id: el.dataset.id ? +el.dataset.id : 0, ...d }).then(async () => { await carregar(); deuCerto('Equipe atualizada'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } delete d.senha; if ('unidade' in d) { d.uni = d.unidade; delete d.unidade; } if (el.dataset.id) Object.assign(S.equipe.find(u => u.id === +el.dataset.id), d); else S.equipe.push({ id: novoId(), ...d }); deuCerto('Equipe atualizada'); fecharFolha(); desenhar(); },
   'equipe-apagar': el => { if (MODO === 'servidor') { api('usuario_apagar', { id: +el.dataset.id }).then(async () => { await carregar(); deuCerto('Removida da equipe'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } S.equipe = S.equipe.filter(u => u.id !== +el.dataset.id); deuCerto('Removida da equipe'); fecharFolha(); desenhar(); },
-  'entrar-loja': async el => { const m = maqLer(); if (!m) { telaEntrar(); return; } $$('.lj-uni').forEach(b => { b.disabled = true; });   /* 2.10: o computador da loja */
-    try { await api('entrar_loja', { chave: m.c, unidade: +el.dataset.u }); guardar('ps-unidade', +el.dataset.u); ursoReage('feliz'); await espera(260); await espera(sairDoLogin()); await depoisDeEntrar(true); ligarSincronia(); }
-    catch (e) { $$('.lj-uni').forEach(b => { b.disabled = false; }); ursoReage('nao'); toast(e.message); if (e.status === 403) { maqGuardar(null); setTimeout(telaEntrar, 1500); } } },
-  'entrar-senha': () => { ENTRAR_SENHA = true; telaEntrar(); }, 'entrar-unidades': () => { ENTRAR_SENHA = false; telaEntrar(); },
+  'entrar-loja': el => { const m = maqLer(); if (!m) { telaEntrar(); return; } LJ_UNI = +el.dataset.u; telaEntrarLoja(m); },   /* 2.11: a unidade tocada pede a senha dela */
+  'entrar-loja-ok': async el => { const m = maqLer(); if (!m) { telaEntrar(); return; } const s = ($('#lj-senha') || { value: '' }).value; if (!s) { toast('Escreva a senha da unidade'); const i = $('#lj-senha'); if (i) i.focus(); return; } el.disabled = true;   /* 2.10: o computador da loja */
+    try { await api('entrar_loja', { chave: m.c, unidade: +el.dataset.u, senha: s }); guardar('ps-unidade', +el.dataset.u); LJ_UNI = 0; ursoReage('feliz'); await espera(260); await espera(sairDoLogin()); await depoisDeEntrar(true); ligarSincronia(); }
+    catch (e) { el.disabled = false; ursoReage('nao'); toast(e.message); const i = $('#lj-senha'); if (i) { i.value = ''; i.focus(); } if (e.status === 403) { maqGuardar(null); LJ_UNI = 0; setTimeout(telaEntrar, 1500); } } },
+  'entrar-senha': () => { ENTRAR_SENHA = true; telaEntrar(); }, 'entrar-unidades': () => { ENTRAR_SENHA = false; LJ_UNI = 0; telaEntrar(); },
   'maq-lista': () => folhaMaquinas(),
+  'maq-ct': async el => { await criarCasaTom(el); folhaMaquinas(); },   /* 2.11: a Casa Tom que falta (ex.: Morumbi) */
+  'loja-senha': async el => { const i = document.querySelector(`.mq-s[data-u="${el.dataset.u}"]`), s = i ? i.value : ''; if (s.length < 4) { toast('A senha precisa ter pelo menos 4 caracteres'); if (i) i.focus(); return; } el.disabled = true;
+    try { await api('loja_senha', { unidade: +el.dataset.u, senha: s }); i.value = ''; deuCerto('Senha da unidade trocada: ' + nomeUni(+el.dataset.u)); } catch (e) { toast(e.message); } el.disabled = false; },
   'maq-liberar': async el => { el.disabled = true; try { const r = await api('maquina_liberar', { nome: val('mq-nome') }); maqGuardar({ c: r.chave, u: r.unidades || [], n: r.nome || '' }); deuCerto('Computador liberado: ao sair, a tela de entrar mostra as unidades'); folhaMaquinas(); } catch (e) { el.disabled = false; toast(e.message); } },
   'maq-esquecer': async () => { const m = maqLer(); maqGuardar(null); if (m) { try { await api('maquina_tirar', { chave: m.c }); } catch (e) { } } deuCerto('Este computador volta a pedir usuário e senha'); folhaMaquinas(); },
   'maq-tirar': async el => { try { const r = await api('maquina_tirar', { id: +el.dataset.id }); pintarMaquinas(r.maquinas || []); deuCerto('Acesso tirado: esse computador volta a pedir usuário e senha'); } catch (e) { toast(e.message); } },
@@ -9171,6 +9204,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && /^meta-(mv|base|pct|fds|a1|a2)$/.test(e.target.id)) { e.preventDefault(); const b = $('[data-act="meta-salvar"]'); if (b && !b.disabled) b.click(); return; }   /* 1.80 */
   if (e.key === 'Enter' && e.target.classList && e.target.classList.contains('mc-in')) { e.preventDefault(); const L = $$('#aj-meta .mc-in'), k = L.indexOf(e.target); if (L[k + 1]) { L[k + 1].focus(); L[k + 1].select(); } else e.target.blur(); return; }   /* 1.87: o próximo dia */
   if (e.key === 'Enter' && e.target.id === 'nf-num') { e.preventDefault(); const b = $('#nf-corpo [data-act="nf-emitida"]'); if (b && !b.disabled) b.click(); return; }
+  if (e.key === 'Enter' && e.target.id === 'lj-senha') { e.preventDefault(); const b = $('#lj-ok'); if (b && !b.disabled) ACOES['entrar-loja-ok'](b); }   /* 2.11 */
   if (e.key === 'Enter' && ['l-login', 'l-senha'].includes(e.target.id)) { e.preventDefault(); e.target.id === 'l-login' ? $('#l-senha').focus() : ACOES.entrar(); }
   if (e.key === 'Enter' && ['g-nome', 'g-login', 'g-senha'].includes(e.target.id)) { e.preventDefault(); const prox = { 'g-nome': '#g-login', 'g-login': '#g-senha' }[e.target.id]; prox ? $(prox).focus() : ACOES['criar-gestor'](); }
 });

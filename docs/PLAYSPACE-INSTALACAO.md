@@ -1301,6 +1301,24 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. As horas do CPF e a senha das unidades (2.11)
+
+Pedidos do dono (25/11).
+
+As horas do CPF: "as horas tem que estar vinculado ao CPF. Quantas crianças ele colocar, tem que dar a opção de abater do pacote ... Esse tá sendo meu maior problema".
+
+- As horas do pacote são do CPF (Ajustes → Regra das horas → "As horas do pacote são: Do CPF (todas as crianças)", de fábrica). Qualquer criança do responsável entra com o saldo: o atendimento mostra "Dar entrada com o saldo (Xh do CPF)" e a conta "comprou / usou / saldo do CPF" somando as crianças.
+- Na entrada, as horas guardadas dos irmãos que estão fora vão com a criança que entra (ela fica no pacote, com o tempo correndo como sempre). Com irmão no espaço, a criança que entra sem horas fica com uma parte igual das horas que sobram a ele (em períodos inteiros): duas crianças com 3h30 no CPF entram com 2h e 1h30.
+- Na saída, o que faltar sai das horas do CPF sem precisar tocar ("Descontar do pacote" já vem marcado); "Pagar avulso" continua para quem quiser pagar. Vale para a saída sozinha e para a conta em conjunto, com quantas crianças forem.
+- Os registros das crianças dizem "Horas do CPF: … passaram para a entrada de …". A conta da família (o relatório do cliente) não muda: as horas só passam de uma criança para outra do mesmo CPF.
+- "De cada criança" volta ao jeito antigo (cada criança com as horas dela; na saída, as horas da família só com o toque).
+
+A senha das unidades e o login do gestor: "pede pra colocar uma senha ... essa senha pode colocar de 1 a 6 todos e depois a opção de eu trocar lá dentro ... o login do gestor precisa ter uma opção ... essas outras opções de login são todos de operador ... Tem que ter o Casatom Morumbi".
+
+- No computador da loja, a equipe toca na unidade e escreve a senha dela: de fábrica, 123456 em todas. O gestor troca a senha de cada unidade em Ajustes → Computadores da loja → "Senha de cada unidade".
+- As unidades entram como operador. Embaixo delas, o botão "Login do gestor" abre o login com usuário e senha.
+- Se faltar a Casa Tom de algum lugar (ex.: Casa Tom Morumbi), a folha dos Computadores da loja avisa e cria com um toque ("Criar agora"); daí ela aparece na tela de entrar.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O computador da loja, as horas da família, várias crianças de uma vez e o produto da Casa Tom (2.10)
 
 Pedidos do dono (25/11).
