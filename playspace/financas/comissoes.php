@@ -140,12 +140,12 @@ function cmListar(array $in): array {
     $tot['bonus'] += $b; $tot['vendido'] += (float)$l['valor']; $tot['n']++; if (!$r) $tot['semRegra']++;
   }
   /* as vendedoras da lista aparecem mesmo sem venda no período (com zero) */
-  foreach (vendedoras() as $n) if (!isset($porV[$n])) $porV[$n] = ['n' => $n, 'vendas' => 0, 'vendido' => 0.0, 'bonus' => 0.0, 'comBonus' => 0, 'meses' => array_fill_keys($P['meses'], 0.0)];
+  foreach ($uni !== null ? vendedorasDaUnidade($uni) : vendedorasTodas() as $n) if (!isset($porV[$n])) $porV[$n] =   /* 2.07: os vendedores são as pessoas com usuário */ ['n' => $n, 'vendas' => 0, 'vendido' => 0.0, 'bonus' => 0.0, 'comBonus' => 0, 'meses' => array_fill_keys($P['meses'], 0.0)];
   $porV = array_values($porV); usort($porV, fn($a, $b) => [$b['bonus'], $b['vendido'], $a['n']] <=> [$a['bonus'], $a['vendido'], $b['n']]);
   foreach ($porV as &$x) { $x['vendido'] = round($x['vendido'], 2); $x['bonus'] = round($x['bonus'], 2); foreach ($x['meses'] as $k => $v) $x['meses'][$k] = round($v, 2); } unset($x);
   $tot['bonus'] = round($tot['bonus'], 2); $tot['vendido'] = round($tot['vendido'], 2); $sem['v'] = round($sem['v'], 2);
   return ['per' => $P['per'], 'tipo' => $P['tipo'], 'de' => $P['de'], 'ate' => $P['ate'], 'nome' => $P['nome'], 'meses' => $P['meses'], 'linhas' => $L, 'porVend' => $porV, 'sem' => $sem, 'total' => $tot,
-    'regras' => array_map(fn($r) => $r + ['nome' => cmRegraNome($r)], $regras), 'tipos' => CM_TIPOS, 'vendedoras' => vendedoras(), 'hist' => cmHistorico(), 'unidades' => unidades()];
+    'regras' => array_map(fn($r) => $r + ['nome' => cmRegraNome($r)], $regras), 'tipos' => CM_TIPOS, 'vendedoras' => vendedoras(), 'vend_uni' => (object)vendedorasPorUnidade(), 'hist' => cmHistorico(), 'unidades' => unidades()];
 }
 /* o PDF bonito das comissões do período */
 function cmPdf(array $in): string {

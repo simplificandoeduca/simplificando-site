@@ -541,11 +541,12 @@ function regraDoBanco(): array {
   foreach ($r['servicos'] as $k => $x) if (is_array($x)) $r['servicos'][$k]['fora'] = array_values(array_map('intval', (array)($x['fora'] ?? [])));
   if (cfg('servuni_feito', null) === null) { $anl = unidadesDaAnalia();
     if ($anl) { foreach ($r['servicos'] as $k => $x) if (is_array($x) && !empty($x['volta'])) $r['servicos'][$k]['fora'] = array_values(array_unique(array_merge($r['servicos'][$k]['fora'], $anl)));
-      $g = $r; unset($g['festa'], $g['vendedoras']); gravarCfg('regra', $g); }
+      $g = $r; unset($g['festa'], $g['vendedoras'], $g['vend_uni']); gravarCfg('regra', $g); }
     gravarCfg('servuni_feito', date('Y-m-d H:i:s')); }
   if (!MODULO_WHATS) $r['autoMsg'] = 'nao';   // com o módulo desligado, nenhum aviso automático sai
   $r['festa'] = FESTA_DE_FABRICA;   // 1.12: a tabela da festa vai com a regra para a tela (a de fábrica: não fica gravada)
   $r['vendedoras'] = vendedoras();   /* 1.67: os nomes de quem vende (o financeiro muda nas Finanças → Comissões) */
+  $r['vend_uni'] = (object)vendedorasPorUnidade();   /* 2.07: os vendedores de cada unidade (as pessoas com usuário) */
   return $r;
 }
 /* 1.67: as vendedoras (pedido do dono: "toda venda de pacote, selecionar o nome de quem está vendendo: Aline, Edjane, Karol e Maria Vitória").
@@ -557,14 +558,28 @@ function vendedorasLimpas($lista): array {
   return array_slice($r, 0, VENDEDORAS_MAX);
 }
 function vendedoras(): array { $v = cfg('vendedoras', null); return is_array($v) ? vendedorasLimpas($v) : VENDEDORAS_PADRAO; }
+/* 2.07 (o dono: "os vendedores do Anália são vendedores do Anália, os vendedores da Casa Tom são vendedores da Casa Tom ... Tem que separar ...
+   todo mundo que tiver usuário, você já pode colocar como vendedor"): os vendedores de cada unidade ativa são as pessoas com usuário (ativas)
+   que têm aquela unidade em Ajustes → Equipe, mais as que não têm unidade escolhida (vendem em todas). Em ordem alfabética, em maiúsculas. */
+function vendedorasPorUnidade(): array {
+  if (isset($GLOBALS['_vend_uni'])) return $GLOBALS['_vend_uni'];
+  $U = []; $livres = []; $nome = fn($n) => mb_substr(maiusculo((string)$n), 0, 30);
+  foreach (db()->query('SELECT id FROM unidades WHERE ativo = 1 ORDER BY id')->fetchAll(PDO::FETCH_COLUMN) as $id) $U[(int)$id] = [];
+  foreach (db()->query('SELECT nome, unidade_id FROM usuarios WHERE ativo = 1')->fetchAll() as $x) { $n = $nome($x['nome']); if ($n === '') continue; $u = (int)($x['unidade_id'] ?? 0); if ($u && isset($U[$u])) $U[$u][] = $n; else $livres[] = $n; }
+  $chave = fn($s) => strtr($s, ['Á' => 'A', 'À' => 'A', 'Â' => 'A', 'Ã' => 'A', 'É' => 'E', 'Ê' => 'E', 'Í' => 'I', 'Ó' => 'O', 'Ô' => 'O', 'Õ' => 'O', 'Ú' => 'U', 'Ç' => 'C']);
+  foreach ($U as $id => $L) { $L = array_values(array_unique(array_merge($L, $livres))); usort($L, fn($a, $b) => strcmp($chave($a), $chave($b))); $U[$id] = $L; }
+  return $GLOBALS['_vend_uni'] = $U;
+}
+function vendedorasDaUnidade(int $u): array { $M = vendedorasPorUnidade(); return $M[$u] ?? []; }
+function vendedorasTodas(): array { $o = []; foreach (vendedorasPorUnidade() as $L) foreach ($L as $n) if (!in_array($n, $o, true)) $o[] = $n; sort($o); return $o; }
 /* 1.68 (o dono: "a comissão sempre é de quem dá início no pedido do cliente, não de quem dá saída: ela oferta o pacote no início; às vezes o
    cliente fecha no final, mas a comissão é de quem abre o pedido"): com a criança no espaço, a venda é de quem abriu o pedido na entrada */
 function quemAbriu(array $c): string { return !empty($c['entrou']) && empty($c['festa_id']) ? trim((string)($c['vend_abriu'] ?? '')) : ''; }
 /* o nome que a tela mandou, conferido com a lista (vazio = a tela não mandou) */
 function vendedoraDoPedido($n): string {
   $n = trim(preg_replace('/\s+/u', ' ', maiusculo((string)$n))); if ($n === '') return '';
-  foreach (vendedoras() as $x) if ($x === $n) return $x;
-  falha('A vendedora ' . $n . ' não está mais na lista. Escolha de novo quem está vendendo.');
+  $u = unidadeDoPedido(); foreach (array_merge($u ? vendedorasDaUnidade((int)$u) : vendedorasTodas(), vendedoras()) as $x) if ($x === $n) return $x;   /* 2.07: os vendedores da unidade */
+  falha(($u ? $n . ' não é vendedora desta unidade' : 'A vendedora ' . $n . ' não está mais na lista') . '. Escolha de novo quem está vendendo.');
 }
 function dur(int $min): string { $min = max(0, $min); return intdiv($min, 60) . 'h' . ($min % 60 ? str_pad((string)($min % 60), 2, '0', STR_PAD_LEFT) : ''); }   // sempre em horas: 0h30, 1h, 1h30 (a loja vende meia hora e hora)
 // O tempo é sempre debitado em períodos inteiros (não existe período quebrado): quem ficou 11 min debita 30.

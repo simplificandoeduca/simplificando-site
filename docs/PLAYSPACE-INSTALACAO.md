@@ -1301,6 +1301,17 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Vendedores por unidade, as vias dos cupons e o sistema sempre aberto (2.07, Finanças 5.1)
+
+Pedidos do dono (25/11).
+
+- "Tira a questão dos 5 minutos do sistema, não precisa, ele tem que ficar logado, aberto na tela do atendente": a saída sozinha depois de 5 minutos parado (2.02) está desligada. O sistema fica aberto até alguém tocar em Sair.
+- "Na opção de reimpressão eu tenho que reimprimir as 2 vias quando tiver a opção de 2 vias": a reimpressão volta com as duas vias (a da loja e a do cliente), as duas marcadas REIMPRESSÃO, quando o cupom tem duas (a entrada e a saída do carrinho de bebê).
+- "No carrinho de bebê, ele tem que sair 2 vias também": o cupom da saída do carrinho de bebê sai em duas vias: a da loja (o responsável assina) e a VIA DO CLIENTE. O fusquinha continua com uma.
+- "Tira de todos os comprovantes a quantidade de horas do pacote que o cliente tem": o cupom não diz mais as horas guardadas do cliente. Na entrada com pacote sai "Entrada 14:05 · pacote de horas"; o pacote comprado sem entrar sai com "Para (nome da criança)". O tamanho do pacote comprado ("5h de recreação") continua.
+- "Os vendedores do Anália são vendedores do Anália, os da Casa Tom são da Casa Tom ... todo mundo que tiver usuário, você já pode colocar como vendedor": os vendedores de cada unidade são as pessoas com usuário daquela unidade (Ajustes → Equipe → a unidade da pessoa); quem não tem unidade escolhida aparece em todas. Na venda ("Quem está vendendo?", "Quem está atendendo?" e a venda da Casa Tom), cada unidade mostra só os seus, em ordem alfabética, e o servidor recusa o nome de outra unidade. Os nomes da lista antiga das Finanças continuam aceitos, para a tela ainda não atualizada não perder a venda.
+- Finanças → Comissões: o quadro "Vendedores" mostra quem vende em cada unidade (não há mais a lista de nomes para editar ali: para pôr ou tirar alguém, Ajustes → Equipe no Play Space).
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A Casa Tom sem nada cortado no notebook (2.06)
 
 Pedido do dono, com a foto da tela Vender da Casa Tom num MacBook: "O casa tom está cortando".

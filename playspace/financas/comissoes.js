@@ -82,7 +82,14 @@ function cmRegrasHtml() {
     <div class="rolar"><table class="fz-tab cm-reg"><thead><tr><th>O que</th><th>Horas</th><th class="v">Valor de</th><th class="v">até</th><th class="v">Bônus</th><th>Vale de</th><th>até</th><th></th></tr></thead><tbody>${R.map(linha).join('')}</tbody></table></div>
     <div class="fz-acoes"><button class="btn btn-ghost" id="cm-nova">+ Nova regra</button><button class="btn btn-brand" id="cm-salvar" ${CM.sujo ? '' : 'disabled'}>${CM.sujo ? 'Salvar as regras' : 'Regras salvas ✓'}</button>${CM.sujo ? '<button class="link" id="cm-desfaz">Desfazer as mudanças</button>' : ''}</div></section>`;
 }
+/* 2.07 (Finanças 5.1): os vendedores são as pessoas com usuário no Play Space, cada uma na unidade dela (Ajustes → Equipe). O quadro
+   mostra quem vende em cada unidade; não há mais a lista de nomes para editar aqui. */
 function cmNomesHtml() {
+  const D = CM.d, M = D.vend_uni || {}, U = (D.unidades || []).filter(u => u.ativo !== false && M[u.id]);
+  return `<section class="cartao" id="cm-nomes"><h2>Vendedores</h2><p class="expl">Todas as pessoas com usuário no Play Space são vendedores, cada uma na unidade dela (no Play Space: Ajustes → Equipe → a unidade de cada pessoa). Quem não tem unidade escolhida aparece em todas. Na venda, cada unidade mostra só os vendedores dela.</p>
+    ${U.length ? `<div class="cm-unis">${U.map(u => `<div class="cm-uni"><b>${esc(u.nome)}</b><div class="cm-nomes">${(M[u.id] || []).map(n => `<span class="cm-nome">${esc(n)}</span>`).join('') || '<span class="sub">ninguém</span>'}</div></div>`).join('')}</div>` : '<div class="vazio">Nenhuma pessoa com usuário ainda.</div>'}</section>`;
+}
+function cmNomesHtmlAntigo() {
   const N = CM.nomes || [], muda = JSON.stringify(N) !== JSON.stringify(CM.d.vendedoras);
   return `<section class="cartao" id="cm-nomes"><h2>Vendedoras</h2><p class="expl">Os nomes que aparecem no atendimento do Play Space, na hora da venda (a vendedora toca no próprio nome a cada venda). Tirar um nome da lista não mexe nas vendas que ela já fez.</p>
     <div class="cm-nomes">${N.map((n, i) => `<span class="cm-nome">${esc(n)}<button data-cmtira="${i}" aria-label="Tirar ${esc(n)} da lista" title="Tirar da lista">×</button></span>`).join('')}

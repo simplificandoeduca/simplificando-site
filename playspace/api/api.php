@@ -1103,7 +1103,7 @@ switch ($acao) {
       $es = []; foreach ($in['extras'] as $e) { $n = mb_substr(trim((string)($e['n'] ?? '')), 0, 40); $v = (float)($e['v'] ?? 0); if ($n !== '' && $v >= 0 && count($es) < 30) $es[] = ['n' => $n, 'v' => $v]; }
       $r['extras'] = $es;
     }
-    $g = $r; unset($g['festa'], $g['vendedoras']); gravarCfg('regra', $g); responder(['regra' => $r]);   // 1.12: a tabela da festa é a de fábrica: vai para a tela, mas não fica gravada
+    $g = $r; unset($g['festa'], $g['vendedoras'], $g['vend_uni']); gravarCfg('regra', $g); responder(['regra' => $r]);   // 1.12: a tabela da festa é a de fábrica: vai para a tela, mas não fica gravada
   }
 
   /* ---------- produtos da loja ---------- */

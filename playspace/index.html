@@ -2044,7 +2044,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '2.06';
+const VERSAO = '2.07';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -3056,7 +3056,9 @@ if (JANELA_CANAL) JANELA_CANAL.onmessage = e => { const m = e.data || {}; if (m.
 const OCIOSO_MS = 5 * 60000, OCIOSO_AVISO = 30000;
 let OCIOSO_ULT = Date.now(), OCIOSO_SAINDO = false;
 const ehComputador = () => { try { return matchMedia('(pointer: fine)').matches && !/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent); } catch (e) { return false; } };
-const ociosoLigado = () => MODO === 'servidor' && !!(EU && EU.id) && !JANELA_PARADA && !OCIOSO_SAINDO && ehComputador() && !lido('ps-sem-sair-sozinho', 0) && !document.querySelector('#l-login, #g-login, #janela-uma');
+/* 2.07 (o dono: "tira a questão dos 5 minutos do sistema, não precisa, ele tem que ficar logado, aberto na tela do atendente"): desligada */
+const OCIOSO_LIGADO = false;
+const ociosoLigado = () => OCIOSO_LIGADO && MODO === 'servidor' && !!(EU && EU.id) && !JANELA_PARADA && !OCIOSO_SAINDO && ehComputador() && !lido('ps-sem-sair-sozinho', 0) && !document.querySelector('#l-login, #g-login, #janela-uma');
 function ociosoMexeu() { OCIOSO_ULT = Date.now(); if ($('#ocioso')) ociosoAviso(false); }
 for (const ev of ['pointerdown', 'pointermove', 'keydown', 'wheel', 'touchstart', 'input']) window.addEventListener(ev, ociosoMexeu, { capture: true, passive: true });
 function ociosoAviso(mostra, seg) {
@@ -4644,7 +4646,7 @@ function htmlPapel(spec, via = 'loja') {
   // ja = o tempo que a criança já tinha ao entrar e não é de pacote (o voucher, um resto de tempo comprado): aparece ao lado da entrada
   const bloco = (x, i) => { const pac = planoDe(x) === 'pacote', ja = x.entrou && !pac ? Math.max(0, saldoMin(x) - (x.atraso ? x.atraso.n : 0) * p) : 0;
     return `${i ? '<p class="c-esp"></p>' : ''}<p class="c-bt"><b>${esc(x.nome)}</b>${anos(x)}</p>${loja && x.entrou ? `<p>Cadastro ${x.id}${x.sapateira ? ' · Sapateira ' + x.sapateira : ''}</p>` : ''}
-    <p>${x.entrou ? `Entrada ${hora(x.entrou)} · ${pac ? 'horas do cliente: ' + hm(saldoMin(x)) : (st ? esc(st.n) + ' avulsa' : 'acerto na saída') + (x.pcd ? ' · ' + rotPcd() : '')}` : 'Horas guardadas: ' + hm(saldoMin(x))}</p>
+    ${x.entrou ? `<p>Entrada ${hora(x.entrou)} · ${pac ? 'pacote de horas' : (st ? esc(st.n) + ' avulsa' : 'acerto na saída') + (x.pcd ? ' · ' + rotPcd() : '')}</p>` : ''}
     ${st && x.entrou ? (pac ? `<p>Acabando as horas${x.pcd ? ' · ' + rotPcd() : ''}: ${brl2(precoDe(x, st.v))} a cada ${st.min || 30} min</p>`
       : `<p>${ja > 0 ? dur(ja) + (temVoucher(x) ? ' do voucher' : ' já comprado') + ' · depois, ' : ''}${brl2(precoDe(x, st.v))} a cada ${st.min || 30} min, na saída</p>`) : ''}`; };
   // embaixo de cada item, o que interessa dele: o que sai da loja e volta leva a hora em que saiu e até quando devolver; o pacote, as
@@ -4653,13 +4655,13 @@ function htmlPapel(spec, via = 'loja') {
   const itens = it.map(i => { const sub = [];
     if (i.t === 'aluguel') { const x = servicoDe(i.s), a = (S.alugueis || []).find(a => a.crianca === c.id && a.s === i.s), ini = a && a.ini ? a.ini : new Date(), min = a ? +a.min || 0 : x && x.modo === 'periodo' ? (i.per || 1) * (x.min || 30) : 0; sub.push(`${x && x.modo === 'periodo' ? dur((i.per || 1) * (x.min || 30)) + ' · saída ' : 'Saída '}${hora(ini)}${min > 0 ? ' · devolver até ' + ate(ini, min) : i.obs ? ' · ' + i.obs : ''}`); }
     if (i.t === 'pacote' && i.min > 0) sub.push(`${dur(i.min)} de recreação`);   /* 1.66: sem o produto que vem com o pacote (para o cliente é só pacote de horas) */
-    if ((i.t === 'tempo' || i.t === 'pacote' || i.t === 'voucher') && !quem.length && !disse) { disse = true; sub.push(`Para ${c.nome} · horas guardadas: ${hm(saldoMin(c))}`); }
+    if ((i.t === 'tempo' || i.t === 'pacote' || i.t === 'voucher') && !quem.length && !disse) { disse = true; sub.push(`Para ${c.nome}`); }   /* 2.07: sem as horas guardadas do cliente (o dono: "tira de todos os comprovantes ... a quantidade de horas do pacote que o cliente tem") */
     return sub.length ? { ...i, sub } : i; });
   const naDev = (sv, q = 1) => sv ? ` · ${brl2(sv.v)} a cada ${sv.min || 30} min${q > 1 ? ', cada um' : ''}, na devolução` : '';   // 1.20: o que acerta na devolução diz o preço de cada período
   const soFora = !festa && !vendeu && !quem.length ? fora.map(a => `<p class="c-bt"><b>${esc(alugNome(a))}</b></p><p>Saída ${alugHoje(a) ? hora(a.ini) : dataHora(a.ini)}${a.min > 0 && alugHoje(a) ? ' · devolver até ' + ate(a.ini, a.min) : ''}${alugAberto(a) ? naDev(servicoDe(a.s), a.q) : ''}</p>`).join('') : '';
   const blocoAberto = emAberto.map(i => { const a = (S.alugueis || []).find(a => a.crianca === c.id && a.s === i.s), ini = a && a.ini ? a.ini : new Date(); return `<p class="c-bt"><b>${i.q > 1 ? i.q + ' × ' : ''}${esc(i.n)}</b></p><p>Saída ${hora(ini)}${i.dev ? ' · ' + brl2(i.dev) + ' a receber na devolução' : naDev(servicoDe(i.s), i.q)}</p>`; }).join('');   /* 1.47: i.dev */
   const entrou = quem.some(x => x.entrou), sai = itens.some(i => i.t === 'aluguel') || !!soFora || !!blocoAberto, pagou = (spec.formas || []).length > 0;
-  return `<div class="papel ${loja ? 'loja' : 'cliente'}">${cab.replace('{{VIA}}', entrou ? (loja ? 'VIA DE ENTRADA' : 'VIA DO CLIENTE') : festa ? 'VIA DA FESTA' : sai ? 'VIA DE SAÍDA DO CARRINHO' : 'VIA DE PAGAMENTO')}${quem.length ? div + quem.map(bloco).join('') : ''}${soFora ? div + soFora : ''}${blocoAberto ? div + blocoAberto : ''}${pago(soPacoteNoCupom(itens), spec.formas, { desc: spec.desc, titulo: pagou && !entrou && !sai ? 'COMPROVANTE DE PAGAMENTO' : '' })}${pe(entrou ? L.aviso + (L.aviso && tol ? ' ' : '') + (tol ? `TOLERÂNCIA DE ${tol} MINUTOS.` : '') : '', entrou || sai || festa)}</div>`;
+  return `<div class="papel ${loja ? 'loja' : 'cliente'}">${cab.replace('{{VIA}}', entrou ? (loja ? 'VIA DE ENTRADA' : 'VIA DO CLIENTE') : festa ? 'VIA DA FESTA' : sai ? (loja ? 'VIA DE SAÍDA DO CARRINHO' : 'VIA DO CLIENTE') : 'VIA DE PAGAMENTO')}${quem.length ? div + quem.map(bloco).join('') : ''}${soFora ? div + soFora : ''}${blocoAberto ? div + blocoAberto : ''}${pago(soPacoteNoCupom(itens), spec.formas, { desc: spec.desc, titulo: pagou && !entrou && !sai ? 'COMPROVANTE DE PAGAMENTO' : '' })}${pe(entrou ? L.aviso + (L.aviso && tol ? ' ' : '') + (tol ? `TOLERÂNCIA DE ${tol} MINUTOS.` : '') : '', entrou || sai || festa)}</div>`;
 }
 // 1.30: só a via da loja (o responsável assina). 1.43: na entrada, duas vias: a da loja e a do cliente (ele fica com a hora em que
 // deixou a criança); saída, devolução, festa, carrinho e pagamento continuam com uma via só
@@ -4673,7 +4675,9 @@ const nomePapelCompra = v => { if (!ehPacoteVenda(v)) return ''; const m = minDe
 function soPacoteNoCupom(L) { if (!Array.isArray(L) || !L.some(i => i.t === 'pacote') || !L.some(i => i.t === 'produto')) return L;
   const soma = centavos(L.filter(i => i.t === 'produto').reduce((t, i) => t + (+i.v || 0), 0)); let ja = false;
   return L.filter(i => i.t !== 'produto').map(i => i.t === 'pacote' && !ja ? (ja = true, { ...i, v: centavos((+i.v || 0) + soma) }) : i); }
-function viasPapel(spec) { const l = htmlPapel(spec, 'loja'); if (!l) return []; return /<p class="c-via"><span>VIA DE ENTRADA</.test(l) ? [l, htmlPapel(spec, 'cliente')].filter(Boolean) : [l]; }
+/* 2.07 (o dono: "no carrinho de bebê, ele tem que sair 2 vias também, tá? Uma do cliente e uma da loja"): a saída do carrinho de bebê também */
+const temBebe = (spec, l) => ((spec && spec.itens) || []).some(i => i && i.t === 'aluguel' && i.s === 'bebe') || /CARRINHO DE BEB/i.test(l);
+function viasPapel(spec) { const l = htmlPapel(spec, 'loja'); if (!l) return []; return /<p class="c-via"><span>VIA DE ENTRADA</.test(l) || (/<p class="c-via"><span>VIA DE SAÍDA DO CARRINHO</.test(l) && temBebe(spec, l)) ? [l, htmlPapel(spec, 'cliente')].filter(Boolean) : [l]; }
 // Manda as vias para a impressora, uma impressão para cada via: assim a impressora corta no fim de cada uma e saem dois cupons separados.
 // Cada via vai para uma área só de impressão, numa página do tamanho dela (para o papel cortar logo depois do texto).
 let IMPRIMINDO = false;
@@ -4745,7 +4749,7 @@ const segPapel = () => `<div class="seg" id="tk-modo">${MODOS_PAPEL.map(([v, n])
 function folhaPapel(spec) {
   const vias = viasPapel(spec); if (!vias.length) return; PAPEL = { spec, vias, ate: Date.now() + TROCA_MS };   // 1.57: ate = até quando a equipe troca a forma de pagamento
   abrirFolha(tituloPapel(spec), `
-    ${vias.length > 1 ? `<p class="explica" id="tk-duas">${ic(IC.cupom, 16)}<span>Saem <b>duas vias</b>: a da <b>loja</b> (o responsável assina) e a do <b>cliente</b> (fica com ele, com a hora da entrada).</span></p>` : ''}
+    ${vias.length > 1 ? `<p class="explica" id="tk-duas">${ic(IC.cupom, 16)}<span>Saem <b>duas vias</b>: a da <b>loja</b> (o responsável assina) e a do <b>cliente</b> (fica com ele, com a hora ${/VIA DE ENTRADA</.test(vias[0]) ? 'da entrada' : 'em que o carrinho saiu'}).</span></p>` : ''}
     <div class="papel-previa" id="tk-previa">${vias.map(v => `<div class="papel-fx">${v}</div>`).join('')}</div>
     <div id="tk-troca">${trocaPapelHtml()}</div>
     <details class="outro" id="tk-aparelho"><summary>Neste aparelho: <span id="tk-modo-rot">${rotModoPapel()}</span> · mudar</summary><div class="campo" style="margin-top:8px">${segPapel()}</div></details>
@@ -4865,7 +4869,7 @@ async function folhaReimprimir(id) {
     ${L.length || dentro.length ? `<div class="grupo" id="rp-lista">${dentro.map(x => `<button type="button" class="it tap${!gestor() && agora - x.entrou > TROCA_MS ? ' rp-trava' : ''}" data-act="papel-ficha" data-id="${x.id}"${!gestor() && agora - x.entrou > TROCA_MS ? ' disabled' : ''}><div class="txt"><b>Cupom de entrada</b><span>hoje, ${hora(x.entrou)} · ${esc(x.nome)} · como está agora</span></div><span class="vai">${ic(IC.vai, 18)}</span></button>`).join('')}${L.map(x => `<button type="button" class="it tap${reimpTrava(x) ? ' rp-trava' : ''}" data-act="papel-guardado" data-id="${x.id}"${reimpTrava(x) ? ' disabled title="Passou de 2 min: só o gestor reimprime"' : ''}><div class="txt"><b>${esc(x.titulo)}</b><span>${quandoPapel(x.quando)}${x.resumo ? ' · ' + esc(x.resumo) : ''}</span></div><span class="vai">${ic(IC.vai, 18)}</span></button>`).join('')}</div>`
       : `<p class="explica" id="rp-vazio">Nenhum cupom guardado para este cliente. Os cupons ficam guardados por ${dias} dias, a partir da versão 1.14.</p>`}`);
 }
-function viasGuardadas(vias) { return vias.slice(0, 1); }   // 1.30: na reimpressão, só a via da loja (os cupons guardados antes têm as duas)
+function viasGuardadas(vias) { return vias.slice(0, 2); }   /* 2.07 (o dono: "na reimpressão eu tenho que reimprimir as 2 vias quando tiver a opção de 2 vias"): a da loja e a do cliente (1.30: era só a da loja) */
 async function abrirPapelGuardado(id) {
   let x = null; if (MODO === 'servidor') { try { x = await api('papel_ver', { id }); } catch (e) { toast(e.message); return; } } else x = (S.papeis || []).find(k => k.id === id);
   if (!x || !x.vias || !x.vias.length) { toast('Este cupom não está mais guardado'); return; }
@@ -6648,7 +6652,10 @@ function linhasServico(parte) { // parte: 'tempo', 'outros' ou nada (todos). Sem
    para que precisem marcar de novo". Vale para o pacote e para o produto (a comissão das Finanças conta os dois); a festa não pede.
    Fica só no atendimento aberto (não vai para o que fica guardado): todo atendimento começa sem ninguém escolhido */
 const VENDEDORAS_PADRAO = ['ALINE', 'EDJANE', 'KAROL', 'MARIA VITÓRIA'];
-const vendedorasLista = () => (Array.isArray(S.cfg.vendedoras) && S.cfg.vendedoras.length ? S.cfg.vendedoras : VENDEDORAS_PADRAO);
+/* 2.07 (o dono: "os vendedores do Anália são vendedores do Anália ... Tem que separar ... todo mundo que tiver usuário, você já pode colocar
+   como vendedor"): no servidor, os vendedores desta unidade (as pessoas com usuário dela e as sem unidade escolhida) */
+const vendedorasLista = () => { const M = MODO === 'servidor' && S.cfg.vend_uni, L = M ? M[minhaUni()] : null; if (Array.isArray(L) && L.length) return L;
+  return Array.isArray(S.cfg.vendedoras) && S.cfg.vendedoras.length ? S.cfg.vendedoras : VENDEDORAS_PADRAO; };
 /* 1.68 (o dono: "a comissão sempre é de quem dá início no pedido do cliente, não de quem dá saída: ela oferta o pacote no início; às vezes
    o cliente fecha no final, mas a comissão é de quem abre o pedido"): a entrada pede "Quem está atendendo?" e a visita guarda o nome
    (c.vabriu). Com a criança no espaço, a venda (também a da saída) é de quem abriu: o quadro mostra o nome, sem escolher de novo.
