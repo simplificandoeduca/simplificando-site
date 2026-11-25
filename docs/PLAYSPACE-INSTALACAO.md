@@ -1301,6 +1301,15 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A nota pelo CNPJ da unidade: Morumbi ou Anália Franco (2.04, com o Notas 187)
+
+Pedido do dono: "o que a gente colocou é do Morumbi. Agora eu preciso colocar o certificado do Anália ... quero um botão para trocar entre Morumbi e Anália para mim saber se eu estou emitindo nota fiscal no Morumbi ou na Anália Franco".
+
+- O Play Space Notas 187 (o pacote playspace-notas-187.zip, subido em /notas pelo cPanel, como os outros) tem duas empresas no mesmo site: cada uma com o CNPJ, o certificado, a emissão (simulação, teste, produção), a numeração, os clientes, os serviços e as notas dela.
+- A conta principal acrescenta a outra em Conta → Empresas (CNPJ) → "Acrescentar outra empresa": o nome no botão (Anália Franco), o nome da atual no botão (Morumbi), a razão social, o CNPJ e a inscrição municipal. Ela nasce com os serviços (e os códigos) da atual, em simulação. Depois, com ela em uso: Conta → Certificado digital (o da Anália) e Emissor Nacional → Produção.
+- O botão de troca fica no alto do Início ("Emitindo por [Morumbi] [Anália Franco]", com o CNPJ), no menu do computador e na tela de emitir ("Emitindo por ANÁLIA FRANCO · CNPJ ..."). Cada pessoa volta na empresa que usou por último. Os usuários valem para as duas.
+- No Play Space (2.04), a nota em um clique sai pelo CNPJ da unidade da compra (Anália ou Casa Tom Anália → Anália; Morumbi ou Casa Tom Morumbi → Morumbi), pelo nome no botão do Notas. A folha da nota mostra "A nota sai pelo CNPJ de [Morumbi] [Anália Franco]" já escolhido, com o CNPJ, e dá para trocar ali. O Notas recebe a empresa em cada pedido, sem mudar a que está aberta na tela dele. Com uma empresa só, nada muda.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A importação traz as contas a pagar e mais fornecedores (2.03, Finanças 5.0)
 
 Pedido do dono, com a planilha do financeiro: "essa é a planilha com fornecedor, contas a pagar, esse campo que colocamos tem que puxar tudo isso".

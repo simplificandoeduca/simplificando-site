@@ -895,7 +895,11 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .nf-bts { display: flex; flex-wrap: wrap; gap: 8px; } .nf-dica { margin: -4px 0 0; font-size: 12.5px; color: var(--tinta-3); }
 /* 2.02: a nota em um clique (a confirmação, o login do Notas, o que ficou para corrigir lá) */
 .nf-conf { grid-template-columns: 1fr auto; } #nf-msg:empty { display: none; } #nf-msg { display: flex; flex-direction: column; gap: 8px; } .nf-indo { margin: 0; color: var(--tinta-2); }
-.nf-outras { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px dashed var(--borda); } .nf-outras .nf-bts .bt { flex: 1 1 180px; } .nf-fim { display: flex; flex-direction: column; }
+.nf-outras { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px dashed var(--borda); }
+/* 2.04: por qual CNPJ a nota sai (Morumbi ou Anália Franco) */
+#nf-emp:empty { display: none; } .nf-emp { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 10px 12px; border-radius: 16px; background: var(--card); border: 1.5px solid var(--borda); }
+.nf-emp .rot { width: 100%; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--apagado); } .nf-emp .chips { display: flex; gap: 6px; } .nf-emp-cnpj { font-size: 12.5px; color: var(--tinta-2); }
+.nf-emp .chip { background: var(--card); color: var(--tinta); border: 1.5px solid var(--borda); border-radius: 12px; padding: 7px 14px; font-weight: 700; box-shadow: none; } .nf-emp .chip.on.nf-emp-0 { background: #E25B3F; border-color: #E25B3F; color: #fff; } .nf-emp .chip.on.nf-emp-1 { background: #2F8F83; border-color: #2F8F83; color: #fff; } .nf-outras .nf-bts .bt { flex: 1 1 180px; } .nf-fim { display: flex; flex-direction: column; }
 /* 0.74: cancelar a entrada sem cobrar (o prazo corre no anel e na ficha; a supervisão confere na lista) */
 .anel .canc-link { display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 10px; border-radius: 999px; margin-top: 4px; background: var(--card); border: 1px solid var(--erro-bg); font-size: 11.5px; font-weight: 800; color: var(--erro); white-space: nowrap; }
 .anel .canc-link:hover { background: var(--erro-bg); }
@@ -2033,7 +2037,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '2.03';
+const VERSAO = '2.04';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -7196,7 +7200,7 @@ function htmlNF(v, c) {
   /* 2.02: a nota sai daqui mesmo, pelo Play Space Notas (sem abrir outra aba): esta folha é a confirmação dos dados e o botão emite */
   const dica = `<p class="explica nf-dica">Confira os dados e toque em Emitir: a nota sai na hora pelo Play Space Notas e o número fica marcado nesta compra.</p>`;
   /* (o botão fica no pé da folha, grudado embaixo: o aviso, o login do Notas e o que dá para fazer lá vêm antes dele) */
-  const msg = `<div id="nf-msg" aria-live="polite">${nfMsgHtml(v.id)}</div>`;
+  const msg = `<div id="nf-emp">${nfEmpHtml(v)}</div><div id="nf-msg" aria-live="polite">${nfMsgHtml(v.id)}</div>`;   /* 2.04: por qual CNPJ sai */
   const emitir = ja => `<div class="pe-f"><button type="button" class="bt forte largo tap" data-act="nf-pedir" data-ja="${ja}" id="nf-emitir"${NF_EMITINDO === v.id ? ' disabled' : ''}>${ic(IC.cupom, 16)} ${NF_EMITINDO === v.id ? 'Emitindo a nota…' : 'Emitir a nota fiscal'}</button></div>`;
   if (e === 'usado') return cab + `<div class="marca nf-ok">${ic(IC.check, 18, 2.6)}<span><b>Nota fiscal${p.numero ? ' nº ' + esc(p.numero) : ''} emitida.</b> Marcada por ${esc(primeiro(p.feito_por))}${p.feito_em ? ', ' + dataPedido(p.feito_em) : ''}.</span></div>${dadosNF}
     ${gestor() ? `<div class="campo"><label for="nf-num">Corrigir o número da nota</label><input id="nf-num" value="${esc(p.numero)}" maxlength="40" autocomplete="off"></div><div class="pe-f dois-bt"><button type="button" class="bt tap" data-act="nf-voltar">Desfazer a marcação</button><button type="button" class="bt forte tap" data-act="nf-emitida">Salvar o número</button></div>
@@ -7270,10 +7274,28 @@ function nfMsgHtml(venda) {
     <button type="button" class="bt forte largo tap" data-act="nf-notas-entrar">${ic(IC.check)} ${m.depois ? 'Entrar no Notas e emitir' : 'Entrar no Notas'}</button></div>`;
   return '';
 }
+/* 2.04 (o dono: "um botão para trocar entre Morumbi e Anália para mim saber se eu estou emitindo nota fiscal no Morumbi ou na Anália
+   Franco"): com duas empresas no Notas, a nota sai pelo CNPJ da unidade da compra (pelo nome: Anália, Morumbi), e a folha mostra qual,
+   com a troca. NF_EMP guarda a troca feita na folha (por compra). */
+let NF_EMP = {};
+const nfNorm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+function nfEmpDaUnidade(L, un) {
+  const u = un ? unidadeDe(un) : null, n = nfNorm(u && u.nome);
+  for (const lugar of ['analia', 'morumbi']) if (n.includes(lugar)) { const e = L.find(x => nfNorm(x.apelido + ' ' + x.nome).includes(lugar)); if (e) return e; }
+  return null;
+}
+const nfEmpEscolhida = v => { const L = (NF_N && NF_N.empresas) || []; if (L.length < 2 || !v) return null; return L.find(e => e.id === NF_EMP[v.id]) || nfEmpDaUnidade(L, v.un) || L.find(e => e.ativa) || L[0]; };
+function nfEmpHtml(v) {
+  const L = (NF_N && NF_N.empresas) || [], e = nfEmpEscolhida(v); if (!e) return '';
+  return `<div class="nf-emp"><small class="rot">A nota sai pelo CNPJ de</small><div class="chips" role="group" aria-label="Empresa que emite a nota">${L.map((x, i) => `<button type="button" class="chip tap nf-emp-${i % 2} ${x.id === e.id ? 'on' : ''}" data-act="nf-emp" data-id="${x.id}" aria-pressed="${x.id === e.id}">${esc(x.apelido)}</button>`).join('')}</div>
+    <span class="nf-emp-cnpj">CNPJ ${esc(e.cnpj || '')}${e.certificado ? '' : ' · <b>sem certificado no Notas</b>'}</span></div>`;
+}
+function nfEmpRedesenha(venda) { const a = $('#nf-emp'), v = LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === venda); if (a && v && NF && NF.id === venda) a.innerHTML = nfEmpHtml(v); }
 /* ao abrir a folha: o Notas está pronto? (sem login: a folha já pede; em teste: avisa antes de emitir) */
 async function nfPreparar(venda) {
   if (MODO !== 'servidor') return;
-  try { const N = await notasDados(false), amb = (N.fiscal && N.fiscal.ambiente) || 'simulado'; if (amb !== 'producao' && NF && NF.id === venda && !NF_EMITINDO) nfMsg(venda, 'aviso', 'O Play Space Notas está ' + (AMB_NF[amb] || amb) + '. Para valer, a conta principal do Notas muda para Produção.'); }
+  try { const N = await notasDados(false), v = LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === venda), e = nfEmpEscolhida(v), amb = (e ? e.ambiente : N.fiscal && N.fiscal.ambiente) || 'simulado'; nfEmpRedesenha(venda);   /* 2.04: a empresa da unidade */
+    if (amb !== 'producao' && NF && NF.id === venda && !NF_EMITINDO) nfMsg(venda, 'aviso', 'O Play Space Notas está ' + (AMB_NF[amb] || amb) + (e ? ' na empresa ' + e.apelido.toUpperCase() : '') + '. Para valer, a conta principal do Notas muda para Produção.'); else if (NF_MSG && NF_MSG.venda === venda && NF_MSG.tipo === 'aviso') nfMsg(venda, ''); }
   catch (e) { if (e.status === 401 && NF && NF.id === venda && !NF_EMITINDO) nfMsg(venda, 'login'); }
 }
 const notasId = () => (Date.now().toString(36) + Math.random().toString(36).slice(2, 7)).replace(/[^a-z0-9]/g, '');
@@ -7286,6 +7308,8 @@ async function emitirNFDireto() {
   let fim = null;
   try {
     let N; try { N = await notasDados(true); } catch (e) { if (e.status === 401) { fim = ['login', '', true]; return; } throw e; }
+    const emp = nfEmpEscolhida(v), EM = emp ? { _empresa: emp.id } : {};   /* 2.04: a empresa da unidade da compra (ou a escolhida na folha) */
+    if (emp && emp.id !== N.empresaId) N = await notasApi('dados', EM);
     const amb = (N.fiscal && N.fiscal.ambiente) || 'simulado', dl = docL(pt.doc);
     if (soDig(pt.doc).length !== 11 && soDig(pt.doc).length !== 14) throw new Error('Falta o CPF ou o CNPJ de quem recebe a nota. Use "Abrir no Play Space Notas" para escolher o cliente lá.');
     const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -7293,20 +7317,20 @@ async function emitirNFDireto() {
     if (!s) throw new Error('O Play Space Notas não tem nenhum serviço cadastrado. Cadastre lá (Serviços) e emita de novo.');
     const ach = (N.clientes || []).find(x => docL(x.doc) === dl), nome = String(pt.nome || '').trim().slice(0, 190);
     const cli = { id: ach ? ach.id : notasId(), nome, doc: String(pt.doc), email: String(pt.email || (ach && ach.email) || ''), cidade: String((ach && ach.cidade) || (N.empresa && N.empresa.municipio) || '') };
-    if (!ach || ach.nome !== cli.nome || ach.email !== cli.email) await notasApi('cliente_salvar', cli);   /* (o cliente com o nome que foi conferido aqui) */
+    if (!ach || ach.nome !== cli.nome || ach.email !== cli.email) await notasApi('cliente_salvar', { ...cli, ...EM });   /* (o cliente com o nome que foi conferido aqui) */
     const valor = Math.round(pt.valor * 100) / 100, aliq = Number((N.empresa || {}).aliquota) || 0, iss = Math.round(valor * aliq) / 100;
     const id = ('ps' + v.id + 'n' + (p.id || 0) + (amb === 'producao' ? '' : amb.charAt(0))).replace(/[^a-z0-9]/gi, '').slice(0, 40);
     const dps = { id, numero: null, data: new Date().toISOString(), clienteId: cli.id, clienteNome: cli.nome, clienteDoc: cli.doc, servicoId: s.id, servicoNome: s.nome, codigo: s.codigo,
       descricao: String(pt.descricao || '').slice(0, 1000) || s.descricao || s.nome, valor, aliquota: aliq, iss, retido: false, liquido: valor, status: 'rascunho', chave: '' };
     let nota;
-    try { nota = (await notasApi('nota_emitir', { dps })).nota; }
-    catch (e) { if (e.status !== 409) throw e; const N2 = await notasDados(true); nota = (N2.notas || []).find(n => n.id === id); if (!nota) throw e; }   /* (já tinha saído: é a mesma nota) */
+    try { nota = (await notasApi('nota_emitir', { dps, ...EM })).nota; }
+    catch (e) { if (e.status !== 409) throw e; const N2 = await notasApi('dados', EM); nota = (N2.notas || []).find(n => n.id === id); if (!nota) throw e; }   /* (já tinha saído: é a mesma nota) */
     if (!nota || !nota.numero) throw new Error('O Notas não devolveu o número da nota. Confira no Play Space Notas.');
-    if (amb !== 'producao') { fim = ['teste', `Nota ${amb === 'teste' ? 'de TESTE' : 'simulada'} nº ${nota.numero} emitida no Play Space Notas, sem valor fiscal: a compra não foi marcada. Para valer, o Notas precisa estar em Produção.`]; return; }
+    if (amb !== 'producao') { fim = ['teste', `Nota ${amb === 'teste' ? 'de TESTE' : 'simulada'} nº ${nota.numero} emitida no Play Space Notas${emp ? ' (' + emp.apelido.toUpperCase() + ')' : ''}, sem valor fiscal: a compra não foi marcada. Para valer, o Notas precisa estar em Produção.`]; return; }
     let x; try { x = await api('nf_emitida', { venda: v.id, numero: String(nota.numero) }); }
     catch (e) { fim = ['erro', `A nota nº ${nota.numero} foi emitida, mas não consegui marcar aqui (${e.message}). Toque em Emitir de novo: não sai outra, só marca.`]; return; }
     if (x && x.pedidos) pedidosChegaram(x.pedidos, true);
-    fim = null; NF_EMITINDO = 0; nfMsg(v.id, ''); deuCerto('Nota nº ' + nota.numero + ' emitida'); if (LADO) await buscarHistorico(); if (NF) redesenharNF();
+    fim = null; NF_EMITINDO = 0; nfMsg(v.id, ''); deuCerto('Nota nº ' + nota.numero + ' emitida' + (emp ? ' pela ' + emp.apelido.toUpperCase() : '')); if (LADO) await buscarHistorico(); if (NF) redesenharNF();
   } catch (e) { fim = ['erro', e.message || 'Tente de novo em instantes.']; }
   finally { NF_EMITINDO = 0; if (fim) nfMsg(v.id, fim[0], fim[1], fim[2]); else nfMsg(v.id, NF_MSG && NF_MSG.venda === v.id ? NF_MSG.tipo : '', NF_MSG && NF_MSG.txt); }
 }
@@ -8569,7 +8593,7 @@ const ACOES = {
   'off-ver': () => folhaOffProb(), 'off-ok': el => { OFF.prob.splice(+el.dataset.i, 1); filaGuardar(); offFaixa(); if (OFF.prob.length) folhaOffProb(); else fecharFolha(); },   /* 1.40 */
   'salt-item': el => { if (!ALTS || ALTS.espera) return; const i = altSaidaItens().find(x => x.id === +el.dataset.k); if (!i) return; ALTS.k = i.id; ALTS.v = valTxt(i.v); ALTS.hh = String(Math.round(i.h)); ALTS.vp = ''; ALTS.aberto = true; altSaidaRedesenha(true); const v = $('#sa-alt-v'); if (v) { v.focus(); v.select(); } },   /* 1.39 */
   'salt-pedir': el => altSaidaPedir(el), 'salt-largar': () => altSaidaLargar(),
-  nf: el => folhaNF(el.dataset.id), 'nf-notas': () => abrirNotasNF(), 'copia-baixar': el => baixarCopia(el.dataset.nome || '', el), 'copia-fazer': el => fazerCopia(el), 'nf-pedir': el => pedirNF(el), 'nf-notas-entrar': el => entrarNotasNF(el), 'ocioso-ficar': () => ociosoMexeu(), 'nf-senha': el => acaoNF('senha', el), 'nf-emitida': el => acaoNF('emitida', el), 'nf-voltar': el => acaoNF('voltar', el), 'nf-largar': el => acaoNF('largar', el), 'nf-copiar': el => acaoNF('copiar', el),
+  nf: el => folhaNF(el.dataset.id), 'nf-notas': () => abrirNotasNF(), 'copia-baixar': el => baixarCopia(el.dataset.nome || '', el), 'copia-fazer': el => fazerCopia(el), 'nf-pedir': el => pedirNF(el), 'nf-notas-entrar': el => entrarNotasNF(el), 'nf-emp': el => { if (!NF || NF_EMITINDO) return; NF_EMP[NF.id] = +el.dataset.id; nfEmpRedesenha(NF.id); nfPreparar(NF.id); }, 'ocioso-ficar': () => ociosoMexeu(), 'nf-senha': el => acaoNF('senha', el), 'nf-emitida': el => acaoNF('emitida', el), 'nf-voltar': el => acaoNF('voltar', el), 'nf-largar': el => acaoNF('largar', el), 'nf-copiar': el => acaoNF('copiar', el),
   'meta-salvar': el => metaSalvar(el, false), 'meta-tirar': el => metaSalvar(el, true), 'meta-ver': () => metaVer('dia'), 'meta-ver-mes': () => metaVer('mes'), 'meta-aviso-ver': () => metaVer('aviso'),   /* 1.87: as metas do mês */
   'meta-folha': el => folhaMeta(+el.dataset.uni), 'meta-recarregar': () => { META_ED.erro = null; const a = $('#aj-meta'); if (a) a.outerHTML = cartaoMeta(); },
   'meta-mudar': el => { META_ED.uni = +el.dataset.uni || META_ED.uni; META_ED.mes = metaMesAtual(); fecharFolha(); trocarTela('ajustes'); setTimeout(() => { const a = $('#aj-meta'); if (a) a.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 400); },
