@@ -84,6 +84,15 @@ body.ct .fx-trilho { background: #8E1218; } body.ct .trilho .fab { display: none
 @media (max-width: 600px) { .ct-busca { flex-wrap: wrap; } .ct-campo { flex-basis: 100%; } .ct-busca .bt { flex: 1; } }
 @media (max-width: 980px) { .ct-ir { display: flex; position: fixed; left: 16px; right: 16px; bottom: 96px; z-index: 30; justify-content: space-between; align-items: center; padding: 12px 18px; border: 0; border-radius: 14px; background: #C8202A; color: #fff; font: 700 15px var(--display); box-shadow: 0 10px 26px rgba(120, 20, 20, .3); cursor: pointer; }
   .ct-corpo { grid-template-columns: 1fr; } .ct-venda { position: static; } .ct-prow { grid-template-columns: minmax(0, 1fr) 100px; } .ct-prow > :nth-child(2), .ct-prow > :nth-child(3), .ct-prow > :nth-child(5) { display: none; } }
+/* 2.02: o aviso de que o sistema já está aberto em outra janela deste computador (tela cheia, por cima de tudo) */
+#janela-uma { position: fixed; inset: 0; z-index: 300; display: grid; place-items: center; padding: 24px; background: var(--creme); }
+#janela-uma .ju-caixa { width: min(460px, 100%); background: var(--card); border: 1px solid var(--borda); border-radius: 24px; padding: 28px 26px; display: flex; flex-direction: column; gap: 12px; text-align: center; box-shadow: 0 20px 60px rgba(60, 40, 20, .14); }
+#janela-uma .ju-logo { display: flex; justify-content: center; } #janela-uma .ju-logo svg { width: 76px; height: 76px; } #janela-uma h2 { margin: 0; font: 800 21px/1.25 var(--display); color: var(--tinta); } #janela-uma p { margin: 0; color: var(--tinta-2); }
+#janela-uma .ju-bts { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 6px; }
+/* 2.02: o aviso de que o sistema vai sair sozinho (5 minutos sem uso no computador) */
+#ocioso { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 250; display: flex; align-items: center; gap: 14px; width: max-content; max-width: calc(100vw - 32px);
+  padding: 10px 10px 10px 18px; border-radius: 18px; background: var(--tinta); color: var(--creme); box-shadow: 0 14px 40px rgba(20, 12, 6, .28); font-weight: 600; font-size: 14px; }
+#ocioso .bt { flex: none; } #saiu-sozinho { margin: 0; padding: 10px 12px; border-radius: 14px; background: var(--aviso-bg); color: var(--tinta); font-size: 13.5px; }
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 body { margin: 0; background: var(--creme); color: var(--tinta); font: 15px/1.45 var(--texto); -webkit-font-smoothing: antialiased; overscroll-behavior-y: none; }
@@ -870,6 +879,9 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .it.aut-l { align-items: flex-start; } .it.aut-l .pill { margin-top: 2px; } .it.aut-l .it-ac .bt { height: 36px; } .it.aut-l .it-ac .bt.forte { background: var(--ok); }
 @media (max-width: 520px) { .nf-dados { grid-template-columns: 1fr; } }
 .nf-bts { display: flex; flex-wrap: wrap; gap: 8px; } .nf-dica { margin: -4px 0 0; font-size: 12.5px; color: var(--tinta-3); }
+/* 2.02: a nota em um clique (a confirmação, o login do Notas, o que ficou para corrigir lá) */
+.nf-conf { grid-template-columns: 1fr auto; } #nf-msg:empty { display: none; } #nf-msg { display: flex; flex-direction: column; gap: 8px; } .nf-indo { margin: 0; color: var(--tinta-2); }
+.nf-outras { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px dashed var(--borda); } .nf-outras .nf-bts .bt { flex: 1 1 180px; } .nf-fim { display: flex; flex-direction: column; }
 /* 0.74: cancelar a entrada sem cobrar (o prazo corre no anel e na ficha; a supervisão confere na lista) */
 .anel .canc-link { display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 10px; border-radius: 999px; margin-top: 4px; background: var(--card); border: 1px solid var(--erro-bg); font-size: 11.5px; font-weight: 800; color: var(--erro); white-space: nowrap; }
 .anel .canc-link:hover { background: var(--erro-bg); }
@@ -2005,7 +2017,7 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '2.01';
+const VERSAO = '2.02';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -2352,7 +2364,7 @@ function aplicarDados(d) { // 1.40: o que veio do servidor (ou o que ficou guard
     S.criancas = d.criancas.map(c => ({ ...c, festaPapel: c.festa_papel || null, entrou: c.entrou ? dataDe(c.entrou) : null, venda: c.venda ? { ...c.venda, quando: dataDe(c.venda.quando) } : null, visitas: (c.visitas || []).map(v => ({ ...v, dia: dataDe(v.dia), ini: v.ini ? dataDe(v.ini) : null })) }));
     S.registros = d.registros.map(r => ({ ...r, h: dataDe(r.h) }));
     S.conversas = d.conversas.map(x => ({ ...x, msgs: x.msgs.map(m => ({ ...m, h: dataDe(m.h) })) }));
-    S.compromissos = d.compromissos; S.festas = d.festas || [];   // 1.29: as festas marcadas das unidades
+    S.compromissos = d.compromissos; { const fx = MODO === 'servidor' ? fixaDe(d.eu) : 0; S.festas = (d.festas || []).filter(f => !fx || !f.uni || +f.uni === fx); }   // 1.29: as festas marcadas das unidades; 2.02: só as da unidade de quem tem a unidade escolhida
     S.cfg = { ...S.cfg, ...d.regra, idface: { ...S.cfg.idface, ...d.idface } };
     S.equipe = d.equipe || [];
     S.produtos = d.produtos || [];
@@ -2368,7 +2380,8 @@ function aplicarDados(d) { // 1.40: o que veio do servidor (ou o que ficou guard
     S.pend = {}; for (const p of d.pendentes || []) S.pend[p.id] = dataDe(p.em);
     S.nfEmitir = d.nf_emitir || 0; pedidosChegaram(d.pedidos || []); avisosChegaram(d.avisos || []);   // 1.23: os pedidos de autorização desta tela   // cadastro feito hoje e ainda sem atendimento (para "Falta finalizar")
     nomesEmMaiusculas();
-    EU = { nome: d.eu.nome.split(' ')[0], nomeCompleto: d.eu.nome, papel: d.eu.papel, login: d.eu.login, id: d.eu.id };
+    EU = { nome: d.eu.nome.split(' ')[0], nomeCompleto: d.eu.nome, papel: d.eu.papel, login: d.eu.login, id: d.eu.id, uni: +d.eu.unidade_id || 0 };
+    if (uniFixa() && +lido('ps-unidade', 0) !== uniFixa()) guardar('ps-unidade', uniFixa());   /* 2.02: a pessoa com a unidade escolhida pelo gestor */
     ABAS = abasDoPapel();
     if (!ABAS.some(a => a[0] === S.tela) && S.tela !== 'festas') S.tela = 'horas';   // (1.29: a tela Festas é de todos)
     S.meta = d.meta || null;   /* 1.80: a meta do dia */
@@ -2382,7 +2395,7 @@ function ligarSincronia() { clearInterval(SYNC_T); SYNC_T = setInterval(sincroni
 // a cada 1 s (1.83) a tela pergunta um "pulso" leve; só quando ele muda (alguém bateu o rosto, chegou mensagem) ela recarrega tudo.
 // De 30 em 30 s recarrega de qualquer jeito, por garantia.
 async function sincronizar() {
-  if (MODO !== 'servidor' || SINCRONIZANDO || document.body.classList.contains('so')) return;
+  if (MODO !== 'servidor' || JANELA_PARADA || SINCRONIZANDO || document.body.classList.contains('so')) return;
   if (OFF.on) { offTentar(); return; } if (OFF.fila.length) { offEnviar(); return; }   // 1.40
   const t = $('#zap-texto'), ae = document.activeElement;
   const parado = document.hidden || !!$('#folha .folha-fundo') || !!(t && (ae === t || t.value.trim())) || !!(ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && ae.id !== 'esp-busca' && !(ae.id === 'banco-busca' && mnLigado()));   // a busca da lista do espaço não segura a atualização (1.28: com o menu aberto, a do Banco também não)
@@ -2453,12 +2466,12 @@ function telaEntrar() {
 function telaCriarGestor() {
   telaSo(`<h1 style="font-size:24px;font-weight:800">Bem-vinda ao Play Space</h1><p class="explica">Primeiro acesso: crie a conta da gestora. Depois ela cadastra o resto da equipe em Ajustes.</p>
     <div class="campo"><label for="g-nome">Seu nome</label><input id="g-nome" autocomplete="name"></div>
-    <div class="campo"><label for="g-login">Login (curto, sem espaços)</label><input id="g-login" autocapitalize="none" autocomplete="username" spellcheck="false" style="text-transform:lowercase"></div>
+    <div class="campo"><label for="g-login">Login (ex.: camila)</label><input id="g-login" autocapitalize="none" autocomplete="username" spellcheck="false" style="text-transform:lowercase"></div>
     <div class="campo"><label for="g-senha">Senha (pelo menos 6 caracteres)</label><input id="g-senha" type="password" autocomplete="new-password"></div>
     <button class="bt forte largo tap" data-act="criar-gestor">${ic(IC.check)} Criar e entrar</button>`);
 }
 // 1.25: o gestor começa no painel (a não ser que a página tenha sido aberta numa aba, como #horas)
-async function depoisDeEntrar(doLogin = false) { lerEtapas(); await gzRapido(); if (OFF.fila.length) await offEnviar(); await carregar(); if (gestor() && (doLogin || !HASH_INICIO)) S.tela = inicioGestor(); desenhar(); conferirAtualizacao(false); oferecerLimpeza(); }
+async function depoisDeEntrar(doLogin = false) { OCIOSO_ULT = Date.now(); lerEtapas(); await gzRapido(); if (OFF.fila.length) await offEnviar(); await carregar(); if (gestor() && (doLogin || !HASH_INICIO)) S.tela = inicioGestor(); desenhar(); conferirAtualizacao(false); oferecerLimpeza(); }
 /* ---------- 0.98: limpar os cadastros (começar do zero) ---------- */
 // Para quando os testes acabam e a loja vai começar de verdade. Saem todos os cadastros (crianças e responsáveis, com as fotos) e o que
 // nasceu deles: horas, vendas, pagamentos, visitas e o movimento do dia. Ficam a equipe, a regra, os serviços, os pacotes, os produtos
@@ -2965,7 +2978,67 @@ async function conferirVersaoLocal() {
     if (ja === v) return; try { sessionStorage.setItem('ps-recarregou', v); } catch (e) { } location.replace(location.pathname + '?v=' + encodeURIComponent(v) + location.hash);
   } catch (e) { /* sem internet ou sem o arquivo: segue com esta */ }
 }
+/* 2.02 (o dono: "eu não quero que o sistema abra mais de uma tela no mesmo computador ... ele tem que ter uma só, e se tiver uma aberta ele dá
+   informativo: já tem um sistema aberto"). A janela que abre primeiro segura a vez (navigator.locks, que vale para as janelas e abas do mesmo
+   navegador neste computador). A segunda não liga o sistema: mostra o aviso, com "Usar esta janela" (a outra solta a vez, para e mostra o
+   aviso; esta recomeça) e "Fechar esta". Fechou a janela, ela solta a vez sozinha. */
+const JANELA_ID = Math.random().toString(36).slice(2);
+let JANELA_SOLTA = null, JANELA_PARADA = false;
+const JANELA_CANAL = (() => { try { return typeof BroadcastChannel === 'function' ? new BroadcastChannel('playspace-janela') : null; } catch (e) { return null; } })();
+function umaJanelaSo() {
+  if (!navigator.locks || lido('ps-varias-janelas', 0)) return Promise.resolve(true);
+  return new Promise(ok => { navigator.locks.request('playspace-janela', { ifAvailable: true }, trava => { if (!trava) { ok(false); return; } ok(true); return new Promise(r => { JANELA_SOLTA = r; }); }).catch(() => ok(true)); });
+}
+function telaJanelaAberta(motivo) {
+  let o = $('#janela-uma'); if (!o) { o = document.createElement('div'); o.id = 'janela-uma'; document.body.appendChild(o); }
+  const outra = motivo === 'assumiu';
+  o.innerHTML = `<div class="ju-caixa" role="alertdialog" aria-labelledby="ju-t" aria-describedby="ju-p"><span class="ju-logo">${LOGO}</span>
+    <h2 id="ju-t">${outra ? 'O Play Space foi aberto em outra janela' : 'Já tem um Play Space aberto neste computador'}</h2>
+    <p id="ju-p">${outra ? 'Esta janela parou, para não ficarem duas abertas ao mesmo tempo.' : 'O sistema fica aberto numa janela só, para não confundir as entradas, as vendas e o caixa. Use a janela que já está aberta.'}</p>
+    <div class="ju-bts"><button type="button" class="bt forte tap" id="ju-usar">Usar esta janela</button><button type="button" class="bt claro tap" id="ju-fechar">Fechar esta</button></div>
+    <p class="explica" id="ju-dica" hidden>Pode fechar esta janela (ou esta aba).</p></div>`;
+  $('#ju-fechar').onclick = () => { try { window.close(); } catch (e) { } setTimeout(() => { const d = $('#ju-dica'); if (d) d.hidden = false; }, 400); };
+  $('#ju-usar').onclick = async () => { const b = $('#ju-usar'); b.disabled = true; b.textContent = 'Abrindo…';
+    try { if (JANELA_CANAL) JANELA_CANAL.postMessage({ t: 'assume', id: JANELA_ID }); await navigator.locks.request('playspace-janela', () => true); } catch (e) { }
+    location.reload(); };
+  if (!outra && JANELA_CANAL) try { JANELA_CANAL.postMessage({ t: 'traz', id: JANELA_ID }); } catch (e) { }
+}
+if (JANELA_CANAL) JANELA_CANAL.onmessage = e => { const m = e.data || {}; if (m.id === JANELA_ID || !JANELA_SOLTA) return;
+  if (m.t === 'traz') { try { window.focus(); } catch (x) { } }
+  if (m.t === 'assume') { JANELA_PARADA = true; clearInterval(SYNC_T); const s = JANELA_SOLTA; JANELA_SOLTA = null; s(); fecharFolha(); telaJanelaAberta('assumiu'); } };
+/* 2.02 (o dono: "o computador tem que deslogar a cada 5 minutos do sistema, só por questão de segurança"): no computador, 5 minutos sem
+   ninguém mexer (mouse, teclado, toque) e o sistema sai sozinho, de volta ao login. Nos últimos 30 segundos aparece o aviso, com
+   "Continuar aqui". Não sai com registro feito sem internet esperando para ir ao servidor (sairia sem mandar), nem sem internet (não daria
+   para entrar de novo), nem no meio da emissão de uma nota. No celular e no tablet não sai (o gestor recebe os pedidos no celular). Para
+   teste e suporte, a opção do aparelho ps-sem-sair-sozinho desliga. Computador que dormiu: ao voltar, se já passou dos 5 minutos, sai. */
+const OCIOSO_MS = 5 * 60000, OCIOSO_AVISO = 30000;
+let OCIOSO_ULT = Date.now(), OCIOSO_SAINDO = false;
+const ehComputador = () => { try { return matchMedia('(pointer: fine)').matches && !/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent); } catch (e) { return false; } };
+const ociosoLigado = () => MODO === 'servidor' && !!(EU && EU.id) && !JANELA_PARADA && !OCIOSO_SAINDO && ehComputador() && !lido('ps-sem-sair-sozinho', 0) && !document.querySelector('#l-login, #g-login, #janela-uma');
+function ociosoMexeu() { OCIOSO_ULT = Date.now(); if ($('#ocioso')) ociosoAviso(false); }
+for (const ev of ['pointerdown', 'pointermove', 'keydown', 'wheel', 'touchstart', 'input']) window.addEventListener(ev, ociosoMexeu, { capture: true, passive: true });
+function ociosoAviso(mostra, seg) {
+  let o = $('#ocioso'); if (!mostra) { if (o) o.remove(); return; }
+  if (!o) { o = document.createElement('div'); o.id = 'ocioso'; o.setAttribute('role', 'status'); o.innerHTML = `<span id="ocioso-t"></span><button type="button" class="bt forte tap" data-act="ocioso-ficar">Continuar aqui</button>`; document.body.appendChild(o); }
+  const t = $('#ocioso-t'); if (t) t.textContent = `Por segurança, o sistema sai sozinho em ${seg} s (5 minutos sem uso).`;
+}
+function ociosoConferir() {
+  if (!ociosoLigado()) { if ($('#ocioso')) ociosoAviso(false); return; }
+  const parado = Date.now() - OCIOSO_ULT;
+  if (parado >= OCIOSO_MS) { if (!OFF.fila.length && navigator.onLine !== false && !NF_EMITINDO) sairSozinho(); return; }
+  if (parado >= OCIOSO_MS - OCIOSO_AVISO) ociosoAviso(true, Math.max(1, Math.ceil((OCIOSO_MS - parado) / 1000))); else if ($('#ocioso')) ociosoAviso(false);
+}
+async function sairSozinho() {   /* o mesmo "Sair" do menu (1.40), com o aviso na tela de entrar */
+  OCIOSO_SAINDO = true; ociosoAviso(false);
+  try { clearInterval(SYNC_T); IDB.tirar('dados'); try { await api('sair'); } catch (e) { }
+    ETAPA_FEITA = true; RASC_CAD = []; salvarEtapas(); fecharFolha(); telaEntrar();
+    const c = $('#l-login') && $('#l-login').closest('.campo'); if (c) { const n = document.createElement('p'); n.id = 'saiu-sozinho'; n.setAttribute('role', 'status'); n.textContent = 'O sistema saiu sozinho depois de 5 minutos sem uso, por segurança. Entre de novo.'; c.before(n); }
+  } finally { OCIOSO_SAINDO = false; OCIOSO_ULT = Date.now(); }
+}
+setInterval(ociosoConferir, 1000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) ociosoConferir(); });
 async function iniciar() {
+  if (ATU.podeAqui && !(await umaJanelaSo())) { telaJanelaAberta(); return; }   /* 2.02: uma janela só */
   if (ATU.podeAqui) {
     offRegistrarSW(); await offLerFila();   // 1.40
     await abrirRapido();   // 1.58
@@ -3355,11 +3428,11 @@ function tabelaProdutos(L) {
   return `<table class="pac-tab prod-tab"><thead><tr><th class="nm">Produto</th><th>Valor</th>${est ? '<th>Estoque</th>' : ''}${g ? '<th></th>' : ''}<th></th></tr></thead><tbody>${L.map(p => `<tr class="vd" data-act="pp-vender" data-prod="${p.id}" title="Vender este produto"><th class="nm">${esc(p.n)}</th><td class="v num">${brl(p.v)}</td>${est ? `<td class="num${estFalta(p) ? ' falta' : ''}">${p.est == null ? '<span style="color:var(--apagado)">—</span>' : p.est}</td>` : ''}${g ? `<td><button type="button" class="lap tap" data-act="produto-editar" data-id="${p.id}" data-de="pacotes" aria-label="Mudar ${esc(p.n)}, ${brl(p.v)}" title="Mudar o nome, o valor ou o estoque">${ic(IC.lapis, 14)}</button></td>` : ''}<td class="vd-c"><button type="button" class="pp-v tap" data-act="pp-vender" data-prod="${p.id}" aria-label="Vender ${esc(p.n)}, ${brl(p.v)}"><span>Vender</span>${ic(IC.vai, 13, 2.8)}</button></td></tr>`).join('')}</tbody></table>`;
 }
 function corpoProdutos() {
-  const P = S.produtos || [], g = gestor();
+  const P = prodsDaLoja(), g = gestor();   /* 2.02: só os produtos desta loja */
   return `
     <p class="explica">${P.length ? '<b>Toque no produto para vender</b>: depois é só escolher o cliente pelo CPF. ' : ''}O que a loja vende além do tempo, com o valor de cada um${P.some(p => p.est != null) ? ' e quantos há no estoque' : ''}.</p>
     ${P.length ? tabelaProdutos(P) : `<p class="explica">Nenhum produto cadastrado ainda.${g ? '' : ' A gestora cadastra aqui ou em Ajustes.'}</p>`}
-    ${g ? `<button type="button" class="bt tap" data-act="produto-novo" data-de="pacotes" style="align-self:flex-start">${ic(IC.mais, 16)} Novo produto</button>` : ''}
+    ${g ? `<span style="display:flex;gap:10px;flex-wrap:wrap"><button type="button" class="bt tap" data-act="produto-novo" data-de="pacotes">${ic(IC.mais, 16)} Novo produto</button><button type="button" class="bt claro tap" data-act="produtos-importar">${ic(IC.subir, 16)} Importar relação</button></span>` : ''}
     <p class="explica" style="text-align:center">Os produtos também aparecem no atendimento de cada cliente, depois dos pacotes. O estoque baixa sozinho.</p>`;
 }
 /* ---------- 0.98: a venda que começa pelo pacote (ou pelo produto) ---------- */
@@ -5268,7 +5341,7 @@ function telaCT() {
 function telaCTVendas() { return `<div class="ct-tela">${ctCabeca('Vendas do dia')}${htmlCaixaDia()}</div>`; }
 function telaCTProd() {
   const ws = semAcentoCT(CT.pbusca).trim().split(/\s+/).filter(Boolean), F = (S.produtos || []).filter(p => (CT.ptodos || prodNaLoja(p, 'ct')) && ws.every(w => semAcentoCT(p.n).includes(w))), V = F.slice(0, 300);
-  return `<div class="ct-tela">${ctCabeca('Produtos')}<div class="ct-busca"><label class="ct-campo">${ic(IC.ctBusca, 18)}<input id="ct-pbusca" type="search" placeholder="Buscar no cadastro…" value="${esc(CT.pbusca)}" autocomplete="off" aria-label="Buscar no cadastro"></label><button type="button" class="bt claro tap" data-act="ct-ptodos" aria-pressed="${CT.ptodos}">${CT.ptodos ? 'Só os da Casa Tom' : 'Ver todo o cadastro'}</button>${gestor() ? `<button type="button" class="bt claro tap" data-act="ct-importar">Importar planilha</button><button type="button" class="bt forte tap" data-act="ct-novo">${ic(IC.mais)} Novo produto</button>` : ''}</div>
+  return `<div class="ct-tela">${ctCabeca('Produtos')}<div class="ct-busca"><label class="ct-campo">${ic(IC.ctBusca, 18)}<input id="ct-pbusca" type="search" placeholder="Buscar no cadastro…" value="${esc(CT.pbusca)}" autocomplete="off" aria-label="Buscar no cadastro"></label><button type="button" class="bt claro tap" data-act="ct-ptodos" aria-pressed="${CT.ptodos}">${CT.ptodos ? 'Só os da Casa Tom' : 'Ver todo o cadastro'}</button>${gestor() ? `<button type="button" class="bt claro tap" data-act="ct-importar">Importar relação</button><button type="button" class="bt forte tap" data-act="ct-novo">${ic(IC.mais)} Novo produto</button>` : ''}</div>
     <p class="explica" id="ct-pconta">${F.length} ${F.length === 1 ? 'produto' : 'produtos'}${CT.ptodos ? ' no cadastro (Play Space e Casa Tom)' : ' da Casa Tom'}${F.length > V.length ? ` · mostrando ${V.length}: escreva parte do nome para achar` : ''}</p>
     <div class="ct-plista">${V.map(p => `<button type="button" class="ct-prow tap" data-act="${gestor() ? 'ct-editar' : 'nada'}" data-p="${p.id}"><b>${esc(p.n)}</b><span>${esc(p.cat || '')}</span><span>${lojasDe(p).map(l => l === 'ct' ? 'Casa Tom' : 'Play Space').join(' · ')}</span><b class="num">${brl(p.v)}</b><span class="num">${p.est == null ? '' : 'estoque ' + p.est}</span></button>`).join('')}</div></div>`; }
 /* a planilha de produtos: PRODUTO (ou NOME), PREÇO (ou VALOR) e, se tiver, CATEGORIA; sem títulos, nessa ordem */
@@ -5280,24 +5353,31 @@ function ctiLinhas(M) {
 }
 function ctiTexto(t) { const L = String(t || '').split(/\r?\n/).filter(x => x.trim()); if (!L.length) return []; const sep = ['\t', ';', ','].map(s => [s, L.slice(0, 20).reduce((a, l) => a + l.split(s).length - 1, 0)]).sort((a, b) => b[1] - a[1])[0][0];
   return L.map(l => l.split(sep).map(x => x.replace(/^"|"$/g, ''))); }
-function ctiMostra(L) { CT.imp = L; const bons = L.filter(x => x.v >= 0), r = $('#cti-res'), ok = $('#cti-ok'); if (!r) return;
+/* 2.02 (o dono: "faz um botão importar relação no produto que eu não consegui"): o Importar relação também nos Produtos da Play Space, com a
+   escolha de onde os produtos importados vão ser vendidos: a Casa Tom, a Play Space ou as duas. O que já existe com o mesmo nome fica com o
+   preço de lá e passa a valer também onde foi escolhido */
+const LOJAS_IMP = [['ct', 'Casa Tom'], ['play', 'Play Space'], ['play,ct', 'As duas']];
+const nomeLojaImp = l => l === 'play,ct' ? 'Play Space e Casa Tom' : l === 'play' ? 'Play Space' : 'Casa Tom';
+const naLojaImp = (p, l) => l.split(',').every(x => prodNaLoja(p, x));
+function ctiMostra(L) { if (L) CT.imp = L; L = CT.imp || []; const lj = CT.impLoja || 'ct', bons = L.filter(x => x.v >= 0), r = $('#cti-res'), ok = $('#cti-ok'); if (!r) return;
   const ja = new Set((S.produtos || []).map(p => semAcentoCT(p.n))), vistos = new Set(), jaN = bons.filter(x => ja.has(semAcentoCT(x.n))).length, novos = bons.filter(x => !ja.has(semAcentoCT(x.n)) && !vistos.has(semAcentoCT(x.n)) && vistos.add(semAcentoCT(x.n))), rep = bons.length - jaN - novos.length;
-  r.innerHTML = L.length ? `<p class="explica"><b>${impNum(L.length)}</b> ${L.length === 1 ? 'linha lida' : 'linhas lidas'} · <b>${impNum(novos.length)}</b> ${novos.length === 1 ? 'produto novo' : 'produtos novos'}${jaN ? ` · ${impNum(jaN)} já no cadastro (o preço fica o de lá; passam a valer também na Casa Tom)` : ''}${rep ? ` · ${impNum(rep)} ${rep === 1 ? 'repetido' : 'repetidos'} na planilha (entra uma vez)` : ''}${L.length - bons.length ? ` · ${impNum(L.length - bons.length)} sem preço (${L.length - bons.length === 1 ? 'não entra' : 'não entram'})` : ''}</p>` : '<p class="explica">Não achei nenhuma linha com produto.</p>';
-  const jun = bons.filter(x => { const p = (S.produtos || []).find(p => semAcentoCT(p.n) === semAcentoCT(x.n)); return p && !prodNaLoja(p, 'ct'); }).length;
-  if (ok) { ok.disabled = !novos.length && !jun; ok.textContent = novos.length ? `Importar ${impNum(novos.length)} ${novos.length === 1 ? 'produto' : 'produtos'} na Casa Tom` : jun ? 'Pôr na Casa Tom os já cadastrados' : 'Nada para importar'; } }
-function folhaCTImportar() { CT.imp = null;
-  abrirFolha('Importar produtos', `<p class="explica">Cole a planilha (no Excel: <b>Ctrl+A</b>, <b>Ctrl+C</b>; aqui: <b>Ctrl+V</b>) ou escolha o arquivo. Colunas: <b>PRODUTO</b>, <b>PREÇO</b> e, se tiver, <b>CATEGORIA</b>. Entram na Casa Tom. O que já existe com o mesmo nome fica com o preço de lá e passa a valer também na Casa Tom.</p>
+  r.innerHTML = L.length ? `<p class="explica"><b>${impNum(L.length)}</b> ${L.length === 1 ? 'linha lida' : 'linhas lidas'} · <b>${impNum(novos.length)}</b> ${novos.length === 1 ? 'produto novo' : 'produtos novos'}${jaN ? ` · ${impNum(jaN)} já no cadastro (o preço fica o de lá; passam a valer também ${lj === 'play,ct' ? 'nas duas lojas' : 'na ' + nomeLojaImp(lj)})` : ''}${rep ? ` · ${impNum(rep)} ${rep === 1 ? 'repetido' : 'repetidos'} na planilha (entra uma vez)` : ''}${L.length - bons.length ? ` · ${impNum(L.length - bons.length)} sem preço (${L.length - bons.length === 1 ? 'não entra' : 'não entram'})` : ''}</p>` : '<p class="explica">Não achei nenhuma linha com produto.</p>';
+  const jun = bons.filter(x => { const p = (S.produtos || []).find(p => semAcentoCT(p.n) === semAcentoCT(x.n)); return p && !naLojaImp(p, lj); }).length, onde = lj === 'play,ct' ? 'nas duas lojas' : 'na ' + nomeLojaImp(lj);
+  if (ok) { ok.disabled = !novos.length && !jun; ok.textContent = novos.length ? `Importar ${impNum(novos.length)} ${novos.length === 1 ? 'produto' : 'produtos'} ${onde}` : jun ? `Pôr ${onde} os já cadastrados` : 'Nada para importar'; } }
+function folhaCTImportar(loja) { CT.imp = null; CT.impLoja = loja || (modoCT() ? 'ct' : 'ct');
+  abrirFolha('Importar relação de produtos', `<p class="explica">Cole a planilha (no Excel: <b>Ctrl+A</b>, <b>Ctrl+C</b>; aqui: <b>Ctrl+V</b>) ou escolha o arquivo. Colunas: <b>PRODUTO</b>, <b>PREÇO</b> e, se tiver, <b>CATEGORIA</b>. O que já existe com o mesmo nome fica com o preço de lá.</p>
+    <div class="campo"><label>Vão ser vendidos em</label><div class="seg" id="cti-loja" role="radiogroup">${LOJAS_IMP.map(([v, n]) => `<button type="button" role="radio" data-act="cti-loja" data-v="${v}" aria-pressed="${v === CT.impLoja}">${n}</button>`).join('')}</div></div>
     <div class="campo"><label for="cti-texto">Cole a planilha aqui</label><textarea id="cti-texto" rows="4" spellcheck="false" placeholder="PRODUTO;PREÇO;CATEGORIA"></textarea></div>
     <div class="im-ou"><label class="bt claro tap" for="cti-arq">${ic(IC.subir, 18)} Escolher o arquivo</label><input id="cti-arq" type="file" accept=".xlsx,.csv,.txt,.tsv,text/csv,text/plain" hidden></div>
     <div id="cti-res"></div><div class="pe-f"><button class="bt forte largo tap" id="cti-ok" data-act="cti-ok" disabled>Importar</button></div>`); }
 async function ctiImportar(el) {
-  const vistos = new Set(), L = (CT.imp || []).filter(x => x.v >= 0 && !vistos.has(semAcentoCT(x.n)) && vistos.add(semAcentoCT(x.n))); if (!L.length) return;
+  const lj = CT.impLoja || 'ct', vistos = new Set(), L = (CT.imp || []).filter(x => x.v >= 0 && !vistos.has(semAcentoCT(x.n)) && vistos.add(semAcentoCT(x.n))); if (!L.length) return;
   el.disabled = true; let novos = 0, junto = 0;
-  if (MODO === 'servidor') { try { for (let i = 0; i < L.length; i += 300) { el.textContent = `Importando… ${impNum(i)} de ${impNum(L.length)}`; const r = await api('produtos_importar', { l: 'ct', linhas: L.slice(i, i + 300) }); novos += +r.novos || 0; junto += +r.junto || 0; if (Array.isArray(r.produtos)) S.produtos = r.produtos; } }
+  if (MODO === 'servidor') { try { for (let i = 0; i < L.length; i += 300) { el.textContent = `Importando… ${impNum(i)} de ${impNum(L.length)}`; const r = await api('produtos_importar', { l: lj, linhas: L.slice(i, i + 300) }); novos += +r.novos || 0; junto += +r.junto || 0; if (Array.isArray(r.produtos)) S.produtos = r.produtos; } }
     catch (e) { el.disabled = false; el.textContent = 'Continuar'; toast(e.message + (novos ? ` (${novos} já entraram)` : '')); return; } }
-  else { for (const x of L) { const p = S.produtos.find(p => semAcentoCT(p.n) === semAcentoCT(x.n)); if (!p) { S.produtos.push({ id: novoId(), n: x.n, v: centavos(x.v), est: null, l: 'ct', cat: x.cat }); novos++; } else if (!prodNaLoja(p, 'ct')) { p.l = [...lojasDe(p), 'ct'].join(','); junto++; } }
+  else { for (const x of L) { const p = S.produtos.find(p => semAcentoCT(p.n) === semAcentoCT(x.n)); if (!p) { S.produtos.push({ id: novoId(), n: x.n, v: centavos(x.v), est: null, l: lj, cat: x.cat }); novos++; } else if (!naLojaImp(p, lj)) { p.l = ['play', 'ct'].filter(k => lojasDe(p).includes(k) || lj.split(',').includes(k)).join(','); junto++; } }
     S.produtos.sort(ordProd); registrar('est', 'PRODUTOS', `Produtos importados: ${novos}${junto ? ` · ${junto} já cadastrados passam a valer também nesta loja` : ''} · por ${EU.nome}`); }
-  CT.imp = null; fecharFolha(); desenhar(); deuCerto(`${impNum(novos)} ${novos === 1 ? 'produto importado' : 'produtos importados'} na Casa Tom${junto ? ` · ${impNum(junto)} já ${junto === 1 ? 'cadastrado passa' : 'cadastrados passam'} a valer também nela` : ''}`);
+  CT.imp = null; fecharFolha(); desenhar(); deuCerto(`${impNum(novos)} ${novos === 1 ? 'produto importado' : 'produtos importados'} ${lj === 'play,ct' ? 'nas duas lojas' : 'na ' + nomeLojaImp(lj)}${junto ? ` · ${impNum(junto)} já ${junto === 1 ? 'cadastrado passa' : 'cadastrados passam'} a valer também` : ''}`);
 }
 document.addEventListener('input', e => { const t = e.target; if (!t || !t.id) return;
   if (t.id === 'ct-busca') { CT.busca = t.value; const g = $('#ct-grade'); if (g) g.innerHTML = ctGrade(); }
@@ -5423,9 +5503,16 @@ const unidades = () => (S.unidades || []).filter(u => u.ativo !== false);   // a
 const unidadeDe = id => (S.unidades || []).find(u => u.id === +id) || null;
 const nomeUni = id => { const u = id ? unidadeDe(id) : null; return u ? u.nome : ''; };
 // a unidade deste aparelho: a que foi escolhida aqui, se ainda existe. Na prévia, sem escolha, vale a primeira
-const minhaUni = () => { const u = unidadeDe(+lido('ps-unidade', 0) || 0); return u && u.ativo !== false ? u.id : (MODO !== 'servidor' && unidades().length ? unidades()[0].id : 0); };
+/* 2.02 (o dono: "quem eu selecionar a unidade não pode trocar a unidade, a não ser o gestor, que pode ver tudo de todas as unidades"): a unidade
+   que o gestor escolheu para a pessoa (Ajustes → Equipe). Quem tem a unidade escolhida fica nela; só o gestor troca */
+const uniFixa = () => { if (MODO !== 'servidor' || !EU || EU.papel === 'gestor' || !EU.uni) return 0; const u = unidadeDe(EU.uni); return u && u.ativo !== false ? u.id : 0; };
+/* 2.02 (o dono: "quem ficar na Anália só pode ver a Anália, quem fica na Casa Tom só pode ver a Casa Tom; mas os clientes elas conseguem visualizar"):
+   quem tem a unidade escolhida vê só o movimento dela (no espaço, carrinhos fora, festas, pedidos); o cadastro dos clientes fica à vista de todos */
+const veUni = id => !uniFixa() || (id != null && +id === uniFixa());
+const fixaDe = eu => (eu && eu.papel !== 'gestor' && +eu.unidade_id) || 0;   /* (na carga dos dados, antes de o EU ser montado) */
+const minhaUni = () => { if (uniFixa()) return uniFixa(); const u = unidadeDe(+lido('ps-unidade', 0) || 0); return u && u.ativo !== false ? u.id : (MODO !== 'servidor' && unidades().length ? unidades()[0].id : 0); };
 // quem troca a unidade do aparelho: gestor e supervisor. Com o aparelho ainda sem unidade, quem estiver nele escolhe (senão as entradas ficariam sem unidade)
-const podeTrocarUni = () => MODO !== 'servidor' || supervisorOuMais() || !minhaUni() || unidades().some(u => u.id !== minhaUni() && mesmoLocal(u.id, minhaUni()));   // 1.88: a atendente, entre o Play e a Casa Tom do lugar
+const podeTrocarUni = () => !uniFixa() && (MODO !== 'servidor' || supervisorOuMais() || !minhaUni() || unidades().some(u => u.id !== minhaUni() && mesmoLocal(u.id, minhaUni())));   // 1.88: a atendente, entre o Play e a Casa Tom do lugar
 /* 1.88: a Casa Tom de cada lugar como unidade (CASA TOM ANÁLIA, CASA TOM MORUMBI). O lugar de uma unidade: o nome sem o "Casa Tom", a
    primeira palavra (ANÁLIA FRANCO e CASA TOM ANÁLIA são da Anália). A atendente troca só entre as unidades do lugar do aparelho (Morumbi e
    Casa Tom Morumbi); o gestor e o supervisor, para qualquer uma. Vale a unidade do aparelho: o que é vendido na Casa Tom é da Casa Tom; no
@@ -5436,7 +5523,7 @@ const localUni = id => uniNorm(nomeUni(id)).replace(/CASA\s*TO[MN]\b/, '').trim(
 const mesmoLocal = (a, b) => !!a && !!b && localUni(a) !== '' && localUni(a) === localUni(b);
 const casaTomDe = id => ehCasaTom(id) ? null : unidades().find(u => u.id !== id && ehCasaTom(u.id) && mesmoLocal(u.id, id)) || null;
 const casaTomDesde = u => { const c = String((u && u.criado) || ''); if (!/^\d{4}-\d{2}-\d{2}$/.test(c)) return '2000-01-01'; const d = new Date(c + 'T12:00:00'); d.setDate(d.getDate() + 1); return isoDia(d); };
-const podeIrPara = id => MODO !== 'servidor' || supervisorOuMais() || !minhaUni() || id === minhaUni() || mesmoLocal(id, minhaUni());
+const podeIrPara = id => uniFixa() ? +id === uniFixa() : MODO !== 'servidor' || supervisorOuMais() || !minhaUni() || id === minhaUni() || mesmoLocal(id, minhaUni());
 const faltaCasaTom = () => unidades().filter(u => !ehCasaTom(u.id) && localUni(u.id) && !casaTomDe(u.id));
 const naUnidade = id => S.criancas.filter(c => c.entrou && c.uni === id).length;
 function botaoUnidade() {
@@ -5448,7 +5535,7 @@ function folhaUnidade() {
   abrirFolha('Unidade deste aparelho', `
     <p class="explica">${eu ? `Este aparelho está em <b>${esc(nomeUni(eu))}</b>.` : '<b>Em qual unidade este aparelho está?</b>'} As entradas e as vendas feitas aqui ficam marcadas com a unidade.</p>
     <div class="uni-lista" role="radiogroup" aria-label="Unidade deste aparelho">${L.map(u => { const n = naUnidade(u.id); return `<button type="button" class="uni-op tap" role="radio" aria-checked="${u.id === eu}" data-act="unidade-escolher" data-id="${u.id}"${pode && podeIrPara(u.id) ? '' : ' disabled'}><i aria-hidden="true"></i><span><b>${esc(u.nome)}</b>${n ? `<small>${n} ${n === 1 ? 'criança' : 'crianças'} no espaço agora</small>` : ''}</span></button>`; }).join('')}</div>
-    ${pode ? '' : '<p class="explica">Só o gestor ou o supervisor troca a unidade deste aparelho.</p>'}${pode && eu && MODO === 'servidor' && !supervisorOuMais() ? `<p class="explica">Você troca entre ${L.filter(u => u.id === eu || mesmoLocal(u.id, eu)).map(u => '<b>' + esc(u.nome) + '</b>').join(' e ')}. Para outra unidade, só o gestor ou o supervisor.</p>` : ''}
+    ${uniFixa() ? `<p class="explica" id="uni-fixa">A sua unidade é <b>${esc(nomeUni(uniFixa()))}</b>: quem escolhe é o gestor, em Ajustes → Equipe. Só o gestor troca de unidade.</p>` : pode ? '' : '<p class="explica">Só o gestor ou o supervisor troca a unidade deste aparelho.</p>'}${pode && eu && MODO === 'servidor' && !supervisorOuMais() ? `<p class="explica">Você troca entre ${L.filter(u => u.id === eu || mesmoLocal(u.id, eu)).map(u => '<b>' + esc(u.nome) + '</b>').join(' e ')}. Para outra unidade, só o gestor ou o supervisor.</p>` : ''}
     ${MODO !== 'servidor' || gestor() ? `<button type="button" class="link tap pg-add" data-act="unidades-ir">${ic(IC.mais, 14, 2.8)} Cadastrar ou mudar as unidades <small>· em Ajustes</small></button>` : ''}`);
 }
 function escolherUnidade(id) { const u = unidadeDe(id); if (!u || u.ativo === false || !podeTrocarUni() || !podeIrPara(u.id)) return; const era = minhaUni(); guardar('ps-unidade', u.id); fecharFolha(); desenhar(); if (era !== u.id) deuCerto(`Este aparelho agora está em ${u.nome}`); }
@@ -5502,7 +5589,7 @@ const servicoDe = id => (S.cfg.servicos || []).find(x => x.id === id) || null;
 const foraDe = x => Array.isArray(x && x.fora) ? x.fora.map(Number) : [];
 const servAqui = x => !foraDe(x).includes(+minhaUni());
 const servicosVolta = () => (S.cfg.servicos || []).filter(x => x.volta && !(x.banco && x.modo === 'periodo') && servAqui(x));
-const alugNaLista = () => (S.alugueis || []).filter(a => crianca(a.crianca));
+const alugNaLista = () => (S.alugueis || []).filter(a => crianca(a.crianca) && veUni(a.uni));   /* 2.02: só os da unidade de quem tem a unidade escolhida */
 const alugHoje = a => isoDia(a.ini) === isoDia(agora);
 const alugSeg = a => Math.max(0, (agora - a.ini) / 1000);
 const alugSobra = a => !alugHoje(a) ? -1e9 : a.min > 0 ? a.min * 60 - alugSeg(a) : Infinity;   // segundos que faltam do tempo comprado (negativo: passou; de outro dia: vem primeiro)
@@ -5572,7 +5659,7 @@ const espServ = () => { const v = S.espServ || ''; return !inicioLista() || !v ?
 // Em cada coluna, o que está mais perto de estourar o tempo vem primeiro. Cada item: { c: a criança, a: o que está fora (só nas linhas de carrinho), sobra }
 function itensEspaco(semBusca) {   // semBusca: os números do menu fora da lista não seguem a busca que ficou escrita nela
   const q = semBusca ? '' : (S.espBusca || '').trim().toLowerCase();
-  let L = S.criancas.filter(c => c.entrou).map(c => ({ c, sobra: sobraLista(c) })).concat(alugNaLista().map(a => ({ c: crianca(a.crianca), a, sobra: alugSobra(a) })));
+  let L = S.criancas.filter(c => c.entrou && veUni(c.uni)).map(c => ({ c, sobra: sobraLista(c) })).concat(alugNaLista().map(a => ({ c: crianca(a.crianca), a, sobra: alugSobra(a) })));
   if (q) L = L.filter(x => casaBusca(x.c, q) || (x.a && x.a.n.toLowerCase().includes(q)));
   return L.sort((x, y) => (x.sobra - y.sobra) || x.c.nome.localeCompare(y.c.nome) || (!!x.a - !!y.a));
 }
@@ -6285,7 +6372,7 @@ function telaAprovar() {
 // A tela inicial é só a lista de quem está no espaço: a criança, o responsável, o tempo e a Saída. O resto abre ao tocar na criança.
 // No alto: os avisos (quando há), os pacotes e produtos. No pé: os atalhos para o Banco de horas e para o movimento do dia.
 function telaHoras() {
-  const dentro = S.criancas.filter(c => c.entrou), n = dentro.length, passou = dentro.filter(c => situacaoTempo(c) === 'passou').length, fora = alugNaLista().length;   // fora: carrinhos e fusquinhas que saíram e ainda não voltaram
+  const dentro = S.criancas.filter(c => c.entrou && veUni(c.uni)), n = dentro.length, passou = dentro.filter(c => situacaoTempo(c) === 'passou').length, fora = alugNaLista().length;   // fora: carrinhos e fusquinhas que saíram e ainda não voltaram
   return faixa('No espaço agora', (n ? `${n} ${n === 1 ? 'criança' : 'crianças'}${passou ? ' · ' + passou + (passou === 1 ? ' passou' : ' passaram') + ' do tempo' : ''}` : 'Ninguém por enquanto') + (fora ? ` · ${fora} para devolver` : ''), chipAvisos() + chipCupons() + `<button type="button" class="chip tap" data-act="festa" title="Vender uma festa: escolha o cliente, toque no valor da tabela e receba">${ic(IC.festa, 16)} <span>Festa</span></button>` + chipIdface(), botaoUnidade()) + htmlPend() + bannerFestas() + `
   <section class="espaco">
     <div class="esp-cab${inicioLista() ? ' lst' : ''}">
@@ -6887,7 +6974,7 @@ const descValido = p => !!p && p.status === 'liberado' && descResta(p) > 0.004 &
 const dataPedido = d => d ? (isoDia(d) === isoDia(agora) ? 'hoje' : p2(d.getDate()) + '/' + p2(d.getMonth() + 1)) + ' às ' + hora(d) : '';
 function pedidosChegaram(lista, calado) { // (servidor) os pedidos desta tela, em toda carga e a cada pulso. calado: a resposta já está sendo tratada por quem chamou
   if (!Array.isArray(lista)) return; const sinal = JSON.stringify(lista.map(p => [p.id, p.status, p.usado, p.numero, p.decide ? 1 : 0]));
-  if (sinal === PED_SINAL) return; PED_SINAL = sinal; const antes = S.pedidos || []; S.pedidos = lista.map(pedidoDe); pedidosMudaram(antes, calado);
+  if (sinal === PED_SINAL) return; PED_SINAL = sinal; const antes = S.pedidos || []; S.pedidos = lista.map(pedidoDe).filter(p => veUni(p.uni) || !p.uni);   /* 2.02: só os da unidade de quem tem a unidade escolhida */ pedidosMudaram(antes, calado);
 }
 function pedidosMudaram(antes, calado) { // o cartão de quem autoriza, e a resposta para quem pediu
   const era = new Map((antes || []).map(p => [p.id, p.status]));
@@ -7080,7 +7167,9 @@ async function salvarHoras(el) {
 }
 function folhaNF(id) {
   const v = LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === +id), c = v && crianca(v.crianca); if (!v || !c || !temNF(v)) return;
-  NF = { id: v.id, cid: c.id }; abrirFolha('Nota fiscal', `<div id="nf-corpo" style="display:flex;flex-direction:column;gap:12px">${htmlNF(v, c)}</div>`); lerVoltaNF();
+  NF = { id: v.id, cid: c.id }; if (NF_MSG && NF_MSG.venda === v.id && NF_MSG.tipo !== 'emitindo') NF_MSG = null;
+  abrirFolha('Nota fiscal', `<div id="nf-corpo" style="display:flex;flex-direction:column;gap:12px">${htmlNF(v, c)}</div>`); lerVoltaNF();
+  const pn = nfDaVenda(v); if (!pn || pn.status !== 'usado') nfPreparar(v.id);   /* 2.02: o Notas está pronto? */
 }
 function redesenharNF() { const a = $('#nf-corpo'), v = NF && LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === NF.id), c = v && crianca(v.crianca); if (!a) return; if (v && c) a.innerHTML = htmlNF(v, c); else fecharFolha(); }
 function htmlNF(v, c) {
@@ -7088,40 +7177,139 @@ function htmlNF(v, c) {
   const cab = `<div class="linha">${avatar(c)}<div class="txt"><b>${nomeResp(c)}</b><span>${c.resp ? esc(c.nome) + ' · ' : ''}compra de ${quandoFoi(v.quando)}${v.por ? ' · por ' + esc(primeiro(v.por)) : ''}</span></div></div>
     <div class="grupo"><div class="it"><div class="txt"><b>${nomeCompra(v)}</b><span>${pago ? 'pago: ' + esc(pago) : '<b class="np">AINDA NÃO FOI PAGA</b>'}</span></div><b class="num">${brl(v.v)}</b></div></div>`;
   const dadosNF = `<div class="nf-dados" id="nf-dados"><span>Em nome de<b>${esc(d.nome || '')}</b></span><span>${soDig(d.doc || '').length === 14 ? 'CNPJ' : 'CPF'}<b>${esc(d.doc || 'não informado')}</b></span>${d.email ? `<span>E-mail<b class="sem-mai">${esc(d.email)}</b></span>` : ''}<span>Serviço<b>${nomeCompra(v)}</b></span><span>Valor<b>${brl2(v.v)}</b></span><span>Data da compra<b>${p2(v.quando.getDate())}/${p2(v.quando.getMonth() + 1)}/${v.quando.getFullYear()}</b></span></div>`;
-  const dica = `<p class="explica nf-dica">O Play Space Notas abre em outra aba com a nota já preenchida. Emitida, o número volta para cá e a nota fica marcada sozinha.</p>`;
+  /* 2.02: a nota sai daqui mesmo, pelo Play Space Notas (sem abrir outra aba): esta folha é a confirmação dos dados e o botão emite */
+  const dica = `<p class="explica nf-dica">Confira os dados e toque em Emitir: a nota sai na hora pelo Play Space Notas e o número fica marcado nesta compra.</p>`;
+  /* (o botão fica no pé da folha, grudado embaixo: o aviso, o login do Notas e o que dá para fazer lá vêm antes dele) */
+  const msg = `<div id="nf-msg" aria-live="polite">${nfMsgHtml(v.id)}</div>`;
+  const emitir = ja => `<div class="pe-f"><button type="button" class="bt forte largo tap" data-act="nf-pedir" data-ja="${ja}" id="nf-emitir"${NF_EMITINDO === v.id ? ' disabled' : ''}>${ic(IC.cupom, 16)} ${NF_EMITINDO === v.id ? 'Emitindo a nota…' : 'Emitir a nota fiscal'}</button></div>`;
   if (e === 'usado') return cab + `<div class="marca nf-ok">${ic(IC.check, 18, 2.6)}<span><b>Nota fiscal${p.numero ? ' nº ' + esc(p.numero) : ''} emitida.</b> Marcada por ${esc(primeiro(p.feito_por))}${p.feito_em ? ', ' + dataPedido(p.feito_em) : ''}.</span></div>${dadosNF}
     ${gestor() ? `<div class="campo"><label for="nf-num">Corrigir o número da nota</label><input id="nf-num" value="${esc(p.numero)}" maxlength="40" autocomplete="off"></div><div class="pe-f dois-bt"><button type="button" class="bt tap" data-act="nf-voltar">Desfazer a marcação</button><button type="button" class="bt forte tap" data-act="nf-emitida">Salvar o número</button></div>
       <details class="outro nf-canc"><summary>Cancelar a nota</summary><div class="fv-form"><p class="explica">Quando a nota foi cancelada no Play Space Notas (lá também só o gestor cancela). Ela sai do faturamento em notas e aparece no relatório do dia como cancelada. Depois, dá para emitir outra nota para esta compra.</p>
         <div class="campo"><label for="nf-canc-m">Motivo<span class="obg" aria-hidden="true">*</span></label><input id="nf-canc-m" maxlength="200" autocomplete="off" placeholder="Por que a nota foi cancelada"></div><button type="button" class="bt canc-bt largo tap" data-act="nf-cancelar">${ic(IC.x, 16)} Cancelar a nota</button></div></details>`
       : `<p class="explica">Só o gestor corrige o número, desfaz a marcação ou cancela a nota.</p>`}`;
-  if (e === 'liberado') return cab + `<div class="marca nf-ok">${ic(IC.cupom, 18)}<span><b>Nota aberta</b> por ${esc(primeiro(p.dec || p.por))}${p.dec_em ? ', ' + dataPedido(p.dec_em) : ''}. Falta emitir.</span></div>${dadosNF}
-    <div class="nf-bts"><button type="button" class="bt forte tap" data-act="nf-notas">${ic(IC.cupom, 16)} Emitir no Play Space Notas</button><button type="button" class="bt tap" data-act="nf-copiar">${ic(IC.copia, 16)} Copiar os dados</button></div>${dica}
-    <div class="campo" id="nf-num-campo"><label for="nf-num">Número da nota emitida</label><input id="nf-num" maxlength="40" autocomplete="off" placeholder="Se não voltar sozinho, escreva o número aqui" value="${esc(NF_VOLTA[v.id] || '')}"></div>
-    <div class="pe-f">${gestor() ? `<button type="button" class="link tap" data-act="nf-largar" style="display:block;margin:0 auto 10px">Tirar a nota (não vai ser emitida)</button>` : ''}<button type="button" class="bt forte largo tap" data-act="nf-emitida">${ic(IC.check)} Marcar como emitida</button></div>`;
+  if (e === 'liberado') return cab + `<div class="marca nf-esp">${ic(IC.cupom, 18)}<span><b>Nota aberta</b> por ${esc(primeiro(p.dec || p.por))}${p.dec_em ? ', ' + dataPedido(p.dec_em) : ''}. Falta emitir.</span></div>${dadosNF}
+    ${msg}${dica}
+    <div class="nf-outras"><small class="rot">Se precisar corrigir algo no Notas</small><div class="nf-bts"><button type="button" class="bt tap" data-act="nf-notas">${ic(IC.cupom, 16)} Abrir no Play Space Notas</button><button type="button" class="bt tap" data-act="nf-copiar">${ic(IC.copia, 16)} Copiar os dados</button></div>
+    <div class="campo" id="nf-num-campo"><label for="nf-num">Número da nota emitida lá</label><input id="nf-num" maxlength="40" autocomplete="off" placeholder="Se não voltar sozinho, escreva o número aqui" value="${esc(NF_VOLTA[v.id] || '')}"></div>
+    <div class="nf-fim">${gestor() ? `<button type="button" class="link tap" data-act="nf-largar" style="display:block;margin:0 auto 10px">Tirar a nota (não vai ser emitida)</button>` : ''}<button type="button" class="bt largo tap" data-act="nf-emitida">${ic(IC.check)} Marcar como emitida</button></div></div>
+    ${emitir(2)}`;
   if (e === 'pendente') return cab + `<div class="marca nf-esp">${ic(IC.sino, 18)}<span><b>Nota pedida</b> por ${esc(primeiro(p.por))}, ${dataPedido(p.em)}. Agora não precisa mais esperar o gestor: dá para emitir.</span></div>${dadosNF}
-    <div class="pe-f"><button type="button" class="bt forte largo tap" data-act="nf-pedir" data-ja="1">${ic(IC.cupom, 16)} Emitir no Play Space Notas</button></div>${dica}`;
-  // ainda não tem nota (ou a última foi negada ou cancelada): em nome de quem ela sai, e o Notas
+    ${msg}${dica}${emitir(1)}`;
+  // ainda não tem nota (ou a última foi negada ou cancelada): a confirmação de em nome de quem ela sai, e emitir
   return cab + `${e === 'negado' ? `<div class="marca canc">${ic(IC.x, 18, 2.4)}<span><b>${esc(primeiro(p.dec))} não autorizou a nota desta compra</b>${p.dec_em ? ', ' + dataPedido(p.dec_em) : ''}. Dá para emitir de novo.</span></div>` : ''}
     <div class="bloco-f"><small class="rot">A nota sai em nome de</small>
       <div class="campo"><label for="nf-nome">Nome ou razão social</label><input id="nf-nome" value="${esc(c.resp || c.nome)}" maxlength="120" autocomplete="off"></div>
       <div class="dois"><div class="campo"><label for="nf-doc">CPF ou CNPJ</label><input id="nf-doc" inputmode="numeric" value="${esc(c.doc === 'rne' ? '' : c.cpf || '')}" maxlength="18" autocomplete="off"></div><div class="campo"><label for="nf-email">E-mail (opcional)</label><input id="nf-email" class="sem-mai" type="email" inputmode="email" maxlength="120" autocomplete="off" autocapitalize="none"></div></div></div>
-    <div class="pe-f"><button type="button" class="bt forte largo tap" data-act="nf-pedir">${ic(IC.cupom, 16)} Emitir no Play Space Notas</button></div>${dica}`;
+    <div class="nf-dados nf-conf"><span>Serviço<b>${nomeCompra(v)}</b></span><span>Valor<b>${brl2(v.v)}</b></span></div>
+    ${msg}${dica}${emitir('')}`;
 }
-// 1.55: toda a equipe emite a nota (sem esperar o gestor): fica guardado em nome de quem ela sai e o Play Space Notas abre já preenchido.
-// A aba do Notas abre já no toque (antes da resposta do servidor), para o navegador não barrar a janela nova
+/* 1.55: toda a equipe emite a nota (sem esperar o gestor): fica guardado em nome de quem ela sai.
+   2.02: e a nota sai na hora, daqui mesmo (emitirNFDireto), sem abrir o Notas em outra aba */
 async function pedirNF(el) {
-  if (!NF) return; const ja = !!el.dataset.ja, foco = id => { const i = $('#' + id); if (i) i.focus(); };
+  if (!NF) return; const ja = el.dataset.ja || '', foco = id => { const i = $('#' + id); if (i) i.focus(); };
   const nome = ja ? '' : val('nf-nome'), doc = ja ? '' : val('nf-doc'), email = ja ? '' : ($('#nf-email') || { value: '' }).value.trim(), dg = soDig(doc);
   if (!ja && !nome) { toast('Escreva em nome de quem a nota sai'); foco('nf-nome'); return; }
+  if (!ja && MODO === 'servidor' && !dg) { toast('Escreva o CPF ou o CNPJ de quem recebe a nota'); foco('nf-doc'); return; }   /* 2.02: o Notas emite com o CPF/CNPJ */
   if (dg && dg.length !== 11 && dg.length !== 14) { toast('Confira o CPF ou o CNPJ da nota: o CPF tem 11 números e o CNPJ, 14'); foco('nf-doc'); return; }
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast('Confira o e-mail para onde a nota vai'); foco('nf-email'); return; }
-  let aba = null; if (MODO === 'servidor') { try { aba = window.open('', '_blank'); } catch (e) { aba = null; } }
   el.disabled = true;
   try {
-    if (MODO === 'servidor') pedidosChegaram((await api('pedido_criar', { tipo: 'nf', venda: NF.id, ...(ja ? {} : { nf_nome: nome, nf_doc: doc, nf_email: email }) })).pedidos, true);
-    else { const r = criarPedidoPrevia({ tipo: 'nf', venda: NF.id, nf_nome: nome, nf_doc: doc, nf_email: email }, null); if (r.erro) throw new Error(r.erro); pedidosMudaramPrevia(true); }
-    await depoisDaNF(); abrirNotasNF(aba);
-  } catch (e) { if (aba) { try { aba.close(); } catch (x) { } } toast(e.message); el.disabled = false; }
+    if (ja !== '2') {   /* (2 = a nota já está aberta: só emite) */
+      if (MODO === 'servidor') pedidosChegaram((await api('pedido_criar', { tipo: 'nf', venda: NF.id, ...(ja ? {} : { nf_nome: nome, nf_doc: doc, nf_email: email }) })).pedidos, true);
+      else { const r = criarPedidoPrevia({ tipo: 'nf', venda: NF.id, nf_nome: nome, nf_doc: doc, nf_email: email }, null); if (r.erro) throw new Error(r.erro); pedidosMudaramPrevia(true); }
+      await depoisDaNF();
+    }
+    await emitirNFDireto();
+  } catch (e) { toast(e.message); el.disabled = false; }
+}
+/* ---------- 2.02: a nota em um clique (o dono: "com um clique, igual da Gama, já fazer todo aquele processo de emissão, só aparecer a
+   confirmação dos dados e emitir. E pronto") ----------
+   O Play Space fala direto com o Play Space Notas (/notas, o mesmo site, com o login do Notas deste computador): acha (ou cadastra) o
+   cliente pelo CPF/CNPJ, escolhe o serviço da compra (como a ponte da 1.50: festa, pacote de horas ou recreação), monta a nota com a
+   alíquota da empresa e emite. O número da nota em produção marca a compra (nf_emitida). A nota tem um código fixo por compra e pedido
+   (ps<venda>n<pedido>): tocar de novo nunca emite duas; se ela já saiu, o número é lido do Notas e marcado. Em teste ou simulação a nota
+   sai no Notas, mas a compra não é marcada (como na 1.55). */
+let NF_N = null, NF_N_EM = 0, NF_MSG = null, NF_EMITINDO = 0;
+async function notasApi(acao, dados) {
+  let r; try { r = await fetch('/notas/api/api.php?acao=' + acao, { method: 'POST', credentials: 'same-origin', cache: 'no-store', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(dados || {}) }); }
+  catch (e) { throw new Error('Sem conexão com o Play Space Notas. Confira a internet e tente de novo.'); }
+  let j = null; try { j = await r.json(); } catch (e) { j = null; }
+  if (!j || typeof j !== 'object') { const x = new Error(r.status === 404 ? 'O Play Space Notas não foi achado neste site.' : 'O Play Space Notas respondeu de um jeito inesperado (erro ' + r.status + ').'); x.status = r.status; throw x; }
+  if (!r.ok || j.erro) { const x = new Error(j.erro || 'Erro ' + r.status + ' no Play Space Notas.'); x.status = r.status; throw x; }
+  return j;
+}
+async function notasDados(forca) { if (!forca && NF_N && Date.now() - NF_N_EM < 120000) return NF_N; const d = await notasApi('dados', {}); NF_N = d; NF_N_EM = Date.now(); return d; }
+const AMB_NF = { teste: 'em TESTE (a nota não vale como nota fiscal)', simulado: 'em SIMULAÇÃO (a nota não vale como nota fiscal)' };
+function nfMsg(venda, tipo, txt, depois) { NF_MSG = tipo ? { venda, tipo, txt: txt || '', depois: !!depois } : null; const a = $('#nf-msg'); if (a && NF && NF.id === venda) a.innerHTML = nfMsgHtml(venda);
+  const b = $('#nf-emitir'); if (b && NF && NF.id === venda) { b.disabled = NF_EMITINDO === venda; b.lastChild.textContent = NF_EMITINDO === venda ? ' Emitindo a nota…' : ' Emitir a nota fiscal'; } }
+function nfMsgHtml(venda) {
+  const m = NF_MSG && NF_MSG.venda === venda ? NF_MSG : null; if (!m) return '';
+  if (m.tipo === 'emitindo') return `<p class="explica nf-dica nf-indo">${esc(m.txt)}</p>`;
+  if (m.tipo === 'aviso') return `<div class="marca nf-esp">${ic(IC.sino, 18)}<span>${esc(m.txt)}</span></div>`;
+  if (m.tipo === 'teste') return `<div class="marca nf-esp">${ic(IC.cupom, 18)}<span>${esc(m.txt)}</span></div>`;
+  if (m.tipo === 'erro') return `<div class="marca canc">${ic(IC.x, 18, 2.4)}<span><b>A nota não saiu.</b> ${esc(m.txt)}</span></div>`;
+  if (m.tipo === 'login') return `<div class="bloco-f nf-login"><small class="rot">Entre no Play Space Notas neste computador (uma vez só)</small>
+    <p class="explica">Para a nota sair daqui, este computador precisa estar com o Notas aberto (o login do Notas, o mesmo de lá).</p>
+    <div class="dois"><div class="campo"><label for="nfl-login">Login do Notas</label><input id="nfl-login" class="sem-mai" autocapitalize="none" autocomplete="off" spellcheck="false"></div><div class="campo"><label for="nfl-senha">Senha do Notas</label><input id="nfl-senha" type="password" autocomplete="off"></div></div>
+    <button type="button" class="bt forte largo tap" data-act="nf-notas-entrar">${ic(IC.check)} ${m.depois ? 'Entrar no Notas e emitir' : 'Entrar no Notas'}</button></div>`;
+  return '';
+}
+/* ao abrir a folha: o Notas está pronto? (sem login: a folha já pede; em teste: avisa antes de emitir) */
+async function nfPreparar(venda) {
+  if (MODO !== 'servidor') return;
+  try { const N = await notasDados(false), amb = (N.fiscal && N.fiscal.ambiente) || 'simulado'; if (amb !== 'producao' && NF && NF.id === venda && !NF_EMITINDO) nfMsg(venda, 'aviso', 'O Play Space Notas está ' + (AMB_NF[amb] || amb) + '. Para valer, a conta principal do Notas muda para Produção.'); }
+  catch (e) { if (e.status === 401 && NF && NF.id === venda && !NF_EMITINDO) nfMsg(venda, 'login'); }
+}
+const notasId = () => (Date.now().toString(36) + Math.random().toString(36).slice(2, 7)).replace(/[^a-z0-9]/g, '');
+async function emitirNFDireto() {
+  const v = NF && LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === NF.id), p = v && nfDaVenda(v), c = v && crianca(v.crianca);
+  if (!v || !p || !c || p.status === 'usado') return;
+  if (MODO !== 'servidor') { toast('Na prévia a nota não sai: no sistema de verdade ela é emitida na hora pelo Play Space Notas'); return; }
+  if (NF_EMITINDO) return; NF_EMITINDO = v.id; nfMsg(v.id, 'emitindo', 'Assinando com o certificado e enviando ao Emissor Nacional…');
+  const pt = nfPonte(v, c, p.dados || {}), docL = x => String(x == null ? '' : x).toUpperCase().replace(/[^0-9A-Z]/g, '');
+  let fim = null;
+  try {
+    let N; try { N = await notasDados(true); } catch (e) { if (e.status === 401) { fim = ['login', '', true]; return; } throw e; }
+    const amb = (N.fiscal && N.fiscal.ambiente) || 'simulado', dl = docL(pt.doc);
+    if (soDig(pt.doc).length !== 11 && soDig(pt.doc).length !== 14) throw new Error('Falta o CPF ou o CNPJ de quem recebe a nota. Use "Abrir no Play Space Notas" para escolher o cliente lá.');
+    const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const sv = N.servicos || [], s = sv.find(x => x.id === pt.servico) || (pt.servicoNome ? sv.find(x => norm(x.nome).includes(norm(pt.servicoNome))) : null) || sv.find(x => x.id === 'recreacao') || sv[0];
+    if (!s) throw new Error('O Play Space Notas não tem nenhum serviço cadastrado. Cadastre lá (Serviços) e emita de novo.');
+    const ach = (N.clientes || []).find(x => docL(x.doc) === dl), nome = String(pt.nome || '').trim().slice(0, 190);
+    const cli = { id: ach ? ach.id : notasId(), nome, doc: String(pt.doc), email: String(pt.email || (ach && ach.email) || ''), cidade: String((ach && ach.cidade) || (N.empresa && N.empresa.municipio) || '') };
+    if (!ach || ach.nome !== cli.nome || ach.email !== cli.email) await notasApi('cliente_salvar', cli);   /* (o cliente com o nome que foi conferido aqui) */
+    const valor = Math.round(pt.valor * 100) / 100, aliq = Number((N.empresa || {}).aliquota) || 0, iss = Math.round(valor * aliq) / 100;
+    const id = ('ps' + v.id + 'n' + (p.id || 0) + (amb === 'producao' ? '' : amb.charAt(0))).replace(/[^a-z0-9]/gi, '').slice(0, 40);
+    const dps = { id, numero: null, data: new Date().toISOString(), clienteId: cli.id, clienteNome: cli.nome, clienteDoc: cli.doc, servicoId: s.id, servicoNome: s.nome, codigo: s.codigo,
+      descricao: String(pt.descricao || '').slice(0, 1000) || s.descricao || s.nome, valor, aliquota: aliq, iss, retido: false, liquido: valor, status: 'rascunho', chave: '' };
+    let nota;
+    try { nota = (await notasApi('nota_emitir', { dps })).nota; }
+    catch (e) { if (e.status !== 409) throw e; const N2 = await notasDados(true); nota = (N2.notas || []).find(n => n.id === id); if (!nota) throw e; }   /* (já tinha saído: é a mesma nota) */
+    if (!nota || !nota.numero) throw new Error('O Notas não devolveu o número da nota. Confira no Play Space Notas.');
+    if (amb !== 'producao') { fim = ['teste', `Nota ${amb === 'teste' ? 'de TESTE' : 'simulada'} nº ${nota.numero} emitida no Play Space Notas, sem valor fiscal: a compra não foi marcada. Para valer, o Notas precisa estar em Produção.`]; return; }
+    let x; try { x = await api('nf_emitida', { venda: v.id, numero: String(nota.numero) }); }
+    catch (e) { fim = ['erro', `A nota nº ${nota.numero} foi emitida, mas não consegui marcar aqui (${e.message}). Toque em Emitir de novo: não sai outra, só marca.`]; return; }
+    if (x && x.pedidos) pedidosChegaram(x.pedidos, true);
+    fim = null; NF_EMITINDO = 0; nfMsg(v.id, ''); deuCerto('Nota nº ' + nota.numero + ' emitida'); if (LADO) await buscarHistorico(); if (NF) redesenharNF();
+  } catch (e) { fim = ['erro', e.message || 'Tente de novo em instantes.']; }
+  finally { NF_EMITINDO = 0; if (fim) nfMsg(v.id, fim[0], fim[1], fim[2]); else nfMsg(v.id, NF_MSG && NF_MSG.venda === v.id ? NF_MSG.tipo : '', NF_MSG && NF_MSG.txt); }
+}
+async function entrarNotasNF(el) {
+  const l = (($('#nfl-login') || {}).value || '').trim(), s = ($('#nfl-senha') || {}).value || '', depois = !!(NF_MSG && NF_MSG.depois), venda = NF && NF.id;
+  if (!l || !s) { toast('Digite o login e a senha do Play Space Notas'); return; }
+  el.disabled = true;
+  try { await notasApi('entrar', { login: l, senha: s }); NF_N = null; nfMsg(venda, ''); deuCerto('Entrou no Play Space Notas'); if (depois) await emitirNFDireto(); else nfPreparar(venda); }
+  catch (e) { toast(e.message); el.disabled = false; const i = $('#nfl-senha'); if (i) { i.value = ''; i.focus(); } }
+}
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && (e.target.id === 'nfl-senha' || e.target.id === 'nfl-login')) { e.preventDefault(); const b = $('[data-act="nf-notas-entrar"]'); if (b && !b.disabled) b.click(); } });
+/* os dados da compra para o Notas (a ponte da 1.50 e a nota em um clique da 2.02): a descrição que sai na nota ("Recreação infantil:
+   pacote de 3 horas", "Festa infantil: ...", ou o nome da compra), o serviço e o valor */
+function nfPonte(v, c, d) {
+  const festa = /FESTA/i.test(v.servico || ''), compra = nomeCompraTxt(v), m = minDe(v);
+  const hs = m ? (m % 60 ? dur(m) : (m / 60) + (m === 60 ? ' hora' : ' horas')) : '';
+  const pac = ehPacoteVenda(v), descricao = festa ? 'Festa infantil: ' + compra : pac ? 'Recreação infantil: pacote de ' + hs : m ? 'Recreação infantil: ' + compra : compra;
+  return { quando: Date.now(), venda: v.id, nome: d.nome || c.resp || c.nome, doc: d.doc || '', email: d.email || '', servico: festa ? 'festa' : pac ? 'pacotehoras' : 'recreacao',
+    servicoNome: v.servico || '', descricao, valor: Math.round(v.v * 100) / 100 };
 }
 async function depoisDaNF() { if (LADO) await buscarHistorico(); redesenharNF(); }
 /* ---------- 1.50: o Play Space Notas (/notas, o mesmo site) ----------
@@ -7133,12 +7321,7 @@ function abrirNotasNF(aba) {   // 1.55: aba = a aba que já abriu no toque (o pe
   const fecha = () => { if (aba) { try { aba.close(); } catch (e) { } } };
   const v = NF && LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === NF.id), p = v && nfDaVenda(v), c = v && crianca(v.crianca); if (!p || !c) { fecha(); return; }
   if (MODO !== 'servidor') { toast('No sistema de verdade, abre o Play Space Notas com esta nota já preenchida'); return; }
-  const d = p.dados || {}, festa = /FESTA/i.test(v.servico || ''), compra = nomeCompraTxt(v), m = minDe(v);
-  /* a descrição que sai na nota: "Recreação infantil: pacote de 3 horas", "Festa infantil: ...", ou o nome da compra */
-  const hs = m ? (m % 60 ? dur(m) : (m / 60) + (m === 60 ? ' hora' : ' horas')) : '';
-  const pac = ehPacoteVenda(v), descricao = festa ? 'Festa infantil: ' + compra : pac ? 'Recreação infantil: pacote de ' + hs : m ? 'Recreação infantil: ' + compra : compra;
-  const dados = { quando: Date.now(), venda: v.id, nome: d.nome || c.resp || c.nome, doc: d.doc || '', email: d.email || '', servico: festa ? 'festa' : pac ? 'pacotehoras' : 'recreacao',
-    servicoNome: v.servico || '', descricao, valor: Math.round(v.v * 100) / 100 };
+  const dados = nfPonte(v, c, p.dados || {});   /* 2.02: os mesmos dados da nota em um clique */
   try { localStorage.setItem(PONTE_NF, JSON.stringify(dados)); } catch (e) { fecha(); toast('Não consegui passar os dados para o Notas: use "Copiar os dados"'); return; }
   const ende = '/notas/?a=' + Date.now().toString(36) + '#nota-pedido';   /* 1.82: um endereço novo a cada vez: o navegador não usa a cópia velha do Notas */
   let w = aba || null; if (w) { try { w.location.href = ende; } catch (e) { w = null; } } if (!w) w = window.open(ende, '_blank');
@@ -8010,8 +8193,9 @@ function telaAjustes() {
         ${cfg.pacotes.length ? `<div class="grupo">${cfg.pacotes.map((p, i) => `<button class="it tap" data-act="pacote-editar" data-i="${i}"><div class="txt"><b>${dur(p.h * 60)} · ${brl(p.v)}</b><span>${esc(nomePacote(p))}${p.h > 1 ? ' · ' + brl(centavos(p.v / p.h)) + ' a hora' : ''}${parcTxt(p) ? ' · ' + parcTxt(p) : ''}</span></div><span class="vai">${ic(IC.vai, 18)}</span></button>`).join('')}</div>` : ''}
         <p class="explica">Horas vendidas de uma vez, com preço fechado e sem prazo para usar. Cada pacote tem o tempo, o valor e, se quiser, um nome; pode haver vários do mesmo tempo. ${cfg.pacotes.length ? 'Aparecem no atendimento de cada cliente.' : 'Nenhum pacote cadastrado por enquanto.'} <button type="button" class="link tap" id="aj-tabela" data-act="pacotes">Abrir a tabela de pacotes e produtos</button></p>
       </div>
-      <div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.sacola, 20)} Produtos</h2><button class="link tap" data-act="produto-novo">Novo produto</button></div>
-        ${(S.produtos || []).length ? `<div class="grupo">${S.produtos.map(p => `<button class="it tap" data-act="produto-editar" data-id="${p.id}"><div class="txt"><b>${esc(p.n)} · ${brl(p.v)}</b><span${estFalta(p) ? ' style="color:var(--erro);font-weight:800"' : ''}>${p.est == null ? 'sem controle de estoque' : estTxt(p)}</span></div><span class="vai">${ic(IC.vai, 18)}</span></button>`).join('')}</div>` : ''}
+      <div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.sacola, 20)} Produtos</h2><span style="display:flex;gap:14px;flex-wrap:wrap">${gestor() ? '<button class="link tap" data-act="produtos-importar">Importar relação</button>' : ''}<button class="link tap" data-act="produto-novo">Novo produto</button></span></div>
+        ${(() => { const so = (S.produtos || []).filter(p => !prodNaLoja(p, 'play')).length; return so ? `<p class="explica" id="aj-prod-ct">${impNum(so)} ${so === 1 ? 'produto é só' : 'produtos são só'} da Casa Tom: ${so === 1 ? 'ele aparece' : 'eles aparecem'} na Casa Tom (Produtos).</p>` : ''; })()}
+        ${(S.produtos || []).some(p => prodNaLoja(p, 'play')) ? `<div class="grupo">${(S.produtos || []).filter(p => prodNaLoja(p, 'play')).map(p => `<button class="it tap" data-act="produto-editar" data-id="${p.id}"><div class="txt"><b>${esc(p.n)} · ${brl(p.v)}</b><span${estFalta(p) ? ' style="color:var(--erro);font-weight:800"' : ''}>${p.est == null ? 'sem controle de estoque' : estTxt(p)}</span></div><span class="vai">${ic(IC.vai, 18)}</span></button>`).join('')}</div>` : ''}
         <p class="explica">O que a loja vende além do tempo: nome, valor e estoque. O estoque baixa sozinho a cada venda e volta se a venda for desfeita. ${(S.produtos || []).length ? 'Aparecem no atendimento de cada cliente, depois dos pacotes.' : 'Nenhum produto cadastrado por enquanto.'}</p>
       </div>
       <div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.cupom, 20)} Cupom impresso</h2><span class="pill ${modoPapel() === 'nao' ? 'p-neutro' : 'p-ok'}">${modoPapel() === 'auto' ? 'Imprime sozinho aqui' : modoPapel() === 'nao' ? 'Este aparelho não imprime' : 'Mostra o cupom aqui'}</span></div>
@@ -8027,7 +8211,7 @@ function telaAjustes() {
         <button class="grupo tap" data-act="idface" style="width:100%"><div class="it"><div class="txt"><b>${esc(cfg.idface.nome)} · ${esc(cfg.idface.ip)}</b><span>Toque para configurar, baixar o conector ou simular um rosto</span></div><span class="vai">${ic(IC.vai, 18)}</span></div></button>
       </div>
       ${supervisorOuMais() ? `<div class="card"><div class="sec-cab"><h2 style="font-size:18px">Equipe</h2>${gestor() ? `<button class="link tap" data-act="equipe-novo">Nova pessoa</button>` : ''}</div>
-        <div class="grupo">${S.equipe.map(u => `<button class="it tap" data-act="${gestor() ? 'equipe-editar' : 'nada'}" data-id="${u.id}"><span class="av" style="background:${CORES[u.id % CORES.length]};width:38px;height:38px;font-size:13px">${esc(u.nome.split(' ').map(n => n[0]).slice(0, 2).join(''))}</span><div class="txt"><b>${esc(u.nome)}</b><span>${PAPEIS[u.papel] || esc(u.papel)} · entra como ${esc(u.login)}</span></div>${gestor() ? `<span class="vai">${ic(IC.vai, 18)}</span>` : ''}</button>`).join('')}</div>
+        <div class="grupo">${S.equipe.map(u => `<button class="it tap" data-act="${gestor() ? 'equipe-editar' : 'nada'}" data-id="${u.id}"><span class="av" style="background:${CORES[u.id % CORES.length]};width:38px;height:38px;font-size:13px">${esc(u.nome.split(' ').map(n => n[0]).slice(0, 2).join(''))}</span><div class="txt"><b>${esc(u.nome)}</b><span>${PAPEIS[u.papel] || esc(u.papel)} · entra como ${esc(u.login)}${u.uni && unidadeDe(u.uni) && u.papel !== 'gestor' ? ' · só ' + esc(nomeUni(u.uni)) : ''}</span></div>${gestor() ? `<span class="vai">${ic(IC.vai, 18)}</span>` : ''}</button>`).join('')}</div>
         <p class="explica">Gestor vê tudo, mexe nos ajustes e é quem cancela uma venda. Supervisor faz tudo da loja, vê os ajustes e confere os cancelamentos. Operador faz o dia a dia da recepção (cadastro, entrada, venda, saída${COM_WHATS ? ', WhatsApp' : ''} e agenda) e não desfaz o que tem valor. O botão Desfazer é só do gestor: o supervisor e o operador não têm.</p>
       </div>` : ''}
       ${COM_WHATS ? `<div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.zap, 20)} WhatsApp da loja</h2><span class="pill ${(S.whats || {}).conectado ? 'p-ok' : 'p-erro'}">${(S.whats || {}).conectado ? 'Conectado' : 'Desconectado'}</span></div>
@@ -8101,7 +8285,8 @@ function svContaVer() { const c = $('#sv-conta-campo'); if (!c) return; const pe
 function folhaEquipe(u) {
   abrirFolha(u ? 'Editar pessoa' : 'Nova pessoa', `
     <div class="campo"><label for="e-nome">Nome</label><input id="e-nome" value="${esc(u ? u.nome : '')}" autocomplete="off"></div>
-    <div class="dois"><div class="campo"><label for="e-login">Entra como</label><input id="e-login" value="${esc(u ? u.login : '')}" placeholder="apelido curto" autocapitalize="none" spellcheck="false" style="text-transform:lowercase" autocomplete="off"></div><div class="campo"><label for="e-papel">Papel</label><select id="e-papel">${Object.entries(PAPEIS).map(([k, n]) => `<option value="${k}" ${(u ? u.papel : 'atendente') === k ? 'selected' : ''}>${n}</option>`).join('')}</select></div></div>
+    <div class="dois"><div class="campo"><label for="e-login">Entra como</label><input id="e-login" value="${esc(u ? u.login : '')}" placeholder="ex.: julia alves" autocapitalize="none" spellcheck="false" style="text-transform:lowercase" autocomplete="off"></div><div class="campo"><label for="e-papel">Papel</label><select id="e-papel">${Object.entries(PAPEIS).map(([k, n]) => `<option value="${k}" ${(u ? u.papel : 'atendente') === k ? 'selected' : ''}>${n}</option>`).join('')}</select></div></div>
+    ${unidades().length > 1 ? `<div class="campo"><label for="e-uni">Unidade</label><select id="e-uni"><option value="0">Qualquer uma (escolhe no aparelho)</option>${unidades().map(x => `<option value="${x.id}" ${u && +u.uni === x.id ? 'selected' : ''}>${esc(x.nome)}</option>`).join('')}</select><span class="explica">Com a unidade escolhida, a pessoa só usa essa unidade: não troca no aparelho. O gestor troca sempre e vê todas.</span></div>` : ''}
     <div class="campo"><label for="e-senha">${u ? 'Redefinir a senha (só se precisar; em branco, fica a mesma)' : 'Senha'}</label><input id="e-senha" type="password" placeholder="${u ? '' : 'A senha com que ela vai entrar'}" autocomplete="new-password"></div>
     <p class="explica"><b>Gestor</b> vê tudo e mexe nos ajustes, na equipe e nas integrações. <b>Supervisor</b> faz tudo da loja, vê os ajustes (sem alterar) e confere os cancelamentos. <b>Operador</b> faz o dia a dia da recepção: cadastro, entrada, venda, saída, devolução${COM_WHATS ? ', WhatsApp' : ''} e agenda. Ele não entra em Ajustes, não muda preço nem cadastro, não dá desconto e <b>não desfaz o que tem valor</b>: a venda registrada só sai pelo cancelamento de ${quemEstorna()}, com o motivo. <b>O botão Desfazer é só do gestor</b>: o supervisor e o operador não têm.</p>
     <div class="acoes"><button class="bt forte tap" data-act="equipe-salvar" data-id="${u ? u.id : ''}" style="flex:1;justify-content:center">${ic(IC.check)} Salvar</button>${u ? `<button class="bt claro tap" data-act="equipe-apagar" data-id="${u.id}" style="color:var(--erro)">Remover</button>` : ''}</div>`);
@@ -8199,6 +8384,8 @@ const ACOES = {
   'ct-receber': () => ctReceber(), 'ct-ir': () => { const v = $('#ct-venda .ct-tot'); if (v) v.scrollIntoView({ behavior: 'smooth', block: 'center' }); },
   'ct-novo': () => folhaProduto(null), 'ct-editar': el => folhaProduto(+el.dataset.p),
   'ct-importar': () => folhaCTImportar(), 'cti-ok': el => ctiImportar(el),
+  'cti-loja': el => { CT.impLoja = el.dataset.v; $$('#cti-loja [data-v]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === CT.impLoja))); ctiMostra(); },   /* 2.02 */
+  'produtos-importar': () => folhaCTImportar('ct'),
   'saida-rapida': el => { SAI_VOLTA = null; AV_VOLTA = null; pedirSaida(+el.dataset.id); },   /* 1.25: tocada na lista, a saída começa do zero (sem a marca de um "Adicionar serviços" que ficou para trás) */ 'saida-ok': el => confirmarSaida(el), 'saida-grupo-ok': el => confirmarGrupo(el), 'saida-tirar': el => el.dataset.a ? saiTirarA(el.dataset.a) : saiTirar(el.dataset.id), 'saida-por': el => el.dataset.a ? saiPorA(el.dataset.a) : saiPor(el.dataset.id), 'saida-corrigir': el => folhaSaida(+el.dataset.id, true),
   'visita-corrigir': el => folhaCorrigirVisita(+el.dataset.id, +el.dataset.v),
   'visita-corrigir-ok': async el => { const hh = val('s-hora'), motivo = val('s-motivo');
@@ -8366,7 +8553,7 @@ const ACOES = {
   'off-ver': () => folhaOffProb(), 'off-ok': el => { OFF.prob.splice(+el.dataset.i, 1); filaGuardar(); offFaixa(); if (OFF.prob.length) folhaOffProb(); else fecharFolha(); },   /* 1.40 */
   'salt-item': el => { if (!ALTS || ALTS.espera) return; const i = altSaidaItens().find(x => x.id === +el.dataset.k); if (!i) return; ALTS.k = i.id; ALTS.v = valTxt(i.v); ALTS.hh = String(Math.round(i.h)); ALTS.vp = ''; ALTS.aberto = true; altSaidaRedesenha(true); const v = $('#sa-alt-v'); if (v) { v.focus(); v.select(); } },   /* 1.39 */
   'salt-pedir': el => altSaidaPedir(el), 'salt-largar': () => altSaidaLargar(),
-  nf: el => folhaNF(el.dataset.id), 'nf-notas': () => abrirNotasNF(), 'copia-baixar': el => baixarCopia(el.dataset.nome || '', el), 'copia-fazer': el => fazerCopia(el), 'nf-pedir': el => pedirNF(el), 'nf-senha': el => acaoNF('senha', el), 'nf-emitida': el => acaoNF('emitida', el), 'nf-voltar': el => acaoNF('voltar', el), 'nf-largar': el => acaoNF('largar', el), 'nf-copiar': el => acaoNF('copiar', el),
+  nf: el => folhaNF(el.dataset.id), 'nf-notas': () => abrirNotasNF(), 'copia-baixar': el => baixarCopia(el.dataset.nome || '', el), 'copia-fazer': el => fazerCopia(el), 'nf-pedir': el => pedirNF(el), 'nf-notas-entrar': el => entrarNotasNF(el), 'ocioso-ficar': () => ociosoMexeu(), 'nf-senha': el => acaoNF('senha', el), 'nf-emitida': el => acaoNF('emitida', el), 'nf-voltar': el => acaoNF('voltar', el), 'nf-largar': el => acaoNF('largar', el), 'nf-copiar': el => acaoNF('copiar', el),
   'meta-salvar': el => metaSalvar(el, false), 'meta-tirar': el => metaSalvar(el, true), 'meta-ver': () => metaVer('dia'), 'meta-ver-mes': () => metaVer('mes'), 'meta-aviso-ver': () => metaVer('aviso'),   /* 1.87: as metas do mês */
   'meta-folha': el => folhaMeta(+el.dataset.uni), 'meta-recarregar': () => { META_ED.erro = null; const a = $('#aj-meta'); if (a) a.outerHTML = cartaoMeta(); },
   'meta-mudar': el => { META_ED.uni = +el.dataset.uni || META_ED.uni; META_ED.mes = metaMesAtual(); fecharFolha(); trocarTela('ajustes'); setTimeout(() => { const a = $('#aj-meta'); if (a) a.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 400); },
@@ -8559,7 +8746,7 @@ const ACOES = {
     VOLTA_PAC = false; deuCerto(`${p.n} saiu da lista de produtos`, async () => { try { await tirar(false); } catch (e) { toast(e.message); } desenhar(); }); fecharFolha(); desenhar(); if (volta) setTimeout(() => folhaPacotes(volta), 300);
   },
   'equipe-novo': () => folhaEquipe(null), 'equipe-editar': el => folhaEquipe(S.equipe.find(u => u.id === +el.dataset.id)),
-  'equipe-salvar': el => { const nome = val('e-nome'); if (!nome) { toast('Falta o nome'); return; } const d = { nome, login: val('e-login') || nome.split(' ')[0].toLowerCase(), papel: val('e-papel'), senha: ($('#e-senha') || { value: '' }).value }; if (MODO === 'servidor') { api('usuario_salvar', { id: el.dataset.id ? +el.dataset.id : 0, ...d }).then(async () => { await carregar(); deuCerto('Equipe atualizada'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } delete d.senha; if (el.dataset.id) Object.assign(S.equipe.find(u => u.id === +el.dataset.id), d); else S.equipe.push({ id: novoId(), ...d }); deuCerto('Equipe atualizada'); fecharFolha(); desenhar(); },
+  'equipe-salvar': el => { const nome = val('e-nome'); if (!nome) { toast('Falta o nome'); return; } const d = { nome, login: val('e-login') || nome.split(' ')[0].toLowerCase(), papel: val('e-papel'), senha: ($('#e-senha') || { value: '' }).value, ...($('#e-uni') ? { unidade: +$('#e-uni').value || 0 } : {}) };   /* 2.02: a unidade da pessoa */ if (MODO === 'servidor') { api('usuario_salvar', { id: el.dataset.id ? +el.dataset.id : 0, ...d }).then(async () => { await carregar(); deuCerto('Equipe atualizada'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } delete d.senha; if ('unidade' in d) { d.uni = d.unidade; delete d.unidade; } if (el.dataset.id) Object.assign(S.equipe.find(u => u.id === +el.dataset.id), d); else S.equipe.push({ id: novoId(), ...d }); deuCerto('Equipe atualizada'); fecharFolha(); desenhar(); },
   'equipe-apagar': el => { if (MODO === 'servidor') { api('usuario_apagar', { id: +el.dataset.id }).then(async () => { await carregar(); deuCerto('Removida da equipe'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } S.equipe = S.equipe.filter(u => u.id !== +el.dataset.id); deuCerto('Removida da equipe'); fecharFolha(); desenhar(); },
   entrar: async () => { try { await api('entrar', { login: val('l-login'), senha: ($('#l-senha') || { value: '' }).value }); ursoReage('feliz'); await espera(260); await espera(sairDoLogin()); await depoisDeEntrar(true); ligarSincronia(); }   /* 1.91: o login escorrega e some (era 0,7 s parado) */ catch (e) { ursoReage('nao'); toast(e.message); } },
   'criar-gestor': async () => { try { await api('criar_gestor', { nome: val('g-nome'), login: val('g-login'), senha: ($('#g-senha') || { value: '' }).value }); ursoReage('feliz'); await espera(260); await espera(sairDoLogin()); await depoisDeEntrar(); ligarSincronia(); } catch (e) { ursoReage('nao'); toast(e.message); } },

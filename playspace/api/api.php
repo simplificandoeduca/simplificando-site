@@ -114,7 +114,7 @@ function dados(array $eu): array {
   }
   $compromissos = array_map(fn($x) => ['id' => (int)$x['id'], 'dia' => $x['dia'], 'hora' => $x['hora'], 'titulo' => $x['titulo'], 'tipo' => $x['tipo'], 'sub' => $x['sub'], 'obs' => $x['obs'], 'feito' => !empty($x['feito'])], $db->query('SELECT * FROM compromissos ORDER BY dia, hora')->fetchAll());
   $vendasHoje = $db->prepare('SELECT COUNT(*) n, COALESCE(SUM(minutos),0) m, COALESCE(SUM(valor),0) v FROM vendas WHERE quando >= ? AND servico != ?'); $vendasHoje->execute([$hojeMenos, SERV_IMPORTADO]); $vh = $vendasHoje->fetch();   // tudo o que foi vendido nas últimas 24 h; m = minutos de brincar
-  $equipe = $eu['papel'] === 'atendente' ? [] : array_map(fn($u) => ['id' => (int)$u['id'], 'nome' => $u['nome'], 'login' => $u['login'], 'papel' => $u['papel']], $db->query('SELECT id, nome, login, papel FROM usuarios WHERE ativo = 1 ORDER BY nome')->fetchAll());
+  $equipe = $eu['papel'] === 'atendente' ? [] : array_map(fn($u) => ['id' => (int)$u['id'], 'nome' => $u['nome'], 'login' => $u['login'], 'papel' => $u['papel'], 'uni' => (int)($u['unidade_id'] ?? 0)], $db->query('SELECT id, nome, login, papel, unidade_id FROM usuarios WHERE ativo = 1 ORDER BY nome')->fetchAll());   // 2.02: e a unidade
   $q = $db->prepare("SELECT COUNT(*) n, COALESCE(SUM(valor), 0) v FROM vendas WHERE auto = 1 AND quando >= ? AND itens NOT LIKE 'avulsa%'"); $q->execute([$hojeMenos]); $ah = $q->fetch(); $atrasoHoje = ['n' => (int)$ah['n'], 'valor' => (float)$ah['v']];   // 1.15: o tempo além do pacote nas últimas 24 h (a recreação avulsa é venda comum, acertada na saída)
   $q = $db->prepare("SELECT COALESCE(SUM(voucher != ''), 0) nv, COALESCE(SUM(CASE WHEN voucher != '' THEN cheio ELSE 0 END), 0) vv, COALESCE(SUM(pcd = 1), 0) np, COALESCE(SUM(CASE WHEN pcd = 1 THEN cheio - valor - desc_valor ELSE 0 END), 0) vp, COALESCE(SUM(desc_valor), 0) vd FROM vendas WHERE quando > ?"); $q->execute([$hojeMenos]); $dh = $q->fetch();
   $q = $db->prepare("SELECT COUNT(*) FROM registros WHERE tipo = 'desc' AND quando > ?"); $q->execute([$hojeMenos]); $nd = $q->fetchColumn();   // 1.04: quantos descontos o gestor deu nas últimas 24 h
@@ -196,7 +196,7 @@ switch ($acao) {
     $db->prepare("INSERT OR IGNORE INTO config (chave, valor) VALUES ('instalado_em', ?)")->execute([(string)time()]);
     $q0 = $db->query("SELECT valor FROM config WHERE chave = 'instalado_em'"); $inst = (int)$q0->fetchColumn(); $q0->closeCursor();
     if (time() - $inst > 7200 && !is_file(pastaDados() . '/liberar-primeiro-acesso')) falha('A instalação está aberta há mais de 2 horas sem gestor. Por segurança, ponha um arquivo chamado liberar-primeiro-acesso na pasta de dados (cPanel) e tente de novo.', 403);
-    $nome = maiusculo($val('nome')); $login = mb_strtolower($val('login')); $senha = (string)($in['senha'] ?? '');
+    $nome = maiusculo($val('nome')); $login = loginDe($val('login')); $senha = (string)($in['senha'] ?? '');   /* 2.02: o login pode ter espaço */
     if ($nome === '' || $login === '' || strlen($senha) < 6) falha('Preencha nome, login e uma senha com pelo menos 6 caracteres.');
     $db->prepare("INSERT INTO usuarios (nome, login, senha, papel, criado_em) VALUES (?, ?, ?, 'gestor', ?)")->execute([$nome, $login, password_hash($senha, PASSWORD_DEFAULT), agora()]);
     session_regenerate_id(true); $_SESSION['uid'] = (int)$db->lastInsertId();
@@ -208,7 +208,7 @@ switch ($acao) {
     // 1.49 (auditoria): 8 erros deste login neste aparelho, ou 30 erros deste aparelho (qualquer login), em 15 min (antes, 8 erros de qualquer lugar travavam a gestora)
     $q = $db->prepare('SELECT COALESCE(SUM(login = ?), 0) l, COUNT(*) t FROM tentativas WHERE ip = ? AND quando > ?'); $q->execute([$login, $ip, time() - 900]); $tq = $q->fetch();
     if ((int)$tq['l'] >= 8 || (int)$tq['t'] >= 30) falha('Muitas tentativas. Espere 15 minutos e tente de novo.', 429);
-    $q = $db->prepare('SELECT * FROM usuarios WHERE login = ? AND ativo = 1'); $q->execute([$login]); $u = $q->fetch();
+    $q = $db->prepare('SELECT * FROM usuarios WHERE login IN (?, ?) AND ativo = 1 ORDER BY (login = ?) DESC LIMIT 1'); $q->execute([$login, loginDe($login), $login]); $u = $q->fetch();   /* 2.02: "Julia  Alves" entra como "julia alves" */
     if (!$u || !password_verify($senha, $u['senha'])) { $db->prepare('INSERT INTO tentativas (login, ip, quando) VALUES (?, ?, ?)')->execute([$login, $ip, time()]); usleep(400000); falha('Login ou senha errados.', 401); }
     session_regenerate_id(true); $_SESSION['uid'] = (int)$u['id']; $_SESSION['uni0'] = max(0, (int)($_SERVER['HTTP_X_PLAY_UNIDADE'] ?? 0));   // 1.91: a unidade em que entrou
     responder(['usuario' => eu()]);
@@ -1142,7 +1142,7 @@ switch ($acao) {
       foreach (array_slice((array)($in['linhas'] ?? []), 0, 500) as $l) {
         if (!is_array($l)) { $ruins++; continue; } $n = mb_substr(maiusculo(trim((string)preg_replace('/\s+/u', ' ', (string)($l['n'] ?? '')))), 0, 60); $v = is_numeric($l['v'] ?? null) ? round((float)$l['v'], 2) : -1;
         if ($n === '' || $v < 0 || $v > 100000) { $ruins++; continue; } $k = mb_strtoupper($n);
-        if (isset($tem[$k])) { $ja++; $x = $tem[$k]; if (!in_array($lj, explode(',', $x['l']), true)) { $nl = lojasValidas($x['l'] . ',' . $lj); $upd->execute([$nl, $ag, $x['id']]); $tem[$k]['l'] = $nl; $junto++; } continue; }
+        if (isset($tem[$k])) { $ja++; $x = $tem[$k]; $nl = lojasValidas($x['l'] . ',' . $lj); if ($nl !== lojasValidas($x['l'])) { $upd->execute([$nl, $ag, $x['id']]); $tem[$k]['l'] = $nl; $junto++; } continue; }
         $ins->execute([$n, $v, $ag, $ag, $lj, mb_substr(maiusculo(trim((string)($l['cat'] ?? ''))), 0, 30)]); $tem[$k] = ['id' => (int)$db->lastInsertId(), 'l' => $lj]; $novos++;
       }
       $db->commit();
@@ -1191,8 +1191,11 @@ switch ($acao) {
 
   case 'usuario_salvar': {
     $u = exigir(); podeAjustar($u); $id = (int)($in['id'] ?? 0);
-    $nome = mb_substr(maiusculo($val('nome')), 0, 80); $login = mb_strtolower(preg_replace('/[^a-z0-9._-]/i', '', $val('login'))); $papel = in_array($val('papel'), array_keys(PAPEIS), true) ? $val('papel') : 'atendente'; $senha = (string)($in['senha'] ?? '');
+    $nome = mb_substr(maiusculo($val('nome')), 0, 80); $login = loginDe($val('login'));   /* 2.02: o login pode ter espaço (antes o espaço era tirado: "juliaalves") */ $papel = in_array($val('papel'), array_keys(PAPEIS), true) ? $val('papel') : 'atendente'; $senha = (string)($in['senha'] ?? '');
     if ($nome === '' || $login === '') falha('Preencha o nome e o login.');
+    /* 2.02: a unidade da pessoa (0 = qualquer uma). A tela de antes não manda: fica como estava */
+    $temUni = array_key_exists('unidade', $in); $uni = (int)($in['unidade'] ?? 0);
+    if ($uni > 0) { $q = $db->prepare('SELECT id FROM unidades WHERE id = ? AND ativo = 1'); $q->execute([$uni]); if (!$q->fetchColumn()) falha('Essa unidade não existe mais.'); }
     $q = $db->prepare('SELECT id, ativo FROM usuarios WHERE login = ? AND id <> ?'); $q->execute([$login, $id]); $outro = $q->fetch();
     if ($outro && (int)$outro['ativo']) falha('Já existe alguém com esse login.');
     /* 2.01 (o dono: "quando eu excluí alguém da equipe, ele tem que me deixar criar novos usuários com esse nome"): quem saiu continua
@@ -1201,10 +1204,11 @@ switch ($acao) {
     if ($id) {
       if ($id === (int)$u['id'] && $papel !== 'gestor') falha('Você não pode tirar o seu próprio papel de gestor.');
       $db->prepare('UPDATE usuarios SET nome = ?, login = ?, papel = ? WHERE id = ?')->execute([$nome, $login, $papel, $id]);
+      if ($temUni) $db->prepare('UPDATE usuarios SET unidade_id = ? WHERE id = ?')->execute([$uni ?: null, $id]);
       if ($senha !== '') { if (strlen($senha) < 6) falha('A senha precisa ter pelo menos 6 caracteres.'); $db->prepare('UPDATE usuarios SET senha = ? WHERE id = ?')->execute([password_hash($senha, PASSWORD_DEFAULT), $id]); }
     } else {
       if (strlen($senha) < 6) falha('Defina uma senha inicial com pelo menos 6 caracteres.');
-      $db->prepare('INSERT INTO usuarios (nome, login, senha, papel, criado_em) VALUES (?, ?, ?, ?, ?)')->execute([$nome, $login, password_hash($senha, PASSWORD_DEFAULT), $papel, agora()]); $id = (int)$db->lastInsertId();
+      $db->prepare('INSERT INTO usuarios (nome, login, senha, papel, criado_em, unidade_id) VALUES (?, ?, ?, ?, ?, ?)')->execute([$nome, $login, password_hash($senha, PASSWORD_DEFAULT), $papel, agora(), $uni ?: null]); $id = (int)$db->lastInsertId();
     }
     responder(['id' => $id]);
   }

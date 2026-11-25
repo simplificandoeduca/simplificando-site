@@ -51,7 +51,7 @@ function telaLanc() {
     rede: [dataBR(l.data), esc(l.filial), brl(l.valor), esc(l.obs)] }[GS.tipo]);
   const resumo = D2 ? `<b>${int(D2.n)}</b> ${D2.n === 1 ? 'lançamento' : 'lançamentos'} · soma <b class="num">${brl(D2.soma)}</b>${GS.tipo === 'receita' ? ` · ${int(D2.qv)} vendas · ${int(D2.qc)} crianças` : ''}` : 'Carregando…';
   return `<div class="topo"><div><h1>Lançamentos</h1><div class="sub">O que o financeiro lança (no lugar da planilha) · ${esc(gMesNome(GS.mes))}</div></div>
-      <div class="lista-acoes"><button class="btn btn-ghost" data-g="importar">Importar a planilha</button><button class="btn btn-ghost" data-g="excel">Exportar Excel</button><button class="btn btn-brand g-novo" data-g="novo">+ ${esc(T.novo)}</button></div></div>
+      <div class="lista-acoes"><button class="btn btn-ghost" data-g="importar">Importar do sistema anterior</button><button class="btn btn-ghost" data-g="excel">Exportar Excel</button><button class="btn btn-brand g-novo" data-g="novo">+ ${esc(T.novo)}</button></div></div>
     <div class="filtros"><div class="chips" role="group" aria-label="O que lançar">${Object.entries(GT).map(([k, x]) => `<button class="chip ${GS.tipo === k ? 'on' : ''}" data-gtipo="${k}">${x.nome}</button>`).join('')}</div>
       <div class="chips"><button class="chip" data-gmes="-1" aria-label="Mês anterior">‹</button><b class="g-mes">${esc(gMesNome(GS.mes))}</b><button class="chip" data-gmes="1" aria-label="Mês seguinte">›</button>
         <select class="chip ${GS.filial ? 'on' : ''}" id="g-f-filial" aria-label="Filial">${gOpcoes(L.filial, GS.filial, 'Todas as filiais')}</select>
@@ -272,12 +272,13 @@ async function lerPlanilha(arq) {
           O.rede.push({ _l: r + 1, data: `${a}-${String(m).padStart(2, '0')}-${String(L[0]).padStart(2, '0')}`, filial: un.includes('morumbi') ? 'Morumbi' : 'Anália Franco', valor: v, obs: '' }); } } }
   }
   gChaves(O);
-  return { O, achou, aj, forn: [...new Set(O.despesa.map(x => x.fornecedor).filter(Boolean))].sort() };
+  return { O, achou, aj, forn: [...new Set(O.despesa.map(x => x.fornecedor).filter(Boolean))].sort(), outras: X.folhas.map(f => f.nome).filter(n => !achou.includes(n)) };   /* 4.9: as outras abas (gráficos, comparativos) */
 }
 function folhaImportar() {
   let lido = null;
-  const f = gFolha('Importar a planilha', `<p class="sub" style="margin:0 0 12px">Escolha a planilha do financeiro (.xlsx). O sistema lê as abas <b>Faturamento (Receita)</b>, <b>Despesas</b>, <b>Recebimentos LÍQUIDOS</b> e <b>Rede</b>; as outras (gráficos, comparativos) o sistema faz sozinho. Os fornecedores das despesas entram no cadastro de Fornecedores.</p>
-      <input class="inp g-arq" type="file" id="g-arq" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"><div id="g-imp-res" class="g-imp"></div>
+  /* 4.9: "Importar dados do sistema anterior" (o mesmo importador, também na tela inicial) */
+  const f = gFolha('Importar dados do sistema anterior', `<p class="sub" style="margin:0 0 12px">Anexe o Excel do financeiro (.xlsx). O sistema lê todas as abas e todos os meses e já preenche tudo: o <b>faturamento</b> (receitas), as <b>despesas</b> com os <b>fornecedores</b> e os custos, os <b>recebimentos líquidos</b> e a <b>Rede</b>. Os gráficos, comparativos e margens o sistema refaz sozinho com esses números (Painel e Relatório financeiro).</p>
+      <label class="lbl" for="g-arq">Anexar o Excel</label><input class="inp g-arq" type="file" id="g-arq" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"><div id="g-imp-res" class="g-imp"></div>
       <p class="sub" style="margin:12px 0 0">Pode importar de novo a mesma planilha (atualizada): o que já está no sistema não se repete, o que foi corrigido ou tirado aqui fica como está, e o lançado aqui no sistema continua.</p>`, {
     ok: 'Importar', fazer: async F => { if (!lido) throw new Error('Escolha a planilha primeiro.'); const tot = Object.values(lido.O).reduce((t, x) => t + x.length, 0); if (!tot) throw new Error('Não achei nenhuma linha para importar nesta planilha.');
       const lote = 'pl-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8), res = $('#g-imp-res', F); let foi = 0, ja = 0, erros = 0, ex = [];
@@ -285,13 +286,14 @@ function folhaImportar() {
         res.innerHTML = `<div class="barra"><i style="width:${Math.round((foi + ja + erros) / tot * 100)}%"></i></div><p class="sub">Enviando… ${int(foi + ja + erros)} de ${int(tot)}</p>`; }
       const fim = await api('fl_importar_fim', { lote }); await gSujou();
       aviso(`Planilha importada ✓ ${int(foi)} ${foi === 1 ? 'linha nova' : 'linhas novas'}${ja ? ` · ${int(ja)} já estavam` : ''}${erros ? ` · ${int(erros)} não entraram` : ''}`); if (erros) setTimeout(() => alert(`${int(erros)} linhas não entraram. Exemplos:\n` + ex.slice(0, 8).map(x => `${GT[x.tipo].nome}, linha ${x.linha}: ${x.erro}`).join('\n')), 300);
-      if (ABA === 'lanc') carregarLanc(); else gestaoDesenhar(ABA); } });
+      IMP_ANT = null; if (ABA === 'lanc') carregarLanc(); else if (ABAS_GESTAO.includes(ABA)) gestaoDesenhar(ABA); else impAntStatus(); } });   /* 4.9: na tela inicial, o cartão mostra a importação feita */
   $('#g-arq', f).onchange = async e => { const a = e.target.files[0], res = $('#g-imp-res', f); lido = null; if (!a) return; res.innerHTML = '<p class="sub">Lendo a planilha…</p>';
     try { lido = await lerPlanilha(a); const O = lido.O, soma = L => L.reduce((t, x) => t + x.valor, 0);
-      res.innerHTML = lido.achou.length ? `<table style="margin-top:12px"><thead><tr><th>Aba</th><th class="v">Linhas</th><th class="v">Soma</th></tr></thead><tbody>${Object.keys(O).map(k => `<tr><td>${GT[k].nome}</td><td class="v">${int(O[k].length)}</td><td class="v">${brl(soma(O[k]))}</td></tr>`).join('')}</tbody></table>
+      const meses = L => { const d = L.map(x => x.data).filter(Boolean).sort(); if (!d.length) return '—'; const m = x => GMESES[+x.slice(5, 7) - 1].slice(0, 3) + '/' + x.slice(0, 4); return m(d[0]) === m(d[d.length - 1]) ? m(d[0]) : m(d[0]) + ' a ' + m(d[d.length - 1]); };   /* 4.9: os meses de cada aba */
+      res.innerHTML = lido.achou.length ? `<table style="margin-top:12px"><thead><tr><th>Aba</th><th class="v">Linhas</th><th class="v">Soma</th><th class="v">Meses</th></tr></thead><tbody>${Object.keys(O).map(k => `<tr><td>${GT[k].nome}</td><td class="v">${int(O[k].length)}</td><td class="v">${brl(soma(O[k]))}</td><td class="v">${meses(O[k])}</td></tr>`).join('')}</tbody></table>
         ${lido.forn.length ? `<p class="sub" style="margin-top:8px" id="g-imp-forn"><b>${int(lido.forn.length)} fornecedores</b> achados nas despesas (vão para o cadastro de Fornecedores): ${lido.forn.map(esc).join(', ')}.</p>` : ''}
         ${lido.aj.length ? `<details class="g-imp-aj" style="margin-top:8px"><summary class="sub"><b>${int(lido.aj.length)} ${lido.aj.length === 1 ? 'acerto' : 'acertos'} na leitura</b> (toque para conferir)</summary><ul class="sub" style="margin:6px 0 0;padding-left:18px">${lido.aj.slice(0, 200).map(t => `<li>${esc(t)}</li>`).join('')}</ul></details>` : ''}
-        <p class="sub" style="margin-top:8px">Abas lidas: ${lido.achou.map(esc).join(', ')}. Confira e toque em <b>Importar</b>.</p>` : '<p class="erro">Não achei as abas de Faturamento, Despesas, Recebimentos ou Rede nesta planilha.</p>'; }
+        <p class="sub" style="margin-top:8px">Abas lidas: ${lido.achou.map(esc).join(', ')}.${lido.outras && lido.outras.length ? ` As outras ${int(lido.outras.length)} abas (${lido.outras.map(x => esc(String(x).trim())).join(', ')}) são gráficos, comparativos e resumos: o sistema refaz sozinho.` : ''} Confira e toque em <b>Importar</b>.</p>` : '<p class="erro">Não achei as abas de Faturamento, Despesas, Recebimentos ou Rede nesta planilha.</p>'; }
     catch (x) { res.innerHTML = `<p class="erro">${esc(x.message)}</p>`; } };
 }
 /* ---------- o relatório: as contas (as mesmas do PDF, no servidor) ---------- */
@@ -440,3 +442,33 @@ async function exportarExcel(ano) {
   catch (e) { aviso(e.message); }
 }
 window.addEventListener('resize', () => { if (typeof ABA === 'undefined') return; if (ABA === 'relat' && GS.rel) desenharGrafRel(); if (ABA === 'fin' && GS.painel) gGrafDias(); });
+
+/* ---------- 4.9: "Importar dados do sistema anterior" na tela inicial (o dono: "coloque importar dados do sistema anterior ... a opção
+   para anexar o Excel ... na tela inicial ... ele lê todos os dados e já destrincha e já preenche tudo") ----------
+   O cartão no alto do Controle de caixa abre o importador (folhaImportar). Antes da primeira importação ele é grande e explica; depois,
+   fica numa linha só, com quando foi, quem importou e quantas linhas, e "Importar de novo" (a planilha atualizada: nada se repete). */
+let IMP_ANT = null, IMP_ANT_IDO = false;
+function impAntHtml() {
+  const u = IMP_ANT && IMP_ANT[0];
+  if (!IMP_ANT) return `<p class="sub" id="imp-ant-st">Conferindo…</p>`;
+  if (!u) return `<p class="sub" id="imp-ant-st">Ainda não foi importado.</p>`;
+  const em = String(u.em || ''), q = em.slice(11, 16);
+  return `<p class="sub" id="imp-ant-st">Importado em <b>${esc(dataBR(em))}${q ? ' às ' + esc(q) : ''}</b>${u.por ? ' por ' + esc(String(u.por).split(' ')[0]) : ''} · <b>${int(u.n)}</b> ${u.n === 1 ? 'linha' : 'linhas'}. Se a planilha mudar, importe de novo: nada se repete.</p>`;
+}
+function impAntCartao() {
+  if (!IMP_ANT && !IMP_ANT_IDO) impAntStatus();
+  const feito = !!(IMP_ANT && IMP_ANT[0]);
+  return `<div class="cartao imp-ant${feito ? ' feito' : ''}" id="imp-ant"><div class="imp-ant-txt"><h2>Importar dados do sistema anterior</h2>
+    ${feito ? '' : '<p class="expl">Anexe o Excel do financeiro: o sistema lê todas as abas e todos os meses e já preenche tudo (faturamento, despesas com os fornecedores e os custos, recebimentos e Rede).</p>'}${impAntHtml()}</div>
+    <button type="button" class="btn ${feito ? 'btn-ghost' : 'btn-brand'}" data-imp-ant>${feito ? 'Importar de novo' : 'Anexar o Excel'}</button></div>`;
+}
+async function impAntStatus() {
+  IMP_ANT_IDO = true;
+  try { const r = await api('fl_listas'); gPoeListas(r); IMP_ANT = r.importacoes || []; } catch (e) { IMP_ANT_IDO = false; return; }
+  const c = $('#imp-ant'); if (c) { const n = document.createElement('div'); n.innerHTML = impAntCartao(); c.replaceWith(n.firstElementChild); }
+}
+document.addEventListener('click', async e => {
+  const b = e.target.closest && e.target.closest('[data-imp-ant]'); if (!b) return; e.preventDefault();
+  if (!GS.listas) { b.disabled = true; try { gPoeListas(await api('fl_listas')); } catch (x) { aviso(x.message); b.disabled = false; return; } b.disabled = false; }
+  folhaImportar(); setTimeout(() => { const i = $('#g-arq'); if (i) i.click(); }, 120);   /* (já abre a escolha do arquivo) */
+});

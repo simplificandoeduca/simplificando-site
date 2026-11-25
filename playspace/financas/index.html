@@ -664,14 +664,18 @@ svg.fx-cresce > circle { transform-box: fill-box; transform-origin: center; anim
 .g-fni input { margin-top: 3px; width: 18px; height: 18px; flex: none; accent-color: #E25B3F; } .g-fni b { display: block; } .g-fni small { display: block; opacity: .72; margin-top: 2px; } .g-fni em { font-style: normal; color: #2F8A57; font-weight: 700; }
 /* 3.8 (1.85): enquanto as Finanças se acertam sozinhas, a tela não fica apagada (o "carregando") */
 body.fin-quieto .carregando { opacity: 1 !important; pointer-events: auto !important; }
+/* 4.9: o cartão "Importar dados do sistema anterior" na tela inicial */
+.imp-ant { display: flex; align-items: center; gap: 16px 20px; flex-wrap: wrap; border: 1.5px dashed var(--brand); background: color-mix(in srgb, var(--brand) 6%, var(--card)); margin-bottom: 16px; }
+.imp-ant .imp-ant-txt { flex: 1 1 320px; min-width: 0; } .imp-ant h2 { margin: 0 0 4px; } .imp-ant .expl, .imp-ant .sub { margin: 0; } .imp-ant .expl + .sub { margin-top: 6px; } .imp-ant .btn { flex: none; width: auto; padding-left: 26px; padding-right: 26px; }
+.imp-ant.feito { border-style: solid; border-color: var(--line); background: var(--card); padding: 14px 20px; } .imp-ant.feito h2 { font-size: 15px; }
 </style>
 </head>
 <body>
 <div id="raiz"></div>
-<script src="gestao.js?v=3.0"></script>
+<script src="gestao.js?v=4.9"></script>
 <script src="gestao2.js?v=3.7"></script>
 <script src="planilhas.js?v=2.1"></script>
-<script src="caixa.js?v=2.6"></script>
+<script src="caixa.js?v=4.9"></script>
 <script src="festas.js?v=4.2"></script>
 <script src="freelas.js?v=3.0"></script>
 <script src="adiant.js?v=4.3"></script>
@@ -694,7 +698,7 @@ const pct = v => (+v || 0).toLocaleString('pt-BR', { maximumFractionDigits: 1 })
 const dataBR = d => { const [a, m, dd] = String(d).slice(0, 10).split('-'); return `${dd}/${m}/${a}`; };
 const quandoBR = q => { const s = String(q); return `${s.slice(8, 10)}/${s.slice(5, 7)} ${s.slice(11, 16)}`; };
 const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-const loginSugerido = nome => String(nome || '').trim().split(/\s+/)[0].normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9._-]/g, '');
+const loginSugerido = nome => String(nome || '').trim().split(/\s+/)[0].normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9._-]/g, '');   /* (a sugestão é o primeiro nome; o login pode ter espaço desde a 2.02: "julia alves") */
 const IC = {
   adiant: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 15h4M16 3.5v5M13.5 6l2.5-2.5L18.5 6"/></svg>',   /* 4.3: o adiantamento */
   pdf: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5v11M7.5 11 12 15.5 16.5 11"/><path d="M5 14.5v3.3A2.2 2.2 0 0 0 7.2 20h9.6a2.2 2.2 0 0 0 2.2-2.2v-3.3"/></svg>',
@@ -832,7 +836,7 @@ function somaUni() {
 /* ---------- o app ---------- */
 /* 2.5 (1.64): a página das Finanças que ficou guardada no aparelho (a aba aberta, o app do celular ou o cache do navegador) se renova
    sozinha quando o servidor já tem outra versão. PS_PAGINA é carimbada pelo tools/build_playspace.py com a versão do Play Space. */
-const PS_PAGINA = '2.01';
+const PS_PAGINA = '2.02';
 const psMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
 function renovarSeVelha(v, naTela) {
   if (!v || !psMaior(v, PS_PAGINA)) return false;

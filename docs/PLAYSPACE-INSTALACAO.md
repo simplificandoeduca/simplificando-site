@@ -1301,6 +1301,55 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A relação de produtos, a unidade de cada pessoa, uma janela só, o login com espaço, a nota em um clique, a saída sozinha e a importação na tela inicial das Finanças (2.02, Finanças 4.9)
+
+Pedidos do dono no fim do dia da virada.
+
+**Importar relação** ("faz um botão importar relação no produto que eu não consegui")
+
+- O botão "Importar relação" está em Ajustes → Produtos e na aba de pacotes e produtos (só o gestor), além da tela Produtos da Casa Tom.
+- A folha pergunta onde os produtos vão ser vendidos: Casa Tom, Play Space ou as duas. O que já existe com o mesmo nome fica com o preço de lá e passa a valer também onde foi escolhido.
+- A Play Space mostra só os produtos dela. Os que são só da Casa Tom ficam na Casa Tom; em Ajustes, uma linha diz quantos são.
+
+**A unidade de cada pessoa** ("quem eu selecionar a unidade não pode trocar a unidade, a não ser o gestor, que pode ver tudo de todas as unidades")
+
+- Ajustes → Equipe → a pessoa → Unidade: "Qualquer uma (escolhe no aparelho)" ou uma unidade. Com a unidade escolhida, a pessoa só usa essa unidade: o aparelho fica nela e não troca, e o servidor guarda tudo o que ela faz nessa unidade, venha o pedido de que aparelho vier.
+- Quem tem a unidade escolhida vê só o movimento dela: quem está no espaço, os carrinhos fora, as festas e os pedidos ao gestor dessa unidade (o caixa do dia já era o da unidade do aparelho). Os clientes (o cadastro) continuam à vista de todos.
+- O gestor troca sempre e vê todas as unidades. Quem não tem unidade escolhida fica como antes.
+
+**Uma janela só por computador** ("eu não quero que o sistema abra mais de uma tela no mesmo computador ... se tiver uma aberta ele dá informativo: já tem um sistema aberto")
+
+- A segunda janela (ou aba) do Play Space no mesmo computador não liga o sistema: mostra "Já tem um Play Space aberto neste computador", com "Usar esta janela" (a outra para, com o aviso, e esta abre) e "Fechar esta". Fechada a janela, a vez fica livre.
+- Vale para as janelas do mesmo navegador (o ícone Play Space abre sempre o mesmo). Um navegador diferente no mesmo computador não enxerga o outro.
+- Para teste ou suporte, a opção do aparelho ps-varias-janelas (no armazenamento do navegador) deixa abrir várias.
+
+**O login com espaço** ("tentei criar um usuário tipo Julia Alves, ele não deixou ... quero com o espaço")
+
+- Na Equipe (e no primeiro gestor) e nas Finanças, o login pode ter espaço: "Julia Alves" fica "julia alves". Fica em minúsculas, com um espaço só entre as palavras, e o acento vira a letra sem acento.
+- Antes, a Play Space tirava o espaço ("juliaalves") e as Finanças trocavam por ponto ("julia.alves").
+- Para entrar, vale digitar com maiúscula, acento ou espaço a mais. Nas Finanças, quem já tinha o login com ponto entra também com o espaço. Login repetido continua recusado.
+
+**A nota fiscal em um clique** ("com um clique, igual da Gama, já fazer todo aquele processo de emissão, só aparecer a confirmação dos dados e emitir. E pronto")
+
+- O botão NF da compra abre a confirmação: em nome de quem, CPF ou CNPJ, e-mail, a compra e o valor. "Emitir a nota fiscal" emite na hora pelo Play Space Notas, sem abrir outra aba. Emitida, o número marca a compra sozinho.
+- Por trás: o Play Space fala com o Notas do mesmo site. O cliente é achado no Notas pelo CPF/CNPJ (ou cadastrado ali, com o nome conferido), o serviço é o da compra (festa, pacote de horas ou recreação), a alíquota é a da empresa no Notas.
+- O computador precisa estar com o Notas entrado (uma vez; o login do Notas dura 30 dias). Se não estiver, a própria folha pede o login e a senha do Notas.
+- Cada compra tem um código de nota fixo: tocar de novo não emite outra; se a nota já tinha saído, o número é só marcado. A recusa do governo aparece na folha e a compra não é marcada.
+- Com o Notas em teste ou simulação, a folha avisa antes, a nota sai no Notas e a compra não é marcada (como na 1.55). "Abrir no Play Space Notas", "Copiar os dados" e o número escrito à mão continuam para corrigir algo lá.
+
+**Sai sozinho depois de 5 minutos** ("o computador tem que deslogar a cada 5 minutos do sistema, só por questão de segurança")
+
+- No computador, 5 minutos sem ninguém mexer (mouse, teclado, toque) e o sistema sai sozinho, de volta ao login, com o aviso "O sistema saiu sozinho depois de 5 minutos sem uso". Nos últimos 30 segundos aparece "Por segurança, o sistema sai sozinho em X s", com "Continuar aqui".
+- Não sai sem internet (não daria para entrar de novo), com registro feito sem internet esperando, nem no meio da emissão de uma nota. No celular e no tablet não sai (o gestor recebe os pedidos lá). As Finanças ficam como estavam.
+- Para teste ou suporte, a opção do aparelho ps-sem-sair-sozinho (no armazenamento do navegador) desliga.
+
+**Finanças 4.9: importar dados do sistema anterior na tela inicial** ("coloque importar dados do sistema anterior ... a opção para anexar o Excel ... na tela inicial ... ele lê todos os dados e já destrincha e já preenche tudo")
+
+- A tela inicial das Finanças (Controle de caixa) tem o cartão "Importar dados do sistema anterior", com "Anexar o Excel". O botão abre o importador da 2.01 e já pede o arquivo.
+- O importador lê as quatro abas com dados (Faturamento, Despesas com os fornecedores e os custos, Recebimentos líquidos e Rede), todos os meses. A conferência mostra, em cada aba, as linhas, a soma e os meses achados, e diz quais abas são só gráficos, comparativos e resumos (o sistema refaz com o Painel e o Relatório financeiro).
+- Depois de importar, o cartão fica numa linha: quando foi, quem importou e quantas linhas, com "Importar de novo" (a planilha atualizada não repete nada). Em Lançamentos o botão virou "Importar do sistema anterior".
+- Conferido com a planilha do financeiro (23 abas): 10.499 linhas, as receitas com o total da planilha e 44 fornecedores ligados às despesas.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A planilha do financeiro inteira, a equipe e o ícone do computador (2.01, Finanças 4.8)
 
 Pedidos do dono no dia da virada.

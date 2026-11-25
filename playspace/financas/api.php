@@ -22,7 +22,7 @@ require __DIR__ . '/clientes.php';   /* 3.0: o relatório por cliente */
 require __DIR__ . '/comprovantes.php';   /* 3.0: o comprovante das despesas */
 require __DIR__ . '/adiant.php';   /* 4.3: o adiantamento por unidade */
 set_exception_handler(function (Throwable $e) { registrarErro('[financas] ' . $e->getMessage() . ' @' . basename($e->getFile()) . ':' . $e->getLine()); falha('Algo deu errado. Tente de novo em instantes.', 500); });
-const FIN_VERSAO = '4.8';
+const FIN_VERSAO = '4.9';
 
 $in = [];
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
@@ -52,11 +52,12 @@ $db->exec("CREATE TABLE IF NOT EXISTS fin_usuarios (id INTEGER PRIMARY KEY, nome
 $ip = (string)($_SERVER['REMOTE_ADDR'] ?? '');
 
 // "José", "jose" e " JOSÉ " são o mesmo login
-function finLogin($v): string {
-  $v = trim((string)$v); $v = function_exists('mb_strtolower') ? mb_strtolower($v, 'UTF-8') : strtolower($v);
-  $v = strtr($v, ['á' => 'a', 'à' => 'a', 'â' => 'a', 'ã' => 'a', 'ä' => 'a', 'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e', 'í' => 'i', 'ì' => 'i', 'î' => 'i', 'ï' => 'i',
-    'ó' => 'o', 'ò' => 'o', 'ô' => 'o', 'õ' => 'o', 'ö' => 'o', 'ú' => 'u', 'ù' => 'u', 'û' => 'u', 'ü' => 'u', 'ç' => 'c', 'ñ' => 'n', ' ' => '.']);
-  return substr((string)preg_replace('/[^a-z0-9._-]/', '', $v), 0, 40);
+/* 2.02: o login das Finanças pode ter espaço ("julia alves"; antes o espaço virava ponto, "julia.alves"). As regras são as da Play Space
+   (loginDe, no lib.php). Quem já tem o login com ponto entra também digitando com espaço */
+function finLogin($v): string { return loginDe($v); }
+function finAchar(string $l): ?array {
+  foreach (array_unique([$l, str_replace(' ', '.', $l)]) as $x) { $q = db()->prepare('SELECT * FROM fin_usuarios WHERE login = ?'); $q->execute([$x]); $u = $q->fetch(); if ($u) return $u; }
+  return null;
 }
 function finNome($v): string { return mb_substr(trim((string)preg_replace('/\s+/u', ' ', (string)$v)), 0, 80); }
 function finPrincipal(): ?array { return db()->query('SELECT * FROM fin_usuarios ORDER BY id LIMIT 1')->fetch() ?: null; }
@@ -74,7 +75,7 @@ function finGestorConfere(array $in, string $ip): array {
   if ($l === '' || $s === '') falha('Digite o usuário e a senha de gestor do Play Space.');
   $lm = mb_strtolower($l); $q = db()->prepare('SELECT COUNT(*) FROM tentativas WHERE login = ? AND quando > ?'); $q->execute([$lm, time() - 900]);   // (a mesma trava do login do Play Space)
   if ((int)$q->fetchColumn() >= 8) falha('Muitas tentativas com esse usuário. Espere 15 minutos e tente de novo.', 429);
-  $q = db()->prepare("SELECT * FROM usuarios WHERE login = ? AND ativo = 1"); $q->execute([$l]); $g = $q->fetch();
+  $q = db()->prepare("SELECT * FROM usuarios WHERE login IN (?, ?, ?) AND ativo = 1 ORDER BY (login = ?) DESC LIMIT 1"); $q->execute([$l, $lm, loginDe($l), $l]); $g = $q->fetch();   /* 2.02: "Camila" e "julia  alves" também */
   if (!$g || !password_verify($s, (string)$g['senha'])) { db()->prepare('INSERT INTO tentativas (login, ip, quando) VALUES (?, ?, ?)')->execute([$lm, $ip, time()]); finErrou($ip); falha('Usuário ou senha do Play Space incorretos.', 401); }
   if ((string)$g['papel'] !== 'gestor') { finErrou($ip); falha('Só um usuário de gestor do Play Space pode fazer isso.', 403); }
   return $g;
@@ -107,7 +108,7 @@ if ($acao === 'entrar') {
   finBloqueado($ip);
   if (!finPrincipal()) falha('O acesso às Finanças ainda não foi criado.', 404);
   $login = finLogin($in['login'] ?? ''); if ($login === '') falha('Digite o seu login.');
-  $q = $db->prepare('SELECT * FROM fin_usuarios WHERE login = ?'); $q->execute([$login]); $u = $q->fetch();
+  $u = finAchar($login);   /* 2.02: com espaço (ou o login antigo, com ponto) */
   if (!$u || !password_verify((string)($in['senha'] ?? ''), (string)$u['senha'])) { finErrou($ip); falha('Login ou senha incorretos.', 401); }
   finEntrou($u); responder(['usuario' => finOut($u)]);
 }
@@ -121,7 +122,7 @@ if ($acao === 'redefinir') { // esqueceu a senha: o dono prova quem é com o usu
   if (!$dono) $db->prepare("INSERT OR REPLACE INTO config (chave, valor) VALUES ('fin_dono', ?)")->execute([(string)(int)$g['id']]);
   $senha = (string)($in['senha'] ?? ''); if (strlen($senha) < 6) falha('A senha nova precisa ter pelo menos 6 caracteres.');
   $alvo = $p; $lg = finLogin($in['login'] ?? '');
-  if ($lg !== '') { $q = $db->prepare('SELECT * FROM fin_usuarios WHERE login = ?'); $q->execute([$lg]); $alvo = $q->fetch(); if (!$alvo) falha('Não existe acesso com esse login.', 404); }
+  if ($lg !== '') { $alvo = finAchar($lg); if (!$alvo) falha('Não existe acesso com esse login.', 404); }
   $db->prepare('UPDATE fin_usuarios SET senha = ? WHERE id = ?')->execute([password_hash($senha, PASSWORD_DEFAULT), (int)$alvo['id']]);
   finEntrou($alvo); responder(['usuario' => finOut($alvo)]);
 }
@@ -145,7 +146,7 @@ if ($acao === 'usuario_criar') {
   $nome = finNome($in['nome'] ?? ''); if ($nome === '') falha('Escreva o nome da pessoa.');
   $login = finLogin($in['login'] ?? ''); if (strlen($login) < 3) falha('O login precisa ter pelo menos 3 letras.');
   $s = (string)($in['senha'] ?? ''); if (strlen($s) < 6) falha('A senha precisa ter pelo menos 6 caracteres.');
-  $q = $db->prepare('SELECT 1 FROM fin_usuarios WHERE login = ?'); $q->execute([$login]); if ($q->fetchColumn()) falha('Já existe um acesso com o login "' . $login . '". Escolha outro.', 409);
+  if (finAchar($login)) falha('Já existe um acesso com o login "' . $login . '". Escolha outro.', 409);
   $db->prepare('INSERT INTO fin_usuarios (nome, login, senha, criado_em) VALUES (?, ?, ?, ?)')->execute([$nome, $login, password_hash($s, PASSWORD_DEFAULT), agora()]);
   responder(['login' => $login]);
 }

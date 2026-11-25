@@ -37,6 +37,7 @@ function caixaDesenhar() {
   const hoje = cxHoje(), ontem = cxMais(hoje, -1), d = CX.dia, rot = cxRotulo(d);
   t.innerHTML = `<div class="cx-tela"><div class="topo"><div><h1>Controle de caixa</h1><div class="sub">O que passou no caixa no dia, conferido com a Rede</div></div>
       <div class="topo-d"><div class="lista-acoes cx-pdfs"><button class="btn btn-ghost" id="cx-pdf-dia">${PDF_IC} PDF do dia</button><button class="btn btn-ghost" id="cx-pdf-mes">${PDF_IC} PDF do mês</button></div><div class="sub" id="cx-gerado">${CX.gerado ? `Atualizado às ${esc(CX.gerado)} · ` : ''}<button class="link" style="display:inline;padding:0" id="cx-atualizar">atualizar</button></div></div></div>
+    ${impAntCartao()}
     <div class="filtros"><div class="chips" role="group" aria-label="Dia do caixa">
       <button class="chip ${d === hoje ? 'on' : ''}" data-cxdia="${hoje}">Hoje</button><button class="chip ${d === ontem ? 'on' : ''}" data-cxdia="${ontem}">Ontem</button>
       <span class="cx-data"><button class="chip cx-passo" data-cxpasso="-1" aria-label="Dia anterior" title="Dia anterior">‹</button>

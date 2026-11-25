@@ -418,6 +418,10 @@ function db(): PDO {
     foreach (["ALTER TABLE produtos ADD COLUMN lojas TEXT NOT NULL DEFAULT 'play'", "ALTER TABLE produtos ADD COLUMN cat TEXT NOT NULL DEFAULT ''"] as $sql) { try { $pdo->exec($sql); } catch (Throwable $e) { } }
     $pdo->exec('PRAGMA user_version = 43');
   }
+  if ($v < 44) { /* 2.02: a unidade de cada pessoa (Ajustes → Equipe): quem tem a unidade escolhida fica nela; só o gestor troca */
+    try { $pdo->exec('ALTER TABLE usuarios ADD COLUMN unidade_id INTEGER'); } catch (Throwable $e) { }
+    $pdo->exec('PRAGMA user_version = 44');
+  }
   return $pdo;
 }
 /* ---------- 1.06: unidades ---------- */
@@ -460,6 +464,9 @@ function unidadeDoPedido(): ?int {
     $u0 = (int)($_SESSION['uni0'] ?? 0); $eu = $u0 > 0 && $GLOBALS['_unidade'] !== null && $GLOBALS['_unidade'] !== $u0 ? eu() : null;
     if ($eu && !in_array($eu['papel'], ['gestor', 'supervisor'], true) && !uniMesmoLugar($u0, (int)$GLOBALS['_unidade'])) {
       $q = db()->prepare('SELECT id FROM unidades WHERE id = ? AND ativo = 1'); $q->execute([$u0]); $GLOBALS['_unidade'] = $q->fetchColumn() ? $u0 : null; }
+    /* 2.02: a pessoa com a unidade escolhida pelo gestor (Ajustes → Equipe) fica nela, venha o pedido de que aparelho vier; só o gestor troca */
+    $eu2 = eu(); $fixa = $eu2 && $eu2['papel'] !== 'gestor' ? (int)($eu2['unidade_id'] ?? 0) : 0;
+    if ($fixa > 0) { $q = db()->prepare('SELECT id FROM unidades WHERE id = ? AND ativo = 1'); $q->execute([$fixa]); if ($q->fetchColumn()) $GLOBALS['_unidade'] = $fixa; }
   }
   return $GLOBALS['_unidade'];
 }
@@ -601,7 +608,7 @@ function iniciarSessao(): void {
 }
 function eu(): ?array {
   $id = (int)($_SESSION['uid'] ?? 0); if (!$id) return null;
-  $q = db()->prepare('SELECT id, nome, login, papel FROM usuarios WHERE id = ? AND ativo = 1'); $q->execute([$id]);
+  $q = db()->prepare('SELECT id, nome, login, papel, unidade_id FROM usuarios WHERE id = ? AND ativo = 1'); $q->execute([$id]);   // 2.02: e a unidade dela
   return $q->fetch() ?: null;
 }
 function exigir(array $papeis = []): array {
@@ -635,6 +642,16 @@ function lerAtendente(array $in, array $u): string {
   return atendente($n);
 }
 // "· por MARIA (login João)": quem cancelou e, quando é outra pessoa, o usuário em que o aparelho estava
+/* 2.02 (o dono: "tentei criar um usuário tipo Julia Alves, ele não deixou ... quero com o espaço"): o login aceita espaço. Fica em
+   minúsculas, com um espaço só entre as palavras, e o acento vira a letra sem acento ("Júlia  Alves" = "julia alves"). Vale para a Play
+   Space e para as Finanças */
+function loginDe($v): string {
+  $v = trim((string)$v); $v = function_exists('mb_strtolower') ? mb_strtolower($v, 'UTF-8') : strtolower($v);
+  $v = strtr($v, ['á' => 'a', 'à' => 'a', 'â' => 'a', 'ã' => 'a', 'ä' => 'a', 'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e', 'í' => 'i', 'ì' => 'i', 'î' => 'i', 'ï' => 'i',
+    'ó' => 'o', 'ò' => 'o', 'ô' => 'o', 'õ' => 'o', 'ö' => 'o', 'ú' => 'u', 'ù' => 'u', 'û' => 'u', 'ü' => 'u', 'ç' => 'c', 'ñ' => 'n']);
+  $v = (string)preg_replace('/[^a-z0-9 ._-]/', '', (string)preg_replace('/\s+/u', ' ', $v));
+  return trim(substr(trim($v), 0, 40));
+}
 function porQuem(array $u): string { $p = primeiroNome((string)$u['nome']); $a = atendente(); return $a !== '' && mb_strtoupper($a) !== mb_strtoupper($p) ? $a . ' (login ' . $p . ')' : $p; }
 // os cancelamentos que a gestora ainda não viu (de quem não é gestor, nas últimas 24 h): chegam em toda carga e a cada pulso, como os
 // pedidos de autorização (mesmo com uma folha aberta). "Visto" tira da tela dela e da lista de conferência
