@@ -129,7 +129,7 @@ function dados(array $eu): array {
   $q->execute([date('Y-m-d') . ' 00:00:00']); $fora = pendFora();   // quem a equipe tirou da lista hoje ("não vai fazer agora") não volta
   $pend = array_values(array_filter(array_map(fn($p) => ['id' => (int)$p['id'], 'em' => $p['criado_em']], $q->fetchAll()), fn($p) => !isset($fora[$p['id']])));
   return ['criancas' => array_values($criancas), 'registros' => $registros, 'conversas' => array_values($conversas), 'compromissos' => $compromissos, 'vfut' => vfutLista(), 'festas' => festasDaTela(), 'regra' => regra(), 'cancelamentos' => $canc, 'pendentes' => $pend, 'produtos' => produtos(), 'balcao' => $balcao ? criancaPublica($balcao) : null, 'unidades' => unidades(), 'alugueis' => alugueis(), 'pagamentos_hoje' => pagamentosDesde($hojeMenos), 'cupons' => cuponsDaTela(),
-    'vendas_hoje' => ['n' => (int)$vh['n'], 'min' => (int)$vh['m'], 'horas' => round((int)$vh['m'] / 60, 2), 'valor' => (float)$vh['v']], 'atraso_hoje' => $atrasoHoje, 'descontos_hoje' => $descontosHoje, 'equipe' => $equipe, 'eu' => $eu, 'versao' => PLAY_VERSAO,
+    'vendas_hoje' => ['n' => (int)$vh['n'], 'min' => (int)$vh['m'], 'horas' => round((int)$vh['m'] / 60, 2), 'valor' => (float)$vh['v']], 'atraso_hoje' => $atrasoHoje, 'descontos_hoje' => $descontosHoje, 'equipe' => $equipe, 'eu' => $eu, 'versao' => PLAY_VERSAO, 'anotacoes' => anotacoesLista(),
     'idface' => (function (array $x) use ($eu) { if ($eu['papel'] !== 'gestor') unset($x['chave'], $x['push_url'], $x['url_ponte']); return $x; })(idfaceEstado()),   /* 1.49: a chave da ponte só para o gestor */ 'whats' => whatsResumo(), 'agora' => agora(), 'exemplo' => ($ex = cfg('exemplo', null)) && is_array($ex) ? count($ex['criancas'] ?? []) : 0,
     'limpeza' => $eu['papel'] === 'gestor' ? ['oferta' => cfg('limpeza_oferta', null) !== null, 'ultima' => limpezaPublica()] : null,
     'importacao' => $eu['papel'] === 'gestor' ? importacaoLeve() : null,
@@ -250,6 +250,20 @@ switch ($acao) {
     $q = $db->prepare('SELECT nome FROM maquinas WHERE id = ? AND ativo = 1'); $q->execute([$id]); $n = $q->fetchColumn();
     if ($n !== false) { $db->prepare('UPDATE maquinas SET ativo = 0 WHERE id = ?')->execute([$id]); registrar('alt', null, 'Computador da loja', 'Acesso sem senha tirado: ' . $n . ' · por ' . primeiroNome($u['nome'])); }
     responder(['maquinas' => maquinasLista()]);
+  }
+  case 'anotacao_salvar': { /* 2.12: a anotação do cliente (toda a equipe). No computador da loja, o nome de quem escreve vem tocado */
+    $u = exigir(); $c = crianca((int)($in['crianca'] ?? 0)); if (!$c) falha('Cliente não encontrado.', 404);
+    $t = trim(preg_replace('/[ \t]+/u', ' ', (string)($in['texto'] ?? ''))); $t = mb_substr($t, 0, 500); if ($t === '') falha('Escreva a anotação.');
+    $quem = mb_substr(maiusculo((string)($in['quem'] ?? '')), 0, 30); $un = unidadeDoPedido();
+    if ($quem === '' || !in_array($quem, array_merge($un ? vendedorasDaUnidade((int)$un) : vendedorasTodas(), vendedoras()), true)) { if (!empty($u['loja'])) falha('Toque em quem está escrevendo.'); $quem = mb_substr(maiusculo((string)$u['nome']), 0, 30); }
+    $db->prepare('INSERT INTO anotacoes (crianca_id, texto, quando, por, por_id) VALUES (?, ?, ?, ?, ?)')->execute([(int)$c['id'], $t, agora(), $quem, (int)$u['id']]);
+    responder(['anotacoes' => anotacoesLista()]);
+  }
+  case 'anotacao_apagar': { /* 2.12: quem escreveu (no mesmo login) ou o gestor */
+    $u = exigir(); $q = $db->prepare('SELECT * FROM anotacoes WHERE id = ? AND apagada = 0'); $q->execute([(int)($in['id'] ?? 0)]); $x = $q->fetch(); if (!$x) falha('Anotação não encontrada.', 404);
+    if ($u['papel'] !== 'gestor' && (int)$x['por_id'] !== (int)$u['id']) falha('Só quem escreveu ou o gestor apaga a anotação.', 403);
+    $db->prepare('UPDATE anotacoes SET apagada = 1 WHERE id = ?')->execute([(int)$x['id']]);
+    responder(['anotacoes' => anotacoesLista()]);
   }
   case 'sair': { $_SESSION = []; session_destroy(); responder(); }
   case 'trocar_senha': {

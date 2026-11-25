@@ -1628,6 +1628,13 @@ b.np { color: var(--erro); letter-spacing: .03em; }
 .lj-uni.ct { background: #C8202A; } .lj-uni svg { width: 22px; height: 22px; } .lj-uni:disabled { opacity: .55; cursor: wait; }
 .lj-senha { display: block; margin: 10px auto 0; } .bt.lj-gestor { margin-top: 10px; } .bt.lj-ct { background: #C8202A; border-color: #C8202A; }
 @media (max-width: 360px) { .lj-unis { grid-template-columns: 1fr; } .lj-uni { min-height: 64px; flex-direction: row; } }
+/* 2.12: o balãozinho das anotações do cliente e a janelinha que aparece passando o mouse */
+.nota-ic { display: inline-flex; align-items: center; gap: 2px; margin-left: 6px; padding: 1px 7px 1px 5px; border-radius: 999px; background: var(--mostarda-2); color: var(--tinta); font: 800 11px/1.5 var(--texto); vertical-align: middle; cursor: help; white-space: nowrap; }
+.nota-ic svg { width: 12px; height: 12px; } .nota-ic i { font-style: normal; }
+#nota-pop { position: fixed; z-index: 400; padding: 10px 12px; border-radius: 14px; background: var(--card); color: var(--tinta); border: 1px solid var(--borda-2); box-shadow: 0 12px 32px rgba(0, 0, 0, .18); font: 500 13px/1.38 var(--texto); white-space: normal; text-align: left; }
+#nota-pop[hidden] { display: none; } #nota-pop .np-t { display: block; margin-bottom: 6px; font: 800 13px/1.2 var(--texto); }
+#nota-pop .np-it + .np-it { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--borda); } #nota-pop small { display: block; color: var(--tinta-2); font-weight: 700; font-size: 11.5px; }
+#nota-pop .np-mais { margin-top: 8px; } .an-lista .an-t { white-space: normal; font-weight: 600; }
 .bt.av-entrar { height: auto; min-height: 58px; padding: 9px 16px; flex-direction: column; gap: 3px; line-height: 1.2; } .bt.av-entrar > span { display: inline-flex; align-items: center; gap: 8px; } .bt.av-entrar small { font: 700 12.5px/1.2 var(--texto); opacity: .92; letter-spacing: 0; }   /* 1.15: o botão da entrada na recreação avulsa, com o valor embaixo */
 .serv .qtd b { min-width: 62px; text-align: center; font-family: var(--display); font-weight: 800; font-size: 16px; white-space: nowrap; }
 .serv .valor { text-align: right; font-family: var(--display); font-weight: 800; font-size: 16px; white-space: nowrap; }
@@ -2100,7 +2107,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.11';
+const VERSAO = '2.12';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -2451,6 +2458,7 @@ function aplicarDados(d) { // 1.40: o que veio do servidor (ou o que ficou guard
     S.cfg = { ...S.cfg, ...d.regra, idface: { ...S.cfg.idface, ...d.idface } };
     S.equipe = d.equipe || [];
     S.produtos = d.produtos || [];
+    S.anotacoes = (d.anotacoes || []).map(n => ({ ...n, q: dataDe(n.q) }));   /* 2.12 */
     S.unidades = Array.isArray(d.unidades) ? d.unidades : [];   // 1.06: as unidades (as inativas vêm junto, para o nome das antigas)
     S.alugueis = (d.alugueis || []).map(a => ({ ...a, ini: dataDe(a.ini) }));
     S.cupons = (d.cupons || []).map(k => ({ ...k, quando: dataDe(k.quando), em: k.em ? dataDe(k.em) : null }));   // 0.93: o cupom fiscal de cada pagamento
@@ -2633,7 +2641,7 @@ function voltarPrevia() {
 // A equipe cadastra e atende; mudar (ou remover) o que já está cadastrado é só do gestor, e só por aqui (Ajustes → Cadastros).
 const linhasAdmin = q => { const k = String(q || '').trim().toLowerCase(), L = S.criancas.filter(c => !k || casaBusca(c, k)).sort((a, b) => porResp(a, b));
   if (!L.length) return `<p class="explica">${k ? 'Nenhum cadastro com essa busca.' : 'Nenhum cadastro ainda.'}</p>`;
-  return L.slice(0, 40).map(c => `<button type="button" class="cr tap" data-act="editar" data-id="${c.id}" aria-label="Editar o cadastro de ${esc(c.nome)}">${avatar(c)}<span class="txt"><b>${nomeResp(c)}</b><span>${pontos(nomeCri(c, true), c.cpf ? esc(docTxt(c)) : '', c.imp ? 'veio na importação' : '')}</span></span><em>Editar ${ic(IC.lapis, 13, 2.4)}</em></button>`).join('')
+  return L.slice(0, 40).map(c => `<button type="button" class="cr tap" data-act="editar" data-id="${c.id}" aria-label="Editar o cadastro de ${esc(c.nome)}">${avatar(c)}<span class="txt"><b>${nomeResp(c)}${notaIc(c)}</b><span>${pontos(nomeCri(c, true), c.cpf ? esc(docTxt(c)) : '', c.imp ? 'veio na importação' : '')}</span></span><em>Editar ${ic(IC.lapis, 13, 2.4)}</em></button>`).join('')
     + (L.length > 40 ? `<p class="explica">Mostrando 40 de ${L.length}: escreva o nome ou o CPF para achar.</p>` : ''); };
 function folhaCadastros() {
   if (MODO === 'servidor' && !gestor()) return;
@@ -6003,7 +6011,7 @@ function linhaEspaco(c, fam = 1) {
   return `<div class="esp-it ${st}${at ? ' cobranca' : ''}${S.chegou === c.id ? ' chegou' : ''}" data-esp="${c.id}">
     <button class="quem tap" ${abre} aria-label="Abrir a comanda de ${esc(c.resp || c.nome)}${c.resp ? ', criança ' + esc(c.nome) : ''}"></button>
     <i class="pt" aria-hidden="true"></i>
-    <span class="l2" ${abre} title="Responsável${fam > 1 ? ' · ' + fam + ' juntos' : ''}">${fam > 1 ? `<i class="elo">${ic(IC.elo, 11, 2.6)}</i>` : ''}${esc(c.resp || 'sem responsável')}</span>
+    <span class="l2" ${abre} title="Responsável${fam > 1 ? ' · ' + fam + ' juntos' : ''}">${fam > 1 ? `<i class="elo">${ic(IC.elo, 11, 2.6)}</i>` : ''}${esc(c.resp || 'sem responsável')}${notaIc(c)}</span>
     <span class="l1" ${abre} title="Criança"><b>${esc(c.nome)}</b><i class="sv-m"> · ${c.festa ? 'FESTA' : tg}</i>${uniMovel(c.uni)}${c.obs ? `<button type="button" class="obs obs-bt on mini tap" data-act="obs-ver" data-id="${c.id}" title="Tem observação: toque para ver" aria-label="Ver a observação de ${esc(c.nome)}">OBS</button>` : ''}</span>
     <span class="sv" ${abre}><span>${c.festa ? 'FESTA' : esc((servicoTempo() || { n: 'RECREAÇÃO' }).n)}</span><i class="sel ${pl}">${tg}</i></span>
     ${celUnidade(c.uni, abre)}
@@ -6020,7 +6028,7 @@ function linhaAluguel(a, fam = 1) {
   return `<div class="esp-it alug ${st}" data-alug="${esc(a.id)}">
     <button class="quem tap" ${abre} aria-label="Abrir a comanda de ${esc(c.resp || c.nome)}: ${esc(alugNome(a))} fora da loja"></button>
     <i class="pt" aria-hidden="true">${ic(IC.carrinho, 15, 2.3)}</i>
-    <span class="l2" ${abre} title="Responsável">${fam > 1 ? `<i class="elo">${ic(IC.elo, 11, 2.6)}</i>` : ''}${esc(c.resp || 'sem responsável')}</span>
+    <span class="l2" ${abre} title="Responsável">${fam > 1 ? `<i class="elo">${ic(IC.elo, 11, 2.6)}</i>` : ''}${esc(c.resp || 'sem responsável')}${notaIc(c)}</span>
     <span class="l1" ${abre} title="${esc(alugNome(a))}"><b>${esc(c.nome)}</b>${a.q > 1 ? `<em class="qt">× ${a.q}</em>` : ''}<i class="sv-m"> · ${esc(alugNome(a).replace(/^carrinho\s+(de\s+)?/i, '') || alugNome(a))}</i>${uniMovel(a.uni)}${c.obs ? `<button type="button" class="obs obs-bt on mini tap" data-act="obs-ver" data-id="${c.id}" title="Tem observação: toque para ver" aria-label="Ver a observação de ${esc(c.nome)}">OBS</button>` : ''}</span>
     <span class="sv" ${abre}><span>${esc(alugNome(a))}</span></span>
     ${celUnidade(a.uni, abre)}
@@ -6321,7 +6329,7 @@ function corpoEspaco() {
   else h = `<div class="card vazio"><b>Ninguém no espaço com essa busca.</b></div>`;
   if (q.length >= 2 && f === 'todas') { // a busca também acha quem tem cadastro e não está no espaço: dá para atender dali mesmo (ou reabrir a visita de quem saiu há pouco)
     const fora = S.criancas.filter(c => !c.entrou && casaBusca(c, q)).sort(porResp).slice(0, 8);
-    h += fora.length ? `<div class="esp-fora"><small class="rot">Com cadastro, fora do espaço</small><div class="grupo">${fora.map(c => `<div class="it"><button class="quem tap" data-act="ficha" data-id="${c.id}">${avatar(c)}<span class="txt"><b>${nomeResp(c)}</b><span>${c.resp ? esc(c.nome) + ' · ' : ''}${c.tel ? esc(c.tel) + ' · ' : ''}${temPeriodo(c) ? hm(saldoMin(c)) + ' guardado' : 'sem horas guardadas'}${podeReabrir(c) ? ' · saiu ' + haMin(new Date(ultVis(c).dia)) : ''}${emAberto(c) ? ' · ' + esc(textoPend(c)) : ''}</span></span></button>${podeReabrir(c) ? `<button class="bt tap" data-act="reabrir" data-id="${c.id}" title="Desfaz a saída: o tempo continua contando desde a entrada">${ic(IC.renova, 14)} Reabrir</button>` : ''}${semIdface() ? `<button class="bt forte tap" data-act="entrada-rapida" data-id="${c.id}" title="${temPeriodo(c) ? 'Entra usando as horas que já tem' : 'Sem pacote: entra na recreação avulsa e acerta na saída'}">${ic(IC.entrar, 14)} Entrada</button>` : ''}<button class="bt ${semIdface() || temPeriodo(c) ? '' : 'forte'} tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 14)} ${emAberto(c) ? 'Continuar' : 'Atender'}</button></div>`).join('')}</div></div>`
+    h += fora.length ? `<div class="esp-fora"><small class="rot">Com cadastro, fora do espaço</small><div class="grupo">${fora.map(c => `<div class="it"><button class="quem tap" data-act="ficha" data-id="${c.id}">${avatar(c)}<span class="txt"><b>${nomeResp(c)}${notaIc(c)}</b><span>${c.resp ? esc(c.nome) + ' · ' : ''}${c.tel ? esc(c.tel) + ' · ' : ''}${temPeriodo(c) ? hm(saldoMin(c)) + ' guardado' : 'sem horas guardadas'}${podeReabrir(c) ? ' · saiu ' + haMin(new Date(ultVis(c).dia)) : ''}${emAberto(c) ? ' · ' + esc(textoPend(c)) : ''}</span></span></button>${podeReabrir(c) ? `<button class="bt tap" data-act="reabrir" data-id="${c.id}" title="Desfaz a saída: o tempo continua contando desde a entrada">${ic(IC.renova, 14)} Reabrir</button>` : ''}${semIdface() ? `<button class="bt forte tap" data-act="entrada-rapida" data-id="${c.id}" title="${temPeriodo(c) ? 'Entra usando as horas que já tem' : 'Sem pacote: entra na recreação avulsa e acerta na saída'}">${ic(IC.entrar, 14)} Entrada</button>` : ''}<button class="bt ${semIdface() || temPeriodo(c) ? '' : 'forte'} tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 14)} ${emAberto(c) ? 'Continuar' : 'Atender'}</button></div>`).join('')}</div></div>`
       : `<div class="esp-fora"><p class="explica">Ninguém com cadastro e fora do espaço nessa busca. <button class="link tap" data-act="nova">Cadastrar</button></p></div>`;
   }
   return h;
@@ -8129,9 +8137,34 @@ function fecharLado() {
   const a = $('#lado .lado'); LADO = null; document.body.classList.remove('com-lado'); acertaMenu(); graficosPainel(); setTimeout(desenharPedidos, 0); if (!a) return;
   a.classList.remove('ve'); setTimeout(() => { if (!LADO) $('#lado').innerHTML = ''; }, 400);
 }
+/* 2.12 (o dono: "uma opção de visualização rápida, de passar o mouse em cima e visualizar ... alguma informação que as atendentes coloquem.
+   Cliente, entrada em contato tal dia ... sem precisar abrir outra tela"): as anotações do cliente (da família). O balãozinho ao lado do
+   responsável mostra as últimas, passando o mouse (ou tocando); o Histórico do cliente tem a lista inteira e o campo para escrever */
+let AN_QUEM = '', NOTA_T = 0;
+const IC_NOTA = '<path d="M4 5h16v11H10l-5 4v-4H4z"/>';
+const notasDe = c => { const ids = new Set(familia(c).map(x => x.id)); return (S.anotacoes || []).filter(n => ids.has(n.c)).sort((a, b) => b.q - a.q || b.id - a.id); };
+const notaIc = c => { const N = (S.anotacoes || []).length ? notasDe(c) : []; return N.length ? `<span class="nota-ic" role="button" tabindex="0" data-act="nota-ver" data-nota="${c.id}" aria-label="${N.length === 1 ? '1 anotação' : N.length + ' anotações'}: passe o mouse ou toque para ver">${ic(IC_NOTA, 12, 2.4)}<i>${N.length}</i></span>` : ''; };
+const podeApagarNota = n => MODO !== 'servidor' || gestor() || (EU && n.pid === EU.id);
+function notaPop(el) { const c = crianca(el.dataset.nota); if (!c) return; const N = notasDe(c); if (!N.length) return; let p = $('#nota-pop');
+  if (!p) { p = document.createElement('div'); p.id = 'nota-pop'; p.setAttribute('role', 'tooltip'); document.body.appendChild(p); p.addEventListener('mouseenter', () => clearTimeout(NOTA_T)); p.addEventListener('mouseleave', () => notaFecha()); }
+  p.innerHTML = `<b class="np-t">Anotações · ${esc(c.resp || c.nome)}</b>${N.slice(0, 6).map(n => `<div class="np-it"><small>${dataCurta(n.q)} · ${esc(primeiro(n.p))}</small>${esc(n.t)}</div>`).join('')}${N.length > 6 ? `<small class="np-mais">e mais ${N.length - 6} no Histórico do cliente</small>` : ''}`;
+  if (p.hidden || p.dataset.de !== el.dataset.nota) { p.dataset.fixa = ''; p.dataset.t = String(Date.now()); } p.hidden = false; p.dataset.de = el.dataset.nota; const r = el.getBoundingClientRect(), w = Math.min(340, innerWidth - 24); p.style.width = w + 'px';
+  p.style.left = Math.max(12, Math.min(r.left, innerWidth - w - 12)) + 'px'; p.style.top = (r.bottom + 6) + 'px'; const h = p.getBoundingClientRect().height; if (r.bottom + 6 + h > innerHeight - 8) p.style.top = Math.max(8, r.top - h - 6) + 'px'; }
+function notaFecha(ja) { const p0 = $('#nota-pop'); if (!ja && p0 && p0.dataset.fixa === '1') return; clearTimeout(NOTA_T); NOTA_T = setTimeout(() => { const p = $('#nota-pop'); if (p) { p.hidden = true; p.dataset.fixa = ''; } }, ja ? 0 : 200); }   /* fixa: aberta com o toque (fica até tocar fora) */
+document.addEventListener('mouseover', e => { const el = e.target && e.target.closest ? e.target.closest('[data-nota]') : null; if (el) { clearTimeout(NOTA_T); notaPop(el); } });
+document.addEventListener('mouseout', e => { const el = e.target && e.target.closest ? e.target.closest('[data-nota]') : null; if (el && !(e.relatedTarget && el.contains(e.relatedTarget))) notaFecha(); });
+document.addEventListener('click', e => { if (!(e.target && e.target.closest && e.target.closest('#nota-pop, [data-nota]'))) notaFecha(true); }, true);
+addEventListener('scroll', () => { const p = $('#nota-pop'); if (p && !p.hidden && Date.now() - (+p.dataset.t || 0) < 600) return; notaFecha(true); }, true);   /* (a rolagem logo depois de abrir, no toque, não fecha) */
+const htmlAnotacoes = base => { const N = notasDe(base);
+  return `<div class="sec" id="an-sec"><div class="sec-cab"><h2 style="font-size:16px">${ic(IC_NOTA, 16, 2.2)} Anotações</h2>${N.length ? `<span class="pill p-neutro">${N.length}</span>` : ''}</div>
+    ${N.length ? `<div class="grupo an-lista">${N.map(n => `<div class="it"><div class="txt"><b class="an-t">${esc(n.t)}</b><span>${dataCurta(n.q)} · ${esc(n.p)}</span></div>${podeApagarNota(n) ? `<button type="button" class="link tap" data-act="an-apagar" data-id="${n.id}" style="color:var(--erro)">Apagar</button>` : ''}</div>`).join('')}</div>` : '<p class="explica">Nenhuma anotação ainda.</p>'}
+    <div class="campo"><label for="an-txt">Nova anotação <span class="leve">· aparece passando o mouse no nome do cliente</span></label><textarea id="an-txt" rows="2" maxlength="500" placeholder="Ex.: cliente entrou em contato dia 25/11 pedindo…"></textarea></div>
+    ${MODO === 'servidor' && EU && EU.loja && vendedorasLista().length ? `<div class="vend" id="an-quem"><p class="vend-t">Quem está escrevendo?</p><div class="vend-b">${vendedorasLista().map(n => `<button type="button" class="tap" data-act="an-quem" data-n="${esc(n)}" aria-pressed="${n === AN_QUEM}">${esc(n)}</button>`).join('')}</div></div>` : ''}
+    <div class="acoes"><button type="button" class="bt forte tap" data-act="an-salvar" data-id="${base.id}">${ic(IC.check)} Salvar a anotação</button></div></div>`; };
 function desenharLado() {
   if (LADO && LADO.cal) { desenharCalLado(); return; }   // 1.29
   const a = $('#lado .lado'); if (!a || !LADO) return; const base = crianca(LADO.id); if (!base) { fecharLado(); return; }
+  const anT = $('#an-txt'), anV = anT ? anT.value : '', anF = !!anT && document.activeElement === anT;   /* 2.12: o que está sendo escrito na anotação não se perde quando o painel se refaz */
   const fam = familia(base), d = LADO.dados, varias = fam.length > 1, nomeDe = id => (crianca(id) || { nome: '' }).nome;
   const visitas = d ? (LADO.todas ? d.visitas : d.visitas.slice(0, 6)) : [], rola = a.scrollTop;
   const compras = d ? comprasPorVisita(d.vendas, d.visitas) : [];   // 1.18: a recreação avulsa de cada visita numa linha só
@@ -8148,6 +8181,7 @@ function desenharLado() {
       <div><small>Horas consumidas</small><b class="num">${hm(usado)}</b></div>
       <div class="tem"><small>Saldo de horas</small><b class="num">${hm(tem)}</b></div>` : `<div><small>Visitas</small><b class="num">${d ? d.visitas.length : '…'}</b></div>`}
     </div>
+    ${htmlAnotacoes(base)}
     <div class="sec"><div class="sec-cab"><h2 style="font-size:16px">${varias ? 'Crianças' : 'Criança'}</h2>${varias ? `<span class="pill p-neutro">${fam.length}</span>` : ''}<button class="link tap" data-act="outra-crianca" data-id="${base.id}" title="Cadastrar outra criança deste responsável, sem escrever os dados dele de novo">${ic(IC.mais, 14, 2.8)} Outra criança</button></div>
       ${fam.map(c => { const [et, cls] = estado(c), u = ultima(c); return `<div class="h-cr">
         <button class="quem tap" data-act="ficha" data-id="${c.id}" aria-label="Abrir a ficha de ${esc(c.nome)}">${avatar(c)}<span class="txt"><b>${esc(c.nome)}${idadeTxt(c) ? ', ' + idadeTxt(c) : ''}</b><span>${c.entrou ? 'No espaço desde ' + hora(c.entrou) : u ? 'Veio por último em ' + diaCurto(new Date(u)) : 'Ainda não veio brincar'}${c.sapateira ? ' · sapateira ' + c.sapateira : ''}</span><span class="cad-n">Cadastro nº ${c.id}</span></span><span class="pill ${c.entrou ? 'p-ok' : cls}">${c.entrou ? 'No espaço' : et}</span></button>
@@ -8161,6 +8195,7 @@ function desenharLado() {
       ${!d ? (LADO.erro ? '' : `<p class="explica">Buscando as visitas…</p>`) : d.visitas.length ? `<div class="grupo">${visitas.map(v => `<div class="it"><div class="txt"><b>${v.dia.getDate()} de ${MESES[v.dia.getMonth()]}${v.dia.getFullYear() !== agora.getFullYear() ? ' de ' + v.dia.getFullYear() : ''}</b><span>${varias ? esc(nomeDe(v.crianca)) + ' · ' : ''}${v.entrou} às ${v.saiu}</span></div><span class="pill p-neutro">${hm(v.deb)}</span></div>`).join('')}</div>${d.visitas.length > 6 ? `<button class="link tap" data-act="lado-todas" style="align-self:flex-start">${LADO.todas ? 'Mostrar só as últimas' : 'Ver as ' + d.visitas.length + ' visitas'}</button>` : ''}` : `<p class="explica">Ainda não veio brincar.</p>`}</div>
     ${d && d.cancelados && d.cancelados.length ? `<div class="sec"><div class="sec-cab"><h2 style="font-size:16px">Cancelamentos</h2><span class="pill p-erro">${d.cancelados.length}</span></div>
       <div class="grupo">${d.cancelados.map(x => `<div class="it"><div class="txt"><b>${quandoFoi(x.quando)}${cancTipo(x) === 'venda' ? ' · venda cancelada' : cancTipo(x) === 'desfeita' ? ' · entrada desfeita na hora' : cancTipo(x) === 'atendimento' ? ' · atendimento cancelado' : ' · ficou ' + minCurto(x.min)}</b><span style="white-space:normal;overflow-wrap:anywhere">${varias ? esc(x.nome) + ' · ' : ''}${cancTipo(x) === 'venda' ? itensCancelados(x) + ((x.itens[0] || {}).dev ? ' · devolvido: ' + esc(x.itens[0].dev) : '') : cancAlug(x) ? 'saída do ' + esc(cancAlug(x).n) + ' cancelada, nada cobrado' : cancTipo(x) === 'atendimento' ? (x.itens && x.itens.length ? itensCancelados(x) + ' · ' : '') + 'nada foi vendido' : x.itens && x.itens.length ? 'não cobrado: ' + itensCancelados(x) : 'o tempo não foi descontado'} · “${esc(x.motivo)}” · por ${esc(quemCancelou(x))}</span></div></div>`).join('')}</div></div>` : ''}`;
+  { const t = $('#an-txt'); if (t && anV) t.value = anV; if (t && anF) t.focus(); }
   a.scrollTop = rola;
 }
 function folhaDia() {
@@ -9111,6 +9146,15 @@ const ACOES = {
     catch (e) { el.disabled = false; ursoReage('nao'); toast(e.message); const i = $('#lj-senha'); if (i) { i.value = ''; i.focus(); } if (e.status === 403) { maqGuardar(null); LJ_UNI = 0; setTimeout(telaEntrar, 1500); } } },
   'entrar-senha': () => { ENTRAR_SENHA = true; telaEntrar(); }, 'entrar-unidades': () => { ENTRAR_SENHA = false; LJ_UNI = 0; telaEntrar(); },
   'maq-lista': () => folhaMaquinas(),
+  'nota-ver': el => { const p = $('#nota-pop'); if (p && !p.hidden && p.dataset.de === el.dataset.nota && Date.now() - (+p.dataset.t || 0) > 700) notaFecha(true); else { notaPop(el); const p2 = $('#nota-pop'); if (p2) p2.dataset.fixa = '1'; } },   /* (no toque, o mouseover vem antes do clique: não fecha o que acabou de abrir) */   /* 2.12: as anotações (tocando, no celular) */
+  'an-quem': el => { AN_QUEM = el.dataset.n; $$('#an-quem [data-n]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.n === AN_QUEM))); },
+  'an-salvar': async el => { const t = val('an-txt').trim(), c = crianca(el.dataset.id); if (!c) return; if (!t) { toast('Escreva a anotação'); const i = $('#an-txt'); if (i) i.focus(); return; }
+    if (MODO === 'servidor' && EU && EU.loja && !AN_QUEM && vendedorasLista().length) { toast('Toque em quem está escrevendo'); return; } el.disabled = true;
+    try { if (MODO === 'servidor') { const r = await api('anotacao_salvar', { crianca: c.id, texto: t, quem: AN_QUEM || '' }); S.anotacoes = (r.anotacoes || []).map(n => ({ ...n, q: dataDe(n.q) })); }
+      else S.anotacoes = [{ id: novoId(), c: c.id, t, q: new Date(), p: AN_QUEM || EU.nomeCompleto || EU.nome, pid: EU.id || 0 }, ...(S.anotacoes || [])];
+      const i = $('#an-txt'); if (i) i.value = ''; deuCerto('Anotação salva'); desenharLado(); desenhar(); } catch (e) { toast(e.message); } el.disabled = false; },
+  'an-apagar': async el => { const id = +el.dataset.id; try { if (MODO === 'servidor') { const r = await api('anotacao_apagar', { id }); S.anotacoes = (r.anotacoes || []).map(n => ({ ...n, q: dataDe(n.q) })); } else S.anotacoes = (S.anotacoes || []).filter(n => n.id !== id);
+      deuCerto('Anotação apagada'); desenharLado(); desenhar(); } catch (e) { toast(e.message); } },
   'maq-ct': async el => { await criarCasaTom(el); folhaMaquinas(); },   /* 2.11: a Casa Tom que falta (ex.: Morumbi) */
   'loja-senha': async el => { const i = document.querySelector(`.mq-s[data-u="${el.dataset.u}"]`), s = i ? i.value : ''; if (s.length < 4) { toast('A senha precisa ter pelo menos 4 caracteres'); if (i) i.focus(); return; } el.disabled = true;
     try { await api('loja_senha', { unidade: +el.dataset.u, senha: s }); i.value = ''; deuCerto('Senha da unidade trocada: ' + nomeUni(+el.dataset.u)); } catch (e) { toast(e.message); } el.disabled = false; },

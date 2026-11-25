@@ -444,6 +444,11 @@ function db(): PDO {
     foreach ($pdo->query('SELECT id FROM usuarios WHERE loja = 1')->fetchAll(PDO::FETCH_COLUMN) as $id) $pdo->prepare('UPDATE usuarios SET senha = ? WHERE id = ?')->execute([password_hash('123456', PASSWORD_DEFAULT), (int)$id]);
     $pdo->exec('PRAGMA user_version = 49');
   }
+  if ($v < 50) { /* 2.12: as anotações do cliente */
+    $pdo->exec("CREATE TABLE IF NOT EXISTS anotacoes (id INTEGER PRIMARY KEY, crianca_id INTEGER NOT NULL, texto TEXT NOT NULL, quando TEXT NOT NULL, por TEXT NOT NULL DEFAULT '', por_id INTEGER, apagada INTEGER NOT NULL DEFAULT 0)");
+    $pdo->exec('CREATE INDEX IF NOT EXISTS anotacoes_crianca ON anotacoes (crianca_id)');
+    $pdo->exec('PRAGMA user_version = 50');
+  }
   return $pdo;
 }
 /* ---------- 1.06: unidades ---------- */
@@ -662,6 +667,11 @@ function maquinasLista(): array {
   return array_map(fn($x) => ['id' => (int)$x['id'], 'nome' => (string)$x['nome'], 'criado' => $d($x['criado_em']), 'uso' => $d($x['ultimo_uso']), 'ativo' => (int)$x['ativo'] === 1], db()->query('SELECT * FROM maquinas ORDER BY ativo DESC, id DESC LIMIT 40')->fetchAll());
 }
 function unidadesDaLoja(): array { return array_map(fn($x) => ['id' => (int)$x['id'], 'nome' => (string)$x['nome']], db()->query('SELECT id, nome FROM unidades WHERE ativo = 1 ORDER BY id')->fetchAll()); }
+/* 2.12: as anotações do cliente (a lista vai inteira nos dados: são poucas e curtas) */
+function anotacoesLista(): array {
+  return array_map(fn($x) => ['id' => (int)$x['id'], 'c' => (int)$x['crianca_id'], 't' => (string)$x['texto'], 'q' => (string)$x['quando'], 'p' => (string)$x['por'], 'pid' => (int)($x['por_id'] ?? 0)],
+    db()->query('SELECT * FROM anotacoes WHERE apagada = 0 ORDER BY id DESC LIMIT 3000')->fetchAll());
+}
 function eu(): ?array {
   $id = (int)($_SESSION['uid'] ?? 0); if (!$id) return null;
   $q = db()->prepare('SELECT id, nome, login, papel, unidade_id, loja FROM usuarios WHERE id = ? AND ativo = 1'); $q->execute([$id]);   // 2.02: e a unidade dela

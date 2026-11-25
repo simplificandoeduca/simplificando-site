@@ -1301,6 +1301,14 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. As anotações do cliente, com a visualização rápida (2.12)
+
+Pedido do dono (25/11): "uma opção de visualização rápida, de passar o mouse em cima e visualizar, às vezes, alguma informação que as atendentes coloquem. Cliente, entrada em contato tal dia, algum tipo de observação assim que as meninas consigam visualizar no cadastro do cliente sem precisar abrir outra tela".
+
+- No Histórico do cliente (o painel da direita), "Anotações": escreva (ex.: "cliente entrou em contato dia 25/11 pedindo…") e toque em "Salvar a anotação". Cada uma fica com a data e o nome de quem escreveu; no computador da loja, toque antes em quem está escrevendo. Quem escreveu (no mesmo login) ou o gestor apaga.
+- A anotação é da família (o mesmo responsável). Quem tem anotação ganha um balãozinho com o número ao lado do nome do responsável: na lista de quem está no espaço, na busca e em Cadastros. Passando o mouse em cima, aparecem as últimas anotações, sem abrir outra tela; no celular, toque no balãozinho para ver e toque de novo para fechar.
+- As observações de cada criança (alergias, pintura no rosto…) continuam no OBS, como antes.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. As horas do CPF e a senha das unidades (2.11)
 
 Pedidos do dono (25/11).
