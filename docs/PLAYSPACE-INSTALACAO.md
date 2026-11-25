@@ -1301,6 +1301,16 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A importação traz as contas a pagar e mais fornecedores (2.03, Finanças 5.0)
+
+Pedido do dono, com a planilha do financeiro: "essa é a planilha com fornecedor, contas a pagar, esse campo que colocamos tem que puxar tudo isso".
+
+- A planilha só tem o que já foi pago (a última despesa é de novembro). As compras parceladas ("parc 2/10") dizem o que ainda falta: cada série (o mesmo total de parcelas, o mesmo valor e a mesma filial) continua mês a mês a partir da última parcela lançada.
+- As parcelas que vencem depois do último dia da planilha entram em **Contas a pagar** (a pagar, com o vencimento), com o fornecedor, o grupo e o centro de custo da última. A que venceria antes do último dia não entra (foi paga e lançada de outro jeito).
+- A conferência da importação mostra as contas a pagar achadas: quantas, quanto, de quando a quando, e a lista. O aviso do fim diz quantas foram para Contas a pagar.
+- Mais fornecedores reconhecidos nas despesas (os nomes de empresa da planilha que faltavam): Muvile Confecções, Witec, Dorel, Officina do Acrílico, Vitrine Cartoon, Festíssima, Benvollf Machado, Universo Sublimático, GS1, Exata (nos honorários), Young, os laudos, Marcas e Patentes, Uber, o eletricista. Folha, extras, vales, impostos e aluguel continuam sem fornecedor.
+- Conferido com a planilha do financeiro: 45 contas a pagar (R$ 33.311,23, de 25/11/2026 a 17/07/2027) e 57 fornecedores ligados a 827 despesas (eram 44 e 704). Importar de novo não repete nada; a conta paga no sistema continua paga.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A relação de produtos, a unidade de cada pessoa, uma janela só, o login com espaço, a nota em um clique, a saída sozinha e a importação na tela inicial das Finanças (2.02, Finanças 4.9)
 
 Pedidos do dono no fim do dia da virada.

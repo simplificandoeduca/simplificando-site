@@ -212,7 +212,12 @@ const G_FORN = [[/limp\s*quality/i, 'Limp Quality'], [/\bclaro\b/i, 'Claro'], [/
   [/hora mais/i, 'Hora Mais Distribuidora'], [/\bhg\b/i, 'HG Brinquedos'], [/dimep|kair[oó]s/i, 'Dimep'], [/porto seguro/i, 'Porto Seguro'], [/\bamil\b/i, 'Amil'], [/sem parar/i, 'Sem Parar'],
   [/chat\s*gpt/i, 'ChatGPT'], [/king sedas/i, 'Gráfica King Sedas'], [/higuchi/i, 'Gráfica Higuchi'], [/\blk solu/i, 'LK Soluções Vidraçaria'], [/verisure/i, 'Verisure'], [/sp\s*trans/i, 'SPTrans'],
   [/castropil/i, 'Castropil'], [/calcagnoto/i, 'Renato Calcagnoto (marcas e patentes)'], [/br rodas/i, 'BR Rodas'], [/xalingo/i, 'Xalingo'], [/\bradex\b/i, 'Radex'], [/art in donuts/i, 'Art in Donuts'],
-  [/manto produ/i, 'Manto Produções']];
+  [/manto produ/i, 'Manto Produções'],
+  /* 5.0: os nomes de empresa da planilha que faltavam */
+  [/muvil+e/i, 'Muvile Confecções'], [/of+icina do acr[ií]lico/i, 'Officina do Acrílico'], [/\bwitec\b|renova\w* microsoft/i, 'Witec'], [/\bdorel\b/i, 'Dorel'], [/vitrine cartoon/i, 'Vitrine Cartoon'],
+  [/fest[ií]ssima/i, 'Festíssima Decor e Festa'], [/benvol+f/i, 'Benvollf Machado'], [/universo sublim/i, 'Universo Sublimático'], [/\bgs1\b/i, 'GS1 Brasil'], [/\bexata\b/i, 'Contabilidade Exata'],
+  [/\byoug\b/i, 'Young Informática'], [/carrapatoso/i, 'Engenheiro Guilherme Carrapatoso (laudos)'], [/paccess/i, 'G. Paccess (laudos)'], [/marcas e patentes?/i, 'Renato Calcagnoto (marcas e patentes)'],
+  [/^\s*ros[aâ]ngelas?\b/i, 'Costureira Rosângela'], [/\buber\b/i, 'Uber'], [/eletricista\W+alex/i, 'Eletricista Alex']];
 const gFornDe = d => { for (const [r, n] of G_FORN) if (r.test(d)) return n; return ''; };
 const gBr = d => d.slice(8, 10) + '/' + d.slice(5, 7) + '/' + d.slice(0, 4);
 const gDataTxt = v => { const m = typeof v === 'string' && /^\s*(\d{1,2})\/(\d{1,2})\/(\d{2,4})\s*$/.exec(v); if (!m) return ''; const a = +m[3] < 100 ? 2000 + +m[3] : +m[3]; return String(a).padStart(4, '0') + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0'); };
@@ -225,6 +230,25 @@ function gDia(v, ant, aj, onde) {
   return gValida(d) ? { d, nota } : { d: '' };
 }
 const gJunta = (a, b) => [a, b].filter(Boolean).join(' · ');
+/* 5.0 (o dono: "essa é a planilha com fornecedor, contas a pagar ... tem que puxar tudo isso"): as contas a pagar da planilha. Ela só
+   tem o que já foi pago; as compras parceladas ("parc 2/10") dizem o que ainda falta. Cada série (o mesmo total de parcelas, o mesmo valor e
+   a mesma filial) continua mês a mês a partir da última parcela lançada; as parcelas que vencem depois do último dia da planilha entram em
+   Contas a pagar (a pagar, com o vencimento), com o fornecedor, o grupo e o centro de custo da última. A que venceria antes do último dia
+   não entra (foi paga e lançada de outro jeito). */
+const gMaisMes = (d, k) => { const a = +d.slice(0, 4), t = +d.slice(5, 7) - 1 + k, y = a + Math.floor(t / 12), m = ((t % 12) + 12) % 12, u = new Date(y, m + 1, 0).getDate();
+  return `${y}-${String(m + 1).padStart(2, '0')}-${String(Math.min(+d.slice(8, 10), u)).padStart(2, '0')}`; };
+function gParcelas(O) {
+  const P = /parc(?:ela)?\.?\s*(\d{1,2})\s*(?:\/|de)\s*(\d{1,2})/i, S = {}; let fim = '';
+  for (const x of O.despesa) if (x.data > fim) fim = x.data;
+  for (const x of O.despesa) { const m = P.exec(x.descricao || '') || P.exec(x.obs || ''); if (!m) continue; const k = +m[1], n = +m[2]; if (!(k >= 1 && k <= n && n >= 2 && n <= 60)) continue;
+    const ch = n + '|' + (+x.valor).toFixed(2) + '|' + gNorm(x.filial || ''), s = S[ch]; if (!s || k > s.k || (k === s.k && x.data > s.x.data)) S[ch] = { k, n, x }; }
+  const ap = [];
+  for (const { k, n, x } of Object.values(S)) for (let j = k + 1; j <= n; j++) { const vc = gMaisMes(x.data, j - k); if (vc <= fim) continue;
+    const pa = `parc ${j}/${n}`, desc = P.test(x.descricao || '') ? x.descricao.replace(P, pa) : `${x.descricao} - ${pa}`;
+    ap.push({ _l: x._l, data: vc, vencimento: vc, situacao: 'aberto', descricao: desc.slice(0, 160), filial: x.filial, grupo: x.grupo, segmento: x.segmento, valor: x.valor, centro: x.centro, fornecedor: x.fornecedor,
+      obs: `a pagar: a parcela que falta (a última na planilha foi a ${k}/${n}, de ${gBr(x.data)})` }); }
+  return ap.sort((a, b) => a.data.localeCompare(b.data) || a.descricao.localeCompare(b.descricao));
+}
 /* a chave da linha: o tipo, um resumo (o dia, o texto, os lugares, o valor) e quantas iguais vieram antes na planilha */
 function gChaves(O) {
   const hash = s => { let h1 = 0x811c9dc5, h2 = 0x9747b28c; for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i); h1 = Math.imul(h1 ^ c, 16777619); h2 = Math.imul(h2 ^ c, 2246822507); } return (h1 >>> 0).toString(36) + (h2 >>> 0).toString(36); };
@@ -271,26 +295,28 @@ async function lerPlanilha(arq) {
           const mref = gSerial(MS[c2]) || gSerial(MS[c2 - 1]); if (!mref) continue; const [a, m] = mref.split('-').map(Number); if (L[0] > new Date(a, m, 0).getDate()) continue;
           O.rede.push({ _l: r + 1, data: `${a}-${String(m).padStart(2, '0')}-${String(L[0]).padStart(2, '0')}`, filial: un.includes('morumbi') ? 'Morumbi' : 'Anália Franco', valor: v, obs: '' }); } } }
   }
-  gChaves(O);
-  return { O, achou, aj, forn: [...new Set(O.despesa.map(x => x.fornecedor).filter(Boolean))].sort(), outras: X.folhas.map(f => f.nome).filter(n => !achou.includes(n)) };   /* 4.9: as outras abas (gráficos, comparativos) */
+  gChaves(O); const ap = gParcelas(O); gChaves({ despesa: ap });   /* 5.0: as contas a pagar (as parcelas que faltam) */
+  return { O, ap, achou, aj, forn: [...new Set(O.despesa.map(x => x.fornecedor).filter(Boolean))].sort(), outras: X.folhas.map(f => f.nome).filter(n => !achou.includes(n)) };   /* 4.9: as outras abas (gráficos, comparativos) */
 }
 function folhaImportar() {
   let lido = null;
   /* 4.9: "Importar dados do sistema anterior" (o mesmo importador, também na tela inicial) */
-  const f = gFolha('Importar dados do sistema anterior', `<p class="sub" style="margin:0 0 12px">Anexe o Excel do financeiro (.xlsx). O sistema lê todas as abas e todos os meses e já preenche tudo: o <b>faturamento</b> (receitas), as <b>despesas</b> com os <b>fornecedores</b> e os custos, os <b>recebimentos líquidos</b> e a <b>Rede</b>. Os gráficos, comparativos e margens o sistema refaz sozinho com esses números (Painel e Relatório financeiro).</p>
+  const f = gFolha('Importar dados do sistema anterior', `<p class="sub" style="margin:0 0 12px">Anexe o Excel do financeiro (.xlsx). O sistema lê todas as abas e todos os meses e já preenche tudo: o <b>faturamento</b> (receitas), as <b>despesas</b> com os <b>fornecedores</b> e os custos, as <b>contas a pagar</b> (as parcelas que ainda faltam), os <b>recebimentos líquidos</b> e a <b>Rede</b>. Os gráficos, comparativos e margens o sistema refaz sozinho com esses números (Painel e Relatório financeiro).</p>
       <label class="lbl" for="g-arq">Anexar o Excel</label><input class="inp g-arq" type="file" id="g-arq" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"><div id="g-imp-res" class="g-imp"></div>
       <p class="sub" style="margin:12px 0 0">Pode importar de novo a mesma planilha (atualizada): o que já está no sistema não se repete, o que foi corrigido ou tirado aqui fica como está, e o lançado aqui no sistema continua.</p>`, {
-    ok: 'Importar', fazer: async F => { if (!lido) throw new Error('Escolha a planilha primeiro.'); const tot = Object.values(lido.O).reduce((t, x) => t + x.length, 0); if (!tot) throw new Error('Não achei nenhuma linha para importar nesta planilha.');
+    ok: 'Importar', fazer: async F => { if (!lido) throw new Error('Escolha a planilha primeiro.'); const envios = Object.entries(lido.O).concat(lido.ap && lido.ap.length ? [['despesa', lido.ap]] : []), tot = envios.reduce((t, x) => t + x[1].length, 0);   /* 5.0: com as contas a pagar */ if (!tot) throw new Error('Não achei nenhuma linha para importar nesta planilha.');
       const lote = 'pl-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8), res = $('#g-imp-res', F); let foi = 0, ja = 0, erros = 0, ex = [];
-      for (const tipo of Object.keys(lido.O)) for (let i = 0; i < lido.O[tipo].length; i += 500) { const r = await api('fl_importar', { lote, tipo, linhas: lido.O[tipo].slice(i, i + 500) }); foi += r.entrou; ja += r.ja || 0; erros += r.erros; ex = ex.concat((r.exemplos || []).map(x => ({ ...x, tipo })));
+      for (const [tipo, LL] of envios) for (let i = 0; i < LL.length; i += 500) { const r = await api('fl_importar', { lote, tipo, linhas: LL.slice(i, i + 500) }); foi += r.entrou; ja += r.ja || 0; erros += r.erros; ex = ex.concat((r.exemplos || []).map(x => ({ ...x, tipo })));
         res.innerHTML = `<div class="barra"><i style="width:${Math.round((foi + ja + erros) / tot * 100)}%"></i></div><p class="sub">Enviando… ${int(foi + ja + erros)} de ${int(tot)}</p>`; }
       const fim = await api('fl_importar_fim', { lote }); await gSujou();
-      aviso(`Planilha importada ✓ ${int(foi)} ${foi === 1 ? 'linha nova' : 'linhas novas'}${ja ? ` · ${int(ja)} já estavam` : ''}${erros ? ` · ${int(erros)} não entraram` : ''}`); if (erros) setTimeout(() => alert(`${int(erros)} linhas não entraram. Exemplos:\n` + ex.slice(0, 8).map(x => `${GT[x.tipo].nome}, linha ${x.linha}: ${x.erro}`).join('\n')), 300);
+      aviso(`Planilha importada ✓ ${int(foi)} ${foi === 1 ? 'linha nova' : 'linhas novas'}${ja ? ` · ${int(ja)} já estavam` : ''}${erros ? ` · ${int(erros)} não entraram` : ''}${lido.ap && lido.ap.length ? ` · ${int(lido.ap.length)} em Contas a pagar` : ''}`); if (erros) setTimeout(() => alert(`${int(erros)} linhas não entraram. Exemplos:\n` + ex.slice(0, 8).map(x => `${GT[x.tipo].nome}, linha ${x.linha}: ${x.erro}`).join('\n')), 300);
       IMP_ANT = null; if (ABA === 'lanc') carregarLanc(); else if (ABAS_GESTAO.includes(ABA)) gestaoDesenhar(ABA); else impAntStatus(); } });   /* 4.9: na tela inicial, o cartão mostra a importação feita */
   $('#g-arq', f).onchange = async e => { const a = e.target.files[0], res = $('#g-imp-res', f); lido = null; if (!a) return; res.innerHTML = '<p class="sub">Lendo a planilha…</p>';
     try { lido = await lerPlanilha(a); const O = lido.O, soma = L => L.reduce((t, x) => t + x.valor, 0);
       const meses = L => { const d = L.map(x => x.data).filter(Boolean).sort(); if (!d.length) return '—'; const m = x => GMESES[+x.slice(5, 7) - 1].slice(0, 3) + '/' + x.slice(0, 4); return m(d[0]) === m(d[d.length - 1]) ? m(d[0]) : m(d[0]) + ' a ' + m(d[d.length - 1]); };   /* 4.9: os meses de cada aba */
       res.innerHTML = lido.achou.length ? `<table style="margin-top:12px"><thead><tr><th>Aba</th><th class="v">Linhas</th><th class="v">Soma</th><th class="v">Meses</th></tr></thead><tbody>${Object.keys(O).map(k => `<tr><td>${GT[k].nome}</td><td class="v">${int(O[k].length)}</td><td class="v">${brl(soma(O[k]))}</td><td class="v">${meses(O[k])}</td></tr>`).join('')}</tbody></table>
+        ${lido.ap && lido.ap.length ? `<div class="g-imp-ap" id="g-imp-ap" style="margin-top:10px"><p class="sub" style="margin:0"><b>Contas a pagar: ${int(lido.ap.length)} ${lido.ap.length === 1 ? 'parcela que ainda falta' : 'parcelas que ainda faltam'}</b> (${brl(soma(lido.ap))}), de ${meses(lido.ap)}. A planilha só tem o que já foi pago; as compras parceladas dizem o que falta. Elas entram em <b>Contas a pagar</b>, cada uma no seu vencimento.</p>
+          <details style="margin-top:4px"><summary class="sub">Ver as contas a pagar</summary><ul class="sub" style="margin:6px 0 0;padding-left:18px">${lido.ap.map(x => `<li>${gBr(x.data)} · ${esc(x.descricao)} · ${esc(x.filial)} · <b>${brl(x.valor)}</b></li>`).join('')}</ul></details></div>` : ''}
         ${lido.forn.length ? `<p class="sub" style="margin-top:8px" id="g-imp-forn"><b>${int(lido.forn.length)} fornecedores</b> achados nas despesas (vão para o cadastro de Fornecedores): ${lido.forn.map(esc).join(', ')}.</p>` : ''}
         ${lido.aj.length ? `<details class="g-imp-aj" style="margin-top:8px"><summary class="sub"><b>${int(lido.aj.length)} ${lido.aj.length === 1 ? 'acerto' : 'acertos'} na leitura</b> (toque para conferir)</summary><ul class="sub" style="margin:6px 0 0;padding-left:18px">${lido.aj.slice(0, 200).map(t => `<li>${esc(t)}</li>`).join('')}</ul></details>` : ''}
         <p class="sub" style="margin-top:8px">Abas lidas: ${lido.achou.map(esc).join(', ')}.${lido.outras && lido.outras.length ? ` As outras ${int(lido.outras.length)} abas (${lido.outras.map(x => esc(String(x).trim())).join(', ')}) são gráficos, comparativos e resumos: o sistema refaz sozinho.` : ''} Confira e toque em <b>Importar</b>.</p>` : '<p class="erro">Não achei as abas de Faturamento, Despesas, Recebimentos ou Rede nesta planilha.</p>'; }
@@ -459,7 +485,7 @@ function impAntCartao() {
   if (!IMP_ANT && !IMP_ANT_IDO) impAntStatus();
   const feito = !!(IMP_ANT && IMP_ANT[0]);
   return `<div class="cartao imp-ant${feito ? ' feito' : ''}" id="imp-ant"><div class="imp-ant-txt"><h2>Importar dados do sistema anterior</h2>
-    ${feito ? '' : '<p class="expl">Anexe o Excel do financeiro: o sistema lê todas as abas e todos os meses e já preenche tudo (faturamento, despesas com os fornecedores e os custos, recebimentos e Rede).</p>'}${impAntHtml()}</div>
+    ${feito ? '' : '<p class="expl">Anexe o Excel do financeiro: o sistema lê todas as abas e todos os meses e já preenche tudo (faturamento, despesas com os fornecedores e os custos, contas a pagar, recebimentos e Rede).</p>'}${impAntHtml()}</div>
     <button type="button" class="btn ${feito ? 'btn-ghost' : 'btn-brand'}" data-imp-ant>${feito ? 'Importar de novo' : 'Anexar o Excel'}</button></div>`;
 }
 async function impAntStatus() {
