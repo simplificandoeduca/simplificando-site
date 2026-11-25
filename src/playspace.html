@@ -91,6 +91,12 @@ body.ct .fx-trilho { background: #8E1218; } body.ct .trilho .fab { display: none
 body.ct .trilho .logo { display: flex; align-items: center; justify-content: center; }
 @media (min-width: 1400px) { body.ct .hoje { display: none; } }
 body.ct .miolo, body.ct .meus-ped { max-width: 1400px; }
+/* 2.08: a venda futura (o botão verde nas Festas, o quadro das vendas futuras e os lembretes na agenda) */
+button.chip.vf-bt { background: #2F9E62; border-color: #2F9E62; color: #fff; } button.chip.vf-bt:hover { background: #27864F; border-color: #27864F; } button.chip.vf-bt svg { stroke: currentColor; }
+.vf-card .vf-l { display: flex; flex-direction: column; } .vf-it { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--borda); } .vf-it:first-child { border-top: 0; }
+.vf-it .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; } .vf-it .txt span, .vf-it .txt small { color: var(--tinta-2); font-size: 13px; } .vf-it .bt.vf-pg { min-height: 36px; padding: 0 14px; }
+#vf-vend .vend-b, #f-cadpor .vend-b { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.bt.forte.vf-ok { background: #2F9E62; border-color: #2F9E62; } #f-cadpor { margin-top: 4px; }
 /* 2.02: o aviso de que o sistema já está aberto em outra janela deste computador (tela cheia, por cima de tudo) */
 #janela-uma { position: fixed; inset: 0; z-index: 300; display: grid; place-items: center; padding: 24px; background: var(--creme); }
 #janela-uma .ju-caixa { width: min(460px, 100%); background: var(--card); border: 1px solid var(--borda); border-radius: 24px; padding: 28px 26px; display: flex; flex-direction: column; gap: 12px; text-align: center; box-shadow: 0 20px 60px rgba(60, 40, 20, .14); }
@@ -1942,7 +1948,7 @@ function nomesEmMaiusculas() { // o que chega (do servidor ou dos exemplos da pr
   for (const x of (S.cfg && S.cfg.servicos) || []) { x.n = MAI(x.n); x.obs = MAI(x.obs); }
   for (const p of (S.cfg && S.cfg.pacotes) || []) { if (p.nome) p.nome = MAI(p.nome); if (p.com) p.com = MAI(p.com); }
   for (const p of S.produtos || []) p.n = MAI(p.n);
-  for (const x of S.compromissos || []) { x.titulo = MAIT(x.titulo); if (x.obs) x.obs = MAIT(x.obs); if (x.sub && !/^(oficina|festa|compromisso|postagem|evento)$/i.test(x.sub)) x.sub = MAI(x.sub); }
+  for (const x of S.compromissos || []) { x.titulo = MAIT(x.titulo); if (x.obs) x.obs = MAIT(x.obs); if (x.sub && !/^(oficina|festa|compromisso|postagem|evento|venda futura)$/i.test(x.sub)) x.sub = MAI(x.sub); }
   for (const u of S.equipe || []) u.nome = MAI(u.nome);
   for (const v of S.compras || []) if (v.por) v.por = MAI(v.por);
 }
@@ -2028,7 +2034,13 @@ let DESVIO = 0;
 const agoraJa = () => new Date(Date.now() + DESVIO);
 const antes = min => new Date(agora.getTime() - min * 60000);
 const CORES = ['var(--pessego)', 'var(--mostarda)', 'var(--menta)', 'var(--verde-agua-2)', 'var(--coral-2)'];
-const VERSAO = '2.07';
+/* 2.08 (o dono: "o nome dos cadastros tem que contar lá nas comissões ... quando eu cadastrar alguém, eles têm que puxar pra comissão"): o cadastro
+   novo pergunta quem está cadastrando (os vendedores da unidade; já vem marcado quem está logado, se é vendedor dela) */
+let CAD_POR = '';
+const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
+function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
+  return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
+const VERSAO = '2.08';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -2170,7 +2182,7 @@ const ordProd = (a, b) => a.n.toLowerCase().localeCompare(b.n.toLowerCase(), 'pt
 const estTxt = (p, q = 0) => { if (p.est == null) return ''; const r = p.est - q; return q > 0 ? (r < 0 ? (r === -1 ? 'falta 1' : 'faltam ' + -r) : r === 1 ? 'fica 1' : 'ficam ' + r) : p.est > 0 ? p.est + ' em estoque' : p.est === 0 ? 'sem estoque' : 'estoque ' + p.est; };
 const estFalta = (p, q = 0) => p.est != null && p.est - q < (q > 0 ? 0 : 1);   // em vermelho: sem estoque, ou a venda pede mais do que há
 let ABA_PP = 'pacotes';   // a aba aberta na folha "Pacotes e produtos"
-const TIPOS = { oficina: ['Oficina', 'var(--coral)'], festa: ['Festa', 'var(--pessego)'], compromisso: ['Compromisso', 'var(--mostarda)'], postagem: ['Postagem', 'var(--verde-agua)'] };
+const TIPOS = { vfut: ['Venda futura', '#2F9E62'], oficina: ['Oficina', 'var(--coral)'], festa: ['Festa', 'var(--pessego)'], compromisso: ['Compromisso', 'var(--mostarda)'], postagem: ['Postagem', 'var(--verde-agua)'] };
 const PAPEIS = { gestor: 'Gestor', supervisor: 'Supervisor', atendente: 'Operador' };   // 1.21: o atendente passa a se chamar Operador (no cupom, "Atendente" continua sendo quem atendeu)
 // 0.89: o módulo do WhatsApp fica desligado (a loja não vai usar essa parte por agora). Nada foi apagado: com true aqui (e MODULO_WHATS = true em api/lib.php),
 // a aba, os botões "Chamar no WhatsApp", os avisos de renovar e os cartões dos Ajustes voltam
@@ -2375,7 +2387,7 @@ function aplicarDados(d) { // 1.40: o que veio do servidor (ou o que ficou guard
     S.criancas = d.criancas.map(c => ({ ...c, festaPapel: c.festa_papel || null, entrou: c.entrou ? dataDe(c.entrou) : null, venda: c.venda ? { ...c.venda, quando: dataDe(c.venda.quando) } : null, visitas: (c.visitas || []).map(v => ({ ...v, dia: dataDe(v.dia), ini: v.ini ? dataDe(v.ini) : null })) }));
     S.registros = d.registros.map(r => ({ ...r, h: dataDe(r.h) }));
     S.conversas = d.conversas.map(x => ({ ...x, msgs: x.msgs.map(m => ({ ...m, h: dataDe(m.h) })) }));
-    S.compromissos = d.compromissos; { const fx = MODO === 'servidor' ? fixaDe(d.eu) : 0; S.festas = (d.festas || []).filter(f => !fx || !f.uni || +f.uni === fx); }   // 1.29: as festas marcadas das unidades; 2.02: só as da unidade de quem tem a unidade escolhida
+    S.compromissos = d.compromissos; { const fx = MODO === 'servidor' ? fixaDe(d.eu) : 0; S.vfut = (d.vfut || []).filter(x => !fx || !x.uni || +x.uni === fx); }   /* 2.08: as vendas futuras */ { const fx = MODO === 'servidor' ? fixaDe(d.eu) : 0; S.festas = (d.festas || []).filter(f => !fx || !f.uni || +f.uni === fx); }   // 1.29: as festas marcadas das unidades; 2.02: só as da unidade de quem tem a unidade escolhida
     S.cfg = { ...S.cfg, ...d.regra, idface: { ...S.cfg.idface, ...d.idface } };
     S.equipe = d.equipe || [];
     S.produtos = d.produtos || [];
@@ -3470,6 +3482,7 @@ function corpoProdutos() {
 let PQ = null;        // o item escolhido em "Pacotes e produtos", enquanto a tela pergunta para quem é: { pac: índice } ou { prod: id }
 let CAD_PRE = null;   // o mesmo item, enquanto o cadastro do cliente novo está aberto (cada cadastro que abre começa sem nada)
 const itemPre = pre => { if (!pre) return null;
+  if (pre.vfut) return { festa: true, vfut: true, pac: false, n: 'Venda futura', sub: '', v: 0, curto: 'a venda futura' };   /* 2.08: a venda futura escolhe o cliente como a Festa */
   if (pre.festa) return { festa: true, pac: false, n: 'Festa', sub: '', v: 0, curto: 'a festa' };   /* 1.12: a venda começou no botão Festa */
   if (pre.festaEntra) { const f = festaPorId(pre.festaEntra); return f ? { entra: true, pac: false, n: 'Entrada na festa', sub: '', v: 0, curto: 'a entrada na festa de ' + f.nome, f } : null; }   /* 1.29: a entrada na festa de hoje */
   if (pre.pac != null) { const x = (S.cfg.pacotes || [])[pre.pac]; return x ? { pac: true, n: `${dur(x.h * 60)} de recreação`, sub: [x.nome || '', x.com ? 'com ' + x.com : '', 'sem prazo para usar'].filter(Boolean).join(' · '), v: x.v, curto: `O pacote de ${dur(x.h * 60)} (${brl(x.v)})` } : null; }
@@ -3497,16 +3510,16 @@ function listaParaQuem(q) {
   if (!soNumerosBusca(txt) && txt.length < 2) return `<p class="explica pq-dica">Mais uma letra do nome e os clientes aparecem.</p>`;
   if (!r.L.length) { const inteiro = soNumerosBusca(txt) && dig.length === 11;
     return `<div class="cliente-ja sug pq-nada"><small class="rot-cr">${inteiro ? (cpfValido(txt) ? 'Nenhum cliente com o CPF ' + esc(cpfFmt(dig)) : 'Confira o CPF: os números não batem') : soNumerosBusca(txt) ? 'Nenhum cliente com o CPF começando com ' + esc(cpfFmt(dig)) : 'Nenhum cliente com esse nome'}</small>
-      <p class="explica">É cliente novo? Toque em <b>Cliente novo: cadastrar</b>, aqui embaixo: ao terminar o cadastro, ${it && it.festa ? 'a Festa abre para ele' : 'o atendimento abre' + (it ? ' com ' + esc(it.curto.replace(/^O /, 'o ')) + ' já na venda' : '')}.</p></div>`; }
+      <p class="explica">É cliente novo? Toque em <b>Cliente novo: cadastrar</b>, aqui embaixo: ao terminar o cadastro, ${it && it.vfut ? 'a Venda futura abre para ele' : it && it.festa ? 'a Festa abre para ele' : 'o atendimento abre' + (it ? ' com ' + esc(it.curto.replace(/^O /, 'o ')) + ' já na venda' : '')}.</p></div>`; }
   return r.L.slice(0, 8).map(x => `<div class="cliente-ja pq-cli"><div class="cab"><div class="txt"><b>${esc(x.c.resp)}</b><span>${docCurto(x.c)}${x.fam.length > 1 ? ' · ' + x.fam.length + ' crianças' : ''}</span></div></div>
     ${x.fam.map(c => `<button type="button" class="cr tap" data-act="pq-crianca" data-id="${c.id}" aria-label="${it && it.festa ? 'Festa' : 'Vender'} para ${esc(c.nome)}, de ${esc(c.resp)}">${avatar(c)}<span class="txt"><b>${esc(c.nome)}${idadeTxt(c) ? ', ' + idadeTxt(c) : ''}</b><span>${it && it.festa ? (nascDe(c) ? 'aniversário em ' + nascBR(c.nasc).slice(0, 5) : c.entrou ? 'no espaço agora' : 'cliente da loja') : (c.entrou ? 'no espaço agora · ' : '') + 'saldo ' + hm(saldoAgora(c))}</span></span><em>${it && it.festa ? 'Escolher' : 'Vender'} ${ic(IC.vai, 14, 2.6)}</em></button>`).join('')}</div>`).join('')
     + (r.L.length > 8 ? `<p class="explica">Há mais ${r.L.length - 8}: escreva mais um pouco para afinar.</p>` : '');
 }
 function folhaParaQuem(pre) {
   const it = itemPre(pre); if (!it) return; PQ = pre;
-  abrirFolha(it.festa ? 'Festa' : it.entra ? 'Entrada na festa de ' + esc(it.f.nome) : it.pac ? 'Vender o pacote' : 'Vender o produto', `
+  abrirFolha(it.vfut ? 'Venda futura' : it.festa ? 'Festa' : it.entra ? 'Entrada na festa de ' + esc(it.f.nome) : it.pac ? 'Vender o pacote' : 'Vender o produto', `
     ${it.festa || it.entra ? '' : `<div class="pq-item"><span class="pq-ic">${ic(it.pac ? IC.presente : IC.sacola, 20)}</span><div class="txt"><b>${esc(it.n)}</b><span>${esc(it.sub)}</span></div><b class="num pq-v">${brl(it.v)}</b><button type="button" class="link tap" data-act="pq-trocar">Trocar</button></div>`}
-    <div class="campo"><label for="pq-busca">${it.festa ? 'A festa é de qual cliente?' : it.entra ? 'Quem vai entrar na festa?' : 'Para qual cliente?'} <span class="leve">· CPF do responsável, ou o nome</span></label><input id="pq-busca" autocomplete="off" placeholder="Os 3 primeiros números do CPF já bastam" aria-label="CPF do responsável ou nome do cliente"></div>
+    <div class="campo"><label for="pq-busca">${it.vfut ? 'A venda futura é de qual cliente?' : it.festa ? 'A festa é de qual cliente?' : it.entra ? 'Quem vai entrar na festa?' : 'Para qual cliente?'} <span class="leve">· CPF do responsável, ou o nome</span></label><input id="pq-busca" autocomplete="off" placeholder="Os 3 primeiros números do CPF já bastam" aria-label="CPF do responsável ou nome do cliente"></div>
     <div class="pq-lista" id="pq-lista">${listaParaQuem('')}</div>
     <div class="pe-f"><button type="button" class="bt claro largo tap" data-act="pq-cadastrar">${ic(IC.mais, 16)} Cliente novo: cadastrar</button></div>`);
   setTimeout(() => { const i = $('#pq-busca'); if (i) i.focus(); }, 380);
@@ -3806,16 +3819,65 @@ const festasParaCobrar = () => !gestor() ? [] : (lido('ps-festa-nao', []) || [])
 const htmlFestaCobrar = f => { const am = aMaisFesta(f), T = festaCfg();
   return `<div class="aut-it aviso fe-cob" data-fe="${f.id}"><div class="aut-t"><small>Festa · ${esc(f.data === isoDia(agora) ? 'hoje' : festaDiaTxt(f.data))}${f.uni && unidades().length > 1 ? ' · ' + esc(nomeUni(f.uni)) : ''}</small><b>Festa de ${aniversTxt(f)}: ${am} ${am === 1 ? 'criança' : 'crianças'} a mais do que o combinado (${capFesta(f)})</b><span>Cobrar o adicional de ${esc(f.resp || 'responsável')}: ${am} × ${brl(T.extra)} = ${brl(am * T.extra)}</span></div>
   <div class="aut-b"><button type="button" class="bt forte tap" data-act="festa-adicional" data-id="${f.id}">Cobrar o adicional</button><button type="button" class="bt nao tap" data-act="festa-ver" data-id="${f.id}">Ver a festa</button><button type="button" class="bt nao tap" data-act="festa-nao" data-id="${f.id}">Não cobrar</button></div></div>`; };
+/* ---------- 2.08: a venda futura (o dono: "no lado de festas eu quero um botãozinho verde escrito venda futura ... Elas selecionam a data
+   que o cliente falou que ia fechar o pacote e seleciona a data de pagamento e tem que aparecer um lembrete para as meninas no calendário
+   referente a esse pagamento desse cliente ... Obrigatoriamente tem que pedir autorização do gestor") ----------
+   O pedido vai ao gestor (o mesmo das outras liberações); aprovado, o servidor põe na agenda o FECHAR e o COBRAR (tipo vfut). */
+let VF = null;
+const vfDM = s => String(s || '').slice(8, 10) + '/' + String(s || '').slice(5, 7);
+const vfTexto = (d, v) => `Venda futura: ${d.oque} · ${brl(v)} · fecha em ${vfDM(d.fecha)} · pagamento em ${vfDM(d.paga)} · vendedora ${d.vendedora}`;
+function folhaVendaFutura(cid) {
+  const c = crianca(cid); if (!c) return; VF = { id: c.id, vend: '' }; const hoje = isoDia(agora);
+  abrirFolha('Venda futura', `<div class="linha">${avatar(c)}<div class="txt"><b style="white-space:normal">${nomeResp(c)}</b><span style="white-space:normal">${nomeCri(c, true)}</span></div></div>
+    <p class="explica" id="vf-exp">O cliente ainda não fechou: fica combinado o que ele vai fechar, quando, e quando paga. ${gestor() ? 'Lançada por você, ela já vale:' : 'Vai para o <b>gestor aprovar</b>; aprovada,'} entram no calendário o lembrete de <b>fechar</b> e o de <b>cobrar</b>, no dia do pagamento.</p>
+    <div class="campo"><label for="vf-oque">O que o cliente vai fechar<span class="obg" aria-hidden="true">*</span></label><input id="vf-oque" maxlength="120" autocomplete="off" placeholder="Ex.: festa de 20 crianças, pacote de 10 horas"></div>
+    <div class="dois"><div class="campo"><label for="vf-valor">Valor combinado<span class="obg" aria-hidden="true">*</span></label><input id="vf-valor" inputmode="decimal" autocomplete="off" placeholder="R$ 0,00"></div>
+      <div class="campo"><label for="vf-fecha">Disse que fecha em<span class="obg" aria-hidden="true">*</span></label><input id="vf-fecha" type="date" min="${hoje}"></div></div>
+    <div class="dois"><div class="campo"><label for="vf-paga">Data do pagamento<span class="obg" aria-hidden="true">*</span></label><input id="vf-paga" type="date" min="${hoje}"></div><div></div></div>
+    <div class="vend" id="vf-vend" role="radiogroup" aria-label="Quem está vendendo"><p class="vend-t">Quem está vendendo?<span class="leve"> · toque no seu nome</span></p><div class="vend-b">${vendedorasLista().map(n => `<button type="button" class="tap" role="radio" aria-checked="false" data-act="vf-vend" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>
+    <div class="campo"><label for="vf-obs">Observação <span class="leve">· opcional</span></label><textarea id="vf-obs" rows="2" maxlength="300"></textarea></div>
+    <div class="pe-f"><button type="button" class="bt forte largo tap vf-ok" id="vf-ok" data-act="vf-pedir">${ic(IC.check)} ${gestor() ? 'Lançar a venda futura' : 'Pedir a aprovação do gestor'}</button></div>`);
+}
+async function pedirVendaFutura(el) {
+  if (!VF) return; const c = crianca(VF.id); if (!c) return; const hoje = isoDia(agora);
+  const d = { tipo: 'venda_futura', crianca: c.id, oque: MAI(val('vf-oque')), valor: numero(val('vf-valor')), fecha: val('vf-fecha'), paga: val('vf-paga'), vendedora: VF.vend, obs: MAIT(val('vf-obs')) };
+  const data = s => /^\d{4}-\d{2}-\d{2}$/.test(s) && s >= hoje;
+  const erro = d.oque.length < 3 ? ['vf-oque', 'Escreva o que o cliente vai fechar.'] : !(d.valor > 0) ? ['vf-valor', 'Escreva o valor combinado.'] : !data(d.fecha) ? ['vf-fecha', 'Escolha a data em que o cliente disse que vai fechar (de hoje em diante).']
+    : !data(d.paga) ? ['vf-paga', 'Escolha a data do pagamento (de hoje em diante).'] : !d.vendedora ? ['vf-vend', 'Toque no nome de quem está vendendo.'] : null;
+  if (erro) { toast(erro[1]); const i = $('#' + erro[0]); if (i) { if (i.focus) i.focus(); i.scrollIntoView({ block: 'center', behavior: 'smooth' }); } return; }
+  if (el) el.disabled = true;
+  try {
+    let r; if (MODO === 'servidor') { r = await api('pedido_criar', d); pedidosChegaram(r.pedidos, true); try { await carregar(); } catch (e) { } }
+    else { r = criarPedidoPrevia(d); if (r.erro) throw new Error(r.erro); pedidosMudaramPrevia(true); }
+    VF = null; fecharFolha(); desenhar(); const p = r.pedido || {};
+    if (p.status === 'usado') deuCerto('Venda futura lançada: os lembretes de fechar e de cobrar estão no calendário'); else toast('Pedido enviado ao gestor. Quando ele aprovar, os lembretes entram no calendário.');
+  } catch (e) { toast(e.message); if (el && el.isConnected) el.disabled = false; }
+}
+/* (prévia) aprovada: os dois lembretes na agenda, como no servidor */
+function vfLancarPrevia(p, quem) { const d = p.dados || {}, resp = p.resp || p.nome, v = brl(p.valor), obs = `VENDA FUTURA DE ${p.nome} · VENDEDORA ${d.vendedora || ''} · APROVADA POR ${MAI(primeiro(quem.nomeCompleto || quem.nome))}${d.obs ? ' · ' + d.obs : ''}`;
+  const novo = (dia, titulo) => { const x = { id: novoId(), dia, hora: '10:00', titulo: titulo.slice(0, 120), tipo: 'vfut', sub: 'Venda futura', obs, feito: false }; (S.compromissos = S.compromissos || []).push(x); return x.id; };
+  d.comp = [novo(d.fecha, `FECHAR · ${resp} · ${d.oque} · ${v}`), novo(d.paga, `COBRAR · ${resp} · ${v} · ${d.oque}`)]; p.dados = d; }
+/* as vendas futuras (no servidor, a lista que vem com os dados; na prévia, os pedidos) */
+const vfLista = () => MODO === 'servidor' ? (S.vfut || []) : (S.pedidos || []).filter(p => p.tipo === 'venda_futura' && ['pendente', 'usado', 'negado'].includes(p.status)).map(p => { const d = p.dados || {}, k = (S.compromissos || []).find(x => d.comp && x.id === d.comp[1]);
+  return { id: p.id, status: p.status, crianca: p.crianca, nome: p.nome, resp: p.resp, valor: p.valor, oque: d.oque || '', fecha: d.fecha || '', paga: d.paga || '', vendedora: d.vendedora || '', comp: d.comp || [], pago: !!(k && k.feito) }; }).sort((a, b) => a.paga < b.paga ? -1 : a.paga > b.paga ? 1 : a.id - b.id);
+function htmlVendasFuturas() {
+  const hoje = isoDia(agora), L = vfLista().filter(x => !(x.pago && x.paga < hoje) && !(x.status === 'negado' && x.paga < hoje)); if (!L.length) return '';
+  return `<div class="card vf-card" id="vf-card"><div class="sec-cab"><h2>Vendas futuras</h2></div><div class="vf-l">${L.map(x => { const st = x.status === 'pendente' ? ['p-aviso', 'esperando o gestor'] : x.status === 'negado' ? ['p-erro', 'negada'] : x.pago ? ['p-ok', 'paga'] : x.paga < hoje ? ['p-erro', 'cobrar · atrasada'] : x.paga === hoje ? ['p-erro', 'cobrar hoje'] : ['p-ok', 'no calendário'];
+    return `<div class="vf-it" data-vf="${x.id}"><div class="txt"><b>${esc(x.resp || x.nome)}</b><span>${esc(x.oque)} · ${brl(x.valor)}</span><small>fecha ${vfDM(x.fecha)} · paga ${vfDM(x.paga)}${x.vendedora ? ' · ' + esc(x.vendedora) : ''}</small></div><span class="pill ${st[0]}">${st[1]}</span>${x.status === 'usado' && !x.pago && x.comp && x.comp[1] ? `<button type="button" class="bt claro tap vf-pg" data-act="vf-pago" data-c="${x.comp[1]}">Pago</button>` : ''}</div>`; }).join('')}</div></div>`;
+}
+async function vfMarcarPago(cid) { const x = (S.compromissos || []).find(k => k.id === +cid);
+  if (MODO === 'servidor') { try { await api('comp_feito', { id: +cid, feito: true }); await carregar(); } catch (e) { toast(e.message); return; } } else if (x) x.feito = true;
+  desenhar(); deuCerto('Venda futura marcada como paga'); }
 // ---------- a tela Festas ----------
 function telaFestas() {
   if (!S.festaSel) S.festaSel = isoDia(agora); const FC = festasParaCobrar(), hoje = festasDoDia(isoDia(agora));
-  return faixa('Festas', `As festas das unidades, com o tema${hoje.length ? ' · ' + hoje.length + (hoje.length === 1 ? ' hoje' : ' hoje') : ''}`, `<button type="button" class="chip tap" data-act="festa" title="Vender uma festa: escolha o cliente, toque no valor da tabela e marque o dia">${ic(IC.festa, 16)} <span>Vender festa</span></button>`) + `
+  return faixa('Festas', `As festas das unidades, com o tema${hoje.length ? ' · ' + hoje.length + (hoje.length === 1 ? ' hoje' : ' hoje') : ''}`, `<button type="button" class="chip tap" data-act="festa" title="Vender uma festa: escolha o cliente, toque no valor da tabela e marque o dia">${ic(IC.festa, 16)} <span>Vender festa</span></button><button type="button" class="chip tap vf-bt" data-act="vfut" title="Venda futura: o cliente vai fechar depois. Vai para o gestor aprovar e entra no calendário o lembrete de cobrar">${ic(IC.agenda, 16)} <span>Venda futura</span></button>`) + `
   <section class="festas">
     ${FC.length ? `<div class="card ft-cob"><div class="sec-cab"><h2>Festas com criança a mais <span class="pill p-erro">${FC.length}</span></h2></div>${FC.map(htmlFestaCobrar).join('')}</div>` : ''}
     <div class="ft-grade">
       <div class="card ft-cal">${htmlCalFestas('tela')}</div>
       <div class="ft-col"><div class="card fd" id="fd-tela">${htmlDiaFestas(S.festaSel, 'tela')}</div>
-        <div class="card ft-prox"><div class="sec-cab"><h2>Próximas festas</h2></div><div id="ft-prox-l" class="ft-prox-l">${htmlProximas()}</div></div></div>
+        <div class="card ft-prox"><div class="sec-cab"><h2>Próximas festas</h2></div><div id="ft-prox-l" class="ft-prox-l">${htmlProximas()}</div></div>${htmlVendasFuturas()}</div>
     </div>
   </section>`;
 }
@@ -6420,7 +6482,7 @@ const itemComp = (x, diaRef) => `<div class="oficina ${x.feito ? 'feita' : ''}">
 // a um toque: abre pelos cartões do pé da tela inicial (Horas vendidas hoje, Horas usadas hoje, Cobranças por atraso)
 const diasSemana = () => [...Array(7)].map((_, k) => { const d = new Date(agora); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + k); return d; });
 const compDoDia = d => S.compromissos.filter(x => x.dia === isoDia(d)).sort((a, b) => a.hora.localeCompare(b.hora));
-const nomeComp = x => (x.sub && !/^(oficina|festa|compromisso|postagem)$/i.test(x.sub) ? x.sub + ' ' : '') + x.titulo;   // "Oficina do" + "Baleiro"
+const nomeComp = x => (x.sub && !/^(oficina|festa|compromisso|postagem|venda futura)$/i.test(x.sub) ? x.sub + ' ' : '') + x.titulo;   // "Oficina do" + "Baleiro"
 function blocosSemana() { // hoje aparece sempre; os outros dias, só se tiverem alguma coisa
   const dias = diasSemana(), total = dias.reduce((n, d) => n + compDoDia(d).length, 0), fim = dias[6];
   if (!total) return `<p class="explica">Nada marcado de hoje até ${SEMANA[fim.getDay()]}, ${fim.getDate()} de ${MESES[fim.getMonth()]}.</p>`;
@@ -6720,7 +6782,7 @@ function folhaVender(id, primeira, pre, voltaSaida) { // primeira: acabou de sai
 }
 // o atendimento completo: a venda no meio e, em tela larga, os dados e o histórico do cliente ao lado
 function atender(id, primeira, pre, voltaSaida) {
-  const c = crianca(id); if (!c) return; if (pre && pre.festaEntra) pre = null; /* 1.29: a entrada na festa: o atendimento abre com a festa de hoje em cima */ if (pre && pre.festa) { folhaFesta(c.id, pre.sel); return; }   /* 1.12: veio do botão Festa */ const jaAberto = LADO && crianca(LADO.id) && mesmoCliente(crianca(LADO.id), c);
+  const c = crianca(id); if (!c) return; if (pre && pre.festaEntra) pre = null; /* 1.29: a entrada na festa: o atendimento abre com a festa de hoje em cima */ if (pre && pre.vfut) { folhaVendaFutura(c.id); return; }   /* 2.08 */ if (pre && pre.festa) { folhaFesta(c.id, pre.sel); return; }   /* 1.12: veio do botão Festa */ const jaAberto = LADO && crianca(LADO.id) && mesmoCliente(crianca(LADO.id), c);
   if (innerWidth >= 820 && !jaAberto) abrirHistorico(c.id);
   folhaVender(c.id, primeira, pre, voltaSaida);
 }
@@ -6818,11 +6880,11 @@ function folhaCrianca(c, d, extra) { // d: um cadastro novo que ficou pela metad
   FOTO_TEMP = ''; CLIENTE_AUTO = null; CLIENTE_VISTO = ''; CAD_PRE = null; SAP_TODAS = false;
   if (!c) { // cadastro novo: primeiro o responsável (documento, nome e telefones), depois a criança; as horas são vendidas à parte
     d = d && RASC_CAD.includes(d) ? d : null; CAD_K = d ? d.k : 0;
-    CAD_CADEIA = !!(extra && extra.cadeia) && filaVale(); if (!CAD_CADEIA) CAD_FILA = []; else CAD_FILA = CAD_FILA.filter(naFila);   // 1.22: só o "cadastrar outra criança" continua a fila
+    CAD_CADEIA = !!(extra && extra.cadeia) && filaVale(); if (!CAD_CADEIA) CAD_POR = '';   /* 2.08: cada cliente novo, quem cadastra de novo */ if (!CAD_CADEIA) CAD_FILA = []; else CAD_FILA = CAD_FILA.filter(naFila);   // 1.22: só o "cadastrar outra criança" continua a fila
     const v = d || { doc: 'cpf', cpf: '', resp: '', tel: '', tel2: '', nome: '', nasc: '', pcd: false, obs: '' }; ETAPA_FEITA = true;
     if (extra) { CAD_PRE = itemPre(extra.pre) ? extra.pre : null; if (!d && extra.cpf) { v.cpf = extra.cpf; if (extra.doc === 'rne') v.doc = 'rne'; } if (!d) for (const k of ['resp', 'tel', 'tel2']) if (extra[k]) v[k] = extra[k]; }   // 1.22: a outra criança do mesmo responsável: o documento (e, sem ele, o nome e o telefone) já vêm escritos
     const itPre = itemPre(CAD_PRE);
-    abrirFolha('Cadastrar', `${itPre ? `<p class="retoma" id="f-pre">${ic(itPre.festa ? IC.festa : itPre.pac ? IC.presente : IC.sacola, 16)}<span>${itPre.festa ? 'Depois do cadastro, a <b>Festa</b> abre para este cliente.' : `Depois do cadastro, o atendimento abre com <b>${esc(itPre.curto.replace(/^O /, 'o '))}</b> já na venda.`}</span></p>` : ''}${d ? `<p class="retoma" id="f-retoma">${ic(IC.historico, 16)}<span><b>Continuando o cadastro de onde parou</b>, às ${hora(new Date(d.em))}.</span><button type="button" class="link tap" data-act="cadastro-zero">Começar do zero</button></p>` : ''}
+    abrirFolha('Cadastrar', `${itPre ? `<p class="retoma" id="f-pre">${ic(itPre.festa ? IC.festa : itPre.pac ? IC.presente : IC.sacola, 16)}<span>${itPre.vfut ? 'Depois do cadastro, a <b>Venda futura</b> abre para este cliente.' : itPre.festa ? 'Depois do cadastro, a <b>Festa</b> abre para este cliente.' : `Depois do cadastro, o atendimento abre com <b>${esc(itPre.curto.replace(/^O /, 'o '))}</b> já na venda.`}</span></p>` : ''}${d ? `<p class="retoma" id="f-retoma">${ic(IC.historico, 16)}<span><b>Continuando o cadastro de onde parou</b>, às ${hora(new Date(d.em))}.</span><button type="button" class="link tap" data-act="cadastro-zero">Começar do zero</button></p>` : ''}
     <div class="bloco-f"><small class="rot">Responsável</small>
       <div class="dois alinha">${campoDoc(v.doc === 'rne' ? 'rne' : 'cpf', v.cpf)}
         <div class="campo"><label for="f-resp">Nome do responsável<span class="obg" aria-hidden="true">*</span></label><input id="f-resp" value="${esc(v.resp)}" autocomplete="off"></div></div>
@@ -6837,7 +6899,7 @@ function folhaCrianca(c, d, extra) { // d: um cadastro novo que ficou pela metad
       <button type="button" class="bt tap" id="f-outra" data-act="salvar-outra" data-outra="1" style="align-self:flex-start">${ic(IC.mais, 16)} Salvar e cadastrar outra criança</button>
     </div>
     <p class="explica" style="text-align:center" id="f-depois">${CAD_FILA.length ? `Já ${CAD_FILA.length === 1 ? 'há 1 criança cadastrada' : 'há ' + CAD_FILA.length + ' crianças cadastradas'} agora para este responsável. Ao cadastrar, abre o atendimento de cada uma, em seguida. <button type="button" class="link tap" data-act="fila-atender">Não há outra criança: ir para o atendimento</button>` : 'Veio com mais de uma criança? Use <b>Salvar e cadastrar outra criança</b>: os dados do responsável não são escritos de novo. Ao cadastrar, abre o atendimento: o serviço que a criança vai querer e o valor a pagar.'}</p>
-    <div class="pe-f"><p class="falta-linha" id="f-falta"></p><button class="bt forte largo tap" data-act="salvar-crianca">${ic(IC.check)} Cadastrar</button></div>`);
+    ${htmlCadPor()}<div class="pe-f"><p class="falta-linha" id="f-falta"></p><button class="bt forte largo tap" data-act="salvar-crianca">${ic(IC.check)} Cadastrar</button></div>`);
     ETAPA_FEITA = false; FALTA_TENTOU = false; if (d || v.cpf) { clienteNoCadastro(); marcarAtalhos(); } atualizarFalta(); atualizarNasc();   // daqui em diante, fechar sem salvar guarda o que foi escrito
     if (window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches) setTimeout(() => { const F = d || (extra && (extra.cpf || extra.resp)) ? faltaNoCadastro(null) : [], i = $('#' + (F.length ? F[0][0] : d ? 'f-nome' : soDig(v.cpf).length === 11 ? 'f-resp' : 'f-cpf')); if (i) { i.focus(); if (i.id === 'f-cpf' && i.value) i.setSelectionRange(i.value.length, i.value.length); } }, 420);   // no computador, o cursor já começa no documento (ou, ao continuar, no que falta)
     return;
@@ -6961,7 +7023,7 @@ const htmlAviso = x => !x.troca ? htmlAvisoCanc(x) : `<div class="aut-it aviso t
 const euId = () => EU.id || (S.equipe.find(x => x.login === EU.login) || {}).id || 1;
 const podeDecidirTipo = t => t === 'cancelar_venda' ? podeEstornar() : t === 'valor' ? supervisorOuMais() : gestor();   // 1.33: a alteração de valor, a supervisora ou o gestor
 const PARC_ONDE = { festa: 'festa', venda: 'venda', saida: 'saída', devolucao: 'devolução', receber: 'a receber' };   // 1.89: de onde é o pedido do crédito em mais vezes
-const semVendaTipo = t => t === 'desconto' || t === 'valor' || t === 'parcelas';   // 1.33: os pedidos que nascem antes da venda
+const semVendaTipo = t => t === 'desconto' || t === 'valor' || t === 'parcelas' || t === 'venda_futura';   /* 2.08 */   // 1.33: os pedidos que nascem antes da venda
 const pedidoDe = p => ({ ...p, em: dataDe(p.em), dec_em: p.dec_em ? dataDe(p.dec_em) : null, feito_em: p.feito_em ? dataDe(p.feito_em) : null, vale: p.vale ? dataDe(p.vale) : null, dados: p.dados || {} });
 const pedidoPorId = id => (S.pedidos || []).find(p => p.id === +id) || null;
 /* 1.69 (o dono: "quando um pedido ficar aguardando a aprovação do gestor, elas podem fechar esse pedido, porém ele vai ficar destacado lá em
@@ -7033,7 +7095,7 @@ function pedidoRespondido(p) { // (na tela de quem pediu) chegou a resposta de q
 function bipe() { try { const C = window.AudioContext || window.webkitAudioContext; if (!C) return; BIPE = BIPE || new C(); const o = BIPE.createOscillator(), g = BIPE.createGain(), t = BIPE.currentTime; o.type = 'sine'; o.frequency.setValueAtTime(880, t); o.frequency.setValueAtTime(1175, t + 0.14); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.14, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.4); o.connect(g); g.connect(BIPE.destination); o.start(t); o.stop(t + 0.42); if (navigator.vibrate) navigator.vibrate(180); } catch (e) { } }
 const quemPede = p => { const a = MAI((p.dados || {}).atendente || ''), l = primeiro(p.por); return a && a !== MAI(l) ? `${a} (login ${l})` : l; };   // 1.25: o nome da atendente que pediu
 const htmlPedido = p => `<div class="aut-it" data-ped="${p.id}"><div class="aut-t"><small>${esc(quemPede(p))} pede · ${hora(p.em)}${p.uni && S.unidades.length > 1 && nomeUni(p.uni) ? ' · ' + esc(nomeUni(p.uni)) : ''}</small><b>${esc(p.texto)}</b><span>${esc(p.resp ? p.resp + ' · ' + p.nome : p.nome)}</span>${p.motivo ? `<span class="aut-mot">Motivo: <b>${esc(p.motivo)}</b></span>` : ''}</div>
-  <div class="aut-b"><button type="button" class="bt forte tap" data-act="ped-ok" data-id="${p.id}">${ic(IC.check, 18, 2.6)} ${p.tipo === 'nf' ? 'Autorizar a nota' : p.tipo === 'cancelar_venda' ? 'Liberar o cancelamento' : p.tipo === 'valor' ? 'Aprovar o valor' : 'Liberar'}</button><button type="button" class="bt nao tap" data-act="ped-nao" data-id="${p.id}">Negar</button></div></div>`;
+  <div class="aut-b"><button type="button" class="bt forte tap" data-act="ped-ok" data-id="${p.id}">${ic(IC.check, 18, 2.6)} ${p.tipo === 'nf' ? 'Autorizar a nota' : p.tipo === 'cancelar_venda' ? 'Liberar o cancelamento' : p.tipo === 'valor' ? 'Aprovar o valor' : p.tipo === 'venda_futura' ? 'Aprovar a venda futura' : 'Liberar'}</button><button type="button" class="bt nao tap" data-act="ped-nao" data-id="${p.id}">Negar</button></div></div>`;
 function desenharPedidos() { // o cartão fica por cima de tudo (folha aberta, histórico): quem autoriza vê na hora, onde estiver
   desenharMeusPed();   /* 1.69: os pedidos de quem pediu, no alto da tela */
   const a = $('#aut'); if (!a) return; const so = document.body.classList.contains('so'), L = so ? [] : pedidosParaMim(), A = so ? [] : avisosNovos();   // 1.25: e os cancelamentos novos (só a gestora)
@@ -7428,7 +7490,7 @@ async function carregarAutorizacoes() {
   catch (e) { AUT_LISTA = null; const a = $('#aut-corpo'); if (a) a.innerHTML = `<p class="explica">${esc(e.message)}</p>`; return; }
   const a = $('#aut-corpo'); if (a) a.innerHTML = htmlAutorizacoes();
 }
-const estadoPedido = p => p.status === 'pendente' ? ['p-aviso', 'esperando'] : p.tipo === 'valor' && (p.status === 'liberado' || p.status === 'usado') ? ['p-ok', p.status === 'usado' ? 'valor alterado' : 'aprovado'] : p.status === 'liberado' ? (p.tipo === 'nf' ? ['p-ok', 'autorizada · falta emitir'] : ['p-ok', 'liberado' + (p.usado > 0 ? ' · usado ' + brl(p.usado) : '')]) : p.status === 'usado' ? ['p-ok', p.tipo === 'nf' ? 'emitida' + (p.numero ? ' · nº ' + p.numero : '') : p.tipo === 'cancelar_venda' ? 'venda cancelada' : 'usado'] : p.status === 'negado' ? ['p-erro', 'negado'] : ['p-neutro', 'cancelado'];
+const estadoPedido = p => p.status === 'pendente' ? ['p-aviso', 'esperando'] : p.tipo === 'valor' && (p.status === 'liberado' || p.status === 'usado') ? ['p-ok', p.status === 'usado' ? 'valor alterado' : 'aprovado'] : p.status === 'liberado' ? (p.tipo === 'nf' ? ['p-ok', 'autorizada · falta emitir'] : ['p-ok', 'liberado' + (p.usado > 0 ? ' · usado ' + brl(p.usado) : '')]) : p.status === 'usado' ? ['p-ok', p.tipo === 'nf' ? 'emitida' + (p.numero ? ' · nº ' + p.numero : '') : p.tipo === 'cancelar_venda' ? 'venda cancelada' : p.tipo === 'venda_futura' ? 'aprovada · no calendário' : 'usado'] : p.status === 'negado' ? ['p-erro', 'negado'] : ['p-neutro', 'cancelado'];
 function htmlAutorizacoes() {
   const L = AUT_LISTA || [], esp = L.filter(p => p.status === 'pendente' && !p.sem_venda), nfs = L.filter(p => p.tipo === 'nf' && p.status === 'liberado' && !p.sem_venda), resto = L.filter(p => !esp.includes(p) && !nfs.includes(p)).slice(0, 80);
   const linha = p => { const [cls, txt] = estadoPedido(p), decide = p.status === 'pendente' && !p.sem_venda && podeDecidirTipo(p.tipo);
@@ -7463,6 +7525,8 @@ function criarPedidoPrevia(d, senha) {
     motivo = motivo.slice(0, 120); if (motivo.length < 3) return { erro: 'Escreva o motivo: por que o pacote (ou o valor) muda.' };
     dados = { item: it, de: it.de, para: valor, horas, ...(pp || {}) }; if (pp) texto = 'Alterar o pacote: ' + altTxt(dados); else texto = horas ? `Alterar o valor: ${it.n} (${it.h}h, ${brl(it.de)}) para ${horas}h por ${brl(valor)}` : `Alterar o valor: ${it.n} de ${brl(it.de)} para ${brl(valor)}`;
     for (const p of S.pedidos) if (p.tipo === 'valor' && !p.venda && p.por_id === euId() && p.crianca === c.id && (p.status === 'pendente' || p.status === 'liberado')) { p.status = 'cancelado'; p.resultado = 'TROCADO POR OUTRO PEDIDO'; }
+  } else if (tipo === 'venda_futura') { c = crianca(d.crianca); if (!c) return { erro: 'Cliente não encontrado.' }; valor = centavos(+d.valor || 0);   /* 2.08 */
+    dados = { oque: MAI(d.oque || ''), fecha: d.fecha, paga: d.paga, vendedora: MAI(d.vendedora || ''), obs: MAI(d.obs || '') }; motivo = dados.obs; texto = vfTexto(dados, valor);
   } else if (tipo === 'parcelas') { c = crianca(d.crianca); if (!c) return { erro: 'Cliente não encontrado.' }; const n = +d.n || 0; if (!(n > parcLivreT() && n <= 12)) return { erro: `A liberação é para o crédito de ${parcLivreT() + 1}x a 12x.` };   /* 1.65 */
     const on = PARC_ONDE[d.onde] ? d.onde : 'festa'; valor = centavos(+d.valor || 0); dados = { n, onde: on }; texto = `Crédito em ${n}x${valor > 0 ? ': ' + brl2(valor) + ' (' + parcelasTxt(valor, n) + ')' : ''} · ${PARC_ONDE[on]}`;   /* 1.89 */
     for (const p of S.pedidos) if (p.tipo === 'parcelas' && p.por_id === euId() && p.crianca === c.id && (p.status === 'pendente' || p.status === 'liberado')) { p.status = 'cancelado'; p.resultado = 'TROCADO POR OUTRO PEDIDO'; }
@@ -7487,6 +7551,7 @@ function decidirPedidoPrevia(p, ok, como, quem, senha) { // quem = quem decide; 
     const outro = p.por_id !== (quem.id || euId()), pn = MAI(primeiro(p.por)), at = MAI((p.dados || {}).atendente || '');   // 1.25: o pedido liberado fica no nome da atendente que pediu
     const r = cancelarVendaPrevia(v, c, (p.motivo + (outro ? ' (PEDIDO DE ' + (at && at !== pn ? at + ', LOGIN ' + pn : pn) + ')' : '')).slice(0, 300), { nome: primeiro(nome).toUpperCase(), nomeCompleto: nome, papel: quem.papel }, outro ? at || pn : null, outro ? pn : ''); if (r.erro) return r;
     status = 'usado'; resultado = r.devolver ? 'DEVOLVER AO CLIENTE: ' + r.devolver : 'VENDA CANCELADA'; extra.cancelada = r; p.feito_por = nome; p.feito_em = new Date(); }
+  if (ok && p.tipo === 'venda_futura') { vfLancarPrevia(p, quem); status = 'usado'; resultado = 'LEMBRETES NO CALENDÁRIO'; p.feito_por = nome; p.feito_em = new Date(); }   /* 2.08 */
   if (ok && p.tipo === 'valor' && p.venda) { const r = alterarCompraPrevia(p, quem); if (r.erro) return r; status = 'usado'; resultado = 'VALOR ALTERADO NA VENDA'; p.usado = p.valor; p.feito_por = nome; p.feito_em = new Date(); }   // 1.39
   p.status = status; p.dec = nome; p.dec_em = new Date(); p.como = como; p.resultado = resultado; if (status === 'liberado' && semVendaTipo(p.tipo)) p.vale = new Date(Date.now() + PEDIDO_VALE_MIN * 60000);
   return { pedido: p, ...extra };
@@ -8542,7 +8607,7 @@ const ACOES = {
     const nasc = nascDoCampo(val('f-nasc')); if (nasc.erro) { toast(nasc.erro); const i = $('#f-nasc'); if (i) { i.focus(); i.scrollIntoView({ block: 'center', behavior: 'smooth' }); } return; }   // 1.11: a data de nascimento é opcional; escrita, precisa ser uma data que existe e já passou (1.17: de qualquer idade)
     if (!id) { const ja = clientePorDoc(doc, cpf).find(x => x.nome.trim().toLowerCase() === nome.toLowerCase()); if (ja) { toast(`${ja.nome} já tem cadastro com este ${doc === 'rne' ? 'RNE' : 'CPF'}`, () => abrirHistorico(ja.id), 'Ver o histórico'); return; } }
     if (MODO === 'servidor') {
-      const dados = id ? { id: +id, nome, idade: +val('f-idade') || 0, nasc: nasc.iso, resp, tel, tel2, doc, cpf, obs, pcd } : { nome, nasc: nasc.iso, resp, tel, tel2, doc, cpf, obs, pcd };
+      const dados = id ? { id: +id, nome, idade: +val('f-idade') || 0, nasc: nasc.iso, resp, tel, tel2, doc, cpf, obs, pcd } : { nome, nasc: nasc.iso, resp, tel, tel2, doc, cpf, obs, pcd, cad_por: CAD_POR || '' };   /* 2.08: quem cadastrou (Comissões) */
       apiOff('crianca_salvar', dados).then(async r => { await carregar(); if (id) renomearRascunho(+id, nome); else cadastroFeito(); fecharFolha(); desenhar();
         if (id) { deuCerto('Cadastro salvo'); return; }
         depoisDoCadastro(r.id, nome, outra, pre, { doc, cpf, resp, tel, tel2 }); }).catch(e => toast(e.message));
@@ -8551,7 +8616,7 @@ const ACOES = {
     if (id) { const c = crianca(id); if (!!c.pcd !== pcd) registrar('cad', nome, (pcd ? `Marcada como criança PCD: ${pcdDesc()}% de desconto na recreação` : 'Deixou de estar marcada como criança PCD') + ' · por ' + EU.nome); Object.assign(c, { nome, nasc: nasc.iso, idade: nasc.idade ? nasc.idade.a : +val('f-idade') || c.idade, resp: resp || c.resp, tel, tel2, doc, cpf, obs, pcd }); renomearRascunho(c.id, nome); deuCerto('Cadastro salvo'); }
     else {
       if (pcd) registrar('cad', nome, `Cadastrada como criança PCD: ${pcdDesc()}% de desconto na recreação · por ${EU.nome}`);
-      const c = { id: novoId(), nome, idade: nasc.idade ? nasc.idade.a : 0, nasc: nasc.iso, resp, rel: 'responsável', tel, tel2, doc, cpf, obs, pcd, pacote: 0, usado: 0, entrou: null, rosto: false, foto: '', visitas: [], venda: null, sapateira: null, liberado: S.cfg.bloqueioAuto !== 'sim', criado: new Date() }; S.criancas.push(c);
+      const c = { id: novoId(), nome, idade: nasc.idade ? nasc.idade.a : 0, nasc: nasc.iso, resp, rel: 'responsável', tel, tel2, doc, cpf, obs, pcd, pacote: 0, usado: 0, entrou: null, rosto: false, foto: '', visitas: [], venda: null, sapateira: null, liberado: S.cfg.bloqueioAuto !== 'sim', criado: new Date(), cad_por: CAD_POR || '' }; S.criancas.push(c);
       cadastroFeito(); fecharFolha(); desenhar(); depoisDoCadastro(c.id, nome, outra, pre, { doc, cpf, resp, tel, tel2 }); return;
     }
     fecharFolha(); desenhar();
@@ -8664,7 +8729,7 @@ const ACOES = {
   mes: el => { const n = +el.dataset.n; if (n === 0) { S.mes = { y: agora.getFullYear(), m: agora.getMonth() }; S.diaSel = isoDia(agora); } else { const d = new Date(S.mes.y, S.mes.m + n, 1); S.mes = { y: d.getFullYear(), m: d.getMonth() }; S.diaSel = isoDia(d); } desenhar(); $('.cal').animate([{ opacity: .3, transform: `translateX(${n * 18}px)` }, { opacity: 1, transform: 'none' }], { duration: 340, easing: 'cubic-bezier(.32,.72,0,1)' }); },
   comp: el => folhaComp(el.dataset.id), 'novo-comp': () => { if (!gestor()) { toast('Só o gestor marca na agenda. A festa é marcada no atendimento.'); return; } folhaNovoComp(null); },   /* 1.49 */
   'comp-feito-folha': el => { fecharFolha(); ACOES['comp-feito'](el); },
-  'comp-feito': el => { if (!gestor()) { toast('Só o gestor mexe na agenda.'); return; } const x = S.compromissos.find(c => c.id === +el.dataset.id); if (!x) return; x.feito = !x.feito; if (MODO === 'servidor') api('comp_feito', { id: x.id, feito: x.feito }).catch(e => toast(e.message)); desenhar(); { const sl = $('#semana-lista'); if (sl) sl.innerHTML = blocosSemana(); } deuCerto(x.feito ? `${x.titulo}: feito ✓` : `${x.titulo}: voltou para a lista`, () => { x.feito = !x.feito; if (MODO === 'servidor') api('comp_feito', { id: x.id, feito: x.feito }).catch(() => {}); desenhar(); }); },
+  'comp-feito': el => { const x0 = S.compromissos.find(c => c.id === +el.dataset.id); if (!gestor() && !(x0 && x0.tipo === 'vfut')) { toast('Só o gestor mexe na agenda.'); return; } const x = S.compromissos.find(c => c.id === +el.dataset.id);   /* 2.08: o lembrete da venda futura, a equipe também marca */ if (!x) return; x.feito = !x.feito; if (MODO === 'servidor') api('comp_feito', { id: x.id, feito: x.feito }).catch(e => toast(e.message)); desenhar(); { const sl = $('#semana-lista'); if (sl) sl.innerHTML = blocosSemana(); } deuCerto(x.feito ? `${x.titulo}: feito ✓` : `${x.titulo}: voltou para a lista`, () => { x.feito = !x.feito; if (MODO === 'servidor') api('comp_feito', { id: x.id, feito: x.feito }).catch(() => {}); desenhar(); }); },
   'comp-editar': el => { const x = S.compromissos.find(c => c.id === +el.dataset.id); fecharFolha(); setTimeout(() => folhaNovoComp(x), 200); },
   'comp-apagar': el => { if (MODO === 'servidor') { api('comp_apagar', { id: +el.dataset.id }).then(async () => { await carregar(); deuCerto('Apagado'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } S.compromissos = S.compromissos.filter(c => c.id !== +el.dataset.id); deuCerto('Apagado'); fecharFolha(); desenhar(); },
   'comp-zap': el => { const x = S.compromissos.find(c => c.id === +el.dataset.id); toast(`"${x.titulo}" pronto para mandar aos responsáveis`); fecharFolha(); },
@@ -8691,7 +8756,10 @@ const ACOES = {
     deuCerto(`${x.n} saiu da lista`, () => { S.cfg.servicos = [...S.cfg.servicos, x]; if (MODO === 'servidor') api('regra_salvar', { servicos: S.cfg.servicos }).catch(() => {}); }); fecharFolha(); desenhar(); },
   unidade: () => folhaUnidade(), 'unidade-escolher': el => escolherUnidade(+el.dataset.id), 'unidades-ir': () => { fecharFolha(); trocarTela('ajustes'); }, 'uni-nova': () => folhaUnidadeEditar(0), 'uni-casatom': el => criarCasaTom(el), 'uni-editar': el => folhaUnidadeEditar(+el.dataset.id), 'uni-salvar': el => salvarUnidade(el), 'uni-apagar': el => apagarUnidade(el),   /* 1.06: unidades */
   pacotes: () => folhaPacotes(),
-  festa: () => folhaParaQuem({ festa: true }),   /* 1.12: o botão Festa: primeiro, de qual cliente é */
+  festa: () => folhaParaQuem({ festa: true }),
+  vfut: () => folhaParaQuem({ vfut: true }), 'vf-pedir': el => pedirVendaFutura(el), 'vf-pago': el => vfMarcarPago(el.dataset.c),   /* 2.08 */
+  'vf-vend': el => { if (!VF) return; VF.vend = el.dataset.n; $$('#vf-vend [data-n]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.n === VF.vend))); const v = $('#vf-vend'); if (v) v.classList.add('ok'); },
+  'cad-por': el => { CAD_POR = el.dataset.n; $$('#f-cadpor [data-n]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.n === CAD_POR))); },   /* 1.12: o botão Festa: primeiro, de qual cliente é */
   'fe-cal': () => { const c = $('#fe-cal'); if (innerWidth < 820 && c && !c.hidden) { c.hidden = true; return; } abrirCalFesta(); },   /* 1.29: o calendário das festas */
   'fc-dia': el => { const iso = el.dataset.dia; if (el.dataset.ctx === 'tela') { S.festaSel = iso; const d = $('#fd-tela'); if (d) d.innerHTML = htmlDiaFestas(iso, 'tela'); const pr = $('#ft-prox-l'); if (pr) pr.innerHTML = htmlProximas(); $$('.fc[data-ctx="tela"] .fc-d').forEach(b => { b.classList.toggle('sel', b.dataset.dia === iso); b.setAttribute('aria-pressed', b.dataset.dia === iso); }); return; }
     const f = CARRINHO && CARRINHO.festa; if (!f || iso < isoDia(agora) || f.modo !== 'nova' || !$('#folha .folha-fundo:not(.saindo) #fe-det1')) return;   // (o dia só se marca na festa nova)

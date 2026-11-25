@@ -128,7 +128,7 @@ function dados(array $eu): array {
     AND NOT EXISTS (SELECT 1 FROM visitas x WHERE x.crianca_id = c.id) AND NOT EXISTS (SELECT 1 FROM cancelamentos k WHERE k.crianca_id = c.id AND k.tipo != \'desfeita\') ORDER BY c.criado_em, c.id');
   $q->execute([date('Y-m-d') . ' 00:00:00']); $fora = pendFora();   // quem a equipe tirou da lista hoje ("não vai fazer agora") não volta
   $pend = array_values(array_filter(array_map(fn($p) => ['id' => (int)$p['id'], 'em' => $p['criado_em']], $q->fetchAll()), fn($p) => !isset($fora[$p['id']])));
-  return ['criancas' => array_values($criancas), 'registros' => $registros, 'conversas' => array_values($conversas), 'compromissos' => $compromissos, 'festas' => festasDaTela(), 'regra' => regra(), 'cancelamentos' => $canc, 'pendentes' => $pend, 'produtos' => produtos(), 'balcao' => $balcao ? criancaPublica($balcao) : null, 'unidades' => unidades(), 'alugueis' => alugueis(), 'pagamentos_hoje' => pagamentosDesde($hojeMenos), 'cupons' => cuponsDaTela(),
+  return ['criancas' => array_values($criancas), 'registros' => $registros, 'conversas' => array_values($conversas), 'compromissos' => $compromissos, 'vfut' => vfutLista(), 'festas' => festasDaTela(), 'regra' => regra(), 'cancelamentos' => $canc, 'pendentes' => $pend, 'produtos' => produtos(), 'balcao' => $balcao ? criancaPublica($balcao) : null, 'unidades' => unidades(), 'alugueis' => alugueis(), 'pagamentos_hoje' => pagamentosDesde($hojeMenos), 'cupons' => cuponsDaTela(),
     'vendas_hoje' => ['n' => (int)$vh['n'], 'min' => (int)$vh['m'], 'horas' => round((int)$vh['m'] / 60, 2), 'valor' => (float)$vh['v']], 'atraso_hoje' => $atrasoHoje, 'descontos_hoje' => $descontosHoje, 'equipe' => $equipe, 'eu' => $eu, 'versao' => PLAY_VERSAO,
     'idface' => (function (array $x) use ($eu) { if ($eu['papel'] !== 'gestor') unset($x['chave'], $x['push_url'], $x['url_ponte']); return $x; })(idfaceEstado()),   /* 1.49: a chave da ponte só para o gestor */ 'whats' => whatsResumo(), 'agora' => agora(), 'exemplo' => ($ex = cfg('exemplo', null)) && is_array($ex) ? count($ex['criancas'] ?? []) : 0,
     'limpeza' => $eu['papel'] === 'gestor' ? ['oferta' => cfg('limpeza_oferta', null) !== null, 'ultima' => limpezaPublica()] : null,
@@ -342,6 +342,9 @@ switch ($acao) {
     $liberado = ($horas > 0 || regra()['bloqueioAuto'] !== 'sim') ? 1 : 0;
     $db->prepare('INSERT INTO criancas (nome, idade, resp, rel, tel, tel2, doc_tipo, cpf, obs, pacote_min, usado_min, foto, foto_origem, rosto, liberado, criado_em, pcd, nascimento) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?)')->execute([$d['nome'], $d['idade'], $d['resp'], $d['rel'], $d['tel'], $d['tel2'], $d['doc'], $d['cpf'], $d['obs'], $foto, $foto !== '' ? 'celular' : '', $foto !== '' ? 1 : 0, $liberado, agora(), $d['pcd'], $d['nascimento'] !== '' ? $d['nascimento'] : null]);
     $id = (int)$db->lastInsertId(); if ($d['obs'] !== '') $db->prepare('UPDATE criancas SET obs_em = ?, obs_por = ? WHERE id = ?')->execute([agora(), primeiroNome((string)$u['nome']), $id]);
+    /* 2.08: quem está cadastrando (conta nas Comissões): o nome tocado na tela, se é vendedor desta unidade; sem ele, quem está logado */
+    $cp = mb_substr(maiusculo((string)($in['cad_por'] ?? '')), 0, 30); $un = unidadeDoPedido(); $ok = $cp !== '' && in_array($cp, array_merge($un ? vendedorasDaUnidade((int)$un) : vendedorasTodas(), vendedoras()), true);
+    $db->prepare('UPDATE criancas SET cad_por = ?, cad_uni = ? WHERE id = ?')->execute([$ok ? $cp : mb_substr(maiusculo((string)$u['nome']), 0, 30), $un, $id]);
     if ($d['pcd']) registrar('cad', $id, $d['nome'], 'Cadastrada como criança PCD: ' . pcdDesc() . '% de desconto na recreação · por ' . primeiroNome($u['nome'])); if ($sap) $db->prepare('UPDATE criancas SET sapateira = ? WHERE id = ?')->execute([$sap, $id]); $c = crianca($id);
     gravarCfg('mandar_' . $id, $id); // vai para o iDFace (nome agora, foto quando o aparelho confirmar o cadastro)
     responder(['id' => $id]);
@@ -1047,7 +1050,7 @@ switch ($acao) {
   }
 
   /* ---------- agenda ---------- */
-  case 'comp_feito': { exigir(['gestor']); $db->prepare('UPDATE compromissos SET feito = ? WHERE id = ?')->execute([empty($in['feito']) ? 0 : 1, (int)($in['id'] ?? 0)]); responder(); }
+  case 'comp_feito': { $u = exigir(); if ($u['papel'] !== 'gestor') { $q = $db->prepare('SELECT tipo FROM compromissos WHERE id = ?'); $q->execute([(int)($in['id'] ?? 0)]); if ($q->fetchColumn() !== 'vfut') falha('Só o gestor mexe na agenda.', 403); }   /* 2.08: o lembrete da venda futura, a equipe também marca */ $db->prepare('UPDATE compromissos SET feito = ? WHERE id = ?')->execute([empty($in['feito']) ? 0 : 1, (int)($in['id'] ?? 0)]); responder(); }
   case 'comp_salvar': {   // 1.49: só o gestor marca (e muda) na agenda; a festa é marcada no atendimento
     exigir(['gestor']); $id = (int)($in['id'] ?? 0); $titulo = mb_substr(emMaiusculas($val('titulo')), 0, 120); if ($titulo === '') falha('Falta dizer o quê.');
     $dia = $val('dia'); if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dia)) falha('Dia inválido.');

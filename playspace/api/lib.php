@@ -422,6 +422,10 @@ function db(): PDO {
     try { $pdo->exec('ALTER TABLE usuarios ADD COLUMN unidade_id INTEGER'); } catch (Throwable $e) { }
     $pdo->exec('PRAGMA user_version = 44');
   }
+  if ($v < 45) { /* 2.08: quem fez o cadastro (conta nas Comissões) e em que unidade */
+    foreach (["ALTER TABLE criancas ADD COLUMN cad_por TEXT NOT NULL DEFAULT ''", 'ALTER TABLE criancas ADD COLUMN cad_uni INTEGER'] as $sql) { try { $pdo->exec($sql); } catch (Throwable $e) { } }
+    $pdo->exec('PRAGMA user_version = 45');
+  }
   return $pdo;
 }
 /* ---------- 1.06: unidades ---------- */
@@ -686,7 +690,7 @@ function avisosDaGestora(array $u): array {
 // de quem pediu. Fica guardado quem pediu, quem decidiu, quando e como (toque ou senha), e o que foi feito com a autorização.
 // status: pendente → liberado (o desconto pode ser usado; a nota pode ser emitida) → usado (o desconto foi aplicado; a venda foi cancelada;
 // a nota foi emitida, com o número) | negado | cancelado (quem pediu desistiu, ou a venda saiu).
-const PEDIDO_TIPOS = ['desconto', 'cancelar_venda', 'nf', 'valor', 'parcelas'];   // 1.65: parcelas = o crédito da festa em mais de 4x (o gestor libera)
+const PEDIDO_TIPOS = ['desconto', 'cancelar_venda', 'nf', 'valor', 'parcelas', 'venda_futura'];   // 2.08: a venda futura (o gestor aprova)   // 1.65: parcelas = o crédito da festa em mais de 4x (o gestor libera)
 const PARC_LIVRE = 4;   // 1.65: no crédito, até 4x qualquer um vende; de 5x a 12x, só com a liberação do gestor
 function parcLivre(): int { return max(1, min(12, (int)(regra()['festa']['parcelas'] ?? PARC_LIVRE))); }   // (a mesma regra do "em até 4x sem juros")   // 1.33: valor = alterar o valor de um pacote ou de um produto na venda
 const PEDIDO_VALE_MIN = 30;   // o desconto liberado vale por 30 min; depois disso, pede de novo
@@ -695,7 +699,7 @@ const PEDIDO_JUNTO_SEG = 120;   // o desconto já usado em parte só completa a 
 function podeDecidir(array $u, string $tipo): bool { return $tipo === 'cancelar_venda' ? podeEstornar($u) : ($tipo === 'valor' ? in_array($u['papel'] ?? '', ['gestor', 'supervisor'], true) : ($u['papel'] ?? '') === 'gestor'); }   // 1.33: a alteração de valor, a supervisora ou o gestor
 function quemDecide(string $tipo): string { return $tipo === 'cancelar_venda' ? quemEstorna() : ($tipo === 'valor' ? 'o supervisor ou o gestor' : 'o gestor'); }
 const PARC_ONDE = ['festa' => 'festa', 'venda' => 'venda', 'saida' => 'saída', 'devolucao' => 'devolução', 'receber' => 'a receber'];   // 1.89: de onde é o pedido do crédito em mais vezes
-const PEDIDO_SEM_VENDA = ['desconto', 'valor', 'parcelas'];   // 1.33: os pedidos que nascem antes da venda (os outros são de uma venda que já existe)
+const PEDIDO_SEM_VENDA = ['desconto', 'valor', 'parcelas', 'venda_futura'];   // 1.33: os pedidos que nascem antes da venda (os outros são de uma venda que já existe)
 function pedido(int $id): ?array { $q = db()->prepare('SELECT * FROM pedidos WHERE id = ?'); $q->execute([$id]); return $q->fetch() ?: null; }
 function pedidoPublico(array $p): array {
   $d = json_decode((string)$p['dados'], true);
@@ -710,7 +714,7 @@ function pedidoPublico(array $p): array {
 // (o que ainda espera e o que foi respondido nas últimas horas, para a tela dizer o que o gestor decidiu)
 function pedidosDaTela(array $u): array {
   $db = db(); $lim = date('Y-m-d H:i:s', time() - PEDIDO_ESPERA_H * 3600); $eu = (int)$u['id']; $o = [];
-  $q = $db->prepare("SELECT p.* FROM pedidos p WHERE p.status = 'pendente' AND (p.tipo = 'nf' OR p.pedido_em >= ?) ORDER BY p.id DESC LIMIT 60"); $q->execute([$lim]);
+  $q = $db->prepare("SELECT p.* FROM pedidos p WHERE p.status = 'pendente' AND (p.tipo IN ('nf', 'venda_futura') OR p.pedido_em >= ?) ORDER BY p.id DESC LIMIT 60"); $q->execute([$lim]);
   foreach ($q->fetchAll() as $p) { $meu = (int)$p['pedido_por'] === $eu; $decide = podeDecidir($u, (string)$p['tipo']);
     if ((!in_array($p['tipo'], PEDIDO_SEM_VENDA, true) && $p['venda_id'] === null) || !($meu || $decide)) continue;   // (o pedido de uma venda que saiu não espera mais nada: o gatilho já o cancelou)
     $o[] = pedidoPublico($p) + ['meu' => $meu, 'decide' => $decide]; }
@@ -750,6 +754,16 @@ function pedidoCriar(array $u, array $in): array {
     $valor = round(max(0, (float)($in['valor'] ?? 0)), 2); $motivo = mb_substr($motivo, 0, 120); $dados = ['n' => $n, 'onde' => $onde];
     $texto = 'Crédito em ' . $n . 'x' . ($valor > 0 ? ': ' . dinheiro($valor) . ' (' . $n . 'x de ' . dinheiro(floor($valor * 100 / $n) / 100) . ')' : '') . ' · ' . PARC_ONDE[$onde];
     $db->prepare("UPDATE pedidos SET status = 'cancelado', resultado = 'TROCADO POR OUTRO PEDIDO' WHERE tipo = 'parcelas' AND pedido_por = ? AND crianca_id = ? AND status IN ('pendente', 'liberado')")->execute([(int)$u['id'], (int)$c['id']]);
+  } elseif ($tipo === 'venda_futura') { /* 2.08: o que o cliente vai fechar, o valor, quando fecha, quando paga e quem vende */
+    $c = crianca((int)($in['crianca'] ?? 0)); if (!$c) falha('Cliente não encontrado.', 404);
+    $oque = mb_substr(maiusculo((string)($in['oque'] ?? '')), 0, 120); if (mb_strlen($oque) < 3) falha('Escreva o que o cliente vai fechar (por exemplo, festa de 20 crianças).');
+    $valor = round((float)($in['valor'] ?? 0), 2); if ($valor <= 0 || $valor > 999999) falha('Escreva o valor combinado.');
+    $hoje = substr(agora(), 0, 10); $fecha = (string)($in['fecha'] ?? ''); $paga = (string)($in['paga'] ?? '');
+    foreach ([[$fecha, 'em que o cliente disse que vai fechar'], [$paga, 'do pagamento']] as [$dt, $oq]) if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $dt, $m) || !checkdate((int)$m[2], (int)$m[3], (int)$m[1]) || $dt < $hoje) falha('Escolha a data ' . $oq . ' (de hoje em diante).');
+    $vend = vendedoraDoPedido($in['vendedora'] ?? ''); if ($vend === '') falha('Toque no nome de quem está vendendo.');
+    $dados = ['oque' => $oque, 'fecha' => $fecha, 'paga' => $paga, 'vendedora' => $vend, 'obs' => mb_substr(maiusculo((string)($in['obs'] ?? '')), 0, 300)]; $motivo = $dados['obs'];
+    $dm = fn($s) => substr($s, 8, 2) . '/' . substr($s, 5, 2);
+    $texto = 'Venda futura: ' . $oque . ' · ' . dinheiro($valor) . ' · fecha em ' . $dm($fecha) . ' · pagamento em ' . $dm($paga) . ' · vendedora ' . $vend;
   } elseif ($tipo === 'valor' && (int)($in['venda'] ?? 0) > 0) { // 1.39: na saída, o pacote ou o produto desta visita que ficou para pagar na saída
     $q = $db->prepare('SELECT * FROM vendas WHERE id = ?'); $q->execute([(int)$in['venda']]); $v = $q->fetch(); $q->closeCursor(); if (!$v) falha('Esta venda não existe mais: já foi desfeita ou cancelada.', 404);
     $c = crianca((int)$v['crianca_id']); if (!$c) falha('Cliente não encontrado.', 404); $k = altDaVenda($v); if ($k === '') falha('Esta venda não tem o valor alterado por aqui (só o pacote ou o produto desta visita).');
@@ -825,11 +839,36 @@ function pedidoDecidir(int $id, array $g, bool $ok, string $como = 'toque', bool
     $status = 'usado'; $resultado = $r['devolver'] !== '' ? 'DEVOLVER AO CLIENTE: ' . $r['devolver'] : 'VENDA CANCELADA'; $extra['cancelada'] = $r;
   }
   if ($ok && $tipo === 'valor' && $p['venda_id'] !== null) { $extra['alterada'] = alterarVendaNaSaida($p, $g); $status = 'usado'; $resultado = 'VALOR ALTERADO NA VENDA'; }   // 1.39
+  if ($ok && $tipo === 'venda_futura') { $extra['vfut'] = vfutLancar($p, $g); $status = 'usado'; $resultado = 'LEMBRETES NO CALENDÁRIO'; }   /* 2.08 */
   $q = $db->prepare('UPDATE pedidos SET status = ?, decidido_por = ?, decidido_nome = ?, decidido_em = ?, como = ?, resultado = ?' . ($status === 'usado' ? ', feito_por = ?, feito_nome = ?, feito_em = ?' : '') . ' WHERE id = ?' . ($status === 'usado' ? '' : " AND status = 'pendente'"));
   $q->execute(array_merge([$status, (int)$g['id'], (string)$g['nome'], $agora, $como, $resultado], $status === 'usado' ? [(int)$g['id'], (string)$g['nome'], $agora] : [], [$id]));
   if (!$q->rowCount()) falha('Este pedido já foi respondido em outro aparelho.', 409);
   if ($status === 'usado' && $tipo === 'valor') $db->prepare('UPDATE pedidos SET usado = valor WHERE id = ?')->execute([$id]);   // 1.39
   return ['pedido' => pedidoPublico(pedido($id))] + $extra;
+}
+/* 2.08: a venda futura aprovada vira dois lembretes no calendário (tipo vfut): FECHAR no dia em que o cliente disse que fecha e COBRAR no
+   dia do pagamento. O pedido guarda os dois (dados.comp); o COBRAR feito = paga */
+function vfutLancar(array $p, array $g): array {
+  $db = db(); $d = json_decode((string)$p['dados'], true); if (!is_array($d)) $d = []; $resp = (string)($p['resp'] !== '' ? $p['resp'] : $p['nome']); $v = dinheiro((float)$p['valor']); $oque = (string)($d['oque'] ?? '');
+  $obs = mb_substr('VENDA FUTURA DE ' . maiusculo((string)$p['nome']) . ' · VENDEDORA ' . (string)($d['vendedora'] ?? '') . ' · APROVADA POR ' . maiusculo(primeiroNome((string)$g['nome'])) . ((string)($d['obs'] ?? '') !== '' ? ' · ' . $d['obs'] : ''), 0, 500);
+  $ins = $db->prepare("INSERT INTO compromissos (dia, hora, titulo, tipo, sub, obs, criado_em) VALUES (?, '10:00', ?, 'vfut', 'Venda futura', ?, ?)");
+  $ins->execute([(string)$d['fecha'], mb_substr('FECHAR · ' . $resp . ' · ' . $oque . ' · ' . $v, 0, 120), $obs, agora()]); $c1 = (int)$db->lastInsertId();
+  $ins->execute([(string)$d['paga'], mb_substr('COBRAR · ' . $resp . ' · ' . $v . ' · ' . $oque, 0, 120), $obs, agora()]); $c2 = (int)$db->lastInsertId();
+  $d['comp'] = [$c1, $c2]; $db->prepare('UPDATE pedidos SET dados = ? WHERE id = ?')->execute([json_encode($d, JSON_UNESCAPED_UNICODE), (int)$p['id']]);
+  return ['comp' => [$c1, $c2]];
+}
+/* as vendas futuras para a tela (Festas → "Vendas futuras"): as esperando o gestor e as dos últimos 60 dias (pela data do pagamento) */
+function vfutLista(): array {
+  $db = db(); $lim = date('Y-m-d', agoraTs() - 60 * 86400); $o = []; $feito = [];
+  foreach ($db->query("SELECT id, feito FROM compromissos WHERE tipo = 'vfut'")->fetchAll() as $c) $feito[(int)$c['id']] = (int)$c['feito'];
+  foreach ($db->query("SELECT * FROM pedidos WHERE tipo = 'venda_futura' AND status IN ('pendente', 'usado', 'negado') ORDER BY id DESC LIMIT 300")->fetchAll() as $p) {
+    $d = json_decode((string)$p['dados'], true); if (!is_array($d)) $d = []; if ($p['status'] !== 'pendente' && (string)($d['paga'] ?? '') < $lim) continue;
+    $comp = array_map('intval', (array)($d['comp'] ?? []));
+    $o[] = ['id' => (int)$p['id'], 'status' => (string)$p['status'], 'crianca' => (int)$p['crianca_id'], 'nome' => (string)$p['nome'], 'resp' => (string)$p['resp'], 'valor' => round((float)$p['valor'], 2),
+      'oque' => (string)($d['oque'] ?? ''), 'fecha' => (string)($d['fecha'] ?? ''), 'paga' => (string)($d['paga'] ?? ''), 'vendedora' => (string)($d['vendedora'] ?? ''), 'obs' => (string)($d['obs'] ?? ''),
+      'por' => (string)$p['pedido_nome'], 'dec' => (string)$p['decidido_nome'], 'comp' => $comp, 'pago' => isset($comp[1]) && !empty($feito[$comp[1]]), 'uni' => ($p['unidade_id'] ?? null) === null ? null : (int)$p['unidade_id']];
+  }
+  usort($o, fn($a, $b) => [$a['paga'], $a['id']] <=> [$b['paga'], $b['id']]); return $o;
 }
 // 1.55: o gestor corrige as horas de uma compra de horas (o pacote, ou as horas que vieram do sistema anterior): só as horas mudam (o valor
 // fica), o saldo acompanha a diferença e não tira o que já foi usado. Fica o registro, com o motivo e quem mudou

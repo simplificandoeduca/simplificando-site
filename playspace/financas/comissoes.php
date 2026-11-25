@@ -16,7 +16,7 @@
    ===================================================================== */
 declare(strict_types=1);
 
-const CM_TIPOS = ['produto' => 'Produto', 'pacote' => 'Pacote', 'pacote_sem' => 'Pacote sem produto'];
+const CM_TIPOS = ['produto' => 'Produto', 'pacote' => 'Pacote', 'pacote_sem' => 'Pacote sem produto', 'cadastro' => 'Cadastro novo'];   // 2.08: o cadastro novo (um valor fixo por cadastro)
 const CM_REGRAS_PADRAO = [
   ['id' => 'p190', 'tipo' => 'produto', 'h' => 0, 'de' => 190.0, 'ate' => 190.0, 'modo' => 'pct', 'bonus' => 7.0, 'desde' => '2026-05-15', 'fim' => ''],
   ['id' => 'p350', 'tipo' => 'produto', 'h' => 0, 'de' => 350.0, 'ate' => 350.0, 'modo' => 'fixo', 'bonus' => 30.0, 'desde' => '2026-05-15', 'fim' => ''],
@@ -34,6 +34,7 @@ function cmNum($v): float { if (is_string($v)) { $v = trim(str_replace(['R$', ' 
 /* uma regra conferida (null = a linha está vazia ou não serve) */
 function cmRegraLimpa(array $r, int $i) {
   $tipo = (string)($r['tipo'] ?? ''); if (!isset(CM_TIPOS[$tipo])) falha('Regra ' . ($i + 1) . ': escolha o que ela paga (produto, pacote ou pacote sem produto).');
+  if ($tipo === 'cadastro') { $r['de'] = 1; $r['ate'] = 1; $r['modo'] = 'fixo'; $r['h'] = 0; }   /* 2.08: o cadastro novo não tem valor de venda: o bônus é fixo, por cadastro */
   $de = cmNum($r['de'] ?? 0); $ate = array_key_exists('ate', $r) && trim((string)$r['ate']) !== '' ? cmNum($r['ate']) : $de;
   if ($de <= 0 && $ate <= 0) falha('Regra ' . ($i + 1) . ': escreva o valor da venda (por exemplo, 190 ou de 450 a 580).');
   if ($ate < $de) [$de, $ate] = [$ate, $de];
@@ -53,6 +54,7 @@ function cmRegras(): array {
 }
 /* o nome da regra, para ler: "Produto de R$ 190,00 → 7%", "Pacote de 5 h de R$ 400,00 → 2,5%", "Pacote sem produto de R$ 450,00 a R$ 580,00 → 3%" */
 function cmRegraNome(array $r): string {
+  if ($r['tipo'] === 'cadastro') return 'Cadastro novo → ' . finBrl($r['bonus']) . ' por cadastro';   /* 2.08 */
   $v = abs($r['ate'] - $r['de']) < 0.005 ? finBrl($r['de']) : finBrl($r['de']) . ' a ' . finBrl($r['ate']);
   $b = $r['modo'] === 'fixo' ? finBrl($r['bonus']) . ' fixo' : rtrim(rtrim(number_format($r['bonus'], 2, ',', ''), '0'), ',') . '%';
   return CM_TIPOS[$r['tipo']] . ($r['h'] ? ' de ' . $r['h'] . ' h' : '') . ' de ' . $v . ' → ' . $b;
@@ -60,6 +62,7 @@ function cmRegraNome(array $r): string {
 /* o nome curto (na coluna da tabela do PDF): "Produto R$ 190 · 7%", "Pacote 5 h R$ 400 · 2,5%", "Sem produto R$ 450 a 580 · 3%" */
 function cmRegraCurta(array $r): string {
   $f = fn($v) => abs($v - round($v)) < 0.005 ? 'R$ ' . number_format($v, 0, ',', '.') : finBrl($v);
+  if ($r['tipo'] === 'cadastro') return 'Cadastro · ' . $f($r['bonus']);   /* 2.08 */
   $v = abs($r['ate'] - $r['de']) < 0.005 ? $f($r['de']) : $f($r['de']) . ' a ' . number_format($r['ate'], abs($r['ate'] - round($r['ate'])) < 0.005 ? 0 : 2, ',', '.');
   $b = $r['modo'] === 'fixo' ? $f($r['bonus']) : rtrim(rtrim(number_format($r['bonus'], 2, ',', ''), '0'), ',') . '%';
   return ['produto' => 'Produto', 'pacote' => 'Pacote', 'pacote_sem' => 'Sem produto'][$r['tipo']] . ($r['h'] ? ' ' . $r['h'] . ' h' : '') . ' ' . $v . ' · ' . $b;
@@ -110,6 +113,7 @@ function cmRegraDa(array $l, array $regras, bool $grupoComProduto): ?array {
   $dia = substr((string)$l['quando'], 0, 10); $k = (string)$l['vend_k']; $qtd = max(1, (int)($l['qtd'] ?? 1));
   $tab = round((float)$l['valor'] + (float)$l['desc_valor'], 2); $un = $k === 'produto' ? round($tab / $qtd, 2) : $tab; $h = (int)$l['minutos'] / 60;
   foreach ($regras as $r) {
+    if ($r['tipo'] === 'cadastro') continue;   /* 2.08: a regra do cadastro não paga venda */
     if ($dia < $r['desde'] || ($r['fim'] !== '' && $dia > $r['fim'])) continue;
     if ($r['tipo'] === 'produto' && $k !== 'produto') continue;
     if ($r['tipo'] === 'pacote' && $k !== 'pacote' && $k !== 'pacote_prod') continue;
@@ -139,6 +143,21 @@ function cmListar(array $in): array {
     $x = &$porV[$vend]; $x['vendas']++; $x['vendido'] += (float)$l['valor']; $x['bonus'] += $b; if ($b > 0) $x['comBonus']++; $mm = substr((string)$l['quando'], 0, 7); if (isset($x['meses'][$mm])) $x['meses'][$mm] += $b; unset($x);
     $tot['bonus'] += $b; $tot['vendido'] += (float)$l['valor']; $tot['n']++; if (!$r) $tot['semRegra']++;
   }
+  /* 2.08 (o dono: "o nome dos cadastros tem que contar lá nas comissões ... quando eu cadastrar alguém, eles têm que puxar pra comissão"): cada
+     cadastro novo (uma família: o mesmo responsável, no mesmo dia) conta para quem cadastrou, com o bônus da regra "Cadastro novo" (se houver) */
+  $q = $db->prepare("SELECT id, nome, resp, cpf, tel, criado_em, cad_por, COALESCE(cad_uni, 0) u FROM criancas WHERE cad_por != '' AND criado_em >= ? AND criado_em < ?" . ($uni !== null ? ' AND COALESCE(cad_uni, 0) = ' . $uni : '') . ' ORDER BY criado_em, id');
+  $q->execute([$P['de'], date('Y-m-d', strtotime($P['ate'] . ' 12:00:00') + 86400)]); $fam = [];
+  foreach ($q->fetchAll() as $c) { $doc = (string)preg_replace('/\D/', '', (string)$c['cpf']); $k = $c['cad_por'] . '|' . substr((string)$c['criado_em'], 0, 10) . '|' . ($doc !== '' ? $doc : maiusculo((string)$c['resp']) . '|' . preg_replace('/\D/', '', (string)$c['tel']));
+    if (!isset($fam[$k])) $fam[$k] = ['id' => (int)$c['id'], 'quando' => (string)$c['criado_em'], 'u' => (int)$c['u'], 'vend' => (string)$c['cad_por'], 'resp' => (string)$c['resp'], 'cris' => []]; $fam[$k]['cris'][] = (string)$c['nome']; }
+  foreach ($fam as $f) {
+    $dia = substr($f['quando'], 0, 10); $r = null; foreach ($regras as $x) if ($x['tipo'] === 'cadastro' && $dia >= $x['desde'] && ($x['fim'] === '' || $dia <= $x['fim'])) { $r = $x; break; }
+    $b = $r ? round($r['bonus'], 2) : 0.0; $n = count($f['cris']); $vend = $f['vend'];
+    $L[] = ['id' => -$f['id'], 'quando' => $f['quando'], 'u' => $f['u'], 'cri' => implode(', ', $f['cris']), 'resp' => $f['resp'], 'item' => 'Cadastro novo' . ($n > 1 ? ' (' . $n . ' crianças)' : ''), 'k' => 'cadastro', 'qtd' => $n, 'tab' => 0.0, 'pago' => 0.0, 'vend' => $vend, 'regra' => $r ? $r['id'] : '', 'rnome' => $r ? cmRegraNome($r) : '', 'rcurta' => $r ? cmRegraCurta($r) : '', 'bonus' => $b];
+    if (!isset($porV[$vend])) $porV[$vend] = ['n' => $vend, 'vendas' => 0, 'vendido' => 0.0, 'bonus' => 0.0, 'comBonus' => 0, 'meses' => array_fill_keys($P['meses'], 0.0)];
+    $x = &$porV[$vend]; $x['cadastros'] = ($x['cadastros'] ?? 0) + 1; $x['bonus'] += $b; if ($b > 0) $x['comBonus']++; $mm = substr($f['quando'], 0, 7); if (isset($x['meses'][$mm])) $x['meses'][$mm] += $b; unset($x);
+    $tot['bonus'] += $b; $tot['cadastros'] = ($tot['cadastros'] ?? 0) + 1;
+  }
+  usort($L, fn($a, $b) => [$a['quando'], $a['id']] <=> [$b['quando'], $b['id']]);
   /* as vendedoras da lista aparecem mesmo sem venda no período (com zero) */
   foreach ($uni !== null ? vendedorasDaUnidade($uni) : vendedorasTodas() as $n) if (!isset($porV[$n])) $porV[$n] =   /* 2.07: os vendedores são as pessoas com usuário */ ['n' => $n, 'vendas' => 0, 'vendido' => 0.0, 'bonus' => 0.0, 'comBonus' => 0, 'meses' => array_fill_keys($P['meses'], 0.0)];
   $porV = array_values($porV); usort($porV, fn($a, $b) => [$b['bonus'], $b['vendido'], $a['n']] <=> [$a['bonus'], $a['vendido'], $b['n']]);
@@ -151,7 +170,7 @@ function cmListar(array $in): array {
 function cmPdf(array $in): string {
   $R = cmListar($in); $T = $R['total']; $uni = isset($in['u']) && $in['u'] !== '' && $in['u'] !== 'todas' ? (int)$in['u'] : null;
   $nomeU = []; foreach ($R['unidades'] as $u) $nomeU[(int)$u['id']] = (string)$u['nome'];
-  $com = array_values(array_filter($R['porVend'], fn($x) => $x['vendas'] > 0));
+  $com = array_values(array_filter($R['porVend'], fn($x) => $x['vendas'] > 0 || ($x['cadastros'] ?? 0) > 0));   /* 2.08: e quem só cadastrou */
   $d = new PdfBonito('Comissões', $R['nome'] . ' · ' . ($uni ? $nomeU[$uni] ?? 'unidade' : 'todas as unidades'), 'Comissões');
   $top = $com ? $com[0] : null;
   $fala = !$T['n'] ? 'Nenhuma venda com vendedora neste período.' : ($top && $top['bonus'] > 0 ? 'Quem mais ganhou bônus: ' . mb_convert_case($top['n'], MB_CASE_TITLE, 'UTF-8') . ', ' . finBrl($top['bonus']) . '.' : 'Nenhuma venda deu bônus pelas regras.');
@@ -172,7 +191,7 @@ function cmPdf(array $in): string {
   }
   foreach ($com as $x) {
     $L = array_values(array_filter($R['linhas'], fn($l) => $l['vend'] === $x['n'])); $fundo = [];
-    $d->secao($x['n'], $x['vendas'] . ($x['vendas'] === 1 ? ' venda' : ' vendas') . ' · vendido ' . finBrl($x['vendido']) . ' · bônus ' . finBrl($x['bonus']));
+    $d->secao($x['n'], $x['vendas'] . ($x['vendas'] === 1 ? ' venda' : ' vendas') . (($x['cadastros'] ?? 0) ? ' · ' . $x['cadastros'] . ($x['cadastros'] === 1 ? ' cadastro' : ' cadastros') : '') . ' · vendido ' . finBrl($x['vendido']) . ' · bônus ' . finBrl($x['bonus']));
     $T2 = [];
     foreach ($L as $k => $l) { $T2[] = [substr($l['quando'], 8, 2) . '/' . substr($l['quando'], 5, 2), mb_substr($l['item'], 0, 34), mb_substr($l['resp'] !== '' ? $l['resp'] : $l['cri'], 0, 22), finBrl($l['pago']), $l['rcurta'] !== '' ? $l['rcurta'] : ['t' => 'sem regra', 'cor' => PdfBonito::MUDO], $l['bonus'] > 0 ? ['t' => finBrl($l['bonus']), 'b' => true] : '—'];
       if ($l['bonus'] <= 0) $fundo[$k] = 'F6F1EA'; }

@@ -44,7 +44,7 @@ function cmCorpo() {
   const D = CM.d, T = D.total, S = D.sem;
   const meses = D.meses.length > 1 ? D.meses : [];
   const cartoes = D.porVend.map(v => `<button class="cm-v ${CM.vend === v.n ? 'on' : ''}" data-cmvend="${esc(v.n)}" aria-pressed="${CM.vend === v.n}"><b>${esc(v.n)}</b><span class="val num">${brl(v.bonus)}</span>
-      <small>${int(v.vendas)} ${v.vendas === 1 ? 'venda' : 'vendas'} · vendido ${brl(v.vendido)}</small>${meses.length ? `<span class="cm-meses">${meses.map(m => `<span>${esc(fsMesNome(m).slice(0, 3))} ${brl(v.meses[m] || 0)}</span>`).join('')}</span>` : ''}</button>`).join('');
+      <small>${int(v.vendas)} ${v.vendas === 1 ? 'venda' : 'vendas'}${v.cadastros ? ` · ${int(v.cadastros)} ${v.cadastros === 1 ? 'cadastro' : 'cadastros'}` : ''} · vendido ${brl(v.vendido)}</small>${meses.length ? `<span class="cm-meses">${meses.map(m => `<span>${esc(fsMesNome(m).slice(0, 3))} ${brl(v.meses[m] || 0)}</span>`).join('')}</span>` : ''}</button>`).join('');
   return `<div class="grade fs-kpis">${kpi('Bônus do período', brl(T.bonus), 'a soma de todas as vendedoras', 'lucro')}${kpi('Vendido', brl(T.vendido), 'pacotes e produtos com a vendedora')}
       ${kpi('Vendas', int(T.n), T.semRegra ? `${int(T.semRegra)} sem regra (sem bônus)` : 'todas dentro das regras')}${kpi('Sem vendedora', int(S.n), S.n ? `${brl(S.v)} em pacotes e produtos sem o nome` : 'todas com o nome', S.n ? 'alerta' : '')}</div>
     <div class="cm-vends">${cartoes}</div>
@@ -55,30 +55,30 @@ function cmCorpo() {
 }
 function cmVendas() {
   const D = CM.d, L = D.linhas.filter(l => !CM.vend || (CM.vend === '-' ? !l.vend : l.vend === CM.vend));
-  const tem = D.linhas.some(l => !l.vend), nomes = D.porVend.filter(v => v.vendas > 0).map(v => v.n);
+  const tem = D.linhas.some(l => !l.vend), nomes = D.porVend.filter(v => v.vendas > 0 || v.cadastros > 0).map(v => v.n), nCad = L.filter(l => l.k === 'cadastro').length, nVen = L.length - nCad;   /* 2.08: e os cadastros */
   const somaB = L.reduce((t, l) => t + l.bonus, 0), somaP = L.reduce((t, l) => t + l.pago, 0);
   const linha = l => `<tr class="${l.bonus > 0 ? '' : 'cm-zero'}"><td>${esc(dataBR(l.quando.slice(0, 10)).slice(0, 5))} <small class="sub">${esc(l.quando.slice(11, 16))}</small></td><td>${l.vend ? `<b>${esc(l.vend)}</b>` : '<span class="cm-sem">sem o nome</span>'}</td>
       <td>${esc(l.item)}${l.qtd > 1 && l.k === 'produto' ? ` <small class="sub">× ${int(l.qtd)}</small>` : ''}</td><td>${esc(l.resp || l.cri || '—')}${l.resp && l.cri ? ` <small class="sub">· ${esc(l.cri)}</small>` : ''}</td>
-      <td class="v">${brl(l.tab)}</td><td class="v">${brl(l.pago)}</td><td>${l.rnome ? esc(l.rnome) : '<span class="cm-sem">nenhuma regra</span>'}</td><td class="v"><b>${l.bonus > 0 ? brl(l.bonus) : '—'}</b></td></tr>`;
-  return `<section class="cartao"><h2>As vendas${CM.vend ? ' · ' + esc(CM.vend === '-' ? 'sem o nome' : CM.vend) : ''}</h2><p class="expl">Cada pacote e cada produto vendido no período, com a regra que valeu. A venda cancelada não aparece.</p>
+      <td class="v">${l.k === 'cadastro' ? '—' : brl(l.tab)}</td><td class="v">${l.k === 'cadastro' ? '—' : brl(l.pago)}</td><td>${l.rnome ? esc(l.rnome) : '<span class="cm-sem">nenhuma regra</span>'}</td><td class="v"><b>${l.bonus > 0 ? brl(l.bonus) : '—'}</b></td></tr>`;
+  return `<section class="cartao"><h2>As vendas${CM.vend ? ' · ' + esc(CM.vend === '-' ? 'sem o nome' : CM.vend) : ''}</h2><p class="expl">Cada pacote e cada produto vendido no período, com a regra que valeu, e cada cadastro novo (com quem cadastrou). A venda cancelada não aparece.</p>
     <div class="chips cm-filtro"><button class="chip ${!CM.vend ? 'on' : ''}" data-cmvend="">Todas</button>${nomes.map(n => `<button class="chip ${CM.vend === n ? 'on' : ''}" data-cmvend="${esc(n)}">${esc(n)}</button>`).join('')}${tem ? `<button class="chip ${CM.vend === '-' ? 'on' : ''}" data-cmvend="-">Sem o nome</button>` : ''}</div>
     ${L.length ? `<div class="rolar"><table class="fz-tab cm-tab"><thead><tr><th>Dia</th><th>Vendedora</th><th>O que</th><th>Cliente</th><th class="v">Valor de tabela</th><th class="v">Pago</th><th>Regra</th><th class="v">Bônus</th></tr></thead>
-      <tbody>${L.map(linha).join('')}</tbody><tfoot><tr><td>Total · ${int(L.length)} ${L.length === 1 ? 'venda' : 'vendas'}</td><td></td><td></td><td></td><td></td><td class="v">${brl(somaP)}</td><td></td><td class="v">${brl(somaB)}</td></tr></tfoot></table></div>`
+      <tbody>${L.map(linha).join('')}</tbody><tfoot><tr><td>Total · ${int(nVen)} ${nVen === 1 ? 'venda' : 'vendas'}${nCad ? ` · ${int(nCad)} ${nCad === 1 ? 'cadastro' : 'cadastros'}` : ''}</td><td></td><td></td><td></td><td></td><td class="v">${brl(somaP)}</td><td></td><td class="v">${brl(somaB)}</td></tr></tfoot></table></div>`
       : `<div class="vazio">Nenhuma venda de pacote ou de produto ${CM.vend ? 'nesse filtro' : 'neste período'}.</div>`}</section>`;
 }
 function cmRegrasHtml() {
   const R = CM.ed || [], hoje = fzHoje(), tipos = CM.d.tipos;
   const linha = (r, i) => `<tr data-cmr="${i}" class="${r.fim && r.fim < hoje ? 'enc' : ''}">
       <td><select class="fz-uni" data-cmc="tipo" aria-label="O que a regra paga">${Object.entries(tipos).map(([k, n]) => `<option value="${k}" ${r.tipo === k ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></td>
-      <td>${r.tipo === 'produto' ? '<span class="sub">—</span>' : `<input class="fz-in num cm-h" data-cmc="h" inputmode="numeric" placeholder="qualquer" value="${r.h ? r.h : ''}" aria-label="Horas do pacote">`}</td>
-      <td class="v"><input class="fz-in num" data-cmc="de" inputmode="decimal" value="${esc(cxFmt(r.de))}" aria-label="Valor da venda (de)"></td>
-      <td class="v"><input class="fz-in num" data-cmc="ate" inputmode="decimal" value="${esc(cxFmt(r.ate))}" aria-label="Valor da venda (até)"></td>
-      <td class="v cm-b"><input class="fz-in num" data-cmc="bonus" inputmode="decimal" value="${esc(r.modo === 'fixo' ? cxFmt(r.bonus) : cmPct(r.bonus))}" aria-label="Bônus"><select class="fz-uni" data-cmc="modo" aria-label="Bônus em % ou em reais"><option value="pct" ${r.modo !== 'fixo' ? 'selected' : ''}>%</option><option value="fixo" ${r.modo === 'fixo' ? 'selected' : ''}>R$ fixo</option></select></td>
+      <td>${r.tipo === 'produto' || r.tipo === 'cadastro' ? '<span class="sub">—</span>' : `<input class="fz-in num cm-h" data-cmc="h" inputmode="numeric" placeholder="qualquer" value="${r.h ? r.h : ''}" aria-label="Horas do pacote">`}</td>
+      ${r.tipo === 'cadastro' ? '<td class="v"><span class="sub">—</span></td><td class="v"><span class="sub">—</span></td>' : `<td class="v"><input class="fz-in num" data-cmc="de" inputmode="decimal" value="${esc(cxFmt(r.de))}" aria-label="Valor da venda (de)"></td>
+      <td class="v"><input class="fz-in num" data-cmc="ate" inputmode="decimal" value="${esc(cxFmt(r.ate))}" aria-label="Valor da venda (até)"></td>`}
+      <td class="v cm-b"><input class="fz-in num" data-cmc="bonus" inputmode="decimal" value="${esc(r.modo === 'fixo' ? cxFmt(r.bonus) : cmPct(r.bonus))}" aria-label="Bônus">${r.tipo === 'cadastro' ? '<span class="sub">R$ por cadastro</span>' : `<select class="fz-uni" data-cmc="modo" aria-label="Bônus em % ou em reais"><option value="pct" ${r.modo !== 'fixo' ? 'selected' : ''}>%</option><option value="fixo" ${r.modo === 'fixo' ? 'selected' : ''}>R$ fixo</option></select>`}</td>
       <td><input class="fz-in cm-d" type="date" data-cmc="desde" value="${esc(r.desde)}" aria-label="Vale a partir de"></td>
       <td><input class="fz-in cm-d" type="date" data-cmc="fim" value="${esc(r.fim || '')}" aria-label="Vale até"></td>
       <td class="cm-ac">${i > 0 ? `<button class="link" data-cmsobe="${i}" title="Subir (a primeira regra que serve é a que conta)" aria-label="Subir a regra">↑</button>` : ''}${!r.fim ? `<button class="btn btn-ghost g-mini" data-cmenc="${i}" title="Encerrar hoje: a regra deixa de valer para as vendas de amanhã em diante">Encerrar</button>` : ''}</td></tr>`;
   return `<section class="cartao" id="cm-regras"><h2>Regras de comissão</h2>
-    <p class="expl">A <b>primeira regra da lista que serve</b> é a que conta. O valor da venda é o de tabela (antes do desconto); o bônus em % é sobre o que foi pago (já com o desconto); o fixo é por unidade do produto. "Pacote sem produto": o pacote vendido sem nenhum produto no mesmo atendimento. Para uma regra parar de valer, escreva a data "até" (ou toque em Encerrar): as vendas antigas continuam com a regra da época.</p>
+    <p class="expl">A <b>primeira regra da lista que serve</b> é a que conta. O valor da venda é o de tabela (antes do desconto); o bônus em % é sobre o que foi pago (já com o desconto); o fixo é por unidade do produto. "Pacote sem produto": o pacote vendido sem nenhum produto no mesmo atendimento. "Cadastro novo": um valor fixo para quem cadastrou, por cadastro (uma família). Para uma regra parar de valer, escreva a data "até" (ou toque em Encerrar): as vendas antigas continuam com a regra da época.</p>
     <div class="rolar"><table class="fz-tab cm-reg"><thead><tr><th>O que</th><th>Horas</th><th class="v">Valor de</th><th class="v">até</th><th class="v">Bônus</th><th>Vale de</th><th>até</th><th></th></tr></thead><tbody>${R.map(linha).join('')}</tbody></table></div>
     <div class="fz-acoes"><button class="btn btn-ghost" id="cm-nova">+ Nova regra</button><button class="btn btn-brand" id="cm-salvar" ${CM.sujo ? '' : 'disabled'}>${CM.sujo ? 'Salvar as regras' : 'Regras salvas ✓'}</button>${CM.sujo ? '<button class="link" id="cm-desfaz">Desfazer as mudanças</button>' : ''}</div></section>`;
 }
@@ -106,7 +106,7 @@ function cmLigar() {
     tr.querySelectorAll('[data-cmc]').forEach(el => {
       const k = el.dataset.cmc;
       el.onchange = () => {
-        if (k === 'tipo') { r.tipo = el.value; if (r.tipo === 'produto') r.h = 0; cmSujo(); cmRedesenhaRegras(); return; }
+        if (k === 'tipo') { r.tipo = el.value; if (r.tipo === 'produto' || r.tipo === 'cadastro') r.h = 0; if (r.tipo === 'cadastro') { r.modo = 'fixo'; r.de = 1; r.ate = 1; } cmSujo(); cmRedesenhaRegras(); return; }   /* 2.08 */
         if (k === 'modo') r.modo = el.value; else if (k === 'desde' || k === 'fim') r[k] = el.value; else if (k === 'h') r.h = Math.max(0, parseInt(el.value, 10) || 0);
         else { r[k] = cmNum(el.value); if (k === 'de' && !(r.ate >= r.de)) { r.ate = r.de; const a = tr.querySelector('[data-cmc="ate"]'); if (a) a.value = cxFmt(r.ate); } }
         cmSujo();

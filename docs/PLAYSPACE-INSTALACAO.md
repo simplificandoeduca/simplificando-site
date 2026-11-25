@@ -1301,6 +1301,22 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A Venda futura e os cadastros nas comissões (2.08, Finanças 5.2)
+
+Pedidos do dono (25/11).
+
+Venda futura: "no lado de festas eu quero um botãozinho verde escrito venda futura ... Elas selecionam a data que o cliente falou que ia fechar o pacote e seleciona a data de pagamento e tem que aparecer um lembrete para as meninas no calendário referente a esse pagamento desse cliente ... Obrigatoriamente tem que pedir autorização do gestor."
+
+- Festas → o botão verde "Venda futura": escolha o cliente (a mesma busca da Festa; cliente novo: cadastre e ela abre), escreva o que ele vai fechar e o valor combinado, a data em que ele disse que fecha, a data do pagamento, toque em quem está vendendo (e, se quiser, uma observação) e "Pedir a aprovação do gestor".
+- O pedido vai para o gestor como as outras liberações: aparece na tela dele (com o aviso no celular), com "Aprovar a venda futura" e "Negar"; a senha do gestor no aparelho também vale. O pedido não some da tela do gestor enquanto ele não responder. Lançada pelo gestor, vale na hora.
+- Aprovada, entram no calendário (e em "Atividades da semana") dois lembretes, às 10h: FECHAR (no dia em que o cliente disse que fecha) e COBRAR (no dia do pagamento), com o cliente, o que, o valor, a vendedora e quem aprovou.
+- Nas Festas, o quadro "Vendas futuras" mostra cada uma: esperando o gestor, no calendário, cobrar hoje, cobrar · atrasada, paga ou negada. "Pago" marca o COBRAR como feito; a equipe pode marcar esse lembrete (os outros da agenda continuam só do gestor). A venda em si (a festa, o pacote) continua sendo feita como sempre, quando o cliente fechar.
+
+Cadastros nas comissões: "o nome dos cadastros tem que contar lá nas comissões ... quando eu cadastrar alguém, eles têm que puxar pra comissão".
+
+- O cadastro novo pergunta "Quem está cadastrando?" (os vendedores da unidade); já vem marcado quem está logado, e é só tocar em outro nome se for outra pessoa. Sem nome tocado (a tela antiga), fica quem está logado.
+- Finanças → Comissões: cada cadastro novo conta para quem cadastrou (uma família por cadastro: os irmãos cadastrados juntos, no mesmo dia, contam um). Na lista aparece "Cadastro novo" com o nome do responsável e das crianças. O bônus vem da regra "Cadastro novo" (Regras de comissão → + Nova regra → "Cadastro novo" → o valor fixo por cadastro); sem essa regra, o cadastro conta, mas não paga bônus.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Vendedores por unidade, as vias dos cupons e o sistema sempre aberto (2.07, Finanças 5.1)
 
 Pedidos do dono (25/11).
