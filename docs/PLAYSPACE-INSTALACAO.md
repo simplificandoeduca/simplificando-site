@@ -1301,6 +1301,14 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O carrinho de bebê: a forma de pagamento já marcada na devolução (2.30)
+
+Pedido do dono (26/11): "no carrinho bebê é o único que é dessa maneira. A gente cobra na entrada e na saída ele tem que aparecer a forma de pagamento, mas já aparecer selecionada".
+
+- No "Devolveu" do carrinho de bebê pago na entrada, abre a folha "Devolução" com o carrinho, "pago na entrada" e a forma de pagamento já marcada (a da entrada, com o valor); um toque em "Devolver · pago no Pix na entrada" fecha, sem receber de novo.
+- Na saída em conjunto, a linha do carrinho de bebê diz "pago na entrada: Pix R$ 30,00". O cupom da devolução diz "Pago na entrada: Pix R$ 30,00".
+- Servidor: cada carrinho fora da loja leva "pagos" (o que já foi pago, por forma).
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O histórico de autorizações (2.29)
 
 Pedido do dono (26/11): "no gestor eu quero que você coloque também o histórico de autorização para que a gente consiga ver quem autorizou e o que autorizou".

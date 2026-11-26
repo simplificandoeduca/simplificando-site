@@ -2102,6 +2102,11 @@ function alugueis(?int $criancaId = null, ?string $servico = null): array {
   // 1.20: em aberto é da própria saída, e não de como o serviço está agora em Ajustes (o gestor pode trocar "quando a conta fecha" com um fusquinha fora).
   // O valor e o tamanho do período saem do serviço na hora da devolução: ele precisa continuar cobrado a cada período
   foreach ($g as $k => $x) { $sv = servicoPorId($x['s']); $g[$k]['aberto'] = !empty($x['ab']) && $x['min'] <= 0 && $sv !== null && ($sv['modo'] ?? 'fixo') === 'periodo'; unset($g[$k]['ab']); }   // (1.22: em aberto, q = quantos carrinhos desta saída ainda estão fora)
+  /* 2.30 (o dono: "no carrinho bebê ... a gente cobra na entrada e na saída ele tem que aparecer a forma de pagamento, mas já aparecer selecionada"):
+     o que já foi pago de cada carrinho, por forma */
+  $ids = []; foreach ($g as $x) foreach ($x['vendas'] as $vid) $ids[(int)$vid] = 1; $por = [];
+  if ($ids) foreach (db()->query('SELECT venda_id, forma, valor FROM pagamentos WHERE venda_id IN (' . implode(',', array_keys($ids)) . ')')->fetchAll() as $p) $por[(int)$p['venda_id']][] = $p;
+  foreach ($g as $k => $x) { $f = []; foreach ($x['vendas'] as $vid) foreach ($por[(int)$vid] ?? [] as $p) $f[(string)$p['forma']] = round(($f[(string)$p['forma']] ?? 0) + (float)$p['valor'], 2); $g[$k]['pagos'] = (object)$f; }
   return array_values($g);
 }
 // "Devolveu": o que estava fora volta para a loja e sai da lista. Fica anotado em Hoje na recepção, com quanto tempo ficou fora e quem marcou.

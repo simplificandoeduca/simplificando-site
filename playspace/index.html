@@ -2137,7 +2137,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.29';
+const VERSAO = '2.30';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -4353,6 +4353,10 @@ function pendentesPrevia(c) { // (prévia) as compras desta visita, feitas pela 
   return S.compras.filter(v => v.crianca === c.id && !v.auto && !v.imp && v.v > 0 && +v.quando >= corte && faltaCompra(v) > 0.004).sort((a, b) => (a.quando - b.quando) || (a.id - b.id));
 }
 const pendDe = c => !c ? 0 : MODO === 'servidor' ? centavos(+c.pend || 0) : centavos(pendentesPrevia(c).reduce((t, v) => t + faltaCompra(v), 0));   // quanto a criança ainda tem a pagar do que comprou nesta visita
+/* 2.30 (o dono: "no carrinho bebê ... a gente cobra na entrada e na saída ele tem que aparecer a forma de pagamento, mas já aparecer selecionada"):
+   o que já foi pago do carrinho, por forma ({ pix: 30 }), e o texto ("Pix R$ 30,00") */
+const pagosAlug = a => { if (!a) return {}; if (MODO === 'servidor') return a.pagos && typeof a.pagos === 'object' ? a.pagos : {}; const o = {}; for (const p of S.pagamentos || []) if ((a.vendas || []).includes(p.venda)) o[p.f] = centavos((o[p.f] || 0) + (+p.v || 0)); return o; };
+const pagosTxt = o => FORMAS.filter(([f]) => +o[f] > 0).map(([f, n]) => `${n} ${brl2(+o[f])}`).join(' + ');
 const pendAlug = a => !a ? 0 : MODO === 'servidor' ? centavos(+a.pend || 0) : centavos(S.compras.filter(v => (a.vendas || []).includes(v.id)).reduce((t, v) => t + faltaCompra(v), 0));   // e de um carrinho que está fora da loja
 const atrasoValor = c => c && c.entrou && c.atraso ? centavos(+c.atraso.valor || 0) : 0;   // as cobranças por atraso a receber
 const aReceberDe = c => centavos(pendDe(c) + atrasoValor(c));   // tudo o que há para receber agora
@@ -4907,7 +4911,7 @@ function htmlPapel(spec, via = 'loja') {
     const itens = xa ? [{ n: `${spec.item} · ${dur(xa.min)}`, v: xa.valor, sub: `${xa.q > 1 ? xa.q + ' carrinhos · ' : ''}${xa.n} × ${xa.per} min · ${brl2(xa.un)} cada` }]
       : [spec.pend > 0 ? { n: spec.item + (spec.comprou ? ' · ' + dur(spec.comprou) : ''), v: spec.pend } : null, spec.extra && spec.extra.valor > 0 ? { n: `Tempo a mais: ${dur(spec.extra.min)}`, v: spec.extra.valor } : null].filter(Boolean);
     return `<div class="papel ${loja ? 'loja' : 'cliente'}">${cab.replace('{{VIA}}', loja ? 'VIA DE DEVOLUÇÃO' : 'VIA DO CLIENTE')}${div}<p class="c-tit c-bt">DEVOLUÇÃO · ${esc(spec.item)}</p>
-      <p>Saiu ${spec.outroDia ? dataHora(spec.saiu) : hora(spec.saiu)} · voltou ${hora(spec.voltou)} · ${spec.fixo ? 'preço do dia' : 'ficou ' + dur(spec.ficou)}</p>${spec.comprou ? `<p>Tempo comprado: ${dur(spec.comprou)}</p>` : ''}
+      <p>Saiu ${spec.outroDia ? dataHora(spec.saiu) : hora(spec.saiu)} · voltou ${hora(spec.voltou)} · ${spec.fixo ? 'preço do dia' : 'ficou ' + dur(spec.ficou)}</p>${spec.comprou ? `<p>Tempo comprado: ${dur(spec.comprou)}</p>` : ''}${spec.pagoAntes ? `<p>Pago na entrada: ${esc(spec.pagoAntes)}</p>` : ''}
       ${pago(itens, spec.formas, { desc: spec.desc })}${pe('', true)}</div>`;
   }
   if (spec.tipo === 'saida') { // 1.07: spec.grupo = a saída em conjunto: cada criança com a visita dela, e um pagamento só
@@ -5455,7 +5459,7 @@ function contaCarrinho(a) { const c = crianca(a.crianca), x = alugExtraConta(a),
 function linhasCarrinho(y, tirar) {
   const { a, c, x } = y, ab = !!x.aberto, fora = (alugHoje(a) ? 'saiu às ' + hora(a.ini) : 'saiu em ' + diaCurto(a.ini)) + ' · ' + (alugFixo(a) ? 'preço do dia' : alugSeg(a) < 60 ? 'acabou de sair' : `ficou ${dur(Math.floor(alugSeg(a) / 60))} fora`),   /* 2.18: o de bebê é preço do dia, sem o tempo */ meio = [esc(c ? c.nome : ''), '', ''], parou = ab && +agora > alugTeto(a);
   if (ab) return [{ n: `${esc(alugNome(a))} · ${dur(x.min)}`, sub: [fora, `${x.n} ${x.n === 1 ? 'período' : 'períodos'} de ${x.per} min`, brl(x.un) + ' cada' + (x.q > 1 ? ` · ${x.q} carrinhos` : ''), parou ? 'a conta parou às ' + hora(new Date(alugTeto(a))) : ''].filter(Boolean).join(' · '), meio, v: brl(x.valor) + tirar }];
-  const L = [{ n: esc(alugNome(a)), sub: [y.resto > 0 ? 'ficou para a devolução' : y.sob > 0 ? 'cobrado na saída de ' + esc(c ? c.nome : '') : '', fora,   /* 1.47: sem o "já pago" */ a.min > 0 ? 'comprou ' + dur(a.min) : ''].filter(Boolean).join(' · '), meio, v: (y.resto > 0 ? brl(y.resto) : 'devolver') + tirar, h: !(y.resto > 0) }];
+  const L = [{ n: esc(alugNome(a)), sub: [y.resto > 0 ? 'ficou para a devolução' : y.sob > 0 ? 'cobrado na saída de ' + esc(c ? c.nome : '') : '', fora,   /* 1.47: sem o "já pago" */ alugFixo(a) && !(y.resto > 0) && pagosTxt(pagosAlug(a)) ? 'pago na entrada: ' + pagosTxt(pagosAlug(a)) : '',   /* 2.30 */ a.min > 0 ? 'comprou ' + dur(a.min) : ''].filter(Boolean).join(' · '), meio, v: (y.resto > 0 ? brl(y.resto) : 'devolver') + tirar, h: !(y.resto > 0) }];
   if (x.valor > 0) L.push({ n: `Tempo a mais · ${dur(x.min)}`, sub: x.n > 1 ? x.n + ' períodos' : '', v: brl(x.valor) });
   return L;
 }
@@ -6244,7 +6248,21 @@ async function devolver(cid, sv, so = false) {   // so (1.25): só este carrinho
   let noPrazo = alugNoPrazo(a);   // 1.20: no servidor, quem diz se ainda dá para cancelar é ele (o relógio do aparelho pode estar adiantado)
   try { if (MODO === 'servidor') { const r = await api('devolver_previa', { crianca: c.id, s: sv }); x = r.extra; pend = centavos(+r.pend || 0); noPrazo = !!(r.cancela && r.cancela.pode); } else { x = alugExtraPrevia(a); pend = pendAlug(a); } } catch (e) { toast(e.message); try { await carregar(); } catch (e2) { } desenhar(true); return; }
   if ((x && x.valor > 0) || pend > 0.004) { folhaDevolver(c, a, x || { n: 0, min: 0, valor: 0 }, pend, noPrazo); return; }   // 1.02: o carrinho que ficou para pagar na devolução também abre o pagamento
+  if (alugFixo(a) && pagosTxt(pagosAlug(a))) { folhaDevolverPago(c, a); return; }   /* 2.30: o carrinho de bebê pago na entrada: a folha mostra a forma de pagamento já marcada */
   devolverJa(c, a, null);
+}
+let DEVP = null;   // 2.30: o carrinho pago na entrada que está na folha da devolução: { cid, s }
+function folhaDevolverPago(c, a) {
+  const o = pagosAlug(a), tot = centavos(Object.values(o).reduce((t, v) => t + (+v || 0), 0)), fs = FORMAS.filter(([f]) => +o[f] > 0); DEVP = { cid: c.id, s: a.s };
+  const ld = [{ n: esc(alugNome(a)), sub: 'preço do dia · pago na entrada', meio: [esc(c.nome), alugHoje(a) ? hora(a.ini) : diaCurto(a.ini)], v: brl(tot) }];
+  abrirFolha('Devolução', `
+    ${pgDetalhes(c, false)}
+    ${pgSec('Itens selecionados')}
+    ${pgTabela([['Criança', ''], ['Saiu', 'saiu ']], ld, brl(tot), { rot: 'Pago na entrada', cls: '' })}
+    ${pgSec('Pagamento')}
+    <div class="campo" id="d-pago"><label>Forma de pagamento <span class="leve">· paga na entrada</span></label><div class="formas" role="group" aria-label="Forma de pagamento, paga na entrada">${FORMAS.map(([f, n]) => `<button type="button" class="tap" tabindex="-1" aria-pressed="${+o[f] > 0}"><b>${n}</b><span class="num">${+o[f] > 0 ? brl(+o[f]) : ''}</span></button>`).join('')}</div>
+      <p class="explica">Já foi pago na entrada (${esc(pagosTxt(o))}): não há nada para receber agora.</p></div>
+    <div class="pe-f"><button class="bt forte largo tap" id="d-ok-pago" data-act="devolver-pago">${ic(IC.check)} Devolver · pago ${fs.length === 1 ? naForma(fs[0][0]) + ' ' : ''}na entrada</button></div>`);
 }
 // 1.22: saíram vários juntos (em aberto): a folha pergunta quantos voltaram agora; a conta é períodos × valor × os que voltaram, e os outros continuam fora
 const devDe = (a, x) => x && x.aberto ? Math.max(1, +x.de || +a.q || 1) : 1;
@@ -6283,11 +6301,11 @@ function devQuantos(d) { // 1.22: mais um (ou um a menos) voltou agora: a folha 
 }
 function botaoDevolver() { const bt = $('#d-ok'); if (!bt || !DEV || !PAG || PAG.onde !== 'devolucao') return; const r = pagPartes();
   bt.innerHTML = r.erro ? `${ic(IC.check)} ${PAG.formas.length ? r.erro : 'Escolha a forma de pagamento'}` : `${ic(IC.check)} Recebi ${brl(PAG.total)}${r.partes.length === 1 ? ' ' + naForma(r.partes[0].f) : ''} · devolver`; travarBotao(bt, travaParc()); }   /* 1.89 */
-async function devolverJa(c, a, pag) {
+async function devolverJa(c, a, pag, antes = null) {   /* 2.30: antes = como foi pago na entrada (o carrinho de bebê) */
   const sv = a.s, ficou = Math.floor(alugSeg(a) / 60), passou = a.min > 0 && alugSobra(a) < 0, refaz = () => { if ($('#folha .folha-fundo:not(.saindo)')) fecharFolha(); desenhar(true); };
   const comPag = !!(pag && pag.length && DEV && DEV.cid === c.id && DEV.s === sv);   // veio da folha do pagamento da devolução
   const kv = comPag && DEV.x && DEV.x.aberto ? DEV.k || 1 : 0, parte = kv > 0 && kv < (a.q || 1), nomeDev = kv ? devNome(a, DEV.x, kv) : alugNome(a);   // 1.22: em aberto, quantos voltaram agora (os outros continuam fora)
-  const papel = { tipo: 'devolucao', id: c.id, item: nomeDev, q: kv || a.q || 1, saiu: a.ini, outroDia: !alugHoje(a), voltou: new Date(), ficou, fixo: alugFixo(a), comprou: a.min || 0, extra: comPag ? DEV.x : null, pend: comPag ? DEV.pend || 0 : 0, formas: pag || [], uni: a.uni || null, atd: a.vend || '' };   // 1.06: toda devolução tem o cupom, para o responsável assinar
+  const papel = { tipo: 'devolucao', id: c.id, item: nomeDev, q: kv || a.q || 1, saiu: a.ini, outroDia: !alugHoje(a), voltou: new Date(), ficou, fixo: alugFixo(a), comprou: a.min || 0, extra: comPag ? DEV.x : null, pend: comPag ? DEV.pend || 0 : 0, formas: pag || [], uni: a.uni || null, atd: a.vend || '', pagoAntes: antes ? pagosTxt(antes) : '' };   // 1.06: toda devolução tem o cupom, para o responsável assinar
   const pago = pag && pag.length ? ` · recebido ${brl(pag.reduce((s, p) => s + p.v, 0))} ${pag.length === 1 ? naForma(pag[0].f) : 'em ' + pag.length + ' formas'}` : '';
   const txt = `${nomeDev} de ${c.nome}: devolvido${alugHoje(a) && !alugFixo(a) ? ' · ficou ' + dur(ficou) : ''}${pago || (passou && alugHoje(a) ? ' · passou ' + alugPassou(a) + ' do tempo comprado' : '')}`;
   if (MODO === 'servidor') {
@@ -9071,6 +9089,7 @@ const ACOES = {
   'serv-marca': el => { if (!CARRINHO) return; const x = servicoDe(el.dataset.s); if (!x) return; CARRINHO.q[x.id] = Math.min(maxServ(x), (CARRINHO.q[x.id] || 0) + 1); atualizarCarrinho(); },   // 1.20: o fusquinha, um toque só
   'devolver-so': el => devolver(+el.dataset.id, el.dataset.s, true),   // 1.25: da conta do responsável, a folha só deste carrinho
   'dev-menos': () => devQuantos(-1), 'dev-mais': () => devQuantos(1),   // 1.22: quantos fusquinhas voltaram agora
+  'devolver-pago': () => { const k = DEVP; DEVP = null; const c = k && crianca(k.cid), a = k && (S.alugueis || []).find(x => x.crianca === k.cid && x.s === k.s); if (!c || !a) { fecharFolha(); return; } devolverJa(c, a, null, pagosAlug(a)); },   /* 2.30 */
   'devolver-ok': el => { if (!DEV || !PAG || PAG.onde !== 'devolucao') return; { const tp = travaParc(); if (tp) { toast(tp); return; } }   /* 1.89 */ const r = pagPartes(); if (r.erro) { toast(PAG.formas.length ? r.erro : `Como recebeu ${brl(PAG.total)}? Toque na forma de pagamento`); return; }
     const c = crianca(DEV.cid), a = (S.alugueis || []).find(x => x.crianca === DEV.cid && x.s === DEV.s); if (!c || !a) { fecharFolha(); desenhar(true); return; } el.disabled = true; devolverJa(c, a, r.partes); },
   reabrir: el => folhaReabrir(+el.dataset.id),
