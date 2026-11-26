@@ -1301,6 +1301,15 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Pacote ou Avulso sempre à vista na saída (2.17)
+
+Pedido do dono (27/11): "no final eu tenho que ter a opção de cobrar ou no avulso ou no pacote", e o pai com 3 crianças sai com as 3 de uma vez, descontando de um pacote só, ou uma no avulso e o resto no pacote.
+
+- A saída em conjunto já fazia isso quando o responsável tem horas (2.13 e 2.14): "Pacote | Avulso" ao lado de cada nome e as horas do CPF para todas.
+- Agora o par aparece ao lado de toda criança da conta, mesmo sem horas. Sem horas para ela, "Avulso" vem marcado e "Pacote" abre a venda do pacote ali mesmo (a lista dos pacotes já aberta). Vendido, o pacote entra na conta da saída ("Somar na saída") e o tempo das crianças sai dele: um pacote só para todas. Quem ficar no "Avulso" paga o avulso.
+- Na saída de uma criança só e no "Descontar do pacote | Pagar avulso" de cima, é igual: sem horas, "Pagar avulso" vem marcado e "Descontar do pacote" abre a venda do pacote.
+- A folha da venda diz por que abriu: "NOME está sem horas no pacote. Escolha o pacote e toque em Somar na saída".
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Vender pacote, Pacote futuro e Corrigir as horas (2.16)
 
 Pedido do dono (26/11), parte 2.
