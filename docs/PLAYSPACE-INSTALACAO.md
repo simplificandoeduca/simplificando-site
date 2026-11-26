@@ -1301,6 +1301,14 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O pacote vendido sem entrada conta na lista do dia (2.41)
+
+Pedido do dono (26/11): "quando eu clico no botão vender pacote, ele tá entrando como sem valor pro caixa ... vendi um pacote para Gisele e ele não tá somando".
+
+- O Caixa do dia (os valores por forma e o total) já somava o pagamento do pacote. Quem mostrava "sem valor" era a lista dos Finalizados: cada saída somava só as compras da própria criança.
+- Agora a venda do dia que não caiu em nenhuma saída vai para a saída de alguém da mesma família no mesmo dia (as horas são do CPF). Se ninguém da família saiu (nem está no espaço), ela aparece em "Vendas sem entrada", com o valor e o "a receber".
+- A saída que só usou as horas do pacote mostra "usou o pacote" e quantas horas, em vez de "sem valor".
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Qual produto foi no pacote (2.40, Finanças 5.5)
 
 Pedido do dono (26/11): "no produto ... tem que escrever qual produto que é. Se é um carrinho, se é uma casinha ... para que a gente veja o que tem mais saída".

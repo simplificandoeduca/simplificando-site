@@ -2023,7 +2023,7 @@ function caixaDoDia(int $so = 0, ?string $dia = null): array {   /* 2.15: $so = 
 }
 // as saídas de hoje (cada visita, com o que ela vendeu) e o que voltou para a loja hoje: o filtro "Finalizados do dia" da lista
 function finalizadosDoDia(int $so = 0, ?string $dia = null): array {   /* 2.15: $so = só esta unidade. 2.26: $dia = outro dia */
-  $db = db(); [$hoje, $fim] = diaDoCaixa($dia); $vis = []; $dev = [];
+  $db = db(); [$hoje, $fim] = diaDoCaixa($dia); $vis = []; $dev = []; $usadas = []; $janela = [];   /* 2.41: as vendas que já caíram numa saída, e a janela de cada saída */
   $q = $db->prepare('SELECT x.id, x.crianca_id, x.entrou, x.saiu, x.debitado_min, x.unidade_id, c.nome, c.resp FROM visitas x JOIN criancas c ON c.id = x.crianca_id WHERE x.saiu >= ? AND x.saiu < ? ORDER BY x.saiu DESC, x.id DESC LIMIT 400'); $q->execute([$hoje, $fim]); $V = $q->fetchAll();
   if ($V) {
     $ids = implode(',', array_unique(array_map(fn($v) => (int)$v['crianca_id'], $V))); $piso = min(array_map(fn($v) => substr((string)$v['entrou'], 0, 10) . ' 00:00:00', $V));
@@ -2036,17 +2036,30 @@ function finalizadosDoDia(int $so = 0, ?string $dia = null): array {   /* 2.15: 
       $L = array_values(array_filter($vendas[$cid] ?? [], fn($v) => ($deSaida ? (string)$v['quando'] > $ini : (string)$v['quando'] >= $ini) && (string)$v['quando'] <= (string)$x['saiu']));
       $am = 0; $al = 0; $nomes = []; foreach ($L as $v) { if (!empty($v['auto'])) { if (strpos((string)$v['itens'], 'avulsa') === 0) $am += (int)$v['minutos']; else $al += (int)$v['minutos']; } elseif ((float)$v['valor'] > 0 || (string)$v['voucher'] !== '') $nomes[] = nomeDaVenda($v); }   // a recreação avulsa da visita numa linha só
       $valor = round(array_sum(array_map(fn($v) => (float)$v['valor'], $L)), 2); $pago = round(array_sum(array_map(fn($v) => min((float)$v['valor'], (float)$v['pago']), $L)), 2);
+      foreach ($L as $v) $usadas[(int)$v['id']] = 1; $janela[] = [$ini, (string)$x['saiu']];   /* 2.41 */
       $vis[] = ['id' => (int)$x['id'], 'crianca' => $cid, 'nome' => (string)$x['nome'], 'resp' => (string)$x['resp'], 'entrou' => (string)$x['entrou'], 'saiu' => (string)$x['saiu'], 'deb' => (int)$x['debitado_min'], 'uni' => $x['unidade_id'] === null ? null : (int)$x['unidade_id'],
         'valor' => $valor, 'falta' => max(0, round($valor - $pago, 2)), 'itens' => array_slice(array_values(array_unique(array_merge($am ? ['RECREAÇÃO avulsa · ' . dur($am)] : [], $al ? ['Além do pacote · ' . dur($al)] : [], $nomes))), 0, 4)]; }
   }
+  /* 2.41 (o dono: "quando eu clico no botão vender pacote, ele tá entrando como sem valor pro caixa ... vendi um pacote para Gisele e ele não
+     tá somando"): a venda do dia que não caiu em nenhuma saída (o Vender pacote, sem entrada; o pacote de um irmão: as horas são do CPF)
+     vai para a saída de alguém da família no mesmo dia; sem ninguém da família saindo (nem no espaço agora), fica em "Vendas sem entrada" */
+  $sem = []; $ehHoje = $hoje === date('Y-m-d') . ' 00:00:00';
+  $q = $db->prepare("SELECT v.id, v.crianca_id, v.quando, v.valor, v.servico, v.itens, v.minutos, v.auto, v.voucher, v.produto_id, v.qtd, v.alug, v.alug_min, v.unidade_id, COALESCE((SELECT SUM(p.valor) FROM pagamentos p WHERE p.venda_id = v.id), 0) pago
+    FROM vendas v WHERE v.quando >= ? AND v.quando < ? AND v.servico != ? AND v.alug = '' AND v.itens NOT LIKE 'tempo a mais%' AND v.auto = 0 AND v.valor > 0.004 ORDER BY v.id"); $q->execute([$hoje, $fim, SERV_IMPORTADO]);
+  foreach ($q->fetchAll() as $v) { if (isset($usadas[(int)$v['id']])) continue; $c = crianca((int)$v['crianca_id']); $F = $c ? array_merge([$c], irmaosDe($c)) : []; $fam = array_map(fn($x) => (int)$x['id'], $F) ?: [(int)$v['crianca_id']];
+    if ($ehHoje && array_filter($F, fn($x) => !empty($x['entrou']))) continue;   // (alguém da família está no espaço: a venda vai para a saída dele)
+    $k = -1; foreach ($vis as $i => $x) if (in_array((int)$x['crianca'], $fam, true) && (string)$v['quando'] >= $janela[$i][0] && (string)$v['quando'] <= $janela[$i][1] && ($k < 0 || (string)$x['saiu'] < (string)$vis[$k]['saiu'])) $k = $i;
+    $vv = round((float)$v['valor'], 2); $falta = max(0, round($vv - min($vv, (float)$v['pago']), 2));
+    if ($k >= 0) { $vis[$k]['valor'] = round($vis[$k]['valor'] + $vv, 2); $vis[$k]['falta'] = round($vis[$k]['falta'] + $falta, 2); if (count($vis[$k]['itens']) < 4) $vis[$k]['itens'] = array_values(array_unique(array_merge($vis[$k]['itens'], [nomeDaVenda($v)]))); continue; }
+    $sem[] = ['id' => (int)$v['id'], 'crianca' => (int)$v['crianca_id'], 'nome' => (string)($c['nome'] ?? ''), 'resp' => (string)($c['resp'] ?? ''), 'quando' => (string)$v['quando'], 'valor' => $vv, 'falta' => $falta, 'item' => nomeDaVenda($v), 'uni' => $v['unidade_id'] === null ? null : (int)$v['unidade_id']]; }
   $q = $db->prepare("SELECT v.id, v.crianca_id, v.alug, v.servico, v.qtd, v.alug_min, v.quando, v.voltou, v.valor, v.unidade_id, c.nome, c.resp FROM vendas v JOIN criancas c ON c.id = v.crianca_id WHERE v.alug != '' AND v.voltou IS NOT NULL AND v.voltou >= ? AND v.voltou < ? ORDER BY v.voltou DESC, v.id LIMIT 400"); $q->execute([$hoje, $fim]);
   foreach ($q->fetchAll() as $v) { $k = (int)$v['crianca_id'] . '|' . $v['alug'] . '|' . $v['voltou'];
     if (!isset($dev[$k])) $dev[$k] = ['crianca' => (int)$v['crianca_id'], 'nome' => (string)$v['nome'], 'resp' => (string)$v['resp'], 's' => (string)$v['alug'], 'n' => (string)$v['servico'], 'q' => 0, 'saiu' => (string)$v['quando'], 'voltou' => (string)$v['voltou'], 'valor' => 0.0, 'uni' => $v['unidade_id'] === null ? null : (int)$v['unidade_id']];
     $dev[$k]['q'] += (int)$v['alug_min'] > 0 ? ($dev[$k]['q'] ? 0 : 1) : max(1, (int)$v['qtd']); $dev[$k]['valor'] = round($dev[$k]['valor'] + (float)$v['valor'], 2); if ((string)$v['quando'] < $dev[$k]['saiu']) $dev[$k]['saiu'] = (string)$v['quando']; }
   if ($dev) { $q = $db->prepare("SELECT crianca_id, voltou, valor FROM vendas WHERE quando >= ? AND alug = '' AND voltou IS NOT NULL AND voltou >= ? AND itens LIKE 'tempo a mais%'"); $q->execute([date('Y-m-d', strtotime($hoje) - 86400) . ' 00:00:00', $hoje]);   // (o tempo a mais nasce na devolução: anda pelo índice da hora da venda)   // o tempo a mais cobrado na devolução (é uma venda à parte, que já nasce devolvida)
     foreach ($q->fetchAll() as $t) foreach ($dev as $k => $d) if ($d['crianca'] === (int)$t['crianca_id'] && $d['voltou'] === (string)$t['voltou']) { $dev[$k]['valor'] = round($d['valor'] + (float)$t['valor'], 2); break; } }
-  if ($so > 0) { $vis = array_values(array_filter($vis, fn($x) => (int)($x['uni'] ?? 0) === $so)); $dev = array_filter($dev, fn($x) => (int)($x['uni'] ?? 0) === $so); }   /* 2.15 (o dono: "cada unidade só pode ver sua unidade") */
-  return ['visitas' => $vis, 'devolvidos' => array_values($dev)];
+  if ($so > 0) { $vis = array_values(array_filter($vis, fn($x) => (int)($x['uni'] ?? 0) === $so)); $dev = array_filter($dev, fn($x) => (int)($x['uni'] ?? 0) === $so); $sem = array_filter($sem, fn($x) => (int)($x['uni'] ?? 0) === $so); }   /* 2.15 (o dono: "cada unidade só pode ver sua unidade") */
+  return ['visitas' => $vis, 'devolvidos' => array_values($dev), 'semEntrada' => array_values($sem)];
 }
 /* ---------- 0.93: o cupom fiscal de cada pagamento ---------- */
 // "Toda vez que o pagamento é feito, precisa sair o cupom fiscal." O sistema ainda não fala com a máquina fiscal (isso depende da máquina e do
