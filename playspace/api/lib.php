@@ -898,6 +898,9 @@ function pedidoCriar(array $u, array $in): array {
       $motivo = '';
     }
   }
+  /* 2.47 (o dono: "aqui só pode alterar o valor para mais"): na Casa Tom, o valor do produto só sobe (para menos é o desconto), nem o gestor baixa */
+  if ($tipo === 'valor' && $vendaId === null && (($dados['item'] ?? [])['k'] ?? '') === 'prod' && (float)($dados['para'] ?? 0) < (float)($dados['de'] ?? 0) - 0.004 && ($bct = balcaoCT(false)) && (int)$bct['id'] === (int)$c['id'])
+    falha('Na Casa Tom o valor só sobe. Para menos é desconto: use o "Desconto" (só o gestor).');
   $db->prepare('INSERT INTO pedidos (tipo, status, crianca_id, venda_id, nome, resp, texto, motivo, valor, dados, pedido_por, pedido_nome, pedido_em, unidade_id) VALUES (?, \'pendente\', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
     ->execute([$tipo, (int)$c['id'], $vendaId, (string)$c['nome'], (string)$c['resp'], $texto, $motivo, $valor, json_encode($dados, JSON_UNESCAPED_UNICODE), (int)$u['id'], (string)$u['nome'], $agora, unidadeDoPedido()]);
   $id = (int)$db->lastInsertId();

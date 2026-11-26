@@ -2135,7 +2135,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.46';
+const VERSAO = '2.47';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -4656,16 +4656,15 @@ function htmlCtAlt() { if (!ALT || !PAG || PAG.onde !== 'venda' || PAG.id !== AL
   const p = ALT.lib && altValido(ALT.lib) ? ALT.lib : null;
   if (p) return `<div class="pg-desc lib pg-alt" id="pg-alt">${ic(IC.check, 18, 2.6)}<span><b>Valor alterado</b>: ${esc((p.dados.item || {}).n || 'o produto')} de ${brl(p.dados.de)} para ${brl(p.dados.para)}${p.motivo ? ' · ' + esc(p.motivo) : ''}</span><button type="button" class="link tap" data-act="alt-largar">Tirar</button></div>`;
   const sel = L.find(l => altChave(l) === ALT.k) || L[0]; ALT.k = altChave(sel);
-  return `<details class="pg-desc pg-alt" id="pg-alt"${ALT.aberto ? ' open' : ''}><summary>${ic(IC.lapis, 18)}<span><b>Alterar valor</b> <span class="leve">· ${gestor() ? 'para mais ou para menos' : 'para mais (para menos, só o gestor)'}</span></span>${ic(IC.vai, 16)}</summary><div class="pg-desc-c pg-alt-c">
+  return `<details class="pg-desc pg-alt" id="pg-alt"${ALT.aberto ? ' open' : ''}><summary>${ic(IC.lapis, 18)}<span><b>Alterar valor</b> <span class="leve">· só para mais (para menos, é o Desconto)</span></span>${ic(IC.vai, 16)}</summary><div class="pg-desc-c pg-alt-c">
     ${L.length > 1 ? `<div class="seg pg-alt-i" role="radiogroup" aria-label="Qual produto">${L.map(l => `<button type="button" class="tap" role="radio" data-act="ctalt-item" data-k="${esc(altChave(l))}" aria-checked="${altChave(l) === ALT.k}">${esc(altNomeL(l))} · ${brl(l.v)}</button>`).join('')}</div>` : `<p class="pg-alt-n"><b>${esc(altNomeL(sel))}</b> · na tabela ${brl(sel.v)}</p>`}
-    <input id="pg-alt-m" autocomplete="off" maxlength="80" placeholder="Motivo (para mais, opcional)" value="${esc(ALT.motivo || '')}" aria-label="Motivo"><input id="pg-alt-v" inputmode="decimal" autocomplete="off" placeholder="Novo valor R$" value="${esc(ALT.v || '')}" aria-label="Valor novo, em reais"></div>
+    <input id="pg-alt-m" autocomplete="off" maxlength="80" placeholder="Motivo (opcional)" value="${esc(ALT.motivo || '')}" aria-label="Motivo"><input id="pg-alt-v" inputmode="decimal" autocomplete="off" placeholder="Novo valor R$" value="${esc(ALT.v || '')}" aria-label="Valor novo, em reais"></div>
     <div class="pg-desc-a"><button type="button" class="bt forte tap" data-act="ctalt-ok">${ic(IC.check)} Aplicar o valor</button></div></details>`; }
-async function ctAltAplicar(el) { if (!ALT) return;   /* 2.42: toda a equipe sobe o valor; baixar, só o gestor */ const l = linhasDoCarrinho().find(x => x.prod && altChave(x) === ALT.k); if (!l) { toast('Escolha o produto'); return; }
+async function ctAltAplicar(el) { if (!ALT) return;   /* 2.42: toda a equipe sobe o valor. 2.47 (o dono: "aqui só pode alterar o valor para mais"): baixar, nem o gestor (é o Desconto) */ const l = linhasDoCarrinho().find(x => x.prod && altChave(x) === ALT.k); if (!l) { toast('Escolha o produto'); return; }
   ALT.v = val('pg-alt-v'); ALT.motivo = val('pg-alt-m'); const v = numero(ALT.v); let m = MAI(ALT.motivo || '');
   if (!(v > 0) || v > 99999) { toast('Escreva o valor novo'); const i = $('#pg-alt-v'); if (i) i.focus(); return; } if (Math.abs(v - l.v) < 0.005) { toast('O valor novo é igual ao de agora'); return; }
-  const sobe = v > l.v; if (!sobe && !gestor()) { toast('Valor menor é desconto: só o gestor. Use o "Dar desconto" (o gestor libera).'); const i = $('#pg-alt-v'); if (i) i.focus(); return; }
-  if (sobe && m.length < 3) m = 'AJUSTE PARA MAIS';
-  if (m.length < 3) { toast('Escreva o motivo'); const i = $('#pg-alt-m'); if (i) i.focus(); return; }
+  if (v < l.v) { toast('Aqui o valor só sobe. Para menos é desconto: use o "Desconto" (só o gestor).'); const i = $('#pg-alt-v'); if (i) i.focus(); return; }
+  if (m.length < 3) m = 'AJUSTE PARA MAIS';
   const d = { tipo: 'valor', crianca: ALT.id, item: altItem(l), para: centavos(v), motivo: m }; el.disabled = true;
   try { let p; if (MODO === 'servidor') { const r = await api('pedido_criar', d); pedidosChegaram(r.pedidos, true); p = pedidoDe(r.pedido); } else { const r = criarPedidoPrevia(d, null); if (r.erro) throw new Error(r.erro); pedidosMudaramPrevia(true); p = r.pedido; }
     ALT.ped = p.id; ALT.lib = p.status === 'liberado' ? p : null; ALT.espera = p.status === 'pendente'; ALT.neg = null; ALT.venceu = false; altRedesenha(); altMudou(); }

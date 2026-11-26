@@ -1301,6 +1301,14 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Casa Tom: o "Alterar valor" só para mais (2.47)
+
+Pedido do dono (26/11): "aqui só pode alterar o valor para mais, tá?".
+
+- No pagamento da Casa Tom, o "Alterar valor" só sobe o valor do produto, para todos (também o gestor). O título diz "só para mais (para menos, é o Desconto)".
+- Valor menor que o da tabela é recusado ("Aqui o valor só sobe. Para menos é desconto: use o Desconto, só o gestor"). O servidor também recusa.
+- O motivo é opcional (sem motivo, fica "AJUSTE PARA MAIS").
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Finalizados do dia: a venda de pacote junto com a Play, a Casa Tom à parte (2.46)
 
 Pedido do dono (26/11): "por que esse da Gisele tá junto com os da Casa Tom? Ele deveria estar junto com os de cima, do Play ... foi uma venda de pacote, não uma venda de produto".
