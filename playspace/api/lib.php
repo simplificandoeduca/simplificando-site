@@ -1948,7 +1948,7 @@ function devolvidoHoje(): array {
     if ((string)$l['item'] !== '') $o[$u]['itens'][$l['item']] = round(($o[$u]['itens'][$l['item']] ?? 0) + $v, 2); }
   foreach ($o as &$x) unset($x['vendas']); unset($x); return $o;
 }
-function caixaDoDia(): array {
+function caixaDoDia(int $so = 0): array {   /* 2.15: $so = só esta unidade (quem não é o gestor vê só a dele) */
   $q = db()->prepare("SELECT COALESCE(p.unidade_id, v.unidade_id, 0) u, p.forma f, p.valor val, p.venda_id vid, v.servico s, (COALESCE(v.produto_id, 0) > 0) pr, v.alug a, v.minutos m, v.auto au, v.voucher vo, v.festa_id fid FROM pagamentos p JOIN vendas v ON v.id = p.venda_id WHERE p.quando >= ? ORDER BY p.id");   // 1.31: a unidade em que o dinheiro entrou
   $q->execute([date('Y-m-d') . ' 00:00:00']); $o = [];
   foreach ($q->fetchAll() as $l) { $u = (int)$l['u']; $g = grupoDoCaixa($l); $f = (string)$l['f']; $v = round((float)$l['val'], 2);
@@ -1960,10 +1960,14 @@ function caixaDoDia(): array {
     unset($x); }
   foreach ($o as &$x) foreach ($x['grupos'] as &$g) $g['vendas'] = count($g['vendas']); unset($x, $g);
   foreach (devolvidoHoje() as $u => $d) { if (!isset($o[$u])) $o[$u] = ['uni' => $u, 'grupos' => []]; $o[$u]['devolvido'] = $d; }   // 1.31
+  /* 2.15 (o dono: "no fechamento ... quantas crianças passaram pelo espaço no final do dia"): quem saiu hoje e quem está no espaço, uma vez cada */
+  $qk = db()->prepare('SELECT u, COUNT(DISTINCT c) n FROM (SELECT COALESCE(unidade_id, 0) u, crianca_id c FROM visitas WHERE saiu >= ? UNION ALL SELECT COALESCE(unidade_id, 0) u, id c FROM criancas WHERE entrou IS NOT NULL) GROUP BY u'); $qk->execute([date('Y-m-d') . ' 00:00:00']);
+  foreach ($qk->fetchAll() as $l) { $u = (int)$l['u']; if (!isset($o[$u])) $o[$u] = ['uni' => $u, 'grupos' => []]; $o[$u]['criancas'] = (int)$l['n']; }
+  if ($so > 0) $o = array_filter($o, fn($x) => (int)$x['uni'] === $so);
   ksort($o); return ['desde' => date('Y-m-d') . ' 00:00:00', 'unidades' => array_values($o)];
 }
 // as saídas de hoje (cada visita, com o que ela vendeu) e o que voltou para a loja hoje: o filtro "Finalizados do dia" da lista
-function finalizadosDoDia(): array {
+function finalizadosDoDia(int $so = 0): array {   /* 2.15: $so = só esta unidade */
   $db = db(); $hoje = date('Y-m-d') . ' 00:00:00'; $vis = []; $dev = [];
   $q = $db->prepare('SELECT x.id, x.crianca_id, x.entrou, x.saiu, x.debitado_min, x.unidade_id, c.nome, c.resp FROM visitas x JOIN criancas c ON c.id = x.crianca_id WHERE x.saiu >= ? ORDER BY x.saiu DESC, x.id DESC LIMIT 400'); $q->execute([$hoje]); $V = $q->fetchAll();
   if ($V) {
@@ -1986,6 +1990,7 @@ function finalizadosDoDia(): array {
     $dev[$k]['q'] += (int)$v['alug_min'] > 0 ? ($dev[$k]['q'] ? 0 : 1) : max(1, (int)$v['qtd']); $dev[$k]['valor'] = round($dev[$k]['valor'] + (float)$v['valor'], 2); if ((string)$v['quando'] < $dev[$k]['saiu']) $dev[$k]['saiu'] = (string)$v['quando']; }
   if ($dev) { $q = $db->prepare("SELECT crianca_id, voltou, valor FROM vendas WHERE quando >= ? AND alug = '' AND voltou IS NOT NULL AND voltou >= ? AND itens LIKE 'tempo a mais%'"); $q->execute([date('Y-m-d', time() - 86400) . ' 00:00:00', $hoje]);   // (o tempo a mais nasce na devolução: anda pelo índice da hora da venda)   // o tempo a mais cobrado na devolução (é uma venda à parte, que já nasce devolvida)
     foreach ($q->fetchAll() as $t) foreach ($dev as $k => $d) if ($d['crianca'] === (int)$t['crianca_id'] && $d['voltou'] === (string)$t['voltou']) { $dev[$k]['valor'] = round($d['valor'] + (float)$t['valor'], 2); break; } }
+  if ($so > 0) { $vis = array_values(array_filter($vis, fn($x) => (int)($x['uni'] ?? 0) === $so)); $dev = array_filter($dev, fn($x) => (int)($x['uni'] ?? 0) === $so); }   /* 2.15 (o dono: "cada unidade só pode ver sua unidade") */
   return ['visitas' => $vis, 'devolvidos' => array_values($dev)];
 }
 /* ---------- 0.93: o cupom fiscal de cada pagamento ---------- */

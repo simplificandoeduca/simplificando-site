@@ -1171,6 +1171,15 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 @media (max-width: 480px) { .fe-tab { gap: 6px; } .fe-tab .fe-n { font-size: 12.5px; } .fe-tab .fe-n .num { font-size: 17px; } .fe-tab .fe-v b { font-size: 16px; } .fe-inc div { grid-template-columns: 84px minmax(0, 1fr); } }
 #s-av button, #fe-modo button { line-height: 1.15; } #s-av button[aria-checked="true"], #fe-modo button[aria-checked="true"] { border-color: var(--coral); background: var(--coral-2); color: var(--tinta); }   /* 1.11: descontar do pacote ou pagar avulso */
 @media (max-width: 480px) { #s-av button, #fe-modo button { font-size: 13.5px; gap: 7px; padding: 6px 8px; } }
+/* 2.15: "Descontar do pacote / Pagar avulso" também no jeito do iPhone */
+#s-av { gap: 0; padding: 3px; border-radius: 14px; background: rgba(118, 118, 128, .14); }
+#s-av button, #s-av button[aria-checked="true"] { min-height: 44px; border: 0; border-radius: 11px; background: transparent; color: var(--tinta-2); font-weight: 700; box-shadow: none; transition: background .25s ease, box-shadow .25s ease, color .25s ease; }
+#s-av button i { display: none; }
+#s-av button[aria-checked="true"] { background: var(--card); background: color-mix(in srgb, var(--card) 72%, #fff); box-shadow: 0 3px 8px rgba(0, 0, 0, .13), 0 3px 1px rgba(0, 0, 0, .04); }
+#s-av button[aria-checked="true"][data-v="0"] { color: var(--ok); }
+#s-av button[aria-checked="true"][data-v="1"] { color: var(--coral); }
+.cx-kids { margin: 2px 0 8px; } .cx-kids b { font-size: 18px; }
+
 /* 1.04: desconto do gestor na tela de pagamento (só ele vê): tipo, valor e motivo */
 .pg-desc { border: 2px solid var(--borda); border-radius: 16px; background: var(--card); }
 .pg-desc > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 11px 14px; font-size: 14px; } .pg-desc > summary::-webkit-details-marker { display: none; }
@@ -1195,13 +1204,14 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .pgt-r.pgt-desc > .pgt-v, .pgt-r.pgt-desc .pgt-i b { color: var(--ok); } .pgt-falta { color: var(--erro); }
 /* 1.07: a saída em conjunto: o "Tirar" de cada criança, e as que ficaram fora da conta */
 .pgt-x { margin-left: 8px; height: 26px; padding: 0 10px; border-radius: 999px; border: 1.5px solid var(--borda-2); background: var(--card); font: 800 11.5px/1 var(--texto); letter-spacing: .03em; color: var(--tinta-2); vertical-align: 1px; white-space: nowrap; }
-/* 2.14: "Pacote | Avulso" ao lado do nome da criança, na lista da conta em conjunto */
+/* 2.15 (o dono: "mude o botão do pacote. Coloque um botão mais bonitinho, mais Apple"): "Pacote | Avulso" ao lado do nome, no jeito do
+   controle segmentado do iPhone (o trilho cinza e o escolhido em branco, com sombra) */
 .pgt-m.pgt-nmx { white-space: normal; overflow: visible; }
-.pg-modo2 { display: inline-flex; margin-left: 6px; border: 1.5px solid var(--borda-2); border-radius: 999px; overflow: hidden; vertical-align: 1px; white-space: nowrap; }
-.pg-modo2 button { height: 26px; padding: 0 10px; border: 0; background: var(--card); font: 800 11.5px/1 var(--texto); letter-spacing: .03em; color: var(--tinta-2); cursor: pointer; }
-.pg-modo2 button + button { border-left: 1.5px solid var(--borda-2); }
-.pg-modo2 button[data-v="p"][aria-pressed="true"] { background: var(--ok); color: #fff; }
-.pg-modo2 button[data-v="a"][aria-pressed="true"] { background: var(--coral); color: #fff; }
+.pg-modo2 { display: inline-flex; margin-left: 6px; padding: 2px; border-radius: 9px; background: rgba(118, 118, 128, .14); vertical-align: 1px; white-space: nowrap; }
+.pg-modo2 button { height: 24px; padding: 0 11px; border: 0; border-radius: 7px; background: transparent; font: 700 11.5px/1 var(--texto); color: var(--tinta-2); cursor: pointer; transition: background .25s ease, box-shadow .25s ease, color .25s ease; }
+.pg-modo2 button[aria-pressed="true"] { background: var(--card); background: color-mix(in srgb, var(--card) 72%, #fff); box-shadow: 0 2px 6px rgba(0, 0, 0, .13), 0 2px 1px rgba(0, 0, 0, .04); }
+.pg-modo2 button[data-v="p"][aria-pressed="true"] { color: var(--ok); }
+.pg-modo2 button[data-v="a"][aria-pressed="true"] { color: var(--coral); }
 .pgt-x0m { display: none; margin-top: 6px; } .pgt-x0m .pg-modo2 { margin-left: 0; }
 @container (max-width: 470px) { .pgt-x0m { display: block; } }
 .pgt-x:hover, .pgt-x:focus-visible { border-color: var(--erro); color: var(--erro); }
@@ -2103,7 +2113,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.14';
+const VERSAO = '2.15';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -4750,7 +4760,7 @@ function htmlPapel(spec, via = 'loja') {
     const xa = spec.extra && spec.extra.aberto && spec.extra.valor > 0 ? spec.extra : null;   // 1.20: em aberto, a linha é a do tempo cobrado
     const itens = xa ? [{ n: `${spec.item} · ${dur(xa.min)}`, v: xa.valor, sub: `${xa.q > 1 ? xa.q + ' carrinhos · ' : ''}${xa.n} × ${xa.per} min · ${brl2(xa.un)} cada` }]
       : [spec.pend > 0 ? { n: spec.item + (spec.comprou ? ' · ' + dur(spec.comprou) : ''), v: spec.pend } : null, spec.extra && spec.extra.valor > 0 ? { n: `Tempo a mais: ${dur(spec.extra.min)}`, v: spec.extra.valor } : null].filter(Boolean);
-    return `<div class="papel ${loja ? 'loja' : 'cliente'}">${cab.replace('{{VIA}}', 'VIA DE DEVOLUÇÃO')}${div}<p class="c-tit c-bt">DEVOLUÇÃO · ${esc(spec.item)}</p>
+    return `<div class="papel ${loja ? 'loja' : 'cliente'}">${cab.replace('{{VIA}}', loja ? 'VIA DE DEVOLUÇÃO' : 'VIA DO CLIENTE')}${div}<p class="c-tit c-bt">DEVOLUÇÃO · ${esc(spec.item)}</p>
       <p>Saiu ${spec.outroDia ? dataHora(spec.saiu) : hora(spec.saiu)} · voltou ${hora(spec.voltou)} · ficou ${dur(spec.ficou)}</p>${spec.comprou ? `<p>Tempo comprado: ${dur(spec.comprou)}</p>` : ''}
       ${pago(itens, spec.formas, { desc: spec.desc })}${pe('', true)}</div>`;
   }
@@ -4759,13 +4769,13 @@ function htmlPapel(spec, via = 'loja') {
     const bloco = (x, i) => { const k = quem(x); return `${i ? '<p class="c-esp"></p>' : ''}<p class="c-bt"><b>SAÍDA · ${esc(k.nome)}</b>${anos(k)}${loja ? ' · cadastro ' + k.id : ''}</p>
       <p>Entrada ${hora(x.entrou)} · saída ${hora(x.saiu)} · ficou ${dur(ficouMin(x.min))}</p>
       <p>${x.plano === 'festa' ? 'Festa · sem desconto de horas' : (x.plano === 'pacote' && !x.n && !x.av && x.deb > 0 ? 'Tempo descontado: ' : 'Tempo contado: ') + dur(x.deb)}</p>`; };   // 1.30: sem o saldo de horas do cliente, só o tempo descontado
-    const itens = G.flatMap(x => { const de = varias ? ' · ' + quem(x).nome : ''; return [...(x.pendi && x.pendi.length ? soPacoteNoCupom(x.pendi.map(i => ({ n: (i.t === 'pacote' && i.pn ? i.pn : i.n) + de, v: i.v, t: i.t || '' }))) : [x.pend > 0 ? { n: 'O que ficou para pagar na saída' + de, v: x.pend } : null]), x.n ? { n: `${x.plano === 'pacote' ? 'Além do pacote' : (st ? st.n : 'RECREAÇÃO') + ' avulsa'} · ${dur(x.n * p)}${de}`, v: centavos(x.valor - (x.pend || 0) - (x.av ? x.av.valor : 0)) } : null, x.av ? { n: `${st ? st.n : 'RECREAÇÃO'} avulsa · ${dur(x.av.min)}${de}`, v: x.av.valor } : null]; }).filter(Boolean);   // 1.10: o desconto sai na linha dele, embaixo do subtotal
+    const itens = G.flatMap(x => { const de = varias ? ' · ' + quem(x).nome : ''; return [...(x.pendi && x.pendi.length ? soPacoteNoCupom(x.pendi.map(i => ({ n: (i.t === 'pacote' && i.pn ? semHorasPac(i.pn) : i.n) + de, v: i.v, t: i.t || '' }))) : [x.pend > 0 ? { n: 'O que ficou para pagar na saída' + de, v: x.pend } : null]), x.n ? { n: `${x.plano === 'pacote' ? 'Além do pacote' : (st ? st.n : 'RECREAÇÃO') + ' avulsa'} · ${dur(x.n * p)}${de}`, v: centavos(x.valor - (x.pend || 0) - (x.av ? x.av.valor : 0)) } : null, x.av ? { n: `${st ? st.n : 'RECREAÇÃO'} avulsa · ${dur(x.av.min)}${de}`, v: x.av.valor } : null]; }).filter(Boolean);   // 1.10: o desconto sai na linha dele, embaixo do subtotal
     const deA = y => nomes && crianca(y.id) ? ' · ' + crianca(y.id).nome : '';
     const blocoA = (y, i) => `${i || G.length ? '<p class="c-esp"></p>' : ''}<p class="c-bt c-bd"><b>DEVOLUÇÃO · ${esc(y.item)}</b>${esc(deA(y))}</p><p>Saiu ${y.outroDia ? dataHora(y.saiu) : hora(y.saiu)} · voltou ${hora(y.voltou)} · ficou ${dur(y.ficou)}</p>${y.comprou ? `<p>Tempo comprado: ${dur(y.comprou)}</p>` : ''}`;
     const itensA = A.flatMap(y => { const xa = y.extra && y.extra.aberto && y.extra.valor > 0 ? y.extra : null, de = deA(y);
       return xa ? [{ n: `${y.item} · ${dur(xa.min)}${de}`, v: xa.valor, sub: `${xa.q > 1 ? xa.q + ' carrinhos · ' : ''}${xa.n} × ${xa.per} min · ${brl2(xa.un)} cada` }]
         : [y.pend > 0 ? { n: y.item + (y.comprou ? ' · ' + dur(y.comprou) : '') + de, v: y.pend } : null, y.extra && y.extra.valor > 0 ? { n: `Tempo a mais: ${dur(y.extra.min)}${de}`, v: y.extra.valor } : null].filter(Boolean); });
-    return `<div class="papel ${loja ? 'loja' : 'cliente'}">${cab.replace('{{VIA}}', G.length || !A.length ? 'VIA DE SAÍDA' : 'VIA DE DEVOLUÇÃO')}${div}${G.map(bloco).join('')}${A.map(blocoA).join('')}
+    return `<div class="papel ${loja ? 'loja' : 'cliente'}">${cab.replace('{{VIA}}', !loja ? 'VIA DO CLIENTE' : G.length || !A.length ? 'VIA DE SAÍDA' : 'VIA DE DEVOLUÇÃO')}${div}${G.map(bloco).join('')}${A.map(blocoA).join('')}
       ${pago([...itens, ...itensA], spec.formas, { desc: spec.desc })}${pe('', true)}</div>`;
   }
   // o cupom de entrada, que é também o da venda. As crianças deste responsável que estão no espaço saem no mesmo cupom (irmãos juntos).
@@ -4788,7 +4798,7 @@ function htmlPapel(spec, via = 'loja') {
   let disse = false;
   const itens = it.map(i => { const sub = [];
     if (i.t === 'aluguel') { const x = servicoDe(i.s), a = (S.alugueis || []).find(a => a.crianca === c.id && a.s === i.s), ini = a && a.ini ? a.ini : new Date(), min = a ? +a.min || 0 : x && x.modo === 'periodo' ? (i.per || 1) * (x.min || 30) : 0; sub.push(`${x && x.modo === 'periodo' ? dur((i.per || 1) * (x.min || 30)) + ' · saída ' : 'Saída '}${hora(ini)}${min > 0 ? ' · devolver até ' + ate(ini, min) : i.obs ? ' · ' + i.obs : ''}`); }
-    if (i.t === 'pacote' && i.min > 0) sub.push(`${dur(i.min)} de recreação`);   /* 1.66: sem o produto que vem com o pacote (para o cliente é só pacote de horas) */
+    /* 2.15 (o dono: "na via do cliente nem na nossa pode sair a quantidade de horas que ele tem de pacote"): sem o "3h de recreação" */   /* 1.66: sem o produto que vem com o pacote (para o cliente é só pacote de horas) */
     if ((i.t === 'tempo' || i.t === 'pacote' || i.t === 'voucher') && !quem.length && !disse) { disse = true; sub.push(`Para ${c.nome}`); }   /* 2.07: sem as horas guardadas do cliente (o dono: "tira de todos os comprovantes ... a quantidade de horas do pacote que o cliente tem") */
     return sub.length ? { ...i, sub } : i; });
   const naDev = (sv, q = 1) => sv ? ` · ${brl2(sv.v)} a cada ${sv.min || 30} min${q > 1 ? ', cada um' : ''}, na devolução` : '';   // 1.20: o que acerta na devolução diz o preço de cada período
@@ -4810,8 +4820,10 @@ function soPacoteNoCupom(L) { if (!Array.isArray(L) || !L.some(i => i.t === 'pac
   const soma = centavos(L.filter(i => i.t === 'produto').reduce((t, i) => t + (+i.v || 0), 0)); let ja = false;
   return L.filter(i => i.t !== 'produto').map(i => i.t === 'pacote' && !ja ? (ja = true, { ...i, v: centavos((+i.v || 0) + soma) }) : i); }
 /* 2.07 (o dono: "no carrinho de bebê, ele tem que sair 2 vias também, tá? Uma do cliente e uma da loja"): a saída do carrinho de bebê também */
-const temBebe = (spec, l) => ((spec && spec.itens) || []).some(i => i && i.t === 'aluguel' && i.s === 'bebe') || /CARRINHO DE BEB/i.test(l);
-function viasPapel(spec) { const l = htmlPapel(spec, 'loja'); if (!l) return []; return /<p class="c-via"><span>VIA DE ENTRADA</.test(l) || (/<p class="c-via"><span>VIA DE SAÍDA DO CARRINHO</.test(l) && temBebe(spec, l)) ? [l, htmlPapel(spec, 'cliente')].filter(Boolean) : [l]; }
+/* 2.15 (o dono: "nos carrinhos eu preciso que saia 2 vias, uma do cliente e uma nossa"): todo cupom de carrinho (2.07: era só o de bebê) */
+const semHorasPac = n => /^PACOTE\b/i.test(String(n || '')) ? String(n).replace(/ · \d+h(\d\d)?$/, '') : String(n || '');   /* 2.15: o nome do pacote no cupom, sem as horas (a recreação comprada para a visita continua com o tempo) */
+const comCarrinhoPapel = (spec, l) => /<p class="c-via"><span>VIA DE (SAÍDA DO CARRINHO|DEVOLUÇÃO)</.test(l) || (!!spec && spec.tipo === 'saida' && (spec.alug || []).length > 0);
+function viasPapel(spec) { const l = htmlPapel(spec, 'loja'); if (!l) return []; return /<p class="c-via"><span>VIA DE ENTRADA</.test(l) || comCarrinhoPapel(spec, l) ? [l, htmlPapel(spec, 'cliente')].filter(Boolean) : [l]; }
 // Manda as vias para a impressora, uma impressão para cada via: assim a impressora corta no fim de cada uma e saem dois cupons separados.
 // Cada via vai para uma área só de impressão, numa página do tamanho dela (para o papel cortar logo depois do texto).
 let IMPRIMINDO = false;
@@ -4914,7 +4926,7 @@ const segPapel = () => `<div class="seg" id="tk-modo">${MODOS_PAPEL.map(([v, n])
 function folhaPapel(spec) {
   const vias = viasPapel(spec); if (!vias.length) return; PAPEL = { spec, vias, ate: Date.now() + TROCA_MS };   // 1.57: ate = até quando a equipe troca a forma de pagamento
   abrirFolha(tituloPapel(spec), `
-    ${vias.length > 1 ? `<p class="explica" id="tk-duas">${ic(IC.cupom, 16)}<span>Saem <b>duas vias</b>: a da <b>loja</b> (o responsável assina) e a do <b>cliente</b> (fica com ele, com a hora ${/VIA DE ENTRADA</.test(vias[0]) ? 'da entrada' : 'em que o carrinho saiu'}).</span></p>` : ''}
+    ${vias.length > 1 ? `<p class="explica" id="tk-duas">${ic(IC.cupom, 16)}<span>Saem <b>duas vias</b>: a da <b>loja</b> (o responsável assina) e a do <b>cliente</b> (fica com ele, ${/VIA DE ENTRADA</.test(vias[0]) ? 'com a hora da entrada' : /VIA DE SAÍDA DO CARRINHO</.test(vias[0]) ? 'com a hora em que o carrinho saiu' : 'com a devolução e o que foi pago'}).</span></p>` : ''}
     <div class="papel-previa" id="tk-previa">${vias.map(v => `<div class="papel-fx">${v}</div>`).join('')}</div>
     <div id="tk-troca">${trocaPapelHtml()}</div>
     <details class="outro" id="tk-aparelho"><summary>Neste aparelho: <span id="tk-modo-rot">${rotModoPapel()}</span> · mudar</summary><div class="campo" style="margin-top:8px">${segPapel()}</div></details>
@@ -5885,7 +5897,8 @@ const alugSobra = a => !alugHoje(a) ? -1e9 : a.min > 0 ? a.min * 60 - alugSeg(a)
 const alugSit = a => !alugHoje(a) ? 'passou' : a.min > 0 ? (alugSobra(a) < 0 ? 'passou' : alugSobra(a) <= S.cfg.aviso * 60 ? 'acabando' : 'ok') : 'livre';
 const alugPassou = a => { const m = Math.max(1, Math.floor(-alugSobra(a) / 60)); return m < 60 ? m + ' min' : dur(m); };   // quanto passou do tempo comprado
 const alugSub = a => !alugHoje(a) ? 'saiu em ' + diaCurto(a.ini) + ' às ' + hora(a.ini) : a.min > 0 ? (alugSobra(a) < 0 ? 'passou ' + hms(-alugSobra(a)) : '') : 'saiu às ' + hora(a.ini) + (alugAberto(a) ? ' · ' + ITENS_ABERTO : '');
-const alugTempo = a => alugHoje(a) ? hms(alugSeg(a)) : diaCurto(a.ini);   // de outro dia: em vez do relógio, o dia em que saiu
+const alugFixo = a => !alugAberto(a) && !(+a.min > 0);   /* 2.15 (o dono: "no carrinho de bebê, ele não precisa ficar rodando horas, porque ele é um preço só o dia todo") */
+const alugTempo = a => alugHoje(a) ? (alugFixo(a) ? 'DIA TODO' : hms(alugSeg(a))) : diaCurto(a.ini);   // de outro dia: em vez do relógio, o dia em que saiu
 const alugNome = a => (a.q > 1 ? a.q + ' × ' : '') + a.n;
 const alugSubCurto = a => !alugHoje(a) ? 'de outro dia' : a.min > 0 ? (alugSobra(a) < 0 ? 'passou ' + alugPassou(a) : '') : '';   /* 1.52: sem o "até agora R$" embaixo do relógio (a conta aparece na devolução e na comanda) */   // embaixo do relógio. 1.24: sem o "saiu às" (a hora da saída já está na coluna Entrou; o relógio de outro dia mostra a data)
 // 1.20: o que sai da loja e é cobrado por período (o fusquinha) não é vendido por tempo. A equipe só registra a saída (a venda nasce sem valor)
@@ -6184,7 +6197,8 @@ function finalizadosHoje() {
       const g = G.get(k); g.q += v.alug.m > 0 ? (g.q ? 0 : 1) : (v.alug.q || 1); g.valor = centavos(g.valor + v.v); if (v.quando < g.saiu) g.saiu = v.quando; }
     for (const v of S.compras || []) if (!v.alug && /^tempo a mais/.test(v.itens || '')) for (const g of G.values()) if (g.crianca === v.crianca && Math.abs(+g.voltou - +(v.voltou || v.quando)) < 1500) { g.valor = centavos(g.valor + v.v); break; }
     D.push(...G.values()); }
-  return { V: V.sort((a, b) => b.saiu - a.saiu), D: D.sort((a, b) => b.voltou - a.voltou) };
+  const meu = x => gestor() || !minhaUni() || !x.uni || +x.uni === +minhaUni();   /* 2.15 (o dono: "cada unidade só pode ver sua unidade") */
+  return { V: V.filter(meu).sort((a, b) => b.saiu - a.saiu), D: D.filter(meu).sort((a, b) => b.voltou - a.voltou) };
 }
 const linhaFim = (x, varias) => { const c = crianca(x.crianca), u = varias && x.uni && nomeUni(x.uni) ? ' · ' + esc(nomeUni(x.uni)) : '', ult = c ? ultVis(c) : null, reabre = !!c && podeReabrirJa(c) && !!ult && (MODO === 'servidor' ? ult.id === x.id : +new Date(ult.dia) === +x.saiu);
   const quem = `<span class="txt"><b>${esc(x.resp || x.nome)}</b><span>${x.resp ? esc(x.nome) + ' · ' : ''}entrou ${hora(x.entrou)} · saiu ${hora(x.saiu)} · ficou ${dur(Math.max(0, Math.floor((x.saiu - x.entrou) / 60000)))}${x.itens && x.itens.length ? ' · ' + esc(x.itens.join(', ')) : ''}${u}</span></span>`;
@@ -6215,7 +6229,9 @@ function caixaUnidades() { // [{ uni, grupos: { recreacao: { formas, total, vend
     if (g === 'festa') { const nm = rotuloFestaCxPrevia(v); x.itens[nm] = centavos((x.itens[nm] || 0) + (+p.v || 0)); } }   // 1.38: de qual festa
   for (const e of S.estornos || []) { if (!(+new Date(e.quando) >= +d0)) continue; const u = +(e.uni || primeira), x = o[u] = o[u] || { uni: u, grupos: {} }, d = x.dev = x.dev || { total: 0, formas: {}, grupos: {}, itens: {}, n: 0, vs: new Set() };   // 1.31: a venda de outro dia devolvida hoje
     d.total = centavos(d.total + e.v); d.formas[e.f] = centavos((d.formas[e.f] || 0) + e.v); d.grupos[e.g] = centavos((d.grupos[e.g] || 0) + e.v); if (e.item) d.itens[e.item] = centavos((d.itens[e.item] || 0) + e.v); d.vs.add(e.venda); d.n = d.vs.size; }
-  return Object.values(o).map(x => ({ uni: x.uni, grupos: Object.fromEntries(Object.entries(x.grupos).map(([k, g]) => [k, { ...g, vendas: g.vendas.size }])), ...(x.dev ? { devolvido: (({ vs, ...d }) => d)(x.dev) } : {}) })); }
+  { const K = {}; for (const c of S.criancas || []) { if (!(c.entrou || (c.visitas || []).some(v => +new Date(v.dia) >= +d0))) continue; const u = +(c.uni || primeira); (K[u] = K[u] || new Set()).add(c.id); }   /* 2.15: as crianças que passaram pelo espaço hoje */
+    for (const [u, s] of Object.entries(K)) (o[u] = o[u] || { uni: +u, grupos: {} }).criancas = s.size; }
+  return Object.values(o).map(x => ({ uni: x.uni, grupos: Object.fromEntries(Object.entries(x.grupos).map(([k, g]) => [k, { ...g, vendas: g.vendas.size }])), ...(x.dev ? { devolvido: (({ vs, ...d }) => d)(x.dev) } : {}), criancas: x.criancas || 0 })); }
 const cxUni = () => { const U = unidades(); if (!U.length) return 0; return gestor() && S.cxUni != null ? S.cxUni : minhaUni() || 0; };   // 0 = todas
 function contaCaixa(uni) { // o caixa de uma unidade (0 = todas): o total, por forma, por grupo e os carrinhos
   const L = caixaUnidades().filter(x => uni === -1 ? !x.uni : !uni || x.uni === uni), soma = {}, G = {},   /* 1.45: -1 = o recebido num aparelho sem unidade escolhida */ dev = { total: 0, formas: {}, grupos: {}, itens: {}, n: 0 };
@@ -6227,7 +6243,8 @@ function contaCaixa(uni) { // o caixa de uma unidade (0 = todas): o total, por f
     for (const [k, v] of Object.entries(d.grupos || {})) dev.grupos[k] = centavos((dev.grupos[k] || 0) + v);
     for (const [n, v] of Object.entries(d.itens || {})) dev.itens[n] = centavos((dev.itens[n] || 0) + v); }
   const total = centavos(Object.values(soma).reduce((t, v) => t + v, 0)), carr = centavos((G.carrinhos ? G.carrinhos.total : 0) - (dev.grupos.carrinhos || 0));
-  return { total, soma, G, carr, dev, devSem: centavos(dev.total - (dev.grupos.carrinhos || 0)), semCarr: centavos(total - carr) }; }   /* 1.45: devSem = o devolvido fora o dos carrinhos (o dos carrinhos já sai da linha Carrinhos) */
+  const kids = L.reduce((t, x) => t + (+x.criancas || 0), 0);   /* 2.15 */
+  return { total, soma, G, carr, dev, devSem: centavos(dev.total - (dev.grupos.carrinhos || 0)), semCarr: centavos(total - carr), kids }; }   /* 1.45: devSem = o devolvido fora o dos carrinhos (o dos carrinhos já sai da linha Carrinhos) */
 /* 1.73: o centro de custo do caixa, como nas Finanças: o Play de cada unidade (horas, recreação, festas, carrinhos) e o Casa Tom ("no Casa
    Tom só se vende produto"): o Casa Tom Anália e o Casa Tom Morumbi. O devolvido hoje sai do centro de custo dele */
 const curtoUni = n => /an[aá]lia/i.test(n || '') ? 'Anália' : /morumbi/i.test(n || '') ? 'Morumbi' : String(n || '').toLowerCase().replace(/(^|\s)\S/g, c => c.toUpperCase()).replace(/^Casa\s*To[mn]\s+/i, '');
@@ -6262,6 +6279,7 @@ function htmlCaixaDia() {
     <div class="cx-cab"><span class="cx-ic">${ic(IC.caixa, 24)}</span><div class="txt"><small>Caixa do dia${onde ? ' · ' + esc(onde) : ''} · desde a meia-noite</small><b class="num">${brl2(K.total)}</b><span>recebido hoje</span></div><button type="button" class="bt tap" data-act="cx-imprimir" aria-label="Imprimir o caixa do dia" title="Imprimir o caixa do dia">${ic(IC.cupom, 16)}<span class="cx-imp">Imprimir</span></button>${MODO === 'servidor' && gestor() ? `<button type="button" class="bt tap" data-act="cx-pdf" aria-label="Baixar o resumo do dia em PDF" title="O resumo do dia em PDF (o mesmo das Finanças)">${ic(IC.baixar, 16)}<span class="cx-imp">PDF do dia</span></button>` : ''}</div>
     ${gestor() && botoesU.length > 2 ? `<div class="seg cx-uni">${botoesU.map(([id, n]) => `<button type="button" data-act="cx-uni" data-v="${id}" aria-pressed="${u === id}">${esc(n)}</button>`).join('')}</div>` : ''}
     <div class="cx-formas">${FORMAS.map(([f, n]) => `<div><small>${n}</small><b class="num">${brl2(K.soma[f] || 0)}</b></div>`).join('')}</div>
+    <div class="cx-sub cx-kids"><span>Crianças que passaram pelo espaço hoje</span><b class="num">${K.kids}</b></div>
     <div class="cx-grupos">${grupos}
       ${K.devSem > 0 ? `<div class="cx-g dev"><div class="cx-l"><b>Devolvido hoje</b><span class="num">− ${brl2(K.devSem)}</span></div><small>venda de outro dia cancelada hoje · ${esc(formasCx(K.dev.formas))} · ${K.dev.n} ${K.dev.n === 1 ? 'devolução' : 'devoluções'}${K.dev.grupos.carrinhos ? ` · o carrinho devolvido (${brl2(K.dev.grupos.carrinhos)}) sai da linha Carrinhos` : ''}</small></div>` : ''}
       <div class="cx-sub"><span>Total sem os carrinhos</span><b class="num">${brl2(K.semCarr)}</b></div>
@@ -6279,7 +6297,7 @@ function papelCaixa() { const u = cxUni(), K = contaCaixa(u), L = lojaPapel(), l
     ${K.devSem > 0 ? lin('Devolvido hoje', '− ' + brl2(K.devSem)) + `<p class="c-sub">venda de outro dia cancelada · ${esc(formasCx(K.dev.formas))}</p>` : ''}
     ${lin('Sem os carrinhos', brl2(K.semCarr), ' c-total')}
     ${lin('Carrinhos', brl2(K.carr))}${K.G.carrinhos ? Object.entries(K.G.carrinhos.itens).map(([n, v]) => `<p class="c-sub">${esc(n)}: ${brl2(v)}</p>`).join('') : ''}${K.dev.grupos.carrinhos ? `<p class="c-sub">devolvido: − ${brl2(K.dev.grupos.carrinhos)}</p>` : ''}
-    <p class="c-div"></p>${lin('TOTAL DO DIA', brl2(K.total), ' c-total')}
+    <p class="c-div"></p>${lin('TOTAL DO DIA', brl2(K.total), ' c-total')}${lin('Crianças no espaço hoje', String(K.kids))}
     <p class="c-div"></p><p class="c-cab"><span>Centro de custo</span><span>Valor</span></p>${centrosCusto(u).map(([n, v]) => lin(esc(n), brl2(v))).join('')}
     <p class="c-rod">emitido por ${esc(MAI(primeiro(EU.nome || 'equipe')))}</p></div>`; }
 function corpoFinalizados(q) {

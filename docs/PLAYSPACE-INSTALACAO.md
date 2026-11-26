@@ -1301,6 +1301,17 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Carrinho de bebê sem relógio, duas vias nos carrinhos, caixa por unidade (2.15)
+
+Pedido do dono (26/11).
+
+- Carrinho de bebê: é um preço só o dia todo. Na lista, no lugar do relógio, aparece "DIA TODO". O fusquinha, que é cobrado pelo tempo, continua com o relógio.
+- Carrinhos: todo cupom de carrinho sai em duas vias, a da loja (com a assinatura) e a do cliente: a saída do carrinho, a devolução e a conta do responsável com carrinho.
+- Cupom: não sai a quantidade de horas do pacote (sem o "3h de recreação" embaixo do pacote e sem as horas depois do nome do pacote na saída).
+- O botão "Descontar do pacote / Pagar avulso" e o "Pacote | Avulso" de cada criança ficaram no jeito do iPhone: o trilho cinza e o escolhido em branco, com sombra (verde no pacote, vermelho no avulso).
+- Caixa do dia e Finalizados do dia: cada unidade vê só a dela (a Anália só a Anália, a Casa Tom só a Casa Tom). O gestor vê todas.
+- No Caixa do dia (na tela e no papel): quantas crianças passaram pelo espaço hoje (quem saiu hoje e quem ainda está, uma vez cada).
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. "Pacote | Avulso" ao lado do nome, com prioridade no pacote (2.14)
 
 Pedido do dono (26/11): "tem que ter uma opção também de eu, tipo, cobrar no avulso. Às vezes uma opção do lado do nome da criança ... prioridade máxima no pacote".
