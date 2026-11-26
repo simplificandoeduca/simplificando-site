@@ -1301,6 +1301,14 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Finalizados do dia: a venda de pacote junto com a Play, a Casa Tom à parte (2.46)
+
+Pedido do dono (26/11): "por que esse da Gisele tá junto com os da Casa Tom? Ele deveria estar junto com os de cima, do Play ... foi uma venda de pacote, não uma venda de produto".
+
+- Nos Finalizados do dia, a venda sem entrada da Play (o pacote vendido pelo "Vender pacote", sem a criança entrar) aparece logo abaixo das saídas, em "Vendas sem entrada (pacote vendido, produto)".
+- As vendas da Casa Tom (da unidade Casa Tom ou do cliente da loja) ficam numa parte só delas, no fim: "Casa Tom hoje (produtos)".
+- No alto, a contagem separa: "X vendas sem entrada · Y vendas da Casa Tom".
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Casa Tom: o lápis e a lixeira do gestor nos Vendidos do dia (2.45)
 
 Pedido do dono (26/11): "o da Casa Tom, eu quero um lapisinho e uma lixeirinha, igual a gente fez no outro, pra mim poder o gestor alterar o valor caso o valor seja lançado errado".

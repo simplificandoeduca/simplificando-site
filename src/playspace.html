@@ -2135,7 +2135,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.45';
+const VERSAO = '2.46';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -6600,6 +6600,7 @@ const linhaFim = (x, varias) => { const c = crianca(x.crianca), u = varias && x.
 /* 2.43 (o dono: "uma lixeirazinha vermelha pra mim quando eu quiser excluir um pedido que às vezes lançou errado ... só pro gestor") */
 const dpFim = x => x.dp != null ? +x.dp || 0 : (x.valor > 0 ? 0 : +x.deb || 0);   /* 2.44: as horas do pacote que a saída usou */
 const lixoFim = (k, dados) => gestor() ? `<button type="button" class="fim-lixo tap" data-act="fim-excluir" data-k="${k}" ${dados} title="Excluir (lançado errado) · só o gestor" aria-label="Excluir (lançado errado)">${ic(IC.lixo, 18)}</button>` : '';
+const fimDaCasaTom = x => !!((x.uni && ehCasaTom(+x.uni)) || (S.balcao && +x.crianca === +S.balcao.id));   /* 2.46: a venda da Casa Tom (pela unidade ou pelo cliente da loja) */
 const linhaFimVenda = (x, varias) => { const c = crianca(x.crianca), u = varias && x.uni && nomeUni(x.uni) ? ' · ' + esc(nomeUni(x.uni)) : '';   /* 2.41 */
   const quem = `<span class="txt"><b>${esc(x.resp || x.nome)}</b><span>${x.resp && x.nome ? esc(x.nome) + ' · ' : ''}${esc(x.item)} · ${hora(x.quando)}${u}</span></span>`;
   return `<div class="it fim-it">${c ? `<button class="quem tap" data-act="ficha-ver" data-id="${c.id}"><span class="av carr">${ic(IC.presente, 18)}</span>${quem}</button>` : `<div class="quem"><span class="av carr">${ic(IC.presente, 18)}</span>${quem}</div>`}<span class="fim-v"><b class="num">${brl(x.valor)}</b>${x.falta > 0.004 ? `<small class="pas">a receber ${brl(x.falta)}</small>` : ''}</span>${lixoFim('venda', `data-id="${x.id}"`)}</div>`; };
@@ -6740,10 +6741,14 @@ function corpoFinalizados0(q) {
   const F = finalizadosHoje(), achou = x => !q || (x.nome + ' ' + x.resp).toLowerCase().includes(q) || (crianca(x.crianca) && casaBusca(crianca(x.crianca), q)) || (x.n && x.n.toLowerCase().includes(q));
   const V = F.V.filter(achou), D = F.D.filter(achou), SE = F.SE.filter(x => achou(x) || (q && (x.item || '').toLowerCase().includes(q))), varias = new Set([...F.V, ...F.D, ...F.SE].map(x => x.uni || 0)).size > 1, tot = centavos([...V, ...D, ...SE].reduce((t, x) => t + (x.valor || 0), 0));   /* 2.41: SE */
   if (!V.length && !D.length && !SE.length) return `<div class="esp-fora fim">${htmlCaixaDia()}<p class="explica">${F.V.length + F.D.length + F.SE.length ? 'Ninguém com essa busca entre os finalizados ' + (CX_ATIVO ? 'de ' + cxDm() : 'de hoje') + '.' : cxEsperando() ? '' : CX_ATIVO ? 'Ninguém saiu neste dia.' : 'Ninguém saiu hoje ainda.'} <button class="link tap" data-act="esp-filtro" data-f="todas">Ver quem está no espaço</button></p></div>`;
-  return `<div class="esp-fora fim">${htmlCaixaDia()}<small class="rot">${CX_ATIVO ? 'Finalizados em ' + cxDm() : 'Finalizados hoje'} · ${[V.length ? V.length + (V.length === 1 ? ' saída' : ' saídas') : '', D.length ? D.length + (D.length === 1 ? ' devolução' : ' devoluções') : '', SE.length ? SE.length + (SE.length === 1 ? ' venda sem entrada' : ' vendas sem entrada') : ''].filter(Boolean).join(' · ')}${tot > 0 ? ' · ' + brl(tot) : ''}</small>
+  /* 2.46 (o dono: "por que esse da Gisele tá junto com os da Casa Tom? Ele deveria estar junto com os de cima, do Play ... foi uma venda de
+     pacote, não uma venda de produto"): a venda sem entrada da Play (o pacote) logo abaixo das saídas; a da Casa Tom numa parte só dela, no fim */
+  const SEc = SE.filter(fimDaCasaTom), SEp = SE.filter(x => !fimDaCasaTom(x)), dia = CX_ATIVO ? 'neste dia' : 'hoje';
+  return `<div class="esp-fora fim">${htmlCaixaDia()}<small class="rot">${CX_ATIVO ? 'Finalizados em ' + cxDm() : 'Finalizados hoje'} · ${[V.length ? V.length + (V.length === 1 ? ' saída' : ' saídas') : '', D.length ? D.length + (D.length === 1 ? ' devolução' : ' devoluções') : '', SEp.length ? SEp.length + (SEp.length === 1 ? ' venda sem entrada' : ' vendas sem entrada') : '', SEc.length ? SEc.length + (SEc.length === 1 ? ' venda da Casa Tom' : ' vendas da Casa Tom') : ''].filter(Boolean).join(' · ')}${tot > 0 ? ' · ' + brl(tot) : ''}</small>
     ${V.length ? `<div class="grupo">${V.map(x => linhaFim(x, varias)).join('')}</div>` : ''}
-    ${D.length ? `<small class="rot">Voltaram para a loja ${CX_ATIVO ? 'neste dia' : 'hoje'}</small><div class="grupo">${D.map(x => linhaFimAlug(x, varias)).join('')}</div>` : ''}
-    ${SE.length ? `<small class="rot">Vendas sem entrada ${CX_ATIVO ? 'neste dia' : 'hoje'} (pacote vendido, produto)</small><div class="grupo">${SE.map(x => linhaFimVenda(x, varias)).join('')}</div>` : ''}
+    ${SEp.length ? `<small class="rot">Vendas sem entrada ${dia} (pacote vendido, produto)</small><div class="grupo">${SEp.map(x => linhaFimVenda(x, varias)).join('')}</div>` : ''}
+    ${D.length ? `<small class="rot">Voltaram para a loja ${dia}</small><div class="grupo">${D.map(x => linhaFimAlug(x, varias)).join('')}</div>` : ''}
+    ${SEc.length ? `<small class="rot fim-ct">Casa Tom ${dia} (produtos)</small><div class="grupo">${SEc.map(x => linhaFimVenda(x, varias)).join('')}</div>` : ''}
     <p class="explica">Toque no nome para abrir a ficha do cliente (o histórico, os cupons). <button class="link tap" data-act="esp-filtro" data-f="todas">Ver quem está no espaço</button></p></div>`;
 }
 // "Saíram há pouco" é o único botão ao lado da busca, e só aparece quando há alguém no prazo de reabrir a visita
