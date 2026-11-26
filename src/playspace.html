@@ -1607,6 +1607,9 @@ b.np { color: var(--erro); letter-spacing: .03em; }
 .ent-chip i { flex: none; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--borda-2); color: transparent; }
 .ent-chip i svg { width: 14px; height: 14px; }
 .ent-chip[aria-pressed="true"] { border-color: var(--ok); background: var(--ok-bg); }
+/* 2.13: o check de quem desconta das horas, na conta em conjunto */
+.fam-sel { margin: 10px 0 4px; } .fam-sel .fam-todas { align-self: center; display: inline-flex; align-items: center; gap: 6px; }
+.ent-chip:disabled { opacity: .5; cursor: default; }
 .ent-chip[aria-pressed="true"] i { background: var(--ok); border-color: var(--ok); color: var(--card); }
 /* 2.10: a tela de entrar do computador da loja: um botão por unidade (a Casa Tom em vermelho) */
 .lj-unis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 6px 0 4px; }
@@ -2091,7 +2094,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.12';
+const VERSAO = '2.13';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -5183,7 +5186,7 @@ function famConta(c, k, tomado) {
   k.usaFam = true; if (tomado) for (const y of de) tomado[y.id] = (tomado[y.id] || 0) + y.min;
   k.n = fica; k.valor = Math.max(0, fica - ja) * (st ? precoDe(c, st.v) : 0) + Math.min(fica, ja) * (ja ? c.atraso.valor / ja : 0); k.desfeitas = Math.max(0, ja - fica);
 }
-const famNota = (c, k, nome) => !k.fam ? '' : `<p class="explica fam-nota" data-fam="${c.id}">${ic(IC.horas, 15)} <span><b>Pacote da família${nome ? ' · ' + esc(c.nome) : ''}:</b> ${k.usaFam ? 'desconta' : 'dá para descontar'} ${dur(k.fam.min)} das horas de ${esc(juntar(k.fam.de.map(y => y.nome)))} (a família tem ${hm(k.fam.tem)} guardadas)${k.usaFam || k.pac > 0 || nome ? '' : '. Toque em "Descontar do pacote" para usar'}.</span>${k.pac > 0 || nome ? `<button type="button" class="link tap" data-act="saida-fam" data-id="${c.id}">${k.usaFam ? 'Não usar as horas da família' : 'Usar as horas da família'}</button>` : ''}</p>`;
+const famNota = (c, k, nome, bt = true) => !k.fam ? '' : `<p class="explica fam-nota" data-fam="${c.id}">${ic(IC.horas, 15)} <span><b>Pacote da família${nome ? ' · ' + esc(c.nome) : ''}:</b> ${k.usaFam ? 'desconta' : 'dá para descontar'} ${dur(k.fam.min)} das horas de ${esc(juntar(k.fam.de.map(y => y.nome)))} (a família tem ${hm(k.fam.tem)} guardadas)${k.usaFam || k.pac > 0 || nome ? '' : '. Toque em "Descontar do pacote" para usar'}.</span>${bt && (k.pac > 0 || nome) ? `<button type="button" class="link tap" data-act="saida-fam" data-id="${c.id}">${k.usaFam ? 'Não usar as horas da família' : 'Usar as horas da família'}</button>` : ''}</p>`;
 const famTemTxt = c => { const t = famLivres(c).reduce((s, y) => s + y.tem, 0); return t >= periodo() ? ` · a família tem ${hm(t)} no pacote: na saída, dá para descontar` : ''; };
 function famUsarPrevia(c) {   /* (prévia) as horas passam do irmão para a visita, antes da conta da saída (como no servidor) */
   const k = contaSaida(c); if (!k.usaFam) return null; const soma = (x, m) => { if (x.pmin != null) x.pmin += m; else x.pacote = Math.max(0, x.pacote + m / 60); };
@@ -5320,17 +5323,27 @@ const htmlContaGrupo = g => { const p = periodo(), st = servicoTempo(), A = g.A 
     ${soEste}
     ${g.L.length ? `<button type="button" class="link tap pg-add pac-saida" data-act="saida-pacote" data-id="${g.L[0].c.id}">${ic(IC.mais, 14, 2.8)} Adicionar serviços <small>· pacote ou produto</small></button>` : ''}
     ${pgSec('Pagamento')}
-    ${segAvulso(g.L.some(x => x.k.pac > 0 || x.k.fam), g.L.some(x => x.k.av) || (!g.L.some(x => x.k.pac > 0) && g.L.some(x => x.k.fam && !x.k.usaFam)))}${g.L.map(x => famNota(x.c, x.k, g.L.length > 1)).join('')}
+    ${segAvulso(g.L.some(x => x.k.pac > 0 || x.k.fam), !g.L.some(famMarcada))}${htmlFamSel(g)}${g.L.filter(x => g.L.length < 2 || x.k.usaFam).map(x => famNota(x.c, x.k, g.L.length > 1, g.L.length < 2)).join('')}
     ${antes > 0 || minhas > 0 || depois > 0 ? pgHoras(hm(antes), dur(minhas) + (v > 0 ? '<i class="pg-mais">+</i>' + brl(v) : ''), hm(depois)) : ''}
     ${g.L.filter(x => !x.k.n && x.k.desfeitas).map(x => `<div class="marca">${ic(IC.check, 18, 2.6)}<span>O que o cliente comprou cobre a visita${g.L.length > 1 ? ' de ' + esc(x.c.nome) : ''}: <b>${dur(x.k.desfeitas * p)} de recreação a menos na conta</b>.</span></div>`).join('')}
     ${g.L.map(x => temVoucher(x.c) ? `<div class="marca">${ic(IC.presente, 18)}<span><b>Voucher usado${g.L.length > 1 ? ' (' + esc(x.c.nome) + ')' : ''}:</b> ${porExt(p)} desta visita ficou por conta dele.</span></div>`
       : x.k.n && !voucherNaEntrada() ? `<button type="button" class="marca tap vou-saida" data-act="saida-voucher" data-id="${x.c.id}">${ic(IC.presente, 18)}<span><b>Tem voucher${g.L.length > 1 ? ' para ' + esc(x.c.nome) : ''}?</b> Usar agora: ${brl(umaCobranca(x.c))} a menos.</span>${ic(IC.vai, 18)}</button>` : '').join('')}`; };
+/* 2.13 (o dono: "eu preciso de uma opção pra mim descontar as horas do pacote desse responsável. Se eu quiser selecionar todas as crianças
+   pra descontar a hora, eu seleciono"): na conta em conjunto, um check verde por criança. Marcada: o tempo dela sai das horas do responsável
+   (as dela e, faltando, as dos irmãos); sem marcar: paga avulso. "Marcar todas" marca todas de uma vez */
+const famMarcada = x => x.k.pac > 0 ? !x.k.av : !!x.k.usaFam;
+function famMarcar(id, on) { if (on) AV.delete(id); else AV.add(id); if (on === horasCpf()) FAMSIM.delete(id); else FAMSIM.add(id); }
+const htmlFamSel = g => { if (g.L.length < 2) return ''; const pode = x => x.k.pac > 0 || !!x.k.fam, L = g.L.filter(x => !x.c.festa && (pode(x) || x.k.n > 0));
+  if (!L.some(pode)) return ''; const falta = L.some(x => pode(x) && !famMarcada(x));
+  const chip = x => { const on = pode(x) && famMarcada(x), d = !pode(x);
+    return `<button type="button" class="ent-chip tap" data-act="saida-marca" data-id="${x.c.id}" aria-pressed="${on}"${d ? ' disabled' : ''}><i aria-hidden="true">${ic(IC.check, 14, 3)}</i><span><b>${esc(x.c.nome)}</b><small>${d ? 'sem horas no pacote' : on ? 'desconta ' + dur(horasProprias(x.k)) : 'paga avulso'}</small></span></button>`; };
+  return `<div class="campo ent-sel fam-sel" id="sg-fam"><label>Descontar das horas do responsável <span class="leve">· marque as crianças (sem marcar, paga avulso)</span></label><div class="ent-chips">${L.map(chip).join('')}${falta ? `<button type="button" class="link tap fam-todas" data-act="saida-todas">${ic(IC.check, 14, 3)} Marcar todas</button>` : ''}</div></div>`; };
 function folhaSaidaGrupo(G, carros = []) {   // 1.25: carros = o que saiu da loja com este responsável (o tocado vem primeiro)
   const b0 = G.length ? G[0].id : carros.length ? carros[0].crianca : 0, volta = SAI_VOLTA && SAI_VOLTA.base === b0 ? SAI_VOLTA : null; SAI_VOLTA = null;
   const fora = volta ? new Set([...volta.fora].filter(i => G.some(c => c.id === i))) : new Set(), foraA = volta && volta.foraA ? new Set([...volta.foraA].filter(i => carros.some(a => String(a.id) === i))) : new Set();
   if (volta && volta.alug) for (const a of carros) if (!volta.alug.includes(String(a.id))) foraA.add(String(a.id));   // o carrinho que saiu em "Adicionar serviços" (o cliente leva) fica fora da conta: não é devolvido agora
-  const av = !!(AV_VOLTA && AV_VOLTA.base === b0 && AV_VOLTA.ids.size); AV_VOLTA = null;
-  SAI = { ids: G.map(c => c.id), fora, av, alug: carros.map(a => String(a.id)), foraA, base: b0 }; AV = av ? new Set(SAI.ids) : new Set(); FAMSIM = horasCpf() ? new Set(AV) : new Set(); FAMJA = 'g'; descNovo('saida', b0); altSaidaNovo([b0, ...SAI.ids.filter(i => i !== b0)], true); const g = contaGrupo();   // av (1.11): a conta inteira paga avulso
+  const vav = AV_VOLTA && AV_VOLTA.base === b0 ? AV_VOLTA : null, av = !!(vav && vav.ids.size); AV_VOLTA = null;
+  SAI = { ids: G.map(c => c.id), fora, av, alug: carros.map(a => String(a.id)), foraA, base: b0 }; AV = vav && vav.fam ? new Set(vav.ids) : av ? new Set(SAI.ids) : new Set(); FAMSIM = vav && vav.fam ? new Set(vav.fam) : horasCpf() ? new Set(AV) : new Set(); FAMJA = 'g';   /* 2.13: a escolha de cada criança volta igual */ descNovo('saida', b0); altSaidaNovo([b0, ...SAI.ids.filter(i => i !== b0)], true); const g = contaGrupo();   // av (1.11): a conta inteira paga avulso
   abrirFolha(tituloConta(G.length, carros.length), `
     ${pgDetalhes(G[0] || crianca(b0), false)}${avisoParou(G)}
     <div id="sg-conta" data-k="${esc(chaveGrupo(g))}">${htmlContaGrupo(g)}</div>
@@ -8735,10 +8748,12 @@ const ACOES = {
   'cupom-cancelado': el => { el.disabled = true; marcarCupom(+el.dataset.id, 'cancelado', {}, !!el.dataset.lista); },
   'cupom-sem': el => { const m = val('cp-motivo'); if (m.length < 5) { toast('Escreva o motivo: por que este pagamento fica sem cupom?'); const i = $('#cp-motivo'); if (i) i.focus(); return; } marcarCupom(+el.dataset.id, 'sem', { motivo: m }); },
   'cupom-voltar': el => { if (mostraDesfazer()) marcarCupom(+el.dataset.id, 'voltar', {}); },
-  'saida-pacote': el => { SAI_VOLTA = SAI && $('#sg-ok') ? { base: +el.dataset.id, fora: new Set(SAI.fora), foraA: new Set(SAI.foraA || []), alug: [...(SAI.alug || [])] } : { base: +el.dataset.id, fora: new Set(), foraA: new Set(), alug: [] };   /* 1.25: a volta é pela criança que reabre a folha; o carrinho que sair agora não entra na conta */ AV_VOLTA = { base: +el.dataset.id, ids: new Set(AV) }; atender(+el.dataset.id, false, null, true); },
+  'saida-pacote': el => { SAI_VOLTA = SAI && $('#sg-ok') ? { base: +el.dataset.id, fora: new Set(SAI.fora), foraA: new Set(SAI.foraA || []), alug: [...(SAI.alug || [])] } : { base: +el.dataset.id, fora: new Set(), foraA: new Set(), alug: [] };   /* 1.25: a volta é pela criança que reabre a folha; o carrinho que sair agora não entra na conta */ AV_VOLTA = { base: +el.dataset.id, ids: new Set(AV), fam: new Set(FAMSIM) }; atender(+el.dataset.id, false, null, true); },
   'saida-avulso': el => { const on = el.dataset.v === '1';   /* 1.11: descontar do pacote, ou pagar avulso */
     if (SAI && $('#sg-ok')) { SAI.av = on; AV = on ? new Set(SAI.ids) : new Set(); FAMSIM = horasCpf() ? (on ? new Set(SAI.ids) : new Set()) : (on ? new Set() : new Set(contaGrupo().L.filter(x => !(x.k.pac > 0)).map(x => x.c.id))); atualizarGrupo(); return; }   /* 2.10: e as horas da família (de quem entrou na avulsa) */
     const b = $('#s-ok'); if (!b) return; AV = on ? new Set([+b.dataset.id]) : new Set(); FAMSIM = horasCpf() ? (on ? new Set([+b.dataset.id]) : new Set()) : (on || contaSaida(crianca(+b.dataset.id), undefined, {}).pac > 0 ? new Set() : new Set([+b.dataset.id])); atualizarSaida(); },
+  'saida-marca': el => { if (!SAI || !$('#sg-ok')) return; const id = +el.dataset.id, x = contaGrupo().L.find(y => y.c.id === id); if (!x) return; famMarcar(id, !famMarcada(x)); SAI.av = false; atualizarGrupo(); },   /* 2.13: o check de cada criança */
+  'saida-todas': () => { if (!SAI || !$('#sg-ok')) return; for (const id of SAI.ids) famMarcar(id, true); SAI.av = false; atualizarGrupo(); },
   'saida-fam': el => { const id = +el.dataset.id; if (FAMSIM.has(id)) FAMSIM.delete(id); else FAMSIM.add(id); if (SAI && $('#sg-ok')) atualizarGrupo(); else atualizarSaida(); },   /* 2.10: quem já usa as horas dele também usa as da família */   /* 1.00: o cliente leva um pacote na saída: o atendimento abre com a lista de pacotes e, depois do pagamento, a saída abre de novo */
   'ct-mais': el => { const p = produto(el.dataset.p); if (!p) return; CT.pr[p.id] = (CT.pr[p.id] || 0) + 1; ctVendaRedesenha(); },   /* 2.00: a Casa Tom */
   'ct-menos': el => { const id = +el.dataset.p; if (!CT.pr[id]) return; CT.pr[id]--; if (CT.pr[id] <= 0) delete CT.pr[id]; ctVendaRedesenha(); },

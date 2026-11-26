@@ -1301,6 +1301,16 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O check de cada criança na saída em conjunto (2.13)
+
+Pedido do dono (25/11): "eu preciso de uma opção pra mim, tipo, descontar as horas do pacote desse responsável. Se eu quiser selecionar todas as crianças pra descontar a hora, eu seleciono".
+
+- Na conta do responsável com mais de uma criança (a saída em conjunto), embaixo de "Descontar do pacote / Pagar avulso", aparece "Descontar das horas do responsável", com um check verde por criança (como o da entrada).
+- Marcada (verde): o tempo dela sai das horas do responsável (as dela e, faltando, as dos irmãos), e o check diz quanto ("desconta 1h30"). Sem marcar: ela paga avulso.
+- "Marcar todas" marca todas de uma vez. "Pagar avulso" desmarca todas; "Descontar do pacote" marca de novo.
+- Se as horas acabarem, a criança que sobra aparece apagada ("sem horas no pacote") e paga o tempo dela. Desmarcando outra, as horas passam para ela.
+- A escolha continua igual depois de "Adicionar serviços" (por exemplo, vender um pacote na saída e voltar para a conta).
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. As anotações do cliente, com a visualização rápida (2.12)
 
 Pedido do dono (25/11): "uma opção de visualização rápida, de passar o mouse em cima e visualizar, às vezes, alguma informação que as atendentes coloquem. Cliente, entrada em contato tal dia, algum tipo de observação assim que as meninas consigam visualizar no cadastro do cliente sem precisar abrir outra tela".
