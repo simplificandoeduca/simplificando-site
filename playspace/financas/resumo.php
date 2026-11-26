@@ -37,6 +37,9 @@ function finResumo(array $in): array {
     if ($g === 'pacotes') { $nm = trim((string)$l['s']) !== '' ? mb_strtoupper(trim((string)$l['s'])) : 'PACOTE ' . str_pad((string)intdiv((int)$l['m'], 60), 2, '0', STR_PAD_LEFT) . ' HORAS';
       $uni[$u]['pacN'] += $nv; $uni[$u]['pacV'] = round($uni[$u]['pacV'] + $v, 2);
       $k = $u . '|' . $nm; if (!isset($pacotes[$k])) $pacotes[$k] = ['u' => $u, 'n' => $nm, 'h' => round((int)$l['m'] / 60, 1), 'q' => 0, 'v' => 0.0]; $pacotes[$k]['q'] += $nv; $pacotes[$k]['v'] = round($pacotes[$k]['v'] + $v, 2); } }
+  /* 2.40 (Finanças 5.5): o produto que foi dentro do pacote (o nome escrito no "Alterar pacote"): o que mais sai */
+  $prodPac = []; $q = $db->prepare("SELECT COALESCE(unidade_id, 0) u, prod_nome n, COUNT(*) q, COALESCE(SUM(prod_valor), 0) v FROM vendas WHERE quando >= ? AND quando < ? AND prod_nome != '' GROUP BY u, n");
+  $q->execute([$ini, $fim]); foreach ($q->fetchAll() as $l) $prodPac[] = ['u' => (int)$l['u'], 'n' => (string)$l['n'], 'q' => (int)$l['q'], 'v' => round((float)$l['v'], 2)];
   $q = $db->prepare('SELECT COALESCE(unidade_id, 0) u, substr(quando, 1, 10) d, COALESCE(SUM(valor), 0) v FROM vendas WHERE quando >= ? AND quando < ? AND servico != ? GROUP BY u, d ORDER BY d');
   $q->execute([$ini, $fim, SERV_IMPORTADO]); foreach ($q->fetchAll() as $l) $porDia[] = ['u' => (int)$l['u'], 'd' => (string)$l['d'], 'v' => round((float)$l['v'], 2)];
   $q = $db->prepare('SELECT COALESCE(unidade_id, 0) u, por, COUNT(*) n, COALESCE(SUM(valor), 0) v FROM vendas WHERE quando >= ? AND quando < ? AND servico != ? AND valor > 0.004 AND auto = 0 GROUP BY u, por');
@@ -168,7 +171,7 @@ function finResumo(array $in): array {
   ksort($nfDia);
   ksort($uni); $out = []; foreach ($uni as $u => $x) $out[] = ['u' => $u] + $x;
   return ['de' => $de, 'ate' => $ate, 'dias' => $dias, 'gerado' => agora(), 'hoje' => date('Y-m-d'), 'unidades' => unidades(), 'porUnidade' => $out, 'criancasTotal' => $criancasTotal,
-    'grupos' => array_values($grupos), 'pacotes' => array_values($pacotes), 'porDia' => $porDia, 'atendentes' => $atend, 'formas' => array_values($formas),
+    'grupos' => array_values($grupos), 'pacotes' => array_values($pacotes), 'prodPac' => $prodPac, 'porDia' => $porDia, 'atendentes' => $atend, 'formas' => array_values($formas),
     'prod' => $prod, 'itens' => array_values($porItem), 'catalogo' => array_values($catalogo), 'casaTom' => $casaTom,
     'cancelamentos' => ['total' => $cancTotal, 'lista' => $canc, 'atendentes' => array_values($cancAt), 'tipos' => array_values($cancTipo)], 'descontos' => ['total' => $descTotal, 'lista' => $desc, 'quem' => array_values($descQuem)], 'notas' => ['lista' => $nfL, 'dia' => array_values($nfDia)]];
 }

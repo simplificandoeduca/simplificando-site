@@ -1301,6 +1301,14 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Qual produto foi no pacote (2.40, Finanças 5.5)
+
+Pedido do dono (26/11): "no produto ... tem que escrever qual produto que é. Se é um carrinho, se é uma casinha ... para que a gente veja o que tem mais saída".
+
+- Em "Alterar pacote" (na venda e na saída), ao lado do valor do produto, o campo "Qual produto" (ex.: CARRINHO, CASINHA). Com valor de produto, é obrigatório.
+- Quem aprova vê o nome no pedido; o registro do dia também ("pacote R$ 300 + produto CARRINHO R$ 60 = R$ 360").
+- A venda guarda o nome e o valor do produto. Nas Finanças, em Vendas e pacotes, o cartão "Produtos dentro do pacote" mostra do que mais sai para o que menos sai (quantos e quanto, por unidade). No Destrinchar do dia, o pacote aparece "com CARRINHO".
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Ajustar as vezes no crédito de uma compra já feita (2.39)
 
 Pedido do dono (26/11): "às vezes as meninas podem colocar só uma vez e foi mais de uma ... entrar na venda que elas fizeram e alterar a quantidade de vezes".

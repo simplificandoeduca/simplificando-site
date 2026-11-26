@@ -683,20 +683,20 @@ body.fin-quieto .carregando { opacity: 1 !important; pointer-events: auto !impor
 </head>
 <body>
 <div id="raiz"></div>
-<script src="gestao.js?v=2.39"></script>
-<script src="gestao2.js?v=2.39"></script>
-<script src="planilhas.js?v=2.39"></script>
-<script src="caixa.js?v=2.39"></script>
-<script src="festas.js?v=2.39"></script>
-<script src="freelas.js?v=2.39"></script>
-<script src="adiant.js?v=2.39"></script>
-<script src="comissoes.js?v=2.39"></script>
-<script src="clientes.js?v=2.39"></script>
-<script src="comprovantes.js?v=2.39"></script>
-<script src="animacoes.js?v=2.39"></script>
-<script src="menu.js?v=2.39"></script>
-<script src="meta.js?v=2.39"></script>
-<script src="vivo.js?v=2.39"></script>
+<script src="gestao.js?v=2.40"></script>
+<script src="gestao2.js?v=2.40"></script>
+<script src="planilhas.js?v=2.40"></script>
+<script src="caixa.js?v=2.40"></script>
+<script src="festas.js?v=2.40"></script>
+<script src="freelas.js?v=2.40"></script>
+<script src="adiant.js?v=2.40"></script>
+<script src="comissoes.js?v=2.40"></script>
+<script src="clientes.js?v=2.40"></script>
+<script src="comprovantes.js?v=2.40"></script>
+<script src="animacoes.js?v=2.40"></script>
+<script src="menu.js?v=2.40"></script>
+<script src="meta.js?v=2.40"></script>
+<script src="vivo.js?v=2.40"></script>
 <script>
 /* Play Space Finanças 1.0: o que é crítico e delicado do negócio, com login próprio. Os números vêm do Play Space (só leitura). */
 'use strict';
@@ -847,7 +847,7 @@ function somaUni() {
 /* ---------- o app ---------- */
 /* 2.5 (1.64): a página das Finanças que ficou guardada no aparelho (a aba aberta, o app do celular ou o cache do navegador) se renova
    sozinha quando o servidor já tem outra versão. PS_PAGINA é carimbada pelo tools/build_playspace.py com a versão do Play Space. */
-const PS_PAGINA = '2.39';
+const PS_PAGINA = '2.40';
 const psMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
 function renovarSeVelha(v, naTela) {
   if (!v || !psMaior(v, PS_PAGINA)) return false;
@@ -1055,6 +1055,15 @@ function ligarGrafico() {
 }
 
 /* ---------- Vendas e pacotes ---------- */
+/* 5.5 (Play Space 2.40; o dono: "tem que escrever qual produto que é ... para que a gente veja o que tem mais saída"): o produto que foi
+   dentro do pacote, pelo nome escrito no "Alterar pacote", do que mais sai para o que menos sai */
+function prodPacCartao(us) {
+  const P = {}; for (const x of (D.prodPac || []).filter(naUni)) { if (!P[x.n]) P[x.n] = { n: x.n, q: 0, v: 0, por: {} }; P[x.n].q += x.q; P[x.n].v += x.v; P[x.n].por[x.u] = (P[x.n].por[x.u] || 0) + x.q; }
+  const L = Object.values(P).sort((a, b) => b.q - a.q || b.v - a.v), tq = L.reduce((t, x) => t + x.q, 0), tv = L.reduce((t, x) => t + x.v, 0), mx = L.length ? L[0].q : 0;
+  return `<div class="cartao"><h2>Produtos dentro do pacote</h2><p class="expl">O produto que foi com o pacote (o nome que a equipe escreve em "Alterar pacote"), do que mais sai para o que menos sai.</p>${L.length ? `<div class="rolar"><table><thead><tr><th>Produto</th>${us.length > 1 ? us.map(u => `<th class="v"><span class="uni-dot" style="background:${corUni(u)}"></span>${esc(nomeUni(u))}</th>`).join('') : ''}<th class="v">Qtd</th><th class="v">Valor</th></tr></thead><tbody>
+    ${L.map(x => `<tr><td>${esc(x.n)}<div class="barra"><i style="width:${mx ? Math.max(2, x.q / mx * 100) : 0}%"></i></div></td>${us.length > 1 ? us.map(u => `<td class="v">${int(x.por[u] || 0)}</td>`).join('') : ''}<td class="v">${int(x.q)}</td><td class="v">${brl(x.v)}</td></tr>`).join('')}
+    </tbody><tfoot><tr><td>Total</td>${us.length > 1 ? us.map(u => `<td class="v">${int(L.reduce((t, x) => t + (x.por[u] || 0), 0))}</td>`).join('') : ''}<td class="v">${int(tq)}</td><td class="v">${brl(tv)}</td></tr></tfoot></table></div>` : '<div class="vazio">Nenhum produto anotado no período. O nome entra quando a equipe usa "Alterar pacote" com o valor do produto.</div>'}</div>`;
+}
 function telaVendas() {
   const P = {}; for (const x of D.pacotes.filter(naUni)) { const k = x.n; if (!P[k]) P[k] = { n: x.n, h: x.h, q: 0, v: 0, por: {} }; P[k].q += x.q; P[k].v += x.v; P[k].por[x.u] = (P[k].por[x.u] || 0) + x.q; }
   const pL = Object.values(P).sort((a, b) => b.v - a.v || a.h - b.h), pq = pL.reduce((t, x) => t + x.q, 0), pv = pL.reduce((t, x) => t + x.v, 0), us = UNI === 'todas' ? unisComDados() : [];
@@ -1063,7 +1072,7 @@ function telaVendas() {
   return `${vcCartao()}<div class="cartao"><h2>Pacotes vendidos</h2><p class="expl">Cada pacote de horas vendido no período${us.length > 1 ? ', e quantos em cada unidade' : ''}.</p>${pL.length ? `<div class="rolar"><table><thead><tr><th>Pacote</th>${us.length > 1 ? us.map(u => `<th class="v"><span class="uni-dot" style="background:${corUni(u)}"></span>${esc(nomeUni(u))}</th>`).join('') : ''}<th class="v">Qtd</th><th class="v">Valor</th></tr></thead><tbody>
     ${pL.map(x => `<tr><td>${esc(x.n)}<small>${String(x.h).replace('.', ',')} h</small></td>${us.length > 1 ? us.map(u => `<td class="v">${int(x.por[u] || 0)}</td>`).join('') : ''}<td class="v">${int(x.q)}</td><td class="v">${brl(x.v)}</td></tr>`).join('')}
     </tbody><tfoot><tr><td>Total</td>${us.length > 1 ? us.map(u => `<td class="v">${int(pL.reduce((t, x) => t + (x.por[u] || 0), 0))}</td>`).join('') : ''}<td class="v">${int(pq)}</td><td class="v">${brl(pv)}</td></tr></tfoot></table></div>` : '<div class="vazio">Nenhum pacote vendido no período.</div>'}</div>
-  <div class="cartao"><h2>Vendas por atendente</h2><p class="expl">Quem registrou as vendas (a cobrança da recreação que nasce sozinha no relógio não entra aqui).</p>${aL.length ? `<div class="rolar"><table><thead><tr><th>Atendente</th><th class="v">Vendas</th><th class="v">Valor</th><th class="v">%</th></tr></thead><tbody>
+  ${prodPacCartao(us)}<div class="cartao"><h2>Vendas por atendente</h2><p class="expl">Quem registrou as vendas (a cobrança da recreação que nasce sozinha no relógio não entra aqui).</p>${aL.length ? `<div class="rolar"><table><thead><tr><th>Atendente</th><th class="v">Vendas</th><th class="v">Valor</th><th class="v">%</th></tr></thead><tbody>
     ${aL.map(([n, x]) => `<tr><td>${esc(n)}<div class="barra"><i style="width:${aT ? Math.max(2, x.v / aT * 100) : 0}%"></i></div></td><td class="v">${int(x.n)}</td><td class="v">${brl(x.v)}</td><td class="v">${pct(aT ? x.v / aT * 100 : 0)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="vazio">Nenhuma venda registrada no período.</div>'}</div>`;
 }
 

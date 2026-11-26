@@ -146,9 +146,10 @@ function cxDestrinchar(array $in): array {
     if ($sk !== '') { $s = &$G[$g]['sub'][$sk]; $s['total'] = round($s['total'] + $v, 2);
       if ($sk === 'pcd' && !isset($pcdVis[(int)$l['vid']]) && $l['cheio'] !== null) { $pcdVis[(int)$l['vid']] = 1; $s['desc'] = round($s['desc'] + max(0, (float)$l['cheio'] - (float)$l['vv']), 2); }
       $s['vendas'][(int)$l['vid']] = 1; unset($s); }
-    $it = trim((string)$l['s']) !== '' ? mb_strtoupper(trim((string)$l['s'])) : ($g === 'pacotes' && $sk === 'horas' ? nomePacoteVenda((int)$l['m'], (string)$l['itens']) : (CX_GRUPOS[$g] ?? '')); if (!empty($l['pr']) && (int)$l['qtd'] > 1) $it = (int)$l['qtd'] . ' × ' . $it;
+    $it = trim((string)$l['s']) !== '' ? mb_strtoupper(trim((string)$l['s'])) : ($g === 'pacotes' && $sk === 'horas' ? nomePacoteVenda((int)$l['m'], (string)$l['itens']) : (CX_GRUPOS[$g] ?? ''));
+    if ($sk === 'horas' && trim((string)($l['pn'] ?? '')) !== '') $it .= ' · com ' . trim((string)$l['pn']);   /* 2.40: qual produto foi no pacote */ if (!empty($l['pr']) && (int)$l['qtd'] > 1) $it = (int)$l['qtd'] . ' × ' . $it;
     $L[] = ['h' => substr((string)$l['quando'], 11, 5), 'g' => $g, 'tag' => $sk === 'prod' ? 'produto do pacote' : ($sk === 'pcd' ? 'PCD' : ''), 'item' => $it . $obs, 'cli' => trim((string)($l['resp'] ?? '')) ?: trim((string)($l['nome'] ?? '')), 'cri' => (string)($l['nome'] ?? ''), 'f' => $f, 'v' => $v]; };
-  $sel = 'v.id vid, v.servico s, v.itens, (COALESCE(v.produto_id, 0) > 0) pr, v.alug a, v.minutos m, v.auto au, v.voucher vo, v.festa_id fid, COALESCE(v.qtd, 1) qtd, c.nome, c.resp, COALESCE(v.pcd, 0) pcd, v.cheio, v.valor vv, v.vend_g vg, v.crianca_id cid, v.quando vq';
+  $sel = 'v.id vid, v.servico s, v.itens, (COALESCE(v.produto_id, 0) > 0) pr, v.alug a, v.minutos m, v.auto au, v.voucher vo, v.festa_id fid, COALESCE(v.qtd, 1) qtd, c.nome, c.resp, COALESCE(v.pcd, 0) pcd, v.cheio, v.valor vv, v.vend_g vg, v.crianca_id cid, v.quando vq, v.prod_nome pn';
   $q = $db->prepare("SELECT p.quando, p.forma f, p.valor val, $sel FROM pagamentos p JOIN vendas v ON v.id = p.venda_id LEFT JOIN criancas c ON c.id = v.crianca_id WHERE p.quando >= ? AND p.quando < ? AND COALESCE(p.unidade_id, v.unidade_id, 0) = " . $u . " ORDER BY p.quando, p.id");   /* (a unidade é um número: comparada como número) */
   $q->execute([$d0, $d1]); $rows = $q->fetchAll();
   /* os atendimentos que tiveram pacote: os do dia e, pelo grupo da venda, o pacote do mesmo atendimento pago em outra hora */
