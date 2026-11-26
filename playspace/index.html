@@ -1209,6 +1209,15 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .pgt-r.pgt-desc > .pgt-v, .pgt-r.pgt-desc .pgt-i b { color: var(--ok); } .pgt-falta { color: var(--erro); }
 /* 1.07: a saída em conjunto: o "Tirar" de cada criança, e as que ficaram fora da conta */
 .pgt-x { margin-left: 8px; height: 26px; padding: 0 10px; border-radius: 999px; border: 1.5px solid var(--borda-2); background: var(--card); font: 800 11.5px/1 var(--texto); letter-spacing: .03em; color: var(--tinta-2); vertical-align: 1px; white-space: nowrap; }
+/* 2.14: "Pacote | Avulso" ao lado do nome da criança, na lista da conta em conjunto */
+.pgt-m.pgt-nmx { white-space: normal; overflow: visible; }
+.pg-modo2 { display: inline-flex; margin-left: 6px; border: 1.5px solid var(--borda-2); border-radius: 999px; overflow: hidden; vertical-align: 1px; white-space: nowrap; }
+.pg-modo2 button { height: 26px; padding: 0 10px; border: 0; background: var(--card); font: 800 11.5px/1 var(--texto); letter-spacing: .03em; color: var(--tinta-2); cursor: pointer; }
+.pg-modo2 button + button { border-left: 1.5px solid var(--borda-2); }
+.pg-modo2 button[data-v="p"][aria-pressed="true"] { background: var(--ok); color: #fff; }
+.pg-modo2 button[data-v="a"][aria-pressed="true"] { background: var(--coral); color: #fff; }
+.pgt-x0m { display: none; margin-top: 6px; } .pgt-x0m .pg-modo2 { margin-left: 0; }
+@container (max-width: 470px) { .pgt-x0m { display: block; } }
 .pgt-x:hover, .pgt-x:focus-visible { border-color: var(--erro); color: var(--erro); }
 .sg-fora { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0; padding: 9px 12px; border-radius: 14px; background: var(--menta); font-size: 13px; font-weight: 800; }
 .sg-dica { margin: -4px 2px 0; } .sg-fora > span { flex: 1 1 auto; } .sg-fora small { font-weight: 700; color: var(--tinta-2); } .sg-fora .chip { height: 30px; }
@@ -2110,7 +2119,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.13';
+const VERSAO = '2.14';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -4310,7 +4319,7 @@ function pgDetalhes(c, comEntrada = true) {
 // toda até o valor, para o nome não quebrar. No celular ficam o item e o valor; o resto desce para uma linha pequena embaixo do item
 function pgTabela(cols, linhas, total, o = {}) {
   const n = cols.length, corpo = linhas.map(l => { const m = l.meio || [], tem = m.some(Boolean), curto = cols.map((k, i) => m[i] ? k[1] + m[i] : '').filter(Boolean).join(' · ');
-    return `<div class="pgt-r${l.cls ? ' ' + l.cls : ''}" role="row"><span class="pgt-i${tem ? '' : ' pgt-larga'}" role="cell"><b>${l.n}</b>${l.sub ? `<small>${l.sub}</small>` : ''}${curto ? `<small class="pgt-sub">${curto}</small>` : ''}</span>${tem ? cols.map((k, i) => `<span class="pgt-m num" role="cell">${m[i] || ''}</span>`).join('') : ''}<span class="pgt-v num${l.h ? ' h' : ''}" role="cell">${l.v}</span></div>`; }).join('');
+    return `<div class="pgt-r${l.cls ? ' ' + l.cls : ''}" role="row"><span class="pgt-i${tem ? '' : ' pgt-larga'}" role="cell"><b>${l.n}</b>${l.sub ? `<small>${l.sub}</small>` : ''}${curto ? `<small class="pgt-sub">${curto}</small>` : ''}${l.x0 ? `<span class="pgt-x0m">${l.x0}</span>` : ''}</span>${tem ? cols.map((k, i) => `<span class="pgt-m num${i === 0 && l.x0 ? ' pgt-nmx' : ''}" role="cell">${m[i] || ''}${i === 0 && l.x0 ? l.x0 : ''}</span>`).join('') : ''}<span class="pgt-v num${l.h ? ' h' : ''}" role="cell">${l.v}</span></div>`; }).join('');
   return `<div class="pg-tab"><div class="pgt-g" role="table" aria-label="Itens selecionados" style="--pgt: minmax(0, 1fr)${n ? ' fit-content(150px)' : ''}${' max-content'.repeat(Math.max(0, n - 1))} max-content; --pgs: ${n + 1}">
     <div class="pgt-r pgt-cab" role="row"><span class="pgt-i" role="columnheader">Item</span>${cols.map(k => `<span class="pgt-m" role="columnheader">${k[0]}</span>`).join('')}<span class="pgt-v" role="columnheader">Valor</span></div>${corpo}
     <div class="pgt-r pgt-tot${o.cls ? ' ' + o.cls : ''}" role="row"><span class="pgt-i pgt-larga" role="cell">${o.rot || 'Total'}</span><span class="pgt-v num" role="cell"${o.id ? ` id="${o.id}"` : ''}>${total}</span></div></div></div>`;
@@ -5189,8 +5198,10 @@ const avisoParou = L => { const P = L.filter(parou); if (!P.length) return ''; c
    tomado: na conta em conjunto, o que os irmãos já deram para as crianças de cima */
 let FAMJA = null;   /* a folha da saída sendo montada: o id da criança, ou 'g' (a conta em conjunto) */
 const famVale = c => FAMJA === c.id || (!!SAI && SAI.ids.includes(c.id) && (FAMJA === 'g' || !!document.querySelector('#sg-ok'))) || (() => { const b = document.querySelector('#s-ok'); return !!b && +b.dataset.id === c.id; })();
+/* 2.14 ("prioridade máxima no pacote"): o irmão desta conta em conjunto que paga avulso não segura as horas dele para a visita: ficam para os outros */
+const famSolta = x => AV.has(x.id) && !!SAI && SAI.ids.includes(x.id) && !SAI.fora.has(x.id) && (FAMJA === 'g' || !!document.querySelector('#sg-ok'));
 const famLivres = (c, tomado = {}) => { const p = periodo();
-  return familia(c).filter(x => x.id !== c.id).map(x => ({ x, tem: pacMin(x) - (x.entrou && x.atraso ? x.atraso.n * p : 0) - (x.usado || 0) - (x.entrou && !x.festa ? cobrar(minConta(x)) : 0) - (tomado[x.id] || 0) }))
+  return familia(c).filter(x => x.id !== c.id).map(x => ({ x, tem: pacMin(x) - (x.entrou && x.atraso ? x.atraso.n * p : 0) - (x.usado || 0) - (x.entrou && !x.festa && !famSolta(x) ? cobrar(minConta(x)) : 0) - (tomado[x.id] || 0) }))
     .filter(y => y.tem > 0).sort((a, b) => b.tem - a.tem || a.x.id - b.x.id); };
 function famConta(c, k, tomado) {
   if (c.festa || k.av || !famVale(c)) return;   /* só para a criança da folha da saída que está aberta */
@@ -5270,7 +5281,7 @@ function linhasVisita(c, k, o = {}) {   // o: { hh: a hora corrigida, de: " · N
   const ficou = `${o.hh ? 'saiu às ' + esc(o.hh) + ' · ' : ''}ficou ${dur(ficouMin(k.min))}`, meio = [esc(c.nome), c.sapateira ? String(c.sapateira) : '', hora(c.entrou)];
   if (c.festa) { const f = festaPorId(c.festa), L = [{ n: 'FESTA' + (f && f.nome ? ' DE ' + esc(f.nome) : ''), sub: ficou + (c.festaPapel === 'aniversariante' ? ' · aniversariante' : ''), meio, v: 'sem cobrança' + (o.tirar || ''), h: true }];   // 1.29: a visita da festa
     if (k.pend > 0) for (const i of pendItens(c)) L.push({ n: esc(i.n), sub: 'ficou para a saída' + de, v: brl(i.v) }); return L; }
-  const L = [so ? { n: `${rec} avulsa · ${dur(k.n * p)}`, sub: ficou, meio, v: brl(k.valor) + (o.tirar || '') } : { n: rec, sub: ficou, meio, v: (minhas ? 'usa ' + dur(minhas) : '') + (o.tirar || ''), h: true }];
+  const L = [so ? { n: `${rec} avulsa · ${dur(k.n * p)}`, sub: ficou, meio, v: brl(k.valor) + (o.tirar || '') } : { n: rec, sub: ficou, meio, v: (minhas ? 'usa ' + dur(minhas) : '') + (o.tirar || ''), h: true }]; if (o.modo) L[0].x0 = o.modo;   /* 2.14 */
   if (k.pend > 0) for (const i of pendItens(c)) L.push({ n: esc(i.n), sub: 'ficou para a saída' + de, v: brl(i.v) });
   if (k.n && !so) L.push({ n: nomeAutos(c, k.n), sub: subAutos(c) + de, v: brl(k.valor) });
   if (k.av) L.push(linhaAvulso(k, de));
@@ -5327,7 +5338,7 @@ function repartirGrupo(g, dsc, pag, carros) {   // carros (1.25): recebe a parte
 const htmlContaGrupo = g => { const p = periodo(), st = servicoTempo(), A = g.A || [], so = !A.length && !(SAI.alug || []).length, varias = g.L.length + A.length > 1, nomes = SAI.ids.length + (SAI.alug || []).length > 1, de = c => nomes ? ' · ' + esc(c.nome) : '', L = []; let antes = 0, minhas = 0, depois = 0;
   const tirar = (k, v, nome) => varias ? `<button type="button" class="pgt-x tap" data-act="saida-tirar" data-${k}="${esc(String(v))}" title="Tirar ${esc(nome)} desta conta: ${k === 'id' ? 'paga à parte, ou sai depois' : 'fica fora da loja e é cobrado na devolução'}" aria-label="Tirar ${esc(nome)} desta conta">Tirar</button>` : '';
   for (const { c, k } of g.L) { const m = horasProprias(k); antes += saldoAntesSaida(c) + (k.usaFam ? k.fam.de.filter(y => !g.L.some(z => z.c.id === y.id)).reduce((t, y) => t + y.min, 0) : 0); minhas += m; depois += saldoDepois(c, k);
-    L.push(...linhasVisita(c, k, { de: de(c), tirar: tirar('id', c.id, c.nome) })); }
+    L.push(...linhasVisita(c, k, { de: de(c), tirar: tirar('id', c.id, c.nome), modo: g.L.length > 1 && !c.festa && (k.pac > 0 || !!k.fam) ? htmlModo({ c, k }) : '' })); }
   for (const y of A) L.push(...linhasCarrinho(y, tirar('a', y.a.id, alugNome(y.a))));   // 1.25: o que saiu da loja com este responsável
   if (g.desc > 0) L.push(linhaDesc(g.desc, descErro(g.bruto, 'saida', SAI.base)));
   const fora = saiFora(), foraA = saiForaA(), nf = fora.length + foraA.length, v = g.receber;
@@ -5347,6 +5358,8 @@ const htmlContaGrupo = g => { const p = periodo(), st = servicoTempo(), A = g.A 
 /* 2.13 (o dono: "eu preciso de uma opção pra mim descontar as horas do pacote desse responsável. Se eu quiser selecionar todas as crianças
    pra descontar a hora, eu seleciono"): na conta em conjunto, um check verde por criança. Marcada: o tempo dela sai das horas do responsável
    (as dela e, faltando, as dos irmãos); sem marcar: paga avulso. "Marcar todas" marca todas de uma vez */
+/* 2.14 (o dono: "uma opção do lado do nome da criança ... cobrar no avulso"): "Pacote | Avulso" ao lado do nome, na lista da conta */
+const htmlModo = x => { const on = famMarcada(x); return `<span class="pg-modo2" role="group" aria-label="Como ${esc(x.c.nome)} paga"><button type="button" class="tap" data-act="saida-modo" data-id="${x.c.id}" data-v="p" aria-pressed="${on}">Pacote</button><button type="button" class="tap" data-act="saida-modo" data-id="${x.c.id}" data-v="a" aria-pressed="${!on}">Avulso</button></span>`; };
 const famMarcada = x => x.k.pac > 0 ? !x.k.av : !!x.k.usaFam;
 function famMarcar(id, on) { if (on) AV.delete(id); else AV.add(id); if (on === horasCpf()) FAMSIM.delete(id); else FAMSIM.add(id); }
 const htmlFamSel = g => { if (g.L.length < 2) return ''; const pode = x => x.k.pac > 0 || !!x.k.fam, L = g.L.filter(x => !x.c.festa && (pode(x) || x.k.n > 0));
@@ -5403,7 +5416,7 @@ async function confirmarGrupo(el) {
   if (g.receber > 0) { if (!PAG || PAG.onde !== 'saida' || !$('#pg-formas')) return; PAG.total = g.receber; const x = pagPartes();
     if (x.erro) { toast(PAG.formas.length ? x.erro : `Como recebeu ${brl(g.receber)}? Toque na forma de pagamento`); const a = $('#pg-formas'); if (a) a.scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
     pag = x.partes; }
-  const Q = [], P = repartirGrupo(g, dsc, pag, Q), sai = agoraJa(), nomes = P.map(x => x.c.nome), verbo = P.length === 1 ? 'saiu' : 'saíram';   // Q (1.25): cada carrinho com a parte dele
+  const Q = [], P = repartirGrupo(g, dsc, pag, Q).sort((x, y) => (y.k.av ? 1 : 0) - (x.k.av ? 1 : 0)), sai = agoraJa(),   /* 2.14: quem paga avulso sai primeiro: as horas dele ficam livres para os irmãos */ nomes = P.map(x => x.c.nome), verbo = P.length === 1 ? 'saiu' : 'saíram';   // Q (1.25): cada carrinho com a parte dele
   const devTxt = Y => Y.length ? juntar(Y.map(y => alugNome(y.a))) + (Y.length === 1 ? ' devolvido' : ' devolvidos') : '';
   const pedG = pedPapel('saida', SAI.base);   // 1.33
   const papelDe = (L, Y) => ({ tipo: 'saida', ped: pedG, id: L.length ? L[0].c.id : Y.length ? Y[0].a.crianca : SAI.base, grupo: L.map(x => ({ id: x.c.id, plano: planoDe(x.c), entrou: x.c.entrou, saiu: sai, min: x.k.min, deb: x.k.deb, proprias: horasProprias(x.k), saldo: saldoDepois(x.c, x.k), n: x.k.n, valor: x.bruto, pend: x.k.pend || 0, pendi: x.k.pend > 0 ? pendItens(x.c) : [], av: x.k.av || null })),
@@ -8768,6 +8781,7 @@ const ACOES = {
   'saida-avulso': el => { const on = el.dataset.v === '1';   /* 1.11: descontar do pacote, ou pagar avulso */
     if (SAI && $('#sg-ok')) { SAI.av = on; AV = on ? new Set(SAI.ids) : new Set(); FAMSIM = horasCpf() ? (on ? new Set(SAI.ids) : new Set()) : (on ? new Set() : new Set(contaGrupo().L.filter(x => !(x.k.pac > 0)).map(x => x.c.id))); atualizarGrupo(); return; }   /* 2.10: e as horas da família (de quem entrou na avulsa) */
     const b = $('#s-ok'); if (!b) return; AV = on ? new Set([+b.dataset.id]) : new Set(); FAMSIM = horasCpf() ? (on ? new Set([+b.dataset.id]) : new Set()) : (on || contaSaida(crianca(+b.dataset.id), undefined, {}).pac > 0 ? new Set() : new Set([+b.dataset.id])); atualizarSaida(); },
+  'saida-modo': el => { if (!SAI || !$('#sg-ok')) return; famMarcar(+el.dataset.id, el.dataset.v === 'p'); SAI.av = false; atualizarGrupo(); },   /* 2.14: Pacote | Avulso ao lado do nome */
   'saida-marca': el => { if (!SAI || !$('#sg-ok')) return; const id = +el.dataset.id, x = contaGrupo().L.find(y => y.c.id === id); if (!x) return; famMarcar(id, !famMarcada(x)); SAI.av = false; atualizarGrupo(); },   /* 2.13: o check de cada criança */
   'saida-todas': () => { if (!SAI || !$('#sg-ok')) return; for (const id of SAI.ids) famMarcar(id, true); SAI.av = false; atualizarGrupo(); },
   'saida-fam': el => { const id = +el.dataset.id; if (FAMSIM.has(id)) FAMSIM.delete(id); else FAMSIM.add(id); if (SAI && $('#sg-ok')) atualizarGrupo(); else atualizarSaida(); },   /* 2.10: quem já usa as horas dele também usa as da família */   /* 1.00: o cliente leva um pacote na saída: o atendimento abre com a lista de pacotes e, depois do pagamento, a saída abre de novo */

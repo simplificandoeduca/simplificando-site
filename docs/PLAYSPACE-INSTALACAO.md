@@ -1301,6 +1301,14 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. "Pacote | Avulso" ao lado do nome, com prioridade no pacote (2.14)
+
+Pedido do dono (26/11): "tem que ter uma opção também de eu, tipo, cobrar no avulso. Às vezes uma opção do lado do nome da criança ... prioridade máxima no pacote".
+
+- Na saída em conjunto, na lista dos itens, ao lado do nome de cada criança que pode usar as horas: "Pacote | Avulso". O verde (Pacote) desconta das horas do responsável; o vermelho (Avulso) cobra a visita dela. É o mesmo que o check de baixo (os dois andam juntos). No celular, o par fica embaixo do item.
+- Tudo começa no Pacote (com as horas do CPF, em Ajustes → Regra das horas). Avulso só quando a atendente escolhe.
+- Prioridade no pacote: a criança que paga avulso não segura as horas dela; elas ficam para os irmãos da mesma conta. Ex.: MANO com 3h paga avulso → as 3h dele cobrem as duas irmãs (1h30 cada). Para isso, na hora de confirmar, quem paga avulso sai primeiro.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O check de cada criança na saída em conjunto (2.13)
 
 Pedido do dono (25/11): "eu preciso de uma opção pra mim, tipo, descontar as horas do pacote desse responsável. Se eu quiser selecionar todas as crianças pra descontar a hora, eu seleciono".
