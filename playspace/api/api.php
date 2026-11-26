@@ -215,7 +215,7 @@ switch ($acao) {
   }
   case 'loja_unidades': { /* 2.10: a tela de entrar do computador da loja (só com a chave dele) */
     $m = maquinaDaChave((string)($in['chave'] ?? '')); if (!$m) falha('Este computador não está mais liberado. Entre com usuário e senha, ou peça ao gestor para liberar de novo.', 403);
-    responder(['unidades' => unidadesDaLoja(), 'nome' => (string)$m['nome']]);
+    responder(['unidades' => unidadesDaLoja(), 'nome' => (string)$m['nome'], 'senha' => lojaPedeSenha()]);   /* 2.21: se pede a senha da unidade */
   }
   case 'entrar_loja': { /* 2.10: um toque na unidade, sem senha (o computador liberado pelo gestor) */
     $db->prepare('DELETE FROM tentativas WHERE quando < ?')->execute([time() - 900]);
@@ -225,7 +225,7 @@ switch ($acao) {
     $uni = (int)($in['unidade'] ?? 0); $lu = usuarioDaLoja($uni); if (!$lu) falha('Unidade não encontrada.', 404);
     $q = $db->prepare('SELECT COUNT(*) FROM tentativas WHERE login = ? AND ip = ? AND quando > ?'); $q->execute(['#loja' . $uni, $ip, time() - 900]); if ((int)$q->fetchColumn() >= 8) falha('Muitas tentativas. Espere 15 minutos e tente de novo.', 429);
     $q = $db->prepare('SELECT senha FROM usuarios WHERE id = ?'); $q->execute([(int)$lu['id']]); $h = (string)$q->fetchColumn(); $q->closeCursor();   /* 2.11: a senha da unidade */
-    if (!password_verify((string)($in['senha'] ?? ''), $h)) { $db->prepare('INSERT INTO tentativas (login, ip, quando) VALUES (?, ?, ?)')->execute(['#loja' . $uni, $ip, time()]); usleep(400000); falha('Senha da unidade errada.', 401); }
+    if (lojaPedeSenha() && !password_verify((string)($in['senha'] ?? ''), $h)) {   /* 2.21: sem a senha, provisoriamente (Ajustes → Computadores da loja) */ $db->prepare('INSERT INTO tentativas (login, ip, quando) VALUES (?, ?, ?)')->execute(['#loja' . $uni, $ip, time()]); usleep(400000); falha('Senha da unidade errada.', 401); }
     $db->prepare('UPDATE maquinas SET ultimo_uso = ? WHERE id = ?')->execute([agora(), (int)$m['id']]);
     session_regenerate_id(true); $_SESSION['uid'] = (int)$lu['id']; $_SESSION['uni0'] = $uni; $_SESSION['maq'] = (int)$m['id'];
     responder(['usuario' => eu()]);
@@ -1140,7 +1140,11 @@ switch ($acao) {
     if (isset($in['cupomTel'])) $r['cupomTel'] = mb_substr(trim((string)preg_replace('/[^0-9()+\-. ]/', '', (string)$in['cupomTel'])), 0, 30);
     if (isset($in['cupomAviso'])) $r['cupomAviso'] = mb_substr(maiusculo((string)$in['cupomAviso']), 0, 300);
     if (isset($in['cupomTam']) && in_array($in['cupomTam'], ['normal', 'compacto', 'economico'], true)) $r['cupomTam'] = $in['cupomTam'];
-    if (isset($in['horasCpf']) && in_array($in['horasCpf'], ['sim', 'nao'], true)) $r['horasCpf'] = $in['horasCpf'];   /* 2.11: as horas são do CPF */   /* 2.09: o tamanho do cupom */
+    if (isset($in['horasCpf']) && in_array($in['horasCpf'], ['sim', 'nao'], true)) $r['horasCpf'] = $in['horasCpf'];
+    if (isset($in['senhaUni']) && in_array($in['senhaUni'], ['sim', 'nao'], true)) {   /* 2.21: pedir (ou não) a senha da unidade na tela de entrar da loja: só o gestor */
+      if (($u['papel'] ?? '') !== 'gestor') falha('Só o gestor muda a senha das unidades.', 403);
+      if ((string)($r['senhaUni'] ?? 'nao') !== $in['senhaUni']) registrar('alt', null, 'Computador da loja', ($in['senhaUni'] === 'sim' ? 'A tela de entrar volta a pedir a senha da unidade' : 'A tela de entrar fica sem a senha da unidade') . ' · por ' . primeiroNome((string)$u['nome']));
+      $r['senhaUni'] = $in['senhaUni']; }   /* 2.11: as horas são do CPF */   /* 2.09: o tamanho do cupom */
     if (isset($in['sapateiras'])) { $n = (int)$in['sapateiras']; if ($n < 1 || $n > 200) falha('Quantas sapateiras existem? De 1 a 200.'); $r['sapateiras'] = $n; }
     if (isset($in['pacotes']) && is_array($in['pacotes'])) {
       // um pacote: horas, valor, tipo (com produto, o brinde já no valor; ou seco, só as horas), nome opcional e em até quantas vezes parcela. Pode haver vários do mesmo tempo

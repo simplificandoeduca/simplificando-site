@@ -1301,6 +1301,14 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A tela de entrar da loja sem a senha da unidade (2.21)
+
+Pedido do dono (27/11): "esses logins pode deixar sem senha provisoriamente".
+
+- No computador liberado pelo gestor, a tela de entrar não pede mais a senha da unidade: um toque em "Login Anália" (ou Morumbi, Casatom Anália, Casatom Morumbi) e entra. O gestor continua com o login e a senha dele.
+- Provisório: em Ajustes → Computadores da loja, "Pedir a senha da unidade na tela de entrar: Não (provisório) | Sim". De fábrica, "Não". Só o gestor muda (fica nos registros). As senhas de cada unidade continuam guardadas e podem ser trocadas, para quando voltar a pedir.
+- O celular e o computador de casa (sem a liberação) continuam com login e senha.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Carrinho sem sapateira e os nomes da tela de entrar (2.20)
 
 Pedidos do dono (27/11).

@@ -2131,7 +2131,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.20';
+const VERSAO = '2.21';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -2588,11 +2588,11 @@ function telaEntrarLoja(m) {
     <button type="button" class="bt forte largo tap${ehCT(uS.nome) ? ' lj-ct' : ''}" id="lj-ok" data-act="entrar-loja-ok" data-u="${uS.id}">${ic(IC.entrar)} Entrar</button>
     <button type="button" class="link tap lj-senha" data-act="entrar-unidades">Voltar às unidades</button>
     <p class="rodape">Computador da loja${m.n ? ' · ' + esc(m.n) : ''} · Play Space Horas v${VERSAO}</p>`); return; }
-  telaSo(`<h1 style="font-size:24px;font-weight:800">Play Space</h1><p class="explica">Operador: toque na unidade e escreva a senha dela.</p>
+  telaSo(`<h1 style="font-size:24px;font-weight:800">Play Space</h1><p class="explica">${m.s === false ? 'Toque na sua unidade para entrar.' : 'Operador: toque na unidade e escreva a senha dela.'}</p>
     <div class="lj-unis">${U.length ? U.map(u => `<button type="button" class="lj-uni tap${ehCT(u.nome) ? ' ct' : ''}" data-act="entrar-loja" data-u="${u.id}" title="${esc(u.nome)}">${ic(IC.entrar)}<b>${esc(lojaRot(u.nome))}</b></button>`).join('') : '<p class="explica">Carregando as unidades…</p>'}</div>
     <button type="button" class="bt claro largo tap lj-gestor" data-act="entrar-senha">${ic(IC.check)} Login gestor</button>
     <p class="rodape">Computador da loja${m.n ? ' · ' + esc(m.n) : ''} · Play Space Horas v${VERSAO}</p>`);
-  api('loja_unidades', { chave: m.c }).then(r => { const n = { ...m, u: r.unidades || [], n: r.nome || m.n || '' }; maqGuardar(n); if (JSON.stringify(n.u) !== JSON.stringify(m.u) && $('.lj-unis')) telaEntrarLoja(n); })
+  api('loja_unidades', { chave: m.c }).then(r => { const n = { ...m, u: r.unidades || [], n: r.nome || m.n || '', s: r.senha !== false }; maqGuardar(n); if ((JSON.stringify(n.u) !== JSON.stringify(m.u) || n.s !== m.s) && $('.lj-unis')) telaEntrarLoja(n); })   /* 2.21: s = pede a senha da unidade */
     .catch(e => { if (e.status === 403 && $('.lj-unis')) { maqGuardar(null); telaEntrar(); toast(e.message); } });
 }
 function telaEntrar() {
@@ -8680,13 +8680,18 @@ function folhaNovoComp(x) {
 
 /* ---------- Ajustes ---------- */
 /* 2.10: Ajustes → Computadores da loja (só o gestor): libera este computador e tira o acesso dos outros */
+/* 2.21 (o dono: "esses logins pode deixar sem senha provisoriamente"): pedir ou não a senha da unidade na tela de entrar da loja */
+const textoPedeSenha = v => v === 'sim' ? 'Na tela de entrar, a equipe toca na unidade e escreve a senha dela. De fábrica, a senha de todas é <b>123456</b>. O gestor entra pelo botão "Login gestor", com o login e a senha dele.'
+  : 'Sem senha: a equipe toca na unidade ("Login Anália", "Login Morumbi"...) e entra. Vale só nos computadores liberados aqui; o celular e o computador de casa continuam com login e senha. As senhas abaixo ficam guardadas para quando voltar a pedir. O gestor entra pelo botão "Login gestor".';
 async function folhaMaquinas() {
   const m = maqLer();
   abrirFolha('Computadores da loja', `<p class="explica">No computador liberado, a tela de entrar mostra só as unidades: a equipe toca em <b>${esc(juntar(unidades().filter(u => u.ativo !== false).map(u => u.nome)))}</b> e entra, sem senha. Quem vende, cadastra e atende continua tocando no nome (vale para as comissões). Libere só os computadores do balcão: o celular e o computador de casa continuam com usuário e senha.</p>
     ${m ? `<div class="marca" id="mq-este">${ic(IC.check, 18, 2.6)}<span><b>Este computador está liberado</b>${m.n ? ' (' + esc(m.n) + ')' : ''}. Ao sair, a tela de entrar mostra as unidades.</span></div><div class="acoes"><button type="button" class="bt claro tap" data-act="maq-esquecer">Tirar a liberação deste computador</button></div>`
       : `<div class="campo"><label for="mq-nome">Nome deste computador <span class="leve">· para achar na lista</span></label><input id="mq-nome" maxlength="40" autocomplete="off" placeholder="ex.: BALCÃO ANÁLIA"></div><div class="acoes"><button type="button" class="bt forte tap" id="mq-ok" data-act="maq-liberar">${ic(IC.check)} Liberar este computador</button></div>`}
     ${faltaCasaTom().length ? `<div class="marca" id="mq-ct">${ic(IC.sino, 18)}<span>Falta a unidade <b>${esc(juntar(faltaCasaTom().map(u => 'CASA TOM ' + curtoUni(u.nome).toUpperCase())))}</b>: sem ela, o botão não aparece na tela de entrar.</span><button type="button" class="bt claro tap" data-act="maq-ct">Criar agora</button></div>` : ''}
-    <p class="vend-t" style="margin-top:14px">Senha de cada unidade</p><p class="explica">Na tela de entrar, a equipe toca na unidade e escreve a senha dela. De fábrica, a senha de todas é <b>123456</b>. O gestor entra pelo botão "Login gestor", com o login e a senha dele.</p>
+    <p class="vend-t" style="margin-top:14px">Senha de cada unidade</p>
+    <div class="campo"><label>Pedir a senha da unidade na tela de entrar</label><div class="seg" id="mq-pede">${[['nao', 'Não (provisório)'], ['sim', 'Sim']].map(([v, n]) => `<button type="button" class="tap" data-act="loja-pede-senha" data-v="${v}" aria-pressed="${(S.cfg.senhaUni || 'nao') === v}">${n}</button>`).join('')}</div></div>
+    <p class="explica" id="mq-pede-t">${textoPedeSenha(S.cfg.senhaUni || 'nao')}</p>
     <div class="grupo" id="mq-senhas">${unidades().filter(u => u.ativo !== false).map(u => `<div class="it"><div class="txt"><b>${esc(u.nome)}</b><span>operador</span></div><input type="password" class="mq-s" data-u="${u.id}" placeholder="Nova senha" autocomplete="new-password" style="max-width:150px"><button type="button" class="bt claro tap" data-act="loja-senha" data-u="${u.id}">Trocar</button></div>`).join('')}</div>
     <div id="mq-lista"><p class="explica">Carregando os computadores liberados…</p></div>`);
   try { const r = await api('maquinas'); pintarMaquinas(r.maquinas || []); } catch (e) { const l = $('#mq-lista'); if (l) l.innerHTML = `<p class="explica">${esc(e.message)}</p>`; }
@@ -9313,10 +9318,11 @@ const ACOES = {
   'equipe-novo': () => folhaEquipe(null), 'equipe-editar': el => folhaEquipe(S.equipe.find(u => u.id === +el.dataset.id)),
   'equipe-salvar': el => { const nome = val('e-nome'); if (!nome) { toast('Falta o nome'); return; } const d = { nome, login: val('e-login') || nome.split(' ')[0].toLowerCase(), papel: val('e-papel'), senha: ($('#e-senha') || { value: '' }).value, ...($('#e-uni') ? { unidade: +$('#e-uni').value || 0 } : {}) };   /* 2.02: a unidade da pessoa */ if (MODO === 'servidor') { api('usuario_salvar', { id: el.dataset.id ? +el.dataset.id : 0, ...d }).then(async () => { await carregar(); deuCerto('Equipe atualizada'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } delete d.senha; if ('unidade' in d) { d.uni = d.unidade; delete d.unidade; } if (el.dataset.id) Object.assign(S.equipe.find(u => u.id === +el.dataset.id), d); else S.equipe.push({ id: novoId(), ...d }); deuCerto('Equipe atualizada'); fecharFolha(); desenhar(); },
   'equipe-apagar': el => { if (MODO === 'servidor') { api('usuario_apagar', { id: +el.dataset.id }).then(async () => { await carregar(); deuCerto('Removida da equipe'); fecharFolha(); desenhar(); }).catch(e => toast(e.message)); return; } S.equipe = S.equipe.filter(u => u.id !== +el.dataset.id); deuCerto('Removida da equipe'); fecharFolha(); desenhar(); },
-  'entrar-loja': el => { const m = maqLer(); if (!m) { telaEntrar(); return; } LJ_UNI = +el.dataset.u; telaEntrarLoja(m); },   /* 2.11: a unidade tocada pede a senha dela */
-  'entrar-loja-ok': async el => { const m = maqLer(); if (!m) { telaEntrar(); return; } const s = ($('#lj-senha') || { value: '' }).value; if (!s) { toast('Escreva a senha da unidade'); const i = $('#lj-senha'); if (i) i.focus(); return; } el.disabled = true;   /* 2.10: o computador da loja */
+  'entrar-loja': el => { const m = maqLer(); if (!m) { telaEntrar(); return; } if (m.s === false) { ACOES['entrar-loja-ok'](el); return; } LJ_UNI = +el.dataset.u; telaEntrarLoja(m); },   /* 2.21: sem a senha, um toque entra */   /* 2.11: a unidade tocada pede a senha dela */
+  'entrar-loja-ok': async el => { const m = maqLer(); if (!m) { telaEntrar(); return; } const s = ($('#lj-senha') || { value: '' }).value; if (!s && m.s !== false) { toast('Escreva a senha da unidade'); const i = $('#lj-senha'); if (i) i.focus(); return; } el.disabled = true;   /* 2.10: o computador da loja */
     try { await api('entrar_loja', { chave: m.c, unidade: +el.dataset.u, senha: s }); guardar('ps-unidade', +el.dataset.u); LJ_UNI = 0; ursoReage('feliz'); await espera(260); await espera(sairDoLogin()); await depoisDeEntrar(true); ligarSincronia(); }
-    catch (e) { el.disabled = false; ursoReage('nao'); toast(e.message); const i = $('#lj-senha'); if (i) { i.value = ''; i.focus(); } if (e.status === 403) { maqGuardar(null); LJ_UNI = 0; setTimeout(telaEntrar, 1500); } } },
+    catch (e) { el.disabled = false; ursoReage('nao'); if (e.status === 401 && m.s === false && !s) { const n = { ...m, s: true }; maqGuardar(n); LJ_UNI = +el.dataset.u; telaEntrarLoja(n); toast('Esta unidade pede a senha'); return; }   /* 2.21: o gestor voltou a pedir a senha */
+      toast(e.message); const i = $('#lj-senha'); if (i) { i.value = ''; i.focus(); } if (e.status === 403) { maqGuardar(null); LJ_UNI = 0; setTimeout(telaEntrar, 1500); } } },
   'entrar-senha': () => { ENTRAR_SENHA = true; telaEntrar(); }, 'entrar-unidades': () => { ENTRAR_SENHA = false; LJ_UNI = 0; telaEntrar(); },
   'maq-lista': () => folhaMaquinas(),
   'nota-ver': el => { const p = $('#nota-pop'); if (p && !p.hidden && p.dataset.de === el.dataset.nota && Date.now() - (+p.dataset.t || 0) > 700) notaFecha(true); else { notaPop(el); const p2 = $('#nota-pop'); if (p2) p2.dataset.fixa = '1'; } },   /* (no toque, o mouseover vem antes do clique: não fecha o que acabou de abrir) */   /* 2.12: as anotações (tocando, no celular) */
@@ -9329,6 +9335,9 @@ const ACOES = {
   'an-apagar': async el => { const id = +el.dataset.id; try { if (MODO === 'servidor') { const r = await api('anotacao_apagar', { id }); S.anotacoes = (r.anotacoes || []).map(n => ({ ...n, q: dataDe(n.q) })); } else S.anotacoes = (S.anotacoes || []).filter(n => n.id !== id);
       deuCerto('Anotação apagada'); desenharLado(); desenhar(); } catch (e) { toast(e.message); } },
   'maq-ct': async el => { await criarCasaTom(el); folhaMaquinas(); },   /* 2.11: a Casa Tom que falta (ex.: Morumbi) */
+  'loja-pede-senha': async el => { const v = el.dataset.v === 'sim' ? 'sim' : 'nao'; if (!gestor()) { toast('Só o gestor muda'); return; }   /* 2.21 */
+    try { await api('regra_salvar', { senhaUni: v }); S.cfg.senhaUni = v; $$('#mq-pede [data-v]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === v))); const t = $('#mq-pede-t'); if (t) t.innerHTML = textoPedeSenha(v);
+      const m = maqLer(); if (m) maqGuardar({ ...m, s: v === 'sim' }); deuCerto(v === 'sim' ? 'A tela de entrar volta a pedir a senha da unidade' : 'A tela de entrar fica sem a senha da unidade'); } catch (e) { toast(e.message); } },
   'loja-senha': async el => { const i = document.querySelector(`.mq-s[data-u="${el.dataset.u}"]`), s = i ? i.value : ''; if (s.length < 4) { toast('A senha precisa ter pelo menos 4 caracteres'); if (i) i.focus(); return; } el.disabled = true;
     try { await api('loja_senha', { unidade: +el.dataset.u, senha: s }); i.value = ''; deuCerto('Senha da unidade trocada: ' + nomeUni(+el.dataset.u)); } catch (e) { toast(e.message); } el.disabled = false; },
   'maq-liberar': async el => { el.disabled = true; try { const r = await api('maquina_liberar', { nome: val('mq-nome') }); maqGuardar({ c: r.chave, u: r.unidades || [], n: r.nome || '' }); deuCerto('Computador liberado: ao sair, a tela de entrar mostra as unidades'); folhaMaquinas(); } catch (e) { el.disabled = false; toast(e.message); } },

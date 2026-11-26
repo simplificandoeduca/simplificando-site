@@ -549,7 +549,7 @@ const PACOTES_DE_EXEMPLO = [['h' => 1, 'v' => 60], ['h' => 5, 'v' => 250], ['h' 
 // cupomLoja, cupomTel, cupomAviso (0.94): o nome e o telefone da loja e o aviso do pé do cupom impresso (o papel que o responsável assina na entrada)
 // estorno (1.21): quem desfaz ou cancela o que já tem valor. 'gestor' (de fábrica), 'supervisor' (o gestor e o supervisor) ou 'todos' (como era até a 1.20)
 const REGRA_PADRAO = ['tolerancia' => 9, 'fecha' => 22, 'pcdDesc' => 50, 'aviso' => 10, 'autoMsg' => 'nao', 'bloqueioAuto' => 'sim', 'pacotes' => [], 'extras' => [], 'sapateiras' => 44, 'cancelaMin' => 9, 'reabreMin' => 30, 'tolCupom' => 5, 'cupom' => 'nao', 'estorno' => 'gestor',
-  'cupomLoja' => 'PLAY SPACE', 'cupomTel' => '', 'cupomAviso' => 'ATENÇÃO: SOMENTE O RESPONSÁVEL QUE ASSINAR A ENTRADA DA CRIANÇA PODERÁ ASSINAR SUA SAÍDA.', 'cupomTam' => 'normal', 'horasCpf' => 'sim'];   // 2.11: as horas do pacote são do CPF (todas as crianças do responsável usam)   // 2.09: o tamanho do cupom impresso (normal, compacto, economico)
+  'cupomLoja' => 'PLAY SPACE', 'cupomTel' => '', 'cupomAviso' => 'ATENÇÃO: SOMENTE O RESPONSÁVEL QUE ASSINAR A ENTRADA DA CRIANÇA PODERÁ ASSINAR SUA SAÍDA.', 'cupomTam' => 'normal', 'horasCpf' => 'sim', 'senhaUni' => 'nao'];   // 2.11: as horas do pacote são do CPF (todas as crianças do responsável usam)   // 2.09: o tamanho do cupom impresso (normal, compacto, economico)
 function regra(): array {
   if (isset($GLOBALS['_regra'])) return $GLOBALS['_regra'];   // lida uma vez por pedido (a conta do tempo consulta a regra muitas vezes)
   return $GLOBALS['_regra'] = regraDoBanco();
@@ -1274,6 +1274,7 @@ function usarHorasDaFamilia(array $c, string $quando): ?array {
   return ['min' => $t, 'de' => $de];
 }
 function horasDoCpf(): bool { return (string)(regra()['horasCpf'] ?? 'sim') !== 'nao'; }   /* 2.11: as horas são do CPF */
+function lojaPedeSenha(): bool { return (string)(regra()['senhaUni'] ?? 'nao') === 'sim'; }   /* 2.21: a tela de entrar da loja pede a senha da unidade (de fábrica, não) */
 /* 2.11: na entrada, as horas do CPF vão com a criança que entra: tudo o que os irmãos que estão fora têm guardado; e, se mesmo assim ela não
    tem um período, uma parte igual do que sobra aos irmãos que estão no espaço (em períodos inteiros) */
 function horasDaFamiliaNaEntrada(array $c): ?array {
