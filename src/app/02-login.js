@@ -317,7 +317,7 @@ function startApp(){
   document.body.classList.remove('locked');
   applyLook(); window.scrollTo(0,0); render();
   if(AFTER==='meus' && ACCT.mode==='self' && !(S.inst==='novo' && instMobile())){ AFTER = null; setTimeout(mtOpen, 400); }
-  fbRefresh(); instAsk(); acompAsk(); siteAsk(); avalAsk();
+  fbRefresh(); instAsk(); acompAsk(); siteAsk(); avalAsk(); telAsk();
   try { const vv = localStorage.getItem('simp-app-v'); if(vv && vv!==APPV) setTimeout(() => toast('App atualizado: versão '+APPV), 900); localStorage.setItem('simp-app-v', APPV); } catch(e){ /* sem armazenamento */ }
 }
 function logout(){

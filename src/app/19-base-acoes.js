@@ -198,6 +198,7 @@ function onClick(ev){
   if(a==='site-x'){ if(b.classList.contains('sheet-wrap') && ev.target!==b) return; closeSheet(); return; }
   if(a==='inst-x' || a==='inst-ok'){ if(b.classList.contains('sheet-wrap') && ev.target!==b) return; if(S){ S.inst = 'visto'; save(); } closeSheet(); if(a==='inst-ok' && !(ANDROID && INST_EV)) toast('Boa! A partir de agora, abra pelo ícone.'); return; }
   if(a==='inst-go'){ const evI = INST_EV; if(!evI) return; INST_EV = null; evI.prompt(); evI.userChoice.then(r => { if(r && r.outcome==='accepted'){ if(S){ S.inst = 'feito'; save(); } closeSheet(); toast('Instalando. O ícone aparece na tela do celular.'); } else if(document.getElementById('login')) renderLogin(); else renderSheet(); }).catch(() => { if(document.getElementById('login')) renderLogin(); else renderSheet(); }); return; }
+  if(a==='tel-ok' || a==='tel-no'){ if(b.classList.contains('sheet-wrap') && ev.target!==b) return; if(a==='tel-ok') telSalva(); else { S.telNao = today(); save(); closeSheet(); } return; }
   if(a==='acomp-sim' || a==='acomp-no'){ if(b.classList.contains('sheet-wrap') && ev.target!==b) return; acompSet(a==='acomp-sim'); closeSheet(); toast(a==='acomp-sim' ? 'Pronto. Seus treinos estão compartilhados com o Simplificando.' : 'Tudo bem. Dá pra ligar depois no Perfil.'); return; }
   if(a==='acc-del'){ if(armed==='acc-del') accDelete(); else { ui.arm = 'acc-del'; renderSheet(); } return; }
   let re = true;

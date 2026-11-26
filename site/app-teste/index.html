@@ -2460,7 +2460,7 @@ function startApp(){
   document.body.classList.remove('locked');
   applyLook(); window.scrollTo(0,0); render();
   if(AFTER==='meus' && ACCT.mode==='self' && !(S.inst==='novo' && instMobile())){ AFTER = null; setTimeout(mtOpen, 400); }
-  fbRefresh(); instAsk(); acompAsk(); siteAsk(); avalAsk();
+  fbRefresh(); instAsk(); acompAsk(); siteAsk(); avalAsk(); telAsk();
   try { const vv = localStorage.getItem('simpteste-aluno-v'); if(vv && vv!==APPV) setTimeout(() => toast('App atualizado: versão '+APPV), 900); localStorage.setItem('simpteste-aluno-v', APPV); } catch(e){ /* sem armazenamento */ }
 }
 function logout(){
@@ -2991,6 +2991,33 @@ function avalEnviar(b){
     else { const g = S.aval || {}; delete g.ult; delete g.env; save(); toast('Não deu para enviar agora. Vamos pedir de novo na próxima vez.'); if(ok==='permission-denied') errSend('Regras do Firebase desatualizadas: a avaliação do app foi bloqueada. Cole o REGRAS-FIRESTORE.txt novo no Firebase.', 'avaliacoes', 0, 0, ''); }
   });
 }
+/* telefone de contato de quem treina sem personal: quem criou a conta antes de o cadastro pedir é lembrado aos poucos (fechou hoje, volta amanhã) */
+let telT = null;
+const telFalta = () => EM_TESTE && !!ACCT && ACCT.mode==='self' && !!S && !S.example && !!S.conta && !S.conta.tel;
+function telAsk(){
+  clearInterval(telT); if(!telFalta() || S.telNao===today()) return;
+  let n = 0;
+  telT = setInterval(() => {
+    if(++n > 120 || !telFalta() || S.telNao===today()){ clearInterval(telT); return; }
+    if(S.session || S.inst==='novo') return; // no meio do treino ou logo depois de criar a conta, não
+    const livre = !ui.sheet && !document.getElementById('login') && !document.getElementById('pick') && !document.querySelector('.wel') && !document.querySelector('.stp');
+    if(livre){ clearInterval(telT); ui.sheet = {k:'tel'}; renderSheet(true); }
+  }, 2500);
+}
+function vTel(){
+  return `<div class="sheet-wrap cm-w" data-a="tel-no"><div class="sheet cm" role="dialog" aria-modal="true" aria-labelledby="tl-t" tabindex="-1">
+    <span class="cm-ic">${ic('msg')}</span><h2 id="tl-t">Qual é o seu WhatsApp<span class="dot">?</span></h2>
+    <p class="cm-sub">É para a gente conseguir falar com você sobre o seu treino e a sua conta. Não aparece para ninguém.</p>
+    <div class="inp-wrap"><label class="sr" for="tl-inp">WhatsApp com DDD</label><input class="inp" id="tl-inp" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="(11) 98765-4321"></div>
+    <p class="lg-err" id="tl-err" role="alert"></p>
+    <button type="button" class="btn primary block cm-b" data-a="tel-ok">${ic('check')}Salvar</button>
+    <button type="button" class="btn block cm-b2" data-a="tel-no">Agora não</button></div></div>`;
+}
+function telSalva(){
+  const el = document.getElementById('tl-inp'), v = el ? el.value : '';
+  if(!telOk(v)){ const er = document.getElementById('tl-err'); if(er) er.textContent = 'Digite o DDD e o número, por exemplo (11) 98765-4321.'; if(el) el.focus(); return; }
+  S.conta.tel = telNum(v); save(); if(FB) FB.perfil({ tel:S.conta.tel }); closeSheet(); toast('WhatsApp salvo. Obrigado!');
+}
 function acompAsk(){ if(!acompPode() || S.acomp || S.example || noPlan() || (S.inst==='novo' && instMobile())) return; setTimeout(() => { if(ACCT && !ui.sheet && !S.acomp && !document.getElementById('login') && !document.getElementById('pick') && !document.querySelector('.wel')){ ui.sheet = {k:'acomp'}; renderSheet(true); } }, 1600); }
 const CM_USERS = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 5.2a3.2 3.2 0 0 1 0 5.6M18 14.4c1.8.8 3 2.6 3 4.6"/></svg>';
 function vAcomp(){
@@ -3337,13 +3364,15 @@ function iaResult(P, ed, q){
 const genView = () => `<div class="iq-gen" role="status" aria-live="polite"><span class="iq-orb" aria-hidden="true">${ic('spark')}</span><h1 class="lg-h">Montando seu treino<span class="dot" aria-hidden="true"></span></h1><ul><li>Lendo suas respostas</li><li>Escolhendo os exercícios</li><li>Ajustando séries, repetições e descanso</li></ul></div>`;
 
 /* cadastro: 1 conta · 2 perfil · 3 como montar · 4–6 perguntas da IA · 7 resultado */
-const LGF0 = () => ({ nome:'', email:'', senha:'', show:false, sexo:'F', ed:'hipertrofia', peso:'', plan:null, ck:{t:false, s:false, p:false} });
+const telNum = v => String(v||'').replace(/\D/g,'').replace(/^55(?=\d{10,11}$)/,''), telOk = v => /^\d{10,11}$/.test(telNum(v)); // DDD + número
+const telFmt = v => { const d = telNum(v); return d.length<10 ? d : '('+d.slice(0,2)+') '+d.slice(2,d.length-4)+'-'+d.slice(-4); };
+const LGF0 = () => ({ tel:'', nome:'', email:'', senha:'', show:false, sexo:'F', ed:'hipertrofia', peso:'', plan:null, ck:{t:false, s:false, p:false} });
 let AFTER = null; // abre "Meus treinos" assim que o app carregar
 const TESTE_LOCAL = true; // só no computador de teste o app funciona sem o servidor
 function selfStart(){ LG.view = 'setup'; LG.step = 1; LG.serr = ''; LG.gen = false; renderLogin('#su-nome'); }
 const waterSug = () => { const p = num(LG.f.peso); return p>=30 && p<=250 ? Math.round(p*35/100)*100 : 3000; };
 const suWaterTxt = () => num(LG.f.peso)>=30 ? 'Meta de água: '+fmtL(waterSug())+' por dia (35 ml por kg).' : 'Sem o peso, a meta de água fica em 3,0 L por dia.';
-const suOk1 = () => !!(LG.f.nome.trim() && mailOk(LG.f.email) && /^\d{6}$/.test(LG.f.senha) && ckOk(LG.f.ck, true));
+const suOk1 = () => !!(LG.f.nome.trim() && mailOk(LG.f.email) && (!EM_TESTE || telOk(LG.f.tel)) && /^\d{6}$/.test(LG.f.senha) && ckOk(LG.f.ck, true));
 function suTop(){ const w = document.getElementById('login'); if(w) w.scrollTop = 0; }
 function vSetup(){
   const f = LG.f, st = LG.step;
@@ -3357,6 +3386,7 @@ function vSetup(){
     <form class="lg-form su-form" data-lg="conta" novalidate>
       <label class="flabel" for="su-nome">Como você quer ser chamado?</label><div class="inp-wrap"><input class="inp" id="su-nome" autocomplete="given-name" maxlength="40" placeholder="Seu nome" value="${esc(f.nome)}" data-su="nome"></div>
       <label class="flabel" for="su-email">E-mail</label><div class="inp-wrap"><input class="inp" id="su-email" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" maxlength="80" placeholder="voce@email.com" value="${esc(f.email)}" data-su="email"></div>
+      ${EM_TESTE ? `<label class="flabel" for="su-tel">WhatsApp com DDD</label><div class="inp-wrap"><input class="inp" id="su-tel" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="(11) 98765-4321" value="${esc(f.tel||'')}" data-su="tel"></div>` : ''}
       <label class="flabel" for="su-senha">Crie uma senha de 6 números</label><div class="inp-wrap pw"><input class="inp" id="su-senha" type="${f.show?'text':'password'}" inputmode="numeric" pattern="[0-9]*" autocomplete="new-password" autocapitalize="off" spellcheck="false" maxlength="6" placeholder="6 números" value="${esc(f.senha)}" data-su="senha"><button type="button" class="lg-eye" data-a="su-eye" aria-pressed="${f.show}" aria-label="${f.show?'Esconder senha':'Mostrar senha'}">${ic(f.show?'eyeOff':'eye')}</button></div>
       ${aceiteBoxes(f.ck, true, 'su-ck')}
       <p class="lg-err" id="su-err" role="alert">${esc(LG.serr||'')}</p>
@@ -3495,12 +3525,12 @@ function suFinish(mode){
   const f = LG.f, nome = cleanName(f.nome) || 'Você', uid = LG.uid, sexo = f.sexo==='M' ? 'M' : 'F';
   if(!uid){ LG.step = 1; renderLogin(); return; }
   const s = fresh(false); s.nome = nome; s.ed = f.ed; s.waterGoal = waterSug(); s.cardioGoal = f.ed==='emagrecer' ? 150 : 120;
-  s.conta = { sexo, peso:num(f.peso)||null, email:LG.uidMail||'', plan:mode, treinos: mode==='ia' && f.plan ? f.plan : {}, ia: mode==='ia' ? JSON.parse(JSON.stringify(IQ)) : null, semana: mode==='ia' ? iqN(IQ) : 0, dias:[] };
+  s.conta = { sexo, peso:num(f.peso)||null, tel:telOk(f.tel) ? telNum(f.tel) : '', email:LG.uidMail||'', plan:mode, treinos: mode==='ia' && f.plan ? f.plan : {}, ia: mode==='ia' ? JSON.parse(JSON.stringify(IQ)) : null, semana: mode==='ia' ? iqN(IQ) : 0, dias:[] };
   s.aceite = aceiteNovo(true); s._em = Date.now(); s.inst = LG.step===8 ? 'feito' : 'novo'; // passou pelo "Instale o app": não pergunta de novo agora
   if(LG.step===8 && acompPodeSu()) s.acomp = { on:!!f.acomp, em:Date.now() };
   if(LG.step===8){ SITE_FEITO = true; SITE_EM = Date.now(); } // já viu o "Instale o app": nada de "Baixe nosso app" nesta visita
   try { localStorage.setItem(autoKey(uid), JSON.stringify(s)); } catch(e){ /* sem armazenamento */ }
-  if(FB){ FB.autoSave(uid, s, true); FB.perfil({ tipo:'autonomo', nome, email:LG.uidMail||'', sexo, objetivo:f.ed, plano:mode, treinos:mode==='ia' && f.plan ? Object.keys(f.plan).length : 0, criadoEm:Date.now(), ultimoAcesso:Date.now(), aceite:{ v:s.aceite.v, em:s.aceite.em }, acomp:!!(s.acomp && s.acomp.on), ver:APPV }); }
+  if(FB){ FB.autoSave(uid, s, true); FB.perfil({ tipo:'autonomo', nome, email:LG.uidMail||'', sexo, objetivo:f.ed, plano:mode, treinos:mode==='ia' && f.plan ? Object.keys(f.plan).length : 0, criadoEm:Date.now(), ultimoAcesso:Date.now(), aceite:{ v:s.aceite.v, em:s.aceite.em }, acomp:!!(s.acomp && s.acomp.on), ver:APPV }); if(s.conta.tel) FB.perfil({ tel:s.conta.tel }); } // o telefone vai num envio separado: se as regras do Firebase ainda forem as antigas, só ele é recusado
   writeSess({mode:'self', uid}); LG.view = 'login'; LG.step = 1; LG.f = LGF0(); LG.uid = null; LG.uidMail = '';
   novoAviso(nome, f.ed, mode);
   if(mode==='meu') AFTER = 'meus';
@@ -6525,7 +6555,7 @@ function renderSheet(freshOpen){
   if(!ui.sheet){ $sheet.innerHTML = ''; document.body.classList.remove('locked'); return; }
   const oldWrap = $sheet.querySelector('.sheet-wrap:not(.closing)'), old = oldWrap && oldWrap.querySelector('.sheet'), st = old && !freshOpen ? old.scrollTop : 0;
   const thumbs = ui.sheet.k==='sum'; // miniaturas dos stories no resumo do treino
-  $sheet.innerHTML = ui.sheet.k==='aval' ? vAval() : ui.sheet.k==='dsask' ? vDsAsk() : ui.sheet.k==='esq' ? vEsq() : ui.sheet.k==='hedit' ? vHEdit() : ui.sheet.k==='recado' ? vRecado() : (ui.sheet.k==='site' || ui.sheet.k==='inst' || ui.sheet.k==='baixar') ? vBaixar() : ui.sheet.k==='acomp' ? vAcomp() : ui.sheet.k==='doc' ? vDocSheet() : ui.sheet.k==='excluir' ? vExcluir() : ui.sheet.k==='meus' ? vMeus() : ui.sheet.k==='troca' ? vTroca(ui.sheet.id) : ui.sheet.k==='ia' ? vIA() : ui.sheet.k==='ex' ? vSheet(ui.sheet.id) : ui.sheet.k==='prof' ? vProfile() : ui.sheet.k==='cs' || ui.sheet.k==='cman' ? vCardioSheet() : ui.sheet.k==='gym' ? vGym() : ui.sheet.k==='exq' ? vExq(ui.sheet.id) : ui.sheet.k==='story' ? vStory() : ui.sheet.k==='stpick' ? vStPick() : ui.sheet.k==='cstory' ? vCStory() : ui.sheet.k==='cstpick' ? vCStPick() : vSummary(ui.sheet.i);
+  $sheet.innerHTML = ui.sheet.k==='tel' ? vTel() : ui.sheet.k==='aval' ? vAval() : ui.sheet.k==='dsask' ? vDsAsk() : ui.sheet.k==='esq' ? vEsq() : ui.sheet.k==='hedit' ? vHEdit() : ui.sheet.k==='recado' ? vRecado() : (ui.sheet.k==='site' || ui.sheet.k==='inst' || ui.sheet.k==='baixar') ? vBaixar() : ui.sheet.k==='acomp' ? vAcomp() : ui.sheet.k==='doc' ? vDocSheet() : ui.sheet.k==='excluir' ? vExcluir() : ui.sheet.k==='meus' ? vMeus() : ui.sheet.k==='troca' ? vTroca(ui.sheet.id) : ui.sheet.k==='ia' ? vIA() : ui.sheet.k==='ex' ? vSheet(ui.sheet.id) : ui.sheet.k==='prof' ? vProfile() : ui.sheet.k==='cs' || ui.sheet.k==='cman' ? vCardioSheet() : ui.sheet.k==='gym' ? vGym() : ui.sheet.k==='exq' ? vExq(ui.sheet.id) : ui.sheet.k==='story' ? vStory() : ui.sheet.k==='stpick' ? vStPick() : ui.sheet.k==='cstory' ? vCStory() : ui.sheet.k==='cstpick' ? vCStPick() : vSummary(ui.sheet.i);
   if(thumbs && typeof stThumbs==='function') stThumbs(ui.sheet.i, PREF.stCor||'vermelho');
   const sh = $sheet.querySelector('.sheet');
   const nw = $sheet.querySelector('.sheet-wrap');
@@ -6812,6 +6842,7 @@ function onClick(ev){
   if(a==='site-x'){ if(b.classList.contains('sheet-wrap') && ev.target!==b) return; closeSheet(); return; }
   if(a==='inst-x' || a==='inst-ok'){ if(b.classList.contains('sheet-wrap') && ev.target!==b) return; if(S){ S.inst = 'visto'; save(); } closeSheet(); if(a==='inst-ok' && !(ANDROID && INST_EV)) toast('Boa! A partir de agora, abra pelo ícone.'); return; }
   if(a==='inst-go'){ const evI = INST_EV; if(!evI) return; INST_EV = null; evI.prompt(); evI.userChoice.then(r => { if(r && r.outcome==='accepted'){ if(S){ S.inst = 'feito'; save(); } closeSheet(); toast('Instalando. O ícone aparece na tela do celular.'); } else if(document.getElementById('login')) renderLogin(); else renderSheet(); }).catch(() => { if(document.getElementById('login')) renderLogin(); else renderSheet(); }); return; }
+  if(a==='tel-ok' || a==='tel-no'){ if(b.classList.contains('sheet-wrap') && ev.target!==b) return; if(a==='tel-ok') telSalva(); else { S.telNao = today(); save(); closeSheet(); } return; }
   if(a==='acomp-sim' || a==='acomp-no'){ if(b.classList.contains('sheet-wrap') && ev.target!==b) return; acompSet(a==='acomp-sim'); closeSheet(); toast(a==='acomp-sim' ? 'Pronto. Seus treinos estão compartilhados com o Simplificando.' : 'Tudo bem. Dá pra ligar depois no Perfil.'); return; }
   if(a==='acc-del'){ if(armed==='acc-del') accDelete(); else { ui.arm = 'acc-del'; renderSheet(); } return; }
   let re = true;

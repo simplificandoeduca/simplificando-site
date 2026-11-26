@@ -4015,7 +4015,7 @@ function vPerfilAuto(id){
   let h = '<div class="dhead">'+back+'<p class="eyebrow">'+esc(ED[p.objetivo]||'Objetivo')+' · Treina sem personal</p><h2>'+esc(nome)+'<span class="dot" aria-hidden="true"></span></h2>'+
     '<div class="chips"><span class="pill acc">'+(p.plano==='ia' ? 'Treino da IA' : p.plano==='meu' ? 'Monta o próprio treino' : 'Treino padrão do app')+'</span><span class="pill line">'+ic('eye')+'Acompanhamento permitido</span>'+(p.ultimoAcesso ? '<span class="pill line">Último acesso '+esc(pfQuando(p.ultimoAcesso))+'</span>' : '')+'</div></div>'+
     '<div class="dtabs"><div class="dtabs-in" role="tablist" aria-label="Seções do perfil">'+tabs+'</div></div>';
-  const dados = '<section class="card"><div class="pf-kv">'+[['E-mail', p.email||'—'], ['Objetivo', ED[p.objetivo]||'—'], ['Último acesso', p.ultimoAcesso ? pfQuando(p.ultimoAcesso) : '—'], ['Acompanhamento', 'Permitido pela pessoa']].map(([k,v]) => '<div><span>'+k+'</span><b>'+esc(v)+'</b></div>').join('')+'</div></section>';
+  const dados = '<section class="card"><div class="pf-kv">'+[['E-mail', p.email||'—'], ['WhatsApp', (p.tel ? String(p.tel).replace(/^(\d{2})(\d+)(\d{4})$/,'($1) $2-$3') : 'Ainda não informou')], ['Objetivo', ED[p.objetivo]||'—'], ['Último acesso', p.ultimoAcesso ? pfQuando(p.ultimoAcesso) : '—'], ['Acompanhamento', 'Permitido pela pessoa']].map(([k,v]) => '<div><span>'+k+'</span><b>'+esc(v)+'</b></div>').join('')+'</div></section>';
   if(tab==='dados') return h+'<div class="tabpane" role="tabpanel">'+dados+'</div>';
   if(!c.v){
     const msg = c.st==='regras' ? 'O Firebase bloqueou a leitura. Falta colar as regras novas (arquivo REGRAS-FIRESTORE.txt) no Firebase → Firestore → Regras e tocar em Publicar.'
@@ -4033,7 +4033,7 @@ function vPerfilAuto(id){
 function pfSheet(id){
   const p = (PF.list||[]).find(x => x.uid===id); if(!p) return sheetTop('Perfil','Conta não encontrada')+'<p class="muted">Toque em Atualizar na aba Perfis.</p>';
   const dt = ms => ms ? new Date(ms).toLocaleDateString('pt-BR') : '—';
-  const kv = [['E-mail', p.email||'—'], ['Tipo de conta', 'Treina sem personal'], ['Treino', p.plano==='ia' ? 'Gerado pela IA' : p.plano==='meu' ? 'Montado pela própria pessoa' : '—'], ['Treinos montados', String(p.treinos||0)],
+  const kv = [['E-mail', p.email||'—'], ['WhatsApp', (p.tel ? String(p.tel).replace(/^(\d{2})(\d+)(\d{4})$/,'($1) $2-$3') : 'Ainda não informou')], ['Tipo de conta', 'Treina sem personal'], ['Treino', p.plano==='ia' ? 'Gerado pela IA' : p.plano==='meu' ? 'Montado pela própria pessoa' : '—'], ['Treinos montados', String(p.treinos||0)],
     ['Objetivo', ED[p.objetivo]||'—'], ['Conta criada', dt(p.criadoEm)], ['Último acesso', p.ultimoAcesso ? pfQuando(p.ultimoAcesso)+' ('+dt(p.ultimoAcesso)+')' : '—'],
     ['Termos aceitos', p.aceite ? 'Versão '+p.aceite.v+' em '+new Date(p.aceite.em).toLocaleDateString('pt-BR') : 'Ainda não'], ['Versão do app', p.ver||'—']];
   return sheetTop('Treina sem personal', p.nome||'Sem nome')+'<div class="pf-kv">'+kv.map(([k,v]) => '<div><span>'+k+'</span><b>'+esc(v)+'</b></div>').join('')+'</div>'+

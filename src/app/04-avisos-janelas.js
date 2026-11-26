@@ -118,6 +118,33 @@ function avalEnviar(b){
     else { const g = S.aval || {}; delete g.ult; delete g.env; save(); toast('Não deu para enviar agora. Vamos pedir de novo na próxima vez.'); if(ok==='permission-denied') errSend('Regras do Firebase desatualizadas: a avaliação do app foi bloqueada. Cole o REGRAS-FIRESTORE.txt novo no Firebase.', 'avaliacoes', 0, 0, ''); }
   });
 }
+/* telefone de contato de quem treina sem personal: quem criou a conta antes de o cadastro pedir é lembrado aos poucos (fechou hoje, volta amanhã) */
+let telT = null;
+const telFalta = () => EM_TESTE && !!ACCT && ACCT.mode==='self' && !!S && !S.example && !!S.conta && !S.conta.tel;
+function telAsk(){
+  clearInterval(telT); if(!telFalta() || S.telNao===today()) return;
+  let n = 0;
+  telT = setInterval(() => {
+    if(++n > 120 || !telFalta() || S.telNao===today()){ clearInterval(telT); return; }
+    if(S.session || S.inst==='novo') return; // no meio do treino ou logo depois de criar a conta, não
+    const livre = !ui.sheet && !document.getElementById('login') && !document.getElementById('pick') && !document.querySelector('.wel') && !document.querySelector('.stp');
+    if(livre){ clearInterval(telT); ui.sheet = {k:'tel'}; renderSheet(true); }
+  }, 2500);
+}
+function vTel(){
+  return `<div class="sheet-wrap cm-w" data-a="tel-no"><div class="sheet cm" role="dialog" aria-modal="true" aria-labelledby="tl-t" tabindex="-1">
+    <span class="cm-ic">${ic('msg')}</span><h2 id="tl-t">Qual é o seu WhatsApp<span class="dot">?</span></h2>
+    <p class="cm-sub">É para a gente conseguir falar com você sobre o seu treino e a sua conta. Não aparece para ninguém.</p>
+    <div class="inp-wrap"><label class="sr" for="tl-inp">WhatsApp com DDD</label><input class="inp" id="tl-inp" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="(11) 98765-4321"></div>
+    <p class="lg-err" id="tl-err" role="alert"></p>
+    <button type="button" class="btn primary block cm-b" data-a="tel-ok">${ic('check')}Salvar</button>
+    <button type="button" class="btn block cm-b2" data-a="tel-no">Agora não</button></div></div>`;
+}
+function telSalva(){
+  const el = document.getElementById('tl-inp'), v = el ? el.value : '';
+  if(!telOk(v)){ const er = document.getElementById('tl-err'); if(er) er.textContent = 'Digite o DDD e o número, por exemplo (11) 98765-4321.'; if(el) el.focus(); return; }
+  S.conta.tel = telNum(v); save(); if(FB) FB.perfil({ tel:S.conta.tel }); closeSheet(); toast('WhatsApp salvo. Obrigado!');
+}
 function acompAsk(){ if(!acompPode() || S.acomp || S.example || noPlan() || (S.inst==='novo' && instMobile())) return; setTimeout(() => { if(ACCT && !ui.sheet && !S.acomp && !document.getElementById('login') && !document.getElementById('pick') && !document.querySelector('.wel')){ ui.sheet = {k:'acomp'}; renderSheet(true); } }, 1600); }
 const CM_USERS = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 5.2a3.2 3.2 0 0 1 0 5.6M18 14.4c1.8.8 3 2.6 3 4.6"/></svg>';
 function vAcomp(){

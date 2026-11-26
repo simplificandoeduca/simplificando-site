@@ -325,13 +325,15 @@ function iaResult(P, ed, q){
 const genView = () => `<div class="iq-gen" role="status" aria-live="polite"><span class="iq-orb" aria-hidden="true">${ic('spark')}</span><h1 class="lg-h">Montando seu treino<span class="dot" aria-hidden="true"></span></h1><ul><li>Lendo suas respostas</li><li>Escolhendo os exercícios</li><li>Ajustando séries, repetições e descanso</li></ul></div>`;
 
 /* cadastro: 1 conta · 2 perfil · 3 como montar · 4–6 perguntas da IA · 7 resultado */
-const LGF0 = () => ({ nome:'', email:'', senha:'', show:false, sexo:'F', ed:'hipertrofia', peso:'', plan:null, ck:{t:false, s:false, p:false} });
+const telNum = v => String(v||'').replace(/\D/g,'').replace(/^55(?=\d{10,11}$)/,''), telOk = v => /^\d{10,11}$/.test(telNum(v)); // DDD + número
+const telFmt = v => { const d = telNum(v); return d.length<10 ? d : '('+d.slice(0,2)+') '+d.slice(2,d.length-4)+'-'+d.slice(-4); };
+const LGF0 = () => ({ tel:'', nome:'', email:'', senha:'', show:false, sexo:'F', ed:'hipertrofia', peso:'', plan:null, ck:{t:false, s:false, p:false} });
 let AFTER = null; // abre "Meus treinos" assim que o app carregar
 const TESTE_LOCAL = location.protocol==='file:' || /^(localhost|127\.0\.0\.1)$/.test(location.hostname); // só no computador de teste o app funciona sem o servidor
 function selfStart(){ LG.view = 'setup'; LG.step = 1; LG.serr = ''; LG.gen = false; renderLogin('#su-nome'); }
 const waterSug = () => { const p = num(LG.f.peso); return p>=30 && p<=250 ? Math.round(p*35/100)*100 : 3000; };
 const suWaterTxt = () => num(LG.f.peso)>=30 ? 'Meta de água: '+fmtL(waterSug())+' por dia (35 ml por kg).' : 'Sem o peso, a meta de água fica em 3,0 L por dia.';
-const suOk1 = () => !!(LG.f.nome.trim() && mailOk(LG.f.email) && /^\d{6}$/.test(LG.f.senha) && ckOk(LG.f.ck, true));
+const suOk1 = () => !!(LG.f.nome.trim() && mailOk(LG.f.email) && (!EM_TESTE || telOk(LG.f.tel)) && /^\d{6}$/.test(LG.f.senha) && ckOk(LG.f.ck, true));
 function suTop(){ const w = document.getElementById('login'); if(w) w.scrollTop = 0; }
 function vSetup(){
   const f = LG.f, st = LG.step;
@@ -345,6 +347,7 @@ function vSetup(){
     <form class="lg-form su-form" data-lg="conta" novalidate>
       <label class="flabel" for="su-nome">Como você quer ser chamado?</label><div class="inp-wrap"><input class="inp" id="su-nome" autocomplete="given-name" maxlength="40" placeholder="Seu nome" value="${esc(f.nome)}" data-su="nome"></div>
       <label class="flabel" for="su-email">E-mail</label><div class="inp-wrap"><input class="inp" id="su-email" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" maxlength="80" placeholder="voce@email.com" value="${esc(f.email)}" data-su="email"></div>
+      ${EM_TESTE ? `<label class="flabel" for="su-tel">WhatsApp com DDD</label><div class="inp-wrap"><input class="inp" id="su-tel" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="(11) 98765-4321" value="${esc(f.tel||'')}" data-su="tel"></div>` : ''}
       <label class="flabel" for="su-senha">Crie uma senha de 6 números</label><div class="inp-wrap pw"><input class="inp" id="su-senha" type="${f.show?'text':'password'}" inputmode="numeric" pattern="[0-9]*" autocomplete="new-password" autocapitalize="off" spellcheck="false" maxlength="6" placeholder="6 números" value="${esc(f.senha)}" data-su="senha"><button type="button" class="lg-eye" data-a="su-eye" aria-pressed="${f.show}" aria-label="${f.show?'Esconder senha':'Mostrar senha'}">${ic(f.show?'eyeOff':'eye')}</button></div>
       ${aceiteBoxes(f.ck, true, 'su-ck')}
       <p class="lg-err" id="su-err" role="alert">${esc(LG.serr||'')}</p>
@@ -483,12 +486,12 @@ function suFinish(mode){
   const f = LG.f, nome = cleanName(f.nome) || 'Você', uid = LG.uid, sexo = f.sexo==='M' ? 'M' : 'F';
   if(!uid){ LG.step = 1; renderLogin(); return; }
   const s = fresh(false); s.nome = nome; s.ed = f.ed; s.waterGoal = waterSug(); s.cardioGoal = f.ed==='emagrecer' ? 150 : 120;
-  s.conta = { sexo, peso:num(f.peso)||null, email:LG.uidMail||'', plan:mode, treinos: mode==='ia' && f.plan ? f.plan : {}, ia: mode==='ia' ? JSON.parse(JSON.stringify(IQ)) : null, semana: mode==='ia' ? iqN(IQ) : 0, dias:[] };
+  s.conta = { sexo, peso:num(f.peso)||null, tel:telOk(f.tel) ? telNum(f.tel) : '', email:LG.uidMail||'', plan:mode, treinos: mode==='ia' && f.plan ? f.plan : {}, ia: mode==='ia' ? JSON.parse(JSON.stringify(IQ)) : null, semana: mode==='ia' ? iqN(IQ) : 0, dias:[] };
   s.aceite = aceiteNovo(true); s._em = Date.now(); s.inst = LG.step===8 ? 'feito' : 'novo'; // passou pelo "Instale o app": não pergunta de novo agora
   if(LG.step===8 && acompPodeSu()) s.acomp = { on:!!f.acomp, em:Date.now() };
   if(LG.step===8){ SITE_FEITO = true; SITE_EM = Date.now(); } // já viu o "Instale o app": nada de "Baixe nosso app" nesta visita
   try { localStorage.setItem(autoKey(uid), JSON.stringify(s)); } catch(e){ /* sem armazenamento */ }
-  if(FB){ FB.autoSave(uid, s, true); FB.perfil({ tipo:'autonomo', nome, email:LG.uidMail||'', sexo, objetivo:f.ed, plano:mode, treinos:mode==='ia' && f.plan ? Object.keys(f.plan).length : 0, criadoEm:Date.now(), ultimoAcesso:Date.now(), aceite:{ v:s.aceite.v, em:s.aceite.em }, acomp:!!(s.acomp && s.acomp.on), ver:APPV }); }
+  if(FB){ FB.autoSave(uid, s, true); FB.perfil({ tipo:'autonomo', nome, email:LG.uidMail||'', sexo, objetivo:f.ed, plano:mode, treinos:mode==='ia' && f.plan ? Object.keys(f.plan).length : 0, criadoEm:Date.now(), ultimoAcesso:Date.now(), aceite:{ v:s.aceite.v, em:s.aceite.em }, acomp:!!(s.acomp && s.acomp.on), ver:APPV }); if(s.conta.tel) FB.perfil({ tel:s.conta.tel }); } // o telefone vai num envio separado: se as regras do Firebase ainda forem as antigas, só ele é recusado
   writeSess({mode:'self', uid}); LG.view = 'login'; LG.step = 1; LG.f = LGF0(); LG.uid = null; LG.uidMail = '';
   novoAviso(nome, f.ed, mode);
   if(mode==='meu') AFTER = 'meus';
