@@ -1301,6 +1301,19 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Vender pacote, Pacote futuro e Corrigir as horas (2.16)
+
+Pedido do dono (26/11), parte 2.
+
+- No alto da tela inicial, dois botões novos:
+  - "Vender pacote": escolhe o cliente e o atendimento abre sem a entrada (a caixa "Dar entrada agora" vem desmarcada e a lista dos pacotes aberta). Para a venda fechada por telefone. O comprovante sai como sempre.
+  - "Pacote futuro" (verde): o cliente, o pacote da tabela (o valor vem sozinho), a data do pagamento e quem vende. A atendente pede e o gestor aprova (o gestor lança direto). Aprovado, entra no calendário o lembrete de COBRAR no dia. A lista fica em Festas → Vendas futuras.
+- No Histórico do cliente, "Corrigir as horas" (só o gestor), para quando a equipe lançou errado:
+  - somar ou tirar horas do saldo de uma criança, com o motivo. Não é venda (não entra no caixa) e fica nos registros com o nome do gestor;
+  - a compra de horas lançada errada (Alterar as horas daquela compra);
+  - entrou sem pacote: "Vender o pacote agora" (abre a venda sem a entrada; na saída, o tempo sai do pacote).
+- O número do saldo no Banco de horas (para o gestor) abre o mesmo "Corrigir as horas".
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Carrinho de bebê sem relógio, duas vias nos carrinhos, caixa por unidade (2.15)
 
 Pedido do dono (26/11).

@@ -810,9 +810,9 @@ function pedidoCriar(array $u, array $in): array {
     $hoje = substr(agora(), 0, 10); $fecha = (string)($in['fecha'] ?? ''); $paga = (string)($in['paga'] ?? '');
     foreach ([[$fecha, 'em que o cliente disse que vai fechar'], [$paga, 'do pagamento']] as [$dt, $oq]) if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $dt, $m) || !checkdate((int)$m[2], (int)$m[3], (int)$m[1]) || $dt < $hoje) falha('Escolha a data ' . $oq . ' (de hoje em diante).');
     $vend = vendedoraDoPedido($in['vendedora'] ?? ''); if ($vend === '') falha('Toque no nome de quem está vendendo.');
-    $dados = ['oque' => $oque, 'fecha' => $fecha, 'paga' => $paga, 'vendedora' => $vend, 'obs' => mb_substr(maiusculo((string)($in['obs'] ?? '')), 0, 300)]; $motivo = $dados['obs'];
+    $dados = ['oque' => $oque, 'fecha' => $fecha, 'paga' => $paga, 'vendedora' => $vend, 'obs' => mb_substr(maiusculo((string)($in['obs'] ?? '')), 0, 300), 'pac' => empty($in['pac']) ? 0 : 1]; $motivo = $dados['obs'];   /* 2.16: pac = o pacote futuro */
     $dm = fn($s) => substr($s, 8, 2) . '/' . substr($s, 5, 2);
-    $texto = 'Venda futura: ' . $oque . ' · ' . dinheiro($valor) . ' · fecha em ' . $dm($fecha) . ' · pagamento em ' . $dm($paga) . ' · vendedora ' . $vend;
+    $texto = (empty($in['pac']) ? 'Venda futura: ' : 'Pacote futuro: ') . $oque . ' · ' . dinheiro($valor) . ' · fecha em ' . $dm($fecha) . ' · pagamento em ' . $dm($paga) . ' · vendedora ' . $vend;
   } elseif ($tipo === 'valor' && (int)($in['venda'] ?? 0) > 0) { // 1.39: na saída, o pacote ou o produto desta visita que ficou para pagar na saída
     $q = $db->prepare('SELECT * FROM vendas WHERE id = ?'); $q->execute([(int)$in['venda']]); $v = $q->fetch(); $q->closeCursor(); if (!$v) falha('Esta venda não existe mais: já foi desfeita ou cancelada.', 404);
     $c = crianca((int)$v['crianca_id']); if (!$c) falha('Cliente não encontrado.', 404); $k = altDaVenda($v); if ($k === '') falha('Esta venda não tem o valor alterado por aqui (só o pacote ou o produto desta visita).');
@@ -901,8 +901,9 @@ function vfutLancar(array $p, array $g): array {
   $db = db(); $d = json_decode((string)$p['dados'], true); if (!is_array($d)) $d = []; $resp = (string)($p['resp'] !== '' ? $p['resp'] : $p['nome']); $v = dinheiro((float)$p['valor']); $oque = (string)($d['oque'] ?? '');
   $obs = mb_substr('VENDA FUTURA DE ' . maiusculo((string)$p['nome']) . ' · VENDEDORA ' . (string)($d['vendedora'] ?? '') . ' · APROVADA POR ' . maiusculo(primeiroNome((string)$g['nome'])) . ((string)($d['obs'] ?? '') !== '' ? ' · ' . $d['obs'] : ''), 0, 500);
   $ins = $db->prepare("INSERT INTO compromissos (dia, hora, titulo, tipo, sub, obs, criado_em) VALUES (?, '10:00', ?, 'vfut', 'Venda futura', ?, ?)");
-  $ins->execute([(string)$d['fecha'], mb_substr('FECHAR · ' . $resp . ' · ' . $oque . ' · ' . $v, 0, 120), $obs, agora()]); $c1 = (int)$db->lastInsertId();
-  $ins->execute([(string)$d['paga'], mb_substr('COBRAR · ' . $resp . ' · ' . $v . ' · ' . $oque, 0, 120), $obs, agora()]); $c2 = (int)$db->lastInsertId();
+  $so1 = !empty($d['pac']) && (string)$d['fecha'] === (string)$d['paga']; $c1 = 0;   /* 2.16: o pacote futuro tem uma data só: só o COBRAR */
+  if (!$so1) $ins->execute([(string)$d['fecha'], mb_substr('FECHAR · ' . $resp . ' · ' . $oque . ' · ' . $v, 0, 120), $obs, agora()]); $c1 = (int)$db->lastInsertId();
+  $ins->execute([(string)$d['paga'], mb_substr('COBRAR · ' . $resp . ' · ' . $v . ' · ' . $oque, 0, 120), $obs, agora()]); $c2 = (int)$db->lastInsertId(); if ($so1) $c1 = $c2;
   $d['comp'] = [$c1, $c2]; $db->prepare('UPDATE pedidos SET dados = ? WHERE id = ?')->execute([json_encode($d, JSON_UNESCAPED_UNICODE), (int)$p['id']]);
   return ['comp' => [$c1, $c2]];
 }
