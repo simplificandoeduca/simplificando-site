@@ -1301,6 +1301,15 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A lixeira do gestor nos Finalizados do dia (2.43)
+
+Pedido do dono (26/11): "eu quero uma lixeirazinha vermelha pra mim quando eu quiser excluir um pedido que às vezes lançou errado ... só pro gestor".
+
+- Nos Finalizados do dia, cada linha (a saída, o carrinho devolvido, a venda sem entrada) tem, só para o gestor, a lixeira vermelha.
+- Excluir pede o motivo. A saída sai com o que foi vendido nela para a criança: as horas usadas voltam ao saldo, as horas compradas nela saem e o que foi pago sai do caixa (o aviso diz quanto devolver ao cliente). O carrinho devolvido sai com o valor. A venda sem entrada é cancelada.
+- Se as horas compradas naquela visita já foram usadas em outra, a exclusão é recusada (exclua a outra primeiro, ou acerte no Banco de horas).
+- Fica nos cancelamentos ("saída excluída pelo gestor") e na linha do dia, com o motivo e o nome do gestor.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Casa Tom: subir o valor sem pedir; carrinho: cancelar na tolerância (2.42)
 
 Pedidos do dono (26/11).

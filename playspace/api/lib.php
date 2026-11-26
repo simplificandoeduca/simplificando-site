@@ -2064,6 +2064,59 @@ function finalizadosDoDia(int $so = 0, ?string $dia = null): array {   /* 2.15: 
   if ($so > 0) { $vis = array_values(array_filter($vis, fn($x) => (int)($x['uni'] ?? 0) === $so)); $dev = array_filter($dev, fn($x) => (int)($x['uni'] ?? 0) === $so); $sem = array_filter($sem, fn($x) => (int)($x['uni'] ?? 0) === $so); }   /* 2.15 (o dono: "cada unidade só pode ver sua unidade") */
   return ['visitas' => $vis, 'devolvidos' => array_values($dev), 'semEntrada' => array_values($sem)];
 }
+/* 2.43 (o dono: "eu quero uma lixeirazinha vermelha pra mim quando eu quiser excluir um pedido que às vezes lançou errado ... só pro gestor"):
+   nos Finalizados do dia, o gestor exclui o que foi lançado errado. A saída sai com o que foi vendido nela para a criança (as horas usadas voltam
+   ao saldo, as horas compradas nela saem, o que foi pago sai do caixa); o carrinho devolvido sai com o valor; a venda sem entrada é cancelada.
+   Fica nos cancelamentos e na linha do dia, com o motivo */
+function excluirFinalizado(array $in, array $u): array {
+  if (($u['papel'] ?? '') !== 'gestor') falha('Só o gestor exclui.', 403);
+  $db = db(); $motivo = mb_substr(maiusculo(trim((string)($in['motivo'] ?? ''))), 0, 300); if (mb_strlen($motivo) < 5) falha('Escreva o motivo: por que está excluindo.');
+  $tipo = (string)($in['tipo'] ?? '');
+  if ($tipo === 'venda') { $r = cancelarVenda((int)($in['id'] ?? 0), $u, $motivo, null, '', true); return $r; }
+  if ($tipo === 'aluguel') {
+    $c = crianca((int)($in['crianca'] ?? 0)); if (!$c) falha('Cliente não encontrado.', 404); $s = (string)($in['s'] ?? ''); $volt = (string)($in['voltou'] ?? '');
+    $q = $db->prepare("SELECT * FROM vendas WHERE crianca_id = ? AND voltou = ? AND (alug = ? OR (alug = '' AND itens LIKE 'tempo a mais%')) ORDER BY id"); $q->execute([(int)$c['id'], $volt, $s]); $V = $q->fetchAll();
+    $A = array_values(array_filter($V, fn($v) => (string)$v['alug'] === $s)); if (!$A) falha('Este carrinho não foi encontrado (já foi excluído?).', 404);
+    $nome = (string)($A[0]['servico'] ?: 'CARRINHO'); $saiu = (string)min(array_column($A, 'quando'));
+    return excluirVendas($c, $V, $u, $motivo, 'aluguel', $saiu, 'Devolução do ' . $nome . ' (saiu ' . substr($saiu, 11, 5) . ', voltou ' . substr($volt, 11, 5) . ') excluída', null, $nome);
+  }
+  if ($tipo === 'visita') {
+    $q = $db->prepare('SELECT * FROM visitas WHERE id = ?'); $q->execute([(int)($in['id'] ?? 0)]); $x = $q->fetch(); $q->closeCursor(); if (!$x) falha('Esta saída não foi encontrada (já foi excluída?).', 404);
+    $c = crianca((int)$x['crianca_id']); if (!$c) falha('Cliente não encontrado.', 404);
+    $ini = substr((string)$x['entrou'], 0, 10) . ' 00:00:00'; $deSaida = false;   // a conta da visita (como nos Finalizados): do começo do dia da entrada, ou da saída anterior, até a saída
+    $q = $db->prepare('SELECT saiu FROM visitas WHERE crianca_id = ? AND saiu >= ? AND saiu < ? ORDER BY saiu'); $q->execute([(int)$c['id'], $ini, (string)$x['saiu']]); foreach ($q->fetchAll(PDO::FETCH_COLUMN) as $sv) { $ini = (string)$sv; $deSaida = true; }
+    $q = $db->prepare("SELECT * FROM vendas WHERE crianca_id = ? AND quando " . ($deSaida ? '>' : '>=') . " ? AND quando <= ? AND servico != ? AND alug = '' AND itens NOT LIKE 'tempo a mais%' ORDER BY id"); $q->execute([(int)$c['id'], $ini, (string)$x['saiu'], SERV_IMPORTADO]);
+    return excluirVendas($c, $q->fetchAll(), $u, $motivo, 'excluida', (string)$x['entrou'], 'Saída das ' . substr((string)$x['saiu'], 11, 5) . ' (entrou ' . substr((string)$x['entrou'], 11, 5) . ') excluída', $x);
+  }
+  falha('Escolha o que excluir.');
+}
+function excluirVendas(array $c, array $V, array $u, string $motivo, string $tipoC, string $desde, string $txt, ?array $vis = null, string $nomeA = ''): array {
+  $db = db(); $agora = agora(); $mins = array_sum(array_map(fn($v) => (int)$v['minutos'], $V)); $deb = $vis ? (int)$vis['debitado_min'] : 0;
+  if ($mins > 0 && (int)$c['pacote_min'] - $mins < (int)$c['usado_min'] - $deb) falha('As horas compradas aqui já foram usadas em outra visita. Exclua aquela primeiro, ou acerte as horas no Banco de horas.');
+  $ids = array_map(fn($v) => (int)$v['id'], $V); $pago = $ids ? pagoPorForma($ids) : []; $valor = round(array_sum(array_map(fn($v) => (float)$v['valor'], $V)), 2);
+  $itens = array_map(fn($v) => ['n' => nomeDaVenda($v), 'm' => (int)$v['minutos'], 'v' => round((float)$v['valor'], 2), 'tipo' => $tipoC === 'aluguel' ? 'aluguel' : 'venda'] + (($p = pagoPorForma([(int)$v['id']])) ? ['dev' => textoPagamento($p, true)] : []), $V);
+  if ($tipoC === 'aluguel' && $itens) $itens[0]['n'] = $nomeA ?: $itens[0]['n'];
+  $db->beginTransaction();
+  try {
+    estornarPagosAntes($V);   // (o que foi pago em outro dia sai do caixa de hoje, em "Devolvido hoje")
+    foreach ($V as $v) {
+      if ((int)$v['minutos'] > 0) $db->prepare('UPDATE criancas SET pacote_min = MAX(0, pacote_min - ?) WHERE id = ?')->execute([(int)$v['minutos'], (int)$c['id']]);
+      $db->prepare("UPDATE pedidos SET resultado = 'A VENDA FOI EXCLUÍDA' WHERE venda_id = ? AND status IN ('pendente', 'liberado', 'usado')")->execute([(int)$v['id']]);
+      $db->prepare('DELETE FROM vendas WHERE id = ?')->execute([(int)$v['id']]); devolverEstoque($v);   // o pagamento sai junto (o gatilho da tabela)
+      if (!empty($v['registro'])) $db->prepare("UPDATE registros SET texto = texto || ' · excluída' WHERE id = ? AND crianca_id = ? AND texto NOT LIKE '% · excluída'")->execute([(int)$v['registro'], (int)$c['id']]); }
+    if ($vis) { $db->prepare('UPDATE criancas SET usado_min = MAX(0, usado_min - ?) WHERE id = ?')->execute([$deb, (int)$c['id']]); $db->prepare('DELETE FROM visitas WHERE id = ?')->execute([(int)$vis['id']]);
+      $db->prepare("UPDATE registros SET texto = texto || ' · excluída' WHERE crianca_id = ? AND tipo = 'sai' AND quando = ? AND texto NOT LIKE '% · excluída'")->execute([(int)$c['id'], (string)$vis['saiu']]); }
+    $min = $vis ? max(0, intdiv(strtotime((string)$vis['saiu']) - strtotime((string)$vis['entrou']), 60)) : 0;
+    $db->prepare("INSERT INTO cancelamentos (crianca_id, nome, resp, entrou, quando, minutos, valor, itens, motivo, por, por_nome, papel, fora, tipo, atendente, unidade_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, '', ?)")
+      ->execute([(int)$c['id'], $c['nome'], $c['resp'], $desde, $agora, $min, $valor, json_encode($itens, JSON_UNESCAPED_UNICODE), $motivo, (int)$u['id'], $u['nome'], $u['papel'], $tipoC, $vis && $vis['unidade_id'] !== null ? (int)$vis['unidade_id'] : (($V[0]['unidade_id'] ?? null) !== null ? (int)$V[0]['unidade_id'] : unidadeDoPedido())]);
+    $id = (int)$db->lastInsertId();
+    $reg = registrar('canc', (int)$c['id'], $c['nome'], $txt . ($V ? ' · ' . implode(', ', array_map(fn($i) => $i['n'] . ' ' . dinheiro($i['v']), array_slice($itens, 0, 4))) : '') . ($deb > 0 ? ' · ' . hm($deb) . ' voltam ao saldo' : '') . ($mins > 0 ? ' · saem ' . hm($mins) . ' compradas' : '')
+      . ($pago ? ' · devolver ao cliente: ' . textoPagamento($pago, true) : '') . ' · Motivo: ' . $motivo . ' · por ' . primeiroNome((string)$u['nome']) . ' (gestor)', $agora);
+    $db->commit();
+  } catch (Throwable $e) { if ($db->inTransaction()) $db->rollBack(); throw $e; }
+  if ($pago) acertarCupons();
+  return ['cancelamento' => $id, 'registro' => $reg, 'valor' => $valor, 'devolver' => $pago ? textoPagamento($pago, true) : '', 'horas' => $deb, 'saem' => $mins];
+}
 /* ---------- 0.93: o cupom fiscal de cada pagamento ---------- */
 // "Toda vez que o pagamento é feito, precisa sair o cupom fiscal." O sistema ainda não fala com a máquina fiscal (isso depende da máquina e do
 // tipo de cupom da loja); o que ele já faz é não deixar nenhum pagamento sem cupom: cada pagamento registrado vira um cupom "pendente" (a emitir),

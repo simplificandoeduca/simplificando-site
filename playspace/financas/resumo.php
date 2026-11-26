@@ -105,7 +105,7 @@ function finResumo(array $in): array {
   foreach ((array)(regra()['servicos'] ?? []) as $s) if (is_array($s) && trim((string)($s['n'] ?? '')) !== '') { [$g, $n] = $cls(['s' => (string)$s['n'], 'pr' => 0, 'a' => !empty($s['volta']) ? 'x' : '', 'm' => 0, 'au' => 0, 'vo' => '']); $poe($g, $n); }
   foreach (array_merge(array_values(FESTA_SERVICO), ['UPGRADE DE FESTA', 'ADICIONAL DE FESTA']) as $n) $poe('festa', $n);
   // os cancelamentos: quantos, quanto deixou de ser cobrado, de quem (o nome da atendente que a pessoa escreveu; sem ele, quem estava no aparelho)
-  $tipos = ['' => 'Entrada cancelada', 'desfeita' => 'Entrada desfeita na hora', 'venda' => 'Venda cancelada', 'atendimento' => 'Atendimento cancelado', 'aluguel' => 'Saída do carrinho cancelada'];
+  $tipos = ['' => 'Entrada cancelada', 'desfeita' => 'Entrada desfeita na hora', 'venda' => 'Venda cancelada', 'atendimento' => 'Atendimento cancelado', 'aluguel' => 'Saída do carrinho cancelada', 'excluida' => 'Saída excluída pelo gestor'];
   $canc = []; $cancTotal = 0; $cancAt = []; $cancTipo = [];
   $q = $db->prepare('SELECT id, quando, COALESCE(unidade_id, 0) u, nome, resp, valor, minutos, itens, motivo, por_nome, papel, atendente, tipo, fora, visto_por FROM cancelamentos WHERE quando >= ? AND quando < ? ORDER BY quando DESC, id DESC');
   $q->execute([$ini, $fim]);
