@@ -897,7 +897,10 @@ function pedidoCriar(array $u, array $in): array {
   $db->prepare('INSERT INTO pedidos (tipo, status, crianca_id, venda_id, nome, resp, texto, motivo, valor, dados, pedido_por, pedido_nome, pedido_em, unidade_id) VALUES (?, \'pendente\', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
     ->execute([$tipo, (int)$c['id'], $vendaId, (string)$c['nome'], (string)$c['resp'], $texto, $motivo, $valor, json_encode($dados, JSON_UNESCAPED_UNICODE), (int)$u['id'], (string)$u['nome'], $agora, unidadeDoPedido()]);
   $id = (int)$db->lastInsertId();
-  if (podeDecidir($u, $tipo) || $tipo === 'nf') return pedidoDecidir($id, $u, true, 'proprio', $tipo === 'nf');   // quem pede já autoriza (o gestor): vale na hora. 1.55: a nota fiscal, toda a equipe emite
+  /* 2.42 (o dono: "no Casatom eu quero poder ajustar o valor para mais do produto sem pedir autorização, só se for desconto"): o produto
+     que sobe de valor vale na hora, para qualquer um; baixar continua com quem aprova */
+  $sobe = $tipo === 'valor' && $vendaId === null && (($dados['item'] ?? [])['k'] ?? '') === 'prod' && (float)($dados['para'] ?? 0) > (float)($dados['de'] ?? 0) + 0.004;
+  if (podeDecidir($u, $tipo) || $tipo === 'nf' || $sobe) return pedidoDecidir($id, $u, true, 'proprio', $tipo === 'nf' || $sobe);   // quem pede já autoriza (o gestor): vale na hora. 1.55: a nota fiscal, toda a equipe emite
   return ['pedido' => pedidoPublico(pedido($id))];
 }
 // liberar ou negar. $g = quem decide (quem está logado, ou o dono da senha digitada); $como = 'toque' | 'senha' | 'proprio'
@@ -2228,17 +2231,18 @@ function devolverAluguel(array $c, string $servico, array $u, array $pg = [], ?i
 // ninguém cancela: o período é cobrado (como na entrada).
 function prazoCancelarAluguel(array $a): array { // [limite em minutos, segundos desde a saída, ainda está no prazo]
   $lim = max(0, (int)regra()['cancelaMin']); $seg = max(0, agoraTs() - strtotime((string)$a['ini']));
-  return [$lim, $seg, !empty($a['aberto']) && $lim > 0 && $seg <= $lim * 60 + 10];
+  return [$lim, $seg, $lim > 0 && $seg <= $lim * 60 + 10];   /* 2.42: todo carrinho (não só o que acerta na devolução) */
 }
 // $desfeita (1.21): desfeita na hora, pelo botão do aviso, por quem não estorna: sai sem olhar o prazo (o botão só existe nos instantes seguintes) e fica registrada
 function cancelarAluguel(array $c, string $servico, array $u, string $motivo, bool $desfeita = false): array {
   $db = db(); $g = alugueis((int)$c['id'], $servico); if (!$g) falha('Isso já foi marcado como devolvido.', 409);
-  $a = $g[0]; if (empty($a['aberto'])) falha('Só o que é cobrado na devolução pode ser cancelado por aqui.');
+  $a = $g[0];   /* 2.42 (o dono: "no carrinho também tem que ter a opção de cancelar com a tolerância"): todo carrinho, no prazo */
   [$lim, $seg, $noPrazo] = prazoCancelarAluguel($a); if ($desfeita) $noPrazo = true;
   if (!$noPrazo) falha($lim > 0 ? 'Já passou de ' . $lim . ' min da saída de ' . $a['n'] . ': não pode mais ser cancelado. O período é cobrado.' : 'A loja não cancela: o período é cobrado.', 403);
   if (mb_strlen($motivo) < 5) falha('Escreva o motivo do cancelamento: a supervisão vai conferir.');
-  if (!podeEstornar($u) && pagoPorForma(array_map('intval', $a['vendas']))) falha('Isso já recebeu pagamento: só ' . quemEstorna() . ' cancela.', 403);   // 1.21 (a saída em aberto não tem pagamento: é só por garantia)
-  $agora = agora(); $min = intdiv($seg, 60); $nq = ((int)$a['q'] > 1 ? (int)$a['q'] . ' × ' : '') . (string)$a['n']; $itens = [['n' => $nq, 'm' => 0, 'v' => 0.0, 'tipo' => 'aluguel']];   // 1.22: "2 × CARRINHO FUSQUINHA"
+  /* 2.42: o carrinho pago na saída (o de bebê) cancela no prazo devolvendo o valor ao cliente: o pagamento sai do caixa e o cancelamento fica com o valor */
+  $vids = array_map('intval', $a['vendas']); $pago = pagoPorForma($vids); $mv = implode(',', $vids ?: [0]); $valor = round((float)$db->query("SELECT COALESCE(SUM(valor), 0) FROM vendas WHERE id IN ($mv)")->fetchColumn(), 2);
+  $agora = agora(); $min = intdiv($seg, 60); $nq = ((int)$a['q'] > 1 ? (int)$a['q'] . ' × ' : '') . (string)$a['n']; $itens = [['n' => $nq, 'm' => 0, 'v' => $valor, 'tipo' => 'aluguel'] + ($pago ? ['dev' => textoPagamento($pago, true)] : [])];   // 1.22: "2 × CARRINHO FUSQUINHA"
   $db->beginTransaction();
   try {
     $qr = $db->prepare('SELECT registro FROM vendas WHERE id = ? AND crianca_id = ?');
@@ -2246,13 +2250,14 @@ function cancelarAluguel(array $c, string $servico, array $u, string $motivo, bo
       $db->prepare('DELETE FROM pagamentos WHERE venda_id = ? AND crianca_id = ?')->execute([$vid, (int)$c['id']]);   // (a saída em aberto não tem pagamento: é só para não sobrar nada)
       $db->prepare('DELETE FROM vendas WHERE id = ? AND crianca_id = ?')->execute([$vid, (int)$c['id']]);
       if ($rg) $db->prepare("UPDATE registros SET texto = texto || ' · cancelada' WHERE id = ? AND crianca_id = ? AND tipo = 'venda' AND texto NOT LIKE '% · cancelada'")->execute([$rg, (int)$c['id']]); }
-    $db->prepare("INSERT INTO cancelamentos (crianca_id, nome, resp, entrou, quando, minutos, valor, itens, motivo, por, por_nome, papel, fora, tipo, atendente, unidade_id) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, 0, 'aluguel', ?, ?)")
-      ->execute([(int)$c['id'], $c['nome'], $c['resp'], (string)$a['ini'], $agora, $min, json_encode($itens, JSON_UNESCAPED_UNICODE), $motivo, (int)$u['id'], $u['nome'], $u['papel'], atendente(), unidadeDoPedido()]);
+    $db->prepare("INSERT INTO cancelamentos (crianca_id, nome, resp, entrou, quando, minutos, valor, itens, motivo, por, por_nome, papel, fora, tipo, atendente, unidade_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'aluguel', ?, ?)")
+      ->execute([(int)$c['id'], $c['nome'], $c['resp'], (string)$a['ini'], $agora, $min, $valor, json_encode($itens, JSON_UNESCAPED_UNICODE), $motivo, (int)$u['id'], $u['nome'], $u['papel'], atendente(), unidadeDoPedido()]);
     $id = (int)$db->lastInsertId();
-    $reg = registrar('canc', (int)$c['id'], $c['nome'], 'Saída das ' . substr((string)$a['ini'], 11, 5) . ' de ' . $nq . ($desfeita ? ' desfeita na hora' : ' cancelada aos ' . ($min < 60 ? $min . ' min' : hm($min))) . ' · nada foi cobrado · Motivo: ' . $motivo . ' · por ' . porQuem($u), $agora);
+    $reg = registrar('canc', (int)$c['id'], $c['nome'], 'Saída das ' . substr((string)$a['ini'], 11, 5) . ' de ' . $nq . ($desfeita ? ' desfeita na hora' : ' cancelada aos ' . ($min < 60 ? $min . ' min' : hm($min))) . ($pago ? ' · devolvido ao cliente: ' . textoPagamento($pago, true) : ' · nada foi cobrado') . ' · Motivo: ' . $motivo . ' · por ' . porQuem($u), $agora);
     $db->commit();
   } catch (Throwable $e) { $db->rollBack(); throw $e; }
-  return ['cancelamento' => $id, 'registro' => $reg, 'minutos' => $min, 'nome' => $nq];
+  if ($pago) acertarCupons();   /* 2.42: o cupom fiscal acompanha */
+  return ['cancelamento' => $id, 'registro' => $reg, 'minutos' => $min, 'nome' => $nq, 'devolvido' => $pago ? textoPagamento($pago, true) : ''];
 }
 
 /* ---------- de onde sai o tempo de quem está no espaço: pacote de horas ou recreação avulsa ---------- */

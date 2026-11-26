@@ -1301,6 +1301,13 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Casa Tom: subir o valor sem pedir; carrinho: cancelar na tolerância (2.42)
+
+Pedidos do dono (26/11).
+
+- "No Casatom eu quero poder ajustar o valor para mais do produto sem pedir autorização, só se for desconto": no pagamento da Casa Tom, "Alterar valor" aparece para toda a equipe. Subir o valor do produto vale na hora (o motivo é opcional). Baixar é desconto: só o gestor; a equipe usa o "Dar desconto", que pede ao gestor.
+- "No carrinho também tem que ter a opção de cancelar com a tolerância": o cancelar no prazo (o mesmo de cancelar a entrada, em Ajustes) vale para todo carrinho. O carrinho pago na saída (o de bebê) cancela devolvendo o valor ao cliente: o pagamento sai do caixa, e o cancelamento fica com o valor, a forma, o motivo e o nome da atendente.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O pacote vendido sem entrada conta na lista do dia (2.41)
 
 Pedido do dono (26/11): "quando eu clico no botão vender pacote, ele tá entrando como sem valor pro caixa ... vendi um pacote para Gisele e ele não tá somando".

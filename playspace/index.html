@@ -2144,7 +2144,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.41';
+const VERSAO = '2.42';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -4665,13 +4665,15 @@ function htmlCtAlt() { if (!ALT || !PAG || PAG.onde !== 'venda' || PAG.id !== AL
   const p = ALT.lib && altValido(ALT.lib) ? ALT.lib : null;
   if (p) return `<div class="pg-desc lib pg-alt" id="pg-alt">${ic(IC.check, 18, 2.6)}<span><b>Valor alterado</b>: ${esc((p.dados.item || {}).n || 'o produto')} de ${brl(p.dados.de)} para ${brl(p.dados.para)}${p.motivo ? ' · ' + esc(p.motivo) : ''}</span><button type="button" class="link tap" data-act="alt-largar">Tirar</button></div>`;
   const sel = L.find(l => altChave(l) === ALT.k) || L[0]; ALT.k = altChave(sel);
-  return `<details class="pg-desc pg-alt" id="pg-alt"${ALT.aberto ? ' open' : ''}><summary>${ic(IC.lapis, 18)}<span><b>Alterar valor</b> <span class="leve">· só o gestor</span></span>${ic(IC.vai, 16)}</summary><div class="pg-desc-c pg-alt-c">
+  return `<details class="pg-desc pg-alt" id="pg-alt"${ALT.aberto ? ' open' : ''}><summary>${ic(IC.lapis, 18)}<span><b>Alterar valor</b> <span class="leve">· ${gestor() ? 'para mais ou para menos' : 'para mais (para menos, só o gestor)'}</span></span>${ic(IC.vai, 16)}</summary><div class="pg-desc-c pg-alt-c">
     ${L.length > 1 ? `<div class="seg pg-alt-i" role="radiogroup" aria-label="Qual produto">${L.map(l => `<button type="button" class="tap" role="radio" data-act="ctalt-item" data-k="${esc(altChave(l))}" aria-checked="${altChave(l) === ALT.k}">${esc(altNomeL(l))} · ${brl(l.v)}</button>`).join('')}</div>` : `<p class="pg-alt-n"><b>${esc(altNomeL(sel))}</b> · na tabela ${brl(sel.v)}</p>`}
-    <input id="pg-alt-m" autocomplete="off" maxlength="80" placeholder="Motivo" value="${esc(ALT.motivo || '')}" aria-label="Motivo"><input id="pg-alt-v" inputmode="decimal" autocomplete="off" placeholder="Novo valor R$" value="${esc(ALT.v || '')}" aria-label="Valor novo, em reais"></div>
+    <input id="pg-alt-m" autocomplete="off" maxlength="80" placeholder="Motivo (para mais, opcional)" value="${esc(ALT.motivo || '')}" aria-label="Motivo"><input id="pg-alt-v" inputmode="decimal" autocomplete="off" placeholder="Novo valor R$" value="${esc(ALT.v || '')}" aria-label="Valor novo, em reais"></div>
     <div class="pg-desc-a"><button type="button" class="bt forte tap" data-act="ctalt-ok">${ic(IC.check)} Aplicar o valor</button></div></details>`; }
-async function ctAltAplicar(el) { if (!ALT || !gestor()) return; const l = linhasDoCarrinho().find(x => x.prod && altChave(x) === ALT.k); if (!l) { toast('Escolha o produto'); return; }
-  ALT.v = val('pg-alt-v'); ALT.motivo = val('pg-alt-m'); const v = numero(ALT.v), m = MAI(ALT.motivo || '');
+async function ctAltAplicar(el) { if (!ALT) return;   /* 2.42: toda a equipe sobe o valor; baixar, só o gestor */ const l = linhasDoCarrinho().find(x => x.prod && altChave(x) === ALT.k); if (!l) { toast('Escolha o produto'); return; }
+  ALT.v = val('pg-alt-v'); ALT.motivo = val('pg-alt-m'); const v = numero(ALT.v); let m = MAI(ALT.motivo || '');
   if (!(v > 0) || v > 99999) { toast('Escreva o valor novo'); const i = $('#pg-alt-v'); if (i) i.focus(); return; } if (Math.abs(v - l.v) < 0.005) { toast('O valor novo é igual ao de agora'); return; }
+  const sobe = v > l.v; if (!sobe && !gestor()) { toast('Valor menor é desconto: só o gestor. Use o "Dar desconto" (o gestor libera).'); const i = $('#pg-alt-v'); if (i) i.focus(); return; }
+  if (sobe && m.length < 3) m = 'AJUSTE PARA MAIS';
   if (m.length < 3) { toast('Escreva o motivo'); const i = $('#pg-alt-m'); if (i) i.focus(); return; }
   const d = { tipo: 'valor', crianca: ALT.id, item: altItem(l), para: centavos(v), motivo: m }; el.disabled = true;
   try { let p; if (MODO === 'servidor') { const r = await api('pedido_criar', d); pedidosChegaram(r.pedidos, true); p = pedidoDe(r.pedido); } else { const r = criarPedidoPrevia(d, null); if (r.erro) throw new Error(r.erro); pedidosMudaramPrevia(true); p = r.pedido; }
@@ -4755,7 +4757,7 @@ function abrirPagamento(id) {
     ${S.balcao && c.id === S.balcao.id ? htmlDesc() : ''}
     <div class="campo" id="pg-agora"><label>Forma de pagamento <span class="leve">· pode dividir em até três formas</span></label>${htmlPag()}</div>
     ${depois ? `<div class="marca canc" id="pg-fica" hidden>${ic(IC.sino, 18)}<span><b><span id="pg-fica-v">${brl(PAG.total)}</span> a receber na ${entrar || c.entrou ? 'saída' : 'devolução'}.</b>${soNaSaida ? ` A cobrança é feita na ${entrar || c.entrou ? 'saída' : 'devolução'}.` : ''}</span></div>` : ''}${PAG.dev ? `<div class="marca canc" id="pg-dev">${ic(IC.sino, 18)}<span><b>${esc(PAG.dev.n)} · ${brl(PAG.dev.v)} a receber na devolução.</b> O carrinho é cobrado sempre quando volta: agora, só o resto.</span></div>` : ''}
-    ${S.balcao && c.id === S.balcao.id ? (gestor() ? htmlCtAlt() : '') : htmlDesc() + htmlAlt()}
+    ${S.balcao && c.id === S.balcao.id ? htmlCtAlt() : htmlDesc() + htmlAlt()}
     <div class="pe-f"><button class="bt forte largo tap" id="p-ok" data-act="pag-ok" data-id="${c.id}" disabled>${ic(IC.check)} Escolha a forma de pagamento</button></div>`;
   e.hidden = true; a.hidden = false; const h = $('#folha .cab-f h2'), f = $('#folha .folha'); if (h) h.textContent = 'Pagamento'; if (f) f.scrollTop = 0; desenharPag();
 }
@@ -6202,7 +6204,8 @@ const precoAberto = x => `${brl(x.v)} a cada ${porExt(x.min || 30)} · ${ITENS_A
 const linhaAberto = (x, q = 1) => `${q > 1 ? q + ' × ' : ''}${x.n} · ${q > 1 ? 'saíram' : 'saiu'} da loja · ${brl(x.v)} a cada ${x.min || 30} min${q > 1 ? ', cada um' : ''}, ${ITENS_ABERTO}`;
 const qtdAbertos = L => L.filter(l => l.aberto).reduce((t, l) => t + (l.q || 1), 0);   // 1.22: quantos carrinhos saem nesta venda
 const nomeQ = l => (l.aberto && l.q > 1 ? l.q + ' × ' : '') + l.servico;   // a linha do dia da saída (igual à do servidor)
-const alugNoPrazo = a => alugAberto(a) && cancelaLim() > 0 && alugSeg(a) < cancelaLim() * 60;   // ainda dá para cancelar a saída sem cobrar (o mesmo prazo de cancelar a entrada)
+const alugNoPrazo = a => alugAberto(a) && cancelaLim() > 0 && alugSeg(a) < cancelaLim() * 60;
+const alugCancPrazo = a => !!a && cancelaLim() > 0 && alugSeg(a) < cancelaLim() * 60;   /* 2.42: todo carrinho cancela no prazo (o pago devolve o valor) */   // ainda dá para cancelar a saída sem cobrar (o mesmo prazo de cancelar a entrada)
 const cancAlug = x => (x && x.itens || []).find(i => i && i.tipo === 'aluguel') || null;   // o cancelamento é o da saída de um carrinho (e não o de uma entrada)
 // (prévia) o que está fora da loja sai das compras: cada venda de um serviço que "sai e volta" ainda não devolvida, juntando por criança e serviço, como o servidor faz
 function alugPrevia() {
@@ -6358,14 +6361,14 @@ function alugExtraPrevia(a) { // (prévia) a mesma conta do servidor
 async function devolver(cid, sv, so = false) {   // so (1.25): só este carrinho (a folha dele, com o "quantos voltaram" e o cancelar no prazo)
   const c = crianca(cid), a = (S.alugueis || []).find(x => x.crianca === +cid && x.s === sv); if (!c || !a) return; let x, pend = 0;
   if (!so) { const kids = podeManual() ? criancasDaConta(c) : [], outros = carrosDaFamilia(c).filter(y => String(y.id) !== String(a.id)); if (kids.length || outros.length) { folhaSaidaGrupo(kids, [a, ...outros]); return; } }   // 1.25: a conta do responsável
-  let noPrazo = alugNoPrazo(a);   // 1.20: no servidor, quem diz se ainda dá para cancelar é ele (o relógio do aparelho pode estar adiantado)
+  let noPrazo = alugCancPrazo(a);   // 1.20: no servidor, quem diz se ainda dá para cancelar é ele (o relógio do aparelho pode estar adiantado)
   try { if (MODO === 'servidor') { const r = await api('devolver_previa', { crianca: c.id, s: sv }); x = r.extra; pend = centavos(+r.pend || 0); noPrazo = !!(r.cancela && r.cancela.pode); } else { x = alugExtraPrevia(a); pend = pendAlug(a); } } catch (e) { toast(e.message); try { await carregar(); } catch (e2) { } desenhar(true); return; }
   if ((x && x.valor > 0) || pend > 0.004) { folhaDevolver(c, a, x || { n: 0, min: 0, valor: 0 }, pend, noPrazo); return; }   // 1.02: o carrinho que ficou para pagar na devolução também abre o pagamento
-  if (alugFixo(a) && pagosTxt(pagosAlug(a))) { folhaDevolverPago(c, a); return; }   /* 2.30: o carrinho de bebê pago na entrada: a folha mostra a forma de pagamento já marcada */
+  if (alugFixo(a) && pagosTxt(pagosAlug(a))) { folhaDevolverPago(c, a, noPrazo); return; }   /* 2.30: o carrinho de bebê pago na entrada: a folha mostra a forma de pagamento já marcada */
   devolverJa(c, a, null);
 }
 let DEVP = null;   // 2.30: o carrinho pago na entrada que está na folha da devolução: { cid, s }
-function folhaDevolverPago(c, a) {
+function folhaDevolverPago(c, a, noPrazo = alugCancPrazo(a)) { DEV = null;   /* 2.42: a folha aberta é a que vale para o cancelar */
   const o = pagosAlug(a), tot = centavos(Object.values(o).reduce((t, v) => t + (+v || 0), 0)), fs = FORMAS.filter(([f]) => +o[f] > 0); DEVP = { cid: c.id, s: a.s };
   const ld = [{ n: esc(alugNome(a)), sub: 'preço do dia · pago na entrada', meio: [esc(c.nome), alugHoje(a) ? hora(a.ini) : diaCurto(a.ini)], v: brl(tot) }];
   abrirFolha('Devolução', `
@@ -6375,13 +6378,14 @@ function folhaDevolverPago(c, a) {
     ${pgSec('Pagamento')}
     <div class="campo" id="d-pago"><label>Forma de pagamento <span class="leve">· paga na entrada</span></label><div class="formas" role="group" aria-label="Forma de pagamento, paga na entrada">${FORMAS.map(([f, n]) => `<button type="button" class="tap" tabindex="-1" aria-pressed="${+o[f] > 0}"><b>${n}</b><span class="num">${+o[f] > 0 ? brl(+o[f]) : ''}</span></button>`).join('')}</div>
       <p class="explica">Já foi pago na entrada (${esc(pagosTxt(o))}): não há nada para receber agora.</p></div>
+    ${noPrazo ? htmlCancAlug(a, tot, pagosTxt(o)) : ''}
     <div class="pe-f"><button class="bt forte largo tap" id="d-ok-pago" data-act="devolver-pago">${ic(IC.check)} Devolver · pago ${fs.length === 1 ? naForma(fs[0][0]) + ' ' : ''}na entrada</button></div>`);
 }
 // 1.22: saíram vários juntos (em aberto): a folha pergunta quantos voltaram agora; a conta é períodos × valor × os que voltaram, e os outros continuam fora
 const devDe = (a, x) => x && x.aberto ? Math.max(1, +x.de || +a.q || 1) : 1;
 const devX = (x, k) => x && x.aberto ? { ...x, q: k, valor: centavos(x.n * x.un * k) } : x;   // a conta dos k que voltam agora
 const devNome = (a, x, k) => x && x.aberto ? (k < devDe(a, x) ? `${k} de ${devDe(a, x)} × ` : k > 1 ? k + ' × ' : '') + a.n : alugNome(a);
-function folhaDevolver(c, a, x0, pend = 0, noPrazo = alugNoPrazo(a), quantos = 0) {
+function folhaDevolver(c, a, x0, pend = 0, noPrazo = alugCancPrazo(a), quantos = 0) { DEVP = null;   /* 2.42 */
   const de = devDe(a, x0), k = x0.aberto ? Math.max(1, Math.min(de, quantos || de)) : 1, x = devX(x0, k);
   DEV = { cid: c.id, s: a.s, x, x0, pend, k, de, noPrazo };
   const total = centavos(x.valor + pend), ab = !!x.aberto, parou = ab && +agora > alugTeto(a);   // 1.20: em aberto, a linha é a do tempo cobrado (o que ficou fora, em períodos inteiros)
@@ -6389,12 +6393,7 @@ function folhaDevolver(c, a, x0, pend = 0, noPrazo = alugNoPrazo(a), quantos = 0
     : [{ n: esc(alugNome(a)), sub: [pend > 0 ? 'ficou para a devolução' : '', alugFixo(a) ? 'preço do dia' : `ficou ${dur(Math.floor(alugSeg(a) / 60))} fora`, a.min > 0 ? 'comprou ' + dur(a.min) : ''].filter(Boolean).join(' · '), meio: [esc(c.nome), alugHoje(a) ? hora(a.ini) : diaCurto(a.ini)], v: pend > 0 ? brl(pend) : 'pago', h: !(pend > 0) }];
   if (!ab && x.valor > 0) ld.push({ n: `Tempo a mais · ${dur(x.min)}`, sub: x.n > 1 ? x.n + ' períodos' : '', v: brl(x.valor) });
   // no prazo de cancelar (o mesmo da entrada), a saída pode ser cancelada sem cobrar: saiu no nome errado, o cliente desistiu. Com o motivo, para a supervisão
-  const canc = ab && noPrazo ? `<details class="outro" id="d-canc"><summary>Não usou? Cancelar sem cobrar</summary>
-      <p class="explica">Saiu há ${Math.floor(alugSeg(a) / 60)} min. Dá para cancelar sem cobrar até ${hora(new Date(+a.ini + cancelaLim() * 60000))}; depois disso o período é cobrado.</p>
-      <div class="campo" id="d-motivo-campo"><label for="d-motivo">Motivo do cancelamento<span class="obg" aria-hidden="true">*</span> <span class="leve">· a supervisão vai ver</span></label><textarea id="d-motivo" rows="2" maxlength="300" placeholder="Escreva o que aconteceu"></textarea>
-        <div class="atalhos">${MOTIVOS_ALUG.map(t => `<button type="button" class="tap" data-act="canc-motivo" data-alvo="d-motivo" data-t="${esc(t)}">${t}</button>`).join('')}</div></div>
-      ${htmlAtendente('d-atd')}
-      <div class="acoes"><button type="button" class="bt tap" id="d-canc-ok" data-act="devolver-cancelar">${ic(IC.x, 16, 2.6)} Cancelar a saída, sem cobrar</button></div></details>` : '';
+  const canc = noPrazo ? htmlCancAlug(a, 0) : '';   /* 2.42: todo carrinho, no prazo */
   const quantosHtml = ab && de > 1 ? `<div class="serv on" id="d-quantos"><div class="txt"><b>Quantos voltaram agora</b><span>${k < de ? `${de - k} ${de - k === 1 ? 'continua' : 'continuam'} fora, com o relógio correndo` : `saíram ${de} juntos: todos voltaram`}</span></div><div class="qtd"><button type="button" class="tap" data-act="dev-menos" aria-label="Um a menos voltou" ${k > 1 ? '' : 'disabled'}>−</button><b class="num">${k}</b><button type="button" class="tap" data-act="dev-mais" aria-label="Mais um voltou" ${k < de ? '' : 'disabled'}>+</button></div><b class="valor num">de ${de}</b></div>` : '';
   abrirFolha('Pagamento da devolução', `
     ${pgDetalhes(c, false)}
@@ -6454,22 +6453,30 @@ function devolverQuieto(c, a, y, pag) {
   return { desfaz: (pagos.length || ab) && !podeEstornar() ? null : desfaz };
 }
 // 1.20: cancelar a saída do que acerta na devolução, sem cobrar: só no prazo (o mesmo de cancelar a entrada) e com o motivo, que a supervisão confere
+/* 2.42 (o dono: "no carrinho também tem que ter a opção de cancelar com a tolerância"): todo carrinho; o pago (pago = o valor) devolve ao cliente */
+const htmlCancAlug = (a, pago, comoPagou) => `<details class="outro" id="d-canc"><summary>${pago > 0 ? 'Não usou? Cancelar e devolver ' + brl(pago) : 'Não usou? Cancelar sem cobrar'}</summary>
+      <p class="explica">Saiu há ${Math.floor(alugSeg(a) / 60)} min. Dá para cancelar ${pago > 0 ? 'e devolver ao cliente o que ele pagou' + (comoPagou ? ' (' + esc(comoPagou) + ')' : '') + ' ' : 'sem cobrar '}até ${hora(new Date(+a.ini + cancelaLim() * 60000))}${pago > 0 ? ': o valor sai do caixa' : '; depois disso o período é cobrado'}.</p>
+      <div class="campo" id="d-motivo-campo"><label for="d-motivo">Motivo do cancelamento<span class="obg" aria-hidden="true">*</span> <span class="leve">· a supervisão vai ver</span></label><textarea id="d-motivo" rows="2" maxlength="300" placeholder="Escreva o que aconteceu"></textarea>
+        <div class="atalhos">${MOTIVOS_ALUG.map(t => `<button type="button" class="tap" data-act="canc-motivo" data-alvo="d-motivo" data-t="${esc(t)}">${t}</button>`).join('')}</div></div>
+      ${htmlAtendente('d-atd')}
+      <div class="acoes"><button type="button" class="bt tap" id="d-canc-ok" data-act="devolver-cancelar">${ic(IC.x, 16, 2.6)} ${pago > 0 ? 'Cancelar a saída e devolver ' + brl(pago) : 'Cancelar a saída, sem cobrar'}</button></div></details>`;
 const MOTIVOS_ALUG = ['O cliente desistiu', 'A criança não quis', 'Saída lançada errada'];
 async function cancelarSaidaAlug(el) {
-  const c = DEV && crianca(DEV.cid), a = DEV && (S.alugueis || []).find(x => x.crianca === DEV.cid && x.s === DEV.s); if (!c || !a) { fecharFolha(); desenhar(true); return; }
+  const R0 = DEV || DEVP, c = R0 && crianca(R0.cid), a = R0 && (S.alugueis || []).find(x => x.crianca === R0.cid && x.s === R0.s); if (!c || !a) { fecharFolha(); desenhar(true); return; }   /* 2.42: DEVP = o carrinho pago */
   const t = $('#d-motivo'), motivo = (t ? t.value : '').replace(/\s+/g, ' ').trim();
   if (motivo.length < 5) { const cp = $('#d-motivo-campo'); if (cp) cp.classList.add('falta'); toast('Escreva o motivo do cancelamento: a supervisão vai conferir'); if (t) t.focus(); return; }
-  if (MODO !== 'servidor' && !alugNoPrazo(a)) { toast(`Já passou de ${cancelaLim()} min da saída: não pode mais ser cancelado. O período é cobrado.`); return; }   // (no servidor, quem confere o prazo é ele)
+  if (MODO !== 'servidor' && !alugCancPrazo(a)) { toast(`Já passou de ${cancelaLim()} min da saída: não pode mais ser cancelado.`); return; }   // (no servidor, quem confere o prazo é ele)
   const atd = lerAtd('d-atd'); if (atd == null) return;   // 1.25
-  const nome = c.nome, cid = c.id, min = Math.floor(alugSeg(a) / 60), fim = () => { DEV = null; if ($('#folha .folha-fundo:not(.saindo)')) fecharFolha(); desenhar(true); toast(`Saída do ${alugNome(a)} de ${nome} cancelada · nada foi cobrado`, () => abrirHistorico(cid), 'Histórico'); };
+  const nome = c.nome, cid = c.id, min = Math.floor(alugSeg(a) / 60), pagoA = centavos((S.pagamentos || []).filter(p => a.vendas.includes(p.venda)).reduce((t, p) => t + p.v, 0)), fim = dv => { DEV = null; DEVP = null; if ($('#folha .folha-fundo:not(.saindo)')) fecharFolha(); desenhar(true); toast(`Saída do ${alugNome(a)} de ${nome} cancelada · ${dv ? 'devolver ao cliente: ' + dv : 'nada foi cobrado'}`, () => abrirHistorico(cid), 'Histórico'); };
   if (MODO === 'servidor') { el.disabled = true;
-    try { await api('devolver', { crianca: cid, s: a.s, cancelar: true, motivo, atendente: atd }); await carregar(); fim(); } catch (e) { toast(e.message); el.disabled = false; try { await carregar(); } catch (e2) { } desenhar(true); }
+    try { const r = await api('devolver', { crianca: cid, s: a.s, cancelar: true, motivo, atendente: atd }); await carregar(); fim(r && r.devolvido); } catch (e) { toast(e.message); el.disabled = false; try { await carregar(); } catch (e2) { } desenhar(true); }
     return; }
   const M = MAI(motivo); for (const v of S.compras.filter(x => a.vendas.includes(x.id))) if (v.reg && !/ · cancelada$/.test(v.reg.txt)) v.reg.txt += ' · cancelada';
-  S.compras = S.compras.filter(x => !a.vendas.includes(x.id));
-  S.cancelamentos.unshift({ id: novoId(), crianca: cid, nome, resp: c.resp, entrou: a.ini, quando: new Date(), min, valor: 0, itens: [{ n: alugNome(a), m: 0, v: 0, tipo: 'aluguel' }], motivo: M, por: EU.nomeCompleto || EU.nome, papel: EU.papel, fora: false, visto_por: '', visto_em: null, tipo: 'aluguel', atendente: atd, uni: minhaUni() || null });
-  registrar('canc', nome, `Saída das ${hora(a.ini)} de ${alugNome(a)} cancelada aos ${minCurto(min)} · nada foi cobrado · Motivo: ${M} · por ${porQuemTxt(atd)}`);
-  fim();
+  const valA = centavos(S.compras.filter(x => a.vendas.includes(x.id)).reduce((t, x) => t + x.v, 0)), dvA = pagoA > 0 ? juntaFormas((S.pagamentos || []).filter(p => a.vendas.includes(p.venda))).map(([f, v]) => nomeForma(f) + ' ' + brl(v)).join(' + ') : '';   /* 2.42 */
+  S.compras = S.compras.filter(x => !a.vendas.includes(x.id)); S.pagamentos = (S.pagamentos || []).filter(p => !a.vendas.includes(p.venda));
+  S.cancelamentos.unshift({ id: novoId(), crianca: cid, nome, resp: c.resp, entrou: a.ini, quando: new Date(), min, valor: valA, itens: [{ n: alugNome(a), m: 0, v: valA, tipo: 'aluguel', ...(dvA ? { dev: dvA } : {}) }], motivo: M, por: EU.nomeCompleto || EU.nome, papel: EU.papel, fora: false, visto_por: '', visto_em: null, tipo: 'aluguel', atendente: atd, uni: minhaUni() || null });
+  registrar('canc', nome, `Saída das ${hora(a.ini)} de ${alugNome(a)} cancelada aos ${minCurto(min)} · ${dvA ? 'devolvido ao cliente: ' + dvA : 'nada foi cobrado'} · Motivo: ${M} · por ${porQuemTxt(atd)}`);
+  fim(dvA);
 }
 // quem saiu há pouco (dentro do prazo de reabrir): a linha com o botão Reabrir
 const linhaSaiu = c => { const d = new Date(ultVis(c).dia); return `<div class="it"><button class="quem tap" data-act="ficha" data-id="${c.id}">${avatar(c)}<span class="txt"><b>${nomeResp(c)}</b><span>${c.resp ? esc(c.nome) + ' · ' : ''}saiu às ${hora(d)}, <time data-saiu="${+d}">${haMin(d)}</time> · ${temPeriodo(c) ? 'saldo ' + hm(saldoMin(c)) : 'sem saldo'}</span></span></button><button class="bt forte tap" data-act="reabrir" data-id="${c.id}" title="Desfaz a saída: o tempo continua contando desde a entrada">${ic(IC.renova, 14)} Reabrir</button><button class="bt tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 14)} Atender</button></div>`; };
@@ -8180,7 +8187,7 @@ function criarPedidoPrevia(d, senha) {
       dados = { nome, doc, email: String(d.nf_email || '').toLowerCase(), item: nomeVendaTxt(v), pago }; texto = `Nota fiscal: ${oque} · em nome de ${nome}${doc ? ' · ' + (dg.length === 14 ? 'CNPJ ' : 'CPF ') + doc : ''}`; motivo = ''; } }
   const p = { id: novoId(), tipo, status: 'pendente', crianca: c.id, venda, nome: c.nome, resp: c.resp || '', texto, motivo, valor, usado: 0, dados, por: EU.nomeCompleto || EU.nome, por_id: euId(), em: new Date(), dec: '', dec_em: null, como: '', feito_por: '', feito_em: null, numero: '', resultado: '', uni: minhaUni() || null };
   S.pedidos.unshift(p);
-  if (podeDecidirTipo(tipo) || tipo === 'nf') return decidirPedidoPrevia(p, true, 'proprio', EU);   // 1.55: a nota fiscal, toda a equipe emite
+  if (podeDecidirTipo(tipo) || tipo === 'nf' || (tipo === 'valor' && !d.venda && ((dados || {}).item || {}).k === 'prod' && +dados.para > +dados.de + 0.004)) return decidirPedidoPrevia(p, true, 'proprio', EU);   // 1.55: a nota fiscal, toda a equipe emite; 2.42: o produto que sobe de valor
   return g ? decidirPedidoPrevia(p, true, 'senha', g) : { pedido: p };
 }
 function decidirPedidoPrevia(p, ok, como, quem, senha) { // quem = quem decide; com a senha, é o dono dela
