@@ -1301,6 +1301,14 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Casa Tom: "Dar desconto" à vista (2.32)
+
+Pedido do dono (26/11): "no Casatom eu quero aquela opção de dar desconto igual tem no sistema da Play".
+
+- O desconto da Casa Tom é o mesmo da Play (por valor ou por %, com motivo): o gestor dá direto; a atendente pede ao gestor (ou usa a senha dele). Ele já existia na folha de pagamento, mas fechado no fim, depois das formas de pagamento.
+- Agora o painel "Venda" da Casa Tom tem o botão "Dar desconto", logo abaixo do Total: abre o pagamento com o Desconto aberto e o cursor no valor.
+- Na folha de pagamento da Casa Tom, o Desconto fica antes da forma de pagamento.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Finanças: as crianças do dia, o dinheiro contado e o dia destrinchado (2.31, Finanças 5.3)
 
 Pedido do dono (26/11): "no financeiro eu preciso visualizar por unidade quantas crianças entraram no dia ... junto com o controle de caixa ... crianças válidas e crianças canceladas. ... coloque a forma de pagamento lá, não tem dinheiro. Pode colocar pra gente colocar manualmente o dinheiro que a maquininha não vai puxar. E também ... um botão, destrinchar histórico do dia".

@@ -77,6 +77,7 @@ body.ct .trilho .logo svg { width: 64px; height: 64px; } body.ct .trilho .logo {
 .ct-vend button[aria-pressed="true"] { background: var(--tinta); color: var(--card); border-color: var(--tinta); }
 .ct-tot { display: flex; justify-content: space-between; align-items: baseline; padding: 14px 18px; border-top: 1px solid var(--borda); } .ct-tot span { color: var(--tinta-2); font-weight: 600; } .ct-tot b { font: 800 26px var(--display); color: var(--tinta); }
 .ct-venda .ct-receber { margin: 0 18px 18px; width: calc(100% - 36px); }
+.ct-venda .ct-dsc { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; margin: -4px 18px 12px; font-weight: 700; }
 body.ct .fx-trilho { background: #8E1218; } body.ct .trilho .fab { display: none; }
 .ct-ir { display: none; }
 .ct-plista { display: flex; flex-direction: column; background: var(--card); border: 1px solid var(--borda); border-radius: 14px; overflow: hidden; }
@@ -2121,7 +2122,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.31';
+const VERSAO = '2.32';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -4694,10 +4695,10 @@ function abrirPagamento(id) {
     ${pgSec('Pagamento')}
     <div id="pg-horas-v">${horasPagHtml(c, L)}</div>
     ${depois && !soNaSaida ? `<div class="pg-modo" role="radiogroup" aria-label="Quando o cliente paga"><button type="button" class="tap" role="radio" aria-checked="true" data-act="pag-modo" data-m="agora"><i aria-hidden="true"></i>Paga agora</button><button type="button" class="tap" role="radio" aria-checked="false" id="p-depois" data-act="pag-modo" data-m="depois"><i aria-hidden="true"></i>${PAG.rotDepois}</button></div>` : ''}
+    ${S.balcao && c.id === S.balcao.id ? htmlDesc() : ''}
     <div class="campo" id="pg-agora"><label>Forma de pagamento <span class="leve">· pode dividir em até três formas</span></label>${htmlPag()}</div>
     ${depois ? `<div class="marca canc" id="pg-fica" hidden>${ic(IC.sino, 18)}<span><b><span id="pg-fica-v">${brl(PAG.total)}</span> a receber na ${entrar || c.entrou ? 'saída' : 'devolução'}.</b>${soNaSaida ? ` A cobrança é feita na ${entrar || c.entrou ? 'saída' : 'devolução'}.` : ''}</span></div>` : ''}${PAG.dev ? `<div class="marca canc" id="pg-dev">${ic(IC.sino, 18)}<span><b>${esc(PAG.dev.n)} · ${brl(PAG.dev.v)} a receber na devolução.</b> O carrinho é cobrado sempre quando volta: agora, só o resto.</span></div>` : ''}
-    ${htmlDesc()}
-    ${S.balcao && c.id === S.balcao.id ? '' : htmlAlt()}
+    ${S.balcao && c.id === S.balcao.id ? '' : htmlDesc() + htmlAlt()}
     <div class="pe-f"><button class="bt forte largo tap" id="p-ok" data-act="pag-ok" data-id="${c.id}" disabled>${ic(IC.check)} Escolha a forma de pagamento</button></div>`;
   e.hidden = true; a.hidden = false; const h = $('#folha .cab-f h2'), f = $('#folha .folha'); if (h) h.textContent = 'Pagamento'; if (f) f.scrollTop = 0; desenharPag();
 }
@@ -5754,6 +5755,7 @@ function ctVenda() { const I = ctItens(), n = I.reduce((a, x) => a + x.q, 0), t 
     <div class="ct-its">${I.map(x => `<div class="ct-it"><div><b>${esc(x.p.n)}</b><span>${brl(x.p.v)} cada</span></div><div class="ct-qt"><button type="button" data-act="ct-menos" data-p="${x.p.id}" aria-label="Um a menos de ${esc(x.p.n)}">−</button><b class="num">${x.q}</b><button type="button" data-act="ct-mais" data-p="${x.p.id}" aria-label="Um a mais de ${esc(x.p.n)}">+</button></div><b class="num ct-st">${brl(x.q * x.p.v)}</b></div>`).join('')}</div>
     ${n ? `<div class="ct-vend"><p>Quem está vendendo?</p><div>${vendedorasLista().map(v => `<button type="button" data-act="ct-vend" data-n="${esc(v)}" aria-pressed="${v === CT.vend}">${esc(v)}</button>`).join('')}</div></div>` : ''}
     <div class="ct-tot"><span>Total</span><b class="num">${brl(t)}</b></div>
+    ${n ? `<button type="button" class="link tap ct-dsc" data-act="ct-desc">${ic(IC.desconto, 16)} Dar desconto</button>` : ''}
     ${n ? `<button type="button" class="ct-ir tap" data-act="ct-ir"><span>Venda · ${n} ${n === 1 ? 'item' : 'itens'}</span><span>${brl(t)} ›</span></button>` : ''}
     <button type="button" class="bt forte largo tap ct-receber" data-act="ct-receber" ${n && CT.vend ? '' : 'disabled'}>${!n ? 'Escolha os produtos' : !CT.vend ? 'Escolha quem está vendendo' : 'Receber ' + brl(t)}</button></div>`; }
 const ctCabeca = titulo => { const u = minhaUni(), par = parDaUni(u);
@@ -5831,6 +5833,11 @@ document.addEventListener('input', e => { const t = e.target; if (!t || !t.id) r
 document.addEventListener('change', async e => { const t = e.target; if (!t || t.id !== 'cti-arq' || !t.files || !t.files[0]) return;
   try { toast('Lendo a planilha…'); ctiMostra(ctiLinhas(await lerArquivoImp(t.files[0]))); } catch (x) { toast(x && x.message ? x.message : 'Não consegui ler esse arquivo.'); } });
 function ctVendaRedesenha() { const v = $('#ct-venda'), g = $('#ct-grade'); if (v) v.outerHTML = ctVenda(); if (g) g.innerHTML = ctGrade(); }
+/* 2.32 (o dono: "no Casatom eu quero aquela opção de dar desconto igual tem no sistema da Play"): o "Dar desconto" do painel da venda abre o
+   pagamento com o Desconto aberto e o cursor no valor (o gestor dá direto; a atendente pede ao gestor ou usa a senha dele) */
+async function ctDesconto() { if (!ctItens().length) return; if (!CT.vend) { toast('Escolha primeiro quem está vendendo.'); return; }
+  await ctReceber(); const d = $('#pg-desc'); if (!d) return; if (d.tagName === 'DETAILS') d.open = true;
+  d.scrollIntoView({ block: 'center' }); const i = $('#pg-desc-v'); if (i && !i.disabled) i.focus(); }
 async function ctReceber() { const I = ctItens(); if (!I.length || !CT.vend) return;
   if (!S.balcao && MODO === 'servidor') { try { const r = await api('ct_balcao'); if (r.balcao) S.balcao = { ...r.balcao, entrou: null, venda: null, visitas: [] }; } catch (e) { } }
   const b = S.balcao; if (!b) { toast('O cliente da loja da Casa Tom ainda não chegou neste aparelho. Atualize a página e tente de novo.'); return; }
@@ -9050,7 +9057,7 @@ const ACOES = {
   'ct-todos': () => { CT.todos = !CT.todos; CT.cat = ''; desenhar(); },
   'ct-ptodos': () => { CT.ptodos = !CT.ptodos; desenhar(); },
   'ct-par': el => escolherUnidade(+el.dataset.u),
-  'ct-receber': () => ctReceber(), 'ct-ir': () => { const v = $('#ct-venda .ct-tot'); if (v) v.scrollIntoView({ behavior: 'smooth', block: 'center' }); },
+  'ct-receber': () => ctReceber(), 'ct-desc': () => ctDesconto(), 'ct-ir': () => { const v = $('#ct-venda .ct-tot'); if (v) v.scrollIntoView({ behavior: 'smooth', block: 'center' }); },
   'ct-novo': () => folhaProduto(null), 'ct-add': () => folhaCTAdd(), 'ct-add-ok': el => ctAddOk(el),   /* 2.10 */ 'ct-editar': el => folhaProduto(+el.dataset.p),
   'ct-importar': () => folhaCTImportar(), 'cti-ok': el => ctiImportar(el),
   'cti-loja': el => { CT.impLoja = el.dataset.v; $$('#cti-loja [data-v]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === CT.impLoja))); ctiMostra(); },   /* 2.02 */
