@@ -433,7 +433,6 @@ function db(): PDO {
   }
   if ($v < 47) { /* 2.10: os computadores da loja (entram pela unidade, sem senha) */
     try { $pdo->exec('ALTER TABLE usuarios ADD COLUMN loja INTEGER NOT NULL DEFAULT 0'); } catch (Throwable $e) { }
-    try { $pdo->exec('ALTER TABLE usuarios ADD COLUMN vende INTEGER'); } catch (Throwable $e) { }   /* 2.22: aparece em "Quem está vendendo" (vazio = pelo papel) */
     $pdo->exec("CREATE TABLE IF NOT EXISTS maquinas (id INTEGER PRIMARY KEY, token TEXT NOT NULL UNIQUE, nome TEXT NOT NULL DEFAULT '', criado_em TEXT NOT NULL, criado_por INTEGER, ultimo_uso TEXT, ativo INTEGER NOT NULL DEFAULT 1)");
     $pdo->exec('PRAGMA user_version = 47');
   }
@@ -449,6 +448,10 @@ function db(): PDO {
     $pdo->exec("CREATE TABLE IF NOT EXISTS anotacoes (id INTEGER PRIMARY KEY, crianca_id INTEGER NOT NULL, texto TEXT NOT NULL, quando TEXT NOT NULL, por TEXT NOT NULL DEFAULT '', por_id INTEGER, apagada INTEGER NOT NULL DEFAULT 0)");
     $pdo->exec('CREATE INDEX IF NOT EXISTS anotacoes_crianca ON anotacoes (crianca_id)');
     $pdo->exec('PRAGMA user_version = 50');
+  }
+  if ($v < 51) { /* 2.22: aparece em "Quem está vendendo" (vazio = pelo papel). 2.23: a 2.22 pôs no passo 47 e o banco da loja (já no 50) ficou sem a coluna */
+    try { $pdo->exec('ALTER TABLE usuarios ADD COLUMN vende INTEGER'); } catch (Throwable $e) { }
+    $pdo->exec('PRAGMA user_version = 51');
   }
   return $pdo;
 }

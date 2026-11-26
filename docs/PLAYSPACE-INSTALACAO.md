@@ -1301,6 +1301,15 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Conserto: "no such column: vende" (2.23)
+
+Na loja, a 2.22 abriu com "SQLSTATE[HY000]: General error: 1 no such column: vende" e o sistema não ligava.
+
+- Causa: a coluna nova da 2.22 (usuarios.vende, "Aparece em 'Quem está vendendo'") foi posta no passo 47 do banco, que só roda em banco antigo. O banco da loja já estava no passo 50: a coluna nunca foi criada.
+- Conserto: o passo 51 cria a coluna em qualquer banco.
+- Para não ficar preso de novo: se o servidor responde com erro ao abrir o sistema (ou logo depois de entrar), a tela mostra o erro com o botão "Atualizar o sistema" e "Tentar de novo" (antes ficava a tela vazia).
+- Como a loja presa na 2.22 pega a 2.23 (uma vez só): entrar com o login do gestor; na tela do erro, F12 → Console → escrever `allow pasting` (se o Chrome pedir) → colar `fetch('atualizar.php?acao=atualizar',{method:'POST',headers:{'X-Pedido':'playspace'}}).then(r=>r.json()).then(j=>{alert(j.ok?'Atualizado!':j.erro);location.reload()})` → Enter.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O cupom com a atendente marcada e quem aparece como vendedor (2.22)
 
 Pedido do dono (27/11): "no nome do comprovante tem que aparecer o nome da atendente que foi marcado, não o nome de quem tá o login ... Não precisa aparecer o nome do José e nem o nome da Renata ... como vendedores da equipe".

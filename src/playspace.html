@@ -2115,7 +2115,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.22';
+const VERSAO = '2.23';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -2597,7 +2597,12 @@ function telaCriarGestor() {
     <button class="bt forte largo tap" data-act="criar-gestor">${ic(IC.check)} Criar e entrar</button>`);
 }
 // 1.25: o gestor começa no painel (a não ser que a página tenha sido aberta numa aba, como #horas)
-async function depoisDeEntrar(doLogin = false) { OCIOSO_ULT = Date.now(); lerEtapas(); await gzRapido(); if (OFF.fila.length) await offEnviar(); await carregar(); if (gestor() && (doLogin || !HASH_INICIO)) S.tela = inicioGestor(); desenhar(); conferirAtualizacao(false); oferecerLimpeza(); }
+/* 2.23: o servidor respondeu com erro ao abrir (ex.: a 2.22 com a coluna "vende" faltando no banco): em vez da tela vazia, o erro e o botão
+   de atualizar, que baixa a versão com a correção */
+function telaErroServidor(msg) { telaSo(`<h1 style="font-size:24px;font-weight:800">Play Space</h1><p class="explica">O servidor respondeu com um erro:</p><p class="explica" id="erro-srv"><b>${esc(msg || 'erro')}</b></p><p class="explica">Toque em <b>Atualizar o sistema</b>: se já existe a versão com a correção, ela é baixada agora.</p>
+    <button type="button" class="bt forte largo tap" data-act="atualizar">${ic(IC.renova)} Atualizar o sistema</button><button type="button" class="link tap lj-senha" data-act="recarregar">Tentar de novo</button>
+    <p class="rodape">Play Space Horas v${VERSAO}</p>`); }
+async function depoisDeEntrar(doLogin = false) { OCIOSO_ULT = Date.now(); lerEtapas(); await gzRapido(); if (OFF.fila.length) await offEnviar(); try { await carregar(); } catch (e) { if (!e.rede && e.status !== 401 && e.status !== 403) telaErroServidor(e.message); throw e; } if (gestor() && (doLogin || !HASH_INICIO)) S.tela = inicioGestor(); desenhar(); conferirAtualizacao(false); oferecerLimpeza(); }
 /* ---------- 0.98: limpar os cadastros (começar do zero) ---------- */
 // Para quando os testes acabam e a loja vai começar de verdade. Saem todos os cadastros (crianças e responsáveis, com as fotos) e o que
 // nasceu deles: horas, vendas, pagamentos, visitas e o movimento do dia. Ficam a equipe, a regra, os serviços, os pacotes, os produtos
@@ -3190,7 +3195,7 @@ async function iniciar() {
       if (e.primeiro_acesso) { fimRapido(); return telaCriarGestor(); }
       if (!e.usuario) { fimRapido(); IDB.tirar('dados'); return telaEntrar(); }
       await depoisDeEntrar(); fimRapido(); ligarSincronia(); return;
-    } catch (err) { fimRapido(); if (!err.rede) { toast(err.message); return; } if (await offAbrirGuardado()) return; }   // 1.40: sem internet, com o que ficou guardado neste aparelho
+    } catch (err) { fimRapido(); if (!err.rede) { toast(err.message); if (err.status !== 401 && err.status !== 403) telaErroServidor(err.message); return; } if (await offAbrirGuardado()) return; }   /* 2.23 */   // 1.40: sem internet, com o que ficou guardado neste aparelho
   }
   semearCuponsPrevia(); ABAS = abasDoPapel(); if (gestor() && !HASH_INICIO) S.tela = inicioGestor(); desenhar(); conferirAtualizacao(false);
 }
@@ -8873,6 +8878,7 @@ const ACOES = {
   'cadastro-zero': () => { RASC_CAD = RASC_CAD.filter(x => x.k !== CAD_K); salvarEtapas(); ETAPA_FEITA = true; folhaCrianca(null); desenhar(true); },
   atualizar: () => ATU.nova ? folhaAtualizar() : conferirAtualizacao(true),
   'atualizar-agora': el => atualizarAgora(el),
+  recarregar: () => location.reload(),   /* 2.23: "Tentar de novo" na tela do erro */
   desfazer: () => { if (!mostraDesfazer()) { DESFAZ = null; clearTimeout(toastT); $('#toast').classList.remove('ve'); return; }   // 1.26: (a tela trocou de papel com o botão aberto)
     const f = DESFAZ;
     if (f && f.atd && pedeAtendente()) { DESFAZ = null; clearTimeout(toastT); $('#toast').classList.remove('ve');   // 1.25: o Desfazer que fica registrado pede o nome antes
