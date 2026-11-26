@@ -1105,6 +1105,7 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .cx-cc-l span { min-width: 0; } .cx-cc-l i { font-style: normal; font-size: 11.5px; font-weight: 600; color: var(--tinta-2); margin-left: 2px; }
 .cx-cc-l.casa span { color: var(--coral); }
 .cx-sub, .cx-tot { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; padding: 9px 12px; border-top: 1px solid var(--borda-2); font-weight: 800; } .cx-sub { background: var(--menta-risco); font-size: 14px; } .cx-tot { background: var(--tinta); color: var(--creme); font-size: 15px; } .cx-tot b { font-size: 18px; }
+.cx-dia { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; } .cx-dia .seg { flex: none; } .cx-data { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: var(--tinta-2); } .cx-data input { width: auto; min-height: 38px; padding: 4px 10px; border-radius: 12px; } .cx-velho { padding: 8px 12px; border-radius: 12px; background: var(--mostarda-2); font-size: 13px; font-weight: 700; }   /* 2.26: o caixa de outro dia */
 .cx-uni { align-self: flex-start; max-width: 100%; } .seg.cx-uni button { flex: 0 0 auto; padding: 0 14px; white-space: nowrap; }
 .fim-chip > svg { flex: none; color: var(--ok); } #esp-filtros.mn-itens .fim-chip > svg { margin-left: -2px; }
 @media (max-width: 560px) { .cx-formas { grid-template-columns: repeat(2, minmax(0, 1fr)); } .cx-cab b { font-size: 24px; } .cx-cab .bt { padding: 0 12px; } .cx-cab .cx-imp { display: none; } }
@@ -2116,7 +2117,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.25';
+const VERSAO = '2.26';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -2351,7 +2352,7 @@ async function api(acao, dados = {}) {
 const dataDe = t => t instanceof Date ? t : new Date(String(t).replace(' ', 'T'));
 // 1.54: o resumo do dia em PDF (o mesmo das Finanças): o servidor monta, a tela baixa. Só o gestor
 async function baixarResumoDia(el) {
-  const d = isoDia(agora); if (el) el.disabled = true; let r;
+  const d = S.cxDia && S.cxDia < cxHoje() ? S.cxDia : isoDia(agora); if (el) el.disabled = true; let r;   /* 2.26: o PDF do dia escolhido no caixa */
   try {
     try { r = await fetch(API, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-Play': '1', ...(minhaUni() ? { 'X-Play-Unidade': String(minhaUni()) } : {}) }, body: JSON.stringify({ acao: 'resumo_pdf', de: d, ate: d }) }); } catch (e) { toast('Sem internet: o PDF do dia precisa da internet.'); return; }
     if (!r.ok || !/pdf/.test(r.headers.get('Content-Type') || '')) { let j = {}; try { j = await r.json(); } catch (e) { /* sem JSON */ } toast(j.erro || 'Não deu para gerar o PDF.'); return; }
@@ -6325,17 +6326,30 @@ const linhaSaiu = c => { const d = new Date(ultVis(c).dia); return `<div class="
 // Todo mundo que saiu hoje (desde a meia-noite), da saída mais nova para a mais velha: a hora em que entrou e saiu, quanto ficou e o que
 // a visita vendeu; e o que voltou para a loja hoje (o carrinho, o fusquinha), com a hora em que saiu e voltou. No servidor a lista vem
 // pronta (S.finalizados); na prévia sai das visitas e das compras.
+/* 2.26 (o dono: "visualizar caixa de ontem, ou selecionar uma data para visualizar o caixa"): o dia do caixa e dos finalizados. S.cxDia é o dia
+   escolhido (vazio = hoje); CX_ATIVO só vale enquanto o caixa e a lista dos finalizados se desenham (o resto da tela continua em hoje) */
+let CXD = null, CX_ATIVO = null;   // CXD: { dia, caixa, finalizados } que o servidor mandou
+const cxHoje = () => isoDia(new Date(agora)), cxOntem = () => { const d = new Date(agora); d.setDate(d.getDate() - 1); return isoDia(d); };
+const cxNoDia = fn => { const ant = CX_ATIVO; CX_ATIVO = S.cxDia && S.cxDia < cxHoje() ? S.cxDia : null; try { return fn(); } finally { CX_ATIVO = ant; } };
+const cxIntervalo = () => { const d0 = CX_ATIVO ? new Date(CX_ATIVO + 'T00:00:00') : new Date(agora); d0.setHours(0, 0, 0, 0); const d1 = new Date(d0); d1.setDate(d1.getDate() + 1); return [d0, CX_ATIVO ? d1 : new Date(8.64e15)]; };
+const cxDm = () => CX_ATIVO ? nascBR(CX_ATIVO).slice(0, 5) + (CX_ATIVO === cxOntem() ? ' (ontem)' : '') : '';
+const cxEsperando = () => !!CX_ATIVO && MODO === 'servidor' && !(CXD && CXD.dia === CX_ATIVO);
+async function cxVerDia(dia) { // escolhe o dia (vazio = hoje) e, no servidor, busca o caixa e os finalizados dele
+  dia = dia && dia < cxHoje() ? dia : ''; S.cxDia = dia || null; const pinta = () => { if ($('#esp-corpo')) atualizarEspaco(); else desenhar(true); }; pinta();
+  if (!dia || MODO !== 'servidor' || (CXD && CXD.dia === dia)) return;
+  try { const r = await api('caixa_dia', { dia }); CXD = { dia, caixa: r.caixa || {}, finalizados: r.finalizados || {} }; if (S.cxDia === dia) pinta(); }
+  catch (e) { toast(e.message); if (S.cxDia === dia) { S.cxDia = null; pinta(); } } }
 function finalizadosHoje() {
-  const d0 = new Date(agora); d0.setHours(0, 0, 0, 0); const V = [], D = [];
-  if (MODO === 'servidor') { const F = S.finalizados || {};
+  const [d0, dFim] = cxIntervalo(); const V = [], D = [];
+  if (MODO === 'servidor') { const F = CX_ATIVO ? (CXD && CXD.dia === CX_ATIVO ? CXD.finalizados || {} : {}) : S.finalizados || {};
     for (const v of F.visitas || []) V.push({ ...v, nome: MAI(v.nome), resp: MAI(v.resp), entrou: dataDe(v.entrou), saiu: dataDe(v.saiu) });
     for (const x of F.devolvidos || []) D.push({ ...x, nome: MAI(x.nome), resp: MAI(x.resp), n: MAI(x.n), saiu: dataDe(x.saiu), voltou: dataDe(x.voltou) }); }
   else { for (const c of S.criancas) { const vis = (c.visitas || []).map(v => ({ v, dia: new Date(v.dia) })).sort((a, b) => a.dia - b.dia);
-      vis.forEach(({ v, dia }, i) => { if (dia < d0) return; const ini = iniVisita(v), d1 = new Date(ini); d1.setHours(0, 0, 0, 0); const ant = i ? +vis[i - 1].dia : 0, de = Math.max(+d1, ant), deSaida = !!ant && ant >= +d1;
+      vis.forEach(({ v, dia }, i) => { if (dia < d0 || dia >= dFim) return; const ini = iniVisita(v), d1 = new Date(ini); d1.setHours(0, 0, 0, 0); const ant = i ? +vis[i - 1].dia : 0, de = Math.max(+d1, ant), deSaida = !!ant && ant >= +d1;
         const L = S.compras.filter(x => x.crianca === c.id && !x.imp && !x.alug && !/^tempo a mais/.test(x.itens || '') && (deSaida ? +x.quando > de + 999 : +x.quando >= de) && +x.quando <= +dia + 999), valor = centavos(L.reduce((t, x) => t + x.v, 0));
         const am = L.filter(x => x.auto && /^avulsa/.test(x.itens || '')).reduce((t, x) => t + minDe(x), 0), al = L.filter(x => x.auto && !/^avulsa/.test(x.itens || '')).reduce((t, x) => t + minDe(x), 0);   // a recreação avulsa da visita numa linha só
         V.push({ id: +dia, crianca: c.id, nome: c.nome, resp: c.resp, entrou: ini, saiu: dia, deb: v.deb, uni: c.uni || null, valor, falta: centavos(L.reduce((t, x) => t + faltaCompra(x), 0)), itens: [...new Set([...(am ? ['RECREAÇÃO avulsa · ' + dur(am)] : []), ...(al ? ['Além do pacote · ' + dur(al)] : []), ...L.filter(x => !x.auto && (x.v > 0 || x.voucher)).map(nomeVendaTxt)])].slice(0, 4) }); }); }
-    const G = new Map(); for (const v of S.compras || []) { if (!v.alug || !v.voltou || v.voltou < d0) continue; const k = v.crianca + '|' + v.alug.s + '|' + +v.voltou, c = crianca(v.crianca);
+    const G = new Map(); for (const v of S.compras || []) { if (!v.alug || !v.voltou || v.voltou < d0 || v.voltou >= dFim) continue; const k = v.crianca + '|' + v.alug.s + '|' + +v.voltou, c = crianca(v.crianca);
       if (!G.has(k)) G.set(k, { crianca: v.crianca, nome: c ? c.nome : '', resp: c ? c.resp : '', s: v.alug.s, n: v.alug.n, q: 0, saiu: v.quando, voltou: v.voltou, valor: 0, uni: v.uni || null });
       const g = G.get(k); g.q += v.alug.m > 0 ? (g.q ? 0 : 1) : (v.alug.q || 1); g.valor = centavos(g.valor + v.v); if (v.quando < g.saiu) g.saiu = v.quando; }
     for (const v of S.compras || []) if (!v.alug && /^tempo a mais/.test(v.itens || '')) for (const g of G.values()) if (g.crianca === v.crianca && Math.abs(+g.voltou - +(v.voltou || v.quando)) < 1500) { g.valor = centavos(g.valor + v.v); break; }
@@ -6363,16 +6377,16 @@ function rotuloFestaCxPrevia(v) { const s = String(v.servico || 'FESTA').trim().
   const dm = d => d.slice(8, 10) + '/' + d.slice(5, 7), vs = (S.compras || []).filter(x => x.festa === f.id && +x.festa_n > 0).map(x => new Date(x.quando)).sort((a, b) => a - b)[0];
   return `${s} · festa de ${f.nome} (${dm(f.data)})${vs && isoDia(vs) !== isoDia(agora) ? ' · a festa foi vendida em ' + dm(isoDia(vs)) : ''}`; }
 function caixaUnidades() { // [{ uni, grupos: { recreacao: { formas, total, vendas, itens } ... } }]: o servidor manda; na prévia, a mesma conta
-  if (MODO === 'servidor') return (S.caixa && S.caixa.unidades) || [];
-  const d0 = new Date(agora); d0.setHours(0, 0, 0, 0); const o = {}, primeira = (unidades()[0] || {}).id || 0;   // (a mesma unidade do painel: o que não tem unidade fica na primeira)
-  for (const p of S.pagamentos || []) { if (!(+new Date(p.quando) >= +d0)) continue; const v = (S.compras || []).find(x => x.id === p.venda); if (!v) continue;
+  if (MODO === 'servidor') return CX_ATIVO ? (CXD && CXD.dia === CX_ATIVO && CXD.caixa ? CXD.caixa.unidades || [] : []) : (S.caixa && S.caixa.unidades) || [];   /* 2.26 */
+  const [d0, dFim] = cxIntervalo(); const o = {}, primeira = (unidades()[0] || {}).id || 0;   // (a mesma unidade do painel: o que não tem unidade fica na primeira)
+  for (const p of S.pagamentos || []) { if (!(+new Date(p.quando) >= +d0 && +new Date(p.quando) < +dFim)) continue; const v = (S.compras || []).find(x => x.id === p.venda); if (!v) continue;
     const u = +(p.uni || v.uni || (crianca(v.crianca) || {}).uni || primeira), g = grupoCxPrevia(v), x = ((o[u] = o[u] || { uni: u, grupos: {} }).grupos[g] = o[u].grupos[g] || { formas: {}, total: 0, vendas: new Set(), itens: {} });
     x.formas[p.f] = centavos((x.formas[p.f] || 0) + (+p.v || 0)); x.total = centavos(x.total + (+p.v || 0)); x.vendas.add(v.id);
     if (g === 'carrinhos') { const nm = String(v.servico || 'CARRINHO').toUpperCase(); x.itens[nm] = centavos((x.itens[nm] || 0) + (+p.v || 0)); }
     if (g === 'festa') { const nm = rotuloFestaCxPrevia(v); x.itens[nm] = centavos((x.itens[nm] || 0) + (+p.v || 0)); } }   // 1.38: de qual festa
-  for (const e of S.estornos || []) { if (!(+new Date(e.quando) >= +d0)) continue; const u = +(e.uni || primeira), x = o[u] = o[u] || { uni: u, grupos: {} }, d = x.dev = x.dev || { total: 0, formas: {}, grupos: {}, itens: {}, n: 0, vs: new Set() };   // 1.31: a venda de outro dia devolvida hoje
+  for (const e of S.estornos || []) { if (!(+new Date(e.quando) >= +d0 && +new Date(e.quando) < +dFim)) continue; const u = +(e.uni || primeira), x = o[u] = o[u] || { uni: u, grupos: {} }, d = x.dev = x.dev || { total: 0, formas: {}, grupos: {}, itens: {}, n: 0, vs: new Set() };   // 1.31: a venda de outro dia devolvida hoje
     d.total = centavos(d.total + e.v); d.formas[e.f] = centavos((d.formas[e.f] || 0) + e.v); d.grupos[e.g] = centavos((d.grupos[e.g] || 0) + e.v); if (e.item) d.itens[e.item] = centavos((d.itens[e.item] || 0) + e.v); d.vs.add(e.venda); d.n = d.vs.size; }
-  { const K = {}; for (const c of S.criancas || []) { if (!(c.entrou || (c.visitas || []).some(v => +new Date(v.dia) >= +d0))) continue; const u = +(c.uni || primeira); (K[u] = K[u] || new Set()).add(c.id); }   /* 2.15: as crianças que passaram pelo espaço hoje */
+  { const K = {}; for (const c of S.criancas || []) { if (!((c.entrou && !CX_ATIVO) || (c.visitas || []).some(v => +new Date(v.dia) >= +d0 && +new Date(v.dia) < +dFim))) continue; const u = +(c.uni || primeira); (K[u] = K[u] || new Set()).add(c.id); }   /* 2.15: as crianças que passaram pelo espaço hoje */
     for (const [u, s] of Object.entries(K)) (o[u] = o[u] || { uni: +u, grupos: {} }).criancas = s.size; }
   return Object.values(o).map(x => ({ uni: x.uni, grupos: Object.fromEntries(Object.entries(x.grupos).map(([k, g]) => [k, { ...g, vendas: g.vendas.size }])), ...(x.dev ? { devolvido: (({ vs, ...d }) => d)(x.dev) } : {}), criancas: x.criancas || 0 })); }
 const cxUni = () => { const U = unidades(); if (!U.length) return 0; return gestor() && S.cxUni != null ? S.cxUni : minhaUni() || 0; };   // 0 = todas
@@ -6402,7 +6416,7 @@ async function criarCasaTom(el) {   /* 1.88: Ajustes → Unidades: a Casa Tom de
 /* 1.88: com a unidade Casa Tom do lugar, o centro de custo vem da unidade em que foi vendido (Play ou Casa Tom); antes do dia da regra nova,
    e nos lugares sem a unidade Casa Tom, a Casa Tom são os produtos que o Play vende (como era) */
 function centrosCusto(u) {   // [[nome, valor, é o Casa Tom, pela unidade]]
-  const U = unidades(), semUni = caixaUnidades().some(x => !x.uni && Object.values(x.grupos || {}).some(g => Math.abs(+g.total || 0) > 0.004)), hoje = isoDia(new Date(agora));
+  const U = unidades(), semUni = caixaUnidades().some(x => !x.uni && Object.values(x.grupos || {}).some(g => Math.abs(+g.total || 0) > 0.004)), hoje = CX_ATIVO || isoDia(new Date(agora));
   const ids = u ? [u] : U.length ? [...U.map(x => x.id), ...(semUni ? [-1] : [])] : [0], M = new Map(), poe = (n, v, casa, nova) => { const x = M.get(n) || [n, 0, casa, nova]; x[1] = centavos(x[1] + v); x[3] = x[3] || nova; M.set(n, x); };
   for (const id of ids) { const K = contaCaixa(id), casa = centavos((K.G.produtos ? K.G.produtos.total : 0) - (K.dev.grupos.produtos || 0)), nm = id > 0 ? ' ' + curtoUni(nomeUni(id)) : id === -1 ? ' · sem unidade' : '';
     if (id > 0 && ehCasaTom(id)) { poe('Casa Tom' + nm, K.total, true, true); continue; }
@@ -6411,45 +6425,49 @@ function centrosCusto(u) {   // [[nome, valor, é o Casa Tom, pela unidade]]
     poe('Play' + nm, centavos(K.total - casa), false, false); poe('Casa Tom' + nm, casa, true, !!ct); }
   return [...M.values()]; }
 const formasCx = F => FORMAS.filter(([f]) => (F || {})[f] > 0).map(([f, n]) => `${n} ${brl2(F[f])}`).join(' · ');
-function htmlCaixaDia() {
+function htmlCaixaDia() { return cxNoDia(htmlCaixaDia0); }
+function htmlCaixaDia0() {
+  const hj = CX_ATIVO ? 'neste dia' : 'hoje', ontem = cxOntem(), selDia = `<div class="cx-dia" role="group" aria-label="Qual dia"><div class="seg">${[['', 'Hoje'], [ontem, 'Ontem']].map(([v, n]) => `<button type="button" class="tap" data-act="cx-dia" data-v="${v}" aria-pressed="${(CX_ATIVO || '') === v}">${n}</button>`).join('')}</div><label class="cx-data">Outro dia <input type="date" id="cx-data" max="${ontem}" value="${CX_ATIVO && CX_ATIVO !== ontem ? CX_ATIVO : ''}" aria-label="Escolher a data do caixa"></label></div>`;   /* 2.26 */
   const u = cxUni(), K = contaCaixa(u), U = unidades(), onde = u === -1 ? 'sem unidade' : u ? nomeUni(u) : U.length > 1 ? 'todas as unidades' : (U[0] || {}).nome || '';
   const CU = caixaUnidades(), comDinheiro = x => Object.values(x.grupos || {}).some(g => Math.abs(+g.total || 0) > 0.004) || (x.devolvido && +x.devolvido.total > 0.004), botoesU = [...U.map(x => [x.id, x.nome]), ...[...new Set(CU.filter(x => x.uni && !U.some(y => y.id === x.uni) && comDinheiro(x)).map(x => x.uni))].map(id => [id, nomeUni(id) || 'UNIDADE ' + id]), ...(CU.some(x => !x.uni && comDinheiro(x)) ? [[-1, 'SEM UNIDADE']] : []), [0, 'TODAS']];   /* 1.45: TODAS = a soma dos botões */
   const linha = (n, sub, g, cls = '') => `<div class="cx-g${cls}"><div class="cx-l"><b>${n}</b><span class="num">${brl2(g ? g.total : 0)}</span></div>${g && g.total > 0 ? `<small>${esc(formasCx(g.formas))}${g.vendas ? ' · ' + g.vendas + (g.vendas === 1 ? ' venda' : ' vendas') : ''}</small>` : sub ? `<small>${sub}</small>` : ''}</div>`;
   const itensF = K.G.festa ? Object.entries(K.G.festa.itens || {}) : [];   // 1.38: o que entrou de cada festa (o upgrade diz quando a festa foi vendida)
-  const grupos = GRUPOS_CX.filter(([k]) => ['recreacao', 'pacotes', 'festa'].includes(k) || (K.G[k] && K.G[k].total > 0)).map(([k, n]) => linha(n, 'nada recebido hoje', K.G[k]) + (k === 'festa' && itensF.length ? `<div class="cx-fes">${itensF.map(([nm, v]) => `<small><span>${esc(nm)}</span><b class="num">${brl2(v)}</b></small>`).join('')}</div>` : '')).join('');
+  const grupos = GRUPOS_CX.filter(([k]) => ['recreacao', 'pacotes', 'festa'].includes(k) || (K.G[k] && K.G[k].total > 0)).map(([k, n]) => linha(n, 'nada recebido ' + hj, K.G[k]) + (k === 'festa' && itensF.length ? `<div class="cx-fes">${itensF.map(([nm, v]) => `<small><span>${esc(nm)}</span><b class="num">${brl2(v)}</b></small>`).join('')}</div>` : '')).join('');
   const gc = K.G.carrinhos, itensC = gc ? Object.entries(gc.itens).sort((a, b) => b[1] - a[1]).map(([n, v]) => `${esc(n)} ${brl2(v)}`).join(' · ') : '';
-  return `<section class="cx" aria-label="Caixa do dia">
-    <div class="cx-cab"><span class="cx-ic">${ic(IC.caixa, 24)}</span><div class="txt"><small>Caixa do dia${onde ? ' · ' + esc(onde) : ''} · desde a meia-noite</small><b class="num">${brl2(K.total)}</b><span>recebido hoje</span></div><button type="button" class="bt tap" data-act="cx-imprimir" aria-label="Imprimir o caixa do dia" title="Imprimir o caixa do dia">${ic(IC.cupom, 16)}<span class="cx-imp">Imprimir</span></button>${MODO === 'servidor' && gestor() ? `<button type="button" class="bt tap" data-act="cx-pdf" aria-label="Baixar o resumo do dia em PDF" title="O resumo do dia em PDF (o mesmo das Finanças)">${ic(IC.baixar, 16)}<span class="cx-imp">PDF do dia</span></button>` : ''}</div>
+  return `<section class="cx" aria-label="Caixa do dia">${selDia}${cxEsperando() ? `<p class="cx-velho">Buscando o caixa de ${cxDm()}…</p>` : ''}
+    <div class="cx-cab"><span class="cx-ic">${ic(IC.caixa, 24)}</span><div class="txt"><small>${CX_ATIVO ? 'Caixa de ' + cxDm() : 'Caixa do dia'}${onde ? ' · ' + esc(onde) : ''}${CX_ATIVO ? ' · o dia inteiro' : ' · desde a meia-noite'}</small><b class="num">${brl2(K.total)}</b><span>${CX_ATIVO ? 'recebido em ' + nascBR(CX_ATIVO) : 'recebido hoje'}</span></div><button type="button" class="bt tap" data-act="cx-imprimir" aria-label="Imprimir o caixa do dia" title="Imprimir o caixa do dia">${ic(IC.cupom, 16)}<span class="cx-imp">Imprimir</span></button>${MODO === 'servidor' && gestor() ? `<button type="button" class="bt tap" data-act="cx-pdf" aria-label="Baixar o resumo do dia em PDF" title="O resumo do dia em PDF (o mesmo das Finanças)">${ic(IC.baixar, 16)}<span class="cx-imp">PDF do dia</span></button>` : ''}</div>
     ${gestor() && botoesU.length > 2 ? `<div class="seg cx-uni">${botoesU.map(([id, n]) => `<button type="button" data-act="cx-uni" data-v="${id}" aria-pressed="${u === id}">${esc(n)}</button>`).join('')}</div>` : ''}
     <div class="cx-formas">${FORMAS.map(([f, n]) => `<div><small>${n}</small><b class="num">${brl2(K.soma[f] || 0)}</b></div>`).join('')}</div>
-    <div class="cx-sub cx-kids"><span>Crianças que passaram pelo espaço hoje</span><b class="num">${K.kids}</b></div>
+    <div class="cx-sub cx-kids"><span>Crianças que passaram pelo espaço ${hj}</span><b class="num">${K.kids}</b></div>
     <div class="cx-grupos">${grupos}
-      ${K.devSem > 0 ? `<div class="cx-g dev"><div class="cx-l"><b>Devolvido hoje</b><span class="num">− ${brl2(K.devSem)}</span></div><small>venda de outro dia cancelada hoje · ${esc(formasCx(K.dev.formas))} · ${K.dev.n} ${K.dev.n === 1 ? 'devolução' : 'devoluções'}${K.dev.grupos.carrinhos ? ` · o carrinho devolvido (${brl2(K.dev.grupos.carrinhos)}) sai da linha Carrinhos` : ''}</small></div>` : ''}
+      ${K.devSem > 0 ? `<div class="cx-g dev"><div class="cx-l"><b>Devolvido ${hj}</b><span class="num">− ${brl2(K.devSem)}</span></div><small>venda de outro dia cancelada ${hj} · ${esc(formasCx(K.dev.formas))} · ${K.dev.n} ${K.dev.n === 1 ? 'devolução' : 'devoluções'}${K.dev.grupos.carrinhos ? ` · o carrinho devolvido (${brl2(K.dev.grupos.carrinhos)}) sai da linha Carrinhos` : ''}</small></div>` : ''}
       <div class="cx-sub"><span>Total sem os carrinhos</span><b class="num">${brl2(K.semCarr)}</b></div>
-      ${linha('Carrinhos', K.dev.grupos.carrinhos ? 'carrinho de outro dia devolvido hoje' : 'nada recebido hoje', gc || K.dev.grupos.carrinhos ? { ...(gc || { formas: {}, vendas: 0, itens: {} }), total: K.carr } : gc, ' carr')}${itensC || K.dev.grupos.carrinhos ? `<small class="cx-carr">${[itensC, K.dev.grupos.carrinhos ? 'devolvido ' + brl2(K.dev.grupos.carrinhos) : ''].filter(Boolean).join(' · ')}</small>` : ''}
+      ${linha('Carrinhos', K.dev.grupos.carrinhos ? 'carrinho de outro dia devolvido ' + hj : 'nada recebido ' + hj, gc || K.dev.grupos.carrinhos ? { ...(gc || { formas: {}, vendas: 0, itens: {} }), total: K.carr } : gc, ' carr')}${itensC || K.dev.grupos.carrinhos ? `<small class="cx-carr">${[itensC, K.dev.grupos.carrinhos ? 'devolvido ' + brl2(K.dev.grupos.carrinhos) : ''].filter(Boolean).join(' · ')}</small>` : ''}
       <div class="cx-tot"><span>Total do dia</span><b class="num">${brl2(K.total)}</b></div>
       <div class="cx-cc" aria-label="Centro de custo"><small>Centro de custo</small>${centrosCusto(u).map(([n, v, casa, pelaUni]) => `<div class="cx-cc-l${casa ? ' casa' : ''}"><span>${esc(n)} ${pelaUni ? (casa ? '<i>vendido na Casa Tom</i>' : '<i>vendido no Play</i>') : casa ? '<i>só produtos</i>' : '<i>horas, recreação, festas, carrinhos</i>'}</span><b class="num">${brl2(v)}</b></div>`).join('')}</div></div>
   </section>`;
 }
-function papelCaixa() { const u = cxUni(), K = contaCaixa(u), L = lojaPapel(), lin = (r, v, cls = '') => `<p class="c-linha c-pt${cls}"><span>${r}</span><i></i><span>${v}</span></p>`;
+function papelCaixa() { return cxNoDia(papelCaixa0); }
+function papelCaixa0() { const u = cxUni(), K = contaCaixa(u), L = lojaPapel(), lin = (r, v, cls = '') => `<p class="c-linha c-pt${cls}"><span>${r}</span><i></i><span>${v}</span></p>`;
   return `<div class="papel loja relp"><div class="c-topo"><span class="c-logo cor">${LOGO}</span><span class="c-logo pb">${LOGO_PB}</span><div class="c-quem"><p class="c-loja">${esc(L.nome)}</p>${u ? `<p class="c-uni">${esc(u === -1 ? 'SEM UNIDADE' : nomeUni(u))}</p>` : ''}${L.tel ? `<p class="c-fone">${esc(L.tel)}</p>` : ''}</div></div>
-    <p class="c-via"><span>CAIXA DO DIA</span><span>${dataCurta(agoraJa())}</span></p>
+    <p class="c-via"><span>${CX_ATIVO ? 'CAIXA DE ' + nascBR(CX_ATIVO) : 'CAIXA DO DIA'}</span><span>${CX_ATIVO ? 'impresso ' : ''}${dataCurta(agoraJa())}</span></p>
     <p class="c-cab"><span>Por forma de pagamento</span><span>Valor</span></p>${FORMAS.map(([f, n]) => lin(n, brl2(K.soma[f] || 0))).join('')}
     <p class="c-div"></p><p class="c-cab"><span>Pelo que foi pago</span><span>Valor</span></p>
     ${GRUPOS_CX.filter(([k]) => ['recreacao', 'pacotes', 'festa'].includes(k) || (K.G[k] && K.G[k].total > 0)).map(([k, n]) => lin(n, brl2(K.G[k] ? K.G[k].total : 0)) + (k === 'festa' && K.G.festa ? Object.entries(K.G.festa.itens || {}).map(([nm, v]) => `<p class="c-sub">${esc(nm)}: ${brl2(v)}</p>`).join('') : '')).join('')}
-    ${K.devSem > 0 ? lin('Devolvido hoje', '− ' + brl2(K.devSem)) + `<p class="c-sub">venda de outro dia cancelada · ${esc(formasCx(K.dev.formas))}</p>` : ''}
+    ${K.devSem > 0 ? lin(CX_ATIVO ? 'Devolvido neste dia' : 'Devolvido hoje', '− ' + brl2(K.devSem)) + `<p class="c-sub">venda de outro dia cancelada · ${esc(formasCx(K.dev.formas))}</p>` : ''}
     ${lin('Sem os carrinhos', brl2(K.semCarr), ' c-total')}
     ${lin('Carrinhos', brl2(K.carr))}${K.G.carrinhos ? Object.entries(K.G.carrinhos.itens).map(([n, v]) => `<p class="c-sub">${esc(n)}: ${brl2(v)}</p>`).join('') : ''}${K.dev.grupos.carrinhos ? `<p class="c-sub">devolvido: − ${brl2(K.dev.grupos.carrinhos)}</p>` : ''}
-    <p class="c-div"></p>${lin('TOTAL DO DIA', brl2(K.total), ' c-total')}${lin('Crianças no espaço hoje', String(K.kids))}
+    <p class="c-div"></p>${lin('TOTAL DO DIA', brl2(K.total), ' c-total')}${lin(CX_ATIVO ? 'Crianças no espaço neste dia' : 'Crianças no espaço hoje', String(K.kids))}
     <p class="c-div"></p><p class="c-cab"><span>Centro de custo</span><span>Valor</span></p>${centrosCusto(u).map(([n, v]) => lin(esc(n), brl2(v))).join('')}
     <p class="c-rod">emitido por ${esc(MAI(primeiro(EU.nome || 'equipe')))}</p></div>`; }
-function corpoFinalizados(q) {
+function corpoFinalizados(q) { return cxNoDia(() => corpoFinalizados0(q)); }
+function corpoFinalizados0(q) {
   const F = finalizadosHoje(), achou = x => !q || (x.nome + ' ' + x.resp).toLowerCase().includes(q) || (crianca(x.crianca) && casaBusca(crianca(x.crianca), q)) || (x.n && x.n.toLowerCase().includes(q));
   const V = F.V.filter(achou), D = F.D.filter(achou), varias = new Set([...F.V, ...F.D].map(x => x.uni || 0)).size > 1, tot = centavos([...V, ...D].reduce((t, x) => t + (x.valor || 0), 0));
-  if (!V.length && !D.length) return `<div class="esp-fora fim">${htmlCaixaDia()}<p class="explica">${F.V.length + F.D.length ? 'Ninguém com essa busca entre os finalizados de hoje.' : 'Ninguém saiu hoje ainda.'} <button class="link tap" data-act="esp-filtro" data-f="todas">Ver quem está no espaço</button></p></div>`;
-  return `<div class="esp-fora fim">${htmlCaixaDia()}<small class="rot">Finalizados hoje · ${[V.length ? V.length + (V.length === 1 ? ' saída' : ' saídas') : '', D.length ? D.length + (D.length === 1 ? ' devolução' : ' devoluções') : ''].filter(Boolean).join(' · ')}${tot > 0 ? ' · ' + brl(tot) : ''}</small>
+  if (!V.length && !D.length) return `<div class="esp-fora fim">${htmlCaixaDia()}<p class="explica">${F.V.length + F.D.length ? 'Ninguém com essa busca entre os finalizados ' + (CX_ATIVO ? 'de ' + cxDm() : 'de hoje') + '.' : cxEsperando() ? '' : CX_ATIVO ? 'Ninguém saiu neste dia.' : 'Ninguém saiu hoje ainda.'} <button class="link tap" data-act="esp-filtro" data-f="todas">Ver quem está no espaço</button></p></div>`;
+  return `<div class="esp-fora fim">${htmlCaixaDia()}<small class="rot">${CX_ATIVO ? 'Finalizados em ' + cxDm() : 'Finalizados hoje'} · ${[V.length ? V.length + (V.length === 1 ? ' saída' : ' saídas') : '', D.length ? D.length + (D.length === 1 ? ' devolução' : ' devoluções') : ''].filter(Boolean).join(' · ')}${tot > 0 ? ' · ' + brl(tot) : ''}</small>
     ${V.length ? `<div class="grupo">${V.map(x => linhaFim(x, varias)).join('')}</div>` : ''}
-    ${D.length ? `<small class="rot">Voltaram para a loja hoje</small><div class="grupo">${D.map(x => linhaFimAlug(x, varias)).join('')}</div>` : ''}
+    ${D.length ? `<small class="rot">Voltaram para a loja ${CX_ATIVO ? 'neste dia' : 'hoje'}</small><div class="grupo">${D.map(x => linhaFimAlug(x, varias)).join('')}</div>` : ''}
     <p class="explica">Toque no nome para abrir a ficha do cliente (o histórico, os cupons). <button class="link tap" data-act="esp-filtro" data-f="todas">Ver quem está no espaço</button></p></div>`;
 }
 // "Saíram há pouco" é o único botão ao lado da busca, e só aparece quando há alguém no prazo de reabrir a visita
@@ -8982,9 +9000,10 @@ const ACOES = {
     el.disabled = true; try { const r = await api('visita_corrigir', { visita: +el.dataset.v, quando: hh, motivo }); await carregar(); fecharFolha(); desenhar(); deuCerto(`Saída corrigida para ${hh} · ${dur(r.debitado)} debitados${r.desfeitas ? ' · ' + brl(r.valor) + ' de atraso desfeito' : ''}`); } catch (e) { toast(e.message); el.disabled = false; } },
   'esp-serv': el => { S.espServ = el.dataset.s || ''; S.espFiltro = 'todas'; if (S.tela !== 'horas') { if (mnLigado()) S.espBusca = ''; trocarTela('horas'); return; } atualizarEspaco(); },   /* o filtro por serviço da lista da tela inicial */
   'cx-uni': el => { S.cxUni = +el.dataset.v; atualizarEspaco(); },   /* 1.30 */
+  'cx-dia': el => cxVerDia(el.dataset.v || ''),   /* 2.26: Hoje | Ontem */
   'cx-imprimir': () => imprimirPapel([papelCaixa()]),
   'cx-pdf': el => baixarResumoDia(el),   /* 1.54 */
-  'esp-filtro': el => { const f = el.dataset.f; S.espFiltro = S.tela === 'horas' && espFiltro() === f && f !== 'todas' ? 'todas' : f; if (S.tela !== 'horas') { if (mnLigado()) S.espBusca = ''; trocarTela('horas'); return; } atualizarEspaco(); },
+  'esp-filtro': el => { const f = el.dataset.f; if (f !== 'fim') S.cxDia = null;   /* 2.26: fora de Finalizados, o caixa volta para hoje */ S.espFiltro = S.tela === 'horas' && espFiltro() === f && f !== 'todas' ? 'todas' : f; if (S.tela !== 'horas') { if (mnLigado()) S.espBusca = ''; trocarTela('horas'); return; } atualizarEspaco(); },
   'mn-grupo': el => { const g = el.dataset.g, f = mnFechados(), i = f.indexOf(g); if (i < 0) f.push(g); else f.splice(i, 1); guardar('ps-menu-fechados', f); nav(); },   /* 1.28: abrir ou fechar um grupo do menu (fica guardado no aparelho) */
   'mn-consultar': () => { S.bancoFiltro = 'todas'; if (S.tela !== 'banco') { S.bancoBusca = ''; trocarTela('banco'); } else desenhar(true); setTimeout(() => { const i = $('#banco-busca'); if (i) { i.focus(); i.select(); } }, 90); },   /* 1.28: Consultar cliente: o Banco de horas com todos os clientes e o cursor já na busca */   /* "Saíram há pouco": tocar de novo volta para quem está no espaço */
   devolver: el => { SAI_VOLTA = null; AV_VOLTA = null; devolver(el.dataset.id, el.dataset.s); },
@@ -9404,6 +9423,7 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('change', e => {
   const t = e.target; if (t.id === 'pc-parc') { contaPacote(); return; }
+  if (t.id === 'cx-data') { if (t.value) cxVerDia(t.value); return; }   /* 2.26: o caixa de outro dia */
   if (t.id === 'sv-banco' || t.id === 'sv-volta') { svContaVer(); return; }   /* 1.20: a escolha de quando a conta fecha aparece ou some com as marcas do serviço */
   if ((t.id === 'rel-de' || t.id === 'rel-ate') && REL) { REL.per = 'datas'; REL.de = ($('#rel-de') || {}).value || ''; REL.ate = ($('#rel-ate') || {}).value || ''; desenharRelatorio(); return; }   /* 1.19: as datas do relatório do cliente */
   if (t.id === 'v-entrar' && CARRINHO) { CARRINHO.entrar = t.checked; atualizarCarrinho(); return; }   /* 1.68: com a entrada, o pedido abre agora (pede quem está atendendo) */

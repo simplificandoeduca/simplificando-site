@@ -189,6 +189,11 @@ switch ($acao) {
     if ($n === 0) $db->prepare("INSERT OR IGNORE INTO config (chave, valor) VALUES ('instalado_em', ?)")->execute([(string)time()]);   // 1.49: a hora em que o site novo foi aberto pela primeira vez
     responder(['primeiro_acesso' => $n === 0, 'usuario' => eu(), 'versao' => PLAY_VERSAO]);
   }
+  case 'caixa_dia': { /* 2.26: o caixa e os finalizados de outro dia (Finalizados do dia → Ontem / outra data); quem não é o gestor vê só a unidade dele */
+    $u = exigir(); $dia = (string)($in['dia'] ?? ''); if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dia) || !checkdate((int)substr($dia, 5, 2), (int)substr($dia, 8, 2), (int)substr($dia, 0, 4))) falha('Escolha uma data.');
+    if ($dia > date('Y-m-d')) falha('Esse dia ainda não chegou.'); session_write_close(); $so = $u['papel'] === 'gestor' ? 0 : (int)(unidadeDoPedido() ?? 0);
+    responder(['dia' => $dia, 'caixa' => caixaDoDia($so, $dia), 'finalizados' => finalizadosDoDia($so, $dia)]);
+  }
   case 'criar_gestor': { // só quando ainda não existe ninguém
     if ((int)$db->query('SELECT COUNT(*) FROM usuarios')->fetchColumn() > 0) falha('O primeiro gestor já foi criado. Entre com o login dele.', 409);
     // 1.49 (auditoria): o primeiro gestor só nasce nas 2 primeiras horas depois que o site novo foi aberto (quem instala cria logo em seguida);

@@ -1301,6 +1301,14 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O caixa de ontem ou de outro dia, em Finalizados do dia (2.26)
+
+Pedido do dono (26/11): "na opção finalizados do dia, eu tenho que ter uma opção de visualizar caixa de ontem, ou selecionar uma data para visualizar o caixa".
+
+- No caixa (no alto de Finalizados do dia e na Venda do dia da Casa Tom): "Hoje | Ontem | Outro dia" (com a data). Escolhido outro dia, o caixa e a lista dos finalizados mostram aquele dia inteiro, da meia-noite à meia-noite: o recebido por forma e pelo que foi pago, os carrinhos, o devolvido, as crianças que passaram e quem saiu. "Imprimir" imprime o caixa daquele dia.
+- Quem não é o gestor vê só a unidade dele, como no caixa de hoje. Ao sair de Finalizados, o caixa volta para hoje.
+- Servidor: caixa_dia { dia } devolve o caixa e os finalizados do dia.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Toda busca pelo CPF, nome, telefone ou nome da criança (2.25)
 
 Pedido do dono (26/11): "todas as buscas sejam feitas pelo CPF, por nome ou pelo telefone ... Ou pelo nome da criança".
