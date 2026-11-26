@@ -1301,6 +1301,17 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Carrinho de bebê sem tempo em nenhum lugar (2.18)
+
+Pedido do dono (27/11): "o carrinho de bebê não precisa rodar horas pois ele é fixo e só tem no Morumbi".
+
+- A lista já dizia "DIA TODO" (2.15). Agora o carrinho de preço único (o de bebê) não mostra quanto tempo ficou fora em lugar nenhum:
+  - na folha da devolução e na conta do responsável: "saiu às 10:00 · preço do dia";
+  - nos comprovantes da devolução (as duas vias) e da conta do responsável: "Saiu 10:00 · voltou 11:10 · preço do dia";
+  - no aviso da devolução, sem o "ficou".
+- O fusquinha continua com o tempo (ele é cobrado por período).
+- Só no Morumbi: o carrinho de bebê e o fusquinha já estão fora da Anália desde a 1.99. Para conferir: Ajustes → Serviços → o carrinho → "Tem nas unidades" (só o Morumbi marcado).
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Pacote ou Avulso sempre à vista na saída (2.17)
 
 Pedido do dono (27/11): "no final eu tenho que ter a opção de cobrar ou no avulso ou no pacote", e o pai com 3 crianças sai com as 3 de uma vez, descontando de um pacote só, ou uma no avulso e o resto no pacote.

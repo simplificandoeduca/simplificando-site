@@ -1303,8 +1303,8 @@ function planoPelasHoras(array $c): ?string {
   $q = db()->prepare('SELECT 1 FROM fam_horas WHERE desfeito = 0 AND (para = ? OR de = ?) LIMIT 1'); $q->execute([(int)$c['id'], (int)$c['id']]); if (!$q->fetchColumn()) return null;
   return (int)$c['pacote_min'] - autosDaVisitaMin($c) - (int)$c['usado_min'] > 0 ? 'pacote' : 'avulso';
 }
-function desfazerHorasDaFamilia(array $c, string $desde): int {   // o Desfazer da saída: as horas voltam para os irmãos
-  $db = db(); $q = $db->prepare('SELECT * FROM fam_horas WHERE para = ? AND quando >= ? AND desfeito = 0 AND tipo = \'sai\''); $q->execute([(int)$c['id'], $desde]); $n = 0;
+function desfazerHorasDaFamilia(array $c, string $desde, string $tipo = 'sai'): int {   // o Desfazer da saída (2.18: e o da entrada, tipo 'ent'): as horas voltam para os irmãos
+  $db = db(); $q = $db->prepare('SELECT * FROM fam_horas WHERE para = ? AND quando >= ? AND desfeito = 0 AND tipo = ?'); $q->execute([(int)$c['id'], $desde, $tipo]); $n = 0;
   foreach ($q->fetchAll() as $x) {
     $db->prepare('UPDATE criancas SET pacote_min = MAX(0, pacote_min - ?) WHERE id = ?')->execute([(int)$x['minutos'], (int)$c['id']]);
     $db->prepare('UPDATE criancas SET pacote_min = pacote_min + ? WHERE id = ?')->execute([(int)$x['minutos'], (int)$x['de']]);

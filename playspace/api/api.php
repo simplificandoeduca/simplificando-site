@@ -611,6 +611,7 @@ switch ($acao) {
     }
     $tirou = tirarAutosDaVisita($c);   // 1.15: a recreação avulsa que o sistema lançou para esta entrada sai junto (a entrada nunca existiu)
     tirarPresencaDaEntrada($c);   // 1.29: a entrada na festa desfeita não conta como criança que veio
+    desfazerHorasDaFamilia($c, (string)$c['entrou'], 'ent');   /* 2.18: as horas do CPF que vieram com a entrada voltam para os irmãos */
     $db->prepare('UPDATE criancas SET entrou = NULL, sapateira = NULL, festa_id = NULL WHERE id = ?')->execute([$c['id']]);   // 1.16: a sapateira marcada nesta entrada fica livre de novo
     if ($tirou['n']) { $k = crianca((int)$c['id']); if ($k && restante($k) < periodo() && regra()['bloqueioAuto'] === 'sim' && (!isset($k['liberado']) || (int)$k['liberado'])) bloquearAcesso($k, false); }
     if (!empty($in['registro'])) $db->prepare('DELETE FROM registros WHERE id = ? AND crianca_id = ?')->execute([(int)$in['registro'], $c['id']]);
