@@ -1040,6 +1040,13 @@ switch ($acao) {
     if ($p['crianca_id'] !== null) registrar('alt', (int)$p['crianca_id'], (string)$p['nome'], 'Nota fiscal nº ' . $p['numero'] . ' cancelada (' . dinheiro((float)$p['valor']) . ') · Motivo: ' . $m . ' · por ' . maiusculo(primeiroNome((string)$u['nome'])));
     responder(['pedido' => pedidoPublico(pedido((int)$p['id'])), 'pedidos' => pedidosDaTela($u)]);
   }
+  case 'pedidos_historico': { /* 2.29 (o dono: "o histórico de autorização para que a gente consiga ver quem autorizou e o que autorizou"): os pedidos de um período, pelo dia em que foram pedidos */
+    $u = exigir(['gestor', 'supervisor']); session_write_close(); $ok = fn($d) => preg_match('/^\d{4}-\d{2}-\d{2}$/', $d) && checkdate((int)substr($d, 5, 2), (int)substr($d, 8, 2), (int)substr($d, 0, 4));
+    $de = (string)($in['de'] ?? ''); $ate = (string)($in['ate'] ?? ''); if (!$ok($de) || !$ok($ate)) falha('Escolha as datas.'); if ($ate < $de) [$de, $ate] = [$ate, $de];
+    if ((strtotime($ate . ' 12:00:00') - strtotime($de . ' 12:00:00')) / 86400 > 400) falha('Escolha um período de até 400 dias.');
+    $q = $db->prepare('SELECT * FROM pedidos WHERE pedido_em >= ? AND pedido_em < ? ORDER BY id DESC LIMIT 3000'); $q->execute([$de . ' 00:00:00', date('Y-m-d', strtotime($ate . ' 12:00:00') + 86400) . ' 00:00:00']);
+    responder(['de' => $de, 'ate' => $ate, 'pedidos' => array_map('pedidoPublico', $q->fetchAll())]);
+  }
   case 'pedidos_lista': { // a conferência das autorizações: gestor e supervisor veem todas; o operador, as que ele pediu
     $u = exigir(); session_write_close();
     $sql = 'SELECT p.* FROM pedidos p';

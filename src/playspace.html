@@ -1106,6 +1106,10 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .cx-cc-l.casa span { color: var(--coral); }
 .cx-sub, .cx-tot { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; padding: 9px 12px; border-top: 1px solid var(--borda-2); font-weight: 800; } .cx-sub { background: var(--menta-risco); font-size: 14px; } .cx-tot { background: var(--tinta); color: var(--creme); font-size: 15px; } .cx-tot b { font-size: 18px; }
 .cx-dia { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; } .cx-dia .seg { flex: none; } .cx-data { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: var(--tinta-2); } .cx-data input { width: auto; min-height: 38px; padding: 4px 10px; border-radius: 12px; } .cx-velho { padding: 8px 12px; border-radius: 12px; background: var(--mostarda-2); font-size: 13px; font-weight: 700; }   /* 2.26: o caixa de outro dia */
+.ha { display: flex; flex-direction: column; gap: 10px; } .ha-f { display: flex; flex-wrap: wrap; gap: 6px; } .ha-f button { padding: 7px 12px; border-radius: 999px; border: 1px solid var(--borda); background: var(--card); font-weight: 700; font-size: 13px; color: var(--tinta); }
+.ha-f button[aria-pressed="true"] { background: var(--tinta); color: var(--creme); border-color: var(--tinta); } .ha-datas { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; } .ha-datas label { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: var(--tinta-2); } .ha-datas input { width: auto; min-height: 36px; padding: 4px 10px; border-radius: 12px; }
+.ha-res { margin: 2px 0 8px; font-size: 13.5px; font-weight: 800; } .ha .ha-l .txt { gap: 3px; } .ha .ha-l .txt .ha-top { display: flex; flex-direction: row; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ha .ha-l .txt .ha-top .pill { display: inline-flex; width: auto; flex: none; } .ha .ha-l .txt .ha-top small { font-size: 12px; color: var(--tinta-2); } .ha .ha-l .txt span b { display: inline; font-size: inherit; } .ha .ha-l .txt > b { font-size: 15px; } .ha .ha-l .txt .ha-r { font-size: 12px; color: var(--tinta-2); }   /* 2.29: o histórico de autorizações */
 .cx-uni { align-self: flex-start; max-width: 100%; } .seg.cx-uni button { flex: 0 0 auto; padding: 0 14px; white-space: nowrap; }
 .fim-chip > svg { flex: none; color: var(--ok); } #esp-filtros.mn-itens .fim-chip > svg { margin-left: -2px; }
 @media (max-width: 560px) { .cx-formas { grid-template-columns: repeat(2, minmax(0, 1fr)); } .cx-cab b { font-size: 24px; } .cx-cab .bt { padding: 0 12px; } .cx-cab .cx-imp { display: none; } }
@@ -2117,7 +2121,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.28';
+const VERSAO = '2.29';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -6754,7 +6758,7 @@ function telaPainel() {
     <div class="pn-lista" id="pn-nf">${r.nfL.length ? r.nfL.slice(0, 8).map(nfLi).join('') + (r.nfL.length > 8 ? `<p class="pn-nada">E mais ${r.nfL.length - 8}: todas em Finanças → Notas fiscais.</p>` : '') : '<p class="pn-nada">Nenhuma nota fiscal emitida hoje.</p>'}</div></div>`;
   return faixa('Painel', `${h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite'}, ${primeiro(EU.nome)} · ${dataTxt()}`, chipAvisos()) + `
   <section class="painel" data-uni="${id}">
-    <div class="card pn-aprov-c${nP ? ' tem' : ''}"><div class="sec-cab"><h2>Para aprovar <span class="pill p-erro" id="pn-n">${nP || ''}</span></h2><span class="pn-links"><button type="button" class="link tap" data-ir="aprovar">Abrir Aprovações</button><button type="button" class="link tap" data-act="autorizacoes">Autorizações</button><button type="button" class="link tap" data-act="cancelamentos">Cancelamentos</button></span></div><div class="pn-aprov" id="pn-aprov">${htmlAprovar()}</div><button type="button" class="bt forte tap pn-aprov-ir" data-ir="aprovar">${ic(IC.aprovar, 18)} Abrir Aprovações <span id="pn-n2">${nP ? '(' + nP + ')' : ''}</span></button></div>
+    <div class="card pn-aprov-c${nP ? ' tem' : ''}"><div class="sec-cab"><h2>Para aprovar <span class="pill p-erro" id="pn-n">${nP || ''}</span></h2><span class="pn-links"><button type="button" class="link tap" data-ir="aprovar">Abrir Aprovações</button><button type="button" class="link tap" data-act="autorizacoes">Autorizações</button><button type="button" class="link tap" data-act="hist-aut">Histórico</button><button type="button" class="link tap" data-act="cancelamentos">Cancelamentos</button></span></div><div class="pn-aprov" id="pn-aprov">${htmlAprovar()}</div><button type="button" class="bt forte tap pn-aprov-ir" data-ir="aprovar">${ic(IC.aprovar, 18)} Abrir Aprovações <span id="pn-n2">${nP ? '(' + nP + ')' : ''}</span></button></div>
     ${sel}
     <div class="pn-kpis">${kpis}</div>
     ${comp}
@@ -6839,7 +6843,7 @@ function telaAprovar() {
     ${PUSH.estado !== 'ligado' ? htmlPush() : ''}
     <div class="ap-lista" id="ap-lista">${htmlAprovarTela()}</div>
     ${PUSH.estado === 'ligado' ? htmlPush() : ''}
-    <div class="ap-pe">${gestor() ? `<button type="button" class="bt tap" data-ir="painel">${ic(IC.painel, 18)} Painel</button>` : ''}<button type="button" class="bt tap" data-act="autorizacoes">Autorizações já respondidas</button><button type="button" class="bt tap" data-act="cancelamentos">Todos os cancelamentos</button></div>
+    <div class="ap-pe">${gestor() ? `<button type="button" class="bt tap" data-ir="painel">${ic(IC.painel, 18)} Painel</button>` : ''}<button type="button" class="bt tap" data-act="autorizacoes">Autorizações já respondidas</button>${supervisorOuMais() ? `<button type="button" class="bt tap" data-act="hist-aut">${ic(IC.historico, 18)} Histórico de autorizações</button>` : ''}<button type="button" class="bt tap" data-act="cancelamentos">Todos os cancelamentos</button></div>
   </section>`;
 }
 // A tela inicial é só a lista de quem está no espaço: a criança, o responsável, o tempo e a Saída. O resto abre ao tocar na criança.
@@ -7912,6 +7916,46 @@ async function desistirPedido(id, el) { // (no histórico) quem pediu o cancelam
 
 /* ---- a conferência: o que foi pedido, quem liberou e como; as notas autorizadas que esperam o número ---- */
 let AUT_LISTA = null;
+/* ---- 2.29 (o dono: "no gestor ... o histórico de autorização para que a gente consiga ver quem autorizou e o que autorizou"): os pedidos de um
+   período, com quem pediu, quem autorizou (ou negou), como e o resultado. Filtros: o período, o tipo, a situação e a busca ---- */
+let HA = null;   // { de, ate, per, tipo, st, q, L, carregando }
+const HA_TIPOS = [['', 'Todos'], ['desconto', 'Descontos'], ['valor', 'Alterar valor/pacote'], ['cancelar_venda', 'Cancelamentos'], ['parcelas', 'Crédito 5x a 12x'], ['nf', 'Notas fiscais'], ['venda_futura', 'Venda/Pacote futuro']];
+const HA_ST = [['', 'Todas'], ['sim', 'Liberados'], ['nao', 'Negados'], ['esp', 'Esperando']];
+const haSit = p => p.status === 'pendente' ? 'esp' : p.status === 'negado' ? 'nao' : ['liberado', 'usado'].includes(p.status) ? 'sim' : 'out';
+const haComo = p => p.como === 'senha' ? 'com a senha, no balcão' : p.como === 'proprio' ? 'ele mesmo (pediu e já liberou)' : p.como === 'toque' ? 'na tela dele (celular ou computador)' : '';
+const haQuemPediu = p => { const at = p.dados && p.dados.atendente ? String(p.dados.atendente) : '', lg = p.por || ''; return at && MAI(primeiro(at)) !== MAI(primeiro(lg)) ? `${MAI(at)} (login ${MAI(primeiro(lg))})` : MAI(lg); };
+const haDia = d => { const x = new Date(agora); x.setDate(x.getDate() - d); return isoDia(x); };
+function haPeriodo(per) { const h = isoDia(new Date(agora)); return per === 'ontem' ? [haDia(1), haDia(1)] : per === '7' ? [haDia(6), h] : per === '30' ? [haDia(29), h] : [h, h]; }
+async function folhaHistAut() { if (!supervisorOuMais()) { toast('Só o gestor e o supervisor veem o histórico'); return; }
+  const [de, ate] = haPeriodo('hoje'); HA = { de, ate, per: 'hoje', tipo: '', st: '', q: '', L: null };
+  abrirFolha('Histórico de autorizações', `<div class="ha" id="ha">${htmlHistAut()}</div>`); await haCarregar(); }
+async function haCarregar() { if (!HA) return; HA.L = null; haPinta(); const { de, ate } = HA;
+  try { const L = MODO === 'servidor' ? (await api('pedidos_historico', { de, ate })).pedidos.map(pedidoDe) : (S.pedidos || []).filter(p => { const d = isoDia(new Date(p.em)); return d >= de && d <= ate; }).sort((a, b) => b.id - a.id);
+    if (HA && HA.de === de && HA.ate === ate) { HA.L = L; haPinta(); } }
+  catch (e) { toast(e.message); if (HA) { HA.L = []; haPinta(); } } }
+const haPinta = () => { const a = $('#ha-corpo'); if (a) a.innerHTML = htmlHistAutCorpo(); else { const h = $('#ha'); if (h) h.innerHTML = htmlHistAut(); } };
+function htmlHistAut() { if (!HA) return '';
+  const bt = (act, v, n, on) => `<button type="button" class="tap" data-act="${act}" data-v="${v}" aria-pressed="${on}">${n}</button>`;
+  return `<div class="ha-f" role="group" aria-label="Período">${[['hoje', 'Hoje'], ['ontem', 'Ontem'], ['7', '7 dias'], ['30', '30 dias']].map(([v, n]) => bt('ha-per', v, n, HA.per === v)).join('')}</div>
+    <div class="ha-datas"><label>De <input type="date" id="ha-de" value="${HA.de}" max="${isoDia(new Date(agora))}"></label><label>até <input type="date" id="ha-ate" value="${HA.ate}" max="${isoDia(new Date(agora))}"></label></div>
+    <div class="ha-f" role="group" aria-label="Tipo">${HA_TIPOS.map(([v, n]) => bt('ha-tipo', v, n, HA.tipo === v)).join('')}</div>
+    <div class="ha-f" role="group" aria-label="Situação">${HA_ST.map(([v, n]) => bt('ha-st', v, n, HA.st === v)).join('')}</div>
+    <div class="campo"><input id="ha-busca" value="${esc(HA.q)}" placeholder="Buscar cliente, quem pediu ou quem autorizou" autocomplete="off" aria-label="Buscar no histórico"></div>
+    <div id="ha-corpo">${htmlHistAutCorpo()}</div>`; }
+function htmlHistAutCorpo() { if (!HA) return ''; if (!HA.L) return '<p class="explica">Buscando as autorizações…</p>';
+  const q = semAc(HA.q.trim()), L = HA.L.filter(p => (!HA.tipo || p.tipo === HA.tipo) && (!HA.st || haSit(p) === HA.st) && (!q || semAc([p.texto, p.nome, p.resp, p.por, p.dec, p.motivo, (p.dados || {}).atendente].join(' ')).includes(q)));
+  const n = s => L.filter(p => haSit(p) === s).length, desc = centavos(L.filter(p => p.tipo === 'desconto' && haSit(p) === 'sim').reduce((t, p) => t + (+p.valor || 0), 0));
+  const per = HA.de === HA.ate ? nascBR(HA.de) : nascBR(HA.de) + ' a ' + nascBR(HA.ate);
+  const res = `<p class="ha-res">${per} · ${L.length} ${L.length === 1 ? 'pedido' : 'pedidos'} · ${n('sim')} ${n('sim') === 1 ? 'liberado' : 'liberados'} · ${n('nao')} ${n('nao') === 1 ? 'negado' : 'negados'}${n('esp') ? ' · ' + n('esp') + ' esperando' : ''}${desc > 0 ? ' · descontos liberados: ' + brl(desc) : ''}</p>`;
+  if (!L.length) return res + '<p class="explica">Nenhuma autorização neste período' + (HA.tipo || HA.st || q ? ' com estes filtros' : '') + '.</p>';
+  const linha = p => { const [cls, txt] = estadoPedido(p), sit = haSit(p);
+    return `<div class="it ha-l"><div class="txt"><span class="ha-top"><span class="pill ${cls}">${esc(txt)}</span><small>${dataPedido(p.em)}</small></span><b>${esc(p.texto)}</b>
+      <span>${esc(p.resp ? p.resp + ' · ' + p.nome : p.nome)}${p.motivo ? ' · Motivo: ' + esc(p.motivo) : ''}</span>
+      <span>Pediu: <b>${esc(haQuemPediu(p))}</b></span>
+      ${p.dec ? `<span>${sit === 'nao' ? 'Negou' : 'Autorizou'}: <b>${esc(MAI(p.dec))}</b>${haComo(p) ? ' · ' + haComo(p) : ''}${p.dec_em ? ' · ' + dataPedido(p.dec_em) : ''}</span>` : sit === 'esp' ? '<span>Ainda esperando a resposta</span>' : ''}
+      ${p.resultado ? `<span class="ha-r">${esc(p.resultado)}</span>` : ''}</div>
+      ${p.crianca ? `<span class="it-ac"><button type="button" class="link tap" data-act="aut-cliente" data-id="${p.crianca}">Ver cliente</button></span>` : ''}</div>`; };
+  return res + `<div class="grupo">${L.slice(0, 400).map(linha).join('')}</div>${L.length > 400 ? `<p class="explica">Mostrando 400 de ${L.length}: escolha um período menor ou use os filtros.</p>` : ''}`; }
 async function folhaAutorizacoes() { abrirFolha('Autorizações', `<div id="aut-corpo" style="display:flex;flex-direction:column;gap:14px"><p class="explica">Buscando os pedidos…</p></div>`); await carregarAutorizacoes(); }
 async function carregarAutorizacoes() {
   try { AUT_LISTA = MODO === 'servidor' ? (await api('pedidos_lista')).pedidos.map(pedidoDe) : (S.pedidos || []).filter(p => supervisorOuMais() || pedMeu(p)).map(p => ({ ...p, sem_venda: !semVendaTipo(p.tipo) && !S.compras.some(v => v.id === p.venda) })).sort((a, b) => b.id - a.id); }
@@ -7925,7 +7969,7 @@ function htmlAutorizacoes() {
     return `<div class="it aut-l"><div class="txt"><b>${esc(p.texto)}</b><span>${esc(p.resp ? p.resp + ' · ' + p.nome : p.nome)}${p.motivo ? ' · Motivo: ' + esc(p.motivo) : ''}</span><span>pedido por ${esc(primeiro(p.por))}, ${dataPedido(p.em)}${p.dec ? ` · ${p.status === 'negado' ? 'negado' : p.como === 'proprio' ? 'feito' : 'liberado'} por ${esc(primeiro(p.dec))}${p.como === 'senha' ? ' (senha)' : p.como === 'toque' ? ' (toque)' : ''}` : ''}${p.sem_venda && p.tipo === 'nf' && p.status === 'usado' ? ' · <b class="np">A VENDA FOI CANCELADA: CANCELAR A NOTA</b>' : ''}</span>
       ${decide ? `<span class="it-ac"><button type="button" class="bt forte tap" data-act="ped-ok" data-id="${p.id}">${ic(IC.check, 16, 2.6)} ${p.tipo === 'nf' ? 'Autorizar' : p.tipo === 'valor' ? 'Aprovar' : 'Liberar'}</button><button type="button" class="bt tap" data-act="ped-nao" data-id="${p.id}">Negar</button></span>` : p.tipo === 'nf' && p.status === 'liberado' && !p.sem_venda && crianca(p.crianca) ? `<button type="button" class="link tap canc-v" data-act="aut-cliente" data-id="${p.crianca}">Abrir o histórico do cliente para marcar o número</button>` : ''}</div><span class="pill ${cls}">${esc(txt)}</span></div>`; };
   const sec = (tit, lista, pill) => lista.length ? `<div class="sec"><div class="sec-cab"><h2 style="font-size:16px">${tit}</h2>${pill ? `<span class="pill ${pill}">${lista.length}</span>` : ''}</div><div class="grupo">${lista.map(linha).join('')}</div></div>` : '';
-  return sec('Esperando resposta', esp, 'p-aviso') + sec('Notas fiscais a emitir', nfs, 'p-ok') + (resto.length ? sec('Últimos pedidos', resto, '') : esp.length || nfs.length ? '' : `<p class="explica">Nenhum pedido ainda. Quando alguém pede um desconto, uma alteração de valor, o cancelamento de uma venda ou uma nota fiscal, fica guardado aqui: quem pediu, quem liberou e como (com um toque na tela, ou com a senha).</p>`);
+  return (supervisorOuMais() ? `<button type="button" class="bt tap" data-act="hist-aut">${ic(IC.historico, 18)} Histórico de autorizações (por data)</button>` : '') + sec('Esperando resposta', esp, 'p-aviso') + sec('Notas fiscais a emitir', nfs, 'p-ok') + (resto.length ? sec('Últimos pedidos', resto, '') : esp.length || nfs.length ? '' : `<p class="explica">Nenhum pedido ainda. Quando alguém pede um desconto, uma alteração de valor, o cancelamento de uma venda ou uma nota fiscal, fica guardado aqui: quem pediu, quem liberou e como (com um toque na tela, ou com a senha).</p>`);
 }
 
 /* ---- (prévia) os pedidos, como no servidor ---- */
@@ -9159,7 +9203,11 @@ const ACOES = {
   'canc-motivo': el => { const alvo = el.dataset.alvo || 'x-motivo', t = $('#' + alvo); if (!t) return; t.value = el.dataset.t; const cp = $('#' + alvo + '-campo'); if (cp) cp.classList.remove('falta'); t.focus(); t.setSelectionRange(t.value.length, t.value.length); },   // (1.20: o motivo do cancelamento da saída do carrinho usa o mesmo atalho, em outro campo)
   'canc-visto': el => marcarVisto(+el.dataset.id), 'canc-vistos': () => marcarVisto(0),
   'ped-ok': el => decidirPedido(el.dataset.id, true, el), 'ped-nao': el => decidirPedido(el.dataset.id, false, el), 'ped-desistir': el => desistirPedido(el.dataset.id, el),   // 1.23: os pedidos de autorização
-  'aut-min': () => { AUT_MIN = !AUT_MIN; desenharPedidos(); }, autorizacoes: () => folhaAutorizacoes(), 'aut-cliente': el => { const id = +el.dataset.id; fecharFolha(); setTimeout(() => abrirHistorico(id), 300); },
+  'aut-min': () => { AUT_MIN = !AUT_MIN; desenharPedidos(); }, autorizacoes: () => folhaAutorizacoes(),
+  'hist-aut': () => folhaHistAut(),   /* 2.29 */
+  'ha-per': el => { if (!HA) return; const [de, ate] = haPeriodo(el.dataset.v); Object.assign(HA, { per: el.dataset.v, de, ate }); const h = $('#ha'); if (h) h.innerHTML = htmlHistAut(); haCarregar(); },
+  'ha-tipo': el => { if (!HA) return; HA.tipo = el.dataset.v || ''; $$('[data-act="ha-tipo"]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === HA.tipo))); haPinta(); },
+  'ha-st': el => { if (!HA) return; HA.st = el.dataset.v || ''; $$('[data-act="ha-st"]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === HA.st))); haPinta(); }, 'aut-cliente': el => { const id = +el.dataset.id; fecharFolha(); setTimeout(() => abrirHistorico(id), 300); },
   'desc-pedir': el => pedirDesconto(el), 'desc-largar': () => largarDesconto(),
   'desc-sem': () => { if (!DESC) return; if (DESC.negId) NEG_VISTO.add(DESC.negId); Object.assign(DESC, { neg: null, negId: 0, v: '', motivo: '', ped: 0, lib: null, espera: false }); descRedesenha(); descMudou(); travaRefaz(); },   /* 1.54: negado, cobra sem o desconto */
   'alt-sem': () => { if (!ALT) return; if (ALT.negId) NEG_VISTO.add(ALT.negId); Object.assign(ALT, { neg: null, negId: 0, motivo: '', aberto: false }); const l = linhasDoCarrinho().find(x => altChave(x) === ALT.k); if (l) { ALT.v = valTxt(l.v); ALT.hh = l.pac != null ? String(l.ph) : ''; ALT.vp = ''; } altRedesenha(); altMudou(); travaRefaz(); },
@@ -9424,6 +9472,7 @@ document.addEventListener('click', e => {
 document.addEventListener('change', e => {
   const t = e.target; if (t.id === 'pc-parc') { contaPacote(); return; }
   if (t.id === 'cx-data') { if (t.value) cxVerDia(t.value); return; }   /* 2.26: o caixa de outro dia */
+  if ((t.id === 'ha-de' || t.id === 'ha-ate') && HA && t.value) { HA[t.id === 'ha-de' ? 'de' : 'ate'] = t.value; if (HA.ate < HA.de) [HA.de, HA.ate] = [HA.ate, HA.de]; HA.per = ''; $$('[data-act="ha-per"]').forEach(b => b.setAttribute('aria-pressed', 'false')); haCarregar(); return; }   /* 2.29 */
   if (t.id === 'sv-banco' || t.id === 'sv-volta') { svContaVer(); return; }   /* 1.20: a escolha de quando a conta fecha aparece ou some com as marcas do serviço */
   if ((t.id === 'rel-de' || t.id === 'rel-ate') && REL) { REL.per = 'datas'; REL.de = ($('#rel-de') || {}).value || ''; REL.ate = ($('#rel-ate') || {}).value || ''; desenharRelatorio(); return; }   /* 1.19: as datas do relatório do cliente */
   if (t.id === 'v-entrar' && CARRINHO) { CARRINHO.entrar = t.checked; atualizarCarrinho(); return; }   /* 1.68: com a entrada, o pedido abre agora (pede quem está atendendo) */
@@ -9463,6 +9512,7 @@ document.addEventListener('input', e => {
   if (e.target.id === 'lz-senha') pintarLimpeza();
   if (e.target.id === 'im-texto') { clearTimeout(IM_T); const v = e.target.value; if (/[\n\t]/.test(v)) IM_T = setTimeout(() => { const q = $('#im-texto'); if (q && q.value === v) mostrarPlanilha(lerTabela(v), ''); }, 500); }   /* a planilha escrita ou colada no quadro (onde o colar não passa pelo evento de baixo) */
   if (e.target.id === 'adm-busca') { const l = $('#adm-lista'); if (l) l.innerHTML = linhasAdmin(e.target.value); }
+  if (e.target.id === 'ha-busca' && HA) { HA.q = e.target.value; const a = $('#ha-corpo'); if (a) a.innerHTML = htmlHistAutCorpo(); }   /* 2.29 */
   if (e.target.id === 's-hora' && $('#s-conta')) previaSaida();
   if (e.target.id === 'banco-busca') { S.bancoBusca = e.target.value; const l = $('#banco-lista'); if (l) l.innerHTML = linhasBanco(); }
   if (e.target.id === 'busca') { const q = e.target.value; $('#lista-criancas').innerHTML = itensLista(S.criancas.filter(c => bateCliente(c, q))); }   /* 2.25 */

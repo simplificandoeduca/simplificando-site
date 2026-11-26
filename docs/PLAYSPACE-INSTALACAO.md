@@ -1301,6 +1301,15 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O histórico de autorizações (2.29)
+
+Pedido do dono (26/11): "no gestor eu quero que você coloque também o histórico de autorização para que a gente consiga ver quem autorizou e o que autorizou".
+
+- "Histórico de autorizações" (gestor e supervisor): no Painel (Para aprovar → Histórico), em Aprovações (embaixo) e no alto da folha Autorizações.
+- Período: Hoje, Ontem, 7 dias, 30 dias ou de ... até ... (até 400 dias). Tipo: descontos, alterar valor/pacote, cancelamentos (inclui "Tirar o pacote"), crédito em 5x a 12x, notas fiscais, venda/pacote futuro. Situação: liberados, negados, esperando. Busca por cliente, quem pediu ou quem autorizou.
+- Cada linha: a situação, o que foi pedido, o cliente, o motivo, quem pediu (a atendente e o login), quem autorizou ou negou, como (na tela dele, com a senha no balcão, ou ele mesmo) e quando, e o resultado. "Ver cliente" abre o histórico do cliente. No alto, o resumo do período (pedidos, liberados, negados, esperando e o total dos descontos liberados).
+- Servidor: pedidos_historico { de, ate }, pelo dia em que foi pedido.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O Banco de horas só com "Todas | Com tempo guardado" (2.28)
 
 Pedido do dono (26/11): "tira também o pacote acabou. Deixa só com o tempo guardado e todos". Quem tinha outro filtro guardado vê todas.
