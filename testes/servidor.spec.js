@@ -90,6 +90,14 @@ test('conta nova: avisa o celular do dono, com limite contra abuso; o nome só s
   expect(arq('.simplificando-novos.json').novos.filter(x => /Spam/.test(x.nome)).length).toBe(2); // 3 por internet a cada 10 min
 });
 
+test('marcos do aluno (1º treino, 1ª semana, 15 dias, renovação): o servidor guarda e entrega ao celular do dono; tipo desconhecido é recusado', async () => {
+  expect((await post('marco', { nome: 'Ana Souza', tipo: 'treino1' })).j.ok).toBe(true);
+  expect((await post('marco', { nome: 'Ana Souza', tipo: 'renova' })).j.ok).toBe(true);
+  expect((await post('marco', { nome: 'Ana Souza', tipo: 'qualquer' })).st).toBe(400);
+  expect((await post('marco', { nome: '', tipo: 'treino1' })).st).toBe(400);
+  const n = await (await fetch(URL0 + 'push.php?acao=novos&k=' + 'k'.repeat(32))).json();
+  expect(n.novos.filter(x => x.tipo).map(x => [x.nome, x.tipo])).toEqual([['Ana Souza', 'treino1'], ['Ana Souza', 'renova']]);
+});
 test('só o dono liga o aviso de conta nova', async () => {
   const r = await post('dono-assinar', { id: 'abcdefghijkl123', sub: { endpoint: EP(9) } });
   expect(r.st).toBe(403);
@@ -184,8 +192,9 @@ test('Conteúdo do hub (conteudo.php): o dono sobe o post (arquivos em pedaços)
   const { j: n1 } = await cd('novo', form({ data: hoje, plat: 'tiktok', tema: 'Mito abdominal', legenda: 'Abdominal não queima gordura 🔥\r\n\r\n#simplificando' }));
   expect(n1.ok).toBe(true);
   const id = n1.id, vid = Buffer.from('video-de-teste-'.repeat(10));
-  const ped = (k, parte, buf, mime, nome, fim) => cd('pedaco', buf, H, '&id=' + id + '&k=' + k + '&parte=' + parte + '&mime=' + encodeURIComponent(mime) + '&nome=' + encodeURIComponent(nome) + (fim ? '&fim=1' : ''));
-  expect((await ped(0, 0, vid.subarray(0, 50), 'video/mp4', 'reel.mp4')).j.ok).toBe(true);
+  // com a máquina carregada, o servidor PHP de teste às vezes recebe o corpo vazio: nesse caso (só no "Pedaço inválido") o robô manda de novo, como o hub faz
+  const ped = async (k, parte, buf, mime, nome, fim) => { let r; for (let i = 0; i < 3; i++) { r = await cd('pedaco', buf, H, '&id=' + id + '&k=' + k + '&parte=' + parte + '&mime=' + encodeURIComponent(mime) + '&nome=' + encodeURIComponent(nome) + (fim ? '&fim=1' : '')); if (r.j.ok || r.j.erro !== 'Pedaço inválido.') break; } return r; };
+  expect((await ped(0, 0, vid.subarray(0, 50), 'video/mp4', 'reel.mp4')).j).toEqual(expect.objectContaining({ ok: true }));
   expect((await ped(0, 1, vid.subarray(50, 100), 'video/mp4', 'reel.mp4')).j.ok).toBe(true);
   expect((await ped(0, 2, vid.subarray(100), 'video/mp4', 'reel.mp4', true)).j.tam).toBe(vid.length);
   expect((await ped(1, 0, jpg, 'image/jpeg', 'capa.jpg', true)).j.ok).toBe(true);

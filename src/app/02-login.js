@@ -269,7 +269,7 @@ function applyAccount(){
     OBRIG = (Array.isArray(mc.obrig) ? mc.obrig : []).filter(o => o && LOCAIS_ALL.includes(o.local) && +o.min>0).map(o => ({ local:o.local, min:Math.round(+o.min), vezes:Math.max(1, Math.min(7, +o.vezes||0)) || 0, dias:(o.dias||[]).filter(d => DAYK.includes(d)), obs:String(o.obs||'').slice(0,140) }));
     LOCAIS = LOCAIS_ALL.slice(); // todos os aparelhos sempre aparecem para o aluno
     ACCT.dias = (a.perfil.dias||[]).map(d => DAYK.indexOf(d)).filter(n => n>=0).sort((x,y) => x-y);
-    ACCT.sexo = a.perfil.sexo==='M' ? 'M' : 'F'; ACCT.nome = a.perfil.nome; ACCT.plano = a.plano.nome; ACCT.pagoAte = a.financeiro && a.financeiro.pagoAte;
+    ACCT.sexo = a.perfil.sexo==='M' ? 'M' : 'F'; ACCT.nome = a.perfil.nome; ACCT.plano = a.plano.nome; ACCT.pagoAte = a.financeiro && a.financeiro.pagoAte; ACCT.cicloIni = /^\d{4}-\d{2}-\d{2}$/.test(a.plano.inicio||'') ? a.plano.inicio : ''; ACCT.cicloSem = +a.plano.semanas || 0;
     SEMANA_TREINOS = a.metas.semanaTreinos || ACCT.dias.length || 3;
     S.nome = firstName(a.perfil.nome); if(ED[a.perfil.objetivo]) S.ed = a.perfil.objetivo;
     S.waterGoal = a.metas.waterGoal || 3000; S.cardioGoal = a.metas.cardioGoal===0 ? 0 : (a.metas.cardioGoal || 120); // 0 = sem meta de cardio
@@ -317,7 +317,7 @@ function startApp(){
   document.body.classList.remove('locked');
   applyLook(); window.scrollTo(0,0); render();
   if(AFTER==='meus' && ACCT.mode==='self' && !(S.inst==='novo' && instMobile())){ AFTER = null; setTimeout(mtOpen, 400); }
-  fbRefresh(); instAsk(); acompAsk(); siteAsk(); avalAsk(); telAsk();
+  fbRefresh(); instAsk(); acompAsk(); siteAsk(); avalAsk(); telAsk(); marcosVe();
   try { const vv = localStorage.getItem('simp-app-v'); if(vv && vv!==APPV) setTimeout(() => toast('App atualizado: versão '+APPV), 900); localStorage.setItem('simp-app-v', APPV); } catch(e){ /* sem armazenamento */ }
 }
 function logout(){

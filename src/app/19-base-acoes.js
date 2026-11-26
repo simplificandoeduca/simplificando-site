@@ -160,7 +160,7 @@ function finish(){
     return o; }).filter(Boolean);
   const hiD = new Date(sesIni(ses)), hi = String(hiD.getHours()).padStart(2,'0')+':'+String(hiD.getMinutes()).padStart(2,'0');
   const novo = {date:t0, t:ses.t, min, sec, hr, hi, vol:Math.round(vol), sets, prs:prd.map(x => x.id), prd, rpe:0, note:'', gym:ses.gym||'', ex:det}; S.history.push(novo); if(t0!==hoje) S.history.sort((x,y) => x.date<y.date ? -1 : x.date>y.date ? 1 : 0);
-  S.session = null; ui.rest = null; renderRest(); treinoAviso();
+  S.session = null; ui.rest = null; renderRest(); treinoAviso(); marcosVe();
   ui.sheet = {k:'sum', i:S.history.indexOf(novo)}; renderSheet(true); // primeiro o resumo; o story fica no botão "Compartilhar no story"
 }
 

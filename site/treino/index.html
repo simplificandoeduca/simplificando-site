@@ -2414,7 +2414,7 @@ function applyAccount(){
     OBRIG = (Array.isArray(mc.obrig) ? mc.obrig : []).filter(o => o && LOCAIS_ALL.includes(o.local) && +o.min>0).map(o => ({ local:o.local, min:Math.round(+o.min), vezes:Math.max(1, Math.min(7, +o.vezes||0)) || 0, dias:(o.dias||[]).filter(d => DAYK.includes(d)), obs:String(o.obs||'').slice(0,140) }));
     LOCAIS = LOCAIS_ALL.slice(); // todos os aparelhos sempre aparecem para o aluno
     ACCT.dias = (a.perfil.dias||[]).map(d => DAYK.indexOf(d)).filter(n => n>=0).sort((x,y) => x-y);
-    ACCT.sexo = a.perfil.sexo==='M' ? 'M' : 'F'; ACCT.nome = a.perfil.nome; ACCT.plano = a.plano.nome; ACCT.pagoAte = a.financeiro && a.financeiro.pagoAte;
+    ACCT.sexo = a.perfil.sexo==='M' ? 'M' : 'F'; ACCT.nome = a.perfil.nome; ACCT.plano = a.plano.nome; ACCT.pagoAte = a.financeiro && a.financeiro.pagoAte; ACCT.cicloIni = /^\d{4}-\d{2}-\d{2}$/.test(a.plano.inicio||'') ? a.plano.inicio : ''; ACCT.cicloSem = +a.plano.semanas || 0;
     SEMANA_TREINOS = a.metas.semanaTreinos || ACCT.dias.length || 3;
     S.nome = firstName(a.perfil.nome); if(ED[a.perfil.objetivo]) S.ed = a.perfil.objetivo;
     S.waterGoal = a.metas.waterGoal || 3000; S.cardioGoal = a.metas.cardioGoal===0 ? 0 : (a.metas.cardioGoal || 120); // 0 = sem meta de cardio
@@ -2462,7 +2462,7 @@ function startApp(){
   document.body.classList.remove('locked');
   applyLook(); window.scrollTo(0,0); render();
   if(AFTER==='meus' && ACCT.mode==='self' && !(S.inst==='novo' && instMobile())){ AFTER = null; setTimeout(mtOpen, 400); }
-  fbRefresh(); instAsk(); acompAsk(); siteAsk(); avalAsk(); telAsk();
+  fbRefresh(); instAsk(); acompAsk(); siteAsk(); avalAsk(); telAsk(); marcosVe();
   try { const vv = localStorage.getItem('simp-app-v'); if(vv && vv!==APPV) setTimeout(() => toast('App atualizado: versão '+APPV), 900); localStorage.setItem('simp-app-v', APPV); } catch(e){ /* sem armazenamento */ }
 }
 function logout(){
@@ -3451,6 +3451,19 @@ async function suConta(){
   if(FB) FB.perfil({ tipo:'autonomo', nome:cleanName(f.nome), email, plano:'', treinos:0, criadoEm:Date.now(), ultimoAcesso:Date.now(), ver:APPV });
 }
 /* conta nova: avisa o celular do dono (push.php manda a notificação; nada sai daqui além do nome, objetivo e tipo de treino) */
+/* marcos de quem treina com personal: 1º treino, 1ª semana, 15 dias e ciclo acabando. O personal recebe um aviso no celular para mandar a mensagem de acompanhamento.
+   Cada marco é avisado uma vez por ciclo (S.marcos guarda o início do ciclo e o que já foi avisado). */
+function marcosVe(){
+  if(!EM_TESTE || TESTE_LOCAL || !ACCT || !isPersonal() || !S || S.example) return;
+  const H0 = (S.history||[]).map(h => h.date).sort(), ini = ACCT.cicloIni || H0[0] || '', H = H0.filter(d => !ini || d>=ini), t = today();
+  let m = S.marcos; if(!m || m.ini!==ini) m = S.marcos = { ini };
+  const manda = (k, tipo) => { if(m[k] || m['_'+k]) return; m['_'+k] = 1;
+    fetch('/push.php?acao=marco', {method:'POST', keepalive:true, body:JSON.stringify({nome:String(ACCT.nome||S.nome||'').slice(0,40), tipo})}).then(r => { delete m['_'+k]; if(r.ok){ m[k] = t; save(); } }).catch(() => { delete m['_'+k]; }); };
+  if(H.length) manda('t1', 'treino1');
+  if(H.length && (H.filter(d => diffDays(d, H[0])<7).length >= (SEMANA_TREINOS||3) || diffDays(t, H[0])>=7)) manda('s1', 'semana1');
+  if(H.length && diffDays(t, ini || H[0])>=14) manda('d15', 'dias15');
+  if(ACCT.cicloIni && ACCT.cicloSem && diffDays(addDays(ACCT.cicloIni, ACCT.cicloSem*7), t)<=5) manda('rn', 'renova');
+}
 function novoAviso(nome, ed, plano){ if(TESTE_LOCAL) return; try { fetch('/push.php?acao=novo', {method:'POST', keepalive:true, body:JSON.stringify({nome:String(nome||'').slice(0,40), ed:ed||'', plano:plano||''})}).catch(() => {}); } catch(e){ /* sem internet: segue */ } }
 /* perfil antigo, salvo só no aparelho (de antes de existir conta): vira uma conta com todo o histórico */
 function suMigra(uid, email){
@@ -6806,7 +6819,7 @@ function finish(){
     return o; }).filter(Boolean);
   const hiD = new Date(sesIni(ses)), hi = String(hiD.getHours()).padStart(2,'0')+':'+String(hiD.getMinutes()).padStart(2,'0');
   const novo = {date:t0, t:ses.t, min, sec, hr, hi, vol:Math.round(vol), sets, prs:prd.map(x => x.id), prd, rpe:0, note:'', gym:ses.gym||'', ex:det}; S.history.push(novo); if(t0!==hoje) S.history.sort((x,y) => x.date<y.date ? -1 : x.date>y.date ? 1 : 0);
-  S.session = null; ui.rest = null; renderRest(); treinoAviso();
+  S.session = null; ui.rest = null; renderRest(); treinoAviso(); marcosVe();
   ui.sheet = {k:'sum', i:S.history.indexOf(novo)}; renderSheet(true); // primeiro o resumo; o story fica no botão "Compartilhar no story"
 }
 

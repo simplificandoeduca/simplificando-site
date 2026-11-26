@@ -83,3 +83,34 @@ test.describe('no celular', () => {
     expect(await page.evaluate(() => window.__painel.ui.view)).toBe('alunos');
   });
 });
+
+test('abas do aluno: as caixinhas começam minimizadas, abrem ao tocar no título e "Abrir tudo" abre todas', async ({ page }) => {
+  await page.addInitScript(() => { try { localStorage.setItem('simp-teste-ui', JSON.stringify({ cxAbertas: false })); } catch (e) {} });
+  await abreDemo(page);
+  const id = await page.evaluate(() => Object.keys(window.__painel.C.alunos)[0]);
+  await vai(page, '#aluno--' + id + '--metas');
+  const cx = page.locator('.tabpane section.card.cx');
+  await expect(cx.first()).toBeVisible();
+  const n = await cx.count(); expect(n).toBeGreaterThan(1);
+  await expect(page.locator('.tabpane section.card.cx.cx-min')).toHaveCount(n);
+  await cx.first().locator('.cx-h').click();
+  await expect(page.locator('.tabpane section.card.cx.cx-min')).toHaveCount(n - 1);
+  await page.click('[data-cx-todas="1"]');
+  await expect(page.locator('.tabpane section.card.cx.cx-min')).toHaveCount(0);
+  await page.click('[data-cx-todas="0"]');
+  await expect(page.locator('.tabpane section.card.cx.cx-min')).toHaveCount(n);
+});
+
+test('novo aluno: colar a resposta do primeiro contato preenche o cadastro e a ficha', async ({ page }) => {
+  await abreDemo(page);
+  await vai(page, '#alunos'); await page.click('[data-a="novo"]');
+  await page.fill('#nv-resp', '1) Mariana Costa de Souza, pode me chamar de Mari, (11) 98765-4321, 12/03/1995, mari.souza@email.com, 62 kg, 1,65\n2) quero emagrecer e definir\n4) treino ha 1 ano, mas estou parada faz 3 meses\n5) 4x por semana, 1 hora\n7) academia\n8) nao');
+  await page.click('[data-a="nvLer"]');
+  await expect(page.locator('#nv-nome')).toHaveValue('Mariana Costa de Souza');
+  await expect(page.locator('#nv-apelido')).toHaveValue('Mari');
+  await expect(page.locator('#nv-wa')).toHaveValue('11987654321');
+  await expect(page.locator('#nv-email')).toHaveValue('mari.souza@email.com');
+  await page.click('[data-a="createAluno"]');
+  const p = await page.evaluate(() => { const C = window.__painel.C.alunos, a = Object.values(C).find(x => x.perfil.nome === 'Mariana Costa de Souza'); return a && { ...a.perfil, freq: a.plano.frequencia }; });
+  expect(p).toMatchObject({ apelido: 'Mari', sexo: 'F', nascimento: '1995-03-12', peso: 62, altura: 165, objetivo: 'emagrecer', freq: 4, tempoSessao: 60, local: 'academia' });
+});

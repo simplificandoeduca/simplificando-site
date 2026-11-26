@@ -410,6 +410,19 @@ async function suConta(){
   if(FB) FB.perfil({ tipo:'autonomo', nome:cleanName(f.nome), email, plano:'', treinos:0, criadoEm:Date.now(), ultimoAcesso:Date.now(), ver:APPV });
 }
 /* conta nova: avisa o celular do dono (push.php manda a notificação; nada sai daqui além do nome, objetivo e tipo de treino) */
+/* marcos de quem treina com personal: 1º treino, 1ª semana, 15 dias e ciclo acabando. O personal recebe um aviso no celular para mandar a mensagem de acompanhamento.
+   Cada marco é avisado uma vez por ciclo (S.marcos guarda o início do ciclo e o que já foi avisado). */
+function marcosVe(){
+  if(!EM_TESTE || TESTE_LOCAL || !ACCT || !isPersonal() || !S || S.example) return;
+  const H0 = (S.history||[]).map(h => h.date).sort(), ini = ACCT.cicloIni || H0[0] || '', H = H0.filter(d => !ini || d>=ini), t = today();
+  let m = S.marcos; if(!m || m.ini!==ini) m = S.marcos = { ini };
+  const manda = (k, tipo) => { if(m[k] || m['_'+k]) return; m['_'+k] = 1;
+    fetch('/push.php?acao=marco', {method:'POST', keepalive:true, body:JSON.stringify({nome:String(ACCT.nome||S.nome||'').slice(0,40), tipo})}).then(r => { delete m['_'+k]; if(r.ok){ m[k] = t; save(); } }).catch(() => { delete m['_'+k]; }); };
+  if(H.length) manda('t1', 'treino1');
+  if(H.length && (H.filter(d => diffDays(d, H[0])<7).length >= (SEMANA_TREINOS||3) || diffDays(t, H[0])>=7)) manda('s1', 'semana1');
+  if(H.length && diffDays(t, ini || H[0])>=14) manda('d15', 'dias15');
+  if(ACCT.cicloIni && ACCT.cicloSem && diffDays(addDays(ACCT.cicloIni, ACCT.cicloSem*7), t)<=5) manda('rn', 'renova');
+}
 function novoAviso(nome, ed, plano){ if(TESTE_LOCAL) return; try { fetch('/push.php?acao=novo', {method:'POST', keepalive:true, body:JSON.stringify({nome:String(nome||'').slice(0,40), ed:ed||'', plano:plano||''})}).catch(() => {}); } catch(e){ /* sem internet: segue */ } }
 /* perfil antigo, salvo só no aparelho (de antes de existir conta): vira uma conta com todo o histórico */
 function suMigra(uid, email){

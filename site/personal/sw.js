@@ -14,12 +14,18 @@ self.addEventListener('push', e => {
   e.waitUntil(caches.open('simp-dono').then(c => c.match(DONO).then(r => r ? r.json() : null).then(d => {
     if (!d || !d.k) return geral();
     return fetch('/push.php?acao=novos&k=' + encodeURIComponent(d.k) + '&desde=' + (d.ult || 0), { cache: 'no-store' }).then(r => r.json()).then(j => {
-      const L = (j && j.novos) || []; if (!L.length) return geral();
-      const u = L[L.length - 1]; d.ult = u.em;
+      const T = (j && j.novos) || []; if (!T.length) return geral();
+      d.ult = T[T.length - 1].em;
+      // marcos dos alunos (1º treino, 1ª semana, 15 dias, renovação): um aviso por marco, que abre a lista de alunos
+      const MARCO = { treino1: [' fez o 1º treino 💪', 'Mande a mensagem do 1º treino.'], semana1: [' fechou a 1ª semana ✅', 'Mande a análise da 1ª semana.'], dias15: [' completou 15 dias de treino', 'Hora do check-in de 15 dias.'], renova: [': o ciclo está acabando', 'Hora de mandar a mensagem de renovação.'] };
+      const M = T.filter(x => x.tipo && MARCO[x.tipo]), L = T.filter(x => !x.tipo);
+      const avM = M.map(x => self.registration.showNotification(x.nome + MARCO[x.tipo][0], { body: MARCO[x.tipo][1] + ' · ' + hm(x.em), icon: 'icon-p-192.png', badge: 'icon-p-192.png', tag: 'marco-' + x.tipo + '-' + x.em, data: { url: BASE + '#alunos' } }));
+      if (!L.length) return c.put(DONO, json(d)).then(() => Promise.all(avM));
+      const u = L[L.length - 1];
       const info = x => [x.nome, ED[x.ed] || '', PL[x.plano] || '', hm(x.em)].filter(Boolean).join(' · ');
       const t = L.length === 1 ? 'Nova conta no Simplificando 🎉' : L.length + ' contas novas no Simplificando 🎉';
       const b = L.length === 1 ? info(u) : L.slice(-3).map(x => x.nome).join(', ') + (L.length > 3 ? ' e mais ' + (L.length - 3) : '') + '.';
-      return c.put(DONO, json(d)).then(() => self.registration.showNotification(t, { body: b, icon: 'icon-p-192.png', badge: 'icon-p-192.png', tag: 'novo', renotify: true, data: { url: BASE + '#perfis' } }));
+      return c.put(DONO, json(d)).then(() => Promise.all(avM.concat([self.registration.showNotification(t, { body: b, icon: 'icon-p-192.png', badge: 'icon-p-192.png', tag: 'novo', renotify: true, data: { url: BASE + '#perfis' } })])));
     });
   })).catch(geral));
 });

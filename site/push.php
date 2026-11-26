@@ -104,6 +104,28 @@ if ($acao === 'novo') {
   if ($mudou) grava_arq($ARQ_DONO, $D);
   sai(['ok' => true]);
 }
+// ---------- marcos do aluno com personal (1º treino, 1ª semana, 15 dias, renovação): avisa o dono para mandar a mensagem de acompanhamento ----------
+if ($acao === 'marco') {
+  if ($_SERVER['REQUEST_METHOD'] !== 'POST') sai(['ok' => false], 405);
+  $j = json_decode((string)file_get_contents('php://input', false, null, 0, 2000), true); if (!is_array($j)) sai(['ok' => false], 400);
+  $corta = function ($x, $n) { $x = trim(preg_replace('/[\x00-\x1F\x7F<>]+/u', ' ', (string)$x)); return function_exists('mb_substr') ? mb_substr($x, 0, $n) : substr($x, 0, $n); };
+  $nome = $corta($j['nome'] ?? '', 40); $tipo = (string)($j['tipo'] ?? '');
+  if ($nome === '' || !in_array($tipo, ['treino1', 'semana1', 'dias15', 'renova'], true)) sai(['ok' => false], 400);
+  $N = le_arq($ARQ_NOVOS, ['novos' => [], 'ip' => []]); $agora = time();
+  // no máximo 6 avisos a cada 10 min por internet e 60 por hora no total
+  $ip = hash('sha256', ($_SERVER['REMOTE_ADDR'] ?? '') . 'simp-marco');
+  $N['ipm'] = array_values(array_filter($N['ipm'] ?? [], function ($x) use ($agora) { return $agora - $x[1] < 3600; }));
+  $doIp = count(array_filter($N['ipm'], function ($x) use ($ip, $agora) { return $x[0] === $ip && $agora - $x[1] < 600; }));
+  if ($doIp >= 6 || count($N['ipm']) >= 60) sai(['ok' => true]);
+  $N['ipm'][] = [$ip, $agora];
+  $N['novos'][] = ['nome' => $nome, 'tipo' => $tipo, 'em' => $agora];
+  $N['novos'] = array_slice($N['novos'], -30); grava_arq($ARQ_NOVOS, $N);
+  $D = le_arq($ARQ_DONO, []); if (!$D) sai(['ok' => true]);
+  $ch = chaves(); $mudou = false;
+  foreach ($D as $id => $d) { $st = envia($d['e'], $ch, 'high'); if ($st == 404 || $st == 410) { unset($D[$id]); $mudou = true; } }
+  if ($mudou) grava_arq($ARQ_DONO, $D);
+  sai(['ok' => true]);
+}
 // o aviso no celular do dono busca o nome de quem entrou (só com a chave que o painel recebeu ao ligar)
 if ($acao === 'novos') {
   $k = (string)($_GET['k'] ?? ''); $D = le_arq($ARQ_DONO, []); $ok = false;
