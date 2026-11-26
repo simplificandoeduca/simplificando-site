@@ -1301,6 +1301,10 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O Banco de horas só com "Todas | Com tempo guardado" (2.28)
+
+Pedido do dono (26/11): "tira também o pacote acabou. Deixa só com o tempo guardado e todos". Quem tinha outro filtro guardado vê todas.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O Banco de horas sem o filtro "No espaço" (2.27)
 
 Pedido do dono (26/11): "tira essa opção de no espaço". O Banco de horas fica com "Todas | Pacote acabou | Com tempo guardado". Quem está no espaço continua com a etiqueta "No espaço" na linha, e a lista de quem está no espaço continua na tela inicial.

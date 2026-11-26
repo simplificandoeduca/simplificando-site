@@ -2117,7 +2117,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.27';
+const VERSAO = '2.28';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -8466,7 +8466,7 @@ function chamadaRenovar(c) {
   const m = [...conv.msgs].reverse().find(x => x.de === 'nos' && !x.auto && !x.erro && /renov/i.test(x.txt) && agora - x.h < 3 * 86400000);
   return m ? `Já chamada ${isoDia(m.h) === isoDia(agora) ? 'hoje' : 'em ' + diaCurto(m.h)} às ${hora(m.h)}${m.por ? ' por ' + esc(m.por) : ''}` : null;
 }
-const filtroBanco = c => { const f = S.bancoFiltro || 'todas'; return f === 'renovar' ? precisaRenovar(c) : f === 'emdia' ? temPeriodo(c) : true; };   /* 2.27: sem o filtro "No espaço" (o dono: "tira essa opção") */
+const filtroBanco = c => (S.bancoFiltro || 'todas') === 'emdia' ? temPeriodo(c) : true;   /* 2.27/2.28: só "Todas | Com tempo guardado" (o dono: "tira essa opção de no espaço", "tira também o pacote acabou") */
 // 0.99: a lista do Banco de horas ficou enxuta. Cada linha: a criança (com o responsável), o saldo de horas, a última compra
 // (um toque abre o histórico) e o Vender. Nada corre nesta tela: o tempo de quem está no espaço fica na tela inicial, e aqui a criança
 // só ganha o selo "No espaço". A lista vem em ordem alfabética (antes vinha pelo tempo que faltava, e as linhas trocavam de lugar sozinhas).
@@ -8505,7 +8505,7 @@ function telaBanco() {
   return faixa('Banco de horas', `${S.criancas.length} ${S.criancas.length === 1 ? 'criança' : 'crianças'} · ${hm(saldo)} em saldo · as horas não expiram`, !COM_WHATS ? '' : renovar.length ? `<span class="chip">${renovar.length} para renovar</span>` : `<span class="chip suave"><i class="pt"></i>Tudo em dia</span>`) + `
   ${COM_WHATS ? `<section class="sec"><div class="sec-cab"><h2><i></i>Para renovar</h2>${renovar.length ? `<span class="pill p-erro">${renovar.length}</span>` : ''}</div><div class="alertas">${alertas}</div></section>` : ''}
   <section class="sec"><div class="sec-cab"><h2><i style="background:var(--mostarda)"></i>Todas as crianças</h2></div>
-    <div class="banco-topo"><div class="dias">${chip('todas', 'Todas')}${chip('renovar', COM_WHATS ? 'Para renovar' : 'Pacote acabou')}${chip('emdia', 'Com tempo guardado')}</div><div class="campo"><input id="banco-busca" value="${esc(S.bancoBusca || '')}" placeholder="Buscar responsável, criança, telefone, CPF ou RNE" autocomplete="off"></div></div>
+    <div class="banco-topo"><div class="dias">${chip('todas', 'Todas')}${chip('emdia', 'Com tempo guardado')}</div><div class="campo"><input id="banco-busca" value="${esc(S.bancoBusca || '')}" placeholder="Buscar responsável, criança, telefone, CPF ou RNE" autocomplete="off"></div></div>
     <div class="banco-lista" id="banco-lista"${COM_WHATS ? ' style="--bl-ac:360px"' : ''}>${linhasBanco()}</div>
   </section>`;
 }
