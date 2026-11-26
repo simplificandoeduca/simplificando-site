@@ -1301,6 +1301,17 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O cupom com a atendente marcada e quem aparece como vendedor (2.22)
+
+Pedido do dono (27/11): "no nome do comprovante tem que aparecer o nome da atendente que foi marcado, não o nome de quem tá o login ... Não precisa aparecer o nome do José e nem o nome da Renata ... como vendedores da equipe".
+
+- O cupom diz "Atendente" com quem foi marcada, e não com o login (o login da unidade, "Login Anália", não aparece mais):
+  - na venda, quem está vendendo;
+  - na entrada e na saída, quem abriu o pedido ("Quem está atendendo?");
+  - na devolução do carrinho, quem vendeu o carrinho;
+  - sem ninguém marcado, a última atendente marcada naquele computador; o login só aparece se for de uma pessoa.
+- Ajustes → Equipe → a pessoa → "Aparece em 'Quem está vendendo'": Sim | Não. De fábrica, o gestor não aparece (o dono, o financeiro) e os outros aparecem. Quem não for gestor e não vender, o gestor marca "Não".
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A tela de entrar da loja sem a senha da unidade (2.21)
 
 Pedido do dono (27/11): "esses logins pode deixar sem senha provisoriamente".

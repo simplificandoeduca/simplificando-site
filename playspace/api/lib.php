@@ -433,6 +433,7 @@ function db(): PDO {
   }
   if ($v < 47) { /* 2.10: os computadores da loja (entram pela unidade, sem senha) */
     try { $pdo->exec('ALTER TABLE usuarios ADD COLUMN loja INTEGER NOT NULL DEFAULT 0'); } catch (Throwable $e) { }
+    try { $pdo->exec('ALTER TABLE usuarios ADD COLUMN vende INTEGER'); } catch (Throwable $e) { }   /* 2.22: aparece em "Quem está vendendo" (vazio = pelo papel) */
     $pdo->exec("CREATE TABLE IF NOT EXISTS maquinas (id INTEGER PRIMARY KEY, token TEXT NOT NULL UNIQUE, nome TEXT NOT NULL DEFAULT '', criado_em TEXT NOT NULL, criado_por INTEGER, ultimo_uso TEXT, ativo INTEGER NOT NULL DEFAULT 1)");
     $pdo->exec('PRAGMA user_version = 47');
   }
@@ -588,11 +589,14 @@ function vendedoras(): array { $v = cfg('vendedoras', null); return is_array($v)
 /* 2.07 (o dono: "os vendedores do Anália são vendedores do Anália, os vendedores da Casa Tom são vendedores da Casa Tom ... Tem que separar ...
    todo mundo que tiver usuário, você já pode colocar como vendedor"): os vendedores de cada unidade ativa são as pessoas com usuário (ativas)
    que têm aquela unidade em Ajustes → Equipe, mais as que não têm unidade escolhida (vendem em todas). Em ordem alfabética, em maiúsculas. */
+/* 2.22 (o dono: "não precisa aparecer o nome do José e nem o nome da Renata ... como vendedores da equipe"): quem aparece em "Quem está
+   vendendo". Ajustes → Equipe → a pessoa → Sim | Não; sem escolher, o gestor não aparece (o dono, o financeiro) e os outros aparecem */
+function usuarioVende(array $x): bool { $v = $x['vende'] ?? null; return $v === null || $v === '' ? (string)($x['papel'] ?? '') !== 'gestor' : (int)$v === 1; }
 function vendedorasPorUnidade(): array {
   if (isset($GLOBALS['_vend_uni'])) return $GLOBALS['_vend_uni'];
   $U = []; $livres = []; $nome = fn($n) => mb_substr(maiusculo((string)$n), 0, 30);
   foreach (db()->query('SELECT id FROM unidades WHERE ativo = 1 ORDER BY id')->fetchAll(PDO::FETCH_COLUMN) as $id) $U[(int)$id] = [];
-  foreach (db()->query('SELECT nome, unidade_id FROM usuarios WHERE ativo = 1 AND loja = 0')->fetchAll() as $x) {   /* 2.10: a "loja" (o computador do balcão) não é vendedora */ $n = $nome($x['nome']); if ($n === '') continue; $u = (int)($x['unidade_id'] ?? 0); if ($u && isset($U[$u])) $U[$u][] = $n; else $livres[] = $n; }
+  foreach (db()->query('SELECT nome, unidade_id, papel, vende FROM usuarios WHERE ativo = 1 AND loja = 0')->fetchAll() as $x) { if (!usuarioVende($x)) continue;   /* 2.22 */   /* 2.10: a "loja" (o computador do balcão) não é vendedora */ $n = $nome($x['nome']); if ($n === '') continue; $u = (int)($x['unidade_id'] ?? 0); if ($u && isset($U[$u])) $U[$u][] = $n; else $livres[] = $n; }
   $chave = fn($s) => strtr($s, ['Á' => 'A', 'À' => 'A', 'Â' => 'A', 'Ã' => 'A', 'É' => 'E', 'Ê' => 'E', 'Í' => 'I', 'Ó' => 'O', 'Ô' => 'O', 'Õ' => 'O', 'Ú' => 'U', 'Ç' => 'C']);
   foreach ($U as $id => $L) { $L = array_values(array_unique(array_merge($L, $livres))); usort($L, fn($a, $b) => strcmp($chave($a), $chave($b))); $U[$id] = $L; }
   return $GLOBALS['_vend_uni'] = $U;
@@ -2079,14 +2083,14 @@ function servicoPorId(string $id): ?array { foreach ((array)regra()['servicos'] 
 const ALUG_MAX = 4;   // 1.22: quantos carrinhos (de bebê ou fusquinhas) saem de uma vez para a mesma criança
 function alugEmAberto(?array $sv): bool { return $sv !== null && !empty($sv['volta']) && empty($sv['banco']) && ($sv['modo'] ?? 'fixo') === 'periodo' && empty($sv['porTempo']); }
 function alugueis(?int $criancaId = null, ?string $servico = null): array {
-  $sql = "SELECT v.id, v.crianca_id, v.alug, v.alug_min, v.qtd, v.servico, v.itens, v.quando, v.unidade_id, v.valor - COALESCE((SELECT SUM(p.valor) FROM pagamentos p WHERE p.venda_id = v.id), 0) AS falta FROM vendas v JOIN criancas c ON c.id = v.crianca_id AND c.ativo = 1 WHERE v.alug != '' AND v.voltou IS NULL";
+  $sql = "SELECT v.id, v.crianca_id, v.alug, v.alug_min, v.qtd, v.servico, v.itens, v.quando, v.unidade_id, v.vendedora, v.valor - COALESCE((SELECT SUM(p.valor) FROM pagamentos p WHERE p.venda_id = v.id), 0) AS falta FROM vendas v JOIN criancas c ON c.id = v.crianca_id AND c.ativo = 1 WHERE v.alug != '' AND v.voltou IS NULL";
   $arg = []; if ($criancaId !== null) { $sql .= ' AND v.crianca_id = ?'; $arg[] = $criancaId; } if ($servico !== null) { $sql .= ' AND v.alug = ?'; $arg[] = $servico; }
   $q = db()->prepare($sql . ' ORDER BY v.id'); $q->execute($arg); $g = [];
   foreach ($q->fetchAll() as $v) {
     $k = (int)$v['crianca_id'] . '-' . $v['alug']; $m = (int)$v['alug_min'];
-    if (!isset($g[$k])) $g[$k] = ['id' => $k, 'crianca' => (int)$v['crianca_id'], 's' => (string)$v['alug'], 'n' => (string)$v['servico'], 'q' => 0, 'min' => 0, 'ini' => $v['quando'], 'vendas' => [], 'pend' => 0.0, 'uni' => $v['unidade_id'] === null ? null : (int)$v['unidade_id']];   // 1.06: uni = a unidade de onde saiu
+    if (!isset($g[$k])) $g[$k] = ['id' => $k, 'crianca' => (int)$v['crianca_id'], 's' => (string)$v['alug'], 'n' => (string)$v['servico'], 'q' => 0, 'min' => 0, 'ini' => $v['quando'], 'vendas' => [], 'vend' => '', 'pend' => 0.0, 'uni' => $v['unidade_id'] === null ? null : (int)$v['unidade_id']];   // 1.06: uni = a unidade de onde saiu
     $g[$k]['pend'] = round($g[$k]['pend'] + max(0.0, (float)$v['falta']), 2);   // 1.02: o que ainda não foi pago (o cliente ficou de pagar na devolução)
-    $g[$k]['min'] += $m; $g[$k]['q'] = $m > 0 ? max(1, $g[$k]['q']) : $g[$k]['q'] + max(1, (int)$v['qtd']); $g[$k]['vendas'][] = (int)$v['id'];
+    $g[$k]['min'] += $m; $g[$k]['q'] = $m > 0 ? max(1, $g[$k]['q']) : $g[$k]['q'] + max(1, (int)$v['qtd']); $g[$k]['vendas'][] = (int)$v['id']; if ($g[$k]['vend'] === '' && trim((string)($v['vendedora'] ?? '')) !== '') $g[$k]['vend'] = trim((string)$v['vendedora']);   /* 2.22: quem vendeu o carrinho (o cupom da devolução) */
     if ($m <= 0 && (string)$v['itens'] === ITENS_ALUG_ABERTO) $g[$k]['ab'] = true;   // 1.20: a saída nasceu em aberto (sem valor: a conta fecha na devolução)
   }
   // 1.20: em aberto é da própria saída, e não de como o serviço está agora em Ajustes (o gestor pode trocar "quando a conta fecha" com um fusquinha fora).

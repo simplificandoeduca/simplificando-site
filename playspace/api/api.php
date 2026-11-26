@@ -114,7 +114,7 @@ function dados(array $eu): array {
   }
   $compromissos = array_map(fn($x) => ['id' => (int)$x['id'], 'dia' => $x['dia'], 'hora' => $x['hora'], 'titulo' => $x['titulo'], 'tipo' => $x['tipo'], 'sub' => $x['sub'], 'obs' => $x['obs'], 'feito' => !empty($x['feito'])], $db->query('SELECT * FROM compromissos ORDER BY dia, hora')->fetchAll());
   $vendasHoje = $db->prepare('SELECT COUNT(*) n, COALESCE(SUM(minutos),0) m, COALESCE(SUM(valor),0) v FROM vendas WHERE quando >= ? AND servico != ?'); $vendasHoje->execute([$hojeMenos, SERV_IMPORTADO]); $vh = $vendasHoje->fetch();   // tudo o que foi vendido nas últimas 24 h; m = minutos de brincar
-  $equipe = $eu['papel'] === 'atendente' ? [] : array_map(fn($u) => ['id' => (int)$u['id'], 'nome' => $u['nome'], 'login' => $u['login'], 'papel' => $u['papel'], 'uni' => (int)($u['unidade_id'] ?? 0)], $db->query('SELECT id, nome, login, papel, unidade_id FROM usuarios WHERE ativo = 1 AND loja = 0 ORDER BY nome')->fetchAll());   /* 2.10: sem a "loja" (o computador do balcão) */   // 2.02: e a unidade
+  $equipe = $eu['papel'] === 'atendente' ? [] : array_map(fn($u) => ['id' => (int)$u['id'], 'nome' => $u['nome'], 'login' => $u['login'], 'papel' => $u['papel'], 'uni' => (int)($u['unidade_id'] ?? 0), 'vende' => usuarioVende($u)], $db->query('SELECT id, nome, login, papel, unidade_id, vende FROM usuarios WHERE ativo = 1 AND loja = 0 ORDER BY nome')->fetchAll());   /* 2.22: vende */   /* 2.10: sem a "loja" (o computador do balcão) */   // 2.02: e a unidade
   $q = $db->prepare("SELECT COUNT(*) n, COALESCE(SUM(valor), 0) v FROM vendas WHERE auto = 1 AND quando >= ? AND itens NOT LIKE 'avulsa%'"); $q->execute([$hojeMenos]); $ah = $q->fetch(); $atrasoHoje = ['n' => (int)$ah['n'], 'valor' => (float)$ah['v']];   // 1.15: o tempo além do pacote nas últimas 24 h (a recreação avulsa é venda comum, acertada na saída)
   $q = $db->prepare("SELECT COALESCE(SUM(voucher != ''), 0) nv, COALESCE(SUM(CASE WHEN voucher != '' THEN cheio ELSE 0 END), 0) vv, COALESCE(SUM(pcd = 1), 0) np, COALESCE(SUM(CASE WHEN pcd = 1 THEN cheio - valor - desc_valor ELSE 0 END), 0) vp, COALESCE(SUM(desc_valor), 0) vd FROM vendas WHERE quando > ?"); $q->execute([$hojeMenos]); $dh = $q->fetch();
   $q = $db->prepare("SELECT COUNT(*) FROM registros WHERE tipo = 'desc' AND quando > ?"); $q->execute([$hojeMenos]); $nd = $q->fetchColumn();   // 1.04: quantos descontos o gestor deu nas últimas 24 h
@@ -1297,6 +1297,7 @@ switch ($acao) {
       if (strlen($senha) < 6) falha('Defina uma senha inicial com pelo menos 6 caracteres.');
       $db->prepare('INSERT INTO usuarios (nome, login, senha, papel, criado_em, unidade_id) VALUES (?, ?, ?, ?, ?, ?)')->execute([$nome, $login, password_hash($senha, PASSWORD_DEFAULT), $papel, agora(), $uni ?: null]); $id = (int)$db->lastInsertId();
     }
+    if (array_key_exists('vende', $in)) $db->prepare('UPDATE usuarios SET vende = ? WHERE id = ?')->execute([$in['vende'] === 'sim' ? 1 : ($in['vende'] === 'nao' ? 0 : null), $id]);   /* 2.22: aparece em "Quem está vendendo" */
     responder(['id' => $id]);
   }
   case 'usuario_apagar': {
