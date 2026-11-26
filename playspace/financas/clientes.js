@@ -21,7 +21,8 @@ async function vcCarregar() {
 const vcNorm = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 function vcCorpo() {
   const D2 = VC.d, T = D2.total, b = vcNorm(VC.busca).trim();
-  const L = D2.linhas.slice().reverse().filter(x => !b || vcNorm(`${x.resp} ${x.cri} ${x.tel} ${x.pacotes.map(p => p.n).join(' ')} ${x.produtos.map(p => p.n).join(' ')} ${x.vend}`).includes(b));
+  const bd = /[a-z]/.test(b) ? '' : b.replace(/\D/g, '');   /* 2.25: o CPF e o telefone só com números (com ou sem pontos e traço) */
+  const L = D2.linhas.slice().reverse().filter(x => !b || vcNorm(`${x.resp} ${x.cri} ${x.tel} ${x.pacotes.map(p => p.n).join(' ')} ${x.produtos.map(p => p.n).join(' ')} ${x.vend}`).includes(b) || (bd.length >= 3 && (String(x.cpf || '').includes(bd) || String(x.tel || '').replace(/\D/g, '').includes(bd))));
   const MAX = 300, mostra = VC.aberto ? L : L.slice(0, 40);
   const lin = x => `<tr><td class="vc-q"><b>${esc(dataBR(x.quando.slice(0, 10)).slice(0, 5))}</b> <small>${esc(x.quando.slice(11, 16))}</small>${UNI === 'todas' && UNIS.length > 1 ? `<small>${esc(nomeUni(x.u))}</small>` : ''}</td>
       <td><b>${esc(x.resp || x.cri || '—')}</b>${x.resp && x.cri ? `<small>${esc(x.cri)}</small>` : ''}${x.tel ? `<small>${esc(x.tel)}</small>` : ''}</td>
@@ -31,7 +32,7 @@ function vcCorpo() {
       <td>${x.formas.length ? x.formas.map(f => `<small class="vc-f">${esc(f.n)} ${brl(f.v)}</small>`).join('') : ''}${x.aReceber > 0.004 ? `<small class="vc-ar">a receber ${brl(x.aReceber)}</small>` : ''}</td>
       <td>${x.vend ? esc(x.vend) : '<span class="sub">—</span>'}</td></tr>`;
   return `<div class="grade fs-kpis vc-kpis">${kpi('Total vendido', brl(T.total), `${int(T.atend)} ${T.atend === 1 ? 'atendimento' : 'atendimentos'} · ${int(T.clientes)} ${T.clientes === 1 ? 'cliente' : 'clientes'}`)}${kpi('Pacotes', int(T.pacN), brl(T.pacV))}${kpi('Produtos', int(T.prodN), brl(T.prodV))}${kpi('Descontos', brl(T.desconto), T.aReceber > 0.004 ? `a receber ${brl(T.aReceber)}` : 'nada a receber')}</div>
-    ${D2.linhas.length ? `<div class="chips vc-filtro"><input class="chip g-busca" id="vc-busca" type="search" placeholder="Buscar cliente, pacote ou produto…" value="${esc(VC.busca)}" aria-label="Buscar no relatório"><span class="sub">${int(L.length)} de ${int(D2.linhas.length)}</span></div>
+    ${D2.linhas.length ? `<div class="chips vc-filtro"><input class="chip g-busca" id="vc-busca" type="search" placeholder="Buscar CPF, nome, telefone, pacote ou produto…" value="${esc(VC.busca)}" aria-label="Buscar no relatório"><span class="sub">${int(L.length)} de ${int(D2.linhas.length)}</span></div>
     <div class="rolar"><table class="vc-tab"><thead><tr><th>Quando</th><th>Cliente</th><th>Pacote</th><th>Produto</th><th class="v">Total</th><th>Pago</th><th>Vendedora</th></tr></thead><tbody>${mostra.map(lin).join('')}</tbody></table></div>
     ${L.length > mostra.length ? `<button class="link" id="vc-mais">Mostrar todos (${int(Math.min(L.length, MAX))})</button>` : ''}` : '<div class="vazio">Nenhuma venda de pacote ou de produto neste período.</div>'}`;
 }

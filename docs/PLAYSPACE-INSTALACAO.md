@@ -1301,6 +1301,14 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Toda busca pelo CPF, nome, telefone ou nome da criança (2.25)
+
+Pedido do dono (26/11): "todas as buscas sejam feitas pelo CPF, por nome ou pelo telefone ... Ou pelo nome da criança".
+
+- Uma regra só para toda busca de cliente: o CPF (com ou sem pontos), o nome do responsável, o telefone (com ou sem DDD, traço e parênteses) ou o nome da criança. Sem acento conta igual ("joao" acha "JOÃO"). O nº do cadastro e o RNE continuam valendo.
+- Vale na lista do espaço, no Banco de horas, em "Todas as crianças", nos Cadastros (Ajustes), na escolha do cliente (Vender pacote, Pacote futuro, Festa, Venda futura, entrada na festa, vender produto) e no relatório por cliente das Finanças (que passa a achar também pelo CPF).
+- Na escolha do cliente, o CPF vale pelo começo (três números já bastam) e o telefone com quatro números ou mais.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Tirar o pacote lançado errado, na saída (2.24)
 
 Pedido do dono (26/11): "eu quero uma opção tirar pacote. Tipo, às vezes lançou errado, só que aí o gestor tem que aprovar tirar o pacote."

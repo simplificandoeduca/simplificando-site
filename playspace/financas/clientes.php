@@ -15,7 +15,7 @@ function vcListar(array $in): array {
   if ((strtotime($ate . ' 12:00:00') - strtotime($de . ' 12:00:00')) / 86400 > 400) falha('Escolha um período de até 400 dias.');
   $uni = isset($in['u']) && $in['u'] !== '' && $in['u'] !== 'todas' ? (int)$in['u'] : null;
   $q = $db->prepare("SELECT v.id, v.crianca_id, v.quando, v.valor, v.desc_valor, v.minutos, v.servico, v.itens, COALESCE(v.produto_id, 0) pr, COALESCE(v.qtd, 1) qtd, v.alug, v.auto, v.voucher,
-      v.vend_k, v.vendedora, v.vend_g, COALESCE(v.unidade_id, 0) u, c.nome cri, c.resp, c.tel
+      v.vend_k, v.vendedora, v.vend_g, COALESCE(v.unidade_id, 0) u, c.nome cri, c.resp, c.tel, c.cpf
     FROM vendas v LEFT JOIN criancas c ON c.id = v.crianca_id WHERE v.quando >= ? AND v.quando < ? AND v.servico != ?" . ($uni !== null ? ' AND COALESCE(v.unidade_id, 0) = ' . $uni : '') . ' ORDER BY v.quando, v.id');
   $q->execute([$de, date('Y-m-d', strtotime($ate . ' 12:00:00') + 86400), SERV_IMPORTADO]);
   $G = []; $ordem = [];
@@ -23,7 +23,7 @@ function vcListar(array $in): array {
     $g = grupoDoCaixa(['s' => (string)$v['servico'], 'pr' => (int)$v['pr'], 'a' => (string)$v['alug'], 'm' => (int)$v['minutos'], 'au' => (int)$v['auto'], 'vo' => (string)$v['voucher']]);
     if ($g !== 'pacotes' && $g !== 'produtos') continue;
     $k = $v['vend_g'] ? 'g' . (int)$v['vend_g'] : 'c' . (int)$v['crianca_id'] . '|' . (string)$v['quando'];
-    if (!isset($G[$k])) { $G[$k] = ['quando' => (string)$v['quando'], 'u' => (int)$v['u'], 'resp' => (string)($v['resp'] ?? ''), 'cri' => (string)($v['cri'] ?? ''), 'tel' => (string)($v['tel'] ?? ''), 'pacotes' => [], 'produtos' => [], 'desconto' => 0.0, 'total' => 0.0, 'vendas' => [], 'vend' => '']; $ordem[] = $k; }
+    if (!isset($G[$k])) { $G[$k] = ['quando' => (string)$v['quando'], 'u' => (int)$v['u'], 'resp' => (string)($v['resp'] ?? ''), 'cri' => (string)($v['cri'] ?? ''), 'tel' => (string)($v['tel'] ?? ''), 'cpf' => preg_replace('/\D/', '', (string)($v['cpf'] ?? '')), 'pacotes' => [],   /* 2.25: a busca pelo CPF */ 'produtos' => [], 'desconto' => 0.0, 'total' => 0.0, 'vendas' => [], 'vend' => '']; $ordem[] = $k; }
     $x = &$G[$k]; $val = round((float)$v['valor'], 2); $x['vendas'][] = (int)$v['id']; $x['total'] = round($x['total'] + $val, 2); $x['desconto'] = round($x['desconto'] + (float)$v['desc_valor'], 2);
     if ($x['vend'] === '' && (string)$v['vendedora'] !== '') $x['vend'] = (string)$v['vendedora'];
     if ($g === 'pacotes') $x['pacotes'][] = ['n' => trim((string)$v['servico']) !== '' ? (string)$v['servico'] : nomePacoteVenda((int)$v['minutos'], (string)$v['itens']), 'h' => round((int)$v['minutos'] / 60, 1), 'v' => $val, 'com' => preg_match('/^com /u', (string)$v['itens']) ? mb_substr((string)$v['itens'], 4) : ''];
