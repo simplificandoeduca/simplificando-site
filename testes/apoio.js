@@ -21,8 +21,11 @@ async function prepara(context) {
   });
 }
 
+// No painel, as caixinhas das abas do aluno começam minimizadas. O robô abre todas (a não ser que o teste peça o contrário), para os testes antigos acharem os campos.
+const ABRE_CX = () => { try { const k = 'simplificando-admin-ui', v = JSON.parse(localStorage.getItem(k) || '{}') || {}; if (v.cxAbertas == null) { v.cxAbertas = true; localStorage.setItem(k, JSON.stringify(v)); } } catch (e) { /* sem armazenamento */ } };
 const test = base.extend({
-  context: async ({ context }, use) => { await prepara(context); await use(context); },
+  browser: [async ({ browser }, use) => { const novo = browser.newContext.bind(browser); browser.newContext = async (...a) => { const c = await novo(...a); await c.addInitScript(ABRE_CX); return c; }; await use(browser); }, { scope: 'worker' }],
+  context: async ({ context }, use) => { await context.addInitScript(ABRE_CX); await prepara(context); await use(context); },
   page: async ({ page }, use) => {
     const erros = [];
     page.on('pageerror', e => erros.push('erro: ' + e.message));

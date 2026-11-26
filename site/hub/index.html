@@ -316,6 +316,7 @@ button.row:hover{background:var(--ctl)}
 .exs{display:flex;flex-direction:column;gap:10px}
 .exc.dragging,.tletter.dragging{position:relative;z-index:20;box-shadow:0 18px 40px -12px rgba(0,0,0,.45),0 0 0 2px var(--brand);transition:none!important;cursor:grabbing}
 .drag-sib{transition:transform .18s ease}.exs.sorting .exc>:not(.exc-h){display:none!important}.exs.sorting .exc{gap:0;padding:10px 14px}.exs.sorting .exc-tools{display:none}.is-dragging{user-select:none;-webkit-user-select:none}
+.card.cx-min>:not(.label):not(.card-h){display:none!important}.cx-h{cursor:pointer;-webkit-tap-highlight-color:transparent}.card.cx>.label.cx-h{display:flex;width:100%}.cx-h::after{content:"";flex:none;margin-left:auto;width:9px;height:9px;border-right:2.5px solid currentColor;border-bottom:2.5px solid currentColor;transform:rotate(-135deg);opacity:.45;transition:transform .2s}.card.cx-min .cx-h::after{transform:rotate(45deg)}.card.cx-min{padding-bottom:16px}.cx-bar{display:flex;justify-content:flex-end;margin:0 0 8px}.exc .num[data-grip]{touch-action:none;cursor:grab}.is-dragging .exc .num[data-grip]{cursor:grabbing}
 [data-drag]{-webkit-touch-callout:none}
 .exc{background:var(--card);box-shadow:inset 0 0 0 1px var(--card-line);border-radius:24px;padding:14px;display:flex;flex-direction:column;gap:12px;position:relative;min-width:0}
 .exc-h{display:flex;align-items:flex-start;gap:10px}
@@ -3028,7 +3029,7 @@ function exCard(e,i,arr,b,col,id,L){
   const n = arr.length;
   const rirOpts = [['','Sem alvo'],['0-1','0–1'],['0','0'],['1','1'],['2','2'],['3','3'],['4','4'],['5','5']];
   const cues = e.cues || ['','',''];
-  const h0 = '<article class="exc'+(exMin(e)?' min':'')+'" style="--g:'+(GRUPO_COR[e.alvo]||'var(--sep)')+'" data-drag="ex" data-i="'+i+'" aria-label="Exercício '+(i+1)+'"><div class="exc-h"><span class="num">'+(i+1)+'</span><div class="nm"><label class="sr" for="'+fid(b+'nome')+'">Nome do exercício '+(i+1)+'</label><input id="'+fid(b+'nome')+'" data-b="'+esc(b+'nome')+'" data-t="s" value="'+esc(e.nome||'')+'" placeholder="Nome do exercício" autocomplete="off"><span class="exc-g">'+grpSq(e.alvo)+esc(e.alvo||'Grupo não definido')+(e.exId && C.exercicios[e.exId] ? ' · da biblioteca' : '')+rankTag(e)+repTag(e,col,id,L)+'</span>'+(exMin(e) ? '<span class="exc-s">'+esc([e.s ? e.s+' × '+(e.r||'—') : '', e.kg!=null && e.kg!=='' ? fmtN(e.kg,1)+' kg' : '', e.d ? e.d+' s' : '', e.aq ? 'aquecimento' : '', tecDe(e) ? TEC[tecDe(e)].n.toLowerCase() : ''].filter(Boolean).join(' · '))+'</span>' : '')+
+  const h0 = '<article class="exc'+(exMin(e)?' min':'')+'" style="--g:'+(GRUPO_COR[e.alvo]||'var(--sep)')+'" data-drag="ex" data-i="'+i+'" aria-label="Exercício '+(i+1)+'"><div class="exc-h"><span class="num" data-grip title="Arraste para mudar a ordem">'+(i+1)+'</span><div class="nm"><label class="sr" for="'+fid(b+'nome')+'">Nome do exercício '+(i+1)+'</label><input id="'+fid(b+'nome')+'" data-b="'+esc(b+'nome')+'" data-t="s" value="'+esc(e.nome||'')+'" placeholder="Nome do exercício" autocomplete="off"><span class="exc-g">'+grpSq(e.alvo)+esc(e.alvo||'Grupo não definido')+(e.exId && C.exercicios[e.exId] ? ' · da biblioteca' : '')+rankTag(e)+repTag(e,col,id,L)+'</span>'+(exMin(e) ? '<span class="exc-s">'+esc([e.s ? e.s+' × '+(e.r||'—') : '', e.kg!=null && e.kg!=='' ? fmtN(e.kg,1)+' kg' : '', e.d ? e.d+' s' : '', e.aq ? 'aquecimento' : '', tecDe(e) ? TEC[tecDe(e)].n.toLowerCase() : ''].filter(Boolean).join(' · '))+'</span>' : '')+
     '</div>'+
     '<div class="exc-tools">'+(exMin(e) ? '' : '<button type="button" class="ibtn" data-a="swapEx" data-i="'+i+'" aria-label="Trocar exercício" title="Trocar exercício">'+ic('refresh')+'</button><button type="button" class="ibtn" data-a="mvEx" data-i="'+i+'" data-d="-1" aria-label="Subir exercício"'+(i===0?' disabled':'')+'>'+ic('up')+'</button><button type="button" class="ibtn" data-a="mvEx" data-i="'+i+'" data-d="1" aria-label="Descer exercício"'+(i===n-1?' disabled':'')+'>'+ic('down')+'</button><button type="button" class="ibtn" data-a="dupEx" data-i="'+i+'" aria-label="Duplicar exercício">'+ic('dup')+'</button>'+armIco('delEx',i,'Remover exercício','Toque de novo para remover'))+'<button type="button" class="ibtn exc-tg'+(exMin(e)?'':' on')+'" data-a="exTg" data-k="'+esc(e.id||i)+'" aria-expanded="'+!exMin(e)+'" aria-label="'+(exMin(e)?'Abrir':'Recolher')+' exercício">'+ic('chev')+'</button></div></div>';
   if(exMin(e)) return h0+'</article>';
@@ -4503,6 +4504,26 @@ function navHtml(){
 }
 /* ---------- robô de testes (pasta testes/): acesso ao estado do painel, só no computador de teste; no site não existe ---------- */
 if(location.protocol==='file:' || /^(localhost|127\.0\.0\.1)$/.test(location.hostname)) window.__painel = { get ui(){ return ui; }, get C(){ return C; }, get PREF(){ return PREF; }, get Store(){ return Store; }, render, closeSheet, pdfArquivo, relTexto };
+/* caixinhas das abas do aluno: começam minimizadas e você abre só a que vai usar (ficam abertas enquanto estiver naquele aluno) */
+const CX = { ab:{} };
+function caixas(){
+  const pane = document.querySelector('.tabpane'); if(!pane || ui.view!=='alunos' || !ui.aluno) return;
+  const base = ui.aluno+'|'+ui.tab+'|', L = [...pane.querySelectorAll('section.card')].map(c => [c, c.querySelector(':scope > .label, :scope > .card-h > .label')]).filter(x => x[1]);
+  if(L.length<2) return;
+  L.forEach(([c,lb]) => { const k = base+lb.textContent.trim(), ab = !!PREF.cxAbertas || !!CX.ab[k] || !!c.querySelector('[aria-invalid="true"]'), h = c.querySelector(':scope > .card-h') || lb;
+    c.dataset.cx = k; c.classList.add('cx'); c.classList.toggle('cx-min', !ab); h.classList.add('cx-h'); h.setAttribute('role','button'); h.setAttribute('tabindex','0'); h.setAttribute('aria-expanded', ab); });
+  const todas = L.every(([c]) => !c.classList.contains('cx-min')), bar = document.createElement('div'); bar.className = 'cx-bar';
+  bar.innerHTML = '<button type="button" class="btn small ghost" data-cx-todas="'+(todas?'0':'1')+'">'+ic(todas?'up':'down')+(todas?'Minimizar tudo':'Abrir tudo')+'</button>';
+  pane.insertBefore(bar, L[0][0].closest('.tabpane > *') || pane.firstChild);
+}
+document.addEventListener('click', e => {
+  const tb = e.target.closest && e.target.closest('[data-cx-todas]');
+  if(tb){ const on = tb.dataset.cxTodas==='1'; document.querySelectorAll('.tabpane section.card.cx').forEach(c => { if(on) CX.ab[c.dataset.cx] = 1; else delete CX.ab[c.dataset.cx]; }); PREF.cxAbertas = false; render(); return; }
+  const h = e.target.closest && e.target.closest('.cx-h'); if(!h || e.target.closest('button,a,input,select,textarea,label,.switch,[data-a]')) return;
+  const c = h.closest('section.card.cx'); if(!c) return; const ab = c.classList.contains('cx-min');
+  if(ab) CX.ab[c.dataset.cx] = 1; else delete CX.ab[c.dataset.cx]; render();
+});
+document.addEventListener('keydown', e => { if((e.key==='Enter' || e.key===' ') && e.target.classList && e.target.classList.contains('cx-h')){ e.preventDefault(); e.target.click(); } });
 function render(){
   const k = captureFocus(), sy = window.scrollY, ts0 = document.querySelector('.dtabs-in'), tsl = ts0 ? ts0.scrollLeft : null;
   applyLook();
@@ -4516,6 +4537,7 @@ function render(){
   if(Math.abs(window.scrollY-sy)>2) window.scrollTo(0,sy);
   writeHash();
   needRender = false;
+  caixas();
   fitWave();
   showActiveTab(tsl);
 }
@@ -5413,10 +5435,12 @@ document.addEventListener('click', e => {
   document.addEventListener('pointerdown', e => {
     if(e.button>0) return; const el = e.target.closest('[data-drag]'); if(!el || (el.dataset.drag==='ex' && isField(e.target))) return;
     const kind = el.dataset.drag, box = el.parentElement, items = [...box.querySelectorAll(':scope > [data-drag="'+kind+'"]')]; if(items.length<2) return;
-    P = { el, kind, items, from:+el.dataset.i, to:+el.dataset.i, x0:e.clientX, y0:e.clientY, cx:e.clientX, cy:e.clientY, sy:window.scrollY, on:false, id:e.pointerId };
-    P.tm = setTimeout(() => { if(!P) return; P.on = true;
+    // mouse, ou dedo em cima do número do exercício: arrasta direto, sem precisar segurar; dedo no resto do cartão: segura um instante
+    P = { el, kind, items, from:+el.dataset.i, to:+el.dataset.i, x0:e.clientX, y0:e.clientY, cx:e.clientX, cy:e.clientY, sy:window.scrollY, on:false, id:e.pointerId, ja:e.pointerType==='mouse' || !!e.target.closest('[data-grip]') };
+    P.go = () => { if(!P || P.on) return; clearTimeout(P.tm); P.on = true; try { const s = window.getSelection && window.getSelection(); s && s.removeAllRanges(); } catch(_){}
       if(kind==='ex'){ box.classList.add('sorting'); const r = el.getBoundingClientRect(); window.scrollBy(0, (r.top + r.height/2) - P.cy); P.y0 = P.cy; } // recolhe tudo enquanto arrasta e deixa o cartão embaixo do dedo
-      P.box = box; P.rects = items.map(x => x.getBoundingClientRect()); P.sy = window.scrollY; el.classList.add('dragging'); items.forEach(x => x !== el && x.classList.add('drag-sib')); document.body.classList.add('is-dragging'); P.raf = requestAnimationFrame(rolar); try { navigator.vibrate && navigator.vibrate(15); } catch(_){} }, 350);
+      P.box = box; P.rects = items.map(x => x.getBoundingClientRect()); P.sy = window.scrollY; el.classList.add('dragging'); items.forEach(x => x !== el && x.classList.add('drag-sib')); document.body.classList.add('is-dragging'); P.raf = requestAnimationFrame(rolar); try { navigator.vibrate && navigator.vibrate(15); } catch(_){} };
+    P.tm = setTimeout(P.go, P.ja ? 250 : 300);
   }, true);
   // posição do dedo na página (conta a rolagem) contra a borda de cada cartão: passou 40 px da borda do vizinho, troca
   const mover = () => {
@@ -5432,7 +5456,7 @@ document.addEventListener('click', e => {
   const rolar = () => { if(!P || !P.on || P.kind==='tl') return; const y = P.cy, h = window.innerHeight, v = y < 90 ? -Math.ceil((90-y)/6) : y > h-110 ? Math.ceil((y-(h-110))/6) : 0; if(v){ window.scrollBy(0, v); mover(); } P.raf = requestAnimationFrame(rolar); };
   document.addEventListener('pointermove', e => {
     if(!P || e.pointerId!==P.id) return; P.cx = e.clientX; P.cy = e.clientY;
-    if(!P.on){ if(Math.hypot(e.clientX-P.x0, e.clientY-P.y0)>8) clear(); return; }
+    if(!P.on){ const dist = Math.hypot(e.clientX-P.x0, e.clientY-P.y0); if(P.ja){ if(dist<6) return; P.go(); } else { if(dist>12) clear(); return; } }
     e.preventDefault(); mover();
   }, { passive:false });
   document.addEventListener('touchmove', e => { if(P && P.on) e.preventDefault(); }, { passive:false });
