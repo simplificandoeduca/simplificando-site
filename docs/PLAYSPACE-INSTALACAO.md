@@ -1301,6 +1301,15 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Finanças: o pacote e a recreação destrinchados (2.34, Finanças 5.4)
+
+Pedido do dono (26/11): "no Finanças eu preciso, dentro do pacote, visualizar o que foi pacote e o que foi produto dentro do pacote ... quantos PCD ... se teve recreação avulsa, PCD, também destrinchar isso".
+
+- "Destrinchar o dia" (Controle de caixa): o tipo "Pacotes" abre em "Horas do pacote" e "Produto dentro do pacote" (o produto vendido no mesmo atendimento de um pacote), cada um com quantas vendas e o valor. O produto vendido sem pacote fica em "Produtos (sem pacote)"; na unidade Casa Tom, "Casa Tom (produtos)".
+- "Recreação avulsa" abre em "Sem PCD" e "PCD", com quantas vendas, o valor e o desconto PCD dado.
+- Venda a venda: "produto do pacote" e "PCD" ao lado do tipo.
+- Crianças no dia (no Controle de caixa e no Destrinchar): quantas eram PCD.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Finanças: sempre os arquivos novos (2.33)
 
 O dono (26/11): o Controle de caixa do Finanças não mostrava o que veio no 5.3 (crianças do dia, dinheiro contado, "Destrinchar o dia").
