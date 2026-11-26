@@ -479,6 +479,10 @@ function uniMesmoLugar(int $a, int $b): bool {   // 1.91: duas unidades do mesmo
   if ($a === $b) return true; $q = db()->prepare('SELECT id, nome FROM unidades WHERE id IN (?, ?)'); $q->execute([$a, $b]); $n = []; foreach ($q->fetchAll() as $u) $n[(int)$u['id']] = uniLocal((string)$u['nome']);
   return isset($n[$a], $n[$b]) && $n[$a] !== '' && $n[$a] === $n[$b];
 }
+/* 2.37 (o dono: "No Anália ... Lá o play é separado da casa Tom"): em cada lugar, o Play e a Casa Tom juntos (troca por dentro) ou separados.
+   De fábrica, a Anália separada e os outros juntos; o gestor muda em Ajustes → Computadores da loja (regra ctJunto: lugar → sim | nao) */
+function uniParJunto(string $local): bool { $j = (array)(regra()['ctJunto'] ?? []); return isset($j[$local]) ? $j[$local] === 'sim' : $local !== 'ANALIA'; }
+function uniPar(int $a, int $b): bool { if ($a === $b) return true; if (!uniMesmoLugar($a, $b)) return false; $q = db()->prepare('SELECT nome FROM unidades WHERE id = ?'); $q->execute([$a]); return uniParJunto(uniLocal((string)$q->fetchColumn())); }
 function uniCasaTomPares(): array {   /* 1.91 (auditoria): com as unidades apagadas também (o passado não muda) e o dia em que virou Casa Tom (ct_desde) */
   $L = array_filter(db()->query('SELECT id, nome, criado_em, ct_desde FROM unidades ORDER BY ativo DESC, id')->fetchAll(), fn($u) => uniLocal((string)$u['nome']) !== ''); $o = [];
   foreach ($L as $p) { if (uniEhCasaTom((string)$p['nome'])) continue;
@@ -497,12 +501,12 @@ function unidadeDoPedido(): ?int {
     /* 1.91 (auditoria): a atendente fica na unidade em que entrou e na Casa Tom do mesmo lugar (a tela já não deixava trocar; o servidor
        também não deixa mais): outra unidade no cabeçalho vale como a de quando entrou */
     $u0 = (int)($_SESSION['uni0'] ?? 0); $eu = $u0 > 0 && $GLOBALS['_unidade'] !== null && $GLOBALS['_unidade'] !== $u0 ? eu() : null;
-    if ($eu && !in_array($eu['papel'], ['gestor', 'supervisor'], true) && !uniMesmoLugar($u0, (int)$GLOBALS['_unidade'])) {
+    if ($eu && !in_array($eu['papel'], ['gestor', 'supervisor'], true) && !uniPar($u0, (int)$GLOBALS['_unidade'])) {   /* 2.37: no lugar separado, só a unidade em que entrou */
       $q = db()->prepare('SELECT id FROM unidades WHERE id = ? AND ativo = 1'); $q->execute([$u0]); $GLOBALS['_unidade'] = $q->fetchColumn() ? $u0 : null; }
     /* 2.02: a pessoa com a unidade escolhida pelo gestor (Ajustes → Equipe) fica nela, venha o pedido de que aparelho vier; só o gestor troca */
     $eu2 = eu(); $fixa = $eu2 && $eu2['papel'] !== 'gestor' ? (int)($eu2['unidade_id'] ?? 0) : 0;
     /* 2.35 (o dono: "Morumbi só visualiza Casatom Morumbi e Morumbi"): e a Casa Tom do mesmo lugar */
-    if ($fixa > 0 && !($GLOBALS['_unidade'] !== null && $GLOBALS['_unidade'] !== $fixa && uniMesmoLugar($fixa, (int)$GLOBALS['_unidade']))) { $q = db()->prepare('SELECT id FROM unidades WHERE id = ? AND ativo = 1'); $q->execute([$fixa]); if ($q->fetchColumn()) $GLOBALS['_unidade'] = $fixa; }
+    if ($fixa > 0 && !($GLOBALS['_unidade'] !== null && $GLOBALS['_unidade'] !== $fixa && uniPar($fixa, (int)$GLOBALS['_unidade']))) { $q = db()->prepare('SELECT id FROM unidades WHERE id = ? AND ativo = 1'); $q->execute([$fixa]); if ($q->fetchColumn()) $GLOBALS['_unidade'] = $fixa; }
   }
   return $GLOBALS['_unidade'];
 }

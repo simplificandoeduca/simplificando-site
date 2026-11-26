@@ -1182,6 +1182,10 @@ switch ($acao) {
       if (($u['papel'] ?? '') !== 'gestor') falha('Só o gestor muda a senha das unidades.', 403);
       if ((string)($r['senhaUni'] ?? 'nao') !== $in['senhaUni']) registrar('alt', null, 'Computador da loja', ($in['senhaUni'] === 'sim' ? 'A tela de entrar volta a pedir a senha da unidade' : 'A tela de entrar fica sem a senha da unidade') . ' · por ' . primeiroNome((string)$u['nome']));
       $r['senhaUni'] = $in['senhaUni']; }   /* 2.11: as horas são do CPF */   /* 2.09: o tamanho do cupom */
+    if (isset($in['ctJunto']) && is_array($in['ctJunto'])) {   /* 2.37: o Play e a Casa Tom juntos ou separados em cada lugar: só o gestor */
+      if (($u['papel'] ?? '') !== 'gestor') falha('Só o gestor muda.', 403); $j = (array)($r['ctJunto'] ?? []);
+      foreach ($in['ctJunto'] as $k => $v) { $k = lojaLocalOk((string)$k); if ($k === '' || !in_array($v, ['sim', 'nao'], true)) continue; if (($j[$k] ?? '') !== $v) registrar('alt', null, 'Unidades', 'Play e Casa Tom em ' . $k . ': ' . ($v === 'sim' ? 'juntos (troca por dentro)' : 'separados') . ' · por ' . primeiroNome((string)$u['nome'])); $j[$k] = $v; }
+      $r['ctJunto'] = $j; }
     if (isset($in['sapateiras'])) { $n = (int)$in['sapateiras']; if ($n < 1 || $n > 200) falha('Quantas sapateiras existem? De 1 a 200.'); $r['sapateiras'] = $n; }
     if (isset($in['pacotes']) && is_array($in['pacotes'])) {
       // um pacote: horas, valor, tipo (com produto, o brinde já no valor; ou seco, só as horas), nome opcional e em até quantas vezes parcela. Pode haver vários do mesmo tempo
