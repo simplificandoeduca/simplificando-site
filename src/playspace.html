@@ -935,6 +935,11 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .pe-f.dois-bt { display: flex; gap: 8px; } .pe-f.dois-bt .bt { flex: 1; justify-content: center; height: 48px; }
 .it.aut-l { align-items: flex-start; } .it.aut-l .pill { margin-top: 2px; } .it.aut-l .it-ac .bt { height: 36px; } .it.aut-l .it-ac .bt.forte { background: var(--ok); }
 @media (max-width: 520px) { .nf-dados { grid-template-columns: 1fr; } }
+.nf-pdf { display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: 16px; background: var(--card); border: 1.5px solid var(--borda); }   /* 2.48: a nota na folha */
+.nf-pdf-v { width: 100%; height: 380px; border: 0; border-radius: 10px; background: #fff; } .nf-pdf-tit { display: flex; align-items: center; gap: 8px; font: 700 14px var(--display); } .nf-pdf-tit small { font: 500 12px var(--corpo, inherit); color: var(--tinta-3); }
+.nf-pdf-bts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; } .nf-pdf-bts .bt { justify-content: center; } .nf-pdf-bts .bt.nf-zap { background: #25D366; border-color: #25D366; color: #fff; }
+.nf-pdf.esp { flex-direction: row; align-items: center; color: var(--tinta-2); font-size: 13px; } .nf-pdf.esp .bt { margin-left: auto; flex: none; }
+@media (max-width: 520px) { .nf-pdf-bts { grid-template-columns: 1fr; } .nf-pdf-v { height: 340px; } .nf-pdf.esp { flex-wrap: wrap; } }
 .nf-bts { display: flex; flex-wrap: wrap; gap: 8px; } .nf-dica { margin: -4px 0 0; font-size: 12.5px; color: var(--tinta-3); }
 /* 2.02: a nota em um clique (a confirmação, o login do Notas, o que ficou para corrigir lá) */
 .nf-conf { grid-template-columns: 1fr auto; } #nf-msg:empty { display: none; } #nf-msg { display: flex; flex-direction: column; gap: 8px; } .nf-indo { margin: 0; color: var(--tinta-2); }
@@ -2135,7 +2140,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.47';
+const VERSAO = '2.48';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -7980,9 +7985,85 @@ function folhaNF(id) {
   const v = LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === +id), c = v && crianca(v.crianca); if (!v || !c || !temNF(v)) return;
   NF = { id: v.id, cid: c.id }; if (NF_MSG && NF_MSG.venda === v.id && NF_MSG.tipo !== 'emitindo') NF_MSG = null;
   abrirFolha('Nota fiscal', `<div id="nf-corpo" style="display:flex;flex-direction:column;gap:12px">${htmlNF(v, c)}</div>`); lerVoltaNF();
-  const pn = nfDaVenda(v); if (!pn || pn.status !== 'usado') nfPreparar(v.id);   /* 2.02: o Notas está pronto? */
+  const pn = nfDaVenda(v); if (!pn || pn.status !== 'usado') nfPreparar(v.id); else { const x = nfPdfDe(v); if (!x || x.st !== 'ok' || x.num !== String(pn.numero || '')) nfPdfCarregar(v); }   /* 2.02: o Notas está pronto? 2.48: a nota emitida carrega (de novo, se não tinha carregado) */
 }
-function redesenharNF() { const a = $('#nf-corpo'), v = NF && LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === NF.id), c = v && crianca(v.crianca); if (!a) return; if (v && c) a.innerHTML = htmlNF(v, c); else fecharFolha(); }
+function redesenharNF() { const a = $('#nf-corpo'), v = NF && LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === NF.id), c = v && crianca(v.crianca); if (!a) return; if (v && c) { a.innerHTML = htmlNF(v, c); nfPdfGarante(v); } else fecharFolha(); }
+/* 2.48 (o dono: "eu quero que a nota já carregue aqui, tem a opção de eu imprimir, ou a opção de eu enviar no WhatsApp do cliente, ou a
+   opção de eu salvar a nota"): com a nota emitida, a folha da compra busca no Play Space Notas o PDF oficial dela (o DANFSe) e mostra ali
+   mesmo, com Imprimir, Enviar no WhatsApp (a conversa do cliente, com a mensagem pronta; o PDF fica salvo para anexar) e Salvar.
+   A nota é achada pela nota da compra (a do "Emitir"), pelo número marcado, ou pelo CPF, o valor e o dia; sem achar, busca no governo
+   (as notas da empresa que saíram no site do governo) e procura de novo */
+let NFPDF = null;
+const nfPdfDe = v => NFPDF && NFPDF.venda === v.id ? NFPDF : null;
+function nfPdfPinta(venda) { const a = $('#nf-pdf'), v = NF && NF.id === venda && LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === venda); if (a && v) a.innerHTML = nfPdfHtml(v); }
+function nfPdfGarante(v) { const p = nfDaVenda(v); if (!p || p.status !== 'usado') return; const x = nfPdfDe(v); if (!x || x.num !== String(p.numero || '')) nfPdfCarregar(v); }   /* (o número corrigido pelo gestor: carrega a nota dele) */
+function nfPdfHtml(v) {
+  const x = nfPdfDe(v); if (!x) return '';
+  const de = '<span class="nf-pdf-tit">' + ic(IC.cupom, 18) + ' A nota';
+  if (x.st === 'carregando') return `<div class="nf-pdf esp" aria-live="polite">${ic(IC.cupom, 18)} <span>${esc(x.msg || 'Carregando a nota…')}</span></div>`;
+  if (x.st === 'previa') return `<div class="nf-pdf esp">${ic(IC.cupom, 18)} <span>Na prévia a nota não carrega. No sistema da loja ela aparece aqui, com Imprimir, Enviar no WhatsApp e Salvar.</span></div>`;
+  if (x.st === 'login') return `<div class="bloco-f nf-login"><small class="rot">Para ver a nota, entre no Play Space Notas neste computador (uma vez só)</small>
+    <div class="dois"><div class="campo"><label for="nfl-login">Login do Notas</label><input id="nfl-login" class="sem-mai" autocapitalize="none" autocomplete="off" spellcheck="false"></div><div class="campo"><label for="nfl-senha">Senha do Notas</label><input id="nfl-senha" type="password" autocomplete="off"></div></div>
+    <button type="button" class="bt forte largo tap" data-act="nf-notas-entrar">${ic(IC.check)} Entrar no Notas</button></div>`;
+  if (x.st !== 'ok') return `<div class="nf-pdf esp">${ic(IC.sino, 18)} <span>${esc(x.msg || 'A nota não carregou.')}</span><button type="button" class="bt tap" data-act="nf-pdf-recarregar">${ic(IC.refaz || IC.check, 16)} Tentar de novo</button></div>`;
+  const toque = matchMedia('(pointer: coarse)').matches;   /* (no celular o PDF não abre dentro da folha: ficam os botões) */
+  return `<div class="nf-pdf">${de}${x.nota && String(x.nota.numero) !== String((nfDaVenda(v) || {}).numero || '') ? ` <small>· no governo, nº ${esc(x.nota.numero)}</small>` : ''}</span>
+    <div class="nf-pdf-bts"><button type="button" class="bt tap" data-act="nf-pdf-imprimir">${ic(IC.cupom, 16)} Imprimir</button><button type="button" class="bt nf-zap tap" data-act="nf-pdf-whats">${ic(IC.zap, 16)} Enviar no WhatsApp</button><button type="button" class="bt tap" data-act="nf-pdf-salvar">${ic(IC.baixar, 16)} Salvar a nota</button></div>
+    ${toque ? '' : `<iframe class="nf-pdf-v" id="nf-pdf-v" src="${x.url}#view=FitH" title="A nota fiscal (PDF)"></iframe>`}</div>`;   /* (os botões em cima: à vista sem rolar) */
+}
+const nfDocL = x => String(x == null ? '' : x).toUpperCase().replace(/[^0-9A-Z]/g, '');
+function nfAcharNota(N, v, p) {
+  const L = (N && N.notas) || [], valida = n => n && n.status !== 'cancelada' && +n.ambiente === 1, id1 = ('ps' + v.id + 'n' + (p.id || 0)).replace(/[^a-z0-9]/gi, '').slice(0, 40), num = soDig(p.numero || '');
+  const doc = nfDocL((p.dados || {}).doc), dia = x => { const d = new Date(x); return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate(); };
+  return L.find(n => n.id === id1 && valida(n)) || (num ? L.find(n => valida(n) && String(n.numero) === num && (!doc || nfDocL(n.clienteDoc) === doc)) : null)
+    || (num ? L.find(n => valida(n) && String(n.numero) === num) : null)
+    || (doc ? L.find(n => valida(n) && nfDocL(n.clienteDoc) === doc && Math.abs(+n.valor - v.v) < 0.005 && (dia(n.data) === dia(v.quando) || (p.feito_em && dia(n.data) === dia(p.feito_em)))) : null) || null;
+}
+async function nfPdfBaixa(n, emp) {   /* o PDF oficial pelo Notas (na empresa da nota); o governo leva uns segundos para liberar logo depois de emitir */
+  const pega = async () => { const r = await fetch('/notas/api/api.php?acao=danfse&id=' + encodeURIComponent(n.id) + (emp ? '&_empresa=' + emp.id : ''), { credentials: 'same-origin', cache: 'no-store' });
+    if (r.status === 401) { const x = new Error('login'); x.status = 401; throw x; } return r.ok && /pdf/i.test(r.headers.get('Content-Type') || '') ? await r.blob() : (r.status === 404 ? 404 : null); };
+  for (let t = 0; t < 3; t++) {
+    let b = await pega();
+    if (b === 404 && emp) {   /* (o Notas de antes da 190 não troca a empresa pelo endereço: troca e volta) */
+      let ant = null; try { ant = (await notasApi('empresas', {})).empresaId; } catch (e) { }
+      try { await notasApi('empresa_trocar', { id: emp.id }); b = await pega(); } finally { if (ant && ant !== emp.id) try { await notasApi('empresa_trocar', { id: ant }); } catch (e) { } }
+    }
+    if (b && b !== 404) return b; if (t < 2) await espera(2500);
+  }
+  return null;
+}
+async function nfPdfCarregar(v) {
+  const p = nfDaVenda(v), venda = v.id, num = String((p && p.numero) || ''); if (!p || p.status !== 'usado') return;
+  if (NFPDF && NFPDF.url) URL.revokeObjectURL(NFPDF.url);
+  if (MODO !== 'servidor') { NFPDF = { venda, num, st: 'previa' }; nfPdfPinta(venda); return; }
+  const eu = NFPDF = { venda, num, st: 'carregando' }; nfPdfPinta(venda); const vale = () => NFPDF === eu || (NFPDF && NFPDF.venda === venda && NFPDF.num === num && NFPDF.st === 'carregando');
+  try {
+    await notasDados(true); const emp = nfEmpEscolhida(v), EM = emp ? { _empresa: emp.id } : {};
+    let N = await notasApi('dados', EM), n = nfAcharNota(N, v, p);
+    if (!n) { if (vale()) { NFPDF.msg = 'Buscando a nota no governo…'; nfPdfPinta(venda); } try { await notasApi('importar_notas', { forcar: true, ...EM }); } catch (e) { if (e.status === 401) throw e; } N = await notasApi('dados', EM); n = nfAcharNota(N, v, p); }
+    if (!vale()) return;
+    if (!n) { NFPDF = { venda, num, st: 'semnota', msg: `Não achei a nota${p.numero ? ' nº ' + p.numero : ''} no Play Space Notas${emp ? ' (' + emp.apelido.toUpperCase() + ')' : ''}. Confira o número (o gestor corrige aqui embaixo) ou abra o Notas.` }; nfPdfPinta(venda); return; }
+    if (!n.chave) { NFPDF = { venda, num, st: 'semnota', msg: `A nota nº ${n.numero} não tem o PDF oficial (não saiu pelo Emissor Nacional).` }; nfPdfPinta(venda); return; }
+    const blob = await nfPdfBaixa(n, emp); if (!vale()) return;
+    if (!blob) { NFPDF = { venda, num, st: 'erro', msg: `O governo ainda não liberou o PDF da nota nº ${n.numero}. Espere uns segundos e toque em Tentar de novo.` }; nfPdfPinta(venda); return; }
+    const nome = `NFS-e ${n.numero} - ${n.clienteNome || ''}`.replace(/[\\/:*?"<>|]+/g, ' ').trim() + '.pdf';
+    NFPDF = { venda, num, st: 'ok', nota: n, emp, url: URL.createObjectURL(blob), arquivo: new File([blob], nome, { type: 'application/pdf' }) }; nfPdfPinta(venda);
+  } catch (e) { if (!vale()) return; NFPDF = e.status === 401 ? { venda, num, st: 'login' } : { venda, num, st: 'erro', msg: 'A nota não carregou: ' + (e.message || 'tente de novo.') }; nfPdfPinta(venda); }
+}
+function nfPdfSalvar() { const x = NF && NFPDF && NFPDF.venda === NF.id && NFPDF.st === 'ok' ? NFPDF : null; if (!x) return false;
+  const a = document.createElement('a'); a.href = x.url; a.download = x.arquivo.name; document.body.appendChild(a); a.click(); a.remove(); return true; }
+function nfPdfImprimir() { const x = NF && NFPDF && NFPDF.venda === NF.id && NFPDF.st === 'ok' ? NFPDF : null; if (!x) return;
+  const f = $('#nf-pdf-v'); try { if (!f) throw 0; f.contentWindow.focus(); f.contentWindow.print(); x.impresso = (x.impresso || 0) + 1; } catch (e) { window.open(x.url, '_blank'); } }
+/* o WhatsApp do cliente (o telefone do cadastro): a conversa abre com a mensagem pronta e o PDF fica salvo para anexar (no celular, o
+   compartilhar já leva o arquivo) */
+function nfZapNumero(c) { for (const t of [c.tel, c.tel2]) { let d = soDig(t || ''); if (d.length === 10 || d.length === 11) return '55' + d; if ((d.length === 12 || d.length === 13) && d.startsWith('55')) return d; } return ''; }
+async function nfPdfWhats() {
+  const x = NF && NFPDF && NFPDF.venda === NF.id && NFPDF.st === 'ok' ? NFPDF : null, v = x && LADO && LADO.dados && LADO.dados.vendas.find(y => y.id === x.venda), c = v && crianca(v.crianca); if (!x || !c) return;
+  const n = x.nota, quem = primeiro(MAI(c.resp || c.nome)), txt = `Olá, ${quem}! Segue a nota fiscal de serviço (NFS-e) nº ${n.numero} da Play Space, no valor de ${brl2(n.valor)}.\nChave de acesso: ${n.chave}\nConsulta: https://www.nfse.gov.br/ConsultaPublica`;
+  if (matchMedia('(pointer: coarse)').matches && navigator.canShare && navigator.canShare({ files: [x.arquivo] })) { try { await navigator.share({ files: [x.arquivo], text: txt }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
+  const num = nfZapNumero(c); nfPdfSalvar(); window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(txt), '_blank', 'noopener');
+  toast(num ? 'A conversa do cliente abriu no WhatsApp. O PDF da nota foi salvo: anexe na conversa (clipe → Documento).' : 'O cadastro não tem um celular do Brasil: escolha a conversa no WhatsApp. O PDF da nota foi salvo para anexar.');
+}
 function htmlNF(v, c) {
   const p = nfDaVenda(v), e = p ? p.status : '', pago = devDaCompra(v), d = p ? p.dados : {};
   const cab = `<div class="linha">${avatar(c)}<div class="txt"><b>${nomeResp(c)}</b><span>${c.resp ? esc(c.nome) + ' · ' : ''}compra de ${quandoFoi(v.quando)}${v.por ? ' · por ' + esc(primeiro(v.por)) : ''}</span></div></div>
@@ -7993,7 +8074,7 @@ function htmlNF(v, c) {
   /* (o botão fica no pé da folha, grudado embaixo: o aviso, o login do Notas e o que dá para fazer lá vêm antes dele) */
   const msg = `<div id="nf-emp">${nfEmpHtml(v)}</div><div id="nf-msg" aria-live="polite">${nfMsgHtml(v.id)}</div>`;   /* 2.04: por qual CNPJ sai */
   const emitir = ja => `<div class="pe-f"><button type="button" class="bt forte largo tap" data-act="nf-pedir" data-ja="${ja}" id="nf-emitir"${NF_EMITINDO === v.id ? ' disabled' : ''}>${ic(IC.cupom, 16)} ${NF_EMITINDO === v.id ? 'Emitindo a nota…' : 'Emitir a nota fiscal'}</button></div>`;
-  if (e === 'usado') return cab + `<div class="marca nf-ok">${ic(IC.check, 18, 2.6)}<span><b>Nota fiscal${p.numero ? ' nº ' + esc(p.numero) : ''} emitida.</b> Marcada por ${esc(primeiro(p.feito_por))}${p.feito_em ? ', ' + dataPedido(p.feito_em) : ''}.</span></div>${dadosNF}
+  if (e === 'usado') return cab + `<div class="marca nf-ok">${ic(IC.check, 18, 2.6)}<span><b>Nota fiscal${p.numero ? ' nº ' + esc(p.numero) : ''} emitida.</b> Marcada por ${esc(primeiro(p.feito_por))}${p.feito_em ? ', ' + dataPedido(p.feito_em) : ''}.</span></div><div id="nf-pdf">${nfPdfHtml(v)}</div>${dadosNF}
     ${gestor() ? `<div class="campo"><label for="nf-num">Corrigir o número da nota</label><input id="nf-num" value="${esc(p.numero)}" maxlength="40" autocomplete="off"></div><div class="pe-f dois-bt"><button type="button" class="bt tap" data-act="nf-voltar">Desfazer a marcação</button><button type="button" class="bt forte tap" data-act="nf-emitida">Salvar o número</button></div>
       <details class="outro nf-canc"><summary>Cancelar a nota</summary><div class="fv-form"><p class="explica">Quando a nota foi cancelada no Play Space Notas (lá também só o gestor cancela). Ela sai do faturamento em notas e aparece no relatório do dia como cancelada. Depois, dá para emitir outra nota para esta compra.</p>
         <div class="campo"><label for="nf-canc-m">Motivo<span class="obg" aria-hidden="true">*</span></label><input id="nf-canc-m" maxlength="200" autocomplete="off" placeholder="Por que a nota foi cancelada"></div><button type="button" class="bt canc-bt largo tap" data-act="nf-cancelar">${ic(IC.x, 16)} Cancelar a nota</button></div></details>`
@@ -8129,7 +8210,7 @@ async function entrarNotasNF(el) {
   const l = (($('#nfl-login') || {}).value || '').trim(), s = ($('#nfl-senha') || {}).value || '', depois = !!(NF_MSG && NF_MSG.depois), venda = NF && NF.id;
   if (!l || !s) { toast('Digite o login e a senha do Play Space Notas'); return; }
   el.disabled = true;
-  try { await notasApi('entrar', { login: l, senha: s }); NF_N = null; nfMsg(venda, ''); deuCerto('Entrou no Play Space Notas'); if (depois) await emitirNFDireto(); else nfPreparar(venda); }
+  try { await notasApi('entrar', { login: l, senha: s }); NF_N = null; nfMsg(venda, ''); deuCerto('Entrou no Play Space Notas'); if (depois) await emitirNFDireto(); else if (NFPDF && NFPDF.venda === venda && NFPDF.st === 'login') { const v = LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === venda); if (v) nfPdfCarregar(v); } else nfPreparar(venda); }   /* 2.48 */
   catch (e) { toast(e.message); el.disabled = false; const i = $('#nfl-senha'); if (i) { i.value = ''; i.focus(); } }
 }
 document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && (e.target.id === 'nfl-senha' || e.target.id === 'nfl-login')) { e.preventDefault(); const b = $('[data-act="nf-notas-entrar"]'); if (b && !b.disabled) b.click(); } });
@@ -9513,7 +9594,9 @@ const ACOES = {
   'off-ver': () => folhaOffProb(), 'off-ok': el => { OFF.prob.splice(+el.dataset.i, 1); filaGuardar(); offFaixa(); if (OFF.prob.length) folhaOffProb(); else fecharFolha(); },   /* 1.40 */
   'salt-item': el => { if (!ALTS || ALTS.espera) return; const i = altSaidaItens().find(x => x.id === +el.dataset.k); if (!i) return; ALTS.k = i.id; ALTS.v = valTxt(i.v); ALTS.hh = String(Math.round(i.h)); ALTS.vp = ''; ALTS.pn = ''; ALTS.aberto = true; altSaidaRedesenha(true); const v = $('#sa-alt-v'); if (v) { v.focus(); v.select(); } },   /* 1.39 */
   'salt-pedir': el => altSaidaPedir(el), 'salt-largar': () => altSaidaLargar(), 'salt-tirar': el => altSaidaTirar(el), 'salt-tira-largar': () => altSaidaTiraLargar(),   /* 2.24 */
-  nf: el => folhaNF(el.dataset.id), 'nf-notas': () => abrirNotasNF(), 'copia-baixar': el => baixarCopia(el.dataset.nome || '', el), 'copia-fazer': el => fazerCopia(el), 'nf-pedir': el => pedirNF(el), 'nf-notas-entrar': el => entrarNotasNF(el), 'nf-emp': el => { if (!NF || NF_EMITINDO) return; NF_EMP[NF.id] = +el.dataset.id; nfEmpRedesenha(NF.id); nfPreparar(NF.id); }, 'ocioso-ficar': () => ociosoMexeu(), 'nf-senha': el => acaoNF('senha', el), 'nf-emitida': el => acaoNF('emitida', el), 'nf-voltar': el => acaoNF('voltar', el), 'nf-largar': el => acaoNF('largar', el), 'nf-copiar': el => acaoNF('copiar', el),
+  nf: el => folhaNF(el.dataset.id), 'nf-notas': () => abrirNotasNF(), 'nf-pdf-imprimir': () => nfPdfImprimir(), 'nf-pdf-whats': () => nfPdfWhats(), 'nf-pdf-salvar': () => { if (nfPdfSalvar()) toast('A nota foi salva (na pasta Downloads)'); },
+  'nf-pdf-recarregar': () => { const v = NF && LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === NF.id); if (v) nfPdfCarregar(v); },   /* 2.48 */
+  'copia-baixar': el => baixarCopia(el.dataset.nome || '', el), 'copia-fazer': el => fazerCopia(el), 'nf-pedir': el => pedirNF(el), 'nf-notas-entrar': el => entrarNotasNF(el), 'nf-emp': el => { if (!NF || NF_EMITINDO) return; NF_EMP[NF.id] = +el.dataset.id; nfEmpRedesenha(NF.id); nfPreparar(NF.id); }, 'ocioso-ficar': () => ociosoMexeu(), 'nf-senha': el => acaoNF('senha', el), 'nf-emitida': el => acaoNF('emitida', el), 'nf-voltar': el => acaoNF('voltar', el), 'nf-largar': el => acaoNF('largar', el), 'nf-copiar': el => acaoNF('copiar', el),
   'meta-salvar': el => metaSalvar(el, false), 'meta-tirar': el => metaSalvar(el, true), 'meta-ver': () => metaVer('dia'), 'meta-ver-mes': () => metaVer('mes'), 'meta-aviso-ver': () => metaVer('aviso'),   /* 1.87: as metas do mês */
   'meta-folha': el => folhaMeta(+el.dataset.uni), 'meta-recarregar': () => { META_ED.erro = null; const a = $('#aj-meta'); if (a) a.outerHTML = cartaoMeta(); },
   'meta-mudar': el => { META_ED.uni = +el.dataset.uni || META_ED.uni; META_ED.mes = metaMesAtual(); fecharFolha(); trocarTela('ajustes'); setTimeout(() => { const a = $('#aj-meta'); if (a) a.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 400); },

@@ -1301,6 +1301,17 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A nota emitida carrega na folha da compra: Imprimir, Enviar no WhatsApp e Salvar (2.48, com o Notas 190)
+
+Pedido do dono (26/11): "eu quero que a nota já carregue aqui, tem a opção de eu imprimir, ou a opção de eu enviar no WhatsApp do cliente, ou a opção de eu salvar a nota".
+
+- Com a nota emitida, a folha "Nota fiscal" da compra busca sozinha, no Play Space Notas, o PDF oficial da nota (o DANFSe) e mostra ali mesmo, com três botões: Imprimir, Enviar no WhatsApp e Salvar a nota.
+- A nota é achada pela nota da compra (a do botão Emitir), pelo número marcado, ou pelo CPF, o valor e o dia (a nota feita no site do governo e marcada aqui com outro número aparece com "no governo, nº X"). Sem achar, o sistema busca no governo as notas da empresa e procura de novo; se ainda não achar, avisa, com "Tentar de novo".
+- Enviar no WhatsApp: abre a conversa do cliente (o celular do cadastro) com a mensagem pronta (número da nota, valor, chave de acesso e o endereço da consulta pública) e salva o PDF, para anexar na conversa (clipe → Documento). No celular, o compartilhar já leva o arquivo.
+- Salvar a nota: baixa o PDF ("NFS-e nº - cliente.pdf"). Imprimir: a janela de impressão do PDF.
+- O gestor que corrige o número da nota na folha vê a nota certa carregar de novo.
+- Notas 190: o PDF da nota aceita a empresa pelo endereço, para o Play Space abrir a nota da empresa da compra sem trocar a empresa aberta no Notas (com o Notas 189, o Play Space troca e volta).
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Casa Tom: o "Alterar valor" só para mais (2.47)
 
 Pedido do dono (26/11): "aqui só pode alterar o valor para mais, tá?".
