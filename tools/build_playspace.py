@@ -26,6 +26,10 @@ open(R + 'playspace/index.html', 'w', encoding='utf-8').write(html)
 fp = R + 'playspace/financas/index.html'; fs_ = open(fp, encoding='utf-8').read()
 fs2 = re.sub(r"const PS_PAGINA = '[0-9.]+';", "const PS_PAGINA = '" + versao + "';", fs_)
 assert fs2.count("const PS_PAGINA = '" + versao + "';") == 1, 'PS_PAGINA nas Finanças'
+# 2.33: cada arquivo das Finanças com a versão do Play Space no endereço (?v=): a versão nova nunca roda com um .js velho guardado
+# no navegador (o 5.3 ficou sem aparecer porque o caixa.js continuava ?v=4.9)
+fs2 = re.sub(r'(<script src="[A-Za-z0-9_-]+\.js)\?v=[0-9.]+(">)', lambda m: m.group(1) + '?v=' + versao + m.group(2), fs2)
+assert len(re.findall(r'<script src="[A-Za-z0-9_-]+\.js\?v=' + re.escape(versao) + '">', fs2)) >= 10, 'os scripts das Finanças com a versão'
 if fs2 != fs_: open(fp, 'w', encoding='utf-8').write(fs2)
 json.dump({
     'name': 'Play Space Horas', 'short_name': 'Play Space', 'description': 'Controle de horas, WhatsApp, agenda e esteira da Play Space',

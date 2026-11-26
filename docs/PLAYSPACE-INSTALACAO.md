@@ -1301,6 +1301,14 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Finanças: sempre os arquivos novos (2.33)
+
+O dono (26/11): o Controle de caixa do Finanças não mostrava o que veio no 5.3 (crianças do dia, dinheiro contado, "Destrinchar o dia").
+
+- Causa: o navegador da loja guardava o caixa.js antigo. O endereço dele (caixa.js?v=4.9) não mudou no 5.3, então o navegador não buscou o novo.
+- Agora o build (tools/build_playspace.py) põe a versão do Play Space no endereço de cada arquivo .js das Finanças (?v=2.33 etc.). Cada versão nova obriga o navegador a buscar todos os arquivos de novo.
+- Na hora, sem esperar: na página do Finanças, Ctrl + Shift + R (ou Ctrl + F5) recarrega tudo sem o guardado.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Casa Tom: "Dar desconto" à vista (2.32)
 
 Pedido do dono (26/11): "no Casatom eu quero aquela opção de dar desconto igual tem no sistema da Play".
