@@ -2131,7 +2131,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.18';
+const VERSAO = '2.19';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -5494,9 +5494,11 @@ function rotuloGrupo(g) { const h = g.L.reduce((t, x) => t + horasProprias(x.k),
 // mais alguma coisa (o carrinho, um produto, as horas além do pacote), a forma de pagamento aparece só para esse resto, e a tela diz isso
 function rotPagPacote(v, ids) { const cx = $('#s-pag'); if (!cx) return; const lb = cx.querySelector('label'); if (!lb) return;
   const usa = (ids || []).some(id => { const c = crianca(id); return !!c && !(typeof AV !== 'undefined' && AV && AV.has && AV.has(id)) && saldoAgora(c) > 0; });
-  lb.innerHTML = usa && v > 0 ? `Forma de pagamento do que o pacote não cobre <span class="leve">· ${brl(v)}</span>` : 'Forma de pagamento <span class="leve">· pode dividir em até três formas</span>';
+  const lan = centavos((ids || []).reduce((t, id) => { const c = crianca(id); return t + (c ? pendItens(c).filter(x => x.t === 'pacote').reduce((s, x) => s + (+x.v || 0), 0) : 0); }, 0)), soLan = lan > 0 && v <= lan + 0.004;   /* 2.19: o pacote lançado (a pagar na saída) */
+  lb.innerHTML = usa && v > 0 ? (lan > 0 ? `Forma de pagamento ${soLan ? 'do pacote lançado' : 'do pacote lançado e do resto'} <span class="leve">· ${brl(v)}</span>` : `Forma de pagamento do que o pacote não cobre <span class="leve">· ${brl(v)}</span>`) : 'Forma de pagamento <span class="leve">· pode dividir em até três formas</span>';
   let n = $('#s-pac-nota'); if (usa && v > 0) { if (!n) { n = document.createElement('p'); n.id = 's-pac-nota'; n.className = 'explica pac-nota'; lb.insertAdjacentElement('afterend', n); }
-    n.innerHTML = '<b>As horas saem do pacote</b>: a forma de pagamento delas é o pacote. Pix, crédito ou débito só para o resto (carrinho, produto ou horas além do pacote).'; } else if (n) n.remove(); }
+    n.innerHTML = lan > 0 ? `<b>O tempo sai das horas do pacote.</b> O que se recebe agora é o valor do pacote lançado (${brl(Math.min(v, lan))})${soLan ? '' : `, e o resto (${brl(centavos(v - lan))}: carrinho, produto ou horas além do pacote)`}.`
+      : '<b>As horas saem do pacote</b>: a forma de pagamento delas é o pacote. Pix, crédito ou débito só para o resto (carrinho, produto ou horas além do pacote).'; } else if (n) n.remove(); }
 function botaoGrupo(g) { const bt = $('#sg-ok'); if (!bt || !SAI) return; g = g || contaGrupo(); if (g.L.length || g.A.length) bt.innerHTML = rotuloGrupo(g); travarBotao(bt, travaAut('saida', SAI.base)); }   /* 1.54 */
 function atualizarGrupo() { // refaz a conta em conjunto que está aberta (tirou ou pôs um item, o tempo passou, usou o voucher, mexeu no desconto)
   const a = $('#sg-conta'), bt = $('#sg-ok'); if (!a || !bt || !SAI) return; const g = contaGrupo(); if (!g.L.length && !g.A.length) { fecharFolha(); return; }

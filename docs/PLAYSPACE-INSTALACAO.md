@@ -1301,6 +1301,14 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A forma de pagamento com o pacote lançado (2.19)
+
+Pedido do dono (27/11): "se o cliente tem horas e eu estou selecionando descontar do pacote, eu não tenho que selecionar a forma de pagamento ... A não ser que tenha um pacote lançado, aí sim eu preciso cobrar, mas descontar as horas do pacote e cobrar o valor do pacote".
+
+- Já era assim (1.66, 2.10): a criança que entrou na avulsa pode descontar do pacote na saída; com as horas cobrindo o tempo, a forma de pagamento some e o botão diz "Usar 1h30 das horas · dar saída".
+- Com o pacote lançado (vendido para pagar na saída), a saída cobra só o valor do pacote (sem avulsa) e o tempo sai das horas dele.
+- O que mudou: nesse caso, a forma de pagamento diz "Forma de pagamento do pacote lançado · R$ 390" (antes: "do que o pacote não cobre"), e a nota explica que o tempo sai das horas do pacote e que o que se recebe agora é o valor do pacote.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Carrinho de bebê sem tempo em nenhum lugar (2.18)
 
 Pedido do dono (27/11): "o carrinho de bebê não precisa rodar horas pois ele é fixo e só tem no Morumbi".
