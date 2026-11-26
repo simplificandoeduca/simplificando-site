@@ -1301,6 +1301,14 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Fica na Casa Tom, as sapateiras das crianças cadastradas juntas e o valor alterado na Casa Tom (2.38)
+
+Pedidos do dono (26/11).
+
+- "Ele tá voltando pro Play Space sem eu clicar": cada vez que os dados chegavam, a pessoa com a unidade marcada voltava para a unidade dela, e a tela da Casa Tom (Vendidos do dia, Produtos) voltava para Vender. Agora fica na Casa Tom do mesmo lugar e na tela em que estava.
+- "Quando eu anexo 2 ou 3 crianças, tem que dar a opção de escolher 3 sapateiras": as crianças cadastradas juntas já vêm marcadas em "Quem vai entrar?"; a entrada de todas pergunta a sapateira de cada uma, uma depois da outra.
+- "No Casatom ... editar valor do pedido para o gestor": no pagamento da Casa Tom, "Alterar valor · só o gestor" (o produto, o valor novo e o motivo). Vale na hora, o cupom sai com o valor novo e fica nos registros (o pedido de valor, aprovado pelo próprio gestor).
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Anália: Play e Casa Tom separados (2.37)
 
 Pedido do dono (26/11): "No Anália, pode deixar sem esse botão ir para a casa Tom. Lá o play é separado da casa Tom".

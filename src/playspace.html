@@ -2127,7 +2127,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.37';
+const VERSAO = '2.38';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -2492,9 +2492,9 @@ function aplicarDados(d) { // 1.40: o que veio do servidor (ou o que ficou guard
     S.nfEmitir = d.nf_emitir || 0; pedidosChegaram(d.pedidos || []); avisosChegaram(d.avisos || []);   // 1.23: os pedidos de autorização desta tela   // cadastro feito hoje e ainda sem atendimento (para "Falta finalizar")
     nomesEmMaiusculas();
     EU = { nome: d.eu.nome.split(' ')[0], nomeCompleto: d.eu.nome, papel: d.eu.papel, login: d.eu.login, id: d.eu.id, uni: +d.eu.unidade_id || 0, loja: !!+d.eu.loja };   /* 2.10: loja = o computador do balcão */
-    if (uniFixa() && +lido('ps-unidade', 0) !== uniFixa()) guardar('ps-unidade', uniFixa());   /* 2.02: a pessoa com a unidade escolhida pelo gestor */
+    if (uniFixa() && !noPar(+lido('ps-unidade', 0), uniFixa())) guardar('ps-unidade', uniFixa());   /* 2.38 (o dono: "ele tá voltando pro Play Space sem eu clicar"): a Casa Tom do mesmo lugar também vale */   /* 2.02: a pessoa com a unidade escolhida pelo gestor */
     ABAS = abasDoPapel();
-    if (!ABAS.some(a => a[0] === S.tela) && S.tela !== 'festas') S.tela = 'horas';   // (1.29: a tela Festas é de todos)
+    if (!ABAS.some(a => a[0] === S.tela) && S.tela !== 'festas' && !(modoCT() && TELAS_CT.includes(S.tela))) S.tela = 'horas';   /* 2.38: a tela da Casa Tom (Vendidos do dia, Produtos) fica */   // (1.29: a tela Festas é de todos)
     S.meta = d.meta || null;   /* 1.80: a meta do dia */
     S.painel = d.painel || null; S.finalizados = d.finalizados || null; S.caixa = d.caixa || null;   // 1.30: o caixa do dia   // 1.25: o dia de cada unidade (só o gestor recebe) e os finalizados do dia
     ULT_REG = S.registros.reduce((m, r) => Math.max(m, r.id || 0), 0);
@@ -4640,7 +4640,25 @@ function htmlAlt() {
   <div class="pg-desc-a">${e ? `<p class="pg-desc-e">${ic(IC.sino, 16)}<span><b>Pedido enviado</b> às ${hora(e.em)}. Quando aprovar, o valor muda aqui.</span><button type="button" class="link tap" data-act="alt-largar">Cancelar o pedido</button></p>` : `<button type="button" class="bt forte tap" data-act="alt-pedir">${dec ? ic(IC.check, 16) + ' Alterar o pacote' : ic(IC.sino, 16) + ' Pedir aprovação'}</button>`}
     ${dec ? '' : `<div class="aut-senha">${campoSenha('pg-alt-s', 'Senha de quem aprova')}<button type="button" class="bt tap" data-act="alt-pedir" data-senha="1">Aprovar com a senha</button></div>`}</div></details>`;
 }
-function altRedesenha() { const d = $('#pg-alt'); if (!d || !ALT) return; if (d.tagName === 'DETAILS') ALT.aberto = d.open; d.outerHTML = htmlAlt(); travaRefaz(); }
+function altRedesenha() { const d = $('#pg-alt'); if (!d || !ALT) return; if (d.tagName === 'DETAILS') ALT.aberto = d.open; d.outerHTML = S.balcao && ALT.id === S.balcao.id ? htmlCtAlt() : htmlAlt(); travaRefaz(); }
+/* 2.38 (o dono: "no Casatom eu quero uma opção de editar valor do pedido para o gestor"): no pagamento da Casa Tom, o gestor escolhe o produto,
+   escreve o valor novo e o motivo; vale na hora (o pedido de valor, aprovado por ele mesmo), sai no cupom e fica nos registros */
+function htmlCtAlt() { if (!ALT || !PAG || PAG.onde !== 'venda' || PAG.id !== ALT.id) return ''; const L = linhasDoCarrinho().filter(l => l.prod && l.v > 0); if (!L.length) return '';
+  const p = ALT.lib && altValido(ALT.lib) ? ALT.lib : null;
+  if (p) return `<div class="pg-desc lib pg-alt" id="pg-alt">${ic(IC.check, 18, 2.6)}<span><b>Valor alterado</b>: ${esc((p.dados.item || {}).n || 'o produto')} de ${brl(p.dados.de)} para ${brl(p.dados.para)}${p.motivo ? ' · ' + esc(p.motivo) : ''}</span><button type="button" class="link tap" data-act="alt-largar">Tirar</button></div>`;
+  const sel = L.find(l => altChave(l) === ALT.k) || L[0]; ALT.k = altChave(sel);
+  return `<details class="pg-desc pg-alt" id="pg-alt"${ALT.aberto ? ' open' : ''}><summary>${ic(IC.lapis, 18)}<span><b>Alterar valor</b> <span class="leve">· só o gestor</span></span>${ic(IC.vai, 16)}</summary><div class="pg-desc-c pg-alt-c">
+    ${L.length > 1 ? `<div class="seg pg-alt-i" role="radiogroup" aria-label="Qual produto">${L.map(l => `<button type="button" class="tap" role="radio" data-act="ctalt-item" data-k="${esc(altChave(l))}" aria-checked="${altChave(l) === ALT.k}">${esc(altNomeL(l))} · ${brl(l.v)}</button>`).join('')}</div>` : `<p class="pg-alt-n"><b>${esc(altNomeL(sel))}</b> · na tabela ${brl(sel.v)}</p>`}
+    <input id="pg-alt-m" autocomplete="off" maxlength="80" placeholder="Motivo" value="${esc(ALT.motivo || '')}" aria-label="Motivo"><input id="pg-alt-v" inputmode="decimal" autocomplete="off" placeholder="Novo valor R$" value="${esc(ALT.v || '')}" aria-label="Valor novo, em reais"></div>
+    <div class="pg-desc-a"><button type="button" class="bt forte tap" data-act="ctalt-ok">${ic(IC.check)} Aplicar o valor</button></div></details>`; }
+async function ctAltAplicar(el) { if (!ALT || !gestor()) return; const l = linhasDoCarrinho().find(x => x.prod && altChave(x) === ALT.k); if (!l) { toast('Escolha o produto'); return; }
+  ALT.v = val('pg-alt-v'); ALT.motivo = val('pg-alt-m'); const v = numero(ALT.v), m = MAI(ALT.motivo || '');
+  if (!(v > 0) || v > 99999) { toast('Escreva o valor novo'); const i = $('#pg-alt-v'); if (i) i.focus(); return; } if (Math.abs(v - l.v) < 0.005) { toast('O valor novo é igual ao de agora'); return; }
+  if (m.length < 3) { toast('Escreva o motivo'); const i = $('#pg-alt-m'); if (i) i.focus(); return; }
+  const d = { tipo: 'valor', crianca: ALT.id, item: altItem(l), para: centavos(v), motivo: m }; el.disabled = true;
+  try { let p; if (MODO === 'servidor') { const r = await api('pedido_criar', d); pedidosChegaram(r.pedidos, true); p = pedidoDe(r.pedido); } else { const r = criarPedidoPrevia(d, null); if (r.erro) throw new Error(r.erro); pedidosMudaramPrevia(true); p = r.pedido; }
+    ALT.ped = p.id; ALT.lib = p.status === 'liberado' ? p : null; ALT.espera = p.status === 'pendente'; ALT.neg = null; ALT.venceu = false; altRedesenha(); altMudou(); }
+  catch (e) { toast(e.message); el.disabled = false; } }
 function altMudou() { // o valor aprovado (ou tirado): a tabela, o total, as formas de pagamento e o botão acompanham
   if (!PAG || PAG.onde !== 'venda' || !ALT || ALT.id !== PAG.id) return; const c = crianca(PAG.id); if (!c) return;
   const L = altLinhas(linhasDoCarrinho(), PAG.id), cheio = centavos(L.reduce((t, l) => t + l.v, 0));
@@ -4719,7 +4737,7 @@ function abrirPagamento(id) {
     ${S.balcao && c.id === S.balcao.id ? htmlDesc() : ''}
     <div class="campo" id="pg-agora"><label>Forma de pagamento <span class="leve">· pode dividir em até três formas</span></label>${htmlPag()}</div>
     ${depois ? `<div class="marca canc" id="pg-fica" hidden>${ic(IC.sino, 18)}<span><b><span id="pg-fica-v">${brl(PAG.total)}</span> a receber na ${entrar || c.entrou ? 'saída' : 'devolução'}.</b>${soNaSaida ? ` A cobrança é feita na ${entrar || c.entrou ? 'saída' : 'devolução'}.` : ''}</span></div>` : ''}${PAG.dev ? `<div class="marca canc" id="pg-dev">${ic(IC.sino, 18)}<span><b>${esc(PAG.dev.n)} · ${brl(PAG.dev.v)} a receber na devolução.</b> O carrinho é cobrado sempre quando volta: agora, só o resto.</span></div>` : ''}
-    ${S.balcao && c.id === S.balcao.id ? '' : htmlDesc() + htmlAlt()}
+    ${S.balcao && c.id === S.balcao.id ? (gestor() ? htmlCtAlt() : '') : htmlDesc() + htmlAlt()}
     <div class="pe-f"><button class="bt forte largo tap" id="p-ok" data-act="pag-ok" data-id="${c.id}" disabled>${ic(IC.check)} Escolha a forma de pagamento</button></div>`;
   e.hidden = true; a.hidden = false; const h = $('#folha .cab-f h2'), f = $('#folha .folha'); if (h) h.textContent = 'Pagamento'; if (f) f.scrollTop = 0; desenharPag();
 }
@@ -7191,7 +7209,8 @@ let ENT_SEL = null, ENT_LOTE = null;
 const btEntrarUm = c => (saldoCpf(c) >= periodo() ? `<button type="button" class="bt forte largo tap" id="v-entrar-saldo" data-act="entrada" data-id="${c.id}" title="Não precisa vender nada: a criança entra usando as horas que já tem">${ic(IC.entrar)} Dar entrada com o saldo (${hm(saldoCpf(c))}${saldoMin(c) < saldoCpf(c) - 0.5 ? ' do CPF' : ''})</button>`
       : `<button type="button" class="bt forte largo tap av-entrar" id="v-entrar-saldo" data-act="entrada" data-id="${c.id}" title="Sem pacote: a criança entra na recreação avulsa e o cliente acerta na saída, pelo tempo que ela ficar"><span>${ic(IC.entrar)} Dar entrada · Recreação avulsa</span><small>${esc(precoTempo(c))} · acerta na saída${esc(famTemTxt(c))}</small></button>`);
 function htmlEntSel(c) { const F = familia(c).filter(x => !x.entrou); if (F.length < 2 || !F.some(x => x.id === c.id)) { ENT_SEL = null; return ''; }
-  if (!ENT_SEL || ENT_SEL.base !== c.id) ENT_SEL = { base: c.id, ids: new Set([c.id]) };
+  /* 2.38 (o dono: "quando eu anexo 2 ou 3 crianças, tem que dar a opção de escolher 3 sapateiras"): as cadastradas juntas já vêm marcadas */
+  if (!ENT_SEL || ENT_SEL.base !== c.id) { const ids = new Set([c.id]); if (filaVale() && CAD_FILA.includes(c.id)) for (const i of CAD_FILA) if (F.some(x => x.id === i)) ids.add(i); ENT_SEL = { base: c.id, ids }; }
   return `<div class="campo ent-sel" id="v-ent-sel"><label>Quem vai entrar? <span class="leve">· toque para marcar (pode ser mais de uma)</span></label><div class="ent-chips">${F.map(x => `<button type="button" class="ent-chip tap" data-act="ent-marca" data-id="${x.id}" aria-pressed="${ENT_SEL.ids.has(x.id)}"><i aria-hidden="true">${ic(IC.check, 14, 3)}</i><span><b>${esc(x.nome)}</b><small>${saldoCpf(x) >= periodo() ? (saldoMin(x) < saldoCpf(x) - 0.5 ? 'saldo do CPF ' : 'saldo ') + hm(saldoCpf(x)) : 'recreação avulsa'}</small></span></button>`).join('')}${F.some(x => !ENT_SEL.ids.has(x.id)) ? `<button type="button" class="link tap fam-todas" data-act="ent-todas">${ic(IC.check, 14, 3)} Marcar todas</button>` : ''}</div></div>`; }   /* 2.18: Marcar todas */
 const btEntrar = c => { const M = ENT_SEL && ENT_SEL.base === c.id ? [...ENT_SEL.ids].map(crianca).filter(x => x && !x.entrou) : null;
   if (!M || (M.length === 1 && M[0].id === c.id)) return btEntrarUm(c);
@@ -9296,6 +9315,7 @@ const ACOES = {
   'alt-sem': () => { if (!ALT) return; if (ALT.negId) NEG_VISTO.add(ALT.negId); Object.assign(ALT, { neg: null, negId: 0, motivo: '', aberto: false }); const l = linhasDoCarrinho().find(x => altChave(x) === ALT.k); if (l) { ALT.v = valTxt(l.v); ALT.hh = l.pac != null ? String(l.ph) : ''; ALT.vp = ''; } altRedesenha(); altMudou(); travaRefaz(); },
   'salt-sem': () => { if (!ALTS) return; if (ALTS.negId) NEG_VISTO.add(ALTS.negId); Object.assign(ALTS, { neg: null, negId: 0, k: 0, v: '', hh: '', vp: '', motivo: '', aberto: false }); altSaidaRedesenha(true); travaRefaz(); },
   'alt-item': el => { if (!ALT || ALT.espera || ALT.lib) return; const l = linhasDoCarrinho().find(x => altChave(x) === el.dataset.k); if (!l) return; ALT.k = el.dataset.k; ALT.v = valTxt(l.v); ALT.hh = l.pac != null ? String(l.ph) : ''; ALT.vp = ''; ALT.aberto = true; altRedesenha(); const i = $('#pg-alt-v'); if (i) { i.focus(); i.select(); } },   /* 1.33 */
+  'ctalt-item': el => { if (!ALT) return; ALT.k = el.dataset.k || ''; ALT.v = ''; ALT.aberto = true; altRedesenha(); }, 'ctalt-ok': el => ctAltAplicar(el),   /* 2.38 */
   'alt-pedir': el => pedirAlteracao(el), 'alt-largar': () => largarAlteracao(),
   'saida-cortesia': el => cortesiaSaida(+el.dataset.id, el),   /* 1.42 */
   'off-ver': () => folhaOffProb(), 'off-ok': el => { OFF.prob.splice(+el.dataset.i, 1); filaGuardar(); offFaixa(); if (OFF.prob.length) folhaOffProb(); else fecharFolha(); },   /* 1.40 */
