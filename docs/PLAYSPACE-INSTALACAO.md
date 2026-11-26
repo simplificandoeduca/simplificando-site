@@ -1301,6 +1301,15 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O pacote vendido e as horas usadas na mesma linha (2.44)
+
+Pedido do dono (26/11): "usou o pacote 2 horas e meia, mas elas venderam o pacote. Além dele ter usado as horas, ela ainda vendeu o pacote ... tem que colocar as duas coisas".
+
+- Nos Finalizados do dia, a linha da saída mostra o valor do que foi vendido (o pacote) e, embaixo, as horas do pacote que a criança usou ("e usou 2h30 do pacote").
+- O pacote vendido depois da saída, no mesmo dia (a família compra na hora de ir embora, pelo "Vender pacote"), vai para a última saída da família antes da venda. Antes ficava separado, em "Vendas sem entrada".
+- A venda nunca fica escondida: sem uma saída da família para ela, aparece em "Vendas sem entrada" até a saída acontecer.
+- As horas "do pacote" não contam a recreação avulsa nem o além do pacote (que são cobrados na própria saída).
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A lixeira do gestor nos Finalizados do dia (2.43)
 
 Pedido do dono (26/11): "eu quero uma lixeirazinha vermelha pra mim quando eu quiser excluir um pedido que às vezes lançou errado ... só pro gestor".
