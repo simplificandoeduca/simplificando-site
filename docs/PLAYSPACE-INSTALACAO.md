@@ -1301,6 +1301,13 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Carrinho sem sapateira e os nomes da tela de entrar (2.20)
+
+Pedidos do dono (27/11).
+
+- "pode tirar a opção de sapateira no carrinho fusquinha, no carrinho de bebê ... a criança não vai dar entrada ... na recreação": na venda só de carrinho (fusquinha ou de bebê), o atendimento não mostra a caixa "Dar entrada agora" nem o "Quem vai entrar?". O carrinho sai da loja, a criança não entra na recreação e a sapateira não é perguntada. Com recreação junto (um pacote, por exemplo), a entrada e a sapateira continuam como antes.
+- "ajustar na tela de login. Escrito login gestor, login Anália, login Morumbi e login Casatom Anália e Casatom Morumbi": no computador da loja, os botões da tela de entrar dizem "Login Anália", "Login Morumbi", "Login Casatom Anália", "Login Casatom Morumbi" e "Login gestor" (o nome completo da unidade aparece ao parar o mouse em cima e na tela da senha).
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A forma de pagamento com o pacote lançado (2.19)
 
 Pedido do dono (27/11): "se o cliente tem horas e eu estou selecionando descontar do pacote, eu não tenho que selecionar a forma de pagamento ... A não ser que tenha um pacote lançado, aí sim eu preciso cobrar, mas descontar as horas do pacote e cobrar o valor do pacote".

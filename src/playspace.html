@@ -2115,7 +2115,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.19';
+const VERSAO = '2.20';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -2560,17 +2560,21 @@ function maqLer() { try { const m = JSON.parse(localStorage.getItem(MAQ_K) || 'n
 function maqGuardar(m) { try { if (m) localStorage.setItem(MAQ_K, JSON.stringify(m)); else localStorage.removeItem(MAQ_K); } catch (e) { } }
 let ENTRAR_SENHA = false, LJ_UNI = 0;   /* 2.11: LJ_UNI = a unidade tocada (pede a senha dela) */
 const ehCT = n => /CASA\s*TO[MN]/i.test(String(n || ''));
+/* 2.20 (o dono: "Escrito login gestor, login Anália, login Morumbi e login Casatom Anália e Casatom Morumbi"): o nome no botão da unidade */
+const lojaRot = n => { const s = String(n || '').toUpperCase(), ct = ehCT(s), r = s.replace(/CASA\s*TO[MN]/, ' ').replace(/[·–-]/g, ' ').replace(/\s+/g, ' ').trim();
+  const loc = /AN[AÁ]LIA/.test(r) ? 'Anália' : /MORUMBI/.test(r) ? 'Morumbi' : r.toLowerCase().replace(/(^|\s)\S/g, x => x.toUpperCase());
+  return ('Login ' + (ct ? 'Casatom ' : '') + loc).trim(); };
 function telaEntrarLoja(m) {
   const U = [...(m.u || []).filter(u => !ehCT(u.nome)), ...(m.u || []).filter(u => ehCT(u.nome))];
   const uS = LJ_UNI ? U.find(u => u.id === LJ_UNI) : null; if (LJ_UNI && !uS) LJ_UNI = 0;
-  if (uS) { telaSo(`<h1 style="font-size:24px;font-weight:800">Play Space</h1><p class="explica">Operador · <b>${esc(uS.nome)}</b></p>
+  if (uS) { telaSo(`<h1 style="font-size:24px;font-weight:800">Play Space</h1><p class="explica"><b>${esc(lojaRot(uS.nome))}</b> · ${esc(uS.nome)}</p>
     <div class="campo"><label for="lj-senha">Senha da unidade</label><input id="lj-senha" type="password" inputmode="numeric" autocomplete="off"></div>
     <button type="button" class="bt forte largo tap${ehCT(uS.nome) ? ' lj-ct' : ''}" id="lj-ok" data-act="entrar-loja-ok" data-u="${uS.id}">${ic(IC.entrar)} Entrar</button>
     <button type="button" class="link tap lj-senha" data-act="entrar-unidades">Voltar às unidades</button>
     <p class="rodape">Computador da loja${m.n ? ' · ' + esc(m.n) : ''} · Play Space Horas v${VERSAO}</p>`); return; }
   telaSo(`<h1 style="font-size:24px;font-weight:800">Play Space</h1><p class="explica">Operador: toque na unidade e escreva a senha dela.</p>
-    <div class="lj-unis">${U.length ? U.map(u => `<button type="button" class="lj-uni tap${ehCT(u.nome) ? ' ct' : ''}" data-act="entrar-loja" data-u="${u.id}">${ic(IC.entrar)}<b>${esc(u.nome)}</b></button>`).join('') : '<p class="explica">Carregando as unidades…</p>'}</div>
-    <button type="button" class="bt claro largo tap lj-gestor" data-act="entrar-senha">${ic(IC.check)} Login do gestor</button>
+    <div class="lj-unis">${U.length ? U.map(u => `<button type="button" class="lj-uni tap${ehCT(u.nome) ? ' ct' : ''}" data-act="entrar-loja" data-u="${u.id}" title="${esc(u.nome)}">${ic(IC.entrar)}<b>${esc(lojaRot(u.nome))}</b></button>`).join('') : '<p class="explica">Carregando as unidades…</p>'}</div>
+    <button type="button" class="bt claro largo tap lj-gestor" data-act="entrar-senha">${ic(IC.check)} Login gestor</button>
     <p class="rodape">Computador da loja${m.n ? ' · ' + esc(m.n) : ''} · Play Space Horas v${VERSAO}</p>`);
   api('loja_unidades', { chave: m.c }).then(r => { const n = { ...m, u: r.unidades || [], n: r.nome || m.n || '' }; maqGuardar(n); if (JSON.stringify(n.u) !== JSON.stringify(m.u) && $('.lj-unis')) telaEntrarLoja(n); })
     .catch(e => { if (e.status === 403 && $('.lj-unis')) { maqGuardar(null); telaEntrar(); toast(e.message); } });
@@ -2579,7 +2583,7 @@ function telaEntrar() {
   if (LADO) fecharLado();
   S.pedidos = []; PED_SINAL = ''; S.avisos = []; AV_SINAL = null; AV_JA = null; for (const k of [...AUT_VISTOS]) if (String(k).startsWith('av')) AUT_VISTOS.delete(k); setTimeout(desenharPedidos, 0);   // 1.23: na tela de entrar não há cartão de pedidos (1.25: nem avisos; quem entrar depois começa do zero)
   { const m = MODO === 'servidor' && !ENTRAR_SENHA ? maqLer() : null; ENTRAR_SENHA = false; if (m) { telaEntrarLoja(m); return; } }   /* 2.10: o computador da loja: as unidades */
-  telaSo(`<h1 style="font-size:24px;font-weight:800">Play Space</h1><p class="explica">${maqLer() ? '<b>Login do gestor</b>: entre com o seu login e senha.' : 'Entre com o seu login da equipe.'}</p>
+  telaSo(`<h1 style="font-size:24px;font-weight:800">Play Space</h1><p class="explica">${maqLer() ? '<b>Login gestor</b>: entre com o seu login e senha.' : 'Entre com o seu login da equipe.'}</p>
     <div class="campo"><label for="l-login">Login</label><input id="l-login" autocapitalize="none" autocomplete="username" spellcheck="false" style="text-transform:lowercase"></div>
     <div class="campo"><label for="l-senha">Senha</label><input id="l-senha" type="password" autocomplete="current-password"></div>
     <button class="bt forte largo tap" data-act="entrar">${ic(IC.check)} Entrar</button>${maqLer() ? '<button type="button" class="link tap lj-senha" data-act="entrar-unidades">Voltar às unidades</button>' : ''}
@@ -7016,6 +7020,9 @@ const vendedorasLista = () => { const M = MODO === 'servidor' && S.cfg.vend_uni,
    (c.vabriu). Com a criança no espaço, a venda (também a da saída) é de quem abriu: o quadro mostra o nome, sem escolher de novo.
    Sem quem abriu (a entrada pelo iDFace, a de antes da 1.68), pede o nome como na 1.67 */
 const abriuDe = c => c && c.entrou && !c.festa && c.vabriu ? c.vabriu : '';
+/* 2.20 (o dono: "pode tirar a opção de sapateira no carrinho fusquinha, no carrinho de bebê ... a criança não vai dar entrada"): a linha do
+   carrinho (o que sai da loja e volta: o fusquinha, o de bebê). Venda só de carrinho não dá entrada na recreação */
+const linhaCarro = l => !!l && (!!l.aberto || (!!l.s && (x => !!x && !!x.volta && !ehTempo(x))(servicoDe(l.s))));
 const abreAgora = L => { const cr = CARRINHO && crianca(CARRINHO.id), en = $('#v-entrar-campo'), cb = $('#v-entrar'); return !!cr && !cr.entrou && L.length > 0 && !!en && !en.hidden && !!cb && cb.checked; };
 const precisaVend = L => !(CARRINHO && CARRINHO.festa) && (L.some(l => l.pac != null || !!l.prod) || abreAgora(L));
 const htmlVend = () => `<div class="vend" id="v-vend" role="radiogroup" aria-label="Quem está atendendo" hidden><p class="vend-t"><span id="v-vend-t">Quem está vendendo?</span><span class="leve" id="v-vend-l"> · toque no seu nome (a cada venda)</span></p><p class="vend-abriu" id="v-vend-abriu" hidden></p><div class="vend-b">${vendedorasLista().map(n => `<button type="button" class="tap" role="radio" aria-checked="false" data-act="vend" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`;
@@ -7089,7 +7096,8 @@ function atualizarCarrinho() { // redesenha as linhas dos serviços e o total a 
   const L = linhasDoCarrinho(), total = L.reduce((t, l) => t + l.v, 0), min = L.reduce((t, l) => t + l.min, 0), t = $('#v-total'), ok = $('#v-ok');
   if (t) t.textContent = brl(total); if (ok) { ok.disabled = !L.length; ok.innerHTML = !L.length ? `${ic(IC.check)} Escolha o serviço` : total > 0 ? `${VOLTA_SAIDA ? 'Somar na saída' : 'Pagamento'} · ${brl(total)} ${ic(IC.vai, 18, 2.6)}` : L.some(l => l.aberto) ? `${ic(IC.check)} Registrar a saída${qtdAbertos(L) > 1 ? ' de ' + qtdAbertos(L) + ' carrinhos' : ''} · ${ITENS_ABERTO}` : `${ic(IC.check)} Registrar · ${brl(total)}`; }
   const m = $('#v-tempo'), vc = L.find(l => l.cobre); if (m) { m.hidden = !min && !vc; m.textContent = (min ? `Entra ${dur(min)} de recreação no saldo: fica com ${hm(saldoAgora(crianca(CARRINHO.id)) + min)}. ` : '') + (vc ? `O voucher cobre ${porExt(periodo())} desta visita: ${brl(umaCobranca(crianca(CARRINHO.id)))} a menos na saída.` : ''); }
-  const en = $('#v-entrar-campo'), cb = $('#v-entrar'), cr = crianca(CARRINHO.id); if (en) en.hidden = !(L.length && cr);   // 1.15: a entrada pode ir junto com qualquer venda (sem horas, a criança entra na recreação avulsa)
+  const en = $('#v-entrar-campo'), cb = $('#v-entrar'), cr = crianca(CARRINHO.id), soCarros = L.length > 0 && L.every(linhaCarro); if (en) en.hidden = !(L.length && cr) || soCarros;   /* 2.20: só carrinho: a criança não entra (sem sapateira) */
+  { const sl = $('#v-ent-sel'); if (sl) sl.hidden = soCarros; }   // 1.15: a entrada pode ir junto com qualquer venda (sem horas, a criança entra na recreação avulsa)
   if (cb && CARRINHO.entrar == null) cb.checked = min > 0;
   if (cb) { const vou = !!CARRINHO.vq && voucherNaEntrada() && L.some(l => l.vou); if (vou) cb.checked = true; cb.disabled = vou; const nv = $('#v-entrar-vou'); if (nv) nv.hidden = !vou; }   // 1.35: o voucher é dado na entrada   // vem marcada quando a venda tem recreação (pacote, voucher); a venda só de carrinho ou de produto não dá a entrada sozinha (o carrinho é usado fora da loja): quem quiser, marca. Se a pessoa mexer, vale a escolha dela
   { const tx = $('#v-entrar-txt'); if (tx && cr) tx.textContent = saldoMin(cr) + min >= periodo() ? 'O tempo de recreação começa a contar ao registrar a venda.' : `Recreação avulsa: ${precoTempo(cr)}, acerta na saída.`; }
@@ -8662,7 +8670,7 @@ async function folhaMaquinas() {
     ${m ? `<div class="marca" id="mq-este">${ic(IC.check, 18, 2.6)}<span><b>Este computador está liberado</b>${m.n ? ' (' + esc(m.n) + ')' : ''}. Ao sair, a tela de entrar mostra as unidades.</span></div><div class="acoes"><button type="button" class="bt claro tap" data-act="maq-esquecer">Tirar a liberação deste computador</button></div>`
       : `<div class="campo"><label for="mq-nome">Nome deste computador <span class="leve">· para achar na lista</span></label><input id="mq-nome" maxlength="40" autocomplete="off" placeholder="ex.: BALCÃO ANÁLIA"></div><div class="acoes"><button type="button" class="bt forte tap" id="mq-ok" data-act="maq-liberar">${ic(IC.check)} Liberar este computador</button></div>`}
     ${faltaCasaTom().length ? `<div class="marca" id="mq-ct">${ic(IC.sino, 18)}<span>Falta a unidade <b>${esc(juntar(faltaCasaTom().map(u => 'CASA TOM ' + curtoUni(u.nome).toUpperCase())))}</b>: sem ela, o botão não aparece na tela de entrar.</span><button type="button" class="bt claro tap" data-act="maq-ct">Criar agora</button></div>` : ''}
-    <p class="vend-t" style="margin-top:14px">Senha de cada unidade</p><p class="explica">Na tela de entrar, a equipe toca na unidade e escreve a senha dela. De fábrica, a senha de todas é <b>123456</b>. O gestor entra pelo botão "Login do gestor", com o login e a senha dele.</p>
+    <p class="vend-t" style="margin-top:14px">Senha de cada unidade</p><p class="explica">Na tela de entrar, a equipe toca na unidade e escreve a senha dela. De fábrica, a senha de todas é <b>123456</b>. O gestor entra pelo botão "Login gestor", com o login e a senha dele.</p>
     <div class="grupo" id="mq-senhas">${unidades().filter(u => u.ativo !== false).map(u => `<div class="it"><div class="txt"><b>${esc(u.nome)}</b><span>operador</span></div><input type="password" class="mq-s" data-u="${u.id}" placeholder="Nova senha" autocomplete="new-password" style="max-width:150px"><button type="button" class="bt claro tap" data-act="loja-senha" data-u="${u.id}">Trocar</button></div>`).join('')}</div>
     <div id="mq-lista"><p class="explica">Carregando os computadores liberados…</p></div>`);
   try { const r = await api('maquinas'); pintarMaquinas(r.maquinas || []); } catch (e) { const l = $('#mq-lista'); if (l) l.innerHTML = `<p class="explica">${esc(e.message)}</p>`; }
