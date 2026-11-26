@@ -92,8 +92,12 @@ function cxUnidade(array $S, array $R, string $d, int $u, array $A = []): array 
       'taxa' => $r['taxa'] ?? null, 'liquido' => $r['liquido'] ?? null, 'qtde' => $r['qtde'] ?? null, 'origem' => $r['origem'] ?? '', 'rel' => $r['rel'] ?? null];
   }
   $din = round((float)($S[$d][$u]['dinheiro'] ?? 0), 2);
+  /* 5.3 (Play Space 2.31, o dono: "não tem dinheiro. Pode colocar pra gente colocar manualmente o dinheiro que a maquininha não vai puxar"):
+     o dinheiro contado na gaveta, lançado à mão, conferido com o do sistema (só entra na situação do dia depois de lançado) */
+  $rd = $R[$d][$u]['dinheiro'] ?? null; $rdv = $rd ? (float)$rd['v'] : null; $sitD = $rdv === null ? '' : cxSituacao($din, $rdv); if ($rdv !== null && $ordem[$sitD] > $ordem[$pior]) $pior = $sitD;
+  $dinC = ['sis' => $din, 'contado' => $rdv, 'dif' => $rdv === null ? null : round($rdv - $din, 2), 'sit' => $sitD, 'por' => $rd['por'] ?? '', 'em' => $rd['em'] ?? ''];
   $outras = 0.0; foreach ((array)($S[$d][$u] ?? []) as $f => $v) if (!isset(CX_FORMAS[$f]) && $f !== 'dinheiro') $outras = round($outras + $v, 2);
-  return ['u' => $u, 'formas' => $formas, 'sis' => $ts, 'rede' => $temR ? $tr : null, 'dinheiro' => $din, 'outras' => $outras,
+  return ['u' => $u, 'formas' => $formas, 'sis' => $ts, 'rede' => $temR ? $tr : null, 'dinheiro' => $din, 'din' => $dinC, 'outras' => $outras,
     'total' => round($ts + $din + $outras, 2), 'sit' => $pior, 'ajustes' => $A[$d][$u]['lista'] ?? []];
 }
 /* as unidades que aparecem: as ativas e as outras (sem unidade, inativas) só quando têm movimento ou valor lançado no dia */
@@ -107,6 +111,44 @@ function cxUnidadesDoDia(array $S, array $R, string $d): array {
   return $us;
 }
 
+/* 5.3 (o dono: "por unidade quantas crianças entraram no dia ... crianças válidas e crianças canceladas"): as que entraram no dia (uma vez
+   cada: as visitas que começaram no dia e quem ainda está lá dentro) e as entradas canceladas no dia */
+function cxCriancas(string $d): array {
+  $d0 = $d . ' 00:00:00'; $d1 = date('Y-m-d', strtotime($d . ' 12:00:00 +1 day')) . ' 00:00:00'; $db = db(); $K = [];
+  $q = $db->prepare('SELECT u, COUNT(DISTINCT c) n FROM (SELECT COALESCE(unidade_id, 0) u, crianca_id c FROM visitas WHERE entrou >= ? AND entrou < ? UNION ALL SELECT COALESCE(unidade_id, 0) u, id c FROM criancas WHERE entrou IS NOT NULL AND entrou >= ? AND entrou < ?) GROUP BY u');
+  $q->execute([$d0, $d1, $d0, $d1]); foreach ($q->fetchAll() as $l) $K[(int)$l['u']]['validas'] = (int)$l['n'];
+  $q = $db->prepare("SELECT COALESCE(unidade_id, 0) u, COUNT(*) n FROM cancelamentos WHERE quando >= ? AND quando < ? AND tipo = '' GROUP BY u"); $q->execute([$d0, $d1]);
+  foreach ($q->fetchAll() as $l) $K[(int)$l['u']]['canceladas'] = (int)$l['n'];
+  foreach ($K as &$x) $x += ['validas' => 0, 'canceladas' => 0]; unset($x); return $K;
+}
+/* 5.3 (o dono: "um botão, destrinchar histórico do dia. Que aí eu vou saber o que foi recreação, o que foi pacote"): o dia de uma unidade
+   por tipo (com as formas e quantas vendas) e venda a venda; o devolvido no dia e as entradas canceladas */
+const CX_GRUPOS = ['recreacao' => 'Recreação avulsa', 'pacotes' => 'Pacotes de horas', 'festa' => 'Festas', 'produtos' => 'Casa Tom (produtos)', 'carrinhos' => 'Carrinhos', 'outros' => 'Outros'];
+function cxDestrinchar(array $in): array {
+  $d = cxDiaOk($in['dia'] ?? ''); $u = (int)($in['u'] ?? 0); $d0 = $d . ' 00:00:00'; $d1 = date('Y-m-d', strtotime($d . ' 12:00:00 +1 day')) . ' 00:00:00'; $db = db(); $G = []; $L = [];
+  $poe = function (array $l, float $v, string $obs = '') use (&$G, &$L) { $g = grupoDoCaixa($l); $f = (string)$l['f'];
+    if (!isset($G[$g])) $G[$g] = ['g' => $g, 'nome' => CX_GRUPOS[$g] ?? $g, 'total' => 0.0, 'formas' => [], 'vendas' => []];
+    $G[$g]['total'] = round($G[$g]['total'] + $v, 2); $G[$g]['formas'][$f] = round(($G[$g]['formas'][$f] ?? 0) + $v, 2); $G[$g]['vendas'][(int)$l['vid']] = 1;
+    $it = trim((string)$l['s']) !== '' ? mb_strtoupper(trim((string)$l['s'])) : (CX_GRUPOS[$g] ?? ''); if (!empty($l['pr']) && (int)$l['qtd'] > 1) $it = (int)$l['qtd'] . ' × ' . $it;
+    $L[] = ['h' => substr((string)$l['quando'], 11, 5), 'g' => $g, 'item' => $it . $obs, 'cli' => trim((string)($l['resp'] ?? '')) ?: trim((string)($l['nome'] ?? '')), 'cri' => (string)($l['nome'] ?? ''), 'f' => $f, 'v' => $v]; };
+  $sel = 'v.id vid, v.servico s, v.itens, (COALESCE(v.produto_id, 0) > 0) pr, v.alug a, v.minutos m, v.auto au, v.voucher vo, v.festa_id fid, COALESCE(v.qtd, 1) qtd, c.nome, c.resp';
+  $q = $db->prepare("SELECT p.quando, p.forma f, p.valor val, $sel FROM pagamentos p JOIN vendas v ON v.id = p.venda_id LEFT JOIN criancas c ON c.id = v.crianca_id WHERE p.quando >= ? AND p.quando < ? AND COALESCE(p.unidade_id, v.unidade_id, 0) = " . $u . " ORDER BY p.quando, p.id");   /* (a unidade é um número: comparada como número) */
+  $q->execute([$d0, $d1]); foreach ($q->fetchAll() as $l) $poe($l, round((float)$l['val'], 2));
+  /* a venda paga neste dia e cancelada depois (o pagamento foi apagado): continua no caixa deste dia, como no Controle de caixa */
+  $q = $db->prepare('SELECT e.pago_em quando, e.forma f, e.valor val, e.grupo, e.item, e.quando canc, e.venda_id vid FROM estornos e WHERE e.pago_em >= ? AND e.pago_em < ? AND COALESCE(e.pago_uni, e.unidade_id, 0) = ' . $u . ' ORDER BY e.id'); $q->execute([$d0, $d1]);
+  foreach ($q->fetchAll() as $l) { $g = (string)$l['grupo']; $v = round((float)$l['val'], 2); $f = (string)$l['f'];
+    if (!isset($G[$g])) $G[$g] = ['g' => $g, 'nome' => CX_GRUPOS[$g] ?? $g, 'total' => 0.0, 'formas' => [], 'vendas' => []];
+    $G[$g]['total'] = round($G[$g]['total'] + $v, 2); $G[$g]['formas'][$f] = round(($G[$g]['formas'][$f] ?? 0) + $v, 2); $G[$g]['vendas'][(int)$l['vid']] = 1;
+    $L[] = ['h' => substr((string)$l['quando'], 11, 5), 'g' => $g, 'item' => ((string)$l['item'] !== '' ? (string)$l['item'] : (CX_GRUPOS[$g] ?? '')) . ' · cancelada em ' . substr((string)$l['canc'], 8, 2) . '/' . substr((string)$l['canc'], 5, 2), 'cli' => '', 'cri' => '', 'f' => $f, 'v' => $v]; }
+  usort($L, fn($a, $b) => strcmp($a['h'], $b['h']));
+  foreach ($G as &$x) $x['vendas'] = count($x['vendas']); unset($x); $ord = array_flip(array_keys(CX_GRUPOS)); uasort($G, fn($a, $b) => ($ord[$a['g']] ?? 99) <=> ($ord[$b['g']] ?? 99));
+  /* o devolvido no dia (venda de outro dia cancelada neste dia): sai do caixa deste dia */
+  $q = $db->prepare('SELECT quando, forma, valor, grupo, item FROM estornos WHERE quando >= ? AND quando < ? AND COALESCE(unidade_id, 0) = ' . $u . ' ORDER BY id'); $q->execute([$d0, $d1]);
+  $dev = array_map(fn($l) => ['h' => substr((string)$l['quando'], 11, 5), 'g' => (string)$l['grupo'], 'item' => (string)$l['item'] !== '' ? (string)$l['item'] : (CX_GRUPOS[(string)$l['grupo']] ?? ''), 'f' => (string)$l['forma'], 'v' => round((float)$l['valor'], 2)], $q->fetchAll());
+  $q = $db->prepare("SELECT quando, nome, resp, motivo, atendente, por_nome FROM cancelamentos WHERE quando >= ? AND quando < ? AND tipo = '' AND COALESCE(unidade_id, 0) = " . $u . " ORDER BY id"); $q->execute([$d0, $d1]);
+  $canc = array_map(fn($l) => ['h' => substr((string)$l['quando'], 11, 5), 'cri' => (string)$l['nome'], 'resp' => (string)$l['resp'], 'motivo' => (string)$l['motivo'], 'quem' => (string)($l['atendente'] !== '' ? $l['atendente'] : $l['por_nome'])], $q->fetchAll());
+  return ['dia' => $d, 'u' => $u, 'grupos' => array_values($G), 'lista' => $L, 'devolvido' => $dev, 'cancelados' => $canc, 'criancas' => cxCriancas($d)[$u] ?? ['validas' => 0, 'canceladas' => 0]];
+}
 /* a tela: o dia escolhido (cada unidade) e os últimos dias (a situação de cada um) */
 function cxDia(array $in): array {
   $d = cxDiaOk($in['dia'] ?? cxHoje());
@@ -116,7 +158,8 @@ function cxDia(array $in): array {
   $S = cxSistema($de, $fimH); $R = cxRede($de, $fimH); $A = cxAjustes($de, $fimH);
   $unis = array_map(fn($u) => cxUnidade($S, $R, $d, $u, $A), cxUnidadesDoDia($S, $R, $d));
   /* 2.4: o PDF da Rede de cada unidade nesse dia (o último anexado) */
-  foreach ($unis as &$U) $U['relatorio'] = cxRelDoDia($d, $U['u']);
+  $K = cxCriancas($d);   /* 5.3: as crianças do dia */
+  foreach ($unis as &$U) { $U['relatorio'] = cxRelDoDia($d, $U['u']); $U['criancas'] = $K[$U['u']] ?? ['validas' => 0, 'canceladas' => 0]; }
   unset($U);
   $hist = [];
   for ($i = 0; $i < CX_DIAS_HIST; $i++) {
@@ -144,7 +187,7 @@ function cxValor($v): ?float {
 function cxSalvar(array $in, array $eu): array {
   cxPreparar(); $db = db();
   $d = cxDiaOk($in['dia'] ?? ''); $u = (int)($in['u'] ?? -1); $f = (string)($in['forma'] ?? '');
-  if (!isset(CX_FORMAS[$f])) falha('Escolha crédito, débito ou Pix.');
+  if (!isset(CX_FORMAS[$f]) && $f !== 'dinheiro') falha('Escolha crédito, débito, Pix ou dinheiro.');   /* 5.3: o dinheiro contado na gaveta */
   if ($u < 0) falha('Escolha a unidade.');
   if ($u > 0) { $q = $db->prepare('SELECT 1 FROM unidades WHERE id = ?'); $q->execute([$u]); if (!$q->fetchColumn()) falha('Unidade não encontrada.', 404); }
   $v = cxValor($in['valor'] ?? null);

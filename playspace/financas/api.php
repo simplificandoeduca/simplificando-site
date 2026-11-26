@@ -22,7 +22,7 @@ require __DIR__ . '/clientes.php';   /* 3.0: o relatório por cliente */
 require __DIR__ . '/comprovantes.php';   /* 3.0: o comprovante das despesas */
 require __DIR__ . '/adiant.php';   /* 4.3: o adiantamento por unidade */
 set_exception_handler(function (Throwable $e) { registrarErro('[financas] ' . $e->getMessage() . ' @' . basename($e->getFile()) . ':' . $e->getLine()); falha('Algo deu errado. Tente de novo em instantes.', 500); });
-const FIN_VERSAO = '5.2';
+const FIN_VERSAO = '5.3';
 
 $in = [];
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
@@ -231,6 +231,7 @@ if ($acao === 'fl_rel') responder(flRel($in));
 if ($acao === 'fl_pdf') flPdfSaida($in);
 /* ---------- 2.2: o controle de caixa: o que passou no caixa no dia (crédito, débito, Pix) e o valor da Rede, conferidos ---------- */
 if ($acao === 'cx_dia') responder(cxDia($in));
+if ($acao === 'cx_destrinchar') responder(cxDestrinchar($in));   /* 5.3 */
 if ($acao === 'cx_salvar') responder(cxSalvar($in, $eu));
 /* 2.4: o PDF da Rede (lido e preenchido sozinho), baixar o PDF anexado e consertar o caixa */
 if ($acao === 'cx_pdf') responder(cxPdf($in, $eu));

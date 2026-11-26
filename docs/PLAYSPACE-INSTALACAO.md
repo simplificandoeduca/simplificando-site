@@ -1301,6 +1301,14 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Finanças: as crianças do dia, o dinheiro contado e o dia destrinchado (2.31, Finanças 5.3)
+
+Pedido do dono (26/11): "no financeiro eu preciso visualizar por unidade quantas crianças entraram no dia ... junto com o controle de caixa ... crianças válidas e crianças canceladas. ... coloque a forma de pagamento lá, não tem dinheiro. Pode colocar pra gente colocar manualmente o dinheiro que a maquininha não vai puxar. E também ... um botão, destrinchar histórico do dia".
+
+- Controle de caixa, em cada unidade: "Crianças no dia: N válidas · M canceladas" (as que entraram no dia, uma vez cada; as entradas canceladas no dia).
+- O dinheiro: a linha "Dinheiro", com o do sistema e o campo "Contado na gaveta" (digitado à mão), com a conferência (bateu / não bateu, quanto a mais ou a menos) e quem lançou. Fica guardado como as formas da Rede (fin_caixa, forma dinheiro); só entra na situação do dia depois de lançado.
+- "Destrinchar o dia": o dia da unidade por tipo (recreação avulsa, pacotes, festas, Casa Tom, carrinhos, outros), com o total, as formas e quantas vendas; depois, venda a venda (hora, o que foi, o cliente, a forma, o valor), o devolvido no dia e as entradas canceladas (com o motivo e quem cancelou).
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O carrinho de bebê: a forma de pagamento já marcada na devolução (2.30)
 
 Pedido do dono (26/11): "no carrinho bebê é o único que é dessa maneira. A gente cobra na entrada e na saída ele tem que aparecer a forma de pagamento, mas já aparecer selecionada".

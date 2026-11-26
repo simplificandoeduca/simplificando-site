@@ -77,10 +77,11 @@ function cxCartao(U) {
   const nome = nomeUni(U.u), cor = corUni(U.u);
   return `<section class="cartao cx-uni" data-cxuni="${U.u}">
     <div class="cab-cartao"><div><h2><i class="uni-dot" style="background:${cor}"></i>${esc(nome)}</h2>
-      <p class="expl">Total do caixa no dia: <b class="num">${brl(U.total)}</b> · cartões e Pix ${brl(U.sis)} · dinheiro ${brl(U.dinheiro)}${Math.abs(U.outras) > 0.004 ? ` · outras ${brl(U.outras)}` : ''}</p></div>
+      <p class="expl">Total do caixa no dia: <b class="num">${brl(U.total)}</b> · cartões e Pix ${brl(U.sis)} · dinheiro ${brl(U.dinheiro)}${Math.abs(U.outras) > 0.004 ? ` · outras ${brl(U.outras)}` : ''}</p>
+      ${U.criancas ? `<p class="cx-kids"><b>Crianças no dia:</b> <span class="cx-kv">${U.criancas.validas} ${U.criancas.validas === 1 ? 'válida' : 'válidas'}</span><span class="cx-kc${U.criancas.canceladas ? ' tem' : ''}">${U.criancas.canceladas} ${U.criancas.canceladas === 1 ? 'cancelada' : 'canceladas'}</span></p>` : ''}</div>
       <div class="cx-direita"><div class="cx-geral" data-cxgeral></div>
         <div class="cx-acoes"><label class="btn btn-brand cx-pdf-bt" title="O relatório de vendas da Rede (PDF): o sistema lê e preenche crédito, débito e Pix, com a taxa"><input type="file" accept="application/pdf,.pdf" data-cxpdf="${U.u}" hidden>${IC.pdf}<span>Anexar PDF da Rede</span></label>
-          <button class="btn btn-ghost" data-cxconserto="${U.u}" title="Lançar um valor a mais ou a menos, com o porquê, para as contas baterem">Consertar caixa</button></div></div></div>
+          <button class="btn btn-ghost" data-cxconserto="${U.u}" title="Lançar um valor a mais ou a menos, com o porquê, para as contas baterem">Consertar caixa</button><button class="btn btn-ghost" data-cxdestr="${U.u}" title="O dia por tipo (recreação, pacotes, festas...) e venda a venda">Destrinchar o dia</button></div></div></div>
     ${U.relatorio ? `<p class="cx-rel">PDF da Rede ${U.relatorio.de === U.relatorio.ate ? 'de ' + dataBR(U.relatorio.de).slice(0, 5) : 'de ' + dataBR(U.relatorio.de).slice(0, 5) + ' a ' + dataBR(U.relatorio.ate).slice(0, 5)} anexado por ${esc(U.relatorio.por)} · ${esc(quandoBR(U.relatorio.em))}${U.relatorio.ecs.length > 1 ? ` · <b>${U.relatorio.ecs.length} estabelecimentos juntos</b>` : U.relatorio.ecs.length ? ` · estabelecimento ${esc(U.relatorio.ecs[0])}` : ''} · <button class="link" data-cxverpdf="${U.relatorio.id}">baixar o PDF</button></p>` : ''}
     <div class="cx-tab">
       <div class="cx-cab"><span>Forma</span><span class="v">No sistema</span><span>Na Rede <small>(digite o valor)</small></span><span>Conferência</span></div>
@@ -94,7 +95,11 @@ function cxCartao(U) {
       <div class="cx-linha cx-total"><span class="cx-forma">Total</span><span class="cx-sis num"><small class="cx-mob">No sistema</small>${brl(U.sis)}</span>
         <span class="cx-rede num"><small class="cx-mob">Na Rede</small><b data-cxtrede>—</b></span><span class="cx-res" data-cxtres></span></div>
     </div>
-    <p class="cx-din"><b>Dinheiro:</b> <span class="num">${brl(U.dinheiro)}</span> · não passa pela Rede, fica fora da conferência.</p>
+    ${(D => `<div class="cx-tab cx-tab-din"><div class="cx-cab"><span>Forma</span><span class="v">No sistema</span><span>Contado na gaveta <small>(digite o dinheiro)</small></span><span>Conferência</span></div>
+      <div class="cx-linha cx-dinl" data-cxd="1" data-sis="${D.sis}"><span class="cx-forma">Dinheiro</span><span class="cx-sis num"><small class="cx-mob">No sistema</small>${brl(D.sis)}</span>
+        <label class="cx-rede"><small class="cx-mob">Contado</small><span class="cx-campo"><span class="cx-rs">R$</span><input class="inp num" inputmode="decimal" autocomplete="off" placeholder="0,00" value="${esc(cxFmt(D.contado))}" data-cxinp="dinheiro" aria-label="Dinheiro contado na gaveta · ${esc(nome)}"></span></label>
+        <span class="cx-res" data-cxres aria-live="polite"></span><small class="cx-quem" data-cxquem>${D.por ? `lançado por ${esc(D.por)} · ${esc(quandoBR(D.em))}` : ''}</small></div></div>
+    <p class="cx-din">O dinheiro não passa pela maquininha: conte o da gaveta e digite aqui. A Rede (crédito, débito e Pix) fica na tabela de cima.</p>`)(U.din || { sis: U.dinheiro, contado: null, por: '', em: '' })}   <!-- 5.3 -->
     ${U.ajustes && U.ajustes.length ? `<div class="cx-consertos"><h3>Consertos do dia</h3>${U.ajustes.map(a => `<div class="cx-aj"><span class="cx-aj-v num ${a.v < 0 ? 'neg' : ''}">${a.v < 0 ? '−' : '+'} ${brl(Math.abs(a.v))}</span><span class="cx-aj-f">${esc(a.nome)}</span><span class="cx-aj-o">${esc(a.obs)}<small>por ${esc(a.por)} · ${esc(quandoBR(a.em))}</small></span><button class="link" data-cxtirar="${a.id}">tirar</button></div>`).join('')}</div>` : ''}
   </section>`;
 }
@@ -109,6 +114,11 @@ function cxPinta(card) {
     if (CX_ORDEM[s] > CX_ORDEM[pior]) pior = s; if (s === 'dif') nDif++; if (s === 'falta') nFalta++; if (s === 'ok') nOk++;
     res.innerHTML = cxResHtml(s, sis, r);
   });
+  { const dl = $('.cx-linha[data-cxd]', card); if (dl) { const sis = +dl.dataset.sis, inp = $('input', dl), r = cxNum(inp.value), res = $('[data-cxres]', dl);   /* 5.3: o dinheiro contado */
+    if (Number.isNaN(r)) { ruim = true; nDif++; inp.classList.add('cx-ruim'); res.innerHTML = `<span class="cx-s dif">${CX_IC.dif}</span><span><b>Valor inválido</b><small>Digite só números, ex.: 150,00</small></span>`; }
+    else { inp.classList.remove('cx-ruim'); const s = r == null ? '' : cxSit(sis, r), d = r == null ? 0 : Math.round((r - sis) * 100) / 100; if (s === 'dif') { nDif++; if (CX_ORDEM.dif > CX_ORDEM[pior]) pior = 'dif'; } else if (s === 'ok' && CX_ORDEM.ok > CX_ORDEM[pior]) pior = 'ok';
+      res.innerHTML = r == null ? (sis > 0.004 ? `<span class="cx-s falta">${CX_IC.falta}</span><span><b>Falta contar</b><small>Digite o dinheiro da gaveta</small></span>` : `<span class="cx-s vazio">${CX_IC.vazio}</span><span class="cx-mudo">Sem dinheiro no dia</span>`)
+        : s === 'ok' ? `<span class="cx-s ok">${CX_IC.ok}</span><span><b>Bateu</b></span>` : `<span class="cx-s dif">${CX_IC.dif}</span><span><b>Não bateu</b><small>Contado ${brl(Math.abs(d))} ${d < 0 ? 'a menos' : 'a mais'}</small></span>`; } } }
   const tres = $('[data-cxtres]', card), trede = $('[data-cxtrede]', card);
   trede.textContent = temR ? brl(tr) : '—';
   const st = ruim ? 'dif' : pior;
@@ -148,7 +158,7 @@ async function cxGuardar(card, inp) {
     const s = ++CX.s, r = await api('cx_salvar', { dia, u, forma: f, valor: v });
     if (CX.dia !== dia) return;
     if (s === CX.s) CX.d = r;   /* a resposta do último que foi salvo (duas respostas podem chegar fora de ordem) */
-    const U = r.unidades.find(x => x.u === u), F = U && U.formas.find(x => x.f === f);
+    const U = r.unidades.find(x => x.u === u), F = U && (f === 'dinheiro' ? (U.din && U.din.por ? U.din : null) : U.formas.find(x => x.f === f));   /* 5.3: o dinheiro contado */
     quem.textContent = F && F.por ? `lançado por ${F.por} · ${quandoBR(F.em)} · salvo ✓` : 'tirado ✓';
     const h = $('.cx-hist'); if (h && s === CX.s) { const novo = document.createElement('div'); novo.innerHTML = cxCorpo(); const nh = $('.cx-hist', novo); h.replaceWith(nh); $$('[data-cxdia]', nh).forEach(b => b.onclick = () => cxIr(b.dataset.cxdia)); }
   } catch (e) { quem.textContent = 'não salvou: ' + e.message; aviso(e.message); }
@@ -160,6 +170,7 @@ async function cxGuardar(card, inp) {
 function cxLigarBotoes() {
   $$('input[data-cxpdf]').forEach(inp => inp.onchange = () => { const f = inp.files && inp.files[0]; inp.value = ''; if (f) cxAnexar(+inp.dataset.cxpdf, f, inp.closest('label')); });
   $$('[data-cxconserto]').forEach(b => b.onclick = () => cxConsertar(+b.dataset.cxconserto));
+  $$('[data-cxdestr]').forEach(b => b.onclick = () => cxDestrinchar(+b.dataset.cxdestr));   /* 5.3 */
   $$('[data-cxtirar]').forEach(b => b.onclick = () => cxTirar(+b.dataset.cxtirar));
   $$('[data-cxverpdf]').forEach(b => b.onclick = () => cxVerPdf(+b.dataset.cxverpdf));
 }
@@ -191,6 +202,22 @@ async function cxVerPdf(id) {
   } catch (e) { aviso(e.message); }
 }
 /* consertar o caixa: um valor a mais ou a menos numa forma, com o porquê */
+/* 5.3 (o dono: "destrinchar histórico do dia. Que aí eu vou saber o que foi recreação, o que foi pacote, enfim"): o dia da unidade por tipo
+   e venda a venda, o devolvido e as entradas canceladas */
+const CX_FNOME = { pix: 'Pix', dinheiro: 'Dinheiro', credito: 'Crédito', debito: 'Débito' };
+async function cxDestrinchar(u) {
+  let r; try { r = await api('cx_destrinchar', { dia: CX.dia, u }); } catch (e) { aviso(e.message); return; }
+  const fm = o => Object.entries(o || {}).filter(([, v]) => Math.abs(v) > 0.004).map(([f, v]) => `${CX_FNOME[f] || f} ${brl(v)}`).join(' · ');
+  const tot = Math.round(r.grupos.reduce((t, g) => t + g.total, 0) * 100) / 100, dev = Math.round(r.devolvido.reduce((t, x) => t + x.v, 0) * 100) / 100, nomeG = g => (r.grupos.find(x => x.g === g) || {}).nome || ({ recreacao: 'Recreação avulsa', pacotes: 'Pacotes de horas', festa: 'Festas', produtos: 'Casa Tom (produtos)', carrinhos: 'Carrinhos', outros: 'Outros' })[g] || g;
+  const corpo = `<p class="dica">${esc(nomeUni(u))} · ${esc(cxNomeDia(r.dia))} · crianças no dia: <b>${r.criancas.validas} ${r.criancas.validas === 1 ? 'válida' : 'válidas'}</b> · <b>${r.criancas.canceladas} ${r.criancas.canceladas === 1 ? 'cancelada' : 'canceladas'}</b></p>
+    <div class="cx-ds">${r.grupos.length ? r.grupos.map(g => `<div class="cx-dg"><div class="cx-dl"><b>${esc(g.nome)}</b><span class="num">${brl(g.total)}</span></div><small>${esc(fm(g.formas))} · ${g.vendas} ${g.vendas === 1 ? 'venda' : 'vendas'}</small></div>`).join('') : '<p class="dica">Nada recebido neste dia.</p>'}
+      ${dev > 0.004 ? `<div class="cx-dg dev"><div class="cx-dl"><b>Devolvido no dia</b><span class="num">− ${brl(dev)}</span></div><small>venda de outro dia cancelada neste dia</small></div>` : ''}
+      <div class="cx-dg tot"><div class="cx-dl"><b>Total do dia</b><span class="num">${brl(Math.round((tot - dev) * 100) / 100)}</span></div></div></div>
+    ${r.lista.length ? `<h4 class="cx-dh">Venda a venda</h4><div class="cx-dt">${r.lista.map(x => `<div class="cx-di"><span class="cx-dhh num">${esc(x.h)}</span><span class="cx-dtx"><b>${esc(x.item)}</b><small>${esc(nomeG(x.g))}${x.cli ? ' · ' + esc(x.cli) + (x.cri && x.cri !== x.cli ? ' (' + esc(x.cri) + ')' : '') : ''}</small></span><span class="cx-dfv"><span class="num">${brl(x.v)}</span><small>${esc(CX_FNOME[x.f] || x.f)}</small></span></div>`).join('')}</div>` : ''}
+    ${r.devolvido.length ? `<h4 class="cx-dh">Devolvido no dia</h4><div class="cx-dt">${r.devolvido.map(x => `<div class="cx-di"><span class="cx-dhh num">${esc(x.h)}</span><span class="cx-dtx"><b>${esc(x.item)}</b><small>${esc(nomeG(x.g))}</small></span><span class="cx-dfv"><span class="num">− ${brl(x.v)}</span><small>${esc(CX_FNOME[x.f] || x.f)}</small></span></div>`).join('')}</div>` : ''}
+    ${r.cancelados.length ? `<h4 class="cx-dh">Entradas canceladas</h4><div class="cx-dt">${r.cancelados.map(x => `<div class="cx-di"><span class="cx-dhh num">${esc(x.h)}</span><span class="cx-dtx"><b>${esc(x.cri)}</b><small>${esc(x.resp)}${x.motivo ? ' · ' + esc(x.motivo) : ''}${x.quem ? ' · por ' + esc(x.quem) : ''}</small></span></div>`).join('')}</div>` : ''}`;
+  folha('Destrinchar o dia', corpo, 'Fechar', async () => { });
+}
 function cxConsertar(u) {
   const U = CX.d.unidades.find(x => x.u === u); if (!U) return;
   const st = { f: '', s: '-' };
