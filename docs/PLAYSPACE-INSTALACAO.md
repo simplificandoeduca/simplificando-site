@@ -1301,6 +1301,19 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Unidade por lugar, carrinho de bebê, Vendidos do dia da Casa Tom e o voucher do shopping (2.35)
+
+Pedidos do dono (26/11).
+
+- "O caixa só pode visualizar a sua unidade ... Morumbi só visualiza Casatom Morumbi e Morumbi. E Anália só visualiza Anália e Casatom Anália":
+  - O computador da loja fica preso a um lugar (Anália ou Morumbi): a tela de entrar mostra só os dois botões de lá. O gestor escolhe o lugar ao liberar o computador e pode trocar em Ajustes → Computadores da loja. O computador que já estava liberado aprende o lugar sozinho na primeira entrada pela unidade.
+  - O servidor recusa a entrada numa unidade de outro lugar.
+  - Quem tem a unidade marcada (o login da unidade ou a pessoa na Equipe) fica na unidade e na Casa Tom do mesmo lugar. Quem não é gestor vê só o movimento do lugar do aparelho.
+- "No Anália Franco ... tirar ... carrinho bebê, carrinho fusquinha": o que sai da loja e volta é tirado da Anália de novo (Ajustes → o serviço → "Tem nas unidades"), uma vez.
+- Carrinho de bebê (preço do dia), vendido sem a criança entrar: "Paga agora" (marcado) ou "Cobrar na devolução". Pago na entrada, a devolução mostra a forma já marcada. Na devolução (ou saída) só de carrinho de bebê, um cupom só: o da loja. Junto com o fusquinha, continua como antes (os dois na devolução).
+- Casa Tom: a aba "Vendidos do dia" mostra as vendas de hoje da unidade (hora, o que foi vendido, total e forma). Um toque abre o cupom para reimprimir. Na Casa Tom, a equipe reimprime as vendas do dia; no resto, continua a regra de 2 minutos.
+- "Voucher 30 minutos shopping": no cadastro da criança, embaixo do PCD. Marcado, o atendimento abre com o voucher marcado (um por visita). No atendimento, o voucher passa a ter esse nome.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Finanças: o pacote e a recreação destrinchados (2.34, Finanças 5.4)
 
 Pedido do dono (26/11): "no Finanças eu preciso, dentro do pacote, visualizar o que foi pacote e o que foi produto dentro do pacote ... quantos PCD ... se teve recreação avulsa, PCD, também destrinchar isso".

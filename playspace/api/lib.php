@@ -453,6 +453,10 @@ function db(): PDO {
     try { $pdo->exec('ALTER TABLE usuarios ADD COLUMN vende INTEGER'); } catch (Throwable $e) { }
     $pdo->exec('PRAGMA user_version = 51');
   }
+  if ($v < 52) { /* 2.35: o lugar do computador da loja (ANALIA, MORUMBI; vazio = ainda não escolhido) */
+    try { $pdo->exec("ALTER TABLE maquinas ADD COLUMN local TEXT NOT NULL DEFAULT ''"); } catch (Throwable $e) { }
+    $pdo->exec('PRAGMA user_version = 52');
+  }
   return $pdo;
 }
 /* ---------- 1.06: unidades ---------- */
@@ -497,7 +501,8 @@ function unidadeDoPedido(): ?int {
       $q = db()->prepare('SELECT id FROM unidades WHERE id = ? AND ativo = 1'); $q->execute([$u0]); $GLOBALS['_unidade'] = $q->fetchColumn() ? $u0 : null; }
     /* 2.02: a pessoa com a unidade escolhida pelo gestor (Ajustes → Equipe) fica nela, venha o pedido de que aparelho vier; só o gestor troca */
     $eu2 = eu(); $fixa = $eu2 && $eu2['papel'] !== 'gestor' ? (int)($eu2['unidade_id'] ?? 0) : 0;
-    if ($fixa > 0) { $q = db()->prepare('SELECT id FROM unidades WHERE id = ? AND ativo = 1'); $q->execute([$fixa]); if ($q->fetchColumn()) $GLOBALS['_unidade'] = $fixa; }
+    /* 2.35 (o dono: "Morumbi só visualiza Casatom Morumbi e Morumbi"): e a Casa Tom do mesmo lugar */
+    if ($fixa > 0 && !($GLOBALS['_unidade'] !== null && $GLOBALS['_unidade'] !== $fixa && uniMesmoLugar($fixa, (int)$GLOBALS['_unidade']))) { $q = db()->prepare('SELECT id FROM unidades WHERE id = ? AND ativo = 1'); $q->execute([$fixa]); if ($q->fetchColumn()) $GLOBALS['_unidade'] = $fixa; }
   }
   return $GLOBALS['_unidade'];
 }
@@ -574,6 +579,11 @@ function regraDoBanco(): array {
     if ($anl) { foreach ($r['servicos'] as $k => $x) if (is_array($x) && !empty($x['volta'])) $r['servicos'][$k]['fora'] = array_values(array_unique(array_merge($r['servicos'][$k]['fora'], $anl)));
       $g = $r; unset($g['festa'], $g['vendedoras'], $g['vend_uni']); gravarCfg('regra', $g); }
     gravarCfg('servuni_feito', date('Y-m-d H:i:s')); }
+  /* 2.35 (o dono: "No Anália Franco ... tirar as opções ... de carrinho bebê, carrinho fusquinha, porque lá não tem"): de novo, uma vez, e só
+     quando a Anália já existe (a 1.99 se dava por feita mesmo sem a Anália cadastrada) */
+  if (cfg('servuni2_feito', null) === null) { $anl = unidadesDaAnalia();
+    if ($anl) { foreach ($r['servicos'] as $k => $x) if (is_array($x) && !empty($x['volta'])) $r['servicos'][$k]['fora'] = array_values(array_unique(array_merge($r['servicos'][$k]['fora'], $anl)));
+      $g = $r; unset($g['festa'], $g['vendedoras'], $g['vend_uni']); gravarCfg('regra', $g); gravarCfg('servuni2_feito', date('Y-m-d H:i:s')); } }
   if (!MODULO_WHATS) $r['autoMsg'] = 'nao';   // com o módulo desligado, nenhum aviso automático sai
   $r['festa'] = FESTA_DE_FABRICA;   // 1.12: a tabela da festa vai com a regra para a tela (a de fábrica: não fica gravada)
   $r['vendedoras'] = vendedoras();   /* 1.67: os nomes de quem vende (o financeiro muda nas Finanças → Comissões) */
@@ -671,9 +681,11 @@ function usuarioDaLoja(int $uni): ?array {   // a "loja" da unidade: um usuário
 }
 function maquinasLista(): array {
   $d = fn($t) => $t ? substr((string)$t, 8, 2) . '/' . substr((string)$t, 5, 2) . ' ' . substr((string)$t, 11, 5) : '';
-  return array_map(fn($x) => ['id' => (int)$x['id'], 'nome' => (string)$x['nome'], 'criado' => $d($x['criado_em']), 'uso' => $d($x['ultimo_uso']), 'ativo' => (int)$x['ativo'] === 1], db()->query('SELECT * FROM maquinas ORDER BY ativo DESC, id DESC LIMIT 40')->fetchAll());
+  return array_map(fn($x) => ['id' => (int)$x['id'], 'nome' => (string)$x['nome'], 'local' => (string)($x['local'] ?? ''), 'criado' => $d($x['criado_em']), 'uso' => $d($x['ultimo_uso']), 'ativo' => (int)$x['ativo'] === 1], db()->query('SELECT * FROM maquinas ORDER BY ativo DESC, id DESC LIMIT 40')->fetchAll());
 }
-function unidadesDaLoja(): array { return array_map(fn($x) => ['id' => (int)$x['id'], 'nome' => (string)$x['nome']], db()->query('SELECT id, nome FROM unidades WHERE ativo = 1 ORDER BY id')->fetchAll()); }
+function unidadesDaLoja(string $local = ''): array { $L = array_map(fn($x) => ['id' => (int)$x['id'], 'nome' => (string)$x['nome']], db()->query('SELECT id, nome FROM unidades WHERE ativo = 1 ORDER BY id')->fetchAll());
+  return $local === '' ? $L : array_values(array_filter($L, fn($x) => uniLocal($x['nome']) === $local)); }   /* 2.35: só as do lugar do computador */
+function lojaLocalOk(string $l): string { $l = uniNorm($l); if ($l === '') return ''; foreach (unidadesDaLoja() as $x) if (uniLocal($x['nome']) === $l) return $l; falha('Lugar não encontrado.'); }
 /* 2.12: as anotações do cliente (a lista vai inteira nos dados: são poucas e curtas) */
 function anotacoesLista(): array {
   return array_map(fn($x) => ['id' => (int)$x['id'], 'c' => (int)$x['crianca_id'], 't' => (string)$x['texto'], 'q' => (string)$x['quando'], 'p' => (string)$x['por'], 'pid' => (int)($x['por_id'] ?? 0)],

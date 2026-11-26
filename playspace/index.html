@@ -91,6 +91,10 @@ body.ct .trilho .logo svg { width: 64px; height: 64px; } body.ct .trilho .logo {
 .ct-vend button[aria-pressed="true"] { background: var(--tinta); color: var(--card); border-color: var(--tinta); }
 .ct-tot { display: flex; justify-content: space-between; align-items: baseline; padding: 14px 18px; border-top: 1px solid var(--borda); } .ct-tot span { color: var(--tinta-2); font-weight: 600; } .ct-tot b { font: 800 26px var(--display); color: var(--tinta); }
 .ct-venda .ct-receber { margin: 0 18px 18px; width: calc(100% - 36px); }
+.ct-vd { margin: 0 0 18px; display: flex; flex-direction: column; gap: 8px; } .ct-vd-cab { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; } .ct-vd-cab b { font: 700 16px var(--display); }
+.ct-vrow { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 14px; border: 0; border-top: 1px solid var(--borda); background: none; text-align: left; color: var(--tinta); font: inherit; } .ct-vrow:first-child { border-top: 0; }
+.ct-vh { font-weight: 700; color: var(--tinta-2); } .ct-vtx { display: flex; flex-direction: column; min-width: 0; } .ct-vtx b { font-weight: 700; overflow-wrap: anywhere; } .ct-vtx small { color: var(--tinta-2); font-size: 12px; }
+.ct-vre { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: #C8202A; white-space: nowrap; } .mq-loc { margin-right: 6px; }
 .ct-venda .ct-dsc { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; margin: -4px 18px 12px; font-weight: 700; }
 body.ct .fx-trilho { background: #8E1218; } body.ct .trilho .fab { display: none; }
 .ct-ir { display: none; }
@@ -2138,7 +2142,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.34';
+const VERSAO = '2.35';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -4695,10 +4699,13 @@ function abrirPagamento(id) {
   // 1.02: pagar depois só existe quando há uma hora certa para receber: a saída da criança (ela entra agora, ou já está no espaço) ou a devolução do carrinho
   const saiDaLoja = l => !!l.s && (x => !!x && !!x.volta && !ehTempo(x))(servicoDe(l.s)), comVolta = L.some(saiDaLoja), depois = !festa && (entrar || !!c.entrou || (comVolta && L.every(l => !(l.v > 0) || saiDaLoja(l))));   // 1.21: a devolução só recebe o que saiu da loja: o resto (um pacote junto) é pago agora   // 1.12: a festa é paga na hora
   if (!depois) PAG.modo = 'agora'; PAG.rotDepois = entrar || c.entrou ? 'Paga na saída' : 'Paga na devolução';
-  const soNaSaida = depois && cobraNaSaida(); if (soNaSaida) { PAG.modo = 'depois'; PAG.rotDepois = entrar || c.entrou ? 'Cobrar na saída' : 'Cobrar na devolução'; }   // 1.37: sem "Paga agora"
+  /* 2.35 (o dono: "tem que dar a opção do carrinho de bebê, que é o dia todo, cobrar na entrada. E ficar marcado a forma de pagamento na saída,
+     caso também precise cobrar na saída"): só carrinho de bebê (preço do dia), sem a criança entrar: "Paga agora" (marcado) ou "Cobrar na devolução" */
+  const soBebe = comVolta && !entrar && !c.entrou && L.filter(l => saiDaLoja(l) && l.v > 0).every(l => servFixo(servicoDe(l.s))); if (soBebe) PAG.rotDepois = 'Cobrar na devolução';
+  const soNaSaida = depois && cobraNaSaida() && !soBebe; if (soNaSaida) { PAG.modo = 'depois'; PAG.rotDepois = entrar || c.entrou ? 'Cobrar na saída' : 'Cobrar na devolução'; }   // 1.37: sem "Paga agora"
   // 1.47 (o dono: "deixa sempre para cobrar na saída"): o carrinho que sai da loja e volta nunca é pago na venda. Junto com o que é pago agora (um pacote,
   // um produto), sem a criança no espaço: o pagamento de agora é só do resto, e o carrinho fica a receber na devolução
-  const devL = !depois && !festa && cobraNaSaida() ? L.filter(l => saiDaLoja(l) && l.v > 0) : [], devV = centavos(devL.reduce((t, l) => t + l.v, 0));
+  const devT = L.filter(l => saiDaLoja(l) && l.v > 0), devL = !depois && !festa && cobraNaSaida() && !devT.every(l => servFixo(servicoDe(l.s))) ? devT : [], devV = centavos(devL.reduce((t, l) => t + l.v, 0));   /* 2.35: só carrinho de bebê junto com um pacote: pago agora */
   PAG.soma = total; PAG.dev = devL.length && devV > 0 ? { v: devV, n: juntar(devL.map(l => (l.q > 1 ? l.q + ' × ' : '') + nomeLinha(l))) } : null;
   if (PAG.dev) { PAG.cheio = centavos(total - devV); PAG.total = centavos(PAG.cheio - descDe(PAG.cheio, 'venda', id)); }
   const min = L.reduce((s, l) => s + l.min, 0), saldo = saldoAgora(c), comHoras = min > 0 && (saldo > 0 || L.some(l => l.pac != null));   // as linhas das horas só para quem já tem horas guardadas ou leva um pacote
@@ -4973,7 +4980,9 @@ function soPacoteNoCupom(L) { if (!Array.isArray(L) || !L.some(i => i.t === 'pac
 /* 2.07 (o dono: "no carrinho de bebê, ele tem que sair 2 vias também, tá? Uma do cliente e uma da loja"): a saída do carrinho de bebê também */
 /* 2.15 (o dono: "nos carrinhos eu preciso que saia 2 vias, uma do cliente e uma nossa"): todo cupom de carrinho (2.07: era só o de bebê) */
 const semHorasPac = n => /^PACOTE\b/i.test(String(n || '')) ? String(n).replace(/ · \d+h(\d\d)?$/, '') : String(n || '');   /* 2.15: o nome do pacote no cupom, sem as horas (a recreação comprada para a visita continua com o tempo) */
-const comCarrinhoPapel = (spec, l) => /<p class="c-via"><span>VIA DE (SAÍDA DO CARRINHO|DEVOLUÇÃO)</.test(l) || (!!spec && spec.tipo === 'saida' && (spec.alug || []).length > 0);
+/* 2.35 (o dono: "no da saída, no carrinho de bebê, só no carrinho de bebê tem que sair só um cupom, que é o da loja"): a volta só de carrinho de bebê */
+const soBebePapel = spec => !!spec && ((spec.tipo === 'devolucao' && !!spec.fixo) || (spec.tipo === 'saida' && (spec.alug || []).length > 0 && spec.alug.every(y => y.fixo)));
+const comCarrinhoPapel = (spec, l) => !soBebePapel(spec) && (/<p class="c-via"><span>VIA DE (SAÍDA DO CARRINHO|DEVOLUÇÃO)</.test(l) || (!!spec && spec.tipo === 'saida' && (spec.alug || []).length > 0));
 function viasPapel(spec) { const l = htmlPapel(spec, 'loja'); if (!l) return []; return /<p class="c-via"><span>VIA DE ENTRADA</.test(l) || comCarrinhoPapel(spec, l) ? [l, htmlPapel(spec, 'cliente')].filter(Boolean) : [l]; }
 // Manda as vias para a impressora, uma impressão para cada via: assim a impressora corta no fim de cada uma e saem dois cupons separados.
 // Cada via vai para uma área só de impressão, numa página do tamanho dela (para o papel cortar logo depois do texto).
@@ -5165,7 +5174,7 @@ function trocarPagPrevia({ venda, crianca: cid, de, para, partes }) {   // (pré
   return { valor, de, para, partes: P };
 }
 // 1.57: reimprimir: a equipe só nos 2 min depois do cupom; o gestor, sempre
-const reimpTrava = x => !gestor() && Date.now() - +dataDe(x.quando) > TROCA_MS + 5000;
+const reimpTrava = x => !gestor() && !(S.balcao && +x.crianca === S.balcao.id && doDia(dataDe(x.quando))) && Date.now() - +dataDe(x.quando) > TROCA_MS + 5000;   /* 2.35: a venda de hoje da Casa Tom, a equipe reimprime */
 /* ---------- 1.14: reimprimir o cupom ---------- */
 // Cada cupom que sai (entrada, saída, devolução, comprovante) fica guardado com as duas vias, do jeito que foi impresso: no servidor,
 // por 60 dias; na prévia, na memória. A ficha do cliente tem o botão "Reimprimir cupom": a lista dos últimos cupons dele e, com um
@@ -5174,10 +5183,12 @@ const soCarrinho = spec => { const it = (spec && spec.itens) || [], c = spec && 
 const tituloPapel = spec => spec.tipo === 'saida' ? ((spec.alug || []).length ? ((spec.grupo || []).length ? 'Cupom da saída e da devolução' : 'Cupom da devolução') : 'Cupom da saída') : spec.tipo === 'devolucao' ? 'Cupom da devolução' : spec.festa ? 'Comprovante da festa' : S.balcao && +spec.id === S.balcao.id ? 'Cupom da venda' : soCarrinho(spec) ? 'Cupom do carrinho' : 'Cupom de entrada';
 function resumoPapel(spec) { const c = spec.c || crianca(spec.id), F = (spec.formas || []).filter(p => p && p.f), tot = centavos(F.reduce((t, p) => t + (+p.v || 0), 0));
   const quem = spec.tipo === 'devolucao' ? spec.item || '' : spec.festa ? '' : spec.tipo === 'saida' && (spec.alug || []).length ? juntar([...(spec.grupo || []).map(x => (crianca(x.id) || c || {}).nome), ...spec.alug.map(y => y.item)].filter(Boolean)) : spec.tipo === 'saida' && spec.grupo && spec.grupo.length > 1 ? juntar(spec.grupo.map(x => (crianca(x.id) || c || {}).nome).filter(Boolean)) : c ? c.nome : '';
-  return [quem, tot > 0 ? brl(tot) + (F.length === 1 ? ' ' + naForma(F[0].f) : '') : ''].filter(Boolean).join(' · '); }
+  const ctIt = S.balcao && c && c.id === S.balcao.id ? juntar((spec.itens || []).map(i => i && i.n).filter(Boolean)) : '';   /* 2.35: na Casa Tom, o que foi vendido (para a lista dos vendidos do dia) */
+  return [ctIt || quem, tot > 0 ? brl(tot) + (F.length === 1 ? ' ' + naForma(F[0].f) : '') : ''].filter(Boolean).join(' · '); }
 function guardarPapel(spec, vias, troca) {   // troca (1.57): o cupom refeito depois da troca da forma de pagamento entra no lugar do anterior
   try { const c = spec && (spec.c || crianca(spec.id)); if (!c || !vias || !vias.length) return;
     const reg = { ...(troca ? { troca: 1 } : {}), crianca: c.id, tipo: spec.festa ? 'festa' : spec.tipo || 'entrada', titulo: spec.tipo === 'entrada' && !spec.festa && /COMPROVANTE DE PAGAMENTO/.test(vias[0]) ? 'Comprovante de pagamento' : tituloPapel(spec), resumo: resumoPapel(spec), vias: vias.map(v => v.replace(LOGO, '{LOGO}').replace(LOGO_PB, '{LOGO_PB}')) };
+    if (S.balcao && c.id === S.balcao.id) CTV.em = 0;   /* 2.35: a lista dos vendidos do dia busca de novo */
     if (MODO === 'servidor') apiOff('papel_guardar', reg).catch(() => { }); else { const ant = troca ? (S.papeis || []).find(y => y.crianca === reg.crianca && y.tipo === reg.tipo) : null; S.papeis = [{ ...reg, id: novoId(), quando: new Date(), por: EU.nome }, ...(S.papeis || []).filter(y => y !== ant)].slice(0, 60); }
   } catch (e) { }   // guardar o cupom nunca atrapalha a venda nem a saída
 }
@@ -5747,7 +5758,7 @@ function modoCT() { return !!minhaUni() && ehCasaTom(minhaUni()); }
 const TELAS_CT = ['ct', 'ctvendas', 'ctprod'];
 Object.assign(IC, { ctVender: '<path d="M6 7h15l-2 9H8L6 3H3"/><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/>', ctVendas: '<path d="M5 4h14v16l-3-2-2 2-2-2-2 2-2-2-3 2Z"/><path d="M9 9h6M9 13h6"/>',
   ctProd: '<path d="M4 8 12 4l8 4v8l-8 4-8-4Z"/><path d="M4 8l8 4 8-4M12 12v8"/>', ctBusca: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>' });
-const abasCT = () => [['ct', 'Vender', 'ctVender'], ['ctvendas', 'Vendas', 'ctVendas'], ['ctprod', 'Produtos', 'ctProd'], ...ABAS.filter(a => a[0] === 'aprovar' || a[0] === 'ajustes')];
+const abasCT = () => [['ct', 'Vender', 'ctVender'], ['ctvendas', 'Vendidos do dia', 'ctVendas'], ['ctprod', 'Produtos', 'ctProd'], ...ABAS.filter(a => a[0] === 'aprovar' || a[0] === 'ajustes')];
 function abasAgora() { return modoCT() ? abasCT() : ABAS; }
 let CT = { pr: {}, vend: '', busca: '', cat: '', todos: false, pbusca: '', ptodos: false, imp: null };
 const lojaAgora = () => modoCT() ? 'ct' : 'play';
@@ -5801,7 +5812,17 @@ function telaCT() {
   return `<div class="ct-tela">${ctCabeca('Venda de produtos')}<div class="ct-corpo"><div class="ct-cat"><div class="ct-busca"><label class="ct-campo">${ic(IC.ctBusca, 18)}<input id="ct-busca" type="search" placeholder="Buscar produto pelo nome…" value="${esc(CT.busca)}" autocomplete="off" aria-label="Buscar produto"></label><button type="button" class="bt claro tap" data-act="ct-todos" aria-pressed="${CT.todos}">${CT.todos ? 'Só os da Casa Tom' : 'Ver todo o cadastro'}</button><button type="button" class="bt tap ct-add" data-act="ct-add">${ic(IC.mais)} Adicionar produto</button></div>
     <div class="ct-abas" role="tablist">${['', ...ctCats(prodsDaLoja(CT.todos))].map(c => `<button type="button" role="tab" data-act="ct-cat" data-c="${esc(c)}" aria-selected="${c === CT.cat}">${c ? esc(c) : 'Todos'}</button>`).join('')}</div>
     <div id="ct-grade">${ctGrade()}</div></div>${ctVenda()}</div></div>`; }
-function telaCTVendas() { return `<div class="ct-tela">${ctCabeca('Vendas do dia')}${htmlCaixaDia()}</div>`; }
+/* 2.35 (o dono: "Casatom ... uma aba tipo vendidos do dia. E lá ela consiga visualizar todos os pedidos vendidos do dia e selecione, tem a opção
+   de reimprimir cupom lá"): as vendas de hoje desta unidade (os cupons guardados), a mais nova em cima; um toque abre o cupom para reimprimir */
+let CTV = { k: '', L: null, em: 0, busy: false };
+const ctvChave = () => minhaUni() + '|' + isoDia(new Date());
+function ctvHtml() { const L = CTV.k === ctvChave() ? CTV.L : null; if (!L) return '<p class="explica">Carregando as vendas de hoje…</p>'; if (!L.length) return '<p class="explica" id="ct-vd-vazio">Nenhuma venda hoje ainda.</p>';
+  return `<div class="ct-plista">${L.map(x => `<button type="button" class="ct-vrow tap" data-act="papel-guardado" data-id="${x.id}"><span class="num ct-vh">${hora(x.quando)}</span><span class="ct-vtx"><b>${esc(x.resumo || x.titulo)}</b>${x.por ? `<small>por ${esc(primeiro(x.por))}</small>` : ''}</span><span class="ct-vre">${ic(IC.cupom, 16)} Reimprimir</span></button>`).join('')}</div>`; }
+async function ctVendidos(forca) { const k = ctvChave(); if (CTV.busy || (!forca && CTV.k === k && Date.now() - CTV.em < 20000)) return; CTV.busy = true;
+  try { let L; const b = S.balcao; if (MODO === 'servidor') { const r = await api('papel_dia', {}); L = (r.papeis || []).map(x => ({ ...x, quando: dataDe(x.quando) })); } else L = (S.papeis || []).filter(x => b && x.crianca === b.id && doDia(x.quando));
+    CTV = { k, L, em: Date.now(), busy: false }; const el = $('#ct-vd-l'); if (el) el.innerHTML = ctvHtml(); } catch (e) { CTV.busy = false; const el = $('#ct-vd-l'); if (el && !(CTV.k === k && CTV.L)) el.innerHTML = `<p class="explica">${esc(e.message)}</p>`; } }
+function telaCTVendas() { setTimeout(() => ctVendidos(), 0); const n = CTV.k === ctvChave() && CTV.L ? CTV.L.length : null;
+  return `<div class="ct-tela">${ctCabeca('Vendidos do dia')}<section class="ct-vd" aria-label="Vendidos do dia"><div class="ct-vd-cab"><b>Vendas de hoje${n ? ' · ' + n : ''}</b><span class="leve">toque na venda para ver e reimprimir o cupom</span></div><div id="ct-vd-l">${ctvHtml()}</div></section>${htmlCaixaDia()}</div>`; }
 function telaCTProd() {
   const ws = semAcentoCT(CT.pbusca).trim().split(/\s+/).filter(Boolean), F = (S.produtos || []).filter(p => (CT.ptodos || prodNaLoja(p, 'ct')) && ws.every(w => semAcentoCT(p.n).includes(w))), V = F.slice(0, 300);
   return `<div class="ct-tela">${ctCabeca('Produtos')}<div class="ct-busca"><label class="ct-campo">${ic(IC.ctBusca, 18)}<input id="ct-pbusca" type="search" placeholder="Buscar no cadastro…" value="${esc(CT.pbusca)}" autocomplete="off" aria-label="Buscar no cadastro"></label><button type="button" class="bt claro tap" data-act="ct-ptodos" aria-pressed="${CT.ptodos}">${CT.ptodos ? 'Só os da Casa Tom' : 'Ver todo o cadastro'}</button>${gestor() ? `<button type="button" class="bt claro tap" data-act="ct-importar">Importar relação</button><button type="button" class="bt forte tap" data-act="ct-novo">${ic(IC.mais)} Novo produto</button>` : ''}</div>
@@ -5976,11 +5997,14 @@ const nomeUni = id => { const u = id ? unidadeDe(id) : null; return u ? u.nome :
 const uniFixa = () => { if (MODO !== 'servidor' || !EU || EU.papel === 'gestor' || !EU.uni) return 0; const u = unidadeDe(EU.uni); return u && u.ativo !== false ? u.id : 0; };
 /* 2.02 (o dono: "quem ficar na Anália só pode ver a Anália, quem fica na Casa Tom só pode ver a Casa Tom; mas os clientes elas conseguem visualizar"):
    quem tem a unidade escolhida vê só o movimento dela (no espaço, carrinhos fora, festas, pedidos); o cadastro dos clientes fica à vista de todos */
-const veUni = id => !uniFixa() || (id != null && +id === uniFixa());
+/* 2.35 (o dono: "o caixa só pode visualizar a sua unidade ... Morumbi só visualiza Casatom Morumbi e Morumbi"): quem não é gestor vê só o
+   movimento do lugar (a unidade e a Casa Tom de lá); quem tem a unidade marcada, o da unidade dela e o da Casa Tom do mesmo lugar */
+const noPar = (id, base) => !!base && id != null && (+id === +base || mesmoLocal(+id, +base));
+const veUni = id => MODO !== 'servidor' || !EU || EU.papel === 'gestor' ? true : uniFixa() ? noPar(id, uniFixa()) : id == null || !minhaUni() || noPar(id, minhaUni());
 const fixaDe = eu => (eu && eu.papel !== 'gestor' && +eu.unidade_id) || 0;   /* (na carga dos dados, antes de o EU ser montado) */
-const minhaUni = () => { if (uniFixa()) return uniFixa(); const u = unidadeDe(+lido('ps-unidade', 0) || 0); return u && u.ativo !== false ? u.id : (MODO !== 'servidor' && unidades().length ? unidades()[0].id : 0); };
+const minhaUni = () => { if (uniFixa()) { const f = uniFixa(), s = unidadeDe(+lido('ps-unidade', 0) || 0); return s && s.ativo !== false && s.id !== f && mesmoLocal(s.id, f) ? s.id : f; } const u = unidadeDe(+lido('ps-unidade', 0) || 0); return u && u.ativo !== false ? u.id : (MODO !== 'servidor' && unidades().length ? unidades()[0].id : 0); };
 // quem troca a unidade do aparelho: gestor e supervisor. Com o aparelho ainda sem unidade, quem estiver nele escolhe (senão as entradas ficariam sem unidade)
-const podeTrocarUni = () => !uniFixa() && (MODO !== 'servidor' || supervisorOuMais() || !minhaUni() || unidades().some(u => u.id !== minhaUni() && mesmoLocal(u.id, minhaUni())));   // 1.88: a atendente, entre o Play e a Casa Tom do lugar
+const podeTrocarUni = () => uniFixa() ? unidades().some(u => u.id !== uniFixa() && u.ativo !== false && mesmoLocal(u.id, uniFixa())) : (MODO !== 'servidor' || supervisorOuMais() || !minhaUni() || unidades().some(u => u.id !== minhaUni() && mesmoLocal(u.id, minhaUni())));   // 1.88: a atendente, entre o Play e a Casa Tom do lugar
 /* 1.88: a Casa Tom de cada lugar como unidade (CASA TOM ANÁLIA, CASA TOM MORUMBI). O lugar de uma unidade: o nome sem o "Casa Tom", a
    primeira palavra (ANÁLIA FRANCO e CASA TOM ANÁLIA são da Anália). A atendente troca só entre as unidades do lugar do aparelho (Morumbi e
    Casa Tom Morumbi); o gestor e o supervisor, para qualquer uma. Vale a unidade do aparelho: o que é vendido na Casa Tom é da Casa Tom; no
@@ -5991,7 +6015,7 @@ const localUni = id => uniNorm(nomeUni(id)).replace(/CASA\s*TO[MN]\b/, '').trim(
 const mesmoLocal = (a, b) => !!a && !!b && localUni(a) !== '' && localUni(a) === localUni(b);
 const casaTomDe = id => ehCasaTom(id) ? null : unidades().find(u => u.id !== id && ehCasaTom(u.id) && mesmoLocal(u.id, id)) || null;
 const casaTomDesde = u => { const c = String((u && u.criado) || ''); if (!/^\d{4}-\d{2}-\d{2}$/.test(c)) return '2000-01-01'; const d = new Date(c + 'T12:00:00'); d.setDate(d.getDate() + 1); return isoDia(d); };
-const podeIrPara = id => uniFixa() ? +id === uniFixa() : MODO !== 'servidor' || supervisorOuMais() || !minhaUni() || id === minhaUni() || mesmoLocal(id, minhaUni());
+const podeIrPara = id => uniFixa() ? noPar(id, uniFixa()) : MODO !== 'servidor' || supervisorOuMais() || !minhaUni() || id === minhaUni() || mesmoLocal(id, minhaUni());
 const faltaCasaTom = () => unidades().filter(u => !ehCasaTom(u.id) && localUni(u.id) && !casaTomDe(u.id));
 const naUnidade = id => S.criancas.filter(c => c.entrou && c.uni === id).length;
 function botaoUnidade() {
@@ -6003,7 +6027,7 @@ function folhaUnidade() {
   abrirFolha('Unidade deste aparelho', `
     <p class="explica">${eu ? `Este aparelho está em <b>${esc(nomeUni(eu))}</b>.` : '<b>Em qual unidade este aparelho está?</b>'} As entradas e as vendas feitas aqui ficam marcadas com a unidade.</p>
     <div class="uni-lista" role="radiogroup" aria-label="Unidade deste aparelho">${L.map(u => { const n = naUnidade(u.id); return `<button type="button" class="uni-op tap" role="radio" aria-checked="${u.id === eu}" data-act="unidade-escolher" data-id="${u.id}"${pode && podeIrPara(u.id) ? '' : ' disabled'}><i aria-hidden="true"></i><span><b>${esc(u.nome)}</b>${n ? `<small>${n} ${n === 1 ? 'criança' : 'crianças'} no espaço agora</small>` : ''}</span></button>`; }).join('')}</div>
-    ${uniFixa() ? `<p class="explica" id="uni-fixa">A sua unidade é <b>${esc(nomeUni(uniFixa()))}</b>: quem escolhe é o gestor, em Ajustes → Equipe. Só o gestor troca de unidade.</p>` : pode ? '' : '<p class="explica">Só o gestor ou o supervisor troca a unidade deste aparelho.</p>'}${pode && eu && MODO === 'servidor' && !supervisorOuMais() ? `<p class="explica">Você troca entre ${L.filter(u => u.id === eu || mesmoLocal(u.id, eu)).map(u => '<b>' + esc(u.nome) + '</b>').join(' e ')}. Para outra unidade, só o gestor ou o supervisor.</p>` : ''}
+    ${uniFixa() ? `<p class="explica" id="uni-fixa">A sua unidade é <b>${esc(nomeUni(uniFixa()))}</b>${(p => p ? ` (e a <b>${esc(p.nome)}</b>)` : '')(parDaUni(uniFixa()))}: quem escolhe é o gestor, em Ajustes → Equipe. Só o gestor troca para outra unidade.</p>` : pode ? '' : '<p class="explica">Só o gestor ou o supervisor troca a unidade deste aparelho.</p>'}${pode && eu && MODO === 'servidor' && !supervisorOuMais() ? `<p class="explica">Você troca entre ${L.filter(u => u.id === eu || mesmoLocal(u.id, eu)).map(u => '<b>' + esc(u.nome) + '</b>').join(' e ')}. Para outra unidade, só o gestor ou o supervisor.</p>` : ''}
     ${MODO !== 'servidor' || gestor() ? `<button type="button" class="link tap pg-add" data-act="unidades-ir">${ic(IC.mais, 14, 2.8)} Cadastrar ou mudar as unidades <small>· em Ajustes</small></button>` : ''}`);
 }
 function escolherUnidade(id) { const u = unidadeDe(id); if (!u || u.ativo === false || !podeTrocarUni() || !podeIrPara(u.id)) return; const era = minhaUni(); guardar('ps-unidade', u.id); fecharFolha(); desenhar(); if (era !== u.id) deuCerto(`Este aparelho agora está em ${u.nome}`); }
@@ -6072,6 +6096,7 @@ const alugSobra = a => !alugHoje(a) ? -1e9 : a.min > 0 ? a.min * 60 - alugSeg(a)
 const alugSit = a => !alugHoje(a) ? 'passou' : a.min > 0 ? (alugSobra(a) < 0 ? 'passou' : alugSobra(a) <= S.cfg.aviso * 60 ? 'acabando' : 'ok') : 'livre';
 const alugPassou = a => { const m = Math.max(1, Math.floor(-alugSobra(a) / 60)); return m < 60 ? m + ' min' : dur(m); };   // quanto passou do tempo comprado
 const alugSub = a => !alugHoje(a) ? 'saiu em ' + diaCurto(a.ini) + ' às ' + hora(a.ini) : a.min > 0 ? (alugSobra(a) < 0 ? 'passou ' + hms(-alugSobra(a)) : '') : 'saiu às ' + hora(a.ini) + (alugAberto(a) ? ' · ' + ITENS_ABERTO : '');
+const servFixo = x => !!x && !!x.volta && !ehTempo(x) && x.modo !== 'periodo';   /* 2.35: o serviço de preço do dia (o carrinho de bebê) */
 const alugFixo = a => !alugAberto(a) && !(+a.min > 0);   /* 2.15 (o dono: "no carrinho de bebê, ele não precisa ficar rodando horas, porque ele é um preço só o dia todo") */
 const alugTempo = a => alugHoje(a) ? (alugFixo(a) ? 'DIA TODO' : hms(alugSeg(a))) : diaCurto(a.ini);   // de outro dia: em vez do relógio, o dia em que saiu
 const alugNome = a => (a.q > 1 ? a.q + ' × ' : '') + a.n;
@@ -7012,7 +7037,11 @@ function guardarRascunho() {
 // depois continua em "Falta finalizar", como qualquer cadastro do dia sem atendimento.
 const naFila = i => (k => !!k && !k.entrou && pendNovo(k))(crianca(i));
 const filaVale = () => Date.now() - CAD_FILA_EM < 1200000;   // a fila vale por 20 min depois do último cadastro (ou atendimento) dela
-function depoisDoCadastro(id, nome, outra, pre, quem) {
+/* 2.35 (o dono: "só na entrada ... embaixo do PCD, coloca voucher 30 minutos shopping ... pode ser para a Anália e para o Morumbi ... E é só um
+   voucher"): marcado no cadastro, o atendimento da criança abre com o voucher marcado (um por visita, como no atendimento) */
+let VOU_NOVO = false; const VOU_CAD = new Set();
+const vouNome = () => `Voucher ${(servicoTempo() || {}).min || 30} minutos shopping`;
+function depoisDoCadastro(id, nome, outra, pre, quem) { if (VOU_NOVO) VOU_CAD.add(+id); VOU_NOVO = false;
   CAD_FILA = (CAD_CADEIA && filaVale() ? CAD_FILA.filter(i => i !== +id && naFila(i)) : []).concat(+id); CAD_FILA_EM = Date.now();   // fora da cadeia do "cadastrar outra", a fila recomeça: só esta criança
   if (outra) { if (innerWidth >= 820) deuCerto(`${nome} cadastrada. Agora a outra criança.`); setTimeout(() => folhaCrianca(null, null, { ...quem, pre, cadeia: true }), 260); return; }
   const n = CAD_FILA.length; if (innerWidth >= 820) deuCerto(n > 1 ? `${n} crianças cadastradas. Agora o atendimento de cada uma.` : `${nome} cadastrada. Agora o atendimento.`);
@@ -7117,8 +7146,8 @@ function linhasServico(parte) { // parte: 'tempo', 'outros' ou nada (todos). Sem
       <div class="qtd"><button type="button" class="tap" data-act="serv-menos" data-s="${esc(x.id)}" aria-label="Tirar ${per ? dur(x.min || 30) + ' de ' : 'um '}${esc(x.n)}" ${q ? '' : 'disabled'}>−</button><b class="num">${per ? (q ? dur(q * (x.min || 30)) : '0h') : q}</b><button type="button" class="tap" data-act="serv-mais" data-s="${esc(x.id)}" aria-label="Pôr ${per ? dur(x.min || 30) + ' de ' : 'um '}${esc(x.n)}" ${q >= maxServ(x) ? 'disabled' : ''}>+</button></div>
       <b class="valor num">${q ? brl(q * un) : ''}${conta && q > 1 ? `<i class="vezes">${q} × ${brl(un)}</i>` : ''}</b></div>`; }).join('')
     // o voucher do shopping: 30 min de recreação grátis, um por visita, sem código. É só marcar; quem já usou nesta visita não ganha outro
-    + (!st || parte === 'outros' ? '' : !temVoucher(c) && voucherNaEntrada() && c && c.entrou ? '' : temVoucher(c) ? `<div class="serv voucher usado"><span class="txt"><b>Voucher</b><span>${c.entrou ? 'já usado nesta visita' : 'já tem um de hoje, ainda sem usar'} · é um por visita</span></span><span class="vou-ch on">${ic(IC.check, 16, 3)}</span><b class="valor num"></b></div>`
-      : `<button type="button" class="serv voucher tap ${vq ? 'on' : ''}" data-act="vou-marca" aria-pressed="${!!vq}"><span class="txt"><b>Voucher</b><span>${c && c.entrou && c.atraso && c.atraso.n ? `cobre ${porExt(st.min || 30)} desta visita (${brl(umaCobranca(c))} a menos na saída)` : `${porExt(st.min || 30)} de ${esc(st.n)} grátis · um por visita`}</span></span><span class="vou-ch">${vq ? ic(IC.check, 16, 3) : ''}</span><b class="valor num">${vq ? 'Grátis' : ''}</b></button>`);
+    + (!st || parte === 'outros' ? '' : !temVoucher(c) && voucherNaEntrada() && c && c.entrou ? '' : temVoucher(c) ? `<div class="serv voucher usado"><span class="txt"><b>${vouNome()}</b><span>${c.entrou ? 'já usado nesta visita' : 'já tem um de hoje, ainda sem usar'} · é um por visita</span></span><span class="vou-ch on">${ic(IC.check, 16, 3)}</span><b class="valor num"></b></div>`
+      : `<button type="button" class="serv voucher tap ${vq ? 'on' : ''}" data-act="vou-marca" aria-pressed="${!!vq}"><span class="txt"><b>${vouNome()}</b><span>${c && c.entrou && c.atraso && c.atraso.n ? `cobre ${porExt(st.min || 30)} desta visita (${brl(umaCobranca(c))} a menos na saída)` : `${porExt(st.min || 30)} de ${esc(st.n)} grátis · um por visita`}</span></span><span class="vou-ch">${vq ? ic(IC.check, 16, 3) : ''}</span><b class="valor num">${vq ? 'Grátis' : ''}</b></button>`);
 }
 /* 1.67: quem está vendendo. Pedido do dono: "toda vez que forem vender um pacote, selecionar o nome de quem está vendendo; a cada pacote, limpa,
    para que precisem marcar de novo". Vale para o pacote e para o produto (a comissão das Finanças conta os dois); a festa não pede.
@@ -7225,7 +7254,8 @@ function folhaVender(id, primeira, pre, voltaSaida) { // primeira: acabou de sai
   const r = rascunhoDe(c.id), fichaBt = `<button type="button" class="link tap" data-act="ficha-ver" data-id="${c.id}">Ver a ficha</button>`;
   const nota = r ? `<p class="retoma" id="v-retoma">${ic(IC.historico, 16)}<span><b>Continuando de onde parou</b>, às ${hora(new Date(r.em))}: o que já estava escolhido voltou.</span><button type="button" class="link tap" data-act="atender-zero">Começar do zero</button>${fichaBt}</p>`
     : !primeira && pendNovo(c) ? `<p class="retoma" id="v-retoma">${ic(IC.historico, 16)}<span><b>Cadastro feito às ${hora(new Date(pendEm(c)))}.</b> Falta escolher o serviço.</span>${fichaBt}</p>` : '';
-  CARRINHO = r ? carrinhoDe(c, r) : { id: c.id, q: {}, pac: [], pr: {}, vq: 0 }; ETAPA_FEITA = true; PAG = null; DESC = null; ALT = null;   // cada atendimento começa sem forma de pagamento escolhida (e sem desconto)
+  CARRINHO = r ? carrinhoDe(c, r) : { id: c.id, q: {}, pac: [], pr: {}, vq: 0 }; ETAPA_FEITA = true; PAG = null; DESC = null; ALT = null;
+  if (VOU_CAD.has(c.id)) { VOU_CAD.delete(c.id); if (!c.entrou && !temVoucher(c) && servicoTempo()) CARRINHO.vq = 1; }   /* 2.35: o voucher marcado no cadastro */   // cada atendimento começa sem forma de pagamento escolhida (e sem desconto)
   CARRINHO.visto = MODO === 'servidor' ? ULT_REG : 0;   // a última linha do dia que esta tela conhecia ao abrir: o servidor avisa se a criança ganhou outra venda depois
   const it = itemPre(pre);   // 0.98: a venda começou em "Pacotes e produtos": o pacote (ou o produto) escolhido lá já entra na venda
   if (it && !it.semItem) { if (pre.pac != null) { if (!CARRINHO.pac.includes(pre.pac)) CARRINHO.pac.push(pre.pac); } else CARRINHO.pr[pre.prod] = Math.max(1, CARRINHO.pr[pre.prod] || 0); }
@@ -7366,6 +7396,7 @@ function folhaCrianca(c, d, extra) { // d: um cadastro novo que ficou pela metad
       <div class="dois"><div class="campo"><label for="f-nome">Nome da criança<span class="obg" aria-hidden="true">*</span></label><input id="f-nome" value="${esc(v.nome)}" autocomplete="off"></div>
         ${campoNasc(v.nasc)}</div>
       <label class="marca" id="f-pcd-campo"><input type="checkbox" id="f-pcd"${v.pcd ? ' checked' : ''}><span><b>Criança PCD.</b> Paga ${100 - pcdDesc()}% do valor na recreação avulsa. Pacote e carrinhos não têm desconto.</span></label>
+      ${servicoTempo() ? `<label class="marca" id="f-vou-campo"><input type="checkbox" id="f-vou"${VOU_NOVO ? ' checked' : ''}><span><b>${vouNome()}.</b> ${porExt((servicoTempo() || {}).min || 30)} de recreação grátis (promoção do shopping), na entrada · um por visita.</span></label>` : ''}
       ${campoObs(v.obs)}
       <button type="button" class="bt tap" id="f-outra" data-act="salvar-outra" data-outra="1" style="align-self:flex-start">${ic(IC.mais, 16)} Salvar e cadastrar outra criança</button>
     </div>
@@ -8822,11 +8853,15 @@ function folhaNovoComp(x) {
 /* 2.21 (o dono: "esses logins pode deixar sem senha provisoriamente"): pedir ou não a senha da unidade na tela de entrar da loja */
 const textoPedeSenha = v => v === 'sim' ? 'Na tela de entrar, a equipe toca na unidade e escreve a senha dela. De fábrica, a senha de todas é <b>123456</b>. O gestor entra pelo botão "Login gestor", com o login e a senha dele.'
   : 'Sem senha: a equipe toca na unidade ("Login Anália", "Login Morumbi"...) e entra. Vale só nos computadores liberados aqui; o celular e o computador de casa continuam com login e senha. As senhas abaixo ficam guardadas para quando voltar a pedir. O gestor entra pelo botão "Login gestor".';
+/* 2.35: os lugares (ANALIA, MORUMBI) com o nome da unidade do Play de lá; o lugar escolhido para liberar este computador */
+const locaisLoja = () => { const o = []; for (const u of [...unidades()].filter(u => u.ativo !== false).sort((a, b) => ehCasaTom(a.id) - ehCasaTom(b.id))) { const k = localUni(u.id); if (k && !o.some(x => x.k === k)) o.push({ k, n: ehCasaTom(u.id) ? localNome(u.id) : u.nome }); } return o; };
+const nomeLocal = k => (locaisLoja().find(x => x.k === k) || { n: k }).n;
+let MQ_LOCAL = '';
 async function folhaMaquinas() {
-  const m = maqLer();
+  const m = maqLer(), LOC = locaisLoja(); if (!LOC.some(x => x.k === MQ_LOCAL)) MQ_LOCAL = localUni(minhaUni()) || (LOC[0] || {}).k || '';
   abrirFolha('Computadores da loja', `<p class="explica">No computador liberado, a tela de entrar mostra só as unidades: a equipe toca em <b>${esc(juntar(unidades().filter(u => u.ativo !== false).map(u => u.nome)))}</b> e entra, sem senha. Quem vende, cadastra e atende continua tocando no nome (vale para as comissões). Libere só os computadores do balcão: o celular e o computador de casa continuam com usuário e senha.</p>
     ${m ? `<div class="marca" id="mq-este">${ic(IC.check, 18, 2.6)}<span><b>Este computador está liberado</b>${m.n ? ' (' + esc(m.n) + ')' : ''}. Ao sair, a tela de entrar mostra as unidades.</span></div><div class="acoes"><button type="button" class="bt claro tap" data-act="maq-esquecer">Tirar a liberação deste computador</button></div>`
-      : `<div class="campo"><label for="mq-nome">Nome deste computador <span class="leve">· para achar na lista</span></label><input id="mq-nome" maxlength="40" autocomplete="off" placeholder="ex.: BALCÃO ANÁLIA"></div><div class="acoes"><button type="button" class="bt forte tap" id="mq-ok" data-act="maq-liberar">${ic(IC.check)} Liberar este computador</button></div>`}
+      : `<div class="campo"><label for="mq-nome">Nome deste computador <span class="leve">· para achar na lista</span></label><input id="mq-nome" maxlength="40" autocomplete="off" placeholder="ex.: BALCÃO ANÁLIA"></div>${LOC.length > 1 ? `<div class="campo"><label>Em que lugar fica este computador? <span class="leve">· a tela de entrar mostra só as unidades de lá</span></label><div class="seg" id="mq-local">${LOC.map(x => `<button type="button" class="tap" data-act="mq-local" data-l="${esc(x.k)}" aria-pressed="${MQ_LOCAL === x.k}">${esc(x.n)}</button>`).join('')}</div></div>` : ''}<div class="acoes"><button type="button" class="bt forte tap" id="mq-ok" data-act="maq-liberar">${ic(IC.check)} Liberar este computador</button></div>`}
     ${faltaCasaTom().length ? `<div class="marca" id="mq-ct">${ic(IC.sino, 18)}<span>Falta a unidade <b>${esc(juntar(faltaCasaTom().map(u => 'CASA TOM ' + curtoUni(u.nome).toUpperCase())))}</b>: sem ela, o botão não aparece na tela de entrar.</span><button type="button" class="bt claro tap" data-act="maq-ct">Criar agora</button></div>` : ''}
     <p class="vend-t" style="margin-top:14px">Senha de cada unidade</p>
     <div class="campo"><label>Pedir a senha da unidade na tela de entrar</label><div class="seg" id="mq-pede">${[['nao', 'Não (provisório)'], ['sim', 'Sim']].map(([v, n]) => `<button type="button" class="tap" data-act="loja-pede-senha" data-v="${v}" aria-pressed="${(S.cfg.senhaUni || 'nao') === v}">${n}</button>`).join('')}</div></div>
@@ -8836,7 +8871,7 @@ async function folhaMaquinas() {
   try { const r = await api('maquinas'); pintarMaquinas(r.maquinas || []); } catch (e) { const l = $('#mq-lista'); if (l) l.innerHTML = `<p class="explica">${esc(e.message)}</p>`; }
 }
 function pintarMaquinas(L) { const l = $('#mq-lista'); if (!l) return; const A = L.filter(x => x.ativo);
-  l.innerHTML = A.length ? `<p class="vend-t" style="margin-top:14px">Computadores liberados</p><div class="grupo">${A.map(x => `<div class="it"><div class="txt"><b>${esc(x.nome)}</b><span>liberado em ${esc(x.criado)}${x.uso ? ' · última entrada ' + esc(x.uso) : ' · ainda não usado'}</span></div><button type="button" class="bt claro tap" data-act="maq-tirar" data-id="${x.id}" style="color:var(--erro)">Tirar acesso</button></div>`).join('')}</div>` : '<p class="explica">Nenhum computador liberado ainda.</p>'; }
+  l.innerHTML = A.length ? `<p class="vend-t" style="margin-top:14px">Computadores liberados</p><div class="grupo">${A.map(x => `<div class="it"><div class="txt"><b>${esc(x.nome)}</b><span>${x.local ? 'em ' + esc(nomeLocal(x.local)) + ' · ' : 'lugar ainda não escolhido (aprende na primeira entrada) · '}liberado em ${esc(x.criado)}${x.uso ? ' · última entrada ' + esc(x.uso) : ' · ainda não usado'}</span></div>${locaisLoja().length > 1 ? `<div class="seg mq-loc">${locaisLoja().map(l => `<button type="button" class="tap" data-act="maq-local" data-id="${x.id}" data-l="${esc(l.k)}" aria-pressed="${x.local === l.k}">${esc(curtoUni(l.n))}</button>`).join('')}</div>` : ''}<button type="button" class="bt claro tap" data-act="maq-tirar" data-id="${x.id}" style="color:var(--erro)">Tirar acesso</button></div>`).join('')}</div>` : '<p class="explica">Nenhum computador liberado ainda.</p>'; }
 function telaAjustes() {
   const cfg = S.cfg;
   const seg = (id, ops, val) => `<div class="seg" data-cfg="${id}">${ops.map(([v, n]) => `<button type="button" data-v="${v}" aria-pressed="${v === val}">${n}</button>`).join('')}</div>`;
@@ -9184,6 +9219,7 @@ const ACOES = {
   'salvar-crianca': el => {
     const pre = el.dataset.id ? null : CAD_PRE, outra = !el.dataset.id && !!el.dataset.outra;   /* 0.98: a venda começou em "Pacotes e produtos": o item segue para o atendimento. 1.22: outra = salvar esta e cadastrar outra criança do mesmo responsável */
     const id = el.dataset.id, nome = MAI(val('f-nome')), resp = MAI(val('f-resp')), doc = docTipo(), cpf = doc === 'rne' ? rneFmt(val('f-cpf')).trim() : cpfFmt(val('f-cpf')), obs = val('f-obs'), pcd = !!($('#f-pcd') || {}).checked;
+    if (!id) VOU_NOVO = !!($('#f-vou') || {}).checked;   /* 2.35 */
     let tel = val('f-tel'), tel2 = val('f-tel2'); if (telFora(tel) && !soDig(tel)) tel = ''; if (telFora(tel2) && !soDig(tel2)) tel2 = '';   /* 1.16: o "+" sozinho não é telefone */
     if (!tel && tel2) { tel = tel2; tel2 = ''; }   // só um telefone preenchido: ele é o principal
     const F = faltaNoCadastro(id ? crianca(id) : null);   // sem documento, responsável, telefone e nome da criança o cadastro não fecha
@@ -9487,7 +9523,9 @@ const ACOES = {
       const m = maqLer(); if (m) maqGuardar({ ...m, s: v === 'sim' }); deuCerto(v === 'sim' ? 'A tela de entrar volta a pedir a senha da unidade' : 'A tela de entrar fica sem a senha da unidade'); } catch (e) { toast(e.message); } },
   'loja-senha': async el => { const i = document.querySelector(`.mq-s[data-u="${el.dataset.u}"]`), s = i ? i.value : ''; if (s.length < 4) { toast('A senha precisa ter pelo menos 4 caracteres'); if (i) i.focus(); return; } el.disabled = true;
     try { await api('loja_senha', { unidade: +el.dataset.u, senha: s }); i.value = ''; deuCerto('Senha da unidade trocada: ' + nomeUni(+el.dataset.u)); } catch (e) { toast(e.message); } el.disabled = false; },
-  'maq-liberar': async el => { el.disabled = true; try { const r = await api('maquina_liberar', { nome: val('mq-nome') }); maqGuardar({ c: r.chave, u: r.unidades || [], n: r.nome || '' }); deuCerto('Computador liberado: ao sair, a tela de entrar mostra as unidades'); folhaMaquinas(); } catch (e) { el.disabled = false; toast(e.message); } },
+  'mq-local': el => { MQ_LOCAL = el.dataset.l || ''; $$('#mq-local [data-l]').forEach(b => b.setAttribute('aria-pressed', b.dataset.l === MQ_LOCAL)); },   /* 2.35 */
+  'maq-local': async el => { try { const r = await api('maquina_local', { id: +el.dataset.id, local: el.dataset.l || '' }); pintarMaquinas(r.maquinas || []); deuCerto('Lugar do computador trocado'); } catch (e) { toast(e.message); } },   /* 2.35 */
+  'maq-liberar': async el => { el.disabled = true; try { const r = await api('maquina_liberar', { nome: val('mq-nome'), local: MQ_LOCAL }); maqGuardar({ c: r.chave, u: r.unidades || [], n: r.nome || '' }); deuCerto('Computador liberado: ao sair, a tela de entrar mostra as unidades'); folhaMaquinas(); } catch (e) { el.disabled = false; toast(e.message); } },
   'maq-esquecer': async () => { const m = maqLer(); maqGuardar(null); if (m) { try { await api('maquina_tirar', { chave: m.c }); } catch (e) { } } deuCerto('Este computador volta a pedir usuário e senha'); folhaMaquinas(); },
   'maq-tirar': async el => { try { const r = await api('maquina_tirar', { id: +el.dataset.id }); pintarMaquinas(r.maquinas || []); deuCerto('Acesso tirado: esse computador volta a pedir usuário e senha'); } catch (e) { toast(e.message); } },
   entrar: async () => { try { await api('entrar', { login: val('l-login'), senha: ($('#l-senha') || { value: '' }).value }); ursoReage('feliz'); await espera(260); await espera(sairDoLogin()); await depoisDeEntrar(true); ligarSincronia(); }   /* 1.91: o login escorrega e some (era 0,7 s parado) */ catch (e) { ursoReage('nao'); toast(e.message); } },

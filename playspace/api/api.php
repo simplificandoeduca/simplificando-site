@@ -220,7 +220,7 @@ switch ($acao) {
   }
   case 'loja_unidades': { /* 2.10: a tela de entrar do computador da loja (só com a chave dele) */
     $m = maquinaDaChave((string)($in['chave'] ?? '')); if (!$m) falha('Este computador não está mais liberado. Entre com usuário e senha, ou peça ao gestor para liberar de novo.', 403);
-    responder(['unidades' => unidadesDaLoja(), 'nome' => (string)$m['nome'], 'senha' => lojaPedeSenha()]);   /* 2.21: se pede a senha da unidade */
+    responder(['unidades' => unidadesDaLoja((string)($m['local'] ?? '')), 'nome' => (string)$m['nome'], 'senha' => lojaPedeSenha(), 'local' => (string)($m['local'] ?? '')]);   /* 2.35: só as do lugar do computador */   /* 2.21: se pede a senha da unidade */
   }
   case 'entrar_loja': { /* 2.10: um toque na unidade, sem senha (o computador liberado pelo gestor) */
     $db->prepare('DELETE FROM tentativas WHERE quando < ?')->execute([time() - 900]);
@@ -228,21 +228,31 @@ switch ($acao) {
     $m = maquinaDaChave((string)($in['chave'] ?? ''));
     if (!$m) { $db->prepare('INSERT INTO tentativas (login, ip, quando) VALUES (?, ?, ?)')->execute(['#loja', $ip, time()]); usleep(400000); falha('Este computador não está mais liberado. Entre com usuário e senha, ou peça ao gestor para liberar de novo.', 403); }
     $uni = (int)($in['unidade'] ?? 0); $lu = usuarioDaLoja($uni); if (!$lu) falha('Unidade não encontrada.', 404);
+    /* 2.35 (o dono: "Morumbi só visualiza Casatom Morumbi e Morumbi"): o computador entra só nas unidades do lugar dele */
+    $nu = ''; foreach (unidadesDaLoja() as $x) if ($x['id'] === $uni) $nu = $x['nome']; $loc = (string)($m['local'] ?? '');
+    if ($loc !== '' && uniLocal($nu) !== $loc) falha('Este computador é de outra unidade. Toque na unidade daqui.', 403);
     $q = $db->prepare('SELECT COUNT(*) FROM tentativas WHERE login = ? AND ip = ? AND quando > ?'); $q->execute(['#loja' . $uni, $ip, time() - 900]); if ((int)$q->fetchColumn() >= 8) falha('Muitas tentativas. Espere 15 minutos e tente de novo.', 429);
     $q = $db->prepare('SELECT senha FROM usuarios WHERE id = ?'); $q->execute([(int)$lu['id']]); $h = (string)$q->fetchColumn(); $q->closeCursor();   /* 2.11: a senha da unidade */
     if (lojaPedeSenha() && !password_verify((string)($in['senha'] ?? ''), $h)) {   /* 2.21: sem a senha, provisoriamente (Ajustes → Computadores da loja) */ $db->prepare('INSERT INTO tentativas (login, ip, quando) VALUES (?, ?, ?)')->execute(['#loja' . $uni, $ip, time()]); usleep(400000); falha('Senha da unidade errada.', 401); }
     $db->prepare('UPDATE maquinas SET ultimo_uso = ? WHERE id = ?')->execute([agora(), (int)$m['id']]);
+    if ($loc === '' && $nu !== '' && uniLocal($nu) !== '') $db->prepare('UPDATE maquinas SET local = ? WHERE id = ?')->execute([uniLocal($nu), (int)$m['id']]);   /* 2.35: o computador já liberado aprende o lugar na primeira entrada */
     session_regenerate_id(true); $_SESSION['uid'] = (int)$lu['id']; $_SESSION['uni0'] = $uni; $_SESSION['maq'] = (int)$m['id'];
     responder(['usuario' => eu()]);
   }
   case 'maquina_liberar': { /* 2.10: o gestor libera este computador (a chave volta só uma vez, para ficar guardada nele) */
     $u = exigir(['gestor']); $nome = mb_substr(maiusculo(trim((string)($in['nome'] ?? ''))), 0, 40); if ($nome === '') $nome = 'COMPUTADOR DE ' . date('d/m H:i');
     if ((int)$db->query('SELECT COUNT(*) FROM maquinas WHERE ativo = 1')->fetchColumn() >= 30) falha('Já há 30 computadores liberados. Tire o acesso dos que não usam mais.');
-    $t = bin2hex(random_bytes(24)); $db->prepare('INSERT INTO maquinas (token, nome, criado_em, criado_por) VALUES (?, ?, ?, ?)')->execute([hash('sha256', $t), $nome, agora(), (int)$u['id']]);
+    $loc = lojaLocalOk((string)($in['local'] ?? ''));   /* 2.35: o lugar do computador (a tela de entrar mostra só as unidades de lá) */
+    $t = bin2hex(random_bytes(24)); $db->prepare('INSERT INTO maquinas (token, nome, criado_em, criado_por, local) VALUES (?, ?, ?, ?, ?)')->execute([hash('sha256', $t), $nome, agora(), (int)$u['id'], $loc]);
     registrar('alt', null, 'Computador da loja', 'Liberado para entrar pela unidade, sem senha: ' . $nome . ' · por ' . primeiroNome($u['nome']));
-    responder(['chave' => $t, 'nome' => $nome, 'unidades' => unidadesDaLoja(), 'maquinas' => maquinasLista()]);
+    responder(['chave' => $t, 'nome' => $nome, 'unidades' => unidadesDaLoja($loc), 'maquinas' => maquinasLista()]);
   }
   case 'maquinas': { exigir(['gestor']); responder(['maquinas' => maquinasLista()]); }
+  case 'maquina_local': { /* 2.35: o gestor troca o lugar de um computador liberado (vazio = todas as unidades) */
+    $u = exigir(['gestor']); $loc = lojaLocalOk((string)($in['local'] ?? '')); $id = (int)($in['id'] ?? 0);
+    $q = $db->prepare('SELECT nome FROM maquinas WHERE id = ? AND ativo = 1'); $q->execute([$id]); $n = $q->fetchColumn(); if ($n === false) falha('Computador não encontrado.', 404);
+    $db->prepare('UPDATE maquinas SET local = ? WHERE id = ?')->execute([$loc, $id]); registrar('alt', null, 'Computador da loja', 'Lugar de ' . $n . ': ' . ($loc !== '' ? $loc : 'todas as unidades') . ' · por ' . primeiroNome($u['nome']));
+    responder(['maquinas' => maquinasLista()]); }
   case 'loja_senha': { /* 2.11: o gestor troca a senha de uma unidade (a do computador da loja) */
     $u = exigir(['gestor']); $uni = (int)($in['unidade'] ?? 0); $s = (string)($in['senha'] ?? ''); if (mb_strlen($s) < 4 || mb_strlen($s) > 40) falha('A senha precisa ter de 4 a 40 caracteres.');
     $lu = usuarioDaLoja($uni); if (!$lu) falha('Unidade não encontrada.', 404);
@@ -963,11 +973,17 @@ switch ($acao) {
     $q->execute(array_merge($ids, [date('Y-m-d H:i:s', time() - PAPEL_DIAS * 86400)]));
     responder(['papeis' => array_map('papelPublico', $q->fetchAll()), 'dias' => PAPEL_DIAS]);
   }
+  case 'papel_dia': { /* 2.35 (o dono: "Casatom ... uma aba tipo vendidos do dia ... e selecione, tem a opção de reimprimir cupom lá"): os cupons de hoje da Casa Tom desta unidade */
+    exigir(); $b = balcaoCT(false); $uni = unidadeDoPedido(); session_write_close(); if (!$b) responder(['papeis' => []]);
+    $q = $db->prepare('SELECT p.id, p.crianca_id, p.quando, p.tipo, p.titulo, p.resumo, u.nome AS por_nome FROM papeis p LEFT JOIN usuarios u ON u.id = p.por WHERE p.crianca_id = ? AND p.quando >= ?' . ($uni ? ' AND COALESCE(p.unidade_id, 0) = ' . (int)$uni : '') . ' ORDER BY p.id DESC LIMIT 300');
+    $q->execute([(int)$b['id'], date('Y-m-d') . ' 00:00:00']); responder(['papeis' => array_map('papelPublico', $q->fetchAll())]);
+  }
   case 'papel_ver': { // as vias de um cupom guardado
     $u = exigir(); session_write_close();
     $q = $db->prepare('SELECT p.*, u.nome AS por_nome FROM papeis p LEFT JOIN usuarios u ON u.id = p.por WHERE p.id = ?'); $q->execute([(int)($in['id'] ?? 0)]); $l = $q->fetch();
     if (!$l) falha('Este cupom não está mais guardado.', 404);
-    if (($u['papel'] ?? '') !== 'gestor' && time() - strtotime((string)$l['quando']) > TROCA_PAG_SEG + 10) falha('Passou de 2 min: só o gestor reimprime este cupom.', 403);   // 1.57
+    $ctHoje = ($b = balcaoCT(false)) && (int)$l['crianca_id'] === (int)$b['id'] && substr((string)$l['quando'], 0, 10) === date('Y-m-d');   /* 2.35: a venda de hoje da Casa Tom, a equipe reimprime */
+    if (($u['papel'] ?? '') !== 'gestor' && !$ctHoje && time() - strtotime((string)$l['quando']) > TROCA_PAG_SEG + 10) falha('Passou de 2 min: só o gestor reimprime este cupom.', 403);   // 1.57
     responder(papelPublico($l) + ['vias' => papelVias($l)]);
   }
   case 'horas_ajuste': { /* 2.16 (o dono: "as meninas lançaram as horas erradas ... o gestor consiga consertar isso de uma maneira prática"): o gestor soma ou tira horas do saldo, com o motivo (sem venda: não mexe no caixa) */
