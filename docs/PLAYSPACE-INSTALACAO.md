@@ -1301,6 +1301,14 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Tirar o pacote lançado errado, na saída (2.24)
+
+Pedido do dono (26/11): "eu quero uma opção tirar pacote. Tipo, às vezes lançou errado, só que aí o gestor tem que aprovar tirar o pacote."
+
+- Na saída, no bloco "Alterar pacote", o botão "Tirar o pacote". Para quem não é gestor: "Pedir para tirar o pacote" (vai para o gestor, na tela e no celular dele) e "Tirar com a senha" (a senha do gestor digitada ali vale na hora).
+- É o cancelamento da venda do pacote lançado, com o motivo escrito no bloco (vazio: "PACOTE LANÇADO ERRADO") e o nome de quem atende. Liberado, o pacote sai da conta e das horas do cliente, e a saída se refaz sozinha (aparece o "Pagar avulso" se não sobrarem horas).
+- Esperando o gestor, o bloco diz "Pedido para tirar o pacote enviado às hh:mm", com "Cancelar o pedido". Negado, avisa.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Conserto: "no such column: vende" (2.23)
 
 Na loja, a 2.22 abriu com "SQLSTATE[HY000]: General error: 1 no such column: vende" e o sistema não ligava.

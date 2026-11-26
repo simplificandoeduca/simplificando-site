@@ -1215,6 +1215,7 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .pg-alt-tot { grid-column: 1 / -1; margin: 0; font-size: 13.5px; color: var(--tinta-2); } .pg-alt-tot b { color: var(--tinta); font-family: var(--display); font-size: 15px; }
 #pg-alt-p, #sa-alt-p, #pg-alt-v, #sa-alt-v { text-align: right; font-family: var(--display); font-weight: 800; font-size: 16px; }
 .pg-alt-n { grid-column: 1 / -1; margin: 0; font-size: 13px; color: var(--tinta-2); }
+.pg-tira { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; width: 100%; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--borda); } .pg-tira > span { flex: 1 1 150px; font-size: 13px; color: var(--tinta-2); }   /* 2.24: tirar o pacote lançado errado */
 .pg-alt-l { display: flex; flex-direction: column; gap: 4px; min-width: 0; font-size: 12.5px; font-weight: 800; color: var(--tinta-2); } .pg-alt-c.com-h { grid-template-columns: 1fr 1fr; } .pg-alt-c.com-h .pg-alt-l-m { grid-column: 1 / -1; }   /* 1.36: com as horas do pacote */
 #pg-alt-h, #sa-alt-h { text-align: right; font-family: var(--display); font-weight: 800; font-size: 16px; }
 .pgt-r.pgt-desc > .pgt-v, .pgt-r.pgt-desc .pgt-i b { color: var(--ok); } .pgt-falta { color: var(--erro); }
@@ -2131,7 +2132,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.23';
+const VERSAO = '2.24';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -4434,9 +4435,10 @@ let ALTS = null;   // { grupo, ids, k: a venda escolhida, v, hh, motivo, ped, es
 const altDaCompraPrevia = v => { if (!v || v.auto || v.festa || v.voucher || v.alug || v.imp || !(v.v > 0.004) || +v.desc > 0.004 || faltaCompra(v) < v.v - 0.004) return ''; if (v.prod) return 'prod'; if (!(minDe(v) > 0)) return ''; const s = MAI(v.servico || ''); return s && (S.cfg.servicos || []).some(x => MAI(x.n || '') === s) ? '' : 'pac'; };
 const altSaidaCs = () => !ALTS ? [] : ALTS.grupo && SAI ? saiDentro() : ALTS.ids.map(i => crianca(i)).filter(c => c && c.entrou);
 const altSaidaItens = () => altSaidaCs().flatMap(c => pendItens(c).filter(i => i.id && i.alt === 'pac').map(i => ({ ...i, c })));   // 1.41: sempre um pacote
-const altSaidaSig = () => !ALTS ? '' : JSON.stringify([altSaidaItens().map(i => [i.id, i.v, i.h, i.alt]), ALTS.ped, ALTS.espera, ALTS.neg, ALTS.feito ? ALTS.feito.id : 0, altDecide()]);
-function altSaidaNovo(ids, grupo) { ALTS = { grupo: !!grupo, ids: ids.slice(), k: 0, v: '', hh: '', vp: '', motivo: '', ped: 0, espera: false, neg: null, feito: null, aberto: false }; altSaidaLigar(); }
+const altSaidaSig = () => !ALTS ? '' : JSON.stringify([altSaidaItens().map(i => [i.id, i.v, i.h, i.alt]), ALTS.ped, ALTS.espera, ALTS.neg, ALTS.feito ? ALTS.feito.id : 0, altDecide(), ALTS.tira ? ALTS.tira.ped : 0]);
+function altSaidaNovo(ids, grupo) { ALTS = { grupo: !!grupo, ids: ids.slice(), k: 0, v: '', hh: '', vp: '', motivo: '', ped: 0, espera: false, neg: null, feito: null, aberto: false, tira: null }; altSaidaLigar(); }
 function altSaidaLigar() { // o meu pedido de alterar (da saída) destes clientes: esperando a resposta, ou respondido agora há pouco
+  { const I = altSaidaItens(), pt = (S.pedidos || []).filter(p => p.tipo === 'cancelar_venda' && p.status === 'pendente' && pedMeu(p) && I.some(i => i.id === p.venda)).sort((a, b) => b.id - a.id)[0]; if (pt) ALTS.tira = { ped: pt.id }; }   /* 2.24: o meu pedido de tirar o pacote, esperando */
   const cs = altSaidaCs(), p = (S.pedidos || []).filter(p => p.tipo === 'valor' && p.venda && (p.dados || {}).onde === 'saida' && pedMeu(p) && cs.some(c => c.id === p.crianca)).sort((a, b) => b.id - a.id)[0]; if (!p) return;
   const recente = !!p.dec_em && agora - p.dec_em < PEDIDO_VALE_MIN * 60000, poe = () => { ALTS.k = p.venda; ALTS.v = valTxt(p.dados.pac != null ? p.dados.pac : p.dados.para); ALTS.vp = +p.dados.prod > 0 ? valTxt(p.dados.prod) : ''; ALTS.hh = String(p.dados.horas || (p.dados.item || {}).h || ''); ALTS.motivo = p.motivo; };
   if (p.status === 'pendente') { ALTS.ped = p.id; ALTS.espera = true; poe(); } else if (p.status === 'usado' && recente) ALTS.feito = p; else if (p.status === 'negado' && recente && !NEG_VISTO.has(p.id)) { ALTS.neg = primeiro(p.dec) || 'A supervisora'; ALTS.negId = p.id; poe(); }
@@ -4456,8 +4458,36 @@ function htmlAltSaida() {
     ${ALTS.neg ? `<p class="pg-alt-n pg-desc-neg"><span><b>${esc(ALTS.neg)} não aprovou.</b> Peça de novo ou cobre sem alterar.</span><button type="button" class="link tap" data-act="salt-sem">Cobrar sem alterar</button></p>` : ''}
     ${altCampos('sa-alt', ALTS, trava)}</div>
   <div class="pg-desc-a">${e ? `<p class="pg-desc-e">${ic(IC.sino, 16)}<span><b>Pedido enviado</b> às ${hora(e.em)}. Quando aprovar, o valor muda aqui.</span><button type="button" class="link tap" data-act="salt-largar">Cancelar o pedido</button></p>` : `<button type="button" class="bt forte tap" data-act="salt-pedir">${dec ? ic(IC.check, 16) + ' Alterar o pacote' : ic(IC.sino, 16) + ' Pedir aprovação'}</button>`}
-    ${dec ? '' : `<div class="aut-senha">${campoSenha('sa-alt-s', 'Senha de quem aprova')}<button type="button" class="bt tap" data-act="salt-pedir" data-senha="1">Aprovar com a senha</button></div>`}</div></details>`;
+    ${dec ? '' : `<div class="aut-senha">${campoSenha('sa-alt-s', 'Senha de quem aprova')}<button type="button" class="bt tap" data-act="salt-pedir" data-senha="1">Aprovar com a senha</button></div>`}${e ? '' : htmlTiraSaida(dec)}</div></details>`;
 }
+/* 2.24 (o dono: "eu quero uma opção tirar pacote ... às vezes lançou errado, só que aí o gestor tem que aprovar tirar o pacote"): o pacote
+   lançado nesta visita sai da conta. É o cancelamento da venda (o pedido de sempre, para o gestor), com o motivo e quem atende */
+const htmlTiraSaida = dec => { const t = ALTS && ALTS.tira ? pedidoPorId(ALTS.tira.ped) : null, pode = podeEstornar();
+  if (t && t.status === 'pendente') return `<p class="pg-desc-e pg-tira" id="sa-tira">${ic(IC.sino, 16)}<span><b>Pedido para tirar o pacote</b> enviado às ${hora(t.em)}. Quando ${quemEstorna()} liberar, o pacote sai da conta.</span><button type="button" class="link tap" data-act="salt-tira-largar">Cancelar o pedido</button></p>`;
+  return `<div class="pg-tira" id="sa-tira"><span>Lançou o pacote errado?</span><button type="button" class="bt claro tap" data-act="salt-tirar">${ic(IC.x, 14, 2.6)} ${pode ? 'Tirar o pacote' : 'Pedir para tirar o pacote'}</button>${!pode && !dec ? '<button type="button" class="bt claro tap" data-act="salt-tirar" data-senha="1">Tirar com a senha</button>' : ''}</div>`; };
+async function altSaidaTirar(el) {
+  if (!ALTS) return; const I = altSaidaItens(), i = I.find(x => x.id === ALTS.k) || (I.length === 1 ? I[0] : null); if (!i) { toast('Escolha o pacote que sai'); altSaidaFoco('item'); return; }
+  const comSenha = !!el.dataset.senha, senha = comSenha ? senhaDe('sa-alt-s') : ''; if (comSenha && !senha) { toast('Digite a senha do gestor'); const s = $('#sa-alt-s'); if (s) s.focus(); return; }
+  const mi = $('#sa-alt-m'), mt = MAI(((mi ? mi.value : '') || '').replace(/\s+/g, ' ').trim()), motivo = mt.length >= 5 ? mt : (mt ? mt + ' · ' : '') + 'PACOTE LANÇADO ERRADO';
+  const atd = abriuDe(i.c) || ATD_ULT || (typeof EU !== 'undefined' && EU && !EU.loja ? primeiro(EU.nome || '') : ''), d = { tipo: 'cancelar_venda', venda: i.id, motivo, atendente: atd };
+  el.disabled = true;
+  try { let p;
+    if (MODO === 'servidor') { const r = await api('pedido_criar', comSenha ? { ...d, senha } : d); pedidosChegaram(r.pedidos, true); p = pedidoDe(r.pedido); }
+    else { const r = criarPedidoPrevia(d, comSenha ? senha : null); if (r.erro) throw new Error(r.erro); pedidosMudaramPrevia(true); p = r.pedido; }
+    if (comSenha) okSenha(p);
+    if (p && p.status === 'usado') { await altSaidaTirou(p); return; }
+    ALTS.tira = { ped: p.id }; altSaidaRedesenha(true); toast(`Pedido enviado: quando ${quemEstorna()} liberar, o pacote sai da conta`);
+  } catch (err) { toast(err.message); el.disabled = false; senhaErrada('sa-alt-s', err); }
+}
+async function altSaidaTirou(p) { // liberado: a venda do pacote foi cancelada (no servidor) e a conta da saída acompanha
+  if (!ALTS) return; Object.assign(ALTS, { tira: null, k: 0, v: '', hh: '', vp: '', motivo: '', aberto: false, neg: null });
+  if (MODO === 'servidor') { try { await carregar(); } catch (e) { } }
+  toast(`Pacote tirado${p && p.dec && p.como !== 'proprio' ? ' · liberado por ' + primeiro(p.dec) : ''}`); atualizarSaida(); atualizarGrupo(); altSaidaRedesenha(true);
+  if (LADO) buscarHistorico().catch(() => { });
+}
+async function altSaidaTiraLargar() { if (!ALTS || !ALTS.tira) return; const id = ALTS.tira.ped;
+  try { if (MODO === 'servidor') pedidosChegaram((await api('pedido_cancelar', { id })).pedidos, true); else { cancelarPedidoPrevia(pedidoPorId(id), true); pedidosMudaramPrevia(true); } } catch (e) { toast(e.message); }
+  ALTS.tira = null; altSaidaRedesenha(true); }
 function altSaidaRedesenha(forca) { const a = $('#sa-box'); if (!a || !ALTS) return; const sig = altSaidaSig(); if (!forca && a.dataset.k === sig) return; const d = $('#sa-alt'); if (d && d.tagName === 'DETAILS') ALTS.aberto = d.open; a.dataset.k = sig; a.innerHTML = htmlAltSaida(); travaRefaz(); }
 function altSaidaDados() { // o que foi escrito, conferido: os dados do pedido, ou { erro, foco }
   const i = altSaidaItens().find(x => x.id === ALTS.k); if (!i) return { erro: 'Escolha o pacote que muda', foco: 'item' };
@@ -7471,6 +7501,8 @@ function pedidoRespondido(p) { // (na tela de quem pediu) chegou a resposta de q
     if (p.status === 'liberado') avisar(`${quem} liberou o crédito em ${n}x para ${cliente}. Abra o pagamento${((p.dados || {}).onde || 'festa') === 'festa' ? ' da festa' : ''} para usar.`); else if (p.status === 'negado') avisar(`${quem} não liberou o crédito em ${n}x para ${cliente}.`); return; }
   if (p.tipo === 'desconto') { if (DESC && DESC.pede && DESC.ped === p.id && $('#pg-desc')) { descResposta(p); return; }
     if (p.status === 'liberado') avisar(`${quem} liberou o desconto de ${brl(p.valor)} para ${cliente}. Abra o pagamento para usar.`); else if (p.status === 'negado') avisar(`${quem} não liberou o desconto de ${brl(p.valor)} para ${cliente}.`); return; }
+  if (p.tipo === 'cancelar_venda' && ALTS && ALTS.tira && ALTS.tira.ped === p.id && $('#sa-box')) { if (p.status === 'usado') { toast(`${quem} liberou: o pacote saiu da conta`); setTimeout(() => altSaidaTirou(p), 30); return; }   /* 2.24 */
+    ALTS.tira = null; if (p.status === 'negado') toast(`${quem} não liberou tirar o pacote`); altSaidaRedesenha(true); return; }
   if (p.tipo === 'cancelar_venda') { if (p.status === 'usado') avisar(`${quem} cancelou a venda que você pediu (${p.dados.item || cliente})${/^DEVOLVER AO CLIENTE: /.test(p.resultado) ? ' · devolver ao cliente: ' + p.resultado.replace(/^DEVOLVER AO CLIENTE: /, '') : ''}`); else if (p.status === 'negado') avisar(`${quem} não liberou o cancelamento da venda (${p.dados.item || cliente}).`); }
   else if (p.status === 'liberado') avisar(`${quem} autorizou a nota fiscal de ${cliente} (${p.dados.item || ''}).`); else if (p.status === 'negado') avisar(`${quem} não autorizou a nota fiscal de ${cliente}.`);
   if (LADO) buscarHistorico().then(() => { if ($('#nf-corpo')) redesenharNF(); });
@@ -9124,7 +9156,7 @@ const ACOES = {
   'saida-cortesia': el => cortesiaSaida(+el.dataset.id, el),   /* 1.42 */
   'off-ver': () => folhaOffProb(), 'off-ok': el => { OFF.prob.splice(+el.dataset.i, 1); filaGuardar(); offFaixa(); if (OFF.prob.length) folhaOffProb(); else fecharFolha(); },   /* 1.40 */
   'salt-item': el => { if (!ALTS || ALTS.espera) return; const i = altSaidaItens().find(x => x.id === +el.dataset.k); if (!i) return; ALTS.k = i.id; ALTS.v = valTxt(i.v); ALTS.hh = String(Math.round(i.h)); ALTS.vp = ''; ALTS.aberto = true; altSaidaRedesenha(true); const v = $('#sa-alt-v'); if (v) { v.focus(); v.select(); } },   /* 1.39 */
-  'salt-pedir': el => altSaidaPedir(el), 'salt-largar': () => altSaidaLargar(),
+  'salt-pedir': el => altSaidaPedir(el), 'salt-largar': () => altSaidaLargar(), 'salt-tirar': el => altSaidaTirar(el), 'salt-tira-largar': () => altSaidaTiraLargar(),   /* 2.24 */
   nf: el => folhaNF(el.dataset.id), 'nf-notas': () => abrirNotasNF(), 'copia-baixar': el => baixarCopia(el.dataset.nome || '', el), 'copia-fazer': el => fazerCopia(el), 'nf-pedir': el => pedirNF(el), 'nf-notas-entrar': el => entrarNotasNF(el), 'nf-emp': el => { if (!NF || NF_EMITINDO) return; NF_EMP[NF.id] = +el.dataset.id; nfEmpRedesenha(NF.id); nfPreparar(NF.id); }, 'ocioso-ficar': () => ociosoMexeu(), 'nf-senha': el => acaoNF('senha', el), 'nf-emitida': el => acaoNF('emitida', el), 'nf-voltar': el => acaoNF('voltar', el), 'nf-largar': el => acaoNF('largar', el), 'nf-copiar': el => acaoNF('copiar', el),
   'meta-salvar': el => metaSalvar(el, false), 'meta-tirar': el => metaSalvar(el, true), 'meta-ver': () => metaVer('dia'), 'meta-ver-mes': () => metaVer('mes'), 'meta-aviso-ver': () => metaVer('aviso'),   /* 1.87: as metas do mês */
   'meta-folha': el => folhaMeta(+el.dataset.uni), 'meta-recarregar': () => { META_ED.erro = null; const a = $('#aj-meta'); if (a) a.outerHTML = cartaoMeta(); },
