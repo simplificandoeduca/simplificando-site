@@ -222,6 +222,15 @@ switch ($acao) {
     $m = maquinaDaChave((string)($in['chave'] ?? '')); if (!$m) falha('Este computador não está mais liberado. Entre com usuário e senha, ou peça ao gestor para liberar de novo.', 403);
     responder(['unidades' => unidadesDaLoja((string)($m['local'] ?? '')), 'nome' => (string)$m['nome'], 'senha' => lojaPedeSenha(), 'local' => (string)($m['local'] ?? '')]);   /* 2.35: só as do lugar do computador */   /* 2.21: se pede a senha da unidade */
   }
+  case 'maquina_lugar': { /* 2.36 (o dono: "eu selecionar uma vez onde está essa máquina, na tela de login. E daí não tem como trocar, só se eu colocar
+     em configurações"): o lugar escolhido na tela de entrar, só uma vez (depois, só o gestor troca, em Ajustes → Computadores da loja) */
+    $m = maquinaDaChave((string)($in['chave'] ?? '')); if (!$m) falha('Este computador não está mais liberado. Entre com usuário e senha, ou peça ao gestor para liberar de novo.', 403);
+    if ((string)($m['local'] ?? '') !== '') falha('O lugar deste computador já foi escolhido. Só o gestor troca, em Ajustes → Computadores da loja.', 409);
+    $loc = lojaLocalOk((string)($in['local'] ?? '')); if ($loc === '') falha('Escolha onde fica este computador.');
+    $db->prepare("UPDATE maquinas SET local = ? WHERE id = ? AND local = ''")->execute([$loc, (int)$m['id']]);
+    registrar('alt', null, 'Computador da loja', 'Lugar escolhido na tela de entrar: ' . $m['nome'] . ' · ' . $loc);
+    responder(['unidades' => unidadesDaLoja($loc), 'local' => $loc, 'nome' => (string)$m['nome'], 'senha' => lojaPedeSenha()]);
+  }
   case 'entrar_loja': { /* 2.10: um toque na unidade, sem senha (o computador liberado pelo gestor) */
     $db->prepare('DELETE FROM tentativas WHERE quando < ?')->execute([time() - 900]);
     $q = $db->prepare('SELECT COUNT(*) FROM tentativas WHERE ip = ? AND quando > ?'); $q->execute([$ip, time() - 900]); if ((int)$q->fetchColumn() >= 30) falha('Muitas tentativas. Espere 15 minutos e tente de novo.', 429);

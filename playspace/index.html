@@ -1659,6 +1659,7 @@ b.np { color: var(--erro); letter-spacing: .03em; }
 .ent-chip[aria-pressed="true"] i { background: var(--ok); border-color: var(--ok); color: var(--card); }
 /* 2.10: a tela de entrar do computador da loja: um botão por unidade (a Casa Tom em vermelho) */
 .lj-unis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 6px 0 4px; }
+.lj-lugar { display: flex; flex-direction: column; gap: 8px; } .ct-par.par-ct { margin-left: 8px; border-color: #C8202A; color: #C8202A; cursor: pointer; }
 .lj-uni { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 96px; padding: 12px 10px; border: 0; border-radius: 18px; background: var(--coral); color: #fff; font: 800 15px/1.2 var(--display); text-align: center; cursor: pointer; }
 .lj-uni.ct { background: #C8202A; } .lj-uni svg { width: 22px; height: 22px; } .lj-uni:disabled { opacity: .55; cursor: wait; }
 .lj-senha { display: block; margin: 10px auto 0; } .bt.lj-gestor { margin-top: 10px; } .bt.lj-ct { background: #C8202A; border-color: #C8202A; }
@@ -2142,7 +2143,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.35';
+const VERSAO = '2.36';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -2599,13 +2600,26 @@ function telaEntrarLoja(m) {
     <button type="button" class="bt forte largo tap${ehCT(uS.nome) ? ' lj-ct' : ''}" id="lj-ok" data-act="entrar-loja-ok" data-u="${uS.id}">${ic(IC.entrar)} Entrar</button>
     <button type="button" class="link tap lj-senha" data-act="entrar-unidades">Voltar às unidades</button>
     <p class="rodape">Computador da loja${m.n ? ' · ' + esc(m.n) : ''} · Play Space Horas v${VERSAO}</p>`); return; }
-  telaSo(`<h1 style="font-size:24px;font-weight:800">Play Space</h1><p class="explica">${m.s === false ? 'Toque na sua unidade para entrar.' : 'Operador: toque na unidade e escreva a senha dela.'}</p>
+  /* 2.36 (o dono: "eu selecionar uma vez onde está essa máquina, na tela de login. E daí não tem como trocar, só se eu colocar em configurações"):
+     o computador ainda sem lugar pergunta onde ele fica (com a confirmação); escolhido, a pergunta some e só o gestor troca (Ajustes) */
+  const lugares = [...new Set((m.u || []).map(u => lugarDe(u.nome)).filter(Boolean))];
+  if (m.lk && !m.l && lugares.length > 1) { const nomeL = k => curtoUni((m.u || []).find(u => lugarDe(u.nome) === k && !ehCT(u.nome)) ? (m.u || []).find(u => lugarDe(u.nome) === k && !ehCT(u.nome)).nome : k);
+    telaSo(LJ_LUGAR ? `<h1 style="font-size:24px;font-weight:800">Play Space</h1><div class="lj-lugar"><p class="explica">Este computador fica em <b>${esc(nomeL(LJ_LUGAR))}</b>?</p><p class="explica leve">Depois de confirmar, a tela de entrar mostra só ${esc(nomeL(LJ_LUGAR))} e Casa Tom ${esc(nomeL(LJ_LUGAR))}. Para trocar, só o gestor, em Ajustes → Computadores da loja.</p>
+      <button type="button" class="bt forte largo tap" id="lj-lugar-ok" data-act="loja-lugar-ok">${ic(IC.check)} Sim, fica em ${esc(nomeL(LJ_LUGAR))}</button><button type="button" class="link tap lj-senha" data-act="loja-lugar" data-l="">Voltar</button></div>
+      <p class="rodape">Computador da loja${m.n ? ' · ' + esc(m.n) : ''} · Play Space Horas v${VERSAO}</p>`
+      : `<h1 style="font-size:24px;font-weight:800">Play Space</h1><div class="lj-lugar"><p class="explica"><b>Onde fica este computador?</b> Escolha uma vez: depois, a tela de entrar mostra só as unidades de lá.</p>
+      <div class="lj-unis">${lugares.map(k => `<button type="button" class="lj-uni tap" data-act="loja-lugar" data-l="${esc(k)}">${ic(IC.entrar)}<b>${esc(nomeL(k))}</b></button>`).join('')}</div></div>
+      <button type="button" class="bt claro largo tap lj-gestor" data-act="entrar-senha">${ic(IC.check)} Login gestor</button>
+      <p class="rodape">Computador da loja${m.n ? ' · ' + esc(m.n) : ''} · Play Space Horas v${VERSAO}</p>`); }
+  else telaSo(`<h1 style="font-size:24px;font-weight:800">Play Space</h1><p class="explica">${m.s === false ? 'Toque na sua unidade para entrar.' : 'Operador: toque na unidade e escreva a senha dela.'}</p>
     <div class="lj-unis">${U.length ? U.map(u => `<button type="button" class="lj-uni tap${ehCT(u.nome) ? ' ct' : ''}" data-act="entrar-loja" data-u="${u.id}" title="${esc(u.nome)}">${ic(IC.entrar)}<b>${esc(lojaRot(u.nome))}</b></button>`).join('') : '<p class="explica">Carregando as unidades…</p>'}</div>
     <button type="button" class="bt claro largo tap lj-gestor" data-act="entrar-senha">${ic(IC.check)} Login gestor</button>
     <p class="rodape">Computador da loja${m.n ? ' · ' + esc(m.n) : ''} · Play Space Horas v${VERSAO}</p>`);
-  api('loja_unidades', { chave: m.c }).then(r => { const n = { ...m, u: r.unidades || [], n: r.nome || m.n || '', s: r.senha !== false }; maqGuardar(n); if ((JSON.stringify(n.u) !== JSON.stringify(m.u) || n.s !== m.s) && $('.lj-unis')) telaEntrarLoja(n); })   /* 2.21: s = pede a senha da unidade */
-    .catch(e => { if (e.status === 403 && $('.lj-unis')) { maqGuardar(null); telaEntrar(); toast(e.message); } });
+  api('loja_unidades', { chave: m.c }).then(r => { const n = { ...m, u: r.unidades || [], n: r.nome || m.n || '', s: r.senha !== false, l: r.local || '', lk: true }; maqGuardar(n); if ((JSON.stringify(n.u) !== JSON.stringify(m.u) || n.s !== m.s || n.l !== m.l || !m.lk) && $('.lj-unis, .lj-lugar')) telaEntrarLoja(n); })   /* 2.36: l = o lugar do computador */   /* 2.21: s = pede a senha da unidade */
+    .catch(e => { if (e.status === 403 && $('.lj-unis, .lj-lugar')) { maqGuardar(null); telaEntrar(); toast(e.message); } });
 }
+let LJ_LUGAR = '';   /* 2.36: o lugar tocado na tela de entrar (esperando a confirmação) */
+const lugarDe = n => uniNorm(n).replace(/CASA\s*TO[MN]\b/, '').trim().split(/\s+/)[0] || '';
 function telaEntrar() {
   if (LADO) fecharLado();
   S.pedidos = []; PED_SINAL = ''; S.avisos = []; AV_SINAL = null; AV_JA = null; for (const k of [...AUT_VISTOS]) if (String(k).startsWith('av')) AUT_VISTOS.delete(k); setTimeout(desenharPedidos, 0);   // 1.23: na tela de entrar não há cartão de pedidos (1.25: nem avisos; quem entrar depois começa do zero)
@@ -6018,6 +6032,8 @@ const casaTomDesde = u => { const c = String((u && u.criado) || ''); if (!/^\d{4
 const podeIrPara = id => uniFixa() ? noPar(id, uniFixa()) : MODO !== 'servidor' || supervisorOuMais() || !minhaUni() || id === minhaUni() || mesmoLocal(id, minhaUni());
 const faltaCasaTom = () => unidades().filter(u => !ehCasaTom(u.id) && localUni(u.id) && !casaTomDe(u.id));
 const naUnidade = id => S.criancas.filter(c => c.entrou && c.uni === id).length;
+/* 2.36 (o dono: "poder trocar lá por dentro ... Morumbi Casa Tom e Anália Casa Tom"): na Play, um toque vai para a Casa Tom do mesmo lugar */
+const botaoParCT = () => { if (modoCT()) return ''; const p = casaTomDe(minhaUni()); return p && p.ativo !== false && podeTrocarUni() && podeIrPara(p.id) ? `<button type="button" class="ct-par par-ct tap" data-act="ct-par" data-u="${p.id}">↔ Ir para a Casa Tom</button>` : ''; };
 function botaoUnidade() {
   if (!unidades().length) return ''; const n = nomeUni(minhaUni());
   return `<button type="button" class="uni-bt tap${n ? '' : ' falta'}" data-act="unidade" title="${n ? 'Unidade deste aparelho' + (podeTrocarUni() ? ' · toque para trocar' : '') : 'Este aparelho ainda não tem unidade: toque para escolher'}" aria-label="${n ? 'Unidade deste aparelho: ' + esc(n) : 'Escolher a unidade deste aparelho'}">${ic(IC.pino, 14, 2.4)}<span>${n ? esc(n) : 'Qual unidade?'}</span></button>`;
@@ -6916,7 +6932,7 @@ function telaAprovar() {
 // No alto: os avisos (quando há), os pacotes e produtos. No pé: os atalhos para o Banco de horas e para o movimento do dia.
 function telaHoras() {
   const dentro = S.criancas.filter(c => c.entrou && veUni(c.uni)), n = dentro.length, passou = dentro.filter(c => situacaoTempo(c) === 'passou').length, fora = alugNaLista().length;   // fora: carrinhos e fusquinhas que saíram e ainda não voltaram
-  return faixa('No espaço agora', (n ? `${n} ${n === 1 ? 'criança' : 'crianças'}${passou ? ' · ' + passou + (passou === 1 ? ' passou' : ' passaram') + ' do tempo' : ''}` : 'Ninguém por enquanto') + (fora ? ` · ${fora} para devolver` : ''), chipAvisos() + chipCupons() + `<button type="button" class="chip tap vp-bt" data-act="vender-pac" title="Vender um pacote sem dar entrada na recreação (ex.: fechado por telefone)">${ic(IC.presente, 16)} <span>Vender pacote</span></button><button type="button" class="chip tap vf-bt" data-act="pac-futuro" title="Pacote futuro: o cliente fecha o pacote e paga no dia combinado (o gestor aprova)">${ic(IC.agenda, 16)} <span>Pacote futuro</span></button>`   /* 2.16 */ + `<button type="button" class="chip tap" data-act="festa" title="Vender uma festa: escolha o cliente, toque no valor da tabela e receba">${ic(IC.festa, 16)} <span>Festa</span></button>` + chipIdface(), botaoUnidade()) + htmlPend() + bannerFestas() + `
+  return faixa('No espaço agora', (n ? `${n} ${n === 1 ? 'criança' : 'crianças'}${passou ? ' · ' + passou + (passou === 1 ? ' passou' : ' passaram') + ' do tempo' : ''}` : 'Ninguém por enquanto') + (fora ? ` · ${fora} para devolver` : ''), chipAvisos() + chipCupons() + `<button type="button" class="chip tap vp-bt" data-act="vender-pac" title="Vender um pacote sem dar entrada na recreação (ex.: fechado por telefone)">${ic(IC.presente, 16)} <span>Vender pacote</span></button><button type="button" class="chip tap vf-bt" data-act="pac-futuro" title="Pacote futuro: o cliente fecha o pacote e paga no dia combinado (o gestor aprova)">${ic(IC.agenda, 16)} <span>Pacote futuro</span></button>`   /* 2.16 */ + `<button type="button" class="chip tap" data-act="festa" title="Vender uma festa: escolha o cliente, toque no valor da tabela e receba">${ic(IC.festa, 16)} <span>Festa</span></button>` + chipIdface(), botaoUnidade() + botaoParCT()) + htmlPend() + bannerFestas() + `
   <section class="espaco">
     <div class="esp-cab${inicioLista() ? ' lst' : ''}">
       <div class="campo"><input id="esp-busca" value="${esc(S.espBusca || '')}" placeholder="Buscar responsável, criança, telefone, CPF ou nº do cadastro" autocomplete="off" aria-label="Buscar responsável, criança, telefone ou CPF"></div>
@@ -8860,7 +8876,7 @@ let MQ_LOCAL = '';
 async function folhaMaquinas() {
   const m = maqLer(), LOC = locaisLoja(); if (!LOC.some(x => x.k === MQ_LOCAL)) MQ_LOCAL = localUni(minhaUni()) || (LOC[0] || {}).k || '';
   abrirFolha('Computadores da loja', `<p class="explica">No computador liberado, a tela de entrar mostra só as unidades: a equipe toca em <b>${esc(juntar(unidades().filter(u => u.ativo !== false).map(u => u.nome)))}</b> e entra, sem senha. Quem vende, cadastra e atende continua tocando no nome (vale para as comissões). Libere só os computadores do balcão: o celular e o computador de casa continuam com usuário e senha.</p>
-    ${m ? `<div class="marca" id="mq-este">${ic(IC.check, 18, 2.6)}<span><b>Este computador está liberado</b>${m.n ? ' (' + esc(m.n) + ')' : ''}. Ao sair, a tela de entrar mostra as unidades.</span></div><div class="acoes"><button type="button" class="bt claro tap" data-act="maq-esquecer">Tirar a liberação deste computador</button></div>`
+    ${m ? `<div class="marca" id="mq-este">${ic(IC.check, 18, 2.6)}<span><b>Este computador está liberado</b>${m.n ? ' (' + esc(m.n) + ')' : ''}${m.l ? ', em ' + esc(nomeLocal(m.l)) : ''}. Ao sair, a tela de entrar mostra ${m.l ? 'as unidades de lá' : 'as unidades'}. O lugar se troca na lista abaixo.</span></div><div class="acoes"><button type="button" class="bt claro tap" data-act="maq-esquecer">Tirar a liberação deste computador</button></div>`
       : `<div class="campo"><label for="mq-nome">Nome deste computador <span class="leve">· para achar na lista</span></label><input id="mq-nome" maxlength="40" autocomplete="off" placeholder="ex.: BALCÃO ANÁLIA"></div>${LOC.length > 1 ? `<div class="campo"><label>Em que lugar fica este computador? <span class="leve">· a tela de entrar mostra só as unidades de lá</span></label><div class="seg" id="mq-local">${LOC.map(x => `<button type="button" class="tap" data-act="mq-local" data-l="${esc(x.k)}" aria-pressed="${MQ_LOCAL === x.k}">${esc(x.n)}</button>`).join('')}</div></div>` : ''}<div class="acoes"><button type="button" class="bt forte tap" id="mq-ok" data-act="maq-liberar">${ic(IC.check)} Liberar este computador</button></div>`}
     ${faltaCasaTom().length ? `<div class="marca" id="mq-ct">${ic(IC.sino, 18)}<span>Falta a unidade <b>${esc(juntar(faltaCasaTom().map(u => 'CASA TOM ' + curtoUni(u.nome).toUpperCase())))}</b>: sem ela, o botão não aparece na tela de entrar.</span><button type="button" class="bt claro tap" data-act="maq-ct">Criar agora</button></div>` : ''}
     <p class="vend-t" style="margin-top:14px">Senha de cada unidade</p>
@@ -9506,6 +9522,10 @@ const ACOES = {
     try { await api('entrar_loja', { chave: m.c, unidade: +el.dataset.u, senha: s }); guardar('ps-unidade', +el.dataset.u); LJ_UNI = 0; ursoReage('feliz'); await espera(260); await espera(sairDoLogin()); await depoisDeEntrar(true); ligarSincronia(); }
     catch (e) { el.disabled = false; ursoReage('nao'); if (e.status === 401 && m.s === false && !s) { const n = { ...m, s: true }; maqGuardar(n); LJ_UNI = +el.dataset.u; telaEntrarLoja(n); toast('Esta unidade pede a senha'); return; }   /* 2.21: o gestor voltou a pedir a senha */
       toast(e.message); const i = $('#lj-senha'); if (i) { i.value = ''; i.focus(); } if (e.status === 403) { maqGuardar(null); LJ_UNI = 0; setTimeout(telaEntrar, 1500); } } },
+  'loja-lugar': el => { LJ_LUGAR = el.dataset.l || ''; const m = maqLer(); if (m) telaEntrarLoja(m); else telaEntrar(); },   /* 2.36 */
+  'loja-lugar-ok': async el => { const m = maqLer(); if (!m || !LJ_LUGAR) return; el.disabled = true;
+    try { const r = await api('maquina_lugar', { chave: m.c, local: LJ_LUGAR }); LJ_LUGAR = ''; const n = { ...m, u: r.unidades || [], n: r.nome || m.n || '', s: r.senha !== false, l: r.local || '', lk: true }; maqGuardar(n); telaEntrarLoja(n); deuCerto('Pronto: este computador fica em ' + curtoUni((n.u.find(u => !ehCT(u.nome)) || n.u[0] || { nome: r.local }).nome)); }
+    catch (e) { el.disabled = false; toast(e.message); if (e.status === 409) { LJ_LUGAR = ''; telaEntrarLoja({ ...m, lk: false }); } } },   /* 2.36 */
   'entrar-senha': () => { ENTRAR_SENHA = true; telaEntrar(); }, 'entrar-unidades': () => { ENTRAR_SENHA = false; LJ_UNI = 0; telaEntrar(); },
   'maq-lista': () => folhaMaquinas(),
   'nota-ver': el => { const p = $('#nota-pop'); if (p && !p.hidden && p.dataset.de === el.dataset.nota && Date.now() - (+p.dataset.t || 0) > 700) notaFecha(true); else { notaPop(el); const p2 = $('#nota-pop'); if (p2) p2.dataset.fixa = '1'; } },   /* (no toque, o mouseover vem antes do clique: não fecha o que acabou de abrir) */   /* 2.12: as anotações (tocando, no celular) */

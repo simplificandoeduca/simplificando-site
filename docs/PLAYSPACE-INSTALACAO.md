@@ -1301,6 +1301,14 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O lugar do computador escolhido na tela de entrar e "Ir para a Casa Tom" (2.36)
+
+Pedido do dono (26/11): "eu poder trocar por dentro do sistema e eu selecionar uma vez onde está essa máquina, na tela de login. E daí não tem como trocar, só se eu colocar em configurações para trocar".
+
+- Computador da loja ainda sem lugar: a tela de entrar pergunta "Onde fica este computador?" (Anália | Morumbi) e pede a confirmação. Escolhido, a pergunta some e a tela mostra só as unidades de lá (ex.: Login Morumbi e Login Casatom Morumbi).
+- Trocar o lugar: só o gestor, em Ajustes → Computadores da loja (a lista dos computadores, com o lugar de cada um). O servidor só aceita a escolha pela tela de entrar quando o computador ainda não tem lugar.
+- Dentro do sistema: na Play, o botão "↔ Ir para a Casa Tom" (a Casa Tom do mesmo lugar); na Casa Tom, "↔ Ir para a Play Space". Só entre as duas do lugar.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Unidade por lugar, carrinho de bebê, Vendidos do dia da Casa Tom e o voucher do shopping (2.35)
 
 Pedidos do dono (26/11).
