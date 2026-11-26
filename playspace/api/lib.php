@@ -1662,6 +1662,24 @@ function trocarPagamento(array $in, array $u): array {
   if (!$gestor) { require_once __DIR__ . '/push-lib.php'; pushDepois(function () use ($tid) { pushTroca($tid); }); }
   return ['valor' => $valor, 'de' => $de, 'para' => $para, 'partes' => $lp, 'registro' => $reg, 'pago_em' => (string)$p['quando']];
 }
+/* 2.39 (o dono: "às vezes as meninas podem colocar só uma vez e foi mais de uma ... entrar na venda que elas fizeram e alterar a quantidade
+   de vezes"): ajustar as vezes no crédito de um pagamento já feito. Até parcLivre() (4x) qualquer um; de 5x a 12x, o gestor (ou a senha
+   dele, digitada ali). Vale para o pagamento inteiro (as vendas da família pagas no crédito na mesma hora): é o que as Finanças contam */
+function ajustarVezes(array $in, array $u): array {
+  $db = db(); $n = (int)($in['parcelas'] ?? 0); if ($n < 1 || $n > 12) falha('Escolha de 1x a 12x.');
+  $q = $db->prepare("SELECT * FROM pagamentos WHERE venda_id = ? AND forma = 'credito' ORDER BY id DESC LIMIT 1"); $q->execute([(int)($in['venda'] ?? 0)]); $p = $q->fetch(); $q->closeCursor();
+  if (!$p) falha('Esta compra não foi no crédito.', 404);
+  $lib = null; if ($n > parcLivre() && ($u['papel'] ?? '') !== 'gestor') { if (!array_key_exists('senha', $in)) falha('De ' . (parcLivre() + 1) . 'x a 12x, só com a senha do gestor.', 403); $lib = autorizadorPelaSenha('parcelas', (string)$in['senha'], $u); }
+  $c = crianca((int)$p['crianca_id']); $fam = $c ? array_merge([(int)$c['id']], array_map(fn($x) => (int)$x['id'], irmaosDe($c))) : [(int)$p['crianca_id']]; $mf = implode(',', array_map('intval', $fam));
+  $q = $db->prepare("SELECT venda_id, valor FROM pagamentos WHERE crianca_id IN ($mf) AND quando = ? AND forma = 'credito'"); $q->execute([(string)$p['quando']]); $L = $q->fetchAll();
+  $ids = array_values(array_unique(array_filter(array_map(fn($x) => (int)$x['venda_id'], $L)))) ?: [(int)$p['venda_id']]; $mv = implode(',', $ids);
+  $valor = round(array_sum(array_map(fn($x) => (float)$x['valor'], $L)), 2);
+  $de = (int)$db->query("SELECT MAX(parcelas) FROM vendas WHERE id IN ($mv)")->fetchColumn(); if ($de === $n) falha('Já está em ' . $n . 'x.');
+  $db->prepare("UPDATE vendas SET parcelas = ? WHERE id IN ($mv)")->execute([$n]);
+  $reg = registrar('alt', (int)$p['crianca_id'], (string)($c['nome'] ?? ''), 'Crédito ajustado: ' . ($de ? $de . 'x' : 'sem as vezes') . ' → ' . $n . 'x (' . dinheiro($valor) . ', pago em ' . date('d/m H:i', strtotime((string)$p['quando'])) . ')'
+    . ($lib ? ' · liberado por ' . maiusculo(primeiroNome((string)$lib['nome'])) . ' com a senha' : '') . ' · por ' . maiusculo(primeiroNome((string)$u['nome'])));
+  return ['de' => $de, 'para' => $n, 'valor' => $valor, 'vendas' => $ids, 'lib' => $lib ? (string)$lib['nome'] : '', 'registro' => $reg];
+}
 function trocaPublica(array $t): array {
   return ['id' => -(int)$t['id'], 'troca' => true, 'quando' => (string)$t['quando'], 'crianca' => $t['crianca_id'] === null ? null : (int)$t['crianca_id'], 'nome' => (string)$t['nome'], 'resp' => (string)$t['resp'],
     'de' => (string)$t['de'], 'para' => (string)$t['para'], 'partes' => json_decode((string)($t['partes'] ?? ''), true) ?: [], 'valor' => round((float)$t['valor'], 2), 'por' => (string)$t['por_nome'], 'papel' => (string)$t['papel'], 'uni' => $t['unidade_id'] === null ? null : (int)$t['unidade_id'],

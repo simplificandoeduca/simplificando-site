@@ -1301,6 +1301,15 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Ajustar as vezes no crédito de uma compra já feita (2.39)
+
+Pedido do dono (26/11): "às vezes as meninas podem colocar só uma vez e foi mais de uma ... entrar na venda que elas fizeram e alterar a quantidade de vezes".
+
+- Na ficha do cliente, em Compras, cada compra paga no crédito tem "Ajustar as vezes" (com as vezes de agora, por exemplo "Crédito 1x · Ajustar as vezes").
+- A folha mostra 1x a 12x. Até 4x qualquer pessoa salva; de 5x a 12x só o gestor, ou a senha do gestor digitada ali.
+- Vale para o pagamento inteiro (as compras do mesmo responsável pagas no crédito na mesma hora). As Finanças passam a contar as vezes novas.
+- Fica nos registros: "Crédito ajustado: 1x → 3x", com o valor, a hora do pagamento e quem ajustou.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Fica na Casa Tom, as sapateiras das crianças cadastradas juntas e o valor alterado na Casa Tom (2.38)
 
 Pedidos do dono (26/11).

@@ -1035,6 +1035,7 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .fe-mais-c { border: 1.5px dashed var(--borda); border-radius: 16px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; } .fe-mais-c > span { font-weight: 800; font-size: 14px; }
 .fe-mais-b { display: flex; flex-wrap: wrap; gap: 8px; } .fe-mais-b button { min-width: 52px; height: 42px; border: 2px solid var(--borda); border-radius: 14px; background: var(--card); font: 800 15px/1 var(--fonte, inherit); cursor: pointer; }
 .fe-mais-b button[aria-pressed="true"] { border-color: var(--coral); background: var(--coral-2); color: var(--coral); }
+.vz-b { margin: 4px 0 6px; } .vz-sen { margin: 6px 0 4px; } .vz-sen > .explica { flex: 1 1 100%; margin: 0; } .vz-parc:empty { display: none; }   /* 2.39: ajustar as vezes */
 .fe-mais-a { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; } .fe-mais-a .aut-senha { flex: 1 1 260px; } .fe-mais-c .pg-desc { margin: 0; }
 .fv-vender { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 2px; } .fv-vender .bt { flex: 1 1 180px; }
 .pg-partes { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; } .pg-partes:empty { display: none; }
@@ -2127,7 +2128,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.38';
+const VERSAO = '2.39';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -5139,6 +5140,47 @@ const totalPagamento = (v, f) => { if (MODO === 'servidor') { const L = (LADO &&
   const P = (S.pagamentos || []).filter(p => p.venda === v.id && p.f === f); if (!P.length) return 0; const q = Math.max(...P.map(p => +new Date(p.quando))), c = crianca(v.crianca), ids = c ? familia(c).map(x => x.id) : [v.crianca];
   return centavos((S.pagamentos || []).filter(p => ids.includes(p.crianca) && p.f === f && Math.abs(+new Date(p.quando) - q) < 1500).reduce((t, p) => t + p.v, 0)); };   /* 1.71 */
 const podeTrocarPag = v => !!v && Object.keys(formasDaCompra(v) || {}).length > 0;   /* 1.71: a equipe também, a qualquer hora */
+/* 2.39 (o dono: "às vezes as meninas podem colocar só uma vez e foi mais de uma ... entrar na venda que elas fizeram e alterar a quantidade
+   de vezes"): ajustar as vezes no crédito de uma compra já feita. Até 4x qualquer um; de 5x a 12x, o gestor (ou a senha dele, digitada ali) */
+const credDaCompra = v => !!v && +((formasDaCompra(v) || {}).credito || 0) > 0.004;
+const parcDaCompra = v => MODO === 'servidor' ? +v.parc || 0 : (S.pagamentos || []).filter(p => p.venda === v.id && p.f === 'credito').reduce((m, p) => Math.max(m, +p.parc || 0), 0);
+const botaoVezes = v => credDaCompra(v) ? `<button type="button" class="link tap vh-l" data-act="venda-vezes" data-id="${v.id}">${ic(IC.lapis, 13)} ${parcDaCompra(v) ? 'Crédito ' + parcDaCompra(v) + 'x · ' : ''}Ajustar as vezes</button>` : '';
+let VZ = null;
+function folhaVezes(vid) {
+  const v = LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === +vid), c = v && crianca(v.crianca); if (!v || !c) return;
+  if (!credDaCompra(v)) { toast('Esta compra não foi no crédito'); return; }
+  const at = parcDaCompra(v), em = pgEmDe(v), vc = totalPagamento(v, 'credito'); VZ = { vid: v.id, n: 0, at, vc };
+  abrirFolha('Ajustar as vezes no crédito', `<div class="linha">${avatar(c)}<div class="txt"><b>${nomeResp(c)}</b><span>${esc(nomeCompraTxt(v))} · crédito ${brl2(vc)}${em ? ' · pago ' + quandoFoi(em) : ''}</span></div></div>
+    <p class="explica">Está marcado: <b>${at ? at + 'x' : 'sem as vezes'}</b>. Toque em quantas vezes foi de verdade.</p>
+    <div class="fe-mais-b vz-b" role="group" aria-label="Em quantas vezes foi no crédito">${Array.from({ length: 12 }, (_, i) => `<button type="button" class="tap" data-act="vz-n" data-n="${i + 1}" aria-pressed="false">${i + 1}x</button>`).join('')}</div>
+    <p class="explica vz-parc" id="vz-parc" aria-live="polite"></p>
+    ${gestor() ? '' : `<div class="aut-senha vz-sen" id="vz-sen" hidden><p class="explica">De ${parcLivreT() + 1}x a 12x, só com a senha do gestor.</p>${campoSenha('vz-s')}</div>`}
+    <div class="acoes"><button type="button" class="bt forte tap" data-act="vz-ok">Salvar as vezes</button></div>`);
+}
+function vezesEscolher(n) { if (!VZ) return; VZ.n = n; $$('[data-act="vz-n"]').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.n === n)));
+  const s = $('#vz-sen'); if (s) s.hidden = !(n > parcLivreT()); const p = $('#vz-parc'); if (p) p.textContent = VZ.vc > 0 ? `No crédito em ${n}x: ${parcelasTxt(VZ.vc, n)}.` : ''; }
+async function vezesSalvar(el) {
+  if (!VZ) return; const n = VZ.n; if (!n) { toast('Toque em quantas vezes foi'); return; } if (n === VZ.at) { toast(`Já está em ${n}x`); return; }
+  const pede = !gestor() && n > parcLivreT(), senha = pede ? senhaDe('vz-s') : ''; if (pede && !senha) { toast('Digite a senha do gestor'); const i = $('#vz-s'); if (i) i.focus(); return; }
+  el.disabled = true;
+  try { let r;
+    if (MODO === 'servidor') r = await api('venda_vezes', { venda: VZ.vid, parcelas: n, ...(pede ? { senha } : {}) });
+    else { r = vezesPrevia(VZ.vid, n, pede ? senha : null); if (r.erro) throw new Error(r.erro); }
+    if (pede) okSenha(null, 'Liberado por ' + (primeiro(r.lib || '') || 'gestor'));   /* a senha do gestor conferida */
+    toast(`Crédito ajustado: ${r.de ? r.de + 'x' : 'sem as vezes'} → ${r.para}x`); VZ = null; fecharFolha();
+    if (MODO === 'servidor') await carregar(); if (LADO) await buscarHistorico(); desenhar(true);
+  } catch (e) { toast(e.message); el.disabled = false; senhaErrada('vz-s', e); }
+}
+function vezesPrevia(vid, n, senha) {   /* (prévia) o mesmo que o servidor faz */
+  if (!(n >= 1 && n <= 12)) return { erro: 'Escolha de 1x a 12x.' }; const mais = (a, b) => +new Date(b.quando) - +new Date(a.quando);
+  const p = (S.pagamentos || []).filter(x => x.venda === vid && x.f === 'credito').sort(mais)[0]; if (!p) return { erro: 'Esta compra não foi no crédito.' };
+  let lib = null; if (!gestor() && n > parcLivreT()) { const g = quemAutorizaPrevia('parcelas', senha || ''); if (!g) return { erro: 'A senha não confere com a do gestor.' }; lib = g.nome; }
+  const q = +new Date(p.quando), c = crianca(p.crianca), ids = c ? familia(c).map(x => x.id) : [p.crianca], L = S.pagamentos.filter(x => ids.includes(x.crianca) && x.f === 'credito' && Math.abs(+new Date(x.quando) - q) < 1500);
+  const de = L.reduce((m, x) => Math.max(m, +x.parc || 0), 0); if (de === n) return { erro: `Já está em ${n}x.` };
+  L.forEach(x => { x.parc = n; }); const valor = centavos(L.reduce((t, x) => t + x.v, 0));
+  registrar('alt', c ? c.nome : '', `Crédito ajustado: ${de ? de + 'x' : 'sem as vezes'} → ${n}x (${brl(valor)}, pago às ${hora(new Date(q))})${lib ? ' · liberado por ' + MAI(primeiro(lib)) + ' com a senha' : ''} · por ${MAI(primeiro(EU.nome))}`);
+  return { de, para: n, valor, lib: lib || '' };
+}
 function folhaTrocaPag(vid) {
   const v = LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === +vid), c = v && crianca(v.crianca); if (!v || !c) return;
   if (!podeTrocarPag(v)) { toast('Esta compra não tem pagamento para trocar'); return; }
@@ -7721,7 +7763,8 @@ const acoesDaCompra = v => { const pede = podePedirCancelamento(v), cv = pede ? 
     : pede ? `<button type="button" class="link tap canc-v" data-act="venda-cancelar" data-id="${v.id}">Pedir o cancelamento</button>` : '';
   const hs = podeAlterarHoras(v) ? `<button type="button" class="link tap vh-l" data-act="venda-horas" data-id="${v.id}">${ic(IC.lapis, 13)} Alterar as horas</button>` : '';   /* 1.55: só o gestor */
   const tp = podeTrocarPag(v) ? `<button type="button" class="link tap vh-l" data-act="pag-trocar-v" data-id="${v.id}">${ic(IC.desconto, 13)} Trocar pagamento</button>` : '';   /* 1.57 */
-  return nf || canc || hs || tp ? `<span class="it-ac">${nf}${hs}${tp}${canc}</span>` : ''; };
+  const vz = botaoVezes(v);   /* 2.39 */
+  return nf || canc || hs || tp || vz ? `<span class="it-ac">${nf}${hs}${tp}${vz}${canc}</span>` : ''; };
 /* ---------- 1.55: o gestor corrige as horas de um pacote (a equipe lançou errado) ----------
    Muda só as horas desta compra (o valor continua o mesmo) e o saldo do cliente acompanha a diferença. Não tira horas que já foram
    usadas. Vale também para as horas que vieram do sistema anterior. Fica registrado, com o motivo e o nome do gestor. */
@@ -8269,7 +8312,7 @@ function compraDaVisita(x, varias, nomeDe) {
   const o = {}; for (const v of x.g) for (const [f, q] of Object.entries(formasDaCompra(v))) o[f] = centavos((o[f] || 0) + q);
   const pago = Object.keys(o).length ? textoPag(Object.entries(o).map(([f, v]) => ({ f, v }))) : '';
   const nome = x.tipo === 'avulsa' ? `${esc(prim.servico || 'RECREAÇÃO')} avulsa · ${x.agora ? 'até agora ' : ''}${dur(min)}` : `Além do pacote · ${dur(min)}`;
-  return `<div class="it" data-visita="${x.tipo}"><div class="txt"><b>${nome}</b><span>${quandoFoi(prim.quando)}${varias ? ' · para ' + esc(nomeDe(prim.crianca)) : ''}${np > 0.004 ? ` · <b class="np">${x.agora ? 'ACERTA NA SAÍDA' : 'A RECEBER'}</b>` : pago ? ' · ' + esc(pago) : ''}${desc > 0 ? ' · desconto de ' + brl(desc) : ''}</span></div><b class="num">${brl(val)}</b></div>`;
+  return `<div class="it" data-visita="${x.tipo}"><div class="txt"><b>${nome}</b><span>${quandoFoi(prim.quando)}${varias ? ' · para ' + esc(nomeDe(prim.crianca)) : ''}${np > 0.004 ? ` · <b class="np">${x.agora ? 'ACERTA NA SAÍDA' : 'A RECEBER'}</b>` : pago ? ' · ' + esc(pago) : ''}${desc > 0 ? ' · desconto de ' + brl(desc) : ''}</span>${(vc => vc ? `<span class="it-ac">${botaoVezes(vc)}</span>` : '')(x.g.find(credDaCompra))}</div><b class="num">${brl(val)}</b></div>`;   /* 2.39: as vezes no crédito */
 }
 const nomeCompra = v => { const m = minDe(v); return v.servico ? esc(v.servico) + (m ? ' · ' + dur(m) : '') + (v.itens ? ' · ' + esc(v.itens) : '') : m ? esc(nomePacVenda(m, v.itens)) : esc(v.itens || 'Produto'); };
 const nomeUltima = c => c.venda ? (c.venda.servico ? c.venda.servico + ' · ' + dur(minDe(c.venda)) : (minDe(c.venda) === 60 ? 'Hora avulsa' : dur(minDe(c.venda)))) : '';
@@ -9329,6 +9372,7 @@ const ACOES = {
   'meta-mes': el => { const [a, m] = META_ED.mes.split('-').map(Number), d = new Date(a, m - 1 + (+el.dataset.d || 0), 1); META_ED.mes = d.getFullYear() + '-' + p2(d.getMonth() + 1); const c = $('#aj-meta'); if (c) c.outerHTML = cartaoMeta(); },
   'em-salvar': el => emailAcao('salvar', el), 'em-agora': el => emailAcao('agora', el),   // 1.56
   'banco-horas': el => folhaCorrigirHoras(+el.dataset.id),   /* 2.16: o conserto do gestor num lugar só */ 'venda-horas': el => folhaHoras(el.dataset.id), 'venda-horas-ok': el => salvarHoras(el), 'nf-cancelar': el => acaoNF('cancelar', el),   // 1.55
+  'venda-vezes': el => folhaVezes(el.dataset.id), 'vz-n': el => vezesEscolher(+el.dataset.n), 'vz-ok': el => vezesSalvar(el),   /* 2.39 */
   'pag-trocar': el => trocarPag(el), 'pag-trocar-v': el => folhaTrocaPag(el.dataset.id), 'pag-dividir': el => dividirPag(el),   // 1.57; 1.71: dividir
   'venda-cancelar': el => folhaCancelarVenda(el.dataset.id), 'venda-cancelar-ok': el => confirmarCancelarVenda(el),   // 1.21: quem estorna cancela uma venda, com o motivo
   'ver-como': el => { // (prévia) ver a tela como gestor, supervisor ou operador
