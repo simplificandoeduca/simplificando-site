@@ -461,6 +461,10 @@ function db(): PDO {
     foreach (["ALTER TABLE vendas ADD COLUMN prod_nome TEXT NOT NULL DEFAULT ''", 'ALTER TABLE vendas ADD COLUMN prod_valor REAL NOT NULL DEFAULT 0'] as $sql) { try { $pdo->exec($sql); } catch (Throwable $e) { } }
     $pdo->exec('PRAGMA user_version = 53');
   }
+  if ($v < 54) { /* 2.45: o cupom guardado sabe de quais vendas ele é (a Casa Tom corrige ou exclui a venda pelos Vendidos do dia) e se foi corrigido ou excluído */
+    foreach (["ALTER TABLE papeis ADD COLUMN vendas TEXT NOT NULL DEFAULT ''", "ALTER TABLE papeis ADD COLUMN estado TEXT NOT NULL DEFAULT ''"] as $sql) { try { $pdo->exec($sql); } catch (Throwable $e) { } }
+    $pdo->exec('PRAGMA user_version = 54');
+  }
   return $pdo;
 }
 /* ---------- 1.06: unidades ---------- */
@@ -2401,14 +2405,18 @@ function venderVisitaAvulsa(array $c, ?array $u): ?array {
 // cupom (só marcações simples: o que não for delas é tirado aqui, e a tela limpa de novo antes de mostrar).
 const PAPEL_DIAS = 60;
 const PAPEL_MARCAS = '<div><p><span><b><i><small><em><strong>';
-function papelGuardar(array $c, string $tipo, string $titulo, string $resumo, array $vias, ?array $u): int {
+function papelBlob(array $vias): string {
   $limpas = [];
   foreach (array_slice(array_values($vias), 0, 2) as $v) { $v = trim(strip_tags((string)$v, PAPEL_MARCAS)); if ($v === '') continue; if (strlen($v) > 60000) falha('O cupom é grande demais para guardar.'); $limpas[] = $v; }
   if (!$limpas) falha('O cupom veio vazio.');
-  $j = (string)json_encode($limpas, JSON_UNESCAPED_UNICODE); $blob = function_exists('gzcompress') ? gzcompress($j, 6) : $j;
-  $db = db(); $q = $db->prepare('INSERT INTO papeis (crianca_id, quando, tipo, titulo, resumo, vias, por, unidade_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+  $j = (string)json_encode($limpas, JSON_UNESCAPED_UNICODE); return function_exists('gzcompress') ? gzcompress($j, 6) : $j;
+}
+function papelIds($l): string { $ids = array_values(array_unique(array_filter(array_map('intval', is_array($l) ? $l : explode(',', (string)$l))))); return implode(',', array_slice($ids, 0, 60)); }
+function papelGuardar(array $c, string $tipo, string $titulo, string $resumo, array $vias, ?array $u, $vendas = ''): int {
+  $blob = papelBlob($vias);
+  $db = db(); $q = $db->prepare('INSERT INTO papeis (crianca_id, quando, tipo, titulo, resumo, vias, por, unidade_id, vendas) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
   $q->bindValue(1, (int)$c['id'], PDO::PARAM_INT); $q->bindValue(2, agora()); $q->bindValue(3, $tipo); $q->bindValue(4, $titulo); $q->bindValue(5, $resumo); $q->bindValue(6, $blob, PDO::PARAM_LOB);
-  $q->bindValue(7, $u ? (int)$u['id'] : null, $u ? PDO::PARAM_INT : PDO::PARAM_NULL); $un = unidadeDoPedido(); $q->bindValue(8, $un, $un === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
+  $q->bindValue(7, $u ? (int)$u['id'] : null, $u ? PDO::PARAM_INT : PDO::PARAM_NULL); $un = unidadeDoPedido(); $q->bindValue(8, $un, $un === null ? PDO::PARAM_NULL : PDO::PARAM_INT); $q->bindValue(9, papelIds($vendas));
   $q->execute(); $id = (int)$db->lastInsertId();
   if ($id % 25 === 0) $db->prepare('DELETE FROM papeis WHERE quando < ?')->execute([date('Y-m-d H:i:s', time() - PAPEL_DIAS * 86400)]);   // de vez em quando, os antigos saem
   return $id;
@@ -2418,7 +2426,81 @@ function papelVias(array $l): array {
   if ($b !== '' && $b[0] !== '[') { $x = function_exists('gzuncompress') ? @gzuncompress($b) : false; $b = $x === false ? '[]' : $x; }
   $v = json_decode($b, true); return is_array($v) ? array_values(array_map('strval', $v)) : [];
 }
-function papelPublico(array $l): array { return ['id' => (int)$l['id'], 'crianca' => (int)$l['crianca_id'], 'quando' => $l['quando'], 'tipo' => (string)$l['tipo'], 'titulo' => (string)$l['titulo'], 'resumo' => (string)$l['resumo'], 'por' => (string)($l['por_nome'] ?? '')]; }
+function papelPublico(array $l): array { return ['id' => (int)$l['id'], 'crianca' => (int)$l['crianca_id'], 'quando' => $l['quando'], 'tipo' => (string)$l['tipo'], 'titulo' => (string)$l['titulo'], 'resumo' => (string)$l['resumo'], 'por' => (string)($l['por_nome'] ?? ''), 'estado' => (string)($l['estado'] ?? '')]; }
+
+/* ---------- 2.45: Casa Tom: o gestor corrige o valor de uma venda ou exclui a venda, pelos Vendidos do dia ----------
+   O dono: "o da Casa Tom, eu quero um lapisinho e uma lixeirinha, igual a gente fez no outro, pra mim poder o gestor alterar o valor caso o
+   valor seja lançado errado". Cada linha dos Vendidos do dia é um cupom guardado; o cupom sabe das vendas dele (2.45). Nos cupons de antes
+   da 2.45, as vendas da loja entre o cupom anterior (da mesma unidade) e ele: a venda é gravada antes, e o cupom logo depois. */
+function papelCT(int $id): array {
+  $q = db()->prepare('SELECT * FROM papeis WHERE id = ?'); $q->execute([$id]); $p = $q->fetch(); $q->closeCursor();
+  $b = balcaoCT(false); if (!$p || !$b || (int)$p['crianca_id'] !== (int)$b['id']) falha('Esta venda da Casa Tom não foi encontrada.', 404);
+  if ((string)($p['estado'] ?? '') === 'excluida') falha('Esta venda já foi excluída.', 409);
+  return $p;
+}
+function vendasDoPapel(array $p): array {
+  $db = db(); $ids = papelIds((string)($p['vendas'] ?? ''));
+  if ($ids !== '') { $q = $db->prepare("SELECT * FROM vendas WHERE crianca_id = ? AND id IN ($ids) AND quando <= ? ORDER BY id"); $q->execute([(int)$p['crianca_id'], (string)$p['quando']]); return $q->fetchAll(); }   /* (a venda é sempre de antes do cupom: um número de venda apagada que voltou a ser usado não entra) */
+  $uni = $p['unidade_id'] === null ? 0 : (int)$p['unidade_id']; $dia = substr((string)$p['quando'], 0, 10) . ' 00:00:00';
+  $q = $db->prepare('SELECT quando FROM papeis WHERE crianca_id = ? AND id < ? AND COALESCE(unidade_id, 0) = ' . $uni . ' AND quando >= ? ORDER BY id DESC LIMIT 1'); $q->execute([(int)$p['crianca_id'], (int)$p['id'], $dia]);   /* (o número no texto: o COALESCE não compara com o parâmetro em texto) */
+  $de = $q->fetchColumn(); $q->closeCursor(); $de = $de === false ? '' : (string)$de;
+  $q = $db->prepare('SELECT * FROM vendas WHERE crianca_id = ? AND ' . ($de === '' ? 'quando >= ?' : 'quando > ?') . ' AND quando <= ? AND COALESCE(unidade_id, 0) = ' . $uni . ' ORDER BY id');
+  $q->execute([(int)$p['crianca_id'], $de === '' ? $dia : $de, (string)$p['quando']]); return $q->fetchAll();
+}
+function nomeCt(array $v): string { $s = trim((string)($v['servico'] ?? '')); return $s !== '' ? $s : nomeDaVenda($v); }
+function vendaCtPublica(array $v): array { return ['id' => (int)$v['id'], 'n' => nomeCt($v), 'q' => max(1, (int)($v['qtd'] ?? 0)), 'v' => round((float)$v['valor'], 2), 'pago' => (object)pagoPorForma([(int)$v['id']]), 'vend' => (string)($v['vendedora'] ?? '')]; }
+function motivoGestor(array $in, string $acao): string {
+  $m = mb_substr(maiusculo(trim(preg_replace('/\s+/u', ' ', (string)($in['motivo'] ?? '')))), 0, 300); if (mb_strlen($m) < 5) falha('Escreva o motivo: por que está ' . $acao . '.'); return $m;
+}
+// O lápis: o valor certo de cada item e como o cliente pagou de verdade (a soma das formas = o total). O caixa, as Finanças, as comissões e
+// o cupom fiscal acompanham; o pagamento fica no mesmo instante (o caixa do dia é o mesmo) e o cupom guardado é trocado pelo corrigido
+function corrigirVendaCT(array $in, array $u): array {
+  if (($u['papel'] ?? '') !== 'gestor') falha('Só o gestor corrige o valor da venda.', 403);
+  $db = db(); $p = papelCT((int)($in['papel'] ?? 0)); $V = vendasDoPapel($p); if (!$V) falha('Não achei as vendas deste cupom.', 404);
+  $motivo = motivoGestor($in, 'corrigindo');
+  $por = []; $novo = []; foreach ($V as $v) { $por[(int)$v['id']] = $v; $novo[(int)$v['id']] = (int)round((float)$v['valor'] * 100); }
+  foreach ((array)($in['itens'] ?? []) as $x) { if (!is_array($x)) continue; $id = (int)($x['venda'] ?? 0); if (!isset($por[$id])) falha('Este item não é desta venda.');
+    $t = trim(str_replace(',', '.', (string)($x['v'] ?? ''))); if ($t === '' || !is_numeric($t) || (float)$t < 0 || (float)$t > 999999) falha('Confira o valor de ' . nomeCt($por[$id]) . '.');
+    $novo[$id] = (int)round((float)$t * 100); }
+  $antes = (int)round(array_sum(array_map(fn($v) => (float)$v['valor'], $V)) * 100); $total = array_sum($novo);
+  if ($total <= 0) falha('O total ficou zerado. Para tirar a venda, use a lixeira.');
+  $F = lerPagamento($in['formas'] ?? []); if (!$F) falha('Escreva como foi pago (Pix, dinheiro, crédito ou débito).');
+  $fc = array_map(fn($x) => (int)round($x * 100), $F);
+  if (array_sum($fc) !== $total) falha('A soma das formas (' . dinheiro(array_sum($fc) / 100) . ') tem que dar o total da venda (' . dinheiro($total / 100) . ').');
+  $ids = array_keys($por); $mi = implode(',', $ids); $pago0 = pagoPorForma($ids); $p0 = array_map(fn($x) => (int)round($x * 100), $pago0);
+  $mudou = []; foreach ($V as $v) { $a = (int)round((float)$v['valor'] * 100); $b = $novo[(int)$v['id']]; if ($a !== $b) $mudou[] = nomeCt($v) . ' ' . dinheiro($a / 100) . ' → ' . dinheiro($b / 100); }
+  $f1 = $fc; ksort($f1); $f0 = $p0; ksort($f0); if (!$mudou && $f1 === $f0) falha('Nada mudou: escreva o valor certo ou a forma certa.');
+  $P = $db->query("SELECT * FROM pagamentos WHERE venda_id IN ($mi) ORDER BY id")->fetchAll();
+  $quando = $P ? (string)$P[0]['quando'] : (string)$V[0]['quando']; $porP = $P ? $P[0]['por'] : (int)$u['id']; $cup = null; foreach ($P as $x) if (!empty($x['cupom_id'])) { $cup = (int)$x['cupom_id']; break; }
+  $uniP = $P ? ($P[0]['unidade_id'] ?? null) : ($V[0]['unidade_id'] ?? null); $b = crianca((int)$p['crianca_id']);
+  $vias = is_array($in['vias'] ?? null) && $in['vias'] ? papelBlob((array)$in['vias']) : null; $resumo = mb_substr(trim(strip_tags((string)($in['resumo'] ?? ''))), 0, 140);
+  $db->beginTransaction();
+  try {
+    $up = $db->prepare('UPDATE vendas SET valor = ? WHERE id = ?'); foreach ($novo as $id => $c) $up->execute([$c / 100, $id]);
+    $db->exec("DELETE FROM pagamentos WHERE venda_id IN ($mi)");
+    $ins = $db->prepare('INSERT INTO pagamentos (venda_id, crianca_id, forma, valor, quando, por, cupom_id, unidade_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'); $fila = $fc;
+    foreach ($novo as $id => $falta) foreach ($fila as $f => $resta) { if ($falta <= 0) break; if ($resta <= 0) continue; $x = min($falta, $resta);
+      $ins->execute([$id, (int)$p['crianca_id'], $f, $x / 100, $quando, $porP, $cup, $uniP]); $fila[$f] -= $x; $falta -= $x; }
+    $reg = registrar('alt', (int)$p['crianca_id'], (string)($b['nome'] ?? 'CASA TOM'), 'Venda da Casa Tom das ' . substr($quando, 11, 5) . ' corrigida' . ($mudou ? ': ' . implode('; ', $mudou) : '')
+      . ' · total ' . dinheiro($antes / 100) . ' → ' . dinheiro($total / 100) . ' · pago: ' . textoPagamento($F, true) . ($f1 !== $f0 && $pago0 ? ' (era ' . textoPagamento($pago0, true) . ')' : '')
+      . ' · Motivo: ' . $motivo . ' · por ' . maiusculo(primeiroNome((string)$u['nome'])) . ' (gestor)');
+    $q = $db->prepare("UPDATE papeis SET estado = 'corrigida', vendas = ?" . ($resumo !== '' ? ', resumo = ?' : '') . ($vias !== null ? ', vias = ?' : '') . ' WHERE id = ?'); $k = 1;
+    $q->bindValue($k++, $mi); if ($resumo !== '') $q->bindValue($k++, $resumo); if ($vias !== null) $q->bindValue($k++, $vias, PDO::PARAM_LOB); $q->bindValue($k, (int)$p['id'], PDO::PARAM_INT); $q->execute();
+    $db->commit();
+  } catch (Throwable $e) { if ($db->inTransaction()) $db->rollBack(); throw $e; }
+  if ($cup) acertarCupons();   /* o cupom fiscal acompanha (a emitir: refeito; já emitido: a cancelar, e o certo a emitir) */
+  return ['antes' => $antes / 100, 'total' => $total / 100, 'formas' => $F, 'registro' => $reg, 'vendas' => array_map('vendaCtPublica', vendasDoPapel(papelCT((int)$p['id'])))];
+}
+// A lixeira: sai a venda inteira (os itens do cupom); o que foi pago sai do caixa (devolver ao cliente) e os produtos voltam ao estoque.
+// Fica nos cancelamentos (venda cancelada, com o motivo) e na linha do dia; o cupom some dos Vendidos do dia
+function excluirVendaCT(array $in, array $u): array {
+  if (($u['papel'] ?? '') !== 'gestor') falha('Só o gestor exclui a venda.', 403);
+  $motivo = motivoGestor($in, 'excluindo'); $p = papelCT((int)($in['papel'] ?? 0)); $V = vendasDoPapel($p); if (!$V) falha('Não achei as vendas deste cupom (já foi excluída?).', 404);
+  $c = crianca((int)$p['crianca_id']); if (!$c) falha('Cliente não encontrado.', 404); $ini = (string)min(array_column($V, 'quando'));
+  $r = excluirVendas($c, $V, $u, $motivo, 'venda', $ini, 'Venda da Casa Tom das ' . substr($ini, 11, 5) . ' excluída');
+  db()->prepare("UPDATE papeis SET estado = 'excluida' WHERE id = ?")->execute([(int)$p['id']]);
+  return $r;
+}
 
 /* ---------- 1.12: a festa ---------- */
 // A tabela "Nossos valores" da loja: o valor pela quantidade de crianças, na festa de semana ou na de final de semana (que vale também

@@ -92,7 +92,13 @@ body.ct .trilho .logo svg { width: 64px; height: 64px; } body.ct .trilho .logo {
 .ct-tot { display: flex; justify-content: space-between; align-items: baseline; padding: 14px 18px; border-top: 1px solid var(--borda); } .ct-tot span { color: var(--tinta-2); font-weight: 600; } .ct-tot b { font: 800 26px var(--display); color: var(--tinta); }
 .ct-venda .ct-receber { margin: 0 18px 18px; width: calc(100% - 36px); }
 .ct-vd { margin: 0 0 18px; display: flex; flex-direction: column; gap: 8px; } .ct-vd-cab { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; } .ct-vd-cab b { font: 700 16px var(--display); }
-.ct-vrow { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 14px; border: 0; border-top: 1px solid var(--borda); background: none; text-align: left; color: var(--tinta); font: inherit; } .ct-vrow:first-child { border-top: 0; }
+.ct-vrow { display: flex; align-items: center; gap: 2px; border-top: 1px solid var(--borda); } .ct-vrow:first-child { border-top: 0; } .ct-vrow.ac { padding-right: 8px; }
+.ct-vbt { flex: 1; min-width: 0; display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 14px; border: 0; background: none; text-align: left; color: var(--tinta); font: inherit; cursor: pointer; }
+.ct-vlap { flex: none; display: inline-grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 10px; background: transparent; color: var(--tinta-2); cursor: pointer; } .ct-vlap:hover, .ct-vlap:focus-visible { background: color-mix(in srgb, var(--tinta) 8%, transparent); color: var(--tinta); }   /* 2.45: o lápis do gestor */
+.ctc-its { display: flex; flex-direction: column; gap: 10px; } .ctc-it { margin: 0; } .ctc-in { display: flex; align-items: center; gap: 8px; } .ctc-in > span { color: var(--tinta-2); font-weight: 700; } .ctc-in input { flex: 1; min-width: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.ctc-tot { margin: 12px 0 4px; font: 600 15px var(--display); } .ctc-tot b { font-size: 18px; } .ctc-fs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; } .ctc-f { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 700; color: var(--tinta-2); }
+.ctc-soma.erro { color: var(--erro); font-weight: 700; } .ctc-soma:empty { display: none; }
+@media (max-width: 560px) { .ct-vrow.ac .ct-vre-t { display: none; } .ctc-fs { grid-template-columns: 1fr 1fr; } }
 .ct-vh { font-weight: 700; color: var(--tinta-2); } .ct-vtx { display: flex; flex-direction: column; min-width: 0; } .ct-vtx b { font-weight: 700; overflow-wrap: anywhere; } .ct-vtx small { color: var(--tinta-2); font-size: 12px; }
 .ct-vre { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: #C8202A; white-space: nowrap; } .mq-loc { margin-right: 6px; }
 .ct-venda .ct-dsc { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; margin: -4px 18px 12px; font-weight: 700; }
@@ -2145,7 +2151,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.44';
+const VERSAO = '2.45';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -4786,7 +4792,7 @@ async function registrarAtendimento(id, mesmoAssim, pag, depois) { // mesmoAssim
     const bt = $('#v-ok'), bp = $('#p-ok'), bd = $('#p-depois'); if (bt) bt.disabled = true; if (bp) bp.disabled = true; if (bd) bd.disabled = true;
     try { const o = L.find(l => l.outro), r = await apiOff('atender', { id, ...(precisaVend(L) && CARRINHO.vend ? { vendedora: CARRINHO.vend } : {}), ...(PAG && PAG.id === id ? parcEnvio(pag, 'venda') : {}), linhas: L.filter(l => l.s).map(l => ({ s: l.s, q: l.q, vt: l.vt })), pacotes: L.filter(l => l.pac != null).map(l => ({ h: l.ph, tipo: l.ptipo, v: l.vTab != null ? l.vTab : l.v, nome: l.pnome, ...(l.alt ? { alt: l.alt } : {}) })), produtos: L.filter(l => l.prod).map(l => ({ p: l.prod, q: l.q, v: l.pv, ...(l.alt ? { alt: l.alt } : {}) })), outro: o ? { n: o.servico, v: o.v } : null, voucher: vou ? true : null, entrar, visto: (CARRINHO && CARRINHO.visto) || 0, mesmo_assim: !!mesmoAssim, pagamento: pag && pag.length ? pag : null, depois: !!depois && !(pag && pag.length), ...(devL.length ? { carrinho_depois: true } : {}), ...(dsc ? { desconto: dsc } : {}), ...(festa ? { festa: festaEnvio(CARRINHO.festa) } : {}) }, { L: L.map(l => ({ n: nomeLinha(l), v: l.v || 0, min: l.min || 0, tempo: !!l.s && (x => !!x && ehTempo(x))(servicoDe(l.s)) })) });   // 1.40: sem internet, fica na fila
       await carregar(); const OJ = r.entrada ? await entrarOutras(outras, vendJ) : { D: [], undo: null, sync: null }; if (festa) ETAPA_FEITA = true; else atendimentoFeito(id); fecharFolha(); desenhar(); celebrarPacote(L, c); const k = crianca(id); deuCertoOu(atencaoVoucher(r.voucher, nome), avisoVoucher(r.voucher, nome) + aviso + (r.entrada ? ' · entrou' + (k && k.entrou ? ', ' + entrouTxt(k) : '') + entrouTambem(OJ.D) : ''), (cheio > 0 && !podeEstornar()) || r.offline ? null : marcaAtd(async () => { voltarRascunho(id, rasc); largarSapEntrada(id); try { if (OJ.undo) await OJ.undo(); if (r.entrada) await api('desfazer_entrada', { id, registro: r.entrada.registro, mensagem: r.entrada.mensagem, atendente: ATD_NOME }); await api('desfazer_venda', { vendas: r.vendas, registros: r.registros, atendente: ATD_NOME }); await carregar(); } catch (e) { DESFAZ_ERRO = e.message; toast(e.message); } desenhar(); }, !podeEstornar() && (!!r.entrada || abertos.length > 0), r.entrada ? `Desfazer a entrada de ${juntar([nome, ...OJ.D.map(x => x.nome)])}` : `Desfazer a saída de ${juntar(abertos.map(nomeQ))}`)); VOLTA_SAIDA = 0;
-      const specV = volta && depois && !(pag && pag.length) ? null : { tipo: 'entrada', id, itens: L.map(l => devL.includes(l) ? { ...linhaPapel(l), aberto: true, dev: l.v } : linhaPapel(l)), formas: pag || [], depois: !!depois && !(pag && pag.length), desc: dsc ? dsc.valor : 0, venda: (r.vendas || [])[0] || 0, festa, ped: pedP, vend: vendJ }, cupomV = q => cupomDaVenda(id, r.cupom, specV, volta, q);
+      const specV = volta && depois && !(pag && pag.length) ? null : { tipo: 'entrada', id, itens: L.map(l => devL.includes(l) ? { ...linhaPapel(l), aberto: true, dev: l.v } : linhaPapel(l)), formas: pag || [], depois: !!depois && !(pag && pag.length), desc: dsc ? dsc.valor : 0, venda: (r.vendas || [])[0] || 0, festa, ped: pedP, vend: vendJ, vendas: r.vendas || [] }, cupomV = q => cupomDaVenda(id, r.cupom, specV, volta, q);
       if (r.entrada) sapateirasJunto([id, ...OJ.D.map(x => x.id)], cupomV); else cupomV(false); }   /* 1.16: entrou junto com a venda: primeiro a sapateira, depois o cupom */   // 0.94: registrou, o cupom sai para o responsável assinar
     catch (e) { if (bt) bt.disabled = false; if (bp) bp.disabled = false; if (bd) bd.disabled = false; if (e.status === 409) toast(e.message, () => registrarAtendimento(id, true, pag, depois), 'Registrar mesmo assim'); else toast(e.message); }   // 409: outro aparelho já registrou uma venda para esta criança
     return;
@@ -4818,7 +4824,7 @@ async function registrarAtendimento(id, mesmoAssim, pag, depois) { // mesmoAssim
   if (festa) ETAPA_FEITA = true; else atendimentoFeito(id); fecharFolha(); desenhar(); celebrarPacote(L, c);   /* 1.77 */
   deuCertoOu(atencaoVoucher(vou ? { n: nV, cobriu: coberta ? { valor: coberta.v } : null } : null, nome), avisoVoucher(vou ? { n: nV, cobriu: coberta ? { valor: coberta.v } : null } : null, nome) + aviso + (desfazEntrada ? ' · entrou, ' + entrouTxt(c) + entrouTambem(OJ.D) : ''), cheio > 0 && !podeEstornar() ? null : marcaAtd(() => { voltarRascunho(id, rasc); if (OJ.sync) OJ.sync(); if (desfazEntrada) desfazEntrada(); Object.assign(c, era); const ficam = podeEstornar() ? [] : saidasDesfeitasPrevia(c, novas); if (coberta) { S.compras.push(coberta); if (coberta.reg) coberta.reg.txt = coberta.reg.txt.replace(' · coberta pelo voucher', ''); c.atraso = eraAtraso; } for (const x of novas) if (x.prod) { const p = produto(x.prod); if (p && p.est != null) p.est += x.qtd; } S.compras = S.compras.filter(x => !novas.includes(x)); S.registros = S.registros.filter(x => !regs.includes(x) || ficam.includes(x)); S.pagamentos = (S.pagamentos || []).filter(x => !pagos.includes(x)); }, !podeEstornar() && (!!desfazEntrada || abertos.length > 0), desfazEntrada ? `Desfazer a entrada de ${juntar([nome, ...OJ.D.map(x => x.nome)])}` : `Desfazer a saída de ${juntar(abertos.map(nomeQ))}`));
   VOLTA_SAIDA = 0;   // 0.94: registrou, o cupom sai para o responsável assinar (1.16: se entrou junto, primeiro a sapateira)
-  const specV = volta && depois && !(pag && pag.length) ? null : { tipo: 'entrada', id, itens: L.map(l => devL.includes(l) ? { ...linhaPapel(l), aberto: true, dev: l.v } : linhaPapel(l)), formas: pag || [], depois: !!depois && !(pag && pag.length), desc: dsc ? dsc.valor : 0, venda: novas.length ? novas[0].id : 0, festa, ped: pedP, vend: vendJ }, cupomV = q => cupomDaVenda(id, cupomId, specV, volta, q);
+  const specV = volta && depois && !(pag && pag.length) ? null : { tipo: 'entrada', id, itens: L.map(l => devL.includes(l) ? { ...linhaPapel(l), aberto: true, dev: l.v } : linhaPapel(l)), formas: pag || [], depois: !!depois && !(pag && pag.length), desc: dsc ? dsc.valor : 0, venda: novas.length ? novas[0].id : 0, festa, ped: pedP, vend: vendJ, vendas: novas.map(v => v.id) }, cupomV = q => cupomDaVenda(id, cupomId, specV, volta, q);
   if (desfazEntrada) sapateirasJunto([id, ...OJ.D.map(x => x.id)], cupomV); else cupomV(false);
 }
 // 1.00: depois de uma venda, o cupom (como sempre) e, se a venda veio da folha da saída, a saída dessa criança abre de novo quando o cupom fechar
@@ -4949,7 +4955,7 @@ function htmlPapel(spec, via = 'loja') {
       ${desc ? lin('Subtotal', brl2(bruto)) + lin('Desconto', '- ' + brl2(desc)) : ''}${F.length === 1 ? lin('Total pago ' + esc(naForma(F[0].f)), brl2(total), ' c-total') : lin('Total', brl2(total), ' c-total') + F.map(p => lin(esc(nomeForma(p.f)), brl2(p.v))).join('')}${!F.length && spec.depois ? `<p class="c-areceber"><b>A RECEBER NA ${c.entrou ? 'SAÍDA' : 'DEVOLUÇÃO'}</b></p>` : ''}${(spec.ped || []).map(t => `<p class="c-ped">${esc(t)}</p>`).join('')}`; };   // 1.33: spec.ped
   // o pé: quem atendeu (e o número da venda, quando houve), a linha da assinatura na via da loja quando há o que assinar (a entrada da
   // criança, o carrinho que sai, a saída, a devolução) e o aviso
-  const atdN = atdPapel(spec, c), rod = `<p class="c-rod">${spec.venda ? `Venda nº ${spec.venda}${atdN ? ' · ' : ''}` : ''}${atdN ? `Atendente ${esc(atdN)}` : ''}</p>`;   /* 2.22: a atendente marcada, não o login */
+  const atdN = atdPapel(spec, c), rod = `<p class="c-rod">${spec.venda ? `Venda nº ${spec.venda}${atdN ? ' · ' : ''}` : ''}${atdN ? `Atendente ${esc(atdN)}` : ''}${spec.corr ? ' · valor corrigido' : ''}</p>`;   /* 2.45: spec.corr */   /* 2.22: a atendente marcada, não o login */
   const pe = (aviso, assina) => `${rod}${loja && assina ? `<p class="c-assina">x</p><p class="c-ass-nome">${esc(c.resp)}${c.cpf ? ' · ' + esc(c.cpf) : ''}</p>` : ''}${aviso ? `<p class="c-aviso">${esc(aviso)}</p>` : ''}`;
   if (spec.tipo === 'devolucao') { // 1.06: o que saiu da loja voltou (carrinho, fusquinha): o responsável assina a devolução, com ou sem valor a receber
     const xa = spec.extra && spec.extra.aberto && spec.extra.valor > 0 ? spec.extra : null;   // 1.20: em aberto, a linha é a do tempo cobrado
@@ -5265,7 +5271,7 @@ function resumoPapel(spec) { const c = spec.c || crianca(spec.id), F = (spec.for
   return [ctIt || quem, tot > 0 ? brl(tot) + (F.length === 1 ? ' ' + naForma(F[0].f) : '') : ''].filter(Boolean).join(' · '); }
 function guardarPapel(spec, vias, troca) {   // troca (1.57): o cupom refeito depois da troca da forma de pagamento entra no lugar do anterior
   try { const c = spec && (spec.c || crianca(spec.id)); if (!c || !vias || !vias.length) return;
-    const reg = { ...(troca ? { troca: 1 } : {}), crianca: c.id, tipo: spec.festa ? 'festa' : spec.tipo || 'entrada', titulo: spec.tipo === 'entrada' && !spec.festa && /COMPROVANTE DE PAGAMENTO/.test(vias[0]) ? 'Comprovante de pagamento' : tituloPapel(spec), resumo: resumoPapel(spec), vias: vias.map(v => v.replace(LOGO, '{LOGO}').replace(LOGO_PB, '{LOGO_PB}')) };
+    const reg = { ...(troca ? { troca: 1 } : {}), ...(Array.isArray(spec.vendas) && spec.vendas.length ? { vendas: spec.vendas } : {}), crianca: c.id, tipo: spec.festa ? 'festa' : spec.tipo || 'entrada', titulo: spec.tipo === 'entrada' && !spec.festa && /COMPROVANTE DE PAGAMENTO/.test(vias[0]) ? 'Comprovante de pagamento' : tituloPapel(spec), resumo: resumoPapel(spec), vias: vias.map(v => v.replace(LOGO, '{LOGO}').replace(LOGO_PB, '{LOGO_PB}')) };
     if (S.balcao && c.id === S.balcao.id) CTV.em = 0;   /* 2.35: a lista dos vendidos do dia busca de novo */
     if (MODO === 'servidor') apiOff('papel_guardar', reg).catch(() => { }); else { const ant = troca ? (S.papeis || []).find(y => y.crianca === reg.crianca && y.tipo === reg.tipo) : null; S.papeis = [{ ...reg, id: novoId(), quando: new Date(), por: EU.nome }, ...(S.papeis || []).filter(y => y !== ant)].slice(0, 60); }
   } catch (e) { }   // guardar o cupom nunca atrapalha a venda nem a saída
@@ -5895,10 +5901,87 @@ function telaCT() {
 let CTV = { k: '', L: null, em: 0, busy: false };
 const ctvChave = () => minhaUni() + '|' + isoDia(new Date());
 function ctvHtml() { const L = CTV.k === ctvChave() ? CTV.L : null; if (!L) return '<p class="explica">Carregando as vendas de hoje…</p>'; if (!L.length) return '<p class="explica" id="ct-vd-vazio">Nenhuma venda hoje ainda.</p>';
-  return `<div class="ct-plista">${L.map(x => `<button type="button" class="ct-vrow tap" data-act="papel-guardado" data-id="${x.id}"><span class="num ct-vh">${hora(x.quando)}</span><span class="ct-vtx"><b>${esc(x.resumo || x.titulo)}</b>${x.por ? `<small>por ${esc(primeiro(x.por))}</small>` : ''}</span><span class="ct-vre">${ic(IC.cupom, 16)} Reimprimir</span></button>`).join('')}</div>`; }
+  return `<div class="ct-plista">${L.map(x => { const ac = gestor() && ctvVendas(x).length, sub = [x.por ? 'por ' + esc(primeiro(x.por)) : '', x.estado === 'corrigida' ? 'valor corrigido pelo gestor' : ''].filter(Boolean).join(' · ');
+    return `<div class="ct-vrow${ac ? ' ac' : ''}"><button type="button" class="ct-vbt tap" data-act="papel-guardado" data-id="${x.id}"><span class="num ct-vh">${hora(x.quando)}</span><span class="ct-vtx"><b>${esc(x.resumo || x.titulo)}</b>${sub ? `<small>${sub}</small>` : ''}</span><span class="ct-vre">${ic(IC.cupom, 16)} <span class="ct-vre-t">Reimprimir</span></span></button>${ac ? `<button type="button" class="ct-vlap tap" data-act="ct-v-corrigir" data-id="${x.id}" title="Corrigir o valor (lançado errado) · só o gestor" aria-label="Corrigir o valor da venda das ${hora(x.quando)}">${ic(IC.lapis, 17)}</button><button type="button" class="fim-lixo tap" data-act="ct-v-excluir" data-id="${x.id}" title="Excluir a venda (lançada errada) · só o gestor" aria-label="Excluir a venda das ${hora(x.quando)}">${ic(IC.lixo, 18)}</button>` : ''}</div>`; }).join('')}</div>`; }
 async function ctVendidos(forca) { const k = ctvChave(); if (CTV.busy || (!forca && CTV.k === k && Date.now() - CTV.em < 20000)) return; CTV.busy = true;
-  try { let L; const b = S.balcao; if (MODO === 'servidor') { const r = await api('papel_dia', {}); L = (r.papeis || []).map(x => ({ ...x, quando: dataDe(x.quando) })); } else L = (S.papeis || []).filter(x => b && x.crianca === b.id && doDia(x.quando));
+  try { let L; const b = S.balcao; if (MODO === 'servidor') { const r = await api('papel_dia', {}); L = (r.papeis || []).map(x => ({ ...x, quando: dataDe(x.quando) })); } else L = (S.papeis || []).filter(x => b && x.crianca === b.id && doDia(x.quando) && x.estado !== 'excluida').map(x => ({ ...x, vendas: ctVendasPrevia(x) }));   /* 2.45 */
     CTV = { k, L, em: Date.now(), busy: false }; const el = $('#ct-vd-l'); if (el) el.innerHTML = ctvHtml(); } catch (e) { CTV.busy = false; const el = $('#ct-vd-l'); if (el && !(CTV.k === k && CTV.L)) el.innerHTML = `<p class="explica">${esc(e.message)}</p>`; } }
+/* 2.45 (o dono: "o da Casa Tom, eu quero um lapisinho e uma lixeirinha, igual a gente fez no outro, pra mim poder o gestor alterar o valor
+   caso o valor seja lançado errado"): nos Vendidos do dia, o gestor tem o lápis (o valor certo de cada item e como o cliente pagou, com o
+   motivo; o caixa, as Finanças e o cupom acompanham) e a lixeira (sai a venda; o pago sai do caixa e os produtos voltam ao estoque) */
+const ctvVendas = x => Array.isArray(x && x.vendas) ? x.vendas.filter(v => v && typeof v === 'object') : [];
+const ctvTot = x => centavos(ctvVendas(x).reduce((t, v) => t + (+v.v || 0), 0));
+const ctvAchar = id => (CTV.L || []).find(x => x.id === +id);
+const ctvPagos = V => { const o = {}; for (const v of V) for (const [f, x] of Object.entries(v.pago || {})) o[f] = centavos((o[f] || 0) + (+x || 0)); return o; };
+const ctvFormasTxt = P => Object.entries(P).filter(([, v]) => v > 0.004).map(([f, v]) => nomeForma(f) + ' ' + brl(v)).join(' + ');
+const ctvNum = v => centavos(v).toFixed(2).replace('.', ',');
+let CTC = null, CTX = null;
+function folhaCtCorrigir(id) { if (!gestor()) return; const x = ctvAchar(id), V = ctvVendas(x); if (!x || !V.length) { toast('Não achei esta venda. Abra os Vendidos do dia de novo.'); return; }
+  const P = ctvPagos(V), fs = Object.keys(P).filter(f => P[f] > 0.004); CTC = { id: x.id, mexeu: false, unica: fs.length === 1 ? fs[0] : '', antes: ctvTot(x) };
+  abrirFolha('Corrigir o valor da venda', `<div class="marca">${ic(IC.lapis, 18)}<span><b>Venda das ${hora(x.quando)}</b>${x.por ? ' · por ' + esc(primeiro(x.por)) : ''}<br>Lançada: <b>${brl(CTC.antes)}</b>${fs.length ? ' · ' + esc(ctvFormasTxt(P)) : ''}</span></div>
+    <p class="explica">Escreva o valor certo de cada item e como o cliente pagou de verdade. O caixa, as Finanças e o cupom acompanham.</p>
+    <div class="ctc-its">${V.map(v => `<div class="campo ctc-it"><label for="ctc-v-${v.id}">${v.q > 1 ? v.q + ' × ' : ''}${esc(v.n)}</label><div class="ctc-in"><span>R$</span><input id="ctc-v-${v.id}" class="ctc-v" data-venda="${v.id}" inputmode="decimal" autocomplete="off" value="${ctvNum(v.v)}"></div></div>`).join('')}</div>
+    <p class="ctc-tot" id="ctc-tot" aria-live="polite"></p>
+    <div class="campo"><label>Como foi pago</label><div class="ctc-fs">${FORMAS.map(([f, n]) => `<label class="ctc-f" for="ctc-f-${f}"><span>${n}</span><div class="ctc-in"><span>R$</span><input id="ctc-f-${f}" class="ctc-fv" data-f="${f}" inputmode="decimal" autocomplete="off" placeholder="0,00" value="${P[f] > 0.004 ? ctvNum(P[f]) : ''}"></div></label>`).join('')}</div></div>
+    <p class="explica ctc-soma" id="ctc-soma" aria-live="polite"></p>
+    <div class="campo" id="ctc-motivo-campo"><label for="ctc-motivo">Motivo<span class="obg" aria-hidden="true">*</span></label><textarea id="ctc-motivo" rows="2" maxlength="300" placeholder="Por que está corrigindo (ex.: lançado R$ 5 em vez de R$ 50)"></textarea></div>
+    <div class="pe-f"><button type="button" class="bt forte largo tap" id="ctc-ok" data-act="ct-v-corrigir-ok">${ic(IC.check)} Salvar a correção</button></div>`);
+  ctcConta(); }
+function ctcConta(origem) { if (!CTC) return null;
+  const itens = $$('.ctc-v').map(i => ({ venda: +i.dataset.venda, v: numero(i.value) })), bad = !itens.length || itens.some(i => !(i.v >= 0)), tot = centavos(itens.reduce((t, i) => t + (i.v >= 0 ? i.v : 0), 0));
+  if (origem === 'forma') CTC.mexeu = true;
+  if (origem === 'item' && !CTC.mexeu && CTC.unica && !bad) { const f = $('#ctc-f-' + CTC.unica); if (f) f.value = tot > 0 ? ctvNum(tot) : ''; }   /* pagou numa forma só: a forma acompanha o total */
+  const F = $$('.ctc-fv').map(i => ({ f: i.dataset.f, v: numero(i.value) })).filter(x => x.v > 0).map(x => ({ f: x.f, v: centavos(x.v) })), s = centavos(F.reduce((t, x) => t + x.v, 0));
+  const t = $('#ctc-tot'); if (t) t.innerHTML = bad ? '<span class="erro">Confira os valores dos itens</span>' : `Total: <b>${brl(tot)}</b>${Math.abs(tot - CTC.antes) >= 0.005 ? ` <span class="leve">(era ${brl(CTC.antes)})</span>` : ''}`;
+  const sm = $('#ctc-soma'), ok = Math.abs(s - tot) < 0.005; if (sm) { sm.textContent = ok || bad ? '' : `As formas somam ${brl(s)}; tem que dar ${brl(tot)}.`; sm.classList.toggle('erro', !ok && !bad); }
+  return { itens, F, tot, s, bad }; }
+async function ctCorrigirOk(el) { if (!CTC || !gestor()) return; const x = ctvAchar(CTC.id), r0 = ctcConta(), mt = $('#ctc-motivo'), motivo = (mt ? mt.value : '').replace(/\s+/g, ' ').trim(); if (!x || !r0) return;
+  if (r0.bad) { toast('Confira os valores dos itens'); return; }
+  if (!(r0.tot > 0)) { toast('O total ficou zerado. Para tirar a venda, use a lixeira.'); return; }
+  if (!r0.F.length) { toast('Escreva como foi pago'); return; }
+  if (Math.abs(r0.s - r0.tot) >= 0.005) { toast(`A soma das formas (${brl(r0.s)}) tem que dar ${brl(r0.tot)}`); return; }
+  if (motivo.length < 5) { const cp = $('#ctc-motivo-campo'); if (cp) cp.classList.add('falta'); toast('Escreva o motivo: por que está corrigindo'); if (mt) mt.focus(); return; }
+  const V = ctvVendas(x), nv = id => { const i = r0.itens.find(y => y.venda === id); return i ? centavos(i.v) : 0; };
+  const spec = { tipo: 'entrada', id: x.crianca, itens: V.map(v => ({ n: v.n, v: nv(v.id), t: 'produto', s: '', q: v.q || 1, per: 0 })), formas: r0.F, venda: V[0].id, vend: (V.find(v => v.vend) || {}).vend || '', vendas: V.map(v => v.id), corr: true };
+  const vias = viasPapel(spec).map(v => v.replace(LOGO, '{LOGO}').replace(LOGO_PB, '{LOGO_PB}')), resumo = resumoPapel(spec); el.disabled = true;
+  try { let r; if (MODO === 'servidor') { r = await api('ct_venda_corrigir', { papel: x.id, itens: r0.itens.map(i => ({ venda: i.venda, v: centavos(i.v) })), formas: r0.F, motivo, vias, resumo }); await carregar(); }
+    else { r = ctCorrigirPrevia(x, r0, MAI(motivo), vias, resumo); if (r.erro) throw new Error(r.erro); }
+    CTC = null; fecharFolha(); CTV.em = 0; desenhar(true); toast(`Venda corrigida: ${brl(r.antes)} → ${brl(r.total)}`, () => abrirPapelGuardado(x.id), 'Ver o cupom');
+  } catch (e) { toast(e.message); el.disabled = false; } }
+function folhaCtExcluir(id) { if (!gestor()) return; const x = ctvAchar(id), V = ctvVendas(x); if (!x || !V.length) { toast('Não achei esta venda. Abra os Vendidos do dia de novo.'); return; }
+  const P = ctvPagos(V), dv = ctvFormasTxt(P); CTX = { id: x.id };
+  abrirFolha('Excluir a venda (lançada errada)', `<div class="marca lz-sai">${ic(IC.lixo, 18)}<span><b>Venda das ${hora(x.quando)}</b>${x.por ? ' · por ' + esc(primeiro(x.por)) : ''}<br>${esc(V.map(v => (v.q > 1 ? v.q + ' × ' : '') + v.n).join(', '))} · <b>${brl(ctvTot(x))}</b></span></div>
+    <p class="explica">Sai a venda${dv ? `; o que foi pago sai do caixa (devolver ao cliente: <b>${esc(dv)}</b>)` : ''}; os produtos voltam ao estoque. Fica nos cancelamentos e na linha do dia, com o motivo.</p>
+    <div class="campo" id="ctx-motivo-campo"><label for="ctx-motivo">Motivo<span class="obg" aria-hidden="true">*</span></label><textarea id="ctx-motivo" rows="2" maxlength="300" placeholder="Por que está excluindo (ex.: lançado em dobro)"></textarea></div>
+    <div class="pe-f"><button type="button" class="bt perigo largo tap" id="ctx-ok" data-act="ct-v-excluir-ok">${ic(IC.lixo)} Excluir a venda</button></div>`); }
+async function ctExcluirOk(el) { if (!CTX || !gestor()) return; const x = ctvAchar(CTX.id), t = $('#ctx-motivo'), motivo = (t ? t.value : '').replace(/\s+/g, ' ').trim(); if (!x) return;
+  if (motivo.length < 5) { const cp = $('#ctx-motivo-campo'); if (cp) cp.classList.add('falta'); toast('Escreva o motivo: por que está excluindo'); if (t) t.focus(); return; }
+  el.disabled = true;
+  try { let r; if (MODO === 'servidor') { r = await api('ct_venda_excluir', { papel: x.id, motivo }); await carregar(); }
+    else { r = ctExcluirPrevia(x, MAI(motivo)); if (r.erro) throw new Error(r.erro); }
+    CTX = null; fecharFolha(); CTV.em = 0; desenhar(true); toast(`Venda excluída${r.devolver ? ' · devolver ao cliente: ' + r.devolver : ''}`);
+  } catch (e) { toast(e.message); el.disabled = false; } }
+/* (prévia) o mesmo que o servidor faz */
+const pagoPrevia = id => { const o = {}; for (const p of (S.pagamentos || []).filter(p => p.venda === id)) o[p.f] = centavos((o[p.f] || 0) + p.v); return o; };
+const ctVendasPrevia = x => (Array.isArray(x.vendas) ? x.vendas : []).map(id => (S.compras || []).find(v => v.id === id)).filter(Boolean).map(v => ({ id: v.id, n: v.servico || nomeVendaTxt(v), q: v.qtd || 1, v: v.v, pago: pagoPrevia(v.id), vend: v.vend || '' }));
+function ctPrevia(x) { const pp = (S.papeis || []).find(y => y.id === x.id), ids = pp && Array.isArray(pp.vendas) ? pp.vendas : [], V = ids.map(id => (S.compras || []).find(v => v.id === id)).filter(Boolean); return { pp, ids, V }; }
+function ctCorrigirPrevia(x, r0, M, vias, resumo) { const { pp, ids, V } = ctPrevia(x); if (!pp || !V.length) return { erro: 'Não achei as vendas deste cupom.' };
+  const antes = centavos(V.reduce((t, v) => t + v.v, 0)), P0 = (S.pagamentos || []).filter(p => ids.includes(p.venda)), base = P0[0] || { crianca: x.crianca, quando: V[0].quando }, eraF = ctvFormasTxt(ctvPagos(V.map(v => ({ pago: pagoPrevia(v.id) })))), mud = [];
+  for (const v of V) { const i = r0.itens.find(y => y.venda === v.id), n = i ? centavos(i.v) : v.v; if (Math.abs(n - v.v) >= 0.005) mud.push(`${v.servico} ${brl(v.v)} → ${brl(n)}`); v.v = n; }
+  S.pagamentos = (S.pagamentos || []).filter(p => !ids.includes(p.venda)); const fila = r0.F.map(f => ({ ...f }));
+  for (const v of V) { let falta = v.v; for (const f of fila) { if (falta < 0.005) break; if (f.v < 0.005) continue; const u = centavos(Math.min(falta, f.v)); S.pagamentos.push({ ...base, venda: v.id, f: f.f, v: u }); f.v = centavos(f.v - u); falta = centavos(falta - u); } }
+  for (const kid of new Set(P0.map(p => p.cupom).filter(Boolean))) { const k = cupomDe(kid); if (k) refazerCupomPrevia(k); }
+  const total = centavos(V.reduce((t, v) => t + v.v, 0)), novoF = ctvFormasTxt(Object.fromEntries(juntaFormas(r0.F))), c = crianca(x.crianca);
+  registrar('alt', c ? c.nome : 'CASA TOM', `Venda da Casa Tom das ${hora(new Date(base.quando))} corrigida${mud.length ? ': ' + mud.join('; ') : ''} · total ${brl(antes)} → ${brl(total)} · pago: ${novoF}${eraF && eraF !== novoF ? ` (era ${eraF})` : ''} · Motivo: ${M} · por ${MAI(primeiro(EU.nome))} (gestor)`);
+  Object.assign(pp, { estado: 'corrigida', vias, resumo }); return { antes, total }; }
+function ctExcluirPrevia(x, M) { const { pp, ids, V } = ctPrevia(x); if (!pp || !V.length) return { erro: 'Não achei as vendas deste cupom (já foi excluída?).' };
+  const devV = id => ctvFormasTxt(pagoPrevia(id)), dv = ctvFormasTxt(ctvPagos(V.map(v => ({ pago: pagoPrevia(v.id) })))), itens = V.map(v => ({ n: v.servico || nomeVendaTxt(v), m: 0, v: v.v, tipo: 'venda', ...(devV(v.id) ? { dev: devV(v.id) } : {}) })), valor = centavos(V.reduce((t, v) => t + v.v, 0)), c = crianca(x.crianca);
+  S.compras = S.compras.filter(v => !ids.includes(v.id)); S.pagamentos = (S.pagamentos || []).filter(p => !ids.includes(p.venda));
+  for (const v of V) if (v.prod) { const p = produto(v.prod); if (p && p.est != null) p.est += v.qtd || 1; }
+  const ini = V.reduce((m, v) => (+v.quando < +m ? v.quando : m), V[0].quando);
+  S.cancelamentos.unshift({ id: novoId(), crianca: x.crianca, nome: c ? c.nome : '', resp: c ? c.resp : '', entrou: ini, quando: new Date(), min: 0, valor, itens, motivo: M, por: EU.nomeCompleto || EU.nome, papel: EU.papel, fora: true, visto_por: '', visto_em: null, tipo: 'venda', atendente: '', uni: minhaUni() || null });
+  registrar('canc', c ? c.nome : 'CASA TOM', `Venda da Casa Tom das ${hora(new Date(ini))} excluída · ${itens.map(i => i.n + ' ' + brl(i.v)).join(', ')}${dv ? ' · devolver ao cliente: ' + dv : ''} · Motivo: ${M} · por ${MAI(primeiro(EU.nome))} (gestor)`);
+  pp.estado = 'excluida'; return { devolver: dv }; }
 function telaCTVendas() { setTimeout(() => ctVendidos(), 0); const n = CTV.k === ctvChave() && CTV.L ? CTV.L.length : null;
   return `<div class="ct-tela">${ctCabeca('Vendidos do dia')}<section class="ct-vd" aria-label="Vendidos do dia"><div class="ct-vd-cab"><b>Vendas de hoje${n ? ' · ' + n : ''}</b><span class="leve">toque na venda para ver e reimprimir o cupom</span></div><div id="ct-vd-l">${ctvHtml()}</div></section>${htmlCaixaDia()}</div>`; }
 function telaCTProd() {
@@ -5944,7 +6027,8 @@ async function ctiImportar(el) {
 document.addEventListener('input', e => { const t = e.target; if (!t || !t.id) return;
   if (t.id === 'ct-busca') { CT.busca = t.value; const g = $('#ct-grade'); if (g) g.innerHTML = ctGrade(); }
   if (t.id === 'ct-pbusca') { CT.pbusca = t.value; const pos = t.selectionStart; $('#miolo').innerHTML = telaCTProd(); const i = $('#ct-pbusca'); if (i) { i.focus(); try { i.setSelectionRange(pos, pos); } catch (x) { } } }
-  if (t.id === 'cti-texto') ctiMostra(ctiLinhas(ctiTexto(t.value))); });
+  if (t.id === 'cti-texto') ctiMostra(ctiLinhas(ctiTexto(t.value)));
+  if (t.classList.contains('ctc-v')) ctcConta('item'); else if (t.classList.contains('ctc-fv')) ctcConta('forma'); });   /* 2.45 */
 document.addEventListener('change', async e => { const t = e.target; if (!t || t.id !== 'cti-arq' || !t.files || !t.files[0]) return;
   try { toast('Lendo a planilha…'); ctiMostra(ctiLinhas(await lerArquivoImp(t.files[0]))); } catch (x) { toast(x && x.message ? x.message : 'Não consegui ler esse arquivo.'); } });
 function ctVendaRedesenha() { const v = $('#ct-venda'), g = $('#ct-grade'); if (v) v.outerHTML = ctVenda(); if (g) g.innerHTML = ctGrade(); }
@@ -8349,7 +8433,7 @@ function htmlCancelamentos() {
       <div class="cab"><div class="txt"><b>${esc(x.resp || x.nome)}</b><span>${x.resp ? esc(x.nome) + ' · ' : ''}${cancTipo(x) === 'venda' ? 'venda cancelada' : cancTipo(x) === 'desfeita' ? 'entrada desfeita' : cancTipo(x) === 'atendimento' ? 'atendimento cancelado' : cancTipo(x) === 'excluida' ? 'saída excluída' : 'cancelada'} ${quandoCurto(x.quando)}</span></div><span class="pill ${x.visto_em ? 'p-ok' : 'p-erro'}">${x.visto_em ? 'Visto por ' + esc(primeiro(x.visto_por)) : 'Para conferir'}</span></div>
       ${cancTipo(x) === 'atendimento' ? `<p>Atendimento aberto ${quandoCurto(x.entrou)}${x.itens && x.itens.length ? ` (<b>${itensCancelados(x)}</b>)` : ''}: o cliente não fez. Tirado de “Falta finalizar” por <b>${esc(quemCompleto(x))}</b> (${PAPEIS[x.papel] || esc(x.papel)}).</p><p>Nada foi vendido.</p>`
       : cancTipo(x) === 'venda' ? `<p>Venda de <b>${quandoCurto(x.entrou)}</b>: <b>${itensCancelados(x)}</b>. Cancelada por <b>${esc(quemCompleto(x))}</b> (${PAPEIS[x.papel] || esc(x.papel)}).</p>
-      <p>${(x.itens[0] || {}).dev ? `Devolvido ao cliente: <b>${esc(x.itens[0].dev)}</b>.` : x.valor > 0 ? 'Ainda não tinha sido paga: nada a devolver.' : 'Não tinha valor.'}${(x.itens[0] || {}).m > 0 ? ` Saíram <b>${hm(x.itens[0].m)}</b> do saldo de horas.` : ''}</p>`
+      <p>${(x.itens || []).some(i => i && i.dev) ? `Devolvido ao cliente: <b>${esc(x.itens.map(i => i && i.dev).filter(Boolean).join(' + '))}</b>.` : x.valor > 0 ? 'Ainda não tinha sido paga: nada a devolver.' : 'Não tinha valor.'}${(x.itens[0] || {}).m > 0 ? ` Saíram <b>${hm(x.itens[0].m)}</b> do saldo de horas.` : ''}</p>`
       : cancTipo(x) === 'excluida' ? `<p>Saída (entrou ${quandoCurto(x.entrou)}) excluída por <b>${esc(quemCompleto(x))}</b>${x.itens && x.itens.length ? `. Saiu junto: <b>${itensCancelados(x)}</b>` : ''}.</p><p>${(x.itens || []).some(i => i && i.dev) ? 'Devolvido ao cliente: <b>' + esc(x.itens.map(i => i.dev).filter(Boolean).join(' + ')) + '</b>.' : 'Nada a devolver.'}</p>`   /* 2.43 */
       : cancAlug(x) ? `<p><b>${esc(cancAlug(x).n)}</b> saiu da loja às <b>${hora(x.entrou)}</b> e ficou <b>${x.min} min</b> fora. Saída cancelada por <b>${esc(quemCompleto(x))}</b> (${PAPEIS[x.papel] || esc(x.papel)}).</p>
       <p>Nada foi cobrado: a conta fecharia na devolução, e a saída foi cancelada dentro do prazo.</p>`
@@ -9266,6 +9350,7 @@ const ACOES = {
   'cx-imprimir': () => imprimirPapel([papelCaixa()]),
   'cx-pdf': el => baixarResumoDia(el),   /* 1.54 */
   'fim-excluir': el => folhaExcluirFim(el), 'fim-excluir-ok': el => excluirFimOk(el),   /* 2.43 */
+  'ct-v-corrigir': el => folhaCtCorrigir(+el.dataset.id), 'ct-v-corrigir-ok': el => ctCorrigirOk(el), 'ct-v-excluir': el => folhaCtExcluir(+el.dataset.id), 'ct-v-excluir-ok': el => ctExcluirOk(el),   /* 2.45 */
   'esp-filtro': el => { const f = el.dataset.f; if (f !== 'fim') S.cxDia = null;   /* 2.26: fora de Finalizados, o caixa volta para hoje */ S.espFiltro = S.tela === 'horas' && espFiltro() === f && f !== 'todas' ? 'todas' : f; if (S.tela !== 'horas') { if (mnLigado()) S.espBusca = ''; trocarTela('horas'); return; } atualizarEspaco(); },
   'mn-grupo': el => { const g = el.dataset.g, f = mnFechados(), i = f.indexOf(g); if (i < 0) f.push(g); else f.splice(i, 1); guardar('ps-menu-fechados', f); nav(); },   /* 1.28: abrir ou fechar um grupo do menu (fica guardado no aparelho) */
   'mn-consultar': () => { S.bancoFiltro = 'todas'; if (S.tela !== 'banco') { S.bancoBusca = ''; trocarTela('banco'); } else desenhar(true); setTimeout(() => { const i = $('#banco-busca'); if (i) { i.focus(); i.select(); } }, 90); },   /* 1.28: Consultar cliente: o Banco de horas com todos os clientes e o cursor já na busca */   /* "Saíram há pouco": tocar de novo volta para quem está no espaço */

@@ -1301,6 +1301,16 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Casa Tom: o lápis e a lixeira do gestor nos Vendidos do dia (2.45)
+
+Pedido do dono (26/11): "o da Casa Tom, eu quero um lapisinho e uma lixeirinha, igual a gente fez no outro, pra mim poder o gestor alterar o valor caso o valor seja lançado errado".
+
+- Em Casa Tom → Vendidos do dia, cada venda tem, só para o gestor, o lápis e a lixeira, ao lado do Reimprimir. A equipe continua só reimprimindo.
+- O lápis abre "Corrigir o valor da venda": o valor certo de cada item e como o cliente pagou de verdade (Pix, dinheiro, crédito, débito; a soma tem que dar o total), com o motivo. Se a venda foi paga numa forma só, a forma acompanha o total sozinha.
+- A correção muda a venda, o pagamento (no mesmo horário: o caixa do dia é o mesmo), as Finanças, as comissões e o cupom fiscal. O cupom guardado é trocado pelo corrigido ("valor corrigido"), e a linha da lista mostra "valor corrigido pelo gestor". Fica na linha do dia, com o que mudou e o motivo.
+- A lixeira abre "Excluir a venda": sai a venda inteira; o que foi pago sai do caixa (a folha mostra quanto devolver ao cliente); os produtos voltam ao estoque. Fica nos cancelamentos (venda cancelada, com o motivo) e na linha do dia; a venda some dos Vendidos do dia.
+- Por dentro: o cupom guardado agora sabe de quais vendas ele é (papeis.vendas, migração 54). Os cupons de antes da 2.45 acham as vendas pela hora (as da loja entre o cupom anterior e ele).
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O pacote vendido e as horas usadas na mesma linha (2.44)
 
 Pedido do dono (26/11): "usou o pacote 2 horas e meia, mas elas venderam o pacote. Além dele ter usado as horas, ela ainda vendeu o pacote ... tem que colocar as duas coisas".

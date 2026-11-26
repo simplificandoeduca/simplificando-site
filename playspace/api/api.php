@@ -192,6 +192,12 @@ switch ($acao) {
   case 'finalizado_excluir': { /* 2.43: a lixeira do gestor nos Finalizados do dia */
     $u = exigir(); responder(excluirFinalizado($in, $u));
   }
+  case 'ct_venda_corrigir': { /* 2.45: o lápis do gestor nos Vendidos do dia da Casa Tom */
+    $u = exigir(); responder(corrigirVendaCT($in, $u));
+  }
+  case 'ct_venda_excluir': { /* 2.45: a lixeira do gestor nos Vendidos do dia da Casa Tom */
+    $u = exigir(); responder(excluirVendaCT($in, $u));
+  }
   case 'caixa_dia': { /* 2.26: o caixa e os finalizados de outro dia (Finalizados do dia → Ontem / outra data); quem não é o gestor vê só a unidade dele */
     $u = exigir(); $dia = (string)($in['dia'] ?? ''); if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dia) || !checkdate((int)substr($dia, 5, 2), (int)substr($dia, 8, 2), (int)substr($dia, 0, 4))) falha('Escolha uma data.');
     if ($dia > date('Y-m-d')) falha('Esse dia ainda não chegou.'); session_write_close(); $so = $u['papel'] === 'gestor' ? 0 : (int)(unidadeDoPedido() ?? 0);
@@ -977,8 +983,10 @@ switch ($acao) {
     $tipo = in_array($in['tipo'] ?? '', ['entrada', 'saida', 'devolucao', 'festa', 'venda'], true) ? (string)$in['tipo'] : 'entrada';
     if (!empty($in['troca'])) { // 1.57: o cupom refeito depois da troca da forma de pagamento entra no lugar do anterior (o dos últimos 10 min)
       $q = $db->prepare('SELECT id FROM papeis WHERE crianca_id = ? AND tipo = ? AND quando >= ? ORDER BY id DESC LIMIT 1'); $q->execute([(int)$c['id'], $tipo, date('Y-m-d H:i:s', time() - 600)]);
-      $ant = (int)$q->fetchColumn(); $q->closeCursor(); if ($ant) $db->prepare('DELETE FROM papeis WHERE id = ?')->execute([$ant]); }
-    responder(['id' => papelGuardar($c, $tipo, mb_substr(trim(strip_tags((string)($in['titulo'] ?? ''))), 0, 60), mb_substr(trim(strip_tags((string)($in['resumo'] ?? ''))), 0, 140), (array)($in['vias'] ?? []), $u)]);
+      $ant = (int)$q->fetchColumn(); $q->closeCursor();
+      if ($ant && empty($in['vendas'])) { $q = $db->prepare('SELECT vendas FROM papeis WHERE id = ?'); $q->execute([$ant]); $in['vendas'] = (string)$q->fetchColumn(); $q->closeCursor(); }   /* 2.45: o refeito continua com as vendas dele */
+      if ($ant) $db->prepare('DELETE FROM papeis WHERE id = ?')->execute([$ant]); }
+    responder(['id' => papelGuardar($c, $tipo, mb_substr(trim(strip_tags((string)($in['titulo'] ?? ''))), 0, 60), mb_substr(trim(strip_tags((string)($in['resumo'] ?? ''))), 0, 140), (array)($in['vias'] ?? []), $u, $in['vendas'] ?? '')]);   /* 2.45: de quais vendas é o cupom */
   }
   case 'papel_lista': { // os últimos cupons de um cliente (as crianças do mesmo responsável), do mais novo para o mais velho
     exigir(); session_write_close();
@@ -989,9 +997,10 @@ switch ($acao) {
     responder(['papeis' => array_map('papelPublico', $q->fetchAll()), 'dias' => PAPEL_DIAS]);
   }
   case 'papel_dia': { /* 2.35 (o dono: "Casatom ... uma aba tipo vendidos do dia ... e selecione, tem a opção de reimprimir cupom lá"): os cupons de hoje da Casa Tom desta unidade */
-    exigir(); $b = balcaoCT(false); $uni = unidadeDoPedido(); session_write_close(); if (!$b) responder(['papeis' => []]);
-    $q = $db->prepare('SELECT p.id, p.crianca_id, p.quando, p.tipo, p.titulo, p.resumo, u.nome AS por_nome FROM papeis p LEFT JOIN usuarios u ON u.id = p.por WHERE p.crianca_id = ? AND p.quando >= ?' . ($uni ? ' AND COALESCE(p.unidade_id, 0) = ' . (int)$uni : '') . ' ORDER BY p.id DESC LIMIT 300');
-    $q->execute([(int)$b['id'], date('Y-m-d') . ' 00:00:00']); responder(['papeis' => array_map('papelPublico', $q->fetchAll())]);
+    $u = exigir(); $b = balcaoCT(false); $uni = unidadeDoPedido(); session_write_close(); if (!$b) responder(['papeis' => []]);
+    $q = $db->prepare("SELECT p.id, p.crianca_id, p.quando, p.tipo, p.titulo, p.resumo, p.vendas, p.estado, p.unidade_id, u.nome AS por_nome FROM papeis p LEFT JOIN usuarios u ON u.id = p.por WHERE p.crianca_id = ? AND p.quando >= ? AND p.estado != 'excluida'" . ($uni ? ' AND COALESCE(p.unidade_id, 0) = ' . (int)$uni : '') . ' ORDER BY p.id DESC LIMIT 300');
+    $q->execute([(int)$b['id'], date('Y-m-d') . ' 00:00:00']); $g = ($u['papel'] ?? '') === 'gestor';   /* 2.45: para o gestor, as vendas de cada cupom (o lápis e a lixeira) */
+    responder(['papeis' => array_map(fn($l) => papelPublico($l) + ($g ? ['vendas' => array_map('vendaCtPublica', vendasDoPapel($l))] : []), $q->fetchAll())]);
   }
   case 'papel_ver': { // as vias de um cupom guardado
     $u = exigir(); session_write_close();
