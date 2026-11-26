@@ -58,12 +58,12 @@ function minStepper(action,v,big){
 function weekStrip(){
   const ds = weekDays(0), t0 = today(), wk = weekMin(), G = S.cardioGoal;
   return `<section class="card wstrip" aria-label="Minutos de cardio por dia nesta semana"><div class="ws-days">${ds.map((k,i) => { const v = cardioOn(k); return `<div class="ws-d${k===t0?' now':''}${k>t0?' fut':''}"><span>${WD[i]}</span><i class="${v?'f':''}">${v||''}</i></div>`; }).join('')}</div>
-    <div class="ws-tot"><b>${wk}<small>/${G}</small></b><span>min na semana</span></div></section>`;
+    <div class="ws-tot"><b>${wk}${G ? `<small>/${G}</small>` : ''}</b><span>min na semana</span></div></section>`;
 }
 function weekCompact(){
-  const wk = weekMin(), G = S.cardioGoal, ok = wk>=G;
-  return `<section class="card cwk${ok?' goal-hit':''}"><div class="card-h"><span class="label">${ic('pulse')}Esta semana</span><span class="pill${ok?' ok':''}">${ok?'Meta batida':'Faltam '+(G-wk)+' min'}</span></div>
-    <div class="wkc-row"><b>${wk}<small>/${G} min</small></b>${bar(wk/G)}</div>
+  const wk = weekMin(), G = S.cardioGoal, ok = G>0 && wk>=G;
+  return `<section class="card cwk${ok?' goal-hit':''}"><div class="card-h"><span class="label">${ic('pulse')}Esta semana</span><span class="pill${ok?' ok':''}">${ok?'Meta batida':G?'Faltam '+(G-wk)+' min':'Sem meta'}</span></div>
+    <div class="wkc-row"><b>${wk}<small>${G?'/'+G:''} min</small></b>${bar(G?wk/G:0)}</div>
     <p class="foot0">Prescrição: ${CARDIO.min} min por dia · ${CARDIO.zona}. ${CARDIO.desc}</p></section>`;
 }
 function cardioRecent(){
@@ -80,7 +80,7 @@ function vCardio(){
 /* 1 · Um toque */
 function vCardioToque(){
   const cf = ui.cf, wk = weekMin(), G = S.cardioGoal;
-  return header('Cardio', `Semana: ${wk} de ${G} min`, wk>0 ? miniRing(wk/G, `Semana: ${wk} de ${G} minutos`) : '')+exampleNote()+
+  return header('Cardio', G ? `Semana: ${wk} de ${G} min` : `Semana: ${wk} min`, wk>0 && G ? miniRing(wk/G, `Semana: ${wk} de ${G} minutos`) : '')+exampleNote()+
     `<section class="scn-card"><span class="scn-cap">${LOC_S[cf.local]} · ${INT_L[cf.int].toLowerCase()}</span>${sceneCanvas(cf.local,cf.int)}</section>
     <div class="cq"><span class="flabel">Aparelho</span>${eqGrid('cf-local',cf.local)}
       <span class="flabel">Tempo</span>${timeChips('cf-min',cf.min,'cf-more')}
@@ -90,7 +90,7 @@ function vCardioToque(){
 }
 /* 2 · Cronômetro */
 function vCardioCrono(){
-  const L = S.cardioLive, wk = weekMin(), G = S.cardioGoal, ext = `<span class="wk-mini"><span>Semana</span><b>${wk}/${G}</b></span>`;
+  const L = S.cardioLive, wk = weekMin(), G = S.cardioGoal, ext = `<span class="wk-mini"><span>Semana</span><b>${wk}${G?'/'+G:''}</b></span>`;
   const manual = `<p class="lv-hint">${L?'O tempo vai sozinho pro registro. ':''}Fez sem cronômetro? <button type="button" class="linkbtn" data-a="cmanual">Lançar manual</button></p>`;
   if(!L){
     const cf = ui.cf, g = liveGoal(0);

@@ -2256,12 +2256,14 @@ function shareText(a){
   const agua = +m.waterGoal ? fmtN(m.waterGoal/1000,1)+' L por dia' : '', cg = +m.cardioGoal, cz = (m.cardio||{});
   const cardio = cg ? cg+' min por semana'+(+cz.min ? ' (sessões de '+cz.min+' min'+(cz.zona ? ', '+cz.zona : '')+')' : '') : '';
   const sem = Math.round(+pl.semanas || 0);
+  const falta = [!isDate(p.nascimento) && 'sua data de nascimento', !(+p.altura>0) && 'sua altura', !(+p.peso>0) && 'seu peso'].filter(Boolean); // o que ainda não está na ficha
   return 'Oi, '+curto(a)+'! 🎉 Seu treino está pronto no app Simplificando.\n\n'+
     '📲 *Como entrar*\n1. Abra o app: '+appLink()+'\n'+(mail ? '2. E-mail: '+mail+'\n3. Senha: '+cod+'\n' : '2. Senha: '+cod+'\n')+
     'Dica: salve o app na tela inicial do celular para abrir com um toque.\n\n'+
     (div ? '🏋️ *Sua divisão'+(pl.nome ? ' · '+String(pl.nome).trim() : '')+'*\n'+div+'\n'+(freq ? 'Frequência: '+freq+'x por semana'+(dias.length ? ' ('+dias.join(', ')+')' : ', nos dias que for melhor para você')+'.\n' : '')+'O app mostra qual treino fazer em cada dia.\n\n' : '')+
     (agua || cardio ? '🎯 *Suas metas*\n'+(agua ? '💧 Água: '+agua+'\n' : '')+(cardio ? '🏃 Cardio: '+cardio+'\n' : '')+'\n' : '')+
     '✅ *Para render mais*\n• Marque as séries e as cargas: o app sugere quando subir o peso.\n• Faça o check-in do dia (sono, energia e dor) antes de treinar.\n• Use o "Como foi" no fim do exercício para me contar como foi.\n\n'+
+    (falta.length ? '📝 *Para completar o seu cadastro*\nMe manda aqui, por favor: '+falta.join(', ').replace(/, ([^,]*)$/,' e $1')+'.\n\n' : '')+
     (sem ? 'Este ciclo tem duração de '+plural(sem,'semana')+'. Depois a gente ajusta junto. ' : '')+'Qualquer dúvida, me chama aqui. Bora! 💪'+
     (c.nomePersonal ? '\n\n'+c.nomePersonal : '');
 }
@@ -3218,14 +3220,24 @@ function tFin(a){
 }
 
 /* ---------- mensagens de acompanhamento: check-in de 15 dias e renovação do ciclo ---------- */
+/* evolução de carga justa: o mesmo aparelho pesa diferente em cada academia, então cada exercício é comparado só dentro de uma academia
+   (a que tem mais treinos daquele exercício; no empate, a mais recente). Devolve { exercício: { v:[cargas em ordem], d:[datas], gym, varias } } */
+function cargasMesmaAcad(H){
+  const por = {};
+  (H||[]).slice().sort((x,y) => x.d<y.d ? -1 : 1).forEach(h => (h.ex||[]).forEach(e => { const top = Math.max(0, ...(e.s||[]).map(z => +z[0]||0)); if(!top) return;
+    const n = e.n||e.id, g = String(h.gym||'').trim().toLowerCase(), G = (por[n] = por[n] || {}); (G[g] = G[g] || { nome:String(h.gym||'').trim(), v:[], d:[] }); G[g].v.push(top); G[g].d.push(h.d); }));
+  const out = {};
+  Object.keys(por).forEach(n => { const L = Object.values(por[n]).sort((x,y) => y.v.length-x.v.length || (y.d[y.d.length-1] > x.d[x.d.length-1] ? 1 : -1)), q = L[0]; out[n] = { v:q.v, d:q.d, gym:q.nome, varias:L.length>1 }; });
+  return out;
+}
 function cicloResumo(a){
   const pl = a.plano || {}, ini = isDate(pl.inicio) ? pl.inicio : '', pg = typeof progDe==='function' ? progDe(a) : null, d = (pg && pg.d) || {};
   const H = (d.h||[]).filter(h => !ini || h.d>=ini), Cd = (d.c||[]).filter(c => !ini || c.d>=ini), wg = +(a.metas||{}).waterGoal || +d.wg || 0;
   const sem = ini ? Math.max(1, Math.round(diffDays(today(), ini)/7)) : 0;
-  const seq = {}; H.forEach(x => (x.ex||[]).forEach(e => { const top = Math.max(0, ...(e.s||[]).map(z => +z[0]||0)); if(!top) return; (seq[e.n||e.id] = seq[e.n||e.id] || []).push(top); }));
-  const sobe = Object.keys(seq).map(n => { const q = seq[n]; return { n, de:q[0], para:Math.max(...q), dif:Math.max(...q)-q[0] }; }).filter(x => x.dif>0).sort((x,y) => y.dif/y.de - x.dif/x.de).slice(0,3);
+  const sobe = Object.entries(cargasMesmaAcad(H)).map(([n,q]) => ({ n, de:q.v[0], para:Math.max(...q.v), dif:Math.max(...q.v)-q.v[0], gym:q.gym, varias:q.varias })).filter(x => x.dif>0).sort((x,y) => y.dif/y.de - x.dif/x.de).slice(0,3);
   const W = d.w || {}, aguaDias = wg ? Object.keys(W).filter(k => (!ini || k>=ini) && +W[k]>=wg).length : 0;
-  return { tem:!!pg, treinos:H.length, sem, cardio:Cd.reduce((t,c) => t+(+c.min||0),0), sobe, aguaDias, wg };
+  const freq = letters(pl).length || +(a.metas||{}).semanaTreinos || 0, prev = ini && freq ? Math.max(H.length, Math.round(Math.min(diffDays(today(), ini)+1, (+pl.semanas||52)*7)/7*freq)) : 0; // treinos previstos até hoje
+  return { tem:!!pg, treinos:H.length, prev, sem, cardio:Cd.reduce((t,c) => t+(+c.min||0),0), sobe, aguaDias, wg };
 }
 function primeiroText(a){
   const c = cfg(), f = P(a).sexo==='F';
@@ -3240,7 +3252,7 @@ function primeiroText(a){
 function checkinText(a){
   const c = cfg(), r = cicloResumo(a), nome = curto(a);
   return 'Oi, '+nome+'! Tudo bem? 😊 Já estamos com uns 15 dias de treino e quero saber como você está.\n\n'+
-    (r.tem && r.treinos ? '📊 Pelo app, você já fez '+plural(r.treinos,'treino')+(r.cardio ? ' e '+r.cardio+' min de cardio' : '')+'. '+(r.sobe.length ? 'E já subiu carga em '+r.sobe.map(x => x.n).join(', ')+'! ' : '')+'Muito bom! 👏\n\n' : '')+
+    (r.tem && r.treinos ? '📊 Pelo app, você já fez '+(r.prev ? r.treinos+' de '+plural(r.prev,'treino') : plural(r.treinos,'treino'))+'. '+(r.sobe.length ? 'E já subiu carga em '+r.sobe.map(x => x.n).join(', ')+'! ' : '')+'Muito bom! 👏\n\n' : '')+
     'Me responde rapidinho, com o número de cada pergunta:\n\n'+
     '1️⃣ *Treino:* está conseguindo fazer tudo no tempo que tem? Algum dia ficou pesado demais?\n'+
     '2️⃣ *Dor:* sentiu alguma dor ou desconforto em algum exercício? Qual?\n'+
@@ -3255,7 +3267,7 @@ function renovaText(a){
   const quando = pi.k==='expired' ? 'terminou em '+fmtD(pi.fim) : pi.fim ? 'termina em '+fmtD(pi.fim) : 'está chegando ao fim';
   const conq = [];
   if(r.treinos) conq.push('🏋️ '+plural(r.treinos,'treino feito','treinos feitos')+(r.sem ? ' em '+plural(r.sem,'semana') : ''));
-  r.sobe.forEach(x => conq.push('📈 '+x.n+': '+fmtN(x.de)+' → '+fmtN(x.para)+' kg (+'+Math.round(x.dif/x.de*100)+'%)'));
+  r.sobe.forEach(x => conq.push('📈 '+x.n+': '+fmtN(x.de)+' → '+fmtN(x.para)+' kg (+'+Math.round(x.dif/x.de*100)+'%)'+(x.varias && x.gym ? ' na '+x.gym : '')));
   if(r.cardio) conq.push('🏃 '+r.cardio+' min de cardio');
   if(r.aguaDias) conq.push('💧 '+plural(r.aguaDias,'dia','dias')+' batendo a meta de água');
   return 'Oi, '+nome+'! 🎉 Seu ciclo'+(pl.nome ? ' *'+String(pl.nome).trim()+'*' : '')+' '+quando+'.\n\n'+
@@ -3273,10 +3285,10 @@ function semanaText(a){
   const ini0 = isDate(pl.inicio) ? pl.inicio : '', Hall = (d.h||[]).filter(h => !ini0 || h.d>=ini0).sort((x,y) => x.d<y.d ? -1 : 1);
   const ini = Hall.length ? Hall[0].d : (ini0 || today()), fim = addDays(ini, 6), inW = k => k>=ini && k<=fim;
   const H = Hall.filter(h => inW(h.d)), Cd = (d.c||[]).filter(x => inW(x.d)), W = d.w || {}, K = d.k || {}, wg = +m.waterGoal || +d.wg || 0;
-  const ult = H[H.length-1], quando = !ult ? '' : ult.d===today() ? 'hoje' : ult.d===addDays(today(),-1) ? 'ontem' : 'na '+DIA_LONGO[parse(ult.d).getDay()]+' ('+fmtDm(ult.d)+')';
+  const ult = H[H.length-1], wd = ult ? parse(ult.d).getDay() : 0, quando = !ult ? '' : (wd===0 || wd===6 ? 'no ' : 'na ')+DIA_LONGO[wd]+' ('+fmtDm(ult.d)+')';
   const L = [];
   L.push('Ótimo dia, '+nome+', tudo bem? 😃\n');
-  L.push(ult ? 'Recebi a notificação '+quando+' que você finalizou seu último treino, e analisando os seus primeiros '+plural(H.length,'dia','dias')+' de treino cheguei nas seguintes conclusões 👇🏻\n'
+  L.push(ult ? 'Recebi a notificação '+quando+' que você finalizou seu último treino da semana, e analisando a sua primeira semana de treino cheguei nas seguintes conclusões 👇🏻\n'
     : 'Analisando a sua primeira semana cheguei nas seguintes conclusões 👇🏻\n');
   // dor (check-in) e dor marcada nos exercícios
   const dores = Object.keys(K).filter(k => inW(k) && (+K[k].dor||0)>=1), dmax = Math.max(0, ...dores.map(k => +K[k].dor||0));
@@ -3309,6 +3321,7 @@ function semanaText(a){
     partes.push('Analisei também as cargas que você utilizou em cada série e dia de treino, e é extremamente necessário que, a cada série, você tente aumentar o peso do exercício quando realizar as repetições máximas (Ex: '+ex.n+' - você realizou '+ex.n2+'x com '+fmtN(ex.kg)+' kg e '+r+' rep; o ideal seria -> '+fmtN(ex.kg)+' kg '+r+' rep | '+fmtN(k2)+' kg '+Math.max(1,r-2)+'-'+r+' rep | '+fmtN(k3)+' kg '+Math.max(1,r-4)+'-'+Math.max(1,r-2)+' rep).'); }
   if(ex || pulou.length) partes.push('Então, para essa próxima semana, sempre que você realizar o máximo de repetições na primeira série já pode aumentar o peso, mesmo que isso faça o número de repetições cair 1 a 2.');
   L.push('💪🏼 *'+(ED[pr.objetivo]||'Treino')+':* '+(partes.length ? partes.join(' ') : (H.length ? 'As cargas e o aquecimento estão no caminho certo. Continue tentando subir o peso sempre que fizer o máximo de repetições na primeira série.' : 'Ainda não vi treinos registrados no app essa semana. Me conta como foi!')));
+  L.push('\nAgora me fala: o que você achou dessa primeira semana? Ficou alguma dúvida? Me responde aqui que eu ajusto o que precisar. 👇🏻');
   return L.join('\n')+(c.nomePersonal ? '\n\n'+c.nomePersonal : '');
 }
 function msgsCard(a){
@@ -3558,13 +3571,15 @@ function tEvol(a){
     '<p class="foot">Treinos por semana'+(meta ? ' · a linha tracejada é a meta ('+meta+')' : '')+'. Verde = meta batida.</p></section>';
 
   // 5. evolução de carga por exercício
-  const seq = {}; H.forEach(x => (x.ex||[]).forEach(e => { const top = Math.max(0, ...(e.s||[]).map(z => +z[0]||0)); if(!top) return; const k = e.n||e.id; (seq[k] = seq[k] || []).push({d:x.d, kg:top, reps:((e.s||[]).find(z => +z[0]===top)||[])[1]}); }));
+  const seq = {}; H.forEach(x => (x.ex||[]).forEach(e => { const top = Math.max(0, ...(e.s||[]).map(z => +z[0]||0)); if(!top) return; const k = e.n||e.id; (seq[k] = seq[k] || []).push({d:x.d, kg:top, reps:((e.s||[]).find(z => +z[0]===top)||[])[1], g:String(x.gym||'').trim()}); }));
+  // carga comparada só dentro da mesma academia (a mais usada naquele exercício; no empate, a mais recente)
+  const acad = {}; Object.keys(seq).forEach(n => { const G = {}; seq[n].forEach(z => { const k = z.g.toLowerCase(); (G[k] = G[k] || []).push(z); }); const L = Object.values(G).sort((x,y) => y.length-x.length || y[y.length-1].d.localeCompare(x[x.length-1].d)); if(L.length>1){ acad[n] = L[0][0].g || 'sem academia marcada'; seq[n] = L[0]; } });
   const ex = Object.keys(seq).map(n => { const s = seq[n], f = s[0], l = s[s.length-1], best = Math.max(...s.slice(0,-1).map(z => z.kg), 0); return { n, s, f, l, dif:l.kg-f.kg, rec:s.length>1 && l.kg>best }; }).sort((x,y) => y.l.d.localeCompare(x.l.d) || y.dif-x.dif);
   if(ex.length && PREF.evCargaMin) h += '<h3 class="sec sec-tg">Evolução de carga<button type="button" class="btn small ghost" data-a="evCargaTg" aria-expanded="false">'+ic('down')+'Abrir ('+plural(ex.length,'exercício','exercícios')+')</button></h3>';
   else if(ex.length) h += '<h3 class="sec sec-tg">Evolução de carga<button type="button" class="btn small ghost" data-a="evCargaTg" aria-expanded="true">'+ic('up')+'Minimizar</button></h3><section class="card ev2-tb"><div class="ev2-tr ev2-th"><span>Exercício</span><span>Início</span><span>Agora</span><span>Mudança</span><span class="hide-s">Tendência</span></div>'+
     ex.map(e => { const pc = e.f.kg ? Math.round(e.dif/e.f.kg*100) : 0;
-      return '<div class="ev2-tr"><span><b>'+esc(e.n)+'</b>'+(e.rec ? '<i class="ev2-rec">recorde</i>' : '')+'<small>'+plural(e.s.length,'treino')+' · último '+fmtDm(e.l.d)+'</small></span><span>'+fmtN(e.f.kg)+' kg</span><span><b>'+fmtN(e.l.kg)+' kg</b>'+(e.l.reps ? '<small>× '+e.l.reps+'</small>' : '')+'</span><span class="'+(e.dif>0?'up':e.dif<0?'dn':'eq')+'">'+(e.s.length<2 ? '<small>1º registro</small>' : (e.dif>0?'▲ +':e.dif<0?'▼ ':'= ')+fmtN(Math.abs(e.dif))+' kg'+(e.dif ? '<small>'+(pc>0?'+':'')+pc+'%</small>' : ''))+'</span><span class="ev2-tdc">'+ev2Spark(e.s.slice(-8).map(z => z.kg))+'</span></div>'; }).join('')+
-    '<p class="foot">Maior carga de cada treino. “Início” é o primeiro registro no app.</p></section>';
+      return '<div class="ev2-tr"><span><b>'+esc(e.n)+'</b>'+(e.rec ? '<i class="ev2-rec">recorde</i>' : '')+'<small>'+plural(e.s.length,'treino')+' · último '+fmtDm(e.l.d)+(acad[e.n] ? ' · '+esc(acad[e.n]) : '')+'</small></span><span>'+fmtN(e.f.kg)+' kg</span><span><b>'+fmtN(e.l.kg)+' kg</b>'+(e.l.reps ? '<small>× '+e.l.reps+'</small>' : '')+'</span><span class="'+(e.dif>0?'up':e.dif<0?'dn':'eq')+'">'+(e.s.length<2 ? '<small>1º registro</small>' : (e.dif>0?'▲ +':e.dif<0?'▼ ':'= ')+fmtN(Math.abs(e.dif))+' kg'+(e.dif ? '<small>'+(pc>0?'+':'')+pc+'%</small>' : ''))+'</span><span class="ev2-tdc">'+ev2Spark(e.s.slice(-8).map(z => z.kg))+'</span></div>'; }).join('')+
+    '<p class="foot">Maior carga de cada treino. “Início” é o primeiro registro no app.'+(Object.keys(acad).length ? ' Quem treina em mais de uma academia é comparado só na academia mais usada em cada exercício (o nome aparece embaixo).' : '')+'</p></section>';
 
   // 6. check-in da semana: sempre de segunda a domingo, nos mesmos dias dos quadros acima
   const ck7 = Array.from({length:7},(_,i) => addDays(ini, i));
@@ -3781,7 +3796,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '26 nov · 182'; // Versão do painel: 26 nov · 182
+const PAINELV = '26 nov · 183'; // Versão do painel: 26 nov · 183
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';

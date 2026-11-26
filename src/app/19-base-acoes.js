@@ -329,7 +329,7 @@ function onClick(ev){
     case 'push-on': pushEnable(); re = false; break;
     case 'push-off': pushDisable(false); re = false; break;
     case 'goal': if(isPersonal()) break; S.waterGoal = Math.min(6000, Math.max(1000, S.waterGoal+ +d.d)); if(ui.sheet && ui.sheet.k==='prof') renderSheet(); break;
-    case 'cgoal': if(isPersonal()) break; S.cardioGoal = Math.min(600, Math.max(30, S.cardioGoal+ +d.d)); if(ui.sheet && ui.sheet.k==='prof') renderSheet(); break;
+    case 'cgoal': if(isPersonal()) break; S.cardioGoal = Math.min(600, Math.max(0, S.cardioGoal+ +d.d)); if(ui.sheet && ui.sheet.k==='prof') renderSheet(); break;
     case 'ed': if(isPersonal()) break; S.ed = d.v; if(ui.sheet && ui.sheet.k==='prof') renderSheet(); break;
     case 'foto-del': if(armed==='foto-del'){ saveFoto(''); toast('Foto removida.'); } else ui.arm = 'foto-del'; renderSheet(); break;
     case 'profile': ui.sheet = {k:'prof'}; renderSheet(true); re = false; break;
@@ -339,6 +339,7 @@ function onClick(ev){
     case 'month': ui.month = Math.min(0, Math.max(-11, ui.month+ +d.d)); break;
     case 'chart': ui.chartEx = d.v; break;
     case 'hist': ui.sheet = {k:'sum', i:+d.i}; renderSheet(true); re = false; break;
+    case 'b3-sx': B3.sx = b3Sexo()==='M' ? 'F' : 'M'; break;
     case 'rpe': S.history[ui.sheet.i].rpe = +d.v; save(); renderSheet(); re = false; break;
     case 'gym-pick': setGym(d.v); closeSheet(); toast('Treino na '+gymNow()+'. Bom treino.'); re = false; break;
     case 'gym-ok': { const el = document.getElementById('gym-in'), v = el ? gymNome(el.value) : ''; if(!v){ if(el){ el.setAttribute('aria-invalid','true'); el.focus(); } toast('Escreva o nome da academia ou toque em Pular.'); re = false; break; } setGym(v); closeSheet(); toast('Treino na '+gymNow()+'. Bom treino.'); re = false; break; }

@@ -272,7 +272,7 @@ function applyAccount(){
     ACCT.sexo = a.perfil.sexo==='M' ? 'M' : 'F'; ACCT.nome = a.perfil.nome; ACCT.plano = a.plano.nome; ACCT.pagoAte = a.financeiro && a.financeiro.pagoAte;
     SEMANA_TREINOS = a.metas.semanaTreinos || ACCT.dias.length || 3;
     S.nome = firstName(a.perfil.nome); if(ED[a.perfil.objetivo]) S.ed = a.perfil.objetivo;
-    S.waterGoal = a.metas.waterGoal || 3000; S.cardioGoal = a.metas.cardioGoal || 120;
+    S.waterGoal = a.metas.waterGoal || 3000; S.cardioGoal = a.metas.cardioGoal===0 ? 0 : (a.metas.cardioGoal || 120); // 0 = sem meta de cardio
     ajustaDias();
   } else {
     const c = S.conta || (S.conta = {sexo:'F', dias:[0,2,4], plan:'abc'});

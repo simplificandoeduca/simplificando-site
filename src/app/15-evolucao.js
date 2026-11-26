@@ -75,7 +75,7 @@ function vEvo(){
   const cell = (c,key) => {
     if(!c) return '<td><span class="cv none">·</span></td>';
     const v = c[key], flag = key==='sono' ? v<=5 : key==='energia' ? v<=2 : v>=3;
-    return `<td><span class="cv${flag?' flag':''}">${key==='sono'?v+'h':v}</span></td>`;
+    return `<td><span class="cv ci-${key}${flag?' flag':''}">${key==='sono'?v+'h':v}</span></td>`;
   };
   const ciT = `<table class="citab"><caption class="sr">Check-ins dos últimos 7 dias</caption><thead><tr><th></th>${cds.map(k => `<th scope="col">${k===t0?'hoje':WD[(parse(k).getDay()+6)%7]}</th>`).join('')}</tr></thead><tbody>
     <tr><th scope="row">Sono</th>${cds.map(k => cell(S.checkin[k],'sono')).join('')}</tr>
@@ -90,7 +90,7 @@ function vEvo(){
   const wAg = ds.slice(0,di+1).filter(k => (S.water[k]||0)>=S.waterGoal).length, wPr = wTr.reduce((a,h) => a+((h.prs||[]).length),0);
   const semana = `<section class="card ev-sem"><div class="card-h"><span class="label">${ic('cal')}Esta semana</span></div><div class="ev-semg">
     <div class="${wTr.length>=SEMANA_TREINOS?'ok':''}"><b>${wTr.length}<small>/${SEMANA_TREINOS}</small></b><span>treinos</span></div>
-    <div class="${S.cardioGoal && wCa>=S.cardioGoal?'ok':''}"><b>${wCa}<small>/${S.cardioGoal}</small></b><span>min de cardio</span></div>
+    <div class="${S.cardioGoal && wCa>=S.cardioGoal?'ok':''}"><b>${wCa}${S.cardioGoal ? `<small>/${S.cardioGoal}</small>` : ''}</b><span>min de cardio</span></div>
     <div class="${wAg>=7?'ok':''}"><b>${wAg}<small>/7</small></b><span>dias de água</span></div>
     <div class="${wPr?'ok':''}"><b>${wPr}</b><span>recorde${wPr===1?'':'s'}</span></div></div></section>`;
   const vazio = !S.history.length; // sem nenhum treino: um aviso só, no lugar de carga, recordes e histórico vazios
