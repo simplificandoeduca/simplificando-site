@@ -66,6 +66,7 @@ rep("'simp-app-v'", "'simpteste-aluno-v'", 2)
 rep("'simp-estado'", "'simpteste-aluno-estado'", 3)
 rep("function boot(){\n", "function boot(){\n  if(!readSess()) writeSess({mode:'personal', code:'482913'}); // app de teste: entra direto com o aluno de exemplo, sem senha\n")
 rep("  if(needAceite()){ LG.view = 'aceite';", "  if(needAceite() && ACCT.mode==='personal'){ S.aceite = aceiteNovo(false); save(); } // app de teste: termos já aceitos\n  if(needAceite()){ LG.view = 'aceite';")
+rep("const EM_TESTE = false;", "const EM_TESTE = true;")
 rep("const B3_ON = false, B3_TROCA = false;", "const B3_ON = true, B3_TROCA = true;") # boneco 3D do cardio: por enquanto só no app de teste
 os.makedirs(R+'site/app-teste/b3', exist_ok=True)
 for f in sorted(os.listdir(R+'src/b3')): shutil.copyfile(R+'src/b3/'+f, R+'site/app-teste/b3/'+f)

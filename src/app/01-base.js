@@ -8,6 +8,7 @@ let OBRIG = []; // cardio obrigatório do personal: [{local:'Escada', min:40, ve
 const LOCAIS_ALL = ['Esteira','Bicicleta','Rua','Escada','Elíptico','Outro'];
 let LOCAIS = LOCAIS_ALL.slice();
 const INTENS = ['Leve','Moderada','Forte'];
+const EM_TESTE = false; // novidades que ainda estão só no app de teste (o build liga em /app-teste); quando forem aprovadas, vira true para todos
 const ZONA = { Leve:['Zona 2','dá para conversar tranquilo'], Moderada:['Zona 3','só frases curtas'], Forte:['Zona 4','só palavras soltas'] };
 let SEMANA_TREINOS = 4;
 const streakMin = () => Math.max(1, Math.min(7, SEMANA_TREINOS || STREAK_MIN_DEF));

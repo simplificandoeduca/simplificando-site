@@ -558,7 +558,7 @@ button.row:active{background:var(--ctl)}
 .citab tbody th{text-align:left;width:62px;font-size:12px;color:var(--fg)}
 .citab td{text-align:center;padding:0}
 .cv{display:grid;place-items:center;height:30px;border-radius:10px;background:var(--ctl);font-size:13px;font-weight:800}
-.cv.ci-sono{background:#A98BFF;color:#0F1712}.cv.ci-energia{background:#C6F04A;color:#0F1712}.cv.ci-dor{background:#5AB8FF;color:#0F1712}
+.cv.ci-bom{background:#C6F04A;color:#0F1712}.cv.ci-meio{background:#FF9A3C;color:#0F1712}.cv.ci-ruim{background:#FF9C9C;color:#0F1712}
 .cv.flag{background:var(--coral);color:#0F1712}
 .cv.none{background:transparent;color:var(--muted);box-shadow:inset 0 0 0 1px var(--sep)}
 
@@ -1892,6 +1892,7 @@ let OBRIG = []; // cardio obrigatório do personal: [{local:'Escada', min:40, ve
 const LOCAIS_ALL = ['Esteira','Bicicleta','Rua','Escada','Elíptico','Outro'];
 let LOCAIS = LOCAIS_ALL.slice();
 const INTENS = ['Leve','Moderada','Forte'];
+const EM_TESTE = true; // novidades que ainda estão só no app de teste (o build liga em /app-teste); quando forem aprovadas, vira true para todos
 const ZONA = { Leve:['Zona 2','dá para conversar tranquilo'], Moderada:['Zona 3','só frases curtas'], Forte:['Zona 4','só palavras soltas'] };
 let SEMANA_TREINOS = 4;
 const streakMin = () => Math.max(1, Math.min(7, SEMANA_TREINOS || STREAK_MIN_DEF));
@@ -5617,7 +5618,10 @@ function vEvo(){
   const cell = (c,key) => {
     if(!c) return '<td><span class="cv none">·</span></td>';
     const v = c[key], flag = key==='sono' ? v<=5 : key==='energia' ? v<=2 : v>=3;
-    return `<td><span class="cv ci-${key}${flag?' flag':''}">${key==='sono'?v+'h':v}</span></td>`;
+    if(!EM_TESTE) return `<td><span class="cv${flag?' flag':''}">${key==='sono'?v+'h':v}</span></td>`;
+    // verde = bom, laranja = meio, vermelho = atenção (sono: 8h ou mais / 7h / 6h ou menos · energia: 5 / 3 e 4 / 1 e 2 · dor: sem dor / com dor)
+    const cor = key==='sono' ? (v>=8 ? 'bom' : v<=6 ? 'ruim' : 'meio') : key==='energia' ? (v>=5 ? 'bom' : v<=2 ? 'ruim' : 'meio') : (v>0 ? 'ruim' : 'bom');
+    return `<td><span class="cv ci-${cor}">${key==='sono'?v+'h':v}</span></td>`;
   };
   const ciT = `<table class="citab"><caption class="sr">Check-ins dos últimos 7 dias</caption><thead><tr><th></th>${cds.map(k => `<th scope="col">${k===t0?'hoje':WD[(parse(k).getDay()+6)%7]}</th>`).join('')}</tr></thead><tbody>
     <tr><th scope="row">Sono</th>${cds.map(k => cell(S.checkin[k],'sono')).join('')}</tr>
@@ -5647,7 +5651,7 @@ function vEvo(){
     (vazio ? `<section class="card blk-cream">${empBox('carga','Sua evolução começa no 1º treino','Depois dos treinos, aqui aparecem o gráfico das cargas, os recordes e o histórico de cada dia.',true)}</section>` :
     `<h3 class="sec">Evolução de carga<span class="dot" aria-hidden="true"></span></h3><section class="card blk-cream">${loadSec}</section>`+
     `<h3 class="sec">Recordes<span class="dot" aria-hidden="true"></span></h3><div class="list">${prs}</div>`)+
-    `<h3 class="sec">Check-ins<span class="dot" aria-hidden="true"></span></h3><section class="card">${ciT}<p class="foot0">Em destaque: sono de 5h ou menos, energia 2 ou menos, dor 3 (forte). Dor vai de 0 (nenhuma) a 3.</p></section>`+
+    `<h3 class="sec">Check-ins<span class="dot" aria-hidden="true"></span></h3><section class="card">${ciT}${EM_TESTE ? '<p class="foot0">Verde: sono de 8h ou mais, energia 5 e sem dor. Laranja: sono de 7h e energia 3 ou 4. Vermelho: sono de 6h ou menos, energia 1 ou 2 e dia com dor (de 1 a 3).</p>' : `<p class="foot0">Em destaque: sono de 5h ou menos, energia 2 ou menos, dor 3 (forte). Dor vai de 0 (nenhuma) a 3.</p>`}</section>`+
     (vazio ? '' : `<h3 class="sec">Histórico<span class="dot" aria-hidden="true"></span></h3><div class="list">${hist}</div>`)+
     `<p class="foot">Os registros ficam salvos neste aparelho. Ajustes e preferências ficam no seu perfil (toque na engrenagem).</p>`;
 }
@@ -5775,7 +5779,7 @@ function vSummary(i){
     <div class="sg-pr">${tw('s-pr',prd.length,'i',String(prd.length))}<span>recorde${prd.length===1?'':'s'} pessoa${prd.length===1?'l':'is'}</span></div></div>
     <button type="button" class="btn block sum-edit" data-a="hed-open" data-i="${i}">${ic('edit')}Editar séries${(() => { const n = hedFaltam(h); return n ? `<span class="pill warn">${n===1 ? '1 exercício sem registro' : n+' exercícios sem registro'}</span>` : ''; })()}</button>
     ${prRows?`<h3>Recordes</h3><div class="list">${prRows}</div>`:''}
-    <div class="field"><span class="flabel">${ic('bolt')}Esforço do treino, de 1 a 10</span><div class="rpe" role="group" aria-label="Esforço do treino">${Array.from({length:10},(_,j) => j+1).map(n => `<button type="button" class="${h.rpe>=n?'on':''}" aria-pressed="${h.rpe===n}" data-a="rpe" data-v="${n}">${n}</button>`).join('')}</div><div class="scale"><span>muito leve</span><span>máximo</span></div></div>
+    <div class="field"><span class="flabel">${ic('bolt')}Esforço do treino, de 1 a 10</span><div class="rpe" role="group" aria-label="Esforço do treino">${Array.from({length:10},(_,j) => j+1).map(n => `<button type="button" class="${(EM_TESTE ? h.rpe>=n : h.rpe===n)?'on':''}" aria-pressed="${h.rpe===n}" data-a="rpe" data-v="${n}">${n}</button>`).join('')}</div><div class="scale"><span>muito leve</span><span>máximo</span></div></div>
     <div class="field"><label class="flabel" for="sum-note">${ic('msg')}${isPersonal()?'Mensagem pro personal':'Anotação do treino'}</label><textarea id="sum-note" rows="3" data-note="${i}" placeholder="Ex.: senti o joelho no afundo">${esc(h.note||'')}</textarea></div>
     <button type="button" class="btn primary block" data-a="sum-save">${ic('check')}Salvar</button>
     <p class="foot0">${isPersonal()?'Fica salvo junto com o treino para o seu personal ver.':'Fica salva junto com o treino, no seu histórico.'}</p></div></div>`;
@@ -6939,7 +6943,7 @@ function onClick(ev){
     case 'push-on': pushEnable(); re = false; break;
     case 'push-off': pushDisable(false); re = false; break;
     case 'goal': if(isPersonal()) break; S.waterGoal = Math.min(6000, Math.max(1000, S.waterGoal+ +d.d)); if(ui.sheet && ui.sheet.k==='prof') renderSheet(); break;
-    case 'cgoal': if(isPersonal()) break; S.cardioGoal = Math.min(600, Math.max(0, S.cardioGoal+ +d.d)); if(ui.sheet && ui.sheet.k==='prof') renderSheet(); break;
+    case 'cgoal': if(isPersonal()) break; S.cardioGoal = Math.min(600, Math.max(EM_TESTE ? 0 : 30, S.cardioGoal+ +d.d)); if(ui.sheet && ui.sheet.k==='prof') renderSheet(); break;
     case 'ed': if(isPersonal()) break; S.ed = d.v; if(ui.sheet && ui.sheet.k==='prof') renderSheet(); break;
     case 'foto-del': if(armed==='foto-del'){ saveFoto(''); toast('Foto removida.'); } else ui.arm = 'foto-del'; renderSheet(); break;
     case 'profile': ui.sheet = {k:'prof'}; renderSheet(true); re = false; break;

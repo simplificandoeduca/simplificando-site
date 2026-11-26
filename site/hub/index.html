@@ -2287,14 +2287,12 @@ function shareText(a){
   const agua = +m.waterGoal ? fmtN(m.waterGoal/1000,1)+' L por dia' : '', cg = +m.cardioGoal, cz = (m.cardio||{});
   const cardio = cg ? cg+' min por semana'+(+cz.min ? ' (sessões de '+cz.min+' min'+(cz.zona ? ', '+cz.zona : '')+')' : '') : '';
   const sem = Math.round(+pl.semanas || 0);
-  const falta = [!isDate(p.nascimento) && 'sua data de nascimento', !(+p.altura>0) && 'sua altura', !(+p.peso>0) && 'seu peso'].filter(Boolean); // o que ainda não está na ficha
   return 'Oi, '+curto(a)+'! 🎉 Seu treino está pronto no app Simplificando.\n\n'+
     '📲 *Como entrar*\n1. Abra o app: '+appLink()+'\n'+(mail ? '2. E-mail: '+mail+'\n3. Senha: '+cod+'\n' : '2. Senha: '+cod+'\n')+
     'Dica: salve o app na tela inicial do celular para abrir com um toque.\n\n'+
     (div ? '🏋️ *Sua divisão'+(pl.nome ? ' · '+String(pl.nome).trim() : '')+'*\n'+div+'\n'+(freq ? 'Frequência: '+freq+'x por semana'+(dias.length ? ' ('+dias.join(', ')+')' : ', nos dias que for melhor para você')+'.\n' : '')+'O app mostra qual treino fazer em cada dia.\n\n' : '')+
     (agua || cardio ? '🎯 *Suas metas*\n'+(agua ? '💧 Água: '+agua+'\n' : '')+(cardio ? '🏃 Cardio: '+cardio+'\n' : '')+'\n' : '')+
     '✅ *Para render mais*\n• Marque as séries e as cargas: o app sugere quando subir o peso.\n• Faça o check-in do dia (sono, energia e dor) antes de treinar.\n• Use o "Como foi" no fim do exercício para me contar como foi.\n\n'+
-    (falta.length ? '📝 *Para completar o seu cadastro*\nMe manda aqui, por favor: '+falta.join(', ').replace(/, ([^,]*)$/,' e $1')+'.\n\n' : '')+
     (sem ? 'Este ciclo tem duração de '+plural(sem,'semana')+'. Depois a gente ajusta junto. ' : '')+'Qualquer dúvida, me chama aqui. Bora! 💪'+
     (c.nomePersonal ? '\n\n'+c.nomePersonal : '');
 }
@@ -3267,7 +3265,7 @@ function cicloResumo(a){
   const sem = ini ? Math.max(1, Math.round(diffDays(today(), ini)/7)) : 0;
   const sobe = Object.entries(cargasMesmaAcad(H)).map(([n,q]) => ({ n, de:q.v[0], para:Math.max(...q.v), dif:Math.max(...q.v)-q.v[0], gym:q.gym, varias:q.varias })).filter(x => x.dif>0).sort((x,y) => y.dif/y.de - x.dif/x.de).slice(0,3);
   const W = d.w || {}, aguaDias = wg ? Object.keys(W).filter(k => (!ini || k>=ini) && +W[k]>=wg).length : 0;
-  const freq = letters(pl).length || +(a.metas||{}).semanaTreinos || 0, prev = ini && freq ? Math.max(H.length, Math.round(Math.min(diffDays(today(), ini)+1, (+pl.semanas||52)*7)/7*freq)) : 0; // treinos previstos até hoje
+  const freq = letters(pl).length || +(a.metas||{}).semanaTreinos || 0, prev = freq && +pl.semanas>0 ? Math.max(H.length, Math.round(+pl.semanas*freq)) : 0; // treinos do ciclo inteiro: frequência da semana × semanas do ciclo
   return { tem:!!pg, treinos:H.length, prev, sem, cardio:Cd.reduce((t,c) => t+(+c.min||0),0), sobe, aguaDias, wg };
 }
 function primeiroText(a){
@@ -3742,7 +3740,7 @@ function tNotas(a){
 
 /* ---------- primeiro contato: mensagem com as perguntas e leitura das respostas ---------- */
 const CT_Q = [
-  ['dados','Seus dados','Nome completo, data de nascimento, e-mail, peso e altura','📋','Nome e e-mail criam o acesso ao app. A idade muda o volume e a recuperação. Peso e altura dão o IMC, a meta de água (35 ml por kg) e servem de ponto de partida para comparar daqui a 6 semanas.'],
+  ['dados','Seus dados','Nome completo, como gosta de ser chamada(o), WhatsApp, data de nascimento, e-mail, peso e altura','📋','Nome e e-mail criam o acesso ao app. A idade muda o volume e a recuperação. Peso e altura dão o IMC, a meta de água (35 ml por kg) e servem de ponto de partida para comparar daqui a 6 semanas.'],
   ['objetivo','Objetivo','Qual seu objetivo principal hoje? (Ex.: emagrecer, ganhar massa, condicionamento, correr melhor)','🎯','Define a divisão, as séries e repetições, o descanso e quanto cardio entra. Treino para emagrecer, ganhar massa ou correr é diferente.'],
   ['futuro','Visão de futuro','O que você espera ver de resultado no seu corpo daqui a 6 semanas?','🚀','Mostra a expectativa da pessoa. Ajuda a combinar uma meta real e a escolher o que medir (peso, cintura, foto, carga) para mostrar o resultado.'],
   ['exp','Experiência','Já treina? Há quanto tempo? Se está parada(o), há quanto tempo?','💪','Define o nível: quantos exercícios, quanta técnica nova e quanta carga dá para usar. Quem está parado volta mais devagar para não se machucar.'],
@@ -3779,6 +3777,13 @@ function ctLer(txt){
   const R = ctSplit(txt), all = Object.values(R).join('\n'), x = {}, sem = s => semAc(s||'');
   const d1 = R[1] || all;
   const em = all.match(/[\w.+-]+@[\w-]+\.[\w.-]+/); if(em) x.email = em[0].toLowerCase();
+  // nome: o rótulo "nome:" ou o primeiro trecho só com letras (2 palavras ou mais) da resposta 1
+  const limpa = s => String(s||'').replace(/^[\s*_\-–•]+/,'').replace(/^(meu\s+)?nome(\s+completo)?\s*(é|e|:|-)?\s*/i,'').replace(/[\s*_.]+$/,'').trim();
+  const rot = d1.match(/nome(?:\s+completo)?\s*[:\-]\s*([^\n,;]+)/i), cand = (rot ? [rot[1]] : d1.split(/[\n,;]|\s[-–|]\s/)).map(limpa).find(s => /^[A-Za-zÀ-ÿ' ]{5,60}$/.test(s) && s.split(/\s+/).length>=2 && !/anos?|kg|quilos|altura|peso|email|e-mail/i.test(s));
+  if(cand) x.nome = cand.split(/\s+/).map(w => /^(da|de|do|das|dos|e)$/i.test(w) ? w.toLowerCase() : w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(' ');
+  const ap = all.match(/(?:apelido\s*[:\-]?|me\s+chama[mr]?\s+de|pode(?:m)?\s+me\s+chamar\s+de|ser\s+chamad[ao]\s+(?:de|por)|chamad[ao]\s+de)\s*:?\s*([A-Za-zÀ-ÿ]{2,20})/i); if(ap) x.apelido = ap[1].charAt(0).toUpperCase()+ap[1].slice(1);
+  const tel = all.replace(/\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{2,4}/g,' ').match(/(?:\+?55[\s.-]*)?\(?\b\d{2}\)?[\s.-]*9[\s.-]?\d{4}[\s.-]?\d{4}\b/); if(tel) x.whatsapp = tel[0].replace(/\D/g,'').replace(/^55(?=\d{11}$)/,'');
+  const gF = /\b(parada|descansada|cansada|animada|sozinha|obrigada)\b/i.test(all), gM = /\b(parado|descansado|cansado|animado|sozinho|obrigado)\b/i.test(all); if(gF!==gM) x.sexo = gF ? 'F' : 'M';
   const nas = d1.match(/\b(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})\b/); if(nas){ let y = +nas[3]; if(y<100) y += y>30 ? 1900 : 2000; const m = +nas[2], dd = +nas[1]; if(m>=1 && m<=12 && dd>=1 && dd<=31 && y>1920) x.nascimento = y+'-'+String(m).padStart(2,'0')+'-'+String(dd).padStart(2,'0'); }
   const pk = d1.match(/(\d{2,3}(?:[.,]\d)?)\s*(?:kg|quilos?|kilos?)/i); if(pk) x.peso = +pk[1].replace(',','.');
   const al = d1.match(/\b(1)[.,](\d{2})\s*(?:m\b|metros?)?/) || d1.match(/\b(1\d{2})\s*cm/i); if(al) x.altura = al[2] ? +(al[1]+al[2]) : +al[1];
@@ -3794,8 +3799,8 @@ function ctLer(txt){
 }
 const CT_LBL = { email:'E-mail', nascimento:'Nascimento', peso:'Peso', altura:'Altura', objetivo:'Objetivo', nivel:'Nível', frequencia:'Frequência', tempoSessao:'Tempo por sessão', local:'Onde treina', saude:'Saúde (observações)' };
 const ctVal = (k,v) => k==='objetivo' ? ED[v] : k==='nivel' ? NIVEL[v] : k==='local' ? LOCAL[v] : k==='peso' ? fmtN(v)+' kg' : k==='altura' ? v+' cm' : k==='frequencia' ? v+'x por semana' : k==='tempoSessao' ? v+' min' : k==='nascimento' ? fmtD(v) : String(v);
-function ctAplica(A){
-  const ta = document.getElementById('ct-resp'), txt = ta ? ta.value : '';
+function ctAplica(A, colado){
+  const ta = document.getElementById('ct-resp'), txt = colado!=null ? colado : ta ? ta.value : '';
   if(!txt.trim()){ toast('Cole a resposta da pessoa primeiro.'); return; }
   const { R, x } = ctLer(txt), p = A.perfil = A.perfil || {}, feito = [], pulou = [];
   const put = (k, has, set) => { if(x[k]==null) return; if(has){ pulou.push(CT_LBL[k]); return; } set(x[k]); feito.push(CT_LBL[k]+': '+ctVal(k,x[k])); };
@@ -3811,6 +3816,7 @@ function ctAplica(A){
   if(x.saude){ A.saude = A.saude || {}; const old = String(A.saude.obs||''); if(!old.includes(x.saude)){ A.saude.obs = (old ? old+'\n' : '')+'Primeiro contato: '+x.saude; feito.push(CT_LBL.saude); } }
   A.anamnese = { texto:txt.slice(0,6000), em:today(), r:Object.fromEntries(Object.entries(R).map(([k,v]) => [k, String(v).slice(0,1200)])) };
   A.anamnese.ok = feito; ui.ctMsg = { feito, pulou };
+  if(colado!=null) return feito;
   Store.save('alunos', ui.aluno, 0); render();
   toast(feito.length ? 'Perfil preenchido com '+plural(feito.length,'informação','informações') : 'Respostas guardadas. Nada novo para preencher.');
 }
@@ -4326,7 +4332,11 @@ function vSheet(){
   const s = ui.sheet; if(!s) return '';
   if(s.k==='novo'){
     const d = ui.draft.novo;
-    return sheetTop('Novo aluno','Cadastrar aluno')+'<p class="muted">O resto (saúde, treino, metas) você completa depois, com salvamento automático.</p><div class="form">'+
+    return sheetTop('Novo aluno','Cadastrar aluno')+
+      '<section class="card nv-ct"><span class="label">'+ic('bolt')+'Preencher com a resposta</span><p class="muted">Cole a resposta que a pessoa mandou para a mensagem do primeiro contato. O painel preenche nome, apelido, WhatsApp, e-mail e gênero aqui, e o resto (nascimento, peso, altura, objetivo, nível, frequência, local e saúde) entra na ficha quando você criar o aluno.</p>'+
+      '<label class="sr" for="nv-resp">Resposta da pessoa</label><textarea id="nv-resp" class="share" rows="5" placeholder="Cole aqui a resposta inteira…">'+esc(d._ct||'')+'</textarea>'+
+      '<div class="btn-row"><button type="button" class="btn primary" data-a="nvLer">'+ic('bolt')+'Preencher o cadastro</button></div>'+(d._ok ? '<p class="callout">'+ic('check')+'<span>'+esc(d._ok)+'</span></p>' : '')+'</section>'+
+      '<p class="muted">O resto (saúde, treino, metas) você completa depois, com salvamento automático.</p><div class="form">'+
       inp({d:'novo.nome',label:'Nome completo',val:d.nome,req:true,v:'req',id:'nv-nome'})+inp({d:'novo.apelido',label:'Apelido',val:d.apelido,id:'nv-apelido'})+inp({d:'novo.whatsapp',label:'WhatsApp',val:d.whatsapp,type:'tel',im:'tel',v:'tel',id:'nv-wa',ph:'(11) 98765-4321'})+inp({d:'novo.email',label:'E-mail (obrigatório)',val:d.email,type:'email',im:'email',req:true,v:'emailreq',id:'nv-email',ph:'nome@email.com'})+'<p class="muted" style="margin:-4px 0 0;font-size:12px">É para onde vai o link de redefinir a senha.</p></div>'+
       segB({d:'novo.sexo',label:'Gênero (define o boneco do app)',val:d.sexo||'',opts:Object.entries(SEXO)})+
       segB({d:'novo.objetivo',label:'Objetivo',val:d.objetivo||'hipertrofia',chips:true,opts:Object.keys(ED).map(k => [k,ED[k],'var(--ed-'+k+')'])})+
@@ -5132,6 +5142,13 @@ function act(a,d,btn){
     case 'back': ui.aluno = null; window.scrollTo(0,0); break;
     case 'dtab': ui.tab = d.v; break;
     case 'novo': ui.draft.novo = {objetivo:'hipertrofia', origem:'particular', plano:''}; openSheet({k:'novo'}); return false;
+    case 'nvLer': { const n = ui.draft.novo, ta = document.getElementById('nv-resp'), txt = ta ? ta.value : '';
+      if(!txt.trim()){ toast('Cole a resposta da pessoa primeiro.'); return false; }
+      const x = ctLer(txt).x, feito = []; n._ct = txt;
+      [['nome','Nome'],['apelido','Apelido'],['whatsapp','WhatsApp'],['email','E-mail'],['sexo','Gênero'],['objetivo','Objetivo']].forEach(([k,l]) => { if(x[k]!=null && x[k]!==''){ n[k] = x[k]; feito.push(l); } });
+      const depois = ['nascimento','peso','altura','nivel','frequencia','tempoSessao','local','saude'].filter(k => x[k]!=null).map(k => CT_LBL[k]);
+      n._ok = (feito.length ? 'Preenchido: '+feito.join(', ')+'. ' : 'Não achei nome, WhatsApp nem e-mail na resposta. ')+(depois.length ? 'Entram na ficha ao criar: '+depois.join(', ')+'. ' : '')+'Confira os campos abaixo.';
+      renderSheet(); return false; }
     case 'createAluno': {
       const n = ui.draft.novo, el = document.getElementById('nv-nome'), wa = document.getElementById('nv-wa');
       const okN = el ? validate(el) : !!(n.nome||'').trim(), okW = wa ? validate(wa) : true;
@@ -5139,7 +5156,7 @@ function act(a,d,btn){
       if(!okW){ wa.focus(); return false; }
       const em = document.getElementById('nv-email'); if(em && !validate(em)){ em.focus(); return false; }
       if(!n.sexo){ const er = document.getElementById('nv-err'); if(er) er.textContent = 'Escolha o gênero do aluno: feminino ou masculino.'; return false; }
-      const id = 'a-'+uid(); C.alunos[id] = newAluno(n); Store.save('alunos',id,0);
+      const id = 'a-'+uid(); C.alunos[id] = newAluno(n); if(n._ct){ ui.ctAluno = id; ctAplica(C.alunos[id], n._ct); } Store.save('alunos',id,0);
       ui.sheet = null; renderSheet(); ui.view = 'alunos'; ui.aluno = id; ui.tab = 'perfil'; toast('Aluno criado. Código de acesso: '+C.alunos[id].acesso.codigo); window.scrollTo(0,0); break; }
     case 'set': {
       const v = d.t==='i' ? +d.v : d.t==='b' ? d.v==='true' : d.v;

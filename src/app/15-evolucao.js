@@ -75,7 +75,10 @@ function vEvo(){
   const cell = (c,key) => {
     if(!c) return '<td><span class="cv none">·</span></td>';
     const v = c[key], flag = key==='sono' ? v<=5 : key==='energia' ? v<=2 : v>=3;
-    return `<td><span class="cv ci-${key}${flag?' flag':''}">${key==='sono'?v+'h':v}</span></td>`;
+    if(!EM_TESTE) return `<td><span class="cv${flag?' flag':''}">${key==='sono'?v+'h':v}</span></td>`;
+    // verde = bom, laranja = meio, vermelho = atenção (sono: 8h ou mais / 7h / 6h ou menos · energia: 5 / 3 e 4 / 1 e 2 · dor: sem dor / com dor)
+    const cor = key==='sono' ? (v>=8 ? 'bom' : v<=6 ? 'ruim' : 'meio') : key==='energia' ? (v>=5 ? 'bom' : v<=2 ? 'ruim' : 'meio') : (v>0 ? 'ruim' : 'bom');
+    return `<td><span class="cv ci-${cor}">${key==='sono'?v+'h':v}</span></td>`;
   };
   const ciT = `<table class="citab"><caption class="sr">Check-ins dos últimos 7 dias</caption><thead><tr><th></th>${cds.map(k => `<th scope="col">${k===t0?'hoje':WD[(parse(k).getDay()+6)%7]}</th>`).join('')}</tr></thead><tbody>
     <tr><th scope="row">Sono</th>${cds.map(k => cell(S.checkin[k],'sono')).join('')}</tr>
@@ -105,7 +108,7 @@ function vEvo(){
     (vazio ? `<section class="card blk-cream">${empBox('carga','Sua evolução começa no 1º treino','Depois dos treinos, aqui aparecem o gráfico das cargas, os recordes e o histórico de cada dia.',true)}</section>` :
     `<h3 class="sec">Evolução de carga<span class="dot" aria-hidden="true"></span></h3><section class="card blk-cream">${loadSec}</section>`+
     `<h3 class="sec">Recordes<span class="dot" aria-hidden="true"></span></h3><div class="list">${prs}</div>`)+
-    `<h3 class="sec">Check-ins<span class="dot" aria-hidden="true"></span></h3><section class="card">${ciT}<p class="foot0">Em destaque: sono de 5h ou menos, energia 2 ou menos, dor 3 (forte). Dor vai de 0 (nenhuma) a 3.</p></section>`+
+    `<h3 class="sec">Check-ins<span class="dot" aria-hidden="true"></span></h3><section class="card">${ciT}${EM_TESTE ? '<p class="foot0">Verde: sono de 8h ou mais, energia 5 e sem dor. Laranja: sono de 7h e energia 3 ou 4. Vermelho: sono de 6h ou menos, energia 1 ou 2 e dia com dor (de 1 a 3).</p>' : `<p class="foot0">Em destaque: sono de 5h ou menos, energia 2 ou menos, dor 3 (forte). Dor vai de 0 (nenhuma) a 3.</p>`}</section>`+
     (vazio ? '' : `<h3 class="sec">Histórico<span class="dot" aria-hidden="true"></span></h3><div class="list">${hist}</div>`)+
     `<p class="foot">Os registros ficam salvos neste aparelho. Ajustes e preferências ficam no seu perfil (toque na engrenagem).</p>`;
 }

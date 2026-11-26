@@ -329,7 +329,7 @@ function onClick(ev){
     case 'push-on': pushEnable(); re = false; break;
     case 'push-off': pushDisable(false); re = false; break;
     case 'goal': if(isPersonal()) break; S.waterGoal = Math.min(6000, Math.max(1000, S.waterGoal+ +d.d)); if(ui.sheet && ui.sheet.k==='prof') renderSheet(); break;
-    case 'cgoal': if(isPersonal()) break; S.cardioGoal = Math.min(600, Math.max(0, S.cardioGoal+ +d.d)); if(ui.sheet && ui.sheet.k==='prof') renderSheet(); break;
+    case 'cgoal': if(isPersonal()) break; S.cardioGoal = Math.min(600, Math.max(EM_TESTE ? 0 : 30, S.cardioGoal+ +d.d)); if(ui.sheet && ui.sheet.k==='prof') renderSheet(); break;
     case 'ed': if(isPersonal()) break; S.ed = d.v; if(ui.sheet && ui.sheet.k==='prof') renderSheet(); break;
     case 'foto-del': if(armed==='foto-del'){ saveFoto(''); toast('Foto removida.'); } else ui.arm = 'foto-del'; renderSheet(); break;
     case 'profile': ui.sheet = {k:'prof'}; renderSheet(true); re = false; break;
