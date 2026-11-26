@@ -268,8 +268,46 @@ function oldFill(c,key,str){
     old(() => { ['eqF','dkF','grF'].forEach(k => oldFill(c,k,d[k])); oldFill(c,'ropeF',d.ropeF); });
   };
 });
+/* ---------- boneco 3D (por enquanto só no app de teste e só na Rua): sequência de imagens recortadas numa cena de rua desenhada pelo app ---------- */
+/* cada folha (src/b3/rua-*.webp) é uma passada completa; w,h = tamanho de um quadro · D = quadros · g = linha do chão · vel = quanto o pé de apoio anda para trás por quadro · bot/cx = pé mais baixo e centro do corpo em cada quadro */
+const B3_ON = false;
+const B3_M = { F:{w:218,h:300,D:21,g:297,vel:21.5,cxm:122.5,alt:164,bot:[283,289,295,296,297,297,297,296,296,295,288,282,288,294,296,295,295,295,294,294,291],cx:[126,126,126,126,122,116,110,116,121,123,126,130,131,124,118,112,116,123,127,128,128]},
+  M:{w:220,h:300,D:20,g:297,vel:22.5,cxm:132.4,alt:172,bot:[297,297,297,296,296,296,295,289,287,291,294,295,295,295,294,294,293,287,287,294],cx:[130,131,132,131,134,136,134,132,132,132,134,136,133,136,135,133,131,128,128,128]} };
+const B3_ARV = '<svg viewBox="0 0 105 96" aria-hidden="true"><rect x="20" y="52" width="5" height="44" fill="var(--b3-tronco)"/><circle cx="22" cy="40" r="19" fill="var(--b3-arv)"/><circle cx="34" cy="50" r="13" fill="var(--b3-arv)"/><circle cx="11" cy="52" r="11" fill="var(--b3-arv)"/><rect x="76" y="18" width="3.5" height="78" fill="var(--b3-poste)"/><rect x="76" y="18" width="16" height="3.5" rx="1.5" fill="var(--b3-poste)"/><rect x="88" y="20" width="8" height="5" rx="2.5" fill="var(--b3-faixa)"/></svg>';
+const B3 = { el:null, M:null, s:1, k:1, ph:0, cx:179, raf:0, last:0, ro:null, p:null };
+const b3Html = (k,rot) => `<div class="b3" data-int="${k}" role="img" aria-label="${esc(rot)}"><div class="b3i"><i class="ceu"></i><i class="sol"></i><svg class="longe" viewBox="0 0 358 74" preserveAspectRatio="none" aria-hidden="true"><path fill="var(--b3-longe)" d="M0 74V40h22V22h26v18h14V8h30v32h18V28h24v12h12V16h34v24h16V34h22v6h14V4h28v36h20V24h26v16h20V36h0V74z"/></svg><div class="meio">${B3_ARV.repeat(12)}</div><i class="calc"></i><i class="rua"></i><i class="grao"></i><i class="faixa"></i><i class="sm"></i><i class="bn"></i></div></div>`;
+function b3Draw(){
+  const M = B3.M, s = B3.s, p = B3.p; if(!M || !p) return;
+  const k = Math.floor(B3.ph)%M.D, v = M.vel*s, o = (B3.ph%(M.D*3))*v, e = 1-Math.min(.5,(M.g-M.bot[k])*s/16);
+  p.bn.style.backgroundPositionX = (-k*B3.sw)+'px'; p.bn.style.left = (B3.cx-M.cxm*s-(M.cx[k]-M.cxm)*s*.7)+'px';
+  p.fx.style.backgroundPositionX = p.gr.style.backgroundPositionX = (-o)+'px';
+  p.me.style.transform = 'translateX('+(-((B3.ph%(M.D*3))*105/M.D)%105)+'px)';
+  p.sm.style.left = B3.cx+'px'; p.sm.style.transform = 'scale('+e+')'; p.sm.style.opacity = .55+e*.45;
+}
+function b3Frame(ts){
+  B3.raf = 0;
+  if(!B3.el || !B3.el.isConnected || document.visibilityState==='hidden'){ B3.last = 0; return; }
+  const dt = B3.last ? Math.min(.05,(ts-B3.last)/1000) : 0; B3.last = ts;
+  B3.ph += dt*24*[.8,1,1.22][B3.k]; b3Draw();
+  B3.raf = requestAnimationFrame(b3Frame);
+}
+function b3Kick(){ if(!B3.raf && B3.el && B3.el.isConnected && !RM() && document.visibilityState!=='hidden'){ B3.last = 0; B3.raf = requestAnimationFrame(b3Frame); } }
+function b3Init(){
+  const el = ($sheet && $sheet.querySelector('.sheet-wrap:not(.closing) .b3')) || $app.querySelector('.b3');
+  if(B3.ro){ B3.ro.disconnect(); B3.ro = null; }
+  if(!el){ cancelAnimationFrame(B3.raf); B3.raf = 0; B3.el = null; return; }
+  const sx = sexOf()==='M' ? 'M' : 'F', M = B3_M[sx], i = el.firstElementChild, q = c => i.querySelector(c), sw = Math.round(M.w*M.alt/(M.g-4)), s = sw/M.w, per = M.vel*s*M.D/3;
+  B3.el = el; B3.M = M; B3.s = s; B3.sw = sw; B3.k = Math.max(0, Math.min(2, +el.dataset.int||0)); B3.p = { bn:q('.bn'), sm:q('.sm'), fx:q('.faixa'), gr:q('.grao'), me:q('.meio') };
+  B3.p.bn.style.cssText = 'background-image:url(b3/rua-'+sx.toLowerCase()+'.webp);width:'+sw+'px;height:'+(M.h*s)+'px;bottom:'+(36-(M.h-M.g)*s)+'px';
+  B3.p.fx.style.backgroundImage = 'repeating-linear-gradient(90deg,var(--b3-faixa) 0 '+(per*.52)+'px,transparent '+(per*.52)+'px '+per+'px)'; B3.p.gr.style.backgroundSize = per+'px 50px';
+  const cabe = () => { const r = el.getBoundingClientRect(); if(!r.height) return; const z = r.height/232; i.style.width = (r.width/z)+'px'; i.style.transform = 'scale('+z+')'; B3.cx = r.width/z/2; b3Draw(); };
+  cabe(); if('ResizeObserver' in window){ B3.ro = new ResizeObserver(cabe); B3.ro.observe(el); }
+  if(RM()){ B3.ph = 4; b3Draw(); return; }
+  b3Kick();
+}
 function sceneCanvas(local,int_){
   const k = Math.max(0, INTENS.indexOf(int_)), kind = ANIM_KIND[local] || 'rope', cp = (ANIM_CAP[local] || ANIM_CAP.Outro)[k];
+  if(B3_ON && kind==='road') return b3Html(k, local+', intensidade '+INT_L[int_].toLowerCase()+': '+cp);
   return `<canvas class="anim" data-kind="${kind}" data-int="${k}" role="img" aria-label="${esc(local)}, intensidade ${INT_L[int_].toLowerCase()}: ${cp}"></canvas>`;
 }
 /* animador único: a fase continua entre telas e a troca de intensidade mistura os parâmetros em 400 ms */
@@ -309,6 +347,7 @@ function animFrame(ts){
 }
 function kickAnim(){ if(!AN.raf && AN.cv && AN.cv.isConnected && AN.visible && !RM() && document.visibilityState!=='hidden'){ AN.last = 0; AN.raf = requestAnimationFrame(animFrame); } }
 function initAnim(){
+  b3Init();
   const cv = ($sheet && $sheet.querySelector('.sheet-wrap:not(.closing) canvas.anim')) || $app.querySelector('canvas.anim');
   if(AN.io){ AN.io.disconnect(); AN.io = null; }
   if(AN.ro){ AN.ro.disconnect(); AN.ro = null; }
@@ -331,7 +370,7 @@ function initAnim(){
   if('ResizeObserver' in window){ AN.ro = new ResizeObserver(() => { sizeAnim(); drawAnim(0); }); AN.ro.observe(cv); }
   kickAnim();
 }
-document.addEventListener('visibilitychange', kickAnim);
+document.addEventListener('visibilitychange', () => { kickAnim(); b3Kick(); });
 function sugEnviar(b){
   const t = document.getElementById('sug-txt'), v = t ? t.value.trim() : '';
   if(!v && !ui.sugFoto){ toast('Escreva a sugestão ou anexe uma foto antes de enviar.'); if(t) t.focus(); return; }

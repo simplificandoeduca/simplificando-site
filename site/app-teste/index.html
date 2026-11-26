@@ -868,7 +868,24 @@ canvas.anim{display:block;width:100%;height:100%}
 .wk-mini{display:flex;flex-direction:column;align-items:flex-end;line-height:1.1;font-size:11px;font-weight:700;color:var(--muted)}
 .wk-mini b{font-size:15px;font-weight:900;color:var(--fg);font-variant-numeric:tabular-nums}
 .scn-card{position:relative;height:232px;border-radius:28px;background:var(--panel);overflow:hidden;box-shadow:inset 0 0 0 1px var(--card-line)}
-.scn-cap{position:absolute;z-index:1;left:14px;top:14px;font-size:12px;font-weight:800;padding:6px 11px;border-radius:99px;background:var(--cardio);color:#0F1712}
+/* boneco 3D do cardio (app de teste): cena de rua */
+.b3{position:relative;width:100%;height:100%;pointer-events:none;overflow:hidden;border-radius:inherit;
+  --b3-ceu1:var(--panel);--b3-ceu2:#E2EDE1;--b3-longe:#E3E8E0;--b3-arv:#B7D2B3;--b3-tronco:#B9B4A6;--b3-poste:#BFC5BD;--b3-calc:#E6E5DC;--b3-guia:#C9C9BF;--b3-rua1:#C4C7BF;--b3-rua2:#B4B7AF;--b3-faixa:#F6F5EF;--b3-gr:rgba(15,23,18,.10);--b3-somb:rgba(15,23,18,.42)}
+:root[data-theme="dark"] .b3{--b3-ceu1:var(--panel);--b3-ceu2:#18241D;--b3-longe:#1D2A22;--b3-arv:#274233;--b3-tronco:#2A3129;--b3-poste:#33403A;--b3-calc:#222E27;--b3-guia:#34423A;--b3-rua1:#141B16;--b3-rua2:#0A0F0C;--b3-faixa:#55635A;--b3-gr:rgba(255,255,255,.06);--b3-somb:rgba(0,0,0,.6)}
+.b3i{position:absolute;left:0;top:0;width:100%;height:232px;transform-origin:0 0}
+.b3 i{display:block}
+.b3 .ceu{position:absolute;inset:0;background:linear-gradient(var(--b3-ceu1) 0 22%,var(--b3-ceu2) 78%)}
+.b3 .sol{position:absolute;right:46px;top:26px;width:44px;height:44px;border-radius:50%;background:var(--b3-ceu2);opacity:.9}.b3 .longe{-webkit-mask-image:linear-gradient(transparent,#000 65%);mask-image:linear-gradient(transparent,#000 65%)}
+.b3 .longe{position:absolute;left:0;right:0;bottom:56px;height:74px;display:block;width:100%}
+.b3 .meio{position:absolute;left:0;bottom:54px;height:96px;display:flex;will-change:transform}
+.b3 .meio svg{flex:none;width:105px;height:96px}
+.b3 .calc{position:absolute;left:0;right:0;bottom:50px;height:10px;background:var(--b3-calc);box-shadow:0 2px 0 var(--b3-guia)}
+.b3 .rua{position:absolute;left:0;right:0;bottom:0;height:50px;background:linear-gradient(var(--b3-rua1),var(--b3-rua2))}
+.b3 .grao{position:absolute;left:0;right:0;bottom:0;height:50px;background:radial-gradient(circle at 12px 9px,var(--b3-gr) 0 1.6px,transparent 2px),radial-gradient(circle at 47px 30px,var(--b3-gr) 0 2px,transparent 2.4px),radial-gradient(circle at 66px 16px,var(--b3-gr) 0 1.3px,transparent 1.8px),radial-gradient(circle at 30px 41px,var(--b3-gr) 0 1.6px,transparent 2px);background-size:77px 50px}
+.b3 .faixa{position:absolute;left:0;right:0;bottom:9px;height:5px;border-radius:3px;background:repeating-linear-gradient(90deg,var(--b3-faixa) 0 40px,transparent 40px 77px)}
+.b3 .sm{position:absolute;left:190px;bottom:30px;width:104px;height:13px;margin-left:-52px;border-radius:50%;background:radial-gradient(closest-side,var(--b3-somb),transparent)}
+.b3 .bn{position:absolute;left:90px;bottom:16px;width:153px;height:180px;background-size:auto 100%;background-repeat:no-repeat;will-change:background-position}
+.scn-cap{position:absolute;z-index:2;left:14px;top:14px;font-size:12px;font-weight:800;padding:6px 11px;border-radius:99px;background:var(--cardio);color:#0F1712}
 .cq{display:flex;flex-direction:column;gap:10px}
 .cq>.flabel{margin:2px 2px -2px}
 .eqrow{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
@@ -1927,7 +1944,7 @@ const vibrate = p => { try { if(navigator.userActivation && !navigator.userActiv
 
 /* ---------- estado ---------- */
 const KEY = 'simpteste-aluno-pro-v2';
-const APPV = '26 nov · 180'; // muda a cada zip: confira no perfil se o site está com a versão nova
+const APPV = '26 nov · 181'; // muda a cada zip: confira no perfil se o site está com a versão nova
 function fresh(example){
   return { v:2, example:!!example, nome:'', ed:'hipertrofia', waterGoal:3000, cardioGoal:120, water:{}, wlog:{}, remind:{on:true,every:90},
     history:[], cardio:[], logs:{}, warm:{}, last:{}, loadHist:{}, pr:{}, checkin:{}, session:null };
@@ -5220,8 +5237,46 @@ function oldFill(c,key,str){
     old(() => { ['eqF','dkF','grF'].forEach(k => oldFill(c,k,d[k])); oldFill(c,'ropeF',d.ropeF); });
   };
 });
+/* ---------- boneco 3D (por enquanto só no app de teste e só na Rua): sequência de imagens recortadas numa cena de rua desenhada pelo app ---------- */
+/* cada folha (src/b3/rua-*.webp) é uma passada completa; w,h = tamanho de um quadro · D = quadros · g = linha do chão · vel = quanto o pé de apoio anda para trás por quadro · bot/cx = pé mais baixo e centro do corpo em cada quadro */
+const B3_ON = true;
+const B3_M = { F:{w:218,h:300,D:21,g:297,vel:21.5,cxm:122.5,alt:164,bot:[283,289,295,296,297,297,297,296,296,295,288,282,288,294,296,295,295,295,294,294,291],cx:[126,126,126,126,122,116,110,116,121,123,126,130,131,124,118,112,116,123,127,128,128]},
+  M:{w:220,h:300,D:20,g:297,vel:22.5,cxm:132.4,alt:172,bot:[297,297,297,296,296,296,295,289,287,291,294,295,295,295,294,294,293,287,287,294],cx:[130,131,132,131,134,136,134,132,132,132,134,136,133,136,135,133,131,128,128,128]} };
+const B3_ARV = '<svg viewBox="0 0 105 96" aria-hidden="true"><rect x="20" y="52" width="5" height="44" fill="var(--b3-tronco)"/><circle cx="22" cy="40" r="19" fill="var(--b3-arv)"/><circle cx="34" cy="50" r="13" fill="var(--b3-arv)"/><circle cx="11" cy="52" r="11" fill="var(--b3-arv)"/><rect x="76" y="18" width="3.5" height="78" fill="var(--b3-poste)"/><rect x="76" y="18" width="16" height="3.5" rx="1.5" fill="var(--b3-poste)"/><rect x="88" y="20" width="8" height="5" rx="2.5" fill="var(--b3-faixa)"/></svg>';
+const B3 = { el:null, M:null, s:1, k:1, ph:0, cx:179, raf:0, last:0, ro:null, p:null };
+const b3Html = (k,rot) => `<div class="b3" data-int="${k}" role="img" aria-label="${esc(rot)}"><div class="b3i"><i class="ceu"></i><i class="sol"></i><svg class="longe" viewBox="0 0 358 74" preserveAspectRatio="none" aria-hidden="true"><path fill="var(--b3-longe)" d="M0 74V40h22V22h26v18h14V8h30v32h18V28h24v12h12V16h34v24h16V34h22v6h14V4h28v36h20V24h26v16h20V36h0V74z"/></svg><div class="meio">${B3_ARV.repeat(12)}</div><i class="calc"></i><i class="rua"></i><i class="grao"></i><i class="faixa"></i><i class="sm"></i><i class="bn"></i></div></div>`;
+function b3Draw(){
+  const M = B3.M, s = B3.s, p = B3.p; if(!M || !p) return;
+  const k = Math.floor(B3.ph)%M.D, v = M.vel*s, o = (B3.ph%(M.D*3))*v, e = 1-Math.min(.5,(M.g-M.bot[k])*s/16);
+  p.bn.style.backgroundPositionX = (-k*B3.sw)+'px'; p.bn.style.left = (B3.cx-M.cxm*s-(M.cx[k]-M.cxm)*s*.7)+'px';
+  p.fx.style.backgroundPositionX = p.gr.style.backgroundPositionX = (-o)+'px';
+  p.me.style.transform = 'translateX('+(-((B3.ph%(M.D*3))*105/M.D)%105)+'px)';
+  p.sm.style.left = B3.cx+'px'; p.sm.style.transform = 'scale('+e+')'; p.sm.style.opacity = .55+e*.45;
+}
+function b3Frame(ts){
+  B3.raf = 0;
+  if(!B3.el || !B3.el.isConnected || document.visibilityState==='hidden'){ B3.last = 0; return; }
+  const dt = B3.last ? Math.min(.05,(ts-B3.last)/1000) : 0; B3.last = ts;
+  B3.ph += dt*24*[.8,1,1.22][B3.k]; b3Draw();
+  B3.raf = requestAnimationFrame(b3Frame);
+}
+function b3Kick(){ if(!B3.raf && B3.el && B3.el.isConnected && !RM() && document.visibilityState!=='hidden'){ B3.last = 0; B3.raf = requestAnimationFrame(b3Frame); } }
+function b3Init(){
+  const el = ($sheet && $sheet.querySelector('.sheet-wrap:not(.closing) .b3')) || $app.querySelector('.b3');
+  if(B3.ro){ B3.ro.disconnect(); B3.ro = null; }
+  if(!el){ cancelAnimationFrame(B3.raf); B3.raf = 0; B3.el = null; return; }
+  const sx = sexOf()==='M' ? 'M' : 'F', M = B3_M[sx], i = el.firstElementChild, q = c => i.querySelector(c), sw = Math.round(M.w*M.alt/(M.g-4)), s = sw/M.w, per = M.vel*s*M.D/3;
+  B3.el = el; B3.M = M; B3.s = s; B3.sw = sw; B3.k = Math.max(0, Math.min(2, +el.dataset.int||0)); B3.p = { bn:q('.bn'), sm:q('.sm'), fx:q('.faixa'), gr:q('.grao'), me:q('.meio') };
+  B3.p.bn.style.cssText = 'background-image:url(b3/rua-'+sx.toLowerCase()+'.webp);width:'+sw+'px;height:'+(M.h*s)+'px;bottom:'+(36-(M.h-M.g)*s)+'px';
+  B3.p.fx.style.backgroundImage = 'repeating-linear-gradient(90deg,var(--b3-faixa) 0 '+(per*.52)+'px,transparent '+(per*.52)+'px '+per+'px)'; B3.p.gr.style.backgroundSize = per+'px 50px';
+  const cabe = () => { const r = el.getBoundingClientRect(); if(!r.height) return; const z = r.height/232; i.style.width = (r.width/z)+'px'; i.style.transform = 'scale('+z+')'; B3.cx = r.width/z/2; b3Draw(); };
+  cabe(); if('ResizeObserver' in window){ B3.ro = new ResizeObserver(cabe); B3.ro.observe(el); }
+  if(RM()){ B3.ph = 4; b3Draw(); return; }
+  b3Kick();
+}
 function sceneCanvas(local,int_){
   const k = Math.max(0, INTENS.indexOf(int_)), kind = ANIM_KIND[local] || 'rope', cp = (ANIM_CAP[local] || ANIM_CAP.Outro)[k];
+  if(B3_ON && kind==='road') return b3Html(k, local+', intensidade '+INT_L[int_].toLowerCase()+': '+cp);
   return `<canvas class="anim" data-kind="${kind}" data-int="${k}" role="img" aria-label="${esc(local)}, intensidade ${INT_L[int_].toLowerCase()}: ${cp}"></canvas>`;
 }
 /* animador único: a fase continua entre telas e a troca de intensidade mistura os parâmetros em 400 ms */
@@ -5261,6 +5316,7 @@ function animFrame(ts){
 }
 function kickAnim(){ if(!AN.raf && AN.cv && AN.cv.isConnected && AN.visible && !RM() && document.visibilityState!=='hidden'){ AN.last = 0; AN.raf = requestAnimationFrame(animFrame); } }
 function initAnim(){
+  b3Init();
   const cv = ($sheet && $sheet.querySelector('.sheet-wrap:not(.closing) canvas.anim')) || $app.querySelector('canvas.anim');
   if(AN.io){ AN.io.disconnect(); AN.io = null; }
   if(AN.ro){ AN.ro.disconnect(); AN.ro = null; }
@@ -5283,7 +5339,7 @@ function initAnim(){
   if('ResizeObserver' in window){ AN.ro = new ResizeObserver(() => { sizeAnim(); drawAnim(0); }); AN.ro.observe(cv); }
   kickAnim();
 }
-document.addEventListener('visibilitychange', kickAnim);
+document.addEventListener('visibilitychange', () => { kickAnim(); b3Kick(); });
 function sugEnviar(b){
   const t = document.getElementById('sug-txt'), v = t ? t.value.trim() : '';
   if(!v && !ui.sugFoto){ toast('Escreva a sugestão ou anexe uma foto antes de enviar.'); if(t) t.focus(); return; }
