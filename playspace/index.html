@@ -2197,7 +2197,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.54';
+const VERSAO = '2.55';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -4512,8 +4512,8 @@ function pgTabela(cols, linhas, total, o = {}) {
 // as três linhas das horas, como na tela anterior: o que o cliente tem, o que esta conta usa (ou soma) e como fica depois de confirmar
 const pgHoras = (disp, meio, depois, rot = 'Horas necessárias') => `<dl class="pg-h3" aria-label="Horas do cliente"><div><dt>Horas disponíveis</dt><dd class="num">${disp}</dd></div><div><dt>${rot}</dt><dd class="num">${meio}</dd></div><div class="tem"><dt>Saldo após confirmação</dt><dd class="num">${depois}</dd></div></dl>`;
 // o que ficou para pagar desta visita, item por item (o servidor manda em c.pendi; se o servidor ainda for o anterior, fica uma linha com o total)
-const pendItens = c => MODO === 'servidor' ? (Array.isArray(c.pendi) && c.pendi.length ? c.pendi.map(i => ({ n: String(i.n || ''), v: +i.v || 0, id: +i.id || 0, alt: String(i.alt || ''), h: +i.h || 0, t: String(i.t || ''), pn: String(i.pn || '') })) : pendDe(c) > 0.004 ? [{ n: 'Compras desta visita', v: pendDe(c) }] : [])
-  : pendentesPrevia(c).map(v => ({ n: nomeVendaTxt(v), v: faltaCompra(v), id: v.id, alt: altDaCompraPrevia(v), h: minDe(v) / 60, t: tipoPapelCompra(v), pn: nomePapelCompra(v) }));   // 1.39: alt = dá para alterar na saída   // 1.25: id = a venda (a conta do responsável não cobra duas vezes o carrinho)
+const pendItens = c => MODO === 'servidor' ? (Array.isArray(c.pendi) && c.pendi.length ? c.pendi.map(i => ({ n: String(i.n || ''), v: +i.v || 0, id: +i.id || 0, alt: String(i.alt || ''), h: +i.h || 0, t: String(i.t || ''), pn: String(i.pn || ''), ch: +i.ch || 0 })) : pendDe(c) > 0.004 ? [{ n: 'Compras desta visita', v: pendDe(c) }] : [])
+  : pendentesPrevia(c).map(v => ({ n: nomeVendaTxt(v), v: faltaCompra(v), id: v.id, alt: altDaCompraPrevia(v), h: minDe(v) / 60, t: tipoPapelCompra(v), pn: nomePapelCompra(v), ch: v.pcd && v.cheio > v.v && faltaCompra(v) >= v.v - 0.004 ? v.cheio : 0 }));   // 1.39: alt = dá para alterar na saída   // 1.25: id = a venda (a conta do responsável não cobra duas vezes o carrinho)
 /* ---------- 1.39: "Alterar pacote" também na saída (embaixo do Desconto) ---------- */
 // Desde a 1.37 a cobrança é na saída. Na tela de pagamento da saída, o pacote ou o produto desta visita que ficou para pagar na saída muda
 // de horas e de valor com a aprovação da supervisora ou do gestor (um toque no celular dela, ou a senha dela aqui). Aprovado, a venda muda
@@ -4997,7 +4997,7 @@ const dataCurta = d => `${p2(d.getDate())}/${p2(d.getMonth() + 1)}/${d.getFullYe
 // horas que ele dá (min) e o produto que vem junto (com) descem para a linha de baixo, como o tempo do carrinho.
 const linhaPapel = l => { if (l.festa) return { n: l.pn || l.servico, v: l.v, t: 'festa', s: '', q: l.q || 1, per: 0, sub: l.papel || [] };   /* 1.12: a festa, com o que vai embaixo do item */
   const x = l.s ? servicoDe(l.s) : null, t = l.pac != null ? 'pacote' : l.vou ? 'voucher' : l.prod ? 'produto' : x && ehTempo(x) ? 'tempo' : x && x.volta ? 'aluguel' : 'outro', un = t === 'produto' || (!!x && x.modo !== 'periodo');
-  return { n: t === 'pacote' ? l.servico || nomePacVenda(l.min, '') : un || t === 'aluguel' ? l.servico : nomeLinha(l), v: l.v, t, s: l.s || '', q: un ? l.q || 1 : 1, per: !un && x ? l.q || 1 : 0, ...(t === 'pacote' ? { min: l.min, com: l.servico ? l.itens || '' : '' } : {}), ...(un && x && x.obs ? { obs: x.obs } : {}), ...(l.aberto ? { aberto: true, per: 0, q: l.q || 1 } : {}) }; };   // 1.20: aberto = só saiu da loja; a conta fecha na devolução (1.22: quantos saíram)
+  return { n: t === 'pacote' ? l.servico || nomePacVenda(l.min, '') : un || t === 'aluguel' ? l.servico : nomeLinha(l), v: l.v, t, s: l.s || '', q: un ? l.q || 1 : 1, per: !un && x ? l.q || 1 : 0, ...(t === 'pacote' ? { min: l.min, com: l.servico ? l.itens || '' : '' } : {}), ...(un && x && x.obs ? { obs: x.obs } : {}), ...(l.aberto ? { aberto: true, per: 0, q: l.q || 1 } : {}), ...(l.pcd && l.cheio > l.v + 0.004 ? { cheio: l.cheio } : {}) }; };   /* 2.55: cheio = o valor sem o desconto PCD (o cupom mostra o desconto) */   // 1.20: aberto = só saiu da loja; a conta fecha na devolução (1.22: quantos saíram)
 /* 2.22 (o dono: "no nome do comprovante tem que aparecer o nome da atendente que foi marcado, não o nome de quem tá o login"): na venda,
    quem está vendendo; na entrada e na saída, quem abriu o pedido; na devolução, quem vendeu o carrinho; sem ninguém marcado, a última
    marcada neste aparelho; o login só se for de uma pessoa (o da unidade, "Login Anália", não aparece) */
@@ -5013,11 +5013,11 @@ function htmlPapel(spec, via = 'loja') {
   // o que foi vendido e como foi pago: uma linha por item (com o detalhe dele embaixo, se houver), o total quando há mais de uma linha, e a forma
   // 1.10: o pagamento no jeito de um comprovante: a tabela (com a quantidade, quando os itens têm), o subtotal e o desconto só quando
   // há desconto, o total em destaque já com a forma de pagamento (uma linha por forma, se dividiu). o.titulo: "COMPROVANTE DE PAGAMENTO"
-  const pago = (itens, formas, o = {}) => { if (!itens || !itens.length) return ''; const bruto = centavos(itens.reduce((t, i) => t + i.v, 0)), desc = o.desc > 0 ? centavos(o.desc) : 0, total = centavos(bruto - desc), comQ = itens.some(i => i.q != null), F = (formas || []).filter(p => p && p.f);
+  const pago = (itens, formas, o = {}) => { if (!itens || !itens.length) return ''; const bruto = centavos(itens.reduce((t, i) => t + i.v, 0)), desc = o.desc > 0 ? centavos(o.desc) : 0, total = centavos(bruto - desc), comQ = itens.some(i => i.q != null), F = (formas || []).filter(p => p && p.f), pcdV = centavos(itens.reduce((t, i) => t + (i.cheio > i.v + 0.004 ? i.cheio - i.v : 0), 0));   /* 2.55 (o dono: "no cupom tem que sair o desconto do PCD") */
     const lin = (rot, val, cls = '') => `<p class="c-linha c-pt${cls}"><span>${rot}</span><i></i><span>${val}</span></p>`, subs = i => (Array.isArray(i.sub) ? i.sub : i.sub ? [i.sub] : []).map(t => `<p class="c-sub">${esc(t)}</p>`).join('');
     return `${div}${o.titulo ? `<p class="c-titulo">${o.titulo}</p>` : ''}<p class="c-cab${comQ ? ' q' : ''}"><span>Descrição</span>${comQ ? '<span>Qtd</span>' : ''}<span>Valor</span></p>
-      ${itens.map(i => `<p class="c-item${comQ ? ' q' : ''}"><span>${esc(i.n)}</span>${comQ ? `<span>${i.q || 1}</span>` : ''}<span>${brl2(i.v)}</span></p>${subs(i)}`).join('')}
-      ${desc ? lin('Subtotal', brl2(bruto)) + lin('Desconto', '- ' + brl2(desc)) : ''}${spec.sinal ? lin('Total', brl2(total), ' c-total') + F.map(p => lin('Sinal ' + esc(naForma(p.f)), brl2(p.v))).join('') + `<p class="c-areceber"><b>FALTA ${brl2(spec.sinal.falta)} NA RETIRADA</b></p><p class="c-sub">Sinal de 50% · ${esc(spec.sinal.nome)}${spec.sinal.tel ? ' · ' + esc(spec.sinal.tel) : ''}</p>` : F.length === 1 ? lin('Total pago ' + esc(naForma(F[0].f)), brl2(total), ' c-total') : lin('Total', brl2(total), ' c-total') + F.map(p => lin(esc(nomeForma(p.f)), brl2(p.v))).join('')}${!F.length && spec.depois ? `<p class="c-areceber"><b>A RECEBER NA ${c.entrou ? 'SAÍDA' : 'DEVOLUÇÃO'}</b></p>` : ''}${(spec.ped || []).map(t => `<p class="c-ped">${esc(t)}</p>`).join('')}`; };   // 1.33: spec.ped
+      ${itens.map(i => `<p class="c-item${comQ ? ' q' : ''}"><span>${esc(i.n)}</span>${comQ ? `<span>${i.q || 1}</span>` : ''}<span>${brl2(i.cheio > i.v + 0.004 ? i.cheio : i.v)}</span></p>${subs(i)}`).join('')}
+      ${desc || pcdV ? lin('Subtotal', brl2(centavos(bruto + pcdV))) + (pcdV ? lin('Desconto ' + rotPcd(), '- ' + brl2(pcdV)) : '') + (desc ? lin('Desconto', '- ' + brl2(desc)) : '') : ''}${spec.sinal ? lin('Total', brl2(total), ' c-total') + F.map(p => lin('Sinal ' + esc(naForma(p.f)), brl2(p.v))).join('') + `<p class="c-areceber"><b>FALTA ${brl2(spec.sinal.falta)} NA RETIRADA</b></p><p class="c-sub">Sinal de 50% · ${esc(spec.sinal.nome)}${spec.sinal.tel ? ' · ' + esc(spec.sinal.tel) : ''}</p>` : F.length === 1 ? lin('Total pago ' + esc(naForma(F[0].f)), brl2(total), ' c-total') : lin('Total', brl2(total), ' c-total') + F.map(p => lin(esc(nomeForma(p.f)), brl2(p.v))).join('')}${!F.length && spec.depois ? `<p class="c-areceber"><b>A RECEBER NA ${c.entrou ? 'SAÍDA' : 'DEVOLUÇÃO'}</b></p>` : ''}${(spec.ped || []).map(t => `<p class="c-ped">${esc(t)}</p>`).join('')}`; };   // 1.33: spec.ped
   // o pé: quem atendeu (e o número da venda, quando houve), a linha da assinatura na via da loja quando há o que assinar (a entrada da
   // criança, o carrinho que sai, a saída, a devolução) e o aviso
   const atdN = atdPapel(spec, c), rod = `<p class="c-rod">${spec.venda ? `Venda nº ${spec.venda}${atdN ? ' · ' : ''}` : ''}${atdN ? `Atendente ${esc(atdN)}` : ''}${spec.corr ? ' · valor corrigido' : ''}</p>`;   /* 2.45: spec.corr */   /* 2.22: a atendente marcada, não o login */
@@ -5035,7 +5035,8 @@ function htmlPapel(spec, via = 'loja') {
     const bloco = (x, i) => { const k = quem(x); return `${i ? '<p class="c-esp"></p>' : ''}<p class="c-bt"><b>SAÍDA · ${esc(k.nome)}</b>${anos(k)}${loja ? ' · cadastro ' + k.id : ''}</p>
       <p>Entrada ${hora(x.entrou)} · saída ${hora(x.saiu)} · ficou ${dur(ficouMin(x.min))}</p>
       <p>${x.plano === 'festa' ? 'Festa · sem desconto de horas' : (x.plano === 'pacote' && !x.n && !x.av && x.deb > 0 ? 'Tempo descontado: ' : 'Tempo contado: ') + dur(x.deb)}</p>`; };   // 1.30: sem o saldo de horas do cliente, só o tempo descontado
-    const itens = G.flatMap(x => { const de = varias ? ' · ' + quem(x).nome : ''; return [...(x.pendi && x.pendi.length ? soPacoteNoCupom(x.pendi.map(i => ({ n: (i.t === 'pacote' && i.pn ? semHorasPac(i.pn) : i.n) + de, v: i.v, t: i.t || '' }))) : [x.pend > 0 ? { n: 'O que ficou para pagar na saída' + de, v: x.pend } : null]), x.n ? { n: `${x.plano === 'pacote' ? 'Além do pacote' : (st ? st.n : 'RECREAÇÃO') + ' avulsa'} · ${dur(x.n * p)}${de}`, v: centavos(x.valor - (x.pend || 0) - (x.av ? x.av.valor : 0)) } : null, x.av ? { n: `${st ? st.n : 'RECREAÇÃO'} avulsa · ${dur(x.av.min)}${de}`, v: x.av.valor } : null]; }).filter(Boolean);   // 1.10: o desconto sai na linha dele, embaixo do subtotal
+    const pcdIt = (k, i) => { const d = pcdDesc(); return k && k.pcd && d > 0 && d < 100 && i.v > 0.004 ? { ...i, cheio: centavos(i.v * 100 / (100 - d)) } : i; };   /* 2.55: o valor cheio da recreação da criança PCD */
+    const itens = G.flatMap(x => { const de = varias ? ' · ' + quem(x).nome : ''; return [...(x.pendi && x.pendi.length ? soPacoteNoCupom(x.pendi.map(i => ({ n: (i.t === 'pacote' && i.pn ? semHorasPac(i.pn) : i.n) + de, v: i.v, t: i.t || '', ...(i.ch > i.v + 0.004 ? { cheio: i.ch } : {}) }))) : [x.pend > 0 ? { n: 'O que ficou para pagar na saída' + de, v: x.pend } : null]), x.n ? pcdIt(quem(x), { n: `${x.plano === 'pacote' ? 'Além do pacote' : (st ? st.n : 'RECREAÇÃO') + ' avulsa'} · ${dur(x.n * p)}${de}`, v: centavos(x.valor - (x.pend || 0) - (x.av ? x.av.valor : 0)) }) : null, x.av ? pcdIt(quem(x), { n: `${st ? st.n : 'RECREAÇÃO'} avulsa · ${dur(x.av.min)}${de}`, v: x.av.valor }) : null]; }).filter(Boolean);   // 1.10: o desconto sai na linha dele, embaixo do subtotal
     const deA = y => nomes && crianca(y.id) ? ' · ' + crianca(y.id).nome : '';
     const blocoA = (y, i) => `${i || G.length ? '<p class="c-esp"></p>' : ''}<p class="c-bt c-bd"><b>DEVOLUÇÃO · ${esc(y.item)}</b>${esc(deA(y))}</p><p>Saiu ${y.outroDia ? dataHora(y.saiu) : hora(y.saiu)} · voltou ${hora(y.voltou)} · ${y.fixo ? 'preço do dia' : 'ficou ' + dur(y.ficou)}</p>${y.comprou ? `<p>Tempo comprado: ${dur(y.comprou)}</p>` : ''}`;
     const itensA = A.flatMap(y => { const xa = y.extra && y.extra.aberto && y.extra.valor > 0 ? y.extra : null, de = deA(y);
@@ -5590,14 +5591,15 @@ const segAvulso = (pode, on, sem = 0) => !pode ? (sem ? segSemHoras(sem) : '') :
 // 1.15: as linhas de uma criança na conta da saída. Quem está na recreação avulsa e não usa horas próprias tem uma linha só, já com o
 // valor ("RECREAÇÃO avulsa · 1h30 · ficou 1h12 · R$ 240"). Quem usa horas tem a linha da visita ("usa 2h") e, se elas não bastaram, a
 // do que foi além: "Além do pacote" para quem entrou com pacote, "RECREAÇÃO avulsa" para quem tinha só um voucher ou um resto de tempo
+const pcdTag = c => c && c.pcd && pcdDesc() > 0 ? ' · ' + rotPcd() : '';   /* 2.55: a criança PCD à vista na conta da saída */
 function linhasVisita(c, k, o = {}) {   // o: { hh: a hora corrigida, de: " · NOME" (na conta em conjunto), tirar: o botão Tirar }
   const p = periodo(), st = servicoTempo(), rec = esc(st ? st.n : 'RECREAÇÃO'), minhas = horasProprias(k), de = o.de || '', av = planoDe(c) !== 'pacote', so = av && k.n > 0 && !minhas;
   const ficou = `${o.hh ? 'saiu às ' + esc(o.hh) + ' · ' : ''}ficou ${dur(ficouMin(k.min))}`, meio = [esc(c.nome), c.sapateira ? String(c.sapateira) : '', hora(c.entrou)];
   if (c.festa) { const f = festaPorId(c.festa), L = [{ n: 'FESTA' + (f && f.nome ? ' DE ' + esc(f.nome) : ''), sub: ficou + (c.festaPapel === 'aniversariante' ? ' · aniversariante' : ''), meio, v: 'sem cobrança' + (o.tirar || ''), h: true }];   // 1.29: a visita da festa
     if (k.pend > 0) for (const i of pendItens(c)) L.push({ n: esc(i.n), sub: 'ficou para a saída' + de, v: brl(i.v) }); return L; }
-  const L = [so ? { n: `${rec} avulsa · ${dur(k.n * p)}`, sub: ficou, meio, v: brl(k.valor) + (o.tirar || '') } : { n: rec, sub: ficou, meio, v: (minhas ? 'usa ' + dur(minhas) : '') + (o.tirar || ''), h: true }]; if (o.modo) L[0].x0 = o.modo;   /* 2.14 */
+  const L = [so ? { n: `${rec} avulsa · ${dur(k.n * p)}${pcdTag(c)}`, sub: ficou, meio, v: brl(k.valor) + (o.tirar || '') } : { n: rec, sub: ficou, meio, v: (minhas ? 'usa ' + dur(minhas) : '') + (o.tirar || ''), h: true }]; if (o.modo) L[0].x0 = o.modo;   /* 2.14 */
   if (k.pend > 0) for (const i of pendItens(c)) L.push({ n: esc(i.n), sub: 'ficou para a saída' + de, v: brl(i.v) });
-  if (k.n && !so) L.push({ n: nomeAutos(c, k.n), sub: subAutos(c) + de, v: brl(k.valor) });
+  if (k.n && !so) L.push({ n: nomeAutos(c, k.n) + pcdTag(c), sub: subAutos(c) + de, v: brl(k.valor) });
   if (k.av) L.push(linhaAvulso(k, de));
   return L;
 }
@@ -8133,7 +8135,7 @@ async function largarDesconto() { // cancela o pedido que esperava, ou tira o de
 let NF = null;   // a folha da nota aberta: { id (a venda), cid }
 const nfDaVenda = v => MODO === 'servidor' ? v.nf || null : (S.pedidos || []).filter(p => p.tipo === 'nf' && p.venda === v.id && p.status !== 'cancelado').sort((a, b) => b.id - a.id)[0] || null;
 const cvDaVenda = v => MODO === 'servidor' ? v.cv || null : (S.pedidos || []).find(p => p.tipo === 'cancelar_venda' && p.venda === v.id && p.status === 'pendente') || null;
-const temNF = v => !!v && !v.auto && !v.imp && v.v > 0.004;   // a nota é da compra com valor (a recreação que a visita soma sozinha não entra aqui)
+const temNF = v => !!v && !v.imp && v.v > 0.004 && !(v.auto && doDia(v.quando) && (crianca(v.crianca) || {}).entrou);   // a nota é da compra com valor. 2.55: a recreação avulsa também (com a criança ainda no espaço, só depois da saída: a conta fecha lá)
 const podePedirCancelamento = v => !podeEstornar() && !!v && !v.auto && (MODO === 'servidor' ? !!v.canc : !v.imp && agora - v.quando <= VENDA_CANCELA_DIAS * 86400000);
 const chipNF = v => { if (!temNF(v)) return ''; const p = nfDaVenda(v), e = p ? p.status : '';
   const [cls, txt] = e === 'usado' ? ['ok', 'NF ' + (p.numero ? 'nº ' + esc(p.numero) : 'emitida')] : e === 'liberado' ? ['lib', 'NF a emitir'] : e === 'pendente' ? ['esp', 'NF pedida'] : e === 'negado' ? ['nao', 'NF negada'] : ['', 'NF'];
@@ -8219,15 +8221,123 @@ async function nfDaFicha(cid) {
   if (!LADO || LADO.id !== c.id || !LADO.dados) { abrirHistorico(c.id); for (let i = 0; i < 80 && LADO && LADO.id === c.id && !LADO.dados && !LADO.erro; i++) await espera(150); }
   if (!LADO || LADO.id !== c.id) return; if (!LADO.dados) { toast(LADO.erro || 'O histórico do cliente não carregou. Tente de novo.'); return; }
   const L = LADO.dados.vendas.filter(temNF), hj = L.filter(v => doDia(v.quando));
-  if (!L.length) { toast('Este cliente ainda não tem compra com valor para a nota fiscal'); return; }
+  if (!L.length) { folhaNFLivre(c.id); return; }   /* 2.55: sem compra com valor aqui (as horas do sistema anterior): a nota com outro valor */
   if (hj.length === 1) { folhaNF(hj[0].id); return; }
   const lista = (hj.length ? hj : L.slice(0, 6)), st = v => { const p = nfDaVenda(v), e = p ? p.status : ''; return e === 'usado' ? 'NF ' + (p.numero ? 'nº ' + esc(p.numero) : 'emitida') : e === 'liberado' ? 'NF a emitir' : e === 'pendente' ? 'NF pedida' : e === 'negado' ? 'NF negada' : 'sem nota'; };
   abrirFolha('Nota fiscal · qual compra?', `<p class="explica">${hj.length ? `${nomeResp(c)} tem ${hj.length} compras hoje. Toque na compra da nota.` : `Nenhuma compra de ${nomeResp(c)} hoje. As últimas compras (a mais recente em cima): toque na compra da nota.`}</p>
-    <div style="display:grid;gap:8px">${lista.map(v => `<button type="button" class="aj-pag tap" data-act="nf" data-id="${v.id}"><span class="aj-h">${diaCurto(v.quando)}<br>${hora(v.quando)}</span><span class="txt"><b>${esc(nomeCompraTxt(v))}</b><small>${esc(st(v))}</small></span><b class="num">${brl2(v.v)}</b></button>`).join('')}</div>`); }
+    <div style="display:grid;gap:8px">${lista.map(v => `<button type="button" class="aj-pag tap" data-act="nf" data-id="${v.id}"><span class="aj-h">${diaCurto(v.quando)}<br>${hora(v.quando)}</span><span class="txt"><b>${esc(nomeCompraTxt(v))}</b><small>${esc(st(v))}</small></span><b class="num">${brl2(v.v)}</b></button>`).join('')}</div>${nflLink(c)}`); }
+/* 2.55 (o dono: "NF eu tenho que poder emitir pra todo mundo, viu? Tipo, que seja pacote de horas que comprou"): a nota com outro valor.
+   Toda compra com valor tem a nota (2.55: a recreação avulsa também). Para o que não está aqui com valor (as horas que vieram do sistema
+   anterior entram com valor zero; um pacote pago antes), a nota sai com o valor e o texto escritos na hora, pelo Play Space Notas, como a
+   da compra. Em produção ela fica guardada (nf_livre): entra nas notas do dia e no histórico do cliente. O código da nota no Notas é fixo
+   enquanto a folha está aberta: tocar de novo nunca emite duas */
+let NFL = null;
+const nflLink = c => S.balcao && c.id === S.balcao.id ? '' : `<button type="button" class="link tap" data-act="nf-livre" data-id="${c.id}" style="display:block;margin:10px auto 0">Nota com outro valor (ex.: horas que vieram do sistema anterior)</button>`;
+const docNF = d => d.length === 11 ? d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : d.length === 14 ? d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5') : d;
+function folhaNFLivre(cid) {
+  const c = crianca(cid); if (!c) return; if (document.querySelector('#folha .folha-fundo')) fecharFolha();
+  if (NFL && NFL.pdf && NFL.pdf.url) URL.revokeObjectURL(NFL.pdf.url);
+  NF = null; NFL = { cid: c.id, id: 'psl' + c.id + 'x' + notasId(), un: minhaUni() || c.uni || 0 };
+  abrirFolha('Nota fiscal · outro valor', `<div id="nfl-corpo" style="display:flex;flex-direction:column;gap:12px">${nflHtml(c)}</div>`); nflPreparar();
+}
+function nflHtml(c) {
+  const x = NFL, cab = `<div class="linha">${avatar(c)}<div class="txt"><b>${nomeResp(c)}</b><span>${c.resp ? esc(c.nome) + ' · ' : ''}cadastro ${c.id}</span></div></div>`;
+  if (x.feito) return cab + `<div class="marca nf-ok">${ic(IC.check, 18, 2.6)}<span><b>Nota fiscal nº ${esc(x.feito.nota.numero)} emitida${x.feito.emp ? ' pela ' + esc(x.feito.emp.apelido.toUpperCase()) : ''}.</b> ${brl2(x.feito.valor)} · ${esc(x.feito.desc)}. Fica no histórico do cliente e nas notas do dia.</span></div><div id="nfl-pdf">${nflPdfHtml()}</div>`;
+  return cab + `<p class="explica">${c.imph ? 'As horas deste cliente vieram do sistema anterior (aqui elas estão sem valor). ' : ''}Para a compra que não está aqui com valor: escreva o valor e o que sai na nota. Ela sai na hora pelo Play Space Notas.</p>
+    <div class="bloco-f"><small class="rot">A nota sai em nome de</small>
+      <div class="campo"><label for="nfl-nome">Nome ou razão social</label><input id="nfl-nome" value="${esc(c.resp || c.nome)}" maxlength="120" autocomplete="off"></div>
+      <div class="dois"><div class="campo"><label for="nfl-doc">CPF ou CNPJ</label><input id="nfl-doc" inputmode="numeric" value="${esc(c.doc === 'rne' ? '' : c.cpf || '')}" maxlength="18" autocomplete="off"></div><div class="campo"><label for="nfl-email">E-mail (opcional)</label><input id="nfl-email" class="sem-mai" type="email" inputmode="email" maxlength="120" autocomplete="off" autocapitalize="none"></div></div></div>
+    <div class="bloco-f"><small class="rot">O que sai na nota</small>
+      <div class="campo"><label for="nfl-desc">Descrição</label><input id="nfl-desc" class="sem-mai" value="Recreação infantil: pacote de horas" maxlength="200" autocomplete="off"></div>
+      <div class="campo"><label for="nfl-valor">Valor da nota (R$)</label><input id="nfl-valor" inputmode="decimal" placeholder="0,00" maxlength="12" autocomplete="off"></div></div>
+    <div id="nfl-emp">${nfEmpHtml(x)}</div><div id="nfl-msg" aria-live="polite"></div>
+    <div class="pe-f"><button type="button" class="bt forte largo tap" data-act="nfl-emitir" id="nfl-emitir">${ic(IC.cupom, 16)} Emitir a nota fiscal</button></div>`;
+}
+function nflPinta() { const a = $('#nfl-corpo'), c = NFL && crianca(NFL.cid); if (a && c) a.innerHTML = nflHtml(c); }
+function nflEmpPinta() { const a = $('#nfl-emp'); if (a && NFL) a.innerHTML = nfEmpHtml(NFL); }
+function nflEmp(id) { if (!NFL || NFL.indo || NFL.feito) return; NF_EMP[NFL.id] = id; nflEmpPinta(); nflPreparar(); }
+function nflMsg(tipo, txt) { const a = $('#nfl-msg'); if (!a) return;
+  a.innerHTML = !tipo ? '' : tipo === 'emitindo' ? `<p class="explica nf-dica nf-indo">${esc(txt)}</p>` : tipo === 'erro' ? `<div class="marca canc">${ic(IC.x, 18, 2.4)}<span><b>A nota não saiu.</b> ${esc(txt)}</span></div>`
+    : `<div class="marca nf-esp">${ic(tipo === 'teste' ? IC.cupom : IC.sino, 18)}<span>${esc(txt)}</span></div>`;
+  const b = $('#nfl-emitir'); if (b) { b.disabled = tipo === 'emitindo'; b.lastChild.textContent = tipo === 'emitindo' ? ' Emitindo a nota…' : ' Emitir a nota fiscal'; } }
+async function nflPreparar() {
+  const x = NFL; if (!x || MODO !== 'servidor') return;
+  try { const N = await notasDados(false); if (NFL !== x || x.indo || x.feito) return; nflEmpPinta(); const e = nfEmpEscolhida(x), amb = (e ? e.ambiente : N.fiscal && N.fiscal.ambiente) || 'simulado';
+    nflMsg(amb !== 'producao' ? 'aviso' : '', 'O Play Space Notas está ' + (AMB_NF[amb] || amb) + (e ? ' na empresa ' + e.apelido.toUpperCase() : '') + '. Para valer, a conta principal do Notas muda para Produção.'); }
+  catch (e) { /* (o Notas responde de novo na hora de emitir) */ }
+}
+async function emitirNFLivre(el) {
+  const x = NFL, c = x && crianca(x.cid); if (!c || x.indo || x.feito) return;
+  const nome = MAI(val('nfl-nome')).trim().slice(0, 120), dg = soDig(val('nfl-doc')), email = (($('#nfl-email') || {}).value || '').trim(), desc = (($('#nfl-desc') || {}).value || '').replace(/\s+/g, ' ').trim().slice(0, 200), valor = centavos(numero(($('#nfl-valor') || {}).value));
+  const foco = id => { const i = $('#' + id); if (i) i.focus(); };
+  if (!nome) { toast('Escreva em nome de quem a nota sai'); foco('nfl-nome'); return; }
+  if (dg.length !== 11 && dg.length !== 14) { toast(dg ? 'Confira o CPF ou o CNPJ da nota: o CPF tem 11 números e o CNPJ, 14' : 'Escreva o CPF ou o CNPJ de quem recebe a nota'); foco('nfl-doc'); return; }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast('Confira o e-mail para onde a nota vai'); foco('nfl-email'); return; }
+  if (desc.length < 3) { toast('Escreva o que sai na nota (ex.: Recreação infantil: pacote de horas)'); foco('nfl-desc'); return; }
+  if (!(valor > 0.004)) { toast('Escreva o valor da nota'); foco('nfl-valor'); return; }
+  if (valor > 99999) { toast('Confira o valor da nota: ' + brl2(valor)); foco('nfl-valor'); return; }
+  if (MODO !== 'servidor') { toast('Na prévia a nota não sai: no sistema de verdade ela é emitida na hora pelo Play Space Notas'); return; }
+  x.indo = true; nflMsg('emitindo', 'Assinando com o certificado e enviando ao Emissor Nacional…');
+  let fim = null;
+  try {
+    let N = await notasDados(true); const emp = nfEmpEscolhida(x), EM = emp ? { _empresa: emp.id } : {};
+    if (emp && emp.id !== N.empresaId) N = await notasApi('dados', EM);
+    const amb = (N.fiscal && N.fiscal.ambiente) || 'simulado', doc = docNF(dg);
+    const sv = N.servicos || [], sid = /festa/i.test(desc) ? 'festa' : /pacote/i.test(desc) ? 'pacotehoras' : 'recreacao', s = sv.find(y => y.id === sid) || sv.find(y => y.id === 'recreacao') || sv[0];
+    if (!s) throw new Error('O Play Space Notas não tem nenhum serviço cadastrado. Cadastre lá (Serviços) e emita de novo.');
+    const ach = (N.clientes || []).find(y => nfDocL(y.doc) === nfDocL(doc));
+    const cli = { id: ach ? ach.id : notasId(), nome, doc, email: email || (ach && ach.email) || '', cidade: String((ach && ach.cidade) || (N.empresa && N.empresa.municipio) || '') };
+    if (!ach || ach.nome !== cli.nome || ach.email !== cli.email) await notasApi('cliente_salvar', { ...cli, ...EM });
+    const aliq = Number((N.empresa || {}).aliquota) || 0, iss = Math.round(valor * aliq) / 100;
+    const id = (x.id + (amb === 'producao' ? '' : amb.charAt(0))).replace(/[^a-z0-9]/gi, '').slice(0, 40);
+    const dps = { id, numero: null, data: new Date().toISOString(), clienteId: cli.id, clienteNome: cli.nome, clienteDoc: cli.doc, servicoId: s.id, servicoNome: s.nome, codigo: s.codigo,
+      descricao: desc, valor, aliquota: aliq, iss, retido: false, liquido: valor, status: 'rascunho', chave: '' };
+    let nota;
+    try { nota = (await notasApi('nota_emitir', { dps, ...EM })).nota; }
+    catch (e) { if (e.status !== 409) throw e; const N2 = await notasApi('dados', EM); nota = (N2.notas || []).find(n => n.id === id); if (!nota) throw e; }   /* (já tinha saído: é a mesma nota) */
+    if (!nota || !nota.numero) throw new Error('O Notas não devolveu o número da nota. Confira no Play Space Notas.');
+    if (amb !== 'producao') { fim = ['teste', `Nota ${amb === 'teste' ? 'de TESTE' : 'simulada'} nº ${nota.numero} emitida no Play Space Notas${emp ? ' (' + emp.apelido.toUpperCase() + ')' : ''}, sem valor fiscal: não fica guardada aqui. Para valer, o Notas precisa estar em Produção.`]; return; }
+    try { const r = await api('nf_livre', { crianca: c.id, numero: String(nota.numero), valor, nome, doc, email, descricao: desc, nota: id, emp: emp ? emp.apelido : '' }); if (r && r.pedidos) pedidosChegaram(r.pedidos, true); }
+    catch (e) { fim = ['erro', `A nota nº ${nota.numero} foi emitida, mas não consegui guardar aqui (${e.message}). Toque em Emitir de novo: não sai outra, só guarda.`]; return; }
+    x.feito = { nota, emp, valor, desc }; deuCerto('Nota nº ' + nota.numero + ' emitida' + (emp ? ' pela ' + emp.apelido.toUpperCase() : ''));
+    if (NFL === x) { nflPinta(); nflPdfCarregar(); } if (LADO && LADO.id === c.id) buscarHistorico();
+  } catch (e) { fim = ['erro', e.status === 401 ? 'Não deu para entrar sozinho no Play Space Notas (confira se o Notas 191 foi enviado ao site). Abra o Notas neste computador, entre, e emita de novo.' : (e.message || 'Tente de novo em instantes.')]; }
+  finally { x.indo = false; if (NFL === x && !x.feito) nflMsg(fim ? fim[0] : '', fim ? fim[1] : ''); }
+}
+/* a nota emitida: o PDF oficial (o mesmo da folha da compra), com Imprimir, Enviar no WhatsApp e Salvar */
+function nflPdfHtml() {
+  const p = NFL && NFL.pdf; if (!p) return '';
+  if (p.st === 'carregando') return `<div class="nf-pdf esp" aria-live="polite">${ic(IC.cupom, 18)} <span>Carregando a nota…</span></div>`;
+  if (p.st !== 'ok') return `<div class="nf-pdf esp">${ic(IC.sino, 18)} <span>${esc(p.msg || 'A nota não carregou.')}</span><button type="button" class="bt tap" data-act="nfl-pdf">${ic(IC.refaz || IC.check, 16)} Tentar de novo</button></div>`;
+  const toque = matchMedia('(pointer: coarse)').matches;
+  return `<div class="nf-pdf"><span class="nf-pdf-tit">${ic(IC.cupom, 18)} A nota</span>
+    <div class="nf-pdf-bts"><button type="button" class="bt tap" data-act="nfl-imprimir">${ic(IC.cupom, 16)} Imprimir</button><button type="button" class="bt nf-zap tap" data-act="nfl-whats">${ic(IC.zap, 16)} Enviar no WhatsApp</button><button type="button" class="bt tap" data-act="nfl-salvar">${ic(IC.baixar, 16)} Salvar a nota</button></div>
+    ${toque ? '' : `<iframe class="nf-pdf-v" id="nfl-pdf-v" src="${p.url}#view=FitH" title="A nota fiscal (PDF)"></iframe>`}</div>`;
+}
+function nflPdfPinta() { const a = $('#nfl-pdf'); if (a) a.innerHTML = nflPdfHtml(); }
+async function nflPdfCarregar() {
+  const x = NFL; if (!x || !x.feito) return; const n = x.feito.nota;
+  if (!n.chave) { x.pdf = { st: 'erro', msg: `A nota nº ${n.numero} não tem o PDF oficial (não saiu pelo Emissor Nacional). Veja no Play Space Notas.` }; nflPdfPinta(); return; }
+  const eu = x.pdf = { st: 'carregando' }; nflPdfPinta();
+  try { const b = await nfPdfBaixa(n, x.feito.emp); if (NFL !== x || x.pdf !== eu) return;
+    x.pdf = b ? { st: 'ok', url: URL.createObjectURL(b), arquivo: new File([b], `NFS-e ${n.numero} - ${n.clienteNome || ''}`.replace(/[\\/:*?"<>|]+/g, ' ').trim() + '.pdf', { type: 'application/pdf' }) }
+      : { st: 'erro', msg: `O governo ainda não liberou o PDF da nota nº ${n.numero}. Espere uns segundos e toque em Tentar de novo.` }; }
+  catch (e) { if (NFL !== x) return; x.pdf = { st: 'erro', msg: e.status === 401 ? 'Entre no Play Space Notas neste computador para ver a nota.' : 'A nota não carregou: ' + (e.message || 'tente de novo.') }; }
+  nflPdfPinta();
+}
+function nflSalvar() { const p = NFL && NFL.pdf; if (!p || p.st !== 'ok') return false; const a = document.createElement('a'); a.href = p.url; a.download = p.arquivo.name; document.body.appendChild(a); a.click(); a.remove(); return true; }
+function nflImprimir() { const p = NFL && NFL.pdf; if (!p || p.st !== 'ok') return; const f = $('#nfl-pdf-v'); try { if (!f) throw 0; f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { window.open(p.url, '_blank'); } }
+async function nflWhats() {
+  const x = NFL, p = x && x.pdf, c = x && crianca(x.cid); if (!p || p.st !== 'ok' || !c) return;
+  const n = x.feito.nota, quem = primeiro(MAI(c.resp || c.nome)), txt = `Olá, ${quem}! Segue a nota fiscal de serviço (NFS-e) nº ${n.numero} da Play Space, no valor de ${brl2(x.feito.valor)}.${n.chave ? '\nChave de acesso: ' + n.chave : ''}\nConsulta: https://www.nfse.gov.br/ConsultaPublica`;
+  if (matchMedia('(pointer: coarse)').matches && navigator.canShare && navigator.canShare({ files: [p.arquivo] })) { try { await navigator.share({ files: [p.arquivo], text: txt }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
+  const num = nfZapNumero(c); nflSalvar(); window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(txt), '_blank', 'noopener');
+  toast(num ? 'A conversa do cliente abriu no WhatsApp. O PDF da nota foi salvo: anexe na conversa (clipe → Documento).' : 'O cadastro não tem um celular do Brasil: escolha a conversa no WhatsApp. O PDF da nota foi salvo para anexar.');
+}
 function folhaNF(id) {
   const v = LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === +id), c = v && crianca(v.crianca); if (!v || !c || !temNF(v)) return;
-  NF = { id: v.id, cid: c.id }; if (NF_MSG && NF_MSG.venda === v.id && NF_MSG.tipo !== 'emitindo') NF_MSG = null;
-  abrirFolha('Nota fiscal', `<div id="nf-corpo" style="display:flex;flex-direction:column;gap:12px">${htmlNF(v, c)}</div>`); lerVoltaNF();
+  NF = { id: v.id, cid: c.id }; NFL = null; if (NF_MSG && NF_MSG.venda === v.id && NF_MSG.tipo !== 'emitindo') NF_MSG = null;
+  abrirFolha('Nota fiscal', `<div id="nf-corpo" style="display:flex;flex-direction:column;gap:12px">${htmlNF(v, c)}</div>${nflLink(c)}`); lerVoltaNF();
   const pn = nfDaVenda(v); if (!pn || pn.status !== 'usado') nfPreparar(v.id); else { const x = nfPdfDe(v); if (!x || x.st !== 'ok' || x.num !== String(pn.numero || '')) nfPdfCarregar(v); }   /* 2.02: o Notas está pronto? 2.48: a nota emitida carrega (de novo, se não tinha carregado) */
 }
 function redesenharNF() { const a = $('#nf-corpo'), v = NF && LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === NF.id), c = v && crianca(v.crianca); if (!a) return; if (v && c) { a.innerHTML = htmlNF(v, c); nfPdfGarante(v); } else fecharFolha(); }
@@ -9859,9 +9969,10 @@ const ACOES = {
   'off-ver': () => folhaOffProb(), 'off-ok': el => { OFF.prob.splice(+el.dataset.i, 1); filaGuardar(); offFaixa(); if (OFF.prob.length) folhaOffProb(); else fecharFolha(); },   /* 1.40 */
   'salt-item': el => { if (!ALTS || ALTS.espera) return; const i = altSaidaItens().find(x => x.id === +el.dataset.k); if (!i) return; ALTS.k = i.id; ALTS.v = valTxt(i.v); ALTS.hh = String(Math.round(i.h)); ALTS.vp = ''; ALTS.pn = ''; ALTS.aberto = true; altSaidaRedesenha(true); const v = $('#sa-alt-v'); if (v) { v.focus(); v.select(); } },   /* 1.39 */
   'salt-pedir': el => altSaidaPedir(el), 'salt-largar': () => altSaidaLargar(), 'salt-tirar': el => altSaidaTirar(el), 'salt-tira-largar': () => altSaidaTiraLargar(),   /* 2.24 */
-  nf: el => folhaNF(el.dataset.id), 'nf-ficha': el => nfDaFicha(+el.dataset.id),   /* 2.54 */ 'nf-notas': () => abrirNotasNF(), 'nf-pdf-imprimir': () => nfPdfImprimir(), 'nf-pdf-whats': () => nfPdfWhats(), 'nf-pdf-salvar': () => { if (nfPdfSalvar()) toast('A nota foi salva (na pasta Downloads)'); },
+  nf: el => folhaNF(el.dataset.id), 'nf-ficha': el => nfDaFicha(+el.dataset.id),   /* 2.54 */
+  'nf-livre': el => folhaNFLivre(+el.dataset.id), 'nfl-emitir': el => emitirNFLivre(el), 'nfl-pdf': () => nflPdfCarregar(), 'nfl-imprimir': () => nflImprimir(), 'nfl-whats': () => nflWhats(), 'nfl-salvar': () => nflSalvar(),   /* 2.55 */ 'nf-notas': () => abrirNotasNF(), 'nf-pdf-imprimir': () => nfPdfImprimir(), 'nf-pdf-whats': () => nfPdfWhats(), 'nf-pdf-salvar': () => { if (nfPdfSalvar()) toast('A nota foi salva (na pasta Downloads)'); },
   'nf-pdf-recarregar': () => { const v = NF && LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === NF.id); if (v) nfPdfCarregar(v); },   /* 2.48 */
-  'copia-baixar': el => baixarCopia(el.dataset.nome || '', el), 'copia-fazer': el => fazerCopia(el), 'nf-pedir': el => pedirNF(el), 'nf-notas-entrar': el => entrarNotasNF(el), 'nf-emp': el => { if (!NF || NF_EMITINDO) return; NF_EMP[NF.id] = +el.dataset.id; nfEmpRedesenha(NF.id); nfPreparar(NF.id); }, 'ocioso-ficar': () => ociosoMexeu(), 'nf-senha': el => acaoNF('senha', el), 'nf-emitida': el => acaoNF('emitida', el), 'nf-voltar': el => acaoNF('voltar', el), 'nf-largar': el => acaoNF('largar', el), 'nf-copiar': el => acaoNF('copiar', el),
+  'copia-baixar': el => baixarCopia(el.dataset.nome || '', el), 'copia-fazer': el => fazerCopia(el), 'nf-pedir': el => pedirNF(el), 'nf-notas-entrar': el => entrarNotasNF(el), 'nf-emp': el => { if (NFL && !NF) { nflEmp(+el.dataset.id); return; } if (!NF || NF_EMITINDO) return; NF_EMP[NF.id] = +el.dataset.id; nfEmpRedesenha(NF.id); nfPreparar(NF.id); }, 'ocioso-ficar': () => ociosoMexeu(), 'nf-senha': el => acaoNF('senha', el), 'nf-emitida': el => acaoNF('emitida', el), 'nf-voltar': el => acaoNF('voltar', el), 'nf-largar': el => acaoNF('largar', el), 'nf-copiar': el => acaoNF('copiar', el),
   'meta-salvar': el => metaSalvar(el, false), 'meta-tirar': el => metaSalvar(el, true), 'meta-ver': () => metaVer('dia'), 'meta-ver-mes': () => metaVer('mes'), 'meta-aviso-ver': () => metaVer('aviso'),   /* 1.87: as metas do mês */
   'meta-folha': el => folhaMeta(+el.dataset.uni), 'meta-recarregar': () => { META_ED.erro = null; const a = $('#aj-meta'); if (a) a.outerHTML = cartaoMeta(); },
   'meta-mudar': el => { META_ED.uni = +el.dataset.uni || META_ED.uni; META_ED.mes = metaMesAtual(); fecharFolha(); trocarTela('ajustes'); setTimeout(() => { const a = $('#aj-meta'); if (a) a.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 400); },

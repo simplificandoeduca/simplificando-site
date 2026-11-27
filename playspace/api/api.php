@@ -1110,6 +1110,28 @@ switch ($acao) {
     $db->prepare("UPDATE pedidos SET status = 'usado', numero = ?, feito_por = ?, feito_nome = ?, feito_em = ? WHERE id = ?")->execute([$num, (int)$u['id'], (string)$u['nome'], agora(), (int)$p['id']]);
     responder(['pedido' => pedidoPublico(pedido((int)$p['id'])), 'pedidos' => pedidosDaTela($u)]);
   }
+  case 'nf_livre': { /* 2.55 (o dono: "NF eu tenho que poder emitir pra todo mundo, viu? Tipo, que seja pacote de horas que comprou"): a nota com
+       outro valor, já emitida no Play Space Notas (sem a compra aqui com valor, como as horas que vieram do sistema anterior), fica guardada:
+       entra nas notas do dia, no faturamento em notas das Finanças e no histórico do cliente. O mesmo número de novo não guarda duas vezes */
+    $u = exigir(); $c = crianca((int)($in['crianca'] ?? 0)); if (!$c) falha('Cliente não encontrado.', 404);
+    $num = mb_substr(maiusculo(trim((string)($in['numero'] ?? ''))), 0, 40); if ($num === '') falha('Falta o número da nota.');
+    $valor = round((float)($in['valor'] ?? 0), 2); if ($valor <= 0.004 || $valor > 99999) falha('Confira o valor da nota.');
+    $q = $db->prepare("SELECT * FROM pedidos WHERE tipo = 'nf' AND venda_id IS NULL AND crianca_id = ? AND numero = ? AND status = 'usado' ORDER BY id DESC LIMIT 1"); $q->execute([(int)$c['id'], $num]); $ja = $q->fetch(); $q->closeCursor();
+    if ($ja) responder(['pedido' => pedidoPublico($ja), 'pedidos' => pedidosDaTela($u), 'ja' => true]);
+    $nome = mb_substr(maiusculo(trim((string)($in['nome'] ?? ''))), 0, 120); if ($nome === '') $nome = (string)($c['resp'] !== '' ? $c['resp'] : $c['nome']);
+    $dig = (string)preg_replace('/\D/', '', (string)($in['doc'] ?? '')); if (strlen($dig) !== 11 && strlen($dig) !== 14) falha('Confira o CPF ou o CNPJ da nota: o CPF tem 11 números e o CNPJ, 14.');
+    $doc = strlen($dig) === 11 ? substr($dig, 0, 3) . '.' . substr($dig, 3, 3) . '.' . substr($dig, 6, 3) . '-' . substr($dig, 9) : substr($dig, 0, 2) . '.' . substr($dig, 2, 3) . '.' . substr($dig, 5, 3) . '/' . substr($dig, 8, 4) . '-' . substr($dig, 12);
+    $email = mb_strtolower(mb_substr(trim((string)($in['email'] ?? '')), 0, 120)); if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) $email = '';
+    $desc = mb_substr(trim((string)preg_replace('/\s+/', ' ', (string)($in['descricao'] ?? ''))), 0, 200); if ($desc === '') $desc = 'Recreação infantil: pacote de horas';
+    $nid = substr((string)preg_replace('/[^a-z0-9]/i', '', (string)($in['nota'] ?? '')), 0, 40); $emp = mb_substr(trim((string)($in['emp'] ?? '')), 0, 40); $agora = agora();
+    $dados = ['nome' => $nome, 'doc' => $doc, 'email' => $email, 'item' => 'OUTRO VALOR: ' . maiusculo($desc), 'livre' => 1, 'nota' => $nid, 'emp' => $emp];
+    $texto = 'Nota fiscal com outro valor: ' . $desc . ' (' . dinheiro($valor) . ') · em nome de ' . $nome . ' · ' . (strlen($dig) === 14 ? 'CNPJ ' : 'CPF ') . $doc;
+    $db->prepare("INSERT INTO pedidos (tipo, status, crianca_id, venda_id, nome, resp, texto, motivo, valor, dados, pedido_por, pedido_nome, pedido_em, decidido_por, decidido_nome, decidido_em, como, feito_por, feito_nome, feito_em, numero, unidade_id) VALUES ('nf', 'usado', ?, NULL, ?, ?, ?, '', ?, ?, ?, ?, ?, ?, ?, ?, 'proprio', ?, ?, ?, ?, ?)")
+      ->execute([(int)$c['id'], (string)$c['nome'], (string)$c['resp'], $texto, $valor, json_encode($dados, JSON_UNESCAPED_UNICODE), (int)$u['id'], (string)$u['nome'], $agora, (int)$u['id'], (string)$u['nome'], $agora, (int)$u['id'], (string)$u['nome'], $agora, $num, unidadeDoPedido()]);
+    $id = (int)$db->lastInsertId();
+    registrar('alt', (int)$c['id'], (string)$c['nome'], 'Nota fiscal nº ' . $num . ' emitida com outro valor: ' . dinheiro($valor) . ' · ' . $desc . ($emp !== '' ? ' · ' . maiusculo($emp) : '') . ' · por ' . maiusculo(primeiroNome((string)$u['nome'])));
+    responder(['pedido' => pedidoPublico(pedido($id)), 'pedidos' => pedidosDaTela($u)]);
+  }
   case 'nf_cancelar': { // 1.55: a nota foi cancelada (só o gestor): sai do faturamento em notas e fica no relatório do dia como cancelada
     $u = exigir(['gestor']); $p = pedido((int)($in['id'] ?? 0)); if (!$p || $p['tipo'] !== 'nf') falha('Nota não encontrada.', 404);
     if ($p['status'] !== 'usado') falha('Esta nota não está marcada como emitida.', 409);

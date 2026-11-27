@@ -1019,7 +1019,7 @@ function notaPublica(array $p): array {
   return ['id' => (int)$p['id'], 'numero' => (string)$p['numero'], 'quando' => (string)$p['feito_em'], 'uni' => (int)($p['unidade_id'] ?? 0), 'crianca' => $p['crianca_id'] === null ? null : (int)$p['crianca_id'],
     'nome' => (string)($d['nome'] ?? ''), 'doc' => (string)($d['doc'] ?? ''), 'cliente' => (string)($p['resp'] !== '' ? $p['resp'] : $p['nome']), 'item' => (string)($d['item'] ?? ''), 'valor' => round((float)$p['valor'], 2),
     'por' => (string)$p['feito_nome'], 'st' => $p['status'] === 'usado' ? 'emitida' : 'cancelada', 'canc' => (string)($k['motivo'] ?? ''), 'canc_por' => (string)($k['por'] ?? ''), 'canc_em' => (string)($k['em'] ?? ''),
-    'vc' => $p['status'] === 'usado' && $p['venda_id'] === null];
+    'vc' => $p['status'] === 'usado' && $p['venda_id'] === null && empty($d['livre']), 'livre' => !empty($d['livre'])];   // 2.55: livre = a nota com outro valor (sem a compra aqui)
 }
 // 1.41: a conta do pacote alterado com os três campos: "PACOTE 03 HORAS 360 (3h, R$ 225) para 4h: pacote R$ 300 + produto R$ 60 = R$ 360"
 function altTextoPac(string $n, int $h0, float $de, int $h1, float $pac, float $prod, float $para, string $pn = ''): string {   /* 2.40: pn = qual produto */
@@ -1829,11 +1829,11 @@ function pendItensDeTodos(): array {
   $min = (string)$db->query('SELECT MIN(entrou) FROM criancas WHERE entrou IS NOT NULL')->fetchColumn();
   $piso = $min !== '' && substr($min, 0, 10) . ' 00:00:00' < $hoje ? substr($min, 0, 10) . ' 00:00:00' : $hoje;
   // 1.91: primeiro as vendas sem pagar inteiro (uma soma por venda), depois só delas a última saída (de 345 para 11 ms com 60 dias cheios)
-  $q = $db->prepare("SELECT a.* FROM (SELECT v.id, v.crianca_id c, v.quando, v.servico, v.minutos, v.itens, v.valor, v.auto, v.produto_id, v.alug, v.festa_id, v.voucher, v.desc_valor, v.valor - COALESCE(SUM(p.valor), 0) f
+  $q = $db->prepare("SELECT a.* FROM (SELECT v.id, v.crianca_id c, v.quando, v.servico, v.minutos, v.itens, v.valor, v.auto, v.produto_id, v.alug, v.festa_id, v.voucher, v.desc_valor, v.pcd, v.cheio, v.valor - COALESCE(SUM(p.valor), 0) f
       FROM vendas v JOIN criancas k0 ON k0.id = v.crianca_id LEFT JOIN pagamentos p ON p.venda_id = v.id WHERE v.quando >= ? AND v.auto = 0 AND v.valor > 0 AND v.servico != ? GROUP BY v.id) a
     WHERE a.f > 0.004 AND a.quando >= COALESCE((SELECT MAX(x.saiu) FROM visitas x WHERE x.crianca_id = a.c), '') ORDER BY a.id");   // 1.21: só a saída fecha a conta do que há para receber (a entrada cancelada, não)
   $q->execute([min($piso, pisoAReceber()), SERV_IMPORTADO]); $o = [];
-  foreach ($q->fetchAll() as $l) $o[(int)$l['c']][] = ['n' => nomeDaVenda($l), 'v' => round((float)$l['f'], 2), 'id' => (int)$l['id'], 'alt' => (float)$l['f'] >= (float)$l['valor'] - 0.004 ? altDaVenda($l) : '', 'h' => round((int)$l['minutos'] / 60, 2), 't' => tipoNoPapel($l), 'pn' => nomeNoPapel($l)];   // 1.39: alt = o "Alterar pacote" da saída vale para ela ('pac' ou 'prod')   // 1.25: id = a venda   // juntar por criança fica aqui: agrupar no SQL faria a consulta andar pelo índice da criança
+  foreach ($q->fetchAll() as $l) $o[(int)$l['c']][] = ['n' => nomeDaVenda($l), 'v' => round((float)$l['f'], 2), 'id' => (int)$l['id'], 'alt' => (float)$l['f'] >= (float)$l['valor'] - 0.004 ? altDaVenda($l) : '', 'h' => round((int)$l['minutos'] / 60, 2), 't' => tipoNoPapel($l), 'pn' => nomeNoPapel($l)] + (!empty($l['pcd']) && (float)$l['f'] >= (float)$l['valor'] - 0.004 && (float)$l['cheio'] - (float)$l['desc_valor'] > (float)$l['valor'] + 0.004 ? ['ch' => round((float)$l['cheio'] - (float)$l['desc_valor'], 2)] : []);   /* 2.55: ch = o valor cheio da venda PCD (o cupom mostra o desconto) */   // 1.39: alt = o "Alterar pacote" da saída vale para ela ('pac' ou 'prod')   // 1.25: id = a venda   // juntar por criança fica aqui: agrupar no SQL faria a consulta andar pelo índice da criança
   foreach (autosSemPagarDaSaida(null, $piso) as $l) $o[(int)$l['crianca_id']][] = ['n' => nomeDaVenda($l), 'v' => round((float)$l['valor'], 2), 'id' => (int)$l['id']];   // 1.31: a saída pelo rosto que não recebeu
   return $o;
 }

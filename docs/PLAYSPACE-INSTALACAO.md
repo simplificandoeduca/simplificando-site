@@ -1301,6 +1301,18 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. NF para todo mundo e o desconto PCD no cupom (2.55)
+
+Pedido do dono (27/11): "NF eu tenho que poder emitir pra todo mundo, viu? Tipo, que seja pacote de horas que comprou" e "no cupom tem que sair o desconto do PCD".
+
+- A recreação avulsa (a conta que a visita soma) também tem nota fiscal, depois da saída.
+- "Nota com outro valor": para o cliente sem compra com valor aqui (as horas que vieram do sistema anterior entram com valor zero; um pacote pago antes). Escreve o valor e o que sai na nota (já vem "Recreação infantil: pacote de horas"), e a nota sai na hora pelo Play Space Notas, pelo CNPJ da unidade (com a troca Morumbi/Anália).
+  - O botão NF da ficha abre a nota com outro valor quando o cliente não tem compra com valor; na escolha da compra e na folha da nota há o link "Nota com outro valor".
+  - Em produção a nota fica guardada: entra nas notas do dia, no faturamento em notas das Finanças e no histórico do cliente ("Nota fiscal nº ... emitida com outro valor"). Imprimir, Enviar no WhatsApp e Salvar, como a nota da compra. Só o gestor cancela.
+- Cupom da criança PCD: a recreação sai pelo valor cheio, com o subtotal, a linha "Desconto PCD 50%" e o total pago (na venda, na saída e no que ficou para pagar na saída).
+- Na tela da saída, a linha da recreação da criança PCD mostra "PCD 50%".
+- Lembrete: o desconto PCD vale só na recreação avulsa e no tempo além do pacote. Pacote de horas, carrinhos e produtos não têm desconto. A marca PCD fica no cadastro (só o gestor muda depois de cadastrado: Ajustes → Cadastros → Editar cadastro); a ficha mostra "Criança PCD" embaixo do nome.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O botão "NF" na ficha do cliente (2.54)
 
 Pedido do dono (27/11): "pode fazer um botão NF, ele aí ... do que eu ter que entrar no histórico do cliente, muito trabalho".
