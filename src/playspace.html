@@ -196,7 +196,7 @@ html { scrollbar-width: none; } html::-webkit-scrollbar { width: 0; height: 0; }
 body.quieto .mp-esp i { animation: none; }
 .hoje { display: none; }
 @media (min-width: 820px) {
-  .trilho { display: block; position: sticky; top: 0; height: 100vh; flex: none; padding: 18px 0 18px max(18px, env(safe-area-inset-left, 0px)); }
+  .trilho { display: block; position: sticky; top: 0; height: 100vh; height: 100dvh; flex: none; padding: 18px 0 max(18px, env(safe-area-inset-bottom, 0px)) max(18px, env(safe-area-inset-left, 0px)); }   /* 2.87: a altura que o Safari do iPad mostra de verdade (o "+" embaixo sempre à vista) */
   .trilho nav { width: 92px; height: 100%; border-radius: 30px; background: var(--vidro); border: 1px solid var(--vidro-borda); box-shadow: var(--sombra); backdrop-filter: blur(20px); display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 18px 0 14px; }
   .trilho .logo { width: 46px; height: 46px; margin-bottom: 8px; }
   .trilho .ab { width: 56px; height: 56px; border-radius: 18px; display: flex; align-items: center; justify-content: center; color: var(--tinta-2); position: relative; }
@@ -213,7 +213,7 @@ body.quieto .mp-esp i { animation: none; }
   .barra { display: none !important; }
 }
 @media (min-width: 1400px) {
-  .hoje { display: block; position: sticky; top: 0; height: 100vh; flex: none; width: 340px; padding: 18px max(18px, env(safe-area-inset-right, 0px)) 18px 0; }
+  .hoje { display: block; position: sticky; top: 0; height: 100vh; height: 100dvh; flex: none; width: 340px; padding: 18px max(18px, env(safe-area-inset-right, 0px)) 18px 0; }
   .hoje > div { height: 100%; display: flex; flex-direction: column; gap: 14px; }
   .hoje .painel { border-radius: 30px; background: var(--vidro); border: 1px solid var(--vidro-borda); box-shadow: var(--sombra); backdrop-filter: blur(20px); padding: 20px 18px; display: flex; flex-direction: column; gap: 12px; overflow: auto; min-height: 0; }
   .hoje .painel.atividades { flex: none; max-height: 42%; }
@@ -2256,7 +2256,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.86';
+const VERSAO = '2.87';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
