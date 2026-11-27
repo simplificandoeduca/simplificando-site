@@ -1301,6 +1301,19 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A nota do governo pela página do QR (2.83)
+
+Pedido do dono (27/11, com a foto do "O governo ainda não liberou a nota nº 85"): "não carrega a nota".
+
+- O PDF do governo pedido pelo sistema (o Notas pedindo ao Emissor Nacional) não chega na loja, nem esperando 1 minuto e meio. Pelo QR da nota abre: é a Consulta Pública do governo.
+- Agora, logo depois de emitir, a folha mostra "A nota nº X no governo" com:
+  - "Abrir a nota do governo": abre a Consulta Pública (a mesma página do QR, com a chave da nota) numa aba nova. Lá dá para imprimir ou baixar o PDF do governo.
+  - "Ver o comprovante": o comprovante feito aqui, com Imprimir, Enviar no WhatsApp e Salvar a nota (e o link "Abrir a nota do governo").
+  - A chave de acesso, com "Copiar" (se a página do governo pedir a chave).
+- O sistema não pede mais o PDF ao governo daqui. Assim a folha não fica esperando, e o Notas daquele computador fica livre para a nota seguinte.
+- A nota de outro valor (a nota livre) mostra o comprovante na hora, com o link "Abrir a nota do governo".
+- No teste: do Emitir até "Abrir a nota do governo" na tela, 5 s (o governo de mentira leva 4 s para emitir).
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A nota do governo de novo (2.82)
 
 Pedido do dono (27/11): "ao invés de deixar a minha nota bonita, eles querem a nota feia. Dá para trocar então para puxar a nota do governo?"
