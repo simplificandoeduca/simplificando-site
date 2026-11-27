@@ -1235,7 +1235,8 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .pg-alt-i button { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 42px; padding: 6px 12px; border: 2px solid var(--borda); border-radius: 12px; background: var(--creme-2); font-size: 13.5px; color: var(--tinta-2); text-align: left; }
 .pg-alt-i button b { min-width: 0; font-weight: 800; overflow-wrap: anywhere; } .pg-alt-i button span { flex: none; font-weight: 800; }
 .pg-alt-i button[aria-checked="true"] { border-color: var(--coral); background: var(--coral-2); color: var(--tinta); }
-.pg-alt-c.pg-alt-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } .pg-alt-3 .pg-alt-n, .pg-alt-3 .pg-alt-i { grid-column: 1 / -1; }   /* 1.41: as horas, o valor do pacote e o do produto */
+.pg-alt-c.pg-alt-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.pg-altp-c { grid-template-columns: 150px minmax(0, 1fr); } .pg-altp-c .pg-alt-n, .pg-altp-c .pg-alt-i { grid-column: 1 / -1; }   /* 2.73: o "Alterar produto": o valor novo e o motivo */ .pg-alt-3 .pg-alt-n, .pg-alt-3 .pg-alt-i { grid-column: 1 / -1; }   /* 1.41: as horas, o valor do pacote e o do produto */
 .pg-alt-tot { grid-column: 1 / -1; margin: 0; font-size: 13.5px; color: var(--tinta-2); } .pg-alt-tot b { color: var(--tinta); font-family: var(--display); font-size: 15px; }
 #pg-alt-p, #sa-alt-p, #pg-alt-v, #sa-alt-v { text-align: right; font-family: var(--display); font-weight: 800; font-size: 16px; }
 .pg-alt-n { grid-column: 1 / -1; margin: 0; font-size: 13px; color: var(--tinta-2); }
@@ -2245,7 +2246,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.72';
+const VERSAO = '2.73';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -4031,7 +4032,7 @@ const festaFalta = f => f.modo === 'adicional' ? 'Quantas crianças a mais?' : f
 function folhaFesta(id, sel) {
   const c = crianca(id); if (!c) return; guardarEtapa(false); VOLTA_SAIDA = 0;
   const fm = festaMarcada(c);   // 1.29: a festa marcada deste cliente (o upgrade e o adicional vão para ela)
-  CARRINHO = { id: c.id, q: {}, pac: [], pr: {}, vq: 0, festa: { modo: 'nova', dia: '', n: 0, udia: '', de: 0, para: 0, extra: 0, data: '', uni: minhaUni() || (unidades()[0] || {}).id || 0, tema: '', hora: '', aniv: c.id, festaId: fm ? fm.id : 0, ...(sel || {}) } }; ETAPA_FEITA = true; PAG = null; DESC = null; ALT = null; CALF = null;   // a festa não vai para "Falta finalizar": fechou sem vender, não guarda nada
+  CARRINHO = { id: c.id, q: {}, pac: [], pr: {}, vq: 0, festa: { modo: 'nova', dia: '', n: 0, udia: '', de: 0, para: 0, extra: 0, data: '', uni: minhaUni() || (unidades()[0] || {}).id || 0, tema: '', hora: '', aniv: c.id, festaId: fm ? fm.id : 0, ...(sel || {}) } }; ETAPA_FEITA = true; PAG = null; DESC = null; ALT = null; ALTP = null; CALF = null;   // a festa não vai para "Falta finalizar": fechou sem vender, não guarda nada
   CARRINHO.visto = MODO === 'servidor' ? ULT_REG : 0;
   const T = festaCfg(), f = CARRINHO.festa;
   if (!familia(c).some(x => x.id === +f.aniv)) f.aniv = c.id; if (f.festaId && !festasDaFamilia(c).some(x => x.id === +f.festaId)) f.festaId = fm ? fm.id : 0;   // (1.29: só do cliente desta folha)
@@ -4632,6 +4633,7 @@ function travaAut(onde, id) {
   if (onde === 'venda' && ALT && ALT.id === id && !ALT.lib && PAG && PAG.onde === 'venda' && !PAG.festa) { if (ALT.espera && ALT.ped) return 'Esperando a aprovação do pacote alterado'; if (ALT.neg) return `${ALT.neg} não aprovou o pacote alterado`; }
   if (PAG && ((onde === 'venda' && PAG.onde === 'venda' && PAG.id === id) || (onde === 'saida' && PAG.onde === 'saida'))) { const tp = travaParc(); if (tp) return tp; }   /* 1.65; 1.89: em todo pagamento */
   if (onde === 'saida' && ALTS) { if (ALTS.espera && ALTS.ped) return 'Esperando a aprovação do pacote alterado'; if (ALTS.neg) return `${ALTS.neg} não aprovou o pacote alterado`; }
+  if (ALTP && !ALTP.lib && ((onde === 'venda' && ALTP.onde === 'venda' && ALTP.id === id && PAG && PAG.onde === 'venda' && !PAG.festa) || (onde === 'saida' && ALTP.onde === 'saida'))) { if (ALTP.espera && ALTP.ped) return 'Esperando a aprovação do valor do produto'; if (ALTP.neg) return `${ALTP.neg} não aprovou o valor do produto`; }   /* 2.73 */
   return '';
 }
 // solta: o botão volta a ser o de antes (quem desenha o botão refaz o texto; libera = devolve o clique, quando ninguém mais cuida dele)
@@ -4760,7 +4762,7 @@ const altSaidaSig = () => !ALTS ? '' : JSON.stringify([altSaidaItens().map(i => 
 function altSaidaNovo(ids, grupo) { ALTS = { grupo: !!grupo, ids: ids.slice(), k: 0, v: '', hh: '', vp: '', motivo: '', ped: 0, espera: false, neg: null, feito: null, aberto: false, tira: null }; altSaidaLigar(); }
 function altSaidaLigar() { // o meu pedido de alterar (da saída) destes clientes: esperando a resposta, ou respondido agora há pouco
   { const I = altSaidaItens(), pt = (S.pedidos || []).filter(p => p.tipo === 'cancelar_venda' && p.status === 'pendente' && pedMeu(p) && I.some(i => i.id === p.venda)).sort((a, b) => b.id - a.id)[0]; if (pt) ALTS.tira = { ped: pt.id }; }   /* 2.24: o meu pedido de tirar o pacote, esperando */
-  const cs = altSaidaCs(), p = (S.pedidos || []).filter(p => p.tipo === 'valor' && p.venda && (p.dados || {}).onde === 'saida' && pedMeu(p) && cs.some(c => c.id === p.crianca)).sort((a, b) => b.id - a.id)[0]; if (!p) return;
+  const cs = altSaidaCs(), p = (S.pedidos || []).filter(p => p.tipo === 'valor' && p.venda && (p.dados || {}).onde === 'saida' && pedMeu(p) && !altpProdPed(p) && cs.some(c => c.id === p.crianca)).sort((a, b) => b.id - a.id)[0]; if (!p) return;
   const recente = !!p.dec_em && agora - p.dec_em < PEDIDO_VALE_MIN * 60000, poe = () => { ALTS.k = p.venda; ALTS.v = valTxt(p.dados.pac != null ? p.dados.pac : p.dados.para); ALTS.vp = +p.dados.prod > 0 ? valTxt(p.dados.prod) : ''; ALTS.pn = p.dados.prod_nome || ''; ALTS.hh = String(p.dados.horas || (p.dados.item || {}).h || ''); ALTS.motivo = p.motivo; };
   if (p.status === 'pendente') { ALTS.ped = p.id; ALTS.espera = true; poe(); } else if (p.status === 'usado' && recente) ALTS.feito = p; else if (p.status === 'negado' && recente && !NEG_VISTO.has(p.id)) { ALTS.neg = primeiro(p.dec) || 'A supervisora'; ALTS.negId = p.id; poe(); }
 }
@@ -4809,7 +4811,7 @@ async function altSaidaTirou(p) { // liberado: a venda do pacote foi cancelada (
 async function altSaidaTiraLargar() { if (!ALTS || !ALTS.tira) return; const id = ALTS.tira.ped;
   try { if (MODO === 'servidor') pedidosChegaram((await api('pedido_cancelar', { id })).pedidos, true); else { cancelarPedidoPrevia(pedidoPorId(id), true); pedidosMudaramPrevia(true); } } catch (e) { toast(e.message); }
   ALTS.tira = null; altSaidaRedesenha(true); }
-function altSaidaRedesenha(forca) { const a = $('#sa-box'); if (!a || !ALTS) return; const sig = altSaidaSig(); if (!forca && a.dataset.k === sig) return; const d = $('#sa-alt'); if (d && d.tagName === 'DETAILS') ALTS.aberto = d.open; a.dataset.k = sig; a.innerHTML = htmlAltSaida(); travaRefaz(); }
+function altSaidaRedesenha(forca) { altpRedesenha(!!forca); const a = $('#sa-box'); if (!a || !ALTS) return; const sig = altSaidaSig(); if (!forca && a.dataset.k === sig) return; const d = $('#sa-alt'); if (d && d.tagName === 'DETAILS') ALTS.aberto = d.open; a.dataset.k = sig; a.innerHTML = htmlAltSaida(); travaRefaz(); }
 function altSaidaDados() { // o que foi escrito, conferido: os dados do pedido, ou { erro, foco }
   const i = altSaidaItens().find(x => x.id === ALTS.k); if (!i) return { erro: 'Escolha o pacote que muda', foco: 'item' };
   return altConfere(ALTS, i.h, i.v, { tipo: 'valor', crianca: i.c.id, venda: i.id });   // 1.41: as horas, o valor do pacote e o do produto
@@ -4914,12 +4916,12 @@ function altConfere(A, h0, v0, base) {
 function altPreparar(id) { if (ALT && ALT.id === id) return; ALT = { id, k: '', v: '', hh: '', vp: '', motivo: '', ped: 0, lib: null, espera: false, neg: null, venceu: false }; altLigar(); }
 function altLigar() { // o meu pedido de alterar valor deste cliente: esperando a resposta, ou aprovado e ainda não usado (ou negado agora há pouco)
   const c = crianca(ALT.id); if (!c) return;
-  const M = (S.pedidos || []).filter(p => p.tipo === 'valor' && pedMeu(p) && (k => !!k && mesmoCliente(c, k))(crianca(p.crianca))).sort((a, b) => b.id - a.id), p = M.filter(p => p.status === 'pendente' || altValido(p))[0];
+  const M = (S.pedidos || []).filter(p => p.tipo === 'valor' && pedMeu(p) && (altpEhCT(ALT.id) || !altpProdPed(p)) && (k => !!k && mesmoCliente(c, k))(crianca(p.crianca))).sort((a, b) => b.id - a.id), p = M.filter(p => p.status === 'pendente' || altValido(p))[0];
   if (!p) { const n = M[0]; if (n && n.status === 'negado' && !NEG_VISTO.has(n.id) && n.dec_em && agora - n.dec_em < PEDIDO_VALE_MIN * 60000) { ALT.neg = primeiro(n.dec) || 'A supervisora'; ALT.negId = n.id; ALT.k = altChaveDe(n.dados.item); ALT.v = valTxt(n.dados.pac != null ? n.dados.pac : n.dados.para); ALT.vp = +n.dados.prod > 0 ? valTxt(n.dados.prod) : ''; ALT.pn = n.dados.prod_nome || ''; ALT.hh = String(n.dados.horas || (n.dados.item || {}).h || ''); ALT.motivo = n.motivo; } return; }
   ALT.ped = p.id; ALT.k = altChaveDe(p.dados.item); ALT.v = valTxt(p.dados.pac != null ? p.dados.pac : p.dados.para); ALT.vp = +p.dados.prod > 0 ? valTxt(p.dados.prod) : ''; ALT.pn = p.dados.prod_nome || ''; ALT.hh = String(p.dados.horas || (p.dados.item || {}).h || ''); ALT.motivo = p.motivo; if (p.status === 'liberado') ALT.lib = p; else ALT.espera = true;
 }
 // as linhas da venda com a alteração aprovada: o item vale o valor novo (vTab guarda o da tabela, para o servidor achar o item)
-function altLinhas(L, id) {
+function altLinhas0(L, id) {
   const p = ALT && ALT.id === id && ALT.lib && altValido(ALT.lib) ? ALT.lib : null; if (!p) return L; let usou = false;
   return L.map(l => { if (usou || altChave(l) !== ALT.k || !(l.pac != null || l.prod)) return l; usou = true; const hn = l.pac != null && +p.dados.horas > 0 ? +p.dados.horas : 0;   // 1.36: o pacote com as horas novas
     return { ...l, vTab: l.v, v: centavos(+p.dados.para), alt: p.id, ...(hn ? { hTab: l.min / 60, min: hn * 60, servico: l.servico ? 'PACOTE ' + hn + 'H' : '' } : {}) }; });
@@ -4974,6 +4976,97 @@ function altMudou() { // o valor aprovado (ou tirado): a tabela, o total, as for
   PAG.cheio = cheio; PAG.linhas = L.map(l => linhaPagDe(l, c, PAG.entrar)); PAG.total = centavos(cheio - descDe(cheio, 'venda', PAG.id));
   const a = $('#pg-itens-v'), f = $('#pg-fica-v'), hv = $('#pg-horas-v'); if (a) a.innerHTML = htmlItensVenda(); if (f) f.textContent = brl(PAG.total); if (hv) hv.innerHTML = horasPagHtml(c, L); desenharPag(false); descRedesenha();
 }
+/* 2.73 (o dono: "Embaixo de desconto, alterar pacote, alterar produto. Que aí eu preciso mandar para o gestor para mim alterar o valor do
+   produto, seja para mais ou para menos ... no Play ele não tem opção de alterar o produto"): o "Alterar produto" no pagamento do Play, na
+   venda e na saída, embaixo do "Alterar pacote". Escolhe o produto, escreve o valor novo (para mais ou para menos) e o motivo; o pedido vai
+   para quem aprova (o supervisor ou o gestor, com o aviso no celular), ou vale na hora com a senha dele aqui. Aprovado, o produto sai com o
+   valor novo na conta e no cupom. É um pedido à parte do pacote: dá para alterar os dois na mesma conta. (Na Casa Tom continua o "Alterar valor") */
+let ALTP = null;   // { onde: 'venda' | 'saida', id, k, v, motivo, ped, lib, espera, neg, negId, venceu, feito, aberto }
+const altpEhCT = id => !!S.balcao && +id === +S.balcao.id;
+const altpProdPed = p => !!p && p.tipo === 'valor' && (k => k.k === 'prod' || k.tipo === 'prod')(((p.dados || {}).item) || {});
+const altpNovo = (onde, id) => ({ onde, id, k: '', v: '', motivo: '', ped: 0, lib: null, espera: false, neg: null, negId: 0, venceu: false, feito: null, aberto: false });
+const altpItens = () => { if (!ALTP) return [];
+  if (ALTP.onde === 'venda') return linhasDoCarrinho().filter(l => l.prod && !l.festa && l.v > 0).map(l => ({ k: altChave(l), n: altNomeL(l), v: l.v, l }));
+  const cs = altSaidaCs(); return cs.flatMap(c => pendItens(c).filter(i => i.id && i.alt === 'prod').map(i => ({ k: String(i.id), n: i.n + (cs.length > 1 ? ' · ' + c.nome : ''), v: i.v, id: i.id, c }))); };
+const altpTxt = d => `${((d || {}).item || {}).n || 'o produto'} de ${brl((d || {}).de)} para ${brl((d || {}).para)}`;
+function altpVenda(id) { if (ALTP && ALTP.onde === 'venda' && ALTP.id === id) return; ALTP = altpNovo('venda', id); altpLigar(); }
+function altpSaida(id) { ALTP = altpNovo('saida', id); altpLigar(); }
+function altpLigar() { // o meu pedido de alterar o produto: esperando, aprovado (e ainda não usado), feito agora há pouco ou negado agora há pouco
+  const A = ALTP, recente = p => !!p.dec_em && agora - p.dec_em < PEDIDO_VALE_MIN * 60000, poe = p => { A.v = valTxt(p.dados.para); A.motivo = p.motivo || ''; };
+  if (A.onde === 'venda') { const c = crianca(A.id); if (!c || altpEhCT(A.id)) return;
+    const M = (S.pedidos || []).filter(p => altpProdPed(p) && !p.venda && pedMeu(p) && (k => !!k && mesmoCliente(c, k))(crianca(p.crianca))).sort((a, b) => b.id - a.id), p = M.filter(p => p.status === 'pendente' || altValido(p))[0];
+    if (p) { A.ped = p.id; A.k = altChaveDe(p.dados.item); poe(p); if (p.status === 'liberado') A.lib = p; else A.espera = true; return; }
+    const n = M[0]; if (n && n.status === 'negado' && !NEG_VISTO.has(n.id) && recente(n)) { A.neg = primeiro(n.dec) || 'A supervisora'; A.negId = n.id; A.k = altChaveDe(n.dados.item); poe(n); } return; }
+  const I = altpItens(), cs = altSaidaCs(), p = (S.pedidos || []).filter(p => altpProdPed(p) && p.venda && (p.dados || {}).onde === 'saida' && pedMeu(p) && cs.some(c => c.id === p.crianca)).sort((a, b) => b.id - a.id)[0]; if (!p) return;
+  if (p.status === 'pendente' && I.some(i => i.id === p.venda)) { A.ped = p.id; A.espera = true; A.k = String(p.venda); poe(p); }
+  else if (p.status === 'usado' && recente(p)) A.feito = p;
+  else if (p.status === 'negado' && recente(p) && !NEG_VISTO.has(p.id) && I.some(i => i.id === p.venda)) { A.neg = primeiro(p.dec) || 'A supervisora'; A.negId = p.id; A.k = String(p.venda); poe(p); }
+}
+// as linhas da venda com as alterações aprovadas: a do pacote (ALT) e a do produto (ALTP)
+function altLinhas(L, id) { L = altLinhas0(L, id); const p = ALTP && ALTP.onde === 'venda' && ALTP.id === id && ALTP.lib && altValido(ALTP.lib) ? ALTP.lib : null; if (!p) return L; let usou = false;
+  return L.map(l => { if (usou || !l.prod || l.alt || altChave(l) !== ALTP.k) return l; usou = true; return { ...l, vTab: l.v, v: centavos(+p.dados.para), alt: p.id }; }); }
+function htmlAltp() {
+  const A = ALTP; if (!A) return ''; if (A.onde === 'venda' && (!PAG || PAG.onde !== 'venda' || PAG.festa || PAG.id !== A.id || altpEhCT(A.id))) return '';
+  if (A.lib && !altValido(A.lib)) { A.lib = null; A.ped = 0; A.venceu = true; }   // a aprovação vale 30 min
+  const I = altpItens(), dec = altDecide(), e = A.espera ? pedidoPorId(A.ped) : null, ok = A.lib || A.feito;
+  const feito = ok ? `<div class="pg-desc lib pg-alt" id="pg-altp">${ic(IC.check, 18, 2.6)}<span><b>Produto alterado</b>: ${esc(altpTxt(ok.dados))} · ${ok.como === 'proprio' ? 'por' : 'aprovado por'} ${esc(primeiro(ok.dec))}${ok.como === 'senha' ? ', com a senha' : ''}${ok.motivo ? ' · ' + esc(ok.motivo) : ''}</span>${A.lib ? '<button type="button" class="link tap" data-act="altp-largar">Tirar</button>' : ''}</div>` : '';
+  if (A.lib) return feito;   // (na venda: um produto alterado por vez; "Tirar" para mudar outro)
+  if (!I.length && !e) return feito;   // sem produto na conta, o bloco não aparece
+  if (!I.some(i => i.k === A.k) && !e) { const i = I.length === 1 ? I[0] : null; A.k = i ? i.k : ''; A.v = i ? valTxt(i.v) : ''; }   // com um produto só, ele já vem escolhido
+  const trava = e ? ' disabled' : '', aberto = !!e || A.aberto || !!A.neg || A.venceu, sel = I.find(i => i.k === A.k);
+  return feito + `<details class="pg-desc pg-alt" id="${feito ? 'pg-altp-2' : 'pg-altp'}"${aberto ? ' open' : ''}><summary>${ic(IC.lapis, 18)}<span><b>Alterar produto</b> <span class="leve">· ${dec ? 'para mais ou para menos' : 'o gestor aprova'}</span></span>${ic(IC.vai, 16)}</summary>
+  <div class="pg-desc-c pg-alt-c pg-altp-c">${I.length > 1 ? `<div class="pg-alt-i" role="radiogroup" aria-label="Qual produto muda">${I.map(i => `<button type="button" class="tap" role="radio" aria-checked="${i.k === A.k}" data-act="altp-item" data-k="${esc(i.k)}"${trava}><b>${esc(i.n)}</b><span class="num">${brl(i.v)}</span></button>`).join('')}</div>`
+      : sel ? `<p class="pg-alt-n">${esc(sel.n)} · ${A.onde === 'venda' ? 'na tabela' : 'agora'}, <b>${brl(sel.v)}</b></p>` : ''}
+    ${A.neg ? `<p class="pg-alt-n pg-desc-neg"><span><b>${esc(A.neg)} não aprovou.</b> Peça de novo ou cobre sem alterar.</span><button type="button" class="link tap" data-act="altp-sem">Cobrar sem alterar</button></p>` : A.venceu ? '<p class="pg-alt-n"><b>A aprovação venceu</b> (vale por 30 min). Peça de novo.</p>' : ''}
+    <label class="pg-alt-l">Valor novo<input id="altp-v" inputmode="decimal" autocomplete="off" placeholder="R$" value="${esc(A.v)}" aria-label="Valor novo do produto, em reais"${trava}></label>
+    <label class="pg-alt-l">Motivo<input id="altp-m" autocomplete="off" maxlength="80" placeholder="Por que muda (quem aprova vê)" value="${esc(A.motivo || '')}" aria-label="Motivo da alteração do produto"${trava}></label></div>
+  <div class="pg-desc-a">${e ? `<p class="pg-desc-e">${ic(IC.sino, 16)}<span><b>Pedido enviado</b> às ${hora(e.em)}. Quando aprovar, o valor do produto muda aqui.</span><button type="button" class="link tap" data-act="altp-largar">Cancelar o pedido</button></p>` : `<button type="button" class="bt forte tap" data-act="altp-pedir">${dec ? ic(IC.check, 16) + ' Alterar o valor' : ic(IC.sino, 16) + ' Pedir aprovação'}</button>`}
+    ${dec ? '' : `<div class="aut-senha">${campoSenha('altp-s', 'Senha de quem aprova')}<button type="button" class="bt tap" data-act="altp-pedir" data-senha="1">Aprovar com a senha</button></div>`}</div></details>`;
+}
+const altpSig = () => !ALTP ? '' : JSON.stringify([altpItens().map(i => [i.k, i.v]), ALTP.ped, ALTP.espera, ALTP.neg, ALTP.lib ? ALTP.lib.id : 0, ALTP.feito ? ALTP.feito.id : 0, ALTP.venceu, altDecide()]);
+const altpCaixa = () => `<div id="pg-altp-box" data-k="${esc(altpSig())}">${htmlAltp()}</div>`;
+const altpLe = () => { if (!ALTP) return; const v = $('#altp-v'), m = $('#altp-m'), d = $('#pg-altp, #pg-altp-2'); if (v && !v.disabled) ALTP.v = v.value; if (m && !m.disabled) ALTP.motivo = m.value; if (d && d.tagName === 'DETAILS') ALTP.aberto = d.open; };
+function altpRedesenha(forca) { const d = $('#pg-altp-box'); if (!d || !ALTP) return; const sig = altpSig(); if (!forca && d.dataset.k === sig) return; altpLe(); d.dataset.k = sig; d.innerHTML = htmlAltp(); }
+function altpDados() { // o que foi escrito, conferido: os dados do pedido, ou { erro, foco }
+  const A = ALTP, i = altpItens().find(x => x.k === A.k); if (!i) return { erro: 'Escolha o produto que muda', foco: 'item' };
+  const v = numero(A.v); if (!(v > 0) || v > 99999) return { erro: 'Escreva o valor novo do produto', foco: 'valor' };
+  if (Math.abs(v - i.v) < 0.005) return { erro: `O valor novo é igual ao de agora (${brl(i.v)})`, foco: 'valor' };
+  const motivo = MAI(A.motivo || '').replace(/\s+/g, ' ').trim(); if (motivo.length < 3) return { erro: 'Escreva o motivo: por que o valor do produto muda', foco: 'motivo' };
+  return A.onde === 'venda' ? { tipo: 'valor', crianca: A.id, item: altItem(i.l), para: centavos(v), motivo } : { tipo: 'valor', crianca: i.c.id, venda: i.id, para: centavos(v), motivo };
+}
+const altpFoco = f => { const d = $('#pg-altp, #pg-altp-2'), i = $(f === 'item' ? '#pg-altp-box .pg-alt-i button' : f === 'motivo' ? '#altp-m' : '#altp-v'); if (d && d.tagName === 'DETAILS') d.open = true; if (i) i.focus(); };
+const altpMudou = () => { if (ALTP && ALTP.onde === 'venda') altMudou(); travaRefaz(); };
+async function altpPedir(el) { // pede (aparece para quem aprova, com o aviso no celular) ou, com a senha de quem aprova digitada aqui, vale na hora
+  const A = ALTP; if (!A || A.lib) return; altpLe(); const comSenha = !!el.dataset.senha, senha = comSenha ? senhaDe('altp-s') : '', e = A.espera ? pedidoPorId(A.ped) : null;
+  if (comSenha && !senha) { toast('Digite a senha da supervisora ou do gestor'); const i = $('#altp-s'); if (i) i.focus(); return; } if (e && !comSenha) return;
+  let d = null; if (!e) { d = altpDados(); if (d.erro) { toast(d.erro); altpFoco(d.foco); return; } }
+  el.disabled = true;
+  try { let p;
+    if (MODO === 'servidor') { const r = e ? await api('pedido_decidir', { id: e.id, senha }) : await api('pedido_criar', comSenha ? { ...d, senha } : d); pedidosChegaram(r.pedidos, true); p = pedidoDe(r.pedido); }
+    else { const r = e ? decidirPedidoPrevia(e, true, 'senha', null, senha) : criarPedidoPrevia(d, comSenha ? senha : null); if (r.erro) throw new Error(r.erro); pedidosMudaramPrevia(true); p = r.pedido; }
+    if (comSenha || e) okSenha(p);
+    A.neg = null; A.venceu = false;
+    if (p.status === 'usado') { await altpFeita(p); return; }   // na saída: a venda já mudou
+    A.ped = p.id; A.lib = p.status === 'liberado' ? p : null; A.espera = p.status === 'pendente'; altpRedesenha(true); altpMudou();
+  } catch (err) { toast(err.message); el.disabled = false; senhaErrada('altp-s', err); if (A.onde === 'saida' && MODO === 'servidor' && err.status === 409) { try { await carregar(); } catch (e2) { } A.espera = false; A.ped = 0; atualizarSaida(); atualizarGrupo(); altpRedesenha(true); } }
+}
+async function altpFeita(p) { // (saída) aprovado: a venda já mudou no servidor e a conta da saída acompanha
+  if (!ALTP) return; Object.assign(ALTP, { feito: p, espera: false, ped: 0, k: '', v: '', motivo: '', aberto: false, neg: null });
+  if (MODO === 'servidor') { try { await carregar(); } catch (e) { } }
+  atualizarSaida(); atualizarGrupo(); altpRedesenha(true); travaRefaz(); if (LADO) buscarHistorico().catch(() => { });
+}
+async function altpLargar() { // cancela o pedido que esperava, ou tira a alteração aprovada que não vai ser usada
+  const A = ALTP; if (!A || !A.ped) return; const id = A.ped;
+  try { if (MODO === 'servidor') pedidosChegaram((await api('pedido_cancelar', { id })).pedidos, true); else { cancelarPedidoPrevia(pedidoPorId(id), true); pedidosMudaramPrevia(true); } } catch (e) { toast(e.message); }
+  A.ped = 0; A.lib = null; A.espera = false; A.aberto = true; const i = altpItens().find(x => x.k === A.k); if (i) A.v = valTxt(i.v); altpRedesenha(true); altpMudou();
+}
+function altpResposta(p) { // a resposta de quem aprova chegou com o pagamento aberto
+  const A = ALTP, quem = primeiro(p.dec) || 'A supervisora';
+  if (p.status === 'usado' && A.onde === 'saida') { toast(`${quem} aprovou: ${altpTxt(p.dados)}`); setTimeout(() => altpFeita(p), 30); return; }
+  if (p.status === 'liberado') { A.lib = p; A.espera = false; A.neg = null; toast(`${quem} aprovou: ${altpTxt(p.dados)}`); }
+  else { A.espera = false; A.ped = 0; A.lib = null; if (p.status === 'negado') { A.neg = quem; A.negId = p.id; toast(`${quem} não aprovou o valor do produto`); } }
+  altpRedesenha(true); altpMudou();
+}
 function altPedidoDados() { // o que foi escrito, conferido: os dados do pedido, ou { erro, foco }
   const l = linhasDoCarrinho().find(x => x.pac != null && altChave(x) === ALT.k); if (!l) return { erro: 'Escolha o pacote que muda', foco: 'item' };
   return altConfere(ALT, l.ph, l.v, { tipo: 'valor', crianca: ALT.id, item: altItem(l) });   // 1.41: as horas, o valor do pacote e o do produto
@@ -5007,10 +5100,11 @@ function pedPapel(onde, id, L) { const o = [];
   if (DESC && DESC.pede && DESC.onde === onde && DESC.id === id) { if (DESC.lib) o.push('Desconto: aprovado por ' + MAI(primeiro(DESC.lib.dec))); else if (DESC.espera && DESC.ped) o.push('Desconto: pendente de aprovação'); else if (DESC.neg) o.push('Desconto: não aprovado'); }
   if (onde === 'saida' && ALTS && !altDecide()) { if (ALTS.feito) o.push('Valor alterado: aprovado por ' + MAI(primeiro(ALTS.feito.dec))); else if (ALTS.espera && ALTS.ped) o.push('Alteração de valor: pendente de aprovação'); else if (ALTS.neg) o.push('Alteração de valor: não aprovada'); }   // 1.39
   if (onde === 'venda' && ALT && ALT.id === id && !altDecide()) { if (ALT.lib && (L || []).some(l => l.alt)) o.push('Valor alterado: aprovado por ' + MAI(primeiro(ALT.lib.dec))); else if (ALT.espera && ALT.ped) o.push('Alteração de valor: pendente de aprovação'); else if (ALT.neg) o.push('Alteração de valor: não aprovada'); }
+  if (ALTP && ALTP.onde === onde && (onde === 'saida' || ALTP.id === id) && !altDecide()) { const ok = ALTP.lib || ALTP.feito; if (ok && (onde === 'saida' || (L || []).some(l => l.alt === ok.id))) o.push('Valor do produto alterado: aprovado por ' + MAI(primeiro(ok.dec))); else if (ALTP.espera && ALTP.ped) o.push('Alteração do valor do produto: pendente de aprovação'); else if (ALTP.neg) o.push('Alteração do valor do produto: não aprovada'); }   /* 2.73 */
   return o; }
 // do atendimento para o pagamento: o que foi escolhido, o total e as formas. Voltar não perde nada do que estava escolhido
 function abrirPagamento(id) {
-  altPreparar(id); const c = crianca(id), L = altLinhas(linhasDoCarrinho(), id), a = $('#v-pag'), e = $('#v-escolha'); if (!c || !a || !e) return; const festa = !!(CARRINHO && CARRINHO.festa); if (!L.length) { toast(festa ? festaFalta(CARRINHO.festa) : 'Escolha o serviço'); return; }
+  altPreparar(id); altpVenda(id); const c = crianca(id), L = altLinhas(linhasDoCarrinho(), id), a = $('#v-pag'), e = $('#v-escolha'); if (!c || !a || !e) return; const festa = !!(CARRINHO && CARRINHO.festa); if (!L.length) { toast(festa ? festaFalta(CARRINHO.festa) : 'Escolha o serviço'); return; }
   if (festa) { const i = $('#fe-data'), x = i ? festaDataDoCampo(i.value) : { iso: '' }; if (x.erro) { toast(x.erro); i.focus(); return; }   // 1.12: a data da festa, se foi escrita, precisa valer
     const fe = CARRINHO.festa; if (fe.modo === 'nova' && fe.n && !x.iso) { toast('Escolha a data da festa no calendário'); abrirCalFesta(); return; }   // 1.29: a festa nova sempre tem o dia (é o que o calendário das unidades mostra)
     if (fe.modo === 'nova' && fe.n && fe.dia === 'semana' && fe.hora && !/^([01]?\d|2[0-3])[:h][0-5]\d$/.test(fe.hora)) { toast('Escreva o horário da festa assim: 15:00'); const h = $('#fe-hora'); if (h) h.focus(); return; } }
@@ -5047,7 +5141,7 @@ function abrirPagamento(id) {
     ${S.balcao && c.id === S.balcao.id ? htmlSinal() : ''}
     <div class="campo" id="pg-agora"><label>Forma de pagamento <span class="leve">· pode dividir em até três formas</span></label>${htmlPag()}</div>
     ${depois ? `<div class="marca canc" id="pg-fica" hidden>${ic(IC.sino, 18)}<span><b><span id="pg-fica-v">${brl(PAG.total)}</span> a receber na ${entrar || c.entrou ? 'saída' : 'devolução'}.</b>${soNaSaida ? ` A cobrança é feita na ${entrar || c.entrou ? 'saída' : 'devolução'}.` : ''}</span></div>` : ''}${PAG.dev ? `<div class="marca canc" id="pg-dev">${ic(IC.sino, 18)}<span><b>${esc(PAG.dev.n)} · ${brl(PAG.dev.v)} a receber na devolução.</b> O carrinho é cobrado sempre quando volta: agora, só o resto.</span></div>` : ''}
-    ${S.balcao && c.id === S.balcao.id ? htmlCtAlt() : htmlDesc() + htmlAlt()}
+    ${S.balcao && c.id === S.balcao.id ? htmlCtAlt() : htmlDesc() + htmlAlt() + altpCaixa()}
     <div class="pe-f"><button class="bt forte largo tap" id="p-ok" data-act="pag-ok" data-id="${c.id}" disabled>${ic(IC.check)} Escolha a forma de pagamento</button></div>`;
   e.hidden = true; a.hidden = false; const h = $('#folha .cab-f h2'), f = $('#folha .folha'); if (h) h.textContent = 'Pagamento'; if (f) f.scrollTop = 0; desenharPag();
 }
@@ -5068,6 +5162,7 @@ function sinalErro() { if (!PAG || !PAG.sinal) return ''; const n = String(val('
 function voltarDaEscolha() { const a = $('#v-pag'), e = $('#v-escolha'), h = $('#folha .cab-f h2'); if (!a || !e) return; a.hidden = true; e.hidden = false; if (h) h.textContent = CARRINHO && CARRINHO.festa ? 'Festa' : 'Atendimento'; }
 async function registrarAtendimento(id, mesmoAssim, pag, depois) { // mesmoAssim: a equipe confirmou depois do aviso de que a criança já teve uma venda agora há pouco. pag: [{ f, v }], como foi pago. depois (1.02): o cliente paga na saída
   const aberto = $('#folha .folha-fundo:not(.saindo) #v-ok'); if (!aberto || +aberto.dataset.id !== +id) { atender(id); return; }   // o atendimento desta criança precisa estar na tela (o aviso de venda repetida pode ser tocado depois de fechar)
+  if (ALTP && ALTP.onde === 'venda' && ALTP.id === +id && ALTP.lib && !altValido(ALTP.lib)) { altpRedesenha(true); altMudou(); toast('A aprovação do valor do produto venceu (vale por 30 min). Confira o total e peça de novo, se for o caso.'); return; }   /* 2.73 */
   if (ALT && ALT.id === +id && ALT.lib && !altValido(ALT.lib)) { altRedesenha(); altMudou(); toast('A aprovação do valor alterado venceu (vale por 30 min). Confira o total e peça de novo, se for o caso.'); return; }   // 1.33
   const c = crianca(id), L = altLinhas(linhasDoCarrinho(), id); if (!c) return; if (!L.length) { toast('Escolha o serviço'); return; }   // 1.33: com o valor alterado (aprovado)
   if (L.some(l => l.outro) && !(numero(val('v-valor')) >= 0)) { toast('Qual é o valor do outro item?'); $('#v-valor').focus(); return; }
@@ -5804,13 +5899,14 @@ function folhaSaida(id, corrigir = false) {
   const juntas = corrigir ? [] : familia(c).filter(x => x.id !== c.id && x.entrou).sort((a, b) => a.entrou - b.entrou), carros = corrigir ? [] : carrosDaFamilia(c);   // 1.25: e o que saiu da loja com este responsável
   if (juntas.length || carros.length) { folhaSaidaGrupo([c, ...juntas], carros); return; }   // 1.07: o responsável tem mais de uma criança no espaço: uma conta só, com o "Tirar" em cada linha
   AV = !corrigir && AV_VOLTA && AV_VOLTA.base === c.id && AV_VOLTA.ids.has(c.id) ? new Set([c.id]) : new Set(); AV_VOLTA = null; FAMSIM = horasCpf() ? new Set(AV) : new Set();   // 1.11: cada saída começa descontando do pacote (a não ser que volte de "Adicionar serviços")
-  SAI = null; FAMJA = c.id; const k = contaSaida(c), p = periodo(); descNovo('saida', c.id); altSaidaNovo([c.id], false);   // 1.39   // 1.04: cada saída começa sem desconto
+  SAI = null; FAMJA = c.id; const k = contaSaida(c), p = periodo(); descNovo('saida', c.id); altSaidaNovo([c.id], false); altpSaida(c.id);   // 1.39   // 1.04: cada saída começa sem desconto
   abrirFolha('Pagamento da saída', `
     ${pgDetalhes(c)}${avisoParou([c])}
     <div id="s-conta">${htmlContaSaida(c, k)}</div>
     <div class="campo" id="s-pag"${receberSaida(k) > 0 ? '' : ' hidden'}><label>Forma de pagamento <span class="leve">· pode dividir em até três formas</span></label>${htmlPag()}</div>
     <div id="s-desc"${brutoSaida(k) > 0 ? '' : ' hidden'}>${htmlDesc()}</div>
     <div id="sa-box" data-k="${esc(altSaidaSig())}">${htmlAltSaida()}</div>
+    ${altpCaixa()}
     <div class="pe-f"><button class="bt forte largo tap" id="s-ok" data-act="saida-ok" data-id="${c.id}"></button></div>`);
   FAMJA = null; PAG = { onde: 'saida', id: c.id, total: receberSaida(k), formas: [], v: {} }; desenharPag(); botaoSaida();
   if (!corrigir && window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches) setTimeout(() => { const b = $('#s-ok'); if (b) b.focus(); }, 380);   // no computador, Enter confirma
@@ -5971,7 +6067,7 @@ function folhaSaidaGrupo(G, carros = []) {   // 1.25: carros = o que saiu da loj
   const fora = volta ? new Set([...volta.fora].filter(i => G.some(c => c.id === i))) : new Set(), foraA = volta && volta.foraA ? new Set([...volta.foraA].filter(i => carros.some(a => String(a.id) === i))) : new Set();
   if (volta && volta.alug) for (const a of carros) if (!volta.alug.includes(String(a.id))) foraA.add(String(a.id));   // o carrinho que saiu em "Adicionar serviços" (o cliente leva) fica fora da conta: não é devolvido agora
   const vav = AV_VOLTA && AV_VOLTA.base === b0 ? AV_VOLTA : null, av = !!(vav && vav.ids.size); AV_VOLTA = null;
-  SAI = { ids: G.map(c => c.id), fora, av, alug: carros.map(a => String(a.id)), foraA, base: b0 }; AV = vav && vav.fam ? new Set(vav.ids) : av ? new Set(SAI.ids) : new Set(); FAMSIM = vav && vav.fam ? new Set(vav.fam) : horasCpf() ? new Set(AV) : new Set(); FAMJA = 'g';   /* 2.13: a escolha de cada criança volta igual */ descNovo('saida', b0); altSaidaNovo([b0, ...SAI.ids.filter(i => i !== b0)], true); const g = contaGrupo();   // av (1.11): a conta inteira paga avulso
+  SAI = { ids: G.map(c => c.id), fora, av, alug: carros.map(a => String(a.id)), foraA, base: b0 }; AV = vav && vav.fam ? new Set(vav.ids) : av ? new Set(SAI.ids) : new Set(); FAMSIM = vav && vav.fam ? new Set(vav.fam) : horasCpf() ? new Set(AV) : new Set(); FAMJA = 'g';   /* 2.13: a escolha de cada criança volta igual */ descNovo('saida', b0); altSaidaNovo([b0, ...SAI.ids.filter(i => i !== b0)], true); altpSaida(b0); const g = contaGrupo();   // av (1.11): a conta inteira paga avulso
   abrirFolha(tituloConta(G.length, carros.length), `
     ${pgDetalhes(G[0] || crianca(b0), false)}${avisoParou(G)}
     <div id="sg-conta" data-k="${esc(chaveGrupo(g))}">${htmlContaGrupo(g)}</div>
@@ -5979,6 +6075,7 @@ function folhaSaidaGrupo(G, carros = []) {   // 1.25: carros = o que saiu da loj
     <div class="campo" id="s-pag"${g.receber > 0 ? '' : ' hidden'}><label>Forma de pagamento <span class="leve">· pode dividir em até três formas</span></label>${htmlPag()}</div>
     <div id="s-desc"${g.bruto > 0 ? '' : ' hidden'}>${htmlDesc()}</div>
     <div id="sa-box" data-k="${esc(altSaidaSig())}">${htmlAltSaida()}</div>
+    ${altpCaixa()}
     <div class="pe-f"><button class="bt forte largo tap" id="sg-ok" data-act="saida-grupo-ok"></button></div>`);
   FAMJA = null; PAG = { onde: 'saida', id: b0, total: g.receber, formas: [], v: {} }; desenharPag(); botaoGrupo(); rotPagPacote(g.receber, SAI.ids);   /* 1.66 */
   if (window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches) setTimeout(() => { const b = $('#sg-ok'); if (b) b.focus(); }, 380);   // no computador, Enter confirma
@@ -8320,7 +8417,7 @@ function folhaVender(id, primeira, pre, voltaSaida) { // primeira: acabou de sai
   const r = rascunhoDe(c.id), fichaBt = `<button type="button" class="link tap" data-act="ficha-ver" data-id="${c.id}">Ver a ficha</button>`;
   const nota = r ? `<p class="retoma" id="v-retoma">${ic(IC.historico, 16)}<span><b>Continuando de onde parou</b>, às ${hora(new Date(r.em))}: o que já estava escolhido voltou.</span><button type="button" class="link tap" data-act="atender-zero">Começar do zero</button>${fichaBt}</p>`
     : !primeira && pendNovo(c) ? `<p class="retoma" id="v-retoma">${ic(IC.historico, 16)}<span><b>Cadastro feito às ${hora(new Date(pendEm(c)))}.</b> Falta escolher o serviço.</span>${fichaBt}</p>` : '';
-  CARRINHO = r ? carrinhoDe(c, r) : { id: c.id, q: {}, pac: [], pr: {}, vq: 0 }; ETAPA_FEITA = true; PAG = null; DESC = null; ALT = null;
+  CARRINHO = r ? carrinhoDe(c, r) : { id: c.id, q: {}, pac: [], pr: {}, vq: 0 }; ETAPA_FEITA = true; PAG = null; DESC = null; ALT = null; ALTP = null;
   if (VOU_CAD.has(c.id)) { VOU_CAD.delete(c.id); if (!c.entrou && !temVoucher(c) && servicoTempo()) CARRINHO.vq = 1; }   /* 2.35: o voucher marcado no cadastro */   // cada atendimento começa sem forma de pagamento escolhida (e sem desconto)
   CARRINHO.visto = MODO === 'servidor' ? ULT_REG : 0;   // a última linha do dia que esta tela conhecia ao abrir: o servidor avisa se a criança ganhou outra venda depois
   const it = itemPre(pre);   // 0.98: a venda começou em "Pacotes e produtos": o pacote (ou o produto) escolhido lá já entra na venda
@@ -8648,7 +8745,8 @@ function pedidosMudaram(antes, calado) { // o cartão de quem autoriza, e a resp
 const avisar = txt => toast(txt, () => { }, 'OK');   // a resposta de quem autoriza fica 10 s na tela (ou até o OK)
 function pedidoRespondido(p) { // (na tela de quem pediu) chegou a resposta de quem autoriza
   const quem = primeiro(p.dec) || 'O gestor', cliente = p.resp || p.nome;
-  if (p.tipo === 'valor') { if (ALTS && ALTS.ped === p.id && $('#sa-box')) { altSaidaResposta(p); return; }   // 1.39: na saída
+  if (p.tipo === 'valor') { if (ALTP && ALTP.ped === p.id && $('#pg-altp-box')) { altpResposta(p); return; }   /* 2.73 */
+    if (ALTS && ALTS.ped === p.id && $('#sa-box')) { altSaidaResposta(p); return; }   // 1.39: na saída
     if (p.venda && (p.dados || {}).onde === 'saida') { const it = (p.dados.item || {}).n || 'o item'; if (p.status === 'usado') avisar(`${quem} aprovou ${altTxt(p.dados)} para ${cliente}: o valor já mudou na conta da saída.`); else if (p.status === 'negado') avisar(`${quem} não aprovou a alteração de valor de ${it} (${cliente}).`); return; }
     if (ALT && ALT.ped === p.id) { const vis = !!$('#pg-alt'); altResposta(p, vis); if (vis) return; }   // 1.33
     const it = (p.dados.item || {}).n || 'o item'; if (p.status === 'liberado') avisar(`${quem} aprovou ${altTxt(p.dados)} para ${cliente}. Abra o pagamento para usar.`); else if (p.status === 'negado') avisar(`${quem} não aprovou a alteração de valor de ${it} (${cliente}).`); return; }
@@ -9665,7 +9763,7 @@ function criarPedidoPrevia(d, senha) {
     if (Math.abs(valor - it.de) < 0.005 && horas == null) return { erro: `O valor novo é igual ao de agora (${brl(it.de)}).` };
     motivo = motivo.slice(0, 120); if (motivo.length < 3) return { erro: 'Escreva o motivo: por que o pacote (ou o valor) muda.' };
     dados = { item: it, de: it.de, para: valor, horas, ...(pp || {}) }; if (pp) texto = 'Alterar o pacote: ' + altTxt(dados); else texto = horas ? `Alterar o valor: ${it.n} (${it.h}h, ${brl(it.de)}) para ${horas}h por ${brl(valor)}` : `Alterar o valor: ${it.n} de ${brl(it.de)} para ${brl(valor)}`;
-    for (const p of S.pedidos) if (p.tipo === 'valor' && !p.venda && p.por_id === euId() && p.crianca === c.id && (p.status === 'pendente' || p.status === 'liberado')) { p.status = 'cancelado'; p.resultado = 'TROCADO POR OUTRO PEDIDO'; }
+    for (const p of S.pedidos) if (p.tipo === 'valor' && !p.venda && p.por_id === euId() && p.crianca === c.id && ((p.dados || {}).item || {}).k === it.k && (p.status === 'pendente' || p.status === 'liberado')) {   /* 2.73: o pedido do pacote e o do produto, cada um à parte */ p.status = 'cancelado'; p.resultado = 'TROCADO POR OUTRO PEDIDO'; }
   } else if (tipo === 'venda_futura') { c = crianca(d.crianca); if (!c) return { erro: 'Cliente não encontrado.' }; valor = centavos(+d.valor || 0);   /* 2.08 */
     dados = { oque: MAI(d.oque || ''), fecha: d.fecha, paga: d.paga, vendedora: MAI(d.vendedora || ''), obs: MAI(d.obs || ''), pac: d.pac ? 1 : 0 }; motivo = dados.obs; texto = (d.pac ? 'Pacote futuro' : 'Venda futura') + vfTexto(dados, valor).slice('Venda futura'.length);
   } else if (tipo === 'parcelas') { c = crianca(d.crianca); if (!c) return { erro: 'Cliente não encontrado.' }; const n = +d.n || 0; if (!(n > parcLivreT() && n <= 12)) return { erro: `A liberação é para o crédito de ${parcLivreT() + 1}x a 12x.` };   /* 1.65 */
@@ -9681,7 +9779,7 @@ function criarPedidoPrevia(d, senha) {
       dados = { nome, doc, email: String(d.nf_email || '').toLowerCase(), item: nomeVendaTxt(v), pago }; texto = `Nota fiscal: ${oque} · em nome de ${nome}${doc ? ' · ' + (dg.length === 14 ? 'CNPJ ' : 'CPF ') + doc : ''}`; motivo = ''; } }
   const p = { id: novoId(), tipo, status: 'pendente', crianca: c.id, venda, nome: c.nome, resp: c.resp || '', texto, motivo, valor, usado: 0, dados, por: EU.nomeCompleto || EU.nome, por_id: euId(), em: new Date(), dec: '', dec_em: null, como: '', feito_por: '', feito_em: null, numero: '', resultado: '', uni: minhaUni() || null };
   S.pedidos.unshift(p);
-  if (podeDecidirTipo(tipo) || tipo === 'nf' || (tipo === 'valor' && !d.venda && ((dados || {}).item || {}).k === 'prod' && +dados.para > +dados.de + 0.004)) return decidirPedidoPrevia(p, true, 'proprio', EU);   // 1.55: a nota fiscal, toda a equipe emite; 2.42: o produto que sobe de valor
+  if (podeDecidirTipo(tipo) || tipo === 'nf' || (tipo === 'valor' && !d.venda && ((dados || {}).item || {}).k === 'prod' && +dados.para > +dados.de + 0.004 && altpEhCT(c.id))) return decidirPedidoPrevia(p, true, 'proprio', EU);   // 1.55: a nota fiscal, toda a equipe emite; 2.42: o produto que sobe de valor
   return g ? decidirPedidoPrevia(p, true, 'senha', g) : { pedido: p };
 }
 function decidirPedidoPrevia(p, ok, como, quem, senha) { // quem = quem decide; com a senha, é o dono dela
@@ -10910,6 +11008,9 @@ const ACOES = {
   'alt-item': el => { if (!ALT || ALT.espera || ALT.lib) return; const l = linhasDoCarrinho().find(x => altChave(x) === el.dataset.k); if (!l) return; ALT.k = el.dataset.k; ALT.v = valTxt(l.v); ALT.hh = l.pac != null ? String(l.ph) : ''; ALT.vp = ''; ALT.pn = ''; ALT.aberto = true; altRedesenha(); const i = $('#pg-alt-v'); if (i) { i.focus(); i.select(); } },   /* 1.33 */
   'ctalt-item': el => { if (!ALT) return; ALT.k = el.dataset.k || ''; ALT.v = ''; ALT.aberto = true; altRedesenha(); }, 'ctalt-ok': el => ctAltAplicar(el),   /* 2.38 */
   'alt-pedir': el => pedirAlteracao(el), 'alt-largar': () => largarAlteracao(),
+  'altp-item': el => { if (!ALTP || ALTP.espera || ALTP.lib) return; const i = altpItens().find(x => x.k === el.dataset.k); if (!i) return; altpLe(); ALTP.k = i.k; ALTP.v = valTxt(i.v); ALTP.aberto = true; altpRedesenha(true); const v = $('#altp-v'); if (v) { v.focus(); v.select(); } },   /* 2.73 */
+  'altp-pedir': el => altpPedir(el), 'altp-largar': () => altpLargar(),
+  'altp-sem': () => { if (!ALTP) return; if (ALTP.negId) NEG_VISTO.add(ALTP.negId); Object.assign(ALTP, { neg: null, negId: 0, motivo: '', aberto: false }); const i = altpItens().find(x => x.k === ALTP.k); if (i) ALTP.v = valTxt(i.v); altpRedesenha(true); travaRefaz(); },
   'saida-cortesia': el => cortesiaSaida(+el.dataset.id, el),   /* 1.42 */
   'off-ver': () => folhaOffProb(), 'off-ok': el => { OFF.prob.splice(+el.dataset.i, 1); filaGuardar(); offFaixa(); if (OFF.prob.length) folhaOffProb(); else fecharFolha(); },   /* 1.40 */
   'salt-item': el => { if (!ALTS || ALTS.espera) return; const i = altSaidaItens().find(x => x.id === +el.dataset.k); if (!i) return; ALTS.k = i.id; ALTS.v = valTxt(i.v); ALTS.hh = String(Math.round(i.h)); ALTS.vp = ''; ALTS.pn = ''; ALTS.aberto = true; altSaidaRedesenha(true); const v = $('#sa-alt-v'); if (v) { v.focus(); v.select(); } },   /* 1.39 */

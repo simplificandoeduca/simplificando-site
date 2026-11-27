@@ -983,7 +983,9 @@ function pedidoCriar(array $u, array $in): array {
     $valor = $para; $dados = ['item' => $it, 'de' => $it['de'], 'para' => $para, 'horas' => $horas] + ($pp ? ['pac' => $pp['pac'], 'prod' => $pp['prod']] + ($pp['pn'] !== '' ? ['prod_nome' => $pp['pn']] : []) : []);
     $texto = $pp ? 'Alterar o pacote: ' . altTextoPac($it['n'], (int)$it['h'], (float)$it['de'], $horas ?: (int)$it['h'], $pp['pac'], $pp['prod'], $para, $pp['pn']) : ($horas ? 'Alterar o valor: ' . $it['n'] . ' (' . (int)$it['h'] . 'h, ' . dinheiro($it['de']) . ') para ' . $horas . 'h por ' . dinheiro($para) : 'Alterar o valor: ' . $it['n'] . ' de ' . dinheiro($it['de']) . ' para ' . dinheiro($para));
     // uma alteração por vez para o mesmo cliente: a anterior (sem resposta, ou aprovada e não usada) deixa de valer
-    $db->prepare("UPDATE pedidos SET status = 'cancelado', resultado = 'TROCADO POR OUTRO PEDIDO' WHERE tipo = 'valor' AND pedido_por = ? AND crianca_id = ? AND venda_id IS NULL AND status IN ('pendente', 'liberado')")->execute([(int)$u['id'], (int)$c['id']]);   // (1.39: o da saída fica)
+    /* 2.73: o pedido do pacote e o do produto, cada um à parte (os dois na mesma conta): a anterior do mesmo tipo (pacote ou produto) deixa de valer */
+    $qa = $db->prepare("SELECT id, dados FROM pedidos WHERE tipo = 'valor' AND pedido_por = ? AND crianca_id = ? AND venda_id IS NULL AND status IN ('pendente', 'liberado')"); $qa->execute([(int)$u['id'], (int)$c['id']]);
+    foreach ($qa->fetchAll() as $x) { $dx = json_decode((string)$x['dados'], true); $kx = is_array($dx) && is_array($dx['item'] ?? null) ? (string)($dx['item']['k'] ?? '') : ''; if ($kx === '' || $kx === (string)$it['k']) $db->prepare("UPDATE pedidos SET status = 'cancelado', resultado = 'TROCADO POR OUTRO PEDIDO' WHERE id = ?")->execute([(int)$x['id']]); }   // (1.39: o da saída fica)
   } else {
     $q = $db->prepare('SELECT * FROM vendas WHERE id = ?'); $q->execute([(int)($in['venda'] ?? 0)]); $v = $q->fetch(); if (!$v) falha('Esta venda não existe mais: já foi desfeita ou cancelada.', 404);
     $c = crianca((int)$v['crianca_id']); if (!$c) falha('Cliente não encontrado.', 404); $vendaId = (int)$v['id']; $valor = round((float)$v['valor'], 2); $nomeV = nomeDaVenda($v);
@@ -1023,7 +1025,7 @@ function pedidoCriar(array $u, array $in): array {
   $id = (int)$db->lastInsertId();
   /* 2.42 (o dono: "no Casatom eu quero poder ajustar o valor para mais do produto sem pedir autorização, só se for desconto"): o produto
      que sobe de valor vale na hora, para qualquer um; baixar continua com quem aprova */
-  $sobe = $tipo === 'valor' && $vendaId === null && (($dados['item'] ?? [])['k'] ?? '') === 'prod' && (float)($dados['para'] ?? 0) > (float)($dados['de'] ?? 0) + 0.004;
+  $sobe = $tipo === 'valor' && $vendaId === null && (($dados['item'] ?? [])['k'] ?? '') === 'prod' && (float)($dados['para'] ?? 0) > (float)($dados['de'] ?? 0) + 0.004 && ($bct2 = balcaoCT(false)) && (int)$bct2['id'] === (int)$c['id'];   /* 2.73: só na Casa Tom (no Play, o produto para mais também vai para quem aprova) */
   if (podeDecidir($u, $tipo) || $tipo === 'nf' || $sobe) return pedidoDecidir($id, $u, true, 'proprio', $tipo === 'nf' || $sobe);   // quem pede já autoriza (o gestor): vale na hora. 1.55: a nota fiscal, toda a equipe emite
   return ['pedido' => pedidoPublico(pedido($id))];
 }

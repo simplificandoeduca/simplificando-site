@@ -1301,6 +1301,20 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. "Alterar produto" no pagamento do Play (2.73)
+
+Pedido do dono (27/11): "Embaixo de desconto, alterar pacote, alterar produto. Que aí eu preciso mandar para o gestor para mim alterar o valor do produto, seja para mais ou para menos ... no pacote ele altera só o pacote, no Play ele não tem opção de alterar o produto."
+
+Como fica:
+- No pagamento (na venda e na saída), embaixo do "Desconto" e do "Alterar pacote", aparece o "Alterar produto" quando há um produto na conta.
+- A atendente escolhe o produto (se houver mais de um), escreve o valor novo (para mais ou para menos) e o motivo, e toca em "Pedir aprovação". O pedido vai para o supervisor ou o gestor, com o aviso no celular, igual ao "Alterar pacote". Ou quem aprova digita a senha ali mesmo ("Aprovar com a senha").
+- Enquanto espera, o pagamento não fecha ("Esperando a aprovação do valor do produto"). Aprovado, o produto fica com o valor novo na conta ("Valor alterado · na tabela, R$ ...") e no cupom. Não aprovado: "Cobrar sem alterar".
+- O gestor (e o supervisor) altera direto, sem pedir.
+- O pedido do produto é separado do pedido do pacote: dá para alterar o pacote e o produto na mesma conta.
+- Fica no registro do cliente: "Valor alterado · produto: R$ de → R$ para · Motivo · por quem · aprovado por quem".
+- Na saída, o produto que ficou para pagar muda na hora em que é aprovado, e a conta da saída acompanha.
+- No Play, o produto para mais também precisa de aprovação. Na Casa Tom nada muda: continua o "Alterar valor" só para mais, que vale na hora.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O recado do responsável, em vermelho ao lado do nome (2.72)
 
 Pedido do dono (27/11): "do lado do OBS é responsável. Ele tem que ficar no responsável e a mensagem tem que ficar visível em vez de OBS. Que aí fica em vermelhinho essa mensagem ... às vezes as meninas querem colocar 3 horas, 10 horas, qualquer tipo de informação atrelado ao responsável, não à criança".
