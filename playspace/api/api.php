@@ -75,14 +75,14 @@ if (is_array($in['offline'] ?? null)) {
 /* ---------- o que a tela carrega de uma vez ---------- */
 /* 2.60: a lista leve. Quem pede (enx = 1, a tela 2.60 em diante) recebe cada cadastro sem os campos que estão no de sempre (a tela põe de
    volta), e a assinatura (sig) do que foi mandado. Pedindo de novo com a mesma assinatura, sem nada novo, a resposta é só "igual" */
-const CRI_PADRAO = ['obs' => '', 'pacote' => 0.0, 'usado' => 0, 'entrou' => null, 'idface_id' => null, 'rosto' => false, 'foto' => '', 'ativo' => true, 'liberado' => true, 'sapateira' => null, 'doc' => 'cpf', 'tel2' => '', 'pmin' => 0, 'pcd' => false, 'imp' => false, 'uni' => null, 'obs_antes' => '', 'obs_em' => null, 'obs_por' => '', 'nasc' => '', 'festa' => null, 'vabriu' => '', 'visitas' => [], 'venda' => null, 'atraso' => null, 'uv' => 0, 'vouch' => false, 'idade' => 0];
+const CRI_PADRAO = ['obs' => '', 'pacote' => 0.0, 'usado' => 0, 'entrou' => null, 'idface_id' => null, 'rosto' => false, 'foto' => '', 'ativo' => true, 'liberado' => true, 'sapateira' => null, 'doc' => 'cpf', 'tel2' => '', 'pmin' => 0, 'pcd' => false, 'imp' => false, 'uni' => null, 'obs_antes' => '', 'obs_em' => null, 'obs_por' => '', 'nasc' => '', 'festa' => null, 'vabriu' => '', 'visitas' => [], 'venda' => null, 'atraso' => null, 'uv' => 0, 'vouch' => false, 'idade' => 0, 'rec' => '', 'rec_em' => null, 'rec_por' => ''];
 function criancasEnxutas(array $L): array { foreach ($L as $i => $c) foreach (CRI_PADRAO as $k => $p) if (array_key_exists($k, $c) && $c[$k] === $p) unset($L[$i][$k]); return $L; }
 function criancaPublica(array $c): array {
   return ['id' => (int)$c['id'], 'nome' => $c['nome'], 'idade' => (int)$c['idade'], 'resp' => $c['resp'], 'rel' => $c['rel'], 'tel' => $c['tel'], 'cpf' => $c['cpf'], 'obs' => $c['obs'],
     'pacote' => round((int)$c['pacote_min'] / 60, 2), 'usado' => (int)$c['usado_min'], 'entrou' => $c['entrou'], 'idface_id' => $c['idface_id'] === null ? null : (int)$c['idface_id'],
     'rosto' => !empty($c['rosto']) || $c['idface_id'] !== null, 'foto' => (string)$c['foto'], 'ativo' => (bool)$c['ativo'], 'liberado' => !isset($c['liberado']) || (bool)$c['liberado'], 'sapateira' => isset($c['sapateira']) && $c['sapateira'] !== null ? (int)$c['sapateira'] : null,
     'doc' => ($c['doc_tipo'] ?? 'cpf') === 'rne' ? 'rne' : 'cpf', 'tel2' => (string)($c['tel2'] ?? ''), 'pmin' => (int)$c['pacote_min'], 'pcd' => !empty($c['pcd']), 'imp' => (string)($c['lote'] ?? '') !== '', 'uni' => isset($c['unidade_id']) && $c['unidade_id'] !== null ? (int)$c['unidade_id'] : null,
-    'obs_antes' => (string)($c['obs_antes'] ?? ''), 'obs_em' => $c['obs_em'] ?? null, 'obs_por' => (string)($c['obs_por'] ?? ''), 'nasc' => (string)($c['nascimento'] ?? ''), 'festa' => !empty($c['festa_id']) && $c['entrou'] ? (int)$c['festa_id'] : null, 'vabriu' => quemAbriu($c)];   /* vabriu (1.68): quem abriu o pedido da visita de agora */   // festa (1.29): a festa em que a criança está agora   // nasc (1.11): a data de nascimento, AAAA-MM-DD ou ''   // a observação anterior, e quem mudou a de agora e quando   // pmin: o tempo comprado em minutos exatos   // doc: o campo cpf guarda o CPF ou o RNE (estrangeiro)
+    'obs_antes' => (string)($c['obs_antes'] ?? ''), 'obs_em' => $c['obs_em'] ?? null, 'obs_por' => (string)($c['obs_por'] ?? ''), 'nasc' => (string)($c['nascimento'] ?? ''), 'festa' => !empty($c['festa_id']) && $c['entrou'] ? (int)$c['festa_id'] : null, 'vabriu' => quemAbriu($c), 'rec' => (string)($c['recado'] ?? ''), 'rec_em' => $c['recado_em'] ?? null, 'rec_por' => (string)($c['recado_por'] ?? '')];   /* rec (2.72): o recado do responsável */   /* vabriu (1.68): quem abriu o pedido da visita de agora */   // festa (1.29): a festa em que a criança está agora   // nasc (1.11): a data de nascimento, AAAA-MM-DD ou ''   // a observação anterior, e quem mudou a de agora e quando   // pmin: o tempo comprado em minutos exatos   // doc: o campo cpf guarda o CPF ou o RNE (estrangeiro)
 }
 function dados(array $eu): array {
   $db = db(); $hojeMenos = date('Y-m-d') . ' 00:00:00';   // 1.45 (auditoria): "hoje" é o dia, desde a meia-noite (era as últimas 24 h), como o Caixa do dia e o painel
@@ -549,6 +549,14 @@ switch ($acao) {
     $u = exigir(); $c = crianca((int)($in['id'] ?? 0)); if (!$c || !$c['ativo']) falha('Criança não encontrada.', 404);
     marcarObs($c, mb_substr(emMaiusculas((string)($in['obs'] ?? '')), 0, 500), $u); $c = crianca((int)$c['id']);
     responder(['obs' => (string)$c['obs'], 'obs_antes' => (string)$c['obs_antes'], 'obs_em' => $c['obs_em'], 'obs_por' => (string)$c['obs_por']]);
+  }
+  case 'recado_salvar': { /* 2.72: o recado do responsável (toda a equipe): fica à vista, em vermelho, ao lado do nome do responsável. Vale o último escrito na família; vazio apaga */
+    $u = exigir(); $c = crianca((int)($in['id'] ?? 0)); if (!$c || !$c['ativo']) falha('Cliente não encontrado.', 404);
+    $t = mb_substr(trim((string)preg_replace('/\s+/u', ' ', emMaiusculas((string)($in['texto'] ?? '')))), 0, 80); $quem = primeiroNome((string)$u['nome']);
+    $em = agora() . sprintf('.%03d', (int)(fmod(microtime(true), 1) * 1000));   /* (com os milésimos: o último da família, mesmo no mesmo segundo) */
+    $db->prepare('UPDATE criancas SET recado = ?, recado_em = ?, recado_por = ? WHERE id = ?')->execute([$t, $em, $quem, (int)$c['id']]);
+    registrar('obs', (int)$c['id'], (string)$c['nome'], ($t !== '' ? 'Recado do responsável: ' . $t : 'Recado do responsável apagado') . ' · por ' . $quem);
+    responder(['rec' => $t]);
   }
   case 'crianca_apagar': {
     $u = exigir(['gestor']); $c = crianca((int)($in['id'] ?? 0)); if (!$c) falha('Criança não encontrada.', 404);   // 1.00: remover cadastro é só do gestor

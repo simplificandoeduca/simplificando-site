@@ -538,6 +538,10 @@ function db(): PDO {
     $pdo->exec('CREATE INDEX IF NOT EXISTS criancas_entrou ON criancas (entrou) WHERE entrou IS NOT NULL');
     $pdo->exec('PRAGMA user_version = 56');
   }
+  if ($v < 57) { /* 2.72: o recado do responsável (fica em vermelho ao lado do nome do responsável) */
+    foreach (["ALTER TABLE criancas ADD COLUMN recado TEXT NOT NULL DEFAULT ''", 'ALTER TABLE criancas ADD COLUMN recado_em TEXT', "ALTER TABLE criancas ADD COLUMN recado_por TEXT NOT NULL DEFAULT ''"] as $sql) { try { $pdo->exec($sql); } catch (Throwable $e) { } }
+    $pdo->exec('PRAGMA user_version = 57');
+  }
   return $pdo;
 }
 /* ---------- 1.06: unidades ---------- */

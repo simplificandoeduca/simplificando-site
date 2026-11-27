@@ -1301,6 +1301,19 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O recado do responsável, em vermelho ao lado do nome (2.72)
+
+Pedido do dono (27/11): "do lado do OBS é responsável. Ele tem que ficar no responsável e a mensagem tem que ficar visível em vez de OBS. Que aí fica em vermelhinho essa mensagem ... às vezes as meninas querem colocar 3 horas, 10 horas, qualquer tipo de informação atrelado ao responsável, não à criança".
+
+Como fica:
+- Na lista de quem está no espaço, na coluna RESPONSÁVEL, o recado aparece em vermelho logo depois do nome (ex.: JULIANA 3 HORAS). Não fica escondido atrás de um botão: está sempre à vista. Quando a coluna está estreita, o recado desce para baixo do nome (nunca some).
+- O recado é do responsável, não da criança: aparece em todas as crianças dele (o mesmo CPF ou telefone), na lista, nos carrinhos, no "Saíram há pouco" e nos Finalizados do dia.
+- Escrever: no computador, passe o mouse na linha e toque em "+ recado", ao lado do nome do responsável; ou abra a comanda e toque em "Recado do responsável". Escreva (até 80 letras) e toque em Guardar (ou Enter).
+- Mudar ou apagar: toque no recado vermelho na lista, ou em "Mudar" na comanda. "Apagar o recado" tira de todas as crianças do responsável.
+- A comanda mostra o recado num quadro vermelho no alto, com quem escreveu e quando. O atendimento (a venda) também mostra o recado, só para ler.
+- Toda a equipe escreve. Cada mudança fica no registro do cliente (quem e quando).
+- O OBS da criança (alergia, restrição) continua como era: é da criança e só aparece com um toque.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. "Saíram há pouco" só da unidade (2.71)
 
 Pedido do dono (27/11): "No Saíram há pouco, ele está mostrando as 2 unidades. Um exemplo, criança que estava no Morumbi e saiu há pouco no Anália, está mostrando no Morumbi ... Só pode mostrar o Saíram há pouco da sua unidade. O gestor pode ver tudo."
