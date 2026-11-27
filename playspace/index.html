@@ -2199,7 +2199,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.58';
+const VERSAO = '2.59';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -8346,7 +8346,7 @@ async function emitirNFLivre(el) {
     if (amb !== 'producao') { fim = ['teste', `Nota ${amb === 'teste' ? 'de TESTE' : 'simulada'} nº ${nota.numero} emitida no Play Space Notas${emp ? ' (' + emp.apelido.toUpperCase() + ')' : ''}, sem valor fiscal: não fica guardada aqui. Para valer, o Notas precisa estar em Produção.`]; return; }
     try { const r = await api('nf_livre', { crianca: c.id, numero: String(nota.numero), valor, nome, doc, email, descricao: desc, nota: id, emp: emp ? emp.apelido : '' }); if (r && r.pedidos) pedidosChegaram(r.pedidos, true); }
     catch (e) { fim = ['erro', `A nota nº ${nota.numero} foi emitida, mas não consegui guardar aqui (${e.message}). Toque em Emitir de novo: não sai outra, só guarda.`]; return; }
-    x.feito = { nota, emp, valor, desc }; deuCerto('Nota nº ' + nota.numero + ' emitida' + (emp ? ' pela ' + emp.apelido.toUpperCase() : ''));
+    x.feito = { nota, emp, valor, desc, ed: N.empresa }; deuCerto('Nota nº ' + nota.numero + ' emitida' + (emp ? ' pela ' + emp.apelido.toUpperCase() : ''));
     if (NFL === x) { nflPinta(); nflPdfCarregar(); } if (LADO && LADO.id === c.id) buscarHistorico();
   } catch (e) { fim = ['erro', e.status === 401 ? 'Não deu para entrar sozinho no Play Space Notas (confira se o Notas 191 foi enviado ao site). Abra o Notas neste computador, entre, e emita de novo.' : (e.message || 'Tente de novo em instantes.')]; }
   finally { x.indo = false; if (NFL === x && !x.feito) nflMsg(fim ? fim[0] : '', fim ? fim[1] : ''); }
@@ -8357,7 +8357,7 @@ function nflPdfHtml() {
   if (p.st === 'carregando') return `<div class="nf-pdf esp" aria-live="polite">${ic(IC.cupom, 18)} <span>Carregando a nota…</span></div>`;
   if (p.st !== 'ok') return `<div class="nf-pdf esp">${ic(IC.sino, 18)} <span>${esc(p.msg || 'A nota não carregou.')}</span><button type="button" class="bt tap" data-act="nfl-pdf">${ic(IC.refaz || IC.check, 16)} Tentar de novo</button></div>`;
   const toque = matchMedia('(pointer: coarse)').matches;
-  return `<div class="nf-pdf"><span class="nf-pdf-tit">${ic(IC.cupom, 18)} A nota</span>
+  return `<div class="nf-pdf"><span class="nf-pdf-tit">${ic(IC.cupom, 18)} A nota</span>${p.comp ? nfCompAviso('nfl-pdf') : ''}
     <div class="nf-pdf-bts"><button type="button" class="bt tap" data-act="nfl-imprimir">${ic(IC.cupom, 16)} Imprimir</button><button type="button" class="bt nf-zap tap" data-act="nfl-whats">${ic(IC.zap, 16)} Enviar no WhatsApp</button><button type="button" class="bt tap" data-act="nfl-salvar">${ic(IC.baixar, 16)} Salvar a nota</button></div>
     ${toque ? '' : `<iframe class="nf-pdf-v" id="nfl-pdf-v" src="${p.url}#view=FitH" title="A nota fiscal (PDF)"></iframe>`}</div>`;
 }
@@ -8366,8 +8366,9 @@ async function nflPdfCarregar() {
   const x = NFL; if (!x || !x.feito) return; const n = x.feito.nota;
   if (!n.chave) { x.pdf = { st: 'erro', msg: `A nota nº ${n.numero} não tem o PDF oficial (não saiu pelo Emissor Nacional). Veja no Play Space Notas.` }; nflPdfPinta(); return; }
   const eu = x.pdf = { st: 'carregando' }; nflPdfPinta();
-  try { const b = await nfPdfBaixa(n, x.feito.emp); if (NFL !== x || x.pdf !== eu) return;
-    x.pdf = b ? { st: 'ok', url: URL.createObjectURL(b), arquivo: new File([b], `NFS-e ${n.numero} - ${n.clienteNome || ''}`.replace(/[\\/:*?"<>|]+/g, ' ').trim() + '.pdf', { type: 'application/pdf' }) }
+  try { let b = await nfPdfBaixa(n, x.feito.emp), comp = false; if (NFL !== x || x.pdf !== eu) return;
+    if (!b) { try { b = await nfComprovantePdf(n, x.feito.ed); comp = true; } catch (e) { b = null; } if (NFL !== x || x.pdf !== eu) return; }   /* 2.59 */
+    x.pdf = b ? { st: 'ok', comp, url: URL.createObjectURL(b), arquivo: new File([b], `NFS-e ${n.numero} - ${n.clienteNome || ''}`.replace(/[\\/:*?"<>|]+/g, ' ').trim() + '.pdf', { type: 'application/pdf' }) }
       : { st: 'erro', msg: `O governo ainda não liberou o PDF da nota nº ${n.numero}. Espere uns segundos e toque em Tentar de novo.` }; }
   catch (e) { if (NFL !== x) return; x.pdf = { st: 'erro', msg: e.status === 401 ? 'Entre no Play Space Notas neste computador para ver a nota.' : 'A nota não carregou: ' + (e.message || 'tente de novo.') }; }
   nflPdfPinta();
@@ -8408,7 +8409,7 @@ function nfPdfHtml(v) {
     <button type="button" class="bt forte largo tap" data-act="nf-notas-entrar">${ic(IC.check)} Entrar no Notas</button></div>`;
   if (x.st !== 'ok') return `<div class="nf-pdf esp">${ic(IC.sino, 18)} <span>${esc(x.msg || 'A nota não carregou.')}</span><button type="button" class="bt tap" data-act="nf-pdf-recarregar">${ic(IC.refaz || IC.check, 16)} Tentar de novo</button></div>`;
   const toque = matchMedia('(pointer: coarse)').matches;   /* (no celular o PDF não abre dentro da folha: ficam os botões) */
-  return `<div class="nf-pdf">${de}${x.nota && String(x.nota.numero) !== String((nfDaVenda(v) || {}).numero || '') ? ` <small>· no governo, nº ${esc(x.nota.numero)}</small>` : ''}</span>
+  return `<div class="nf-pdf">${de}${x.nota && String(x.nota.numero) !== String((nfDaVenda(v) || {}).numero || '') ? ` <small>· no governo, nº ${esc(x.nota.numero)}</small>` : ''}</span>${x.comp ? nfCompAviso('nf-pdf-recarregar') : ''}
     <div class="nf-pdf-bts"><button type="button" class="bt tap" data-act="nf-pdf-imprimir">${ic(IC.cupom, 16)} Imprimir</button><button type="button" class="bt nf-zap tap" data-act="nf-pdf-whats">${ic(IC.zap, 16)} Enviar no WhatsApp</button><button type="button" class="bt tap" data-act="nf-pdf-salvar">${ic(IC.baixar, 16)} Salvar a nota</button></div>
     ${toque ? '' : `<iframe class="nf-pdf-v" id="nf-pdf-v" src="${x.url}#view=FitH" title="A nota fiscal (PDF)"></iframe>`}</div>`;   /* (os botões em cima: à vista sem rolar) */
 }
@@ -8420,6 +8421,223 @@ function nfAcharNota(N, v, p) {
     || (num ? L.find(n => valida(n) && String(n.numero) === num) : null)
     || (doc ? L.find(n => valida(n) && nfDocL(n.clienteDoc) === doc && Math.abs(+n.valor - v.v) < 0.005 && (dia(n.data) === dia(v.quando) || (p.feito_em && dia(n.data) === dia(p.feito_em)))) : null) || null;
 }
+/* 2.59 (o dono: "a nota já foi emitida, tá lá no sistema, só que ela não carregou aqui"): quando o governo não entrega o PDF oficial
+   (o DANFSe) ao sistema, a folha mostra o comprovante da nota feito aqui, igual ao do Play Space Notas: os dados da nota emitida, a chave
+   de acesso e o QR da consulta pública (quem recebe aponta a câmera e abre a nota oficial no site do governo). Imprimir, WhatsApp e
+   Salvar usam ele; "Buscar o PDF oficial de novo" tenta o do governo outra vez. O QR é o mesmo gerador do Notas */
+const NFQR = (() => {
+/* nível M, versões 1 a 40: palavras de correção por bloco e quantidade de blocos */
+  const EC_POR_BLOCO = [-1, 10, 16, 26, 18, 24, 16, 18, 22, 22, 26, 30, 22, 22, 24, 24, 28, 28, 26, 26, 26, 26, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28];
+  const EC_BLOCOS = [-1, 1, 1, 1, 2, 2, 4, 4, 4, 5, 5, 5, 8, 9, 9, 10, 10, 11, 13, 14, 16, 17, 17, 18, 20, 21, 23, 25, 26, 28, 29, 31, 33, 35, 37, 38, 40, 43, 45, 47, 49];
+  const bit = (x, i) => ((x >>> i) & 1) !== 0;
+  const modulosBrutos = v => {
+    let r = (16 * v + 128) * v + 64;
+    if (v >= 2) { const na = Math.floor(v / 7) + 2; r -= (25 * na - 10) * na - 55; if (v >= 7) r -= 36; }
+    return r;
+  };
+  const palavrasDeDados = v => Math.floor(modulosBrutos(v) / 8) - EC_POR_BLOCO[v] * EC_BLOCOS[v];
+  const gfMul = (x, y) => { let z = 0; for (let i = 7; i >= 0; i--) { z = (z << 1) ^ ((z >>> 7) * 0x11D); z ^= ((y >>> i) & 1) * x; } return z; };
+  const rsDivisor = grau => {
+    const r = new Array(grau).fill(0);
+    r[grau - 1] = 1;
+    let raiz = 1;
+    for (let i = 0; i < grau; i++) {
+      for (let j = 0; j < grau; j++) { r[j] = gfMul(r[j], raiz); if (j + 1 < grau) r[j] ^= r[j + 1]; }
+      raiz = gfMul(raiz, 0x02);
+    }
+    return r;
+  };
+  const rsResto = (dados, div) => {
+    const r = new Array(div.length).fill(0);
+    for (const b of dados) {
+      const f = b ^ r.shift();
+      r.push(0);
+      div.forEach((c, i) => { r[i] ^= gfMul(c, f); });
+    }
+    return r;
+  };
+  const cache = {};
+  function gerar(texto) {
+    texto = String(texto);
+    if (cache[texto]) return cache[texto];
+    const bytes = Array.from(new TextEncoder().encode(texto));
+    let v = 1;
+    while (4 + (v <= 9 ? 8 : 16) + bytes.length * 8 > palavrasDeDados(v) * 8) {
+      if (++v > 40) throw new Error('Texto longo demais para um QR Code');
+    }
+/* 1. bits: modo byte, tamanho, dados, terminador e enchimento */
+    const cap = palavrasDeDados(v) * 8, bits = [];
+    const poe = (val, n) => { for (let i = n - 1; i >= 0; i--) bits.push((val >>> i) & 1); };
+    poe(4, 4); poe(bytes.length, v <= 9 ? 8 : 16); bytes.forEach(b => poe(b, 8));
+    poe(0, Math.min(4, cap - bits.length));
+    poe(0, (8 - bits.length % 8) % 8);
+    for (let pad = 0xEC; bits.length < cap; pad ^= 0xEC ^ 0x11) poe(pad, 8);
+    const dados = [];
+    for (let i = 0; i < bits.length; i += 8) dados.push(bits.slice(i, i + 8).reduce((a, b) => (a << 1) | b, 0));
+/* 2. correção de erro (Reed-Solomon) por bloco, depois intercala */
+    const nb = EC_BLOCOS[v], ec = EC_POR_BLOCO[v], brutos = Math.floor(modulosBrutos(v) / 8);
+    const curtos = nb - brutos % nb, tamCurto = Math.floor(brutos / nb), div = rsDivisor(ec), blocos = [];
+    for (let i = 0, k = 0; i < nb; i++) {
+      const d = dados.slice(k, k + tamCurto - ec + (i < curtos ? 0 : 1));
+      k += d.length;
+      const r = rsResto(d, div);
+      if (i < curtos) d.push(0);
+      blocos.push(d.concat(r));
+    }
+    const finais = [];
+    for (let i = 0; i < blocos[0].length; i++) blocos.forEach((b, j) => { if (i !== tamCurto - ec || j >= curtos) finais.push(b[i]); });
+/* 3. matriz: padrões fixos (localizadores, alinhamento, tempo, formato, versão) */
+    const n = v * 4 + 17;
+    const mod = Array.from({ length: n }, () => new Array(n).fill(false));
+    const fixo = Array.from({ length: n }, () => new Array(n).fill(false));
+    const marca = (x, y, escuro) => { mod[y][x] = escuro; fixo[y][x] = true; };
+    for (let i = 0; i < n; i++) { marca(6, i, i % 2 === 0); marca(i, 6, i % 2 === 0); }
+    const localizador = (cx, cy) => {
+      for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) {
+        const d = Math.max(Math.abs(dx), Math.abs(dy)), x = cx + dx, y = cy + dy;
+        if (x >= 0 && x < n && y >= 0 && y < n) marca(x, y, d !== 2 && d !== 4);
+      }
+    };
+    localizador(3, 3); localizador(n - 4, 3); localizador(3, n - 4);
+    if (v > 1) {
+      const na = Math.floor(v / 7) + 2, passo = v === 32 ? 26 : Math.ceil((v * 4 + 4) / (na * 2 - 2)) * 2, pos = [6];
+      for (let p = n - 7; pos.length < na; p -= passo) pos.splice(1, 0, p);
+      for (let i = 0; i < na; i++) for (let j = 0; j < na; j++) {
+        if ((i === 0 && j === 0) || (i === 0 && j === na - 1) || (i === na - 1 && j === 0)) continue;
+        for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) marca(pos[i] + dx, pos[j] + dy, Math.max(Math.abs(dx), Math.abs(dy)) !== 1);
+      }
+    }
+    const formato = mascara => {
+      const d = mascara;   /* nível M = 00, seguido dos 3 bits da máscara */
+      let r = d;
+      for (let i = 0; i < 10; i++) r = (r << 1) ^ ((r >>> 9) * 0x537);
+      const b = ((d << 10) | r) ^ 0x5412;
+      for (let i = 0; i <= 5; i++) marca(8, i, bit(b, i));
+      marca(8, 7, bit(b, 6)); marca(8, 8, bit(b, 7)); marca(7, 8, bit(b, 8));
+      for (let i = 9; i < 15; i++) marca(14 - i, 8, bit(b, i));
+      for (let i = 0; i < 8; i++) marca(n - 1 - i, 8, bit(b, i));
+      for (let i = 8; i < 15; i++) marca(8, n - 15 + i, bit(b, i));
+      marca(8, n - 8, true);
+    };
+    formato(0);
+    if (v >= 7) {
+      let r = v;
+      for (let i = 0; i < 12; i++) r = (r << 1) ^ ((r >>> 11) * 0x1F25);
+      const b = (v << 12) | r;
+      for (let i = 0; i < 18; i++) { const a = n - 11 + i % 3, c = Math.floor(i / 3); marca(a, c, bit(b, i)); marca(c, a, bit(b, i)); }
+    }
+/* 4. dados em zigue-zague, de baixo para cima, duas colunas por vez */
+    let i = 0;
+    for (let col = n - 1; col >= 1; col -= 2) {
+      if (col === 6) col = 5;
+      for (let k = 0; k < n; k++) for (let j = 0; j < 2; j++) {
+        const x = col - j, y = ((col + 1) & 2) === 0 ? n - 1 - k : k;
+        if (!fixo[y][x] && i < finais.length * 8) { mod[y][x] = bit(finais[i >>> 3], 7 - (i & 7)); i++; }
+      }
+    }
+/* 5. máscara: testa as 8 e fica com a de menor penalidade */
+    const inverte = (m, x, y) => [
+      (x + y) % 2 === 0, y % 2 === 0, x % 3 === 0, (x + y) % 3 === 0,
+      (Math.floor(x / 3) + Math.floor(y / 2)) % 2 === 0, (x * y) % 2 + (x * y) % 3 === 0,
+      ((x * y) % 2 + (x * y) % 3) % 2 === 0, ((x + y) % 2 + (x * y) % 3) % 2 === 0][m];
+    const aplica = m => { for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (!fixo[y][x] && inverte(m, x, y)) mod[y][x] = !mod[y][x]; };
+    const penalidade = () => {
+      let p = 0, escuros = 0;
+      const linha = get => {
+        let cor = null, seq = 0, s = '';
+        for (let k = 0; k < n; k++) {
+          const c = get(k);
+          s += c ? '1' : '0';
+          if (c === cor) { seq++; if (seq === 5) p += 3; else if (seq > 5) p++; } else { cor = c; seq = 1; }
+        }
+        for (const padrao of ['10111010000', '00001011101']) for (let at = s.indexOf(padrao); at >= 0; at = s.indexOf(padrao, at + 1)) p += 40;
+      };
+      for (let y = 0; y < n; y++) linha(k => mod[y][k]);
+      for (let x = 0; x < n; x++) linha(k => mod[k][x]);
+      for (let y = 0; y < n - 1; y++) for (let x = 0; x < n - 1; x++) {
+        const c = mod[y][x];
+        if (c === mod[y][x + 1] && c === mod[y + 1][x] && c === mod[y + 1][x + 1]) p += 3;
+      }
+      for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (mod[y][x]) escuros++;
+      return p + Math.max(0, Math.ceil(Math.abs(escuros * 20 - n * n * 10) / (n * n)) - 1) * 10;
+    };
+    let melhor = 0, menor = Infinity;
+    for (let m = 0; m < 8; m++) {
+      aplica(m); formato(m);
+      const p = penalidade();
+      if (p < menor) { menor = p; melhor = m; }
+      aplica(m);
+    }
+    aplica(melhor); formato(melhor);
+    return (cache[texto] = { versao: v, tamanho: n, escuro: (x, y) => mod[y][x] });
+  }
+/* SVG nítido, com a margem branca que os leitores de QR precisam */
+  function svg(texto, margem = 4) {
+    const q = gerar(texto), t = q.tamanho + margem * 2;
+    let d = '';
+    for (let y = 0; y < q.tamanho; y++) for (let x = 0; x < q.tamanho; x++) if (q.escuro(x, y)) d += `M${x + margem} ${y + margem}h1v1h-1z`;
+    return `<svg class="qr-svg" viewBox="0 0 ${t} ${t}" shape-rendering="crispEdges" aria-hidden="true"><rect width="${t}" height="${t}" fill="#fff"/><path d="${d}" fill="#111"/></svg>`;
+  }
+/* PNG para o PDF da nota */
+  function png(texto, escala = 8, margem = 4) {
+    const q = gerar(texto), t = (q.tamanho + margem * 2) * escala;
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = t;
+    const g = cv.getContext('2d');
+    g.fillStyle = '#fff'; g.fillRect(0, 0, t, t); g.fillStyle = '#000';
+    for (let y = 0; y < q.tamanho; y++) for (let x = 0; x < q.tamanho; x++) if (q.escuro(x, y)) g.fillRect((x + margem) * escala, (y + margem) * escala, escala, escala);
+    return cv.toDataURL('image/png');
+  }
+  return { gerar, svg, png };
+})();
+const nfUrlConsulta = chave => 'https://www.nfse.gov.br/ConsultaPublica/?tpc=1&chave=' + encodeURIComponent(chave);
+let NF_JSPDF = null;
+function nfJsPdf() {
+  if (window.jspdf) return Promise.resolve(window.jspdf.jsPDF);
+  if (!NF_JSPDF) NF_JSPDF = new Promise((ok, falha) => { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    s.onload = () => ok(window.jspdf.jsPDF); s.onerror = () => { NF_JSPDF = null; falha(new Error('Não consegui carregar o gerador de PDF. Confira a internet.')); }; document.head.appendChild(s); });
+  return NF_JSPDF;
+}
+async function nfLogoPng() {
+  try { const svg = LOGO.replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" '), img = new Image(); img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg); await img.decode();
+    const cv = document.createElement('canvas'); cv.width = 160; cv.height = 160; cv.getContext('2d').drawImage(img, 0, 0, 160, 160); return cv.toDataURL('image/png'); } catch (e) { return null; }
+}
+async function nfComprovantePdf(n, e) {
+  const jsPDF = await nfJsPdf(), doc = new jsPDF({ unit: 'mm', format: 'a4' }); e = e || {};
+  const C = { coral: [226, 91, 63], menta: [219, 232, 218], tinta: [59, 59, 59], cinza: [107, 101, 94], linha: [234, 223, 209], verm: [184, 64, 42] };
+  const cor = (c, t) => doc[t === 'f' ? 'setFillColor' : t === 'd' ? 'setDrawColor' : 'setTextColor'](...c), brlN = v => (+v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const docLbl = d => (soDig(d).length === 14 ? 'CNPJ ' : 'CPF ') + (d || '-'), amb = +n.ambiente === 1 ? '' : 'AMBIENTE DE TESTE - SEM VALOR FISCAL';
+  cor(C.menta, 'f'); doc.roundedRect(12, 12, 186, 30, 6, 6, 'F');
+  const lg = await nfLogoPng(); if (lg) { try { doc.addImage(lg, 'PNG', 17, 17, 20, 20, undefined, 'FAST'); } catch (x) { } }
+  cor(C.tinta); doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.text('NFS-e · Nota Fiscal de Serviço eletrônica', 44, 25);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); cor(C.cinza); doc.text('Comprovante da nota emitida (o PDF oficial do governo não veio)', 44, 31.5);
+  cor(C.tinta); doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.text('Nº ' + String(n.numero).padStart(4, '0'), 191, 25, { align: 'right' });
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9); cor(C.cinza); doc.text(n.data ? new Date(n.data).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '', 191, 31.5, { align: 'right' });
+  let y = 54;
+  const bloco = (tit, linhas) => { cor(C.coral); doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.text(tit.toUpperCase(), 16, y); y += 5;
+    linhas.filter(l => l[0]).forEach(([t, neg, tam]) => { doc.setFont('helvetica', neg ? 'bold' : 'normal'); doc.setFontSize(tam || 10.5); cor(neg ? C.tinta : C.cinza); const p = doc.splitTextToSize(String(t), 176); doc.text(p, 16, y); y += p.length * ((tam || 10.5) * 0.45) + 1.2; });
+    cor(C.linha, 'd'); doc.setLineWidth(0.3); doc.line(16, y + 1, 194, y + 1); y += 7; };
+  bloco('Prestador do serviço', [[e.nome || 'PLAY SPACE', true, 12], [`CNPJ ${e.cnpj || '-'}${e.im ? '  ·  Inscrição municipal ' + e.im : ''}`], [e.municipio || '']]);
+  bloco('Tomador do serviço', [[n.clienteNome || '', true, 12], [docLbl(n.clienteDoc)]]);
+  bloco('Serviço', [[(n.servicoNome || '') + (n.codigo ? '  ·  cód. ' + n.codigo : ''), true, 11], [n.descricao || '']]);
+  cor(C.coral); doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.text('VALORES', 16, y); y += 6;
+  const lv = (r, v) => { doc.setFont('helvetica', 'normal'); doc.setFontSize(10.5); cor(C.cinza); doc.text(r, 16, y); cor(C.tinta); doc.text(v, 194, y, { align: 'right' }); y += 6.5; };
+  lv('Valor do serviço', brlN(n.valor)); lv(`ISS ${String(n.aliquota || 0).replace('.', ',')}% ${n.retido ? '(retido pelo tomador)' : '(a recolher pelo prestador)'}`, brlN(n.iss));
+  cor([253, 236, 230], 'f'); doc.roundedRect(12, y - 2, 186, 14, 5, 5, 'F'); cor(C.tinta); doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.text('Valor líquido', 18, y + 7);
+  cor(C.coral); doc.setFontSize(16); doc.text(brlN(n.liquido != null ? n.liquido : n.valor), 192, y + 7.5, { align: 'right' }); y += 22;
+  if (n.chave) {
+    if (n.status !== 'cancelada') { try { doc.addImage(NFQR.png(nfUrlConsulta(n.chave), 6, 2), 'PNG', 160, y - 4, 34, 34, undefined, 'FAST'); doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); cor(C.cinza); doc.text('Aponte a câmera', 177, y + 33.5, { align: 'center' }); } catch (x) { } }
+    cor(C.coral); doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.text('CHAVE DE ACESSO', 16, y); y += 5;
+    doc.setFont('courier', 'normal'); doc.setFontSize(10); cor(C.tinta); doc.text(String(n.chave).replace(/(\d{4})(?=\d)/g, '$1 '), 16, y, { maxWidth: 140 }); y += 12;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9); cor(C.cinza); doc.text('Consulte a autenticidade em www.nfse.gov.br com a chave de acesso acima.', 16, y);
+  }
+  if (n.status === 'cancelada') { try { doc.saveGraphicsState(); doc.setGState(new doc.GState({ opacity: 0.16 })); doc.setFont('helvetica', 'bold'); doc.setFontSize(68); cor(C.verm); doc.text('CANCELADA', 105, 185, { align: 'center', angle: 28 }); doc.restoreGraphicsState(); } catch (x) { } }
+  const aviso = [n.status === 'cancelada' ? 'NOTA CANCELADA' : '', amb].filter(Boolean).join(' · ');
+  if (aviso) { cor([254, 242, 242], 'f'); doc.roundedRect(12, 270, 186, 9, 4.5, 4.5, 'F'); cor(C.verm); doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.text(aviso, 105, 275.8, { align: 'center' }); }
+  cor(C.cinza); doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.text('Play Space · comprovante da NFS-e', 12, 287); doc.text('Página 1 de 1', 198, 287, { align: 'right' });
+  return doc.output('blob');
+}
+const nfCompAviso = act => `<p class="explica nf-comp">O governo ainda não entregou o PDF oficial: este é o <b>comprovante da nota emitida</b> (com a chave de acesso e o QR da consulta no site do governo), feito aqui. <button type="button" class="link tap" data-act="${act}">Buscar o PDF oficial de novo</button></p>`;
 async function nfPdfBaixa(n, emp) {   /* o PDF oficial pelo Notas (na empresa da nota); o governo leva uns segundos para liberar logo depois de emitir */
   let ponte = false;
   const pega = async () => { const r = await fetch('/notas/api/api.php?acao=danfse&id=' + encodeURIComponent(n.id) + (emp ? '&_empresa=' + emp.id : ''), { credentials: 'same-origin', cache: 'no-store' });
@@ -8447,10 +8665,11 @@ async function nfPdfCarregar(v) {
     if (!vale()) return;
     if (!n) { NFPDF = { venda, num, st: 'semnota', msg: `Não achei a nota${p.numero ? ' nº ' + p.numero : ''} no Play Space Notas${emp ? ' (' + emp.apelido.toUpperCase() + ')' : ''}. Confira o número (o gestor corrige aqui embaixo) ou abra o Notas.` }; nfPdfPinta(venda); return; }
     if (!n.chave) { NFPDF = { venda, num, st: 'semnota', msg: `A nota nº ${n.numero} não tem o PDF oficial (não saiu pelo Emissor Nacional).` }; nfPdfPinta(venda); return; }
-    const blob = await nfPdfBaixa(n, emp); if (!vale()) return;
+    let blob = await nfPdfBaixa(n, emp), comp = false; if (!vale()) return;
+    if (!blob) { try { blob = await nfComprovantePdf(n, N.empresa); comp = true; } catch (e) { blob = null; } if (!vale()) return; }   /* 2.59: o governo não entregou: o comprovante */
     if (!blob) { NFPDF = { venda, num, st: 'erro', msg: `O governo ainda não liberou o PDF da nota nº ${n.numero}. Espere uns segundos e toque em Tentar de novo.` }; nfPdfPinta(venda); return; }
     const nome = `NFS-e ${n.numero} - ${n.clienteNome || ''}`.replace(/[\\/:*?"<>|]+/g, ' ').trim() + '.pdf';
-    NFPDF = { venda, num, st: 'ok', nota: n, emp, url: URL.createObjectURL(blob), arquivo: new File([blob], nome, { type: 'application/pdf' }) }; nfPdfPinta(venda);
+    NFPDF = { venda, num, st: 'ok', nota: n, emp, comp, url: URL.createObjectURL(blob), arquivo: new File([blob], nome, { type: 'application/pdf' }) }; nfPdfPinta(venda);
   } catch (e) { if (!vale()) return; NFPDF = e.status === 401 ? { venda, num, st: 'login' } : { venda, num, st: 'erro', msg: 'A nota não carregou: ' + (e.message || 'tente de novo.') }; nfPdfPinta(venda); }
 }
 function nfPdfSalvar() { const x = NF && NFPDF && NFPDF.venda === NF.id && NFPDF.st === 'ok' ? NFPDF : null; if (!x) return false;

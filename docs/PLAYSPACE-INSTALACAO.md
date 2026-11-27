@@ -1301,6 +1301,14 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O comprovante da nota quando o governo não entrega o PDF (2.59)
+
+Pedido do dono (27/11): "a nota já foi emitida, tá lá no sistema, só que ela não carregou aqui" (o governo não entregou o PDF oficial, o DANFSe; o Notas mostrava a página de reserva "PDF oficial da NFS-e").
+
+- Quando o governo não entrega o PDF oficial, a folha da nota mostra o comprovante da nota feito no Play Space, igual ao do Play Space Notas: número, data, prestador (CNPJ e inscrição municipal), tomador, serviço, valores, a chave de acesso e o QR da consulta pública (quem recebe aponta a câmera e abre a nota oficial no site do governo).
+- O aviso na folha diz que é o comprovante; "Buscar o PDF oficial de novo" tenta o do governo outra vez.
+- Imprimir, Enviar no WhatsApp e Salvar usam o comprovante. Vale também na "nota com outro valor".
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A nota fiscal do cliente em atendimento, só o gestor (2.58)
 
 Pedido do dono (27/11): "só o gestor pode tirar a nota fiscal ... elas só podem tirar do finalizado. Do em atendimento, elas não podem tirar NF. Só o gestor."
