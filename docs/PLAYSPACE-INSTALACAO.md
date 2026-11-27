@@ -1301,6 +1301,16 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O botão "PCD" com cadeado na ficha (2.56)
+
+Pedido do dono (27/11): "uma opção que fique bloqueada, escrito PCD, que só o gestor pode marcar caso não seja marcado no início do atendimento".
+
+- Na ficha do cliente, o botão "PCD" com o cadeado. Marcada, ele fica verde: "PCD 50%".
+- O gestor marca ou desmarca direto. A atendente toca, e a folha pede a senha do gestor (o gestor digita ali). Sem a senha, ou com a senha errada, não marca.
+- Com a criança no espaço, vale já nesta visita: a recreação lançada até agora (e ainda não paga) cai para o valor com o desconto; a saída e o cupom saem com "Desconto PCD 50%". Desmarcada, volta ao valor cheio (o que já foi pago não muda).
+- Fica no histórico: "Marcada como criança PCD ... durante a visita ... por JOÃO (senha do gestor CAMILA)".
+- O "Editar cadastro" do gestor (Ajustes → Cadastros) também acerta a recreação da visita quando muda a marca PCD.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. NF para todo mundo e o desconto PCD no cupom (2.55)
 
 Pedido do dono (27/11): "NF eu tenho que poder emitir pra todo mundo, viu? Tipo, que seja pacote de horas que comprou" e "no cupom tem que sair o desconto do PCD".

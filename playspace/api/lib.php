@@ -675,6 +675,19 @@ function cobrar(float $minutos): int { return periodosDe($minutos) * periodo(); 
 function ficouMin(float $m): int { $f = (int)floor($m); return periodosDe($f) === periodosDe($m) ? $f : (int)ceil($m); }
 // o preço da recreação avulsa para esta criança: a criança PCD paga com o desconto (50% de fábrica)
 function pcdDesc(): int { return max(0, min(100, (int)(regra()['pcdDesc'] ?? 50))); }
+/* 2.56: a criança marcada (ou desmarcada) PCD no meio da visita: a recreação lançada nesta visita e ainda não paga passa a ter o desconto
+   (ou volta ao valor cheio). Devolve quantas vendas mudaram */
+function pcdRefazVisita(array $c, int $pcd): int {
+  if (empty($c['entrou'])) return 0; $db = db(); $n = 0;
+  $q = $db->prepare("SELECT v.* FROM vendas v WHERE v.crianca_id = ? AND v.auto = 1 AND v.quando >= ? AND v.voucher = '' AND v.valor > 0.004 AND NOT EXISTS (SELECT 1 FROM pagamentos p WHERE p.venda_id = v.id)");
+  $q->execute([(int)$c['id'], (string)$c['entrou']]); $up = $db->prepare('UPDATE vendas SET valor = ?, pcd = ?, cheio = ?, itens = ? WHERE id = ?');
+  foreach ($q->fetchAll() as $v) {
+    $cheio = (float)$v['cheio'] > (float)$v['valor'] + 0.004 ? (float)$v['cheio'] : (float)$v['valor']; $novo = $pcd ? precoPcd(['pcd' => 1], $cheio) : $cheio;
+    $it = trim((string)preg_replace('/ · PCD \d+%/u', '', (string)$v['itens'])) . ($pcd ? ' · PCD ' . pcdDesc() . '%' : '');
+    $up->execute([$novo, $pcd, $cheio, $it, (int)$v['id']]); $n++;
+  }
+  return $n;
+}
 function precoPcd(array $c, float $v): float { return !empty($c['pcd']) ? intdiv((int)round($v * 100) * (100 - pcdDesc()) + 50, 100) / 100 : $v; }   // 1.31: em centavos inteiros, a mesma conta da tela
 // quantos minutos a visita conta até $fim: no máximo até a hora em que a loja fecha (no dia da entrada) e nunca mais de 12 h.
 // Assim uma saída esquecida não vira cobrança a noite toda (a supervisão corrige a hora da saída depois).

@@ -987,6 +987,7 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .esp-it .l1 b { font-weight: 700; font-size: 12px; color: var(--tinta-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .esp-it .l1 .obs { flex: none; color: var(--erro); display: inline-flex; padding: 7px 5px; margin: -7px -5px; }   /* o sininho da observação: vermelho, e um toque mostra o que é */
 .esp-it .l1 .pcd, .selo-pcd { flex: none; font-style: normal; font-size: 10.5px; font-weight: 800; letter-spacing: .03em; color: var(--tinta); background: var(--verde-agua-2); border: 1px solid var(--verde-agua); border-radius: 999px; padding: 0 6px; white-space: nowrap; }
+.bt.pcd-bt.on { background: var(--verde-agua-2); border-color: var(--verde-agua); color: var(--tinta); } .bt.pcd-bt svg + svg { opacity: .7; }   /* 2.56 */
 .selo-pcd { display: inline-block; font-family: var(--texto); font-size: 11.5px; line-height: 1.5; padding: 0 8px; vertical-align: middle; }
 .serv.voucher { border-style: dashed; width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; } .serv.voucher.on { border-style: solid; }
 .serv .vou-ch { width: 30px; height: 30px; border-radius: 10px; border: 2px solid var(--borda-2); background: var(--card); display: flex; align-items: center; justify-content: center; color: #fff; justify-self: end; }
@@ -2155,6 +2156,7 @@ const IC = {
   sino: '<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 21h4"/>',
   renova: '<path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/>',
   camera: '<path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/>',
+  cadeado: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',   /* 2.56 */
   sapato: '<path d="M2 18V10l4 1 3-2.5 5 5 5 1c1.8.3 3 1.3 3 3V18z"/><path d="M10.6 10.1l-1.6 1.6M12.6 12.1l-1.6 1.6"/>',
   historico: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7.5V12l3 2"/>',
   presente: '<rect x="3" y="9" width="18" height="12" rx="2"/><path d="M3 13h18M12 9v12M12 9c-3 0-5-1.5-5-3.5S9.5 3 12 9c2.5-6 5-5.5 5-3.5S15 9 12 9z"/>',
@@ -2181,7 +2183,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.55';
+const VERSAO = '2.56';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -5576,6 +5578,44 @@ const segAvulso = (pode, on, sem = 0) => !pode ? (sem ? segSemHoras(sem) : '') :
 // valor ("RECREAÇÃO avulsa · 1h30 · ficou 1h12 · R$ 240"). Quem usa horas tem a linha da visita ("usa 2h") e, se elas não bastaram, a
 // do que foi além: "Além do pacote" para quem entrou com pacote, "RECREAÇÃO avulsa" para quem tinha só um voucher ou um resto de tempo
 const pcdTag = c => c && c.pcd && pcdDesc() > 0 ? ' · ' + rotPcd() : '';   /* 2.55: a criança PCD à vista na conta da saída */
+/* 2.56 (o dono: "uma opção que fique bloqueada, escrito PCD, que só o gestor pode marcar caso não seja marcado no início do atendimento"):
+   o botão PCD da ficha, com o cadeado. O gestor marca (ou desmarca) direto; a atendente, com a senha do gestor digitada ali. Com a criança
+   no espaço, a recreação já lançada nesta visita (e ainda não paga) passa a ter o desconto (ou volta ao valor cheio). Fica no histórico */
+const pcdBotao = c => (S.balcao && c.id === S.balcao.id) || !(pcdDesc() > 0) ? '' : c.pcd
+  ? `<button class="bt tap pcd-bt on" data-act="pcd-ficha" data-id="${c.id}" title="Criança PCD: ${pcdDesc()}% de desconto na recreação avulsa. ${gestor() ? 'Toque para desmarcar.' : 'Só o gestor desmarca.'}">${ic(IC.check)} PCD ${pcdDesc()}%${gestor() ? '' : ' ' + ic(IC.cadeado, 15)}</button>`
+  : `<button class="bt tap pcd-bt" data-act="pcd-ficha" data-id="${c.id}" title="Marcar como criança PCD: só o gestor (ou com a senha do gestor)">${ic(IC.cadeado)} PCD</button>`;
+function folhaPcd(cid) {
+  const c = crianca(cid); if (!c) return; const marca = !c.pcd, d = pcdDesc();
+  abrirFolha(marca ? 'Marcar como criança PCD' : 'Desmarcar a criança PCD', `<div class="linha">${avatar(c)}<div class="txt"><b>${esc(c.nome)}</b><span>${nomeResp(c)}${c.entrou ? ' · no espaço desde ' + hora(c.entrou) : ''}</span></div></div>
+    <p class="explica">${marca ? `A criança PCD paga ${100 - d}% do valor na recreação avulsa e no tempo além do pacote. Pacote de horas e carrinhos não têm desconto.${c.entrou ? ' <b>Vale já nesta visita:</b> a recreação lançada até agora (e ainda não paga) passa a ter o desconto.' : ''}`
+      : `A criança deixa de ter o desconto PCD.${c.entrou ? ' A recreação desta visita (ainda não paga) volta ao valor cheio.' : ''}`} Fica anotado no histórico, com quem ${marca ? 'marcou' : 'desmarcou'}.</p>
+    ${gestor() ? '' : `<div class="aut-senha"><p class="explica">${ic(IC.cadeado, 15)} <b>Só o gestor ${marca ? 'marca' : 'desmarca'}.</b> Peça para o gestor digitar a senha dele aqui.</p>${campoSenha('pcd-s')}</div>`}
+    <div class="pe-f"><button type="button" class="bt forte largo tap" data-act="pcd-ok" data-id="${c.id}" data-v="${marca ? 1 : 0}">${ic(IC.check)} ${marca ? 'Marcar PCD' : 'Desmarcar PCD'}</button></div>`);
+  if (!gestor()) setTimeout(() => { const i = $('#pcd-s'); if (i) i.focus(); }, 300);
+}
+/* (prévia) a recreação lançada nesta visita, ainda sem pagar, passa a ter (ou deixa de ter) o desconto: a mesma conta do servidor */
+function pcdVisitaPrevia(c, pcd) {
+  if (!c.entrou) return; let dif = 0;
+  for (const v of S.compras.filter(v => v.crianca === c.id && v.auto && !v.voucher && v.v > 0.004 && v.quando >= c.entrou && faltaCompra(v) >= v.v - 0.004)) {
+    const cheio = v.cheio > v.v ? v.cheio : v.v, novo = pcd ? precoDe({ pcd: true }, cheio) : cheio;
+    dif += novo - v.v; v.v = novo; v.pcd = pcd; v.cheio = cheio; v.itens = String(v.itens || '').replace(/ · PCD \d+%/, '') + (pcd ? ' · ' + rotPcd() : ''); }
+  if (c.atraso) c.atraso.valor = centavos(c.atraso.valor + dif);
+}
+async function pcdSalvar(el) {
+  const cid = +el.dataset.id, c = crianca(cid), pcd = el.dataset.v === '1'; if (!c) return;
+  const senha = gestor() ? '' : senhaDe('pcd-s'); if (!gestor() && !senha) { toast('Digite a senha do gestor'); const i = $('#pcd-s'); if (i) i.focus(); return; }
+  el.disabled = true;
+  try {
+    if (MODO === 'servidor') { await api('crianca_pcd', { id: cid, pcd: pcd ? 1 : 0, ...(gestor() ? {} : { senha }) }); await carregar(); }
+    else {
+      const g = gestor() ? EU : quemAutorizaPrevia('pcd', senha); if (!g) throw new Error('A senha não confere com a do gestor.');
+      pcdVisitaPrevia(c, pcd); c.pcd = pcd;
+      registrar('cad', c.nome, (pcd ? `Marcada como criança PCD: ${pcdDesc()}% de desconto na recreação` : 'Deixou de estar marcada como criança PCD') + (c.entrou ? ' · durante a visita (entrou ' + hora(c.entrou) + ')' : '') + ' · por ' + EU.nome + (gestor() ? '' : ' (senha do gestor ' + primeiro(g.nome).toUpperCase() + ')'));
+    }
+    fecharFolha(); deuCerto(`${(crianca(cid) || c).nome}: ${pcd ? 'marcada como criança PCD' : 'não é mais criança PCD'}`); desenhar(); setTimeout(() => folhaFicha(cid), 280);
+  } catch (e) { toast(e.message); el.disabled = false; senhaErrada('pcd-s', e); }
+}
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.id === 'pcd-s') { e.preventDefault(); const b = $('[data-act="pcd-ok"]'); if (b && !b.disabled) b.click(); } });
 function linhasVisita(c, k, o = {}) {   // o: { hh: a hora corrigida, de: " · NOME" (na conta em conjunto), tirar: o botão Tirar }
   const p = periodo(), st = servicoTempo(), rec = esc(st ? st.n : 'RECREAÇÃO'), minhas = horasProprias(k), de = o.de || '', av = planoDe(c) !== 'pacote', so = av && k.n > 0 && !minhas;
   const ficou = `${o.hh ? 'saiu às ' + esc(o.hh) + ' · ' : ''}ficou ${dur(ficouMin(k.min))}`, meio = [esc(c.nome), c.sapateira ? String(c.sapateira) : '', hora(c.entrou)];
@@ -7407,6 +7447,7 @@ function folhaFicha(id) { // 1.02: mais limpa. O que importa numa olhada: quem �
       <button class="bt tap" data-act="relatorio" data-id="${c.id}" title="O extrato do cliente: compras, visitas e o saldo de cada dia, para ver, imprimir no cupom ou abrir em planilha">${ic(IC.relatorio)} Relatório</button>
       <button class="bt tap" data-act="papel-reimprimir" data-id="${c.id}" title="Ver e imprimir de novo um cupom deste cliente: o cliente perdeu, ou a impressora travou">${ic(IC.cupom)} Reimprimir cupom</button>
       ${c.entrou || c.sapateira ? `<button class="bt tap" data-act="sapateira" data-id="${c.id}" title="${c.sapateira ? 'Trocar a sapateira' : 'Escolher a sapateira'}">${ic(IC.sapato)} ${c.sapateira ? 'Sapateira ' + c.sapateira : 'Sapateira'}</button>` : ''}
+      ${pcdBotao(c)}
       ${c.entrou ? `<span class="f-canc" data-ficha-cancela="${c.id}" data-estado="${estadoCancelar(c)}">${blocoCancelar(c)}</span>` : ''}
       ${COM_WHATS ? `<button class="bt tap" data-act="avisar" data-id="${c.id}">${ic(IC.zap)} WhatsApp</button>` : ''}
       ${rostoPronto() ? `<button class="bt ${c.rosto ? '' : 'forte'} tap" data-act="rosto-cam" data-id="${c.id}">${ic(IC.rosto)} ${c.rosto ? 'Refazer o rosto no iDFace' : 'Cadastrar rosto no iDFace'}</button>` : ''}
@@ -9791,6 +9832,7 @@ const ACOES = {
     const c = crianca(DEV.cid), a = (S.alugueis || []).find(x => x.crianca === DEV.cid && x.s === DEV.s); if (!c || !a) { fecharFolha(); desenhar(true); return; } el.disabled = true; devolverJa(c, a, r.partes); },
   reabrir: el => folhaReabrir(+el.dataset.id),
   'cliente-atender': el => { const id = +el.dataset.id; if (!crianca(id)) return; const pre = CAD_PRE; cadastroFeito(); fecharFolha(); setTimeout(() => atender(id, false, pre), 260); },   /* a criança já está salva: larga o cadastro novo e vai direto para o atendimento dela */
+  'pcd-ficha': el => folhaPcd(+el.dataset.id), 'pcd-ok': el => pcdSalvar(el),   /* 2.56 */
   'obs-ver': el => { const c = crianca(el.dataset.id); if (c && c.obs) toast(`${c.nome}: ${c.obs}`, () => folhaFicha(c.id), 'Ficha'); },   /* o OBS da lista: o texto aparece só com o toque, no aviso do pé da tela */
   'obs-abre': el => { const cx = el.closest('.obs-cx'), c = crianca(el.dataset.id), corpo = cx && $('.obs-corpo', cx), bt = cx && $('.obs-bt', cx); if (!c || !corpo) return;
     const abre = corpo.hidden || el !== bt && !el.closest('.obs-corpo') ; corpo.hidden = !abre; if (bt) bt.setAttribute('aria-expanded', abre); cx.classList.toggle('aberta', abre);

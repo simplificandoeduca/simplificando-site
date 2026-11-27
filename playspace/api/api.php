@@ -432,6 +432,22 @@ switch ($acao) {
   }
 
   /* ---------- crianças ---------- */
+  case 'crianca_pcd': { /* 2.56 (o dono: "uma opção que fique bloqueada, escrito PCD, que só o gestor pode marcar"): o botão PCD da ficha. O gestor
+       marca ou desmarca; os outros, com a senha do gestor. No meio da visita, a recreação lançada (e não paga) acompanha */
+    $u = exigir(); $c = crianca((int)($in['id'] ?? 0)); if (!$c) falha('Cliente não encontrado.', 404);
+    $pcd = empty($in['pcd']) ? 0 : 1; $como = '';
+    if ($u['papel'] !== 'gestor') {
+      if (!array_key_exists('senha', $in)) falha('Só o gestor ' . ($pcd ? 'marca' : 'desmarca') . ' a criança PCD. Digite a senha do gestor.', 403);
+      $g = autorizadorPelaSenha('pcd', (string)$in['senha'], $u); $como = ' (senha do gestor ' . maiusculo(primeiroNome((string)$g['nome'])) . ')';
+    }
+    if ((int)($c['pcd'] ?? 0) === $pcd) responder(['ok' => true, 'pcd' => $pcd, 'ja' => true]);
+    $db->exec('BEGIN IMMEDIATE');
+    try { $db->prepare('UPDATE criancas SET pcd = ? WHERE id = ?')->execute([$pcd, (int)$c['id']]); $mud = pcdRefazVisita($c, $pcd); $db->exec('COMMIT'); }
+    catch (Throwable $e) { $db->exec('ROLLBACK'); throw $e; }
+    registrar('cad', (int)$c['id'], (string)$c['nome'], ($pcd ? 'Marcada como criança PCD: ' . pcdDesc() . '% de desconto na recreação' : 'Deixou de estar marcada como criança PCD')
+      . (!empty($c['entrou']) ? ' · durante a visita (entrou ' . substr((string)$c['entrou'], 11, 5) . ')' : '') . ' · por ' . primeiroNome((string)$u['nome']) . $como);
+    responder(['ok' => true, 'pcd' => $pcd, 'visita' => $mud]);
+  }
   case 'crianca_salvar': {
     $u = exigir(); $id = (int)($in['id'] ?? 0);
     if ($id) {
@@ -441,6 +457,7 @@ switch ($acao) {
       marcarObs($c, (string)$d['obs'], $u);   // a observação mudou: a anterior continua guardada, com quem mudou
       $db->prepare('UPDATE criancas SET nome = ?, idade = ?, resp = ?, rel = ?, tel = ?, tel2 = ?, doc_tipo = ?, cpf = ?, obs = ?, pcd = ?, nascimento = ? WHERE id = ?')->execute([$d['nome'], $d['idade'], $d['resp'], $d['rel'], $d['tel'], $d['tel2'], $d['doc'], $d['cpf'], $d['obs'], $d['pcd'], $d['nascimento'] !== '' ? $d['nascimento'] : null, $id]);
       // marcar (ou desmarcar) PCD muda o preço: fica anotado no dia, com quem fez
+      if ((int)($c['pcd'] ?? 0) !== $d['pcd']) pcdRefazVisita($c, $d['pcd']);   /* 2.56: no meio da visita, a recreação lançada acompanha */
       if ((int)($c['pcd'] ?? 0) !== $d['pcd']) registrar('cad', $id, $d['nome'], ($d['pcd'] ? 'Marcada como criança PCD: ' . pcdDesc() . '% de desconto na recreação' : 'Deixou de estar marcada como criança PCD') . ' · por ' . primeiroNome($u['nome']));
       // o nome mudou: o aparelho recebe o nome novo
       if ($c['idface_id'] !== null && $c['nome'] !== $d['nome']) gravarCfg('renomear_' . $id, (int)$c['idface_id']);
