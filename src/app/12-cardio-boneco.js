@@ -282,9 +282,9 @@ B3_S.rope = { F:{w:161,h:300,D:24,g:297,alt:168,pulo:1,arq:'corda-f',bot:[283,28
 /* escada: a máquina vem na folha junto com a pessoa; nada anda na cena e a sombra fica parada embaixo da máquina */
 B3_S.stair = { F:{w:206,h:300,D:32,g:297,alt:196,fixo:1,arq:'escada-f'}, M:{w:207,h:300,D:36,g:297,alt:196,fixo:1,arq:'escada-m'} };
 /* bike: a bicicleta vem na folha junto com a pessoa, como na escada */
-B3_S.bike = { F:{w:200,h:300,D:22,g:297,alt:186,fixo:1,arq:'bike-f'}, M:{w:201,h:300,D:22,g:297,alt:186,fixo:1,arq:'bike-m'} };
+B3_S.bike = { F:{w:214,h:300,D:22,g:297,alt:186,fixo:1,arq:'bike-f'}, M:{w:204,h:300,D:22,g:297,alt:186,fixo:1,arq:'bike-m'} };
 /* elíptico: a máquina vem na folha junto com a pessoa (no vídeo da mulher a câmera deslizava de lado; o deslize foi desfeito quadro a quadro antes do recorte) */
-B3_S.ell = { F:{w:279,h:300,D:30,g:297,alt:176,fixo:1,arq:'eliptico-f'}, M:{w:278,h:300,D:36,g:297,alt:176,fixo:1,arq:'eliptico-m'} };
+B3_S.ell = { F:{w:298,h:300,D:30,g:297,alt:176,fixo:1,arq:'eliptico-f'}, M:{w:281,h:300,D:36,g:297,alt:176,fixo:1,arq:'eliptico-m'} };
 B3_S.tread = { F:Object.assign({}, B3_S.road.F, {est:1, alt:150}), M:Object.assign({}, B3_S.road.M, {est:1, alt:156}) };
 const B3 = { sx:'', el:null, M:null, s:1, k:1, ph:0, cx:179, raf:0, last:0, ro:null, p:null };
 const b3Html = (k,rot,kind) => `<div class="b3 b3-${kind}${kind==='road' ? '' : ' b3-gym'}" data-kind="${kind}" data-int="${k}" role="img" aria-label="${esc(rot)}"><div class="b3i"><i class="ceu"></i><i class="sol"></i><i class="jan"></i><svg class="longe" viewBox="0 0 358 74" preserveAspectRatio="none" aria-hidden="true"><path fill="var(--b3-longe)" d="M0 74V40h22V22h26v18h14V8h30v32h18V28h24v12h12V16h34v24h16V34h22v6h14V4h28v36h20V24h26v16h20V36h0V74z"/></svg><div class="meio"></div><i class="calc"></i><i class="rua"></i><i class="grao"></i><i class="faixa"></i><i class="sme"></i><i class="est"></i><i class="lona"></i><i class="sm"></i><i class="bn"></i></div>${B3_TROCA ? `<button type="button" class="b3-sx" data-a="b3-sx">${ic('swap')}Ver ${b3Sexo()==='M' ? 'a mulher' : 'o homem'}</button>` : ''}</div>`;
