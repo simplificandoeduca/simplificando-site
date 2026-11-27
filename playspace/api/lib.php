@@ -2157,31 +2157,32 @@ function caixaDoDia(int $so = 0, ?string $dia = null): array {   /* 2.15: $so = 
 /* ---------- 2.53: Ajustes de comissão (o gestor troca quem fez a venda) ----------
    id > 0: uma linha da venda; a troca vale para a venda inteira (o que foi vendido junto no mesmo atendimento, que tem uma vendedora só).
    id < 0: o cadastro novo (a família cadastrada junto, no mesmo dia, pela mesma pessoa). Fica no registro do cliente: de quem, para quem */
+/* 2.67: excluir = 1 tira a comissão: o pedido fica sem atendente (a venda e o caixa não mudam; volta com Trocar). Fica no registro do cliente */
 function comissaoAjustar(array $in, array $u): array {
-  $db = db(); $id = (int)($in['id'] ?? 0); $novo = trim(preg_replace('/\s+/u', ' ', maiusculo((string)($in['vend'] ?? ''))));
-  if ($novo === '') falha('Escolha quem fez a venda.');
-  if (!in_array($novo, array_merge(vendedorasTodas(), vendedoras()), true)) falha($novo . ' não está na lista de quem vende. Confira em Ajustes → Equipe.');
+  $db = db(); $id = (int)($in['id'] ?? 0); $ex = !empty($in['excluir']); $novo = $ex ? '' : trim(preg_replace('/\s+/u', ' ', maiusculo((string)($in['vend'] ?? ''))));
+  if ($novo === '' && !$ex) falha('Escolha quem fez a venda.');
+  if (!$ex && !in_array($novo, array_merge(vendedorasTodas(), vendedoras()), true)) falha($novo . ' não está na lista de quem vende. Confira em Ajustes → Equipe.');
   $quem = maiusculo(primeiroNome((string)$u['nome']));
   if ($id > 0) {
     $q = $db->prepare('SELECT * FROM vendas WHERE id = ?'); $q->execute([$id]); $v = $q->fetch(); if (!$v) falha('Venda não encontrada (pode ter sido excluída).', 404);
     $g = (int)($v['vend_g'] ?? 0) ?: (int)$v['id']; $antes = trim((string)$v['vendedora']);
-    if ($antes === $novo) falha('Essa venda já está com ' . $novo . '.', 409);
+    if ($antes === $novo) falha($ex ? 'Esse pedido já está sem atendente.' : 'Essa venda já está com ' . $novo . '.', 409);
     $L = $db->prepare('SELECT * FROM vendas WHERE id = ? OR vend_g = ? ORDER BY id'); $L->execute([$g, $g]); $V = $L->fetchAll(); if (!$V) $V = [$v];
     $up = $db->prepare('UPDATE vendas SET vendedora = ? WHERE id = ?'); foreach ($V as $x) $up->execute([$novo, (int)$x['id']]);
     $c = crianca((int)$v['crianca_id']); $itens = implode(' + ', array_map(fn($x) => nomeDaVenda($x), $V));
-    $reg = registrar('alt', (int)$v['crianca_id'], (string)($c['nome'] ?? ''), 'Comissão ajustada: ' . $itens . ' (' . date('d/m H:i', strtotime((string)$v['quando'])) . ') · de ' . ($antes !== '' ? $antes : 'sem nome') . ' para ' . $novo . ' · por ' . $quem);
+    $reg = registrar('alt', (int)$v['crianca_id'], (string)($c['nome'] ?? ''), ($ex ? 'Comissão excluída: ' : 'Comissão ajustada: ') . $itens . ' (' . date('d/m H:i', strtotime((string)$v['quando'])) . ') · de ' . ($antes !== '' ? $antes : 'sem nome') . ($ex ? ' (fica sem atendente)' : ' para ' . $novo) . ' · por ' . $quem);
     return ['n' => count($V), 'antes' => $antes, 'novo' => $novo, 'registro' => $reg];
   }
   if ($id < 0) {
     $c = crianca(-$id); if (!$c || trim((string)($c['cad_por'] ?? '')) === '') falha('Cadastro não encontrado.', 404);
-    $antes = (string)$c['cad_por']; if ($antes === $novo) falha('Esse cadastro já está com ' . $novo . '.', 409);
+    $antes = (string)$c['cad_por']; if ($antes === $novo) falha('Esse cadastro já está com ' . $novo . '.', 409);   /* (excluído, o cadastro some da lista: cad_por vazio) */
     $dia = substr((string)$c['criado_em'], 0, 10); $doc = (string)preg_replace('/\D/', '', (string)$c['cpf']);
     $q = $db->prepare("SELECT * FROM criancas WHERE cad_por = ? AND substr(criado_em, 1, 10) = ?"); $q->execute([$antes, $dia]); $ids = [];
     foreach ($q->fetchAll() as $x) { $d = (string)preg_replace('/\D/', '', (string)$x['cpf']);
       $mesma = $doc !== '' ? $d === $doc : ($d === '' && maiusculo((string)$x['resp']) === maiusculo((string)$c['resp']) && preg_replace('/\D/', '', (string)$x['tel']) === preg_replace('/\D/', '', (string)$c['tel']));
       if ($mesma || (int)$x['id'] === (int)$c['id']) $ids[] = (int)$x['id']; }
     $db->prepare('UPDATE criancas SET cad_por = ? WHERE id IN (' . implode(',', $ids) . ')')->execute([$novo]);
-    $reg = registrar('alt', (int)$c['id'], (string)$c['nome'], 'Comissão ajustada: cadastro novo (' . date('d/m', strtotime((string)$c['criado_em'])) . ') · de ' . $antes . ' para ' . $novo . ' · por ' . $quem);
+    $reg = registrar('alt', (int)$c['id'], (string)$c['nome'], ($ex ? 'Comissão excluída: ' : 'Comissão ajustada: ') . 'cadastro novo (' . date('d/m', strtotime((string)$c['criado_em'])) . ') · de ' . $antes . ($ex ? '' : ' para ' . $novo) . ' · por ' . $quem);
     return ['n' => count($ids), 'antes' => $antes, 'novo' => $novo, 'registro' => $reg];
   }
   falha('Escolha a venda.');

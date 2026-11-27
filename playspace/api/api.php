@@ -400,9 +400,11 @@ switch ($acao) {
   }
   case 'cm_dia': { /* 2.53: Ajustes de comissão: as comissões de um dia (as regras das Finanças), por unidade. Só o gestor */
     $u = exigir(['gestor']); $dia = (string)($in['dia'] ?? ''); if ($dia === '') $dia = date('Y-m-d');
-    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dia) || !checkdate((int)substr($dia, 5, 2), (int)substr($dia, 8, 2), (int)substr($dia, 0, 4))) falha('Escolha uma data.');
-    if ($dia > date('Y-m-d')) falha('Esse dia ainda não chegou.'); session_write_close();
-    require_once __DIR__ . '/../financas/resumo.php'; require_once __DIR__ . '/../financas/comissoes.php';
+    $mes = (string)($in['mes'] ?? '');   /* 2.67: a aba Comissões pede o mês inteiro (AAAA-MM) */
+    if ($mes !== '') { if (!preg_match('/^(\d{4})-(\d{2})$/', $mes, $mm) || (int)$mm[2] < 1 || (int)$mm[2] > 12) falha('Escolha o mês.'); if ($mes > date('Y-m')) falha('Esse mês ainda não chegou.'); $dia = $mes; }
+    elseif (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dia) || !checkdate((int)substr($dia, 5, 2), (int)substr($dia, 8, 2), (int)substr($dia, 0, 4))) falha('Escolha uma data.');
+    if ($mes === '' && $dia > date('Y-m-d')) falha('Esse dia ainda não chegou.'); session_write_close();
+    require_once __DIR__ . '/../financas/resumo.php'; require_once __DIR__ . '/../financas/comissoes.php'; require_once __DIR__ . '/../financas/pdfbonito.php';   /* 2.67: o nome do mês (finMesNome) */
     $R = cmListar(['per' => $dia, 'u' => (isset($in['u']) && (int)$in['u'] > 0) ? (int)$in['u'] : 'todas']); unset($R['hist']);
     responder($R + ['vend_todas' => array_values(array_unique(array_merge(vendedorasTodas(), vendedoras())))]);
   }

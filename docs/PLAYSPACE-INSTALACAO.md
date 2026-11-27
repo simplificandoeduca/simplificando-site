@@ -1301,6 +1301,20 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A aba Comissões: cada atendente por unidade, os pedidos, trocar ou excluir (2.67)
+
+Pedido do dono (27/11): "entre o painel e o de baixo, eu quero que você coloque uma aba escrita comissões, onde vai aparecer o nome de todos os atendentes por unidade ... trocar Anália, Casatom Anália, Casatom Morumbi, para ver os atendentes de cada unidade e ver quanto que dá ... clicando neles, eu consigo destrinchar e ver proveniente de qual pedido essas comissões. Ter a opção de trocar de atendente aquela comissão ou excluir."
+
+Só o gestor: para a supervisora, a atendente e o computador da loja a aba não aparece, a tela não abre (nem pelo endereço) e o servidor recusa. A aba fica na barra do lado (e na de baixo, no celular), logo abaixo do Painel; no menu aberto, no grupo Gestão; e no Painel, o atalho "Comissões". Ela substitui os "Ajustes de comissão" da 2.53.
+
+- No alto: a unidade (cada unidade ativa, e Todas) e o período (Este mês, Mês passado, Hoje, Ontem ou Outro dia). Abre na unidade do aparelho, no mês.
+- O total da comissão da unidade no período, quantas vendas têm atendente e quanto elas venderam.
+- Cada atendente da unidade (as pessoas com usuário que vendem nela, em Ajustes → Equipe) com as vendas, o vendido, os cadastros e o total da comissão, pelas mesmas regras das Finanças → Comissões.
+- Tocar no nome abre os pedidos de onde vem a comissão: cada pedido (o que foi vendido junto no mesmo atendimento) com o dia, a hora, o cliente, cada item com o valor e a comissão (e a regra), e a comissão do pedido.
+- Trocar: passa o pedido inteiro (e a comissão) para outra atendente.
+- Excluir: pergunta antes; a comissão sai e o pedido fica "Sem atendente". A venda e o caixa não mudam. Para devolver, o card "Sem atendente" mostra essas vendas, com "Escolher quem fez". No cadastro novo, Excluir tira a comissão do cadastro (o cliente continua cadastrado).
+- Tudo fica no registro do cliente: "Comissão ajustada" ou "Comissão excluída", de quem, para quem e por quem. As Finanças acompanham.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A revisão geral depois da queda: o servidor não refaz a mesma conta para cada tela (2.66)
 
 Pedido do dono (27/11): "Esse sistema ele não pode cair igual mais cedo, que caiu ... Pode fazer uma regressão completa de todos os sistemas e já solucionar as falhas que você identificar como críticas".

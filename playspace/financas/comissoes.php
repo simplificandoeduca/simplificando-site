@@ -138,7 +138,7 @@ function cmListar(array $in): array {
   foreach ($V as $l) {
     $r = cmRegraDa($l, $regras, isset($comProd[(int)$l['vend_g']])); $b = $r ? cmBonus($r, $l) : 0.0; $vend = (string)$l['vendedora'];
     $item = trim((string)$l['servico']) !== '' ? (string)$l['servico'] : nomePacoteVenda((int)$l['minutos'], (string)$l['itens']);
-    $L[] = ['id' => (int)$l['id'], 'quando' => (string)$l['quando'], 'u' => (int)$l['u'], 'cri' => (string)($l['cri'] ?? ''), 'resp' => (string)($l['resp'] ?? ''), 'item' => $item, 'k' => (string)$l['vend_k'],
+    $L[] = ['id' => (int)$l['id'], 'g' => (int)($l['vend_g'] ?: $l['id']), 'quando' => (string)$l['quando'], 'u' => (int)$l['u'], 'cri' => (string)($l['cri'] ?? ''), 'resp' => (string)($l['resp'] ?? ''), 'item' => $item, 'k' => (string)$l['vend_k'],
       'qtd' => (int)$l['qtd'], 'tab' => round((float)$l['valor'] + (float)$l['desc_valor'], 2), 'pago' => round((float)$l['valor'], 2), 'vend' => $vend, 'regra' => $r ? $r['id'] : '', 'rnome' => $r ? cmRegraNome($r) : '', 'rcurta' => $r ? cmRegraCurta($r) : '', 'bonus' => $b];
     if ($vend === '') { $sem['n']++; $sem['v'] += (float)$l['valor']; continue; }
     if (!isset($porV[$vend])) { $porV[$vend] = ['n' => $vend, 'vendas' => 0, 'vendido' => 0.0, 'bonus' => 0.0, 'comBonus' => 0, 'meses' => array_fill_keys($P['meses'], 0.0)]; }
