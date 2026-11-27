@@ -1301,6 +1301,15 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. "Saíram há pouco" só da unidade (2.71)
+
+Pedido do dono (27/11): "No Saíram há pouco, ele está mostrando as 2 unidades. Um exemplo, criança que estava no Morumbi e saiu há pouco no Anália, está mostrando no Morumbi ... Só pode mostrar o Saíram há pouco da sua unidade. O gestor pode ver tudo."
+
+Como fica:
+- O botão "Saíram há pouco" (o número) e a lista mostram só as crianças que saíram na unidade do computador: no Morumbi, só quem saiu no Morumbi; na Anália, só quem saiu na Anália. É a mesma regra da lista de quem está no espaço (a unidade e a Casa Tom do mesmo lugar, quando estão juntas).
+- O gestor vê as saídas das duas unidades.
+- A unidade da saída é a da visita (onde a criança estava). O servidor passa a mandar a unidade de cada visita para a tela.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O Insta: as conversas do Instagram e do WhatsApp num lugar só, para o gestor ver (2.70)
 
 Pedido do dono (27/11): "um módulo tipo notas, que eu coloque Insta ... a mesma estética ... fazer um traqueamento com o Instagram, de maneira com que eu conecte a minha conta e eu consiga visualizar as mensagens e receba notificação do histórico de conversas ... como se fosse um CRM ... e também já a parte de conectar o WhatsApp para que a gente visualize também o WhatsApp". Respostas dele: o WhatsApp pelo QR Code (como o WhatsApp Web) e o aviso só quando um cliente começa uma conversa.

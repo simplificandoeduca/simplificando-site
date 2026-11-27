@@ -2232,7 +2232,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.70';
+const VERSAO = '2.71';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -5169,7 +5169,7 @@ function saida(c, origem = 'iDFace', corr = null, pag = null, papel = null, dsc 
   const recebido = centavos(pend + atraso.valor - dz);
   const pago = pag && pag.length && atraso.valor + pend > 0 ? textoPag(pag) : '', cupomId = criarCupomPrevia(c, 'saida', pago ? pagarPrevia([...pendentes, ...at.slice().sort((a, b) => a.quando - b.quando)], pag) : []);   // 0.93: o que foi recebido na saída vira cupom a emitir
   c.usado += deb; if (S.cfg.bloqueioAuto === 'sim' && !temPeriodo(c)) c.liberado = false;
-  c.visitas.unshift({ dia: fim, entrou: hora(entrouEm), saiu: hora(fim), deb, ini: entrouEm, sap: c.sapateira || 0, festa: c.festa || null });
+  c.visitas.unshift({ dia: fim, entrou: hora(entrouEm), saiu: hora(fim), deb, ini: entrouEm, sap: c.sapateira || 0, festa: c.festa || null, uni: c.uni || null });   /* 2.71: a unidade da visita */
   const sap = c.sapateira || 0; c.sapateira = null; c.entrou = null; c.atraso = null; c.festa = null; c.festaPapel = null;   // a sapateira fica livre na saída
   if (naFesta) registrar('sai', c.nome, `Saiu da festa de ${naFesta.nome} · ficou ${dur(Math.floor(min))}${sap ? ' · sapato na sapateira ' + sap : ''}${origem === 'iDFace' || semIdface() ? '' : ' · saída à mão'}`); else
   registrar('sai', c.nome, `Ficou ${dur(Math.floor(min))}${plano === 'pacote' ? ' · ' + dur(deb) + ' debitados' : propriasSaida(deb, atraso) > 0 ? ' · ' + dur(propriasSaida(deb, atraso)) + ' do tempo que já tinha' : ''}${saldoMin(c) > 0 ? ' · restam ' + hm(saldoMin(c)) : ''}${atraso.n ? ` · ${textoAutos(atraso, plano)}${pago ? ' · recebido: ' + pago : ' a receber'}` : ''}${sap ? ' · sapato na sapateira ' + sap : ''}${origem === 'iDFace' || semIdface() ? '' : ' · saída à mão'}`);
@@ -6941,7 +6941,10 @@ const podeReabrir = c => { if (!c || c.entrou || !reabreLim() || !podeManual()) 
 const podeReabrirGestor = c => { if (!gestor() || !c || c.entrou || !reabreLim() || !podeManual()) return false; const v = ultVis(c); if (!v) return false; const sai = new Date(v.dia);
   return isoDia(sai) === isoDia(agora) && agora - sai > reabreLim() * 60000 && !(S.cancelamentos || []).some(x => x.crianca === c.id && cancFechaVisita(x) && +x.entrou >= +sai); };
 const podeReabrirJa = c => podeReabrir(c) || podeReabrirGestor(c);
-const saiuHaPouco = () => S.criancas.filter(podeReabrir).sort((a, b) => +new Date(ultVis(b).dia) - +new Date(ultVis(a).dia));
+/* 2.71 (o dono: "No Saíram há pouco, ele está mostrando as 2 unidades ... Só pode mostrar o Saíram há pouco da sua unidade. O gestor pode
+   ver tudo."): a saída fica na unidade em que a criança estava (a da última visita); sem a unidade na visita, a da última entrada */
+const uniSaida = c => { const v = ultVis(c); return v && v.uni != null ? v.uni : c.uni == null ? null : c.uni; };
+const saiuHaPouco = () => S.criancas.filter(c => podeReabrir(c) && veUni(uniSaida(c))).sort((a, b) => +new Date(ultVis(b).dia) - +new Date(ultVis(a).dia));
 const haMin = d => { const m = Math.floor((agora - d) / 60000); return m < 1 ? 'agora há pouco' : 'há ' + m + ' min'; };
 let N_SAIRAM = 0;   // quantos estavam em "Saíram há pouco" na última conta (quando muda, a lista é refeita)
 // as crianças do mesmo responsável ficam juntas na lista, uma embaixo da outra, no lugar da que vem primeiro na ordem escolhida
