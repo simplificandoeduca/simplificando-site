@@ -1328,6 +1328,7 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .obs-bt { flex: none; display: inline-flex; align-items: center; justify-content: center; height: 30px; padding: 0 12px; border-radius: 999px; border: 1.5px solid var(--borda-2); background: var(--card); color: var(--apagado); font: 800 12px/1 var(--display); letter-spacing: .08em; }
 .obs-bt.on { border-color: var(--erro); background: var(--erro); color: #fff; box-shadow: 0 0 0 3px var(--erro-bg), 0 0 12px rgba(184, 64, 42, .45); }
 .obs-bt.mini { height: 20px; padding: 0 7px; font-size: 10px; box-shadow: none; position: relative; }
+.nf-g { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }   /* 2.79 */
 .nf-sem-ponte { display: flex; flex-direction: column; gap: 10px; }   /* 2.78 */
 .aj-desf .txt b { color: var(--tinta-2); text-decoration: line-through; }   /* 2.78: o ajuste desfeito */
 .it .txt span b.lanc { display: inline; font-weight: 800; color: var(--tinta); white-space: nowrap; }   /* 2.76: quem lançou */
@@ -2267,7 +2268,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.78';
+const VERSAO = '2.79';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -9476,10 +9477,10 @@ function htmlNF(v, c) {
       : `<p class="explica">Só o gestor corrige o número, desfaz a marcação ou cancela a nota.</p>`}`;
   if (e === 'liberado') return cab + `<div class="marca nf-esp">${ic(IC.cupom, 18)}<span><b>Nota aberta</b> por ${esc(primeiro(p.dec || p.por))}${p.dec_em ? ', ' + dataPedido(p.dec_em) : ''}. Falta emitir.</span></div>${dadosNF}
     ${msg}${dica}
-    <div class="nf-outras"><small class="rot">Se precisar corrigir algo no Notas</small><div class="nf-bts"><button type="button" class="bt tap" data-act="nf-notas">${ic(IC.cupom, 16)} Abrir no Play Space Notas</button><button type="button" class="bt tap" data-act="nf-copiar">${ic(IC.copia, 16)} Copiar os dados</button></div>
-    <div class="campo" id="nf-num-campo"><label for="nf-num">Número da nota emitida lá</label><input id="nf-num" maxlength="40" autocomplete="off" placeholder="Se não voltar sozinho, escreva o número aqui" value="${esc(NF_VOLTA[v.id] || '')}"></div>
-    <div class="nf-fim">${gestor() ? `<button type="button" class="link tap" data-act="nf-largar" style="display:block;margin:0 auto 10px">Tirar a nota (não vai ser emitida)</button>` : ''}<button type="button" class="bt largo tap" data-act="nf-emitida">${ic(IC.check)} Marcar como emitida</button></div></div>
-    ${emitir(2)}`;
+    ${gestor() ? `<div class="nf-outras nf-g"><button type="button" class="bt tap" data-act="nf-copiar">${ic(IC.copia, 16)} Copiar os dados</button><button type="button" class="link tap" data-act="nf-largar">Tirar a nota (não vai ser emitida)</button></div>` : ''}
+    ${emitir(2)}`;   /* 2.79 (o dono: "esse número da nota pode tirar, porque elas não têm acesso ao sistema de nota ... E pode tirar também esse
+       botão abrir o play space nota"): sem o "Abrir no Play Space Notas", sem o número da nota emitida lá e sem o "Marcar como emitida"
+       (que só valia com o número). A nota sai pelo Emitir. O gestor ainda tem o "Copiar os dados" e o "Tirar a nota" */
   if (e === 'pendente') return cab + `<div class="marca nf-esp">${ic(IC.sino, 18)}<span><b>Nota pedida</b> por ${esc(primeiro(p.por))}, ${dataPedido(p.em)}. Agora não precisa mais esperar o gestor: dá para emitir.</span></div>${dadosNF}
     ${msg}${dica}${emitir(1)}`;
   // ainda não tem nota (ou a última foi negada ou cancelada): a confirmação de em nome de quem ela sai, e emitir
@@ -9630,7 +9631,7 @@ async function emitirNFDireto() {
     const emp = nfEmpEscolhida(v), EM = emp ? { _empresa: emp.id } : {};   /* 2.04: a empresa da unidade da compra (ou a escolhida na folha) */
     if (emp && emp.id !== N.empresaId) N = await notasApi('dados', EM);
     const amb = (N.fiscal && N.fiscal.ambiente) || 'simulado', dl = docL(pt.doc);
-    if (soDig(pt.doc).length !== 11 && soDig(pt.doc).length !== 14) throw new Error('Falta o CPF ou o CNPJ de quem recebe a nota. Use "Abrir no Play Space Notas" para escolher o cliente lá.');
+    if (soDig(pt.doc).length !== 11 && soDig(pt.doc).length !== 14) throw new Error('Falta o CPF ou o CNPJ de quem recebe a nota. ' + (gestor() ? 'Toque em "Tirar a nota" e emita de novo, com o CPF.' : 'Chame o gestor para tirar a nota; depois emita de novo, com o CPF.'));   /* 2.79 */
     const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
     const sv = N.servicos || [], s = sv.find(x => x.id === pt.servico) || (pt.servicoNome ? sv.find(x => norm(x.nome).includes(norm(pt.servicoNome))) : null) || sv.find(x => x.id === 'recreacao') || sv[0];
     if (!s) throw new Error('O Play Space Notas não tem nenhum serviço cadastrado. Cadastre lá (Serviços) e emita de novo.');

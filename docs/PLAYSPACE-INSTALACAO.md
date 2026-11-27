@@ -1301,6 +1301,15 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A folha da nota só com os dados e o Emitir (2.79)
+
+Pedido do dono (27/11, com a foto da folha da nota): "esse número da nota pode tirar, porque elas não têm acesso ao sistema de nota, então não faz diferença. E pode tirar também esse botão abrir o play space nota".
+
+- Com a nota aberta (falta emitir), a folha não tem mais o "Abrir no Play Space Notas", o campo "Número da nota emitida lá" e o "Marcar como emitida" (que só valia com o número).
+- Fica: a compra, em nome de quem a nota sai, e o botão "Emitir a nota fiscal". A nota sai e carrega ali mesmo.
+- O gestor ainda tem "Copiar os dados" e "Tirar a nota (não vai ser emitida)".
+- Com a nota já emitida, nada muda: o gestor ainda corrige o número, desfaz a marcação ou cancela a nota.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Desfazer um ajuste de horas, e a nota fiscal sem login (2.78)
 
 ### Desfazer um ajuste de horas
