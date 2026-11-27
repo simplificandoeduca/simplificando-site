@@ -2262,7 +2262,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.73';
+const VERSAO = '2.74';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -4746,6 +4746,7 @@ const pgSec = t => `<h3 class="pg-sec">${t}</h3>`;
 const pgData = d => `${p2(d.getDate())}/${p2(d.getMonth() + 1)}/${d.getFullYear()}`;
 function pgDetalhes(c, comEntrada = true) {
   const L = [['Cliente', `<b>${esc(c.resp || c.nome)}</b>${comEntrada && c.entrou ? ` <span class="pill p-neutro pg-ent">ENTRADA ${hora(c.entrou)}</span>` : ''}`]];
+  { const r = recadoDe(c); if (r) L.push(['Recado', `<b class="rec-t" title="${esc(recTit(r))}">${esc(r.rec)}</b>`]); }   /* 2.74 (o dono: "Observação do responsável também tem que aparecer nessa tela aqui"): o recado do responsável no pagamento */
   if (c.cpf) L.push([c.doc === 'rne' ? 'RNE' : 'CPF', `<span class="num">${esc(c.cpf)}</span>`]);
   if (fones(c)) L.push([c.tel && c.tel2 ? 'Telefones' : 'Telefone', `<span class="num">${esc(fones(c))}</span>`]);
   L.push(['Atendente', `${esc(MAI(EU.nome))} · ${pgData(agora)}`]);
@@ -10215,6 +10216,7 @@ function desenharLado() {
   a.innerHTML = `
     <div class="cab-f"><h2>Histórico do cliente</h2><button class="fechar tap" data-act="lado-fechar" aria-label="Fechar o histórico">${ic(IC.x, 18, 2.4)}</button></div>
     <div class="linha"><span class="av g" style="background:${CORES[base.id % CORES.length]}">${esc(iniciais(base.resp))}</span><div class="txt"><b style="white-space:normal">${esc(base.resp)}</b><span style="white-space:normal">${relSabe(base) ? esc(base.rel) + ' de ' : 'responsável por '}${juntar(fam.map(c => esc(c.nome)))}</span><span style="white-space:normal">${esc(fones(base) || 'sem telefone')}${base.cpf ? ' · ' + esc(docTxt(base)) : ''}${copiaDoc(base)}</span></div></div>
+    ${recFicha(base, true)}
     <div class="acoes lado-acoes">${gestor() ? `<button class="bt tap" data-act="corrigir-horas" data-id="${base.id}" title="Somar ou tirar horas, a compra lançada errada, quem entrou sem pacote (gestor)">${ic(IC.lapis)} Corrigir as horas</button>` : ''}<button class="bt tap" data-act="relatorio" data-id="${base.id}" title="O extrato do cliente, para imprimir no cupom ou abrir em planilha">${ic(IC.relatorio)} Relatório</button></div>
     <div class="h-nums">
       <div><small>Pagou ao todo</small><b class="num">${d ? brl(centavos(d.vendas.reduce((t, v) => t + v.v - naoPagoDe(v), 0))) : '…'}</b></div>

@@ -1301,6 +1301,13 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O recado do responsável também no Pagamento e no Histórico do cliente (2.74)
+
+Pedido do dono (27/11): "Observação do responsável também tem que aparecer nessa tela aqui."
+
+- Pagamento (na venda, na saída e na saída em conjunto): em "Detalhes", logo abaixo do Cliente, a linha "Recado" com o recado do responsável em vermelho.
+- Histórico do cliente (o painel ao lado): o quadro vermelho com o recado, quem escreveu e quando, logo abaixo do nome do responsável (só para ler; para mudar, pela comanda ou pela lista).
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. "Alterar produto" no pagamento do Play (2.73)
 
 Pedido do dono (27/11): "Embaixo de desconto, alterar pacote, alterar produto. Que aí eu preciso mandar para o gestor para mim alterar o valor do produto, seja para mais ou para menos ... no pacote ele altera só o pacote, no Play ele não tem opção de alterar o produto."
