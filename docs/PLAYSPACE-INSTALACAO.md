@@ -1301,6 +1301,15 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A última compra de horas no Histórico (2.88)
+
+Pedido do dono (27/11): "no Horas Compradas, eu quero que sempre apareça a última hora que o cliente comprou ... fica mais fácil pra gente visualizar."
+
+- No Histórico do cliente, o quadro "Horas compradas" mostra, em grande, as horas da última compra de horas (o último pacote, ou as horas que vieram do sistema anterior).
+- Embaixo, pequeno: "última compra · 27 de nov" (ou "do sistema anterior") e "ao todo 13h" (o total que o cliente já comprou).
+- Com o login do gestor, o lápis continua no quadro (alterar as horas do pacote, como antes).
+- Sem nenhuma compra de horas (só ajustes), o quadro mostra o total, com "ao todo".
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O menu da esquerda inteiro no iPad (2.87)
 
 Pedido do dono (27/11, no iPad): "quando eu rolo pra baixo, o menu também tá ficando preso. Ele tem que rolar junto ... tem que ficar sempre lá embaixo."

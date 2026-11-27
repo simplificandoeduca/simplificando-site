@@ -2043,6 +2043,7 @@ button.bl-saldo.bl-alt:hover, button.bl-saldo.bl-alt:focus-visible { background:
 button.bl-saldo.bl-alt svg { opacity: .55; }
 .h-nums button.h-alt { background: var(--card); border: 1px solid var(--borda); border-radius: 16px; padding: 9px 12px; display: flex; flex-direction: column; gap: 1px; min-width: 0; font: inherit; color: inherit; text-align: inherit; cursor: pointer; }   /* o quadro das horas compradas, igual aos outros (o gestor toca para alterar) */
 .h-nums button.h-alt b svg { opacity: .55; vertical-align: -1px; }
+.h-nums small.h-ult { font-size: 11px; font-weight: 700; color: var(--tinta-2); opacity: .85; }   /* 2.88: a data da última compra e o total */
 .vh-lista .it { width: 100%; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
 .em-campos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 12px; }
 @media (max-width: 640px) { .em-campos { grid-template-columns: minmax(0, 1fr); } }
@@ -2256,7 +2257,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.87';
+const VERSAO = '2.88';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -10320,7 +10321,14 @@ function desenharLado() {
   const visitas = d ? (LADO.todas ? d.visitas : d.visitas.slice(0, 6)) : [], rola = a.scrollTop;
   const compras = d ? comprasPorVisita(d.vendas, d.visitas) : [];   // 1.18: a recreação avulsa de cada visita numa linha só
   const pacDe = c => comSaldoFicha(c) || !!(d && d.vendas.some(v => v.crianca === c.id && ehPacoteVenda(v))), famPac = fam.filter(pacDe), comPac = famPac.length > 0;   // 1.18: a conta de horas é de quem tem (ou já teve) pacote
+  /* 2.88 (o dono: "no Horas Compradas, eu quero que sempre apareça a última hora que o cliente comprou ... fica mais fácil pra gente
+     visualizar"): o quadro mostra as horas da última compra de horas (o pacote, ou as horas que vieram do sistema anterior), com a data;
+     embaixo, pequeno, o total que já comprou */
+  const ultCompra = d ? d.vendas.filter(v => (ehPacoteVenda(v) || v.imp) && minDe(v) > 0).sort((a, b) => b.quando - a.quando)[0] : null;
+  const hComp = { n: '…', sub: '' };
   const comprado = famPac.reduce((t, c) => t + c.pacote * 60, 0), usado = famPac.reduce((t, c) => t + usadoAgora(c), 0), tem = famPac.reduce((t, c) => t + saldoAgora(c), 0);   // os cartões somam só as crianças com pacote (a recreação avulsa do irmão não é hora comprada)
+  if (ultCompra) { hComp.n = hm(minDe(ultCompra)); hComp.sub = `<small class="h-ult">${ultCompra.imp ? 'do sistema anterior' : 'última compra · ' + diaCurto(ultCompra.quando)}</small><small class="h-ult">ao todo ${hm(comprado)}</small>`; }
+  else if (d) { hComp.n = hm(comprado); hComp.sub = '<small class="h-ult">ao todo</small>'; }
   const ultima = c => { const v = d && d.visitas.find(x => x.crianca === c.id); return v ? +v.dia : ultimaVisita(c); };
   a.innerHTML = `
     <div class="cab-f"><h2>Histórico do cliente</h2><button class="fechar tap" data-act="lado-fechar" aria-label="Fechar o histórico">${ic(IC.x, 18, 2.4)}</button></div>
@@ -10329,7 +10337,7 @@ function desenharLado() {
     <div class="acoes lado-acoes">${gestor() ? `<button class="bt tap" data-act="corrigir-horas" data-id="${base.id}" title="Somar ou tirar horas, a compra lançada errada, quem entrou sem pacote (gestor)">${ic(IC.lapis)} Corrigir as horas</button>` : ''}<button class="bt tap" data-act="relatorio" data-id="${base.id}" title="O extrato do cliente, para imprimir no cupom ou abrir em planilha">${ic(IC.relatorio)} Relatório</button></div>
     <div class="h-nums">
       <div><small>Pagou ao todo</small><b class="num">${d ? brl(centavos(d.vendas.reduce((t, v) => t + v.v - naoPagoDe(v), 0))) : '…'}</b></div>
-      ${comPac ? `<div class="tem"><small>Saldo de horas</small><b class="num">${hm(tem)}</b></div>` + (gestor() ? `<button type="button" class="h-alt tap" data-act="banco-horas" data-id="${base.id}" title="Alterar as horas do pacote (gestor)"><small>Horas compradas</small><b class="num">${hm(comprado)} ${ic(IC.lapis, 13)}</b></button>` : `<div><small>Horas compradas</small><b class="num">${hm(comprado)}</b></div>`) + `
+      ${comPac ? `<div class="tem"><small>Saldo de horas</small><b class="num">${hm(tem)}</b></div>` + (gestor() ? `<button type="button" class="h-alt tap" data-act="banco-horas" data-id="${base.id}" title="Alterar as horas do pacote (gestor)"><small>Horas compradas</small><b class="num">${hComp.n} ${ic(IC.lapis, 13)}</b>${hComp.sub}</button>` : `<div><small>Horas compradas</small><b class="num">${hComp.n}</b>${hComp.sub}</div>`) + `
       <div><small>Horas consumidas</small><b class="num">${hm(usado)}</b></div>` : `<div><small>Visitas</small><b class="num">${d ? d.visitas.length : '…'}</b></div>`}   <!-- 2.84 (o dono: "em vez de horas compradas, precisa ser saldo de horas"): o saldo no alto, ao lado de "Pagou ao todo"; as compradas e as consumidas embaixo -->
     </div>
     ${htmlAnotacoes(base)}
