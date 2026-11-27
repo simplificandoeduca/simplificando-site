@@ -1301,6 +1301,14 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A forma de pagamento "Link" (link de pagamento) em todos os pagamentos e nas Finanças (2.51)
+
+Pedido do dono (27/11): "no forma de pagamento, coloca o link também. E no financeiro também traga essa opção, porque às vezes elas geram um link por fora e só dão entrada no pacote ... pacote, produto, pode colocar em todas, casa tom".
+
+- Em todo pagamento (pacote, recreação, produto, festa, carrinhos e a Casa Tom) há a forma "Link", ao lado de Pix, Dinheiro, Crédito e Débito. Pode dividir com as outras, como sempre.
+- O caixa do dia mostra o Link à parte (cinco formas). O "Ajustar caixa" e a troca da forma de pagamento também passam o valor para o Link (ou do Link para outra forma).
+- Finanças: o Link de pagamento aparece nas formas de pagamento (painel, resumo do dia e o PDF) e no Controle de caixa, à parte, como o dinheiro (não entra na conferência com a Rede).
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Finalizados do dia → "Ajustar caixa": passar o valor de uma forma de pagamento para outra (2.50)
 
 Pedido do dono (26/11): "às vezes o caixa alguém colocou no débito e era no crédito. Elas não podem alterar o valor, elas só podem jogar o valor para outra classificação ... ele pode ser desmembrado, ele não pode ficar faltando e não pode passar".

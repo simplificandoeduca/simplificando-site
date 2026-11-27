@@ -77,7 +77,7 @@ function cxCartao(U) {
   const nome = nomeUni(U.u), cor = corUni(U.u);
   return `<section class="cartao cx-uni" data-cxuni="${U.u}">
     <div class="cab-cartao"><div><h2><i class="uni-dot" style="background:${cor}"></i>${esc(nome)}</h2>
-      <p class="expl">Total do caixa no dia: <b class="num">${brl(U.total)}</b> · cartões e Pix ${brl(U.sis)} · dinheiro ${brl(U.dinheiro)}${Math.abs(U.outras) > 0.004 ? ` · outras ${brl(U.outras)}` : ''}</p>
+      <p class="expl">Total do caixa no dia: <b class="num">${brl(U.total)}</b> · cartões e Pix ${brl(U.sis)} · dinheiro ${brl(U.dinheiro)}${Math.abs(U.link || 0) > 0.004 ? ` · link de pagamento ${brl(U.link)}` : ''}${Math.abs(U.outras - (U.link || 0)) > 0.004 ? ` · outras ${brl(U.outras - (U.link || 0))}` : ''}</p>
       ${U.criancas ? `<p class="cx-kids"><b>Crianças no dia:</b> <span class="cx-kv">${U.criancas.validas} ${U.criancas.validas === 1 ? 'válida' : 'válidas'}</span><span class="cx-kc${U.criancas.canceladas ? ' tem' : ''}">${U.criancas.canceladas} ${U.criancas.canceladas === 1 ? 'cancelada' : 'canceladas'}</span><span class="cx-kp">${U.criancas.pcd || 0} PCD</span></p>` : ''}</div>
       <div class="cx-direita"><div class="cx-geral" data-cxgeral></div>
         <div class="cx-acoes"><label class="btn btn-brand cx-pdf-bt" title="O relatório de vendas da Rede (PDF): o sistema lê e preenche crédito, débito e Pix, com a taxa"><input type="file" accept="application/pdf,.pdf" data-cxpdf="${U.u}" hidden>${IC.pdf}<span>Anexar PDF da Rede</span></label>
@@ -204,7 +204,7 @@ async function cxVerPdf(id) {
 /* consertar o caixa: um valor a mais ou a menos numa forma, com o porquê */
 /* 5.3 (o dono: "destrinchar histórico do dia. Que aí eu vou saber o que foi recreação, o que foi pacote, enfim"): o dia da unidade por tipo
    e venda a venda, o devolvido e as entradas canceladas */
-const CX_FNOME = { pix: 'Pix', dinheiro: 'Dinheiro', credito: 'Crédito', debito: 'Débito' };
+const CX_FNOME = { pix: 'Pix', dinheiro: 'Dinheiro', credito: 'Crédito', debito: 'Débito', link: 'Link de pagamento' };
 async function cxDestrinchar(u) {
   let r; try { r = await api('cx_destrinchar', { dia: CX.dia, u }); } catch (e) { aviso(e.message); return; }
   const fm = o => Object.entries(o || {}).filter(([, v]) => Math.abs(v) > 0.004).map(([f, v]) => `${CX_FNOME[f] || f} ${brl(v)}`).join(' · ');

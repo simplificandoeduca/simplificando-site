@@ -97,7 +97,7 @@ function cxUnidade(array $S, array $R, string $d, int $u, array $A = []): array 
   $rd = $R[$d][$u]['dinheiro'] ?? null; $rdv = $rd ? (float)$rd['v'] : null; $sitD = $rdv === null ? '' : cxSituacao($din, $rdv); if ($rdv !== null && $ordem[$sitD] > $ordem[$pior]) $pior = $sitD;
   $dinC = ['sis' => $din, 'contado' => $rdv, 'dif' => $rdv === null ? null : round($rdv - $din, 2), 'sit' => $sitD, 'por' => $rd['por'] ?? '', 'em' => $rd['em'] ?? ''];
   $outras = 0.0; foreach ((array)($S[$d][$u] ?? []) as $f => $v) if (!isset(CX_FORMAS[$f]) && $f !== 'dinheiro') $outras = round($outras + $v, 2);
-  return ['u' => $u, 'formas' => $formas, 'sis' => $ts, 'rede' => $temR ? $tr : null, 'dinheiro' => $din, 'din' => $dinC, 'outras' => $outras,
+  return ['u' => $u, 'formas' => $formas, 'sis' => $ts, 'rede' => $temR ? $tr : null, 'dinheiro' => $din, 'din' => $dinC, 'outras' => $outras, 'link' => round((float)($S[$d][$u]['link'] ?? 0), 2),   /* 2.51: o link de pagamento (fora da Rede, como o dinheiro; está nas outras) */
     'total' => round($ts + $din + $outras, 2), 'sit' => $pior, 'ajustes' => $A[$d][$u]['lista'] ?? []];
 }
 /* as unidades que aparecem: as ativas e as outras (sem unidade, inativas) só quando têm movimento ou valor lançado no dia */

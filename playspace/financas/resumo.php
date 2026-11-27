@@ -304,7 +304,7 @@ final class PdfSimples {
 
 /* ---------- 1.54: o resumo do dia (ou do período) em PDF ---------- */
 const FIN_GRUPOS = ['pacotes' => 'Pacotes de horas', 'recreacao' => 'Recreação avulsa', 'festa' => 'Festas', 'produtos' => 'Casa Tom (produtos)', 'carrinhos' => 'Carrinhos', 'outros' => 'Outros'];
-const FIN_FORMAS = ['pix' => 'Pix', 'dinheiro' => 'Dinheiro', 'credito' => 'Crédito', 'debito' => 'Débito'];
+const FIN_FORMAS = ['pix' => 'Pix', 'dinheiro' => 'Dinheiro', 'credito' => 'Crédito', 'debito' => 'Débito', 'link' => 'Link de pagamento'];   /* 2.51 */
 function finBrl($v) { $v = round((float)$v, 2); return ($v < 0 ? '- ' : '') . 'R$ ' . number_format(abs($v), 2, ',', '.'); }
 function finInt($v) { return number_format((int)$v, 0, ',', '.'); }
 function finDiaLongo($d) { $t = strtotime($d . ' 12:00:00'); $sem = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado']; $mes = ['', 'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];

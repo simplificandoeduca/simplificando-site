@@ -15,7 +15,7 @@ const PAPEIS = ['gestor' => 'Gestor', 'supervisor' => 'Supervisor', 'atendente' 
 // a aba, os botões e os avisos voltam. Desligado, nenhuma mensagem automática sai, mesmo que a regra antiga mandasse
 const MODULO_WHATS = false;
 // 0.90: as formas de pagamento que a tela oferece depois da escolha do serviço. Um pagamento pode ser dividido em até três delas
-const FORMAS_PAGAMENTO = ['pix' => 'Pix', 'dinheiro' => 'Dinheiro', 'credito' => 'Crédito', 'debito' => 'Débito'];
+const FORMAS_PAGAMENTO = ['pix' => 'Pix', 'dinheiro' => 'Dinheiro', 'credito' => 'Crédito', 'debito' => 'Débito', 'link' => 'Link'];   /* 2.51: o link de pagamento */
 
 function falha(string $msg, int $st = 400): void { http_response_code($st); header('Content-Type: application/json; charset=utf-8'); echo json_encode(['ok' => false, 'erro' => $msg], JSON_UNESCAPED_UNICODE); exit; }
 function responder(array $d = []): void {
