@@ -286,9 +286,8 @@ B3_S.bike = { F:{w:200,h:300,D:22,g:297,alt:186,fixo:1,arq:'bike-f'}, M:{w:201,h
 /* elíptico: a máquina vem na folha junto com a pessoa (no vídeo da mulher a câmera deslizava de lado; o deslize foi desfeito quadro a quadro antes do recorte) */
 B3_S.ell = { F:{w:279,h:300,D:30,g:297,alt:176,fixo:1,arq:'eliptico-f'}, M:{w:278,h:300,D:36,g:297,alt:176,fixo:1,arq:'eliptico-m'} };
 B3_S.tread = { F:Object.assign({}, B3_S.road.F, {est:1, alt:150}), M:Object.assign({}, B3_S.road.M, {est:1, alt:156}) };
-const B3_ARV = '<svg viewBox="0 0 105 96" aria-hidden="true"><rect x="20" y="52" width="5" height="44" fill="var(--b3-tronco)"/><circle cx="22" cy="40" r="19" fill="var(--b3-arv)"/><circle cx="34" cy="50" r="13" fill="var(--b3-arv)"/><circle cx="11" cy="52" r="11" fill="var(--b3-arv)"/><rect x="76" y="18" width="3.5" height="78" fill="var(--b3-poste)"/><rect x="76" y="18" width="16" height="3.5" rx="1.5" fill="var(--b3-poste)"/><rect x="88" y="20" width="8" height="5" rx="2.5" fill="var(--b3-faixa)"/></svg>';
 const B3 = { sx:'', el:null, M:null, s:1, k:1, ph:0, cx:179, raf:0, last:0, ro:null, p:null };
-const b3Html = (k,rot,kind) => `<div class="b3 b3-${kind}${kind==='road' ? '' : ' b3-gym'}" data-kind="${kind}" data-int="${k}" role="img" aria-label="${esc(rot)}"><div class="b3i"><i class="ceu"></i><i class="sol"></i><i class="jan"></i><svg class="longe" viewBox="0 0 358 74" preserveAspectRatio="none" aria-hidden="true"><path fill="var(--b3-longe)" d="M0 74V40h22V22h26v18h14V8h30v32h18V28h24v12h12V16h34v24h16V34h22v6h14V4h28v36h20V24h26v16h20V36h0V74z"/></svg><div class="meio">${B3_ARV.repeat(12)}</div><i class="calc"></i><i class="rua"></i><i class="grao"></i><i class="faixa"></i><i class="sme"></i><i class="est"></i><i class="lona"></i><i class="sm"></i><i class="bn"></i></div>${B3_TROCA ? `<button type="button" class="b3-sx" data-a="b3-sx">${ic('swap')}Ver ${b3Sexo()==='M' ? 'a mulher' : 'o homem'}</button>` : ''}</div>`;
+const b3Html = (k,rot,kind) => `<div class="b3 b3-${kind}${kind==='road' ? '' : ' b3-gym'}" data-kind="${kind}" data-int="${k}" role="img" aria-label="${esc(rot)}"><div class="b3i"><i class="ceu"></i><i class="sol"></i><i class="jan"></i><svg class="longe" viewBox="0 0 358 74" preserveAspectRatio="none" aria-hidden="true"><path fill="var(--b3-longe)" d="M0 74V40h22V22h26v18h14V8h30v32h18V28h24v12h12V16h34v24h16V34h22v6h14V4h28v36h20V24h26v16h20V36h0V74z"/></svg><div class="meio"></div><i class="calc"></i><i class="rua"></i><i class="grao"></i><i class="faixa"></i><i class="sme"></i><i class="est"></i><i class="lona"></i><i class="sm"></i><i class="bn"></i></div>${B3_TROCA ? `<button type="button" class="b3-sx" data-a="b3-sx">${ic('swap')}Ver ${b3Sexo()==='M' ? 'a mulher' : 'o homem'}</button>` : ''}</div>`;
 function b3Draw(){
   const M = B3.M, s = B3.s, p = B3.p; if(!M || !p) return;
   const k = Math.floor(B3.ph)%M.D;
@@ -304,7 +303,7 @@ function b3Draw(){
   }
   p.bn.style.left = (B3.cx-M.cxm*s-(M.cx[k]-M.cxm)*s*.7)+'px';
   p.fx.style.backgroundPositionX = p.gr.style.backgroundPositionX = (-o)+'px';
-  p.me.style.transform = 'translateX('+(-((B3.ph%(M.D*3))*105/M.D)%105)+'px)';
+  p.me.style.backgroundPositionX = (-(B3.ph*96/M.D)%358)+'px'; // as árvores do parque passam mais devagar que a pista (a imagem repete a cada 358 px)
   p.sm.style.left = B3.cx+'px'; p.sm.style.transform = 'scale('+e+')'; p.sm.style.opacity = .55+e*.45;
 }
 function b3Frame(ts){
