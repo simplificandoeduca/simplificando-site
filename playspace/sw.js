@@ -36,8 +36,9 @@ self.addEventListener('push', e => {
 self.addEventListener('notificationclick', e => {
   e.notification.close();
   const url = new URL((e.notification.data && e.notification.data.url) || './#aprovar', self.registration.scope).href;
+  const insta = x => new URL(x).pathname.startsWith(new URL('insta/', self.registration.scope).pathname), alvoInsta = insta(url);   /* 2.70: o aviso do Insta abre o Insta (não o Play Space) */
   e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(L => {
-    for (const c of L) if (c.url.startsWith(self.registration.scope) && 'focus' in c) { c.postMessage({ ps: 'aviso', url }); return c.focus(); }   // o Play Space já aberto: vai para as Aprovações
+    for (const c of L) if (c.url.startsWith(self.registration.scope) && insta(c.url) === alvoInsta && 'focus' in c) { c.postMessage({ ps: 'aviso', url }); return c.focus(); }   // o Play Space já aberto: vai para as Aprovações
     return self.clients.openWindow(url);
   }));
 });

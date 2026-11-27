@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#FAF3E9">
+<title>Play Space Insta</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="../img/icone-192.png">
+<link rel="apple-touch-icon" href="../img/icone-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Insta">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* Play Space Insta (2.70): as conversas do Instagram e do WhatsApp da loja, para o gestor ver. A mesma cara do Play Space Notas: o creme,
+   os cartões creme claro, o coral, a menta, Poppins nos títulos e Nunito nos textos, o menu de vidro no computador e a barra embaixo no celular */
+:root { --bg: #FAF3E9; --card: #FFFBF4; --card2: #F5ECDF; --text: #3B3B3B; --muted: #6B655E; --line: #EADFD1; --brand: #E25B3F; --brand-d: #C9492E; --brand-soft: #F9D9D0;
+  --mint: #DBE8DA; --green: #2F7F4E; --green-bg: #DDEFE3; --amber: #9A5F00; --amber-bg: #FBECC8; --red: #B8402A; --wa: #1FA855; --ig1: #F58529; --ig2: #DD2A7B; --ig3: #8134AF;
+  --glass: rgba(255, 251, 244, .66); --glass-b: rgba(255, 255, 255, .9); --shadow: 0 1px 2px rgba(59, 59, 59, .04), 0 16px 40px rgba(120, 80, 50, .10);
+  --font: "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; --disp: "Poppins", "Nunito", -apple-system, sans-serif; color-scheme: light; }
+* { box-sizing: border-box; } html, body { margin: 0; height: 100%; } [hidden] { display: none !important; }
+body { background: var(--bg); color: var(--text); font: 16px/1.45 var(--font); -webkit-font-smoothing: antialiased; overflow: hidden; }
+body::before { content: ""; position: fixed; inset: -20%; z-index: -1; background: radial-gradient(40% 35% at 12% 8%, rgba(240, 187, 95, .28), transparent 70%), radial-gradient(38% 34% at 92% 92%, rgba(143, 191, 176, .38), transparent 70%); }
+button, input, textarea, select { font: inherit; color: inherit; } button { cursor: pointer; } a { color: var(--brand-d); }
+.tap { transition: transform .15s cubic-bezier(.2, .8, .2, 1), background .15s; } .tap:active { transform: scale(.97); }
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.num { font-variant-numeric: tabular-nums; }
+:focus-visible { outline: 3px solid color-mix(in srgb, var(--brand) 55%, transparent); outline-offset: 2px; border-radius: 10px; }
+
+/* a moldura: menu (computador) | lista | conversa */
+.app { display: grid; grid-template-columns: 250px minmax(320px, 400px) 1fr; gap: 16px; height: 100dvh; padding: 16px; padding-top: max(16px, env(safe-area-inset-top)); }
+.menu { display: flex; flex-direction: column; gap: 6px; padding: 18px 14px; border-radius: 28px; background: var(--glass); border: 1px solid var(--glass-b); box-shadow: var(--shadow); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); min-height: 0; }
+.marca { display: flex; align-items: center; gap: 10px; padding: 4px 8px 16px; font: 700 18px/1.15 var(--disp); }
+.marca-ic { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, var(--ig1), var(--ig2) 55%, var(--ig3)); box-shadow: 0 6px 16px rgba(221, 42, 123, .28); flex: none; }
+.marca small { display: block; font: 600 12px var(--font); color: var(--muted); }
+.mi { display: flex; align-items: center; gap: 12px; height: 46px; padding: 0 14px; border: 0; border-radius: 15px; background: transparent; font-weight: 700; text-align: left; color: var(--text); }
+.mi:hover { background: rgba(255, 255, 255, .6); } .mi[aria-current="page"] { background: var(--brand-soft); color: var(--brand-d); }
+.mi b { margin-left: auto; min-width: 22px; height: 22px; padding: 0 7px; border-radius: 999px; background: var(--brand); color: #fff; font: 700 12px/22px var(--font); text-align: center; }
+.menu-pe { margin-top: auto; display: flex; flex-direction: column; gap: 8px; padding: 12px 8px 0; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+.menu-pe a { font-weight: 700; text-decoration: none; }
+.col { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.painel { background: var(--card); border: 1px solid var(--line); border-radius: 28px; box-shadow: var(--shadow); min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+.titulo { display: flex; align-items: center; gap: 10px; padding: 6px 6px 12px; }
+.titulo h1 { margin: 0; font: 800 30px/1.1 var(--disp); letter-spacing: -.02em; }
+.titulo .sync { margin-left: auto; font-size: 12.5px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
+.ponto { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 0 rgba(47, 127, 78, .5); animation: pulsa 2.4s infinite; } .ponto.off { background: #C9BFB2; animation: none; }
+@keyframes pulsa { 70% { box-shadow: 0 0 0 7px rgba(47, 127, 78, 0); } 100% { box-shadow: 0 0 0 0 rgba(47, 127, 78, 0); } }
+.busca { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px; border-radius: 15px; background: var(--card2); margin: 0 4px 10px; } .busca input { flex: 1; border: 0; background: none; outline: 0; min-width: 0; }
+.seg { display: flex; gap: 6px; overflow-x: auto; padding: 0 4px 10px; scrollbar-width: none; } .seg::-webkit-scrollbar { display: none; }
+.seg button { flex: none; height: 34px; padding: 0 13px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); font-weight: 700; font-size: 13.5px; color: var(--muted); white-space: nowrap; }
+.seg button[aria-pressed="true"] { background: var(--text); border-color: var(--text); color: var(--card); }
+.lista { flex: 1; overflow-y: auto; padding: 4px 6px 10px; overscroll-behavior: contain; }
+.cv { width: 100%; display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px; border: 0; border-radius: 18px; background: transparent; text-align: left; }
+.cv:hover { background: rgba(245, 236, 223, .7); } .cv[aria-current="true"] { background: var(--brand-soft); }
+.cv-t { display: flex; align-items: center; gap: 6px; min-width: 0; } .cv-t b { font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cv-p { color: var(--muted); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; } .cv.nl .cv-p { color: var(--text); font-weight: 700; }
+.cv-d { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; font-size: 12px; color: var(--muted); } .cv.nl .cv-d { color: var(--brand-d); font-weight: 800; }
+.bolha-n { min-width: 22px; height: 22px; padding: 0 7px; border-radius: 999px; background: var(--brand); color: #fff; font: 800 12px/22px var(--font); text-align: center; }
+.tag { flex: none; font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 999px; background: var(--green-bg); color: var(--green); } .tag.esp { background: var(--amber-bg); color: var(--amber); }
+.av { position: relative; width: 52px; height: 52px; flex: none; } .av-i { width: 100%; height: 100%; border-radius: 50%; display: grid; place-items: center; font: 700 18px var(--disp); color: #fff; overflow: hidden; background: #C9A88E; }
+.av-i img { width: 100%; height: 100%; object-fit: cover; }
+.av .canal { position: absolute; right: -2px; bottom: -2px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; border: 2.5px solid var(--card); color: #fff; }
+.canal.ig { background: linear-gradient(135deg, var(--ig1), var(--ig2) 55%, var(--ig3)); } .canal.wa { background: var(--wa); }
+.vazio { text-align: center; color: var(--muted); padding: 40px 18px; } .vazio b { display: block; color: var(--text); font: 700 18px var(--disp); margin-bottom: 6px; }
+.vazio .ilus { width: 76px; height: 76px; margin: 0 auto 14px; border-radius: 24px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, var(--ig1), var(--ig2) 55%, var(--ig3)); }
+.bt { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 46px; padding: 0 18px; border-radius: 999px; border: 0; background: var(--card2); font-weight: 800; color: var(--text); text-decoration: none; }
+.bt.forte { background: var(--brand); color: #fff; box-shadow: 0 8px 20px rgba(226, 91, 63, .28); } .bt.forte:hover { background: var(--brand-d); }
+.bt.ink { background: var(--text); color: var(--card); } .bt.perigo { background: transparent; color: var(--red); border: 1.5px solid #EFC3B8; } .bt.peq { height: 36px; padding: 0 14px; font-size: 14px; }
+.bt:disabled { opacity: .55; cursor: default; } .bt.largo { width: 100%; }
+
+/* a conversa */
+.cvs-cab { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line); background: rgba(255, 251, 244, .9); }
+.cvs-cab .av { width: 44px; height: 44px; } .cvs-cab .av-i { font-size: 15px; } .cvs-cab h2 { margin: 0; font: 700 18px/1.2 var(--disp); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cvs-cab .sub { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .cvs-cab .txt { min-width: 0; flex: 1; }
+.cvs-acoes { display: flex; gap: 8px; flex: none; }
+.voltar { display: none; width: 40px; height: 40px; border-radius: 50%; border: 0; background: var(--card2); place-items: center; flex: none; }
+.cadastro { margin: 10px 18px 0; padding: 10px 14px; border-radius: 16px; background: var(--mint); font-size: 14px; display: flex; gap: 8px; align-items: center; }
+.msgs { flex: 1; overflow-y: auto; padding: 18px 18px 8px; display: flex; flex-direction: column; gap: 4px; overscroll-behavior: contain;
+  background: radial-gradient(circle at 1px 1px, rgba(120, 80, 50, .07) 1px, transparent 0) 0 0 / 22px 22px; }
+.dia { align-self: center; margin: 12px 0 6px; padding: 4px 12px; border-radius: 999px; background: var(--card2); font-size: 12px; font-weight: 800; color: var(--muted); }
+.m { max-width: min(78%, 560px); padding: 9px 13px 6px; border-radius: 18px; background: var(--card); border: 1px solid var(--line); box-shadow: 0 1px 1px rgba(59, 59, 59, .04); align-self: flex-start; word-wrap: break-word; white-space: pre-wrap; }
+.m.loja { align-self: flex-end; background: #FCE3DB; border-color: #F4CBBE; } .m + .m.mesmo { margin-top: -1px; }
+.m small { display: block; text-align: right; font-size: 11px; color: var(--muted); margin-top: 2px; white-space: nowrap; }
+.m .midia { display: block; max-width: 260px; max-height: 260px; border-radius: 12px; margin: 2px 0 4px; }
+.m .tipo { font-weight: 700; color: var(--muted); }
+.so-ver { padding: 12px 18px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--muted); display: flex; align-items: center; gap: 8px; justify-content: space-between; flex-wrap: wrap; }
+.nada { flex: 1; display: grid; place-items: center; color: var(--muted); text-align: center; padding: 30px; }
+.nada .bolhas { width: 120px; height: 90px; margin: 0 auto 14px; position: relative; } .nada .bolhas i { position: absolute; border-radius: 18px; }
+.nada .bolhas i:first-child { left: 0; top: 0; width: 84px; height: 46px; background: var(--card); border: 1px solid var(--line); } .nada .bolhas i:last-child { right: 0; bottom: 0; width: 72px; height: 40px; background: #FCE3DB; }
+
+/* contas e avisos */
+.folha { flex: 1; overflow-y: auto; padding: 4px 6px 30px; }
+.caixa { background: var(--card); border: 1px solid var(--line); border-radius: 24px; box-shadow: var(--shadow); padding: 18px; margin-bottom: 16px; }
+.caixa h2 { display: flex; align-items: center; gap: 10px; margin: 0 0 4px; font: 700 20px var(--disp); } .caixa > p { margin: 0 0 12px; color: var(--muted); }
+.caixa h2 .canal { width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; color: #fff; }
+.conta { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 4px 12px; align-items: center; padding: 12px; border-radius: 18px; background: var(--card2); margin-bottom: 8px; }
+.conta .av { width: 44px; height: 44px; } .conta b { display: block; } .conta span { font-size: 13px; color: var(--muted); } .conta .erro { color: var(--red); }
+.conta-bts { grid-column: 2; display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+/* Contas e Avisos ocupam a largura da lista e da conversa (no computador) */
+.app[data-tela="contas"] .lista-col, .app[data-tela="avisos"] .lista-col { grid-column: 2 / 4; width: 100%; max-width: 920px; }
+.app[data-tela="contas"] .col.conversa, .app[data-tela="avisos"] .col.conversa { display: none; }
+.est { display: inline-flex; align-items: center; gap: 6px; font-weight: 800; font-size: 13px; } .est::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.est.on { color: var(--green); } .est.off { color: var(--red); }
+.campo { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; } .campo label { font-weight: 800; font-size: 14px; }
+.campo input { height: 46px; padding: 0 14px; border-radius: 14px; border: 1px solid var(--line); background: #fff; outline: 0; } .campo input:focus { border-color: var(--brand); }
+.dois { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.copia { display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 12px; border-radius: 12px; background: var(--card2); font: 600 13px/1.3 ui-monospace, Menlo, Consolas, monospace; word-break: break-all; }
+.copia span { flex: 1; } .copia button { flex: none; height: 32px; padding: 0 12px; border-radius: 999px; border: 0; background: var(--text); color: var(--card); font: 800 12.5px var(--font); }
+details.passos { border-radius: 18px; background: rgba(219, 232, 218, .55); padding: 0 14px; margin: 6px 0 14px; } details.passos summary { padding: 12px 0; font-weight: 800; cursor: pointer; }
+details.passos ol { margin: 0 0 14px; padding-left: 20px; } details.passos li { margin: 0 0 10px; } details.passos li .copia { margin-top: 6px; }
+.chave { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px; border-radius: 18px; background: var(--card2); }
+.chave b { display: block; } .chave span { font-size: 14px; color: var(--muted); }
+.switch { position: relative; width: 52px; height: 32px; flex: none; border: 0; border-radius: 999px; background: #D8CCBE; transition: background .2s; }
+.switch::after { content: ""; position: absolute; left: 3px; top: 3px; width: 26px; height: 26px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, .18); transition: transform .2s cubic-bezier(.2, .8, .2, 1); }
+.switch[aria-checked="true"] { background: var(--green); } .switch[aria-checked="true"]::after { transform: translateX(20px); }
+.aviso { padding: 12px 14px; border-radius: 16px; background: var(--amber-bg); color: #6E4600; font-size: 14px; margin: 10px 0; } .aviso.ok { background: var(--green-bg); color: var(--green); }
+
+/* o QR Code e as janelas */
+.fundo { position: fixed; inset: 0; z-index: 30; background: rgba(40, 30, 20, .38); display: grid; place-items: center; padding: 16px; animation: aparece .2s; }
+.janela { width: min(440px, 100%); max-height: calc(100dvh - 32px); overflow-y: auto; background: var(--card); border-radius: 28px; padding: 22px; box-shadow: 0 30px 80px rgba(60, 30, 10, .25); animation: sobe .25s cubic-bezier(.2, .8, .2, 1); }
+.janela h3 { margin: 0 0 6px; font: 700 21px var(--disp); } .janela p { margin: 0 0 12px; color: var(--muted); }
+.qr { width: 260px; height: 260px; margin: 6px auto 14px; border-radius: 20px; background: #fff; border: 1px solid var(--line); display: grid; place-items: center; overflow: hidden; } .qr img { width: 100%; height: 100%; }
+.janela-bts { display: flex; gap: 10px; justify-content: flex-end; margin-top: 12px; }
+@keyframes aparece { from { opacity: 0; } } @keyframes sobe { from { transform: translateY(16px); opacity: 0; } }
+.toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 40; max-width: min(520px, calc(100% - 32px)); padding: 12px 18px; border-radius: 16px; background: var(--text); color: var(--card); font-weight: 700; box-shadow: 0 14px 30px rgba(0, 0, 0, .2); animation: sobe .25s; }
+.carregando { display: grid; place-items: center; height: 100dvh; color: var(--muted); }
+.barra { display: none; }
+
+@media (max-width: 1100px) { .app { grid-template-columns: 84px minmax(300px, 360px) 1fr; } .menu { padding: 14px 10px; } .marca span, .mi span, .menu-pe { display: none; } .mi { justify-content: center; padding: 0; } .marca { justify-content: center; padding: 4px 0 14px; } .mi b { position: absolute; margin: -22px 0 0 26px; } .mi { position: relative; } }
+@media (max-width: 760px) {
+  body { overflow: auto; } .app { display: block; padding: 0; height: auto; min-height: 100dvh; } .menu { display: none; }
+  .col { min-height: 100dvh; padding: max(12px, env(safe-area-inset-top)) 12px calc(86px + env(safe-area-inset-bottom)); }
+  .col.conversa { position: fixed; inset: 0; z-index: 20; padding: 0; background: var(--bg); } .col.conversa .painel { border-radius: 0; border: 0; height: 100dvh; }
+  .app[data-v="conversa"] .col.lista-col { display: none; } .app:not([data-v="conversa"]) .col.conversa { display: none; }
+  .voltar { display: grid; } .cvs-cab { padding-top: max(12px, env(safe-area-inset-top)); } .cvs-acoes .bt span { display: none; }
+  .lista { overflow: visible; } .painel.lista-p { overflow: visible; }
+  .barra { display: flex; position: fixed; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 15; gap: 4px; padding: 6px; border-radius: 999px; background: rgba(255, 251, 244, .82); border: 1px solid var(--glass-b); box-shadow: var(--shadow); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
+  .barra button { position: relative; width: 62px; height: 50px; border: 0; border-radius: 999px; background: transparent; display: grid; place-items: center; color: var(--muted); }
+  .barra button[aria-current="page"] { background: var(--brand-soft); color: var(--brand-d); } .barra b { position: absolute; top: 4px; right: 10px; min-width: 18px; height: 18px; border-radius: 999px; background: var(--brand); color: #fff; font: 800 11px/18px var(--font); }
+  .dois { grid-template-columns: 1fr; } .conta-bts { grid-column: 1 / -1; }
+  .titulo h1 { font-size: 28px; }
+}
+</style>
+</head>
+<body>
+<div id="raiz"><div class="carregando">Carregando o Insta…</div></div>
+<script>
+'use strict';
+/* ---------- o básico ---------- */
+const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const IC = {
+  conversas: '<path d="M21 12a8 8 0 0 1-11.8 7L4 20l1.1-4.4A8 8 0 1 1 21 12Z"/>', contas: '<path d="M10 14a3.5 3.5 0 0 0 5 0l3-3a3.5 3.5 0 0 0-5-5l-1 1"/><path d="M14 10a3.5 3.5 0 0 0-5 0l-3 3a3.5 3.5 0 0 0 5 5l1-1"/>',
+  sino: '<path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 20a2 2 0 0 0 4 0"/>', busca: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>', voltar: '<path d="m15 18-6-6 6-6"/>',
+  ig: '<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/>',
+  wa: '<path d="M4 20l1.3-3.9A8 8 0 1 1 8 19z"/><path d="M9.5 9.5c.3 1.5 1.5 3.2 3 4.2l1.2-.9 1.8.8-.4 1.6c-2.6.2-6.4-3.3-6.4-6l1.4-.6.8 1.8z" fill="currentColor" stroke="none"/>',
+  ok: '<path d="m5 12 5 5L20 7"/>', copiar: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>', refaz: '<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>', fora: '<path d="M14 4h6v6"/><path d="M10 14 20 4"/><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/>',
+  casa: '<path d="M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1Z"/>'
+};
+const ic = (p, n = 22, sw = 2) => `<svg width="${n}" height="${n}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
+async function api(acao, dados = {}, arquivo = '../api/conversas.php') {
+  let r; try { r = await fetch(arquivo, { method: 'POST', credentials: 'same-origin', cache: 'no-store', headers: { 'Content-Type': 'application/json', 'X-Play': '1' }, body: JSON.stringify({ acao, ...dados }) }); }
+  catch (e) { const x = new Error('Sem conexão. Confira a internet e tente de novo.'); x.status = 0; throw x; }
+  let j = null; try { j = await r.json(); } catch (e) { }
+  if (!r.ok || !j || j.ok === false) { const x = new Error((j && j.erro) || 'O servidor respondeu com erro ' + r.status + '.'); x.status = r.status; throw x; }
+  return j;
+}
+let tt; function toast(m, ms = 4200) { let t = $('.toast'); if (!t) { t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); } t.textContent = m; clearTimeout(tt); tt = setTimeout(() => t.remove(), ms); }
+const dataDe = s => { const m = /^(\d{4})-(\d\d)-(\d\d)[ T](\d\d):(\d\d)(?::(\d\d))?/.exec(String(s || '')); return m ? new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0)) : new Date(NaN); };
+const hora = d => String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+const mesmoDia = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+const SEMANA = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+function quandoCurto(s) { const d = dataDe(s), h = new Date(); if (isNaN(d)) return ''; if (mesmoDia(d, h)) return hora(d); const o = new Date(h); o.setDate(h.getDate() - 1); if (mesmoDia(d, o)) return 'ontem';
+  if (h - d < 6 * 864e5) return SEMANA[d.getDay()]; return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0'); }
+function diaLongo(d) { const h = new Date(); if (mesmoDia(d, h)) return 'Hoje'; const o = new Date(h); o.setDate(h.getDate() - 1); if (mesmoDia(d, o)) return 'Ontem';
+  return d.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' }).replace(/^./, c => c.toUpperCase()); }
+const iniciais = n => String(n || '?').replace(/^@/, '').trim().split(/\s+/).slice(0, 2).map(x => x[0] || '').join('').toUpperCase() || '?';
+const CORES = ['#E25B3F', '#3F8F5E', '#C9892E', '#6E7FC9', '#B0568F', '#2E8C9A', '#8A6A4F'];
+const corDe = s => CORES[[...String(s)].reduce((t, c) => t + c.charCodeAt(0), 0) % CORES.length];
+const avatar = c => `<span class="av"><span class="av-i" style="background:${corDe(c.nome + c.id)}">${c.foto ? `<img src="${esc(c.foto)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}${esc(iniciais(c.nome))}</span><span class="canal ${c.canal}" title="${c.canal === 'ig' ? 'Instagram' : 'WhatsApp'}">${ic(IC[c.canal], 12, 2.4)}</span></span>`;
+const telTxt = t => { t = String(t || ''); if (t.length >= 12 && t.startsWith('55')) { const d = t.slice(2); return '(' + d.slice(0, 2) + ') ' + (d.length === 11 ? d[2] + ' ' + d.slice(3, 7) + '-' + d.slice(7) : d.slice(2, 6) + '-' + d.slice(6)); } return t ? '+' + t : ''; };
+const copiar = async t => { try { await navigator.clipboard.writeText(t); toast('Copiado'); } catch (e) { toast('Não deu para copiar: selecione e copie à mão.'); } };
+
+/* ---------- o estado ---------- */
+const E = { tela: 'conversas', conversas: [], contas: null, avisos: true, marca: 0, filtro: 'todas', conta: '', busca: '', aberta: null, msgs: [], cad: null, carregou: false, push: null };
+const naoLidasTotal = () => E.conversas.reduce((t, c) => t + (c.naoLidas ? 1 : 0), 0);
+const contasDe = canal => !E.contas ? [] : canal === 'ig' ? E.contas.insta.contas.map(x => ({ id: x.id, nome: '@' + x.usuario, canal })) : E.contas.zap.contas.map(x => ({ id: x.id, nome: x.nome, canal }));
+const temConta = () => E.contas && (E.contas.insta.contas.length || E.contas.zap.contas.length);
+
+async function carregar() {
+  try { const d = await api('dados'); E.conversas = d.conversas; E.contas = d.contas; E.avisos = d.avisos; E.marca = d.marca; E.eu = d.eu; E.carregou = true; }
+  catch (e) { if (e.status === 401 || e.status === 403) return semLogin(e.message); $('#raiz').innerHTML = `<div class="carregando"><div class="vazio"><b>O Insta não abriu</b>${esc(e.message)}<br><br><button class="bt forte tap" onclick="location.reload()">Tentar de novo</button></div></div>`; return; }
+  desenhar(); rota(); vigiar();
+}
+function semLogin(msg) {
+  $('#raiz').innerHTML = `<div class="carregando"><div class="vazio" style="max-width:420px"><div class="ilus">${ic(IC.ig, 36)}</div><b>Entre no Play Space como gestor</b>O Insta usa o mesmo login do Play Space e é só do gestor.${msg && !/Entre de novo/.test(msg) ? '<br><br>' + esc(msg) : ''}<br><br><a class="bt forte tap" href="../">Abrir o Play Space</a></div></div>`;
+}
+
+/* ---------- o desenho ---------- */
+function desenhar() {
+  const nl = naoLidasTotal(), nav = [['conversas', 'Conversas', IC.conversas], ['contas', 'Contas', IC.contas], ['avisos', 'Avisos', IC.sino]];
+  $('#raiz').innerHTML = `<div class="app" data-tela="${E.tela}" data-v="${E.aberta && E.tela === 'conversas' ? 'conversa' : 'lista'}">
+    <nav class="menu" aria-label="Menu"><div class="marca"><span class="marca-ic">${ic(IC.ig, 22, 2.2)}</span><span>Play Space Insta<small>Instagram e WhatsApp</small></span></div>
+      ${nav.map(([k, t, i]) => `<button class="mi tap" data-ir="${k}" ${E.tela === k ? 'aria-current="page"' : ''} title="${t}">${ic(i, 21)}<span>${t}</span>${k === 'conversas' && nl ? `<b>${nl}</b>` : ''}</button>`).join('')}
+      <div class="menu-pe"><span>Só para ver: a equipe continua respondendo no celular da loja.</span><a href="../">${'← Voltar ao Play Space'}</a></div></nav>
+    <section class="col lista-col">${E.tela === 'conversas' ? htmlLista() : E.tela === 'contas' ? htmlContas() : htmlAvisos()}</section>
+    <section class="col conversa"><div class="painel" id="conversa">${htmlConversa()}</div></section>
+    <nav class="barra" aria-label="Menu">${nav.map(([k, t, i]) => `<button class="tap" data-ir="${k}" ${E.tela === k ? 'aria-current="page"' : ''} aria-label="${t}">${ic(i, 24)}${k === 'conversas' && nl ? `<b>${nl}</b>` : ''}</button>`).join('')}</nav></div>`;
+  const b = $('#busca'); if (b) b.addEventListener('input', () => { E.busca = b.value; pintarLista(); });
+  rolarFim();
+}
+function filtradas() {
+  const q = E.busca.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''), qd = q.replace(/\D/g, '');
+  return E.conversas.filter(c => (E.filtro === 'todas' || (E.filtro === 'ig' && c.canal === 'ig') || (E.filtro === 'wa' && c.canal === 'wa') || (E.filtro === 'nl' && c.naoLidas) || (E.filtro === 'sr' && c.semResposta))
+    && (!E.conta || c.canal + ':' + c.conta === E.conta)
+    && (!q || (c.nome + ' ' + c.usuario + ' ' + c.ultima).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').includes(q) || (qd.length >= 4 && c.tel.includes(qd))));
+}
+function linhaCv(c) {
+  const ativa = E.aberta && E.aberta.id === c.id;
+  return `<button class="cv tap${c.naoLidas ? ' nl' : ''}" data-cv="${c.id}" ${ativa ? 'aria-current="true"' : ''}>${avatar(c)}
+    <span style="min-width:0"><span class="cv-t"><b>${esc(c.nome)}</b>${c.cliente ? '<span class="tag">cliente</span>' : ''}${c.semResposta ? '<span class="tag esp">sem resposta</span>' : ''}</span>
+      <span class="cv-p">${c.ultimaDe === 'loja' ? 'Loja: ' : ''}${esc(c.ultima)}</span></span>
+    <span class="cv-d"><span class="num">${esc(quandoCurto(c.em))}</span>${c.naoLidas ? `<span class="bolha-n num">${c.naoLidas}</span>` : ''}</span></button>`;
+}
+function htmlLista() {
+  const L = filtradas(), contas = [...contasDe('ig'), ...contasDe('wa')], vivo = temConta();
+  const seg = [['todas', 'Todas'], ['ig', 'Instagram'], ['wa', 'WhatsApp'], ['nl', 'Não lidas'], ['sr', 'Sem resposta']];
+  return `<div class="titulo"><h1>Conversas</h1><span class="sync" title="O Insta confere as conversas sozinho"><i class="ponto${vivo ? '' : ' off'}"></i>${vivo ? 'ao vivo' : 'sem contas'}</span></div>
+    <label class="busca">${ic(IC.busca, 18)}<input id="busca" type="search" placeholder="Buscar nome, @ ou telefone" value="${esc(E.busca)}" autocomplete="off" aria-label="Buscar conversa"></label>
+    <div class="seg" role="group" aria-label="Filtro">${seg.map(([k, t]) => `<button class="tap" data-filtro="${k}" aria-pressed="${E.filtro === k}">${t}</button>`).join('')}</div>
+    ${contas.length > 1 ? `<div class="seg" role="group" aria-label="Conta"><button class="tap" data-conta="" aria-pressed="${!E.conta}">Todas as contas</button>${contas.map(x => `<button class="tap" data-conta="${esc(x.canal + ':' + x.id)}" aria-pressed="${E.conta === x.canal + ':' + x.id}">${esc(x.nome)}</button>`).join('')}</div>` : ''}
+    <div class="painel lista-p" style="flex:1"><div class="lista" id="lista">${htmlLinhas(L)}</div></div>`;
+}
+function htmlLinhas(L) {
+  if (!temConta()) return `<div class="vazio"><div class="ilus">${ic(IC.conversas, 34)}</div><b>Conecte o Instagram e o WhatsApp</b>As conversas da loja aparecem aqui, com aviso no celular quando um cliente começar a conversar.<br><br><button class="bt forte tap" data-ir="contas">Conectar as contas</button></div>`;
+  if (!L.length) return `<div class="vazio"><b>Nenhuma conversa ${E.busca ? 'com esse nome' : 'aqui'}</b>${E.conversas.length ? 'Tente outro filtro.' : 'As conversas novas aparecem aqui sozinhas.'}</div>`;
+  return L.map(linhaCv).join('');
+}
+function pintarLista() { const l = $('#lista'); if (l) l.innerHTML = htmlLinhas(filtradas()); }
+function htmlConversa() {
+  const c = E.aberta;
+  if (!c) return `<div class="nada"><div><div class="bolhas"><i></i><i></i></div><b style="color:var(--text);font:700 18px var(--disp)">Escolha uma conversa</b><br>Instagram e WhatsApp da loja, num lugar só.</div></div>`;
+  const sub = [c.canal === 'ig' ? 'Instagram' : 'WhatsApp', c.conta || '', c.canal === 'wa' ? telTxt(c.tel) : c.usuario ? '@' + c.usuario : ''].filter(Boolean).join(' · ');
+  const ver = c.canal === 'ig' && c.usuario ? `<a class="bt peq tap" href="https://instagram.com/${encodeURIComponent(c.usuario)}" target="_blank" rel="noopener">${ic(IC.fora, 16)}<span>Ver perfil</span></a>` : c.canal === 'wa' && c.tel ? `<button class="bt peq tap" data-copiar="${esc(c.tel)}">${ic(IC.copiar, 16)}<span>Copiar número</span></button>` : '';
+  let ult = null, de = '';
+  const ms = E.msgs.map(m => { const d = dataDe(m.em); let s = ''; if (!ult || !mesmoDia(ult, d)) { s += `<div class="dia">${esc(diaLongo(d))}</div>`; de = ''; } ult = d;
+    const midia = m.tipo === 'foto' && m.midia ? `<img class="midia" src="${esc(m.midia)}" alt="Foto" loading="lazy" referrerpolicy="no-referrer" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'tipo',textContent:'📷 Foto'}))">` : '';
+    const tipo = m.tipo !== 'texto' && !midia ? `<span class="tipo">${{ foto: '📷 Foto', video: '🎬 Vídeo', audio: '🎤 Áudio', arquivo: '📎 Arquivo', figurinha: '✨ Figurinha', outro: '💬 Mensagem' }[m.tipo] || ''}</span>${m.texto ? '<br>' : ''}` : '';
+    s += `<div class="m ${m.de}${de === m.de ? ' mesmo' : ''}">${midia}${tipo}${esc(m.texto)}<small>${m.de === 'loja' ? 'Loja · ' : ''}${hora(d)}</small></div>`; de = m.de; return s; }).join('');
+  return `<div class="cvs-cab"><button class="voltar tap" data-act="voltar" aria-label="Voltar para as conversas">${ic(IC.voltar, 22)}</button>${avatar(c)}<div class="txt"><h2>${esc(c.nome)}</h2><div class="sub">${esc(sub)}</div></div><div class="cvs-acoes">${ver}</div></div>
+    ${E.cad ? `<div class="cadastro">${ic(IC.casa, 18)}<span>Cliente do Play Space: <b>${esc(E.cad.resp || E.cad.nome)}</b>${E.cad.resp && E.cad.nome ? ' · ' + esc(E.cad.nome) : ''}</span></div>` : ''}
+    <div class="msgs" id="msgs">${ms || '<div class="nada">Carregando a conversa…</div>'}</div>
+    <div class="so-ver"><span>Só para ver: a resposta continua no ${c.canal === 'ig' ? 'Instagram' : 'WhatsApp'} da loja.</span><button class="bt peq tap" data-act="nao-lida">Marcar como não lida</button></div>`;
+}
+function rolarFim() { const m = $('#msgs'); if (m) m.scrollTop = m.scrollHeight; }
+async function abrir(id, semRota) {
+  const c = E.conversas.find(x => x.id === +id); if (!c) return;
+  E.tela = 'conversas'; E.aberta = { ...c }; E.msgs = []; E.cad = null; c.naoLidas = 0; if (!semRota) history.replaceState(null, '', '#c=' + c.id); desenhar();
+  try { const d = await api('conversa', { id: c.id }); if (!E.aberta || E.aberta.id !== c.id) return; E.aberta = d.conversa; E.msgs = d.mensagens; E.cad = d.conversa.cadastro; const p = $('#conversa'); if (p) { p.innerHTML = htmlConversa(); rolarFim(); } }
+  catch (e) { toast(e.message); }
+}
+
+/* ---------- as contas ---------- */
+function htmlContas() {
+  const ig = E.contas.insta, z = E.contas.zap, data = s => { const d = dataDe(s); return isNaN(d) ? '' : quandoCurto(s) + (mesmoDia(d, new Date()) ? '' : ' ' + hora(d)); };
+  const copia = t => `<div class="copia"><span>${esc(t)}</span><button class="tap" data-copiar="${esc(t)}">Copiar</button></div>`;
+  return `<div class="titulo"><h1>Contas</h1></div><div class="folha">
+  <div class="caixa"><h2><span class="canal ig">${ic(IC.ig, 18, 2.4)}</span>Instagram</h2><p>A conexão oficial da Meta: as mensagens chegam na hora pelo Instagram, e o Insta confere de tempos em tempos.</p>
+    ${ig.contas.map(x => `<div class="conta">${avatar({ id: x.id, nome: '@' + x.usuario, foto: x.foto, canal: 'ig' })}<div style="min-width:0"><b>@${esc(x.usuario)}</b><span>${x.erro ? `<span class="erro">${esc(x.erro)}</span>` : `<span class="est on">Conectada</span> · conferida ${esc(data(x.sincronizadoEm) || 'agora há pouco')}${x.webhookEm ? ' · última mensagem ao vivo ' + esc(data(x.webhookEm)) : ''}`}</span></div>
+      <div class="conta-bts"><button class="bt peq tap" data-act="ig-sync" data-id="${esc(x.id)}">${ic(IC.refaz, 16)} Conferir agora</button><button class="bt peq perigo tap" data-act="ig-sair" data-id="${esc(x.id)}">Desconectar</button></div></div>`).join('')}
+    ${ig.appId && ig.temSegredo ? `<button class="bt forte largo tap" data-act="ig-conectar" style="margin:6px 0 12px">${ic(IC.ig, 18)} Conectar ${ig.contas.length ? 'outra' : 'uma'} conta do Instagram</button>` : ''}
+    <details class="passos" ${ig.appId && ig.temSegredo ? '' : 'open'}><summary>Como ligar o Instagram (uma vez só)</summary><ol>
+      <li>A conta do Instagram da loja precisa ser <b>profissional</b> (Empresa ou Criador de conteúdo): no Instagram, Configurações → Tipo de conta.</li>
+      <li>Em <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener">developers.facebook.com/apps</a>, entre com o Facebook do dono e toque em <b>Criar app</b> → tipo <b>Empresa</b>. No app, adicione o produto <b>Instagram</b> → <b>Configuração da API com login do Instagram</b>.</li>
+      <li>Copie o <b>ID do app do Instagram</b> e a <b>Chave secreta do app do Instagram</b> para os campos abaixo e toque em Salvar.</li>
+      <li>Em <b>Configurar o login comercial do Instagram</b>, no campo "URLs de redirecionamento OAuth", cole este endereço:${copia(ig.retorno)}</li>
+      <li>Em <b>Configurar webhooks</b>: no "URL de callback" cole ${copia(ig.webhook)} e no "Verificar token" cole ${copia(ig.verificar)} Toque em <b>Verificar e salvar</b> e ligue o campo <b>messages</b>.</li>
+      <li>Em <b>Funções do app → Funções → Testadores do Instagram</b>, adicione a conta da loja; no Instagram da loja, aceite o convite (Configurações → Apps e sites → Convites de testador).</li>
+      <li>Volte aqui e toque em <b>Conectar uma conta do Instagram</b>: o Instagram pergunta se libera; toque em Permitir.</li></ol></details>
+    <div class="dois"><div class="campo"><label for="ig-app">ID do app do Instagram</label><input id="ig-app" inputmode="numeric" autocomplete="off" value="${esc(ig.appId)}" placeholder="só números"></div>
+      <div class="campo"><label for="ig-seg">Chave secreta do app</label><input id="ig-seg" type="password" autocomplete="off" placeholder="${ig.temSegredo ? 'guardada (' + esc(ig.segredo) + ') · deixe vazio para manter' : 'cole aqui'}"></div></div>
+    <button class="bt ink tap" data-act="ig-salvar">${ic(IC.ok, 18)} Salvar</button></div>
+
+  <div class="caixa"><h2><span class="canal wa">${ic(IC.wa, 18, 2.2)}</span>WhatsApp</h2><p>Pelo QR Code, como o WhatsApp Web: o Insta vê as conversas do número (as antigas também). O celular da loja continua funcionando igual.</p>
+    ${z.contas.map(x => `<div class="conta">${avatar({ id: x.id, nome: x.nome, canal: 'wa' })}<div style="min-width:0"><b>${esc(x.nome)}${x.numero ? ' · ' + esc(telTxt(x.numero)) : ''}</b><span>${x.conectadoEm ? `<span class="est on">Conectado</span>${x.ultima ? ' · última mensagem ' + esc(data(x.ultima)) : ''}${x.historicoEm ? ' · histórico trazido' : ''}` : '<span class="est off">Desconectado</span> · leia o QR Code de novo'}${x.erro ? ` · <span class="erro">${esc(x.erro)}</span>` : ''}</span></div>
+      <div class="conta-bts">${x.conectadoEm ? `<button class="bt peq tap" data-act="zap-hist" data-id="${esc(x.id)}">${ic(IC.refaz, 16)} Trazer conversas antigas</button>` : `<button class="bt peq forte tap" data-act="zap-qr" data-id="${esc(x.id)}">Mostrar o QR Code</button>`}<button class="bt peq perigo tap" data-act="zap-sair" data-id="${esc(x.id)}">Desconectar</button></div></div>`).join('')}
+    ${z.url && z.temChave ? `<button class="bt forte largo tap" data-act="zap-novo" style="margin:6px 0 12px">${ic(IC.wa, 18)} Conectar ${z.contas.length ? 'outro' : 'um'} número</button>` : ''}
+    <details class="passos" ${z.url && z.temChave ? '' : 'open'}><summary>Como ligar o WhatsApp (uma vez só)</summary><ol>
+      <li>O WhatsApp pelo QR Code precisa de um servidor pequeno ligado o tempo todo, com a <b>Evolution API</b> (gratuita) instalada. Ele é contratado à parte (uns R$ 30 a 60 por mês): a hospedagem do site não roda esse programa.</li>
+      <li>Com o servidor pronto, cole abaixo o endereço dele e a chave (a <b>apikey</b> da Evolution) e toque em Salvar: o Insta confere se conecta.</li>
+      <li>Toque em <b>Conectar um número</b>, dê um nome (ex.: Morumbi) e, no celular da loja, abra o WhatsApp → <b>Aparelhos conectados</b> → <b>Conectar um aparelho</b> e aponte para o QR Code.</li></ol></details>
+    <div class="dois"><div class="campo"><label for="zap-url">Endereço do servidor</label><input id="zap-url" inputmode="url" autocapitalize="none" autocomplete="off" value="${esc(z.url)}" placeholder="https://whats.suaempresa.com.br"></div>
+      <div class="campo"><label for="zap-chave">Chave (apikey)</label><input id="zap-chave" type="password" autocomplete="off" placeholder="${z.temChave ? 'guardada (' + esc(z.chave) + ') · deixe vazio para manter' : 'cole aqui'}"></div></div>
+    <button class="bt ink tap" data-act="zap-salvar">${ic(IC.ok, 18)} Salvar e conferir</button></div></div>`;
+}
+
+/* ---------- os avisos ---------- */
+const pushPode = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+const pushBytes = s => { const b = atob(String(s).replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((String(s).length + 3) % 4)); return Uint8Array.from(b, ch => ch.charCodeAt(0)); };
+async function pushEstado() {
+  let e = 'desligado';
+  if (!pushPode()) e = /iPhone|iPad/.test(navigator.userAgent) ? 'ios' : 'sem';
+  else if (Notification.permission === 'denied') e = 'negado';
+  else if (Notification.permission === 'granted') { try { const r = await navigator.serviceWorker.getRegistration('../'); const s = r && await r.pushManager.getSubscription(); e = s ? 'ligado' : 'desligado'; } catch (x) { } }
+  E.push = e; if (E.tela === 'avisos') { const a = $('#push'); if (a) a.outerHTML = htmlPush(); }
+}
+function htmlPush() {
+  const e = E.push;
+  if (e == null) { setTimeout(pushEstado, 0); return '<div id="push"></div>'; }
+  if (e === 'ligado') return `<div id="push" class="aviso ok">Os avisos estão ligados neste aparelho. <button class="bt peq tap" data-act="push-teste" style="margin-left:8px">Testar</button></div>`;
+  if (e === 'ios') return `<div id="push" class="aviso">No iPhone, os avisos só chegam com o Insta na Tela de Início: toque em Compartilhar → "Adicionar à Tela de Início", abra pelo ícone e ligue aqui.</div>`;
+  if (e === 'sem') return `<div id="push" class="aviso">Este navegador não recebe avisos. Use o Chrome (Android ou computador), o Edge, o Firefox, ou o Safari do iPhone com o Insta na Tela de Início.</div>`;
+  if (e === 'negado') return `<div id="push" class="aviso">Os avisos estão bloqueados neste aparelho: libere as notificações deste site nas configurações do navegador e volte aqui.</div>`;
+  return `<div id="push"><button class="bt forte largo tap" data-act="push-ligar">${ic(IC.sino, 18)} Ativar avisos neste aparelho</button></div>`;
+}
+function htmlAvisos() {
+  return `<div class="titulo"><h1>Avisos</h1></div><div class="folha"><div class="caixa"><h2>${ic(IC.sino, 22)} Aviso no celular</h2>
+    <p>Quando um cliente começa uma conversa no Instagram ou no WhatsApp (a primeira mensagem, ou a primeira depois de um dia sem falar), o aviso chega no celular do gestor. Não apita a cada mensagem.</p>
+    <div class="chave"><div><b>Avisar quando um cliente começar a conversar</b><span>Para todos os aparelhos do gestor com os avisos ligados.</span></div><button class="switch tap" role="switch" aria-checked="${E.avisos}" data-act="avisos" aria-label="Avisar quando um cliente começar a conversar"></button></div>
+    <h3 style="font:700 16px var(--disp);margin:18px 0 8px">Este aparelho</h3>${htmlPush()}
+    <p style="font-size:13.5px;color:var(--muted);margin-top:12px">São os mesmos avisos dos pedidos de autorização do Play Space: se este aparelho já recebe aqueles, já recebe estes também.</p></div></div>`;
+}
+async function pushLigar(el) {
+  if (!pushPode()) return; el.disabled = true;
+  try {
+    if (await Notification.requestPermission() !== 'granted') { toast('Sem a permissão, os avisos não chegam.'); return; }
+    const reg = await navigator.serviceWorker.register('../sw.js', { scope: '../' }); await navigator.serviceWorker.ready;
+    const { chave } = await api('push_chave', {}, '../api/api.php'); let s = await reg.pushManager.getSubscription();
+    if (!s) s = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: pushBytes(chave) });
+    const j = s.toJSON(); await api('push_inscrever', { endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth, aparelho: 'Insta · ' + (/iPhone/.test(navigator.userAgent) ? 'iPhone' : /Android/.test(navigator.userAgent) ? 'Android' : 'Computador') }, '../api/api.php');
+    toast('Avisos ligados neste aparelho');
+  } catch (e) { toast('Não deu para ligar os avisos: ' + e.message); }
+  finally { el.disabled = false; pushEstado(); }
+}
+
+/* ---------- o QR Code do WhatsApp ---------- */
+let QR = null;
+function janela(html) { fecharJanela(); const f = document.createElement('div'); f.className = 'fundo'; f.innerHTML = `<div class="janela" role="dialog" aria-modal="true">${html}</div>`; f.addEventListener('click', e => { if (e.target === f) fecharJanela(); }); document.body.appendChild(f); return f; }
+function fecharJanela() { const f = $('.fundo'); if (f) f.remove(); if (QR) { clearTimeout(QR.t); QR = null; } }
+function mostrarQr(id, r) {
+  if (!QR || QR.id !== id) { QR = { id, t: 0 }; janela(`<h3>Leia o QR Code</h3><p>No celular da loja: WhatsApp → <b>Aparelhos conectados</b> → <b>Conectar um aparelho</b> → aponte para o quadro.</p><div class="qr" id="qr"></div><p id="qr-txt" style="text-align:center;font-weight:700"></p><div class="janela-bts"><button class="bt tap" data-act="fechar">Fechar</button></div>`); }
+  const q = $('#qr'), t = $('#qr-txt'); if (!q) return;
+  if (r.estado === 'conectado') { fecharJanela(); toast('WhatsApp conectado. As conversas antigas estão chegando.'); carregar(); return; }
+  q.innerHTML = r.qr ? `<img src="${esc(r.qr)}" alt="QR Code do WhatsApp">` : 'Gerando o QR Code…'; t.textContent = r.codigo ? 'Ou use o código: ' + r.codigo : 'O QR Code troca sozinho a cada poucos segundos.';
+  QR.t = setTimeout(async () => { if (!QR || QR.id !== id) return; try { const d = await api('zap_qr', { conta: id }); E.contas = d.contas; mostrarQr(id, d.qr); } catch (e) { if (QR) { $('#qr-txt').textContent = e.message; QR.t = setTimeout(() => QR && mostrarQr(id, { estado: 'aguardando' }), 8000); } } }, 5000);
+}
+function pedirNome() {
+  janela(`<h3>Conectar um número</h3><p>Um nome para reconhecer este número nas conversas.</p><div class="campo"><label for="zap-nome">Nome</label><input id="zap-nome" maxlength="40" placeholder="ex.: Morumbi" autocomplete="off"></div><div class="janela-bts"><button class="bt tap" data-act="fechar">Cancelar</button><button class="bt forte tap" data-act="zap-criar">Gerar o QR Code</button></div>`);
+  setTimeout(() => { const i = $('#zap-nome'); if (i) { i.focus(); i.addEventListener('keydown', e => { if (e.key === 'Enter') $('[data-act="zap-criar"]').click(); }); } }, 50);
+}
+
+/* ---------- ao vivo: pergunta o que mudou a cada 12 s (parado com a aba escondida) ---------- */
+let VIG = 0;
+function vigiar() { clearInterval(VIG); VIG = setInterval(() => { if (!document.hidden) novidades(); }, 12000); }
+document.addEventListener('visibilitychange', () => { if (!document.hidden && E.carregou) novidades(); });
+async function novidades() {
+  try {
+    const d = await api('novidades', { marca: E.marca }); if (!d.conversas.length) { E.marca = d.marca; return; } E.marca = d.marca;
+    for (const c of d.conversas) { const i = E.conversas.findIndex(x => x.id === c.id); if (i >= 0) E.conversas.splice(i, 1); E.conversas.unshift(c); }
+    E.conversas.sort((a, b) => String(b.em).localeCompare(String(a.em)));
+    const aberta = E.aberta && d.conversas.find(c => c.id === E.aberta.id);
+    if (E.tela === 'conversas') pintarLista();
+    $$('.mi b, .barra b').forEach(b => b.remove()); const nl = naoLidasTotal(); if (nl) $$('[data-ir="conversas"]').forEach(b => b.insertAdjacentHTML('beforeend', `<b>${nl}</b>`));
+    if (aberta) { const r = await api('conversa', { id: aberta.id }); E.msgs = r.mensagens; E.aberta = r.conversa; const c = E.conversas.find(x => x.id === aberta.id); if (c) c.naoLidas = 0; const m = $('#msgs'), noFim = m && m.scrollHeight - m.scrollTop - m.clientHeight < 80; const p = $('#conversa'); if (p) { p.innerHTML = htmlConversa(); if (noFim) rolarFim(); } pintarLista(); }
+  } catch (e) { if (e.status === 401) semLogin(e.message); }
+}
+
+/* ---------- os toques ---------- */
+function ir(t) { E.tela = t; if (t !== 'conversas') { E.aberta = null; history.replaceState(null, '', '#' + t); } else history.replaceState(null, '', E.aberta ? '#c=' + E.aberta.id : '#'); desenhar(); }
+document.addEventListener('click', async e => {
+  const el = e.target.closest('[data-ir],[data-cv],[data-filtro],[data-conta],[data-act],[data-copiar]'); if (!el || el.disabled) return;
+  if (el.dataset.ir) return ir(el.dataset.ir);
+  if (el.dataset.cv) return abrir(+el.dataset.cv);
+  if (el.dataset.filtro) { E.filtro = el.dataset.filtro; $$('[data-filtro]').forEach(b => b.setAttribute('aria-pressed', b === el)); return pintarLista(); }
+  if (el.dataset.conta !== undefined && !el.dataset.act) { E.conta = el.dataset.conta; $$('[data-conta]').forEach(b => b.setAttribute('aria-pressed', b === el)); return pintarLista(); }
+  if (el.dataset.copiar) return copiar(el.dataset.copiar);
+  const a = el.dataset.act, id = el.dataset.id, ocupado = async f => { el.disabled = true; try { await f(); } catch (x) { toast(x.message); } finally { el.disabled = false; } };
+  if (a === 'voltar') { E.aberta = null; history.replaceState(null, '', '#'); return desenhar(); }
+  if (a === 'fechar') return fecharJanela();
+  if (a === 'nao-lida') return ocupado(async () => { await api('lida', { id: E.aberta.id, naoLida: true }); const c = E.conversas.find(x => x.id === E.aberta.id); if (c) c.naoLidas = 1; E.aberta = null; history.replaceState(null, '', '#'); desenhar(); toast('Marcada como não lida'); });
+  if (a === 'ig-salvar') return ocupado(async () => { const d = await api('ig_salvar', { appId: $('#ig-app').value, segredo: $('#ig-seg').value }); E.contas = d.contas; desenhar(); toast('Guardado. Agora toque em Conectar uma conta do Instagram.'); });
+  if (a === 'ig-conectar') return ocupado(async () => { const d = await api('ig_conectar'); location.href = d.url; });
+  if (a === 'ig-sync') return ocupado(async () => { const d = await api('ig_sincronizar', { conta: id }); E.contas = d.contas; toast(`Conferido: ${d.resultado.conversas} conversas com novidade, ${d.resultado.novas} mensagens novas`); await carregar(); });
+  if (a === 'ig-sair') { if (!confirm('Desconectar esta conta do Instagram? As conversas guardadas continuam aqui.')) return; return ocupado(async () => { const d = await api('ig_sair', { conta: id }); E.contas = d.contas; desenhar(); }); }
+  if (a === 'zap-salvar') return ocupado(async () => { const d = await api('zap_salvar', { url: $('#zap-url').value, chave: $('#zap-chave').value }); E.contas = d.contas; desenhar(); toast('O servidor do WhatsApp respondeu ✓ Agora toque em Conectar um número.'); });
+  if (a === 'zap-novo') return pedirNome();
+  if (a === 'zap-criar') return ocupado(async () => { const d = await api('zap_novo', { nome: $('#zap-nome').value }); E.contas = d.contas; QR = null; mostrarQr(d.conta, d.qr); });
+  if (a === 'zap-qr') return ocupado(async () => { const d = await api('zap_qr', { conta: id }); E.contas = d.contas; mostrarQr(id, d.qr); });
+  if (a === 'zap-hist') return ocupado(async () => { const d = await api('zap_historico', { conta: id }); E.contas = d.contas; toast(`Trazidas ${d.resultado.mensagens} mensagens de ${d.resultado.conversas} conversas`); await carregar(); });
+  if (a === 'zap-sair') { if (!confirm('Desconectar este número? O celular da loja sai dos aparelhos conectados; as conversas guardadas continuam aqui.')) return; return ocupado(async () => { const d = await api('zap_sair', { conta: id }); E.contas = d.contas; desenhar(); }); }
+  if (a === 'avisos') return ocupado(async () => { const d = await api('avisos', { ligar: !E.avisos }); E.avisos = d.avisos; el.setAttribute('aria-checked', E.avisos); toast(E.avisos ? 'Avisos de conversa nova ligados' : 'Avisos de conversa nova desligados'); });
+  if (a === 'push-ligar') return pushLigar(el);
+  if (a === 'push-teste') return ocupado(async () => { const d = await api('aviso_teste'); toast(d.enviados ? 'Aviso de teste enviado: deve chegar em instantes' : 'O aviso não saiu. Ligue os avisos de novo neste aparelho.'); });
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { if ($('.fundo')) fecharJanela(); else if (E.aberta && innerWidth <= 760) $('[data-act="voltar"]')?.click(); } });
+
+/* ---------- o endereço: #c=12 abre a conversa; #contas, #avisos; a volta do Instagram traz o resultado ---------- */
+function rota() {
+  const h = location.hash.slice(1), p = new URLSearchParams(h);
+  if (p.has('contas')) { E.tela = 'contas'; desenhar(); toast(p.get('m') || (p.get('contas') === 'ok' ? 'Conta conectada' : 'Não deu para conectar'), 7000); history.replaceState(null, '', '#contas'); return; }
+  if (h === 'contas' || h === 'avisos') { E.tela = h; desenhar(); return; }
+  if (p.has('c')) abrir(+p.get('c'), true);
+}
+window.addEventListener('hashchange', rota);
+if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.ps === 'aviso' && e.data.url) { const u = new URL(e.data.url); if (u.pathname.endsWith('/insta/')) { location.hash = u.hash; novidades(); } } });
+carregar();
+</script>
+</body>
+</html>

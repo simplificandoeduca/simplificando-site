@@ -1301,6 +1301,38 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O Insta: as conversas do Instagram e do WhatsApp num lugar só, para o gestor ver (2.70)
+
+Pedido do dono (27/11): "um módulo tipo notas, que eu coloque Insta ... a mesma estética ... fazer um traqueamento com o Instagram, de maneira com que eu conecte a minha conta e eu consiga visualizar as mensagens e receba notificação do histórico de conversas ... como se fosse um CRM ... e também já a parte de conectar o WhatsApp para que a gente visualize também o WhatsApp". Respostas dele: o WhatsApp pelo QR Code (como o WhatsApp Web) e o aviso só quando um cliente começa uma conversa.
+
+Onde fica: o endereço /insta do site (ex.: playspace2.com.br/insta), com o login de gestor do Play Space (a equipe não entra). Nos Ajustes do Play Space, o gestor tem o cartão "Insta" com "Abrir o Insta". Dá para pôr na Tela de Início do celular (vira um app).
+
+As telas (a mesma cara do Play Space Notas):
+- Conversas: Instagram e WhatsApp juntos, a mais nova em cima, com a foto (ou as iniciais), o símbolo do Instagram ou do WhatsApp, a última mensagem ("Loja:" quando foi a loja que respondeu), a hora, o número de não lidas, e as marcas "cliente" (cliente do Play Space, achado pelo telefone do cadastro) e "sem resposta" (o cliente falou por último). Busca pelo nome, @ ou telefone; filtros Todas, Instagram, WhatsApp, Não lidas e Sem resposta; e por conta, quando há mais de uma.
+- A conversa: as mensagens do cliente à esquerda e as da loja à direita, por dia, com a hora; foto, vídeo, áudio e arquivo aparecem marcados. O cliente do Play Space mostra o nome do responsável e da criança. "Ver perfil" (Instagram) e "Copiar número" (WhatsApp). Abrir marca como lida; dá para marcar como não lida. Daqui não se responde: a equipe continua respondendo no celular da loja.
+- Ao vivo: a tela pergunta a cada 12 segundos o que mudou; a mensagem nova aparece sozinha na lista e na conversa aberta.
+- Contas: ligar o Instagram e o WhatsApp (os passos estão na própria tela, com os endereços para copiar).
+- Avisos: ligar e desligar o aviso e ligar os avisos no aparelho (os mesmos avisos dos pedidos de autorização; quem já recebe aqueles, recebe estes).
+
+O aviso no celular: quando um cliente começa uma conversa (a primeira mensagem dele, ou a primeira depois de um dia sem falar), no Instagram ou no WhatsApp, chega "Instagram · @conta · conversa nova" (ou "voltou a falar") com o nome e a mensagem. O toque abre a conversa no Insta. Não apita a cada mensagem.
+
+Como ligar o Instagram (uma vez):
+1. A conta do Instagram da loja precisa ser profissional (Empresa ou Criador).
+2. Em developers.facebook.com/apps, criar um app do tipo Empresa e adicionar o produto Instagram → "Configuração da API com login do Instagram".
+3. Copiar o ID do app do Instagram e a chave secreta para o Insta (Contas) e salvar.
+4. No app da Meta: o endereço de retorno (OAuth) e o webhook (o endereço e o token de verificação), que o Insta mostra para copiar; ligar o campo "messages".
+5. Adicionar a conta da loja como "Testador do Instagram" no app e aceitar o convite no Instagram da loja.
+6. No Insta, "Conectar uma conta do Instagram": o Instagram pergunta se libera. As conversas recentes vêm na hora (sem contar como não lidas). Pode ligar mais de uma conta (ex.: Play Space e Casa Tom).
+Depois disso, as mensagens chegam pelo webhook, na hora, e o Insta ainda confere a lista de conversas a cada 3 minutos (depois das respostas do Play Space, sem atrasar ninguém) e a cada minuto com o Insta aberto. O acesso da conta dura 60 dias e é renovado sozinho.
+
+Como ligar o WhatsApp (uma vez):
+1. Um servidor pequeno ligado o tempo todo com a Evolution API (gratuita), contratado à parte (a hospedagem do site não roda esse programa).
+2. No Insta (Contas), o endereço do servidor e a chave (apikey); "Salvar e conferir" testa a ligação.
+3. "Conectar um número", com um nome (ex.: Morumbi): aparece o QR Code; no celular da loja, WhatsApp → Aparelhos conectados → Conectar um aparelho. Conectado, as conversas antigas (as 60 mais recentes, até 40 mensagens cada) chegam sozinhas, sem contar como não lidas. Grupos ficam de fora. Dá para conectar vários números (um por loja).
+4. O celular da loja continua funcionando igual. Como é pelo QR Code (não é a conexão oficial da Meta), existe um risco pequeno de o WhatsApp bloquear o número; o Insta só lê (nunca manda mensagem), o que deixa o risco baixo.
+
+Segurança: só o gestor do Play Space entra. O webhook do Instagram só aceita mensagens assinadas pela Meta (com a chave secreta do app) e o de cada número do WhatsApp só aceita o endereço com o token dele. A chave secreta do app, o acesso das contas e a chave da Evolution ficam no banco do Play Space (fora do site); a tela só mostra o final deles.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A nota de produto (NF-e) da Casa Tom Morumbi, direto na SEFAZ-SP (2.69 + Notas 192)
 
 Pedido do dono (27/11): "No Morumbi, por enquanto, eu quero também colocar a opção de nota de produto. Aí, para emitir nota de produto, por enquanto, é só pelo site de nota fiscal ... Você consegue copiar esse mesmo modelo e fazer o traqueamento na Sefaz?" Respostas dele: série 2 só do sistema (a série 1 continua no site), impostos iguais aos da nota nº 10 e só clientes de São Paulo.

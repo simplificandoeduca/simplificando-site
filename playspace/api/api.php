@@ -28,6 +28,8 @@ $db = db();
 // o mesmo "Liberar" no celular da gestora e no da supervisora, o mesmo desconto, a cobrança do período que nasce no pulso de várias telas)
 // não passam os dois pela conferência: o segundo espera o primeiro terminar e já vê o que ele fez. A trava cai sozinha no fim do pedido
 travarEscrita($acao);
+/* 2.70: o Insta confere o Instagram de tempos em tempos, depois de responder (no máximo a cada 3 min; só faz algo com conta conectada) */
+if (aCada('cv_ig', 180) && is_file(__DIR__ . '/conversas-lib.php')) { try { require_once __DIR__ . '/conversas-lib.php'; cvSincronizarDepois(); } catch (Throwable $e) { } }
 $ip = (string)($_SERVER['REMOTE_ADDR'] ?? '');
 $val = fn(string $k, string $p = '') => trim((string)($in[$k] ?? $p));
 // 1.49 (auditoria): de quando em quando este aparelho falou com o servidor (de 30 em 30 s, nos últimos dias): é o que diz se ele estava

@@ -96,6 +96,7 @@ body.ct .trilho .logo svg { width: 64px; height: 64px; } body.ct .trilho .logo {
 .ct-vbt { flex: 1; min-width: 0; display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 14px; border: 0; background: none; text-align: left; color: var(--tinta); font: inherit; cursor: pointer; }
 .ct-vlap { flex: none; display: inline-grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 10px; background: transparent; color: var(--tinta-2); cursor: pointer; } .ct-vlap:hover, .ct-vlap:focus-visible { background: color-mix(in srgb, var(--tinta) 8%, transparent); color: var(--tinta); }   /* 2.45: o lápis do gestor */
 .ct-vnf { flex: none; display: inline-flex; align-items: center; gap: 5px; height: 34px; padding: 0 11px; margin-right: 6px; border: 1px solid var(--borda); border-radius: 999px; background: transparent; color: var(--tinta); font: inherit; font-weight: 700; font-size: 12.5px; white-space: nowrap; cursor: pointer; } .ct-vnf:hover, .ct-vnf:focus-visible { background: color-mix(in srgb, var(--tinta) 6%, transparent); }   /* 2.69: a nota de produto */
+.insta-ic { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 10px; color: #fff; background: linear-gradient(135deg, #F58529, #DD2A7B 55%, #8134AF); vertical-align: middle; margin-right: 4px; }   /* 2.70: o Insta */
 .ct-vnf.ok { background: #E8F6EE; border-color: #A6DBBA; color: #14703A; } .ct-vnf.esp { background: #FFF4DB; border-color: #F0D08A; color: #7A5300; } .ct-vnf.canc { color: var(--tinta-2); text-decoration: line-through; }
 @media (max-width: 560px) { .ct-vnf span { display: none; } .ct-vnf { padding: 0 9px; } }
 .nfe-ncm { display: inline-flex; align-items: center; gap: 6px; } .nfe-ncm input { width: 104px; height: 30px; padding: 0 8px; border: 1px solid var(--borda); border-radius: 8px; font: inherit; font-size: 13px; font-variant-numeric: tabular-nums; }
@@ -2247,7 +2248,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.69';
+const VERSAO = '2.70';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -10448,6 +10449,9 @@ function telaAjustes() {
   const exemplo = min => `${dur(min)} → debita ${dur(cobrar(min))}`, st = servicoTempo();
   return faixa('Ajustes', 'Como a loja funciona', chipIdface()) + `
   <div class="cards" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr))">
+    ${gestor() ? `<div class="card insta-aj"><div class="sec-cab"><h2 style="font-size:18px"><span class="insta-ic">${ic(IC.zap, 18)}</span> Insta: Instagram e WhatsApp</h2></div>
+      <p class="explica">As conversas do Instagram e do WhatsApp da loja num lugar só, para o gestor ver, com aviso no celular quando um cliente começa a conversar. A equipe continua respondendo no celular, como sempre.</p>
+      <a class="bt forte largo tap" href="insta/" target="_blank" rel="noopener">Abrir o Insta</a></div>` : ''}
     <div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.horas, 20)} Regra das horas</h2></div>
       <p class="explica">O tempo é debitado sempre em <b>períodos inteiros de ${porExt(periodo())}</b>${st ? ` (o período de ${esc(st.n)})` : ''}: não existe período quebrado. Quem ficou 11 minutos debita ${porExt(periodo())}, e cada visita debita pelo menos um período. <b>Sem pacote, o cliente não compra o período na entrada</b>: a criança entra na recreação avulsa e a saída cobra os períodos que ela ficou.</p>
       <div class="campo"><label>Tolerância entre um período e outro</label>${seg('tolerancia', [[0, 'Nenhuma'], [5, '5 min'], [9, '9 min'], [10, '10 min'], [15, '15 min']], tolerancia())}<span class="explica">Passou disso, conta <b>mais um período</b>${st ? ` (${precoServ(st)})` : ''}. Na recreação avulsa ele entra na conta da saída; quem tem pacote usa as horas dele e, se elas acabaram, o período vira <b>cobrança além do pacote</b>, com aviso em todas as telas. Depois de cada período novo, a tolerância vale de novo.</span></div>
