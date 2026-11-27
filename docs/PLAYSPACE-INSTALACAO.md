@@ -1301,6 +1301,26 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A nota de produto (NF-e) da Casa Tom Morumbi, direto na SEFAZ-SP (2.69 + Notas 192)
+
+Pedido do dono (27/11): "No Morumbi, por enquanto, eu quero também colocar a opção de nota de produto. Aí, para emitir nota de produto, por enquanto, é só pelo site de nota fiscal ... Você consegue copiar esse mesmo modelo e fazer o traqueamento na Sefaz?" Respostas dele: série 2 só do sistema (a série 1 continua no site), impostos iguais aos da nota nº 10 e só clientes de São Paulo.
+
+Como ficou:
+- Casa Tom Morumbi → Vendidos do dia: cada venda tem o botão "Nota de produto". Ele abre a folha com os produtos da venda (nome, quantidade, valor e o NCM), a forma de pagamento e os campos do cliente: CPF, celular (para o WhatsApp), nome, CEP, rua, número, bairro, complemento e e-mail (opcional).
+- O CEP preenche sozinho a rua, o bairro e a cidade (e o código da cidade que a nota precisa). CEP de fora de São Paulo: a folha avisa e não deixa emitir.
+- O CPF de um cliente que já recebeu nota de produto traz o endereço da última nota; o CPF de um cliente cadastrado no Play Space traz o nome e o celular.
+- "Emitir a nota de produto": a nota vai para a SEFAZ-SP pelo Play Space Notas, com o relógio contando. A SEFAZ recusou: "A nota não saiu" com o motivo explicado (NCM, inscrição estadual, CPF…). A resposta não veio: o sistema confere lá pela chave da nota por até 2 minutos e meio (nunca sai duas); "Conferir de novo na SEFAZ" se ainda não apareceu.
+- Autorizada: a folha mostra "NF-e nº X · série 2 autorizada" com o protocolo, e o PDF (o DANFE, no mesmo desenho da nota nº 10 do site) abre ali, com Imprimir, Enviar no WhatsApp e Salvar. Na lista, a venda fica com "NF-e X" em verde.
+- Impostos como a nota nº 10: Simples Nacional (CSOSN 102), venda dentro de São Paulo (CFOP 5102), NCM 9503.00.99 (brinquedos), sem frete. O gestor muda o NCM de um produto na própria folha; o NCM fica guardado para as próximas notas daquele produto.
+- Cancelar: só o gestor, na folha da nota ("Cancelar esta nota") ou no Notas, com o motivo. A SEFAZ aceita até 24 horas depois da nota.
+- A equipe também recebe os produtos das vendas do dia (antes só o gestor recebia, para o lápis e a lixeira), para a atendente poder emitir a nota.
+
+No Play Space Notas (versão 192, para enviar ao site separado):
+- Conta → "Nota de produto (NF-e) · SEFAZ-SP": Simulação, Teste (homologação, sem valor fiscal) ou Produção; os dados da loja que vão na nota (já vêm os da nota nº 10: razão social, inscrição estadual, endereço, CEP, inscrição municipal), telefone e e-mail da loja (a SEFAZ pode pedir), série 2, primeiro número, NCM padrão e informações complementares; "Testar conexão com a SEFAZ-SP"; e a lista das notas de produto, cada uma com o PDF, o XML, "Conferir na SEFAZ" e Cancelar (gestor).
+- Começa em Teste (homologação): a nota passa por todas as conferências da SEFAZ, mas não vale como nota fiscal (o PDF sai com SEM VALOR FISCAL e o nome do cliente vai como pede a SEFAZ no teste). Depois de testar, o gestor muda para Produção.
+- A numeração: a nota recusada não gasta o número (a próxima usa o mesmo); se o número já tiver sido usado por outra nota, a próxima pula sozinha.
+- Usa o mesmo certificado A1 da nota de serviço. A nota de serviço (NFS-e) continua igual.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A nota fiscal espera o governo, com o relógio, e aparece sozinha (2.68)
 
 Pedido do dono (27/11): "quando eu solicitar a nota por dentro do sistema, eu preciso que a nota já carregue, ela não está carregando. Mesmo a nota sendo emitida lá no governo, ele está dando que a nota ainda não foi emitida. Eu preciso que ela já abra, tipo, fique um tempo de 20 segundos ... o tempo que precisar, e contando esse tempo, e assim que ela carregar no outro sistema, ele já puxar para esse."

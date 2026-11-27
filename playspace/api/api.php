@@ -1078,8 +1078,8 @@ switch ($acao) {
   case 'papel_dia': { /* 2.35 (o dono: "Casatom ... uma aba tipo vendidos do dia ... e selecione, tem a opção de reimprimir cupom lá"): os cupons de hoje da Casa Tom desta unidade */
     $u = exigir(); $b = balcaoCT(false); $uni = unidadeDoPedido(); session_write_close(); if (!$b) responder(['papeis' => []]);
     $q = $db->prepare("SELECT p.id, p.crianca_id, p.quando, p.tipo, p.titulo, p.resumo, p.vendas, p.estado, p.unidade_id, u.nome AS por_nome FROM papeis p LEFT JOIN usuarios u ON u.id = p.por WHERE p.crianca_id = ? AND p.quando >= ? AND p.estado != 'excluida'" . ($uni ? ' AND COALESCE(p.unidade_id, 0) = ' . (int)$uni : '') . ' ORDER BY p.id DESC LIMIT 300');
-    $q->execute([(int)$b['id'], date('Y-m-d') . ' 00:00:00']); $g = ($u['papel'] ?? '') === 'gestor';   /* 2.45: para o gestor, as vendas de cada cupom (o lápis e a lixeira) */
-    responder(['papeis' => array_map(fn($l) => papelPublico($l) + ($g ? ['vendas' => array_map('vendaCtPublica', vendasDoPapel($l))] : []), $q->fetchAll())]);
+    $q->execute([(int)$b['id'], date('Y-m-d') . ' 00:00:00']);   /* 2.45: as vendas de cada cupom (o lápis e a lixeira do gestor); 2.69: para todos (os produtos da nota de produto) */
+    responder(['papeis' => array_map(fn($l) => papelPublico($l) + ['vendas' => array_map('vendaCtPublica', vendasDoPapel($l))], $q->fetchAll())]);
   }
   case 'papel_ver': { // as vias de um cupom guardado
     $u = exigir(); session_write_close();

@@ -2696,7 +2696,7 @@ function vendasDoPapel(array $p): array {
   $q->execute([(int)$p['crianca_id'], $de === '' ? $dia : $de, (string)$p['quando']]); return $q->fetchAll();
 }
 function nomeCt(array $v): string { $s = trim((string)($v['servico'] ?? '')); return $s !== '' ? $s : nomeDaVenda($v); }
-function vendaCtPublica(array $v): array { return ['id' => (int)$v['id'], 'n' => nomeCt($v), 'q' => max(1, (int)($v['qtd'] ?? 0)), 'v' => round((float)$v['valor'], 2), 'pago' => (object)pagoPorForma([(int)$v['id']]), 'vend' => (string)($v['vendedora'] ?? '')]; }
+function vendaCtPublica(array $v): array { return ['id' => (int)$v['id'], 'n' => nomeCt($v), 'q' => max(1, (int)($v['qtd'] ?? 0)), 'v' => round((float)$v['valor'], 2), 'pago' => (object)pagoPorForma([(int)$v['id']]), 'vend' => (string)($v['vendedora'] ?? ''), 'prod' => (int)($v['produto_id'] ?? 0)]; }   /* 2.69: o produto (código na nota de produto) */
 function motivoGestor(array $in, string $acao): string {
   $m = mb_substr(maiusculo(trim(preg_replace('/\s+/u', ' ', (string)($in['motivo'] ?? '')))), 0, 300); if (mb_strlen($m) < 5) falha('Escreva o motivo: por que está ' . $acao . '.'); return $m;
 }
