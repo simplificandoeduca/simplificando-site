@@ -924,6 +924,7 @@ const XA = (() => {
   return { scene, figure, pick, EX, LIST, label: k => LABELS[k] || '', FIGVB: '4 66 306 340' };
 })();
 
+const EX3D = { crossalta:'ex-crossalta-m' }; // animações 3D prontas (arquivo em src/b3)
 // toca a animação da execução que estiver aberta na tela
 (function(){
   let t0 = performance.now(), last = 0, cur = null;
@@ -932,6 +933,8 @@ const XA = (() => {
     const box = document.querySelector('.exa');
     if(!box){ cur = null; return; }
     const hit = findEx(box.dataset.ex); if(!hit) return;
+    const v3 = EM_TESTE && EX3D[XA.pick(hit.e)]; // exercício com animação 3D (vídeo em vai e volta): por enquanto só no app de teste
+    if(v3){ if(box.dataset.v3 !== v3){ box.dataset.v3 = v3; box.hidden = false; box.innerHTML = '<video src="b3/'+v3+'.mp4?v=198" autoplay loop muted playsinline disablepictureinpicture></video>'; } cur = null; return; }
     if(cur !== box){ cur = box; t0 = now; last = 0; }
     const still = RM();
     if(still ? box.dataset.drawn === '1' : now - last < 33) return;

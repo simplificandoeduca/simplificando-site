@@ -319,7 +319,7 @@ function b3Init(){
   if(!el){ cancelAnimationFrame(B3.raf); B3.raf = 0; B3.el = null; return; }
   const M = B3_S[el.dataset.kind][b3Sexo()], i = el.firstElementChild, q = c => i.querySelector(c), shh = M.liso ? (M.cheio ? 232 : 226) : 0, sw = M.liso ? Math.round(M.w*shh/M.h) : Math.round(M.w*M.alt/(M.g-4)), s = sw/M.w, per = (M.vel||18)*s*M.D/3;
   B3.el = el; B3.M = M; B3.s = s; B3.sw = sw; B3.shh = shh; B3.k = Math.max(0, Math.min(2, +el.dataset.int||0)); B3.p = { bn:q('.bn'), sm:q('.sm'), fx:q('.faixa'), gr:q('.grao'), me:q('.meio'), es:q('.est'), se:q('.sme'), lo:q('.lona') };
-  B3.p.bn.style.cssText = 'background-image:url(b3/'+M.arq+'.webp?v=197);background-size:'+(M.C ? (sw*M.C)+'px '+(shh*Math.ceil(M.D/M.C))+'px' : (sw*M.D)+'px 100%')+';width:'+sw+'px;height:'+(shh || M.h*s)+'px;bottom:'+(M.liso ? (232-shh)/2 : (M.est ? 54.3 : 36)-(M.h-M.g)*s)+'px';
+  B3.p.bn.style.cssText = 'background-image:url(b3/'+M.arq+'.webp?v=198);background-size:'+(M.C ? (sw*M.C)+'px '+(shh*Math.ceil(M.D/M.C))+'px' : (sw*M.D)+'px 100%')+';width:'+sw+'px;height:'+(shh || M.h*s)+'px;bottom:'+(M.liso ? (232-shh)/2 : (M.est ? 54.3 : 36)-(M.h-M.g)*s)+'px';
   el.classList.toggle('b3-liso', !!M.liso); el.classList.toggle('b3-branco', !!M.est); // fundo neutro: o quadro do vídeo vai inteiro, sem recorte
   B3.p.lo.style.backgroundSize = (per/3)+'px 100%';
   if(M.fixo) B3.p.sm.style.cssText = 'width:'+(sw*.9)+'px;margin-left:'+(-sw*.45)+'px;height:15px;bottom:24px';
