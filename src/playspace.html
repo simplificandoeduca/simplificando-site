@@ -1350,6 +1350,17 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .esp-it > .pt, .esp-it > .sv, .esp-it > .en, .esp-it .sv-m { display: none; }   /* só aparecem na lista */
 .esp-it .sel { flex: none; font-style: normal; font-size: 10.5px; font-weight: 800; letter-spacing: .05em; border-radius: 999px; padding: 2px 8px; white-space: nowrap; background: var(--verde-agua-2); color: var(--tinta); border: 1px solid var(--verde-agua); }
 .esp-it .sel.avulso { background: var(--mostarda-2); border-color: var(--mostarda); }
+/* 2.89: o gestor toca na etiqueta para trocar PACOTE / AVULSA */
+.esp-it button.sel { cursor: pointer; font-family: inherit; line-height: inherit; }
+.esp-it button.sel:hover { box-shadow: 0 0 0 2px color-mix(in srgb, var(--tinta) 22%, transparent); }
+.esp-it button.sel.marcado, .esp-it i.sel.marcado { outline: 1.5px dashed color-mix(in srgb, var(--tinta) 45%, transparent); outline-offset: 1px; }
+.esp-it button.sv-m { background: none; border: 0; padding: 0 0 0 4px; margin: 0; font: inherit; color: inherit; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
+.pl-ops { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0 10px; }
+.pl-op { display: flex; gap: 10px; align-items: center; text-align: left; padding: 14px; border-radius: 14px; border: 1.5px solid var(--borda-2); background: var(--card); color: var(--tinta); font: inherit; cursor: pointer; min-height: 64px; }
+.pl-op > i { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--borda-2); display: grid; place-items: center; flex: none; }
+.pl-op b { display: block; font-size: 15px; letter-spacing: .05em; } .pl-op small { display: block; color: var(--apagado); font-size: 12px; margin-top: 2px; }
+.pl-op.on { border-color: var(--ok); background: var(--ok-bg); } .pl-op.on > i { background: var(--ok); border-color: var(--ok); color: #fff; }
+.pl-op[disabled] { opacity: .6; }
 .esp-cab.lst .dias { order: -1; flex: 0 1 auto; min-width: 0; max-width: 100%; }
 .esp-lst { background: var(--card); border: 1px solid var(--borda); border-radius: 20px; box-shadow: var(--sombra); overflow: hidden; }
 .esp-lst .esp-cabec, .esp-lst .esp-it { display: grid; grid-template-columns: 16px minmax(0, 1.6fr) minmax(0, 1fr) minmax(152px, 1.05fr) minmax(108px, .7fr) 52px 96px 100px; grid-template-rows: auto; column-gap: 12px; row-gap: 0; align-items: center; align-content: center; padding: 0 12px 0 18px; }
@@ -2257,7 +2268,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.88';
+const VERSAO = '2.89';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -2605,7 +2616,7 @@ async function carregar() { // devolve true quando algo mudou no servidor
    assinatura do que mandou; a tela devolve a assinatura no pedido seguinte e, sem nada novo, a resposta vem curta ("igual"): nada para
    ler nem para refazer (antes, a cada 30 s e a cada novidade de outro computador, a lista inteira era lida e comparada de novo). A tela
    também acha cada cadastro e cada família num índice (eram milhares de comparações a cada linha desenhada) */
-const CRI_PAD = { obs: '', pacote: 0, usado: 0, entrou: null, idface_id: null, rosto: false, foto: '', ativo: true, liberado: true, sapateira: null, doc: 'cpf', tel2: '', pmin: 0, pcd: false, imp: false, uni: null, obs_antes: '', obs_em: null, obs_por: '', nasc: '', festa: null, vabriu: '', visitas: [], venda: null, atraso: null, uv: 0, vouch: false, idade: 0, rec: '', rec_em: null, rec_por: '' };
+const CRI_PAD = { obs: '', plano_pref: '', pacote: 0, usado: 0, entrou: null, idface_id: null, rosto: false, foto: '', ativo: true, liberado: true, sapateira: null, doc: 'cpf', tel2: '', pmin: 0, pcd: false, imp: false, uni: null, obs_antes: '', obs_em: null, obs_por: '', nasc: '', festa: null, vabriu: '', visitas: [], venda: null, atraso: null, uv: 0, vouch: false, idade: 0, rec: '', rec_em: null, rec_por: '' };
 function aplicarDados(d) { // 1.40: o que veio do servidor (ou o que ficou guardado no aparelho) vira a tela
     // o que muda sozinho a cada contato do aparelho não conta como novidade (senão a tela redesenhava a cada 6 s e "piscava")
     const assinatura = d.sig || JSON.stringify({ ...d, agora: 0, idface: { ...d.idface, segundos: 0, ultimo_contato: 0, ultima_batida: 0, periodo: 0, erro: '', fila: 0 } }); const mudou = assinatura !== ULTIMA_CARGA; ULTIMA_CARGA = assinatura; ULT_SIG = d.sig || '';   /* 2.60: a assinatura vem do servidor */
@@ -6985,6 +6996,31 @@ function alugPrevia() {
 // de onde sai o tempo de quem está no espaço: 'pacote' (ainda tem horas de pacote no saldo) ou 'avulso' (recreação por período, voucher, cobrança por atraso).
 // O servidor manda pronto (c.plano); na prévia a conta é a mesma: o tempo já usado consome as compras na ordem em que foram feitas
 const ehPacoteVenda = v => !v.auto && !v.voucher && minDe(v) > 0 && (v.servico ? /^pacote\b/i.test(String(v.servico).trim()) : !(minDe(v) === 60 && v.itens !== 'seco'));
+/* 2.89 (o dono: "às vezes as meninas lançam errada. O gestor, quando ele clicar em cima do avulso ou pacote, ele tem a opção de mudar
+   para pacote ou para o avulso. Para que no sistema fique certo" e "por mais que na baixa eu possa selecionar pacote avulso, é só para
+   questão de dados ... só o gestor pode fazer"): a etiqueta PACOTE / AVULSA de quem está no espaço vira um botão para o gestor. A troca
+   muda só o dado da visita (a etiqueta, as colunas Horas avulsas / Pacotes e o registro); a cobrança, o relógio e a saída seguem planoDe() */
+const prefPlano = c => !c || !c.entrou || c.festa || !c.plano_pref ? '' : MODO === 'servidor' || +c.plano_pref_em === +c.entrou ? c.plano_pref : '';
+const planoRotulo = c => c.festa ? 'festa' : prefPlano(c) || (planoDe(c) === 'pacote' ? 'pacote' : 'avulso');
+function folhaPlano(id) {
+  const c = crianca(id); if (!c || !c.entrou || c.festa) return; if (!gestor()) { toast('Só o gestor troca PACOTE e AVULSA.'); return; }
+  const ag = planoRotulo(c), op = (v, t, s) => `<button type="button" class="pl-op tap${ag === v ? ' on' : ''}" data-act="plano-ok" data-id="${c.id}" data-v="${v}" aria-pressed="${ag === v}"><i aria-hidden="true">${ag === v ? ic(IC.check, 14, 3) : ''}</i><span><b>${t}</b><small>${s}</small></span></button>`;
+  abrirFolha('Pacote ou avulsa', `<p class="explica"><b>${esc(c.nome)}</b>${c.resp ? ' · ' + esc(c.resp) : ''} está como <b>${ag === 'pacote' ? 'PACOTE' : 'AVULSA'}</b>. Toque para trocar.</p>
+    <div class="pl-ops" role="group" aria-label="Pacote ou avulsa">${op('pacote', 'PACOTE', 'usa as horas do pacote')}${op('avulso', 'AVULSA', 'recreação avulsa')}</div>
+    <p class="explica">Muda só os dados desta visita (a lista e o registro). A cobrança não muda: na saída, a escolha Pacote | Avulso continua igual.</p>`);
+}
+async function planoOk(el) {
+  const c = crianca(+el.dataset.id), v = el.dataset.v === 'pacote' ? 'pacote' : 'avulso'; if (!c || !c.entrou || c.festa) return;
+  if (!gestor()) { toast('Só o gestor troca PACOTE e AVULSA.'); return; }
+  const era = planoRotulo(c), auto = planoDe(c) === 'pacote' ? 'pacote' : 'avulso'; if (v === era) { fecharFolha(); return; }
+  el.disabled = true;
+  try {
+    if (MODO === 'servidor') await api('plano_trocar', { id: c.id, plano: v });
+    else registrar('alt', c.nome, `Gestor trocou a recreação para ${v === 'pacote' ? 'PACOTE' : 'AVULSA'} (era ${era === 'pacote' ? 'PACOTE' : 'AVULSA'}) · só nos dados · por ${MAI(primeiro(EU.nome || 'gestor'))}`);
+    c.plano_pref = v === auto ? '' : v; c.plano_pref_em = +c.entrou;
+    fecharFolha(); desenhar(); deuCerto(`${c.nome}: agora ${v === 'pacote' ? 'PACOTE' : 'AVULSA'}`); if (MODO === 'servidor') carregar().catch(() => {});
+  } catch (e) { toast(e.message); el.disabled = false; }
+}
 function planoDe(c) {
   if (c.festa) return 'festa';   // 1.29: está numa festa (não cobra, não gasta horas)
   if (c.plano) return c.plano; if (c.famMov && MODO !== 'servidor') { const p = periodo(); return pacMin(c) - (c.entrou && c.atraso ? c.atraso.n * p : 0) - (c.usado || 0) > 0 ? 'pacote' : 'avulso'; }   /* 2.11 (prévia): recebeu ou deu horas do CPF */ let resta = c.usado || 0;
@@ -7144,13 +7180,13 @@ const uniMovel = id => { const n = nomeUni(id); return n ? `<i class="un-m${+id 
 // O OBS vermelho só aparece se há observação (o texto fica escondido até alguém tocar). A cobrança por atraso não aparece na linha (0.96):
 // o valor fica só no total, no pagamento da saída, para a equipe não confundir.
 function linhaEspaco(c, fam = 1) {
-  const st = situacaoTempo(c), at = !aberta(c) && c.atraso && c.atraso.n ? c.atraso : null, abre = `data-act="ficha" data-id="${c.id}"`, pl = c.festa ? 'festa' : planoDe(c) === 'pacote' ? 'pacote' : 'avulso', tg = c.festa ? (c.festaPapel === 'aniversariante' ? 'ANIVERSARIANTE' : 'CONVIDADO') : pl === 'pacote' ? 'PACOTE' : 'AVULSA';   // 1.29: na festa
+  const st = situacaoTempo(c), at = !aberta(c) && c.atraso && c.atraso.n ? c.atraso : null, abre = `data-act="ficha" data-id="${c.id}"`, pl = planoRotulo(c), mk = !!prefPlano(c), plBt = gestor() && !c.festa, tg = c.festa ? (c.festaPapel === 'aniversariante' ? 'ANIVERSARIANTE' : 'CONVIDADO') : pl === 'pacote' ? 'PACOTE' : 'AVULSA';   // 1.29: na festa
   return `<div class="esp-it ${st}${at ? ' cobranca' : ''}${S.chegou === c.id ? ' chegou' : ''}" data-esp="${c.id}">
     <button class="quem tap" ${abre} aria-label="Abrir a comanda de ${esc(c.resp || c.nome)}${c.resp ? ', criança ' + esc(c.nome) : ''}"></button>
     <i class="pt" aria-hidden="true"></i>
     <span class="l2" ${abre} title="Responsável${fam > 1 ? ' · ' + fam + ' juntos' : ''}"><span class="l2-n">${fam > 1 ? `<i class="elo">${ic(IC.elo, 11, 2.6)}</i>` : ''}${esc(c.resp || 'sem responsável')}</span>${recLista(c)}${notaIc(c)}</span>
-    <span class="l1" ${abre} title="Criança"><b>${esc(c.nome)}</b><i class="sv-m"> · ${c.festa ? 'FESTA' : tg}</i>${uniMovel(c.uni)}${c.obs ? `<button type="button" class="obs obs-bt on mini tap" data-act="obs-ver" data-id="${c.id}" title="Tem observação: toque para ver" aria-label="Ver a observação de ${esc(c.nome)}">OBS</button>` : ''}</span>
-    <span class="sv" ${abre}><span>${c.festa ? 'FESTA' : esc((servicoTempo() || { n: 'RECREAÇÃO' }).n)}</span><i class="sel ${pl}">${tg}</i></span>
+    <span class="l1" ${abre} title="Criança"><b>${esc(c.nome)}</b>${plBt ? `<button type="button" class="sv-m tap" data-act="plano-trocar" data-id="${c.id}" title="Trocar PACOTE / AVULSA (gestor)">· ${tg}</button>` : `<i class="sv-m"> · ${c.festa ? 'FESTA' : tg}</i>`}${uniMovel(c.uni)}${c.obs ? `<button type="button" class="obs obs-bt on mini tap" data-act="obs-ver" data-id="${c.id}" title="Tem observação: toque para ver" aria-label="Ver a observação de ${esc(c.nome)}">OBS</button>` : ''}</span>
+    <span class="sv" ${abre}><span>${c.festa ? 'FESTA' : esc((servicoTempo() || { n: 'RECREAÇÃO' }).n)}</span>${plBt ? `<button type="button" class="sel ${pl}${mk ? ' marcado' : ''} tap" data-act="plano-trocar" data-id="${c.id}" title="${mk ? 'Marcado pelo gestor · ' : ''}Toque para trocar PACOTE / AVULSA" aria-label="${tg}: trocar para pacote ou avulsa">${tg}</button>` : `<i class="sel ${pl}${mk ? ' marcado' : ''}"${mk ? ' title="Marcado pelo gestor"' : ''}>${tg}</i>`}</span>
     ${celUnidade(c.uni, abre)}
     <span class="en num" ${abre}>${hora(c.entrou)}</span>
     <b class="num tmp" ${abre} data-esp-t title="${subEspaco(c)}">${hms(segDentro(c))}</b>
@@ -7686,7 +7722,7 @@ function listaEspaco(L) {
 // 0.91: a tela inicial "por serviço": três colunas com título e contagem, tudo à vista de uma vez, sem filtro para tocar.
 // Horas avulsas e Pacotes (quem está na recreação) e Fora da loja (o que saiu e ainda não voltou, separado por serviço).
 function colunasEspaco(L) {
-  const st = servicoTempo(), rec = st ? st.n : 'RECREAÇÃO', cr = L.filter(x => !x.a), fora = L.filter(x => x.a), av = cr.filter(x => planoDe(x.c) !== 'pacote'), pa = cr.filter(x => planoDe(x.c) === 'pacote');
+  const st = servicoTempo(), rec = st ? st.n : 'RECREAÇÃO', cr = L.filter(x => !x.a), fora = L.filter(x => x.a), av = cr.filter(x => planoRotulo(x.c) !== 'pacote'), pa = cr.filter(x => planoRotulo(x.c) === 'pacote');   /* 2.89: a marca do gestor */
   const linhas = I => gruposEspaco(I).map(g => g.length > 1 ? `<div class="esp-fam" role="group" aria-label="${g.length} linhas de ${esc(g[0].c.resp)}, juntas">${g.map(x => linhaItem(x, g.length)).join('')}</div>` : linhaItem(g[0])).join('');
   const col = (id, icone, peq, tit, n, dentro, vazio) => `<section class="esp-col" data-col="${id}" aria-label="${esc(peq)}: ${esc(tit)}, ${n}"><header><i aria-hidden="true">${ic(icone, 18, 2.3)}</i><div><small>${esc(peq)}</small><b>${esc(tit)}</b></div><span class="n num">${n}</span></header>${dentro || `<p class="esp-vazio">${vazio}</p>`}</section>`;
   const sv = servicosVolta(), ids = [...new Set([...sv.map(x => x.id), ...fora.map(x => x.a.s)])], nomeSv = id => (servicoDe(id) || { n: (fora.find(x => x.a.s === id) || { a: { n: id } }).a.n }).n;
@@ -10984,6 +11020,7 @@ const ACOES = {
   reabrir: el => folhaReabrir(+el.dataset.id),
   'cliente-atender': el => { const id = +el.dataset.id; if (!crianca(id)) return; const pre = CAD_PRE; cadastroFeito(); fecharFolha(); setTimeout(() => atender(id, false, pre), 260); },   /* a criança já está salva: larga o cadastro novo e vai direto para o atendimento dela */
   'pcd-ficha': el => folhaPcd(+el.dataset.id), 'pcd-ok': el => pcdSalvar(el),   /* 2.56 */
+  'plano-trocar': el => folhaPlano(+el.dataset.id), 'plano-ok': el => planoOk(el),   /* 2.89 */
   'obs-ver': el => { const c = crianca(el.dataset.id); if (c && c.obs) toast(`${c.nome}: ${c.obs}`, () => folhaFicha(c.id), 'Ficha'); },   /* o OBS da lista: o texto aparece só com o toque, no aviso do pé da tela */
   'obs-abre': el => { const cx = el.closest('.obs-cx'), c = crianca(el.dataset.id), corpo = cx && $('.obs-corpo', cx), bt = cx && $('.obs-bt', cx); if (!c || !corpo) return;
     const abre = corpo.hidden || el !== bt && !el.closest('.obs-corpo') ; corpo.hidden = !abre; if (bt) bt.setAttribute('aria-expanded', abre); cx.classList.toggle('aberta', abre);

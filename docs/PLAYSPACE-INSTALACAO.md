@@ -1301,6 +1301,19 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O gestor troca PACOTE / AVULSA na lista (2.89)
+
+Pedido do dono (27/11): "às vezes as meninas lançam errada. O gestor, quando ele clicar em cima do avulso ou pacote, ele tem a opção de mudar para pacote ou para o avulso. Para que no sistema fique certo." E depois: "é só para questão de dados ... só o gestor pode fazer."
+
+- Em "No espaço agora", com o login do gestor, a etiqueta PACOTE / AVULSA ao lado de RECREAÇÃO é um botão (no celular, o "· PACOTE" ao lado do nome da criança).
+- O toque abre a folha "Pacote ou avulsa": PACOTE ou AVULSA (a de agora vem marcada). Um toque troca e a folha fecha.
+- Muda só o dado desta visita: a etiqueta da lista, as colunas Horas avulsas / Pacotes e o registro ("Gestor trocou a recreação para AVULSA (era PACOTE) · só nos dados · por NOME").
+- A cobrança não muda: o relógio, as horas do pacote e a saída continuam iguais. Na saída, a escolha Pacote | Avulso continua lá, como sempre.
+- A etiqueta trocada pelo gestor fica com um contorno tracejado. Voltar para o que o sistema já dizia tira a marca.
+- A marca vale só para aquela visita: na próxima entrada a criança volta ao normal.
+- A atendente vê a etiqueta como antes, sem o botão. O servidor recusa a troca de quem não é gestor.
+- Servidor: colunas novas criancas.plano_pref e plano_pref_em (versão 58 do banco, criadas sozinhas); ação plano_trocar (só o gestor).
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A última compra de horas no Histórico (2.88)
 
 Pedido do dono (27/11): "no Horas Compradas, eu quero que sempre apareça a última hora que o cliente comprou ... fica mais fácil pra gente visualizar."

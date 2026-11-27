@@ -78,7 +78,7 @@ if (is_array($in['offline'] ?? null)) {
 const CRI_PADRAO = ['obs' => '', 'pacote' => 0.0, 'usado' => 0, 'entrou' => null, 'idface_id' => null, 'rosto' => false, 'foto' => '', 'ativo' => true, 'liberado' => true, 'sapateira' => null, 'doc' => 'cpf', 'tel2' => '', 'pmin' => 0, 'pcd' => false, 'imp' => false, 'uni' => null, 'obs_antes' => '', 'obs_em' => null, 'obs_por' => '', 'nasc' => '', 'festa' => null, 'vabriu' => '', 'visitas' => [], 'venda' => null, 'atraso' => null, 'uv' => 0, 'vouch' => false, 'idade' => 0, 'rec' => '', 'rec_em' => null, 'rec_por' => ''];
 function criancasEnxutas(array $L): array { foreach ($L as $i => $c) foreach (CRI_PADRAO as $k => $p) if (array_key_exists($k, $c) && $c[$k] === $p) unset($L[$i][$k]); return $L; }
 function criancaPublica(array $c): array {
-  return ['id' => (int)$c['id'], 'nome' => $c['nome'], 'idade' => (int)$c['idade'], 'resp' => $c['resp'], 'rel' => $c['rel'], 'tel' => $c['tel'], 'cpf' => $c['cpf'], 'obs' => $c['obs'],
+  return ['id' => (int)$c['id'], 'nome' => $c['nome'], 'plano_pref' => planoPreferido($c), 'idade' => (int)$c['idade'], 'resp' => $c['resp'], 'rel' => $c['rel'], 'tel' => $c['tel'], 'cpf' => $c['cpf'], 'obs' => $c['obs'],
     'pacote' => round((int)$c['pacote_min'] / 60, 2), 'usado' => (int)$c['usado_min'], 'entrou' => $c['entrou'], 'idface_id' => $c['idface_id'] === null ? null : (int)$c['idface_id'],
     'rosto' => !empty($c['rosto']) || $c['idface_id'] !== null, 'foto' => (string)$c['foto'], 'ativo' => (bool)$c['ativo'], 'liberado' => !isset($c['liberado']) || (bool)$c['liberado'], 'sapateira' => isset($c['sapateira']) && $c['sapateira'] !== null ? (int)$c['sapateira'] : null,
     'doc' => ($c['doc_tipo'] ?? 'cpf') === 'rne' ? 'rne' : 'cpf', 'tel2' => (string)($c['tel2'] ?? ''), 'pmin' => (int)$c['pacote_min'], 'pcd' => !empty($c['pcd']), 'imp' => (string)($c['lote'] ?? '') !== '', 'uni' => isset($c['unidade_id']) && $c['unidade_id'] !== null ? (int)$c['unidade_id'] : null,
@@ -1125,6 +1125,16 @@ switch ($acao) {
     $db->prepare("UPDATE registros SET texto = texto || ' · desfeito' WHERE id = ?")->execute([(int)$g['id']]);
     registrar('alt', (int)$c['id'], (string)$c['nome'], 'Ajuste desfeito: ' . ($m > 0 ? '+' : '−') . dur(abs($m)) . ' (de ' . substr((string)$g['quando'], 8, 2) . '/' . substr((string)$g['quando'], 5, 2) . ') · ' . $mot . ' · por ' . maiusculo(primeiroNome((string)$u['nome'])));
     responder(['saldo' => $saldo - $m]);
+  }
+  case 'plano_trocar': { /* 2.89 (o dono: "o gestor, quando clicar em cima do avulso ou pacote, tem a opção de mudar ... é só para questão de dados ... só o gestor pode fazer") */
+    $u = exigir(['gestor']);
+    $c = crianca((int)($in['id'] ?? 0)); if (!$c || empty($c['entrou'])) falha('Esta criança não está no espaço agora.', 404);
+    if (!empty($c['festa_id'])) falha('Na festa não há pacote nem avulso.', 409);
+    $p = (string)($in['plano'] ?? ''); if ($p !== 'pacote' && $p !== 'avulso') falha('Escolha PACOTE ou AVULSA.');
+    $auto = planoDaCrianca($c) === 'pacote' ? 'pacote' : 'avulso'; $era = planoPreferido($c) ?: $auto;
+    $db->prepare('UPDATE criancas SET plano_pref = ?, plano_pref_em = ? WHERE id = ?')->execute([$p === $auto ? '' : $p, $p === $auto ? null : (string)$c['entrou'], (int)$c['id']]);   /* voltar ao que o sistema já dizia tira a marca */
+    if ($p !== $era) registrar('alt', (int)$c['id'], (string)$c['nome'], 'Gestor trocou a recreação para ' . ($p === 'pacote' ? 'PACOTE' : 'AVULSA') . ' (era ' . ($era === 'pacote' ? 'PACOTE' : 'AVULSA') . ') · só nos dados · por ' . maiusculo(primeiroNome((string)$u['nome'])));
+    responder(['plano' => $p, 'marcado' => $p !== $auto]);
   }
   case 'venda_horas': { // 1.55: o gestor corrige as horas de um pacote (lançado errado), com o motivo
     $u = exigir(['gestor']); responder(alterarHorasVenda((int)($in['venda'] ?? 0), (int)($in['minutos'] ?? -1), mb_substr(maiusculo(trim((string)($in['motivo'] ?? ''))), 0, 200), $u));

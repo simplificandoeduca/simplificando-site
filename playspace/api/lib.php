@@ -542,6 +542,10 @@ function db(): PDO {
     foreach (["ALTER TABLE criancas ADD COLUMN recado TEXT NOT NULL DEFAULT ''", 'ALTER TABLE criancas ADD COLUMN recado_em TEXT', "ALTER TABLE criancas ADD COLUMN recado_por TEXT NOT NULL DEFAULT ''"] as $sql) { try { $pdo->exec($sql); } catch (Throwable $e) { } }
     $pdo->exec('PRAGMA user_version = 57');
   }
+  if ($v < 58) { /* 2.89: o gestor troca PACOTE / AVULSA de quem está no espaço (só o dado; vale para a visita que começou em plano_pref_em) */
+    foreach (["ALTER TABLE criancas ADD COLUMN plano_pref TEXT NOT NULL DEFAULT ''", 'ALTER TABLE criancas ADD COLUMN plano_pref_em TEXT'] as $sql) { try { $pdo->exec($sql); } catch (Throwable $e) { } }
+    $pdo->exec('PRAGMA user_version = 58');
+  }
   return $pdo;
 }
 /* ---------- 1.06: unidades ---------- */
@@ -1302,7 +1306,7 @@ function modoManual(): bool { $c = cfg('idface', null); return is_array($c) && a
 function fazerEntrada(array $c, string $origem = 'iDFace', ?string $quando = null, ?int $festa = null, string $vend = ''): array {   /* $vend (1.68): quem abriu o pedido (vazio = não se sabe: o iDFace, a festa) */   // $festa (1.29): a festa em que a criança entra (a visita não cobra nem gasta horas)
   $GLOBALS['PS_ENTRA_AQUI'] = true;   /* 2.62: a entrada é deste aparelho (o gestor também) */
   $db = db(); $quando = $quando ?: agora();
-  $db->prepare('UPDATE criancas SET entrou = ?, unidade_id = ?, festa_id = ?, vend_abriu = ? WHERE id = ?')->execute([$quando, unidadeDoPedido(), $festa ?: null, $vend, $c['id']]);   // 1.06: a unidade do aparelho em que a entrada foi dada (o iDFace não diz: fica sem)
+  $db->prepare("UPDATE criancas SET entrou = ?, unidade_id = ?, festa_id = ?, vend_abriu = ?, plano_pref = '' WHERE id = ?")->execute([$quando, unidadeDoPedido(), $festa ?: null, $vend, $c['id']]);   // 1.06: a unidade do aparelho em que a entrada foi dada (o iDFace não diz: fica sem)
   $c['entrou'] = $quando; $c['unidade_id'] = unidadeDoPedido(); $c['festa_id'] = $festa ?: null; $c['vend_abriu'] = $vend;
   $fh = !$festa ? horasDaFamiliaNaEntrada(crianca((int)$c['id'])) : null;   /* 2.11: as horas do CPF vão com a criança */
   $reg = registrar('ent', (int)$c['id'], $c['nome'], $origem === 'iDFace' ? 'Rosto reconhecido na entrada' : (modoManual() ? 'Entrada registrada' : 'Entrada registrada à mão'), $quando);
@@ -1322,6 +1326,11 @@ function fazerEntrada(array $c, string $origem = 'iDFace', ?string $quando = nul
 // É chamada a cada pulso das telas abertas (para quem ainda está no espaço) e de novo na saída. Devolve as vendas criadas.
 const ITENS_AVULSA = 'avulsa';
 const ITENS_ALEM = 'além do pacote';
+/* 2.89: PACOTE / AVULSA que o gestor marcou para a visita em curso ('' = não marcou, ou foi em outra visita). É só o dado: a cobrança segue planoDaCrianca() */
+function planoPreferido(array $c): string {
+  $p = (string)($c['plano_pref'] ?? '');
+  return ($p === 'pacote' || $p === 'avulso') && !empty($c['entrou']) && empty($c['festa_id']) && (string)($c['plano_pref_em'] ?? '') === (string)$c['entrou'] ? $p : '';
+}
 // de onde sai o tempo desta criança agora: 'pacote' ou 'avulso' (a mesma conta de planosDoEspaco(), para uma criança só)
 function planoDaCrianca(array $c): string {
   $pf = planoPelasHoras($c); if ($pf !== null) return $pf;   /* 2.11 */
