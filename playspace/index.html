@@ -2268,7 +2268,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.80';
+const VERSAO = '2.81';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -9119,10 +9119,9 @@ async function nflPdfCarregar() {
   const x = NFL; if (!x || !x.feito) return; const n = x.feito.nota;
   if (!n.chave) { x.pdf = { st: 'erro', msg: `A nota nº ${n.numero} não tem o PDF oficial (não saiu pelo Emissor Nacional). Veja no Play Space Notas.` }; nflPdfPinta(); return; }
   const t0 = Date.now(), eu = x.pdf = { st: 'carregando', t0 }; nflPdfPinta();
-  try { let b = null, comp = false; for (;;) { b = await nfPdfBaixa(n, x.feito.emp, 1); if (NFL !== x || x.pdf !== eu) return; if (b || Date.now() - t0 > 45000) break; await espera(4000); if (NFL !== x || x.pdf !== eu) return; }   /* 2.68: até 45 s, com o relógio */
-    if (!b) { try { b = await nfComprovantePdf(n, x.feito.ed); comp = true; } catch (e) { b = null; } if (NFL !== x || x.pdf !== eu) return; }   /* 2.59 */
+  try { let b = null, comp = true; try { b = await nfComprovantePdf(n, x.feito.ed); } catch (e) { b = null; } if (NFL !== x || x.pdf !== eu) return;   /* 2.81: o comprovante na hora, sem buscar o PDF oficial no governo */
     x.pdf = b ? { st: 'ok', comp, url: URL.createObjectURL(b), arquivo: new File([b], `NFS-e ${n.numero} - ${n.clienteNome || ''}`.replace(/[\\/:*?"<>|]+/g, ' ').trim() + '.pdf', { type: 'application/pdf' }) }
-      : { st: 'erro', msg: `O governo ainda não liberou o PDF da nota nº ${n.numero}. Espere uns segundos e toque em Tentar de novo.` }; }
+      : { st: 'erro', msg: `A nota nº ${n.numero} não carregou. Toque em Tentar de novo.` }; }
   catch (e) { if (NFL !== x) return; x.pdf = { st: 'erro', msg: e.status === 401 ? 'Entre no Play Space Notas neste computador para ver a nota.' : 'A nota não carregou: ' + (e.message || 'tente de novo.') }; }
   nflPdfPinta();
 }
@@ -9388,7 +9387,7 @@ async function nfComprovantePdf(n, e) {
   cor(C.cinza); doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.text('Play Space · comprovante da NFS-e', 12, 287); doc.text('Página 1 de 1', 198, 287, { align: 'right' });
   return doc.output('blob');
 }
-const nfCompAviso = act => `<p class="explica nf-comp">O governo ainda não entregou o PDF oficial: este é o <b>comprovante da nota emitida</b> (com a chave de acesso e o QR da consulta no site do governo), feito aqui. <button type="button" class="link tap" data-act="${act}">Buscar o PDF oficial de novo</button></p>`;
+const nfCompAviso = () => `<p class="explica nf-comp">A nota emitida, com a chave de acesso. O QR abre a nota no site do governo.</p>`;   /* 2.81: sem buscar o PDF oficial */
 async function nfPdfBaixa(n, emp, vezes = 3) {   /* o PDF oficial pelo Notas (na empresa da nota); o governo leva uns segundos para liberar logo depois de emitir */
   let ponte = 0;
   const pega = async () => { const r = await fetch('/notas/api/api.php?acao=danfse&id=' + encodeURIComponent(n.id) + (emp ? '&_empresa=' + emp.id : ''), { credentials: 'same-origin', cache: 'no-store' });
@@ -9428,29 +9427,16 @@ async function nfPdfCarregar(v) {
     }
     if (!n) { NFPDF = { venda, num, st: 'semnota', msg: `Não achei a nota${p.numero ? ' nº ' + p.numero : ''} no Play Space Notas${emp ? ' (' + emp.apelido.toUpperCase() + ')' : ''}. Confira o número (o gestor corrige aqui embaixo) ou abra o Notas.` }; nfPdfPinta(venda); return; }
     if (!n.chave) { NFPDF = { venda, num, st: 'semnota', msg: `A nota nº ${n.numero} não tem o PDF oficial (não saiu pelo Emissor Nacional).` }; nfPdfPinta(venda); return; }
-    diz(`O governo está liberando o PDF da nota nº ${n.numero}…`);
-    let blob = null, comp = false, voando = null;
-    if (feita) { voando = nfPdfBaixa(n, emp, 1).catch(() => null); blob = await Promise.race([voando, espera(4000).then(() => null)]); if (!vale()) return; if (blob) voando = null; }   /* 2.80: o PDF oficial tem 4 s; senão, o comprovante na hora, e o oficial continua chegando por trás */
-    else for (;;) { blob = await nfPdfBaixa(n, emp, 1); if (!vale()) return; if (blob || Date.now() - t0 > LIM) break; await espera(4000); if (!vale()) return; }
-    if (!blob) { try { blob = await nfComprovantePdf(n, N.empresa); comp = true; } catch (e) { blob = null; } if (!vale()) return; }   /* 2.59: o governo não entregou: o comprovante */
-    if (!blob) { NFPDF = { venda, num, st: 'erro', msg: `O governo ainda não liberou o PDF da nota nº ${n.numero}. Espere uns segundos e toque em Tentar de novo.` }; nfPdfPinta(venda); return; }
+    /* 2.81 (o dono: "esse tempo também, buscando o PDF do governo, pode tirar. Porque quando eu escaneio, eu já consigo abrir o PDF do
+       governo"): sem buscar o PDF oficial no governo: a nota aparece na hora como o comprovante (a chave de acesso e o QR, que abre a nota
+       no site do governo) */
+    let blob = null; try { blob = await nfComprovantePdf(n, N.empresa); } catch (e) { blob = null; } if (!vale()) return;
+    if (!blob) { NFPDF = { venda, num, st: 'erro', msg: `A nota nº ${n.numero} não carregou${navigator.onLine === false ? ' (sem internet)' : ''}. Toque em Tentar de novo.` }; nfPdfPinta(venda); return; }
     const nome = `NFS-e ${n.numero} - ${n.clienteNome || ''}`.replace(/[\\/:*?"<>|]+/g, ' ').trim() + '.pdf';
-    NFPDF = { venda, num, st: 'ok', nota: n, emp, comp, busca: comp ? Date.now() : 0, url: URL.createObjectURL(blob), arquivo: new File([blob], nome, { type: 'application/pdf' }) }; nfPdfPinta(venda);
-    if (comp) nfPdfDepois(NFPDF, voando);
+    NFPDF = { venda, num, st: 'ok', nota: n, emp, comp: true, busca: 0, url: URL.createObjectURL(blob), arquivo: new File([blob], nome, { type: 'application/pdf' }) }; nfPdfPinta(venda);
   } catch (e) { if (!vale()) return; NFPDF = e.status === 401 ? { venda, num, st: 'login' } : { venda, num, st: 'erro', msg: 'A nota não carregou: ' + (e.message || 'tente de novo.') }; nfPdfPinta(venda); }
 }
-/* 2.68: com o comprovante na tela, continua buscando o PDF oficial de 15 em 15 s por até 5 min; chegou, troca sozinho (e avisa) */
-async function nfPdfDepois(x, voando) {
-  const troca = b => { if (!b || NFPDF !== x) return false; URL.revokeObjectURL(x.url); NFPDF = { ...x, comp: false, busca: 0, url: URL.createObjectURL(b), arquivo: new File([b], x.arquivo.name, { type: 'application/pdf' }) }; nfPdfPinta(x.venda); toast('Chegou o PDF oficial da nota nº ' + x.nota.numero); return true; };
-  if (voando) { let b = null; try { b = await voando; } catch (e) { b = null; } if (troca(b) || NFPDF !== x) return; }   /* 2.80: o pedido do oficial que já estava indo */
-  const ate = Date.now() + 300000, aberta = () => NF && NF.id === x.venda && !!$('#nf-pdf');   /* 2.80: só com a folha da nota aberta (o Notas atende um pedido por vez: a busca por trás não atrasa a próxima nota) */
-  while (NFPDF === x && Date.now() < ate && aberta()) {
-    await espera(Date.now() - (x.busca || 0) < 60000 ? 5000 : 15000); if (NFPDF !== x || !aberta()) break;   /* 2.80: no primeiro minuto, de 5 em 5 s */
-    let b = null; try { b = await nfPdfBaixa(x.nota, x.emp, 1); } catch (e) { b = null; } if (NFPDF !== x) return;
-    if (troca(b)) return;
-  }
-  if (NFPDF === x) { x.busca = 0; nfPdfPinta(x.venda); }
-}
+/* (2.81: sem a busca do PDF oficial por trás) */
 function nfPdfSalvar() { const x = NF && NFPDF && NFPDF.venda === NF.id && NFPDF.st === 'ok' ? NFPDF : null; if (!x) return false;
   const a = document.createElement('a'); a.href = x.url; a.download = x.arquivo.name; document.body.appendChild(a); a.click(); a.remove(); return true; }
 function nfPdfImprimir() { const x = NF && NFPDF && NFPDF.venda === NF.id && NFPDF.st === 'ok' ? NFPDF : null; if (!x) return;
