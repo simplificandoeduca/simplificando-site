@@ -2270,7 +2270,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.84';
+const VERSAO = '2.85';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -7437,7 +7437,7 @@ const linhaFim = (x, varias) => { const c = crianca(x.crianca), u = varias && x.
    Tocar abre a nota da compra (com mais de uma compra na linha, escolhe qual). Com alguém da família ainda no espaço (ou um carrinho fora),
    o cadeado: a nota sai quando o cliente for finalizado */
 const nfConta = ids => { const L = [...new Set(ids || [])]; return { n: L.length, e: L.filter(i => { const v = (S.compras || []).find(x => x.id === i); return !!v && (nfDaVenda(v) || {}).status === 'usado'; }).length, v: L }; };
-const nfFimBt = x => { const c = crianca(x.crianca), f = x.nf; if (!c || !f || !(f.n > 0) || fimDaCasaTom(x)) return ''; const ok = f.e >= f.n, trava = !ok && emAtendimento(c);
+const nfFimBt = x => { const c = crianca(x.crianca), f = x.nf; if (!c || !f || !(f.n > 0) || fimDaCasaTom(x) || nfUniBloq(x.uni || c.uni)) return '';   /* 2.85: a Anália sem a NF */ const ok = f.e >= f.n, trava = !ok && emAtendimento(c);
   return `<button type="button" class="fim-nf tap ${ok ? 'ok' : 'falta'}" data-act="nf-fim" data-id="${c.id}" data-v="${(f.v || []).join(',')}" title="${ok ? 'Nota fiscal emitida: toque para ver, imprimir ou enviar' : trava ? NF_TRAVA_MSG : 'Nota fiscal não emitida: toque para emitir'}">${ok ? ic(IC.check, 14) : trava ? ic(IC.cadeado, 14) : ic(IC.cupom, 14)}NF${!ok && f.e > 0 ? ' ' + f.e + '/' + f.n : ''}</button>`; };
 const dpFim = x => x.dp != null ? +x.dp || 0 : (x.valor > 0 ? 0 : +x.deb || 0);   /* 2.44: as horas do pacote que a saída usou */
 const lixoFim = (k, dados) => gestor() ? `<button type="button" class="fim-lixo tap" data-act="fim-excluir" data-k="${k}" ${dados} title="Excluir (lançado errado) · só o gestor" aria-label="Excluir (lançado errado)">${ic(IC.lixo, 18)}</button>` : '';
@@ -8916,7 +8916,12 @@ async function largarDesconto() { // cancela o pedido que esperava, ou tira o de
 let NF = null;   // a folha da nota aberta: { id (a venda), cid }
 const nfDaVenda = v => MODO === 'servidor' ? v.nf || null : (S.pedidos || []).filter(p => p.tipo === 'nf' && p.venda === v.id && p.status !== 'cancelado').sort((a, b) => b.id - a.id)[0] || null;
 const cvDaVenda = v => MODO === 'servidor' ? v.cv || null : (S.pedidos || []).find(p => p.tipo === 'cancelar_venda' && p.venda === v.id && p.status === 'pendente') || null;
-const temNF = v => !!v && !v.imp && v.v > 0.004 && !(v.auto && doDia(v.quando) && (crianca(v.crianca) || {}).entrou);   // a nota é da compra com valor. 2.55: a recreação avulsa também (com a criança ainda no espaço, só depois da saída: a conta fecha lá)
+/* 2.85 (o dono: "no Anália não pode estar liberada a opção de nota fiscal das meninas, porque o CNPJ delas é outro ... pode tirar da
+   unidade Anália Franco a parte de nota fiscal"): a compra da Anália Franco (e da Casa Tom Anália) não tem a nota fiscal no Play Space:
+   sem o NF do histórico, sem o NF dos Finalizados do dia e sem a "Nota com outro valor" (o servidor também recusa) */
+const NF_ANALIA_MSG = 'Na Anália Franco a nota fiscal não sai pelo Play Space (é outro CNPJ).';
+const nfUniBloq = un => { const u = un ? unidadeDe(un) : null; return !!u && String(u.nome || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().includes('analia'); };
+const temNF = v => !!v && !v.imp && v.v > 0.004 && !(v.auto && doDia(v.quando) && (crianca(v.crianca) || {}).entrou) && !nfUniBloq(v.un || v.uni);   // a nota é da compra com valor. 2.55: a recreação avulsa também (com a criança ainda no espaço, só depois da saída: a conta fecha lá)
 const podePedirCancelamento = v => !podeEstornar() && !!v && !v.auto && (MODO === 'servidor' ? !!v.canc : !v.imp && agora - v.quando <= VENDA_CANCELA_DIAS * 86400000);
 const chipNF = v => { if (!temNF(v)) return ''; const p = nfDaVenda(v), e = p ? p.status : '';
   const [cls, txt] = e === 'usado' ? ['ok', 'NF ' + (p.numero ? 'nº ' + esc(p.numero) : 'emitida')] : e === 'liberado' ? ['lib', 'NF a emitir'] : e === 'pendente' ? ['esp', 'NF pedida'] : e === 'negado' ? ['nao', 'NF negada'] : ['', 'NF'];
@@ -9029,10 +9034,10 @@ async function nfDaFicha(cid, vids) {   /* 2.60: vids = as compras da linha dos 
    da compra. Em produção ela fica guardada (nf_livre): entra nas notas do dia e no histórico do cliente. O código da nota no Notas é fixo
    enquanto a folha está aberta: tocar de novo nunca emite duas */
 let NFL = null;
-const nflLink = c => S.balcao && c.id === S.balcao.id ? '' : `<button type="button" class="link tap" data-act="nf-livre" data-id="${c.id}" style="display:block;margin:10px auto 0">Nota com outro valor (ex.: horas que vieram do sistema anterior)</button>`;
+const nflLink = c => (S.balcao && c.id === S.balcao.id) || nfUniBloq(minhaUni() || c.uni) ? '' :   /* 2.85 */ `<button type="button" class="link tap" data-act="nf-livre" data-id="${c.id}" style="display:block;margin:10px auto 0">Nota com outro valor (ex.: horas que vieram do sistema anterior)</button>`;
 const docNF = d => d.length === 11 ? d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : d.length === 14 ? d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5') : d;
 function folhaNFLivre(cid) {
-  const c = crianca(cid); if (!c) return; if (nfTravada(c)) { toast(NF_TRAVA_MSG); return; }   /* 2.58 */ if (document.querySelector('#folha .folha-fundo')) fecharFolha();
+  const c = crianca(cid); if (!c) return; if (nfTravada(c)) { toast(NF_TRAVA_MSG); return; }   /* 2.58 */ if (nfUniBloq(minhaUni() || c.uni)) { toast(NF_ANALIA_MSG); return; }   /* 2.85 */ if (document.querySelector('#folha .folha-fundo')) fecharFolha();
   if (NFL && NFL.pdf && NFL.pdf.url) URL.revokeObjectURL(NFL.pdf.url);
   NF = null; NFL = { cid: c.id, id: 'psl' + c.id + 'x' + notasId(), un: minhaUni() || c.uni || 0 };
   abrirFolha('Nota fiscal · outro valor', `<div id="nfl-corpo" style="display:flex;flex-direction:column;gap:12px">${nflHtml(c)}</div>`); nflPreparar();
@@ -9064,7 +9069,7 @@ async function nflPreparar() {
   catch (e) { /* (o Notas responde de novo na hora de emitir) */ }
 }
 async function emitirNFLivre(el) {
-  const x = NFL, c = x && crianca(x.cid); if (!c || x.indo || x.feito) return; if (nfTravada(c)) { toast(NF_TRAVA_MSG); return; }   /* 2.58 */
+  const x = NFL, c = x && crianca(x.cid); if (!c || x.indo || x.feito) return; if (nfTravada(c)) { toast(NF_TRAVA_MSG); return; }   /* 2.58 */ if (nfUniBloq(x.un)) { toast(NF_ANALIA_MSG); return; }   /* 2.85 */
   const nome = MAI(val('nfl-nome')).trim().slice(0, 120), dg = soDig(val('nfl-doc')), email = (($('#nfl-email') || {}).value || '').trim(), desc = (($('#nfl-desc') || {}).value || '').replace(/\s+/g, ' ').trim().slice(0, 200), valor = centavos(numero(($('#nfl-valor') || {}).value));
   const foco = id => { const i = $('#' + id); if (i) i.focus(); };
   if (!nome) { toast('Escreva em nome de quem a nota sai'); foco('nfl-nome'); return; }
@@ -9631,7 +9636,7 @@ async function nfPreparar(venda) {
 const notasId = () => (Date.now().toString(36) + Math.random().toString(36).slice(2, 7)).replace(/[^a-z0-9]/g, '');
 async function emitirNFDireto() {
   const v = NF && LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === NF.id), p = v && nfDaVenda(v), c = v && crianca(v.crianca);
-  if (!v || !p || !c || p.status === 'usado') return; if (nfTravada(c)) { toast(NF_TRAVA_MSG); return; }   /* 2.58 */
+  if (!v || !p || !c || p.status === 'usado') return; if (nfTravada(c)) { toast(NF_TRAVA_MSG); return; }   /* 2.58 */ if (nfUniBloq(v.un || v.uni)) { toast(NF_ANALIA_MSG); return; }   /* 2.85 */
   if (MODO !== 'servidor') { toast('Na prévia a nota não sai: no sistema de verdade ela é emitida na hora pelo Play Space Notas'); return; }
   if (NF_EMITINDO) return; NF_EMITINDO = v.id; NF_MSG = null; nfMsg(v.id, 'emitindo', 'Enviando a nota ao governo (Emissor Nacional). Ele costuma responder em alguns segundos…');   /* 2.68: com o relógio */
   const pt = nfPonte(v, c, p.dados || {}), docL = x => String(x == null ? '' : x).toUpperCase().replace(/[^0-9A-Z]/g, '');

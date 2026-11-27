@@ -1301,6 +1301,18 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A Anália Franco sem a nota fiscal (2.85)
+
+Pedido do dono (27/11): "no Anália não pode estar liberada a opção de nota fiscal das meninas, porque o CNPJ delas é outro. Eu tinha esquecido disso. Então pode tirar da unidade Anália Franco a parte de nota fiscal."
+
+- A compra feita na Anália Franco (e na Casa Tom Anália) não tem mais a nota fiscal no Play Space, para ninguém:
+  - sem o botão NF nos Finalizados do dia;
+  - sem o NF da compra no Histórico do cliente (a folha da nota não abre);
+  - sem a "Nota com outro valor" no computador da Anália (ou para o cliente da Anália).
+- O servidor também recusa: o pedido de nota de uma compra da Anália e a nota com outro valor da Anália voltam com "Na Anália Franco a nota fiscal não sai pelo Play Space (é outro CNPJ)".
+- O Morumbi continua igual: a nota sai pelo Emitir, como antes.
+- A unidade é conhecida pelo nome (tem "Anália"). Se um dia a Anália passar a tirar a nota por aqui, é uma troca simples.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O saldo de horas no alto do Histórico (2.84)
 
 Pedido do dono (27/11, com a foto do vídeo da Rose no Histórico do cliente): "em vez de horas compradas, precisa ser saldo de horas" (na pergunta: o saldo no lugar das compradas).

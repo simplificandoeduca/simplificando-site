@@ -1180,6 +1180,7 @@ switch ($acao) {
        outro valor, já emitida no Play Space Notas (sem a compra aqui com valor, como as horas que vieram do sistema anterior), fica guardada:
        entra nas notas do dia, no faturamento em notas das Finanças e no histórico do cliente. O mesmo número de novo não guarda duas vezes */
     $u = exigir(); $c = crianca((int)($in['crianca'] ?? 0)); if (!$c) falha('Cliente não encontrado.', 404);
+    if (nfUnidadeBloqueada((int)($in['un'] ?? 0) ?: (int)($u['unidade_id'] ?? 0) ?: (int)($c['unidade_id'] ?? 0))) falha('Na Anália Franco a nota fiscal não sai pelo Play Space (é outro CNPJ).', 403);   /* 2.85 */
     $num = mb_substr(maiusculo(trim((string)($in['numero'] ?? ''))), 0, 40); if ($num === '') falha('Falta o número da nota.');
     $valor = round((float)($in['valor'] ?? 0), 2); if ($valor <= 0.004 || $valor > 99999) falha('Confira o valor da nota.');
     $q = $db->prepare("SELECT * FROM pedidos WHERE tipo = 'nf' AND venda_id IS NULL AND crianca_id = ? AND numero = ? AND status = 'usado' ORDER BY id DESC LIMIT 1"); $q->execute([(int)$c['id'], $num]); $ja = $q->fetch(); $q->closeCursor();

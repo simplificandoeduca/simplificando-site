@@ -1005,6 +1005,7 @@ function pedidoCriar(array $u, array $in): array {
     } else { // a nota fiscal de uma compra
       if (emAtendimento($c)) falha('Cliente em atendimento: a nota fiscal sai depois de finalizar o cliente (nos Finalizados do dia).', 403);   /* 2.58; 2.60: para todos, o gestor também */
       if ($valor <= 0.004) falha('Esta compra não tem valor: não há nota para tirar.');
+      if (nfUnidadeBloqueada((int)($v['unidade_id'] ?? 0))) falha('Na Anália Franco a nota fiscal não sai pelo Play Space (é outro CNPJ).', 403);   /* 2.85 */
       $q = $db->prepare("SELECT * FROM pedidos WHERE tipo = 'nf' AND venda_id = ? AND status IN ('pendente', 'liberado', 'usado') ORDER BY id DESC LIMIT 1"); $q->execute([$vendaId]); $ja = $q->fetch();
       if ($ja) return $ja['status'] === 'pendente' ? pedidoDecidir((int)$ja['id'], $u, true, 'proprio', true) : ['pedido' => pedidoPublico($ja), 'ja' => true];   // uma nota por compra (1.55: a pedida antes, que esperava o gestor, sai agora)
       $nfNome = mb_substr(maiusculo((string)($in['nf_nome'] ?? '')), 0, 120); if ($nfNome === '') $nfNome = (string)($c['resp'] ?: $c['nome']);
@@ -1256,6 +1257,12 @@ function fecharPedidosDeDesconto(?array $u, array $c, string $onde): void { // $
 /* ---------- registros (o painel "Hoje na recepção") e as mensagens ---------- */
 /* 2.78: as horas de um ajuste do gestor, lidas do registro ("Ajuste do gestor: +3h30 nas horas · ..."); null se não for um ajuste */
 function minDoAjuste(string $t): ?int { if (!preg_match('/^Ajuste do gestor: ([+\x{2212}-])(\d+)h(\d{2})? nas horas/u', $t, $m)) return null; $v = (int)$m[2] * 60 + (int)($m[3] ?? 0); return $m[1] === '+' ? $v : -$v; }
+/* 2.85 (o dono: "no Anália não pode estar liberada a opção de nota fiscal das meninas, porque o CNPJ delas é outro"): a unidade da
+   Anália Franco (e a Casa Tom Anália) não tira a nota fiscal pelo Play Space */
+function nfUnidadeBloqueada(int $un): bool {
+  if ($un <= 0) return false; $q = db()->prepare('SELECT nome FROM unidades WHERE id = ?'); $q->execute([$un]); $n = (string)$q->fetchColumn(); $q->closeCursor();
+  $n = str_replace(['á', 'à', 'â', 'ã', 'ä'], 'a', mb_strtolower($n, 'UTF-8')); return strpos($n, 'analia') !== false;
+}
 function registrar(string $tipo, ?int $criancaId, string $nome, string $texto, ?string $quando = null, $unidade = false): int {   // 1.06: $unidade = false usa a do aparelho que fez o pedido
   if (!empty($GLOBALS['PS_OFF']['em'])) $texto .= ' · feito sem internet (chegou às ' . date('H:i') . ')';   // 1.40
   elseif (!empty($GLOBALS['PS_OFF']['negada'])) $texto .= ' · mandado como feito sem internet às ' . $GLOBALS['PS_OFF']['negada'] . ', mas o aparelho estava com internet: vale a hora de chegada';   // 1.49
