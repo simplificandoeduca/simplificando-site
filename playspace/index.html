@@ -172,6 +172,7 @@ button.chip.vf-bt { background: #2F9E62; border-color: #2F9E62; color: #fff; } b
 #ocioso .bt { flex: none; } #saiu-sozinho { margin: 0; padding: 10px 12px; border-radius: 14px; background: var(--aviso-bg); color: var(--tinta); font-size: 13.5px; }
 * { box-sizing: border-box; }
 html, body { height: 100%; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }   /* 2.86 (a foto do iPad: o relógio cortado embaixo do "Saída"): o Safari do iPad/iPhone não aumenta sozinho os textos */
 body { margin: 0; background: var(--creme); color: var(--tinta); font: 15px/1.45 var(--texto); -webkit-font-smoothing: antialiased; overscroll-behavior-y: none; }
 body.travado { overflow: hidden; }
 button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
@@ -1380,7 +1381,8 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .esp-lst .esp-it .tmp { grid-column: 7; grid-row: 1; align-self: end; justify-self: end; font-size: 17px; line-height: 1.15; }
 .esp-lst .esp-it .at { grid-column: 7; grid-row: 2; align-self: start; justify-self: end; text-align: right; font-size: 11px; }   /* 1.24: embaixo do relógio (justify-self: o que for mais largo que a coluna avança para a esquerda, nunca para cima do botão) */
 .esp-lst .esp-it .tmp:has(+ .at:empty) { grid-row: 1 / span 2; align-self: center; }   /* nada embaixo do relógio: ele fica no meio da linha */
-.esp-lst .esp-it .acoes-e { grid-column: 8; grid-row: 1 / span 2; justify-self: end; }
+.esp-lst .esp-it .acoes-e { grid-column: 8; grid-row: 1 / span 2; justify-self: end; position: relative; z-index: 1; }
+.esp-lst .esp-it .tmp { max-width: 100%; overflow: hidden; text-overflow: clip; font-variant-numeric: tabular-nums; }   /* 2.86: o relógio nunca passa da coluna dele (para baixo do botão) */
 .esp-it > .un, .esp-it .un-m { display: none; }   /* 1.06: a unidade em que a criança está: uma coluna na lista, no lugar do selo de pagamento */
 .esp-lst .esp-it > .un { display: block; grid-column: 5; grid-row: 1 / span 2; position: relative; cursor: pointer; min-width: 0; font-size: 12px; font-weight: 800; letter-spacing: .03em; color: var(--tinta-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .esp-lst .esp-it > .un.sem { font-weight: 700; color: var(--apagado); }
@@ -1397,7 +1399,7 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .banco-fam { display: flex; flex-direction: column; gap: 4px; margin: 0 -7px; padding: 5px; border: 2.5px solid var(--coral); border-radius: 22px; }
 @container (max-width: 900px) {   /* tela menor, ou o histórico do cliente aberto ao lado: a criança vai para baixo do responsável e a hora da entrada sai */
   .esp-lst .esp-cabec { display: none; }
-  .esp-lst .esp-it, .esp-lst .esp-fam > .esp-it { grid-template-columns: 16px minmax(0, 1.25fr) minmax(150px, 1.2fr) minmax(0, .8fr) 92px 100px; grid-template-rows: 20px 16px; row-gap: 1px; column-gap: 12px; height: 54px; }   /* 1.24: larguras fixas (antes "auto": cada linha media do seu jeito e as colunas não alinhavam) */
+  .esp-lst .esp-it, .esp-lst .esp-fam > .esp-it { grid-template-columns: 16px minmax(0, 1.25fr) minmax(150px, 1.2fr) minmax(0, .8fr) 104px 100px; grid-template-rows: 20px 16px; row-gap: 1px; column-gap: 12px; height: 54px; }   /* 1.24: larguras fixas (antes "auto": cada linha media do seu jeito e as colunas não alinhavam) */
   .esp-lst .esp-it > .un { grid-column: 4; grid-row: 1 / span 2; }
   .esp-lst .esp-it > .pt { grid-row: 1 / span 2; } .esp-lst .esp-it .l2 { grid-column: 2; grid-row: 1; font-size: 15px; line-height: 20px; }
   .esp-lst .esp-it .l1 { grid-column: 2; grid-row: 2; } .esp-lst .esp-it .l1 b { font-size: 12px; } .esp-lst .esp-it .l1 .obs-bt.mini { height: 16px; padding: 0 6px; font-size: 9.5px; }
@@ -1407,7 +1409,7 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
   .esp-lst .esp-it .acoes-e { grid-column: 6; grid-row: 1 / span 2; }
 }
 @container (max-width: 760px) {   /* 1.24: mais estreito: a coluna da unidade sai (a unidade está no alto da tela; quando a lista mistura unidades, vai para a linha da criança) */
-  .esp-lst .esp-it, .esp-lst .esp-fam > .esp-it { grid-template-columns: 16px minmax(0, 1.25fr) minmax(0, 1.25fr) 92px 100px; }
+  .esp-lst .esp-it, .esp-lst .esp-fam > .esp-it { grid-template-columns: 16px minmax(0, 1.25fr) minmax(0, 1.25fr) 104px 100px; }   /* 2.86: 104 (era 92) */
   .esp-lst .esp-it > .un { display: none; } .esp-lst.varias .esp-it .un-m { display: inline; font-style: normal; font-weight: 800; color: var(--coral); letter-spacing: .02em; } .esp-lst.varias .esp-it .un-m.mesma { display: none; } .esp-lst.varias .esp-it .un-m:not(.mesma) { flex: none; max-width: none; }   /* a de outra unidade não encolhe: se faltar lugar, cede o nome */
   .esp-lst .esp-it .tmp, .esp-lst .esp-it .at { grid-column: 4; } .esp-lst .esp-it .acoes-e { grid-column: 5; }
 }
@@ -2270,7 +2272,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.85';
+const VERSAO = '2.86';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };

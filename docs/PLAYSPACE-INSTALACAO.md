@@ -1301,6 +1301,14 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O relógio da lista no iPad (2.86)
+
+Pedido do dono (27/11, com a foto do iPad): o relógio de cada criança na lista aparecia cortado, embaixo do botão "Saída".
+
+- A causa: o Safari do iPad (e do iPhone) aumenta sozinho alguns textos da página (o ajuste automático de texto). O relógio ficava maior que a coluna dele e passava por baixo do botão.
+- Agora a página pede ao Safari para não aumentar os textos sozinho: cada texto fica no tamanho em que foi feito.
+- A coluna do relógio ficou um pouco mais larga na tela menor (104 em vez de 92), e o relógio nunca passa da coluna dele.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A Anália Franco sem a nota fiscal (2.85)
 
 Pedido do dono (27/11): "no Anália não pode estar liberada a opção de nota fiscal das meninas, porque o CNPJ delas é outro. Eu tinha esquecido disso. Então pode tirar da unidade Anália Franco a parte de nota fiscal."
