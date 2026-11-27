@@ -1301,6 +1301,14 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O saldo de horas no alto do Histórico (2.84)
+
+Pedido do dono (27/11, com a foto do vídeo da Rose no Histórico do cliente): "em vez de horas compradas, precisa ser saldo de horas" (na pergunta: o saldo no lugar das compradas).
+
+- No alto do Histórico do cliente, ao lado de "Pagou ao todo", agora fica o "Saldo de horas" (o quadro verde).
+- Embaixo: "Horas compradas" (com o lápis do gestor, como antes) e "Horas consumidas".
+- Os números não mudaram; só o lugar.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A nota do governo pela página do QR (2.83)
 
 Pedido do dono (27/11, com a foto do "O governo ainda não liberou a nota nº 85"): "não carrega a nota".
