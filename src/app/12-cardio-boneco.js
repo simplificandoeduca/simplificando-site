@@ -310,7 +310,7 @@ function b3Frame(ts){
   B3.raf = 0;
   if(!B3.el || !B3.el.isConnected || document.visibilityState==='hidden'){ B3.last = 0; return; }
   const dt = B3.last ? Math.min(.05,(ts-B3.last)/1000) : 0; B3.last = ts;
-  B3.ph += dt*24*[.8,1,1.22][B3.k]; b3Draw();
+  B3.ph += dt*24*((B3.M.fixo || B3.M.pulo) ? [.9,1.05,1.6] : [.8,1,1.22])[B3.k]; b3Draw();
   B3.raf = requestAnimationFrame(b3Frame);
 }
 function b3Kick(){ if(!B3.raf && B3.el && B3.el.isConnected && !RM() && document.visibilityState!=='hidden'){ B3.last = 0; B3.raf = requestAnimationFrame(b3Frame); } }
@@ -320,7 +320,7 @@ function b3Init(){
   if(!el){ cancelAnimationFrame(B3.raf); B3.raf = 0; B3.el = null; return; }
   const M = B3_S[el.dataset.kind][b3Sexo()], i = el.firstElementChild, q = c => i.querySelector(c), sw = Math.round(M.w*M.alt/(M.g-4)), s = sw/M.w, per = (M.vel||18)*s*M.D/3;
   B3.el = el; B3.M = M; B3.s = s; B3.sw = sw; B3.k = Math.max(0, Math.min(2, +el.dataset.int||0)); B3.p = { bn:q('.bn'), sm:q('.sm'), fx:q('.faixa'), gr:q('.grao'), me:q('.meio'), es:q('.est'), se:q('.sme'), lo:q('.lona') };
-  B3.p.bn.style.cssText = 'background-image:url(b3/'+M.arq+'.webp);background-size:'+(sw*M.D)+'px 100%;width:'+sw+'px;height:'+(M.h*s)+'px;bottom:'+((M.est ? 57.6 : 36)-(M.h-M.g)*s)+'px';
+  B3.p.bn.style.cssText = 'background-image:url(b3/'+M.arq+'.webp?v=191);background-size:'+(sw*M.D)+'px 100%;width:'+sw+'px;height:'+(M.h*s)+'px;bottom:'+((M.est ? 57.6 : 36)-(M.h-M.g)*s)+'px';
   B3.p.lo.style.backgroundSize = (per/3)+'px 100%';
   if(M.fixo) B3.p.sm.style.cssText = 'width:'+(sw*.9)+'px;margin-left:'+(-sw*.45)+'px;height:15px;bottom:24px';
   B3.p.fx.style.backgroundImage = 'repeating-linear-gradient(90deg,var(--b3-faixa) 0 '+(per*.52)+'px,transparent '+(per*.52)+'px '+per+'px)'; B3.p.gr.style.backgroundSize = per+'px 50px';
