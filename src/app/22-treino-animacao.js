@@ -440,9 +440,10 @@ const XA = (() => {
       back: b => dbSide(add(b.fA.W, [2, 8])), front: b => dbSide(add(b.nA.W, [2, 8])), mov: b => b.S },
     // pulldown com braços estendidos: polia alta à frente, braços quase retos descem até as coxas
     pulldownreto: { ord: 'up', verbs: ['Puxa', 'Volta'], eq: 'Polia', mus: [['lats'], ['triceps', 'delt_r']],
-      pose: t => { const A = [128, AY], H = [124, 233], b = body(H, 166, 4), ua = lerp(144, 14, t), fa = ua + lerp(8, 2, t);
+      // quadril para trás, joelhos dobrados, tronco inclinado ~40°; braços retos saem da linha do tronco (mãos acima da cabeça) e descem até as coxas
+      pose: t => { const A = [118, AY], H = [84, 240], b = body(H, lerp(137, 145, t), 10), ua = lerp(122, -6, t), fa = ua + lerp(6, 3, t);
         return mk(b, legTo(H, A, FWD), legTo(far(H), far(A), FWD), armAng(b.S, ua, fa), armAng(far(b.S), ua, fa)); },
-      back: b => { const p = [270, 74]; return rect(280, 58, 12, GY - 58, 3) + pulley(p) + cable(p, b.nA.W); }, front: b => grip(b.nA.W, true), mov: b => b.nA.W },
+      back: b => { const p = [276, 56]; return rect(284, 44, 12, GY - 44, 3) + rect(262, GY - 8, 46, 8, 4) + pulley(p) + cable(p, b.nA.W); }, front: b => grip(b.nA.W, true), mov: b => b.nA.W },
     // glúteo na polia (coice): tronco inclinado ~34°, a perna começa com o joelho a 90° (canela para trás) e vai para trás e para cima até quase esticar
     coicepolia: { ord: 'up', verbs: ['Leva', 'Volta'], eq: 'Polia', mus: [['glutes'], ['hams']],
       pose: t => { const A = [146, AY], H = [140, 233], b = body(H, 146, -4), th = lerp(8, -46, t), sh = lerp(-82, -54, t), hold = [236, 204];
@@ -759,7 +760,7 @@ const XA = (() => {
     remada: 'Remada curvada', baixa: 'Remada baixa', serrote: 'Remada unilateral (serrote)', facepull: 'Face pull', rosca: 'Rosca direta',
     deadbug: 'Dead bug', prancha: 'Prancha', crossalta: 'Crossover polia alta', crossmedia: 'Crossover polia média', crossbaixa: 'Crossover polia baixa',
     voador: 'Voador (peck deck)', voadorinv: 'Crucifixo inverso máquina', supmaq: 'Supino reto máquina', supmaqinc: 'Supino inclinado máquina', supinohalter: 'Supino reto com halteres',
-    inclbarra: 'Supino inclinado com barra', remadamaq: 'Remada na máquina', remadacav: 'Remada cavalinho', pulldownreto: 'Pulldown braços estendidos', pulldownmaq: 'Pulldown na máquina', desenvmaq: 'Desenvolvimento máquina',
+    inclbarra: 'Supino inclinado com barra', remadamaq: 'Remada na máquina', remadacav: 'Remada cavalinho', pulldownreto: 'Pulldown', pulldownmaq: 'Pulldown na máquina', desenvmaq: 'Desenvolvimento máquina',
     lateralpolia: 'Elevação lateral unilateral na polia', frontal: 'Elevação frontal', frontalpolia: 'Elevação frontal na polia', encolh: 'Encolhimento', agachsmith: 'Agachamento no Smith',
     roscapolia: 'Rosca na polia', agachpc: 'Agachamento sem peso', afundopc: 'Afundo sem peso', roscahalter: 'Rosca alternada', martelo: 'Rosca martelo', scott: 'Rosca Scott', testa: 'Tríceps testa', frances: 'Tríceps francês', coicetri: 'Tríceps coice',
     tricepsbarra: 'Tríceps polia com barra', coicepolia: 'Glúteo na polia (coice)', coicepoliainc: 'Coice na polia (variação)', pelvicamaq: 'Elevação pélvica máquina', stiffbarra: 'Stiff com barra', flexora: 'Mesa flexora',
