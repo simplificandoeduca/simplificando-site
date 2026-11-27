@@ -1301,6 +1301,15 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Finalizados do dia → "Ajustar caixa": passar o valor de uma forma de pagamento para outra (2.50)
+
+Pedido do dono (26/11): "às vezes o caixa alguém colocou no débito e era no crédito. Elas não podem alterar o valor, elas só podem jogar o valor para outra classificação ... ele pode ser desmembrado, ele não pode ficar faltando e não pode passar".
+
+- No caixa do dia (Finalizados do dia), ao lado do Imprimir, o botão "Ajustar caixa". Ele abre os pagamentos do caixa (o dia e a unidade que estão na tela), separados por forma: Pix, Dinheiro, Crédito e Débito.
+- Toque no pagamento que está na forma errada e diga em que forma foi: "Tudo no Pix / Dinheiro / Crédito / Débito", ou escreva quanto foi em cada forma (dividido). A soma tem que dar o valor pago: o aviso diz "Falta R$ X" ou "Passou R$ X", e só salva com "A soma bate".
+- O valor nunca muda (só a forma). O caixa, as Finanças e o cupom fiscal acompanham. Fica no registro (quem ajustou) e o gestor recebe o aviso, como na troca da forma de pagamento.
+- Qualquer pessoa da equipe ajusta; quem não é o gestor vê só o caixa da unidade dele. Vale também para o caixa de ontem ou de outro dia escolhido.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O sistema de notas sem pedir login: entra sozinho pelo Play Space e pelas Finanças (2.49, com o Notas 191)
 
 Pedido do dono (27/11): "não precisa pedir login do sistema de nota. Pode deixar logado direto."

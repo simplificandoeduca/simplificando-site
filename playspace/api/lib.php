@@ -1671,7 +1671,8 @@ function trocarPagamento(array $in, array $u): array {
   $db = db(); $de = (string)($in['de'] ?? ''); $para = (string)($in['para'] ?? ''); $partes = isset($in['partes']) && is_array($in['partes']) ? $in['partes'] : null;
   if (!isset(FORMAS_PAGAMENTO[$de]) || ($partes === null && !isset(FORMAS_PAGAMENTO[$para]))) falha('Escolha a forma de pagamento.');
   if ($partes === null && $de === $para) falha('A forma nova é a mesma de agora.');
-  if (!empty($in['venda'])) { $q = $db->prepare('SELECT * FROM pagamentos WHERE venda_id = ? AND forma = ? ORDER BY id DESC LIMIT 1'); $q->execute([(int)$in['venda'], $de]); }
+  if (!empty($in['pag'])) { $q = $db->prepare('SELECT * FROM pagamentos WHERE id = ? AND forma = ?'); $q->execute([(int)$in['pag'], $de]); }   /* 2.50: o pagamento escolhido no Ajustar caixa */
+  elseif (!empty($in['venda'])) { $q = $db->prepare('SELECT * FROM pagamentos WHERE venda_id = ? AND forma = ? ORDER BY id DESC LIMIT 1'); $q->execute([(int)$in['venda'], $de]); }
   else { $c0 = crianca((int)($in['crianca'] ?? 0)); if (!$c0) falha('Cliente não encontrado.', 404); $f0 = array_merge([(int)$c0['id']], array_map(fn($x) => (int)$x['id'], irmaosDe($c0)));
     $q = $db->prepare('SELECT * FROM pagamentos WHERE crianca_id IN (' . implode(',', $f0) . ') AND forma = ? ORDER BY id DESC LIMIT 1'); $q->execute([$de]); }
   $p = $q->fetch(); $q->closeCursor(); if (!$p) falha('Não achei esse pagamento em ' . FORMAS_PAGAMENTO[$de] . '.', 404);
@@ -2056,6 +2057,24 @@ function caixaDoDia(int $so = 0, ?string $dia = null): array {   /* 2.15: $so = 
   foreach ($qk->fetchAll() as $l) { $u = (int)$l['u']; if (!isset($o[$u])) $o[$u] = ['uni' => $u, 'grupos' => []]; $o[$u]['criancas'] = (int)$l['n']; }
   if ($so > 0) $o = array_filter($o, fn($x) => (int)$x['uni'] === $so);
   ksort($o); return ['desde' => $d0, 'dia' => substr($d0, 0, 10), 'unidades' => array_values($o)];
+}
+/* 2.50: os pagamentos do caixa de um dia (o Ajustar caixa), como a troca da forma os vê: a família, a mesma hora e a mesma forma juntas.
+   $uni: a unidade do caixa (0 = todas; -1 = sem unidade). O valor de cada um não muda no ajuste, só a forma */
+function pagamentosDoCaixa(?string $dia, int $uni): array {
+  [$d0, $d1] = diaDoCaixa($dia);
+  $q = db()->prepare("SELECT p.id, p.forma, p.valor, p.quando, p.crianca_id, COALESCE(p.unidade_id, v.unidade_id, 0) u, v.servico, v.itens, v.minutos, c.nome, c.resp
+    FROM pagamentos p JOIN vendas v ON v.id = p.venda_id LEFT JOIN criancas c ON c.id = p.crianca_id WHERE p.quando >= ? AND p.quando < ? ORDER BY p.quando, p.id");
+  $q->execute([$d0, $d1]); $fam = []; $o = [];
+  foreach ($q->fetchAll() as $l) { $u = (int)$l['u']; if ($uni > 0 && $u !== $uni) continue; if ($uni === -1 && $u !== 0) continue;
+    $cid = (int)$l['crianca_id'];
+    if (!isset($fam[$cid])) { $c = crianca($cid); $fam[$cid] = $c ? min(array_merge([$cid], array_map(fn($x) => (int)$x['id'], irmaosDe($c)))) : $cid; }
+    $k = $fam[$cid] . '|' . (string)$l['quando'] . '|' . (string)$l['forma'];
+    if (!isset($o[$k])) $o[$k] = ['pag' => (int)$l['id'], 'f' => (string)$l['forma'], 'v' => 0.0, 'quando' => (string)$l['quando'], 'u' => $u, 'nomes' => [], 'resp' => (string)($l['resp'] ?? ''), 'itens' => []];
+    $x = &$o[$k]; $x['v'] = round($x['v'] + (float)$l['valor'], 2);
+    $nm = (string)($l['nome'] ?? ''); if ($nm !== '' && !in_array($nm, $x['nomes'], true)) $x['nomes'][] = $nm;
+    $it = nomeDaVenda($l); if ($it !== '' && !in_array($it, $x['itens'], true) && count($x['itens']) < 4) $x['itens'][] = $it;
+    unset($x); }
+  return ['dia' => substr($d0, 0, 10), 'pags' => array_values(array_filter($o, fn($x) => $x['v'] > 0.004))];
 }
 // as saídas de hoje (cada visita, com o que ela vendeu) e o que voltou para a loja hoje: o filtro "Finalizados do dia" da lista
 function finalizadosDoDia(int $so = 0, ?string $dia = null): array {   /* 2.15: $so = só esta unidade. 2.26: $dia = outro dia */

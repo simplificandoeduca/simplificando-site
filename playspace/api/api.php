@@ -377,6 +377,13 @@ switch ($acao) {
   case 'venda_vezes': { /* 2.39: ajustar as vezes no crédito de uma compra já feita */
     $u = exigir(); responder(ajustarVezes($in, $u));
   }
+  case 'caixa_pagamentos': { /* 2.50: os pagamentos do caixa do dia (Finalizados do dia → Ajustar caixa); quem não é o gestor vê só a unidade dele */
+    $u = exigir(); $dia = (string)($in['dia'] ?? ''); if ($dia === '') $dia = date('Y-m-d');
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dia) || !checkdate((int)substr($dia, 5, 2), (int)substr($dia, 8, 2), (int)substr($dia, 0, 4))) falha('Escolha uma data.');
+    if ($dia > date('Y-m-d')) falha('Esse dia ainda não chegou.'); session_write_close();
+    $uni = $u['papel'] === 'gestor' ? (int)($in['uni'] ?? 0) : (int)(unidadeDoPedido() ?? 0);
+    responder(pagamentosDoCaixa($dia, $uni));
+  }
   case 'pagamento_trocar': { // 1.57: trocar a forma de pagamento; 1.71: a equipe também a qualquer hora, e a forma pode ser dividida (partes)
     $u = exigir(); responder(trocarPagamento($in, $u));
   }

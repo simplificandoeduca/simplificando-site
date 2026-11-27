@@ -2007,6 +2007,20 @@ button.bl-saldo.bl-alt svg { opacity: .55; }
 .tp-div-l .inp:focus { outline: 2px solid var(--coral); outline-offset: 1px; }
 .tp-div-s { margin: 0; font-weight: 800; } .tp-div-s.ok { color: var(--ok); } .tp-div-s.falta { color: var(--erro); }
 .tp-papel summary { font-weight: 800; } .tp-papel summary b.num { color: var(--coral); }
+/* 2.50: Ajustar caixa */
+.aj-formas { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.aj-formas > div { padding: 10px 12px; border-radius: 14px; background: var(--card); border: 1px solid var(--borda); display: grid; gap: 2px; min-width: 0; }
+.aj-formas small { font-size: 12px; font-weight: 800; color: var(--tinta-2); } .aj-formas b { font-size: 16px; }
+.aj-chips { align-self: flex-start; flex-wrap: wrap; } .aj-sec { display: grid; gap: 6px; } .aj-sec > h4 { margin: 6px 2px 0; font-size: 13px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--tinta-2); }
+.aj-pag { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 10px 12px; border-radius: 14px; background: var(--card); border: 1px solid var(--borda); color: var(--tinta); font: inherit; cursor: pointer; }
+.aj-pag[aria-expanded="true"] { border-color: var(--coral); box-shadow: 0 0 0 2px var(--pessego); }
+.aj-pag .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; } .aj-pag .txt small { color: var(--tinta-2); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aj-pag .aj-h { flex: none; font-weight: 800; font-size: 13px; color: var(--tinta-2); font-variant-numeric: tabular-nums; } .aj-pag > b.num { flex: none; }
+.aj-f { flex: none; font-size: 12px; font-weight: 800; padding: 3px 8px; border-radius: 99px; background: var(--creme-2); color: var(--tinta); }
+.aj-ed { padding: 12px; border-radius: 14px; border: 1.5px dashed var(--coral); background: var(--card); }
+.aj-tudo { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; } .aj-tudo > span { font-weight: 800; font-size: 13px; color: var(--tinta-2); } .aj-tudo .bt { height: 36px; padding: 0 12px; }
+.aj-ed .acoes { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+@media (max-width: 560px) { .aj-formas { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .tp-fim { color: var(--tinta-2); }
 .rp-trava { opacity: .5; }
 .marca.reab.fora { background: var(--erro-bg); color: var(--erro); }
@@ -2140,7 +2154,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.49';
+const VERSAO = '2.50';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -5225,9 +5239,10 @@ async function trocarPagEm(el, de, partes, para) {
     desenhar(true);
   } catch (e) { toast(e.message); $$(bts).forEach(b => { b.disabled = false; }); }
 }
-function trocarPagPrevia({ venda, crianca: cid, de, para, partes }) {   // (prévia) o mesmo que o servidor faz; 1.71: partes = a forma dividida
+function trocarPagPrevia({ venda, crianca: cid, de, para, partes, pag }) {   // (prévia) o mesmo que o servidor faz; 1.71: partes = a forma dividida
   if (!partes && de === para) return { erro: 'A forma nova é a mesma de agora.' }; const mais = (a, b) => +new Date(b.quando) - +new Date(a.quando);
-  let p = null; if (venda) p = (S.pagamentos || []).filter(x => x.venda === venda && x.f === de).sort(mais)[0];
+  let p = null; if (pag) { const x = (S.pagamentos || [])[pag - 1]; p = x && x.f === de ? x : null; }   /* 2.50: o pagamento escolhido no Ajustar caixa */
+  else if (venda) p = (S.pagamentos || []).filter(x => x.venda === venda && x.f === de).sort(mais)[0];
   else { const c0 = crianca(cid), ids0 = c0 ? familia(c0).map(x => x.id) : [cid]; p = (S.pagamentos || []).filter(x => ids0.includes(x.crianca) && x.f === de).sort(mais)[0]; }
   if (!p) return { erro: `Não achei esse pagamento em ${nomeForma(de)}.` }; const q = +new Date(p.quando);
   const c = crianca(p.crianca), ids = c ? familia(c).map(x => x.id) : [p.crianca], L = S.pagamentos.filter(x => ids.includes(x.crianca) && x.f === de && Math.abs(+new Date(x.quando) - q) < 1500);
@@ -6683,7 +6698,7 @@ function htmlCaixaDia0() {
   const grupos = GRUPOS_CX.filter(([k]) => ['recreacao', 'pacotes', 'festa'].includes(k) || (K.G[k] && K.G[k].total > 0)).map(([k, n]) => linha(n, 'nada recebido ' + hj, K.G[k]) + (k === 'festa' && itensF.length ? `<div class="cx-fes">${itensF.map(([nm, v]) => `<small><span>${esc(nm)}</span><b class="num">${brl2(v)}</b></small>`).join('')}</div>` : '')).join('');
   const gc = K.G.carrinhos, itensC = gc ? Object.entries(gc.itens).sort((a, b) => b[1] - a[1]).map(([n, v]) => `${esc(n)} ${brl2(v)}`).join(' · ') : '';
   return `<section class="cx" aria-label="Caixa do dia">${selDia}${cxEsperando() ? `<p class="cx-velho">Buscando o caixa de ${cxDm()}…</p>` : ''}
-    <div class="cx-cab"><span class="cx-ic">${ic(IC.caixa, 24)}</span><div class="txt"><small>${CX_ATIVO ? 'Caixa de ' + cxDm() : 'Caixa do dia'}${onde ? ' · ' + esc(onde) : ''}${CX_ATIVO ? ' · o dia inteiro' : ' · desde a meia-noite'}</small><b class="num">${brl2(K.total)}</b><span>${CX_ATIVO ? 'recebido em ' + nascBR(CX_ATIVO) : 'recebido hoje'}</span></div><button type="button" class="bt tap" data-act="cx-imprimir" aria-label="Imprimir o caixa do dia" title="Imprimir o caixa do dia">${ic(IC.cupom, 16)}<span class="cx-imp">Imprimir</span></button>${MODO === 'servidor' && gestor() ? `<button type="button" class="bt tap" data-act="cx-pdf" aria-label="Baixar o resumo do dia em PDF" title="O resumo do dia em PDF (o mesmo das Finanças)">${ic(IC.baixar, 16)}<span class="cx-imp">PDF do dia</span></button>` : ''}</div>
+    <div class="cx-cab"><span class="cx-ic">${ic(IC.caixa, 24)}</span><div class="txt"><small>${CX_ATIVO ? 'Caixa de ' + cxDm() : 'Caixa do dia'}${onde ? ' · ' + esc(onde) : ''}${CX_ATIVO ? ' · o dia inteiro' : ' · desde a meia-noite'}</small><b class="num">${brl2(K.total)}</b><span>${CX_ATIVO ? 'recebido em ' + nascBR(CX_ATIVO) : 'recebido hoje'}</span></div><button type="button" class="bt tap" data-act="cx-ajustar" aria-label="Ajustar o caixa (passar o valor de uma forma de pagamento para outra)" title="Passar o valor de uma forma de pagamento para outra (o valor não muda)">${ic(IC.desconto, 16)}<span class="cx-imp">Ajustar caixa</span></button><button type="button" class="bt tap" data-act="cx-imprimir" aria-label="Imprimir o caixa do dia" title="Imprimir o caixa do dia">${ic(IC.cupom, 16)}<span class="cx-imp">Imprimir</span></button>${MODO === 'servidor' && gestor() ? `<button type="button" class="bt tap" data-act="cx-pdf" aria-label="Baixar o resumo do dia em PDF" title="O resumo do dia em PDF (o mesmo das Finanças)">${ic(IC.baixar, 16)}<span class="cx-imp">PDF do dia</span></button>` : ''}</div>
     ${gestor() && botoesU.length > 2 ? `<div class="seg cx-uni">${botoesU.map(([id, n]) => `<button type="button" data-act="cx-uni" data-v="${id}" aria-pressed="${u === id}">${esc(n)}</button>`).join('')}</div>` : ''}
     <div class="cx-formas">${FORMAS.map(([f, n]) => `<div><small>${n}</small><b class="num">${brl2(K.soma[f] || 0)}</b></div>`).join('')}</div>
     <div class="cx-sub cx-kids"><span>Crianças que passaram pelo espaço ${hj}</span><b class="num">${K.kids}</b></div>
@@ -6694,6 +6709,76 @@ function htmlCaixaDia0() {
       <div class="cx-tot"><span>Total do dia</span><b class="num">${brl2(K.total)}</b></div>
       <div class="cx-cc" aria-label="Centro de custo"><small>Centro de custo</small>${centrosCusto(u).map(([n, v, casa, pelaUni]) => `<div class="cx-cc-l${casa ? ' casa' : ''}"><span>${esc(n)} ${pelaUni ? (casa ? '<i>vendido na Casa Tom</i>' : '<i>vendido no Play</i>') : casa ? '<i>só produtos</i>' : '<i>horas, recreação, festas, carrinhos</i>'}</span><b class="num">${brl2(v)}</b></div>`).join('')}</div></div>
   </section>`;
+}
+/* 2.50 (o dono: "às vezes o caixa alguém colocou no débito e era no crédito. Elas não podem alterar o valor, elas só podem jogar o valor
+   para outra classificação ... ele pode ser desmembrado, ele não pode ficar faltando e não pode passar"): Finalizados do dia → Ajustar caixa.
+   Os pagamentos do caixa do dia (da unidade do caixa), por forma: toque no que está na forma errada e diga em que forma foi (tudo numa forma,
+   ou dividido). O valor nunca muda: a soma tem que dar o mesmo. É a troca da forma de pagamento (1.71): o cupom fiscal acompanha, fica no
+   registro e o gestor recebe o aviso. Qualquer um da equipe ajusta (como a troca no histórico do cliente) */
+let AJ = null;   // { dia, uni, pags, aberto: o pagamento aberto, ver: a forma escolhida nos chips }
+function folhaAjCaixa() {
+  const dia = S.cxDia && S.cxDia < cxHoje() ? S.cxDia : '', u = cxUni(), U = unidades();
+  const onde = u === -1 ? 'sem unidade' : u ? nomeUni(u) : U.length > 1 ? 'todas as unidades' : (U[0] || {}).nome || '';
+  AJ = { dia, uni: u, onde, pags: null, aberto: 0, ver: '' };
+  abrirFolha('Ajustar o caixa', `<div id="aj-corpo">${htmlAj()}</div>`); ajCarregar();
+}
+async function ajCarregar() {
+  const a = AJ; if (!a) return; a.erro = '';
+  try { a.pags = MODO === 'servidor' ? (await api('caixa_pagamentos', { dia: a.dia, uni: a.uni })).pags || [] : ajPagsPrevia(a); }
+  catch (e) { a.erro = e.message || 'Não deu para buscar os pagamentos.'; }
+  if (AJ === a) ajPinta();
+}
+function ajPagsPrevia(a) {   /* (prévia) o mesmo que o servidor manda */
+  const d0 = new Date((a.dia || cxHoje()) + 'T00:00:00'), d1 = new Date(d0); d1.setDate(d1.getDate() + 1); const primeira = (unidades()[0] || {}).id || 0, o = new Map();
+  (S.pagamentos || []).forEach((p, i) => { const q = new Date(p.quando); if (!(q >= d0 && q < d1) || !(p.v > 0)) return; const v = (S.compras || []).find(x => x.id === p.venda), c = crianca(p.crianca);
+    const u = +(p.uni || (v && v.uni) || (c || {}).uni || primeira); if (a.uni > 0 && u !== a.uni) return; if (a.uni === -1 && u) return;
+    const fam = c ? Math.min(...familia(c).map(x => x.id), c.id) : p.crianca, k = fam + '|' + q.getTime() + '|' + p.f;
+    const x = o.get(k) || { pag: i + 1, f: p.f, v: 0, quando: p.quando, u, nomes: [], resp: c ? c.resp || '' : '', itens: [] }; x.v = centavos(x.v + p.v);
+    if (c && !x.nomes.includes(c.nome)) x.nomes.push(c.nome); const it = v ? nomeCompraTxt(v) : ''; if (it && !x.itens.includes(it) && x.itens.length < 4) x.itens.push(it); o.set(k, x); });
+  return [...o.values()];
+}
+const ajSoma = () => { const s = {}; for (const p of (AJ && AJ.pags) || []) s[p.f] = centavos((s[p.f] || 0) + p.v); return s; };
+function htmlAj() {
+  const a = AJ; if (!a) return ''; const quando = a.dia ? 'de ' + nascBR(a.dia).slice(0, 5) : 'de hoje';
+  const topo = `<p class="explica">Caixa ${quando}${a.onde ? ' · ' + esc(a.onde) : ''}. Toque no pagamento que está na forma errada e escolha a forma certa (pode dividir em mais de uma). <b>O valor não muda</b>: a soma tem que dar o mesmo, sem faltar e sem passar.${gestor() ? '' : ' O gestor recebe o aviso de cada ajuste.'}</p>`;
+  if (a.erro) return topo + `<div class="marca canc">${ic(IC.x, 18, 2.4)}<span>${esc(a.erro)}</span></div><div class="acoes"><button type="button" class="bt tap" data-act="aj-recarregar">Tentar de novo</button></div>`;
+  if (!a.pags) return topo + `<p class="explica">Buscando os pagamentos…</p>`;
+  const S0 = ajSoma(), varias = !a.uni && unidades().length > 1;
+  const formas = `<div class="aj-formas" aria-label="O caixa por forma">${FORMAS.map(([f, n]) => `<div><small>${n}</small><b class="num">${brl2(S0[f] || 0)}</b></div>`).join('')}</div>`;
+  if (!a.pags.length) return topo + formas + `<p class="explica">Nenhum pagamento neste caixa.</p>`;
+  const chips = `<div class="seg aj-chips" role="group" aria-label="Ver a forma">${[['', 'Todas'], ...FORMAS.filter(([f]) => S0[f] > 0)].map(([f, n]) => `<button type="button" class="tap" data-act="aj-ver" data-f="${f}" aria-pressed="${a.ver === f}">${n}${f ? ' · ' + a.pags.filter(p => p.f === f).length : ''}</button>`).join('')}</div>`;
+  const linha = p => { const ab = a.aberto === p.pag, q = dataDe(p.quando), quem = p.resp ? MAI(p.resp) : MAI(p.nomes.join(', ') || 'CLIENTE');
+    const sub = [p.resp && p.nomes.length ? MAI(p.nomes.join(', ')) : '', p.itens.join(', '), varias && p.u ? nomeUni(p.u) : ''].filter(Boolean).join(' · ');
+    return `<button type="button" class="aj-pag tap" data-act="aj-abrir" data-pag="${p.pag}" aria-expanded="${ab}"><span class="aj-h">${hora(q)}</span><span class="txt"><b>${esc(quem)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</span><b class="num">${brl2(p.v)}</b><span class="aj-f">${nomeForma(p.f)}</span></button>${ab ? ajEditor(p) : ''}`; };
+  const secs = FORMAS.filter(([f]) => (!a.ver || a.ver === f) && a.pags.some(p => p.f === f)).map(([f, n]) => { const L = a.pags.filter(p => p.f === f);
+    return `<div class="aj-sec"><h4>${n} · ${brl2(S0[f] || 0)} · ${L.length} ${L.length === 1 ? 'pagamento' : 'pagamentos'}</h4>${L.map(linha).join('')}</div>`; }).join('');
+  return topo + formas + chips + secs;
+}
+const ajEditor = p => `<div class="aj-ed tp-div-c" data-pag="${p.pag}" data-de="${p.f}" data-total="${centavos(p.v)}">
+  <p class="explica">Em que forma foi de verdade? A soma tem que dar <b>${brl2(p.v)}</b>.</p>
+  <div class="aj-tudo"><span>Tudo no</span>${FORMAS.filter(([k]) => k !== p.f).map(([k, n]) => `<button type="button" class="bt tap" data-act="aj-tudo" data-f="${k}">${n}</button>`).join('')}</div>
+  <div class="tp-div-g">${FORMAS.map(([k, n]) => `<label class="tp-div-l"><span>${n}</span><input class="inp" inputmode="decimal" autocomplete="off" data-f="${k}" value="${k === p.f ? vInp(p.v) : ''}" placeholder="0,00" aria-label="Valor em ${n}"></label>`).join('')}</div>
+  <p class="tp-div-s ok" aria-live="polite">A soma bate ✓</p>
+  <div class="acoes"><button type="button" class="bt tap" data-act="aj-fechar">Cancelar</button><button type="button" class="bt forte tap" data-act="aj-salvar">${ic(IC.check)} Salvar o ajuste</button></div></div>`;
+function ajPinta() { const c = $('#aj-corpo'); if (!c || !AJ) return; c.innerHTML = htmlAj(); const ed = $('.aj-ed', c); if (ed) { const i = $(`input[data-f]:not([data-f="${ed.dataset.de}"])`, ed); if (i && matchMedia('(hover: hover)').matches) i.focus(); } }
+function ajAbrir(pag) { if (!AJ) return; AJ.aberto = AJ.aberto === pag ? 0 : pag; ajPinta(); }
+function ajTudo(el) { const c = el.closest('.aj-ed'); if (!c) return; const tot = centavos(+c.dataset.total);
+  $$('input[data-f]', c).forEach(i => { i.value = i.dataset.f === el.dataset.f ? vInp(tot) : ''; }); somaDiv(c); }
+async function ajSalvar(el) {
+  const c = el.closest('.aj-ed'); if (!c || !AJ) return; const pag = +c.dataset.pag, de = c.dataset.de, tot = centavos(+c.dataset.total), P = partesDiv(c), s = centavos(P.reduce((t, x) => t + x.v, 0));
+  if (!P.length) { toast('Escreva quanto foi em cada forma'); return; }
+  if (Math.abs(s - tot) >= 0.005) { toast(s < tot ? `Falta ${brl(centavos(tot - s))}: a soma tem que dar ${brl(tot)}` : `Passou ${brl(centavos(s - tot))}: a soma tem que dar ${brl(tot)}`); return; }
+  if (P.length === 1 && P[0].f === de) { toast('Está na mesma forma de agora'); return; }
+  $$('[data-act="aj-salvar"], [data-act="aj-tudo"]', c).forEach(b => { b.disabled = true; });
+  try { let r;
+    if (MODO === 'servidor') r = await api('pagamento_trocar', { pag, de, partes: P });
+    else { r = trocarPagPrevia({ pag, de, partes: P }); if (r.erro) throw new Error(r.erro); }
+    const PP = r.partes && r.partes.length ? r.partes : P;
+    deuCerto(`Caixa ajustado: ${nomeForma(de)} ${brl(r.valor)} → ${txtPartes(PP)}`);
+    AJ.aberto = 0;
+    if (MODO === 'servidor') { await carregar(); if (AJ && AJ.dia) { CXD = null; await cxVerDia(AJ.dia); } }
+    desenhar(true); await ajCarregar();
+  } catch (e) { toast(e.message); $$('[data-act="aj-salvar"], [data-act="aj-tudo"]', c).forEach(b => { b.disabled = false; }); }
 }
 function papelCaixa() { return cxNoDia(papelCaixa0); }
 function papelCaixa0() { const u = cxUni(), K = contaCaixa(u), L = lojaPapel(), lin = (r, v, cls = '') => `<p class="c-linha c-pt${cls}"><span>${r}</span><i></i><span>${v}</span></p>`;
@@ -9433,6 +9518,8 @@ const ACOES = {
   'cx-uni': el => { S.cxUni = +el.dataset.v; atualizarEspaco(); },   /* 1.30 */
   'cx-dia': el => cxVerDia(el.dataset.v || ''),   /* 2.26: Hoje | Ontem */
   'cx-imprimir': () => imprimirPapel([papelCaixa()]),
+  'cx-ajustar': () => folhaAjCaixa(), 'aj-abrir': el => ajAbrir(+el.dataset.pag), 'aj-ver': el => { if (AJ) { AJ.ver = el.dataset.f || ''; AJ.aberto = 0; ajPinta(); } },   /* 2.50 */
+  'aj-tudo': el => ajTudo(el), 'aj-fechar': () => { if (AJ) { AJ.aberto = 0; ajPinta(); } }, 'aj-salvar': el => ajSalvar(el), 'aj-recarregar': () => ajCarregar(),
   'cx-pdf': el => baixarResumoDia(el),   /* 1.54 */
   'fim-excluir': el => folhaExcluirFim(el), 'fim-excluir-ok': el => excluirFimOk(el),   /* 2.43 */
   'ct-v-corrigir': el => folhaCtCorrigir(+el.dataset.id), 'ct-v-corrigir-ok': el => ctCorrigirOk(el), 'ct-v-excluir': el => folhaCtExcluir(+el.dataset.id), 'ct-v-excluir-ok': el => ctExcluirOk(el),   /* 2.45 */
