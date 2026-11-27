@@ -1301,6 +1301,15 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O nome do cliente em destaque no cupom dos carrinhos (2.65)
+
+Pedido do dono (27/11): "no cupom desses que eu selecionar mais de um, no caso só carrinho, ele pode imprimir todos juntos, com o nome do cliente, né?"
+
+- O cupom dos carrinhos marcados (Imprimir cupom e o da Dar baixa) sai com todos juntos, num cupom só.
+- Quando os carrinhos são de clientes diferentes, cada carrinho começa pelo nome do cliente (o responsável), em negrito; embaixo, o carrinho e a criança, o telefone e a hora em que saiu (e voltou). Na tabela do pagamento, cada linha diz o carrinho e o cliente.
+- Quando são todos do mesmo cliente, o nome dele vai uma vez só no alto (com o telefone) e ele assina embaixo.
+- O carrinho de bebê e o fusquinha só existem no Morumbi (Ajustes → o serviço → "Tem nas unidades", desde a 1.99). A prévia, com dados de exemplo, mostra carrinhos no aparelho de exemplo (Anália) só para teste.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Marcar os carrinhos, dar baixa em todos e imprimir um cupom só (2.64)
 
 Pedido do dono (27/11): "uma opção de selecionar os carrinhos e dar baixa nos carrinhos que eu selecionar todos de uma vez. E uma opção, quando eu selecionar os carrinhos, imprimir cupom fiscal de todos os carrinhos lá embaixo. Todos os carrinhos que eu selecionei. Aí só deixa selecionar os que for da mesma forma de pagamento. Se não for, ele aparece uma mensagem na tela, carrinho com forma de pagamento diferente da dos selecionados".

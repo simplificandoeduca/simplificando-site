@@ -2217,7 +2217,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.64';
+const VERSAO = '2.65';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -5230,8 +5230,10 @@ function htmlPapel(spec, via = 'loja') {
   const pe = (aviso, assina) => `${rod}${loja && assina ? `<p class="c-assina">x</p><p class="c-ass-nome">${esc(c.resp)}${c.cpf ? ' · ' + esc(c.cpf) : ''}</p>` : ''}${aviso ? `<p class="c-aviso">${esc(aviso)}</p>` : ''}`;
   if (spec.tipo === 'carrinhos') { /* 2.64: os carrinhos marcados na lista, num cupom só (todos com a mesma forma de pagamento) */
     const I = spec.itens || [], um = new Set(I.map(y => (crianca(y.cid) || {}).resp || '')).size === 1;   /* um = todos do mesmo responsável: ele assina */
-    const bl = I.map((y, i) => { const k = crianca(y.cid) || {}; return `${i ? '<p class="c-esp"></p>' : ''}<p class="c-bt"><b>${esc(y.item)}</b> · ${esc(k.nome || '')}</p>${um ? '' : `<p>Resp.: ${esc(k.resp || '')}${fones(k) ? ' · ' + esc(fones(k)) : ''}</p>`}<p>Saiu ${y.outroDia ? dataHora(y.saiu) : hora(y.saiu)}${spec.voltou ? ' · voltou ' + hora(spec.voltou) : ''}${y.fixo ? ' · preço do dia' : y.ficou ? ' · ficou ' + dur(y.ficou) : ''}</p>`; }).join('');
-    const itens = I.filter(y => y.v > 0).map(y => ({ n: `${y.item} · ${(crianca(y.cid) || {}).nome || ''}`, v: y.v }));
+    /* 2.65 (o dono: "ele pode imprimir todos juntos, com o nome do cliente, né?"): de clientes diferentes, cada carrinho começa pelo nome do
+       cliente (o responsável), em destaque, e embaixo o carrinho, a criança e o telefone; na tabela, o carrinho e o cliente */
+    const bl = I.map((y, i) => { const k = crianca(y.cid) || {}; return `${i ? '<p class="c-esp"></p>' : ''}${um ? `<p class="c-bt"><b>${esc(y.item)}</b> · ${esc(k.nome || '')}</p>` : `<p class="c-bt c-cli"><b>${esc(k.resp || k.nome || '')}</b></p><p>${esc(y.item)} · ${esc(k.nome || '')}</p>${fones(k) ? `<p>Tel.: ${esc(fones(k))}</p>` : ''}`}<p>Saiu ${y.outroDia ? dataHora(y.saiu) : hora(y.saiu)}${spec.voltou ? ' · voltou ' + hora(spec.voltou) : ''}${y.fixo ? ' · preço do dia' : y.ficou ? ' · ficou ' + dur(y.ficou) : ''}</p>`; }).join('');
+    const itens = I.filter(y => y.v > 0).map(y => { const k = crianca(y.cid) || {}; return { n: `${y.item} · ${um ? k.nome || '' : k.resp || k.nome || ''}`, v: y.v }; });
     return `<div class="papel loja">${topo.replace('{{VIA}}', spec.voltou ? 'VIA DE DEVOLUÇÃO' : 'VIA DA LOJA')}${um ? cli : ''}${div}<p class="c-tit c-bt">${spec.voltou ? 'DEVOLUÇÃO · ' : ''}${I.length} ${I.length === 1 ? 'CARRINHO' : 'CARRINHOS'}</p>${bl}${itens.length ? '<p class="c-esp"></p><p>Pago na entrada</p>' : ''}
       ${pago(itens, spec.formas)}${pe('', um)}</div>`;
   }
