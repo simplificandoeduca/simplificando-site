@@ -325,6 +325,7 @@ button.row:hover{background:var(--ctl)}
 .xa-ico svg{display:block;width:100%;height:100%}
 .xa-big{position:relative;flex:none;margin:4px 0 14px;border-radius:22px;overflow:hidden;background:#FFFFFF;box-shadow:inset 0 0 0 1px rgba(15,23,18,.08)}
 .xa-big svg{display:block;width:100%;height:auto;aspect-ratio:480/420}
+.xa-big video{display:block;width:100%;height:auto;aspect-ratio:1;background:#FBF8EE}
 .xa-big.empty svg{visibility:hidden}
 .exg{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
 .exg .fld>label{font-size:11.5px}
@@ -3191,6 +3192,7 @@ const XAR = (() => {
     const p = ref.split('/'), doc = C[p[0]] && C[p[0]][p[1]]; if(!doc) return null;
     const path = p.slice(2).join('/').replace(/\.$/,''); return path ? getP(doc, path) : doc;
   }
+  const EX3D = { crossalta:'ex-crossalta-m' }; // animações 3D prontas (arquivo em src/b3, servido em /app-teste/b3)
   function tick(now){
     requestAnimationFrame(tick);
     const els = document.querySelectorAll('svg.xa-live'); if(!els.length) return;
@@ -3198,6 +3200,11 @@ const XAR = (() => {
     els.forEach(el => {
       const r = el.getBoundingClientRect(); if(!r.width || r.bottom < 0 || r.top > vh) return;
       const o = xaDesc(objOf(el.dataset.ref)), key = JSON.stringify(o);
+      if(el.dataset.full){ // exercício com animação 3D pronta: o vídeo entra no lugar do boneco desenhado (só na prévia grande)
+        const bx = el.closest('.xa-big'), v3 = o ? EX3D[XA.pick(o)] : '', vd = bx && bx.querySelector('video');
+        if(bx && v3){ if(!vd || vd.dataset.v3!==v3){ if(vd) vd.remove(); bx.insertAdjacentHTML('afterbegin', '<video data-v3="'+v3+'" src="https://simplificandoeduca.com/app-teste/b3/'+v3+'.mp4?v=199" autoplay loop muted playsinline disablepictureinpicture></video>'); } el.style.display = 'none'; bx.classList.remove('empty'); return; }
+        if(vd){ vd.remove(); el.style.display = ''; }
+      }
       if(still ? el.dataset.key===key : now-(last.get(el)||0) < 1000/(+el.dataset.fps||15)) return;
       last.set(el, now); el.dataset.key = key;
       const sfx = el.dataset.sfx || (el.dataset.sfx = '_l'+(++n)), sec = (now-t0)/1000;
@@ -3947,7 +3954,7 @@ function ctCard(a){
 /* ---------- Perfis: todas as contas do app, com e sem personal ---------- */
 const DONO_NOME = 'Eduardo Matias Marques';
 /* ---------- atualizar o site com um toque (site/atualizar.php baixa a versão nova do GitHub) ---------- */
-const PAINELV = '27 nov · 198'; // Versão do painel: 27 nov · 198
+const PAINELV = '27 nov · 199'; // Versão do painel: 27 nov · 199
 const ATU = { st:'', nova:'', msg:'' };
 function atuCheck(){
   if(ATU.st) return; ATU.st = 'vendo';
