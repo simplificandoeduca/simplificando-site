@@ -1301,6 +1301,19 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Marcar os carrinhos, dar baixa em todos e imprimir um cupom só (2.64)
+
+Pedido do dono (27/11): "uma opção de selecionar os carrinhos e dar baixa nos carrinhos que eu selecionar todos de uma vez. E uma opção, quando eu selecionar os carrinhos, imprimir cupom fiscal de todos os carrinhos lá embaixo. Todos os carrinhos que eu selecionei. Aí só deixa selecionar os que for da mesma forma de pagamento. Se não for, ele aparece uma mensagem na tela, carrinho com forma de pagamento diferente da dos selecionados".
+
+- Cada carrinho da lista da tela inicial tem um círculo no começo da linha. Tocar marca o carrinho (o círculo fica verde com o check e a linha fica verdinha); tocar de novo desmarca.
+- Só entram juntos os carrinhos com a mesma forma de pagamento (a que foi paga na entrada: Pix, débito, crédito, dinheiro, Link, ou as mesmas formas, se dividiu). Tocar num carrinho com outra forma mostra a mensagem "Carrinho com forma de pagamento diferente da dos selecionados" e ele não é marcado.
+- O carrinho que ainda tem valor a receber na devolução (o fusquinha, que é cobrado na volta, ou o que ficou para pagar depois) não entra no lote: a mensagem diz para dar a baixa nele sozinho, pelo Devolveu, onde se recebe o pagamento.
+- Com algum carrinho marcado, aparece embaixo da lista a barra com quantos estão marcados, a forma de pagamento e o total, e os botões Desmarcar, Imprimir cupom e Dar baixa.
+- Imprimir cupom: um cupom só (a via da loja), com cada carrinho (o nome da criança, o responsável e o telefone, a hora em que saiu) e o total pago na entrada naquela forma. Os carrinhos continuam marcados (dá para dar a baixa depois).
+- Dar baixa: todos os marcados voltam para a loja de uma vez (cada um com a sua linha de devolução, como no Devolveu) e sai o cupom da devolução dos carrinhos, um só, com a hora em que voltaram. O Desfazer do aviso põe todos de volta na lista.
+- O cupom fica na reimpressão de cada cliente (Reimprimir cupom, na ficha).
+- Com carrinhos marcados, a tela não se atualiza sozinha para a versão nova (espera desmarcar ou dar a baixa).
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Os campos de data com a cara do sistema (2.63)
 
 Pedido do dono (27/11): "melhore o campo de todas as datas. Não tá conversando com o sistema. A data, ela tem que ser na mesma dinâmica. Tipo, bonitinho, meio abaulado" (com a foto do "Outro dia" do Caixa do dia, com o calendário quadrado do navegador).
