@@ -2199,7 +2199,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.57';
+const VERSAO = '2.58';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -7458,7 +7458,7 @@ function folhaFicha(id) { // 1.02: mais limpa. O que importa numa olhada: quem �
       ${semIdface() ? (c.entrou ? `<button class="bt forte tap" data-act="saida" data-id="${c.id}">${ic(IC.sair)} Saída</button>` : `<button class="bt forte tap" data-act="entrada" data-id="${c.id}" title="${temPeriodo(c) ? 'Entra usando as horas que já tem' : 'Sem pacote: entra na recreação avulsa e acerta na saída'}">${ic(IC.entrar)} Entrada</button>`)
         : podeManual() && c.entrou ? `<button class="bt claro tap" data-act="saida" data-id="${c.id}" title="Só para corrigir: o normal é a saída pelo rosto">${ic(IC.sair)} Saída à mão</button>` : ''}
       <button class="bt ${semIdface() ? '' : 'forte'} tap" data-act="vender" data-id="${c.id}">${ic(IC.mais)} Vender</button>
-      <button class="bt tap" data-act="nf-ficha" data-id="${c.id}" title="A nota fiscal da compra deste cliente (sem abrir o histórico)">${ic(IC.cupom)} NF</button>
+      <button class="bt tap" data-act="nf-ficha" data-id="${c.id}" title="A nota fiscal da compra deste cliente (sem abrir o histórico)">${ic(IC.cupom)} NF${nfTravada(c) ? ' ' + ic(IC.cadeado, 15) : ''}</button>
       <button class="bt tap" data-act="historico" data-id="${c.id}">${ic(IC.historico)} Histórico</button>
       <button class="bt tap" data-act="relatorio" data-id="${c.id}" title="O extrato do cliente: compras, visitas e o saldo de cada dia, para ver, imprimir no cupom ou abrir em planilha">${ic(IC.relatorio)} Relatório</button>
       <button class="bt tap" data-act="papel-reimprimir" data-id="${c.id}" title="Ver e imprimir de novo um cupom deste cliente: o cliente perdeu, ou a impressora travou">${ic(IC.cupom)} Reimprimir cupom</button>
@@ -8257,8 +8257,14 @@ async function salvarHoras(el) {
 /* 2.54 (o dono: "pode fazer um botão NF, ele aí ... do que eu ter que entrar no histórico do cliente, muito trabalho"): o botão NF da ficha
    abre a nota da compra direto. Uma compra hoje: abre a nota dela. Mais de uma hoje: escolhe qual. Nenhuma hoje: as últimas compras
    (a mais recente em cima), para escolher. O histórico abre junto, do lado (é dele que a folha da nota lê a compra) */
+/* 2.58 (o dono: "só o gestor pode tirar a nota fiscal ... elas só podem tirar do finalizado. Do em atendimento, elas não podem tirar NF"):
+   com o cliente em atendimento (alguém da família no espaço, ou um carrinho fora da loja), a nota fiscal só pelo gestor; finalizado (saiu,
+   devolveu), a equipe tira. A nota já emitida a equipe vê (imprimir, WhatsApp) a qualquer hora */
+const emAtendimento = c => !!c && familia(c).some(x => x.entrou || (S.alugueis || []).some(a => a.crianca === x.id));
+const nfTravada = c => !gestor() && emAtendimento(c);
+const NF_TRAVA_MSG = 'Cliente em atendimento: a nota fiscal sai depois da saída (nos Finalizados do dia). Antes disso, só o gestor tira a nota.';
 async function nfDaFicha(cid) {
-  const c = crianca(cid); if (!c) return; if (document.querySelector('#folha .folha-fundo')) fecharFolha();
+  const c = crianca(cid); if (!c) return; if (nfTravada(c)) { toast(NF_TRAVA_MSG); return; } if (document.querySelector('#folha .folha-fundo')) fecharFolha();
   if (!LADO || LADO.id !== c.id || !LADO.dados) { abrirHistorico(c.id); for (let i = 0; i < 80 && LADO && LADO.id === c.id && !LADO.dados && !LADO.erro; i++) await espera(150); }
   if (!LADO || LADO.id !== c.id) return; if (!LADO.dados) { toast(LADO.erro || 'O histórico do cliente não carregou. Tente de novo.'); return; }
   const L = LADO.dados.vendas.filter(temNF), hj = L.filter(v => doDia(v.quando));
@@ -8276,7 +8282,7 @@ let NFL = null;
 const nflLink = c => S.balcao && c.id === S.balcao.id ? '' : `<button type="button" class="link tap" data-act="nf-livre" data-id="${c.id}" style="display:block;margin:10px auto 0">Nota com outro valor (ex.: horas que vieram do sistema anterior)</button>`;
 const docNF = d => d.length === 11 ? d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : d.length === 14 ? d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5') : d;
 function folhaNFLivre(cid) {
-  const c = crianca(cid); if (!c) return; if (document.querySelector('#folha .folha-fundo')) fecharFolha();
+  const c = crianca(cid); if (!c) return; if (nfTravada(c)) { toast(NF_TRAVA_MSG); return; }   /* 2.58 */ if (document.querySelector('#folha .folha-fundo')) fecharFolha();
   if (NFL && NFL.pdf && NFL.pdf.url) URL.revokeObjectURL(NFL.pdf.url);
   NF = null; NFL = { cid: c.id, id: 'psl' + c.id + 'x' + notasId(), un: minhaUni() || c.uni || 0 };
   abrirFolha('Nota fiscal · outro valor', `<div id="nfl-corpo" style="display:flex;flex-direction:column;gap:12px">${nflHtml(c)}</div>`); nflPreparar();
@@ -8308,7 +8314,7 @@ async function nflPreparar() {
   catch (e) { /* (o Notas responde de novo na hora de emitir) */ }
 }
 async function emitirNFLivre(el) {
-  const x = NFL, c = x && crianca(x.cid); if (!c || x.indo || x.feito) return;
+  const x = NFL, c = x && crianca(x.cid); if (!c || x.indo || x.feito) return; if (nfTravada(c)) { toast(NF_TRAVA_MSG); return; }   /* 2.58 */
   const nome = MAI(val('nfl-nome')).trim().slice(0, 120), dg = soDig(val('nfl-doc')), email = (($('#nfl-email') || {}).value || '').trim(), desc = (($('#nfl-desc') || {}).value || '').replace(/\s+/g, ' ').trim().slice(0, 200), valor = centavos(numero(($('#nfl-valor') || {}).value));
   const foco = id => { const i = $('#' + id); if (i) i.focus(); };
   if (!nome) { toast('Escreva em nome de quem a nota sai'); foco('nfl-nome'); return; }
@@ -8377,6 +8383,7 @@ async function nflWhats() {
 }
 function folhaNF(id) {
   const v = LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === +id), c = v && crianca(v.crianca); if (!v || !c || !temNF(v)) return;
+  if (nfTravada(c) && (nfDaVenda(v) || {}).status !== 'usado') { toast(NF_TRAVA_MSG); return; }   /* 2.58 */
   NF = { id: v.id, cid: c.id }; NFL = null; if (NF_MSG && NF_MSG.venda === v.id && NF_MSG.tipo !== 'emitindo') NF_MSG = null;
   abrirFolha('Nota fiscal', `<div id="nf-corpo" style="display:flex;flex-direction:column;gap:12px">${htmlNF(v, c)}</div>${nflLink(c)}`); lerVoltaNF();
   const pn = nfDaVenda(v); if (!pn || pn.status !== 'usado') nfPreparar(v.id); else { const x = nfPdfDe(v); if (!x || x.st !== 'ok' || x.num !== String(pn.numero || '')) nfPdfCarregar(v); }   /* 2.02: o Notas está pronto? 2.48: a nota emitida carrega (de novo, se não tinha carregado) */
@@ -8494,7 +8501,8 @@ function htmlNF(v, c) {
 /* 1.55: toda a equipe emite a nota (sem esperar o gestor): fica guardado em nome de quem ela sai.
    2.02: e a nota sai na hora, daqui mesmo (emitirNFDireto), sem abrir o Notas em outra aba */
 async function pedirNF(el) {
-  if (!NF) return; const ja = el.dataset.ja || '', foco = id => { const i = $('#' + id); if (i) i.focus(); };
+  if (!NF) return; if (nfTravada(crianca(NF.cid))) { toast(NF_TRAVA_MSG); return; }   /* 2.58 */
+  const ja = el.dataset.ja || '', foco = id => { const i = $('#' + id); if (i) i.focus(); };
   const nome = ja ? '' : val('nf-nome'), doc = ja ? '' : val('nf-doc'), email = ja ? '' : ($('#nf-email') || { value: '' }).value.trim(), dg = soDig(doc);
   if (!ja && !nome) { toast('Escreva em nome de quem a nota sai'); foco('nf-nome'); return; }
   if (!ja && MODO === 'servidor' && !dg) { toast('Escreva o CPF ou o CNPJ de quem recebe a nota'); foco('nf-doc'); return; }   /* 2.02: o Notas emite com o CPF/CNPJ */
@@ -8583,7 +8591,7 @@ async function nfPreparar(venda) {
 const notasId = () => (Date.now().toString(36) + Math.random().toString(36).slice(2, 7)).replace(/[^a-z0-9]/g, '');
 async function emitirNFDireto() {
   const v = NF && LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === NF.id), p = v && nfDaVenda(v), c = v && crianca(v.crianca);
-  if (!v || !p || !c || p.status === 'usado') return;
+  if (!v || !p || !c || p.status === 'usado') return; if (nfTravada(c)) { toast(NF_TRAVA_MSG); return; }   /* 2.58 */
   if (MODO !== 'servidor') { toast('Na prévia a nota não sai: no sistema de verdade ela é emitida na hora pelo Play Space Notas'); return; }
   if (NF_EMITINDO) return; NF_EMITINDO = v.id; nfMsg(v.id, 'emitindo', 'Assinando com o certificado e enviando ao Emissor Nacional…');
   const pt = nfPonte(v, c, p.dados || {}), docL = x => String(x == null ? '' : x).toUpperCase().replace(/[^0-9A-Z]/g, '');

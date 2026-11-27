@@ -1301,6 +1301,15 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A nota fiscal do cliente em atendimento, só o gestor (2.58)
+
+Pedido do dono (27/11): "só o gestor pode tirar a nota fiscal ... elas só podem tirar do finalizado. Do em atendimento, elas não podem tirar NF. Só o gestor."
+
+- Cliente em atendimento = alguém da família (mesmo responsável/CPF) no espaço, ou um carrinho fora da loja.
+- Em atendimento: o botão NF da ficha mostra o cadeado para a equipe; tocando, aparece "Cliente em atendimento: a nota fiscal sai depois da saída (nos Finalizados do dia). Antes disso, só o gestor tira a nota." A folha da compra (pelo histórico) e a "nota com outro valor" também não abrem para a equipe. O servidor recusa o pedido da nota.
+- Finalizado (saiu, devolveu o carrinho): a equipe tira a nota normalmente (pela ficha, pelos Finalizados do dia ou pelo histórico).
+- O gestor tira a nota a qualquer hora. A nota já emitida a equipe vê (Imprimir, WhatsApp, Salvar) a qualquer hora.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A reimpressão pela equipe a qualquer hora (2.57)
 
 Pedido do dono (27/11): "a reimpressão pode ser feita pelos operadores do cupom, tá?".

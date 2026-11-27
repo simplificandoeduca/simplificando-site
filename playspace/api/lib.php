@@ -924,6 +924,7 @@ function pedidoCriar(array $u, array $in): array {
       $dados = ['item' => $nomeV, 'quando' => (string)$v['quando'], 'pago' => $pago ? textoPagamento($pago, true) : '', 'min' => $min, 'atendente' => lerAtendente($in, $u)];   // 1.25: quem pediu (o nome da atendente)
       $texto = 'Cancelar a venda: ' . $oque;
     } else { // a nota fiscal de uma compra
+      if (($u['papel'] ?? '') !== 'gestor' && emAtendimento($c)) falha('Cliente em atendimento: a nota fiscal sai depois da saída (nos Finalizados do dia). Antes disso, só o gestor tira a nota.', 403);   /* 2.58 */
       if ($valor <= 0.004) falha('Esta compra não tem valor: não há nota para tirar.');
       $q = $db->prepare("SELECT * FROM pedidos WHERE tipo = 'nf' AND venda_id = ? AND status IN ('pendente', 'liberado', 'usado') ORDER BY id DESC LIMIT 1"); $q->execute([$vendaId]); $ja = $q->fetch();
       if ($ja) return $ja['status'] === 'pendente' ? pedidoDecidir((int)$ja['id'], $u, true, 'proprio', true) : ['pedido' => pedidoPublico($ja), 'ja' => true];   // uma nota por compra (1.55: a pedida antes, que esperava o gestor, sai agora)
@@ -1188,6 +1189,12 @@ function chaveDocCadastro(array $x): string {
   $d = (string)preg_replace('/\D/', '', $v); return strlen($d) === 11 ? 'c' . $d : '';
 }
 function chaveTelCadastro(array $x): string { $d = (string)preg_replace('/\D/', '', (string)($x['tel'] ?? '')); return strlen($d) >= 8 ? substr($d, -8) : ''; }
+/* 2.58: o cliente está em atendimento (alguém da família no espaço, ou um carrinho fora da loja): a nota fiscal dele, só o gestor */
+function emAtendimento(array $c): bool {
+  $ids = array_values(array_unique(array_merge([(int)$c['id']], array_map(fn($x) => (int)$x['id'], irmaosDe($c))))); $m = implode(',', array_fill(0, count($ids), '?'));
+  $q = db()->prepare("SELECT 1 FROM criancas WHERE id IN ($m) AND entrou IS NOT NULL UNION ALL SELECT 1 FROM vendas WHERE crianca_id IN ($m) AND alug != '' AND voltou IS NULL LIMIT 1");
+  $q->execute(array_merge($ids, $ids)); return (bool)$q->fetchColumn();
+}
 function irmaosDe(array $c): array {
   $doc = chaveDocCadastro($c); $tel = chaveTelCadastro($c); if ($doc === '' && $tel === '') return [];
   // o banco separa os candidatos (o mesmo documento escrito de qualquer jeito, ou o telefone com o mesmo final); a conferência exata é feita abaixo
