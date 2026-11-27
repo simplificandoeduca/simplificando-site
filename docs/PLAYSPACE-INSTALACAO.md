@@ -1301,6 +1301,21 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A nota fiscal espera o governo, com o relógio, e aparece sozinha (2.68)
+
+Pedido do dono (27/11): "quando eu solicitar a nota por dentro do sistema, eu preciso que a nota já carregue, ela não está carregando. Mesmo a nota sendo emitida lá no governo, ele está dando que a nota ainda não foi emitida. Eu preciso que ela já abra, tipo, fique um tempo de 20 segundos ... o tempo que precisar, e contando esse tempo, e assim que ela carregar no outro sistema, ele já puxar para esse."
+
+O que acontecia: o Play Space pedia a nota ao Play Space Notas, que pedia ao governo (o Emissor Nacional) uma vez só. Se o governo demorava ou a resposta se perdia no caminho (o tempo esgotou, o servidor do site cortou a espera), a folha dizia "A nota não saiu", mesmo quando o governo já tinha emitido. E o PDF da nota era tentado só 3 vezes em uns 5 segundos.
+
+Agora (na folha da compra e na "Nota com outro valor"):
+- Enquanto a nota vai e volta do governo, a folha mostra o relógio (0:01, 0:02…), e o botão fica "Emitindo a nota…" (não dá para tocar duas vezes).
+- O governo recusou (os dados, o CPF, o certificado): "A nota não saiu", com o motivo, na hora.
+- A resposta não veio ou veio cortada (o governo pode ter emitido): em vez de dizer que não saiu, o sistema confere lá por até 2 minutos e meio, com o relógio correndo: a lista do Play Space Notas e as notas da empresa no governo (o mesmo "Trazer do governo" do Notas). Achou a nota (o mesmo CPF/CNPJ, o mesmo valor, emitida agora e que não é a nota de outra compra): marca a compra com o número do governo e carrega a nota. Não achou: "A nota ainda não apareceu", com o botão "Conferir de novo no governo".
+- Tocar em Emitir de novo depois de uma resposta perdida: antes de emitir, o sistema confere se a nota da outra vez saiu. Nunca sai nota em dobro.
+- A nota emitida: a folha busca o PDF oficial de 4 em 4 segundos, por até 45 segundos, com o relógio e o aviso "O governo costuma levar de alguns segundos a 1 minuto. Pode continuar atendendo: a nota aparece aqui sozinha". Chegou, aparece sozinho (com Imprimir, WhatsApp e Salvar).
+- Sem o PDF oficial em 45 segundos: aparece o comprovante da nota (o da 2.59, com a chave e o QR) e a busca continua por trás, de 15 em 15 segundos, por até 5 minutos; quando o oficial chega, ele troca sozinho e avisa.
+- A nota antiga (marcada há mais de 10 minutos) não fica esperando: busca uma vez e mostra.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A aba Comissões: cada atendente por unidade, os pedidos, trocar ou excluir (2.67)
 
 Pedido do dono (27/11): "entre o painel e o de baixo, eu quero que você coloque uma aba escrita comissões, onde vai aparecer o nome de todos os atendentes por unidade ... trocar Anália, Casatom Anália, Casatom Morumbi, para ver os atendentes de cada unidade e ver quanto que dá ... clicando neles, eu consigo destrinchar e ver proveniente de qual pedido essas comissões. Ter a opção de trocar de atendente aquela comissão ou excluir."
