@@ -1,6 +1,6 @@
 /* ---------- Cardio: três jeitos de registrar, mesmos dados ---------- */
 const LOC_S = { Esteira:'Esteira', Bicicleta:'Bike', Rua:'Rua', Escada:'Escada', 'Elíptico':'Elíptico', Outro:'Outro' };
-const INT_L = { Leve:'Leve', Moderada:'Média', Forte:'Forte' };
+const INT_L = EM_TESTE ? { Leve:'Devagar', Moderada:'Médio', Forte:'Rápido' } : { Leve:'Leve', Moderada:'Média', Forte:'Forte' }; // nomes novos do ritmo: por enquanto só no app de teste
 const TCHIPS = [15,20,30,45];
 const EQI = { // ícones dos aparelhos: pessoa em movimento (esteira, bike, rua, elíptico), escada e coração
   Esteira:'<g class="e"><path d="M2.5 20.5h14.5"/><path d="M17 20.5l2.6-12.5h2"/><path d="M19.1 10.5h-3.4"/></g><g class="p"><circle class="hd" cx="10.4" cy="3.9" r="1.8"/><path d="M10 6.6l-1.4 5.2"/><path d="M8.6 11.8l3 2.3-.8 3.9"/><path d="M8.6 11.8l-2.3 3.3-2.8-.5"/><path d="M9.8 7.7l2.6 1.8 2.1-.9"/><path d="M9.8 7.7l-2.7 1.4-.9 2.1"/></g>',
@@ -85,7 +85,7 @@ function vCardioToque(){
     <div class="cq"><span class="flabel">Aparelho</span>${eqGrid('cf-local',cf.local)}
       <span class="flabel">Tempo</span>${timeChips('cf-min',cf.min,'cf-more')}
       ${ui.cfMore ? minStepper('cfmin',cf.min) : ''}
-      ${intSeg('cfint',cf.int,true)}
+      ${EM_TESTE ? '<span class="flabel">Ritmo</span>' : ''}${intSeg('cfint',cf.int,true)}
       ${slideStart('cardio','Salvar '+cf.min+' min','csave')}</div>`+weekCompact();
 }
 /* 2 · Cronômetro */
@@ -98,7 +98,7 @@ function vCardioCrono(){
       `<section class="card blk-cardio live idle" aria-label="Cronômetro do cardio"><div class="lv-row"><span>Pronto para começar</span><span>Meta ${CARDIO.min} min</span></div>
         <b class="lv-timer">00:00</b><p class="lv-sub">${g.txt}</p><div class="lv-bar"><i style="width:${Math.round(g.p*100)}%"></i></div>
         <div class="lv-scn">${sceneCanvas(cf.local,cf.int)}</div></section>
-      <div class="cq"><span class="flabel">Aparelho</span>${eqGrid('cf-local',cf.local)}${intSeg('cfint',cf.int,true)}
+      <div class="cq"><span class="flabel">Aparelho</span>${eqGrid('cf-local',cf.local)}${EM_TESTE ? '<span class="flabel">Ritmo</span>' : ''}${intSeg('cfint',cf.int,true)}
       ${slideStart('cardio','Começar '+LOC_S[cf.local].toLowerCase(),'cstart')}${manual}</div>`;
   }
   const ms = cardioElapsed(), g = liveGoal(ms);
@@ -125,7 +125,7 @@ function vCardioSheet(){
     ? `<div class="field"><span class="flabel">Aparelho</span>${eqGrid('cs-local',c.local)}</div><div class="field"><span class="flabel">Tempo</span>${timeChips('cs-min',c.min)}${minStepper('cs-step',c.min)}</div>`
     : `<div class="cs-scn">${sceneCanvas(c.local,c.int)}</div>${minStepper('cs-step',c.min,true)}`;
   return `<div class="sheet-wrap" data-a="closebg"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t" tabindex="-1">${sheetTop(man?'Cardio sem cronômetro':'Registrar cardio', man?'Lançar manual':esc(c.local))}
-    ${body}<div class="field"><span class="flabel">Intensidade</span>${intSeg('cs-int',c.int,true)}<p class="zone">${ic('pulse')}<span><b>${ZONA[c.int][0]}</b>: ${ZONA[c.int][1]}.</span></p></div>
+    ${body}<div class="field"><span class="flabel">${EM_TESTE ? 'Ritmo' : 'Intensidade'}</span>${intSeg('cs-int',c.int,true)}<p class="zone">${ic('pulse')}<span><b>${ZONA[c.int][0]}</b>: ${ZONA[c.int][1]}.</span></p></div>
     <button type="button" class="btn block cs-save" data-a="cs-save">${ic('check')}Salvar ${c.min} min de ${nm}</button></div></div>`;
 }
 function openCS(local,k){
