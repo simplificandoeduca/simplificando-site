@@ -1301,6 +1301,17 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O que o gestor faz fica na unidade do cliente, e a lixeira no histórico (2.62)
+
+Pedido do dono (27/11): "quando um gestor fizer algum tipo de alteração, se o cliente está no Anália, a alteração tem que ir para o Anália. Se o cliente está no Morumbi, a alteração tem que ir para o Morumbi. O gestor ele não pode ter esse poder de trocar a unidade ... ele só edita e visualiza. Ele não troca unidade, senão a gente vai mexer num centro de custo".
+
+- O aparelho do gestor pode estar em qualquer unidade (ele vê todas). O que o gestor faz num cliente fica na unidade do cliente, não na do aparelho: a venda, o pagamento, a troca de forma de pagamento, o pedido (nota, alteração), o cancelamento, a devolução, o cupom e a linha do dia.
+- A unidade do cliente: a da visita de agora (dele ou de alguém da família no espaço); fora do espaço, a da última visita (ou da última compra) da família. Mexer numa venda ou num pagamento que já existe: a unidade dela. Só um cliente novo, sem visita nem compra, fica na unidade do aparelho.
+- A entrada dada pelo gestor num aparelho (Login do gestor no computador da loja) é daquela unidade, e o que é vendido junto com ela também.
+- A festa marcada não troca de unidade (saiu a escolha da unidade em "Mudar o tema, o horário ou o dia"); para outra unidade, cancela e marca de novo.
+- Para a equipe nada muda: vale a unidade do aparelho dela.
+- A lixeira do gestor no histórico do cliente (o dono: "aqui no histórico, eu também quero uma lixeirazinha para o gestor poder excluir se caso necessário"): em cada compra, só para o gestor. É a mesma dos Finalizados do dia: pede o motivo, a compra sai (o que foi pago sai do caixa, para devolver ao cliente; as horas dela saem do saldo) e fica nos cancelamentos e na linha do dia.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Os outros computadores se atualizam sozinhos (2.61)
 
 Pedido do dono (27/11): "dá para atualizar todos os computadores de maneira automática, sem eu precisar ficar clicando em atualizar, eu atualizar só um computador e os outros atualizarem automaticamente?"

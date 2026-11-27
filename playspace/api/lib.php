@@ -533,6 +533,26 @@ function uniCasaTomPares(): array {   /* 1.91 (auditoria): com as unidades apaga
 
 function unidadesDaAnalia(): array { $o = []; try { foreach (db()->query('SELECT id, nome FROM unidades WHERE ativo = 1')->fetchAll() as $u) if (uniLocal((string)$u['nome']) === 'ANALIA') $o[] = (int)$u['id']; } catch (Throwable $e) { } return $o; }   /* 1.99 (a Anália e a Casa Tom Anália) */
 function unidades(): array { return array_map('unidadePublica', db()->query('SELECT * FROM unidades ORDER BY ativo DESC, id')->fetchAll()); }   // as ativas primeiro; as inativas vão junto, para a tela saber o nome das antigas
+/* 2.62 (o dono: "se o cliente está no Anália, a alteração tem que ir para o Anália ... o gestor só edita e visualiza. Ele não troca
+   unidade, senão a gente vai mexer num centro de custo"): o aparelho do gestor pode estar em qualquer unidade (ele vê todas), então o que
+   o gestor faz num cliente fica na unidade do cliente: a da visita de agora (dele ou de alguém da família no espaço); fora do espaço, a da
+   última visita (ou da última compra) da família. Mexer numa venda ou num pagamento: a unidade dela. Só sem nada disso (cliente novo) vale
+   a do aparelho. A entrada dada pelo gestor num aparelho é daquela unidade (e o que é vendido junto com ela). Para a equipe, nada muda */
+function papelAqui(): string { if (!array_key_exists('_papel', $GLOBALS)) { $u = eu(); $GLOBALS['_papel'] = $u ? (string)$u['papel'] : ''; } return $GLOBALS['_papel']; }
+function gestorAqui(): bool { return papelAqui() === 'gestor'; }
+function uniDaVenda(?int $id): ?int { if (!$id) return null; $q = db()->prepare('SELECT unidade_id FROM vendas WHERE id = ?'); $q->execute([$id]); $u = $q->fetchColumn(); return $u === false || $u === null ? null : (int)$u; }
+function uniDoCliente(?array $c): ?int {
+  if (!$c || empty($c['id'])) return null; $b = balcaoCT(false); if ($b && (int)$b['id'] === (int)$c['id']) return null;   /* o cliente da loja da Casa Tom: vale o aparelho */
+  $F = array_merge([$c], irmaosDe($c)); foreach ($F as $x) if (!empty($x['entrou']) && ($x['unidade_id'] ?? null) !== null) return (int)$x['unidade_id'];
+  $ids = implode(',', array_map(fn($x) => (int)$x['id'], $F)); $db = db();
+  $u = $db->query("SELECT unidade_id FROM visitas WHERE crianca_id IN ($ids) AND unidade_id IS NOT NULL ORDER BY saiu DESC, id DESC LIMIT 1")->fetchColumn();
+  if ($u === false || $u === null) $u = $db->query("SELECT unidade_id FROM vendas WHERE crianca_id IN ($ids) AND unidade_id IS NOT NULL ORDER BY id DESC LIMIT 1")->fetchColumn();
+  return $u === false || $u === null ? null : (int)$u;
+}
+function uniDaAlteracao(?array $c = null, ?int $doRegistro = null): ?int {
+  $aqui = unidadeDoPedido(); if (!gestorAqui() || !empty($GLOBALS['PS_ENTRA_AQUI'])) return $aqui;
+  return $doRegistro ?? uniDoCliente($c) ?? $aqui;
+}
 function unidadeDoPedido(): ?int {
   if (!array_key_exists('_unidade', $GLOBALS)) {
     $id = (int)($_SERVER['HTTP_X_PLAY_UNIDADE'] ?? 0); $GLOBALS['_unidade'] = null;
@@ -953,7 +973,7 @@ function pedidoCriar(array $u, array $in): array {
   if ($tipo === 'valor' && $vendaId === null && (($dados['item'] ?? [])['k'] ?? '') === 'prod' && (float)($dados['para'] ?? 0) < (float)($dados['de'] ?? 0) - 0.004 && ($bct = balcaoCT(false)) && (int)$bct['id'] === (int)$c['id'])
     falha('Na Casa Tom o valor só sobe. Para menos é desconto: use o "Desconto" (só o gestor).');
   $db->prepare('INSERT INTO pedidos (tipo, status, crianca_id, venda_id, nome, resp, texto, motivo, valor, dados, pedido_por, pedido_nome, pedido_em, unidade_id) VALUES (?, \'pendente\', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-    ->execute([$tipo, (int)$c['id'], $vendaId, (string)$c['nome'], (string)$c['resp'], $texto, $motivo, $valor, json_encode($dados, JSON_UNESCAPED_UNICODE), (int)$u['id'], (string)$u['nome'], $agora, unidadeDoPedido()]);
+    ->execute([$tipo, (int)$c['id'], $vendaId, (string)$c['nome'], (string)$c['resp'], $texto, $motivo, $valor, json_encode($dados, JSON_UNESCAPED_UNICODE), (int)$u['id'], (string)$u['nome'], $agora, uniDaAlteracao($c, uniDaVenda($vendaId))]);   /* 2.62 */
   $id = (int)$db->lastInsertId();
   /* 2.42 (o dono: "no Casatom eu quero poder ajustar o valor para mais do produto sem pedir autorização, só se for desconto"): o produto
      que sobe de valor vale na hora, para qualquer um; baixar continua com quem aprova */
@@ -1189,7 +1209,7 @@ function fecharPedidosDeDesconto(?array $u, array $c, string $onde): void { // $
 function registrar(string $tipo, ?int $criancaId, string $nome, string $texto, ?string $quando = null, $unidade = false): int {   // 1.06: $unidade = false usa a do aparelho que fez o pedido
   if (!empty($GLOBALS['PS_OFF']['em'])) $texto .= ' · feito sem internet (chegou às ' . date('H:i') . ')';   // 1.40
   elseif (!empty($GLOBALS['PS_OFF']['negada'])) $texto .= ' · mandado como feito sem internet às ' . $GLOBALS['PS_OFF']['negada'] . ', mas o aparelho estava com internet: vale a hora de chegada';   // 1.49
-  db()->prepare('INSERT INTO registros (quando, tipo, crianca_id, nome, texto, unidade_id) VALUES (?, ?, ?, ?, ?, ?)')->execute([$quando ?: agora(), $tipo, $criancaId, $nome, $texto, $unidade === false ? unidadeDoPedido() : ($unidade ? (int)$unidade : null)]);
+  db()->prepare('INSERT INTO registros (quando, tipo, crianca_id, nome, texto, unidade_id) VALUES (?, ?, ?, ?, ?, ?)')->execute([$quando ?: agora(), $tipo, $criancaId, $nome, $texto, $unidade === false ? ($criancaId && gestorAqui() ? uniDaAlteracao(crianca($criancaId)) : unidadeDoPedido()) : ($unidade ? (int)$unidade : null)]);
   return (int)db()->lastInsertId();
 }
 // 1.19: os outros cadastros ativos do mesmo cliente, do jeito que a tela junta os irmãos: o mesmo documento do responsável; quando um dos
@@ -1223,6 +1243,7 @@ function crianca(int $id): ?array { $q = db()->prepare('SELECT * FROM criancas W
 // sem o iDFace (leitura desligada em Ajustes), a equipe marca a entrada e a saída na tela
 function modoManual(): bool { $c = cfg('idface', null); return is_array($c) && array_key_exists('ligado', $c) && !$c['ligado']; }
 function fazerEntrada(array $c, string $origem = 'iDFace', ?string $quando = null, ?int $festa = null, string $vend = ''): array {   /* $vend (1.68): quem abriu o pedido (vazio = não se sabe: o iDFace, a festa) */   // $festa (1.29): a festa em que a criança entra (a visita não cobra nem gasta horas)
+  $GLOBALS['PS_ENTRA_AQUI'] = true;   /* 2.62: a entrada é deste aparelho (o gestor também) */
   $db = db(); $quando = $quando ?: agora();
   $db->prepare('UPDATE criancas SET entrou = ?, unidade_id = ?, festa_id = ?, vend_abriu = ? WHERE id = ?')->execute([$quando, unidadeDoPedido(), $festa ?: null, $vend, $c['id']]);   // 1.06: a unidade do aparelho em que a entrada foi dada (o iDFace não diz: fica sem)
   $c['entrou'] = $quando; $c['unidade_id'] = unidadeDoPedido(); $c['festa_id'] = $festa ?: null; $c['vend_abriu'] = $vend;
@@ -1549,7 +1570,7 @@ function fazerVenda(array $c, int $min, float $valor, ?int $por, string $itens =
   $prod = (int)($mais['produto'] ?? 0); $qtd = $prod > 0 ? max(1, (int)($mais['qtd'] ?? 1)) : 0;   // venda de produto: qual e quantos (o estoque acompanha)
   $alug = $prod ? '' : mb_substr((string)($mais['alug'] ?? ''), 0, 40); if ($alug !== '') $qtd = max(1, (int)($mais['qtd'] ?? 1));   // o que sai e volta: qual serviço e quantos saíram
   $daVisita = !empty($c['entrou']) && isset($c['unidade_id']) && $c['unidade_id'] !== null ? (int)$c['unidade_id'] : null;
-  $uni = $auto ? $daVisita : (unidadeDoPedido() ?? $daVisita);   // 1.06: a unidade do aparelho que vendeu; a cobrança por atraso (que nasce sozinha) fica com a da visita
+  $uni = $auto ? $daVisita : (gestorAqui() ? ($daVisita ?? uniDaAlteracao($c)) : (unidadeDoPedido() ?? $daVisita));   // 1.06: a unidade do aparelho que vendeu; a cobrança por atraso (que nasce sozinha) fica com a da visita. 2.62: o gestor vende na unidade do cliente
   $db->prepare('INSERT INTO vendas (crianca_id, horas, minutos, valor, quando, por, itens, servico, auto, voucher, pcd, cheio, produto_id, qtd, alug, alug_min, unidade_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
     ->execute([$c['id'], round($min / 60, 2), $min, $valor, agora(), $por, $itens, $servico, $auto ? 1 : 0, (string)($mais['voucher'] ?? ''), empty($mais['pcd']) ? 0 : 1, $mais['cheio'] ?? null, $prod ?: null, $qtd, $alug, $alug !== '' ? max(0, (int)($mais['alug_min'] ?? 0)) : 0, $uni]);
   $venda = (int)$db->lastInsertId();
@@ -1681,11 +1702,13 @@ function gravarPagamento(array $vendaIds, array $formas, int $criancaId, ?int $p
   $db = db(); $quando = $quando ?: agora(); $gravado = [];
   $q = $db->prepare('SELECT v.valor - COALESCE((SELECT SUM(p.valor) FROM pagamentos p WHERE p.venda_id = v.id), 0) FROM vendas v WHERE v.id = ?');
   $ins = $db->prepare('INSERT INTO pagamentos (venda_id, crianca_id, forma, valor, quando, por, unidade_id) VALUES (?, ?, ?, ?, ?, ?, ?)'); $uni = unidadeDoPedido();   // 1.31: a unidade em que o dinheiro entrou
+  $qu = gestorAqui() && empty($GLOBALS['PS_ENTRA_AQUI']) ? $db->prepare('SELECT unidade_id FROM vendas WHERE id = ?') : null;   /* 2.62: o gestor recebe na unidade da venda */
   foreach ($vendaIds as $vid) {
     $q->execute([(int)$vid]); $falta = $q->fetchColumn(); if ($falta === false) continue; $falta = round((float)$falta, 2);
+    $uv = $uni; if ($qu) { $qu->execute([(int)$vid]); $x0 = $qu->fetchColumn(); $qu->closeCursor(); if ($x0 !== false && $x0 !== null) $uv = (int)$x0; }
     foreach ($formas as $f => $resta) {
       if ($falta < 0.005) break; if ($resta < 0.005) continue; $x = round(min($falta, $resta), 2);
-      $ins->execute([(int)$vid, $criancaId, $f, $x, $quando, $por, $uni]); $formas[$f] = round($resta - $x, 2); $falta = round($falta - $x, 2); $gravado[$f] = round(($gravado[$f] ?? 0) + $x, 2);
+      $ins->execute([(int)$vid, $criancaId, $f, $x, $quando, $por, $uv]); $formas[$f] = round($resta - $x, 2); $falta = round($falta - $x, 2); $gravado[$f] = round(($gravado[$f] ?? 0) + $x, 2);
     }
   }
   return $gravado;
@@ -1733,7 +1756,7 @@ function trocarPagamento(array $in, array $u): array {
     $reg = registrar('alt', (int)$p['crianca_id'], $nomeC, 'Troca de pagamento: ' . FORMAS_PAGAMENTO[$de] . ' ' . dinheiro($valor) . ' → ' . $txtPara . ' (pago às ' . substr((string)$p['quando'], 11, 5) . ') · por ' . maiusculo(primeiroNome((string)$u['nome'])));
     $lp = array_map(fn($f, $v) => ['f' => $f, 'v' => round($v / 100, 2)], array_keys($pc), $pc);
     $db->prepare('INSERT INTO trocas_pag (quando, crianca_id, nome, resp, de, para, valor, pago_em, por, por_nome, papel, unidade_id, partes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-      ->execute([agora(), (int)$p['crianca_id'], $nomeC, (string)($c['resp'] ?? ''), $de, $para, $valor, (string)$p['quando'], (int)$u['id'], (string)$u['nome'], (string)$u['papel'], unidadeDoPedido(), count($pc) > 1 ? json_encode($lp) : '']);
+      ->execute([agora(), (int)$p['crianca_id'], $nomeC, (string)($c['resp'] ?? ''), $de, $para, $valor, (string)$p['quando'], (int)$u['id'], (string)$u['nome'], (string)$u['papel'], uniDaAlteracao($c, ($p['unidade_id'] ?? null) !== null ? (int)$p['unidade_id'] : null), count($pc) > 1 ? json_encode($lp) : '']);
     $tid = (int)$db->lastInsertId(); $db->commit();
   } catch (Throwable $e) { if ($db->inTransaction()) $db->rollBack(); throw $e; }
   if (!$gestor) { require_once __DIR__ . '/push-lib.php'; pushDepois(function () use ($tid) { pushTroca($tid); }); }
@@ -2053,7 +2076,7 @@ function grupoDoCaixa(array $l): string {
 function estornarPagosAntes(array $vendas): void {
   $por = []; foreach ($vendas as $v) if (!empty($v['id'])) $por[(int)$v['id']] = $v; if (!$por) return;
   $db = db(); $q = $db->prepare('SELECT venda_id, forma, valor, quando, unidade_id FROM pagamentos WHERE quando < ? AND venda_id IN (' . implode(',', array_keys($por)) . ') ORDER BY id'); $q->execute([date('Y-m-d') . ' 00:00:00']);
-  $ins = $db->prepare('INSERT INTO estornos (quando, unidade_id, forma, valor, grupo, item, pago_em, venda_id, crianca_id, pago_uni) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'); $aqui = unidadeDoPedido();   // 1.91: pago_uni
+  $ins = $db->prepare('INSERT INTO estornos (quando, unidade_id, forma, valor, grupo, item, pago_em, venda_id, crianca_id, pago_uni) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'); $aqui = gestorAqui() ? null : unidadeDoPedido();   // 1.91: pago_uni. 2.62: o gestor devolve na unidade em que o dinheiro entrou
   foreach ($q->fetchAll() as $p) { $v = $por[(int)$p['venda_id']]; $valor = round((float)$p['valor'], 2); if ($valor <= 0) continue;
     $g = grupoDoCaixa(['s' => (string)($v['servico'] ?? ''), 'pr' => (int)($v['produto_id'] ?? 0) > 0, 'a' => (string)($v['alug'] ?? ''), 'm' => (int)($v['minutos'] ?? 0), 'au' => (int)($v['auto'] ?? 0), 'vo' => (string)($v['voucher'] ?? '')]);
     $u = $aqui ?? (($p['unidade_id'] ?? null) !== null ? (int)$p['unidade_id'] : (($v['unidade_id'] ?? null) !== null ? (int)$v['unidade_id'] : null));
@@ -2492,7 +2515,7 @@ function cancelarAluguel(array $c, string $servico, array $u, string $motivo, bo
       $db->prepare('DELETE FROM vendas WHERE id = ? AND crianca_id = ?')->execute([$vid, (int)$c['id']]);
       if ($rg) $db->prepare("UPDATE registros SET texto = texto || ' · cancelada' WHERE id = ? AND crianca_id = ? AND tipo = 'venda' AND texto NOT LIKE '% · cancelada'")->execute([$rg, (int)$c['id']]); }
     $db->prepare("INSERT INTO cancelamentos (crianca_id, nome, resp, entrou, quando, minutos, valor, itens, motivo, por, por_nome, papel, fora, tipo, atendente, unidade_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'aluguel', ?, ?)")
-      ->execute([(int)$c['id'], $c['nome'], $c['resp'], (string)$a['ini'], $agora, $min, $valor, json_encode($itens, JSON_UNESCAPED_UNICODE), $motivo, (int)$u['id'], $u['nome'], $u['papel'], atendente(), unidadeDoPedido()]);
+      ->execute([(int)$c['id'], $c['nome'], $c['resp'], (string)$a['ini'], $agora, $min, $valor, json_encode($itens, JSON_UNESCAPED_UNICODE), $motivo, (int)$u['id'], $u['nome'], $u['papel'], atendente(), uniDaAlteracao($c)]);
     $id = (int)$db->lastInsertId();
     $reg = registrar('canc', (int)$c['id'], $c['nome'], 'Saída das ' . substr((string)$a['ini'], 11, 5) . ' de ' . $nq . ($desfeita ? ' desfeita na hora' : ' cancelada aos ' . ($min < 60 ? $min . ' min' : hm($min))) . ($pago ? ' · devolvido ao cliente: ' . textoPagamento($pago, true) : ' · nada foi cobrado') . ' · Motivo: ' . $motivo . ' · por ' . porQuem($u), $agora);
     $db->commit();
@@ -2598,7 +2621,7 @@ function papelGuardar(array $c, string $tipo, string $titulo, string $resumo, ar
   $blob = papelBlob($vias);
   $db = db(); $q = $db->prepare('INSERT INTO papeis (crianca_id, quando, tipo, titulo, resumo, vias, por, unidade_id, vendas) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
   $q->bindValue(1, (int)$c['id'], PDO::PARAM_INT); $q->bindValue(2, agora()); $q->bindValue(3, $tipo); $q->bindValue(4, $titulo); $q->bindValue(5, $resumo); $q->bindValue(6, $blob, PDO::PARAM_LOB);
-  $q->bindValue(7, $u ? (int)$u['id'] : null, $u ? PDO::PARAM_INT : PDO::PARAM_NULL); $un = unidadeDoPedido(); $q->bindValue(8, $un, $un === null ? PDO::PARAM_NULL : PDO::PARAM_INT); $q->bindValue(9, papelIds($vendas));
+  $q->bindValue(7, $u ? (int)$u['id'] : null, $u ? PDO::PARAM_INT : PDO::PARAM_NULL); $v0 = (int)(explode(',', papelIds($vendas))[0] ?? 0); $un = uniDaAlteracao($c, $v0 ? uniDaVenda($v0) : null); $q->bindValue(8, $un, $un === null ? PDO::PARAM_NULL : PDO::PARAM_INT); $q->bindValue(9, papelIds($vendas));
   $q->execute(); $id = (int)$db->lastInsertId();
   if ($id % 25 === 0) $db->prepare('DELETE FROM papeis WHERE quando < ?')->execute([date('Y-m-d H:i:s', time() - PAPEL_DIAS * 86400)]);   // de vez em quando, os antigos saem
   return $id;
@@ -2945,7 +2968,7 @@ function cancelarEntrada(array $c, array $u, string $motivo, ?array $vendaIds, b
     $db->prepare('UPDATE criancas SET entrou = NULL, sapateira = NULL, festa_id = NULL WHERE id = ?')->execute([$c['id']]);   // sai sem debitar nada; a sapateira fica livre
     if (!empty($c['festa_id'])) tirarPresencaDaEntrada($c);   // 1.29: a entrada na festa cancelada não conta como criança que veio
     $db->prepare('INSERT INTO cancelamentos (crianca_id, nome, resp, entrou, quando, minutos, valor, itens, motivo, por, por_nome, papel, fora, tipo, atendente, unidade_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-      ->execute([$c['id'], $c['nome'], $c['resp'], $c['entrou'], $agora, $minDentro, $valor, json_encode($itens, JSON_UNESCAPED_UNICODE), $motivo, (int)$u['id'], $u['nome'], $u['papel'], $noPrazo ? 0 : 1, $desfeita ? 'desfeita' : '', atendente(), unidadeDoPedido()]);
+      ->execute([$c['id'], $c['nome'], $c['resp'], $c['entrou'], $agora, $minDentro, $valor, json_encode($itens, JSON_UNESCAPED_UNICODE), $motivo, (int)$u['id'], $u['nome'], $u['papel'], $noPrazo ? 0 : 1, $desfeita ? 'desfeita' : '', atendente(), uniDaAlteracao($c)]);
     $id = (int)$db->lastInsertId();
     $oque = $itens ? 'não cobrado: ' . implode(', ', array_map(fn($i) => $i['n'] . ' (' . dinheiro($i['v']) . ')', $itens)) : 'o tempo não foi descontado';
     $reg = registrar('canc', (int)$c['id'], $c['nome'], 'Entrada das ' . substr((string)$c['entrou'], 11, 5) . ($desfeita ? ' desfeita na hora' : ' cancelada aos ' . ($minDentro < 60 ? $minDentro . ' min' : hm((int)$minDentro))) . ' · ' . $oque . ($devolver ? ' · devolver ao cliente: ' . textoPagamento($devolver, true) : '') . ($ficou ? ' · ficou a receber: ' . implode(', ', array_map(fn($v) => nomeDaVenda($v) . ' (' . dinheiro((float)$v['falta']) . ')', $ficou)) : '') . ' · Motivo: ' . $motivo . ' · por ' . porQuem($u) . ($noPrazo ? '' : ' (fora do prazo' . ($lim > 0 ? ' de ' . $lim . ' min' : '') . ')'), $agora);
@@ -2975,7 +2998,7 @@ function cancelarAtendimento(?array $c, array $in, array $u): array {
   $desde = preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', (string)($in['desde'] ?? '')) && (string)$in['desde'] <= $agora ? (string)$in['desde'] : $agora;   // quando o atendimento começou
   $itens = $oque !== '' ? [['n' => $oque, 'm' => 0, 'v' => $valor, 'tipo' => 'atendimento']] : [];
   db()->prepare("INSERT INTO cancelamentos (crianca_id, nome, resp, entrou, quando, minutos, valor, itens, motivo, por, por_nome, papel, fora, tipo, atendente, unidade_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'atendimento', ?, ?)")
-    ->execute([$c ? (int)$c['id'] : 0, $nome, $resp, $desde, $agora, max(0, intdiv(agoraTs() - strtotime($desde), 60)), $valor, json_encode($itens, JSON_UNESCAPED_UNICODE), $motivo, (int)$u['id'], $u['nome'], $u['papel'], atendente(), unidadeDoPedido()]);
+    ->execute([$c ? (int)$c['id'] : 0, $nome, $resp, $desde, $agora, max(0, intdiv(agoraTs() - strtotime($desde), 60)), $valor, json_encode($itens, JSON_UNESCAPED_UNICODE), $motivo, (int)$u['id'], $u['nome'], $u['papel'], atendente(), uniDaAlteracao($c)]);
   $id = (int)db()->lastInsertId();
   $reg = registrar('canc', $c ? (int)$c['id'] : null, $nome !== '' ? $nome : $resp, 'Atendimento cancelado' . ($oque !== '' ? ': ' . $oque . ($valor > 0 ? ' (' . dinheiro($valor) . ')' : '') : '') . ' · nada foi vendido · Motivo: ' . $motivo . ' · por ' . porQuem($u), $agora);
   return ['cancelamento' => $id, 'registro' => $reg];

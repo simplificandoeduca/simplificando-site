@@ -1956,6 +1956,7 @@ body.abre:not(.quieto) #nav-baixo { animation: ab-baixo .42s cubic-bezier(.2, .8
 .pn-nf .pn-li s { opacity: .7; }
 .vh-saldo { margin: 0; padding: 12px 0 0; font: 800 20px/1.2 var(--display); }
 .vh-saldo.falta { color: var(--erro); font-size: 15px; }
+.it-ac .hist-lixo { width: 30px; height: 30px; border-radius: 8px; }   /* 2.62: a lixeira do gestor no histórico */
 .it-ac .link.vh-l { margin-top: 0; display: inline-flex; align-items: center; gap: 4px; }
 @media (max-width: 560px) { .pn-nf-k { grid-template-columns: minmax(0, 1fr); } }
 /* 1.56: o telefone e a reimpressão no cupom; a cortesia com o relógio; o número que altera as horas; os e-mails do relatório */
@@ -2203,7 +2204,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.61';
+const VERSAO = '2.62';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -4252,11 +4253,10 @@ function desenharFestaVer() {
     ${!L ? `<p class="explica${FV.erro ? ' erro' : ''}">${FV.erro ? esc(FV.erro) : 'Carregando…'}</p>` : !L.length ? `<p class="explica">${f.data > hj ? 'A festa ainda não chegou.' : 'Ninguém entrou nesta festa.'} No dia, cada criança entra pelo atendimento: <b>Entrar na festa</b>.</p>`
       : `<div class="fv-lista">${L.map((x, i) => `<div class="fv-it${x.a_mais ? ' amais' : ''}"><span class="n num">${x.papel === 'aniversariante' ? '★' : i + 1 - nAniv}</span><span class="txt"><b>${esc(x.nome)}${x.idade ? ', ' + anosTxt(x.idade) : ''}${x.papel === 'aniversariante' ? ' <em class="tag-an">aniversariante</em>' : ''}${x.a_mais ? ' <em class="tag-am">a mais</em>' : ''}</b><span>${esc(x.resp || '—')}${fonesDe(x) ? ' · ' + esc(fonesDe(x)) : ''}</span></span><span class="q num">${x.quando ? hora(x.quando) : ''}${x.dentro ? '<small>no espaço</small>' : ''}</span></div>`).join('')}</div>
         <p class="explica fv-priv">A lista tem o nome e o telefone de outras famílias: mande só para o responsável do aniversariante.</p>`}
-    ${gestor() ? '' : `<p class="explica fv-so-gestor">Para mudar o tema, o horário, o dia ou a unidade desta festa, fale com o gestor.</p>`}
-    <details class="outro fv-mudar"${gestor() ? '' : ' hidden'}><summary>Mudar o tema, o horário${pode ? ', o dia' : ''}${dois ? ' ou a unidade' : ''}</summary>
+    ${gestor() ? '' : `<p class="explica fv-so-gestor">Para mudar o tema, o horário ou o dia desta festa, fale com o gestor.</p>`}
+    <details class="outro fv-mudar"${gestor() ? '' : ' hidden'}><summary>Mudar o tema, o horário${pode ? ' ou o dia' : ''}</summary>
       <div class="fv-form"><div class="dois"><div class="campo"><label for="fv-tema">Tema</label><input id="fv-tema" value="${esc(f.tema)}" maxlength="60" autocomplete="off" placeholder="Sem tema"></div>${f.dia === 'semana' ? `<div class="campo"><label for="fv-hora">Começa às</label><input id="fv-hora" inputmode="numeric" maxlength="5" value="${esc(f.hora)}" placeholder="15:00" autocomplete="off"></div>` : `<div class="campo"><label>Horário</label><p class="explica">${FESTA_HORA_FDS} (festa de final de semana)</p></div>`}</div>
         ${pode ? `<div class="campo"><label for="fv-data">Dia</label><input id="fv-data" inputmode="numeric" maxlength="10" value="${esc(nascBR(f.data))}" placeholder="dd/mm/aaaa" autocomplete="off"><span class="explica">${gestor() ? 'Você é o gestor: muda para qualquer dia. Se passar de semana para final de semana (ou o contrário), o tipo da festa muda junto e o valor da venda não muda.' : f.dia === 'fds' ? 'Festa de final de semana: só para sábado ou domingo.' : 'Festa de semana: só para outro dia de semana.'}</span></div>` : ''}
-        ${dois ? `<div class="campo"><label>Unidade</label><div class="seg" id="fv-uni">${unidades().map(u => `<button type="button" data-act="fv-uni" data-v="${u.id}" aria-pressed="${+f.uni === u.id}">${esc(u.nome)}</button>`).join('')}</div></div>` : ''}
         <button type="button" class="bt forte largo tap" data-act="fv-salvar" data-id="${f.id}">${ic(IC.check)} Salvar</button></div></details>
     ${gestor() ? `<div class="fv-gestor"><button type="button" class="bt tap" data-act="editar" data-id="${f.crianca}">${ic(IC.lapis, 16)} Editar o cadastro do cliente</button></div>` : ''}
     ${gestor() && pode ? `<details class="outro fv-cancelar"><summary>Cancelar a festa</summary><div class="fv-form"><p class="explica">A venda da festa é cancelada (com o upgrade e o adicional, se tiver) e a festa sai da agenda. O que o cliente pagou aparece para devolver.</p>
@@ -6994,6 +6994,15 @@ function papelCaixa0() { const u = cxUni(), K = contaCaixa(u), L = lojaPapel(), 
     <p class="c-div"></p><p class="c-cab"><span>Centro de custo</span><span>Valor</span></p>${centrosCusto(u).map(([n, v]) => lin(esc(n), brl2(v))).join('')}
     <p class="c-rod">emitido por ${esc(MAI(primeiro(EU.nome || 'equipe')))}</p></div>`; }
 let FXC = null;   /* 2.43: o que a lixeira vai excluir */
+/* 2.62 (o dono: "Aqui no histórico, eu também quero uma lixeirazinha para o gestor poder excluir se caso necessário"): a lixeira em cada
+   compra do histórico do cliente, só para o gestor. É a mesma dos Finalizados do dia: pede o motivo, a compra sai (o que foi pago sai do
+   caixa, para devolver ao cliente; as horas dela saem do saldo) e fica nos cancelamentos e na linha do dia */
+function folhaExcluirHist(id) { if (!gestor()) return; const v = LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === +id), c = v && crianca(v.crianca); if (!v) return;
+  FXC = { k: 'venda', id: v.id, c: v.crianca, s: '', vt: '', voltou: 0, saiu: 0 };
+  abrirFolha('Excluir esta compra', `<div class="marca lz-sai">${ic(IC.lixo, 18)}<span><b>${esc(nomeCompraTxt(v))}</b><br>${c ? nomeResp(c) + (c.resp ? ' · ' + esc(c.nome) : '') + ' · ' : ''}${diaCurto(v.quando)} às ${hora(v.quando)} · <b>${brl2(v.v)}</b></span></div>
+    <p class="explica">Sai a compra; o que foi pago sai do caixa (devolver ao cliente); as horas dela saem do saldo. Fica nos cancelamentos e na linha do dia, com o motivo.</p>
+    <div class="campo" id="fx-motivo-campo"><label for="fx-motivo">Motivo<span class="obg" aria-hidden="true">*</span></label><textarea id="fx-motivo" rows="2" maxlength="300" placeholder="Por que está excluindo (ex.: lançado em dobro, cliente errado)"></textarea></div>
+    <div class="pe-f"><button type="button" class="bt perigo largo tap" id="fx-ok" data-act="fim-excluir-ok">${ic(IC.lixo)} Excluir</button></div>`); }
 function folhaExcluirFim(el) { if (!gestor()) return; const d = el.dataset, it = el.closest('.fim-it'), quem = it ? (it.querySelector('.txt b') || {}).innerText || '' : '', sub = it ? (it.querySelector('.txt span') || {}).innerText || '' : '', val = it ? ((it.querySelector('.fim-v b') || {}).innerText || '') : '';
   FXC = { k: d.k, id: +d.id || 0, c: +d.c || 0, s: d.s || '', vt: d.vt || '', voltou: +d.voltou || 0, saiu: +d.sv || 0 };
   const oque = d.k === 'visita' ? 'Sai a saída e o que foi vendido nela para esta criança. As horas usadas voltam ao saldo; as horas compradas nela saem; o que foi pago sai do caixa (devolver ao cliente).'
@@ -7008,7 +7017,7 @@ async function excluirFimOk(el) { if (!FXC || !gestor()) return; const t = $('#f
   el.disabled = true; const X = FXC;
   try { let r; if (MODO === 'servidor') { r = await api('finalizado_excluir', { tipo: X.k, id: X.id, crianca: X.c, s: X.s, voltou: X.vt, motivo }); await carregar(); }
     else { r = excluirFimPrevia(X, MAI(motivo)); if (r.erro) throw new Error(r.erro); }
-    FXC = null; fecharFolha(); desenhar(true); toast(`Excluído${r.devolver ? ' · devolver ao cliente: ' + r.devolver : ''}`);
+    FXC = null; fecharFolha(); desenhar(true); if (LADO) buscarHistorico(); toast(`Excluído${r.devolver ? ' · devolver ao cliente: ' + r.devolver : ''}`);
   } catch (e) { toast(e.message); el.disabled = false; } }
 function excluirFimPrevia(X, M) {   /* (prévia) o mesmo que o servidor faz */
   const c = crianca(X.c), sai = (V, oque, vis, tipoC) => { const ids = V.map(v => v.id), P = (S.pagamentos || []).filter(p => ids.includes(p.venda)), dv = P.length ? juntaFormas(P).map(([f, v]) => nomeForma(f) + ' ' + brl(v)).join(' + ') : '';
@@ -8240,7 +8249,8 @@ const acoesDaCompra = v => { const pede = podePedirCancelamento(v), cv = pede ? 
   const hs = podeAlterarHoras(v) ? `<button type="button" class="link tap vh-l" data-act="venda-horas" data-id="${v.id}">${ic(IC.lapis, 13)} Alterar as horas</button>` : '';   /* 1.55: só o gestor */
   const tp = podeTrocarPag(v) ? `<button type="button" class="link tap vh-l" data-act="pag-trocar-v" data-id="${v.id}">${ic(IC.desconto, 13)} Trocar pagamento</button>` : '';   /* 1.57 */
   const vz = botaoVezes(v);   /* 2.39 */
-  return nf || canc || hs || tp || vz ? `<span class="it-ac">${nf}${hs}${tp}${vz}${canc}</span>` : ''; };
+  const lx = gestor() && v.id ? `<button type="button" class="fim-lixo hist-lixo tap" data-act="hist-excluir" data-id="${v.id}" title="Excluir esta compra (lançado errado) · só o gestor" aria-label="Excluir esta compra">${ic(IC.lixo, 16)}</button>` : '';   /* 2.62 */
+  return nf || canc || hs || tp || vz || lx ? `<span class="it-ac">${nf}${hs}${tp}${vz}${canc}${lx}</span>` : ''; };
 /* ---------- 1.55: o gestor corrige as horas de um pacote (a equipe lançou errado) ----------
    Muda só as horas desta compra (o valor continua o mesmo) e o saldo do cliente acompanha a diferença. Não tira horas que já foram
    usadas. Vale também para as horas que vieram do sistema anterior. Fica registrado, com o motivo e o nome do gestor. */
@@ -10120,7 +10130,7 @@ const ACOES = {
   'cx-ajustar': () => folhaAjCaixa(), 'aj-abrir': el => ajAbrir(+el.dataset.pag), 'aj-ver': el => { if (AJ) { AJ.ver = el.dataset.f || ''; AJ.aberto = 0; ajPinta(); } },   /* 2.50 */
   'aj-tudo': el => ajTudo(el), 'aj-fechar': () => { if (AJ) { AJ.aberto = 0; ajPinta(); } }, 'aj-salvar': el => ajSalvar(el), 'aj-recarregar': () => ajCarregar(),
   'cx-pdf': el => baixarResumoDia(el),   /* 1.54 */
-  'fim-excluir': el => folhaExcluirFim(el), 'fim-excluir-ok': el => excluirFimOk(el),   /* 2.43 */
+  'fim-excluir': el => folhaExcluirFim(el), 'fim-excluir-ok': el => excluirFimOk(el),   /* 2.43 */ 'hist-excluir': el => folhaExcluirHist(el.dataset.id),   /* 2.62 */
   'ct-v-corrigir': el => folhaCtCorrigir(+el.dataset.id), 'ct-v-corrigir-ok': el => ctCorrigirOk(el), 'ct-v-excluir': el => folhaCtExcluir(+el.dataset.id), 'ct-v-excluir-ok': el => ctExcluirOk(el),   /* 2.45 */
   'esp-filtro': el => { const f = el.dataset.f; if (f !== 'fim') S.cxDia = null;   /* 2.26: fora de Finalizados, o caixa volta para hoje */ S.espFiltro = S.tela === 'horas' && espFiltro() === f && f !== 'todas' ? 'todas' : f; if (S.tela !== 'horas') { if (mnLigado()) S.espBusca = ''; trocarTela('horas'); return; } atualizarEspaco(); },
   'mn-grupo': el => { const g = el.dataset.g, f = mnFechados(), i = f.indexOf(g); if (i < 0) f.push(g); else f.splice(i, 1); guardar('ps-menu-fechados', f); nav(); },   /* 1.28: abrir ou fechar um grupo do menu (fica guardado no aparelho) */

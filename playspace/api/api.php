@@ -607,6 +607,7 @@ switch ($acao) {
       if ($novoTipo === 'fds') $hora = '';   // (o final de semana tem o horário fixo)
     }
     $uni = $f['unidade_id'] === null ? null : (int)$f['unidade_id'];
+    if (array_key_exists('uni', $in) && $uni !== null && (int)$in['uni'] !== (int)$uni) falha('A unidade da festa não muda (o que foi vendido fica na unidade dela). Para outra unidade, cancele e marque de novo.');   /* 2.62 */
     if (array_key_exists('uni', $in) && (int)$in['uni'] !== (int)$uni) { $nu = ''; foreach (unidades() as $x) if ($x['id'] === (int)$in['uni'] && $x['ativo']) $nu = $x['nome']; if ($nu === '') falha('Escolha a unidade da festa.'); $uni = (int)$in['uni']; $mud[] = 'unidade ' . $nu; }
     if (!$mud) responder(['festa' => festaPublica($f)]);
     $db->prepare('UPDATE festas SET tema = ?, hora = ?, data = ?, unidade_id = ?, dia = ?, mudou_em = ? WHERE id = ?')->execute([$tema, $hora, $data, $uni, $novoTipo ?: (string)$f['dia'], agora(), (int)$f['id']]);
@@ -797,11 +798,12 @@ switch ($acao) {
   }
   case 'atender': { // a venda do atendimento: um ou mais serviços de uma vez. O valor sai da tabela de Ajustes, não do que a tela mandar
     $u = exigir(); $c = crianca((int)($in['id'] ?? 0)); if (!$c || !$c['ativo']) falha('Criança não encontrada.', 404);
+    if (!empty($in['entrar']) && empty($c['entrou'])) $GLOBALS['PS_ENTRA_AQUI'] = true;   /* 2.62: a entrada é dada neste aparelho: a visita e o que é vendido com ela são desta unidade */
     $r = regra(); $porId = []; foreach ($r['servicos'] as $s) $porId[(string)$s['id']] = $s;
     $linhas = [];
     foreach ((array)($in['linhas'] ?? []) as $l) {
       $s = $porId[(string)($l['s'] ?? '')] ?? null; $q = min(48, (int)($l['q'] ?? 0)); if (!$s || $q < 1) continue;
-      { $uq = unidadeDoPedido(); if ($uq !== null && in_array($uq, array_map('intval', (array)($s['fora'] ?? [])), true)) falha($s['n'] . ' não tem nesta unidade. Confira em Ajustes → Serviços.'); }   /* 1.99 */
+      { $uq = uniDaAlteracao($c); if ($uq !== null && in_array($uq, array_map('intval', (array)($s['fora'] ?? [])), true)) falha($s['n'] . ' não tem nesta unidade. Confira em Ajustes → Serviços.'); }   /* 1.99 */
       if (isset($l['vt']) && abs((float)$l['vt'] - (float)$s['v']) >= 0.005) falha('O valor de ' . $s['n'] . ' mudou para ' . dinheiro((float)$s['v']) . '. Feche e abra o atendimento de novo.');   // 1.45 (auditoria): como o pacote e o produto
       if (!empty($s['volta']) && ($s['modo'] ?? 'fixo') !== 'periodo') $q = min(ALUG_MAX, $q);   // 1.22: o que sai da loja com valor único (o carrinho de bebê): até 4 de uma vez
       if (alugEmAberto($s)) { // 1.20: o que sai da loja e é cobrado por período (o fusquinha) só "sai": não há tempo a escolher nem valor agora; a conta fecha na devolução
@@ -1155,7 +1157,7 @@ switch ($acao) {
     $dados = ['nome' => $nome, 'doc' => $doc, 'email' => $email, 'item' => 'OUTRO VALOR: ' . maiusculo($desc), 'livre' => 1, 'nota' => $nid, 'emp' => $emp];
     $texto = 'Nota fiscal com outro valor: ' . $desc . ' (' . dinheiro($valor) . ') · em nome de ' . $nome . ' · ' . (strlen($dig) === 14 ? 'CNPJ ' : 'CPF ') . $doc;
     $db->prepare("INSERT INTO pedidos (tipo, status, crianca_id, venda_id, nome, resp, texto, motivo, valor, dados, pedido_por, pedido_nome, pedido_em, decidido_por, decidido_nome, decidido_em, como, feito_por, feito_nome, feito_em, numero, unidade_id) VALUES ('nf', 'usado', ?, NULL, ?, ?, ?, '', ?, ?, ?, ?, ?, ?, ?, ?, 'proprio', ?, ?, ?, ?, ?)")
-      ->execute([(int)$c['id'], (string)$c['nome'], (string)$c['resp'], $texto, $valor, json_encode($dados, JSON_UNESCAPED_UNICODE), (int)$u['id'], (string)$u['nome'], $agora, (int)$u['id'], (string)$u['nome'], $agora, (int)$u['id'], (string)$u['nome'], $agora, $num, unidadeDoPedido()]);
+      ->execute([(int)$c['id'], (string)$c['nome'], (string)$c['resp'], $texto, $valor, json_encode($dados, JSON_UNESCAPED_UNICODE), (int)$u['id'], (string)$u['nome'], $agora, (int)$u['id'], (string)$u['nome'], $agora, (int)$u['id'], (string)$u['nome'], $agora, $num, uniDaAlteracao($c)]);   /* 2.62 */
     $id = (int)$db->lastInsertId();
     registrar('alt', (int)$c['id'], (string)$c['nome'], 'Nota fiscal nº ' . $num . ' emitida com outro valor: ' . dinheiro($valor) . ' · ' . $desc . ($emp !== '' ? ' · ' . maiusculo($emp) : '') . ' · por ' . maiusculo(primeiroNome((string)$u['nome'])));
     responder(['pedido' => pedidoPublico(pedido($id)), 'pedidos' => pedidosDaTela($u)]);
