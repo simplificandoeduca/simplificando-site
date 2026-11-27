@@ -1301,6 +1301,13 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A reimpressão pela equipe a qualquer hora (2.57)
+
+Pedido do dono (27/11): "a reimpressão pode ser feita pelos operadores do cupom, tá?".
+
+- Ficha → Reimprimir cupom: toda a equipe reimprime qualquer cupom guardado, a qualquer hora (antes, a atendente só nos 2 minutos depois do cupom). O cupom reimpresso continua com a faixa "REIMPRESSÃO" e a data.
+- Lembrete do PCD (confirmado pelo dono): o desconto é só na recreação avulsa, 50% do valor de cada 30 minutos (R$ 80 → R$ 40). Pacote de horas não tem desconto.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O botão "PCD" com cadeado na ficha (2.56)
 
 Pedido do dono (27/11): "uma opção que fique bloqueada, escrito PCD, que só o gestor pode marcar caso não seja marcado no início do atendimento".

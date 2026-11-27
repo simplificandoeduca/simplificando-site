@@ -1065,7 +1065,7 @@ switch ($acao) {
     $q = $db->prepare('SELECT p.*, u.nome AS por_nome FROM papeis p LEFT JOIN usuarios u ON u.id = p.por WHERE p.id = ?'); $q->execute([(int)($in['id'] ?? 0)]); $l = $q->fetch();
     if (!$l) falha('Este cupom não está mais guardado.', 404);
     $ctHoje = ($b = balcaoCT(false)) && (int)$l['crianca_id'] === (int)$b['id'] && substr((string)$l['quando'], 0, 10) === date('Y-m-d');   /* 2.35: a venda de hoje da Casa Tom, a equipe reimprime */
-    if (($u['papel'] ?? '') !== 'gestor' && !$ctHoje && time() - strtotime((string)$l['quando']) > TROCA_PAG_SEG + 10) falha('Passou de 2 min: só o gestor reimprime este cupom.', 403);   // 1.57
+    /* 2.57 (o dono: "a reimpressão pode ser feita pelos operadores do cupom"): toda a equipe reimprime, a qualquer hora (1.57: era só nos 2 min) */
     responder(papelPublico($l) + ['vias' => papelVias($l)]);
   }
   case 'horas_ajuste': { /* 2.16 (o dono: "as meninas lançaram as horas erradas ... o gestor consiga consertar isso de uma maneira prática"): o gestor soma ou tira horas do saldo, com o motivo (sem venda: não mexe no caixa) */

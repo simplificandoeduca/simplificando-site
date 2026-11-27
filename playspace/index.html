@@ -2199,7 +2199,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.56';
+const VERSAO = '2.57';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -5327,7 +5327,7 @@ function trocarPagPrevia({ venda, crianca: cid, de, para, partes, pag }) {   // 
   return { valor, de, para, partes: P };
 }
 // 1.57: reimprimir: a equipe só nos 2 min depois do cupom; o gestor, sempre
-const reimpTrava = x => !gestor() && !(S.balcao && +x.crianca === S.balcao.id && doDia(dataDe(x.quando))) && Date.now() - +dataDe(x.quando) > TROCA_MS + 5000;   /* 2.35: a venda de hoje da Casa Tom, a equipe reimprime */
+const reimpTrava = x => false;   /* 2.57 (o dono: "a reimpressão pode ser feita pelos operadores do cupom"): toda a equipe reimprime, a qualquer hora (1.57: era só nos 2 min) */
 /* ---------- 1.14: reimprimir o cupom ---------- */
 // Cada cupom que sai (entrada, saída, devolução, comprovante) fica guardado com as duas vias, do jeito que foi impresso: no servidor,
 // por 60 dias; na prévia, na memória. A ficha do cliente tem o botão "Reimprimir cupom": a lista dos últimos cupons dele e, com um
@@ -5357,8 +5357,8 @@ async function folhaReimprimir(id) {
   // 1.19: o cadastro foi corrigido depois de o cupom sair: o guardado é a cópia do que foi impresso (com o nome antigo), então o de entrada volta a ser oferecido "como está agora"
   const corrigido = (S.registros || []).reduce((m, r) => r.tipo === 'cad' && /^Cadastro corrigido/.test(r.txt || '') && (r.crianca != null ? ids.includes(r.crianca) : fam.some(x => x.nome === r.nome)) ? Math.max(m, +r.h) : m, 0);
   const dentro = fam.filter(x => x.entrou && !L.some(k => k.tipo === 'entrada' && k.crianca === x.id && k.quando >= x.entrou && +k.quando > corrigido));   // quem está no espaço e não tem o cupom de entrada guardado (entrou antes de os cupons serem guardados, ou o cadastro foi corrigido depois): o cupom de agora
-  abrirFolha('Reimprimir o cupom', `<p class="explica" id="rp-rot">Os últimos cupons de <b>${esc(c.resp)}</b>. Toque no cupom para ver e imprimir de novo.${gestor() ? '' : ' A equipe reimprime só nos 2 minutos depois do cupom; depois disso, só o gestor.'}</p>
-    ${L.length || dentro.length ? `<div class="grupo" id="rp-lista">${dentro.map(x => `<button type="button" class="it tap${!gestor() && agora - x.entrou > TROCA_MS ? ' rp-trava' : ''}" data-act="papel-ficha" data-id="${x.id}"${!gestor() && agora - x.entrou > TROCA_MS ? ' disabled' : ''}><div class="txt"><b>Cupom de entrada</b><span>hoje, ${hora(x.entrou)} · ${esc(x.nome)} · como está agora</span></div><span class="vai">${ic(IC.vai, 18)}</span></button>`).join('')}${L.map(x => `<button type="button" class="it tap${reimpTrava(x) ? ' rp-trava' : ''}" data-act="papel-guardado" data-id="${x.id}"${reimpTrava(x) ? ' disabled title="Passou de 2 min: só o gestor reimprime"' : ''}><div class="txt"><b>${esc(x.titulo)}</b><span>${quandoPapel(x.quando)}${x.resumo ? ' · ' + esc(x.resumo) : ''}</span></div><span class="vai">${ic(IC.vai, 18)}</span></button>`).join('')}</div>`
+  abrirFolha('Reimprimir o cupom', `<p class="explica" id="rp-rot">Os últimos cupons de <b>${esc(c.resp)}</b>. Toque no cupom para ver e imprimir de novo.</p>
+    ${L.length || dentro.length ? `<div class="grupo" id="rp-lista">${dentro.map(x => `<button type="button" class="it tap" data-act="papel-ficha" data-id="${x.id}"><div class="txt"><b>Cupom de entrada</b><span>hoje, ${hora(x.entrou)} · ${esc(x.nome)} · como está agora</span></div><span class="vai">${ic(IC.vai, 18)}</span></button>`).join('')}${L.map(x => `<button type="button" class="it tap${reimpTrava(x) ? ' rp-trava' : ''}" data-act="papel-guardado" data-id="${x.id}"${reimpTrava(x) ? ' disabled title="Passou de 2 min: só o gestor reimprime"' : ''}><div class="txt"><b>${esc(x.titulo)}</b><span>${quandoPapel(x.quando)}${x.resumo ? ' · ' + esc(x.resumo) : ''}</span></div><span class="vai">${ic(IC.vai, 18)}</span></button>`).join('')}</div>`
       : `<p class="explica" id="rp-vazio">Nenhum cupom guardado para este cliente. Os cupons ficam guardados por ${dias} dias, a partir da versão 1.14.</p>`}`);
 }
 function viasGuardadas(vias) { return vias.slice(0, 2); }   /* 2.07 (o dono: "na reimpressão eu tenho que reimprimir as 2 vias quando tiver a opção de 2 vias"): a da loja e a do cliente (1.30: era só a da loja) */
@@ -9780,7 +9780,7 @@ const ACOES = {
   'cpf-escolher': el => { const i = $('#f-cpf'); if (!i) return; i.value = cpfFmt(el.dataset.cpf); i.dispatchEvent(new Event('input', { bubbles: true })); const n = $('#f-nome'); if (n && !n.value) n.focus(); },   /* escolheu o cliente pelo começo do CPF: o cadastro traz o resto */
   'papel-imprimir': () => { if (!PAPEL) return; imprimirPapel(PAPEL.vias); fecharFolha(); },
   'papel-reimprimir': el => folhaReimprimir(+el.dataset.id), 'papel-guardado': el => abrirPapelGuardado(+el.dataset.id), 'papel-imprimir-cliente': () => { if (!PAPEL || !PAPEL.vias[1]) return; imprimirPapel([PAPEL.vias[1]]); fecharFolha(); },   /* 1.14: reimprimir o cupom */
-  'papel-ficha': el => { const c = crianca(+el.dataset.id); if (!gestor() && c && c.entrou && agora - c.entrou > TROCA_MS) { toast('Passou de 2 min: só o gestor reimprime este cupom'); return; } folhaPapel({ tipo: 'entrada', id: +el.dataset.id }); }, 'papel-ajustes': el => folhaPapelAjustes(!!el && (el.id === 'tk-direta-ir' || el.id === 'tk-icone-ir')), 'papel-atalho': () => baixarAtalhoImp(), 'papel-ajuste-win': () => baixarAjusteImp(),   /* 2.09 */
+  'papel-ficha': el => folhaPapel({ tipo: 'entrada', id: +el.dataset.id }),   /* 2.57: toda a equipe reimprime */ 'papel-ajustes': el => folhaPapelAjustes(!!el && (el.id === 'tk-direta-ir' || el.id === 'tk-icone-ir')), 'papel-atalho': () => baixarAtalhoImp(), 'papel-ajuste-win': () => baixarAjusteImp(),   /* 2.09 */
   'papel-ajuste-mac': el => { if (MODO !== 'servidor') { toast('O comando do Mac é copiado no site da loja: lá ele já vem com o endereço do sistema.'); return; } copiarTexto(comandoAjusteMac(), 'Comando do Mac', el); },
   'papel-tam': el => { const v = el.dataset.v; if (!TAMS_PAPEL.some(x => x[0] === v) || v === tamPapel()) return; if (MODO === 'servidor' && !gestor()) { toast('Só o gestor muda o tamanho do cupom'); return; }
     const antes = S.cfg.cupomTam; S.cfg.cupomTam = v; $$('#tk-tam [data-v]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === v))); amostraTam(); const nome = TAMS_PAPEL.find(x => x[0] === v)[1];
