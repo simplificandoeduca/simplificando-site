@@ -1629,6 +1629,8 @@ b.np { color: var(--erro); letter-spacing: .03em; }
 .obs-alerta { display: flex; gap: 10px; align-items: flex-start; background: var(--erro-bg); border: 1px solid var(--erro); border-left-width: 5px; border-radius: 14px; padding: 9px 12px; color: var(--erro); font-size: 14.5px; font-weight: 800; line-height: 1.35; overflow-wrap: anywhere; }   /* 0.87: a observação do cadastro, em vermelho */
 .folha > .bt, .pp-corpo > .bt { flex: none; }   /* botão solto numa folha que rola: não achata */
 .obs-alerta svg { flex: none; margin-top: 2px; } .obs-alerta span { min-width: 0; } .obs-alerta b { display: block; font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; opacity: .85; }
+.h-saldo button.f-comp { background: var(--creme-2); border: 0; border-radius: 12px; padding: 7px 10px; display: flex; flex-direction: column; align-items: flex-start; font: inherit; font-size: 12px; font-weight: 700; color: var(--tinta-2); min-width: 0; cursor: pointer; text-align: left; }   /* 2.77: o comprou com o lápis */
+.h-saldo.f-saldo button.f-comp { padding: 9px 12px; font-size: 12.5px; } .h-saldo button.f-comp:hover { box-shadow: inset 0 0 0 2px var(--coral); } .h-saldo button.f-comp b { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; } .h-saldo button.f-comp b svg { color: var(--coral); flex: none; }
 .h-saldo.f-saldo span { padding: 9px 12px; font-size: 12.5px; } .h-saldo.f-saldo b { font-size: 21px; line-height: 1.15; }   /* 0.86: o saldo na comanda */
 #f-nome, #f-resp { text-transform: uppercase; } #f-nome::placeholder, #f-resp::placeholder { text-transform: none; }
 .marca.reab > .bt { background: var(--coral); color: #fff; }
@@ -2247,7 +2249,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.76';
+const VERSAO = '2.77';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -7064,9 +7066,44 @@ const comSaldoFicha1 = c => saldoAgora(c) > 0 || clientePacote(c);   // 1.15: a 
 /* 2.11: com as horas do CPF, a conta de horas do atendimento e da ficha soma as crianças do responsável */
 const famCpf = c => horasCpf() ? familia(c) : [c];
 const comSaldoFicha = c => famCpf(c).some(comSaldoFicha1);
-const saldoFicha = c => { const F = famCpf(c); if (F.length < 2) return saldoFicha1(c); const soma = f => F.reduce((t, x) => t + f(x), 0);
-  return `<span>comprou<b class="num">${hm(soma(pacMin))}</b></span><span>usou<b class="num">${hm(soma(usadoAgora))}</b></span><span class="tem" title="As horas do CPF: todas as crianças do responsável usam">saldo do CPF<b class="num">${hm(soma(saldoAgora))}</b></span>`; };
-const saldoFicha1 = c => `<span>comprou<b class="num">${hm(pacMin(c))}</b></span><span>usou<b class="num">${hm(usadoAgora(c))}</b></span><span class="tem" title="${c.entrou ? 'O que fica guardado se sair agora' : 'O que está guardado para a próxima visita'}">saldo<b class="num">${hm(saldoAgora(c))}</b></span>`;
+/* 2.77 (o dono, com a foto da comanda: "uma opção de poder alterar o comprou ... um lapisinho para mim colocar a informação ali. E essa
+   informação que eu colocar, ela vai ficar"): o lápis no "comprou" da comanda. Escreve quanto o cliente comprou de verdade; a diferença vira o
+   ajuste de horas do gestor (não é venda: não entra no caixa), o saldo acompanha (comprou − usou) e fica nos registros, com o motivo. Fora do
+   login do gestor, pede a senha do gestor */
+const spComprou = (c, m, ed) => ed ? `<button type="button" class="f-comp tap" data-act="comprou-editar" data-id="${c.id}" title="Alterar o que comprou${gestor() ? '' : ' (com a senha do gestor)'}">comprou<b class="num">${hm(m)} ${ic(IC.lapis, 13)}</b></button>` : `<span>comprou<b class="num">${hm(m)}</b></span>`;
+let CE = null;   // { id, tot (o comprou de agora), us (o usado) }
+function folhaComprou(id) { const c = crianca(id); if (!c) return; const F = famCpf(c), tot = F.reduce((t, x) => t + pacMin(x), 0), us = F.reduce((t, x) => t + usadoAgora(x), 0);
+  CE = { id: c.id, tot, us };
+  abrirFolha('Alterar o que comprou', `<div class="linha">${avatar(c)}<div class="txt"><b style="white-space:normal">${nomeResp(c)}</b><span style="white-space:normal">${esc(c.nome)} · comprou ${hm(tot)} · usou ${hm(us)} · saldo ${hm(Math.max(0, tot - us))}${F.length > 1 ? ' (as crianças do CPF juntas)' : ''}</span></div></div>
+    <p class="explica">Escreva quanto o cliente comprou de verdade. O saldo acompanha (comprou − usou). Não é venda: não entra no caixa. Fica registrado com o motivo e o nome do gestor.</p>
+    <div class="dois"><div class="campo"><label for="ce-h">Comprou<span class="obg" aria-hidden="true">*</span></label><input id="ce-h" inputmode="decimal" maxlength="8" autocomplete="off" value="${horasCampo(tot)}" placeholder="ex.: 10 ou 8h30"></div>
+      <div class="campo"><label>O saldo fica</label><p class="vh-saldo" id="ce-fica" aria-live="polite">—</p></div></div>
+    <div class="campo"><label for="ce-m">Motivo<span class="obg" aria-hidden="true">*</span></label><input id="ce-m" maxlength="200" autocomplete="off" placeholder="Ex.: comprou 10h no sistema antigo"></div>
+    ${gestor() ? '' : `<div class="campo"><label for="ce-s">Senha do gestor<span class="obg" aria-hidden="true">*</span></label>${campoSenha('ce-s')}</div>`}
+    <div class="pe-f"><button type="button" class="bt forte largo tap" id="ce-ok" data-act="comprou-ok">${ic(IC.check)} Salvar</button></div>`);
+  const i = $('#ce-h'); if (i) { i.addEventListener('input', ceConta); setTimeout(() => { if (i.isConnected) { i.focus(); i.select(); } }, 250); } ceConta(); }
+function ceConta() { const o = $('#ce-fica'); if (!CE || !o) return; const m = lerHorasTxt(val('ce-h')); o.classList.remove('falta'); if (m == null) { o.textContent = '—'; return; }
+  const s = m - CE.us; if (s < 0) { o.classList.add('falta'); o.textContent = `não dá: já usou ${hm(CE.us)}`; return; }
+  o.textContent = hm(s) + (m !== CE.tot ? ` (${m > CE.tot ? '+' : '−'}${dur(Math.abs(m - CE.tot))})` : ''); }
+async function salvarComprou(el) { if (!CE) return; const c = crianca(CE.id); if (!c) return;
+  const m = lerHorasTxt(val('ce-h')), mot = MAI(val('ce-m')).replace(/\s+/g, ' ').trim(), senha = gestor() ? '' : senhaDe('ce-s'), foco = id => { const i = $('#' + id); if (i) i.focus(); };
+  if (m == null || m < 0 || m > 999 * 60) { toast('Escreva quanto comprou (ex.: 10 ou 8h30)'); foco('ce-h'); return; }
+  const delta = m - CE.tot; if (!delta) { toast('Está igual ao de agora'); foco('ce-h'); return; }
+  if (m < CE.us) { toast(`Não dá: já usou ${hm(CE.us)}`); foco('ce-h'); return; }
+  const alvo = delta > 0 ? c : (famCpf(c).filter(x => saldoMin(x) >= -delta).sort((a, b) => (b.id === c.id) - (a.id === c.id))[0] || c);   /* tirar: das horas de quem tem */
+  if (delta < 0 && -delta > saldoMin(alvo)) { toast(`Não dá para tirar ${dur(-delta)}: ${alvo.nome} tem ${dur(saldoMin(alvo))}`); foco('ce-h'); return; }
+  if (mot.length < 5) { toast('Escreva o motivo'); foco('ce-m'); return; }
+  if (!gestor() && !senha) { toast('Digite a senha do gestor'); foco('ce-s'); return; }
+  el.disabled = true;
+  try { if (MODO === 'servidor') { await api('horas_ajuste', { crianca: alvo.id, minutos: delta, motivo: mot, comprou: m, ...(senha ? { senha } : {}) }); await carregar(); }
+    else { if (senha && !quemAutorizaPrevia('desconto', senha)) throw new Error('A senha não confere com a do gestor.');
+      if (alvo.pmin != null) alvo.pmin += delta; else alvo.pacote = Math.max(0, (+alvo.pacote || 0) + delta / 60);
+      registrar('alt', alvo.nome, `Ajuste do gestor: ${delta > 0 ? '+' : '−'}${dur(Math.abs(delta))} nas horas · comprou passa a ${hm(m)} · ${mot} · por ${MAI(primeiro(EU.nome || 'gestor'))}`); }
+    const id = CE.id, us = CE.us; CE = null; desenhar(); folhaFicha(id); if (LADO) abrirHistorico(LADO.id); deuCerto(`Comprou: ${hm(m)} · saldo ${hm(Math.max(0, m - us))}`);
+  } catch (e) { toast(e.message); el.disabled = false; senhaErrada('ce-s', e); } }
+const saldoFicha = (c, ed) => { const F = famCpf(c); if (F.length < 2) return saldoFicha1(c, ed); const soma = f => F.reduce((t, x) => t + f(x), 0);
+  return `${spComprou(c, soma(pacMin), ed)}<span>usou<b class="num">${hm(soma(usadoAgora))}</b></span><span class="tem" title="As horas do CPF: todas as crianças do responsável usam">saldo do CPF<b class="num">${hm(soma(saldoAgora))}</b></span>`; };
+const saldoFicha1 = (c, ed) => `${spComprou(c, pacMin(c), ed)}<span>usou<b class="num">${hm(usadoAgora(c))}</b></span><span class="tem" title="${c.entrou ? 'O que fica guardado se sair agora' : 'O que está guardado para a próxima visita'}">saldo<b class="num">${hm(saldoAgora(c))}</b></span>`;
 // o saldo que fica depois da saída: o que as novas cobranças por atraso somam (e as desfeitas tiram) também entra na conta
 const saldoDepois = (c, k) => Math.max(0, pacMin(c) + (Math.max(0, k.n - (c.atraso ? c.atraso.n : 0)) - (k.desfeitas || 0)) * periodo() - c.usado - k.deb + (k.av ? k.av.min : 0));
 /* ---------- reabrir a visita: a criança saiu e voltou logo em seguida ---------- */
@@ -8134,7 +8171,7 @@ function folhaFicha(id) { // 1.02: mais limpa. O que importa numa olhada: quem �
     ${semIdface() ? '' : `<div class="marca libera-ficha">${ic(IC.rosto, 18)}<span>${textoAcesso(c)}</span>${chave(c)}</div>`}
     ${temVoucher(c) ? `<div class="marca">${ic(IC.presente, 18)}<span><b>${c.entrou ? 'Voucher usado nesta visita' : 'Voucher de hoje guardado'}</b> · ${porExt(periodo())} grátis.</span></div>` : ''}
     ${blocos(c, false)}
-    ${comSaldoFicha(c) ? `<div class="h-saldo f-saldo" data-ficha-saldo="${c.id}" data-k="${pacMin(c)}|${usadoAgora(c)}">${saldoFicha(c)}</div>` : ''}
+    ${comSaldoFicha(c) ? `<div class="h-saldo f-saldo" data-ficha-saldo="${c.id}" data-ed="1" data-k="${pacMin(c)}|${usadoAgora(c)}">${saldoFicha(c, true)}</div>` : ''}
     <div class="acoes">
       ${semIdface() ? (c.entrou ? `<button class="bt forte tap" data-act="saida" data-id="${c.id}">${ic(IC.sair)} Saída</button>` : `<button class="bt forte tap" data-act="entrada" data-id="${c.id}" title="${temPeriodo(c) ? 'Entra usando as horas que já tem' : 'Sem pacote: entra na recreação avulsa e acerta na saída'}">${ic(IC.entrar)} Entrada</button>`)
         : podeManual() && c.entrou ? `<button class="bt claro tap" data-act="saida" data-id="${c.id}" title="Só para corrigir: o normal é a saída pelo rosto">${ic(IC.sair)} Saída à mão</button>` : ''}
@@ -11122,6 +11159,7 @@ const ACOES = {
   'pf-pac': el => { if (!PF) return; const i = +el.dataset.i, x = (S.cfg.pacotes || [])[i]; if (!x) return; PF.i = i; $$('#pf-pacs [data-i]').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.i === i))); const v = $('#pf-valor'); if (v) v.value = String(x.v).replace('.', ','); },
   'pf-vend': el => { if (!PF) return; PF.vend = el.dataset.n; $$('#pf-vend [data-n]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.n === PF.vend))); const v = $('#pf-vend'); if (v) v.classList.add('ok'); },
   'corrigir-horas': el => folhaCorrigirHoras(+el.dataset.id), 'hc-ok': el => salvarCorrecaoHoras(el),
+  'comprou-editar': el => folhaComprou(+el.dataset.id), 'comprou-ok': el => salvarComprou(el),   /* 2.77 */
   'hc-quem': el => { if (!HC) return; HC.cid = +el.dataset.id; $$('#hc-quem [data-id]').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.id === HC.cid))); hcConta(); },
   'hc-modo': el => { if (!HC) return; HC.modo = el.dataset.v === 'menos' ? 'menos' : 'mais'; $$('#hc-modo [data-v]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === HC.modo))); hcConta(); },
   'hc-vender': el => { const id = +el.dataset.id; HC = null; fecharFolha(); atender(id, false, { venderPac: true }); },
@@ -11403,7 +11441,7 @@ setInterval(() => {
   if ($('#sa-box')) altSaidaRedesenha(false);   // 1.39: o "Alterar pacote" da saída acompanha (o pedido respondido, o item que entrou)
   $$('[data-ficha-pago]').forEach(el => { const c = crianca(el.dataset.fichaPago); if (!c) return; const k = chavePago(c); if (el.dataset.k !== k) { el.dataset.k = k; el.innerHTML = pagoFicha(c); } });   // 1.02: o que falta receber (nasceu uma cobrança por atraso, ou foi recebido)
   $$('[data-banco-saldo]').forEach(el => { const c = crianca(el.dataset.bancoSaldo); if (!c) return; const s = saldoAgora(c); if (el.dataset.k !== String(s)) { el.dataset.k = s; const b = $('b', el); if (b) b.textContent = hm(s); el.classList.toggle('zero', !(s > 0)); } });   // o saldo do Banco de horas só muda de período em período
-  $$('[data-ficha-saldo]').forEach(el => { const c = crianca(el.dataset.fichaSaldo); if (!c) return; const k = pacMin(c) + '|' + usadoAgora(c); if (el.dataset.k !== k) { el.dataset.k = k; el.innerHTML = saldoFicha(c); } });   // o saldo da comanda acompanha o relógio
+  $$('[data-ficha-saldo]').forEach(el => { const c = crianca(el.dataset.fichaSaldo); if (!c) return; const k = pacMin(c) + '|' + usadoAgora(c); if (el.dataset.k !== k) { el.dataset.k = k; el.innerHTML = saldoFicha(c, el.dataset.ed === '1'); } });   // o saldo da comanda acompanha o relógio
   if (MODO !== 'servidor') { let novas = 0; for (const c of S.criancas) if (c.entrou) novas += acertarDemo(c); if (novas) desenhar(true); }
 }, 1000);
 iniciar();

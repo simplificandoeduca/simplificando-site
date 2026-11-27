@@ -1100,12 +1100,13 @@ switch ($acao) {
     responder(papelPublico($l) + ['vias' => papelVias($l)]);
   }
   case 'horas_ajuste': { /* 2.16 (o dono: "as meninas lançaram as horas erradas ... o gestor consiga consertar isso de uma maneira prática"): o gestor soma ou tira horas do saldo, com o motivo (sem venda: não mexe no caixa) */
-    $u = exigir(['gestor']); $c = crianca((int)($in['crianca'] ?? 0)); if (!$c) falha('Cliente não encontrado.', 404);
+    $u = exigir(); if (($u['papel'] ?? '') !== 'gestor') { if (!array_key_exists('senha', $in)) falha('Só o gestor corrige as horas.', 403); $u = autorizadorPelaSenha('desconto', (string)$in['senha'], $u); }   /* 2.77: na comanda (o lápis do comprou), com a senha do gestor */
+    $c = crianca((int)($in['crianca'] ?? 0)); if (!$c) falha('Cliente não encontrado.', 404);
     $m = (int)($in['minutos'] ?? 0); if ($m === 0 || abs($m) > 999 * 60) falha('Escreva quantas horas somar ou tirar.');
     $mot = mb_substr(maiusculo(trim((string)($in['motivo'] ?? ''))), 0, 200); if (mb_strlen($mot) < 5) falha('Escreva o motivo da correção.');
     $saldo = (int)$c['pacote_min'] - autosDaVisitaMin($c) - (int)$c['usado_min']; if ($m < 0 && $saldo + $m < 0) falha('Não dá para tirar mais do que o saldo (' . dur(max(0, $saldo)) . ').');
     db()->prepare('UPDATE criancas SET pacote_min = pacote_min + ? WHERE id = ?')->execute([$m, (int)$c['id']]);
-    registrar('alt', (int)$c['id'], (string)$c['nome'], 'Ajuste do gestor: ' . ($m > 0 ? '+' : '−') . dur(abs($m)) . ' nas horas · ' . $mot . ' · por ' . maiusculo(primeiroNome((string)$u['nome'])));
+    registrar('alt', (int)$c['id'], (string)$c['nome'], 'Ajuste do gestor: ' . ($m > 0 ? '+' : '−') . dur(abs($m)) . ' nas horas' . (isset($in['comprou']) && is_numeric($in['comprou']) ? ' · comprou passa a ' . dur(max(0, (int)$in['comprou'])) : '') . ' · ' . $mot . ' · por ' . maiusculo(primeiroNome((string)$u['nome'])));
     responder(['saldo' => $saldo + $m]);
   }
   case 'venda_horas': { // 1.55: o gestor corrige as horas de um pacote (lançado errado), com o motivo

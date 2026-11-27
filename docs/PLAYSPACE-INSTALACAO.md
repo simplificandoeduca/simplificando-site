@@ -1301,6 +1301,18 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O lápis no "comprou" da comanda (2.77)
+
+Pedido do dono (27/11, com a foto da comanda): "uma opção de poder alterar o comprou ... um lapisinho para mim colocar a informação ali. E essa informação que eu colocar, ela vai ficar."
+
+- Na comanda do cliente, o quadro "comprou" (ao lado de "usou" e "saldo") tem um lápis vermelho.
+- Tocar abre "Alterar o que comprou": o comprou de agora já vem escrito; escreva o certo (ex.: 10 ou 8h30), o motivo e toque em Salvar. A tela mostra como o saldo fica antes de salvar.
+- O número fica gravado (no servidor, para todos os computadores) e o saldo acompanha: saldo = comprou − usou.
+- Não é venda: não entra no caixa. Fica no registro do cliente: "Ajuste do gestor: +2h nas horas · comprou passa a 12h · motivo · por quem".
+- Não deixa o comprou ficar menor do que o que já foi usado.
+- Com o login do gestor, salva direto. Nos computadores da loja, pede a senha do gestor.
+- Com as horas do CPF (irmãos juntos), o comprou é o das crianças juntas; somar vai para a criança da comanda, e tirar sai de quem tem saldo.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Histórico do cliente: a lixeira em todo computador e "lançado por" (2.76)
 
 Pedido do dono (27/11): "Quando eu entrar no histórico do cliente, eu quero ter uma opção como gestor de apagar um lançamento que foi errado. Eu quero ver quem lançou ... a lixeirinha do lado ... para não contar no caixa, para não dar divergência no caixa."
