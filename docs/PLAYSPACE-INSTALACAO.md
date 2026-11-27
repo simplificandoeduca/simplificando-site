@@ -1301,6 +1301,17 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Trocar PACOTE / AVULSA pede a senha de um gestor (2.90)
+
+Pedido do dono (27/11): "peça a senha para trocar o pacote. Tipo, mesmo que seja na telinha. Peça a senha do gestor, de qualquer gestor."
+
+- A etiqueta PACOTE / AVULSA da lista é um botão para todos (no celular, o "· PACOTE" ao lado do nome).
+- O toque abre a folha "Pacote ou avulsa": a de agora vem marcada com "agora" e a outra já vem escolhida. Embaixo, o campo "Senha do gestor · qualquer gestor" e o botão "Trocar para AVULSA" (ou PACOTE).
+- Sem a senha, ou com a senha errada, nada muda (o campo esvazia). A senha vale de qualquer gestor; a do supervisor e a da atendente não valem. Até com o login do gestor a senha é pedida.
+- O registro leva o nome do gestor que deu a senha: "Gestor trocou a recreação para AVULSA (era PACOTE) · só nos dados · por NOME".
+- Continua só o dado: a cobrança, o relógio e a saída não mudam.
+- Servidor: a ação plano_trocar pede a senha (autorizadorPelaSenha, tipo 'plano': só gestor), com o mesmo limite de tentativas das outras senhas.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O gestor troca PACOTE / AVULSA na lista (2.89)
 
 Pedido do dono (27/11): "às vezes as meninas lançam errada. O gestor, quando ele clicar em cima do avulso ou pacote, ele tem a opção de mudar para pacote ou para o avulso. Para que no sistema fique certo." E depois: "é só para questão de dados ... só o gestor pode fazer."

@@ -1361,6 +1361,7 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .pl-op b { display: block; font-size: 15px; letter-spacing: .05em; } .pl-op small { display: block; color: var(--apagado); font-size: 12px; margin-top: 2px; }
 .pl-op.on { border-color: var(--ok); background: var(--ok-bg); } .pl-op.on > i { background: var(--ok); border-color: var(--ok); color: #fff; }
 .pl-op[disabled] { opacity: .6; }
+.pl-op small em { font-style: normal; font-weight: 800; color: var(--tinta); }   /* 2.90: "agora" na opção de agora */
 .esp-cab.lst .dias { order: -1; flex: 0 1 auto; min-width: 0; max-width: 100%; }
 .esp-lst { background: var(--card); border: 1px solid var(--borda); border-radius: 20px; box-shadow: var(--sombra); overflow: hidden; }
 .esp-lst .esp-cabec, .esp-lst .esp-it { display: grid; grid-template-columns: 16px minmax(0, 1.6fr) minmax(0, 1fr) minmax(152px, 1.05fr) minmax(108px, .7fr) 52px 96px 100px; grid-template-rows: auto; column-gap: 12px; row-gap: 0; align-items: center; align-content: center; padding: 0 12px 0 18px; }
@@ -2268,7 +2269,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.89';
+const VERSAO = '2.90';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -7002,24 +7003,35 @@ const ehPacoteVenda = v => !v.auto && !v.voucher && minDe(v) > 0 && (v.servico ?
    muda só o dado da visita (a etiqueta, as colunas Horas avulsas / Pacotes e o registro); a cobrança, o relógio e a saída seguem planoDe() */
 const prefPlano = c => !c || !c.entrou || c.festa || !c.plano_pref ? '' : MODO === 'servidor' || +c.plano_pref_em === +c.entrou ? c.plano_pref : '';
 const planoRotulo = c => c.festa ? 'festa' : prefPlano(c) || (planoDe(c) === 'pacote' ? 'pacote' : 'avulso');
+/* 2.90 (o dono: "peça a senha para trocar o pacote ... peça a senha do gestor, de qualquer gestor"): o botão é de todos; a folha pede
+   sempre a senha de um gestor. A opção diferente da de agora já vem escolhida: é só digitar a senha e tocar em "Trocar" */
+let PLX = null;
+const rotPlano = v => v === 'pacote' ? 'PACOTE' : 'AVULSA';
+const plOps = () => [['pacote', 'usa as horas do pacote'], ['avulso', 'recreação avulsa']].map(([v, s]) => `<button type="button" class="pl-op tap${PLX.v === v ? ' on' : ''}" data-act="plano-op" data-v="${v}" role="radio" aria-checked="${PLX.v === v}"><i aria-hidden="true">${PLX.v === v ? ic(IC.check, 14, 3) : ''}</i><span><b>${rotPlano(v)}</b><small>${PLX.ag === v ? '<em>agora</em> · ' : ''}${s}</small></span></button>`).join('');
 function folhaPlano(id) {
-  const c = crianca(id); if (!c || !c.entrou || c.festa) return; if (!gestor()) { toast('Só o gestor troca PACOTE e AVULSA.'); return; }
-  const ag = planoRotulo(c), op = (v, t, s) => `<button type="button" class="pl-op tap${ag === v ? ' on' : ''}" data-act="plano-ok" data-id="${c.id}" data-v="${v}" aria-pressed="${ag === v}"><i aria-hidden="true">${ag === v ? ic(IC.check, 14, 3) : ''}</i><span><b>${t}</b><small>${s}</small></span></button>`;
-  abrirFolha('Pacote ou avulsa', `<p class="explica"><b>${esc(c.nome)}</b>${c.resp ? ' · ' + esc(c.resp) : ''} está como <b>${ag === 'pacote' ? 'PACOTE' : 'AVULSA'}</b>. Toque para trocar.</p>
-    <div class="pl-ops" role="group" aria-label="Pacote ou avulsa">${op('pacote', 'PACOTE', 'usa as horas do pacote')}${op('avulso', 'AVULSA', 'recreação avulsa')}</div>
-    <p class="explica">Muda só os dados desta visita (a lista e o registro). A cobrança não muda: na saída, a escolha Pacote | Avulso continua igual.</p>`);
+  const c = crianca(id); if (!c || !c.entrou || c.festa) return;
+  const ag = planoRotulo(c); PLX = { id: c.id, ag, v: ag === 'pacote' ? 'avulso' : 'pacote' };
+  abrirFolha('Pacote ou avulsa', `<p class="explica"><b>${esc(c.nome)}</b>${c.resp ? ' · ' + esc(c.resp) : ''} está como <b>${rotPlano(ag)}</b>.</p>
+    <div class="pl-ops" id="pl-ops" role="radiogroup" aria-label="Pacote ou avulsa">${plOps()}</div>
+    <div class="campo"><label for="pl-senha">Senha do gestor<span class="obg" aria-hidden="true">*</span> <span class="leve">· qualquer gestor</span></label>${campoSenha('pl-senha')}</div>
+    <p class="explica">Muda só os dados desta visita (a lista e o registro). A cobrança não muda: na saída, a escolha Pacote | Avulso continua igual.</p>
+    <div class="pe-f"><button type="button" class="bt forte largo tap" id="pl-ok" data-act="plano-ok">${ic(IC.check)} <span id="pl-ok-t">Trocar para ${rotPlano(PLX.v)}</span></button></div>`);
+  setTimeout(() => { const i = $('#pl-senha'); if (i) i.focus(); }, 250);
 }
+function planoEscolher(v) { if (!PLX) return; PLX.v = v === 'pacote' ? 'pacote' : 'avulso'; const o = $('#pl-ops'); if (o) o.innerHTML = plOps();
+  const b = $('#pl-ok'), t = $('#pl-ok-t'); if (t) t.textContent = PLX.v === PLX.ag ? `Já está como ${rotPlano(PLX.v)}` : `Trocar para ${rotPlano(PLX.v)}`; if (b) b.disabled = PLX.v === PLX.ag; }
 async function planoOk(el) {
-  const c = crianca(+el.dataset.id), v = el.dataset.v === 'pacote' ? 'pacote' : 'avulso'; if (!c || !c.entrou || c.festa) return;
-  if (!gestor()) { toast('Só o gestor troca PACOTE e AVULSA.'); return; }
-  const era = planoRotulo(c), auto = planoDe(c) === 'pacote' ? 'pacote' : 'avulso'; if (v === era) { fecharFolha(); return; }
+  if (!PLX) return; const c = crianca(PLX.id), v = PLX.v; if (!c || !c.entrou || c.festa) { fecharFolha(); return; }
+  const era = planoRotulo(c), auto = planoDe(c) === 'pacote' ? 'pacote' : 'avulso'; if (v === era) { toast(`Já está como ${rotPlano(v)}`); return; }
+  const senha = senhaDe('pl-senha'); if (!senha) { toast('Digite a senha do gestor'); const i = $('#pl-senha'); if (i) i.focus(); return; }
   el.disabled = true;
   try {
-    if (MODO === 'servidor') await api('plano_trocar', { id: c.id, plano: v });
-    else registrar('alt', c.nome, `Gestor trocou a recreação para ${v === 'pacote' ? 'PACOTE' : 'AVULSA'} (era ${era === 'pacote' ? 'PACOTE' : 'AVULSA'}) · só nos dados · por ${MAI(primeiro(EU.nome || 'gestor'))}`);
-    c.plano_pref = v === auto ? '' : v; c.plano_pref_em = +c.entrou;
-    fecharFolha(); desenhar(); deuCerto(`${c.nome}: agora ${v === 'pacote' ? 'PACOTE' : 'AVULSA'}`); if (MODO === 'servidor') carregar().catch(() => {});
-  } catch (e) { toast(e.message); el.disabled = false; }
+    if (MODO === 'servidor') await api('plano_trocar', { id: c.id, plano: v, senha });
+    else { const g = quemAutorizaPrevia('plano', senha); if (!g) throw new Error('A senha não confere com a do gestor.');
+      registrar('alt', c.nome, `Gestor trocou a recreação para ${rotPlano(v)} (era ${rotPlano(era)}) · só nos dados · por ${MAI(primeiro(g.nome || 'gestor'))}`); }
+    c.plano_pref = v === auto ? '' : v; c.plano_pref_em = +c.entrou; PLX = null;
+    fecharFolha(); desenhar(); deuCerto(`${c.nome}: agora ${rotPlano(v)}`); if (MODO === 'servidor') carregar().catch(() => {});
+  } catch (e) { toast(e.message); el.disabled = false; senhaErrada('pl-senha', e); }
 }
 function planoDe(c) {
   if (c.festa) return 'festa';   // 1.29: está numa festa (não cobra, não gasta horas)
@@ -7180,13 +7192,13 @@ const uniMovel = id => { const n = nomeUni(id); return n ? `<i class="un-m${+id 
 // O OBS vermelho só aparece se há observação (o texto fica escondido até alguém tocar). A cobrança por atraso não aparece na linha (0.96):
 // o valor fica só no total, no pagamento da saída, para a equipe não confundir.
 function linhaEspaco(c, fam = 1) {
-  const st = situacaoTempo(c), at = !aberta(c) && c.atraso && c.atraso.n ? c.atraso : null, abre = `data-act="ficha" data-id="${c.id}"`, pl = planoRotulo(c), mk = !!prefPlano(c), plBt = gestor() && !c.festa, tg = c.festa ? (c.festaPapel === 'aniversariante' ? 'ANIVERSARIANTE' : 'CONVIDADO') : pl === 'pacote' ? 'PACOTE' : 'AVULSA';   // 1.29: na festa
+  const st = situacaoTempo(c), at = !aberta(c) && c.atraso && c.atraso.n ? c.atraso : null, abre = `data-act="ficha" data-id="${c.id}"`, pl = planoRotulo(c), mk = !!prefPlano(c), plBt = !c.festa, tg = c.festa ? (c.festaPapel === 'aniversariante' ? 'ANIVERSARIANTE' : 'CONVIDADO') : pl === 'pacote' ? 'PACOTE' : 'AVULSA';   // 1.29: na festa
   return `<div class="esp-it ${st}${at ? ' cobranca' : ''}${S.chegou === c.id ? ' chegou' : ''}" data-esp="${c.id}">
     <button class="quem tap" ${abre} aria-label="Abrir a comanda de ${esc(c.resp || c.nome)}${c.resp ? ', criança ' + esc(c.nome) : ''}"></button>
     <i class="pt" aria-hidden="true"></i>
     <span class="l2" ${abre} title="Responsável${fam > 1 ? ' · ' + fam + ' juntos' : ''}"><span class="l2-n">${fam > 1 ? `<i class="elo">${ic(IC.elo, 11, 2.6)}</i>` : ''}${esc(c.resp || 'sem responsável')}</span>${recLista(c)}${notaIc(c)}</span>
-    <span class="l1" ${abre} title="Criança"><b>${esc(c.nome)}</b>${plBt ? `<button type="button" class="sv-m tap" data-act="plano-trocar" data-id="${c.id}" title="Trocar PACOTE / AVULSA (gestor)">· ${tg}</button>` : `<i class="sv-m"> · ${c.festa ? 'FESTA' : tg}</i>`}${uniMovel(c.uni)}${c.obs ? `<button type="button" class="obs obs-bt on mini tap" data-act="obs-ver" data-id="${c.id}" title="Tem observação: toque para ver" aria-label="Ver a observação de ${esc(c.nome)}">OBS</button>` : ''}</span>
-    <span class="sv" ${abre}><span>${c.festa ? 'FESTA' : esc((servicoTempo() || { n: 'RECREAÇÃO' }).n)}</span>${plBt ? `<button type="button" class="sel ${pl}${mk ? ' marcado' : ''} tap" data-act="plano-trocar" data-id="${c.id}" title="${mk ? 'Marcado pelo gestor · ' : ''}Toque para trocar PACOTE / AVULSA" aria-label="${tg}: trocar para pacote ou avulsa">${tg}</button>` : `<i class="sel ${pl}${mk ? ' marcado' : ''}"${mk ? ' title="Marcado pelo gestor"' : ''}>${tg}</i>`}</span>
+    <span class="l1" ${abre} title="Criança"><b>${esc(c.nome)}</b>${plBt ? `<button type="button" class="sv-m tap" data-act="plano-trocar" data-id="${c.id}" title="Trocar PACOTE / AVULSA (com a senha do gestor)">· ${tg}</button>` : `<i class="sv-m"> · ${c.festa ? 'FESTA' : tg}</i>`}${uniMovel(c.uni)}${c.obs ? `<button type="button" class="obs obs-bt on mini tap" data-act="obs-ver" data-id="${c.id}" title="Tem observação: toque para ver" aria-label="Ver a observação de ${esc(c.nome)}">OBS</button>` : ''}</span>
+    <span class="sv" ${abre}><span>${c.festa ? 'FESTA' : esc((servicoTempo() || { n: 'RECREAÇÃO' }).n)}</span>${plBt ? `<button type="button" class="sel ${pl}${mk ? ' marcado' : ''} tap" data-act="plano-trocar" data-id="${c.id}" title="${mk ? 'Marcado pelo gestor · ' : ''}Toque para trocar PACOTE / AVULSA (com a senha do gestor)" aria-label="${tg}: trocar para pacote ou avulsa">${tg}</button>` : `<i class="sel ${pl}${mk ? ' marcado' : ''}"${mk ? ' title="Marcado pelo gestor"' : ''}>${tg}</i>`}</span>
     ${celUnidade(c.uni, abre)}
     <span class="en num" ${abre}>${hora(c.entrou)}</span>
     <b class="num tmp" ${abre} data-esp-t title="${subEspaco(c)}">${hms(segDentro(c))}</b>
@@ -11020,7 +11032,7 @@ const ACOES = {
   reabrir: el => folhaReabrir(+el.dataset.id),
   'cliente-atender': el => { const id = +el.dataset.id; if (!crianca(id)) return; const pre = CAD_PRE; cadastroFeito(); fecharFolha(); setTimeout(() => atender(id, false, pre), 260); },   /* a criança já está salva: larga o cadastro novo e vai direto para o atendimento dela */
   'pcd-ficha': el => folhaPcd(+el.dataset.id), 'pcd-ok': el => pcdSalvar(el),   /* 2.56 */
-  'plano-trocar': el => folhaPlano(+el.dataset.id), 'plano-ok': el => planoOk(el),   /* 2.89 */
+  'plano-trocar': el => folhaPlano(+el.dataset.id), 'plano-ok': el => planoOk(el), 'plano-op': el => planoEscolher(el.dataset.v),   /* 2.89, 2.90 */
   'obs-ver': el => { const c = crianca(el.dataset.id); if (c && c.obs) toast(`${c.nome}: ${c.obs}`, () => folhaFicha(c.id), 'Ficha'); },   /* o OBS da lista: o texto aparece só com o toque, no aviso do pé da tela */
   'obs-abre': el => { const cx = el.closest('.obs-cx'), c = crianca(el.dataset.id), corpo = cx && $('.obs-corpo', cx), bt = cx && $('.obs-bt', cx); if (!c || !corpo) return;
     const abre = corpo.hidden || el !== bt && !el.closest('.obs-corpo') ; corpo.hidden = !abre; if (bt) bt.setAttribute('aria-expanded', abre); cx.classList.toggle('aberta', abre);
@@ -11519,6 +11531,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey && e.target.id === 'zap-texto') { e.preventDefault(); ACOES.enviar(); }
   if (e.key === 'Enter' && e.target.id === 'pq-busca') { e.preventDefault(); const b = $$('#pq-lista [data-act="pq-crianca"]'); if (b.length === 1) b[0].click(); return; }   // só uma criança na lista: Enter escolhe
   if (e.key === 'Enter' && e.target.id === 'rec-txt') { e.preventDefault(); const b = $('[data-act="rec-salvar"]'); if (b) b.click(); return; }   /* 2.72 */
+  if (e.key === 'Enter' && e.target.id === 'pl-senha') { e.preventDefault(); const ok = $('#pl-ok'); if (ok && !ok.disabled) ok.click(); return; }   /* 2.90 */
   if (e.key === 'Enter' && e.target.id === 'lz-senha') { e.preventDefault(); const ok = $('#lz-ok'); if (ok && !ok.disabled) ok.click(); return; }
   if (e.key === 'Enter' && e.target.id === 'cp-num') { e.preventDefault(); const ok = $('#cp-ok'); if (ok && !ok.disabled) ok.click(); return; }
   if (e.key === 'Enter' && e.target.classList && e.target.classList.contains('pg-valor')) { e.preventDefault(); const ok = $('#p-ok') || $('#s-ok') || $('#sg-ok') || $('#d-ok'); if (ok && !ok.disabled) ok.click(); }

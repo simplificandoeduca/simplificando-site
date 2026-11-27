@@ -1127,14 +1127,15 @@ switch ($acao) {
     responder(['saldo' => $saldo - $m]);
   }
   case 'plano_trocar': { /* 2.89 (o dono: "o gestor, quando clicar em cima do avulso ou pacote, tem a opção de mudar ... é só para questão de dados ... só o gestor pode fazer") */
-    $u = exigir(['gestor']);
+    $u = exigir(); if ((string)($in['senha'] ?? '') === '') falha('Digite a senha do gestor.', 403);   /* 2.90 (o dono: "peça a senha do gestor, de qualquer gestor"): sempre, até no login do gestor */
     $c = crianca((int)($in['id'] ?? 0)); if (!$c || empty($c['entrou'])) falha('Esta criança não está no espaço agora.', 404);
     if (!empty($c['festa_id'])) falha('Na festa não há pacote nem avulso.', 409);
     $p = (string)($in['plano'] ?? ''); if ($p !== 'pacote' && $p !== 'avulso') falha('Escolha PACOTE ou AVULSA.');
+    $u = autorizadorPelaSenha('plano', (string)$in['senha'], $u);   /* a senha de qualquer gestor; quem troca é ele */
     $auto = planoDaCrianca($c) === 'pacote' ? 'pacote' : 'avulso'; $era = planoPreferido($c) ?: $auto;
     $db->prepare('UPDATE criancas SET plano_pref = ?, plano_pref_em = ? WHERE id = ?')->execute([$p === $auto ? '' : $p, $p === $auto ? null : (string)$c['entrou'], (int)$c['id']]);   /* voltar ao que o sistema já dizia tira a marca */
     if ($p !== $era) registrar('alt', (int)$c['id'], (string)$c['nome'], 'Gestor trocou a recreação para ' . ($p === 'pacote' ? 'PACOTE' : 'AVULSA') . ' (era ' . ($era === 'pacote' ? 'PACOTE' : 'AVULSA') . ') · só nos dados · por ' . maiusculo(primeiroNome((string)$u['nome'])));
-    responder(['plano' => $p, 'marcado' => $p !== $auto]);
+    responder(['plano' => $p, 'marcado' => $p !== $auto, 'por' => (string)$u['nome']]);
   }
   case 'venda_horas': { // 1.55: o gestor corrige as horas de um pacote (lançado errado), com o motivo
     $u = exigir(['gestor']); responder(alterarHorasVenda((int)($in['venda'] ?? 0), (int)($in['minutos'] ?? -1), mb_substr(maiusculo(trim((string)($in['motivo'] ?? ''))), 0, 200), $u));
