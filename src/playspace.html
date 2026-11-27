@@ -2181,7 +2181,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.53';
+const VERSAO = '2.54';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -7400,6 +7400,7 @@ function folhaFicha(id) { // 1.02: mais limpa. O que importa numa olhada: quem �
       ${semIdface() ? (c.entrou ? `<button class="bt forte tap" data-act="saida" data-id="${c.id}">${ic(IC.sair)} Saída</button>` : `<button class="bt forte tap" data-act="entrada" data-id="${c.id}" title="${temPeriodo(c) ? 'Entra usando as horas que já tem' : 'Sem pacote: entra na recreação avulsa e acerta na saída'}">${ic(IC.entrar)} Entrada</button>`)
         : podeManual() && c.entrou ? `<button class="bt claro tap" data-act="saida" data-id="${c.id}" title="Só para corrigir: o normal é a saída pelo rosto">${ic(IC.sair)} Saída à mão</button>` : ''}
       <button class="bt ${semIdface() ? '' : 'forte'} tap" data-act="vender" data-id="${c.id}">${ic(IC.mais)} Vender</button>
+      <button class="bt tap" data-act="nf-ficha" data-id="${c.id}" title="A nota fiscal da compra deste cliente (sem abrir o histórico)">${ic(IC.cupom)} NF</button>
       <button class="bt tap" data-act="historico" data-id="${c.id}">${ic(IC.historico)} Histórico</button>
       <button class="bt tap" data-act="relatorio" data-id="${c.id}" title="O extrato do cliente: compras, visitas e o saldo de cada dia, para ver, imprimir no cupom ou abrir em planilha">${ic(IC.relatorio)} Relatório</button>
       <button class="bt tap" data-act="papel-reimprimir" data-id="${c.id}" title="Ver e imprimir de novo um cupom deste cliente: o cliente perdeu, ou a impressora travou">${ic(IC.cupom)} Reimprimir cupom</button>
@@ -8194,6 +8195,19 @@ async function salvarHoras(el) {
     VH = null; fecharFolha(); if (LADO) await buscarHistorico(); desenhar(true); toast(`Horas corrigidas: ${dur(m0)} → ${dur(m1)}`);
   } catch (e) { toast(e.message); el.disabled = false; }
 }
+/* 2.54 (o dono: "pode fazer um botão NF, ele aí ... do que eu ter que entrar no histórico do cliente, muito trabalho"): o botão NF da ficha
+   abre a nota da compra direto. Uma compra hoje: abre a nota dela. Mais de uma hoje: escolhe qual. Nenhuma hoje: as últimas compras
+   (a mais recente em cima), para escolher. O histórico abre junto, do lado (é dele que a folha da nota lê a compra) */
+async function nfDaFicha(cid) {
+  const c = crianca(cid); if (!c) return; if (document.querySelector('#folha .folha-fundo')) fecharFolha();
+  if (!LADO || LADO.id !== c.id || !LADO.dados) { abrirHistorico(c.id); for (let i = 0; i < 80 && LADO && LADO.id === c.id && !LADO.dados && !LADO.erro; i++) await espera(150); }
+  if (!LADO || LADO.id !== c.id) return; if (!LADO.dados) { toast(LADO.erro || 'O histórico do cliente não carregou. Tente de novo.'); return; }
+  const L = LADO.dados.vendas.filter(temNF), hj = L.filter(v => doDia(v.quando));
+  if (!L.length) { toast('Este cliente ainda não tem compra com valor para a nota fiscal'); return; }
+  if (hj.length === 1) { folhaNF(hj[0].id); return; }
+  const lista = (hj.length ? hj : L.slice(0, 6)), st = v => { const p = nfDaVenda(v), e = p ? p.status : ''; return e === 'usado' ? 'NF ' + (p.numero ? 'nº ' + esc(p.numero) : 'emitida') : e === 'liberado' ? 'NF a emitir' : e === 'pendente' ? 'NF pedida' : e === 'negado' ? 'NF negada' : 'sem nota'; };
+  abrirFolha('Nota fiscal · qual compra?', `<p class="explica">${hj.length ? `${nomeResp(c)} tem ${hj.length} compras hoje. Toque na compra da nota.` : `Nenhuma compra de ${nomeResp(c)} hoje. As últimas compras (a mais recente em cima): toque na compra da nota.`}</p>
+    <div style="display:grid;gap:8px">${lista.map(v => `<button type="button" class="aj-pag tap" data-act="nf" data-id="${v.id}"><span class="aj-h">${diaCurto(v.quando)}<br>${hora(v.quando)}</span><span class="txt"><b>${esc(nomeCompraTxt(v))}</b><small>${esc(st(v))}</small></span><b class="num">${brl2(v.v)}</b></button>`).join('')}</div>`); }
 function folhaNF(id) {
   const v = LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === +id), c = v && crianca(v.crianca); if (!v || !c || !temNF(v)) return;
   NF = { id: v.id, cid: c.id }; if (NF_MSG && NF_MSG.venda === v.id && NF_MSG.tipo !== 'emitindo') NF_MSG = null;
@@ -9829,7 +9843,7 @@ const ACOES = {
   'off-ver': () => folhaOffProb(), 'off-ok': el => { OFF.prob.splice(+el.dataset.i, 1); filaGuardar(); offFaixa(); if (OFF.prob.length) folhaOffProb(); else fecharFolha(); },   /* 1.40 */
   'salt-item': el => { if (!ALTS || ALTS.espera) return; const i = altSaidaItens().find(x => x.id === +el.dataset.k); if (!i) return; ALTS.k = i.id; ALTS.v = valTxt(i.v); ALTS.hh = String(Math.round(i.h)); ALTS.vp = ''; ALTS.pn = ''; ALTS.aberto = true; altSaidaRedesenha(true); const v = $('#sa-alt-v'); if (v) { v.focus(); v.select(); } },   /* 1.39 */
   'salt-pedir': el => altSaidaPedir(el), 'salt-largar': () => altSaidaLargar(), 'salt-tirar': el => altSaidaTirar(el), 'salt-tira-largar': () => altSaidaTiraLargar(),   /* 2.24 */
-  nf: el => folhaNF(el.dataset.id), 'nf-notas': () => abrirNotasNF(), 'nf-pdf-imprimir': () => nfPdfImprimir(), 'nf-pdf-whats': () => nfPdfWhats(), 'nf-pdf-salvar': () => { if (nfPdfSalvar()) toast('A nota foi salva (na pasta Downloads)'); },
+  nf: el => folhaNF(el.dataset.id), 'nf-ficha': el => nfDaFicha(+el.dataset.id),   /* 2.54 */ 'nf-notas': () => abrirNotasNF(), 'nf-pdf-imprimir': () => nfPdfImprimir(), 'nf-pdf-whats': () => nfPdfWhats(), 'nf-pdf-salvar': () => { if (nfPdfSalvar()) toast('A nota foi salva (na pasta Downloads)'); },
   'nf-pdf-recarregar': () => { const v = NF && LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === NF.id); if (v) nfPdfCarregar(v); },   /* 2.48 */
   'copia-baixar': el => baixarCopia(el.dataset.nome || '', el), 'copia-fazer': el => fazerCopia(el), 'nf-pedir': el => pedirNF(el), 'nf-notas-entrar': el => entrarNotasNF(el), 'nf-emp': el => { if (!NF || NF_EMITINDO) return; NF_EMP[NF.id] = +el.dataset.id; nfEmpRedesenha(NF.id); nfPreparar(NF.id); }, 'ocioso-ficar': () => ociosoMexeu(), 'nf-senha': el => acaoNF('senha', el), 'nf-emitida': el => acaoNF('emitida', el), 'nf-voltar': el => acaoNF('voltar', el), 'nf-largar': el => acaoNF('largar', el), 'nf-copiar': el => acaoNF('copiar', el),
   'meta-salvar': el => metaSalvar(el, false), 'meta-tirar': el => metaSalvar(el, true), 'meta-ver': () => metaVer('dia'), 'meta-ver-mes': () => metaVer('mes'), 'meta-aviso-ver': () => metaVer('aviso'),   /* 1.87: as metas do mês */
