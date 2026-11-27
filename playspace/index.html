@@ -2262,7 +2262,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.74';
+const VERSAO = '2.75';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -3734,7 +3734,9 @@ const cpfValido = v => { const d = soDig(v); if (d.length !== 11 || /^(\d)\1{10}
 const iniciais = n => String(n || '').trim().split(/\s+/).map(x => x[0] || '').slice(0, 2).join('').toUpperCase();
 // 1.16: o responsável é a referência principal (como no sistema antigo da loja): nas listas e nas folhas o nome dele vem primeiro, em destaque,
 // e a criança vem em segundo. Cadastro antigo sem responsável: a criança ocupa o lugar dele.
-const nomeResp = c => esc(c.resp || c.nome);                                                                                               // o nome em destaque
+/* 2.75 (o dono: "Tem que aparecer sempre no nome do responsável essas observações"): o recado do responsável, em vermelho, junto do nome em
+   destaque, em todas as telas (a busca, a comanda, o banco de horas, o atendimento, o "Falta finalizar", o "Saíram há pouco") */
+const nomeResp = c => esc(c.resp || c.nome) + recTexto(c);                                                                                               // o nome em destaque
 const nomeCri = (c, idade = false) => (c.resp ? esc(c.nome) : '') + (idade && idadeTxt(c) ? (c.resp ? ', ' : '') + idadeTxt(c) : '');   // a criança, em segundo (com a idade, se pedir)
 const pontos = (...p) => p.filter(Boolean).join(' · ');                                                                                    // junta com " · " só o que existe
 const porResp = (a, b) => String(a.resp || a.nome).localeCompare(String(b.resp || b.nome)) || a.nome.localeCompare(b.nome);              // a ordem das listas: pelo responsável e, dentro dele, pela criança
@@ -8132,7 +8134,7 @@ const listaRegistros = regs => `<div class="reg">${regs.length ? regs.map((r, i,
 // na ficha de quem está no espaço: até quando vai o tempo comprado, o que debita se sair agora e as cobranças por atraso
 function folhaFicha(id) { // 1.02: mais limpa. O que importa numa olhada: quem é, se está pago, o tempo e os botões
   const c = crianca(id); if (!c) return; const [et, cls] = estado(c);
-  abrirFolha(`<button type="button" class="edita tap" data-act="corrigir" data-id="${c.id}" data-campo="resp" title="Corrigir o nome do responsável">${nomeResp(c)}${c.resp && relSabe(c) ? ', ' + esc(c.rel) : ''}${lapis()}</button>`, `
+  abrirFolha(`<button type="button" class="edita tap" data-act="corrigir" data-id="${c.id}" data-campo="resp" title="Corrigir o nome do responsável">${esc(c.resp || c.nome)}${c.resp && relSabe(c) ? ', ' + esc(c.rel) : ''}${recTexto(c)}${lapis()}</button>`, `
     <div class="linha">${avatarComUrso(c, 'g')}<div class="txt"><b style="white-space:normal"><button type="button" class="edita tap" data-act="corrigir" data-id="${c.id}" data-campo="nome" title="Corrigir o nome da criança">${esc(c.nome)}${idadeTxt(c) ? ', ' + idadeTxt(c) : ''}${lapis()}</button></b>${c.pcd ? `<span style="white-space:normal"><em class="selo-pcd">Criança PCD</em> ${pcdDesc()}% de desconto na recreação avulsa</span>` : ''}<span style="white-space:normal"><button type="button" class="edita tap" data-act="corrigir" data-id="${c.id}" data-campo="tel" title="Corrigir o telefone">${esc(fones(c)) || 'sem telefone'}${lapis()}</button>${c.cpf ? ' · ' + esc(docTxt(c)) : ''}${copiaDoc(c)}</span><span class="cad-n" title="O número deste cadastro: a busca acha por ele">Cadastro nº ${c.id}</span></div><span class="pill ${cls}">${et}</span></div>
     ${recFicha(c)}
     <div data-ficha-pago="${c.id}" data-k="${chavePago(c)}">${pagoFicha(c)}</div>
@@ -8443,7 +8445,6 @@ function folhaVender(id, primeira, pre, voltaSaida) { // primeira: acabou de sai
   const notaPre = semH ? `<p class="retoma" id="v-pre">${ic(IC.presente, 16)}<span><b>${esc(semH.nome)} está sem horas no pacote.</b> Escolha o pacote e toque em <b>Somar na saída</b>: o pacote entra na conta e o tempo sai dele.</span></p>` : it && it.vpac ? `<p class="retoma" id="v-pre">${ic(IC.presente, 16)}<span><b>Venda do pacote, sem entrada.</b> Escolha o pacote e toque em Pagamento: a criança não entra agora. O comprovante sai como sempre.</span></p>` : it && it.semItem ? '' : it ? `<p class="retoma" id="v-pre">${ic(it.pac ? IC.presente : IC.sacola, 16)}<span><b>${esc(it.curto)} já está na venda.</b> Confira e toque em Pagamento.</span></p>` : '';
   abrirFolha('Atendimento', `<div id="v-escolha">
     <div class="linha">${avatar(c)}<div class="txt"><b style="white-space:normal">${nomeResp(c)}</b><span style="white-space:normal">${nomeCri(c, true)}${c.pcd ? ` <em class="selo-pcd">${rotPcd()}</em>` : ''}${fones(c) ? ' · ' + esc(fones(c)) : ''}</span>${c.entrou || c.sapateira ? `<span style="white-space:normal">${[c.entrou ? 'no espaço desde ' + hora(c.entrou) : '', c.sapateira ? 'sapateira ' + c.sapateira : ''].filter(Boolean).join(' · ')}</span>` : ''}</div><button class="bt tap" data-act="historico" data-id="${c.id}">${ic(IC.historico)} Histórico</button></div>
-    ${recFicha(c, true)}
     ${obsAlerta(c)}
     ${blocoFestaEntrada(c)}
     ${comSaldoFicha(c) ? `<div class="h-saldo f-saldo" data-ficha-saldo="${c.id}" data-k="${pacMin(c)}|${usadoAgora(c)}" aria-label="Horas do cliente">${saldoFicha(c)}</div>` : ''}
@@ -10314,7 +10315,7 @@ function linhasBanco() {
   const linha = c => { const zerou = precisaRenovar(c), s = saldoAgora(c), ab = emAberto(c);
     const selo = c.entrou ? '<span class="pill p-ok">No espaço</span>' : ab ? '<span class="pill p-aviso">Falta finalizar</span>' : zerou ? '<span class="pill p-erro">Pacote acabou</span>' : '';
     return `<div class="banco-linha${zerou ? ' zerou' : ''}">
-    <button class="quem tap" data-act="ficha" data-id="${c.id}" aria-label="Abrir a ficha de ${esc(c.nome)}">${avatar(c)}<span class="txt"><b>${nomeResp(c)}${c.resp ? relP(c) : ''}</b><span>${c.resp ? esc(c.nome) : ''}${idadeDe(c) ? (c.resp ? ', ' : '') + idadeDe(c) : ''}</span></span></button>
+    <button class="quem tap" data-act="ficha" data-id="${c.id}" aria-label="Abrir a ficha de ${esc(c.nome)}">${avatar(c)}<span class="txt"><b>${esc(c.resp || c.nome)}${c.resp ? relP(c) : ''}${recTexto(c)}</b><span>${c.resp ? esc(c.nome) : ''}${idadeDe(c) ? (c.resp ? ', ' : '') + idadeDe(c) : ''}</span></span></button>
     ${gestor() ? `<button type="button" class="bl-saldo bl-alt tap${s > 0 ? '' : ' zero'}" data-act="banco-horas" data-id="${c.id}" data-banco-saldo="${c.id}" data-k="${s}" title="Alterar as horas do pacote (gestor)" aria-label="Saldo de horas: ${hm(s)}. Tocar para alterar as horas do pacote"><b class="num">${hm(s)}</b>${ic(IC.lapis, 13)}${selo}</button>`
       : `<div class="bl-saldo${s > 0 ? '' : ' zero'}" data-banco-saldo="${c.id}" data-k="${s}" aria-label="Saldo de horas: ${hm(s)}"><b class="num">${hm(s)}</b>${selo}</div>`}
     <button class="ult tap" data-act="historico" data-id="${c.id}" title="Abrir o histórico de ${esc(c.resp)}">${c.venda ? `<b>${ultimaBanco(c)}</b><span>${diaCurto(c.venda.quando)}</span>` : '<span>Sem compra ainda</span>'}</button>

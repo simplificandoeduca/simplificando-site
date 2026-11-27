@@ -1301,6 +1301,13 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O recado sempre junto do nome do responsável (2.75)
+
+Pedido do dono (27/11, com a foto da busca "Com cadastro, fora do espaço"): "Tem que aparecer sempre no nome do responsável essas observações."
+
+- O recado do responsável, em vermelho, vem junto do nome do responsável em todas as telas que mostram o nome em destaque: a busca da tela inicial (no espaço e "Com cadastro, fora do espaço"), o título da comanda (ex.: CARLA, mãe 4H30), o Banco de horas, o "Falta finalizar", o "Saíram há pouco", o atendimento, a sapateira, a venda futura, o pacote futuro, a nota fiscal e as outras folhas do cliente.
+- No atendimento, o quadro vermelho separado saiu (o recado já está no nome). Na comanda o quadro continua, com quem escreveu, quando e o "Mudar".
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O recado do responsável também no Pagamento e no Histórico do cliente (2.74)
 
 Pedido do dono (27/11): "Observação do responsável também tem que aparecer nessa tela aqui."
