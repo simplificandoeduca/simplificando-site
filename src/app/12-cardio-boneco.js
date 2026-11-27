@@ -273,31 +273,31 @@ function oldFill(c,key,str){
 const B3_ON = false, B3_TROCA = false; // B3_TROCA: botão para ver a mulher ou o homem (só no app de teste)
 const b3Sexo = () => B3.sx || sexOf();
 const B3_S = {
-  road:{ F:{w:218,h:300,D:21,g:297,vel:21.5,cxm:122.5,alt:164,bot:[283,289,295,296,297,297,297,296,296,295,288,282,288,294,296,295,295,295,294,294,291],cx:[126,126,126,126,122,116,110,116,121,123,126,130,131,124,118,112,116,123,127,128,128],arq:'rua-f'},
-    M:{w:220,h:300,D:20,g:297,vel:22.5,cxm:132.4,alt:172,bot:[297,297,297,296,296,296,295,289,287,291,294,295,295,295,294,294,293,287,287,294],cx:[130,131,132,131,134,136,134,132,132,132,134,136,133,136,135,133,131,128,128,128],arq:'rua-m'} } };
+  road:{ F:{w:436,h:600,D:21,g:594,vel:42.5,cxm:245.5,alt:164,bot:[567,579,591,594,594,594,594,594,592,591,577,565,577,589,592,592,592,590,590,589,584],cx:[252,251,254,252,244,234,220,233,242,246,252,260,262,248,236,225,233,246,254,256,255],arq:'rua-f'},
+    M:{w:440,h:600,D:20,g:595,vel:43.75,cxm:265.2,alt:172,bot:[594,595,594,593,593,592,591,579,574,583,589,592,591,590,590,589,588,576,574,589],cx:[259,262,264,262,269,274,270,266,264,266,269,272,267,271,270,266,262,258,256,257],arq:'rua-m'} } };
 /* esteira: a mesma corrida da rua, em cima da esteira parada (b3/esteira.webp, 216 px de largura na cena; a lona fica 27,6 px acima do piso e o meio dela a 97,7 px da ponta de trás) */
 /* pular corda (o "Outro" do app), de frente: a pessoa pula no lugar; só a sombra muda com a altura do pulo */
-B3_S.rope = { F:{w:206,h:348,D:24,liso:1,fixo:1,arq:'corda-f-liso'}, M:{w:209,h:348,D:35,liso:1,fixo:1,arq:'corda-m-liso'} };
+B3_S.rope = { F:{w:390,h:660,D:24,C:12,liso:1,fixo:1,arq:'corda-f-liso'}, M:{w:397,h:660,D:35,C:18,liso:1,fixo:1,arq:'corda-m-liso'} };
 /* escada: a máquina vem na folha junto com a pessoa; nada anda na cena e a sombra fica parada embaixo da máquina */
-B3_S.stair = { F:{w:273,h:348,D:32,liso:1,fixo:1,arq:'escada-f-liso'}, M:{w:276,h:348,D:36,liso:1,fixo:1,arq:'escada-m-liso'} };
+B3_S.stair = { F:{w:546,h:660,D:32,C:11,liso:1,fixo:1,cheio:1,arq:'escada-f-liso'}, M:{w:528,h:631,D:36,C:12,liso:1,fixo:1,cheio:1,arq:'escada-m-liso'} };
 /* bike: a bicicleta vem na folha junto com a pessoa, como na escada */
-B3_S.bike = { F:{w:250,h:348,D:22,liso:1,fixo:1,arq:'bike-f-liso'}, M:{w:252,h:348,D:22,liso:1,fixo:1,arq:'bike-m-liso'} };
+B3_S.bike = { F:{w:474,h:660,D:22,C:11,liso:1,fixo:1,arq:'bike-f-liso'}, M:{w:477,h:660,D:22,C:11,liso:1,fixo:1,arq:'bike-m-liso'} };
 /* elíptico: a máquina vem na folha junto com a pessoa (no vídeo da mulher a câmera deslizava de lado; o deslize foi desfeito quadro a quadro antes do recorte) */
-B3_S.ell = { F:{w:335,h:348,D:30,liso:1,fixo:1,arq:'eliptico-f-liso'}, M:{w:335,h:348,D:36,liso:1,fixo:1,arq:'eliptico-m-liso'} };
-B3_S.tread = { F:Object.assign({}, B3_S.road.F, {est:1, alt:150}), M:Object.assign({}, B3_S.road.M, {est:1, alt:156}) };
+B3_S.ell = { F:{w:620,h:644,D:30,C:10,liso:1,fixo:1,arq:'eliptico-f-liso'}, M:{w:566,h:588,D:36,C:12,liso:1,fixo:1,arq:'eliptico-m-liso'} };
+B3_S.tread = { F:Object.assign({}, B3_S.road.F, {est:1, alt:166}), M:Object.assign({}, B3_S.road.M, {est:1, alt:172}) };
 const B3 = { sx:'', el:null, M:null, s:1, k:1, ph:0, cx:179, raf:0, last:0, ro:null, p:null };
 const b3Html = (k,rot,kind) => `<div class="b3 b3-${kind}${kind==='road' ? '' : ' b3-gym'}" data-kind="${kind}" data-int="${k}" role="img" aria-label="${esc(rot)}"><div class="b3i"><i class="ceu"></i><i class="sol"></i><i class="jan"></i><svg class="longe" viewBox="0 0 358 74" preserveAspectRatio="none" aria-hidden="true"><path fill="var(--b3-longe)" d="M0 74V40h22V22h26v18h14V8h30v32h18V28h24v12h12V16h34v24h16V34h22v6h14V4h28v36h20V24h26v16h20V36h0V74z"/></svg><div class="meio"></div><i class="calc"></i><i class="rua"></i><i class="grao"></i><i class="faixa"></i><i class="sme"></i><i class="est"></i><i class="lona"></i><i class="sm"></i><i class="bn"></i></div>${B3_TROCA ? `<button type="button" class="b3-sx" data-a="b3-sx">${ic('swap')}Ver ${b3Sexo()==='M' ? 'a mulher' : 'o homem'}</button>` : ''}</div>`;
 function b3Draw(){
   const M = B3.M, s = B3.s, p = B3.p; if(!M || !p) return;
   const k = Math.floor(B3.ph)%M.D;
-  p.bn.style.backgroundPositionX = (-k*B3.sw)+'px';
+  p.bn.style.backgroundPosition = M.C ? (-(k%M.C)*B3.sw)+'px '+(-Math.floor(k/M.C)*B3.shh)+'px' : (-k*B3.sw)+'px 0';
   if(M.fixo){ p.bn.style.left = (B3.cx-B3.sw/2)+'px'; p.sm.style.left = B3.cx+'px'; return; }
   const e = 1-Math.min(.5,(M.g-M.bot[k])*s/16);
   if(M.pulo){ p.bn.style.left = (B3.cx-B3.sw/2)+'px'; p.sm.style.left = B3.cx+'px'; p.sm.style.transform = 'scale('+e+')'; p.sm.style.opacity = .5+e*.5; return; }
   const v = M.vel*s, o = (B3.ph%(M.D*3))*v;
   if(M.est){ // pés no meio da lona: o centro da passada fica um pouco atrás do centro do corpo
-    const x0 = B3.cx-108, c = x0+97.7+13*s;
-    p.es.style.left = p.se.style.left = x0+'px'; p.lo.style.left = (x0+23)+'px'; p.lo.style.backgroundPositionX = (-o)+'px';
+    const x0 = B3.cx-95, c = x0+86+26*s; // esteira com 190 px de largura na cena
+    p.es.style.left = p.se.style.left = x0+'px'; p.lo.style.left = (x0+20.2)+'px'; p.lo.style.backgroundPositionX = (-o)+'px';
     p.bn.style.left = (c-M.cxm*s-(M.cx[k]-M.cxm)*s*.7)+'px'; p.sm.style.left = c+'px'; p.sm.style.transform = 'scale('+e+')'; p.sm.style.opacity = .5+e*.5; return;
   }
   p.bn.style.left = (B3.cx-M.cxm*s-(M.cx[k]-M.cxm)*s*.7)+'px';
@@ -317,9 +317,9 @@ function b3Init(){
   const el = ($sheet && $sheet.querySelector('.sheet-wrap:not(.closing) .b3')) || $app.querySelector('.b3');
   if(B3.ro){ B3.ro.disconnect(); B3.ro = null; }
   if(!el){ cancelAnimationFrame(B3.raf); B3.raf = 0; B3.el = null; return; }
-  const M = B3_S[el.dataset.kind][b3Sexo()], i = el.firstElementChild, q = c => i.querySelector(c), sw = M.liso ? Math.round(M.w*226/M.h) : Math.round(M.w*M.alt/(M.g-4)), s = sw/M.w, per = (M.vel||18)*s*M.D/3;
-  B3.el = el; B3.M = M; B3.s = s; B3.sw = sw; B3.k = Math.max(0, Math.min(2, +el.dataset.int||0)); B3.p = { bn:q('.bn'), sm:q('.sm'), fx:q('.faixa'), gr:q('.grao'), me:q('.meio'), es:q('.est'), se:q('.sme'), lo:q('.lona') };
-  B3.p.bn.style.cssText = 'background-image:url(b3/'+M.arq+'.webp?v=194);background-size:'+(sw*M.D)+'px 100%;width:'+sw+'px;height:'+(M.h*s)+'px;bottom:'+(M.liso ? (232-M.h*s)/2 : (M.est ? 57.6 : 36)-(M.h-M.g)*s)+'px';
+  const M = B3_S[el.dataset.kind][b3Sexo()], i = el.firstElementChild, q = c => i.querySelector(c), shh = M.liso ? (M.cheio ? 232 : 226) : 0, sw = M.liso ? Math.round(M.w*shh/M.h) : Math.round(M.w*M.alt/(M.g-4)), s = sw/M.w, per = (M.vel||18)*s*M.D/3;
+  B3.el = el; B3.M = M; B3.s = s; B3.sw = sw; B3.shh = shh; B3.k = Math.max(0, Math.min(2, +el.dataset.int||0)); B3.p = { bn:q('.bn'), sm:q('.sm'), fx:q('.faixa'), gr:q('.grao'), me:q('.meio'), es:q('.est'), se:q('.sme'), lo:q('.lona') };
+  B3.p.bn.style.cssText = 'background-image:url(b3/'+M.arq+'.webp?v=195);background-size:'+(M.C ? (sw*M.C)+'px '+(shh*Math.ceil(M.D/M.C))+'px' : (sw*M.D)+'px 100%')+';width:'+sw+'px;height:'+(shh || M.h*s)+'px;bottom:'+(M.liso ? (232-shh)/2 : (M.est ? 54.3 : 36)-(M.h-M.g)*s)+'px';
   el.classList.toggle('b3-liso', !!M.liso); el.classList.toggle('b3-branco', !!M.est); // fundo neutro: o quadro do vídeo vai inteiro, sem recorte
   B3.p.lo.style.backgroundSize = (per/3)+'px 100%';
   if(M.fixo) B3.p.sm.style.cssText = 'width:'+(sw*.9)+'px;margin-left:'+(-sw*.45)+'px;height:15px;bottom:24px';
