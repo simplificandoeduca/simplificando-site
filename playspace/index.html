@@ -1328,6 +1328,7 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .obs-bt { flex: none; display: inline-flex; align-items: center; justify-content: center; height: 30px; padding: 0 12px; border-radius: 999px; border: 1.5px solid var(--borda-2); background: var(--card); color: var(--apagado); font: 800 12px/1 var(--display); letter-spacing: .08em; }
 .obs-bt.on { border-color: var(--erro); background: var(--erro); color: #fff; box-shadow: 0 0 0 3px var(--erro-bg), 0 0 12px rgba(184, 64, 42, .45); }
 .obs-bt.mini { height: 20px; padding: 0 7px; font-size: 10px; box-shadow: none; position: relative; }
+.it .txt b.lanc { font-weight: 800; color: var(--tinta); }   /* 2.76: quem lançou */
 /* 2.72: o recado do responsável, em vermelho ao lado do nome */
 .esp-it > .l2 { display: flex; align-items: center; column-gap: 8px; } .esp-it .l2-n { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .esp-it .l2 > .nota-ic { flex: none; margin-left: 0; }
 .esp-lst .esp-it > .l2 { flex-wrap: wrap; align-content: center; } .esp-lst .esp-it .l2 > .rec-l { max-width: 100%; }   /* na lista larga, sem lugar ao lado do nome: o recado desce para baixo do nome */
@@ -2262,7 +2263,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.75';
+const VERSAO = '2.76';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -7576,11 +7577,13 @@ let FXC = null;   /* 2.43: o que a lixeira vai excluir */
 /* 2.62 (o dono: "Aqui no histórico, eu também quero uma lixeirazinha para o gestor poder excluir se caso necessário"): a lixeira em cada
    compra do histórico do cliente, só para o gestor. É a mesma dos Finalizados do dia: pede o motivo, a compra sai (o que foi pago sai do
    caixa, para devolver ao cliente; as horas dela saem do saldo) e fica nos cancelamentos e na linha do dia */
-function folhaExcluirHist(id) { if (!gestor()) return; const v = LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === +id), c = v && crianca(v.crianca); if (!v) return;
-  FXC = { k: 'venda', id: v.id, c: v.crianca, s: '', vt: '', voltou: 0, saiu: 0 };
-  abrirFolha('Excluir esta compra', `<div class="marca lz-sai">${ic(IC.lixo, 18)}<span><b>${esc(nomeCompraTxt(v))}</b><br>${c ? nomeResp(c) + (c.resp ? ' · ' + esc(c.nome) : '') + ' · ' : ''}${diaCurto(v.quando)} às ${hora(v.quando)} · <b>${brl2(v.v)}</b></span></div>
+const quemLancou = v => (v && (v.vend || v.vendedora || v.por)) || '';   /* 2.76: a atendente da venda (sem ela, o login) */
+function folhaExcluirHist(id) { const v = LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === +id), c = v && crianca(v.crianca); if (!v) return;
+  FXC = { k: 'venda', id: v.id, c: v.crianca, s: '', vt: '', voltou: 0, saiu: 0, senha: !gestor() };
+  abrirFolha('Excluir esta compra', `<div class="marca lz-sai">${ic(IC.lixo, 18)}<span><b>${esc(nomeCompraTxt(v))}</b><br>${c ? nomeResp(c) + (c.resp ? ' · ' + esc(c.nome) : '') + ' · ' : ''}${diaCurto(v.quando)} às ${hora(v.quando)} · <b>${brl2(v.v)}</b>${quemLancou(v) ? ' · lançado por ' + esc(MAI(primeiro(quemLancou(v)))) : ''}</span></div>
     <p class="explica">Sai a compra; o que foi pago sai do caixa (devolver ao cliente); as horas dela saem do saldo. Fica nos cancelamentos e na linha do dia, com o motivo.</p>
     <div class="campo" id="fx-motivo-campo"><label for="fx-motivo">Motivo<span class="obg" aria-hidden="true">*</span></label><textarea id="fx-motivo" rows="2" maxlength="300" placeholder="Por que está excluindo (ex.: lançado em dobro, cliente errado)"></textarea></div>
+    ${gestor() ? '' : `<div class="campo"><label for="fx-senha">Senha do gestor<span class="obg" aria-hidden="true">*</span></label>${campoSenha('fx-senha')}</div>`}
     <div class="pe-f"><button type="button" class="bt perigo largo tap" id="fx-ok" data-act="fim-excluir-ok">${ic(IC.lixo)} Excluir</button></div>`); }
 function folhaExcluirFim(el) { if (!gestor()) return; const d = el.dataset, it = el.closest('.fim-it'), quem = it ? (it.querySelector('.txt b') || {}).innerText || '' : '', sub = it ? (it.querySelector('.txt span') || {}).innerText || '' : '', val = it ? ((it.querySelector('.fim-v b') || {}).innerText || '') : '';
   FXC = { k: d.k, id: +d.id || 0, c: +d.c || 0, s: d.s || '', vt: d.vt || '', voltou: +d.voltou || 0, saiu: +d.sv || 0 };
@@ -7591,13 +7594,14 @@ function folhaExcluirFim(el) { if (!gestor()) return; const d = el.dataset, it =
     <div class="campo" id="fx-motivo-campo"><label for="fx-motivo">Motivo<span class="obg" aria-hidden="true">*</span></label><textarea id="fx-motivo" rows="2" maxlength="300" placeholder="Por que está excluindo (ex.: lançado em dobro, criança errada)"></textarea></div>
     <div class="pe-f"><button type="button" class="bt perigo largo tap" id="fx-ok" data-act="fim-excluir-ok">${ic(IC.lixo)} Excluir</button></div>`);
 }
-async function excluirFimOk(el) { if (!FXC || !gestor()) return; const t = $('#fx-motivo'), motivo = (t ? t.value : '').replace(/\s+/g, ' ').trim();
+async function excluirFimOk(el) { if (!FXC || (!gestor() && !FXC.senha)) return; const t = $('#fx-motivo'), motivo = (t ? t.value : '').replace(/\s+/g, ' ').trim();
   if (motivo.length < 5) { const cp = $('#fx-motivo-campo'); if (cp) cp.classList.add('falta'); toast('Escreva o motivo: por que está excluindo'); if (t) t.focus(); return; }
+  const senha = FXC.senha && !gestor() ? senhaDe('fx-senha') : ''; if (FXC.senha && !gestor() && !senha) { toast('Digite a senha do gestor'); const s = $('#fx-senha'); if (s) s.focus(); return; }   /* 2.76 */
   el.disabled = true; const X = FXC;
-  try { let r; if (MODO === 'servidor') { r = await api('finalizado_excluir', { tipo: X.k, id: X.id, crianca: X.c, s: X.s, voltou: X.vt, motivo }); await carregar(); }
-    else { r = excluirFimPrevia(X, MAI(motivo)); if (r.erro) throw new Error(r.erro); }
+  try { let r; if (MODO === 'servidor') { r = await api('finalizado_excluir', { tipo: X.k, id: X.id, crianca: X.c, s: X.s, voltou: X.vt, motivo, ...(senha ? { senha } : {}) }); await carregar(); }
+    else { if (senha && !quemAutorizaPrevia('desconto', senha)) throw new Error('A senha não confere com a do gestor.'); r = excluirFimPrevia(X, MAI(motivo)); if (r.erro) throw new Error(r.erro); }
     FXC = null; fecharFolha(); desenhar(true); if (LADO) buscarHistorico(); toast(`Excluído${r.devolver ? ' · devolver ao cliente: ' + r.devolver : ''}`);
-  } catch (e) { toast(e.message); el.disabled = false; } }
+  } catch (e) { toast(e.message); el.disabled = false; senhaErrada('fx-senha', e); } }
 function excluirFimPrevia(X, M) {   /* (prévia) o mesmo que o servidor faz */
   const c = crianca(X.c), sai = (V, oque, vis, tipoC) => { const ids = V.map(v => v.id), P = (S.pagamentos || []).filter(p => ids.includes(p.venda)), dv = P.length ? juntaFormas(P).map(([f, v]) => nomeForma(f) + ' ' + brl(v)).join(' + ') : '';
       const mins = V.reduce((t, v) => t + minDe(v), 0), deb = vis ? +vis.deb || 0 : 0; if (mins > 0 && c && pacMin(c) - mins < c.usado - deb) return { erro: 'As horas compradas aqui já foram usadas em outra visita. Exclua aquela primeiro.' };
@@ -8882,7 +8886,9 @@ const acoesDaCompra = v => { const pede = podePedirCancelamento(v), cv = pede ? 
   const hs = podeAlterarHoras(v) ? `<button type="button" class="link tap vh-l" data-act="venda-horas" data-id="${v.id}">${ic(IC.lapis, 13)} Alterar as horas</button>` : '';   /* 1.55: só o gestor */
   const tp = podeTrocarPag(v) ? `<button type="button" class="link tap vh-l" data-act="pag-trocar-v" data-id="${v.id}">${ic(IC.desconto, 13)} Trocar pagamento</button>` : '';   /* 1.57 */
   const vz = botaoVezes(v);   /* 2.39 */
-  const lx = gestor() && v.id ? `<button type="button" class="fim-lixo hist-lixo tap" data-act="hist-excluir" data-id="${v.id}" title="Excluir esta compra (lançado errado) · só o gestor" aria-label="Excluir esta compra">${ic(IC.lixo, 16)}</button>` : '';   /* 2.62 */
+  /* 2.76 (o dono: "no histórico do cliente ... uma opção como gestor de apagar um lançamento que foi errado ... ver quem lançou ... a lixeirinha
+     do lado ... para não contar no caixa"): a lixeira em todo computador; quem não é o gestor digita a senha do gestor */
+  const lx = v.id && !ehImpV(v) ? `<button type="button" class="fim-lixo hist-lixo tap" data-act="hist-excluir" data-id="${v.id}" title="Excluir este lançamento (lançado errado) · ${gestor() ? 'só o gestor' : 'com a senha do gestor'}" aria-label="Excluir este lançamento">${ic(IC.lixo, 16)}</button>` : '';   /* 2.62 */
   return nf || canc || hs || tp || vz || lx ? `<span class="it-ac">${nf}${hs}${tp}${vz}${canc}${lx}</span>` : ''; };
 /* ---------- 1.55: o gestor corrige as horas de um pacote (a equipe lançou errado) ----------
    Muda só as horas desta compra (o valor continua o mesmo) e o saldo do cliente acompanha a diferença. Não tira horas que já foram
@@ -10234,7 +10240,8 @@ function desenharLado() {
         <div class="acoes"><button class="bt forte tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 16)} ${emAberto(c) ? 'Continuar o atendimento' : 'Vender'}</button>${COM_WHATS ? `<button class="bt tap" data-act="renovar" data-id="${c.id}">${ic(IC.zap, 16)} ${semHoras(c) ? 'Mandar mensagem' : 'Chamar para renovar'}</button>` : ''}</div>
       </div>`; }).join('')}</div>
     <div class="sec"><div class="sec-cab"><h2 style="font-size:16px">Compras</h2>${d ? `<span class="pill p-neutro">${compras.length}</span>` : ''}</div>
-      ${!d ? `<p class="explica">${LADO.erro ? esc(LADO.erro) : 'Buscando as compras…'}</p>` : d.vendas.length ? `<div class="grupo">${compras.map(x => x.g ? compraDaVisita(x, varias, nomeDe) : (v => `<div class="it"><div class="txt"><b>${nomeCompra(v)}</b><span>${quandoFoi(v.quando)}${varias ? ' · para ' + esc(nomeDe(v.crianca)) : ''}${v.por ? ' · por ' + esc(primeiro(v.por)) : ''}${naoPagoDe(v) > 0.004 ? ' · <b class="np">A RECEBER</b>' : pagoDaCompra(v) ? ' · ' + esc(pagoDaCompra(v)) : ''}${v.desc > 0 ? ' · desconto de ' + brl(v.desc) : ''}</span>${acoesDaCompra(v)}</div><b class="num">${!(v.v > 0) && v.itens === ITENS_ABERTO ? 'fora da loja' : brl(v.v)}</b></div>`)(x.v)).join('')}</div>` : `<p class="explica">Nenhuma compra registrada ainda.</p>`}</div>
+      ${d && d.vendas.length ? `<p class="explica">Lançou errado? Toque na lixeira ${ic(IC.lixo, 13)} da compra${gestor() ? '' : ' (com a senha do gestor)'}: ela sai e o caixa acompanha.</p>` : ''}
+      ${!d ? `<p class="explica">${LADO.erro ? esc(LADO.erro) : 'Buscando as compras…'}</p>` : d.vendas.length ? `<div class="grupo">${compras.map(x => x.g ? compraDaVisita(x, varias, nomeDe) : (v => `<div class="it"><div class="txt"><b>${nomeCompra(v)}</b><span>${quandoFoi(v.quando)}${varias ? ' · para ' + esc(nomeDe(v.crianca)) : ''}${quemLancou(v) ? ' · lançado por <b class="lanc">' + esc(MAI(primeiro(quemLancou(v)))) + '</b>' : ''}${naoPagoDe(v) > 0.004 ? ' · <b class="np">A RECEBER</b>' : pagoDaCompra(v) ? ' · ' + esc(pagoDaCompra(v)) : ''}${v.desc > 0 ? ' · desconto de ' + brl(v.desc) : ''}</span>${acoesDaCompra(v)}</div><b class="num">${!(v.v > 0) && v.itens === ITENS_ABERTO ? 'fora da loja' : brl(v.v)}</b></div>`)(x.v)).join('')}</div>` : `<p class="explica">Nenhuma compra registrada ainda.</p>`}</div>
     <div class="sec"><div class="sec-cab"><h2 style="font-size:16px">Visitas</h2>${d ? `<span class="pill p-neutro">${d.visitas.length}</span>` : ''}</div>
       ${!d ? (LADO.erro ? '' : `<p class="explica">Buscando as visitas…</p>`) : d.visitas.length ? `<div class="grupo">${visitas.map(v => `<div class="it"><div class="txt"><b>${v.dia.getDate()} de ${MESES[v.dia.getMonth()]}${v.dia.getFullYear() !== agora.getFullYear() ? ' de ' + v.dia.getFullYear() : ''}</b><span>${varias ? esc(nomeDe(v.crianca)) + ' · ' : ''}${v.entrou} às ${v.saiu}</span></div><span class="pill p-neutro">${hm(v.deb)}</span></div>`).join('')}</div>${d.visitas.length > 6 ? `<button class="link tap" data-act="lado-todas" style="align-self:flex-start">${LADO.todas ? 'Mostrar só as últimas' : 'Ver as ' + d.visitas.length + ' visitas'}</button>` : ''}` : `<p class="explica">Ainda não veio brincar.</p>`}</div>
     ${d && d.cancelados && d.cancelados.length ? `<div class="sec"><div class="sec-cab"><h2 style="font-size:16px">Cancelamentos</h2><span class="pill p-erro">${d.cancelados.length}</span></div>

@@ -1301,6 +1301,16 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Histórico do cliente: a lixeira em todo computador e "lançado por" (2.76)
+
+Pedido do dono (27/11): "Quando eu entrar no histórico do cliente, eu quero ter uma opção como gestor de apagar um lançamento que foi errado. Eu quero ver quem lançou ... a lixeirinha do lado ... para não contar no caixa, para não dar divergência no caixa."
+
+- Em Compras, cada lançamento mostra "lançado por" (a atendente escolhida na venda; sem ela, o login) e a lixeira do lado.
+- A lixeira aparece em todo computador. Com o login do gestor, exclui direto. Nos computadores da loja (login da unidade ou da atendente), a folha pede a senha do gestor; senha errada não exclui.
+- Excluir pede o motivo. O lançamento sai, o que foi pago sai do caixa (aparece quanto devolver ao cliente), as horas dele saem do saldo, e fica nos Cancelamentos e no registro do dia, no nome do gestor, com o motivo.
+- Acima das compras, a dica: "Lançou errado? Toque na lixeira da compra".
+- A recreação avulsa da visita (cobrada na saída) continua saindo pela lixeira dos Finalizados do dia (a saída inteira).
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O recado sempre junto do nome do responsável (2.75)
 
 Pedido do dono (27/11, com a foto da busca "Com cadastro, fora do espaço"): "Tem que aparecer sempre no nome do responsável essas observações."

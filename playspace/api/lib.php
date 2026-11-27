@@ -2329,7 +2329,7 @@ function finalizadosDoDia(int $so = 0, ?string $dia = null): array {   /* 2.15: 
    ao saldo, as horas compradas nela saem, o que foi pago sai do caixa); o carrinho devolvido sai com o valor; a venda sem entrada é cancelada.
    Fica nos cancelamentos e na linha do dia, com o motivo */
 function excluirFinalizado(array $in, array $u): array {
-  if (($u['papel'] ?? '') !== 'gestor') falha('Só o gestor exclui.', 403);
+  if (($u['papel'] ?? '') !== 'gestor') { if (!array_key_exists('senha', $in)) falha('Só o gestor exclui.', 403); $u = autorizadorPelaSenha('desconto', (string)$in['senha'], $u); }   /* 2.76: no computador da loja, com a senha do gestor (fica no nome dele) */
   $db = db(); $motivo = mb_substr(maiusculo(trim((string)($in['motivo'] ?? ''))), 0, 300); if (mb_strlen($motivo) < 5) falha('Escreva o motivo: por que está excluindo.');
   $tipo = (string)($in['tipo'] ?? '');
   if ($tipo === 'venda') { $r = cancelarVenda((int)($in['id'] ?? 0), $u, $motivo, null, '', true); return $r; }
