@@ -1301,6 +1301,33 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Desfazer um ajuste de horas, e a nota fiscal sem login (2.78)
+
+### Desfazer um ajuste de horas
+
+Pedido do dono (27/11, com a foto do "Corrigir as horas"): "eu tenho que apagar um lançamento que foi feito, um ajuste que foi feito" (um gestor colocou horas, depois outro gestor colocou as horas certas).
+
+- No Histórico do cliente, a parte "Ajustes de horas" lista cada ajuste do gestor (o "Corrigir as horas" e o lápis do "comprou"): quantas horas, quando, o motivo e quem fez.
+- A lixeira vermelha de cada ajuste abre "Desfazer este ajuste": mostra como o saldo fica; escreva o motivo e toque em "Desfazer o ajuste".
+- As horas do ajuste voltam: um ajuste de +5h desfeito tira 5h do comprou; um de −1h desfeito devolve 1h. O saldo acompanha.
+- Não é venda: o caixa não muda. O ajuste fica riscado, marcado "desfeito", sem lixeira. O desfazer vai para o registro do cliente: "Ajuste desfeito: +5h (de 27/11) · motivo · por quem".
+- Se as horas do ajuste já foram usadas (o saldo ficaria negativo), não desfaz: corrija a visita primeiro, ou use o lápis do "comprou".
+- Com o login do gestor, desfaz direto. Nos computadores da loja, pede a senha do gestor.
+
+### A nota fiscal sem login
+
+Pedido do dono (27/11): "a nota fiscal eu não quero que peça login mais ... pode deixar liberado pro operador fazer sem precisar de login, desde que o pedido esteja finalizado" e "não precisa nem mostrar login e senha. Só emitir nota e ela carrega".
+
+- A folha da nota não mostra mais login e senha do Notas, para ninguém. O Play Space entra sozinho no sistema de notas (a ponte da 2.49): é só tocar em "Emitir a nota fiscal"; a nota sai e carrega ali mesmo.
+- A nota continua saindo só com o cliente finalizado (nos Finalizados do dia).
+- A entrada automática agora tenta duas vezes, e de novo se a sessão nova não pegar.
+- Se mesmo assim não der, a folha mostra o motivo e o botão "Tentar de novo" (ou "Tentar de novo e emitir"). Os motivos:
+  - "O sistema de notas do site está numa versão antiga": o Notas do site é anterior ao 191. Envie o Play Space Notas 192 (o arquivo playspace-notas-192.zip) para a pasta notas do site.
+  - "travou as entradas por 15 minutos": muitas senhas erradas no Notas, no mesmo lugar. Espere e toque em "Tentar de novo".
+  - Outro motivo: o texto que o sistema de notas respondeu.
+- "Abrir no Play Space Notas" também entra sozinho antes de abrir a aba.
+- Nenhuma senha do Notas fica guardada no Play Space nem no código.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O lápis no "comprou" da comanda (2.77)
 
 Pedido do dono (27/11, com a foto da comanda): "uma opção de poder alterar o comprou ... um lapisinho para mim colocar a informação ali. E essa informação que eu colocar, ela vai ficar."

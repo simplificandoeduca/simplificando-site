@@ -1063,8 +1063,10 @@ switch ($acao) {
     // as ocorrências que explicam um acerto: saída corrigida, visita reaberta, entrada cancelada, desconto e cadastro corrigido (só quando a tela pede tudo)
     $ocorr = []; if ($tudo) { $qo = $db->prepare("SELECT quando, tipo, crianca_id, texto FROM registros WHERE crianca_id IN ($marcas) AND tipo IN ('corr', 'reab', 'canc', 'desc', 'alt', 'cad') ORDER BY quando DESC, id DESC LIMIT 1000"); $qo->execute($ids);
       $ocorr = array_map(fn($g) => ['q' => $g['quando'], 'tipo' => (string)$g['tipo'], 'crianca' => (int)$g['crianca_id'], 'texto' => (string)$g['texto']], $qo->fetchAll()); }
-    $q = $db->prepare("SELECT * FROM cancelamentos WHERE crianca_id IN ($marcas) ORDER BY id DESC LIMIT 200"); $q->execute($ids);
-    responder(['vendas' => $vendas, 'visitas' => $visitas, 'cancelados' => array_map('cancelamentoPublico', $q->fetchAll()), 'ocorr' => $ocorr]);
+    $q = $db->prepare("SELECT * FROM cancelamentos WHERE crianca_id IN ($marcas) ORDER BY id DESC LIMIT 200"); $q->execute($ids); $canc = $q->fetchAll();
+    $qa = $db->prepare("SELECT id, quando, crianca_id, texto FROM registros WHERE crianca_id IN ($marcas) AND tipo = 'alt' AND texto LIKE 'Ajuste do gestor:%' ORDER BY quando DESC, id DESC LIMIT 100"); $qa->execute($ids);   /* 2.78: os ajustes de horas do gestor */
+    $ajustes = array_map(fn($g) => ['id' => (int)$g['id'], 'crianca' => (int)$g['crianca_id'], 'quando' => (string)$g['quando'], 'texto' => (string)$g['texto'], 'min' => minDoAjuste((string)$g['texto']), 'desfeito' => strpos((string)$g['texto'], ' · desfeito') !== false], $qa->fetchAll());
+    responder(['vendas' => $vendas, 'visitas' => $visitas, 'cancelados' => array_map('cancelamentoPublico', $canc), 'ocorr' => $ocorr, 'ajustes' => $ajustes]);
   }
   /* ---------- 1.14: reimprimir o cupom ---------- */
   case 'papel_guardar': { // a tela guarda as duas vias de cada cupom que sai, para reimprimir depois
@@ -1108,6 +1110,21 @@ switch ($acao) {
     db()->prepare('UPDATE criancas SET pacote_min = pacote_min + ? WHERE id = ?')->execute([$m, (int)$c['id']]);
     registrar('alt', (int)$c['id'], (string)$c['nome'], 'Ajuste do gestor: ' . ($m > 0 ? '+' : '−') . dur(abs($m)) . ' nas horas' . (isset($in['comprou']) && is_numeric($in['comprou']) ? ' · comprou passa a ' . dur(max(0, (int)$in['comprou'])) : '') . ' · ' . $mot . ' · por ' . maiusculo(primeiroNome((string)$u['nome'])));
     responder(['saldo' => $saldo + $m]);
+  }
+  case 'ajuste_desfazer': { /* 2.78 (o dono: "eu tenho que apagar um lançamento que foi feito, um ajuste que foi feito"): desfaz um ajuste de horas do gestor; as horas dele voltam (o comprou e o saldo acompanham) */
+    $u = exigir(); if (($u['papel'] ?? '') !== 'gestor') { if (!array_key_exists('senha', $in)) falha('Só o gestor desfaz o ajuste.', 403); $u = autorizadorPelaSenha('desconto', (string)$in['senha'], $u); }
+    $q = $db->prepare("SELECT * FROM registros WHERE id = ? AND tipo = 'alt'"); $q->execute([(int)($in['id'] ?? 0)]); $g = $q->fetch(); $q->closeCursor();
+    if (!$g || strpos((string)$g['texto'], 'Ajuste do gestor:') !== 0) falha('Este ajuste não foi encontrado.', 404);
+    if (strpos((string)$g['texto'], ' · desfeito') !== false) falha('Este ajuste já foi desfeito.', 409);
+    $m = minDoAjuste((string)$g['texto']); if (!$m) falha('Não consegui ler as horas deste ajuste.');
+    $c = crianca((int)$g['crianca_id']); if (!$c) falha('Cliente não encontrado.', 404);
+    $mot = mb_substr(maiusculo(trim((string)($in['motivo'] ?? ''))), 0, 200); if (mb_strlen($mot) < 5) falha('Escreva o motivo.');
+    $saldo = (int)$c['pacote_min'] - autosDaVisitaMin($c) - (int)$c['usado_min'];
+    if ($m > 0 && $saldo - $m < 0) falha('Não dá para desfazer: as horas deste ajuste já foram usadas (o saldo é ' . dur(max(0, $saldo)) . '). Corrija a visita primeiro, ou use o lápis do comprou na comanda.');
+    $db->prepare('UPDATE criancas SET pacote_min = MAX(0, pacote_min - ?) WHERE id = ?')->execute([$m, (int)$c['id']]);
+    $db->prepare("UPDATE registros SET texto = texto || ' · desfeito' WHERE id = ?")->execute([(int)$g['id']]);
+    registrar('alt', (int)$c['id'], (string)$c['nome'], 'Ajuste desfeito: ' . ($m > 0 ? '+' : '−') . dur(abs($m)) . ' (de ' . substr((string)$g['quando'], 8, 2) . '/' . substr((string)$g['quando'], 5, 2) . ') · ' . $mot . ' · por ' . maiusculo(primeiroNome((string)$u['nome'])));
+    responder(['saldo' => $saldo - $m]);
   }
   case 'venda_horas': { // 1.55: o gestor corrige as horas de um pacote (lançado errado), com o motivo
     $u = exigir(['gestor']); responder(alterarHorasVenda((int)($in['venda'] ?? 0), (int)($in['minutos'] ?? -1), mb_substr(maiusculo(trim((string)($in['motivo'] ?? ''))), 0, 200), $u));

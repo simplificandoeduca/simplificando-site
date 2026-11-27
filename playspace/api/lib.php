@@ -1254,6 +1254,8 @@ function fecharPedidosDeDesconto(?array $u, array $c, string $onde): void { // $
 }
 
 /* ---------- registros (o painel "Hoje na recepção") e as mensagens ---------- */
+/* 2.78: as horas de um ajuste do gestor, lidas do registro ("Ajuste do gestor: +3h30 nas horas · ..."); null se não for um ajuste */
+function minDoAjuste(string $t): ?int { if (!preg_match('/^Ajuste do gestor: ([+\x{2212}-])(\d+)h(\d{2})? nas horas/u', $t, $m)) return null; $v = (int)$m[2] * 60 + (int)($m[3] ?? 0); return $m[1] === '+' ? $v : -$v; }
 function registrar(string $tipo, ?int $criancaId, string $nome, string $texto, ?string $quando = null, $unidade = false): int {   // 1.06: $unidade = false usa a do aparelho que fez o pedido
   if (!empty($GLOBALS['PS_OFF']['em'])) $texto .= ' · feito sem internet (chegou às ' . date('H:i') . ')';   // 1.40
   elseif (!empty($GLOBALS['PS_OFF']['negada'])) $texto .= ' · mandado como feito sem internet às ' . $GLOBALS['PS_OFF']['negada'] . ', mas o aparelho estava com internet: vale a hora de chegada';   // 1.49

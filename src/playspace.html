@@ -1314,6 +1314,8 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .obs-bt { flex: none; display: inline-flex; align-items: center; justify-content: center; height: 30px; padding: 0 12px; border-radius: 999px; border: 1.5px solid var(--borda-2); background: var(--card); color: var(--apagado); font: 800 12px/1 var(--display); letter-spacing: .08em; }
 .obs-bt.on { border-color: var(--erro); background: var(--erro); color: #fff; box-shadow: 0 0 0 3px var(--erro-bg), 0 0 12px rgba(184, 64, 42, .45); }
 .obs-bt.mini { height: 20px; padding: 0 7px; font-size: 10px; box-shadow: none; position: relative; }
+.nf-sem-ponte { display: flex; flex-direction: column; gap: 10px; }   /* 2.78 */
+.aj-desf .txt b { color: var(--tinta-2); text-decoration: line-through; }   /* 2.78: o ajuste desfeito */
 .it .txt span b.lanc { display: inline; font-weight: 800; color: var(--tinta); white-space: nowrap; }   /* 2.76: quem lançou */
 /* 2.72: o recado do responsável, em vermelho ao lado do nome */
 .esp-it > .l2 { display: flex; align-items: center; column-gap: 8px; } .esp-it .l2-n { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .esp-it .l2 > .nota-ic { flex: none; margin-left: 0; }
@@ -2249,7 +2251,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.77';
+const VERSAO = '2.78';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -6510,7 +6512,7 @@ function nfeMsgHtml() { const m = NFE_F && NFE_F.msg; if (!m) return '';
   if (m.tipo === 'emitindo') return `<p class="explica nf-dica nf-indo">${esc(m.txt)} ${nfRelogio(m.t0)}</p>`;
   if (m.tipo === 'incerto') return `<div class="marca nf-esp">${ic(IC.sino, 18)}<span><b>A nota ainda não apareceu.</b> ${esc(m.txt)}</span></div><button type="button" class="bt forte largo tap" data-act="nfe-conferir">${ic(IC.refaz || IC.check, 16)} Conferir de novo na SEFAZ</button>`;
   if (m.tipo === 'erro') return `<div class="marca canc">${ic(IC.x, 18, 2.4)}<span><b>A nota não saiu.</b> ${esc(m.txt)}</span></div>`;
-  if (m.tipo === 'login') return `<div class="marca canc">${ic(IC.x, 18, 2.4)}<span>Não deu para entrar no Play Space Notas por aqui. Abra o Notas uma vez neste computador e tente de novo.</span></div>`;
+  if (m.tipo === 'login') return `<div class="marca canc">${ic(IC.x, 18, 2.4)}<span><b>Não deu para ligar ao sistema de notas.</b> ${esc(NF_PONTE_ERRO || 'Toque em Emitir de novo.')}</span></div>`;   /* 2.78 */
   return ''; }
 /* o que foi digitado fica guardado (a folha redesenha sem perder) */
 document.addEventListener('input', e => { const t = e.target; if (!NFE_F || !t || !t.id || !t.id.startsWith('nfe-')) return;
@@ -9138,9 +9140,7 @@ function nfPdfHtml(v) {
   const de = '<span class="nf-pdf-tit">' + ic(IC.cupom, 18) + ' A nota';
   if (x.st === 'carregando') return `<div class="nf-pdf esp nf-espera">${ic(IC.cupom, 18)} <span><span aria-live="polite">${esc(x.msg || 'Carregando a nota…')}</span> ${x.t0 ? nfRelogio(x.t0) : ''}<small>O governo costuma levar de alguns segundos a 1 minuto. Pode continuar atendendo: a nota aparece aqui sozinha.</small></span></div>`;   /* 2.68: o relógio */
   if (x.st === 'previa') return `<div class="nf-pdf esp">${ic(IC.cupom, 18)} <span>Na prévia a nota não carrega. No sistema da loja ela aparece aqui, com Imprimir, Enviar no WhatsApp e Salvar.</span></div>`;
-  if (x.st === 'login') return `<div class="bloco-f nf-login"><small class="rot">Para ver a nota, entre no Play Space Notas neste computador (uma vez só)</small>
-    <div class="dois"><div class="campo"><label for="nfl-login">Login do Notas</label><input id="nfl-login" class="sem-mai" autocapitalize="none" autocomplete="off" spellcheck="false"></div><div class="campo"><label for="nfl-senha">Senha do Notas</label><input id="nfl-senha" type="password" autocomplete="off"></div></div>
-    <button type="button" class="bt forte largo tap" data-act="nf-notas-entrar">${ic(IC.check)} Entrar no Notas</button></div>`;
+  if (x.st === 'login') return `<div class="nf-sem-ponte">${nfSemPonteHtml('Tentar de novo')}</div>`;   /* 2.78: sem o login do Notas */
   if (x.st !== 'ok') return `<div class="nf-pdf esp">${ic(IC.sino, 18)} <span>${esc(x.msg || 'A nota não carregou.')}</span><button type="button" class="bt tap" data-act="nf-pdf-recarregar">${ic(IC.refaz || IC.check, 16)} Tentar de novo</button></div>`;
   const toque = matchMedia('(pointer: coarse)').matches;   /* (no celular o PDF não abre dentro da folha: ficam os botões) */
   return `<div class="nf-pdf">${de}${x.nota && String(x.nota.numero) !== String((nfDaVenda(v) || {}).numero || '') ? ` <small>· no governo, nº ${esc(x.nota.numero)}</small>` : ''}</span>${x.comp ? nfCompAviso('nf-pdf-recarregar') + (x.busca ? `<p class="explica nf-busca">Ainda buscando o PDF oficial no governo ${nfRelogio(x.busca)} · quando chegar, troca sozinho.</p>` : '') : ''}
@@ -9373,9 +9373,9 @@ async function nfComprovantePdf(n, e) {
 }
 const nfCompAviso = act => `<p class="explica nf-comp">O governo ainda não entregou o PDF oficial: este é o <b>comprovante da nota emitida</b> (com a chave de acesso e o QR da consulta no site do governo), feito aqui. <button type="button" class="link tap" data-act="${act}">Buscar o PDF oficial de novo</button></p>`;
 async function nfPdfBaixa(n, emp, vezes = 3) {   /* o PDF oficial pelo Notas (na empresa da nota); o governo leva uns segundos para liberar logo depois de emitir */
-  let ponte = false;
+  let ponte = 0;
   const pega = async () => { const r = await fetch('/notas/api/api.php?acao=danfse&id=' + encodeURIComponent(n.id) + (emp ? '&_empresa=' + emp.id : ''), { credentials: 'same-origin', cache: 'no-store' });
-    if (r.status === 401 && !ponte) { ponte = true; if (await notasPonte()) return pega(); }   /* 2.49: entra no Notas sozinho */
+    if (r.status === 401 && ponte < 2) { ponte++; if (await notasPonte(ponte > 1)) return pega(); }   /* 2.49: entra no Notas sozinho (2.78: duas vezes) */
     if (r.status === 401) { const x = new Error('login'); x.status = 401; throw x; } return r.ok && /pdf/i.test(r.headers.get('Content-Type') || '') ? await r.blob() : (r.status === 404 ? 404 : null); };
   for (let t = 0; t < vezes; t++) {
     let b = await pega();
@@ -9514,22 +9514,33 @@ function nfRelogioLiga() { if (NF_REL || !$('[data-nf-t0]')) return; NF_REL = se
 /* 2.49 (o dono: "não precisa pedir login do sistema de nota, pode deixar logado direto"): sem a sessão do Notas neste navegador, o Play
    Space pede um bilhete ao servidor (notas_ponte) e entra no Notas com ele (entrar_ponte, do Notas 191), sem digitar nada. Só se a ponte
    não der (o Notas de antes da 191) a folha pede o login do Notas, como antes */
-let NF_PONTE = null, NF_PONTE_FALHOU = 0;
-function notasPonte() {
-  if (MODO !== 'servidor' || Date.now() - NF_PONTE_FALHOU < 30000) return Promise.resolve(false);
+let NF_PONTE = null, NF_PONTE_FALHOU = 0, NF_PONTE_ERRO = '';
+/* 2.78 (o dono: "a nota fiscal eu não quero que peça login mais, não precisa ... pode deixar liberado pro operador fazer sem precisar de
+   login, desde que o pedido esteja finalizado"): a entrada automática tenta duas vezes e guarda o motivo quando não dá; a folha da nota
+   mostra o motivo e "Tentar de novo" (o login do Notas não aparece para o operador; para o gestor fica guardado num "Entrar com o login") */
+const NOTAS_ANTIGO = 'O sistema de notas do site está numa versão antiga, sem a entrada automática. Envie ao site o Play Space Notas novo (192); depois disso a nota sai sem login, em todos os computadores.';
+function pontePorque(e, onde) { const m = String((e && e.message) || ''), s = e && e.status;
+  if (onde === 'notas' && s === 401 && /sess[aã]o expirou/i.test(m)) return NOTAS_ANTIGO;
+  if (s === 429) return 'O sistema de notas travou as entradas por 15 minutos (muitas senhas erradas neste lugar). Espere um pouco e toque em Tentar de novo.';
+  if (onde === 'ps') return 'O Play Space não conseguiu falar com o sistema de notas: ' + (m || 'tente de novo.');
+  return 'O sistema de notas não aceitou a entrada automática: ' + (m.replace(/\s*Entre com o login e a senha do Notas\.?/i, '').trim() || 'erro ' + (s || '') + '.'); }
+function notasPonte(forca) {
+  if (MODO !== 'servidor' || (!forca && Date.now() - NF_PONTE_FALHOU < 8000)) return Promise.resolve(false);
   if (!NF_PONTE) NF_PONTE = (async () => {
-    try { const t = await api('notas_ponte'); await notasApi('entrar_ponte', { token: t.token }, true); NF_N = null; return true; }
-    catch (e) { NF_PONTE_FALHOU = Date.now(); return false; }
+    try { for (let t = 0; t < 2; t++) { let onde = 'ps';
+        try { const b = await api('notas_ponte'); onde = 'notas'; await notasApi('entrar_ponte', { token: b.token }, true); NF_N = null; NF_PONTE_ERRO = ''; NF_PONTE_FALHOU = 0; return true; }
+        catch (e) { NF_PONTE_ERRO = pontePorque(e, onde); if (NF_PONTE_ERRO === NOTAS_ANTIGO || e.status === 429) break; if (!t) await espera(1200); } }
+      NF_PONTE_FALHOU = Date.now(); return false; }
     finally { setTimeout(() => { NF_PONTE = null; }, 0); }
   })();
   return NF_PONTE;
 }
-async function notasApi(acao, dados, semPonte) {
+async function notasApi(acao, dados, semPonte, volta) {
   let r; try { r = await fetch('/notas/api/api.php?acao=' + acao, { method: 'POST', credentials: 'same-origin', cache: 'no-store', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(dados || {}) }); }
   catch (e) { throw new Error('Sem conexão com o Play Space Notas. Confira a internet e tente de novo.'); }
   let j = null; try { j = await r.json(); } catch (e) { j = null; }
   if (!j || typeof j !== 'object') { const x = new Error(r.status === 404 ? 'O Play Space Notas não foi achado neste site.' : 'O Play Space Notas respondeu de um jeito inesperado (erro ' + r.status + ').'); x.status = r.status; throw x; }
-  if (r.status === 401 && !semPonte && acao !== 'entrar' && await notasPonte()) return notasApi(acao, dados, true);   /* 2.49 */
+  if (r.status === 401 && !semPonte && acao !== 'entrar' && acao !== 'entrar_ponte' && (volta || 0) < 2 && await notasPonte(!!volta)) return notasApi(acao, dados, false, (volta || 0) + 1);   /* 2.49; 2.78: e mais uma vez, se a sessão nova não pegou */
   if (!r.ok || j.erro) { const x = new Error(j.erro || 'Erro ' + r.status + ' no Play Space Notas.'); x.status = r.status; throw x; }
   return j;
 }
@@ -9544,12 +9555,28 @@ function nfMsgHtml(venda) {
   if (m.tipo === 'aviso') return `<div class="marca nf-esp">${ic(IC.sino, 18)}<span>${esc(m.txt)}</span></div>`;
   if (m.tipo === 'teste') return `<div class="marca nf-esp">${ic(IC.cupom, 18)}<span>${esc(m.txt)}</span></div>`;
   if (m.tipo === 'erro') return `<div class="marca canc">${ic(IC.x, 18, 2.4)}<span><b>A nota não saiu.</b> ${esc(m.txt)}</span></div>`;
-  if (m.tipo === 'login') return `<div class="bloco-f nf-login"><small class="rot">Entre no Play Space Notas neste computador (uma vez só)</small>
-    <p class="explica">Não deu para entrar sozinho no Notas (confira se o Notas novo, 191, foi enviado ao site). Por enquanto, o login do Notas, o mesmo de lá.</p>
-    <div class="dois"><div class="campo"><label for="nfl-login">Login do Notas</label><input id="nfl-login" class="sem-mai" autocapitalize="none" autocomplete="off" spellcheck="false"></div><div class="campo"><label for="nfl-senha">Senha do Notas</label><input id="nfl-senha" type="password" autocomplete="off"></div></div>
-    <button type="button" class="bt forte largo tap" data-act="nf-notas-entrar">${ic(IC.check)} ${m.depois ? 'Entrar no Notas e emitir' : 'Entrar no Notas'}</button></div>`;
+  if (m.tipo === 'login') return nfSemPonteHtml(m.depois ? 'Tentar de novo e emitir' : 'Tentar de novo');   /* 2.78 */
   return '';
 }
+/* 2.78 (o dono: "não precisa nem mostrar login e senha. Só emitir nota e ela carrega"): sem a entrada automática no Notas, a folha mostra
+   o motivo e "Tentar de novo". O login e a senha do Notas não aparecem mais para ninguém */
+const nfSemPonteHtml = bt => `<div class="marca canc">${ic(IC.x, 18, 2.4)}<span><b>Não deu para ligar ao sistema de notas.</b> ${esc(NF_PONTE_ERRO || 'A internet pode ter caído. Toque em Tentar de novo.')}</span></div>
+  <button type="button" class="bt forte largo tap" data-act="nf-ponte-tentar">${ic(IC.refaz || IC.check, 16)} ${bt}</button>`;
+async function nfPonteTentar(el) {
+  const venda = NF && NF.id, depois = !!(NF_MSG && NF_MSG.venda === venda && NF_MSG.depois); if (!venda) return;
+  const rot = el.lastChild ? el.lastChild.textContent : ''; el.disabled = true; if (el.lastChild) el.lastChild.textContent = ' Ligando ao sistema de notas…';
+  const ok = await notasPonte(true);
+  if (!ok) { el.disabled = false; if (el.lastChild) el.lastChild.textContent = rot; toast(NF_PONTE_ERRO || 'Não deu para ligar ao sistema de notas.');
+    if (NF_MSG && NF_MSG.venda === venda && NF_MSG.tipo === 'login') nfMsg(venda, 'login', '', depois); else nfPdfPinta(venda); return; }
+  nfDepoisDeEntrar(venda, depois); }
+async function nfDepoisDeEntrar(venda, depois) { NF_N = null; nfMsg(venda, '');
+  if (depois) { await emitirNFDireto(); return; }
+  if (NFPDF && NFPDF.venda === venda && NFPDF.st === 'login') { const v = LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === venda); if (v) nfPdfCarregar(v); } else nfPreparar(venda); }
+/* 2.78: "Abrir no Play Space Notas": entra sozinho antes de abrir a aba (a aba abre no toque, para o navegador não barrar) */
+async function nfAbrirNotasComPonte() { if (MODO !== 'servidor') { abrirNotasNF(); return; }
+  let w = null; try { w = window.open('about:blank', '_blank'); } catch (e) { w = null; }
+  try { await notasDados(false); } catch (e) { }
+  abrirNotasNF(w); }
 /* 2.04 (o dono: "um botão para trocar entre Morumbi e Anália para mim saber se eu estou emitindo nota fiscal no Morumbi ou na Anália
    Franco"): com duas empresas no Notas, a nota sai pelo CNPJ da unidade da compra (pelo nome: Anália, Morumbi), e a folha mostra qual,
    com a troca. NF_EMP guarda a troca feita na folha (por compra). */
@@ -9657,7 +9684,7 @@ async function entrarNotasNF(el) {
   const l = (($('#nfl-login') || {}).value || '').trim(), s = ($('#nfl-senha') || {}).value || '', depois = !!(NF_MSG && NF_MSG.depois), venda = NF && NF.id;
   if (!l || !s) { toast('Digite o login e a senha do Play Space Notas'); return; }
   el.disabled = true;
-  try { await notasApi('entrar', { login: l, senha: s }); NF_N = null; nfMsg(venda, ''); deuCerto('Entrou no Play Space Notas'); if (depois) await emitirNFDireto(); else if (NFPDF && NFPDF.venda === venda && NFPDF.st === 'login') { const v = LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === venda); if (v) nfPdfCarregar(v); } else nfPreparar(venda); }   /* 2.48 */
+  try { await notasApi('entrar', { login: l, senha: s }); deuCerto('Entrou no Play Space Notas'); await nfDepoisDeEntrar(venda, depois); }   /* 2.48; 2.78: o mesmo do Tentar de novo */
   catch (e) { toast(e.message); el.disabled = false; const i = $('#nfl-senha'); if (i) { i.value = ''; i.focus(); } }
 }
 document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && (e.target.id === 'nfl-senha' || e.target.id === 'nfl-login')) { e.preventDefault(); const b = $('[data-act="nf-notas-entrar"]'); if (b && !b.disabled) b.click(); } });
@@ -10194,13 +10221,46 @@ function abrirHistorico(id) {
   desenharLado(); requestAnimationFrame(() => requestAnimationFrame(() => { const a = $('#lado .lado'); if (a) a.classList.add('ve'); }));
   buscarHistorico();
 }
+/* 2.78 (o dono, com a foto do "Corrigir as horas": "eu até consigo corrigir horas, mas eu não consigo corrigir horas compradas ... um gestor
+   colocou horas, depois o outro gestor colocou as horas corretas. Porém, eu tenho que apagar um lançamento que foi feito, um ajuste que foi
+   feito"): no Histórico do cliente, "Ajustes de horas": cada ajuste do gestor (o "Corrigir as horas" e o lápis do comprou), com as horas, o
+   motivo, quem fez e quando, e a lixeira para desfazer o ajuste errado: as horas dele voltam (o comprou e o saldo acompanham), o ajuste fica
+   marcado "desfeito" e o desfazer vai para o registro, com o motivo. Fora do login do gestor, pede a senha do gestor */
+const minDoAjuste = t => { const m = /^Ajuste do gestor: ([+−-])(\d+)h(\d{2})? nas horas/.exec(t || ''); return m ? (m[1] === '+' ? 1 : -1) * (+m[2] * 60 + (+m[3] || 0)) : null; };
+const ajusteResto = t => String(t || '').replace(/^Ajuste do gestor: [+−-]\d+h(\d{2})? nas horas( · )?/, '').replace(/ · desfeito.*$/, '');
+const htmlAjustes = (d, varias, nomeDe) => { const A = (d && d.ajustes) || []; if (!A.length) return '';
+  return `<div class="sec"><div class="sec-cab"><h2 style="font-size:16px">Ajustes de horas</h2><span class="pill p-neutro">${A.length}</span></div>
+    <p class="explica">Ajuste lançado errado? Toque na lixeira para desfazer${gestor() ? '' : ' (com a senha do gestor)'}: as horas dele voltam.</p>
+    <div class="grupo">${A.map(a => `<div class="it${a.desfeito ? ' aj-desf' : ''}"><div class="txt"><b>${a.min == null ? 'Ajuste' : (a.min > 0 ? '+' : '−') + dur(Math.abs(a.min))} nas horas${a.desfeito ? ' · desfeito' : ''}</b><span style="white-space:normal">${quandoFoi(a.quando)}${varias ? ' · para ' + esc(nomeDe(a.crianca)) : ''}${ajusteResto(a.texto) ? ' · ' + esc(ajusteResto(a.texto)) : ''}</span></div>${!a.desfeito && a.min ? `<button type="button" class="fim-lixo hist-lixo tap" data-act="aj-desfazer" data-id="${esc(String(a.id))}" title="Desfazer este ajuste${gestor() ? '' : ' (com a senha do gestor)'}" aria-label="Desfazer este ajuste">${ic(IC.lixo, 18)}</button>` : ''}</div>`).join('')}</div></div>`; };
+let AJD = null;   // { id, a (o ajuste), c (a criança) }
+function folhaDesfazerAjuste(id) { const a = LADO && LADO.dados && (LADO.dados.ajustes || []).find(x => String(x.id) === String(id)), c = a && crianca(a.crianca); if (!a || !c || a.min == null) return;
+  AJD = { id: a.id, a, cid: c.id }; const fica = saldoMin(c) - a.min;
+  abrirFolha('Desfazer este ajuste', `<div class="marca lz-sai">${ic(IC.lixo, 18)}<span><b>${a.min > 0 ? '+' : '−'}${dur(Math.abs(a.min))} nas horas · ${esc(c.nome)}</b><br>${quandoFoi(a.quando)}${ajusteResto(a.texto) ? ' · ' + esc(ajusteResto(a.texto)) : ''}</span></div>
+    <p class="explica">As horas deste ajuste ${a.min > 0 ? 'saem do' : 'voltam para o'} comprou de ${esc(c.nome)}: o saldo fica <b>${fica < 0 ? 'negativo' : dur(fica)}</b>. O ajuste fica marcado "desfeito" e o desfazer vai para o registro, com o motivo.</p>
+    ${fica < 0 ? `<p class="explica falta">Não dá: as horas deste ajuste já foram usadas (o saldo é ${dur(saldoMin(c))}). Corrija a visita primeiro, ou use o lápis do comprou na comanda.</p>` : ''}
+    <div class="campo" id="aj-motivo-campo"><label for="aj-motivo">Motivo<span class="obg" aria-hidden="true">*</span></label><input id="aj-motivo" maxlength="200" autocomplete="off" placeholder="Ex.: ajuste lançado em dobro por outro gestor"></div>
+    ${gestor() ? '' : `<div class="campo"><label for="aj-senha">Senha do gestor<span class="obg" aria-hidden="true">*</span></label>${campoSenha('aj-senha')}</div>`}
+    <div class="pe-f"><button type="button" class="bt perigo largo tap" id="aj-ok" data-act="aj-desfazer-ok"${fica < 0 ? ' disabled' : ''}>${ic(IC.lixo)} Desfazer o ajuste</button></div>`);
+  setTimeout(() => { const i = $('#aj-motivo'); if (i) i.focus(); }, 250); }
+async function desfazerAjusteOk(el) { if (!AJD) return; const c = crianca(AJD.cid), a = AJD.a; if (!c) return;
+  const mot = MAI(val('aj-motivo')).replace(/\s+/g, ' ').trim(), senha = gestor() ? '' : senhaDe('aj-senha');
+  if (mot.length < 5) { toast('Escreva o motivo'); const i = $('#aj-motivo'); if (i) i.focus(); return; }
+  if (!gestor() && !senha) { toast('Digite a senha do gestor'); const i = $('#aj-senha'); if (i) i.focus(); return; }
+  el.disabled = true;
+  try { if (MODO === 'servidor') { await api('ajuste_desfazer', { id: a.id, motivo: mot, ...(senha ? { senha } : {}) }); await carregar(); }
+    else { if (senha && !quemAutorizaPrevia('desconto', senha)) throw new Error('A senha não confere com a do gestor.'); if (a.min > 0 && saldoMin(c) < a.min) throw new Error('Não dá: as horas deste ajuste já foram usadas.');
+      if (c.pmin != null) c.pmin -= a.min; else c.pacote = Math.max(0, (+c.pacote || 0) - a.min / 60); if (a.ref) a.ref.txt += ' · desfeito';
+      const g = senha ? quemAutorizaPrevia('desconto', senha) : null; registrar('alt', c.nome, `Ajuste desfeito: ${a.min > 0 ? '+' : '−'}${dur(Math.abs(a.min))} · ${mot} · por ${MAI(primeiro((g && g.nome) || EU.nome || 'gestor'))}`); }
+    AJD = null; fecharFolha(); desenhar(); if (LADO) buscarHistorico(); deuCerto(`Ajuste desfeito: ${a.min > 0 ? '−' : '+'}${dur(Math.abs(a.min))} no comprou de ${c.nome}`);
+  } catch (e) { toast(e.message); el.disabled = false; senhaErrada('aj-senha', e); } }
 async function buscarHistorico() {
   const marca = LADO; if (!marca) return; if (marca.cal) { desenharLado(); return; } /* 1.29: o lado é o calendário das festas */ const base = crianca(marca.id); if (!base) { fecharLado(); return; }
   const fam = familia(base), ids = fam.map(x => x.id);
   if (MODO === 'servidor') {
-    try { const r = await api('historico', { ids }); if (LADO !== marca) return; marca.dados = { vendas: r.vendas.map(v => ({ ...v, quando: dataDe(v.quando), nf: v.nf ? pedidoDe(v.nf) : null, cv: v.cv ? pedidoDe(v.cv) : null })), visitas: r.visitas.map(v => ({ ...v, dia: dataDe(v.dia) })), cancelados: (r.cancelados || []).map(x => ({ ...x, entrou: dataDe(x.entrou), quando: dataDe(x.quando) })) }; marca.erro = ''; }
+    try { const r = await api('historico', { ids }); if (LADO !== marca) return; marca.dados = { vendas: r.vendas.map(v => ({ ...v, quando: dataDe(v.quando), nf: v.nf ? pedidoDe(v.nf) : null, cv: v.cv ? pedidoDe(v.cv) : null })), visitas: r.visitas.map(v => ({ ...v, dia: dataDe(v.dia) })), cancelados: (r.cancelados || []).map(x => ({ ...x, entrou: dataDe(x.entrou), quando: dataDe(x.quando) })), ajustes: (r.ajustes || []).map(a => ({ ...a, quando: dataDe(a.quando) })) }; marca.erro = ''; }
     catch (e) { if (LADO !== marca) return; marca.erro = e.message; }
-  } else marca.dados = { vendas: S.compras.filter(v => ids.includes(v.crianca)).sort((a, b) => b.quando - a.quando), visitas: fam.flatMap(x => x.visitas.map(v => ({ ...v, crianca: x.id, dia: new Date(v.dia) }))).sort((a, b) => b.dia - a.dia), cancelados: (S.cancelamentos || []).filter(x => ids.includes(x.crianca)) };
+  } else marca.dados = { vendas: S.compras.filter(v => ids.includes(v.crianca)).sort((a, b) => b.quando - a.quando), visitas: fam.flatMap(x => x.visitas.map(v => ({ ...v, crianca: x.id, dia: new Date(v.dia) }))).sort((a, b) => b.dia - a.dia), cancelados: (S.cancelamentos || []).filter(x => ids.includes(x.crianca)),
+    ajustes: (S.registros || []).filter(g => g.tipo === 'alt' && /^Ajuste do gestor:/.test(g.txt || '') && fam.some(x => x.nome === g.nome)).map((g, i) => ({ id: 'p' + i + '-' + +new Date(g.h), ref: g, crianca: (fam.find(x => x.nome === g.nome) || {}).id, quando: new Date(g.h), texto: g.txt, min: minDoAjuste(g.txt), desfeito: / · desfeito/.test(g.txt) })) };   /* 2.78 */
   desenharLado();
 }
 function fecharLado() {
@@ -10263,6 +10323,7 @@ function desenharLado() {
     <div class="sec"><div class="sec-cab"><h2 style="font-size:16px">Compras</h2>${d ? `<span class="pill p-neutro">${compras.length}</span>` : ''}</div>
       ${d && d.vendas.length ? `<p class="explica">Lançou errado? Toque na lixeira vermelha da compra${gestor() ? '' : ' (com a senha do gestor)'}: ela sai e o caixa acompanha.</p>` : ''}
       ${!d ? `<p class="explica">${LADO.erro ? esc(LADO.erro) : 'Buscando as compras…'}</p>` : d.vendas.length ? `<div class="grupo">${compras.map(x => x.g ? compraDaVisita(x, varias, nomeDe) : (v => `<div class="it"><div class="txt"><b>${nomeCompra(v)}</b><span>${quandoFoi(v.quando)}${varias ? ' · para ' + esc(nomeDe(v.crianca)) : ''}${quemLancou(v) ? ' · lançado por <b class="lanc">' + esc(MAI(primeiro(quemLancou(v)))) + '</b>' : ''}${naoPagoDe(v) > 0.004 ? ' · <b class="np">A RECEBER</b>' : pagoDaCompra(v) ? ' · ' + esc(pagoDaCompra(v)) : ''}${v.desc > 0 ? ' · desconto de ' + brl(v.desc) : ''}</span>${acoesDaCompra(v)}</div><b class="num">${!(v.v > 0) && v.itens === ITENS_ABERTO ? 'fora da loja' : brl(v.v)}</b></div>`)(x.v)).join('')}</div>` : `<p class="explica">Nenhuma compra registrada ainda.</p>`}</div>
+    ${htmlAjustes(d, varias, nomeDe)}
     <div class="sec"><div class="sec-cab"><h2 style="font-size:16px">Visitas</h2>${d ? `<span class="pill p-neutro">${d.visitas.length}</span>` : ''}</div>
       ${!d ? (LADO.erro ? '' : `<p class="explica">Buscando as visitas…</p>`) : d.visitas.length ? `<div class="grupo">${visitas.map(v => `<div class="it"><div class="txt"><b>${v.dia.getDate()} de ${MESES[v.dia.getMonth()]}${v.dia.getFullYear() !== agora.getFullYear() ? ' de ' + v.dia.getFullYear() : ''}</b><span>${varias ? esc(nomeDe(v.crianca)) + ' · ' : ''}${v.entrou} às ${v.saiu}</span></div><span class="pill p-neutro">${hm(v.deb)}</span></div>`).join('')}</div>${d.visitas.length > 6 ? `<button class="link tap" data-act="lado-todas" style="align-self:flex-start">${LADO.todas ? 'Mostrar só as últimas' : 'Ver as ' + d.visitas.length + ' visitas'}</button>` : ''}` : `<p class="explica">Ainda não veio brincar.</p>`}</div>
     ${d && d.cancelados && d.cancelados.length ? `<div class="sec"><div class="sec-cab"><h2 style="font-size:16px">Cancelamentos</h2><span class="pill p-erro">${d.cancelados.length}</span></div>
@@ -11064,10 +11125,10 @@ const ACOES = {
   'salt-pedir': el => altSaidaPedir(el), 'salt-largar': () => altSaidaLargar(), 'salt-tirar': el => altSaidaTirar(el), 'salt-tira-largar': () => altSaidaTiraLargar(),   /* 2.24 */
   nf: el => folhaNF(el.dataset.id), 'nf-ficha': el => nfDaFicha(+el.dataset.id),   /* 2.54 */
   'nf-fim': el => nfDaFicha(+el.dataset.id, String(el.dataset.v || '').split(',').map(Number).filter(Boolean)),   /* 2.60 */
-  'nf-livre': el => folhaNFLivre(+el.dataset.id), 'nfl-emitir': el => emitirNFLivre(el), 'nfl-pdf': () => nflPdfCarregar(), 'nfl-imprimir': () => nflImprimir(), 'nfl-whats': () => nflWhats(), 'nfl-salvar': () => nflSalvar(),   /* 2.55 */ 'nf-notas': () => abrirNotasNF(), 'nf-pdf-imprimir': () => nfPdfImprimir(), 'nf-pdf-whats': () => nfPdfWhats(), 'nf-pdf-salvar': () => { if (nfPdfSalvar()) toast('A nota foi salva (na pasta Downloads)'); },
+  'nf-livre': el => folhaNFLivre(+el.dataset.id), 'nfl-emitir': el => emitirNFLivre(el), 'nfl-pdf': () => nflPdfCarregar(), 'nfl-imprimir': () => nflImprimir(), 'nfl-whats': () => nflWhats(), 'nfl-salvar': () => nflSalvar(),   /* 2.55 */ 'nf-notas': () => nfAbrirNotasComPonte(),   /* 2.78 */ 'nf-pdf-imprimir': () => nfPdfImprimir(), 'nf-pdf-whats': () => nfPdfWhats(), 'nf-pdf-salvar': () => { if (nfPdfSalvar()) toast('A nota foi salva (na pasta Downloads)'); },
   'nf-conferir': () => nfConferirDeNovo(),   /* 2.68 */
   'nf-pdf-recarregar': () => { const v = NF && LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === NF.id); if (v) nfPdfCarregar(v); },   /* 2.48 */
-  'copia-baixar': el => baixarCopia(el.dataset.nome || '', el), 'copia-fazer': el => fazerCopia(el), 'nf-pedir': el => pedirNF(el), 'nf-notas-entrar': el => entrarNotasNF(el), 'nf-emp': el => { if (NFL && !NF) { nflEmp(+el.dataset.id); return; } if (!NF || NF_EMITINDO) return; NF_EMP[NF.id] = +el.dataset.id; nfEmpRedesenha(NF.id); nfPreparar(NF.id); }, 'ocioso-ficar': () => ociosoMexeu(), 'nf-senha': el => acaoNF('senha', el), 'nf-emitida': el => acaoNF('emitida', el), 'nf-voltar': el => acaoNF('voltar', el), 'nf-largar': el => acaoNF('largar', el), 'nf-copiar': el => acaoNF('copiar', el),
+  'copia-baixar': el => baixarCopia(el.dataset.nome || '', el), 'copia-fazer': el => fazerCopia(el), 'nf-pedir': el => pedirNF(el), 'nf-notas-entrar': el => entrarNotasNF(el), 'nf-ponte-tentar': el => nfPonteTentar(el),   /* 2.78 */ 'nf-emp': el => { if (NFL && !NF) { nflEmp(+el.dataset.id); return; } if (!NF || NF_EMITINDO) return; NF_EMP[NF.id] = +el.dataset.id; nfEmpRedesenha(NF.id); nfPreparar(NF.id); }, 'ocioso-ficar': () => ociosoMexeu(), 'nf-senha': el => acaoNF('senha', el), 'nf-emitida': el => acaoNF('emitida', el), 'nf-voltar': el => acaoNF('voltar', el), 'nf-largar': el => acaoNF('largar', el), 'nf-copiar': el => acaoNF('copiar', el),
   'meta-salvar': el => metaSalvar(el, false), 'meta-tirar': el => metaSalvar(el, true), 'meta-ver': () => metaVer('dia'), 'meta-ver-mes': () => metaVer('mes'), 'meta-aviso-ver': () => metaVer('aviso'),   /* 1.87: as metas do mês */
   'meta-folha': el => folhaMeta(+el.dataset.uni), 'meta-recarregar': () => { META_ED.erro = null; const a = $('#aj-meta'); if (a) a.outerHTML = cartaoMeta(); },
   'meta-mudar': el => { META_ED.uni = +el.dataset.uni || META_ED.uni; META_ED.mes = metaMesAtual(); fecharFolha(); trocarTela('ajustes'); setTimeout(() => { const a = $('#aj-meta'); if (a) a.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 400); },
@@ -11160,6 +11221,7 @@ const ACOES = {
   'pf-vend': el => { if (!PF) return; PF.vend = el.dataset.n; $$('#pf-vend [data-n]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.n === PF.vend))); const v = $('#pf-vend'); if (v) v.classList.add('ok'); },
   'corrigir-horas': el => folhaCorrigirHoras(+el.dataset.id), 'hc-ok': el => salvarCorrecaoHoras(el),
   'comprou-editar': el => folhaComprou(+el.dataset.id), 'comprou-ok': el => salvarComprou(el),   /* 2.77 */
+  'aj-desfazer': el => folhaDesfazerAjuste(el.dataset.id), 'aj-desfazer-ok': el => desfazerAjusteOk(el),   /* 2.78 */
   'hc-quem': el => { if (!HC) return; HC.cid = +el.dataset.id; $$('#hc-quem [data-id]').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.id === HC.cid))); hcConta(); },
   'hc-modo': el => { if (!HC) return; HC.modo = el.dataset.v === 'menos' ? 'menos' : 'mais'; $$('#hc-modo [data-v]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === HC.modo))); hcConta(); },
   'hc-vender': el => { const id = +el.dataset.id; HC = null; fecharFolha(); atender(id, false, { venderPac: true }); },
