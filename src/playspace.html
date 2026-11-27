@@ -2187,7 +2187,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.60';
+const VERSAO = '2.61';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -3219,6 +3219,25 @@ async function conferirVersaoLocal() {
     if (ja === v) return; try { sessionStorage.setItem('ps-recarregou', v); } catch (e) { } location.replace(location.pathname + '?v=' + encodeURIComponent(v) + location.hash);
   } catch (e) { /* sem internet ou sem o arquivo: segue com esta */ }
 }
+/* 2.61 (o dono: "dá para atualizar todos os computadores de maneira automática ... eu atualizar só um computador e os outros atualizarem
+   automaticamente?"): a tela aberta confere a versão do servidor a cada 2 minutos (antes, só ao abrir). Quando alguém atualizou num
+   computador, as outras telas se atualizam sozinhas no primeiro momento livre: sem folha aberta (cadastro, pagamento, cupom, nota), sem
+   nada escrito num campo, sem nota sendo emitida, sem a fila de quando cai a internet, e 20 s sem ninguém mexer. Antes, o aviso
+   "Atualizando o Play Space para a v…". Uma vez só por versão (se a tela nova não vier, não fica recarregando) */
+let VER_AUTO = '', VER_AUTO_EM = Date.now();
+const versaoLivre = () => { const ae = document.activeElement;
+  return !$('#folha .folha-fundo') && !OFF.on && !OFF.fila.length && !OFF.enviando && !NF_EMITINDO && !CARREGANDO && !JANELA_PARADA
+    && Date.now() - OCIOSO_ULT >= 20000 && !(ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && String(ae.value || '').trim()); };
+async function versaoAuto() {
+  if (!ATU.podeAqui || MODO !== 'servidor') return;
+  if (!VER_AUTO && Date.now() - VER_AUTO_EM >= 120000) { VER_AUTO_EM = Date.now();
+    try { const j = await (await fetch('versao.json?t=' + Date.now(), { cache: 'no-store' })).json(), v = String((j && j.versao) || '');
+      if (v && versaoMaior(v, VERSAO)) { let ja = ''; try { ja = sessionStorage.getItem('ps-recarregou') || ''; } catch (e) { } if (ja !== v) VER_AUTO = v; } } catch (e) { /* sem internet: confere na próxima */ } }
+  if (!VER_AUTO || !versaoLivre()) return;
+  const v = VER_AUTO; VER_AUTO = ''; try { sessionStorage.setItem('ps-recarregou', v); } catch (e) { }
+  toast('Atualizando o Play Space para a v' + v + '…'); setTimeout(() => location.replace(location.pathname + '?v=' + encodeURIComponent(v) + location.hash), 1500);
+}
+setInterval(versaoAuto, 5000);
 /* 2.02 (o dono: "eu não quero que o sistema abra mais de uma tela no mesmo computador ... ele tem que ter uma só, e se tiver uma aberta ele dá
    informativo: já tem um sistema aberto"). A janela que abre primeiro segura a vez (navigator.locks, que vale para as janelas e abas do mesmo
    navegador neste computador). A segunda não liga o sistema: mostra o aviso, com "Usar esta janela" (a outra solta a vez, para e mostra o

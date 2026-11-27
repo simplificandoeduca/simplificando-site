@@ -1301,6 +1301,16 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Os outros computadores se atualizam sozinhos (2.61)
+
+Pedido do dono (27/11): "dá para atualizar todos os computadores de maneira automática, sem eu precisar ficar clicando em atualizar, eu atualizar só um computador e os outros atualizarem automaticamente?"
+
+- Atualizar um computador (versão no rodapé → Atualizar agora) põe a versão nova no site. As outras telas abertas conferem a versão do site a cada 2 minutos (antes, só ao abrir) e se atualizam sozinhas.
+- Elas esperam o momento livre: nenhuma folha aberta (cadastro, pagamento, cupom, nota), nada escrito num campo, nenhuma nota sendo emitida, sem a fila de quando cai a internet, e 20 segundos sem ninguém mexer. Antes de recarregar, o aviso "Atualizando o Play Space para a v…". A pessoa continua dentro.
+- Uma vez só por versão: se a tela nova não vier, não fica recarregando.
+- Só vale a partir da 2.61: os computadores numa versão anterior precisam ser atualizados uma última vez (ou fechar e abrir o Play Space, que ao abrir já pega a versão do site).
+- As Finanças já se renovavam sozinhas (1.64).
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Mais rápido, a senha trocada tira dos outros computadores e a NF nos Finalizados do dia (2.60)
 
 Pedido do dono (27/11): "o sistema tá muito lento ... tá lento para trocar as abas", "quando eu trocar senha, eu quero que deslogue de todos os computadores", "quando a NF não estiver emitida, coloca ela vermelhinha, e quando a NF estiver emitida, coloca ela verde. Aí você só pode emitir NF depois de finalizar o cliente. Pode tirar aquela opção de onde está" e "a atendente me falou que marcou PCD e não contou PCD".
