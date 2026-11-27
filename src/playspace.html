@@ -2252,7 +2252,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.79';
+const VERSAO = '2.80';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -9395,13 +9395,15 @@ async function nfPdfCarregar(v) {
   /* 2.68: espera o governo com o relógio: acha a nota (o Notas, e as notas da empresa no governo) e busca o PDF oficial de 4 em 4 s, até 45 s;
      sem o oficial, o comprovante aparece e a busca continua por trás (nfPdfDepois), trocando sozinha quando o oficial chega */
   const t0 = Date.now(), fe = p.feito_em ? dataDe(p.feito_em).getTime() : 0, recente = fe > 0 && t0 - fe < 600000;   /* (só a nota marcada nos últimos 10 min espera o governo; a antiga responde logo) */
-  const LIM = recente ? 45000 : 6000, eu = NFPDF = { venda, num, st: 'carregando', t0, msg: 'Buscando a nota no Play Space Notas…' }; nfPdfPinta(venda);
+  const feita = NF_FEITA[venda] && String(NF_FEITA[venda].nota.numero) === num ? NF_FEITA[venda] : null;   /* 2.80: a nota que acabou de sair aqui */
+  const LIM = recente ? 12000 : 6000, eu = NFPDF = { venda, num, st: 'carregando', t0, msg: 'Buscando a nota no Play Space Notas…' }; nfPdfPinta(venda);
   const vale = () => NFPDF === eu || (NFPDF && NFPDF.venda === venda && NFPDF.num === num && NFPDF.st === 'carregando' && NFPDF.t0 === t0);
   const diz = m => { if (vale() && eu.msg !== m) { eu.msg = m; nfPdfPinta(venda); } };
   try {
-    await notasDados(true); const emp = nfEmpEscolhida(v), EM = emp ? { _empresa: emp.id } : {};
-    let N = null, n = null;
-    for (;;) {
+    let N = null, n = null, emp = null, EM = {};
+    if (feita) { n = feita.nota; emp = feita.emp; N = { empresa: feita.empresa }; }   /* 2.80: sem buscar a lista do Notas */
+    else { await notasDados(false); emp = nfEmpEscolhida(v); EM = emp ? { _empresa: emp.id } : {}; }
+    for (; !feita;) {
       N = await notasApi('dados', EM); n = nfAcharNota(N, v, p);
       if (!n) { diz('Buscando a nota no governo…'); try { await notasApi('importar_notas', { forcar: true, ...EM }); } catch (e) { if (e.status === 401) throw e; } N = await notasApi('dados', EM); n = nfAcharNota(N, v, p); }
       if (!vale()) return;
@@ -9411,22 +9413,25 @@ async function nfPdfCarregar(v) {
     if (!n) { NFPDF = { venda, num, st: 'semnota', msg: `Não achei a nota${p.numero ? ' nº ' + p.numero : ''} no Play Space Notas${emp ? ' (' + emp.apelido.toUpperCase() + ')' : ''}. Confira o número (o gestor corrige aqui embaixo) ou abra o Notas.` }; nfPdfPinta(venda); return; }
     if (!n.chave) { NFPDF = { venda, num, st: 'semnota', msg: `A nota nº ${n.numero} não tem o PDF oficial (não saiu pelo Emissor Nacional).` }; nfPdfPinta(venda); return; }
     diz(`O governo está liberando o PDF da nota nº ${n.numero}…`);
-    let blob = null, comp = false;
-    for (;;) { blob = await nfPdfBaixa(n, emp, 1); if (!vale()) return; if (blob || Date.now() - t0 > LIM) break; await espera(4000); if (!vale()) return; }
+    let blob = null, comp = false, voando = null;
+    if (feita) { voando = nfPdfBaixa(n, emp, 1).catch(() => null); blob = await Promise.race([voando, espera(4000).then(() => null)]); if (!vale()) return; if (blob) voando = null; }   /* 2.80: o PDF oficial tem 4 s; senão, o comprovante na hora, e o oficial continua chegando por trás */
+    else for (;;) { blob = await nfPdfBaixa(n, emp, 1); if (!vale()) return; if (blob || Date.now() - t0 > LIM) break; await espera(4000); if (!vale()) return; }
     if (!blob) { try { blob = await nfComprovantePdf(n, N.empresa); comp = true; } catch (e) { blob = null; } if (!vale()) return; }   /* 2.59: o governo não entregou: o comprovante */
     if (!blob) { NFPDF = { venda, num, st: 'erro', msg: `O governo ainda não liberou o PDF da nota nº ${n.numero}. Espere uns segundos e toque em Tentar de novo.` }; nfPdfPinta(venda); return; }
     const nome = `NFS-e ${n.numero} - ${n.clienteNome || ''}`.replace(/[\\/:*?"<>|]+/g, ' ').trim() + '.pdf';
     NFPDF = { venda, num, st: 'ok', nota: n, emp, comp, busca: comp ? Date.now() : 0, url: URL.createObjectURL(blob), arquivo: new File([blob], nome, { type: 'application/pdf' }) }; nfPdfPinta(venda);
-    if (comp) nfPdfDepois(NFPDF);
+    if (comp) nfPdfDepois(NFPDF, voando);
   } catch (e) { if (!vale()) return; NFPDF = e.status === 401 ? { venda, num, st: 'login' } : { venda, num, st: 'erro', msg: 'A nota não carregou: ' + (e.message || 'tente de novo.') }; nfPdfPinta(venda); }
 }
 /* 2.68: com o comprovante na tela, continua buscando o PDF oficial de 15 em 15 s por até 5 min; chegou, troca sozinho (e avisa) */
-async function nfPdfDepois(x) {
-  const ate = Date.now() + 300000;
-  while (NFPDF === x && Date.now() < ate) {
-    await espera(15000); if (NFPDF !== x) return;
+async function nfPdfDepois(x, voando) {
+  const troca = b => { if (!b || NFPDF !== x) return false; URL.revokeObjectURL(x.url); NFPDF = { ...x, comp: false, busca: 0, url: URL.createObjectURL(b), arquivo: new File([b], x.arquivo.name, { type: 'application/pdf' }) }; nfPdfPinta(x.venda); toast('Chegou o PDF oficial da nota nº ' + x.nota.numero); return true; };
+  if (voando) { let b = null; try { b = await voando; } catch (e) { b = null; } if (troca(b) || NFPDF !== x) return; }   /* 2.80: o pedido do oficial que já estava indo */
+  const ate = Date.now() + 300000, aberta = () => NF && NF.id === x.venda && !!$('#nf-pdf');   /* 2.80: só com a folha da nota aberta (o Notas atende um pedido por vez: a busca por trás não atrasa a próxima nota) */
+  while (NFPDF === x && Date.now() < ate && aberta()) {
+    await espera(Date.now() - (x.busca || 0) < 60000 ? 5000 : 15000); if (NFPDF !== x || !aberta()) break;   /* 2.80: no primeiro minuto, de 5 em 5 s */
     let b = null; try { b = await nfPdfBaixa(x.nota, x.emp, 1); } catch (e) { b = null; } if (NFPDF !== x) return;
-    if (b) { URL.revokeObjectURL(x.url); NFPDF = { ...x, comp: false, busca: 0, url: URL.createObjectURL(b), arquivo: new File([b], x.arquivo.name, { type: 'application/pdf' }) }; nfPdfPinta(x.venda); toast('Chegou o PDF oficial da nota nº ' + x.nota.numero); return; }
+    if (troca(b)) return;
   }
   if (NFPDF === x) { x.busca = 0; nfPdfPinta(x.venda); }
 }
@@ -9488,9 +9493,9 @@ async function pedirNF(el) {
   el.disabled = true;
   try {
     if (ja !== '2') {   /* (2 = a nota já está aberta: só emite) */
-      if (MODO === 'servidor') pedidosChegaram((await api('pedido_criar', { tipo: 'nf', venda: NF.id, ...(ja ? {} : { nf_nome: nome, nf_doc: doc, nf_email: email }) })).pedidos, true);
-      else { const r = criarPedidoPrevia({ tipo: 'nf', venda: NF.id, nf_nome: nome, nf_doc: doc, nf_email: email }, null); if (r.erro) throw new Error(r.erro); pedidosMudaramPrevia(true); }
-      await depoisDaNF();
+      if (MODO === 'servidor') { const r = await api('pedido_criar', { tipo: 'nf', venda: NF.id, ...(ja ? {} : { nf_nome: nome, nf_doc: doc, nf_email: email }) }); pedidosChegaram(r.pedidos, true);
+        const vv = LADO && LADO.dados && LADO.dados.vendas.find(y => y.id === NF.id); if (vv && r.pedido) { vv.nf = pedidoDe(r.pedido); redesenharNF(); } else await depoisDaNF(); }   /* 2.80: sem recarregar o histórico antes de emitir */
+      else { const r = criarPedidoPrevia({ tipo: 'nf', venda: NF.id, nf_nome: nome, nf_doc: doc, nf_email: email }, null); if (r.erro) throw new Error(r.erro); pedidosMudaramPrevia(true); await depoisDaNF(); }
     }
     await emitirNFDireto();
   } catch (e) { toast(e.message); el.disabled = false; }
@@ -9545,7 +9550,14 @@ async function notasApi(acao, dados, semPonte, volta) {
   if (!r.ok || j.erro) { const x = new Error(j.erro || 'Erro ' + r.status + ' no Play Space Notas.'); x.status = r.status; throw x; }
   return j;
 }
-async function notasDados(forca) { if (!forca && NF_N && Date.now() - NF_N_EM < 120000) return NF_N; const d = await notasApi('dados', {}); NF_N = d; NF_N_EM = Date.now(); return d; }
+async function notasDados(forca) { if (!forca && NF_N && Date.now() - NF_N_EM < 300000) return NF_N; const d = await notasApi('dados', {}); NF_N = d; NF_N_EM = Date.now(); return d; }
+/* 2.80 (o dono: "demorou uns 40 segundos para emitir a nota fiscal ... tipo com uns 20 segundos, 15 segundos, 10 segundos?"): os dados do
+   Notas (os clientes, os serviços, a empresa) de cada empresa ficam guardados 5 min: buscados quando a folha da nota abre, enquanto a pessoa
+   confere, e não de novo na hora do Emitir. NF_FEITA: a nota que acabou de sair aqui (o PDF dela não busca a lista do Notas) */
+let NF_NE = {}, NF_FEITA = {};
+async function notasDadosDe(EM, forca) { const k = (EM && EM._empresa) || 0, c = NF_NE[k];
+  if (!forca && c && Date.now() - c.em < 300000) return c.d;
+  const d = await notasApi('dados', EM || {}); NF_NE[k] = { d, em: Date.now() }; return d; }
 const AMB_NF = { teste: 'em TESTE (a nota não vale como nota fiscal)', simulado: 'em SIMULAÇÃO (a nota não vale como nota fiscal)' };
 function nfMsg(venda, tipo, txt, depois) { NF_MSG = tipo ? { venda, tipo, txt: txt || '', depois: !!depois, t0: tipo === 'emitindo' && NF_MSG && NF_MSG.venda === venda && NF_MSG.tipo === 'emitindo' && NF_MSG.t0 ? NF_MSG.t0 : Date.now() } : null; const a = $('#nf-msg'); if (a && NF && NF.id === venda) { a.innerHTML = nfMsgHtml(venda); nfRelogioLiga(); }
   const b = $('#nf-emitir'); if (b && NF && NF.id === venda) { b.disabled = NF_EMITINDO === venda; b.lastChild.textContent = NF_EMITINDO === venda ? ' Emitindo a nota…' : ' Emitir a nota fiscal'; } }
@@ -9599,6 +9611,8 @@ function nfEmpRedesenha(venda) { const a = $('#nf-emp'), v = LADO && LADO.dados 
 async function nfPreparar(venda) {
   if (MODO !== 'servidor') return;
   try { const N = await notasDados(false), v = LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === venda), e = nfEmpEscolhida(v), amb = (e ? e.ambiente : N.fiscal && N.fiscal.ambiente) || 'simulado'; nfEmpRedesenha(venda);   /* 2.04: a empresa da unidade */
+    if (e && e.id !== N.empresaId) notasDadosDe({ _empresa: e.id }).catch(() => { });   /* 2.80: os dados da outra empresa, já agora */
+    nfJsPdf().catch(() => { });   /* 2.80: o gerador do comprovante, já agora */
     if (amb !== 'producao' && NF && NF.id === venda && !NF_EMITINDO) nfMsg(venda, 'aviso', 'O Play Space Notas está ' + (AMB_NF[amb] || amb) + (e ? ' na empresa ' + e.apelido.toUpperCase() : '') + '. Para valer, a conta principal do Notas muda para Produção.'); else if (NF_MSG && NF_MSG.venda === venda && NF_MSG.tipo === 'aviso') nfMsg(venda, ''); }
   catch (e) { if (e.status === 401 && NF && NF.id === venda && !NF_EMITINDO) nfMsg(venda, 'login'); }
 }
@@ -9611,9 +9625,9 @@ async function emitirNFDireto() {
   const pt = nfPonte(v, c, p.dados || {}), docL = x => String(x == null ? '' : x).toUpperCase().replace(/[^0-9A-Z]/g, '');
   let fim = null, cx = null;
   try {
-    let N; try { N = await notasDados(true); } catch (e) { if (e.status === 401) { fim = ['login', '', true]; return; } throw e; }
+    let N; try { N = await notasDados(false); } catch (e) { if (e.status === 401) { fim = ['login', '', true]; return; } throw e; }   /* 2.80: os dados de quando a folha abriu */
     const emp = nfEmpEscolhida(v), EM = emp ? { _empresa: emp.id } : {};   /* 2.04: a empresa da unidade da compra (ou a escolhida na folha) */
-    if (emp && emp.id !== N.empresaId) N = await notasApi('dados', EM);
+    if (emp && emp.id !== N.empresaId) N = await notasDadosDe(EM);
     const amb = (N.fiscal && N.fiscal.ambiente) || 'simulado', dl = docL(pt.doc);
     if (soDig(pt.doc).length !== 11 && soDig(pt.doc).length !== 14) throw new Error('Falta o CPF ou o CNPJ de quem recebe a nota. ' + (gestor() ? 'Toque em "Tirar a nota" e emita de novo, com o CPF.' : 'Chame o gestor para tirar a nota; depois emita de novo, com o CPF.'));   /* 2.79 */
     const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -9621,12 +9635,12 @@ async function emitirNFDireto() {
     if (!s) throw new Error('O Play Space Notas não tem nenhum serviço cadastrado. Cadastre lá (Serviços) e emita de novo.');
     const ach = (N.clientes || []).find(x => docL(x.doc) === dl), nome = String(pt.nome || '').trim().slice(0, 190);
     const cli = { id: ach ? ach.id : notasId(), nome, doc: String(pt.doc), email: String(pt.email || (ach && ach.email) || ''), cidade: String((ach && ach.cidade) || (N.empresa && N.empresa.municipio) || '') };
-    if (!ach || ach.nome !== cli.nome || ach.email !== cli.email) await notasApi('cliente_salvar', { ...cli, ...EM });   /* (o cliente com o nome que foi conferido aqui) */
+    if (!ach || ach.nome !== cli.nome || ach.email !== cli.email) { await notasApi('cliente_salvar', { ...cli, ...EM }); if (ach) Object.assign(ach, cli); else (N.clientes = N.clientes || []).push(cli); }   /* (o cliente com o nome que foi conferido aqui; 2.80: e nos dados guardados) */
     const valor = Math.round(pt.valor * 100) / 100, aliq = Number((N.empresa || {}).aliquota) || 0, iss = Math.round(valor * aliq) / 100;
     const id = ('ps' + v.id + 'n' + (p.id || 0) + (amb === 'producao' ? '' : amb.charAt(0))).replace(/[^a-z0-9]/gi, '').slice(0, 40);
     const dps = { id, numero: null, data: new Date().toISOString(), clienteId: cli.id, clienteNome: cli.nome, clienteDoc: cli.doc, servicoId: s.id, servicoNome: s.nome, codigo: s.codigo,
       descricao: String(pt.descricao || '').slice(0, 1000) || s.descricao || s.nome, valor, aliquota: aliq, iss, retido: false, liquido: valor, status: 'rascunho', chave: '' };
-    cx = { id, EM, emp, amb, valor, doc: String(pt.doc), t0: Date.now(), usados: ((LADO && LADO.dados && LADO.dados.vendas) || []).filter(x => x.id !== v.id).map(x => String((nfDaVenda(x) || {}).numero || '')).filter(Boolean) };   /* 2.68: para conferir se o governo não responder */
+    cx = { id, EM, emp, amb, valor, empresa: N.empresa, doc: String(pt.doc), t0: Date.now(), usados: ((LADO && LADO.dados && LADO.dados.vendas) || []).filter(x => x.id !== v.id).map(x => String((nfDaVenda(x) || {}).numero || '')).filter(Boolean) };   /* 2.68: para conferir se o governo não responder */
     const ant = NF_CX[v.id]; if (ant) { nfMsg(v.id, 'emitindo', 'Antes de emitir de novo: conferindo no governo se a nota da outra vez saiu…'); const n0 = await nfAchaUmaVez(ant); if (n0) { fim = await nfMarcar(v, n0, ant); return; } nfMsg(v.id, 'emitindo', 'Não saiu da outra vez. Enviando a nota ao governo…'); }   /* 2.68: nunca duas */
     let nota;
     try { nota = (await notasApi('nota_emitir', { dps, ...EM })).nota; }
@@ -9645,7 +9659,10 @@ async function nfMarcar(v, nota, cx) {
   let x; try { x = await api('nf_emitida', { venda: v.id, numero: String(nota.numero) }); }
   catch (e) { NF_CX[v.id] = { ...cx, nota }; return ['incerto', `A nota nº ${nota.numero} saiu no governo, mas não consegui marcar aqui (${e.message}). Toque em Conferir de novo: não sai outra nota, só marca.`]; }
   if (x && x.pedidos) pedidosChegaram(x.pedidos, true);
-  delete NF_CX[v.id]; NF_EMITINDO = 0; nfMsg(v.id, ''); deuCerto('Nota nº ' + nota.numero + ' emitida' + (emp ? ' pela ' + emp.apelido.toUpperCase() : '')); if (LADO) await buscarHistorico(); if (NF) redesenharNF();
+  NF_FEITA[v.id] = { nota, emp, empresa: cx.empresa };   /* 2.80: a folha mostra "emitida" na hora (sem esperar o histórico, que atualiza por trás) e o PDF não busca a lista do Notas */
+  const vv = LADO && LADO.dados && LADO.dados.vendas.find(y => y.id === v.id); if (vv) vv.nf = x && x.pedido ? pedidoDe(x.pedido) : { ...(vv.nf || {}), status: 'usado', numero: String(nota.numero), feito_por: EU.nome, feito_em: new Date() };
+  delete NF_CX[v.id]; NF_EMITINDO = 0; nfMsg(v.id, ''); deuCerto('Nota nº ' + nota.numero + ' emitida' + (emp ? ' pela ' + emp.apelido.toUpperCase() : '')); if (NF) redesenharNF();
+  if (LADO) buscarHistorico();
   return null;
 }
 /* 2.68: o erro que não diz se a nota saiu (a internet caiu, o governo não respondeu a tempo, o servidor do site demorou ou caiu no meio):

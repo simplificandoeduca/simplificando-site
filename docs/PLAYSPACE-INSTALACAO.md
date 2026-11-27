@@ -1301,6 +1301,24 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A nota fiscal mais rápida (2.80)
+
+Pedido do dono (27/11): "demorou uns 40 segundos para emitir a nota fiscal. A gente consegue fazer de maneira mais rápida, tipo com uns 20 segundos, 15 segundos, 10 segundos?"
+
+Para onde ia o tempo:
+- Antes de mandar ao governo, o sistema baixava do Notas a lista inteira (todas as notas e clientes), às vezes duas vezes, e recarregava o histórico do cliente.
+- Depois da nota emitida, para mostrar o PDF, baixava a lista inteira do Notas mais duas vezes.
+- O PDF oficial: o governo às vezes demora para liberar. O sistema esperava por ele até 45 segundos antes de mostrar o comprovante.
+
+O que mudou:
+- A lista do Notas é buscada quando a folha da nota abre, enquanto a pessoa confere os dados, e fica guardada 5 minutos. O Emitir não espera por ela.
+- Sem recarregar o histórico antes e depois de emitir: a folha mostra "Nota fiscal nº X emitida" assim que o governo responde. O histórico atualiza por trás.
+- O PDF da nota que acabou de sair não busca a lista do Notas: usa a nota que o governo devolveu.
+- O PDF oficial tem 4 segundos. Se o governo ainda não liberou, aparece o comprovante da nota (com a chave de acesso e o QR da consulta), já para imprimir ou enviar. Quando o oficial chega, ele entra no lugar sozinho ("Chegou o PDF oficial da nota").
+- A busca do PDF oficial por trás para quando a folha da nota fecha (o Notas atende um pedido por vez em cada computador: assim ela não atrasa a nota seguinte).
+
+No teste (governo de mentira levando 4 s para emitir e 15 s para liberar o PDF, 3000 notas antigas no Notas, internet de 200 ms): antes, a nota aparecia emitida em 6 s e o PDF em 22 s; agora, emitida em 5 s e o PDF (comprovante) em 9 s, com o oficial chegando aos 20 s. Na loja, o tempo do governo para emitir é o que sobra.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A folha da nota só com os dados e o Emitir (2.79)
 
 Pedido do dono (27/11, com a foto da folha da nota): "esse número da nota pode tirar, porque elas não têm acesso ao sistema de nota, então não faz diferença. E pode tirar também esse botão abrir o play space nota".
