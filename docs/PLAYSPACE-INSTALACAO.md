@@ -1301,6 +1301,17 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Os campos de data com a cara do sistema (2.63)
+
+Pedido do dono (27/11): "melhore o campo de todas as datas. Não tá conversando com o sistema. A data, ela tem que ser na mesma dinâmica. Tipo, bonitinho, meio abaulado" (com a foto do "Outro dia" do Caixa do dia, com o calendário quadrado do navegador).
+
+- Todo campo de data do Play Space e das Finanças (Caixa do dia, Finalizados, festa, venda futura, agenda, relatórios, freelancers, adiantamento, comissões, contas a pagar...) virou um botão arredondado, nas letras e cores do sistema, com o ícone do calendário e a data em dd/mm/aaaa ("Escolher a data" quando está vazio).
+- Ao tocar, abre o calendário do próprio sistema: o mês em cima com as setas, os dias da semana, os dias redondos (hoje com o anel coral, o escolhido pintado de coral) e, embaixo, "Hoje" e "Limpar". Os dias fora do permitido (por exemplo, depois de ontem no "Outro dia") ficam apagados e não dão para escolher.
+- Solto na tela (o "Outro dia"), o botão é abaulado como os outros botões; dentro de um formulário, ocupa a largura do campo e tem o mesmo canto dos outros campos.
+- Dá para usar no teclado: Enter abre, as setas andam pelos dias, Page Up/Page Down trocam o mês, Esc fecha.
+- Por trás, o campo de data continua o mesmo (o valor e o aviso de mudança), então o que já acontecia ao escolher a data continua igual. A tela não se atualiza sozinha com o calendário aberto.
+- O mesmo arquivo (datas.js) é usado nas Finanças.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O que o gestor faz fica na unidade do cliente, e a lixeira no histórico (2.62)
 
 Pedido do dono (27/11): "quando um gestor fizer algum tipo de alteração, se o cliente está no Anália, a alteração tem que ir para o Anália. Se o cliente está no Morumbi, a alteração tem que ir para o Morumbi. O gestor ele não pode ter esse poder de trocar a unidade ... ele só edita e visualiza. Ele não troca unidade, senão a gente vai mexer num centro de custo".
