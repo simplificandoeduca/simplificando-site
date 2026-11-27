@@ -283,8 +283,8 @@ B3_S.rope = { F:{w:161,h:300,D:24,g:297,alt:186,pulo:1,arq:'corda-f',bot:[283,28
 B3_S.stair = { F:{w:227,h:300,D:32,g:297,alt:196,fixo:1,arq:'escada-f'}, M:{w:230,h:300,D:36,g:297,alt:196,fixo:1,arq:'escada-m'} };
 /* bike: a bicicleta vem na folha junto com a pessoa, como na escada */
 B3_S.bike = { F:{w:205,h:300,D:22,g:297,alt:186,fixo:1,arq:'bike-f'}, M:{w:206,h:300,D:22,g:297,alt:186,fixo:1,arq:'bike-m'} };
-/* elíptico: a máquina vem na folha junto com a pessoa. Por enquanto só o homem (a animação da mulher não fechou a volta e vai ser refeita) */
-B3_S.ell = { M:{w:283,h:300,D:36,g:297,alt:176,fixo:1,arq:'eliptico-m'} };
+/* elíptico: a máquina vem na folha junto com a pessoa (no vídeo da mulher a câmera deslizava de lado; o deslize foi desfeito quadro a quadro antes do recorte) */
+B3_S.ell = { F:{w:284,h:300,D:30,g:297,alt:176,fixo:1,arq:'eliptico-f'}, M:{w:283,h:300,D:36,g:297,alt:176,fixo:1,arq:'eliptico-m'} };
 B3_S.tread = { F:Object.assign({}, B3_S.road.F, {est:1, alt:150}), M:Object.assign({}, B3_S.road.M, {est:1, alt:156}) };
 const B3_ARV = '<svg viewBox="0 0 105 96" aria-hidden="true"><rect x="20" y="52" width="5" height="44" fill="var(--b3-tronco)"/><circle cx="22" cy="40" r="19" fill="var(--b3-arv)"/><circle cx="34" cy="50" r="13" fill="var(--b3-arv)"/><circle cx="11" cy="52" r="11" fill="var(--b3-arv)"/><rect x="76" y="18" width="3.5" height="78" fill="var(--b3-poste)"/><rect x="76" y="18" width="16" height="3.5" rx="1.5" fill="var(--b3-poste)"/><rect x="88" y="20" width="8" height="5" rx="2.5" fill="var(--b3-faixa)"/></svg>';
 const B3 = { sx:'', el:null, M:null, s:1, k:1, ph:0, cx:179, raf:0, last:0, ro:null, p:null };
