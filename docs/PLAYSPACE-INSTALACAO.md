@@ -1301,6 +1301,16 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A janela do pedido de autorização organizada (2.91)
+
+Pedido do dono (27/11, com a foto da janela "Alterar o pacote: PACOTE DA BLACK (5h, R$ 430) para 5h por R$ 450"): "deixe mais organizadas as informações."
+
+- No alto, "Pedido de autorização" (e "1 de 3" quando há mais de um). Logo abaixo, o título curto do pedido: "Alterar o pacote", "Desconto", "Nota fiscal", "Cancelar a venda", "Venda futura"...
+- Alterar o pacote ou o valor: o nome do pacote e duas caixas lado a lado, ANTES (valor grande e as horas embaixo) → DEPOIS (em verde). Embaixo, a diferença ("+ R$ 20 a mais", "− R$ 30 a menos") e "na saída" quando é na saída. Com pacote + produto, o DEPOIS mostra as duas partes.
+- Os outros pedidos: o que é, linha por linha (no desconto: o valor e a %, "sobre R$ 500", "na saída"; na nota: o que é, o valor, em nome de quem, o CPF).
+- Depois, uma tabela de três linhas: CLIENTE (o responsável e, embaixo, a criança), MOTIVO e QUEM PEDE (o nome e, embaixo, a hora e a unidade).
+- Os botões Negar (X vermelho) e Aprovar (✓ verde) e o "Ver depois" continuam iguais.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Trocar PACOTE / AVULSA pede a senha de um gestor (2.90)
 
 Pedido do dono (27/11): "peça a senha para trocar o pacote. Tipo, mesmo que seja na telinha. Peça a senha do gestor, de qualquer gestor."

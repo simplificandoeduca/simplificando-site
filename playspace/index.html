@@ -1894,6 +1894,22 @@ body.quieto .a-card, body.quieto .conv, body.quieto .oficina, body.quieto .tiles
 .foco-b svg { width: 46px; height: 46px; }
 .foco-rot { display: flex; justify-content: center; gap: 44px; color: var(--tinta-2); font-weight: 700; font-size: 13px; } .foco-rot span { width: 92px; }
 .foco-depois { margin-top: 16px; color: var(--tinta-2); font-weight: 700; text-decoration: underline; }
+/* 2.91: a janela do pedido em partes (título, antes → depois, linhas, cliente, motivo, quem pede) */
+.foco-card .foco-o { margin-top: 12px; }
+.foco-ad { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: stretch; gap: 8px; margin: 14px 0 0; }
+.foco-ad > div { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 16px; background: var(--creme-2); box-shadow: inset 0 0 0 1.5px var(--borda-2); text-align: left; min-width: 0; }
+.foco-ad > div.novo { background: var(--ok-bg); box-shadow: inset 0 0 0 1.5px var(--ok); }
+.foco-ad small { color: var(--tinta-2); font-weight: 800; font-size: 11.5px; letter-spacing: .05em; text-transform: uppercase; }
+.foco-ad b { font-size: 22px; line-height: 1.2; font-variant-numeric: tabular-nums; white-space: nowrap; } .foco-ad span { font-weight: 700; font-size: 15px; color: var(--tinta-2); } .foco-ad span.muda { color: var(--tinta); font-weight: 800; } .foco-ad em { font-style: normal; color: var(--tinta-2); font-size: 12.5px; line-height: 1.3; }
+.foco-ad > i { align-self: center; color: var(--tinta-2); font-style: normal; font-weight: 800; font-size: 22px; }
+.foco-dif { margin: 8px 0 0; color: var(--tinta-2); font-weight: 700; font-size: 14px; } .foco-dif b { color: var(--tinta); }
+.foco-lin { list-style: none; margin: 12px 0 0; padding: 10px 14px; border-radius: 16px; background: var(--creme-2); text-align: left; font-size: 15px; line-height: 1.35; }
+.foco-lin li + li { margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--borda-2); }
+.foco-dl { margin: 14px 0 0; padding: 0; text-align: left; border-top: 1.5px solid var(--borda-2); }
+.foco-dl > div { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 10px; padding: 8px 2px; border-bottom: 1.5px solid var(--borda-2); align-items: baseline; }
+.foco-dl dt { color: var(--tinta-2); font-weight: 800; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+.foco-dl dd { margin: 0; font-weight: 700; font-size: 15px; overflow-wrap: anywhere; } .foco-dl dd small { display: block; color: var(--tinta-2); font-weight: 600; font-size: 13px; }
+.foco-card .foco-bts { margin-top: 22px; }
 :root[data-anim="leve"] .foco, :root[data-anim="leve"] .foco-card { animation: none; }
 .sobe { animation: sobe .4s var(--ios); }
 /* 1.74: as animações das Finanças também no sistema (FX, no fim do script): a tela nova entra desfocada e fica nítida, um bloco depois do
@@ -2285,7 +2301,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.90';
+const VERSAO = '2.91';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -11735,6 +11751,23 @@ function focoPedidos(forcar) {
   desenharFoco(L);
 }
 function fecharFoco() { const f = document.getElementById('foco'); if (f) f.remove(); foco().id = 0; }
+/* 2.91 (o dono, com a foto da janela: "deixe mais organizadas as informações"): o pedido em partes. O título é o começo do texto
+   ("Alterar o pacote", "Nota fiscal"...); o resto vira linhas (separadas por " · "). No pedido de alterar o pacote ou o valor, os dados do
+   pedido montam o antes e o depois (horas e valor) e a diferença */
+const PED_TIT = { desconto: 'Desconto', cancelar_venda: 'Cancelar a venda', nf: 'Nota fiscal', valor: 'Alterar o valor', parcelas: 'Crédito parcelado', venda_futura: 'Venda futura' };
+function pedPartes(p) {
+  const d = p.dados || {}, t = String(p.texto || ''), i = t.indexOf(': '); let tit = PED_TIT[p.tipo] || 'Pedido', resto = t;
+  if (i > 0 && i <= 32) { tit = t.slice(0, i); resto = t.slice(i + 2); }
+  let linhas = resto.split(' · ').map(s => s.trim()).filter(Boolean);
+  if (p.tipo === 'desconto') { const pct = +d.pct || 0, base = +d.base || 0; linhas = [brl(+p.valor || 0) + (pct > 0 ? ` (${String(Math.round(pct * 100) / 100).replace('.', ',')}%)` : ''), base > 0 ? 'sobre ' + brl(base) : '', d.onde === 'saida' ? 'na saída' : ''].filter(Boolean); }
+  let ad = null; const it = d.item;
+  if (p.tipo === 'valor' && it && d.para != null) {
+    const pac = it.k === 'pac' || it.tipo === 'pac', de = +d.de || +it.de || 0, para = +d.para || 0, h0 = pac ? (it.h != null ? +it.h : Math.round((+it.min || 0) / 60)) : 0, h1 = pac && d.horas ? +d.horas : h0;
+    ad = { nome: String(it.n || (pac ? 'PACOTE' : '')), antes: { v: brl(de), h: pac ? h0 + 'h' : '' }, depois: { v: brl(para), h: pac ? h1 + 'h' : '' }, hMuda: pac && h1 !== h0, dif: Math.round((para - de) * 100) / 100,
+      prod: +d.prod > 0.004 ? `pacote ${brl(+d.pac || 0)} + produto ${d.prod_nome ? d.prod_nome + ' ' : ''}${brl(+d.prod)}` : '', onde: d.onde === 'saida' || / · na saída$/.test(t) ? 'na saída' : '' };
+  }
+  return { tit, linhas, ad };
+}
 function desenharFoco(L) {
   const p = L[0]; let f = document.getElementById('foco'); if (f && foco().id === p.id) { const n = f.querySelector('.foco-n'); if (n) n.textContent = '1 de ' + L.length; return; }
   if (!f) { f = document.createElement('div'); f.id = 'foco'; f.className = 'foco'; f.setAttribute('role', 'dialog'); f.setAttribute('aria-modal', 'true'); f.setAttribute('aria-label', 'Pedido de autorização'); document.body.appendChild(f);
@@ -11745,9 +11778,13 @@ function desenharFoco(L) {
       toast(b.dataset.foco === 'sim' ? 'Autorizado ✓' : 'Negado'); foco().id = 0; focoPedidos(false); }); }
   foco().id = p.id; const cli = p.resp ? p.resp + ' · ' + p.nome : (p.nome || ''), uni = p.uni && S.unidades.length > 1 && nomeUni(p.uni) ? ' · ' + nomeUni(p.uni) : '';
   const sim = p.tipo === 'nf' ? 'Autorizar a nota' : p.tipo === 'cancelar_venda' ? 'Liberar o cancelamento' : p.tipo === 'valor' ? 'Aprovar o valor' : 'Autorizar';
+  const P = pedPartes(p), A = P.ad, dif = A && Math.abs(A.dif) >= 0.005 ? `<b>${A.dif > 0 ? '+' : '−'} ${brl(Math.abs(A.dif)).replace(/^− /, '')}</b> ${A.dif > 0 ? 'a mais' : 'a menos'}` : A ? 'mesmo valor' : '';
+  const corpo = A ? `${A.nome ? `<p class="foco-cli">${esc(A.nome)}</p>` : ''}<div class="foco-ad"><div><small>Antes</small><b>${esc(A.antes.v)}</b>${A.antes.h ? `<span>${esc(A.antes.h)}</span>` : ''}</div><i aria-hidden="true">→</i><div class="novo"><small>Depois</small><b>${esc(A.depois.v)}</b>${A.depois.h ? `<span${A.hMuda ? ' class="muda"' : ''}>${esc(A.depois.h)}</span>` : ''}${A.prod ? `<em>${esc(A.prod)}</em>` : ''}</div></div><p class="foco-dif">${dif}${A.onde ? ' · ' + A.onde : ''}</p>`
+    : P.linhas.length ? `<ul class="foco-lin">${P.linhas.map(l => `<li>${esc(l)}</li>`).join('')}</ul>` : '';
+  const quem = p.resp && p.nome && p.resp !== p.nome ? `<b>${esc(p.resp)}</b><small>criança: ${esc(p.nome)}</small>` : esc(p.resp || p.nome || '');
   f.innerHTML = `<div class="foco-card"><div class="foco-cab">${ic(IC.sino, 18)}<span>Pedido de autorização</span>${L.length > 1 ? `<span class="foco-n">1 de ${L.length}</span>` : ''}</div>
-    <small class="foco-quem">${esc(quemPede(p))} pede · ${hora(p.em)}${esc(uni)}</small>
-    <h2 class="foco-o">${esc(p.texto)}</h2>${cli ? `<p class="foco-cli">${esc(cli)}</p>` : ''}${p.motivo ? `<p class="foco-mot">Motivo: <b>${esc(p.motivo)}</b></p>` : ''}
+    <h2 class="foco-o">${esc(P.tit)}</h2>${corpo}
+    <dl class="foco-dl">${cli ? `<div><dt>Cliente</dt><dd>${quem}</dd></div>` : ''}${p.motivo ? `<div><dt>Motivo</dt><dd>${esc(p.motivo)}</dd></div>` : ''}<div><dt>Quem pede</dt><dd>${esc(quemPede(p))}<small>${hora(p.em)}${esc(uni)}</small></dd></div></dl>
     <div class="foco-bts"><button type="button" class="foco-b nao tap" data-foco="nao" data-id="${p.id}" aria-label="Negar" title="Negar">${ic(IC.x, 46, 3.2)}</button><button type="button" class="foco-b sim tap" data-foco="sim" data-id="${p.id}" aria-label="${sim}" title="${sim}">${ic(IC.check, 46, 3.2)}</button></div>
     <div class="foco-rot" aria-hidden="true"><span>Negar</span><span>${p.tipo === 'valor' ? 'Aprovar' : 'Autorizar'}</span></div>
     <button type="button" class="foco-depois tap" data-foco="depois" data-id="${p.id}">Ver depois</button></div>`;
