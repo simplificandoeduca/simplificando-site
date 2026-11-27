@@ -210,7 +210,7 @@ function finPulso(): string {
   }
   return md5(implode('|', $s));
 }
-if ($acao === 'pulso') { session_write_close(); responder(['p' => finPulso()]); }
+if ($acao === 'pulso') { session_write_close(); responder(['p' => cacheCurto('finpulso', 2.5, 'finPulso')]); }   /* 2.66: uma conta para todas as telas das Finanças; gravou, sai */
 if ($acao === 'meta') responder(['meta' => metaDoDia(null)]);   /* 3.4 (1.80): a meta do dia, para a comemoração */
 if ($acao === 'resumo') responder(finResumo($in));
 // 1.54: o resumo do dia (ou do período) em PDF, e o resumo do dia por e-mail

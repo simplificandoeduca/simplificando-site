@@ -8,6 +8,9 @@
 declare(strict_types=1);
 date_default_timezone_set('America/Sao_Paulo');
 header('X-Content-Type-Options: nosniff');
+/* 2.66 (a revisão geral, depois da queda): a lista inteira (milhares de cadastros) chega perto de 128 MB de memória no PHP, e muita
+   hospedagem vem com 128 MB: a tela ficaria sem carregar (erro 500). Sobe para 512 MB quando o servidor deixa (só onde estiver menor) */
+(function () { $l = trim((string)ini_get('memory_limit')); if ($l === '' || $l === '-1') return; $n = (float)$l; $u = strtoupper(substr($l, -1)); $b = $u === 'G' ? $n * 1073741824 : ($u === 'M' ? $n * 1048576 : ($u === 'K' ? $n * 1024 : $n)); if ($b < 536870912) @ini_set('memory_limit', '512M'); })();
 
 const PLAY_VERSAO = '0.30';
 const PAPEIS = ['gestor' => 'Gestor', 'supervisor' => 'Supervisor', 'atendente' => 'Operador'];   // 1.21: o atendente passa a se chamar Operador (a chave no banco continua a mesma)
@@ -19,6 +22,7 @@ const FORMAS_PAGAMENTO = ['pix' => 'Pix', 'dinheiro' => 'Dinheiro', 'credito' =>
 
 function falha(string $msg, int $st = 400): void { http_response_code($st); header('Content-Type: application/json; charset=utf-8'); echo json_encode(['ok' => false, 'erro' => $msg], JSON_UNESCAPED_UNICODE); exit; }
 function responder(array $d = []): void {
+  if (!empty($GLOBALS['PS_DBON'])) { try { if (mudancas() > (int)($GLOBALS['PS_MARCADO'] ?? 0)) bancoMudou(); } catch (Throwable $e) { } }   /* 2.66: gravou: a marca do banco muda antes de a resposta sair (a tela que pede logo em seguida já recebe o novo) */
   header('Content-Type: application/json; charset=utf-8'); header('Cache-Control: no-store');
   $j = (string)json_encode(['ok' => true] + $d, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
   if (!empty($GLOBALS['PS_OFF'])) { $o = $GLOBALS['PS_OFF']; try { $u0 = eu(); db()->prepare('INSERT OR IGNORE INTO offline_envios (uid, acao, em, recebido, por, resposta) VALUES (?, ?, ?, ?, ?, ?)')->execute([$o['uid'], $o['acao'], $o['em'], date('Y-m-d H:i:s'), $u0 ? (int)$u0['id'] : null, $j]);
@@ -130,6 +134,38 @@ function pastaDados(): string {
   }
   falha('Não consegui criar a pasta de dados. No cPanel, dê permissão de escrita (755) para a pasta playspace/api.', 500);
 }
+/* 2.66 (a revisão geral, depois da queda): o que todas as telas perguntam ao mesmo tempo é calculado uma vez só.
+   A marca do banco muda a cada pedido que grava (veja db(): no fim do pedido, se gravou, bancoMudou). cacheCurto (pequeno, JSON) e
+   cacheGrande (a lista de clientes) guardam a resposta por alguns segundos num arquivo da pasta de dados (protegida) e só a devolvem se a
+   marca ainda é a mesma de quando foi feita: depois de qualquer gravação, a próxima tela já recebe o novo. cacheGrande tem uma trava:
+   as telas que chegam juntas esperam a primeira montar, em vez de montarem todas ao mesmo tempo. aCada deixa uma tarefa de fundo rodar
+   no máximo uma vez a cada N segundos, para todas as telas */
+function cacheArq(string $nome, string $ext = 'json'): string { return pastaDados() . '/cache-' . preg_replace('/[^a-z0-9_]/', '', $nome) . '.' . $ext; }
+function bancoMarca(): string { $m = @file_get_contents(pastaDados() . '/banco-marca'); return $m === false ? '' : trim($m); }
+function bancoMudou(): void { @file_put_contents(pastaDados() . '/banco-marca', uniqid('', true), LOCK_EX); $GLOBALS['PS_MARCADO'] = mudancas(); }
+function mudancas(): int { try { return (int)db()->query('SELECT total_changes()')->fetchColumn(); } catch (Throwable $e) { return 0; } }
+function cacheCurto(string $nome, float $seg, callable $f) {
+  $arq = cacheArq($nome); $mk = bancoMarca(); $t = microtime(true); $x = @json_decode((string)@file_get_contents($arq), true);
+  if (is_array($x) && isset($x['t']) && ($x['m'] ?? null) === $mk && array_key_exists('v', $x) && $t - (float)$x['t'] < $seg && $t - (float)$x['t'] > -2) return $x['v'];
+  $v = $f(); @file_put_contents($arq, json_encode(['t' => $t, 'm' => $mk, 'v' => $v]), LOCK_EX); return $v;
+}
+function cacheGrande(string $nome, float $seg, callable $f) {
+  $arq = cacheArq($nome, 'ser');
+  $ler = function () use ($arq, $seg) { $s = @file_get_contents($arq); if ($s === false || $s === '') return null; $x = @unserialize($s, ['allowed_classes' => false]);
+    if (!is_array($x) || !isset($x['t']) || ($x['m'] ?? null) !== bancoMarca() || !array_key_exists('v', $x)) return null; $d = microtime(true) - (float)$x['t']; return $d < $seg && $d > -2 ? $x : null; };
+  $x = $ler(); if ($x !== null) return $x['v'];
+  $lk = @fopen($arq . '.trava', 'c'); if ($lk) @flock($lk, LOCK_EX);
+  try { $x = $ler(); if ($x !== null) return $x['v'];
+    $mk = bancoMarca(); $t = microtime(true); $v = $f();
+    if (@file_put_contents($arq . '.novo', serialize(['t' => $t, 'm' => $mk, 'v' => $v])) !== false) @rename($arq . '.novo', $arq);
+    return $v; }
+  finally { if ($lk) { @flock($lk, LOCK_UN); @fclose($lk); } }
+}
+function aCada(string $nome, int $seg): bool {
+  $arq = pastaDados() . '/vez-' . preg_replace('/[^a-z0-9_]/', '', $nome); $m = @filemtime($arq); $t = time();
+  if ($m !== false && $t - $m < $seg && $m <= $t + 5) return false;
+  @touch($arq); return true;
+}
 function db(): PDO {
   static $pdo = null;
   if ($pdo) return $pdo;
@@ -142,6 +178,8 @@ function db(): PDO {
   if ($novo) @chmod($arquivo, 0600);
   $pdo->exec('PRAGMA busy_timeout = 6000');
   @$pdo->exec('PRAGMA journal_mode = WAL');
+  $GLOBALS['PS_DBON'] = true;
+  register_shutdown_function(function () use ($pdo) { try { if ((int)$pdo->query('SELECT total_changes()')->fetchColumn() > (int)($GLOBALS['PS_MARCADO'] ?? 0)) bancoMudou(); } catch (Throwable $e) { } });   /* 2.66: este pedido gravou: a marca do banco muda (o guardado sai) */
   $v = (int)$pdo->query('PRAGMA user_version')->fetchColumn();
   if ($v < 1) {
     $pdo->exec("CREATE TABLE IF NOT EXISTS usuarios (id INTEGER PRIMARY KEY, nome TEXT NOT NULL, login TEXT NOT NULL UNIQUE COLLATE NOCASE, senha TEXT NOT NULL, papel TEXT NOT NULL DEFAULT 'atendente', ativo INTEGER NOT NULL DEFAULT 1, criado_em TEXT)");
@@ -495,6 +533,10 @@ function db(): PDO {
     try { $pdo->exec('ALTER TABLE usuarios ADD COLUMN sessao INTEGER NOT NULL DEFAULT 0'); } catch (Throwable $e) { }
     try { $pdo->exec("CREATE TABLE IF NOT EXISTS fin_usuarios (id INTEGER PRIMARY KEY, nome TEXT NOT NULL, login TEXT NOT NULL UNIQUE COLLATE NOCASE, senha TEXT NOT NULL, criado_em TEXT NOT NULL, ultimo_login TEXT)"); $pdo->exec('ALTER TABLE fin_usuarios ADD COLUMN sessao INTEGER NOT NULL DEFAULT 0'); } catch (Throwable $e) { }
     $pdo->exec('PRAGMA user_version = 55');
+  }
+  if ($v < 56) { /* 2.66 (a revisão geral): o índice de quem está no espaço. A cobrança por atraso e a baixa automática, a cada pulso de cada tela, liam todos os cadastros */
+    $pdo->exec('CREATE INDEX IF NOT EXISTS criancas_entrou ON criancas (entrou) WHERE entrou IS NOT NULL');
+    $pdo->exec('PRAGMA user_version = 56');
   }
   return $pdo;
 }

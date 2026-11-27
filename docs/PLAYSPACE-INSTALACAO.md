@@ -1301,6 +1301,27 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A revisão geral depois da queda: o servidor não refaz a mesma conta para cada tela (2.66)
+
+Pedido do dono (27/11): "Esse sistema ele não pode cair igual mais cedo, que caiu ... Pode fazer uma regressão completa de todos os sistemas e já solucionar as falhas que você identificar como críticas".
+
+O que a revisão achou: cada tela aberta (os computadores das lojas, o celular do gestor) pergunta ao servidor a cada 1 segundo se mudou alguma coisa (o pulso), e as Finanças a cada 3 segundos. Cada pergunta somava tabelas inteiras do banco e, além disso, a cobrança por atraso e a baixa automática liam todos os cadastros (não havia índice de "quem está no espaço"). Com um banco de 15 mil clientes, cada pulso custava cerca de 60 ms de processamento; com 8 telas abertas, a resposta subia para cerca de 300 ms (pico de 600 ms), só com as telas paradas; num movimento de loja cheia (10 telas e uma gravação a cada 3 s), o pulso passava de 1 segundo e a lista levava 2,4 s para chegar. Em hospedagem compartilhada, isso ocupa a maior parte do processador da conta, e qualquer movimento a mais deixa tudo lento ou fora do ar.
+
+O que mudou (só no servidor; para a equipe, nada muda na tela):
+- O índice de quem está no espaço: a cobrança por atraso e a baixa automática procuram só as crianças que estão lá.
+- O pulso é calculado uma vez e serve a todas as telas por 1,5 s (o das Finanças, por 2,5 s).
+- Quando alguém grava (uma entrada, uma venda), todas as telas recarregam a lista de clientes ao mesmo tempo. Agora a lista é montada uma vez (até 2 s) e as telas que chegam juntas esperam essa uma ficar pronta, em vez de cada uma montar a sua.
+- A "marca do banco": todo pedido que grava muda a marca (antes de a resposta sair), e o que estava guardado deixa de valer na hora. A tela seguinte já vê a novidade, sem esperar.
+- A cobrança por atraso roda uma vez por segundo para todas as telas juntas (antes, a cada pulso de cada tela).
+- Medido com 15 mil clientes, na mesma máquina, 2.65 contra 2.66:
+  - 8 telas paradas: o pulso caiu de 296 ms (pico 592 ms) para 28 ms (pico 68 ms).
+  - Um "dia de loja" acelerado (10 telas e uma gravação a cada 3 s, por 1 minuto): o pulso caiu de 1,3 s (pico 4 s) para 0,28 s, e a lista recarregada de 2,4 s para 0,6 s. Nenhum erro nas duas.
+- Folga de memória: a lista inteira com 15 mil clientes usa perto de 130 MB no PHP; o servidor sobe o limite para 512 MB quando a hospedagem deixa (muitas vêm com 128 MB).
+
+Onde ver o que aconteceu numa queda: os erros do servidor vão para o registro de erros do PHP da hospedagem (cPanel → Métricas → Erros, ou o arquivo error_log na pasta playspace/api). Em hospedagem compartilhada, o cPanel também mostra em Métricas → Uso de recursos se a conta bateu no limite de processador ou de pedidos ao mesmo tempo (o erro 508 "Resource Limit Is Reached"). Quando o servidor fica fora do ar, os computadores da loja continuam funcionando sem internet e mandam tudo quando ele volta.
+
+A revisão (27/11, de madrugada, com a loja fechada): a fila inteira do servidor (179 roteiros), a prévia inteira (128) e os 27 roteiros com servidor próprio rodaram na 2.66. Nenhuma falha nova; os que falham são os mesmos de antes (roteiros antigos que esperam regras que mudaram depois, como o "Link" nas formas de pagamento e a reimpressão liberada para a equipe na 2.57). Nenhum erro do PHP do sistema no registro de erros durante a fila inteira.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O nome do cliente em destaque no cupom dos carrinhos (2.65)
 
 Pedido do dono (27/11): "no cupom desses que eu selecionar mais de um, no caso só carrinho, ele pode imprimir todos juntos, com o nome do cliente, né?"

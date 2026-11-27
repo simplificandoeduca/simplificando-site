@@ -87,7 +87,9 @@ function dados(array $eu): array {
   try { baixaAutomatica(); } catch (Throwable $e) { registrarErro('baixa automática: ' . $e->getMessage()); }   // 1.90: quem ficou sem saída de um dia para o outro
   acertarTodas();   // quem passou do tempo comprado mais a tolerância já aparece com a nova cobrança
   acertarCupons();   // 0.93: venda desfeita ou cancelada: o cupom fiscal dela acompanha
+  if (mudancas() > (int)($GLOBALS['PS_MARCADO'] ?? 0)) bancoMudou();   /* 2.66: as tarefas acima gravaram: a lista guardada não vale mais */
   $balcao = balcaoCT(true);   /* 2.00: o cliente da loja da Casa Tom vai à parte (fora das listas) */
+  $criancas = cacheGrande('lista', 2.0, function () use ($db, $balcao) {   /* 2.66: a lista de clientes (a mesma para todos) é montada uma vez para as telas que recarregam juntas; gravou, sai */
   $criancas = array_map('criancaPublica', $db->query('SELECT * FROM criancas WHERE ativo = 1' . ($balcao ? ' AND id != ' . (int)$balcao['id'] : '') . ' ORDER BY nome')->fetchAll());
   $visitas = $db->query('SELECT * FROM visitas ORDER BY id DESC LIMIT 400')->fetchAll();
   $porCrianca = []; foreach ($visitas as $v) $porCrianca[(int)$v['crianca_id']][] = ['id' => (int)$v['id'], 'dia' => $v['saiu'], 'ini' => $v['entrou'], 'entrou' => substr($v['entrou'], 11, 5), 'saiu' => substr($v['saiu'], 11, 5), 'deb' => (int)$v['debitado_min']];
@@ -107,6 +109,7 @@ function dados(array $eu): array {
   $papeis = []; foreach ($db->query('SELECT p.crianca_id, p.papel FROM festa_presencas p JOIN criancas c ON c.id = p.crianca_id AND c.festa_id = p.festa_id WHERE c.entrou IS NOT NULL')->fetchAll() as $x) $papeis[(int)$x['crianca_id']] = (string)$x['papel'];   // 1.29: aniversariante ou convidado, de quem está numa festa   // 1.02: quanto cada criança ainda tem a pagar do que comprou nesta visita (a tela mostra PAGO ou NÃO PAGO); 1.03: item por item
   foreach ($criancas as &$c) { if (isset($papeis[$c['id']])) $c['festa_papel'] = $papeis[$c['id']]; if ($c['entrou']) { $c['plano'] = $planos[$c['id']] ?? 'avulso'; $c['tvis'] = $tvis[$c['id']] ?? 0; } $c['visitas'] = $porCrianca[$c['id']] ?? []; $c['venda'] = $ultimas[$c['id']] ?? null; $c['atraso'] = $atrasos[$c['id']] ?? null; $c['uv'] = $uv[$c['id']] ?? 0; $c['vouch'] = isset($vou[$c['id']]); if (isset($imph[$c['id']])) $c['imph'] = true; if (isset($pendi[$c['id']])) { $c['pendi'] = $pendi[$c['id']]; $c['pend'] = round(array_sum(array_column($pendi[$c['id']], 'v')), 2); } if (ehExemplo($c['id'])) $c['teste'] = true; }   // teste: criança dos dados de exemplo (o botão do rodapé)
   unset($c);
+  return $criancas; });
   $registros = array_map(fn($r) => ['id' => (int)$r['id'], 'h' => $r['quando'], 'tipo' => $r['tipo'], 'nome' => $r['nome'], 'txt' => $r['texto'], 'crianca' => $r['crianca_id'] === null ? null : (int)$r['crianca_id'], 'uni' => ($r['unidade_id'] ?? null) === null ? null : (int)$r['unidade_id']], $db->query('SELECT * FROM registros ORDER BY id DESC LIMIT 300')->fetchAll());
   $msgs = $db->query('SELECT * FROM mensagens ORDER BY quando ASC, id ASC')->fetchAll();
   $conversas = [];
@@ -420,12 +423,14 @@ switch ($acao) {
     require_once __DIR__ . '/../financas/resumo.php'; finPdfSaida(['de' => (string)($in['de'] ?? date('Y-m-d')), 'ate' => (string)($in['ate'] ?? ($in['de'] ?? date('Y-m-d'))), 'uni' => 'todas']);
   }
   case 'pulso': { // barato: muda quando qualquer coisa que a tela mostra mudou; a tela pergunta a cada 1 s (1.83; eram 2 s) e só recarrega se mudou
-    $u = exigir(); session_write_close();
+    $u = exigir(); session_write_close(); $tc0 = mudancas();   /* 2.66: a conta do pulso uma vez para todas as telas */
     try { copiaSemanal(); } catch (Throwable $e) { registrarErro('cópia da semana: ' . $e->getMessage()); }
     try { require_once __DIR__ . '/../financas/resumo.php'; if (finEmailDevido()) { require_once __DIR__ . '/push-lib.php'; pushDepois(function () { finEmailAuto(); }); } } catch (Throwable $e) { registrarErro('e-mail do resumo do dia: ' . $e->getMessage()); }   // 1.54: o resumo do dia por e-mail, uma vez por dia, quando a loja fecha   // 1.51: a cada 7 dias, a cópia de segurança (antes de qualquer consulta; nunca derruba o pulso)
     try { metaDoDia(null); } catch (Throwable $e) { registrarErro('meta do dia: ' . $e->getMessage()); }   /* 1.81: a meta (e o aviso no celular) também sem esperar uma tela recarregar; 1.87: as metas do mês de cada unidade */
     try { baixaAutomatica(); } catch (Throwable $e) { registrarErro('baixa automática: ' . $e->getMessage()); }   // 1.90
-    acertarTodas();   // a cada pulso de qualquer tela aberta: passou da tolerância, nasce a nova cobrança (e o pulso muda, então todas as telas mostram)
+    if (aCada('acertar', 1)) { acertarTodas(); acertarCupons(); }   /* passou da tolerância, nasce a nova cobrança (e o pulso muda, então todas as telas mostram). 2.66: uma vez por segundo para todas as telas juntas (era a cada pulso de cada tela) */
+    if (mudancas() > $tc0) bancoMudou();   /* 2.66: as tarefas gravaram (nasceu uma cobrança): o pulso é refeito agora */
+    $p = cacheCurto('pulso', 1.5, function () use ($db) {
     $a = $db->query("SELECT COALESCE(MAX(id), 0) || ':' || COUNT(*) FROM registros")->fetchColumn();
     $b = $db->query("SELECT COALESCE(MAX(id), 0) || ':' || COUNT(*) || ':' || COALESCE(SUM(lida), 0) FROM mensagens")->fetchColumn();
     $c = $db->query("SELECT COUNT(*) || ':' || COALESCE(SUM(pacote_min), 0) || ':' || COALESCE(SUM(usado_min), 0) || ':' || COALESCE(SUM(liberado), 0) || ':' || COALESCE(SUM(pcd), 0) || ':' || COALESCE(SUM(sapateira), 0) || ':' || COALESCE(SUM(sapateira IS NOT NULL), 0) || ':' || COALESCE(SUM(rosto), 0) || ':' || COALESCE(SUM(ativo), 0) || ':' || COALESCE(SUM(entrou IS NOT NULL), 0) || ':' || COALESCE(MAX(entrou), '') || ':' || COALESCE(SUM(idface_id), 0) || ':' || COALESCE(SUM(unidade_id), 0) || ':' || COALESCE(SUM(LENGTH(foto) + LENGTH(nome) + LENGTH(resp) + LENGTH(tel) + LENGTH(tel2) + LENGTH(cpf) + LENGTH(doc_tipo) + LENGTH(obs) + idade + COALESCE(CAST(REPLACE(nascimento, '-', '') AS INTEGER), 0)), 0) FROM criancas")->fetchColumn();
@@ -438,8 +443,9 @@ switch ($acao) {
     $d .= '|' . $db->query("SELECT COUNT(*) || ':' || COALESCE(SUM(ativo), 0) || ':' || COALESCE(SUM(LENGTH(nome)), 0) || ':' || COALESCE(MAX(mudou_em), '') FROM unidades")->fetchColumn();   // 1.06: unidade nova, com outro nome ou removida
     $d .= '|' . $db->query("SELECT COALESCE(SUM(status = 'liberado'), 0) || ':' || COALESCE(SUM(status = 'usado'), 0) FROM pedidos WHERE tipo = 'nf'")->fetchColumn();   // 1.23: nota fiscal autorizada ou emitida
     $d .= '|' . festasPulso();   // 1.29: festa marcada, tema ou dia que mudou, criança que entrou na festa
-    acertarCupons(); $d .= '|' . pulsoCupons();   // 0.93: o cupom fiscal de cada pagamento (nasceu, foi marcado, ou a venda foi desfeita)
-    responder(['p' => md5("$a|$b|$c|$d|$ap|$lig|" . json_encode(whatsResumo()) . '|' . json_encode(regra()) . '|' . (cfg('exemplo') ? 1 : 0) . '|' . json_encode(pendFora()) . '|' . md5(metaPulso()) . '|' . date('Y-m-d')), 'ped' => pedidosDaTela($u), 'av' => avisosDaGestora($u)]);   // 1.25: av = os cancelamentos que a gestora ainda não viu   // 1.23: ped = os pedidos de autorização desta tela (chegam mesmo com uma folha aberta)   // quem saiu de "Falta finalizar" e a virada do dia também mudam a tela
+    $d .= '|' . pulsoCupons();   // 0.93: o cupom fiscal de cada pagamento (nasceu, foi marcado, ou a venda foi desfeita)
+    return md5("$a|$b|$c|$d|$ap|$lig|" . json_encode(whatsResumo()) . '|' . json_encode(regra()) . '|' . (cfg('exemplo') ? 1 : 0) . '|' . json_encode(pendFora()) . '|' . md5(metaPulso()) . '|' . date('Y-m-d')); });
+    responder(['p' => $p, 'ped' => pedidosDaTela($u), 'av' => avisosDaGestora($u)]);   // 1.25: av = os cancelamentos que a gestora ainda não viu   // 1.23: ped = os pedidos de autorização desta tela (chegam mesmo com uma folha aberta)   // quem saiu de "Falta finalizar" e a virada do dia também mudam a tela
   }
 
   /* ---------- crianças ---------- */
