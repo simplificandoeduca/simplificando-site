@@ -1329,6 +1329,7 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .obs-bt.on { border-color: var(--erro); background: var(--erro); color: #fff; box-shadow: 0 0 0 3px var(--erro-bg), 0 0 12px rgba(184, 64, 42, .45); }
 .obs-bt.mini { height: 20px; padding: 0 7px; font-size: 10px; box-shadow: none; position: relative; }
 .nf-g { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }   /* 2.79 */
+.nf-semgov { flex-wrap: wrap; }   /* 2.82 */
 .nf-sem-ponte { display: flex; flex-direction: column; gap: 10px; }   /* 2.78 */
 .aj-desf .txt b { color: var(--tinta-2); text-decoration: line-through; }   /* 2.78: o ajuste desfeito */
 .it .txt span b.lanc { display: inline; font-weight: 800; color: var(--tinta); white-space: nowrap; }   /* 2.76: quem lançou */
@@ -2268,7 +2269,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.81';
+const VERSAO = '2.82';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -9119,9 +9120,10 @@ async function nflPdfCarregar() {
   const x = NFL; if (!x || !x.feito) return; const n = x.feito.nota;
   if (!n.chave) { x.pdf = { st: 'erro', msg: `A nota nº ${n.numero} não tem o PDF oficial (não saiu pelo Emissor Nacional). Veja no Play Space Notas.` }; nflPdfPinta(); return; }
   const t0 = Date.now(), eu = x.pdf = { st: 'carregando', t0 }; nflPdfPinta();
-  try { let b = null, comp = true; try { b = await nfComprovantePdf(n, x.feito.ed); } catch (e) { b = null; } if (NFL !== x || x.pdf !== eu) return;   /* 2.81: o comprovante na hora, sem buscar o PDF oficial no governo */
+  try { let b = null, comp = false; for (;;) { b = await nfPdfBaixa(n, x.feito.emp, 1); if (NFL !== x || x.pdf !== eu) return; if (b || Date.now() - t0 > 45000) break; await espera(4000); if (NFL !== x || x.pdf !== eu) return; }   /* 2.82: a nota do governo (até 45 s, com o relógio) */
+    if (!b) { try { b = await nfComprovantePdf(n, x.feito.ed); comp = true; } catch (e) { b = null; } if (NFL !== x || x.pdf !== eu) return; }
     x.pdf = b ? { st: 'ok', comp, url: URL.createObjectURL(b), arquivo: new File([b], `NFS-e ${n.numero} - ${n.clienteNome || ''}`.replace(/[\\/:*?"<>|]+/g, ' ').trim() + '.pdf', { type: 'application/pdf' }) }
-      : { st: 'erro', msg: `A nota nº ${n.numero} não carregou. Toque em Tentar de novo.` }; }
+      : { st: 'erro', msg: `O governo ainda não liberou a nota nº ${n.numero}. Toque em Tentar de novo.` }; }
   catch (e) { if (NFL !== x) return; x.pdf = { st: 'erro', msg: e.status === 401 ? 'Entre no Play Space Notas neste computador para ver a nota.' : 'A nota não carregou: ' + (e.message || 'tente de novo.') }; }
   nflPdfPinta();
 }
@@ -9157,6 +9159,7 @@ function nfPdfHtml(v) {
   if (x.st === 'carregando') return `<div class="nf-pdf esp nf-espera">${ic(IC.cupom, 18)} <span><span aria-live="polite">${esc(x.msg || 'Carregando a nota…')}</span> ${x.t0 ? nfRelogio(x.t0) : ''}<small>O governo costuma levar de alguns segundos a 1 minuto. Pode continuar atendendo: a nota aparece aqui sozinha.</small></span></div>`;   /* 2.68: o relógio */
   if (x.st === 'previa') return `<div class="nf-pdf esp">${ic(IC.cupom, 18)} <span>Na prévia a nota não carrega. No sistema da loja ela aparece aqui, com Imprimir, Enviar no WhatsApp e Salvar.</span></div>`;
   if (x.st === 'login') return `<div class="nf-sem-ponte">${nfSemPonteHtml('Tentar de novo')}</div>`;   /* 2.78: sem o login do Notas */
+  if (x.st === 'semgov') return `<div class="nf-pdf esp nf-semgov">${ic(IC.sino, 18)} <span>${esc(x.msg)}</span><button type="button" class="bt tap" data-act="nf-pdf-recarregar">${ic(IC.refaz || IC.check, 16)} Tentar de novo</button><button type="button" class="link tap" data-act="nf-pdf-comp">Ver o comprovante</button></div>`;   /* 2.82 */
   if (x.st !== 'ok') return `<div class="nf-pdf esp">${ic(IC.sino, 18)} <span>${esc(x.msg || 'A nota não carregou.')}</span><button type="button" class="bt tap" data-act="nf-pdf-recarregar">${ic(IC.refaz || IC.check, 16)} Tentar de novo</button></div>`;
   const toque = matchMedia('(pointer: coarse)').matches;   /* (no celular o PDF não abre dentro da folha: ficam os botões) */
   return `<div class="nf-pdf">${de}${x.nota && String(x.nota.numero) !== String((nfDaVenda(v) || {}).numero || '') ? ` <small>· no governo, nº ${esc(x.nota.numero)}</small>` : ''}</span>${x.comp ? nfCompAviso('nf-pdf-recarregar') + (x.busca ? `<p class="explica nf-busca">Ainda buscando o PDF oficial no governo ${nfRelogio(x.busca)} · quando chegar, troca sozinho.</p>` : '') : ''}
@@ -9387,7 +9390,7 @@ async function nfComprovantePdf(n, e) {
   cor(C.cinza); doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.text('Play Space · comprovante da NFS-e', 12, 287); doc.text('Página 1 de 1', 198, 287, { align: 'right' });
   return doc.output('blob');
 }
-const nfCompAviso = () => `<p class="explica nf-comp">A nota emitida, com a chave de acesso. O QR abre a nota no site do governo.</p>`;   /* 2.81: sem buscar o PDF oficial */
+const nfCompAviso = act => `<p class="explica nf-comp">Este é o <b>comprovante da nota emitida</b> (a chave de acesso e o QR da consulta no site do governo), feito aqui. <button type="button" class="link tap" data-act="${act}">Buscar a nota do governo</button></p>`;   /* 2.82 */
 async function nfPdfBaixa(n, emp, vezes = 3) {   /* o PDF oficial pelo Notas (na empresa da nota); o governo leva uns segundos para liberar logo depois de emitir */
   let ponte = 0;
   const pega = async () => { const r = await fetch('/notas/api/api.php?acao=danfse&id=' + encodeURIComponent(n.id) + (emp ? '&_empresa=' + emp.id : ''), { credentials: 'same-origin', cache: 'no-store' });
@@ -9427,16 +9430,23 @@ async function nfPdfCarregar(v) {
     }
     if (!n) { NFPDF = { venda, num, st: 'semnota', msg: `Não achei a nota${p.numero ? ' nº ' + p.numero : ''} no Play Space Notas${emp ? ' (' + emp.apelido.toUpperCase() + ')' : ''}. Confira o número (o gestor corrige aqui embaixo) ou abra o Notas.` }; nfPdfPinta(venda); return; }
     if (!n.chave) { NFPDF = { venda, num, st: 'semnota', msg: `A nota nº ${n.numero} não tem o PDF oficial (não saiu pelo Emissor Nacional).` }; nfPdfPinta(venda); return; }
-    /* 2.81 (o dono: "esse tempo também, buscando o PDF do governo, pode tirar. Porque quando eu escaneio, eu já consigo abrir o PDF do
-       governo"): sem buscar o PDF oficial no governo: a nota aparece na hora como o comprovante (a chave de acesso e o QR, que abre a nota
-       no site do governo) */
-    let blob = null; try { blob = await nfComprovantePdf(n, N.empresa); } catch (e) { blob = null; } if (!vale()) return;
-    if (!blob) { NFPDF = { venda, num, st: 'erro', msg: `A nota nº ${n.numero} não carregou${navigator.onLine === false ? ' (sem internet)' : ''}. Toque em Tentar de novo.` }; nfPdfPinta(venda); return; }
+    /* 2.82 (o dono: "ao invés de deixar a minha nota bonita, eles querem a nota feia. Dá para trocar então para puxar a nota do governo?"):
+       a nota oficial do governo (o PDF do Emissor Nacional), sem o comprovante antes. O relógio enquanto o governo libera: de 3 em 3 s, até
+       1 min e meio na nota recente, e só com a folha aberta. Não chegou: "Tentar de novo"; o comprovante só se a pessoa pedir */
+    diz(`Buscando a nota nº ${n.numero} no governo…`);
+    const aberta = () => NF && NF.id === venda && !!$('#nf-pdf'), LIMG = feita || recente ? 90000 : 15000;
+    let blob = null;
+    for (;;) { blob = await nfPdfBaixa(n, emp, 1); if (!vale()) return; if (blob || Date.now() - t0 > LIMG || !aberta()) break; await espera(3000); if (!vale()) return; }
+    if (!blob) { NFPDF = { venda, num, st: 'semgov', nota: n, emp, empresa: N.empresa, msg: `O governo ainda não liberou a nota nº ${n.numero}. Toque em Tentar de novo.` }; nfPdfPinta(venda); return; }
     const nome = `NFS-e ${n.numero} - ${n.clienteNome || ''}`.replace(/[\\/:*?"<>|]+/g, ' ').trim() + '.pdf';
-    NFPDF = { venda, num, st: 'ok', nota: n, emp, comp: true, busca: 0, url: URL.createObjectURL(blob), arquivo: new File([blob], nome, { type: 'application/pdf' }) }; nfPdfPinta(venda);
+    NFPDF = { venda, num, st: 'ok', nota: n, emp, comp: false, busca: 0, url: URL.createObjectURL(blob), arquivo: new File([blob], nome, { type: 'application/pdf' }) }; nfPdfPinta(venda);
   } catch (e) { if (!vale()) return; NFPDF = e.status === 401 ? { venda, num, st: 'login' } : { venda, num, st: 'erro', msg: 'A nota não carregou: ' + (e.message || 'tente de novo.') }; nfPdfPinta(venda); }
 }
-/* (2.81: sem a busca do PDF oficial por trás) */
+/* 2.82: o governo não liberou a nota e a pessoa pediu o comprovante (a chave de acesso e o QR da consulta, feito aqui) */
+async function nfPdfComp() { const x = NFPDF; if (!x || x.st !== 'semgov') return; let b = null;
+  try { b = await nfComprovantePdf(x.nota, x.empresa); } catch (e) { toast(e.message || 'O comprovante não saiu.'); return; } if (NFPDF !== x) return;
+  const nome = `NFS-e ${x.nota.numero} - ${x.nota.clienteNome || ''}`.replace(/[\\/:*?"<>|]+/g, ' ').trim() + '.pdf';
+  NFPDF = { venda: x.venda, num: x.num, st: 'ok', nota: x.nota, emp: x.emp, comp: true, busca: 0, url: URL.createObjectURL(b), arquivo: new File([b], nome, { type: 'application/pdf' }) }; nfPdfPinta(x.venda); }
 function nfPdfSalvar() { const x = NF && NFPDF && NFPDF.venda === NF.id && NFPDF.st === 'ok' ? NFPDF : null; if (!x) return false;
   const a = document.createElement('a'); a.href = x.url; a.download = x.arquivo.name; document.body.appendChild(a); a.click(); a.remove(); return true; }
 function nfPdfImprimir() { const x = NF && NFPDF && NFPDF.venda === NF.id && NFPDF.st === 'ok' ? NFPDF : null; if (!x) return;
@@ -11147,6 +11157,7 @@ const ACOES = {
   'nf-fim': el => nfDaFicha(+el.dataset.id, String(el.dataset.v || '').split(',').map(Number).filter(Boolean)),   /* 2.60 */
   'nf-livre': el => folhaNFLivre(+el.dataset.id), 'nfl-emitir': el => emitirNFLivre(el), 'nfl-pdf': () => nflPdfCarregar(), 'nfl-imprimir': () => nflImprimir(), 'nfl-whats': () => nflWhats(), 'nfl-salvar': () => nflSalvar(),   /* 2.55 */ 'nf-notas': () => nfAbrirNotasComPonte(),   /* 2.78 */ 'nf-pdf-imprimir': () => nfPdfImprimir(), 'nf-pdf-whats': () => nfPdfWhats(), 'nf-pdf-salvar': () => { if (nfPdfSalvar()) toast('A nota foi salva (na pasta Downloads)'); },
   'nf-conferir': () => nfConferirDeNovo(),   /* 2.68 */
+  'nf-pdf-comp': () => nfPdfComp(),   /* 2.82 */
   'nf-pdf-recarregar': () => { const v = NF && LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === NF.id); if (v) nfPdfCarregar(v); },   /* 2.48 */
   'copia-baixar': el => baixarCopia(el.dataset.nome || '', el), 'copia-fazer': el => fazerCopia(el), 'nf-pedir': el => pedirNF(el), 'nf-notas-entrar': el => entrarNotasNF(el), 'nf-ponte-tentar': el => nfPonteTentar(el),   /* 2.78 */ 'nf-emp': el => { if (NFL && !NF) { nflEmp(+el.dataset.id); return; } if (!NF || NF_EMITINDO) return; NF_EMP[NF.id] = +el.dataset.id; nfEmpRedesenha(NF.id); nfPreparar(NF.id); }, 'ocioso-ficar': () => ociosoMexeu(), 'nf-senha': el => acaoNF('senha', el), 'nf-emitida': el => acaoNF('emitida', el), 'nf-voltar': el => acaoNF('voltar', el), 'nf-largar': el => acaoNF('largar', el), 'nf-copiar': el => acaoNF('copiar', el),
   'meta-salvar': el => metaSalvar(el, false), 'meta-tirar': el => metaSalvar(el, true), 'meta-ver': () => metaVer('dia'), 'meta-ver-mes': () => metaVer('mes'), 'meta-aviso-ver': () => metaVer('aviso'),   /* 1.87: as metas do mês */

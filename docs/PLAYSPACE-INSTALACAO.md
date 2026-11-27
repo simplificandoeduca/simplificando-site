@@ -1301,6 +1301,16 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A nota do governo de novo (2.82)
+
+Pedido do dono (27/11): "ao invés de deixar a minha nota bonita, eles querem a nota feia. Dá para trocar então para puxar a nota do governo?"
+
+- Depois de emitir, a folha mostra a nota oficial do governo (o PDF do Emissor Nacional), com Imprimir, Enviar no WhatsApp e Salvar a nota. O comprovante feito aqui não aparece mais antes.
+- Enquanto o governo libera a nota, a folha mostra "Buscando a nota nº X no governo…" com o relógio. O sistema pergunta de 3 em 3 segundos, até 1 minuto e meio, e só com a folha da nota aberta.
+- O que fica da 2.80: a nota sai mais rápido (a lista do Notas é buscada quando a folha abre, e o "emitida" aparece assim que o governo responde).
+- Se o governo não liberar nesse tempo: "O governo ainda não liberou a nota nº X. Toque em Tentar de novo." Ao lado, "Ver o comprovante", para quando o cliente não pode esperar. O comprovante tem o botão "Buscar a nota do governo".
+- A nota de outro valor (a nota livre) também volta a buscar a nota do governo.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A nota na hora, sem buscar o PDF do governo (2.81)
 
 Pedido do dono (27/11, com a foto do "Ainda buscando o PDF oficial no governo 2:49"): "esse tempo também, buscando o PDF do governo, pode tirar. Porque quando eu escaneio, eu já consigo abrir o PDF do governo. Então, não há necessidade."
