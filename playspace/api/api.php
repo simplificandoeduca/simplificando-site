@@ -384,6 +384,12 @@ switch ($acao) {
     $uni = $u['papel'] === 'gestor' ? (int)($in['uni'] ?? 0) : (int)(unidadeDoPedido() ?? 0);
     responder(pagamentosDoCaixa($dia, $uni));
   }
+  case 'ct_sinais': { /* 2.52: Casa Tom → Sinais: quem deu o sinal de 50% e ainda vai buscar; quem não é o gestor vê só a unidade dele */
+    $u = exigir(); session_write_close(); responder(ctSinaisLista($u['papel'] === 'gestor' ? (int)($in['uni'] ?? 0) : (int)(unidadeDoPedido() ?? 0)));
+  }
+  case 'ct_sinal_receber': { /* 2.52: na retirada, o resto do sinal */
+    $u = exigir(); responder(ctSinalReceber($in, $u));
+  }
   case 'pagamento_trocar': { // 1.57: trocar a forma de pagamento; 1.71: a equipe também a qualquer hora, e a forma pode ser dividida (partes)
     $u = exigir(); responder(trocarPagamento($in, $u));
   }
@@ -825,7 +831,19 @@ switch ($acao) {
     $devV = round(array_sum(array_map(fn($i) => (float)$linhas[$i]['valor'], array_keys($devIdx))), 2); $aPagar = round($aPagar - $devV, 2);
     $desc = lerDesconto($in['desconto'] ?? null, $u, $c, (float)$aPagar); $cheio = $aPagar;   // 1.04: o desconto do gestor: o pagamento fecha com o total já descontado
     if ($desc) { if ($desc['valor'] > $cheio + 0.004) falha('O desconto (' . dinheiro($desc['valor']) . ') passa do total, que é ' . dinheiro($cheio) . '.'); $aPagar = round($cheio - $desc['valor'], 2); }
-    if ($pg && abs(array_sum($pg) - $aPagar) >= 0.01) falha('O pagamento (' . dinheiro((float)array_sum($pg)) . ') não fecha com o total, que é ' . dinheiro($aPagar) . '. Feche e abra o atendimento de novo.');
+    /* 2.52: o sinal de 50% (só a venda de produtos da Casa Tom): o cliente paga a metade agora e o resto na retirada */
+    $sinal = !empty($in['sinal']); $sinalV = 0.0; $sNome = ''; $sTel = '';
+    if ($sinal) {
+      $bct = balcaoCT(false); if (!$bct || (int)$bct['id'] !== (int)$c['id']) falha('O sinal de 50% é só na venda da Casa Tom.');
+      if ($festa || $comVoucher || $devIdx || !empty($in['depois'])) falha('O sinal de 50% é só na venda de produtos da Casa Tom.');
+      $sNome = mb_substr(maiusculo(trim(preg_replace('/\s+/', ' ', (string)($in['sinal_nome'] ?? '')))), 0, 80); $sTel = mb_substr(trim((string)($in['sinal_tel'] ?? '')), 0, 30);
+      if (mb_strlen($sNome) < 2) falha('Escreva o nome do cliente que deu o sinal.');
+      if (strlen(preg_replace('/\D/', '', $sTel)) < 10) falha('Escreva o telefone do cliente que deu o sinal (com o DDD).');
+      if (!$pg) falha('Escolha a forma de pagamento do sinal.');
+      $sinalV = round(round(round($aPagar * 100) / 2) / 100, 2);
+      if (abs(array_sum($pg) - $sinalV) >= 0.01) falha('O sinal (50%) é ' . dinheiro($sinalV) . ', e o pagamento deu ' . dinheiro((float)array_sum($pg)) . '. Feche e abra o pagamento de novo.');
+    }
+    if ($pg && !$sinal && abs(array_sum($pg) - $aPagar) >= 0.01) falha('O pagamento (' . dinheiro((float)array_sum($pg)) . ') não fecha com o total, que é ' . dinheiro($aPagar) . '. Feche e abra o atendimento de novo.');
     if ($festa && !$pg && $aPagar > 0) falha('Escolha a forma de pagamento da festa.');   // 1.12: a festa não fica a receber
     if (!$pg && $aPagar > 0 && !podeEstornar($u)) { // 1.21: venda a receber só com hora certa de receber: a saída (a criança está no espaço, ou entra agora) ou a devolução do que sai da loja
       $naSaida = (bool)$c['entrou'] || (!empty($in['entrar']) && modoManual()); $soVolta = true;
@@ -852,13 +870,14 @@ switch ($acao) {
       $antesPg = (int)$db->query('SELECT COALESCE(MAX(id), 0) FROM pagamentos')->fetchColumn();
       $pago = gravarPagamento($devIdx ? array_values(array_filter($vendas, fn($v, $i) => !isset($devIdx[$i]), ARRAY_FILTER_USE_BOTH)) : $vendas, $pg, (int)$c['id'], (int)$u['id']);   // 1.47: sem o carrinho, que fica para a devolução
       anotarParcelas($antesPg, $parc, $u, (int)$c['id']);   // 1.89
-      $regs[] = registrar('pag', (int)$c['id'], $c['nome'], 'Pagamento · ' . dinheiro($aPagar) . ' · ' . textoPagamento($pago ?: $pg));
+      $regs[] = registrar('pag', (int)$c['id'], $c['nome'], $sinal ? 'Sinal de 50% · ' . dinheiro($sinalV) . ' · ' . textoPagamento($pago ?: $pg) . ' · falta ' . dinheiro(round($aPagar - $sinalV, 2)) . ' na retirada · ' . $sNome : 'Pagamento · ' . dinheiro($aPagar) . ' · ' . textoPagamento($pago ?: $pg));   /* 2.52 */
       $cupomId = criarCupom($c, 'venda', $antesPg, $u);   // 0.93: o cupom fiscal deste pagamento, a emitir (0 = módulo desligado)
     }
     $depois = !$pg && $aPagar > 0 && !empty($in['depois']);   // 1.02: o cliente vai pagar na saída (ou na devolução): a venda fica a receber
     if ($depois) $regs[] = registrar('pag', (int)$c['id'], $c['nome'], 'A receber na ' . (!empty($in['entrar']) || $c['entrou'] ? 'saída' : 'devolução') . ' · ' . dinheiro($aPagar));
     if ($devIdx && $devV > 0) $regs[] = registrar('pag', (int)$c['id'], $c['nome'], 'A receber na devolução · ' . dinheiro($devV));   // 1.47: o carrinho
-    $resp = ['vendas' => $vendas, 'registros' => $regs, 'total' => $total, 'minutos' => $min, 'festa' => $festaId, 'voucher' => $vinfo, 'pagamento' => $pg ? textoPagamento($pg) : '', 'cupom' => $cupomId ?? 0, 'a_receber' => $depois ? $aPagar : ($devIdx ? $devV : 0), 'desconto' => $ad['valor'] ?? 0];
+    $sinalR = $sinal ? ctSinalNovo($vendas, $sNome, $sTel, $aPagar, $sinalV, $vend, $u) : null;   /* 2.52 */
+    $resp = ['sinal' => $sinalR, 'vendas' => $vendas, 'registros' => $regs, 'total' => $total, 'minutos' => $min, 'festa' => $festaId, 'voucher' => $vinfo, 'pagamento' => $pg ? textoPagamento($pg) : '', 'cupom' => $cupomId ?? 0, 'a_receber' => $depois ? $aPagar : ($devIdx ? $devV : 0), 'desconto' => $ad['valor'] ?? 0];
     if ($min > 0 && $c['entrou']) { $des = desfazerCobrancasSobrando($c); if ($des['n']) { $resp['desfeitas'] = $des; $c = crianca((int)$c['id']); } }   // 1.00: comprou tempo com a criança no espaço: o que sobrou de cobrança por atraso sai
     if (!empty($in['entrar']) && modoManual() && !$c['entrou']) { // sem iDFace: registrou e já entra, o tempo começa a contar (1.15: com ou sem tempo comprado)
       $e = fazerEntrada($c, 'mão', null, null, $vendTela); $resp['entrada'] = ['registro' => $e['registro'], 'mensagem' => is_array($e['mensagem']) ? (int)($e['mensagem']['id'] ?? 0) : 0];

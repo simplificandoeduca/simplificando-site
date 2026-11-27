@@ -2007,6 +2007,18 @@ button.bl-saldo.bl-alt svg { opacity: .55; }
 .tp-div-l .inp:focus { outline: 2px solid var(--coral); outline-offset: 1px; }
 .tp-div-s { margin: 0; font-weight: 800; } .tp-div-s.ok { color: var(--ok); } .tp-div-s.falta { color: var(--erro); }
 .tp-papel summary { font-weight: 800; } .tp-papel summary b.num { color: var(--coral); }
+/* 2.52: Casa Tom → o sinal de 50% e a aba Sinais */
+.pg-sinal { display: grid; gap: 10px; margin: 4px 0 12px; }
+.pg-sinal-bt { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 12px 14px; border-radius: 16px; border: 2px dashed var(--borda-2); background: var(--card); color: var(--tinta); font: inherit; cursor: pointer; }
+.pg-sinal-bt span { display: flex; flex-direction: column; } .pg-sinal-bt b { font-family: var(--display); font-size: 16px; } .pg-sinal-bt small { color: var(--tinta-2); font-size: 12.5px; font-weight: 600; }
+.pg-sinal-bt[aria-pressed="true"] { border-style: solid; border-color: #C8202A; background: #FCE9E7; } .pg-sinal-bt[aria-pressed="true"] svg { color: #C8202A; }
+.pg-sinal-c { padding: 12px; border-radius: 14px; background: #FCE9E7; display: grid; gap: 6px; } .pg-sinal-c .explica { margin: 0; color: var(--tinta); }
+.ct-sn { display: grid; gap: 10px; padding: 4px 0 24px; } .ct-sn h3 { margin: 10px 2px 0; font: 700 13px var(--display); letter-spacing: .05em; text-transform: uppercase; color: var(--tinta-2); }
+.ct-sn-it { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 18px; background: var(--card); border: 1px solid var(--borda); flex-wrap: wrap; }
+.ct-sn-it .txt { flex: 1 1 240px; min-width: 0; display: grid; gap: 2px; } .ct-sn-it .txt b { font-size: 16px; } .ct-sn-it .txt span, .ct-sn-it .txt small { color: var(--tinta-2); font-size: 13px; }
+.ct-sn-it .txt a { color: var(--ok); font-weight: 800; text-decoration: none; }
+.ct-sn-v { display: grid; justify-items: end; gap: 4px; } .ct-sn-v small { color: var(--tinta-2); font-size: 12.5px; } .ct-sn-v b { font: 800 20px var(--display); color: #C8202A; }
+.ct-sn-it.fech { opacity: .75; } .ct-sn-it.fech .ct-sn-v b { color: var(--ok); font-size: 15px; }
 /* 2.50: Ajustar caixa */
 .aj-formas { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
 .aj-formas > div { padding: 10px 12px; border-radius: 14px; background: var(--card); border: 1px solid var(--borda); display: grid; gap: 2px; min-width: 0; }
@@ -2154,7 +2166,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.51';
+const VERSAO = '2.52';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -4254,11 +4266,13 @@ const FORMAS = [['pix', 'Pix', 'no Pix'], ['dinheiro', 'Dinheiro', 'em dinheiro'
 const nomeForma = f => (FORMAS.find(x => x[0] === f) || [f, f])[1];
 const naForma = f => (FORMAS.find(x => x[0] === f) || [f, f, f])[2];
 let PAG = null;   // o pagamento que está na tela: { onde: 'venda' | 'saida', id, total, formas: [na ordem em que foram tocadas], v: { forma: 'o que foi digitado' } }
+const metade = v => Math.round(Math.round(v * 100) / 2) / 100;   /* 2.52: o sinal de 50% (em centavos, igual ao servidor) */
+const pagAgora = (P = PAG) => !P ? 0 : P.sinal ? metade(P.total) : P.total;
 function pagPartes(P = PAG) { // { partes: [{ f, v }], erro }: o valor de cada forma (a última fica com o resto) ou o que falta dizer
   if (!P || !P.formas.length) return { partes: [], erro: 'Escolha a forma de pagamento' };
   const partes = [], n = P.formas.length; let soma = 0;
   for (let i = 0; i < n - 1; i++) { const f = P.formas[i], v = centavos(numero(P.v[f])); if (!(v > 0)) return { partes, erro: `Quanto ${naForma(f)}?`, falta: f }; soma = centavos(soma + v); partes.push({ f, v }); }
-  const resto = centavos(P.total - soma); if (!(resto > 0)) return { partes, erro: n > 1 ? 'Os valores passam do total: confira' : 'Nada a pagar' };
+  const resto = centavos(pagAgora(P) - soma); if (!(resto > 0)) return { partes, erro: n > 1 ? 'Os valores passam do total: confira' : 'Nada a pagar' };
   partes.push({ f: P.formas[n - 1], v: resto }); return { partes, erro: '' };
 }
 const textoPag = partes => partes.length === 1 ? nomeForma(partes[0].f) : partes.map(p => `${nomeForma(p.f)} ${brl(p.v)}`).join(' + ');   // "Pix" ou "Pix R$ 200 + Dinheiro R$ 480"
@@ -4271,7 +4285,7 @@ function desenharPag(refaz = true) {
   if (cx && refaz) cx.innerHTML = n < 2 ? '' : P.formas.map((f, i) => i < n - 1
     ? `<label class="pg-linha"><span>${nomeForma(f)}</span><input class="pg-valor" data-pg-f="${f}" inputmode="decimal" autocomplete="off" placeholder="R$" value="${esc(P.v[f] || '')}" aria-label="Quanto ${naForma(f)}"></label>`
     : `<div class="pg-linha resto" id="pg-resto-l"><span>${nomeForma(f)} <small>· o resto</small></span><b class="num" id="pg-resto"></b></div>`).join('');
-  const rs = $('#pg-resto'); if (rs) { const dig = P.formas.slice(0, -1).reduce((t, f) => t + (numero(P.v[f]) > 0 ? centavos(numero(P.v[f])) : 0), 0), resto = centavos(P.total - dig); rs.textContent = resto > 0 ? brl(resto) : 'não sobra nada'; $('#pg-resto-l').classList.toggle('erro', !(resto > 0)); }
+  const rs = $('#pg-resto'); if (rs) { const dig = P.formas.slice(0, -1).reduce((t, f) => t + (numero(P.v[f]) > 0 ? centavos(numero(P.v[f])) : 0), 0), resto = centavos(pagAgora(P) - dig); rs.textContent = resto > 0 ? brl(resto) : 'não sobra nada'; $('#pg-resto-l').classList.toggle('erro', !(resto > 0)); }
   const d = $('#pg-dica'); if (d) { const errado = n > 1 && !!r.erro && !r.falta; d.classList.toggle('erro', errado);
     d.textContent = !n ? 'Toque na forma de pagamento. Para dividir, toque em mais de uma (até três).' : n === 1 ? `Tudo ${naForma(ult)}. Vai dividir? Toque em outra forma.` : r.erro ? r.erro + (errado ? '' : ' A última forma tocada fica com o resto.') : 'A última forma tocada fica com o resto. Para tirar uma forma, toque nela de novo.'; }
   if (P.onde === 'saida') { botaoSaida(); botaoGrupo(); }   // na saída, o botão diz a forma escolhida (ou pede a forma)
@@ -4283,8 +4297,9 @@ function desenharPag(refaz = true) {
       if (temC && P.parc && vc > 0) fp.textContent = `No crédito em ${P.parc}x: ${parcelasTxt(vc, P.parc)}.`; } } }   // 1.12: a festa
   if (P.onde === 'venda') { const ok = $('#p-ok'), zero = !(P.total > 0), dep = !zero && P.modo === 'depois', ag = $('#pg-agora'), fica = $('#pg-fica'), md = $('.pg-modo'); if (ag) ag.hidden = dep || zero; if (fica) fica.hidden = !dep; if (md) md.hidden = zero;   // 1.03: paga agora (as formas de pagamento) ou paga na saída; 1.04: com desconto total não há o que receber
     $$('.pg-modo [data-m]').forEach(b => b.setAttribute('aria-checked', (b.dataset.m === 'depois') === dep));
-    if (ok) { ok.disabled = !dep && !zero && !!r.erro; ok.innerHTML = zero ? `${ic(IC.check)} Registrar com desconto total${P.entrar ? ' e dar entrada' : ''}` : dep ? `${ic(IC.horas)} ${P.rotDepois} · registrar${P.entrar ? ' e dar entrada' : ''}` : `${ic(IC.check)} ${r.erro ? (n ? r.erro : 'Escolha a forma de pagamento') : `Recebi ${brl(P.total)}${r.partes.length === 1 ? ' ' + naForma(r.partes[0].f) : ''} · registrar${P.entrar ? ' e dar entrada' : ''}`}`; } }
+    if (ok) { ok.disabled = !dep && !zero && !!r.erro; ok.innerHTML = zero ? `${ic(IC.check)} Registrar com desconto total${P.entrar ? ' e dar entrada' : ''}` : dep ? `${ic(IC.horas)} ${P.rotDepois} · registrar${P.entrar ? ' e dar entrada' : ''}` : `${ic(IC.check)} ${r.erro ? (n ? r.erro : 'Escolha a forma de pagamento') : `Recebi ${P.sinal ? 'o sinal de ' : ''}${brl(pagAgora(P))}${r.partes.length === 1 ? ' ' + naForma(r.partes[0].f) : ''} · registrar${P.entrar ? ' e dar entrada' : ''}`}`; } }
   if (P.onde === 'venda') travarBotao($('#p-ok'), travaAut('venda', P.id), false);   // 1.54: o pedido que espera quem autoriza trava o registrar
+  sinalPinta();   /* 2.52 */
 }
 /* ---------- 1.54: o pedido que espera quem autoriza (ou foi negado) trava o registrar, que é o que imprime o cupom ---------- */
 // O desconto pedido (ou escrito e ainda não pedido) e o pacote alterado à espera da aprovação: o botão fica riscado, diz o porquê e não
@@ -4764,12 +4779,27 @@ function abrirPagamento(id) {
     <div id="pg-horas-v">${horasPagHtml(c, L)}</div>
     ${depois && !soNaSaida ? `<div class="pg-modo" role="radiogroup" aria-label="Quando o cliente paga"><button type="button" class="tap" role="radio" aria-checked="true" data-act="pag-modo" data-m="agora"><i aria-hidden="true"></i>Paga agora</button><button type="button" class="tap" role="radio" aria-checked="false" id="p-depois" data-act="pag-modo" data-m="depois"><i aria-hidden="true"></i>${PAG.rotDepois}</button></div>` : ''}
     ${S.balcao && c.id === S.balcao.id ? htmlDesc() : ''}
+    ${S.balcao && c.id === S.balcao.id ? htmlSinal() : ''}
     <div class="campo" id="pg-agora"><label>Forma de pagamento <span class="leve">· pode dividir em até três formas</span></label>${htmlPag()}</div>
     ${depois ? `<div class="marca canc" id="pg-fica" hidden>${ic(IC.sino, 18)}<span><b><span id="pg-fica-v">${brl(PAG.total)}</span> a receber na ${entrar || c.entrou ? 'saída' : 'devolução'}.</b>${soNaSaida ? ` A cobrança é feita na ${entrar || c.entrou ? 'saída' : 'devolução'}.` : ''}</span></div>` : ''}${PAG.dev ? `<div class="marca canc" id="pg-dev">${ic(IC.sino, 18)}<span><b>${esc(PAG.dev.n)} · ${brl(PAG.dev.v)} a receber na devolução.</b> O carrinho é cobrado sempre quando volta: agora, só o resto.</span></div>` : ''}
     ${S.balcao && c.id === S.balcao.id ? htmlCtAlt() : htmlDesc() + htmlAlt()}
     <div class="pe-f"><button class="bt forte largo tap" id="p-ok" data-act="pag-ok" data-id="${c.id}" disabled>${ic(IC.check)} Escolha a forma de pagamento</button></div>`;
   e.hidden = true; a.hidden = false; const h = $('#folha .cab-f h2'), f = $('#folha .folha'); if (h) h.textContent = 'Pagamento'; if (f) f.scrollTop = 0; desenharPag();
 }
+/* 2.52 (o dono: "às vezes as meninas vendem um vestido e o cliente só dá o sinal de 50% ... pode colocar sinal 50% já automaticamente do
+   valor e deixar esse cliente nesse filtro"): no pagamento da Casa Tom, "Sinal de 50%": cobra a metade agora (calculada sozinha), pede o
+   nome e o telefone do cliente, e a venda vai para a aba Sinais até o cliente buscar e pagar o resto */
+const htmlSinal = () => `<div class="pg-sinal" id="pg-sinal"><button type="button" class="pg-sinal-bt tap" data-act="pag-sinal" aria-pressed="false">${ic(IC.horas, 22)}<span><b>Sinal de 50%</b><small>O cliente paga a metade agora e o resto quando vier buscar</small></span></button>
+  <div class="pg-sinal-c" id="pg-sinal-c" hidden><p class="explica" id="pg-sinal-v"></p><div class="dois"><div class="campo"><label for="pg-sn">Nome do cliente</label><input id="pg-sn" autocomplete="off" maxlength="80" placeholder="quem vem buscar"></div><div class="campo"><label for="pg-st">Telefone (WhatsApp)</label><input id="pg-st" inputmode="tel" autocomplete="off" maxlength="20" placeholder="(11) 9 0000-0000"></div></div></div></div>`;
+function sinalPinta() { const P = PAG, v = $('#pg-sinal-v'), b = $('[data-act="pag-sinal"]'), c = $('#pg-sinal-c'); if (!P || !v) return;
+  if (b) b.setAttribute('aria-pressed', String(!!P.sinal)); if (c) c.hidden = !P.sinal;
+  v.innerHTML = `Sinal agora: <b class="num">${brl2(metade(P.total))}</b> (50% de ${brl2(P.total)}) · fica a receber na retirada: <b class="num">${brl2(centavos(P.total - metade(P.total)))}</b>`; }
+function sinalTocar() { if (!PAG || PAG.onde !== 'venda') return; PAG.sinal = !PAG.sinal; desenharPag(true); if (PAG.sinal) { const i = $('#pg-sn'); if (i && !i.value) setTimeout(() => i.focus(), 60); } }
+function sinalErro() { if (!PAG || !PAG.sinal) return ''; const n = String(val('pg-sn') || '').replace(/\s+/g, ' ').trim(), t = String(val('pg-st') || '').trim();
+  if (n.length < 2) { const i = $('#pg-sn'); if (i) i.focus(); return 'Escreva o nome do cliente que deu o sinal'; }
+  if (soDig(t).length < 10) { const i = $('#pg-st'); if (i) i.focus(); return 'Escreva o telefone do cliente (com o DDD)'; }
+  if (MODO === 'servidor' && OFF.on) return 'Sem internet: o sinal precisa da internet. Espere a internet voltar.';
+  PAG.sinalNome = MAI(n); PAG.sinalTel = t; return ''; }
 function voltarDaEscolha() { const a = $('#v-pag'), e = $('#v-escolha'), h = $('#folha .cab-f h2'); if (!a || !e) return; a.hidden = true; e.hidden = false; if (h) h.textContent = CARRINHO && CARRINHO.festa ? 'Festa' : 'Atendimento'; }
 async function registrarAtendimento(id, mesmoAssim, pag, depois) { // mesmoAssim: a equipe confirmou depois do aviso de que a criança já teve uma venda agora há pouco. pag: [{ f, v }], como foi pago. depois (1.02): o cliente paga na saída
   const aberto = $('#folha .folha-fundo:not(.saindo) #v-ok'); if (!aberto || +aberto.dataset.id !== +id) { atender(id); return; }   // o atendimento desta criança precisa estar na tela (o aviso de venda repetida pode ser tocado depois de fechar)
@@ -4788,13 +4818,14 @@ async function registrarAtendimento(id, mesmoAssim, pag, depois) { // mesmoAssim
   const devL = pag && pag.length && PAG && PAG.onde === 'venda' && PAG.id === id && PAG.dev ? L.filter(l => l.v > 0 && !!l.s && (x => !!x && !!x.volta && !ehTempo(x))(servicoDe(l.s))) : [], devV = centavos(devL.reduce((t, l) => t + l.v, 0));   // 1.47: o carrinho fica para a devolução
   const cheio = centavos(L.reduce((a, l) => a + l.v, 0) - devV), dsc = PAG && PAG.onde === 'venda' && PAG.id === id ? descEnvio(cheio, 'venda', id) : null, total = centavos(cheio - (dsc ? dsc.valor : 0));   // 1.04: com o desconto do gestor, o total é o valor já descontado
   const pedP = pedPapel('venda', id, L);   // 1.33: o que foi pedido (e a resposta), para o cupom: antes de registrar
+  const sinalI = PAG && PAG.onde === 'venda' && PAG.id === id && PAG.sinal && pag && pag.length ? { pago: centavos(pag.reduce((t, p) => t + p.v, 0)), falta: centavos(total - pag.reduce((t, p) => t + p.v, 0)), nome: PAG.sinalNome || '', tel: PAG.sinalTel || '' } : null;   /* 2.52 */
   const abertos = L.filter(l => l.aberto), soAberto = abertos.length > 0 && abertos.length === L.length;   // 1.20: o que só sai da loja (o fusquinha): não é uma venda com valor
   const min = L.reduce((a, l) => a + l.min, 0), nome = c.nome, aviso = soAberto ? `${juntar(abertos.map(nomeQ))} de ${nome}: ${qtdAbertos(L) > 1 ? 'saíram' : 'saiu'} da loja · ${ITENS_ABERTO}` : `Venda registrada para ${nome} · ${brl(total)}${dsc ? ' (desconto de ' + brl(dsc.valor) + ')' : ''}${pag && pag.length ? (pag.length === 1 ? ' ' + naForma(pag[0].f) : ' em ' + pag.length + ' formas') : depois && total > 0 ? ' a receber' : ''}${min ? ' · +' + dur(min) + ' de recreação' : ''}${abertos.length ? ' · ' + juntar(abertos.map(nomeQ)) + ': ' + ITENS_ABERTO : ''}`;
   if (MODO === 'servidor') {
     const bt = $('#v-ok'), bp = $('#p-ok'), bd = $('#p-depois'); if (bt) bt.disabled = true; if (bp) bp.disabled = true; if (bd) bd.disabled = true;
-    try { const o = L.find(l => l.outro), r = await apiOff('atender', { id, ...(precisaVend(L) && CARRINHO.vend ? { vendedora: CARRINHO.vend } : {}), ...(PAG && PAG.id === id ? parcEnvio(pag, 'venda') : {}), linhas: L.filter(l => l.s).map(l => ({ s: l.s, q: l.q, vt: l.vt })), pacotes: L.filter(l => l.pac != null).map(l => ({ h: l.ph, tipo: l.ptipo, v: l.vTab != null ? l.vTab : l.v, nome: l.pnome, ...(l.alt ? { alt: l.alt } : {}) })), produtos: L.filter(l => l.prod).map(l => ({ p: l.prod, q: l.q, v: l.pv, ...(l.alt ? { alt: l.alt } : {}) })), outro: o ? { n: o.servico, v: o.v } : null, voucher: vou ? true : null, entrar, visto: (CARRINHO && CARRINHO.visto) || 0, mesmo_assim: !!mesmoAssim, pagamento: pag && pag.length ? pag : null, depois: !!depois && !(pag && pag.length), ...(devL.length ? { carrinho_depois: true } : {}), ...(dsc ? { desconto: dsc } : {}), ...(festa ? { festa: festaEnvio(CARRINHO.festa) } : {}) }, { L: L.map(l => ({ n: nomeLinha(l), v: l.v || 0, min: l.min || 0, tempo: !!l.s && (x => !!x && ehTempo(x))(servicoDe(l.s)) })) });   // 1.40: sem internet, fica na fila
-      await carregar(); const OJ = r.entrada ? await entrarOutras(outras, vendJ) : { D: [], undo: null, sync: null }; if (festa) ETAPA_FEITA = true; else atendimentoFeito(id); fecharFolha(); desenhar(); celebrarPacote(L, c); const k = crianca(id); deuCertoOu(atencaoVoucher(r.voucher, nome), avisoVoucher(r.voucher, nome) + aviso + (r.entrada ? ' · entrou' + (k && k.entrou ? ', ' + entrouTxt(k) : '') + entrouTambem(OJ.D) : ''), (cheio > 0 && !podeEstornar()) || r.offline ? null : marcaAtd(async () => { voltarRascunho(id, rasc); largarSapEntrada(id); try { if (OJ.undo) await OJ.undo(); if (r.entrada) await api('desfazer_entrada', { id, registro: r.entrada.registro, mensagem: r.entrada.mensagem, atendente: ATD_NOME }); await api('desfazer_venda', { vendas: r.vendas, registros: r.registros, atendente: ATD_NOME }); await carregar(); } catch (e) { DESFAZ_ERRO = e.message; toast(e.message); } desenhar(); }, !podeEstornar() && (!!r.entrada || abertos.length > 0), r.entrada ? `Desfazer a entrada de ${juntar([nome, ...OJ.D.map(x => x.nome)])}` : `Desfazer a saída de ${juntar(abertos.map(nomeQ))}`)); VOLTA_SAIDA = 0;
-      const specV = volta && depois && !(pag && pag.length) ? null : { tipo: 'entrada', id, itens: L.map(l => devL.includes(l) ? { ...linhaPapel(l), aberto: true, dev: l.v } : linhaPapel(l)), formas: pag || [], depois: !!depois && !(pag && pag.length), desc: dsc ? dsc.valor : 0, venda: (r.vendas || [])[0] || 0, festa, ped: pedP, vend: vendJ, vendas: r.vendas || [] }, cupomV = q => cupomDaVenda(id, r.cupom, specV, volta, q);
+    try { const o = L.find(l => l.outro), r = await apiOff('atender', { id, ...(precisaVend(L) && CARRINHO.vend ? { vendedora: CARRINHO.vend } : {}), ...(PAG && PAG.id === id ? parcEnvio(pag, 'venda') : {}), linhas: L.filter(l => l.s).map(l => ({ s: l.s, q: l.q, vt: l.vt })), pacotes: L.filter(l => l.pac != null).map(l => ({ h: l.ph, tipo: l.ptipo, v: l.vTab != null ? l.vTab : l.v, nome: l.pnome, ...(l.alt ? { alt: l.alt } : {}) })), produtos: L.filter(l => l.prod).map(l => ({ p: l.prod, q: l.q, v: l.pv, ...(l.alt ? { alt: l.alt } : {}) })), outro: o ? { n: o.servico, v: o.v } : null, voucher: vou ? true : null, entrar, visto: (CARRINHO && CARRINHO.visto) || 0, mesmo_assim: !!mesmoAssim, pagamento: pag && pag.length ? pag : null, depois: !!depois && !(pag && pag.length), ...(devL.length ? { carrinho_depois: true } : {}), ...(dsc ? { desconto: dsc } : {}), ...(festa ? { festa: festaEnvio(CARRINHO.festa) } : {}), ...(sinalI ? { sinal: true, sinal_nome: sinalI.nome, sinal_tel: sinalI.tel } : {}) }, { L: L.map(l => ({ n: nomeLinha(l), v: l.v || 0, min: l.min || 0, tempo: !!l.s && (x => !!x && ehTempo(x))(servicoDe(l.s)) })) });   // 1.40: sem internet, fica na fila
+      await carregar(); if (r.sinal) CTS.em = 0; const OJ = r.entrada ? await entrarOutras(outras, vendJ) : { D: [], undo: null, sync: null }; if (festa) ETAPA_FEITA = true; else atendimentoFeito(id); fecharFolha(); desenhar(); celebrarPacote(L, c); const k = crianca(id); deuCertoOu(atencaoVoucher(r.voucher, nome), avisoVoucher(r.voucher, nome) + aviso + (r.entrada ? ' · entrou' + (k && k.entrou ? ', ' + entrouTxt(k) : '') + entrouTambem(OJ.D) : ''), (cheio > 0 && !podeEstornar()) || r.offline ? null : marcaAtd(async () => { voltarRascunho(id, rasc); largarSapEntrada(id); try { if (OJ.undo) await OJ.undo(); if (r.entrada) await api('desfazer_entrada', { id, registro: r.entrada.registro, mensagem: r.entrada.mensagem, atendente: ATD_NOME }); await api('desfazer_venda', { vendas: r.vendas, registros: r.registros, atendente: ATD_NOME }); await carregar(); } catch (e) { DESFAZ_ERRO = e.message; toast(e.message); } desenhar(); }, !podeEstornar() && (!!r.entrada || abertos.length > 0), r.entrada ? `Desfazer a entrada de ${juntar([nome, ...OJ.D.map(x => x.nome)])}` : `Desfazer a saída de ${juntar(abertos.map(nomeQ))}`)); VOLTA_SAIDA = 0;
+      const specV = volta && depois && !(pag && pag.length) ? null : { tipo: 'entrada', id, itens: L.map(l => devL.includes(l) ? { ...linhaPapel(l), aberto: true, dev: l.v } : linhaPapel(l)), formas: pag || [], depois: !!depois && !(pag && pag.length), desc: dsc ? dsc.valor : 0, venda: (r.vendas || [])[0] || 0, festa, ped: pedP, vend: vendJ, vendas: r.vendas || [], ...(sinalI ? { sinal: sinalI } : {}) }, cupomV = q => cupomDaVenda(id, r.cupom, specV, volta, q);
       if (r.entrada) sapateirasJunto([id, ...OJ.D.map(x => x.id)], cupomV); else cupomV(false); }   /* 1.16: entrou junto com a venda: primeiro a sapateira, depois o cupom */   // 0.94: registrou, o cupom sai para o responsável assinar
     catch (e) { if (bt) bt.disabled = false; if (bp) bp.disabled = false; if (bd) bd.disabled = false; if (e.status === 409) toast(e.message, () => registrarAtendimento(id, true, pag, depois), 'Registrar mesmo assim'); else toast(e.message); }   // 409: outro aparelho já registrou uma venda para esta criança
     return;
@@ -4816,7 +4847,8 @@ async function registrarAtendimento(id, mesmoAssim, pag, depois) { // mesmoAssim
   for (const [l, v] of altFeitas) usarAltPrevia(l, v, c, regs);
   if (dsc) { for (const [v, x] of repartirDescPrevia(dsc.valor, devL.length ? novas.filter(v => !v.alug) : novas)) { v.v = centavos(v.v - x); v.desc = centavos((v.desc || 0) + x); v.descMotivo = dsc.motivo; } registrar('desc', c.nome, textoDesc(dsc)); regs.push(S.registros[0]); usarAutPrevia(dsc, dsc.valor); } fecharPedidosPrevia(c, 'venda');   /* 1.04 (prévia): o desconto sai das compras desta venda */
   const pagos = pag && pag.length && total > 0 ? pagarPrevia(devL.length ? novas.filter(v => !v.alug) : novas, pag) : [], cupomId = criarCupomPrevia(c, 'venda', pagos);   // 0.93: o cupom fiscal deste pagamento
-  if (pagos.length) { registrar('pag', c.nome, `Pagamento · ${brl(total)} · ${textoPag(pag)}`); regs.push(S.registros[0]); }
+  if (pagos.length) { registrar('pag', c.nome, sinalI ? `Sinal de 50% · ${brl(sinalI.pago)} · ${textoPag(pag)} · falta ${brl(sinalI.falta)} na retirada · ${sinalI.nome}` : `Pagamento · ${brl(total)} · ${textoPag(pag)}`); regs.push(S.registros[0]); }
+  if (sinalI) CTS.em = 0; if (sinalI) (S.ctSinais = S.ctSinais || []).unshift({ id: novoId(), quando: new Date().toISOString(), uni: minhaUni() || null, vendas: novas.map(v => v.id), cliente: sinalI.nome, tel: sinalI.tel, itens: L.map(l => (l.q > 1 ? l.q + ' × ' : '') + nomeLinha(l)).join(', '), sinal: sinalI.pago, vendedora: vendJ, por: primeiro(EU.nome), estado: 'aberto' });   /* 2.52 (prévia) */
   if (devL.length && devV > 0) { registrar('pag', c.nome, `A receber na devolução · ${brl(devV)}`); regs.push(S.registros[0]); }   /* 1.47: o carrinho */
   else if (depois && total > 0) { registrar('pag', c.nome, `A receber na ${entrar || c.entrou ? 'saída' : 'devolução'} · ${brl(total)}`); regs.push(S.registros[0]); }   /* 1.02: o cliente paga na saída */
   let desfazEntrada = null;
@@ -4826,7 +4858,7 @@ async function registrarAtendimento(id, mesmoAssim, pag, depois) { // mesmoAssim
   if (festa) ETAPA_FEITA = true; else atendimentoFeito(id); fecharFolha(); desenhar(); celebrarPacote(L, c);   /* 1.77 */
   deuCertoOu(atencaoVoucher(vou ? { n: nV, cobriu: coberta ? { valor: coberta.v } : null } : null, nome), avisoVoucher(vou ? { n: nV, cobriu: coberta ? { valor: coberta.v } : null } : null, nome) + aviso + (desfazEntrada ? ' · entrou, ' + entrouTxt(c) + entrouTambem(OJ.D) : ''), cheio > 0 && !podeEstornar() ? null : marcaAtd(() => { voltarRascunho(id, rasc); if (OJ.sync) OJ.sync(); if (desfazEntrada) desfazEntrada(); Object.assign(c, era); const ficam = podeEstornar() ? [] : saidasDesfeitasPrevia(c, novas); if (coberta) { S.compras.push(coberta); if (coberta.reg) coberta.reg.txt = coberta.reg.txt.replace(' · coberta pelo voucher', ''); c.atraso = eraAtraso; } for (const x of novas) if (x.prod) { const p = produto(x.prod); if (p && p.est != null) p.est += x.qtd; } S.compras = S.compras.filter(x => !novas.includes(x)); S.registros = S.registros.filter(x => !regs.includes(x) || ficam.includes(x)); S.pagamentos = (S.pagamentos || []).filter(x => !pagos.includes(x)); }, !podeEstornar() && (!!desfazEntrada || abertos.length > 0), desfazEntrada ? `Desfazer a entrada de ${juntar([nome, ...OJ.D.map(x => x.nome)])}` : `Desfazer a saída de ${juntar(abertos.map(nomeQ))}`));
   VOLTA_SAIDA = 0;   // 0.94: registrou, o cupom sai para o responsável assinar (1.16: se entrou junto, primeiro a sapateira)
-  const specV = volta && depois && !(pag && pag.length) ? null : { tipo: 'entrada', id, itens: L.map(l => devL.includes(l) ? { ...linhaPapel(l), aberto: true, dev: l.v } : linhaPapel(l)), formas: pag || [], depois: !!depois && !(pag && pag.length), desc: dsc ? dsc.valor : 0, venda: novas.length ? novas[0].id : 0, festa, ped: pedP, vend: vendJ, vendas: novas.map(v => v.id) }, cupomV = q => cupomDaVenda(id, cupomId, specV, volta, q);
+  const specV = volta && depois && !(pag && pag.length) ? null : { tipo: 'entrada', id, itens: L.map(l => devL.includes(l) ? { ...linhaPapel(l), aberto: true, dev: l.v } : linhaPapel(l)), formas: pag || [], depois: !!depois && !(pag && pag.length), desc: dsc ? dsc.valor : 0, venda: novas.length ? novas[0].id : 0, festa, ped: pedP, vend: vendJ, vendas: novas.map(v => v.id), ...(sinalI ? { sinal: sinalI } : {}) }, cupomV = q => cupomDaVenda(id, cupomId, specV, volta, q);
   if (desfazEntrada) sapateirasJunto([id, ...OJ.D.map(x => x.id)], cupomV); else cupomV(false);
 }
 // 1.00: depois de uma venda, o cupom (como sempre) e, se a venda veio da folha da saída, a saída dessa criança abre de novo quando o cupom fechar
@@ -4954,7 +4986,7 @@ function htmlPapel(spec, via = 'loja') {
     const lin = (rot, val, cls = '') => `<p class="c-linha c-pt${cls}"><span>${rot}</span><i></i><span>${val}</span></p>`, subs = i => (Array.isArray(i.sub) ? i.sub : i.sub ? [i.sub] : []).map(t => `<p class="c-sub">${esc(t)}</p>`).join('');
     return `${div}${o.titulo ? `<p class="c-titulo">${o.titulo}</p>` : ''}<p class="c-cab${comQ ? ' q' : ''}"><span>Descrição</span>${comQ ? '<span>Qtd</span>' : ''}<span>Valor</span></p>
       ${itens.map(i => `<p class="c-item${comQ ? ' q' : ''}"><span>${esc(i.n)}</span>${comQ ? `<span>${i.q || 1}</span>` : ''}<span>${brl2(i.v)}</span></p>${subs(i)}`).join('')}
-      ${desc ? lin('Subtotal', brl2(bruto)) + lin('Desconto', '- ' + brl2(desc)) : ''}${F.length === 1 ? lin('Total pago ' + esc(naForma(F[0].f)), brl2(total), ' c-total') : lin('Total', brl2(total), ' c-total') + F.map(p => lin(esc(nomeForma(p.f)), brl2(p.v))).join('')}${!F.length && spec.depois ? `<p class="c-areceber"><b>A RECEBER NA ${c.entrou ? 'SAÍDA' : 'DEVOLUÇÃO'}</b></p>` : ''}${(spec.ped || []).map(t => `<p class="c-ped">${esc(t)}</p>`).join('')}`; };   // 1.33: spec.ped
+      ${desc ? lin('Subtotal', brl2(bruto)) + lin('Desconto', '- ' + brl2(desc)) : ''}${spec.sinal ? lin('Total', brl2(total), ' c-total') + F.map(p => lin('Sinal ' + esc(naForma(p.f)), brl2(p.v))).join('') + `<p class="c-areceber"><b>FALTA ${brl2(spec.sinal.falta)} NA RETIRADA</b></p><p class="c-sub">Sinal de 50% · ${esc(spec.sinal.nome)}${spec.sinal.tel ? ' · ' + esc(spec.sinal.tel) : ''}</p>` : F.length === 1 ? lin('Total pago ' + esc(naForma(F[0].f)), brl2(total), ' c-total') : lin('Total', brl2(total), ' c-total') + F.map(p => lin(esc(nomeForma(p.f)), brl2(p.v))).join('')}${!F.length && spec.depois ? `<p class="c-areceber"><b>A RECEBER NA ${c.entrou ? 'SAÍDA' : 'DEVOLUÇÃO'}</b></p>` : ''}${(spec.ped || []).map(t => `<p class="c-ped">${esc(t)}</p>`).join('')}`; };   // 1.33: spec.ped
   // o pé: quem atendeu (e o número da venda, quando houve), a linha da assinatura na via da loja quando há o que assinar (a entrada da
   // criança, o carrinho que sai, a saída, a devolução) e o aviso
   const atdN = atdPapel(spec, c), rod = `<p class="c-rod">${spec.venda ? `Venda nº ${spec.venda}${atdN ? ' · ' : ''}` : ''}${atdN ? `Atendente ${esc(atdN)}` : ''}${spec.corr ? ' · valor corrigido' : ''}</p>`;   /* 2.45: spec.corr */   /* 2.22: a atendente marcada, não o login */
@@ -5842,10 +5874,10 @@ function menuHtml(nPn, badge) {
    sempre (formas, parcelas, desconto do gestor) e vai para o mesmo cupom, as comissões e as Finanças, pela unidade do aparelho, em nome do
    "cliente da loja" (o balcão, que não aparece nas listas). Cada produto diz em que loja é vendido; "Ver todo o cadastro" mostra todos. */
 function modoCT() { return !!minhaUni() && ehCasaTom(minhaUni()); }
-const TELAS_CT = ['ct', 'ctvendas', 'ctprod'];
+const TELAS_CT = ['ct', 'ctvendas', 'ctsinais', 'ctprod'];
 Object.assign(IC, { ctVender: '<path d="M6 7h15l-2 9H8L6 3H3"/><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/>', ctVendas: '<path d="M5 4h14v16l-3-2-2 2-2-2-2 2-2-2-3 2Z"/><path d="M9 9h6M9 13h6"/>',
-  ctProd: '<path d="M4 8 12 4l8 4v8l-8 4-8-4Z"/><path d="M4 8l8 4 8-4M12 12v8"/>', ctBusca: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>' });
-const abasCT = () => [['ct', 'Vender', 'ctVender'], ['ctvendas', 'Vendidos do dia', 'ctVendas'], ['ctprod', 'Produtos', 'ctProd'], ...ABAS.filter(a => a[0] === 'aprovar' || a[0] === 'ajustes')];
+  ctProd: '<path d="M4 8 12 4l8 4v8l-8 4-8-4Z"/><path d="M4 8l8 4 8-4M12 12v8"/>', ctSinais: '<path d="M20 12 12 20l-8-8V4h8Z"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="M12 14h4"/>', ctBusca: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>' });
+const abasCT = () => [['ct', 'Vender', 'ctVender'], ['ctvendas', 'Vendidos do dia', 'ctVendas'], ['ctsinais', 'Sinais', 'ctSinais'], ['ctprod', 'Produtos', 'ctProd'], ...ABAS.filter(a => a[0] === 'aprovar' || a[0] === 'ajustes')];
 function abasAgora() { return modoCT() ? abasCT() : ABAS; }
 let CT = { pr: {}, vend: '', busca: '', cat: '', todos: false, pbusca: '', ptodos: false, imp: null };
 const lojaAgora = () => modoCT() ? 'ct' : 'play';
@@ -5895,7 +5927,7 @@ async function ctAddOk(el) {
     else { p = { id: novoId(), n, v, est: null, l: 'ct', cat }; S.produtos.push(p); S.produtos.sort(ordProd); registrar('est', n, `Produto novo da Casa Tom · ${brl(v)}${cat ? ' · ' + cat : ''} · cadastrado na venda por ${EU.nome}`); } }
   if (!p) return; CT.pr[p.id] = (CT.pr[p.id] || 0) + 1; CT.busca = ''; fecharFolha(); desenhar(); deuCerto(`${p.n} (${brl(p.v)}) está no cadastro da Casa Tom e na venda`);
 }
-function telaCT() {
+function telaCT() { setTimeout(() => ctSinaisCarregar(false), 0);   /* 2.52: o número de sinais na aba */
   return `<div class="ct-tela">${ctCabeca('Venda de produtos')}<div class="ct-corpo"><div class="ct-cat"><div class="ct-busca"><label class="ct-campo">${ic(IC.ctBusca, 18)}<input id="ct-busca" type="search" placeholder="Buscar produto pelo nome…" value="${esc(CT.busca)}" autocomplete="off" aria-label="Buscar produto"></label><button type="button" class="bt claro tap" data-act="ct-todos" aria-pressed="${CT.todos}">${CT.todos ? 'Só os da Casa Tom' : 'Ver todo o cadastro'}</button><button type="button" class="bt tap ct-add" data-act="ct-add">${ic(IC.mais)} Adicionar produto</button></div>
     <div class="ct-abas" role="tablist">${['', ...ctCats(prodsDaLoja(CT.todos))].map(c => `<button type="button" role="tab" data-act="ct-cat" data-c="${esc(c)}" aria-selected="${c === CT.cat}">${c ? esc(c) : 'Todos'}</button>`).join('')}</div>
     <div id="ct-grade">${ctGrade()}</div></div>${ctVenda()}</div></div>`; }
@@ -5987,6 +6019,48 @@ function ctExcluirPrevia(x, M) { const { pp, ids, V } = ctPrevia(x); if (!pp || 
   pp.estado = 'excluida'; return { devolver: dv }; }
 function telaCTVendas() { setTimeout(() => ctVendidos(), 0); const n = CTV.k === ctvChave() && CTV.L ? CTV.L.length : null;
   return `<div class="ct-tela">${ctCabeca('Vendidos do dia')}<section class="ct-vd" aria-label="Vendidos do dia"><div class="ct-vd-cab"><b>Vendas de hoje${n ? ' · ' + n : ''}</b><span class="leve">toque na venda para ver e reimprimir o cupom</span></div><div id="ct-vd-l">${ctvHtml()}</div></section>${htmlCaixaDia()}</div>`; }
+/* 2.52: a aba Sinais: quem deu o sinal de 50% e ainda vai buscar (com o que falta), e os que já buscaram (7 dias). Na retirada,
+   "Receber o restante": a forma de pagamento (pode dividir), a soma tem que dar o que falta, e o cupom sai */
+let CTS = { k: '', L: null, em: 0, busca: false };
+const ctsChave = () => String(minhaUni() || 0);
+const ctSinaisN = () => CTS.k === ctsChave() && CTS.L ? CTS.L.abertos.length : 0;
+function ctSinaisPrevia() { const u = minhaUni() || 0, o = { abertos: [], fechados: [] };
+  for (const s of S.ctSinais || []) { if (u && s.uni && s.uni !== u) continue; const V = (S.compras || []).filter(v => s.vendas.includes(v.id)), valor = centavos(V.reduce((t, v) => t + (+v.v || 0), 0)), pago = centavos((S.pagamentos || []).filter(p => s.vendas.includes(p.venda)).reduce((t, p) => t + p.v, 0)), falta = centavos(Math.max(0, valor - pago));
+    if (s.estado === 'aberto' && falta < 0.005) { s.estado = V.length ? 'retirado' : 'cancelado'; s.fechado_em = new Date().toISOString(); s.fechado_por = V.length ? 'pago' : 'venda excluída'; }
+    o[s.estado === 'aberto' ? 'abertos' : 'fechados'].push({ ...s, total: valor || s.sinal * 2, pago, falta }); }
+  return o; }
+async function ctSinaisCarregar(forca) { const k = ctsChave(); if (!forca && CTS.k === k && CTS.L && Date.now() - CTS.em < 60000) return; if (CTS.busca) return;
+  CTS.busca = true; try { const L = MODO === 'servidor' ? await api('ct_sinais', { uni: minhaUni() || 0 }) : ctSinaisPrevia(); CTS = { k, L: { abertos: L.abertos || [], fechados: L.fechados || [] }, em: Date.now(), busca: false }; }
+  catch (e) { CTS.busca = false; return; }
+  const a = $('#ct-sn-l'); if (a) a.innerHTML = ctSinaisHtml(); nav(); }
+const zapDe = t => { let d = soDig(t || ''); if (d.length === 10 || d.length === 11) d = '55' + d; return d.length >= 12 ? 'https://wa.me/' + d : ''; };
+function ctSinaisHtml() { const L = CTS.k === ctsChave() ? CTS.L : null; if (!L) return '<p class="explica">Buscando os sinais…</p>';
+  const lin = s => { const q = dataDe(s.quando), z = zapDe(s.tel), ab = s.estado === 'aberto';
+    return `<div class="ct-sn-it${ab ? '' : ' fech'}"><div class="txt"><b>${esc(s.cliente)}</b><span>${esc(s.tel || '')}${z ? ` · <a href="${z}" target="_blank" rel="noopener">WhatsApp</a>` : ''}</span><span>${esc(s.itens || '')}</span>
+      <small>Sinal em ${diaCurto(q)} às ${hora(q)}${s.vendedora ? ' · vendido por ' + esc(s.vendedora) : ''}${!ab ? ' · ' + (s.estado === 'cancelado' ? 'cancelado (' + esc(s.fechado_por || '') + ')' : 'buscou em ' + diaCurto(dataDe(s.fechado_em)) + (s.fechado_por && s.fechado_por !== 'pago' ? ' · ' + esc(s.fechado_por) : '')) : ''}</small></div>
+      <div class="ct-sn-v"><small>Total ${brl2(s.total)} · pago ${brl2(s.pago)}</small>${ab ? `<b class="num">Falta ${brl2(s.falta)}</b><button type="button" class="bt forte tap" data-act="ct-sn-receber" data-id="${s.id}">${ic(IC.check)} Receber o restante</button>` : `<b>${s.estado === 'cancelado' ? 'Cancelado' : 'Pago ✓'}</b>`}</div></div>`; };
+  return (L.abertos.length ? L.abertos.map(lin).join('') : '<p class="explica">Nenhum cliente com sinal em aberto. Quando o cliente der só o sinal, toque em "Sinal de 50%" no pagamento.</p>')
+    + (L.fechados.length ? `<h3>Já buscaram (últimos 7 dias)</h3>${L.fechados.map(lin).join('')}` : ''); }
+function telaCTSinais() { setTimeout(() => ctSinaisCarregar(true), 0);
+  return `<div class="ct-tela">${ctCabeca('Sinais')}<section class="ct-sn" aria-label="Sinais"><p class="explica">Quem deu o sinal de 50% e ainda vai buscar. Quando o cliente vier, toque em <b>Receber o restante</b>.</p><div id="ct-sn-l">${ctSinaisHtml()}</div></section></div>`; }
+function folhaSinalReceber(id) { const s = CTS.L && CTS.L.abertos.find(x => +x.id === +id); if (!s) { toast('Esse sinal não está mais em aberto'); ctSinaisCarregar(true); return; }
+  abrirFolha('Receber o restante', `<div class="linha"><span class="av carr">${ic(IC.ctSinais, 18)}</span><div class="txt"><b>${esc(s.cliente)}</b><span>${esc(s.itens || '')} · total ${brl2(s.total)} · sinal pago ${brl2(s.pago)}</span></div></div>
+    <div class="aj-ed tp-div-c" id="sn-ed" data-id="${s.id}" data-total="${centavos(s.falta)}"><p class="explica">Falta receber <b>${brl2(s.falta)}</b>. Toque na forma (ou divida em mais de uma).</p>
+      <div class="aj-tudo"><span>Tudo no</span>${FORMAS.map(([k, n]) => `<button type="button" class="bt tap" data-act="aj-tudo" data-f="${k}">${n}</button>`).join('')}</div>
+      <div class="tp-div-g">${FORMAS.map(([k, n]) => `<label class="tp-div-l"><span>${n}</span><input class="inp" inputmode="decimal" autocomplete="off" data-f="${k}" placeholder="0,00" aria-label="Valor em ${n}"></label>`).join('')}</div>
+      <p class="tp-div-s falta" aria-live="polite">Falta ${brl(s.falta)}</p>
+      <div class="acoes"><button type="button" class="bt forte largo tap" data-act="ct-sn-ok">${ic(IC.check)} Recebi · o cliente buscou</button></div></div>`); }
+async function sinalReceberOk(el) { const c = $('#sn-ed'); if (!c) return; const id = +c.dataset.id, tot = centavos(+c.dataset.total), P = partesDiv(c), s = centavos(P.reduce((t, x) => t + x.v, 0));
+  if (!P.length) { toast('Toque na forma de pagamento'); return; }
+  if (Math.abs(s - tot) >= 0.005) { toast(s < tot ? `Falta ${brl(centavos(tot - s))}: a soma tem que dar ${brl(tot)}` : `Passou ${brl(centavos(s - tot))}: a soma tem que dar ${brl(tot)}`); return; }
+  const sn = CTS.L && CTS.L.abertos.find(x => +x.id === id); el.disabled = true;
+  try { let r;
+    if (MODO === 'servidor') r = await api('ct_sinal_receber', { id, pagamento: P });
+    else { const x = (S.ctSinais || []).find(y => y.id === id); if (!x) throw new Error('Sinal não encontrado.'); const V = (S.compras || []).filter(v => x.vendas.includes(v.id)); pagarPrevia(V, P); x.estado = 'retirado'; x.fechado_em = new Date().toISOString(); x.fechado_por = primeiro(EU.nome);
+      registrar('pag', 'CASA TOM', `Restante do sinal (retirada) · ${x.cliente} · ${brl(tot)} · ${textoPag(P)}`); r = { valor: tot, cupom: 0, crianca: (S.balcao || {}).id || 0 }; }
+    fecharFolha(); deuCerto(`Restante recebido: ${brl(tot)} · ${sn ? sn.cliente : ''} buscou`); if (MODO === 'servidor') await carregar(); await ctSinaisCarregar(true); desenhar(true);
+    const cid = r.crianca || (S.balcao || {}).id; if (cid && sn) cupomDaVenda(cid, r.cupom, { tipo: 'entrada', id: cid, itens: [{ n: 'RESTANTE DO SINAL · ' + sn.itens, v: tot }], formas: P, desc: 0, venda: (r.vendas || [])[0] || 0, vend: sn.vendedora || '', ped: [], retirada: true }, false);
+  } catch (e) { toast(e.message); el.disabled = false; } }
 function telaCTProd() {
   const ws = semAcentoCT(CT.pbusca).trim().split(/\s+/).filter(Boolean), F = (S.produtos || []).filter(p => (CT.ptodos || prodNaLoja(p, 'ct')) && ws.every(w => semAcentoCT(p.n).includes(w))), V = F.slice(0, 300);
   return `<div class="ct-tela">${ctCabeca('Produtos')}<div class="ct-busca"><label class="ct-campo">${ic(IC.ctBusca, 18)}<input id="ct-pbusca" type="search" placeholder="Buscar no cadastro…" value="${esc(CT.pbusca)}" autocomplete="off" aria-label="Buscar no cadastro"></label><button type="button" class="bt claro tap" data-act="ct-ptodos" aria-pressed="${CT.ptodos}">${CT.ptodos ? 'Só os da Casa Tom' : 'Ver todo o cadastro'}</button>${gestor() ? `<button type="button" class="bt claro tap" data-act="ct-importar">Importar relação</button><button type="button" class="bt forte tap" data-act="ct-novo">${ic(IC.mais)} Novo produto</button>` : ''}</div>
@@ -6047,7 +6121,7 @@ async function ctReceber() { const I = ctItens(); if (!I.length || !CT.vend) ret
   CARRINHO.q = {}; CARRINHO.pac = []; CARRINHO.vq = 0; CARRINHO.pr = Object.fromEntries(I.map(x => [x.p.id, x.q])); CARRINHO.vend = CT.vend; atualizarCarrinho(); abrirPagamento(b.id); }
 function nav() {
   const nPn = gestor() ? pedidosParaMim().length + avisosParaMim().length + festasParaCobrar().length : 0;   // 1.25: o que espera a resposta da gestora
-  const badge = k => k === 'aprovar' && nPn ? `<b>${nPn}</b>` : k === 'zap' && naoLidas() ? `<b>${naoLidas()}</b>` : (k === 'banco' && COM_WHATS && paraRenovar().length ? `<b>${paraRenovar().length}</b>` : '');
+  const badge = k => k === 'ctsinais' && ctSinaisN() ? `<b>${ctSinaisN()}</b>` : k === 'aprovar' && nPn ? `<b>${nPn}</b>` : k === 'zap' && naoLidas() ? `<b>${naoLidas()}</b>` : (k === 'banco' && COM_WHATS && paraRenovar().length ? `<b>${paraRenovar().length}</b>` : '');
   const alerta = k => (k === 'zap' && naoLidas()) || (k === 'aprovar' && nPn) ? 'alerta' : '';   // mensagem sem resposta: a bolinha do WhatsApp fica vermelha
   const mn = menuAberto() && !modoCT(); document.body.classList.toggle('mn', mn);   /* 2.00: na Casa Tom, o trilho dela (o menu aberto é o da Play Space) */   // 1.28: no computador largo, o menu aberto no lugar do trilho de ícones
   const ladoHtml = mn ? menuHtml(nPn, badge) : `<button type="button" class="logo" aria-expanded="false" aria-label="Abrir o menu" title="Abrir o menu">${modoCT() ? LOGO_CT : LOGO}</button>` + abasAgora().map(([k, t, i]) => `<button class="ab tap ${alerta(k)}" data-ir="${k}" ${S.tela === k ? 'aria-current="page"' : ''} aria-label="${t}" title="${t}${naoLidas() && k === 'zap' ? ' · ' + naoLidas() + ' sem resposta' : ''}">${ic(IC[i])}<span class="ab-n" aria-hidden="true">${t}</span>${badge(k)}</button>`).join('') + `<span class="espaco"></span><button type="button" class="fab tap" data-act="nova" aria-label="Cadastrar criança" title="Cadastrar criança"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span class="ab-n" aria-hidden="true">Cadastrar</span></button><button class="av-eu tap" data-act="conta" title="${esc(EU.nomeCompleto || EU.nome)}">${esc((EU.nome || 'EU').slice(0, 2).toUpperCase())}</button>`;
@@ -9415,7 +9489,7 @@ function desenhar(quieto = false) { // quieto: redesenho da sincronia, sem as an
   if ((S.tela === 'painel' && !gestor()) || (S.tela === 'aprovar' && !supervisorOuMais())) S.tela = 'horas';   // (o painel e as Aprovações são só do gestor)
   PN_R = null;
   const pnTab = quieto && !!$('#miolo details.gr-tab[open]');   // (a gestora abriu a tabela do gráfico: a sincronia não fecha)
-  $('#miolo').innerHTML = ({ painel: telaPainel, aprovar: telaAprovar, horas: telaHoras, banco: telaBanco, zap: telaZap, agenda: telaAgenda, ajustes: telaAjustes, festas: telaFestas, ct: telaCT, ctvendas: telaCTVendas, ctprod: telaCTProd })[S.tela]();
+  $('#miolo').innerHTML = ({ painel: telaPainel, aprovar: telaAprovar, horas: telaHoras, banco: telaBanco, zap: telaZap, agenda: telaAgenda, ajustes: telaAjustes, festas: telaFestas, ct: telaCT, ctvendas: telaCTVendas, ctsinais: telaCTSinais, ctprod: telaCTProd })[S.tela]();
   graficosPainel();
   if (pnTab) { const d = $('#miolo details.gr-tab'); if (d) d.open = true; }
   $('#hoje').innerHTML = painelHoje();
@@ -9518,6 +9592,7 @@ const ACOES = {
   'cx-uni': el => { S.cxUni = +el.dataset.v; atualizarEspaco(); },   /* 1.30 */
   'cx-dia': el => cxVerDia(el.dataset.v || ''),   /* 2.26: Hoje | Ontem */
   'cx-imprimir': () => imprimirPapel([papelCaixa()]),
+  'ct-sn-receber': el => folhaSinalReceber(+el.dataset.id), 'ct-sn-ok': el => sinalReceberOk(el),   /* 2.52 */
   'cx-ajustar': () => folhaAjCaixa(), 'aj-abrir': el => ajAbrir(+el.dataset.pag), 'aj-ver': el => { if (AJ) { AJ.ver = el.dataset.f || ''; AJ.aberto = 0; ajPinta(); } },   /* 2.50 */
   'aj-tudo': el => ajTudo(el), 'aj-fechar': () => { if (AJ) { AJ.aberto = 0; ajPinta(); } }, 'aj-salvar': el => ajSalvar(el), 'aj-recarregar': () => ajCarregar(),
   'cx-pdf': el => baixarResumoDia(el),   /* 1.54 */
@@ -9587,7 +9662,8 @@ const ACOES = {
   'pag-ok': el => { if (!PAG || PAG.onde !== 'venda') return; { const tv = travaAut('venda', PAG.id); if (tv) { toast(tv); return; } }   /* 1.54 */ const eD = descErro(PAG.cheio, 'venda', PAG.id); if (eD) { toast(eD); descFoco(eD); return; }   /* 1.04: desconto sem motivo, ou maior que o total */
     if (!(PAG.total > 0)) { registrarAtendimento(+el.dataset.id, false, null, false); return; }   /* desconto total: nada a receber */
     if (PAG.modo === 'depois') { registrarAtendimento(+el.dataset.id, false, null, true); return; }   /* 1.02: o cliente paga na saída (ou na devolução) */
-    const r = pagPartes(); if (r.erro) { toast(r.erro); return; } registrarAtendimento(+el.dataset.id, false, r.partes); },
+    const r = pagPartes(); if (r.erro) { toast(r.erro); return; } { const se = sinalErro(); if (se) { toast(se); return; } }   /* 2.52 */ registrarAtendimento(+el.dataset.id, false, r.partes); },
+  'pag-sinal': () => sinalTocar(),   /* 2.52 */
   'desc-tipo': el => { if (!DESC) return; DESC.tipo = el.dataset.t === 'pct' ? 'pct' : 'valor'; $$('.pg-desc-t [data-t]').forEach(b => b.setAttribute('aria-checked', b.dataset.t === DESC.tipo)); const i = $('#pg-desc-v'); if (i) { i.placeholder = DESC.tipo === 'pct' ? '%' : 'R$'; i.focus(); } descMudou(); },   /* 1.04 */
   'pag-modo': el => { if (!PAG || PAG.onde !== 'venda') return; PAG.modo = el.dataset.m === 'depois' ? 'depois' : 'agora'; desenharPag(false); },   /* 1.03: a escolha fica à vista: paga agora ou paga na saída */
   receber: el => folhaReceber(+el.dataset.id), 'receber-ok': el => receberJa(el),

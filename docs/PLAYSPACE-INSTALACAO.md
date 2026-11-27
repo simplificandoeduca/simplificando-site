@@ -1301,6 +1301,15 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Casa Tom: "Sinal de 50%" no pagamento e a aba "Sinais" (2.52)
+
+Pedido do dono (27/11): "às vezes as meninas vendem um vestido e o cliente só dá o sinal de 50%, aí pode colocar sinal 50% já automaticamente do valor e deixar esse cliente nesse filtro ... para cobrar os outros 50% na saída".
+
+- No pagamento da Casa Tom há o botão "Sinal de 50%". Tocado, o sistema calcula sozinho a metade (o sinal) e o que fica para a retirada, e pede o nome e o telefone (WhatsApp) do cliente. A forma de pagamento é a do sinal (pode dividir, como sempre).
+- A venda sai inteira (o estoque baixa, a comissão é de quem vendeu); no caixa entra só o sinal. O cupom diz o total, o sinal pago e "FALTA R$ X NA RETIRADA", com o nome do cliente.
+- A aba "Sinais" da Casa Tom (com o número no menu) mostra quem deu o sinal e ainda vai buscar: o cliente, o telefone (com o atalho do WhatsApp), o produto, quando foi, quem vendeu e quanto falta. Quando o cliente vier, "Receber o restante": a forma de pagamento (a soma tem que dar o que falta) e sai o cupom do restante. O cliente vai para "Já buscaram" (últimos 7 dias).
+- Se a venda do sinal for excluída, o sinal fecha sozinho como cancelado. Cada Casa Tom vê os sinais dela; o gestor vê todos.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A forma de pagamento "Link" (link de pagamento) em todos os pagamentos e nas Finanças (2.51)
 
 Pedido do dono (27/11): "no forma de pagamento, coloca o link também. E no financeiro também traga essa opção, porque às vezes elas geram um link por fora e só dão entrada no pacote ... pacote, produto, pode colocar em todas, casa tom".

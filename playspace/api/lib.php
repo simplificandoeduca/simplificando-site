@@ -2058,6 +2058,70 @@ function caixaDoDia(int $so = 0, ?string $dia = null): array {   /* 2.15: $so = 
   if ($so > 0) $o = array_filter($o, fn($x) => (int)$x['uni'] === $so);
   ksort($o); return ['desde' => $d0, 'dia' => substr($d0, 0, 10), 'unidades' => array_values($o)];
 }
+/* ---------- 2.52: Casa Tom → o sinal de 50% ----------
+   A venda da Casa Tom (só produtos) em que o cliente paga a metade agora e o resto na retirada. A venda é feita inteira (o estoque sai, a
+   comissão é de quem vendeu); o pagamento de agora é a metade e o resto fica a receber. O sinal guarda o nome e o telefone do cliente,
+   para a aba "Sinais" lembrar de cobrar; na retirada, "Receber o restante" fecha. A venda excluída fecha o sinal sozinha */
+function ctSinaisTabela(): void {
+  static $ok = false; if ($ok) return;
+  db()->exec("CREATE TABLE IF NOT EXISTS ct_sinais (id INTEGER PRIMARY KEY, quando TEXT NOT NULL, unidade_id INTEGER, vendas TEXT NOT NULL, cliente TEXT NOT NULL, tel TEXT NOT NULL DEFAULT '',
+    itens TEXT NOT NULL DEFAULT '', total REAL NOT NULL DEFAULT 0, sinal REAL NOT NULL DEFAULT 0, vendedora TEXT NOT NULL DEFAULT '', por INTEGER, por_nome TEXT NOT NULL DEFAULT '',
+    estado TEXT NOT NULL DEFAULT 'aberto', fechado_em TEXT, fechado_por TEXT NOT NULL DEFAULT '')");
+  $ok = true;
+}
+function ctSinalNovo(array $vendas, string $cliente, string $tel, float $total, float $sinal, string $vend, array $u): array {
+  ctSinaisTabela(); $db = db(); $it = []; $q = $db->prepare('SELECT * FROM vendas WHERE id = ?');
+  foreach ($vendas as $vid) { $q->execute([(int)$vid]); $v = $q->fetch(); if ($v) $it[] = ((int)($v['qtd'] ?? 0) > 1 ? (int)$v['qtd'] . ' × ' : '') . nomeDaVenda($v); }
+  $db->prepare('INSERT INTO ct_sinais (quando, unidade_id, vendas, cliente, tel, itens, total, sinal, vendedora, por, por_nome) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    ->execute([agora(), unidadeDoPedido(), json_encode(array_values(array_map('intval', $vendas))), $cliente, $tel, mb_substr(implode(', ', $it), 0, 300), round($total, 2), round($sinal, 2), $vend, (int)$u['id'], (string)$u['nome']]);
+  return ['id' => (int)$db->lastInsertId(), 'pago' => round($sinal, 2), 'falta' => round($total - $sinal, 2), 'nome' => $cliente, 'tel' => $tel];
+}
+// o que ainda falta de um sinal: o valor das vendas (as que ainda existem) menos o que já foi pago nelas
+function ctSinalConta(array $s): array {
+  $ids = array_values(array_filter(array_map('intval', (array)json_decode((string)$s['vendas'], true)))); $o = ['ids' => [], 'valor' => 0.0, 'pago' => 0.0, 'falta' => 0.0, 'crianca' => 0];
+  if (!$ids) return $o;
+  /* (só as vendas de antes do sinal: o número de uma venda excluída pode voltar numa venda nova) */
+  $q = db()->prepare('SELECT id, crianca_id, valor, COALESCE((SELECT SUM(p.valor) FROM pagamentos p WHERE p.venda_id = vendas.id), 0) pago FROM vendas WHERE id IN (' . implode(',', $ids) . ') AND quando <= ?'); $q->execute([(string)$s['quando']]);
+  foreach ($q->fetchAll() as $l) {
+    $o['ids'][] = (int)$l['id']; $o['crianca'] = (int)$l['crianca_id']; $o['valor'] += (float)$l['valor']; $o['pago'] += (float)$l['pago']; }
+  $o['valor'] = round($o['valor'], 2); $o['pago'] = round($o['pago'], 2); $o['falta'] = round(max(0, $o['valor'] - $o['pago']), 2); return $o;
+}
+function ctSinalPublico(array $s, array $k): array {
+  return ['id' => (int)$s['id'], 'quando' => (string)$s['quando'], 'uni' => $s['unidade_id'] === null ? null : (int)$s['unidade_id'], 'cliente' => (string)$s['cliente'], 'tel' => (string)$s['tel'],
+    'itens' => (string)$s['itens'], 'total' => $k['ids'] ? $k['valor'] : round((float)$s['total'], 2), 'pago' => $k['ids'] ? $k['pago'] : round((float)$s['sinal'], 2), 'falta' => $k['falta'], 'sinal' => round((float)$s['sinal'], 2),
+    'vendedora' => (string)$s['vendedora'], 'por' => primeiroNome((string)$s['por_nome']), 'estado' => (string)$s['estado'], 'fechado_em' => $s['fechado_em'] === null ? null : (string)$s['fechado_em'], 'fechado_por' => (string)$s['fechado_por']];
+}
+// os sinais em aberto (e os fechados nos últimos 7 dias) de uma unidade (0 = todas)
+function ctSinaisLista(int $uni): array {
+  ctSinaisTabela(); $db = db(); $o = ['abertos' => [], 'fechados' => []];
+  $q = $db->prepare("SELECT * FROM ct_sinais WHERE estado = 'aberto' OR fechado_em >= ? ORDER BY id DESC LIMIT 400"); $q->execute([date('Y-m-d H:i:s', time() - 7 * 86400)]);
+  foreach ($q->fetchAll() as $s) {
+    if ($uni > 0 && (int)($s['unidade_id'] ?? 0) !== $uni) continue;
+    $k = ctSinalConta($s);
+    if ($s['estado'] === 'aberto' && $k['falta'] < 0.005) {   /* (pago por outro caminho, ou a venda foi excluída) */
+      $s['estado'] = $k['ids'] ? 'retirado' : 'cancelado'; $s['fechado_em'] = agora(); $s['fechado_por'] = $k['ids'] ? 'pago' : 'venda excluída';
+      $db->prepare('UPDATE ct_sinais SET estado = ?, fechado_em = ?, fechado_por = ? WHERE id = ?')->execute([$s['estado'], $s['fechado_em'], $s['fechado_por'], (int)$s['id']]); }
+    $o[$s['estado'] === 'aberto' ? 'abertos' : 'fechados'][] = ctSinalPublico($s, $k);
+  }
+  return $o;
+}
+// na retirada: recebe o que falta (a soma das formas = o que falta) e fecha o sinal
+function ctSinalReceber(array $in, array $u): array {
+  ctSinaisTabela(); $db = db(); $q = $db->prepare('SELECT * FROM ct_sinais WHERE id = ?'); $q->execute([(int)($in['id'] ?? 0)]); $s = $q->fetch(); $q->closeCursor();
+  if (!$s) falha('Sinal não encontrado.', 404);
+  if ($s['estado'] !== 'aberto') falha('Esse sinal já foi fechado' . ($s['fechado_por'] !== '' ? ' (' . $s['fechado_por'] . ')' : '') . '.', 409);
+  $k = ctSinalConta($s);
+  if ($k['falta'] < 0.005) { $db->prepare("UPDATE ct_sinais SET estado = ?, fechado_em = ?, fechado_por = ? WHERE id = ?")->execute([$k['ids'] ? 'retirado' : 'cancelado', agora(), $k['ids'] ? 'pago' : 'venda excluída', (int)$s['id']]);
+    falha($k['ids'] ? 'Não falta nada desse cliente: já foi pago.' : 'A venda desse sinal foi excluída.', 409); }
+  $pg = lerPagamento($in['pagamento'] ?? null); if (!$pg) falha('Escolha a forma de pagamento.');
+  if (abs(array_sum($pg) - $k['falta']) >= 0.01) falha('Falta receber ' . dinheiro($k['falta']) . ', e o pagamento deu ' . dinheiro((float)array_sum($pg)) . '.', 409);
+  $c = crianca($k['crianca']); if (!$c) falha('Cliente não encontrado.', 404); $parc = lerParcelas($in, $pg, $u, $c);
+  $antes = (int)$db->query('SELECT COALESCE(MAX(id), 0) FROM pagamentos')->fetchColumn();
+  $pago = gravarPagamento($k['ids'], $pg, (int)$c['id'], (int)$u['id']); anotarParcelas($antes, $parc, $u, (int)$c['id']);
+  $reg = registrar('pag', (int)$c['id'], (string)$c['nome'], 'Restante do sinal (retirada) · ' . $s['cliente'] . ' · ' . dinheiro($k['falta']) . ' · ' . textoPagamento($pago ?: $pg) . ' · por ' . maiusculo(primeiroNome((string)$u['nome'])));
+  $db->prepare("UPDATE ct_sinais SET estado = 'retirado', fechado_em = ?, fechado_por = ? WHERE id = ?")->execute([agora(), primeiroNome((string)$u['nome']), (int)$s['id']]);
+  return ['valor' => $k['falta'], 'pago' => textoPagamento($pago ?: $pg), 'registro' => $reg, 'cupom' => criarCupom($c, 'venda', $antes, $u), 'crianca' => (int)$c['id'], 'vendas' => $k['ids']];
+}
 /* 2.50: os pagamentos do caixa de um dia (o Ajustar caixa), como a troca da forma os vê: a família, a mesma hora e a mesma forma juntas.
    $uni: a unidade do caixa (0 = todas; -1 = sem unidade). O valor de cada um não muda no ajuste, só a forma */
 function pagamentosDoCaixa(?string $dia, int $uni): array {
