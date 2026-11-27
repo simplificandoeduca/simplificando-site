@@ -71,6 +71,10 @@ if (is_array($in['offline'] ?? null)) {
 }
 
 /* ---------- o que a tela carrega de uma vez ---------- */
+/* 2.60: a lista leve. Quem pede (enx = 1, a tela 2.60 em diante) recebe cada cadastro sem os campos que estão no de sempre (a tela põe de
+   volta), e a assinatura (sig) do que foi mandado. Pedindo de novo com a mesma assinatura, sem nada novo, a resposta é só "igual" */
+const CRI_PADRAO = ['obs' => '', 'pacote' => 0.0, 'usado' => 0, 'entrou' => null, 'idface_id' => null, 'rosto' => false, 'foto' => '', 'ativo' => true, 'liberado' => true, 'sapateira' => null, 'doc' => 'cpf', 'tel2' => '', 'pmin' => 0, 'pcd' => false, 'imp' => false, 'uni' => null, 'obs_antes' => '', 'obs_em' => null, 'obs_por' => '', 'nasc' => '', 'festa' => null, 'vabriu' => '', 'visitas' => [], 'venda' => null, 'atraso' => null, 'uv' => 0, 'vouch' => false, 'idade' => 0];
+function criancasEnxutas(array $L): array { foreach ($L as $i => $c) foreach (CRI_PADRAO as $k => $p) if (array_key_exists($k, $c) && $c[$k] === $p) unset($L[$i][$k]); return $L; }
 function criancaPublica(array $c): array {
   return ['id' => (int)$c['id'], 'nome' => $c['nome'], 'idade' => (int)$c['idade'], 'resp' => $c['resp'], 'rel' => $c['rel'], 'tel' => $c['tel'], 'cpf' => $c['cpf'], 'obs' => $c['obs'],
     'pacote' => round((int)$c['pacote_min'] / 60, 2), 'usado' => (int)$c['usado_min'], 'entrou' => $c['entrou'], 'idface_id' => $c['idface_id'] === null ? null : (int)$c['idface_id'],
@@ -217,7 +221,7 @@ switch ($acao) {
     $nome = maiusculo($val('nome')); $login = loginDe($val('login')); $senha = (string)($in['senha'] ?? '');   /* 2.02: o login pode ter espaço */
     if ($nome === '' || $login === '' || strlen($senha) < 6) falha('Preencha nome, login e uma senha com pelo menos 6 caracteres.');
     $db->prepare("INSERT INTO usuarios (nome, login, senha, papel, criado_em) VALUES (?, ?, ?, 'gestor', ?)")->execute([$nome, $login, password_hash($senha, PASSWORD_DEFAULT), agora()]);
-    session_regenerate_id(true); $_SESSION['uid'] = (int)$db->lastInsertId();
+    session_regenerate_id(true); $_SESSION['uid'] = (int)$db->lastInsertId(); sessaoMarca((int)$_SESSION['uid']);
     responder(['usuario' => eu()]);
   }
   case 'entrar': {
@@ -228,7 +232,7 @@ switch ($acao) {
     if ((int)$tq['l'] >= 8 || (int)$tq['t'] >= 30) falha('Muitas tentativas. Espere 15 minutos e tente de novo.', 429);
     $q = $db->prepare('SELECT * FROM usuarios WHERE login IN (?, ?) AND ativo = 1 ORDER BY (login = ?) DESC LIMIT 1'); $q->execute([$login, loginDe($login), $login]); $u = $q->fetch();   /* 2.02: "Julia  Alves" entra como "julia alves" */
     if (!$u || !password_verify($senha, $u['senha'])) { $db->prepare('INSERT INTO tentativas (login, ip, quando) VALUES (?, ?, ?)')->execute([$login, $ip, time()]); usleep(400000); falha('Login ou senha errados.', 401); }
-    session_regenerate_id(true); $_SESSION['uid'] = (int)$u['id']; $_SESSION['uni0'] = max(0, (int)($_SERVER['HTTP_X_PLAY_UNIDADE'] ?? 0));   // 1.91: a unidade em que entrou
+    session_regenerate_id(true); $_SESSION['uid'] = (int)$u['id']; sessaoMarca((int)$u['id']); $_SESSION['uni0'] = max(0, (int)($_SERVER['HTTP_X_PLAY_UNIDADE'] ?? 0));   // 1.91: a unidade em que entrou
     responder(['usuario' => eu()]);
   }
   case 'loja_unidades': { /* 2.10: a tela de entrar do computador da loja (só com a chave dele) */
@@ -258,7 +262,7 @@ switch ($acao) {
     if (lojaPedeSenha() && !password_verify((string)($in['senha'] ?? ''), $h)) {   /* 2.21: sem a senha, provisoriamente (Ajustes → Computadores da loja) */ $db->prepare('INSERT INTO tentativas (login, ip, quando) VALUES (?, ?, ?)')->execute(['#loja' . $uni, $ip, time()]); usleep(400000); falha('Senha da unidade errada.', 401); }
     $db->prepare('UPDATE maquinas SET ultimo_uso = ? WHERE id = ?')->execute([agora(), (int)$m['id']]);
     if ($loc === '' && $nu !== '' && uniLocal($nu) !== '') $db->prepare('UPDATE maquinas SET local = ? WHERE id = ?')->execute([uniLocal($nu), (int)$m['id']]);   /* 2.35: o computador já liberado aprende o lugar na primeira entrada */
-    session_regenerate_id(true); $_SESSION['uid'] = (int)$lu['id']; $_SESSION['uni0'] = $uni; $_SESSION['maq'] = (int)$m['id'];
+    session_regenerate_id(true); $_SESSION['uid'] = (int)$lu['id']; sessaoMarca((int)$lu['id']); $_SESSION['uni0'] = $uni; $_SESSION['maq'] = (int)$m['id'];
     responder(['usuario' => eu()]);
   }
   case 'maquina_liberar': { /* 2.10: o gestor libera este computador (a chave volta só uma vez, para ficar guardada nele) */
@@ -278,7 +282,7 @@ switch ($acao) {
   case 'loja_senha': { /* 2.11: o gestor troca a senha de uma unidade (a do computador da loja) */
     $u = exigir(['gestor']); $uni = (int)($in['unidade'] ?? 0); $s = (string)($in['senha'] ?? ''); if (mb_strlen($s) < 4 || mb_strlen($s) > 40) falha('A senha precisa ter de 4 a 40 caracteres.');
     $lu = usuarioDaLoja($uni); if (!$lu) falha('Unidade não encontrada.', 404);
-    $db->prepare('UPDATE usuarios SET senha = ? WHERE id = ?')->execute([password_hash($s, PASSWORD_DEFAULT), (int)$lu['id']]);
+    $db->prepare('UPDATE usuarios SET senha = ? WHERE id = ?')->execute([password_hash($s, PASSWORD_DEFAULT), (int)$lu['id']]); sessaoNova((int)$lu['id']);   /* 2.60: os computadores da unidade entram de novo */
     $n = ''; foreach (unidadesDaLoja() as $x) if ($x['id'] === $uni) $n = $x['nome']; registrar('alt', null, 'Computador da loja', 'Senha da unidade ' . $n . ' trocada · por ' . primeiroNome($u['nome']));
     responder();
   }
@@ -308,12 +312,19 @@ switch ($acao) {
     $q = $db->prepare('SELECT senha FROM usuarios WHERE id = ?'); $q->execute([$u['id']]);
     if (!password_verify($atual, (string)$q->fetchColumn())) falha('A senha atual não confere.');
     if (strlen($nova) < 6) falha('A senha nova precisa ter pelo menos 6 caracteres.');
-    $db->prepare('UPDATE usuarios SET senha = ? WHERE id = ?')->execute([password_hash($nova, PASSWORD_DEFAULT), $u['id']]);
+    $db->prepare('UPDATE usuarios SET senha = ? WHERE id = ?')->execute([password_hash($nova, PASSWORD_DEFAULT), $u['id']]); sessaoNova((int)$u['id']);   /* 2.60: sai dos outros computadores (este continua) */
     responder();
   }
 
   /* ---------- tudo que a tela mostra ---------- */
-  case 'dados': { $u = exigir(); session_write_close(); responder(dados($u)); }
+  case 'dados': { $u = exigir(); session_write_close(); $d = dados($u);
+    if (!empty($in['enx'])) {   /* 2.60: a lista leve e a assinatura (o que muda sozinho no iDFace a cada contato não conta) */
+      $idf = is_array($d['idface'] ?? null) ? $d['idface'] : []; $fixo = $idf;
+      foreach (['segundos', 'ultimo_contato', 'ultima_batida', 'periodo', 'erro', 'fila'] as $k) unset($fixo[$k]);
+      $base = $d; unset($base['agora'], $base['idface']); $j = json_encode($base, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); $sig = $j === false ? '' : md5($j . '|' . json_encode($fixo)); unset($base, $j);
+      if ($sig !== '' && (string)($in['sig'] ?? '') === $sig) responder(['igual' => 1, 'sig' => $sig, 'agora' => $d['agora'], 'idface' => $idf]);
+      $d['criancas'] = criancasEnxutas($d['criancas']); $d['sig'] = $sig; }
+    responder($d); }
   case 'gz_teste': { exigir(); responder(['eco' => str_repeat('Play Space · ', 900)]); }   // 1.01: a tela confere, uma vez, se lê a resposta comprimida deste servidor
   case 'copia_fazer': { exigir(['gestor']); $n = copiaSemanal(true); if (!$n) falha('Uma cópia já está sendo feita agora. Espere um instante e confira a lista.', 409); responder(['copia' => copiaInfo()]); }   // 1.51
   case 'copia_baixar': {   // 1.51: o gestor baixa uma cópia da semana (a mais nova, se não disser qual). O arquivo vai inteiro, sem passar pelo JSON
@@ -1428,7 +1439,7 @@ switch ($acao) {
       if ($id === (int)$u['id'] && $papel !== 'gestor') falha('Você não pode tirar o seu próprio papel de gestor.');
       $db->prepare('UPDATE usuarios SET nome = ?, login = ?, papel = ? WHERE id = ?')->execute([$nome, $login, $papel, $id]);
       if ($temUni) $db->prepare('UPDATE usuarios SET unidade_id = ? WHERE id = ?')->execute([$uni ?: null, $id]);
-      if ($senha !== '') { if (strlen($senha) < 6) falha('A senha precisa ter pelo menos 6 caracteres.'); $db->prepare('UPDATE usuarios SET senha = ? WHERE id = ?')->execute([password_hash($senha, PASSWORD_DEFAULT), $id]); }
+      if ($senha !== '') { if (strlen($senha) < 6) falha('A senha precisa ter pelo menos 6 caracteres.'); $db->prepare('UPDATE usuarios SET senha = ? WHERE id = ?')->execute([password_hash($senha, PASSWORD_DEFAULT), $id]); sessaoNova($id); }   /* 2.60 */
     } else {
       if (strlen($senha) < 6) falha('Defina uma senha inicial com pelo menos 6 caracteres.');
       $db->prepare('INSERT INTO usuarios (nome, login, senha, papel, criado_em, unidade_id) VALUES (?, ?, ?, ?, ?, ?)')->execute([$nome, $login, password_hash($senha, PASSWORD_DEFAULT), $papel, agora(), $uni ?: null]); $id = (int)$db->lastInsertId();

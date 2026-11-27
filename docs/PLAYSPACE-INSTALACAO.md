@@ -1301,6 +1301,27 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Mais rápido, a senha trocada tira dos outros computadores e a NF nos Finalizados do dia (2.60)
+
+Pedido do dono (27/11): "o sistema tá muito lento ... tá lento para trocar as abas", "quando eu trocar senha, eu quero que deslogue de todos os computadores", "quando a NF não estiver emitida, coloca ela vermelhinha, e quando a NF estiver emitida, coloca ela verde. Aí você só pode emitir NF depois de finalizar o cliente. Pode tirar aquela opção de onde está" e "a atendente me falou que marcou PCD e não contou PCD".
+
+Mais rápido (medido com 15 mil clientes, num computador 4 vezes mais lento):
+- A lista leve: o servidor manda cada cadastro só com o que não é o de sempre (a lista caiu de 7 MB para 2,3 MB) e uma assinatura. Sem nada novo, a resposta é curta ("igual") e a tela não refaz nada: a atualização de cada 30 s caiu de 1,4 s para 0,3 s.
+- A tela acha cada cadastro e cada família por um índice: a ficha abre em 3 ms (eram 0,2 s) e a família sai na hora (eram 0,1 s por busca).
+- O Banco de horas desenha os primeiros 60 clientes (eram 150; a busca acha todos) e guarda a ordem alfabética: a aba abre em 0,2 s.
+- A tela de antes (sem atualizar) continua recebendo a lista inteira, como antes.
+
+A senha trocada:
+- Trocar a senha (a própria, a de alguém na Equipe ou a de uma unidade) tira essa pessoa de todos os outros computadores na hora: eles voltam para a tela de entrar com o aviso "A senha foi trocada. Entre de novo com a senha nova." Quem trocou a própria senha continua dentro. Nas Finanças, o mesmo.
+
+A NF:
+- A nota fiscal sai só depois de finalizar o cliente (saiu do espaço e devolveu os carrinhos), para todos, o gestor também.
+- O botão NF saiu da ficha. Nos Finalizados do dia, cada linha com compra tem o botão NF: vermelho sem a nota, verde com a nota emitida. Tocar abre a nota da compra (com mais de uma compra, escolhe qual). Com alguém da família ainda no espaço, o botão mostra o cadeado.
+- No histórico do cliente, a NF sem emitir é vermelha e a emitida é verde.
+
+O PCD:
+- Conferido: a criança marcada PCD no cadastro pela atendente paga a metade da recreação avulsa na saída (65 min: R$ 80, contra R$ 160 sem PCD), com "PCD 50%" no item. Os computadores da loja nas versões antigas (2.51, 2.54) não mostram a linha do desconto: precisam atualizar.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O comprovante da nota quando o governo não entrega o PDF (2.59)
 
 Pedido do dono (27/11): "a nota já foi emitida, tá lá no sistema, só que ela não carregou aqui" (o governo não entregou o PDF oficial, o DANFSe; o Notas mostrava a página de reserva "PDF oficial da NFS-e").

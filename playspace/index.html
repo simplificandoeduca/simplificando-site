@@ -929,6 +929,9 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 /* 1.25: os finalizados do dia */
 .esp-fora.fim .fim-it .quem { flex: 1; min-width: 0; } .fim-v { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; flex: none; text-align: right; font-size: 14px; }
 .fim-v small { font-size: 11.5px; font-weight: 800; } .fim-v small.pas { color: var(--erro); }
+.fim-nf { flex: none; display: inline-flex; align-items: center; gap: 4px; height: 30px; padding: 0 11px; border-radius: 999px; border: 1.5px solid #F3B8AC; background: #FDECE8; color: #B8402A; font: 800 12px/1 var(--texto); letter-spacing: .03em; white-space: nowrap; cursor: pointer; margin-left: 6px; }
+.fim-nf.ok { border-color: #A9D8B5; background: #E2F2E6; color: #2F7A4B; } .fim-nf:hover, .fim-nf:focus-visible { filter: brightness(.97); }   /* 2.60: a NF dos Finalizados (vermelha sem emitir, verde emitida) */
+.nf-sim { color: #2F7A4B !important; font-weight: 700; } .nf-nao { color: #B8402A !important; font-weight: 700; }
 .fim-lixo { flex: none; display: inline-grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 10px; background: transparent; color: var(--erro); cursor: pointer; } .fim-lixo:hover, .fim-lixo:focus-visible { background: color-mix(in srgb, var(--erro) 12%, transparent); }   /* 2.43: a lixeira do gestor */
 .fim-it .av.carr { display: grid; place-items: center; background: var(--creme-2); color: var(--tinta-2); }
 .pn-pe { display: flex; gap: 10px; flex-wrap: wrap; } .pn-pe .bt { flex: 1 1 200px; justify-content: center; min-height: 48px; }
@@ -943,6 +946,7 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .it-ac, .grupo .it .txt .it-ac { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; margin-top: 5px; } .it-ac .link.canc-v { margin-top: 0; } .grupo .it .txt .it-ac .canc-dica { flex: 1 1 100%; }
 .nf-ch { display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 9px; border-radius: 999px; border: 1.5px solid var(--borda-2); background: var(--card); color: var(--tinta-2); font: 800 11.5px/1 var(--texto); letter-spacing: .03em; white-space: nowrap; }
 .nf-ch.esp { border-color: transparent; background: var(--aviso-bg); color: var(--aviso); } .nf-ch.lib { border-color: var(--ok); color: var(--ok); } .nf-ch.ok { border-color: transparent; background: var(--ok-bg); color: var(--ok); } .nf-ch.nao { border-color: transparent; background: var(--erro-bg); color: var(--erro); }
+.nf-ch:not(.ok) { border-color: #F3B8AC; background: #FDECE8; color: #B8402A; } .nf-ch.ok { border-color: #A9D8B5; background: #E2F2E6; color: #2F7A4B; }   /* 2.60: sem emitir, vermelha; emitida, verde */
 .marca.nf-ok { background: var(--ok-bg); } .marca.nf-ok > svg { color: var(--ok); } .marca.nf-esp { background: var(--aviso-bg); } .marca.nf-esp > svg { color: var(--aviso); }
 .nf-dados { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; padding: 12px 14px; border-radius: 16px; background: var(--card); border: 1.5px solid var(--borda); font-size: 12.5px; color: var(--tinta-2); }
 .nf-dados span { display: flex; flex-direction: column; gap: 1px; min-width: 0; } .nf-dados b { color: var(--tinta); font-size: 14px; overflow-wrap: anywhere; }
@@ -2199,7 +2203,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.59';
+const VERSAO = '2.60';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -2425,10 +2429,10 @@ async function api(acao, dados = {}) {
   let r;
   const ab = typeof AbortController === 'function' ? new AbortController() : null, prazo = setTimeout(() => { if (ab) ab.abort(); }, acao === 'pulso' ? 9000 : 120000);   // 1.40: a internet que não responde também conta como sem internet
   try { r = await fetch(API, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-Play': '1', ...(minhaUni() ? { 'X-Play-Unidade': String(minhaUni()) } : {}) }, body: JSON.stringify(GZ && acao === 'dados' ? { acao, ...dados, gz: 1 } : { acao, ...dados }), ...(ab ? { signal: ab.signal } : {}) }); }
-  catch (e) { const err = new Error(MODO === 'servidor' && EU && EU.id ? 'Sem internet: isto precisa da internet. O resto do Play Space continua funcionando.' : 'Sem ligação com o servidor'); err.rede = true; if (MODO === 'servidor' && EU && EU.id) offLigar(); throw err; }
+  catch (e) { if (acao !== 'dados' && acao !== 'pulso') SIG_SUJO = true; const err = new Error(MODO === 'servidor' && EU && EU.id ? 'Sem internet: isto precisa da internet. O resto do Play Space continua funcionando.' : 'Sem ligação com o servidor'); err.rede = true; if (MODO === 'servidor' && EU && EU.id) offLigar(); throw err; }
   finally { clearTimeout(prazo); }
   let j = null; try { j = await r.json(); } catch (e) { const err = new Error('O servidor não respondeu em JSON'); err.rede = true; throw err; }
-  if (!j.ok) { const err = new Error(j.erro || 'Erro no servidor'); err.status = r.status; if (r.status === 401 && acao !== 'entrar' && !document.body.classList.contains('so')) { clearInterval(SYNC_T); telaEntrar(); } throw err; }
+  if (!j.ok) { if (acao !== 'dados' && acao !== 'pulso') SIG_SUJO = true; const err = new Error(j.erro || 'Erro no servidor'); err.status = r.status; if (r.status === 401 && acao !== 'entrar' && !document.body.classList.contains('so')) { clearInterval(SYNC_T); telaEntrar(); if (/senha foi trocada/i.test(j.erro || '')) setTimeout(() => toast(j.erro), 700); } throw err; }   /* 2.60: a senha trocada em outro computador */
   return j;
 }
 const dataDe = t => t instanceof Date ? t : new Date(String(t).replace(' ', 'T'));
@@ -2441,7 +2445,7 @@ async function baixarResumoDia(el) {
     const bl = await r.blob(), a = document.createElement('a'); a.href = URL.createObjectURL(bl); a.download = 'play-space-resumo-' + d + '.pdf'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); deuCerto('PDF do dia baixado');
   } finally { if (el) el.disabled = false; }
 }
-let CARREGANDO = false, ULTIMA_CARGA = '';
+let CARREGANDO = false, ULTIMA_CARGA = '', ULT_SIG = '', SIG_SUJO = false;   /* 2.60: ULT_SIG = a assinatura da lista que o servidor mandou; SIG_SUJO = um pedido deu erro (a próxima carga vem inteira) */
 /* ---------- 1.40: sem internet, o Play Space continua ---------- */
 // A recepção não para quando a internet cai. O app fica guardado no aparelho (abre mesmo sem internet) e os dados da última vez também.
 // Sem internet, o cadastro, a entrada, a sapateira e a saída (com o pagamento) continuam: cada um fica na fila deste computador, com a hora
@@ -2456,7 +2460,8 @@ const IDB = (() => { let p = null;
   return { ler: k => tx('readonly', s => s.get(k)).catch(() => null), por: (k, v) => tx('readwrite', s => s.put(v, k)).catch(() => null), tirar: k => tx('readwrite', s => s.delete(k)).catch(() => null) }; })();
 const uidNovo = () => Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 8);
 let OFF_GUARDA_T = 0;
-function offGuardarDados(d) { if (MODO !== 'servidor') return; clearTimeout(OFF_GUARDA_T); OFF_GUARDA_T = setTimeout(() => { IDB.por('dados', { d, em: Date.now(), versao: VERSAO }); }, 1200); }   // a lista da última vez, para abrir sem internet
+let OFF_GUARDA_EM = 0;
+function offGuardarDados(d) { if (MODO !== 'servidor') return; clearTimeout(OFF_GUARDA_T); OFF_GUARDA_T = setTimeout(() => { OFF_GUARDA_EM = Date.now(); IDB.por('dados', { d, em: Date.now(), versao: VERSAO }); }, Math.max(1200, 15000 - (Date.now() - OFF_GUARDA_EM))); }   /* 2.60: no máximo a cada 15 s */   // a lista da última vez, para abrir sem internet
 const filaGuardar = () => IDB.por('fila', { fila: OFF.fila, prob: OFF.prob });
 async function offLerFila() { const f = await IDB.ler('fila'); if (f) { OFF.fila = Array.isArray(f.fila) ? f.fila : []; OFF.prob = Array.isArray(f.prob) ? f.prob : []; } }
 function offRegistrarSW() { try { if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => { }); } catch (e) { } }
@@ -2484,7 +2489,7 @@ async function apiOff(acao, dados, loc) {
 function offEfeito(it) {
   const d = it.dados || {}, L = it.loc || {}, em = new Date(it.em * 1000);
   if (it.acao === 'crianca_salvar') {
-    if (d.id) { const c = crianca(d.id); if (c) Object.assign(c, { nome: d.nome, nasc: d.nasc || '', resp: d.resp, tel: d.tel, tel2: d.tel2 || '', doc: d.doc, cpf: d.cpf, obs: d.obs || '', pcd: !!d.pcd }); return {}; }
+    if (d.id) { CRI_IDX = null; const c = crianca(d.id); if (c) Object.assign(c, { nome: d.nome, nasc: d.nasc || '', resp: d.resp, tel: d.tel, tel2: d.tel2 || '', doc: d.doc, cpf: d.cpf, obs: d.obs || '', pcd: !!d.pcd }); return {}; }
     if (!crianca(it.tmp)) S.criancas.push({ id: it.tmp, nome: d.nome, idade: 0, resp: d.resp, rel: '', tel: d.tel, cpf: d.cpf, obs: d.obs || '', pacote: 0, usado: 0, entrou: null, idface_id: null, rosto: false, foto: '', ativo: true, liberado: true, sapateira: null, doc: d.doc, tel2: d.tel2 || '', pmin: 0, pcd: !!d.pcd, imp: false, uni: minhaUni() || null, obs_antes: '', obs_em: null, obs_por: '', nasc: d.nasc || '', festa: null, visitas: [], venda: null, atraso: null, pend: 0, pendi: [], tvis: 0, semNet: true });
     return { id: it.tmp }; }
   const c = crianca(d.id); if (!c) return {};
@@ -2499,7 +2504,7 @@ function offEfeito(it) {
     return { debitado: L.deb || 0, atraso: L.atraso || null, plano: L.plano || '', pend: L.pend || 0, pago: (d.pagamento || []).length ? textoPag(d.pagamento) : '', desc: d.desconto ? { valor: +d.desconto.valor || 0 } : null, sapateira: sap || 0 }; }
   return {};
 }
-const offTrocarId = (de, para) => { for (const it of OFF.fila) for (const k of ['id', 'crianca']) if (it.dados && it.dados[k] === de) it.dados[k] = para; const c = crianca(de); if (c) c.id = para; };
+const offTrocarId = (de, para) => { for (const it of OFF.fila) for (const k of ['id', 'crianca']) if (it.dados && it.dados[k] === de) it.dados[k] = para; const c = crianca(de); if (c) c.id = para; CRI_IDX = null; };
 // a internet voltou: a fila vai, na ordem. O que o servidor recusar vai para "Envios para conferir"; se a internet cair de novo, para e espera
 async function offEnviar() {
   if (OFF.enviando || OFF.on || MODO !== 'servidor' || !OFF.fila.length) { offFaixa(); return; }
@@ -2520,7 +2525,7 @@ async function offTentar() { // sem internet: de tempos em tempos (e quando o ap
 }
 async function offAbrirGuardado() { // abriu sem internet: a lista da última vez, guardada neste aparelho, e o que ficou na fila
   const g = await IDB.ler('dados'); if (!g || !g.d || !g.d.eu) return false;
-  MODO = 'servidor'; OFF.on = true; OFF.desde = new Date(); lerEtapas(); aplicarDados(g.d); for (const it of OFF.fila) offEfeito(it);
+  MODO = 'servidor'; OFF.on = true; OFF.desde = new Date(); lerEtapas(); aplicarDados(g.d); ULT_SIG = ''; for (const it of OFF.fila) offEfeito(it);
   ABAS = abasDoPapel(); desenhar(); offFaixa(); ligarSincronia(); return true;
 }
 function folhaOffProb() { // o que o servidor não aceitou: quem fez, quando, o que era e por quê. Conferido, sai da lista
@@ -2534,16 +2539,24 @@ async function carregar() { // devolve true quando algo mudou no servidor
   if (CARREGANDO || OFF.on || OFF.fila.length || OFF.enviando) return false;   // 1.40: sem internet, ou com a fila esperando, a tela fica com o que foi feito aqui
   CARREGANDO = true;
   try {
-    const t0 = Date.now(), d = await api('dados'), t1 = Date.now();
+    const sujo = SIG_SUJO, t0 = Date.now(), d = await api('dados', { enx: 1, sig: ULTIMA_CARGA && !sujo ? ULT_SIG : '' }), t1 = Date.now();   /* 2.60: a lista leve (enx) e a assinatura da última */
     if (d.agora && t1 - t0 < 4000) { const dv = +dataDe(d.agora) + 500 - (t0 + t1) / 2; DESVIO = Math.abs(dv) >= 3000 ? Math.round(dv) : 0; agora.setTime(Date.now() + DESVIO); }   // 1.15: a hora do servidor (ver DESVIO)
+    if (d.igual) { if (d.idface) S.cfg = { ...S.cfg, idface: { ...S.cfg.idface, ...d.idface } }; return false; }   /* 2.60: nada mudou no servidor: nada para ler nem refazer */
+    if (sujo) SIG_SUJO = false;
     const mudou = aplicarDados(d); if (mudou) offGuardarDados(d); return mudou;
   } finally { CARREGANDO = false; }
 }
+/* 2.60 (o dono: "o sistema tá muito lento ... demorou para carregar uma informação aqui, tá lento para trocar as abas"): a lista leve.
+   O servidor manda cada cadastro só com o que não é o de sempre (fora do espaço, sem pacote, sem foto: quase tudo é o de sempre) e uma
+   assinatura do que mandou; a tela devolve a assinatura no pedido seguinte e, sem nada novo, a resposta vem curta ("igual"): nada para
+   ler nem para refazer (antes, a cada 30 s e a cada novidade de outro computador, a lista inteira era lida e comparada de novo). A tela
+   também acha cada cadastro e cada família num índice (eram milhares de comparações a cada linha desenhada) */
+const CRI_PAD = { obs: '', pacote: 0, usado: 0, entrou: null, idface_id: null, rosto: false, foto: '', ativo: true, liberado: true, sapateira: null, doc: 'cpf', tel2: '', pmin: 0, pcd: false, imp: false, uni: null, obs_antes: '', obs_em: null, obs_por: '', nasc: '', festa: null, vabriu: '', visitas: [], venda: null, atraso: null, uv: 0, vouch: false, idade: 0 };
 function aplicarDados(d) { // 1.40: o que veio do servidor (ou o que ficou guardado no aparelho) vira a tela
     // o que muda sozinho a cada contato do aparelho não conta como novidade (senão a tela redesenhava a cada 6 s e "piscava")
-    const assinatura = JSON.stringify({ ...d, agora: 0, idface: { ...d.idface, segundos: 0, ultimo_contato: 0, ultima_batida: 0, periodo: 0, erro: '', fila: 0 } }); const mudou = assinatura !== ULTIMA_CARGA; ULTIMA_CARGA = assinatura;
+    const assinatura = d.sig || JSON.stringify({ ...d, agora: 0, idface: { ...d.idface, segundos: 0, ultimo_contato: 0, ultima_batida: 0, periodo: 0, erro: '', fila: 0 } }); const mudou = assinatura !== ULTIMA_CARGA; ULTIMA_CARGA = assinatura; ULT_SIG = d.sig || '';   /* 2.60: a assinatura vem do servidor */
     S.balcao = d.balcao ? { ...d.balcao, entrou: null, venda: null, visitas: [] } : null;   /* 2.00 */
-    S.criancas = d.criancas.map(c => ({ ...c, festaPapel: c.festa_papel || null, entrou: c.entrou ? dataDe(c.entrou) : null, venda: c.venda ? { ...c.venda, quando: dataDe(c.venda.quando) } : null, visitas: (c.visitas || []).map(v => ({ ...v, dia: dataDe(v.dia), ini: v.ini ? dataDe(v.ini) : null })) }));
+    S.criancas = d.criancas.map(c => ({ ...CRI_PAD, ...c, festaPapel: c.festa_papel || null, entrou: c.entrou ? dataDe(c.entrou) : null, venda: c.venda ? { ...c.venda, quando: dataDe(c.venda.quando) } : null, visitas: (c.visitas || []).map(v => ({ ...v, dia: dataDe(v.dia), ini: v.ini ? dataDe(v.ini) : null })) }));
     S.registros = d.registros.map(r => ({ ...r, h: dataDe(r.h) }));
     S.conversas = d.conversas.map(x => ({ ...x, msgs: x.msgs.map(m => ({ ...m, h: dataDe(m.h) })) }));
     S.compromissos = d.compromissos; { const fx = MODO === 'servidor' ? fixaDe(d.eu) : 0; S.vfut = (d.vfut || []).filter(x => !fx || !x.uni || +x.uni === fx); }   /* 2.08: as vendas futuras */ { const fx = MODO === 'servidor' ? fixaDe(d.eu) : 0; S.festas = (d.festas || []).filter(f => !fx || !f.uni || +f.uni === fx); }   // 1.29: as festas marcadas das unidades; 2.02: só as da unidade de quem tem a unidade escolhida
@@ -2678,6 +2691,7 @@ let LJ_LUGAR = '';   /* 2.36: o lugar tocado na tela de entrar (esperando a conf
 const lugarDe = n => uniNorm(n).replace(/CASA\s*TO[MN]\b/, '').trim().split(/\s+/)[0] || '';
 function telaEntrar() {
   if (LADO) fecharLado();
+  ULTIMA_CARGA = ''; ULT_SIG = '';   /* 2.60: quem entrar recebe a lista inteira */
   S.pedidos = []; PED_SINAL = ''; S.avisos = []; AV_SINAL = null; AV_JA = null; for (const k of [...AUT_VISTOS]) if (String(k).startsWith('av')) AUT_VISTOS.delete(k); setTimeout(desenharPedidos, 0);   // 1.23: na tela de entrar não há cartão de pedidos (1.25: nem avisos; quem entrar depois começa do zero)
   { const m = MODO === 'servidor' && !ENTRAR_SENHA ? maqLer() : null; ENTRAR_SENHA = false; if (m) { telaEntrarLoja(m); return; } }   /* 2.10: o computador da loja: as unidades */
   telaSo(`<h1 style="font-size:24px;font-weight:800">Play Space</h1><p class="explica">${maqLer() ? '<b>Login gestor</b>: entre com o seu login e senha.' : 'Entre com o seu login da equipe.'}</p>
@@ -3324,7 +3338,14 @@ const rotPcd = () => 'PCD ' + pcdDesc() + '%';
 const periodosDe = min => Math.max(1, Math.ceil((min - tolerancia()) / periodo()));
 function cobrar(minutos) { return periodosDe(minutos) * periodo(); }
 const ficouMin = m => { const f = Math.floor(m); return periodosDe(f) === periodosDe(m) ? f : Math.ceil(m); };   // 1.45: o "ficou" que se lê (perto do limite, o minuto que começou: nunca 0h39 com dois períodos)
-const crianca = id => S.criancas.find(c => c.id === +id) || (S.balcao && S.balcao.id === +id ? S.balcao : undefined);   /* 2.00: o cliente da loja da Casa Tom (fora das listas) */
+/* 2.60: o índice da lista (número do cadastro → posição), refeito quando a lista muda. Cada achado é conferido; o que não está no índice
+   é procurado na lista uma vez (e o índice refeito, se achou) */
+let CRI_IDX = null;
+function criIdx() { const L = S.criancas; if (!CRI_IDX || CRI_IDX.L !== L || CRI_IDX.n !== L.length) { const m = new Map(); for (let i = L.length - 1; i >= 0; i--) m.set(L[i].id, i); CRI_IDX = { L, n: L.length, m, falta: new Set(), fam: null }; } return CRI_IDX; }
+const crianca = id => { id = +id; const X = criIdx(), i = X.m.get(id), c = i === undefined ? undefined : X.L[i];
+  if (c && c.id === id) return c;
+  if (!X.falta.has(id)) { const k = X.L.findIndex(x => x.id === id); if (k >= 0) { CRI_IDX = null; return X.L[k]; } X.falta.add(id); }
+  return S.balcao && S.balcao.id === id ? S.balcao : undefined; };   /* 2.00: o cliente da loja da Casa Tom (fora das listas) */   /* 2.00: o cliente da loja da Casa Tom (fora das listas) */
 /* 1.90: o relógio da tela para junto com a conta (a hora em que a loja fecha, no dia da entrada; nunca mais de 12 h): sem a saída dada, a
    lista não mostra mais 48 h e o saldo de horas não cai além do que é cobrado */
 const minDentro = c => c.entrou ? (Math.min(agora.getTime(), tetoVisita(c)) - c.entrou.getTime()) / 60000 : 0;
@@ -3478,8 +3499,14 @@ const relSabe = c => !!c.rel && c.rel !== 'responsável';
 const relP = c => relSabe(c) ? ` (${esc(c.rel)})` : '';
 const relDe = c => relSabe(c) ? `${esc(c.rel)} de ${esc(c.nome)}` : `responsável por ${esc(c.nome)}`;
 const fones = c => [c.tel, c.tel2].filter(Boolean).map(telTela).join(' · ');
-const familia = c => S.criancas.filter(x => mesmoCliente(c, x)).sort((a, b) => a.nome.localeCompare(b.nome));
-const clientePorDoc = (tipo, v) => { const k = docChave(tipo, v); return k ? S.criancas.filter(x => docDe(x) === k).sort((a, b) => a.nome.localeCompare(b.nome)) : []; };
+/* 2.60: a família pelo índice do documento e do telefone (no servidor, com milhares de cadastros). As mesmas pessoas e a mesma ordem */
+function famIdx(X) { if (!X.fam) { const d = new Map(), t = new Map(), poe = (M, k, i) => { const a = M.get(k); if (a) a.push(i); else M.set(k, [i]); };
+  X.L.forEach((x, i) => { const k = docDe(x), e = tel8(x); if (k) poe(d, k, i); if (e) poe(t, e, i); }); X.fam = { d, t }; } return X.fam; }
+const familia = c => { if (MODO !== 'servidor') return S.criancas.filter(x => mesmoCliente(c, x)).sort((a, b) => a.nome.localeCompare(b.nome));
+  const X = criIdx(), F = famIdx(X), k = docDe(c), e = tel8(c), I = new Set(), j = X.m.get(c.id); if (j !== undefined) I.add(j);
+  if (k) for (const i of F.d.get(k) || []) I.add(i); if (e) for (const i of F.t.get(e) || []) I.add(i);
+  return [...I].sort((a, b) => a - b).map(i => X.L[i]).filter(x => mesmoCliente(c, x)).sort((a, b) => a.nome.localeCompare(b.nome)); };
+const clientePorDoc = (tipo, v) => { const k = docChave(tipo, v); if (!k) return []; const X = MODO === 'servidor' ? criIdx() : null, L = X ? (famIdx(X).d.get(k) || []).map(i => X.L[i]) : S.criancas; return L.filter(x => docDe(x) === k).sort((a, b) => a.nome.localeCompare(b.nome)); };   /* 2.60: pelo índice */
 const cpfValido = v => { const d = soDig(v); if (d.length !== 11 || /^(\d)\1{10}$/.test(d)) return false; const dv = n => { let t = 0; for (let k = 0; k < n; k++) t += +d[k] * (n + 1 - k); const r = (t * 10) % 11; return r === 10 ? 0 : r; }; return dv(9) === +d[9] && dv(10) === +d[10]; };
 const iniciais = n => String(n || '').trim().split(/\s+/).map(x => x[0] || '').slice(0, 2).join('').toUpperCase();
 // 1.16: o responsável é a referência principal (como no sistema antigo da loja): nas listas e nas folhas o nome dele vem primeiro, em destaque,
@@ -6743,11 +6770,11 @@ function finalizadosHoje() {
         const L = S.compras.filter(x => x.crianca === c.id && !x.imp && !x.alug && !/^tempo a mais/.test(x.itens || '') && (deSaida ? +x.quando > de + 999 : +x.quando >= de) && +x.quando <= +dia + 999), valor = centavos(L.reduce((t, x) => t + x.v, 0));
         const am = L.filter(x => x.auto && /^avulsa/.test(x.itens || '')).reduce((t, x) => t + minDe(x), 0), al = L.filter(x => x.auto && !/^avulsa/.test(x.itens || '')).reduce((t, x) => t + minDe(x), 0);   // a recreação avulsa da visita numa linha só
         L.forEach(x => usadas.add(x.id));   /* 2.41 */
-        V.push({ id: +dia, ini0: deSaida ? de + 1 : de, crianca: c.id, nome: c.nome, resp: c.resp, entrou: ini, saiu: dia, deb: v.deb, dp: Math.max(0, (+v.deb || 0) - L.reduce((t, x) => t + (ehPacoteVenda(x) ? 0 : minDe(x)), 0)), uni: c.uni || null, valor, falta: centavos(L.reduce((t, x) => t + faltaCompra(x), 0)), itens: [...new Set([...(am ? ['RECREAÇÃO avulsa · ' + dur(am)] : []), ...(al ? ['Além do pacote · ' + dur(al)] : []), ...L.filter(x => !x.auto && (x.v > 0 || x.voucher)).map(nomeVendaTxt)])].slice(0, 4) }); }); }
+        V.push({ vids: L.filter(x => x.v > 0.004 && !x.imp).map(x => x.id), id: +dia, ini0: deSaida ? de + 1 : de, crianca: c.id, nome: c.nome, resp: c.resp, entrou: ini, saiu: dia, deb: v.deb, dp: Math.max(0, (+v.deb || 0) - L.reduce((t, x) => t + (ehPacoteVenda(x) ? 0 : minDe(x)), 0)), uni: c.uni || null, valor, falta: centavos(L.reduce((t, x) => t + faltaCompra(x), 0)), itens: [...new Set([...(am ? ['RECREAÇÃO avulsa · ' + dur(am)] : []), ...(al ? ['Além do pacote · ' + dur(al)] : []), ...L.filter(x => !x.auto && (x.v > 0 || x.voucher)).map(nomeVendaTxt)])].slice(0, 4) }); }); }
     const G = new Map(); for (const v of S.compras || []) { if (!v.alug || !v.voltou || v.voltou < d0 || v.voltou >= dFim) continue; const k = v.crianca + '|' + v.alug.s + '|' + +v.voltou, c = crianca(v.crianca);
-      if (!G.has(k)) G.set(k, { crianca: v.crianca, nome: c ? c.nome : '', resp: c ? c.resp : '', s: v.alug.s, n: v.alug.n, q: 0, saiu: v.quando, voltou: v.voltou, valor: 0, uni: v.uni || null });
-      const g = G.get(k); g.q += v.alug.m > 0 ? (g.q ? 0 : 1) : (v.alug.q || 1); g.valor = centavos(g.valor + v.v); if (v.quando < g.saiu) g.saiu = v.quando; }
-    for (const v of S.compras || []) if (!v.alug && /^tempo a mais/.test(v.itens || '')) for (const g of G.values()) if (g.crianca === v.crianca && Math.abs(+g.voltou - +(v.voltou || v.quando)) < 1500) { g.valor = centavos(g.valor + v.v); break; }
+      if (!G.has(k)) G.set(k, { vids: [], crianca: v.crianca, nome: c ? c.nome : '', resp: c ? c.resp : '', s: v.alug.s, n: v.alug.n, q: 0, saiu: v.quando, voltou: v.voltou, valor: 0, uni: v.uni || null });
+      const g = G.get(k); if (v.v > 0.004) g.vids.push(v.id); g.q += v.alug.m > 0 ? (g.q ? 0 : 1) : (v.alug.q || 1); g.valor = centavos(g.valor + v.v); if (v.quando < g.saiu) g.saiu = v.quando; }
+    for (const v of S.compras || []) if (!v.alug && /^tempo a mais/.test(v.itens || '')) for (const g of G.values()) if (g.crianca === v.crianca && Math.abs(+g.voltou - +(v.voltou || v.quando)) < 1500) { g.valor = centavos(g.valor + v.v); if (v.v > 0.004) g.vids.push(v.id); break; }
     D.push(...G.values());
     /* 2.41 (o dono: "quando eu clico no botão vender pacote, ele tá entrando como sem valor pro caixa"): a venda do dia que não caiu em
        nenhuma saída vai para a saída de alguém da família no mesmo dia; sem ninguém da família saindo (nem no espaço), "Vendas sem entrada" */
@@ -6755,24 +6782,31 @@ function finalizadosHoje() {
       const c = crianca(v.crianca), fam = c ? familia(c) : []; const ids = fam.length ? fam.map(x => x.id) : [v.crianca];
       const alvo = V.filter(x => ids.includes(x.crianca) && x.ini0 <= +v.quando && +v.quando <= +x.saiu + 999).sort((a, b) => a.saiu - b.saiu)[0]
         || V.filter(x => ids.includes(x.crianca) && +x.saiu < +v.quando).sort((a, b) => b.saiu - a.saiu)[0];   /* 2.44: vendido depois da saída: a última saída da família antes da venda */
-      if (alvo) { alvo.valor = centavos(alvo.valor + v.v); alvo.falta = centavos(alvo.falta + faltaCompra(v)); if (alvo.itens.length < 4 && !alvo.itens.includes(nomeVendaTxt(v))) alvo.itens.push(nomeVendaTxt(v)); continue; }
-      SE.push({ id: v.id, crianca: v.crianca, nome: c ? c.nome : '', resp: c ? c.resp : '', quando: v.quando, valor: centavos(v.v), falta: faltaCompra(v), item: nomeVendaTxt(v), uni: v.uni || (c && c.uni) || null }); } }
+      if (alvo) { alvo.vids.push(v.id); alvo.valor = centavos(alvo.valor + v.v); alvo.falta = centavos(alvo.falta + faltaCompra(v)); if (alvo.itens.length < 4 && !alvo.itens.includes(nomeVendaTxt(v))) alvo.itens.push(nomeVendaTxt(v)); continue; }
+      SE.push({ vids: [v.id], id: v.id, crianca: v.crianca, nome: c ? c.nome : '', resp: c ? c.resp : '', quando: v.quando, valor: centavos(v.v), falta: faltaCompra(v), item: nomeVendaTxt(v), uni: v.uni || (c && c.uni) || null }); } }
+  if (MODO !== 'servidor') for (const x of [...V, ...D, ...SE]) x.nf = nfConta(x.vids);   /* 2.60: no servidor, a nota de cada linha já vem contada */
   const meu = x => gestor() || !minhaUni() || !x.uni || +x.uni === +minhaUni();   /* 2.15 (o dono: "cada unidade só pode ver sua unidade") */
   return { V: V.filter(meu).sort((a, b) => b.saiu - a.saiu), D: D.filter(meu).sort((a, b) => b.voltou - a.voltou), SE: SE.filter(meu).sort((a, b) => b.quando - a.quando) };
 }
 const linhaFim = (x, varias) => { const c = crianca(x.crianca), u = varias && x.uni && nomeUni(x.uni) ? ' · ' + esc(nomeUni(x.uni)) : '', ult = c ? ultVis(c) : null, reabre = !!c && podeReabrirJa(c) && !!ult && (MODO === 'servidor' ? ult.id === x.id : +new Date(ult.dia) === +x.saiu);
   const quem = `<span class="txt"><b>${esc(x.resp || x.nome)}</b><span>${x.resp ? esc(x.nome) + ' · ' : ''}entrou ${hora(x.entrou)} · saiu ${hora(x.saiu)} · ficou ${dur(Math.max(0, Math.floor((x.saiu - x.entrou) / 60000)))}${x.itens && x.itens.length ? ' · ' + esc(x.itens.join(', ')) : ''}${u}</span></span>`;
-  return `<div class="it fim-it">${c ? `<button class="quem tap" data-act="ficha-ver" data-id="${c.id}">${avatar(c)}${quem}</button>` : `<div class="quem"><span class="av">${esc(String(x.nome || '?').slice(0, 1))}</span>${quem}</div>`}<span class="fim-v"><b class="num">${x.valor > 0 ? brl(x.valor) : dpFim(x) > 0 ? 'usou o pacote' : 'sem valor'}</b>${x.falta > 0.004 ? `<small class="pas">a receber ${brl(x.falta)}</small>` : ''}${dpFim(x) > 0 ? `<small>${x.valor > 0 ? 'e usou ' + dur(dpFim(x)) + ' do pacote' : dur(dpFim(x)) + ' usadas'}</small>` : ''}</span>${reabre ? `<button class="bt tap${podeReabrir(c) ? '' : ' canc-bt'}" data-act="reabrir" data-id="${c.id}" title="${podeReabrir(c) ? 'Desfaz a saída: o tempo continua contando desde a entrada' : 'Passou do prazo: só o gestor reabre, e fica anotado'}">${ic(IC.renova, 14)} ${podeReabrir(c) ? 'Reabrir' : 'Reabrir · gestor'}</button>` : ''}${lixoFim('visita', `data-id="${x.id}" data-c="${x.crianca}" data-sv="${+x.saiu}"`)}</div>`; };
+  return `<div class="it fim-it">${c ? `<button class="quem tap" data-act="ficha-ver" data-id="${c.id}">${avatar(c)}${quem}</button>` : `<div class="quem"><span class="av">${esc(String(x.nome || '?').slice(0, 1))}</span>${quem}</div>`}<span class="fim-v"><b class="num">${x.valor > 0 ? brl(x.valor) : dpFim(x) > 0 ? 'usou o pacote' : 'sem valor'}</b>${x.falta > 0.004 ? `<small class="pas">a receber ${brl(x.falta)}</small>` : ''}${dpFim(x) > 0 ? `<small>${x.valor > 0 ? 'e usou ' + dur(dpFim(x)) + ' do pacote' : dur(dpFim(x)) + ' usadas'}</small>` : ''}</span>${reabre ? `<button class="bt tap${podeReabrir(c) ? '' : ' canc-bt'}" data-act="reabrir" data-id="${c.id}" title="${podeReabrir(c) ? 'Desfaz a saída: o tempo continua contando desde a entrada' : 'Passou do prazo: só o gestor reabre, e fica anotado'}">${ic(IC.renova, 14)} ${podeReabrir(c) ? 'Reabrir' : 'Reabrir · gestor'}</button>` : ''}${nfFimBt(x)}${lixoFim('visita', `data-id="${x.id}" data-c="${x.crianca}" data-sv="${+x.saiu}"`)}</div>`; };
 /* 2.43 (o dono: "uma lixeirazinha vermelha pra mim quando eu quiser excluir um pedido que às vezes lançou errado ... só pro gestor") */
+/* 2.60: a NF de cada linha dos Finalizados do dia. Vermelha: falta emitir (a nota de alguma compra da linha). Verde: tudo emitido.
+   Tocar abre a nota da compra (com mais de uma compra na linha, escolhe qual). Com alguém da família ainda no espaço (ou um carrinho fora),
+   o cadeado: a nota sai quando o cliente for finalizado */
+const nfConta = ids => { const L = [...new Set(ids || [])]; return { n: L.length, e: L.filter(i => { const v = (S.compras || []).find(x => x.id === i); return !!v && (nfDaVenda(v) || {}).status === 'usado'; }).length, v: L }; };
+const nfFimBt = x => { const c = crianca(x.crianca), f = x.nf; if (!c || !f || !(f.n > 0) || fimDaCasaTom(x)) return ''; const ok = f.e >= f.n, trava = !ok && emAtendimento(c);
+  return `<button type="button" class="fim-nf tap ${ok ? 'ok' : 'falta'}" data-act="nf-fim" data-id="${c.id}" data-v="${(f.v || []).join(',')}" title="${ok ? 'Nota fiscal emitida: toque para ver, imprimir ou enviar' : trava ? NF_TRAVA_MSG : 'Nota fiscal não emitida: toque para emitir'}">${ok ? ic(IC.check, 14) : trava ? ic(IC.cadeado, 14) : ic(IC.cupom, 14)}NF${!ok && f.e > 0 ? ' ' + f.e + '/' + f.n : ''}</button>`; };
 const dpFim = x => x.dp != null ? +x.dp || 0 : (x.valor > 0 ? 0 : +x.deb || 0);   /* 2.44: as horas do pacote que a saída usou */
 const lixoFim = (k, dados) => gestor() ? `<button type="button" class="fim-lixo tap" data-act="fim-excluir" data-k="${k}" ${dados} title="Excluir (lançado errado) · só o gestor" aria-label="Excluir (lançado errado)">${ic(IC.lixo, 18)}</button>` : '';
 const fimDaCasaTom = x => !!((x.uni && ehCasaTom(+x.uni)) || (S.balcao && +x.crianca === +S.balcao.id));   /* 2.46: a venda da Casa Tom (pela unidade ou pelo cliente da loja) */
 const linhaFimVenda = (x, varias) => { const c = crianca(x.crianca), u = varias && x.uni && nomeUni(x.uni) ? ' · ' + esc(nomeUni(x.uni)) : '';   /* 2.41 */
   const quem = `<span class="txt"><b>${esc(x.resp || x.nome)}</b><span>${x.resp && x.nome ? esc(x.nome) + ' · ' : ''}${esc(x.item)} · ${hora(x.quando)}${u}</span></span>`;
-  return `<div class="it fim-it">${c ? `<button class="quem tap" data-act="ficha-ver" data-id="${c.id}"><span class="av carr">${ic(IC.presente, 18)}</span>${quem}</button>` : `<div class="quem"><span class="av carr">${ic(IC.presente, 18)}</span>${quem}</div>`}<span class="fim-v"><b class="num">${brl(x.valor)}</b>${x.falta > 0.004 ? `<small class="pas">a receber ${brl(x.falta)}</small>` : ''}</span>${lixoFim('venda', `data-id="${x.id}"`)}</div>`; };
+  return `<div class="it fim-it">${c ? `<button class="quem tap" data-act="ficha-ver" data-id="${c.id}"><span class="av carr">${ic(IC.presente, 18)}</span>${quem}</button>` : `<div class="quem"><span class="av carr">${ic(IC.presente, 18)}</span>${quem}</div>`}<span class="fim-v"><b class="num">${brl(x.valor)}</b>${x.falta > 0.004 ? `<small class="pas">a receber ${brl(x.falta)}</small>` : ''}</span>${nfFimBt(x)}${lixoFim('venda', `data-id="${x.id}"`)}</div>`; };
 const linhaFimAlug = (x, varias) => { const c = crianca(x.crianca), u = varias && x.uni && nomeUni(x.uni) ? ' · ' + esc(nomeUni(x.uni)) : '';
   const quem = `<span class="txt"><b>${esc(x.resp || x.nome)}</b><span>${x.q > 1 ? x.q + ' × ' : ''}${esc(x.n)}${x.nome ? ' de ' + esc(x.nome) : ''} · saiu ${isoDia(x.saiu) === isoDia(x.voltou) ? hora(x.saiu) : diaCurto(x.saiu)} · voltou ${hora(x.voltou)}${u}</span></span>`;
-  return `<div class="it fim-it">${c ? `<button class="quem tap" data-act="ficha-ver" data-id="${c.id}"><span class="av carr">${ic(IC.carrinho, 18)}</span>${quem}</button>` : `<div class="quem"><span class="av carr">${ic(IC.carrinho, 18)}</span>${quem}</div>`}<span class="fim-v"><b class="num">${x.valor > 0 ? brl(x.valor) : 'sem valor'}</b></span>${lixoFim('aluguel', `data-c="${x.crianca}" data-s="${esc(x.s)}" data-vt="${esc(x.vt || '')}" data-voltou="${+x.voltou}"`)}</div>`; };
+  return `<div class="it fim-it">${c ? `<button class="quem tap" data-act="ficha-ver" data-id="${c.id}"><span class="av carr">${ic(IC.carrinho, 18)}</span>${quem}</button>` : `<div class="quem"><span class="av carr">${ic(IC.carrinho, 18)}</span>${quem}</div>`}<span class="fim-v"><b class="num">${x.valor > 0 ? brl(x.valor) : 'sem valor'}</b></span>${nfFimBt(x)}${lixoFim('aluguel', `data-c="${x.crianca}" data-s="${esc(x.s)}" data-vt="${esc(x.vt || '')}" data-voltou="${+x.voltou}"`)}</div>`; };
 // ---------- 1.30: o caixa do dia da recepção ----------
 // Pedido da dona: "no finalizados do dia, um ícone de caixa, que vai ser das meninas do atendimento: o que foi pago no dia, as formas de
 // pagamento, tudo bem destrinchado, e os carrinhos à parte, porque eles não entram no faturamento da recreação: a soma dos carrinhos, a soma
@@ -7458,7 +7492,6 @@ function folhaFicha(id) { // 1.02: mais limpa. O que importa numa olhada: quem �
       ${semIdface() ? (c.entrou ? `<button class="bt forte tap" data-act="saida" data-id="${c.id}">${ic(IC.sair)} Saída</button>` : `<button class="bt forte tap" data-act="entrada" data-id="${c.id}" title="${temPeriodo(c) ? 'Entra usando as horas que já tem' : 'Sem pacote: entra na recreação avulsa e acerta na saída'}">${ic(IC.entrar)} Entrada</button>`)
         : podeManual() && c.entrou ? `<button class="bt claro tap" data-act="saida" data-id="${c.id}" title="Só para corrigir: o normal é a saída pelo rosto">${ic(IC.sair)} Saída à mão</button>` : ''}
       <button class="bt ${semIdface() ? '' : 'forte'} tap" data-act="vender" data-id="${c.id}">${ic(IC.mais)} Vender</button>
-      <button class="bt tap" data-act="nf-ficha" data-id="${c.id}" title="A nota fiscal da compra deste cliente (sem abrir o histórico)">${ic(IC.cupom)} NF${nfTravada(c) ? ' ' + ic(IC.cadeado, 15) : ''}</button>
       <button class="bt tap" data-act="historico" data-id="${c.id}">${ic(IC.historico)} Histórico</button>
       <button class="bt tap" data-act="relatorio" data-id="${c.id}" title="O extrato do cliente: compras, visitas e o saldo de cada dia, para ver, imprimir no cupom ou abrir em planilha">${ic(IC.relatorio)} Relatório</button>
       <button class="bt tap" data-act="papel-reimprimir" data-id="${c.id}" title="Ver e imprimir de novo um cupom deste cliente: o cliente perdeu, ou a impressora travou">${ic(IC.cupom)} Reimprimir cupom</button>
@@ -8261,13 +8294,20 @@ async function salvarHoras(el) {
    com o cliente em atendimento (alguém da família no espaço, ou um carrinho fora da loja), a nota fiscal só pelo gestor; finalizado (saiu,
    devolveu), a equipe tira. A nota já emitida a equipe vê (imprimir, WhatsApp) a qualquer hora */
 const emAtendimento = c => !!c && familia(c).some(x => x.entrou || (S.alugueis || []).some(a => a.crianca === x.id));
-const nfTravada = c => !gestor() && emAtendimento(c);
-const NF_TRAVA_MSG = 'Cliente em atendimento: a nota fiscal sai depois da saída (nos Finalizados do dia). Antes disso, só o gestor tira a nota.';
-async function nfDaFicha(cid) {
-  const c = crianca(cid); if (!c) return; if (nfTravada(c)) { toast(NF_TRAVA_MSG); return; } if (document.querySelector('#folha .folha-fundo')) fecharFolha();
+/* 2.60 (o dono: "você só pode emitir NF depois de finalizar o cliente. Pode tirar aquela opção de onde está, deixa só para quando poder
+   finalizar o cliente"): vale para todos, o gestor também. O botão NF da ficha saiu; a nota sai nos Finalizados do dia (o botão NF de cada
+   linha: vermelho sem a nota, verde com a nota emitida) */
+const nfTravada = c => emAtendimento(c);
+const NF_TRAVA_MSG = 'Cliente em atendimento: a nota fiscal sai depois de finalizar o cliente (nos Finalizados do dia).';
+async function nfDaFicha(cid, vids) {   /* 2.60: vids = as compras da linha dos Finalizados do dia */
+  const c = crianca(cid); if (!c) return; if (nfTravada(c) && !vids) { toast(NF_TRAVA_MSG); return; } if (document.querySelector('#folha .folha-fundo')) fecharFolha();
   if (!LADO || LADO.id !== c.id || !LADO.dados) { abrirHistorico(c.id); for (let i = 0; i < 80 && LADO && LADO.id === c.id && !LADO.dados && !LADO.erro; i++) await espera(150); }
   if (!LADO || LADO.id !== c.id) return; if (!LADO.dados) { toast(LADO.erro || 'O histórico do cliente não carregou. Tente de novo.'); return; }
-  const L = LADO.dados.vendas.filter(temNF), hj = L.filter(v => doDia(v.quando));
+  const L = LADO.dados.vendas.filter(temNF), hj = L.filter(v => doDia(v.quando)), M = vids && vids.length ? L.filter(v => vids.includes(v.id)) : [];
+  if (M.length === 1) { folhaNF(M[0].id); return; }   /* 2.60: a compra da linha dos Finalizados (a folha da compra confere se o cliente está em atendimento) */
+  if (M.length > 1) { abrirFolha('Nota fiscal · qual compra?', `<p class="explica">${nomeResp(c)} tem ${M.length} compras nesta linha. Toque na compra da nota.</p>
+    <div style="display:grid;gap:8px">${M.map(v => { const p = nfDaVenda(v), e = p ? p.status : ''; return `<button type="button" class="aj-pag tap" data-act="nf" data-id="${v.id}"><span class="aj-h">${diaCurto(v.quando)}<br>${hora(v.quando)}</span><span class="txt"><b>${esc(nomeCompraTxt(v))}</b><small class="${e === 'usado' ? 'nf-sim' : 'nf-nao'}">${e === 'usado' ? 'NF ' + (p.numero ? 'nº ' + esc(p.numero) : 'emitida') : 'NF não emitida'}</small></span><b class="num">${brl2(v.v)}</b></button>`; }).join('')}</div>${nflLink(c)}`); return; }
+  if (nfTravada(c)) { toast(NF_TRAVA_MSG); return; }
   if (!L.length) { folhaNFLivre(c.id); return; }   /* 2.55: sem compra com valor aqui (as horas do sistema anterior): a nota com outro valor */
   if (hj.length === 1) { folhaNF(hj[0].id); return; }
   const lista = (hj.length ? hj : L.slice(0, 6)), st = v => { const p = nfDaVenda(v), e = p ? p.status : ''; return e === 'usado' ? 'NF ' + (p.numero ? 'nº ' + esc(p.numero) : 'emitida') : e === 'liberado' ? 'NF a emitir' : e === 'pendente' ? 'NF pedida' : e === 'negado' ? 'NF negada' : 'sem nota'; };
@@ -9520,10 +9560,11 @@ const filtroBanco = c => (S.bancoFiltro || 'todas') === 'emdia' ? temPeriodo(c) 
 // 1.18: a última compra no Banco de horas. A recreação avulsa não é um "0h30 de R$ 80": é a visita, acertada na saída (o valor de cada visita está no histórico)
 const ultimaBanco = c => /^avulsa/.test(c.venda.com || '') ? esc((c.venda.servico || 'RECREAÇÃO') + ' avulsa') : /^além do pacote/.test(c.venda.com || '') ? 'Além do pacote' : `${esc(ultimaCurta(c))} · ${brl(c.venda.v)}`;
 const ultimaCurta = c => { const v = c.venda, s = String(v.servico || '').trim(); return s ? (/^pacote\b/i.test(s) ? s : s + ' · ' + dur(minDe(v))) : (minDe(v) === 60 ? 'Hora avulsa' : dur(minDe(v))); };   // "PACOTE 05 HORAS 420" ou "RECREAÇÃO · 0h30"
-const BANCO_MAX = 150;   // 1.01: quantos clientes a lista do Banco de horas desenha de uma vez (o resto vem pela busca)
+const criOrdem = () => { if (MODO !== 'servidor') return S.criancas.slice().sort(porResp); const X = criIdx(); return X.ord || (X.ord = S.criancas.slice().sort(porResp)); };   /* 2.60: a ordem do Banco, feita uma vez por lista (no servidor) */
+const BANCO_MAX = 60;   /* 2.60: eram 150 (desenhar menos linhas deixa a aba bem mais rápida; a busca acha todos) */   // 1.01: quantos clientes a lista do Banco de horas desenha de uma vez (o resto vem pela busca)
 function linhasBanco() {
   const q = (S.bancoBusca || '').toLowerCase();
-  const lista = S.criancas.filter(filtroBanco).filter(c => !q || bateCliente(c, q)).sort((a, b) => porResp(a, b));   /* 2.25: o telefone só com números também */
+  const lista = criOrdem().filter(filtroBanco).filter(c => !q || bateCliente(c, q));   /* 2.60: a lista já em ordem (filtrar não muda a ordem) */   /* 2.25: o telefone só com números também */
   if (!lista.length) return `<div class="card vazio"><b>${q ? 'Ninguém com esse nome, CPF ou telefone.' : 'Nenhuma criança neste filtro.'}</b></div>`;
   // 1.00: as crianças do mesmo responsável ficam juntas, dentro do contorno (a família entra no lugar da primeira criança dela, pela ordem alfabética)
   const fams = [], onde = new Map(); for (const c of lista) { const k = docDe(c) || (tel8(c) ? 't' + tel8(c) : 'i' + c.id); if (onde.has(k)) onde.get(k).push(c); else { const g = [c]; onde.set(k, g); fams.push(g); } }
@@ -10239,6 +10280,7 @@ const ACOES = {
   'salt-item': el => { if (!ALTS || ALTS.espera) return; const i = altSaidaItens().find(x => x.id === +el.dataset.k); if (!i) return; ALTS.k = i.id; ALTS.v = valTxt(i.v); ALTS.hh = String(Math.round(i.h)); ALTS.vp = ''; ALTS.pn = ''; ALTS.aberto = true; altSaidaRedesenha(true); const v = $('#sa-alt-v'); if (v) { v.focus(); v.select(); } },   /* 1.39 */
   'salt-pedir': el => altSaidaPedir(el), 'salt-largar': () => altSaidaLargar(), 'salt-tirar': el => altSaidaTirar(el), 'salt-tira-largar': () => altSaidaTiraLargar(),   /* 2.24 */
   nf: el => folhaNF(el.dataset.id), 'nf-ficha': el => nfDaFicha(+el.dataset.id),   /* 2.54 */
+  'nf-fim': el => nfDaFicha(+el.dataset.id, String(el.dataset.v || '').split(',').map(Number).filter(Boolean)),   /* 2.60 */
   'nf-livre': el => folhaNFLivre(+el.dataset.id), 'nfl-emitir': el => emitirNFLivre(el), 'nfl-pdf': () => nflPdfCarregar(), 'nfl-imprimir': () => nflImprimir(), 'nfl-whats': () => nflWhats(), 'nfl-salvar': () => nflSalvar(),   /* 2.55 */ 'nf-notas': () => abrirNotasNF(), 'nf-pdf-imprimir': () => nfPdfImprimir(), 'nf-pdf-whats': () => nfPdfWhats(), 'nf-pdf-salvar': () => { if (nfPdfSalvar()) toast('A nota foi salva (na pasta Downloads)'); },
   'nf-pdf-recarregar': () => { const v = NF && LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === NF.id); if (v) nfPdfCarregar(v); },   /* 2.48 */
   'copia-baixar': el => baixarCopia(el.dataset.nome || '', el), 'copia-fazer': el => fazerCopia(el), 'nf-pedir': el => pedirNF(el), 'nf-notas-entrar': el => entrarNotasNF(el), 'nf-emp': el => { if (NFL && !NF) { nflEmp(+el.dataset.id); return; } if (!NF || NF_EMITINDO) return; NF_EMP[NF.id] = +el.dataset.id; nfEmpRedesenha(NF.id); nfPreparar(NF.id); }, 'ocioso-ficar': () => ociosoMexeu(), 'nf-senha': el => acaoNF('senha', el), 'nf-emitida': el => acaoNF('emitida', el), 'nf-voltar': el => acaoNF('voltar', el), 'nf-largar': el => acaoNF('largar', el), 'nf-copiar': el => acaoNF('copiar', el),

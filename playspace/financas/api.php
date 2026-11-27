@@ -61,7 +61,11 @@ function finAchar(string $l): ?array {
 }
 function finNome($v): string { return mb_substr(trim((string)preg_replace('/\s+/u', ' ', (string)$v)), 0, 80); }
 function finPrincipal(): ?array { return db()->query('SELECT * FROM fin_usuarios ORDER BY id LIMIT 1')->fetch() ?: null; }
-function finEu(): ?array { $id = (int)($_SESSION['fin_uid'] ?? 0); if (!$id) return null; $q = db()->prepare('SELECT * FROM fin_usuarios WHERE id = ?'); $q->execute([$id]); return $q->fetch() ?: null; }
+function finEu(): ?array { $id = (int)($_SESSION['fin_uid'] ?? 0); if (!$id) return null; $q = db()->prepare('SELECT * FROM fin_usuarios WHERE id = ?'); $q->execute([$id]); $u = $q->fetch() ?: null;
+  if ($u && (int)($u['sessao'] ?? 0) !== (int)($_SESSION['fin_sv'] ?? 0)) return null;   /* 2.60: a senha foi trocada depois que esta sessão entrou */
+  return $u; }
+function finSessaoMarca(int $id): void { $q = db()->prepare('SELECT sessao FROM fin_usuarios WHERE id = ?'); $q->execute([$id]); $_SESSION['fin_sv'] = (int)$q->fetchColumn(); }
+function finSessaoNova(int $id): void { db()->prepare('UPDATE fin_usuarios SET sessao = sessao + 1 WHERE id = ?')->execute([$id]); if ((int)($_SESSION['fin_uid'] ?? 0) === $id) finSessaoMarca($id); }   /* 2.60: trocar a senha tira dos outros computadores */
 function finOut(array $u): array { $p = finPrincipal(); return ['id' => (int)$u['id'], 'nome' => (string)$u['nome'], 'login' => (string)$u['login'], 'principal' => $p && (int)$p['id'] === (int)$u['id'], 'ultimoLogin' => $u['ultimo_login']]; }
 // 8 tentativas erradas em 15 minutos (de qualquer login, deste aparelho) bloqueiam um pouco
 function finBloqueado(string $ip): void {
@@ -81,7 +85,7 @@ function finGestorConfere(array $in, string $ip): array {
   return $g;
 }
 function finEntrou(array $u): void {
-  session_regenerate_id(true); $_SESSION['fin_uid'] = (int)$u['id'];
+  session_regenerate_id(true); $_SESSION['fin_uid'] = (int)$u['id']; finSessaoMarca((int)$u['id']);
   db()->prepare('UPDATE fin_usuarios SET ultimo_login = ? WHERE id = ?')->execute([agora(), (int)$u['id']]);
   db()->prepare("DELETE FROM tentativas WHERE login = 'financas' AND ip = ?")->execute([(string)($_SERVER['REMOTE_ADDR'] ?? '')]);
 }
@@ -123,7 +127,7 @@ if ($acao === 'redefinir') { // esqueceu a senha: o dono prova quem é com o usu
   $senha = (string)($in['senha'] ?? ''); if (strlen($senha) < 6) falha('A senha nova precisa ter pelo menos 6 caracteres.');
   $alvo = $p; $lg = finLogin($in['login'] ?? '');
   if ($lg !== '') { $alvo = finAchar($lg); if (!$alvo) falha('Não existe acesso com esse login.', 404); }
-  $db->prepare('UPDATE fin_usuarios SET senha = ? WHERE id = ?')->execute([password_hash($senha, PASSWORD_DEFAULT), (int)$alvo['id']]);
+  $db->prepare('UPDATE fin_usuarios SET senha = ? WHERE id = ?')->execute([password_hash($senha, PASSWORD_DEFAULT), (int)$alvo['id']]); finSessaoNova((int)$alvo['id']);
   finEntrou($alvo); responder(['usuario' => finOut($alvo)]);
 }
 if ($acao === 'sair') { $_SESSION = []; session_destroy(); responder(); }
@@ -140,7 +144,7 @@ function soPrincipal(bool $eh): void { if (!$eh) falha('Só a conta principal me
 if ($acao === 'trocar_senha') {
   if (!password_verify((string)($in['atual'] ?? ''), (string)$eu['senha'])) { finErrou($ip); falha('A senha atual não confere.', 401); }
   $s = (string)($in['senha'] ?? ''); if (strlen($s) < 6) falha('A senha nova precisa ter pelo menos 6 caracteres.');
-  $db->prepare('UPDATE fin_usuarios SET senha = ? WHERE id = ?')->execute([password_hash($s, PASSWORD_DEFAULT), (int)$eu['id']]); responder();
+  $db->prepare('UPDATE fin_usuarios SET senha = ? WHERE id = ?')->execute([password_hash($s, PASSWORD_DEFAULT), (int)$eu['id']]); finSessaoNova((int)$eu['id']); responder();
 }
 if ($acao === 'usuarios') { soPrincipal($ehPrincipal); responder(['usuarios' => array_map('finOut', $db->query('SELECT * FROM fin_usuarios ORDER BY id')->fetchAll())]); }
 if ($acao === 'usuario_criar') {
@@ -155,7 +159,7 @@ if ($acao === 'usuario_criar') {
 if ($acao === 'usuario_senha') {
   soPrincipal($ehPrincipal); $s = (string)($in['senha'] ?? ''); if (strlen($s) < 6) falha('A senha precisa ter pelo menos 6 caracteres.');
   $q = $db->prepare('UPDATE fin_usuarios SET senha = ? WHERE id = ?'); $q->execute([password_hash($s, PASSWORD_DEFAULT), (int)($in['id'] ?? 0)]);
-  if (!$q->rowCount()) falha('Acesso não encontrado.', 404); responder();
+  if (!$q->rowCount()) falha('Acesso não encontrado.', 404); finSessaoNova((int)($in['id'] ?? 0)); responder();
 }
 /* 4.7 (1.97): começar as Finanças do zero (o dono, antes da implantação: "quero todo o financeiro limpo"). Só a conta principal, com a senha
    dela de novo. Sai o movimento (as mesmas tabelas que o Começar do zero do Play Space apaga); com a marcação, os fornecedores e os

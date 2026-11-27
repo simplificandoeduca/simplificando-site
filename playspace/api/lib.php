@@ -491,6 +491,11 @@ function db(): PDO {
     foreach (["ALTER TABLE papeis ADD COLUMN vendas TEXT NOT NULL DEFAULT ''", "ALTER TABLE papeis ADD COLUMN estado TEXT NOT NULL DEFAULT ''"] as $sql) { try { $pdo->exec($sql); } catch (Throwable $e) { } }
     $pdo->exec('PRAGMA user_version = 54');
   }
+  if ($v < 55) { /* 2.60 (o dono: "quando eu trocar senha, eu quero que deslogue de todos os computadores"): o número da sessão de cada usuário */
+    try { $pdo->exec('ALTER TABLE usuarios ADD COLUMN sessao INTEGER NOT NULL DEFAULT 0'); } catch (Throwable $e) { }
+    try { $pdo->exec("CREATE TABLE IF NOT EXISTS fin_usuarios (id INTEGER PRIMARY KEY, nome TEXT NOT NULL, login TEXT NOT NULL UNIQUE COLLATE NOCASE, senha TEXT NOT NULL, criado_em TEXT NOT NULL, ultimo_login TEXT)"); $pdo->exec('ALTER TABLE fin_usuarios ADD COLUMN sessao INTEGER NOT NULL DEFAULT 0'); } catch (Throwable $e) { }
+    $pdo->exec('PRAGMA user_version = 55');
+  }
   return $pdo;
 }
 /* ---------- 1.06: unidades ---------- */
@@ -744,13 +749,19 @@ function anotacoesLista(): array {
 }
 function eu(): ?array {
   $id = (int)($_SESSION['uid'] ?? 0); if (!$id) return null;
-  $q = db()->prepare('SELECT id, nome, login, papel, unidade_id, loja FROM usuarios WHERE id = ? AND ativo = 1'); $q->execute([$id]);   // 2.02: e a unidade dela
+  $q = db()->prepare('SELECT id, nome, login, papel, unidade_id, loja, sessao FROM usuarios WHERE id = ? AND ativo = 1'); $q->execute([$id]);   // 2.02: e a unidade dela
   $u = $q->fetch() ?: null;
+  if ($u && (int)$u['sessao'] !== (int)($_SESSION['sv'] ?? 0)) { $GLOBALS['PS_SENHA_TROCADA'] = true; return null; }   /* 2.60: a senha foi trocada depois que esta sessão entrou */
+  if ($u) unset($u['sessao']);
   if ($u && !empty($u['loja'])) { $q2 = db()->prepare('SELECT 1 FROM maquinas WHERE id = ? AND ativo = 1'); $q2->execute([(int)($_SESSION['maq'] ?? 0)]); if (!$q2->fetchColumn()) return null; }   /* 2.10: o computador que perdeu a liberação sai na hora */
   return $u;
 }
+/* 2.60: a sessão guarda o número de sessão do usuário na hora de entrar; trocar a senha soma 1 (as sessões antigas caem). Quem trocou a
+   própria senha continua dentro (a sessão dele leva o número novo) */
+function sessaoMarca(int $uid): void { $q = db()->prepare('SELECT sessao FROM usuarios WHERE id = ?'); $q->execute([$uid]); $_SESSION['sv'] = (int)$q->fetchColumn(); }
+function sessaoNova(int $uid): void { db()->prepare('UPDATE usuarios SET sessao = sessao + 1 WHERE id = ?')->execute([$uid]); if ((int)($_SESSION['uid'] ?? 0) === $uid && session_status() === PHP_SESSION_ACTIVE) sessaoMarca($uid); }
 function exigir(array $papeis = []): array {
-  $u = eu(); if (!$u) falha('Entre de novo para continuar.', 401);
+  $u = eu(); if (!$u) falha(!empty($GLOBALS['PS_SENHA_TROCADA']) ? 'A senha foi trocada. Entre de novo com a senha nova.' : 'Entre de novo para continuar.', 401);
   if ($papeis && !in_array($u['papel'], $papeis, true)) falha('Só ' . implode(' ou ', array_map(fn($p) => PAPEIS[$p] ?? $p, $papeis)) . ' faz isso.', 403);
   return $u;
 }
@@ -924,7 +935,7 @@ function pedidoCriar(array $u, array $in): array {
       $dados = ['item' => $nomeV, 'quando' => (string)$v['quando'], 'pago' => $pago ? textoPagamento($pago, true) : '', 'min' => $min, 'atendente' => lerAtendente($in, $u)];   // 1.25: quem pediu (o nome da atendente)
       $texto = 'Cancelar a venda: ' . $oque;
     } else { // a nota fiscal de uma compra
-      if (($u['papel'] ?? '') !== 'gestor' && emAtendimento($c)) falha('Cliente em atendimento: a nota fiscal sai depois da saída (nos Finalizados do dia). Antes disso, só o gestor tira a nota.', 403);   /* 2.58 */
+      if (emAtendimento($c)) falha('Cliente em atendimento: a nota fiscal sai depois de finalizar o cliente (nos Finalizados do dia).', 403);   /* 2.58; 2.60: para todos, o gestor também */
       if ($valor <= 0.004) falha('Esta compra não tem valor: não há nota para tirar.');
       $q = $db->prepare("SELECT * FROM pedidos WHERE tipo = 'nf' AND venda_id = ? AND status IN ('pendente', 'liberado', 'usado') ORDER BY id DESC LIMIT 1"); $q->execute([$vendaId]); $ja = $q->fetch();
       if ($ja) return $ja['status'] === 'pendente' ? pedidoDecidir((int)$ja['id'], $u, true, 'proprio', true) : ['pedido' => pedidoPublico($ja), 'ja' => true];   // uma nota por compra (1.55: a pedida antes, que esperava o gestor, sai agora)
@@ -2208,7 +2219,7 @@ function finalizadosDoDia(int $so = 0, ?string $dia = null): array {   /* 2.15: 
       $am = 0; $al = 0; $nomes = []; foreach ($L as $v) { if (!empty($v['auto'])) { if (strpos((string)$v['itens'], 'avulsa') === 0) $am += (int)$v['minutos']; else $al += (int)$v['minutos']; } elseif ((float)$v['valor'] > 0 || (string)$v['voucher'] !== '') $nomes[] = nomeDaVenda($v); }   // a recreação avulsa da visita numa linha só
       $valor = round(array_sum(array_map(fn($v) => (float)$v['valor'], $L)), 2); $pago = round(array_sum(array_map(fn($v) => min((float)$v['valor'], (float)$v['pago']), $L)), 2);
       foreach ($L as $v) $usadas[(int)$v['id']] = 1; $janela[] = [$ini, (string)$x['saiu']];   /* 2.41 */
-      $vis[] = ['id' => (int)$x['id'], 'crianca' => $cid, 'nome' => (string)$x['nome'], 'resp' => (string)$x['resp'], 'entrou' => (string)$x['entrou'], 'saiu' => (string)$x['saiu'], 'deb' => (int)$x['debitado_min'], 'dp' => max(0, (int)$x['debitado_min'] - array_sum(array_map(fn($v) => ehVendaDePacote($v) ? 0 : (int)$v['minutos'], $L))), 'uni' => $x['unidade_id'] === null ? null : (int)$x['unidade_id'],   /* 2.44: dp = as horas do pacote (sem o tempo vendido na visita que não é pacote: a recreação, o voucher, o além do pacote) */
+      $vis[] = ['vids' => array_values(array_map(fn($v) => (int)$v['id'], array_filter($L, fn($v) => (float)$v['valor'] > 0.004))), 'id' => (int)$x['id'], 'crianca' => $cid, 'nome' => (string)$x['nome'], 'resp' => (string)$x['resp'], 'entrou' => (string)$x['entrou'], 'saiu' => (string)$x['saiu'], 'deb' => (int)$x['debitado_min'], 'dp' => max(0, (int)$x['debitado_min'] - array_sum(array_map(fn($v) => ehVendaDePacote($v) ? 0 : (int)$v['minutos'], $L))), 'uni' => $x['unidade_id'] === null ? null : (int)$x['unidade_id'],   /* 2.44: dp = as horas do pacote (sem o tempo vendido na visita que não é pacote: a recreação, o voucher, o além do pacote) */
         'valor' => $valor, 'falta' => max(0, round($valor - $pago, 2)), 'itens' => array_slice(array_values(array_unique(array_merge($am ? ['RECREAÇÃO avulsa · ' . dur($am)] : [], $al ? ['Além do pacote · ' . dur($al)] : [], $nomes))), 0, 4)]; }
   }
   /* 2.41 (o dono: "quando eu clico no botão vender pacote, ele tá entrando como sem valor pro caixa ... vendi um pacote para Gisele e ele não
@@ -2223,15 +2234,22 @@ function finalizadosDoDia(int $so = 0, ?string $dia = null): array {   /* 2.15: 
        mesmo dia (a família compra na hora de ir embora): vai para a última saída da família antes da venda */
     if ($k < 0) foreach ($vis as $i => $x) if (in_array((int)$x['crianca'], $fam, true) && (string)$x['saiu'] < (string)$v['quando'] && ($k < 0 || (string)$x['saiu'] > (string)$vis[$k]['saiu'])) $k = $i;
     $vv = round((float)$v['valor'], 2); $falta = max(0, round($vv - min($vv, (float)$v['pago']), 2));
-    if ($k >= 0) { $vis[$k]['valor'] = round($vis[$k]['valor'] + $vv, 2); $vis[$k]['falta'] = round($vis[$k]['falta'] + $falta, 2); if (count($vis[$k]['itens']) < 4) $vis[$k]['itens'] = array_values(array_unique(array_merge($vis[$k]['itens'], [nomeDaVenda($v)]))); continue; }
-    $sem[] = ['id' => (int)$v['id'], 'crianca' => (int)$v['crianca_id'], 'nome' => (string)($c['nome'] ?? ''), 'resp' => (string)($c['resp'] ?? ''), 'quando' => (string)$v['quando'], 'valor' => $vv, 'falta' => $falta, 'item' => nomeDaVenda($v), 'uni' => $v['unidade_id'] === null ? null : (int)$v['unidade_id']]; }
+    if ($k >= 0) { $vis[$k]['vids'][] = (int)$v['id']; $vis[$k]['valor'] = round($vis[$k]['valor'] + $vv, 2); $vis[$k]['falta'] = round($vis[$k]['falta'] + $falta, 2); if (count($vis[$k]['itens']) < 4) $vis[$k]['itens'] = array_values(array_unique(array_merge($vis[$k]['itens'], [nomeDaVenda($v)]))); continue; }
+    $sem[] = ['vids' => [(int)$v['id']], 'id' => (int)$v['id'], 'crianca' => (int)$v['crianca_id'], 'nome' => (string)($c['nome'] ?? ''), 'resp' => (string)($c['resp'] ?? ''), 'quando' => (string)$v['quando'], 'valor' => $vv, 'falta' => $falta, 'item' => nomeDaVenda($v), 'uni' => $v['unidade_id'] === null ? null : (int)$v['unidade_id']]; }
   $q = $db->prepare("SELECT v.id, v.crianca_id, v.alug, v.servico, v.qtd, v.alug_min, v.quando, v.voltou, v.valor, v.unidade_id, c.nome, c.resp FROM vendas v JOIN criancas c ON c.id = v.crianca_id WHERE v.alug != '' AND v.voltou IS NOT NULL AND v.voltou >= ? AND v.voltou < ? ORDER BY v.voltou DESC, v.id LIMIT 400"); $q->execute([$hoje, $fim]);
   foreach ($q->fetchAll() as $v) { $k = (int)$v['crianca_id'] . '|' . $v['alug'] . '|' . $v['voltou'];
     if (!isset($dev[$k])) $dev[$k] = ['crianca' => (int)$v['crianca_id'], 'nome' => (string)$v['nome'], 'resp' => (string)$v['resp'], 's' => (string)$v['alug'], 'n' => (string)$v['servico'], 'q' => 0, 'saiu' => (string)$v['quando'], 'voltou' => (string)$v['voltou'], 'valor' => 0.0, 'uni' => $v['unidade_id'] === null ? null : (int)$v['unidade_id']];
+    if ((float)$v['valor'] > 0.004) $dev[$k]['vids'][] = (int)$v['id'];
     $dev[$k]['q'] += (int)$v['alug_min'] > 0 ? ($dev[$k]['q'] ? 0 : 1) : max(1, (int)$v['qtd']); $dev[$k]['valor'] = round($dev[$k]['valor'] + (float)$v['valor'], 2); if ((string)$v['quando'] < $dev[$k]['saiu']) $dev[$k]['saiu'] = (string)$v['quando']; }
-  if ($dev) { $q = $db->prepare("SELECT crianca_id, voltou, valor FROM vendas WHERE quando >= ? AND alug = '' AND voltou IS NOT NULL AND voltou >= ? AND itens LIKE 'tempo a mais%'"); $q->execute([date('Y-m-d', strtotime($hoje) - 86400) . ' 00:00:00', $hoje]);   // (o tempo a mais nasce na devolução: anda pelo índice da hora da venda)   // o tempo a mais cobrado na devolução (é uma venda à parte, que já nasce devolvida)
-    foreach ($q->fetchAll() as $t) foreach ($dev as $k => $d) if ($d['crianca'] === (int)$t['crianca_id'] && $d['voltou'] === (string)$t['voltou']) { $dev[$k]['valor'] = round($d['valor'] + (float)$t['valor'], 2); break; } }
+  if ($dev) { $q = $db->prepare("SELECT id, crianca_id, voltou, valor FROM vendas WHERE quando >= ? AND alug = '' AND voltou IS NOT NULL AND voltou >= ? AND itens LIKE 'tempo a mais%'"); $q->execute([date('Y-m-d', strtotime($hoje) - 86400) . ' 00:00:00', $hoje]);   // (o tempo a mais nasce na devolução: anda pelo índice da hora da venda)   // o tempo a mais cobrado na devolução (é uma venda à parte, que já nasce devolvida)
+    foreach ($q->fetchAll() as $t) foreach ($dev as $k => $d) if ($d['crianca'] === (int)$t['crianca_id'] && $d['voltou'] === (string)$t['voltou']) { $dev[$k]['valor'] = round($d['valor'] + (float)$t['valor'], 2); if ((float)$t['valor'] > 0.004) $dev[$k]['vids'][] = (int)$t['id']; break; } }
   if ($so > 0) { $vis = array_values(array_filter($vis, fn($x) => (int)($x['uni'] ?? 0) === $so)); $dev = array_filter($dev, fn($x) => (int)($x['uni'] ?? 0) === $so); $sem = array_filter($sem, fn($x) => (int)($x['uni'] ?? 0) === $so); }   /* 2.15 (o dono: "cada unidade só pode ver sua unidade") */
+  /* 2.60: a NF de cada linha (o botão NF dos Finalizados: vermelho com nota a emitir, verde com tudo emitido). n = as compras com valor da
+     linha, e = quantas têm a nota emitida, v = quais (a tela abre a nota delas) */
+  $todas = []; foreach ([$vis, $dev, $sem] as $G) foreach ($G as $x) foreach ($x['vids'] ?? [] as $i) $todas[(int)$i] = 1; $emit = [];
+  if ($todas) foreach ($db->query("SELECT DISTINCT venda_id FROM pedidos WHERE tipo = 'nf' AND status = 'usado' AND venda_id IN (" . implode(',', array_keys($todas)) . ")")->fetchAll(PDO::FETCH_COLUMN) as $i) $emit[(int)$i] = 1;
+  $nf = function (array $x) use ($emit): array { $L = array_values(array_unique(array_map('intval', $x['vids'] ?? []))); unset($x['vids']); $x['nf'] = ['n' => count($L), 'e' => count(array_filter($L, fn($i) => isset($emit[$i]))), 'v' => $L]; return $x; };
+  $vis = array_map($nf, $vis); $dev = array_map($nf, $dev); $sem = array_map($nf, $sem);
   return ['visitas' => $vis, 'devolvidos' => array_values($dev), 'semEntrada' => array_values($sem)];
 }
 /* 2.43 (o dono: "eu quero uma lixeirazinha vermelha pra mim quando eu quiser excluir um pedido que às vezes lançou errado ... só pro gestor"):
