@@ -100,6 +100,8 @@ function cmHistorico(): array {
 /* o período: um trimestre ("2026-T4") ou um mês ("2026-11") */
 function cmPeriodo($p): array {
   $p = (string)$p; $agora = agoraTs();
+  if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $p, $m) && checkdate((int)$m[2], (int)$m[3], (int)$m[1]))   /* 2.53: um dia (os Ajustes de comissão do Play Space) */
+    return ['per' => $p, 'tipo' => 'dia', 'de' => $p, 'ate' => $p, 'nome' => $m[3] . '/' . $m[2] . '/' . $m[1], 'meses' => [$m[1] . '-' . $m[2]]];
   if (preg_match('/^(\d{4})-T([1-4])$/', $p, $m)) { $a = (int)$m[1]; $t = (int)$m[2]; }
   elseif (preg_match('/^(\d{4})-(\d{2})$/', $p, $m) && (int)$m[2] >= 1 && (int)$m[2] <= 12) {
     $de = $p . '-01'; return ['per' => $p, 'tipo' => 'mes', 'de' => $de, 'ate' => date('Y-m-t', strtotime($de . ' 12:00:00')), 'nome' => finMesNome($p), 'meses' => [$p]]; }

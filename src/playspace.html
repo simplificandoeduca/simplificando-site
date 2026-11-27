@@ -2007,6 +2007,21 @@ button.bl-saldo.bl-alt svg { opacity: .55; }
 .tp-div-l .inp:focus { outline: 2px solid var(--coral); outline-offset: 1px; }
 .tp-div-s { margin: 0; font-weight: 800; } .tp-div-s.ok { color: var(--ok); } .tp-div-s.falta { color: var(--erro); }
 .tp-papel summary { font-weight: 800; } .tp-papel summary b.num { color: var(--coral); }
+/* 2.53: Ajustes de comissão */
+.cma { display: grid; gap: 14px; padding-bottom: 28px; }
+.cma-fil { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.cma-res { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+.cma-v { padding: 12px 14px; border-radius: 16px; background: var(--card); border: 1px solid var(--borda); display: grid; gap: 2px; }
+.cma-v b { font-family: var(--display); font-size: 16px; } .cma-v small { color: var(--tinta-2); font-size: 12.5px; } .cma-v .num.bonus { font: 800 18px var(--display); color: var(--ok); }
+.cma-v.zero { opacity: .55; }
+.cma-l { display: grid; gap: 6px; } .cma-l h3 { margin: 6px 2px 0; font: 700 13px var(--display); letter-spacing: .05em; text-transform: uppercase; color: var(--tinta-2); }
+.cma-it { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 14px; background: var(--card); border: 1px solid var(--borda); flex-wrap: wrap; }
+.cma-it .h { flex: none; font-weight: 800; font-size: 13px; color: var(--tinta-2); font-variant-numeric: tabular-nums; }
+.cma-it .txt { flex: 1 1 220px; min-width: 0; display: grid; } .cma-it .txt small { color: var(--tinta-2); font-size: 12.5px; }
+.cma-it .vl { display: grid; justify-items: end; } .cma-it .vl small { color: var(--ok); font-weight: 800; font-size: 12px; }
+.cma-quem { font-weight: 800; font-size: 13px; padding: 4px 10px; border-radius: 99px; background: var(--creme-2); } .cma-quem.sem { background: var(--erro-bg); color: var(--erro); }
+.cma-vs { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; } .cma-vs .bt { justify-content: center; }
+.cma-vs .bt[aria-current="true"] { opacity: .45; pointer-events: none; }
 /* 2.52: Casa Tom → o sinal de 50% e a aba Sinais */
 .pg-sinal { display: grid; gap: 10px; margin: 4px 0 12px; }
 .pg-sinal-bt { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 12px 14px; border-radius: 16px; border: 2px dashed var(--borda-2); background: var(--card); color: var(--tinta); font: inherit; cursor: pointer; }
@@ -2166,7 +2181,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.52';
+const VERSAO = '2.53';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -2533,7 +2548,7 @@ function aplicarDados(d) { // 1.40: o que veio do servidor (ou o que ficou guard
     EU = { nome: d.eu.nome.split(' ')[0], nomeCompleto: d.eu.nome, papel: d.eu.papel, login: d.eu.login, id: d.eu.id, uni: +d.eu.unidade_id || 0, loja: !!+d.eu.loja };   /* 2.10: loja = o computador do balcão */
     if (uniFixa() && !noPar(+lido('ps-unidade', 0), uniFixa())) guardar('ps-unidade', uniFixa());   /* 2.38 (o dono: "ele tá voltando pro Play Space sem eu clicar"): a Casa Tom do mesmo lugar também vale */   /* 2.02: a pessoa com a unidade escolhida pelo gestor */
     ABAS = abasDoPapel();
-    if (!ABAS.some(a => a[0] === S.tela) && S.tela !== 'festas' && !(modoCT() && TELAS_CT.includes(S.tela))) S.tela = 'horas';   /* 2.38: a tela da Casa Tom (Vendidos do dia, Produtos) fica */   // (1.29: a tela Festas é de todos)
+    if (!ABAS.some(a => a[0] === S.tela) && S.tela !== 'festas' && !(S.tela === 'comissoes' && gestor()) && !(modoCT() && TELAS_CT.includes(S.tela))) S.tela = 'horas';   /* 2.53: os Ajustes de comissão (gestor) */   /* 2.38: a tela da Casa Tom (Vendidos do dia, Produtos) fica */   // (1.29: a tela Festas é de todos)
     S.meta = d.meta || null;   /* 1.80: a meta do dia */
     S.painel = d.painel || null; S.finalizados = d.finalizados || null; S.caixa = d.caixa || null;   // 1.30: o caixa do dia   // 1.25: o dia de cada unidade (só o gestor recebe) e os finalizados do dia
     ULT_REG = S.registros.reduce((m, r) => Math.max(m, r.id || 0), 0);
@@ -5858,7 +5873,7 @@ function menuHtml(nPn, badge) {
   const uni = nomeUni(minhaUni());
   return `<button type="button" class="mn-marca tap" data-ir="horas"${cur('horas')} aria-label="Espaço" title="Tela inicial: quem está no espaço"><span class="lg">${LOGO}</span><b>Play Space</b></button>`
     + `<button type="button" class="mn-eu tap" data-act="conta" title="${esc(EU.nomeCompleto || EU.nome)} · toque para ver a conta ou sair"><span class="mn-selo">${esc((EU.nome || 'EU').slice(0, 2).toUpperCase())}</span><span class="mn-eu-t"><span>Usuário: <b>${esc(EU.nome || '')}</b></span>${unidades().length ? `<span>Unidade: <b>${esc(uni || 'SEM UNIDADE')}</b></span>` : ''}<span>Perfil: <b>${esc(String(PAPEIS[EU.papel] || EU.papel || '').toUpperCase())}</b></span></span></button>`
-    + (tem('painel') || tem('aprovar') ? grupo('gestao', IC.painel, 'Gestão', (tem('painel') ? item(`data-ir="painel"${cur('painel')}`, 'Painel') : '') + (tem('aprovar') ? item(`data-ir="aprovar"${cur('aprovar')} title="O que espera a sua resposta: os pedidos e os cancelamentos para ver"`, 'Aprovações', badge('aprovar'), nPn ? 'alerta' : '') : ''), nPn ? `<b class="mn-n">${nPn}</b>` : '', S.tela === 'painel' || S.tela === 'aprovar') : '')
+    + (tem('painel') || tem('aprovar') ? grupo('gestao', IC.painel, 'Gestão', (tem('painel') ? item(`data-ir="painel"${cur('painel')}`, 'Painel') : '') + (tem('aprovar') ? item(`data-ir="aprovar"${cur('aprovar')} title="O que espera a sua resposta: os pedidos e os cancelamentos para ver"`, 'Aprovações', badge('aprovar'), nPn ? 'alerta' : '') : '') + (gestor() ? item(`data-ir="comissoes"${cur('comissoes')} title="As comissões do dia e trocar quem fez a venda"`, 'Ajustes de comissão') : ''), nPn ? `<b class="mn-n">${nPn}</b>` : '', S.tela === 'painel' || S.tela === 'aprovar' || S.tela === 'comissoes') : '')
     + grupo('clientes', MN_IC.clientes, 'Clientes', item('data-act="mn-consultar" title="Achar um cliente pelo nome, telefone, CPF ou nº do cadastro"', 'Consultar cliente')
       + `<button type="button" class="fab tap" data-act="nova" aria-label="Cadastrar criança" title="Cadastrar criança"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>`
       + (tem('banco') ? item(`data-ir="banco"${cur('banco')} title="Todos os clientes e as horas guardadas de cada um"`, 'Banco de horas', badge('banco')) : '') + (tem('zap') ? item(`data-ir="zap"${cur('zap')}`, 'WhatsApp', badge('zap'), naoLidas() ? 'alerta' : '') : ''), '', S.tela === 'banco' || S.tela === 'zap')
@@ -7166,6 +7181,45 @@ function htmlAprovarSem() {
   if (!P.length && !A.length) return `<div class="pn-vazio">${ic(IC.check, 20, 2.6)}<span><b>Nada esperando a sua resposta.</b> Quando alguém pedir um desconto ou o cancelamento de uma venda, ou cancelar alguma coisa, aparece aqui na hora.</span></div>`;
   return `${P.map(htmlPedido).join('')}${A.length ? `<div class="pn-sub"><b>Cancelamentos para ver</b>${A.length > 1 ? `<button type="button" class="link tap" data-act="av-vistos">Marcar ${A.length === 2 ? 'os dois' : 'os ' + A.length} como vistos</button>` : ''}</div>${A.map(htmlAviso).join('')}` : ''}`;
 }
+/* 2.53 (o dono: "às vezes as meninas lançam errado. Quem colocou a comissão, o gestor tem que poder ajustar ... uma aba só para isso, que é
+   ajustes de comissão ... a comissão de todas as meninas, tipo Anália, Morumbi, e as comissões do dia e uma opção de ajustar quem que foi
+   que fez essa comissão"): só o gestor. O dia (hoje, ontem ou outro), a unidade, o resumo de cada vendedora (vendas, vendido, comissão pelas
+   regras das Finanças) e cada venda com quem fez; "Trocar" passa a venda (e a comissão) para outra pessoa. As Finanças acompanham */
+let CMA = { dia: '', u: 0, R: null, k: '', erro: '', busca: false };
+const cmaChave = () => (CMA.dia || cxHoje()) + '|' + CMA.u;
+async function cmaCarregar() { if (MODO !== 'servidor') { CMA.k = cmaChave(); CMA.R = null; cmaPinta(); return; } const k = cmaChave(); CMA.busca = true; CMA.erro = '';
+  try { const R = await api('cm_dia', { dia: CMA.dia || cxHoje(), u: CMA.u || 0 }); if (cmaChave() === k) { CMA.R = R; CMA.k = k; } }
+  catch (e) { CMA.erro = e.message || 'Não deu para buscar as comissões.'; CMA.k = k; CMA.R = null; }
+  CMA.busca = false; cmaPinta(); }
+function cmaPinta() { const a = $('#cma-corpo'); if (a) a.innerHTML = cmaCorpo(); }
+function telaComissoes() { if (!gestor()) return ''; setTimeout(() => { if (CMA.k !== cmaChave() && !CMA.busca) cmaCarregar(); }, 0);
+  const U = unidades(), ontem = cxOntem(), dia = CMA.dia || '';
+  const selDia = `<div class="seg" role="group" aria-label="Qual dia">${[['', 'Hoje'], [ontem, 'Ontem']].map(([v, n]) => `<button type="button" class="tap" data-act="cma-dia" data-v="${v}" aria-pressed="${dia === v}">${n}</button>`).join('')}</div><label class="cx-data">Outro dia <input type="date" id="cma-data" max="${cxHoje()}" value="${dia && dia !== ontem ? dia : ''}"></label>`;
+  const selU = U.length > 1 ? `<div class="seg" role="group" aria-label="Unidade">${[[0, 'Todas'], ...U.map(u => [u.id, u.nome])].map(([id, n]) => `<button type="button" class="tap" data-act="cma-uni" data-v="${id}" aria-pressed="${CMA.u === id}">${esc(n)}</button>`).join('')}</div>` : '';
+  return faixa('Ajustes de comissão', 'Só o gestor · as comissões do dia e quem fez cada venda') + `<section class="cma"><p class="explica">Se alguém lançou a venda com o nome errado, toque em <b>Trocar</b> e escolha quem fez a venda: a venda inteira e a comissão passam para ela (as Finanças acompanham). Fica no registro do cliente.</p>
+    <div class="cma-fil">${selDia}${selU}</div><div id="cma-corpo">${cmaCorpo()}</div></section>`; }
+function cmaCorpo() {
+  if (MODO !== 'servidor') return '<p class="explica">Na prévia as comissões não aparecem. No sistema da loja, aqui ficam as vendas do dia de cada vendedora, com o botão Trocar.</p>';
+  if (CMA.k !== cmaChave() || CMA.busca) return '<p class="explica">Buscando as comissões…</p>';
+  if (CMA.erro) return `<div class="marca canc">${ic(IC.x, 18, 2.4)}<span>${esc(CMA.erro)}</span></div>`;
+  const R = CMA.R || {}, L = (R.linhas || []).slice().sort((a, b) => String(b.quando).localeCompare(String(a.quando))), PV = R.porVend || [], varias = !CMA.u && unidades().length > 1;
+  const res = PV.length ? `<div class="cma-res">${PV.map(v => { const n = (v.vendas || 0) + (v.cadastros || 0); return `<div class="cma-v${n ? '' : ' zero'}"><b>${esc(v.n)}</b><small>${v.vendas || 0} ${v.vendas === 1 ? 'venda' : 'vendas'} · ${brl2(v.vendido || 0)}${v.cadastros ? ' · ' + v.cadastros + (v.cadastros === 1 ? ' cadastro' : ' cadastros') : ''}</small><span class="num bonus">${brl2(v.bonus || 0)}</span><small>de comissão</small></div>`; }).join('')}</div>` : '';
+  const lin = x => { const q = dataDe(x.quando), cad = x.k === 'cadastro';
+    return `<div class="cma-it"><span class="h">${hora(q)}</span><span class="txt"><b>${esc(x.item || '')}${x.qtd > 1 && !cad ? ' · ' + x.qtd + ' un.' : ''}</b><small>${esc(x.resp || '')}${x.cri ? ' · ' + esc(x.cri) : ''}${varias && x.u ? ' · ' + esc(nomeUni(x.u) || '') : ''}</small></span>
+      <span class="vl">${cad ? '<b>Cadastro</b>' : `<b class="num">${brl2(x.pago || 0)}</b>`}${x.bonus > 0 ? `<small>comissão ${brl2(x.bonus)}</small>` : ''}</span>
+      <span class="cma-quem${x.vend ? '' : ' sem'}">${esc(x.vend || 'sem nome')}</span><button type="button" class="bt tap" data-act="cma-trocar" data-id="${x.id}">${ic(IC.lapis, 15)} Trocar</button></div>`; };
+  const tot = R.total || {};
+  return res + `<div class="cma-l"><h3>${L.length ? L.length + (L.length === 1 ? ' lançamento' : ' lançamentos') + ' · comissão total ' + brl2(tot.bonus || 0) : 'Nenhuma venda com vendedora neste dia'}</h3>${L.map(lin).join('')}</div>`; }
+function folhaCmaTrocar(id) { const x = CMA.R && (CMA.R.linhas || []).find(l => +l.id === +id); if (!x) return; const cad = x.k === 'cadastro';
+  const daUni = ((CMA.R.vend_uni || {})[x.u] || []), todas = (CMA.R.vend_todas || []).filter(n => !daUni.includes(n)), q = dataDe(x.quando);
+  const bts = L => L.map(n => `<button type="button" class="bt tap" data-act="cma-vend" data-id="${x.id}" data-n="${esc(n)}" aria-current="${n === x.vend}">${esc(n)}</button>`).join('');
+  abrirFolha('Quem fez esta venda?', `<p class="explica"><b>${esc(x.item || '')}</b> · ${esc(x.resp || x.cri || '')} · ${diaCurto(q)} às ${hora(q)}${cad ? '' : ' · ' + brl2(x.pago || 0)}</p>
+    <p class="explica">Está com <b>${esc(x.vend || 'sem nome')}</b>. ${cad ? 'O cadastro (a família cadastrada junto) passa' : 'A venda inteira (o que foi vendido junto no atendimento) passa'} para quem você tocar, com a comissão.</p>
+    ${daUni.length ? `<small class="rot">${esc(nomeUni(x.u) || 'Da unidade')}</small><div class="cma-vs">${bts(daUni)}</div>` : ''}${todas.length ? `<small class="rot">${daUni.length ? 'De outras unidades' : 'Quem vende'}</small><div class="cma-vs">${bts(todas)}</div>` : ''}`); }
+async function cmaVend(el) { const id = +el.dataset.id, n = el.dataset.n; $$('[data-act="cma-vend"]').forEach(b => { b.disabled = true; });
+  try { const r = await api('cm_ajustar', { id, vend: n }); fecharFolha(); deuCerto(`Comissão ajustada: de ${r.antes || 'sem nome'} para ${r.novo}${r.n > 1 ? ' (' + r.n + ' itens da mesma venda)' : ''}`); await cmaCarregar(); }
+  catch (e) { toast(e.message); $$('[data-act="cma-vend"]').forEach(b => { b.disabled = false; }); } }
+document.addEventListener('change', e => { const i = e.target; if (i && i.id === 'cma-data' && i.value) { CMA.dia = i.value < cxHoje() ? i.value : ''; desenhar(true); } });
 function telaPainel() {
   const B = painelBase(), U = unidadesDoPainel(B.L), varias = U.length > 1, sem = varias && painelTemAlgo(painelResumo(-1, B)), id = (k => k === -1 && !sem ? 0 : k)(pnUni(U)), r = PN_R = painelResumo(id, B), nP = nParaAprovar(), h = agora.getHours();
   const nomeDe = k => k === -1 ? 'SEM UNIDADE' : k ? nomeUni(k) : 'TODAS', ops = varias ? [...U.map(u => u.id), ...(sem ? [-1] : []), 0] : [];
@@ -7198,7 +7252,7 @@ function telaPainel() {
     <div class="pn-lista" id="pn-nf">${r.nfL.length ? r.nfL.slice(0, 8).map(nfLi).join('') + (r.nfL.length > 8 ? `<p class="pn-nada">E mais ${r.nfL.length - 8}: todas em Finanças → Notas fiscais.</p>` : '') : '<p class="pn-nada">Nenhuma nota fiscal emitida hoje.</p>'}</div></div>`;
   return faixa('Painel', `${h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite'}, ${primeiro(EU.nome)} · ${dataTxt()}`, chipAvisos()) + `
   <section class="painel" data-uni="${id}">
-    <div class="card pn-aprov-c${nP ? ' tem' : ''}"><div class="sec-cab"><h2>Para aprovar <span class="pill p-erro" id="pn-n">${nP || ''}</span></h2><span class="pn-links"><button type="button" class="link tap" data-ir="aprovar">Abrir Aprovações</button><button type="button" class="link tap" data-act="autorizacoes">Autorizações</button><button type="button" class="link tap" data-act="hist-aut">Histórico</button><button type="button" class="link tap" data-act="cancelamentos">Cancelamentos</button></span></div><div class="pn-aprov" id="pn-aprov">${htmlAprovar()}</div><button type="button" class="bt forte tap pn-aprov-ir" data-ir="aprovar">${ic(IC.aprovar, 18)} Abrir Aprovações <span id="pn-n2">${nP ? '(' + nP + ')' : ''}</span></button></div>
+    <div class="card pn-aprov-c${nP ? ' tem' : ''}"><div class="sec-cab"><h2>Para aprovar <span class="pill p-erro" id="pn-n">${nP || ''}</span></h2><span class="pn-links"><button type="button" class="link tap" data-ir="aprovar">Abrir Aprovações</button><button type="button" class="link tap" data-act="autorizacoes">Autorizações</button><button type="button" class="link tap" data-act="hist-aut">Histórico</button><button type="button" class="link tap" data-ir="comissoes">Ajustes de comissão</button><button type="button" class="link tap" data-act="cancelamentos">Cancelamentos</button></span></div><div class="pn-aprov" id="pn-aprov">${htmlAprovar()}</div><button type="button" class="bt forte tap pn-aprov-ir" data-ir="aprovar">${ic(IC.aprovar, 18)} Abrir Aprovações <span id="pn-n2">${nP ? '(' + nP + ')' : ''}</span></button></div>
     ${sel}
     <div class="pn-kpis">${kpis}</div>
     ${comp}
@@ -9486,10 +9540,10 @@ function desenhar(quieto = false) { // quieto: redesenho da sincronia, sem as an
   if (MODO !== 'servidor') { S.alugueis = alugPrevia(); acertarCuponsPrevia(); }   // (prévia) o que está fora da loja sai das compras; e o cupom acompanha a venda
   conferirFolhaCupom();
   document.body.classList.toggle('quieto', !!quieto); document.body.classList.remove('so'); nav();
-  if ((S.tela === 'painel' && !gestor()) || (S.tela === 'aprovar' && !supervisorOuMais())) S.tela = 'horas';   // (o painel e as Aprovações são só do gestor)
+  if ((S.tela === 'painel' && !gestor()) || (S.tela === 'comissoes' && !gestor()) || (S.tela === 'aprovar' && !supervisorOuMais())) S.tela = 'horas';   // (o painel e as Aprovações são só do gestor)
   PN_R = null;
   const pnTab = quieto && !!$('#miolo details.gr-tab[open]');   // (a gestora abriu a tabela do gráfico: a sincronia não fecha)
-  $('#miolo').innerHTML = ({ painel: telaPainel, aprovar: telaAprovar, horas: telaHoras, banco: telaBanco, zap: telaZap, agenda: telaAgenda, ajustes: telaAjustes, festas: telaFestas, ct: telaCT, ctvendas: telaCTVendas, ctsinais: telaCTSinais, ctprod: telaCTProd })[S.tela]();
+  $('#miolo').innerHTML = ({ painel: telaPainel, aprovar: telaAprovar, horas: telaHoras, banco: telaBanco, zap: telaZap, agenda: telaAgenda, ajustes: telaAjustes, festas: telaFestas, comissoes: telaComissoes, ct: telaCT, ctvendas: telaCTVendas, ctsinais: telaCTSinais, ctprod: telaCTProd })[S.tela]();
   graficosPainel();
   if (pnTab) { const d = $('#miolo details.gr-tab'); if (d) d.open = true; }
   $('#hoje').innerHTML = painelHoje();
@@ -9593,6 +9647,8 @@ const ACOES = {
   'cx-dia': el => cxVerDia(el.dataset.v || ''),   /* 2.26: Hoje | Ontem */
   'cx-imprimir': () => imprimirPapel([papelCaixa()]),
   'ct-sn-receber': el => folhaSinalReceber(+el.dataset.id), 'ct-sn-ok': el => sinalReceberOk(el),   /* 2.52 */
+  'cma-dia': el => { CMA.dia = el.dataset.v || ''; desenhar(true); }, 'cma-uni': el => { CMA.u = +el.dataset.v || 0; desenhar(true); },   /* 2.53 */
+  'cma-trocar': el => folhaCmaTrocar(+el.dataset.id), 'cma-vend': el => cmaVend(el),
   'cx-ajustar': () => folhaAjCaixa(), 'aj-abrir': el => ajAbrir(+el.dataset.pag), 'aj-ver': el => { if (AJ) { AJ.ver = el.dataset.f || ''; AJ.aberto = 0; ajPinta(); } },   /* 2.50 */
   'aj-tudo': el => ajTudo(el), 'aj-fechar': () => { if (AJ) { AJ.aberto = 0; ajPinta(); } }, 'aj-salvar': el => ajSalvar(el), 'aj-recarregar': () => ajCarregar(),
   'cx-pdf': el => baixarResumoDia(el),   /* 1.54 */

@@ -384,6 +384,17 @@ switch ($acao) {
     $uni = $u['papel'] === 'gestor' ? (int)($in['uni'] ?? 0) : (int)(unidadeDoPedido() ?? 0);
     responder(pagamentosDoCaixa($dia, $uni));
   }
+  case 'cm_dia': { /* 2.53: Ajustes de comissão: as comissões de um dia (as regras das Finanças), por unidade. Só o gestor */
+    $u = exigir(['gestor']); $dia = (string)($in['dia'] ?? ''); if ($dia === '') $dia = date('Y-m-d');
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dia) || !checkdate((int)substr($dia, 5, 2), (int)substr($dia, 8, 2), (int)substr($dia, 0, 4))) falha('Escolha uma data.');
+    if ($dia > date('Y-m-d')) falha('Esse dia ainda não chegou.'); session_write_close();
+    require_once __DIR__ . '/../financas/resumo.php'; require_once __DIR__ . '/../financas/comissoes.php';
+    $R = cmListar(['per' => $dia, 'u' => (isset($in['u']) && (int)$in['u'] > 0) ? (int)$in['u'] : 'todas']); unset($R['hist']);
+    responder($R + ['vend_todas' => array_values(array_unique(array_merge(vendedorasTodas(), vendedoras())))]);
+  }
+  case 'cm_ajustar': { /* 2.53: trocar quem fez a venda (a comissão vai junto). Só o gestor */
+    $u = exigir(['gestor']); responder(comissaoAjustar($in, $u));
+  }
   case 'ct_sinais': { /* 2.52: Casa Tom → Sinais: quem deu o sinal de 50% e ainda vai buscar; quem não é o gestor vê só a unidade dele */
     $u = exigir(); session_write_close(); responder(ctSinaisLista($u['papel'] === 'gestor' ? (int)($in['uni'] ?? 0) : (int)(unidadeDoPedido() ?? 0)));
   }

@@ -1301,6 +1301,14 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. "Ajustes de comissão": as comissões do dia e trocar quem fez a venda (2.53, só o gestor)
+
+Pedido do dono (27/11): "às vezes as meninas lançam errado. Quem colocou a comissão, o gestor tem que poder ajustar ... uma aba só para isso, que é ajustes de comissão ... a comissão de todas as meninas, tipo Anália, Morumbi, e as comissões do dia e uma opção de ajustar quem que foi que fez essa comissão".
+
+- A tela "Ajustes de comissão" (só o gestor) abre pelo Painel (no cartão "Para aprovar", ao lado de Histórico) e pelo menu do computador (Gestão).
+- Escolha o dia (Hoje, Ontem ou outro) e a unidade (Todas, Anália, Morumbi, as Casa Tom). Em cima, cada vendedora com as vendas, o valor vendido, os cadastros e a comissão (pelas regras das Finanças). Embaixo, cada venda e cada cadastro novo do dia, com quem fez.
+- "Trocar": escolha quem fez de verdade. A venda inteira (o que foi vendido junto no mesmo atendimento) passa para ela, com a comissão; no cadastro novo, a família cadastrada junto. Fica no registro do cliente (de quem, para quem e quem trocou), e as Comissões das Finanças já mostram o nome novo.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Casa Tom: "Sinal de 50%" no pagamento e a aba "Sinais" (2.52)
 
 Pedido do dono (27/11): "às vezes as meninas vendem um vestido e o cliente só dá o sinal de 50%, aí pode colocar sinal 50% já automaticamente do valor e deixar esse cliente nesse filtro ... para cobrar os outros 50% na saída".
