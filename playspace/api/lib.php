@@ -81,9 +81,35 @@ function textosEmMaiusculas(PDO $pdo): void {
 
 /* ---------- 1.45: um pedido de cada vez para o que muda os dados ---------- */
 function travarEscrita(string $acao): void {
-  if (in_array($acao, ['estado', 'gz_teste'], true) || isset($GLOBALS['_trava'])) return;   // (só estes não mudam nada)
+  if (in_array($acao, ['estado', 'gz_teste', 'notas_ponte'], true) || isset($GLOBALS['_trava'])) return;   // (só estes não mudam nada)
   $f = @fopen(pastaDados() . '/escrita.trava', 'c'); if (!$f) return;
   if (@flock($f, LOCK_EX)) $GLOBALS['_trava'] = $f;   // fica aberta até o fim do pedido (o PHP solta a trava sozinho)
+}
+
+/* ---------- 2.49: a ponte com o sistema de notas (entra lá sem pedir o login) ---------- */
+// O dono: "não precisa pedir login do sistema de nota, pode deixar logado direto". Quem está dentro do Play Space (ou das Finanças) recebe
+// um bilhete assinado, que vale 2 minutos; o Notas (191) confere a assinatura com o mesmo segredo e abre a sessão dele (o usuário
+// automático "Play Space", ou "Play Space (gestor)" para o gestor). O segredo fica num arquivo da pasta do Notas (notas/api/
+// ponte-segredo.php), feito aqui na primeira vez, e nunca sai do servidor.
+function notasPonteArquivo(): string { return dirname(__DIR__) . '/notas/api/ponte-segredo.php'; }
+function notasPonteLer(string $f): string { $t = @file_get_contents($f); return ($t !== false && preg_match("/'([0-9a-f]{64})'/", $t, $m)) ? $m[1] : ''; }
+function notasPonteSegredo(): string {
+  $f = notasPonteArquivo(); $s = notasPonteLer($f); if ($s !== '') return $s;
+  if (!is_dir(dirname($f))) falha('O sistema de notas não está na pasta "notas" deste site.', 404);
+  $tmp = $f . '.' . bin2hex(random_bytes(6)) . '.tmp';
+  $php = "<?php\n// Play Space 2.49: o segredo da ponte com o Notas (feito sozinho pelo Play Space). Não mostre a ninguém.\n"
+    . "if (!defined('GAMA_NOTAS')) { http_response_code(404); exit; }\nreturn '" . bin2hex(random_bytes(32)) . "';\n";
+  if (@file_put_contents($tmp, $php, LOCK_EX) === false) falha('Não consegui ligar o Play Space ao sistema de notas (a pasta notas/api não deixa gravar).', 500);
+  @chmod($tmp, 0600);
+  if (!@link($tmp, $f) && !is_file($f)) @rename($tmp, $f);   /* (dois pedidos juntos: fica o primeiro) */
+  @unlink($tmp);
+  $s = notasPonteLer($f); if ($s === '') falha('Não consegui ligar o Play Space ao sistema de notas.', 500);
+  return $s;
+}
+function notasPonteBilhete(int $uid, string $nome, bool $gestor, string $origem): string {
+  $b64 = fn(string $x): string => rtrim(strtr(base64_encode($x), '+/', '-_'), '=');
+  $p = $b64((string)json_encode(['u' => $uid, 'n' => $nome, 'g' => $gestor ? 1 : 0, 'o' => $origem, 'e' => time() + 120, 'r' => bin2hex(random_bytes(8))], JSON_UNESCAPED_UNICODE));
+  return $p . '.' . $b64(hash_hmac('sha256', 'notas-ponte|' . $p, notasPonteSegredo(), true));
 }
 
 /* ---------- onde os dados ficam ---------- */

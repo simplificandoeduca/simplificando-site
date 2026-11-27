@@ -189,6 +189,10 @@ switch ($acao) {
     if ($n === 0) $db->prepare("INSERT OR IGNORE INTO config (chave, valor) VALUES ('instalado_em', ?)")->execute([(string)time()]);   // 1.49: a hora em que o site novo foi aberto pela primeira vez
     responder(['primeiro_acesso' => $n === 0, 'usuario' => eu(), 'versao' => PLAY_VERSAO]);
   }
+  case 'notas_ponte': { /* 2.49: o bilhete para entrar no sistema de notas sem pedir o login (o Notas 191 confere) */
+    $u = exigir(); session_write_close();
+    responder(['token' => notasPonteBilhete((int)$u['id'], (string)$u['nome'], (string)$u['papel'] === 'gestor', 'ps')]);
+  }
   case 'finalizado_excluir': { /* 2.43: a lixeira do gestor nos Finalizados do dia */
     $u = exigir(); responder(excluirFinalizado($in, $u));
   }

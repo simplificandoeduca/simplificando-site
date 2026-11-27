@@ -201,7 +201,10 @@ function formFornecedor(fo) {
    marcado e cadastra os marcados de uma vez. Quem já está no cadastro só ganha o que faltava. */
 async function fornDasNotas(b) {
   if (b) b.disabled = true; let R = null, erro = '';
-  try { const x = await fetch('../notas/api/api.php?acao=fornecedores', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+  const pede = () => fetch('../notas/api/api.php?acao=fornecedores', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+  try { let x = await pede();
+    if (x.status === 401) {   /* 2.49: entra no Notas sozinho (o bilhete das Finanças) e pede de novo */
+      try { const t = await api('notas_ponte', {}); const e = await fetch('../notas/api/api.php?acao=entrar_ponte', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: t.token }) }); if (e.ok) x = await pede(); } catch (e) { /* sem a ponte: o aviso de entrar */ } }
     let j = {}; try { j = await x.json(); } catch (e) { /* resposta vazia */ }
     if (x.status === 401) erro = 'Entre no sistema de notas (no menu: Emitir nota) e toque aqui de novo.';
     else if (x.status === 404) erro = 'Não achei o sistema de notas neste site.';

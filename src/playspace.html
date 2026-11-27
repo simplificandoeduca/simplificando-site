@@ -2140,7 +2140,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.48';
+const VERSAO = '2.49';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -8020,7 +8020,9 @@ function nfAcharNota(N, v, p) {
     || (doc ? L.find(n => valida(n) && nfDocL(n.clienteDoc) === doc && Math.abs(+n.valor - v.v) < 0.005 && (dia(n.data) === dia(v.quando) || (p.feito_em && dia(n.data) === dia(p.feito_em)))) : null) || null;
 }
 async function nfPdfBaixa(n, emp) {   /* o PDF oficial pelo Notas (na empresa da nota); o governo leva uns segundos para liberar logo depois de emitir */
+  let ponte = false;
   const pega = async () => { const r = await fetch('/notas/api/api.php?acao=danfse&id=' + encodeURIComponent(n.id) + (emp ? '&_empresa=' + emp.id : ''), { credentials: 'same-origin', cache: 'no-store' });
+    if (r.status === 401 && !ponte) { ponte = true; if (await notasPonte()) return pega(); }   /* 2.49: entra no Notas sozinho */
     if (r.status === 401) { const x = new Error('login'); x.status = 401; throw x; } return r.ok && /pdf/i.test(r.headers.get('Content-Type') || '') ? await r.blob() : (r.status === 404 ? 404 : null); };
   for (let t = 0; t < 3; t++) {
     let b = await pega();
@@ -8122,11 +8124,25 @@ async function pedirNF(el) {
    (ps<venda>n<pedido>): tocar de novo nunca emite duas; se ela já saiu, o número é lido do Notas e marcado. Em teste ou simulação a nota
    sai no Notas, mas a compra não é marcada (como na 1.55). */
 let NF_N = null, NF_N_EM = 0, NF_MSG = null, NF_EMITINDO = 0;
-async function notasApi(acao, dados) {
+/* 2.49 (o dono: "não precisa pedir login do sistema de nota, pode deixar logado direto"): sem a sessão do Notas neste navegador, o Play
+   Space pede um bilhete ao servidor (notas_ponte) e entra no Notas com ele (entrar_ponte, do Notas 191), sem digitar nada. Só se a ponte
+   não der (o Notas de antes da 191) a folha pede o login do Notas, como antes */
+let NF_PONTE = null, NF_PONTE_FALHOU = 0;
+function notasPonte() {
+  if (MODO !== 'servidor' || Date.now() - NF_PONTE_FALHOU < 30000) return Promise.resolve(false);
+  if (!NF_PONTE) NF_PONTE = (async () => {
+    try { const t = await api('notas_ponte'); await notasApi('entrar_ponte', { token: t.token }, true); NF_N = null; return true; }
+    catch (e) { NF_PONTE_FALHOU = Date.now(); return false; }
+    finally { setTimeout(() => { NF_PONTE = null; }, 0); }
+  })();
+  return NF_PONTE;
+}
+async function notasApi(acao, dados, semPonte) {
   let r; try { r = await fetch('/notas/api/api.php?acao=' + acao, { method: 'POST', credentials: 'same-origin', cache: 'no-store', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(dados || {}) }); }
   catch (e) { throw new Error('Sem conexão com o Play Space Notas. Confira a internet e tente de novo.'); }
   let j = null; try { j = await r.json(); } catch (e) { j = null; }
   if (!j || typeof j !== 'object') { const x = new Error(r.status === 404 ? 'O Play Space Notas não foi achado neste site.' : 'O Play Space Notas respondeu de um jeito inesperado (erro ' + r.status + ').'); x.status = r.status; throw x; }
+  if (r.status === 401 && !semPonte && acao !== 'entrar' && await notasPonte()) return notasApi(acao, dados, true);   /* 2.49 */
   if (!r.ok || j.erro) { const x = new Error(j.erro || 'Erro ' + r.status + ' no Play Space Notas.'); x.status = r.status; throw x; }
   return j;
 }
@@ -8141,7 +8157,7 @@ function nfMsgHtml(venda) {
   if (m.tipo === 'teste') return `<div class="marca nf-esp">${ic(IC.cupom, 18)}<span>${esc(m.txt)}</span></div>`;
   if (m.tipo === 'erro') return `<div class="marca canc">${ic(IC.x, 18, 2.4)}<span><b>A nota não saiu.</b> ${esc(m.txt)}</span></div>`;
   if (m.tipo === 'login') return `<div class="bloco-f nf-login"><small class="rot">Entre no Play Space Notas neste computador (uma vez só)</small>
-    <p class="explica">Para a nota sair daqui, este computador precisa estar com o Notas aberto (o login do Notas, o mesmo de lá).</p>
+    <p class="explica">Não deu para entrar sozinho no Notas (confira se o Notas novo, 191, foi enviado ao site). Por enquanto, o login do Notas, o mesmo de lá.</p>
     <div class="dois"><div class="campo"><label for="nfl-login">Login do Notas</label><input id="nfl-login" class="sem-mai" autocapitalize="none" autocomplete="off" spellcheck="false"></div><div class="campo"><label for="nfl-senha">Senha do Notas</label><input id="nfl-senha" type="password" autocomplete="off"></div></div>
     <button type="button" class="bt forte largo tap" data-act="nf-notas-entrar">${ic(IC.check)} ${m.depois ? 'Entrar no Notas e emitir' : 'Entrar no Notas'}</button></div>`;
   return '';

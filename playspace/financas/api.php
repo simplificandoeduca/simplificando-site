@@ -132,6 +132,8 @@ if ($acao === 'sair') { $_SESSION = []; session_destroy(); responder(); }
 $eu = finEu();
 if (!$eu) { $_SESSION = []; @session_destroy(); falha('Entre de novo para continuar.', 401); }
 $ehPrincipal = (int)(finPrincipal()['id'] ?? 0) === (int)$eu['id'];
+/* 2.49: o Notas (dentro das Finanças) entra sem pedir o login: a conta principal entra como o gestor do Notas, os outros como a equipe */
+if ($acao === 'notas_ponte') { session_write_close(); responder(['token' => notasPonteBilhete((int)$eu['id'], (string)$eu['nome'], $ehPrincipal, 'fin')]); }
 try { if (finEmailDevido()) finEmailAuto(); } catch (Throwable $e) { registrarErro('e-mail do resumo do dia: ' . $e->getMessage()); }   // 1.54
 function soPrincipal(bool $eh): void { if (!$eh) falha('Só a conta principal mexe nos acessos.', 403); }
 

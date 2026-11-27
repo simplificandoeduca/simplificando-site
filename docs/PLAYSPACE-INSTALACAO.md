@@ -1301,6 +1301,17 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O sistema de notas sem pedir login: entra sozinho pelo Play Space e pelas Finanças (2.49, com o Notas 191)
+
+Pedido do dono (27/11): "não precisa pedir login do sistema de nota. Pode deixar logado direto."
+
+- Quem está dentro do Play Space (ou das Finanças) neste navegador entra no sistema de notas sem digitar nada: na folha "Nota fiscal" da compra (emitir, ver o PDF), no Notas aberto em /notas e no Notas dentro das Finanças (Emitir nota), e no "Trazer das notas fiscais" dos Fornecedores.
+- Como funciona: o Play Space dá um bilhete assinado, que vale 2 minutos; o Notas confere a assinatura com o segredo da ponte (o arquivo notas/api/ponte-segredo.php, feito sozinho pelo Play Space na primeira vez, só o servidor lê) e abre a sessão.
+- No Notas, quem entra assim aparece como "Play Space" (a equipe: emite a nota) ou "Play Space (gestor)" (o gestor do Play Space e a conta principal das Finanças: também cancela). Em Conta → Usuários os dois aparecem com "entra sozinho pelo Play Space". A conta principal do Notas continua a mesma.
+- Para entrar com outro login no Notas (por exemplo a conta principal, para trocar o certificado): Conta → Sair. Depois de Sair, o Notas fica na tela de entrar (com o login e a senha) e tem o botão "Entrar pelo Play Space (sem senha)".
+- Num navegador onde ninguém entrou no Play Space nem nas Finanças, o Notas continua pedindo o login (protegido).
+- Precisa do Notas 191 no site (playspace-notas-191.zip, no lugar do 190). Sem ele, a folha da nota pede o login do Notas, como antes, e avisa para enviar o Notas novo.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A nota emitida carrega na folha da compra: Imprimir, Enviar no WhatsApp e Salvar (2.48, com o Notas 190)
 
 Pedido do dono (26/11): "eu quero que a nota já carregue aqui, tem a opção de eu imprimir, ou a opção de eu enviar no WhatsApp do cliente, ou a opção de eu salvar a nota".
