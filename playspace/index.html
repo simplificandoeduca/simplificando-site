@@ -998,6 +998,9 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 @media (max-width: 520px) { .nf-dados { grid-template-columns: 1fr; } }
 .nf-pdf { display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: 16px; background: var(--card); border: 1.5px solid var(--borda); }   /* 2.48: a nota na folha */
 .nf-pdf-v { width: 100%; height: 380px; border: 0; border-radius: 10px; background: #fff; } .nf-pdf-tit { display: flex; align-items: center; gap: 8px; font: 700 14px var(--display); } .nf-pdf-tit small { font: 500 12px var(--corpo, inherit); color: var(--tinta-3); }
+/* 3.21: o modelo do comprovante da nota (na folha da nota e em Ajustes) */
+.seg.nf-mods, .seg.nfm-seg { flex-wrap: wrap; } .seg.nf-mods button { min-width: 0; flex: 1 1 auto; padding: 0 10px; font-size: 12.5px; height: 34px; } .seg.nfm-seg button { flex: 1 1 auto; padding: 0 12px; }
+.nfm-v { margin-top: 12px; } .nfm-v .nf-pdf-v { height: min(62vh, 620px); }
 .nf-pdf-bts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; } .nf-pdf-bts .bt { justify-content: center; } .nf-pdf-bts .bt.nf-zap { background: #25D366; border-color: #25D366; color: #fff; }
 .nf-pdf.esp { flex-direction: row; align-items: center; color: var(--tinta-2); font-size: 13px; } .nf-pdf.esp .bt { margin-left: auto; flex: none; }
 /* 2.68: o relógio da espera da nota */
@@ -2454,7 +2457,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '3.20';
+const VERSAO = '3.21';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -9666,7 +9669,7 @@ function nflPdfHtml() {
   if (p.st === 'carregando') return `<div class="nf-pdf esp nf-espera">${ic(IC.cupom, 18)} <span><span aria-live="polite">O governo está liberando o PDF da nota…</span> ${p.t0 ? nfRelogio(p.t0) : ''}<small>O governo costuma levar de alguns segundos a 1 minuto. A nota aparece aqui sozinha.</small></span></div>`;   /* 2.68 */
   if (p.st !== 'ok') return `<div class="nf-pdf esp">${ic(IC.sino, 18)} <span>${esc(p.msg || 'A nota não carregou.')}</span><button type="button" class="bt tap" data-act="nfl-pdf">${ic(IC.refaz || IC.check, 16)} Tentar de novo</button></div>`;
   const toque = matchMedia('(pointer: coarse)').matches;
-  return `<div class="nf-pdf"><span class="nf-pdf-tit">${ic(IC.cupom, 18)} A nota</span>${p.comp ? nfCompAviso(NFL && NFL.feito && NFL.feito.nota && NFL.feito.nota.chave) : ''}
+  return `<div class="nf-pdf"><span class="nf-pdf-tit">${ic(IC.cupom, 18)} A nota</span>${p.comp ? nfCompAviso(NFL && NFL.feito && NFL.feito.nota && NFL.feito.nota.chave) + nfCompModelos(p.mod || nfModelo(), 'nfl-mod') : ''}
     <div class="nf-pdf-bts"><button type="button" class="bt tap" data-act="nfl-imprimir">${ic(IC.cupom, 16)} Imprimir</button><button type="button" class="bt nf-zap tap" data-act="nfl-whats">${ic(IC.zap, 16)} Enviar no WhatsApp</button><button type="button" class="bt tap" data-act="nfl-salvar">${ic(IC.baixar, 16)} Salvar a nota</button></div>
     ${toque ? '' : `<iframe class="nf-pdf-v" id="nfl-pdf-v" src="${p.url}#view=FitH" title="A nota fiscal (PDF)"></iframe>`}</div>`;
 }
@@ -9676,7 +9679,7 @@ async function nflPdfCarregar() {
   if (!n.chave) { x.pdf = { st: 'erro', msg: `A nota nº ${n.numero} não tem o PDF oficial (não saiu pelo Emissor Nacional). Veja no Play Space Notas.` }; nflPdfPinta(); return; }
   const t0 = Date.now(), eu = x.pdf = { st: 'carregando', t0 }; nflPdfPinta();
   try { let b = null, comp = true; try { b = await nfComprovantePdf(n, x.feito.ed); } catch (e) { b = null; } if (NFL !== x || x.pdf !== eu) return;   /* 2.83: o comprovante na hora, com "Abrir a nota do governo" (sem pedir o PDF ao governo daqui) */
-    x.pdf = b ? { st: 'ok', comp, url: URL.createObjectURL(b), arquivo: new File([b], `NFS-e ${n.numero} - ${n.clienteNome || ''}`.replace(/[\\/:*?"<>|]+/g, ' ').trim() + '.pdf', { type: 'application/pdf' }) }
+    x.pdf = b ? { st: 'ok', comp, mod: nfModelo(), url: URL.createObjectURL(b), arquivo: new File([b], `NFS-e ${n.numero} - ${n.clienteNome || ''}`.replace(/[\\/:*?"<>|]+/g, ' ').trim() + '.pdf', { type: 'application/pdf' }) }
       : { st: 'erro', msg: `A nota nº ${n.numero} não carregou. Toque em Tentar de novo.` }; }
   catch (e) { if (NFL !== x) return; x.pdf = { st: 'erro', msg: e.status === 401 ? 'Entre no Play Space Notas neste computador para ver a nota.' : 'A nota não carregou: ' + (e.message || 'tente de novo.') }; }
   nflPdfPinta();
@@ -9721,7 +9724,7 @@ function nfPdfHtml(v) {
   if (x.st === 'semgov') return `<div class="nf-pdf esp nf-semgov">${ic(IC.sino, 18)} <span>${esc(x.msg)}</span><button type="button" class="bt tap" data-act="nf-pdf-recarregar">${ic(IC.refaz || IC.check, 16)} Tentar de novo</button><button type="button" class="link tap" data-act="nf-pdf-comp">Ver o comprovante</button></div>`;   /* 2.82 */
   if (x.st !== 'ok') return `<div class="nf-pdf esp">${ic(IC.sino, 18)} <span>${esc(x.msg || 'A nota não carregou.')}</span><button type="button" class="bt tap" data-act="nf-pdf-recarregar">${ic(IC.refaz || IC.check, 16)} Tentar de novo</button></div>`;
   const toque = matchMedia('(pointer: coarse)').matches;   /* (no celular o PDF não abre dentro da folha: ficam os botões) */
-  return `<div class="nf-pdf">${de}${x.nota && String(x.nota.numero) !== String((nfDaVenda(v) || {}).numero || '') ? ` <small>· no governo, nº ${esc(x.nota.numero)}</small>` : ''}</span>${x.comp ? nfCompAviso(x.nota && x.nota.chave) + (x.busca ? `<p class="explica nf-busca">Ainda buscando o PDF oficial no governo ${nfRelogio(x.busca)} · quando chegar, troca sozinho.</p>` : '') : ''}
+  return `<div class="nf-pdf">${de}${x.nota && String(x.nota.numero) !== String((nfDaVenda(v) || {}).numero || '') ? ` <small>· no governo, nº ${esc(x.nota.numero)}</small>` : ''}</span>${x.comp ? nfCompAviso(x.nota && x.nota.chave) + nfCompModelos(x.mod || nfModelo(), 'nf-pdf-mod') + (x.busca ? `<p class="explica nf-busca">Ainda buscando o PDF oficial no governo ${nfRelogio(x.busca)} · quando chegar, troca sozinho.</p>` : '') : ''}
     <div class="nf-pdf-bts"><button type="button" class="bt tap" data-act="nf-pdf-imprimir">${ic(IC.cupom, 16)} Imprimir</button><button type="button" class="bt nf-zap tap" data-act="nf-pdf-whats">${ic(IC.zap, 16)} Enviar no WhatsApp</button><button type="button" class="bt tap" data-act="nf-pdf-salvar">${ic(IC.baixar, 16)} Salvar a nota</button></div>
     ${toque ? '' : `<iframe class="nf-pdf-v" id="nf-pdf-v" src="${x.url}#view=FitH" title="A nota fiscal (PDF)"></iframe>`}</div>`;   /* (os botões em cima: à vista sem rolar) */
 }
@@ -9914,7 +9917,7 @@ async function nfLogoPng() {
   try { const svg = LOGO.replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" '), img = new Image(); img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg); await img.decode();
     const cv = document.createElement('canvas'); cv.width = 160; cv.height = 160; cv.getContext('2d').drawImage(img, 0, 0, 160, 160); return cv.toDataURL('image/png'); } catch (e) { return null; }
 }
-async function nfComprovantePdf(n, e) {
+async function nfComprovanteSimples(n, e) {   /* 3.21: o modelo "Simples" (o de antes) */
   const jsPDF = await nfJsPdf(), doc = new jsPDF({ unit: 'mm', format: 'a4' }); e = e || {};
   const C = { coral: [226, 91, 63], menta: [219, 232, 218], tinta: [59, 59, 59], cinza: [107, 101, 94], linha: [234, 223, 209], verm: [184, 64, 42] };
   const cor = (c, t) => doc[t === 'f' ? 'setFillColor' : t === 'd' ? 'setDrawColor' : 'setTextColor'](...c), brlN = v => (+v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -9949,6 +9952,299 @@ async function nfComprovantePdf(n, e) {
   cor(C.cinza); doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.text('Play Space · comprovante da NFS-e', 12, 287); doc.text('Página 1 de 1', 198, 287, { align: 'right' });
   return doc.output('blob');
 }
+/* 3.21 (o dono: "eu quero o comprovante da nota fiscal da Play mais fofo, com um ursinho; me dê 3 formatos"): o comprovante da nota (os
+   dados, a chave de acesso e o QR da consulta, feito aqui quando o PDF do governo não vem) em 3 modelos com o ursinho da Play, e o de antes
+   ("Simples"). O dono viu os 3 e escolheu o "Ursinho espiando" de padrão ("o cupom deixa na opção de trocar lá para o cupom fofinho"): o
+   gestor troca o que sai sempre em Ajustes → Cupom impresso → Comprovante da nota fiscal (vale para todos os aparelhos), e na hora de
+   enviar ao cliente a atendente troca só aquele (ex.: o Cupom fofinho, estreito, bom no celular). E o de Natal da Casa Tom (o dono: "amei
+   a nota da Casa Tom; pode colocar lá, para poder selecionar ela"): uma opção a mais, não o padrão. E o de Natal da Play ("gostei da nota
+   do Play"): outra opção, com o Papai Noel e a rena em volta do QR e o botão que abre a nota no governo (o QR e o botão são links no PDF) */
+const NF_MODELOS = [['urso2', 'Ursinho espiando'], ['urso3', 'Cupom fofinho'], ['urso1', 'Ursinho no alto'], ['natalTom', 'Natal da Casa Tom'], ['natalPlay', 'Natal da Play'], ['simples', 'Simples']];
+const TXT_NFMOD = { urso1: 'Folha A4: o ursinho no alto, os dados em cartões clarinhos e patinhas no pé da folha.', urso2: 'Folha A4 creme: o ursinho espiando por cima de um cartão branco, com coraçõezinhos e estrelinhas.', urso3: 'Estreito como um cupom (bom de ver no celular e no WhatsApp): o ursinho com um coração e as bordas onduladas.', natalPlay: 'Especial de Natal da Play: os campos escuros, o valor no meio, o Papai Noel segurando o QR, a rena embaixo e o botão que abre a nota no governo (toque no celular).', natalTom: 'Especial de Natal com o jeito da Casa Tom: a logo T O M, o soldadinho segurando a bandeira com o valor, o outro apontando o QR, o carimbo da nota e o trenzinho.', simples: 'O de antes: a logo no alto e os dados em linhas, sem desenhos.' };
+const nfModelo = () => NF_MODELOS.some(x => x[0] === S.cfg.nfModelo) ? S.cfg.nfModelo : 'urso2';
+const NF_SVG = (() => {
+  const cab = '<circle cx="30" cy="26" r="13" fill="#D9A07F"/><circle cx="94" cy="26" r="13" fill="#D9A07F"/><circle cx="30" cy="26" r="7" fill="#C98B6B"/><circle cx="94" cy="26" r="7" fill="#C98B6B"/><circle cx="62" cy="56" r="36" fill="#D9A07F"/><ellipse cx="62" cy="72" rx="15" ry="11" fill="#F5D9C6"/><ellipse cx="62" cy="67" rx="5" ry="3.6" fill="#3B3B3B"/><path d="M62 70 v5 M56 78 q6 4 12 0" stroke="#3B3B3B" stroke-width="1.8" fill="none" stroke-linecap="round"/><circle cx="48" cy="52" r="4.6" fill="#3B3B3B"/><circle cx="76" cy="52" r="4.6" fill="#3B3B3B"/><circle cx="49.6" cy="50.4" r="1.4" fill="#fff"/><circle cx="77.6" cy="50.4" r="1.4" fill="#fff"/><circle cx="36" cy="64" r="5" fill="#F5BEA9" opacity=".7"/><circle cx="88" cy="64" r="5" fill="#F5BEA9" opacity=".7"/>'
+    + '<path d="M86 21 l-9 -6 v12 z M86 21 l9 -6 v12 z" fill="#E25B3F" stroke="#E25B3F" stroke-width="2" stroke-linejoin="round"/><circle cx="86" cy="21" r="3.4" fill="#C9472E"/>';
+  const pata = (x, y) => `<ellipse cx="${x}" cy="${y}" rx="13" ry="9.5" fill="#E3B08E" stroke="#C98B6B" stroke-width="1.6"/><path d="M${x - 8} ${y - 5} v4 M${x} ${y - 7} v4 M${x + 8} ${y - 5} v4" stroke="#C98B6B" stroke-width="2" stroke-linecap="round"/>`;
+  const cor = c => `<path d="M12 21 C3 14.5 0 9 2.6 5.2 C5 1.8 9.6 2.2 12 6 C14.4 2.2 19 1.8 21.4 5.2 C24 9 21 14.5 12 21 Z" fill="${c}"/>`;
+  return {
+    cara: ['0 0 124 96', cab], espia: ['0 0 124 112', cab + pata(34, 100) + pata(90, 100)],
+    coracao: ['0 0 124 124', cab + '<path d="M62 121 C42 108 35 97 43 89 C49 83 58 86 62 93 C66 86 75 83 81 89 C89 97 82 108 62 121 Z" fill="#E25B3F"/><ellipse cx="51" cy="94" rx="4" ry="2.6" fill="#fff" opacity=".45" transform="rotate(-30 51 94)"/><ellipse cx="41" cy="104" rx="8.5" ry="7" fill="#E3B08E" stroke="#C98B6B" stroke-width="1.6"/><ellipse cx="83" cy="104" rx="8.5" ry="7" fill="#E3B08E" stroke="#C98B6B" stroke-width="1.6"/>'],
+    cor: ['0 0 24 22', cor('#E25B3F')], corP: ['0 0 24 22', cor('#F5BEA9')], corB: ['0 0 24 22', cor('#FFFFFF')],
+    pata: ['0 0 24 24', '<g fill="#EFCDB9"><ellipse cx="12" cy="16" rx="6" ry="5"/><circle cx="4.6" cy="9.6" r="2.4"/><circle cx="9" cy="5.4" r="2.4"/><circle cx="15" cy="5.4" r="2.4"/><circle cx="19.4" cy="9.6" r="2.4"/></g>'],
+    pataC: ['0 0 24 24', '<g fill="#E25B3F"><ellipse cx="12" cy="16" rx="6" ry="5"/><circle cx="4.6" cy="9.6" r="2.4"/><circle cx="9" cy="5.4" r="2.4"/><circle cx="15" cy="5.4" r="2.4"/><circle cx="19.4" cy="9.6" r="2.4"/></g>'],
+    /* o Natal da Casa Tom: a estrela, os soldadinhos (das fotos da mesa de Natal da loja), os ícones de cada parte, o trenzinho, os losangos do vidro */
+    estD: ['0 0 24 24', '<path d="M12 2.5 l2.8 5.9 6.4 .8 -4.7 4.4 1.2 6.4 L12 16.9 6.3 20 7.5 13.6 2.8 9.2 9.2 8.4 Z" fill="#E0B04A" stroke="#E0B04A" stroke-width="1.6" stroke-linejoin="round"/>'],
+    soldGe: ['0 0 90 200', '<g transform="translate(80 0) scale(-1 1)"><ellipse cx="40" cy="195" rx="24" ry="4" fill="#000" opacity=".10"/><rect x="66" y="40" width="3.4" height="150" rx="1.7" fill="#D4A537"/><circle cx="67.7" cy="36" r="5.5" fill="#D4A537"/><path d="M67.7 21 l2.8 10 h-5.6z" fill="#D4A537"/><rect x="63.8" y="44" width="7.8" height="3" rx="1.5" fill="#B8892A"/><rect x="25" y="166" width="13" height="25" rx="3" fill="#1E1E22"/><rect x="42" y="166" width="13" height="25" rx="3" fill="#1E1E22"/><rect x="25" y="166" width="13" height="3" fill="#D4A537"/><rect x="42" y="166" width="13" height="3" fill="#D4A537"/><rect x="25" y="134" width="13" height="34" rx="2" fill="#1F6B45"/><rect x="42" y="134" width="13" height="34" rx="2" fill="#1F6B45"/><rect x="36.5" y="134" width="7" height="8" fill="#1F6B45"/><rect x="20" y="92" width="40" height="46" rx="6" fill="#C0272D"/><path d="M33 93 H47 V128 H33Z" fill="#FFFFFF"/><path d="M40 96 l5 7 l-5 7 l-5 -7z M40 112 l5 7 l-5 7 l-5 -7z" fill="#2F5D9A"/><g fill="#D4A537"><circle cx="30" cy="104" r="1.5"/><circle cx="30" cy="114" r="1.5"/><circle cx="50" cy="104" r="1.5"/><circle cx="50" cy="114" r="1.5"/></g><rect x="20" y="128" width="40" height="5" fill="#1E1E22"/><rect x="36.5" y="127.5" width="7" height="6" rx="1" fill="#D4A537"/><rect x="11" y="98" width="9" height="30" rx="4.5" fill="#C0272D"/><rect x="11" y="121" width="9" height="5" fill="#1F6B45"/><circle cx="15.5" cy="131" r="4.6" fill="#FFFFFF"/><path d="M58 102 Q66 106 66 118" stroke="#C0272D" stroke-width="9" stroke-linecap="round" fill="none"/><rect x="62" y="113" width="9" height="4" rx="1" fill="#1F6B45"/><circle cx="67.7" cy="120.5" r="4.6" fill="#FFFFFF"/><ellipse cx="21" cy="96" rx="8" ry="5" fill="#1F6B45"/><ellipse cx="59" cy="96" rx="8" ry="5" fill="#1F6B45"/><path d="M14 99v4M17 100.5v4M20 101v4M23 100.5v4M26 99v4M54 99v4M57 100.5v4M60 101v4M63 100.5v4M66 99v4" stroke="#D4A537" stroke-width="1.5" stroke-linecap="round"/><rect x="25" y="62" width="30" height="32" rx="6" fill="#F2C7A5"/><path d="M25.5 66 q-5 9 0 19 l4 -2 v-15z M54.5 66 q5 9 0 19 l-4 -2 v-15z" fill="#F4F1EC"/><circle cx="34" cy="73.5" r="1.9" fill="#1E1E22"/><circle cx="46" cy="73.5" r="1.9" fill="#1E1E22"/><path d="M30.5 69.5 q3.5 -3 7 0 M42.5 69.5 q3.5 -3 7 0" stroke="#F4F1EC" stroke-width="2.2" stroke-linecap="round" fill="none"/><circle cx="30" cy="79" r="2.8" fill="#E98C7E" opacity=".7"/><circle cx="50" cy="79" r="2.8" fill="#E98C7E" opacity=".7"/><ellipse cx="40" cy="78" rx="3.2" ry="3.6" fill="#E8A58A"/><path d="M28 84 Q40 106 52 84 Q46 90.5 40 89.5 Q34 90.5 28 84Z" fill="#F4F1EC"/><path d="M27 82.5 Q34 78 40 82 Q46 78 53 82.5 Q50.5 88 45 85.5 Q42 84.5 40 85.5 Q38 84.5 35 85.5 Q29.5 88 27 82.5Z" fill="#fff" stroke="#E2DDD5" stroke-width=".6"/><path d="M24 26 Q24 20 30 20 H50 Q56 20 56 26 V62 H24Z" fill="#1E1E22"/><rect x="24" y="30" width="32" height="2.4" fill="#33333A"/><rect x="23" y="56" width="34" height="7" rx="2" fill="#D4A537"/><circle cx="40" cy="43" r="5.2" fill="#D4A537"/><circle cx="40" cy="43" r="2.3" fill="#C0272D"/><circle cx="40" cy="15.5" r="4.2" fill="#D4A537"/><rect x="38.6" y="17" width="2.8" height="4" fill="#D4A537"/></g>'],
+    soldPd: ['-10 0 110 200', '<g transform="translate(80 0) scale(-1 1)"><ellipse cx="40" cy="195" rx="24" ry="4" fill="#000" opacity=".10"/><rect x="66" y="40" width="3.4" height="150" rx="1.7" fill="#D4A537"/><circle cx="67.7" cy="36" r="5.5" fill="#D4A537"/><path d="M67.7 21 l2.8 10 h-5.6z" fill="#D4A537"/><rect x="63.8" y="44" width="7.8" height="3" rx="1.5" fill="#B8892A"/><rect x="25" y="166" width="13" height="25" rx="3" fill="#1E1E22"/><rect x="42" y="166" width="13" height="25" rx="3" fill="#1E1E22"/><rect x="25" y="166" width="13" height="3" fill="#D4A537"/><rect x="42" y="166" width="13" height="3" fill="#D4A537"/><rect x="25" y="134" width="13" height="34" rx="2" fill="#1F6B45"/><rect x="42" y="134" width="13" height="34" rx="2" fill="#1F6B45"/><rect x="36.5" y="134" width="7" height="8" fill="#1F6B45"/><rect x="20" y="92" width="40" height="46" rx="6" fill="#C0272D"/><path d="M33 93 H47 V128 H33Z" fill="#FFFFFF"/><path d="M40 96 l5 7 l-5 7 l-5 -7z M40 112 l5 7 l-5 7 l-5 -7z" fill="#2F5D9A"/><g fill="#D4A537"><circle cx="30" cy="104" r="1.5"/><circle cx="30" cy="114" r="1.5"/><circle cx="50" cy="104" r="1.5"/><circle cx="50" cy="114" r="1.5"/></g><rect x="20" y="128" width="40" height="5" fill="#1E1E22"/><rect x="36.5" y="127.5" width="7" height="6" rx="1" fill="#D4A537"/><rect x="-3" y="97.5" width="25" height="9" rx="4.5" fill="#C0272D"/><rect x="1" y="97.5" width="5" height="9" fill="#1F6B45"/><circle cx="-4" cy="102" r="4.6" fill="#FFFFFF"/><rect x="-13" y="100.6" width="9" height="2.8" rx="1.4" fill="#FFFFFF"/><path d="M58 102 Q66 106 66 118" stroke="#C0272D" stroke-width="9" stroke-linecap="round" fill="none"/><rect x="62" y="113" width="9" height="4" rx="1" fill="#1F6B45"/><circle cx="67.7" cy="120.5" r="4.6" fill="#FFFFFF"/><ellipse cx="21" cy="96" rx="8" ry="5" fill="#1F6B45"/><ellipse cx="59" cy="96" rx="8" ry="5" fill="#1F6B45"/><path d="M14 99v4M17 100.5v4M20 101v4M23 100.5v4M26 99v4M54 99v4M57 100.5v4M60 101v4M63 100.5v4M66 99v4" stroke="#D4A537" stroke-width="1.5" stroke-linecap="round"/><rect x="25" y="62" width="30" height="32" rx="6" fill="#F2C7A5"/><path d="M25.5 66 q-5 9 0 19 l4 -2 v-15z M54.5 66 q5 9 0 19 l-4 -2 v-15z" fill="#F4F1EC"/><circle cx="34" cy="73.5" r="1.9" fill="#1E1E22"/><circle cx="46" cy="73.5" r="1.9" fill="#1E1E22"/><path d="M30.5 69.5 q3.5 -3 7 0 M42.5 69.5 q3.5 -3 7 0" stroke="#F4F1EC" stroke-width="2.2" stroke-linecap="round" fill="none"/><circle cx="30" cy="79" r="2.8" fill="#E98C7E" opacity=".7"/><circle cx="50" cy="79" r="2.8" fill="#E98C7E" opacity=".7"/><ellipse cx="40" cy="78" rx="3.2" ry="3.6" fill="#E8A58A"/><path d="M28 84 Q40 106 52 84 Q46 90.5 40 89.5 Q34 90.5 28 84Z" fill="#F4F1EC"/><path d="M27 82.5 Q34 78 40 82 Q46 78 53 82.5 Q50.5 88 45 85.5 Q42 84.5 40 85.5 Q38 84.5 35 85.5 Q29.5 88 27 82.5Z" fill="#fff" stroke="#E2DDD5" stroke-width=".6"/><path d="M24 26 Q24 20 30 20 H50 Q56 20 56 26 V62 H24Z" fill="#1E1E22"/><rect x="24" y="30" width="32" height="2.4" fill="#33333A"/><rect x="23" y="56" width="34" height="7" rx="2" fill="#D4A537"/><circle cx="40" cy="43" r="5.2" fill="#D4A537"/><circle cx="40" cy="43" r="2.3" fill="#C0272D"/><circle cx="40" cy="15.5" r="4.2" fill="#D4A537"/><rect x="38.6" y="17" width="2.8" height="4" fill="#D4A537"/></g>'],
+    icCasa: ['0 0 24 24', '<path d="M4 11 L12 4 L20 11 V21 H4Z" fill="#C8202A"/><rect x="9.6" y="14" width="4.8" height="7" rx="1" fill="#fff"/><path d="M2 11.5 L12 2.5 L22 11.5" stroke="#D4A537" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'],
+    icPres: ['0 0 24 24', '<rect x="3.5" y="10" width="17" height="11" rx="1.5" fill="#C8202A"/><rect x="2.5" y="7" width="19" height="4" rx="1" fill="#C8202A"/><rect x="10.8" y="7" width="2.4" height="14" fill="#D4A537"/><path d="M12 7 q-5 -6 -7 -2 q1 2.5 7 2 q5 -6 7 -2 q-1 2.5 -7 2z" fill="#D4A537"/>'],
+    icTamb: ['0 0 24 24', '<path d="M6 2.5 L11 7 M18 2.5 L13 7" stroke="#8B5E3C" stroke-width="1.6" stroke-linecap="round"/><path d="M4 8 V17 Q12 21 20 17 V8 Q12 12 4 8Z" fill="#C8202A"/><path d="M4 10 L8 16.5 L12 11 L16 16.5 L20 10" stroke="#D4A537" stroke-width="1.4" fill="none"/><ellipse cx="12" cy="8" rx="8" ry="2.8" fill="#F5EFE4" stroke="#1F6B45" stroke-width="1.1"/><path d="M4 17 Q12 21 20 17" stroke="#1F6B45" stroke-width="1.6" fill="none"/>'],
+    icMoed: ['0 0 24 24', '<ellipse cx="12" cy="17.5" rx="8" ry="3" fill="#B8892A"/><rect x="4" y="11.5" width="16" height="6" fill="#B8892A"/><ellipse cx="12" cy="11.5" rx="8" ry="3" fill="#D4A537"/><ellipse cx="12" cy="11.5" rx="4.6" ry="1.5" fill="none" stroke="#B8892A" stroke-width="1"/><path d="M6 14.5v3M10 15v3.2M14 15v3.2M18 14.5v3" stroke="#9C7420" stroke-width=".8"/>'],
+    icChave: ['0 0 24 24', '<circle cx="8" cy="12" r="4.6" fill="none" stroke="#D4A537" stroke-width="2.6"/><path d="M12.6 12 H21.5 M18.5 12 v3.4 M21.5 12 v3.4" stroke="#D4A537" stroke-width="2.6" stroke-linecap="round"/>'],
+    tremV: ['0 -16 130 60', '<g fill="#C9CAD2"><ellipse cx="17" cy="-1" rx="6" ry="3.6"/><ellipse cx="11" cy="-8" rx="4.6" ry="2.8"/><ellipse cx="6" cy="-13.5" rx="3.4" ry="2.2"/></g><rect x="12" y="8" width="8" height="12" fill="#1E1E22"/><rect x="10" y="5.5" width="12" height="3.5" rx="1" fill="#1E1E22"/><rect x="6" y="20" width="40" height="16" rx="3" fill="#C8202A"/><rect x="6" y="24" width="34" height="2" fill="#D4A537"/><rect x="6" y="30" width="34" height="2" fill="#D4A537"/><rect x="40" y="6" width="20" height="30" rx="2" fill="#1F6B45"/><rect x="44" y="11" width="12" height="9" rx="1.5" fill="#FFF1C9"/><rect x="38" y="3" width="24" height="4.5" rx="2" fill="#C8202A"/><circle cx="6" cy="27" r="2.8" fill="#FFF1C9" stroke="#D4A537" stroke-width="1"/><path d="M0 37 l6.5 -7 v7z" fill="#D4A537"/><rect x="66" y="22" width="28" height="14" rx="2" fill="#1F6B45"/><rect x="100" y="22" width="28" height="14" rx="2" fill="#C8202A"/><path d="M60 32h6M94 32h6" stroke="#1E1E22" stroke-width="2"/><g fill="#1E1E22"><circle cx="16" cy="38" r="5"/><circle cx="34" cy="38" r="5"/><circle cx="52" cy="38" r="5"/><circle cx="72" cy="39" r="4"/><circle cx="88" cy="39" r="4"/><circle cx="106" cy="39" r="4"/><circle cx="122" cy="39" r="4"/></g><g fill="#D4A537"><circle cx="16" cy="38" r="1.7"/><circle cx="34" cy="38" r="1.7"/><circle cx="52" cy="38" r="1.7"/><circle cx="72" cy="39" r="1.4"/><circle cx="88" cy="39" r="1.4"/><circle cx="106" cy="39" r="1.4"/><circle cx="122" cy="39" r="1.4"/></g><rect x="69.0" y="9.0" width="13.0" height="13.0" rx="1.4" fill="#C8202A"/><rect x="74.5" y="9.0" width="2" height="13.0" fill="#D4A537"/><rect x="69.0" y="14.2" width="13.0" height="2" fill="#D4A537"/><path d="M75.5 9.0 q-3.5 -3.5 -5 -1 q1.6 2.2 5 1 q3.5 -3.5 5 -1 q-1.6 2.2 -5 1z" fill="#D4A537"/><rect x="83.0" y="14.0" width="9.0" height="8.0" rx="1.4" fill="#F5EFE4"/><rect x="86.5" y="14.0" width="2" height="8.0" fill="#C8202A"/><rect x="83.0" y="17.2" width="9.0" height="2" fill="#C8202A"/><path d="M87.5 14.0 q-3.5 -3.5 -5 -1 q1.6 2.2 5 1 q3.5 -3.5 5 -1 q-1.6 2.2 -5 1z" fill="#C8202A"/><g transform="translate(102 -9) scale(.62)"><rect x="17" y="44" width="6" height="7" rx="1.5" fill="#6B4429"/><path d="M20 18 Q28 30 38 44 Q20 49 2 44 Q12 30 20 18Z" fill="#1F6B45"/><path d="M20 9 Q26 18 33 30 Q20 34 7 30 Q14 18 20 9Z" fill="#2E8556"/><path d="M20 2 Q24 8 28 17 Q20 20 12 17 Q16 8 20 2Z" fill="#1F6B45"/><circle cx="14.0" cy="38.0" r="2.0" fill="#C8202A"/><circle cx="26.0" cy="40.0" r="2.0" fill="#D4A537"/><circle cx="20.0" cy="32.0" r="1.8" fill="#F5EFE4"/><circle cx="16.0" cy="24.0" r="1.6" fill="#D4A537"/><circle cx="24.0" cy="24.0" r="1.6" fill="#C8202A"/><circle cx="30.0" cy="36.0" r="1.6" fill="#F5EFE4"/><path d="M20.00 -2.70 L21.12 -0.04 L23.99 0.20 L21.81 2.09 L22.47 4.90 L20.00 3.40 L17.53 4.90 L18.19 2.09 L16.01 0.20 L18.88 -0.04 Z" fill="#D4A537"/></g>'],
+    tomArleq: ['0 0 420 30', '<rect width="420" height="30" fill="#fff"/><path d="M15.0 0 L0.0 15.0 L15.0 30.0 Z" fill="#3A2A24"/><path d="M15.0 0 L30.0 15.0 L15.0 30.0 Z" fill="#3A2A24"/><ellipse cx="0.0" cy="6.0" rx="3.6" ry="2.4" fill="#2A201C"/><ellipse cx="0.0" cy="24.0" rx="3.6" ry="2.4" fill="#2A201C"/><path d="M45.0 0 L30.0 15.0 L45.0 30.0 Z" fill="#F4B6A6"/><path d="M45.0 0 L60.0 15.0 L45.0 30.0 Z" fill="#E6392E"/><ellipse cx="30.0" cy="6.0" rx="3.6" ry="2.4" fill="#2A201C"/><ellipse cx="30.0" cy="24.0" rx="3.6" ry="2.4" fill="#2A201C"/><path d="M75.0 0 L60.0 15.0 L75.0 30.0 Z" fill="#F2C230"/><path d="M75.0 0 L90.0 15.0 L75.0 30.0 Z" fill="#F4B6A6"/><ellipse cx="60.0" cy="6.0" rx="3.6" ry="2.4" fill="#2A201C"/><ellipse cx="60.0" cy="24.0" rx="3.6" ry="2.4" fill="#2A201C"/><path d="M105.0 0 L90.0 15.0 L105.0 30.0 Z" fill="#E6392E"/><path d="M105.0 0 L120.0 15.0 L105.0 30.0 Z" fill="#F2C230"/><ellipse cx="90.0" cy="6.0" rx="3.6" ry="2.4" fill="#2A201C"/><ellipse cx="90.0" cy="24.0" rx="3.6" ry="2.4" fill="#2A201C"/><path d="M135.0 0 L120.0 15.0 L135.0 30.0 Z" fill="#3A2A24"/><path d="M135.0 0 L150.0 15.0 L135.0 30.0 Z" fill="#3A2A24"/><ellipse cx="120.0" cy="6.0" rx="3.6" ry="2.4" fill="#2A201C"/><ellipse cx="120.0" cy="24.0" rx="3.6" ry="2.4" fill="#2A201C"/><path d="M165.0 0 L150.0 15.0 L165.0 30.0 Z" fill="#F4B6A6"/><path d="M165.0 0 L180.0 15.0 L165.0 30.0 Z" fill="#E6392E"/><ellipse cx="150.0" cy="6.0" rx="3.6" ry="2.4" fill="#2A201C"/><ellipse cx="150.0" cy="24.0" rx="3.6" ry="2.4" fill="#2A201C"/><path d="M195.0 0 L180.0 15.0 L195.0 30.0 Z" fill="#F2C230"/><path d="M195.0 0 L210.0 15.0 L195.0 30.0 Z" fill="#F4B6A6"/><ellipse cx="180.0" cy="6.0" rx="3.6" ry="2.4" fill="#2A201C"/><ellipse cx="180.0" cy="24.0" rx="3.6" ry="2.4" fill="#2A201C"/><path d="M225.0 0 L210.0 15.0 L225.0 30.0 Z" fill="#E6392E"/><path d="M225.0 0 L240.0 15.0 L225.0 30.0 Z" fill="#F2C230"/><ellipse cx="210.0" cy="6.0" rx="3.6" ry="2.4" fill="#2A201C"/><ellipse cx="210.0" cy="24.0" rx="3.6" ry="2.4" fill="#2A201C"/><path d="M255.0 0 L240.0 15.0 L255.0 30.0 Z" fill="#3A2A24"/><path d="M255.0 0 L270.0 15.0 L255.0 30.0 Z" fill="#3A2A24"/><ellipse cx="240.0" cy="6.0" rx="3.6" ry="2.4" fill="#2A201C"/><ellipse cx="240.0" cy="24.0" rx="3.6" ry="2.4" fill="#2A201C"/><path d="M285.0 0 L270.0 15.0 L285.0 30.0 Z" fill="#F4B6A6"/><path d="M285.0 0 L300.0 15.0 L285.0 30.0 Z" fill="#E6392E"/><ellipse cx="270.0" cy="6.0" rx="3.6" ry="2.4" fill="#2A201C"/><ellipse cx="270.0" cy="24.0" rx="3.6" ry="2.4" fill="#2A201C"/><path d="M315.0 0 L300.0 15.0 L315.0 30.0 Z" fill="#F2C230"/><path d="M315.0 0 L330.0 15.0 L315.0 30.0 Z" fill="#F4B6A6"/><ellipse cx="300.0" cy="6.0" rx="3.6" ry="2.4" fill="#2A201C"/><ellipse cx="300.0" cy="24.0" rx="3.6" ry="2.4" fill="#2A201C"/><path d="M345.0 0 L330.0 15.0 L345.0 30.0 Z" fill="#E6392E"/><path d="M345.0 0 L360.0 15.0 L345.0 30.0 Z" fill="#F2C230"/><ellipse cx="330.0" cy="6.0" rx="3.6" ry="2.4" fill="#2A201C"/><ellipse cx="330.0" cy="24.0" rx="3.6" ry="2.4" fill="#2A201C"/><path d="M375.0 0 L360.0 15.0 L375.0 30.0 Z" fill="#3A2A24"/><path d="M375.0 0 L390.0 15.0 L375.0 30.0 Z" fill="#3A2A24"/><ellipse cx="360.0" cy="6.0" rx="3.6" ry="2.4" fill="#2A201C"/><ellipse cx="360.0" cy="24.0" rx="3.6" ry="2.4" fill="#2A201C"/><path d="M405.0 0 L390.0 15.0 L405.0 30.0 Z" fill="#F4B6A6"/><path d="M405.0 0 L420.0 15.0 L405.0 30.0 Z" fill="#E6392E"/><ellipse cx="390.0" cy="6.0" rx="3.6" ry="2.4" fill="#2A201C"/><ellipse cx="390.0" cy="24.0" rx="3.6" ry="2.4" fill="#2A201C"/><path d="M435.0 0 L420.0 15.0 L435.0 30.0 Z" fill="#F2C230"/><path d="M435.0 0 L450.0 15.0 L435.0 30.0 Z" fill="#F4B6A6"/><ellipse cx="420.0" cy="6.0" rx="3.6" ry="2.4" fill="#2A201C"/><ellipse cx="420.0" cy="24.0" rx="3.6" ry="2.4" fill="#2A201C"/><path d="M465.0 0 L450.0 15.0 L465.0 30.0 Z" fill="#E6392E"/><path d="M465.0 0 L480.0 15.0 L465.0 30.0 Z" fill="#F2C230"/><ellipse cx="450.0" cy="6.0" rx="3.6" ry="2.4" fill="#2A201C"/><ellipse cx="450.0" cy="24.0" rx="3.6" ry="2.4" fill="#2A201C"/>'],
+    noel: ['-2 8 110 152', '<ellipse cx="52" cy="154" rx="36" ry="4" fill="#000" opacity=".22"/><rect x="13" y="38" width="17" height="15" rx="2.2" fill="#2E7D4F"/><rect x="20.3" y="38" width="2.6" height="15" fill="#E0B04A"/><rect x="13" y="43.6" width="17" height="2.6" fill="#E0B04A"/><rect x="27" y="42" width="14" height="12" rx="2" fill="#D0262F"/><rect x="32.8" y="42" width="2.4" height="12" fill="#E0B04A"/><path d="M34 42 q-4 -4 -6 -1 q2 2.4 6 1 q4 -4 6 -1 q-2 2.4 -6 1z" fill="#E0B04A"/><path d="M9 62 C1 82 5 114 30 118 C51 121 61 101 57 79 C54 62 41 52 26 52 C17 52 12 56 9 62Z" fill="#B98A5E"/><path d="M14 72 C10 90 15 107 31 112" stroke="#9C7048" stroke-width="3.2" fill="none" stroke-linecap="round"/><path d="M20 54 Q30 60 44 54" stroke="#7A5233" stroke-width="3" fill="none" stroke-linecap="round"/><rect x="34" y="120" width="13" height="22" rx="4" fill="#D0262F"/><rect x="54" y="120" width="13" height="22" rx="4" fill="#D0262F"/><path d="M31 140 h18 v8 q0 4 -4 4 h-17 q-4 0 -4 -4 q0 -6 7 -8z" fill="#4A3428"/><path d="M70 140 h-18 v8 q0 4 4 4 h17 q4 0 4 -4 q0 -6 -7 -8z" fill="#4A3428"/><rect x="33" y="137" width="16" height="4.6" rx="2.3" fill="#fff"/><rect x="52" y="137" width="16" height="4.6" rx="2.3" fill="#fff"/><path d="M27 149 h18 M74 149 h-18" stroke="#6E5444" stroke-width="1.4" stroke-linecap="round"/><path d="M28 82 Q28 66 51 64 Q74 66 74 82 L78 120 Q51 129 24 120Z" fill="#D0262F"/><path d="M23 116 Q51 126 79 116 L80 125 Q51 135 22 125Z" fill="#FFFFFF"/><rect x="48" y="66" width="6.4" height="54" fill="#FFFFFF"/><rect x="25.6" y="98" width="51" height="7.4" fill="#1E1E22"/><rect x="44.6" y="97" width="13" height="9.4" rx="1.6" fill="none" stroke="#E0B04A" stroke-width="2.4"/><path d="M31 80 Q16 76 15 62" stroke="#D0262F" stroke-width="11" stroke-linecap="round" fill="none"/><circle cx="15.2" cy="64.6" r="5.6" fill="#FFFFFF"/><circle cx="14.6" cy="57.6" r="5.6" fill="#FFFFFF" stroke="#E2DDD5" stroke-width="1"/><path d="M72 79 Q86 81 97 73" stroke="#D0262F" stroke-width="11" stroke-linecap="round" fill="none"/><circle cx="93.5" cy="75" r="5.4" fill="#FFFFFF"/><circle cx="101" cy="71" r="5.8" fill="#FFFFFF" stroke="#E2DDD5" stroke-width="1"/><circle cx="51" cy="46" r="15" fill="#F2C7A5"/><path d="M34 46 Q33 72 51 77 Q69 72 68 46 Q63 57 51 57 Q39 57 34 46Z" fill="#FFFFFF"/><g fill="#FFFFFF"><circle cx="38" cy="64" r="5"/><circle cx="45" cy="71" r="5.6"/><circle cx="57" cy="71" r="5.6"/><circle cx="64" cy="64" r="5"/><circle cx="51" cy="74" r="5"/></g><path d="M42 41 q3 -2.2 6 0 M54 41 q3 -2.2 6 0" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" fill="none"/><path d="M42.6 45.4 q2.4 -2.6 4.8 0 M54.6 45.4 q2.4 -2.6 4.8 0" stroke="#3B3B3B" stroke-width="1.7" fill="none" stroke-linecap="round"/><circle cx="41" cy="50.5" r="2.9" fill="#F29B8B" opacity=".75"/><circle cx="61" cy="50.5" r="2.9" fill="#F29B8B" opacity=".75"/><path d="M39 54 Q45 49.5 51 53 Q57 49.5 63 54 Q57.5 58.6 51 56.2 Q44.5 58.6 39 54Z" fill="#FFFFFF" stroke="#E7E2DA" stroke-width=".8"/><ellipse cx="51" cy="51" rx="3.6" ry="3" fill="#E99A8A"/><path d="M35 38 Q37 17 55 15 Q74 14 82 31 Q76 28 72 31 Q68 27 67 38Z" fill="#D0262F"/><path d="M60 16 Q74 16 80 29 Q76 27.5 73 29.5 Q70 22 60 16Z" fill="#A81C24" opacity=".55"/><rect x="33" y="34" width="37" height="8.6" rx="4.3" fill="#FFFFFF"/><circle cx="82" cy="31.5" r="5.2" fill="#FFFFFF"/>'],
+    rena: ['10 -16 108 86', '<ellipse cx="70" cy="66" rx="44" ry="3.6" fill="#000" opacity=".2"/><ellipse cx="72" cy="50" rx="38" ry="14.5" fill="#A0673D"/><ellipse cx="76" cy="57" rx="26" ry="6.4" fill="#E8CBA8"/><g fill="#F3E2CC" opacity=".8"><circle cx="86" cy="42" r="2"/><circle cx="96" cy="46" r="1.6"/><circle cx="78" cy="40" r="1.4"/></g><ellipse cx="109" cy="44" rx="4.4" ry="3.4" fill="#F3E2CC"/><rect x="40" y="57" width="22" height="7.4" rx="3.7" fill="#8A5530"/><rect x="38" y="57" width="6" height="7.4" rx="2.6" fill="#4A3020"/><rect x="84" y="57" width="20" height="7.4" rx="3.7" fill="#8A5530"/><rect x="100" y="57" width="6" height="7.4" rx="2.6" fill="#4A3020"/><path d="M44 48 Q35 32 39 19" stroke="#A0673D" stroke-width="14" stroke-linecap="round" fill="none"/><path d="M38 7 Q36 -5 30 -11 M34.4 -1 Q28.6 -1.4 24.6 -5.4 M32.6 -6.8 Q29.6 -9.6 30.4 -13.6 M43 7 Q47 -5 53 -11 M46.6 -1 Q52.4 -1.4 56.4 -5.4 M48.4 -6.8 Q51.4 -9.6 50.6 -13.6" stroke="#7A4A2A" stroke-width="2.8" stroke-linecap="round" fill="none"/><ellipse cx="47" cy="9" rx="5.4" ry="2.8" fill="#8A5530" transform="rotate(-25 47 9)"/><ellipse cx="30" cy="9.6" rx="5" ry="2.6" fill="#8A5530" transform="rotate(25 30 9.6)"/><ellipse cx="38" cy="17" rx="12.4" ry="10.4" fill="#A0673D"/><ellipse cx="28" cy="21" rx="8.6" ry="6.8" fill="#C99A6E"/><circle cx="21.4" cy="19.6" r="4.4" fill="#E0242F"/><circle cx="20.2" cy="18.2" r="1.3" fill="#fff" opacity=".8"/><circle cx="36.4" cy="14" r="2" fill="#2B2B2B"/><circle cx="35.8" cy="13.3" r=".7" fill="#fff"/><circle cx="41" cy="20" r="2.4" fill="#E98C7E" opacity=".55"/><path d="M29 24.6 q2.6 1.8 5 0" stroke="#5A3A24" stroke-width="1.1" fill="none" stroke-linecap="round"/><path d="M35 30 Q45 35 53 28 L55.6 32.6 Q46 39.6 33.4 34.4Z" fill="#2E7D4F"/><path d="M39.6 32.4 l1 3.6 M45 33.2 l.4 3.6 M50 31.4 l1.4 3.2" stroke="#E0B04A" stroke-width="1.2"/><path d="M50.6 31 l3.6 8.6 l-3.4 1 l-2.6 -8.4z" fill="#2E7D4F"/>'],
+    est: ['0 0 24 24', '<path d="M12 2.5 l2.8 5.9 6.4 .8 -4.7 4.4 1.2 6.4 L12 16.9 6.3 20 7.5 13.6 2.8 9.2 9.2 8.4 Z" fill="#F6C453" stroke="#F6C453" stroke-width="1.6" stroke-linejoin="round"/>'] };
+})();
+const NF_PNG = {};
+async function nfSvgPng(k) {
+  if (NF_PNG[k]) return NF_PNG[k]; const [vb, corpo] = NF_SVG[k] || [];
+  try { const [, , w, h] = vb.split(' ').map(Number), W = ({ cara: 1200, espia: 1200, coracao: 1200, soldGe: 700, soldPd: 800, tremV: 1100, tomArleq: 1600, icCasa: 160, icPres: 160, icTamb: 160, icMoed: 160, icChave: 160, noel: 700, rena: 700 })[k] || 256, H = Math.round(W * h / w);
+    const img = new Image(); img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb}" width="${W}" height="${H}">${corpo}</svg>`); await img.decode();
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H; cv.getContext('2d').drawImage(img, 0, 0, W, H); return (NF_PNG[k] = cv.toDataURL('image/png')); } catch (e) { return null; }
+}
+async function nfComprovantePdf(n, e, modelo) {
+  modelo = NF_MODELOS.some(x => x[0] === modelo) ? modelo : nfModelo(); if (modelo === 'simples') return nfComprovanteSimples(n, e);
+  const jsPDF = await nfJsPdf(); e = e || {};
+  const IM = { logo: await nfLogoPng() }; for (const k of Object.keys(NF_SVG)) IM[k] = await nfSvgPng(k);
+  let qr = null; if (n.chave && n.status !== 'cancelada') try { qr = NFQR.png(nfUrlConsulta(n.chave), 6, 2); } catch (x) { qr = null; }
+  const C = { coral: [226, 91, 63], menta: [219, 232, 218], mentaC: [236, 244, 235], tinta: [59, 59, 59], cinza: [107, 101, 94], linha: [234, 216, 204], verm: [184, 64, 42], creme: [255, 248, 241], creme2: [253, 245, 235], branco: [255, 255, 255], pessego: [255, 238, 228] };
+  const brlN = v => (+v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), num = String(n.numero).padStart(4, '0');
+  const D = { num, data: n.data ? new Date(n.data).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '',
+    prest: [[e.nome || 'PLAY SPACE', 1, 11], ['CNPJ ' + (e.cnpj || '-')], [e.im ? 'Inscrição municipal ' + e.im : ''], [e.municipio || '']],
+    tom: [[n.clienteNome || '-', 1, 11], [(soDig(n.clienteDoc).length === 14 ? 'CNPJ ' : 'CPF ') + (n.clienteDoc || '-')]],
+    serv: [[(n.servicoNome || '') + (n.codigo ? '  ·  cód. ' + n.codigo : ''), 1, 10.5], [n.descricao || '']],
+    iss: `ISS ${String(n.aliquota || 0).replace('.', ',')}%`, issQ: n.retido ? '(retido pelo tomador)' : '(a recolher pelo prestador)',
+    chave: n.chave ? String(n.chave).replace(/(\d{4})(?=\d)/g, '$1 ') : '', liq: brlN(n.liquido != null ? n.liquido : n.valor),
+    aviso: [n.status === 'cancelada' ? 'NOTA CANCELADA' : '', n.exemplo ? 'EXEMPLO · SEM VALOR FISCAL' : +n.ambiente === 1 ? '' : 'AMBIENTE DE TESTE - SEM VALOR FISCAL'].filter(Boolean).join(' · ') };
+  D.vals = [['Valor do serviço', brlN(n.valor)], [`${D.iss} ${D.issQ}`, brlN(n.iss)]];
+  const fer = doc => {
+    const cor = (c, t) => doc[t === 'f' ? 'setFillColor' : t === 'd' ? 'setDrawColor' : 'setTextColor'](...c);
+    const fonte = (tam, neg, f) => { doc.setFont(f || 'helvetica', neg ? 'bold' : 'normal'); doc.setFontSize(tam); };
+    const img = (k, x, y, w, h) => { const d = k === 'qr' ? qr : IM[k]; if (!d) return; try { doc.addImage(d, 'PNG', x, y, w, h, 'nf-' + k, 'FAST'); } catch (z) { } };
+    const lh = tam => tam * 0.406;
+    const bloco = (x, y, w, ls, so, al) => { let yy = y; ls.filter(l => l && l[0]).forEach(([t, neg, tam]) => { tam = tam || 9.5; fonte(tam, neg); const p = doc.splitTextToSize(String(t), w);
+      if (!so) { cor(neg ? C.tinta : C.cinza); doc.text(p, al === 'center' ? x + w / 2 : x, yy + lh(tam) * 0.78, al === 'center' ? { align: 'center' } : undefined); } yy += p.length * lh(tam) + 1.1; }); return yy - y; };
+    const rot = (t, x, y, al) => { fonte(7.5, 1); cor(C.coral); doc.text(t.toUpperCase(), x, y, al ? { align: al } : { charSpace: 0.3 }); };
+    const trac = (x1, x2, y) => { doc.setLineDashPattern([1.2, 1.5], 0); cor(C.linha, 'd'); doc.setLineWidth(0.5); doc.line(x1, y, x2, y); doc.setLineDashPattern([], 0); };
+    const aviso = (x, y, w) => { if (!D.aviso) return 0; fonte(8.5, 1); const p = doc.getTextWidth(D.aviso) > w - 8 ? D.aviso.split(' · ') : [D.aviso], h = 9 + (p.length - 1) * 3.9;
+      cor([254, 242, 242], 'f'); doc.roundedRect(x, y, w, h, 4.5, 4.5, 'F'); cor(C.verm); p.forEach((l, i) => doc.text(l, x + w / 2, y + 5.8 + i * 3.9, { align: 'center' })); return h; };
+    const cancelada = (x, y, tam, ang) => { if (n.status !== 'cancelada') return; try { doc.saveGraphicsState(); doc.setGState(new doc.GState({ opacity: 0.16 })); fonte(tam, 1); cor(C.verm);
+      const w = doc.getTextWidth('CANCELADA') / 2, r = ang * Math.PI / 180; doc.text('CANCELADA', x - w * Math.cos(r), y + w * Math.sin(r), { angle: ang }); doc.restoreGraphicsState(); } catch (z) { } };   /* (centrada à mão: o align com o angle sai torto) */
+    return { cor, fonte, img, lh, bloco, rot, trac, aviso, cancelada };
+  };
+  const CONSULTA = 'Confira a nota no site do governo (www.nfse.gov.br) com a chave de acesso ou pelo QR.';
+  /* 1) o ursinho no alto: a faixa verde com o ursinho, os dados em cartões creme e patinhas no pé */
+  const urso1 = doc => { const { cor, fonte, img, lh, bloco, rot, aviso, cancelada } = fer(doc);
+    cor(C.menta, 'f'); doc.roundedRect(12, 12, 186, 46, 8, 8, 'F');
+    img('corP', 16, 16, 5, 4.6); img('est', 59, 15.5, 5, 5); img('cor', 58, 47, 4.4, 4);
+    img('cara', 17, 18, 42, 32.5);
+    fonte(21, 1); cor(C.tinta); doc.text('Sua nota fiscal', 67, 29.5);
+    fonte(9.5); cor(C.cinza); doc.text('NFS-e · Nota Fiscal de Serviço eletrônica', 67, 36.5);
+    fonte(10, 1); cor(C.coral); doc.text('Obrigado por brincar com a gente!', 67, 46);
+    cor(C.branco, 'f'); doc.roundedRect(150, 19, 42, 32, 7, 7, 'F'); rot('Nota nº', 171, 27, 'center');
+    fonte(17, 1); cor(C.tinta); doc.text(num, 171, 37, { align: 'center' }); fonte(8.5); cor(C.cinza); doc.text(D.data, 171, 44.5, { align: 'center' });
+    const card = (x, y, w, tit, ls, h, so) => { const H = Math.max(h || 0, 15 + bloco(0, 0, w - 12, ls, true) + 3); if (so) return H;
+      cor(C.creme, 'f'); doc.roundedRect(x, y, w, H, 5, 5, 'F'); img('pata', x + 6, y + 5, 3.9, 3.9); rot(tit, x + 11.5, y + 8.3); bloco(x + 6, y + 12.5, w - 12, ls); return H; };
+    let y = 66; const h1 = Math.max(card(12, y, 91, 'Prestador do serviço', D.prest, 0, 1), card(107, y, 91, 'Tomador do serviço', D.tom, 0, 1));
+    card(12, y, 91, 'Prestador do serviço', D.prest, h1); card(107, y, 91, 'Tomador do serviço', D.tom, h1); y += h1 + 5;
+    y += card(12, y, 186, 'Serviço', D.serv) + 5;
+    const hv = 15 + D.vals.length * 6.5 + 17; cor(C.creme, 'f'); doc.roundedRect(12, y, 186, hv, 5, 5, 'F'); img('pata', 18, y + 5, 3.9, 3.9); rot('Valores', 23.5, y + 8.3);
+    let yv = y + 16.5; D.vals.forEach(([r, v]) => { fonte(10); cor(C.cinza); doc.text(r, 18, yv); cor(C.tinta); doc.text(v, 192, yv, { align: 'right' }); yv += 6.5; });
+    cor(C.coral, 'f'); doc.roundedRect(16, yv - 2, 178, 14, 7, 7, 'F'); img('corB', 21.5, yv + 2.6, 5.4, 5); fonte(12, 1); cor(C.branco); doc.text('Valor líquido', 30, yv + 7);
+    fonte(16, 1); doc.text(D.liq, 188, yv + 7.6, { align: 'right' }); y += hv + 5;
+    if (n.chave) { if (y + 50 > 262) { doc.addPage(); y = 16; }
+      cor(C.mentaC, 'f'); doc.roundedRect(12, y, 186, 50, 5, 5, 'F'); img('pata', 18, y + 5, 3.9, 3.9); rot('Chave de acesso', 23.5, y + 8.3);
+      const lw = qr ? 128 : 172; fonte(10.5, 0, 'courier'); cor(C.tinta); const p = doc.splitTextToSize(D.chave, lw); doc.text(p, 18, y + 16.5);
+      fonte(9); cor(C.cinza); doc.text(doc.splitTextToSize(CONSULTA, lw), 18, y + 18 + p.length * lh(10.5) + 3);
+      if (qr) { cor(C.branco, 'f'); doc.roundedRect(153, y + 4, 41, 42, 5, 5, 'F'); img('qr', 156.5, y + 6, 34, 34); fonte(7); cor(C.cinza); doc.text('Aponte a câmera', 173.5, y + 43.5, { align: 'center' }); }
+      y += 55; }
+    doc.setPage(1); cancelada(105, 185, 68, 28);
+    const np = doc.getNumberOfPages(); for (let i = 1; i <= np; i++) { doc.setPage(i); if (i === np) aviso(12, 266, 186);
+      for (let k = 0; k < 9; k++) img('pata', 24 + k * 20, 276.5 + (k % 2 ? 1.6 : 0), 4.2, 4.2);
+      img('logo', 12, 284.5, 6.5, 6.5); fonte(8); cor(C.cinza); doc.text('Play Space · comprovante da NFS-e · feito com carinho', 20.5, 289); doc.text(`Página ${i} de ${np}`, 198, 289, { align: 'right' }); }
+    return y; };
+  /* 2) o ursinho espiando: a folha creme, um cartão branco e o ursinho com as patinhas na beira do cartão */
+  const urso2 = (doc, hc) => { const { cor, fonte, img, lh, bloco, rot, trac, aviso, cancelada } = fer(doc);
+    cor(C.creme2, 'f'); doc.rect(0, 0, 210, 297, 'F');
+    img('logo', 14, 12, 17, 17); img('corP', 58, 17, 5.4, 5); img('est', 46, 33, 4.6, 4.6); img('cor', 150, 15, 6.6, 6); img('est', 166, 26, 5.6, 5.6); img('corP', 140, 33, 4.4, 4); img('cor', 182, 38, 4, 3.7);
+    const top = 52, H = hc || 200; cor(C.branco, 'f'); cor([242, 212, 198], 'd'); doc.setLineWidth(0.6); doc.roundedRect(16, top, 178, H, 10, 10, 'FD');
+    img('espia', 80, top - 40.3, 50, 45.2);
+    let y = top + 16; fonte(18, 1); cor(C.tinta); doc.text('Nota Fiscal de Serviço', 105, y, { align: 'center' }); y += 6.5;
+    fonte(10); cor(C.cinza); doc.text(`eletrônica (NFS-e)  ·  nº ${num}  ·  ${D.data}`, 105, y, { align: 'center' }); y += 6; trac(26, 184, y); y += 8;
+    rot('Prestador do serviço', 26, y); rot('Tomador do serviço', 110, y); y += 3;
+    y += Math.max(bloco(26, y, 78, D.prest), bloco(110, y, 74, D.tom)) + 3; trac(26, 184, y); y += 8;
+    rot('Serviço', 26, y); y += 3; y += bloco(26, y, 158, D.serv) + 3; trac(26, 184, y); y += 8;
+    rot('Valores', 26, y); y += 7; D.vals.forEach(([r, v]) => { fonte(10); cor(C.cinza); doc.text(r, 26, y); cor(C.tinta); doc.text(v, 184, y, { align: 'right' }); y += 6.5; });
+    cor(C.menta, 'f'); doc.roundedRect(24, y - 1.5, 162, 15, 7.5, 7.5, 'F'); img('cor', 29.5, y + 3.3, 5.6, 5.1); fonte(12, 1); cor(C.tinta); doc.text('Valor líquido', 38.5, y + 8);
+    fonte(17, 1); cor(C.coral); doc.text(D.liq, 180, y + 8.6, { align: 'right' }); y += 21;
+    if (n.chave) { trac(26, 184, y); y += 8; const y0 = y; rot('Chave de acesso', 26, y); y += 6;
+      const lw = qr ? 112 : 158; fonte(10.5, 0, 'courier'); cor(C.tinta); const p = doc.splitTextToSize(D.chave, lw); doc.text(p, 26, y); y += p.length * lh(10.5) + 2.5;
+      fonte(9); cor(C.cinza); const q = doc.splitTextToSize(CONSULTA, lw); doc.text(q, 26, y); y += q.length * lh(9);
+      if (qr) { cor(C.creme2, 'f'); doc.roundedRect(145, y0 - 4.5, 40, 40, 6, 6, 'F'); img('qr', 148, y0 - 1.5, 34, 34); fonte(7); cor(C.cinza); doc.text('Aponte a câmera', 165, y0 + 39.5, { align: 'center' }); y = Math.max(y, y0 + 41); }
+      y += 3; }
+    if (D.aviso) { y += 2; y += aviso(24, y, 162) + 2; }
+    y += 6; const fim = top + H;
+    img('cor', 64, fim + 9, 5, 4.6); fonte(11, 1); cor(C.coral); doc.text('Obrigado pela visita! Volte sempre.', 105, fim + 13, { align: 'center' }); img('cor', 141, fim + 9, 5, 4.6);
+    cancelada(105, 175, 68, 28);
+    fonte(8); cor(C.cinza); doc.text('Play Space · comprovante da NFS-e', 16, 289); doc.text('Página 1 de 1', 194, 289, { align: 'right' });
+    return y - top; };
+  /* 3) o cupom fofinho: estreito (10 cm), o ursinho com o coração, as bordas onduladas */
+  const urso3 = (doc, H) => { const { cor, fonte, img, lh, bloco, rot, trac, aviso, cancelada } = fer(doc); H = H || 600;
+    cor(C.pessego, 'f'); doc.rect(0, 0, 100, H, 'F'); cor(C.branco, 'f'); doc.rect(6, 8, 88, H - 16, 'F'); for (let x = 8; x <= 92.1; x += 4) { doc.circle(x, 8, 2, 'F'); doc.circle(x, H - 8, 2, 'F'); }
+    img('corP', 15, 16, 4.6, 4.2); img('est', 79, 15, 5, 5); img('est', 17, 40, 3.6, 3.6); img('corP', 78, 38, 4, 3.7);
+    let y = 13; img('coracao', 32, y, 36, 36); y += 41;
+    fonte(8, 1); cor(C.coral); doc.text('PLAY SPACE', 50, y, { align: 'center' }); y += 6.5;
+    fonte(14, 1); cor(C.tinta); doc.text('Nota Fiscal de Serviço', 50, y, { align: 'center' }); y += 5.5;
+    fonte(9); cor(C.cinza); doc.text(`eletrônica (NFS-e) · nº ${num}`, 50, y, { align: 'center' }); y += 4.4; doc.text(D.data, 50, y, { align: 'center' }); y += 5; trac(12, 88, y); y += 7;
+    for (const [t, ls] of [['Prestador do serviço', D.prest], ['Tomador do serviço', D.tom], ['Serviço', D.serv]]) { rot(t, 12, y); y += 2.6; y += bloco(12, y, 76, ls.map(([a, b, c]) => [a, b, c ? c - 1 : 9])) + 2.5; trac(12, 88, y); y += 7; }
+    rot('Valores', 12, y); y += 6.5; fonte(9.5); cor(C.cinza); doc.text('Valor do serviço', 12, y); cor(C.tinta); doc.text(D.vals[0][1], 88, y, { align: 'right' }); y += 5.5;
+    cor(C.cinza); doc.text(D.iss, 12, y); cor(C.tinta); doc.text(D.vals[1][1], 88, y, { align: 'right' }); y += 4; fonte(7.5); cor(C.cinza); doc.text(D.issQ, 12, y); y += 4.5;
+    cor(C.coral, 'f'); doc.roundedRect(10, y, 80, 15, 7.5, 7.5, 'F'); img('corB', 15, y + 5, 5.2, 4.8); fonte(10.5, 1); cor(C.branco); doc.text('Valor líquido', 23, y + 9);
+    fonte(14, 1); doc.text(D.liq, 85, y + 9.4, { align: 'right' }); y += 21;
+    if (n.chave) { trac(12, 88, y); y += 6;
+      if (qr) { cor(C.creme2, 'f'); doc.roundedRect(30, y, 40, 40, 6, 6, 'F'); img('qr', 33, y + 3, 34, 34); y += 44; fonte(7.5); cor(C.cinza); doc.text('Aponte a câmera do celular', 50, y, { align: 'center' }); y += 6.5; }
+      rot('Chave de acesso', 50, y, 'center'); y += 4.6; fonte(8.6, 0, 'courier'); cor(C.tinta); const p = doc.splitTextToSize(D.chave, 76); doc.text(p, 50, y, { align: 'center' }); y += p.length * lh(8.6) + 1.5;
+      fonte(7.5); cor(C.cinza); const q = doc.splitTextToSize('Confira em www.nfse.gov.br com a chave de acesso.', 76); doc.text(q, 50, y, { align: 'center' }); y += q.length * lh(7.5) + 3; }
+    if (D.aviso) { y += aviso(10, y, 80) + 4; }
+    trac(12, 88, y); y += 9; fonte(11, 1); cor(C.coral); doc.text('Obrigado pela visita!', 50, y, { align: 'center' }); y += 5;
+    fonte(9); cor(C.cinza); doc.text('Volte sempre para brincar', 50, y, { align: 'center' }); y += 4.5;
+    for (let k = 0; k < 5; k++) img(k === 2 ? 'cor' : 'pata', 33.5 + k * 7, y + (k === 2 ? 0.3 : 0), 4, k === 2 ? 3.7 : 4); y += 10;
+    fonte(7); cor(C.cinza); doc.text('comprovante da NFS-e · Play Space', 50, y, { align: 'center' }); y += 12;
+    cancelada(50, H / 2, 46, 62);
+    return y; };
+  /* 5) o Natal da Casa Tom (o dono escolheu, depois de várias rodadas: "gostei muito da bandeira; coloque mais coisas intuitivas com a nota;
+     um pouquinho da identidade visual da Tom"; "pode tirar o ursinho"): a folha branca e limpa, os cantos pouco arredondados, a logo T O M em
+     blocos e o título de serifa com a barrinha dourada (como nas telas da Tom), o número na bolinha de Natal pendurada nas bandeirinhas, "De" e
+     "Para" como etiqueta de presente, um ícone em cada parte, o carimbo da nota (emitida, cancelada ou de teste), o soldadinho que segura a
+     bandeira com o valor líquido, o outro que aponta o QR, o trenzinho e os losangos do vidro da loja no pé */
+  const VT = [200, 32, 42], PRETOT = [31, 31, 31], ROSAT = [244, 165, 138], LP = { verde: [31, 107, 69], ouro: [212, 165, 55], borda: [230, 226, 220] };
+  const tomLogo = (doc, x, y, h) => { const w = h * 29 / 36, g = h * 3.5 / 36;
+    ['T', 'O', 'M'].forEach((l, i) => { const bx = x + i * (w + g); doc.setFillColor(...(i === 2 ? ROSAT : C.branco)); doc.setDrawColor(...PRETOT); doc.setLineWidth(h * 0.045); doc.rect(bx, y, w, h, 'FD');
+      doc.setFont('times', 'bold'); doc.setFontSize(h * 1.95); doc.setTextColor(...(i === 1 ? VT : PRETOT)); doc.text(l, bx + w / 2, y + h * 0.74, { align: 'center' }); }); };
+  const natalTom = doc => { const { cor, fonte, img, bloco, aviso } = fer(doc); const V = VT, VD = LP.verde, OU = LP.ouro, BO = LP.borda, X = 12, W = 186;
+    const bandeiras = (w, y, passo) => { cor(OU, 'd'); doc.setLineWidth(0.4); doc.line(0, y, w, y); const cs = [V, VD, OU];
+      for (let i = 0, x = passo / 2 - 3.5; x < w; i++, x += passo) { cor(cs[i % 3], 'f'); doc.triangle(x, y, x + 7, y, x + 3.5, y + 5.5, 'F'); } };
+    const linha = (x1, x2, y) => { cor(BO, 'd'); doc.setLineWidth(0.35); doc.line(x1, y, x2, y); };
+    const linhasVal = (x, y, w) => { D.vals.forEach(([r, v]) => { fonte(10); cor(C.cinza); doc.text(r, x, y); cor(C.tinta); doc.text(v, x + w, y, { align: 'right' }); y += 6.3; }); return y; };
+    const rot = (t, x, y, ic) => { if (ic) img(ic, x, y - 4, 4.8, 4.8); const xt = x + (ic ? 6.6 : 0), T = t.toUpperCase(); fonte(7.2, 1); cor(V); doc.text(T, xt, y, { charSpace: 0.6 });
+      cor(OU, 'f'); doc.rect(xt + doc.getTextWidth(T) + T.length * 0.6 + 2, y - 1.7, 6, 0.9, 'F'); };
+    const caixa = (x, y, w, h) => { cor(C.branco, 'f'); cor(BO, 'd'); doc.setLineWidth(0.35); doc.roundedRect(x, y, w, h, 3, 3, 'FD'); };
+    const card = (x, y, w, tit, ic, ls, h, so, wt) => { const H = Math.max(h || 0, 12 + bloco(0, 0, wt || w - 12, ls, true) + 3); if (so) return H; caixa(x, y, w, H); rot(tit, x + 6, y + 7.4, ic); bloco(x + 6, y + 10.5, wt || w - 12, ls); return H; };
+    /* o alto: as bandeirinhas, a logo T O M, o título, a bolinha com o número */
+    bandeiras(210, 4, 10); tomLogo(doc, 14, 15, 16);
+    doc.setFont('times', 'bold'); doc.setFontSize(29); cor(V); doc.text('Feliz Natal', 62, 26); cor(OU, 'f'); doc.rect(62 + doc.getTextWidth('Feliz Natal') + 3.5, 22.2, 9, 1.1, 'F');
+    fonte(10); cor(C.cinza); doc.text('da Casa Tom para você', 62, 33); fonte(6.9); doc.text('NFS-E · NOTA FISCAL DE SERVIÇO ELETRÔNICA', 62, 39.5, { charSpace: 0.35 });
+    cor(OU, 'd'); doc.setLineWidth(0.4); doc.line(182, 4, 182, 13.5); cor(OU, 'f'); doc.roundedRect(179.3, 12.6, 5.4, 3.4, 0.8, 0.8, 'F'); cor(V, 'f'); doc.circle(182, 28.5, 12.6, 'F');
+    cor([226, 92, 98], 'f'); doc.circle(177, 23, 2.4, 'F'); cor(OU, 'd'); doc.setLineWidth(0.6); doc.line(169.6, 31.5, 194.4, 31.5);
+    fonte(6, 1); cor(C.branco); doc.text('NOTA Nº', 182, 24.6, { align: 'center' }); doc.setFont('times', 'bold'); doc.setFontSize(15); doc.text(num, 182, 30.2, { align: 'center' }); fonte(5.6); doc.text(D.data.split(',')[0] || '', 182, 35.6, { align: 'center' });
+    fonte(7.6); cor(C.cinza); doc.text(D.data, 182, 45.8, { align: 'center' });
+    linha(X, X + W, 50.5);
+    let y = 56; const w2 = 91;
+    const h1 = Math.max(card(X, y, w2, 'De · prestador do serviço', 'icCasa', D.prest, 0, 1), card(X + 95, y, w2, 'Para · tomador do serviço', 'icPres', D.tom, 0, 1));
+    card(X, y, w2, 'De · prestador do serviço', 'icCasa', D.prest, h1); card(X + 95, y, w2, 'Para · tomador do serviço', 'icPres', D.tom, h1); y += h1 + 4;
+    /* o serviço, com o carimbo da nota */
+    const canc = n.status === 'cancelada', teste = !canc && (+n.ambiente !== 1 || n.exemplo), corC = canc ? V : teste ? [176, 130, 30] : VD;
+    const hs = card(X, y, W, 'Serviço', 'icTamb', D.serv, 26, 1, W - 50); card(X, y, W, 'Serviço', 'icTamb', D.serv, hs, 0, W - 50);
+    const cx = X + W - 22, cy = y + hs / 2; cor(corC, 'd'); doc.setLineWidth(0.7); doc.circle(cx, cy, 10.5, 'D'); doc.setLineWidth(0.3); doc.circle(cx, cy, 8.8, 'D');
+    fonte(5.4, 1); cor(corC); doc.text('NFS-e', cx, cy - 3.8, { align: 'center' }); fonte(canc ? 6.2 : 7, 1); doc.text(canc ? 'CANCELADA' : teste ? 'TESTE' : 'EMITIDA', cx, cy + 1.2, { align: 'center' });
+    fonte(5.2); doc.text(canc ? 'sem valor' : teste ? 'sem valor fiscal' : 'nº ' + num, cx, cy + 5.4, { align: 'center' }); y += hs + 4;
+    /* os valores: o soldadinho segura a bandeira com o valor líquido */
+    const hv = 60; caixa(X, y, W, hv); rot('Valores', X + 6, y + 7.4, 'icMoed');
+    const sh = 54, sw = sh * 90 / 200, sx = X + W - sw - 6, sy = y + 3.5, px = sx + sw * 12.3 / 90, by = sy + sh * 0.27, bh = 15;
+    cor(V, 'f'); doc.lines([[-(px - X - 8), 0], [6, bh / 2], [-6, bh / 2], [px - X - 8, 0]], px, by, [1, 1], 'F', true);
+    cor(OU, 'f'); doc.rect(X + 8, by, px - X - 8, 0.9, 'F'); doc.rect(X + 8, by + bh - 0.9, px - X - 8, 0.9, 'F'); img('estD', X + 16, by + 4.8, 5.4, 5.4);
+    fonte(11.5, 1); cor(C.branco); doc.text('Valor líquido', X + 24, by + 9.6); fonte(17, 1); doc.text(D.liq, (X + 8 + px) / 2, by + 10.2, { align: 'center' });   /* (o dono: "centraliza o valor na bandeira") */
+    img('soldGe', sx, sy, sw, sh); cor(OU, 'f'); doc.circle(px, by + 1.2, 1.3, 'F'); doc.circle(px, by + bh - 1.2, 1.3, 'F');
+    linhasVal(X + 6, by + bh + 9, px - X - 22); y += hv + 4;
+    /* a chave de acesso: o soldadinho aponta o QR e o ursinho fica pendurado no quadro, por fora do código */
+    if (n.chave) { const hq = 48; caixa(X, y, W, hq); rot('Chave de acesso', X + 6, y + 7.4, 'icChave');
+      const lw = 84; fonte(10, 0, 'courier'); cor(C.tinta); const p = doc.splitTextToSize(D.chave, lw); doc.text(p, X + 6, y + 15.5);
+      fonte(8.5); cor(C.cinza); doc.text(doc.splitTextToSize(CONSULTA, lw), X + 6, y + 17.5 + p.length * 4.06 + 3);
+      if (qr) { const fx = X + 128, fy = y + 4.5; cor(C.branco, 'f'); cor(BO, 'd'); doc.setLineWidth(0.35); doc.roundedRect(fx, fy, 39, 39, 2.5, 2.5, 'FD'); img('qr', fx + 2.5, fy + 1.6, 34, 34);
+        fonte(6.3); cor(C.cinza); doc.text('Aponte a câmera', fx + 19.5, fy + 37.6, { align: 'center' });
+        img('soldPd', X + 101, fy - 0.6, 22, 40); }
+      else { fonte(8.5); cor(C.cinza); doc.text('Nota cancelada: sem QR de consulta.', X + 128, y + 24); }
+      y += hq + 4; }
+    if (canc) { try { doc.saveGraphicsState(); doc.setGState(new doc.GState({ opacity: 0.12 })); doc.setFont('helvetica', 'bold'); doc.setFontSize(64); cor(V); const w = doc.getTextWidth('CANCELADA') / 2, r = 28 * Math.PI / 180; doc.text('CANCELADA', 105 - w * Math.cos(r), 175 + w * Math.sin(r), { angle: 28 }); doc.restoreGraphicsState(); } catch (z) { } }
+    if (D.aviso) y += aviso(X, y, W) + 2;
+    /* o pé: o trenzinho nos trilhos, a frase, os losangos do vidro da loja */
+    const yp = Math.max(y + 2, 249), th = 56 * 60 / 130; img('tremV', X + 2, yp, 56, th);
+    cor(BO, 'd'); doc.setLineWidth(0.5); doc.line(X, yp + 25.6, X + W, yp + 25.6); cor([200, 190, 178], 'f'); for (let x = X + 2; x < X + W; x += 5) doc.rect(x, yp + 25.6, 2.2, 1, 'F');
+    doc.setFont('times', 'bolditalic'); doc.setFontSize(12.5); cor(V); doc.text('Boas festas e um ano novo cheio de brincadeiras!', X + W, yp + 19.5, { align: 'right' });
+    fonte(7); cor(C.cinza); doc.text('Casa Tom · comprovante da NFS-e', X, yp + 32); doc.text('Página 1 de 1', X + W, yp + 32, { align: 'right' });
+    img('tomArleq', 0, 289, 210, 8); };
+  /* o Natal da Play (o dono: "gostei do abrir a nota do governo; escurece os campos arredondados em volta das informações; alguma coisa
+     interagindo com o QR: um Papai Noel com saco de presente, uma rena embaixo, o Play Space escrito em cima") */
+  const natalPlay = doc => { const { cor, fonte, img, bloco, aviso } = fer(doc), X = 18, W = 174, url = n.chave ? nfUrlConsulta(n.chave) : '';
+    const K = { pre: [31, 31, 36], ouro: [212, 165, 55], ouroC: [232, 194, 106], ver: [200, 32, 42], cinza: [118, 112, 104], campo: [236, 231, 223], claro: [205, 200, 192], cre: [250, 244, 232] };
+    const pontos = y => { cor(K.ouro, 'f'); for (let x = X; x <= X + W + 0.1; x += 4.35) doc.circle(x, y, 0.65, 'F'); };
+    const cap = (t, x, y, c, al) => { fonte(7, 1); cor(c || [92, 88, 82]); doc.text(t.toUpperCase(), x, y, al ? { align: al } : { charSpace: 0.55 }); };
+    const marca = (x, y, tam, c1, al) => { const cs = tam * 0.12; fonte(tam, 1); const w1 = doc.getTextWidth('PLAY ') + 5 * cs, w2 = doc.getTextWidth('SPACE') + 5 * cs, x0 = al === 'center' ? x - (w1 + w2) / 2 : x;
+      cor(c1); doc.text('PLAY', x0, y, { charSpace: cs }); cor(K.ouro); doc.text('SPACE', x0 + w1, y, { charSpace: cs }); };
+    /* o alto */
+    pontos(10); img('logo', X, 15.5, 13, 13); marca(X + 17, 24.6, 14, K.pre);
+    cor(K.ouro, 'd'); doc.setLineWidth(0.5); doc.roundedRect(X + W - 42, 15.5, 42, 11, 5.5, 5.5, 'D'); fonte(10.5, 1); cor(K.pre); doc.text(`Nº ${num}`, X + W - 21, 22.7, { align: 'center' }); fonte(8); cor(K.cinza); doc.text(D.data, X + W - 21, 31.5, { align: 'center' });
+    const nome = soDig(n.clienteDoc).length === 14 ? '' : String(n.clienteNome || '').trim().split(/\s+/)[0] || '', prim = nome ? nome.charAt(0).toUpperCase() + nome.slice(1).toLowerCase() : '';
+    cap('NFS-e · Nota Fiscal de Serviço eletrônica', X, 41.5); fonte(24, 1); cor(K.pre); const tt = prim ? `Feliz Natal, ${prim}!` : 'Feliz Natal!'; doc.text(tt, X, 52); img('estD', X + doc.getTextWidth(tt) + 2.5, 45, 6, 6);
+    fonte(9.5); cor(K.cinza); doc.text('Este é o comprovante da sua nota. Obrigado por brincar com a gente!', X, 58.5);
+    /* o valor no quadro escuro */
+    let y = 63; cor(K.pre, 'f'); doc.roundedRect(X, y, W, 31, 4, 4, 'F'); const xc = X + W / 2;   /* (o dono: "centraliza o valor") */
+    fonte(7, 1); cor(K.ouroC); doc.text('VALOR LÍQUIDO', xc, y + 8.2, { align: 'center' }); fonte(26, 1); cor(C.branco); doc.text(D.liq, xc, y + 19.6, { align: 'center' });
+    if (n.status === 'cancelada') { const wv = doc.getTextWidth(D.liq); cor(K.ver, 'f'); doc.roundedRect(xc + wv / 2 + 5, y + 12.6, 28, 8, 4, 4, 'F'); fonte(7.5, 1); cor(C.branco); doc.text('CANCELADA', xc + wv / 2 + 19, y + 17.9, { align: 'center' }); }
+    fonte(8.2); cor(K.claro); doc.text(`Valor do serviço ${D.vals[0][1]}    ·    ${D.iss} ${D.issQ} ${D.vals[1][1]}`, xc, y + 26.6, { align: 'center' }); y += 36;
+    /* os campos com fundo mais escuro */
+    const campo = (x, yy, w, tit, ls, h, so) => { const H = Math.max(h || 0, 11 + bloco(0, 0, w - 12, ls, true) + 3); if (so) return H;
+      cor(K.campo, 'f'); doc.roundedRect(x, yy, w, H, 4, 4, 'F'); cor(K.ouro, 'f'); doc.circle(x + 7, yy + 6.3, 1, 'F'); cap(tit, x + 9.6, yy + 7.4); bloco(x + 6, yy + 10, w - 12, ls); return H; };
+    const w2 = (W - 4) / 2, h1 = Math.max(campo(X, y, w2, 'De · prestador do serviço', D.prest, 0, 1), campo(X + w2 + 4, y, w2, 'Para · tomador do serviço', D.tom, 0, 1));
+    campo(X, y, w2, 'De · prestador do serviço', D.prest, h1); campo(X + w2 + 4, y, w2, 'Para · tomador do serviço', D.tom, h1); y += h1 + 4;
+    y += campo(X, y, W, 'Serviço', D.serv) + 5;
+    /* o QR: o quadro escuro; à esquerda o botão que abre a nota; à direita PLAY SPACE em cima, o Papai Noel segurando o QR e a rena embaixo */
+    const py = Math.max(y, 158), ph = 98; cor(K.pre, 'f'); doc.roundedRect(X, py, W, ph, 5, 5, 'F');
+    cor(C.branco, 'f'); [[100, 8], [112, 30], [192 - 6, 14], [124, 74], [188, 82], [104, 60], [136, 6], [178, 66]].forEach(([a, b]) => doc.circle(a, py + b, 0.6, 'F'));
+    fonte(15, 1); cor(C.branco); doc.text('Confira sua nota', X + 8, py + 16); fonte(9.2); cor(K.claro); doc.text(doc.splitTextToSize(qr ? 'Aponte a câmera para o QR ou toque no botão:' : 'Toque no botão para ver a nota no governo:', 72), X + 8, py + 23.5);
+    if (url) { cor(K.ouro, 'f'); doc.roundedRect(X + 8, py + 31, 68, 12, 6, 6, 'F'); fonte(9.5, 1); cor(K.pre); doc.text('Abrir a nota no governo  »', X + 42, py + 38.6, { align: 'center' }); try { doc.link(X + 8, py + 31, 68, 12, { url }); } catch (z) { } }
+    cap('Chave de acesso', X + 8, py + 55, K.ouroC); fonte(8.6, 0, 'courier'); cor(K.cre); const pc = doc.splitTextToSize(D.chave || '-', 70); doc.text(pc, X + 8, py + 60.5);
+    fonte(7); cor(K.claro); doc.text('Toque e segure na chave para copiar.', X + 8, py + 61.5 + pc.length * 3.5 + 1.5);
+    if (qr) { const qs = 36, qx = 146, qy = py + 21; img('estD', qx - 1, py + 4.4, 4, 4); img('estD', qx + qs - 3, py + 4.4, 4, 4); marca(qx + qs / 2, py + 13.2, 11.5, C.branco, 'center');
+      cor(C.branco, 'f'); cor(K.ouro, 'd'); doc.setLineWidth(1); doc.roundedRect(qx - 2.6, qy - 2.6, qs + 5.2, qs + 5.2, 2.5, 2.5, 'FD'); img('qr', qx, qy, qs, qs);
+      img('rena', qx + qs / 2 - 22, qy + qs + 3.4, 44, 35); img('noel', qx - 2.6 + 0.4 - (101 + 2) / 110 * 40.5, qy + 14 - 23.2, 40.5, 56);
+      try { doc.link(qx, qy, qs, qs, { url }); } catch (z) { } }
+    y = py + ph + 4; if (D.aviso) y += aviso(X, y, W) + 2;
+    if (n.status === 'cancelada') { try { doc.saveGraphicsState(); doc.setGState(new doc.GState({ opacity: 0.1 })); doc.setFont('helvetica', 'bold'); doc.setFontSize(64); doc.setTextColor(...K.ver); const w = doc.getTextWidth('CANCELADA') / 2, r = 28 * Math.PI / 180; doc.text('CANCELADA', 105 - w * Math.cos(r), 140 + w * Math.sin(r), { angle: 28 }); doc.restoreGraphicsState(); } catch (z) { } }
+    const yf = Math.max(y + 3, 266); pontos(yf); fonte(10, 1); cor(K.pre); doc.text('Feliz Natal e um ano novo cheio de brincadeiras!', X + W / 2, yf + 8.5, { align: 'center' });
+    fonte(7); cor(K.cinza); doc.text('Play Space · comprovante da NFS-e', X, yf + 15); doc.text('Página 1 de 1', X + W, yf + 15, { align: 'right' }); };
+  if (modelo === 'natalPlay') { const doc = new jsPDF({ unit: 'mm', format: 'a4' }); natalPlay(doc); return doc.output('blob'); }
+  if (modelo === 'natalTom') { const doc = new jsPDF({ unit: 'mm', format: 'a4' }); natalTom(doc); return doc.output('blob'); }
+  if (modelo === 'urso1') { const doc = new jsPDF({ unit: 'mm', format: 'a4' }); urso1(doc); return doc.output('blob'); }
+  if (modelo === 'urso2') { const a = new jsPDF({ unit: 'mm', format: 'a4' }), hc = urso2(a, 0), doc = new jsPDF({ unit: 'mm', format: 'a4' }); urso2(doc, hc); return doc.output('blob'); }
+  const a = new jsPDF({ unit: 'mm', format: [100, 600] }), H = Math.ceil(urso3(a, 600)), doc = new jsPDF({ unit: 'mm', format: [100, H] }); urso3(doc, H); return doc.output('blob');
+}
+/* a troca só daquela vez, na folha da nota (o comprovante feito de novo no outro modelo; o que sai sempre não muda) */
+const nfCompModelos = (atual, act) => `<div class="seg nf-mods" role="group" aria-label="Modelo do comprovante">${NF_MODELOS.map(([k, nm]) => `<button type="button" class="tap" data-act="${act}" data-v="${k}" aria-pressed="${k === atual}">${nm}</button>`).join('')}</div>`;
+async function nflMod(v) { const x = NFL, p = x && x.pdf; if (!p || p.st !== 'ok' || !p.comp || p.mod === v || !NF_MODELOS.some(m => m[0] === v)) return;
+  let b = null; try { b = await nfComprovantePdf(x.feito.nota, x.feito.ed, v); } catch (e) { toast(e.message || 'O comprovante não saiu.'); return; } if (NFL !== x || x.pdf !== p) return;
+  x.pdf = { ...p, mod: v, url: URL.createObjectURL(b), arquivo: new File([b], p.arquivo.name, { type: 'application/pdf' }) }; nflPdfPinta(); }
+async function nfPdfMod(v) { const x = NFPDF; if (!x || x.st !== 'ok' || !x.comp || x.mod === v || !NF_MODELOS.some(m => m[0] === v)) return;
+  let b = null; try { b = await nfComprovantePdf(x.nota, x.empresa, v); } catch (e) { toast(e.message || 'O comprovante não saiu.'); return; } if (NFPDF !== x) return;
+  NFPDF = { ...x, mod: v, url: URL.createObjectURL(b), arquivo: new File([b], x.arquivo.name, { type: 'application/pdf' }) }; nfPdfPinta(x.venda); }
+/* Ajustes → Cupom impresso → Comprovante da nota fiscal: os modelos com um exemplo (dados inventados) e o "Usar este modelo sempre" do gestor */
+const NF_EXEMPLO = () => ({ n: { numero: 42, data: new Date().toISOString(), clienteNome: 'CLIENTE DE EXEMPLO', clienteDoc: '000.000.000-00', servicoNome: 'RECREAÇÃO INFANTIL · PACOTE 05 HORAS', codigo: '12.17.01',
+  descricao: 'Recreação infantil monitorada no espaço de brincar (exemplo).', valor: 420, aliquota: 2, iss: 8.4, retido: false, liquido: 420, chave: '35503082000000000001900000000000004226110000000001', status: 'emitida', ambiente: 1, exemplo: true },
+  e: { nome: lojaPapel().nome || 'PLAY SPACE', cnpj: '00.000.000/0001-00', im: '', municipio: 'São Paulo - SP' } });
+let NFM = null;
+function folhaNfModelos(v) { v = NF_MODELOS.some(x => x[0] === v) ? v : nfModelo(); const pode = MODO !== 'servidor' || gestor();
+  abrirFolha('Comprovante da nota fiscal', `<p class="explica">É o comprovante que o sistema faz na hora da nota: os dados, a chave de acesso e o QR da consulta no site do governo (o "Abrir a nota do governo" continua lá). Aqui fica o modelo que <b>sai sempre</b>; na folha da nota, a atendente troca <b>só aquele</b> (ex.: o Cupom fofinho para o WhatsApp).</p>
+    <div class="seg nfm-seg" id="nfm-seg">${NF_MODELOS.map(([k, nm]) => `<button type="button" class="tap" data-act="nfm-ver" data-v="${k}" aria-pressed="${k === v}">${nm}</button>`).join('')}</div>
+    <p class="explica" id="nfm-txt"></p><div id="nfm-v" class="nfm-v"></div>
+    <div class="pe-f">${pode ? `<button type="button" class="bt forte largo tap" id="nfm-usar" data-act="nfm-usar" data-v="${v}"></button>` : '<p class="explica">Só o gestor escolhe o modelo que sai sempre.</p>'}</div>`);
+  nfmPinta(v); }
+async function nfmPinta(v, soTexto) { const usado = nfModelo();
+  $$('#nfm-seg [data-v]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === v)));
+  const t = $('#nfm-txt'); if (t) t.innerHTML = esc(TXT_NFMOD[v]) + (v === usado ? ' <b>É o modelo que sai hoje.</b>' : '');
+  const u = $('#nfm-usar'); if (u) { u.dataset.v = v; u.disabled = v === usado; u.innerHTML = ic(IC.check) + ' ' + (v === usado ? 'Este já é o modelo que sai sempre' : 'Usar este modelo sempre'); }
+  if (soTexto) return; const eu = NFM = { v }, a = $('#nfm-v'); if (!a) return; a.innerHTML = '<p class="explica">Montando o exemplo…</p>';
+  let b = null; try { const x = NF_EXEMPLO(); b = await nfComprovantePdf(x.n, x.e, v); } catch (e) { b = null; } if (NFM !== eu || !document.contains(a)) return;
+  if (!b) { a.innerHTML = '<p class="explica">O exemplo não saiu (o gerador de PDF vem da internet). Confira a internet e toque no modelo de novo.</p>'; return; }
+  eu.url = URL.createObjectURL(b);
+  a.innerHTML = matchMedia('(pointer: coarse)').matches ? `<button type="button" class="bt largo tap" data-act="nfm-abrir">${ic(IC.cupom, 16)} Ver o exemplo</button>` : `<iframe class="nf-pdf-v nfm-pdf" src="${eu.url}#view=FitH" title="Exemplo do comprovante (PDF)"></iframe>`; }
+function nfmUsar(v) { if (!NF_MODELOS.some(x => x[0] === v) || v === nfModelo()) return; if (MODO === 'servidor' && !gestor()) { toast('Só o gestor escolhe o modelo'); return; }
+  const antes = S.cfg.nfModelo, nome = NF_MODELOS.find(x => x[0] === v)[1], ok = () => { deuCerto('Comprovante da nota: ' + nome); if (S.tela === 'ajustes') desenhar(true); };
+  S.cfg.nfModelo = v; nfmPinta(v, true);
+  if (MODO === 'servidor') api('regra_salvar', { nfModelo: v }).then(r => { if (r.regra && r.regra.nfModelo) S.cfg.nfModelo = r.regra.nfModelo; nfmPinta(v, true); ok(); }).catch(e => { S.cfg.nfModelo = antes; nfmPinta(v, true); toast(e.message); });
+  else ok(); }
 const nfCompAviso = ch => `<p class="explica nf-comp">Este é o <b>comprovante da nota emitida</b> (a chave de acesso e o QR da consulta no site do governo), feito aqui.${ch ? ` <a class="link" href="${esc(nfUrlConsulta(ch))}" target="_blank" rel="noopener">Abrir a nota do governo</a>` : ''}</p>`;   /* 2.83: a nota do governo pela página do QR */
 async function nfPdfBaixa(n, emp, vezes = 3) {   /* o PDF oficial pelo Notas (na empresa da nota); o governo leva uns segundos para liberar logo depois de emitir */
   let ponte = 0;
@@ -10000,7 +10296,7 @@ async function nfPdfCarregar(v) {
 async function nfPdfComp() { const x = NFPDF; if (!x || (x.st !== 'semgov' && x.st !== 'gov')) return; let b = null;   /* 2.83: também da nota do governo */
   try { b = await nfComprovantePdf(x.nota, x.empresa); } catch (e) { toast(e.message || 'O comprovante não saiu.'); return; } if (NFPDF !== x) return;
   const nome = `NFS-e ${x.nota.numero} - ${x.nota.clienteNome || ''}`.replace(/[\\/:*?"<>|]+/g, ' ').trim() + '.pdf';
-  NFPDF = { venda: x.venda, num: x.num, st: 'ok', nota: x.nota, emp: x.emp, comp: true, busca: 0, url: URL.createObjectURL(b), arquivo: new File([b], nome, { type: 'application/pdf' }) }; nfPdfPinta(x.venda); }
+  NFPDF = { venda: x.venda, num: x.num, st: 'ok', nota: x.nota, emp: x.emp, empresa: x.empresa, mod: nfModelo(), comp: true, busca: 0, url: URL.createObjectURL(b), arquivo: new File([b], nome, { type: 'application/pdf' }) }; nfPdfPinta(x.venda); }
 function nfPdfSalvar() { const x = NF && NFPDF && NFPDF.venda === NF.id && NFPDF.st === 'ok' ? NFPDF : null; if (!x) return false;
   const a = document.createElement('a'); a.href = x.url; a.download = x.arquivo.name; document.body.appendChild(a); a.click(); a.remove(); return true; }
 function nfPdfImprimir() { const x = NF && NFPDF && NFPDF.venda === NF.id && NFPDF.st === 'ok' ? NFPDF : null; if (!x) return;
@@ -11344,6 +11640,7 @@ function telaAjustes() {
       <div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.cupom, 20)} Cupom impresso</h2><span class="pill ${modoPapel() === 'nao' ? 'p-neutro' : 'p-ok'}">${modoPapel() === 'auto' ? 'Imprime sozinho aqui' : modoPapel() === 'nao' ? 'Este aparelho não imprime' : 'Mostra o cupom aqui'}</span></div>
         <button class="grupo tap" data-act="papel-ajustes" style="width:100%"><div class="it"><div class="txt"><b>${esc(lojaPapel().nome)}${lojaPapel().tel ? ' · ' + esc(lojaPapel().tel) : ''}</b><span>Toque para mudar o nome, o telefone e o aviso do cupom, escolher o que este aparelho faz, ou imprimir um teste</span></div><span class="vai">${ic(IC.vai, 18)}</span></div></button>
         <button class="grupo tap" data-act="papel-ajustes" id="tk-icone-ir" style="width:100%;margin-top:8px"><div class="it"><div class="txt"><b>Ícone na área de trabalho · Mac e Windows</b><span>${impDireta() ? 'Este computador já abre pelo ícone: o Imprimir manda direto para a impressora' : 'Aberto pelo ícone Play Space, o toque em Imprimir já manda o cupom para a impressora, sem janela'}</span></div><span class="vai">${ic(IC.vai, 18)}</span></div></button>
+        <button class="grupo tap" data-act="nf-modelos" id="aj-nfmod" style="width:100%;margin-top:8px"><div class="it"><div class="txt"><b>Comprovante da nota fiscal · ${esc(NF_MODELOS.find(x => x[0] === nfModelo())[1])}</b><span>Toque para ver os modelos com o ursinho e escolher o que sai sempre</span></div><span class="vai">${ic(IC.vai, 18)}</span></div></button>
         <p class="explica">O cupom sai depois de cada atendimento, de cada entrada, de <b>cada saída</b> e de <b>cada devolução</b> (com ou sem pagamento), com a logo. Na <b>entrada</b> saem <b>duas vias</b>: a da loja, completa, para o responsável assinar, e a do cliente, com a hora da entrada. A <b>saída</b>, a devolução e os outros cupons saem só com a via da loja. Imprime na impressora térmica do balcão (Bematech MP-4200 TH, papel de 80 mm).</p>
       </div>
       <div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.sapato, 20)} Sapateiras</h2></div>
@@ -11750,7 +12047,8 @@ const ACOES = {
   'nf-fim': el => nfDaFicha(+el.dataset.id, String(el.dataset.v || '').split(',').map(Number).filter(Boolean)),   /* 2.60 */
   'nf-livre': el => folhaNFLivre(+el.dataset.id), 'nfl-emitir': el => emitirNFLivre(el), 'nfl-pdf': () => nflPdfCarregar(), 'nfl-imprimir': () => nflImprimir(), 'nfl-whats': () => nflWhats(), 'nfl-salvar': () => nflSalvar(),   /* 2.55 */ 'nf-notas': () => nfAbrirNotasComPonte(),   /* 2.78 */ 'nf-pdf-imprimir': () => nfPdfImprimir(), 'nf-pdf-whats': () => nfPdfWhats(), 'nf-pdf-salvar': () => { if (nfPdfSalvar()) toast('A nota foi salva (na pasta Downloads)'); },
   'nf-conferir': () => nfConferirDeNovo(),   /* 2.68 */
-  'nf-pdf-comp': () => nfPdfComp(),   /* 2.82 */ 'nf-chave-copiar': el => copiarTexto(el.dataset.ch, 'chave', el),   /* 2.83 */
+  'nf-pdf-comp': () => nfPdfComp(),   /* 2.82 */ 'nf-pdf-mod': el => nfPdfMod(el.dataset.v), 'nfl-mod': el => nflMod(el.dataset.v),   /* 3.21: o modelo do comprovante, só daquela vez */
+  'nf-modelos': () => folhaNfModelos(), 'nfm-ver': el => nfmPinta(el.dataset.v), 'nfm-usar': el => nfmUsar(el.dataset.v), 'nfm-abrir': () => { if (NFM && NFM.url) window.open(NFM.url, '_blank'); },   /* 3.21 */ 'nf-chave-copiar': el => copiarTexto(el.dataset.ch, 'chave', el),   /* 2.83 */
   'nf-pdf-recarregar': () => { const v = NF && LADO && LADO.dados && LADO.dados.vendas.find(x => x.id === NF.id); if (v) nfPdfCarregar(v); },   /* 2.48 */
   'copia-baixar': el => baixarCopia(el.dataset.nome || '', el), 'copia-fazer': el => fazerCopia(el), 'nf-pedir': el => pedirNF(el), 'nf-notas-entrar': el => entrarNotasNF(el), 'nf-ponte-tentar': el => nfPonteTentar(el),   /* 2.78 */ 'nf-emp': el => { if (NFL && !NF) { nflEmp(+el.dataset.id); return; } if (!NF || NF_EMITINDO) return; NF_EMP[NF.id] = +el.dataset.id; nfEmpRedesenha(NF.id); nfPreparar(NF.id); }, 'ocioso-ficar': () => ociosoMexeu(), 'nf-senha': el => acaoNF('senha', el), 'nf-emitida': el => acaoNF('emitida', el), 'nf-voltar': el => acaoNF('voltar', el), 'nf-largar': el => acaoNF('largar', el), 'nf-copiar': el => acaoNF('copiar', el),
   'meta-salvar': el => metaSalvar(el, false), 'meta-tirar': el => metaSalvar(el, true), 'meta-ver': () => metaVer('dia'), 'meta-ver-mes': () => metaVer('mes'), 'meta-aviso-ver': () => metaVer('aviso'),   /* 1.87: as metas do mês */

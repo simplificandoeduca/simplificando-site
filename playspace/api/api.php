@@ -1395,6 +1395,7 @@ switch ($acao) {
     if (isset($in['cupomTel'])) $r['cupomTel'] = mb_substr(trim((string)preg_replace('/[^0-9()+\-. ]/', '', (string)$in['cupomTel'])), 0, 30);
     if (isset($in['cupomAviso'])) $r['cupomAviso'] = mb_substr(maiusculo((string)$in['cupomAviso']), 0, 300);
     if (isset($in['cupomTam']) && in_array($in['cupomTam'], ['normal', 'compacto', 'economico'], true)) $r['cupomTam'] = $in['cupomTam'];
+    if (isset($in['nfModelo']) && in_array($in['nfModelo'], ['urso2', 'urso3', 'urso1', 'natalTom', 'natalPlay', 'simples'], true)) $r['nfModelo'] = $in['nfModelo'];   /* 3.21: o modelo do comprovante da nota */
     if (isset($in['horasCpf']) && in_array($in['horasCpf'], ['sim', 'nao'], true)) $r['horasCpf'] = $in['horasCpf'];
     if (isset($in['senhaUni']) && in_array($in['senhaUni'], ['sim', 'nao'], true)) {   /* 2.21: pedir (ou não) a senha da unidade na tela de entrar da loja: só o gestor */
       if (($u['papel'] ?? '') !== 'gestor') falha('Só o gestor muda a senha das unidades.', 403);

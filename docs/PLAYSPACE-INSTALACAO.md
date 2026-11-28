@@ -1301,6 +1301,17 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O comprovante da nota com o ursinho e os modelos de Natal (3.21)
+
+Pedidos do dono (28/11): "eu quero o comprovante da nota fiscal da Play mais fofo, com um ursinho; me dê 3 formatos"; depois, "pode subir o ursinho espiando; o cupom deixa na opção de trocar"; "amei a nota da Casa Tom, pode colocar lá, para poder selecionar ela"; "gostei da nota do Play".
+
+O comprovante é o PDF que o sistema faz na hora da nota (os dados, a chave de acesso e o QR da consulta no site do governo). O "Abrir a nota do governo" continua igual.
+- **Modelos:** Ursinho espiando (o padrão), Cupom fofinho (estreito, bom no celular e no WhatsApp), Ursinho no alto, **Natal da Casa Tom** (a logo T O M, o soldadinho segurando a bandeira com o valor, o outro apontando o QR, o carimbo da nota, o trenzinho e os losangos do vidro da loja), **Natal da Play** (os campos escuros, o valor no meio, o Papai Noel segurando o QR, a rena embaixo e PLAY SPACE em cima) e Simples (o de antes).
+- **Onde escolher:** Ajustes → Cupom impresso → **Comprovante da nota fiscal**. Abre um exemplo de cada modelo (com dados inventados). O gestor toca em **Usar este modelo sempre**; vale para todos os aparelhos.
+- **Só daquela vez:** na folha da nota, embaixo do aviso do comprovante, ficam os botões dos modelos. A atendente troca o modelo daquela nota (por exemplo, o Cupom fofinho para mandar no WhatsApp) sem mudar o que sai sempre.
+- **No Natal da Play,** o QR e o botão **Abrir a nota no governo** são links dentro do PDF: no celular, o cliente toca e a nota do governo abre (quem recebe pelo WhatsApp não consegue apontar a câmera para a própria tela). A nota chama o cliente pelo primeiro nome ("Feliz Natal, Maria!").
+- Nota cancelada: aparece "CANCELADA" (e, no Natal da Casa Tom, o carimbo fica vermelho). Nota de teste: o aviso continua no pé.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Quem pagou em cada forma, no Caixa do dia (3.20)
 
 Pedido do dono (foto do Caixa do dia, 28/11): "quando eu clique em Pix, ou dinheiro, ou cartão, ele me apareça quem foi as vendas que eu fiz".
