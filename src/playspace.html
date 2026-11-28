@@ -1096,6 +1096,8 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .pf-dm button[aria-pressed="true"] { background: var(--tinta); color: var(--card); }
 .pf-prods .pf-pb { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; margin: 2px 0 10px; } .pf-prods .pf-pb .ct-campo { flex: 1 1 240px; height: 46px; } .pf-prods .pf-pb .bt { flex: none; height: 46px; padding: 0 16px; border-radius: 12px; }   /* 2.99 · 3.01: a mesma altura */
 .pf-prods .pf-cats { margin: 0 2px 10px; }
+.fe-fat .fe-fat-l { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; } .fe-fat .fe-fat-l > input, .fe-fat .fe-fat-l > .senha-aut { flex: 1 1 170px; min-width: 0; } .fe-fat .fe-fat-l .bt { flex: none; }
+.fe-fat input[type="date"]:disabled { opacity: 1; color: var(--tinta); background: var(--creme); } .fe-fat .explica.muda { color: var(--coral); font-weight: 800; } .fe-fat-s { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; } .fe-fat-s[hidden], #fe-g-upc[hidden] { display: none; }   /* 3.08 */
 .fe-g > summary { display: flex; align-items: center; gap: 6px; } .fe-g-c { display: flex; flex-direction: column; gap: 10px; padding: 10px 2px 2px; } #fe-g-aviso { color: var(--coral); font-weight: 800; }   /* 3.04 */
 .fe-outra { margin-top: 8px; } .fe-outra-bt { width: 100%; justify-content: center; height: 42px; border-radius: 12px; }
 .fe-outra-c { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px solid var(--borda-2); border-radius: 14px; background: var(--card); }
@@ -2375,7 +2377,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '3.07';
+const VERSAO = '3.08';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -4168,7 +4170,7 @@ const festaFalta = f => f.modo === 'adicional' ? 'Quantas crianças a mais?' : f
 function folhaFesta(id, sel) {
   const c = crianca(id); if (!c) return; guardarEtapa(false); VOLTA_SAIDA = 0;
   const fm = festaMarcada(c);   // 1.29: a festa marcada deste cliente (o upgrade e o adicional vão para ela)
-  CARRINHO = { id: c.id, q: {}, pac: [], pr: {}, vq: 0, festa: { modo: 'nova', dia: '', n: 0, udia: '', de: 0, para: 0, extra: 0, data: '', uni: minhaUni() || (unidades()[0] || {}).id || 0, tema: '', hora: '', aniv: c.id, festaId: fm ? fm.id : 0, gData: '', gUpv: 0, ...(sel || {}) } }; ETAPA_FEITA = true; PAG = null; DESC = null; ALT = null; ALTP = null; CALF = null; FEO = { aberta: false, busca: '' }; FEG = { senha: '' };   // a festa não vai para "Falta finalizar": fechou sem vender, não guarda nada
+  CARRINHO = { id: c.id, q: {}, pac: [], pr: {}, vq: 0, festa: { modo: 'nova', dia: '', n: 0, udia: '', de: 0, para: 0, extra: 0, data: '', uni: minhaUni() || (unidades()[0] || {}).id || 0, tema: '', hora: '', aniv: c.id, festaId: fm ? fm.id : 0, gData: '', gUpv: 0, ...(sel || {}) } }; ETAPA_FEITA = true; PAG = null; DESC = null; ALT = null; ALTP = null; CALF = null; FEO = { aberta: false, busca: '' }; FEG = { senha: '', ok: false, nome: '' };   // a festa não vai para "Falta finalizar": fechou sem vender, não guarda nada
   CARRINHO.visto = MODO === 'servidor' ? ULT_REG : 0;
   const T = festaCfg(), f = CARRINHO.festa;
   if (!familia(c).some(x => x.id === +f.aniv)) f.aniv = c.id; if (f.festaId && !festasDaFamilia(c).some(x => x.id === +f.festaId)) f.festaId = fm ? fm.id : 0;   // (1.29: só do cliente desta folha)
@@ -4178,17 +4180,18 @@ function folhaFesta(id, sel) {
     <p class="explica" id="fe-tem" hidden></p>
     <div class="fe-marc" id="fe-marc" hidden></div>
     <div class="fe-det fe-det1" id="fe-det1">${htmlDataFesta(f)}</div>
+    <div class="campo fe-fat" id="fe-fat"><label for="fe-g-data" id="fe-fat-rot">Data do faturamento da festa</label>
+      <div class="fe-fat-l"><input id="fe-g-data" type="date" value="${isoDia(agora)}" max="${isoDia(agora)}" min="${isoDia(new Date(agora.getTime() - 365 * 864e5))}" disabled>
+        <button type="button" class="bt claro tap" data-act="fe-fat-alt" id="fe-fat-alt">${ic(IC.cadeado, 15)} <span id="fe-fat-alt-t">Alterar dia do faturamento</span></button></div>
+      <span class="explica" id="fe-g-aviso" aria-live="polite">Entra no caixa de hoje.</span>
+      <div class="fe-fat-s" id="fe-fat-s" hidden><label for="fe-g-senha">Senha do gestor para alterar</label><div class="fe-fat-l">${campoSenha('fe-g-senha')}<button type="button" class="bt forte tap" data-act="fe-fat-ok" id="fe-fat-ok">Liberar</button></div></div>
+      <div class="campo" id="fe-g-upc" hidden><label for="fe-g-upv">Valor do upgrade (R$) · gestor</label><input id="fe-g-upv" inputmode="decimal" autocomplete="off" placeholder="o da tabela"></div></div>
     <div class="campo" id="fe-tab-c"><label id="fe-rot"></label>
       <div class="fe-tab" id="fe-tab" role="group" aria-labelledby="fe-rot"></div>
       <span class="explica" id="fe-hor"></span></div>
     <div class="servicos" id="fe-extra-c"><div class="serv" id="fe-extra"><div class="txt"><b>Adicional de festa</b><span>${brl(T.extra)} por criança a mais do que o pacote</span></div>
       <div class="qtd"><button type="button" class="tap" data-act="festa-menos" aria-label="Tirar uma criança do adicional de festa">−</button><b class="num" id="fe-extra-q">0</b><button type="button" class="tap" data-act="festa-mais" aria-label="Pôr uma criança no adicional de festa">+</button></div><b class="valor num" id="fe-extra-v"></b></div></div>
     <div class="fe-det" id="fe-det">${htmlDetFesta(c, f)}</div>
-    <details class="outro fe-g" id="fe-g"><summary>${ic(IC.cadeado, 15)} Gestor: data do lançamento no caixa<span id="fe-g-sum-up"> e valor do upgrade</span></summary>
-      <div class="fe-g-c"><p class="explica">Só com a <b>senha de um gestor</b>. A venda e o pagamento entram no caixa do dia escolhido (de hoje para trás).</p>
-        <div class="dois"><div class="campo"><label for="fe-g-data">Data do lançamento no caixa</label><input id="fe-g-data" type="date" max="${isoDia(agora)}" min="${isoDia(new Date(agora.getTime() - 365 * 864e5))}"><span class="explica" id="fe-g-aviso" aria-live="polite"></span></div>
-          <div class="campo" id="fe-g-upc"><label for="fe-g-upv">Valor do upgrade (R$)</label><input id="fe-g-upv" inputmode="decimal" autocomplete="off" placeholder="o da tabela"></div></div>
-        <div class="campo"><label for="fe-g-senha">Senha do gestor</label>${campoSenha('fe-g-senha')}</div></div></details>
     <details class="outro" id="fe-inclui"><summary>O que a festa inclui</summary><dl class="fe-inc">${FESTA_INCLUI.map(([t, d]) => `<div><dt>${t}</dt><dd>${d}</dd></div>`).join('')}</dl></details>
     <div class="pe-f"><div class="total"><span>Total a pagar</span><b class="num" id="v-total">R$ 0</b></div><button class="bt forte largo tap" id="v-ok" data-act="atender-ok" data-id="${c.id}" disabled>${ic(IC.check)} ${festaFalta(f)}</button></div>
     </div><div id="v-pag" hidden></div>`);
@@ -4325,7 +4328,7 @@ function htmlDetFesta(c, f) {
 // no dia escolhido, o aviso de tema repetido e o calendário
 /* 3.04 (o dono: "no upgrade de festa ... eu tenho que ter a opção de selecionar a festa para mim fazer o upgrade"): no Upgrade e no Adicional,
    além das festas da família, "Escolher outra festa" abre a lista das festas marcadas (com busca pelo nome, tema ou dia): um toque escolhe */
-let FEO = { aberta: false, busca: '' }, FEG = { senha: '' };
+let FEO = { aberta: false, busca: '' }, FEG = { senha: '', ok: false, nome: '' };
 const festasParaEscolher = md => { const hoje = isoDia(agora), de = isoDia(new Date(agora.getTime() - 30 * 864e5)); return festasVivas().filter(x => md === 'upgrade' ? x.data > hoje : x.data >= de).sort((a, b) => a.data.localeCompare(b.data) || a.id - b.id); };
 function feOutrasLista(md) { const fid = CARRINHO && CARRINHO.festa ? festaDoUpgrade(CARRINHO.festa) : 0, ws = semAcentoCT(FEO.busca).trim().split(/\s+/).filter(Boolean), T = festasParaEscolher(md);
   const L = T.filter(x => ws.every(w => semAcentoCT([x.nome, x.resp, x.tema, nascBR(x.data), x.uni ? nomeUni(x.uni) : ''].join(' ')).includes(w))), V = L.slice(0, 30);
@@ -4338,16 +4341,35 @@ const feOutraHtml = md => `<div class="fe-outra">${FEO.aberta ? `<div class="fe-
    o bloco do gestor na folha da Festa. Com a senha de um gestor, a venda (festa nova, upgrade ou adicional) e o pagamento entram no caixa do dia
    escolhido (de hoje para trás); no upgrade, o gestor pode pôr outro valor. O servidor confere a senha e anota */
 const fgEnvio = () => { const f = CARRINHO && CARRINHO.festa; if (!f) return null; const data = f.gData && f.gData !== isoDia(agora) ? f.gData : '', upv = f.modo === 'upgrade' && f.gUpv > 0 ? f.gUpv : 0;
-  if (!data && !upv) return null; return { data, ...(upv ? { upv } : {}), senha: senhaDe('fe-g-senha') || FEG.senha || '' }; };
+  if (!data && !upv) return null; return { data, ...(upv ? { upv } : {}), senha: FEG.senha || senhaDe('fe-g-senha') || '' }; };
 document.addEventListener('input', e => { const t = e.target, f = CARRINHO && CARRINHO.festa; if (!t || !t.id || !f) return;
   if (t.id === 'fe-outra-b') { FEO.busca = t.value; const l = $('#fe-outra-l'); if (l) l.innerHTML = feOutrasLista(f.modo); }
   else if (t.id === 'fe-g-upv') { const v = numero(t.value); f.gUpv = v > 0 ? centavos(v) : 0; atualizarFesta(); }
   else if (t.id === 'fe-g-data') f.gData = t.value;
-  else if (t.id === 'fe-g-senha') FEG.senha = t.value; });
-document.addEventListener('change', e => { const t = e.target, f = CARRINHO && CARRINHO.festa; if (t && f && t.id === 'fe-g-data') { f.gData = t.value; const a = $('#fe-g-aviso'); if (a) a.textContent = f.gData && f.gData !== isoDia(agora) ? `Vai entrar no caixa de ${nascBR(f.gData)}.` : ''; } });
+  else if (t.id === 'fe-g-senha' && !FEG.ok) FEG.senha = ''; });
+document.addEventListener('change', e => { const t = e.target, f = CARRINHO && CARRINHO.festa; if (t && f && t.id === 'fe-g-data') { f.gData = FEG.ok ? t.value : ''; feFatPinta(); } });
+/* 3.08 (o dono: "um campo, data do faturamento da festa, e no upgrade também ... A opção do dia já está marcada, mas uma opção alterar dia do
+   faturamento ... para pedir a senha do gestor"): o campo fica à vista com o dia de hoje, travado. "Alterar dia do faturamento" pede a senha
+   de um gestor (o servidor confere); certa, a data (e, no upgrade, o valor) fica liberada. Na hora de registrar, o servidor confere de novo */
+function feFatAbrir() { if (FEG.ok) { const i = $('#fe-g-data'); if (i) { i.focus(); try { i.showPicker && i.showPicker(); } catch (e) { } } return; }
+  const s = $('#fe-fat-s'); if (!s) return; s.hidden = !s.hidden; if (!s.hidden) setTimeout(() => { const i = $('#fe-g-senha'); if (i) i.focus(); }, 60); }
+async function feFatOk(el) { const sn = senhaDe('fe-g-senha'); if (!sn) { toast('Digite a senha do gestor'); const i = $('#fe-g-senha'); if (i) i.focus(); return; }
+  if (el) el.disabled = true; let nome = '';
+  try { if (MODO === 'servidor') nome = (await api('senha_gestor', { senha: sn })).nome || ''; else { const q = quemAutorizaPrevia('festa', sn); if (!q) throw new Error('A senha não confere com a do gestor.'); nome = primeiro(q.nomeCompleto || q.nome || ''); }
+    FEG.ok = true; FEG.senha = sn; FEG.nome = nome; feFatPinta(); const i = $('#fe-g-data'); if (i) { i.focus(); try { i.showPicker && i.showPicker(); } catch (e) { } }
+    deuCerto(`Liberado${nome ? ' por ' + nome : ''}: escolha o dia do faturamento`); }
+  catch (e) { toast(e.message); const i = $('#fe-g-senha'); if (i) { i.select(); i.focus(); } }
+  finally { if (el && el.isConnected) el.disabled = false; } }
+function feFatPinta() { const f = CARRINHO && CARRINHO.festa; if (!f) return; const md = f.modo, hoje = isoDia(agora), d = f.gData || hoje;
+  const r = $('#fe-fat-rot'); if (r) r.textContent = md === 'upgrade' ? 'Data do faturamento do upgrade' : md === 'adicional' ? 'Data do faturamento do adicional' : 'Data do faturamento da festa';
+  const i = $('#fe-g-data'); if (i) { i.disabled = !FEG.ok; if (i.value !== d) i.value = d; }
+  const bt = $('#fe-fat-alt'), bt2 = $('#fe-fat-alt-t'); if (bt) bt.hidden = !!FEG.ok; if (bt2) bt2.textContent = md === 'upgrade' ? 'Alterar dia do faturamento ou valor' : 'Alterar dia do faturamento';
+  const s = $('#fe-fat-s'); if (s && FEG.ok) s.hidden = true;
+  const uc = $('#fe-g-upc'); if (uc) uc.hidden = !(FEG.ok && md === 'upgrade');
+  const a = $('#fe-g-aviso'); if (a) { a.classList.toggle('muda', d !== hoje); a.textContent = d !== hoje ? `Vai entrar no caixa de ${nascBR(d)}${FEG.nome ? ' · liberado por ' + FEG.nome : ''}.` : FEG.ok ? `Liberado${FEG.nome ? ' por ' + FEG.nome : ''}: escolha o dia.` : 'Entra no caixa de hoje.'; } }
 function atualizarDetFesta() {
   const f = CARRINHO && CARRINHO.festa; if (!f) return; const md = f.modo, fid = festaDoUpgrade(f), fm = fid ? festaPorId(fid) : null, hoje = isoDia(agora), fdsData = festaFds(f.data);
-  { const uc = $('#fe-g-upc'), us = $('#fe-g-sum-up'); if (uc) uc.hidden = md !== 'upgrade'; if (us) us.hidden = md !== 'upgrade'; }   /* 3.04: o valor do upgrade só no Upgrade */
+  feFatPinta();   /* 3.08: o campo da data do faturamento (e, no upgrade, o valor do gestor) */
   { const d = $('#fe-det'), d1 = $('#fe-det1'), tb = $('#fe-tab-c'), ex = $('#fe-extra-c'); if (d) d.hidden = md !== 'nova'; if (d1) d1.hidden = md !== 'nova'; if (tb) tb.hidden = md === 'adicional'; if (ex) ex.classList.toggle('so', md === 'adicional'); }
   const mc = $('#fe-marc'); if (mc) { mc.hidden = md === 'nova';
     const FF = festasDaFamilia(crianca(CARRINHO.id) || {}), FFm = fm && !FF.some(y => y.id === fm.id) ? [...FF, fm] : FF, escolha = FFm.length > 1 ? `<div class="fe-marc-sel" role="radiogroup" aria-label="Qual festa">${FFm.map(x => `<button type="button" class="tap" role="radio" data-act="fe-marc-sel" data-v="${x.id}" aria-checked="${fm && x.id === fm.id}"><b>${esc(x.nome)}</b><span>${esc(nascBR(x.data).slice(0, 5))}${x.tema ? ' · ' + esc(x.tema) : ''}</span></button>`).join('')}</div>` : '';   /* 3.04: com a festa escolhida em "outra festa" */
@@ -5467,7 +5489,7 @@ async function registrarAtendimento(id, mesmoAssim, pag, depois) { // mesmoAssim
   if (vou && voucherNaEntrada() && (c.entrou || (semIdface() && !entrar))) { toast(c.entrou ? `O voucher só vale na entrada: ${c.nome} já está no espaço.` : 'O voucher é dado na entrada: marque "Dar entrada agora".'); return; }   // 1.35
   const festa = !!(CARRINHO && CARRINHO.festa && L.some(l => l.festa));   // 1.12: a venda é a de uma festa
   const FG = festa ? fgEnvio() : null;   /* 3.04: a data no caixa e o valor do upgrade, com a senha do gestor */
-  if (FG && !FG.senha) { toast('Digite a senha do gestor (Gestor: data do lançamento no caixa).'); voltarDaEscolha(); const d = $('#fe-g'); if (d) { d.open = true; setTimeout(() => { const i = $('#fe-g-senha'); if (i) { i.scrollIntoView({ block: 'center', behavior: 'smooth' }); i.focus(); } }, 120); } return; }
+  if (FG && !FG.senha) { toast('Toque em "Alterar dia do faturamento" e digite a senha do gestor.'); voltarDaEscolha(); const s = $('#fe-fat-s'); if (s) { s.hidden = false; setTimeout(() => { const i = $('#fe-g-senha'); if (i) { i.scrollIntoView({ block: 'center', behavior: 'smooth' }); i.focus(); } }, 120); } return; }
   if (FG && MODO !== 'servidor' && !quemAutorizaPrevia('festa', FG.senha)) { toast('A senha não confere com a do gestor.'); return; }
   if (MODO === 'servidor' && OFF.on) { const sai = l => l.aberto || (!!l.s && (x => !!x && !!x.volta && !ehTempo(x))(servicoDe(l.s))), qual = festa ? 'A festa' : vou ? 'O voucher' : L.some(l => l.alt) ? 'O valor alterado' : L.some(sai) ? 'O carrinho' : '';   // 1.40
     if (qual) { toast(`Sem internet: ${qual.toLowerCase()} precisa da internet. Tire do atendimento, ou espere a internet voltar.`); return; } }
@@ -11670,6 +11692,7 @@ const ACOES = {
   'fv-imprimir': () => { const f = FV && festaPorId(FV.id); if (!f || !FV.dados) return; imprimirPapel([papelFesta(f, FV.dados.criancas)]); },
   'festa-entra': el => entrarNaFesta(+el.dataset.f, +el.dataset.id, el.dataset.p === 'aniversariante' ? 'aniversariante' : 'convidado'),   /* 1.29 */
   'festa-trocar': () => folhaParaQuem({ festa: true, sel: CARRINHO && CARRINHO.festa ? (({ aniv, festaId, ...resto }) => resto)(CARRINHO.festa) : null }),   /* (1.29: o aniversariante e a festa marcada são do cliente: não vão junto) */   /* troca o cliente e mantém o que já foi escolhido */
+  'fe-fat-alt': () => feFatAbrir(), 'fe-fat-ok': el => feFatOk(el),   /* 3.08 */
   'festa-modo': el => { const f = CARRINHO && CARRINHO.festa; if (!f) return; f.modo = ['upgrade', 'adicional'].includes(el.dataset.v) ? el.dataset.v : 'nova'; if (f.modo === 'adicional' && !f.extra) f.extra = 1; festaPorTem(); atualizarFesta(); },   /* 1.13: festa nova ou upgrade de festa */
   'festa-valor': el => { const f = CARRINHO && CARRINHO.festa; if (!f) return; const dia = el.dataset.dia, n = +el.dataset.n;   /* festa nova: um toque no valor escolhe as crianças e o tipo (outro toque tira). Upgrade: o primeiro toque é a festa que o cliente já tem; o segundo, a nova */
     if (f.modo !== 'upgrade') { if (f.dia === dia && f.n === n) { f.dia = ''; f.n = 0; } else { f.dia = dia; f.n = n; } }
@@ -11878,6 +11901,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.id === 'pq-busca') { e.preventDefault(); const b = $$('#pq-lista [data-act="pq-crianca"], #pq-lista [data-act="pq-resp"]'); if (b.length === 1) b[0].click(); return; }   // só uma criança na lista: Enter escolhe
   if (e.key === 'Enter' && e.target.id === 'rec-txt') { e.preventDefault(); const b = $('[data-act="rec-salvar"]'); if (b) b.click(); return; }   /* 2.72 */
   if (e.key === 'Enter' && e.target.id === 'rg-senha') { e.preventDefault(); const ok = $('#rg-ok'); if (ok && !ok.disabled) ok.click(); return; }   /* 3.02 */
+  if (e.key === 'Enter' && e.target.id === 'fe-g-senha') { e.preventDefault(); const ok = $('#fe-fat-ok'); if (ok && !ok.disabled) ok.click(); return; }   /* 3.08 */
   if (e.key === 'Enter' && e.target.id === 'pl-senha') { e.preventDefault(); const ok = $('#pl-ok'); if (ok && !ok.disabled) ok.click(); return; }   /* 2.90 */
   if (e.key === 'Enter' && (e.target.id === 'pfn-n' || e.target.id === 'pfn-v')) { e.preventDefault(); const ok = $('#pfn-ok'); if (ok && !ok.disabled) ok.click(); return; }   /* 2.99 */
   if (e.key === 'Enter' && e.target.classList && e.target.classList.contains('pf-aj-v')) { e.preventDefault(); const I = $$('.pf-aj-v'), n = I.indexOf(e.target); if (I[n + 1]) { I[n + 1].focus(); I[n + 1].select(); } else e.target.blur(); return; }   /* 3.01: Enter vai para o próximo valor */

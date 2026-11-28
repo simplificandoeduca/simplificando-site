@@ -1301,6 +1301,15 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Festa: o campo "Data do faturamento" à vista, e "Alterar dia do faturamento" com a senha do gestor (3.08)
+
+Pedido do dono (28/11, com a foto da folha da Festa): "quero que tenha um campo, data do faturamento da festa, e no upgrade também, data do faturamento do upgrade. A opção do dia já está marcada, mas uma opção alterar dia do faturamento da festa para pedir a senha do gestor ... se colocar a senha do gestor, pode alterar a data de faturamento da festa."
+
+- Na folha da Festa, logo abaixo da data da festa, o campo **Data do faturamento da festa** (no Upgrade: **do upgrade**; no Adicional: **do adicional**), já com o dia de hoje e travado. Embaixo: "Entra no caixa de hoje."
+- O botão **"Alterar dia do faturamento"** (no Upgrade: "Alterar dia do faturamento ou valor") pede a **senha de um gestor**. Senha errada (ou de quem não é gestor): não libera. Certa: a data fica liberada ("Liberado por ..."), e no Upgrade aparece também o **valor do upgrade**.
+- Escolhida outra data, aparece "Vai entrar no caixa de dd/mm/aaaa". A venda e o pagamento entram no caixa desse dia (de hoje para trás, até um ano), como na 3.04. Na hora de registrar, o servidor confere a senha de novo.
+- O antigo bloco "Gestor: data do lançamento no caixa", que ficava fechado lá embaixo, saiu: virou este campo.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Resumo do dia: as colunas no lugar das barrinhas e as cores novas (3.07)
 
 Pedido do dono (28/11): "Essas barrinhas ... gosto da ideia da barrinha, mas não gostei do formato. Quero mais moderno". Das 3 opções (barra única dividida, colunas, cartõezinhos): "achei o B mais fácil de visualizar".

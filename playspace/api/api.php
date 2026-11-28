@@ -420,6 +420,9 @@ switch ($acao) {
   case 'fiado_receber': { /* 3.05: o pacote futuro (fiado): o cliente pagou */
     $u = exigir(); responder(fiadoReceber($in, $u));
   }
+  case 'senha_gestor': { /* 3.08: confere a senha de um gestor antes de liberar a data do faturamento da festa (o atender confere de novo ao gravar) */
+    $u = exigir(); $g = autorizadorPelaSenha('festa', (string)($in['senha'] ?? ''), $u); responder(['nome' => maiusculo(primeiroNome((string)$g['nome']))]);
+  }
   case 'ct_sinal_receber': { /* 2.52: na retirada, o resto do sinal */
     $u = exigir(); responder(ctSinalReceber($in, $u));
   }
