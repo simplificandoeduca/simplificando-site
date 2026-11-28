@@ -1096,6 +1096,14 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .pf-dm button[aria-pressed="true"] { background: var(--tinta); color: var(--card); }
 .pf-prods .pf-pb { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; margin: 2px 0 10px; } .pf-prods .pf-pb .ct-campo { flex: 1 1 240px; height: 46px; } .pf-prods .pf-pb .bt { flex: none; height: 46px; padding: 0 16px; border-radius: 12px; }   /* 2.99 · 3.01: a mesma altura */
 .pf-prods .pf-cats { margin: 0 2px 10px; }
+.vfv-ver, .vfv-lug { margin-bottom: 8px; } .vfv-ver b { margin-left: 4px; } .vfv-busca { margin: 4px 0 10px; } .vfv-l { display: flex; flex-direction: column; gap: 10px; }   /* 3.09 */
+.vfv-it { background: var(--card); border: 1px solid var(--borda); border-radius: 18px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; } .vfv-it.atras { border-color: var(--erro); box-shadow: inset 4px 0 0 var(--erro); } .vfv-it.paga { opacity: .82; }
+.vfv-top { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; flex-wrap: wrap; } .vfv-cli { display: flex; flex-direction: column; gap: 4px; min-width: 0; } .vfv-cli .pill { align-self: flex-start; } .vfv-cli b { font-family: var(--display); font-size: 18px; } .vfv-cli small { color: var(--tinta-2); font-size: 12.5px; }
+.vfv-dia { display: flex; flex-direction: column; align-items: flex-end; text-align: right; padding: 8px 12px; border-radius: 14px; background: var(--creme); } .vfv-dia small { font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--tinta-2); } .vfv-dia b { font-size: 17px; } .vfv-dia span { font-size: 12.5px; color: var(--tinta-2); font-weight: 700; }
+.vfv-it.atras .vfv-dia { background: color-mix(in srgb, var(--erro) 12%, var(--card)); } .vfv-it.atras .vfv-dia span { color: var(--erro); }
+.vfv-dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 18px; margin: 0; } .vfv-dl > div { min-width: 0; } .vfv-dl dt { font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--tinta-2); } .vfv-dl dd { margin: 2px 0 0; font-size: 14px; overflow-wrap: anywhere; }
+.vfv-ac { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; } .vfv-ac:empty { display: none; }
+@media (max-width: 560px) { .vfv-dl { grid-template-columns: 1fr; } .vfv-dia { align-items: flex-start; text-align: left; } }
 .fe-fat .fe-fat-l { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; } .fe-fat .fe-fat-l > input, .fe-fat .fe-fat-l > .senha-aut { flex: 1 1 170px; min-width: 0; } .fe-fat .fe-fat-l .bt { flex: none; }
 .fe-fat input[type="date"]:disabled { opacity: 1; color: var(--tinta); background: var(--creme); } .fe-fat .explica.muda { color: var(--coral); font-weight: 800; } .fe-fat-s { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; } .fe-fat-s[hidden], #fe-g-upc[hidden] { display: none; }   /* 3.08 */
 .fe-g > summary { display: flex; align-items: center; gap: 6px; } .fe-g-c { display: flex; flex-direction: column; gap: 10px; padding: 10px 2px 2px; } #fe-g-aviso { color: var(--coral); font-weight: 800; }   /* 3.04 */
@@ -2377,7 +2385,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '3.08';
+const VERSAO = '3.09';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -2733,7 +2741,7 @@ function aplicarDados(d) { // 1.40: o que veio do servidor (ou o que ficou guard
     S.criancas = d.criancas.map(c => ({ ...CRI_PAD, ...c, festaPapel: c.festa_papel || null, entrou: c.entrou ? dataDe(c.entrou) : null, venda: c.venda ? { ...c.venda, quando: dataDe(c.venda.quando) } : null, visitas: (c.visitas || []).map(v => ({ ...v, dia: dataDe(v.dia), ini: v.ini ? dataDe(v.ini) : null })) }));
     S.registros = d.registros.map(r => ({ ...r, h: dataDe(r.h) }));
     S.conversas = d.conversas.map(x => ({ ...x, msgs: x.msgs.map(m => ({ ...m, h: dataDe(m.h) })) }));
-    S.compromissos = d.compromissos; { const fx = MODO === 'servidor' ? fixaDe(d.eu) : 0; S.vfut = (d.vfut || []).filter(x => !fx || !x.uni || +x.uni === fx); S.fiados = (d.fiados || []).filter(x => !fx || !x.uni || +x.uni === fx); }   /* 3.05: os fiados */   /* 2.08: as vendas futuras */ { const fx = MODO === 'servidor' ? fixaDe(d.eu) : 0; S.festas = (d.festas || []).filter(f => !fx || !f.uni || +f.uni === fx); }   // 1.29: as festas marcadas das unidades; 2.02: só as da unidade de quem tem a unidade escolhida
+    S.compromissos = d.compromissos; { const fx = MODO === 'servidor' ? fixaDe(d.eu) : 0; S.vfut = d.vfut || []; S.fiados = d.fiados || []; }   /* 3.05: os fiados. 3.09: o servidor já manda só as do lugar de quem está no aparelho */   /* 2.08: as vendas futuras */ { const fx = MODO === 'servidor' ? fixaDe(d.eu) : 0; S.festas = (d.festas || []).filter(f => !fx || !f.uni || +f.uni === fx); }   // 1.29: as festas marcadas das unidades; 2.02: só as da unidade de quem tem a unidade escolhida
     S.cfg = { ...S.cfg, ...d.regra, idface: { ...S.cfg.idface, ...d.idface } };
     S.equipe = d.equipe || [];
     S.produtos = d.produtos || [];
@@ -4689,10 +4697,52 @@ async function fiadoOk(el) { const c = $('#fd-ed'); if (!c) return; const id = +
     fecharFolha(); deuCerto(`Pacote futuro recebido: ${brl(tot)}${x ? ' · ' + (x.resp || x.nome) + ' · no caixa de ' + vfDM(fdDia(x)) : ''}`); if (MODO === 'servidor') await carregar(); desenhar(true);
     if (r.crianca && x) cupomDaVenda(r.crianca, r.cupom, { tipo: 'entrada', id: r.crianca, itens: [{ n: 'PACOTE FUTURO · ' + x.oque, v: tot }], formas: P, desc: 0, venda: id, vend: x.vendedora || '', ped: [] }, false);
   } catch (e) { toast(e.message); if (el.isConnected) el.disabled = false; } }
+/* 3.09 (o dono: "Do lado do carrinho de bebê, coloque visualizar vendas futuras, que ... destrinche todos os dados do cliente ... e o dia do
+   pagamento. E Morumbi só pode ver Morumbi, Anália só pode ver Anália"): o botão "Vendas futuras" na fileira da lista abre todas as vendas
+   futuras do lugar (o servidor só manda as do lugar de quem está no aparelho; o gestor vê todas, com o filtro por lugar): o dia do pagamento
+   em destaque e os dados do cliente (crianças, telefones, CPF), o que comprou, o valor, quem vendeu, quem pediu e quem aprovou */
+let VFV = { busca: '', ver: 'abertas', lugar: '' };
+const vfLugar = id => id ? curtoUni(nomeUni(+id)) : '';
+const vfDoLugar = L => MODO === 'servidor' || gestor() || !minhaUni() ? L : L.filter(x => !x.uni || vfLugar(x.uni) === vfLugar(minhaUni()));
+const vfAberta = x => x.status === 'pendente' || (x.status === 'usado' && !x.pago && !x.canc);
+const vfTodas = () => vfDoLugar(vfLista());
+function vfStatus(x, hoje) { return x.status === 'pendente' ? ['p-aviso', 'esperando o gestor'] : x.status === 'negado' ? ['p-erro', 'negada'] : x.canc ? ['p-erro', 'venda cancelada'] : x.pago ? ['p-ok', 'paga'] : x.paga < hoje ? ['p-erro', x.fiado ? 'não pagou' : 'cobrar · atrasada'] : x.paga === hoje ? ['p-erro', 'pagar hoje'] : ['p-aviso', x.fiado ? 'a receber' : 'no calendário']; }
+function vfQuando(d, hoje) { const n = Math.round((new Date(d + 'T12:00:00') - new Date(hoje + 'T12:00:00')) / 864e5); return n === 0 ? 'hoje' : n === 1 ? 'amanhã' : n > 1 ? `em ${n} dias` : n === -1 ? 'venceu ontem' : `venceu há ${-n} dias`; }
+const vfHora = t => { if (!t) return ''; const d = t instanceof Date ? t : new Date(String(t).replace(' ', 'T')); return isNaN(d) ? '' : `${p2(d.getDate())}/${p2(d.getMonth() + 1)} às ${hora(d)}`; };
+function folhaVendasFuturas() { VFV = { busca: '', ver: 'abertas', lugar: '' }; abrirFolha('Vendas futuras', `<div id="vfv">${htmlVFV()}</div>`); }
+function vfvPinta() { const c = $('#vfv-l'), t = $('#vfv-cab'); if (c) c.innerHTML = htmlVFVLista(); if (t) t.innerHTML = htmlVFVCab(); }
+function vfvFiltradas() { const hoje = isoDia(agora), T = vfTodas(), Q = semAcentoCT(VFV.busca).trim(), qd = soDig(VFV.busca);
+  let L = T.filter(x => VFV.ver === 'todas' ? true : VFV.ver === 'pagas' ? x.pago : vfAberta(x));
+  if (gestor() && VFV.lugar) L = L.filter(x => vfLugar(x.uni) === VFV.lugar);
+  if (Q) L = L.filter(x => { const c = crianca(x.crianca) || {}, F = c.id ? familia(c) : []; return semAcentoCT([x.resp, x.nome, c.resp, ...F.map(k => k.nome), x.oque, x.vendedora].join(' ')).includes(Q) || (qd.length >= 3 && [c.tel, c.tel2, c.cpf].some(v => soDig(v).includes(qd))); });
+  return L.sort((a, b) => VFV.ver === 'pagas' ? (a.paga < b.paga ? 1 : a.paga > b.paga ? -1 : b.id - a.id) : (a.paga < b.paga ? -1 : a.paga > b.paga ? 1 : a.id - b.id)); }
+function htmlVFVCab() { const T = vfTodas(), n = { abertas: T.filter(vfAberta).length, pagas: T.filter(x => x.pago).length, todas: T.length };
+  const lug = [...new Set(T.map(x => vfLugar(x.uni)).filter(Boolean))].sort();
+  return `<div class="seg vfv-ver" role="group" aria-label="Quais vendas futuras">${[['abertas', 'Para receber'], ['pagas', 'Pagas'], ['todas', 'Todas']].map(([v, t]) => `<button type="button" class="tap" data-act="vfv-ver" data-v="${v}" aria-pressed="${VFV.ver === v}">${t} <b class="num">${n[v]}</b></button>`).join('')}</div>
+    ${gestor() && lug.length > 1 ? `<div class="seg vfv-lug" role="group" aria-label="Lugar">${[['', 'Todos os lugares'], ...lug.map(l => [l, l])].map(([v, t]) => `<button type="button" class="tap" data-act="vfv-lugar" data-v="${esc(v)}" aria-pressed="${VFV.lugar === v}">${esc(t)}</button>`).join('')}</div>` : ''}`; }
+function htmlVFV() { const meu = gestor() ? '' : vfLugar(minhaUni());
+  return `<p class="explica">${gestor() ? 'Todas as unidades (você é gestor).' : meu ? `Só as vendas futuras de <b>${esc(meu)}</b>.` : 'As vendas futuras desta unidade.'} O dia do pagamento fica em destaque; toque em <b>Receber</b> quando o cliente pagar.</p>
+    <div id="vfv-cab">${htmlVFVCab()}</div>
+    <label class="ct-campo vfv-busca">${ic(IC.busca || IC.ctBusca, 17)}<input id="vfv-busca" type="search" placeholder="Buscar pelo nome, telefone ou CPF" autocomplete="off" aria-label="Buscar nas vendas futuras"></label>
+    <div class="vfv-l" id="vfv-l">${htmlVFVLista()}</div>`; }
+function htmlVFVLista() { const hoje = isoDia(agora), L = vfvFiltradas();
+  if (!L.length) return `<p class="vazio">${VFV.busca ? 'Nenhuma venda futura com essa busca.' : VFV.ver === 'pagas' ? 'Nenhuma venda futura paga (dos últimos 60 dias).' : VFV.ver === 'abertas' ? 'Nenhuma venda futura para receber.' : 'Nenhuma venda futura.'}</p>`;
+  return L.map(x => { const st = vfStatus(x, hoje), c = crianca(x.crianca) || null, F = c ? familia(c) : [], atras = !x.pago && x.status === 'usado' && !x.canc && x.paga < hoje, dd = new Date(x.paga + 'T12:00:00');
+    const it = (t, v) => v ? `<div><dt>${t}</dt><dd>${v}</dd></div>` : '';
+    return `<article class="vfv-it${atras ? ' atras' : ''}${x.pago ? ' paga' : ''}">
+      <div class="vfv-top"><div class="vfv-cli"><span class="pill ${st[0]}">${st[1]}</span><b>${esc(x.resp || x.nome)}</b>${x.uni ? `<small>${esc(nomeUni(x.uni) || '')}</small>` : ''}</div>
+        <div class="vfv-dia"><small>Dia do pagamento</small><b>${x.paga ? SEMANA[dd.getDay()].slice(0, 3) + ', ' + nascBR(x.paga) : '—'}</b><span>${x.pago ? 'paga' : x.paga ? vfQuando(x.paga, hoje) : ''}</span></div></div>
+      <dl class="vfv-dl">${it(F.length > 1 ? 'Crianças' : 'Criança', esc((F.length ? F : [{ nome: x.nome }]).map(k => k.nome + (idadeTxt(k) ? ' (' + idadeTxt(k) + ')' : '')).join(', ')))}
+        ${it('Telefone', c ? esc(fones(c)) : '')}${it('CPF', c && soDig(c.cpf).length === 11 ? cpfFmt(c.cpf) : '')}
+        ${it('O que comprou', esc(x.oque))}${it('Valor', `<b class="num">${brl2(x.valor)}</b>${x.fiado && !x.pago && !x.canc ? ` · falta <b class="num">${brl2(x.falta)}</b>` : ''}`)}${it('Valor ajustado', esc(x.ajuste || ''))}
+        ${it('Vendedora', esc(x.vendedora || ''))}${it('Pedido', esc([x.por ? 'por ' + primeiro(x.por) : '', vfHora(x.em)].filter(Boolean).join(' · ')))}${it(x.status === 'negado' ? 'Negado' : 'Aprovado', x.dec ? esc('por ' + primeiro(x.dec) + (x.dec_em ? ' · ' + vfHora(x.dec_em) : '')) : '')}
+        ${it('Observação', esc(x.obs || ''))}</dl>
+      <div class="vfv-ac">${x.status === 'usado' && x.fiado && !x.pago && !x.canc ? `<button type="button" class="bt forte tap" data-act="fiado-receber" data-v="${x.fiado}">${ic(IC.check, 16)} Receber</button>` : ''}${c ? `<button type="button" class="bt claro tap" data-act="vfv-cliente" data-id="${c.id}">Ver o cliente</button>` : ''}</div></article>`; }).join(''); }
+document.addEventListener('input', e => { if (e.target && e.target.id === 'vfv-busca') { VFV.busca = e.target.value; const c = $('#vfv-l'); if (c) c.innerHTML = htmlVFVLista(); } });
 /* as vendas futuras (no servidor, a lista que vem com os dados; na prévia, os pedidos) */
 const vfLista = () => MODO === 'servidor' ? (S.vfut || []) : (S.pedidos || []).filter(p => p.tipo === 'venda_futura' && ['pendente', 'usado', 'negado'].includes(p.status)).map(p => { const d = p.dados || {}, k = (S.compromissos || []).find(x => d.comp && x.id === d.comp[1]);
   const fv = d.fiado ? (S.compras || []).find(v => v.id === d.fiado) : null;
-  return { id: p.id, status: p.status, crianca: p.crianca, nome: p.nome, resp: p.resp, valor: p.valor, oque: d.oque || '', fecha: d.fecha || '', paga: d.paga || '', vendedora: d.vendedora || '', comp: d.comp || [], pago: d.fiado ? !!fv && faltaCompra(fv) < 0.005 : !!(k && k.feito), ...(d.fiado ? { fiado: d.fiado, falta: fv ? faltaCompra(fv) : 0, canc: !fv } : {}) }; }).sort((a, b) => a.paga < b.paga ? -1 : a.paga > b.paga ? 1 : a.id - b.id);
+  return { id: p.id, status: p.status, crianca: p.crianca, nome: p.nome, resp: p.resp, valor: p.valor, oque: d.oque || '', fecha: d.fecha || '', paga: d.paga || '', vendedora: d.vendedora || '', comp: d.comp || [], obs: d.obs || '', ajuste: d.ajuste || '', pac: d.pac ? 1 : 0, por: p.por || '', dec: p.dec || '', em: p.em || null, dec_em: p.dec_em || null, uni: p.uni || null, pago: d.fiado ? !!fv && faltaCompra(fv) < 0.005 : !!(k && k.feito), ...(d.fiado ? { fiado: d.fiado, falta: fv ? faltaCompra(fv) : 0, canc: !fv } : {}) }; }).sort((a, b) => a.paga < b.paga ? -1 : a.paga > b.paga ? 1 : a.id - b.id);
 function htmlVendasFuturas() {
   const hoje = isoDia(agora), L = vfLista().filter(x => !(x.pago && x.paga < hoje) && !(x.status === 'negado' && x.paga < hoje)); if (!L.length) return '';
   return `<div class="card vf-card" id="vf-card"><div class="sec-cab"><h2>Vendas futuras</h2></div><div class="vf-l">${L.map(x => { const st = x.status === 'pendente' ? ['p-aviso', 'esperando o gestor'] : x.status === 'negado' ? ['p-erro', 'negada'] : x.canc ? ['p-erro', 'venda cancelada'] : x.pago ? ['p-ok', 'paga'] : x.fiado ? (x.paga < hoje ? ['p-erro', 'fiado · não pagou'] : x.paga === hoje ? ['p-erro', 'fiado · vence hoje'] : ['p-aviso', 'fiado · a receber']) : x.paga < hoje ? ['p-erro', 'cobrar · atrasada'] : x.paga === hoje ? ['p-erro', 'cobrar hoje'] : ['p-ok', 'no calendário'];   /* 3.05: o fiado */
@@ -8050,7 +8100,8 @@ function chipsEspaco() {
   // escolhido só fica marcado quando a tela é a lista
   const mn = mnLigado(), aqui = !mn || S.tela === 'horas', cl = mn ? 'mi tap' : 'tap', rot = t => mn ? `<span>${t}</span>` : t;
   const f = espFiltro(), ns = saiuHaPouco().length, nf = (F => F.V.length + F.D.length)(finalizadosHoje());
-  const sair = (ns || f === 'sairam' ? `<button class="${cl}" data-act="esp-filtro" data-f="sairam" aria-pressed="${aqui && f === 'sairam'}" title="Quem saiu nos últimos ${reabreLim()} min: dá para reabrir a visita">${rot('Saíram há pouco')}<b>${ns}</b></button>` : '')
+  const nvf = vfTodas().filter(vfAberta).length, vfb = `<button class="${cl} vfv-chip" data-act="vf-ver" title="Ver as vendas futuras${gestor() ? '' : ' desta unidade'}: os dados do cliente e o dia do pagamento">${ic(IC.agenda, mn ? 17 : 16)}${rot('Vendas futuras')}<b>${nvf}</b></button>`;   /* 3.09 */
+  const sair = vfb + (ns || f === 'sairam' ? `<button class="${cl}" data-act="esp-filtro" data-f="sairam" aria-pressed="${aqui && f === 'sairam'}" title="Quem saiu nos últimos ${reabreLim()} min: dá para reabrir a visita">${rot('Saíram há pouco')}<b>${ns}</b></button>` : '')
     + `<button class="${cl} fim-chip" data-act="esp-filtro" data-f="fim" aria-pressed="${aqui && f === 'fim'}" title="O caixa do dia (o que foi recebido hoje, por forma e pelo que foi pago) e quem saiu hoje">${ic(IC.caixa, mn ? 17 : 16)}${rot('Finalizados do dia')}<b>${nf}</b></button>`;   // 1.30: sempre à vista, com o caixa do dia   // 1.25
   if (!inicioLista()) return (mn ? `<button class="${cl}" data-act="esp-filtro" data-f="todas" aria-pressed="${aqui && f === 'todas'}">${rot('Todas')}<b>${itensEspaco(!aqui).length}</b></button>` : '') + sair;
   const L = itensEspaco(!aqui), sv = espServ(), st = servicoTempo(), ids = [...new Set([...servicosVolta().map(x => x.id), ...L.filter(x => x.a).map(x => x.a.s)])], nome = id => (servicoDe(id) || { n: (L.find(x => x.a && x.a.s === id) || { a: { n: id } }).a.n }).n;
@@ -11693,6 +11744,8 @@ const ACOES = {
   'festa-entra': el => entrarNaFesta(+el.dataset.f, +el.dataset.id, el.dataset.p === 'aniversariante' ? 'aniversariante' : 'convidado'),   /* 1.29 */
   'festa-trocar': () => folhaParaQuem({ festa: true, sel: CARRINHO && CARRINHO.festa ? (({ aniv, festaId, ...resto }) => resto)(CARRINHO.festa) : null }),   /* (1.29: o aniversariante e a festa marcada são do cliente: não vão junto) */   /* troca o cliente e mantém o que já foi escolhido */
   'fe-fat-alt': () => feFatAbrir(), 'fe-fat-ok': el => feFatOk(el),   /* 3.08 */
+  'vf-ver': () => folhaVendasFuturas(), 'vfv-ver': el => { VFV.ver = el.dataset.v || 'abertas'; vfvPinta(); }, 'vfv-lugar': el => { VFV.lugar = el.dataset.v || ''; vfvPinta(); },   /* 3.09 */
+  'vfv-cliente': el => { fecharFolha(); abrirHistorico(+el.dataset.id); },
   'festa-modo': el => { const f = CARRINHO && CARRINHO.festa; if (!f) return; f.modo = ['upgrade', 'adicional'].includes(el.dataset.v) ? el.dataset.v : 'nova'; if (f.modo === 'adicional' && !f.extra) f.extra = 1; festaPorTem(); atualizarFesta(); },   /* 1.13: festa nova ou upgrade de festa */
   'festa-valor': el => { const f = CARRINHO && CARRINHO.festa; if (!f) return; const dia = el.dataset.dia, n = +el.dataset.n;   /* festa nova: um toque no valor escolhe as crianças e o tipo (outro toque tira). Upgrade: o primeiro toque é a festa que o cliente já tem; o segundo, a nova */
     if (f.modo !== 'upgrade') { if (f.dia === dia && f.n === n) { f.dia = ''; f.n = 0; } else { f.dia = dia; f.n = n; } }

@@ -1129,6 +1129,13 @@ function vfutFiadoLegado(): int {
   } catch (Throwable $e) { try { $db->exec('ROLLBACK'); } catch (Throwable $e2) { } throw $e; }
   return $n;
 }
+/* 3.09 (o dono: "Morumbi só pode ver Morumbi, Anália só pode ver Anália"): as vendas futuras e os fiados só do lugar de quem pede (o Play e a
+   Casa Tom do mesmo lugar juntos); o gestor vê todas */
+function vfutDoLugar(array $L, array $eu): array {
+  if (($eu['papel'] ?? '') === 'gestor') return $L; $u = (int)(unidadeDoPedido() ?? 0); if ($u <= 0) $u = (int)($eu['unidade_id'] ?? 0); if ($u <= 0) return $L;
+  $loc = []; foreach (unidades() as $x) $loc[(int)$x['id']] = uniLocal((string)$x['nome']); $meu = $loc[$u] ?? ''; if ($meu === '') return $L;
+  return array_values(array_filter($L, fn($x) => ($x['uni'] ?? null) === null || ($loc[(int)$x['uni']] ?? '') === $meu));
+}
 /* os fiados que ainda têm valor a receber (para a tela: o aviso e o Receber) */
 function fiadosAbertos(): array {
   $o = []; $q = db()->query("SELECT v.id, v.crianca_id, v.valor, v.fiado_ate, v.fiado_ped, v.itens, v.minutos, v.vendedora, v.unidade_id, v.quando, v.valor - COALESCE((SELECT SUM(p.valor) FROM pagamentos p WHERE p.venda_id = v.id), 0) f, c.nome, c.resp
@@ -1163,7 +1170,7 @@ function vfutLista(): array {
     if ($fid) { $q = $db->prepare('SELECT v.valor - COALESCE((SELECT SUM(x.valor) FROM pagamentos x WHERE x.venda_id = v.id), 0) FROM vendas v WHERE v.id = ?'); $q->execute([$fid]); $fx = $q->fetchColumn(); $q->closeCursor(); }
     $o[] = ['id' => (int)$p['id'], 'status' => (string)$p['status'], 'crianca' => (int)$p['crianca_id'], 'nome' => (string)$p['nome'], 'resp' => (string)$p['resp'], 'valor' => round((float)$p['valor'], 2),
       'oque' => (string)($d['oque'] ?? ''), 'fecha' => (string)($d['fecha'] ?? ''), 'paga' => (string)($d['paga'] ?? ''), 'vendedora' => (string)($d['vendedora'] ?? ''), 'obs' => (string)($d['obs'] ?? ''),
-      'por' => (string)$p['pedido_nome'], 'dec' => (string)$p['decidido_nome'], 'comp' => $comp, 'pago' => $fid ? ($fx !== false && (float)$fx < 0.005) : isset($comp[1]) && !empty($feito[$comp[1]]), 'uni' => ($p['unidade_id'] ?? null) === null ? null : (int)$p['unidade_id']]
+      'por' => (string)$p['pedido_nome'], 'dec' => (string)$p['decidido_nome'], 'em' => (string)$p['pedido_em'], 'dec_em' => (string)($p['decidido_em'] ?? ''), 'ajuste' => (string)($d['ajuste'] ?? ''), 'pac' => empty($d['pac']) ? 0 : 1, 'comp' => $comp,   /* 3.09: para ver tudo */ 'pago' => $fid ? ($fx !== false && (float)$fx < 0.005) : isset($comp[1]) && !empty($feito[$comp[1]]), 'uni' => ($p['unidade_id'] ?? null) === null ? null : (int)$p['unidade_id']]
       + ($fid ? ['fiado' => $fid, 'falta' => $fx === false ? 0 : round(max(0, (float)$fx), 2), 'canc' => $fx === false] : []);
   }
   usort($o, fn($a, $b) => [$a['paga'], $a['id']] <=> [$b['paga'], $b['id']]); return $o;
