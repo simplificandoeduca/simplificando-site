@@ -39,7 +39,7 @@
 .dp-sem span { text-align: center; font: 800 11.5px/28px var(--texto, "Nunito", sans-serif); color: var(--tinta-2, var(--ink-2, #6B655E)); letter-spacing: .04em; }
 .dp-dia { width: 100%; max-width: 40px; aspect-ratio: 1; justify-self: center; border-radius: 50%; border: 0; background: transparent; color: inherit; font: 700 14px/1 var(--texto, "Nunito", sans-serif); font-variant-numeric: tabular-nums; cursor: pointer; padding: 0; transition: background .12s, color .12s; }
 .dp-dia:hover { background: var(--creme, var(--soft, #F4EDE2)); }
-.dp-dia.hoje { box-shadow: inset 0 0 0 1.5px var(--coral, var(--brand, #E25B3F)); color: var(--coral, var(--brand, #E25B3F)); }
+.dp-dia.dp-hj { box-shadow: inset 0 0 0 1.5px var(--coral, var(--brand, #E25B3F)); color: var(--coral, var(--brand, #E25B3F)); }
 .dp-dia.sel, .dp-dia.sel:hover { background: var(--coral, var(--brand, #E25B3F)); color: #fff; box-shadow: none; }
 .dp-dia:disabled, .dp-dia:disabled:hover { opacity: .32; cursor: default; background: transparent; box-shadow: none; color: inherit; }
 .dp-dia:focus-visible, .dp-nav:focus-visible, .dp-pe button:focus-visible { outline: 2px solid var(--coral, var(--brand, #E25B3F)); outline-offset: 2px; }
@@ -91,7 +91,7 @@
     const antes = !min || iso(new Date(ano, mes, 0)) >= min, depois = !max || iso(new Date(ano, mes + 1, 1)) <= max, fora = s => (min && s < min) || (max && s > max);
     let dias = ''; for (let k = 0; k < ini; k++) dias += '<span></span>';
     for (let d = 1; d <= n; d++) { const s = iso(new Date(ano, mes, d));
-      dias += `<button type="button" class="dp-dia${s === hj ? ' hoje' : ''}${s === sel ? ' sel' : ''}" data-d="${s}" tabindex="${s === P.foco ? 0 : -1}"${fora(s) ? ' disabled' : ''} aria-label="${d} de ${MESES[mes]} de ${ano}"${s === sel ? ' aria-pressed="true"' : ''}>${d}</button>`; }
+      dias += `<button type="button" class="dp-dia${s === hj ? ' dp-hj' : ''}${s === sel ? ' sel' : ''}" data-d="${s}" tabindex="${s === P.foco ? 0 : -1}"${fora(s) ? ' disabled' : ''} aria-label="${d} de ${MESES[mes]} de ${ano}"${s === sel ? ' aria-pressed="true"' : ''}>${d}</button>`; }
     const nome = MESES[mes].charAt(0).toUpperCase() + MESES[mes].slice(1);
     P.p.innerHTML = `<div class="dp-cab"><button type="button" class="dp-nav" data-m="-1" aria-label="Mês anterior"${antes ? '' : ' disabled'}>${SETA(-1)}</button><b aria-live="polite">${nome} de ${ano}</b><button type="button" class="dp-nav" data-m="1" aria-label="Próximo mês"${depois ? '' : ' disabled'}>${SETA(1)}</button></div>`
       + `<div class="dp-sem" aria-hidden="true">${SEM.map(x => '<span>' + x + '</span>').join('')}</div><div class="dp-dias">${dias}</div>`

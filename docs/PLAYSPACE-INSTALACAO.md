@@ -1301,6 +1301,13 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O calendário: o dia de hoje do tamanho certo (3.03)
+
+Pedido do dono (27/11, com a foto do Pacote futuro): "Data bugada".
+
+- No calendário de escolher a data, o dia de hoje usava o mesmo nome de estilo da coluna da direita do sistema. No computador de tela larga, o dia de hoje virava uma faixa comprida que esticava o calendário; em tela menor, o dia de hoje sumia e não dava para escolher hoje.
+- Agora o dia de hoje aparece como os outros (com o contorno coral) e dá para escolher. Vale para todos os calendários do Play Space (Pacote futuro, festas, agenda...) e, por garantia, das Finanças.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A trava das regras em Ajustes (senha do gestor), o "Vende em" do produto e os botões do relatório por e-mail (3.02)
 
 Pedidos do dono (28/11), com fotos de Ajustes: "coloca uma trava nesses botões também, tipo, pedir a senha do gestor e você tem certeza que você vai alterar isso?", "Bug" (Editar produto) e "esse botão verde aí também pode ajustar".
