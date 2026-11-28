@@ -1301,6 +1301,18 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O Resumo do dia novo (o modelo escolhido) e o relatório da semana do gestor (3.06)
+
+Pedidos do dono (27/11): "tá muita informação jogada ... Anália, Morumbi, Casatom separado ... Casatom Morumbi e Morumbi Play pode deixar junto e Casatom Anália e Anália ... 2 blocos, mas quero o faturamento das 4 separado, faturamento total"; "desconto e cancelamento pode deixar em outro campo"; "não quero o campo cortando"; depois de ver 4 modelos: "um modelo 2 e um modelo 3, mas ... as informações mais claras"; "uma opção, só para o gestor ... do caixa relatório semanal. Na mesma pegada"; "o relatório do financeiro pode usar a mesma pegada".
+
+- O PDF do resumo (o mesmo no Play Space, nas Finanças e no e-mail do dia) mudou:
+  - **Página 1**: a faixa escura com o que as unidades faturaram juntas (já recebeu, falta receber, vendas, crianças); os 2 blocos (**Anália** e **Morumbi**), cada um com o total do lugar e, lado a lado, o **Play** e a **Casa Tom** (faturou, já recebeu, falta receber); e "Como pagaram".
+  - **Uma página para cada lugar**: o Play e a Casa Tom lado a lado (os números e como pagaram, com barrinhas) e a lista do que cada um vendeu, com o total.
+  - **Descontos e cancelamentos** numa página só deles, por lugar, cada um num cartão com o **motivo inteiro**.
+  - Nada é cortado: o texto comprido quebra a linha; a tabela que não cabe continua na página seguinte, com o cabeçalho.
+- **Relatório da semana** (só o gestor): Finalizados do dia → Caixa → **"PDF da semana"**: os 7 dias até o dia escolhido no caixa, no mesmo formato, com o **Dia a dia** (as barras de cada dia, uma cor por unidade, e a tabela com o faturado de cada unidade e o recebido no caixa). O "PDF do dia" continua ao lado.
+- Nas Finanças, o PDF de qualquer período sai no mesmo formato (com o Dia a dia até 62 dias).
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Pacote futuro vira fiado: a venda do dia, as horas para o cliente, o "A receber" no caixa e o aviso (3.05)
 
 Pedidos do dono (27/11): "a venda futura, ela entra no caixa do dia"; "Já ajuste as vendas futuras de hoje"; "As horas também entra para o cliente. É tipo um fiado, só que se ele não paga, gera um alerta"; "o a receber pode ter um campo lá no caixa, a receber, que vai somar ao todo ... do lado do links ... quando ele paga eu coloco" (pago depois: no caixa do dia da venda).

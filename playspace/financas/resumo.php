@@ -327,79 +327,193 @@ function finResumoUni(array $R, $uni) {
   return ['t' => $t, 'U' => $U, 'F' => $F, 'G' => $G, 'I' => array_values($I), 'C' => $C, 'D' => $D, 'N' => $N];
 }
 function finNomeUni($id, array $R) { foreach ((array)$R['unidades'] as $u) if ((int)$u['id'] === (int)$id) return (string)$u['nome']; return (int)$id ? 'Unidade ' . (int)$id : 'Sem unidade'; }
-function finPdf(array $R, $uni = 'todas') {
-  $Z = finResumoUni($R, $uni); $t = $Z['t']; $p = new PdfSimples(); $M = 40; $W = PdfSimples::W - 2 * $M; $y = 0;
-  $CORAL = 'E25B3F'; $TINTA = '3B3B3B'; $MUDO = '7A736B'; $GRADE = 'ECE2D5'; $FUNDO = 'FFF8EE';
-  $um = $R['de'] === $R['ate'];
-  $titulo = $um ? 'Resumo do dia' : 'Resumo do período';
-  $sub = ($um ? finDiaLongo($R['de']) : finDataBR($R['de']) . ' a ' . finDataBR($R['ate'])) . ' · ' . ($uni === 'todas' ? (count((array)$R['unidades']) > 1 ? 'todas as unidades' : 'a loja') : finNomeUni($uni, $R));
-  $cab = function () use ($p, $M, $W, $titulo, $sub, $CORAL, $TINTA, $MUDO, $R, &$y) {
-    $p->ret(0, 0, PdfSimples::W, 6, $CORAL);
-    $p->texto($M, 34, 'PLAY SPACE · FINANÇAS', 8.5, true, $CORAL); $p->texto($M + $W, 34, 'Gerado em ' . finDataBR(substr((string)$R['gerado'], 0, 10)) . ' às ' . substr((string)$R['gerado'], 11, 5), 8.5, false, $MUDO, 'D');
-    $p->texto($M, 62, $titulo, 22, true, $TINTA); $p->texto($M, 80, $sub, 10.5, false, $MUDO); $y = 98;
-  };
-  $novaPag = function () use ($p, $cab) { $p->pagina(); $cab(); };
-  $cabe = function ($h) use ($novaPag, &$y) { if ($y + $h > PdfSimples::H - 46) $novaPag(); };
-  $secao = function ($nome) use ($p, $M, $TINTA, $cabe, &$y) { $cabe(46); $y += 10; $p->texto($M, $y + 12, $nome, 12.5, true, $TINTA); $y += 22; };
-  $cab();
-  // os números grandes
-  $caixas = [['Faturado', finBrl($t['faturado']), finInt($t['vendas']) . ' vendas'], ['Recebido', finBrl($t['recebido']), $t['devolvido'] > 0.004 ? 'já sem ' . finBrl($t['devolvido']) . ' devolvidos' : 'pagamentos do dia'],
-    ['Em aberto', finBrl($t['aberto']), 'vendido e ainda não pago'], ['Crianças', finInt($t['visitas']), finInt($t['criancas']) . ' diferentes' . ($t['agora'] ? ' · ' . finInt($t['agora']) . ' no espaço' : '')]];
-  $cw = ($W - 3 * 8) / 4;
-  foreach ($caixas as $i => $c) { $x = $M + $i * ($cw + 8); $p->ret($x, $y, $cw, 58, $FUNDO, 6, $GRADE); $p->texto($x + 10, $y + 16, mb_strtoupper($c[0]), 7.5, true, $MUDO); $p->texto($x + 10, $y + 36, $p->corta($c[1], $cw - 20, 15, true), 15, true, $TINTA); $p->texto($x + 10, $y + 50, $p->corta($c[2], $cw - 20, 8), 8, false, $MUDO); }
-  $y += 66;
-  $caixas = [['Pacotes vendidos', finInt($t['pacN']), finBrl($t['pacV'])], ['Descontos', finInt($t['descN']), finBrl($t['descV'])], ['Cancelamentos', finInt($t['cancN']), finBrl($t['cancV']) . ' não cobrado'], ['Festas marcadas', finInt($t['festas']), $um ? 'para o dia' : 'no período']];
-  foreach ($caixas as $i => $c) { $x = $M + $i * ($cw + 8); $p->ret($x, $y, $cw, 50, $FUNDO, 6, $GRADE); $p->texto($x + 10, $y + 16, mb_strtoupper($c[0]), 7.5, true, $MUDO); $p->texto($x + 10, $y + 34, $c[1], 13, true, $TINTA); $p->texto($x + 10 + $p->larg($c[1], 13, true) + 6, $y + 34, $p->corta($c[2], $cw - 30 - $p->larg($c[1], 13, true), 8.5), 8.5, false, $MUDO); }
-  $y += 58;
-  // uma tabela: cabeçalho e linhas, as colunas com largura e alinhamento
-  $tabela = function (array $cols, array $linhas, $total = null) use ($p, $M, $TINTA, $MUDO, $GRADE, $cabe, &$y) {
-    $lh = 17; $cabeca = function () use ($p, $cols, $M, $MUDO, $GRADE, &$y) { $x = $M; foreach ($cols as $c) { $p->texto($c[2] === 'D' ? $x + $c[1] - 4 : $x + 4, $y + 11, mb_strtoupper($c[0]), 7.2, true, $MUDO, $c[2]); $x += $c[1]; } $y += 16; $p->linha($M, $y, $M + array_sum(array_column($cols, 1)), $y, $GRADE, 0.8); };
-    $cabe(16 + $lh * min(3, count($linhas) + 1)); $cabeca();
-    foreach ($linhas as $i => $l) {
-      if ($y + $lh > PdfSimples::H - 46) { $cabe(999); $cabeca(); }
-      $x = $M; $neg = !empty($l['_b']); foreach ($cols as $j => $c) { $v = (string)($l[$j] ?? ''); $p->texto($c[2] === 'D' ? $x + $c[1] - 4 : $x + 4, $y + 12, $p->corta($v, $c[1] - 8, 8.8, $neg), 8.8, $neg, $neg ? $TINTA : '4A4540', $c[2]); $x += $c[1]; }
-      $y += $lh; $p->linha($M, $y, $M + array_sum(array_column($cols, 1)), $y, 'F3ECE2', 0.6); }
-    if ($total) { $x = $M; foreach ($cols as $j => $c) { $v = (string)($total[$j] ?? ''); $p->texto($c[2] === 'D' ? $x + $c[1] - 4 : $x + 4, $y + 13, $p->corta($v, $c[1] - 8, 9, true), 9, true, $TINTA, $c[2]); $x += $c[1]; } $y += $lh + 2; }
-    $y += 4;
-  };
-  // cada unidade (com mais de uma)
-  if ($uni === 'todas' && count($Z['U']) > 1) {
-    $secao('Cada unidade'); $us = $Z['U']; $cw0 = 150; $cwu = ($W - $cw0) / (count($us) + 1);
-    $cols = [['', $cw0, 'E']]; foreach ($us as $x) $cols[] = [finNomeUni($x['u'], $R), $cwu, 'D']; $cols[] = ['Total', $cwu, 'D'];
-    $lin = function ($rot, $k, $fmt) use ($us, $t) { $l = [$rot]; foreach ($us as $x) $l[] = $fmt($x[$k] ?? 0); $l[] = $fmt($t[$k] ?? 0); return $l; };
-    $tabela($cols, [$lin('Faturado', 'faturado', 'finBrl'), $lin('Recebido', 'recebido', 'finBrl'), $lin('Em aberto', 'aberto', 'finBrl'), $lin('Vendas', 'vendas', 'finInt'), $lin('Visitas (crianças)', 'visitas', 'finInt'),
-      $lin('Pacotes vendidos', 'pacN', 'finInt'), $lin('Valor dos pacotes', 'pacV', 'finBrl'), $lin('Descontos', 'descV', 'finBrl'), $lin('Cancelamentos', 'cancN', 'finInt')]);
+/* ---------- 3.06: o Resumo do dia em PDF (o dono: "Anália, Morumbi, Casatom separado ... Casatom Morumbi e Morumbi Play pode deixar junto
+   e Casatom Anália e Anália ... 2 blocos, mas quero o faturamento das 4 separado, faturamento total"; "desconto e cancelamento pode deixar
+   em outro campo"; "não quero o campo cortando ... redimensiona as coisas pra caber tudo"). O modelo escolhido (o 4 de 4): página 1, o total
+   e os 2 lugares com o Play e a Casa Tom lado a lado; uma página para cada lugar; no fim, os descontos e os cancelamentos com o motivo
+   inteiro. rdDados junta as unidades do mesmo lugar; rdTabela quebra a linha (nada cortado). Vale para o dia, a semana e o período ---------- */
+function rdNome(string $n): string { return mb_convert_case(mb_strtolower(trim($n), 'UTF-8'), MB_CASE_TITLE, 'UTF-8'); }
+const RD_CORES = [['E25B3F', 'F0A48F'], ['3F8F5E', '8DC4A0'], ['4F6BB0', 'A6B4DC'], ['B5813A', 'E2C48F']];
+function rdDados(array $R, $uni = 'todas'): array {
+  $porU = []; foreach ((array)$R['porUnidade'] as $x) $porU[(int)$x['u']] = $x;
+  $cad = []; foreach ((array)$R['unidades'] as $u) $cad[(int)$u['id']] = $u;
+  $vazio = ['faturado' => 0.0, 'recebido' => 0.0, 'devolvido' => 0.0, 'aberto' => 0.0, 'vendas' => 0, 'visitas' => 0, 'criancas' => 0, 'pacN' => 0, 'pacV' => 0.0, 'festas' => 0, 'cancN' => 0, 'cancV' => 0.0, 'descN' => 0, 'descV' => 0.0, 'nfN' => 0, 'nfV' => 0.0, 'agora' => 0];
+  $tem = fn(array $x) => abs((float)($x['faturado'] ?? 0)) > 0.004 || abs((float)($x['recebido'] ?? 0)) > 0.004 || !empty($x['cancN']) || !empty($x['descN']) || !empty($x['visitas']);
+  $ids = []; foreach ($cad as $id => $u) if (!empty($u['ativo']) || (isset($porU[$id]) && $tem($porU[$id]))) $ids[] = $id;
+  if (isset($porU[0]) && $tem($porU[0])) $ids[] = 0;
+  if ($uni !== 'todas') $ids = array_values(array_filter($ids, fn($i) => $i === (int)$uni));
+  $L = [];
+  foreach ($ids as $id) {
+    $nome = $id ? (string)($cad[$id]['nome'] ?? 'UNIDADE ' . $id) : 'SEM UNIDADE'; $ct = $id > 0 && uniEhCasaTom($nome); $loc = $id ? (uniLocal($nome) ?: $nome) : '~';
+    $F = []; foreach ((array)$R['formas'] as $f) if ((int)$f['u'] === $id) $F[(string)$f['f']] = round(($F[(string)$f['f']] ?? 0) + (float)$f['v'], 2);
+    $G = []; foreach ((array)$R['grupos'] as $g) if ((int)$g['u'] === $id) $G[(string)$g['g']] = ['n' => (int)$g['n'], 'v' => round((float)$g['v'], 2)];
+    $I = array_values(array_filter((array)($R['itens'] ?? []), fn($x) => (int)$x['u'] === $id)); usort($I, fn($a, $b) => ($b['v'] <=> $a['v']) ?: strcmp((string)$a['n'], (string)$b['n']));
+    $D = array_values(array_filter((array)($R['descontos']['lista'] ?? []), fn($x) => (int)$x['u'] === $id));
+    $C = array_values(array_filter((array)($R['cancelamentos']['lista'] ?? []), fn($x) => (int)$x['u'] === $id && !empty($x['conta'])));
+    $N = array_values(array_filter((array)($R['notas']['lista'] ?? []), fn($x) => (int)($x['uni'] ?? 0) === $id));
+    if (!isset($L[$loc])) $L[$loc] = ['loc' => $loc, 'us' => [], 'min' => $id ?: 99999];
+    $L[$loc]['min'] = min($L[$loc]['min'], $id ?: 99999);
+    $L[$loc]['us'][] = ['u' => $id, 'nome' => $nome, 'ct' => $ct, 'x' => ($porU[$id] ?? []) + $vazio, 'F' => $F, 'G' => $G, 'I' => $I, 'D' => $D, 'C' => $C, 'N' => $N];
   }
-  // as formas de pagamento
-  $secao('Formas de pagamento'); $rec = $t['recebido']; $L = [];
-  foreach (FIN_FORMAS as $f => $nm) if (abs($Z['F'][$f] ?? 0) > 0.004) $L[] = [$nm, finBrl($Z['F'][$f]), $rec > 0.004 ? number_format(($Z['F'][$f]) / $rec * 100, 1, ',', '') . '%' : ''];
-  foreach ($Z['F'] as $f => $v) if (!isset(FIN_FORMAS[$f]) && abs($v) > 0.004) $L[] = [ucfirst($f), finBrl($v), $rec > 0.004 ? number_format($v / $rec * 100, 1, ',', '') . '%' : ''];
-  if (!$L) $L[] = ['Nenhum pagamento', '', ''];
-  $tabela([['Forma', $W - 220, 'E'], ['Valor', 130, 'D'], ['%', 90, 'D']], $L, ['Total recebido', finBrl($rec), '']);
-  // 1.55: as notas fiscais: o faturamento em notas ao lado do caixa, e cada nota
-  $secao('Notas fiscais'); $sem = round($rec - $t['nfV'], 2);
-  $tabela([['', $W - 220, 'E'], ['Valor', 130, 'D'], ['%', 90, 'D']], [['Em notas fiscais (' . finInt($t['nfN']) . ($t['nfN'] === 1 ? ' nota' : ' notas') . ')', finBrl($t['nfV']), $rec > 0.004 ? number_format($t['nfV'] / $rec * 100, 1, ',', '') . '% do caixa' : ''],
-    ['No caixa (recebido)', finBrl($rec), ''], [$sem >= 0 ? 'Sem nota' : 'Notas acima do caixa', finBrl(abs($sem)), ''], ['Canceladas (' . finInt($t['nfCN']) . ')', finBrl($t['nfCV']), 'não contam']]);
-  if ($Z['N']) { $L = []; foreach ($Z['N'] as $x) $L[] = [($um ? '' : substr((string)$x['quando'], 8, 2) . '/' . substr((string)$x['quando'], 5, 2) . ' ') . substr((string)$x['quando'], 11, 5), (string)$x['numero'], (string)($x['nome'] !== '' ? $x['nome'] : $x['cliente']), (string)$x['item'], finBrl($x['valor']), $x['st'] === 'cancelada' ? 'CANCELADA' : ($x['vc'] ? 'venda cancelada' : (string)$x['por'])];
-    $tabela([['Hora', $um ? 42 : 70, 'E'], ['Nº', 56, 'E'], ['Em nome de', 140, 'E'], ['Compra', $W - ($um ? 42 : 70) - 56 - 140 - 78 - 96, 'E'], ['Valor', 78, 'D'], ['Emitida por', 96, 'E']], $L); }
-  // o que foi vendido, por tipo
-  $secao('O que foi vendido'); $L = []; $fat = $t['faturado'];
-  foreach (FIN_GRUPOS as $g => $nm) if (isset($Z['G'][$g]) && ($Z['G'][$g]['n'] || abs($Z['G'][$g]['v']) > 0.004)) $L[] = [$nm, finInt($Z['G'][$g]['n']), finBrl($Z['G'][$g]['v']), $fat > 0.004 ? number_format($Z['G'][$g]['v'] / $fat * 100, 1, ',', '') . '%' : ''];
-  if (!$L) $L[] = ['Nenhuma venda', '', '', ''];
-  $tabela([['Tipo', $W - 300, 'E'], ['Qtd', 70, 'D'], ['Valor', 130, 'D'], ['%', 100, 'D']], $L, ['Total', '', finBrl($fat), '']);
-  // produto a produto
-  if ($Z['I']) { $secao('Produto a produto'); $L = []; foreach ($Z['I'] as $x) $L[] = [FIN_GRUPOS[$x['g']] ?? $x['g'], $x['n'], finInt($x['q']), finBrl($x['v'])];
-    $tabela([['Tipo', 120, 'E'], ['Produto', $W - 320, 'E'], ['Qtd', 70, 'D'], ['Valor', 130, 'D']], $L); }
-  // os descontos
-  if ($Z['D']) { $secao('Descontos (' . finInt(count($Z['D'])) . ')'); $L = [];
-    foreach ($Z['D'] as $x) $L[] = [substr((string)$x['quando'], 11, 5), trim(($x['resp'] !== '' ? $x['resp'] . ' · ' : '') . $x['crianca']), finBrl($x['desconto']), (string)$x['motivo'], (string)$x['liberou']];
-    $tabela([['Hora', 42, 'E'], ['Cliente', 150, 'E'], ['Desconto', 78, 'D'], ['Motivo', $W - 360, 'E'], ['Liberou', 90, 'E']], $L); }
-  // os cancelamentos
-  if ($Z['C']) { $secao('Cancelamentos (' . finInt(count($Z['C'])) . ')'); $L = [];
-    foreach ($Z['C'] as $x) $L[] = [substr((string)$x['quando'], 11, 5), (string)$x['tipo'], trim((string)$x['crianca']), finBrl($x['valor']), (string)$x['motivo'], (string)$x['atendente']];
-    $tabela([['Hora', 42, 'E'], ['O quê', 110, 'E'], ['Criança', 110, 'E'], ['Valor', 70, 'D'], ['Motivo', $W - 412, 'E'], ['Atendente', 80, 'E']], $L); }
-  $p->rodape(function ($p, $i, $n) use ($M, $W, $MUDO, $GRADE) { $p->linha($M, PdfSimples::H - 30, $M + $W, PdfSimples::H - 30, $GRADE, 0.6); $p->texto($M, PdfSimples::H - 18, 'Play Space · Finanças · os números da tela Visão geral', 7.5, false, $MUDO); $p->texto($M + $W, PdfSimples::H - 18, 'página ' . $i . ' de ' . $n, 7.5, false, $MUDO, 'D'); });
-  return $p->pdf($titulo . ' · ' . $sub);
+  uasort($L, fn($a, $b) => $a['min'] <=> $b['min']); $L = array_values($L);
+  foreach ($L as $i => &$l) {
+    usort($l['us'], fn($a, $b) => ($a['ct'] <=> $b['ct']) ?: ($a['u'] <=> $b['u']));
+    $base = $l['us'][0]; $l['titulo'] = $base['u'] === 0 ? 'Sem unidade' : rdNome($base['ct'] ? trim((string)preg_replace('/^CASA\s*TO[MN]\s*/u', '', $base['nome'])) : $base['nome']);
+    $cores = RD_CORES[$i % count(RD_CORES)]; $l['cor'] = $cores[0];
+    foreach ($l['us'] as &$u) { $u['rot'] = $u['u'] === 0 ? 'Sem unidade' : ($u['ct'] ? 'Casa Tom' : 'Play'); $u['longo'] = $u['u'] === 0 ? 'Sem unidade' : ($u['ct'] ? rdNome($u['nome']) : 'Play ' . rdNome($u['nome'])); $u['cor'] = $u['ct'] ? $cores[1] : $cores[0]; }
+    unset($u);
+    $s = $vazio; foreach ($l['us'] as $u) foreach ($s as $k => $v) $s[$k] = is_float($v) ? round($v + (float)$u['x'][$k], 2) : $v + (int)$u['x'][$k]; $l['soma'] = $s;
+  }
+  unset($l);
+  $t = finResumoUni($R, $uni)['t']; return ['L' => $L, 't' => $t];
+}
+function rdQuebra(PdfSimples $p, string $t, float $max, float $tam, bool $b = false): array {
+  $o = []; foreach ($p->quebra($t, $max, $tam, $b) as $l) { while ($l !== '' && $p->larg($l, $tam, $b) > $max) { $k = mb_strlen($l); while ($k > 1 && $p->larg(mb_substr($l, 0, $k), $tam, $b) > $max) $k--; $o[] = mb_substr($l, 0, $k); $l = mb_substr($l, $k); } if ($l !== '') $o[] = $l; }
+  return $o ?: [''];
+}
+/* a tabela que nunca corta: cada célula quebra em quantas linhas precisar (a linha da tabela cresce); o cabeçalho também quebra e repete na página nova.
+   cols = [[título, fração da largura, 'E'|'D'|'C']]; célula = texto ou ['t' => , 'b' => negrito, 'cor' => ]; op: tam, fundo[k], total (a última linha em negrito, com o traço) */
+function rdTabela(PdfBonito $b, array $cols, array $linhas, array $op = []): void {
+  $p = $b->p; $tam = $op['tam'] ?? 8.6; $lh = $tam + 3.4; $pad = $op['pad'] ?? 4.5;
+  $xs = []; $x = $b->M; foreach ($cols as $c) { $w = $c[1] * $b->W; $xs[] = [$x, $w, $c[2] ?? 'E']; $x += $w; }
+  $HC = []; $hc = 0; foreach ($cols as $i => $c) { $HC[$i] = rdQuebra($p, mb_strtoupper((string)$c[0]), $xs[$i][1] - 10, 6.8, true); $hc = max($hc, count($HC[$i])); } $hcab = 9 + $hc * 8.4;
+  $cab = function () use ($b, $p, $xs, $HC, $hcab) { $y = $b->y; $p->ret($b->M, $y, $b->W, $hcab, PdfBonito::CREME, 6);
+    foreach ($HC as $i => $LL) { [$x, $w, $al] = $xs[$i]; $tx = $al === 'D' ? $x + $w - 6 : ($al === 'C' ? $x + $w / 2 : $x + 6); foreach ($LL as $j => $l) $p->texto($tx, $y + 11.5 + $j * 8.4, $l, 6.8, true, PdfBonito::MUDO, $al); }
+    $b->y += $hcab + 2; };
+  $n = count($linhas); $hs = [];
+  foreach ($linhas as $k => $L) { $mx = 1; foreach ($xs as $i => [$x, $w, $al]) { $c = $L[$i] ?? ''; $t = is_array($c) ? (string)($c['t'] ?? '') : (string)$c; $mx = max($mx, count(rdQuebra($p, $t, $w - 12, $tam, true))); } $hs[$k] = 2 * $pad + $mx * $lh - 3.4; }
+  $lim = PdfSimples::H - 54; $cabem = 0; $yy = $b->y + $hcab + 2; foreach ($hs as $h) { if ($yy + $h > $lim) break; $yy += $h; $cabem++; }
+  $sobra = $n - $cabem; $tudo = $hcab + 2 + array_sum($hs);
+  if ($cabem < 2 || ($sobra > 0 && $sobra <= 2 && $tudo < $lim - 80)) $b->novaPagina(); $cab();
+  foreach ($linhas as $k => $L) {
+    $tot = !empty($op['total']) && $k === $n - 1; $C = [];
+    foreach ($xs as $i => [$x, $w, $al]) { $c = $L[$i] ?? ''; $t = is_array($c) ? (string)($c['t'] ?? '') : (string)$c; $neg = $tot || (is_array($c) && !empty($c['b'])) || !empty($op['negrito'][$k]);
+      $C[$i] = ['L' => rdQuebra($p, $t, $w - 12, $tam, $neg), 'b' => $neg, 'cor' => is_array($c) && isset($c['cor']) ? $c['cor'] : ($neg ? PdfBonito::TINTA : '4A4540')]; }
+    $h = 2 * $pad + max(array_map(fn($c) => count($c['L']), $C)) * $lh - 3.4;
+    if ($b->y + $h > PdfSimples::H - 54) { $b->novaPagina(); $cab(); }
+    if ($tot) { $p->linha($b->M, $b->y, $b->M + $b->W, $b->y, 'D8C9B6', 1); }
+    elseif (($f = $op['fundo'][$k] ?? ($k % 2 ? PdfBonito::CREME2 : null))) $p->ret($b->M, $b->y, $b->W, $h, $f, 4);
+    foreach ($xs as $i => [$x, $w, $al]) { $tx = $al === 'D' ? $x + $w - 6 : ($al === 'C' ? $x + $w / 2 : $x + 6); foreach ($C[$i]['L'] as $j => $l) $p->texto($tx, $b->y + $pad + $tam * 0.82 + $j * $lh, $l, $tam, $C[$i]['b'], $C[$i]['cor'], $al); }
+    $b->y += $h;
+  }
+  $b->y += 8;
+}
+function rdV($v) { return abs((float)$v) > 0.004 ? finBrl($v) : '–'; }
+function rdQ($q, $v = null) { if (!(int)$q && ($v === null || abs((float)$v) < 0.005)) return '–'; return finInt($q) . ($v !== null ? ' · ' . finBrl($v) : ''); }
+function rdHora($q, bool $um) { return ($um ? '' : substr((string)$q, 8, 2) . '/' . substr((string)$q, 5, 2) . ' ') . substr((string)$q, 11, 5); }
+function rdNotas(PdfBonito $b, array $D, bool $um): void {
+  $tem = false; foreach ($D['L'] as $l) foreach ($l['us'] as $u) if ($u['N'] || $u['x']['nfN']) $tem = true; if (!$tem) return;
+  $b->secao('Notas fiscais', 'O faturamento em notas ao lado do recebido no caixa.', 90, PdfBonito::VERDE);
+  $S = []; foreach ($D['L'] as $l) foreach ($l['us'] as $u) $S[] = [$u['longo'], rdQ($u['x']['nfN']), rdV($u['x']['nfV']), rdV($u['x']['recebido']), rdV(max(0, $u['x']['recebido'] - $u['x']['nfV']))];
+  rdTabela($b, [['Unidade', 0.32], ['Notas', 0.12, 'D'], ['Em notas', 0.18, 'D'], ['No caixa', 0.19, 'D'], ['Sem nota', 0.19, 'D']], $S);
+  $L = []; foreach ($D['L'] as $l) foreach ($l['us'] as $u) foreach ($u['N'] as $x) $L[] = [rdHora($x['quando'], $um), $u['longo'], (string)$x['numero'], (string)($x['nome'] !== '' ? $x['nome'] : $x['cliente']), (string)$x['item'], finBrl($x['valor']), $x['st'] === 'cancelada' ? 'CANCELADA' : ($x['vc'] ? 'venda cancelada' : (string)$x['por'])];
+  if ($L) rdTabela($b, [['Hora', 0.08], ['Unidade', 0.15], ['Nº', 0.08], ['Em nome de', 0.2], ['Compra', 0.21], ['Valor', 0.12, 'D'], ['Emitida por', 0.16]], $L, ['tam' => 8.2]);
+}
+function rdTitulo(array $R, $uni): array { $um = $R['de'] === $R['ate']; return [$um ? 'Resumo do dia' : ((int)($R['dias'] ?? 0) === 7 ? 'Resumo da semana' : 'Resumo do período'), ($um ? finDiaLongo($R['de']) : finDataBR($R['de']) . ' a ' . finDataBR($R['ate'])) . ' · ' . ($uni === 'todas' ? 'todas as unidades' : finNomeUni($uni, $R)), $um]; }
+const RD_FORMA_COR = ['pix' => '4FA37E', 'credito' => 'E25B3F', 'debito' => 'F0BB5F', 'dinheiro' => '8C8279', 'link' => '4F6BB0'];
+function rdTotal4(PdfBonito $b, array $t, string $rot = 'Faturou no dia · todas as unidades'): void {
+  $p = $b->p; $b->cabe(88); $x = $b->M; $y = $b->y; $W = $b->W; $p->ret($x, $y, $W, 78, '3B3B3B', 16);
+  $b->rotulo($x + 20, $y + 25, $rot, 'F3C9BC', 7.4); $b->valor($x + 20, $y + 58, finBrl($t['faturado']), 30, $W * 0.46, 'FFFFFF');
+  $L = [['Já recebeu', finBrl($t['recebido']), 'FFFFFF'], ['Falta receber', finBrl($t['aberto']), abs($t['aberto']) > 0.004 ? 'F7B4A3' : 'FFFFFF'], ['Vendas', finInt($t['vendas']), 'FFFFFF'], ['Crianças', finInt($t['visitas']), 'FFFFFF']];
+  $x0 = $x + $W * 0.52; $cw = ($W * 0.48 - 14) / 2; $p->linha($x0 - 12, $y + 14, $x0 - 12, $y + 64, '5A5550', 0.8);
+  foreach ($L as $i => [$r, $v, $c]) { $xx = $x0 + ($i % 2) * $cw; $yy = $y + 12 + intdiv($i, 2) * 30; $b->rotulo($xx, $yy + 9, $r, 'C9C1B8', 6.8); $b->valor($xx, $yy + 25, $v, 13.5, $cw - 12, $c); }
+  $b->y += 90;
+}
+function rdLinha4(PdfBonito $b, float $x, float $y, float $w, string $r, string $v, string $cor = PdfBonito::TINTA, float $tam = 9.6): void {
+  $p = $b->p; $p->texto($x, $y, $r, $tam, false, '4A4540'); $p->texto($x + $w, $y, $v, $tam, true, $cor, 'D'); $p->linha($x, $y + 5, $x + $w, $y + 5, 'F1E9DE', 0.6);
+}
+/* o cartão de uma unidade na primeira página: o nome, o faturou grande, o já recebeu e o falta receber */
+function rdCartao4(PdfBonito $b, array $u, float $x, float $y, float $w): float {
+  $p = $b->p; $x0 = $x + 18; $wi = $w - 34; $h = 138;
+  $p->ret($x, $y, $w, $h, 'FFFFFF', 14, 'EFE6DA'); $p->ret($x, $y + 16, 5, $h - 32, $u['cor'], 2.5);
+  $b->rotulo($x0, $y + 22, $u['rot'], $u['cor'], 7.4); $p->texto($x0, $y + 38, $p->corta($u['longo'], $wi, 10.5, true), 10.5, true, PdfBonito::TINTA);
+  $b->rotulo($x0, $y + 56, 'Faturou', PdfBonito::MUDO, 6.6); $b->valor($x0, $y + 78, finBrl($u['x']['faturado']), 22, $wi, PdfBonito::TINTA);
+  rdLinha4($b, $x0, $y + 98, $wi, 'Já recebeu', finBrl($u['x']['recebido']));
+  rdLinha4($b, $x0, $y + 114, $wi, 'Falta receber', finBrl($u['x']['aberto']), abs($u['x']['aberto']) > 0.004 ? PdfBonito::VERM : PdfBonito::TINTA);
+  $p->texto($x0, $y + 129, finInt($u['x']['vendas']) . ($u['x']['vendas'] == 1 ? ' venda' : ' vendas') . (!$u['ct'] && $u['x']['visitas'] ? ' · ' . finInt($u['x']['visitas']) . ' crianças' : ''), 8.2, false, PdfBonito::MUDO);
+  return $h;
+}
+/* o detalhe de uma unidade na página do lugar: os números e como pagaram (com a barrinha) */
+function rdDetalhe4(PdfBonito $b, array $u, float $x, float $y, float $w): float {
+  $p = $b->p; $x0 = $x; $p->ret($x, $y, 24, 3.6, $u['cor'], 1.8); $y += 17;
+  $b->rotulo($x, $y, $u['rot'], $u['cor'], 7.4); $y += 15; $p->texto($x, $y, $p->corta($u['longo'], $w, 10.5, true), 10.5, true, PdfBonito::TINTA); $y += 18;
+  $b->rotulo($x, $y, 'Faturou', PdfBonito::MUDO, 6.6); $y += 22; $b->valor($x, $y, finBrl($u['x']['faturado']), 22, $w, PdfBonito::TINTA); $y += 22;
+  $L = [['Já recebeu', finBrl($u['x']['recebido']), PdfBonito::TINTA], ['Falta receber', finBrl($u['x']['aberto']), abs($u['x']['aberto']) > 0.004 ? PdfBonito::VERM : PdfBonito::TINTA], ['Vendas', finInt($u['x']['vendas']), PdfBonito::TINTA]];
+  if ($u['ct']) $L[] = ['Produtos vendidos', finInt(array_sum(array_map(fn($i) => (int)$i['q'], $u['I']))), PdfBonito::TINTA];
+  else { $L[] = ['Crianças', finInt($u['x']['visitas']), PdfBonito::TINTA]; if ($u['x']['pacN']) $L[] = ['Pacotes vendidos', finInt($u['x']['pacN']) . ' · ' . finBrl($u['x']['pacV']), PdfBonito::TINTA]; if ($u['x']['festas']) $L[] = ['Festas marcadas', finInt($u['x']['festas']), PdfBonito::TINTA]; }
+  foreach ($L as [$r, $v, $c]) { rdLinha4($b, $x, $y, $w, $r, $v, $c, 9.4); $y += 15; }
+  $y += 8; $b->rotulo($x, $y, 'Como pagaram', PdfBonito::MUDO, 6.6); $y += 15; $rec = max(0.01, array_sum(array_map(fn($v) => max(0, $v), $u['F']))); $tem = false;
+  foreach (FIN_FORMAS as $f => $n) { $v = (float)($u['F'][$f] ?? 0); if (abs($v) < 0.005) continue; $tem = true;
+    $p->texto($x, $y, $f === 'link' ? 'Link' : $n, 9.6, false, '4A4540'); $p->texto($x + $w, $y, finBrl($v), 9.6, true, PdfBonito::TINTA, 'D');
+    $p->ret($x, $y + 4, $w, 4, 'F4ECE2', 2); $p->ret($x, $y + 4, max(3, $w * max(0, $v) / $rec), 4, RD_FORMA_COR[$f] ?? PdfBonito::CINZA, 2); $y += 19.5; }
+  if (!$tem) { $p->texto($x, $y, 'nenhum pagamento', 9, false, PdfBonito::MUDO); $y += 16; }
+  return $y;
+}
+/* 3.06 (o dono: "uma opção, só para o gestor ... do caixa relatório semanal. Na mesma pegada"): no período (a semana), o dia a dia: as barras
+   de cada dia (uma cor por unidade) e a tabela com o faturou de cada unidade, o total e o recebido no caixa do dia. Até 62 dias */
+function rdDiaADia(PdfBonito $b, array $R, array $D): void {
+  if ($R['de'] === $R['ate'] || (int)($R['dias'] ?? 0) > 62) return;
+  $us = []; foreach ($D['L'] as $l) foreach ($l['us'] as $u) $us[] = $u; if (!$us) return; $ids = array_flip(array_map(fn($u) => (int)$u['u'], $us));
+  $dias = []; for ($a = strtotime($R['de'] . ' 12:00:00'), $z = strtotime($R['ate'] . ' 12:00:00'); $a <= $z; $a += 86400) $dias[] = date('Y-m-d', $a);
+  $fat = []; foreach ((array)($R['porDia'] ?? []) as $x) $fat[(int)$x['u']][(string)$x['d']] = round(($fat[(int)$x['u']][(string)$x['d']] ?? 0) + (float)$x['v'], 2);
+  $rec = []; foreach ((array)($R['notas']['dia'] ?? []) as $x) if (isset($ids[(int)$x['u']])) $rec[(string)$x['d']] = round(($rec[(string)$x['d']] ?? 0) + (float)$x['cx'], 2);
+  $sem = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb']; $rot = fn($d) => $sem[(int)date('w', strtotime($d . ' 12:00:00'))] . ' ' . substr($d, 8, 2) . '/' . substr($d, 5, 2);
+  $b->secao('Dia a dia', 'O que cada unidade faturou em cada dia e o que entrou no caixa.', 240, PdfBonito::CORAL);
+  $b->barras(150, array_map($rot, $dias), array_map(fn($u) => [$u['longo'], $u['cor'], array_map(fn($d) => (float)($fat[$u['u']][$d] ?? 0), $dias)], $us), true);
+  $cols = [['Dia', 0.14]]; $fr = 0.58 / count($us); foreach ($us as $u) $cols[] = [$u['longo'], $fr, 'D']; $cols[] = ['Faturou', 0.14, 'D']; $cols[] = ['Recebeu', 0.14, 'D'];
+  $L = []; $tu = array_fill(0, count($us), 0.0); $tf = 0.0; $tr = 0.0;
+  foreach ($dias as $d) { $o = [$rot($d)]; $s = 0.0; foreach ($us as $i => $u) { $v = (float)($fat[$u['u']][$d] ?? 0); $o[] = rdV($v); $s += $v; $tu[$i] += $v; } $r = (float)($rec[$d] ?? 0); $o[] = ['t' => rdV($s), 'b' => true]; $o[] = rdV($r); $tf += $s; $tr += $r; $L[] = $o; }
+  $o = ['Total']; foreach ($tu as $v) $o[] = rdV($v); $o[] = rdV($tf); $o[] = rdV($tr); $L[] = $o;
+  rdTabela($b, $cols, $L, ['tam' => 8.6, 'total' => true, 'pad' => 3.8]);
+}
+function finPdf(array $R, $uni = 'todas'): string {
+  if (!class_exists('PdfBonito')) require_once __DIR__ . '/pdfbonito.php';   /* a moldura (a logo, o ursinho): no Play Space, só quando o PDF é pedido */
+  $D = rdDados($R, $uni); [$tit, $sub, $um] = rdTitulo($R, $uni); $t = $D['t']; $b = new PdfBonito($tit, $sub, $tit); $p = $b->p; $sem = (int)($R['dias'] ?? 0) === 7; $quando = $um ? 'no dia' : ($sem ? 'na semana' : 'no período');
+  $b->capa([], 'Faturou ' . $quando . ': ' . finBrl($t['faturado']));
+  rdTotal4($b, $t, 'Faturou ' . $quando . ($uni === 'todas' && count($D['L']) > 1 ? ' · todas as unidades' : ''));
+  foreach ($D['L'] as $l) {   /* os 2 blocos: o lugar e, lado a lado, o Play e a Casa Tom */
+    $us = $l['us']; $n = count($us); $b->cabe(180); $y = $b->y;
+    $p->circulo($b->M + 5, $y + 9.5, 5, $l['cor']); $p->texto($b->M + 17, $y + 15, $l['titulo'], 15, true, PdfBonito::TINTA);
+    $p->texto($b->M + $b->W, $y + 15, 'Total do lugar: ' . finBrl($l['soma']['faturado']), 11, true, PdfBonito::TINTA, 'D'); $b->y += 26;
+    $g = 12; $cw = ($b->W - ($n - 1) * $g) / $n; $h = 0; foreach ($us as $i => $u) $h = max($h, rdCartao4($b, $u, $b->M + $i * ($cw + $g), $b->y, $cw)); $b->y += $h + 18;
+  }
+  $F = []; foreach ($D['L'] as $l) foreach ($l['us'] as $u) foreach ($u['F'] as $f => $v) $F[$f] = ($F[$f] ?? 0) + $v; $rec = array_sum(array_map(fn($v) => max(0, $v), $F));
+  $BH = []; foreach (FIN_FORMAS as $f => $nm) if (abs($F[$f] ?? 0) > 0.004) $BH[] = [$f === 'link' ? 'Link' : $nm, (float)$F[$f], RD_FORMA_COR[$f] ?? PdfBonito::CINZA, finBrl($F[$f]) . ($rec > 0.004 ? ' · ' . number_format($F[$f] / $rec * 100, 0, ',', '') . '%' : '')];
+  if ($BH) { $b->secao('Como pagaram' . ($uni === 'todas' && count($D['L']) > 1 ? ' (todas as unidades)' : ''), '', 130, PdfBonito::VERDE); $b->barrasH($BH, 90); }
+  rdDiaADia($b, $R, $D);   /* a semana (ou o período): o que cada unidade faturou em cada dia */
+  foreach ($D['L'] as $l) {   /* uma página para cada lugar */
+    $us = $l['us']; $n = count($us); $b->novaPagina();
+    $y = $b->y; $p->ret($b->M, $y, $b->W, 62, $l['cor'], 16); $b->rotulo($b->M + 20, $y + 22, $n > 1 ? implode(' + ', array_map(fn($u) => $u['rot'], $us)) : 'Unidade', 'FFFFFF', 7.4);
+    $b->valor($b->M + 20, $y + 47, $l['titulo'], 21, $b->W * 0.5, 'FFFFFF'); $p->texto($b->M + $b->W - 20, $y + 25, 'Faturou no lugar', 8.4, false, 'FFFFFF', 'D'); $b->valor($b->M + $b->W - 20, $y + 48, finBrl($l['soma']['faturado']), 19, $b->W * 0.4, 'FFFFFF', 'D'); $b->y += 76;
+    $g = 12; $cw = ($b->W - ($n - 1) * $g) / $n; $y0 = $b->y; $pos = $p->marca(); $ym = $y0;
+    foreach ($us as $i => $u) $ym = max($ym, rdDetalhe4($b, $u, $b->M + $i * ($cw + $g) + 18, $y0 + 6, $cw - 36));
+    $h = $ym - $y0 + 6; foreach ($us as $i => $u) $p->fundoEm($pos, $b->M + $i * ($cw + $g), $y0, $cw, $h, 'FFFFFF', 14, 'EFE6DA'); $b->y = $y0 + $h + 18;
+    foreach ($us as $u) { if (!$u['I']) continue; $b->cabe(80); $p->circulo($b->M + 4.5, $b->y + 8, 4.5, $u['cor']); $p->texto($b->M + 15, $b->y + 12, ($u['u'] === 0 ? 'O que foi vendido sem unidade' : 'O que ' . ($u['ct'] ? 'a ' : 'o ') . $u['longo'] . ' vendeu'), 12, true, PdfBonito::TINTA); $b->y += 22;
+      $L = []; foreach ($u['I'] as $x) $L[] = [$x['n'], finInt($x['q']), finBrl($x['v'])]; $L[] = ['Total vendido', '', finBrl(array_sum(array_map(fn($x) => (float)$x['v'], $u['I'])))];
+      rdTabela($b, [['Produto', 0.6], ['Quantidade', 0.16, 'D'], ['Valor', 0.24, 'D']], $L, ['tam' => 9.2, 'total' => true, 'pad' => 3.8]); }
+  }
+  /* os descontos e os cancelamentos, por lugar, cada um num cartão com o motivo inteiro */
+  $b->novaPagina(); $b->secao('Descontos e cancelamentos', 'O que não foi cobrado, com o motivo inteiro.', 120, PdfBonito::MOSTARDA);
+  $card = function (string $tipo, string $cor, string $topo, string $valor, string $cli, string $motivo, string $quem) use ($b, $p) {
+    $w = $b->W; $ML = rdQuebra($p, $motivo !== '' ? $motivo : '(sem motivo escrito)', $w - 44, 9.6); $h = 52 + count($ML) * 13 + 8; $b->cabe($h + 8); $x = $b->M; $y = $b->y;
+    $p->ret($x, $y, $w, $h, 'FFFFFF', 12, 'EFE6DA'); $p->ret($x, $y + 12, 5, $h - 24, $cor, 2.5);
+    $cw = $p->larg(mb_strtoupper($tipo), 7, true) + 7.7 * max(0, mb_strlen($tipo) - 1) * 0.15 + 16; $p->ret($x + 18, $y + 10, $cw, 14, $cor === PdfBonito::VERM ? PdfBonito::VERM2 : PdfBonito::MOSTARDA2, 7); $b->rotulo($x + 26, $y + 20, $tipo, $cor === PdfBonito::VERM ? PdfBonito::VERM : '7A5A12', 7);
+    $p->texto($x + 18 + $cw + 8, $y + 20, $topo, 8.6, false, PdfBonito::MUDO); $p->texto($x + $w - 16, $y + 21, $valor, 12, true, PdfBonito::TINTA, 'D');
+    $p->texto($x + 18, $y + 39, $p->corta($cli, $w - 190, 10, true), 10, true, PdfBonito::TINTA); if ($quem !== '') $p->texto($x + $w - 16, $y + 39, $quem, 8.6, false, PdfBonito::MUDO, 'D');
+    foreach ($ML as $j => $l) $p->texto($x + 18, $y + 56 + $j * 13, $l, 9.6, false, '4A4540'); $b->y += $h + 8; };
+  foreach ($D['L'] as $l) {
+    $nd = 0; $vd = 0.0; $nc = 0; $vc = 0.0; foreach ($l['us'] as $u) { $nd += count($u['D']); $nc += count($u['C']); foreach ($u['D'] as $x) $vd += $x['desconto']; foreach ($u['C'] as $x) $vc += $x['valor']; }
+    $b->cabe(70); $p->circulo($b->M + 5, $b->y + 9.5, 5, $l['cor']); $p->texto($b->M + 17, $b->y + 15, $l['titulo'], 14, true, PdfBonito::TINTA);
+    $p->texto($b->M + $b->W, $b->y + 15, $nd . ($nd === 1 ? ' desconto' : ' descontos') . ' (' . finBrl($vd) . ') · ' . $nc . ($nc === 1 ? ' cancelamento' : ' cancelamentos') . ' (' . finBrl($vc) . ')', 9.2, false, PdfBonito::MUDO, 'D'); $b->y += 26;
+    if (!$nd && !$nc) { $p->texto($b->M + 17, $b->y + 4, 'Nenhum desconto e nenhum cancelamento.', 9.6, false, PdfBonito::MUDO); $b->y += 22; continue; }
+    foreach ($l['us'] as $u) {
+      foreach ($u['D'] as $x) $card('Desconto', PdfBonito::MOSTARDA, rdHora($x['quando'], $um) . ' · ' . $u['longo'], '− ' . finBrl($x['desconto']), trim(($x['resp'] !== '' ? $x['resp'] . ' · ' : '') . $x['crianca']), (string)$x['motivo'], $x['liberou'] !== '' ? 'liberou: ' . $x['liberou'] : '');
+      foreach ($u['C'] as $x) $card('Cancelamento', PdfBonito::VERM, rdHora($x['quando'], $um) . ' · ' . $u['longo'] . ' · ' . $x['tipo'], finBrl($x['valor']), trim(($x['resp'] !== '' ? $x['resp'] . ' · ' : '') . $x['crianca']) . ($x['itens'] !== '' ? ' · ' . $x['itens'] : ''), (string)$x['motivo'], $x['atendente'] !== '' ? 'atendente: ' . $x['atendente'] : '');
+    }
+    $b->y += 6;
+  }
+  rdNotas($b, $D, $um);
+  return $b->pdf();
 }
 function finPdfNome(array $R) { return 'play-space-resumo-' . ($R['de'] === $R['ate'] ? $R['de'] : $R['de'] . '-a-' . $R['ate']) . '.pdf'; }
 // manda o PDF para o navegador (baixar)
