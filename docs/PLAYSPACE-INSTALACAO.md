@@ -1301,6 +1301,16 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A trava das regras em Ajustes (senha do gestor), o "Vende em" do produto e os botões do relatório por e-mail (3.02)
+
+Pedidos do dono (28/11), com fotos de Ajustes: "coloca uma trava nesses botões também, tipo, pedir a senha do gestor e você tem certeza que você vai alterar isso?", "Bug" (Editar produto) e "esse botão verde aí também pode ajustar".
+
+- Ajustes → Regra das horas (tolerância, tolerância no cupom, cancelar a entrada, horas do CPF, quem desfaz, reabrir a visita, a loja fecha às, "acabando", quando o pacote zerar) e a mensagem automática: tocar numa opção abre **"Alterar a regra?"**, com o que muda (ex.: "9 min → 10 min"), **"Tem certeza que vai alterar isso?"** e a **senha do gestor** (qualquer gestor). "Sim, alterar" muda; "Cancelar" não muda nada.
+- O servidor confere a senha (sem ela, nada muda) e anota em Hoje na recepção: a regra, de quanto para quanto, de quem foi a senha e quem estava no sistema. Senha errada 8 vezes seguidas para por 15 minutos.
+- O tema (claro/escuro), as animações e a tela de início continuam sem senha (são de cada aparelho). O resto de Ajustes (unidades, serviços, produtos, cupom) continua como era.
+- Editar produto → "Vende em": os quadradinhos voltaram ao tamanho normal e "Play Space" e "Casa Tom" aparecem inteiros.
+- Relatório do dia por e-mail: "Mandar agora o de hoje" (verde) e "Salvar os e-mails" do mesmo tamanho, lado a lado; em tela estreita o texto quebra dentro do botão.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Pacote futuro: só produtos da Play, botões ajustados e "Ajustar valor" no lugar do desconto (3.01)
 
 Pedidos do dono (28/11), com as fotos do Pacote futuro: "ajuste os botões", "tire produtos da Casa Tom, não pode vender com pacote", "coloque uma opção de ajustar o valor do pacote, que aí eu posso ajustar tanto para cima, tanto para mais, tanto produto quanto pacote" e "troca por esse botão desconto".

@@ -1323,6 +1323,11 @@ switch ($acao) {
   /* ---------- ajustes: a regra das horas e os pacotes ---------- */
   case 'regra_salvar': {
     $u = exigir(); podeAjustar($u); $r = regra();
+    /* 3.02 (o dono: "coloca uma trava nesses botões também, tipo, pedir a senha do gestor"): as regras da loja (a Regra das horas e as outras
+       escolhas de Ajustes) só mudam com a senha de um gestor (qualquer um); fica anotado o que mudou e de quem foi a senha */
+    $RG_NOMES = ['tolerancia' => 'Tolerância entre um período e outro', 'tolCupom' => 'No cupom, o cliente lê tolerância de', 'cancelaMin' => 'Cancelar a entrada sem cobrar', 'horasCpf' => 'As horas do pacote são do CPF', 'estorno' => 'Quem desfaz ou cancela o que já tem valor', 'reabreMin' => 'Reabrir a visita depois da saída', 'fecha' => 'A loja fecha às', 'aviso' => 'Marcar "acabando" quando faltar', 'bloqueioAuto' => 'Quando o pacote zerar, bloquear sozinho', 'autoMsg' => 'Mensagem automática'];
+    $rgTrava = array_values(array_intersect(array_keys($RG_NOMES), array_keys($in))); $rgAut = null; $rgAntes = $r;
+    if ($rgTrava) { $sn = (string)($in['senha'] ?? ''); if ($sn === '') falha('Digite a senha do gestor.', 403); $rgAut = autorizadorPelaSenha('regra', $sn, $u); }
     foreach (['tolerancia' => [0, 5, 9, 10, 15], 'fecha' => [20, 21, 22, 23, 24], 'aviso' => [5, 10, 15, 30, 60, 120], 'cancelaMin' => [0, 5, 9, 10, 15], 'reabreMin' => [0, 10, 15, 30, 60], 'tolCupom' => [0, 5, 9, 10, 15]] as $k => $ops) if (isset($in[$k]) && in_array((int)$in[$k], $ops, true)) $r[$k] = (int)$in[$k];
     if (isset($in['autoMsg']) && in_array($in['autoMsg'], ['ambos', 'entrada', 'nao'], true)) $r['autoMsg'] = $in['autoMsg'];
     if (isset($in['bloqueioAuto']) && in_array($in['bloqueioAuto'], ['sim', 'nao'], true)) $r['bloqueioAuto'] = $in['bloqueioAuto'];
@@ -1373,6 +1378,7 @@ switch ($acao) {
       $es = []; foreach ($in['extras'] as $e) { $n = mb_substr(trim((string)($e['n'] ?? '')), 0, 40); $v = (float)($e['v'] ?? 0); if ($n !== '' && $v >= 0 && count($es) < 30) $es[] = ['n' => $n, 'v' => $v]; }
       $r['extras'] = $es;
     }
+    if ($rgAut) foreach ($rgTrava as $k) if ((string)($rgAntes[$k] ?? '') !== (string)($r[$k] ?? '')) registrar('alt', null, 'Regra da loja', $RG_NOMES[$k] . ': ' . (string)($rgAntes[$k] ?? '—') . ' → ' . (string)$r[$k] . ' · senha de ' . primeiroNome($rgAut['nome']) . ' · por ' . primeiroNome($u['nome']));   /* 3.02 */
     $g = $r; unset($g['festa'], $g['vendedoras'], $g['vend_uni']); gravarCfg('regra', $g); responder(['regra' => $r]);   // 1.12: a tabela da festa é a de fábrica: vai para a tela, mas não fica gravada
   }
 

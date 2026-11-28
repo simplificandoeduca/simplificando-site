@@ -571,6 +571,8 @@ span.av.g { font-size: 22px; } .simul span.av { font-size: 15px; }
 .reg .ev.canc span { color: var(--erro); overflow-wrap: anywhere; }
 .marca { display: flex; align-items: center; gap: 10px; background: var(--menta); border-radius: 14px; padding: 10px 12px; font-size: 13.5px; text-align: left; }
 .marca input { width: 20px; height: 20px; accent-color: var(--coral); flex: none; }
+.marca input[type="checkbox"], .marca input[type="radio"] { width: 20px; height: 20px; min-height: 0; padding: 0; margin: 0; flex: none; }   /* 3.02: dentro de um .campo, o quadradinho não pega o tamanho do campo */
+.ct-ljs .marca { flex: 1 1 150px; cursor: pointer; } .ct-ljs .marca span { font-weight: 800; }
 .marca svg { flex: none; }
 
 /* ---------- agenda ---------- */
@@ -1093,7 +1095,8 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .pf-dm button { min-width: 44px; padding: 0 10px; border-radius: 9px; font: 800 14px/1 var(--display); color: var(--tinta-2); }
 .pf-dm button[aria-pressed="true"] { background: var(--tinta); color: var(--card); }
 .pf-prods .pf-pb { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; margin: 2px 0 10px; } .pf-prods .pf-pb .ct-campo { flex: 1 1 240px; height: 46px; } .pf-prods .pf-pb .bt { flex: none; height: 46px; padding: 0 16px; border-radius: 12px; }   /* 2.99 · 3.01: a mesma altura */
-.pf-prods .pf-cats { margin: 0 2px 10px; } .pf-prods .pf-cats button { font-size: 13px; padding: 5px 0 8px; }
+.pf-prods .pf-cats { margin: 0 2px 10px; }
+.rg-o .rg-para { color: var(--coral); } .rg-bts { display: flex; gap: 10px; } .rg-bts .bt { flex: 1 1 0; height: 46px; justify-content: center; border-radius: 14px; } .rg-bts .bt.claro { background: var(--card); border: 1px solid var(--borda-2); }   /* 3.02 */ .pf-prods .pf-cats button { font-size: 13px; padding: 5px 0 8px; }
 @media (max-width: 600px) { .pf-prods .pf-pb .bt { flex: 1 1 100%; } }
 .pf-prods .ct-campo input, .pf-prods .ct-campo input:focus { border: 0; background: transparent; box-shadow: none; outline: none; padding: 0; height: auto; min-height: 0; } .pf-prods .ct-campo:focus-within { border-color: var(--coral); box-shadow: 0 0 0 3px var(--coral-2); }
 .pf-pnovo { display: flex; flex-direction: column; gap: 10px; margin: 0 0 10px; padding: 12px; border-radius: 14px; border: 1px dashed var(--borda-2); background: var(--creme); } .pf-pnovo[hidden] { display: none; } .pf-pnovo .explica { margin: 0; }
@@ -2103,7 +2106,7 @@ body.abre:not(.quieto) #nav-baixo { animation: ab-baixo .42s cubic-bezier(.2, .8
 .bt.cortesia .cort-rel small { font: 700 11px/1.2 inherit; opacity: .7; margin-top: 3px; }
 .bt.cortesia:disabled .cort-rel { opacity: .55; }
 .bt.cortesia.fora { background: var(--erro-bg); color: var(--erro); border-color: var(--erro); }
-.em-bts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 4px; } .em-bts .bt { justify-content: center; height: 46px; }
+.em-bts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 4px; } .em-bts .bt { justify-content: center; height: auto; min-height: 46px; padding: 8px 12px; white-space: normal; text-align: center; line-height: 1.15; border-radius: 14px; } .em-bts .bt svg { flex: none; }   /* 3.02 */
 /* 1.80: a meta do dia (o cartão de Ajustes e o "da meta" no painel) */
 .meta-g { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; } .meta-g .campo { margin: 0; }   /* 1.81: a meta e os dois alertas */
 .meta-al { margin: 10px 0 0; } .meta-al b { color: #2F8A57; }
@@ -2361,7 +2364,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '3.01';
+const VERSAO = '3.02';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -7225,6 +7228,25 @@ function folhaPlano(id) {
 }
 function planoEscolher(v) { if (!PLX) return; PLX.v = v === 'pacote' ? 'pacote' : 'avulso'; const o = $('#pl-ops'); if (o) o.innerHTML = plOps();
   const b = $('#pl-ok'), t = $('#pl-ok-t'); if (t) t.textContent = PLX.v === PLX.ag ? `Já está como ${rotPlano(PLX.v)}` : `Trocar para ${rotPlano(PLX.v)}`; if (b) b.disabled = PLX.v === PLX.ag; }
+/* 3.02 (o dono: "coloca uma trava nesses botões também, tipo, pedir a senha do gestor e você tem certeza que você vai alterar isso?"): as
+   regras da loja em Ajustes (a Regra das horas e as outras escolhas) só mudam depois do "Tem certeza?" e da senha de um gestor (qualquer
+   um). O servidor confere a senha e anota quem mudou. O tema, a animação e a tela de início são de cada pessoa: mudam sem senha */
+const REGRA_PESSOAL = ['tema', 'anim', 'inicio', 'inicioGestor'];
+let RGX = null;
+function folhaRegra(k, v, bt) { const sg = bt.closest('.seg'), cp = sg && sg.closest('.campo'), lb = cp && $('label', cp), rot = lb ? lb.textContent.trim() : 'Regra da loja', at = sg && $('[aria-pressed="true"]', sg), de = at ? at.textContent.trim() : '', para = bt.textContent.trim();
+  RGX = { k, v };
+  abrirFolha('Alterar a regra?', `<div class="marca rg-o">${ic(IC.cadeado, 18)}<span><b>${esc(rot)}</b><br>${de ? `${esc(de)} → ` : ''}<b class="rg-para">${esc(para)}</b></span></div>
+    <p class="explica"><b>Tem certeza que vai alterar isso?</b> Muda na hora, para toda a loja (as unidades e os computadores).</p>
+    <div class="campo"><label for="rg-senha">Senha do gestor<span class="obg" aria-hidden="true">*</span> <span class="leve">· qualquer gestor</span></label>${campoSenha('rg-senha')}</div>
+    <div class="pe-f rg-bts"><button type="button" class="bt claro tap" data-fecha>Cancelar</button><button type="button" class="bt forte tap" id="rg-ok" data-act="rg-ok">${ic(IC.check)} Sim, alterar</button></div>`, 'Alterar a regra');
+  setTimeout(() => { const i = $('#rg-senha'); if (i) i.focus(); }, 250); }
+async function rgOk(el) { if (!RGX) return; const { k, v } = RGX, nv = isNaN(+v) ? v : +v, senha = senhaDe('rg-senha');
+  if (!senha) { toast('Digite a senha do gestor'); const i = $('#rg-senha'); if (i) i.focus(); return; }
+  el.disabled = true;
+  try { if (MODO === 'servidor') { const r = await api('regra_salvar', { [k]: nv, senha }); if (r && r.regra && r.regra[k] != null) S.cfg[k] = r.regra[k]; else S.cfg[k] = nv; }
+    else { const g = quemAutorizaPrevia('plano', senha); if (!g) throw new Error('A senha não confere com a do gestor.'); S.cfg[k] = nv; registrar('alt', 'Regra da loja', `${k}: ${v} · confirmado com a senha de ${MAI(primeiro(g.nome || 'gestor'))}`); }
+    RGX = null; fecharFolha(); desenhar(); deuCerto('Regra alterada');
+  } catch (e) { toast(e.message); el.disabled = false; senhaErrada('rg-senha', e); } }
 async function planoOk(el) {
   if (!PLX) return; const c = crianca(PLX.id), v = PLX.v; if (!c || !c.entrou || c.festa) { fecharFolha(); return; }
   const era = planoRotulo(c), auto = planoDe(c) === 'pacote' ? 'pacote' : 'avulso'; if (v === era) { toast(`Já está como ${rotPlano(v)}`); return; }
@@ -11525,6 +11547,7 @@ const ACOES = {
   'pf-ajb': () => { if (!PF) return; if (!pfLinhas().length) { toast('Escolha o pacote (ou o produto) primeiro.'); const d = $('#pf-pacotes'); if (d) { d.open = true; d.scrollIntoView({ block: 'center', behavior: 'smooth' }); } return; }   /* 3.01 */
     PF.ajOn = !PF.ajOn; pfAtualiza(); if (PF.ajOn) setTimeout(() => { const i = $('.pf-aj-v'); if (i) { i.scrollIntoView({ block: 'center', behavior: 'smooth' }); i.focus(); i.select(); } }, 40); },
 
+  'rg-ok': el => rgOk(el),   /* 3.02 */
   'pf-pcat': el => { if (!PF) return; PF.cat = el.dataset.c || ''; $$('.pf-cats [data-c]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.c === PF.cat))); pfProdLista(); },   /* 2.99: o filtro da Casa Tom */
   'pf-pnovo': () => pfNovoAbrir(), 'pf-pnovo-x': () => { const f = $('#pf-pnovo'); if (f) f.hidden = true; }, 'pf-pnovo-ok': el => pfNovoOk(el),
   'pf-desc-modo': el => { if (!PF) return; PF.dm = el.dataset.v === 'p' ? 'p' : 'r'; pfAtualiza(); const i = $('#pf-desc'); if (i) i.focus(); },
@@ -11696,7 +11719,9 @@ document.addEventListener('pointerdown', e => { TOQUE_INI = e.target; }, true);
 const temSelecao = () => { try { return !!String(window.getSelection ? window.getSelection() : '').trim(); } catch (e) { return false; } };
 document.addEventListener('click', e => {
   const ir = e.target.closest('[data-ir]'); if (ir) { if (ir.dataset.ir !== S.tela) trocarTela(ir.dataset.ir); return; }
-  const seg = e.target.closest('.seg[data-cfg] button'); if (seg) { const k = seg.closest('.seg').dataset.cfg, v = seg.dataset.v; if (k !== 'tema' && k !== 'anim' && k !== 'inicio' && k !== 'inicioGestor' && MODO === 'servidor' && !gestor()) { toast('Só o gestor muda a regra'); return; } S.cfg[k] = isNaN(+v) ? v : +v; if (k === 'tema') { guardar('ps-tema', v); aplicarTema(); } else if (k === 'anim') { escolherAnim(v); } else if (k === 'inicio') { guardar('ps-inicio', v); S.espServ = ''; } else if (k === 'inicioGestor') { guardar('ps-inicio-gestor', v); delete S.cfg.inicioGestor; } else if (MODO === 'servidor') api('regra_salvar', { [k]: S.cfg[k] }).then(() => deuCerto('Regra salva')).catch(e => toast(e.message)); desenhar(); return; }
+  const seg = e.target.closest('.seg[data-cfg] button'); if (seg) { const k = seg.closest('.seg').dataset.cfg, v = seg.dataset.v; if (k !== 'tema' && k !== 'anim' && k !== 'inicio' && k !== 'inicioGestor' && MODO === 'servidor' && !gestor()) { toast('Só o gestor muda a regra'); return; }
+    if (!REGRA_PESSOAL.includes(k)) { if (seg.getAttribute('aria-pressed') !== 'true') folhaRegra(k, v, seg); return; }   /* 3.02: a regra da loja pede a confirmação e a senha de um gestor */
+    S.cfg[k] = isNaN(+v) ? v : +v; if (k === 'tema') { guardar('ps-tema', v); aplicarTema(); } else if (k === 'anim') { escolherAnim(v); } else if (k === 'inicio') { guardar('ps-inicio', v); S.espServ = ''; } else if (k === 'inicioGestor') { guardar('ps-inicio-gestor', v); delete S.cfg.inicioGestor; } else if (MODO === 'servidor') api('regra_salvar', { [k]: S.cfg[k] }).then(() => deuCerto('Regra salva')).catch(e => toast(e.message)); desenhar(); return; }
   const segLocal = e.target.closest('[data-seg]'); if (segLocal && !segLocal.dataset.act) { const pai = segLocal.parentElement; $$('[data-seg]', pai).forEach(b => { b.setAttribute('aria-pressed', b === segLocal); b.style.borderColor = ''; b.style.background = ''; }); if (pai.id === 'p-brq') { segLocal.style.borderColor = 'var(--coral)'; segLocal.style.background = 'var(--coral-2)'; } return; }
   const act = e.target.closest('[data-act]'); if (act && ACOES[act.dataset.act]) { if (ABRINDO && !['fechar', 'nada', 'atualizar', 'atualizar-agora'].includes(act.dataset.act)) { toast('Só um instante: buscando a lista de agora…'); return; } ACOES[act.dataset.act](act); return; }   /* 1.58 */
   const f = e.target.closest('[data-fecha]'); if (f && (f.tagName === 'BUTTON' || (e.target === f && TOQUE_INI === f && !temSelecao()))) fecharFolha();
@@ -11764,6 +11789,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey && e.target.id === 'zap-texto') { e.preventDefault(); ACOES.enviar(); }
   if (e.key === 'Enter' && e.target.id === 'pq-busca') { e.preventDefault(); const b = $$('#pq-lista [data-act="pq-crianca"], #pq-lista [data-act="pq-resp"]'); if (b.length === 1) b[0].click(); return; }   // só uma criança na lista: Enter escolhe
   if (e.key === 'Enter' && e.target.id === 'rec-txt') { e.preventDefault(); const b = $('[data-act="rec-salvar"]'); if (b) b.click(); return; }   /* 2.72 */
+  if (e.key === 'Enter' && e.target.id === 'rg-senha') { e.preventDefault(); const ok = $('#rg-ok'); if (ok && !ok.disabled) ok.click(); return; }   /* 3.02 */
   if (e.key === 'Enter' && e.target.id === 'pl-senha') { e.preventDefault(); const ok = $('#pl-ok'); if (ok && !ok.disabled) ok.click(); return; }   /* 2.90 */
   if (e.key === 'Enter' && (e.target.id === 'pfn-n' || e.target.id === 'pfn-v')) { e.preventDefault(); const ok = $('#pfn-ok'); if (ok && !ok.disabled) ok.click(); return; }   /* 2.99 */
   if (e.key === 'Enter' && e.target.classList && e.target.classList.contains('pf-aj-v')) { e.preventDefault(); const I = $$('.pf-aj-v'), n = I.indexOf(e.target); if (I[n + 1]) { I[n + 1].focus(); I[n + 1].select(); } else e.target.blur(); return; }   /* 3.01: Enter vai para o próximo valor */
