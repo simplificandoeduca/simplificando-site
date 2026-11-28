@@ -546,6 +546,11 @@ function db(): PDO {
     foreach (["ALTER TABLE criancas ADD COLUMN plano_pref TEXT NOT NULL DEFAULT ''", 'ALTER TABLE criancas ADD COLUMN plano_pref_em TEXT'] as $sql) { try { $pdo->exec($sql); } catch (Throwable $e) { } }
     $pdo->exec('PRAGMA user_version = 58');
   }
+  if ($v < 59) { /* 3.05: o pacote futuro é fiado: a venda com o dia combinado para pagar (fiado_ate) e o pedido de onde veio (fiado_ped) */
+    foreach (["ALTER TABLE vendas ADD COLUMN fiado_ate TEXT NOT NULL DEFAULT ''", 'ALTER TABLE vendas ADD COLUMN fiado_ped INTEGER NOT NULL DEFAULT 0'] as $sql) { try { $pdo->exec($sql); } catch (Throwable $e) { } }
+    $pdo->exec("CREATE INDEX IF NOT EXISTS vendas_fiado ON vendas (fiado_ate) WHERE fiado_ate != ''");
+    $pdo->exec('PRAGMA user_version = 59');
+  }
   return $pdo;
 }
 /* ---------- 1.06: unidades ---------- */
@@ -966,6 +971,9 @@ function pedidoCriar(array $u, array $in): array {
     $desc = round(max(0, (float)($in['desconto'] ?? 0)), 2); $sub = round(max(0, (float)($in['subtotal'] ?? 0)), 2);
     if ($desc > 0) { if ($sub <= 0 || $desc >= $sub || abs($sub - $desc - $valor) > 0.05) falha('Confira o desconto: o total tem que ser o valor dos pacotes e produtos menos o desconto.'); $dados['desconto'] = $desc; $dados['subtotal'] = $sub; }
     $aj = mb_substr(maiusculo(trim(preg_replace('/\s+/u', ' ', (string)($in['ajuste'] ?? '')))), 0, 200); if ($aj !== '') $dados['ajuste'] = $aj;   /* 3.01: o valor ajustado (pacote ou produto), para o gestor ver */
+    $its = []; if (!empty($in['pac'])) foreach (array_slice((array)($in['itens'] ?? []), 0, 40) as $x) { if (!is_array($x)) continue; $k = ($x['k'] ?? '') === 'pr' ? 'pr' : 'pac';   /* 3.05: os itens (as horas de cada pacote vão para o cliente) */
+      $its[] = ['k' => $k, 'n' => mb_substr(maiusculo((string)($x['n'] ?? '')), 0, 80), 'h' => $k === 'pac' ? max(0, min(200, round((float)($x['h'] ?? 0), 2))) : 0, 'q' => max(1, min(999, (int)($x['q'] ?? 1))), 'v' => round(max(0, (float)($x['v'] ?? 0)), 2)]; }
+    if ($its) $dados['itens'] = $its;
     $dm = fn($s) => substr($s, 8, 2) . '/' . substr($s, 5, 2);
     $texto = (empty($in['pac']) ? 'Venda futura: ' : 'Pacote futuro: ') . $oque . ' · ' . dinheiro($valor) . ($desc > 0 ? ' · desconto ' . dinheiro($desc) : '') . ($aj !== '' ? ' · valor ajustado: ' . $aj : '') . ' · fecha em ' . $dm($fecha) . ' · pagamento em ' . $dm($paga) . ' · vendedora ' . $vend;
   } elseif ($tipo === 'valor' && (int)($in['venda'] ?? 0) > 0) { // 1.39: na saída, o pacote ou o produto desta visita que ficou para pagar na saída
@@ -1053,7 +1061,7 @@ function pedidoDecidir(int $id, array $g, bool $ok, string $como = 'toque', bool
     $status = 'usado'; $resultado = $r['devolver'] !== '' ? 'DEVOLVER AO CLIENTE: ' . $r['devolver'] : 'VENDA CANCELADA'; $extra['cancelada'] = $r;
   }
   if ($ok && $tipo === 'valor' && $p['venda_id'] !== null) { $extra['alterada'] = alterarVendaNaSaida($p, $g); $status = 'usado'; $resultado = 'VALOR ALTERADO NA VENDA'; }   // 1.39
-  if ($ok && $tipo === 'venda_futura') { $extra['vfut'] = vfutLancar($p, $g); $status = 'usado'; $resultado = 'LEMBRETES NO CALENDÁRIO'; }   /* 2.08 */
+  if ($ok && $tipo === 'venda_futura') { $extra['vfut'] = vfutLancar($p, $g); $status = 'usado'; $resultado = !empty($extra['vfut']['fiado']) ? 'VENDA NO CAIXA DE HOJE · A RECEBER' : 'LEMBRETES NO CALENDÁRIO'; }   /* 2.08; 3.05: o pacote futuro vira a venda do dia (fiado) */
   $q = $db->prepare('UPDATE pedidos SET status = ?, decidido_por = ?, decidido_nome = ?, decidido_em = ?, como = ?, resultado = ?' . ($status === 'usado' ? ', feito_por = ?, feito_nome = ?, feito_em = ?' : '') . ' WHERE id = ?' . ($status === 'usado' ? '' : " AND status = 'pendente'"));
   $q->execute(array_merge([$status, (int)$g['id'], (string)$g['nome'], $agora, $como, $resultado], $status === 'usado' ? [(int)$g['id'], (string)$g['nome'], $agora] : [], [$id]));
   if (!$q->rowCount()) falha('Este pedido já foi respondido em outro aparelho.', 409);
@@ -1070,7 +1078,80 @@ function vfutLancar(array $p, array $g): array {
   if (!$so1) $ins->execute([(string)$d['fecha'], mb_substr('FECHAR · ' . $resp . ' · ' . $oque . ' · ' . $v, 0, 120), $obs, agora()]); $c1 = (int)$db->lastInsertId();
   $ins->execute([(string)$d['paga'], mb_substr('COBRAR · ' . $resp . ' · ' . $v . ' · ' . $oque, 0, 120), $obs, agora()]); $c2 = (int)$db->lastInsertId(); if ($so1) $c1 = $c2;
   $d['comp'] = [$c1, $c2]; $db->prepare('UPDATE pedidos SET dados = ? WHERE id = ?')->execute([json_encode($d, JSON_UNESCAPED_UNICODE), (int)$p['id']]);
+  if (!empty($d['pac'])) { $p['dados'] = json_encode($d, JSON_UNESCAPED_UNICODE); return ['comp' => [$c1, $c2], 'fiado' => vfutFiado($p, agora())]; }   /* 3.05 */
   return ['comp' => [$c1, $c2]];
+}
+/* 3.05 (o dono: "a venda futura, ela entra no caixa do dia ... As horas também entra para o cliente. É tipo um fiado, só que se ele não
+   paga, gera um alerta"): o pacote futuro lançado (ou aprovado) vira venda do dia: entra no faturamento de hoje e as horas vão para o
+   saldo do cliente. O valor fica a receber (vendas.fiado_ate = o dia combinado): não é cobrado na saída; recebe pelo "Receber" do pacote
+   futuro (fiado_receber), e o pagamento entra no caixa do dia em que foi pago. Passou do dia sem pagar: o aviso na tela inicial */
+function vfutHoras(array $d): int {
+  $min = 0; $its = (array)($d['itens'] ?? []);
+  if ($its) { foreach ($its as $x) if (is_array($x) && ($x['k'] ?? '') === 'pac') $min += (int)round((float)($x['h'] ?? 0) * 60); return $min; }
+  $P = (array)(regra()['pacotes'] ?? []);   /* o pedido de antes da 3.05 (sem os itens): o nome de cada pacote, como a tela escreve */
+  foreach (explode(' + ', (string)($d['oque'] ?? '')) as $parte) { $parte = trim($parte); if ($parte === '') continue; $achou = false;
+    foreach ($P as $x) { $h = (float)($x['h'] ?? 0); $nm = maiusculo(trim((string)($x['nome'] ?? ''))); if ($nm === '') $nm = maiusculo('PACOTE ' . dur((int)round($h * 60)));
+      if ($h > 0 && $nm === $parte) { $min += (int)round($h * 60); $achou = true; break; } }
+    if (!$achou && preg_match('/^PACOTE\b\D*?(\d+)\s*H/u', $parte, $m)) $min += (int)$m[1] * 60; }
+  return $min;
+}
+function vfutFiado(array $p, string $quando): array {
+  $db = db(); $d = json_decode((string)$p['dados'], true); if (!is_array($d)) $d = [];
+  if (!empty($d['fiado'])) return ['venda' => (int)$d['fiado']];
+  $c = crianca((int)$p['crianca_id']); if (!$c) return [];
+  $min = max(0, min(999 * 60, vfutHoras($d))); $valor = round((float)$p['valor'], 2); $ate = (string)($d['paga'] ?? ''); if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $ate)) $ate = substr($quando, 0, 10);
+  $uni = ($p['unidade_id'] ?? null) === null ? uniDaAlteracao($c) : (int)$p['unidade_id']; $itens = mb_substr((string)($d['oque'] ?? ''), 0, 140);
+  if ($min > 0) { $db->prepare('UPDATE criancas SET pacote_min = pacote_min + ? WHERE id = ?')->execute([$min, (int)$c['id']]); if (isset($c['liberado']) && !(int)$c['liberado']) bloquearAcesso($c, true); }
+  $db->prepare("INSERT INTO vendas (crianca_id, horas, minutos, valor, quando, por, itens, servico, auto, unidade_id, fiado_ate, fiado_ped, vendedora, vend_k) VALUES (?, ?, ?, ?, ?, ?, ?, 'PACOTE FUTURO', 0, ?, ?, ?, ?, 'pacote')")
+    ->execute([(int)$c['id'], round($min / 60, 2), $min, $valor, $quando, (int)$p['pedido_por'] ?: null, $itens, $uni, $ate, (int)$p['id'], (string)($d['vendedora'] ?? '')]);
+  $venda = (int)$db->lastInsertId(); $db->prepare('UPDATE vendas SET vend_g = ? WHERE id = ?')->execute([$venda, $venda]);
+  $reg = registrar('venda', (int)$c['id'], (string)$c['nome'], mb_substr('Pacote futuro (fiado) · ' . ($min > 0 ? dur($min) . ' · ' : '') . $itens . ' · ' . dinheiro($valor) . ' · a receber até ' . substr($ate, 8, 2) . '/' . substr($ate, 5, 2), 0, 300), $quando, $uni);
+  $db->prepare('UPDATE vendas SET registro = ? WHERE id = ?')->execute([$reg, $venda]);
+  $d['fiado'] = $venda; $db->prepare('UPDATE pedidos SET dados = ? WHERE id = ?')->execute([json_encode($d, JSON_UNESCAPED_UNICODE), (int)$p['id']]);
+  return ['venda' => $venda, 'min' => $min];
+}
+/* os pacotes futuros lançados ou aprovados desde 27/11 (antes da 3.05), uma vez só: viram a venda do dia em que foram aprovados, com as
+   horas e o valor a receber ("Já ajuste as vendas futuras de hoje"). Fica de fora o que já foi marcado como pago e o cliente que já
+   comprou o pacote no balcão (uma venda de horas com o mesmo valor depois do pedido): não conta duas vezes */
+function vfutFiadoLegado(): int {
+  $db = db(); if (cfg('fiado_305', '') !== '') return 0;
+  try { $db->exec('BEGIN IMMEDIATE'); } catch (Throwable $e) { return 0; }
+  $n = 0;
+  try {
+    if (cfg('fiado_305', '') !== '') { $db->exec('COMMIT'); return 0; }
+    foreach ($db->query("SELECT * FROM pedidos WHERE tipo = 'venda_futura' AND status = 'usado' AND COALESCE(feito_em, decidido_em, pedido_em) >= '2026-11-27 00:00:00' ORDER BY id")->fetchAll() as $p) {
+      $d = json_decode((string)$p['dados'], true); if (!is_array($d) || empty($d['pac']) || !empty($d['fiado'])) continue;
+      $comp = array_map('intval', (array)($d['comp'] ?? [])); if (!empty($comp[1])) { $q = $db->prepare('SELECT feito FROM compromissos WHERE id = ?'); $q->execute([$comp[1]]); if ((int)$q->fetchColumn()) continue; }
+      $q = $db->prepare('SELECT 1 FROM vendas WHERE crianca_id = ? AND quando >= ? AND minutos > 0 AND ABS(valor - ?) < 0.01 LIMIT 1'); $q->execute([(int)$p['crianca_id'], (string)$p['pedido_em'], (float)$p['valor']]); if ($q->fetchColumn()) continue;
+      $quando = (string)($p['feito_em'] ?: ($p['decidido_em'] ?: $p['pedido_em'])); vfutFiado($p, $quando); $n++;
+    }
+    gravarCfg('fiado_305', ['em' => agora(), 'n' => $n]); $db->exec('COMMIT');
+  } catch (Throwable $e) { try { $db->exec('ROLLBACK'); } catch (Throwable $e2) { } throw $e; }
+  return $n;
+}
+/* os fiados que ainda têm valor a receber (para a tela: o aviso e o Receber) */
+function fiadosAbertos(): array {
+  $o = []; $q = db()->query("SELECT v.id, v.crianca_id, v.valor, v.fiado_ate, v.fiado_ped, v.itens, v.minutos, v.vendedora, v.unidade_id, v.quando, v.valor - COALESCE((SELECT SUM(p.valor) FROM pagamentos p WHERE p.venda_id = v.id), 0) f, c.nome, c.resp
+    FROM vendas v LEFT JOIN criancas c ON c.id = v.crianca_id WHERE v.fiado_ate != '' ORDER BY v.fiado_ate, v.id");
+  foreach ($q->fetchAll() as $l) { if ((float)$l['f'] < 0.005) continue;
+    $o[] = ['venda' => (int)$l['id'], 'crianca' => (int)$l['crianca_id'], 'nome' => (string)($l['nome'] ?? ''), 'resp' => (string)($l['resp'] ?? ''), 'valor' => round((float)$l['valor'], 2), 'falta' => round((float)$l['f'], 2), 'ate' => (string)$l['fiado_ate'], 'ped' => (int)$l['fiado_ped'],
+      'oque' => (string)$l['itens'], 'min' => (int)$l['minutos'], 'vendedora' => (string)$l['vendedora'], 'quando' => (string)$l['quando'], 'uni' => $l['unidade_id'] === null ? null : (int)$l['unidade_id']]; }
+  return $o;
+}
+/* o cliente pagou o pacote futuro: o valor que falta, numa ou mais formas; entra no caixa de hoje (com o cupom). Os lembretes saem do calendário */
+function fiadoReceber(array $in, array $u): array {
+  $db = db(); $q = $db->prepare('SELECT * FROM vendas WHERE id = ?'); $q->execute([(int)($in['venda'] ?? 0)]); $v = $q->fetch(); $q->closeCursor();
+  if (!$v || (string)($v['fiado_ate'] ?? '') === '') falha('Esse pacote futuro não está mais a receber (foi cancelado?).', 404);
+  $falta = faltaDaVenda((int)$v['id']); if ($falta < 0.005) falha('Esse pacote futuro já foi pago.', 409);
+  $pg = lerPagamento($in['pagamento'] ?? null); if (!$pg) falha('Escolha a forma de pagamento.');
+  if (abs(array_sum($pg) - $falta) >= 0.01) falha('Falta receber ' . dinheiro($falta) . ', e o pagamento deu ' . dinheiro((float)array_sum($pg)) . '.', 409);
+  $c = crianca((int)$v['crianca_id']); if (!$c) falha('Cliente não encontrado.', 404); $parc = lerParcelas($in, $pg, $u, $c);
+  $antes = (int)$db->query('SELECT COALESCE(MAX(id), 0) FROM pagamentos')->fetchColumn();
+  $pago = gravarPagamento([(int)$v['id']], $pg, (int)$c['id'], (int)$u['id'], (string)$v['quando']); anotarParcelas($antes, $parc, $u, (int)$c['id']);   /* no caixa do dia da venda */
+  if (($v['unidade_id'] ?? null) !== null) $db->prepare('UPDATE pagamentos SET unidade_id = ? WHERE id > ? AND venda_id = ?')->execute([(int)$v['unidade_id'], $antes, (int)$v['id']]);
+  $reg = registrar('pag', (int)$c['id'], (string)$c['nome'], mb_substr('Pacote futuro recebido · ' . (string)$v['itens'] . ' · ' . dinheiro($falta) . ' · ' . textoPagamento($pago ?: $pg) . ' · no caixa de ' . date('d/m', strtotime((string)$v['quando'])) . ' · por ' . maiusculo(primeiroNome((string)$u['nome'])), 0, 300));
+  if ((int)($v['fiado_ped'] ?? 0) > 0 && ($p = pedido((int)$v['fiado_ped']))) { $d = json_decode((string)$p['dados'], true); if (is_array($d)) foreach ((array)($d['comp'] ?? []) as $k) if ((int)$k > 0) $db->prepare('UPDATE compromissos SET feito = 1 WHERE id = ?')->execute([(int)$k]); }
+  return ['valor' => $falta, 'pago' => textoPagamento($pago ?: $pg), 'registro' => $reg, 'cupom' => criarCupom($c, 'venda', $antes, $u), 'crianca' => (int)$c['id'], 'venda' => (int)$v['id']];
 }
 /* as vendas futuras para a tela (Festas → "Vendas futuras"): as esperando o gestor e as dos últimos 60 dias (pela data do pagamento) */
 function vfutLista(): array {
@@ -1078,10 +1159,12 @@ function vfutLista(): array {
   foreach ($db->query("SELECT id, feito FROM compromissos WHERE tipo = 'vfut'")->fetchAll() as $c) $feito[(int)$c['id']] = (int)$c['feito'];
   foreach ($db->query("SELECT * FROM pedidos WHERE tipo = 'venda_futura' AND status IN ('pendente', 'usado', 'negado') ORDER BY id DESC LIMIT 300")->fetchAll() as $p) {
     $d = json_decode((string)$p['dados'], true); if (!is_array($d)) $d = []; if ($p['status'] !== 'pendente' && (string)($d['paga'] ?? '') < $lim) continue;
-    $comp = array_map('intval', (array)($d['comp'] ?? []));
+    $comp = array_map('intval', (array)($d['comp'] ?? [])); $fid = (int)($d['fiado'] ?? 0); $fx = null;   /* 3.05: o fiado: quanto falta (a venda cancelada não tem mais o que receber) */
+    if ($fid) { $q = $db->prepare('SELECT v.valor - COALESCE((SELECT SUM(x.valor) FROM pagamentos x WHERE x.venda_id = v.id), 0) FROM vendas v WHERE v.id = ?'); $q->execute([$fid]); $fx = $q->fetchColumn(); $q->closeCursor(); }
     $o[] = ['id' => (int)$p['id'], 'status' => (string)$p['status'], 'crianca' => (int)$p['crianca_id'], 'nome' => (string)$p['nome'], 'resp' => (string)$p['resp'], 'valor' => round((float)$p['valor'], 2),
       'oque' => (string)($d['oque'] ?? ''), 'fecha' => (string)($d['fecha'] ?? ''), 'paga' => (string)($d['paga'] ?? ''), 'vendedora' => (string)($d['vendedora'] ?? ''), 'obs' => (string)($d['obs'] ?? ''),
-      'por' => (string)$p['pedido_nome'], 'dec' => (string)$p['decidido_nome'], 'comp' => $comp, 'pago' => isset($comp[1]) && !empty($feito[$comp[1]]), 'uni' => ($p['unidade_id'] ?? null) === null ? null : (int)$p['unidade_id']];
+      'por' => (string)$p['pedido_nome'], 'dec' => (string)$p['decidido_nome'], 'comp' => $comp, 'pago' => $fid ? ($fx !== false && (float)$fx < 0.005) : isset($comp[1]) && !empty($feito[$comp[1]]), 'uni' => ($p['unidade_id'] ?? null) === null ? null : (int)$p['unidade_id']]
+      + ($fid ? ['fiado' => $fid, 'falta' => $fx === false ? 0 : round(max(0, (float)$fx), 2), 'canc' => $fx === false] : []);
   }
   usort($o, fn($a, $b) => [$a['paga'], $a['id']] <=> [$b['paga'], $b['id']]); return $o;
 }
@@ -1913,7 +1996,7 @@ function faltaDaVenda(int $vendaId): float { // quanto falta receber de uma vend
 }
 // as vendas desta visita (as que a equipe registrou, não as cobranças por atraso) que ainda têm valor a receber: cada uma com 'falta'
 function pendentesDaVisita(array $c): array {
-  $o = []; foreach (vendasDaVisita($c, true) as $v) { if (!empty($v['auto']) || (float)$v['valor'] <= 0) continue; $f = faltaDaVenda((int)$v['id']); if ($f > 0.004) $o[] = $v + ['falta' => $f]; }
+  $o = []; foreach (vendasDaVisita($c, true) as $v) { if (!empty($v['auto']) || (float)$v['valor'] <= 0 || (string)($v['fiado_ate'] ?? '') !== '') continue;   /* 3.05: o pacote futuro (fiado) não é cobrado na saída */ $f = faltaDaVenda((int)$v['id']); if ($f > 0.004) $o[] = $v + ['falta' => $f]; }
   return $o;
 }
 // [criança => [['n' => o que foi vendido, 'v' => quanto falta receber], ...]] das vendas de hoje (desde a última saída ou entrada cancelada
@@ -1958,7 +2041,7 @@ function pendItensDeTodos(): array {
   $piso = $min !== '' && substr($min, 0, 10) . ' 00:00:00' < $hoje ? substr($min, 0, 10) . ' 00:00:00' : $hoje;
   // 1.91: primeiro as vendas sem pagar inteiro (uma soma por venda), depois só delas a última saída (de 345 para 11 ms com 60 dias cheios)
   $q = $db->prepare("SELECT a.* FROM (SELECT v.id, v.crianca_id c, v.quando, v.servico, v.minutos, v.itens, v.valor, v.auto, v.produto_id, v.alug, v.festa_id, v.voucher, v.desc_valor, v.pcd, v.cheio, v.valor - COALESCE(SUM(p.valor), 0) f
-      FROM vendas v JOIN criancas k0 ON k0.id = v.crianca_id LEFT JOIN pagamentos p ON p.venda_id = v.id WHERE v.quando >= ? AND v.auto = 0 AND v.valor > 0 AND v.servico != ? GROUP BY v.id) a
+      FROM vendas v JOIN criancas k0 ON k0.id = v.crianca_id LEFT JOIN pagamentos p ON p.venda_id = v.id WHERE v.quando >= ? AND v.auto = 0 AND v.valor > 0 AND v.servico != ? AND v.fiado_ate = '' GROUP BY v.id) a
     WHERE a.f > 0.004 AND a.quando >= COALESCE((SELECT MAX(x.saiu) FROM visitas x WHERE x.crianca_id = a.c), '') ORDER BY a.id");   // 1.21: só a saída fecha a conta do que há para receber (a entrada cancelada, não)
   $q->execute([min($piso, pisoAReceber()), SERV_IMPORTADO]); $o = [];
   foreach ($q->fetchAll() as $l) $o[(int)$l['c']][] = ['n' => nomeDaVenda($l), 'v' => round((float)$l['f'], 2), 'id' => (int)$l['id'], 'alt' => (float)$l['f'] >= (float)$l['valor'] - 0.004 ? altDaVenda($l) : '', 'h' => round((int)$l['minutos'] / 60, 2), 't' => tipoNoPapel($l), 'pn' => nomeNoPapel($l)] + (!empty($l['pcd']) && (float)$l['f'] >= (float)$l['valor'] - 0.004 && (float)$l['cheio'] - (float)$l['desc_valor'] > (float)$l['valor'] + 0.004 ? ['ch' => round((float)$l['cheio'] - (float)$l['desc_valor'], 2)] : []);   /* 2.55: ch = o valor cheio da venda PCD (o cupom mostra o desconto) */   // 1.39: alt = o "Alterar pacote" da saída vale para ela ('pac' ou 'prod')   // 1.25: id = a venda   // juntar por criança fica aqui: agrupar no SQL faria a consulta andar pelo índice da criança
@@ -2178,6 +2261,14 @@ function caixaDoDia(int $so = 0, ?string $dia = null): array {   /* 2.15: $so = 
     if ($g === 'carrinhos') { $nm = mb_strtoupper(trim((string)$l['s'])) ?: 'CARRINHO'; $x['itens'][$nm] = round(($x['itens'][$nm] ?? 0) + $v, 2); }
     if ($g === 'festa') { $nm = !empty($l['fid']) ? rotuloFestaCaixa((int)$l['fid'], (string)$l['s']) : (mb_strtoupper(trim((string)$l['s'])) ?: 'FESTA'); $x['itens'][$nm] = round(($x['itens'][$nm] ?? 0) + $v, 2); }   // 1.38: de qual festa
     unset($x); }
+  /* 3.05 (o dono: "o a receber pode ter um campo lá no caixa ... que vai somar ao todo"): o pacote futuro (fiado) vendido no dia e ainda
+     não pago entra como a forma "A receber"; quando o cliente paga, o valor passa para a forma em que pagou, no caixa do dia da venda */
+  $qf = db()->prepare("SELECT COALESCE(v.unidade_id, 0) u, v.id vid, v.servico s, (COALESCE(v.produto_id, 0) > 0) pr, v.alug a, v.minutos m, v.auto au, v.voucher vo, v.festa_id fid, v.valor - COALESCE((SELECT SUM(p.valor) FROM pagamentos p WHERE p.venda_id = v.id), 0) f
+    FROM vendas v WHERE v.fiado_ate != '' AND v.quando >= ? AND v.quando < ?"); $qf->execute([$d0, $d1]);
+  foreach ($qf->fetchAll() as $l) { $v = round((float)$l['f'], 2); if ($v < 0.005) continue; $u = (int)$l['u']; $g = grupoDoCaixa($l);
+    if (!isset($o[$u])) $o[$u] = ['uni' => $u, 'grupos' => []];
+    if (!isset($o[$u]['grupos'][$g])) $o[$u]['grupos'][$g] = ['formas' => [], 'total' => 0.0, 'vendas' => [], 'itens' => []];
+    $x = &$o[$u]['grupos'][$g]; $x['formas']['areceber'] = round(($x['formas']['areceber'] ?? 0) + $v, 2); $x['total'] = round($x['total'] + $v, 2); $x['vendas'][(int)$l['vid']] = 1; unset($x); }
   foreach ($o as &$x) foreach ($x['grupos'] as &$g) $g['vendas'] = count($g['vendas']); unset($x, $g);
   foreach (devolvidoHoje($dia) as $u => $d) { if (!isset($o[$u])) $o[$u] = ['uni' => $u, 'grupos' => []]; $o[$u]['devolvido'] = $d; }   // 1.31
   /* 2.15 (o dono: "no fechamento ... quantas crianças passaram pelo espaço no final do dia"): quem saiu hoje e quem está no espaço, uma vez cada */

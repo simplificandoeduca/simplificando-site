@@ -1301,6 +1301,19 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Pacote futuro vira fiado: a venda do dia, as horas para o cliente, o "A receber" no caixa e o aviso (3.05)
+
+Pedidos do dono (27/11): "a venda futura, ela entra no caixa do dia"; "Já ajuste as vendas futuras de hoje"; "As horas também entra para o cliente. É tipo um fiado, só que se ele não paga, gera um alerta"; "o a receber pode ter um campo lá no caixa, a receber, que vai somar ao todo ... do lado do links ... quando ele paga eu coloco" (pago depois: no caixa do dia da venda).
+
+- O **Pacote futuro**, lançado pelo gestor (ou aprovado por ele), vira a **venda do dia** (PACOTE FUTURO): entra no faturamento de hoje, com a vendedora, e **as horas já vão para o saldo do cliente**. O valor fica **a receber** até o dia combinado (fiado).
+- Não é cobrado na saída da criança nem no "Receber" da ficha.
+- **Caixa do dia** (Finalizados): ao lado do Link, a caixinha **"A receber"**, que soma no total do dia. Tocar nela abre o Receber.
+- **Receber**: pelo "A receber" do caixa, pelo aviso da tela inicial ou em Festas → Vendas futuras. Escolha a forma (ou divida). O valor sai do "A receber" e vai para a forma, **no caixa do dia da venda** (o total daquele dia não muda). Sai o cupom; os lembretes do calendário ficam feitos.
+- **Aviso**: na tela inicial, o pacote futuro que vence hoje ("pagar hoje") ou que já venceu sem pagar ("não pagou · venceu dd/mm"), com o Receber.
+- Vendas futuras: "fiado · a receber", "fiado · vence hoje", "fiado · não pagou", "paga" ou "venda cancelada".
+- Os pacotes futuros lançados/aprovados de 27/11 em diante, antes da 3.05, foram acertados uma vez só, ao atualizar: viraram a venda do dia em que foram aprovados, com as horas e o valor a receber. Ficaram de fora os já marcados como pagos e o cliente que já tinha comprado o pacote no balcão.
+- O aviso verde do pedido aprovado diz "Aprovado por ..." (antes dizia "Nota autorizada").
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Festa: escolher a festa do upgrade; data do lançamento no caixa e valor do upgrade com a senha do gestor (3.04)
 
 Pedidos do dono (27/11): "no upgrade de festa ... eu tenho que ter a opção de selecionar a festa para mim fazer o upgrade"; "na festa você coloque uma opção para o gestor, para ele colocar a senha, data do lançamento do caixa da festa ... e data do lançamento do upgrade"; "coloca uma opção também, valor do upgrade".

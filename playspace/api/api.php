@@ -89,6 +89,7 @@ function dados(array $eu): array {
   try { baixaAutomatica(); } catch (Throwable $e) { registrarErro('baixa automática: ' . $e->getMessage()); }   // 1.90: quem ficou sem saída de um dia para o outro
   acertarTodas();   // quem passou do tempo comprado mais a tolerância já aparece com a nova cobrança
   acertarCupons();   // 0.93: venda desfeita ou cancelada: o cupom fiscal dela acompanha
+  try { vfutFiadoLegado(); } catch (Throwable $e) { registrarErro('pacote futuro (fiado): ' . $e->getMessage()); }   /* 3.05: os pacotes futuros de 27/11 em diante viram a venda do dia (uma vez só) */
   if (mudancas() > (int)($GLOBALS['PS_MARCADO'] ?? 0)) bancoMudou();   /* 2.66: as tarefas acima gravaram: a lista guardada não vale mais */
   $balcao = balcaoCT(true);   /* 2.00: o cliente da loja da Casa Tom vai à parte (fora das listas) */
   $criancas = cacheGrande('lista', 2.0, function () use ($db, $balcao) {   /* 2.66: a lista de clientes (a mesma para todos) é montada uma vez para as telas que recarregam juntas; gravou, sai */
@@ -137,7 +138,7 @@ function dados(array $eu): array {
     AND NOT EXISTS (SELECT 1 FROM visitas x WHERE x.crianca_id = c.id) AND NOT EXISTS (SELECT 1 FROM cancelamentos k WHERE k.crianca_id = c.id AND k.tipo != \'desfeita\') ORDER BY c.criado_em, c.id');
   $q->execute([date('Y-m-d') . ' 00:00:00']); $fora = pendFora();   // quem a equipe tirou da lista hoje ("não vai fazer agora") não volta
   $pend = array_values(array_filter(array_map(fn($p) => ['id' => (int)$p['id'], 'em' => $p['criado_em']], $q->fetchAll()), fn($p) => !isset($fora[$p['id']])));
-  return ['criancas' => array_values($criancas), 'registros' => $registros, 'conversas' => array_values($conversas), 'compromissos' => $compromissos, 'vfut' => vfutLista(), 'festas' => festasDaTela(), 'regra' => regra(), 'cancelamentos' => $canc, 'pendentes' => $pend, 'produtos' => produtos(), 'balcao' => $balcao ? criancaPublica($balcao) : null, 'unidades' => unidades(), 'alugueis' => alugueis(), 'pagamentos_hoje' => pagamentosDesde($hojeMenos), 'cupons' => cuponsDaTela(),
+  return ['criancas' => array_values($criancas), 'registros' => $registros, 'conversas' => array_values($conversas), 'compromissos' => $compromissos, 'vfut' => vfutLista(), 'fiados' => fiadosAbertos(), 'festas' => festasDaTela(), 'regra' => regra(), 'cancelamentos' => $canc, 'pendentes' => $pend, 'produtos' => produtos(), 'balcao' => $balcao ? criancaPublica($balcao) : null, 'unidades' => unidades(), 'alugueis' => alugueis(), 'pagamentos_hoje' => pagamentosDesde($hojeMenos), 'cupons' => cuponsDaTela(),
     'vendas_hoje' => ['n' => (int)$vh['n'], 'min' => (int)$vh['m'], 'horas' => round((int)$vh['m'] / 60, 2), 'valor' => (float)$vh['v']], 'atraso_hoje' => $atrasoHoje, 'descontos_hoje' => $descontosHoje, 'equipe' => $equipe, 'eu' => $eu, 'versao' => PLAY_VERSAO, 'anotacoes' => anotacoesLista(),
     'idface' => (function (array $x) use ($eu) { if ($eu['papel'] !== 'gestor') unset($x['chave'], $x['push_url'], $x['url_ponte']); return $x; })(idfaceEstado()),   /* 1.49: a chave da ponte só para o gestor */ 'whats' => whatsResumo(), 'agora' => agora(), 'exemplo' => ($ex = cfg('exemplo', null)) && is_array($ex) ? count($ex['criancas'] ?? []) : 0,
     'limpeza' => $eu['papel'] === 'gestor' ? ['oferta' => cfg('limpeza_oferta', null) !== null, 'ultima' => limpezaPublica()] : null,
@@ -415,6 +416,9 @@ switch ($acao) {
   }
   case 'ct_sinais': { /* 2.52: Casa Tom → Sinais: quem deu o sinal de 50% e ainda vai buscar; quem não é o gestor vê só a unidade dele */
     $u = exigir(); session_write_close(); responder(ctSinaisLista($u['papel'] === 'gestor' ? (int)($in['uni'] ?? 0) : (int)(unidadeDoPedido() ?? 0)));
+  }
+  case 'fiado_receber': { /* 3.05: o pacote futuro (fiado): o cliente pagou */
+    $u = exigir(); responder(fiadoReceber($in, $u));
   }
   case 'ct_sinal_receber': { /* 2.52: na retirada, o resto do sinal */
     $u = exigir(); responder(ctSinalReceber($in, $u));
