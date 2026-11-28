@@ -1301,6 +1301,15 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Corrigir as horas pelo CPF (3.17)
+
+Pedido do dono (foto do "Corrigir as horas", 28/11): "as horas não precisa ficar [n]a criança, sempre ao CPF" e "pode tirar aí saldo também 0h".
+- Com as horas do CPF (o padrão) e mais de uma criança no CPF, o "Corrigir as horas" do gestor mostra só o **saldo do CPF** e as crianças dele. Saiu o "Nas horas de quem" (com o "saldo 0h" de cada criança).
+- **Somar horas:** entram no CPF (guardadas na mesma criança que o Vender pacote usa).
+- **Tirar horas:** saem do CPF, das crianças que têm horas (a que tem mais primeiro), tudo de uma vez no servidor; não deixa tirar mais do que o CPF tem. Cada criança mexida ganha a linha do ajuste, com o motivo e o nome do gestor, e cada linha continua podendo ser desfeita no Histórico.
+- "O saldo fica" mostra o saldo do CPF ("Saldo do CPF: 4h (+3h)").
+- Cliente com uma criança só, ou com as horas por criança (Ajustes): como antes.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O Atendimento em duas colunas no computador (3.16)
 
 Pedido do dono (foto do Atendimento no computador, 28/11): "tô achando apertada essa tela, conseguir visualizar tudo de uma vez só seria melhor".

@@ -2409,7 +2409,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '3.16';
+const VERSAO = '3.17';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -4655,13 +4655,14 @@ async function folhaCorrigirHoras(id) {
   const c = crianca(id); if (!c) return; if (!gestor()) { toast('Só o gestor corrige as horas'); return; }
   if (!LADO || LADO.id !== c.id) abrirHistorico(c.id);
   for (let i = 0; i < 60 && !(LADO && LADO.id === c.id && (LADO.dados || LADO.erro)); i++) await new Promise(r => setTimeout(r, 120));
-  const d = LADO && LADO.id === c.id ? LADO.dados : null, F = familia(c).sort((a, b) => saldoMin(b) - saldoMin(a) || a.nome.localeCompare(b.nome)), alvo = F.find(x => x.id === c.id) && saldoMin(c) > 0 ? c : F[0] || c;
-  HC = { cid: alvo.id, modo: 'mais' }; const L = d ? d.vendas.filter(podeAlterarHoras).sort((a, b) => b.quando - a.quando) : [];
+  const d = LADO && LADO.id === c.id ? LADO.dados : null, F = familia(c).sort((a, b) => saldoMin(b) - saldoMin(a) || a.nome.localeCompare(b.nome)), cpfH = horasCpf() && F.length > 1;
+  const alvo = cpfH ? pqAlvo(F) || c : F.find(x => x.id === c.id) && saldoMin(c) > 0 ? c : F[0] || c;   /* 3.17: com as horas do CPF, as horas somadas ficam na mesma criança que o Vender pacote usa */
+  HC = { cid: alvo.id, modo: 'mais', cpf: cpfH ? F.map(x => x.id) : null }; const L = d ? d.vendas.filter(podeAlterarHoras).sort((a, b) => b.quando - a.quando) : [];
   const dentro = F.filter(x => x.entrou && planoDe(x) !== 'pacote');
   abrirFolha('Corrigir as horas', `<div id="hc-corpo" style="display:flex;flex-direction:column;gap:12px">
-    <div class="linha">${avatar(c)}<div class="txt"><b>${nomeResp(c)}</b><span>saldo de agora: <b id="hc-saldo0">${dur(F.reduce((t, x) => t + saldoMin(x), 0))}</b>${F.length > 1 ? ' (as crianças juntas)' : ''}</span></div></div>
+    <div class="linha">${avatar(c)}<div class="txt"><b>${nomeResp(c)}</b><span>${cpfH ? 'saldo do CPF' : 'saldo de agora'}: <b id="hc-saldo0">${dur(F.reduce((t, x) => t + saldoMin(x), 0))}</b>${cpfH ? ' · ' + F.length + ' crianças: ' + esc(juntar(F.map(x => x.nome))) : F.length > 1 ? ' (as crianças juntas)' : ''}</span></div></div>
     <p class="explica">Só o gestor. Some ou tire horas quando a equipe lançou errado: não é venda (não entra no caixa), fica registrado com o motivo e o seu nome.</p>
-    ${F.length > 1 ? `<div class="campo"><label>Nas horas de quem</label><div class="ent-chips" id="hc-quem">${F.map(x => `<button type="button" class="ent-chip tap" data-act="hc-quem" data-id="${x.id}" aria-pressed="${x.id === alvo.id}"><i aria-hidden="true">${ic(IC.check, 14, 3)}</i><span><b>${esc(x.nome)}</b><small>saldo ${hm(saldoMin(x))}</small></span></button>`).join('')}</div></div>` : ''}
+    ${F.length > 1 && !cpfH ? `<div class="campo"><label>Nas horas de quem</label><div class="ent-chips" id="hc-quem">${F.map(x => `<button type="button" class="ent-chip tap" data-act="hc-quem" data-id="${x.id}" aria-pressed="${x.id === alvo.id}"><i aria-hidden="true">${ic(IC.check, 14, 3)}</i><span><b>${esc(x.nome)}</b><small>saldo ${hm(saldoMin(x))}</small></span></button>`).join('')}</div></div>` : ''}
     <div class="seg" id="hc-modo">${[['mais', 'Somar horas'], ['menos', 'Tirar horas']].map(([v, n]) => `<button type="button" data-act="hc-modo" data-v="${v}" aria-pressed="${v === 'mais'}">${n}</button>`).join('')}</div>
     <div class="dois"><div class="campo"><label for="hc-h">Quantas horas<span class="obg" aria-hidden="true">*</span></label><input id="hc-h" inputmode="decimal" maxlength="8" autocomplete="off" placeholder="ex.: 1 ou 1h30"></div>
       <div class="campo"><label>O saldo fica</label><p class="vh-saldo" id="hc-fica" aria-live="polite">—</p></div></div>
@@ -4672,21 +4673,24 @@ async function folhaCorrigirHoras(id) {
     <button type="button" class="bt claro largo tap" data-act="hc-vender" data-id="${(dentro[0] || alvo).id}">${ic(IC.presente, 16)} Vender o pacote agora</button></div>`);
   const i = $('#hc-h'); if (i) { i.addEventListener('input', hcConta); setTimeout(() => { if (i.isConnected) i.focus(); }, 300); } hcConta();
 }
-function hcConta() { const c = HC && crianca(HC.cid), o = $('#hc-fica'); if (!c || !o) return; const m = lerHorasTxt(val('hc-h')), s = saldoMin(c); o.classList.remove('falta');
-  if (m == null || !(m > 0)) { o.textContent = `${c.nome}: ${dur(s)} agora`; return; }
-  const novo = HC.modo === 'mais' ? s + m : s - m; if (novo < 0) { o.classList.add('falta'); o.textContent = `não dá: ${c.nome} tem ${dur(s)}`; return; }
-  o.textContent = `${c.nome}: ${dur(novo)} (${HC.modo === 'mais' ? '+' : '−'}${dur(m)})`; }
+const hcSaldo = () => HC && HC.cpf ? HC.cpf.map(crianca).filter(Boolean).reduce((t, x) => t + saldoMin(x), 0) : saldoMin(crianca(HC.cid));   /* 3.17: o saldo do CPF */
+function hcConta() { const c = HC && crianca(HC.cid), o = $('#hc-fica'); if (!c || !o) return; const m = lerHorasTxt(val('hc-h')), s = hcSaldo(), quem = HC.cpf ? 'Saldo do CPF' : c.nome; o.classList.remove('falta');
+  if (m == null || !(m > 0)) { o.textContent = `${quem}: ${dur(s)} agora`; return; }
+  const novo = HC.modo === 'mais' ? s + m : s - m; if (novo < 0) { o.classList.add('falta'); o.textContent = `não dá: ${HC.cpf ? 'o CPF' : c.nome} tem ${dur(s)}`; return; }
+  o.textContent = `${quem}: ${dur(novo)} (${HC.modo === 'mais' ? '+' : '−'}${dur(m)})`; }
 async function salvarCorrecaoHoras(el) {
   const c = HC && crianca(HC.cid); if (!c) return; if (!gestor()) { toast('Só o gestor corrige as horas'); return; }
   const m = lerHorasTxt(val('hc-h')), mot = MAI(val('hc-m')), foco = id => { const i = $('#' + id); if (i) i.focus(); };
   if (m == null || !(m > 0) || m > 999 * 60) { toast('Escreva quantas horas (ex.: 1 ou 1h30)'); foco('hc-h'); return; }
-  if (HC.modo === 'menos' && m > saldoMin(c)) { toast(`Não dá para tirar mais do que ${c.nome} tem (${dur(saldoMin(c))})`); foco('hc-h'); return; }
+  if (HC.modo === 'menos' && m > hcSaldo()) { toast(`Não dá para tirar mais do que ${HC.cpf ? 'o saldo do CPF' : c.nome + ' tem'} (${dur(hcSaldo())})`); foco('hc-h'); return; }
   if (mot.length < 5) { toast('Escreva o motivo da correção'); foco('hc-m'); return; }
-  const delta = HC.modo === 'mais' ? m : -m; el.disabled = true;
+  const delta = HC.modo === 'mais' ? m : -m, cpf = !!HC.cpf; el.disabled = true;
   try {
-    if (MODO === 'servidor') { await api('horas_ajuste', { crianca: c.id, minutos: delta, motivo: mot }); await carregar(); }
-    else { if (c.pmin != null) c.pmin += delta; else c.pacote = Math.max(0, (+c.pacote || 0) + delta / 60); registrar('alt', c.nome, `Ajuste do gestor: ${delta > 0 ? '+' : '−'}${dur(m)} nas horas · ${mot} · por ${MAI(primeiro(EU.nome || 'gestor'))}`); }
-    const nome = c.nome; HC = null; fecharFolha(); desenhar(); if (LADO) abrirHistorico(LADO.id); deuCerto(`Horas corrigidas: ${delta > 0 ? '+' : '−'}${dur(m)} para ${nome}`);
+    if (MODO === 'servidor') { await api('horas_ajuste', { crianca: c.id, minutos: delta, motivo: mot, ...(cpf ? { cpf: 1 } : {}) }); await carregar(); }
+    else { const soma = (x, v) => { if (x.pmin != null) x.pmin += v; else x.pacote = Math.max(0, (+x.pacote || 0) + v / 60); }, por = ` · ${mot} · por ${MAI(primeiro(EU.nome || 'gestor'))}`;
+      if (cpf && delta < 0) { let resto = m; for (const x of HC.cpf.map(crianca).filter(Boolean).sort((a, b) => saldoMin(b) - saldoMin(a))) { const t = Math.min(Math.max(0, saldoMin(x)), resto); if (t <= 0) continue; soma(x, -t); registrar('alt', x.nome, `Ajuste do gestor: −${dur(t)} nas horas${por}`); resto -= t; if (resto <= 0) break; } }   /* 3.17 */
+      else { soma(c, delta); registrar('alt', c.nome, `Ajuste do gestor: ${delta > 0 ? '+' : '−'}${dur(m)} nas horas${por}`); } }
+    const nome = cpf ? 'o CPF de ' + (c.resp || c.nome) : c.nome; HC = null; fecharFolha(); desenhar(); if (LADO) abrirHistorico(LADO.id); deuCerto(`Horas corrigidas: ${delta > 0 ? '+' : '−'}${dur(m)} para ${nome}`);
   } catch (e) { toast(e.message); if (el && el.isConnected) el.disabled = false; }
 }
 /* 3.05 (o dono: "a venda futura, ela entra no caixa do dia ... As horas também entra para o cliente. É tipo um fiado, só que se ele não

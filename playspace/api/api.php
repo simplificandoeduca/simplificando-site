@@ -1133,6 +1133,16 @@ switch ($acao) {
     $c = crianca((int)($in['crianca'] ?? 0)); if (!$c) falha('Cliente não encontrado.', 404);
     $m = (int)($in['minutos'] ?? 0); if ($m === 0 || abs($m) > 999 * 60) falha('Escreva quantas horas somar ou tirar.');
     $mot = mb_substr(maiusculo(trim((string)($in['motivo'] ?? ''))), 0, 200); if (mb_strlen($mot) < 5) falha('Escreva o motivo da correção.');
+    if (!empty($in['cpf']) && $m < 0) { /* 3.17 (o dono: "as horas ... sempre ao CPF"): tirar horas do CPF sai das crianças dele que têm horas, a que tem mais primeiro */
+      $F = array_merge([$c], irmaosDe($c)); $sal = []; foreach ($F as $x) $sal[(int)$x['id']] = max(0, (int)$x['pacote_min'] - autosDaVisitaMin($x) - (int)$x['usado_min']);
+      $tot = array_sum($sal); if ($tot + $m < 0) falha('Não dá para tirar mais do que o saldo do CPF (' . dur($tot) . ').');
+      usort($F, fn($a, $b) => $sal[(int)$b['id']] <=> $sal[(int)$a['id']]); $resto = -$m;
+      foreach ($F as $x) { $t = min($sal[(int)$x['id']], $resto); if ($t <= 0) continue;
+        db()->prepare('UPDATE criancas SET pacote_min = pacote_min - ? WHERE id = ?')->execute([$t, (int)$x['id']]);
+        registrar('alt', (int)$x['id'], (string)$x['nome'], 'Ajuste do gestor: −' . dur($t) . ' nas horas · ' . $mot . ' · por ' . maiusculo(primeiroNome((string)$u['nome'])));
+        $resto -= $t; if ($resto <= 0) break; }
+      responder(['saldo' => $tot + $m, 'cpf' => true]);
+    }
     $saldo = (int)$c['pacote_min'] - autosDaVisitaMin($c) - (int)$c['usado_min']; if ($m < 0 && $saldo + $m < 0) falha('Não dá para tirar mais do que o saldo (' . dur(max(0, $saldo)) . ').');
     db()->prepare('UPDATE criancas SET pacote_min = pacote_min + ? WHERE id = ?')->execute([$m, (int)$c['id']]);
     registrar('alt', (int)$c['id'], (string)$c['nome'], 'Ajuste do gestor: ' . ($m > 0 ? '+' : '−') . dur(abs($m)) . ' nas horas' . (isset($in['comprou']) && is_numeric($in['comprou']) ? ' · comprou passa a ' . dur(max(0, (int)$in['comprou'])) : '') . ' · ' . $mot . ' · por ' . maiusculo(primeiroNome((string)$u['nome'])));
