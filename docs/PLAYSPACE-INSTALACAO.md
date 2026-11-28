@@ -1301,6 +1301,15 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O Caixa do dia no celular e no tablet (3.13)
+
+Pedido do dono (foto do celular, 28/11): "tela bugada".
+- Em Finalizados do dia → Caixa do dia, o gestor tem 4 botões (Ajustar caixa, Imprimir, PDF do dia, PDF da semana). Em telas médias (celular grande deitado, tablet, de ~430 a ~1100 de largura) eles ficavam ao lado do título e do total, que viravam uma coluna fina com uma palavra por linha; em algumas larguras um botão passava da borda.
+- Conserto: quando os botões não cabem ao lado, eles descem para uma linha própria (alinhados à direita). O título e o total ficam sempre com espaço (mínimo de 220 de largura).
+- Junto: as unidades do caixa (Anália, Morumbi, Casa Tom Anália, Casa Tom Morumbi, Todas): quando não cabem numa linha, os botões preenchem as linhas por igual (antes o "TODAS" ficava sozinho num canto).
+
+Conferido em 11 larguras (de 360 a 1366), como gestor e como atendente, com as 4 unidades; e as telas principais no iPhone, num Android de 360, num celular grande (430), em 703, num iPad mini e em 820.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O celular na tela inicial "por serviço" (3.12)
 
 Achado na regressão da 3.11 (um teste antigo do celular, da 0.90, que passou a falhar na 3.09):
