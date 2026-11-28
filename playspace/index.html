@@ -838,6 +838,7 @@ body.quieto .dica { animation: none !important; }
 .banco-linha .ult b { font-size: 13.5px; font-weight: 700; } .banco-linha .ult span { font-size: 12px; color: var(--tinta-2); }
 .banco-linha .acoes { flex-wrap: nowrap; justify-content: flex-end; gap: 6px; }
 .banco-linha .bt.so-ic { width: 40px; padding: 0; justify-content: center; flex: none; }
+.banco-linha .bl-cpf { flex-basis: 100%; font-size: 11.5px; font-weight: 700; color: var(--tinta-2); line-height: 1.2; }   /* 3.15 */
 @container (max-width: 900px) { .banco-cab .bc-u, .banco-linha .ult { display: none; } .banco-cab, .banco-linha { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) var(--bl-ac); } }
 @container (max-width: 520px) { .banco-cab { display: none; } .banco-linha { grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; padding: 8px 10px; }
   .banco-linha .acoes .rt, .banco-linha .bt.so-ic { display: none; } .banco-linha .acoes .bt { width: 40px; padding: 0; justify-content: center; }
@@ -2405,7 +2406,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '3.14';
+const VERSAO = '3.15';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -10907,7 +10908,36 @@ const ultimaBanco = c => /^avulsa/.test(c.venda.com || '') ? esc((c.venda.servic
 const ultimaCurta = c => { const v = c.venda, s = String(v.servico || '').trim(); return s ? (/^pacote\b/i.test(s) ? s : s + ' · ' + dur(minDe(v))) : (minDe(v) === 60 ? 'Hora avulsa' : dur(minDe(v))); };   // "PACOTE 05 HORAS 420" ou "RECREAÇÃO · 0h30"
 const criOrdem = () => { if (MODO !== 'servidor') return S.criancas.slice().sort(porResp); const X = criIdx(); return X.ord || (X.ord = S.criancas.slice().sort(porResp)); };   /* 2.60: a ordem do Banco, feita uma vez por lista (no servidor) */
 const BANCO_MAX = 60;   /* 2.60: eram 150 (desenhar menos linhas deixa a aba bem mais rápida; a busca acha todos) */   // 1.01: quantos clientes a lista do Banco de horas desenha de uma vez (o resto vem pela busca)
+/* 3.15 (o dono, com a foto do Banco de horas: "aí precisa ser a mesma lógica das horas por CPF"): com as horas do CPF (Ajustes → Regra das
+   horas), o Banco de horas tem uma linha por CPF: o responsável, as crianças dele juntas e o saldo de todas somado (o mesmo "Saldo do CPF"
+   do Vender pacote). O lápis do gestor abre o conserto das horas, que já mostra as crianças juntas e deixa escolher em qual mexer */
+const famChaveBanco = c => docDe(c) || (tel8(c) ? 't' + tel8(c) : 'i' + c.id);
+function famsBanco() { const L = criOrdem(), X = MODO === 'servidor' ? criIdx() : null; if (X && X.famsB && X.famsB.n === L.length) return X.famsB.g;   /* (no servidor, uma vez por lista) */
+  const g = [], onde = new Map(); for (const c of L) { const k = famChaveBanco(c), a = onde.get(k); if (a) a.push(c); else { const n = [c]; onde.set(k, n); g.push(n); } }
+  if (X) X.famsB = { n: L.length, g }; return g; }
+const saldoFam = g => g.reduce((t, c) => t + saldoAgora(c), 0);
+const filtroBancoFam = g => (S.bancoFiltro || 'todas') === 'emdia' ? saldoFam(g) >= periodo() : true;
+function linhasBancoCpf() {
+  const q = (S.bancoBusca || '').toLowerCase(), fams = famsBanco().filter(g => (!q || g.some(c => bateCliente(c, q))) && filtroBancoFam(g));
+  if (!fams.length) return `<div class="card vazio"><b>${q ? 'Ninguém com esse nome, CPF ou telefone.' : 'Nenhum cliente neste filtro.'}</b></div>`;
+  const linha = g => { const c = g[0], s = saldoFam(g), ab = g.find(emAberto), dentro = g.filter(x => x.entrou), zerou = !dentro.length && !ab && g.some(precisaRenovar) && s < periodo(), alvo = ab || pqAlvo(g) || c;
+    const uv = g.filter(x => x.venda).sort((a, b) => +new Date(b.venda.quando) - +new Date(a.venda.quando))[0], ids = g.map(x => x.id).join(','), quem = esc(c.resp || c.nome);
+    const nomes = g.length > 1 ? esc(juntar(g.map(x => x.nome))) : (c.resp ? esc(c.nome) : '') + (idadeDe(c) ? (c.resp ? ', ' : '') + idadeDe(c) : '');
+    const selo = dentro.length ? `<span class="pill p-ok">No espaço${g.length > 1 ? ': ' + esc(juntar(dentro.map(x => primeiro(x.nome)))) : ''}</span>` : ab ? '<span class="pill p-aviso">Falta finalizar</span>' : zerou ? '<span class="pill p-erro">Pacote acabou</span>' : '';
+    const doCpf = g.length > 1 ? `<small class="bl-cpf">${g.length} crianças · saldo do CPF</small>` : '';
+    return `<div class="banco-linha${zerou ? ' zerou' : ''}${g.length > 1 ? ' fam' : ''}">
+    <button class="quem tap" data-act="ficha" data-id="${alvo.id}" aria-label="Abrir a ficha de ${quem}">${avatar(alvo)}<span class="txt"><b>${quem}${c.resp ? relP(c) : ''}${recTexto(c)}</b><span>${nomes}</span></span></button>
+    ${gestor() ? `<button type="button" class="bl-saldo bl-alt tap${s > 0 ? '' : ' zero'}" data-act="banco-horas" data-id="${alvo.id}" data-banco-fam="${ids}" data-k="${s}" title="Alterar as horas do CPF (gestor)" aria-label="Saldo do CPF: ${hm(s)}. Tocar para alterar as horas"><b class="num">${hm(s)}</b>${ic(IC.lapis, 13)}${doCpf}${selo}</button>`
+      : `<div class="bl-saldo${s > 0 ? '' : ' zero'}" data-banco-fam="${ids}" data-k="${s}" aria-label="Saldo do CPF: ${hm(s)}"><b class="num">${hm(s)}</b>${doCpf}${selo}</div>`}
+    <button class="ult tap" data-act="historico" data-id="${(uv || c).id}" title="Abrir o histórico de ${quem}">${uv ? `<b>${ultimaBanco(uv)}</b><span>${diaCurto(uv.venda.quando)}${g.length > 1 ? ' · ' + esc(primeiro(uv.nome)) : ''}</span>` : '<span>Sem compra ainda</span>'}</button>
+    <div class="acoes">${COM_WHATS ? `<button class="bt ${zerou ? 'forte' : ''} tap" data-act="renovar" data-id="${alvo.id}" title="Chamar ${quem} no WhatsApp para renovar">${ic(IC.zap, 16)} ${zerou ? 'Chamar para renovar' : 'WhatsApp'}</button>` : ''}<button class="bt so-ic tap" data-act="historico" data-id="${(uv || c).id}" title="Histórico de ${quem}" aria-label="Histórico de ${quem}">${ic(IC.historico, 16)}</button><button class="bt ${ab || (!COM_WHATS && zerou) ? 'forte' : ''} tap" data-act="vender" data-id="${alvo.id}" aria-label="${ab ? 'Continuar o atendimento de' : 'Vender para'} ${quem}">${ic(IC.mais, 16)}<span class="rt">${ab ? 'Continuar' : 'Vender'}</span></button></div>
+  </div>`; };
+  return `<div class="banco-cab" aria-hidden="true"><span>Responsável e crianças</span><span>Saldo do CPF</span><span class="bc-u">Última compra</span><span></span></div>`
+    + fams.slice(0, BANCO_MAX).map(linha).join('')
+    + (fams.length > BANCO_MAX ? `<p class="explica banco-mais">Mostrando os primeiros ${BANCO_MAX} de ${fams.length.toLocaleString('pt-BR')} clientes. Escreva o nome, o telefone ou o CPF na busca para achar os outros.</p>` : '');
+}
 function linhasBanco() {
+  if (horasCpf()) return linhasBancoCpf();   /* 3.15 */
   const q = (S.bancoBusca || '').toLowerCase();
   const lista = criOrdem().filter(filtroBanco).filter(c => !q || bateCliente(c, q));   /* 2.60: a lista já em ordem (filtrar não muda a ordem) */   /* 2.25: o telefone só com números também */
   if (!lista.length) return `<div class="card vazio"><b>${q ? 'Ninguém com esse nome, CPF ou telefone.' : 'Nenhuma criança neste filtro.'}</b></div>`;
@@ -10927,7 +10957,7 @@ function linhasBanco() {
     + (fams.length > BANCO_MAX ? `<p class="explica banco-mais">Mostrando os primeiros ${BANCO_MAX} de ${fams.length.toLocaleString('pt-BR')} clientes. Escreva o nome, o telefone ou o CPF na busca para achar os outros.</p>` : '');
 }
 function telaBanco() {
-  const renovar = paraRenovar(), f = S.bancoFiltro || 'todas', n = k => S.criancas.filter(c => k === 'renovar' ? precisaRenovar(c) : k === 'emdia' ? temPeriodo(c) : k === 'dentro' ? !!c.entrou : true).length;
+  const renovar = paraRenovar(), f = S.bancoFiltro || 'todas', n = k => horasCpf() && (k === 'todas' || k === 'emdia') ? famsBanco().filter(g => k === 'todas' || saldoFam(g) >= periodo()).length : S.criancas.filter(c => k === 'renovar' ? precisaRenovar(c) : k === 'emdia' ? temPeriodo(c) : k === 'dentro' ? !!c.entrou : true).length;
   const saldo = S.criancas.reduce((a, c) => a + saldoAgora(c), 0);
   const alertas = renovar.length ? renovar.map(c => { const zerou = saldoMin(c) <= 0, ja = chamadaRenovar(c); return `<div class="alerta-r ${zerou ? 'zerou' : ''}">
       ${avatar(c)}
@@ -10935,9 +10965,9 @@ function telaBanco() {
       <div class="acoes"><button class="bt forte tap" data-act="renovar" data-id="${c.id}">${ic(IC.zap, 16)} ${ja ? 'Chamar de novo' : 'Chamar no WhatsApp'}</button><button class="bt claro tap" data-act="vender" data-id="${c.id}">${ic(IC.mais, 16)} Vender horas</button></div>
     </div>`; }).join('') : `<div class="card vazio"><b>Ninguém para renovar agora.</b><span>Quando as horas de uma criança estiverem acabando, o aviso aparece aqui com o botão do WhatsApp.</span></div>`;
   const chip = (k, t) => `<button class="tap" data-act="banco-filtro" data-f="${k}" aria-pressed="${f === k}">${t}<b>${n(k)}</b></button>`;
-  return faixa('Banco de horas', `${S.criancas.length} ${S.criancas.length === 1 ? 'criança' : 'crianças'} · ${hm(saldo)} em saldo · as horas não expiram`, !COM_WHATS ? '' : renovar.length ? `<span class="chip">${renovar.length} para renovar</span>` : `<span class="chip suave"><i class="pt"></i>Tudo em dia</span>`) + `
+  return faixa('Banco de horas', `${horasCpf() ? (nf => `${nf} ${nf === 1 ? 'cliente' : 'clientes'} (CPF) · `)(famsBanco().length) : ''}${S.criancas.length} ${S.criancas.length === 1 ? 'criança' : 'crianças'} · ${hm(saldo)} em saldo · as horas não expiram`, !COM_WHATS ? '' : renovar.length ? `<span class="chip">${renovar.length} para renovar</span>` : `<span class="chip suave"><i class="pt"></i>Tudo em dia</span>`) + `
   ${COM_WHATS ? `<section class="sec"><div class="sec-cab"><h2><i></i>Para renovar</h2>${renovar.length ? `<span class="pill p-erro">${renovar.length}</span>` : ''}</div><div class="alertas">${alertas}</div></section>` : ''}
-  <section class="sec"><div class="sec-cab"><h2><i style="background:var(--mostarda)"></i>Todas as crianças</h2></div>
+  <section class="sec"><div class="sec-cab"><h2><i style="background:var(--mostarda)"></i>${horasCpf() ? 'Todos os clientes, por CPF' : 'Todas as crianças'}</h2></div>
     <div class="banco-topo"><div class="dias">${chip('todas', 'Todas')}${chip('emdia', 'Com tempo guardado')}</div><div class="campo"><input id="banco-busca" value="${esc(S.bancoBusca || '')}" placeholder="Buscar responsável, criança, telefone, CPF ou RNE" autocomplete="off"></div></div>
     <div class="banco-lista" id="banco-lista"${COM_WHATS ? ' style="--bl-ac:360px"' : ''}>${linhasBanco()}</div>
   </section>`;
@@ -12043,6 +12073,7 @@ setInterval(() => {
   { const gc = $('#sg-conta'), gb = $('#sg-ok'); if (gc && gb && !gb.disabled && SAI) { const g = contaGrupo(); if (!g.L.length && !g.A.length) fecharFolha(); else if (gc.dataset.k !== chaveGrupo(g)) atualizarGrupo(); } }   // 1.07: a conta em conjunto também acompanha o relógio
   if ($('#sa-box')) altSaidaRedesenha(false);   // 1.39: o "Alterar pacote" da saída acompanha (o pedido respondido, o item que entrou)
   $$('[data-ficha-pago]').forEach(el => { const c = crianca(el.dataset.fichaPago); if (!c) return; const k = chavePago(c); if (el.dataset.k !== k) { el.dataset.k = k; el.innerHTML = pagoFicha(c); } });   // 1.02: o que falta receber (nasceu uma cobrança por atraso, ou foi recebido)
+  $$('[data-banco-fam]').forEach(el => { const s = el.dataset.bancoFam.split(',').reduce((t, i) => { const c = crianca(i); return t + (c ? saldoAgora(c) : 0); }, 0); if (el.dataset.k !== String(s)) { el.dataset.k = s; const b = $('b', el); if (b) b.textContent = hm(s); el.classList.toggle('zero', !(s > 0)); } });   /* 3.15: o saldo do CPF */
   $$('[data-banco-saldo]').forEach(el => { const c = crianca(el.dataset.bancoSaldo); if (!c) return; const s = saldoAgora(c); if (el.dataset.k !== String(s)) { el.dataset.k = s; const b = $('b', el); if (b) b.textContent = hm(s); el.classList.toggle('zero', !(s > 0)); } });   // o saldo do Banco de horas só muda de período em período
   $$('[data-ficha-saldo]').forEach(el => { const c = crianca(el.dataset.fichaSaldo); if (!c) return; const k = pacMin(c) + '|' + usadoAgora(c); if (el.dataset.k !== k) { el.dataset.k = k; el.innerHTML = saldoFicha(c, el.dataset.ed === '1'); } });   // o saldo da comanda acompanha o relógio
   if (MODO !== 'servidor') { let novas = 0; for (const c of S.criancas) if (c.entrou) novas += acertarDemo(c); if (novas) desenhar(true); }

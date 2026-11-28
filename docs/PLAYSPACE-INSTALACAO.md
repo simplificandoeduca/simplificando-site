@@ -1301,6 +1301,16 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O Banco de horas por CPF (3.15)
+
+Pedido do dono (fotos do Banco de horas e do Vender pacote com o SALDO DO CPF, 28/11): "aí precisa ser a mesma lógica das horas por CPF".
+- Com as horas do CPF (Ajustes → Regra das horas, o padrão desde a 2.11), o Banco de horas tem **uma linha por CPF**: o responsável, as crianças dele juntas ("KIKO, LULU e MIMI") e o **saldo do CPF** (as horas de todas somadas: o mesmo número do "Saldo do CPF" do Vender pacote). Com mais de uma criança, a linha diz "3 crianças · saldo do CPF".
+- Buscar qualquer criança, o responsável, o telefone ou o CPF mostra a linha do CPF inteira.
+- O alto da tela conta os clientes (CPF) e as crianças: "15.009 clientes (CPF) · 15.020 crianças · ... em saldo". Os botões **Todas** e **Com tempo guardado** contam clientes (CPF); "Com tempo guardado" é o CPF com pelo menos um período somando as crianças.
+- Na linha: "No espaço: LULU" quando uma criança do CPF está no espaço; a última compra do CPF (com o nome da criança); **Vender** vende para o CPF (a mesma criança que o Vender pacote escolhe); o lápis do gestor abre o "Corrigir as horas", que já mostra as crianças juntas e deixa escolher em qual mexer.
+- Com as horas por criança (Ajustes → Regra das horas), a lista continua como antes (uma linha por criança).
+- Velocidade conferida com 15 mil clientes: igual à 3.14.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Quantos carrinhos de cada um no caixa (3.14)
 
 Pedido do dono (foto do caixa, 28/11): "no Finalizados do dia, carrinho de bebê tem que aparecer a quantidade, e carrinhos fusquinhas, de cada um".
