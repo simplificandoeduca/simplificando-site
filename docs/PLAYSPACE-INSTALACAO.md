@@ -1301,6 +1301,13 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Quantos carrinhos de cada um no caixa (3.14)
+
+Pedido do dono (foto do caixa, 28/11): "no Finalizados do dia, carrinho de bebê tem que aparecer a quantidade, e carrinhos fusquinhas, de cada um".
+- A linha **Carrinhos** do Caixa do dia mostra quantos saíram de cada um, na frente do nome: "12 × CARRINHO DE BEBÊ R$ 540,00 · 3 × CARRINHO FUSQUINHA R$ 120,00". O caixa impresso também.
+- A conta: cada venda de carrinho guarda quantos carrinhos saíram (o carrinho de bebê: a quantidade escolhida, de 1 a 4; o fusquinha: uma venda por carrinho). A venda paga em duas formas conta uma vez só. O "tempo a mais" cobrado na devolução do fusquinha é cobrança, não é mais um carrinho.
+- Em "Todas", soma as unidades.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O Caixa do dia no celular e no tablet (3.13)
 
 Pedido do dono (foto do celular, 28/11): "tela bugada".

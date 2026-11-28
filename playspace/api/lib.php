@@ -2275,13 +2275,15 @@ function devolvidoHoje(?string $dia = null): array {
 }
 function caixaDoDia(int $so = 0, ?string $dia = null): array {   /* 2.15: $so = só esta unidade (quem não é o gestor vê só a dele). 2.26: $dia = outro dia */
   [$d0, $d1] = diaDoCaixa($dia); $ehHoje = $d0 === date('Y-m-d') . ' 00:00:00';
-  $q = db()->prepare("SELECT COALESCE(p.unidade_id, v.unidade_id, 0) u, p.forma f, p.valor val, p.venda_id vid, v.servico s, (COALESCE(v.produto_id, 0) > 0) pr, v.alug a, v.minutos m, v.auto au, v.voucher vo, v.festa_id fid FROM pagamentos p JOIN vendas v ON v.id = p.venda_id WHERE p.quando >= ? AND p.quando < ? ORDER BY p.id");   // 1.31: a unidade em que o dinheiro entrou
-  $q->execute([$d0, $d1]); $o = [];
+  $q = db()->prepare("SELECT COALESCE(p.unidade_id, v.unidade_id, 0) u, p.forma f, p.valor val, p.venda_id vid, v.servico s, (COALESCE(v.produto_id, 0) > 0) pr, v.alug a, v.minutos m, v.auto au, v.voucher vo, v.festa_id fid, v.qtd qt, v.itens it FROM pagamentos p JOIN vendas v ON v.id = p.venda_id WHERE p.quando >= ? AND p.quando < ? ORDER BY p.id");   // 1.31: a unidade em que o dinheiro entrou
+  $q->execute([$d0, $d1]); $o = []; $qVis = [];   /* 3.14: os carrinhos contados uma vez por venda (a venda paga em duas formas não conta dois) */
   foreach ($q->fetchAll() as $l) { $u = (int)$l['u']; $g = grupoDoCaixa($l); $f = (string)$l['f']; $v = round((float)$l['val'], 2);
     if (!isset($o[$u])) $o[$u] = ['uni' => $u, 'grupos' => []];
     if (!isset($o[$u]['grupos'][$g])) $o[$u]['grupos'][$g] = ['formas' => [], 'total' => 0.0, 'vendas' => [], 'itens' => []];
     $x = &$o[$u]['grupos'][$g]; $x['formas'][$f] = round(($x['formas'][$f] ?? 0) + $v, 2); $x['total'] = round($x['total'] + $v, 2); $x['vendas'][(int)$l['vid']] = 1;
-    if ($g === 'carrinhos') { $nm = mb_strtoupper(trim((string)$l['s'])) ?: 'CARRINHO'; $x['itens'][$nm] = round(($x['itens'][$nm] ?? 0) + $v, 2); }
+    if ($g === 'carrinhos') { $nm = mb_strtoupper(trim((string)$l['s'])) ?: 'CARRINHO'; $x['itens'][$nm] = round(($x['itens'][$nm] ?? 0) + $v, 2);
+      /* 3.14: quantos carrinhos de cada um (a venda guarda quantos saíram; o "tempo a mais" da devolução é cobrança, não é carrinho) */
+      if (!isset($qVis[$u][(int)$l['vid']])) { $qVis[$u][(int)$l['vid']] = 1; $qq = (int)$l['qt'] > 0 ? (int)$l['qt'] : (strpos((string)$l['it'], 'tempo a mais') === 0 ? 0 : 1); if ($qq > 0) $x['qtd'][$nm] = ($x['qtd'][$nm] ?? 0) + $qq; } }
     if ($g === 'festa') { $nm = !empty($l['fid']) ? rotuloFestaCaixa((int)$l['fid'], (string)$l['s']) : (mb_strtoupper(trim((string)$l['s'])) ?: 'FESTA'); $x['itens'][$nm] = round(($x['itens'][$nm] ?? 0) + $v, 2); }   // 1.38: de qual festa
     unset($x); }
   /* 3.05 (o dono: "o a receber pode ter um campo lá no caixa ... que vai somar ao todo"): o pacote futuro (fiado) vendido no dia e ainda

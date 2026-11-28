@@ -2405,7 +2405,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '3.13';
+const VERSAO = '3.14';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -7901,11 +7901,12 @@ function rotuloFestaCxPrevia(v) { const s = String(v.servico || 'FESTA').trim().
   return `${s} · festa de ${f.nome} (${dm(f.data)})${vs && isoDia(vs) !== isoDia(agora) ? ' · a festa foi vendida em ' + dm(isoDia(vs)) : ''}`; }
 function caixaUnidades() { // [{ uni, grupos: { recreacao: { formas, total, vendas, itens } ... } }]: o servidor manda; na prévia, a mesma conta
   if (MODO === 'servidor') return CX_ATIVO ? (CXD && CXD.dia === CX_ATIVO && CXD.caixa ? CXD.caixa.unidades || [] : []) : (S.caixa && S.caixa.unidades) || [];   /* 2.26 */
-  const [d0, dFim] = cxIntervalo(); const o = {}, primeira = (unidades()[0] || {}).id || 0;   // (a mesma unidade do painel: o que não tem unidade fica na primeira)
+  const [d0, dFim] = cxIntervalo(); const o = {}, primeira = (unidades()[0] || {}).id || 0, qVis = new Set();   // (a mesma unidade do painel: o que não tem unidade fica na primeira)
   for (const p of S.pagamentos || []) { if (!(+new Date(p.quando) >= +d0 && +new Date(p.quando) < +dFim)) continue; const v = (S.compras || []).find(x => x.id === p.venda); if (!v) continue;
     const u = +(p.uni || v.uni || (crianca(v.crianca) || {}).uni || primeira), g = grupoCxPrevia(v), x = ((o[u] = o[u] || { uni: u, grupos: {} }).grupos[g] = o[u].grupos[g] || { formas: {}, total: 0, vendas: new Set(), itens: {} });
     x.formas[p.f] = centavos((x.formas[p.f] || 0) + (+p.v || 0)); x.total = centavos(x.total + (+p.v || 0)); x.vendas.add(v.id);
-    if (g === 'carrinhos') { const nm = String(v.servico || 'CARRINHO').toUpperCase(); x.itens[nm] = centavos((x.itens[nm] || 0) + (+p.v || 0)); }
+    if (g === 'carrinhos') { const nm = String(v.servico || 'CARRINHO').toUpperCase(); x.itens[nm] = centavos((x.itens[nm] || 0) + (+p.v || 0));
+      if (!qVis.has(u + '|' + v.id)) { qVis.add(u + '|' + v.id); const q = v.alug && +v.alug.q > 0 ? +v.alug.q : /^tempo a mais/i.test(String(v.itens || '')) ? 0 : 1; if (q > 0) { x.qtd = x.qtd || {}; x.qtd[nm] = (x.qtd[nm] || 0) + q; } } }   /* 3.14: quantos de cada */
     if (g === 'festa') { const nm = rotuloFestaCxPrevia(v); x.itens[nm] = centavos((x.itens[nm] || 0) + (+p.v || 0)); } }   // 1.38: de qual festa
   for (const v of S.compras || []) { if (!v.fiado || !(+new Date(v.quando) >= +d0 && +new Date(v.quando) < +dFim)) continue; const f = faltaCompra(v); if (f < 0.005) continue;   /* 3.05: o "A receber" */
     const u = +(v.uni || (crianca(v.crianca) || {}).uni || primeira), x = ((o[u] = o[u] || { uni: u, grupos: {} }).grupos[grupoCxPrevia(v)] = o[u].grupos[grupoCxPrevia(v)] || { formas: {}, total: 0, vendas: new Set(), itens: {} });
@@ -7920,7 +7921,8 @@ function contaCaixa(uni) { // o caixa de uma unidade (0 = todas): o total, por f
   const L = caixaUnidades().filter(x => uni === -1 ? !x.uni : !uni || x.uni === uni), soma = {}, G = {},   /* 1.45: -1 = o recebido num aparelho sem unidade escolhida */ dev = { total: 0, formas: {}, grupos: {}, itens: {}, n: 0 };
   for (const x of L) for (const [k, g] of Object.entries(x.grupos)) { const y = G[k] = G[k] || { formas: {}, total: 0, vendas: 0, itens: {} }; y.total = centavos(y.total + g.total); y.vendas += g.vendas || 0;
     for (const [f, v] of Object.entries(g.formas || {})) { y.formas[f] = centavos((y.formas[f] || 0) + v); soma[f] = centavos((soma[f] || 0) + v); }
-    for (const [n, v] of Object.entries(g.itens || {})) y.itens[n] = centavos((y.itens[n] || 0) + v); }
+    for (const [n, v] of Object.entries(g.itens || {})) y.itens[n] = centavos((y.itens[n] || 0) + v);
+    for (const [n, q] of Object.entries(g.qtd || {})) (y.qtd = y.qtd || {})[n] = (y.qtd[n] || 0) + (+q || 0); }   /* 3.14 */
   for (const x of L) if (x.devolvido) { const d = x.devolvido; dev.total = centavos(dev.total + (+d.total || 0)); dev.n += +d.n || 0;   // 1.31: o devolvido hoje sai das formas e do total; o dos carrinhos, dos carrinhos
     for (const [f, v] of Object.entries(d.formas || {})) { dev.formas[f] = centavos((dev.formas[f] || 0) + v); soma[f] = centavos((soma[f] || 0) - v); }
     for (const [k, v] of Object.entries(d.grupos || {})) dev.grupos[k] = centavos((dev.grupos[k] || 0) + v);
@@ -7960,7 +7962,7 @@ function htmlCaixaDia0() {
   const linha = (n, sub, g, cls = '') => `<div class="cx-g${cls}"><div class="cx-l"><b>${n}</b><span class="num">${brl2(g ? g.total : 0)}</span></div>${g && g.total > 0 ? `<small>${esc(formasCx(g.formas))}${g.vendas ? ' · ' + g.vendas + (g.vendas === 1 ? ' venda' : ' vendas') : ''}</small>` : sub ? `<small>${sub}</small>` : ''}</div>`;
   const itensF = K.G.festa ? Object.entries(K.G.festa.itens || {}) : [];   // 1.38: o que entrou de cada festa (o upgrade diz quando a festa foi vendida)
   const grupos = GRUPOS_CX.filter(([k]) => ['recreacao', 'pacotes', 'festa'].includes(k) || (K.G[k] && K.G[k].total > 0)).map(([k, n]) => linha(n, 'nada recebido ' + hj, K.G[k]) + (k === 'festa' && itensF.length ? `<div class="cx-fes">${itensF.map(([nm, v]) => `<small><span>${esc(nm)}</span><b class="num">${brl2(v)}</b></small>`).join('')}</div>` : '')).join('');
-  const gc = K.G.carrinhos, itensC = gc ? Object.entries(gc.itens).sort((a, b) => b[1] - a[1]).map(([n, v]) => `${esc(n)} ${brl2(v)}`).join(' · ') : '';
+  const gc = K.G.carrinhos, itensC = gc ? Object.entries(gc.itens).sort((a, b) => b[1] - a[1]).map(([n, v]) => { const q = +((gc.qtd || {})[n]) || 0; return `${q ? '<b>' + q + ' ×</b> ' : ''}${esc(n)} ${brl2(v)}`; }).join(' · ') : '';   /* 3.14: quantos de cada */
   return `<section class="cx" aria-label="Caixa do dia">${selDia}${cxEsperando() ? `<p class="cx-velho">Buscando o caixa de ${cxDm()}…</p>` : ''}
     <div class="cx-cab"><span class="cx-ic">${ic(IC.caixa, 24)}</span><div class="txt"><small>${CX_ATIVO ? 'Caixa de ' + cxDm() : 'Caixa do dia'}${onde ? ' · ' + esc(onde) : ''}${CX_ATIVO ? ' · o dia inteiro' : ' · desde a meia-noite'}</small><b class="num">${brl2(K.total)}</b><span>${CX_ATIVO ? 'recebido em ' + nascBR(CX_ATIVO) : 'recebido hoje'}${K.soma.areceber > 0.004 ? ' + ' + brl2(K.soma.areceber) + ' a receber' : ''}</span></div><div class="cx-bts"><button type="button" class="bt tap" data-act="cx-ajustar" aria-label="Ajustar o caixa (passar o valor de uma forma de pagamento para outra)" title="Passar o valor de uma forma de pagamento para outra (o valor não muda)">${ic(IC.desconto, 16)}<span class="cx-imp">Ajustar caixa</span></button><button type="button" class="bt tap" data-act="cx-imprimir" aria-label="Imprimir o caixa do dia" title="Imprimir o caixa do dia">${ic(IC.cupom, 16)}<span class="cx-imp">Imprimir</span></button>${MODO === 'servidor' && gestor() ? `<button type="button" class="bt tap" data-act="cx-pdf" aria-label="Baixar o resumo do dia em PDF" title="O resumo do dia em PDF (o mesmo das Finanças)">${ic(IC.baixar, 16)}<span class="cx-imp">PDF do dia</span></button><button type="button" class="bt tap" data-act="cx-pdf-sem" aria-label="Baixar o relatório da semana em PDF" title="O relatório da semana em PDF: os 7 dias até este dia (só o gestor)">${ic(IC.baixar, 16)}<span class="cx-imp">PDF da semana</span></button>` : ''}</div></div>
     ${gestor() && botoesU.length > 2 ? `<div class="seg cx-uni">${botoesU.map(([id, n]) => `<button type="button" data-act="cx-uni" data-v="${id}" aria-pressed="${u === id}">${esc(n)}</button>`).join('')}</div>` : ''}
@@ -8063,7 +8065,7 @@ function papelCaixa0() { const u = cxUni(), K = contaCaixa(u), L = lojaPapel(), 
     ${GRUPOS_CX.filter(([k]) => ['recreacao', 'pacotes', 'festa'].includes(k) || (K.G[k] && K.G[k].total > 0)).map(([k, n]) => lin(n, brl2(K.G[k] ? K.G[k].total : 0)) + (k === 'festa' && K.G.festa ? Object.entries(K.G.festa.itens || {}).map(([nm, v]) => `<p class="c-sub">${esc(nm)}: ${brl2(v)}</p>`).join('') : '')).join('')}
     ${K.devSem > 0 ? lin(CX_ATIVO ? 'Devolvido neste dia' : 'Devolvido hoje', '− ' + brl2(K.devSem)) + `<p class="c-sub">venda de outro dia cancelada · ${esc(formasCx(K.dev.formas))}</p>` : ''}
     ${lin('Sem os carrinhos', brl2(K.semCarr), ' c-total')}
-    ${lin('Carrinhos', brl2(K.carr))}${K.G.carrinhos ? Object.entries(K.G.carrinhos.itens).map(([n, v]) => `<p class="c-sub">${esc(n)}: ${brl2(v)}</p>`).join('') : ''}${K.dev.grupos.carrinhos ? `<p class="c-sub">devolvido: − ${brl2(K.dev.grupos.carrinhos)}</p>` : ''}
+    ${lin('Carrinhos', brl2(K.carr))}${K.G.carrinhos ? Object.entries(K.G.carrinhos.itens).map(([n, v]) => `<p class="c-sub">${+((K.G.carrinhos.qtd || {})[n]) ? (K.G.carrinhos.qtd[n] + ' × ') : ''}${esc(n)}: ${brl2(v)}</p>`).join('') : ''}${K.dev.grupos.carrinhos ? `<p class="c-sub">devolvido: − ${brl2(K.dev.grupos.carrinhos)}</p>` : ''}
     <p class="c-div"></p>${lin('TOTAL DO DIA', brl2(K.total), ' c-total')}${lin(CX_ATIVO ? 'Crianças no espaço neste dia' : 'Crianças no espaço hoje', String(K.kids))}
     <p class="c-div"></p><p class="c-cab"><span>Centro de custo</span><span>Valor</span></p>${centrosCusto(u).map(([n, v]) => lin(esc(n), brl2(v))).join('')}
     <p class="c-rod">emitido por ${esc(MAI(primeiro(EU.nome || 'equipe')))}</p></div>`; }
