@@ -1301,6 +1301,18 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Pacote futuro: os produtos da Play e da Casa Tom pela busca, com o filtro e o Cadastrar produto (2.99)
+
+Pedido do dono (28/11): "tem que dar a opção de cadastrar produto ou buscar mais produtos, tipo os produtos na Casa Tom. Mas aí, tipo, só uma opção aí abre, tem a opção de filtro, que aí ele busca, não aparecer todos." e "não colocou os produtos da Tom, o filtro do produto da Tom, com os produtos da Tom."
+
+- No Pacote futuro, os produtos ficam numa linha só, "Lista de produtos" (como a Lista de pacotes). Um toque abre.
+- Aberta: a busca pelo nome (o cursor já fica nela) e o filtro igual ao da Casa Tom: Todos, Play Space, Casa Tom e as categorias. Vale todo o cadastro: os produtos da Play e os da Casa Tom.
+- Sem buscar e sem filtro, não aparece nenhum produto (só os que já estão junto). Buscando ou tocando num filtro, aparecem até 24 de cada vez ("Mostrando 24 de N").
+- Cada produto mostra de onde é (a categoria, ou Play Space / Casa Tom). Um toque põe junto; o − tira. Com um produto só na busca, Enter põe junto.
+- "Cadastrar produto": nome (vem o que foi buscado), valor e categoria (opcional). O produto entra no cadastro da Play e já vai junto no pacote futuro. Qualquer pessoa da equipe pode, como na Casa Tom; fica nos registros: "Produto novo da Play ... cadastrado no pacote futuro por ...".
+- O mesmo nome com o mesmo valor não duplica (o produto passa a valer também na Play). O mesmo nome com outro valor é recusado ("Já existe ...").
+- Na Casa Tom nada muda. Na venda do atendimento (a normal) os produtos continuam como antes.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Sem o botão "Teste: 10 crianças" (2.98)
 
 Pedido do dono (28/11): "tira o testar 10 crianças."

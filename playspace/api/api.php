@@ -1382,13 +1382,14 @@ switch ($acao) {
     $u = exigir(); $nome = mb_substr(maiusculo(trim(preg_replace('/\s+/u', ' ', (string)($in['n'] ?? '')))), 0, 60); if (mb_strlen($nome) < 2) falha('Como se chama o produto?');
     $valor = isset($in['v']) && is_numeric($in['v']) ? round((float)$in['v'], 2) : -1; if ($valor <= 0 || $valor > 100000) falha('Qual é o valor do produto?');
     $cat = mb_substr(maiusculo(trim((string)($in['cat'] ?? ''))), 0, 30);
+    $loja = (string)($in['l'] ?? 'ct') === 'play' ? 'play' : 'ct';   /* 2.99: o Pacote futuro cadastra o produto da Play (o dono: "cadastrar produto ... tipo os produtos na Casa Tom") */
     $q = $db->prepare('SELECT * FROM produtos WHERE ativo = 1 AND nome = ? COLLATE NOCASE ORDER BY id'); $q->execute([$nome]); $ja = $q->fetchAll();
-    foreach ($ja as $x) if (abs((float)$x['valor'] - $valor) < 0.005) {   /* o mesmo produto: passa a valer também na Casa Tom */
-      $lj = lojasValidas((string)($x['lojas'] ?? 'play') . ',ct'); if ($lj !== (string)$x['lojas']) $db->prepare('UPDATE produtos SET lojas = ?, mudou_em = ? WHERE id = ?')->execute([$lj, agora(), (int)$x['id']]);
+    foreach ($ja as $x) if (abs((float)$x['valor'] - $valor) < 0.005) {   /* o mesmo produto: passa a valer também nesta loja */
+      $lj = lojasValidas((string)($x['lojas'] ?? 'play') . ',' . $loja); if ($lj !== (string)$x['lojas']) $db->prepare('UPDATE produtos SET lojas = ?, mudou_em = ? WHERE id = ?')->execute([$lj, agora(), (int)$x['id']]);
       responder(['produto' => produtoPublico(produto((int)$x['id'])), 'produtos' => produtos(), 'ja' => true]); }
-    if ($ja) falha('Já existe ' . $nome . ' no cadastro, por ' . dinheiro((float)$ja[0]['valor']) . '. Procure na lista (em "Ver todo o cadastro") ou peça ao gestor para mudar o valor.');
-    $db->prepare('INSERT INTO produtos (nome, valor, estoque, ativo, criado_em, mudou_em, lojas, cat) VALUES (?, ?, NULL, 1, ?, ?, ?, ?)')->execute([$nome, $valor, agora(), agora(), 'ct', $cat]); $id = (int)$db->lastInsertId();
-    registrar('est', null, $nome, 'Produto novo da Casa Tom · ' . dinheiro($valor) . ($cat !== '' ? ' · ' . $cat : '') . ' · cadastrado na venda por ' . primeiroNome($u['nome']));
+    if ($ja) falha('Já existe ' . $nome . ' no cadastro, por ' . dinheiro((float)$ja[0]['valor']) . ($loja === 'play' ? '. Procure na busca' : '. Procure na lista (em "Ver todo o cadastro")') . ' ou peça ao gestor para mudar o valor.');
+    $db->prepare('INSERT INTO produtos (nome, valor, estoque, ativo, criado_em, mudou_em, lojas, cat) VALUES (?, ?, NULL, 1, ?, ?, ?, ?)')->execute([$nome, $valor, agora(), agora(), $loja, $cat]); $id = (int)$db->lastInsertId();
+    registrar('est', null, $nome, 'Produto novo da ' . ($loja === 'play' ? 'Play' : 'Casa Tom') . ' · ' . dinheiro($valor) . ($cat !== '' ? ' · ' . $cat : '') . ' · cadastrado ' . (($in['onde'] ?? '') === 'pf' ? 'no pacote futuro' : 'na venda') . ' por ' . primeiroNome($u['nome']));
     responder(['produto' => produtoPublico(produto($id)), 'produtos' => produtos()]);
   }
   case 'produto_salvar': { // só a gestora: nome, valor e estoque (vazio = a loja não controla o estoque desse produto)

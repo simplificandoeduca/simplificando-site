@@ -1106,6 +1106,13 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .pf-dm { display: inline-flex; padding: 3px; gap: 3px; border-radius: 12px; background: var(--menta-risco); border: 1px solid var(--borda-2); flex: none; }
 .pf-dm button { min-width: 44px; padding: 0 10px; border-radius: 9px; font: 800 14px/1 var(--display); color: var(--tinta-2); }
 .pf-dm button[aria-pressed="true"] { background: var(--tinta); color: var(--card); }
+.pf-prods .pf-pb { display: flex; flex-wrap: wrap; gap: 8px; margin: 2px 0 8px; } .pf-prods .pf-pb .ct-campo { flex: 1 1 240px; } .pf-prods .pf-pb .bt { flex: none; }   /* 2.99 */
+.pf-prods .pf-cats { margin: 0 2px 10px; } .pf-prods .pf-cats button { font-size: 13px; padding: 5px 0 8px; }
+.prod .pf-pc { font-size: 11px; font-weight: 700; color: var(--apagado); text-transform: uppercase; letter-spacing: .02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 600px) { .pf-prods .pf-pb .bt { flex: 1 1 100%; } }
+.pf-prods .ct-campo input, .pf-prods .ct-campo input:focus { border: 0; background: transparent; box-shadow: none; outline: none; padding: 0; height: auto; min-height: 0; } .pf-prods .ct-campo:focus-within { border-color: var(--coral); box-shadow: 0 0 0 3px var(--coral-2); }
+.pf-pnovo { margin: 0 0 10px; padding: 12px; border-radius: 14px; border: 1px dashed var(--borda-2); background: var(--creme); }
+.pf-pn-bt { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; } .pf-pmsg { margin: 4px 4px 2px; }
 .pf-conta { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: 14px; background: var(--creme-2); border: 1px solid var(--borda-2); }
 .pf-conta > div { display: flex; justify-content: space-between; gap: 10px; font-weight: 700; color: var(--tinta-2); font-size: 14px; }
 .pf-conta > div.d b { color: var(--ok); } .pf-conta > div.t { margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--borda-2); color: var(--tinta); font-size: 16px; } .pf-conta > div.t b { font: 800 22px/1 var(--display); }
@@ -2358,7 +2365,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.98';
+const VERSAO = '2.99';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -4438,7 +4445,48 @@ function pfPacotes() {
     <div class="lp-corpo">${prod.length ? grupo(prod, 'Com produto') + grupo(seco, 'Só as horas') : grupo(seco, '')}</div></details>`;
 }
 const pfBotaoProduto = p => { const q = (PF && PF.pr[p.id]) || 0;
-  return `<div class="prod${q ? ' on' : ''}"><button type="button" class="pr-b tap" data-act="pf-prod-mais" data-p="${p.id}" aria-label="Pôr ${esc(p.n)} no pacote futuro: ${brl(p.v)}${q ? ', já tem ' + q : ''}"></button><b>${esc(p.n)}</b><span class="num">${brl(p.v)}</span><div class="pr-pe"><i${estFalta(p, q) ? ' class="falta"' : ''}>${estTxt(p, q)}</i>${q ? `<span class="pr-q"><button type="button" class="tap" data-act="pf-prod-menos" data-p="${p.id}" aria-label="Tirar um ${esc(p.n)}">−</button><b class="num" aria-label="${q} no pacote futuro">${q}</b></span>` : ''}</div></div>`; };
+  return `<div class="prod${q ? ' on' : ''}"><button type="button" class="pr-b tap" data-act="pf-prod-mais" data-p="${p.id}" aria-label="Pôr ${esc(p.n)} no pacote futuro: ${brl(p.v)}${q ? ', já tem ' + q : ''}"></button><b>${esc(p.n)}</b><small class="pf-pc">${esc(pfOnde(p))}</small><span class="num">${brl(p.v)}</span><div class="pr-pe"><i${estFalta(p, q) ? ' class="falta"' : ''}>${estTxt(p, q)}</i>${q ? `<span class="pr-q"><button type="button" class="tap" data-act="pf-prod-menos" data-p="${p.id}" aria-label="Tirar um ${esc(p.n)}">−</button><b class="num" aria-label="${q} no pacote futuro">${q}</b></span>` : ''}</div></div>`; };
+/* 2.99 (o dono: "tem que dar a opção de cadastrar produto ou buscar mais produtos, tipo os produtos na Casa Tom ... só uma opção aí abre,
+   tem a opção de filtro, que aí ele busca, não aparecer todos" e "não colocou os produtos da Tom, o filtro do produto da Tom, com os produtos
+   da Tom"): os produtos numa linha só, como a Lista de pacotes. Aberta: a busca pelo nome e o filtro da Casa Tom (Todos, Play Space, Casa Tom
+   e as categorias), com todo o cadastro (Play e Casa Tom). Sem a busca e sem filtro não aparece nenhum, só os que já estão junto.
+   "Cadastrar produto": a equipe cadastra na hora, como na Casa Tom */
+const PF_MAX = 24;
+const pfSel = () => (S.produtos || []).filter(p => PF && PF.pr[p.id]);
+const pfOnde = p => String(p.cat || '').trim() || (prodNaLoja(p, 'play') ? 'Play Space' : 'Casa Tom');
+const pfCats = () => [['', 'Todos'], ['@play', 'Play Space'], ['@ct', 'Casa Tom'], ...ctCats(S.produtos || []).map(c => [c, c])];
+const pfNoFiltro = p => !PF.cat || (PF.cat === '@play' ? prodNaLoja(p, 'play') : PF.cat === '@ct' ? prodNaLoja(p, 'ct') : String(p.cat || '').trim() === PF.cat);
+function pfProdAchados() { if (!PF) return { L: [], n: 0, vazio: true }; const ws = semAcentoCT(PF.busca).trim().split(/\s+/).filter(Boolean), sel = pfSel();
+  if (!ws.length && !PF.cat) return { L: sel, n: 0, vazio: true };
+  const A = (S.produtos || []).filter(p => pfNoFiltro(p) && ws.every(w => semAcentoCT(p.n).includes(w))), V = A.slice(0, PF_MAX);
+  return { L: [...sel.filter(p => !V.includes(p)), ...V], n: A.length, mostra: V.length }; }
+function pfProdHtml() { const r = pfProdAchados();
+  const msg = r.vazio ? (r.L.length ? '' : 'Escreva parte do nome ou toque numa categoria.') : !r.n ? `Nenhum produto ${PF.busca.trim() ? 'com esse nome' : 'nesta categoria'}. Toque em <b>Cadastrar produto</b>.` : r.n > r.mostra ? `Mostrando ${r.mostra} de ${r.n}. Escreva parte do nome para achar.` : '';
+  return `${r.L.length ? `<div class="prods">${r.L.map(pfBotaoProduto).join('')}</div>` : ''}${msg ? `<p class="explica pf-pmsg">${msg}</p>` : ''}`; }
+const pfProdResumo = () => { const I = pfSel(); return I.length ? I.map(p => `<b>${PF.pr[p.id] > 1 ? PF.pr[p.id] + '× ' : ''}${esc(p.n)}</b>`).join(' + ') : 'nenhum'; };
+const pfProdLista = () => { const l = $('#pf-plista'); if (l) l.innerHTML = pfProdHtml(); };
+function pfProdutos() {
+  return `<details class="lista-pac pf-prods" id="pf-prods"><summary class="tap">${ic(IC.sacola, 18)}<span class="lp-t">Lista de produtos <small>· Play e Casa Tom</small></span><span class="lp-s" id="pf-prod-resumo">${pfProdResumo()}</span><i class="lp-seta" aria-hidden="true">${ic(IC.vai, 16, 2.6)}</i></summary>
+    <div class="lp-corpo"><div class="ct-busca pf-pb"><label class="ct-campo">${ic(IC.ctBusca, 18)}<input id="pf-pbusca" type="search" placeholder="Buscar produto pelo nome…" autocomplete="off" aria-label="Buscar produto"></label><button type="button" class="bt tap" data-act="pf-pnovo">${ic(IC.mais)} Cadastrar produto</button></div>
+    <div class="ct-abas pf-cats" role="tablist" aria-label="Filtro dos produtos">${pfCats().map(([c, n]) => `<button type="button" role="tab" data-act="pf-pcat" data-c="${esc(c)}" aria-selected="${c === PF.cat}">${esc(n)}</button>`).join('')}</div>
+    <div class="pf-pnovo" id="pf-pnovo" hidden><p class="explica">O produto entra no cadastro da <b>Play</b> e já vai junto. Fica anotado quem cadastrou.</p>
+      <div class="campo"><label for="pfn-n">Nome do produto</label><input id="pfn-n" maxlength="60" autocomplete="off" placeholder="ex.: MEIA ANTIDERRAPANTE"></div>
+      <div class="dois"><div class="campo"><label for="pfn-v">Valor (R$)</label><input id="pfn-v" inputmode="decimal" autocomplete="off" placeholder="0,00"></div><div class="campo"><label for="pfn-cat">Categoria <span class="leve">· opcional</span></label><input id="pfn-cat" list="pfn-cats" maxlength="30" autocomplete="off" placeholder="ex.: BRINQUEDOS"><datalist id="pfn-cats">${ctCats(S.produtos || []).map(x => `<option value="${esc(x)}">`).join('')}</datalist></div></div>
+      <div class="pf-pn-bt"><button type="button" class="bt claro tap" data-act="pf-pnovo-x">Cancelar</button><button type="button" class="bt forte tap" id="pfn-ok" data-act="pf-pnovo-ok">${ic(IC.mais)} Cadastrar e pôr junto</button></div></div>
+    <div id="pf-plista">${pfProdHtml()}</div></div></details>`; }
+function pfNovoAbrir() { const f = $('#pf-pnovo'); if (!f) return; f.hidden = false; const n = $('#pfn-n'), b = String((PF && PF.busca) || '').replace(/\s+/g, ' ').trim();
+  if (n && b && !n.value) n.value = b.toLocaleUpperCase('pt-BR'); setTimeout(() => { const i = $(n && n.value ? '#pfn-v' : '#pfn-n'); if (i) i.focus(); }, 60); }
+async function pfNovoOk(el) { if (!PF) return; const n = val('pfn-n').replace(/\s+/g, ' ').trim().toLocaleUpperCase('pt-BR'), v = numero(val('pfn-v')), cat = val('pfn-cat').replace(/\s+/g, ' ').trim().toLocaleUpperCase('pt-BR');
+  if (n.length < 2) { toast('Como se chama o produto?'); $('#pfn-n').focus(); return; }
+  if (!(v > 0)) { toast('Qual é o valor do produto?'); $('#pfn-v').focus(); return; }
+  let p = null;
+  if (MODO === 'servidor') { el.disabled = true; try { const r = await api('produto_ct_novo', { n, v, cat, l: 'play', onde: 'pf' }); if (Array.isArray(r.produtos)) S.produtos = r.produtos; p = r.produto ? produto(r.produto.id) || r.produto : null; } catch (e) { toast(e.message); return; } finally { if (el.isConnected) el.disabled = false; } }
+  else { const J = (S.produtos || []).filter(x => x.n.toLowerCase() === n.toLowerCase()), igual = J.find(x => Math.abs(x.v - v) < 0.005);
+    if (igual) { if (!lojasDe(igual).includes('play')) igual.l = [...lojasDe(igual), 'play'].join(','); p = igual; }
+    else if (J.length) { toast(`Já existe ${n} no cadastro, por ${brl(J[0].v)}. Procure na busca ou peça ao gestor para mudar o valor.`); return; }
+    else { p = { id: novoId(), n, v, est: null, l: 'play', cat }; S.produtos.push(p); S.produtos.sort(ordProd); registrar('est', n, `Produto novo da Play · ${brl(v)}${cat ? ' · ' + cat : ''} · cadastrado no pacote futuro por ${EU.nome}`); } }
+  if (!p || !PF) return; PF.pr[p.id] = (PF.pr[p.id] || 0) + 1; PF.busca = ''; const b = $('#pf-pbusca'); if (b) b.value = '';
+  const f = $('#pf-pnovo'); if (f) { f.hidden = true; $$('input', f).forEach(i => { i.value = ''; }); } pfAtualiza(); deuCerto(`${p.n} (${brl(p.v)}) está no cadastro e no pacote futuro`); }
 function pfLinhas() { if (!PF) return []; const L = [];
   for (const i of PF.pac) { const x = (S.cfg.pacotes || [])[i]; if (x) L.push({ n: MAI(x.nome || 'PACOTE ' + dur(x.h * 60)), v: +x.v || 0 }); }
   for (const p of S.produtos || []) { const q = PF.pr[p.id] || 0; if (q) L.push({ n: (q > 1 ? q + 'X ' : '') + MAI(p.n), v: centavos(q * p.v) }); }
@@ -4448,16 +4496,16 @@ function pfConta() { const sub = centavos(pfLinhas().reduce((t, l) => t + l.v, 0
 function pfAtualiza() { if (!PF) return; const P = S.cfg.pacotes || [];
   $$('#pf-pacotes [data-act="pf-pac"]').forEach(b => b.setAttribute('aria-pressed', String(PF.pac.includes(+b.dataset.i))));
   const rs = $('#pf-pac-resumo'), det = $('#pf-pacotes'); if (rs && det) { const sel = PF.pac.map(i => P[i]).filter(Boolean); rs.innerHTML = sel.length ? sel.map(x => `<b>${dur(x.h * 60)} · ${brl(x.v)}</b>${x.nome ? ' ' + esc(x.nome) : ''}`).join(' + ') : `${P.length} ${P.length === 1 ? 'pacote' : 'pacotes'}`; det.classList.toggle('tem', !!sel.length); }
-  const pr = $('#pf-produtos .prods'); if (pr) pr.innerHTML = prodsDaLoja().map(pfBotaoProduto).join('');
+  pfProdLista(); const pr = $('#pf-prod-resumo'), pd = $('#pf-prods'); if (pr && pd) { pr.innerHTML = pfProdResumo(); pd.classList.toggle('tem', pfSel().length > 0); }   /* 2.99 */
   $$('#pf-dm [data-v]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === PF.dm)));
   const k = pfConta(), cx = $('#pf-conta'); if (cx) cx.innerHTML = `<div><span>Pacotes e produtos</span><b class="num">${brl(k.sub)}</b></div>${k.desc > 0 ? `<div class="d"><span>Desconto${PF.dm === 'p' ? ' (' + String(Math.min(100, numero(val('pf-desc')) || 0)).replace('.', ',') + '%)' : ''}</span><b class="num">− ${brl(k.desc)}</b></div>` : ''}<div class="t"><span>Total combinado</span><b class="num">${brl(k.total)}</b></div>`; }
-document.addEventListener('input', e => { if (e.target && e.target.id === 'pf-desc') pfAtualiza(); });
+document.addEventListener('input', e => { if (e.target && e.target.id === 'pf-desc') pfAtualiza(); if (e.target && e.target.id === 'pf-pbusca' && PF) { PF.busca = e.target.value; pfProdLista(); } });   /* 2.99: a busca dos produtos */
 function folhaPacoteFuturo(cid, doCpf) {
-  const c = crianca(cid); if (!c) return; PF = { id: c.id, vend: '', pac: [], pr: {}, dm: 'r' }; const hoje = isoDia(agora);
+  const c = crianca(cid); if (!c) return; PF = { id: c.id, vend: '', pac: [], pr: {}, dm: 'r', busca: '', cat: '' }; const hoje = isoDia(agora);
   abrirFolha('Pacote futuro', `<div class="linha">${avatar(c)}<div class="txt"><b style="white-space:normal">${nomeResp(c)}</b><span style="white-space:normal">${doCpf ? cpfLinha(c) : nomeCri(c, true)}</span></div></div>
     <p class="explica" id="pf-exp">O cliente vai fechar o pacote e pagar no dia combinado. ${gestor() ? 'Lançado por você, já vale:' : 'Vai para o <b>gestor aprovar</b>; aprovado,'} entra no calendário o lembrete de <b>cobrar</b> no dia do pagamento.</p>
     <div class="campo"><label>Qual pacote<span class="obg" aria-hidden="true">*</span> <span class="leve">· um ou mais</span></label>${pfPacotes()}</div>
-    ${prodsDaLoja().length ? `<div class="campo" id="pf-produtos"><label>Produtos <span class="leve">· um toque põe junto</span></label><div class="prods">${prodsDaLoja().map(pfBotaoProduto).join('')}</div></div>` : ''}
+    <div class="campo" id="pf-produtos"><label>Produtos <span class="leve">· opcional</span></label>${pfProdutos()}</div>
     <div class="dois pf-dd"><div class="campo"><label for="pf-desc">Desconto <span class="leve">· opcional</span></label><div class="pf-desc"><div class="pf-dm" id="pf-dm" role="group" aria-label="Desconto em reais ou em porcentagem"><button type="button" class="tap" data-act="pf-desc-modo" data-v="r" aria-pressed="true">R$</button><button type="button" class="tap" data-act="pf-desc-modo" data-v="p" aria-pressed="false">%</button></div><input id="pf-desc" inputmode="decimal" autocomplete="off" placeholder="0"></div></div>
       <div class="campo"><label for="pf-paga">Data do pagamento<span class="obg" aria-hidden="true">*</span></label><input id="pf-paga" type="date" min="${hoje}"></div></div>
     <div class="pf-conta" id="pf-conta"></div>
@@ -4465,6 +4513,7 @@ function folhaPacoteFuturo(cid, doCpf) {
     <div class="campo"><label for="pf-obs">Observação <span class="leve">· opcional</span></label><textarea id="pf-obs" rows="2" maxlength="300"></textarea></div>
     <div class="pe-f"><button type="button" class="bt forte largo tap vf-ok" id="pf-ok" data-act="pf-pedir">${ic(IC.check)} ${gestor() ? 'Lançar o pacote futuro' : 'Pedir a aprovação do gestor'}</button></div>`);
   pfAtualiza();
+  const dp = $('#pf-prods'); if (dp) dp.addEventListener('toggle', () => { if (dp.open) setTimeout(() => { const i = $('#pf-pbusca'); if (i && dp.open) i.focus(); }, 60); });   /* 2.99: abriu, já busca */
 }
 async function pedirPacoteFuturo(el) {
   if (!PF) return; const c = crianca(PF.id); if (!c) return; const hoje = isoDia(agora), L = pfLinhas(), k = pfConta(), dia = val('pf-paga');   /* 2.97 */
@@ -11458,6 +11507,8 @@ const ACOES = {
     const d = el.closest('details'); if (d && PF.pac.includes(i)) d.open = false; },   /* 2.97: como no atendimento: escolheu, a lista fecha e o pacote fica à vista */
   'pf-prod-mais': el => { if (!PF) return; const p = produto(el.dataset.p); if (!p) return; PF.pr[p.id] = Math.min(99, (PF.pr[p.id] || 0) + 1); pfAtualiza(); },
   'pf-prod-menos': el => { if (!PF) return; const id = +el.dataset.p, q = Math.max(0, (PF.pr[id] || 0) - 1); if (q) PF.pr[id] = q; else delete PF.pr[id]; pfAtualiza(); },
+  'pf-pcat': el => { if (!PF) return; PF.cat = el.dataset.c || ''; $$('.pf-cats [data-c]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.c === PF.cat))); pfProdLista(); },   /* 2.99: o filtro da Casa Tom */
+  'pf-pnovo': () => pfNovoAbrir(), 'pf-pnovo-x': () => { const f = $('#pf-pnovo'); if (f) f.hidden = true; }, 'pf-pnovo-ok': el => pfNovoOk(el),
   'pf-desc-modo': el => { if (!PF) return; PF.dm = el.dataset.v === 'p' ? 'p' : 'r'; pfAtualiza(); const i = $('#pf-desc'); if (i) i.focus(); },
   'pf-vend': el => { if (!PF) return; PF.vend = el.dataset.n; $$('#pf-vend [data-n]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.n === PF.vend))); const v = $('#pf-vend'); if (v) v.classList.add('ok'); },
   'corrigir-horas': el => folhaCorrigirHoras(+el.dataset.id), 'hc-ok': el => salvarCorrecaoHoras(el),
@@ -11696,6 +11747,8 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.id === 'pq-busca') { e.preventDefault(); const b = $$('#pq-lista [data-act="pq-crianca"], #pq-lista [data-act="pq-resp"]'); if (b.length === 1) b[0].click(); return; }   // só uma criança na lista: Enter escolhe
   if (e.key === 'Enter' && e.target.id === 'rec-txt') { e.preventDefault(); const b = $('[data-act="rec-salvar"]'); if (b) b.click(); return; }   /* 2.72 */
   if (e.key === 'Enter' && e.target.id === 'pl-senha') { e.preventDefault(); const ok = $('#pl-ok'); if (ok && !ok.disabled) ok.click(); return; }   /* 2.90 */
+  if (e.key === 'Enter' && (e.target.id === 'pfn-n' || e.target.id === 'pfn-v')) { e.preventDefault(); const ok = $('#pfn-ok'); if (ok && !ok.disabled) ok.click(); return; }   /* 2.99 */
+  if (e.key === 'Enter' && e.target.id === 'pf-pbusca') { e.preventDefault(); const b = $$('#pf-plista [data-act="pf-prod-mais"]'); if (b.length === 1) b[0].click(); return; }   /* 2.99: um produto só na busca: Enter põe junto */
   if (e.key === 'Enter' && e.target.id === 'lz-senha') { e.preventDefault(); const ok = $('#lz-ok'); if (ok && !ok.disabled) ok.click(); return; }
   if (e.key === 'Enter' && e.target.id === 'cp-num') { e.preventDefault(); const ok = $('#cp-ok'); if (ok && !ok.disabled) ok.click(); return; }
   if (e.key === 'Enter' && e.target.classList && e.target.classList.contains('pg-valor')) { e.preventDefault(); const ok = $('#p-ok') || $('#s-ok') || $('#sg-ok') || $('#d-ok'); if (ok && !ok.disabled) ok.click(); }
