@@ -1301,6 +1301,13 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Sem o botão "Teste: 10 crianças" (2.98)
+
+Pedido do dono (28/11): "tira o testar 10 crianças."
+
+- O botão amarelo "Teste: 10 crianças" saiu do rodapé (no sistema e na prévia).
+- Se as crianças de teste estiverem na tela (de antes), aparece só o "Tirar o teste", para limpar.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Pacote futuro com produtos e desconto (2.97)
 
 Pedido do dono (28/11): "na venda futura eu não tenho opção de dar desconto e não tenho opção de lançar produto junto. Eu tenho que ter essa opção e coloco os pacotes no mesmo formato que tá o outro."
