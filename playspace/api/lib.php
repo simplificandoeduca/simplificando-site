@@ -1332,7 +1332,10 @@ function planoPreferido(array $c): string {
   return ($p === 'pacote' || $p === 'avulso') && !empty($c['entrou']) && empty($c['festa_id']) && (string)($c['plano_pref_em'] ?? '') === (string)$c['entrou'] ? $p : '';
 }
 // de onde sai o tempo desta criança agora: 'pacote' ou 'avulso' (a mesma conta de planosDoEspaco(), para uma criança só)
+/* 2.93: a criança PCD (com desconto) é sempre da recreação avulsa */
+function ehPcd(array $c): bool { return !empty($c['pcd']) && pcdDesc() > 0; }
 function planoDaCrianca(array $c): string {
+  if (ehPcd($c)) return 'avulso';   /* 2.93 */
   $pf = planoPelasHoras($c); if ($pf !== null) return $pf;   /* 2.11 */
   $resta = (int)$c['usado_min'];
   $q = db()->prepare('SELECT minutos, servico, itens, auto, voucher FROM vendas WHERE crianca_id = ? AND minutos > 0 ORDER BY id'); $q->execute([(int)$c['id']]);
@@ -1432,7 +1435,7 @@ function autosDaVisitaMin(array $c): int {
 function horasLivresDaFamilia(array $c, int $fim): array {   // [[irmão, minutos livres]]: o que tem mais primeiro (quem está no espaço guarda o que a visita dele já usou)
   $L = [];
   foreach (irmaosDe($c) as $x) {
-    $uso = !empty($x['entrou']) && empty($x['festa_id']) ? cobrar(minutosDaVisita($x, $fim)) : 0;
+    $uso = !empty($x['entrou']) && empty($x['festa_id']) && !ehPcd($x) ? cobrar(minutosDaVisita($x, $fim)) : 0;   /* 2.93: a visita da PCD não gasta horas */
     $tem = (int)$x['pacote_min'] - autosDaVisitaMin($x) - (int)$x['usado_min'] - $uso;
     if ($tem > 0) $L[] = [$x, $tem];
   }
@@ -1465,11 +1468,12 @@ function lojaPedeSenha(): bool { return (string)(regra()['senhaUni'] ?? 'nao') =
    tem um período, uma parte igual do que sobra aos irmãos que estão no espaço (em períodos inteiros) */
 function horasDaFamiliaNaEntrada(array $c): ?array {
   if (!horasDoCpf() || !servicoTempo() || !empty($c['festa_id']) || empty($c['entrou'])) return null;
+  if (ehPcd($c)) return null;   /* 2.93: a criança PCD é da recreação avulsa (com o desconto): não leva as horas do CPF */
   $p = periodo(); $fim = agoraTs(); $L = irmaosDe($c); if (!$L) return null; $mov = [];
   foreach ($L as $x) if (empty($x['entrou'])) { $m = (int)$x['pacote_min'] - (int)$x['usado_min']; if ($m > 0) $mov[] = [$x, $m]; }
   $meu = (int)$c['pacote_min'] - autosDaVisitaMin($c) - (int)$c['usado_min'] + array_sum(array_map(fn($y) => $y[1], $mov));
   $D = array_values(array_filter($L, fn($x) => !empty($x['entrou']) && empty($x['festa_id'])));
-  if ($meu < $p && $D) foreach ($D as $x) { $sobra = (int)$x['pacote_min'] - autosDaVisitaMin($x) - (int)$x['usado_min'] - cobrar(minutosDaVisita($x, $fim)); $m = intdiv(max(0, $sobra), (count($D) + 1) * $p) * $p; if ($m > 0) $mov[] = [$x, $m]; }
+  if ($meu < $p && $D) foreach ($D as $x) { $sobra = (int)$x['pacote_min'] - autosDaVisitaMin($x) - (int)$x['usado_min'] - (ehPcd($x) ? 0 : cobrar(minutosDaVisita($x, $fim))); $m = intdiv(max(0, $sobra), (count($D) + 1) * $p) * $p; if ($m > 0) $mov[] = [$x, $m]; }
   if (!$mov) return null;
   $db = db(); $t = 0; $de = []; $db->beginTransaction();
   try {
@@ -2603,7 +2607,8 @@ function ehVendaDePacote(array $v): bool {
 // se ainda sobra alguma hora de pacote, a criança está no pacote; senão, está na recreação avulsa
 function planosDoEspaco(): array {
   $db = db(); $o = []; $resta = [];
-  foreach ($db->query('SELECT id, usado_min, festa_id FROM criancas WHERE entrou IS NOT NULL AND ativo = 1')->fetchAll() as $c) { $o[(int)$c['id']] = !empty($c['festa_id']) ? 'festa' : 'avulso'; $resta[(int)$c['id']] = (int)$c['usado_min']; }   // 1.29: 'festa' = está na festa
+  $pcds = [];   /* 2.93: a criança PCD é da avulsa */
+  foreach ($db->query('SELECT id, usado_min, festa_id, pcd FROM criancas WHERE entrou IS NOT NULL AND ativo = 1')->fetchAll() as $c) { if (empty($c['festa_id']) && ehPcd($c)) $pcds[] = (int)$c['id']; $o[(int)$c['id']] = !empty($c['festa_id']) ? 'festa' : 'avulso'; $resta[(int)$c['id']] = (int)$c['usado_min']; }   // 1.29: 'festa' = está na festa
   if (!$o) return $o;
   $q = $db->query('SELECT v.crianca_id, v.minutos, v.servico, v.itens, v.auto, v.voucher FROM criancas c CROSS JOIN vendas v ON v.crianca_id = c.id WHERE c.entrou IS NOT NULL AND c.ativo = 1 AND v.minutos > 0 ORDER BY v.id');
   foreach ($q->fetchAll() as $v) { $id = (int)$v['crianca_id']; $m = (int)$v['minutos'];
@@ -2613,6 +2618,7 @@ function planosDoEspaco(): array {
   }
   foreach ($db->query('SELECT DISTINCT x FROM (SELECT para x FROM fam_horas WHERE desfeito = 0 UNION SELECT de x FROM fam_horas WHERE desfeito = 0)')->fetchAll(PDO::FETCH_COLUMN) as $id) {   /* 2.11: as horas do CPF */
     $id = (int)$id; if (!isset($o[$id]) || $o[$id] === 'festa') continue; $k = crianca($id); if ($k) { $pf = planoPelasHoras($k); if ($pf !== null) $o[$id] = $pf; } }
+  foreach ($pcds as $id) $o[$id] = 'avulso';   /* 2.93 */
   return $o;
 }
 /* ---------- 1.11: a data de nascimento ---------- */

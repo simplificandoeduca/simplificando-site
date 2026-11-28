@@ -1301,6 +1301,16 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A criança PCD é sempre da recreação avulsa, com o desconto (2.93)
+
+Pedido do dono (28/11): "quando eu entro com a criança PCD, ele não tá dando desconto de PCD. Eu tô tendo que autorizar manualmente ... o PCD tem que ficar na criança ... quando eu marcar PCD é só o avulso ... e se tiver mais uma criança selecionada, dá na entrada pacote, aí tipo coloca o nome fulano de tal no avulso, R$40."
+
+- A causa: com as horas do CPF, a criança PCD que entrava levava as horas do pacote da família, e o tempo dela saía das horas, sem o desconto.
+- Agora a criança PCD (marcada na ficha ou no cadastro) é sempre da recreação avulsa, com o desconto dela (50%: R$ 40 a cada 30 min, quando a recreação é R$ 80). Ela não leva as horas do CPF na entrada; as horas ficam para os irmãos.
+- "Quem vai entrar?": a criança PCD aparece com "avulsa PCD · R$ 40"; quem tem horas, com "pacote · saldo 3h". O botão diz quem entra e como: "Dar entrada · 2 crianças — MARIA (avulsa PCD · R$ 40) · JOÃO (pacote · saldo 3h)".
+- Na lista, a PCD fica AVULSA; na saída, a conta dela já abre em "Avulso", com o PCD à vista. Se precisar, ainda dá para tocar em "Pacote" na saída.
+- O PCD continua na criança (cada criança tem o seu); marcar ou tirar o PCD de quem já está cadastrado continua com a senha do gestor.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A barra de "No espaço agora" em duas linhas (2.92)
 
 Pedido do dono (27/11, com a foto da barra): "me dê 3 versões dessa barra pra gente melhorar esteticamente. Não sei se tá bem distribuído as coisas." Das três (duas linhas; números em destaque; uma linha só), escolheu a Versão 1.

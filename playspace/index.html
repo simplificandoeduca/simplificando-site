@@ -2329,7 +2329,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.92';
+const VERSAO = '2.93';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -5934,7 +5934,7 @@ const famVale = c => FAMJA === c.id || (!!SAI && SAI.ids.includes(c.id) && (FAMJ
 /* 2.14 ("prioridade máxima no pacote"): o irmão desta conta em conjunto que paga avulso não segura as horas dele para a visita: ficam para os outros */
 const famSolta = x => AV.has(x.id) && !!SAI && SAI.ids.includes(x.id) && !SAI.fora.has(x.id) && (FAMJA === 'g' || !!document.querySelector('#sg-ok'));
 const famLivres = (c, tomado = {}) => { const p = periodo();
-  return familia(c).filter(x => x.id !== c.id).map(x => ({ x, tem: pacMin(x) - (x.entrou && x.atraso ? x.atraso.n * p : 0) - (x.usado || 0) - (x.entrou && !x.festa && !famSolta(x) ? cobrar(minConta(x)) : 0) - (tomado[x.id] || 0) }))
+  return familia(c).filter(x => x.id !== c.id).map(x => ({ x, tem: pacMin(x) - (x.entrou && x.atraso ? x.atraso.n * p : 0) - (x.usado || 0) - (x.entrou && !x.festa && !famSolta(x) && !ehPcd(x) ? cobrar(minConta(x)) : 0) - (tomado[x.id] || 0) }))
     .filter(y => y.tem > 0).sort((a, b) => b.tem - a.tem || a.x.id - b.x.id); };
 function famConta(c, k, tomado) {
   if (c.festa || k.av || !famVale(c)) return;   /* só para a criança da folha da saída que está aberta */
@@ -5956,13 +5956,17 @@ function famUsarPrevia(c) {   /* (prévia) as horas passam do irmão para a visi
 /* 2.11 (o dono: "as horas tem que estar vinculado ao CPF. Quantas crianças ele colocar, tem que dar a opção de abater do pacote"): as horas
    são do CPF (Ajustes → Regra das horas). saldoCpf = o que a criança tem mais o que os irmãos têm guardado (o atendimento e a entrada) */
 const horasCpf = () => S.cfg.horasCpf !== 'nao';
-const saldoCpf = c => saldoMin(c) + (horasCpf() ? famLivres(c).reduce((t, y) => t + y.tem, 0) : 0);
+const saldoCpf = c => ehPcd(c) ? 0 : saldoMin(c) + (horasCpf() ? famLivres(c).reduce((t, y) => t + y.tem, 0) : 0);   /* 2.93: a PCD entra na avulsa */
+/* 2.93 (o dono: "quando eu marcar PCD é só o avulso ... coloca o nome fulano de tal no avulso, R$40"): a criança PCD (com desconto) é sempre
+   da recreação avulsa, com o preço dela; não usa as horas do pacote do CPF (nem leva na entrada) */
+const ehPcd = c => !!c && !!c.pcd && pcdDesc() > 0;
+const pcdAvTxt = c => 'avulsa PCD · ' + brl(precoDe(c, (servicoTempo() || { v: 0 }).v));
 function famEntradaPrevia(c) {   /* (prévia) na entrada, as horas do CPF vão com a criança, como no servidor (horasDaFamiliaNaEntrada) */
-  if (!horasCpf() || MODO === 'servidor' || !servicoTempo() || c.festa) return null;
+  if (!horasCpf() || MODO === 'servidor' || !servicoTempo() || c.festa || ehPcd(c)) return null;   /* 2.93: a PCD não leva as horas */
   const p = periodo(), soma = (x, m) => { if (x.pmin != null) x.pmin += m; else x.pacote = Math.max(0, x.pacote + m / 60); }, F = familia(c).filter(x => x.id !== c.id), mov = [];
   for (const x of F.filter(x => !x.entrou)) { const m = Math.round(pacMin(x) - (x.usado || 0)); if (m > 0) mov.push([x, m]); }
   const D = F.filter(x => x.entrou && !x.festa), meu = pacMin(c) - (c.usado || 0) + mov.reduce((t, y) => t + y[1], 0);
-  if (meu < p && D.length) for (const x of D) { const sobra = pacMin(x) - (x.atraso ? x.atraso.n * p : 0) - (x.usado || 0) - cobrar(minConta(x)), m = Math.floor(Math.max(0, sobra) / ((D.length + 1) * p)) * p; if (m > 0) mov.push([x, m]); }
+  if (meu < p && D.length) for (const x of D) { const sobra = pacMin(x) - (x.atraso ? x.atraso.n * p : 0) - (x.usado || 0) - (ehPcd(x) ? 0 : cobrar(minConta(x))), m = Math.floor(Math.max(0, sobra) / ((D.length + 1) * p)) * p; if (m > 0) mov.push([x, m]); }
   if (!mov.length) return null; let t = 0;
   for (const [x, m] of mov) { soma(x, -m); x.famMov = true; t += m; registrar('alt', x.nome, `Horas do CPF: ${dur(m)} passaram para a entrada de ${c.nome}`); }
   soma(c, t); c.famMov = true; c.famEnt = mov.map(([x, m]) => [x.id, m]); registrar('alt', c.nome, `Horas do CPF: ${dur(t)} de ${juntar(mov.map(y => y[0].nome))} (entrada; as horas são do CPF)`); return t;
@@ -5984,7 +5988,9 @@ function folhaSaida(id, corrigir = false) {
   const c = crianca(id); if (!c || !c.entrou) return;
   const juntas = corrigir ? [] : familia(c).filter(x => x.id !== c.id && x.entrou).sort((a, b) => a.entrou - b.entrou), carros = corrigir ? [] : carrosDaFamilia(c);   // 1.25: e o que saiu da loja com este responsável
   if (juntas.length || carros.length) { folhaSaidaGrupo([c, ...juntas], carros); return; }   // 1.07: o responsável tem mais de uma criança no espaço: uma conta só, com o "Tirar" em cada linha
-  AV = !corrigir && AV_VOLTA && AV_VOLTA.base === c.id && AV_VOLTA.ids.has(c.id) ? new Set([c.id]) : new Set(); AV_VOLTA = null; FAMSIM = horasCpf() ? new Set(AV) : new Set();   // 1.11: cada saída começa descontando do pacote (a não ser que volte de "Adicionar serviços")
+  const voltouAV = !corrigir && !!AV_VOLTA && AV_VOLTA.base === c.id;   /* 2.93 */
+  AV = !corrigir && AV_VOLTA && AV_VOLTA.base === c.id && AV_VOLTA.ids.has(c.id) ? new Set([c.id]) : new Set(); AV_VOLTA = null; FAMSIM = horasCpf() ? new Set(AV) : new Set();
+  if (!voltouAV && !corrigir && ehPcd(c)) famMarcar(c.id, false);   /* 2.93: a PCD abre em "Pagar avulso" (com o desconto), sem as horas da família */   // 1.11: cada saída começa descontando do pacote (a não ser que volte de "Adicionar serviços")
   SAI = null; FAMJA = c.id; const k = contaSaida(c), p = periodo(); descNovo('saida', c.id); altSaidaNovo([c.id], false); altpSaida(c.id);   // 1.39   // 1.04: cada saída começa sem desconto
   abrirFolha('Pagamento da saída', `
     ${pgDetalhes(c)}${avisoParou([c])}
@@ -6153,7 +6159,7 @@ function folhaSaidaGrupo(G, carros = []) {   // 1.25: carros = o que saiu da loj
   const fora = volta ? new Set([...volta.fora].filter(i => G.some(c => c.id === i))) : new Set(), foraA = volta && volta.foraA ? new Set([...volta.foraA].filter(i => carros.some(a => String(a.id) === i))) : new Set();
   if (volta && volta.alug) for (const a of carros) if (!volta.alug.includes(String(a.id))) foraA.add(String(a.id));   // o carrinho que saiu em "Adicionar serviços" (o cliente leva) fica fora da conta: não é devolvido agora
   const vav = AV_VOLTA && AV_VOLTA.base === b0 ? AV_VOLTA : null, av = !!(vav && vav.ids.size); AV_VOLTA = null;
-  SAI = { ids: G.map(c => c.id), fora, av, alug: carros.map(a => String(a.id)), foraA, base: b0 }; AV = vav && vav.fam ? new Set(vav.ids) : av ? new Set(SAI.ids) : new Set(); FAMSIM = vav && vav.fam ? new Set(vav.fam) : horasCpf() ? new Set(AV) : new Set(); FAMJA = 'g';   /* 2.13: a escolha de cada criança volta igual */ descNovo('saida', b0); altSaidaNovo([b0, ...SAI.ids.filter(i => i !== b0)], true); altpSaida(b0); const g = contaGrupo();   // av (1.11): a conta inteira paga avulso
+  SAI = { ids: G.map(c => c.id), fora, av, alug: carros.map(a => String(a.id)), foraA, base: b0 }; AV = vav && vav.fam ? new Set(vav.ids) : av ? new Set(SAI.ids) : new Set(); FAMSIM = vav && vav.fam ? new Set(vav.fam) : horasCpf() ? new Set(AV) : new Set(); FAMJA = 'g'; if (!vav) for (const k of G) if (ehPcd(k)) famMarcar(k.id, false);   /* 2.93: a PCD abre em "Avulso" */   /* 2.13: a escolha de cada criança volta igual */ descNovo('saida', b0); altSaidaNovo([b0, ...SAI.ids.filter(i => i !== b0)], true); altpSaida(b0); const g = contaGrupo();   // av (1.11): a conta inteira paga avulso
   abrirFolha(tituloConta(G.length, carros.length), `
     ${pgDetalhes(G[0] || crianca(b0), false)}${avisoParou(G)}
     <div id="sg-conta" data-k="${esc(chaveGrupo(g))}">${htmlContaGrupo(g)}</div>
@@ -7104,6 +7110,7 @@ async function planoOk(el) {
 }
 function planoDe(c) {
   if (c.festa) return 'festa';   // 1.29: está numa festa (não cobra, não gasta horas)
+  if (ehPcd(c)) return 'avulso';   /* 2.93: a PCD é da avulsa */
   if (c.plano) return c.plano; if (c.famMov && MODO !== 'servidor') { const p = periodo(); return pacMin(c) - (c.entrou && c.atraso ? c.atraso.n * p : 0) - (c.usado || 0) > 0 ? 'pacote' : 'avulso'; }   /* 2.11 (prévia): recebeu ou deu horas do CPF */ let resta = c.usado || 0;
   for (const v of (S.compras || []).filter(x => x.crianca === c.id && minDe(x) > 0).sort((a, b) => a.quando - b.quando)) { const m = minDe(v); if (resta >= m) { resta -= m; continue; } resta = 0; if (ehPacoteVenda(v)) return 'pacote'; }
   return 'avulso';
@@ -8516,14 +8523,14 @@ let QUEM_ABRE = null;
    de todas as marcadas de uma vez. ENT_SEL = { base: a criança do atendimento, ids: as marcadas }; ENT_LOTE: a entrada em lote correndo */
 let ENT_SEL = null, ENT_LOTE = null;
 const btEntrarUm = c => (saldoCpf(c) >= periodo() ? `<button type="button" class="bt forte largo tap" id="v-entrar-saldo" data-act="entrada" data-id="${c.id}" title="Não precisa vender nada: a criança entra usando as horas que já tem">${ic(IC.entrar)} Dar entrada com o saldo (${hm(saldoCpf(c))}${saldoMin(c) < saldoCpf(c) - 0.5 ? ' do CPF' : ''})</button>`
-      : `<button type="button" class="bt forte largo tap av-entrar" id="v-entrar-saldo" data-act="entrada" data-id="${c.id}" title="Sem pacote: a criança entra na recreação avulsa e o cliente acerta na saída, pelo tempo que ela ficar"><span>${ic(IC.entrar)} Dar entrada · Recreação avulsa</span><small>${esc(precoTempo(c))} · acerta na saída${esc(famTemTxt(c))}</small></button>`);
+      : `<button type="button" class="bt forte largo tap av-entrar" id="v-entrar-saldo" data-act="entrada" data-id="${c.id}" title="Sem pacote: a criança entra na recreação avulsa e o cliente acerta na saída, pelo tempo que ela ficar"><span>${ic(IC.entrar)} Dar entrada · Recreação avulsa</span><small>${esc(precoTempo(c))} · acerta na saída${ehPcd(c) ? '' : esc(famTemTxt(c))}</small></button>`);
 function htmlEntSel(c) { const F = familia(c).filter(x => !x.entrou); if (F.length < 2 || !F.some(x => x.id === c.id)) { ENT_SEL = null; return ''; }
   /* 2.38 (o dono: "quando eu anexo 2 ou 3 crianças, tem que dar a opção de escolher 3 sapateiras"): as cadastradas juntas já vêm marcadas */
   if (!ENT_SEL || ENT_SEL.base !== c.id) { const ids = new Set([c.id]); if (filaVale() && CAD_FILA.includes(c.id)) for (const i of CAD_FILA) if (F.some(x => x.id === i)) ids.add(i); ENT_SEL = { base: c.id, ids }; }
-  return `<div class="campo ent-sel" id="v-ent-sel"><label>Quem vai entrar? <span class="leve">· toque para marcar (pode ser mais de uma)</span></label><div class="ent-chips">${F.map(x => `<button type="button" class="ent-chip tap" data-act="ent-marca" data-id="${x.id}" aria-pressed="${ENT_SEL.ids.has(x.id)}"><i aria-hidden="true">${ic(IC.check, 14, 3)}</i><span><b>${esc(x.nome)}</b><small>${saldoCpf(x) >= periodo() ? (saldoMin(x) < saldoCpf(x) - 0.5 ? 'saldo do CPF ' : 'saldo ') + hm(saldoCpf(x)) : 'recreação avulsa'}</small></span></button>`).join('')}${F.some(x => !ENT_SEL.ids.has(x.id)) ? `<button type="button" class="link tap fam-todas" data-act="ent-todas">${ic(IC.check, 14, 3)} Marcar todas</button>` : ''}</div></div>`; }   /* 2.18: Marcar todas */
+  return `<div class="campo ent-sel" id="v-ent-sel"><label>Quem vai entrar? <span class="leve">· toque para marcar (pode ser mais de uma)</span></label><div class="ent-chips">${F.map(x => `<button type="button" class="ent-chip tap" data-act="ent-marca" data-id="${x.id}" aria-pressed="${ENT_SEL.ids.has(x.id)}"><i aria-hidden="true">${ic(IC.check, 14, 3)}</i><span><b>${esc(x.nome)}</b><small>${ehPcd(x) ? pcdAvTxt(x) : saldoCpf(x) >= periodo() ? (saldoMin(x) < saldoCpf(x) - 0.5 ? 'pacote · saldo do CPF ' : 'pacote · saldo ') + hm(saldoCpf(x)) : 'recreação avulsa'}</small></span></button>`).join('')}${F.some(x => !ENT_SEL.ids.has(x.id)) ? `<button type="button" class="link tap fam-todas" data-act="ent-todas">${ic(IC.check, 14, 3)} Marcar todas</button>` : ''}</div></div>`; }   /* 2.18: Marcar todas */
 const btEntrar = c => { const M = ENT_SEL && ENT_SEL.base === c.id ? [...ENT_SEL.ids].map(crianca).filter(x => x && !x.entrou) : null;
   if (!M || (M.length === 1 && M[0].id === c.id)) return btEntrarUm(c);
-  return M.length ? `<button type="button" class="bt forte largo tap av-entrar" id="v-entrar-saldo" data-act="entrada" data-id="${c.id}" title="Entram de uma vez: cada uma com o saldo dela ou na recreação avulsa"><span>${ic(IC.entrar)} Dar entrada · ${M.length === 1 ? esc(M[0].nome) : M.length + ' crianças'}</span><small>${esc(M.map(x => x.nome + (saldoCpf(x) >= periodo() ? ' (saldo' + (saldoMin(x) < saldoCpf(x) - 0.5 ? ' do CPF' : ' ' + hm(saldoMin(x))) + ')' : ' (avulsa)')).join(' · '))}</small></button>`
+  return M.length ? `<button type="button" class="bt forte largo tap av-entrar" id="v-entrar-saldo" data-act="entrada" data-id="${c.id}" title="Entram de uma vez: cada uma com o saldo dela ou na recreação avulsa"><span>${ic(IC.entrar)} Dar entrada · ${M.length === 1 ? esc(M[0].nome) : M.length + ' crianças'}</span><small>${esc(M.map(x => x.nome + (ehPcd(x) ? ' (' + pcdAvTxt(x) + ')' : saldoCpf(x) >= periodo() ? ' (pacote · saldo' + (saldoMin(x) < saldoCpf(x) - 0.5 ? ' do CPF' : ' ' + hm(saldoMin(x))) + ')' : ' (avulsa)')).join(' · '))}</small></button>`
     : `<button type="button" class="bt largo tap" id="v-entrar-saldo" data-act="entrada" data-id="${c.id}" disabled>Toque em quem vai entrar</button>`; };
 /* 2.18 (o dono: "dar entrada de todos irmãos de uma só vez ... selecionar as crianças que estão entrando"): na venda com "Dar entrada agora",
    as outras crianças marcadas em "Quem vai entrar?" entram logo depois da venda (com o saldo do CPF ou na avulsa). Devolve quem entrou e o
