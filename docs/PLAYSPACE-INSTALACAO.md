@@ -1301,6 +1301,16 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O Atendimento em duas colunas no computador (3.16)
+
+Pedido do dono (foto do Atendimento no computador, 28/11): "tô achando apertada essa tela, conseguir visualizar tudo de uma vez só seria melhor".
+- No computador (quando a tela tem espaço, mesmo com o Histórico do cliente aberto ao lado), o Atendimento fica largo e em **duas colunas**:
+  - **à esquerda, o que vender:** a entrada na festa de hoje, o voucher, a recreação, a lista de pacotes, os carrinhos, os produtos e o outro item;
+  - **à direita, o cliente e o fechamento:** o responsável e as crianças, o OBS, o saldo, quem vai entrar, quem está atendendo, "Dar entrada agora", o total e o botão de Pagamento (sempre à vista).
+- Os produtos e os serviços ficaram um pouco mais baixos nessa tela, para caber mais.
+- No celular e no tablet em pé, a tela continua como antes (uma coluna). A única mudança ali: o quadro "Entrar na festa" (dia de festa) aparece logo antes da recreação e dos pacotes.
+- Medido: num notebook 1536×730 com o Histórico aberto, a tela antes rolava 778 pontos e agora rola só o fim da lista de produtos (o lado direito, com o Pagamento, fica inteiro à vista); numa tela 1920×950 cabe tudo, sem rolar.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O Banco de horas por CPF (3.15)
 
 Pedido do dono (fotos do Banco de horas e do Vender pacote com o SALDO DO CPF, 28/11): "aí precisa ser a mesma lógica das horas por CPF".

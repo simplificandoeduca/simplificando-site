@@ -1081,6 +1081,25 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 /* 0.90: o atendimento tem duas páginas na mesma folha (a escolha e o pagamento); só uma aparece de cada vez */
 #v-escolha, #v-pag { display: contents; } #v-escolha[hidden], #v-pag[hidden] { display: none; }
 #v-escolha > .bt, #v-pag > .bt { flex: none; }
+/* 3.16 (o dono: "tô achando apertada essa tela, conseguir visualizar tudo de uma vez só seria melhor"): o Atendimento em duas colunas quando
+   cabe (no computador, mesmo com o Histórico aberto ao lado): à esquerda o que vender; à direita o cliente, quem entra, quem atende, o total e
+   o Pagamento. No celular e na tela estreita, as partes não existem para o layout (display: contents) e tudo fica como antes */
+.at-cli, .at-itens { display: contents; }
+.at-cli > .bt, .at-itens > .bt { flex: none; }
+.folha-fundo { container: fundo / inline-size; }
+@container fundo (min-width: 860px) {
+  .folha:has(#v-escolha.atd:not([hidden])) { width: min(1080px, calc(100% - 32px)); }
+  #v-escolha.atd:not([hidden]) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 390px); grid-template-rows: auto 1fr; grid-template-areas: "itens cli" "itens pe"; column-gap: 22px; row-gap: 12px; align-items: start; }
+  #v-escolha.atd > .at-cli { grid-area: cli; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  #v-escolha.atd > .at-itens { grid-area: itens; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  #v-escolha.atd > .pe-f { grid-area: pe; align-self: end; min-width: 0; }
+  /* (os produtos e os serviços mais baixos, para a coluna da esquerda caber inteira) */
+  #v-escolha.atd .prods { grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 8px; }
+  #v-escolha.atd .prod { min-height: 0; padding: 8px 8px 6px 12px; border-radius: 14px; gap: 1px; } #v-escolha.atd .prod > .pr-b { border-radius: 12px; }
+  #v-escolha.atd .prod > b { font-size: 14.5px; } #v-escolha.atd .prod > span { font-size: 12.5px; } #v-escolha.atd .prod .pr-pe { min-height: 28px; }
+  #v-escolha.atd .serv { padding: 7px 12px; border-radius: 16px; } #v-escolha.atd .serv .txt b { font-size: 16px; }
+  #v-escolha.atd .serv .qtd button { width: 38px; height: 38px; border-radius: 12px; }
+}
 /* as formas de pagamento: quatro botões grandes; a escolhida fica marcada, com o valor embaixo */
 .formas { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
 .formas button { min-height: 66px; border: 2px solid var(--borda); border-radius: 18px; background: var(--card); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 8px 4px; min-width: 0; }
@@ -2406,7 +2425,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '3.15';
+const VERSAO = '3.16';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -8961,17 +8980,16 @@ function folhaVender(id, primeira, pre, voltaSaida) { // primeira: acabou de sai
   if (it && !it.semItem) { if (pre.pac != null) { if (!CARRINHO.pac.includes(pre.pac)) CARRINHO.pac.push(pre.pac); } else CARRINHO.pr[pre.prod] = Math.max(1, CARRINHO.pr[pre.prod] || 0); }
   const semH = VOLTA_SAIDA && SEMH ? crianca(SEMH) : null; SEMH = 0;
   const notaPre = semH ? `<p class="retoma" id="v-pre">${ic(IC.presente, 16)}<span><b>${esc(semH.nome)} está sem horas no pacote.</b> Escolha o pacote e toque em <b>Somar na saída</b>: o pacote entra na conta e o tempo sai dele.</span></p>` : it && it.vpac ? `<p class="retoma" id="v-pre">${ic(IC.presente, 16)}<span>${pre && pre.cpf ? `<b>Venda do pacote para ${esc(c.resp || c.nome)}, sem entrada.</b> As horas ficam no CPF: qualquer criança dele usa. Escolha o pacote e toque em Pagamento. O comprovante sai como sempre.` : '<b>Venda do pacote, sem entrada.</b> Escolha o pacote e toque em Pagamento: a criança não entra agora. O comprovante sai como sempre.'}</span></p>` : it && it.semItem ? '' : it ? `<p class="retoma" id="v-pre">${ic(it.pac ? IC.presente : IC.sacola, 16)}<span><b>${esc(it.curto)} já está na venda.</b> Confira e toque em Pagamento.</span></p>` : '';
-  abrirFolha('Atendimento', `<div id="v-escolha">
+  abrirFolha('Atendimento', `<div id="v-escolha" class="atd"><div class="at-cli">
     <div class="linha">${avatar(c)}<div class="txt"><b style="white-space:normal">${nomeResp(c)}</b><span style="white-space:normal">${pre && pre.cpf && pre.venderPac ? cpfLinha(c) : nomeCri(c, true) + (c.pcd ? ` <em class="selo-pcd">${rotPcd()}</em>` : '')}${fones(c) ? ' · ' + esc(fones(c)) : ''}</span>${c.entrou || c.sapateira ? `<span style="white-space:normal">${[c.entrou ? 'no espaço desde ' + hora(c.entrou) : '', c.sapateira ? 'sapateira ' + c.sapateira : ''].filter(Boolean).join(' · ')}</span>` : ''}</div><button class="bt tap" data-act="historico" data-id="${c.id}">${ic(IC.historico)} Histórico</button></div>
     ${obsAlerta(c)}
-    ${blocoFestaEntrada(c)}
     ${comSaldoFicha(c) ? `<div class="h-saldo f-saldo" data-ficha-saldo="${c.id}" data-k="${pacMin(c)}|${usadoAgora(c)}" aria-label="Horas do cliente">${saldoFicha(c)}</div>` : ''}
-    ${semIdface() && !c.entrou ? htmlEntSel(c) + btEntrar(c) : ''}
+    ${semIdface() && !c.entrou ? htmlEntSel(c) + btEntrar(c) : ''}</div><div class="at-itens">${blocoFestaEntrada(c)}
     ${nota}${notaPre}${VOLTA_SAIDA ? `<p class="retoma" id="v-volta">${ic(IC.sair, 16)}<span><b>Adicionar à saída de ${esc(c.nome)}.</b> Escolha o que o cliente leva: entra no pagamento da saída, que abre de novo em seguida.</span></p>` : ''}<div class="campo">${!servicoTempo() ? '<label>Qual serviço?</label>' : !semIdface() ? '<label>Tempo de recreação <span class="leve">· avulso, de ' + porExt(periodo()) + ' em ' + porExt(periodo()) + '</span></label>' : ''}<div class="servicos" id="v-servicos">${linhasServico('tempo')}</div></div>
     ${pacotesNoAtendimento()}
     ${outrosServicos().length ? `<div class="campo"><label>Outros serviços</label><div class="servicos" id="v-servicos2">${linhasServico('outros')}</div></div>` : ''}
     ${produtosNoAtendimento()}
-    <details class="outro"${r && r.item ? ' open' : ''}><summary>Outro item</summary><div class="outro-item"><input id="v-item" value="${esc(r ? r.item || '' : '')}" placeholder="O que foi" autocomplete="off" maxlength="40" aria-label="O que foi vendido"><input id="v-valor" value="${esc(r ? r.valor || '' : '')}" inputmode="decimal" placeholder="R$" autocomplete="off" aria-label="Valor em reais"></div></details>
+    <details class="outro"${r && r.item ? ' open' : ''}><summary>Outro item</summary><div class="outro-item"><input id="v-item" value="${esc(r ? r.item || '' : '')}" placeholder="O que foi" autocomplete="off" maxlength="40" aria-label="O que foi vendido"><input id="v-valor" value="${esc(r ? r.valor || '' : '')}" inputmode="decimal" placeholder="R$" autocomplete="off" aria-label="Valor em reais"></div></details></div>
     <div class="pe-f">${htmlVend()}<span class="explica" id="v-tempo" hidden></span>${semIdface() && !c.entrou ? `<label class="marca" id="v-entrar-campo" hidden><input type="checkbox" id="v-entrar" checked><span><b>Dar entrada agora.</b> <span id="v-entrar-vou" hidden>O voucher é dado na entrada. </span><span id="v-entrar-txt">O tempo de recreação começa a contar ao registrar a venda.</span></span></label>` : ''}<div class="total"><span>Total a pagar</span><b class="num" id="v-total">R$ 0</b></div><button class="bt forte largo tap" id="v-ok" data-act="atender-ok" data-id="${c.id}" disabled>${ic(IC.check)} Escolha o serviço</button></div>
     </div><div id="v-pag" hidden></div>`);
   ETAPA_FEITA = false;   // daqui em diante, fechar sem registrar guarda o que foi escolhido
