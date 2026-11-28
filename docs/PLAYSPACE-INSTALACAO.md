@@ -1301,6 +1301,12 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. "Produtos do pacote" na Play (3.22)
+
+Pedido do dono (28/11): "lá na Play aparece Produtos; pode colocar Produtos do pacote, que a gente sabe que são os produtos de dentro do pacote".
+- Na Play, a lista que se chamava só "Produtos" agora se chama **Produtos do pacote**: na venda (com a explicação "os que vão dentro do pacote; um toque põe na venda"), na aba da folha Pacotes e produtos, no Pacote futuro e em Ajustes.
+- Na Casa Tom continua "Produtos" (lá o produto é vendido solto). Nada mudou nas contas: é só o nome.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O comprovante da nota com o ursinho e os modelos de Natal (3.21)
 
 Pedidos do dono (28/11): "eu quero o comprovante da nota fiscal da Play mais fofo, com um ursinho; me dê 3 formatos"; depois, "pode subir o ursinho espiando; o cupom deixa na opção de trocar"; "amei a nota da Casa Tom, pode colocar lá, para poder selecionar ela"; "gostei da nota do Play".

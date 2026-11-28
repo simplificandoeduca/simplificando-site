@@ -2441,7 +2441,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '3.21';
+const VERSAO = '3.22';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -4650,7 +4650,7 @@ function folhaPacoteFuturo(cid, doCpf) {
   abrirFolha('Pacote futuro', `<div class="linha">${avatar(c)}<div class="txt"><b style="white-space:normal">${nomeResp(c)}</b><span style="white-space:normal">${doCpf ? cpfLinha(c) : nomeCri(c, true)}</span></div></div>
     <p class="explica" id="pf-exp">O cliente fecha o pacote hoje e paga no dia combinado (fiado). ${gestor() ? 'Lançado por você, já vale:' : 'Vai para o <b>gestor aprovar</b>; aprovado,'} a venda entra no caixa de hoje, as horas já vão para o cliente e o valor fica <b>a receber</b> até o dia do pagamento. Se não pagar, aparece um aviso.</p>
     <div class="campo"><label>Qual pacote<span class="obg" aria-hidden="true">*</span> <span class="leve">· um ou mais</span></label>${pfPacotes()}</div>
-    <div class="campo" id="pf-produtos"><label>Produtos <span class="leve">· opcional</span></label>${pfProdutos()}</div>
+    <div class="campo" id="pf-produtos"><label>Produtos do pacote <span class="leve">· opcional</span></label>${pfProdutos()}</div>   <!-- 3.22 -->
     <div class="dois pf-dd"><div class="campo"><label for="pf-ajb">Valor <span class="leve">· para mais ou para menos</span></label><button type="button" class="pf-ajb tap" id="pf-ajb" data-act="pf-ajb" aria-pressed="false">${ic(IC.lapis, 16)} Ajustar valor</button></div>
       <div class="campo"><label for="pf-paga">Data do pagamento<span class="obg" aria-hidden="true">*</span></label><input id="pf-paga" type="date" min="${hoje}"></div></div>
     <div class="pf-conta" id="pf-conta"></div>
@@ -4950,7 +4950,7 @@ async function baixarCsv(nome, csv) { const pela = baixarPelaPrevia();
 function folhaPacotes(aba) {
   PQ = null; ABA_PP = aba === 'produtos' ? 'produtos' : 'pacotes';
   abrirFolha('Pacotes e produtos', `
-    <div class="seg" id="pp-abas" role="group" aria-label="O que mostrar">${[['pacotes', 'Pacotes de horas', (S.cfg.pacotes || []).length], ['produtos', 'Produtos', (S.produtos || []).length]].map(([v, n, q]) => `<button type="button" data-act="pp-aba" data-v="${v}" aria-pressed="${ABA_PP === v}">${n}${q ? ` <small class="num">${q}</small>` : ''}</button>`).join('')}</div>
+    <div class="seg" id="pp-abas" role="group" aria-label="O que mostrar">${[['pacotes', 'Pacotes de horas', (S.cfg.pacotes || []).length], ['produtos', 'Produtos do pacote', (S.produtos || []).length]].map(([v, n, q]) => `<button type="button" data-act="pp-aba" data-v="${v}" aria-pressed="${ABA_PP === v}">${n}${q ? ` <small class="num">${q}</small>` : ''}</button>`).join('')}</div>
     <div class="pp-corpo" id="pp-corpo">${ABA_PP === 'produtos' ? corpoProdutos() : corpoPacotes()}</div>`);
 }
 // os pacotes no atendimento, por tempo e valor; se a loja tem pacotes com produto e só de horas, cada tipo fica no seu grupo
@@ -4967,7 +4967,7 @@ const botaoProduto = p => { const q = (CARRINHO && CARRINHO.pr && CARRINHO.pr[p.
   return `<div class="prod${q ? ' on' : ''}"><button type="button" class="pr-b tap" data-act="prod-mais" data-p="${p.id}" aria-label="Pôr ${esc(p.n)} na venda: ${brl(p.v)}${q ? ', já tem ' + q : ''}"></button><b>${esc(p.n)}</b><span class="num">${brl(p.v)}</span><div class="pr-pe"><i${estFalta(p, q) ? ' class="falta"' : ''}>${estTxt(p, q)}</i>${q ? `<span class="pr-q"><button type="button" class="tap" data-act="prod-menos" data-p="${p.id}" aria-label="Tirar um ${esc(p.n)}">−</button><b class="num" aria-label="${q} na venda">${q}</b></span>` : ''}</div></div>`; };
 function produtosNoAtendimento() {
   const P = prodsDaLoja(); if (!P.length) return '';   /* 2.00: os produtos da loja do aparelho */
-  return `<div class="campo" id="v-produtos"><label>Produtos <span class="leve">· um toque põe na venda</span></label><div class="prods">${P.map(botaoProduto).join('')}</div></div>`;
+  return `<div class="campo" id="v-produtos"><label>Produtos do pacote <span class="leve">· os que vão dentro do pacote; um toque põe na venda</span></label><div class="prods">${P.map(botaoProduto).join('')}</div></div>`;
 }
 function salvarPacotes() { if (MODO === 'servidor') api('regra_salvar', { pacotes: S.cfg.pacotes }).then(r => { if (r.regra && Array.isArray(r.regra.pacotes)) S.cfg.pacotes = r.regra.pacotes; }).catch(e => toast(e.message)); }
 function contaPacote() { // no editor: o valor da hora, da meia hora e da parcela, para conferir com a tabela da loja
@@ -11614,7 +11614,7 @@ function telaAjustes() {
         ${cfg.pacotes.length ? `<div class="grupo">${cfg.pacotes.map((p, i) => `<button class="it tap" data-act="pacote-editar" data-i="${i}"><div class="txt"><b>${dur(p.h * 60)} · ${brl(p.v)}</b><span>${esc(nomePacote(p))}${p.h > 1 ? ' · ' + brl(centavos(p.v / p.h)) + ' a hora' : ''}${parcTxt(p) ? ' · ' + parcTxt(p) : ''}</span></div><span class="vai">${ic(IC.vai, 18)}</span></button>`).join('')}</div>` : ''}
         <p class="explica">Horas vendidas de uma vez, com preço fechado e sem prazo para usar. Cada pacote tem o tempo, o valor e, se quiser, um nome; pode haver vários do mesmo tempo. ${cfg.pacotes.length ? 'Aparecem no atendimento de cada cliente.' : 'Nenhum pacote cadastrado por enquanto.'} <button type="button" class="link tap" id="aj-tabela" data-act="pacotes">Abrir a tabela de pacotes e produtos</button></p>
       </div>
-      <div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.sacola, 20)} Produtos</h2><span style="display:flex;gap:14px;flex-wrap:wrap">${gestor() ? '<button class="link tap" data-act="produtos-importar">Importar relação</button>' : ''}<button class="link tap" data-act="produto-novo">Novo produto</button></span></div>
+      <div class="card"><div class="sec-cab"><h2 style="font-size:18px">${ic(IC.sacola, 20)} Produtos do pacote</h2><span style="display:flex;gap:14px;flex-wrap:wrap">${gestor() ? '<button class="link tap" data-act="produtos-importar">Importar relação</button>' : ''}<button class="link tap" data-act="produto-novo">Novo produto</button></span></div>
         ${(() => { const so = (S.produtos || []).filter(p => !prodNaLoja(p, 'play')).length; return so ? `<p class="explica" id="aj-prod-ct">${impNum(so)} ${so === 1 ? 'produto é só' : 'produtos são só'} da Casa Tom: ${so === 1 ? 'ele aparece' : 'eles aparecem'} na Casa Tom (Produtos).</p>` : ''; })()}
         ${(S.produtos || []).some(p => prodNaLoja(p, 'play')) ? `<div class="grupo">${(S.produtos || []).filter(p => prodNaLoja(p, 'play')).map(p => `<button class="it tap" data-act="produto-editar" data-id="${p.id}"><div class="txt"><b>${esc(p.n)} · ${brl(p.v)}</b><span${estFalta(p) ? ' style="color:var(--erro);font-weight:800"' : ''}>${p.est == null ? 'sem controle de estoque' : estTxt(p)}</span></div><span class="vai">${ic(IC.vai, 18)}</span></button>`).join('')}</div>` : ''}
         <p class="explica">O que a loja vende além do tempo: nome, valor e estoque. O estoque baixa sozinho a cada venda e volta se a venda for desfeita. ${(S.produtos || []).length ? 'Aparecem no atendimento de cada cliente, depois dos pacotes.' : 'Nenhum produto cadastrado por enquanto.'}</p>
