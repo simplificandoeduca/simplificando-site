@@ -1301,6 +1301,17 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Festa: escolher a festa do upgrade; data do lançamento no caixa e valor do upgrade com a senha do gestor (3.04)
+
+Pedidos do dono (27/11): "no upgrade de festa ... eu tenho que ter a opção de selecionar a festa para mim fazer o upgrade"; "na festa você coloque uma opção para o gestor, para ele colocar a senha, data do lançamento do caixa da festa ... e data do lançamento do upgrade"; "coloca uma opção também, valor do upgrade".
+
+- Festa → Upgrade (e Adicional): embaixo da festa marcada, o botão **"Escolher a festa"** (ou "Escolher outra festa"). Ele abre a lista das festas marcadas daqui para a frente (no Adicional, também as dos últimos 30 dias), com a busca pelo nome, tema, responsável ou dia. Um toque escolhe: a festa fica marcada, com o "já tem" na tabela. Vale também para a festa de outro cliente (o upgrade fica com a festa escolhida).
+- Na folha da Festa, o bloco **"Gestor: data do lançamento no caixa e valor do upgrade"** (com cadeado). Só vale com a **senha de um gestor**:
+  - **Data do lançamento no caixa**: a venda (festa nova, upgrade ou adicional) e o pagamento entram no caixa do dia escolhido, de hoje para trás (até um ano). Aparece "Vai entrar no caixa de dd/mm/aaaa". As Finanças, as comissões e o caixa daquele dia passam a ter essa venda; o de hoje, não.
+  - **Valor do upgrade** (só no Upgrade): o gestor põe outro valor no lugar da diferença da tabela; o total acompanha. No cupom e nas Finanças sai "valor do gestor (tabela R$ ...)".
+  - Sem a senha (ou com a senha de quem não é gestor), não registra. Fica anotado em Hoje na recepção: "Festa lançada no caixa de ..." e "Upgrade de festa com o valor do gestor ...", com de quem foi a senha.
+- A nota fiscal continua com a data em que é emitida (a data no caixa não muda a nota).
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O calendário: o dia de hoje do tamanho certo (3.03)
 
 Pedido do dono (27/11, com a foto do Pacote futuro): "Data bugada".

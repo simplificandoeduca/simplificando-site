@@ -863,6 +863,17 @@ switch ($acao) {
       $linhas[] = $lv;
     }
     // 1.12: a festa (só pelo botão Festa): as linhas saem da tabela da loja, e a festa é paga na hora da venda
+    /* 3.04 (o dono: "na festa ... uma opção para o gestor, para ele colocar a senha, data do lançamento do caixa da festa ... e valor do
+       upgrade"): com a senha de um gestor, a venda da festa (nova, upgrade ou adicional) entra no caixa de outro dia (de hoje para trás, até
+       um ano), e o upgrade pode ter outro valor. O vg só vale o que vem daqui (nunca direto da tela) */
+    if (is_array($in['festa'] ?? null) && is_array($in['festa']['up'] ?? null)) unset($in['festa']['up']['vg']);
+    $fg = is_array($in['festa_g'] ?? null) && is_array($in['festa'] ?? null) ? $in['festa_g'] : null; $fgAut = null; $fgData = ''; $fgUpv = 0.0;
+    if ($fg) { $fgData = trim((string)($fg['data'] ?? '')); $fgUpv = isset($fg['upv']) && is_numeric($fg['upv']) ? round((float)$fg['upv'], 2) : 0.0;
+      if ($fgData !== '' && (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $fgData, $mg) || !checkdate((int)$mg[2], (int)$mg[3], (int)$mg[1]) || $fgData > date('Y-m-d') || $fgData < date('Y-m-d', time() - 366 * 86400))) falha('Confira a data do lançamento no caixa: de hoje para trás (até um ano).');
+      if ($fgUpv < 0 || $fgUpv > 100000 || (isset($fg['upv']) && $fgUpv <= 0)) falha('Confira o valor do upgrade.');
+      if ($fgData === date('Y-m-d')) $fgData = '';
+      if ($fgData !== '' || $fgUpv > 0) { $sg = (string)($fg['senha'] ?? ''); if ($sg === '') falha('Digite a senha do gestor (data no caixa e valor do upgrade).', 403); $fgAut = autorizadorPelaSenha('festa', $sg, $u);
+        if ($fgUpv > 0) { if (!is_array($in['festa']['up'] ?? null)) falha('O valor do gestor é só para o upgrade de festa.'); $in['festa']['up']['vg'] = $fgUpv; } } }
     $festa = linhasDaFesta($in['festa'] ?? null, $c); foreach ($festa as $l) $linhas[] = $l;
     if ($festa && !empty($in['depois'])) falha('A festa é paga na hora da venda.');
     // voucher do shopping: 30 min de recreação grátis, um por visita, sem código. A tela só marca (voucher: true); a tela antiga mandava { q, codigo } e vale como um voucher.
@@ -941,6 +952,15 @@ switch ($acao) {
     if (!empty($in['entrar']) && modoManual() && !$c['entrou']) { // sem iDFace: registrou e já entra, o tempo começa a contar (1.15: com ou sem tempo comprado)
       $e = fazerEntrada($c, 'mão', null, null, $vendTela); $resp['entrada'] = ['registro' => $e['registro'], 'mensagem' => is_array($e['mensagem']) ? (int)($e['mensagem']['id'] ?? 0) : 0];
     }
+    if ($fgAut && $fgData !== '' && $vendas) {   /* 3.04: a venda da festa e o pagamento no caixa do dia escolhido pelo gestor (a hora fica a de agora) */
+      $iv = implode(',', array_map('intval', $vendas)); $dBr = substr($fgData, 8, 2) . '/' . substr($fgData, 5, 2) . '/' . substr($fgData, 0, 4);
+      $db->prepare("UPDATE vendas SET quando = ? || substr(quando, 11) WHERE id IN ($iv)")->execute([$fgData]);
+      $db->prepare("UPDATE pagamentos SET quando = ? || substr(quando, 11) WHERE venda_id IN ($iv)")->execute([$fgData]);
+      $ir = implode(',', array_map('intval', array_filter($regs, 'is_numeric'))); if ($ir !== '') $db->prepare("UPDATE registros SET quando = ? || substr(quando, 11) WHERE id IN ($ir)")->execute([$fgData]);
+      if ($festaId && array_filter($linhas, fn($l) => (($l['festa_acao']['tipo'] ?? '') === 'nova'))) $db->prepare("UPDATE festas SET criado_em = ? || substr(criado_em, 11) WHERE id = ? AND criado_em IS NOT NULL")->execute([$fgData, $festaId]);
+      $resp['lanc'] = $fgData; $resp['registros'][] = registrar('alt', (int)$c['id'], $c['nome'], 'Festa lançada no caixa de ' . $dBr . ' · senha de ' . primeiroNome($fgAut['nome']) . ' · por ' . primeiroNome($u['nome']));
+    }
+    if ($fgAut && $fgUpv > 0) $resp['registros'][] = registrar('alt', (int)$c['id'], $c['nome'], 'Upgrade de festa com o valor do gestor: ' . dinheiro($fgUpv) . ' · senha de ' . primeiroNome($fgAut['nome']) . ' · por ' . primeiroNome($u['nome']));   /* 3.04 */
     fecharPedidosDeDesconto($u, $c, 'venda');   // 1.23: o pedido de desconto que esperava a resposta não fica para depois
     responder($resp);
   }

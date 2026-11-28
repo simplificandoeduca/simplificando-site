@@ -2811,7 +2811,7 @@ function festaDoCliente(array $c): ?array {
 //   data ('AAAA-MM-DD', opcional): o dia da festa.
 function linhasDaFesta($fe, array $c): array {
   if (!is_array($fe)) return [];
-  $t = regra()['festa']; $fa = festaDaFamilia($c, (int)($fe['festa'] ?? 0)); /* 1.29: a festa marcada deste cliente (o upgrade e o adicional vão para ela) */ $dia = (string)($fe['dia'] ?? ''); $n = (int)($fe['n'] ?? 0); $extra = (int)($fe['extra'] ?? 0); $data = trim((string)($fe['data'] ?? '')); $up = is_array($fe['up'] ?? null) ? $fe['up'] : null;
+  $t = regra()['festa']; $faId = (int)($fe['festa'] ?? 0); $fa = $faId > 0 ? festaComConta($faId) : festaDaFamilia($c, 0); if ($faId > 0 && !$fa) falha('A festa não está mais marcada (a venda dela foi cancelada).');   /* 1.29: a festa marcada deste cliente (o upgrade e o adicional vão para ela). 3.04: ou a festa que a equipe escolheu na lista */ $dia = (string)($fe['dia'] ?? ''); $n = (int)($fe['n'] ?? 0); $extra = (int)($fe['extra'] ?? 0); $data = trim((string)($fe['data'] ?? '')); $up = is_array($fe['up'] ?? null) ? $fe['up'] : null;
   if ($extra < 0 || $extra > (int)$t['extraMax']) falha('Quantas crianças no adicional de festa? De 0 a ' . (int)$t['extraMax'] . '.');
   if ($n > 0 && $up) falha('Escolha a festa nova ou o upgrade de festa: os dois juntos, não.');
   if ($n <= 0 && !$up && $extra <= 0) falha('Escolha a festa: toque no valor, faça o upgrade ou ponha o adicional de festa.');
@@ -2847,9 +2847,10 @@ function linhasDaFesta($fe, array $c): array {
     if ($j <= $i) falha('O upgrade é para uma festa maior: de ' . $de . ' para ' . $para . ' crianças não dá.');
     $v = round((float)$t[$ud][$j] - (float)$t[$ud][$i], 2); if ($v <= 0) falha('Não há diferença a cobrar de ' . $de . ' para ' . $para . ' crianças.');
     if (isset($up['v']) && abs((float)$up['v'] - $v) >= 0.005) falha('O valor do upgrade de ' . $de . ' para ' . $para . ' crianças mudou para ' . dinheiro($v) . '. Feche e abra a Festa de novo.');
+    $gNota = ''; if (!empty($up['vg']) && (float)$up['vg'] > 0) { $gNota = ' · valor do gestor (tabela ' . dinheiro($v) . ')'; $v = round((float)$up['vg'], 2); }   /* 3.04: o valor do upgrade que o gestor pôs (o vg só chega aqui depois da senha conferida) */
     $tem = festaDoCliente($c);   // o que o sistema sabe da festa deste cliente: fica anotado quando não bate com o que a tela disse
     $nota = !$tem ? ' · sem festa anterior no sistema' : ($tem['n'] !== $de || $tem['dia'] !== $ud ? ' · no sistema: ' . FESTA_TIPOS[$tem['dia']] . ' de ' . $tem['n'] . ' crianças' : '');
-    $L[] = ['servico' => 'UPGRADE DE FESTA', 'min' => 0, 'valor' => $v, 'itens' => 'de ' . $de . ' para ' . $para . ' crianças · ' . FESTA_TIPOS[$ud] . $quando . ($fa ? '' : $nota), 'festa_acao' => $fa ? ['tipo' => 'up', 'festa' => (int)$fa['id'], 'n' => $para] : null];
+    $L[] = ['servico' => 'UPGRADE DE FESTA', 'min' => 0, 'valor' => $v, 'itens' => 'de ' . $de . ' para ' . $para . ' crianças · ' . FESTA_TIPOS[$ud] . $quando . $gNota . ($fa ? '' : $nota), 'festa_acao' => $fa ? ['tipo' => 'up', 'festa' => (int)$fa['id'], 'n' => $para] : null];
   }
   if ($extra > 0) { // o adicional de festa: as crianças a mais do que o pacote
     $ve = (float)$t['extra'];
