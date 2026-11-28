@@ -1085,6 +1085,11 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 /* 0.90: o atendimento tem duas páginas na mesma folha (a escolha e o pagamento); só uma aparece de cada vez */
 #v-escolha, #v-pag { display: contents; } #v-escolha[hidden], #v-pag[hidden] { display: none; }
 #v-escolha > .bt, #v-pag > .bt { flex: none; }
+/* 3.20: os quadros das formas no caixa são botões (o toque mostra quem pagou) */
+.cx-formas > .cx-fm { padding: 8px 10px; border-radius: 14px; background: var(--creme); border: 1px solid var(--borda); display: flex; flex-direction: column; min-width: 0; text-align: left; font: inherit; color: inherit; cursor: pointer; transition: border-color .2s, background .2s; }
+.cx-formas > .cx-fm:hover { border-color: var(--coral); background: var(--card); }
+.cxf-l .cxf-it { gap: 12px; } .cxf-it .cxf-h { flex: none; min-width: 42px; font-weight: 800; color: var(--tinta-2); font-size: 13px; }
+.cxf-it .txt b small { font-weight: 700; color: var(--tinta-2); } .cxf-it > b.num { flex: none; font-weight: 800; } .cxf-dev > b.num, .cxf-dev .txt span { color: var(--erro); }
 /* 3.19 (o dono: "otimiza mais essa tela também, tá muito apertado tudo"): o Pagamento da saída no computador fica largo e em duas colunas:
    à esquerda os detalhes do cliente e os itens; à direita, do "Pagamento" para baixo (pacote ou avulso, as horas, as formas, o desconto e o
    botão). São colunas de texto: o "Pagamento" começa a segunda coluna. No celular, como antes */
@@ -2449,7 +2454,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '3.19';
+const VERSAO = '3.20';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -4740,6 +4745,30 @@ const fiadosLista = () => MODO === 'servidor' ? (S.fiados || []) : (S.compras ||
   return { venda: v.id, crianca: v.crianca, nome: c.nome || '', resp: c.resp || '', valor: v.v, falta: faltaCompra(v), ate: v.fiado, ped: v.ped || 0, oque: v.itens || '', min: minDe(v), vendedora: v.vend || '', uni: null, quando: v.quando }; }).sort((a, b) => a.ate < b.ate ? -1 : a.ate > b.ate ? 1 : a.venda - b.venda);
 const fdDia = x => typeof x.quando === 'string' ? x.quando.slice(0, 10) : isoDia(new Date(x.quando || agora));   /* o dia da venda (o caixa em que o pagamento entra) */
 /* o "A receber" do caixa: um toque mostra os pacotes futuros do dia que faltam pagar (com o Receber) */
+/* 3.20 (o dono: "quando eu clique em Pix, ou dinheiro, ou cartão, ele me apareça quem foi as vendas que eu fiz"): as vendas de uma forma de
+   pagamento no caixa do dia que está na tela (o mesmo dia e a mesma unidade). Cada linha: a hora, o responsável e a criança, o que foi, quem
+   vendeu e o valor; um toque abre o histórico do cliente. O que foi devolvido no dia (de uma venda de outro dia) aparece em vermelho, a menos */
+const CXF_GRUPO = { recreacao: 'recreação avulsa', pacotes: 'pacote de horas', festa: 'festa', produtos: 'produto', carrinhos: 'carrinho', outros: '' };
+function cxFormaPrevia(f) { return cxNoDia(() => { const [d0, d1] = cxIntervalo(), uni = cxUni(), primeira = (unidades()[0] || {}).id || 0, L = [], D = [];
+  const bate = x => !uni || (uni === -1 ? !x : x === uni);
+  for (const p of S.pagamentos || []) { if (p.f !== f || !(+new Date(p.quando) >= +d0 && +new Date(p.quando) < +d1)) continue; const v = (S.compras || []).find(x => x.id === p.venda); if (!v) continue; const c = crianca(v.crianca) || {};
+    const u = +(p.uni || v.uni || c.uni || primeira); if (!bate(u)) continue; const g = grupoCxPrevia(v);
+    L.push({ q: p.quando, v: +p.v || 0, cid: c.id || 0, nome: c.nome || '', resp: c.resp || '', oque: String(v.servico || nomeVendaTxt(v) || 'VENDA').toUpperCase(), it: v.itens || '', g, vend: v.vend || '', por: v.por || '', uni: u }); }
+  for (const e of S.estornos || []) { if (e.f !== f || !(+new Date(e.quando) >= +d0 && +new Date(e.quando) < +d1)) continue; const u = +(e.uni || primeira); if (!bate(u)) continue; const c = crianca(e.crianca) || {}; D.push({ q: e.quando, v: +e.v || 0, cid: c.id || 0, nome: c.nome || '', resp: c.resp || '', g: e.g || '', oque: e.item || '', uni: u }); }
+  return { itens: L.sort((a, b) => +new Date(a.q) - +new Date(b.q)), dev: D }; }); }
+async function folhaCxForma(f) {
+  const fm = FORMAS.find(x => x[0] === f); if (!fm) return; const dia = S.cxDia && S.cxDia < cxHoje() ? S.cxDia : null, uni = cxUni();
+  let r; try { r = MODO === 'servidor' ? await api('caixa_forma', { forma: f, dia: dia || '', uni }) : cxFormaPrevia(f); } catch (e) { toast(e.message); return; }
+  const L = r.itens || [], D = r.dev || [], tot = centavos(L.reduce((t, x) => t + x.v, 0) - D.reduce((t, x) => t + x.v, 0));
+  const onde = uni > 0 ? nomeUni(uni) : uni === -1 ? 'sem unidade' : unidades().length > 1 ? 'todas as unidades' : '', quando = dia ? 'Caixa de ' + nascBR(dia) : 'Caixa de hoje';
+  const hr = q => hora(dataDe(q)), quem = x => esc(x.resp || x.nome || 'Cliente') + (x.resp && x.nome ? ` <small>· ${esc(x.nome)}</small>` : '');
+  const vend = x => x.vend ? 'vendeu ' + esc(primeiro(x.vend)) : x.por ? 'por ' + esc(primeiro(x.por)) : '';
+  const linha = x => `<button type="button" class="it tap cxf-it" ${x.cid ? `data-act="historico" data-id="${x.cid}"` : 'disabled'}><span class="cxf-h num">${hr(x.q)}</span><div class="txt"><b>${quem(x)}</b><span>${esc(x.oque)}${CXF_GRUPO[x.g] && !new RegExp(CXF_GRUPO[x.g], 'i').test(x.oque) ? ' · ' + CXF_GRUPO[x.g] : ''}${vend(x) ? ' · ' + vend(x) : ''}${uni === 0 && unidades().length > 1 && x.uni ? ' · ' + esc(curtoUni(nomeUni(x.uni) || '')) : ''}</span></div><b class="num">${brl2(x.v)}</b></button>`;
+  const lin = x => `<div class="it cxf-it cxf-dev"><span class="cxf-h num">${hr(x.q)}</span><div class="txt"><b>${quem(x)}</b><span>devolvido ao cliente${x.oque ? ' · ' + esc(x.oque) : ''}</span></div><b class="num">− ${brl2(x.v)}</b></div>`;
+  abrirFolha(`${fm[1]} · ${brl2(tot)}`, `<p class="explica">${quando}${onde ? ' · ' + esc(onde) : ''} · ${L.length} ${L.length === 1 ? 'pagamento' : 'pagamentos'} ${fm[2]}. Toque no cliente para abrir o histórico.</p>
+    ${L.length || D.length ? `<div class="grupo cxf-l">${L.map(linha).join('')}${D.map(lin).join('')}</div>` : `<div class="card vazio"><b>Nenhum pagamento ${fm[2]} ${dia ? 'neste dia' : 'hoje'}.</b></div>`}
+    ${L.length || D.length ? `<div class="total"><span>Total ${fm[2]}</span><b class="num">${brl2(tot)}</b></div>` : ''}`);
+}
 function folhaCxAReceber() { const dia = CX_ATIVO || isoDia(agora), L = fiadosLista().filter(x => fdDia(x) === dia), T = L.length ? L : fiadosLista();
   if (T.length === 1) { folhaFiadoReceber(T[0].venda); return; } if (!T.length) { toast('Nada a receber'); return; }
   abrirFolha('A receber', `<p class="explica">${L.length ? 'O pacote futuro (fiado) vendido ' + (CX_ATIVO ? 'em ' + nascBR(dia) : 'hoje') : 'Os pacotes futuros (fiado)'} que ainda não foi pago. Toque em Receber quando o cliente pagar: o valor sai do "A receber" e vai para a forma em que ele pagou, no caixa do dia da venda.</p>
@@ -8015,7 +8044,7 @@ function htmlCaixaDia0() {
   return `<section class="cx" aria-label="Caixa do dia">${selDia}${cxEsperando() ? `<p class="cx-velho">Buscando o caixa de ${cxDm()}…</p>` : ''}
     <div class="cx-cab"><span class="cx-ic">${ic(IC.caixa, 24)}</span><div class="txt"><small>${CX_ATIVO ? 'Caixa de ' + cxDm() : 'Caixa do dia'}${onde ? ' · ' + esc(onde) : ''}${CX_ATIVO ? ' · o dia inteiro' : ' · desde a meia-noite'}</small><b class="num">${brl2(K.total)}</b><span>${CX_ATIVO ? 'recebido em ' + nascBR(CX_ATIVO) : 'recebido hoje'}${K.soma.areceber > 0.004 ? ' + ' + brl2(K.soma.areceber) + ' a receber' : ''}</span></div><div class="cx-bts"><button type="button" class="bt tap" data-act="cx-ajustar" aria-label="Ajustar o caixa (passar o valor de uma forma de pagamento para outra)" title="Passar o valor de uma forma de pagamento para outra (o valor não muda)">${ic(IC.desconto, 16)}<span class="cx-imp">Ajustar caixa</span></button><button type="button" class="bt tap" data-act="cx-imprimir" aria-label="Imprimir o caixa do dia" title="Imprimir o caixa do dia">${ic(IC.cupom, 16)}<span class="cx-imp">Imprimir</span></button>${MODO === 'servidor' && gestor() ? `<button type="button" class="bt tap" data-act="cx-pdf" aria-label="Baixar o resumo do dia em PDF" title="O resumo do dia em PDF (o mesmo das Finanças)">${ic(IC.baixar, 16)}<span class="cx-imp">PDF do dia</span></button><button type="button" class="bt tap" data-act="cx-pdf-sem" aria-label="Baixar o relatório da semana em PDF" title="O relatório da semana em PDF: os 7 dias até este dia (só o gestor)">${ic(IC.baixar, 16)}<span class="cx-imp">PDF da semana</span></button>` : ''}</div></div>
     ${gestor() && botoesU.length > 2 ? `<div class="seg cx-uni">${botoesU.map(([id, n]) => `<button type="button" data-act="cx-uni" data-v="${id}" aria-pressed="${u === id}">${esc(n)}</button>`).join('')}</div>` : ''}
-    <div class="cx-formas">${FORMAS.map(([f, n]) => `<div><small>${n}</small><b class="num">${brl2(K.soma[f] || 0)}</b></div>`).join('')}${K.soma.areceber > 0.004 ? `<button type="button" class="cx-arec tap" data-act="cx-arec" title="O pacote futuro (fiado) que ainda não foi pago: toque para receber"><small>A receber</small><b class="num">${brl2(K.soma.areceber)}</b></button>` : `<div class="cx-arec zero"><small>A receber</small><b class="num">${brl2(0)}</b></div>`}</div>
+    <div class="cx-formas">${FORMAS.map(([f, n, em]) => `<button type="button" class="cx-fm tap" data-act="cx-forma" data-f="${f}" title="Ver quem pagou ${em}"><small>${n}</small><b class="num">${brl2(K.soma[f] || 0)}</b></button>`).join('')}${K.soma.areceber > 0.004 ? `<button type="button" class="cx-arec tap" data-act="cx-arec" title="O pacote futuro (fiado) que ainda não foi pago: toque para receber"><small>A receber</small><b class="num">${brl2(K.soma.areceber)}</b></button>` : `<div class="cx-arec zero"><small>A receber</small><b class="num">${brl2(0)}</b></div>`}</div>
     <div class="cx-sub cx-kids"><span>Crianças que passaram pelo espaço ${hj}</span><b class="num">${K.kids}</b></div>
     <div class="cx-grupos">${grupos}
       ${K.devSem > 0 ? `<div class="cx-g dev"><div class="cx-l"><b>Devolvido ${hj}</b><span class="num">− ${brl2(K.devSem)}</span></div><small>venda de outro dia cancelada ${hj} · ${esc(formasCx(K.dev.formas))} · ${K.dev.n} ${K.dev.n === 1 ? 'devolução' : 'devoluções'}${K.dev.grupos.carrinhos ? ` · o carrinho devolvido (${brl2(K.dev.grupos.carrinhos)}) sai da linha Carrinhos` : ''}</small></div>` : ''}
@@ -11811,6 +11840,7 @@ const ACOES = {
   pacotes: () => folhaPacotes(),
   festa: () => folhaParaQuem({ festa: true }),
   vfut: () => folhaParaQuem({ vfut: true }), 'vf-pedir': el => pedirVendaFutura(el), 'vf-pago': el => vfMarcarPago(el.dataset.c),   /* 2.08 */
+  'cx-forma': el => folhaCxForma(el.dataset.f),   /* 3.20 */
   'fiado-receber': el => folhaFiadoReceber(+el.dataset.v), 'fiado-ok': el => fiadoOk(el), 'cx-arec': () => folhaCxAReceber(),   /* 3.05 */
   'vender-pac': () => folhaParaQuem({ venderPac: true }), 'pac-futuro': () => folhaParaQuem({ pacFut: true }), 'pf-pedir': el => pedirPacoteFuturo(el),   /* 2.16 */
   'pf-pac': el => { if (!PF) return; const i = +el.dataset.i; if (!(S.cfg.pacotes || [])[i]) return; PF.pac = PF.pac.includes(i) ? PF.pac.filter(k => k !== i) : [...PF.pac, i]; if (!PF.pac.includes(i)) delete PF.aj['pac:' + i]; pfAtualiza();

@@ -212,6 +212,26 @@ switch ($acao) {
   case 'ct_venda_excluir': { /* 2.45: a lixeira do gestor nos Vendidos do dia da Casa Tom */
     $u = exigir(); responder(excluirVendaCT($in, $u));
   }
+  case 'caixa_forma': { /* 3.20 (o dono: "quando eu clique em Pix, ou dinheiro, ou cartão, ele me apareça quem foi as vendas que eu fiz"): as vendas
+       de uma forma de pagamento no caixa do dia (o mesmo recorte do caixa: o dia, a unidade; quem não é o gestor vê só a unidade dele) */
+    $u = exigir(); $dia = (string)($in['dia'] ?? ''); if ($dia === '') $dia = date('Y-m-d');
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dia) || !checkdate((int)substr($dia, 5, 2), (int)substr($dia, 8, 2), (int)substr($dia, 0, 4)) || $dia > date('Y-m-d')) falha('Escolha uma data.');
+    $f = (string)($in['forma'] ?? ''); if (!in_array($f, ['pix', 'dinheiro', 'credito', 'debito', 'link'], true)) falha('Forma de pagamento desconhecida.');
+    session_write_close(); [$d0, $d1] = diaDoCaixa($dia);
+    $so = $u['papel'] === 'gestor' ? (int)($in['uni'] ?? 0) : (int)(unidadeDoPedido() ?? 0);   // 0 = todas; -1 = sem unidade (como no caixa)
+    $bate = fn(int $x) => $so === 0 || ($so === -1 ? $x === 0 : $x === $so);
+    $q = db()->prepare("SELECT p.quando, p.valor, p.venda_id vid, COALESCE(p.unidade_id, v.unidade_id, 0) u, v.servico s, (COALESCE(v.produto_id, 0) > 0) pr, v.alug a, v.minutos m, v.auto au, v.voucher vo, v.festa_id fid, v.itens it, v.vendedora vd, c.id cid, c.nome, c.resp, us.nome por
+      FROM pagamentos p JOIN vendas v ON v.id = p.venda_id LEFT JOIN criancas c ON c.id = p.crianca_id LEFT JOIN usuarios us ON us.id = p.por WHERE p.quando >= ? AND p.quando < ? AND p.forma = ? ORDER BY p.quando, p.id LIMIT 2000");
+    $q->execute([$d0, $d1, $f]); $L = [];
+    foreach ($q->fetchAll() as $l) { if (!$bate((int)$l['u'])) continue; $g = grupoDoCaixa($l);
+      $oque = trim((string)$l['s']) !== '' ? mb_strtoupper(trim((string)$l['s'])) : ((int)$l['m'] > 0 ? 'PACOTE ' . dur((int)$l['m']) : 'VENDA');
+      if ($g === 'festa' && !empty($l['fid'])) $oque = rotuloFestaCaixa((int)$l['fid'], (string)$l['s']);
+      $L[] = ['q' => (string)$l['quando'], 'v' => round((float)$l['valor'], 2), 'cid' => (int)$l['cid'], 'nome' => (string)$l['nome'], 'resp' => (string)$l['resp'], 'oque' => mb_substr($oque, 0, 80), 'it' => mb_substr((string)$l['it'], 0, 60), 'g' => $g, 'vend' => (string)$l['vd'], 'por' => (string)$l['por'], 'uni' => (int)$l['u']]; }
+    $qd = db()->prepare('SELECT e.quando, e.valor, e.grupo, e.item, COALESCE(e.unidade_id, 0) u, c.id cid, c.nome, c.resp FROM estornos e LEFT JOIN criancas c ON c.id = e.crianca_id WHERE e.quando >= ? AND e.quando < ? AND e.forma = ? ORDER BY e.id');
+    $qd->execute([$d0, $d1, $f]); $D = [];   // o devolvido neste dia de uma venda de outro dia (sai do caixa de hoje)
+    foreach ($qd->fetchAll() as $l) if ($bate((int)$l['u'])) $D[] = ['q' => (string)$l['quando'], 'v' => round((float)$l['valor'], 2), 'cid' => (int)$l['cid'], 'nome' => (string)$l['nome'], 'resp' => (string)$l['resp'], 'g' => (string)$l['grupo'], 'oque' => (string)$l['item'], 'uni' => (int)$l['u']];
+    responder(['dia' => $dia, 'forma' => $f, 'itens' => $L, 'dev' => $D]);
+  }
   case 'caixa_dia': { /* 2.26: o caixa e os finalizados de outro dia (Finalizados do dia → Ontem / outra data); quem não é o gestor vê só a unidade dele */
     $u = exigir(); $dia = (string)($in['dia'] ?? ''); if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dia) || !checkdate((int)substr($dia, 5, 2), (int)substr($dia, 8, 2), (int)substr($dia, 0, 4))) falha('Escolha uma data.');
     if ($dia > date('Y-m-d')) falha('Esse dia ainda não chegou.'); session_write_close(); $so = $u['papel'] === 'gestor' ? 0 : (int)(unidadeDoPedido() ?? 0);

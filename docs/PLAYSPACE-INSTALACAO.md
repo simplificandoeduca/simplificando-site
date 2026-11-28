@@ -1301,6 +1301,14 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Quem pagou em cada forma, no Caixa do dia (3.20)
+
+Pedido do dono (foto do Caixa do dia, 28/11): "quando eu clique em Pix, ou dinheiro, ou cartão, ele me apareça quem foi as vendas que eu fiz".
+- Em Finalizados do dia → Caixa do dia, os quadros **Pix, Dinheiro, Crédito, Débito e Link** viraram botões. O toque abre a lista dos pagamentos daquela forma, no mesmo dia e na mesma unidade da tela: a hora, o responsável e a criança, o que foi (o pacote, a recreação, o carrinho, o produto, a festa), quem vendeu e o valor. O total da lista é o mesmo número do quadro.
+- O que foi devolvido ao cliente no dia (de uma venda de outro dia) aparece em vermelho, a menos.
+- Um toque no cliente abre o histórico dele.
+- Vale para hoje, ontem e outro dia escolhido. Quem não é o gestor vê só a unidade dele (como no caixa). O "A receber" continua abrindo os pacotes futuros a receber.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O X do gestor na faixa do pedido e o Pagamento da saída em duas colunas (3.19)
 
 Pedidos do dono (fotos, 28/11): "coloca um x nessa mensagem para poder o gestor tirar da tela" e "otimiza mais essa tela também, tá muito apertado tudo".
