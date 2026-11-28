@@ -1301,6 +1301,13 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O X do gestor na faixa do pedido e o Pagamento da saída em duas colunas (3.19)
+
+Pedidos do dono (fotos, 28/11): "coloca um x nessa mensagem para poder o gestor tirar da tela" e "otimiza mais essa tela também, tá muito apertado tudo".
+- **A faixa do pedido no alto** (vermelha esperando o gestor, verde aprovada, "toque para finalizar"): para o gestor, ganhou um **X** à direita. O X tira a faixa da tela deste computador; o pedido continua valendo (o desconto aprovado ainda pode ser usado no atendimento). A atendente continua sem o X (a faixa sai quando ela finaliza).
+- **O Pagamento da saída** no computador ficou largo e em duas colunas: à esquerda os detalhes do cliente e os itens (com o "Pacote | Avulso" de cada criança embaixo do nome); à direita, do "Pagamento" para baixo (descontar do pacote ou pagar avulso, as horas, as formas de pagamento, o desconto, alterar pacote e o botão). Vale para a saída de uma criança, para a saída em conjunto e para a devolução dos carrinhos. No celular, como antes.
+- Medido (prévia, 1536×730): a saída com pacote e a saída em conjunto rolavam 193 e 422 pontos; agora cabem sem rolar.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A janela do recado do responsável (3.18)
 
 Pedido do dono (foto, 28/11): "botão bugado".

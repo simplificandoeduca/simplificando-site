@@ -194,6 +194,10 @@ html { scrollbar-width: none; } html::-webkit-scrollbar { width: 0; height: 0; }
 .mp-neg, .mp-venc { background: var(--card); border-color: var(--borda-2); color: var(--tinta); } .mp-neg i, .mp-venc i { background: var(--apagado); }
 @keyframes mp-pisca { 50% { opacity: .35; } }
 body.quieto .mp-esp i { animation: none; }
+/* 3.19: o X do gestor na faixa do pedido */
+.mp-w { position: relative; } .mp-w > .mp-it { padding-right: 58px; }
+.mp-x { position: absolute; top: 50%; right: 10px; transform: translateY(-50%); z-index: 1; width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, .8); border: 1px solid rgba(59, 59, 59, .18); color: var(--tinta); }
+.mp-x:hover { background: #fff; }
 .hoje { display: none; }
 @media (min-width: 820px) {
   .trilho { display: block; position: sticky; top: 0; height: 100vh; height: 100dvh; flex: none; padding: 18px 0 max(18px, env(safe-area-inset-bottom, 0px)) max(18px, env(safe-area-inset-left, 0px)); }   /* 2.87: a altura que o Safari do iPad mostra de verdade (o "+" embaixo sempre à vista) */
@@ -1067,6 +1071,23 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 /* 0.90: o atendimento tem duas páginas na mesma folha (a escolha e o pagamento); só uma aparece de cada vez */
 #v-escolha, #v-pag { display: contents; } #v-escolha[hidden], #v-pag[hidden] { display: none; }
 #v-escolha > .bt, #v-pag > .bt { flex: none; }
+/* 3.19 (o dono: "otimiza mais essa tela também, tá muito apertado tudo"): o Pagamento da saída no computador fica largo e em duas colunas:
+   à esquerda os detalhes do cliente e os itens; à direita, do "Pagamento" para baixo (pacote ou avulso, as horas, as formas, o desconto e o
+   botão). São colunas de texto: o "Pagamento" começa a segunda coluna. No celular, como antes */
+.sai-grade, .sai-esq, .sai-dir { display: contents; }
+.sai-esq > .bt, .sai-dir > .bt { flex: none; }
+@container fundo (min-width: 860px) {
+  .folha:has(.sai-grade) { width: min(1080px, calc(100% - 32px)); }
+  .sai-grade { display: block; columns: 2; column-gap: 30px; }
+  .sai-grade :is(.sai-esq, .sai-dir) > * { margin-bottom: 14px; }
+  .sai-grade :is(.sai-esq, .sai-dir) > :not(#s-conta):not(#sg-conta), .sai-grade :is(#s-conta, #sg-conta) > * { break-inside: avoid; }
+  .sai-grade .pg-sec-pag { break-before: column; margin-top: 0; }
+  .sai-grade > .pe-f { position: static; box-shadow: none; background: none; padding-top: 4px; break-inside: avoid; }
+}
+/* (na coluna da esquerda, a tabela dos itens fica no modo compacto, como no celular: o item e o valor; criança, sapateira e entrada numa
+   linha pequena embaixo; o "Pacote | Avulso" de cada criança embaixo do nome. Assim o RECREAÇÃO não quebra no meio) */
+@container (max-width: 540px) { .sai-grade .pgt-g { grid-template-columns: minmax(0, 1fr) max-content; } .sai-grade .pgt-m { display: none; } .sai-grade .pgt-larga { grid-column: span 1; }
+  .sai-grade .pgt-i small.pgt-sub, .sai-grade .pgt-x0m { display: block; } }
 /* 3.18 (o dono: "botão bugado"): a janela do recado do responsável com espaço entre as partes (os botões não encostam mais na caixa) */
 .rec-ed { display: flex; flex-direction: column; gap: 14px; }
 .rec-ed .acoes { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 2px; } .rec-ed .acoes .bt { min-height: 44px; padding: 0 18px; }
@@ -2412,7 +2433,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '3.18';
+const VERSAO = '3.19';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -5123,7 +5144,7 @@ async function receberJa(el) {
 // A equipe conhece a tela "Fechamento do Registro" do sistema anterior. As quatro telas de pagamento (atendimento, saída, receber e
 // devolução) seguem a mesma ordem: Detalhes (quem é o cliente), Itens selecionados (o que está sendo cobrado, de qual criança, com o
 // total), Adicionar serviços e Pagamento (horas disponíveis, horas necessárias, saldo após a confirmação, e a forma de pagamento).
-const pgSec = t => `<h3 class="pg-sec">${t}</h3>`;
+const pgSec = t => `<h3 class="pg-sec${t === 'Pagamento' ? ' pg-sec-pag' : ''}">${t}</h3>`;   /* 3.19 */
 const pgData = d => `${p2(d.getDate())}/${p2(d.getMonth() + 1)}/${d.getFullYear()}`;
 function pgDetalhes(c, comEntrada = true) {
   const L = [['Cliente', `<b>${esc(c.resp || c.nome)}</b>${comEntrada && c.entrou ? ` <span class="pill p-neutro pg-ent">ENTRADA ${hora(c.entrou)}</span>` : ''}`]];
@@ -6310,14 +6331,14 @@ function folhaSaida(id, corrigir = false) {
   AV = !corrigir && AV_VOLTA && AV_VOLTA.base === c.id && AV_VOLTA.ids.has(c.id) ? new Set([c.id]) : new Set(); AV_VOLTA = null; FAMSIM = horasCpf() ? new Set(AV) : new Set();
   if (!voltouAV && !corrigir && ehPcd(c)) famMarcar(c.id, false);   /* 2.93: a PCD abre em "Pagar avulso" (com o desconto), sem as horas da família */   // 1.11: cada saída começa descontando do pacote (a não ser que volte de "Adicionar serviços")
   SAI = null; FAMJA = c.id; const k = contaSaida(c), p = periodo(); descNovo('saida', c.id); altSaidaNovo([c.id], false); altpSaida(c.id);   // 1.39   // 1.04: cada saída começa sem desconto
-  abrirFolha('Pagamento da saída', `
+  abrirFolha('Pagamento da saída', `<div class="sai-grade"><div class="sai-esq">
     ${pgDetalhes(c)}${avisoParou([c])}
-    <div id="s-conta">${htmlContaSaida(c, k)}</div>
+    <div id="s-conta">${htmlContaSaida(c, k)}</div></div><div class="sai-dir">
     <div class="campo" id="s-pag"${receberSaida(k) > 0 ? '' : ' hidden'}><label>Forma de pagamento <span class="leve">· pode dividir em até três formas</span></label>${htmlPag()}</div>
     <div id="s-desc"${brutoSaida(k) > 0 ? '' : ' hidden'}>${htmlDesc()}</div>
     <div id="sa-box" data-k="${esc(altSaidaSig())}">${htmlAltSaida()}</div>
-    ${altpCaixa()}
-    <div class="pe-f"><button class="bt forte largo tap" id="s-ok" data-act="saida-ok" data-id="${c.id}"></button></div>`);
+    ${altpCaixa()}</div>
+    <div class="pe-f"><button class="bt forte largo tap" id="s-ok" data-act="saida-ok" data-id="${c.id}"></button></div></div>`);
   FAMJA = null; PAG = { onde: 'saida', id: c.id, total: receberSaida(k), formas: [], v: {} }; desenharPag(); botaoSaida();
   if (!corrigir && window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches) setTimeout(() => { const b = $('#s-ok'); if (b) b.focus(); }, 380);   // no computador, Enter confirma
 }
@@ -6479,14 +6500,15 @@ function folhaSaidaGrupo(G, carros = []) {   // 1.25: carros = o que saiu da loj
   const vav = AV_VOLTA && AV_VOLTA.base === b0 ? AV_VOLTA : null, av = !!(vav && vav.ids.size); AV_VOLTA = null;
   SAI = { ids: G.map(c => c.id), fora, av, alug: carros.map(a => String(a.id)), foraA, base: b0 }; AV = vav && vav.fam ? new Set(vav.ids) : av ? new Set(SAI.ids) : new Set(); FAMSIM = vav && vav.fam ? new Set(vav.fam) : horasCpf() ? new Set(AV) : new Set(); FAMJA = 'g'; if (!vav) for (const k of G) if (ehPcd(k)) famMarcar(k.id, false);   /* 2.93: a PCD abre em "Avulso" */   /* 2.13: a escolha de cada criança volta igual */ descNovo('saida', b0); altSaidaNovo([b0, ...SAI.ids.filter(i => i !== b0)], true); altpSaida(b0); const g = contaGrupo();   // av (1.11): a conta inteira paga avulso
   abrirFolha(tituloConta(G.length, carros.length), `
+<div class="sai-grade"><div class="sai-esq">
     ${pgDetalhes(G[0] || crianca(b0), false)}${avisoParou(G)}
     <div id="sg-conta" data-k="${esc(chaveGrupo(g))}">${htmlContaGrupo(g)}</div>
-    ${cortesiasGrupo(G)}
+    ${cortesiasGrupo(G)}</div><div class="sai-dir">
     <div class="campo" id="s-pag"${g.receber > 0 ? '' : ' hidden'}><label>Forma de pagamento <span class="leve">· pode dividir em até três formas</span></label>${htmlPag()}</div>
     <div id="s-desc"${g.bruto > 0 ? '' : ' hidden'}>${htmlDesc()}</div>
     <div id="sa-box" data-k="${esc(altSaidaSig())}">${htmlAltSaida()}</div>
-    ${altpCaixa()}
-    <div class="pe-f"><button class="bt forte largo tap" id="sg-ok" data-act="saida-grupo-ok"></button></div>`);
+    ${altpCaixa()}</div>
+    <div class="pe-f"><button class="bt forte largo tap" id="sg-ok" data-act="saida-grupo-ok"></button></div></div>`);
   FAMJA = null; PAG = { onde: 'saida', id: b0, total: g.receber, formas: [], v: {} }; desenharPag(); botaoGrupo(); rotPagPacote(g.receber, SAI.ids);   /* 1.66 */
   if (window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches) setTimeout(() => { const b = $('#sg-ok'); if (b) b.focus(); }, 380);   // no computador, Enter confirma
 }
@@ -9258,7 +9280,8 @@ function meusPedidosAbertos() {
 }
 function desenharMeusPed() {
   const a = $('#meus-ped'); if (!a) return; const L = document.body.classList.contains('so') ? [] : meusPedidosAbertos();
-  const html = L.map(p => { const e = mpEstado(p); return `<button type="button" class="mp-it mp-${e.cls} tap" data-act="ped-meu" data-id="${p.id}"><i aria-hidden="true"></i><b>${esc(p.resp || p.nome || 'Cliente')}</b><span class="mp-o">${esc(p.texto || '')}</span><span class="mp-st">${esc(e.txt)}</span></button>`; }).join('');
+  const html = L.map(p => { const e = mpEstado(p); const bt = `<button type="button" class="mp-it mp-${e.cls} tap" data-act="ped-meu" data-id="${p.id}"><i aria-hidden="true"></i><b>${esc(p.resp || p.nome || 'Cliente')}</b><span class="mp-o">${esc(p.texto || '')}</span><span class="mp-st">${esc(e.txt)}</span></button>`;
+    return gestor() ? `<div class="mp-w">${bt}<button type="button" class="mp-x tap" data-act="ped-meu-x" data-id="${p.id}" title="Tirar da tela (o pedido continua valendo)" aria-label="Tirar da tela o pedido de ${esc(p.resp || p.nome || 'cliente')}">${ic(IC.x, 16, 2.6)}</button></div>` : bt; }).join('');   /* 3.19: o X do gestor */
   if (a.innerHTML !== html) a.innerHTML = html; a.hidden = !L.length;
 }
 function abrirMeuPedido(id) {
@@ -11580,7 +11603,7 @@ const ACOES = {
     const sl = $('#v-ent-sel'); if (sl && c) sl.outerHTML = htmlEntSel(c); },   /* 2.18: o "Marcar todas" volta quando falta alguém */
   'quem-abre': el => { const q = QUEM_ABRE; QUEM_ABRE = null; fecharFolha(); const c = q && crianca(q.id); if (el.dataset.n) ATD_ULT = el.dataset.n; if (c && !c.entrou) { q.fazer(el.dataset.n || ''); desenhar(); } },
   saida: el => { SAI_VOLTA = null; AV_VOLTA = null; pedirSaida(+el.dataset.id); },
-  'ped-meu': el => abrirMeuPedido(+el.dataset.id),   /* 1.69 */
+  'ped-meu': el => abrirMeuPedido(+el.dataset.id),   /* 1.69 */ 'ped-meu-x': el => { pedVisto(+el.dataset.id); desenharMeusPed(); },   /* 3.19: o gestor tira a faixa da tela */
   avisar: el => { const c = crianca(el.dataset.id); let conv = S.conversas.find(x => x.crianca === c.id); if (!conv) { conv = { id: novoId(), crianca: c.id, lidas: true, msgs: [] }; S.conversas.push(conv); } S.zapAberta = conv.id; S.zapModo = 'papo'; S.zapDia = isoDia(agora); fecharFolha(); trocarTela('zap'); const t = $('#zap-texto'); if (t) { t.value = `Oi, ${nomeMsg(primeiro(c.resp))}! `; t.focus(); t.setSelectionRange(t.value.length, t.value.length); } },
   rosto: el => { const c = crianca(el.dataset.id); if (MODO === 'servidor') { api('idface_mandar', { id: c.id }).then(() => deuCerto(`${c.nome} mandada de novo para o iDFace`)).catch(e => toast(e.message)); fecharFolha(); return; } c.rosto = true; deuCerto(`${c.nome} mandada para o iDFace. Agora é só olhar para a câmera.`, () => { c.rosto = false; }); fecharFolha(); desenhar(); },
   'rosto-cam': el => folhaRosto(+el.dataset.id),
