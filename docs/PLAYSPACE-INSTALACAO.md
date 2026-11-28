@@ -1301,6 +1301,16 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A barra de "No espaço agora" em duas linhas (2.92)
+
+Pedido do dono (27/11, com a foto da barra): "me dê 3 versões dessa barra pra gente melhorar esteticamente. Não sei se tá bem distribuído as coisas." Das três (duas linhas; números em destaque; uma linha só), escolheu a Versão 1.
+
+- Linha de cima: o castelo, "No espaço agora" com a unidade ao lado (o botão de trocar a unidade continua o mesmo), a meta do dia (quando há), o relógio com a hora e a data lado a lado, e o sino dos avisos (e os cupons, quando há).
+- Linha de baixo, numa faixa clara: os números em etiquetas: "4 crianças", "1 passou do tempo" (em vermelho, só quando alguém passou) e "3 para devolver" (só quando há carrinho fora). Sem ninguém: "Ninguém por enquanto".
+- À direita da linha de baixo, os botões do mesmo tamanho: Vender pacote (coral), Pacote futuro (verde) e Festa (contorno coral). Cada um abre o mesmo que antes.
+- No celular: o relógio e o sino ficam juntos numa linha; os números quebram em duas linhas se precisar; os três botões ficam lado a lado (ícone em cima, nome embaixo).
+- Só a tela "No espaço agora" mudou; as outras telas continuam com a barra de antes.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A janela do pedido de autorização organizada (2.91)
 
 Pedido do dono (27/11, com a foto da janela "Alterar o pacote: PACOTE DA BLACK (5h, R$ 430) para 5h por R$ 450"): "deixe mais organizadas as informações."

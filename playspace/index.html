@@ -357,6 +357,34 @@ body.so .rodape-global { display: none; }
 @media (max-width: 560px) { .faixa .relogio { flex: 1; } }
 /* 1.06: a unidade deste aparelho, ao lado do título da tela inicial; e a folha de escolher a unidade */
 .faixa .tit-l { display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; }
+/* 2.92: a barra de "No espaço agora" em duas linhas (a "Versão 1") */
+.faixa.fx2 { display: block; padding: 0; overflow: hidden; }
+.fx2-l1 { display: flex; align-items: center; gap: 12px 16px; flex-wrap: wrap; padding: 16px 20px 14px; }
+.fx2-l1 .tit { flex: 1; min-width: 200px; } .fx2-l1 .tit-l { gap: 8px 14px; }
+.fx2 .relogio { flex-direction: row; align-items: center; gap: 12px; padding: 9px 16px; }
+.fx2 .relogio span { font-size: 13px; }
+.fx2-dir { display: flex; align-items: center; gap: 12px; margin-left: auto; } .fx2-dir > .chip { height: 44px; border-radius: 14px; flex: none; }
+.fx2-l2 { display: flex; align-items: center; gap: 10px 12px; flex-wrap: wrap; padding: 12px 20px; border-top: 1.5px solid var(--borda); background: color-mix(in srgb, var(--menta) 28%, var(--card)); }
+.fx2-st { display: flex; flex-wrap: wrap; gap: 8px; flex: 1 1 auto; min-width: 0; }
+.fx2-n { display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 14px; border-radius: 99px; background: var(--card); border: 1px solid var(--borda-2); font: 800 14px/1 var(--texto); color: var(--tinta); white-space: nowrap; }
+.fx2-n i { width: 8px; height: 8px; border-radius: 50%; background: var(--verde-agua); flex: none; }
+.fx2-n.ruim { color: var(--erro); border-color: color-mix(in srgb, var(--erro) 35%, transparent); } .fx2-n.ruim i { background: var(--erro); }
+.fx2-n.dev i { background: var(--mostarda); } .fx2-n.vazio { color: var(--tinta-2); } .fx2-n.vazio i { background: var(--apagado); }
+.fx2-ac { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+.fx2-ac .chip { height: 44px; padding: 0 16px; border-radius: 14px; font-size: 15px; font-weight: 800; gap: 8px; }
+.fx2-ac .chip svg { width: 18px; height: 18px; }
+.fx2-ac .chip.fx2-festa { background: var(--card); color: var(--coral); border: 1.5px solid var(--coral); } .fx2-ac .chip.fx2-festa svg { stroke: currentColor; }
+.fx2-ac .chip.fx2-festa:hover { background: var(--coral-2); }
+@media (max-width: 700px) {
+  .fx2-l1 { padding: 12px 14px 10px; gap: 10px 12px; } .fx2-l2 { padding: 10px 14px 12px; }
+  .fx2-dir { width: 100%; min-width: 0; gap: 10px; } .fx2 .relogio { flex: 1 1 0; min-width: 0; overflow: hidden; justify-content: center; padding: 8px 12px; }
+  .fx2 .relogio b { flex: none; } .fx2 .relogio span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .fx2-dir > .chip { height: 42px; }
+  .fx2-ac { width: 100%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .fx2-ac .chip { flex-direction: column; justify-content: center; gap: 3px; height: 58px; padding: 0 6px; font-size: 13px; border-radius: 14px; text-align: center; line-height: 1.1; min-width: 0; }
+  .fx2-ac .chip span { white-space: normal; overflow-wrap: anywhere; }
+  .fx2-st { gap: 6px; } .fx2-n { height: 30px; padding: 0 11px; font-size: 13px; }
+}
+@media (max-width: 380px) { .fx2-ac .chip { font-size: 12px; height: 62px; } .fx2 .relogio b { font-size: 20px; } }
 .uni-bt { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; height: 30px; padding: 0 13px 0 10px; border-radius: 999px; border: 1.5px solid var(--coral); background: transparent; color: var(--coral); font: 800 12px/1 var(--texto); letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
 .uni-bt > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; } .uni-bt > svg { flex: none; }
 .uni-bt.falta { border-color: var(--mostarda); background: var(--aviso-bg); color: var(--aviso); animation: pulsa-uni 2.2s ease-in-out infinite; }
@@ -2301,7 +2329,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.91';
+const VERSAO = '2.92';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -6949,6 +6977,15 @@ async function apagarUnidade(el) {
   try { await tirar(true); } catch (e) { toast(e.message); return; }
   deuCerto(`${u.nome} saiu das unidades`, async () => { try { await tirar(false); } catch (e) { toast(e.message); } desenhar(); }); fecharFolha(); desenhar();
 }
+/* 2.92 (o dono escolheu a "Versão 1" das três barras: "não sei se tá bem distribuído as coisas"): a barra de "No espaço agora" em duas
+   linhas. Em cima: o castelo, o título com a unidade, a meta, o relógio e os avisos. Embaixo, numa faixa clara: os números em etiquetas
+   (crianças, passou do tempo em vermelho, para devolver) e, à direita, os botões de venda */
+function faixaEspaco(n, passou, fora, cima, acoes, junto) {
+  const et = (cls, t) => `<span class="fx2-n${cls ? ' ' + cls : ''}"><i aria-hidden="true"></i>${t}</span>`;
+  const st = (n ? et('', `${n} ${n === 1 ? 'criança' : 'crianças'}`) : et('vazio', 'Ninguém por enquanto')) + (passou ? et('ruim', `${passou} ${passou === 1 ? 'passou' : 'passaram'} do tempo`) : '') + (fora ? et('dev', `${fora} para devolver`) : '');
+  return `<div class="faixa fx2"><div class="fx2-l1"><span class="logo">${LOGO}</span><div class="tit"><div class="tit-l"><h1>No espaço agora</h1>${junto}</div></div>${metaPill()}<div class="fx2-dir"><div class="relogio" title="Hora e data de agora"><b class="num" data-relogio>${relogioTxt()}</b><span data-data>${dataTxt()}</span></div>${ATU.nova ? botaoVersao() : ''}${cima}</div></div>
+    <div class="fx2-l2"><div class="fx2-st" role="status" aria-label="No espaço agora">${st}</div><div class="fx2-ac">${acoes}</div></div></div>`;
+}
 function faixa(titulo, sub, chip, junto = '') { return `<div class="faixa"><span class="logo">${LOGO}</span><div class="tit"><small>${esc(sub)}</small>${junto ? `<div class="tit-l"><h1>${esc(titulo)}</h1>${junto}</div>` : `<h1>${esc(titulo)}</h1>`}</div>${metaPill()}<div class="relogio" title="Hora e data de agora"><b class="num" data-relogio>${relogioTxt()}</b><span data-data>${dataTxt()}</span></div>${ATU.nova ? botaoVersao() : ''}${chip || ''}</div>`; }
 const relogioTxt = () => `${hora(agora)}<small>:${p2(agora.getSeconds())}</small>`;
 const dataTxt = () => `${SEMANA[agora.getDay()]}, ${agora.getDate()} de ${MESES[agora.getMonth()]}`;
@@ -8207,7 +8244,7 @@ function telaAprovar() {
 // No alto: os avisos (quando há), os pacotes e produtos. No pé: os atalhos para o Banco de horas e para o movimento do dia.
 function telaHoras() {
   const dentro = S.criancas.filter(c => c.entrou && veUni(c.uni)), n = dentro.length, passou = dentro.filter(c => situacaoTempo(c) === 'passou').length, fora = alugNaLista().length;   // fora: carrinhos e fusquinhas que saíram e ainda não voltaram
-  return faixa('No espaço agora', (n ? `${n} ${n === 1 ? 'criança' : 'crianças'}${passou ? ' · ' + passou + (passou === 1 ? ' passou' : ' passaram') + ' do tempo' : ''}` : 'Ninguém por enquanto') + (fora ? ` · ${fora} para devolver` : ''), chipAvisos() + chipCupons() + `<button type="button" class="chip tap vp-bt" data-act="vender-pac" title="Vender um pacote sem dar entrada na recreação (ex.: fechado por telefone)">${ic(IC.presente, 16)} <span>Vender pacote</span></button><button type="button" class="chip tap vf-bt" data-act="pac-futuro" title="Pacote futuro: o cliente fecha o pacote e paga no dia combinado (o gestor aprova)">${ic(IC.agenda, 16)} <span>Pacote futuro</span></button>`   /* 2.16 */ + `<button type="button" class="chip tap" data-act="festa" title="Vender uma festa: escolha o cliente, toque no valor da tabela e receba">${ic(IC.festa, 16)} <span>Festa</span></button>` + chipIdface(), botaoUnidade() + botaoParCT()) + htmlPend() + bannerFestas() + `
+  return faixaEspaco(n, passou, fora, chipAvisos() + chipCupons() + chipIdface(), `<button type="button" class="chip tap vp-bt" data-act="vender-pac" title="Vender um pacote sem dar entrada na recreação (ex.: fechado por telefone)">${ic(IC.presente, 16)} <span>Vender pacote</span></button><button type="button" class="chip tap vf-bt" data-act="pac-futuro" title="Pacote futuro: o cliente fecha o pacote e paga no dia combinado (o gestor aprova)">${ic(IC.agenda, 16)} <span>Pacote futuro</span></button>`   /* 2.16 */ + `<button type="button" class="chip tap fx2-festa" data-act="festa" title="Vender uma festa: escolha o cliente, toque no valor da tabela e receba">${ic(IC.festa, 16)} <span>Festa</span></button>`, botaoUnidade() + botaoParCT())   /* 2.92: a barra em duas linhas */ + htmlPend() + bannerFestas() + `
   <section class="espaco">
     <div class="esp-cab${inicioLista() ? ' lst' : ''}">
       <div class="campo"><input id="esp-busca" value="${esc(S.espBusca || '')}" placeholder="Buscar responsável, criança, telefone, CPF ou nº do cadastro" autocomplete="off" aria-label="Buscar responsável, criança, telefone ou CPF"></div>
