@@ -1301,6 +1301,15 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O celular na tela inicial "por serviço" (3.12)
+
+Achado na regressão da 3.11 (um teste antigo do celular, da 0.90, que passou a falhar na 3.09):
+- No celular, com a tela inicial "por serviço" (Ajustes → Aparência), o botão novo **Vendas futuras** (3.09) deixava a fileira dos filtros mais larga que a tela. O navegador do celular então encolhia a página inteira para caber, e no atendimento o botão de Pagamento ficava por baixo da lista de serviços (o toque não pegava).
+- Conserto: a fileira dos filtros nunca passa da largura da tela; quando não cabe, ela rola de lado, como nas outras telas.
+- Junto: em Ajustes → Unidades, no celular pequeno, o botão "Criar CASA TOM ..." (só aparece para o gestor quando falta a Casa Tom) agora quebra a linha em vez de passar da tela.
+
+Conferido: 80 telas no celular (iPhone 13 e um Android de 360 de largura; atendente e gestor; tela inicial em lista e por serviço; todas as abas da barra de baixo; atendimento, cadastro, Vendas futuras e Hoje na recepção): nenhuma passa da largura. Na 3.11 eram 18.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Regressão completa e os consertos para o sistema não cair (3.11)
 
 Pedido do dono (28/11): "faça uma regressão completa de todas as atualizações ... tenho certeza que ele está o mais otimizado possível e bem seguro para não cair ... se tiver falha crítica, você já conserta."
