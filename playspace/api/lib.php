@@ -962,8 +962,11 @@ function pedidoCriar(array $u, array $in): array {
     foreach ([[$fecha, 'em que o cliente disse que vai fechar'], [$paga, 'do pagamento']] as [$dt, $oq]) if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $dt, $m) || !checkdate((int)$m[2], (int)$m[3], (int)$m[1]) || $dt < $hoje) falha('Escolha a data ' . $oq . ' (de hoje em diante).');
     $vend = vendedoraDoPedido($in['vendedora'] ?? ''); if ($vend === '') falha('Toque no nome de quem está vendendo.');
     $dados = ['oque' => $oque, 'fecha' => $fecha, 'paga' => $paga, 'vendedora' => $vend, 'obs' => mb_substr(maiusculo((string)($in['obs'] ?? '')), 0, 300), 'pac' => empty($in['pac']) ? 0 : 1]; $motivo = $dados['obs'];   /* 2.16: pac = o pacote futuro */
+    /* 2.97: o pacote futuro com produtos e desconto: o subtotal (pacotes + produtos), o desconto e o total (o valor) têm que fechar */
+    $desc = round(max(0, (float)($in['desconto'] ?? 0)), 2); $sub = round(max(0, (float)($in['subtotal'] ?? 0)), 2);
+    if ($desc > 0) { if ($sub <= 0 || $desc >= $sub || abs($sub - $desc - $valor) > 0.05) falha('Confira o desconto: o total tem que ser o valor dos pacotes e produtos menos o desconto.'); $dados['desconto'] = $desc; $dados['subtotal'] = $sub; }
     $dm = fn($s) => substr($s, 8, 2) . '/' . substr($s, 5, 2);
-    $texto = (empty($in['pac']) ? 'Venda futura: ' : 'Pacote futuro: ') . $oque . ' · ' . dinheiro($valor) . ' · fecha em ' . $dm($fecha) . ' · pagamento em ' . $dm($paga) . ' · vendedora ' . $vend;
+    $texto = (empty($in['pac']) ? 'Venda futura: ' : 'Pacote futuro: ') . $oque . ' · ' . dinheiro($valor) . ($desc > 0 ? ' · desconto ' . dinheiro($desc) : '') . ' · fecha em ' . $dm($fecha) . ' · pagamento em ' . $dm($paga) . ' · vendedora ' . $vend;
   } elseif ($tipo === 'valor' && (int)($in['venda'] ?? 0) > 0) { // 1.39: na saída, o pacote ou o produto desta visita que ficou para pagar na saída
     $q = $db->prepare('SELECT * FROM vendas WHERE id = ?'); $q->execute([(int)$in['venda']]); $v = $q->fetch(); $q->closeCursor(); if (!$v) falha('Esta venda não existe mais: já foi desfeita ou cancelada.', 404);
     $c = crianca((int)$v['crianca_id']); if (!$c) falha('Cliente não encontrado.', 404); $k = altDaVenda($v); if ($k === '') falha('Esta venda não tem o valor alterado por aqui (só o pacote ou o produto desta visita).');

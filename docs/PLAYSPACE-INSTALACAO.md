@@ -1301,6 +1301,17 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Pacote futuro com produtos e desconto (2.97)
+
+Pedido do dono (28/11): "na venda futura eu não tenho opção de dar desconto e não tenho opção de lançar produto junto. Eu tenho que ter essa opção e coloco os pacotes no mesmo formato que tá o outro."
+
+- Os pacotes aparecem na mesma "Lista de pacotes" do atendimento (Com produto / Só as horas). Dá para escolher um ou mais; escolhido, a lista fecha e o pacote fica à vista.
+- Logo abaixo, os produtos da loja, como na venda: um toque põe, o − tira.
+- Desconto (opcional): em R$ ou em % (os dois botões ao lado do campo).
+- O total é calculado sozinho: "Pacotes e produtos", "Desconto" e "Total combinado". Não se digita mais o valor à mão.
+- O pedido vai ao gestor com tudo: "Pacote futuro: PACOTE 10H + 2X AMIGURUMI · R$ 828 · desconto R$ 92 · pagamento em …". O lembrete de COBRAR no calendário leva o total com o desconto.
+- O servidor confere a conta (pacotes e produtos menos o desconto tem que dar o total).
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. "Quem está vendendo?" recolhe depois de escolher (2.96)
 
 Pedido do dono (28/11): "quando ela selecionar o nome dela, de quem está vendendo, eu quero que ela selecione e suma, porque senão fica poluindo a tela. E aí fica só uma opção, tipo, para clicar."
