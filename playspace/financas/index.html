@@ -551,6 +551,14 @@ tr.nf-canc td:nth-child(2), tr.nf-canc td:last-child { text-decoration: line-thr
 .cx-rel { margin: 0 0 6px; font-size: 12.5px; color: var(--ink-2); } .cx-rel .link { display: inline; padding: 0; }
 .cx-info { display: block; font-size: 11.5px; color: var(--ink-2); margin-top: 4px; text-align: right; white-space: nowrap; }
 .cx-ajl { display: block; font-size: 11.5px; color: var(--warn); font-weight: 700; }
+.cx-quebra { margin: 4px 0 14px; padding: 12px 14px; border-radius: 16px; background: var(--bad-bg); border: 1.5px solid var(--bad); color: var(--ink); }   /* 3.10: a quebra de caixa */
+.cx-qb-t { display: flex; gap: 10px; align-items: flex-start; color: var(--bad); } .cx-qb-t svg { width: 22px; height: 22px; flex: none; margin-top: 1px; } .cx-qb-t b { display: block; font-size: 15px; } .cx-qb-t small { display: block; color: var(--ink-2); font-size: 12.5px; margin-top: 2px; }
+.cx-qb-l { display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; padding: 9px 0 2px 32px; border-top: 1px dashed rgba(184, 64, 42, .35); margin-top: 9px; flex-wrap: wrap; }
+.cx-qb-o { min-width: 0; flex: 1 1 260px; } .cx-qb-o b { font-size: 14px; color: var(--bad); } .cx-qb-o small, .cx-qb-q small { display: block; color: var(--ink-2); font-size: 12.5px; margin-top: 2px; }
+.cx-qb-q { text-align: right; } .cx-qb-q b { font-size: 14px; } .cx-qb-q small:first-child { margin: 0; font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--bad); }
+.cx-qb-pill { display: inline-block; vertical-align: middle; margin-left: 8px; padding: 2px 9px; border-radius: 999px; background: var(--bad); color: #fff; font-size: 11.5px; font-weight: 800; letter-spacing: .02em; font-family: inherit; }
+.cx-diab { position: relative; } .cx-diab.qb { box-shadow: inset 0 0 0 1.5px var(--bad); } .cx-qb-d { display: block; margin-top: 2px; font-style: normal; font-size: 10px; font-weight: 800; color: var(--bad); text-transform: uppercase; letter-spacing: .03em; }
+@media (max-width: 640px) { .cx-qb-l { padding-left: 0; } .cx-qb-q { text-align: left; } }
 .cx-consertos { margin-top: 12px; border-top: 1px dashed rgba(59, 59, 59, .18); padding-top: 10px; } .cx-consertos h3 { font-size: 14px; margin: 0 0 6px; }
 .cx-aj { display: grid; grid-template-columns: 112px 64px minmax(0, 1fr) auto; gap: 10px; align-items: baseline; padding: 6px 0; font-size: 13.5px; }
 .cx-aj-v { font-weight: 800; color: var(--ok); } .cx-aj-v.neg { color: var(--bad); } .cx-aj-f { font-weight: 700; } .cx-aj-o small { display: block; color: var(--ink-3); font-size: 12px; } .cx-aj .link { padding: 0; }
@@ -683,21 +691,21 @@ body.fin-quieto .carregando { opacity: 1 !important; pointer-events: auto !impor
 </head>
 <body>
 <div id="raiz"></div>
-<script src="gestao.js?v=3.09"></script>
-<script src="gestao2.js?v=3.09"></script>
-<script src="planilhas.js?v=3.09"></script>
-<script src="caixa.js?v=3.09"></script>
-<script src="festas.js?v=3.09"></script>
-<script src="freelas.js?v=3.09"></script>
-<script src="adiant.js?v=3.09"></script>
-<script src="comissoes.js?v=3.09"></script>
-<script src="clientes.js?v=3.09"></script>
-<script src="comprovantes.js?v=3.09"></script>
-<script src="animacoes.js?v=3.09"></script>
-<script src="menu.js?v=3.09"></script>
-<script src="meta.js?v=3.09"></script>
-<script src="vivo.js?v=3.09"></script>
-<script src="datas.js?v=3.09"></script>
+<script src="gestao.js?v=3.10"></script>
+<script src="gestao2.js?v=3.10"></script>
+<script src="planilhas.js?v=3.10"></script>
+<script src="caixa.js?v=3.10"></script>
+<script src="festas.js?v=3.10"></script>
+<script src="freelas.js?v=3.10"></script>
+<script src="adiant.js?v=3.10"></script>
+<script src="comissoes.js?v=3.10"></script>
+<script src="clientes.js?v=3.10"></script>
+<script src="comprovantes.js?v=3.10"></script>
+<script src="animacoes.js?v=3.10"></script>
+<script src="menu.js?v=3.10"></script>
+<script src="meta.js?v=3.10"></script>
+<script src="vivo.js?v=3.10"></script>
+<script src="datas.js?v=3.10"></script>
 <script>
 /* Play Space Finanças 1.0: o que é crítico e delicado do negócio, com login próprio. Os números vêm do Play Space (só leitura). */
 'use strict';
@@ -848,7 +856,7 @@ function somaUni() {
 /* ---------- o app ---------- */
 /* 2.5 (1.64): a página das Finanças que ficou guardada no aparelho (a aba aberta, o app do celular ou o cache do navegador) se renova
    sozinha quando o servidor já tem outra versão. PS_PAGINA é carimbada pelo tools/build_playspace.py com a versão do Play Space. */
-const PS_PAGINA = '3.09';
+const PS_PAGINA = '3.10';
 const psMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
 function renovarSeVelha(v, naTela) {
   if (!v || !psMaior(v, PS_PAGINA)) return false;

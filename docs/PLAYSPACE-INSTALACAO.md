@@ -1301,6 +1301,17 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Ajustar caixa: o nome de quem ajusta no fim; a "Quebra de caixa" em vermelho no Financeiro (3.10)
+
+Pedido do dono (28/11): "quando alguém fizer o ajuste de caixa, no final, colocar o nome do atendente e ... salvar. ... Toda vez que tiver quebra de caixa, eu quero que o financeiro seja avisado ... no do dia lá, naquela primeira parte de bater ... coloca em vermelhinho, quebra de caixa. Aí mostra o que foi feito, quem fez."
+
+- **Finalizados do dia → Ajustar caixa**: depois de escolher a forma certa, aparece **"Quem está ajustando?"** com os nomes da unidade (o gestor também pode pôr o dele). Sem o nome, não salva. Escolhido o nome, ele fica marcado para os próximos ajustes da mesma folha (dá para trocar).
+- O servidor também confere: um ajuste do caixa sem o nome não passa. O nome fica guardado junto com o ajuste, na linha do dia ("ajuste de caixa feito por ...") e no aviso do gestor ("Quebra de caixa").
+- **Financeiro → Controle de caixa** (a primeira tela, onde se bate com a Rede): no cartão da unidade, o selo vermelho **"Quebra de caixa"** e, logo em cima da conferência, o quadro vermelho com cada ajuste: **o que foi feito** (ex.: Débito R$ 225,00 → Pix R$ 205,00 + Dinheiro R$ 20,00), de quem era o pagamento, a hora do pagamento, e **quem fez** (o nome escolhido, a hora e o login).
+- A quebra aparece no **dia do pagamento** (se ajustaram o caixa de ontem, aparece no dia de ontem) e na unidade dele. Nos "Últimos 14 dias", o dia com quebra fica marcado com "quebra".
+- Também entra como quebra a troca da forma feita pelo histórico do cliente mais de 10 minutos depois do pagamento (assim nada passa sem o Financeiro ver). A troca feita na hora, ao cobrar, não é quebra.
+- O total do dia não muda numa quebra: muda a forma de pagamento, e é isso que muda a conferência com a Rede.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. "Vendas futuras" ao lado do carrinho de bebê, com os dados do cliente e o dia do pagamento; cada lugar só vê o seu (3.09)
 
 Pedido do dono (28/11): "Do lado do carrinho de bebê, coloque visualizar vendas futuras, que ... destrinche todos os dados do cliente ... e o dia do pagamento. E Morumbi só pode ver Morumbi, Anália só pode ver Anália."

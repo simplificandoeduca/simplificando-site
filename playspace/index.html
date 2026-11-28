@@ -2262,6 +2262,7 @@ button.bl-saldo.bl-alt svg { opacity: .55; }
 .aj-f { flex: none; font-size: 12px; font-weight: 800; padding: 3px 8px; border-radius: 99px; background: var(--creme-2); color: var(--tinta); }
 .aj-ed { padding: 12px; border-radius: 14px; border: 1.5px dashed var(--coral); background: var(--card); }
 .aj-tudo { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; } .aj-tudo > span { font-weight: 800; font-size: 13px; color: var(--tinta-2); } .aj-tudo .bt { height: 36px; padding: 0 12px; }
+.aj-quem { margin: 10px 0 4px; } .vend.falta { border-color: var(--erro); box-shadow: 0 0 0 3px var(--erro-bg); }   /* 3.10 */
 .aj-ed .acoes { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
 @media (max-width: 560px) { .aj-formas { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .tp-fim { color: var(--tinta-2); }
@@ -2401,7 +2402,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '3.09';
+const VERSAO = '3.10';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -6028,7 +6029,7 @@ async function trocarPagEm(el, de, partes, para) {
     desenhar(true);
   } catch (e) { toast(e.message); $$(bts).forEach(b => { b.disabled = false; }); }
 }
-function trocarPagPrevia({ venda, crianca: cid, de, para, partes, pag }) {   // (prévia) o mesmo que o servidor faz; 1.71: partes = a forma dividida
+function trocarPagPrevia({ venda, crianca: cid, de, para, partes, pag, atendente, origem }) {   // (prévia) o mesmo que o servidor faz; 1.71: partes = a forma dividida
   if (!partes && de === para) return { erro: 'A forma nova é a mesma de agora.' }; const mais = (a, b) => +new Date(b.quando) - +new Date(a.quando);
   let p = null; if (pag) { const x = (S.pagamentos || [])[pag - 1]; p = x && x.f === de ? x : null; }   /* 2.50: o pagamento escolhido no Ajustar caixa */
   else if (venda) p = (S.pagamentos || []).filter(x => x.venda === venda && x.f === de).sort(mais)[0];
@@ -6045,9 +6046,11 @@ function trocarPagPrevia({ venda, crianca: cid, de, para, partes, pag }) {   // 
     while (resta > 0.004 && k < fila.length) { const usa = centavos(Math.min(resta, fila[k].v)); if (prim) { x.f = fila[k].f; x.v = usa; prim = false; } else S.pagamentos.push({ ...x, f: fila[k].f, v: usa });
       resta = centavos(resta - usa); fila[k].v = centavos(fila[k].v - usa); if (fila[k].v <= 0.004) k++; } }
   for (const kid of new Set(L.map(x => x.cupom).filter(Boolean))) { const k = cupomDe(kid); if (k) refazerCupomPrevia(k); }   // o cupom fiscal acompanha
-  registrar('alt', c ? c.nome : '', `Troca de pagamento: ${nomeForma(de)} ${brl(valor)} → ${txtPartes(P)} (pago às ${hora(new Date(q))}) · por ${MAI(primeiro(EU.nome))}`);
-  if (!gestor()) { S.trocas = S.trocas || []; S.trocas.unshift({ id: -novoId(), troca: true, quando: new Date(), crianca: p.crianca, nome: c ? c.nome : '', resp: c ? c.resp : '', de, para, partes: P.length > 1 ? P : [], valor, por: EU.nomeCompleto || EU.nome, papel: EU.papel, uni: minhaUni() || null, visto_em: null, motivo: '', atendente: '' }); }
-  return { valor, de, para, partes: P };
+  const cx = origem === 'caixa', at = MAI(String(atendente || '').trim());
+  if (cx && at.length < 2) return { erro: 'Toque no nome de quem está ajustando o caixa.' };
+  registrar('alt', c ? c.nome : '', `Troca de pagamento: ${nomeForma(de)} ${brl(valor)} → ${txtPartes(P)} (pago às ${hora(new Date(q))}) · por ${MAI(primeiro(EU.nome))}${cx ? ' · ajuste de caixa feito por ' + at : ''}`);
+  if (!gestor()) { S.trocas = S.trocas || []; S.trocas.unshift({ id: -novoId(), troca: true, quando: new Date(), crianca: p.crianca, nome: c ? c.nome : '', resp: c ? c.resp : '', de, para, partes: P.length > 1 ? P : [], valor, por: EU.nomeCompleto || EU.nome, papel: EU.papel, uni: minhaUni() || null, visto_em: null, motivo: '', atendente: cx ? at : '', origem: cx ? 'caixa' : '' }); }
+  return { valor, de, para, partes: P, atendente: cx ? at : '', origem: cx ? 'caixa' : '' };
 }
 // 1.57: reimprimir: a equipe só nos 2 min depois do cupom; o gestor, sempre
 const reimpTrava = x => false;   /* 2.57 (o dono: "a reimpressão pode ser feita pelos operadores do cupom"): toda a equipe reimprime, a qualquer hora (1.57: era só nos 2 min) */
@@ -7998,7 +8001,7 @@ function ajPagsPrevia(a) {   /* (prévia) o mesmo que o servidor manda */
 const ajSoma = () => { const s = {}; for (const p of (AJ && AJ.pags) || []) s[p.f] = centavos((s[p.f] || 0) + p.v); return s; };
 function htmlAj() {
   const a = AJ; if (!a) return ''; const quando = a.dia ? 'de ' + nascBR(a.dia).slice(0, 5) : 'de hoje';
-  const topo = `<p class="explica">Caixa ${quando}${a.onde ? ' · ' + esc(a.onde) : ''}. Toque no pagamento que está na forma errada e escolha a forma certa (pode dividir em mais de uma). <b>O valor não muda</b>: a soma tem que dar o mesmo, sem faltar e sem passar.${gestor() ? '' : ' O gestor recebe o aviso de cada ajuste.'}</p>`;
+  const topo = `<p class="explica">Caixa ${quando}${a.onde ? ' · ' + esc(a.onde) : ''}. Toque no pagamento que está na forma errada e escolha a forma certa (pode dividir em mais de uma). <b>O valor não muda</b>: a soma tem que dar o mesmo, sem faltar e sem passar. No fim, toque no nome de quem está ajustando e salve: cada ajuste é uma <b>quebra de caixa</b> e aparece em vermelho no Financeiro (o que foi feito e quem fez).</p>`;
   if (a.erro) return topo + `<div class="marca canc">${ic(IC.x, 18, 2.4)}<span>${esc(a.erro)}</span></div><div class="acoes"><button type="button" class="bt tap" data-act="aj-recarregar">Tentar de novo</button></div>`;
   if (!a.pags) return topo + `<p class="explica">Buscando os pagamentos…</p>`;
   const S0 = ajSoma(), varias = !a.uni && unidades().length > 1;
@@ -8017,8 +8020,17 @@ const ajEditor = p => `<div class="aj-ed tp-div-c" data-pag="${p.pag}" data-de="
   <div class="aj-tudo"><span>Tudo no</span>${FORMAS.filter(([k]) => k !== p.f).map(([k, n]) => `<button type="button" class="bt tap" data-act="aj-tudo" data-f="${k}">${n}</button>`).join('')}</div>
   <div class="tp-div-g">${FORMAS.map(([k, n]) => `<label class="tp-div-l"><span>${n}</span><input class="inp" inputmode="decimal" autocomplete="off" data-f="${k}" value="${k === p.f ? vInp(p.v) : ''}" placeholder="0,00" aria-label="Valor em ${n}"></label>`).join('')}</div>
   <p class="tp-div-s ok" aria-live="polite">A soma bate ✓</p>
+  ${htmlAjQuem()}
   <div class="acoes"><button type="button" class="bt tap" data-act="aj-fechar">Cancelar</button><button type="button" class="bt forte tap" data-act="aj-salvar">${ic(IC.check)} Salvar o ajuste</button></div></div>`;
-function ajPinta() { const c = $('#aj-corpo'); if (!c || !AJ) return; c.innerHTML = htmlAj(); const ed = $('.aj-ed', c); if (ed) { const i = $(`input[data-f]:not([data-f="${ed.dataset.de}"])`, ed); if (i && matchMedia('(hover: hover)').matches) i.focus(); } }
+/* 3.10 (o dono: "no final, colocar o nome do atendente e ... salvar ... Toda vez que tiver quebra de caixa, eu quero que o financeiro seja
+   avisado"): antes de salvar, o nome de quem está ajustando (as atendentes da unidade; o gestor também pode pôr o dele). Vai com o ajuste
+   para o servidor e aparece no Financeiro, em vermelho ("Quebra de caixa"), no Controle de caixa do dia */
+const ajQuemLista = () => { const L = [...vendedorasLista()]; if (gestor()) { const eu = MAI(primeiro(EU.nome || '')); if (eu && !L.includes(eu)) L.push(eu); } return L; };
+const ajQuem = () => ((AJ && AJ.atend) || '').trim();
+const htmlAjQuem = () => { const L = ajQuemLista(), q = ajQuem();
+  return `<div class="vend aj-quem${q ? ' ok' : ''}" id="aj-quem" role="radiogroup" aria-label="Quem está ajustando o caixa"><p class="vend-t">Quem está ajustando?<span class="leve"> · toque no seu nome</span></p>${L.length ? `<div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === q}" data-act="aj-atend" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div>` : `<input class="inp" id="aj-atend-txt" maxlength="60" autocomplete="off" placeholder="Nome de quem está ajustando" value="${esc(q)}" aria-label="Nome de quem está ajustando">`}</div>`; };
+document.addEventListener('input', e => { if (e.target && e.target.id === 'aj-atend-txt' && AJ) { AJ.atend = MAI(e.target.value); const v = $('#aj-quem'); if (v) { v.classList.toggle('ok', ajQuem().length >= 2); v.classList.remove('falta'); } } });
+function ajPinta() { const c = $('#aj-corpo'); if (!c || !AJ) return; c.innerHTML = htmlAj(); vendRecolher(c); const ed = $('.aj-ed', c); if (ed) { const i = $(`input[data-f]:not([data-f="${ed.dataset.de}"])`, ed); if (i && matchMedia('(hover: hover)').matches) i.focus(); } }
 function ajAbrir(pag) { if (!AJ) return; AJ.aberto = AJ.aberto === pag ? 0 : pag; ajPinta(); }
 function ajTudo(el) { const c = el.closest('.aj-ed'); if (!c) return; const tot = centavos(+c.dataset.total);
   $$('input[data-f]', c).forEach(i => { i.value = i.dataset.f === el.dataset.f ? vInp(tot) : ''; }); somaDiv(c); }
@@ -8027,12 +8039,13 @@ async function ajSalvar(el) {
   if (!P.length) { toast('Escreva quanto foi em cada forma'); return; }
   if (Math.abs(s - tot) >= 0.005) { toast(s < tot ? `Falta ${brl(centavos(tot - s))}: a soma tem que dar ${brl(tot)}` : `Passou ${brl(centavos(s - tot))}: a soma tem que dar ${brl(tot)}`); return; }
   if (P.length === 1 && P[0].f === de) { toast('Está na mesma forma de agora'); return; }
+  const quem = ajQuem(); if (quem.length < 2) { toast('Toque no nome de quem está ajustando o caixa'); const v = $('#aj-quem'); if (v) { v.classList.add('falta'); v.classList.remove('fechada'); v.dataset.aberta = '1'; v.scrollIntoView({ block: 'center', behavior: 'smooth' }); const b = v.querySelector('.vend-b button, input'); if (b) b.focus({ preventScroll: true }); } return; }   /* 3.10 */
   $$('[data-act="aj-salvar"], [data-act="aj-tudo"]', c).forEach(b => { b.disabled = true; });
   try { let r;
-    if (MODO === 'servidor') r = await api('pagamento_trocar', { pag, de, partes: P });
-    else { r = trocarPagPrevia({ pag, de, partes: P }); if (r.erro) throw new Error(r.erro); }
+    if (MODO === 'servidor') r = await api('pagamento_trocar', { pag, de, partes: P, atendente: quem, origem: 'caixa' });
+    else { r = trocarPagPrevia({ pag, de, partes: P, atendente: quem, origem: 'caixa' }); if (r.erro) throw new Error(r.erro); }
     const PP = r.partes && r.partes.length ? r.partes : P;
-    deuCerto(`Caixa ajustado: ${nomeForma(de)} ${brl(r.valor)} → ${txtPartes(PP)}`);
+    deuCerto(`Caixa ajustado por ${quem}: ${nomeForma(de)} ${brl(r.valor)} → ${txtPartes(PP)} · foi para o Financeiro (quebra de caixa)`);
     AJ.aberto = 0;
     if (MODO === 'servidor') { await carregar(); if (AJ && AJ.dia) { CXD = null; await cxVerDia(AJ.dia); } }
     desenhar(true); await ajCarregar();
@@ -9201,7 +9214,7 @@ const avisosNovos = () => { const L = avisosParaMim(); if (AV_JA === null) { if 
 const htmlAvisoCanc = x => `<div class="aut-it aviso" data-av="${x.id}"><div class="aut-t"><small>${esc(quemCancelou(x))} · ${hora(x.quando)}${x.uni && S.unidades.length > 1 && nomeUni(x.uni) ? ' · ' + esc(nomeUni(x.uni)) : ''}</small><b>${cancOQue(x)}</b><span>${esc(x.resp ? x.resp + (x.nome ? ' · ' + x.nome : '') : x.nome)}${x.motivo ? ' · Motivo: ' + esc(x.motivo) : ''}</span></div>
   <div class="aut-b"><button type="button" class="bt forte tap" data-act="av-visto" data-id="${x.id}">${ic(IC.check, 18, 2.6)} Visto</button>${x.crianca && crianca(x.crianca) ? `<button type="button" class="bt nao tap" data-act="historico" data-id="${x.crianca}">Histórico</button>` : ''}</div></div>`;
 // 1.57: o aviso da troca da forma de pagamento (id negativo), na mesma lista dos avisos do gestor
-const htmlAviso = x => !x.troca ? htmlAvisoCanc(x) : `<div class="aut-it aviso troca" data-av="${x.id}"><div class="aut-t"><small>${esc(primeiro(x.por || ''))} · ${hora(x.quando)}${x.uni && S.unidades.length > 1 && nomeUni(x.uni) ? ' · ' + esc(nomeUni(x.uni)) : ''}</small><b>Troca de pagamento: ${nomeForma(x.de)} ${brl(x.valor)} → ${x.partes && x.partes.length > 1 ? txtPartes(x.partes) : nomeForma(x.para)}</b><span>${esc(x.resp ? x.resp + (x.nome ? ' · ' + x.nome : '') : x.nome)}</span></div>
+const htmlAviso = x => !x.troca ? htmlAvisoCanc(x) : `<div class="aut-it aviso troca" data-av="${x.id}"><div class="aut-t"><small>${x.atendente ? esc(MAI(x.atendente)) + ' (' + esc(primeiro(x.por || '')) + ')' : esc(primeiro(x.por || ''))} · ${hora(x.quando)}${x.uni && S.unidades.length > 1 && nomeUni(x.uni) ? ' · ' + esc(nomeUni(x.uni)) : ''}</small><b>${x.origem === 'caixa' ? 'Quebra de caixa' : 'Troca de pagamento'}: ${nomeForma(x.de)} ${brl(x.valor)} → ${x.partes && x.partes.length > 1 ? txtPartes(x.partes) : nomeForma(x.para)}</b><span>${esc(x.resp ? x.resp + (x.nome ? ' · ' + x.nome : '') : x.nome)}</span></div>
   <div class="aut-b"><button type="button" class="bt forte tap" data-act="av-visto" data-id="${x.id}">${ic(IC.check, 18, 2.6)} Visto</button>${x.crianca && crianca(x.crianca) ? `<button type="button" class="bt nao tap" data-act="historico" data-id="${x.crianca}">Histórico</button>` : ''}</div></div>`;
 const euId = () => EU.id || (S.equipe.find(x => x.login === EU.login) || {}).id || 1;
 const podeDecidirTipo = t => t === 'cancelar_venda' ? podeEstornar() : t === 'valor' ? supervisorOuMais() : gestor();   // 1.33: a alteração de valor, a supervisora ou o gestor
@@ -11430,6 +11443,7 @@ const ACOES = {
   'cma-trocar': el => folhaCmaTrocar(+el.dataset.id), 'cma-vend': el => cmaVend(el), 'cma-ver': el => folhaCmaPessoa(el.dataset.n || ''), 'cma-excluir': el => folhaCmaExcluir(+el.dataset.id), 'cma-excluir-ok': el => cmaExcluirOk(el),
   'cx-ajustar': () => folhaAjCaixa(), 'aj-abrir': el => ajAbrir(+el.dataset.pag), 'aj-ver': el => { if (AJ) { AJ.ver = el.dataset.f || ''; AJ.aberto = 0; ajPinta(); } },   /* 2.50 */
   'aj-tudo': el => ajTudo(el), 'aj-fechar': () => { if (AJ) { AJ.aberto = 0; ajPinta(); } }, 'aj-salvar': el => ajSalvar(el), 'aj-recarregar': () => ajCarregar(),
+  'aj-atend': el => { if (!AJ) return; AJ.atend = el.dataset.n || ''; $$('#aj-quem [data-n]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.n === AJ.atend))); const v = $('#aj-quem'); if (v) { v.classList.add('ok'); v.classList.remove('falta'); } },   /* 3.10 */
   'cx-pdf': el => baixarResumoDia(el),   /* 1.54 */
   'cx-pdf-sem': el => baixarResumoDia(el, 7),   /* 3.06: o relatório da semana (só o gestor vê o botão; o servidor confere) */
   'fim-excluir': el => folhaExcluirFim(el), 'fim-excluir-ok': el => excluirFimOk(el),   /* 2.43 */ 'hist-excluir': el => folhaExcluirHist(el.dataset.id),   /* 2.62 */

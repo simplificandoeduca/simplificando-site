@@ -70,18 +70,19 @@ function cxCorpo() {
     <section class="cartao cx-hist"><div class="cab-cartao"><div><h2>Últimos ${D.hist.length} dias</h2><p class="expl">Toque num dia para abrir o caixa dele.</p></div>
       <div class="cx-leg"><span class="cx-s ok">${CX_IC.ok} bateu</span><span class="cx-s dif">${CX_IC.dif} não bateu</span><span class="cx-s falta">${CX_IC.falta} falta lançar</span><span class="cx-s vazio">${CX_IC.vazio} sem movimento</span></div></div>
       <div class="cx-dias">${D.hist.slice().reverse().map(h => { const x = new Date(h.dia + 'T12:00:00');
-        return `<button class="cx-diab ${h.dia === D.dia ? 'on' : ''}" data-cxdia="${h.dia}" title="${esc(cxNomeDia(h.dia))}: ${cxSitTexto(h.sit)}"><small>${CX_SEM[x.getDay()].slice(0, 3)}</small><b>${h.dia.slice(8, 10)}/${h.dia.slice(5, 7)}</b><span class="cx-s ${h.sit || 'vazio'}">${CX_IC[h.sit || 'vazio']}</span></button>`; }).join('')}</div></section>`;
+        return `<button class="cx-diab ${h.dia === D.dia ? 'on' : ''}${h.quebra ? ' qb' : ''}" data-cxdia="${h.dia}" title="${esc(cxNomeDia(h.dia))}: ${cxSitTexto(h.sit)}${h.quebra ? ' · quebra de caixa' : ''}"><small>${CX_SEM[x.getDay()].slice(0, 3)}</small><b>${h.dia.slice(8, 10)}/${h.dia.slice(5, 7)}</b><span class="cx-s ${h.sit || 'vazio'}">${CX_IC[h.sit || 'vazio']}</span>${h.quebra ? `<i class="cx-qb-d">quebra</i>` : ''}</button>`; }).join('')}</div></section>`;
 }
 const cxSitTexto = s => ({ ok: 'bateu', dif: 'não bateu', falta: 'falta lançar a Rede', '': 'sem movimento' })[s || ''];
 function cxCartao(U) {
   const nome = nomeUni(U.u), cor = corUni(U.u);
   return `<section class="cartao cx-uni" data-cxuni="${U.u}">
-    <div class="cab-cartao"><div><h2><i class="uni-dot" style="background:${cor}"></i>${esc(nome)}</h2>
+    <div class="cab-cartao"><div><h2><i class="uni-dot" style="background:${cor}"></i>${esc(nome)}${U.quebras && U.quebras.length ? '<span class="cx-qb-pill">Quebra de caixa</span>' : ''}</h2>
       <p class="expl">Total do caixa no dia: <b class="num">${brl(U.total)}</b> · cartões e Pix ${brl(U.sis)} · dinheiro ${brl(U.dinheiro)}${Math.abs(U.link || 0) > 0.004 ? ` · link de pagamento ${brl(U.link)}` : ''}${Math.abs(U.outras - (U.link || 0)) > 0.004 ? ` · outras ${brl(U.outras - (U.link || 0))}` : ''}</p>
       ${U.criancas ? `<p class="cx-kids"><b>Crianças no dia:</b> <span class="cx-kv">${U.criancas.validas} ${U.criancas.validas === 1 ? 'válida' : 'válidas'}</span><span class="cx-kc${U.criancas.canceladas ? ' tem' : ''}">${U.criancas.canceladas} ${U.criancas.canceladas === 1 ? 'cancelada' : 'canceladas'}</span><span class="cx-kp">${U.criancas.pcd || 0} PCD</span></p>` : ''}</div>
       <div class="cx-direita"><div class="cx-geral" data-cxgeral></div>
         <div class="cx-acoes"><label class="btn btn-brand cx-pdf-bt" title="O relatório de vendas da Rede (PDF): o sistema lê e preenche crédito, débito e Pix, com a taxa"><input type="file" accept="application/pdf,.pdf" data-cxpdf="${U.u}" hidden>${IC.pdf}<span>Anexar PDF da Rede</span></label>
           <button class="btn btn-ghost" data-cxconserto="${U.u}" title="Lançar um valor a mais ou a menos, com o porquê, para as contas baterem">Consertar caixa</button><button class="btn btn-ghost" data-cxdestr="${U.u}" title="O dia por tipo (recreação, pacotes, festas...) e venda a venda">Destrinchar o dia</button></div></div></div>
+    ${cxQuebraHtml(U.quebras)}
     ${U.relatorio ? `<p class="cx-rel">PDF da Rede ${U.relatorio.de === U.relatorio.ate ? 'de ' + dataBR(U.relatorio.de).slice(0, 5) : 'de ' + dataBR(U.relatorio.de).slice(0, 5) + ' a ' + dataBR(U.relatorio.ate).slice(0, 5)} anexado por ${esc(U.relatorio.por)} · ${esc(quandoBR(U.relatorio.em))}${U.relatorio.ecs.length > 1 ? ` · <b>${U.relatorio.ecs.length} estabelecimentos juntos</b>` : U.relatorio.ecs.length ? ` · estabelecimento ${esc(U.relatorio.ecs[0])}` : ''} · <button class="link" data-cxverpdf="${U.relatorio.id}">baixar o PDF</button></p>` : ''}
     <div class="cx-tab">
       <div class="cx-cab"><span>Forma</span><span class="v">No sistema</span><span>Na Rede <small>(digite o valor)</small></span><span>Conferência</span></div>
@@ -103,6 +104,11 @@ function cxCartao(U) {
     ${U.ajustes && U.ajustes.length ? `<div class="cx-consertos"><h3>Consertos do dia</h3>${U.ajustes.map(a => `<div class="cx-aj"><span class="cx-aj-v num ${a.v < 0 ? 'neg' : ''}">${a.v < 0 ? '−' : '+'} ${brl(Math.abs(a.v))}</span><span class="cx-aj-f">${esc(a.nome)}</span><span class="cx-aj-o">${esc(a.obs)}<small>por ${esc(a.por)} · ${esc(quandoBR(a.em))}</small></span><button class="link" data-cxtirar="${a.id}">tirar</button></div>`).join('')}</div>` : ''}
   </section>`;
 }
+/* 3.10: a quebra de caixa, em vermelho, logo em cima da conferência: o que foi feito (de que forma para qual, de quem, a hora do pagamento) e quem fez */
+function cxQuebraHtml(L) { if (!L || !L.length) return '';
+  return `<div class="cx-quebra" role="note"><div class="cx-qb-t">${CX_IC.dif}<div><b>Quebra de caixa · ${L.length} ${L.length === 1 ? 'ajuste' : 'ajustes'}</b><small>A forma de pagamento foi trocada depois. O total do dia não muda; muda o que vai bater com a Rede.</small></div></div>
+    ${L.map(q => `<div class="cx-qb-l"><div class="cx-qb-o"><b>${esc(q.de)} ${brl(q.v)} → ${esc(q.partes && q.partes.length > 1 ? q.partes.map(x => x.n + ' ' + brl(x.v)).join(' + ') : q.para)}</b><small>${esc(q.cli)}${q.cri && q.cri !== q.cli ? ' · ' + esc(q.cri) : ''} · pago às ${esc(q.h)}${q.caixa ? ' · pelo Ajustar caixa' : ' · pelo histórico do cliente'}</small></div>
+      <div class="cx-qb-q"><small>Feito por</small><b>${esc(q.quem)}</b><small>${esc(quandoBR(q.em))}${q.login && q.login.toUpperCase() !== q.quem.toUpperCase() ? ' · login ' + esc(q.login) : ''}</small></div></div>`).join('')}</div>`; }
 /* a conferência de cada linha, do total e do cartão, na hora (com o que está digitado, mesmo antes de salvar) */
 function cxPinta(card) {
   let ts = 0, tr = 0, temR = false, pior = '', nDif = 0, nFalta = 0, nOk = 0, ruim = false;

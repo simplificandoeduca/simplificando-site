@@ -551,6 +551,10 @@ function db(): PDO {
     $pdo->exec("CREATE INDEX IF NOT EXISTS vendas_fiado ON vendas (fiado_ate) WHERE fiado_ate != ''");
     $pdo->exec('PRAGMA user_version = 59');
   }
+  if ($v < 60) { /* 3.10: a troca da forma guarda o nome de quem fez (a atendente escolhida) e de onde veio ('caixa' = Ajustar caixa: a quebra de caixa) */
+    foreach (["ALTER TABLE trocas_pag ADD COLUMN atendente TEXT NOT NULL DEFAULT ''", "ALTER TABLE trocas_pag ADD COLUMN origem TEXT NOT NULL DEFAULT ''"] as $sql) { try { $pdo->exec($sql); } catch (Throwable $e) { } }
+    $pdo->exec('PRAGMA user_version = 60');
+  }
   return $pdo;
 }
 /* ---------- 1.06: unidades ---------- */
@@ -1896,6 +1900,9 @@ function trocarPagamento(array $in, array $u): array {
   $p = $q->fetch(); $q->closeCursor(); if (!$p) falha('Não achei esse pagamento em ' . FORMAS_PAGAMENTO[$de] . '.', 404);
   $c = crianca((int)$p['crianca_id']); $fam = $c ? array_merge([(int)$c['id']], array_map(fn($x) => (int)$x['id'], irmaosDe($c))) : [(int)$p['crianca_id']];
   $gestor = ($u['papel'] ?? '') === 'gestor';
+  /* 3.10: o Ajustar caixa (origem 'caixa') é a quebra de caixa: só salva com o nome de quem está ajustando (vai para o Financeiro) */
+  $origem = ($in['origem'] ?? '') === 'caixa' ? 'caixa' : ''; $atend = maiusculo(mb_substr(trim((string)preg_replace('/\s+/u', ' ', (string)($in['atendente'] ?? ''))), 0, 60));
+  if ($origem === 'caixa' && mb_strlen($atend) < 2) falha('Toque no nome de quem está ajustando o caixa.');
   $q = $db->prepare('SELECT * FROM pagamentos WHERE crianca_id IN (' . implode(',', $fam) . ') AND quando = ? AND forma = ? ORDER BY id'); $q->execute([(string)$p['quando'], $de]); $L = $q->fetchAll();
   $valor = round(array_sum(array_map(fn($x) => (float)$x['valor'], $L)), 2); $nomeC = (string)($c['nome'] ?? ''); $vc = (int)round($valor * 100);
   $pc = [];   // as partes, em centavos: [forma => valor]
@@ -1917,14 +1924,14 @@ function trocarPagamento(array $in, array $u): array {
         else $ins->execute([(int)$x['venda_id'], (int)$x['crianca_id'], $fila[$k][0], $usa / 100, (string)$x['quando'], $x['por'], $x['cupom_id'], $x['unidade_id'] ?? null]);
         $resta -= $usa; $fila[$k][1] -= $usa; if ($fila[$k][1] <= 0) $k++; } }
     foreach (array_unique(array_filter(array_map(fn($x) => (int)($x['cupom_id'] ?? 0), $L))) as $k) refazerCupom((int)$k);   // o cupom fiscal acompanha
-    $reg = registrar('alt', (int)$p['crianca_id'], $nomeC, 'Troca de pagamento: ' . FORMAS_PAGAMENTO[$de] . ' ' . dinheiro($valor) . ' → ' . $txtPara . ' (pago às ' . substr((string)$p['quando'], 11, 5) . ') · por ' . maiusculo(primeiroNome((string)$u['nome'])));
+    $reg = registrar('alt', (int)$p['crianca_id'], $nomeC, 'Troca de pagamento: ' . FORMAS_PAGAMENTO[$de] . ' ' . dinheiro($valor) . ' → ' . $txtPara . ' (pago às ' . substr((string)$p['quando'], 11, 5) . ') · por ' . maiusculo(primeiroNome((string)$u['nome'])) . ($origem === 'caixa' ? ' · ajuste de caixa feito por ' . $atend : ''));
     $lp = array_map(fn($f, $v) => ['f' => $f, 'v' => round($v / 100, 2)], array_keys($pc), $pc);
-    $db->prepare('INSERT INTO trocas_pag (quando, crianca_id, nome, resp, de, para, valor, pago_em, por, por_nome, papel, unidade_id, partes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-      ->execute([agora(), (int)$p['crianca_id'], $nomeC, (string)($c['resp'] ?? ''), $de, $para, $valor, (string)$p['quando'], (int)$u['id'], (string)$u['nome'], (string)$u['papel'], uniDaAlteracao($c, ($p['unidade_id'] ?? null) !== null ? (int)$p['unidade_id'] : null), count($pc) > 1 ? json_encode($lp) : '']);
+    $db->prepare('INSERT INTO trocas_pag (quando, crianca_id, nome, resp, de, para, valor, pago_em, por, por_nome, papel, unidade_id, partes, atendente, origem) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      ->execute([agora(), (int)$p['crianca_id'], $nomeC, (string)($c['resp'] ?? ''), $de, $para, $valor, (string)$p['quando'], (int)$u['id'], (string)$u['nome'], (string)$u['papel'], uniDaAlteracao($c, ($p['unidade_id'] ?? null) !== null ? (int)$p['unidade_id'] : null), count($pc) > 1 ? json_encode($lp) : '', $atend, $origem]);
     $tid = (int)$db->lastInsertId(); $db->commit();
   } catch (Throwable $e) { if ($db->inTransaction()) $db->rollBack(); throw $e; }
   if (!$gestor) { require_once __DIR__ . '/push-lib.php'; pushDepois(function () use ($tid) { pushTroca($tid); }); }
-  return ['valor' => $valor, 'de' => $de, 'para' => $para, 'partes' => $lp, 'registro' => $reg, 'pago_em' => (string)$p['quando']];
+  return ['valor' => $valor, 'de' => $de, 'para' => $para, 'partes' => $lp, 'registro' => $reg, 'pago_em' => (string)$p['quando'], 'atendente' => $atend, 'origem' => $origem];
 }
 /* 2.39 (o dono: "às vezes as meninas podem colocar só uma vez e foi mais de uma ... entrar na venda que elas fizeram e alterar a quantidade
    de vezes"): ajustar as vezes no crédito de um pagamento já feito. Até parcLivre() (4x) qualquer um; de 5x a 12x, o gestor (ou a senha
@@ -1947,7 +1954,7 @@ function ajustarVezes(array $in, array $u): array {
 function trocaPublica(array $t): array {
   return ['id' => -(int)$t['id'], 'troca' => true, 'quando' => (string)$t['quando'], 'crianca' => $t['crianca_id'] === null ? null : (int)$t['crianca_id'], 'nome' => (string)$t['nome'], 'resp' => (string)$t['resp'],
     'de' => (string)$t['de'], 'para' => (string)$t['para'], 'partes' => json_decode((string)($t['partes'] ?? ''), true) ?: [], 'valor' => round((float)$t['valor'], 2), 'por' => (string)$t['por_nome'], 'papel' => (string)$t['papel'], 'uni' => $t['unidade_id'] === null ? null : (int)$t['unidade_id'],
-    'motivo' => '', 'atendente' => '', 'entrou' => null, 'itens' => [], 'tipo' => 'troca', 'visto_em' => $t['visto_em'], 'visto_por' => (string)$t['visto_por']];
+    'motivo' => '', 'atendente' => (string)($t['atendente'] ?? ''), 'origem' => (string)($t['origem'] ?? ''), 'entrou' => null, 'itens' => [], 'tipo' => 'troca', 'visto_em' => $t['visto_em'], 'visto_por' => (string)$t['visto_por']];
 }
 /* ---------- 1.04: desconto do gestor na tela de pagamento ---------- */
 // Só o gestor dá desconto: a tela manda o valor em reais (e o percentual, quando foi digitado em %) e o motivo. O desconto sai do valor das

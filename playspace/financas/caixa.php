@@ -172,23 +172,45 @@ function cxDestrinchar(array $in): array {
   $canc = array_map(fn($l) => ['h' => substr((string)$l['quando'], 11, 5), 'cri' => (string)$l['nome'], 'resp' => (string)$l['resp'], 'motivo' => (string)$l['motivo'], 'quem' => (string)($l['atendente'] !== '' ? $l['atendente'] : $l['por_nome'])], $q->fetchAll());
   return ['dia' => $d, 'u' => $u, 'grupos' => array_values($G), 'lista' => $L, 'devolvido' => $dev, 'cancelados' => $canc, 'criancas' => cxCriancas($d)[$u] ?? ['validas' => 0, 'canceladas' => 0, 'pcd' => 0], 'nomes' => ['produtos' => $nomes['produtos'], 'pacotes' => $nomes['pacotes']]];
 }
+/* 3.10 (o dono: "Toda vez que tiver quebra de caixa, eu quero que o financeiro seja avisado ... no do dia lá, naquela primeira parte de
+   bater ... coloca em vermelhinho, quebra de caixa. Aí mostra o que foi feito, quem fez"): as trocas da forma de pagamento de cada dia e
+   unidade (pelo dia em que o pagamento foi feito): as do Ajustar caixa e as feitas mais de 10 min depois do pagamento (no histórico do
+   cliente). O total do caixa não muda: muda a forma (e é isso que muda a conferência com a Rede). [dia][unidade] = [...] */
+function cxQuebras(string $de, string $ate): array {
+  $db = db(); $Q = [];
+  if (!$db->query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'trocas_pag'")->fetchColumn()) return $Q;
+  $tem = array_column($db->query('PRAGMA table_info(trocas_pag)')->fetchAll(), 'name'); $ok = in_array('origem', $tem, true);
+  $q = $db->prepare('SELECT * FROM trocas_pag WHERE pago_em >= ? AND pago_em < ? ORDER BY quando, id');
+  $q->execute([$de . ' 00:00:00', date('Y-m-d', strtotime($ate . ' 12:00:00 +1 day')) . ' 00:00:00']);
+  foreach ($q->fetchAll() as $t) {
+    $caixa = $ok && (string)$t['origem'] === 'caixa'; $depois = strtotime((string)$t['quando']) - strtotime((string)$t['pago_em']);
+    if (!$caixa && $depois <= 600) continue;
+    $pt = json_decode((string)($t['partes'] ?? ''), true) ?: [];
+    $para = $pt ? implode(' + ', array_map(fn($x) => (FORMAS_PAGAMENTO[$x['f']] ?? $x['f']) . ' ' . dinheiro((float)$x['v']), $pt)) : (FORMAS_PAGAMENTO[$t['para']] ?? (string)$t['para']);
+    $atend = $ok ? trim((string)$t['atendente']) : '';
+    $Q[substr((string)$t['pago_em'], 0, 10)][(int)($t['unidade_id'] ?? 0)][] = ['id' => (int)$t['id'], 'h' => substr((string)$t['pago_em'], 11, 5), 'em' => (string)$t['quando'],
+      'cli' => trim((string)$t['resp']) !== '' ? (string)$t['resp'] : (string)$t['nome'], 'cri' => (string)$t['nome'], 'de' => FORMAS_PAGAMENTO[$t['de']] ?? (string)$t['de'], 'v' => round((float)$t['valor'], 2),
+      'para' => $para, 'partes' => array_map(fn($x) => ['n' => FORMAS_PAGAMENTO[$x['f']] ?? (string)$x['f'], 'v' => round((float)$x['v'], 2)], $pt), 'quem' => $atend !== '' ? $atend : maiusculo(primeiroNome((string)$t['por_nome'])), 'login' => (string)$t['por_nome'], 'caixa' => $caixa];
+  }
+  return $Q;
+}
 /* a tela: o dia escolhido (cada unidade) e os últimos dias (a situação de cada um) */
 function cxDia(array $in): array {
   $d = cxDiaOk($in['dia'] ?? cxHoje());
   /* os últimos dias vão até hoje (para ver o que ainda falta conferir); um dia mais antigo mostra os dias até ele */
   $fimH = $d >= cxMenosDias(cxHoje(), CX_DIAS_HIST - 1) ? cxHoje() : $d;
   $de = cxMenosDias($fimH, CX_DIAS_HIST - 1);
-  $S = cxSistema($de, $fimH); $R = cxRede($de, $fimH); $A = cxAjustes($de, $fimH);
+  $S = cxSistema($de, $fimH); $R = cxRede($de, $fimH); $A = cxAjustes($de, $fimH); $Q = cxQuebras($de, $fimH);   /* 3.10: as quebras de caixa */
   $unis = array_map(fn($u) => cxUnidade($S, $R, $d, $u, $A), cxUnidadesDoDia($S, $R, $d));
   /* 2.4: o PDF da Rede de cada unidade nesse dia (o último anexado) */
   $K = cxCriancas($d);   /* 5.3: as crianças do dia */
-  foreach ($unis as &$U) { $U['relatorio'] = cxRelDoDia($d, $U['u']); $U['criancas'] = $K[$U['u']] ?? ['validas' => 0, 'canceladas' => 0]; }
+  foreach ($unis as &$U) { $U['relatorio'] = cxRelDoDia($d, $U['u']); $U['criancas'] = $K[$U['u']] ?? ['validas' => 0, 'canceladas' => 0]; $U['quebras'] = $Q[$d][$U['u']] ?? []; }
   unset($U);
   $hist = [];
   for ($i = 0; $i < CX_DIAS_HIST; $i++) {
     $x = cxMenosDias($fimH, $i); $ordem = ['' => 0, 'ok' => 1, 'falta' => 2, 'dif' => 3]; $pior = ''; $n = 0;
     foreach (cxUnidadesDoDia($S, $R, $x) as $u) { $c = cxUnidade($S, $R, $x, $u, $A); if ($ordem[$c['sit']] > $ordem[$pior]) $pior = $c['sit']; if ($c['sit'] !== '') $n++; }
-    $hist[] = ['dia' => $x, 'sit' => $pior];
+    $hist[] = ['dia' => $x, 'sit' => $pior, 'quebra' => array_sum(array_map('count', $Q[$x] ?? []))];
   }
   return ['dia' => $d, 'hoje' => cxHoje(), 'unidades' => $unis, 'nomes' => unidades(), 'hist' => $hist, 'liquido' => cxLiquido($d, array_map(fn($U) => $U['u'], $unis))];
 }

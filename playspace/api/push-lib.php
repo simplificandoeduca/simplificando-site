@@ -100,8 +100,8 @@ function pushTroca(int $id): array {
   $q = db()->prepare('SELECT * FROM trocas_pag WHERE id = ?'); $q->execute([$id]); $t = $q->fetch(); if (!$t) return ['ok' => 0, 'erro' => 0, 'saiu' => 0];
   $L = array_values(array_filter(db()->query('SELECT i.*, u.papel FROM push_inscricoes i JOIN usuarios u ON u.id = i.usuario_id AND u.ativo = 1 ORDER BY i.id')->fetchAll(), fn($i) => (string)$i['papel'] === 'gestor' && (int)$i['usuario_id'] !== (int)$t['por']));
   if (!$L) return ['ok' => 0, 'erro' => 0, 'saiu' => 0];
-  $corpo = mb_substr(trim((string)$t['por_nome']) . ': ' . trim((string)($t['resp'] !== '' ? $t['resp'] : $t['nome'])) . ' · ' . (FORMAS_PAGAMENTO[$t['de']] ?? $t['de']) . ' ' . dinheiro((float)$t['valor']) . ' → ' . (($pt = json_decode((string)($t['partes'] ?? ''), true)) ? implode(' + ', array_map(fn($x) => (FORMAS_PAGAMENTO[$x['f']] ?? $x['f']) . ' ' . dinheiro((float)$x['v']), $pt)) : (FORMAS_PAGAMENTO[$t['para']] ?? $t['para'])), 0, 200);   /* 1.71: a forma dividida */
-  return pushMandar($L, fn($i) => ['t' => 'Troca de pagamento', 'b' => $corpo, 'tag' => 'troca-' . $id, 'url' => './#aprovar']);
+  $corpo = mb_substr((trim((string)($t['atendente'] ?? '')) !== '' ? trim((string)$t['atendente']) . ' (' . trim((string)$t['por_nome']) . ')' : trim((string)$t['por_nome'])) . ': ' . trim((string)($t['resp'] !== '' ? $t['resp'] : $t['nome'])) . ' · ' . (FORMAS_PAGAMENTO[$t['de']] ?? $t['de']) . ' ' . dinheiro((float)$t['valor']) . ' → ' . (($pt = json_decode((string)($t['partes'] ?? ''), true)) ? implode(' + ', array_map(fn($x) => (FORMAS_PAGAMENTO[$x['f']] ?? $x['f']) . ' ' . dinheiro((float)$x['v']), $pt)) : (FORMAS_PAGAMENTO[$t['para']] ?? $t['para'])), 0, 200);   /* 1.71: a forma dividida */
+  return pushMandar($L, fn($i) => ['t' => ($t['origem'] ?? '') === 'caixa' ? 'Quebra de caixa' : 'Troca de pagamento', 'b' => $corpo, 'tag' => 'troca-' . $id, 'url' => './#aprovar']);   /* 3.10 */
 }
 /* 1.81: a meta do dia batida, no celular de cada gestor */
 function pushMeta(array $b): array {   /* 1.81; 1.87: a meta do dia ou a do mês de uma unidade, para cada gestor */
