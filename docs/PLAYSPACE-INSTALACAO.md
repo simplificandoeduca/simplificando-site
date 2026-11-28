@@ -1301,6 +1301,15 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Resumo do dia: as colunas no lugar das barrinhas e as cores novas (3.07)
+
+Pedido do dono (28/11): "Essas barrinhas ... gosto da ideia da barrinha, mas não gostei do formato. Quero mais moderno". Das 3 opções (barra única dividida, colunas, cartõezinhos): "achei o B mais fácil de visualizar".
+
+- **Como pagaram** (na página 1 e no cartão de cada unidade): uma **coluna** para cada forma de pagamento, com o alto arredondado, o valor em cima e o nome e o % embaixo.
+- **Dia a dia** (relatório da semana e Finanças): colunas empilhadas por unidade, com um fio branco entre as partes, o alto arredondado e o total em cima.
+- Cores novas, conferidas para quem enxerga pouca diferença de cor: Pix verde, Dinheiro roxo, Crédito coral, Débito amarelo-escuro, Link azul. As unidades: Anália vermelho (Play) e laranja (Casa Tom); Morumbi verde-escuro (Play) e verde (Casa Tom).
+- O título "O que ... vendeu" vai sempre junto com a tabela (nunca fica sozinho no fim da página).
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. O Resumo do dia novo (o modelo escolhido) e o relatório da semana do gestor (3.06)
 
 Pedidos do dono (27/11): "tá muita informação jogada ... Anália, Morumbi, Casatom separado ... Casatom Morumbi e Morumbi Play pode deixar junto e Casatom Anália e Anália ... 2 blocos, mas quero o faturamento das 4 separado, faturamento total"; "desconto e cancelamento pode deixar em outro campo"; "não quero o campo cortando"; depois de ver 4 modelos: "um modelo 2 e um modelo 3, mas ... as informações mais claras"; "uma opção, só para o gestor ... do caixa relatório semanal. Na mesma pegada"; "o relatório do financeiro pode usar a mesma pegada".
