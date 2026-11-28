@@ -1301,6 +1301,14 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. "Quem está vendendo?" recolhe depois de escolher (2.96)
+
+Pedido do dono (28/11): "quando ela selecionar o nome dela, de quem está vendendo, eu quero que ela selecione e suma, porque senão fica poluindo a tela. E aí fica só uma opção, tipo, para clicar."
+
+- Ao tocar no nome em "Quem está vendendo?" (e em "Quem está atendendo?", "Quem está cadastrando?", no Pacote futuro e na Venda futura), a grade com todos os nomes some. Fica uma linha só: "Quem está vendendo? ✓ ALINE trocar".
+- Tocar no nome (trocar) abre a grade de novo; escolhido outro nome, ela recolhe outra vez.
+- Quando a venda já vem com o nome (o pedido aberto por alguém, ou o que estava escolhido antes), a linha já aparece recolhida.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Os botões mais quadradinhos (2.95)
 
 Pedido do dono (28/11): "deixa o botão qual unidade na mesma estética, mais quadradinha ... os botões que são arredondados mais quadradinhos, tipo no todos, recreação, crianças, 2 para devolver."

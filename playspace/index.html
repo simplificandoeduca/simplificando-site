@@ -1101,6 +1101,13 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .vend-pag { margin: 6px 0 0; font-size: 14px; color: var(--tinta-2); }
 .vend.travada .vend-b { display: none; } .vend-abriu { margin: 0; font-size: 14px; color: var(--tinta); } .vend.travada .vend-t { margin-bottom: 2px; }   /* 1.68 */
 @media (max-width: 560px) { .vend-b { grid-template-columns: 1fr 1fr; } }
+/* 2.96: escolhido o nome, a grade some e fica um botão só (toque para trocar) */
+.vend-esc { display: none; }
+.vend.fechada { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; } .vend.fechada[hidden] { display: none; }
+.vend.fechada .vend-t { margin: 0; } .vend.fechada .vend-t .leve, .vend.fechada .vend-b { display: none; }
+.vend.fechada > :not(.vend-t):not(.vend-esc):not(.vend-b) { flex-basis: 100%; }
+.vend.fechada .vend-esc { display: inline-flex; align-items: center; gap: 8px; min-height: 42px; padding: 0 14px; border-radius: 12px; border: 2px solid var(--tinta); background: var(--tinta); color: var(--card); font: 800 15px/1.1 var(--display); cursor: pointer; }
+.vend-esc small { font: 700 12px/1 var(--texto); opacity: .8; text-decoration: underline; text-underline-offset: 2px; }
 .fe-mais { margin-top: 8px; } .fe-mais-l { font-size: 14px; padding: 4px 0; }
 .fe-mais-c { border: 1.5px dashed var(--borda); border-radius: 16px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; } .fe-mais-c > span { font-weight: 800; font-size: 14px; }
 .fe-mais-b { display: flex; flex-wrap: wrap; gap: 8px; } .fe-mais-b button { min-width: 52px; height: 42px; border: 2px solid var(--borda); border-radius: 14px; background: var(--card); font: 800 15px/1 var(--fonte, inherit); cursor: pointer; }
@@ -2343,7 +2350,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.95';
+const VERSAO = '2.96';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -6909,6 +6916,7 @@ function abrirFolha(titulo, html, rotulo) {
   const move = e => { if (y0 == null) return; dy = Math.max(0, e.touches[0].clientY - y0); folha.style.transform = `translateY(${dy}px)`; };
   const fim = () => { if (y0 == null) return; folha.style.transition = ''; if (dy > 110) fecharFolha(); else folha.style.transform = ''; y0 = null; dy = 0; };
   folha.addEventListener('touchstart', ini, { passive: true }); folha.addEventListener('touchmove', move, { passive: true }); folha.addEventListener('touchend', fim);
+  vendRecolher(f);   /* 2.96: o nome que já vem escolhido aparece recolhido */
 }
 function fecharFolha() {
   const fundo = $('#folha .folha-fundo'); if (!fundo || fundo.classList.contains('saindo')) return;
@@ -8537,7 +8545,23 @@ function vendAtualiza(L) {
   if (l) l.textContent = ab ? '' : cr && !cr.entrou ? ' · toque no seu nome: a comissão é de quem abre o pedido' : ' · toque no seu nome (a cada venda)';
   if (a) { a.hidden = !ab; a.textContent = ab ? `${ab} abriu o pedido na entrada${cr && cr.entrou ? ', às ' + hora(cr.entrou) : ''}: o que o cliente comprar nesta visita é dela.` : ''; }
   $$('#v-vend [data-n]').forEach(x => x.setAttribute('aria-checked', String(x.dataset.n === CARRINHO.vend)));
+  vendRecolher(b.parentNode);   /* 2.96 */
 }
+/* 2.96 (o dono: "quando ela selecionar o nome dela ... selecione e suma ... fica só uma opção, tipo, para clicar, quem está vendendo"):
+   com um nome escolhido, a grade de nomes some e fica um botão com o nome; o toque nele ("trocar") abre a grade de novo */
+function vendRecolher(raiz) {
+  (raiz || document).querySelectorAll('.vend').forEach(v => {
+    if (v.classList.contains('travada')) { v.classList.remove('fechada'); return; }
+    const s = v.querySelector('.vend-b [aria-checked="true"], .vend-b [aria-pressed="true"]');
+    if (!s) { v.classList.remove('fechada'); return; }
+    let b = v.querySelector(':scope > .vend-esc');
+    if (!b) { b = document.createElement('button'); b.type = 'button'; b.className = 'vend-esc tap'; b.dataset.act = 'vend-abrir'; const t = v.querySelector(':scope > .vend-t'); if (t) t.after(b); else v.prepend(b); }
+    const n = s.textContent.trim(); b.innerHTML = `${ic(IC.check, 16, 3)}<span>${esc(n)}</span><small>trocar</small>`; b.setAttribute('aria-label', n + ': toque para trocar');
+    v.classList.toggle('fechada', v.dataset.aberta !== '1');
+  });
+}
+document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('.vend-b button'); if (!b) return; const v = b.closest('.vend');
+  setTimeout(() => { if (v && v.isConnected) { delete v.dataset.aberta; vendRecolher(v.parentNode || v); } }, 0); });
 /* a entrada sem venda (o botão "Dar entrada", a entrada rápida da lista): antes, quem está atendendo (abre o pedido) */
 let QUEM_ABRE = null;
 /* 2.10 (o dono: "um checkzinho nas crianças para que, tipo, quando eu quiser entrar uma criança só ou 2 crianças, eu tenho essa opção ... Aí
@@ -11172,6 +11196,7 @@ const ACOES = {
     const d = el.closest('details'); if (d && CARRINHO.pac.includes(i)) d.open = false; },   /* escolheu: a lista fecha e o pacote escolhido fica à vista */
   'atender-ok': el => abrirPagamento(+el.dataset.id),   /* com valor a pagar, abre a tela de pagamento; sem valor (só voucher), registra direto */
   'pag-voltar': () => { if (S.balcao && PAG && PAG.id === S.balcao.id) { fecharFolha(); return; } voltarDaEscolha(); },   /* 2.00: na Casa Tom, volta para a lista da venda */
+  'vend-abrir': el => { const v = el.closest('.vend'); if (v) { v.dataset.aberta = '1'; v.classList.remove('fechada'); const p = v.querySelector('.vend-b button'); if (p) p.focus({ preventScroll: true }); } },   /* 2.96 */
   'vend': el => { if (!CARRINHO || CARRINHO.festa) return; CARRINHO.vend = el.dataset.n || ''; if (CARRINHO.vend) ATD_ULT = CARRINHO.vend; atualizarCarrinho(); },   /* 1.67: quem está vendendo */
   'fe-vezes': el => { if (!PAG) return; const n = +el.dataset.n; PAG.parc = PAG.parc === n ? 0 : n; if (PAG.parcQ) { if (PAG.parcEsp) largarParcelas(true); PAG.parcQ = 0; PAG.parcNeg = null; } desenharPag(false); },
   'fe-mais': () => { if (!PAG) return; PAG.parcAberto = !PAG.parcAberto; desenharPag(false); },   /* 1.65: mais vezes no crédito (5x a 12x) */
