@@ -1473,6 +1473,13 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .pq-item .pq-v { font-family: var(--display); font-weight: 800; font-size: 19px; flex: none; }
 .pq-lista { display: flex; flex-direction: column; gap: 10px; min-height: 96px; } .pq-dica { text-align: center; padding: 14px 8px; }
 .pq-cli .cr .txt > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* 2.94: a venda do pacote pelo responsável (as horas do CPF) */
+.cliente-ja .cr.pq-resp { padding: 12px 14px; gap: 14px; border-color: color-mix(in srgb, var(--coral) 35%, var(--borda)); }
+.pq-resp .pq-sal { flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 74px; padding: 6px 10px; border-radius: 12px; background: var(--menta); }
+.pq-resp .pq-sal small { font-size: 10.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--tinta-2); white-space: nowrap; }
+.pq-resp .pq-sal b { font: 800 22px/1.1 var(--display); }
+.pq-resp .txt b { display: block; } .pq-resp .txt > span { display: block; white-space: normal !important; color: var(--tinta-2); font-size: 13px; line-height: 1.3; }
+.pq-resp em { font-size: 14px !important; }
 .lz-n { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; } .lz-n > div { background: var(--card); border: 1px solid var(--borda); border-radius: 14px; padding: 10px 6px; text-align: center; }
 .lz-n b { display: block; font-family: var(--display); font-weight: 800; font-size: 24px; line-height: 1.1; } .lz-n span { font-size: 12px; color: var(--tinta-2); }
 @media (max-width: 480px) { .lz-n { grid-template-columns: repeat(2, 1fr); } }
@@ -2329,7 +2336,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.93';
+const VERSAO = '2.94';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -4039,6 +4046,11 @@ function listaParaQuem(q) {
   if (!r.L.length) { const inteiro = soNumerosBusca(txt) && dig.length === 11;
     return `<div class="cliente-ja sug pq-nada"><small class="rot-cr">${inteiro ? (cpfValido(txt) ? 'Nenhum cliente com o CPF ' + esc(cpfFmt(dig)) : 'Confira o CPF: os números não batem') : soNumerosBusca(txt) ? 'Nenhum cliente com o CPF começando com ' + esc(cpfFmt(dig)) + (dig.length >= 4 ? ' nem com esse telefone' : '') : 'Nenhum cliente com esse nome'}</small>
       <p class="explica">É cliente novo? Toque em <b>Cliente novo: cadastrar</b>, aqui embaixo: ao terminar o cadastro, ${it && it.pfut ? 'o Pacote futuro abre para ele' : it && it.vpac ? 'a venda do pacote abre para ele' : it && it.vfut ? 'a Venda futura abre para ele' : it && it.festa ? 'a Festa abre para ele' : 'o atendimento abre' + (it ? ' com ' + esc(it.curto.replace(/^O /, 'o ')) + ' já na venda' : '')}.</p></div>`; }
+  /* 2.94: com as horas do CPF, o Vender pacote e o Pacote futuro são do responsável: o saldo somado e um botão só */
+  if (it && (it.pfut || it.vpac) && horasCpf()) return r.L.slice(0, 8).map(x => { const tot = x.fam.reduce((t, k) => t + saldoAgora(k), 0), alvo = pqAlvo(x.fam), resp = x.c.resp || alvo.nome;
+    return `<div class="cliente-ja pq-cli"><div class="cab"><div class="txt"><b>${esc(resp)}</b><span>${docCurto(x.c)}${x.fam.length > 1 ? ' · ' + x.fam.length + ' crianças' : ''}</span></div></div>
+    <button type="button" class="cr pq-resp tap" data-act="pq-resp" data-id="${alvo.id}" aria-label="${it.pfut ? 'Pacote futuro' : 'Vender pacote'} para ${esc(resp)}"><span class="pq-sal"><small>Saldo do CPF</small><b class="num">${hm(tot)}</b></span><span class="txt"><b>${it.pfut ? 'Pacote futuro' : 'Vender pacote'} para ${esc(resp)}</b><span>As horas ficam no CPF: ${x.fam.length > 1 ? 'qualquer criança usa (' + esc(juntar(x.fam.map(k => primeiro(k.nome)))) + ')' : esc(alvo.nome) + ' usa'}</span></span><em>${it.pfut ? 'Lançar' : 'Vender'} ${ic(IC.vai, 14, 2.6)}</em></button></div>`; }).join('')
+    + (r.L.length > 8 ? `<p class="explica">Há mais ${r.L.length - 8}: escreva mais um pouco para afinar.</p>` : '');
   return r.L.slice(0, 8).map(x => `<div class="cliente-ja pq-cli"><div class="cab"><div class="txt"><b>${esc(x.c.resp)}</b><span>${docCurto(x.c)}${x.fam.length > 1 ? ' · ' + x.fam.length + ' crianças' : ''}</span></div></div>
     ${x.fam.map(c => `<button type="button" class="cr tap" data-act="pq-crianca" data-id="${c.id}" aria-label="${it && it.festa ? 'Festa' : 'Vender'} para ${esc(c.nome)}, de ${esc(c.resp)}">${avatar(c)}<span class="txt"><b>${esc(c.nome)}${idadeTxt(c) ? ', ' + idadeTxt(c) : ''}</b><span>${it && it.festa ? (nascDe(c) ? 'aniversário em ' + nascBR(c.nasc).slice(0, 5) : c.entrou ? 'no espaço agora' : 'cliente da loja') : (c.entrou ? 'no espaço agora · ' : '') + 'saldo ' + hm(saldoAgora(c))}</span></span><em>${it && it.festa ? 'Escolher' : 'Vender'} ${ic(IC.vai, 14, 2.6)}</em></button>`).join('')}</div>`).join('')
     + (r.L.length > 8 ? `<p class="explica">Há mais ${r.L.length - 8}: escreva mais um pouco para afinar.</p>` : '');
@@ -4390,9 +4402,12 @@ function vfLancarPrevia(p, quem) { const d = p.dados || {}, resp = p.resp || p.n
    É a venda futura de um pacote: o pacote da tabela, o valor, a data do pagamento e quem vende. Vai para o gestor aprovar (o gestor lança
    direto); aprovado, entra no calendário o lembrete de COBRAR no dia. Fica na lista de Festas → Vendas futuras */
 let PF = null;
-function folhaPacoteFuturo(cid) {
+/* 2.94: a criança que guarda as horas do responsável (qualquer uma usa): a que já tem mais horas, sem ser a PCD (que é da avulsa) */
+const pqAlvo = fam => fam.slice().sort((a, b) => (ehPcd(a) - ehPcd(b)) || (saldoMin(b) - saldoMin(a)) || a.nome.localeCompare(b.nome))[0];
+const cpfLinha = c => { const F = familia(c); return `horas do CPF · ${F.length === 1 ? esc(c.nome) : F.length + ' crianças: ' + esc(juntar(F.map(k => primeiro(k.nome))))}`; };   /* 2.94 */
+function folhaPacoteFuturo(cid, doCpf) {
   const c = crianca(cid); if (!c) return; PF = { id: c.id, vend: '', i: null }; const hoje = isoDia(agora), P = S.cfg.pacotes || [];
-  abrirFolha('Pacote futuro', `<div class="linha">${avatar(c)}<div class="txt"><b style="white-space:normal">${nomeResp(c)}</b><span style="white-space:normal">${nomeCri(c, true)}</span></div></div>
+  abrirFolha('Pacote futuro', `<div class="linha">${avatar(c)}<div class="txt"><b style="white-space:normal">${nomeResp(c)}</b><span style="white-space:normal">${doCpf ? cpfLinha(c) : nomeCri(c, true)}</span></div></div>
     <p class="explica" id="pf-exp">O cliente vai fechar o pacote e pagar no dia combinado. ${gestor() ? 'Lançado por você, já vale:' : 'Vai para o <b>gestor aprovar</b>; aprovado,'} entra no calendário o lembrete de <b>cobrar</b> no dia do pagamento.</p>
     <div class="campo" id="pf-pacs"><label>Qual pacote<span class="obg" aria-hidden="true">*</span></label><div class="ent-chips">${P.map((x, i) => `<button type="button" class="ent-chip tap" data-act="pf-pac" data-i="${i}" aria-pressed="false"><i aria-hidden="true">${ic(IC.check, 14, 3)}</i><span><b>${esc(x.nome || 'PACOTE ' + dur(x.h * 60))}</b><small>${dur(x.h * 60)} · ${brl(x.v)}</small></span></button>`).join('')}</div></div>
     <div class="dois"><div class="campo"><label for="pf-valor">Valor combinado<span class="obg" aria-hidden="true">*</span></label><input id="pf-valor" inputmode="decimal" autocomplete="off" placeholder="R$ 0,00"></div>
@@ -8599,9 +8614,9 @@ function folhaVender(id, primeira, pre, voltaSaida) { // primeira: acabou de sai
   const it = itemPre(pre);   // 0.98: a venda começou em "Pacotes e produtos": o pacote (ou o produto) escolhido lá já entra na venda
   if (it && !it.semItem) { if (pre.pac != null) { if (!CARRINHO.pac.includes(pre.pac)) CARRINHO.pac.push(pre.pac); } else CARRINHO.pr[pre.prod] = Math.max(1, CARRINHO.pr[pre.prod] || 0); }
   const semH = VOLTA_SAIDA && SEMH ? crianca(SEMH) : null; SEMH = 0;
-  const notaPre = semH ? `<p class="retoma" id="v-pre">${ic(IC.presente, 16)}<span><b>${esc(semH.nome)} está sem horas no pacote.</b> Escolha o pacote e toque em <b>Somar na saída</b>: o pacote entra na conta e o tempo sai dele.</span></p>` : it && it.vpac ? `<p class="retoma" id="v-pre">${ic(IC.presente, 16)}<span><b>Venda do pacote, sem entrada.</b> Escolha o pacote e toque em Pagamento: a criança não entra agora. O comprovante sai como sempre.</span></p>` : it && it.semItem ? '' : it ? `<p class="retoma" id="v-pre">${ic(it.pac ? IC.presente : IC.sacola, 16)}<span><b>${esc(it.curto)} já está na venda.</b> Confira e toque em Pagamento.</span></p>` : '';
+  const notaPre = semH ? `<p class="retoma" id="v-pre">${ic(IC.presente, 16)}<span><b>${esc(semH.nome)} está sem horas no pacote.</b> Escolha o pacote e toque em <b>Somar na saída</b>: o pacote entra na conta e o tempo sai dele.</span></p>` : it && it.vpac ? `<p class="retoma" id="v-pre">${ic(IC.presente, 16)}<span>${pre && pre.cpf ? `<b>Venda do pacote para ${esc(c.resp || c.nome)}, sem entrada.</b> As horas ficam no CPF: qualquer criança dele usa. Escolha o pacote e toque em Pagamento. O comprovante sai como sempre.` : '<b>Venda do pacote, sem entrada.</b> Escolha o pacote e toque em Pagamento: a criança não entra agora. O comprovante sai como sempre.'}</span></p>` : it && it.semItem ? '' : it ? `<p class="retoma" id="v-pre">${ic(it.pac ? IC.presente : IC.sacola, 16)}<span><b>${esc(it.curto)} já está na venda.</b> Confira e toque em Pagamento.</span></p>` : '';
   abrirFolha('Atendimento', `<div id="v-escolha">
-    <div class="linha">${avatar(c)}<div class="txt"><b style="white-space:normal">${nomeResp(c)}</b><span style="white-space:normal">${nomeCri(c, true)}${c.pcd ? ` <em class="selo-pcd">${rotPcd()}</em>` : ''}${fones(c) ? ' · ' + esc(fones(c)) : ''}</span>${c.entrou || c.sapateira ? `<span style="white-space:normal">${[c.entrou ? 'no espaço desde ' + hora(c.entrou) : '', c.sapateira ? 'sapateira ' + c.sapateira : ''].filter(Boolean).join(' · ')}</span>` : ''}</div><button class="bt tap" data-act="historico" data-id="${c.id}">${ic(IC.historico)} Histórico</button></div>
+    <div class="linha">${avatar(c)}<div class="txt"><b style="white-space:normal">${nomeResp(c)}</b><span style="white-space:normal">${pre && pre.cpf && pre.venderPac ? cpfLinha(c) : nomeCri(c, true) + (c.pcd ? ` <em class="selo-pcd">${rotPcd()}</em>` : '')}${fones(c) ? ' · ' + esc(fones(c)) : ''}</span>${c.entrou || c.sapateira ? `<span style="white-space:normal">${[c.entrou ? 'no espaço desde ' + hora(c.entrou) : '', c.sapateira ? 'sapateira ' + c.sapateira : ''].filter(Boolean).join(' · ')}</span>` : ''}</div><button class="bt tap" data-act="historico" data-id="${c.id}">${ic(IC.historico)} Histórico</button></div>
     ${obsAlerta(c)}
     ${blocoFestaEntrada(c)}
     ${comSaldoFicha(c) ? `<div class="h-saldo f-saldo" data-ficha-saldo="${c.id}" data-k="${pacMin(c)}|${usadoAgora(c)}" aria-label="Horas do cliente">${saldoFicha(c)}</div>` : ''}
@@ -8622,7 +8637,7 @@ function folhaVender(id, primeira, pre, voltaSaida) { // primeira: acabou de sai
 }
 // o atendimento completo: a venda no meio e, em tela larga, os dados e o histórico do cliente ao lado
 function atender(id, primeira, pre, voltaSaida) {
-  const c = crianca(id); if (!c) return; if (pre && pre.festaEntra) pre = null; /* 1.29: a entrada na festa: o atendimento abre com a festa de hoje em cima */ if (pre && pre.pacFut) { folhaPacoteFuturo(c.id); return; }   /* 2.16 */ if (pre && pre.vfut) { folhaVendaFutura(c.id); return; }   /* 2.08 */ if (pre && pre.festa) { folhaFesta(c.id, pre.sel); return; }   /* 1.12: veio do botão Festa */ const jaAberto = LADO && crianca(LADO.id) && mesmoCliente(crianca(LADO.id), c);
+  const c = crianca(id); if (!c) return; if (pre && pre.festaEntra) pre = null; /* 1.29: a entrada na festa: o atendimento abre com a festa de hoje em cima */ if (pre && pre.pacFut) { folhaPacoteFuturo(c.id, !!pre.cpf); return; }   /* 2.16 */ if (pre && pre.vfut) { folhaVendaFutura(c.id); return; }   /* 2.08 */ if (pre && pre.festa) { folhaFesta(c.id, pre.sel); return; }   /* 1.12: veio do botão Festa */ const jaAberto = LADO && crianca(LADO.id) && mesmoCliente(crianca(LADO.id), c);
   if (innerWidth >= 820 && !jaAberto) abrirHistorico(c.id);
   folhaVender(c.id, primeira, pre, voltaSaida);
 }
@@ -11416,6 +11431,7 @@ const ACOES = {
   'pp-vender': el => { const pre = el.dataset.pac != null ? { pac: +el.dataset.pac } : { prod: +el.dataset.prod }; if (itemPre(pre)) folhaParaQuem(pre); },   /* 0.98: um toque no pacote (ou no produto) começa a venda: falta dizer para quem */
   'pq-trocar': () => folhaPacotes(ABA_PP),
   'pq-crianca': el => { const pre = PQ, id = +el.dataset.id; if (!crianca(id)) return; PQ = null; atender(id, false, pre); },
+  'pq-resp': el => { const pre = PQ ? { ...PQ, cpf: true } : null, id = +el.dataset.id; if (!crianca(id) || !pre) return; PQ = null; atender(id, false, pre); },   /* 2.94: a venda pelo responsável */
   'pq-cadastrar': () => { const pre = PQ, q = val('pq-busca'), cpf = soNumerosBusca(q) && (soDig(q).length < 11 || cpfValido(q)) ? cpfFmt(q) : '';   /* 2.25: um telefone não vira CPF */ PQ = null; folhaCrianca(null, null, { pre, cpf }); },
   limpeza: () => folhaLimpeza(false),
   importar: () => folhaImportar(),
@@ -11605,7 +11621,7 @@ document.addEventListener('keydown', e => {
   if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[role="button"][data-act]')) { e.preventDefault(); e.target.click(); }
   if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key) && e.target.matches('.pn-sel [role="tab"]')) { const bs = $$('.pn-sel [role="tab"]'), i = bs.indexOf(e.target), j = e.key === 'Home' ? 0 : e.key === 'End' ? bs.length - 1 : (i + (e.key === 'ArrowRight' ? 1 : -1) + bs.length) % bs.length; e.preventDefault(); if (bs[j]) bs[j].focus(); return; }   // 1.27: as setas andam entre as unidades do painel
   if (e.key === 'Enter' && !e.shiftKey && e.target.id === 'zap-texto') { e.preventDefault(); ACOES.enviar(); }
-  if (e.key === 'Enter' && e.target.id === 'pq-busca') { e.preventDefault(); const b = $$('#pq-lista [data-act="pq-crianca"]'); if (b.length === 1) b[0].click(); return; }   // só uma criança na lista: Enter escolhe
+  if (e.key === 'Enter' && e.target.id === 'pq-busca') { e.preventDefault(); const b = $$('#pq-lista [data-act="pq-crianca"], #pq-lista [data-act="pq-resp"]'); if (b.length === 1) b[0].click(); return; }   // só uma criança na lista: Enter escolhe
   if (e.key === 'Enter' && e.target.id === 'rec-txt') { e.preventDefault(); const b = $('[data-act="rec-salvar"]'); if (b) b.click(); return; }   /* 2.72 */
   if (e.key === 'Enter' && e.target.id === 'pl-senha') { e.preventDefault(); const ok = $('#pl-ok'); if (ok && !ok.disabled) ok.click(); return; }   /* 2.90 */
   if (e.key === 'Enter' && e.target.id === 'lz-senha') { e.preventDefault(); const ok = $('#lz-ok'); if (ok && !ok.disabled) ok.click(); return; }

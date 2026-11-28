@@ -1301,6 +1301,15 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Vender pacote e Pacote futuro pelo responsável (2.94)
+
+Pedido do dono (28/11, com a foto do "Pacote futuro" que mostrava cada criança com o saldo dela): "somar a hora de todas as crianças e colocar para o responsável, porque aí o responsável coloca para qualquer criança ... sem ter que lançar para uma criança, porque faz mais sentido assim."
+
+- Com as horas do CPF ligadas (o normal), o "Vender pacote" e o "Pacote futuro" mostram cada cliente pelo responsável: o nome, o CPF, quantas crianças, o SALDO DO CPF (a soma das horas de todas as crianças) e um botão só: "Pacote futuro para JERFESON… · Lançar" ou "Vender pacote para … · Vender".
+- Não se escolhe criança: as horas ficam no CPF e qualquer criança do responsável usa. A folha da venda diz "horas do CPF · 4 crianças: …" e, no Vender pacote, "As horas ficam no CPF: qualquer criança dele usa".
+- Por dentro, a venda fica guardada numa das crianças (a que já tem mais horas, sem ser a PCD); como as horas são do CPF, não faz diferença.
+- Com as horas por criança (Ajustes → "De cada criança"), continua como antes: uma criança por vez. A Festa e a entrada continuam escolhendo a criança.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A criança PCD é sempre da recreação avulsa, com o desconto (2.93)
 
 Pedido do dono (28/11): "quando eu entro com a criança PCD, ele não tá dando desconto de PCD. Eu tô tendo que autorizar manualmente ... o PCD tem que ficar na criança ... quando eu marcar PCD é só o avulso ... e se tiver mais uma criança selecionada, dá na entrada pacote, aí tipo coloca o nome fulano de tal no avulso, R$40."
