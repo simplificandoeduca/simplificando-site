@@ -1301,6 +1301,12 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. A janela do recado do responsável (3.18)
+
+Pedido do dono (foto, 28/11): "botão bugado".
+- A janela "Recado do responsável" (o recado em vermelho ao lado do nome) não tinha espaço entre as partes: o título "Recado" ficava colado no texto de cima e os botões Guardar e Cancelar encostavam na caixa do recado, por cima da borda vermelha dela.
+- Agora as partes têm espaço entre si e os botões ficam um pouco maiores. Guardar, Apagar o recado e Cancelar funcionam como antes.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Corrigir as horas pelo CPF (3.17)
 
 Pedido do dono (foto do "Corrigir as horas", 28/11): "as horas não precisa ficar [n]a criança, sempre ao CPF" e "pode tirar aí saldo também 0h".

@@ -1067,6 +1067,9 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 /* 0.90: o atendimento tem duas páginas na mesma folha (a escolha e o pagamento); só uma aparece de cada vez */
 #v-escolha, #v-pag { display: contents; } #v-escolha[hidden], #v-pag[hidden] { display: none; }
 #v-escolha > .bt, #v-pag > .bt { flex: none; }
+/* 3.18 (o dono: "botão bugado"): a janela do recado do responsável com espaço entre as partes (os botões não encostam mais na caixa) */
+.rec-ed { display: flex; flex-direction: column; gap: 14px; }
+.rec-ed .acoes { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 2px; } .rec-ed .acoes .bt { min-height: 44px; padding: 0 18px; }
 /* 3.16 (o dono: "tô achando apertada essa tela, conseguir visualizar tudo de uma vez só seria melhor"): o Atendimento em duas colunas quando
    cabe (no computador, mesmo com o Histórico aberto ao lado): à esquerda o que vender; à direita o cliente, quem entra, quem atende, o total e
    o Pagamento. No celular e na tela estreita, as partes não existem para o layout (display: contents) e tudo fica como antes */
@@ -2409,7 +2412,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '3.17';
+const VERSAO = '3.18';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
