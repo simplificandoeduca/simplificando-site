@@ -1301,6 +1301,12 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Os botões mais quadradinhos (2.95)
+
+Pedido do dono (28/11): "deixa o botão qual unidade na mesma estética, mais quadradinha ... os botões que são arredondados mais quadradinhos, tipo no todos, recreação, crianças, 2 para devolver."
+
+- Saíram as pílulas (cantos totalmente redondos). Ficam com os cantos de leve, como Vender pacote / Pacote futuro / Festa: o botão da unidade ("Qual unidade?" / ANÁLIA FRANCO), os filtros da lista (Todas, Recreação, Carrinhos, Saíram há pouco, Finalizados do dia), as etiquetas dos números (crianças, passou do tempo, para devolver), os botões pequenos do alto (o sino), as etiquetas PACOTE / AVULSA e o OBS da lista.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Vender pacote e Pacote futuro pelo responsável (2.94)
 
 Pedido do dono (28/11, com a foto do "Pacote futuro" que mostrava cada criança com o saldo dela): "somar a hora de todas as crianças e colocar para o responsável, porque aí o responsável coloca para qualquer criança ... sem ter que lançar para uma criança, porque faz mais sentido assim."
