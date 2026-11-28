@@ -1301,6 +1301,15 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Pacote futuro: "Produtos Play" e "Produtos Casa Tom" no filtro (3.00)
+
+Pedido do dono (28/11): "coloque também produtos Casa Tom e produtos Play."
+
+- Na Lista de produtos do Pacote futuro, embaixo da busca, três botões: **Todos | Produtos Play | Produtos Casa Tom**.
+- "Produtos Play": aparecem os produtos da Play. "Produtos Casa Tom": aparecem os da Casa Tom (até 24 de cada vez; escreva parte do nome para achar).
+- Embaixo, as categorias da loja escolhida ("Todas" e as categorias). A busca pelo nome vale junto com o filtro.
+- Em "Todos", sem buscar e sem categoria, continua sem mostrar a lista (só o que já está junto).
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Pacote futuro: os produtos da Play e da Casa Tom pela busca, com o filtro e o Cadastrar produto (2.99)
 
 Pedido do dono (28/11): "tem que dar a opção de cadastrar produto ou buscar mais produtos, tipo os produtos na Casa Tom. Mas aí, tipo, só uma opção aí abre, tem a opção de filtro, que aí ele busca, não aparecer todos." e "não colocou os produtos da Tom, o filtro do produto da Tom, com os produtos da Tom."

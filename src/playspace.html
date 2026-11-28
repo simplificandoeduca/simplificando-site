@@ -1093,6 +1093,8 @@ input.senha-aut { -webkit-text-security: disc; min-height: 44px; border-radius: 
 .pf-dm button { min-width: 44px; padding: 0 10px; border-radius: 9px; font: 800 14px/1 var(--display); color: var(--tinta-2); }
 .pf-dm button[aria-pressed="true"] { background: var(--tinta); color: var(--card); }
 .pf-prods .pf-pb { display: flex; flex-wrap: wrap; gap: 8px; margin: 2px 0 8px; } .pf-prods .pf-pb .ct-campo { flex: 1 1 240px; } .pf-prods .pf-pb .bt { flex: none; }   /* 2.99 */
+.pf-lojas { display: flex; gap: 6px; margin: 0 0 8px; } .pf-lojas button { flex: 1 1 0; min-width: 0; padding: 10px 8px; border-radius: 10px; border: 1px solid var(--borda-2); background: var(--card); font: 700 13px/1.15 var(--display); color: var(--tinta-2); }   /* 3.00 */
+.pf-lojas button[aria-pressed="true"] { background: var(--tinta); border-color: var(--tinta); color: var(--card); }
 .pf-prods .pf-cats { margin: 0 2px 10px; } .pf-prods .pf-cats button { font-size: 13px; padding: 5px 0 8px; }
 .prod .pf-pc { font-size: 11px; font-weight: 700; color: var(--apagado); text-transform: uppercase; letter-spacing: .02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 600px) { .pf-prods .pf-pb .bt { flex: 1 1 100%; } }
@@ -2349,7 +2351,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '2.99';
+const VERSAO = '3.00';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -4438,21 +4440,26 @@ const pfBotaoProduto = p => { const q = (PF && PF.pr[p.id]) || 0;
 const PF_MAX = 24;
 const pfSel = () => (S.produtos || []).filter(p => PF && PF.pr[p.id]);
 const pfOnde = p => String(p.cat || '').trim() || (prodNaLoja(p, 'play') ? 'Play Space' : 'Casa Tom');
-const pfCats = () => [['', 'Todos'], ['@play', 'Play Space'], ['@ct', 'Casa Tom'], ...ctCats(S.produtos || []).map(c => [c, c])];
-const pfNoFiltro = p => !PF.cat || (PF.cat === '@play' ? prodNaLoja(p, 'play') : PF.cat === '@ct' ? prodNaLoja(p, 'ct') : String(p.cat || '').trim() === PF.cat);
+/* 3.00 (o dono: "coloque também produtos Casa Tom e produtos Play"): primeiro a loja (Todos | Produtos Play | Produtos Casa Tom), depois as categorias dela */
+const PF_LOJAS = [['', 'Todos'], ['play', 'Produtos Play'], ['ct', 'Produtos Casa Tom']];
+const pfNaLoja = p => !PF.loja || prodNaLoja(p, PF.loja);
+const pfCats = () => ctCats((S.produtos || []).filter(pfNaLoja));
+const pfNoFiltro = p => pfNaLoja(p) && (!PF.cat || String(p.cat || '').trim() === PF.cat);
+const pfLojasHtml = () => `<div class="pf-lojas" role="group" aria-label="De qual loja">${PF_LOJAS.map(([l, n]) => `<button type="button" class="tap" data-act="pf-ploja" data-l="${l}" aria-pressed="${l === PF.loja}">${n}</button>`).join('')}</div>`;
+const pfCatsHtml = () => { const C = pfCats(); return C.length ? `<div class="ct-abas pf-cats" role="tablist" aria-label="Categorias">${[['', 'Todas'], ...C.map(c => [c, c])].map(([c, n]) => `<button type="button" role="tab" data-act="pf-pcat" data-c="${esc(c)}" aria-selected="${c === PF.cat}">${esc(n)}</button>`).join('')}</div>` : ''; };
 function pfProdAchados() { if (!PF) return { L: [], n: 0, vazio: true }; const ws = semAcentoCT(PF.busca).trim().split(/\s+/).filter(Boolean), sel = pfSel();
-  if (!ws.length && !PF.cat) return { L: sel, n: 0, vazio: true };
+  if (!ws.length && !PF.cat && !PF.loja) return { L: sel, n: 0, vazio: true };
   const A = (S.produtos || []).filter(p => pfNoFiltro(p) && ws.every(w => semAcentoCT(p.n).includes(w))), V = A.slice(0, PF_MAX);
   return { L: [...sel.filter(p => !V.includes(p)), ...V], n: A.length, mostra: V.length }; }
 function pfProdHtml() { const r = pfProdAchados();
-  const msg = r.vazio ? (r.L.length ? '' : 'Escreva parte do nome ou toque numa categoria.') : !r.n ? `Nenhum produto ${PF.busca.trim() ? 'com esse nome' : 'nesta categoria'}. Toque em <b>Cadastrar produto</b>.` : r.n > r.mostra ? `Mostrando ${r.mostra} de ${r.n}. Escreva parte do nome para achar.` : '';
+  const msg = r.vazio ? (r.L.length ? '' : 'Escreva parte do nome, ou toque em <b>Produtos Play</b> ou <b>Produtos Casa Tom</b>.') : !r.n ? `Nenhum produto ${PF.busca.trim() ? 'com esse nome' : 'aqui'}${PF.loja ? ' em ' + (PF.loja === 'ct' ? 'Produtos Casa Tom' : 'Produtos Play') : ''}. Toque em <b>Cadastrar produto</b>.` : r.n > r.mostra ? `Mostrando ${r.mostra} de ${r.n}. Escreva parte do nome para achar.` : '';
   return `${r.L.length ? `<div class="prods">${r.L.map(pfBotaoProduto).join('')}</div>` : ''}${msg ? `<p class="explica pf-pmsg">${msg}</p>` : ''}`; }
 const pfProdResumo = () => { const I = pfSel(); return I.length ? I.map(p => `<b>${PF.pr[p.id] > 1 ? PF.pr[p.id] + '× ' : ''}${esc(p.n)}</b>`).join(' + ') : 'nenhum'; };
 const pfProdLista = () => { const l = $('#pf-plista'); if (l) l.innerHTML = pfProdHtml(); };
 function pfProdutos() {
   return `<details class="lista-pac pf-prods" id="pf-prods"><summary class="tap">${ic(IC.sacola, 18)}<span class="lp-t">Lista de produtos <small>· Play e Casa Tom</small></span><span class="lp-s" id="pf-prod-resumo">${pfProdResumo()}</span><i class="lp-seta" aria-hidden="true">${ic(IC.vai, 16, 2.6)}</i></summary>
     <div class="lp-corpo"><div class="ct-busca pf-pb"><label class="ct-campo">${ic(IC.ctBusca, 18)}<input id="pf-pbusca" type="search" placeholder="Buscar produto pelo nome…" autocomplete="off" aria-label="Buscar produto"></label><button type="button" class="bt tap" data-act="pf-pnovo">${ic(IC.mais)} Cadastrar produto</button></div>
-    <div class="ct-abas pf-cats" role="tablist" aria-label="Filtro dos produtos">${pfCats().map(([c, n]) => `<button type="button" role="tab" data-act="pf-pcat" data-c="${esc(c)}" aria-selected="${c === PF.cat}">${esc(n)}</button>`).join('')}</div>
+    ${pfLojasHtml()}<div id="pf-catsw">${pfCatsHtml()}</div>
     <div class="pf-pnovo" id="pf-pnovo" hidden><p class="explica">O produto entra no cadastro da <b>Play</b> e já vai junto. Fica anotado quem cadastrou.</p>
       <div class="campo"><label for="pfn-n">Nome do produto</label><input id="pfn-n" maxlength="60" autocomplete="off" placeholder="ex.: MEIA ANTIDERRAPANTE"></div>
       <div class="dois"><div class="campo"><label for="pfn-v">Valor (R$)</label><input id="pfn-v" inputmode="decimal" autocomplete="off" placeholder="0,00"></div><div class="campo"><label for="pfn-cat">Categoria <span class="leve">· opcional</span></label><input id="pfn-cat" list="pfn-cats" maxlength="30" autocomplete="off" placeholder="ex.: BRINQUEDOS"><datalist id="pfn-cats">${ctCats(S.produtos || []).map(x => `<option value="${esc(x)}">`).join('')}</datalist></div></div>
@@ -4485,7 +4492,7 @@ function pfAtualiza() { if (!PF) return; const P = S.cfg.pacotes || [];
   const k = pfConta(), cx = $('#pf-conta'); if (cx) cx.innerHTML = `<div><span>Pacotes e produtos</span><b class="num">${brl(k.sub)}</b></div>${k.desc > 0 ? `<div class="d"><span>Desconto${PF.dm === 'p' ? ' (' + String(Math.min(100, numero(val('pf-desc')) || 0)).replace('.', ',') + '%)' : ''}</span><b class="num">− ${brl(k.desc)}</b></div>` : ''}<div class="t"><span>Total combinado</span><b class="num">${brl(k.total)}</b></div>`; }
 document.addEventListener('input', e => { if (e.target && e.target.id === 'pf-desc') pfAtualiza(); if (e.target && e.target.id === 'pf-pbusca' && PF) { PF.busca = e.target.value; pfProdLista(); } });   /* 2.99: a busca dos produtos */
 function folhaPacoteFuturo(cid, doCpf) {
-  const c = crianca(cid); if (!c) return; PF = { id: c.id, vend: '', pac: [], pr: {}, dm: 'r', busca: '', cat: '' }; const hoje = isoDia(agora);
+  const c = crianca(cid); if (!c) return; PF = { id: c.id, vend: '', pac: [], pr: {}, dm: 'r', busca: '', cat: '', loja: '' }; const hoje = isoDia(agora);
   abrirFolha('Pacote futuro', `<div class="linha">${avatar(c)}<div class="txt"><b style="white-space:normal">${nomeResp(c)}</b><span style="white-space:normal">${doCpf ? cpfLinha(c) : nomeCri(c, true)}</span></div></div>
     <p class="explica" id="pf-exp">O cliente vai fechar o pacote e pagar no dia combinado. ${gestor() ? 'Lançado por você, já vale:' : 'Vai para o <b>gestor aprovar</b>; aprovado,'} entra no calendário o lembrete de <b>cobrar</b> no dia do pagamento.</p>
     <div class="campo"><label>Qual pacote<span class="obg" aria-hidden="true">*</span> <span class="leve">· um ou mais</span></label>${pfPacotes()}</div>
@@ -11491,6 +11498,7 @@ const ACOES = {
     const d = el.closest('details'); if (d && PF.pac.includes(i)) d.open = false; },   /* 2.97: como no atendimento: escolheu, a lista fecha e o pacote fica à vista */
   'pf-prod-mais': el => { if (!PF) return; const p = produto(el.dataset.p); if (!p) return; PF.pr[p.id] = Math.min(99, (PF.pr[p.id] || 0) + 1); pfAtualiza(); },
   'pf-prod-menos': el => { if (!PF) return; const id = +el.dataset.p, q = Math.max(0, (PF.pr[id] || 0) - 1); if (q) PF.pr[id] = q; else delete PF.pr[id]; pfAtualiza(); },
+  'pf-ploja': el => { if (!PF) return; PF.loja = ['play', 'ct'].includes(el.dataset.l) ? el.dataset.l : ''; PF.cat = ''; $$('.pf-lojas [data-l]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.l === PF.loja))); const w = $('#pf-catsw'); if (w) w.innerHTML = pfCatsHtml(); pfProdLista(); },   /* 3.00 */
   'pf-pcat': el => { if (!PF) return; PF.cat = el.dataset.c || ''; $$('.pf-cats [data-c]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.c === PF.cat))); pfProdLista(); },   /* 2.99: o filtro da Casa Tom */
   'pf-pnovo': () => pfNovoAbrir(), 'pf-pnovo-x': () => { const f = $('#pf-pnovo'); if (f) f.hidden = true; }, 'pf-pnovo-ok': el => pfNovoOk(el),
   'pf-desc-modo': el => { if (!PF) return; PF.dm = el.dataset.v === 'p' ? 'p' : 'r'; pfAtualiza(); const i = $('#pf-desc'); if (i) i.focus(); },
