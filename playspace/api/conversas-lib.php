@@ -370,5 +370,6 @@ function zapHistorico(string $id, int $chats = 60, int $porChat = 40): array {
 function cvSincronizarDepois(): void {
   try { $c = cfg('insta', null); if (!is_array($c) || empty($c['contas'])) return; } catch (Throwable $e) { return; }
   $GLOBALS['CV_AVISOS_MARCADO'] = true;   /* (os avisos saem aqui mesmo, no fim) */
-  cvDepois(function () { foreach (igCfg()['contas'] as $x) { try { igSincronizar((string)$x['id']); } catch (Throwable $e) { } } foreach ($GLOBALS['CV_AVISOS'] as $a) cvAvisar($a); $GLOBALS['CV_AVISOS'] = []; });
+  cvDepois(function () { $tf = @fopen(pastaDados() . '/insta-sinc.trava', 'c'); if ($tf && !@flock($tf, LOCK_EX | LOCK_NB)) return;   /* 3.11 */
+    foreach (igCfg()['contas'] as $x) { try { igSincronizar((string)$x['id']); } catch (Throwable $e) { } } foreach ($GLOBALS['CV_AVISOS'] as $a) cvAvisar($a); $GLOBALS['CV_AVISOS'] = []; });
 }

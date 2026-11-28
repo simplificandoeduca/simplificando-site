@@ -1301,6 +1301,25 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Regressão completa e os consertos para o sistema não cair (3.11)
+
+Pedido do dono (28/11): "faça uma regressão completa de todas as atualizações ... tenho certeza que ele está o mais otimizado possível e bem seguro para não cair ... se tiver falha crítica, você já conserta."
+
+O que foi conferido:
+- Todos os testes guardados (da 0.30 à 3.10): a prévia (sem servidor), os testes com servidor próprio e os da porta 8089. Os servidores de teste rodaram com o relógio às 16h (a regressão foi de madrugada e "uma hora atrás" caía no dia anterior).
+- Cada falha foi explicada: ou é uma regra que o dono mudou depois (exemplos: a Anália sem nota fiscal na 2.85; a senha do gestor nas regras de Ajustes na 3.02; a PCD sempre avulsa na 2.93; a nota pela página do governo na 2.81 a 2.83; o PDF novo do resumo na 3.06; o nome no Ajustar caixa na 3.10), ou já falhava na 2.66 do mesmo jeito, ou é teste que depende do tempo (passa numa vez e falha na outra). Os testes antigos que mudam as regras rodaram de novo mandando a senha do gestor, e passaram.
+- Carga: 15 mil clientes; 10 telas abertas com gravações por 60 s; 6 caixas vendendo ao mesmo tempo por 90 s com 10 telas abertas (617 vendas, nenhum erro, nenhum "banco travado", o pago no banco igual ao vendido, centavo por centavo); as telas principais abertas com o banco grande, sem erro. A 3.10 ficou tão rápida quanto a 2.66 (a lista que a tela usa em ~230 ms; o pulso em 2 ms).
+- Uma revisão de segurança e de "não cair" de tudo que mudou no servidor desde a 2.66.
+
+O que foi consertado:
+1. **Trabalho depois da resposta sem segurar as telas.** O servidor atende um pedido de cada vez (a trava dos pedidos). O aviso no celular do gestor, o e-mail do resumo do dia (que monta o PDF) e a cópia de segurança da semana rodam depois da resposta, mas seguravam essa trava até terminar: se a internet do aviso ou do e-mail estivesse lenta, todas as telas esperavam juntas (medido: 4,4 s de espera numa tela durante um trabalho de 5 s). Agora a trava sai antes desse trabalho (medido: 5 ms). A cópia da semana também passou para depois da resposta.
+2. **WhatsApp do Insta.** Achar o cliente pelo telefone lia o cadastro inteiro (com as fotos) a cada contato novo; com o histórico do WhatsApp chegando, isso podia pesar a hospedagem. Agora monta uma lista só com nome e telefones, uma vez por pedido. A conferência do Instagram roda uma de cada vez.
+3. **Histórico do cliente.** Um índice novo nos registros (por cliente): o Histórico não varre mais a tabela inteira (ela cresce todo dia).
+4. **"Pagou ao todo" no Histórico.** O pacote futuro (fiado) que ainda não foi pago entrava como pago; agora aparece como a pagar até o cliente pagar.
+5. **Pacote futuro: as horas da tabela.** O servidor confere as horas de cada pacote com a tabela de pacotes (um pedido montado à mão não passa mais com horas a mais), e o pedido mostra ao gestor quantas horas vão para o cliente ("5h para o cliente").
+6. **Cada lugar só vê o seu.** Sem saber a unidade, a equipe não vê nenhuma venda futura (antes, via todas). Receber o fiado só na unidade da venda (a Anália não recebe o do Morumbi; o gestor recebe qualquer um).
+7. Detalhes: o nome de quem ajusta o caixa só aceita texto; a regra da nota da Anália usa a unidade do computador (que o servidor sabe), não a que a tela manda.
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Ajustar caixa: o nome de quem ajusta no fim; a "Quebra de caixa" em vermelho no Financeiro (3.10)
 
 Pedido do dono (28/11): "quando alguém fizer o ajuste de caixa, no final, colocar o nome do atendente e ... salvar. ... Toda vez que tiver quebra de caixa, eu quero que o financeiro seja avisado ... no do dia lá, naquela primeira parte de bater ... coloca em vermelhinho, quebra de caixa. Aí mostra o que foi feito, quem fez."

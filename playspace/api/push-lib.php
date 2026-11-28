@@ -124,6 +124,9 @@ function pushDepois(callable $f): void {
     if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
     if (function_exists('fastcgi_finish_request')) @fastcgi_finish_request(); elseif (function_exists('litespeed_finish_request')) @litespeed_finish_request();
     ignore_user_abort(true);
+    /* 3.11: a resposta já foi; a trava dos pedidos (travarEscrita) sai agora, antes do trabalho demorado (o aviso no celular, o e-mail do
+       resumo com o PDF, a cópia da semana). Antes ela ficava presa até o fim dele, e as telas dos outros computadores esperavam juntas */
+    if (isset($GLOBALS['_trava'])) { @flock($GLOBALS['_trava'], LOCK_UN); @fclose($GLOBALS['_trava']); unset($GLOBALS['_trava']); }
     try { $f(); } catch (Throwable $e) { error_log('Play Space, aviso no celular: ' . $e->getMessage()); }
   });
 }

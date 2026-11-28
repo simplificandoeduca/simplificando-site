@@ -99,9 +99,10 @@ function evoEnviarImagem(array $c, string $numero, string $foto, string $legenda
 function criancaPorTelefone(string $tel): ?array {
   $d = preg_replace('/\D/', '', $tel); if (strlen($d) < 8) return null;
   $fim = substr($d, -8);
-  $todas = db()->query("SELECT * FROM criancas WHERE ativo = 1 AND (tel <> '' OR tel2 <> '')")->fetchAll();
-  foreach (['tel', 'tel2'] as $campo) foreach ($todas as $c) {   // primeiro o WhatsApp principal de todo mundo; depois o segundo telefone
-    $t = preg_replace('/\D/', '', (string)($c[$campo] ?? '')); if ($t !== '' && substr($t, -8) === $fim) return $c;
-  }
-  return null;
+  /* 3.11: o mapa dos telefones uma vez por pedido, só com o que precisa (antes, cada contato novo lia o cadastro inteiro, com as fotos) */
+  static $mapa = null;
+  if ($mapa === null) { $mapa = [[], []];
+    foreach (db()->query("SELECT id, nome, resp, tel, tel2 FROM criancas WHERE ativo = 1 AND (tel <> '' OR tel2 <> '') ORDER BY id")->fetchAll() as $c)
+      foreach (['tel' => 0, 'tel2' => 1] as $campo => $i) { $t = preg_replace('/\D/', '', (string)($c[$campo] ?? '')); if (strlen($t) >= 8 && !isset($mapa[$i][substr($t, -8)])) $mapa[$i][substr($t, -8)] = $c; } }
+  return $mapa[0][$fim] ?? $mapa[1][$fim] ?? null;   // primeiro o WhatsApp principal de todo mundo; depois o segundo telefone
 }

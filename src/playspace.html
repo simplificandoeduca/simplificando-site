@@ -2386,7 +2386,7 @@ let CAD_POR = '';
 const euVendedor = () => MODO === 'servidor' && EU ? MAI(EU.nomeCompleto || EU.nome || '').replace(/\s+/g, ' ').slice(0, 30) : '';
 function htmlCadPor() { const L = vendedorasLista(); if (!L.length) return ''; if (!CAD_POR || !L.includes(CAD_POR)) CAD_POR = L.includes(euVendedor()) ? euVendedor() : '';
   return `<div class="vend ok" id="f-cadpor" role="radiogroup" aria-label="Quem está cadastrando"><p class="vend-t">Quem está cadastrando?<span class="leve"> · conta nas comissões</span></p><div class="vend-b">${L.map(n => `<button type="button" class="tap" role="radio" aria-checked="${n === CAD_POR}" data-act="cad-por" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`; }
-const VERSAO = '3.10';
+const VERSAO = '3.11';
 /* ---------- atualizar o site por dentro: o atualizar.php busca a versão nova no GitHub e troca os arquivos ---------- */
 const ATU = { nova: '', ramo: '', podeAqui: /^https?:$/.test(location.protocol) && !/claude\.ai$/.test(location.hostname) };
 const versaoMaior = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
@@ -5040,7 +5040,7 @@ const pendAlug = a => !a ? 0 : MODO === 'servidor' ? centavos(+a.pend || 0) : ce
 const atrasoValor = c => c && c.entrou && c.atraso ? centavos(+c.atraso.valor || 0) : 0;   // as cobranças por atraso a receber
 const aReceberDe = c => centavos(pendDe(c) + atrasoValor(c));   // tudo o que há para receber agora
 // no histórico do cliente: quanto falta receber de uma compra desta visita (o servidor manda pronto em v.np)
-const naoPagoDe = v => { if (MODO === 'servidor') return +v.np || 0; const c = crianca(v.crianca); if (!c) return 0; if (v.auto) return c.entrou && v.quando >= c.entrou ? faltaCompra(v) : 0; return pendentesPrevia(c).includes(v) ? faltaCompra(v) : 0; };
+const naoPagoDe = v => { if (MODO === 'servidor') return +v.np || 0; if (v.fiado) return faltaCompra(v);   /* 3.11: o pacote futuro que falta pagar */ const c = crianca(v.crianca); if (!c) return 0; if (v.auto) return c.entrou && v.quando >= c.entrou ? faltaCompra(v) : 0; return pendentesPrevia(c).includes(v) ? faltaCompra(v) : 0; };
 const comConta = c => !!c && (!!c.entrou || (S.alugueis || []).some(a => a.crianca === c.id));   // está no espaço, ou com um carrinho fora da loja: há o que estar pago ou não
 // na ficha: quando falta receber, uma linha só, com o valor e o botão Receber (1.06: sem o selo Pago no alto)
 const chavePago = c => pendDe(c) + '|' + atrasoValor(c) + '|' + (comConta(c) ? 1 : 0);

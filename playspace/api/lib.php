@@ -555,6 +555,10 @@ function db(): PDO {
     foreach (["ALTER TABLE trocas_pag ADD COLUMN atendente TEXT NOT NULL DEFAULT ''", "ALTER TABLE trocas_pag ADD COLUMN origem TEXT NOT NULL DEFAULT ''"] as $sql) { try { $pdo->exec($sql); } catch (Throwable $e) { } }
     $pdo->exec('PRAGMA user_version = 60');
   }
+  if ($v < 61) { /* 3.11: os registros de um cliente (o Histórico: os ajustes do gestor e as ocorrências) achados direto, sem varrer a tabela inteira */
+    try { $pdo->exec('CREATE INDEX IF NOT EXISTS registros_crianca ON registros (crianca_id, quando)'); } catch (Throwable $e) { }
+    $pdo->exec('PRAGMA user_version = 61');
+  }
   return $pdo;
 }
 /* ---------- 1.06: unidades ---------- */
@@ -975,11 +979,14 @@ function pedidoCriar(array $u, array $in): array {
     $desc = round(max(0, (float)($in['desconto'] ?? 0)), 2); $sub = round(max(0, (float)($in['subtotal'] ?? 0)), 2);
     if ($desc > 0) { if ($sub <= 0 || $desc >= $sub || abs($sub - $desc - $valor) > 0.05) falha('Confira o desconto: o total tem que ser o valor dos pacotes e produtos menos o desconto.'); $dados['desconto'] = $desc; $dados['subtotal'] = $sub; }
     $aj = mb_substr(maiusculo(trim(preg_replace('/\s+/u', ' ', (string)($in['ajuste'] ?? '')))), 0, 200); if ($aj !== '') $dados['ajuste'] = $aj;   /* 3.01: o valor ajustado (pacote ou produto), para o gestor ver */
+    $hTab = array_map(fn($x) => round((float)($x['h'] ?? 0), 2), (array)(regra()['pacotes'] ?? []));   /* 3.11: as horas de cada pacote vêm da tabela */
     $its = []; if (!empty($in['pac'])) foreach (array_slice((array)($in['itens'] ?? []), 0, 40) as $x) { if (!is_array($x)) continue; $k = ($x['k'] ?? '') === 'pr' ? 'pr' : 'pac';   /* 3.05: os itens (as horas de cada pacote vão para o cliente) */
       $its[] = ['k' => $k, 'n' => mb_substr(maiusculo((string)($x['n'] ?? '')), 0, 80), 'h' => $k === 'pac' ? max(0, min(200, round((float)($x['h'] ?? 0), 2))) : 0, 'q' => max(1, min(999, (int)($x['q'] ?? 1))), 'v' => round(max(0, (float)($x['v'] ?? 0)), 2)]; }
+    foreach ($its as $x) if ($x['k'] === 'pac' && !in_array(round((float)$x['h'], 2), $hTab, true)) falha('Confira o pacote ' . ($x['n'] !== '' ? $x['n'] : '') . ': as horas não estão na tabela de pacotes.');
     if ($its) $dados['itens'] = $its;
+    $hMin = 0; foreach ($its as $x) if ($x['k'] === 'pac') $hMin += (int)round((float)$x['h'] * 60);
     $dm = fn($s) => substr($s, 8, 2) . '/' . substr($s, 5, 2);
-    $texto = (empty($in['pac']) ? 'Venda futura: ' : 'Pacote futuro: ') . $oque . ' · ' . dinheiro($valor) . ($desc > 0 ? ' · desconto ' . dinheiro($desc) : '') . ($aj !== '' ? ' · valor ajustado: ' . $aj : '') . ' · fecha em ' . $dm($fecha) . ' · pagamento em ' . $dm($paga) . ' · vendedora ' . $vend;
+    $texto = (empty($in['pac']) ? 'Venda futura: ' : 'Pacote futuro: ') . $oque . ($hMin > 0 ? ' · ' . dur($hMin) . ' para o cliente' : '') . ' · ' . dinheiro($valor) . ($desc > 0 ? ' · desconto ' . dinheiro($desc) : '') . ($aj !== '' ? ' · valor ajustado: ' . $aj : '') . ' · fecha em ' . $dm($fecha) . ' · pagamento em ' . $dm($paga) . ' · vendedora ' . $vend;
   } elseif ($tipo === 'valor' && (int)($in['venda'] ?? 0) > 0) { // 1.39: na saída, o pacote ou o produto desta visita que ficou para pagar na saída
     $q = $db->prepare('SELECT * FROM vendas WHERE id = ?'); $q->execute([(int)$in['venda']]); $v = $q->fetch(); $q->closeCursor(); if (!$v) falha('Esta venda não existe mais: já foi desfeita ou cancelada.', 404);
     $c = crianca((int)$v['crianca_id']); if (!$c) falha('Cliente não encontrado.', 404); $k = altDaVenda($v); if ($k === '') falha('Esta venda não tem o valor alterado por aqui (só o pacote ou o produto desta visita).');
@@ -1136,8 +1143,8 @@ function vfutFiadoLegado(): int {
 /* 3.09 (o dono: "Morumbi só pode ver Morumbi, Anália só pode ver Anália"): as vendas futuras e os fiados só do lugar de quem pede (o Play e a
    Casa Tom do mesmo lugar juntos); o gestor vê todas */
 function vfutDoLugar(array $L, array $eu): array {
-  if (($eu['papel'] ?? '') === 'gestor') return $L; $u = (int)(unidadeDoPedido() ?? 0); if ($u <= 0) $u = (int)($eu['unidade_id'] ?? 0); if ($u <= 0) return $L;
-  $loc = []; foreach (unidades() as $x) $loc[(int)$x['id']] = uniLocal((string)$x['nome']); $meu = $loc[$u] ?? ''; if ($meu === '') return $L;
+  if (($eu['papel'] ?? '') === 'gestor') return $L; $u = (int)(unidadeDoPedido() ?? 0); if ($u <= 0) $u = (int)($eu['unidade_id'] ?? 0); if ($u <= 0) $u = (int)($_SESSION['uni0'] ?? 0); if ($u <= 0) return [];   /* 3.11: sem a unidade, nada */
+  $loc = []; foreach (unidades() as $x) $loc[(int)$x['id']] = uniLocal((string)$x['nome']); $meu = $loc[$u] ?? ''; if ($meu === '') return [];
   return array_values(array_filter($L, fn($x) => ($x['uni'] ?? null) === null || ($loc[(int)$x['uni']] ?? '') === $meu));
 }
 /* os fiados que ainda têm valor a receber (para a tela: o aviso e o Receber) */
@@ -1157,6 +1164,8 @@ function fiadoReceber(array $in, array $u): array {
   $pg = lerPagamento($in['pagamento'] ?? null); if (!$pg) falha('Escolha a forma de pagamento.');
   if (abs(array_sum($pg) - $falta) >= 0.01) falha('Falta receber ' . dinheiro($falta) . ', e o pagamento deu ' . dinheiro((float)array_sum($pg)) . '.', 409);
   $c = crianca((int)$v['crianca_id']); if (!$c) falha('Cliente não encontrado.', 404); $parc = lerParcelas($in, $pg, $u, $c);
+  if (($u['papel'] ?? '') !== 'gestor' && $v['unidade_id'] !== null) { $aqui = (int)(unidadeDoPedido() ?? 0);   /* 3.11: cada lugar recebe o seu */
+    if ($aqui > 0 && !uniMesmoLugar($aqui, (int)$v['unidade_id'])) falha('Este pacote futuro é de outra unidade: quem recebe é a unidade dele.', 403); }
   $antes = (int)$db->query('SELECT COALESCE(MAX(id), 0) FROM pagamentos')->fetchColumn();
   $pago = gravarPagamento([(int)$v['id']], $pg, (int)$c['id'], (int)$u['id'], (string)$v['quando']); anotarParcelas($antes, $parc, $u, (int)$c['id']);   /* no caixa do dia da venda */
   if (($v['unidade_id'] ?? null) !== null) $db->prepare('UPDATE pagamentos SET unidade_id = ? WHERE id > ? AND venda_id = ?')->execute([(int)$v['unidade_id'], $antes, (int)$v['id']]);
@@ -1901,7 +1910,7 @@ function trocarPagamento(array $in, array $u): array {
   $c = crianca((int)$p['crianca_id']); $fam = $c ? array_merge([(int)$c['id']], array_map(fn($x) => (int)$x['id'], irmaosDe($c))) : [(int)$p['crianca_id']];
   $gestor = ($u['papel'] ?? '') === 'gestor';
   /* 3.10: o Ajustar caixa (origem 'caixa') é a quebra de caixa: só salva com o nome de quem está ajustando (vai para o Financeiro) */
-  $origem = ($in['origem'] ?? '') === 'caixa' ? 'caixa' : ''; $atend = maiusculo(mb_substr(trim((string)preg_replace('/\s+/u', ' ', (string)($in['atendente'] ?? ''))), 0, 60));
+  $origem = ($in['origem'] ?? '') === 'caixa' ? 'caixa' : ''; $atend = maiusculo(mb_substr(trim((string)preg_replace('/\s+/u', ' ', (is_string($in['atendente'] ?? null) ? $in['atendente'] : ''))), 0, 60));
   if ($origem === 'caixa' && mb_strlen($atend) < 2) falha('Toque no nome de quem está ajustando o caixa.');
   $q = $db->prepare('SELECT * FROM pagamentos WHERE crianca_id IN (' . implode(',', $fam) . ') AND quando = ? AND forma = ? ORDER BY id'); $q->execute([(string)$p['quando'], $de]); $L = $q->fetchAll();
   $valor = round(array_sum(array_map(fn($x) => (float)$x['valor'], $L)), 2); $nomeC = (string)($c['nome'] ?? ''); $vc = (int)round($valor * 100);
@@ -3321,6 +3330,7 @@ function pastaCopiasSemana(): ?string {
 function copiasDaSemana(): array {   // as cópias da semana, a mais nova primeiro (o nome começa pela data e hora)
   $d = pastaDados() . '/copias'; $L = array_values(array_filter(glob($d . '/semana-*.sqlite') ?: [], 'is_file')); rsort($L); return $L;
 }
+function copiaDevida(): bool { $ult = (int)cfg('copia_semana_em', 0); return !$ult || time() - $ult >= COPIA_DIAS * 86400; }   /* 3.11 */
 function copiaSemanal(bool $agora = false): ?string {   // faz a cópia se já passou o prazo (ou se o gestor pediu agora). Devolve o nome do arquivo novo
   $ult = (int)cfg('copia_semana_em', 0);
   if (!$agora && $ult && time() - $ult < COPIA_DIAS * 86400) return null;
