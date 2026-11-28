@@ -1301,6 +1301,16 @@ Pedido do dono: a cópia automática, a cada 7 dias.
 
 Pedido do dono (com a foto da lista): o fusquinha que está fora mostra, na coluna **Tempo**, só o relógio de quanto tempo está fora, sem o "até agora R$ 360" embaixo. Quanto cobrar aparece na **devolução**, e a comanda do cliente (a ficha) continua dizendo o que soma até agora, para quem precisar conferir. O "passou X min" do carrinho com tempo comprado continua.
 
+## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Pacote futuro: só produtos da Play, botões ajustados e "Ajustar valor" no lugar do desconto (3.01)
+
+Pedidos do dono (28/11), com as fotos do Pacote futuro: "ajuste os botões", "tire produtos da Casa Tom, não pode vender com pacote", "coloque uma opção de ajustar o valor do pacote, que aí eu posso ajustar tanto para cima, tanto para mais, tanto produto quanto pacote" e "troca por esse botão desconto".
+
+- Só os produtos da Play: saíram o "Produtos Casa Tom" e os produtos da Casa Tom da busca. As categorias aparecem só quando a Play tem mais de uma. O "Cadastrar produto" continua (cadastra na Play).
+- Os botões: a busca e o "Cadastrar produto" com a mesma altura, na mesma linha. No cadastro, "Cancelar" com borda e do mesmo tamanho do "Cadastrar e pôr junto".
+- O Desconto saiu. No lugar dele, o botão **Ajustar valor** ("Valor · para mais ou para menos"). Escolhido o pacote (ou o produto), um toque abre, na conta, o valor de cada pacote e de cada produto (o do produto é o de cada um). É só escrever o valor novo, para mais ou para menos: o total combinado acompanha na hora e aparece "Pela tabela R$ ...". O botão vira "Pronto"; cada item ajustado mostra "ajustado · na tabela R$ ...".
+- O ajuste vai no pedido ao gestor: "valor ajustado: PACOTE ... DE R$ X PARA R$ Y + ...". Lançado pelo gestor, já vale, e o lembrete de COBRAR sai com o valor ajustado.
+- Um valor apagado (ou zero) não deixa pedir: "Escreva o valor de cada item".
+
 ## 6zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz. Pacote futuro: "Produtos Play" e "Produtos Casa Tom" no filtro (3.00)
 
 Pedido do dono (28/11): "coloque também produtos Casa Tom e produtos Play."

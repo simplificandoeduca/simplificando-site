@@ -965,8 +965,9 @@ function pedidoCriar(array $u, array $in): array {
     /* 2.97: o pacote futuro com produtos e desconto: o subtotal (pacotes + produtos), o desconto e o total (o valor) têm que fechar */
     $desc = round(max(0, (float)($in['desconto'] ?? 0)), 2); $sub = round(max(0, (float)($in['subtotal'] ?? 0)), 2);
     if ($desc > 0) { if ($sub <= 0 || $desc >= $sub || abs($sub - $desc - $valor) > 0.05) falha('Confira o desconto: o total tem que ser o valor dos pacotes e produtos menos o desconto.'); $dados['desconto'] = $desc; $dados['subtotal'] = $sub; }
+    $aj = mb_substr(maiusculo(trim(preg_replace('/\s+/u', ' ', (string)($in['ajuste'] ?? '')))), 0, 200); if ($aj !== '') $dados['ajuste'] = $aj;   /* 3.01: o valor ajustado (pacote ou produto), para o gestor ver */
     $dm = fn($s) => substr($s, 8, 2) . '/' . substr($s, 5, 2);
-    $texto = (empty($in['pac']) ? 'Venda futura: ' : 'Pacote futuro: ') . $oque . ' · ' . dinheiro($valor) . ($desc > 0 ? ' · desconto ' . dinheiro($desc) : '') . ' · fecha em ' . $dm($fecha) . ' · pagamento em ' . $dm($paga) . ' · vendedora ' . $vend;
+    $texto = (empty($in['pac']) ? 'Venda futura: ' : 'Pacote futuro: ') . $oque . ' · ' . dinheiro($valor) . ($desc > 0 ? ' · desconto ' . dinheiro($desc) : '') . ($aj !== '' ? ' · valor ajustado: ' . $aj : '') . ' · fecha em ' . $dm($fecha) . ' · pagamento em ' . $dm($paga) . ' · vendedora ' . $vend;
   } elseif ($tipo === 'valor' && (int)($in['venda'] ?? 0) > 0) { // 1.39: na saída, o pacote ou o produto desta visita que ficou para pagar na saída
     $q = $db->prepare('SELECT * FROM vendas WHERE id = ?'); $q->execute([(int)$in['venda']]); $v = $q->fetch(); $q->closeCursor(); if (!$v) falha('Esta venda não existe mais: já foi desfeita ou cancelada.', 404);
     $c = crianca((int)$v['crianca_id']); if (!$c) falha('Cliente não encontrado.', 404); $k = altDaVenda($v); if ($k === '') falha('Esta venda não tem o valor alterado por aqui (só o pacote ou o produto desta visita).');
